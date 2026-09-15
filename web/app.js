@@ -100,8 +100,8 @@
     $("log-empty").hidden = events.length > 0;
     if (!events.length) {
       $("log-empty").replaceChildren(node("span", "", "· · ·"),
-        node("p", "", state.events.length ? "No matching events." : "Your session starts here."),
-        node("small", "", state.events.length ? "Try another filter or search term." : "Identity traffic and file inspection results appear in this log."));
+        node("p", "", state.events.length ? "No matching events." : "No events yet."),
+        node("small", "", state.events.length ? "Change the filter or search text." : "Device messages and file results appear here."));
     }
     if (atEnd) window.scrollTop = window.scrollHeight;
   }
@@ -134,7 +134,7 @@
     state.identity = null;
     $("identity-result").hidden = true;
     $("identity-result").replaceChildren();
-    badge("device-badge", "Awaiting identity");
+    badge("device-badge", "Not read");
   }
   async function refreshPorts() {
     const generation = ++state.portsGeneration;
@@ -143,14 +143,14 @@
     const previousOutput = $("output-port").value;
     invalidateIdentity();
     controls();
-    message("device-message", "Looking for available MIDI ports…");
+    message("device-message", "Loading MIDI ports…");
     try {
       const data = await api("/api/ports");
       if (generation !== state.portsGeneration) return;
       state.ports = {inputs: data.inputs.filter((item) => typeof item === "string"), outputs: data.outputs.filter((item) => typeof item === "string")};
       populatePorts("input-port", state.ports.inputs, previousInput);
       populatePorts("output-port", state.ports.outputs, previousOutput);
-      message("device-message", selectedFm1Ports() ? "Ports selected. Ready for your identity request." : "Select the normal FM-1 USB MIDI input and output.");
+      message("device-message", selectedFm1Ports() ? "Ports selected." : "Select the normal FM-1 USB MIDI input and output.");
       log("INFO", `MIDI ports refreshed: ${state.ports.inputs.length} input(s), ${state.ports.outputs.length} output(s).`);
     } catch (error) {
       if (generation !== state.portsGeneration) return;
@@ -198,7 +198,7 @@
       addEvents(data.events);
       state.identity = {ports, ...data.identity};
       renderIdentity(data.identity);
-      message("device-message", "Identity request finished. The reply is recorded below.");
+      message("device-message", "Identity received.");
     } catch (error) {
       addEvents(error.events);
       message("device-message", error.message, true);
@@ -219,29 +219,29 @@
     badge("inspection-badge", "Inspection complete", "success");
     const heading = node("div", "file-heading");
     const name = node("div");
-    name.append(node("h3", "", filename), node("p", "", report.kind === "fm1-package" ? "Firmware package / file evidence" : "Application image / file evidence"));
+    name.append(node("h3", "", filename), node("p", "", report.kind === "fm1-package" ? "Firmware package" : "Application image"));
     heading.append(name, node("span", "file-size", size(report.size)));
     result.append(heading);
     const metrics = node("div", "metrics");
     if (report.kind === "fm1-package") {
-      metrics.append(metric("Package identity", report.identity?.value || "Not found", "Read from package bytes; unauthenticated and independent of the device."));
-      metrics.append(metric("Package integrity", `${report.integrity?.entries_verified ?? 0} entry CRCs passed`, "Header and entry-table CRCs also passed. CRCs do not establish authenticity."));
-      metrics.append(metric("Package entries", String(report.entries?.length ?? 0), "Offsets refer to the logical UFW image, after interleaved markers are removed."));
+      metrics.append(metric("Package identity", report.identity?.value || "Not found", "Stored in the file. Authenticity is unverified."));
+      metrics.append(metric("Package checks", `${report.integrity?.entries_verified ?? 0} entry CRCs passed`, "Header and entry-table CRCs also passed. CRCs cannot confirm the file's source."));
+      metrics.append(metric("Package entries", String(report.entries?.length ?? 0), "Logical UFW offsets, with interleaved markers removed."));
     } else {
       metrics.append(metric("Image size", `${Number(report.size).toLocaleString()} bytes`, "Unpacked application image."));
-      metrics.append(metric("Identity strings", String(report.embedded_identities?.length ?? 0), "Embedded strings are research clues, not a device identity reply."));
-      metrics.append(metric("FM table candidates", String(report.msfa_tables?.length ?? 0), "Compared with the known msfa algorithm table."));
+      metrics.append(metric("Identity strings", String(report.embedded_identities?.length ?? 0), "Identity text found in the application file."));
+      metrics.append(metric("Possible msfa tables", String(report.msfa_tables?.length ?? 0), "Compared with the msfa algorithm table."));
     }
     result.append(metrics);
     if (report.identity?.matches_application === false) {
-      result.append(node("p", "inline-message error", "The package identity does not match the identity strings found in the application. Review the full report."));
+      result.append(node("p", "inline-message error", "Package and application identities differ. See the full report."));
     }
     const hash = node("div", "hash-row"); hash.append(node("span", "", "SHA-256"), node("code", "", report.sha256)); result.append(hash);
     if (Array.isArray(report.entries)) {
       result.append(node("h3", "subheading", "Package contents"));
       const wrap = node("div", "table-wrap");
       const table = node("table");
-      const caption = node("caption", "visually-hidden", "Entries found in this firmware package");
+      const caption = node("caption", "visually-hidden", "Firmware package entries");
       const head = node("thead"); const header = node("tr");
       for (const label of ["Entry", "Logical offset", "Size", "CRC16", "CRC scope"]) { const cell = node("th", "", label); cell.scope = "col"; header.append(cell); }
       head.append(header);
@@ -255,9 +255,9 @@
     }
     const app = report.kind === "fm1-application" ? report : report.application;
     if (app) {
-      result.append(node("h3", "subheading", "Application research"));
+      result.append(node("h3", "subheading", "Application"));
       if (app.status === "unsupported") {
-        result.append(node("p", "analysis-note", app.reason || "This application's extraction format is not supported. Package integrity results remain available above."));
+        result.append(node("p", "analysis-note", app.reason || "Cannot extract this application format. Package checks are shown above."));
       } else {
         if (report.kind === "fm1-package") {
           result.append(node("p", "analysis-note", `Unpacked app.bin · ${size(app.size)} (${Number(app.size).toLocaleString()} bytes)${app.status === "verified" ? " · Application CRC passed" : ""}`));
@@ -273,26 +273,26 @@
           content.append(node("p", "", `${printable(table.matching_rows)} / 32 rows match original msfa. Offsets refer to the unpacked application.`));
           if (table.differences?.length) {
             const algorithms = [...new Set(table.differences.map((difference) => difference.algorithm))];
-            content.append(node("p", "", `Differences in algorithm${algorithms.length === 1 ? "" : "s"} ${algorithms.join(", ")}. Byte comparisons are included in the full report.`));
+            content.append(node("p", "", `Differences in algorithm${algorithms.length === 1 ? "" : "s"} ${algorithms.join(", ")}. See the full report for byte comparisons.`));
           }
           item.append(node("span", "finding-mark", "↳"), content); findings.append(item);
         }
         if (!app.msfa_tables?.length) {
           const item = node("li", "finding");
-          item.append(node("span", "finding-mark", "·"), node("p", "", "No matching msfa algorithm table was found by this inspector."));
+          item.append(node("span", "finding-mark", "·"), node("p", "", "No matching msfa algorithm table found."));
           findings.append(item);
         }
         result.append(findings);
-        if (app.embedded_identities?.length) result.append(node("p", "analysis-note", `Embedded identity strings: ${app.embedded_identities.map(printable).join(" · ")}`));
+        if (app.embedded_identities?.length) result.append(node("p", "analysis-note", `Identity strings: ${app.embedded_identities.map(printable).join(" · ")}`));
       }
     }
     if (Array.isArray(report.unchecked_layers) && report.unchecked_layers.length) {
-      result.append(node("h3", "subheading", "Inspection limits"));
+      result.append(node("h3", "subheading", "Not checked"));
       const limits = node("ul", "scope-notes");
       for (const layer of report.unchecked_layers) limits.append(node("li", "", printable(layer)));
       result.append(limits);
     }
-    result.append(node("p", "analysis-note", "Inspection establishes file structure and research findings. It does not establish that a file is safe to install."));
+    result.append(node("p", "analysis-note", "These checks do not show whether the file is safe to install."));
     details(result, report);
   }
   async function inspectFile(file, inferKind = true) {
@@ -303,10 +303,10 @@
     state.inspection = null;
     $("inspection-panel").hidden = true;
     state.file = file;
-    if (!state.ready) { message("file-message", "The local service must be available to inspect a file.", true); return; }
+    if (!state.ready) { message("file-message", "Connect to the local service to inspect files.", true); return; }
     if (!file || !file.size) { message("file-message", "Choose a non-empty firmware file.", true); return; }
     if (file.size > state.maxBytes) {
-      const error = `This file is ${size(file.size)}. The inspection limit is ${size(state.maxBytes)}.`;
+      const error = `File size: ${size(file.size)}. Maximum: ${size(state.maxBytes)}.`;
       message("file-message", error, true); log("ERROR", error); return;
     }
     if (inferKind) {
@@ -327,7 +327,7 @@
     } catch (error) {
       if (generation !== state.inspectionGeneration || error.name === "AbortError") return;
       message("file-message", error.message, true);
-      log("ERROR", `Inspection of ${fileName(file)} failed: ${error.message}`);
+      log("ERROR", `Could not inspect ${fileName(file)}: ${error.message}`);
     } finally {
       if (generation === state.inspectionGeneration) $("drop-zone").removeAttribute("aria-busy");
     }
@@ -341,7 +341,7 @@
     state.exportFilename = `fm1-bench-${report.exported_at.replace(/[:.]/g, "-")}.json`;
     $("copy-report").disabled = false;
     $("copy-report").textContent = "Copy report";
-    message("report-message", "Report ready to review. File names are included; local file paths are omitted.");
+    message("report-message", "Includes file names, without local file paths.");
     $("report-dialog").showModal();
     $("report-text").setSelectionRange(0, 0);
     $("report-text").scrollTop = 0;
@@ -355,7 +355,7 @@
       await navigator.clipboard.writeText($("report-text").value);
       if (generation !== state.exportGeneration || !$("report-dialog").open) return;
       message("report-message", "Report copied to clipboard.");
-      log("INFO", "Session report copied to clipboard.");
+      log("INFO", "Report copied to clipboard.");
     } catch (_) {
       if (generation !== state.exportGeneration || !$("report-dialog").open) return;
       $("report-text").focus();
@@ -375,26 +375,26 @@
     document.body.append(link); link.click(); link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
     message("report-message", "Download requested. If your browser does not save the file, use Copy report.");
-    log("INFO", "Session report JSON download requested.");
+    log("INFO", "JSON report download requested.");
   }
   async function start() {
     controls();
     try {
       const status = await api("/api/status");
-      if (status.mode !== "read-only") throw new Error("This page requires the read-only workbench service.");
+      if (status.mode !== "read-only") throw new Error("A read-only local service is required.");
       state.ready = true;
       if (Number.isInteger(status.max_file_bytes) && status.max_file_bytes > 0) state.maxBytes = status.max_file_bytes;
       $("file-limit").textContent = `.fwsc or app.bin · up to ${size(state.maxBytes)}`;
       $("service-label").textContent = "Local service online";
       $("service-dot").classList.remove("offline");
-      message("service-message", "Local service ready. Device identity is read only when you request it.");
-      log("INFO", "Read-only workbench ready. Firmware files stay with the local service.");
+      message("service-message", "Connected to the local service.");
+      log("INFO", "Local service connected. Device access is read-only. Files are processed locally.");
       controls(); await refreshPorts();
     } catch (error) {
       state.ready = false; controls();
       $("service-label").textContent = "Service unavailable";
       $("service-dot").classList.add("offline");
-      message("service-message", `${error.message} Start the local workbench service, then reload this page.`, true);
+      message("service-message", `${error.message} Start the local service and reload this page.`, true);
       message("device-message", "MIDI ports are unavailable while the service is offline.", true);
       log("ERROR", error.message);
     }
@@ -404,7 +404,7 @@
   $("identify").addEventListener("click", identify);
   for (const id of ["input-port", "output-port"]) $(id).addEventListener("change", () => {
     invalidateIdentity(); controls();
-    message("device-message", selectedFm1Ports() ? "Port selection changed. Read identity to check this device." : "Select the normal FM-1 USB MIDI input and output.");
+    message("device-message", selectedFm1Ports() ? "Ports changed. Read identity again." : "Select the normal FM-1 USB MIDI input and output.");
   });
   $("choose-file").addEventListener("click", () => $("firmware-file").click());
   $("firmware-file").addEventListener("change", (event) => {

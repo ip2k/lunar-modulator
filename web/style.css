@@ -146,7 +146,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   padding: 48px 0 32px;
 }
 
-.eyebrow,.note-index {
+.eyebrow {
   font-family: var(--mono);
   letter-spacing: 1.4px;
   font-size: 10px;
@@ -169,25 +169,6 @@ h1 {
   color: var(--muted);
   margin: 0;
   font-size: 15px;
-  line-height: 1.65;
-}
-
-.bench-note {
-  border-left: 1px solid #56615e;
-  padding: 8px 0 8px 23px;
-  max-width: 270px;
-}
-
-.bench-note p {
-  font-size: 16px;
-  line-height: 1.5;
-  margin: 10px 0 8px;
-}
-
-.bench-note>span:last-child {
-  display: block;
-  color: var(--muted);
-  font-size: 12px;
   line-height: 1.65;
 }
 
@@ -931,11 +912,6 @@ td:first-child {
   color: var(--ink);
 }
 
-.footer-divider {
-  margin: 0 8px;
-  color: #596861;
-}
-
 .report-dialog {
   width: min(720px, calc(100% - 32px));
   max-height: calc(100% - 32px);
@@ -1025,9 +1001,6 @@ td:first-child {
     padding-top: 35px;
     gap: 24px;
   }
-  .bench-note {
-    max-width: 230px;
-  }
   .panel {
     padding: 20px;
   }
@@ -1101,9 +1074,6 @@ td:first-child {
   }
   .intro-copy {
     font-size: 13px;
-  }
-  .bench-note {
-    display: none;
   }
   .service-message {
     font-size: 11px;
