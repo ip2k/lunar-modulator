@@ -13,7 +13,9 @@ Ghidra, a vendor toolchain, or a subprocess. It provides:
   operator lookup tables from [16 — Operator mathematics](16-operator-mathematics.md).
 - six effect dispatch records and eighteen callback pointers, with verified
   process roles and explicit uncertainty on initialization/update roles and
-  names; see [18 — Effects decoding](18-effects-decoding.md).
+  names; V15 chorus and distortion inner-stage evidence is summarized in
+  [18 — Effects decoding](18-effects-decoding.md) and the cross-repository
+  reconciliation in [22 — Effects evidence roll-up](22-effects-evidence-rollup.md).
 
 This is **partial executable analysis**. It does not recover complete source
 code, decode every instruction, prove all function boundaries, emulate a
@@ -301,7 +303,8 @@ Normal analysis uses the new Python implementation.
 
 Next work is to decode the remaining arithmetic, conditional execution and
 branch forms; expand proven function/interrupt boundaries; follow indirect
-dispatch through actual tables; reconstruct operator/voice state and complete
-effect equations; and compare a rebuilt implementation with controlled hardware
-measurements. Relocation-masked similarity alone is insufficient to claim
-equivalent behavior across firmware versions.
+dispatch through actual tables; finish the surrounding renderer and voice
+lifecycle; resolve the effects' floating-point and parameter equations; and
+compare a rebuilt implementation with controlled hardware measurements.
+Relocation-masked similarity alone is insufficient to claim equivalent behavior
+across firmware versions.

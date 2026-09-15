@@ -16,6 +16,11 @@ See [13 — Firmware decoding](13-firmware-decoding.md) for the checked mapping.
 Historical disassembly addresses based on `0x02000000` must not be copied
 directly into this map. No device execution or audio measurement was used.
 
+The related cross-repository findings are consolidated in
+[22 — Effects evidence roll-up](22-effects-evidence-rollup.md). That document
+keeps the AL-255 analysis as corroborating context and does not transplant its
+addresses into this V15 map.
+
 ## Six-slot dispatcher
 
 [verified] The routine at file `0x872BE`, runtime `0x01C0337E`, contains six
@@ -126,7 +131,8 @@ conversion equations have not been established.
 [verified] Initialization allocates 268 bytes of state. The code uses several
 coefficient blocks and helpers at runtime `0x0201C400` and `0x0201C652`.
 [inferred] The UI ordering suggests distortion. Its final tanh lookup stage,
-including scaling, interpolation, sign, and saturation, is now traced in
+including scaling, interpolation, sign, saturation and a separate gain, is now
+traced in
 [19 — Effects lookup mathematics](19-effects-mathematics.md). The complete
 filter arrangement, gain mapping, and mode bindings remain unresolved.
 
@@ -141,6 +147,10 @@ The process callback loads the sine table address `0x02053CB4` at file
 [inferred] The small delay ring and sine lookup support a modulated delay.
 The phase increment, interpolation, modulation depth, and mix remain
 unresolved.
+
+The cross-repository analysis independently classifies this shape as a
+chorus/flanger process with LFO/sine-table modulation. That corroborates the
+V15 interpretation while leaving the V15 parameter and sample equations open.
 
 ### ID 5 — Phaser candidate
 

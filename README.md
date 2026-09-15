@@ -23,6 +23,24 @@ rebuilding. Start it with `python tools/fm1_workbench.py --open`; see
 Full decoding, DSP replacement, device installation and recovery remain active
 work. Offline integrity checks do not prove that a modified image will run.
 
+### Decoding milestone
+
+The effects path has concrete evidence beyond its UI labels:
+
+| Area | Current evidence |
+| --- | --- |
+| FX chain | Six effect slots, a V15 dispatcher, eighteen callback pointers, and indexed object/enabled/parameter state fields. |
+| Distortion | A V15 callback with a traced final tanh lookup: ×512 position scaling, sign handling, linear interpolation, gain, and an explicit 1.0 saturation path. |
+| Chorus | A V15 44-byte state, 884-byte delay buffer, ring length 220, and a process callback that loads the exact 513-cell sine table. The cross-repository analysis identifies the structure as a modulated delay. |
+| Reverb and delay | V15 allocation and ring/stage observations; the cross-repository analysis adds multi-stage comb/delay/feedback and interpolated-delay context. |
+| Whole audio path | The cross-repository FM-engine analysis places the six-slot effects pass after the voice mix and before DAC output; the version and address-space boundary is recorded in [22 — Effects evidence roll-up](docs/22-effects-evidence-rollup.md). |
+
+The effect names and several inner equations remain hypotheses. The evidence,
+source versions, and coordinate-space differences are recorded in
+[18 — Effects decoding](docs/18-effects-decoding.md),
+[19 — Effects lookup mathematics](docs/19-effects-mathematics.md), and
+[22 — Effects evidence roll-up](docs/22-effects-evidence-rollup.md).
+
 ## Browser workbench
 
 Use the [FM-1 Workbench](docs/11-workbench.md) for a local browser interface to
@@ -101,6 +119,7 @@ the project's recovery gate.
 | [`docs/08-roadmap.md`](docs/08-roadmap.md) | Phased plan with exit criteria |
 | [`docs/09-first-session-checklist.md`](docs/09-first-session-checklist.md) | Exact commands for the first hands-on session |
 | [`docs/10-usb-key-dongle.md`](docs/10-usb-key-dongle.md) | The RP2040 `USB_KEY` dongle: protocol, hardware, firmware, bench procedure |
+| [`docs/22-effects-evidence-rollup.md`](docs/22-effects-evidence-rollup.md) | Cross-repository effects evidence and V15 reconciliation |
 | [`dongle/`](dongle/) | Dongle firmware (PIO + C), ROM/dongle simulator, tests |
 | [`tools/check_msfa_table.py`](tools/check_msfa_table.py) | Finds the msfa algorithm table in an `app.bin` (tested on V13 and V14) |
 | [`tools/extract_fwsc_from_updater.py`](tools/extract_fwsc_from_updater.py) | Carves the embedded `.fwsc` out of an M-UPGRADE updater binary (verified on the macOS DMG) |

@@ -91,6 +91,7 @@ complete reverse engineering.
 | --- | --- |
 | `fm1_package.py` | Container validation, application extraction and table inspection |
 | `fm1_decode.py` | Executable, memory, feature and DSP analysis from image bytes |
+| `fm1_dsp.py`, `fm1_effects.py` | Source-bound lookup-table fingerprints and V15 effect callback/stage observations |
 | `fm1_rebuild.py` | Source-bound patching, metadata reconstruction and inverse changes |
 | `fm1_project.py` | Private original/revision storage and analysis provenance |
 | `fm1_workspace.py` | Bounded loaded files, local projects, hex views and rebuild operations |
