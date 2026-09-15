@@ -7,7 +7,8 @@ import struct
 
 import pytest
 
-from tools.fm1_pi32 import Memory, Pi32Error, Pi32Machine, run_operator_kernel
+from tools.fm1_pi32 import (Memory, Pi32Error, Pi32Machine, _check_experiment_ranges,
+                            run_operator_experiment, run_operator_kernel)
 
 
 CODE = 0x1000
@@ -192,6 +193,23 @@ def test_wrong_application_is_rejected_before_address_assumptions():
         run_operator_kernel(bytes(581564), ((0, 0, 0, 0),) * 3)
 
 
+@pytest.mark.parametrize('start,size', [(0, 1), (0x85284, 1), (0x85283, 2),
+                                       (0x89F8D, 2), (0x8AF8D, 2)])
+def test_experiment_requires_entire_patch_inside_one_allowed_region(start, size):
+    with pytest.raises(Pi32Error, match='fit entirely'):
+        _check_experiment_ranges([{'offset': start, 'expected_hex': '00' * size}])
+
+
+@pytest.mark.parametrize('start,size', [(0x85064, 0x220), (0x89F8E, 0x1000)])
+def test_experiment_allows_exact_region_boundaries(start, size):
+    _check_experiment_ranges([{'offset': start, 'expected_hex': '00' * size}])
+
+
+def test_experiment_requires_original_exact_stock_image():
+    with pytest.raises(Pi32Error, match='exact verified'):
+        run_operator_experiment(bytes(581564), [], ((0, 0, 0, 0),) * 3)
+
+
 @pytest.mark.skipif(not os.environ.get('FM1_V15_APPLICATION'), reason='optional private V15 application not configured')
 def test_private_v15_byte_execution_against_separate_reference():
     from tools.fm1_operator import OperatorState, render_three_operator_block
@@ -219,3 +237,52 @@ def test_private_v15_byte_execution_against_separate_reference():
             assert (after[0], after[2], after[3]) == (before[0], before[2], before[3])
         assert result['instructions'] < 20000
         assert not result['device_io_performed']
+
+
+@pytest.mark.skipif(not os.environ.get('FM1_V15_APPLICATION'), reason='optional private V15 application not configured')
+def test_private_half_scale_experiment_and_exact_rollback():
+    import hashlib
+    import json
+    from tools.fm1_rebuild import rebuild_application, rollback_application
+
+    original = Path(os.environ['FM1_V15_APPLICATION']).read_bytes()
+    source_hash = hashlib.sha256(original).hexdigest()
+    patches = [{'offset': 0x85256, 'expected_hex': 'c0f10df0', 'replacement_hex': 'c0f10cf0',
+                'label': 'Offline final operator output shift 13 to 12'}]
+    # Two quiet positive modulators, followed by a carrier in its first quarter.
+    # Changed feedback stays positive and cannot activate either modulator.
+    rows = ((16384, 0, 0, 0), (16384, 0, 0, 0), (1, (16384 - 1) << 14, 16 << 12, 0))
+    stock = run_operator_kernel(original, rows)
+    experiment = run_operator_experiment(original, patches, rows)
+    assert all(value > 0 for value in stock['samples'])
+    assert tuple(value * 2 for value in experiment['samples']) == stock['samples']
+    assert tuple(value * 2 for value in experiment['feedback']) == stock['feedback']
+    assert experiment['operator_words'] == stock['operator_words']
+    assert experiment['source_sha256'] == source_hash
+    assert experiment['status'] == 'experimental'
+    assert experiment['experimental'] and not experiment['hardware_behavior_verified']
+    assert not experiment['device_io_performed']
+    modified, independent_manifest = rebuild_application(original, patches, expected_source_sha256=source_hash)
+    executed_hash = hashlib.sha256(modified).hexdigest()
+    assert experiment['executed_image_sha256'] == experiment['application_sha256'] == executed_hash
+    assert executed_hash != source_hash
+    assert experiment['manifest'] == independent_manifest
+    assert hashlib.sha256(original).hexdigest() == source_hash
+    assert json.loads(json.dumps(experiment))['manifest']['source_sha256'] == source_hash
+    restored, reverse = rollback_application(modified, experiment['manifest'])
+    assert restored == original
+    assert reverse['result_sha256'] == source_hash
+    with pytest.raises(Pi32Error, match='exact verified'):
+        run_operator_kernel(modified, rows)
+
+
+@pytest.mark.skipif(not os.environ.get('FM1_V15_APPLICATION'), reason='optional private V15 application not configured')
+def test_private_experiment_rejects_bad_preimage_and_unsupported_code():
+    original = Path(os.environ['FM1_V15_APPLICATION']).read_bytes()
+    rows = ((16384, 0, 0, 0),) * 3
+    with pytest.raises(Pi32Error, match='expected bytes'):
+        run_operator_experiment(original, [{'offset': 0x85064, 'expected_hex': '00',
+                                           'replacement_hex': '01'}], rows)
+    with pytest.raises(Pi32Error, match='unsupported instruction'):
+        run_operator_experiment(original, [{'offset': 0x85064, 'expected_hex': original[0x85064:0x8506A].hex(),
+                                           'replacement_hex': 'ffff00000000'}], rows)

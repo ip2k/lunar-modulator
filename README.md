@@ -14,7 +14,16 @@ a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
 > the verdict and [`docs/09-first-session-checklist.md`](docs/09-first-session-checklist.md)
 > for what to do with the device on the bench.
 
-## Local bench workbench
+## Firmware development
+
+The `codex/firmware-decoding` branch extends the local Python workbench with
+firmware analysis, local projects, reversible byte changes and package
+rebuilding. Start it with `python tools/fm1_workbench.py --open`; see
+[15 — Firmware development](docs/15-decoding-workflow.md).
+Full decoding, DSP replacement, device installation and recovery remain active
+work. Offline integrity checks do not prove that a modified image will run.
+
+## Browser workbench
 
 Use the [FM-1 Workbench](docs/11-workbench.md) for a local browser interface to
 read device identity, inspect firmware packages and application images, and

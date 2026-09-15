@@ -13,8 +13,10 @@ import struct
 
 try:
     from .fm1_decode import decode_instruction, instruction_size
+    from .fm1_rebuild import RebuildError, rebuild_application
 except ImportError:
     from fm1_decode import decode_instruction, instruction_size
+    from fm1_rebuild import RebuildError, rebuild_application
 
 
 MAX_MEMORY = 16 * 1024 * 1024
@@ -23,6 +25,7 @@ MAX_INSTRUCTIONS = 1_000_000
 V15_SHA256 = '306e47065f35d7a7a05ada7f5dd092f6e770952054f33f0a86b75fd10ffe3203'
 KERNEL_START = 0x01C01124
 KERNEL_END = 0x01C01344
+EXPERIMENT_RANGES = ((0x85064, 0x85284), (0x89F8E, 0x8AF8E))
 
 
 class Pi32Error(ValueError):
@@ -307,8 +310,58 @@ def run_operator_kernel(application, operator_words, feedback=(0, 0), *,
     all kernel arithmetic and table access executes through decoded operands.
     The exact source hash keeps inferred addresses from applying to other code.
     """
-    if not isinstance(application, bytes) or len(application) != 581564 or hashlib.sha256(application).hexdigest() != V15_SHA256:
+    _require_stock_application(application)
+    return _execute_operator_image(application, operator_words, feedback,
+                                   kernel_feedback_shift=kernel_feedback_shift,
+                                   instruction_budget=instruction_budget)
+
+
+def _require_stock_application(application):
+    if (not isinstance(application, bytes) or len(application) != 581564
+            or hashlib.sha256(application).hexdigest() != V15_SHA256):
         raise Pi32Error('exact verified FM-1_015 application is required')
+
+
+def _check_experiment_ranges(normalized_patches):
+    """Check complete ranges after fm1_rebuild validates and normalizes patches."""
+    for patch in normalized_patches:
+        start = patch['offset']
+        end = start + len(patch['expected_hex']) // 2
+        if not any(lower <= start < end <= upper for lower, upper in EXPERIMENT_RANGES):
+            raise Pi32Error('experiment patches must fit entirely within the verified operator kernel or lookup tables')
+
+
+def run_operator_experiment(original_application, patches, operator_words, feedback=(0, 0), *,
+                            kernel_feedback_shift=16, instruction_budget=20000):
+    """Rebuild and execute a reversible, narrowly scoped V15 experiment in memory.
+
+    The original must be exact stock V15. Patches use fm1_rebuild's source-hash,
+    expected-byte, same-size and reversible-manifest contract; every full range
+    must lie in the known kernel or its lookup tables. Other mapped context
+    therefore retains the original bytes. This returns execution observations
+    and a manifest, never a firmware image or a hardware-compatibility claim.
+    Unsupported instructions and illegal memory still terminate execution.
+    """
+    _require_stock_application(original_application)
+    try:
+        modified, manifest = rebuild_application(original_application, patches,
+                                                  expected_source_sha256=V15_SHA256)
+    except RebuildError as error:
+        raise Pi32Error(f'experiment patch validation failed: {error}') from error
+    _check_experiment_ranges(manifest['patches'])
+    result = _execute_operator_image(modified, operator_words, feedback,
+                                     kernel_feedback_shift=kernel_feedback_shift,
+                                     instruction_budget=instruction_budget)
+    result.update(kind='fm1-operator-experiment', status='experimental', experimental=True,
+                  source_sha256=V15_SHA256, executed_image_sha256=manifest['result_sha256'],
+                  manifest=manifest, execution_environment='bounded offline Python interpreter',
+                  hardware_behavior_verified=False)
+    return result
+
+
+def _execute_operator_image(application, operator_words, feedback, *,
+                            kernel_feedback_shift, instruction_budget):
+    """Internal execution after the public entry point establishes provenance."""
     if not isinstance(operator_words, (tuple, list)) or len(operator_words) != 3:
         raise Pi32Error('three operator word rows are required')
     rows = []
@@ -348,4 +401,4 @@ def run_operator_kernel(application, operator_words, feedback=(0, 0), *,
             'feedback': tuple(struct.unpack('<2i', memory.read(feedback_address, 8))),
             'operator_words': tuple(tuple(words[index:index + 4]) for index in (0, 4, 8)),
             'instructions': execution['instructions'], 'packet_timing': execution['packet_timing'],
-            'application_sha256': V15_SHA256, 'device_io_performed': False}
+            'application_sha256': hashlib.sha256(application).hexdigest(), 'device_io_performed': False}

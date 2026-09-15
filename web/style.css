@@ -78,7 +78,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   gap: 13px;
   text-decoration: none;
   font-size: 19px;
-  font-weight: 650;
+  font-weight: 500;
   letter-spacing: -.4px;
 }
 
@@ -158,9 +158,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 }
 
 h1 {
-  font-size: clamp(30px,3.4vw,43px);
-  font-weight: 500;
-  letter-spacing: -1.7px;
+  font-size: clamp(29px,3.2vw,40px);
+  font-weight: 400;
+  letter-spacing: -1.1px;
   line-height: 1.1;
   margin: 0 0 16px;
 }
@@ -222,7 +222,7 @@ h1 {
 h2 {
   font-size: 16px;
   letter-spacing: -.15px;
-  font-weight: 600;
+  font-weight: 500;
   margin: 0;
 }
 
@@ -464,6 +464,7 @@ summary:hover {
 .identity-title strong {
   font-family: var(--mono);
   font-size: 19px;
+  font-weight: 500;
   letter-spacing: -.5px;
 }
 
@@ -1195,5 +1196,220 @@ td:first-child {
 @media(prefers-reduced-motion:reduce) {
   * {
     transition: none!important;
+  }
+}
+
+.project-panel,
+.development-panel {
+  margin-top: 20px;
+}
+
+.project-controls,
+.analysis-controls,
+.hex-controls {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.project-controls .field {
+  flex: 1 1 230px;
+}
+
+.project-controls > .button {
+  min-height: 41px;
+}
+
+.create-project-row {
+  margin-top: 16px;
+}
+
+.create-project-row .field {
+  flex: 1 1 260px;
+}
+
+.field input[type=text],
+.hex-controls input {
+  width: 100%;
+  min-height: 41px;
+  padding: 10px 11px;
+  border: 1px solid #4b5658;
+  border-radius: 6px;
+  background: #1a2022;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+
+.analysis-controls {
+  margin: 20px 0 12px;
+}
+
+.analysis-controls .field:first-child {
+  flex: 0 1 160px;
+}
+
+.analysis-controls .field:nth-child(2) {
+  flex: 1 1 200px;
+}
+
+.analysis-controls .analysis-note {
+  margin: 0 0 11px;
+}
+
+.analysis-table-wrap {
+  max-height: 310px;
+}
+
+#analysis-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+#analysis-table td:first-child {
+  max-width: 450px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.record-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--green);
+  text-align: left;
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+
+.record-button:hover {
+  text-decoration: underline;
+}
+
+.hex-controls {
+  align-items: center;
+  gap: 8px;
+}
+
+.hex-controls label {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.hex-controls input {
+  width: 130px;
+  min-height: 38px;
+  font-family: var(--mono);
+}
+
+.hex-view {
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #161c1e;
+  color: #d0dcd6;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.8;
+  min-height: 105px;
+  max-height: 360px;
+}
+
+.patch-fields {
+  display: grid;
+  grid-template-columns: 150px 1fr 1fr;
+  gap: 13px;
+  margin-top: 16px;
+}
+
+.patch-fields .field:last-child {
+  grid-column: 1 / -1;
+}
+
+.patch-fields input {
+  font-family: var(--mono);
+}
+
+.patch-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.patch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-alt);
+  min-width: 0;
+}
+
+.patch-row > div {
+  min-width: 0;
+}
+
+.patch-row strong,
+.patch-row code {
+  display: block;
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.patch-row code {
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.rebuild-result {
+  padding: 1px 17px 17px;
+  margin-top: 16px;
+  border: 1px solid #4b6451;
+  border-radius: 8px;
+  background: #202b25;
+}
+
+.development-panel .actions,
+.rebuild-result .actions {
+  flex-wrap: wrap;
+}
+
+.development-panel .analysis-note,
+.development-panel .inline-message {
+  overflow-wrap: anywhere;
+}
+
+a.button {
+  text-decoration: none;
+}
+
+@media(max-width:640px) {
+  .patch-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .project-controls .field {
+    flex-basis: 100%;
+  }
+
+  .analysis-controls .analysis-note {
+    width: 100%;
+  }
+
+  .hex-view {
+    font-size: 10px;
+  }
+
+  .project-panel .button,
+  .development-panel .button {
+    white-space: normal;
   }
 }

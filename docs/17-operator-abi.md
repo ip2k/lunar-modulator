@@ -293,6 +293,24 @@ both the interpreter and the static reconstruction use that same assumption.
 The implementation is an integer instruction subset for this bounded routine,
 not a pi32v2 system emulator, an executable loader or a device-write tool.
 
+### Reproducible verification report
+
+The comparison can also run without pytest:
+
+```powershell
+python -m tools.fm1_verify_operator path\to\app.bin --output scratch\operator-verification.json
+python -m tools.fm1_verify_operator path\to\FM-1.fwsc --kind fwsc
+```
+
+The second form inspects and extracts the package in memory. Both forms
+require the exact V15 application hash. The JSON includes the source hash,
+all 19 input cases, instruction counts, hashes of both output vectors, and
+separate sample, feedback and state comparisons. A passing report covers
+1,216 samples under the documented interpreter assumptions. It sets
+`hardware_behavior_verified` to false. Paths and firmware payload bytes are
+not included in the report. Output files are created exclusively; an existing
+file is never replaced.
+
 ## Remaining work
 
 - Independently confirm the paired-instruction semantics against authoritative

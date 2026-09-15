@@ -8,6 +8,9 @@
     ports: {inputs: [], outputs: []}, identity: null,
     file: null, inspection: null, inspectionGeneration: 0, inspectionController: null,
     events: [], droppedEvents: 0, exportGeneration: 0, exportFilename: "",
+    source: null, patches: [], preview: null, workBusy: false,
+    project: null, revisionId: null, projects: [], maxProjectBytes: 64 * 1024 * 1024,
+    hexGeneration: 0, hexPosition: 0, hexLength: 256,
   };
 
   function node(tag, className, value) {
@@ -115,6 +118,7 @@
     $("refresh-ports").textContent = state.portsBusy ? "Refreshing…" : "Refresh ports";
     $("choose-file").disabled = !state.ready;
     $("file-kind").disabled = !state.ready;
+    developmentControls();
   }
   function populatePorts(id, names, previous) {
     const select = $(id);
@@ -296,11 +300,18 @@
     details(result, report);
   }
   async function inspectFile(file, inferKind = true) {
+    if (state.workBusy) { message("file-message", "Wait for the current file operation to finish.", true); return; }
     const generation = ++state.inspectionGeneration;
     state.inspectionController?.abort();
     state.inspectionController = new AbortController();
     $("drop-zone").removeAttribute("aria-busy");
     state.inspection = null;
+    state.source = null;
+    state.project = null;
+    state.revisionId = null;
+    state.preview = null;
+    state.patches = [];
+    $("development-panel").hidden = true;
     $("inspection-panel").hidden = true;
     state.file = file;
     if (!state.ready) { message("file-message", "Connect to the local service to inspect files.", true); return; }
@@ -315,13 +326,15 @@
       else { message("file-message", "Choose a .fwsc firmware package or a .bin application image.", true); return; }
     }
     const kind = $("file-kind").value;
+    state.workBusy = true;
+    developmentControls();
     message("file-message", `Inspecting ${fileName(file)} (${size(file.size)})…`);
     $("drop-zone").setAttribute("aria-busy", "true");
     try {
-      const report = await api(`/api/inspect?kind=${kind}`, {method: "POST", headers: {"Content-Type": "application/octet-stream"}, body: file, signal: state.inspectionController.signal});
+      const source = await api(`/api/analyze?kind=${kind}`, {method: "POST", headers: {"Content-Type": "application/octet-stream"}, body: file, signal: state.inspectionController.signal});
       if (generation !== state.inspectionGeneration) return;
-      state.inspection = {filename: fileName(file), report};
-      renderInspection(report, fileName(file));
+      const report = source.inspection;
+      acceptSource(source, fileName(file));
       message("file-message", `${fileName(file)} inspected. Results are below.`);
       log("INFO", `Inspected ${fileName(file)} (${size(report.size)}). SHA-256: ${report.sha256}`);
     } catch (error) {
@@ -329,13 +342,18 @@
       message("file-message", error.message, true);
       log("ERROR", `Could not inspect ${fileName(file)}: ${error.message}`);
     } finally {
-      if (generation === state.inspectionGeneration) $("drop-zone").removeAttribute("aria-busy");
+      if (generation === state.inspectionGeneration) {
+        $("drop-zone").removeAttribute("aria-busy");
+        state.workBusy = false;
+        developmentControls();
+      }
     }
   }
   function exportReport() {
     state.exportGeneration++;
     const report = {schema_version: 1, tool: "FM-1 Workbench", exported_at: new Date().toISOString(),
       mode: "read-only", device: state.identity, inspection: state.inspection,
+      analysis: state.source?.analysis || null, rebuild: state.preview?.manifest || null,
       log: {events: state.events, omitted_older_events: state.droppedEvents}};
     $("report-text").value = JSON.stringify(report, null, 2) + "\n";
     state.exportFilename = `fm1-bench-${report.exported_at.replace(/[:.]/g, "-")}.json`;
@@ -377,6 +395,328 @@
     message("report-message", "Download requested. If your browser does not save the file, use Copy report.");
     log("INFO", "JSON report download requested.");
   }
+
+  function developmentControls() {
+    const available = state.ready && !state.workBusy;
+    const source = available && state.source;
+    for (const id of ["choose-file", "file-kind", "refresh-projects", "import-project", "project-select"]) $(id).disabled = !available;
+    for (const id of ["hex-go", "hex-previous", "hex-next", "hex-use-offset", "patch-read", "patch-add", "preview-rebuild", "choose-rollback", "create-project"]) $(id).disabled = !source;
+    $("load-revision").disabled = !available || !$("project-select").value || !$("revision-select").value;
+    $("revision-select").disabled = !available || !$("project-select").value;
+    $("save-revision").disabled = !source || !state.project || !state.preview || !state.revisionId || state.project.id !== $("project-select").value;
+    for (const button of $("patch-list").querySelectorAll("button")) button.disabled = !available;
+  }
+
+  async function work(messageId, operation) {
+    if (state.workBusy) return;
+    state.workBusy = true;
+    developmentControls();
+    try { await operation(); }
+    catch (error) { message(messageId, error.message, true); log("ERROR", error.message); }
+    finally { state.workBusy = false; developmentControls(); }
+  }
+
+  function post(path, body) {
+    return api(path, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  }
+
+  function downloadLink(id, path) {
+    const link = $(id);
+    if (typeof path !== "string" || !/^\/api\/artifact\/[A-Za-z0-9_-]+$/.test(path)) {
+      link.hidden = true;
+      link.removeAttribute("href");
+      return;
+    }
+    link.href = path;
+    link.hidden = false;
+  }
+
+  function acceptSource(source, filename, project = null, revisionId = null) {
+    state.source = source;
+    state.inspection = {filename, report: source.inspection};
+    state.patches = [];
+    state.preview = null;
+    state.project = project;
+    state.revisionId = revisionId;
+    renderInspection(source.inspection, filename);
+    $("development-panel").hidden = false;
+    $("rebuild-result").hidden = true;
+    $("record-details").hidden = true;
+    $("project-label").value = filename.replace(/\.(fwsc|bin)$/i, "").slice(0, 120);
+    const analysis = source.analysis;
+    const profile = analysis.profile || {};
+    badge("analysis-profile", profile.matched ? profile.name || "Known image" : "Unrecognized image", profile.matched ? "success" : "");
+    $("source-description").textContent = `${size(source.application_size)} application · Source SHA-256 ${source.sha256}`;
+    $("analysis-coverage").textContent = JSON.stringify({profile, unresolved: analysis.unresolved || [], dsp: analysis.dsp || {}}, null, 2);
+    renderAnalysis();
+    renderPatches();
+    if (project) showProject(project, revisionId);
+    else {
+      $("project-select").value = "";
+      $("revision-select").replaceChildren(node("option", "", "Choose a project"));
+      $("revision-select").firstChild.value = "";
+      $("download-project").hidden = true;
+      message("project-message", "No project loaded. Create one to retain this file and its revisions.");
+    }
+    $("hex-offset").value = "0x0";
+    readHex();
+    developmentControls();
+  }
+
+  function recordOffset(record) {
+    if (Number.isInteger(record.file_offset)) return record.file_offset;
+    const location = record.locations?.find((item) => Number.isInteger(item.file_offset));
+    return location?.file_offset;
+  }
+
+  function renderAnalysis() {
+    if (!state.source) return;
+    const type = $("analysis-type").value;
+    const columns = {
+      strings: [["text", "Text"], ["file_offset", "File offset"], ["address", "Address"], ["category", "Category"]],
+      regions: [["name", "Name"], ["file_offset", "File offset"], ["size", "Bytes"], ["runtime_address", "Address"], ["permissions", "Access"]],
+      functions: [["name", "Name"], ["file_offset", "File offset"], ["address", "Address"], ["size", "Bytes"], ["confidence", "Evidence"]],
+      features: [["name", "Name"], ["category", "Category"], ["confidence", "Evidence"], ["locations", "Locations"]],
+    }[type];
+    const search = $("analysis-search").value.toLowerCase();
+    const records = (state.source.analysis[type] || []).filter((record) =>
+      `${JSON.stringify(record)} ${offset(recordOffset(record))} ${offset(record.address)}`.toLowerCase().includes(search));
+    const head = $("analysis-table").querySelector("thead");
+    const body = $("analysis-table").querySelector("tbody");
+    head.replaceChildren(); body.replaceChildren();
+    const heading = node("tr");
+    for (const [, label] of columns) { const th = node("th", "", label); th.scope = "col"; heading.append(th); }
+    head.append(heading);
+    for (const record of records.slice(0, 500)) {
+      const row = node("tr");
+      columns.forEach(([key], index) => {
+        const cell = node("td");
+        let value = record[key];
+        if (["file_offset", "address", "runtime_address"].includes(key)) value = value == null ? "—" : offset(value);
+        else if (key === "locations") value = (value || []).map((location) => offset(location.file_offset)).join(", ");
+        else value = printable(value);
+        if (!index) {
+          const button = node("button", "record-button", value);
+          button.addEventListener("click", () => {
+            $("record-details").hidden = false;
+            $("record-details").open = true;
+            $("record-json").textContent = JSON.stringify(record, null, 2);
+            const position = recordOffset(record);
+            if (position === undefined) message("analysis-message", "No confirmed file offset for this record.");
+            else { $("hex-offset").value = offset(position); readHex(); }
+          });
+          cell.append(button);
+        } else cell.textContent = value;
+        row.append(cell);
+      });
+      body.append(row);
+    }
+    $("analysis-count").textContent = `${Math.min(500, records.length)} / ${records.length} matches`;
+    message("analysis-message", records.length ? "Select a record to view its details and application bytes." : "No results for this view or filter.");
+  }
+
+  function numberOffset(value) {
+    const text = value.trim();
+    if (!/^(0x[0-9a-f]+|[0-9]+)$/i.test(text)) throw new Error("Enter a decimal offset or hexadecimal offset starting with 0x.");
+    const result = Number(text);
+    if (!Number.isSafeInteger(result) || result < 0) throw new Error("Offset is outside the supported range.");
+    return result;
+  }
+
+  function hexBytes(value) {
+    const text = value.replace(/\s+/g, "");
+    if (!text || !/^(?:[0-9a-f]{2})+$/i.test(text)) throw new Error("Enter complete hexadecimal bytes, such as 00 1A FF.");
+    return text.toLowerCase();
+  }
+
+  async function readHex() {
+    if (!state.source) return;
+    const generation = ++state.hexGeneration;
+    const sourceId = state.source.source_id;
+    try {
+      const position = numberOffset($("hex-offset").value);
+      message("hex-message", "Reading application bytes…");
+      const data = await api(`/api/hex?source_id=${encodeURIComponent(sourceId)}&offset=${position}&length=256`);
+      if (generation !== state.hexGeneration || sourceId !== state.source?.source_id) return;
+      state.hexPosition = position;
+      const bytes = data.hex.replace(/\s+/g, "").match(/.{2}/g) || [];
+      const lines = ["OFFSET    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F  ASCII", ""];
+      for (let index = 0; index < bytes.length; index += 16) {
+        const row = bytes.slice(index, index + 16);
+        const ascii = row.map((byte) => { const value = parseInt(byte, 16); return value >= 32 && value < 127 ? String.fromCharCode(value) : "."; }).join("");
+        lines.push(`${(position + index).toString(16).toUpperCase().padStart(8, "0")}  ${row.join(" ").toUpperCase().padEnd(47, " ")}  ${ascii}`);
+      }
+      $("hex-view").textContent = lines.join("\n");
+      message("hex-message", `${bytes.length} bytes at ${offset(position)}. Offsets refer to the decoded application file.`);
+    } catch (error) {
+      if (generation !== state.hexGeneration) return;
+      $("hex-view").textContent = "";
+      message("hex-message", error.message, true);
+    }
+  }
+
+  function stepHex(step) {
+    if (!state.source) return;
+    $("hex-offset").value = offset(Math.max(0, Math.min(state.source.application_size - 1, state.hexPosition + step)));
+    readHex();
+  }
+
+  async function readPatchBytes() {
+    if (!state.source) return;
+    try {
+      const sourceId = state.source.source_id;
+      const position = numberOffset($("patch-offset").value);
+      const count = $("patch-after").value.trim() ? hexBytes($("patch-after").value).length / 2 : 1;
+      if (count > 256) throw new Error("Read at most 256 current bytes at a time.");
+      const data = await api(`/api/hex?source_id=${encodeURIComponent(sourceId)}&offset=${position}&length=${count}`);
+      if (sourceId !== state.source?.source_id || position !== numberOffset($("patch-offset").value)) return;
+      $("patch-before").value = data.hex;
+      message("patch-message", "Current bytes loaded from the source application.");
+    } catch (error) { message("patch-message", error.message, true); }
+  }
+
+  function addPatch() {
+    try {
+      const position = numberOffset($("patch-offset").value);
+      const before = hexBytes($("patch-before").value);
+      const after = hexBytes($("patch-after").value);
+      if (before.length !== after.length) throw new Error("Expected and new bytes must have the same length.");
+      if (position + before.length / 2 > state.source.application_size) throw new Error("The change extends beyond the application file.");
+      if (state.patches.some((patch) => position < patch.offset + patch.expected_hex.length / 2 && patch.offset < position + before.length / 2)) throw new Error("Changes must not overlap.");
+      state.patches.push({offset: position, expected_hex: before, replacement_hex: after, label: $("patch-label").value.trim()});
+      state.preview = null;
+      $("rebuild-result").hidden = true;
+      renderPatches();
+    } catch (error) { message("patch-message", error.message, true); }
+  }
+
+  function renderPatches() {
+    $("patch-list").replaceChildren();
+    state.patches.forEach((patch, index) => {
+      const row = node("div", "patch-row");
+      const description = node("div");
+      description.append(node("strong", "", `${offset(patch.offset)}${patch.label ? ` · ${patch.label}` : ""}`));
+      description.append(node("code", "", `${patch.expected_hex} → ${patch.replacement_hex}`));
+      const remove = node("button", "text-button", "Remove");
+      remove.setAttribute("aria-label", `Remove change at ${offset(patch.offset)}`);
+      remove.addEventListener("click", () => { state.patches.splice(index, 1); state.preview = null; $("rebuild-result").hidden = true; renderPatches(); });
+      row.append(description, remove);
+      $("patch-list").append(row);
+    });
+    message("patch-message", state.patches.length ? `${state.patches.length} change(s) queued. Preview verifies the source hash and expected bytes.` : "No changes queued. A rebuild with no changes must reproduce the original file.");
+    developmentControls();
+  }
+
+  function showRebuild(source) {
+    state.preview = source;
+    $("rebuild-result").hidden = false;
+    $("rebuild-description").textContent = `${source.manifest.operation === "rollback" ? "Restored" : "Rebuilt"} ${size(source.size)} · SHA-256 ${source.sha256}. The current source is unchanged.`;
+    $("rebuild-json").textContent = JSON.stringify(source.manifest, null, 2);
+    downloadLink("download-rebuilt", source.download_url);
+    downloadLink("download-manifest", source.manifest_download_url);
+    message("patch-message", "Output checked. Download the firmware and manifest together, or save a project revision.");
+    log("INFO", `Local ${source.manifest.operation} complete. Output SHA-256: ${source.sha256}`);
+    developmentControls();
+  }
+
+  async function previewRebuild() {
+    await work("patch-message", async () => {
+      message("patch-message", "Checking changes and rebuilding in memory…");
+      showRebuild(await post("/api/rebuild", {source_id: state.source.source_id, expected_source_sha256: state.source.sha256, patches: state.patches}));
+    });
+  }
+
+  async function rollbackFile(file) {
+    if (!file) return;
+    await work("patch-message", async () => {
+      if (file.size > state.maxBytes) throw new Error("The manifest exceeds the 8 MiB limit.");
+      const manifest = JSON.parse(await file.text());
+      message("patch-message", "Checking the manifest and restoring bytes in memory…");
+      showRebuild(await post("/api/rollback", {source_id: state.source.source_id, manifest}));
+    });
+  }
+
+  function showProject(project, selectedRevision) {
+    state.project = project;
+    const select = $("project-select");
+    if (![...select.options].some((option) => option.value === project.id)) {
+      const option = node("option", "", project.summary.label || project.id); option.value = project.id; select.append(option);
+    }
+    select.value = project.id;
+    $("revision-select").replaceChildren();
+    for (const revision of project.revisions || []) {
+      const option = node("option", "", `${revision.id}: ${revision.label || "Revision"} · ${revision.sha256.slice(0, 12)}`);
+      option.value = String(revision.id);
+      $("revision-select").append(option);
+    }
+    if (selectedRevision != null) $("revision-select").value = String(selectedRevision);
+    downloadLink("download-project", project.download_url);
+    message("project-message", `${project.summary.label || "Project"} · ${project.revisions.length} revision(s). Original firmware is retained.`);
+    developmentControls();
+  }
+
+  async function refreshProjects() {
+    try {
+      const result = await api("/api/projects");
+      state.projects = result.projects;
+      const current = $("project-select").value;
+      const empty = node("option", "", "Choose a project…"); empty.value = "";
+      $("project-select").replaceChildren(empty);
+      for (const project of state.projects) { const option = node("option", "", project.summary.label || project.id); option.value = project.id; $("project-select").append(option); }
+      $("project-select").value = current;
+      developmentControls();
+    } catch (error) { message("project-message", error.message, true); }
+  }
+
+  async function loadProject(projectId, revisionId) {
+    await work("project-message", async () => {
+      message("project-message", "Loading project revision…");
+      const source = await post("/api/projects/load", {project_id: projectId, revision_id: revisionId});
+      state.file = null;
+      $("file-kind").value = source.kind;
+      acceptSource(source, `${source.project.summary.label || "Project"} · revision ${source.revision_id}`, source.project, source.revision_id);
+      message("file-message", "Project revision loaded.");
+    });
+  }
+
+  async function createProject() {
+    await work("project-message", async () => {
+      const label = $("project-label").value.trim();
+      if (!label) throw new Error("Enter a project name.");
+      message("project-message", "Saving original firmware and analysis…");
+      const project = await post("/api/projects/create", {source_id: state.source.source_id, label});
+      state.revisionId = 1;
+      showProject(project, 1);
+      log("INFO", "Project created with original firmware.");
+    });
+  }
+
+  async function saveRevision() {
+    await work("project-message", async () => {
+      message("project-message", "Saving rebuilt bytes as a new revision…");
+      const preview = state.preview;
+      const project = await post("/api/projects/revision", {project_id: state.project.id, parent_id: state.revisionId,
+        source_id: preview.source_id, manifest: preview.manifest, label: "Edited application"});
+      const revision = project.revisions[project.revisions.length - 1];
+      acceptSource(preview, `${project.summary.label || "Project"} · revision ${revision.id}`, project, revision.id);
+      message("project-message", `Revision ${revision.id} saved and loaded. Original firmware is retained.`);
+    });
+  }
+
+  async function importProject(file) {
+    if (!file) return;
+    await work("project-message", async () => {
+      if (file.size > state.maxProjectBytes) throw new Error(`Project exceeds the ${size(state.maxProjectBytes)} import limit.`);
+      message("project-message", "Importing project…");
+      const project = await api("/api/projects/import", {method: "POST", headers: {"Content-Type": "application/octet-stream"}, body: file});
+      const revision = project.revisions[project.revisions.length - 1];
+      const source = await post("/api/projects/load", {project_id: project.id, revision_id: revision.id});
+      state.file = null;
+      $("file-kind").value = source.kind;
+      acceptSource(source, `${project.summary.label || "Project"} · revision ${revision.id}`, source.project, source.revision_id);
+    });
+  }
+
   async function start() {
     controls();
     try {
@@ -384,12 +724,13 @@
       if (status.mode !== "read-only") throw new Error("A read-only local service is required.");
       state.ready = true;
       if (Number.isInteger(status.max_file_bytes) && status.max_file_bytes > 0) state.maxBytes = status.max_file_bytes;
+      if (Number.isInteger(status.max_project_bytes) && status.max_project_bytes > 0) state.maxProjectBytes = status.max_project_bytes;
       $("file-limit").textContent = `.fwsc or app.bin · up to ${size(state.maxBytes)}`;
       $("service-label").textContent = "Local service online";
       $("service-dot").classList.remove("offline");
       message("service-message", "Connected to the local service.");
       log("INFO", "Local service connected. Device access is read-only. Files are processed locally.");
-      controls(); await refreshPorts();
+      controls(); await Promise.allSettled([refreshPorts(), refreshProjects()]);
     } catch (error) {
       state.ready = false; controls();
       $("service-label").textContent = "Service unavailable";
@@ -431,5 +772,33 @@
   $("download-report").addEventListener("click", downloadReport);
   $("close-report").addEventListener("click", () => $("report-dialog").close());
   $("report-dialog").addEventListener("close", () => $("export-report").focus());
+  $("analysis-type").addEventListener("change", renderAnalysis);
+  $("analysis-search").addEventListener("input", renderAnalysis);
+  $("hex-go").addEventListener("click", readHex);
+  $("hex-offset").addEventListener("keydown", (event) => { if (event.key === "Enter") readHex(); });
+  $("hex-previous").addEventListener("click", () => stepHex(-256));
+  $("hex-next").addEventListener("click", () => stepHex(256));
+  $("hex-use-offset").addEventListener("click", () => { $("patch-offset").value = offset(state.hexPosition); readPatchBytes(); $("patch-after").focus(); });
+  $("patch-read").addEventListener("click", readPatchBytes);
+  $("patch-add").addEventListener("click", addPatch);
+  $("preview-rebuild").addEventListener("click", previewRebuild);
+  $("choose-rollback").addEventListener("click", () => $("rollback-file").click());
+  $("rollback-file").addEventListener("change", (event) => { rollbackFile(event.target.files[0]); event.target.value = ""; });
+  $("refresh-projects").addEventListener("click", refreshProjects);
+  $("project-select").addEventListener("change", () => {
+    if ($("project-select").value) loadProject($("project-select").value, 1);
+    else {
+      state.project = null; state.revisionId = null;
+      $("download-project").hidden = true;
+      message("project-message", "No project selected.");
+      developmentControls();
+    }
+  });
+  $("revision-select").addEventListener("change", developmentControls);
+  $("load-revision").addEventListener("click", () => loadProject($("project-select").value, Number($("revision-select").value)));
+  $("create-project").addEventListener("click", createProject);
+  $("save-revision").addEventListener("click", saveRevision);
+  $("import-project").addEventListener("click", () => $("project-file").click());
+  $("project-file").addEventListener("change", (event) => { importProject(event.target.files[0]); event.target.value = ""; });
   start();
 })();

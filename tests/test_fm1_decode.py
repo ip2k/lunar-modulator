@@ -91,9 +91,17 @@ def test_indexed_table_load_has_dynamic_offset():
                               "width": 2, "access": "read", "update": None}
 
 
-def test_bit_instruction_is_not_misreported_as_stack_access():
-    assert not decode.decode_instruction(bytes.fromhex("3022"), 0)["supported"]
-    assert not decode.decode_instruction(bytes.fromhex("b827"), 0)["supported"]
+@pytest.mark.parametrize("raw,name,register,immediate", [
+    ("3022", "or", "r0", 4),
+    ("3122", "or", "r1", 4),
+    ("3a3f", "xor", "r2", 0x80000000),
+    ("b827", "and", "r0", 0xFFFFFF7F),
+])
+def test_immediate_bit_instruction_is_not_misreported_as_stack_access(raw, name, register, immediate):
+    item = decode.decode_instruction(bytes.fromhex(raw), 0)
+    assert (item["mnemonic"], item["register"], item["immediate"]) == (name, register, immediate)
+    assert item["source_register"] == register
+    assert "memory" not in item
 
 
 def test_stack_register_range_including_low_registers():
@@ -174,6 +182,52 @@ def test_predicate_scope_is_explicit_and_unverified_modes_stay_unknown():
     item = decode.decode_instruction(bytes.fromhex("37ed0000"), 0)
     assert item["predicate"]["comparison"] == ">=" and item["predicate"]["signed"]
     assert not decode.decode_instruction(bytes.fromhex("b0e80010"), 0)["supported"]
+
+
+@pytest.mark.parametrize("raw,register,comparison,immediate", [
+    ("b2ee1000", "r2", "<=", 16),
+    ("31ed3f00", "r1", ">=", 63),
+    ("31edff0f", "r1", ">=", -1),
+])
+def test_signed_immediate_predicate_clamps(raw, register, comparison, immediate):
+    predicate = decode.decode_instruction(bytes.fromhex(raw), 0)["predicate"]
+    assert predicate == {"register": register, "comparison": comparison, "immediate": immediate,
+                         "signed": True, "instruction_count": 1}
+
+
+def test_register_predicate_preserves_comparison_and_scope():
+    item = decode.decode_instruction(bytes.fromhex("95ee0004"), 0)
+    assert item["predicate"] == {"register": "r5", "comparison": "<=", "other_register": "r4",
+                                 "signed": True, "instruction_count": 1}
+    assert not decode.decode_instruction(bytes.fromhex("95ee0014"), 0)["supported"]
+    assert not decode.decode_instruction(bytes.fromhex("95ee0104"), 0)["supported"]
+
+
+@pytest.mark.parametrize("raw,comparison,displacement", [
+    ("84ed4a50", "<", 148),
+    ("04ee3250", ">", 100),
+    ("84edff51", "<", -2),
+    ("04ee0051", ">", -512),
+])
+def test_signed_register_branch_uses_nine_bit_displacement(raw, comparison, displacement):
+    item = decode.decode_instruction(bytes.fromhex(raw), 0, 0x2002000)
+    assert item["condition"] == {"register": "r5", "comparison": comparison, "other_register": "r4", "signed": True}
+    assert item["displacement"] == displacement
+    assert item["target"] == 0x2002004 + displacement
+    assert not decode.decode_instruction(bytes.fromhex("84ed0052"), 0)["supported"]
+
+
+@pytest.mark.parametrize("raw,name,paired", [
+    ("34f44145", "smax", True),
+    ("35e44145", "smin", False),
+    ("34e44045", "umax", False),
+    ("35e44045", "umin", False),
+])
+def test_minmax_register_order_signedness_and_parallel_marker(raw, name, paired):
+    item = decode.decode_instruction(bytes.fromhex(raw), 0)
+    assert (item["mnemonic"], item["register"], item["source_registers"]) == (name, "r4", ["r4", "r5"])
+    assert item["parallel_pair"] is paired
+    assert not decode.decode_instruction(bytes.fromhex("34e44345"), 0)["supported"]
 
 
 def test_postincrement_store_preserves_old_address_then_updates_base():
@@ -326,6 +380,14 @@ def test_private_v15_map_and_core_boundaries():
     kernel = next(f for f in report["functions"] if f["name"] == "fm_operator_kernel_candidate")
     assert kernel["supported_bytes"] == kernel["size"] == 544
     assert kernel["control_flow"]["barriers"] == []
+    envelope = next(f for f in report["functions"] if f["name"] == "envelope_update_candidate")
+    assert (envelope["file_offset"], envelope["address"], envelope["size"], envelope["supported_bytes"], envelope["confidence"]) == (0x1896, 0x20019B6, 208, 208, "inferred")
+    assert len(envelope["control_flow"]["nodes"]) == 79
+    assert len(envelope["control_flow"]["edges"]) == 91
+    assert envelope["control_flow"]["barriers"] == []
+    callers = [call for call in report["calls"] if call["target_function"] == "envelope_update_candidate"]
+    assert {call["source_file_offset"] for call in callers} == {0x85F7C, 0x86042}
+    assert all(call["target_confidence"] == "inferred" for call in callers)
     forged = {"sha256": report["sha256"], "functions": [{"file_offset": 0x85066}]}
     assert not decode.disassemble(blob, 0x85066, 2, analysis=forged)["boundary_verified"]
     # Edits retain only evidence whose underlying bytes are unchanged.
@@ -336,5 +398,9 @@ def test_private_v15_map_and_core_boundaries():
     assert not changed["dsp"]["effects"]["profile"]["matched"]
     assert changed["dsp"]["effects"]["effects"] == []
     assert not any(f["name"] == "fm_operator_kernel_candidate" for f in changed["functions"])
+    altered[0x1896] ^= 1
+    changed = decode.analyze_application(bytes(altered))
+    assert not any(f["name"] == "envelope_update_candidate" for f in changed["functions"])
+    assert all(call["target_function"] is None for call in changed["calls"] if call["target_file_offset"] == 0x1896)
     altered[0x2A054] ^= 1
     assert not decode.analyze_application(bytes(altered))["profile"]["matched"]

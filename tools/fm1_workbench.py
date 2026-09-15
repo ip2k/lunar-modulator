@@ -3,7 +3,7 @@
 
 Run: python tools/fm1_workbench.py [--port 8765] [--open]
 Only mido/python-rtmidi are needed for hardware; inspection uses the stdlib.
-The loopback service never saves uploaded firmware or exposes filesystem paths.
+Files stay local. Explicit project saves retain firmware and revision history.
 """
 
 import argparse
@@ -23,6 +23,7 @@ else:
     import fm1_identify
 
 MAX_FILE_BYTES = 8 * 1024 * 1024
+MAX_JSON_BYTES = 4 * 1024 * 1024
 WEB_ROOT = Path(__file__).resolve().parents[1] / "web"
 STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
           "/app.js": ("app.js", "text/javascript; charset=utf-8"),
@@ -150,7 +151,7 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass                         # no uploaded names, machine paths or MIDI IDs in logs
 
-    def respond(self, status, body, content_type="application/json; charset=utf-8"):
+    def respond(self, status, body, content_type="application/json; charset=utf-8", filename=None):
         if not isinstance(body, bytes):
             body = json.dumps(body, ensure_ascii=True).encode("utf-8")
         self.send_response(status)
@@ -159,6 +160,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
+        if filename is not None:
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
         self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'")
         self.end_headers()
         self.wfile.write(body)
@@ -180,17 +183,40 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.local_request():
             return
-        path = urlsplit(self.path).path
+        parsed = urlsplit(self.path)
+        path = parsed.path
         if path in STATIC:
             name, content_type = STATIC[path]
             self.respond(200, (WEB_ROOT / name).read_bytes(), content_type)
         elif path == "/api/status":
-            self.respond(200, {"mode": "read-only", "max_file_bytes": MAX_FILE_BYTES})
+            self.respond(200, {"mode": "read-only", "device_mode": "read-only",
+                               "file_modifications": True, "max_file_bytes": MAX_FILE_BYTES,
+                               "max_project_bytes": 64 * 1024 * 1024})
         elif path == "/api/ports":
             try:
                 self.respond(200, self.server.bench.ports())
             except BenchError as exc:
                 self.respond(503, {"error": str(exc)})
+        elif path == "/api/projects" or path == "/api/hex" or path.startswith("/api/artifact/"):
+            try:
+                if path == "/api/projects":
+                    self.respond(200, self.server.workspace.projects())
+                elif path == "/api/hex":
+                    query = parse_qs(parsed.query)
+                    if set(query) != {"source_id", "offset", "length"} or any(len(value) != 1 for value in query.values()):
+                        raise BenchError("Provide one source ID, offset and length.")
+                    self.respond(200, self.server.workspace.hex_view(query["source_id"][0],
+                                                                   int(query["offset"][0]), int(query["length"][0])))
+                else:
+                    parts = path.split("/")
+                    if len(parts) != 5:
+                        raise BenchError("Invalid artifact URL.")
+                    raw, content_type, filename = self.server.workspace.artifact(parts[3], parts[4])
+                    self.respond(200, raw, content_type, filename)
+            except ValueError as exc:
+                self.respond(400, {"error": str(exc)})
+            except OSError:
+                self.respond(500, {"error": "The local project file could not be accessed."})
         else:
             self.respond(404, {"error": "Not found."})
 
@@ -198,10 +224,14 @@ class Handler(BaseHTTPRequestHandler):
         if not self.local_request(write=True):
             return
         parsed = urlsplit(self.path)
-        if parsed.path not in ("/api/identify", "/api/inspect"):
+        binary_paths = {"/api/inspect", "/api/analyze", "/api/projects/import"}
+        json_paths = {"/api/identify", "/api/rebuild", "/api/rollback", "/api/projects/create",
+                      "/api/projects/load", "/api/projects/revision"}
+        if parsed.path not in binary_paths | json_paths:
             self.respond(404, {"error": "Not found."})
             return
-        limit = 4096 if parsed.path == "/api/identify" else MAX_FILE_BYTES
+        limit = (4096 if parsed.path == "/api/identify" else 64 * 1024 * 1024 if parsed.path == "/api/projects/import"
+                 else MAX_FILE_BYTES if parsed.path in binary_paths else MAX_JSON_BYTES)
         lengths = self.headers.get_all("Content-Length", [])
         if self.headers.get("Transfer-Encoding") or len(lengths) != 1 or not lengths[0].isdigit():
             self.respond(400, {"error": "One Content-Length is required."})
@@ -211,7 +241,7 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(413, {"error": "Request body is empty or too large."})
             return
         content_type = self.headers.get("Content-Type", "").split(";")[0].strip()
-        expected = "application/json" if parsed.path == "/api/identify" else "application/octet-stream"
+        expected = "application/json" if parsed.path in json_paths else "application/octet-stream"
         if content_type != expected:
             self.respond(415, {"error": "Unsupported content type."})
             return
@@ -224,22 +254,42 @@ class Handler(BaseHTTPRequestHandler):
                 if not isinstance(data, dict) or set(data) != {"input", "output"}:
                     raise BenchError("Provide exactly an input and output port.")
                 result = self.server.bench.identify(data["input"], data["output"])
-            else:
+            elif parsed.path in ("/api/inspect", "/api/analyze"):
                 query = parse_qs(parsed.query)
                 if set(query) != {"kind"} or len(query["kind"]) != 1:
                     raise BenchError("Choose exactly one file kind.")
-                result = self.server.bench.inspect(raw, query["kind"][0])
+                if parsed.path == "/api/inspect":
+                    result = self.server.bench.inspect(raw, query["kind"][0])
+                else:
+                    result = self.server.workspace.analyze(raw, query["kind"][0])
+            elif parsed.path == "/api/projects/import":
+                result = self.server.workspace.import_project(raw)
+            else:
+                data = json.loads(raw)
+                operations = {"/api/rebuild": self.server.workspace.rebuild,
+                              "/api/rollback": self.server.workspace.rollback,
+                              "/api/projects/create": self.server.workspace.create_project,
+                              "/api/projects/load": self.server.workspace.load_project,
+                              "/api/projects/revision": self.server.workspace.add_revision}
+                result = operations[parsed.path](data)
             self.respond(200, result)
         except (ValueError, UnicodeError) as exc:
             self.respond(400, {"error": str(exc), "events": getattr(exc, "events", [])})
         except TimeoutError:
             self.respond(408, {"error": "Request timed out."})
+        except OSError:
+            self.respond(500, {"error": "The local project file could not be accessed."})
 
 
-def make_server(port=8765, bench=None):
+def make_server(port=8765, bench=None, project_dir=None):
+    if __package__:
+        from .fm1_workspace import DevelopmentWorkspace
+    else:
+        from fm1_workspace import DevelopmentWorkspace
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.daemon_threads = True
     server.bench = bench or Workbench()
+    server.workspace = DevelopmentWorkspace(project_dir)
     actual = server.server_address[1]
     server.allowed_hosts = {f"127.0.0.1:{actual}", f"localhost:{actual}"}
     return server
@@ -257,7 +307,7 @@ def main():
     except OSError as exc:
         parser.exit(1, f"Cannot start workbench: {exc}\n")
     url = f"http://127.0.0.1:{server.server_address[1]}"
-    print(f"FM-1 Workbench: {url}\nRead-only device identity and offline inspection. Ctrl+C to stop.", flush=True)
+    print(f"FM-1 Workbench: {url}\nOffline firmware development; device access is read-only. Ctrl+C to stop.", flush=True)
     if args.open:
         webbrowser.open(url)
     try:

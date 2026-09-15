@@ -7,7 +7,7 @@ Ghidra, a vendor toolchain, or a subprocess. It provides:
 
 - SHA-256 provenance, embedded identities and bounded ASCII strings;
 - a verified V15 startup memory map, with file offsets distinct from runtime addresses;
-- five fingerprinted startup/DSP spans, their decoded calls and remaining unsupported bytes;
+- six fingerprinted startup/DSP spans, their decoded calls and remaining unsupported bytes;
 - a partial pi32v2 instruction decoder with raw bytes for unknown instructions;
 - independently located msfa algorithm data and mathematically reconstructed
   operator lookup tables from [16 — Operator mathematics](16-operator-mathematics.md).
@@ -104,9 +104,10 @@ to the algorithm and mathematical tables.
 | --- | --- | --- | ---: | ---: | ---: |
 | Startup/CRT | `0x00000` | `0x02000120` | 198 | 176 | 22 |
 | Operator kernel candidate | `0x85064` | `0x01C01124` | 544 | 544 | 0 |
-| FM core renderer candidate | `0x85284` | `0x01C01344` | 2,270 | 2,084 | 186 |
-| Voice block candidate | `0x85B62` | `0x01C01C22` | 2,054 | 1,408 | 636 |
+| FM core renderer candidate | `0x85284` | `0x01C01344` | 2,270 | 2,092 | 178 |
+| Voice block candidate | `0x85B62` | `0x01C01C22` | 2,054 | 1,446 | 598 |
 | Effects dispatcher candidate | `0x872BE` | `0x01C0337E` | 656 | 550 | 106 |
+| Envelope update candidate | `0x01896` | `0x020019B6` | 208 | 208 | 0 |
 
 The voice span also contains ten identified inline jump-table bytes, excluded
 from instruction coverage. Its two `tbb` tables are at file `0x85BB4` (six
@@ -123,6 +124,7 @@ must not be described as one effects function.
 ```text
 voice candidate
   file 0x8607E -> runtime 0x01C01344, core candidate at file 0x85284
+  file 0x85F7C and 0x86042 -> runtime 0x020019B6, envelope candidate at file 0x1896
 core candidate
   file 0x85554 -> runtime 0x01C01124, operator candidate at file 0x85064
 ```
@@ -138,7 +140,14 @@ this to the independently found 192-byte algorithm table at file `0x8BE8C`.
 The operator's exponent/log-sine pointers and numeric interpretation are
 documented separately in [16](16-operator-mathematics.md).
 
-There are currently 21 call instructions in the five spans, including seven
+The envelope helper has 79 instructions and an explicit return at file
+`0x1964`. The independently checked V009 helper matches 204 of its 208 bytes;
+the four changed bytes belong to the data-base immediate and level-table
+displacement. Its semantic name remains inferred from the actual state
+accesses, update arithmetic and original MSFA source comparison in
+[20 — Envelope decoding](20-envelope-decoding.md).
+
+There are currently 21 call instructions in the six spans, including seven
 unresolved indirect calls in the effects dispatcher. The six repeated slot
 calls are at file offsets `0x8746C`, `0x87498`, `0x874C4`, `0x874F0`, `0x8751C`
 and `0x87548`. Indirect calls retain their register operand and a null target;
@@ -159,8 +168,8 @@ in both existing vendor-tool listings examined locally:
 
 | Oracle application | Listing entries | Supported forms checked |
 | --- | ---: | ---: |
-| `FM-1_009` | 199,931 | 168,935 |
-| `FM-1_014` | 200,435 | 169,439 |
+| `FM-1_009` | 199,931 | 171,131 |
+| `FM-1_014` | 200,435 | 171,639 |
 
 The supported operands and relative targets agree with those listings.
 Stack register lists were checked separately. Entries marked unknown by the
@@ -173,7 +182,8 @@ V15 coverage is reported for the bounded spans above and remains incomplete.
 Supported forms include immediate/register moves, direct and indirect calls,
 short branches, register arithmetic/logic, sign/zero extension, stack saves,
 several load/store forms, indexed table loads, bit extraction, compact immediate
-arithmetic/logic, and conditional branches. Unknown forms preserve their
+arithmetic/logic, signed/unsigned min/max, single-bit immediate logic, and
+immediate/register conditional branches. Unknown forms preserve their
 exact bytes. Six-byte direct calls use a signed displacement relative to the
 next PC. An odd low displacement bit selects `gotoss`; it is not a call.
 
@@ -201,6 +211,12 @@ complete instruction coverage for that bounded kernel only; it is not complete
 firmware or sound-engine decoding. Numeric execution and packet behavior need
 the separate checks described in [17 — Operator ABI](17-operator-abi.md).
 
+All **79 instructions / 208 bytes** of the envelope helper are also supported.
+Its signed register comparisons use a signed nine-bit branch displacement;
+its three clamp predicates condition one following instruction. Other
+predicate scope encodings remain unknown. Register comparisons expose
+`other_register` in place of `immediate`, retaining signedness explicitly.
+
 The default automated suite uses synthetic instruction vectors and malformed
 inputs. It tests sign handling, addressing, truncation, the bounds on strings
 and disassembly, stale-analysis rejection, source preservation, and the rule
@@ -213,7 +229,7 @@ python -m pytest tests\test_fm1_decode.py
 ```
 
 The private image is never copied into the test directory. On 2026-09-14 all
-85 synthetic cases and the optional V15 case passed. Live device I/O was not
+100 synthetic cases and the optional V15 case passed. Live device I/O was not
 part of this work.
 
 ## API and evidence schema
@@ -238,6 +254,9 @@ be used to retrieve file bytes. Strings describe data presence only.
 `dsp.effects` comes from `tools/fm1_effects.py` and requires the exact complete
 V15 application fingerprint. Modified or unrecognized images receive no effect
 annotations from that profile, even if their startup map remains supported.
+Calls to fingerprinted function entries also expose `target_function` and
+`target_confidence`; both are null when the target has no matching annotation.
+An inferred target name does not turn an encoded call into proven reachability.
 
 `disassemble` returns a bounded list of instruction/data rows. Each row retains
 file offset, runtime address when justified, size and raw hexadecimal bytes.
@@ -251,8 +270,9 @@ nodes, edges and explicit barriers. It stops at unsupported semantics, refuses
 targets inside instructions/data, leaves indirect destinations unresolved and
 does not assume callee return behavior. Predicate scopes over unverified
 parallel packets stop a path. The V15 operator kernel's graph contains 183
-nodes and 197 possible edges, with no unresolved barriers; loops terminate the
-analysis through a visited-node set. The other reported spans still hit
+nodes and 197 possible edges; the envelope graph has 79 nodes and 91 edges.
+Both have no unresolved barriers. Loops terminate the analysis through a
+visited-node set. The other reported spans still hit
 unsupported instructions. This graph does not establish what ran on a device.
 
 ## Provenance and next work

@@ -48,6 +48,7 @@ _V15_FUNCTIONS = [
     ("fm_core_render_candidate", 0x85284, 2270, "d382c2d836c686c9cce9dba22142eba5556687991c685f39275fa6b38dad0680", "synthesis", "inferred", 0x85A28),
     ("dx7note_compute_block_candidate", 0x85B62, 2054, "22552cc5b58aa5841667f53df820fcc42e6cfd85568e0df45a77e06fbd11fbdf", "synthesis", "inferred", 0x862FA),
     ("fx_chain_process_candidate", 0x872BE, 656, "2575f84297ba0bfbe772fb8cc46cf632fd1440c0a559ebef449c2d7e47833760", "effects", "inferred", 0x87A26),
+    ("envelope_update_candidate", 0x1896, 208, "c49189757d64e629c1a7da7c68729bedd1d46362a502b4d8421dde7d2965c752", "synthesis", "inferred", 0x1888),
 ]
 
 
@@ -166,6 +167,13 @@ def decode_instruction(blob: bytes, file_offset: int, address: int | None = None
                              condition={"register": register, "comparison": comparison, "immediate": immediate, "signed": signed})
         instruction["text"] = f"if {register} {comparison} {immediate}: " + instruction["text"]
         return instruction
+    if width == 4 and word & 0xFFF0 in (0xED80, 0xEE00) and not extra & 0xE00:
+        comparison = "<" if word & 0xFFF0 == 0xED80 else ">"
+        left, right = f"r{extra >> 12}", f"r{ra}"
+        instruction = branch("branch_if", _signed(extra & 0x1FF, 9) * 2,
+                             condition={"register": left, "comparison": comparison, "other_register": right, "signed": True})
+        instruction["text"] = f"if {left} {comparison} {right}: " + instruction["text"]
+        return instruction
     if group == 4 and w & 0x8F == 1:
         return branch("call", (_signed(w >> 4 & 7, 3) << 6) | ((w >> 8 & 31) << 1))
     if group == 7 and (w >> 6 & 0x7F) in (0x2A, 0x2B):
@@ -214,6 +222,12 @@ def decode_instruction(blob: bytes, file_offset: int, address: int | None = None
             if mode == 0 and w & 0x38 == 0x10:
                 immediate = (w >> 8 & 31) - 32
                 return emit("mov", f"r{a} = {immediate}", register=f"r{a}", immediate=immediate)
+            if w & 0xF8 in (0x30, 0x38, 0xB8):
+                name = {0x30: "or", 0x38: "xor", 0xB8: "and"}[w & 0xF8]
+                immediate = 1 << (w >> 8 & 31)
+                if name == "and":
+                    immediate = (~immediate) & 0xFFFFFFFF
+                return emit(name, f"{name} r{a}, 0x{immediate:x}", register=f"r{a}", source_register=f"r{a}", immediate=immediate)
             if w & 0x38:
                 return result  # Other short immediates/bit operations, not SP loads.
             return memory("sw" if mode == 2 else "lw", f"r{a}", "sp", immediate * 4, 4)
@@ -283,12 +297,23 @@ def decode_instruction(blob: bytes, file_offset: int, address: int | None = None
         return emit(name, f"{name} r{ra}, r{extra >> 12}, {position}, {length}",
                     register=f"r{ra}", source_register=f"r{extra >> 12}", position=position,
                     length=length, parallel_pair=bool(w & 0x1000))
-    if width == 4 and w & 0xFFF0 in (0xE8B0, 0xED30) and extra == 0:
-        comparison = "!=" if w & 0xFFF0 == 0xE8B0 else ">="
-        predicate = {"register": f"r{ra}", "comparison": comparison, "immediate": 0,
-                     "signed": comparison == ">=", "instruction_count": 1}
-        return emit("predicate_next", f"if r{ra} {comparison} 0: next instruction", predicate=predicate,
+    if width == 4 and w & 0xFFF0 in (0xE8B0, 0xED30, 0xEEB0) and extra & 0xF000 == 0:
+        comparison = {0xE8B0: "!=", 0xED30: ">=", 0xEEB0: "<="}[w & 0xFFF0]
+        immediate = _signed(extra & 0xFFF, 12)
+        predicate = {"register": f"r{ra}", "comparison": comparison, "immediate": immediate,
+                     "signed": comparison != "!=", "instruction_count": 1}
+        return emit("predicate_next", f"if r{ra} {comparison} {immediate}: next instruction", predicate=predicate,
                     scope="one following instruction; paired companions require separate validation")
+    if width == 4 and w & 0xFFF0 == 0xEE90 and extra & 0xF0FF == 0:
+        left, right = f"r{ra}", f"r{extra >> 8 & 15}"
+        return emit("predicate_next", f"if {left} <= {right}: next instruction",
+                    predicate={"register": left, "comparison": "<=", "other_register": right, "signed": True, "instruction_count": 1},
+                    scope="one following instruction; paired companions require separate validation")
+    if width == 4 and w & 0xEFFE == 0xE434 and extra & 14 == 0:
+        name = ("s" if extra & 1 else "u") + ("min" if w & 1 else "max")
+        destination, left, right = f"r{extra >> 12}", f"r{extra >> 4 & 15}", f"r{extra >> 8 & 15}"
+        return emit(name, f"{destination} = {name}({left}, {right})", register=destination, source_registers=[left, right],
+                    parallel_pair=bool(w & 0x1000))
     if width == 4 and w & 0xEFC0 == 0xE100:
         immediate = _signed(((w & 0x30) << 8) | (extra & 0xFFF), 14)
         return emit("add", f"r{ra} = r{extra >> 12} + {immediate}", register=f"r{ra}",
@@ -549,6 +574,8 @@ def analyze_application(blob: bytes) -> dict:
             if reference is not None:
                 row["evidence"] += " Role inferred from V009 instruction-block similarity; function bytes differ across versions."
                 row["reference_image_sha256"] = V009_SHA256
+            if name == "envelope_update_candidate":
+                row["evidence"] += " V009 matches 204/208 bytes; differences are the data-base immediate and level-table displacement. Fresh state accesses, arithmetic and MSFA comparison are documented in docs/20-envelope-decoding.md."
             decoded = disassemble(blob, offset, size)
             row["supported_bytes"] = decoded["supported_bytes"]
             row["unsupported_bytes"] = decoded["unsupported_bytes"]
@@ -562,6 +589,11 @@ def analyze_application(blob: bytes) -> dict:
                                             "target_file_offset": address_to_offset(ins["target"], report) if ins.get("target") is not None else None,
                                             "register": ins.get("register"), "bytes": ins["bytes"],
                                             "evidence": "Decoded instruction in a fingerprinted span; reachability and indirect target remain unproven."})
+        named_targets = {function["file_offset"]: function for function in report["functions"]}
+        for call in report["calls"]:
+            target = named_targets.get(call["target_file_offset"])
+            call["target_function"] = target["name"] if target else None
+            call["target_confidence"] = target["confidence"] if target else None
         report["address_proof"] = [{"file_offset": off, "bytes": blob[off:off + 6].hex(), "target_file_offset": target,
                                      "target_address": XIP_BASE + target, "text": text}
                                     for off, target, text in ((0x2A054, 0x4E64C, "EXT_RESERVED"), (0x2A376, 0x4E68F, "app_area_head"), (0x284FC, 0x4E666, "audio_server"))]
