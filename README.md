@@ -4,7 +4,7 @@ Research toward a fully open-source firmware for the M-VAVE (Cuvave) **FM-1**, a
 ~€70 battery-powered six-operator, 12-voice FM synthesizer with 27 silicone keys,
 a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
 
-> **Status (2026-09-06): research phase; first read-only bench session done.**
+> **Initial bench baseline (2026-09-06): first read-only session completed.**
 > Nothing has been flashed and the case has not been opened. The owner's unit
 > identifies as `FM-1_015`; V15 has been unpacked and compared with V14
 > ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md)). The `USB_KEY`
@@ -14,53 +14,134 @@ a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
 > the verdict and [`docs/09-first-session-checklist.md`](docs/09-first-session-checklist.md)
 > for what to do with the device on the bench.
 
-## Firmware development
+## Firmware decoding and local development
 
-The `codex/firmware-decoding` branch extends the local Python workbench with
-firmware analysis, local projects, reversible byte changes and package
-rebuilding. Start it with `python tools/fm1_workbench.py --open`; see
-[15 — Firmware development](docs/15-decoding-workflow.md).
-Full decoding, DSP replacement, device installation and recovery remain active
-work. Offline integrity checks do not prove that a modified image will run.
+**A reproducible offline path from firmware bytes to bounded DSP execution.**
+The `codex/firmware-decoding` branch connects instruction decoding, operator
+mathematics, effects-routing evidence, and a local workbench for exact-byte
+experiments, package rebuilding, and rollback.
 
-### Decoding milestone
+> **Draft / work in progress.** The implemented scope is described below.
+> This is not a complete firmware replacement, a hardware-validated DSP engine,
+> or a proven installation and recovery path.
 
-The decoding work has a concrete byte-level foundation and several bounded
-sound-engine footholds:
+### Decoder, operator mathematics, and execution
 
-| Area | Current evidence |
-| --- | --- |
-| Parser | A bounded pi32v2 parser records 2-, 4-, and 6-byte instruction boundaries, preserves raw bytes for unknown forms, decodes established operands and control flow, and rejects unsupported input without inventing semantics. |
-| Paired instructions | V15 pair markers and companion rows are retained in the disassembly. The offline interpreter reads both instructions from the pre-write register state, commits their writes atomically, and rejects ambiguous or unsupported packet behavior. |
-| Operators | The V15 three-operator kernel is bounded to 183 instructions / 544 bytes with full supported-operand coverage, explicit phase/increment/level state rows, a 64-sample loop, and 19 reproducible verification vectors. This is a verified foothold for one kernel path, not every FM algorithm. |
-| Envelope | The V15 envelope helper has 79 instructions / 208 bytes, a reconstructed 34-byte state prefix, stage transition logic, and a 204-of-208-byte match against the V009 helper. Its names and full upstream modulation path remain inferred or open. |
-| FX chain | Six effect slots, a V15 dispatcher, eighteen callback pointers, and indexed object/enabled/parameter state fields. |
-| Distortion | A V15 callback with a traced final tanh lookup: ×512 position scaling, sign handling, linear interpolation, gain, and an explicit 1.0 saturation path. |
-| Chorus | A V15 44-byte state, 884-byte delay buffer, ring length 220, and a process callback that loads the exact 513-cell sine table. The cross-repository analysis identifies the structure as a modulated delay. |
-| Reverb and delay | V15 allocation and ring/stage observations; the cross-repository analysis adds multi-stage comb/delay/feedback and interpolated-delay context. |
-| Whole audio path | The cross-repository FM-engine analysis places the six-slot effects pass after the voice mix and before DAC output; the version and address-space boundary is recorded in [22 — Effects evidence roll-up](docs/22-effects-evidence-rollup.md). |
+The bounded **pi32v2 decoder** records 2-, 4-, and 6-byte instruction
+boundaries, retains raw bytes for unknown forms, and decodes supported operands,
+memory accesses, immediates, predicates, and control flow. V15 paired-instruction
+markers and companion rows remain visible rather than being flattened away.
+The interpreter evaluates paired instructions against their shared pre-write
+state and commits their writes atomically. **That timing is inferred from the
+V15 evidence, not independently established CPU behavior.** Unsupported
+instructions, ambiguous packets, illegal memory accesses, and exhausted
+instruction budgets stop execution.
 
-The parser, packet timing, operator names, envelope correspondence, effect
-names, and several inner equations remain hypotheses or bounded models. The
-evidence and remaining boundaries are recorded in
-[13 — Static firmware decoding](docs/13-firmware-decoding.md),
-[16 — Operator lookup mathematics](docs/16-operator-mathematics.md),
-[17 — V15 operator state and attenuation interpolation](docs/17-operator-abi.md),
-[20 — Envelope update and stage transitions](docs/20-envelope-decoding.md),
-[21 — Reversible operator experiments](docs/21-offline-operator-experiments.md),
-[18 — Effects decoding](docs/18-effects-decoding.md),
-[19 — Effects lookup mathematics](docs/19-effects-mathematics.md), and
-[22 — Effects evidence roll-up](docs/22-effects-evidence-rollup.md).
+The **V15 three-operator kernel** is bounded to **183 instructions / 544 bytes**,
+with three 16-byte operator-state rows and a fixed 64-sample loop. A separate
+integer reference model and bounded instruction interpreter are compared using
+**19 reproducible verification vectors** covering output and feedback. This
+validates the stated kernel model, not every FM algorithm or a complete voice.
+
+The reconstruction preserves the arithmetic details that change the result:
+
+- **Attenuation:** previous-target state, the zero sentinel, logarithmic level
+  conversion, rounded `/64` ramps, and increments before the first lookup.
+  Rounding overshoot is retained rather than silently clamped away.
+- **Feedback and phase:** signed 32-bit wraparound, the caller-adjusted shift
+  `min(outer_shift + 2, 16) + 1` for ordinary nonnegative inputs, feedback from
+  the final third-operator output, and caller-owned phase writeback.
+- **Lookup behavior:** formula-reproduced exponent and log-sine tables with
+  exact fingerprints, including the combined-logarithm sign behavior when an
+  attenuation ramp underflows.
+
+Evidence: [instruction decoding](docs/13-firmware-decoding.md),
+[lookup mathematics](docs/16-operator-mathematics.md), and
+[operator state and execution contract](docs/17-operator-abi.md).
+
+### Envelope and effects reconstruction
+
+| Area | Concrete result | Remaining boundary |
+| --- | --- | --- |
+| Envelope | 79 instructions / 208 bytes; a reconstructed 34-byte state prefix and stage-transition logic; 204 of 208 bytes match the V009 helper, with four relocation-related changes. | Semantic names, full upstream modulation, and MSFA correspondence remain qualified. |
+| Effects routing | A 656-byte V15 dispatcher, six slots, and eighteen init/update/process callback pointers, with indexed object, enabled, slot-ID, and parameter fields. | Filter, Reverb, Delay, Distortion, Chorus, and Phaser bindings remain inferred from ordered UI labels. |
+| Distortion | A 268-byte state and a traced nonlinear output stage: ×512 lookup scaling, sign restoration, adjacent tanh-table interpolation, separate gain, and an explicit 1.0 saturation path. | Pre-filters, user-parameter mapping, and floating-point details remain open. |
+| Chorus | A 44-byte state, 884-byte delay buffer, ring length 220, and a process callback loading the exact 513-cell sine table. | External chorus/flanger analysis supports a modulated-delay interpretation; phase, interpolation, rate/depth, and mix remain open. |
+| Reverb and delay | V15 state allocations, ring boundaries, and processing-stage observations, with external multi-stage comb/delay/feedback and interpolated-delay context. | Full equations, mode bindings, and parameter scaling remain open. |
+
+The pinned AL-255 FM-engine analysis places a six-slot effects pass after voice
+mixing and before DAC output. Its image and address presentation differ from
+V15; that result is corroborating context, not a verified V15 end-to-end map.
+
+Evidence: [envelope reconstruction](docs/20-envelope-decoding.md),
+[effects decoding](docs/18-effects-decoding.md),
+[effects lookup mathematics](docs/19-effects-mathematics.md), and the
+[cross-repository effects roll-up](docs/22-effects-evidence-rollup.md).
+
+### Reversible, executable experiments
+
+The offline experiment API ties a specific firmware edit to a numerical result
+and a reversible manifest. It accepts only the exact V15 source image and
+expected original bytes, with equal-size, nonoverlapping changes confined to
+the verified kernel or lookup-table ranges.
+
+One documented experiment changes **a single byte** to shift the final
+operator output by 12 bits instead of 13. For the specified test vector,
+**all 64 samples and both final feedback words are exactly half the stock
+interpreter result**, and rollback restores every original byte. This is a
+bounded interpreter result, not a general half-volume modification or a
+hardware-audio claim. See [the experiment and reproduction
+steps](docs/21-offline-operator-experiments.md).
 
 ## Browser workbench
 
-Use the [FM-1 Workbench](docs/11-workbench.md) for a local browser interface to
-read device identity, inspect firmware packages and application images, and
-export a timestamped debug report. Start it with
-`python tools/fm1_workbench.py --open` after installing
-`requirements-workbench.txt`. Offline inspection needs only Python.
-This first bench contribution is read-only; firmware writing remains subject to
-the project's recovery gate.
+From the repository root, start the local interface with **Python 3.10 or later**:
+
+```bash
+python tools/fm1_workbench.py --open
+```
+
+Offline inspection, decoding, project storage, editing, and rebuilding use the
+Python standard library. Install [requirements-workbench.txt](requirements-workbench.txt)
+for the optional MIDI identity functionality. The offline workflow needs no
+vendor application, vendor USB driver, or external web service.
+
+The workbench provides package and application inspection, hex views, decoded
+findings, source-hash-bound analysis, explicit change manifests, integrity-checked
+rebuilds, rollback, and timestamped reports. Local `.fm1proj` projects retain
+immutable original and child revisions with hashes and parent relationships.
+These private SQLite files contain firmware bytes and must not be published.
+
+**Device communication remains read-only.** Editing and rebuilding local files
+is supported; the new analysis and experiment paths do not flash hardware.
+Successful integrity checks or byte-exact rollback are not evidence of device
+compatibility or recovery.
+
+Start with the [workbench guide](docs/11-workbench.md) and
+[development workflow](docs/15-decoding-workflow.md). The
+[package-inspection contract](docs/12-package-inspection.md) and
+[rebuild contract](docs/14-firmware-rebuild.md) define the supported boundaries.
+
+### Implementation map
+
+These are executable components, not only research notes:
+
+| Source | Responsibility |
+| --- | --- |
+| [`fm1_decode.py`](tools/fm1_decode.py) | Instruction decoding; executable, memory, feature, and DSP evidence |
+| [`fm1_pi32.py`](tools/fm1_pi32.py) | Bounded integer interpreter, atomic paired execution, and source-bound operator experiments |
+| [`fm1_operator.py`](tools/fm1_operator.py), [`fm1_verify_operator.py`](tools/fm1_verify_operator.py) | Independent integer block model and finite interpreter/reference verification vectors |
+| [`fm1_dsp.py`](tools/fm1_dsp.py), [`fm1_effects.py`](tools/fm1_effects.py) | Lookup-table reproduction and fingerprints; V15 effects callback and stage evidence |
+| [`fm1_package.py`](tools/fm1_package.py), [`fm1_rebuild.py`](tools/fm1_rebuild.py) | Container inspection and extraction; exact-source patching, metadata reconstruction, and inverse changes |
+| [`fm1_project.py`](tools/fm1_project.py), [`fm1_workspace.py`](tools/fm1_workspace.py) | Persistent revisions and provenance; bounded loaded files, hex views, and rebuild operations |
+| [`fm1_workbench.py`](tools/fm1_workbench.py), [`web/`](web/) | Loopback HTTP API and browser interface |
+| [`tests/`](tests/), [`ci.yml`](.github/workflows/ci.yml) | Regression coverage and continuous-integration configuration |
+
+The focused tests cover decoder semantics, control flow, arithmetic edge cases,
+memory permissions, packet hazards and atomicity, provenance invalidation,
+rebuild integrity, experiment boundaries, project persistence, and the local
+API. Optional private-image checks require `FM1_V15_APPLICATION`; their absence
+is reported as a skip, not a successful firmware execution check.
 
 ## The short version
 
@@ -130,8 +211,15 @@ the project's recovery gate.
 | [`docs/08-roadmap.md`](docs/08-roadmap.md) | Phased plan with exit criteria |
 | [`docs/09-first-session-checklist.md`](docs/09-first-session-checklist.md) | Exact commands for the first hands-on session |
 | [`docs/10-usb-key-dongle.md`](docs/10-usb-key-dongle.md) | The RP2040 `USB_KEY` dongle: protocol, hardware, firmware, bench procedure |
+| [`docs/11-workbench.md`](docs/11-workbench.md) | Local browser workbench, device identity, inspection, and reporting |
+| [`docs/12-package-inspection.md`](docs/12-package-inspection.md) | Container validation, extraction, and integrity coverage |
 | [`docs/13-firmware-decoding.md`](docs/13-firmware-decoding.md) | Static pi32v2 parser, paired-instruction handling, address map and coverage |
+| [`docs/14-firmware-rebuild.md`](docs/14-firmware-rebuild.md) | Exact-source patches, package rebuilding, and reversible manifests |
+| [`docs/15-decoding-workflow.md`](docs/15-decoding-workflow.md) | Setup, local projects, development workflow, and completion criteria |
+| [`docs/16-operator-mathematics.md`](docs/16-operator-mathematics.md) | Reproduced exponent/log-sine tables and operator lookup mathematics |
 | [`docs/17-operator-abi.md`](docs/17-operator-abi.md) | V15 operator state, packet timing and three-operator kernel contract |
+| [`docs/18-effects-decoding.md`](docs/18-effects-decoding.md) | Six-slot effects dispatcher, callback table, state, and buffer evidence |
+| [`docs/19-effects-mathematics.md`](docs/19-effects-mathematics.md) | Effects lookup tables and the distortion nonlinear stage |
 | [`docs/20-envelope-decoding.md`](docs/20-envelope-decoding.md) | V15 envelope state and stage transition reconstruction |
 | [`docs/21-offline-operator-experiments.md`](docs/21-offline-operator-experiments.md) | Reversible bounded operator experiments and verification limits |
 | [`docs/22-effects-evidence-rollup.md`](docs/22-effects-evidence-rollup.md) | Cross-repository effects evidence and V15 reconciliation |
@@ -142,6 +230,7 @@ the project's recovery gate.
 | [`tools/fm1_identify.sh`](tools/fm1_identify.sh) | Read-only SysEx identity query via ALSA `amidi` (untested on hardware) |
 | [`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md) | Bench session 1: USB descriptors, identity reply, MIDI probes, V14 vs V15 |
 | [`tests/`](tests/), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | pytest suite (tools, PIO emulation, dongle/ROM co-simulation) and CI: tests on Linux/macOS, RP2040 UF2 build, AL-255's suite on our fork |
+| [`notes/2026-09-14-workbench.md`](notes/2026-09-14-workbench.md) | Workbench and decoding development record |
 | [`notes/2026-09-06-research-log.md`](notes/2026-09-06-research-log.md) | What was checked, what was blocked, where the numbers come from |
 
 Confidence marks used throughout the docs: **[verified]** checked in this
@@ -172,6 +261,8 @@ documentation and tools), **probonopd** (SMK-37 Pro notes), Google's
 music-synthesizer-for-android and the Dexed / Synth_Dexed / MiniDexed lineage,
 and **charlesvestal** and **DimaDake** for Schwung and Movy. Vendor firmware
 images are not redistributed here; see the sources.
+Third-party attribution and licensing details are retained in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## License
 
