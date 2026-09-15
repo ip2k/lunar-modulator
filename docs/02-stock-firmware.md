@@ -4,6 +4,15 @@ What ships on the FM-1, how it boots, what it is built from, and the evidence
 that its synth engine is the open-source msfa/Dexed core. Confidence marks as
 in docs/01.
 
+> **V15 address and DSP corrections (2026-09-14):** [verified] actual absolute
+> references place the decoded `app.bin` base at `0x02000120`, rather than the
+> `0x02000000` base used in older listings below. The initialized RAM image starts
+> at file `0x83F40`. See [13](13-firmware-decoding.md) for the address proof.
+> The operator lookup tables are logarithmic sine and fractional exponent
+> tables, now reproduced exactly from formulas across `009`, `014` and `015`;
+> see [16](16-operator-mathematics.md). Older listing addresses and interpretations
+> remain historical evidence and must be rechecked before use as runtime symbols.
+
 ## 1. Versions and packages
 
 | Version (device identity) | Where it came from | Notes |
@@ -36,8 +45,11 @@ AL-255's `extract.sh` and probonopd's SMK-37 notes use).
 | `ota.bin` | 19969 B | nested bootable image `usb_hid_ota.bin`: the **USB-MIDI OTA loader**, six LZ4 blocks, 23324 B decompressed, load address `0x01C0A800` |
 | `script.ver`, `info.log`, `USR`, `blimit.bin`, `tail.bin` | small | `script.ver` decrypts to `AC791N-v0.01-cfg_tool-v0.10` |
 
-Integrity is **CRC-16/CCITT-FALSE everywhere** (UFW header, entry list, entry
-data, nested OTA image). There is **no RSA/ECDSA signature** — confirmed
+The checked UFW and application integrity layers use **CRC-16 with polynomial
+0x1021 and initial value 0** (CRC-16/XMODEM parameters, not CCITT-FALSE).
+[verified: parser checks and independent synthetic CRC fixtures in docs/12]
+Coverage of other nested layers is listed separately in docs/12.
+There is **no RSA/ECDSA signature** — confirmed
 independently by aroum (updater strings) and AL-255 (loader disassembly). The
 SFC cipher with the chip key is obfuscation, not authentication; the key is in
 the package.

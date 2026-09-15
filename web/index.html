@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>FM-1 Workbench</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to controls</a>
+  <div class="shell">
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="FM-1 Workbench home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <span>FM-1 <span class="brand-light">Workbench</span></span>
+      </a>
+      <span class="mode-badge"><span class="status-dot"></span>Device: read-only</span>
+    </header>
+
+    <main id="main">
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">M-VAVE FM-1</p>
+          <h1 id="page-title">Firmware development</h1>
+          <p class="intro-copy">Inspect firmware, edit application bytes, and save reversible changes.</p>
+        </div>
+      </section>
+
+      <div id="service-message" class="service-message" role="status">Connecting to the local service…</div>
+
+      <div class="bench-grid">
+        <section class="panel device-panel" aria-labelledby="device-heading">
+          <div class="panel-heading">
+            <div class="section-label"><span class="section-number">01</span><h2 id="device-heading">Device</h2></div>
+            <span id="device-badge" class="quiet-badge">Not read</span>
+          </div>
+          <p class="panel-copy">Select the FM-1 MIDI ports to read its model and firmware version.</p>
+          <div class="port-fields">
+            <div class="field"><label for="input-port">MIDI input <span>FROM DEVICE</span></label><select id="input-port" disabled><option value="">Loading ports…</option></select></div>
+            <div class="field"><label for="output-port">MIDI output <span>TO DEVICE</span></label><select id="output-port" disabled><option value="">Loading ports…</option></select></div>
+          </div>
+          <div class="actions"><button id="identify" class="button primary" disabled>Read identity <span aria-hidden="true">↗</span></button><button id="refresh-ports" class="button secondary" disabled>Refresh ports</button></div>
+          <p id="device-message" class="inline-message" role="status">No identity request has been sent.</p>
+          <div id="identity-result" class="identity-result" hidden></div>
+          <details class="query-details"><summary>Identity request bytes</summary><code>F0 00 32 45 00 00 00 40 7F F7</code><p>This is the only message sent to the device.</p></details>
+        </section>
+
+        <section class="panel firmware-panel" aria-labelledby="firmware-heading">
+          <div class="panel-heading">
+            <div class="section-label"><span class="section-number">02</span><h2 id="firmware-heading">Firmware</h2></div>
+            <span class="quiet-badge">Local inspection</span>
+          </div>
+          <p class="panel-copy">Open a local file to inspect or edit it. This tool cannot write firmware to the device.</p>
+          <div class="field kind-field"><label for="file-kind">File format</label><select id="file-kind"><option value="fwsc">Firmware package (.fwsc)</option><option value="app">Application image (app.bin)</option></select></div>
+          <div id="drop-zone" class="drop-zone">
+            <span class="file-glyph" aria-hidden="true">↧</span>
+            <strong>Drop a firmware file here</strong>
+            <span id="file-limit">.fwsc or app.bin · up to 8 MiB</span>
+            <button id="choose-file" class="button secondary" disabled>Choose file</button>
+            <input id="firmware-file" class="visually-hidden" type="file" accept=".fwsc,.bin" tabindex="-1" aria-label="Choose firmware file">
+          </div>
+          <p id="file-message" class="inline-message" role="status">Files are inspected on this computer.</p>
+        </section>
+      </div>
+
+      <section class="panel project-panel" aria-labelledby="projects-heading">
+        <div class="panel-heading"><h2 id="projects-heading">Projects</h2><button id="refresh-projects" class="text-button">Refresh</button></div>
+        <p class="panel-copy">Projects retain original firmware, revisions, and analysis on this computer.</p>
+        <div class="project-controls">
+          <div class="field"><label for="project-select">Local project</label><select id="project-select"><option value="">No project selected</option></select></div>
+          <div class="field"><label for="revision-select">Revision</label><select id="revision-select" disabled><option value="">Choose a project</option></select></div>
+          <button id="load-revision" class="button secondary" disabled>Load revision</button>
+          <button id="import-project" class="button secondary">Import project…</button>
+          <input id="project-file" type="file" class="visually-hidden" accept=".fm1proj" tabindex="-1" aria-label="Import project file">
+        </div>
+        <div class="project-controls create-project-row">
+          <div class="field"><label for="project-label">New project name</label><input id="project-label" type="text" maxlength="120" placeholder="Project name"></div>
+          <button id="create-project" class="button secondary" disabled>Create from current file</button>
+          <a id="download-project" class="button secondary" hidden>Download project</a>
+        </div>
+        <p id="project-message" class="inline-message" role="status">No project loaded.</p>
+      </section>
+
+      <section id="development-panel" class="panel development-panel" aria-labelledby="development-heading" hidden>
+        <div class="panel-heading"><h2 id="development-heading">Application</h2><span id="analysis-profile" class="quiet-badge"></span></div>
+        <p id="source-description" class="analysis-note"></p>
+        <div class="analysis-controls">
+          <div class="field"><label for="analysis-type">View</label><select id="analysis-type"><option value="strings">Strings</option><option value="regions">Regions</option><option value="functions">Functions</option><option value="features">Features</option></select></div>
+          <div class="field"><label for="analysis-search">Filter</label><input id="analysis-search" type="search" placeholder="Name, text, or address"></div>
+          <span id="analysis-count" class="analysis-note"></span>
+        </div>
+        <div class="table-wrap analysis-table-wrap"><table id="analysis-table"><caption class="visually-hidden">Application analysis results</caption><thead></thead><tbody></tbody></table></div>
+        <p id="analysis-message" class="inline-message" role="status"></p>
+        <details id="record-details" class="report-details" hidden><summary>Selected record</summary><pre id="record-json"></pre></details>
+        <details class="report-details"><summary>Analysis coverage and unresolved items</summary><pre id="analysis-coverage"></pre></details>
+
+        <h3 class="subheading">Application bytes</h3>
+        <div class="hex-controls"><label for="hex-offset">File offset</label><input id="hex-offset" type="text" value="0x0" spellcheck="false"><button id="hex-go" class="button secondary">Go</button><button id="hex-previous" class="button secondary">Previous</button><button id="hex-next" class="button secondary">Next</button><button id="hex-use-offset" class="button secondary">Use for change</button></div>
+        <p id="hex-message" class="inline-message" role="status">Offsets refer to the decoded application file.</p>
+        <pre id="hex-view" class="hex-view" tabindex="0" aria-label="Application bytes in hexadecimal and ASCII"></pre>
+
+        <h3 class="subheading">Changes</h3>
+        <p class="analysis-note">Each change must replace the expected bytes with the same number of bytes. The original file is retained.</p>
+        <div class="patch-fields">
+          <div class="field"><label for="patch-offset">Application offset</label><input id="patch-offset" type="text" value="0x0" spellcheck="false"></div>
+          <div class="field"><label for="patch-before">Expected bytes · hex</label><input id="patch-before" type="text" placeholder="00 01" spellcheck="false"></div>
+          <div class="field"><label for="patch-after">New bytes · hex</label><input id="patch-after" type="text" placeholder="00 02" spellcheck="false"></div>
+          <div class="field"><label for="patch-label">Description</label><input id="patch-label" type="text" maxlength="160" placeholder="What this changes"></div>
+        </div>
+        <div class="actions"><button id="patch-read" class="button secondary">Read current bytes</button><button id="patch-add" class="button secondary">Add change</button><button id="preview-rebuild" class="button primary">Preview rebuild</button></div>
+        <div id="patch-list" class="patch-list"></div>
+        <p id="patch-message" class="inline-message" role="status">No changes queued.</p>
+        <div id="rebuild-result" class="rebuild-result" hidden>
+          <h3 class="subheading">Rebuild result</h3><p id="rebuild-description" class="analysis-note"></p>
+          <div class="actions"><a id="download-rebuilt" class="button primary">Download firmware</a><a id="download-manifest" class="button secondary">Download rollback manifest</a><button id="save-revision" class="button secondary" disabled>Save as project revision</button></div>
+          <details class="report-details"><summary>Exact changes and checksum updates</summary><pre id="rebuild-json"></pre></details>
+        </div>
+        <details class="report-details"><summary>Rollback a rebuilt file</summary><p class="analysis-note">Load the rebuilt firmware as the current file, then choose its rollback manifest. Restored bytes are offered as a new download.</p><button id="choose-rollback" class="button secondary">Choose rollback manifest…</button><input id="rollback-file" class="visually-hidden" type="file" accept=".json" tabindex="-1" aria-label="Choose rollback manifest"></details>
+        <p class="analysis-note">Device writes require a full flash dump and a verified byte-identical restore on that unit. File checks and rebuilds do not establish that firmware will boot.</p>
+      </section>
+
+      <section id="inspection-panel" class="panel inspection-panel" aria-labelledby="inspection-heading" hidden>
+        <div class="panel-heading"><div class="section-label"><span class="section-number">↳</span><h2 id="inspection-heading">File analysis</h2></div><span id="inspection-badge" class="quiet-badge">Inspection</span></div>
+        <div id="inspection-result"></div>
+      </section>
+
+      <section class="panel debug-panel" aria-labelledby="debug-heading">
+        <div class="panel-heading debug-heading">
+          <div class="section-label"><span class="section-number">03</span><h2 id="debug-heading">Debug log</h2><span id="log-count" class="log-count">0 events</span></div>
+          <div class="log-actions"><button id="clear-log" class="text-button">Clear log</button><button id="export-report" class="button secondary">Export report <span aria-hidden="true">↓</span></button></div>
+        </div>
+        <div class="log-toolbar">
+          <div class="filter-field"><label for="log-filter">Show</label><select id="log-filter"><option value="ALL">All events</option><option value="TX">TX · sent</option><option value="RX">RX · received</option><option value="INFO">Info</option><option value="ERROR">Errors</option></select></div>
+          <input id="log-search" type="search" placeholder="Filter messages or hex…" aria-label="Filter log messages or hex">
+          <span class="local-label"><span id="service-dot" class="status-dot offline"></span><span id="service-label">Connecting</span></span>
+        </div>
+        <div id="log-window" class="log-window" tabindex="0" aria-label="Debug events">
+          <div id="log-empty" class="log-empty"><span aria-hidden="true">· · ·</span><p>No events yet.</p><small>Device messages and file results appear here.</small></div>
+          <ol id="log-entries" class="log-entries" aria-label="Timestamped events"></ol>
+        </div>
+        <div class="log-footer"><span>Timestamps use your local time.</span><span>Latest 500 events · JSON export</span></div>
+      </section>
+    </main>
+    <dialog id="report-dialog" class="report-dialog" aria-labelledby="report-title" aria-describedby="report-description">
+      <div class="panel-heading">
+        <div class="section-label"><span class="section-number">↗</span><h2 id="report-title">Session report</h2></div>
+        <button id="close-report" class="text-button">Close <span aria-hidden="true">×</span></button>
+      </div>
+      <p id="report-description" class="panel-copy">Device information, file analysis, and debug log. Copy or download as JSON.</p>
+      <label class="report-label" for="report-text">Report JSON</label>
+      <textarea id="report-text" readonly spellcheck="false" autofocus></textarea>
+      <p id="report-message" class="inline-message" role="status">Report ready.</p>
+      <div class="actions"><button id="copy-report" class="button primary">Copy report</button><button id="download-report" class="button secondary">Download JSON <span aria-hidden="true">↓</span></button></div>
+    </dialog>
+    <footer class="footer"><span>FM-1 Workbench</span><a href="https://github.com/ip2k/mvave-fm1-open-firmware" target="_blank" rel="noreferrer">Source code and documentation <span aria-hidden="true">↗</span></a></footer>
+    <noscript><p class="service-message error">JavaScript is required to connect to the local workbench service.</p></noscript>
+  </div>
+</body>
+</html>

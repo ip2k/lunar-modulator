@@ -92,8 +92,8 @@ def main(argv):
     status = 0
     for off in hits:
         table = data[off:off + 32 * 6]
-        print(f"msfa algorithm table at file offset 0x{off:X} "
-              f"(XIP 0x{0x02000000 + off:08X} if this is an FM-1 app.bin)")
+        print(f"msfa algorithm table at application file offset 0x{off:X}")
+        print("  Runtime address requires a verified startup memory map; see tools/fm1_decode.py.")
         diffs = 0
         for alg in range(32):
             row = tuple(table[alg * 6:(alg + 1) * 6])

@@ -1,0 +1,3 @@
+# Optional MIDI transport. Offline firmware inspection uses only Python's stdlib.
+mido>=1.3,<2
+python-rtmidi>=1.5,<2
