@@ -356,6 +356,11 @@ def inspect_package(raw: bytes) -> dict:
     return _inspect_package(raw)[0]
 
 
+def inspect_and_extract(raw: bytes) -> tuple[dict, bytes]:
+    """Return a checked package report and decoded application, in memory only."""
+    return _inspect_package(raw)
+
+
 def _read_bounded(path: Path) -> bytes:
     with path.open("rb") as source:
         raw = source.read(MAX_INPUT_SIZE + 1)

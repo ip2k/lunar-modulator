@@ -12,4 +12,8 @@ __pycache__/
 *.pyc
 .DS_Store
 .pytest_cache/
+*.fm1proj
+*.fm1proj-journal
+*.fm1proj-wal
+*.fm1proj-shm
 dongle/firmware/build/
