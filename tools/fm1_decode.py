@@ -18,9 +18,11 @@ from pathlib import Path
 try:
     from .fm1_package import inspect_application, MAX_INPUT_SIZE
     from .fm1_dsp import analyze_dsp_tables
+    from .fm1_effects import analyze_effects
 except ImportError:
     from fm1_package import inspect_application, MAX_INPUT_SIZE
     from fm1_dsp import analyze_dsp_tables
+    from fm1_effects import analyze_effects
 
 
 V15_SHA256 = "306e47065f35d7a7a05ada7f5dd092f6e770952054f33f0a86b75fd10ffe3203"
@@ -71,6 +73,16 @@ def instruction_size(first_halfword: int) -> int:
     if not isinstance(first_halfword, int) or not 0 <= first_halfword <= 0xFFFF:
         raise DecodeError("instruction halfword must be an unsigned 16-bit integer")
     return 6 if first_halfword & 0xFF00 == 0xFF00 else 4 if first_halfword >> 13 == 7 else 2
+
+
+def compact_immediate(encoded: int) -> int:
+    """Expand the ISA's replicated-byte/shifted-mantissa 12-bit constant."""
+    if type(encoded) is not int or not 0 <= encoded < 4096:
+        raise DecodeError("compact immediate must be an unsigned 12-bit integer")
+    byte = encoded & 0xFF
+    if encoded < 0x400:
+        return (byte, byte | byte << 16, byte << 8 | byte << 24, byte * 0x01010101)[encoded >> 8]
+    return (0x80 | encoded & 0x7F) << (32 - (encoded >> 7))
 
 
 def decode_instruction(blob: bytes, file_offset: int, address: int | None = None) -> dict:
@@ -124,11 +136,36 @@ def decode_instruction(blob: bytes, file_offset: int, address: int | None = None
         if extra & 1:
             return branch("gotoss", _signed(extra & ~1, 32))
         return branch("call", _signed(extra, 32))
+    if width == 6 and word & 0xFFDF in (0xFF00, 0xFF01, 0xFF02, 0xFF03, 0xFF08, 0xFF09, 0xFF0A, 0xFF0B, 0xFF0C, 0xFF0D):
+        form = word & 0xDF
+        comparison, signed = {0: ("==", True), 1: ("!=", True), 2: (">=", False), 3: ("<", False),
+                              8: (">", False), 9: ("<=", False), 10: (">=", True), 11: ("<", True),
+                              12: (">", True), 13: ("<=", True)}[form]
+        constant = compact_immediate(extra & 0xFFF) if word & 0x20 else _signed(extra & 0xFFF, 12) if signed else extra & 0xFFF
+        register = f"r{extra >> 12 & 15}"
+        instruction = branch("branch_if", _signed(extra >> 16, 16) * 2,
+                             condition={"register": register, "comparison": comparison, "immediate": constant, "signed": signed})
+        instruction["text"] = f"if {register} {comparison} {constant}: " + instruction["text"]
+        return instruction
     if word & 0xFFF0 in (0xFFC0, 0xFFE0):
         register = f"r{ra}" if word & 0xFFF0 == 0xFFC0 else SPECIAL_REGISTERS[ra]
         return emit("mov", f"{register} = 0x{extra:08x}", register=register, immediate=extra)
     if width == 6:
         return result
+    if width == 4 and word >> 8 in (0xF8, 0xF9, 0xFC, 0xFD, 0xFE):
+        family = word >> 8
+        second = bool(word & 0x80)
+        comparison = {0xF8: ("==", "!="), 0xF9: (">=", "<"), 0xFC: (">", "<="),
+                      0xFD: (">=", "<"), 0xFE: (">", "<=")}[family][second]
+        signed = family in (0xF8, 0xFD, 0xFE)
+        immediate = ((word >> 4 & 7) << 7) | (extra >> 9)
+        if signed:
+            immediate = _signed(immediate, 10)
+        register = f"r{ra}"
+        instruction = branch("branch_if", _signed(extra & 0x1FF, 9) * 2,
+                             condition={"register": register, "comparison": comparison, "immediate": immediate, "signed": signed})
+        instruction["text"] = f"if {register} {comparison} {immediate}: " + instruction["text"]
+        return instruction
     if group == 4 and w & 0x8F == 1:
         return branch("call", (_signed(w >> 4 & 7, 3) << 6) | ((w >> 8 & 31) << 1))
     if group == 7 and (w >> 6 & 0x7F) in (0x2A, 0x2B):
@@ -163,6 +200,9 @@ def decode_instruction(blob: bytes, file_offset: int, address: int | None = None
     if group == 0 and w >> 7 in (0x32, 0x33):
         name = (("or", "xor"), ("and", "not"))[w >> 7 == 0x33][bool(w & 8)]
         return emit(name, f"{name} r{a}, r{b}", register=f"r{a}", source_register=f"r{b}")
+    if group == 0 and w >> 7 in (0x34, 0x35):
+        name = (("lsl", "qasl"), ("lsr", "asr"))[w >> 7 == 0x35][bool(w & 8)]
+        return emit(name, f"{name} r{a}, r{b}", register=f"r{a}", source_register=f"r{a}", shift_register=f"r{b}")
     if group == 0 and w >> 9 in (0xE, 0xF):
         c = (w >> 7 & 3) * 2 + (w >> 3 & 1)
         name = "add" if w >> 9 == 0xE else "sub"
@@ -210,6 +250,45 @@ def decode_instruction(blob: bytes, file_offset: int, address: int | None = None
     if width == 4 and w & 0xEFF0 == 0xE040:
         immediate = _signed(extra, 16)
         return emit("mov", f"r{ra} = {immediate}", register=f"r{ra}", immediate=immediate, parallel_pair=bool(w & 0x1000))
+    if width == 4 and w & 0xEFFF == 0xE060:
+        immediate = compact_immediate(extra & 0xFFF)
+        return emit("mov", f"r{extra >> 12} = 0x{immediate:x}", register=f"r{extra >> 12}", immediate=immediate, parallel_pair=bool(w & 0x1000))
+    if width == 4 and w & 0xEFFF == 0xE064 and extra & 0xFF == 0:
+        destination, source = f"r{extra >> 12}", SPECIAL_REGISTERS[extra >> 8 & 15]
+        return emit("mov", f"{destination} = {source}", register=destination, source_register=source, parallel_pair=bool(w & 0x1000))
+    if width == 4 and w & 0xEFF0 in (0xE0A0, 0xE0E0, 0xE0F0, 0xE140, 0xE150, 0xE160, 0xE170, 0xE1E0):
+        kind = {0xE0A0: "reverse_sub", 0xE0E0: "add", 0xE0F0: "sub", 0xE140: "or", 0xE150: "xor", 0xE160: "and", 0xE170: "and_not", 0xE1E0: "mul"}[w & 0xEFF0]
+        immediate = compact_immediate(extra & 0xFFF)
+        return emit(kind, f"{kind} r{ra}, r{extra >> 12}, 0x{immediate:x}", register=f"r{ra}", source_register=f"r{extra >> 12}",
+                    immediate=immediate, parallel_pair=bool(w & 0x1000), immediate_encoding="compact12")
+    if width == 4 and w & 0xEFFF == 0xE0B4 and extra & 15 == 0:
+        destination, left, right = extra >> 12, extra >> 4 & 15, extra >> 8 & 15
+        return emit("add", f"r{destination} = r{left} + r{right}", register=f"r{destination}", source_registers=[f"r{left}", f"r{right}"], parallel_pair=bool(w & 0x1000))
+    if width == 4 and w & 0xEFFF == 0xE1C0 and not extra & 0x200:
+        immediate = (extra & 15) | ((extra >> 4) & 16)
+        if immediate == 0:
+            immediate = 32
+        kind = ("lsl", "qasl", "lsr", "asr")[extra >> 10 & 3]
+        destination, source = f"r{extra >> 12}", f"r{extra >> 4 & 15}"
+        return emit(kind, f"{kind} {destination}, {source}, {immediate}", register=destination, source_register=source,
+                    immediate=immediate, parallel_pair=bool(w & 0x1000))
+    if width == 4 and w & 0xEFFF == 0xE1C8 and not extra & 12:
+        kind = ("lsl", "qasl", "lsr", "asr")[extra & 3]
+        destination, source, shift = f"r{extra >> 12}", f"r{extra >> 4 & 15}", f"r{extra >> 8 & 15}"
+        return emit(kind, f"{kind} {destination}, {source}, {shift}", register=destination, source_register=source,
+                    shift_register=shift, parallel_pair=bool(w & 0x1000))
+    if width == 4 and w & 0xEFF0 == 0xE1B0 and not extra & 2 and extra >> 2 & 31:
+        position, length = extra >> 7 & 31, extra >> 2 & 31
+        name = "sextra" if extra & 1 else "uextra"
+        return emit(name, f"{name} r{ra}, r{extra >> 12}, {position}, {length}",
+                    register=f"r{ra}", source_register=f"r{extra >> 12}", position=position,
+                    length=length, parallel_pair=bool(w & 0x1000))
+    if width == 4 and w & 0xFFF0 in (0xE8B0, 0xED30) and extra == 0:
+        comparison = "!=" if w & 0xFFF0 == 0xE8B0 else ">="
+        predicate = {"register": f"r{ra}", "comparison": comparison, "immediate": 0,
+                     "signed": comparison == ">=", "instruction_count": 1}
+        return emit("predicate_next", f"if r{ra} {comparison} 0: next instruction", predicate=predicate,
+                    scope="one following instruction; paired companions require separate validation")
     if width == 4 and w & 0xEFC0 == 0xE100:
         immediate = _signed(((w & 0x30) << 8) | (extra & 0xFFF), 14)
         return emit("add", f"r{ra} = r{extra >> 12} + {immediate}", register=f"r{ra}",
@@ -224,6 +303,9 @@ def decode_instruction(blob: bytes, file_offset: int, address: int | None = None
     if width == 4 and w & 0xFFF8 == 0xECD0:
         offset = _signed(((w & 7) << 8) | ((extra >> 4) & 0xF0) | (extra & 12), 11)
         return memory("sw" if extra & 1 else "lw", f"r{extra >> 12}", f"r{extra >> 4 & 15}", offset, 4, "pre" if extra & 2 else None)
+    if width == 4 and w & 0xFFF8 == 0xECD8 and not extra & 2:
+        offset = _signed(((w & 7) << 8) | ((extra >> 4) & 0xF0) | (extra & 12), 11)
+        return memory("sw" if extra & 1 else "lw", f"r{extra >> 12}", f"r{extra >> 4 & 15}", 0, 4, f"post {offset:+d}")
     if width == 4 and w & 0xFFFC == 0xEE50:
         offset = _signed(((w & 1) << 8) | ((extra >> 4) & 0xF0) | (extra & 15), 9)
         return memory("sb" if w & 2 else "lbu", f"r{extra >> 12}", f"r{extra >> 4 & 15}", offset, 1)
@@ -314,7 +396,8 @@ def disassemble(blob: bytes, start: int = 0, size: int | None = None, *, analysi
     return {"kind": "pi32v2-linear-disassembly", "start": start, "size": size,
             "instructions": rows, "supported_bytes": supported, "data_bytes": data_bytes,
             "unsupported_bytes": size - supported - data_bytes,
-            "boundary_verified": (analysis or {}).get("sha256") == _sha(blob) and any(f["file_offset"] == start for f in (analysis or {}).get("functions", [])),
+            "boundary_verified": mapped and any(offset == start and _sha(blob[offset:offset + count]) == fingerprint
+                                                  for _, offset, count, fingerprint, *_ in _V15_FUNCTIONS),
             "limitations": ["Linear decoding can interpret embedded tables as instructions.",
                             "Unsupported opcodes are retained as bytes; this is not complete disassembly or emulation."]}
 
@@ -335,6 +418,90 @@ def _strings(blob: bytes, mapped: bool) -> tuple[list[dict], bool]:
         if len(rows) == MAX_STRINGS:
             return rows, True
     return rows, False
+
+
+def analyze_control_flow(blob: bytes, start: int, size: int, *, analysis: dict | None = None) -> dict:
+    """Explore possible paths inside one bounded span; unknown semantics stop a path.
+
+    This is a static graph, not a proof of execution. Calls have a potential
+    continuation edge; no callee return behavior or register values are assumed.
+    """
+    listing = disassemble(blob, start, size, analysis=analysis)
+    rows = listing["instructions"]
+    by_offset = {row["file_offset"]: row for row in rows}
+    mapped = _v15_layout(blob)
+    pending, visited, edges, barriers = [start], set(), [], []
+    def target_offset(row: dict) -> int | None:
+        target = row.get("target")
+        if mapped and target is not None:
+            if XIP_BASE <= target < XIP_BASE + RAM_FILE_OFFSET:
+                return target - XIP_BASE
+            if RAM_BASE <= target < RAM_BASE + RAM_SIZE:
+                return target - RAM_BASE + RAM_FILE_OFFSET
+            return None
+        if not mapped and "displacement" in row:
+            return row["file_offset"] + row["size"] + row["displacement"]
+        return None
+    def edge(source: int, target: int | None, kind: str) -> None:
+        inside = target is not None and start <= target < start + size
+        valid = inside and target in by_offset and not by_offset[target].get("is_data")
+        edges.append({"source_file_offset": source, "target_file_offset": target,
+                      "kind": kind, "within_span": inside, "instruction_boundary": bool(valid)})
+        if valid:
+            if target not in visited:
+                pending.append(target)
+        elif inside:
+            barriers.append({"file_offset": source, "reason": "target is not a decoded instruction boundary", "target_file_offset": target})
+    while pending:
+        offset = pending.pop()
+        if offset in visited:
+            continue
+        visited.add(offset)
+        row = by_offset[offset]
+        following = offset + row["size"]
+        name = row["mnemonic"]
+        if not row["supported"]:
+            barriers.append({"file_offset": offset, "reason": "unsupported instruction or inline data"})
+            continue
+        if name in ("rts", "rti", "rtx", "rte", "pop_pc", "idle", "bkpt", "hbkpt"):
+            continue
+        if name in ("goto", "gotoss"):
+            edge(offset, target_offset(row), "jump")
+        elif name in ("branch_if", "jz", "jnz"):
+            edge(offset, target_offset(row), "condition true")
+            edge(offset, following, "condition false")
+        elif name == "predicate_next":
+            predicated = by_offset.get(following)
+            if predicated is None or predicated.get("parallel_pair") or predicated.get("is_data"):
+                barriers.append({"file_offset": offset, "reason": "predicate scope over a packet or truncated span is unverified"})
+                continue
+            edge(offset, following, "predicate true")
+            edge(offset, following + predicated["size"], "predicate false")
+        elif name == "tbb":
+            table = by_offset.get(following)
+            if table is None or not table.get("is_data"):
+                barriers.append({"file_offset": offset, "reason": "jump table is not independently identified"})
+                continue
+            for value in bytes.fromhex(table["bytes"]):
+                edge(offset, following + 2 * value, "table branch")
+        elif name in ("goto_indirect",):
+            barriers.append({"file_offset": offset, "reason": "indirect jump target is unknown"})
+        elif name in ("call", "call_indirect"):
+            if name == "call":
+                edge(offset, target_offset(row), "call")
+            else:
+                barriers.append({"file_offset": offset, "reason": "indirect call target is unknown"})
+            edge(offset, following, "possible call continuation")
+        else:
+            edge(offset, following, "packet companion" if row.get("parallel_pair") else "fallthrough")
+    return {"kind": "bounded-static-control-flow", "start": start, "size": size,
+            "boundary_verified": listing["boundary_verified"],
+            "nodes": [{"file_offset": offset, "address": by_offset[offset]["address"], "mnemonic": by_offset[offset]["mnemonic"]} for offset in sorted(visited)],
+            "edges": edges, "barriers": barriers,
+            "possible_reached_bytes": sum(by_offset[offset]["size"] for offset in visited),
+            "limitations": ["Edges are static possibilities, not observed execution.",
+                            "Unsupported instructions stop a path; register values and predicate truth are not simulated.",
+                            "Callee return behavior, interrupt entry and unknown indirect destinations remain unresolved."]}
 
 
 def analyze_application(blob: bytes) -> dict:
@@ -387,6 +554,7 @@ def analyze_application(blob: bytes) -> dict:
             row["unsupported_bytes"] = decoded["unsupported_bytes"]
             row["inline_data_bytes"] = decoded["data_bytes"]
             report["functions"].append(row)
+            row["control_flow"] = analyze_control_flow(blob, offset, size, analysis=report)
             for ins in decoded["instructions"]:
                 if ins["mnemonic"] in ("call", "call_indirect"):
                     report["calls"].append({"source": ins["address"], "target": ins.get("target"),
@@ -404,6 +572,7 @@ def analyze_application(blob: bytes) -> dict:
     tables = [{**table, "file_offset": table["offset"], "address": _address(table["offset"], mapped)} for table in package_report["msfa_tables"]]
     report["dsp"] = {"algorithm_tables": tables,
                      "mathematical_tables": analyze_dsp_tables(blob, report["regions"]),
+                     "effects": analyze_effects(blob),
                      "sound_equivalence_proven": False,
                      "evidence": "Algorithm-table byte matches establish data lineage, not complete DSP equivalence."}
     # The confirmed table location is independently searched by the package

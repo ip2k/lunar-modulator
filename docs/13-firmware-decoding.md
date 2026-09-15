@@ -11,6 +11,9 @@ Ghidra, a vendor toolchain, or a subprocess. It provides:
 - a partial pi32v2 instruction decoder with raw bytes for unknown instructions;
 - independently located msfa algorithm data and mathematically reconstructed
   operator lookup tables from [16 — Operator mathematics](16-operator-mathematics.md).
+- six effect dispatch records and eighteen callback pointers, with verified
+  process roles and explicit uncertainty on initialization/update roles and
+  names; see [18 — Effects decoding](18-effects-decoding.md).
 
 This is **partial executable analysis**. It does not recover complete source
 code, decode every instruction, prove all function boundaries, emulate a
@@ -99,11 +102,11 @@ to the algorithm and mathematical tables.
 
 | Name | File offset | Runtime address | Bytes | Supported instruction bytes | Unresolved instruction bytes |
 | --- | --- | --- | ---: | ---: | ---: |
-| Startup/CRT | `0x00000` | `0x02000120` | 198 | 172 | 26 |
-| Operator kernel candidate | `0x85064` | `0x01C01124` | 544 | 402 | 142 |
-| FM core renderer candidate | `0x85284` | `0x01C01344` | 2,270 | 1,518 | 752 |
-| Voice block candidate | `0x85B62` | `0x01C01C22` | 2,054 | 1,148 | 896 |
-| Effects dispatcher candidate | `0x872BE` | `0x01C0337E` | 656 | 466 | 190 |
+| Startup/CRT | `0x00000` | `0x02000120` | 198 | 176 | 22 |
+| Operator kernel candidate | `0x85064` | `0x01C01124` | 544 | 544 | 0 |
+| FM core renderer candidate | `0x85284` | `0x01C01344` | 2,270 | 2,084 | 186 |
+| Voice block candidate | `0x85B62` | `0x01C01C22` | 2,054 | 1,408 | 636 |
+| Effects dispatcher candidate | `0x872BE` | `0x01C0337E` | 656 | 550 | 106 |
 
 The voice span also contains ten identified inline jump-table bytes, excluded
 from instruction coverage. Its two `tbb` tables are at file `0x85BB4` (six
@@ -156,17 +159,21 @@ in both existing vendor-tool listings examined locally:
 
 | Oracle application | Listing entries | Supported forms checked |
 | --- | ---: | ---: |
-| `FM-1_009` | 199,931 | 153,840 |
-| `FM-1_014` | 200,435 | 154,281 |
+| `FM-1_009` | 199,931 | 168,935 |
+| `FM-1_014` | 200,435 | 169,439 |
 
 The supported operands and relative targets agree with those listings.
-Stack register lists were checked separately. These are **oracle comparison
+Stack register lists were checked separately. Entries marked unknown by the
+vendor listing do not count as decoded oracle entries. In particular, its
+unknown floating-point prefixes and following apparent halfwords must not be
+treated as reliable instruction boundaries. These are **oracle comparison
 counts**, not code coverage: the older listings themselves sweep through data.
 V15 coverage is reported for the bounded spans above and remains incomplete.
 
 Supported forms include immediate/register moves, direct and indirect calls,
 short branches, register arithmetic/logic, sign/zero extension, stack saves,
-several load/store forms and indexed table loads. Unknown forms preserve their
+several load/store forms, indexed table loads, bit extraction, compact immediate
+arithmetic/logic, and conditional branches. Unknown forms preserve their
 exact bytes. Six-byte direct calls use a signed displacement relative to the
 next PC. An odd low displacement bit selects `gotoss`; it is not a call.
 
@@ -181,6 +188,19 @@ be justified. Unsupported arithmetic can retain a known packet marker without
 claiming decoded arithmetic semantics. This decoder does not invent register
 read/write effects for unsupported opcodes.
 
+The complete compact-immediate expansion uses an eight-bit value repeated in
+one, two or four byte positions, or an implicit-leading-one mantissa shifted
+left. Known operator constants independently validate this rule:
+`0xC80 -> 0x4000`, `0xC7C -> 0xFC00`, and `0xAE0 -> 0x70000`.
+Every applicable decoded oracle entry agrees with the implemented expansion.
+
+All **183 instructions / 544 bytes** of the identified V15 operator kernel now
+have supported operands, including its signed gain shifts, 10-bit/5-bit
+extraction, single-instruction predicates and 64-sample loop branch. This is
+complete instruction coverage for that bounded kernel only; it is not complete
+firmware or sound-engine decoding. Numeric execution and packet behavior need
+the separate checks described in [17 — Operator ABI](17-operator-abi.md).
+
 The default automated suite uses synthetic instruction vectors and malformed
 inputs. It tests sign handling, addressing, truncation, the bounds on strings
 and disassembly, stale-analysis rejection, source preservation, and the rule
@@ -193,17 +213,20 @@ python -m pytest tests\test_fm1_decode.py
 ```
 
 The private image is never copied into the test directory. On 2026-09-14 all
-52 synthetic cases and the optional V15 case passed. Live device I/O was not
+85 synthetic cases and the optional V15 case passed. Live device I/O was not
 part of this work.
 
 ## API and evidence schema
 
 ```python
-from tools.fm1_decode import analyze_application, disassemble, address_to_offset
+from tools.fm1_decode import (
+    analyze_application, disassemble, analyze_control_flow, address_to_offset,
+)
 
 analysis = analyze_application(application_bytes)
 listing = disassemble(application_bytes, 0x85064, 0x220, analysis=analysis)
 offset = address_to_offset(0x01C01124, analysis)
+graph = analyze_control_flow(application_bytes, 0x85064, 0x220, analysis=analysis)
 ```
 
 `analyze_application` returns `schema_version: 1` and kind
@@ -212,12 +235,25 @@ offset = address_to_offset(0x01C01124, analysis)
 `device_io_performed: false`. Offsets/addresses are JSON integers; unproven
 addresses are null. Region entries with a null file offset, such as BSS, cannot
 be used to retrieve file bytes. Strings describe data presence only.
+`dsp.effects` comes from `tools/fm1_effects.py` and requires the exact complete
+V15 application fingerprint. Modified or unrecognized images receive no effect
+annotations from that profile, even if their startup map remains supported.
 
 `disassemble` returns a bounded list of instruction/data rows. Each row retains
 file offset, runtime address when justified, size and raw hexadecimal bytes.
 Supported forms include explicit operands; unsupported forms remain `unknown`.
-The report never claims a verified starting boundary from a supplied analysis
-whose SHA-256 differs from the current input.
+The report independently checks the known span fingerprint before claiming a
+verified starting boundary. Neither a stale analysis nor a fabricated function
+list carrying the current image hash can grant that claim.
+
+`analyze_control_flow` explores possible paths within a requested span, with
+nodes, edges and explicit barriers. It stops at unsupported semantics, refuses
+targets inside instructions/data, leaves indirect destinations unresolved and
+does not assume callee return behavior. Predicate scopes over unverified
+parallel packets stop a path. The V15 operator kernel's graph contains 183
+nodes and 197 possible edges, with no unresolved barriers; loops terminate the
+analysis through a visited-node set. The other reported spans still hit
+unsupported instructions. This graph does not establish what ran on a device.
 
 ## Provenance and next work
 
@@ -230,6 +266,10 @@ Research sources inspected locally:
 - [kagaimiq/ghidra-jieli](https://github.com/kagaimiq/ghidra-jieli/tree/b5e60122b6cd3e6b615387035994b8bed0ea1a26),
   revision `b5e60122b6cd3e6b615387035994b8bed0ea1a26`: Apache-2.0 pi32v2
   instruction-field descriptions, independently checked as described above.
+- [kagaimiq/jielie pi32v2 notes](https://github.com/kagaimiq/jielie/blob/1657d25e6e51df6b2c18cd55cfc576c4a6370c63/cpu/pi32v2.md),
+  revision `1657d25e6e51df6b2c18cd55cfc576c4a6370c63`: additional instruction
+  layout and compact-immediate facts, checked against the independent listings.
+  No implementation or prose from those notes was copied into the decoder.
 - The stock V15 application named by its SHA-256 above. All current addresses,
   calls, span fingerprints and table contents were checked against its bytes.
 

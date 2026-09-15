@@ -255,18 +255,57 @@ are not independent instruction execution. Parallel packet timing remains an
 inferred ISA behavior pending a separate execution check or authoritative
 hardware evidence.
 
+### Bounded execution of the kernel bytes
+
+`tools.fm1_pi32.run_operator_kernel(application, operator_words, feedback,
+kernel_feedback_shift=16)` executes the exact V15 kernel with a separate
+instruction interpreter. `operator_words` contains three four-word rows in
+the pre-render field order above. The helper performs the first operator's
+caller preparation, maps kernel bytes as readable/executable and the actual
+application lookup tables as read-only, and supplies synthetic writable
+stack, operator, feedback and output regions. It returns samples, feedback,
+the resulting state words and an instruction count. It does not call the
+mathematical lookup or block model.
+
+**[verified]** The interpreter checks the complete application hash before
+using its fixed addresses. Memory mappings cannot overlap and have explicit
+permissions; every access must fit a mapped region. An instruction budget,
+unsupported-opcode errors and ambiguous-packet rejection bound execution.
+Paired instructions evaluate against the same register/memory state and
+commit their writes together. A fault prevents either member from committing.
+
+**[verified]** Thirty synthetic cases cover memory permissions and
+bounds, arithmetic wrap, predicates, branches, packet read-before-write,
+packet faults, stack restoration, unsupported instructions, extraction bounds
+and fuel limits. Memory opcodes have an explicit unsigned-load/store whitelist,
+so future decoder additions cannot silently inherit incorrect signedness.
+The optional private-image test executes 19 complete V15 blocks: four
+endpoint/overflow cases and reproducible randomized states for every supported
+feedback shift. All 64 output samples, both feedback words and converted
+targets agree with the separate reference implementation; the other operator
+state words remain unchanged. Run the private check by setting
+`FM1_V15_APPLICATION` to a locally extracted exact V15 `app.bin` and running
+`python -m pytest tests/test_fm1_pi32.py`.
+
+This adds instruction-order, branch and real-table execution evidence. It does
+not independently establish that the inferred packet timing matches silicon:
+both the interpreter and the static reconstruction use that same assumption.
+The implementation is an integer instruction subset for this bounded routine,
+not a pi32v2 system emulator, an executable loader or a device-write tool.
+
 ## Remaining work
 
-- Independently execute the paired-instruction semantics and establish
-  shift-count behavior outside the ordinary feedback parameter range.
+- Independently confirm the paired-instruction semantics against authoritative
+  ISA or hardware evidence, and establish shift-count behavior outside the
+  ordinary feedback parameter range.
 - Finish the caller's conditional dispatch, buffer accumulation and all
   algorithm-specific paths. A three-operator kernel does not imply every
   algorithm routes through it.
 - Decode the complete level/envelope/modulation calculation and establish
   the valid input-state domain.
-- Compare a full reconstructed kernel with a trusted instruction emulator
-  and controlled captured audio. Current validation is offline static
-  reconstruction only.
+- Compare with independently validated CPU execution and controlled captured
+  audio. Current validation is offline static reconstruction plus the bounded
+  interpreter using inferred ISA semantics.
 
 ### Prior work used as evidence
 

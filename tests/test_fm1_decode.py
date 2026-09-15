@@ -102,15 +102,123 @@ def test_stack_register_range_including_low_registers():
 
 
 def test_parallel_packet_is_explicit_even_for_unsupported_arithmetic():
-    listing = decode.disassemble(bytes.fromhex("a0f0806c1464"), 0, 6)
+    listing = decode.disassemble(bytes.fromhex("c4f100001464"), 0, 6)
     assert listing["instructions"][0]["parallel_pair"]
     assert listing["instructions"][0]["supported"] is False
     assert listing["instructions"][1]["parallel_companion"]
     assert listing["instructions"][1]["packet_file_offset"] == 0
 
 
+@pytest.mark.parametrize("encoded,value", [(0x0AB, 0xAB), (0x1AB, 0x00AB00AB),
+    (0x2AB, 0xAB00AB00), (0x3AB, 0xABABABAB), (0x400, 0x80000000),
+    (0xC80, 0x4000), (0xC7C, 0xFC00), (0xAE0, 0x70000), (0xFFF, 0x1FE)])
+def test_compact_immediate_expansion(encoded, value):
+    assert decode.compact_immediate(encoded) == value
+
+
+@pytest.mark.parametrize("raw,name,destination,source,immediate", [
+    ("a0f0806c", "reverse_sub", "r0", "r6", 16384),
+    ("a0e080dc", "reverse_sub", "r0", "r13", 16384),
+    ("ede07cec", "add", "r13", "r14", 0xFC00),
+    ("c0f15edc", "asr", "r13", "r5", 14),
+    ("c0f10df0", "lsl", "r15", "r0", 13),
+    ("40e1e05a", "or", "r0", "r5", 0x70000),
+])
+def test_operator_arithmetic_forms(raw, name, destination, source, immediate):
+    item = decode.decode_instruction(bytes.fromhex(raw), 0)
+    assert (item["mnemonic"], item["register"], item["source_register"], item["immediate"]) == (name, destination, source, immediate)
+
+
+def test_full_register_add_and_shift_sources():
+    item = decode.decode_instruction(bytes.fromhex("b4f0005a"), 0)
+    assert (item["register"], item["source_registers"]) == ("r5", ["r0", "r10"])
+    item = decode.decode_instruction(bytes.fromhex("c8e10255"), 0)
+    assert (item["mnemonic"], item["register"], item["source_register"], item["shift_register"]) == ("lsr", "r5", "r0", "r5")
+    item = decode.decode_instruction(bytes.fromhex("d81a"), 0)
+    assert (item["mnemonic"], item["register"], item["source_register"], item["shift_register"]) == ("asr", "r0", "r0", "r5")
+
+
+@pytest.mark.parametrize("raw,destination,source,position,length,signed", [
+    ("b5e11475", "r5", "r7", 10, 5, False),
+    ("b0e11475", "r0", "r7", 10, 5, False),
+    ("b5f10812", "r5", "r1", 4, 2, False),
+    ("b5e18550", "r5", "r5", 1, 1, True),
+])
+def test_bit_field_extraction(raw, destination, source, position, length, signed):
+    item = decode.decode_instruction(bytes.fromhex(raw), 0)
+    assert item["mnemonic"] == ("sextra" if signed else "uextra")
+    assert (item["register"], item["source_register"], item["position"], item["length"]) == (destination, source, position, length)
+
+
+@pytest.mark.parametrize("raw,register,comparison,immediate,displacement", [
+    ("20ff007e1400", "r7", "==", 2048, 40),
+    ("00ff00740800", "r7", "==", 1024, 16),
+    ("01ff0310ea01", "r1", "!=", 3, 980),
+    ("83f83a81", "r3", "!=", 64, -396),
+    ("01f8c73e", "r1", "==", 31, 398),
+    ("71f8f9ff", "r1", "==", -1, -14),
+])
+def test_conditional_branch_operands_and_targets(raw, register, comparison, immediate, displacement):
+    item = decode.decode_instruction(bytes.fromhex(raw), 0, 0x1C01000)
+    assert item["mnemonic"] == "branch_if"
+    assert item["condition"]["register"] == register
+    assert item["condition"]["comparison"] == comparison
+    assert item["condition"]["immediate"] == immediate
+    assert item["displacement"] == displacement
+    assert item["target"] == 0x1C01000 + item["size"] + displacement
+
+
+def test_predicate_scope_is_explicit_and_unverified_modes_stay_unknown():
+    item = decode.decode_instruction(bytes.fromhex("b9e80000"), 0)
+    assert item["predicate"] == {"register": "r9", "comparison": "!=", "immediate": 0, "signed": False, "instruction_count": 1}
+    item = decode.decode_instruction(bytes.fromhex("37ed0000"), 0)
+    assert item["predicate"]["comparison"] == ">=" and item["predicate"]["signed"]
+    assert not decode.decode_instruction(bytes.fromhex("b0e80010"), 0)["supported"]
+
+
+def test_postincrement_store_preserves_old_address_then_updates_base():
+    item = decode.decode_instruction(bytes.fromhex("d8ec05b0"), 0)
+    assert item["register"] == "r11"
+    assert item["memory"] == {"base": "r0", "offset": 0, "width": 4, "access": "write", "update": "post +4"}
+
+
+def test_control_flow_loop_is_finite_and_branches_preserve_boundaries():
+    graph = decode.analyze_control_flow(bytes.fromhex("4121f79f"), 0, 4)
+    assert [n["file_offset"] for n in graph["nodes"]] == [0, 2]
+    assert graph["edges"][-1]["target_file_offset"] == 2
+    assert graph["barriers"] == []
+
+
+def test_control_flow_stops_at_unknown_semantics():
+    graph = decode.analyze_control_flow(bytes.fromhex("c4e100004121"), 0, 6)
+    assert len(graph["nodes"]) == 1
+    assert graph["edges"] == []
+    assert "unsupported" in graph["barriers"][0]["reason"]
+
+
+def test_control_flow_single_predicate_has_two_paths():
+    graph = decode.analyze_control_flow(bytes.fromhex("b9e8000090168000"), 0, 8)
+    first = [e for e in graph["edges"] if e["source_file_offset"] == 0]
+    assert {e["target_file_offset"] for e in first} == {4, 6}
+    assert graph["barriers"] == []
+
+
+def test_control_flow_rejects_target_inside_an_instruction():
+    blob = bytes.fromhex("80ff05000000c1ff78563412")
+    graph = decode.analyze_control_flow(blob, 0, len(blob))
+    assert len(graph["nodes"]) == 1
+    assert graph["barriers"][0]["target_file_offset"] == 10
+
+
+def test_control_flow_does_not_guess_predicate_scope_over_parallel_packet():
+    blob = bytes.fromhex("b9e8000025d600208000")
+    graph = decode.analyze_control_flow(blob, 0, len(blob))
+    assert len(graph["nodes"]) == 1
+    assert "predicate scope" in graph["barriers"][0]["reason"]
+
+
 def test_truncated_and_unsupported_instructions_preserve_all_bytes():
-    blob = bytes.fromhex("00ff0102030480ff12")
+    blob = bytes.fromhex("7fff0102030480ff12")
     report = decode.disassemble(blob, 0, len(blob))
     assert "".join(i["bytes"] for i in report["instructions"]) == blob.hex()
     assert [i["size"] for i in report["instructions"]] == [6, 3]
@@ -204,6 +312,10 @@ def test_private_v15_map_and_core_boundaries():
     assert report["dsp"]["algorithm_tables"][0]["address"] == 0x1C07F4C
     table_names = {t["name"] for t in report["dsp"]["mathematical_tables"]["tables"]}
     assert {"fractional_exponent", "quarter_wave_log_sine"} <= table_names
+    effects = report["dsp"]["effects"]
+    assert effects["profile"]["matched"]
+    assert len(effects["effects"]) == 6
+    assert sum(len(effect["callbacks"]) for effect in effects["effects"]) == 18
     note = next(f for f in report["functions"] if f["name"] == "dx7note_compute_block_candidate")
     listing = decode.disassemble(blob, note["file_offset"], note["size"], analysis=report)
     assert listing["boundary_verified"]
@@ -211,11 +323,18 @@ def test_private_v15_map_and_core_boundaries():
     assert len([i for i in listing["instructions"] if i.get("is_data")]) == 2
     assert all(c["source_file_offset"] not in (0x85BB4, 0x85BB6, 0x85BB8, 0x860D6, 0x860D8) for c in report["calls"])
     assert next(f for f in report["functions"] if f["category"] == "effects")["size"] == 656
+    kernel = next(f for f in report["functions"] if f["name"] == "fm_operator_kernel_candidate")
+    assert kernel["supported_bytes"] == kernel["size"] == 544
+    assert kernel["control_flow"]["barriers"] == []
+    forged = {"sha256": report["sha256"], "functions": [{"file_offset": 0x85066}]}
+    assert not decode.disassemble(blob, 0x85066, 2, analysis=forged)["boundary_verified"]
     # Edits retain only evidence whose underlying bytes are unchanged.
     altered = bytearray(blob)
     altered[0x85064] ^= 1
     changed = decode.analyze_application(bytes(altered))
     assert changed["profile"]["matched"] and not changed["profile"]["exact_image"]
+    assert not changed["dsp"]["effects"]["profile"]["matched"]
+    assert changed["dsp"]["effects"]["effects"] == []
     assert not any(f["name"] == "fm_operator_kernel_candidate" for f in changed["functions"])
     altered[0x2A054] ^= 1
     assert not decode.analyze_application(bytes(altered))["profile"]["matched"]
