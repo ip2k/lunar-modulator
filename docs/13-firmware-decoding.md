@@ -11,6 +11,14 @@ Ghidra, a vendor toolchain, or a subprocess. It provides:
 - a partial pi32v2 instruction decoder with raw bytes for unknown instructions;
 - independently located msfa algorithm data and mathematically reconstructed
   operator lookup tables from [16 — Operator mathematics](16-operator-mathematics.md).
+- paired-instruction markers and companion rows, with the byte-pair boundary
+  preserved even when the individual arithmetic form remains unsupported;
+- a bounded integer interpreter in [17 — Operator ABI](17-operator-abi.md)
+  that models the observed read-before-write packet hazard and fails closed on
+  ambiguous packet semantics;
+- complete supported-operand coverage for the bounded 183-instruction / 544-byte
+  V15 three-operator kernel, 19 finite verification vectors, and a separately
+  reconstructed 79-instruction / 208-byte envelope helper;
 - six effect dispatch records and eighteen callback pointers, with verified
   process roles and explicit uncertainty on initialization/update roles and
   names; V15 chorus and distortion inner-stage evidence is summarized in

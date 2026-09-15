@@ -92,6 +92,9 @@ complete reverse engineering.
 | `fm1_package.py` | Container validation, application extraction and table inspection |
 | `fm1_decode.py` | Executable, memory, feature and DSP analysis from image bytes |
 | `fm1_dsp.py`, `fm1_effects.py` | Source-bound lookup-table fingerprints and V15 effect callback/stage observations |
+| `fm1_pi32.py` | Bounded V15 integer interpreter with packet atomicity and explicit unsupported cases |
+| `fm1_operator.py` | Independent three-operator state and reference block model |
+| `fm1_verify_operator.py` | Finite V15 vector comparison between the interpreter and the reference model |
 | `fm1_rebuild.py` | Source-bound patching, metadata reconstruction and inverse changes |
 | `fm1_project.py` | Private original/revision storage and analysis provenance |
 | `fm1_workspace.py` | Bounded loaded files, local projects, hex views and rebuild operations |

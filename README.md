@@ -25,18 +25,29 @@ work. Offline integrity checks do not prove that a modified image will run.
 
 ### Decoding milestone
 
-The effects path has concrete evidence beyond its UI labels:
+The decoding work has a concrete byte-level foundation and several bounded
+sound-engine footholds:
 
 | Area | Current evidence |
 | --- | --- |
+| Parser | A bounded pi32v2 parser records 2-, 4-, and 6-byte instruction boundaries, preserves raw bytes for unknown forms, decodes established operands and control flow, and rejects unsupported input without inventing semantics. |
+| Paired instructions | V15 pair markers and companion rows are retained in the disassembly. The offline interpreter reads both instructions from the pre-write register state, commits their writes atomically, and rejects ambiguous or unsupported packet behavior. |
+| Operators | The V15 three-operator kernel is bounded to 183 instructions / 544 bytes with full supported-operand coverage, explicit phase/increment/level state rows, a 64-sample loop, and 19 reproducible verification vectors. This is a verified foothold for one kernel path, not every FM algorithm. |
+| Envelope | The V15 envelope helper has 79 instructions / 208 bytes, a reconstructed 34-byte state prefix, stage transition logic, and a 204-of-208-byte match against the V009 helper. Its names and full upstream modulation path remain inferred or open. |
 | FX chain | Six effect slots, a V15 dispatcher, eighteen callback pointers, and indexed object/enabled/parameter state fields. |
 | Distortion | A V15 callback with a traced final tanh lookup: ×512 position scaling, sign handling, linear interpolation, gain, and an explicit 1.0 saturation path. |
 | Chorus | A V15 44-byte state, 884-byte delay buffer, ring length 220, and a process callback that loads the exact 513-cell sine table. The cross-repository analysis identifies the structure as a modulated delay. |
 | Reverb and delay | V15 allocation and ring/stage observations; the cross-repository analysis adds multi-stage comb/delay/feedback and interpolated-delay context. |
 | Whole audio path | The cross-repository FM-engine analysis places the six-slot effects pass after the voice mix and before DAC output; the version and address-space boundary is recorded in [22 — Effects evidence roll-up](docs/22-effects-evidence-rollup.md). |
 
-The effect names and several inner equations remain hypotheses. The evidence,
-source versions, and coordinate-space differences are recorded in
+The parser, packet timing, operator names, envelope correspondence, effect
+names, and several inner equations remain hypotheses or bounded models. The
+evidence and remaining boundaries are recorded in
+[13 — Static firmware decoding](docs/13-firmware-decoding.md),
+[16 — Operator lookup mathematics](docs/16-operator-mathematics.md),
+[17 — V15 operator state and attenuation interpolation](docs/17-operator-abi.md),
+[20 — Envelope update and stage transitions](docs/20-envelope-decoding.md),
+[21 — Reversible operator experiments](docs/21-offline-operator-experiments.md),
 [18 — Effects decoding](docs/18-effects-decoding.md),
 [19 — Effects lookup mathematics](docs/19-effects-mathematics.md), and
 [22 — Effects evidence roll-up](docs/22-effects-evidence-rollup.md).
@@ -119,6 +130,10 @@ the project's recovery gate.
 | [`docs/08-roadmap.md`](docs/08-roadmap.md) | Phased plan with exit criteria |
 | [`docs/09-first-session-checklist.md`](docs/09-first-session-checklist.md) | Exact commands for the first hands-on session |
 | [`docs/10-usb-key-dongle.md`](docs/10-usb-key-dongle.md) | The RP2040 `USB_KEY` dongle: protocol, hardware, firmware, bench procedure |
+| [`docs/13-firmware-decoding.md`](docs/13-firmware-decoding.md) | Static pi32v2 parser, paired-instruction handling, address map and coverage |
+| [`docs/17-operator-abi.md`](docs/17-operator-abi.md) | V15 operator state, packet timing and three-operator kernel contract |
+| [`docs/20-envelope-decoding.md`](docs/20-envelope-decoding.md) | V15 envelope state and stage transition reconstruction |
+| [`docs/21-offline-operator-experiments.md`](docs/21-offline-operator-experiments.md) | Reversible bounded operator experiments and verification limits |
 | [`docs/22-effects-evidence-rollup.md`](docs/22-effects-evidence-rollup.md) | Cross-repository effects evidence and V15 reconciliation |
 | [`dongle/`](dongle/) | Dongle firmware (PIO + C), ROM/dongle simulator, tests |
 | [`tools/check_msfa_table.py`](tools/check_msfa_table.py) | Finds the msfa algorithm table in an `app.bin` (tested on V13 and V14) |
