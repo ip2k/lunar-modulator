@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>FM-1 Workbench</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to workbench</a>
+  <div class="shell">
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="FM-1 Workbench home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <span>FM-1 <span class="brand-light">Workbench</span></span>
+      </a>
+      <span class="mode-badge"><span class="status-dot"></span>Read-only bench</span>
+    </header>
+
+    <main id="main">
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">M-VAVE / OPEN FIRMWARE RESEARCH</p>
+          <h1 id="page-title">Get to know your FM-1.</h1>
+          <p class="intro-copy">Read its identity. Look inside its firmware.<br>Keep the evidence in one place.</p>
+        </div>
+        <div class="bench-note">
+          <span class="note-index">01 / OBSERVE</span>
+          <p>A clearer starting point for open firmware.</p>
+          <span>Firmware writing awaits a proven recovery path.</span>
+        </div>
+      </section>
+
+      <div id="service-message" class="service-message" role="status">Connecting to the local service…</div>
+
+      <div class="bench-grid">
+        <section class="panel device-panel" aria-labelledby="device-heading">
+          <div class="panel-heading">
+            <div class="section-label"><span class="section-number">01</span><h2 id="device-heading">Device</h2></div>
+            <span id="device-badge" class="quiet-badge">Awaiting identity</span>
+          </div>
+          <p class="panel-copy">Choose your FM-1 MIDI ports, then request its identity.</p>
+          <div class="port-fields">
+            <div class="field"><label for="input-port">MIDI input <span>FROM DEVICE</span></label><select id="input-port" disabled><option value="">Loading ports…</option></select></div>
+            <div class="field"><label for="output-port">MIDI output <span>TO DEVICE</span></label><select id="output-port" disabled><option value="">Loading ports…</option></select></div>
+          </div>
+          <div class="actions"><button id="identify" class="button primary" disabled>Read identity <span aria-hidden="true">↗</span></button><button id="refresh-ports" class="button secondary" disabled>Refresh ports</button></div>
+          <p id="device-message" class="inline-message" role="status">No identity request has been sent.</p>
+          <div id="identity-result" class="identity-result" hidden></div>
+          <details class="query-details"><summary>The identity request</summary><code>F0 00 32 45 00 00 00 40 7F F7</code><p>This is the only message the workbench sends to the device.</p></details>
+        </section>
+
+        <section class="panel firmware-panel" aria-labelledby="firmware-heading">
+          <div class="panel-heading">
+            <div class="section-label"><span class="section-number">02</span><h2 id="firmware-heading">Firmware</h2></div>
+            <span class="quiet-badge">Local inspection</span>
+          </div>
+          <p class="panel-copy">Inspect a package or unpacked application from your files.</p>
+          <div class="field kind-field"><label for="file-kind">File format</label><select id="file-kind"><option value="fwsc">Firmware package (.fwsc)</option><option value="app">Application image (app.bin)</option></select></div>
+          <div id="drop-zone" class="drop-zone">
+            <span class="file-glyph" aria-hidden="true">↧</span>
+            <strong>Drop a firmware file here</strong>
+            <span id="file-limit">.fwsc or app.bin · up to 8 MiB</span>
+            <button id="choose-file" class="button secondary" disabled>Choose file</button>
+            <input id="firmware-file" class="visually-hidden" type="file" accept=".fwsc,.bin" tabindex="-1" aria-label="Choose firmware file">
+          </div>
+          <p id="file-message" class="inline-message" role="status">Files are processed in memory by your local service.</p>
+        </section>
+      </div>
+
+      <section id="inspection-panel" class="panel inspection-panel" aria-labelledby="inspection-heading" hidden>
+        <div class="panel-heading"><div class="section-label"><span class="section-number">↳</span><h2 id="inspection-heading">Inside the file</h2></div><span id="inspection-badge" class="quiet-badge">Inspection</span></div>
+        <div id="inspection-result"></div>
+      </section>
+
+      <section class="panel debug-panel" aria-labelledby="debug-heading">
+        <div class="panel-heading debug-heading">
+          <div class="section-label"><span class="section-number">03</span><h2 id="debug-heading">Bench log</h2><span id="log-count" class="log-count">0 events</span></div>
+          <div class="log-actions"><button id="clear-log" class="text-button">Clear log</button><button id="export-report" class="button secondary">Export report <span aria-hidden="true">↓</span></button></div>
+        </div>
+        <div class="log-toolbar">
+          <div class="filter-field"><label for="log-filter">Show</label><select id="log-filter"><option value="ALL">All events</option><option value="TX">TX · sent</option><option value="RX">RX · received</option><option value="INFO">Info</option><option value="ERROR">Errors</option></select></div>
+          <input id="log-search" type="search" placeholder="Filter messages or hex…" aria-label="Filter log messages or hex">
+          <span class="local-label"><span id="service-dot" class="status-dot offline"></span><span id="service-label">Connecting</span></span>
+        </div>
+        <div id="log-window" class="log-window" tabindex="0" aria-label="Bench events">
+          <div id="log-empty" class="log-empty"><span aria-hidden="true">· · ·</span><p>Your session starts here.</p><small>Identity traffic and file inspection results appear in this log.</small></div>
+          <ol id="log-entries" class="log-entries" aria-label="Timestamped events"></ol>
+        </div>
+        <div class="log-footer"><span>Timestamps use your local time.</span><span>Latest 500 events · JSON export</span></div>
+      </section>
+    </main>
+    <dialog id="report-dialog" class="report-dialog" aria-labelledby="report-title" aria-describedby="report-description">
+      <div class="panel-heading">
+        <div class="section-label"><span class="section-number">↗</span><h2 id="report-title">Session report</h2></div>
+        <button id="close-report" class="text-button">Close <span aria-hidden="true">×</span></button>
+      </div>
+      <p id="report-description" class="panel-copy">Review a snapshot of your device identity, file inspection, and bench log. Copy it or download a JSON file.</p>
+      <label class="report-label" for="report-text">Report JSON</label>
+      <textarea id="report-text" readonly spellcheck="false" autofocus></textarea>
+      <p id="report-message" class="inline-message" role="status">Report ready to review.</p>
+      <div class="actions"><button id="copy-report" class="button primary">Copy report</button><button id="download-report" class="button secondary">Download JSON <span aria-hidden="true">↓</span></button></div>
+    </dialog>
+    <footer class="footer"><span>FM-1 Workbench <span class="footer-divider">/</span> Local tools for open firmware</span><a href="https://github.com/ip2k/mvave-fm1-open-firmware" target="_blank" rel="noreferrer">Project & documentation <span aria-hidden="true">↗</span></a></footer>
+    <noscript><p class="service-message error">JavaScript is required to connect to the local workbench service.</p></noscript>
+  </div>
+</body>
+</html>

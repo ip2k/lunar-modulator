@@ -40,16 +40,20 @@ def ascii_view(data):
     return "".join(chr(b) if 0x20 <= b < 0x7F else "." for b in data)
 
 
-def unpack7(wire):
+def unpack7(wire, *, complete=False):
     """7-bit wire bytes -> 8-bit data; LSB-first continuous bitstream (docs/03 §3)."""
     out, acc, nbits = bytearray(), 0, 0
     for b in wire:
-        acc |= (b & 0x7F) << nbits
+        if not 0 <= b < 0x80:
+            raise ValueError("packed MIDI data is not 7-bit clean")
+        acc |= b << nbits
         nbits += 7
         while nbits >= 8:
             out.append(acc & 0xFF)
             acc >>= 8
             nbits -= 8
+    if complete and acc:
+        raise ValueError("nonzero padding in packed MIDI data")
     return bytes(out)
 
 
@@ -60,7 +64,11 @@ def decode(reply):
         info["error"] = "not a complete SysEx message"
         return info
     info["sysex_header"] = hexs(reply[:5]) + ("  (packed form of the 00 59 11 ID block)" if reply[1:5] == b"\x00\x32\x45\x58" else "")
-    d = unpack7(reply[1:-1])            # the 00 32 45 58 header is part of the packed stream
+    try:
+        d = unpack7(reply[1:-1], complete=True)  # header is part of the packed stream
+    except ValueError as exc:
+        info["error"] = str(exc)
+        return info
     info["id_block"] = f"{len(d)} bytes: {hexs(d)}"
     if len(d) != 34 or d[:3] != b"\x00\x59\x11":
         info["error"] = "unexpected ID block header (want 00 59 11, 34 bytes)"
@@ -68,7 +76,16 @@ def decode(reply):
     body_len = int.from_bytes(d[3:6], "little")
     info["body_len"] = body_len
     info["checksum_ok"] = d[-1] == ((~sum(d[6:-1])) & 0xFF)
-    plain = d[6:31]
+    if body_len != 27 or len(reply) != 41:
+        info["error"] = "unexpected ID block length (want 27 body bytes, 41 wire bytes)"
+        return info
+    if not info["checksum_ok"]:
+        info["error"] = "ID block checksum mismatch"
+        return info
+    if not re.fullmatch(rb"[A-Za-z0-9-]+_[0-9]{3}\x00*", d[6:-1]):
+        info["error"] = "unexpected identity field (want MODEL_NNN with zero padding)"
+        return info
+    plain = d[6:-1]
     info["plain_field"] = ascii_view(plain)
     sep = plain.find(b"_")
     if sep < 0:
@@ -141,10 +158,16 @@ def main():
 
     if args.decode_file:
         raw = open(args.decode_file, "rb").read()
-        replies = [bytes([0xF0]) + part + bytes([0xF7]) for part in raw.split(b"\xF0")[1:]]
-        replies = [r[:-1] if r[-2:] == b"\xF7\xF7" else r for r in replies]
+        replies, offset = [], 0
+        while offset < len(raw):
+            end = raw.find(b"\xF7", offset)
+            if raw[offset] != 0xF0 or end < 0:
+                print("error: capture contains incomplete SysEx or bytes outside a message")
+                return 1
+            replies.append(raw[offset:end + 1])
+            offset = end + 1
         report(replies)
-        return 0
+        return 0 if replies and all("error" not in decode(r) for r in replies) else 1
     if args.list:
         import mido
         print("inputs :", mido.get_input_names())
@@ -163,7 +186,7 @@ def main():
             for r in replies:
                 fh.write(r)
         print(f"saved {sum(len(r) for r in replies)} bytes to {args.save}")
-    return 0
+    return 0 if all("error" not in decode(r) for r in replies) else 1
 
 
 if __name__ == "__main__":

@@ -75,7 +75,7 @@ host → device   F0 00 32 41 41 [f1:4][addr:4][len:4] [pack7(data + chk)] F7
   (`b0 | b1<<7 | b2<<14 | b3<<21`).
 - `len` = `(length << 4) | flashtype`; requests carry `f1 = 0`, responses
   carry `f1 = length >> 4`.
-- Data is an 8→7-bit **LSB-first continuous bitstream** (7 wire bytes per 8
+- Data is an 8→7-bit **LSB-first continuous bitstream** (8 wire bytes per 7
   data bytes), holding `length + 1` bytes: the data plus one checksum byte
   `chk = ~(flashtype + sum(data) + sum(addr_le4) + sum(length_le3)) & 0xFF`.
 - Requests address a *logical* image: the first 960 file bytes are 20 blocks of

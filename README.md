@@ -14,6 +14,16 @@ a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
 > the verdict and [`docs/09-first-session-checklist.md`](docs/09-first-session-checklist.md)
 > for what to do with the device on the bench.
 
+## Local bench workbench
+
+Use the [FM-1 Workbench](docs/11-workbench.md) for a local browser interface to
+read device identity, inspect firmware packages and application images, and
+export a timestamped debug report. Start it with
+`python tools/fm1_workbench.py --open` after installing
+`requirements-workbench.txt`. Offline inspection needs only Python.
+This first bench contribution is read-only; firmware writing remains subject to
+the project's recovery gate.
+
 ## The short version
 
 - **The chip is a JieLi AC791N** (JieLi's "WL82" family) running JieLi's own
