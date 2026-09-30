@@ -11,12 +11,18 @@ extern const fm1_engine_t fm1_engine_macro;
 extern const fm1_engine_t fm1_engine_shapes;
 extern const fm1_engine_t fm1_engine_test_sine;
 extern const fm1_engine_t fm1_engine_test_gain;
+extern const fm1_engine_t fm1_engine_plate;
+extern const fm1_engine_t fm1_engine_ensemble;
+extern const fm1_engine_t fm1_engine_diffuse;
 
 const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_macro,
   &fm1_engine_shapes,
   &fm1_engine_test_sine,
   &fm1_engine_test_gain,
+  &fm1_engine_plate,
+  &fm1_engine_ensemble,
+  &fm1_engine_diffuse,
 };
 const size_t fm1_engine_count = sizeof(fm1_engines) / sizeof(fm1_engines[0]);
 

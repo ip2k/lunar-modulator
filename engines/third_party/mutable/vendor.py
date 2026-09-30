@@ -29,6 +29,13 @@ ROOTS = [
     "stmlib/dsp/units.cc",
     "stmlib/dsp/atan.cc",
     "stmlib/utils/random.cc",
+    # Audio effects (engines/src/mi_fx.cc). Rings' reverb is header-only and
+    # brings rings/dsp/fx/fx_engine.h; nothing else from Rings is needed. The
+    # two Plaits effects are already inside plaits/dsp; they are listed so the
+    # effects keep them if TREES is ever narrowed.
+    "rings/dsp/fx/reverb.h",
+    "plaits/dsp/fx/ensemble.h",
+    "plaits/dsp/fx/diffuser.h",
 ]
 # Whole directories copied as-is (all Plaits engines, light and heavy).
 TREES = ["plaits/dsp"]
