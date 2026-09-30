@@ -1,17 +1,23 @@
 # 2026-09-29 — Baud Girl's FM-1+VA firmware, and photos of the owner's board
 
-No bytes were sent to the FM-1. Sources:
+This project sent the FM-1 nothing except the read-only identity query (§4).
+The owner had already installed FM-1+VA on the unit before this session, by
+their own decision. Sources:
 
 - Baud Girl's pages for **FM-1+VA** — [install](https://baudgirl.com/work/FM-1+VA/install),
   [presets](https://baudgirl.com/work/FM-1+VA/presets),
   [manual](https://baudgirl.com/work/FM-1+VA/manual) — and the Web MIDI
   installer's JavaScript modules those pages load, read as text and not run.
-  Local copies are in `scratch/baudgirl-2026-09-29/`, which git ignores. No
-  firmware file was downloaded.
-- Three photos of the owner's opened unit: a close-up of the SoC, the bottom
-  side and the whole top side. They are kept in `scratch/photos/2026-09-29/`,
-  with crops in `scratch/crops/2026-09-29/`. Both folders are git-ignored and
-  unpublished.
+  Local copies are in `scratch/baudgirl-2026-09-29/`, which git ignores.
+- The release package `FM-1_092.fwsc` (810,548 bytes, SHA-256
+  `ed8415f3…876eb80`), downloaded from the install page with the owner's
+  agreement. It sits in `scratch/baudgirl-2026-09-29/fw/` and is not
+  committed, per the vendor-binary rule. It was compared with M-VAVE's V15
+  package (§3).
+- Three photos of the owner's opened unit, in
+  [`photos/2026-09-29/`](../photos/2026-09-29/): `1-soc-closeup.jpg`,
+  `2-bottom.jpg` and `3-top.jpg`, plus the `crop-*.jpg` evidence crops cited
+  below. They carry no location metadata.
 
 Marks: [verified] means checked here, in the photos or the page source.
 [reported] means Baud Girl's own statement, on a page or in a code comment,
@@ -34,7 +40,7 @@ to it and summarize it, and copy none of it.
 | New engine | "Virtual Analog": Sine/Saw/Tri/Square with up to 6 detuned copies (Super), sub, noise, PWM, drift; LP12/LP24/BP/HP filter with its own envelope; 12 voices with Sine/Saw, 8 with Tri/Square; the same filter available on FM presets (9–12 voices while on) | [reported] manual, release notes |
 | Other features | 64-step sequencer (stock: 16), real-time recording, MIDI CC control of the panel and engine, colour themes (GLOBE > Theme) | [reported] |
 | Preset pack | 16 VA presets into slots 113–128 as `fm1-va-presets.syx` (3,696 bytes); needs `FM-1_079`+; written one preset every 3 s and read back to verify | [reported] presets page, `bank.js`; file size from the HTTP header [verified] |
-| How it is built | A **modified V15 package**. The flash head is stock, `app.bin` is replaced and may grow, the version string is renamed in place at the same length, reserved partitions can be re-declared, there is an optional "cfg bump", and every CRC is recomputed. The code refers to stock functions, tables and RAM addresses (stock `voice_unpack` at file `0x1DBBA`, the sequencer block at `0x01C14CD0`, `g_settings` at `0x01C0E840`), so the firmware extends V15's application. It is not a rewrite on the SDK | build: [reported] `fwsc.js`; "extends stock": [inferred] |
+| How it is built | A **binary patch of V15**: V15's `app.bin` with about 90 small edits and 110 KB of new code and data appended, the version string renamed in place, the VM partition moved to make room, and every CRC recomputed. The flash head, the OTA loader and `cfg` are untouched. The code refers to stock functions, tables and RAM addresses (stock `voice_unpack` at file `0x1DBBA`, the sequencer block at `0x01C14CD0`, `g_settings` at `0x01C0E840`) | [verified] package diff, §3; build recipe [reported] `fwsc.js` |
 | Tooling it stands on | AL-255's FM-1-RE (vendored; the installer is a port of its `tools/fm1_ota.py` with three fixes, Baud Girl's FINDINGS 24.39/24.52/24.53) and kagaimiq's jl-misctools ciphers and CRC. Baud Girl also has an **FM-1 emulator** (`tools/emu/…`), a numbered FINDINGS document, and a private firmware repository | [reported] code comments |
 | Telemetry | The install and presets pages forward their progress events, failure traces and script errors to `baudgirl.com/api/event`, keyed by a per-page-load id and the site's visitor cookie | [verified] `fm1-report.js` |
 
@@ -105,30 +111,92 @@ aroum's, from a later batch.
 | --- | --- |
 | SoC marking **`C188612-11B8`**, against `C156211-11B8` on aroum's unit. The first group changes per lot and `11B8` is the same on both | [verified] photo 1 |
 | Silkscreen `DX7 MB V07 260708` (aroum's: `260620`); bottom stamp `MC 26 0727` (aroum's: `MA 26 06 24`); battery `DTP704060` 3.7 V 2000 mAh 7.4 Wh dated **2026-07-31** (aroum's: 2026-06-24). The owner's unit was assembled after 2026-07-31 | [verified] photos 2, 3 |
-| `U2`, `U3` are **SOIC-16** (8 leads a side, counted, not SOIC-20). `U3` reads `74HC595D` on its first line; `U2`'s marking is too faint to read | [verified] photo 3, `u2-u3-soic16.png` |
-| The **"unpopulated 3-pin header" left of `U2` is the battery connector's leads.** With the bottom photo flipped and aligned on the mounting hole, the three pins of the bottom-side `电池` connector (`正` +, `负` −, `NTC`) land on those three pads. The pads carry soldered, clipped leads, not open holes. So the desk review's candidate UART (2026-09-08 §1) is not one | [verified] by overlay, `mirror-top.png` vs `mirror-bottom-flipped.png`; confirm by eye with the board out |
+| `U2`, `U3` are **SOIC-16** (8 leads a side, counted, not SOIC-20). `U3` reads `74HC595D` on its first line; `U2`'s marking is too faint to read | [verified] photo 3, `crop-u2-u3-soic16.jpg` |
+| The **"unpopulated 3-pin header" left of `U2` is the battery connector's leads.** With the bottom photo flipped and aligned on the mounting hole, the three pins of the bottom-side `电池` connector (`正` +, `负` −, `NTC`) land on those three pads. The pads carry soldered, clipped leads, not open holes. So the desk review's candidate UART (2026-09-08 §1) is not one | [verified] by overlay, `crop-mirror-top.jpg` vs `crop-mirror-bottom-flipped.jpg`; confirm by eye with the board out |
 | Likewise the four plated holes labelled **`J14`** (right of the SOP-10) and the pair just above them carry the leads of the bottom-side electrolytics `C112`/`C113` (16 V 100 µF) and `C111` (10 V 100 µF) | [verified] same overlay; why the column is labelled `J14` is unknown |
 | So the V07 board has **no debug or UART header**. Access to the SoC's pins means soldering to the LQFP48 leads (docs/07 §2.4) | [inferred] |
 | `PC1` = `OCIC P2362 2623`, a 5-lead SO6-style package (2 + 3 leads), i.e. a TLP2362-class 10 Mbps logic-output photocoupler. Baud Girl's manual says the TRS socket is **MIDI input only**, so this is the MIDI IN optocoupler | package [verified] photo 1; function [inferred, strong] |
-| SOP-10 marked **`SLS316D` / `6253KD`** right of the display FPC `J12`, next to `J14`; designator not legible; function unknown (a quick datasheet search found nothing) | [verified] marking, `sls316d.png` |
+| SOP-10 marked **`SLS316D` / `6253KD`** right of the display FPC `J12`, next to `J14`; designator not legible; function unknown (a quick datasheet search found nothing) | [verified] marking, `crop-sls316d.jpg` |
 | `U5` is a QFN-20-class part near the jacks, with ferrites `FB4`/`FB5` (docs/01 had it as SOIC-8); `U9` is an 8-lead SOP; `U6` a SOT-89/SOT-223-class part, probably a regulator | package [verified] photo 3; roles [inferred] |
-| Speaker connector **`J13`** (SMD 2-pin, `+S`/`−S`, `喇叭`) on the owner's board; the 2026-09-08 notes read `J11` on aroum's | [verified] photo 2, `j13-speaker.png` |
+| Speaker connector **`J13`** (SMD 2-pin, `+S`/`−S`, `喇叭`) on the owner's board; the 2026-09-08 notes read `J11` on aroum's | [verified] photo 2, `crop-j13-speaker.jpg` |
 | Bottom, by the USB-C: `R32` = `R100` (0.1 Ω) next to `U12`; `U12`'s marking is not legible in this photo | [verified] photo 2 |
 | Antenna: red wire from pad `P1` (`天线`) routed toward the knob block. The silkscreen box around the SoC area has oblong corner slots, probably an unpopulated shield-can frame | wire [verified] photo 1; shield [inferred] |
 | 24.000 MHz crystal can next to the SoC; `L2` marked `100` (10 µH) | [verified] photo 1 |
 | Knobs: a 2×2 block top left (`RW1` with an index mark, i.e. a potentiometer, plus three encoders including `E6`) and a row of four encoders `E2`–`E5` top right. Baud Girl's manual names eight controls: MASTER (volume), SELECT, ALGORITHM, PRESETS and KNOB1–KNOB4. Most likely `E2`–`E5` = KNOB1–KNOB4 and `RW1` = MASTER, with SELECT/ALGORITHM/PRESETS in the block | layout [verified] photo 3; mapping [inferred] |
 | 27 keys on interdigitated contact pads, one LED and one diode beside each. Baud Girl's manual calls them "touch keys", but the pads look like contacts for silicone keys, not capacitive electrodes | [verified] photo 3; reading [inferred] |
 
-## 3. Follow-ups
+## 3. `FM-1_092.fwsc` against M-VAVE's V15 package [verified]
 
-- **Static analysis of `FM-1_092.fwsc`** (810,548 bytes, public download on
-  the install page), if the owner agrees to fetch it into `scratch/`. Unpack
-  it with our tools, compare its head with V15's, diff `app.bin` against V15
-  to see how much changed and where, and check whether the msfa table is
-  still in place. This is offline only: nothing goes to the device.
+Both packages were unpacked with `jl-misctools/firmware/fwunpack_newfw.py`
+and their UFW entry lists read directly. Scripts and outputs are in
+`scratch/baudgirl-2026-09-29/fw/` (`appdiff.py`, `patchscan.py`,
+`patch_regions.txt`).
+
+| Part | V15 (`FM-1_015`) | `FM-1_092` | |
+| --- | --- | --- | --- |
+| Whole file | 699,956 B | 810,548 B | +110,592 (`0x1B000`): only `flash.bin` grew |
+| UFW entries besides `flash.bin` (types 50, 52, 100 = `ota.bin` 19,969 B, 251, 161, 255) | | | **byte-identical** |
+| Flash head, file `[0x414, 0x4414)` | SHA-256 `d9f43191…d9bd67` | same | identical, and equal to the constant Baud Girl's installer checks |
+| `uboot.boot`, `isd_config.ini`, `cfg_tool.bin`, `cfg` / `eq_cfg_hw.bin` | | | byte-identical; the `cfg` CRC is unchanged, so this release uses no "cfg bump" |
+| `app.bin` | 581,564 B | 691,744 B | +110,180 B appended after V15's last byte |
+| `app.bin` over V15's length | | | 1,820 bytes differ (0.31 %) in 90 regions (gap-merged at 16 B): 60 of 1–4 bytes, 21 of 5–16, 7 of 17–256, and 2 larger (836 B at file `0x21DAC`, 270 B at `0x25FFE`). The first difference is at `0x17C6` |
+| Pointers into the appended code | | | 15 of the 90 regions hold 41 absolute addresses in the new tail's range `0x208E0DC–0x20A8F40`. Most of the rest are 1–4-byte edits, consistent with retargeted call/branch displacements (not decoded here: there is no pi32v2 disassembler in this checkout) |
+| Version string | `FM-1_015` at `app.bin` `0x4EA64` | `FM-1_092` at the same offset | renamed in place; the identity block's checksum was left at V15's value (§4) |
+| msfa algorithm table | file `0x8BE8C` | file `0x8BE8C` | intact in both (`tools/check_msfa_table.py`: 30/32 rows equal to msfa, the Dexed-family fix) |
+| Directory: `VM` | `0x93000`, 0x56000 (344 KB) | **`0xD9000`, 0x10000 (64 KB)** | moved up and shrunk; still ends at `0xE9000` |
+| Directory: `PRCT` | `[0, 0x93000)` | `[0, 0xD9000)` | covers the larger app area |
+| `BTIF`, `USR`, `key_mac` | `0xE9000`, `0xEA000` (72 KB), `0xFF000` | same | unchanged |
+
+What follows:
+
+- **FM-1+VA is V15 plus hooks, not a new application.** Nearly every stock
+  byte is still in place and still runs; the new engine, screens and
+  sequencer live in the appended 110 KB. It carries all of stock's closed
+  JieLi libraries, as expected [inferred from the diff].
+- **A re-declared partition table passes the stock update path.** VM and
+  PRCT differ from V15's, and the package installed on the owner's unit (§4).
+  So the step-1 gate does not compare the directory against the installed
+  one, at least not for reserved entries.
+- **Why settings reset on first boot** [inferred]: VM, JieLi's key/value store
+  for settings (and, per AL-255, the BT address and wheel calibration), now
+  starts at a different address. The first boot finds no VM there and starts
+  fresh; this is the GLOBE reset Baud Girl warns about. Presets survive
+  because `USR` did not move. Going back to V15 moves VM down again, over
+  flash that FM-1+VA's code occupied, so expect settings to reset again.
+- **For this project**: the headroom Baud Girl bought by shrinking VM (the
+  app area can reach `0xD9000`, about 852 KB) is available to an open
+  firmware on the same terms. It also means a flash dump of the owner's unit
+  now captures FM-1+VA, not stock.
+
+## 4. The owner's unit now runs FM-1+VA
+
+`tools/fm1_identify.py` (read-only, the only allowed query) on 2026-09-29:
+
+```
+F0 00 32 45 58 01 00 00 23 4D 5A 44 79 05 26 0E 19 00×21 20 06 F7
+→ FM-1_092
+```
+
+- The owner installed FM-1+VA with Baud Girl's browser installer before this
+  session; the exact date was not recorded. The unit identified as
+  `FM-1_015` (stock V15) on 2026-09-06 and as **`FM-1_092`** now [verified].
+- The reply's checksum byte (`0x19` in the ID block) is V15's; the version
+  digits changed but the checksum did not, so `fm1_identify.py` prints
+  `checksum_ok: False`. Parse the plain field, as the tool does, and do not
+  gate on the checksum.
+- Rules of engagement: this was the owner's decision about the owner's unit.
+  docs/07 §4 still governs everything this project builds or sends; the way
+  back to stock is M-VAVE's V15 `.fwsc` through the same installer
+  [reported], which has not been exercised here.
+
+## 5. Follow-ups
+
 - Bench, with the board out: confirm by eye that the battery connector's pins
   come through at the 3 pads and the electrolytics' at `J14`; read `U12`,
   `U2`, `U5` and the SOP-10 under a loupe with raking light.
+- Decoding the 90 hook sites would show exactly where FM-1+VA enters the
+  stock code. That needs JieLi's pi32v2 `objdump` (CLAUDE.md trap 4) and is
+  only worth it if we want to learn from their integration points.
 - Upstream: the same-version finding and the updater resume would help
   AL-255's `fm1_ota.py` users. They are Baud Girl's findings, so whether and
   how to point AL-255 at them is the owner's call (oss-contributions rules).

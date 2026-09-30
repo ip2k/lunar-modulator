@@ -106,13 +106,14 @@ linked, so treat it as all rights reserved. Active: `FM-1_092` released
 The first third-party firmware for the FM-1 that ordinary users install.
 Details and marks are in `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`.
 
-- **What it is**: a modified V15 package whose application adds a "Virtual
-  Analog" engine (supersaw-style unison, sub, noise, PWM, drift, a
-  LP12/LP24/BP/HP filter with its own envelope, also usable on FM presets), a
-  64-step sequencer with real-time recording, MIDI CC control and colour
-  themes. The installer keeps the stock flash head, and the code refers to
-  stock functions and RAM addresses. It extends V15's `app.bin` rather than
-  rebuilding on the SDK [inferred from the installer's code comments].
+- **What it is**: a binary patch of V15 that adds a "Virtual Analog" engine
+  (supersaw-style unison, sub, noise, PWM, drift, a LP12/LP24/BP/HP filter
+  with its own envelope, also usable on FM presets), a 64-step sequencer with
+  real-time recording, MIDI CC control and colour themes. **[verified,
+  `FM-1_092`]:** V15's `app.bin` byte for byte except 1,820 bytes in 90 hook
+  sites, plus 110 KB of new code appended; VM moved to `0xD9000` and shrunk
+  to 64 KB for room; head, OTA loader and `cfg` untouched; msfa table intact.
+  The owner's unit runs it (identifies as `FM-1_092`, 2026-09-29).
 - **How it installs**: a Web MIDI installer in Chrome/Edge, ported from
   AL-255's `fm1_ota.py` with three fixes. It gates on the SHA-256 of V15's
   flash head, refuses a reinstall of the running version, and resumes an

@@ -5,14 +5,14 @@ Research toward a fully open-source firmware for the M-VAVE (Cuvave) **FM-1**, a
 a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
 
 > **Status (2026-09-29): research phase; first read-only bench session done.**
-> Nothing has been flashed. The owner's unit identifies as `FM-1_015`; V15 has
-> been unpacked and compared with V14
-> ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md)), and the case has
-> been opened for photos
-> ([`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md)).
-> Meanwhile a third-party firmware, Baud Girl's
-> [FM-1+VA](https://baudgirl.com/work/FM-1+VA), ships to users through the
-> stock update path (see below). The `USB_KEY`
+> This project has flashed nothing. V15 has been unpacked and compared with
+> V14 ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md)), and the case
+> has been opened for [photos](photos/2026-09-29/). A third-party firmware,
+> Baud Girl's [FM-1+VA](https://baudgirl.com/work/FM-1+VA), now ships to users
+> through the stock update path; the owner installed it, so the unit
+> identifies as `FM-1_092` instead of stock `FM-1_015`, and its package has
+> been diffed against V15
+> ([`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md)). The `USB_KEY`
 > recovery dongle is specified, implemented and simulated but not yet tried
 > ([`docs/10`](docs/10-usb-key-dongle.md), [`dongle/`](dongle/)). Start with
 > [`docs/05-open-source-feasibility.md`](docs/05-open-source-feasibility.md) for
@@ -101,6 +101,8 @@ a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
 | [`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md) | Bench session 1: USB descriptors, identity reply, MIDI probes, V14 vs V15 |
 | [`tests/`](tests/), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | pytest suite (tools, PIO emulation, dongle/ROM co-simulation) and CI: tests on Linux/macOS, RP2040 UF2 build, AL-255's suite on our fork |
 | [`notes/2026-09-06-research-log.md`](notes/2026-09-06-research-log.md) | What was checked, what was blocked, where the numbers come from |
+| [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md) | Baud Girl's FM-1+VA, its `FM-1_092` package diffed against V15, and the owner's board photos |
+| [`photos/`](photos/) | The owner's photos of their unit, by date, with the crops the notes cite |
 
 Confidence marks used throughout the docs: **[verified]** checked in this
 project against binaries, photos or SDK files; **[reported]** taken from a

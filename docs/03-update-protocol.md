@@ -41,7 +41,10 @@ also appear and must be skipped, because updates run over USB only.
    field carries the whole `MODEL_NNN` identity. The second-field derivation in
    AL-255's mirror of the updater's parser (bytes 14–33 plus ASCII `0`) yields
    version 0 on this real reply, so parse the plain field;
-   `tools/fm1_identify.py` does.
+   `tools/fm1_identify.py` does. The checksum is a literal in the image:
+   Baud Girl's `FM-1_092` renames the version digits in place and keeps V15's
+   checksum byte `0x19`, so its reply fails the checksum [verified
+   2026-09-29 on the owner's unit]. Do not gate on it.
 3. **Upgrade command** host→device, identical for both steps: `F0 22 24 35 7F F7`.
 4. **Step 1 — verification.** The running app pulls parts of the package with
    read requests, checks them, writes a boot record (`FM-1_0xx` + `ota-`, a
@@ -161,6 +164,13 @@ correct JLFS entries) and probed the step-1 verifier on hardware
   identity query as `ota-FM-1`, and accepts the upgrade command again. Some
   units confirm step 1 but never restart into the loader; nothing is written
   then, and the cause is unknown.
+- **A package with a moved partition table installs [verified 2026-09-29].**
+  `FM-1_092` differs from V15 only inside `flash.bin`: its `app.bin` is V15's
+  with 90 small patches and 110 KB appended, and its directory moves `VM`
+  from `0x93000` (344 KB) to `0xD9000` (64 KB) and grows `PRCT` to match.
+  The head, `ota.bin` and `cfg` are byte-identical to V15. It is running on
+  the owner's unit, so the step-1 gate does not compare reserved-partition
+  entries against the installed ones.
 - Therefore the stock update path is a working **install** path for non-stock
   applications. It is **not a recovery mechanism**: it has no way to help a
   device whose application no longer boots or no longer runs the update

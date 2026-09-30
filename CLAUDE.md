@@ -7,7 +7,9 @@ Guidance for Claude Code working in this repo.
 Research and, later, code toward an open-source firmware for the **M-VAVE FM-1**
 (JieLi AC791N SoC, pi32v2 CPU, msfa/Dexed FM engine). Status: **research phase
 complete; one read-only bench session done (`notes/2026-09-06-bench.md`);
-nothing flashed.** The owner's unit runs `FM-1_015`. The `USB_KEY` recovery
+nothing flashed by this project.** The owner's unit ran stock `FM-1_015` until
+the owner installed Baud Girl's FM-1+VA; it identifies as **`FM-1_092`** since
+(2026-09-29). The `USB_KEY` recovery
 dongle (docs/10, `dongle/`) is implemented and simulated, not yet tried.
 Elsewhere, Echomatter ran a version-bumped V15-derived package on their FM-1
 via the stock OTA path and rolled it back (AL-255 PR #2, 2026-09-04), and
@@ -26,7 +28,9 @@ device, one flash bank, no debug pads, and no proven recovery path. The only
 traffic allowed before that is the read-only identity query
 `F0 00 32 45 00 00 00 40 7F F7` and passive captures. See `docs/07` §4 for the
 full rules of engagement; they come from AL-255's safety review and are not
-negotiable without new evidence.
+negotiable without new evidence. The owner's own install of FM-1+VA
+(2026-09) was the owner's call and does not relax the rule for anything this
+project builds or sends.
 
 ## Hardware in one table
 

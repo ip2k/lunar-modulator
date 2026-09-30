@@ -176,5 +176,9 @@ installing and removing non-stock applications at scale. That is new
 evidence, but it is evidence about *transfers*. Rule 1 exists for the image
 that does not come back, and no FM-1 has yet been dumped and restored through
 mask ROM. The rules stand unchanged unless the owner decides otherwise.
-Installing a third-party release on the project's only unit would be a write
-under rule 1, however well tested that release is elsewhere.
+
+The owner has since installed FM-1+VA on the unit by their own decision (it
+identifies as `FM-1_092` on 2026-09-29). That leaves the rules as they are:
+they govern what *this project* builds and sends. The documented way back to
+stock is M-VAVE's V15 `.fwsc` through Baud Girl's installer [reported]; it
+has not been exercised here. A dump taken now captures FM-1+VA, not stock.

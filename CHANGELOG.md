@@ -13,12 +13,23 @@ history.
   from a browser, is recorded as prior art: what it is, how it installs, and
   what it settles about the stock update path (docs/04,
   `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`).
+- A byte-level comparison of Baud Girl's `FM-1_092` package with M-VAVE's
+  V15. It is V15's application with 90 small patches and 110 KB of new code
+  appended, and the settings (VM) partition is moved to make room. The
+  bootloader, OTA loader and configuration are untouched.
+- The owner's unit now runs FM-1+VA (identifies as `FM-1_092`); the status
+  lines say so.
+- Photos of the owner's opened unit and the evidence crops, in
+  `photos/2026-09-29/`.
 - Observations from photos of the owner's opened unit: SoC lot marking
   `C188612-11B8`, board batch `260708`, the MIDI IN photocoupler, an
   unidentified `SLS316D` part, and the knob layout matched to the control
   names in Baud Girl's manual.
 
 ### Changed
+- The identity reply's checksum is not reliable on modified firmware:
+  FM-1+VA keeps V15's checksum byte, so parse the version and do not gate on
+  the checksum (docs/03).
 - The stock update gate is now described as a same-version refusal with
   unauthenticated content, and the docs say the stock path installs non-stock
   firmware routinely; it is still not a recovery path (docs/03, 05, 07, 08,

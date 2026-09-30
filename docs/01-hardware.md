@@ -65,6 +65,12 @@ headroom for more voices, effects or a sequencer.
 `0x4000–0x93000`, `cfg_tool.bin` at `0x920DC`, VM at `0x93000` (0x56000 bytes);
 `BTIF`, `USR` and the SPL/config region are unchanged.
 
+**Baud Girl's FM-1+VA moves it again [verified, `FM-1_092` package,
+`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §3]:** `PRCT` `[0, 0xD9000)`,
+VM at `0xD9000` shrunk to 0x10000 (64 KB), so the app area can reach
+`0xD9000`; `BTIF`, `USR`, `key_mac` and the head are unchanged. The owner's unit
+runs this layout since installing FM-1+VA.
+
 aroum's README assumes a 4 or 8 MB flash. The package directory and the
 SMK-37 Pro notes both point at **1 MB**. No discrete SPI flash chip is visible
 in the photos, so the flash is most likely in-package **[inferred]**. Reading
@@ -76,7 +82,7 @@ Source: aroum's teardown photos (`photos/photo_01..05.png` in
 [aroum/fm1-custom-fw](https://github.com/aroum/fm1-custom-fw/tree/main/photos))
 plus AL-255's disassembly. Photos are not copied here; they carry no license.
 Since 2026-09-29 there are also the owner's own photos of their unit (same
-`V07` layout, later batch), kept unpublished in `scratch/photos/2026-09-29/`
+`V07` layout, later batch), in [`photos/2026-09-29/`](../photos/2026-09-29/)
 and described in `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §2.
 
 | Item | Observation | Confidence |

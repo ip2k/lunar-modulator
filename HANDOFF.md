@@ -13,10 +13,15 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
   (that updater embeds **V14**, not V15; V15 is only on the CDN, docs/02 §1).
 - **This repository** is the research output: nine documents, three tools, one
   research log, plus bench session 1 (`notes/2026-09-06-bench.md`): the unit
-  answers the identity query as `FM-1_015`, V15 is unpacked and diffed against
-  V14. Nothing has been written to the device. The case has been opened for
-  photos (2026-09-29, `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`; the
-  photos themselves are unpublished in `scratch/photos/2026-09-29/`).
+  answered the identity query as `FM-1_015`, V15 is unpacked and diffed against
+  V14. This project has written nothing to the device. The case has been
+  opened for photos (2026-09-29, `photos/2026-09-29/`, described in
+  `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`).
+- **The owner's unit now runs Baud Girl's FM-1+VA**: the owner installed it
+  through Baud Girl's browser installer, and the unit identifies as
+  `FM-1_092` [verified 2026-09-29]. The `FM-1_092` package is V15 plus 90 hook
+  patches and 110 KB of appended code, with VM moved to `0xD9000` (note §3).
+  The way back to stock is V15's `.fwsc` through the same installer.
 - **Elsewhere, non-stock firmware runs on FM-1s**: Echomatter's `FM-1_016`
   (2026-09-04), and since 2026-09-26 **Baud Girl's FM-1+VA**, a modified V15
   with a virtual-analog engine installed from a browser (`FM-1_020` …
@@ -125,12 +130,12 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
 5. ~~Contact aroum and AL-255.~~ Done 2026-09-06: AL-255 PR #3 (V15 package),
    comments on their PR #2 and issue #1, aroum issue #2 (docs/04). Watch those
    threads for replies before posting anything further.
-6. **Baud Girl's FM-1+VA (2026-09-29).** Pending the owner's decisions:
-   (a) fetch `FM-1_092.fwsc` into `scratch/` for offline analysis (head vs V15,
-   `app.bin` diff, msfa table); (b) whether to contact Baud Girl about the
-   FINDINGS document and emulator; (c) whether AL-255's thread should hear
-   about the same-version finding (oss-contributions rules). Installing
-   FM-1+VA on the owner's unit would be a write under docs/07 §4 rule 1.
+6. **Baud Girl's FM-1+VA (2026-09-29).** Done: `FM-1_092.fwsc` diffed
+   against V15 (note §3; the package stays in `scratch/`). Still the owner's
+   call: (b) whether to contact Baud Girl about the FINDINGS document and
+   emulator; (c) whether AL-255's thread should hear about the same-version
+   finding (oss-contributions rules). The owner installed FM-1+VA on the unit
+   themselves; docs/07 §4 still governs this project's own images.
 
 ## 6. Reference material already gathered (clone these locally)
 
