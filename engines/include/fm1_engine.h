@@ -26,8 +26,10 @@ extern "C" {
 #define FM1_ENGINE_MAGIC 0x464D3145u /* "FM1E" */
 
 typedef enum {
-  FM1_KIND_SOUND = 1,     /* notes in, audio out */
-  FM1_KIND_AUDIO_FX = 2,  /* reserved */
+  FM1_KIND_SOUND = 1,     /* notes in, audio out: render overwrites out_lr */
+  FM1_KIND_AUDIO_FX = 2,  /* audio in, audio out: render processes out_lr in
+                             place (it holds the input on entry); note_on,
+                             note_off and pitch_bend may be NULL */
   FM1_KIND_MIDI_FX = 3    /* reserved */
 } fm1_kind_t;
 
@@ -67,8 +69,8 @@ typedef struct fm1_engine {
   void *(*create)(void *mem, const fm1_host_t *host);
   void (*destroy)(void *self);
 
-  void (*note_on)(void *self, uint8_t key, uint8_t velocity);
-  void (*note_off)(void *self, uint8_t key);
+  void (*note_on)(void *self, uint8_t key, uint8_t velocity);   /* NULL for FX */
+  void (*note_off)(void *self, uint8_t key);                     /* NULL for FX */
   void (*pitch_bend)(void *self, float semitones);   /* may be NULL */
   void (*set_param)(void *self, uint16_t index, float value);
   void (*render)(void *self, float *out_lr, uint32_t frames);

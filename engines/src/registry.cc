@@ -10,11 +10,13 @@ extern "C" {
 extern const fm1_engine_t fm1_engine_macro;
 extern const fm1_engine_t fm1_engine_shapes;
 extern const fm1_engine_t fm1_engine_test_sine;
+extern const fm1_engine_t fm1_engine_test_gain;
 
 const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_macro,
   &fm1_engine_shapes,
   &fm1_engine_test_sine,
+  &fm1_engine_test_gain,
 };
 const size_t fm1_engine_count = sizeof(fm1_engines) / sizeof(fm1_engines[0]);
 

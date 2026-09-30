@@ -18,7 +18,7 @@ COMMON := -std=c++11 -fno-exceptions -fno-rtti -DTEST $(OPT) $(EXTRA) \
 OUR_WARN := -Wall -Wextra -Wno-unused-parameter
 TP_WARN := -w
 
-OUR_SRC := src/registry.cc src/mi_macro.cc src/mi_shapes.cc src/test_sine.cc \
+OUR_SRC := src/registry.cc src/mi_macro.cc src/mi_shapes.cc src/test_sine.cc src/test_gain.cc \
            host/render.cc
 
 TP_SRC := \
@@ -40,6 +40,10 @@ TP_SRC := \
   stmlib/dsp/atan.cc \
   stmlib/utils/random.cc
 
+# Engines added in their own fragment (mk/<name>.mk) append to OUR_SRC and
+# TP_SRC, so parallel work on different engines does not collide here.
+-include $(sort $(wildcard mk/*.mk))
+
 OUR_OBJ := $(patsubst %.cc,$(BUILD)/our/%.o,$(OUR_SRC))
 TP_OBJ := $(patsubst %.cc,$(BUILD)/tp/%.o,$(TP_SRC))
 
@@ -49,7 +53,7 @@ all: $(BUILD)/fm1-render
 $(BUILD)/fm1-render: $(OUR_OBJ) $(TP_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
-$(BUILD)/our/%.o: %.cc include/fm1_engine.h
+$(BUILD)/our/%.o: %.cc include/fm1_engine.h include/fm1_mix_limiter.h
 	@mkdir -p $(dir $@)
 	$(CXX) $(COMMON) $(OUR_WARN) -c $< -o $@
 
