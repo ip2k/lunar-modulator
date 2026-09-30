@@ -25,6 +25,8 @@
 //
 // Each effect renders sample by sample, so any block size 1..max_frames gives
 // the same output; the wrappers deinterleave in 32-frame chunks on the stack.
+// Every input sample passes the input guard first (Guard: NaN to 0, clamped
+// to +/-16), so bad input from upstream never reaches the loops.
 //
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; effect names here are our own (docs/11 §7).
@@ -67,6 +69,25 @@ inline float RateOnePole(float k, float native_over_host) {
 }
 
 inline size_t Round16(size_t n) { return (n + 15u) & ~static_cast<size_t>(15u); }
+
+// The input guard, applied to every input sample before anything else sees
+// it, the dry path included: NaN becomes 0, and anything beyond
+// +/-kInputLimit, infinities included, is clamped. Without it one non-finite
+// sample poisons the float state of Plate's and Diffuse's loops for good
+// (their crossfades compute NaN * 0 = NaN, so not even Mix 0 isolates it),
+// and an L+R beyond about 330,000 (Plate) or 1,000,000 (Diffuse) overflows
+// the vendored float-to-int32 stores, which is undefined behaviour. +/-16
+// (+24 dBFS) is far above anything the bus carries and far below either
+// limit. Relies on IEEE comparisons: do not build with -ffinite-math-only
+// (or -ffast-math). engines/mi-fx.md, "Input guard".
+const float kInputLimit = 16.0f;
+
+inline float Guard(float x) {
+  if (x > -kInputLimit && x < kInputLimit) return x;  // NaN fails both
+  if (x >= kInputLimit) return kInputLimit;
+  if (x <= -kInputLimit) return -kInputLimit;
+  return 0.0f;                                        // NaN
+}
 
 // ---------------------------------------------------------------------------
 // Plate
@@ -122,7 +143,10 @@ struct Instance {
     float l[kChunk], r[kChunk];
     while (frames) {
       const uint32_t n = frames < kChunk ? frames : kChunk;
-      for (uint32_t i = 0; i < n; ++i) { l[i] = lr[2 * i]; r[i] = lr[2 * i + 1]; }
+      for (uint32_t i = 0; i < n; ++i) {
+        l[i] = Guard(lr[2 * i]);              // the dry path too: upstream
+        r[i] = Guard(lr[2 * i + 1]);          // crossfades l, r in place
+      }
       reverb.Process(l, r, n);
       for (uint32_t i = 0; i < n; ++i) { lr[2 * i] = l[i]; lr[2 * i + 1] = r[i]; }
       lr += 2 * n;
@@ -203,11 +227,14 @@ struct Instance {
     while (frames) {
       const uint32_t n = frames < kChunk ? frames : kChunk;
       for (uint32_t i = 0; i < n; ++i) {
-        const float in_r = lr[2 * i + 1];
+        const float in_l = Guard(lr[2 * i]);
+        const float in_r = Guard(lr[2 * i + 1]);
+        lr[2 * i] = in_l;                     // the dry path, guarded too
+        lr[2 * i + 1] = in_r;
         const float late = offset_line[offset_pos];
         offset_line[offset_pos] = in_r;
         if (++offset_pos == kOffset) offset_pos = 0;
-        l[i] = lr[2 * i];
+        l[i] = in_l;
         r[i] = r_line[i] = in_r + width * (late - in_r);
       }
       ensemble.Process(l, r, n);
@@ -318,7 +345,13 @@ struct Instance {
     const float k = tone_k;
     while (frames) {
       const uint32_t n = frames < kChunk ? frames : kChunk;
-      for (uint32_t i = 0; i < n; ++i) wet[i] = 0.5f * (lr[2 * i] + lr[2 * i + 1]);
+      for (uint32_t i = 0; i < n; ++i) {
+        const float in_l = Guard(lr[2 * i]);
+        const float in_r = Guard(lr[2 * i + 1]);
+        lr[2 * i] = in_l;                     // the dry path, guarded too
+        lr[2 * i + 1] = in_r;
+        wet[i] = 0.5f * (in_l + in_r);
+      }
       diffuser.Process(1.0f, rt, wet, n);     // amount 1: wet only; we mix
       for (uint32_t i = 0; i < n; ++i) {
         const float w = kWetGain * wet[i];

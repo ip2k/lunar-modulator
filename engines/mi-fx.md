@@ -4,7 +4,7 @@ The first `FM1_KIND_AUDIO_FX` engines (docs/11 §4, stage A): a plate reverb,
 a string ensemble and a diffuser, built from Emilie Gillet's MIT code in
 `third_party/mutable/` (unmodified; see its `UPSTREAM.md`). Source
 `src/mi_fx.cc`, build fragment `mk/mi-fx.mk`, tests
-`tests/test_engines_mi_fx.py` (27 tests).
+`tests/test_engines_mi_fx.py` (45 tests).
 
 ```bash
 make -C engines
@@ -95,6 +95,56 @@ the Plate and 0.96–0.97 for Diffuse [inferred cause, verified figures].
 The effects run per sample, so the output is bit-identical for any host
 block size (tested at 1, 7 and 64 frames) [verified].
 
+Diffuse measured the same way [verified,
+`test_diffuse_decay_is_rate_compensated`]: its impulse tail (Time 0.8,
+0.05–0.5 s) decays at 0.967 of the 48 kHz rate with the loop gain rescaled
+and at 0.915 without. The rest is the uncompensated in-loop damping and the
+12-bit loop's truncation [inferred cause].
+
+## Input guard
+
+Every input sample goes through `Guard` before anything else sees it, the
+dry path included: NaN becomes 0, and anything beyond ±16 (+24 dBFS),
+infinities included, is clamped to ±16. It costs two compares per sample and
+no state. Added after the stream's review, which found two problems
+[verified here with a scratch harness under ASan/UBSan: each effect, Mix 0
+and 1, other parameters at 1, fed 0.1 s of a ±x square or of noise with one
+bad sample, then 3.9 s of silence]:
+
+1. **One non-finite sample latched Plate and Diffuse at NaN for good.** NaN
+   (or ±Inf, which the loops turn into NaN) reaches float state that never
+   flushes: `rings::Reverb`'s two damping filters, `plaits::Diffuser`'s
+   damping filter, and the wrapper's tone filters and all-passes. Mix 0 did
+   not isolate it, because both crossfades compute `NaN × 0 = NaN`. The last
+   second of every such run was NaN, at Mix 0 and 1, for NaN, +Inf and
+   −Inf. Ensemble recovered once its 1,024-float line had flushed.
+2. **Huge input was undefined behaviour.** The vendored `Compress()` stores
+   `static_cast<int32_t>(value × 32768)` (Plate) or `× 4096` (Diffuse),
+   which overflows for |0.2·(L+R)| beyond 65,536 or |0.5·(L+R)| beyond
+   524,288, and for NaN. UBSan reported both `fx_engine.h` lines, for input
+   of 10^6 and for NaN. What pi32v2 does with an out-of-range conversion is
+   unknown.
+
+With the guard, the same harness finds no non-finite output anywhere, no
+UBSan report, and a run with one NaN sample identical, bit for bit, to the
+run with a 0 in its place. ±16 is far above anything the bus should carry
+and far below either overflow: with the loops' own stored values bounded by
+their formats (±1 and ±8), no store can then exceed about 10^6, against
+int32's 2.1 × 10^9 [inferred from the loop structure].
+
+Why guard the dry path too, rather than only what enters the loops: the
+first effect after a faulty engine then heals the bus, so nothing
+downstream, the host's limiter included, sees the NaN. Mix 0 remains a
+bit-exact bypass for any finite input within ±16
+(`test_mix_zero_passes_the_input_through`); beyond that it clamps.
+`test_bad_input_is_guarded` drives each effect with half a second of
+nothing but NaN, of input in the millions and of ±Inf, built from the host's
+noise and Test Gain stages.
+
+The guard relies on IEEE comparisons (`NaN < x` is false): a build with
+`-ffinite-math-only` or `-ffast-math` would compile it away. The engine
+Makefile uses neither; the JieLi toolchain profile must not either.
+
 ## Findings
 
 1. **Plaits' ensemble gives L == R for a mono input** [verified: correlation
@@ -127,7 +177,9 @@ block size (tested at 1, 7 and 64 frames) [verified].
    patterns and noise) and got output bit-identical to a create in zeroed
    memory [verified]; the renderer cannot test this, because it zeroes.
 5. **Stability.** All delay memory is 16- or 12-bit and `Compress` saturates,
-   so no loop can run away numerically [verified: `fx_engine.h`]. 10 s of
+   so for finite input no loop can run away numerically [verified:
+   `fx_engine.h`]; non-finite and huge input is the input guard's job
+   (above), and without it one NaN sample did latch Plate and Diffuse. 10 s of
    noise at the longest, brightest settings stays finite, peaks at 2.1
    (Plate), 0.69 (Ensemble) and 1.6 (Diffuse) before the host limiter, and
    holds a steady level; the Plate at Decay 1 takes about 8 s to build up
@@ -145,14 +197,43 @@ block size (tested at 1, 7 and 64 frames) [verified].
    rates 8 to 96 kHz, chains) found nothing in the effects. The one report
    was in Braids' `analog_oscillator.cc:182` (a left shift of a negative
    value, CSaw), reached only because a chain used Shapes as its source; that
-   belongs to Shapes, not to this stream [verified].
+   belongs to Shapes, not to this stream [verified]. The renderer cannot feed
+   NaN or huge input directly, so those renders missed the two problems the
+   input guard now handles; the review's harness found them.
 9. **Cost, desktop only** (Apple M1 Max, defaults, 64-frame blocks): Plate
    0.84 µs, Ensemble 0.45 µs, Diffuse 0.87 µs per block, 0.03–0.06 % of the
    1.451 ms block. As for the engines, this says nothing about pi32v2; stage
    B measures it.
+10. **The host's bus limiter latches on NaN too** (`fm1_mix_limiter.h`, not
+    this stream's code) [verified: scratch program]. One NaN in the right
+    channel (or both) makes `envelope` NaN for good; `envelope > ceiling` is
+    then always false, so the limiter stops limiting: a 2.0 square came out
+    at 2.0 for the next second. A NaN in the left channel alone is ignored
+    (`a > b ? a : b` picks the right). The input guard keeps these effects
+    from passing NaN on, but an engine with no effect after it still can;
+    the host should sanitise the bus or the limiter should ignore NaN.
+11. **Every parameter is tested for what it does** (added after the review,
+    which showed that five of the eleven could be disconnected with all
+    tests still passing): Plate Decay sets the decay slope (−43 / −23 /
+    −6 dB/s at 0 / 0.5 / 1), Damping darkens the tail, Diffusion raises the
+    early echo density (0.31 / 0.44 / 0.49 over the first 100 ms), Ensemble
+    Depth turns a steady sine into a beating one (level variation 0.008 /
+    0.45 / 0.51), Diffuse Tone sets the brightness, and a wet-level window
+    per effect catches a gain slip. Each of nine scratch mutants (each of
+    those five parameters held fixed, Plate's or Diffuse's loop-gain rate
+    compensation removed, Diffuse's wet gain at 0.1, the input guard
+    removed) fails at least one test [verified]. Not covered: Plate's
+    damping rate compensation. Removing it moves the impulse tail's share
+    of energy above 2 kHz (0.2–0.6 s, 44,118 against 48,000 Hz) only from
+    0.998 to 0.985 at Damping 0.5 and from 1.014 to 0.990 at Damping 1, and
+    the decay-slope ratio by under 1 %: too little for a robust test
+    [verified].
 
 ## Limits
 
+- Input is guarded: NaN becomes 0 and anything beyond ±16 is clamped, on
+  the dry path too, so Mix 0 is a bit-exact bypass only for finite input
+  within ±16 (+24 dBFS).
 - No parameter smoothing. Mix, Decay and the rest change at block
   boundaries; a large jump in Mix can click. Upstream smooths at its control
   rate outside these classes.

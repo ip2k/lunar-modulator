@@ -2,11 +2,12 @@
 engines/mi-fx.md): Plate, Ensemble and Diffuse, the first FM1_KIND_AUDIO_FX
 engines (docs/11 §4, §8 stage A).
 
-Each effect is driven by the renderer's test inputs (impulse, noise) or by a
-sound engine, and checked for its tail, stability at maximum feedback,
-pass-through at Mix 0, stereo output from a mono source, determinism,
-block-size independence, instance size and, for Plate, decay time against the
-upstream reverb at its native 48 kHz.
+Each effect is driven by the renderer's test inputs (impulse, noise, sine) or
+by a sound engine, and checked for its tail, stability at maximum feedback,
+pass-through at Mix 0, its wet level, the input guard against NaN,
+infinite and huge input, stereo output from a mono source, determinism, block-size
+independence, instance size, that every parameter does what it says, and, for
+Plate and Diffuse, decay time against the upstream code at its native rate.
 """
 import json
 import math
@@ -76,6 +77,36 @@ def decay_db_per_s(left, right, rate, t0, t1):
         tail[i] = tail[i + 1] + energy[i]
     edc = [10 * math.log10(tail[int(t * rate)] + 1e-20) for t in (t0, t1)]
     return (edc[1] - edc[0]) / (t1 - t0)
+
+
+def brightness(samples, t0, t1):
+    """RMS of the first difference over RMS: sqrt(2) for white noise, lower
+    for a darker sound."""
+    seg = samples[int(t0 * RATE):int(t1 * RATE)]
+    diff = sum((b - a) ** 2 for a, b in zip(seg, seg[1:]))
+    return math.sqrt(diff / sum(x * x for x in seg))
+
+
+def echo_density(left, right, t1, window=882):
+    """Normalised echo density (Abel and Huang, 2006), averaged over 0..t1 s:
+    the share of samples beyond one standard deviation in each 20 ms window,
+    over the 0.3173 of a Gaussian. Sparse early echoes score low."""
+    etas = []
+    for ch in (left, right):
+        for start in range(0, int(t1 * RATE) - window + 1, window // 2):
+            seg = ch[start:start + window]
+            sd = math.sqrt(sum(x * x for x in seg) / window)
+            if sd > 0.0:
+                etas.append(sum(1 for x in seg if abs(x) > sd) / window / 0.3173)
+    return sum(etas) / len(etas)
+
+
+def level_variation(samples, t0, t1, window=441):
+    """Relative standard deviation of the level in 10 ms windows."""
+    levels = [rms(samples, s / RATE, (s + window) / RATE)
+              for s in range(int(t0 * RATE), int(t1 * RATE), window)]
+    mean = sum(levels) / len(levels)
+    return math.sqrt(sum((x - mean) ** 2 for x in levels) / len(levels)) / mean
 
 
 def test_effects_are_registered(renderer):
@@ -148,6 +179,65 @@ def test_mix_zero_passes_the_input_through(renderer, tmp_path, fx):
                              fx=fx_args(fx, ["Mix=0", *BUSY[fx]]), name=fx)
     assert out["raw_peak"] == ref["raw_peak"]
     assert out_wav.read_bytes() == ref_wav.read_bytes()
+
+
+# Bad input built from the host's noise and Test Gain stages: a NaN gain
+# passes Test Gain's clamp; 24 stages of x2 take the noise to millions, past
+# where the vendored loops' float-to-int32 stores overflow (for a mono source
+# about 160,000 for Plate, 520,000 for Diffuse); 160 stages overflow it to
+# +/-infinity.
+BAD_INPUT = {
+    "nan": cli_fx("test-gain", ["Gain=nan"]),
+    "huge": [a for _ in range(24) for a in cli_fx("test-gain", ["Gain=2"])],
+    "inf": [a for _ in range(160) for a in cli_fx("test-gain", ["Gain=2"])],
+}
+
+
+@pytest.mark.parametrize("fx", FX)
+@pytest.mark.parametrize("bad", ["nan", "huge", "inf"])
+def test_bad_input_is_guarded(renderer, tmp_path, fx, bad):
+    # Before the input guard, one NaN or infinite sample latched Plate's and
+    # Diffuse's loops at NaN for good, even at Mix 0 (their crossfades compute
+    # NaN * 0), and huge input was undefined behaviour in the vendored
+    # float-to-int32 stores. The guard reads NaN as 0 and clamps everything
+    # else to +/-16, dry path included. It is stateless, so a finite output
+    # for half a second of nothing but bad input means no state was poisoned.
+    # engines/mi-fx.md, "Input guard".
+    source = ["--input", "noise", "--seconds", "0.5", *BAD_INPUT[bad]]
+    summary, _, _, _ = run(renderer, tmp_path, source, "source")
+    total = 2 * summary["frames"]
+    if bad == "huge":                                    # the input is as bad as meant
+        assert summary["nonfinite"] == 0 and summary["raw_peak"] > 4e6
+    else:
+        assert summary["nonfinite"] > 0.99 * total
+    for mix in ("0", "1"):
+        params = [*MAX_FEEDBACK[fx][1:], f"Mix={mix}"]
+        summary, _, _, _ = run(renderer, tmp_path, [*source, *cli_fx(fx, params)],
+                               f"{fx}_{mix}")
+        assert summary["nonfinite"] == 0
+        if bad == "nan":
+            assert summary["raw_peak"] == 0.0            # NaN reads as silence
+        elif mix == "0":
+            assert summary["raw_peak"] == 16.0           # the clamp, passed dry
+        else:
+            assert 0.0 < summary["raw_peak"] < 64.0
+
+
+@pytest.mark.parametrize("fx,low,high", [
+    # Measured against the host's noise at the default settings: Plate -2.9,
+    # Ensemble -3.3, Diffuse -3.5 dB (engines/mi-fx.md, finding 2).
+    ("plate", -4.5, -1.5),
+    ("ensemble", -4.8, -1.8),
+    ("diffuse", -5.0, -2.0),
+])
+def test_wet_level_against_noise(renderer, tmp_path, fx, low, high):
+    # Test Gain halves the output so the host's limiter never engages.
+    _, left, right, _ = run(renderer, tmp_path,
+                            ["--input", "noise", "--seconds", "2", *cli_fx(fx, ["Mix=1"]),
+                             *cli_fx("test-gain", ["Gain=0.5"])], f"level_{fx}")
+    for ch in (left, right):
+        db = 20 * math.log10(2 * rms(ch, 0.5, 2.0) / (0.5 / math.sqrt(3)))
+        assert low < db < high
 
 
 @pytest.mark.parametrize("fx", FX)
@@ -260,3 +350,92 @@ def test_plate_decay_is_rate_compensated(renderer, tmp_path):
         slopes[rate] = decay_db_per_s(left, right, rate, 0.05, 0.6)
     assert slopes[48000] < -10
     assert 0.95 < slopes[44118] / slopes[48000] < 1.05
+
+
+# Every knob does what it says: each test below fails if its parameter is
+# disconnected (the review of this stream found five that could be).
+
+def test_plate_decay_sets_the_decay_rate(renderer, tmp_path):
+    # Impulse tails, Schroeder slope over 0.05-0.6 s: measured -43, -23 and
+    # -6 dB/s at Decay 0, 0.5 and 1.
+    slopes = []
+    for decay in ("0", "0.5", "1"):
+        _, left, right, _ = run(renderer, tmp_path,
+                                ["--input", "impulse", "--seconds", "3",
+                                 *cli_fx("plate", ["Mix=1", f"Decay={decay}"])], f"decay_{decay}")
+        slopes.append(decay_db_per_s(left, right, RATE, 0.05, 0.6))
+    assert slopes[0] < slopes[1] < slopes[2] < 0
+    assert slopes[0] < -30 and slopes[2] > -10
+
+
+def test_plate_damping_darkens_the_tail(renderer, tmp_path):
+    # The in-loop low-pass: the impulse tail from 0.3 to 1 s measured 1.10,
+    # 0.77 and 0.46 in brightness at Damping 0, 0.5 and 1.
+    bright = []
+    for damping in ("0", "0.5", "1"):
+        _, left, _ = render(renderer, tmp_path, input="impulse", seconds=1.0,
+                            fx=fx_args("plate", ["Mix=1", f"Damping={damping}"]),
+                            name=f"damp_{damping}")
+        bright.append(brightness(left, 0.3, 1.0))
+    assert bright[0] > bright[1] > bright[2]
+    assert bright[2] < 0.6 * bright[0]
+
+
+def test_plate_diffusion_thickens_the_early_response(renderer, tmp_path):
+    # The all-pass coefficient: echo density over the first 100 ms of the
+    # impulse response measured 0.31, 0.44 and 0.49 at Diffusion 0, 0.5, 1.
+    density = []
+    for diffusion in ("0", "0.5", "1"):
+        _, left, right, _ = run(renderer, tmp_path,
+                                ["--input", "impulse", "--seconds", "0.2",
+                                 *cli_fx("plate", ["Mix=1", f"Diffusion={diffusion}"])],
+                                f"diff_{diffusion}")
+        density.append(echo_density(left, right, 0.1))
+    assert density[0] < density[1] < density[2]
+    assert density[2] > 1.3 * density[0]
+
+
+def test_ensemble_depth_sets_the_modulation(renderer, tmp_path):
+    # A 440 Hz sine through the ensemble alone (Width 0): with the taps still
+    # (Depth 0) the level is steady; the swept taps beat against each other.
+    # Level variation in 10 ms windows measured 0.008, 0.45 and 0.51 at
+    # Depth 0, 0.5 and 1.
+    variation = []
+    for depth in ("0", "0.5", "1"):
+        _, left, _ = render(renderer, tmp_path, input="sine", seconds=1.0,
+                            fx=fx_args("ensemble", ["Mix=1", f"Depth={depth}", "Width=0"]),
+                            name=f"depth_{depth}")
+        variation.append(level_variation(left, 0.1, 0.9))
+    assert variation[0] < 0.05
+    assert variation[0] < variation[1] < variation[2]
+    assert variation[1] > 0.2
+
+
+def test_diffuse_tone_sets_the_brightness(renderer, tmp_path):
+    # The one-pole low-pass on the wet: brightness against the host's noise
+    # measured 0.17, 0.55 and 1.04 at Tone 0, 0.5 and 1 (white noise: 1.41).
+    bright = []
+    for tone in ("0", "0.5", "1"):
+        _, left, _ = render(renderer, tmp_path, input="noise", seconds=1.0,
+                            fx=fx_args("diffuse", ["Mix=1", f"Tone={tone}"]), name=f"tone_{tone}")
+        bright.append(brightness(left, 0.25, 1.0))
+    assert bright[0] < bright[1] < bright[2]
+    assert bright[0] < 0.3 * bright[2]
+
+
+def test_diffuse_decay_is_rate_compensated(renderer, tmp_path):
+    # As for the Plate: at 48 kHz the wrapper runs Plaits' diffuser almost
+    # exactly as upstream (47,872 Hz). At 44,118 Hz its delays are 8.5 %
+    # longer; with the loop gain rescaled the tail decays at 0.967 of the
+    # 48 kHz rate, without it at 0.915 (measured). The rest is the in-loop
+    # damping, fixed upstream and not compensated, and the 12-bit loop's
+    # truncation.
+    slopes = {}
+    for rate in (44118, 48000):
+        _, left, right, got = run(renderer, tmp_path,
+                                  ["--input", "impulse", "--seconds", "2", "--rate", str(rate),
+                                   *cli_fx("diffuse", ["Mix=1", "Time=0.8"])], f"drt_{rate}")
+        assert got == rate
+        slopes[rate] = decay_db_per_s(left, right, rate, 0.05, 0.5)
+    assert slopes[48000] < -10
+    assert 0.94 < slopes[44118] / slopes[48000] < 1.05
