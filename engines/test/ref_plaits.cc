@@ -21,9 +21,11 @@
 // block and TRIG and LEVEL arrive together, as on the module.
 //
 // --delay-blocks N starts the note N blocks (12 samples each) into the render,
-// with the engine still selected at t = 0: for Six-Op it moves the note to
-// the other half of SixOpEngine's staggered 24-sample chunks, so upstream can
-// be compared with itself (reference-plaits.md, "Six-Op").
+// with the engine still selected at t = 0, so upstream can be compared with
+// itself. For Six-Op, 1 moves the note to the other half of SixOpEngine's
+// staggered 24-sample chunks, which mostly leaves the onset where it was, and
+// 2 moves it a whole chunk (reference-plaits.md, "Six-Op, across all 96
+// patches").
 //
 // stmlib::Random is one global generator (seed 0x21). --seed N sets its state
 // after Voice::Init, so the engines with internal randomness can be rendered
