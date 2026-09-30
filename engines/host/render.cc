@@ -1,16 +1,19 @@
 // render.cc -- desktop host for the engine API (docs/11 §8, stage A).
 //
 //   fm1-render --list
-//   fm1-render --engine macro --param Model=6 --param Timbre=0 \
-//              --note 0:69:100:1.5 --seconds 2 --out a4.wav
+//   fm1-render --engine macro --param Model=6 --param Timbre=0
+//              --note 0:69:100:1.5 --seconds 2 --out a4.wav   (one command)
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
 // 16-bit stereo WAV, and prints one line of JSON: the engine's raw peak and
 // clipped count, the same after the limiter, non-finite samples, instance
-// size in bytes and time per block. Note
-// events apply at block boundaries (1.45 ms). The timing is the desktop's and
-// says nothing about pi32v2; it only catches regressions. MIT licence.
+// size in bytes and time per block. Note events apply at block boundaries
+// (1.45 ms). --fill sets the byte instance memory holds before create (the
+// API promises no zeroing); --fault T:VALUE overwrites both channels with
+// VALUE (nan, inf, 1e6...) at time T, after the source and before the
+// effects, to test recovery from one bad sample. The timing is the desktop's
+// and says nothing about pi32v2; it only catches regressions. MIT licence.
 
 #include "fm1_engine.h"
 #include "fm1_mix_limiter.h"
@@ -41,6 +44,7 @@ void Usage() {
       "                  [--input silence|impulse|noise|sine]\n"
       "                  [--fx ID [--fx-param NAME=VALUE]...]...\n"
       "                  [--seconds S] [--rate HZ] [--frames N] [--out FILE.wav]\n"
+      "                  [--fill BYTE] [--fault T:VALUE]...\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter.\n");
 }
@@ -53,7 +57,7 @@ struct Unit {                        // one engine or effect instance
   std::vector<std::pair<std::string, float> > params;
 };
 
-bool Instantiate(Unit &u, const char *id, fm1_kind_t kind, const fm1_host_t &host) {
+bool Instantiate(Unit &u, const char *id, fm1_kind_t kind, const fm1_host_t &host, int fill) {
   u.e = fm1_engine_find(id);
   if (!u.e || u.e->magic != FM1_ENGINE_MAGIC || u.e->api_version != FM1_ENGINE_API_VERSION ||
       u.e->kind != kind) {
@@ -62,7 +66,7 @@ bool Instantiate(Unit &u, const char *id, fm1_kind_t kind, const fm1_host_t &hos
   }
   u.bytes = u.e->instance_size(&host);
   if (posix_memalign(&u.mem, 16, u.bytes ? u.bytes : 16) != 0) return false;
-  memset(u.mem, 0, u.bytes);
+  memset(u.mem, fill, u.bytes);
   u.self = u.e->create(u.mem, &host);
   for (size_t p = 0; p < u.params.size(); ++p) {
     bool found = false;
@@ -152,10 +156,13 @@ int main(int argc, char **argv) {
   double seconds = 2.0;
   float rate = 44118.0f;
   uint32_t max_frames = 64;
+  int fill = 0;
+  std::vector<std::pair<uint32_t, float> > faults;   // (frame, value)
   Unit sound;
   std::vector<std::string> fx_ids;
   std::vector<Unit> fx;
   std::vector<Event> events;
+  std::vector<double> fault_times;   // resolved to frames once the rate is known
 
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
@@ -169,6 +176,13 @@ int main(int argc, char **argv) {
     else if (a == "--seconds") seconds = atof(next);
     else if (a == "--rate") rate = static_cast<float>(atof(next));
     else if (a == "--frames") max_frames = static_cast<uint32_t>(atoi(next));
+    else if (a == "--fill") fill = static_cast<int>(strtol(next, NULL, 0)) & 0xFF;
+    else if (a == "--fault") {
+      const char *colon = strchr(next, ':');
+      if (!colon) { Usage(); return 2; }
+      faults.push_back(std::make_pair(static_cast<uint32_t>(0), strtof(colon + 1, NULL)));
+      fault_times.push_back(atof(next));
+    }
     else if (a == "--param") { if (!ParseParam(next, &sound.params)) { Usage(); return 2; } }
     else if (a == "--fx") { fx_ids.push_back(next); fx.push_back(Unit()); }
     else if (a == "--fx-param") {
@@ -185,10 +199,13 @@ int main(int argc, char **argv) {
     Usage(); return 2;
   }
 
+  for (size_t k = 0; k < faults.size(); ++k) {
+    faults[k].first = static_cast<uint32_t>(llround(fault_times[k] * rate));
+  }
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, max_frames };
-  if (engine_id && !Instantiate(sound, engine_id, FM1_KIND_SOUND, host)) return 1;
+  if (engine_id && !Instantiate(sound, engine_id, FM1_KIND_SOUND, host, fill)) return 1;
   for (size_t k = 0; k < fx.size(); ++k) {
-    if (!Instantiate(fx[k], fx_ids[k].c_str(), FM1_KIND_AUDIO_FX, host)) return 1;
+    if (!Instantiate(fx[k], fx_ids[k].c_str(), FM1_KIND_AUDIO_FX, host, fill)) return 1;
   }
 
   const uint32_t total = static_cast<uint32_t>(seconds * rate);
@@ -230,6 +247,11 @@ int main(int argc, char **argv) {
     }
     auto t0 = std::chrono::steady_clock::now();
     if (sound.e) sound.e->render(sound.self, block, n);
+    for (size_t k = 0; k < faults.size(); ++k) {
+      if (faults[k].first >= pos && faults[k].first < pos + n) {
+        block[2 * (faults[k].first - pos)] = block[2 * (faults[k].first - pos) + 1] = faults[k].second;
+      }
+    }
     for (size_t k = 0; k < fx.size(); ++k) fx[k].e->render(fx[k].self, block, n);
     auto t1 = std::chrono::steady_clock::now();
     render_ns += std::chrono::duration<double, std::nano>(t1 - t0).count();

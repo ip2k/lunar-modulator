@@ -26,7 +26,7 @@ def renderer():
 
 
 def render(renderer, tmp_path, engine=None, params=(), notes=(), seconds=1.5, name="out",
-           fx=(), input=None):
+           fx=(), input=None, extra=()):
     wav = tmp_path / f"{name}.wav"
     cmd = [str(renderer), "--seconds", str(seconds), "--out", str(wav)]
     if engine:
@@ -41,6 +41,7 @@ def render(renderer, tmp_path, engine=None, params=(), notes=(), seconds=1.5, na
         cmd += ["--fx", fx_id]
         for p in fx_params:
             cmd += ["--fx-param", p]
+    cmd += list(extra)                    # any other flags, e.g. ["--fill", "0xA5"]
     res = subprocess.run(cmd, check=True, capture_output=True, text=True)
     summary = json.loads(res.stdout)
     with wave.open(str(wav), "rb") as w:

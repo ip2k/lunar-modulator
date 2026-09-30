@@ -44,7 +44,7 @@ jobs:
           engines/build/fm1-render --engine macro --seconds 0.1
           engines/build/fm1-render --engine shapes --seconds 0.1
       - run: pip install pytest
-      - run: python -m pytest -v tests/test_engines.py
+      - run: python -m pytest -v tests/test_engine*.py
 
   dongle-firmware:
     name: dongle firmware (RP2040 UF2)

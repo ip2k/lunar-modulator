@@ -14,7 +14,7 @@ EXTRA ?=
 BUILD := build
 
 COMMON := -std=c++11 -fno-exceptions -fno-rtti -DTEST $(OPT) $(EXTRA) \
-          -Iinclude -isystem third_party/mutable
+          -Iinclude -isystem third_party/mutable -MMD -MP
 OUR_WARN := -Wall -Wextra -Wno-unused-parameter
 TP_WARN := -w
 
@@ -53,7 +53,7 @@ all: $(BUILD)/fm1-render
 $(BUILD)/fm1-render: $(OUR_OBJ) $(TP_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
-$(BUILD)/our/%.o: %.cc include/fm1_engine.h include/fm1_mix_limiter.h
+$(BUILD)/our/%.o: %.cc
 	@mkdir -p $(dir $@)
 	$(CXX) $(COMMON) $(OUR_WARN) -c $< -o $@
 
@@ -63,3 +63,7 @@ $(BUILD)/tp/%.o: third_party/mutable/%.cc
 
 clean:
 	rm -rf $(BUILD)
+
+# Header dependencies written by the compiler (-MMD), so editing any header,
+# ours or vendored, rebuilds what includes it.
+-include $(OUR_OBJ:.o=.d) $(TP_OBJ:.o=.d)

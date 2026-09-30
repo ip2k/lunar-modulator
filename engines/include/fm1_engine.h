@@ -9,6 +9,13 @@
  * Audio is float, stereo interleaved, overwritten (not accumulated) by render.
  * The host calls render with at most host->max_frames frames (64 on the FM-1).
  *
+ * The host makes no promise about the contents of instance memory before
+ * create: an engine initialises every byte it later reads. Samples are
+ * nominally within +/-1. Engines emit finite samples; an effect must not stay
+ * broken after a non-finite one reaches it from upstream. The host's bus
+ * guard (fm1_mix_limiter.h) turns non-finite samples into silence before the
+ * DAC, but only there.
+ *
  * Plain C99 so C and C++ engines (and a Schwung shim) can all implement it.
  * MIT licence, like the rest of this repository.
  */
