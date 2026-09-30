@@ -62,6 +62,9 @@ vendor packages there.
 
 ## Conventions
 
+- **Dead-code audit:** not done yet. The mark is 7,463 lines of the repo's
+  own source (`dongle/`, `engines/` less `third_party/`, `tests/`, `tools/`)
+  at the stage A2 merge, 2026-09-30; audit after about 10,000 more.
 - **Confidence marks in every technical claim:** `[verified]` (checked here
   against binaries, photos or SDK files), `[reported]` (named source, not
   re-checked), `[inferred]`. Never upgrade a claim without doing the check.

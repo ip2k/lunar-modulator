@@ -9,6 +9,19 @@ history.
 ## [Unreleased]
 
 ### Added
+- More engines on the platform (docs/11 stage A, `engines/`):
+  - **Macro Heavy**, Plaits' other 13 engines (string machine, chords,
+    speech, formant, additive, swarm, noise, particle, string, modal and
+    three drums), 4 voices; and **Six-Op FM**, Plaits' DX7-style engine with
+    its 96 patches, 8 voices.
+  - The first effects: **Plate** (Rings' reverb), **Ensemble** and
+    **Diffuse** (Plaits), chainable after any engine.
+  - A Schwung v2 compatibility shim, with two MIT Schwung modules compiled
+    through it unmodified: **Sophie**, a 16-pad FM percussion kit, and
+    **PSX Verb**, a PlayStation-style reverb.
+  - Renderer options for testing: `--fx` chains, `--fill` (instance memory
+    contents) and `--fault` (bad samples injected on the bus).
+  - CI runs every engine test on a 32-bit build and under ASan + UBSan.
 - `engines/`: the engine platform's first code (docs/11 stage A).
   - A C engine API with no heap: typed parameters, four to a page.
   - Two 12-voice engines built from Mutable Instruments code: **Macro**, from
@@ -44,6 +57,11 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- The engine API states that instance memory is not zeroed, that engines
+  emit finite samples, that `create` may refuse a host, and which calls may
+  run concurrently; `fm1_param_clamp` clamps parameters NaN-safely.
+- Vendored Mutable Instruments code builds with `-fwrapv`, which defines
+  the wrapping integer arithmetic Braids and stmlib rely on.
 - docs/06 and docs/08: the FM-1 has four free parameter knobs, not eight, so
   a Movy-style page becomes two pages of four. The roadmap gains the engine
   platform.
@@ -59,6 +77,10 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- The mix-bus limiter stopped limiting for good after one NaN sample; it
+  now treats non-finite samples as silence and clamps extreme ones.
+- A NaN parameter value could reach undefined float-to-int conversions in
+  Macro and Shapes, or silence Shapes, Test Sine and Test Gain.
 - The "unpopulated 3-pin header" (candidate UART) from the 2026-09-08 desk
   review is the battery connector's through-hole leads, and `J14` carries the
   electrolytics' leads. The board has no debug header (docs/01, 07, 09).

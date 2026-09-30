@@ -64,7 +64,7 @@ class Instance {
   void PitchBend(float semitones) { bend_ = semitones; }
 
   void SetParam(uint16_t index, float value) {
-    if (index == P_VOLUME) volume_ = value < 0 ? 0 : (value > 1 ? 1 : value);
+    if (index == P_VOLUME) volume_ = fm1_param_clamp(&kParams[P_VOLUME], value);
   }
 
   void Render(float *out_lr, uint32_t frames) {

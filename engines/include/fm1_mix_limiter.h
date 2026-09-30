@@ -4,7 +4,8 @@
  * phase can still sum past full scale, so the host's master bus limits (the
  * stock firmware saturates its mix for the same reason). Peak follower with
  * instant attack and ~100 ms release: output never exceeds the ceiling, and a
- * single voice passes untouched. MIT licence.
+ * single voice passes untouched. Non-finite samples become silence (see
+ * fm1_mix_guard). MIT licence.
  */
 #ifndef FM1_MIX_LIMITER_H_
 #define FM1_MIX_LIMITER_H_
@@ -24,8 +25,21 @@ static inline void fm1_mix_limiter_init(fm1_mix_limiter_t *l, float sample_rate)
   l->ceiling = 0.98f;
 }
 
+/* Bus guard, applied before the envelope sees a sample. A NaN would otherwise
+ * latch the envelope to NaN, after which `envelope > ceiling` is always false
+ * and limiting stops for good; an infinity would do the same one sample later.
+ * NaN becomes silence, and anything past +/-16 (+24 dBFS, infinities included)
+ * is clamped so one wild sample holds the bus down for ~0.3 s, not seconds.
+ * Relies on IEEE compares: do not build with -ffast-math/-ffinite-math-only. */
+static inline float fm1_mix_guard(float x) {
+  if (!(x == x)) return 0.0f;
+  return x > 16.0f ? 16.0f : (x < -16.0f ? -16.0f : x);
+}
+
 static inline void fm1_mix_limiter_process(fm1_mix_limiter_t *l, float *lr, uint32_t frames) {
   for (uint32_t n = 0; n < frames; ++n) {
+    lr[2 * n] = fm1_mix_guard(lr[2 * n]);
+    lr[2 * n + 1] = fm1_mix_guard(lr[2 * n + 1]);
     float a = fabsf(lr[2 * n]);
     float b = fabsf(lr[2 * n + 1]);
     float peak = a > b ? a : b;

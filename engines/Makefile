@@ -14,11 +14,16 @@ EXTRA ?=
 BUILD := build
 
 COMMON := -std=c++11 -fno-exceptions -fno-rtti -DTEST $(OPT) $(EXTRA) \
-          -Iinclude -isystem third_party/mutable
+          -Iinclude -isystem third_party/mutable -MMD -MP
 OUR_WARN := -Wall -Wextra -Wno-unused-parameter
 TP_WARN := -w
+# Mutable's fixed-point code (Braids, stmlib) relies on signed arithmetic that
+# wraps, as it did under ARM GCC on the modules. -fwrapv makes that defined
+# for the compiler, so an optimiser cannot exploit it; keep it in any target
+# build of this code (engines/sanitizers/ubsan.supp).
+TP_DIALECT := -fwrapv
 
-OUR_SRC := src/registry.cc src/mi_macro.cc src/mi_shapes.cc src/test_sine.cc \
+OUR_SRC := src/registry.cc src/mi_macro.cc src/mi_shapes.cc src/test_sine.cc src/test_gain.cc \
            host/render.cc
 
 TP_SRC := \
@@ -40,6 +45,10 @@ TP_SRC := \
   stmlib/dsp/atan.cc \
   stmlib/utils/random.cc
 
+# Engines added in their own fragment (mk/<name>.mk) append to OUR_SRC and
+# TP_SRC, so parallel work on different engines does not collide here.
+-include $(sort $(wildcard mk/*.mk))
+
 OUR_OBJ := $(patsubst %.cc,$(BUILD)/our/%.o,$(OUR_SRC))
 TP_OBJ := $(patsubst %.cc,$(BUILD)/tp/%.o,$(TP_SRC))
 
@@ -49,13 +58,17 @@ all: $(BUILD)/fm1-render
 $(BUILD)/fm1-render: $(OUR_OBJ) $(TP_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
-$(BUILD)/our/%.o: %.cc include/fm1_engine.h
+$(BUILD)/our/%.o: %.cc
 	@mkdir -p $(dir $@)
 	$(CXX) $(COMMON) $(OUR_WARN) -c $< -o $@
 
 $(BUILD)/tp/%.o: third_party/mutable/%.cc
 	@mkdir -p $(dir $@)
-	$(CXX) $(COMMON) $(TP_WARN) -c $< -o $@
+	$(CXX) $(COMMON) $(TP_WARN) $(TP_DIALECT) -c $< -o $@
 
 clean:
 	rm -rf $(BUILD)
+
+# Header dependencies written by the compiler (-MMD), so editing any header,
+# ours or vendored, rebuilds what includes it.
+-include $(OUR_OBJ:.o=.d) $(TP_OBJ:.o=.d)

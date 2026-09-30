@@ -145,9 +145,7 @@ class Instance {
 
   void SetParam(uint16_t index, float value) {
     if (index >= P_COUNT) return;
-    const fm1_param_t &p = kParams[index];
-    if (value < p.min) value = p.min;
-    if (value > p.max) value = p.max;
+    value = fm1_param_clamp(&kParams[index], value);
     value_[index] = value;
     if (index == P_MODEL) {
       int m = static_cast<int>(value + 0.5f);

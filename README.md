@@ -104,7 +104,7 @@ a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
 | [`notes/2026-09-06-research-log.md`](notes/2026-09-06-research-log.md) | What was checked, what was blocked, where the numbers come from |
 | [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md) | Baud Girl's FM-1+VA, its `FM-1_092` package diffed against V15, and the owner's board photos |
 | [`photos/`](photos/) | The owner's photos of their unit, by date, with the crops the notes cite |
-| [`engines/`](engines/) | The engine platform, stage A: the C engine API, engines from Mutable Instruments code (Macro, Shapes), a desktop renderer and tests |
+| [`engines/`](engines/) | The engine platform, stage A: the C engine API, sound engines and effects from Mutable Instruments code, a Schwung module shim, a desktop renderer and tests |
 | [`notes/upstream-candidates.md`](notes/upstream-candidates.md) | Findings worth sending to other projects, none posted yet |
 
 Confidence marks used throughout the docs: **[verified]** checked in this
