@@ -67,10 +67,13 @@ platform for features M-VAVE will never ship.
 
 The stock step-1 verifier refuses rebuilt packages that do not bump the
 version identity; a V15-derived package identifying as `FM-1_016` was accepted
-and ran (Echomatter, 2026-09-04, docs/03 §5). Cable-only installation of an
-open firmware is therefore plausible as long as the package carries a higher
-version and keeps the stock loader path. It is still not a development
-workflow: a build that does not boot, or that loses its USB descriptor or
+and ran (Echomatter, 2026-09-04, docs/03 §5). Baud Girl's FM-1+VA (docs/04)
+has since installed `FM-1_020` … `FM-1_092` this way, publicly, with rollback
+to V15. The gate is a same-version refusal, and content is not authenticated.
+Cable-only installation of an open firmware is therefore **demonstrated** for
+a package that carries a new version, keeps the stock flash head (the OTA
+loader can rewrite it) and keeps the stock loader path. It is still not a
+development workflow: a build that does not boot, or that loses its USB descriptor or
 update service, cannot be replaced this way. With mask-ROM access the whole
 flash can be written directly.
 Explaining the gate becomes much easier once a device can be freely
@@ -124,12 +127,12 @@ carry effects in float.
 
 | Question | Answer |
 | --- | --- |
-| Can custom code run on the FM-1? | **Yes, demonstrated 2026-09-04**: a modified V15-derived package with a bumped version identity was installed through the stock OTA path and ran (Echomatter, AL-255 PR #2). The mask-ROM path remains undemonstrated. |
+| Can custom code run on the FM-1? | **Yes, routinely**: first a version-bumped V15 package (Echomatter, AL-255 PR #2, 2026-09-04), then Baud Girl's public FM-1+VA releases `FM-1_020` … `FM-1_092` (2026-09), all through the stock OTA path. The mask-ROM path remains undemonstrated. |
 | Can it be sound-compatible with stock? | Yes: same msfa engine, same DX7 patch format. |
 | Can it be fully open source? | The application, bootloader and (with work) drivers can be. The compiler and the Bluetooth stack cannot in any foreseeable timeframe without a dedicated compiler/BLE effort. |
 | Is it safe to start hacking on the one device we have? | **Not until recovery is proven.** First milestone is a full flash dump and a byte-identical restore. |
 | Is porting schwung-movy the way in? | No; reimplement its ideas in C (docs/06). |
-| Biggest unknowns | (1) whether `USB_KEY` works on the AC791N through the FM-1's USB-C port, (2) the verifier gate, (3) the pot/encoder mix and display pinout. |
+| Biggest unknowns | (1) whether `USB_KEY` works on the AC791N through the FM-1's USB-C port, (2) which encoders use the hardware decoders, and the display pinout. The verifier gate is largely explained (docs/03 §5). |
 
 ## 6. Recommended strategy
 
@@ -142,8 +145,9 @@ carry effects in float.
    flash via mask ROM. Add UART logging over the MIDI TRS jack (it is the UART).
 4. Bring up display, keys, knobs, DAC; then msfa; then USB-MIDI; then presets.
 5. Design the UI and sequencer with Movy's model as the reference (docs/06).
-6. In parallel, attack the verifier gate with the now-recoverable device so the
-   final product installs over plain USB-MIDI like a stock update.
+6. Package the open firmware for the stock OTA path (new version number,
+   stock head, stock loader), which Baud Girl's releases show works, so users
+   install over plain USB-MIDI like a stock update.
 7. Replace `uboot.boot` with a build of JieLi's Apache-2.0 `fw-Bootloader`
    (L4); then start peeling `.a` files off (L2) starting with the ones the
    synth does not need.

@@ -74,12 +74,14 @@ Detailed commands in docs/09.
 
 ## Phase 6 — Distribution
 
-- Pass the stock verifier gate so stock units can install the open firmware
-  over USB-MIDI: Echomatter showed (2026-09-04) that a package with a bumped
-  version identity is accepted, so the remaining work is a small
-  cross-platform client (start from AL-255's `fm1_ota.py` with PR #2's
-  framing fix and `build_fwsc.py`); alternatively publish the dongle design
-  and a "one-time unlock".
+- Install over the stock OTA path so stock units can take the open firmware
+  over USB-MIDI. Echomatter showed (2026-09-04) that a package with a bumped
+  version identity is accepted, and Baud Girl's browser installer (docs/04)
+  has done it publicly since 2026-09-26. The remaining work is our own
+  client: start from AL-255's `fm1_ota.py` with PR #2's framing fix and
+  `build_fwsc.py`, plus a check that the flash head equals stock (the loader
+  can rewrite it) and resume from the loader. Alternatively publish the
+  dongle design and a "one-time unlock".
 - Reversible: the tool must restore stock (users keep their `.fwsc`).
 - Release process, versioning, changelog; coordinate with aroum and AL-255.
 

@@ -4,10 +4,15 @@ Research toward a fully open-source firmware for the M-VAVE (Cuvave) **FM-1**, a
 ~€70 battery-powered six-operator, 12-voice FM synthesizer with 27 silicone keys,
 a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
 
-> **Status (2026-09-06): research phase; first read-only bench session done.**
-> Nothing has been flashed and the case has not been opened. The owner's unit
-> identifies as `FM-1_015`; V15 has been unpacked and compared with V14
-> ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md)). The `USB_KEY`
+> **Status (2026-09-29): research phase; first read-only bench session done.**
+> Nothing has been flashed. The owner's unit identifies as `FM-1_015`; V15 has
+> been unpacked and compared with V14
+> ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md)), and the case has
+> been opened for photos
+> ([`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md)).
+> Meanwhile a third-party firmware, Baud Girl's
+> [FM-1+VA](https://baudgirl.com/work/FM-1+VA), ships to users through the
+> stock update path (see below). The `USB_KEY`
 > recovery dongle is specified, implemented and simulated but not yet tried
 > ([`docs/10`](docs/10-usb-key-dongle.md), [`dongle/`](dongle/)). Start with
 > [`docs/05-open-source-feasibility.md`](docs/05-open-source-feasibility.md) for
@@ -29,15 +34,20 @@ a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
   [AL-255/FM-1-RE](https://github.com/AL-255/FM-1-RE), have reverse-engineered
   the protocol byte-for-byte, disassembled two firmware versions and even built
   an experimental pi32v2 firmware blob.
-- **One non-stock package has run on an FM-1.** On 2026-09-04 a contributor
-  to AL-255's repository (Echomatter, [PR #2](https://github.com/AL-255/FM-1-RE/pull/2))
-  installed a V15-derived package whose version identity was bumped to 016;
-  the stock verifier accepted it, the device ran it (with a broken USB
-  descriptor), and AL-255's corrected client rolled it back to stock V15.
-  The version gate is therefore host/verifier policy, not a fuse. There is
-  still **no proven recovery path** for a device whose application does not
-  run: one flash bank, no debug pads, no recovery button, and JieLi's
-  mask-ROM USB boot mode has never been demonstrated on this device.
+- **Non-stock firmware now runs on FM-1s, installed over USB-MIDI.** On
+  2026-09-04 a contributor to AL-255's repository (Echomatter,
+  [PR #2](https://github.com/AL-255/FM-1-RE/pull/2)) installed a V15-derived
+  package with its version bumped to 016 and rolled it back to stock V15.
+  Since 2026-09-26 Baud Girl's
+  [FM-1+VA](https://baudgirl.com/work/FM-1+VA) (a modified V15 with a
+  virtual-analog engine and a 64-step sequencer; source not published)
+  installs from a browser,
+  `FM-1_020` through `FM-1_092` so far. The stock step-1 check turns out to
+  be a same-version refusal, and content is not authenticated
+  ([docs/03](docs/03-update-protocol.md) §5). There is still **no proven
+  recovery path** for a device whose application does not run: one flash
+  bank, no debug pads, no recovery button, and JieLi's mask-ROM USB boot mode
+  has never been demonstrated on this device.
   AL-255's standing verdict remains *NO-GO for non-stock flashing* until
   recovery exists; [docs/10](docs/10-usb-key-dongle.md) is the dongle that
   should provide it.
@@ -66,7 +76,8 @@ a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
 4. **The synth**: port msfa / Synth_Dexed, USB-MIDI class device, DX7 SysEx,
    presets in flash.
 5. **UI and sequencer** inspired by Movy ([docs/06](docs/06-movy-and-schwung.md)).
-6. **Solve the OTA verifier gate** so users can install without opening the case.
+6. **Ship through the stock OTA path** (new version number, stock flash head),
+   as Baud Girl's releases already do, so users install without opening the case.
 
 ## Repository map
 
@@ -74,7 +85,7 @@ a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
 | --- | --- |
 | [`docs/01-hardware.md`](docs/01-hardware.md) | SoC, memory, board, connectors, what is still unknown |
 | [`docs/02-stock-firmware.md`](docs/02-stock-firmware.md) | Package format, boot chain, what the stock app is made of, the msfa finding |
-| [`docs/03-update-protocol.md`](docs/03-update-protocol.md) | The SysEx update protocol and the verifier gate that blocks custom packages |
+| [`docs/03-update-protocol.md`](docs/03-update-protocol.md) | The SysEx update protocol and its step-1 version gate |
 | [`docs/04-prior-art.md`](docs/04-prior-art.md) | Every project, SDK, tool and thread this work stands on |
 | [`docs/05-open-source-feasibility.md`](docs/05-open-source-feasibility.md) | What "open firmware" can mean here, the blockers, the verdict |
 | [`docs/06-movy-and-schwung.md`](docs/06-movy-and-schwung.md) | Why Movy cannot be ported and what to take from it anyway |

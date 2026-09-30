@@ -120,16 +120,18 @@ OTA-mode enumeration (`4D4A:4155`, "ota-FM-1").
 ## 5. Photos and physical notes (case open, power off, battery unplugged)
 
 - Chip marking under magnification; count pins per side (48?).
-- `U2`, `U3` (SOIC-20), `U5`, `U9` (SOIC-8), `U11` (SOT-23-6), the white
-  `OCIC P2362` part, `Q2`/`Q4`: read every marking.
+- `U2` (`U3` reads `74HC595D`; both SOIC-16), `U5` (QFN-20 class), `U9`
+  (8-lead SOP), the SOP-10 marked `SLS316D`, `U11` (SOT-23-6), `Q2`/`Q4`:
+  read every marking. (`PC1`, the `OCIC P2362`, is a TLP2362-class
+  photocoupler for MIDI IN; nothing to do.)
 - Knobs: for each of the 8, count solder pins, feel for detents, note the
   reference designator (`E*` vs `RW*`/`R*`). Decide encoder vs. pot.
 - `J12` display FPC: pin count, panel model printed on the flex if any.
 - USB-C to SoC: series resistors/ESD parts on D+/D−; which SoC pins they reach.
 - Any pads that look like test points near the SoC (the round bare pads are
-  fiducials). **The unpopulated 3-pin header left of U2**: photograph, measure
-  continuity to SoC pins, and listen passively with a logic analyser at
-  power-up (3.3 V; try 1000000 baud, the SDK's `UTBD` default). Do not drive it.
+  fiducials). The three pads left of `U2` are the battery connector's leads
+  and `J14` carries the electrolytics' leads (owner's photos, 2026-09-29).
+  Confirm that by eye from the bottom; they are not a debug header.
 - **`U12`**, the bottom-side SOIC-8 near the connectors: read the marking
   (charger vs. SPI flash decides docs/07 §2.5).
 - The SOT-23 and `R21` under J6: read markings; they sit on the USB path the

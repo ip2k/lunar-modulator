@@ -20,6 +20,11 @@ fm1-editor.com, pushed 2026-09-07), and M-VAVE's download centre. Marks:
 | `J12` display FPC: about 12 contacts at 0.5 mm. | `j12_fpc.png` | [verified] count approximate |
 | Board: `DX7 MB V07 260620`; battery `DTP704060` 2000 mAh dated 2026-06-24; speaker `J11`; two 16 V/100 µF electrolytics on the bottom. | photos 2–4 | [verified] (already in docs/01) |
 
+**Superseded 2026-09-29** (`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`
+§2, from the owner's photos): the 3-pin "header" is the battery connector's
+leads, not a UART candidate, and the speaker connector reads `J13` on the
+owner's board.
+
 ## 2. fm1-editor.com is open source and has hardware fixtures
 
 Repository: https://github.com/benny-sparra/fm1-dx7-patch-importer (no license

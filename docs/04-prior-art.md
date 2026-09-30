@@ -98,6 +98,39 @@ back). `scripts/capture-midi.swift` is a CoreMIDI capture tool for macOS.
 Summary in `notes/2026-09-08-desk-review.md` §2. openpatch.es is a general
 DX7 patch tool.
 
+### Baud Girl — FM-1+VA firmware — https://baudgirl.com/work/FM-1+VA
+*Madeline's workshop label. `Copyright Baud Girl, 2026`; no source repository
+linked, so treat it as all rights reserved. Active: `FM-1_092` released
+2026-09-29.*
+
+The first third-party firmware for the FM-1 that ordinary users install.
+Details and marks are in `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`.
+
+- **What it is**: a modified V15 package whose application adds a "Virtual
+  Analog" engine (supersaw-style unison, sub, noise, PWM, drift, a
+  LP12/LP24/BP/HP filter with its own envelope, also usable on FM presets), a
+  64-step sequencer with real-time recording, MIDI CC control and colour
+  themes. The installer keeps the stock flash head, and the code refers to
+  stock functions and RAM addresses. It extends V15's `app.bin` rather than
+  rebuilding on the SDK [inferred from the installer's code comments].
+- **How it installs**: a Web MIDI installer in Chrome/Edge, ported from
+  AL-255's `fm1_ota.py` with three fixes. It gates on the SHA-256 of V15's
+  flash head, refuses a reinstall of the running version, and resumes an
+  install whose synth is left in its loader (`ota-FM-1`). Rollback to M-VAVE's
+  `.fwsc` goes through the same page. Accepted starting points are V15 or Baud
+  Girl's own versions, which are numbered from `FM-1_020`.
+- **What it settled for this project** (docs/03 §5): the step-1 gate is a
+  same-version refusal, content is not authenticated, the OTA loader can
+  rewrite `uboot.boot`, and an interrupted step 2 is resumable. All
+  [reported], from Baud Girl's measurements.
+- **What it has that we do not**: an FM-1 emulator used to test builds, a
+  numbered FINDINGS document, and a preset read/write SysEx format (128-byte
+  VMEM voice + 59-byte settings record) in its own firmware. None of these are
+  published.
+- **Privacy note**: the install and presets pages send progress events,
+  failure traces and script errors to `baudgirl.com/api/event`, tied to the
+  site's visitor cookie.
+
 ### M-VAVE official downloads
 https://www.m-vave.com/download lists the V15 `.fwsc` (2026-07-30) as the
 latest PC firmware, V14 updaters for Windows/macOS, release notes and the

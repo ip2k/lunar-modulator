@@ -9,7 +9,9 @@ risk, ranked by how likely each path is to work and how invasive it is.
 
 - One application bank (`NEW_FLASH_FS` single-backup configuration, no
   double-bank keys in `isd_config.ini`) — AL-255.
-- No JTAG/UART header, no test pads, no recovery button — aroum, photos.
+- No JTAG/UART header, no test pads, no recovery button — aroum, photos. The
+  one candidate header (three pads left of `U2`) turned out to be the battery
+  connector's leads (owner's photos, 2026-09-29).
 - `RESET=PB01_08_0` is a long-press reset, `UPDATE_JUMP=0` selects the reset
   path rather than a mask-ROM jump — AL-255.
 - The only vendor update path runs inside the stock application over
@@ -21,6 +23,12 @@ risk, ranked by how likely each path is to work and how invasive it is.
   overwritten with a stock package (their `FM-1_016` build with a broken USB
   descriptor was still recoverable through a Windows descriptor filter).
   A build that does not boot, or whose USB or update service is dead, is not.
+- Wider evidence for that net [reported: Baud Girl, 2026-09-23 to 09-29]:
+  dozens of non-stock builds (`FM-1_020` … `FM-1_092`) installed through the
+  stock path, public installs and rollbacks to V15, and an install
+  interrupted after step 1 resumed from the loader, which stays in `ota-FM-1`
+  mode across power cycles (docs/03 §5). This covers an interrupted *transfer*. It still does
+  not cover a *bad image*.
 
 ## 2. Candidate recovery paths, ranked
 
@@ -138,8 +146,9 @@ programmer become the simplest recovery path of all; read it on the bench
 | Custom package bricks the only device | high if attempted before recovery | total loss of the unit | **do not flash non-stock before 2.1 is proven**; buy a second FM-1 or an AC791N dev board (JL_AC79_DevKit V1.0) for first experiments |
 | `USB_KEY` does not work on AC791N through the connector | medium | forces soldering (2.4) | try both clock/data polarities, quiet bus, dev-board rehearsal |
 | Wrong loader / wrong chip family in tooling | medium | corrupt flash | jl-uboot-tool marks WL82 "unknown": read-only operations first, compare dump with the stock package before any write |
-| Interrupted write (power loss, USB drop) | medium | unbootable app | battery charged, no hubs during writes, dump before every write |
-| Verifier gate never explained | medium | no cable-only install for users; development unaffected | ship a "one-time unlock" via dongle if needed; keep researching with a recoverable device |
+| Interrupted write (power loss, USB drop) | medium | unbootable app | battery charged, no hubs during writes, dump before every write. Through the stock path, a loader left waiting after step 1 can be resumed [reported: Baud Girl] |
+| Package changes the flash head (`uboot.boot`, `isd_config.ini`) | low if rule 2 is kept | the OTA loader rewrites the second-stage bootloader [reported: Baud Girl FINDINGS 5.4]; a bad one bricks the unit | keep the head byte-identical to V15 and compare its SHA-256 (file bytes `[0x414, 0x4414)`) before anything is sent |
+| Verifier gate never explained | low (was medium) | none for development | largely explained: a same-version refusal, content not authenticated (docs/03 §5); bump the version |
 | Toolchain download disappears | low–medium | cannot build | archive the toolchain privately (do not publish) |
 | Legal complaint about redistributing vendor binaries | low | takedown | never commit `.fwsc`/`app.bin`; link to sources |
 | Bluetooth radio regulatory issues with custom firmware | low | none for personal use | keep vendor BT stack or disable BT |
@@ -161,3 +170,11 @@ programmer become the simplest recovery path of all; read it on the bench
    version from filenames.
 7. Log everything on the bench: USB descriptors, SysEx traces, dumps with
    SHA-256, photos of pin probes. Put them under `notes/`.
+
+**2026-09-29 note.** Baud Girl's FM-1+VA (docs/04) shows the stock path
+installing and removing non-stock applications at scale. That is new
+evidence, but it is evidence about *transfers*. Rule 1 exists for the image
+that does not come back, and no FM-1 has yet been dumped and restored through
+mask ROM. The rules stand unchanged unless the owner decides otherwise.
+Installing a third-party release on the project's only unit would be a write
+under rule 1, however well tested that release is elsewhere.

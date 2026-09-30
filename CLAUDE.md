@@ -10,8 +10,11 @@ complete; one read-only bench session done (`notes/2026-09-06-bench.md`);
 nothing flashed.** The owner's unit runs `FM-1_015`. The `USB_KEY` recovery
 dongle (docs/10, `dongle/`) is implemented and simulated, not yet tried.
 Elsewhere, Echomatter ran a version-bumped V15-derived package on their FM-1
-via the stock OTA path and rolled it back (AL-255 PR #2, 2026-09-04). `HANDOFF.md` is the context summary; `README.md`
-has the verdict; `docs/` has the detail.
+via the stock OTA path and rolled it back (AL-255 PR #2, 2026-09-04), and
+since 2026-09-26 Baud Girl's FM-1+VA (a modified V15, source not published)
+installs from a browser for anyone (docs/04, `notes/2026-09-29-*`).
+`HANDOFF.md` is the context summary; `README.md` has the verdict; `docs/` has
+the detail.
 
 This project is unrelated to the BUSY Bar timer repo it was briefly hosted in.
 
@@ -29,13 +32,13 @@ negotiable without new evidence.
 
 | | |
 | --- | --- |
-| SoC | JieLi AC791N (WL82), LQFP48, marking `C156211-11B8`; pi32v2 core, 240 MHz used of 320; 578 KB SRAM; 1 MB flash (probably in-package) |
+| SoC | JieLi AC791N (WL82), LQFP48, marking `C1xxxxx-11B8` (lot varies; owner's `C188612-11B8`); pi32v2 core, 240 MHz used of 320; 578 KB SRAM; 1 MB flash (probably in-package) |
 | Memory map | flash XIP `0x02000000`, RAM `0x01C00000`, SFRs `0x1xxxx…0x5xxxx`, mask ROM `0xFFC0xxxx` |
 | USB | normal `4C4A:C755` (USB-MIDI + UAC1, full-speed, product string `FM-1`), OTA loader `4D4A:4155` |
 | Display | 240×240 RGB565 TFT on SPI1 (`0x11D00`), ST7789-class commands |
 | Controls | 27 keys + ~14 LED buttons in a 41-input matrix; 8 knobs (stock reads 2 encoders + 2 ADC channels; split unresolved) |
 | Audio | internal DAC, 44.1 kHz, 64-sample blocks; 12 msfa voices |
-| Update | USB-MIDI SysEx, CRC16 only; stock verifier rejects rebuilt packages |
+| Update | USB-MIDI SysEx, CRC16 only; step 1 refuses only the running version, so rebuilt packages with a new version install; the OTA loader can rewrite `uboot.boot` |
 
 ## Commands
 
@@ -78,9 +81,10 @@ vendor packages there.
 1. **`JL-BR22` in the binary is not the SoC.** It is Bluetooth-library lineage;
    the chip is AC791N/WL82 (package ID, SPL match). Register maps borrowed from
    BR2x docs are unsafe until checked against `WL82.h`.
-2. **The stock updater is not a recovery tool.** It needs the stock app
-   running and has never installed a non-stock image; `0xF0000000/"success"`
-   is a terminal acknowledgement, not authorization.
+2. **The stock updater is not a recovery tool.** It needs a running app with
+   the update service; it installs non-stock images fine (Baud Girl), but it
+   cannot save one that does not boot. `0xF0000000/"success"` is a terminal
+   acknowledgement, not authorization.
 3. **kagaimiq's two `USB_KEY` write-ups disagree** on which USB line is the
    clock. Try both.
 4. **ghidra-jieli mis-decodes the `80 ff` long-call prefix**; use the vendor
