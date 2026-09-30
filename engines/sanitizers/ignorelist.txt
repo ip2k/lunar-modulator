@@ -1,0 +1,8 @@
+# Clang -fsanitize-ignorelist: files left uninstrumented because a known
+# upstream quirk cannot be suppressed at run time. Vendored code only.
+#
+# Plaits' LPC speech controller reads phonemes_[15], one past the table, at
+# ordinary knob positions (Harmonics 0.2-0.4, phoneme mode); the fields read
+# are multiplied by 0 (engines/plaits-heavy.md, quirk 2; upstream candidate).
+[address]
+src:*/plaits/dsp/speech/lpc_speech_synth_controller.cc

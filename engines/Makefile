@@ -17,6 +17,11 @@ COMMON := -std=c++11 -fno-exceptions -fno-rtti -DTEST $(OPT) $(EXTRA) \
           -Iinclude -isystem third_party/mutable -MMD -MP
 OUR_WARN := -Wall -Wextra -Wno-unused-parameter
 TP_WARN := -w
+# Mutable's fixed-point code (Braids, stmlib) relies on signed arithmetic that
+# wraps, as it did under ARM GCC on the modules. -fwrapv makes that defined
+# for the compiler, so an optimiser cannot exploit it; keep it in any target
+# build of this code (engines/sanitizers/ubsan.supp).
+TP_DIALECT := -fwrapv
 
 OUR_SRC := src/registry.cc src/mi_macro.cc src/mi_shapes.cc src/test_sine.cc src/test_gain.cc \
            host/render.cc
@@ -59,7 +64,7 @@ $(BUILD)/our/%.o: %.cc
 
 $(BUILD)/tp/%.o: third_party/mutable/%.cc
 	@mkdir -p $(dir $@)
-	$(CXX) $(COMMON) $(TP_WARN) -c $< -o $@
+	$(CXX) $(COMMON) $(TP_WARN) $(TP_DIALECT) -c $< -o $@
 
 clean:
 	rm -rf $(BUILD)

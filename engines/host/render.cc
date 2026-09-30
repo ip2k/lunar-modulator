@@ -11,8 +11,9 @@
 // size in bytes and time per block. Note events apply at block boundaries
 // (1.45 ms). --fill sets the byte instance memory holds before create (the
 // API promises no zeroing); --fault T:VALUE overwrites both channels with
-// VALUE (nan, inf, 1e6...) at time T, after the source and before the
-// effects, to test recovery from one bad sample. The timing is the desktop's
+// VALUE (nan, inf, 1e6...) at time T, and --fault T0..T1:VALUE every frame
+// from T0 up to T1, after the source and before the effects, to test
+// recovery from bad samples. The timing is the desktop's
 // and says nothing about pi32v2; it only catches regressions. MIT licence.
 
 #include "fm1_engine.h"
@@ -44,10 +45,16 @@ void Usage() {
       "                  [--input silence|impulse|noise|sine]\n"
       "                  [--fx ID [--fx-param NAME=VALUE]...]...\n"
       "                  [--seconds S] [--rate HZ] [--frames N] [--out FILE.wav]\n"
-      "                  [--fill BYTE] [--fault T:VALUE]...\n"
+      "                  [--fill BYTE] [--fault T[..T1]:VALUE]...\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter.\n");
 }
+
+struct Fault {                       // --fault: frames [first, last] get value
+  double t0, t1;
+  uint32_t first, last;
+  float value;
+};
 
 struct Unit {                        // one engine or effect instance
   const fm1_engine_t *e = NULL;
@@ -68,6 +75,11 @@ bool Instantiate(Unit &u, const char *id, fm1_kind_t kind, const fm1_host_t &hos
   if (posix_memalign(&u.mem, 16, u.bytes ? u.bytes : 16) != 0) return false;
   memset(u.mem, fill, u.bytes);
   u.self = u.e->create(u.mem, &host);
+  if (!u.self) {
+    fprintf(stderr, "%s refused this host (rate %g Hz, %u frames)\n", id, host.sample_rate,
+            host.max_frames);
+    return false;
+  }
   for (size_t p = 0; p < u.params.size(); ++p) {
     bool found = false;
     for (uint16_t q = 0; q < u.e->n_params; ++q) {
@@ -157,12 +169,11 @@ int main(int argc, char **argv) {
   float rate = 44118.0f;
   uint32_t max_frames = 64;
   int fill = 0;
-  std::vector<std::pair<uint32_t, float> > faults;   // (frame, value)
+  std::vector<Fault> faults;
   Unit sound;
   std::vector<std::string> fx_ids;
   std::vector<Unit> fx;
   std::vector<Event> events;
-  std::vector<double> fault_times;   // resolved to frames once the rate is known
 
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
@@ -180,8 +191,11 @@ int main(int argc, char **argv) {
     else if (a == "--fault") {
       const char *colon = strchr(next, ':');
       if (!colon) { Usage(); return 2; }
-      faults.push_back(std::make_pair(static_cast<uint32_t>(0), strtof(colon + 1, NULL)));
-      fault_times.push_back(atof(next));
+      const char *dots = strstr(next, "..");
+      const double t0 = atof(next);
+      const double t1 = dots && dots < colon ? atof(dots + 2) : t0;
+      if (t1 < t0) { Usage(); return 2; }
+      faults.push_back(Fault{ t0, t1, 0, 0, strtof(colon + 1, NULL) });
     }
     else if (a == "--param") { if (!ParseParam(next, &sound.params)) { Usage(); return 2; } }
     else if (a == "--fx") { fx_ids.push_back(next); fx.push_back(Unit()); }
@@ -194,13 +208,15 @@ int main(int argc, char **argv) {
       events.push_back(Event{ t + dur, false, uint8_t(key), 0 });
     } else { Usage(); return 2; }
   }
-  if (!engine_id && fx.empty()) { Usage(); return 2; }
+  if (!engine_id && fx.empty() && input == "silence" && faults.empty()) { Usage(); return 2; }
   if (input != "silence" && input != "impulse" && input != "noise" && input != "sine") {
     Usage(); return 2;
   }
 
   for (size_t k = 0; k < faults.size(); ++k) {
-    faults[k].first = static_cast<uint32_t>(llround(fault_times[k] * rate));
+    faults[k].first = static_cast<uint32_t>(llround(faults[k].t0 * rate));
+    faults[k].last = faults[k].t1 > faults[k].t0
+        ? static_cast<uint32_t>(llround(faults[k].t1 * rate)) - 1 : faults[k].first;
   }
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, max_frames };
   if (engine_id && !Instantiate(sound, engine_id, FM1_KIND_SOUND, host, fill)) return 1;
@@ -248,8 +264,10 @@ int main(int argc, char **argv) {
     auto t0 = std::chrono::steady_clock::now();
     if (sound.e) sound.e->render(sound.self, block, n);
     for (size_t k = 0; k < faults.size(); ++k) {
-      if (faults[k].first >= pos && faults[k].first < pos + n) {
-        block[2 * (faults[k].first - pos)] = block[2 * (faults[k].first - pos) + 1] = faults[k].second;
+      for (uint32_t f = 0; f < n; ++f) {
+        if (pos + f >= faults[k].first && pos + f <= faults[k].last) {
+          block[2 * f] = block[2 * f + 1] = faults[k].value;
+        }
       }
     }
     for (size_t k = 0; k < fx.size(); ++k) fx[k].e->render(fx[k].self, block, n);

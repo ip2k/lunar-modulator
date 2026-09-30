@@ -1,0 +1,17 @@
+# UBSan runtime suppressions for vendored code only; our own code gets none.
+#   UBSAN_OPTIONS=suppressions=engines/sanitizers/ubsan.supp:halt_on_error=1
+# Vendored files stay byte-identical (third_party/mutable/UPSTREAM.md), so
+# each entry names upstream files and the reason the report is not a defect.
+#
+# Braids and stmlib's fixed-point DSP multiply and shift signed integers the
+# way the modules' ARM GCC build did: products that wrap, and left shifts of
+# negative values (`(x - 8192) << 1`). The Makefile compiles all vendored
+# Mutable code with -fwrapv, which defines wrapping for the compiler; UBSan
+# still reports it, because it checks the C++ rules rather than the build's.
+signed-integer-overflow:third_party/mutable/braids/*
+shift-base:third_party/mutable/braids/*
+signed-integer-overflow:third_party/mutable/stmlib/utils/dsp.h
+# Plaits' six-op Pow2Fast shifts by a negative exponent for very low levels;
+# the result is discarded or tiny (engines/plaits-heavy.md, quirk 4).
+shift-base:third_party/mutable/plaits/dsp/fm/dx_units.h
+shift-exponent:third_party/mutable/plaits/dsp/fm/dx_units.h

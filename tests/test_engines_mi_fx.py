@@ -181,13 +181,13 @@ def test_mix_zero_passes_the_input_through(renderer, tmp_path, fx):
     assert out_wav.read_bytes() == ref_wav.read_bytes()
 
 
-# Bad input built from the host's noise and Test Gain stages: a NaN gain
-# passes Test Gain's clamp; 24 stages of x2 take the noise to millions, past
+# Bad input built from the host's noise: NaN on every frame from the host's
+# fault injection; 24 Test Gain stages of x2 take the noise to millions, past
 # where the vendored loops' float-to-int32 stores overflow (for a mono source
 # about 160,000 for Plate, 520,000 for Diffuse); 160 stages overflow it to
 # +/-infinity.
 BAD_INPUT = {
-    "nan": cli_fx("test-gain", ["Gain=nan"]),
+    "nan": ["--fault", "0..0.5:nan"],
     "huge": [a for _ in range(24) for a in cli_fx("test-gain", ["Gain=2"])],
     "inf": [a for _ in range(160) for a in cli_fx("test-gain", ["Gain=2"])],
 }

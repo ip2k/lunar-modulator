@@ -23,7 +23,7 @@ void *Create(void *mem, const fm1_host_t *) {
 }
 void Destroy(void *self) { static_cast<Instance *>(self)->~Instance(); }
 void Set(void *s, uint16_t i, float v) {
-  if (i == 0) static_cast<Instance *>(s)->gain = v < 0 ? 0 : (v > 2 ? 2 : v);
+  if (i == 0) static_cast<Instance *>(s)->gain = fm1_param_clamp(&kParams[0], v);
 }
 void Render(void *s, float *lr, uint32_t n) {
   const float g = static_cast<Instance *>(s)->gain;

@@ -52,3 +52,26 @@ def test_every_engine_ignores_initial_memory(renderer, tmp_path):
         assert wavs[1] == wavs[0] and wavs[2] == wavs[0], f"{e['id']} reads memory it never set"
         checked.append(e["id"])
     assert len(checked) >= 4
+
+
+CHORD = [f"{0.02 * i}:{40 + 5 * i}:{60 + 5 * i}:0.2" for i in range(14)]   # past every voice cap
+
+
+@pytest.mark.parametrize("setting", ["min", "max", "beyond", "nan"])
+def test_every_engine_survives_any_parameter_value(renderer, tmp_path, setting):
+    """set_param takes any float: out-of-range values clamp and NaN falls back
+    to the default (fm1_param_clamp), so no engine renders non-finite output.
+    Under the sanitizer build this also checks the paths for UB."""
+    for e in _engines(renderer):
+        if e["kind"] == "midi_fx":
+            continue
+        values = {"min": lambda p: p["min"], "max": lambda p: p["max"],
+                  "beyond": lambda p: 4 * p["max"] - 3 * p["min"] + 1, "nan": lambda p: "nan"}
+        params = [f"{p['name']}={values[setting](p)}" for p in e["params"]]
+        if e["kind"] == "sound":
+            kw = dict(engine=e["id"], params=params, notes=CHORD)
+        else:
+            kw = dict(input="noise", fx=[(e["id"], params)])
+        s, _, _ = render(renderer, tmp_path, seconds=0.5, name=f"{e['id']}-{setting}",
+                         extra=["--frames", "7"], **kw)
+        assert s["nonfinite"] == 0, (e["id"], setting)

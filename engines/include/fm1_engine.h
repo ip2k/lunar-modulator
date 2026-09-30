@@ -16,6 +16,12 @@
  * guard (fm1_mix_limiter.h) turns non-finite samples into silence before the
  * DAC, but only there.
  *
+ * Threads: create and destroy run on one control task and never concurrently
+ * with each other. note_on, note_off, pitch_bend, set_param and render for an
+ * instance run on the audio task, and may run while another instance is
+ * created or destroyed. An engine may therefore set up shared read-only
+ * tables in its first create, but must not rewrite them in later ones.
+ *
  * Plain C99 so C and C++ engines (and a Schwung shim) can all implement it.
  * MIT licence, like the rest of this repository.
  */
@@ -53,6 +59,14 @@ typedef struct fm1_param {
   uint8_t page;                /* UI page, four knobs to a page */
 } fm1_param_t;
 
+/* Clamp a set_param value into p's range; NaN becomes the default. A plain
+ * `v < min ? min : ...` clamp lets NaN through, since comparisons with NaN
+ * are false. */
+static inline float fm1_param_clamp(const fm1_param_t *p, float v) {
+  if (!(v == v)) return p->def;
+  return v < p->min ? p->min : (v > p->max ? p->max : v);
+}
+
 typedef struct fm1_host {
   uint32_t api_version;
   float sample_rate;           /* 44118 on the FM-1 */
@@ -72,7 +86,9 @@ typedef struct fm1_engine {
 
   /* Bytes (aligned to 16) the host must provide for one instance. */
   size_t (*instance_size)(const fm1_host_t *host);
-  /* Construct an instance inside mem; returns the instance handle. */
+  /* Construct an instance inside mem; returns the instance handle, or NULL
+   * if the engine refuses this host (the Schwung shim refuses a second sample
+   * rate). The host must not call anything else on a NULL instance. */
   void *(*create)(void *mem, const fm1_host_t *host);
   void (*destroy)(void *self);
 
