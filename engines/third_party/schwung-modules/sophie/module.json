@@ -1,0 +1,93 @@
+{
+  "id": "sophie",
+  "name": "Sophie",
+  "abbrev": "SOPH",
+  "version": "0.5.1",
+  "description": "A sixteen-pad metallic FM percussion synthesizer",
+  "author": "mestela",
+  "license": "MIT",
+  "dsp": "dsp.so",
+  "api_version": 2,
+  "min_host_version": "1.0.0",
+  "capabilities": {
+    "audio_out": true,
+    "audio_in": false,
+    "midi_in": true,
+    "midi_out": false,
+    "chainable": true,
+    "component_type": "sound_generator",
+    "ui_hierarchy_legacy": {
+      "levels": {
+        "root": {
+          "name": "Sophie",
+          "child_count": 16,
+          "child_label": "Pad",
+          "child_labels": [
+            "1 Kick",
+            "2 Rim",
+            "3 Snare",
+            "4 Clap",
+            "5 Snare 2",
+            "6 Low Tom",
+            "7 Closed HH",
+            "8 Floor Tom",
+            "9 Pedal HH",
+            "10 Mid Tom",
+            "11 Open HH",
+            "12 Low-Mid",
+            "13 High-Mid",
+            "14 Crash",
+            "15 High Tom",
+            "16 Ride"
+          ],
+          "child_key_template": "p{index}_{key}",
+          "child_index_base": 1,
+          "child_index_digits": 2,
+          "child_index_param": "focused_pad",
+          "child_key_overrides": {
+            "focused_pad": "focused_pad"
+          },
+          "params": [
+            "focused_pad",
+            "tune",
+            "decay",
+            "level",
+            "cutoff",
+            "resonance",
+            "filter_type",
+            "model",
+            "color",
+            "metal",
+            "feedback",
+            "sweep",
+            "crush",
+            "drive",
+            { "level": "ring", "label": "Ring" }
+          ],
+          "knobs": [
+            "tune",
+            "decay",
+            "model",
+            "color",
+            "metal",
+            "feedback",
+            "sweep",
+            "crush",
+            "drive"
+          ]
+        },
+        "ring": {
+          "label": "Ring",
+          "child_count": 16,
+          "child_label": "Pad",
+          "child_key_template": "p{index}_{key}",
+          "child_index_base": 1,
+          "child_index_digits": 2,
+          "child_index_param": "focused_pad",
+          "params": ["ring_time", "ring_feedback", "ring_mix", "ring_tone"],
+          "knobs": ["ring_time", "ring_feedback", "ring_mix", "ring_tone"]
+        }
+      }
+    }
+  }
+}

@@ -14,6 +14,8 @@ extern const fm1_engine_t fm1_engine_test_gain;
 extern const fm1_engine_t fm1_engine_plate;
 extern const fm1_engine_t fm1_engine_ensemble;
 extern const fm1_engine_t fm1_engine_diffuse;
+extern const fm1_engine_t fm1_engine_sw_sophie;
+extern const fm1_engine_t fm1_engine_sw_psxverb;
 
 const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_macro,
@@ -23,6 +25,8 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_plate,
   &fm1_engine_ensemble,
   &fm1_engine_diffuse,
+  &fm1_engine_sw_sophie,
+  &fm1_engine_sw_psxverb,
 };
 const size_t fm1_engine_count = sizeof(fm1_engines) / sizeof(fm1_engines[0]);
 
