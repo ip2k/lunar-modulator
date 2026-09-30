@@ -63,8 +63,14 @@ Detailed commands in docs/09.
 
 ## Phase 5 — UI, sequencer, effects
 
-- Parameter pages on 8 knobs following Movy's model (docs/06); envelope and
-  algorithm graphics on the 240×240 TFT; oscilloscope view like stock.
+- Parameter pages following Movy's model (docs/06), four knobs to a page
+  (KNOB1–4 are the free parameter knobs; SELECT/ALGORITHM navigate);
+  envelope and algorithm graphics on the 240×240 TFT; oscilloscope view like
+  stock.
+- Swappable engines behind one C API (docs/11): msfa, then engines derived
+  from Mutable Instruments code (Plaits' light engines, Braids), MI effects,
+  and a Schwung v2 shim for MIT Schwung modules. Engines compiled in first;
+  RAM-loaded units over USB-MIDI later.
 - Arpeggiator; step sequencer with Movy-style step parameters; optional
   desktop harness diffing against Movy's `seq-core`.
 - Effects: filter, reverb, delay, chorus, phaser, distortion (open-source DSP;
@@ -96,6 +102,11 @@ Detailed commands in docs/09.
 - Second core: offload effects or the UI.
 
 ## Research items (any time)
+
+- **Engine platform, desk and bench stages (docs/11 §8).** Stage A (desktop
+  engine API, MI ports at 44.1 kHz / 64 frames, Schwung shim) needs no
+  hardware; stage B benchmarks pi32v2 DSP throughput and tests `-fPIC` on a
+  JieLi AC79 dev board.
 
 - Verify the algorithm 4/6 `0x41` variant against upstream Dexed's
   `Source/msfa/fm_core.cc`; check whether any GPL-only Dexed/Synth_Dexed code

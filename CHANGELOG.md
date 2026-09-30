@@ -9,6 +9,11 @@ history.
 ## [Unreleased]
 
 ### Added
+- docs/11: feasibility of a Schwung-style plugin platform on the FM-1. It
+  covers which Schwung modules could compile through a shim, why Mutable
+  Instruments' MIT code is the best engine source (with the RAM, flash and
+  porting steps per engine), a staged loader design modelled on logue, OWL,
+  disting NT and CTAG TBD, licence constraints, and a desk-then-bench plan.
 - Baud Girl's FM-1+VA, the first third-party FM-1 firmware that users install
   from a browser, is recorded as prior art: what it is, how it installs, and
   what it settles about the stock update path (docs/04,
@@ -27,6 +32,9 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- docs/06 and docs/08: the FM-1 has four free parameter knobs, not eight, so
+  a Movy-style page becomes two pages of four. The roadmap gains the engine
+  platform.
 - The identity reply's checksum is not reliable on modified firmware:
   FM-1+VA keeps V15's checksum byte, so parse the version and do not gate on
   the checksum (docs/03).
