@@ -2,7 +2,8 @@
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation. Read this first, then `README.md`, then `docs/`.
+original conversation; last updated 2026-09-29 (Baud Girl's FM-1+VA, the
+owner's PCB photos). Read this first, then `README.md`, then `docs/`.
 
 ## 1. Where things stand
 
@@ -12,9 +13,19 @@ original conversation. Read this first, then `README.md`, then `docs/`.
   (that updater embeds **V14**, not V15; V15 is only on the CDN, docs/02 §1).
 - **This repository** is the research output: nine documents, three tools, one
   research log, plus bench session 1 (`notes/2026-09-06-bench.md`): the unit
-  answers the identity query as `FM-1_015`, V15 is unpacked and diffed against
-  V14. Nothing has been written to the device. No custom code has ever run on
-  any FM-1 (by anyone).
+  answered the identity query as `FM-1_015`, V15 is unpacked and diffed against
+  V14. This project has written nothing to the device. The case has been
+  opened for photos (2026-09-29, `photos/2026-09-29/`, described in
+  `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`).
+- **The owner's unit now runs Baud Girl's FM-1+VA**: the owner installed it
+  through Baud Girl's browser installer, and the unit identifies as
+  `FM-1_092` [verified 2026-09-29]. The `FM-1_092` package is V15 plus 90 hook
+  patches and 110 KB of appended code, with VM moved to `0xD9000` (note §3).
+  The way back to stock is V15's `.fwsc` through the same installer.
+- **Elsewhere, non-stock firmware runs on FM-1s**: Echomatter's `FM-1_016`
+  (2026-09-04), and since 2026-09-26 **Baud Girl's FM-1+VA**, a modified V15
+  with a virtual-analog engine installed from a browser (`FM-1_020` …
+  `FM-1_092`; source not published). See docs/04.
 - **Where the repo lives now:** `~/Developer/mvave-fm1-firmware` on the
   owner's MacBook, branch `main`, remote `ip2k/mvave-fm1-open-firmware`. Moved there on
   2026-09-06 from the orphan branch `claude/mvave-fm1-open-firmware-ly2w6u` of
@@ -27,7 +38,8 @@ original conversation. Read this first, then `README.md`, then `docs/`.
 
 1. SoC = **JieLi AC791N** (WL82), custom **pi32v2** CPU, one core used at
    240 MHz, 578 KB SRAM, 1 MB flash (probably in-package), XIP from
-   `0x02000000`, RAM at `0x01C00000`. Marking `C156211-11B8`, LQFP48.
+   `0x02000000`, RAM at `0x01C00000`. Marking `C156211-11B8` (aroum's unit) /
+   `C188612-11B8` (the owner's), LQFP48.
 2. Stock firmware = JieLi AC79 SDK (FreeRTOS-derived kernel, closed `.a` libs
    for BT/audio/fs/cpu) + M-VAVE glue + **Google msfa (Dexed) FM engine**.
    Verified here: msfa algorithm table at `0x8C46C` (V13) / `0x8CBCC` (V14) of
@@ -35,13 +47,16 @@ original conversation. Read this first, then `README.md`, then `docs/`.
 3. Update = **USB-MIDI SysEx**, device-pull protocol, **CRC16 only, no
    signature**, chip key `0x980F` in the package. Two stages: verifier in the
    app → reboot into a RAM OTA loader (`4D4A:4155`) → flash write → reset.
-4. **Rebuilt packages are rejected** by the app-side verifier unless their
-   version identity is bumped: AL-255's 2026-07-21 probes failed at an
-   unexplained check, but Echomatter (AL-255 PR #2, 2026-09-04) installed a
-   V15-derived package identifying as `FM-1_016` through the stock path, ran
-   it, and rolled back to stock V15 with the corrected Linux client. Stock
-   packages, including downgrades, pass.
-5. **No proven recovery path**: single flash bank, no debug pads/buttons,
+4. **The step-1 gate is a same-version refusal; content is not
+   authenticated.** Baud Girl measured on hardware that a package with the
+   running version stops after 9 requests, even when its contents differ,
+   while any other version installs. Echomatter's `FM-1_016` and Baud Girl's
+   `FM-1_020` … `FM-1_092` all went through the stock path, with rollbacks to
+   V15. Two further reported facts: the OTA loader **can rewrite the flash
+   head** (`uboot.boot`, `isd_config.ini`), so keep it byte-identical; and a
+   loader left waiting after step 1 (`ota-FM-1`) can be resumed (docs/03 §5).
+5. **No proven recovery path**: single flash bank, no debug pads/buttons (the
+   one candidate header was the battery connector's leads, 2026-09-29),
    mask-ROM USB boot never demonstrated on an FM-1. AL-255's verdict:
    NO-GO for non-stock flashing. This is the gate for everything. The
    `USB_KEY` dongle that should open it is specified and implemented
@@ -84,15 +99,17 @@ original conversation. Read this first, then `README.md`, then `docs/`.
 
 1. Does `USB_KEY` reach the AC791N's mask ROM through the FM-1's USB-C port,
    and with which clock/data polarity and power sequence?
-2. What does the step-1 verifier compare that makes rebuilt packages fail?
-3. Knobs: photos suggest `RW1` is a potentiometer and the other seven are
-   push encoders (2026-09-08); confirm and reconcile with the firmware's
-   2 decoders + 2 ADC channels.
+2. ~~What does the step-1 verifier compare?~~ Largely answered (2026-09-29,
+   [reported] Baud Girl): it refuses the running version; whether by version
+   string or file list is still open, and matters little.
+3. Knobs: `RW1` is a potentiometer (MASTER, probably) and the other seven are
+   encoders ([verified] owner's photo 2026-09-29); still to reconcile with the
+   firmware's 2 hardware decoders + 2 ADC channels.
 4. Flash: in-package or discrete, exact size (JEDEC ID)?
 5. AC791N variant and pinout; UART and debug-TAP pins reachable on LQFP48?
-   Photo 3 shows an **unpopulated 3-pin header** left of U2 (candidate UART)
-   and a bottom-side SOIC-8 `U12` (charger or external flash?) — both are
-   bench items in docs/09 §5 (2026-09-08).
+   There is no header: the 3-pin "header" left of U2 is the battery
+   connector's leads (2026-09-29). Still unread: the bottom-side SOIC-8 `U12`
+   (charger or external flash?) and the SOP-10 `SLS316D` (docs/09 §5).
 6. ~~Does the SoC enumerate on USB with the power switch off?~~ No (verified
    2026-09-06): the unit vanishes from USB when switched off, so the switch is
    the power-up moment for the `USB_KEY` attempt.
@@ -113,6 +130,12 @@ original conversation. Read this first, then `README.md`, then `docs/`.
 5. ~~Contact aroum and AL-255.~~ Done 2026-09-06: AL-255 PR #3 (V15 package),
    comments on their PR #2 and issue #1, aroum issue #2 (docs/04). Watch those
    threads for replies before posting anything further.
+6. **Baud Girl's FM-1+VA (2026-09-29).** Done: `FM-1_092.fwsc` diffed
+   against V15 (note §3; the package stays in `scratch/`). Still the owner's
+   call: (b) whether to contact Baud Girl about the FINDINGS document and
+   emulator; (c) whether AL-255's thread should hear about the same-version
+   finding (oss-contributions rules). The owner installed FM-1+VA on the unit
+   themselves; docs/07 §4 still governs this project's own images.
 
 ## 6. Reference material already gathered (clone these locally)
 

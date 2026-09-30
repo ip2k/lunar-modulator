@@ -1,4 +1,4 @@
-# 03 — The update protocol and the gate that blocks custom packages
+# 03 — The update protocol and its version gate
 
 Everything here is **[reported]**: aroum reverse-engineered the macOS updater
 binary; AL-255 captured the Windows updater under Wine with ALSA sequencer
@@ -19,6 +19,13 @@ the host with read requests, the host only answers.
 | normal | `4C4A:C755` | "FM-1 Midi" composite (USB-MIDI + UAC1) |
 | OTA loader | `4D4A:4155` | "ota-FM-1" composite (USB-MIDI, unused HID) |
 
+The MIDI port *names* a host shows differ by OS [reported: Baud Girl,
+measured 2026-09-25/26]. On Windows the synth is `FM-1 Midi` and the loader
+`USB-Midi`. In Chrome on macOS both are `USB Composite Device`, so the name
+cannot tell the two modes apart; the identity reply can (`FM-1` vs
+`ota-FM-1`). Each mode change re-enumerates in about 6 s. Bluetooth MIDI ports
+also appear and must be skipped, because updates run over USB only.
+
 ## 2. Session flow
 
 1. **Identity query** host→device: `F0 00 32 45 00 00 00 40 7F F7`
@@ -34,7 +41,10 @@ the host with read requests, the host only answers.
    field carries the whole `MODEL_NNN` identity. The second-field derivation in
    AL-255's mirror of the updater's parser (bytes 14–33 plus ASCII `0`) yields
    version 0 on this real reply, so parse the plain field;
-   `tools/fm1_identify.py` does.
+   `tools/fm1_identify.py` does. The checksum is a literal in the image:
+   Baud Girl's `FM-1_092` renames the version digits in place and keeps V15's
+   checksum byte `0x19`, so its reply fails the checksum [verified
+   2026-09-29 on the owner's unit]. Do not gate on it.
 3. **Upgrade command** host→device, identical for both steps: `F0 22 24 35 7F F7`.
 4. **Step 1 — verification.** The running app pulls parts of the package with
    read requests, checks them, writes a boot record (`FM-1_0xx` + `ota-`, a
@@ -102,7 +112,7 @@ Bluetooth event `0x72`):
 AL-255's rule, adopted here: **do not send commands 33–36 or 48** to the only
 recoverable device until the callback table's population is understood.
 
-## 5. What blocks custom packages today
+## 5. The step-1 gate: what it blocks and what it does not
 
 AL-255 built structurally valid packages (`tools/build_fwsc.py`, valid CRCs,
 correct JLFS entries) and probed the step-1 verifier on hardware
@@ -133,9 +143,38 @@ correct JLFS entries) and probed the step-1 verifier on hardware
   version-based host/verifier policy, not a device fuse, and a running
   application with a live update service can always be overwritten by a
   stock package. This is not recovery for an application that does not run.
-- Therefore the **stock update path is not a demonstrated recovery mechanism**
-  and has never installed a non-stock application. It also has no way to help
-  a device whose application no longer runs the update service.
+- **The "no-op" gate is a same-version refusal [reported: Baud Girl, measured
+  on hardware 2026-09-25].** `FM-1_079` sent to a synth running `FM-1_079`
+  stops after 9 step-1 requests without verification. So does a `FM-1_079`
+  that differs only by a CRC-neutral table patch. `FM-1_078` ↔ `FM-1_079`
+  install both ways. Whether the device compares the version string or the
+  file list is not known. This matches AL-255's 9-request refusals and
+  Echomatter's bump. Since then Baud Girl has shipped `FM-1_020` … `FM-1_092`
+  through this path, with public installs and rollbacks to V15 (docs/04,
+  `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`). **Content is not
+  authenticated; a rebuilt package with a new version number installs.**
+- **The OTA loader can rewrite the flash head [reported: Baud Girl FINDINGS
+  5.4].** That head is `uboot.boot` plus `isd_config.ini`, `flash.bin`'s first
+  16 KB, which is file bytes `[0x414, 0x4414)` of a V15 `.fwsc`. Baud Girl's
+  installer refuses any package whose head differs from V15's by SHA-256.
+  Keeping the head byte-identical (docs/07 §4 rule 2) is therefore a
+  bootloader-safety rule, not just caution.
+- **An interrupted step 2 is resumable [reported: Baud Girl].** A synth left in
+  its loader after step 1 stays there across power cycles, answers the
+  identity query as `ota-FM-1`, and accepts the upgrade command again. Some
+  units confirm step 1 but never restart into the loader; nothing is written
+  then, and the cause is unknown.
+- **A package with a moved partition table installs [verified 2026-09-29].**
+  `FM-1_092` differs from V15 only inside `flash.bin`: its `app.bin` is V15's
+  with 90 small patches and 110 KB appended, and its directory moves `VM`
+  from `0x93000` (344 KB) to `0xD9000` (64 KB) and grows `PRCT` to match.
+  The head, `ota.bin` and `cfg` are byte-identical to V15. It is running on
+  the owner's unit, so the step-1 gate does not compare reserved-partition
+  entries against the installed ones.
+- Therefore the stock update path is a working **install** path for non-stock
+  applications. It is **not a recovery mechanism**: it has no way to help a
+  device whose application no longer boots or no longer runs the update
+  service.
 
 - **Stock packages change the layout.** V15 shrinks the app area by 0x1000 and
   grows VM (docs/01 §2) while keeping `uboot.boot`, `ota.bin`, `cfg` and
@@ -156,6 +195,7 @@ the mask-ROM USB mode.
 | `fm1_flasher.py`, `fm1_sysex_scanner.py` | aroum | derived from the macOS updater; **never tested on hardware** |
 | `M-UPGRADE-FM1` (macOS/Windows) | M-VAVE | the stock, proven path; embeds one firmware version |
 | `scripts/extract_ota_loader.py`, `tools/build_fwsc.py` (branch `with-custom-firmware`) | AL-255 | package inspection and (experimental) building |
+| [FM-1+VA installer](https://baudgirl.com/work/FM-1+VA/install) (Web MIDI, Chrome/Edge) | Baud Girl | a port of AL-255's `fm1_ota.py` with three fixes, a V15 head-region gate, a same-version check and resume-from-loader; used for public installs since 2026-09-26; source readable on the page, no license stated |
 
 Note for Linux hosts: ALSA raw MIDI is unusable while any sequencer client is
 subscribed, and PipeWire grabs MIDI inputs; use the sequencer interface (what
