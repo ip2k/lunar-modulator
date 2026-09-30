@@ -398,23 +398,39 @@ problem with an online compiler.
 Stage A can start today and costs nothing. Stage B is the one purchase
 that turns every [inferred] CPU figure in this document into a measurement.
 
-**Progress (2026-09-30).** Stage A has started in [`engines/`](../engines/):
+**Progress (2026-09-30).** Stage A is well under way in
+[`engines/`](../engines/) [verified: desktop builds and tests, CI]:
 
 - the C API, a static registry, and a desktop host that renders WAVs at
-  44,118 Hz in 64-frame blocks through a bus limiter;
-- **Macro**: eight Plaits light engines, 12 voices;
-- **Shapes**: 47 Braids shapes, 12 voices;
-- 69 tests, plus a 32-bit CI build.
+  44,118 Hz in 64-frame blocks through a bus limiter, with an effect chain;
+- sound engines from Mutable code: **Macro** (Plaits' eight light engines,
+  12 voices), **Shapes** (Braids, 12), **Macro Heavy** (Plaits' other 13
+  engines, 4) and **Six-Op FM** (Plaits' DX7-style engine, 8);
+- effects from Mutable code: **Plate** (Rings' reverb), **Ensemble** and
+  **Diffuse** (Plaits);
+- the Schwung v2 shim, with two MIT modules compiled through it unmodified:
+  Sophie (a sound engine) and PSX Verb (an effect). The plan named
+  `schwung-braids`; Sophie was chosen instead because Braids is already here
+  natively (engines/schwung.md, "Which modules, and why");
+- about 360 engine tests, run on Linux and macOS, on a 32-bit build, and
+  under ASan and UBSan in CI.
 
 Findings so far:
 
 - Tuning holds within ±5 cents after rate compensation, with the upstream
-  sources unmodified.
-- Macro needs about 18–30 KB for 12 voices.
-- Braids needs about 17 KB of state per voice (206 KB for 12). On the FM-1
-  that means a voice cap or a split engine.
-- Plaits' `WavetableEngine` overruns its arena allocation; it is harmless
-  upstream but a trap for polyphonic ports.
+  sources unmodified. Effects need their loop gains rescaled from 48 kHz.
+- Memory, not CPU, sets the first voice caps: Shapes needs 206 KB for 12
+  voices, PSX Verb 134 KB, Macro Heavy about 17 KB per voice. The stock
+  layout's gap is about 388 KB (§2).
+- Schwung modules port if the host initialises each module once, gives
+  int16 effects headroom, and replaces libc's number parsing, which can
+  allocate under newlib. The engine API now states the threading contract
+  this needs.
+- Plaits has an arena overrun (`WavetableEngine`) and an out-of-bounds read
+  (LPC speech) that are harmless on the module but traps for polyphonic
+  ports; Braids and stmlib need `-fwrapv` (`notes/upstream-candidates.md`).
 
-Details are in `engines/README.md`. Still to do in stage A: the Schwung shim
-and the heavier engines.
+Details are in `engines/README.md` and the per-stream notes it links. Still
+to do in stage A: comparing renders against upstream (VCV Rack's builds of
+the same code) within a tolerance, which is this stage's exit test, and a
+decision on Shapes' memory.

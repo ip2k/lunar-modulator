@@ -140,11 +140,16 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
 7. **Engine / plugin platform (docs/11, 2026-09-29).** The feasibility report
    says: Schwung modules from source through a shim (subset), Mutable
    Instruments engines first (Plaits' light engines, Braids), and a static
-   engine registry before any loader. **Stage A started 2026-09-30** in
-   `engines/`: the API, Macro (Plaits light engines) and Shapes (Braids),
-   12 voices each, a desktop renderer and 69 tests (`engines/README.md`).
-   Next in stage A: the Schwung shim and the heavier engines. Stage B, the
-   pi32v2 benchmark and a `-fPIC` test, wants the AC79 dev board from item 4
+   engine registry before any loader. **Stage A, 2026-09-30**, in `engines/`:
+   the API and desktop renderer; sound engines Macro, Shapes, Macro Heavy and
+   Six-Op FM from Mutable code; effects Plate, Ensemble and Diffuse; the
+   Schwung v2 shim with Sophie and PSX Verb compiled through it unmodified;
+   about 360 engine tests, also run 32-bit and under ASan/UBSan in CI
+   (`engines/README.md`). Left in stage A: renders compared with upstream (the
+   stage's exit test) and Shapes' memory (206 KB for 12 voices). Open for the
+   owner: Six-Op FM's patch names carry third-party trademarks, which matters
+   only if the project is distributed. Stage B, the pi32v2 benchmark and a
+   `-fPIC` test, wants the AC79 dev board from item 4
    (the JL-AC79-DevKit V1.0 with an AC7916; docs/07 §3).
 
 ## 6. Reference material already gathered (clone these locally)
