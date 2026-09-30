@@ -22,6 +22,30 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest -v
 
+  engines-32bit:
+    # pi32v2 has 4-byte pointers; build the engines 32-bit and run their tests
+    # against that binary to catch pointer-size assumptions (docs/11, engines/).
+    name: engines (32-bit build and tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install multilib
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++-multilib
+      - name: Build 32-bit
+        run: make -C engines CXX=g++ EXTRA="-m32 -msse2 -mfpmath=sse" -j4
+      - name: Report instance sizes
+        run: |
+          file engines/build/fm1-render
+          engines/build/fm1-render --engine macro --seconds 0.1
+          engines/build/fm1-render --engine shapes --seconds 0.1
+      - run: pip install pytest
+      - run: python -m pytest -v tests/test_engines.py
+
   dongle-firmware:
     name: dongle firmware (RP2040 UF2)
     runs-on: ubuntu-latest
