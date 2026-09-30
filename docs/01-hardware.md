@@ -16,7 +16,7 @@ this project (photos, binaries, SDK files), **[reported]** from a named source,
 | Cores | Two "DSP" cores in the family; **stock build uses one** (`CPU_CORE_NUM 1`) | [verified] string `SYSTEM-*modified #define CPU_CORE_NUM 1 *-…-@20220920` in V13 `app.bin`; family spec from the AC79 SDK README |
 | Clock | Family max 320 MHz; stock app runs at **240 MHz** from a 24 MHz crystal | [reported] AL-255 `architecture.md`; SDK README for the family max |
 | FPU / accel | Single-precision FPU, hardware FFT/matrix, AES-128/256, SHA, CRC16, RNG | [verified] AC79 SDK README |
-| SRAM | **578 KB** on chip | [verified] AC79 SDK README (`片上集成了共578K字节SRAM`) |
+| SRAM | **578 KB** on chip, of which 32 KB I-cache and 32 KB D-cache (8-way each) are carved out, so about 514 KB is usable | [verified] AC79 SDK README (`片上集成了共578K字节SRAM`); caches [reported] JL-AC79-DevKit V1.0 listing, 2026-09-30 (docs/07 §3) |
 | SDRAM | Some AC79 packages carry 2 or 8 MB SDRAM; **the FM-1 has none** | [verified] `SDRAM_SIZE = 0` in the FM-1's `isd_config.ini`; LQFP48 packages are the SDRAM-less ones [inferred] |
 | Radios | Wi-Fi 802.11 b/g/n and dual-mode Bluetooth 5.0 (BR/EDR + BLE) on chip; Wi-Fi unused by the FM-1, Classic BT vestigial, BLE used for BLE-MIDI | [reported] AL-255 `10-bluetooth.md`; SDK README |
 | Peripherals | USB 1.1/2.0 device/host, audio DAC/ADC, I2S, SPI, I2C, UART, SDIO, PWM, timers, ADC, cap-touch, RTC | [verified] SDK README and `include_lib/driver/cpu/wl82/asm/*.h` |

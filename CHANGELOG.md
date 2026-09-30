@@ -9,6 +9,18 @@ history.
 ## [Unreleased]
 
 ### Added
+- `engines/`: the engine platform's first code (docs/11 stage A).
+  - A C engine API with no heap: typed parameters, four to a page.
+  - Two 12-voice engines built from Mutable Instruments code: **Macro**, from
+    Plaits' light engines, and **Shapes**, from Braids' 47 shapes. They run
+    at the FM-1's 44,118 Hz with pitch compensation, and the vendored sources
+    are unmodified.
+  - A bus limiter, and `fm1-render`, a desktop renderer that writes WAVs.
+  - 69 tests (tuning, every model and shape, a 12-note chord, release,
+    determinism, memory) and a 32-bit CI build.
+- `notes/upstream-candidates.md`: a running list of findings worth sending
+  upstream, including a Plaits `WavetableEngine` arena overrun that only
+  shows in polyphonic ports.
 - docs/11: feasibility of a Schwung-style plugin platform on the FM-1. It
   covers which Schwung modules could compile through a shim, why Mutable
   Instruments' MIT code is the best engine source (with the RAM, flash and

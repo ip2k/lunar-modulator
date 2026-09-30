@@ -140,9 +140,12 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
 7. **Engine / plugin platform (docs/11, 2026-09-29).** The feasibility report
    says: Schwung modules from source through a shim (subset), Mutable
    Instruments engines first (Plaits' light engines, Braids), and a static
-   engine registry before any loader. Next is stage A, the desktop engine API
-   and MI ports, which needs no hardware. Stage B, the pi32v2 benchmark and a
-   `-fPIC` test, wants the AC79 dev board from item 4.
+   engine registry before any loader. **Stage A started 2026-09-30** in
+   `engines/`: the API, Macro (Plaits light engines) and Shapes (Braids),
+   12 voices each, a desktop renderer and 69 tests (`engines/README.md`).
+   Next in stage A: the Schwung shim and the heavier engines. Stage B, the
+   pi32v2 benchmark and a `-fPIC` test, wants the AC79 dev board from item 4
+   (the JL-AC79-DevKit V1.0 with an AC7916; docs/07 §3).
 
 ## 6. Reference material already gathered (clone these locally)
 

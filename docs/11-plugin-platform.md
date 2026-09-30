@@ -397,3 +397,24 @@ problem with an online compiler.
 
 Stage A can start today and costs nothing. Stage B is the one purchase
 that turns every [inferred] CPU figure in this document into a measurement.
+
+**Progress (2026-09-30).** Stage A has started in [`engines/`](../engines/):
+
+- the C API, a static registry, and a desktop host that renders WAVs at
+  44,118 Hz in 64-frame blocks through a bus limiter;
+- **Macro**: eight Plaits light engines, 12 voices;
+- **Shapes**: 47 Braids shapes, 12 voices;
+- 69 tests, plus a 32-bit CI build.
+
+Findings so far:
+
+- Tuning holds within ±5 cents after rate compensation, with the upstream
+  sources unmodified.
+- Macro needs about 18–30 KB for 12 voices.
+- Braids needs about 17 KB of state per voice (206 KB for 12). On the FM-1
+  that means a voice cap or a split engine.
+- Plaits' `WavetableEngine` overruns its arena allocation; it is harmless
+  upstream but a trap for polyphonic ports.
+
+Details are in `engines/README.md`. Still to do in stage A: the Schwung shim
+and the heavier engines.

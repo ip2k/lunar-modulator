@@ -51,7 +51,8 @@ python3 tools/check_msfa_table.py path/to/app.bin            # msfa table finder
 python3 tools/extract_fwsc_from_updater.py M-UPGRADE-FM1 -o FM-1.fwsc   # carve package from the updater
 python3 reference/jl-misctools/firmware/fwunpack_newfw.py FM-1.fwsc     # unpack (needs: pip install crcmod)
 python tools/fm1_identify.py                                   # read-only identity query + decode, any OS (verified on hardware)
-python -m pytest                                               # tools, PIO emulation and dongle/ROM co-simulation tests
+python -m pytest                                               # tools, PIO emulation, dongle/ROM co-simulation and engine tests
+make -C engines && engines/build/fm1-render --list             # engine platform, desktop build (docs/11, engines/README.md)
 tools/fm1_identify.sh                                          # Linux, ALSA raw MIDI, read-only, untested
 python3 reference/FM-1-RE/tools/fm1_ota.py scan                # AL-255's client, read-only scan
 ```
