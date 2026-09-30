@@ -5,24 +5,38 @@
 // engines/reference-braids-fx.md (docs/11 §8, stage A's exit test).
 //
 //   fm1-ref-braids-fx braids --shape N --pitch P --timbre T --color C
-//                            [--samples N] [--block 24] [--strike-block B]
-//                            [--seed S] --out raw.wav
+//                            [--samples N] [--block 24] [--strike-block B]...
+//                            [--jitter-draw 0|1] [--seed S] --out raw.wav
 //       braids::MacroOscillator as braids/braids.cc's RenderBlock drives it:
 //       96 kHz, one 24-sample block at a time, set_shape, set_parameters and
 //       set_pitch (1/128 semitone, 60 << 7 = middle C) before every block,
-//       Strike() before block B (0 by default; -1 for none), sync buffer all
-//       zero. Writes the raw int16 output as a 16-bit mono WAV, nothing after
-//       it (Braids' VCA, bit and rate reduction and signature waveshaper are
-//       firmware, not oscillator). The shapes that draw on stmlib::Random share
-//       its one global generator, which starts at 0x21 here as in fm1-render;
-//       --seed S starts it elsewhere, for statistical comparisons.
+//       Strike() before each block B given (repeatable; 0 by default), sync
+//       buffer all zero. Block 0 is struck whatever --strike-block says:
+//       DigitalOscillator::Init sets its strike flag, and set_shape strikes
+//       when the shape changes from the zeroed one. --block must be even:
+//       eleven of Braids' digital renderers write two samples per loop pass
+//       and run off the end of an odd-sized buffer. A --samples that is not a
+//       multiple of --block ends with a full block rendered into scratch and
+//       cut short, so the oscillator only ever sees whole blocks.
+//       Writes the raw int16 output as a 16-bit mono WAV, nothing after it
+//       (Braids' VCA, bit and rate reduction and signature waveshaper are
+//       firmware, not oscillator).
+//       The shapes that draw on stmlib::Random share its one global generator,
+//       which starts at 0x21 here as in fm1-render; --seed S starts it
+//       elsewhere. By default nothing else draws from it, as in fm1-render, so
+//       a single Shapes voice sees the same random numbers as this oscillator.
+//       Braids' firmware does not: RenderBlock's VCO jitter source draws one
+//       Random::GetWord() per block, before the oscillator renders, whatever
+//       the drift setting (braids.cc, vco_jitter_source.h). --jitter-draw 1
+//       adds that draw, for statistical comparisons against the firmware.
 //
 //   fm1-ref-braids-fx fx --effect plate|ensemble|diffuse
-//                        [--input impulse|noise|sine|silence] [--seconds S]
-//                        [--rate HZ] [caller settings] [overrides]
-//                        [--compensate HOST] [--right-delay N] --out fx.wav
-//       One upstream effect class on a mono input fed to both channels, set up
-//       as its upstream caller sets it up:
+//                        [--input impulse|noise|sine|silence | --input-file F]
+//                        [--seconds S] [--rate HZ] [caller settings] [overrides]
+//                        [--compensate HOST] [--right-delay N [--right-width W]]
+//                        --out fx.wav
+//       One upstream effect class on a mono input fed to both channels (or a
+//       file's two), set up as its upstream caller sets it up:
 //         plate     rings::Reverb as rings/dsp/part.cc (string-and-reverb
 //                   model): --damping D --brightness B give time 0.35 + 0.63 D,
 //                   lp 0.3 + 0.6 B, amount 0.1 + 0.5 D, diffusion 0.625,
@@ -38,14 +52,18 @@
 //       (ensemble) and --rt (diffuse) override a computed setting.
 //       --compensate HOST applies engines/mi-fx.md's rate rule to the loop
 //       settings: g^(native/HOST) for plate time and diffuse rt,
-//       1 - (1 - k)^(native/HOST) for plate lp. --right-delay N feeds the right
-//       channel the same input N samples later (the input Ensemble's Width
-//       builds; plate and diffuse sum the two channels).
+//       1 - (1 - k)^(native/HOST) for plate lp. --right-delay N replaces the
+//       right channel x with x + W (late - x), late being x N samples later
+//       and W --right-width (default 1): the line Ensemble's Width builds.
+//       Plate sums the two channels; diffuse runs on the left one alone, as
+//       the particle engine's mono signal.
 //       The classes have no sample rate; --rate (default: the class's native
 //       rate, 48,000 Hz for Rings, 47,872.34 Hz for Plaits) sets only the
 //       sample count, the sine input's frequency and the WAV header. The inputs
-//       are fm1-render's own, sample for sample. Writes a stereo 32-bit float
-//       WAV.
+//       are fm1-render's own, sample for sample; --input-file F.wav reads a
+//       mono or stereo 32-bit float WAV instead (all of its frames; --seconds
+//       is ignored), for the stereo signal of an effect earlier in a chain.
+//       Writes a stereo 32-bit float WAV.
 //
 // Both modes print one line of JSON describing what ran. Desktop only; not
 // part of the firmware. MIT licence.
@@ -116,15 +134,65 @@ bool WriteFloatStereo(const char *path, const std::vector<float> &l,
 void Usage() {
   fprintf(stderr,
       "usage: fm1-ref-braids-fx braids --shape N --pitch P --timbre T --color C\n"
-      "                         [--samples N] [--block N] [--strike-block B] [--seed S]\n"
-      "                         --out F.wav\n"
+      "                         [--samples N] [--block EVEN] [--strike-block B]...\n"
+      "                         [--jitter-draw 0|1] [--seed S] --out F.wav\n"
       "       fm1-ref-braids-fx fx --effect plate|ensemble|diffuse\n"
-      "                         [--input impulse|noise|sine|silence] [--seconds S] [--rate HZ]\n"
+      "                         [--input impulse|noise|sine|silence | --input-file F.wav]\n"
+      "                         [--seconds S] [--rate HZ]\n"
       "                         [--damping D --brightness B | --timbre T | --morph M]\n"
       "                         [--amount A] [--time G] [--lp K] [--diffusion K]\n"
       "                         [--input-gain G] [--depth D] [--rt G] [--compensate HOST]\n"
-      "                         [--right-delay N]\n"
+      "                         [--right-delay N [--right-width W]]\n"
       "                         --out F.wav\n");
+}
+
+uint32_t Get32(const uint8_t *p) {
+  return p[0] | p[1] << 8 | p[2] << 16 | static_cast<uint32_t>(p[3]) << 24;
+}
+
+float GetFloat(const uint8_t *p) {
+  const uint32_t bits = Get32(p);
+  float x;
+  memcpy(&x, &bits, 4);
+  return x;
+}
+
+// A mono or stereo 32-bit float WAV as two channels (a mono file's twice).
+bool ReadFloatWav(const char *path, std::vector<float> *l, std::vector<float> *r) {
+  FILE *f = fopen(path, "rb");
+  if (!f) return false;
+  std::vector<uint8_t> d;
+  uint8_t buf[4096];
+  size_t got;
+  while ((got = fread(buf, 1, sizeof(buf), f)) > 0) d.insert(d.end(), buf, buf + got);
+  fclose(f);
+  if (d.size() < 12 || memcmp(&d[0], "RIFF", 4) != 0 || memcmp(&d[8], "WAVE", 4) != 0) {
+    return false;
+  }
+  uint16_t tag = 0, channels = 0, bits = 0;
+  for (size_t pos = 12; pos + 8 <= d.size();) {
+    const uint32_t size = Get32(&d[pos + 4]);
+    const size_t body = pos + 8;
+    if (size > d.size() - body) return false;
+    if (memcmp(&d[pos], "fmt ", 4) == 0 && size >= 16) {
+      tag = static_cast<uint16_t>(d[body] | d[body + 1] << 8);
+      channels = static_cast<uint16_t>(d[body + 2] | d[body + 3] << 8);
+      bits = static_cast<uint16_t>(d[body + 14] | d[body + 15] << 8);
+    } else if (memcmp(&d[pos], "data", 4) == 0) {
+      if (tag != 3 || bits != 32 || channels < 1 || channels > 2) return false;
+      const size_t frames = size / (4u * channels);
+      l->resize(frames);
+      r->resize(frames);
+      for (size_t i = 0; i < frames; ++i) {
+        const uint8_t *frame = &d[body + 4u * channels * i];
+        (*l)[i] = GetFloat(frame);
+        (*r)[i] = GetFloat(frame + 4u * (channels - 1u));
+      }
+      return true;
+    }
+    pos = body + size + (size & 1);
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -142,8 +210,10 @@ const uint32_t kBraidsRate = 96000;
 
 int RunBraids(int argc, char **argv) {
   long shape = -1, pitch = -1, timbre = -1, color = -1;
-  long samples = 9600, block = 24, strike_block = 0;
+  long samples = 9600, block = 24, jitter_draw = 0;
+  std::vector<long> strike_blocks;
   long long seed = -1;
+  bool bad_strike = false;
   const char *out = NULL;
   for (int i = 2; i + 1 < argc; i += 2) {
     const std::string a = argv[i];
@@ -154,7 +224,11 @@ int RunBraids(int argc, char **argv) {
     else if (a == "--color") color = strtol(v, NULL, 0);
     else if (a == "--samples") samples = strtol(v, NULL, 0);
     else if (a == "--block") block = strtol(v, NULL, 0);
-    else if (a == "--strike-block") strike_block = strtol(v, NULL, 0);
+    else if (a == "--strike-block") {
+      strike_blocks.push_back(strtol(v, NULL, 0));
+      if (strike_blocks.back() < 0) bad_strike = true;
+    }
+    else if (a == "--jitter-draw") jitter_draw = strtol(v, NULL, 0);
     else if (a == "--seed") seed = strtoll(v, NULL, 0);
     else if (a == "--out") out = v;
     else { Usage(); return 2; }
@@ -162,12 +236,15 @@ int RunBraids(int argc, char **argv) {
   if ((argc - 2) % 2 != 0 || !out || shape < 0 ||
       shape > braids::MACRO_OSC_SHAPE_LAST_ACCESSIBLE_FROM_META || pitch < 0 ||
       pitch > 32767 || timbre < 0 || timbre > 32767 || color < 0 || color > 32767 ||
-      samples <= 0 || block <= 0 || block > static_cast<long>(kBraidsMaxBlock)) {
+      samples <= 0 || block <= 0 || block > static_cast<long>(kBraidsMaxBlock) ||
+      (block & 1) || bad_strike || (jitter_draw != 0 && jitter_draw != 1)) {
     Usage();
     return 2;
   }
+  if (strike_blocks.empty()) strike_blocks.push_back(0);   // a trigger at the start
 
   std::vector<int16_t> pcm(static_cast<size_t>(samples));
+  int16_t scratch[kBraidsMaxBlock];
   uint8_t sync[kBraidsMaxBlock] = { 0 };
   g_osc.Init();
   if (seed >= 0) stmlib::Random::Seed(static_cast<uint32_t>(seed));
@@ -178,9 +255,14 @@ int RunBraids(int argc, char **argv) {
         ? pcm.size() - pos : static_cast<size_t>(block);
     g_osc.set_shape(static_cast<braids::MacroOscillatorShape>(shape));
     g_osc.set_parameters(static_cast<int16_t>(timbre), static_cast<int16_t>(color));
+    if (jitter_draw) stmlib::Random::GetWord();       // braids.cc: jitter_source.Render
     g_osc.set_pitch(static_cast<int16_t>(pitch));
-    if (b == strike_block) g_osc.Strike();
-    g_osc.Render(sync, &pcm[pos], n);
+    if (std::find(strike_blocks.begin(), strike_blocks.end(), b) != strike_blocks.end()) {
+      g_osc.Strike();
+    }
+    // Always a whole block: the last one goes through scratch and is cut.
+    g_osc.Render(sync, scratch, static_cast<size_t>(block));
+    std::copy(scratch, scratch + n, &pcm[pos]);
     pos += n;
   }
 
@@ -196,10 +278,15 @@ int RunBraids(int argc, char **argv) {
     return 1;
   }
   printf("{\"mode\":\"braids\",\"shape\":%ld,\"pitch\":%ld,\"timbre\":%ld,\"color\":%ld,"
-         "\"rate\":%u,\"block\":%ld,\"strike_block\":%ld,\"samples\":%ld,"
-         "\"peak\":%d,\"rms\":%.3f,\"random_start\":%u,\"random_end\":%u}\n",
-         shape, pitch, timbre, color, kBraidsRate, block, strike_block, samples, peak,
-         sqrt(sum2 / pcm.size()), random_start, stmlib::Random::state());
+         "\"rate\":%u,\"block\":%ld,\"strike_blocks\":[",
+         shape, pitch, timbre, color, kBraidsRate, block);
+  for (size_t i = 0; i < strike_blocks.size(); ++i) {
+    printf("%s%ld", i ? "," : "", strike_blocks[i]);
+  }
+  printf("],\"jitter_draw\":%ld,\"samples\":%ld,\"peak\":%d,\"rms\":%.3f,"
+         "\"random_start\":%u,\"random_end\":%u}\n",
+         jitter_draw, samples, peak, sqrt(sum2 / pcm.size()), random_start,
+         stmlib::Random::state());
   return 0;
 }
 
@@ -233,7 +320,8 @@ int RunFx(int argc, char **argv) {
   float rate = 0.0f;
   float compensate = 0.0f;
   long right_delay = 0;
-  const char *out = NULL;
+  float right_width = 1.0f;
+  const char *out = NULL, *input_file = NULL;
   float damping = 0.5f, brightness = 0.5f, timbre = 1.0f, morph = 0.0f;
   Setting amount, time, lp, diffusion, input_gain, depth, rt;
   for (int i = 2; i + 1 < argc; i += 2) {
@@ -246,6 +334,8 @@ int RunFx(int argc, char **argv) {
     else if (a == "--rate") rate = f;
     else if (a == "--compensate") compensate = f;
     else if (a == "--right-delay") right_delay = strtol(v, NULL, 0);
+    else if (a == "--right-width") right_width = f;
+    else if (a == "--input-file") input_file = v;
     else if (a == "--out") out = v;
     else if (a == "--damping") damping = f;
     else if (a == "--brightness") brightness = f;
@@ -265,8 +355,14 @@ int RunFx(int argc, char **argv) {
   const bool is_diffuse = effect == "diffuse";
   if ((argc - 2) % 2 != 0 || !out || !(is_plate || is_ensemble || is_diffuse) ||
       (input != "impulse" && input != "noise" && input != "sine" && input != "silence") ||
-      !(seconds > 0.0) || rate < 0.0f || compensate < 0.0f || right_delay < 0) {
+      !(seconds > 0.0) || rate < 0.0f || compensate < 0.0f || right_delay < 0 ||
+      !(right_width >= 0.0f && right_width <= 1.0f)) {
     Usage();
+    return 2;
+  }
+  std::vector<float> file_l, file_r;
+  if (input_file && (!ReadFloatWav(input_file, &file_l, &file_r) || file_l.empty())) {
+    fprintf(stderr, "cannot read %s as a 32-bit float WAV\n", input_file);
     return 2;
   }
   const float native = is_plate ? kRingsRate : plaits::kCorrectedSampleRate;
@@ -312,13 +408,18 @@ int RunFx(int argc, char **argv) {
   }
 
   // fm1-render's inputs, sample for sample (engines/host/render.cc).
-  const uint32_t total = static_cast<uint32_t>(seconds * rate);
+  const uint32_t total = input_file ? static_cast<uint32_t>(file_l.size())
+                                    : static_cast<uint32_t>(seconds * rate);
   std::vector<float> left(total), right(total);
   uint32_t noise = 0x12345678u;
   double sine_phase = 0.0;
   for (uint32_t i = 0; i < total; ++i) {
     float x = 0.0f;
-    if (input == "impulse") {
+    if (input_file) {
+      left[i] = file_l[i];
+      right[i] = file_r[i];
+      continue;
+    } else if (input == "impulse") {
       x = i == 0 ? 1.0f : 0.0f;
     } else if (input == "noise") {
       noise = noise * 1664525u + 1013904223u;
@@ -329,9 +430,11 @@ int RunFx(int argc, char **argv) {
     }
     left[i] = right[i] = x;
   }
-  if (right_delay > 0) {                // a stereo probe: right = left, later
+  if (right_delay > 0) {                // Ensemble's Width line, on the right
     for (uint32_t i = total; i-- > 0;) {
-      right[i] = i >= static_cast<uint32_t>(right_delay) ? left[i - right_delay] : 0.0f;
+      const float x = right[i];
+      const float late = i >= static_cast<uint32_t>(right_delay) ? right[i - right_delay] : 0.0f;
+      right[i] = x + right_width * (late - x);
     }
   }
 
@@ -365,11 +468,12 @@ int RunFx(int argc, char **argv) {
   }
   printf("{\"mode\":\"fx\",\"effect\":\"%s\",\"class\":\"%s\",\"input\":\"%s\","
          "\"native_rate\":%.9g,\"rate\":%.9g,\"compensate\":%.9g,\"native_over_host\":%.9g,"
-         "\"block\":%zu,\"frames\":%u,\"right_delay\":%ld,\"amount\":%.9g,",
+         "\"block\":%zu,\"frames\":%u,\"right_delay\":%ld,\"right_width\":%.9g,"
+         "\"amount\":%.9g,",
          effect.c_str(),
          is_plate ? "rings::Reverb" : is_ensemble ? "plaits::Ensemble" : "plaits::Diffuser",
-         input.c_str(), native, rate, compensate, native_over_host, block, total, right_delay,
-         s_amount);
+         input_file ? "file" : input.c_str(), native, rate, compensate, native_over_host, block,
+         total, right_delay, right_width, s_amount);
   if (is_plate) {
     printf("\"time\":%.9g,\"lp\":%.9g,\"diffusion\":%.9g,\"input_gain\":%.9g,",
            s_time, s_lp, s_diffusion, s_gain);
