@@ -41,10 +41,40 @@ jobs:
       - name: Report instance sizes
         run: |
           file engines/build/fm1-render
-          engines/build/fm1-render --engine macro --seconds 0.1
-          engines/build/fm1-render --engine shapes --seconds 0.1
+          python3 - <<'EOF'
+          import json, subprocess
+          R = "engines/build/fm1-render"
+          for e in json.loads(subprocess.check_output([R, "--list"])):
+              sound = e["kind"] == "sound"
+              args = ["--engine", e["id"]] if sound else ["--input", "noise", "--fx", e["id"]]
+              s = json.loads(subprocess.check_output([R, *args, "--seconds", "0.1"]))
+              size = s["instance_bytes"] if sound else s["fx_bytes"][0]
+              print(f'{e["id"]:12} {e["kind"]:9} {size:>8} B')
+          EOF
       - run: pip install pytest
       - run: python -m pytest -v tests/test_engine*.py
+
+  engines-sanitizers:
+    # ASan + UBSan over every engine test. Vendored files with documented
+    # upstream quirks are exempted one by one in engines/sanitizers/; our own
+    # code gets no exemptions. The ignorelist is a clang flag, so clang builds.
+    name: engines (ASan + UBSan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build with sanitizers
+        run: >-
+          make -C engines CC=clang CXX=clang++ OPT=-O1 -j4
+          EXTRA="-fsanitize=address,undefined -fno-omit-frame-pointer -g
+          -fsanitize-ignorelist=sanitizers/ignorelist.txt"
+      - run: pip install pytest
+      - name: Engine tests against the sanitizer build
+        env:
+          UBSAN_OPTIONS: suppressions=${{ github.workspace }}/engines/sanitizers/ubsan.supp:halt_on_error=1:print_stacktrace=1
+        run: python -m pytest -v tests/test_engine*.py
 
   dongle-firmware:
     name: dongle firmware (RP2040 UF2)
