@@ -7,10 +7,11 @@
 //                                               the module's own chain_params,
 //                                               ui_hierarchy and ui_pages
 //
-// Two probe modules written here (a sound generator and an effect) record
-// what the shim sends them, which the real modules cannot report: MIDI bytes,
-// parameter strings, the frame count of every call, allocations after create.
-// This is a desktop tool: it allocates and prints; the shim does neither.
+// Probe modules written here (a sound generator and two effects) record what
+// the shim sends them, which the real modules cannot report: MIDI bytes,
+// parameter strings, the frame count of every call, allocations after create,
+// how often init runs. This is a desktop tool: it allocates, prints and calls
+// the C library's strtof to check the shim's parser; the shim does none of it.
 // MIT licence.
 
 #include "../src/schwung_shim.h"
@@ -173,8 +174,19 @@ audio_fx_api_v2_t g_probe_fx = {
   AUDIO_FX_API_VERSION_2, ProbeCreate, ProbeDestroy, ProbeProcess, ProbeSet,
   ProbeGet, NULL,
 };
-plugin_api_v2_t *ProbeSoundInit(const host_api_v1_t *) { return &g_probe_sound; }
-audio_fx_api_v2_t *ProbeFxInit(const host_api_v1_t *) { return &g_probe_fx; }
+uint32_t g_probe_inits = 0;     // calls of any probe init function
+plugin_api_v2_t *ProbeSoundInit(const host_api_v1_t *) {
+  ++g_probe_inits;
+  return &g_probe_sound;
+}
+audio_fx_api_v2_t *ProbeFxInit(const host_api_v1_t *) {
+  ++g_probe_inits;
+  return &g_probe_fx;
+}
+audio_fx_api_v2_t *ProbeFxHeadroomInit(const host_api_v1_t *) {
+  ++g_probe_inits;
+  return &g_probe_fx;
+}
 
 const char *const kModeNames[4] = { "A", "B", "C", "D" };
 const fm1_param_t kProbeParams[4] = {
@@ -187,13 +199,18 @@ const ParamKey kProbeKeys[4] = {
   { "gain", VALUE_FLOAT, 0 }, { "mode", VALUE_INDEX, 0 },
   { "slot", VALUE_INDEX, 1 }, { "tune", VALUE_FLOAT, 0 },
 };
+ModuleState g_probe_sound_state, g_probe_fx_state, g_probe_fx_headroom_state;
 const Module kProbeSound = {
   FM1_KIND_SOUND, "probe", ProbeSoundInit, NULL, kProbeParams, kProbeKeys, 4, 4,
-  4096, 2.0f,
+  4096, 2.0f, 1.0f, &g_probe_sound_state,
 };
 const Module kProbeFx = {
   FM1_KIND_AUDIO_FX, "probe-fx", NULL, ProbeFxInit, kProbeParams, kProbeKeys, 4, 4,
-  4096, 0.0f,
+  4096, 0.0f, 1.0f, &g_probe_fx_state,
+};
+const Module kProbeFxHeadroom = {
+  FM1_KIND_AUDIO_FX, "probe-fx-headroom", NULL, ProbeFxHeadroomInit, kProbeParams,
+  kProbeKeys, 4, 4, 4096, 0.0f, 2.0f, &g_probe_fx_headroom_state,
 };
 
 // Chunk sizes that never line up with the 64-frame module block.
@@ -377,22 +394,149 @@ void CheckProbeFx() {
     Destroy(fx);
   }
   Report("fx_input_saturates", sat);
+
+  // With 2x headroom, overs up to +6 dBFS pass unclipped and exactly, and
+  // saturation moves to 2.0.
+  Mem mem3(InstanceSize(kProbeFxHeadroom, &kHost));
+  void *fx2 = Create(kProbeFxHeadroom, mem3.p, &kHost);
+  float over[2 * 64] = { 1.5f, -1.5f, 2.5f, -2.5f, NAN, 0.25f, 1.0f / 32768.0f };
+  float after[2 * 64] = {};
+  bool passed = false;
+  if (fx2) {
+    Render(fx2, over, 64);
+    Render(fx2, after, 64);
+    passed = after[0] == 1.5f && after[1] == -1.5f && after[2] == 32767.0f / 16384.0f &&
+             after[3] == -2.0f && after[4] == 0.0f && after[5] == 0.25f &&
+             after[6] == 2.0f / 32768.0f;     // the bit given up: one LSB becomes two
+    Destroy(fx2);
+  }
+  Report("fx_headroom_passes_overs", passed);
 }
 
-void CheckBlockSizes() {
-  const uint32_t hosts[][2] = { { 64, 64 }, { 1, 2 }, { 37, 36 }, { 128, 128 }, { 300, 128 } };
-  bool ok = true;
+// The module block comes from the first host and stays for every module; a
+// later host with another block size gets it too, and one with another rate is
+// refused, so the host_api_v1_t that modules hold is written exactly once.
+void CheckHostIsFixed() {
+  const uint32_t frames[][2] = { { 64, 64 }, { 1, 2 }, { 37, 36 }, { 128, 128 }, { 300, 128 } };
+  bool blocks_ok = true;
   std::string seen;
-  for (const auto &h : hosts) {
-    const fm1_host_t host = { FM1_ENGINE_API_VERSION, 44118.0f, h[0] };
-    Mem mem(InstanceSize(kProbeSound, &host));
-    void *self = Create(kProbeSound, mem.p, &host);
-    const uint32_t b = self ? BlockFrames(self) : 0;
-    ok &= b == h[1];
-    seen += (seen.empty() ? "" : ",") + Num(b);
-    if (self) Destroy(self);
+  for (const auto &f : frames) {
+    blocks_ok &= BlockFor(f[0]) == f[1];
+    seen += (seen.empty() ? "" : ",") + Num(BlockFor(f[0]));
   }
-  Report("block_size_from_host", ok, "\"blocks\":[" + seen + "]");
+  const host_api_v1_t *api = HostApi();
+  blocks_ok &= api && api->frames_per_block == 64 && api->sample_rate == 44118;
+  Report("block_size_from_host", blocks_ok, "\"blocks\":[" + seen + "]");
+  if (!api) return;
+
+  host_api_v1_t before;
+  memcpy(&before, api, sizeof(before));
+  const fm1_host_t small = { FM1_ENGINE_API_VERSION, 44118.0f, 37 };
+  Mem m1(InstanceSize(kProbeSound, &small));
+  void *a = Create(kProbeSound, m1.p, &small);
+  Report("later_host_keeps_the_block", a && BlockFrames(a) == 64,
+         "\"block\":" + Num(a ? BlockFrames(a) : 0));
+  const fm1_host_t other = { FM1_ENGINE_API_VERSION, 48000.0f, 64 };
+  Mem m2(InstanceSize(kProbeSound, &other));
+  void *b = Create(kProbeSound, m2.p, &other);
+  const std::string why = LastError();
+  Report("other_rate_refused", b == NULL && why.find("rate") != std::string::npos,
+         "\"error\":" + Quote(why.c_str()));
+  const fm1_host_t nan_rate = { FM1_ENGINE_API_VERSION, NAN, 64 };
+  Mem m3(InstanceSize(kProbeSound, &nan_rate));
+  void *c = Create(kProbeSound, m3.p, &nan_rate);
+  Report("bad_rate_refused", c == NULL, "\"error\":" + Quote(LastError()));
+  Report("host_api_written_once", memcmp(&before, api, sizeof(before)) == 0);
+  if (a) Destroy(a);
+  if (b) Destroy(b);
+  if (c) Destroy(c);
+}
+
+// Every module's init ran once, however many instances were created: a second
+// create must not rewrite tables that running instances call through.
+void CheckInitOnce() {
+  const Module *mods[] = { fm1_sw_sophie_module, fm1_sw_psxverb_module, &kProbeSound,
+                           &kProbeFx, &kProbeFxHeadroom };
+  bool ok = g_probe_inits == 3;
+  std::string counts;
+  for (const Module *m : mods) {
+    ok &= m->state->ready && m->state->inits == 1;
+    counts += std::string(counts.empty() ? "" : ",") + Quote(m->id) + ":" +
+              Num(m->state->inits);
+  }
+  Report("module_init_once", ok,
+         "\"inits\":{" + counts + "},\"probe_inits\":" + Num(g_probe_inits));
+}
+
+// Distance in units in the last place; 0 for equal values (0 and -0 too).
+int UlpDiff(float a, float b) {
+  if (a == b) return 0;
+  if (std::isnan(a) || std::isnan(b)) return 1 << 30;
+  int32_t ia, ib;
+  memcpy(&ia, &a, 4);
+  memcpy(&ib, &b, 4);
+  if (ia < 0) ia = INT32_MIN - ia;
+  if (ib < 0) ib = INT32_MIN - ib;
+  const int64_t d = static_cast<int64_t>(ia) - ib;
+  if (d > (1 << 30) || d < -(1 << 30)) return 1 << 30;
+  return static_cast<int>(d < 0 ? -d : d);
+}
+
+// fm1_sw_strtof, which modules get for atof/strtod/strtof, against the C
+// library: the strings the shim writes, other decimal forms, and edge cases.
+void CheckNumberParser() {
+  std::vector<std::string> corpus;
+  char b[64];
+  for (int i = -100000; i <= 100000; ++i) {          // "%.6f" over -100..100
+    snprintf(b, sizeof(b), "%.6f", i * 0.001);
+    corpus.push_back(b);
+  }
+  uint32_t r = 0x2545F491u;
+  for (int i = 0; i < 100000; ++i) {
+    r = r * 1664525u + 1013904223u;
+    const float v = (static_cast<int32_t>(r) / 2147483648.0f) * 1000.0f;
+    snprintf(b, sizeof(b), "%.6f", v);                // what FormatFloat writes
+    corpus.push_back(b);
+    snprintf(b, sizeof(b), "%.9g", v * 1e-3f);        // other decimal forms
+    corpus.push_back(b);
+    snprintf(b, sizeof(b), "%d", static_cast<int>(r % 200001u) - 100000);
+    corpus.push_back(b);
+  }
+  const char *edges[] = {
+    "", " ", "abc", ".", "-", "+.", "5.", ".5", "-.25", "  +7x", "\t\n3.5", "1e", "1e+",
+    "1e-3", "1E3", "2.5e+2z", "0", "-0", "-0.000000", "007", "0.000001", "1e40", "-1e40",
+    "1e-50", "123456789012", "0.1234567891234", "100.000000", "30000.000000",
+    "1000000000.000000", "99.999999", "16.777217", "4", "15", "16",
+  };
+  for (const char *e : edges) corpus.push_back(e);
+
+  int worst = 0;
+  size_t exact = 0, bad_end = 0;
+  std::string worst_s;
+  for (const std::string &str : corpus) {
+    char *e1 = NULL, *e2 = NULL;
+    const float want = strtof(str.c_str(), &e1);
+    const float got = fm1_sw_strtof(str.c_str(), &e2);
+    const int d = UlpDiff(got, want);
+    if (d == 0 && std::signbit(got) == std::signbit(want)) ++exact;
+    if (d > worst) {
+      worst = d;
+      worst_s = str;
+    }
+    if (e1 != e2) ++bad_end;
+  }
+  // Forms the parser does not take: no conversion, or only the leading "0".
+  char *end = NULL;
+  const char *hex_s = "0x10", *inf_s = "inf", *nan_s = "nan";
+  bool others = fm1_sw_strtof(hex_s, &end) == 0.0f && end == hex_s + 1;
+  others &= fm1_sw_strtof(inf_s, &end) == 0.0f && end == inf_s;
+  others &= fm1_sw_strtof(nan_s, &end) == 0.0f && end == nan_s;
+  others &= fm1_sw_strtof("0.35", NULL) == 0.35f;
+  Report("number_parser_matches_libc", worst <= 1 && bad_end == 0 && others,
+         "\"strings\":" + Num(static_cast<double>(corpus.size())) +
+         ",\"exact\":" + Num(static_cast<double>(exact)) +
+         ",\"worst_ulps\":" + Num(worst) + ",\"worst\":" + Quote(worst_s.c_str()) +
+         ",\"end_mismatches\":" + Num(static_cast<double>(bad_end)));
 }
 
 void CheckNullSafety() {
@@ -514,10 +658,12 @@ int main(int argc, char **argv) {
   CheckProbeFailures();
   CheckProbeSound();
   CheckProbeFx();
-  CheckBlockSizes();
+  CheckHostIsFixed();
   CheckNullSafety();
   CheckChunking(fm1_engine_sw_sophie);
   CheckChunking(fm1_engine_sw_psxverb);
+  CheckInitOnce();
+  CheckNumberParser();
   printf("{\"summary\":{\"passed\":%d,\"failed\":%d}}\n", g_passed, g_failed);
   return g_failed ? 1 : 0;
 }

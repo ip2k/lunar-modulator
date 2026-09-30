@@ -52,9 +52,20 @@ const ParamKey kKeys[P_COUNT] = {
 // outgrows this.
 const size_t kArenaBytes = 130 * 1024;
 
+// PSX Verb mixes the dry signal inside the module, so without headroom
+// anything on the bus above full scale (12 voices in phase can put it there)
+// would be hard-clipped at the int16 conversion, Mix at 0 included, before the
+// host's limiter sees it. Apart from the saturating writes into its work area
+// the module is linear, so feeding it 6 dB down and making that up on the way
+// out changes nothing but the level at which the work area saturates, at the
+// cost of one bit (engines/schwung.md).
+const float kHeadroom = 2.0f;
+
+ModuleState g_state;
+
 const Module kModule = {
   FM1_KIND_AUDIO_FX, "psxverb", NULL, fm1_sw_psxverb_init,
-  kParams, kKeys, P_COUNT, P_COUNT, kArenaBytes, 0.0f,
+  kParams, kKeys, P_COUNT, P_COUNT, kArenaBytes, 0.0f, kHeadroom, &g_state,
 };
 
 size_t Size(const fm1_host_t *host) { return InstanceSize(kModule, host); }

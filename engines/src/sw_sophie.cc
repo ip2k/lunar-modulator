@@ -11,10 +11,11 @@
 //
 // The table below mirrors the module's chain_params for pad 1 (whose values
 // are the defaults shown while Pad is 1), in the knob order of the module's
-// ui_pages. tests/test_engines_schwung.py checks it against the live
-// chain_params. Only the first two pages are exposed for now, because the
-// registry test allows pages 0 and 1 only (engines/schwung.md); the rest are
-// defined and settable through the shim.
+// ui_pages. Names are the module's own without their "Pad 1 " prefix; only
+// "Ring Fdbk" is shortened, to fit 12 characters. tests/test_engines_schwung.py
+// checks all of it against the live chain_params. Only the first two pages are
+// exposed for now, because the registry test allows pages 0 and 1 only
+// (engines/schwung.md); the rest are defined and settable through the shim.
 //
 // MIT licence (this file).
 
@@ -60,7 +61,7 @@ const fm1_param_t kParams[P_COUNT] = {
   { "Level",     FM1_PARAM_FLOAT, 0, 100, 100, NULL, 2 },
   { "Cutoff",    FM1_PARAM_FLOAT, 0, 100, 100, NULL, 2 },
   { "Resonance", FM1_PARAM_FLOAT, 0, 100, 0, NULL, 3 },
-  { "Filter",    FM1_PARAM_ENUM,  0, 4, 0, kFilterNames, 3 },
+  { "Filter Type", FM1_PARAM_ENUM, 0, 4, 0, kFilterNames, 3 },
   { "Ring Time", FM1_PARAM_FLOAT, 0.5f, 30, 6, NULL, 4 },
   { "Ring Fdbk", FM1_PARAM_FLOAT, 0, 95, 0, NULL, 4 },
   { "Ring Mix",  FM1_PARAM_FLOAT, 0, 100, 0, NULL, 4 },
@@ -94,10 +95,14 @@ const ParamKey kKeys[P_COUNT] = {
 // that is 76,768 bytes; the selftest fails if it outgrows this.
 const size_t kArenaBytes = 75 * 1024;
 
+ModuleState g_state;
+
 const Module kModule = {
   FM1_KIND_SOUND, "sophie", fm1_sw_sophie_init, NULL,
   kParams, kKeys, kExposed, P_COUNT, kArenaBytes,
   0.0f,                                   // Sophie ignores pitch bend
+  1.0f,                                   // no headroom: not an effect
+  &g_state,
 };
 
 size_t Size(const fm1_host_t *host) { return InstanceSize(kModule, host); }

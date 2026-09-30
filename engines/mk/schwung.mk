@@ -47,3 +47,13 @@ all: $(BUILD)/fm1-schwung-selftest
 
 $(BUILD)/fm1-schwung-selftest: $(SW_SELFTEST_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
+
+# fm1-schwung-race: instances render on a thread while others are created and
+# destroyed. Meaningful only under ThreadSanitizer, so not part of `all`:
+#   make -C engines EXTRA="-fsanitize=thread -g" OPT=-O1 build/fm1-schwung-race
+SW_RACE_OBJ := $(BUILD)/our/test/schwung_race.o $(BUILD)/our/src/schwung_shim.o \
+               $(BUILD)/our/src/sw_sophie.o $(BUILD)/our/src/sw_psxverb.o $(SW_OBJ)
+$(BUILD)/our/test/schwung_race.o: COMMON += -pthread
+
+$(BUILD)/fm1-schwung-race: $(SW_RACE_OBJ)
+	$(CXX) $(OPT) $(EXTRA) -pthread -o $@ $^ -lm

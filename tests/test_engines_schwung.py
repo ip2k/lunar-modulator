@@ -25,6 +25,13 @@ VENDORED = [ENGINES / "third_party" / "schwung",
             ENGINES / "third_party" / "schwung-modules" / "psxverb"]
 BLOCK = 64                      # module block = the host's 64 frames
 KICK_HZ = 440.0 * 2 ** ((36 - 69) / 12)
+PSX_HEADROOM = 2.0              # sw_psxverb.cc: the bus goes in 6 dB down
+# Twelve voices at full velocity, in phase: the bus goes above full scale.
+CHORD = [f"0:{k}:127:0.5" for k in (48, 52, 55, 59, 60, 64, 67, 71, 72, 76, 79, 83)]
+# Module names longer than the 12 characters a TFT label allows, and the
+# fm1 table's short form. Every other fm1 name is the module's own.
+SHORTENED = {"Ring Feedback": "Ring Fdbk"}
+C_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 @pytest.fixture(scope="session")
@@ -56,6 +63,27 @@ def first_nonzero(samples):
     return next(i for i, x in enumerate(samples) if x != 0.0)
 
 
+def nm_globals(text):
+    """(undefined, defined) global symbols in `nm -g` output, leading
+    underscores removed. Names that are not C identifiers cannot come from
+    module code: they are compiler helpers, such as the PC thunks
+    (`__x86.get_pc_thunk.bx`) that i386 GCC emits as global symbols in every
+    PIE object. Sanitizer runtime symbols are left out too."""
+    undefined, defined = set(), set()
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) not in (2, 3) or not C_IDENTIFIER.fullmatch(parts[-1]):
+            continue
+        name = parts[-1].lstrip("_")
+        if name.startswith(("asan", "ubsan", "sanitizer")):   # instrumented builds
+            continue
+        if len(parts) == 2 and parts[0] == "U":
+            undefined.add(name)
+        elif len(parts) == 3:
+            defined.add(name)
+    return undefined, defined
+
+
 # ------------------------------------------------------------ registry ---
 
 def test_schwung_engines_are_registered(renderer):
@@ -84,7 +112,29 @@ def test_selftest_passes(selftest_lines):
     failed = [line for line in lines if line.get("ok") is False]
     assert code == 0 and not failed, failed
     assert lines[-1]["summary"]["failed"] == 0
-    assert lines[-1]["summary"]["passed"] >= 17
+    assert lines[-1]["summary"]["passed"] >= 24
+    ran = {line["check"] for line in lines if "check" in line}
+    assert {"module_init_once", "host_api_written_once", "other_rate_refused",
+            "later_host_keeps_the_block", "fx_headroom_passes_overs",
+            "number_parser_matches_libc"} <= ran
+
+
+def test_modules_are_initialised_once(selftest_lines):
+    # Module init functions rewrite their own static tables (PSX Verb memsets
+    # the one every instance calls through), so a second create must not call
+    # init again while the first instance may be rendering.
+    _, lines = selftest_lines
+    line = next(line for line in lines if line.get("check") == "module_init_once")
+    assert line["ok"] and set(line["inits"].values()) == {1}
+    assert {"sophie", "psxverb"} <= set(line["inits"])
+
+
+def test_module_number_parser_matches_the_c_library(selftest_lines):
+    # atof/strtod/strtof in module sources go to the shim's heap-free parser.
+    _, lines = selftest_lines
+    line = next(line for line in lines if line.get("check") == "number_parser_matches_libc")
+    assert line["ok"] and line["worst_ulps"] <= 1 and line["end_mismatches"] == 0
+    assert line["exact"] / line["strings"] > 0.95
 
 
 def test_arenas_are_bounded_and_measured(selftest_lines):
@@ -107,35 +157,61 @@ def test_module_code_uses_the_arena_not_the_heap(renderer):
     nm = shutil.which("nm")
     if not nm:
         pytest.skip("no nm")
+    # The heap, files, threads, and the C library's float parsers, which can
+    # allocate (newlib's strtod) and are mapped to fm1_sw_strtof.
     forbidden = {"malloc", "calloc", "realloc", "free", "posix_memalign", "aligned_alloc",
-                 "fopen", "open", "opendir", "stat", "mmap", "pthread_create", "dlopen"}
+                 "fopen", "open", "opendir", "stat", "mmap", "pthread_create", "dlopen",
+                 "atof", "strtod", "strtof", "strtold"}
     objects = sorted((ENGINES / "build" / "sw").glob("*/*.o"))
     objects += [ENGINES / "build" / "our" / "src" / f
                 for f in ("schwung_shim.o", "sw_sophie.o", "sw_psxverb.o")]
     assert len(objects) == 5
     for obj in objects:
-        undefined, defined = set(), set()
-        for line in subprocess.run([nm, "-g", str(obj)], check=True, capture_output=True,
-                                   text=True).stdout.splitlines():
-            parts = line.split()
-            name = parts[-1].lstrip("_") if parts else ""
-            if name.startswith(("asan", "ubsan", "sanitizer")):   # instrumented builds
-                continue
-            if len(parts) == 2 and parts[0] == "U":
-                undefined.add(name)
-            elif len(parts) == 3:
-                defined.add(name)
+        undefined, defined = nm_globals(subprocess.run(
+            [nm, "-g", str(obj)], check=True, capture_output=True, text=True).stdout)
         assert not undefined & forbidden, (obj.name, undefined & forbidden)
         if obj.parent.parent.name == "sw":          # a vendored module
             # Only the renamed entry point is global, so modules cannot collide.
             assert defined == {f"fm1_sw_{obj.parent.name}_init"}, (obj.name, defined)
+            if obj.parent.name in ("sophie", "psxverb"):   # both parse set_param values
+                assert "fm1_sw_strtof" in undefined, obj.name
+
+
+def test_nm_filter_keeps_module_globals_and_drops_compiler_helpers():
+    # `nm -g` of an i386 GCC PIE object, as CI's -m32 job builds them: the PC
+    # thunks are global T symbols, not weak ones.
+    i386 = ("00000000 T fm1_sw_psxverb_init\n"
+            "         U _GLOBAL_OFFSET_TABLE_\n"
+            "00000000 T __x86.get_pc_thunk.ax\n"
+            "00000000 T __x86.get_pc_thunk.bx\n"
+            "         U fm1_sw_calloc\n"
+            "         U strcmp\n")
+    undefined, defined = nm_globals(i386)
+    assert defined == {"fm1_sw_psxverb_init"}
+    assert undefined == {"GLOBAL_OFFSET_TABLE_", "fm1_sw_calloc", "strcmp"}
+    _, defined = nm_globals(i386 + "00000040 T helper\n00000000 D table\n00000004 W weak\n")
+    assert defined == {"fm1_sw_psxverb_init", "helper", "table", "weak"}
+    undefined, defined = nm_globals("build/sw/sophie/sophie.o:\n"
+                                    "0000000000000000 T _fm1_sw_sophie_init\n"
+                                    "                 U _strtof\n")          # macOS
+    assert defined == {"fm1_sw_sophie_init"} and undefined == {"strtof"}
 
 
 # ----------------------------------------------------------- contracts ---
 
+def _fm1_name(module_name):
+    """The label the fm1 table should show for a module parameter name:
+    Sophie's per-pad "Pad 1 " prefix dropped, and shortened only where the
+    module's own name does not fit 12 characters."""
+    name = re.sub(r"^Pad \d+ ", "", module_name)
+    return SHORTENED.get(name, name)
+
+
 def _check_against_chain_params(params, chain, key_of):
     for p in params:
         c = chain[key_of(p["key"])]
+        if "name" in c:                            # module.json entries have none
+            assert p["name"] == _fm1_name(c["name"]), (p["key"], p["name"], c["name"])
         if c["type"] == "enum":
             assert p["type"] == 1 and p["format"] == "index" and p["offset"] == 0
             assert p["enum_names"] == c["options"]
@@ -164,6 +240,23 @@ def test_sophie_table_matches_its_chain_params(renderer):
         [levels["root"]["child_index_param"]] + levels["root"]["knobs"] + levels["ring"]["knobs"])
     assert d["params"][0]["enum_names"] == levels["root"]["child_labels"]
     assert d["exposed"] == 8 and {p["page"] for p in d["params"][:8]} == {0, 1}
+    # Shortened only where the module's own name is too long for the TFT.
+    assert all(len(full) > 12 >= len(short) for full, short in SHORTENED.items())
+    assert set(SHORTENED) <= {re.sub(r"^Pad \d+ ", "", c["name"]) for c in chain.values()}
+
+
+def test_parameter_names_are_checked(renderer):
+    # Two parameters of the same range and default swapping names must fail
+    # the contract check (PSX Verb's Level and Input both mute the wet signal
+    # at 0, so no render tells them apart).
+    d = contract("sw-psxverb")
+    chain = {c["key"]: c for c in d["chain_params"]}
+    params = [dict(p) for p in d["params"]]
+    level = next(p for p in params if p["key"] == "reverb_level")
+    gain = next(p for p in params if p["key"] == "input_gain")
+    level["name"], gain["name"] = gain["name"], level["name"]
+    with pytest.raises(AssertionError):
+        _check_against_chain_params(params, chain, lambda k: k)
 
 
 def test_psxverb_table_matches_its_chain_params_and_module_json(renderer):
@@ -256,7 +349,10 @@ def test_psxverb_processes_noise(renderer, tmp_path):
     summary, left, _ = render(renderer, tmp_path, input="noise", seconds=1.0,
                               fx=[("sw-psxverb", [])])
     assert summary["fx"] == ["sw-psxverb"] and summary["input"] == "noise"
-    assert summary["nonfinite"] == 0 and summary["raw_clipped"] == 0
+    # Dry noise plus its reverb may pass full scale; the module's own clamp is
+    # at the headroom, and the host's limiter takes the rest.
+    assert summary["nonfinite"] == 0 and summary["clipped"] == 0
+    assert summary["raw_peak"] <= PSX_HEADROOM
     assert rms(left, 0.1, 1.0) > 0.05
 
 
@@ -277,7 +373,23 @@ def test_psxverb_dry_path_is_the_input_one_block_late(renderer, tmp_path):
                        fx=[("sw-psxverb", ["Mix=0"])], name="out")
     assert all(x == 0.0 for x in out[:BLOCK])
     worst = max(abs(out[n + BLOCK] - ref[n]) for n in range(len(ref) - BLOCK))
-    assert worst < 3 / 32767
+    # Within two of the module's 16-bit steps (2/32768 each at 2x headroom:
+    # the input's rounding, PSX Verb's own 32767/32768 gain and truncation),
+    # plus the WAV file's rounding of each render.
+    assert worst < (2 * PSX_HEADROOM + 1) / 32767
+
+
+def test_psxverb_passes_overs_on_to_the_limiter(renderer, tmp_path):
+    # Twelve voices in phase put the bus above full scale, which the host's
+    # limiter is there for. Through PSX Verb with Mix at 0 the overs must reach
+    # it intact, not hard-clipped at the int16 conversion.
+    dry, _, _ = render(renderer, tmp_path, "shapes", notes=CHORD, seconds=0.6, name="dry")
+    wet, _, _ = render(renderer, tmp_path, "shapes", notes=CHORD, seconds=0.6, name="wet",
+                       fx=[("sw-psxverb", ["Mix=0"])])
+    assert dry["raw_peak"] > 1.05 and dry["raw_clipped"] > 0
+    # Within three of the module's steps (rounding in, gain and truncation out).
+    assert wet["raw_peak"] == pytest.approx(dry["raw_peak"], abs=3 * PSX_HEADROOM / 32768)
+    assert wet["raw_clipped"] > 0 and wet["clipped"] == 0 and wet["nonfinite"] == 0
 
 
 @pytest.mark.parametrize("params,window,low,high", [
