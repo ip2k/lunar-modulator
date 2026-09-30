@@ -3,7 +3,9 @@
 #
 # Third-party sources are appended only when no other fragment (or the base
 # Makefile) lists them already, so two streams needing the same Plaits file do
-# not link it twice.
+# not link it twice. plaits/dsp/engine/speech_engine.cc is not listed: the
+# speech model runs our adaptation of it (SpeechVoiceEngine, one word bank
+# shared by all voices).
 
 OUR_SRC += src/mi_macro_heavy.cc src/mi_sixop.cc
 
@@ -11,7 +13,6 @@ PLAITS_HEAVY_TP := \
   plaits/dsp/engine2/string_machine_engine.cc \
   plaits/dsp/engine/chord_engine.cc \
   plaits/dsp/chords/chord_bank.cc \
-  plaits/dsp/engine/speech_engine.cc \
   plaits/dsp/speech/lpc_speech_synth.cc \
   plaits/dsp/speech/lpc_speech_synth_controller.cc \
   plaits/dsp/speech/lpc_speech_synth_phonemes.cc \

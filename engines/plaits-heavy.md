@@ -7,16 +7,17 @@ are ours.
 
 | id | Name | Source | Voices | Instance, 64-bit host | Instance, 32-bit targets |
 | --- | --- | --- | --- | --- | --- |
-| `macro-heavy` | Macro Heavy | `src/mi_macro_heavy.cc` | 4 | 68,640 B | 68,448 B |
-| `sixop` | Six-Op FM | `src/mi_sixop.cc` | 8 | 11,312 B | 9,576 B |
+| `macro-heavy` | Macro Heavy | `src/mi_macro_heavy.cc` | 4 | 68,512 B | 68,304 B |
+| `sixop` | Six-Op FM | `src/mi_sixop.cc` | 8 | 11,304 B | 9,572 B |
 
 How the sizes were measured:
 
 - **64-bit:** the renderer's `instance_bytes` on macOS arm64 [verified].
-- **32-bit:** `sizeof(Instance)` compiled for `i386-apple-macos10.13` and
-  `armv7-apple-ios9`. Both targets give the same numbers [verified, compile
-  only]. pi32v2 should match if it is ILP32 with 4-byte float alignment
-  [inferred].
+- **32-bit:** the constant `InstanceSize()` returns, read from the assembly
+  compiled for `i386-apple-macos10.13` and `armv7-apple-ios9`. Both targets
+  give the same numbers [verified, compile only]. pi32v2 should match if it
+  is ILP32 with 4-byte float alignment [inferred]. Nothing has rendered
+  these engines as a 32-bit program yet (see "32-bit coverage" below).
 
 Sources are added in `mk/plaits-heavy.mk`. The fragment appends a
 third-party file only when no other fragment lists it already.
@@ -27,7 +28,7 @@ engines/build/fm1-render --engine macro-heavy --param Model=8 --param Harmonics=
     --note 0:57:100:1 --note 0:64:100:1 --seconds 3 --out string.wav
 engines/build/fm1-render --engine sixop --param Patch=32 \
     --note 0:57:100:1 --note 0:61:100:1 --note 0:64:100:1 --seconds 3 --out epiano.wav
-python -m pytest tests/test_engines_plaits_heavy.py      # 177 tests
+python -m pytest tests/test_engines_plaits_heavy.py      # 180 tests
 ```
 
 ## Macro Heavy
@@ -47,7 +48,7 @@ pre-gain.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | Str Machine | `StringMachineEngine` | 0.8 | 0.8 | LPG | 4,332 B | 304 B |
 | 1 | Chords | `ChordEngine` | 0.8 | 0.8 | LPG | 236 B | 376 B |
-| 2 | Speech | `SpeechEngine` | -0.7 | 0.8 | LPG for vowels; words bypass it (per block) | 14,656 B | 472 B |
+| 2 | Speech | `SpeechVoiceEngine` (ours, from `SpeechEngine`) | -0.7 | 0.8 | LPG for vowels; words bypass it (per block) | 14,656 B in voice 0 (the shared word bank), 192 B in the others | 432 B |
 | 3 | Formant | `GrainEngine` | 0.7 | 0.6 | LPG | 0 | 136 B |
 | 4 | Additive | `AdditiveEngine` | 0.8 | 0.8 | LPG | 144 B | 200 B |
 | 5 | Swarm | `SwarmEngine` | -3.0 | 1.0 | LPG | 512 B | 32 B |
@@ -67,8 +68,8 @@ placement new, with Plaits' 12-sample blocks and the pitch offset
 
 - **Arena.** Each voice gets its own 16 KB arena, which is the size of
   Plaits' single shared arena. It has to be that large: the particle
-  diffuser alone takes all 16 KB, the string model 15.2 KB and speech
-  14.3 KB.
+  diffuser alone takes all 16 KB and the string model 15.2 KB. Speech's
+  word bank (14.3 KB) sits in voice 0's arena and serves all four voices.
 - **Clean start.** A model change clears every arena before `Init()`, so no
   engine reads what the previous model left behind (see the six-op finding
   below).
@@ -82,7 +83,8 @@ expected number of bytes was handed out.
   "exactly the expected bytes" means every allocation succeeded and the
   table matches upstream.
 - On a mismatch the model is disabled and stays silent. It never writes
-  through NULL.
+  through NULL. Speech voices 1-3 expect only their two temp buffers, and
+  are disabled with voice 0, whose arena holds the bank they all read.
 - A re-vendor that changes an allocation therefore fails
   `test_every_heavy_model_sounds_cleanly`.
 
@@ -119,10 +121,53 @@ LPG is re-initialised while bypassed.
 - **Envelope scaling.** Plaits' `internal_envelope_amplitude` scaling is
   moot here: like Macro, this wrapper applies no internal-envelope
   modulation (all modulation amounts are 0).
-- **No `Reset()` at note-on.** `SpeechEngine::Reset()` only discards the
-  parsed LPC word bank, and `Render()` would then parse up to 4.8 KB of
-  bitstream inside an audio block. So the wrapper does not call `Reset()` at
-  note-on for speech.
+
+**One word bank for all speech voices.** Plaits' `SpeechEngine` keeps its
+own LPC word bank and parses it (up to 4.8 KB of bitstream into 926
+frames) inside `Render()` whenever HARMONICS selects another bank. With one
+engine per voice, four voices parsed the same data four times in one audio
+block, and so did a chord struck after a bank change or a model change.
+
+- **Measured** [verified: scratch timing harness, M1 Max, 4 held voices,
+  64-frame blocks]:
+
+  | Case | Before | Shared bank |
+  | --- | --- | --- |
+  | First block after Harmonics moves into bank 4 | 62–70 µs | 18–21 µs |
+  | Chord note-on after a bank change made while idle | 15–17 µs | 3.6–4.2 µs (no parse) |
+  | Chord right after switching the model to Speech | 15 µs | 7–9 µs |
+  | Ordinary word-mode block | 3.3–3.8 µs | 3.2–3.8 µs |
+
+- **How.** The speech model runs `SpeechVoiceEngine`, our adaptation of
+  `SpeechEngine` (MIT, credited in the source). Its `Render()` is
+  upstream's line for line, except that the word bank index comes from one
+  shared quantizer. `UpdateWordBank()` runs that quantizer once per
+  12-sample block, as upstream runs it, and loads the shared bank before any
+  voice renders. So a bank change costs one parse, in the next block,
+  whether or not notes are sounding, and a note-on never parses. Harmonics
+  changes only between render calls, so at most one parse falls in a host
+  block. `plaits/dsp/engine/speech_engine.cc` is no longer built.
+- **Output.** For constant parameters the output is byte-identical to the
+  per-voice `SpeechEngine` [verified: 12 Harmonics values across the
+  naive, SAM, phoneme and all word-bank ranges, 6 staggered notes each, plus
+  the Word Speed, release and 7-frame cases].
+- **One deviation, at a bank change.** Upstream, each controller whose own
+  `Load()` succeeds drops the word it was playing, but first finishes the
+  frame it is on (25 ms at normal word speed). Here `RestartPlayback()`
+  re-initialises every voice's controller. The voices leave the word at
+  once, and their LPC synth restarts from silence with a 12-sample fade-in.
+  - **After the change** both scan the new bank identically [verified:
+    per-block RMS of 4 held voices across Harmonics 0.5 → 0.9 → 0.6 → 0.1 →
+    0.75 → 1.0; old and new converge within ~40 blocks and match exactly
+    from then on].
+  - **At the change** the largest sample-to-sample step within 128 samples
+    was 0.007–0.12 of full scale, against 0.03–0.08 upstream. The speech
+    signal's own steps reach 0.16 in the same segments, so the restart
+    makes no outsized click.
+- **Stage B.** One bank-4 parse is ~15 µs here. A core 15–20× narrower
+  would take ~0.25–0.3 ms of the 1.45 ms block for it, once per bank change
+  [inferred]. Measure it on pi32v2. If it is too much, the parse can be
+  spread over several blocks, one word per block.
 
 **Stereo.** The string machine's OUT and AUX are the two sides of its
 ensemble (`out = 0.66 l + 0.33 r` and the mirror image) [verified: code], so
@@ -221,13 +266,25 @@ What differs, deliberately:
   exact, not 8.5 % long as in the other Plaits wrappers.
 - **Blocks.** Internal blocks are 16 samples, which divides 64. Envelopes
   update once per block; Plaits updates every 24 samples.
-- **Note-on.** Each note-on does two zero-length renders with the gate low.
+- **Note-on.** Each note-on does two one-sample renders with the gate low,
+  into scratch, and discards them.
   - The first runs a new patch's `Setup()`, which otherwise returns without
-    rendering and would swallow the note's first block.
+    rendering and would swallow the note's first block (a 16-sample blank).
+    With no new patch it renders one sample of release.
+    `test_sixop_note_sounds_from_its_first_block` fails with the renders
+    removed.
   - The second drops `fm::Voice`'s gate, so a voice stolen or retriggered
     while held still sees a note-on edge and attacks again. Without it a
     stolen held voice stays silent; `test_sixop_stolen_held_voice_attacks_again`
     fails with the renders removed.
+  - **Why one sample, not zero.** Until this review they were zero-length
+    renders. `RenderOperators` computes `1.0f / float(size)` (`operator.h`),
+    so a zero-length render divided by zero. That is harmless where the FPU
+    does not trap, but only a port can reach it (Plaits never renders zero
+    samples). The one-sample renders cost at most two samples of one voice
+    per note-on. The output differs from the zero-length version only in
+    operator phase: windowed RMS matches within 0.04 dB [verified: E.PIANO
+    1, two notes].
 - **Freeing.** A voice is freed 50 ms after key-up once its output is below
   about −80 dBFS. Held voices are never freed: a slow DX7 attack can stay
   under that threshold for a long time.
@@ -256,11 +313,16 @@ under Plaits' MIT header:
 
 Their names match well-known DX7 factory and third-party patches (`E.PIANO
 1`, `*PPG*Vol.1`, `CS 80`). The source does not say where they came from.
+The names are shown as they are stored, and some carry third-party
+trademarks or a person's name: `FENDER 1`, `STEINWAY`, `*Hammond 1`,
+`*PPG*Vol.1/2`, `FAIRLIGHT`, `*Fairl. 3`, `CS 80`, `JX-33-P`, `M1 PADS`,
+`Mooger Low`, `VANGELIS 1`. The credits string therefore says "DX7 patch
+banks as distributed with Plaits" rather than claiming them as MIT code.
 See the open issue below.
 
 ## Tests
 
-`tests/test_engines_plaits_heavy.py` has 177 tests:
+`tests/test_engines_plaits_heavy.py` has 180 tests:
 
 | Group | Tests | What they check |
 | --- | --- | --- |
@@ -272,7 +334,7 @@ See the open issue below.
 | Chords under the limiter | 16 + 8 | At the voice cap and past it (stealing): no clipping, peak ≤ 0.98 |
 | Releases | 7 | Releases end (LPG, self-enveloped at Morph = 1, speech words, Six-Op) |
 | Voice freeing | 3 | Freeing, as render cost: released chords cost 2–6 % of held ones on the desktop, and the test allows 50 %; it fails when freeing is disabled |
-| Wrapper behaviour | 4 | Stereo string machine; Word Speed; a stolen held voice attacks again; output identical at host blocks of 64, 7 and 1 frames |
+| Wrapper behaviour | 7 | Stereo string machine; Word Speed; a stolen held voice attacks again; a Six-Op note sounds from its first block (2 patches); all four speech voices speak from the shared word bank; output identical at host blocks of 64, 7 and 1 frames |
 | Determinism | 3 | Particle, string and Six-Op render the same bytes twice |
 | Instance sizes | 1 | The sizes stay within the bounds above |
 
@@ -282,6 +344,32 @@ Where tuning is not checked, and why:
 - **Drums, noise and particle** have no stable fundamental.
 - **A2** is left out: the low-passed fundamental of the physical models is
   too weak there.
+
+What the tests cannot reach through `fm1-render`, and how it was checked
+instead:
+
+- **Parameter changes during a render.** The host applies `--param` once,
+  before the first block. Two cases were checked with scratch C++ harnesses
+  only:
+  - a Harmonics move across word banks (the timing and transition figures
+    above);
+  - a Patch change while all eight Six-Op voices are held, then a ninth key
+    [verified]. The stolen voice attacks: RMS 0.0017 in the 0.2 s before,
+    0.028 after. With only one note-on render it stays silent (0.00017),
+    because `Setup()` uses the render and the gate never drops. So both
+    renders are needed, and no host-level test covers the second one in
+    this case.
+- **Voice freeing** is judged by render time, the one timing-based
+  assertion in the file. The margin is wide (2–6 % measured against a 50 %
+  bound, best of 3), and it is mutation-tested. A host diagnostic that
+  reports active voices would make it exact (requests below).
+- **Mutation checks** [verified]:
+  - With both note-on renders removed from Six-Op, the first-block test (2)
+    and the stolen-voice test fail.
+  - With speech voices 1-3 made to fail their arena check, only
+    `test_speech_voices_all_read_the_shared_word_bank` fails: the chord
+    carries 0.45 of the four single notes' energy, against 0.94–1.0 when all
+    four voices speak.
 
 ## Upstream quirks found
 
@@ -300,7 +388,18 @@ so.
    - **Evidence:** [verified: ASan global-buffer-overflow in
      `LPCSpeechSynth::PlayFrame`, with `--param Model=2 --param
      Harmonics=0.25 --param Timbre=0.375 --param Morph=0 --note
-     0:57:100:0.3`]. No wrapper-side fix without changing behaviour.
+     0:57:100:0.3`; the sweep below also hits it at Harmonics 0.2, 0.3 and
+     0.4]. These are ordinary knob positions, so the read is in shipped code
+     paths. It stays in `LPCSpeechSynthController`, which
+     `SpeechVoiceEngine` calls unchanged.
+   - **Why it stays.** No wrapper-side fix exists without changing which
+     consonant plays. The read stays inside the program's constant data, and
+     the fetched fields are integers turned into floats and multiplied by 0,
+     so no NaN can come of it.
+   - **Upstream fix.** When `interpolate` is false,
+     `LPCSpeechSynth::PlayFrame(frames, frame, interpolate)` should not read
+     `frames[frame_integral + 1]` (pass the same frame twice). It is listed in
+     `notes/upstream-candidates.md`.
 3. **`fm::NormalizeVelocity(1.0)` reads `lut_cube_root[17]`,** one past the
    17-entry table.
    - **Cause:** `stmlib::Interpolate` reads `index + 1`. Plaits passes a
@@ -312,8 +411,7 @@ so.
      in C++11 and C++14 (defined since C++20).
    - **Effect:** it does what was intended on GCC and Clang.
    - **Evidence:** [verified: UBSan `shift-base` on every Six-Op render].
-     The sanitizer run below suppresses exactly this check in exactly this
-     file.
+     It is the only report the sanitizer sweep below gets from Six-Op.
 5. **`SixOpEngine`'s `temp_buffer_` is sized for 12-sample calls only.**
    - **Sizes:** it allocates `kMaxBlockSize * 4` = 96 floats, but
      `fm::Voice::Render(temp, 2 * size)` uses 3 × 2 × size floats, which is
@@ -338,7 +436,8 @@ so.
    - **Effect:** the naive synth's 50 ms consonant click and SAM's trigger
      never fire on the module.
    - **Evidence:** [verified: code]. The wrapper passes triggers as `Voice`
-     does, so it sounds like the module.
+     does, and `SpeechVoiceEngine` keeps the `==` tests as they are, so it
+     sounds like the module.
 8. **`SwarmEngine::Reset` computes `n = (kNumSwarmVoices - 1) / 2` in
    integer arithmetic.**
    - **Effect:** that gives 3, not 3.5, so the eight grains' ranks run from
@@ -360,28 +459,75 @@ so.
     | Words | 26 | 31 |
 
     That is about 10 % headroom [verified: scratch harness].
+12. **`String::ProcessInternal` divides by a zero `f0`.**
+    - **Where:** `float delay = 1.0f / f0;` (`string.cc:90`). On a trigger,
+      `StringEngine` hands the string it leaves `f0_delay_.Read(14)`, which
+      is 0 until the 16-sample delay has 14 writes. Upstream reaches it on
+      the first trigger after the engine is selected. Here every note on a
+      free voice reaches it, because `Reset()` clears the delay.
+    - **Effect:** the result is +inf, which `CONSTRAIN` clamps to the longest
+      delay, on a string that was just reset and is silent. Harmless on IEEE
+      hardware that does not trap.
+    - **Evidence:** [verified: UBSan `float-divide-by-zero`, `fm1-render
+      --engine macro-heavy --param Model=8 --note 0:60:100:0.3`, via
+      `StringEngine::Render`; every String render in the sweep].
+
+**Assumption for stage B.** Quirk 12 relies on the FPU returning inf, not
+trapping, on a float divide by zero. That is IEEE 754's default handling
+and the usual reset state of desktop and ARM FPUs [inferred; not checked
+here], and it is unverified on pi32v2. Check it there. Our own code no
+longer divides by zero (the Six-Op note-on renders, above).
 
 ## Sanitizer run
 
-Command: `make -C engines EXTRA="-fsanitize=address,undefined
--fno-omit-frame-pointer -g" OPT=-O1`.
+Builds:
 
-The sweep covered:
+- **Standard:** `make -C engines EXTRA="-fsanitize=address,undefined
+  -fno-omit-frame-pointer -g" OPT=-O1`.
+- **Float division:** the same with `float-divide-by-zero` added to the
+  list, which Clang's `undefined` group leaves out.
 
-- every Macro Heavy model at default, all-zero and all-one parameters;
-- keys 0, 24, 108 and 127 at velocities 1 and 127;
-- chords past the voice cap, and 7-frame host blocks;
-- 17 Six-Op patches under the same conditions;
-- this test file, run against the sanitizer binary.
+The sweep (230 renders per build, after the review fixes) covered:
+
+- every Macro Heavy model at default, all-zero and all-one parameters, with
+  keys 0, 24, 108 and 127 at velocities 1 and 127;
+- every model with a chord past the voice cap, at 64- and 7-frame host
+  blocks;
+- speech at 12 Harmonics values across all its ranges, each with 4 Timbre
+  values;
+- all 96 Six-Op patches at keys 0, 57 and 127;
+- 7 Six-Op patches with chords past the cap at the parameter extremes, and
+  at 7- and 1-frame host blocks;
+- this test file, run against the sanitizer binary: 180 passed.
 
 Results:
 
-- **Our code:** clean.
-- **Vendored code:** quirks 2 (with the parameters given there) and 4 above.
+- **Our code:** clean in both builds.
+- **Vendored code:** quirk 2 (4 renders, Harmonics 0.2–0.4 at Timbre
+  0.375), quirk 4 (117 renders, every Six-Op render) and, in the
+  float-division build only, quirk 12 (5 renders, every String render).
+- **Fixed:** the `operator.h:90` division by zero that the old zero-length
+  Six-Op renders caused no longer appears.
 
-The same tree also built with GCC 15.2 on x86-64 Linux, with `-Wall
--Wextra`. These files gave no warnings, and renders gave the same peaks as on
-macOS. The 32-bit (`-m32`) build was not run locally; CI runs it.
+The first pass of this stream also built the tree with GCC 15.2 on x86-64
+Linux, with `-Wall -Wextra`. These files gave no warnings, and renders gave
+the same peaks as on macOS. That was not re-run after the review fixes.
+
+### 32-bit coverage
+
+- **What CI does.** The `engines-32bit` job builds everything with `-m32`
+  but runs only `tests/test_engines.py` [verified: `.github/workflows/ci.yml`].
+  Its "Report instance sizes" step renders only `macro` and `shapes`. So
+  neither engine in this stream has run as a 32-bit program.
+- **Why it matters.** A 32-bit-only arena mismatch would disable a model
+  silently, and nothing would fail.
+- **Why it is unlikely** [inferred]. `kArenaNeed` uses the same `sizeof`
+  expressions as the upstream `Allocate<>()` calls, and `BufferAllocator`
+  adds no padding. So the table can only disagree on one target if an
+  upstream type changes size on that target alone.
+- **Not run locally.** This Mac is arm64 and its Docker VM is aarch64 with
+  no multilib image; installing one would mean downloading packages.
+- **Fix.** Belongs in CI; see the requests below.
 
 ## Limits and open questions
 
@@ -393,7 +539,29 @@ macOS. The 32-bit (`-m32`) build was not run locally; CI runs it.
   there is no ninth knob on two pages.
 - **`stmlib::Random`** is one global generator shared by every instance and
   voice. Output is deterministic per process, not per instance.
-- **Patch data provenance.** The DX7 patch data carries Plaits' MIT header
-  but no provenance. For a commercial build, have the three banks reviewed,
-  or load user banks instead.
-- **Pi32v2 cost** is unmeasured; see stage B.
+- **Patch data provenance and names.** The DX7 patch data carries Plaits'
+  MIT header but no provenance. Its patch names, shown in the UI, include
+  third-party trademarks and a person's name (listed under "The patch
+  data"). For a commercial build, have the three banks and their names
+  reviewed, or ship user banks instead.
+- **Pi32v2 cost** is unmeasured; see stage B. So are one speech word-bank
+  parse (above) and the FPU's divide-by-zero behaviour.
+
+## Requests outside this stream's files
+
+This stream may not edit `.github/` or `engines/host/render.cc`, so these
+go to the orchestrator and owner:
+
+1. **CI, 32-bit job.** Run `python -m pytest -v tests/test_engines*.py`
+   against the `-m32` binary, not only `tests/test_engines.py`. The
+   render-time test `test_released_voices_are_freed` may need a skip or a
+   looser bound there. Add `--engine macro-heavy` and `--engine sixop` to
+   "Report instance sizes".
+2. **Host: timed parameter events.** For example `--param-at
+   T:NAME=VALUE`. That would let tests cover Harmonics moves across speech
+   word banks and Patch changes under held Six-Op voices, which only
+   scratch harnesses cover now.
+3. **Host: an active-voice diagnostic.** For example an optional engine
+   callback, or a summary field, reporting how many voices are active at
+   the end. `test_released_voices_are_freed` could then assert freeing
+   directly instead of through render time.

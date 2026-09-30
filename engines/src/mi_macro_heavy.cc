@@ -20,6 +20,9 @@
 // What it adds: a release after note-off for the self-enveloped models, with
 // the same curve and the same Decay/Colour controls as the low-pass gate, so
 // a keyboard's note-off is honoured; Plaits has no note-off to honour.
+// What it changes: speech runs SpeechVoiceEngine (below), Plaits' SpeechEngine
+// with one LPC word bank shared by all voices, so a Harmonics move into
+// another word bank parses the bank once, not once per voice.
 //
 // Rate and blocks as in Macro: the engines run at the host's rate with the
 // pitch corrected by 12*log2(47872.34 / rate) semitones, in Plaits' own
@@ -34,15 +37,117 @@
 #include <cstring>
 #include <new>
 
+#include "stmlib/dsp/hysteresis_quantizer.h"
 #include "stmlib/utils/buffer_allocator.h"
 #include "plaits/dsp/dsp.h"
 #include "plaits/dsp/envelope.h"
+#include "plaits/dsp/speech/lpc_speech_synth_words.h"
 #include "plaits/dsp/voice.h"  // ChannelPostProcessor and the engine classes
 
 namespace fm1 {
 namespace macro_heavy {
 
 using namespace plaits;
+
+// The LPC word bank every speech voice reads. Instance::UpdateWordBank picks
+// the bank from Harmonics once per 12-sample block and parses it (up to
+// 4.8 KB of bitstream into 926 frames) once per bank change, before any voice
+// renders. Plaits' SpeechEngine keeps its own bank and quantizer, so four of
+// them parsed the same data four times inside one audio block.
+struct SpeechShared {
+  LPCSpeechSynthWordBank bank;           // storage: voice 0's arena
+  stmlib::HysteresisQuantizer2 quantizer;
+  int word_bank;                         // -1: phonemes, no bank
+};
+
+// Plaits' SpeechEngine (plaits/dsp/engine/speech_engine.cc, Copyright 2016
+// Emilie Gillet, MIT; the full notice is in that file), adapted to read the
+// shared bank. Render() is upstream's, line for line, except that the word
+// bank comes from SpeechShared instead of a per-engine quantizer. Reset() is
+// empty: upstream's only discards the bank, which BuildEngines owns here.
+class SpeechVoiceEngine : public Engine {
+ public:
+  SpeechVoiceEngine(SpeechShared *shared, bool owns_bank)
+      : shared_(shared), owns_bank_(owns_bank) { }
+
+  virtual void Init(stmlib::BufferAllocator *allocator) {
+    sam_speech_synth_.Init();
+    naive_speech_synth_.Init();
+    if (owns_bank_) {
+      shared_->bank.Init(word_banks_, LPC_SPEECH_SYNTH_NUM_WORD_BANKS, allocator);
+    }
+    lpc_speech_synth_controller_.Init(&shared_->bank);
+    temp_buffer_[0] = allocator->Allocate<float>(kMaxBlockSize);
+    temp_buffer_[1] = allocator->Allocate<float>(kMaxBlockSize);
+    prosody_amount_ = 0.0f;
+    speed_ = 0.0f;
+  }
+
+  virtual void Reset() { }
+  virtual void LoadUserData(const uint8_t *) { }
+
+  // A new bank was loaded: leave the word being played, as upstream's
+  // controller does when its own Load() succeeds (it resets the playback
+  // position; Init also restarts the LPC synth, from silence).
+  void RestartPlayback() { lpc_speech_synth_controller_.Init(&shared_->bank); }
+
+  void set_prosody_amount(float prosody_amount) { prosody_amount_ = prosody_amount; }
+  void set_speed(float speed) { speed_ = speed; }
+
+  virtual void Render(const EngineParameters &parameters, float *out, float *aux,
+                      size_t size, bool *already_enveloped) {
+    const float f0 = NoteToFrequency(parameters.note);
+    const float group = parameters.harmonics * 6.0f;
+
+    // Interpolates between the 3 models: naive, SAM, LPC.
+    if (group <= 2.0f) {
+      *already_enveloped = false;
+      float blend = group;
+      if (group <= 1.0f) {
+        naive_speech_synth_.Render(parameters.trigger == TRIGGER_RISING_EDGE, f0,
+                                   parameters.morph, parameters.timbre,
+                                   temp_buffer_[0], aux, out, size);
+      } else {
+        lpc_speech_synth_controller_.Render(
+            parameters.trigger & TRIGGER_UNPATCHED,
+            parameters.trigger & TRIGGER_RISING_EDGE, -1, f0, 0.0f, 0.0f,
+            parameters.morph, parameters.timbre, 1.0f, aux, out, size);
+        blend = 2.0f - blend;
+      }
+      sam_speech_synth_.Render(parameters.trigger == TRIGGER_RISING_EDGE, f0,
+                               parameters.morph, parameters.timbre,
+                               temp_buffer_[0], temp_buffer_[1], size);
+      blend *= blend * (3.0f - 2.0f * blend);
+      blend *= blend * (3.0f - 2.0f * blend);
+      for (size_t i = 0; i < size; ++i) {
+        aux[i] += (temp_buffer_[0][i] - aux[i]) * blend;
+        out[i] += (temp_buffer_[1][i] - out[i]) * blend;
+      }
+    } else {
+      // The bank is already loaded (UpdateWordBank), so the controller's own
+      // Load() finds it current and parses nothing.
+      const int word_bank = shared_->word_bank;
+      const bool replay_prosody = word_bank >= 0 &&
+          !(parameters.trigger & TRIGGER_UNPATCHED);
+      *already_enveloped = replay_prosody;
+      lpc_speech_synth_controller_.Render(
+          parameters.trigger & TRIGGER_UNPATCHED,
+          parameters.trigger & TRIGGER_RISING_EDGE, word_bank, f0,
+          prosody_amount_, speed_, parameters.morph, parameters.timbre,
+          replay_prosody ? parameters.accent : 1.0f, aux, out, size);
+    }
+  }
+
+ private:
+  SpeechShared *shared_;
+  bool owns_bank_;
+  NaiveSpeechSynth naive_speech_synth_;
+  SAMSpeechSynth sam_speech_synth_;
+  LPCSpeechSynthController lpc_speech_synth_controller_;
+  float *temp_buffer_[2];
+  float prosody_amount_;
+  float speed_;
+};
 
 enum Model {
   MODEL_STRING_MACHINE,
@@ -126,14 +231,17 @@ constexpr size_t cmax(size_t a, size_t b) { return a > b ? a : b; }
 const size_t kChordBankBytes = sizeof(float) * kChordNumChords * kChordNumNotes +
                                sizeof(int) * kChordNumChords +
                                sizeof(float) * kChordNumNotes;
+const size_t kSpeechTempBytes = 2 * sizeof(float) * kMaxBlockSize;
 constexpr size_t kArenaNeed[MODEL_COUNT] = {
   // StringMachineEngine: chord bank, then the ensemble's 1024-sample line.
   kChordBankBytes + sizeof(Ensemble::E::T) * 1024,
   // ChordEngine: chord bank.
   kChordBankBytes,
-  // SpeechEngine: LPC word bank (frames, word boundaries), two temp buffers.
+  // SpeechVoiceEngine, voice 0: the shared LPC word bank (frames, word
+  // boundaries), then two temp buffers. Voices 1-3 take the temp buffers only
+  // (ArenaNeed below).
   sizeof(LPCSpeechSynth::Frame) * kLPCSpeechSynthMaxFrames +
-      sizeof(int) * kLPCSpeechSynthMaxWords + 2 * sizeof(float) * kMaxBlockSize,
+      sizeof(int) * kLPCSpeechSynthMaxWords + kSpeechTempBytes,
   // GrainEngine: nothing.
   0,
   // AdditiveEngine: harmonic amplitudes.
@@ -167,9 +275,13 @@ const size_t kArenaBytes = cmax(
 static_assert(MODEL_COUNT == 13, "kArenaBytes covers 13 models");
 static_assert(kArenaBytes == 16384, "the particle engine sets the arena: Plaits' 16 KB");
 
+size_t ArenaNeed(int model, int voice) {
+  return model == MODEL_SPEECH && voice > 0 ? kSpeechTempBytes : kArenaNeed[model];
+}
+
 const size_t kEngineBytes = cmax(
     cmax(cmax(cmax(sizeof(StringMachineEngine), sizeof(ChordEngine)),
-              cmax(sizeof(SpeechEngine), sizeof(GrainEngine))),
+              cmax(sizeof(SpeechVoiceEngine), sizeof(GrainEngine))),
          cmax(cmax(sizeof(AdditiveEngine), sizeof(SwarmEngine)),
               cmax(sizeof(NoiseEngine), sizeof(ParticleEngine)))),
     cmax(cmax(cmax(sizeof(StringEngine), sizeof(ModalEngine)),
@@ -230,9 +342,7 @@ class Instance {
     v->silent_blocks = 0;
     if (!v->active) {
       v->release = 1.0f;
-      // Speech's Reset() only discards its parsed word bank, which Render()
-      // would then parse again inside the audio block; skip it.
-      if (v->engine && model_ != MODEL_SPEECH) v->engine->Reset();
+      if (v->engine) v->engine->Reset();   // speech: nothing, the bank is shared
       v->lpg.Init();
       v->post_out.Init();
       v->post_aux.Init();
@@ -279,11 +389,11 @@ class Instance {
   }
 
  private:
-  Engine *Construct(Voice &v) {
+  Engine *Construct(Voice &v, bool first) {
     switch (model_) {
       case MODEL_STRING_MACHINE: return new (v.engine_mem) StringMachineEngine();
       case MODEL_CHORDS: return new (v.engine_mem) ChordEngine();
-      case MODEL_SPEECH: return new (v.engine_mem) SpeechEngine();
+      case MODEL_SPEECH: return new (v.engine_mem) SpeechVoiceEngine(&speech_, first);
       case MODEL_FORMANT: return new (v.engine_mem) GrainEngine();
       case MODEL_ADDITIVE: return new (v.engine_mem) AdditiveEngine();
       case MODEL_SWARM: return new (v.engine_mem) SwarmEngine();
@@ -299,18 +409,24 @@ class Instance {
 
   void BuildEngines() {
     const ModelInfo &info = kModelInfo[model_];
+    speech_.quantizer.Init(LPC_SPEECH_SYNTH_NUM_WORD_BANKS + 1, 0.1f, false);
+    speech_.word_bank = -1;
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
       // A clean arena, so no engine reads what the previous model left there.
       memset(v.arena, 0, kArenaBytes);
-      Engine *e = Construct(v);
+      // Voice 0 goes first: for speech it allocates the shared word bank.
+      Engine *e = Construct(v, i == 0);
       e->post_processing_settings.already_enveloped = info.already_enveloped;
       e->post_processing_settings.out_gain = info.out_gain;
       e->post_processing_settings.aux_gain = info.aux_gain;
       stmlib::BufferAllocator allocator(v.arena, kArenaBytes);
       e->Init(&allocator);
       // Every Allocate<>() succeeded iff exactly the expected bytes went out.
-      v.engine = (kArenaBytes - allocator.free() == kArenaNeed[model_]) ? e : NULL;
+      // Speech voices all read voice 0's bank, so they stand or fall with it.
+      const bool ok = kArenaBytes - allocator.free() == ArenaNeed(model_, i) &&
+          (model_ != MODEL_SPEECH || i == 0 || voice_[0].engine);
+      v.engine = ok ? e : NULL;
       if (v.engine) {
         v.engine->LoadUserData(NULL);
         v.engine->Reset();
@@ -343,6 +459,26 @@ class Instance {
     return best;
   }
 
+  // Speech: the word bank for this block, as SpeechEngine::Render picks it
+  // (the same quantizer, run only while Harmonics is in the LPC range), but
+  // once for all voices, sounding or not. So a Harmonics move into another
+  // bank costs one parse in the next block, and a note-on never parses. The
+  // bank cannot change twice within a host block, as Harmonics only changes
+  // between render calls.
+  void UpdateWordBank() {
+    if (!voice_[0].engine) return;   // no bank storage
+    const float group = value_[P_HARMONICS] * 6.0f;
+    if (group <= 2.0f) return;
+    speech_.word_bank = speech_.quantizer.Process((group - 2.0f) * 0.275f) - 1;
+    if (speech_.word_bank >= 0 && speech_.bank.Load(speech_.word_bank)) {
+      for (int i = 0; i < kNumVoices; ++i) {
+        if (voice_[i].engine) {
+          static_cast<SpeechVoiceEngine *>(voice_[i].engine)->RestartPlayback();
+        }
+      }
+    }
+  }
+
   void RenderBlock() {
     float mix_l[kBlockSize] = { 0 };
     float mix_r[kBlockSize] = { 0 };
@@ -355,6 +491,7 @@ class Instance {
     const float decay_tail = (20.0f * kBlockSize) / kSampleRate *
         stmlib::SemitonesToRatio(-72.0f * decay + 12.0f * hf) - short_decay;
     const float voice_gain = value_[P_VOLUME] * 0.25f / 32768.0f;
+    if (model_ == MODEL_SPEECH) UpdateWordBank();
 
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
@@ -379,7 +516,7 @@ class Instance {
       p.accent = accent;
 
       if (model_ == MODEL_SPEECH) {
-        SpeechEngine *speech = static_cast<SpeechEngine *>(v.engine);
+        SpeechVoiceEngine *speech = static_cast<SpeechVoiceEngine *>(v.engine);
         speech->set_prosody_amount(0.0f);
         speech->set_speed(value_[P_WORD_SPEED]);
       }
@@ -443,6 +580,7 @@ class Instance {
   }
 
   Voice voice_[kNumVoices];
+  SpeechShared speech_;
   float value_[P_COUNT];
   Model model_;
   float rate_offset_;

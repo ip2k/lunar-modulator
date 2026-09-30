@@ -27,10 +27,10 @@
 //   ignores; on a keyboard the patches then sound in their intended octave.
 // - FMVoice runs at the host's real rate (it takes the rate in Init), so
 //   there is no pitch offset and DX7 envelope times are exact.
-// - A zero-length render with the gate low precedes every note-on, so a
-//   stolen or retriggered voice restarts its envelopes (fm::Voice only sees
-//   a note-on on a gate edge) and a new patch's setup happens then, not as a
-//   silent first block.
+// - Two discarded one-sample renders with the gate low precede every
+//   note-on, so a stolen or retriggered voice restarts its envelopes
+//   (fm::Voice only sees a note-on on a gate edge) and a new patch's setup
+//   happens then, not as a silent first block.
 //
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
@@ -57,7 +57,11 @@ const int kNumPatches = kNumBanks * kPatchesPerBank;
 
 // "<bank> <name>", the names stored in syx_bank_0..2 (plaits/resources.cc,
 // bytes 118..127 of each packed patch, trailing spaces trimmed). The tests
-// re-read resources.cc and check this table against it.
+// re-read resources.cc and check this table against it. Some names carry
+// third-party trademarks or a person's name (FENDER, STEINWAY, *Hammond,
+// *PPG*, FAIRLIGHT, CS 80, JX-33-P, M1 PADS, VANGELIS); the data's origin is
+// unstated (plaits-heavy.md, open issues). Review both before a commercial
+// build.
 const char *const kPatchNames[kNumPatches] = {
   // Bank 1
   "1 SOLID BASS", "1 Mooger Low", "1 LeaderTape", "1 MORHOL TB1",
@@ -175,16 +179,21 @@ class Instance {
     v->active = true;
     lead_ = static_cast<int>(v - voice_);
 
-    // Zero-length renders with the gate low. The first one runs a newly
-    // loaded patch's Setup() (which returns before the envelopes see
-    // anything), so it does not swallow the note's first block; the second
-    // one drops fm::Voice's gate, so the next block is a clean note-on edge
-    // even when this voice was stolen or retriggered while still held.
+    // Two one-sample renders with the gate low, output discarded. The first
+    // runs a newly loaded patch's Setup() (which returns without rendering),
+    // so Setup() does not swallow the note's first block; with no new patch
+    // it is one sample of release. The second drops fm::Voice's gate, so the
+    // next block is a clean note-on edge even when this voice was stolen or
+    // retriggered while still held. One sample, not zero: RenderOperators
+    // divides by the length (operator.h), and a zero-length render divides
+    // by zero, which only a port can do (Plaits never renders 0 samples).
     fm::Voice<6>::Parameters *p = v->fm.mutable_parameters();
     p->gate = false;
     p->sustain = false;
-    v->fm.Render(scratch_, 0);
-    v->fm.Render(scratch_, 0);
+    for (int k = 0; k < 2; ++k) {
+      std::fill(&scratch_[0], &scratch_[3], 0.0f);   // a 1-sample render's buffers
+      v->fm.Render(scratch_, 1);
+    }
     v->gate = true;
   }
 
@@ -318,8 +327,8 @@ void Render(void *s, float *out, uint32_t n) { static_cast<Instance *>(s)->Rende
 extern "C" const fm1_engine_t fm1_engine_sixop = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND,
   "sixop", "Six-Op FM",
-  "Six-operator FM engine and DX7 patch banks from Mutable Instruments Plaits "
-  "by Emilie Gillet (MIT)",
+  "Six-operator FM engine from Mutable Instruments Plaits by Emilie Gillet "
+  "(MIT); DX7 patch banks as distributed with Plaits",
   fm1::sixop::kParams, fm1::sixop::P_COUNT, fm1::sixop::kNumVoices,
   fm1::sixop::InstanceSize, fm1::sixop::Create, fm1::sixop::Destroy,
   fm1::sixop::NoteOn, fm1::sixop::NoteOff, fm1::sixop::Bend,

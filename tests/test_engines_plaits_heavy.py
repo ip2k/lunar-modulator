@@ -265,6 +265,38 @@ def test_sixop_stolen_held_voice_attacks_again(renderer, tmp_path):
     assert after > 1e-3 and after > 10 * before
 
 
+@pytest.mark.parametrize("patch", [32, 49])   # 2 E.PIANO 1, 2 MARIMBA: fast attacks
+def test_sixop_note_sounds_from_its_first_block(renderer, tmp_path, patch):
+    """fm::Voice spends the first render after a patch is loaded on Setup()
+    and renders nothing. The wrapper runs that render at note-on, so a note on
+    a newly loaded patch sounds from its first 16-sample block rather than
+    starting with a blank one (which would read exactly 0 here)."""
+    _, left, _ = render(renderer, tmp_path, "sixop", params=[f"Patch={patch}"],
+                        notes=["0:69:127:0.05"], seconds=0.05)
+    assert max(abs(x) for x in left[:16]) > 0.01
+
+
+def test_speech_voices_all_read_the_shared_word_bank(renderer, tmp_path):
+    """The speech voices share one word bank, allocated in voice 0's arena
+    (mi_macro_heavy.cc). A four-note chord in word mode uses all four voices;
+    each must speak, so the chord carries about the energy of the four notes
+    rendered one at a time (each of those on voice 0). A voice without the
+    bank would be disabled and silent, leaving about half of it."""
+    params = ["Model=2", "Harmonics=0.9", "Morph=0.4"]
+    keys = [57, 60, 64, 67]
+    singles = []
+    for k in keys:
+        _, left, _ = render(renderer, tmp_path, "macro-heavy", params=params,
+                            notes=[f"0:{k}:100:1.0"], seconds=1.0, name=f"one{k}")
+        singles.append(left)
+    summary, chord, _ = render(renderer, tmp_path, "macro-heavy", params=params,
+                               notes=[f"0:{k}:100:1.0" for k in keys], seconds=1.0,
+                               name="chord")
+    assert summary["nonfinite"] == 0 and summary["clipped"] == 0
+    total = [sum(s) for s in zip(*singles)]
+    assert rms(chord, 0.0, 0.8) > 0.8 * rms(total, 0.0, 0.8)
+
+
 def last_loud(samples, threshold=0.005):
     for i in range(len(samples) - 1, -1, -1):
         if abs(samples[i]) > threshold:
@@ -315,9 +347,9 @@ def test_instance_sizes_are_bounded(renderer, tmp_path):
     heavy, _, _ = render(renderer, tmp_path, "macro-heavy", seconds=0.1)
     sixop, _, _ = render(renderer, tmp_path, "sixop", seconds=0.1)
     # Macro Heavy: four voices, each with a 16 KB arena (the particle engine's
-    # diffuser alone takes all of it). 68,640 B on a 64-bit host, 68,448 B on
+    # diffuser alone takes all of it). 68,512 B on a 64-bit host, 68,304 B on
     # 32-bit targets (plaits-heavy.md).
     assert heavy["instance_bytes"] < 70_000
-    # Six-Op FM: eight FMVoices plus one shared algorithm table. 11,312 B on a
-    # 64-bit host, 9,576 B on 32-bit targets.
+    # Six-Op FM: eight FMVoices plus one shared algorithm table. 11,304 B on a
+    # 64-bit host, 9,572 B on 32-bit targets.
     assert sixop["instance_bytes"] < 12_000
