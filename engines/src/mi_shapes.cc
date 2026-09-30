@@ -9,6 +9,16 @@
 // voice gets a simple attack/release envelope; Strike() on note-on excites the
 // physical and percussive models.
 //
+// The oscillators always render exactly 24 samples at a time, Braids' own
+// block (braids.cc kBlockSize), whatever the host block size; the mix is
+// buffered out across host calls, as the Macro wrapper does with Plaits'
+// 12-sample blocks. Several shapes advance once per block rather than per
+// sample, so 64-frame host blocks rendered as 24 + 24 + 16 made the struck
+// models decay 9-16 % faster than upstream and moved the analog, comb, vowel,
+// wave-line and granular shapes off upstream's output
+// (engines/reference-braids-fx.md). Note events land at the next 24-sample
+// boundary.
+//
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
@@ -75,6 +85,8 @@ class Instance {
     clock_ = 0;
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
     memset(sync_, 0, sizeof(sync_));
+    memset(mix_, 0, sizeof(mix_));
+    pending_ = 0;
     for (int i = 0; i < kNumVoices; ++i) {
       voice_[i].osc.Init();
       voice_[i].env = 0.0f;
@@ -111,7 +123,27 @@ class Instance {
     if (index == P_SHAPE) ApplyShape();
   }
 
+  // Hands out the buffered mix, rendering a new 24-sample chunk whenever the
+  // last one is used up, so the oscillators never see another block size.
   void Render(float *out_lr, uint32_t frames) {
+    while (frames) {
+      if (!pending_) {
+        RenderChunk();
+        pending_ = kChunk;
+      }
+      const size_t take = frames < pending_ ? frames : pending_;
+      const float *src = &mix_[kChunk - pending_];
+      for (size_t s = 0; s < take; ++s) {
+        out_lr[2 * s] = out_lr[2 * s + 1] = src[s];
+      }
+      out_lr += 2 * take;
+      frames -= static_cast<uint32_t>(take);
+      pending_ -= take;
+    }
+  }
+
+ private:
+  void RenderChunk() {
     // Per-sample envelope coefficients (one-pole towards the target).
     const float attack = 1.0f - expf(-1.0f / (KnobSeconds(value_[P_ATTACK]) * rate_));
     const float release = 1.0f - expf(-1.0f / (KnobSeconds(value_[P_RELEASE]) * rate_));
@@ -119,36 +151,30 @@ class Instance {
     const int16_t timbre = static_cast<int16_t>(value_[P_TIMBRE] * 32767.0f);
     const int16_t color = static_cast<int16_t>(value_[P_COLOR] * 32767.0f);
 
-    while (frames) {
-      size_t n = frames < kChunk ? frames : kChunk;
-      float mix[kChunk] = { 0 };
-      for (int i = 0; i < kNumVoices; ++i) {
-        Voice &v = voice_[i];
-        if (!v.active) continue;
-        float note = v.key + bend_ + pitch_offset_;
-        int32_t pitch = static_cast<int32_t>(note * 128.0f);
-        if (pitch < 0) pitch = 0;
-        if (pitch > 32767) pitch = 32767;
-        v.osc.set_pitch(static_cast<int16_t>(pitch));
-        v.osc.set_parameters(timbre, color);
-        v.osc.Render(sync_, v.pcm, n);
-        const float target = v.gate ? v.velocity : 0.0f;
-        const float k = v.gate ? attack : release;
-        for (size_t s = 0; s < n; ++s) {
-          v.env += (target - v.env) * k;
-          mix[s] += v.pcm[s] * v.env * gain;
-        }
-        if (!v.gate && v.env < 1e-4f) v.active = false;
+    // Mixed on the stack, then stored: accumulating straight into mix_ lets
+    // the compiler assume it aliases v.env: 26-55 % more time on the desktop.
+    float mix[kChunk] = { 0 };
+    for (int i = 0; i < kNumVoices; ++i) {
+      Voice &v = voice_[i];
+      if (!v.active) continue;
+      float note = v.key + bend_ + pitch_offset_;
+      int32_t pitch = static_cast<int32_t>(note * 128.0f);
+      if (pitch < 0) pitch = 0;
+      if (pitch > 32767) pitch = 32767;
+      v.osc.set_pitch(static_cast<int16_t>(pitch));
+      v.osc.set_parameters(timbre, color);
+      v.osc.Render(sync_, v.pcm, kChunk);
+      const float target = v.gate ? v.velocity : 0.0f;
+      const float k = v.gate ? attack : release;
+      for (size_t s = 0; s < kChunk; ++s) {
+        v.env += (target - v.env) * k;
+        mix[s] += v.pcm[s] * v.env * gain;
       }
-      for (size_t s = 0; s < n; ++s) {
-        out_lr[2 * s] = out_lr[2 * s + 1] = mix[s];
-      }
-      out_lr += 2 * n;
-      frames -= n;
+      if (!v.gate && v.env < 1e-4f) v.active = false;
     }
+    memcpy(mix_, mix, sizeof(mix_));
   }
 
- private:
   void ApplyShape() {
     int s = static_cast<int>(value_[P_SHAPE] + 0.5f);
     for (int i = 0; i < kNumVoices; ++i) {
@@ -176,6 +202,8 @@ class Instance {
 
   Voice voice_[kNumVoices];
   uint8_t sync_[kChunk];
+  float mix_[kChunk];              // the current chunk, handed out by Render
+  size_t pending_;                 // samples of mix_ not yet handed out
   float value_[P_COUNT];
   float rate_;
   float pitch_offset_;
