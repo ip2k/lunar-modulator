@@ -58,6 +58,8 @@ engine's `credits` string and named without MI's trademarks
 | `--input silence\|impulse\|noise\|sine` | The source when there is no sound engine |
 | `--fx ID [--fx-param NAME=VALUE]...` | Effects, applied in order after the source |
 | `--frames N`, `--rate HZ` | Host block and rate (64 and 44,118 by default) |
+| `--bend T:SEMITONES` | A pitch-bend event (finite, within ±48), at a block boundary like notes |
+| `--param-at T:NAME=VALUE` | Turn a sound engine's parameter during the render |
 | `--fill BYTE` | What instance memory holds before `create`; every engine must render byte-identically from any fill |
 | `--fault T[..T1]:VALUE` | Overwrite the bus after the source with `nan`, `inf` or any value, for one frame or a span, to test recovery |
 
@@ -173,9 +175,9 @@ diffuser at their native rates. The tests render both sides and compare
 The comparison checks our wrappers. The engine DSP is the same object code on
 both sides, so a test pins the 129 vendored Plaits files it compiles by hash.
 Reviewers mutation-tested both lanes: 50 of 51 Plaits mutants and all but one
-Braids/effects mutant now fail a test. The survivors are a Six-Op envelope
-block change inside the intended tolerance, and pitch bend, which the
-renderer cannot yet script.
+Braids/effects mutant now fail a test. The one survivor is a Six-Op
+envelope block change inside the intended tolerance; the other, Shapes
+ignoring pitch bend, fails the bend tests since the renderer gained `--bend`.
 
 It found one real bug: **Shapes split each 64-frame host block into 24 + 24 +
 16** while Braids only ever renders 24. Twenty-two shapes drifted (Bell and
@@ -205,9 +207,9 @@ and damping, keeping decay within 3–4 %.
 - **Six-Op's polarity** is inverted relative to Macro and Macro Heavy
   against the same upstream output words. Harmless alone; worth making
   consistent before engines are layered or crossfaded.
-- **Host features the streams asked for:** pitch-bend events (`--bend`, to
-  close the last Braids mutant), a random seed (`--seed`), timed parameter
-  changes (`--param-at`), an active-voice diagnostic so voice freeing can be tested
+- **Host features the streams asked for:** a random seed (`--seed`; stmlib's
+  generator is a global in vendored code, so the host cannot seed it without
+  depending on one library), an active-voice diagnostic so voice freeing can be tested
   without timing, parameter smoothing (host or engine), and a reset call so
   effects can drop their tails without re-creating a 64 KB instance. Also a
   per-file SHA-256 manifest from `vendor.py`, so a test can pin the whole
