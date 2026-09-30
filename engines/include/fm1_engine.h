@@ -94,7 +94,8 @@ typedef struct fm1_engine {
 
   void (*note_on)(void *self, uint8_t key, uint8_t velocity);   /* NULL for FX */
   void (*note_off)(void *self, uint8_t key);                     /* NULL for FX */
-  void (*pitch_bend)(void *self, float semitones);   /* may be NULL */
+  void (*pitch_bend)(void *self, float semitones);   /* may be NULL; the host
+                                   * passes finite values within +/-48 */
   void (*set_param)(void *self, uint16_t index, float value);
   void (*render)(void *self, float *out_lr, uint32_t frames);
 } fm1_engine_t;
