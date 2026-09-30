@@ -98,26 +98,26 @@ upstream candidate). Our own code gets none.
   ±5 cents at A2, A4 and A6 at 44,118 Hz without touching their sources.
   Effects written for 48 kHz get their loop gains and damping rescaled; their
   delay lengths and LFOs run 8–9 % long and slow (mi-fx.md).
-- **Memory decides the voice caps.** Instance sizes on the 64-bit desktop
-  (the CI job prints the 32-bit figures, which are smaller for engines with
-  pointer tables):
+- **Memory decides the voice caps.** Instance sizes, on the 64-bit desktop
+  and on a 32-bit (`-m32`) build like pi32v2's [verified: CI's 32-bit job on
+  PR #6]:
 
-  | Engine | Bytes | Why |
-  | --- | --- | --- |
-  | Shapes, 12 voices | 205,696 | each Braids oscillator carries ~17 KB of physical-model state |
-  | PSX Verb | 134,224 | a fixed 128 KB work area, as upstream |
-  | Sophie, 12 voices | 77,904 | ring delays per voice |
-  | Macro Heavy, 4 voices | 68,512 | ~17 KB per voice (Particle and String arenas) |
-  | Plate | 65,648 | 32,768 16-bit delay words, as Rings |
-  | Macro, 12 voices | 30,496 | about 18 KB on 32-bit |
-  | Diffuse | 18,848 | |
-  | Six-Op FM, 8 voices | 11,304 | |
-  | Ensemble | 4,704 | |
+  | Engine | 64-bit bytes | 32-bit bytes | Why |
+  | --- | --- | --- | --- |
+  | Shapes, 12 voices | 205,696 | 204,832 | each Braids oscillator carries ~17 KB of physical-model state |
+  | PSX Verb | 134,224 | 134,208 | a fixed 128 KB work area, as upstream |
+  | Sophie, 12 voices | 77,904 | 77,888 | ring delays per voice |
+  | Macro Heavy, 4 voices | 68,512 | 68,304 | ~17 KB per voice (Particle and String arenas) |
+  | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
+  | Macro, 12 voices | 30,496 | 17,616 | mostly pointer tables, which halve on 32-bit |
+  | Diffuse | 18,848 | 18,848 | |
+  | Six-Op FM, 8 voices | 11,304 | 9,572 | |
+  | Ensemble | 4,704 | 4,704 | |
 
   The stock layout leaves a gap of 387,924 bytes, part of it stock's heap
   (docs/11 §2, [inferred]). Most engine-plus-two-effects chains fit in it;
   Shapes at 12 voices takes more than half on its own, and Shapes with PSX
-  Verb and Plate (405,568 bytes) does not fit. Shapes needs a lower cap on the
+  Verb and Plate (404,672 bytes on 32-bit) does not fit. Shapes needs a lower cap on the
   FM-1, or its physical-model shapes split into a smaller engine.
 - **Host contracts, now tested for every engine** (tests/test_engine_host.py):
   output does not depend on instance memory's prior contents; any
