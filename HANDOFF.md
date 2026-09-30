@@ -134,8 +134,15 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
    against V15 (note §3; the package stays in `scratch/`). Still the owner's
    call: (b) whether to contact Baud Girl about the FINDINGS document and
    emulator; (c) whether AL-255's thread should hear about the same-version
-   finding (oss-contributions rules). The owner installed FM-1+VA on the unit
-   themselves; docs/07 §4 still governs this project's own images.
+   finding (oss-contributions rules); drafts for both are in `scratch/drafts/`,
+   unsent. The owner installed FM-1+VA on the unit themselves; docs/07 §4
+   still governs this project's own images.
+7. **Engine / plugin platform (docs/11, 2026-09-29).** The feasibility report
+   says: Schwung modules from source through a shim (subset), Mutable
+   Instruments engines first (Plaits' light engines, Braids), and a static
+   engine registry before any loader. Next is stage A, the desktop engine API
+   and MI ports, which needs no hardware. Stage B, the pi32v2 benchmark and a
+   `-fPIC` test, wants the AC79 dev board from item 4.
 
 ## 6. Reference material already gathered (clone these locally)
 

@@ -50,10 +50,13 @@ Movy is unusually well documented (`DESIGN.md`, `MANUAL.md`, `CONVENTIONS.md`,
 `CHANGELOG.md`, `plans/`), and much of it is a specification an FM-1 firmware
 could implement in C:
 
-1. **The 8-knob parameter-page model.** Movy lays a module's parameter tree out
+1. **The parameter-page model.** Movy lays a module's parameter tree out
    as pages of eight knobs with typed cells (arc knob, enum list, fader,
-   switch, envelope graphic, filter curve). The FM-1 has exactly eight knobs and
-   a colour screen with far more pixels than Move's OLED. A DX7 voice has 6×21
+   switch, envelope graphic, filter curve). The FM-1 has eight knobs, but only
+   four of them (KNOB1–4) are free for parameters; MASTER is volume and
+   SELECT/ALGORITHM/PRESETS navigate (corrected 2026-09-29), so a Movy page
+   becomes two FM-1 pages of four. Its colour screen has far more pixels than
+   Move's OLED. A DX7 voice has 6×21
    operator parameters plus 19 globals; Movy's page/cell scheme is a ready-made
    answer to "how do you edit 145 parameters on eight knobs".
 2. **Sequencer semantics as a spec.** Clips with length/scale/transpose; steps
@@ -77,7 +80,14 @@ handles Dexed `.syx` banks. The FM-1 runs the same msfa engine and imports the
 same 32-voice DX7 SysEx banks. The two devices can share sounds today; an open
 FM-1 firmware should keep that.
 
-## 5. Recommendation
+## 5. Update 2026-09-29: a Schwung-style platform
+
+Schwung's *modules* are a different question from Schwung itself. Their DSP
+contract is three plain C structs at 44.1 kHz, and about 22 MIT and GPL
+modules look portable from source through a shim. Mutable Instruments' MIT
+code is the stronger candidate for engines. See docs/11.
+
+## 6. Recommendation
 
 Do not attempt a port. Treat Movy as the design reference for the FM-1's UI and
 sequencer, write the FM-1 firmware in C/C++ against the vendor SDK (docs/05),
