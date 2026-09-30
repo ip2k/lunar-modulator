@@ -1,0 +1,327 @@
+// mi_sixop.cc -- "Six-Op FM": a polyphonic six-operator FM engine built from
+// Mutable Instruments Plaits' six-op engine (code by Emilie Gillet, MIT;
+// vendored in third_party/mutable), playing the three DX7 banks Plaits ships
+// in its resources (fm_patches_table).
+//
+// Plaits' SixOpEngine is a mono engine with two FMVoices of its own
+// (kNumSixOpVoices = 2): each trigger moves to the other one so the previous
+// note can ring out, and it renders them staggered, one voice for two blocks
+// per call. Here the outer voice allocator does that job instead: each FM-1
+// voice is one Plaits FMVoice (fm::Voice<6> plus its LFO) with its own
+// unpacked patch, all sharing one fm::Algorithms<6> table. That costs one FM
+// voice of CPU per sounding note instead of two, and ~0.8 KB of RAM per voice
+// instead of a whole SixOpEngine (~11 KB with its arena) per voice.
+//
+// What is kept from SixOpEngine::Render (triggered mode, TRIG patched):
+// TIMBRE is brightness (modulator levels), MORPH is the envelope control
+// (attack/decay and release time scaling), the level's compressed accent is
+// the velocity, the output is SoftClip(x * 0.25) with Plaits' out gain 1.0 and
+// no low-pass gate (the engine is registered already_enveloped), and the LFO:
+// the most recently triggered voice's LFO runs, voices on the same patch
+// follow it, voices still sounding another patch run their own.
+// What differs:
+// - HARMONICS' patch scan (a hysteresis quantizer over 32 patches of one
+//   bank) becomes one "Patch" list of all 96 patches, named "<bank> <name>"
+//   from the patch data, because the FM-1 picks from lists with an encoder.
+// - The patch's own transpose (DX7 "C3" = 24) is applied, which Plaits
+//   ignores; on a keyboard the patches then sound in their intended octave.
+// - FMVoice runs at the host's real rate (it takes the rate in Init), so
+//   there is no pitch offset and DX7 envelope times are exact.
+// - A zero-length render with the gate low precedes every note-on, so a
+//   stolen or retriggered voice restarts its envelopes (fm::Voice only sees
+//   a note-on on a gate edge) and a new patch's setup happens then, not as a
+//   silent first block.
+//
+// MIT licence (this file). Not affiliated with or endorsed by Mutable
+// Instruments; engine names here are our own (docs/11 §7).
+
+#include "fm1_engine.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <new>
+
+#include "stmlib/dsp/dsp.h"
+#include "plaits/dsp/engine2/six_op_engine.h"
+#include "plaits/resources.h"
+
+namespace fm1 {
+namespace sixop {
+
+using namespace plaits;
+
+const int kNumBanks = 3;
+const int kPatchesPerBank = 32;
+const int kNumPatches = kNumBanks * kPatchesPerBank;
+
+// "<bank> <name>", the names stored in syx_bank_0..2 (plaits/resources.cc,
+// bytes 118..127 of each packed patch, trailing spaces trimmed). The tests
+// re-read resources.cc and check this table against it.
+const char *const kPatchNames[kNumPatches] = {
+  // Bank 1
+  "1 SOLID BASS", "1 Mooger Low", "1 LeaderTape", "1 MORHOL TB1",
+  "1 BASS    3", "1 BILL BASS", "1 BASS    1", "1 ELEC BASS",
+  "1 S.BAS 27.7", "1 RESONANCES", "1 SYN-BASS 2", "1 PRC SYNTH1",
+  "1 CROMA 2", "1 ANALOG  4", "1 ANALOG A", "1 ANALOG  6",
+  "1 CS 80", "1 INSERT 1", "1 SPIRAL", "1 DX-TROTT",
+  "1 GASHAUS", "1 RING DING", "1 PAPAGAYO", "1 WINEGLASS",
+  "1 AMYTAL", "1 FAIRLIGHT", "1 *PPG*Vol.1", "1 *PPG*Vol.2",
+  "1 *Fairl. 3", "1 *Vocoder 2", "1 *Sequence", "1 Bounce 4",
+  // Bank 2
+  "2 E.PIANO 1", "2 FENDER 1", "2 WINTRHODES", "2 RS-EP C",
+  "2 *Mark III", "2 CLAV-E.PNO", "2 SYN-CLAV", "2 CLAVINET",
+  "2 PIANO   5", "2 GRD PIANO1", "2 STEINWAY", "2 GUIT ACOUS",
+  "2 SITAR", "2 KOTO", "2 HARPSICH 1", "2 CLAV    3",
+  "2 XYLOPHONE", "2 MARIMBA", "2 VIBE    1", "2 GLOKENSPL",
+  "2 BELL C", "2 BELLS", "2 TUB BELLS", "2 GONG    2",
+  "2 KETTLE 6", "2 MID DRM 3", "2 ORI DRUM 1", "2 WOOD 6",
+  "2 LATN DRM 4", "2 CIMBAL", "2 SYNDM 25.8", "2 B.DRM-SNAR",
+  // Bank 3
+  "3 CLICK 124", "3 *Hammond 1", "3 E.ORGAN 3", "3 60-S ORGAN",
+  "3 OPTIC 28", "3 PIPES   1", "3 PIPES   3", "3 PIPES   2",
+  "3 JX-33-P", "3 SOUNDTRACK", "3 ICE PAD  2", "3 M1 PADS",
+  "3 CARLOS   2", "3 SOFT TOUCH", "3 *Planets", "3 CIRRUS",
+  "3 ENTRIX", "3 MAL POLY", "3 Textures 6", "3 Etherial5a",
+  "3 'Airy'", "3 BORON A", "3 VANGELIS 1", "3 STRINGS C",
+  "3 STRINGS 3", "3 STRINGS 2", "3 STRINGS 7", "3 FULL STRIN",
+  "3 SYN-ORCH", "3 BRASS   1", "3 BRASS 6 BC", "3 BR TRUMPET",
+};
+
+enum Param { P_PATCH, P_BRIGHTNESS, P_ENVELOPE, P_VOLUME, P_COUNT };
+
+// Brightness 0.5 plays the modulator levels as programmed. Envelope has no
+// neutral point in Plaits: attack/decay rates scale by 2^((0.5 - e) * 8) and
+// release rates by 2^(-|e - 0.3| * 8), so the default 0.5 plays attacks and
+// decays as programmed with releases about three times longer.
+
+const fm1_param_t kParams[P_COUNT] = {
+  { "Patch",      FM1_PARAM_ENUM,  0, kNumPatches - 1, 32, kPatchNames, 0 },  // E.PIANO 1
+  { "Brightness", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },  // Plaits' TIMBRE
+  { "Envelope",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },  // Plaits' MORPH
+  { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1 },
+};
+
+// Eight voices. The FM-1's stock msfa plays 12 six-op voices plus effects on
+// one pi32v2 core, in fixed point with its hot loops in RAM; Plaits' float
+// operators should be of the same order per voice [inferred], and eight
+// leaves room for the effect chain. RAM is no constraint (~0.8 KB a voice).
+// On the desktop eight voices cost half of Macro's twelve; stage B measures
+// the chip, and twelve is a one-line change if it allows.
+const int kNumVoices = 8;
+const size_t kBlock = 16;         // envelope/LFO update interval, divides 64
+const size_t kPatchBytes = fm::Patch::SYX_SIZE;
+
+// A voice is freed once its key is up and its output has stayed below the
+// silence threshold for 50 ms. Held voices are never freed, even when silent
+// (sustain level zero): a DX7 attack can be slow enough to stay under the
+// threshold for seconds.
+const float kSilentAfterRelease = 0.05f;
+const float kSilence = 1e-4f;     // -80 dBFS of the voice's own full scale
+
+struct Voice {
+  FMVoice fm;
+  fm::Patch patch;                // this voice's unpacked copy
+  int patch_index;                // what `patch` holds, -1 = nothing yet
+  uint32_t silent_blocks;
+  float note_offset;              // the patch's transpose, semitones
+  uint8_t key;
+  float velocity;
+  bool gate;
+  bool active;
+  uint32_t age;
+};
+
+class Instance {
+ public:
+  void Init(const fm1_host_t *host) {
+    algorithms_.Init();
+    for (int i = 0; i < kNumVoices; ++i) {
+      Voice &v = voice_[i];
+      v.fm.Init(&algorithms_, host->sample_rate);
+      v.patch_index = -1;
+      v.silent_blocks = 0;
+      v.note_offset = 0.0f;
+      v.gate = v.active = false;
+      v.age = 0;
+    }
+    const float blocks_per_second = host->sample_rate / kBlock;
+    silent_after_release_ = static_cast<uint32_t>(kSilentAfterRelease * blocks_per_second);
+    for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
+    bend_ = 0.0f;
+    lead_ = -1;
+    clock_ = 0;
+    pending_ = 0;
+  }
+
+  void NoteOn(uint8_t key, uint8_t velocity) {
+    if (velocity == 0) { NoteOff(key); return; }
+    Voice *v = Allocate(key);
+    const int index = static_cast<int>(value_[P_PATCH] + 0.5f);
+    if (v->patch_index != index) {
+      v->fm.UnloadPatch();        // LoadPatch() ignores a pointer it already has
+      const int bank = index / kPatchesPerBank;
+      const int slot = index % kPatchesPerBank;
+      v->patch.Unpack(fm_patches_table[bank] + slot * kPatchBytes);
+      v->patch_index = index;
+      v->note_offset = static_cast<float>(v->patch.transpose) - 24.0f;
+    }
+    v->fm.LoadPatch(&v->patch);
+    v->fm.mutable_lfo()->Reset();
+    v->key = key;
+    v->velocity = velocity / 127.0f;
+    v->age = ++clock_;
+    v->silent_blocks = 0;
+    v->active = true;
+    lead_ = static_cast<int>(v - voice_);
+
+    // Zero-length renders with the gate low. The first one runs a newly
+    // loaded patch's Setup() (which returns before the envelopes see
+    // anything), so it does not swallow the note's first block; the second
+    // one drops fm::Voice's gate, so the next block is a clean note-on edge
+    // even when this voice was stolen or retriggered while still held.
+    fm::Voice<6>::Parameters *p = v->fm.mutable_parameters();
+    p->gate = false;
+    p->sustain = false;
+    v->fm.Render(scratch_, 0);
+    v->fm.Render(scratch_, 0);
+    v->gate = true;
+  }
+
+  void NoteOff(uint8_t key) {
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].gate && voice_[i].key == key) voice_[i].gate = false;
+    }
+  }
+
+  void PitchBend(float semitones) { bend_ = semitones; }
+
+  void SetParam(uint16_t index, float value) {
+    if (index >= P_COUNT) return;
+    const fm1_param_t &p = kParams[index];
+    if (!(value >= p.min)) value = p.min;  // also catches NaN
+    if (value > p.max) value = p.max;
+    value_[index] = value;
+  }
+
+  void Render(float *out_lr, uint32_t frames) {
+    while (frames) {
+      if (!pending_) {
+        RenderBlock();
+        pending_ = kBlock;
+      }
+      size_t take = frames < pending_ ? frames : pending_;
+      const float *src = &block_[2 * (kBlock - pending_)];
+      memcpy(out_lr, src, take * 2 * sizeof(float));
+      out_lr += 2 * take;
+      frames -= take;
+      pending_ -= take;
+    }
+  }
+
+ private:
+  Voice *Allocate(uint8_t key) {
+    Voice *best = NULL;
+    for (int i = 0; i < kNumVoices; ++i) {   // same key: retrigger in place
+      if (voice_[i].active && voice_[i].key == key) return &voice_[i];
+    }
+    for (int i = 0; i < kNumVoices; ++i) {   // a free voice
+      if (!voice_[i].active) return &voice_[i];
+    }
+    for (int i = 0; i < kNumVoices; ++i) {   // else the oldest released, else the oldest
+      Voice *v = &voice_[i];
+      if (!best || (!v->gate && best->gate) ||
+          (v->gate == best->gate && v->age < best->age)) {
+        best = v;
+      }
+    }
+    return best;
+  }
+
+  void RenderBlock() {
+    float mix[kBlock] = { 0 };
+    const float gain = value_[P_VOLUME] * 0.25f;
+    Voice *lead = lead_ >= 0 ? &voice_[lead_] : NULL;
+    if (lead) lead->fm.mutable_lfo()->Step(static_cast<float>(kBlock));
+
+    for (int i = 0; i < kNumVoices; ++i) {
+      Voice &v = voice_[i];
+      if (!v.active) continue;
+
+      // Velocity as Plaits derives its accent from LEVEL. fm::NormalizeVelocity
+      // reads lut_cube_root[16 * velocity + 1], one past the table at exactly
+      // 1.0, so stay just below it.
+      float accent = 1.3f * v.velocity / (0.3f + v.velocity);
+      if (accent > 0.9999f) accent = 0.9999f;
+
+      fm::Voice<6>::Parameters *p = v.fm.mutable_parameters();
+      p->sustain = false;
+      p->gate = v.gate;
+      p->note = v.key + v.note_offset + bend_;
+      p->velocity = accent;
+      p->brightness = value_[P_BRIGHTNESS];
+      p->envelope_control = value_[P_ENVELOPE];
+      if (lead && &v != lead && v.patch_index != lead->patch_index) {
+        v.fm.mutable_lfo()->Step(static_cast<float>(kBlock));
+        v.fm.set_modulations(v.fm.lfo());
+      } else if (lead) {
+        v.fm.set_modulations(lead->fm.lfo());
+      }
+
+      // fm::Voice mixes its carriers into the first kBlock samples and uses
+      // the next 2 * kBlock as operator scratch.
+      std::fill(&scratch_[0], &scratch_[kBlock], 0.0f);
+      v.fm.Render(scratch_, kBlock);
+
+      bool silent = true;
+      for (size_t n = 0; n < kBlock; ++n) {
+        const float s = stmlib::SoftClip(scratch_[n] * 0.25f);
+        if (s > kSilence || s < -kSilence) silent = false;
+        mix[n] += s * gain;
+      }
+      v.silent_blocks = (silent && !v.gate) ? v.silent_blocks + 1 : 0;
+      if (v.silent_blocks > silent_after_release_) v.active = false;
+    }
+    for (size_t n = 0; n < kBlock; ++n) block_[2 * n] = block_[2 * n + 1] = mix[n];
+  }
+
+  fm::Algorithms<6> algorithms_;  // shared, read-only after Init
+  Voice voice_[kNumVoices];
+  float scratch_[3 * kBlock];
+  float value_[P_COUNT];
+  float bend_;
+  int lead_;                      // most recently triggered voice, drives the LFO
+  uint32_t silent_after_release_;
+  uint32_t clock_;
+  float block_[2 * kBlock];
+  size_t pending_;
+};
+
+size_t InstanceSize(const fm1_host_t *) { return sizeof(Instance); }
+
+void *Create(void *mem, const fm1_host_t *host) {
+  Instance *self = new (mem) Instance();
+  self->Init(host);
+  return self;
+}
+
+void Destroy(void *self) { static_cast<Instance *>(self)->~Instance(); }
+void NoteOn(void *s, uint8_t k, uint8_t v) { static_cast<Instance *>(s)->NoteOn(k, v); }
+void NoteOff(void *s, uint8_t k) { static_cast<Instance *>(s)->NoteOff(k); }
+void Bend(void *s, float st) { static_cast<Instance *>(s)->PitchBend(st); }
+void Set(void *s, uint16_t i, float v) { static_cast<Instance *>(s)->SetParam(i, v); }
+void Render(void *s, float *out, uint32_t n) { static_cast<Instance *>(s)->Render(out, n); }
+
+}  // namespace sixop
+}  // namespace fm1
+
+extern "C" const fm1_engine_t fm1_engine_sixop = {
+  FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND,
+  "sixop", "Six-Op FM",
+  "Six-operator FM engine and DX7 patch banks from Mutable Instruments Plaits "
+  "by Emilie Gillet (MIT)",
+  fm1::sixop::kParams, fm1::sixop::P_COUNT, fm1::sixop::kNumVoices,
+  fm1::sixop::InstanceSize, fm1::sixop::Create, fm1::sixop::Destroy,
+  fm1::sixop::NoteOn, fm1::sixop::NoteOff, fm1::sixop::Bend,
+  fm1::sixop::Set, fm1::sixop::Render,
+};
