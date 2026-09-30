@@ -199,9 +199,19 @@ and damping, keeping decay within 3–4 %.
   name, and the banks' origin is not stated upstream. Harmless for a
   personal build; for anything distributed, rename or drop them
   (plaits-heavy.md, "The patch data").
-- **Shapes at the FM-1 rate:** render Braids at 96 kHz and decimate (about
-  2.2 times the CPU) so struck shapes decay as on the module, or accept the
-  longer rings. Also its memory: a voice cap for the FM-1 build, or a split.
+- **Shapes at the FM-1 rate:** Braids' time constants are per sample at
+  96 kHz, so at 44,118 Hz struck shapes ring 1.6–2.8 times as long. Options:
+  - accept it;
+  - run Braids at 96 kHz and resample by 96,000/44,118, a fractional ratio;
+  - run Braids at twice the host rate (88,236 Hz) and decimate by 2 with a
+    half-band filter: decays within 8 % of the module, like Plaits'
+    envelopes, and a cheap integer decimator.
+
+  Either oversampled option costs about 2.2 times Shapes' CPU [verified,
+  desktop: 12 voices take 3.2–5.7 ms per second of audio at 44,118 Hz and
+  5.6–12.8 ms at 96 kHz, shapes 0, 12, 26, 33, 40; the ratio is 1.56 for
+  CSaw and 2.17–2.24 for the others]. Also its memory: a voice cap for the
+  FM-1 build, or a split.
 - **Plaits at the FM-1 rate:** per-model TIMBRE offsets for the noise,
   particle and swarm rates (reference-plaits.md suggests them).
 - **Six-Op's polarity** is inverted relative to Macro and Macro Heavy
