@@ -341,6 +341,21 @@ about 90 KB [inferred], sent in chunks. Flash last: a binary image of about
 
 ## 10. Open questions
 
+**The owner's answers (2026-10-01):**
+
+1. **Deviations:** fix everything we can. D1–D7 are the defaults; `compat`
+   exists only for tests against Movy.
+2. **Tracks:** 4–8 tracks, each with configurable routing (an engine, or
+   USB-MIDI on a channel) where possible.
+3. **Budget:** with fewer tracks it should be about half of §5's 72 KiB.
+   Measure it: the M1 tests assert `fm1_seq_size()` for 4 and 8 tracks.
+4. **Oracle:** approved. Build and run Movy's `seq-core` on aeon in
+   containers, and test as much as is useful (§7, stage M3). The owner also
+   asked for an FM-1 emulator, or a virtual FM-1 with its screen in a
+   browser, if one exists or can be made.
+
+The questions below are kept for the record; 5 and 6 remain open.
+
 **For the owner:**
 
 1. **Deviations.** Should D1–D7 be the defaults, with `compat` for tests?
