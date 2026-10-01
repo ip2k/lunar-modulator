@@ -15,7 +15,9 @@ from the reference scaled the way the wrapper scales it.
   included), note-on timing, a retrigger's strike, the wrapper's velocity and
   release, and the shapes that draw random numbers, exactly against the same
   random stream and statistically against Braids' firmware, chords included.
-  At 44,118 Hz, the struck shapes' decay is measured, not matched.
+  At 44,118 Hz, where Shapes runs Braids at 96 kHz and resamples, the struck
+  shapes decay as upstream's; every shape at that rate is matched against
+  upstream resampled in test_engines_resampler.py.
 - Plate, Ensemble, Diffuse at their native rates, knobs mapped to the exact
   upstream coefficients, full wet and upstream's own mix; the wrappers'
   additions (Width, the tone filter, the wet gain, the mix law) modelled, at
@@ -383,22 +385,27 @@ def edc_times(x, rate, levels=(10, 20, 30)):
     return out
 
 
-@pytest.mark.parametrize("shape,low,high", [(32, 0.44, 0.48), (33, 0.44, 0.48),
-                                            (34, 0.95, 1.10)], ids=["bell", "drum", "kick"])
-def test_struck_shapes_at_host_rate_decay_as_measured(tools, tmp_path, shape, low, high):
-    # Not a match, a measurement: at 44,118 Hz the wrapper corrects pitch and
-    # nothing else. Bell's and Drum's partials decay once per 24-sample block,
-    # so they decay at about 44,118 / 96,000 = 0.46 of upstream's dB/s (here
-    # Bell 0.458-0.468, Drum 0.462-0.466). Kick is a resonant filter tuned to
-    # the corrected pitch, so its decay follows the pitch and barely moves
-    # (1.017-1.027 here). Ratio of the times to reach each level, A4,
-    # timbre/colour 0.5/0.5, 2 s, upstream through the same 1 ms attack.
+@pytest.mark.parametrize("shape,low,high", [(32, 0.999, 1.001), (33, 0.999, 1.001),
+                                            (34, 0.99, 1.02)], ids=["bell", "drum", "kick"])
+def test_struck_shapes_at_host_rate_decay_as_upstream(tools, tmp_path, shape, low, high):
+    # Shapes runs Braids at 96 kHz whatever the host's rate and resamples the
+    # mix (engines/resampler.md), so at 44,118 Hz the struck shapes ring as
+    # long as upstream's. Before that change Braids ran at the host's rate
+    # with only its pitch corrected, and Bell and Drum, whose partials decay
+    # once per 24-sample block, rang 2.1-2.2 times as long (ratios 0.458-0.468
+    # here). Ratio of the times to reach each level, A4, timbre/colour
+    # 0.5/0.5, 2 s, upstream through the same 1 ms attack, fm1 less the
+    # resampler's group delay of 16 output samples. Measured: Bell
+    # 0.9999-1.0000, Drum 0.9999-1.0000, Kick 0.9995-1.0058 (with the delay
+    # left in, 0.9975-0.9992, 0.9975-0.9991 and 0.981-0.9996: 0.36 ms of
+    # each time). Kick is the loosest while its strike's excitation sounds
+    # (the first 10 dB, a few milliseconds).
     render, _ = tools
     point = (0.5, 0.5)
     _, ref = braids_ref(tmp_path, shape, 69, point, 2 * BRAIDS_RATE)
     got, _ = shapes_fm1(render, tmp_path, shape, 69, point, 2.0, rate=HOST_RATE)
     up = edc_times(through_wrapper(ref), BRAIDS_RATE)
-    fm1 = edc_times(got, HOST_RATE)
+    fm1 = edc_times(got[16:], HOST_RATE)
     ratios = [u / f for u, f in zip(up, fm1)]
     assert all(low < r < high for r in ratios), ratios
 

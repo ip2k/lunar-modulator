@@ -26,7 +26,7 @@ python -m pytest tests/test_engines_reference_braids_fx.py
 
 | Engine | Upstream class | At its native rate | At 44,118 Hz |
 | --- | --- | --- | --- |
-| Shapes | `braids::MacroOscillator`, 96 kHz | all 47 shapes match within the renderer's quantisation, **after a fix in this lane**: before it, 22 of 47 did not in the FM-1's 64-frame host blocks, and odd-sized renders crashed | not compared sample for sample: pitch is corrected, time constants are not. Bell and Drum decay at 0.46 of upstream's dB/s, Kick at upstream's (measured, below) |
+| Shapes | `braids::MacroOscillator`, 96 kHz | all 47 shapes match within the renderer's quantisation, **after a fix in this lane**: before it, 22 of 47 did not in the FM-1's 64-frame host blocks, and odd-sized renders crashed | since Shapes runs Braids at 96 kHz and resamples ([resampler.md](resampler.md)), all 47 shapes match upstream through the same resampler within quantisation, and Bell and Drum decay at upstream's rate (0.9999–1.0000). Before that, pitch was corrected and time constants were not: Bell and Drum decayed at 0.46 of upstream's dB/s (below) |
 | Plate | `rings::Reverb`, 48 kHz | identical within quantisation | identical to `rings::Reverb` with its loop gain and damping rescaled; decays at 0.961–0.970 of the native rate |
 | Ensemble | `plaits::Ensemble`, 47,872 Hz | identical within quantisation at Width 0; the defaults are upstream plus the documented Width and mix law | identical sample for sample: nothing is compensated, delays and LFOs run 8.5 % long and slow |
 | Diffuse | `plaits::Diffuser`, 47,872 Hz | identical to upstream plus the documented wet gain, tone filter, decorrelator and mix | identical to `plaits::Diffuser` with its loop gain rescaled; decays at 0.961 of the native rate |
@@ -223,17 +223,23 @@ Macro wrapper already does with Plaits' 12-sample blocks. Consequences:
 - Output is bit-identical for host blocks of 1, 7, 24, 64 and 100 frames,
   odd totals included [verified].
 - A note, parameter or bend now takes effect at the next 24-sample boundary,
-  up to 23 samples late (0.52 ms at 44,118 Hz) [inferred from the code; two
-  cases verified: a note-on 8 samples late in
+  up to 23 samples late (0.52 ms at 44,118 Hz when Braids ran at the host's
+  rate; 0.24 ms now that it runs at 96 kHz, plus the resampler's delay:
+  0.43–0.68 ms from a note to its onset, resampler.md) [inferred from the
+  code; two cases verified at 96 kHz: a note-on 8 samples late in
   `test_note_on_starts_the_voice_at_a_braids_block_boundary`, and a
-  retrigger 8 samples late in `test_retrigger_strikes_the_running_voice`].
-- Cost unchanged: 12 voices at 44,118 Hz take 3.63 µs per 64-frame block
+  retrigger 8 samples late in `test_retrigger_strikes_the_running_voice`;
+  the 44,118 Hz case in `test_note_on_at_host_rate_starts_on_a_braids_block`].
+- Cost unchanged: 12 voices at 44,118 Hz took 3.63 µs per 64-frame block
   for CSaw (3.73 µs before), 3.72 for Vowel (3.83), 6.52 for Bell (6.52),
-  Apple M1 Max, best of five [verified]. A first version that accumulated
-  straight into the member buffer cost 26–55 % more: the compiler must
-  assume a member float array may alias `v.env`; the mix stays on the stack.
+  Apple M1 Max, best of five [verified, with Braids at the host's rate; at
+  96 kHz and resampled it is 2.35–2.77 times that, resampler.md]. A first
+  version that accumulated straight into the member buffer cost 26–55 %
+  more: the compiler must assume a member float array may alias `v.env`;
+  the mix stays on the stack.
 - The instance grows by the 24-float buffer and its counter: 205,696 →
-  205,800 bytes on the 64-bit desktop [verified: `instance_bytes`].
+  205,800 bytes on the 64-bit desktop [verified: `instance_bytes`]; the
+  resampler later took it to 206,512 (resampler.md).
 
 ### Random shapes
 
@@ -270,13 +276,27 @@ firmware voices from three pairs of starting states, the chord lies within
 −0.90 to +0.95 dB and −6.9 to +0.7 % [verified]. The tests allow 2 dB and
 25 %.
 
-### Not compared here: Shapes at 44,118 Hz
+### At 44,118 Hz
 
-The wrapper corrects pitch for the rate and nothing else. Measured with the
-energy-decay curve as above (4 s renders, A4, three timbre/colour points),
-fm1 at 44,118 Hz against Braids at 96 kHz, the ratio of fm1's dB/s to
-upstream's over the first 10, 20 and 30 dB [verified, scratch probe; the
-0.5/0.5 point is held by `test_struck_shapes_at_host_rate_decay_as_measured`]:
+Shapes now runs Braids and its own envelope at 96 kHz whatever the host's
+rate and resamples the voice mix to the host's rate (resampler.md, the
+owner's decision of 2026-10-01). At 44,118 Hz every shape matches upstream
+at 96 kHz, through the wrapper's envelope and gain and the same resampler,
+within quantisation: 47 shapes × 2 timbre/colour points × A2 and A6, worst
+0.55 LSB, rms 0.35, random shapes included [verified:
+`test_shape_at_host_rate_is_braids_resampled` in
+`tests/test_engines_resampler.py`]. The struck shapes decay at upstream's
+rate: energy-decay times to 10, 20 and 30 dB, 2 s at A4, 0.5/0.5, fm1 less
+the resampler's 16-sample group delay, give Bell 0.9999–1.0000, Drum
+0.9999–1.0000 and Kick 0.9995–1.0058 of upstream's [verified:
+`test_struck_shapes_at_host_rate_decay_as_upstream`]; over all three
+timbre/colour points at A3 and A4, 4 s, Bell and Drum 0.9997–1.0000 and
+Kick 0.974–1.008, its loosest ratios while the strike's excitation sounds
+[verified, scratch probe].
+
+**Before** (Braids at the host's rate with the pitch corrected by
+12 log2(96,000 / rate) semitones), measured the same way at A4, 4 s
+[verified, scratch probe; the 0.5/0.5 point was held by the test]:
 
 | Shape | 0.25/0.75 | 0.5/0.5 | 0.75/0.25 |
 | --- | --- | --- | --- |
@@ -284,17 +304,16 @@ upstream's over the first 10, 20 and 30 dB [verified, scratch probe; the
 | Drum | 0.465 / 0.464 / 0.462 | 0.466 / 0.463 / 0.462 | 0.467 / 0.463 / 0.461 |
 | Kick | 1.04 / 1.56 / 1.02 | 1.03 / 1.02 / 1.02 | 1.39 / 0.98 / 1.00 |
 
-So Bell and Drum ring 2.1–2.2 times as long on the FM-1, as their per-block
-decays predict (44,118/96,000 = 0.460) [inferred from the code, matching the
-measurement]. Kick rings as long as upstream's: it is a band-pass resonator
-of fixed resonance tuned to the pitch, which is corrected [inferred from the
-code]. Its outliers (1.56, 1.39) fall in the first 10–20 dB, while the
-strike's excitation still sounds (the first 7–11 ms at 0.25/0.75, 53–74 ms
-at 0.75/0.25) [verified figures; not traced]. Anything else fixed in
-samples (formant and filter frequencies not derived from pitch, per-block
-envelopes, delay-line lengths) sits at 0.46 of its upstream frequency or
-2.18 times its duration [inferred]. That is a design question for Shapes (render at 96 kHz and
-decimate, or accept it), not something this comparison can fix.
+Bell and Drum rang 2.1–2.2 times as long, as their per-block decays
+predict (44,118/96,000 = 0.460) [inferred from the code, matching the
+measurement]. Kick rang as long as upstream's: a band-pass resonator of
+fixed resonance tuned to the pitch, which was corrected [inferred from the
+code]. Its outliers (1.56, 1.39) fell in the first 10–20 dB, while the
+strike's excitation still sounded (the first 7–11 ms at 0.25/0.75, 53–74 ms
+at 0.75/0.25) [verified figures; not traced]. Anything else fixed in samples (formant and filter frequencies not
+derived from pitch, per-block envelopes, delay-line lengths) sat at 0.46 of
+its upstream frequency or 2.18 times its duration [inferred]; at 96 kHz
+none of it moves.
 
 ### Intentional differences
 
@@ -429,8 +448,10 @@ the same amount (the documented wet gain) [verified: code and model].
 - No parameter changes during a note (fm1-render has none), and no pitch
   bend. Chords are compared statistically only; the exact Shapes
   comparisons are one voice at a time.
-- Shapes are compared at 96 kHz only; at 44,118 Hz only the struck shapes'
-  decay is measured. The effects at their native rates and at 44,118 Hz.
+- Shapes are compared sample for sample at 96 kHz here, and at 44,118 Hz
+  through the resampler in `tests/test_engines_resampler.py`, where the
+  comparison also depends on the resampler being the same on both sides.
+  The effects at their native rates and at 44,118 Hz.
 - Run here on macOS arm64 (Apple clang) only. The CI's Linux, 32-bit and
   sanitizer jobs will run the file; the knob search accepts only values that
   give the upstream coefficient with and without a fused multiply-add, so
@@ -476,7 +497,8 @@ changes to the tests.
 - `engines/README.md`: list this file; Shapes' instance is now 205,800
   bytes (Shapes + PSX Verb + Plate 405,672); at 44,118 Hz Bell and Drum ring
   2.1–2.2 times as long as upstream's and Kick as long (open question:
-  render at 96 kHz and decimate, or accept).
+  render at 96 kHz and decimate, or accept). Since answered: Shapes renders
+  at 96 kHz and resamples (resampler.md).
 - `engines/mi-fx.md`: the residual decay cause (above), 6.06 Hz for the
   Ensemble's fast LFO, Tone 0.75's −3 dB point, and Plate's damping
   compensation, Width and Diffusion now covered here.
@@ -484,7 +506,8 @@ changes to the tests.
   their native rates and at 44,118 Hz; for Shapes met at Braids' native
   96 kHz only. At the FM-1's rate Shapes' time constants differ (Bell and
   Drum decay at 0.46 of upstream's rate): open question, render at 96 kHz
-  and decimate, or accept.
+  and decimate, or accept. Since answered: Shapes renders at 96 kHz and
+  resamples, and matches upstream at 44,118 Hz too (above, resampler.md).
 - `CHANGELOG.md`: the Shapes fix, which also removes a crash (a heap
   overflow under ASan) for odd-sized render calls on the eleven
   two-samples-per-pass shapes.
