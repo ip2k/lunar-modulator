@@ -9,6 +9,11 @@ history.
 ## [Unreleased]
 
 ### Added
+- An evaluation of CHOMPI's open-sourced firmware (Chase Bliss, MIT) as a
+  source of FM-1 effects: its ping-pong echo, DJ filter and Warble are worth
+  porting; its samplers need an SD card and external RAM; its copy of DaisySP
+  carries LGPL code under an MIT label and must not be used
+  (`notes/2026-10-01-chompi-evaluation.md`).
 - `fm1-render` scripts pitch bends (`--bend`) and parameter changes during a
   render (`--param-at`). Tests bend every pitched engine by +2 and -12
   semitones and back, and turn every parameter of every sound engine through
