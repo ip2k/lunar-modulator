@@ -452,10 +452,12 @@ the comparison inside this repository. At Plaits' and Braids' own rates,
 Macro and Macro Heavy match upstream sample for sample (21 of 24 slots,
 within 16-bit rounding), Six-Op FM closely (correlation ≥ 0.98), Shapes and
 the three effects within 0.5 LSB. The comparison found one real bug, in
-Shapes' block handling, now fixed. At the FM-1's 44,118 Hz only pitch is
-corrected, so envelopes and TIMBRE-derived rates differ from the modules by
-known amounts (`engines/README.md`, "The exit test").
+Shapes' block handling, now fixed. At first only pitch was corrected at the
+FM-1's 44,118 Hz. Since 2026-10-01 (the owner's decision) the engines run at
+their modules' own rates (Braids 96 kHz, Plaits 47,872.34 Hz) and resample
+to the host, so they match upstream at 44,118 Hz too (`engines/README.md`,
+"The exit test").
 
 Details are in `engines/README.md` and the per-stream notes it links. Left
-before stage B: decisions on Shapes at the FM-1 rate (render at 96 kHz and
-decimate, or accept longer decays) and on its memory.
+before stage B: Shapes' memory (207 KB for 12 voices), and whether the
+resampler's stronger second stage fits pi32v2's budget.

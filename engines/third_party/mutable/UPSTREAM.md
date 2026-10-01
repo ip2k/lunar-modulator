@@ -31,15 +31,20 @@ effects **Plate** (Rings' reverb), **Ensemble** (Plaits' ensemble) and
 ## What our wrappers work around
 
 - **Sample rate.** Plaits' engines are written for 47,872.34 Hz and Braids for
-  96 kHz. The wrappers run them at the host's rate (44,118 Hz on the FM-1) and
-  correct the pitch by `12*log2(native / host)` semitones. The tests hold
-  tuning to ±5 cents at A2, A4 and A6. Only pitch is corrected: anything else
-  fixed in samples runs at the host's rate [verified: engines/reference-plaits.md,
-  engines/reference-braids-fx.md]. Plaits' LPG, drums and speech envelopes run
-  8.5 % long at 44,118 Hz; Six-Op's are exact and Modal's within 5 %. Braids'
-  struck shapes ring 1.6–2.8 times as long as on the module. Frequencies
-  derived from TIMBRE (the noise engine's clock, particle and swarm densities)
-  run low, and the string model reads about -9.5 cents at A2.
+  96 kHz. Since 2026-10-01 the wrappers run them at exactly those rates,
+  whatever the host's rate, and resample each engine's mix to the host with
+  `engines/include/fm1_resampler.h` (engines/resampler.md). Every time
+  constant and frequency the code keeps in samples is therefore the module's
+  own. At 44,118 Hz the engines match upstream rendered at its own rate and
+  resampled the same way: byte for byte on 20 of 21 Macro and Macro Heavy
+  slots, within 1 LSB on Chiptune, within 0.55 LSB on all 47 shapes, and
+  closely on Six-Op [verified: engines/reference-plaits.md,
+  engines/reference-braids-fx.md]. Before, the wrappers ran at the host's
+  rate with a pitch offset of `12*log2(native / host)` semitones, which left
+  envelopes 8.5 % long, struck shapes ringing 1.6–2.8 times as long, the
+  noise clock 1.41 semitones low and the string -9.5 cents at A2. The
+  effects (Rings' reverb, Plaits' ensemble and diffuser) still run at the
+  host's rate with rescaled loop gains (engines/mi-fx.md).
 - **Block size.** Plaits' envelopes are per 12-sample block, and Braids'
   shapes step once per 24-sample block; 11 of its digital renderers also write
   two samples per pass and run off an odd-sized buffer. The Macro wrappers
