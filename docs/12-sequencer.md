@@ -8,6 +8,13 @@ do the [Eloquencer updater](https://github.com/enoughframes/ELOQUENCER___UPDATER
 [Elektronauts Arduino thread](https://www.elektronauts.com/t/arduino-open-source-step-sequencer-elektron-style/10971)
 offer, and what else is open source?
 
+**Update 2026-10-01.** The owner wants to replicate Movy's sequencer as
+closely as possible. docs/13 is the port plan. Where Movy and Elektron
+differ, docs/13 supersedes this document's recommendations: Movy's latch
+(a lock holds until the next step with notes) and its sparse lock lists
+replace the Elektron revert rule of §2 and §5.5 and the MCL lock store of
+§5.2. §5.6's hold-time claim is corrected below.
+
 Four research lanes ran on 2026-10-01: the named sources, Movy, a sweep of
 about 30 open-source sequencers, and the FM-1 fit. A verification pass
 followed. Sources were read through the GitHub API, raw files and web pages.
@@ -142,8 +149,9 @@ The sweep also looked at about ten more (O_C Hemisphere, Ambika, uClock,
 aciduino, Plinky, TŒRN and others). None of them has per-step locks
 [reported: sweep lane].
 
-**docs/06 is out of date.** It does not mention Movy's p-locks, and Movy is
-now at v0.34.0 / `9190e79`. Movy's latest plans (direct `set_param` lanes,
+**docs/06 is out of date.** It does not mention Movy's p-locks. Movy's
+`main` was at `9190e79` on 2026-10-01, 299 commits past the v0.34.0 tag
+(`7539028`), with `module.json` still at 0.34.0 [verified: docs/13]. Movy's latest plans (direct `set_param` lanes,
 32 lanes, enum locks) are not in its code yet [reported: Movy lane]. They
 match the model §5 starts from.
 
@@ -331,8 +339,10 @@ and 11 accidentals.
 | Hold step + SEL, turn a knob | clears that lock (Movy clears by touching a knob; the FM-1's encoders cannot sense touch) |
 | Turn a knob in live REC | locks the current step |
 
-- **Hold time.** A turn creates a lock only after the step has been held for
-  about 300 ms (Movy's `STEP_AUTO_MS`) [reported: Movy lane].
+- **Hold time.** Correction (docs/13): in Movy, holding one step and turning
+  a knob locks at once. The 300 ms `STEP_AUTO_MS` only promotes the display,
+  and with two or more steps held a turn edits the patch [verified:
+  `src/seq/step-edit.ts` 49, 103–126, 219–225, at `9190e79`].
 - **Undo** reverses one whole gesture.
 - **The TFT** shows 4 × 16 cells: filled for a note trig, outlined for a
   lock-only trig, a corner dot for a step with locks. While a step is held,
