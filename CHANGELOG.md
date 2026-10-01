@@ -9,6 +9,19 @@ history.
 ## [Unreleased]
 
 ### Added
+- docs/13: the plan to replicate Movy's sequencer (schwung-movy, MIT) on the
+  FM-1, read at Movy's `9190e79`: its exact playback rules, a mapping of
+  every core gesture to the FM-1's keys, knobs and screen, a no-heap C99 core
+  in about 72 KiB for the full 16-track × 8-clip grid, the tests to port, and
+  a staged plan. It lists seven deliberate deviations from Movy, five of them
+  fixes for apparent bugs, and questions for the owner and for Movy's author.
+- docs/12: feasibility of an Elektron-style sequencer with per-step parameter
+  locks on the FM-1. It is feasible (well under 1 % of the CPU, about 19 KB
+  for 16 locked 64-step patterns); Movy already does p-locks on the Ableton
+  Move but cannot run on the FM-1; MCL (BSD-3) offers a reusable lock store
+  and trig conditions; Eloquencer, LMN-3 and the Elektronauts Arduino thread
+  are design references at most. Includes playback rules, a control layout
+  and a desktop-first plan.
 - An evaluation of CHOMPI's open-sourced firmware (Chase Bliss, MIT) as a
   source of FM-1 effects: its ping-pong echo, DJ filter and Warble are worth
   porting; its samplers need an SD card and external RAM; its copy of DaisySP
@@ -72,6 +85,14 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- docs/12 defers to docs/13 where Movy and Elektron differ, and corrects its
+  claim that Movy waits 300 ms before locking; docs/06 and docs/12 correct
+  Movy's version label (`9190e79` is 299 commits past the v0.34.0 tag).
+- docs/06: Movy has gained per-step parameter locks since v0.31.0.
+- Licence policy: the project is personal and non-commercial, and GPL code
+  may be used. Firmware binaries that contain GPL (or LXR) code and link
+  JieLi's closed libraries are for personal builds only, not for sharing
+  (CLAUDE.md, docs/11 §7, docs/12 §6).
 - The engine API states that instance memory is not zeroed, that engines
   emit finite samples, that `create` may refuse a host, and which calls may
   run concurrently; `fm1_param_clamp` clamps parameters NaN-safely.

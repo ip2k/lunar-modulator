@@ -87,6 +87,18 @@ contract is three plain C structs at 44.1 kHz, and about 22 MIT and GPL
 modules look portable from source through a shim. Mutable Instruments' MIT
 code is the stronger candidate for engines. See docs/11.
 
+## 5a. Update 2026-10-01: Movy has parameter locks
+
+This document inspected Movy v0.31.0 (`5627d51`). Movy has since gained
+Elektron-style per-step parameter locks: hold a step that has notes and turn
+a module knob, and the value is stored for that step only and plays when the
+step plays [verified at `9190e79`, `main` on 2026-10-01, 299 commits past
+the v0.34.0 tag `7539028`: MANUAL.md, `clip.rs`]. It also
+has per-step velocity, length, probability and A:B conditions. It is still
+Rust and TypeScript on aarch64 Linux, so the conclusion below stands; its MIT
+licence makes it a usable spec and desktop test oracle for an FM-1 sequencer.
+See docs/12, and docs/13 for the plan to replicate its sequencer.
+
 ## 6. Recommendation
 
 Do not attempt a port. Treat Movy as the design reference for the FM-1's UI and
