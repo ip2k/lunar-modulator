@@ -9,6 +9,12 @@ history.
 ## [Unreleased]
 
 ### Added
+- Stage A's exit test: reference renderers that drive upstream Plaits and
+  Braids code as the modules do, and about 350 tests comparing every engine
+  and effect with them (`engines/reference-plaits.md`,
+  `engines/reference-braids-fx.md`). At the upstream rates the engines match
+  sample for sample or within half a 16-bit step; the differences at the
+  FM-1's rate are measured and documented.
 - More engines on the platform (docs/11 stage A, `engines/`):
   - **Macro Heavy**, Plaits' other 13 engines (string machine, chords,
     speech, formant, additive, swarm, noise, particle, string, modal and
@@ -77,6 +83,10 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- Shapes crashed on 11 of its 47 shapes when rendered in blocks that were
+  not a multiple of 24 samples, and 22 shapes drifted from Braids (bells and
+  drums decayed too fast, some shapes glitched). It now always renders Braids
+  in its own 24-sample blocks.
 - The mix-bus limiter stopped limiting for good after one NaN sample; it
   now treats non-finite samples as silence and clamps extreme ones.
 - A NaN parameter value could reach undefined float-to-int conversions in

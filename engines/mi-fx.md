@@ -41,7 +41,7 @@ All four-knob page 0, all 0..1.
 | --- | --- | --- | --- | --- |
 | Plate | crossfade dry → wet (upstream's `amount`); default 0.3 | **Decay**: loop gain 0.35..0.98 (Rings' `part.cc` range); default 0.5 | **Damping**: in-loop low-pass coefficient 0.9..0.3 (Rings' brightness range, reversed); default 0.3 | **Diffusion**: all-pass coefficient 0.5..0.75 (upstream fixes 0.625, the default here; Elements sweeps 0.55..0.70) |
 | Ensemble | wet × Mix + dry × (1 − Mix/2), Plaits' own law: the dry never drops below half; default 0.5 | **Depth**: LFO depth, up to ±176 samples; default 0.5 | **Width**: ours, see findings; default 1 | — |
-| Diffuse | crossfade dry → wet; default 0.5 | **Time**: loop gain 0.25..0.90 (Plaits' particle engine uses 0.25..0.75); default 0.5 | **Tone**: ours, one-pole low-pass on the wet, 250 Hz .. beyond Nyquist; default 0.75 (about 9.5 kHz) | **Width**: ours, see findings; default 1 |
+| Diffuse | crossfade dry → wet; default 0.5 | **Time**: loop gain 0.25..0.90 (Plaits' particle engine uses 0.25..0.75); default 0.5 | **Tone**: ours, one-pole low-pass on the wet, 250 Hz .. beyond Nyquist; default 0.75 (nominal corner 9.5 kHz; -3 dB at 11.5 kHz at 44,118 Hz) | **Width**: ours, see findings; default 1 |
 
 Plate's input gain is fixed at 0.2 × (L+R), as every upstream user sets it.
 
@@ -76,7 +76,7 @@ vendored classes, so at 44,118 Hz:
   slightly bigger room, a slightly longer ensemble delay (4.35 ms instead of
   4.0 ms centre);
 - every LFO runs 8.1 % / 7.8 % slower (Plate 0.46 and 0.28 Hz, Ensemble 0.69
-  and 6.05 Hz, Diffuse 0.28 Hz);
+  and 6.06 Hz, Diffuse 0.28 Hz);
 - **not left as is:** a loop gain `g` per pass would give a tail 8 % longer
   in seconds, and a one-pole coefficient `k` a cutoff 8 % lower. The wrappers
   set `g^(native/host)` and `1 − (1 − k)^(native/host)` instead, at
@@ -87,10 +87,13 @@ Measured [verified, `test_plate_decay_is_rate_compensated` and scratch
 probes]: the Plate's impulse tail at 44,118 Hz decays at 0.96–0.97 of the
 rate of the unmodified reverb at 48 kHz (Decay 0.3/0.5/0.7). With the
 compensation disabled it was 0.914–0.926, which matches 44,118/48,000 = 0.919.
-The residual 3 % comes from the loop's 16-bit truncation, which costs more
-per second at the higher rate and matters most at the impulse tail's low
-level: a louder noise burst (Schroeder-integrated) measures 0.98–0.99 for
-the Plate and 0.96–0.97 for Diffuse [inferred cause, verified figures].
+A louder noise burst (Schroeder-integrated) measures 0.98–0.99 for the
+Plate and 0.96–0.97 for Diffuse [verified figures]. This note first put the
+residual 3 % down to the loop's 16-bit truncation; the reference-render
+probes do not support that (with no damping the ratio is still 0.968–0.976,
+and doubling the loop level moves it only 0.967 to 0.973). The likelier
+cause is the uncompensated interpolation loss of the modulated loop delays
+[inferred; engines/reference-braids-fx.md].
 
 The effects run per sample, so the output is bit-identical for any host
 block size (tested at 1, 7 and 64 frames) [verified].

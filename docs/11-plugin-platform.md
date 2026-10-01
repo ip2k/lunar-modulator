@@ -430,7 +430,18 @@ Findings so far:
   (LPC speech) that are harmless on the module but traps for polyphonic
   ports; Braids and stmlib need `-fwrapv` (`notes/upstream-candidates.md`).
 
-Details are in `engines/README.md` and the per-stream notes it links. Still
-to do in stage A: comparing renders against upstream (VCV Rack's builds of
-the same code) within a tolerance, which is this stage's exit test, and a
-decision on Shapes' memory.
+**Exit test (2026-09-30): met at the upstream rates** [verified:
+tests/test_engines_reference_*.py]. Reference renderers built from the
+vendored code drive `plaits::Voice` and `braids::MacroOscillator` as the
+modules' firmware does, instead of VCV Rack as first planned, which keeps
+the comparison inside this repository. At Plaits' and Braids' own rates,
+Macro and Macro Heavy match upstream sample for sample (21 of 24 slots,
+within 16-bit rounding), Six-Op FM closely (correlation ≥ 0.98), Shapes and
+the three effects within 0.5 LSB. The comparison found one real bug, in
+Shapes' block handling, now fixed. At the FM-1's 44,118 Hz only pitch is
+corrected, so envelopes and TIMBRE-derived rates differ from the modules by
+known amounts (`engines/README.md`, "The exit test").
+
+Details are in `engines/README.md` and the per-stream notes it links. Left
+before stage B: decisions on Shapes at the FM-1 rate (render at 96 kHz and
+decimate, or accept longer decays) and on its memory.

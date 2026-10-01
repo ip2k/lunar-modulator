@@ -19,8 +19,8 @@ python -m pytest tests/test_engine*.py           # the engine tests
 
 | Id | Name | Kind | Voices | Built from | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `macro` | Macro | sound | 12 | Plaits' 8 light engines | this file, below |
-| `shapes` | Shapes | sound | 12 | Braids' 47 shapes | this file, below |
+| `macro` | Macro | sound | 12 | Plaits' 8 light engines | [reference-plaits.md](reference-plaits.md); keeps the LPG on Chiptune, which upstream bypasses |
+| `shapes` | Shapes | sound | 12 | Braids' 47 shapes | [reference-braids-fx.md](reference-braids-fx.md) |
 | `macro-heavy` | Macro Heavy | sound | 4 | Plaits' other 13 engines (strings, modal, speech, particle, drums…) | [plaits-heavy.md](plaits-heavy.md) |
 | `sixop` | Six-Op FM | sound | 8 | Plaits' DX7-style engine and its 96 patches | [plaits-heavy.md](plaits-heavy.md) |
 | `sw-sophie` | Sophie | sound | 12 | a Schwung module (Matt Estela, MIT), through the shim | [schwung.md](schwung.md) |
@@ -45,7 +45,7 @@ engine's `credits` string and named without MI's trademarks
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
-| `test/` | The Schwung selftest and its ThreadSanitizer race harness |
+| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -98,26 +98,29 @@ upstream candidate). Our own code gets none.
   ±5 cents at A2, A4 and A6 at 44,118 Hz without touching their sources.
   Effects written for 48 kHz get their loop gains and damping rescaled; their
   delay lengths and LFOs run 8–9 % long and slow (mi-fx.md).
-- **Memory decides the voice caps.** Instance sizes on the 64-bit desktop
-  (the CI job prints the 32-bit figures, which are smaller for engines with
-  pointer tables):
+- **Memory decides the voice caps.** Instance sizes, on the 64-bit desktop
+  and on a 32-bit (`-m32`) build like pi32v2's [verified: CI's 32-bit job on
+  PR #6]:
 
-  | Engine | Bytes | Why |
-  | --- | --- | --- |
-  | Shapes, 12 voices | 205,696 | each Braids oscillator carries ~17 KB of physical-model state |
-  | PSX Verb | 134,224 | a fixed 128 KB work area, as upstream |
-  | Sophie, 12 voices | 77,904 | ring delays per voice |
-  | Macro Heavy, 4 voices | 68,512 | ~17 KB per voice (Particle and String arenas) |
-  | Plate | 65,648 | 32,768 16-bit delay words, as Rings |
-  | Macro, 12 voices | 30,496 | about 18 KB on 32-bit |
-  | Diffuse | 18,848 | |
-  | Six-Op FM, 8 voices | 11,304 | |
-  | Ensemble | 4,704 | |
+  | Engine | 64-bit bytes | 32-bit bytes | Why |
+  | --- | --- | --- | --- |
+  | Shapes, 12 voices | 205,800 | 204,832¹ | each Braids oscillator carries ~17 KB of physical-model state |
+  | PSX Verb | 134,224 | 134,208 | a fixed 128 KB work area, as upstream |
+  | Sophie, 12 voices | 77,904 | 77,888 | ring delays per voice |
+  | Macro Heavy, 4 voices | 68,512 | 68,304 | ~17 KB per voice (Particle and String arenas) |
+  | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
+  | Macro, 12 voices | 30,496 | 17,616 | mostly pointer tables, which halve on 32-bit |
+  | Diffuse | 18,848 | 18,848 | |
+  | Six-Op FM, 8 voices | 11,304 | 9,572 | |
+  | Ensemble | 4,704 | 4,704 | |
+
+  ¹ Before Shapes gained its 24-sample output buffer (104 bytes on 64-bit);
+  CI's 32-bit job prints the current figure.
 
   The stock layout leaves a gap of 387,924 bytes, part of it stock's heap
   (docs/11 §2, [inferred]). Most engine-plus-two-effects chains fit in it;
   Shapes at 12 voices takes more than half on its own, and Shapes with PSX
-  Verb and Plate (405,568 bytes) does not fit. Shapes needs a lower cap on the
+  Verb and Plate (404,672 bytes on 32-bit) does not fit. Shapes needs a lower cap on the
   FM-1, or its physical-model shapes split into a smaller engine.
 - **Host contracts, now tested for every engine** (tests/test_engine_host.py):
   output does not depend on instance memory's prior contents; any
@@ -150,17 +153,65 @@ upstream candidate). Our own code gets none.
   pi32v2 is a much narrower core and these figures do not transfer; stage B
   measures the real ones. They do rank the engines for the voice caps.
 
+## The exit test: renders against upstream
+
+Stage A's exit test (docs/11 §8) is that our engines render what upstream
+Mutable code renders, within a tolerance. Two reference renderers compile the
+vendored upstream code on its own and drive it as the modules' firmware does:
+`plaits::Voice` every 12 samples at 47,872 Hz, and `braids::MacroOscillator`
+every 24 samples at 96 kHz, with Rings' reverb and Plaits' ensemble and
+diffuser at their native rates. The tests render both sides and compare
+[verified: tests/test_engines_reference_*.py, about 350 tests]:
+
+| Engine | At the upstream rate | Details |
+| --- | --- | --- |
+| Macro, Macro Heavy (21 of Plaits' 24 slots) | sample for sample, to within fm1-render's 16-bit rounding (-87 to -88.5 dBFS); the random engines too, since both sides seed stmlib's generator alike | [reference-plaits.md](reference-plaits.md) |
+| Six-Op FM (3 slots) | close, not identical: correlation ≥ 0.98, from its 16-sample envelope blocks against upstream's staggered 24-sample chunks | [reference-plaits.md](reference-plaits.md) |
+| Shapes (47 shapes) | within 0.52 LSB, physical models and random shapes included | [reference-braids-fx.md](reference-braids-fx.md) |
+| Plate, Ensemble, Diffuse | within 0.5 LSB | [reference-braids-fx.md](reference-braids-fx.md) |
+
+The comparison checks our wrappers. The engine DSP is the same object code on
+both sides, so a test pins the 129 vendored Plaits files it compiles by hash.
+Reviewers mutation-tested both lanes: 50 of 51 Plaits mutants and all but one
+Braids/effects mutant now fail a test. The survivors are a Six-Op envelope
+block change inside the intended tolerance, and pitch bend, which the
+renderer cannot yet script.
+
+It found one real bug: **Shapes split each 64-frame host block into 24 + 24 +
+16** while Braids only ever renders 24. Twenty-two shapes drifted (Bell and
+Drum decayed 9–16 % fast, Comb, Vowel and Wave Line glitched), output depended
+on the host's block size, and 11 shapes crashed on odd-sized calls (a heap
+overflow under ASan). Shapes now renders exactly 24-sample blocks and buffers
+them, as Macro does with 12.
+
+At the FM-1's 44,118 Hz only pitch is corrected, so this is where the
+engines still differ from the modules: Plaits' envelopes run 8.5 % long,
+Braids' struck shapes ring 1.6–2.8 times as long, TIMBRE-derived rates run
+low (the noise engine's clock by 1.41 semitones, a strict xfail), and the
+string model reads -9.5 cents at A2. The effects rescale their loop gains
+and damping, keeping decay within 3–4 %.
+
 ## Open questions and next steps
 
 - **Six-Op FM's patch names** include third-party trademarks and a person's
   name, and the banks' origin is not stated upstream. Harmless for a
   personal build; for anything distributed, rename or drop them
   (plaits-heavy.md, "The patch data").
-- **Shapes' memory:** a voice cap for the FM-1 build, or a split.
-- **Host features the streams asked for:** timed parameter changes
-  (`--param-at`), an active-voice diagnostic so voice freeing can be tested
+- **Shapes at the FM-1 rate:** render Braids at 96 kHz and decimate (about
+  2.2 times the CPU) so struck shapes decay as on the module, or accept the
+  longer rings. Also its memory: a voice cap for the FM-1 build, or a split.
+- **Plaits at the FM-1 rate:** per-model TIMBRE offsets for the noise,
+  particle and swarm rates (reference-plaits.md suggests them).
+- **Six-Op's polarity** is inverted relative to Macro and Macro Heavy
+  against the same upstream output words. Harmless alone; worth making
+  consistent before engines are layered or crossfaded.
+- **Host features the streams asked for:** pitch-bend events (`--bend`, to
+  close the last Braids mutant), a random seed (`--seed`), timed parameter
+  changes (`--param-at`), an active-voice diagnostic so voice freeing can be tested
   without timing, parameter smoothing (host or engine), and a reset call so
-  effects can drop their tails without re-creating a 64 KB instance.
+  effects can drop their tails without re-creating a 64 KB instance. Also a
+  per-file SHA-256 manifest from `vendor.py`, so a test can pin the whole
+  vendored tree rather than the files one lane compiles.
 - **Stage B**, on the JL-AC79 dev board: the same sources under JieLi's
   clang, real cycle counts, and whether pi32v2's FPU traps on divide by zero
   or handles subnormals slowly (several upstream quirks rely on it not

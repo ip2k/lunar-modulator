@@ -96,8 +96,12 @@ LPG is re-initialised while bypassed.
   compresses LEVEL, for the whole life of the note. Drums and strings read
   it at the trigger, and speech uses it as the word's gain. The LPG's level
   still drops to zero at note-off.
-- **Release after note-off.** This is our addition, not Plaits behaviour:
-  the module has no note-off. The fade uses the same curve as the LPG's
+- **Release after note-off.** This is our addition, not Plaits behaviour.
+  The module has no note-off for drums and strings, which ring on after
+  LEVEL falls; for speech words with LEVEL patched, upstream uses the
+  compressed LEVEL as the gain every block, so a word stops as soon as LEVEL
+  falls, where Macro Heavy holds the accent and fades [verified:
+  engines/reference-plaits.md]. The fade uses the same curve as the LPG's
   vactrol release and is set by the same Decay and Colour. It makes a
   keyboard's key-up count even at Morph = 1, where the string and modal
   models ring forever inside the engine.
@@ -448,6 +452,11 @@ so.
    - **Evidence:** it does so at Plaits' own 47,872 Hz as well as at
      44,118 Hz [verified: rendered at both rates]. The cause is the
      Karplus-Strong loop's tuning compensation, not the rate change.
+   - **Correction (reference renders):** that holds for these conditions,
+     at A3 and above. Below about 160 Hz with dispersion the stretch
+     correction depends on the loop length in samples, so the rate change
+     matters: -9.5 cents at A2 with Harmonics 0.5 against upstream [verified:
+     engines/reference-plaits.md, finding 4].
 10. **Plaits never applies a patch's transpose** (above).
 11. **Allocation audit.** Everything else in the wrapped engines allocates
     what it uses [verified: code, with ASan over the sweep below]. The

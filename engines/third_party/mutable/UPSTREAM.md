@@ -32,11 +32,22 @@ effects **Plate** (Rings' reverb), **Ensemble** (Plaits' ensemble) and
 
 - **Sample rate.** Plaits' engines are written for 47,872.34 Hz and Braids for
   96 kHz. The wrappers run them at the host's rate (44,118 Hz on the FM-1) and
-  correct the pitch by `12*log2(native / host)` semitones. Envelope times
-  scale by the same ratio. The tests hold tuning to ±5 cents at A2, A4 and A6.
-- **Block size.** Plaits' envelopes are per 12-sample block. The Macro wrapper
-  renders in exactly 12-sample blocks and buffers them out in 64-frame host
-  blocks, so its time constants stay exact.
+  correct the pitch by `12*log2(native / host)` semitones. The tests hold
+  tuning to ±5 cents at A2, A4 and A6. Only pitch is corrected: anything else
+  fixed in samples runs at the host's rate [verified: engines/reference-plaits.md,
+  engines/reference-braids-fx.md]. Plaits' LPG, drums and speech envelopes run
+  8.5 % long at 44,118 Hz; Six-Op's are exact and Modal's within 5 %. Braids'
+  struck shapes ring 1.6–2.8 times as long as on the module. Frequencies
+  derived from TIMBRE (the noise engine's clock, particle and swarm densities)
+  run low, and the string model reads about -9.5 cents at A2.
+- **Block size.** Plaits' envelopes are per 12-sample block, and Braids'
+  shapes step once per 24-sample block; 11 of its digital renderers also write
+  two samples per pass and run off an odd-sized buffer. The Macro wrappers
+  render exactly 12-sample blocks and Shapes exactly 24-sample blocks, and
+  both buffer them out to the host's block, so the time constants stay exact
+  and output does not depend on the host's block size. Before Shapes did this
+  (fixed 2026-09-30), 22 of its 47 shapes drifted from upstream and 11
+  crashed on odd-sized calls.
 - **`WavetableEngine` arena overrun (upstream bug).** `Init` allocates 64 wave
   pointers; `LoadUserData` writes 4 × 64 = 256. On the module every engine
   shares one 16 KB arena from offset 0, so the overrun lands in unused space.

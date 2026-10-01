@@ -145,8 +145,11 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
    Six-Op FM from Mutable code; effects Plate, Ensemble and Diffuse; the
    Schwung v2 shim with Sophie and PSX Verb compiled through it unmodified;
    about 360 engine tests, also run 32-bit and under ASan/UBSan in CI
-   (`engines/README.md`). Left in stage A: renders compared with upstream (the
-   stage's exit test) and Shapes' memory (206 KB for 12 voices). Open for the
+   (`engines/README.md`). The exit test is met: at the upstream rates the
+   engines match upstream Mutable code sample for sample or within 0.5 LSB,
+   which found and fixed a Shapes block-size bug (drift and a crash). Left
+   before stage B: Shapes at 44,118 Hz (decimate from 96 kHz or accept
+   longer decays) and its memory (206 KB for 12 voices). Open for the
    owner: Six-Op FM's patch names carry third-party trademarks, which matters
    only if the project is distributed. Stage B, the pi32v2 benchmark and a
    `-fPIC` test, wants the AC79 dev board from item 4
