@@ -8,18 +8,29 @@
 // engines are offered for now (docs/11 §4): each needs at most a few hundred
 // bytes of arena per voice.
 //
-// Rate: the engines are written for 47,872.34 Hz (Plaits' real I2S rate). They
-// run here at the host's rate with the pitch corrected by
-// 12*log2(47872.34 / rate) semitones, as the Schwung and CTAG ports do; envelope
-// times come out ~8.5 % longer at 44,118 Hz. Rendering happens in Plaits' own
-// 12-sample blocks, so the per-block envelope constants stay exact.
+// Rate: the engines are written for 47,872.34 Hz (Plaits' real I2S rate,
+// kCorrectedSampleRate), and their time constants and TIMBRE-derived rates
+// are counted in samples and blocks at that rate. They run at that rate here
+// whatever the host's, in Plaits' own 12-sample blocks, with no pitch
+// correction; the summed mono mix goes through one resampler
+// (include/fm1_resampler.h, engines/resampler.md) to the host's rate, as
+// Shapes does with Braids' 96 kHz. At a 47,872.34 Hz host the resampler
+// passes the mix through bit for bit. Hosts above 47,872.34 Hz or below a
+// quarter of it are refused. (Until 2026-10-01 the engines ran at the host's
+// rate with the pitch raised by 12*log2(47872.34 / rate) semitones, so at
+// 44,118 Hz their envelopes ran 8.5 % long; engines/reference-plaits.md.)
+//
+// The resampler pulls the mix from a 12-sample buffer as each output sample
+// needs it, rendering the next block when the buffer runs out, so the output
+// does not depend on the host's block size. Note events land on the next
+// block rendered at 47,872.34 Hz (0.25 ms).
 //
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
+#include "fm1_resampler.h"
 
-#include <cmath>
 #include <cstring>
 #include <new>
 
@@ -108,14 +119,19 @@ struct Voice {
 
 class Instance {
  public:
-  void Init(const fm1_host_t *host) {
-    rate_offset_ = 12.0f * log2f(kCorrectedSampleRate / host->sample_rate);
+  // False when the resampler refuses the host's rate (above 47,872.34 Hz or
+  // below a quarter of it).
+  bool Init(const fm1_host_t *host) {
+    const bool ok =
+        fm1_resampler_init(&resampler_, kCorrectedSampleRate, host->sample_rate) != 0;
     bend_ = 0.0f;
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
     model_ = MODEL_VA_VCF;
     clock_ = 0;
+    memset(mix_, 0, sizeof(mix_));
     pending_ = 0;
     BuildEngines();
+    return ok;
   }
 
   void NoteOn(uint8_t key, uint8_t velocity) {
@@ -156,18 +172,23 @@ class Instance {
     }
   }
 
+  // Each output sample pulls the 47,872.34 Hz mix the resampler needs for it,
+  // rendering a new 12-sample block whenever the last one is used up.
   void Render(float *out_lr, uint32_t frames) {
-    while (frames) {
-      if (!pending_) {
-        RenderBlock();
-        pending_ = kBlockSize;
+    for (uint32_t f = 0; f < frames; ++f) {
+      uint32_t need = fm1_resampler_needed(&resampler_);
+      while (need) {
+        if (!pending_) {
+          RenderBlock();
+          pending_ = kBlockSize;
+        }
+        const uint32_t took = fm1_resampler_push(
+            &resampler_, &mix_[kBlockSize - pending_],
+            need < pending_ ? need : static_cast<uint32_t>(pending_));
+        pending_ -= took;
+        need -= took;
       }
-      size_t take = frames < pending_ ? frames : pending_;
-      const float *src = &block_[2 * (kBlockSize - pending_)];
-      memcpy(out_lr, src, take * 2 * sizeof(float));
-      out_lr += 2 * take;
-      frames -= take;
-      pending_ -= take;
+      out_lr[2 * f] = out_lr[2 * f + 1] = fm1_resampler_pop(&resampler_);
     }
   }
 
@@ -240,7 +261,7 @@ class Instance {
       v.rising = false;
       v.decay.Process(short_decay * 2.0f);
 
-      p.note = v.key + bend_ + rate_offset_;
+      p.note = v.key + bend_;
       p.harmonics = value_[P_HARMONICS];
       p.timbre = value_[P_TIMBRE];
       p.morph = value_[P_MORPH];
@@ -259,26 +280,27 @@ class Instance {
 
       if (!v.gate && v.lpg.gain() < 1e-4f) v.active = false;
     }
-    for (size_t n = 0; n < kBlockSize; ++n) {
-      block_[2 * n] = block_[2 * n + 1] = mix[n];
-    }
+    memcpy(mix_, mix, sizeof(mix_));
   }
 
   Voice voice_[kNumVoices];
   float value_[P_COUNT];
   Model model_;
-  float rate_offset_;
   float bend_;
   uint32_t clock_;
-  float block_[2 * kBlockSize];
-  size_t pending_;
+  float mix_[kBlockSize];          // the current block at 47,872.34 Hz
+  size_t pending_;                 // samples of mix_ not yet resampled
+  fm1_resampler_t resampler_;      // 47,872.34 Hz mix -> host rate, one per instance
 };
 
 size_t InstanceSize(const fm1_host_t *) { return sizeof(Instance); }
 
 void *Create(void *mem, const fm1_host_t *host) {
   Instance *self = new (mem) Instance();
-  self->Init(host);
+  if (!self->Init(host)) {
+    self->~Instance();
+    return NULL;
+  }
   return self;
 }
 

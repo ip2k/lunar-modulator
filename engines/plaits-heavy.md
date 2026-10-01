@@ -7,17 +7,25 @@ are ours.
 
 | id | Name | Source | Voices | Instance, 64-bit host | Instance, 32-bit targets |
 | --- | --- | --- | --- | --- | --- |
-| `macro-heavy` | Macro Heavy | `src/mi_macro_heavy.cc` | 4 | 68,512 B | 68,304 B |
-| `sixop` | Six-Op FM | `src/mi_sixop.cc` | 8 | 11,304 B | 9,572 B |
+| `macro-heavy` | Macro Heavy | `src/mi_macro_heavy.cc` | 4 | 71,088 B | 70,880 B |
+| `sixop` | Six-Op FM | `src/mi_sixop.cc` | 8 | 12,528 B | 10,796 B |
+
+Both run Plaits at its own 47,872.34 Hz and resample to the host's rate
+since 2026-10-01 (below, "Rate"). That added 2,576 B to Macro Heavy (two
+resamplers) and 1,224 B to Six-Op (one); before, they were 68,512 / 68,304 B
+and 11,304 / 9,572 B.
 
 How the sizes were measured:
 
 - **64-bit:** the renderer's `instance_bytes` on macOS arm64 [verified].
-- **32-bit:** the constant `InstanceSize()` returns, read from the assembly
-  compiled for `i386-apple-macos10.13` and `armv7-apple-ios9`. Both targets
-  give the same numbers [verified, compile only]. pi32v2 should match if it
-  is ILP32 with 4-byte float alignment [inferred]. Nothing has rendered
-  these engines as a 32-bit program yet (see "32-bit coverage" below).
+- **32-bit:** `sizeof` of each `Instance`, read from a template diagnostic
+  of `clang++ -target i386-apple-macos10.13 -fsyntax-only` over the
+  wrapper's source [verified, compile only]. The same probe on the earlier
+  sources gives the earlier figures, which were read from the assembly for
+  `i386-apple-macos10.13` and `armv7-apple-ios9` (both targets agreed).
+  pi32v2 should match if it is ILP32 with 4-byte float alignment
+  [inferred]. CI's `-m32` job renders every engine and prints its size
+  (`.github/workflows/ci.yml`).
 
 Sources are added in `mk/plaits-heavy.mk`. The fragment appends a
 third-party file only when no other fragment lists it already.
@@ -28,8 +36,70 @@ engines/build/fm1-render --engine macro-heavy --param Model=8 --param Harmonics=
     --note 0:57:100:1 --note 0:64:100:1 --seconds 3 --out string.wav
 engines/build/fm1-render --engine sixop --param Patch=32 \
     --note 0:57:100:1 --note 0:61:100:1 --note 0:64:100:1 --seconds 3 --out epiano.wav
-python -m pytest tests/test_engines_plaits_heavy.py      # 180 tests
+python -m pytest tests/test_engines_plaits_heavy.py      # 182 tests
 ```
+
+## Rate: Plaits at its own rate, resampled
+
+The owner's decision of 2026-10-01: the Plaits-derived engines (Macro, Macro
+Heavy, Six-Op FM) run Plaits at its native rate, `kCorrectedSampleRate` =
+47,872.34 Hz, whatever the host's rate, and resample their voice mix to the
+host's rate with `include/fm1_resampler.h` (resampler.md), as Shapes does with
+Braids at 96 kHz [verified: the code].
+
+- **Blocks.** Macro and Macro Heavy render Plaits' own 12-sample blocks,
+  Six-Op its 16-sample ones, at 47,872.34 Hz. Each output sample pulls from
+  the current block what the resampler needs and renders the next block when
+  it runs out, so the output does not depend on the host's block size
+  [verified: 1, 7 and 64 frames byte-identical,
+  `test_fm1_rate_output_does_not_depend_on_the_host_block` and
+  `test_output_is_independent_of_host_block_size`].
+- **One resampler per output channel per instance, never per voice.** Macro
+  and Six-Op are mono: one. Macro Heavy has two, for the string machine's L
+  and R. In its 12 mono models the right one stands still, and the right
+  channel is the left's samples. On a change into the string machine the
+  right one takes a copy of the left one's state. Outside the string machine
+  both channels' mixes are the same floats, so the copy is the state a
+  second resampler running all along would hold, except within about 62
+  output samples of leaving the string machine (the filter's memory)
+  [inferred: the code; verified for a switch from silence:
+  `test_string_machine_entered_later_renders_as_if_created_in_it`]. That
+  keeps one resampler's cost for 12 of the 13 models.
+- **No pitch or time correction.** The pitch offset
+  12·log2(47,872.34 / rate) that these wrappers used to add is gone, and
+  every time constant, TIMBRE-derived rate and per-sample filter is
+  upstream's at any host rate. At 44,118 Hz this removed the envelopes'
+  8.5 % stretch, the noise clock's 1.41-semitone error, the particle and
+  swarm densities' 8.5 % shortfall, the string model's −9.5 cents at A2 and
+  the pitch table's −0.37 cents on every tonal engine
+  (reference-plaits.md, "At 44,118 Hz").
+- **At a 47,872.34 Hz host** the resampler passes samples through bit for
+  bit [verified: 25 models and patches with three notes, note-offs, a bend
+  and a knob move, at 12-, 64- and 7-frame blocks, byte-identical to the
+  wrappers before this change; every native-rate reference test passes
+  unchanged].
+- **Refused hosts.** The resampler converts down by a ratio of 1 to 4, so a
+  host above 47,872.34 Hz or below a quarter of it (11,968.085 Hz) is
+  refused: `create` returns NULL, as Shapes does outside 24–96 kHz
+  [verified: `test_refuses_host_rates_the_resampler_cannot_serve`]. The
+  FM-1's 44,118 Hz is inside the range. No test renders these engines above
+  the native rate, apart from that test's refused rates [verified: grep of
+  the tests].
+- **Latency.** A note-on or note-off reaches the next block rendered at
+  47,872.34 Hz. The resampler adds its group delay of 30 output samples
+  and pulls about 4 input samples ahead of output time. From a note's
+  arrival to the centre of its onset, over every arrival sample at
+  44,118 Hz: 33.4–44.5 output samples (0.758–1.008 ms, mean 0.883 ms) for
+  Macro and Macro Heavy, 33.4–48.2 (0.758–1.092 ms, mean 0.925 ms) for
+  Six-Op. Before, a note waited for the wrapper's next block at the host's
+  rate: 0–11 samples (0–0.249 ms, mean 0.125 ms) and 0–15 (0–0.340 ms)
+  [verified: computed from the resampler's pull arithmetic
+  (`inputs_pulled` in tests/test_engines_reference_plaits.py), which
+  `test_note_lands_on_the_next_native_block` checks against a render]. So
+  about 0.76 ms more on average; in the FM-1's 64-frame blocks, where every
+  event arrives on a block boundary, 0.79 ms more for Macro and Macro Heavy
+  and 0.93 ms for Six-Op, whose 16-sample blocks used to divide 64.
+- **CPU and memory**, below and in the table at the top.
 
 ## Macro Heavy
 
@@ -63,8 +133,8 @@ pre-gain.
 ### What the wrapper does
 
 **Voices.** The layout is Macro's: one engine object per voice, built by
-placement new, with Plaits' 12-sample blocks and the pitch offset
-12·log2(47,872.34 / rate).
+placement new, with Plaits' 12-sample blocks at Plaits' own rate and the
+mix resampled ("Rate", above).
 
 - **Arena.** Each voice gets its own 16 KB arena, which is the size of
   Plaits' single shared arena. It has to be that large: the particle
@@ -175,13 +245,14 @@ block, and so did a chord struck after a bank change or a model change.
 
 **Stereo.** The string machine's OUT and AUX are the two sides of its
 ensemble (`out = 0.66 l + 0.33 r` and the mirror image) [verified: code], so
-this model renders them as L and R. Every other model is mono, from OUT.
+this model renders them as L and R, each through its own resampler. Every
+other model is mono, from OUT, through the left one.
 
 ### Voice cap: 4
 
 RAM sets the cap. Four voices of 17.1 KB (arena, engine, post-processors
-and buffers) come to 67 KB, out of the roughly 387 KB free in the stock
-layout (docs/11 §2).
+and buffers) come to 67 KB, plus 2.5 KB for the two resamplers, out of the
+roughly 387 KB free in the stock layout (docs/11 §2).
 
 CPU is unknown until stage B measures it:
 
@@ -190,22 +261,38 @@ CPU is unknown until stage B measures it:
 - The FM-1 has about 5,440 cycles per output sample for everything
   [inferred: arithmetic].
 
-Desktop cost, for scale only. These are Apple M1 Max figures, as a share of
-the 1.451 ms block, with every voice sounding, best of five:
+Desktop cost, for scale only. These are Apple M1 Max figures at 44,118 Hz
+in 64-frame blocks, as a share of the 1.451 ms block, with every voice held
+for 3 s (keys 48, 51, 54…, velocity 100), the best of 20 runs of the base
+commit and of 15 of this one, in the same session [verified: `fm1-render`'s
+`ns_per_block`, both builds]:
 
-| Engine / model | Voices | Share of block | Per voice |
-| --- | --- | --- | --- |
-| Macro Heavy, most models | 4 | 0.50–0.92 % | 0.12–0.23 % |
-| Macro Heavy, Particle | 4 | 1.75 % | 0.44 % |
-| Macro Heavy, Speech (vowels / words) | 4 | 0.39–0.91 % / 0.25 % | 0.06–0.23 % |
-| Macro VA+Filter (reference) | 12 | 1.49 % | 0.12 % |
-| Macro 2-op FM (reference) | 12 | 4.96 % | 0.41 % |
-| Six-Op FM | 8 | 0.74–0.77 % | 0.09 % |
+| Engine / model | Voices | Before: Plaits at the host's rate | After: at 47,872.34 Hz, resampled | × |
+| --- | --- | --- | --- | --- |
+| Macro Heavy, String Machine (two resamplers) | 4 | 0.69 % | 1.06 % | 1.55 |
+| Macro Heavy, ten other models | 4 | 0.43–0.77 % | 0.62–1.00 % | 1.29–1.45 |
+| Macro Heavy, Particle | 4 | 1.70 % | 1.91 % | 1.13 |
+| Macro Heavy, Speech (Harmonics 0.5 / 0.9) | 4 | 0.13 / 0.15 % | 0.31 / 0.32 % | 2.3 / 2.2 |
+| Six-Op FM (patches 0, 32, 89) | 8 | 0.73–0.75 % | 0.96–0.99 % | 1.32 |
+| Macro, seven models | 12 | 0.95–1.85 % | 1.09–2.17 % | 1.16–1.24 |
+| Macro, 2-op FM | 12 | 4.87 % | 5.52 % | 1.13 |
 
-So on the desktop, four heavy voices cost less than Macro's twelve light
-ones, and particle is the heaviest model by 2x. pi32v2 is a much narrower
-core (engines/README.md), so these ratios need not hold there [inferred]. Raising
-the cap is a one-line change once stage B has numbers.
+The change adds about 2.3 µs per resampler per block, the resampler's
+36 ns per output (resampler.md), and 8.5 % more engine samples: 2.6–3.5 µs
+for a mono Macro Heavy model, 5.5 µs for the string machine, 3.4 µs for
+Six-Op, 2.1–4.7 µs for Macro (9.4 µs for 2-op FM) [verified: the same
+runs; the split inferred from the bench figure]. An earlier session's
+figures for the old code (0.50–0.92 % for most heavy models, 1.75 % for
+Particle, 0.39–0.91 % for Speech at other settings) differ from this run's;
+compare the before and after columns with each other, not with them.
+
+So on the desktop, four heavy voices still cost less than Macro's twelve
+light ones, and particle is still the heaviest heavy model. On pi32v2 the
+resampler may weigh more: resampler.md estimates about 800 cycles per
+output, 15 % of the FM-1's budget per resampler, and the string machine
+runs two [inferred: no pi32v2 cycle counts yet]. pi32v2 is a much narrower
+core (engines/README.md), so these ratios need not hold there [inferred].
+Raising the cap is a one-line change once stage B has numbers.
 
 ## Six-Op FM
 
@@ -265,18 +352,25 @@ What differs, deliberately:
   - The tests hold three patches (none, −12 and +12) to ±5 cents.
   - The transposed note is also what the patch's keyboard and rate scaling
     see.
-- **Native rate.** `FMVoice::Init` takes the sample rate, so it runs at the
-  host's rate. There is no pitch offset, and DX7 envelope and LFO times are
-  exact, not 8.5 % long as in the other Plaits wrappers.
-- **Blocks.** Internal blocks are 16 samples, which divides 64. Envelopes
-  update once per block; Plaits updates every 24 samples.
+- **Rate.** `FMVoice::Init` takes the sample rate. It now gets Plaits'
+  47,872.34 Hz, as upstream's `SixOpEngine::Init` passes it, and the mix
+  is resampled to the host's rate ("Rate", above) [verified: code]. Until
+  2026-10-01 it got the host's rate. Either way there is no pitch offset
+  and DX7 envelope and LFO times are exact; at Plaits' rate its samples are
+  also upstream's, so it compares with upstream at 44,118 Hz as the other
+  two wrappers do (reference-plaits.md).
+- **Blocks.** Internal blocks are 16 samples at 47,872.34 Hz (0.33 ms).
+  Envelopes and the LFO update once per block; Plaits updates every 24
+  samples per voice, staggered.
 - **Note-on.** Each note-on does two one-sample renders with the gate low,
   into scratch, and discards them.
   - The first runs a new patch's `Setup()`, which otherwise returns without
     rendering and would swallow the note's first block (a 16-sample blank).
     With no new patch it renders one sample of release.
     `test_sixop_note_sounds_from_its_first_block` fails with the renders
-    removed.
+    removed. It checks the first 16 samples at Plaits' own rate, where the
+    resampler passes the blocks through; at 44,118 Hz its 30-sample delay
+    leaves the first 16 outputs silent either way.
   - The second drops `fm::Voice`'s gate, so a voice stolen or retriggered
     while held still sees a note-on edge and attacks again. Without it a
     stolen held voice stays silent; `test_sixop_stolen_held_voice_attacks_again`
@@ -326,21 +420,21 @@ See the open issue below.
 
 ## Tests
 
-`tests/test_engines_plaits_heavy.py` has 180 tests:
+`tests/test_engines_plaits_heavy.py` has 182 tests:
 
 | Group | Tests | What they check |
 | --- | --- | --- |
 | Registry | 1 | Ids and names avoid Mutable Instruments' names; pages, name lengths and credits |
 | Patch names | 1 | The patch-name table matches `resources.cc` |
 | Every model and patch | 13 + 96 | One note each: no non-finite samples, no raw clipping, audible |
-| Macro Heavy tuning | 18 | At A3, A4 and A5, after a low-pass that leaves the fundamental. ±5 cents for additive, formant, swarm, speech vowels and modal (structure 0.25); ±12 cents for string |
+| Macro Heavy tuning | 18 | At A3, A4 and A5, after a low-pass that leaves the fundamental (eight one-pole passes for modal, whose second partial is 5.5 dB above its first at A4, four for the rest). ±5 cents for additive, formant, swarm, speech vowels and modal (structure 0.25); ±12 cents for string |
 | Six-Op tuning | 6 | ±5 cents for three patches with transposes of none, −12 and +12 |
 | Chords under the limiter | 16 + 8 | At the voice cap and past it (stealing): no clipping, peak ≤ 0.98 |
 | Releases | 7 | Releases end (LPG, self-enveloped at Morph = 1, speech words, Six-Op) |
 | Voice freeing | 3 | Freeing, as render cost: released chords cost 2–6 % of held ones on the desktop, and the test allows 50 %; it fails when freeing is disabled |
-| Wrapper behaviour | 7 | Stereo string machine; Word Speed; a stolen held voice attacks again; a Six-Op note sounds from its first block (2 patches); all four speech voices speak from the shared word bank; output identical at host blocks of 64, 7 and 1 frames |
+| Wrapper behaviour | 9 | Stereo string machine; the string machine entered by a model change renders as one created in it (64- and 7-frame blocks); Word Speed; a stolen held voice attacks again; a Six-Op note sounds from its first block (2 patches, at Plaits' rate); all four speech voices speak from the shared word bank; output identical at host blocks of 64, 7 and 1 frames |
 | Determinism | 3 | Particle, string and Six-Op render the same bytes twice |
-| Instance sizes | 1 | The sizes stay within the bounds above |
+| Instance sizes | 1 | The sizes stay within the bounds above, each less than one resampler (1,288 B) above the size: the only test that sees a resampler per voice instead of per output channel |
 
 Where tuning is not checked, and why:
 
@@ -457,6 +551,12 @@ so.
      correction depends on the loop length in samples, so the rate change
      matters: -9.5 cents at A2 with Harmonics 0.5 against upstream [verified:
      engines/reference-plaits.md, finding 4].
+   - **Since 2026-10-01** the string runs at Plaits' rate on any host, so
+     that rate dependence is gone: at 44,118 Hz the A2 note is upstream's,
+     sample for sample through the resampler, and its pitch against
+     upstream unresampled reads 0.00 cents [verified: reference-plaits.md,
+     "At 44,118 Hz"]. The 6–9 cents of this item remain: they are
+     upstream's.
 10. **Plaits never applies a patch's transpose** (above).
 11. **Allocation audit.** Everything else in the wrapped engines allocates
     what it uses [verified: code, with ASan over the sweep below]. The
@@ -517,6 +617,10 @@ Results:
   float-division build only, quirk 12 (5 renders, every String render).
 - **Fixed:** the `operator.h:90` division by zero that the old zero-length
   Six-Op renders caused no longer appears.
+- **After the native-rate change (2026-10-01):** every engine test
+  (`tests/test_engine*.py`, 938 tests) passed against the ASan + UBSan build
+  of `engines/README.md` (clang, `-O1`, the repository's ignorelist and
+  suppressions, `halt_on_error=1`), in 204 s [verified].
 
 The first pass of this stream also built the tree with GCC 15.2 on x86-64
 Linux, with `-Wall -Wextra`. These files gave no warnings, and renders gave
@@ -524,19 +628,21 @@ the same peaks as on macOS. That was not re-run after the review fixes.
 
 ### 32-bit coverage
 
-- **What CI does.** The `engines-32bit` job builds everything with `-m32`
-  but runs only `tests/test_engines.py` [verified: `.github/workflows/ci.yml`].
-  Its "Report instance sizes" step renders only `macro` and `shapes`. So
-  neither engine in this stream has run as a 32-bit program.
+- **What CI does.** The `engines-32bit` job builds everything with `-m32
+  -msse2 -mfpmath=sse`, runs `python -m pytest -v tests/test_engine*.py`
+  against that build, and its "Report instance sizes" step renders every
+  engine in the registry [verified: `.github/workflows/ci.yml`, 2026-10-01].
+  (When this stream began it ran only `tests/test_engines.py` and sized only
+  `macro` and `shapes`; request 1 below asked for this.)
 - **Why it matters.** A 32-bit-only arena mismatch would disable a model
-  silently, and nothing would fail.
+  silently; `test_every_heavy_model_sounds_cleanly` would now fail on it.
 - **Why it is unlikely** [inferred]. `kArenaNeed` uses the same `sizeof`
   expressions as the upstream `Allocate<>()` calls, and `BufferAllocator`
   adds no padding. So the table can only disagree on one target if an
   upstream type changes size on that target alone.
 - **Not run locally.** This Mac is arm64 and its Docker VM is aarch64 with
   no multilib image; installing one would mean downloading packages.
-- **Fix.** Belongs in CI; see the requests below.
+- **Fix.** Done in CI (request 1 below).
 
 ## Limits and open questions
 
@@ -554,7 +660,17 @@ the same peaks as on macOS. That was not re-run after the review fixes.
   data"). For a commercial build, have the three banks and their names
   reviewed, or ship user banks instead.
 - **Pi32v2 cost** is unmeasured; see stage B. So are one speech word-bank
-  parse (above) and the FPU's divide-by-zero behaviour.
+  parse (above), the resamplers' share ("Voice cap") and the FPU's
+  divide-by-zero behaviour.
+- **The resampler's price** ("Rate", above): 0.76 ms more from a note to its
+  sound at 44,118 Hz, 2.3 µs per resampler per desktop block, 1,288 B each,
+  and hosts above 47,872.34 Hz are refused rather than upsampled (no
+  upsampling resampler exists here; resampler.md, "Limits").
+- **Silent-voice timers** count 12- or 16-sample blocks at 47,872.34 Hz, so
+  their 50 ms and 1 s are the same at any host rate. Getting the rate wrong
+  there would only move when a voice below −80 dBFS is freed, which no render
+  comparison can see [inferred: the threshold; a scratch mutant with the
+  host's rate in their place passed every test].
 
 ## Requests outside this stream's files
 
@@ -565,11 +681,14 @@ go to the orchestrator and owner:
    against the `-m32` binary, not only `tests/test_engines.py`. The
    render-time test `test_released_voices_are_freed` may need a skip or a
    looser bound there. Add `--engine macro-heavy` and `--engine sixop` to
-   "Report instance sizes".
+   "Report instance sizes". Done since [verified: `.github/workflows/ci.yml`].
 2. **Host: timed parameter events.** For example `--param-at
    T:NAME=VALUE`. That would let tests cover Harmonics moves across speech
    word banks and Patch changes under held Six-Op voices, which only
-   scratch harnesses cover now.
+   scratch harnesses cover now. Done since: `fm1-render --param-at`
+   [verified: `engines/host/render.cc`], used by
+   `test_every_parameter_can_move_while_notes_sound` and
+   `test_string_machine_entered_later_renders_as_if_created_in_it`.
 3. **Host: an active-voice diagnostic.** For example an optional engine
    callback, or a summary field, reporting how many voices are active at
    the end. `test_released_voices_are_freed` could then assert freeing

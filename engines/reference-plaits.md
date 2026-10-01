@@ -20,7 +20,13 @@ sample** [verified: tests/test_engines_reference_plaits.py]:
 
 - **How close.** At every tested point the error is −87.3 to −88.5 dBFS. That
   is the size of the 16-bit rounding the fm1 side adds (−88.6 dBFS), and
-  nothing else.
+  nothing else. Under it, the wrappers' DAC words are `Voice`'s bit for bit
+  once the reference gets LEVEL as the wrapper's own float (velocity / 127
+  as a 32-bit float); the harness used to round it to six decimals, another
+  float, and 10 of 28,723 words came out 1 off in the case checked
+  [verified: a scratch harness printing the wrapper's words, slot 8 at
+  velocity 60; with the exact float, 0 of 28,723; and for every exact slot
+  indirectly, by the identical samples at 44,118 Hz below].
 - **Every knob that reaches the wrapper.** The three test points vary
   Harmonics, Timbre, Morph, Decay, Colour and velocity, each over three
   values.
@@ -38,16 +44,34 @@ sample** [verified: tests/test_engines_reference_plaits.py]:
 render 35–38 samples ahead [verified]. The two remaining differences are the
 wrapper's by design. The spread over all 96 patches is traced to them below.
 
-**At the FM-1's rate (44,118 Hz)** [verified]:
+**At the FM-1's rate (44,118 Hz)**, where since 2026-10-01 the wrappers run
+Plaits at its own 47,872.34 Hz and resample the mix with
+`fm1_resampler.h` (the owner's decision; plaits-heavy.md, "Rate")
+[verified]:
 
-- **Pitch.** Every tonal slot is within 0.7 cents of what the code predicts
-  (16 of the 21 within 0.1), and the tests hold it to 1 cent. The
-  prediction is 0.37 cents flat for the Plaits engines (the pitch table), 0
-  for Six-Op, and for the string model at A2 also its own rate dependence:
-  predicted −9.1 cents, measured −9.5 (finding 4).
-- **Envelopes** run as long as the rate ratio (1.085) predicts wherever they
-  are set per sample or per block (measured 1.073–1.092). Six-Op's run exactly
-  (1.000–1.001).
+- **Against upstream resampled the same way** (`fm1-ref-plaits
+  --host-rate 44118`), at every native-rate point and note: 20 of the 21
+  Macro and Macro Heavy slots write the same 16-bit samples as the
+  reference, random slots included (0 of 158,820 differ per slot; 317,640
+  for the string machine's two channels). Chiptune differs by 1 LSB in 23
+  of 76,962, compared from 10 ms as at the native rate, where its error is
+  also the highest of the exact slots (−87.3 dBFS): the wrapper keeps a
+  low-pass gate that upstream bypasses, transparent there only to within
+  float rounding [inferred]. Six-Op matches closely: NCC 0.9885 or more,
+  lag −32 to −35 samples.
+- **Against upstream at its own rate, unresampled:** pitch within
+  0.007 cents on every slot, envelope stretch 1.000–1.001, level within
+  0.02 dB. The tests hold pitch to 0.1 cent and the stretch to 1 ± 0.02.
+- **Host blocks** of 1, 7 and 64 frames write the same bytes, and a note
+  lands on the 12-sample block that the resampler's pulls predict.
+- **What went.** Before the change the wrappers ran Plaits at the host's
+  rate with the pitch raised by 1.414 semitones: envelopes ran 8.5 % long
+  (stretch 1.073–1.092), the pitch table left every tonal engine 0.37 cents
+  flat, the noise engine's clock ran 1.41 semitones low (a strict xfail),
+  particle and swarm densities 8.5 % low, and the string model was
+  −9.5 cents at A2 (findings 2–4). All of that is gone; what is left is the
+  resampler's band limit (flat to 18 kHz, a roll-off above, nothing above
+  the Nyquist; resampler.md) and its delay (intentional difference 10).
 
 **What the comparison covers.** Both programs link the same compiled
 vendored objects (`build/tp/*.o`) and include the same headers. So the render
@@ -73,26 +97,31 @@ adaptation: Speech (upstream `SpeechEngine` against the wrapper's
   2026-09-30].
 
 So for the Plaits-derived engines the exit test is met for the wrapper
-layer, and the engine code is upstream's own, pinned.
+layer, at Plaits' rate and at the FM-1's, and the engine code is upstream's
+own, pinned.
 
-**No wrapper code was changed.** Nothing found at the native rate is a defect
-in a wrapper. The findings (below) are:
+**No wrapper code was changed by the comparison itself.** Nothing found at
+the native rate is a defect in a wrapper. The findings (below) are:
 
 1. a polarity inconsistency between the engines;
 2. frequencies set from TIMBRE, not from the note, that the rate compensation
-   misses (verified for the filtered-noise model);
+   missed (verified for the filtered-noise model);
 3. the same for the low-pass gate's filter [inferred];
-4. the string model's tuning depends on the rate at low notes;
+4. the string model's tuning depended on the rate at low notes;
 5. documentation: two intentional differences the existing notes did not
    describe, and two statements that do not hold.
+
+Findings 2–4 were consequences of running Plaits at the host's rate. The
+change of 2026-10-01 (Plaits at its own rate, resampled) removed all three
+[verified: "At 44,118 Hz", under Results].
 
 ## Files and commands
 
 | File | What |
 | --- | --- |
-| `test/ref_plaits.cc` | `build/fm1-ref-plaits`: renders upstream `plaits::Voice`, and compares two WAVs (`--compare`) |
+| `test/ref_plaits.cc` | `build/fm1-ref-plaits`: renders upstream `plaits::Voice`, at its own rate or resampled to a host's (`--host-rate`), and compares two WAVs (`--compare`) |
 | `mk/ref-plaits.mk` | Builds it. It adds `voice.cc` and Plaits' `SpeechEngine` for this binary only; fm1-render is unchanged |
-| `../tests/test_engines_reference_plaits.py` | 125 tests; about 30 s on an M1 Max with 8 worker threads, about 90 s under ASan+UBSan. Also the `--report`, `--calibrate` and `--sixop-sweep` modes that print this file's tables |
+| `../tests/test_engines_reference_plaits.py` | 185 tests; about 35 s on an M1 Max with 8 worker threads, about 105 s under ASan+UBSan. Also the `--report`, `--calibrate` and `--sixop-sweep` modes that print this file's tables |
 
 ```bash
 make -C engines
@@ -104,6 +133,15 @@ engines/build/fm1-render --engine macro-heavy --param Model=8 --param Harmonics=
     --param Timbre=0.5 --param Morph=0.8 --param Volume=1 --note 0:57:100:0.6 \
     --seconds 0.6 --rate 47872.34 --frames 12 --out fm1.wav
 engines/build/fm1-ref-plaits --compare ref.wav fm1.wav --gain 0.25
+# at the FM-1's rate: upstream resampled as the wrapper resamples, at fm1's
+# scale (LEVEL as the wrapper's float, 100/127), against fm1-render's defaults
+# (44,118 Hz, 64 frames); the left channels are identical (the reference's
+# right channel is AUX, which this model does not use)
+engines/build/fm1-ref-plaits --engine 19 --note 57 --harmonics 0.2 --timbre 0.5 \
+    --morph 0.8 --level 0.787401556968689 --seconds 0.6 --host-rate 44118 --out ref44.wav
+engines/build/fm1-render --engine macro-heavy --param Model=8 --param Harmonics=0.2 \
+    --param Timbre=0.5 --param Morph=0.8 --param Volume=1 --note 0:57:100:0.6 \
+    --seconds 0.6 --out fm144.wav
 python -m pytest tests/test_engines_reference_plaits.py
 python tests/test_engines_reference_plaits.py --report        # the tables below
 python tests/test_engines_reference_plaits.py --calibrate     # the statistical factors
@@ -169,6 +207,38 @@ explicitly gives byte-identical output
 **Six-Op.** `--delay-blocks N` starts the note N blocks later. The reference
 also reports the patch HARMONICS selects, with its transpose and key-sync
 flag.
+
+**At a host's rate (`--host-rate HZ`).** What the wrappers deliver to a host
+at that rate, since they run Plaits at 47,872.34 Hz and resample
+[verified: the code]:
+
+- **The same `Voice` blocks.** `Voice` renders the same 12-sample blocks
+  at 47,872.34 Hz, with the aligned TRIG lead above.
+- **Events on the block the wrapper uses.** fm1-render applies a note-on or
+  note-off at the start of the first host block (`--host-frames N`, 64 by
+  default) at or after its time; the wrapper acts on it in the first block
+  it renders after that. The reference finds that block by a dry run of
+  `fm1_resampler.h` itself, fed zeros one sample at a time as
+  `fm1_resampler_needed` asks, counting the samples pulled before each host
+  sample. `--at S` starts the note at S seconds (default 0); `--gate S` is
+  its length. The tests check the dry run against an independent model of
+  the resampler's arithmetic (`inputs_pulled`) and against a render.
+- **Silence before the note.** Blocks before the note's block are written as
+  silence (the wrapper has no voice yet), and the engine is selected at the
+  note's block, so its `Reset()` again falls where the wrapper's does.
+- **Resampled at fm1's scale.** The DAC words times `--host-gain G` (0.25:
+  Volume 1, one voice; the tests pass −0.25 for Six-Op, whose polarity is
+  the opposite) over 32,768 are exactly the floats a wrapper voice mixes
+  (word × 2⁻¹⁷). Each channel goes through its own `fm1_resampler.h`
+  instance, and the result is written as fm1-render writes its output
+  (× 32,767, rounded, clamped). So the reference does not clip where
+  upstream's words are at full scale and the resampler overshoots it
+  (8 of the 24 slots reach full scale, and up to 1.09 times it once
+  resampled [reported: the adversarial review of this change's design,
+  F2]), and fm1 compares with it at gain 1.
+- **Refused rates.** A host above 47,872.34 Hz or below a quarter of it is
+  refused, as the wrappers refuse it. `--literal` and `--delay-blocks` do
+  not combine with it.
 
 ## Mapping
 
@@ -251,7 +321,14 @@ slot:
   (intentional difference 8 says why).
 - **Native side.** fm1-render runs at `--rate 47872.34 --frames 12`, and
   again with `--frames 64`: 64 = 5 × 12 + 4, so every host block ends inside
-  one of the wrapper's 12-sample blocks (Six-Op's 16).
+  one of the wrapper's 12-sample blocks (Six-Op's 16). The resampler passes
+  samples through at this rate.
+- **At the FM-1's rate.** The same six cases per slot, fm1-render at its
+  defaults (44,118 Hz, 64 frames), against the reference with
+  `--host-rate 44118`. The note-off falls on host sample 13,312, which the
+  wrappers act on at 47,872.34 Hz sample 14,460 (block 1,205).
+- **LEVEL** is passed as `repr` of the 32-bit float velocity / 127, the
+  wrapper's own value (0.787401556968689 for 100).
 
 **The measures.** `fm1-ref-plaits --compare` reports all of them. Each one
 targets an error it would catch:
@@ -333,24 +410,56 @@ exact and Six-Op criteria count a null as a failure.
     pitch (string only). The fm1 candidate's own largest needs were 1.91,
     1.30, 1.25, 1.79 and 0.98: inside upstream's own spread on every
     measure.
-- **Rate** (44,118 Hz).
-  - **Pitch** within ±1 cent of what the code predicts (finding 4 and
-    "What the table shows"):
-    - −0.374 cents for the Plaits engines;
-    - 0 for Six-Op;
-    - for the string, also its stretch correction: −9.06 cents in all at A2
-      and −0.37 at A4.
-  - Envelope stretch must be within 0.02 of what the engine's time base
-    predicts:
-    - 1.0851 for the LPG, per-sample drums and speech words;
-    - 0.98 to 1.105 for Modal;
-    - 1.00 ± 0.02 for Six-Op, by decay-rate ratio. DX7 releases can fall
-      30 dB in 30 ms, too fast for a 20 ms window fit.
+- **At the FM-1's rate, against upstream resampled** (44,118 Hz, the six
+  cases per slot; `test_matches_upstream_resampled_at_the_fm1_rate`).
+  - **Within 1 LSB** of fm1-render's 16-bit output at every sample, and
+    0.1 LSB RMS (`HOST_LSB`), the lengths equal and the reference's peak
+    above 100 LSB. Both sides resample the same floats with the same header
+    code and write them the same way, so the WAVs are expected to be
+    identical, and are, except Chiptune's 23 samples (above). The 1 LSB
+    leaves room for a compiler that evaluates the resampler's float
+    expressions differently in the two programs (contracting a
+    multiply-add in one and not the other): that moves a sample by a float
+    rounding and can flip its 16-bit rounding by one, never more
+    [inferred]. Every wrapper error this comparison exists for moves many
+    samples by more (the negative controls below).
+  - **Six-Op, closely** (`SIXOP_HOST`): the native-rate limits, with the lag
+    window scaled by 44,118 / 47,872.34 to −37..−29 (the native lag of −35
+    to −38 samples is −32.3 to −35.0 at 44,118 Hz), and a lag search of
+    ±1 ms: ±2 ms reaches the next period of A4 (100 samples), which in one
+    case correlated better by a hair (lag +67). NCC drops to 0.9885 on a
+    bright A4 case (0.9937 at the native rate): the 36-sample native lag is
+    33.2 samples at 44,118 Hz, and the best whole-sample lag leaves up to
+    half a sample of misalignment, which costs correlation where the
+    spectrum is bright [inferred].
+- **At the FM-1's rate, against upstream unresampled** (rate points; tests
+  `test_fm1_rate_pitch_matches_upstream` and
+  `test_fm1_rate_envelope_timing_matches_upstream`). This is what a wrong
+  ratio, a missing resampler or a pitch offset left in a wrapper would move
+  even if a reference made the same mistake.
+  - Aligned in time: fm1 less the resampler's 30-sample group delay (its
+    first 30 frames cropped), and the reference's note-off on the
+    12-sample block the wrapper's lands on (Six-Op: the first at or after
+    its 16-sample block).
+  - **Pitch** 0 within ±0.1 cent, every slot. A pitch offset left in a
+    wrapper reads +141 cents, a missing resampler −141, a resampler told
+    48 kHz +4.6, and the old pitch table −0.37.
+  - **Envelope stretch** 1 ± 0.02 after the note-off (or note-on), by
+    envelope fit, every slot but Chiptune (whose LPG upstream lacks); for
+    Six-Op by decay-rate ratio, since DX7 releases can fall 30 dB in 30 ms,
+    too fast for a 20 ms window fit. The old code gave 1.085.
   - Rate points: (0.5, 0.5, 0.5), a 1 s render, Decay 0.3. FM uses TIMBRE 0
     (a sine, no beating). Six-Op uses patches whose release falls 30 dB
     within the render. Chiptune uses Colour 1 and velocity 127 and compares
-    10 ms to the note-off, as at the native rate: before that change its LPG,
-    which upstream lacks, biased the pitch estimate to −0.80 cents at A2.
+    10 ms to the note-off, as at the native rate.
+  - The random slots, Chords and the string are held too now: both sides
+    draw the same random numbers at the same rate on the shared seed.
+- **Host blocks and note timing at the FM-1's rate.** 1, 7 and 64 frames
+  per call byte-identical over 13,235 frames with a second note and a
+  note-off mid-render, for an LPG model, the string machine, Noise, String
+  and Six-Op; a note at 0.0503 s starts on the 12-sample block at
+  47,872.34 Hz sample 2,436, as the resampler's arithmetic predicts, with
+  exact silence before the first output that reads it.
 
 **Which slots are random**, found by seeding the reference with 0x21, 1 and
 2 and comparing OUT [verified]:
@@ -435,7 +544,110 @@ carry little information:
   second, each at a random pitch, so the centroid of 1.5 s moves between
   seeds [inferred; the density is code arithmetic].
 
-### At 44,118 Hz (A2 / A4)
+### At 44,118 Hz, against upstream resampled the same way
+
+fm1-render at 44,118 Hz in 64-frame blocks against `fm1-ref-plaits
+--host-rate 44118`, the six native-rate cases per slot, in 16-bit LSB of
+fm1-render's output (the string machine on both channels; Chiptune from
+10 ms to the note-off). Six-Op: the close measures, worst of the six
+[verified: `--report`]:
+
+| # | Upstream | Largest difference | RMS | Samples differing |
+| --- | --- | --- | --- | --- |
+| 0 | VirtualAnalogVCFEngine | 0 LSB | 0 | 0 of 158,820 |
+| 1 | PhaseDistortionEngine | 0 | 0 | 0 of 158,820 |
+| 2 | SixOpEngine bank 1 | NCC 0.9943, lag −33 | gain 0.043 dB, envelope 0.320 dB | pitch 0.015 cents, LSD 0.264 dB |
+| 3 | SixOpEngine bank 2 | NCC 0.9924, lag −35..−32 | gain 0.116 dB, envelope 0.310 dB | pitch 0.076 cents, LSD 0.867 dB |
+| 4 | SixOpEngine bank 3 | NCC 0.9885, lag −34..−33 | gain 0.097 dB, envelope 0.127 dB | pitch 0.003 cents, LSD 0.140 dB |
+| 5 | WaveTerrainEngine | 0 | 0 | 0 of 158,820 |
+| 6 | StringMachineEngine | 0 | 0 | 0 of 317,640 |
+| 7 | ChiptuneEngine | 1 | 0.034 | 23 of 76,962 |
+| 8 | VirtualAnalogEngine | 0 | 0 | 0 of 158,820 |
+| 9 | WaveshapingEngine | 0 | 0 | 0 of 158,820 |
+| 10 | FMEngine | 0 | 0 | 0 of 158,820 |
+| 11 | GrainEngine | 0 | 0 | 0 of 158,820 |
+| 12 | AdditiveEngine | 0 | 0 | 0 of 158,820 |
+| 13 | WavetableEngine | 0 | 0 | 0 of 158,820 |
+| 14 | ChordEngine | 0 | 0 | 0 of 158,820 |
+| 15 | SpeechEngine | 0 | 0 | 0 of 158,820 |
+| 16 | SwarmEngine | 0 | 0 | 0 of 158,820 |
+| 17 | NoiseEngine | 0 | 0 | 0 of 158,820 |
+| 18 | ParticleEngine | 0 | 0 | 0 of 158,820 |
+| 19 | StringEngine | 0 | 0 | 0 of 158,820 |
+| 20 | ModalEngine | 0 | 0 | 0 of 158,820 |
+| 21 | BassDrumEngine | 0 | 0 | 0 of 158,820 |
+| 22 | SnareDrumEngine | 0 | 0 | 0 of 158,820 |
+| 23 | HiHatEngine | 0 | 0 | 0 of 158,820 |
+
+Measured on macOS arm64 (Apple clang 21), where both programs make the same
+floating-point choices; the limit allows one LSB elsewhere ("Criteria").
+
+### At 44,118 Hz, against upstream at its own rate (A2 / A4)
+
+fm1 at 44,118 Hz less the resampler's 30-sample delay, against the native
+reference unresampled, at the rate points [verified: `--report`]:
+
+| # | Upstream | Pitch cents | Stretch (method) | Level dB | LSD dB |
+| --- | --- | --- | --- | --- | --- |
+| 0 | VirtualAnalogVCFEngine | −0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.04 / 0.01 |
+| 1 | PhaseDistortionEngine | −0.000 / +0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.05 / 0.01 |
+| 2 | SixOpEngine bank 1 | −0.001 / +0.001 | 1.001 / 1.001 (slope) | +0.003 / +0.000 | 0.15 / 0.17 |
+| 3 | SixOpEngine bank 2 | −0.001 / +0.007 | 1.000 / 0.999 (slope) | +0.003 / +0.000 | 0.07 / 0.05 |
+| 4 | SixOpEngine bank 3 | −0.001 / −0.000 | 1.001 / 1.000 (slope) | +0.004 / +0.004 | 0.08 / 0.01 |
+| 5 | WaveTerrainEngine | +0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.05 / 0.01 |
+| 6 | StringMachineEngine | −0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.03 / 0.01 |
+| 7 | ChiptuneEngine | +0.001 / −0.001 | not held (its LPG) | −0.010 / −0.016 | 0.00 / 0.00 |
+| 8 | VirtualAnalogEngine | −0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.05 / 0.01 |
+| 9 | WaveshapingEngine | +0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.05 / 0.01 |
+| 10 | FMEngine | −0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.04 / 0.01 |
+| 11 | GrainEngine | −0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.05 / 0.01 |
+| 12 | AdditiveEngine | −0.000 / +0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.00 / 0.00 |
+| 13 | WavetableEngine | −0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.05 / 0.01 |
+| 14 | ChordEngine | +0.000 / +0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.01 / 0.00 |
+| 15 | SpeechEngine | +0.000 / +0.000 | 1.000 / 1.000 (fit) | −0.001 / −0.001 | 0.04 / 0.01 |
+| 16 | SwarmEngine | +0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.04 / 0.00 |
+| 17 | NoiseEngine | −0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.03 / 0.03 |
+| 18 | ParticleEngine | +0.005 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.07 / 0.04 |
+| 19 | StringEngine | −0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.17 / 0.00 |
+| 20 | ModalEngine | −0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.16 / 0.00 |
+| 21 | BassDrumEngine | −0.000 / +0.000 | 1.000 / 1.000 (fit) | −0.000 / −0.000 | 0.04 / 0.02 |
+| 22 | SnareDrumEngine | +0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.003 / −0.011 | 0.08 / 0.02 |
+| 23 | HiHatEngine | −0.000 / −0.000 | 1.000 / 1.000 (fit) | −0.013 / −0.015 | 0.03 / 0.03 |
+
+What the tables show [verified unless marked]:
+
+- **The same sound, delayed and band-limited.** Pitch, envelope timing and
+  level agree with upstream at its own rate to the measurement's
+  resolution on every slot. The LSD that is left (up to 0.17 dB) is the
+  resampler's band limit: flat to 18 kHz, a roll-off from there to the
+  Nyquist, where upstream at 47,872.34 Hz keeps its content to 23.9 kHz
+  [inferred: resampler.md's measured response]. The levels of Snare and
+  Hi-Hat, −0.003 to −0.015 dB, are the same: their energy reaches highest.
+- **Without the alignment** (fm1 not cropped by the group delay, the
+  reference's note-off where the native tests put it), the bass drum at A2
+  reads 0.10 cents and the others within 0.035: the 0.68 ms delay shifts the
+  analysed segment along the drum's pitch sweep [verified: a first run of
+  the same comparison; inferred mechanism]. The alignment takes that out.
+- **Random slots, Chords and the string** compare like the others now: both
+  sides draw the same random numbers at the same rate on the shared seed,
+  and the chord's beating is in the same phase.
+- **The noise engine's clock** follows: `test_noise_clock_follows_the_rate`,
+  the strict xfail of finding 2, passes. Its spectral-envelope shift, the
+  median against five seeded upstream renders, is −2.3 and −0.1 cents at A2
+  and A4 (was −139 and −140); with the clock at the top of its range
+  (TIMBRE 1), −7.3 and +1.9 (was +7 and 0). Both are held within 20 cents:
+  these are other random realisations than fm1's, so a few cents is their
+  spread [verified: the two tests' measure, printed].
+
+### Before 2026-10-01: Plaits at the host's rate
+
+Until 2026-10-01 the wrappers ran Plaits at the host's rate with the pitch
+raised by 12·log2(47,872.34 / rate) semitones, and the tests held what the
+code predicted for that. The prediction (`rate_expected`,
+`string_stretch_cents`, `test_rate_prediction_arithmetic`) went with the
+change; the parent commit, 2bf4133, has it. The table as it then was
+(A2 / A4), fm1 at 44,118 Hz against the native reference unresampled, with
+the LEVEL then rounded to six decimals and no alignment:
 
 | # | Upstream | Pitch cents (predicted) | Stretch (method, range) | Level dB | LSD dB |
 | --- | --- | --- | --- | --- | --- |
@@ -464,7 +676,7 @@ carry little information:
 | 22 | SnareDrumEngine | −0.23 / −0.37 (−0.37) | 1.084 / 1.092 (fit) | +0.74 / +0.71 | 1.29 / 0.67 |
 | 23 | HiHatEngine | −0.37 / −0.35 (−0.37) | 1.085 / 1.081 (fit) | −0.01 / +0.45 | 1.63 / 1.71 |
 
-What the table shows [verified unless marked]:
+What that table showed [verified unless marked, at the time]:
 
 - **The flat third of a cent** on the Plaits engines is Plaits' own pitch
   table. `stmlib::SemitonesToRatio` truncates the fractional semitone to
@@ -512,6 +724,7 @@ What the table shows [verified unless marked]:
   - LSD: Speech and Noise are 3–5 dB. Speech words play 8.5 % slower, so the
     analysed segment holds other phonemes [inferred]; for Noise see
     finding 2.
+
 
 ### Six-Op, across all 96 patches
 
@@ -610,6 +823,10 @@ listed:
 | Swarm rendered as Noise (statistical) | 17 of 30 |
 | Hi-Hat rendered as Snare (statistical) | 28 of 30 |
 | Silence, and white noise at the candidate's level (statistical) | every point |
+| At 44,118 Hz: fm1 at 44,100 Hz against the reference resampled to 44,118 Hz (a ratio 0.04 % off), compared sample for sample | 4,260 LSB, 26,379 of 26,460 samples differ; lengths differ |
+| At 44,118 Hz: Volume 0.99 | 65 LSB, 26,224 of 26,470 |
+| At 44,118 Hz: the reference's note-off in 7-frame host blocks against fm1's 64 (it lands 4 blocks earlier) | 96 LSB, 12,491 of 26,470 |
+| At 44,118 Hz: Noise a semitone sharp (shared seed) | 1,408 LSB, 26,388 of 26,470 |
 
 The wrapper mutations a review ran against these tests are listed under
 "Review" below.
@@ -652,6 +869,32 @@ One change still survives: Six-Op's envelope and LFO block of 32 samples
 instead of 16. At the 18 test points it stays inside the close criteria,
 which allow for the 16-against-24 difference by design; the sweep's
 key-sync residual is where a block size shows (Six-Op, above).
+
+**The native-rate change (2026-10-01).** Seventeen scratch mutants of the
+three wrappers, one change each, built and run against this file,
+`test_engines_plaits_heavy.py`, `test_engines.py` and `test_engine_host.py`
+(459 tests) [verified: scratch harness, not in the repo]. 16 fail:
+
+| Change | Fails |
+| --- | --- |
+| Macro's resampler told 48 kHz in | 29 tests: exact at both rates, pitch, refusals |
+| Macro's resampler told a rate 0.03 % high | 28: the same |
+| Macro without a resampler (native samples straight out) | 27: resampled comparison, pitch, timing, tuning |
+| Macro decimating by dropping samples, unfiltered | 9: resampled comparison, note timing |
+| Macro with the old pitch offset left in | 29: exact at both rates, pitch, tuning |
+| Macro Heavy's resampler told 48 kHz in | 49 |
+| Macro Heavy with the old pitch offset left in | 70 |
+| Macro Heavy without resamplers | 60: resampled comparison, pitch, timing, the noise clock |
+| Macro Heavy's right resampler not copied on entering the string machine | 2: `test_string_machine_entered_later_renders_as_if_created_in_it` |
+| Macro Heavy's right resampler fed the left mix | 5: the string machine's AUX at both rates, stereo, model change |
+| Six-Op's FMVoice at the host's rate, resampled | 15: resampled comparison, pitch, timing, tuning |
+| Six-Op without a resampler | 15: the same |
+| Six-Op decimating by dropping samples | 3: resampled comparison |
+| A resampler per voice, by size (Macro, Macro Heavy, Six-Op: unused arrays of them; resampling is linear, so the renders could not tell) | 1 each: the instance-size bounds |
+
+The survivor: Macro Heavy's silent-voice timers counted at the host's
+rate rather than Plaits'. They only decide when a voice already below
+−80 dBFS is freed (plaits-heavy.md, "Limits").
 
 ## Intentional differences
 
@@ -709,9 +952,17 @@ for in the comparison.
    - one-sample note-on renders;
    - no staggering (a 36-sample lead);
    - its own LFO stepping.
-10. **Rate.** The wrappers correct pitch only, and leave every time constant
-    and fixed frequency per sample (UPSTREAM.md). The consequences are measured
-    above.
+10. **Rate.** Since 2026-10-01 the wrappers run Plaits at its own
+    47,872.34 Hz on any host and resample the mix (plaits-heavy.md, "Rate"),
+    so no time constant or frequency differs from upstream's. What differs
+    is what the resampler adds: a band limit (flat to 18 kHz, a roll-off
+    to the host's Nyquist) and its delay, 0.76–1.01 ms from a note to the
+    centre of its onset at 44,118 Hz (0.76–1.09 ms for Six-Op), where it was
+    0–0.25 ms (0–0.34 ms) [verified: the pull arithmetic, checked against a
+    render]. Both are measured above and in plaits-heavy.md. Until then the
+    wrappers corrected pitch only and left every time constant and fixed
+    frequency per sample (UPSTREAM.md); the consequences are kept above as
+    history.
 
 ## Findings
 
@@ -753,6 +1004,11 @@ for in the comparison.
      clamping.
    - Not done: it changes what the knob does, and should be decided with the
      other uncompensated rates (findings 3 and 4).
+   - **Resolved 2026-10-01** by running Plaits at its own rate: the clock is
+     upstream's at any host rate (−2.3 and −0.1 cents at A2 and A4, the
+     xfail now an ordinary test), and Particle and Swarm, compared sample
+     for sample at 44,118 Hz through the resampler, are upstream's, densities
+     included [verified: "At 44,118 Hz", above].
 3. **The LPG's filter is not rate-compensated either.**
    `LPGEnvelope::frequency()` is a per-sample frequency, so the gate's
    low-pass sits 1.41 semitones lower at 44,118 Hz [inferred: code]. It is a
@@ -760,6 +1016,11 @@ for in the comparison.
    (0.05–2.1 dB) [inferred]. The same is true of every fixed per-sample
    filter or delay inside the engines, which the wrappers cannot reach
    without changing vendored code.
+   - **Resolved 2026-10-01** with finding 2: the gate and every per-sample
+     filter now run at upstream's rate; level at 44,118 Hz is within
+     0.02 dB of upstream at its own rate on every slot, and the 20 LPG and
+     self-enveloped slots compare sample for sample through the resampler
+     [verified: "At 44,118 Hz", above].
 4. **The string model's tuning depends on the rate at low notes.**
    - **Where:** with dispersion (HARMONICS above 0.26),
      `String::ProcessInternal` shortens its main delay by
@@ -782,6 +1043,11 @@ for in the comparison.
    - Not changed: only the wrapper could compensate it, by raising the note
      by the predicted amount per note and HARMONICS. An owner decision, with
      findings 2 and 3.
+   - **Resolved 2026-10-01** with findings 2 and 3: at 44,118 Hz the string
+     at A2 reads 0.000 cents against upstream at its own rate, and is
+     upstream's sample for sample through the resampler [verified: "At
+     44,118 Hz", above]. (`string_stretch_cents` and the pitch test cited
+     above were removed with the change.)
 5. **Documentation.**
    - plaits-heavy.md's "the module has no note-off" does not hold for speech
      words with LEVEL patched (intentional difference 8).
@@ -789,6 +1055,8 @@ for in the comparison.
    - UPSTREAM.md's "Envelope times scale by the same ratio" holds for the LPG, the
      drums and speech. It does not hold for Six-Op (exact) or Modal
      (1.00–1.05). The string's decay depends on its random excitation.
+     Since 2026-10-01 it holds for none of the Plaits wrappers: their
+     envelope times are upstream's at any host rate.
    - Chiptune's LPG (intentional difference 7) was not described.
    - These go in files outside this stream (requests below).
 6. **Nothing else differs at Plaits' own rate.** Every mapping, gain, LPG,
@@ -815,10 +1083,22 @@ for in the comparison.
   on Chiptune only (Method).
 - **32-bit and other compilers.** Measured on arm64 macOS (Apple clang 21)
   and under ASan+UBSan. The CI 32-bit and Linux jobs run this file through
-  `tests/test_engine*.py`, not run locally. The shared-seed exact matches
-  rely on the same floating-point results in both programs on one platform,
-  not across platforms. The pin test hashes file contents, so it does not
-  depend on the platform.
+  `tests/test_engine*.py`, not run locally. The shared-seed exact matches,
+  and the identical samples at 44,118 Hz, rely on the same floating-point
+  results in both programs on one platform, not across platforms; the
+  44,118 Hz limit leaves one LSB for a compiler that rounds the resampler's
+  arithmetic differently in the two. The pin test hashes file contents, so
+  it does not depend on the platform.
+- **The resampler is the same code on both sides.** The 44,118 Hz
+  comparison checks that the wrappers feed it the right samples at the
+  right time and at the right ratio, not the resampler itself;
+  resampler.md and `tests/test_engines_resampler.py` measure that. The
+  comparison with upstream unresampled (pitch, timing) is the guard
+  against a ratio both sides would share.
+- **A resampler per voice** renders the same samples as one per channel
+  (resampling is linear), so no render comparison can see it; the instance
+  size bounds do (plaits-heavy.md, "Tests") [verified: scratch mutants,
+  "Review"].
 
 ## Requests outside this stream's files
 
@@ -826,20 +1106,34 @@ for in the comparison.
    link this file.
    - For the Plaits-derived engines, the exit test's render comparison is
      met for the wrapper layer: sample for sample at Plaits' rate (Six-Op
-     closely), in 12- and 64-frame host blocks, and within 1 cent of the
-     predicted pitch and the documented envelope timing at 44,118 Hz. The
-     engine DSP is the same object code on both sides, pinned by hash to
-     the upstream files.
-   - Record findings 1–4 with it.
-   - Correct "envelope times scale by the same ratio" (finding 5).
-2. **engines/plaits-heavy.md**:
-   - correct the speech-word note-off sentence;
-   - note Chiptune's LPG in Macro's notes;
-   - correct item 9: the string's tuning also depends on the rate below
-     about 160 Hz with dispersion, −9.5 cents at A2 with HARMONICS 0.5
-     (finding 4).
-3. **Owner decisions:** polarity (finding 1), and the uncompensated rates:
-   TIMBRE frequencies, the LPG filter and the string (findings 2–4).
+     closely), in 12- and 64-frame host blocks, and at the FM-1's 44,118 Hz
+     against upstream resampled the same way (20 of 21 slots identical,
+     Chiptune within 1 LSB, Six-Op closely), with pitch, envelope timing and
+     level equal to upstream at its own rate. The engine DSP is the same
+     object code on both sides, pinned by hash to the upstream files.
+   - Record finding 1 with it; findings 2–4 are resolved by running Plaits
+     at its own rate (2026-10-01).
+   - Correct "envelope times scale by the same ratio" (finding 5): for the
+     Plaits wrappers it no longer applies at all.
+   - README's exit-test paragraph ("At the FM-1's 44,118 Hz only pitch is
+     corrected ... Plaits' envelopes run 8.5 % long ... a strict xfail ...
+     −9.5 cents at A2") and its open question "Plaits at the FM-1 rate"
+     (per-model TIMBRE offsets) describe the old behaviour; both are settled.
+     Its instance-size table: Macro 31,728 / 18,864 B, Macro Heavy 71,088 /
+     70,880 B, Six-Op 12,528 / 10,796 B (64-bit / 32-bit). Its cost table:
+     Macro 1.1–2.2 % (2-op FM 5.5 %), Macro Heavy, most models, 0.6–1.1 %
+     (Particle 1.9 %), Six-Op 1.0 % (plaits-heavy.md, "Voice cap").
+2. **CHANGELOG.md**, Unreleased: Macro, Macro Heavy and Six-Op FM run
+   Plaits at its own 47,872.34 Hz and resample to the host's rate, so at the
+   FM-1's 44,118 Hz their envelopes, the noise engine's clock, particle and
+   swarm densities and the string's low notes are as on the module (they
+   were 8.5 % long, 1.41 semitones low, 8.5 % sparse and 9.5 cents flat);
+   they cost 13–55 % more desktop CPU (Speech, the cheapest model, 2.3
+   times as much), 1,224–2,576 B more per instance, and
+   0.76–1.09 ms from a note to its onset (was 0–0.34 ms); hosts above
+   47,872.34 Hz are refused.
+3. **Owner decisions:** polarity (finding 1). The uncompensated rates of
+   findings 2–4 were decided (2026-10-01: native rate, resampled).
 4. **third_party/mutable/vendor.py and a test:** write a per-file SHA-256
    manifest of everything it copies, and check the whole tree against it,
    as the Schwung tests do for theirs. This stream's pin test covers only
@@ -849,9 +1143,11 @@ for in the comparison.
    first render would replace the statistical test's pre-note with a plain
    seed.
 6. **CI:** this file runs in every engine job through `tests/test_engine*.py`.
-   It takes about 30 s here with 8 threads, and about 90 s under the
-   sanitizers. CI's runners have fewer cores, so expect longer. If that is
-   too much, the statistical tests are the heavy half.
+   It takes about 35 s here with 8 threads, and about 105 s under the
+   sanitizers. CI's runners have fewer cores, so expect longer. If that
+   is too much, the statistical tests are the heavy half.
 7. **Upstream candidate** (minor): `stmlib::SemitonesToRatio` truncates the
    fractional semitone to 1/256, up to 0.39 cents flat, where rounding would
-   halve the error. Worth a line in `notes/upstream-candidates.md`.
+   halve the error. It no longer touches the FM-1's rate (the wrappers add
+   no fractional offset now), only pitch bends and other fractional notes.
+   Worth a line in `notes/upstream-candidates.md`.

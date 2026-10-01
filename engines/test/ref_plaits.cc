@@ -31,6 +31,22 @@
 // after Voice::Init, so the engines with internal randomness can be rendered
 // as independent realisations and compared statistically.
 //
+// --host-rate HZ renders what the wrappers deliver to a host at that rate:
+// they run Plaits at 47,872.34 Hz and resample the voice mix with
+// fm1_resampler.h (mi_macro.cc). The Voice renders the same 12-sample blocks
+// as above, on demand; the note-on (--at S, default 0) and the note-off
+// (--gate S) land on the first block rendered after fm1-render would apply
+// them, at the start of the first host block (--host-frames N, default 64)
+// at or after their time, which a dry run of the resampler's pulls finds.
+// Blocks before the note's are silence (the wrapper has no voice yet); the
+// engine is selected at the note, TRIG leading as above. The DAC words,
+// times --host-gain G (0.25 by default: Volume 1, one voice) over 32,768,
+// are resampled to HZ and written as fm1-render writes its output: OUT
+// left, AUX right, x 32,767, rounded, at fm1's scale, so that the full-scale
+// words do not clip on the way and fm1 compares at --gain 1. A host above
+// 47,872.34 Hz or below a quarter of it is refused, as the wrappers refuse
+// it. --host-rate 47872.34 gives the words x G, unresampled.
+//
 // Compare mode reads a reference WAV and an fm1-render WAV (any 16-bit PCM
 // WAV; a 47,872 Hz header means 47,872.34) and prints, as JSON, the measures
 // tests/test_engines_reference_plaits.py asserts:
@@ -50,14 +66,17 @@
 // third_party/mutable); nothing here changes it.
 
 #include <algorithm>
+#include <climits>
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
 
+#include "fm1_resampler.h"
 #include "stmlib/dsp/hysteresis_quantizer.h"
 #include "stmlib/utils/buffer_allocator.h"
 #include "stmlib/utils/random.h"
@@ -102,9 +121,29 @@ void RenderUsage() {
       "         [--gate S] [--mode trigger|ping|free] [--literal]\n"
       "         [--fm-amount A] [--timbre-amount A] [--morph-amount A]\n"
       "         [--delay-blocks N] [--seed N] [--out FILE.wav]\n"
+      "         [--host-rate HZ [--host-frames N] [--host-gain G] [--at S]]\n"
       "       fm1-ref-plaits --compare REF.wav FM1.wav [options]  (see source)\n"
       "N is Plaits' engine index, 0..23. The WAV holds the module's DAC words,\n"
-      "OUT left and AUX right, at 47,872 Hz (kCorrectedSampleRate, 47,872.34).\n");
+      "OUT left and AUX right, at 47,872 Hz (kCorrectedSampleRate, 47,872.34);\n"
+      "with --host-rate, those words x G resampled to HZ as the wrappers do\n"
+      "(not with --literal or --delay-blocks).\n");
+}
+
+// What fm1-render writes for an engine's sample (host/render.cc, WriteWav).
+int16_t ToPcm(float x) {
+  if (!(x == x)) x = 0.0f;
+  if (x > 1.0f) x = 1.0f;
+  if (x < -1.0f) x = -1.0f;
+  return static_cast<int16_t>(lrintf(x * 32767.0f));
+}
+
+// The first host sample at which fm1-render applies an event at time t: the
+// start of the first block of `frames` whose time, pos / rate, is at or after
+// t. Beyond `limit` (the render's length) it never applies.
+uint64_t HostEventPos(double t, float rate, uint64_t frames, uint64_t limit) {
+  uint64_t pos = 0;
+  while (!(t <= pos / static_cast<double>(rate)) && pos < limit) pos += frames;
+  return pos;
 }
 
 bool WriteWav16(const char *path, const std::vector<int16_t> &lr, uint32_t rate) {
@@ -154,6 +193,11 @@ int RenderMain(int argc, char **argv) {
   long delay_blocks = 0;
   unsigned long seed = 0;
   const char *out_path = NULL;
+  const char *host_rate_arg = NULL;   // --host-rate: the wrappers' output at that rate
+  long host_frames = 64;
+  float host_gain = 0.25f;
+  double note_at = 0.0;
+  bool at_given = false;
 
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
@@ -178,16 +222,67 @@ int RenderMain(int argc, char **argv) {
     else if (a == "--seed") { seed = strtoul(next, NULL, 0); seeded = true; }
     else if (a == "--delay-blocks") delay_blocks = atol(next);
     else if (a == "--out") out_path = next;
+    else if (a == "--host-rate") host_rate_arg = next;
+    else if (a == "--host-frames") host_frames = atol(next);
+    else if (a == "--host-gain") host_gain = static_cast<float>(atof(next));
+    else if (a == "--at") { note_at = atof(next); at_given = true; }
     else { RenderUsage(); return 2; }
   }
+  const bool host_mode = host_rate_arg != NULL;
   if (engine < 0 || engine >= plaits::kMaxEngines || seconds <= 0.0 || delay_blocks < 0 ||
-      (mode != "trigger" && mode != "ping" && mode != "free")) {
+      (mode != "trigger" && mode != "ping" && mode != "free") ||
+      (host_mode && (literal || delay_blocks || host_frames < 1 || !(note_at >= 0.0))) ||
+      (!host_mode && at_given)) {
     RenderUsage();
     return 2;
   }
   if (gate < 0.0) gate = seconds;
   const bool trigger_patched = mode != "free";
   const bool level_patched = mode == "trigger";
+
+  const size_t kBlock = plaits::kBlockSize;
+  const double rate = plaits::kCorrectedSampleRate;
+  long blocks = static_cast<long>(ceil(seconds * rate / kBlock));
+  long gate_blocks = static_cast<long>(floor(gate * rate / kBlock + 0.5));
+
+  // Host-rate mode: which blocks the wrapper renders when. A dry run of the
+  // resampler, fed zeros one sample at a time as fm1_resampler_needed asks,
+  // gives the 47,872.34 Hz samples pulled before each host sample; an event
+  // applied before host sample p reaches the first block not yet rendered,
+  // ceil(pulled(p) / 12) [the same pull loop as mi_macro.cc's Render].
+  float host_rate = 0.0f;
+  uint32_t host_total = 0;
+  long on_block = 0, off_block = LONG_MAX;
+  if (host_mode) {
+    host_rate = static_cast<float>(atof(host_rate_arg));   // as fm1-render parses --rate
+    fm1_resampler_t dry;
+    if (!fm1_resampler_init(&dry, plaits::kCorrectedSampleRate, host_rate)) {
+      fprintf(stderr, "the resampler refuses %s Hz from %.2f Hz, as the wrappers do\n",
+              host_rate_arg, rate);
+      return 2;
+    }
+    host_total = static_cast<uint32_t>(seconds * host_rate);   // as fm1-render's total
+    const uint64_t on_pos = HostEventPos(note_at, host_rate, host_frames, host_total);
+    const uint64_t off_pos = HostEventPos(note_at + gate, host_rate, host_frames, host_total);
+    const float zero = 0.0f;
+    uint64_t pulled = 0, pulled_on = 0, pulled_off = 0;
+    for (uint32_t f = 0; f < host_total; ++f) {
+      if (f == on_pos) pulled_on = pulled;
+      if (f == off_pos) pulled_off = pulled;
+      while (fm1_resampler_needed(&dry)) pulled += fm1_resampler_push(&dry, &zero, 1);
+      fm1_resampler_pop(&dry);
+    }
+    blocks = static_cast<long>((pulled + kBlock - 1) / kBlock);
+    on_block = on_pos < host_total ? static_cast<long>((pulled_on + kBlock - 1) / kBlock)
+                                   : blocks;   // never: silence throughout
+    // fm1-render applies note-offs before note-ons within a block, so an off
+    // in the note-on's own block comes first and the note is held.
+    if (off_pos < host_total && off_pos != on_pos) {
+      off_block = static_cast<long>((pulled_off + kBlock - 1) / kBlock);
+    }
+    delay_blocks = on_block;
+    gate_blocks = off_block == LONG_MAX ? LONG_MAX / 2 : off_block - on_block;
+  }
 
   stmlib::BufferAllocator allocator(shared_buffer, sizeof(shared_buffer));
   voice.Init(&allocator);
@@ -214,32 +309,56 @@ int RenderMain(int argc, char **argv) {
   mod.trigger_patched = trigger_patched;
   mod.level_patched = level_patched;
 
-  const size_t kBlock = plaits::kBlockSize;
-  const double rate = plaits::kCorrectedSampleRate;
-  const long blocks = static_cast<long>(ceil(seconds * rate / kBlock));
-  const long gate_blocks = static_cast<long>(floor(gate * rate / kBlock + 0.5));
   // Aligned: lead TRIG by the delay, and render the lead-in on another
   // engine (GrainEngine: no arena, no randomness, silent with LEVEL at 0).
+  // In host-rate mode the lead-in runs up to the note's block, which writes
+  // silence: the wrapper has no voice before the note.
   const long lead = (!literal && trigger_patched) ? kTriggerLagBlocks : 0;
   const int preroll_engine = engine == 11 ? 8 : 11;
+  const long engine_from = host_mode ? on_block : 0;   // the engine is selected here
 
   std::vector<int16_t> lr;
   lr.reserve(static_cast<size_t>(blocks) * kBlock * 2);
   plaits::Voice::Frame frames[plaits::kBlockSize];
-  for (long b = -lead; b < blocks; ++b) {
-    patch.engine = b < 0 ? preroll_engine : engine;
+  for (long b = std::min(0L, engine_from - lead); b < blocks; ++b) {
+    patch.engine = b < engine_from ? preroll_engine : engine;
     const long trig_at = b + lead - delay_blocks;   // TRIG input now reaches the engine then
     const long at = b - delay_blocks;               // the note's own time
     mod.trigger = (trigger_patched && trig_at >= 0 && trig_at < gate_blocks) ? 1.0f : 0.0f;
     mod.level = (at >= 0 && at < gate_blocks) ? level : 0.0f;
     voice.Render(patch, mod, frames, kBlock);
     if (b < 0) continue;
+    const bool silent = b < engine_from;
+    const int16_t none = 0;
     for (size_t n = 0; n < kBlock; ++n) {
-      lr.push_back(frames[n].out);
-      lr.push_back(frames[n].aux);
+      lr.push_back(silent ? none : frames[n].out);
+      lr.push_back(silent ? none : frames[n].aux);
     }
   }
-  lr.resize(static_cast<size_t>(seconds * rate) * 2);
+  if (!host_mode) {
+    lr.resize(static_cast<size_t>(seconds * rate) * 2);
+  } else {
+    // The wrapper's mix of one voice is the word x G / 32,768 (G = 0.25 x
+    // Volume), the same float; resampled per channel, written as fm1-render
+    // writes it.
+    const size_t n_in = lr.size() / 2;
+    const float scale = host_gain / 32768.0f;
+    std::vector<float> in(n_in), y(host_total);
+    std::vector<int16_t> out(2 * static_cast<size_t>(host_total));
+    for (int ch = 0; ch < 2; ++ch) {
+      for (size_t i = 0; i < n_in; ++i) in[i] = lr[2 * i + ch] * scale;
+      fm1_resampler_t rs;
+      fm1_resampler_init(&rs, plaits::kCorrectedSampleRate, host_rate);
+      const uint32_t made = fm1_resampler_process(&rs, in.data(), static_cast<uint32_t>(n_in),
+                                                  NULL, y.data(), host_total);
+      if (made != host_total) {
+        fprintf(stderr, "internal: %u of %u host-rate frames\n", made, host_total);
+        return 1;
+      }
+      for (uint32_t i = 0; i < host_total; ++i) out[2 * i + ch] = ToPcm(y[i]);
+    }
+    lr.swap(out);
+  }
 
   double peak[2] = { 0, 0 }, sum2[2] = { 0, 0 };
   for (size_t i = 0; i < lr.size(); ++i) {
@@ -248,7 +367,9 @@ int RenderMain(int argc, char **argv) {
     sum2[i & 1] += x * x;
   }
   const size_t n_frames = lr.size() / 2;
-  if (out_path && !WriteWav16(out_path, lr, static_cast<uint32_t>(lrint(rate)))) {
+  const uint32_t wav_rate = host_mode ? static_cast<uint32_t>(lrintf(host_rate))   // as fm1-render
+                                      : static_cast<uint32_t>(lrint(rate));
+  if (out_path && !WriteWav16(out_path, lr, wav_rate)) {
     fprintf(stderr, "cannot write %s\n", out_path);
     return 1;
   }
@@ -268,6 +389,15 @@ int RenderMain(int argc, char **argv) {
   // state, as in fm1-render (no engine draws from it in Init).
   if (seeded) printf("\"seed\":%lu,", seed & 0xFFFFFFFFul);
   else printf("\"seed\":null,");
+  if (host_mode) {
+    printf("\"host\":{\"rate\":%g,\"frames\":%ld,\"gain\":%g,\"out_frames\":%u,"
+           "\"native_blocks\":%ld,\"on_block\":%ld,",
+           host_rate, host_frames, host_gain, host_total, blocks, on_block);
+    if (off_block == LONG_MAX) printf("\"off_block\":null,");
+    else printf("\"off_block\":%ld,", off_block);
+    printf("\"resampler_delay\":%d},", host_rate == static_cast<float>(rate) ? 0
+                                                                            : FM1_RESAMPLER_DELAY);
+  }
   if (engine >= 2 && engine <= 4) {
     const int index = SixOpPatchIndex(harmonics);
     plaits::fm::Patch p;
