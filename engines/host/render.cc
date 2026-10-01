@@ -8,13 +8,14 @@
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
 // 16-bit stereo WAV, and prints one line of JSON: the engine's raw peak and
 // clipped count, the same after the limiter, non-finite samples, instance
-// size in bytes and time per block. Note events apply at block boundaries
-// (1.45 ms). --fill sets the byte instance memory holds before create (the
-// API promises no zeroing); --fault T:VALUE overwrites both channels with
-// VALUE (nan, inf, 1e6...) at time T, and --fault T0..T1:VALUE every frame
-// from T0 up to T1, after the source and before the effects, to test
-// recovery from bad samples. The timing is the desktop's
-// and says nothing about pi32v2; it only catches regressions. MIT licence.
+// size in bytes and time per block. Note, bend (--bend) and parameter
+// (--param-at) events apply at block boundaries (1.45 ms). --fill sets the
+// byte instance memory holds before create (the API promises no zeroing);
+// --fault T:VALUE overwrites both channels with VALUE (nan, inf, 1e6...) at
+// time T, and --fault T0..T1:VALUE every frame from T0 up to T1, after the
+// source and before the effects, to test recovery from bad samples. The
+// timing is the desktop's and says nothing about pi32v2; it only catches
+// regressions. MIT licence.
 
 #include "fm1_engine.h"
 #include "fm1_mix_limiter.h"
@@ -38,10 +39,20 @@ struct Event {
   uint8_t velocity;
 };
 
+struct Control {                     // --bend and --param-at: one call at a time
+  double time;
+  bool bend;                         // pitch_bend(value), else set_param(index, value)
+  std::string name;
+  uint16_t index;
+  float value;
+  bool done;
+};
+
 void Usage() {
   fprintf(stderr,
       "usage: fm1-render --list\n"
-      "       fm1-render [--engine ID [--param NAME=VALUE]... [--note T:KEY:VEL:DUR]...]\n"
+      "       fm1-render [--engine ID [--param NAME=VALUE]... [--note T:KEY:VEL:DUR]...\n"
+      "                   [--bend T:SEMITONES]... [--param-at T:NAME=VALUE]...]\n"
       "                  [--input silence|impulse|noise|sine]\n"
       "                  [--fx ID [--fx-param NAME=VALUE]...]...\n"
       "                  [--seconds S] [--rate HZ] [--frames N] [--out FILE.wav]\n"
@@ -174,6 +185,7 @@ int main(int argc, char **argv) {
   std::vector<std::string> fx_ids;
   std::vector<Unit> fx;
   std::vector<Event> events;
+  std::vector<Control> controls;
 
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
@@ -206,7 +218,23 @@ int main(int argc, char **argv) {
       if (sscanf(next, "%lf:%d:%d:%lf", &t, &key, &vel, &dur) != 4) { Usage(); return 2; }
       events.push_back(Event{ t, true, uint8_t(key), uint8_t(vel) });
       events.push_back(Event{ t + dur, false, uint8_t(key), 0 });
+    } else if (a == "--bend") {
+      double t; float st;
+      if (sscanf(next, "%lf:%f", &t, &st) != 2 || !(st >= -48.0f && st <= 48.0f)) {
+        fprintf(stderr, "--bend wants T:SEMITONES, finite and within +/-48\n");
+        return 2;
+      }
+      controls.push_back(Control{ t, true, std::string(), 0, st, false });
+    } else if (a == "--param-at") {
+      const char *colon = strchr(next, ':');
+      std::vector<std::pair<std::string, float> > one;
+      if (!colon || !ParseParam(colon + 1, &one)) { Usage(); return 2; }
+      controls.push_back(Control{ atof(next), false, one[0].first, 0, one[0].second, false });
     } else { Usage(); return 2; }
+  }
+  if (!controls.empty() && !engine_id) {
+    fprintf(stderr, "--bend and --param-at need --engine\n");
+    return 2;
   }
   if (!engine_id && fx.empty() && input == "silence" && faults.empty()) { Usage(); return 2; }
   if (input != "silence" && input != "impulse" && input != "noise" && input != "sine") {
@@ -220,6 +248,18 @@ int main(int argc, char **argv) {
   }
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, max_frames };
   if (engine_id && !Instantiate(sound, engine_id, FM1_KIND_SOUND, host, fill)) return 1;
+  for (size_t k = 0; k < controls.size(); ++k) {
+    Control &c = controls[k];
+    if (c.bend) {
+      if (!sound.e->pitch_bend) { fprintf(stderr, "%s has no pitch bend\n", engine_id); return 1; }
+      continue;
+    }
+    bool found = false;
+    for (uint16_t q = 0; q < sound.e->n_params && !found; ++q) {
+      if (strcasecmp(sound.e->params[q].name, c.name.c_str()) == 0) { c.index = q; found = true; }
+    }
+    if (!found) { fprintf(stderr, "unknown parameter for %s: %s\n", engine_id, c.name.c_str()); return 1; }
+  }
   for (size_t k = 0; k < fx.size(); ++k) {
     if (!Instantiate(fx[k], fx_ids[k].c_str(), FM1_KIND_AUDIO_FX, host, fill)) return 1;
   }
@@ -240,6 +280,13 @@ int main(int argc, char **argv) {
     const uint32_t n = total - pos < max_frames ? total - pos : max_frames;
     float *block = &out[static_cast<size_t>(pos) * 2];
     if (sound.e) {
+      for (size_t k = 0; k < controls.size(); ++k) {   // controls first, in the order given
+        Control &c = controls[k];
+        if (c.done || c.time > now) continue;
+        if (c.bend) sound.e->pitch_bend(sound.self, c.value);
+        else sound.e->set_param(sound.self, c.index, c.value);
+        c.done = true;
+      }
       for (size_t k = 0; k < events.size(); ++k) {     // offs before ons at the same time
         if (!done[k] && !events[k].on && events[k].time <= now) { sound.e->note_off(sound.self, events[k].key); done[k] = true; }
       }

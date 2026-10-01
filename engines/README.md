@@ -58,6 +58,8 @@ engine's `credits` string and named without MI's trademarks
 | `--input silence\|impulse\|noise\|sine` | The source when there is no sound engine |
 | `--fx ID [--fx-param NAME=VALUE]...` | Effects, applied in order after the source |
 | `--frames N`, `--rate HZ` | Host block and rate (64 and 44,118 by default) |
+| `--bend T:SEMITONES` | A pitch-bend event (finite, within ±48), at a block boundary like notes |
+| `--param-at T:NAME=VALUE` | Turn a sound engine's parameter during the render |
 | `--fill BYTE` | What instance memory holds before `create`; every engine must render byte-identically from any fill |
 | `--fault T[..T1]:VALUE` | Overwrite the bus after the source with `nan`, `inf` or any value, for one frame or a span, to test recovery |
 
@@ -173,9 +175,9 @@ diffuser at their native rates. The tests render both sides and compare
 The comparison checks our wrappers. The engine DSP is the same object code on
 both sides, so a test pins the 129 vendored Plaits files it compiles by hash.
 Reviewers mutation-tested both lanes: 50 of 51 Plaits mutants and all but one
-Braids/effects mutant now fail a test. The survivors are a Six-Op envelope
-block change inside the intended tolerance, and pitch bend, which the
-renderer cannot yet script.
+Braids/effects mutant now fail a test. The one survivor is a Six-Op
+envelope block change inside the intended tolerance; the other, Shapes
+ignoring pitch bend, fails the bend tests since the renderer gained `--bend`.
 
 It found one real bug: **Shapes split each 64-frame host block into 24 + 24 +
 16** while Braids only ever renders 24. Twenty-two shapes drifted (Bell and
@@ -197,17 +199,27 @@ and damping, keeping decay within 3–4 %.
   name, and the banks' origin is not stated upstream. Harmless for a
   personal build; for anything distributed, rename or drop them
   (plaits-heavy.md, "The patch data").
-- **Shapes at the FM-1 rate:** render Braids at 96 kHz and decimate (about
-  2.2 times the CPU) so struck shapes decay as on the module, or accept the
-  longer rings. Also its memory: a voice cap for the FM-1 build, or a split.
+- **Shapes at the FM-1 rate:** Braids' time constants are per sample at
+  96 kHz, so at 44,118 Hz struck shapes ring 1.6–2.8 times as long. Options:
+  - accept it;
+  - run Braids at 96 kHz and resample by 96,000/44,118, a fractional ratio;
+  - run Braids at twice the host rate (88,236 Hz) and decimate by 2 with a
+    half-band filter: decays within 8 % of the module, like Plaits'
+    envelopes, and a cheap integer decimator.
+
+  Either oversampled option costs about 2.2 times Shapes' CPU [verified,
+  desktop: 12 voices take 3.2–5.7 ms per second of audio at 44,118 Hz and
+  5.6–12.8 ms at 96 kHz, shapes 0, 12, 26, 33, 40; the ratio is 1.56 for
+  CSaw and 2.17–2.24 for the others]. Also its memory: a voice cap for the
+  FM-1 build, or a split.
 - **Plaits at the FM-1 rate:** per-model TIMBRE offsets for the noise,
   particle and swarm rates (reference-plaits.md suggests them).
 - **Six-Op's polarity** is inverted relative to Macro and Macro Heavy
   against the same upstream output words. Harmless alone; worth making
   consistent before engines are layered or crossfaded.
-- **Host features the streams asked for:** pitch-bend events (`--bend`, to
-  close the last Braids mutant), a random seed (`--seed`), timed parameter
-  changes (`--param-at`), an active-voice diagnostic so voice freeing can be tested
+- **Host features the streams asked for:** a random seed (`--seed`; stmlib's
+  generator is a global in vendored code, so the host cannot seed it without
+  depending on one library), an active-voice diagnostic so voice freeing can be tested
   without timing, parameter smoothing (host or engine), and a reset call so
   effects can drop their tails without re-creating a 64 KB instance. Also a
   per-file SHA-256 manifest from `vendor.py`, so a test can pin the whole

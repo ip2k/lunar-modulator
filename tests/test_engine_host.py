@@ -75,3 +75,54 @@ def test_every_engine_survives_any_parameter_value(renderer, tmp_path, setting):
         s, _, _ = render(renderer, tmp_path, seconds=0.5, name=f"{e['id']}-{setting}",
                          extra=["--frames", "7"], **kw)
         assert s["nonfinite"] == 0, (e["id"], setting)
+
+
+# A steady tone per engine that bends, for pitch measurement by zero crossings.
+BEND_TONES = {
+    "test-sine": [],
+    "macro": ["Model=6", "Timbre=0", "Morph=0.5", "Harmonics=0.5"],
+    "shapes": ["Shape=3", "Timbre=0", "Color=0"],
+    "macro-heavy": ["Model=4", "Harmonics=0", "Timbre=0"],
+    "sixop": ["Patch=40"],            # a patch that holds its level
+}
+
+
+@pytest.mark.parametrize("engine", sorted(BEND_TONES))
+@pytest.mark.parametrize("semitones", [2, -12])
+def test_bend_moves_the_pitch(renderer, tmp_path, engine, semitones):
+    from tests.engine_helpers import cents, pitch_hz
+    _, left, _ = render(renderer, tmp_path, engine, params=BEND_TONES[engine],
+                        notes=["0:57:100:2.4"], seconds=2.4,
+                        extra=["--bend", f"0.8:{semitones}", "--bend", "1.6:0"])
+    before, bent, after = (pitch_hz(left, a, 0.5) for a in (0.2, 1.0, 1.8))
+    assert cents(bent, before) == pytest.approx(100 * semitones, abs=1.0)
+    assert cents(after, before) == pytest.approx(0, abs=1.0)
+
+
+def test_parameter_changes_during_a_note(renderer, tmp_path):
+    _, left, _ = render(renderer, tmp_path, "test-sine", params=["Volume=1"],
+                        notes=["0:69:100:1.5"],
+                        seconds=1.5, extra=["--param-at", "0.75:Volume=0.5"])
+    assert rms(left, 1.0, 1.4) / rms(left, 0.3, 0.7) == pytest.approx(0.5, rel=0.01)
+
+
+def test_every_parameter_can_move_while_notes_sound(renderer, tmp_path):
+    """Knobs turn while notes hold: every sound engine, every parameter swept
+    through min, max and default mid-chord, with bends to both extremes.
+    Under the sanitizer build this covers the set_param paths the note-on
+    tests do not (word banks, model and patch switches, re-initialisation)."""
+    for e in _engines(renderer):
+        if e["kind"] != "sound":
+            continue
+        extra = ["--frames", "7"]
+        for i, p in enumerate(e["params"]):
+            t = 0.05 + 0.03 * i
+            extra += ["--param-at", f"{t:.3f}:{p['name']}={p['min']}",
+                      "--param-at", f"{t + 0.01:.3f}:{p['name']}={p['max']}",
+                      "--param-at", f"{t + 0.02:.3f}:{p['name']}={p['def']}"]
+        if e["id"] != "sw-sophie":                  # Sophie has no pitch bend
+            extra += ["--bend", "0.1:48", "--bend", "0.2:-48", "--bend", "0.3:0"]
+        s, _, _ = render(renderer, tmp_path, e["id"], notes=CHORD,
+                         seconds=0.1 + 0.03 * len(e["params"]) + 0.3,
+                         name=f"{e['id']}-knobs", extra=extra)
+        assert s["nonfinite"] == 0, e["id"]

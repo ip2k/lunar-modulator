@@ -9,6 +9,10 @@ history.
 ## [Unreleased]
 
 ### Added
+- `fm1-render` scripts pitch bends (`--bend`) and parameter changes during a
+  render (`--param-at`). Tests bend every pitched engine by +2 and -12
+  semitones and back, and turn every parameter of every sound engine through
+  its range while a chord sounds.
 - Stage A's exit test: reference renderers that drive upstream Plaits and
   Braids code as the modules do, and about 350 tests comparing every engine
   and effect with them (`engines/reference-plaits.md`,
