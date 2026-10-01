@@ -18,17 +18,32 @@ the low-pass gate, trigger timing and re-blocking (reference-plaits.md,
   - Engines with internal randomness must match sample for sample on the
     generator's shared initial state. An fm1 render from another state must
     also match seeded upstream renders statistically.
-- At the FM-1's rate (44,118 Hz, 64-frame blocks): pitch against what the rate
-  compensation predicts, and envelope timing.
+- At the FM-1's rate (44,118 Hz, 64-frame blocks), where the wrappers run
+  Plaits at its own rate and resample (fm1_resampler.h):
+  - against upstream at its own rate passed through the same resampler
+    (fm1-ref-plaits --host-rate), the same points and notes: within 1 LSB of
+    fm1-render's output (Six-Op closely);
+  - against upstream at its own rate, unresampled: pitch and envelope timing,
+    which a wrong ratio, a missing resampler or a leftover pitch offset would
+    move;
+  - 1-, 7- and 64-frame host blocks give the same bytes, and a note mid-render
+    lands on the block the resampler's pulls predict, mid-block or on a block
+    boundary;
+  - against the wrapper itself at 47,872.34 Hz, resampled (fm1-ref-plaits
+    --resample), where upstream cannot stand in: Six-Op's own blocks,
+    several notes, model changes into and out of the string machine, voices
+    freed and their successors: within 2 LSB.
 - The vendored files both programs compile are pinned by hash.
 
 Negative controls check that the criteria reject a wrong engine, a wrong
-parameter mapping, a mistuned or mis-enveloped voice and a wrong gain.
+parameter mapping, a mistuned or mis-enveloped voice, a wrong gain and a
+wrong host rate.
 
     python tests/test_engines_reference_plaits.py --report        # the doc's tables
     python tests/test_engines_reference_plaits.py --calibrate     # the STAT factors
     python tests/test_engines_reference_plaits.py --sixop-sweep   # all 96 Six-Op patches
 """
+import array
 import collections
 import concurrent.futures
 import hashlib
@@ -58,7 +73,9 @@ MUTABLE = ENGINES / "third_party" / "mutable"
 NATIVE = "47872.34"          # Plaits' kCorrectedSampleRate
 NATIVE_HZ = 47872.34
 FM1_RATE = "44118"           # the FM-1's
-RATE_RATIO = NATIVE_HZ / 44118
+FM1_HZ = 44118.0
+RATE_RATIO = NATIVE_HZ / FM1_HZ
+RESAMPLER_DELAY = 30         # fm1_resampler.h's group delay, output samples
 NOTES = (45, 69)             # A2 and A4
 VELOCITY = 100               # LEVEL 100/127 on the reference; accent 0.94
 
@@ -99,7 +116,14 @@ STAT_LEAD = 96000            # a multiple of 12 and 64
 PRE_NOTE = (7, 1, 0.0003)    # key offset, velocity, seconds
 WORKERS = min(8, os.cpu_count() or 2)
 
-LPG_STRETCH = ("fit", RATE_RATIO - 0.02, RATE_RATIO + 0.02)
+# Envelope timing at 44,118 Hz against upstream at its own rate: the same
+# time base, so a stretch of 1. Running Plaits at the host's rate gave 1.085.
+LPG_STRETCH = ("fit", 0.98, 1.02)
+
+
+def f32(x):
+    """x rounded to a 32-bit float, as a Python float."""
+    return struct.unpack("f", struct.pack("f", x))[0]
 
 
 class Slot:
@@ -114,10 +138,10 @@ class Slot:
     random: indices into POINTS where OUT depends on stmlib::Random ("all").
     stat_points: the random points the statistical test uses (default: all).
     pitched: the spectral pitch shift is meaningful (a tone, not a texture).
-    rate_pitch: pitch at 44,118 Hz is held to the prediction (rate_expected).
+    rate_pitch: pitch at 44,118 Hz against unresampled upstream is held to 0.
     rate_timing: (method, lo, hi) for the envelope time stretch at 44,118 Hz,
                  or None where one render per rate cannot show it.
-    rate_point: the Point of the 44,118 Hz comparison.
+    rate_point: the Point of the 44,118 Hz comparison with unresampled upstream.
     rate_window: (from, to) seconds of that comparison, or None (all).
     """
 
@@ -170,19 +194,21 @@ SLOTS = [
     Slot(11, "GrainEngine", "macro-heavy", 3, "lpg"),
     Slot(12, "AdditiveEngine", "macro-heavy", 4, "lpg"),
     Slot(13, "WavetableEngine", "macro", 7, "lpg"),
-    Slot(14, "ChordEngine", "macro-heavy", 1, "lpg", rate_timing=None),
+    # Chords, Swarm, Noise, Particle and String at 44,118 Hz: both sides draw
+    # the same random numbers at the same rate on the shared seed, and the
+    # chord's beating is in the same phase, so their timing and spectra are
+    # held too (they were not while Plaits ran at the host's rate).
+    Slot(14, "ChordEngine", "macro-heavy", 1, "lpg"),
     Slot(15, "SpeechEngine", "macro-heavy", 2, "speech"),
-    Slot(16, "SwarmEngine", "macro-heavy", 5, "lpg", random="all", pitched=False,
-         rate_pitch=False, rate_timing=None),
-    Slot(17, "NoiseEngine", "macro-heavy", 6, "lpg", random="all", pitched=False,
-         rate_pitch=False, rate_timing=None),
+    Slot(16, "SwarmEngine", "macro-heavy", 5, "lpg", random="all", pitched=False),
+    Slot(17, "NoiseEngine", "macro-heavy", 6, "lpg", random="all", pitched=False),
     # Particle at (0.8, 0.2, 0.5) makes one to three grains a second: upstream
     # renders of it differ so much that silence passes as one of them, so it
     # is compared sample for sample only.
     Slot(18, "ParticleEngine", "macro-heavy", 7, "lpg", random="all", stat_points=(0, 1),
-         pitched=False, rate_pitch=False, rate_timing=None),
-    Slot(19, "StringEngine", "macro-heavy", 8, "self", random="all", rate_timing=None),
-    Slot(20, "ModalEngine", "macro-heavy", 9, "self", rate_timing=("fit", 0.98, RATE_RATIO + 0.02)),
+         pitched=False),
+    Slot(19, "StringEngine", "macro-heavy", 8, "self", random="all"),
+    Slot(20, "ModalEngine", "macro-heavy", 9, "self"),
     Slot(21, "BassDrumEngine", "macro-heavy", 10, "self"),
     Slot(22, "SnareDrumEngine", "macro-heavy", 11, "self", random="all", pitched=False),
     Slot(23, "HiHatEngine", "macro-heavy", 12, "self", random="all", pitched=False),
@@ -211,14 +237,22 @@ def gate_for(slot, point, seconds=SECONDS):
     return GATE
 
 
-def ref_cmd(out, slot, note, point, seconds=SECONDS, gate=None, seed=None, extra=()):
+def ref_cmd(out, slot, note, point, seconds=SECONDS, gate=None, seed=None, extra=(), host=False):
+    """LEVEL is the wrapper's own float, velocity / 127.0f, written in full
+    (repr of the float32 value), so both sides compute the same accent. At six
+    decimals 60/127 read as another float, and about 1 word in 3,000 came out
+    1 off (reference-plaits.md, "Criteria"). host: the reference at the FM-1's
+    rate and host block, resampled as the wrappers resample, at fm1's scale
+    and polarity (slot.gain), so fm1 compares at gain 1."""
     cmd = [REF, "--engine", slot.index, "--note", note, "--harmonics", point.harmonics,
            "--timbre", point.timbre, "--morph", point.morph, "--seconds", seconds,
            "--gate", gate_for(slot, point, seconds) if gate is None else gate,
-           "--level", f"{point.velocity / 127:.6f}", "--colour", point.colour,
+           "--level", repr(f32(point.velocity / 127)), "--colour", point.colour,
            "--decay", point.decay, "--out", out]
     if seed is not None:
         cmd += ["--seed", seed]
+    if host:
+        cmd += ["--host-rate", FM1_RATE, "--host-frames", 64, "--host-gain", slot.gain]
     return cmd + list(extra)
 
 
@@ -310,65 +344,36 @@ STAT = dict(level_db=(4.4, 0.1), env_mean_db=(2.2, 0.2), lsd_db=(2.6, 0.25),
             centroid_cents=(7.6, 5.0), shift_cents=(6.4, 5.0), pitch_cents=(2.0, 0.5))
 STAT_ARGS = ("--max-lag-ms", "0", "--env-window-ms", "50", "--no-timing")
 
-# At 44,118 Hz the wrappers raise the note by 12*log2(47,872.34/44,118) =
-# 1.41390 semitones. stmlib::SemitonesToRatio truncates the fractional
-# semitone to 1/256, so every Plaits engine reads that fraction as 105/256:
-# the pitch the rate compensation predicts is this many cents flat.
-RATE_OFFSET = 12.0 * math.log2(RATE_RATIO)
-PITCH_TABLE_CENTS = 100.0 * (math.floor((RATE_OFFSET % 1.0) * 256) / 256 - RATE_OFFSET % 1.0)
-RATE_PITCH_CENTS = 1.0       # measured - predicted, at 44,118 Hz
+# At the FM-1's rate, against upstream through the same resampler (host_case):
+# the wrappers' words are Voice's words, bit for bit, and both sides resample
+# the same floats (word x 0.25 / 32,768) with the same header code and write
+# them the same way, so the WAVs are expected to be identical, and are, except
+# Chiptune: 23 of 76,962 samples 1 off (0.034 LSB RMS at worst), from the
+# low-pass gate the wrapper keeps and upstream bypasses there. The limit is
+# 1 LSB of fm1-render's 16-bit output at any sample, and 0.1 LSB RMS: room for
+# a compiler that evaluates the resampler's float expressions differently in
+# the two programs (contracting a multiply-add in one and not the other),
+# which moves a sample by a float rounding and can flip its 16-bit rounding by
+# one, never more [inferred]. Every wrapper error the comparison exists for
+# moves many samples by more: a note one 12-sample block late, a gain
+# 0.01 dB off (9 LSB at fm1's -12 dBFS peak), a host rate 0.04 % off
+# (test_host_rate_criteria_reject).
+HOST_LSB = dict(max=1, rms=0.1)
+# The reference at fm1's scale is 12.04 dB below the native reference's, so
+# the compare tool's quantisation floor (-80 dBFS there) moves with it.
+HOST_NOISE_DBFS = -92.0
 
+# Six-Op at 44,118 Hz: the native-rate limits, the lag window scaled by
+# 44,118 / 47,872.34 (the native lag of -35 to -38 samples is -32.3 to -35.0
+# at 44,118 Hz; the native window, -40 to -32, becomes -36.9 to -29.5).
+SIXOP_HOST = dict(SIXOP, lag=(-37, -29))
 
-def _lut(name):
-    """A float table from the vendored plaits/resources.cc."""
-    src = (MUTABLE / "plaits" / "resources.cc").read_text()
-    body = src[src.index(f"const float {name}[] = {{"):]
-    body = body[body.index("{") + 1:body.index("}")]
-    return [float(x) for x in body.split(",") if x.strip()]
-
-
-def string_stretch_cents(note, point):
-    """The string model's own rate dependence (reference-plaits.md, finding 4).
-
-    With dispersion (HARMONICS above 0.26), String::ProcessInternal shortens
-    its main delay by ap_delay * (0.408 - 0.308 * sp) * sc to make up for the
-    dispersion all-pass, with sc = (160 / kSampleRate) * delay clamped to
-    [1, 2.1]: a function of the loop's length in samples. At 44,118 Hz the
-    same pitch is a loop 1.085 times shorter, so below about 160 Hz sc comes
-    out smaller and the loop longer. Returns the predicted shift in cents."""
-    h = point.harmonics
-    nl = (h - 0.26) * 1.35135 if h > 0.26 else 0.0
-    if nl <= 0.0:
-        return 0.0                       # curved bridge: no stretch correction
-    v = point.velocity / 127.0
-    accent = min(1.0, 1.3 * v / (0.3 + v))
-    brightness = point.timbre * point.timbre          # StringEngine passes TIMBRE squared
-    brightness += 0.25 * accent * (1.0 - brightness)  # StringVoice::Render
-    damping = point.morph + 0.25 * accent * (1.0 - point.morph)
-    cutoff = min(12.0 + damping * damping * 60.0 + brightness * 24.0, 84.0)
-    lut = _lut("lut_svf_shift")
-    i = int(cutoff)
-    compensation = lut[i] + (lut[i + 1] - lut[i]) * (cutoff - i)
-    sp = nl * (2.0 - nl) * 0.225
-    k = 0.408 - sp * 0.308
-
-    def sc(delay):
-        return min(max(160.0 / 48000.0 * delay, 1.0), 2.1)
-
-    d_native = 1.0 / (55.0 / NATIVE_HZ * 0.25 * 2.0 ** ((note - 9) / 12.0))  # 1 / NoteToFrequency
-    d_host = d_native / RATE_RATIO
-    extra = d_host * compensation * sp * k * (sc(d_native) - sc(d_host))
-    return -1200.0 * math.log2(1.0 + extra / d_host)
-
-
-def rate_expected(slot, note):
-    """Pitch at 44,118 Hz against upstream at its own rate, as the code
-    predicts it: Six-Op runs at the host's rate (0); the Plaits engines read
-    the pitch table's truncation; the string adds its stretch correction."""
-    if slot.engine == "sixop":
-        return 0.0
-    extra = string_stretch_cents(note, slot.rate_point) if slot.index == 19 else 0.0
-    return PITCH_TABLE_CENTS + extra
+# Pitch at 44,118 Hz against upstream at its own rate, unresampled. The engines
+# run at that rate, so 0, to the measurement's resolution. A pitch offset left
+# in a wrapper (141 cents), a missing resampler (-141 cents) or a resampler
+# told another input rate (48 kHz: +4.6 cents) are far outside it; so is the
+# pitch table's -0.37 cents that the old rate offset left on every engine.
+RATE_PITCH_CENTS = 0.1
 
 
 def exact_failures(c, limits=EXACT, pitched=True):
@@ -399,6 +404,44 @@ def sixop_failures(c, limits=SIXOP):
     for k in ("env_max_db", "lsd_db"):
         if not (c[k] is not None and c[k] <= limits[k]):
             f.append(f"{k} {c[k]}")
+    return f
+
+
+def wav_channels(path):
+    """The 16-bit samples of each channel of a WAV."""
+    with wave.open(str(path), "rb") as w:
+        n = w.getnchannels()
+        a = array.array("h", w.readframes(w.getnframes()))
+    if sys.byteorder != "little":
+        a.byteswap()
+    return [a[c::n] for c in range(n)]
+
+
+def lsb_diff(ref, fm1, ref_ch=0, fm1_ch=0, window=None):
+    """fm1 against a reference written at fm1's scale, sample for sample, in
+    LSB of the 16-bit WAVs: largest and RMS difference, samples that differ,
+    the reference's peak and both lengths. window: (from, to) seconds at
+    44,118 Hz, else all."""
+    x, y = wav_channels(ref)[ref_ch], wav_channels(fm1)[fm1_ch]
+    a, b = 0, min(len(x), len(y))
+    if window:
+        a, b = int(window[0] * FM1_HZ), min(b, int(window[1] * FM1_HZ))
+    d = [abs(p - q) for p, q in zip(x[a:b], y[a:b])]
+    return dict(max=max(d) if d else None, rms=math.sqrt(sum(v * v for v in d) / len(d)) if d else None,
+                differ=sum(1 for v in d if v), n=len(d), peak=max(abs(v) for v in x[a:b]) if d else 0,
+                lengths=(len(x), len(y)))
+
+
+def host_failures(d, limits=HOST_LSB):
+    f = []
+    if d["lengths"][0] != d["lengths"][1]:
+        f.append(f"lengths {d['lengths']}")
+    if not (d["max"] is not None and d["max"] <= limits["max"]):
+        f.append(f"largest difference {d['max']} LSB")
+    if not (d["rms"] is not None and d["rms"] <= limits["rms"]):
+        f.append(f"RMS difference {d['rms']} LSB")
+    if d["peak"] < 100:
+        f.append(f"reference peak {d['peak']} LSB: too quiet to compare")
     return f
 
 
@@ -492,6 +535,35 @@ def native_case(tmp, slot, note, point):
     return _cache[key]
 
 
+def host_case(tmp, slot, note, point):
+    """fm1 at 44,118 Hz in 64-frame blocks against the reference resampled to
+    44,118 Hz the same way (unseeded: the shared initial state): per channel
+    compared, {"lsb": lsb_diff} for the exact slots, {"cmp": compare JSON}
+    for Six-Op."""
+    key = ("host", slot.index, note, point)
+    if key in _cache:
+        return _cache[key]
+    point = native_point(slot, point)
+    tag = _tag("host", slot.index, note, *point)
+    ref, fm1 = tmp / f"ref_{tag}.wav", tmp / f"fm1_{tag}.wav"
+    if slot.engine == "sixop":
+        info = _run(ref_cmd(ref, slot, note, point, host=True))
+        _run(fm1_cmd(fm1, slot, played_key(slot, note, info), point, rate=FM1_RATE, frames=64))
+        # A lag search of +/-1 ms: the expected lag (-29 to -37) is well inside
+        # it, and +/-2 ms reaches the next period of A4 (100 samples), which
+        # can correlate better by a hair (an A4 case read +67).
+        res = [{"cmp": _run(cmp_cmd(ref, fm1, 1, "--max-lag-ms", "1",
+                                    "--noise-dbfs", HOST_NOISE_DBFS))}]
+    else:
+        info = run_all([ref_cmd(ref, slot, note, point, host=True),
+                        fm1_cmd(fm1, slot, note, point, rate=FM1_RATE, frames=64)])[0]
+        window = (0.01, GATE) if slot.env == "chip" else None
+        channels = [(0, 0)] + ([(1, 1)] if slot.engine == "macro-heavy" and slot.model == 0 else [])
+        res = [{"lsb": lsb_diff(ref, fm1, r, f, window)} for r, f in channels]
+    _cache[key] = (info, res)
+    return _cache[key]
+
+
 def stat_members(tmp, slot, note, point, seeds=SEEDS):
     """Seeded upstream renders of a held note (cached)."""
     refs, cmds = [], []
@@ -549,21 +621,71 @@ def stat_case(tmp, slot, note, point, name="fm1", key_offset=0, params=None):
     return _cache[key]
 
 
+# --- when the wrappers render, at the FM-1's rate ---------------------------------------
+
+SPAN = 12                    # fm1_resampler.h's kernel width, intermediate samples
+
+
+def resampler_constants(in_rate=NATIVE_HZ, out_rate=FM1_HZ):
+    """fm1_resampler_init's step and lead (32.32 fixed point), from the rates
+    as 32-bit floats, in the same double arithmetic."""
+    ratio = f32(in_rate) / f32(out_rate)
+    rho = 2.0 / ratio
+    step = int(ratio / 2.0 * 4294967296.0 + 0.5)
+    return step, step + int(SPAN / (2.0 * rho) * 4294967296.0 + 0.5) + (1 << 32)
+
+
+def inputs_pulled(outputs):
+    """The 47,872.34 Hz samples a wrapper's resampler has pulled once it has
+    made `outputs` samples at 44,118 Hz: output j needs ceil((2 j step +
+    lead) / 2^32) of them."""
+    if outputs == 0:
+        return 0
+    step, lead = resampler_constants()
+    return -(-(2 * (outputs - 1) * step + lead) >> 32)
+
+
+def host_event_sample(t, frames=64):
+    """The host sample at which fm1-render applies an event at time t: the
+    first block start at or after it."""
+    pos = 0
+    while not t <= pos / FM1_HZ:
+        pos += frames
+    return pos
+
+
+def native_event_sample(t, block=12, frames=64):
+    """The 47,872.34 Hz sample at which a wrapper with `block`-sample blocks
+    acts on an event fm1-render sends at time t: the start of the first block
+    not yet rendered by then."""
+    return block * -(-inputs_pulled(host_event_sample(t, frames)) // block)
+
+
 def rate_case(tmp, slot, note):
-    """fm1 at 44,118 Hz in 64-frame blocks against the native reference, one
-    second, Decay 0.3 so an LPG release ends inside it. Timing is measured
-    from the note-off for released models, from the note-on for held ones."""
+    """fm1 at 44,118 Hz in 64-frame blocks against the native reference,
+    unresampled, one second, Decay 0.3 so an LPG release ends inside it.
+    Aligned in time, so that what is left is rate and pitch: fm1 less the
+    resampler's 30-sample group delay (its first 30 frames cropped), and the
+    reference's note-off on the 12-sample block where the wrapper's lands
+    (for Six-Op, the first one at or after its 16-sample block's start).
+    Timing is measured from the note-off for released models, from the
+    note-on for held ones."""
     key = ("rate", slot.index, note)
     if key in _cache:
         return _cache[key]
     point, seconds = slot.rate_point, 1.0
     gate = gate_for(slot, point, seconds)
+    ref_gate = gate
+    if gate < seconds:
+        off = native_event_sample(gate, block=16 if slot.engine == "sixop" else 12)
+        ref_gate = 12 * -(-off // 12) / NATIVE_HZ
     tag = _tag("rate", slot.index, note)
-    ref, fm1 = tmp / f"ref_{tag}.wav", tmp / f"fm1_{tag}.wav"
-    info = _run(ref_cmd(ref, slot, note, point, seconds=seconds, gate=gate))
-    _run(fm1_cmd(fm1, slot, played_key(slot, note, info), point, rate=FM1_RATE, frames=64,
+    ref, full, fm1 = tmp / f"ref_{tag}.wav", tmp / f"fm1full_{tag}.wav", tmp / f"fm1_{tag}.wav"
+    info = _run(ref_cmd(ref, slot, note, point, seconds=seconds, gate=ref_gate))
+    _run(fm1_cmd(full, slot, played_key(slot, note, info), point, rate=FM1_RATE, frames=64,
                  seconds=seconds, gate=gate))
-    t0 = 0.0 if gate >= seconds else gate
+    crop_wav(full, fm1, RESAMPLER_DELAY)
+    t0 = 0.0 if gate >= seconds else ref_gate
     extra = ["--t0", t0]
     if slot.rate_window:
         extra += ["--from", slot.rate_window[0], "--to", slot.rate_window[1]]
@@ -770,19 +892,26 @@ def test_statistical_criteria_reject_silence_and_noise(wavs, tmp_path):
 
 # --- the FM-1's rate --------------------------------------------------------------------------
 
-@pytest.mark.parametrize("slot", [s for s in SLOTS if s.rate_pitch], ids=lambda s: s.id)
-def test_rate_compensation_holds_pitch(wavs, slot):
-    """At 44,118 Hz the wrappers raise the note by 12*log2(47,872.34/44,118)
-    semitones. Pitch against upstream at its own rate is held within
-    +/-1 cent of what the code predicts (rate_expected): the pitch table's
-    -0.37 cents for the Plaits engines, plus the string model's own rate
-    dependence at A2; 0 for Six-Op, which runs at the host rate itself."""
+@pytest.mark.parametrize("slot", SLOTS, ids=lambda s: s.id)
+def test_matches_upstream_resampled_at_the_fm1_rate(wavs, slot):
+    """At 44,118 Hz in 64-frame host blocks, every slot at every native-rate
+    point and note, against upstream at its own rate passed through the same
+    resampler: within 1 LSB (HOST_LSB; Six-Op closely, SIXOP_HOST), random
+    points included, on the shared seed. Chiptune from 10 ms to the note-off,
+    as at the native rate. A wrong ratio, a missing resampler, a leftover
+    pitch offset or every event a block early or late all fail it. An event
+    placed by the wrong rule only where the pulls end on a block boundary is
+    left to test_note_lands_on_the_next_native_block and the comparisons with
+    the wrapper's own native-rate output, whose events fall there too. A
+    resampler per voice passes (it is linear: test_instance_sizes_are_bounded
+    and test_instance_sizes_are_reported catch that)."""
     failures = []
     for note in NOTES:
-        c = rate_case(wavs, slot, note)
-        want = rate_expected(slot, note)
-        if not (c["pitch_cents"] is not None and abs(c["pitch_cents"] - want) <= RATE_PITCH_CENTS):
-            failures.append(f"note {note}: pitch {c['pitch_cents']} cents, predicted {want:+.2f}")
+        for point in POINTS:
+            _, res = host_case(wavs, slot, note, point)
+            for ch, r in enumerate(res):
+                f = (sixop_failures(r["cmp"], SIXOP_HOST) if "cmp" in r else host_failures(r["lsb"]))
+                failures += [f"note {note} {tuple(point)} ch{ch}: {x}" for x in f]
     assert not failures, "\n".join(failures)
 
 
@@ -791,7 +920,7 @@ def test_gate_lands_on_a_common_block_boundary():
     and LEVEL fall on block round(GATE * rate / 12)) and in fm1-render with
     12- and 64-frame blocks (the first block starting at or after GATE, at
     its float rate), so native_case's two block sizes render the same note."""
-    rate_f = struct.unpack("f", struct.pack("f", NATIVE_HZ))[0]
+    rate_f = f32(NATIVE_HZ)
     assert GATE_SAMPLES % 192 == 0
     assert int(GATE * NATIVE_HZ / 12 + 0.5) * 12 == GATE_SAMPLES
     for frames in (12, 64):
@@ -801,25 +930,27 @@ def test_gate_lands_on_a_common_block_boundary():
         assert pos == GATE_SAMPLES, frames
 
 
-def test_rate_prediction_arithmetic():
-    """The predictions themselves: the pitch table reads 1.41390 semitones as
-    1 + 105/256; the string's stretch correction is clamped at 1 from about
-    300 samples down, so it moves A2 and not A4."""
-    assert abs(RATE_OFFSET - 1.413896) < 1e-5
-    assert abs(PITCH_TABLE_CENTS - (-0.3740)) < 1e-3
-    string = BY_INDEX[19]
-    assert string_stretch_cents(69, string.rate_point) == 0.0
-    assert -9.5 < string_stretch_cents(45, string.rate_point) < -8.0
-    assert string_stretch_cents(45, string.rate_point._replace(harmonics=0.25)) == 0.0
+@pytest.mark.parametrize("slot", [s for s in SLOTS if s.rate_pitch], ids=lambda s: s.id)
+def test_fm1_rate_pitch_matches_upstream(wavs, slot):
+    """Pitch at 44,118 Hz against upstream at its own rate, unresampled, is 0
+    within RATE_PITCH_CENTS: the engines run at Plaits' rate. (Until
+    2026-10-01 they ran at the host's with a pitch offset, which left every
+    Plaits engine 0.37 cents flat and the string model 9.5 cents flat at A2.)"""
+    failures = []
+    for note in NOTES:
+        c = rate_case(wavs, slot, note)
+        if not (c["pitch_cents"] is not None and abs(c["pitch_cents"]) <= RATE_PITCH_CENTS):
+            failures.append(f"note {note}: pitch {c['pitch_cents']} cents")
+    assert not failures, "\n".join(failures)
 
 
 @pytest.mark.parametrize("slot", [s for s in SLOTS if s.rate_timing], ids=lambda s: s.id)
-def test_rate_compensation_envelope_timing(wavs, slot):
-    """The wrappers leave time constants alone at 44,118 Hz, so envelopes set
-    per sample or per 12-sample block run 47,872.34/44,118 = 1.085 times
-    long: the LPG, the drums, speech words. Modal's resonators decay by Q,
-    so between 1.0 and 1.085. Six-Op runs at the host rate: 1.0. Measured as
-    the time stretch of the envelope after the note-off (or note-on)."""
+def test_fm1_rate_envelope_timing_matches_upstream(wavs, slot):
+    """Envelopes at 44,118 Hz run as long as upstream's at its own rate: a
+    time stretch of 1 within 0.02 after the note-off (or note-on), by
+    envelope fit, or for Six-Op's fast DX7 releases by decay-rate ratio.
+    Running Plaits at the host's rate gave 1.085 for everything set per
+    sample or per block."""
     method, lo, hi = slot.rate_timing
     failures = []
     for note in NOTES:
@@ -830,15 +961,14 @@ def test_rate_compensation_envelope_timing(wavs, slot):
     assert not failures, "\n".join(failures)
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="reference-plaits.md finding 2: NoiseEngine's TIMBRE "
-                   "clock is NoteToFrequency(timbre), not of the note, so the rate "
-                   "compensation misses it and it runs 1.41 semitones low at 44,118 Hz")
 def test_noise_clock_follows_the_rate(wavs):
     """The filtered-noise model's spectrum at 44,118 Hz, against upstream's
     at its own rate: TIMBRE 0.5 puts its clock (sample-and-hold noise) in
     the audio band. The shift of the spectral envelope, median against five
-    seeded upstream renders of a held note, would be near 0 if the clock
-    were compensated."""
+    seeded upstream renders of a held note, is near 0. (It was -139 and -140
+    cents at A2 and A4 while Plaits ran at the host's rate, a strict xfail:
+    the clock is NoteToFrequency(TIMBRE), which the pitch offset missed;
+    reference-plaits.md, finding 2.)"""
     slot = BY_INDEX[17]
     shifts = _noise_clock_shifts(wavs, slot, Point(0.5, 0.5, 0.2, 0.5, 0.5, VELOCITY))
     assert all(abs(s) < 20.0 for s in shifts), shifts
@@ -847,7 +977,7 @@ def test_noise_clock_follows_the_rate(wavs):
 def test_noise_filter_follows_the_rate(wavs):
     """The same model with the clock at the top of its range (TIMBRE 1):
     then the note-tracking filter shapes the spectrum, and it is on pitch at
-    44,118 Hz. So the shift above is the clock alone."""
+    44,118 Hz."""
     slot = BY_INDEX[17]
     shifts = _noise_clock_shifts(wavs, slot, Point(0.5, 1.0, 0.8, 0.5, 0.5, VELOCITY))
     assert all(abs(s) < 20.0 for s in shifts), shifts
@@ -864,6 +994,301 @@ def _noise_clock_shifts(tmp, slot, point):
                        for r in refs])
         out.append(statistics.median(c["shift_cents"] for c in res))
     return out
+
+
+# One slot per engine and wrapper path: an LPG model, the stereo string
+# machine, a random LPG model, the random self-enveloped string, Six-Op.
+BLOCK_SLOTS = [BY_INDEX[i] for i in (0, 6, 17, 19, 3)]
+
+
+@pytest.mark.parametrize("slot", BLOCK_SLOTS, ids=lambda s: s.id)
+def test_fm1_rate_output_does_not_depend_on_the_host_block(wavs, slot):
+    """At 44,118 Hz, 1, 7 and 64 frames per render call write the same bytes:
+    the resampler pulls the 47,872.34 Hz blocks as each output sample needs
+    them. A note at 0, a second at host sample 4,480 and the first's note-off
+    at 8,960, which all three block sizes reach exactly; 0.3 s (13,235
+    frames, an odd total)."""
+    t1, t2 = (4480 - 0.5) / FM1_HZ, (8960 - 0.5) / FM1_HZ
+    point = POINTS[0]
+    renders = []
+    for frames in (1, 7, 64):
+        out = wavs / f"blocks_{slot.index}_{frames}.wav"
+        cmd = fm1_cmd(out, slot, 57, point, rate=FM1_RATE, frames=frames, seconds=0.3, gate=t2,
+                      extra_notes=[f"{t1:.9f}:64:90:100"])
+        renders.append(cmd)
+    run_all(renders)
+    data = [(wavs / f"blocks_{slot.index}_{f}.wav").read_bytes() for f in (1, 7, 64)]
+    assert len(wav_channels(wavs / f"blocks_{slot.index}_64.wav")[0]) == 13235
+    assert data[1] == data[0] and data[2] == data[0]
+
+
+# (time of the note, host sample it arrives before, 47,872.34 Hz samples
+# pulled by then, the block it starts on, arrival to onset in output samples)
+LATE_NOTES = {
+    # Mid-block: 2,435 pulled, so the next block starts at 2,436.
+    "mid-block": (0.0503, 2240, 2435, 2436, 34.96),
+    # 768 pulled, a multiple of 12 (and of 16): the last block is just used
+    # up, and the next one, not yet rendered, starts on that very sample. A
+    # wrapper that rendered its next block as soon as the last ran out would
+    # start the note a block later here, and nowhere else.
+    "block-boundary": (703.5 / FM1_HZ, 704, 768, 768, 33.77),
+}
+
+
+@pytest.mark.parametrize("case", LATE_NOTES)
+@pytest.mark.parametrize("index", [8, 21])
+def test_note_lands_on_the_next_native_block(wavs, index, case):
+    """A note reaches the wrapper before a host sample (2,240 = 35 x 64 for
+    the note at 0.0503 s). By then the resampler has pulled some samples at
+    47,872.34 Hz (2,435: inputs_pulled, from fm1_resampler_init's
+    arithmetic), so the voice starts on the first 12-sample block not yet
+    rendered (2,436). The reference finds the same block by a dry run of the
+    resampler itself, and the two renders agree within HOST_LSB. Nothing
+    before the arrival + the outputs that cannot yet read the block is
+    anything but silence. The onset is centred 2,436 x 44,118 / 47,872.34
+    + 30 = 2,274.96 output samples in, 34.96 (0.79 ms) after the note's
+    arrival. Where the pulls end on a block boundary (704: 768 pulled) the
+    note starts on that boundary, which a block rendered ahead of need
+    would miss."""
+    slot = BY_INDEX[index]
+    point = neutral(POINTS[0])
+    t, *expected, latency = LATE_NOTES[case]
+    arrival = host_event_sample(t)
+    start = native_event_sample(t)
+    assert [arrival, inputs_pulled(arrival), start] == expected
+    ref, fm1 = wavs / f"late_ref_{index}_{case}.wav", wavs / f"late_fm1_{index}_{case}.wav"
+    info, _ = run_all([ref_cmd(ref, slot, 57, point, seconds=0.1 + t, gate=100, host=True,
+                               extra=["--at", t]),
+                       fm1_cmd(fm1, slot, 57, point, rate=FM1_RATE, frames=64, seconds=0.1,
+                               gate=100, start=t)])
+    assert info["host"]["on_block"] * 12 == start
+    assert not host_failures(lsb_diff(ref, fm1)), lsb_diff(ref, fm1)
+    # The first output whose inputs reach sample `start` (2,436): before it,
+    # no output reads the note's block at all.
+    first = next(k for k in range(arrival, arrival + 64) if inputs_pulled(k + 1) > start)
+    got = wav_channels(fm1)[0]
+    assert not any(got[:first]) and any(got[first:first + 64])
+    onset = start * FM1_HZ / NATIVE_HZ + RESAMPLER_DELAY
+    assert onset - arrival == pytest.approx(latency, abs=0.01)
+
+
+@pytest.mark.parametrize("engine", ["macro", "macro-heavy", "sixop"])
+@pytest.mark.parametrize("rate,accepted", [("47872.34", True), ("47873", False), ("48000", False),
+                                           ("44100", True), ("11968.09", True),
+                                           ("11968.08", False)])
+def test_refuses_host_rates_the_resampler_cannot_serve(wavs, engine, rate, accepted):
+    """The resampler converts down, by 1 to 4: hosts above 47,872.34 Hz, or
+    below a quarter of it (11,968.085 Hz as a float), are refused, as Shapes
+    refuses those outside 24-96 kHz (create returns NULL)."""
+    res = subprocess.run([str(RENDER), "--engine", engine, "--note", "0:57:100:0.05",
+                          "--rate", rate, "--seconds", "0.05", "--out", str(wavs / "refuse.wav")],
+                         capture_output=True, text=True)
+    assert (res.returncode == 0) == accepted, res.stderr
+    if not accepted:
+        assert "refused this host" in res.stderr
+
+
+HOST_NEGATIVE = {
+    # name: (slot, fm1 rate, fm1 parameters (None: the right ones), reference
+    # extra args, fm1 seconds)
+    # At 44,100 Hz, 26,470.5 / 44,100 s gives the reference's 26,470 frames
+    # (0.6 s at 44,118 Hz), so the two are compared sample for sample over
+    # the same length and the content has to fail, not the length.
+    "fm1-at-44100-hz": (8, "44100", None, (), 26470.5 / 44100),
+    "volume-0.99": (13, FM1_RATE, ["Model=7", "Harmonics=0.5", "Timbre=0.8", "Morph=0.2",
+                                   "Volume=0.99"], (), SECONDS),
+    "note-off-in-7-frame-blocks": (8, FM1_RATE, None, ("--host-frames", "7"), SECONDS),
+    "noise-one-semitone-sharp": (17, FM1_RATE, None, (), SECONDS),
+}
+
+
+def host_negative_failures(tmp, name):
+    index, rate, params, extra, seconds = HOST_NEGATIVE[name]
+    slot = BY_INDEX[index]
+    point, note = neutral(POINTS[1]), 57
+    ref, fm1 = tmp / f"hneg_ref_{name}.wav", tmp / f"hneg_fm1_{name}.wav"
+    key = note + 1 if name == "noise-one-semitone-sharp" else note
+    _run(ref_cmd(ref, slot, note, point, host=True, extra=extra))
+    _run(fm1_cmd(fm1, slot, key, point, rate=rate, frames=64, seconds=seconds, params=params))
+    d = lsb_diff(ref, fm1)
+    return host_failures(d), d
+
+
+@pytest.mark.parametrize("name", HOST_NEGATIVE)
+def test_host_rate_criteria_reject(wavs, name):
+    """Each deliberate error fails the 44,118 Hz criteria on the samples
+    themselves (the largest or RMS difference), not on the length alone:
+    the wrapper at 44,100 Hz (a ratio 0.04 % off, rendered to the
+    reference's length and compared sample for sample whatever the header
+    says), Volume 0.99, the note-off a few blocks early, the random noise
+    model a semitone sharp."""
+    f, d = host_negative_failures(wavs, name)
+    assert d["lengths"][0] == d["lengths"][1], d
+    assert [x for x in f if not x.startswith("lengths")], f"{name} passed: {d}"
+
+
+# --- the wrappers at 44,118 Hz against themselves at 47,872.34 Hz --------------------------
+#
+# Upstream cannot stand in for a wrapper everywhere: Six-Op renders its own
+# 16-sample blocks, not SixOpEngine's staggered chunks, and Plaits' Voice
+# plays one note and never changes model. There the wrapper at 44,118 Hz is
+# held against itself at 47,872.34 Hz, where its resampler passes the mix
+# through bit for bit (1-frame host blocks, every event placed on the block
+# the 44,118 Hz render acts on it in), resampled by fm1-ref-plaits
+# --resample with fm1_resampler.h, one resampler per channel. That holds the
+# whole host-rate path to what the wrapper does at its own rate: which block
+# an event lands on, polyphony and retriggers, model changes, and when
+# voices are freed.
+
+# The native render is written as 16-bit words, so the resampled side
+# carries their rounding: at most half an LSB per input sample, 0.29 LSB RMS.
+# Through the resampler at 47,872.34 -> 44,118 Hz (L1 gain at most 2.13 over
+# its output phases, L2 gain 0.90 [verified: impulse responses of
+# fm1_resampler.h, a scratch program]) that moves a resampled sample by at
+# most 1.07 LSB, 0.26 LSB RMS, before both sides round to 16 bits. Two values
+# 1.07 apart round at most 2 apart; 0.26 LSB RMS apart they round one apart
+# with a probability of about 0.21, 0.46 LSB RMS where the signal never rests
+# [inferred]. Measured: 1 LSB at most, 0.31-0.45 LSB RMS. What these cases
+# exist for moves far more: an event one block late, the string machine's
+# AUX cut at a model change, or a voice freed 12 blocks early, 1,000 to
+# 9,000 LSB (reference-plaits.md, "Review").
+SELF_LSB = dict(max=2, rms=0.5)
+
+# name: (engine, parameters, notes as (key, host sample the note-on arrives
+# before, the note-off's), parameter changes as (host sample, NAME=VALUE),
+# seconds). Every arrival is a 64-frame block start. 704, 6,720, 9,728,
+# 12,736 and 15,744 have pulled a multiple of 48 samples at 47,872.34 Hz
+# (768, 7,296, 10,560, 13,824, 17,088), so the last 12- or 16-sample block
+# has just been used up and the event starts the next one on that sample; a
+# wrapper that rendered its next block as soon as the last ran out would
+# put those a block late at 44,118 Hz, and every event at 47,872.34 Hz. The
+# others fall mid-block.
+_TWO_NOTES = [(57, 704, 6720), (64, 2240, 12800), (57, 9728, 15744)]
+SELF_CASES = {
+    # Two overlapping notes, and the first key played again 3,000 host samples
+    # after its note-off
+    "sixop-notes": ("sixop", ["Volume=1"], _TWO_NOTES, [], 0.5),
+    "macro-notes": ("macro", ["Model=0", "Volume=1"], _TWO_NOTES, [], 0.5),
+    # E.PIANO 1 (no key sync: its operators run free) released to silence at
+    # 0.14 s, freed 50 ms later, replayed at 0.36 s. The replay starts from
+    # the phases the voice stopped at, so a silent-voice timer counted at the
+    # host's rate (12 blocks early) moves every sample of it.
+    "sixop-voice-freed-and-replayed": ("sixop", ["Patch=32", "Envelope=0.3", "Volume=1"],
+                                       [(60, 704, 3712), (60, 16000, 19968)], [], 0.5),
+    # A snare (random, self-enveloped) silent from 0.26 s, freed by the
+    # 50 ms timer (Decay 1 keeps the wrapper's release fade above 0.7, so
+    # silence in the WAV is silence to the timer), then another snare at
+    # 0.45 s. Every block a voice renders draws from stmlib::Random, so a
+    # voice freed early changes every later noise sample.
+    "heavy-snare-freed-and-another-played": (
+        "macro-heavy", ["Model=11", "Morph=0.2", "Decay=1", "Volume=1"],
+        [(60, 704, 3712), (62, 19968, 21760)], [], 0.5),
+    # The string machine left for Swarm and entered again, by two Model
+    # changes: its AUX (the right channel) rings out through the right
+    # resampler after leaving, and the right resampler is in step on return.
+    "heavy-string-machine-left-and-entered-again": (
+        "macro-heavy", ["Model=0", "Volume=1"], [(57, 704, 12736), (64, 7680, 12736),
+                                                 (60, 14080, 19968)],
+        [(6016, "Model=5"), (14016, "Model=0")], 0.5),
+    # The same, back within 64 samples, while the right resampler still runs.
+    "heavy-string-machine-left-briefly": (
+        "macro-heavy", ["Model=0", "Volume=1"], [(57, 704, 12736), (60, 7680, 12736)],
+        [(6016, "Model=5"), (6080, "Model=0")], 0.5),
+}
+# Cases whose premise is a voice freed before a later note: (silent blocks
+# the wrapper waits before freeing, its block, the later note's arrival).
+SELF_FREED = {
+    "sixop-voice-freed-and-replayed": (149, 16, 16000),
+    "heavy-snare-freed-and-another-played": (199, 12, 19968),
+}
+
+
+def self_block(engine):
+    return 16 if engine == "sixop" else 12
+
+
+def self_native_sample(engine, arrival):
+    """The 47,872.34 Hz sample on which a wrapper acts on an event arriving
+    before host sample `arrival` at 44,118 Hz: the first block not yet
+    rendered."""
+    b = self_block(engine)
+    return b * -(-inputs_pulled(arrival) // b)
+
+
+def self_case(tmp, name):
+    """(fm1 at 44,118 Hz in 64-frame blocks, fm1 at 47,872.34 Hz resampled to
+    44,118 Hz, fm1 at 47,872.34 Hz) for one SELF_CASES entry."""
+    if ("self", name) in _cache:
+        return _cache[("self", name)]
+    engine, params, notes, changes, seconds = SELF_CASES[name]
+    host, native, resampled = (tmp / f"self_{k}_{name}.wav" for k in ("host", "native", "res"))
+    # The native render runs past what the resampler pulls for `seconds`.
+    host_cmd = [RENDER, "--engine", engine, "--rate", FM1_RATE, "--frames", 64,
+                "--seconds", seconds, "--out", host]
+    native_cmd = [RENDER, "--engine", engine, "--rate", NATIVE, "--frames", 1,
+                  "--seconds", seconds * RATE_RATIO + 0.01, "--out", native]
+    for p in params:
+        host_cmd += ["--param", p]
+        native_cmd += ["--param", p]
+    # Half a sample early: each lands on the block start (or sample) after it.
+    at_host = lambda a: (a - 0.5) / FM1_HZ                                  # noqa: E731
+    at_native = lambda a: (self_native_sample(engine, a) - 0.5) / NATIVE_HZ  # noqa: E731
+    for key, on, off in notes:
+        host_cmd += ["--note", f"{at_host(on):.9f}:{key}:100:{at_host(off) - at_host(on):.9f}"]
+        native_cmd += ["--note",
+                       f"{at_native(on):.9f}:{key}:100:{at_native(off) - at_native(on):.9f}"]
+    for arrival, p in changes:
+        host_cmd += ["--param-at", f"{at_host(arrival):.9f}:{p}"]
+        native_cmd += ["--param-at", f"{at_native(arrival):.9f}:{p}"]
+    run_all([host_cmd, native_cmd])
+    _run([REF, "--resample", native, "--host-rate", FM1_RATE, "--seconds", seconds,
+          "--out", resampled])
+    _cache[("self", name)] = (host, resampled, native)
+    return _cache[("self", name)]
+
+
+@pytest.mark.parametrize("name", SELF_CASES)
+def test_fm1_rate_output_is_the_native_output_resampled(wavs, name):
+    """At 44,118 Hz each wrapper renders what it renders at 47,872.34 Hz,
+    resampled: both channels within SELF_LSB, with the events on the blocks
+    the resampler's pulls predict."""
+    host, resampled, _ = self_case(wavs, name)
+    failures = []
+    for ch in (0, 1):
+        d = lsb_diff(resampled, host, ch, ch)
+        failures += [f"ch{ch}: {x}" for x in host_failures(d, SELF_LSB)]
+    assert not failures, "\n".join(failures)
+
+
+@pytest.mark.parametrize("name", SELF_CASES)
+def test_native_rate_note_starts_on_its_block(wavs, name):
+    """At 47,872.34 Hz in 1-frame host blocks a note that arrives before
+    sample S, a block start, sounds from S: silence before it, sound within
+    its first block. (A block rendered as soon as the last ran out would
+    leave that block silent.)"""
+    engine, _, notes, _, _ = SELF_CASES[name]
+    s = self_native_sample(engine, notes[0][1])
+    x = wav_channels(self_case(wavs, name)[2])[0]
+    assert s == 768
+    assert not any(x[:s]) and any(x[s:s + self_block(engine)])
+
+
+@pytest.mark.parametrize("name", SELF_FREED)
+def test_freed_voice_cases_free_the_voice(wavs, name):
+    """The premise of the freed-voice cases: before the later note the first
+    has been digitally silent in the native render for longer than the
+    wrapper waits before freeing a silent released voice (50 ms, plus a
+    block either side), so the later note finds it freed. Six-Op's E.PIANO 1
+    has no key sync, as the replay's sensitivity to the freeing time needs."""
+    hold, block, arrival = SELF_FREED[name]
+    engine = SELF_CASES[name][0]
+    x = wav_channels(self_case(wavs, name)[2])[0]
+    s = self_native_sample(engine, arrival)
+    quiet = s - max(i for i in range(s) if x[i]) - 1
+    assert quiet > (hold + 2) * block, quiet
+    if engine == "sixop":
+        info = _run([REF, "--engine", 3, "--harmonics", f"{0.5 / 32.64:.6f}", "--seconds", "0.01"])
+        assert (info["sixop"]["patch"], info["sixop"]["key_sync"]) == (32, 0)
 
 
 # --- intentional differences, and what the reference itself does -------------------------
@@ -1119,22 +1544,70 @@ def report(tmp):
                 out.append(f"-{err}: {c['ncc']:.4f} {'FAIL' if sixop_failures(c) else 'pass'}")
             print(f"  bank {bank + 1} {info['sixop']['name']!r} {tuple(point)[:3]}: " + " | ".join(out))
     print()
-    print("44,118 Hz (A2 / A4)")
-    print("| # | Upstream | Pitch cents (predicted) | Stretch (method, range) | Level dB | LSD dB |")
+    print("44,118 Hz against upstream resampled the same way (worst of 6 cases; Six-Op: "
+          "least NCC, lags, worst gain, envelope, pitch, LSD)")
+    print("| # | Upstream | Largest difference, LSB | RMS, LSB | Samples differing (of all compared) |")
+    print("| --- | --- | --- | --- | --- |")
+    for slot in SLOTS:
+        rows = [r for n in NOTES for p in POINTS for r in host_case(tmp, slot, n, p)[1]]
+        if slot.engine == "sixop":
+            cs = [r["cmp"] for r in rows]
+            print(f"| {slot.index} | {slot.upstream} | NCC {min(c['ncc'] for c in cs):.4f}, lag "
+                  f"{min(c['lag'] for c in cs)}..{max(c['lag'] for c in cs)} | gain "
+                  f"{max(abs(c['gain_db']) for c in cs):.3f} dB, env {max(c['env_max_db'] for c in cs):.3f} dB "
+                  f"| pitch {max(abs(c['pitch_cents']) for c in cs):.3f} c, LSD "
+                  f"{max(c['lsd_db'] for c in cs):.3f} dB |")
+        else:
+            ds = [r["lsb"] for r in rows]
+            print(f"| {slot.index} | {slot.upstream} | {max(d['max'] for d in ds)} | "
+                  f"{max(d['rms'] for d in ds):.3f} | {sum(d['differ'] for d in ds)} of "
+                  f"{sum(d['n'] for d in ds):,} |")
+    print()
+    print("44,118 Hz against upstream at its own rate, unresampled (A2 / A4)")
+    print("| # | Upstream | Pitch cents | Stretch (method, range) | Level dB | LSD dB |")
     print("| --- | --- | --- | --- | --- | --- |")
     for slot in SLOTS:
         cs = [rate_case(tmp, slot, n) for n in NOTES]
-        pitch = " / ".join(f"{c['pitch_cents']:+.2f}" for c in cs)
-        pred = (" / ".join(f"{rate_expected(slot, n):+.2f}" for n in NOTES) if slot.rate_pitch
-                else "not held")
+        pitch = " / ".join(f"{c['pitch_cents']:+.3f}" for c in cs)
+        if not slot.rate_pitch:
+            pitch += " (not held)"
         if slot.rate_timing:
             m, lo, hi = slot.rate_timing
             st = " / ".join(_fmt(rate_stretch(slot, c)) for c in cs) + f" ({m}, {lo:.3f}..{hi:.3f})"
         else:
             st = " / ".join(_fmt(c["stretch"]) for c in cs) + " (not held)"
-        print(f"| {slot.index} | {slot.upstream} | {pitch} ({pred}) | {st} | "
-              + " / ".join(f"{c['level_db']:+.2f}" for c in cs) + " | "
+        print(f"| {slot.index} | {slot.upstream} | {pitch} | {st} | "
+              + " / ".join(f"{c['level_db']:+.3f}" for c in cs) + " | "
               + " / ".join(f"{c['lsd_db']:.2f}" for c in cs) + " |")
+    print()
+    print("Negative controls at 44,118 Hz (largest difference, LSB)")
+    for name in HOST_NEGATIVE:
+        f, d = host_negative_failures(tmp, name)
+        print(f"  {name}: {d['max']} LSB, {d['differ']} of {d['n']} samples; " + "; ".join(f))
+    print()
+    print("44,118 Hz against the wrapper's own 47,872.34 Hz render, resampled (L / R)")
+    print("| Case | Largest difference, LSB | RMS, LSB | Samples differing (of all) | Peak, LSB |")
+    print("| --- | --- | --- | --- | --- |")
+    for name in SELF_CASES:
+        host, resampled, _ = self_case(tmp, name)
+        ds = [lsb_diff(resampled, host, ch, ch) for ch in (0, 1)]
+        print(f"| {name} | " + " / ".join(str(d["max"]) for d in ds) + " | "
+              + " / ".join(f"{d['rms']:.3f}" for d in ds) + " | "
+              + " / ".join(f"{d['differ']:,}" for d in ds) + f" (of {ds[0]['n']:,}) | "
+              + " / ".join(f"{d['peak']:,}" for d in ds) + " |")
+    lat = []
+    for arrival in range(1, 20001):
+        start = 12 * -(-inputs_pulled(arrival) // 12)
+        lat.append(start * FM1_HZ / NATIVE_HZ + RESAMPLER_DELAY - arrival)
+    lat16 = []
+    for arrival in range(1, 20001):
+        start = 16 * -(-inputs_pulled(arrival) // 16)
+        lat16.append(start * FM1_HZ / NATIVE_HZ + RESAMPLER_DELAY - arrival)
+    for name, v in (("12-sample blocks", lat), ("16-sample blocks (Six-Op)", lat16)):
+        print(f"Note arrival to onset centre, {name}, arrivals 1-20,000: "
+              f"{min(v):.2f}-{max(v):.2f} output samples ({1000 * min(v) / FM1_HZ:.3f}-"
+              f"{1000 * max(v) / FM1_HZ:.3f} ms), mean {statistics.mean(v):.2f} "
+              f"({1000 * statistics.mean(v) / FM1_HZ:.3f} ms)")
 
 
 def calibrate(tmp):

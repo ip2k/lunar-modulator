@@ -24,16 +24,29 @@
 // with one LPC word bank shared by all voices, so a Harmonics move into
 // another word bank parses the bank once, not once per voice.
 //
-// Rate and blocks as in Macro: the engines run at the host's rate with the
-// pitch corrected by 12*log2(47872.34 / rate) semitones, in Plaits' own
-// 12-sample blocks.
+// Rate and blocks as in Macro: the engines run at Plaits' own 47,872.34 Hz
+// whatever the host's rate, in Plaits' 12-sample blocks, with no pitch
+// correction, and the mix goes through fm1_resampler.h to the host's rate.
+// One resampler per output channel: the string machine's AUX is the right
+// channel, so it has a second one. Every other model is mono: both channels'
+// mixes are then the same floats (RenderBlock), and the second resampler runs
+// on after the string machine, ringing out its AUX, only until it holds
+// exactly the first one's state (about 80 output samples at 44,118 Hz: the
+// filter's memory); from then on the right channel is the left one's
+// output, which is what the second resampler would give, bit for bit. On a
+// change into the string machine it takes a copy of the first one's state
+// unless it is still running. So the output is what two resamplers running
+// all along would give, at the cost of a second one only in the string
+// machine and for a few blocks after it. Hosts above 47,872.34 Hz or below a
+// quarter of it are refused. Note events land on the next 12-sample block at
+// 47,872.34 Hz.
 //
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
+#include "fm1_resampler.h"
 
-#include <cmath>
 #include <cstring>
 #include <new>
 
@@ -318,17 +331,26 @@ struct Voice {
 
 class Instance {
  public:
-  void Init(const fm1_host_t *host) {
-    rate_offset_ = 12.0f * log2f(kCorrectedSampleRate / host->sample_rate);
-    const float blocks_per_second = host->sample_rate / kBlockSize;
+  // False when the resamplers refuse the host's rate (above 47,872.34 Hz or
+  // below a quarter of it).
+  bool Init(const fm1_host_t *host) {
+    const bool ok_l =
+        fm1_resampler_init(&resampler_l_, kCorrectedSampleRate, host->sample_rate) != 0;
+    const bool ok_r =
+        fm1_resampler_init(&resampler_r_, kCorrectedSampleRate, host->sample_rate) != 0;
+    const float blocks_per_second = kCorrectedSampleRate / kBlockSize;
     silent_after_release_ = static_cast<uint32_t>(kSilentAfterRelease * blocks_per_second);
     silent_while_held_ = static_cast<uint32_t>(kSilentWhileHeld * blocks_per_second);
     bend_ = 0.0f;
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
-    model_ = MODEL_STRING_MACHINE;
+    model_ = MODEL_STRING_MACHINE;   // stereo: both resamplers run from here
+    right_running_ = true;
     clock_ = 0;
+    memset(mix_l_, 0, sizeof(mix_l_));
+    memset(mix_r_, 0, sizeof(mix_r_));
     pending_ = 0;
     BuildEngines();
+    return ok_l && ok_r;
   }
 
   void NoteOn(uint8_t key, uint8_t velocity) {
@@ -367,28 +389,60 @@ class Instance {
     if (index == P_MODEL) {
       int m = static_cast<int>(value + 0.5f);
       if (m != model_) {
+        // Into the string machine: the right channel's resampler resumes from
+        // the left one's state, which is its own once it has stopped (the
+        // file's header has why).
+        if (m == MODEL_STRING_MACHINE && !right_running_) {
+          resampler_r_ = resampler_l_;
+          right_running_ = true;
+        }
         model_ = static_cast<Model>(m);
         BuildEngines();
       }
     }
   }
 
+  // Each output sample pulls the 47,872.34 Hz mix the resamplers need for it,
+  // rendering a new 12-sample block whenever the last one is used up. While
+  // the right channel's resampler runs, it takes the same samples' worth as
+  // the left one, so they stay in step.
   void Render(float *out_lr, uint32_t frames) {
-    while (frames) {
-      if (!pending_) {
-        RenderBlock();
-        pending_ = kBlockSize;
+    for (uint32_t f = 0; f < frames; ++f) {
+      uint32_t need = fm1_resampler_needed(&resampler_l_);
+      while (need) {
+        if (!pending_) {
+          // Outside the string machine the two mixes are equal, so once the
+          // two resamplers' states are, they would give the same outputs
+          // from here on: the right one can stop.
+          if (right_running_ && model_ != MODEL_STRING_MACHINE &&
+              SameState(resampler_l_, resampler_r_)) {
+            right_running_ = false;
+          }
+          RenderBlock();
+          pending_ = kBlockSize;
+        }
+        const size_t at = kBlockSize - pending_;
+        const uint32_t took = fm1_resampler_push(
+            &resampler_l_, &mix_l_[at],
+            need < pending_ ? need : static_cast<uint32_t>(pending_));
+        if (right_running_) fm1_resampler_push(&resampler_r_, &mix_r_[at], took);
+        pending_ -= took;
+        need -= took;
       }
-      size_t take = frames < pending_ ? frames : pending_;
-      const float *src = &block_[2 * (kBlockSize - pending_)];
-      memcpy(out_lr, src, take * 2 * sizeof(float));
-      out_lr += 2 * take;
-      frames -= take;
-      pending_ -= take;
+      const float l = fm1_resampler_pop(&resampler_l_);
+      out_lr[2 * f] = l;
+      out_lr[2 * f + 1] = right_running_ ? fm1_resampler_pop(&resampler_r_) : l;
     }
   }
 
  private:
+  // Two resamplers in step (the same pushes and pops since one was copied
+  // from the other) holding the same samples, bit for bit.
+  static bool SameState(const fm1_resampler_t &a, const fm1_resampler_t &b) {
+    return a.rel == b.rel && a.held == b.held && a.in_w == b.in_w && a.mid_w == b.mid_w &&
+           memcmp(a.in, b.in, sizeof(a.in)) == 0 && memcmp(a.mid, b.mid, sizeof(a.mid)) == 0;
+  }
+
   Engine *Construct(Voice &v, bool first) {
     switch (model_) {
       case MODEL_STRING_MACHINE: return new (v.engine_mem) StringMachineEngine();
@@ -502,7 +556,7 @@ class Instance {
       p.trigger = (v.rising ? TRIGGER_RISING_EDGE : TRIGGER_LOW) |
                   (v.gate ? TRIGGER_HIGH : TRIGGER_LOW);
       v.rising = false;
-      float note = v.key + bend_ + rate_offset_;
+      float note = v.key + bend_;
       CONSTRAIN(note, -119.0f, 120.0f);  // Voice's range for the note
       p.note = note;
       p.harmonics = value_[P_HARMONICS];
@@ -573,30 +627,34 @@ class Instance {
         if (!v.gate && v.lpg.gain() < 1e-4f) v.active = false;
       }
     }
-    for (size_t n = 0; n < kBlockSize; ++n) {
-      block_[2 * n] = mix_l[n];
-      block_[2 * n + 1] = mix_r[n];
-    }
+    memcpy(mix_l_, mix_l, sizeof(mix_l_));
+    memcpy(mix_r_, mix_r, sizeof(mix_r_));
   }
 
   Voice voice_[kNumVoices];
   SpeechShared speech_;
   float value_[P_COUNT];
   Model model_;
-  float rate_offset_;
+  bool right_running_;             // resampler_r_ is fed, and gives the right channel
   float bend_;
-  uint32_t silent_after_release_;
+  uint32_t silent_after_release_;  // in 12-sample blocks at 47,872.34 Hz
   uint32_t silent_while_held_;
   uint32_t clock_;
-  float block_[2 * kBlockSize];
-  size_t pending_;
+  float mix_l_[kBlockSize];        // the current block at 47,872.34 Hz, OUT
+  float mix_r_[kBlockSize];        // AUX in the string machine, else = mix_l_
+  size_t pending_;                 // samples of the block not yet resampled
+  fm1_resampler_t resampler_l_;    // 47,872.34 Hz -> host rate, per channel,
+  fm1_resampler_t resampler_r_;    // one pair per instance (not per voice)
 };
 
 size_t InstanceSize(const fm1_host_t *) { return sizeof(Instance); }
 
 void *Create(void *mem, const fm1_host_t *host) {
   Instance *self = new (mem) Instance();
-  self->Init(host);
+  if (!self->Init(host)) {
+    self->~Instance();
+    return NULL;
+  }
   return self;
 }
 
