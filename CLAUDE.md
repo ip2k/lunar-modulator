@@ -20,6 +20,18 @@ the detail.
 
 This project is unrelated to the BUSY Bar timer repo it was briefly hosted in.
 
+## Project status and licences
+
+**Personal, non-commercial project** (owner, 2026-10-01). The repository is
+MIT. GPL code, and code under similar terms such as LXR's, may be brought in
+when needed, each in its own `third_party/<name>/` directory with its licence
+and an `UPSTREAM.md`. Those licences only bite on distribution: a firmware
+binary that links JieLi's closed SDK libraries must not be shared (released,
+or sent to anyone) if it contains GPL or LXR code. Personal builds may; keep
+such code behind a build switch so an MIT/BSD-only build stays shareable.
+GPL and LXR code cannot be combined in one shared work. MIDIbox code needs
+its author's permission. Details: docs/12 §6, docs/11 §7.
+
 ## The one rule
 
 **Nothing gets flashed to, or written on, the FM-1 until a full flash dump and a

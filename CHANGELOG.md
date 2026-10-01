@@ -80,6 +80,10 @@ history.
 
 ### Changed
 - docs/06: Movy has gained per-step parameter locks since v0.31.0.
+- Licence policy: the project is personal and non-commercial, and GPL code
+  may be used. Firmware binaries that contain GPL (or LXR) code and link
+  JieLi's closed libraries are for personal builds only, not for sharing
+  (CLAUDE.md, docs/11 §7, docs/12 §6).
 - The engine API states that instance memory is not zeroed, that engines
   emit finite samples, that `create` may refuse a host, and which calls may
   run concurrently; `fm1_param_clamp` clamps parameters NaN-safely.

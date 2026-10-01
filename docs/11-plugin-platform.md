@@ -353,6 +353,13 @@ problem with an online compiler.
 
 ## 7. Licences [verified licence texts; consequences inferred, not legal advice]
 
+**Update 2026-10-01: owner's policy.** The project is personal and
+non-commercial, and GPL code may be brought in when needed (CLAUDE.md). The
+limit below on GPL and LGPL was never about commercial use: it applies to a
+firmware binary that is *shared* while it links JieLi's closed libraries.
+Personal builds may include GPL code; shareable builds keep it behind a build
+switch. docs/12 §6 has the full rules.
+
 - **Usable:**
   - MIT: MI's STM32 code and stmlib (minus `event_queue.h`), DaisySP,
     Schwung's ABI headers and host helpers, and the MIT Schwung modules in

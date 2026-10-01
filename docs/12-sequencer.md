@@ -35,7 +35,7 @@ the repository.
 | --- | --- |
 | Feasible on the FM-1? | **Yes** [inferred]. The sequencer logic takes under 0.1 % of a core. Sixteen 64-step patterns with locks take about 19 KB, 5 % of the stock SRAM gap (§5.2). The real work is the controls, sample-accurate timing and four additions to the engine API (§5). |
 | Does Movy already do it? | **Yes, on the Ableton Move.** Hold a step that has notes and turn a module knob. The lock is stored for that step only, is not heard while you set it, and plays when the step plays [verified]. Movy also has per-step velocity, length, probability, A:B and invert. It has no retrigs, slides, sound locks or FILL/PRE/NEI/1ST. It is Rust and TypeScript on aarch64 Linux, so it cannot run on the FM-1 (docs/06). It is MIT, so it can serve as a spec and a desktop test oracle, and a C rewrite is allowed if its notice is kept. |
-| Code we can use? | **MCL** (BSD-3, C++ on AVR and RP2040): an allocation-free lock store and the full Elektron condition set, already running on microcontrollers. Also Schwung's `step_chance.h` (MIT, C). The rest is design reference only, or excluded (§4, §6). |
+| Code we can use? | **MCL** (BSD-3, C++ on AVR and RP2040): an allocation-free lock store and the full Elektron condition set, already running on microcontrollers. Also Schwung's `step_chance.h` (MIT, C). GPL and LXR code is allowed in personal builds since the owner's licence policy of 2026-10-01, but not in a firmware binary that is shared while it links JieLi's closed libraries (§6). |
 | The named sources? | **Eloquencer:** updater binaries and PDFs only, no source and no licence. It is a good design reference. **LMN-3:** a GPL-3 Raspberry Pi DAW whose sequencer is an on/off grid without locks. **The Elektronauts thread:** an Arduino sequencer with 3 CC + 1 program-change locks per step; its code was never published. |
 | What gates it? | Nothing on the desktop: stage A can start now in `engines/`. On the device, the one rule (CLAUDE.md) applies: no writes, and no MIDI beyond the identity query, until a dump and a byte-identical restore have been shown. |
 
@@ -134,8 +134,8 @@ The evidence for each licence is in §6.
 | [hexatrack](https://github.com/audiodestrukt/hexatrack) (Dan Newcome) | MIT | Rust | Per-step lock set of a u32 mask plus 30 values, 34 B. YAML specs of the Octatrack hold-and-turn gestures | lock encoding, UI specs |
 | [picoTracker](https://github.com/xiphonics/picoTracker) (xiphonics, after Discodirt) | BSD-3 | C++ on RP2040 and STM32 | A tracker rather than locks: 2 command columns per row (chance, delay, retrig, CC, slides) [reported] | another paradigm |
 | [OMX-27](https://github.com/okyeron/OMX-27) (okyeron); [mss-nava-firmware](https://github.com/Modularsoundsystems/mss-nava-firmware) (Modularsoundsystems, zabox) | none; "no licence of its own" | Teensy; ATmega1284 | OMX-27: 4 CC lock slots per step, and the knob value is re-sent on an unlocked trig. NAVA: conditions, links between voices, length per lane | reference only |
-| [LXR](https://github.com/SonicPotions/LXR) (Sonic Potions); [MIDIbox SEQ V4](https://github.com/midibox/mios32) (Thorsten Klose) | non-commercial | STM32 (+ AVR) | LXR: 2 (parameter, value) pairs per step. MIDIbox: parameter layers per track | excluded |
-| [Deluge](https://github.com/SynthstromAudible/DelugeFirmware) (Synthstrom and community); zynseq (Zynthian); kria (monome); PGB-1 (Wee Noise Makers) | GPL-3; GPL-3; GPL-2; GPL-3 | C++; C++; C; Ada | Deluge: sparse automation nodes. zynseq: CC events with ramps. kria: dense lanes per parameter. PGB-1: 4 CC locks per step | reference only |
+| [LXR](https://github.com/SonicPotions/LXR) (Sonic Potions); [MIDIbox SEQ V4](https://github.com/midibox/mios32) (Thorsten Klose) | non-commercial | STM32 (+ AVR) | LXR: 2 (parameter, value) pairs per step. MIDIbox: parameter layers per track | LXR: code in personal builds (§6); MIDIbox: only with the author's permission |
+| [Deluge](https://github.com/SynthstromAudible/DelugeFirmware) (Synthstrom and community); zynseq (Zynthian); kria (monome); PGB-1 (Wee Noise Makers) | GPL-3; GPL-3; GPL-2; GPL-3 | C++; C++; C; Ada | Deluge: sparse automation nodes. zynseq: CC events with ramps. kria: dense lanes per parameter. PGB-1: 4 CC locks per step | code in personal builds (§6) |
 | Polaron (zueblin); sektron (emprcl); takt (itsyourbedtime) | Polaron: MIT per README [reported], none per GitHub; sektron: MIT; takt: none | Teensy; Go; norns Lua | Dense per-step parameter sets; per-step overrides that fall back to the track | reference only |
 
 The sweep also looked at about ten more (O_C Hemisphere, Ambika, uClock,
@@ -364,7 +364,26 @@ and 11 accidentals.
 
 ## 6. Licences [verified texts unless marked; consequences inferred, not legal advice]
 
-**Usable as code next to JieLi's closed libraries (docs/11 §7):**
+**Owner's policy (2026-10-01).** This is a personal, non-commercial project,
+and GPL code may be brought in when it is needed (CLAUDE.md). The GPL was
+never excluded for commercial reasons. It, and LXR's licence, require anyone
+who *distributes* a binary to supply the complete source of everything linked
+into it, and the FM-1 firmware is expected to link JieLi's closed SDK
+libraries (docs/11 §7) [inferred]. So:
+
+- **Personal builds**, flashed by the owner and not shared: GPL and LXR code
+  is fine. Their obligations start on distribution.
+- **Source in this repository**: fine, with each file keeping its own licence
+  in its own directory (`third_party/<name>/`, as for Mutable's code).
+- **A shared firmware binary** (a release, or one sent to anyone else) must
+  leave GPL and LXR code out while it links JieLi's closed libraries. Keep
+  such code behind a build switch, so the MIT/BSD build stays shareable.
+- **GPL and LXR in one shared work** are incompatible with each other: the GPL
+  forbids LXR's "may not be sold" restriction.
+- **Desktop tools** (fm1-render, test oracles) link nothing closed, so GPL code
+  there is fine; such a binary is GPL as a whole.
+
+**Usable as code in every build (docs/11 §7):**
 
 - **MCL: BSD-3.** The licence "applies to code, documentation or material in
   this repository, created by the above authors" (Mammarella, Li,
@@ -379,14 +398,23 @@ and 11 accidentals.
 - **picoTracker: BSD-3.** Its third-party table includes WTFPL, Unlicense and
   font licences, so take first-party files only.
 
-**Design reference only:**
+**Usable as code in personal builds only (see the policy above):**
 
 - **GPL:** LMN-3, Tracktion Engine and Deluge; also zynseq, kria, PGB-1 and
   Mosaic [reported: sweep lane].
-- **Non-commercial:** LXR ("may not be sold, nor … used in a commercial
-  product") and MIDIbox ("personal non-commercial use only").
-- **No licence:** Eloquencer, klerc's sequencer, OMX-27, mss-nava-firmware,
-  and Polaron as GitHub sees it; takt [reported: sweep lane].
+- **LXR** [verified: LICENSE.txt]: "may not be sold, nor may it be used in a
+  commercial product or activity", and modified redistributions "must include
+  the complete source code, including the source code for all components used
+  by a binary". The second clause has the same effect as the GPL's.
+
+**Needs the author's permission:** MIDIbox ("personal non-commercial use
+only" [reported: sweep lane]). Vendoring it into a public repository is
+redistribution, which those words do not clearly allow; ask Thorsten Klose
+first.
+
+**Design reference only, because there is no licence at all:** Eloquencer,
+klerc's sequencer, OMX-27, mss-nava-firmware, Polaron as GitHub sees it, and
+takt [reported: sweep lane].
 
 **Manuals** (Elektron, Winter Modular, M-VAVE, Baud Girl) are behaviour
 references: summarise and cite them, never copy. Call the feature "parameter
