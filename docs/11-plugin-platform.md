@@ -373,6 +373,13 @@ problem with an online compiler.
 - **Names.** Do not call engines "Plaits", "Braids" or "Mutable
   Instruments". Credit the code, name the engines ourselves, and keep the
   MIT notices.
+- **CHOMPI** (CHOMPI Club / Chase Bliss, 2026). Its own sources are MIT, so
+  its echo, DJ filter and Warble are usable with the CHOMPI Club notice. But
+  its vendored DaisySP predates Electrosmith's LGPL split: it still holds the
+  19 modules now published as DaisySP-LGPL (`reverbsc`, `moogladder`, …)
+  under an MIT label. Never take DaisySP code from that repository; use
+  upstream MIT DaisySP. The CHOMPI name and marks are not licensed [verified:
+  notes/2026-10-01-chompi-evaluation.md].
 
 ## 8. Unknowns and the first steps
 
