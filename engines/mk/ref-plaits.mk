@@ -54,6 +54,11 @@ REF_PLAITS_TP := \
   stmlib/dsp/atan.cc \
   stmlib/utils/random.cc
 
+# voice.cc includes plaits/user_data.h, whose TEST build calls printf without
+# including <cstdio>. macOS's headers happen to pull it in; libstdc++'s do not
+# (GCC and clang on Linux). The vendored file stays as it is.
+$(BUILD)/tp/plaits/dsp/voice.o: TP_DIALECT += -include cstdio
+
 REF_PLAITS_OBJ := $(BUILD)/our/test/ref_plaits.o \
                   $(patsubst %.cc,$(BUILD)/tp/%.o,$(REF_PLAITS_TP))
 
