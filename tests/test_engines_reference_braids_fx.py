@@ -42,6 +42,9 @@ REF = ENGINES / "build" / "fm1-ref-braids-fx"
 BRAIDS_RATE = 96000
 RINGS_RATE = 48000.0
 HOST_RATE = 44118.0
+# Shapes' resampler delays its output by this many host samples at any host
+# rate but 96 kHz (FM1_RESAMPLER_DELAY; test_engines_resampler.py checks it).
+RESAMPLER_DELAY = 30
 
 
 def f32(x):
@@ -395,17 +398,23 @@ def test_struck_shapes_at_host_rate_decay_as_upstream(tools, tmp_path, shape, lo
     # once per 24-sample block, rang 2.1-2.2 times as long (ratios 0.458-0.468
     # here). Ratio of the times to reach each level, A4, timbre/colour
     # 0.5/0.5, 2 s, upstream through the same 1 ms attack, fm1 less the
-    # resampler's group delay of 16 output samples. Measured: Bell
-    # 0.9999-1.0000, Drum 0.9999-1.0000, Kick 0.9995-1.0058 (with the delay
-    # left in, 0.9975-0.9992, 0.9975-0.9991 and 0.981-0.9996: 0.36 ms of
-    # each time). Kick is the loosest while its strike's excitation sounds
-    # (the first 10 dB, a few milliseconds).
+    # resampler's group delay of 30 output samples. Measured: Bell
+    # 0.9999, Drum 0.9999-1.0000, Kick 0.9995-1.0062 (with the delay left
+    # in, 0.9954-0.9986, 0.9954-0.9983 and 0.966-0.995: 0.68 ms of each
+    # time). Kick is the loosest while its strike's excitation sounds (the
+    # first 10 dB, a few milliseconds).
+    # This resolves the rate to about 0.1 %, as do the tuning and bend tests
+    # (5 cents is 0.29 %): a native rate wrong by 0.1 % (96,096 Hz) passes
+    # them. The exact guard on the rate is
+    # test_engines_resampler.py::test_shape_at_host_rate_is_braids_resampled,
+    # which compares every shape against upstream resampled at the right
+    # ratio and fails a 0.03 % error.
     render, _ = tools
     point = (0.5, 0.5)
     _, ref = braids_ref(tmp_path, shape, 69, point, 2 * BRAIDS_RATE)
     got, _ = shapes_fm1(render, tmp_path, shape, 69, point, 2.0, rate=HOST_RATE)
     up = edc_times(through_wrapper(ref), BRAIDS_RATE)
-    fm1 = edc_times(got[16:], HOST_RATE)
+    fm1 = edc_times(got[RESAMPLER_DELAY:], HOST_RATE)
     ratios = [u / f for u, f in zip(up, fm1)]
     assert all(low < r < high for r in ratios), ratios
 

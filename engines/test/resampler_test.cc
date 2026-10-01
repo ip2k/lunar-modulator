@@ -7,10 +7,10 @@
 //       A unit sine at each input frequency through a fresh resampler; per
 //       point the output component at the expected frequency (the input's, or
 //       its alias), fitted by least squares: gain in dB and, for inputs below
-//       the output's Nyquist, the group delay's deviation from 16 output
-//       samples. Then the largest remaining component, from a Kaiser-windowed
-//       FFT of what the fit leaves, below and above the pass edge
-//       (0.408 x out-rate: 18 kHz at 44,118 Hz).
+//       the output's Nyquist, the group delay's deviation from the header's
+//       (30 output samples). Then the largest remaining component, from a
+//       Kaiser-windowed FFT of what the fit leaves, below and above the pass
+//       edge (0.408 x out-rate: 18 kHz at 44,118 Hz).
 //   fm1-resampler-test bench --in-rate A --out-rate B [--outputs N]
 //       Nanoseconds per output sample on noise, best of seven runs.
 //   fm1-resampler-test passthrough
@@ -24,6 +24,14 @@
 //       forgotten once it leaves the filters' memory.
 //   fm1-resampler-test refuse
 //       Which rate pairs init accepts, and what a refused instance does.
+//   fm1-resampler-test window
+//       The input ring's contract: after every push, NaN goes into the slot
+//       the next push will fill (the input not yet received, which is also
+//       the second copy of the oldest), at 3,006 ratios from just above 1 to
+//       4; every output must stay finite. Then the read window: the fewest
+//       newest inputs that can be kept, every older slot poisoned too, with
+//       every output finite, over every tenth of those ratios (300, 4:1
+//       included).
 //   fm1-resampler-test tables
 //       The header's coefficient tables, for the design check.
 //   fm1-resampler-test file --in-rate A --out-rate B --in IN.wav --out OUT.wav
@@ -197,7 +205,7 @@ int Sweep(double in_rate, double out_rate, double from, double to, double step) 
            Db(pass), Db(upper));
     first = false;
   }
-  printf("],\"delay\":%d}\n", in_rate == out_rate ? 0 : FM1_RESAMPLER_HB_K);
+  printf("],\"delay\":%d}\n", in_rate == out_rate ? 0 : FM1_RESAMPLER_DELAY);
   return 0;
 }
 
@@ -325,8 +333,8 @@ int Blocks(double in_rate, double out_rate) {
 
 // The largest |intermediate| / |input| any input can give: the kernel's L1
 // norm, the worst over 65,536 input phases, each summed with the header's
-// own table interpolation. Times the half-band's L1 norm it bounds the
-// output; twice it bounds the half-band's pre-added pairs.
+// own table interpolation. Times the low-pass's L1 norm it bounds the
+// output; twice it bounds the low-pass's pre-added pairs.
 double KernelBound(const fm1_resampler_t &r) {
   const uint32_t end = (uint32_t)(FM1_RESAMPLER_KERNEL_LEN - 1) << 16;
   const float *k = fm1_resampler_kernel;
@@ -348,10 +356,10 @@ double KernelBound(const fm1_resampler_t &r) {
   return worst;
 }
 
-double HalfbandL1() {
-  double hb = 0.5;
-  for (int j = 0; j < FM1_RESAMPLER_HB_PAIRS; ++j) hb += 2.0 * fabs(fm1_resampler_halfband[j]);
-  return hb;
+double LowpassL1() {
+  double l1 = fabs(fm1_resampler_lowpass[FM1_RESAMPLER_LP_PAIRS]);
+  for (int j = 0; j < FM1_RESAMPLER_LP_PAIRS; ++j) l1 += 2.0 * fabs(fm1_resampler_lowpass[j]);
+  return l1;
 }
 
 int Extreme(double in_rate, double out_rate) {
@@ -363,7 +371,7 @@ int Extreme(double in_rate, double out_rate) {
   {
     fm1_resampler_t r;
     if (!Init(&r, in_rate, out_rate)) return 1;
-    const double kernel = KernelBound(r), bound = kernel * HalfbandL1();
+    const double kernel = KernelBound(r), bound = kernel * LowpassL1();
     const double limit = bound > 2.0 * kernel ? bound : 2.0 * kernel;
     const float big = static_cast<float>(3.4028234e38 / limit * 0.999);
     uint32_t state = 7;
@@ -385,9 +393,9 @@ int Extreme(double in_rate, double out_rate) {
       if (!std::isfinite(out[k])) ++nonfinite;
       else if (fabsf(out[k]) > peak) peak = fabsf(out[k]);
     }
-    printf("{\"kernel_bound\":%.6f,\"halfband_l1\":%.6f,\"gain_bound\":%.6f,"
+    printf("{\"kernel_bound\":%.6f,\"lowpass_l1\":%.6f,\"gain_bound\":%.6f,"
            "\"input_peak\":%g,\"finite_input_nonfinite_outputs\":%zu,\"peak_gain\":%.6f,",
-           kernel, HalfbandL1(), bound, static_cast<double>(big), nonfinite,
+           kernel, LowpassL1(), bound, static_cast<double>(big), nonfinite,
            static_cast<double>(peak) / big);
   }
   // 2. A burst of NaN, +inf and -inf inside noise, against the same noise
@@ -447,15 +455,70 @@ int Refuse() {
   return 0;
 }
 
+// After every push, NaN into the slots an output must not read: the oldest
+// FM1_RESAMPLER_IN_CAP - keep of the input ring, both copies of each. With
+// keep = CAP - 1 that is the one slot the next push fills, whose second copy
+// is where the input not yet received would be. Returns the non-finite
+// outputs among `outputs` pulled one input at a time.
+size_t PoisonedRun(double in_rate, double out_rate, uint32_t keep, size_t outputs,
+                   uint32_t seed) {
+  fm1_resampler_t r;
+  if (!Init(&r, in_rate, out_rate)) return outputs;
+  size_t bad = 0;
+  for (size_t k = 0; k < outputs; ++k) {
+    while (fm1_resampler_needed(&r)) {
+      const float x = Noise(&seed);
+      fm1_resampler_push(&r, &x, 1);
+      for (uint32_t j = 0; j + keep < FM1_RESAMPLER_IN_CAP; ++j) {
+        const uint32_t s = (r.in_w + j) % FM1_RESAMPLER_IN_CAP;
+        r.in[s] = r.in[s + FM1_RESAMPLER_IN_CAP] = NAN;
+      }
+    }
+    if (!std::isfinite(fm1_resampler_pop(&r))) ++bad;
+  }
+  return bad;
+}
+
+int Window() {
+  const double out_rate = 44118.0;
+  const size_t kOutputs = 3000;
+  // 1. The contract, at 3,000 ratios spread over (1, 4] and the engines'.
+  std::vector<double> rates;
+  for (int i = 1; i <= 3000; ++i) rates.push_back(out_rate * (1.0 + 3.0 * i / 3000.0));
+  const double named[] = { 96000.0, 47872.34, 48000.0, 88236.0, 176472.0, 44119.0 };
+  rates.insert(rates.end(), named, named + 6);
+  size_t bad = 0, failing = 0;
+  for (size_t i = 0; i < rates.size(); ++i) {
+    const size_t b = PoisonedRun(rates[i], out_rate, FM1_RESAMPLER_IN_CAP - 1, kOutputs,
+                                 static_cast<uint32_t>(i + 1));
+    bad += b;
+    failing += b != 0;
+  }
+  // 2. The read window: keep fewer and fewer of the newest inputs until an
+  //    output turns non-finite, over every tenth ratio (4 included).
+  uint32_t window = 0;
+  for (uint32_t keep = FM1_RESAMPLER_IN_CAP - 1; keep > 0; --keep) {
+    bool clean = true;
+    for (size_t i = 9; i < 3000 && clean; i += 10) {
+      clean = PoisonedRun(rates[i], out_rate, keep, 2000, static_cast<uint32_t>(i + 1)) == 0;
+    }
+    if (!clean) break;
+    window = keep;
+  }
+  printf("{\"cap\":%d,\"ratios\":%zu,\"outputs\":%zu,\"nonfinite\":%zu,\"failing_ratios\":%zu,"
+         "\"window\":%u}\n", FM1_RESAMPLER_IN_CAP, rates.size(), kOutputs, bad, failing, window);
+  return 0;
+}
+
 int Tables() {
-  printf("{\"span\":%d,\"phases\":%d,\"hb_k\":%d,\"kernel\":[", FM1_RESAMPLER_SPAN,
-         FM1_RESAMPLER_PHASES, FM1_RESAMPLER_HB_K);
+  printf("{\"span\":%d,\"phases\":%d,\"delay\":%d,\"lp_len\":%d,\"kernel\":[",
+         FM1_RESAMPLER_SPAN, FM1_RESAMPLER_PHASES, FM1_RESAMPLER_DELAY, FM1_RESAMPLER_LP_LEN);
   for (int i = 0; i < FM1_RESAMPLER_KERNEL_LEN; ++i) {
     printf(i ? ",%.9g" : "%.9g", static_cast<double>(fm1_resampler_kernel[i]));
   }
-  printf("],\"halfband\":[");
-  for (int i = 0; i < FM1_RESAMPLER_HB_PAIRS; ++i) {
-    printf(i ? ",%.9g" : "%.9g", static_cast<double>(fm1_resampler_halfband[i]));
+  printf("],\"lowpass\":[");
+  for (int i = 0; i <= FM1_RESAMPLER_LP_PAIRS; ++i) {
+    printf(i ? ",%.9g" : "%.9g", static_cast<double>(fm1_resampler_lowpass[i]));
   }
   printf("],\"state_bytes\":%zu}\n", sizeof(fm1_resampler_t));
   return 0;
@@ -603,7 +666,7 @@ int Peaks(const char *path, size_t start, size_t length, double floor_db) {
 int main(int argc, char **argv) {
   if (argc < 2) {
     fprintf(stderr, "usage: fm1-resampler-test sweep|bench|passthrough|blocks|extreme|refuse|"
-                    "tables|file|tones|peaks [options]\n");
+                    "window|tables|file|tones|peaks [options]\n");
     return 2;
   }
   const std::string mode = argv[1];
@@ -637,6 +700,7 @@ int main(int argc, char **argv) {
   if (mode == "blocks") return Blocks(in_rate, out_rate);
   if (mode == "extreme") return Extreme(in_rate, out_rate);
   if (mode == "refuse") return Refuse();
+  if (mode == "window") return Window();
   if (mode == "tables") return Tables();
   if (mode == "file" && in_path && out_path) return File(in_rate, out_rate, in_path, out_path);
   if (mode == "tones" && in_path && !freqs.empty()) return Tones(in_path, start, length, freqs);

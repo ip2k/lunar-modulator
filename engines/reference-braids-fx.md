@@ -225,7 +225,7 @@ Macro wrapper already does with Plaits' 12-sample blocks. Consequences:
 - A note, parameter or bend now takes effect at the next 24-sample boundary,
   up to 23 samples late (0.52 ms at 44,118 Hz when Braids ran at the host's
   rate; 0.24 ms now that it runs at 96 kHz, plus the resampler's delay:
-  0.43–0.68 ms from a note to its onset, resampler.md) [inferred from the
+  0.75–1.00 ms from a note to its onset, resampler.md) [inferred from the
   code; two cases verified at 96 kHz: a note-on 8 samples late in
   `test_note_on_starts_the_voice_at_a_braids_block_boundary`, and a
   retrigger 8 samples late in `test_retrigger_strikes_the_running_voice`;
@@ -233,13 +233,13 @@ Macro wrapper already does with Plaits' 12-sample blocks. Consequences:
 - Cost unchanged: 12 voices at 44,118 Hz took 3.63 µs per 64-frame block
   for CSaw (3.73 µs before), 3.72 for Vowel (3.83), 6.52 for Bell (6.52),
   Apple M1 Max, best of five [verified, with Braids at the host's rate; at
-  96 kHz and resampled it is 2.35–2.77 times that, resampler.md]. A first
+  96 kHz and resampled it is 2.5–3.0 times that, resampler.md]. A first
   version that accumulated straight into the member buffer cost 26–55 %
   more: the compiler must assume a member float array may alias `v.env`;
   the mix stays on the stack.
 - The instance grows by the 24-float buffer and its counter: 205,696 →
   205,800 bytes on the 64-bit desktop [verified: `instance_bytes`]; the
-  resampler later took it to 206,512 (resampler.md).
+  resampler later took it to 207,080 (resampler.md).
 
 ### Random shapes
 
@@ -287,12 +287,15 @@ within quantisation: 47 shapes × 2 timbre/colour points × A2 and A6, worst
 `test_shape_at_host_rate_is_braids_resampled` in
 `tests/test_engines_resampler.py`]. The struck shapes decay at upstream's
 rate: energy-decay times to 10, 20 and 30 dB, 2 s at A4, 0.5/0.5, fm1 less
-the resampler's 16-sample group delay, give Bell 0.9999–1.0000, Drum
-0.9999–1.0000 and Kick 0.9995–1.0058 of upstream's [verified:
+the resampler's 30-sample group delay, give Bell 0.9999, Drum
+0.9999–1.0000 and Kick 0.9995–1.0062 of upstream's [verified:
 `test_struck_shapes_at_host_rate_decay_as_upstream`]; over all three
-timbre/colour points at A3 and A4, 4 s, Bell and Drum 0.9997–1.0000 and
-Kick 0.974–1.008, its loosest ratios while the strike's excitation sounds
-[verified, scratch probe].
+timbre/colour points at A3 and A4, 4 s, Bell 0.9997–1.0000, Drum
+0.9998–1.0000 and Kick 0.974–1.008, its loosest ratios while the strike's
+excitation sounds [verified, scratch probe]. That test resolves the rate to
+about 0.1 %, as do the tuning and bend tests; a native rate set 0.1 % or
+0.03 % wrong passes all three, and fails the per-shape comparison above
+[verified: mutants at 96,096 and 96,029 Hz].
 
 **Before** (Braids at the host's rate with the pitch corrected by
 12 log2(96,000 / rate) semitones), measured the same way at A4, 4 s
