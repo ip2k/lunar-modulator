@@ -154,6 +154,13 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
    only if the project is distributed. Stage B, the pi32v2 benchmark and a
    `-fPIC` test, wants the AC79 dev board from item 4
    (the JL-AC79-DevKit V1.0 with an AC7916; docs/07 §3).
+8. **Sequencer (docs/12, docs/13, 2026-10-01).** An Elektron-style
+   sequencer with parameter locks is feasible (docs/12). The owner then chose
+   Movy as the target: docs/13 is the port plan, pinned to Movy `9190e79`,
+   for a no-heap C99 `fm1_seq` core with Movy's semantics, a `compat` mode
+   for tests, and seven deliberate deviations. Waiting on the owner: the
+   docs/13 §10 questions (deviations, track count, a 72 KiB budget, and
+   approval to build Movy's `seq-core` as a test oracle).
 
 ## 6. Reference material already gathered (clone these locally)
 

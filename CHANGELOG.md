@@ -9,6 +9,12 @@ history.
 ## [Unreleased]
 
 ### Added
+- docs/13: the plan to replicate Movy's sequencer (schwung-movy, MIT) on the
+  FM-1, read at Movy's `9190e79`: its exact playback rules, a mapping of
+  every core gesture to the FM-1's keys, knobs and screen, a no-heap C99 core
+  in about 72 KiB for the full 16-track × 8-clip grid, the tests to port, and
+  a staged plan. It lists seven deliberate deviations from Movy, five of them
+  fixes for apparent bugs, and questions for the owner and for Movy's author.
 - docs/12: feasibility of an Elektron-style sequencer with per-step parameter
   locks on the FM-1. It is feasible (well under 1 % of the CPU, about 19 KB
   for 16 locked 64-step patterns); Movy already does p-locks on the Ableton
@@ -79,6 +85,9 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- docs/12 defers to docs/13 where Movy and Elektron differ, and corrects its
+  claim that Movy waits 300 ms before locking; docs/06 and docs/12 correct
+  Movy's version label (`9190e79` is 299 commits past the v0.34.0 tag).
 - docs/06: Movy has gained per-step parameter locks since v0.31.0.
 - Licence policy: the project is personal and non-commercial, and GPL code
   may be used. Firmware binaries that contain GPL (or LXR) code and link
