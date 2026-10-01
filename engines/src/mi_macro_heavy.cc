@@ -28,16 +28,18 @@
 // whatever the host's rate, in Plaits' 12-sample blocks, with no pitch
 // correction, and the mix goes through fm1_resampler.h to the host's rate.
 // One resampler per output channel: the string machine's AUX is the right
-// channel, so it has a second one. Every other model is mono, and the second
-// resampler then stands still; on a change into the string machine it takes
-// a copy of the first one's state. Outside the string machine both channels'
-// mixes are the same floats (RenderBlock), so the copy is what a second
-// resampler running all along would hold, except within about 62 output
-// samples (the filter's memory) of leaving the string machine, where it
-// drops the right channel's last stereo samples for the left's; a model
-// change cuts every sounding note anyway. Hosts above 47,872.34 Hz or below
-// a quarter of it are refused. Note events land on the next 12-sample block
-// at 47,872.34 Hz.
+// channel, so it has a second one. Every other model is mono: both channels'
+// mixes are then the same floats (RenderBlock), and the second resampler runs
+// on after the string machine, ringing out its AUX, only until it holds
+// exactly the first one's state (about 80 output samples at 44,118 Hz: the
+// filter's memory); from then on the right channel is the left one's
+// output, which is what the second resampler would give, bit for bit. On a
+// change into the string machine it takes a copy of the first one's state
+// unless it is still running. So the output is what two resamplers running
+// all along would give, at the cost of a second one only in the string
+// machine and for a few blocks after it. Hosts above 47,872.34 Hz or below a
+// quarter of it are refused. Note events land on the next 12-sample block at
+// 47,872.34 Hz.
 //
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
@@ -342,6 +344,7 @@ class Instance {
     bend_ = 0.0f;
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
     model_ = MODEL_STRING_MACHINE;   // stereo: both resamplers run from here
+    right_running_ = true;
     clock_ = 0;
     memset(mix_l_, 0, sizeof(mix_l_));
     memset(mix_r_, 0, sizeof(mix_r_));
@@ -387,8 +390,12 @@ class Instance {
       int m = static_cast<int>(value + 0.5f);
       if (m != model_) {
         // Into the string machine: the right channel's resampler resumes from
-        // the left one's state (the file's header says what that keeps).
-        if (m == MODEL_STRING_MACHINE) resampler_r_ = resampler_l_;
+        // the left one's state, which is its own once it has stopped (the
+        // file's header has why).
+        if (m == MODEL_STRING_MACHINE && !right_running_) {
+          resampler_r_ = resampler_l_;
+          right_running_ = true;
+        }
         model_ = static_cast<Model>(m);
         BuildEngines();
       }
@@ -396,14 +403,21 @@ class Instance {
   }
 
   // Each output sample pulls the 47,872.34 Hz mix the resamplers need for it,
-  // rendering a new 12-sample block whenever the last one is used up. Both
-  // resamplers take the same number of samples, so they stay in step.
+  // rendering a new 12-sample block whenever the last one is used up. While
+  // the right channel's resampler runs, it takes the same samples' worth as
+  // the left one, so they stay in step.
   void Render(float *out_lr, uint32_t frames) {
-    const bool stereo = model_ == MODEL_STRING_MACHINE;
     for (uint32_t f = 0; f < frames; ++f) {
       uint32_t need = fm1_resampler_needed(&resampler_l_);
       while (need) {
         if (!pending_) {
+          // Outside the string machine the two mixes are equal, so once the
+          // two resamplers' states are, they would give the same outputs
+          // from here on: the right one can stop.
+          if (right_running_ && model_ != MODEL_STRING_MACHINE &&
+              SameState(resampler_l_, resampler_r_)) {
+            right_running_ = false;
+          }
           RenderBlock();
           pending_ = kBlockSize;
         }
@@ -411,17 +425,24 @@ class Instance {
         const uint32_t took = fm1_resampler_push(
             &resampler_l_, &mix_l_[at],
             need < pending_ ? need : static_cast<uint32_t>(pending_));
-        if (stereo) fm1_resampler_push(&resampler_r_, &mix_r_[at], took);
+        if (right_running_) fm1_resampler_push(&resampler_r_, &mix_r_[at], took);
         pending_ -= took;
         need -= took;
       }
       const float l = fm1_resampler_pop(&resampler_l_);
       out_lr[2 * f] = l;
-      out_lr[2 * f + 1] = stereo ? fm1_resampler_pop(&resampler_r_) : l;
+      out_lr[2 * f + 1] = right_running_ ? fm1_resampler_pop(&resampler_r_) : l;
     }
   }
 
  private:
+  // Two resamplers in step (the same pushes and pops since one was copied
+  // from the other) holding the same samples, bit for bit.
+  static bool SameState(const fm1_resampler_t &a, const fm1_resampler_t &b) {
+    return a.rel == b.rel && a.held == b.held && a.in_w == b.in_w && a.mid_w == b.mid_w &&
+           memcmp(a.in, b.in, sizeof(a.in)) == 0 && memcmp(a.mid, b.mid, sizeof(a.mid)) == 0;
+  }
+
   Engine *Construct(Voice &v, bool first) {
     switch (model_) {
       case MODEL_STRING_MACHINE: return new (v.engine_mem) StringMachineEngine();
@@ -614,6 +635,7 @@ class Instance {
   SpeechShared speech_;
   float value_[P_COUNT];
   Model model_;
+  bool right_running_;             // resampler_r_ is fed, and gives the right channel
   float bend_;
   uint32_t silent_after_release_;  // in 12-sample blocks at 47,872.34 Hz
   uint32_t silent_while_held_;

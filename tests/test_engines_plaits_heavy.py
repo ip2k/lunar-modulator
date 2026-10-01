@@ -261,12 +261,13 @@ def test_string_machine_is_stereo_and_others_mono(renderer, tmp_path):
 
 @pytest.mark.parametrize("frames", [64, 7])
 def test_string_machine_entered_later_renders_as_if_created_in_it(renderer, tmp_path, frames):
-    """Outside the string machine the right channel's resampler stands
-    still, and on a change into it takes the left one's state
-    (mi_macro_heavy.cc). An instance that plays nothing as Additive and is
-    switched to the string machine at 0.1 s must then render exactly what an
-    instance created as the string machine renders, both channels: without
-    the copy the right channel's resampler is out of step with the left."""
+    """Outside the string machine the right channel's resampler stops once it
+    holds the left one's state, and on a change into the string machine
+    takes a copy of it (mi_macro_heavy.cc). An instance that plays nothing as
+    Additive and is switched to the string machine at 0.1 s must then render
+    exactly what an instance created as the string machine renders, both
+    channels: without the copy the right channel's resampler is out of step
+    with the left."""
     outs = []
     for name, params, extra in (("switched", ["Model=4"], ["--param-at", "0.1:Model=0"]),
                                 ("created", ["Model=0"], [])):
@@ -280,6 +281,28 @@ def test_string_machine_entered_later_renders_as_if_created_in_it(renderer, tmp_
     left, right = stereo(tmp_path / "created.wav")
     assert rms(right, 0.25, 0.45) > 1e-3 and left != right
     assert outs[0] == outs[1]
+
+
+def test_string_machine_block_keeps_its_aux_after_a_model_change(renderer, tmp_path):
+    """A model change takes effect on the next 12-sample block, and what the
+    string machine has already rendered keeps both its channels. At
+    47,872.34 Hz in 1-frame host blocks, a change to Additive before sample
+    1,000 (blocks start at 996 and 1,008) leaves samples 1,000-1,007 in
+    stereo, AUX on the right, and the channels are equal from 1,008 on. The
+    right channel's resampler runs on after the string machine until it holds
+    the left one's state (mi_macro_heavy.cc); one that stopped at the change
+    put the left channel's samples there instead, which the wrapper before
+    the native-rate change (2bf4133) did not do. (At 44,118 Hz the same
+    resampler rings out AUX for about 65 output samples:
+    test_fm1_rate_output_is_the_native_output_resampled.)"""
+    wav = tmp_path / "change.wav"
+    run_raw(renderer, "--engine", "macro-heavy", "--rate", "47872.34", "--frames", "1",
+            "--param", "Model=0", "--note", "0:57:100:0.1",
+            "--param-at", f"{999.5 / 47872.34:.9f}:Model=4", "--seconds", "0.05",
+            "--out", str(wav))
+    left, right = stereo(wav)
+    assert left[1000:1008] != right[1000:1008]
+    assert left[1008:] == right[1008:]
 
 
 def test_sixop_stolen_held_voice_attacks_again(renderer, tmp_path):

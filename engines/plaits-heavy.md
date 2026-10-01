@@ -36,7 +36,7 @@ engines/build/fm1-render --engine macro-heavy --param Model=8 --param Harmonics=
     --note 0:57:100:1 --note 0:64:100:1 --seconds 3 --out string.wav
 engines/build/fm1-render --engine sixop --param Patch=32 \
     --note 0:57:100:1 --note 0:61:100:1 --note 0:64:100:1 --seconds 3 --out epiano.wav
-python -m pytest tests/test_engines_plaits_heavy.py      # 182 tests
+python -m pytest tests/test_engines_plaits_heavy.py      # 183 tests
 ```
 
 ## Rate: Plaits at its own rate, resampled
@@ -56,28 +56,54 @@ Braids at 96 kHz [verified: the code].
   `test_output_is_independent_of_host_block_size`].
 - **One resampler per output channel per instance, never per voice.** Macro
   and Six-Op are mono: one. Macro Heavy has two, for the string machine's L
-  and R. In its 12 mono models the right one stands still, and the right
-  channel is the left's samples. On a change into the string machine the
-  right one takes a copy of the left one's state. Outside the string machine
-  both channels' mixes are the same floats, so the copy is the state a
-  second resampler running all along would hold, except within about 62
-  output samples of leaving the string machine (the filter's memory)
-  [inferred: the code; verified for a switch from silence:
-  `test_string_machine_entered_later_renders_as_if_created_in_it`]. That
-  keeps one resampler's cost for 12 of the 13 models.
+  and R. In its 12 mono models both channels' mixes are the same floats, so
+  after a change out of the string machine the right resampler runs on, fed
+  the mono mix and ringing out the string machine's AUX, only until its
+  state is the left one's bit for bit (checked once per 12-sample block:
+  81 output samples at 44,118 Hz, 79 at 44,100 Hz and 71 at 11,968 Hz in
+  the case measured, at most a block at 47,872.34 Hz [verified: a scratch
+  build printing the count]). From there the right channel is the left's
+  samples, which is what the right resampler would give. On a change into
+  the string machine it takes a copy of the left one's state, unless it is
+  still running. So the output is
+  what two resamplers running all along would give, at one resampler's
+  cost in 12 of the 13 models [verified: the wrapper at 44,118 Hz against
+  itself at 47,872.34 Hz resampled per channel, the string machine left and
+  entered again after 8,000 and after 64 samples, within the 16-bit rounding
+  of the native render (reference-plaits.md); and from silence,
+  `test_string_machine_entered_later_renders_as_if_created_in_it`]. Until
+  a review of this change (reference-plaits.md, "Review") the right
+  resampler stopped at the change, which cut the AUX tail to the left
+  channel (1,046 LSB at 44,118 Hz) and, at 47,872.34 Hz, put the left
+  channel's samples into the rest of the string machine's last block when
+  the change came mid-block. Running on costs nothing measurable: four
+  voices at 44,118 Hz in 64-frame blocks take 15.3–15.8 µs a block in the
+  string machine, 13.2–13.7 in Additive, 14.2–14.5 in String and 12.1 in
+  Snare, and 6.1–6.3 with a change in and out of the string machine every
+  0.1 s, before and after, within the desktop's run-to-run spread of about
+  3 % [verified: `ns_per_block`, best of 7, Apple M1 Max].
 - **No pitch or time correction.** The pitch offset
-  12·log2(47,872.34 / rate) that these wrappers used to add is gone, and
-  every time constant, TIMBRE-derived rate and per-sample filter is
-  upstream's at any host rate. At 44,118 Hz this removed the envelopes'
-  8.5 % stretch, the noise clock's 1.41-semitone error, the particle and
-  swarm densities' 8.5 % shortfall, the string model's −9.5 cents at A2 and
-  the pitch table's −0.37 cents on every tonal engine
-  (reference-plaits.md, "At 44,118 Hz").
+  12·log2(47,872.34 / rate) that these wrappers used to add is gone
+  [verified: the code], and every time constant, TIMBRE-derived rate and
+  per-sample filter is upstream's at any host rate [inferred: the engines
+  run at upstream's rate in upstream's blocks; verified for every slot by
+  the comparison below]. At 44,118 Hz this removed the envelopes' 8.5 %
+  stretch (now 1.000–1.001), the noise clock's 1.41-semitone error (its
+  strict xfail now passes), the string model's −9.5 cents at A2 and the
+  pitch table's −0.37 cents on every tonal engine (now within 0.007 cents)
+  [verified: reference-plaits.md, "At 44,118 Hz"]; and the particle and
+  swarm densities' 8.5 % shortfall [verified: Particle and Swarm write
+  upstream's samples through the resampler, 0 of 158,820 differing, so
+  their grain timing is upstream's; the 8.5 % figure itself was inferred
+  from the rates].
 - **At a 47,872.34 Hz host** the resampler passes samples through bit for
   bit [verified: 25 models and patches with three notes, note-offs, a bend
   and a knob move, at 12-, 64- and 7-frame blocks, byte-identical to the
   wrappers before this change; every native-rate reference test passes
-  unchanged].
+  unchanged]. So does a Macro Heavy render that leaves and re-enters the
+  string machine mid-block, at 1-, 7-, 12- and 64-frame blocks, since the
+  right resampler runs on after the string machine [verified: against
+  2bf4133's wrapper; `test_string_machine_block_keeps_its_aux_after_a_model_change`].
 - **Refused hosts.** The resampler converts down by a ratio of 1 to 4, so a
   host above 47,872.34 Hz or below a quarter of it (11,968.085 Hz) is
   refused: `create` returns NULL, as Shapes does outside 24–96 kHz
@@ -420,7 +446,7 @@ See the open issue below.
 
 ## Tests
 
-`tests/test_engines_plaits_heavy.py` has 182 tests:
+`tests/test_engines_plaits_heavy.py` has 183 tests:
 
 | Group | Tests | What they check |
 | --- | --- | --- |
@@ -432,7 +458,7 @@ See the open issue below.
 | Chords under the limiter | 16 + 8 | At the voice cap and past it (stealing): no clipping, peak ≤ 0.98 |
 | Releases | 7 | Releases end (LPG, self-enveloped at Morph = 1, speech words, Six-Op) |
 | Voice freeing | 3 | Freeing, as render cost: released chords cost 2–6 % of held ones on the desktop, and the test allows 50 %; it fails when freeing is disabled |
-| Wrapper behaviour | 9 | Stereo string machine; the string machine entered by a model change renders as one created in it (64- and 7-frame blocks); Word Speed; a stolen held voice attacks again; a Six-Op note sounds from its first block (2 patches, at Plaits' rate); all four speech voices speak from the shared word bank; output identical at host blocks of 64, 7 and 1 frames |
+| Wrapper behaviour | 10 | Stereo string machine; the string machine entered by a model change renders as one created in it (64- and 7-frame blocks); the string machine's last block keeps its AUX after a model change mid-block (at Plaits' rate); Word Speed; a stolen held voice attacks again; a Six-Op note sounds from its first block (2 patches, at Plaits' rate); all four speech voices speak from the shared word bank; output identical at host blocks of 64, 7 and 1 frames |
 | Determinism | 3 | Particle, string and Six-Op render the same bytes twice |
 | Instance sizes | 1 | The sizes stay within the bounds above, each less than one resampler (1,288 B) above the size: the only test that sees a resampler per voice instead of per output channel |
 
@@ -668,9 +694,16 @@ the same peaks as on macOS. That was not re-run after the review fixes.
   upsampling resampler exists here; resampler.md, "Limits").
 - **Silent-voice timers** count 12- or 16-sample blocks at 47,872.34 Hz, so
   their 50 ms and 1 s are the same at any host rate. Getting the rate wrong
-  there would only move when a voice below −80 dBFS is freed, which no render
-  comparison can see [inferred: the threshold; a scratch mutant with the
-  host's rate in their place passed every test].
+  there only moves when a voice below −80 dBFS is freed, which no comparison
+  with upstream can see. Two cases of the comparison of each wrapper with
+  itself at its own rate do (reference-plaits.md, "Method"): Six-Op's
+  E.PIANO 1, which has no key sync, replayed after its voice was freed
+  starts from the operator phases the voice stopped at; and a Macro Heavy
+  snare freed before another is played has drawn a different number of
+  random numbers [verified: scratch mutants with the host's rate in either
+  wrapper's timers fail them by 9,251 and 8,203 LSB; before those cases
+  both passed every test]. Macro Heavy's 1 s timer for held keys is
+  derived from the same rate and not exercised on its own.
 
 ## Requests outside this stream's files
 

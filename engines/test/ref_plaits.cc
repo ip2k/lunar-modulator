@@ -47,6 +47,10 @@
 // 47,872.34 Hz or below a quarter of it is refused, as the wrappers refuse
 // it. --host-rate 47872.34 gives the words x G, unresampled.
 //
+// --resample NATIVE.wav --host-rate HZ resamples a wrapper's own render at
+// 47,872.34 Hz the same way, for the comparisons upstream cannot serve (see
+// ResampleMain).
+//
 // Compare mode reads a reference WAV and an fm1-render WAV (any 16-bit PCM
 // WAV; a 47,872 Hz header means 47,872.34) and prints, as JSON, the measures
 // tests/test_engines_reference_plaits.py asserts:
@@ -123,6 +127,7 @@ void RenderUsage() {
       "         [--delay-blocks N] [--seed N] [--out FILE.wav]\n"
       "         [--host-rate HZ [--host-frames N] [--host-gain G] [--at S]]\n"
       "       fm1-ref-plaits --compare REF.wav FM1.wav [options]  (see source)\n"
+      "       fm1-ref-plaits --resample NATIVE.wav --host-rate HZ --seconds S --out OUT.wav\n"
       "N is Plaits' engine index, 0..23. The WAV holds the module's DAC words,\n"
       "OUT left and AUX right, at 47,872 Hz (kCorrectedSampleRate, 47,872.34);\n"
       "with --host-rate, those words x G resampled to HZ as the wrappers do\n"
@@ -1031,9 +1036,85 @@ int CompareMain(int argc, char **argv) {
   return 0;
 }
 
+// ---------------------------------------------------------------------------
+// Resample mode: a wrapper's own native-rate render, resampled as the
+// wrapper resamples. Where upstream cannot stand in for a wrapper (Six-Op
+// renders other blocks than SixOpEngine; Plaits' Voice has no model change or
+// second note), this is the wrapper at a host rate held against itself at
+// 47,872.34 Hz, where its resampler passes the mix through.
+//
+//   fm1-ref-plaits --resample NATIVE.wav --host-rate HZ --seconds S --out OUT.wav
+//
+// NATIVE.wav: a stereo fm1-render WAV written at --rate 47872.34 (header
+// 47,872). Each channel is read back as the float fm1-render rounded
+// (word / 32,767), passed through its own fm1_resampler.h from 47,872.34 Hz
+// to HZ, and written as fm1-render writes, S x HZ frames (fm1-render's total).
+// The 16-bit rounding of NATIVE.wav, half an LSB at most per sample, is the
+// only difference the method itself leaves (SELF_LSB in
+// tests/test_engines_reference_plaits.py has its size).
+
+void ResampleUsage() {
+  fprintf(stderr,
+      "usage: fm1-ref-plaits --resample NATIVE.wav --host-rate HZ --seconds S --out OUT.wav\n"
+      "NATIVE.wav is a stereo fm1-render WAV at 47,872.34 Hz (header 47,872).\n");
+}
+
+int ResampleMain(int argc, char **argv) {
+  const char *in_path = argv[2], *out_path = NULL, *host_rate_arg = NULL;
+  double seconds = -1.0;
+  for (int i = 3; i < argc; ++i) {
+    std::string a = argv[i];
+    const char *next = i + 1 < argc ? argv[i + 1] : NULL;
+    if (!next) { ResampleUsage(); return 2; }
+    ++i;
+    if (a == "--host-rate") host_rate_arg = next;
+    else if (a == "--seconds") seconds = atof(next);
+    else if (a == "--out") out_path = next;
+    else { ResampleUsage(); return 2; }
+  }
+  if (!host_rate_arg || !out_path || !(seconds > 0.0)) { ResampleUsage(); return 2; }
+  Wav w;
+  if (!ReadWav(in_path, &w) || w.channels != 2 || w.rate != plaits::kCorrectedSampleRate) {
+    fprintf(stderr, "%s: not a stereo 16-bit WAV at 47,872 Hz\n", in_path);
+    return 1;
+  }
+  const float host_rate = static_cast<float>(atof(host_rate_arg));   // as fm1-render parses --rate
+  const uint32_t host_total = static_cast<uint32_t>(seconds * host_rate);   // fm1-render's total
+  const size_t n_in = w.ch[0].size();
+  std::vector<float> in(n_in), y(host_total);
+  std::vector<int16_t> out(2 * static_cast<size_t>(host_total));
+  for (int ch = 0; ch < 2; ++ch) {
+    fm1_resampler_t rs;
+    if (!fm1_resampler_init(&rs, plaits::kCorrectedSampleRate, host_rate)) {
+      fprintf(stderr, "the resampler refuses %s Hz from 47,872.34 Hz\n", host_rate_arg);
+      return 2;
+    }
+    // ReadWav gives word / 32,768 exactly; fm1-render wrote lrintf(x x 32,767).
+    for (size_t i = 0; i < n_in; ++i) {
+      in[i] = static_cast<float>(w.ch[ch][i] * 32768.0) / 32767.0f;
+    }
+    const uint32_t made = fm1_resampler_process(&rs, in.data(), static_cast<uint32_t>(n_in),
+                                                NULL, y.data(), host_total);
+    if (made != host_total) {
+      fprintf(stderr, "%s: %zu frames make %u of the %u host-rate frames asked for\n",
+              in_path, n_in, made, host_total);
+      return 1;
+    }
+    for (uint32_t i = 0; i < host_total; ++i) out[2 * i + ch] = ToPcm(y[i]);
+  }
+  if (!WriteWav16(out_path, out, static_cast<uint32_t>(lrintf(host_rate)))) {
+    fprintf(stderr, "cannot write %s\n", out_path);
+    return 1;
+  }
+  printf("{\"tool\":\"fm1-ref-plaits\",\"resample\":{\"in_frames\":%zu,\"rate\":%g,"
+         "\"out_frames\":%u}}\n", n_in, host_rate, host_total);
+  return 0;
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
   if (argc >= 4 && !strcmp(argv[1], "--compare")) return CompareMain(argc, argv);
+  if (argc >= 3 && !strcmp(argv[1], "--resample")) return ResampleMain(argc, argv);
   return RenderMain(argc, argv);
 }

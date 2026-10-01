@@ -63,7 +63,17 @@ Plaits at its own 47,872.34 Hz and resample the mix with
   0.007 cents on every slot, envelope stretch 1.000–1.001, level within
   0.02 dB. The tests hold pitch to 0.1 cent and the stretch to 1 ± 0.02.
 - **Host blocks** of 1, 7 and 64 frames write the same bytes, and a note
-  lands on the 12-sample block that the resampler's pulls predict.
+  lands on the 12-sample block that the resampler's pulls predict, also
+  where those pulls end exactly on a block boundary.
+- **Against the wrapper itself at 47,872.34 Hz, resampled** (`fm1-ref-plaits
+  --resample`), where upstream cannot stand in: Six-Op's own blocks,
+  overlapping notes and a key played again, model changes out of and back
+  into the string machine, and a voice freed before the next note. All six
+  cases are within 1 LSB on both channels, as the 16-bit rounding of the
+  native render allows (2 LSB) [verified: "At 44,118 Hz, against the
+  wrapper at its own rate"]. The cases came from a review of this change
+  ("Review"); one of them showed that Macro Heavy dropped the string
+  machine's AUX tail at a model change, which is fixed.
 - **What went.** Before the change the wrappers ran Plaits at the host's
   rate with the pitch raised by 1.414 semitones: envelopes ran 8.5 % long
   (stretch 1.073–1.092), the pitch table left every tonal engine 0.37 cents
@@ -119,9 +129,9 @@ change of 2026-10-01 (Plaits at its own rate, resampled) removed all three
 
 | File | What |
 | --- | --- |
-| `test/ref_plaits.cc` | `build/fm1-ref-plaits`: renders upstream `plaits::Voice`, at its own rate or resampled to a host's (`--host-rate`), and compares two WAVs (`--compare`) |
+| `test/ref_plaits.cc` | `build/fm1-ref-plaits`: renders upstream `plaits::Voice`, at its own rate or resampled to a host's (`--host-rate`); resamples a wrapper's own native-rate render the same way (`--resample`); and compares two WAVs (`--compare`) |
 | `mk/ref-plaits.mk` | Builds it. It adds `voice.cc` and Plaits' `SpeechEngine` for this binary only; fm1-render is unchanged |
-| `../tests/test_engines_reference_plaits.py` | 185 tests; about 35 s on an M1 Max with 8 worker threads, about 105 s under ASan+UBSan. Also the `--report`, `--calibrate` and `--sixop-sweep` modes that print this file's tables |
+| `../tests/test_engines_reference_plaits.py` | 201 tests; about 35 s on an M1 Max with 8 worker threads, about 105 s under ASan+UBSan. Also the `--report`, `--calibrate` and `--sixop-sweep` modes that print this file's tables |
 
 ```bash
 make -C engines
@@ -142,6 +152,17 @@ engines/build/fm1-ref-plaits --engine 19 --note 57 --harmonics 0.2 --timbre 0.5 
 engines/build/fm1-render --engine macro-heavy --param Model=8 --param Harmonics=0.2 \
     --param Timbre=0.5 --param Morph=0.8 --param Volume=1 --note 0:57:100:0.6 \
     --seconds 0.6 --out fm144.wav
+# a wrapper against itself: at 47,872.34 Hz in 1-frame blocks, resampled to
+# 44,118 Hz, against the same wrapper at 44,118 Hz. The note reaches the
+# 44,118 Hz render before host sample 704, when 768 native samples have been
+# pulled, so the native render gets it before sample 768.
+engines/build/fm1-render --engine sixop --param Volume=1 --note 0.015946:57:100:1 \
+    --seconds 0.5 --out six44.wav
+engines/build/fm1-render --engine sixop --param Volume=1 --note 0.016032:57:100:1 \
+    --rate 47872.34 --frames 1 --seconds 0.6 --out six48.wav
+engines/build/fm1-ref-plaits --resample six48.wav --host-rate 44118 --seconds 0.5 \
+    --out six48to44.wav
+engines/build/fm1-ref-plaits --compare six48to44.wav six44.wav --gain 1
 python -m pytest tests/test_engines_reference_plaits.py
 python tests/test_engines_reference_plaits.py --report        # the tables below
 python tests/test_engines_reference_plaits.py --calibrate     # the statistical factors
@@ -457,9 +478,53 @@ exact and Six-Op criteria count a null as a failure.
 - **Host blocks and note timing at the FM-1's rate.** 1, 7 and 64 frames
   per call byte-identical over 13,235 frames with a second note and a
   note-off mid-render, for an LPG model, the string machine, Noise, String
-  and Six-Op; a note at 0.0503 s starts on the 12-sample block at
+  and Six-Op. A note at 0.0503 s starts on the 12-sample block at
   47,872.34 Hz sample 2,436, as the resampler's arithmetic predicts, with
-  exact silence before the first output that reads it.
+  exact silence before the first output that reads it; a note arriving
+  before host sample 704, when the pulls have just used up a block (768
+  samples), starts on sample 768 itself (`test_note_lands_on_the_next_native_block`,
+  VA and bass drum).
+- **At the FM-1's rate, against the wrapper itself**
+  (`test_fm1_rate_output_is_the_native_output_resampled`). Upstream cannot
+  stand in for everything: Six-Op renders its own 16-sample blocks, not
+  `SixOpEngine`'s staggered chunks, so it only matches upstream closely;
+  and `Voice` plays one note and never changes model. So each wrapper at
+  44,118 Hz (64-frame blocks) is also held against itself at
+  47,872.34 Hz, in 1-frame blocks with every event on the native block the
+  44,118 Hz render acts on it in, resampled by `fm1-ref-plaits --resample`
+  (one `fm1_resampler.h` per channel). Six cases (`SELF_CASES`): Six-Op and
+  Macro with two overlapping notes and the first key played again after its
+  note-off; Six-Op's E.PIANO 1 (no
+  key sync) released, freed, and replayed; a Macro Heavy snare freed and
+  another played; the string machine left for Swarm and entered again,
+  after 8,000 samples and after 64. In every case some events arrive where
+  the resampler has pulled a multiple of 48 samples, so the last 12- or
+  16-sample block has just run out, and others mid-block.
+  - **Within 2 LSB** at every sample and 0.5 LSB RMS, both channels
+    (`SELF_LSB`). The native render is written as 16-bit words, so the
+    resampled side carries their rounding, at most half an LSB per input
+    sample. Through the resampler at this ratio (L1 gain at most 2.13 over
+    its output phases, L2 gain 0.90 [verified: impulse responses of
+    `fm1_resampler.h`, a scratch program]) that is at most 1.07 LSB, and
+    0.26 LSB RMS, before both sides round; two values 1.07 apart round at
+    most 2 apart, and 0.26 LSB RMS apart they round one apart with a
+    probability of about 0.21, 0.46 LSB RMS where the signal never rests
+    [inferred]. Measured: 1 LSB at most, 0.31–0.45 LSB RMS [verified:
+    `--report`].
+  - **At 47,872.34 Hz the first note starts on its block**: silence before
+    sample 768, sound within its first block
+    (`test_native_rate_note_starts_on_its_block`). With that, the
+    comparison pins where every event lands at 44,118 Hz, not only that the
+    two rates agree.
+  - **The freed-voice cases' premise** is checked from the native render:
+    the first note is digitally silent for longer than the wrapper waits
+    (50 ms, 149 blocks of 16 or 199 of 12) before the next one, and the
+    Six-Op patch has no key sync (`test_freed_voice_cases_free_the_voice`).
+    Silence in the WAV is below each wrapper's silence threshold there:
+    under half an LSB at Volume 1 is under 6.1 × 10⁻⁵ of a Six-Op voice's
+    full scale (its threshold is 10⁻⁴), and with Decay 1 Macro Heavy's
+    release fade stays above 0.7, so a zero word means a DAC word of at
+    most 2 (its threshold is 3) [inferred: the arithmetic].
 
 **Which slots are random**, found by seeding the reference with 0x21, 1 and
 2 and comparing OUT [verified]:
@@ -638,6 +703,27 @@ What the tables show [verified unless marked]:
   (TIMBRE 1), −7.3 and +1.9 (was +7 and 0). Both are held within 20 cents:
   these are other random realisations than fm1's, so a few cents is their
   spread [verified: the two tests' measure, printed].
+
+### At 44,118 Hz, against the wrapper at its own rate
+
+Each wrapper at 44,118 Hz in 64-frame blocks against itself at
+47,872.34 Hz in 1-frame blocks, resampled with `fm1-ref-plaits --resample`
+(Method), 0.5 s, left / right [verified: `--report`]:
+
+| Case | Largest difference, LSB | RMS, LSB | Samples differing (of 22,059) | Peak, LSB |
+| --- | --- | --- | --- | --- |
+| Six-Op, two notes and the first key again | 1 / 1 | 0.434 / 0.434 | 4,150 / 4,150 | 14,144 |
+| Macro (VA-VCF), the same notes | 1 / 1 | 0.434 / 0.434 | 4,148 / 4,148 | 6,099 |
+| Six-Op, E.PIANO 1 freed and replayed | 1 / 1 | 0.307 / 0.307 | 2,080 / 2,080 | 6,828 |
+| Macro Heavy, a snare freed and another played | 1 / 1 | 0.320 / 0.320 | 2,257 / 2,257 | 7,021 |
+| Macro Heavy, string machine left for Swarm and entered again | 1 / 1 | 0.446 / 0.444 | 4,388 / 4,352 | 6,832 |
+| Macro Heavy, string machine left for 64 samples | 1 / 1 | 0.453 / 0.449 | 4,523 / 4,450 | 2,751 / 2,847 |
+
+What differs is the native render's 16-bit rounding, carried through the
+resampler (Method, "Criteria"). Before the fix to Macro Heavy described
+under "Review", the right channel of the two string-machine cases differed
+by 1,046 LSB at the model change (RMS 25.8 LSB) [verified: the same
+comparison against 00ffd6a's wrapper].
 
 ### Before 2026-10-01: Plaits at the host's rate
 
@@ -823,7 +909,7 @@ listed:
 | Swarm rendered as Noise (statistical) | 17 of 30 |
 | Hi-Hat rendered as Snare (statistical) | 28 of 30 |
 | Silence, and white noise at the candidate's level (statistical) | every point |
-| At 44,118 Hz: fm1 at 44,100 Hz against the reference resampled to 44,118 Hz (a ratio 0.04 % off), compared sample for sample | 4,260 LSB, 26,379 of 26,460 samples differ; lengths differ |
+| At 44,118 Hz: fm1 at 44,100 Hz against the reference resampled to 44,118 Hz (a ratio 0.04 % off), rendered to the same 26,470 frames and compared sample for sample | 4,260 LSB, RMS 765 LSB, 26,389 of 26,470 samples differ |
 | At 44,118 Hz: Volume 0.99 | 65 LSB, 26,224 of 26,470 |
 | At 44,118 Hz: the reference's note-off in 7-frame host blocks against fm1's 64 (it lands 4 blocks earlier) | 96 LSB, 12,491 of 26,470 |
 | At 44,118 Hz: Noise a semitone sharp (shared seed) | 1,408 LSB, 26,388 of 26,470 |
@@ -892,9 +978,50 @@ three wrappers, one change each, built and run against this file,
 | Six-Op decimating by dropping samples | 3: resampled comparison |
 | A resampler per voice, by size (Macro, Macro Heavy, Six-Op: unused arrays of them; resampling is linear, so the renders could not tell) | 1 each: the instance-size bounds |
 
-The survivor: Macro Heavy's silent-voice timers counted at the host's
-rate rather than Plaits'. They only decide when a voice already below
-−80 dBFS is freed (plaits-heavy.md, "Limits").
+The survivors: Macro Heavy's and Six-Op's silent-voice timers counted at
+the host's rate rather than Plaits' (an independent review's mutants C and
+D; this list had named only Macro Heavy's). They only decide when a voice
+already below −80 dBFS is freed.
+
+**A review of the native-rate change (2026-10-01)** reran those mutants
+and others in a scratch harness, against the same four files then
+(459 tests), and found what the tests did not hold [verified: each
+reproduced with a scratch harness]:
+
+- A wrapper that renders its next block as soon as the last one runs out
+  (eager, not on demand) moves an event one block late where the
+  resampler's pulls end exactly on a block boundary at 44,118 Hz, and every
+  event at 47,872.34 Hz. For Six-Op that passed every test (its upstream
+  comparisons are close, with an 8-sample lag window), and for Macro the
+  44,118 Hz tests never put an event on such a boundary.
+- The 44,100 Hz negative control failed on its length alone.
+- Leaving the string machine dropped the right channel's resampled AUX at
+  once: 1,046 LSB in the samples after the change.
+- The two silent-voice timers above.
+
+What now catches them, rerun with `tests/test_engines_reference_plaits.py`,
+`test_engines_plaits_heavy.py`, `test_engines.py` and
+`test_engine_host.py` (476 tests) [verified: scratch harness, not in the
+repo]:
+
+| Change | Fails |
+| --- | --- |
+| Macro renders its next block eagerly | 10: the native exact tests (7 slots), the note on a block boundary (VA), the comparison with itself and its native-rate onset |
+| Six-Op renders its next block eagerly | 4: the comparison with itself and the native-rate onset, two cases each |
+| Macro Heavy renders its next block eagerly | 14: the native exact tests (7 slots under the LPG), the note on a block boundary (bass drum), the comparison with itself and the native-rate onset, three cases each |
+| Six-Op's silent-voice timer at the host's rate | 1: the freed-and-replayed case (9,251 LSB) |
+| Macro Heavy's silent-voice timers at the host's rate | 1: the snare case (8,203 LSB; a voice freed early draws fewer random numbers) |
+| Macro Heavy's right resampler stopped at the first block after leaving the string machine | 2: both string-machine cases of the comparison with itself |
+| Macro Heavy's right resampler not copied on entering the string machine | 3: the string machine left and entered again, and `test_string_machine_entered_later_renders_as_if_created_in_it` (64 and 7 frames) |
+
+00ffd6a's own wrapper, which stopped the right resampler at the change
+itself, fails the two string-machine cases and
+`test_string_machine_block_keeps_its_aux_after_a_model_change` (the
+string machine's last block at 47,872.34 Hz) [verified].
+
+And the 44,100 Hz control is now rendered to the reference's 26,470 frames
+and must fail on the samples (`test_host_rate_criteria_reject` asserts a
+failure other than the length).
 
 ## Intentional differences
 
@@ -1070,11 +1197,15 @@ for in the comparison.
 
 - **The engine DSP is shared object code** ("What the comparison covers").
   The render comparison cannot see a change to it; the pin test can.
-- **One note, fixed parameters.** Not covered: parameter changes during a
-  note, pitch bend, retriggers, and several voices at once (voice stealing,
-  Six-Op's shared LFO, the speech voices' shared bank under a Harmonics
-  move). A timed-parameter host feature would allow them
-  (plaits-heavy.md's requests).
+- **One note, fixed parameters, against upstream.** Not compared with
+  upstream: parameter changes during a note, pitch bend, retriggers, and
+  several voices at once (voice stealing, Six-Op's shared LFO, the speech
+  voices' shared bank under a Harmonics move); `Voice` plays one note. The
+  comparison of each wrapper at 44,118 Hz with itself at 47,872.34 Hz
+  covers overlapping notes, a key played again, model changes and freed
+  voices, but only for agreement between the two rates: whatever the
+  wrapper does at its own rate, right or wrong, it must do at the FM-1's
+  too.
 - **Idealised inputs.** The module's UI and CV reader (`ui.cc`,
   `cv_reader.cc`: pot smoothing, CV calibration, V/OCT scaling) are not
   vendored and not modelled. The reference feeds `Voice` exact values.
@@ -1120,8 +1251,10 @@ for in the comparison.
      −9.5 cents at A2") and its open question "Plaits at the FM-1 rate"
      (per-model TIMBRE offsets) describe the old behaviour; both are settled.
      Its instance-size table: Macro 31,728 / 18,864 B, Macro Heavy 71,088 /
-     70,880 B, Six-Op 12,528 / 10,796 B (64-bit / 32-bit). Its cost table:
-     Macro 1.1–2.2 % (2-op FM 5.5 %), Macro Heavy, most models, 0.6–1.1 %
+     70,880 B, Six-Op 12,528 / 10,796 B (64-bit / 32-bit) [verified:
+     `instance_bytes`; clang `-target i386-apple-macos10.13
+     -fsyntax-only`]. Its cost table: Macro 1.1–2.2 % (2-op FM 5.5 %),
+     Macro Heavy, most models, 0.6–1.1 %
      (Particle 1.9 %), Six-Op 1.0 % (plaits-heavy.md, "Voice cap").
 2. **CHANGELOG.md**, Unreleased: Macro, Macro Heavy and Six-Op FM run
    Plaits at its own 47,872.34 Hz and resample to the host's rate, so at the
