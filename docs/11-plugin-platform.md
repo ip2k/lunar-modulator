@@ -192,7 +192,7 @@ marked]:
 | **MI effects** (Rings/Elements reverb, chorus, ensemble, diffuser) | 64 KB (16-bit) for the reverb | small | shared across voices; big sound for little CPU |
 | **Plaits, heavy engines** (string, modal, particle, speech, chords) | 16 KB arena per voice | as above | a few voices at most |
 | **Rings** | about 160 KB (8 strings + 64 KB reverb) | about 23.5 KiB | one instance, as a 4-voice instrument or a resonator effect |
-| **Clouds** | about 184 KB (118,784 + 65,408 B) | about 45 KiB | one instance, or cut down as CTAG did; Spectral mode needs its own FFT |
+| **Clouds** | about 184 KB (118,784 + 65,408 B) | about 45 KiB | one instance, or cut down as CTAG did. Spectral mode uses stmlib's ShyFFT by default (`stft.h` 34–40 comments out `USE_ARM_FFT`) [verified: notes/2026-10-01-monome-oc-jhjlim-survey.md]; a reduced granular-only version fits in about 88 KB |
 | **Elements** | about 60 + 32 + 64 KB | **about 364 KiB** (samples) | no, on flash grounds |
 
 **Porting steps** [inferred; mirrors CTAG and VCV]:

@@ -9,6 +9,14 @@ history.
 ## [Unreleased]
 
 ### Added
+- A survey of monome, Ornament & Crime (via PaulStoffregen/O_C_T41 and
+  Phazerville) and jhjlim's repositories as FM-1 sources
+  (`notes/2026-10-01-monome-oc-jhjlim-survey.md`). O&C's MIT cores
+  (quantiser and scales, Tonnetz, Turing and logistic generators, TB-3PO,
+  Peaks/Frames/Streams modulation) and Clouds' pitch shifter are worth taking
+  as code; Kria lanes, the Ansible arpeggiator, Meadowphysics and Teletype's
+  interpreter model are worth reimplementing; jhjlim's repositories have
+  nothing to take.
 - docs/13: the plan to replicate Movy's sequencer (schwung-movy, MIT) on the
   FM-1, read at Movy's `9190e79`: its exact playback rules, a mapping of
   every core gesture to the FM-1's keys, knobs and screen, a no-heap C99 core
@@ -85,6 +93,9 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- docs/13 records the owner's choice of 7-bit locks with smoothing, and of
+  Capture as an optional feature. docs/11 corrects its claim that Clouds'
+  spectral mode needs its own FFT.
 - docs/12 defers to docs/13 where Movy and Elektron differ, and corrects its
   claim that Movy waits 300 ms before locking; docs/06 and docs/12 correct
   Movy's version label (`9190e79` is 299 commits past the v0.34.0 tag).
