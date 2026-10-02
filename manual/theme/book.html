@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>$manual_title $document</title>
+<meta name="author" content="The $manual_title project">
+<meta name="description" content="$descriptor. $document, $edition_short">
+<meta name="generator" content="tools/manual/build.py, commit $commit">
+<meta name="dcterms.created" content="$date">
+$font_link<link rel="stylesheet" href="assets/manual.css">
+<link rel="stylesheet" href="assets/print.css">
+<style>@page { size: $paper; }</style>
+</head>
+<body class="book">
+<section class="cover">
+$cover_banner
+  <div class="cover-text">
+    <h1 class="cover-title" style="bookmark-level: none">$manual_title</h1>
+    <p class="cover-tagline">$tagline</p>
+    <p class="cover-doc">$document$draft_flag</p>
+    <p class="cover-descriptor">$descriptor</p>
+    <div class="cover-notice"><strong>Nothing in this manual runs on an FM-1 yet.</strong> It describes the browser simulator, the desktop tools and what is planned for the device. Do not try to install anything on an FM-1; chapter 1 explains why.</div>
+  </div>
+  <p class="cover-foot">$edition</p>
+</section>
+<section class="front legal">
+$front
+</section>
+<nav class="toc">
+  <h1 style="bookmark-level: 1">Contents</h1>
+  <ol>
+$toc
+  </ol>
+</nav>
+$chapters
+</body>
+</html>

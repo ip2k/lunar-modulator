@@ -34,8 +34,10 @@ build, test and contribute.*
 
 ## Try it in your browser
 
-You need Python 3, a copy of this repository (the built module is included)
-and a current browser with WebAssembly and AudioWorklet support:
+Play it online at **<https://ip2k.github.io/lunar-modulator/>** and press
+**Power on**. To run it from a copy of this repository instead, you need
+Python 3 (the built module is included) and a current browser with
+WebAssembly and AudioWorklet support:
 
 ```bash
 cd sim/web/www && python3 -m http.server 8000
@@ -211,6 +213,9 @@ the plan and the rules this project follows until then.
 
 ## Documentation
 
+- **[The user manual](https://ip2k.github.io/lunar-modulator/manual/):**
+  every control, engine and effect, the sequencer, and the road to the
+  device, with a PDF. Its source is [`manual/`](manual/).
 - [`DEVELOPERS.md`](DEVELOPERS.md): where development stands, how the
   firmware works, the hardware, and building and testing.
 - [`docs/`](docs/): the research documents, listed in the
@@ -299,6 +304,7 @@ license as noted where it is referenced.
 | Path | What it is |
 | --- | --- |
 | [`DEVELOPERS.md`](DEVELOPERS.md) | For contributors: where development stands, how the firmware works, the hardware, building and testing, the project's rules |
+| [`manual/`](manual/), [`tools/manual/`](tools/manual/) | The user manual: chapters in Markdown, a Rosé Pine Dawn theme, and the build that generates its reference from the code and publishes it to GitHub Pages |
 | [`sim/web/`](sim/web/) | The browser simulator: the firmware's app layer, its WebAssembly build, the page and its tests |
 | [`assets/`](assets/) | The branding art (`assets/branding/`) and the README's screenshots (`assets/screenshots/`) |
 | [`CHANGELOG.md`](CHANGELOG.md), [`HANDOFF.md`](HANDOFF.md) | What changed, and the context summary for whoever picks the work up next |

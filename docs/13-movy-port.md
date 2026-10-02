@@ -192,7 +192,7 @@ global pools (D7):
 | Fire-tick index | — | 3,072 × u16, sorted per clip | 6,144 |
 | Gates, song, state | unbounded | 64 × 4 B; 64 entries; clock, RNG, record and external-clock state | 832 |
 | Undo | 64 × ≤ 512 KiB of text | a ring of binary per-clip snapshots | 12,288 |
-| Capture | 512 events | 256 × 12 B (optional) | 3,072 |
+| Capture | 512 events | 256 × 12 B (on by default, §10) | 3,072 |
 | **Total** | | | **73,320 B ≈ 71.6 KiB, 18.9 % of 387,924 B** |
 
 3,072 notes is, for example, 32 clips of 96 notes; a one-track build with
@@ -375,23 +375,29 @@ about 90 KB [inferred], sent in chunks. Flash last: a binary image of about
    asked for an FM-1 emulator, or a virtual FM-1 with its screen in a
    browser, if one exists or can be made.
 
-5. **Capture and lock width (the owner's decision, 2026-10-01):** lock values
-   are 7-bit, as in Movy, behind `fm1_seq_val_t`, and the engine-side SMOOTH
-   ramp prevents zipper noise. A per-parameter 14-bit "fine" option is added
-   only if a real parameter proves too coarse. Capture (record-after) is an
-   optional limit, off by default, until the owner picks a ring size from the
-   measured costs below. The earlier estimate of about 3 KB was low.
+5. **Capture and lock width (the owner's decisions, 2026-10-01):** lock
+   values are 7-bit, as in Movy, behind `fm1_seq_val_t`, and the engine-side
+   SMOOTH ramp prevents zipper noise. A per-parameter 14-bit "fine" option is
+   added only if a real parameter proves too coarse. Capture (record-after)
+   was first an optional limit, off by default, until the owner picked a ring
+   size from the measured costs below. **The owner's choice:** 256 packed
+   events of 12 bytes (3,072 B), on by default (`limits.capture = 256`),
+   adjustable later. The 8-track instance is 31,880 B, 86 % of the half
+   budget, and the 4-track one 18,056 B [verified: `fm1-seq --sizes`,
+   tests/test_seq_core.py]. The earlier estimate of about 3 KB was low for
+   the 20-byte events first built, and right for the packed ones.
 
-**Capture's cost** [verified: `fm1-seq --sizes`; 20 B per event as built,
-12 B planned in §5 [inferred]], against the half budget of 36,864 B:
+**Capture's cost** [verified: `fm1-seq --sizes`; 20 B per event as first
+built, 12 B packed since the owner's choice], against the half budget of
+36,864 B:
 
 | Option | Bytes | 4 tracks | 8 tracks |
 | --- | --- | --- | --- |
-| Off (the default) | 0 | 14,984 (41 %) | 28,808 (78 %) |
+| Off (`limits.capture = 0`) | 0 | 14,984 (41 %) | 28,808 (78 %) |
 | Movy's 512 events × 20 B | 10,240 | 25,224 (68 %) | 39,048 (106 %) |
 | 256 events × 20 B (about 128 notes, Movy's 8-bar window when sparse) | 5,120 | 20,104 (55 %) | 33,928 (92 %) |
 | 512 × 12 B, packed | 6,144 | 21,128 (57 %) | 34,952 (95 %) |
-| 256 × 12 B, packed | 3,072 | 18,056 (49 %) | 31,880 (86 %) |
+| **256 × 12 B, packed: the default** | 3,072 | 18,056 (49 %) | 31,880 (86 %) |
 | 128 × 12 B, packed (about 64 notes) | 1,536 | 16,520 (45 %) | 30,344 (82 %) |
 
 Besides the ring: about 1.55 KB of stack while a stopped capture searches
@@ -399,6 +405,18 @@ its tempo (211 tempos in float, run inside the `cap` command), and undo,
 still to come (§5 planned a 12 KiB ring), shares what is left. At 4 tracks
 Movy's full Capture fits; at 8 tracks only a smaller or packed ring does.
 Capture matched Movy in 2,300 oracle scripts, 237 of them stopped captures.
+Packed, it still does [verified 2026-10-01: 2,300 new capture scripts, 225
+of them stopped captures, through the oracle, from clang under ASan and
+UBSan and from GCC 12 at 64 and 32 bits; in review, those again and the
+9,500 earlier random scripts, 1,732 of them with Capture, through both the
+plain and the checking build, and a test at the edge of each field's range,
+each through the oracle too]. engines/seq.md gives each field's width and
+its reason: the frame and master tick are offsets from two bases, the
+velocity also tells a note-on from a note-off, and the cycle keeps 20 bits
+and a flag. Only above 349,525 Hz at the slowest tempos, or under an
+external clock averaging above about 426 BPM, would the ring drop its oldest
+events early, where Movy keeps them (and, with a one-step loop at compat's
+255X, keep a note Movy's stale rule drops).
 
 **Lock resolution** [verified: the core rebuilt with `fm1_seq_val_t` as
 `uint16_t` and a 14-bit maximum, no warnings]: 200 B per track (a lock grows

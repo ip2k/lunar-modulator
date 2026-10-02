@@ -469,6 +469,345 @@ def test_d5_capture_keeps_notes_inside_an_offset_window(seq_tools, tmp_path):
             assert all(16 <= st <= 31 for st in steps)
 
 
+# ---- Capture's packed events (seq_capture.c): nothing Movy reads is lost -----------------------
+
+def capture_state(tool, tmp_path, text, compat, name, extra=()):
+    """Runs a script for its end state only (the long runs log too much)."""
+    path, state = tmp_path / f"{name}.txt", tmp_path / f"{name}.json"
+    path.write_text(text)
+    cmd = [str(tool), "--cmd", str(path), "--state", str(state)] + (["--compat"] if compat else [])
+    subprocess.run(cmd + list(extra), check=True, capture_output=True, text=True)
+    return json.loads(state.read_text())
+
+
+def snaps(doc):
+    return {s["label"]: s for s in doc["snaps"]}
+
+
+def long_cycle_script(speed, f1, f3):
+    """A muted one-step loop at 300 BPM and 48 kHz (a tick is 100 frames):
+    a note at frame f1, a MIDI Start 69 blocks later (the transport restarts,
+    cycle 1, and the ring is kept; with no clock after it, the internal clock
+    resumes 24,000 frames on), a note at f3, then Capture. One command per
+    line and every timing on a block, as the Movy oracle needs."""
+    fa = f1 + 69 * 64
+    return (f"#! rate=48000 block=64 tracks=1 end={f3 + 30016}\n@0 bpm 30000\n@0 tog 0 0 60 100\n"
+            f"@0 clen 0 1\n@0 cscl 0 {speed}\n@0 mute 0 1\n@0 play\n"
+            f"#?@{f1} before\n@{f1} non 0 70 100\n@{f1 + 2048} nof 0 70\n@{fa} rt FA\n"
+            f"#?@{f3} after\n@{f3} non 0 72 100\n@{f3 + 2048} nof 0 72\n@{f3 + 4096} cap 0\n")
+
+
+@pytest.mark.parametrize("compat,speed,f1,f3,k", [
+    (True, "24 1", 104887552, 104945920, 300),    # 24X: one wrap per master tick
+    (False, "4 1", 629169600, 629222016, 41),     # the FM-1's fastest, 4X (D8)
+])
+@pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
+def test_capture_tells_a_long_cycle_from_its_low_bits(seq_tools, tmp_path, compat, speed, f1,
+                                                      f3, k, tool):
+    """A packed event keeps a cycle's low 20 bits and a flag for 2^20 or more.
+    A note played on cycle 2^20 + k, a restart that keeps the ring, then a
+    note on cycle k at the same playhead: the cycles differ, so Movy's stale
+    rule (capture_push) drops the first note and Capture keeps only the
+    second [verified for the compat case: the Movy oracle, 2026-10-01]. Low
+    bits alone would call the cycles equal and keep both."""
+    text = long_cycle_script(speed, f1, f3)
+    doc = capture_state(ENGINES / "build" / tool, tmp_path, text, compat, "c")
+    before, after = (next(s for s in doc["snaps"] if s["label"] == n) for n in ("before", "after"))
+    assert track(before, 0)["cycle"] == 2 ** 20 + k and track(after, 0)["cycle"] == k
+    assert sorted(n["pitch"] for n in notes(doc["end"], 0)) == [60, 72]
+
+
+def periodic_capture(bars, playing):
+    """One bar of four notes on a clipless track, repeated for `bars` bars at
+    300 BPM and 48 kHz (a bar is exactly 38,400 frames, 600 blocks), then
+    Capture: what the ring holds then, 8 bars of it, does not depend on how
+    long the pattern ran."""
+    bar = 38400
+    lines = ["@0 bpm 30000", "@0 watch 1"] + (["@0 play"] if playing else [])
+    for b in range(bars):
+        for i, p in enumerate((60, 64, 67, 72)):
+            f = b * bar + i * 9600
+            lines += [f"@{f} non 1 {p} {90 + i}", f"@{f + 4800} nof 1 {p}"]
+    end = bars * bar + 640
+    lines.append(f"@{end} cap 1")
+    return f"#! rate=48000 block=64 tracks=2 end={end + 64}\n" + "\n".join(lines) + "\n"
+
+
+@pytest.mark.parametrize("playing", [True, False])
+@pytest.mark.parametrize("compat", [True, False])
+@pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
+def test_capture_after_a_long_run_is_the_same_take(seq_tools, tmp_path, playing, compat, tool):
+    """1,900 bars (25 minutes, 73 million frames) move the packed frames'
+    base twice, and while playing (729,600 master ticks) store the ticks as
+    offsets from a base that moves as the ring rolls; the take must come out
+    as it does after 16 bars. The checking build also compares every
+    unpacked value."""
+    tool = ENGINES / "build" / tool
+    short = capture_state(tool, tmp_path, periodic_capture(16, playing), compat, "short")["end"]
+    long_ = capture_state(tool, tmp_path, periodic_capture(1900, playing), compat, "long")["end"]
+    got = notes(long_, 1)
+    assert len(got) == 32 and got == notes(short, 1)
+    assert clip(long_, 1)["len"] == clip(short, 1)["len"]
+    assert long_["capture"] == short["capture"]
+    assert long_["bpm_x100"] == short["bpm_x100"]
+
+
+def full_ring_capture(bars):
+    """32 notes a bar on a clipless track, playing at 300 BPM and 48 kHz: 64
+    events a bar, so the 256-event ring, not the 8-bar window, bounds what is
+    kept (the last 4 bars), and the ring is full and wrapped at every push."""
+    bar = 38400
+    lines = ["@0 bpm 30000", "@0 watch 1", "@0 play"]
+    for b in range(bars):
+        for i in range(32):
+            f = b * bar + i * 1200
+            lines += [f"@{f} non 1 {40 + i} {60 + i}", f"@{f + 600} nof 1 {40 + i}"]
+    end = bars * bar + 640
+    lines += [f"#?@{end} before", f"@{end} cap 1"]
+    return f"#! rate=48000 block=64 tracks=2 end={end + 64}\n" + "\n".join(lines) + "\n"
+
+
+@pytest.mark.parametrize("compat", [True, False])
+@pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
+def test_a_full_ring_wraps_and_rebases(seq_tools, tmp_path, compat, tool):
+    """At 256 events (compat too, with --capture 256) the newest replaces the
+    oldest. 1,000 bars (38.4 million frames, 384,000 master ticks) move both
+    packed bases while the ring is full and wrapped; the take, the last 128
+    note-ons, must come out as it does after 12 bars."""
+    tool = ENGINES / "build" / tool
+    extra = ["--capture", "256"]
+    short = capture_state(tool, tmp_path, full_ring_capture(12), compat, "short", extra)
+    long_ = capture_state(tool, tmp_path, full_ring_capture(1000), compat, "long", extra)
+    for doc in (short, long_):
+        assert snaps(doc)["before"]["capture"]["pending"] == 128
+    got = notes(long_["end"], 1)
+    assert len(got) == 128 and got == notes(short["end"], 1)
+    assert [n["pitch"] for n in got[:32]] == list(range(40, 72))
+    assert clip(long_["end"], 1)["len"] == clip(short["end"], 1)["len"] == 64
+
+
+# Each packed field at the edge of its range (seq_capture.c gives the ranges). Narrowing any
+# field by one bit fails one of these; the scripts are block-aligned for the Movy oracle, and
+# Movy's outcome for each was checked through it.
+
+def wide_tracks_capture(cap_track):
+    """Notes on tracks 1, 9 and 15 in turn while stopped (16 tracks, Movy's
+    count), then Capture of one of them."""
+    lines = [f"@0 watch {cap_track}"]
+    f = 6400
+    for i in range(4):
+        for t, base in ((1, 50), (9, 70), (15, 90)):
+            p = base + 2 * i
+            lines += [f"@{f} non {t} {p} {80 + t}", f"@{f + 2560} nof {t} {p}"]
+            f += 7360
+    f += 12800
+    lines += [f"#?@{f} before", f"@{f} cap {cap_track}"]
+    return f"#! rate=44118 block=64 tracks=16 end={f + 64}\n" + "\n".join(lines) + "\n"
+
+
+@pytest.mark.parametrize("cap_track,base", [(1, 50), (9, 70), (15, 90)])
+@pytest.mark.parametrize("compat", [True, False])
+@pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
+def test_capture_keeps_tracks_past_eight_apart(seq_tools, tmp_path, cap_track, base, compat,
+                                               tool):
+    """The packed track is 4 bits, tracks 0-15: the take holds the captured
+    track's notes and no other's [verified: the Movy oracle, 2026-10-01]."""
+    tool = ENGINES / "build" / tool
+    doc = capture_state(tool, tmp_path, wide_tracks_capture(cap_track), compat, "w")
+    assert snaps(doc)["before"]["capture"]["pending"] == 4
+    end = doc["end"]
+    assert [(n["pitch"], n["vel"]) for n in notes(end, cap_track)] == \
+        [(base + 2 * i, 80 + cap_track) for i in range(4)]
+    assert not any(notes(end, t) for t in range(16) if t != cap_track)
+
+
+def note_off_first_capture():
+    """A note held past the gap (4 s at 120 BPM): its note-off clears the ring
+    and leads the take that follows, eight notes a beat apart."""
+    beat = 22016
+    off = 64 + 5 * 44118 // 64 * 64
+    lines = ["@0 watch 0", "@64 non 0 50 100", f"@{off} nof 0 50"]
+    for i in range(8):
+        f = off + (i + 1) * beat
+        lines += [f"@{f} non 0 {60 + i} 100", f"@{f + beat // 2} nof 0 {60 + i}"]
+    f = off + 10 * beat
+    lines += [f"#?@{f} before", f"@{f} cap 0"]
+    return f"#! rate=44118 block=64 tracks=1 end={f + 64}\n" + "\n".join(lines) + "\n"
+
+
+@pytest.mark.parametrize("compat", [True, False])
+@pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
+def test_a_take_starts_at_its_first_note_on(seq_tools, tmp_path, compat, tool):
+    """A stopped take's time zero is its first note-on (Movy's
+    cap_take_first), which the packed ring recomputes rather than stores;
+    here a stray note-off comes first [verified: the Movy oracle,
+    2026-10-01]."""
+    tool = ENGINES / "build" / tool
+    doc = capture_state(tool, tmp_path, note_off_first_capture(), compat, "o")
+    assert snaps(doc)["before"]["capture"]["pending"] == 8
+    got = notes(doc["end"], 0)
+    assert [n["pitch"] for n in got] == list(range(60, 68))
+    assert [n["tick"] for n in got] == [0, 96, 192, 287, 383, 479, 575, 671]
+
+
+def frame_limit_capture(rate=349525):
+    """At 20 BPM the 8-bar window is 96 s, 33,554,400 frames at 349,525 Hz:
+    the highest rate whose window fits the packed frame's 25 bits. Note-ons
+    every 6 s from the first to one 33,554,368 frames after it (2^25 - 64),
+    all inside the window, then Capture while stopped."""
+    span = (8 * rate * 24000 // 2000) // 64 * 64
+    f0, step = 640, 6 * rate // 64 * 64
+    starts = list(range(f0, f0 + span, step)) + [f0 + span]
+    pushes = []
+    for i, f in enumerate(starts):
+        pushes.append((f, f"non 0 {40 + i} 100"))
+        if f + 64000 < f0 + span:
+            pushes.append((f + 64000, f"nof 0 {40 + i}"))
+    end = f0 + span + 64
+    lines = ["@0 bpm 2000", "@0 watch 0"] + [f"@{f} {v}" for f, v in sorted(pushes)]
+    lines += [f"#?@{end} before", f"@{end} cap 0"]
+    return f"#! rate={rate} block=64 tracks=1 end={end + 64}\n" + "\n".join(lines) + "\n"
+
+
+@pytest.mark.parametrize("compat", [True, False])
+@pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
+def test_capture_keeps_a_96_s_window_at_349525_hz(seq_tools, tmp_path, compat, tool):
+    """All 18 note-ons stay in the ring, and the take starts with the first
+    [verified: the Movy oracle, 2026-10-01]."""
+    doc = capture_state(ENGINES / "build" / tool, tmp_path, frame_limit_capture(), compat, "f")
+    assert snaps(doc)["before"]["capture"]["pending"] == 18
+    got = notes(doc["end"], 0)
+    assert [(n["tick"], n["pitch"]) for n in got] == [(1152 * i, 40 + i) for i in range(6)]
+
+
+def tick_span_capture():
+    """Playing at 300 BPM and 48 kHz (480 master ticks a second) to tick
+    67,200, past 2^16, then a note on a clipless track every 3 s for 96 s,
+    each sent at 20 BPM so that the 96-s window keeps every one: their master
+    ticks, stored as offsets from a base, span 46,080, the most the window
+    can hold."""
+    rate = 48000
+    t0, window = 140 * rate, 8 * rate * 24000 // 2000
+    pushes = []
+    for i, f in enumerate(range(t0, t0 + window, 3 * rate)):
+        pushes += [(f, f"non 1 {40 + i} 100"), (f + rate, f"nof 1 {40 + i}")]
+    pushes.append((t0 + window, "non 1 99 100"))
+    lines = ["@0 bpm 30000", "@0 watch 1", "@0 play"]
+    for f, v in sorted(pushes):
+        lines += [f"@{f} bpm 2000", f"@{f} {v}", f"@{f} bpm 30000"]
+    end = t0 + window + 64
+    lines += [f"#?@{end} before", f"@{end} cap 1"]
+    return f"#! rate={rate} block=64 tracks=2 end={end + 64}\n" + "\n".join(lines) + "\n"
+
+
+@pytest.mark.parametrize("compat", [True, False])
+@pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
+def test_capture_keeps_46080_master_ticks(seq_tools, tmp_path, compat, tool):
+    """All 33 note-ons stay in the ring; the take starts with the first and
+    lands in tick order [verified: the Movy oracle, 2026-10-01]."""
+    doc = capture_state(ENGINES / "build" / tool, tmp_path, tick_span_capture(), compat, "t")
+    before = snaps(doc)["before"]
+    assert before["capture"]["pending"] == 33 and before["master_tick"] == 67200 + 46080
+    got = notes(doc["end"], 1)
+    assert [(n["tick"], n["gate"], n["pitch"]) for n in got] == \
+        [(1440 * i, 480, 40 + i) for i in range(5)]
+
+
+def deep_playhead_capture():
+    """48 kHz at 120 BPM, a tick every 250 frames. An empty clip with its loop
+    at step 240; a Capture while playing writes a take into it, which makes
+    it 256 steps long from there, and it launches on the next bar (tick 768).
+    2,688 ticks later its playhead is at 8,448, past 2^13, and a note is
+    played and captured there."""
+    tick = 250
+    lines = ["@0 watch 0", "@0 loop 0 240 16", "@0 play"]
+    for i, at in enumerate((192, 288, 384, 480)):
+        lines += [f"@{at * tick} non 0 {60 + i} 100", f"@{(at + 60) * tick} nof 0 {60 + i}"]
+    lines.append(f"@{720 * tick} cap 0")
+    f = (768 + 2688) * tick
+    lines += [f"#?@{f} here", f"@{f} non 0 72 100", f"@{f + 40 * tick} nof 0 72",
+              f"@{f + 100 * tick} cap 0"]
+    end = f + 100 * tick + 64
+    return f"#! rate=48000 block=64 tracks=1 end={end}\n" + "\n".join(lines) + "\n"
+
+
+@pytest.mark.parametrize("compat", [True, False])
+@pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
+def test_capture_reads_a_playhead_past_8191(seq_tools, tmp_path, compat, tool):
+    """The note lands at its playhead modulo the clip's span, 8,448 mod
+    6,144 = 2,304, step 96 [verified: the Movy oracle, 2026-10-01]."""
+    doc = capture_state(ENGINES / "build" / tool, tmp_path, deep_playhead_capture(), compat, "p")
+    assert track(snaps(doc)["here"], 0)["pos"] == 8448
+    c = clip(doc["end"], 0)
+    assert (c["len"], c["loop_start"]) == (256, 240)
+    got = [(n["tick"], n["step"]) for n in notes(doc["end"], 0) if n["pitch"] == 72]
+    assert got == [(2304, 96)]
+
+
+def fast_loop(k1, k2, cap, between=()):
+    """Compat (Movy's 255X; the FM-1 allows 4X, D8): 48 kHz in 100-frame
+    blocks at 300 BPM, one master tick a block, and a muted one-step loop at
+    254X on track 0, which wraps 127/12 times a tick. A note on track 0 after
+    k1 ticks and another after k2, then Capture of track `cap`; `between`
+    pushes (block offsets from the first note, verbs, labels) go to clipless
+    track 1. Every push is sent at 20 BPM, whose window is 96 s."""
+    play, block = 100, 100
+    b1, b2 = play + k1, play + k2
+    pushes = [(b1, "non 0 70 100", "first"), (b1 + 10, "nof 0 70", None)]
+    pushes += [(b1 + d, v, label) for d, v, label in between]
+    pushes.append((b2, "non 0 72 100", "second"))
+    lines = ["@0 bpm 30000", "@0 tog 0 0 60 100", "@0 clen 0 1", "@0 cscl 0 254 1",
+             "@0 mute 0 1", "@0 watch 1", f"@{play * block} play"]
+    for b, v, label in sorted(pushes):
+        f = b * block
+        if label:
+            lines.append(f"#?@{f} {label}_before")
+        lines += [f"@{f} bpm 2000", f"@{f} {v}"]
+        if label:
+            lines.append(f"#?@{f} {label}")
+        lines.append(f"@{f} bpm 30000")
+    f = (b2 + 10) * block
+    lines += [f"@{f} nof 0 72", f"@{f} cap {cap}"]
+    return f"#! rate=48000 block={block} tracks=2 end={f + block}\n" + "\n".join(lines) + "\n"
+
+
+@pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
+def test_capture_tells_cycles_2_19_apart(seq_tools, tmp_path, tool):
+    """Cycles 2^19 + 646 and 2^20 + 646, 103.2 s apart: as far apart as two
+    cycles a note can be compared with get (window and gap, 104 s). Notes on
+    track 1 every 4 s, the last exactly 96 s after the first, keep the ring
+    from the gap rule. Movy's stale rule sees different cycles at one
+    playhead and clears the ring, track 1's notes with it [verified: the Movy
+    oracle, 2026-10-01]; 19 low bits and a flag would call them equal."""
+    between = []
+    for i, d in enumerate(range(40, 46060, 1920)):
+        between += [(d, f"non 1 {40 + i} 100", None), (d + 20, f"nof 1 {40 + i}", None)]
+    between.append((46080, "non 1 99 100", "last"))
+    tool = ENGINES / "build" / tool
+    doc = capture_state(tool, tmp_path, fast_loop(49600, 99139, 1, between), True, "y")
+    sn = snaps(doc)
+    assert track(sn["first"], 0)["cycle"] == 2 ** 19 + 646
+    assert track(sn["second"], 0)["cycle"] == 2 ** 20 + 646
+    assert sn["second_before"]["capture"]["pending"] == 25
+    assert sn["second"]["capture"]["pending"] == 0
+    assert not notes(doc["end"], 1), "Capture of track 1 found nothing"
+
+
+@pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
+def test_the_gap_rule_comes_before_the_stale_rule(seq_tools, tmp_path, tool):
+    """A note on cycle 2^20 + 1,291, 206.6 s of silence, then one exactly 2^20
+    cycles later: the gap rule ends the phrase, so the stale rule never
+    compares two cycles that far apart (the checking build trapped on that
+    comparison when the stale rule came first). Movy keeps only the second
+    note [verified: the Movy oracle, 2026-10-01]."""
+    tool = ENGINES / "build" / tool
+    doc = capture_state(tool, tmp_path, fast_loop(99200, 198278, 0), True, "g")
+    sn = snaps(doc)
+    assert track(sn["first"], 0)["cycle"] == 2 ** 20 + 1291
+    assert track(sn["second"], 0)["cycle"] == 2 ** 21 + 1291
+    assert sorted(n["pitch"] for n in notes(doc["end"], 0)) == [60, 72]
+
+
 # ---- movy1 integers: Rust's FromStr (F7) --------------------------------------------------
 
 @pytest.mark.parametrize("line,check", [
@@ -514,15 +853,20 @@ def sizes(tool):
 
 def test_memory_figures_for_four_and_eight_tracks(seq_tools):
     """The owner's budget: about half of docs/13's 72 KiB at the reduced
-    track count. These are the figures engines/seq.md reports; a change to the
-    layout must update both."""
+    track count, Capture included (the owner's decision of 2026-10-01: 256
+    packed events, on by default). These are the figures engines/seq.md and
+    docs/13 §10 report; a change to the layout must update all three."""
     z = sizes(seq_tools)
-    assert z["tracks"]["4"] == 14984
-    assert z["tracks"]["8"] == 28808
+    assert z["tracks"]["4"] == 18056
+    assert z["tracks"]["8"] == 31880
     assert z["tracks"]["8"] <= HALF_BUDGET
-    assert z["capture256"]["8"] - z["tracks"]["8"] == 256 * 20, "Capture: 20 bytes per event"
+    assert z["no_capture"]["4"] == 14984
+    assert z["no_capture"]["8"] == 28808
+    for t in range(1, 17):
+        assert z["tracks"][str(t)] - z["no_capture"][str(t)] == 256 * 12, \
+            "Capture: 256 events of 12 bytes"
     assert z["limits8"] == {"notes": 1536, "locks": 1536, "trigs": 256, "gates": 64, "song": 64,
-                            "rec_notes": 16, "pad_mutes": 16}
+                            "rec_notes": 16, "pad_mutes": 16, "capture": 256}
     assert z["event_bytes"] == 12
 
 

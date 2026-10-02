@@ -1,0 +1,7 @@
+# The manual's build (tools/manual/build.py), pinned. Python 3.11 or newer.
+#   python -m venv /some/venv && /some/venv/bin/pip install -r manual/requirements.txt
+# Markdown is all the HTML build needs. WeasyPrint makes the PDF and needs
+# Pango at run time (Ubuntu: libpango-1.0-0 libpangoft2-1.0-0; macOS:
+# Homebrew's pango, or tools/manual/build-in-docker.sh). Both BSD-3-Clause.
+markdown==3.11
+weasyprint==70.0

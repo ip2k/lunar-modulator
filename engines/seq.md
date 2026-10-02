@@ -3,9 +3,10 @@
 A C99 sequencer that replays [Movy](https://github.com/DimaDake/schwung-movy)'s
 `seq-core` (MIT, megadake) tick for tick, plus the FM-1 changes the owner
 asked for (docs/13 §10): deviations D1–D13 on by default, 4–8 routed tracks,
-about half of docs/13's 72 KiB, 7-bit locks behind one typedef, Capture as an
-optional switch. Desktop only: nothing here runs on, or is sent to, any FM-1
-or MIDI device. Pinned to Movy commit `9190e79`; what was read is listed in
+about half of docs/13's 72 KiB, 7-bit locks behind one typedef, Capture
+(record-after) on by default in a ring of 256 packed events. Desktop only:
+nothing here runs on, or is sent to, any FM-1 or MIDI device. Pinned to Movy
+commit `9190e79`; what was read is listed in
 [third_party/movy/UPSTREAM.md](third_party/movy/UPSTREAM.md).
 
 ```bash
@@ -29,7 +30,7 @@ python -m pytest tests/test_seq*.py               # the sequencer tests
 | `seq/seq_engine.c` | Clock, transport, launches, scenes, song, recording, `step_tick`, the lock latch, external clock (engine.rs, clock.rs, track.rs) |
 | `seq/seq_cmd.c` | The verb parser and dispatcher (command.rs) |
 | `seq/seq_persist.c` | `movy1` export and import (persist.rs) |
-| `seq/seq_capture.c` | Capture, the retroactive record (capture.rs and engine.rs's capture functions) |
+| `seq/seq_capture.c` | Capture, the retroactive record (capture.rs and engine.rs's capture functions), in 12-byte events |
 | `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input) and the JSON Lines event log, shared by the two tools |
 | `host/seq_tool.c` | `fm1-seq`: runs the core alone and dumps state as JSON; `fm1-seq-check` is the same tool on a core built with `-DSQ_CHECK_INDEX` |
 | `host/render.cc` | `fm1-render --cmd/--seq/--log-events/--compat/--tracks/--route` |
@@ -63,7 +64,7 @@ notes, 1,024 locks, 1,024 trig rows) still apply on top.
 | Clip header: three slices, length, loop start, scale, transpose, quantise, flags | 20 | |
 | Track: slots, playhead, cycle, scale accumulator, latch state, 8 lane bases and 23-character labels, routing; plus 16 bytes of pad mutes | 240 + 16 | |
 | Gate (sounding note) | 6 | 8 |
-| Capture event | 20 | 24 |
+| Capture event (below) | 12 | 24 |
 
 **The fire-tick index.** Movy recomputes every note's fire tick (R5, R6) on
 every clip tick, which docs/13 §5 puts at up to 147 % of the FM-1's core at
@@ -76,6 +77,43 @@ rebuilds it with an in-place heapsort. `fm1-seq-check` traps if a scan ever
 finds a cached fire tick that differs from Movy's formula or an unsorted
 index; random scripts run through it (tests/test_seq_core.py), and removing
 one invalidation makes them fail [verified, by mutation].
+
+**Capture, packed.** Capture keeps every note played in a ring (Movy's
+`CapEvent`, 24 bytes in Rust), and each field is only as wide as what Movy
+does with it needs; `seq_capture.c` gives the reasoning in full:
+
+| Field | Bits | Why that loses nothing |
+| --- | --- | --- |
+| Pitch | 7 | `non`, `nof` and `fm1_seq_note_in` take 0–127 only |
+| Velocity, which also tells the kind | 7 | a note-on's is clamped to 1–127, a note-off's is 0, so it says which the event is (Movy's `on`), as in MIDI |
+| Track | 4 | at most 16; input for a track past the instance's is refused before it is stamped |
+| Playhead (clip tick) | 14 | below the clip's loop end, at most (255 + 256) steps × 24 = 12,264: a take written into an empty clip whose loop starts late makes it 256 steps long from there |
+| Frame | 25, from a base | only differences between events of the ring (or of a frozen take) are used, and the 8-bar window keeps those within 96 s at 20 BPM: 4,235,328 frames at 44,118 Hz, below 2^25 up to 349,525 Hz. The base moves onto the oldest event when the newest would not fit; the newest event's frame is Movy's `last_frame` |
+| Master tick | 16 and a flag | below 2^16 as it is, above as an offset from a base. The ring's ticks above 2^16 all come from one transport run and lie within 96 s at 300 BPM (46,080 ticks) of each other; after a restart that keeps the ring (a MIDI Start while playing) the new ticks are small again |
+| Cycle | 20 and a flag | only compared for equality with the track's cycle now, for events at most 104 s old (window and gap; the gap rule is applied first, so older events are gone before any comparison): a 1-step loop at Movy's 255X and 300 BPM wraps 530,400 times in that, more than 2^19 and below 2^20 − 1, and the flag tells a cycle of 2^20 or more (hours of looping before a restart) from any cycle reached since |
+| Used | 1 | a commit's scratch: this note-off already ends a note |
+
+The two bases take the place of two fields the 20-byte layout had, so the
+instance did not grow. A push moves a base only when an offset would
+overflow, every few minutes of unbroken playing, and then repacks the ring
+(256 events). Outside the ranges above, at a sample rate above 349,525 Hz
+with a slow tempo, or when a clock drives more than 65,535 master ticks
+through one window (only an external clock averaging above about 426 BPM
+can), the ring drops its oldest events until the new one packs, which Movy
+would not; such a clock can also wrap a 1-step loop at compat's 255X 2^20
+times within window and gap, and the stale rule then keeps notes Movy
+drops. The checking build keeps every value unpacked beside the packed one
+and traps on any difference, after every push and on every read, and in
+that fallback.
+
+Movy applies Capture's gap rule (silence ends the phrase) after its stale
+rule (a note played over an earlier pass's note clears the ring); the core
+applies it first. Either order clears the ring when the gap is exceeded and
+changes nothing when it is not, so the outcome is Movy's, but the stale rule
+then never compares a cycle with one from before the silence, however long
+the silence was: with it second, the checking build trapped on a note-on
+after 206 s of silence over a one-step loop at 254X, whose cycle had moved
+exactly 2^20 [verified: tests/test_seq_core.py, the Movy oracle].
 
 **Events.** `fm1_seq_ev_t` is 12 bytes: the master tick, the frame offset in
 the block, kind, track, two arguments. At one frame the order is Movy's
@@ -160,10 +198,16 @@ build, the default skips them.
 - Ticks and gates are 16-bit. Only a loaded `movy1` can exceed 65,535; such
   values saturate. Locks and trig rows past step 255, which no playhead
   reaches in Movy, are refused rather than stored.
-- Pad mutes: 16 per track, songs 64 entries, held recording notes 16, and
-  Capture off (limits). The tools' `--compat` runs use larger limits so that
-  Movy's scripts fit (255 gates and song entries, 64 held notes, 128 pad
-  mutes, pools of 16,384 notes and locks) and Movy's 512-event Capture ring.
+- Pad mutes: 16 per track, songs 64 entries, held recording notes 16, and a
+  Capture ring of 256 events (limits; Movy's holds 512). The tools'
+  `--compat` runs use larger limits so that Movy's scripts fit (255 gates and
+  song entries, 64 held notes, 128 pad mutes, pools of 16,384 notes and
+  locks) and Movy's 512-event Capture ring.
+- Capture's events are packed into 12 bytes, exactly within the ranges
+  under Design; beyond them (above 349,525 Hz at a slow tempo, an external
+  clock averaging above about 426 BPM) the ring drops its oldest events
+  early, and with a 1-step loop at compat's 255X the stale rule can keep
+  notes Movy drops.
 - The external clock's tempo smoothing and Capture's tempo search run in
   float, not f64. A result can differ from Movy's only at a near-tie
   [inferred]; none has in the oracle's scripts.
@@ -182,23 +226,26 @@ build, the default skips them.
 ## Memory [verified: `fm1-seq --sizes`, tests/test_seq_core.py]
 
 Default limits per track: 192 notes, 192 locks and 32 trig rows in the
-global pools; 64 gates, 64 song entries and 16 recording notes per instance.
+global pools; 64 gates, 64 song entries, 16 recording notes and a Capture
+ring of 256 events per instance (the owner's choice of 2026-10-01, docs/13
+§10; `limits.capture` changes it, 0 leaves Capture out).
 
 | Tracks | Bytes | Of the half budget (36,864 B) | Of the stock gap (387,924 B) |
 | --- | --- | --- | --- |
-| 4 | 14,984 | 41 % | 3.9 % |
-| 8 | 28,808 | 78 % | 7.4 % |
-| 8, Capture 256 events | 33,928 | 92 % | 8.7 % |
-| 16 (docs/13 §5's pools) | 56,456 | | 14.6 % |
+| 4 | 18,056 | 49 % | 4.7 % |
+| 8 | 31,880 | 86 % | 8.2 % |
+| 8, Capture off | 28,808 | 78 % | 7.4 % |
+| 16 (docs/13 §5's pools) | 59,528 | | 15.3 % |
 
 Each track adds 3,456 bytes: 2,304 of notes, 576 of locks, 160 of trig rows,
 160 of clip headers, 240 of track state and 16 of pad mutes. The fixed part
-is 1,160 bytes. Capture costs 20 bytes per event (256 events, about 128
-notes over Movy's 8-bar window: 5,120 bytes) plus about 1.3 KB of stack while
-a stopped capture searches its tempo. Docs/13 §5 estimated 73,320 bytes for
-16 tracks with the same pools; the measured 56,456 leaves out its undo ring
-(12,288) and Capture (3,072), and packs locks and trig rows tighter (3,584
-bytes less), while 23-byte lane labels make each track larger.
+is 1,160 bytes, and Capture 3,072: 256 events of 12 bytes, about 128 notes
+over Movy's 8-bar window (at 20 bytes an event, as first built, it was
+5,120), plus about 1.3 KB of stack while a stopped capture searches its
+tempo. Docs/13 §5 estimated 73,320 bytes for 16 tracks with the same pools;
+the measured 59,528 leaves out its undo ring (12,288) and packs locks and
+trig rows tighter (3,584 bytes less), while 23-byte lane labels make each
+track larger.
 
 Not instance memory: one `fm1_seq_cmd_t` is 240 bytes and one event 12.
 
@@ -295,7 +342,14 @@ commands and Start/Stop carry the number of ticks serviced so far.
   identity, 10,000 steps without drift, the memory figures, no heap, fill
   independence, a short event buffer, 24 random scripts through the checking
   build, the verb parser's and the `movy1` loader's integer rules, Movy's
-  three set fixtures, routing.
+  three set fixtures, routing, and Capture's packing, through both builds:
+  a note on cycle 2^20 + k against one on cycle k after a restart, a
+  25-minute run whose take must equal a 16-bar run's, a full ring that
+  wraps while both bases move, and each field at the edge of its range
+  (tracks 9 and 15 of 16, a take led by a stray note-off, a 96-s window at
+  349,525 Hz, 46,080 master ticks of offsets, a playhead at 8,448, notes
+  103.2 s and 2^19 cycles apart, the gap rule before the stale rule).
+  Movy's outcome for each edge script was checked through the oracle.
 - `tests/test_seq_render.py` (13): routing through `fm1-render`, notes and
   locks at their own frame, FLOAT and ENUM lock mapping, block-size identity
   of the audio, the renderer's log equal to `fm1-seq`'s, plain renders
@@ -332,6 +386,37 @@ tools/movy-oracle on aeon, the C core on the Mac]:
   rewritten for the new code, and 16 for D1 under an external clock, D4-D13,
   compat's panic, the event buffer and the `movy1` integers); the suite fails
   on every one.
+- **Capture, packed (2026-10-01):** 2,300 new random scripts with Capture
+  (`gen_scripts.py --capture --no-undo`, seeds 901–905: 2, 4, 8 and 16
+  tracks, 44,118 and 48,000 Hz, blocks of 7, 64 and 128; 3,061 `cap`
+  commands, of which 225 stopped and 911 playing captures wrote a take) and
+  the long-cycle test's script: identical to Movy, events and sets, from
+  Apple clang under ASan and UBSan and from GCC 12 at 64 and 32 bits. 121
+  stress scripts aimed at the packing (runs of up to 27 minutes that move
+  both bases, MIDI clock restarts that keep the ring, tempo changes that
+  stretch a window over 44,000 ticks, cycles past 2^20, full rings, 44.1 to
+  384 kHz at 20 BPM): identical to the 20-byte layout in all three modes but
+  for the 384 kHz one, the documented limit. 71 of them run through the
+  oracle (the other 50 restart the transport without a clock, which its
+  whole-block and frame-by-frame cross-check refuses): 70 identical to
+  Movy. Four mutants of the packing (the cycle flag, the tick base, and
+  either base's repacking) each fail the new tests.
+- **Capture, reviewed (2026-10-01):** the 2,301 scripts above rerun through
+  the oracle, and the 9,500 of the random-script verdict (1,732 of them
+  with Capture: 290 stopped and 928 playing captures that wrote a take),
+  identical to Movy through `fm1-seq` and `fm1-seq-check`; the 2,301 also
+  from Apple clang under ASan and UBSan and from GCC 12 at 64 and 32 bits,
+  with no warnings. Six mutants passed the first tests: the frame, master
+  tick, playhead and cycle each one bit narrower, the track 3 bits, and a
+  take timed from its first event rather than its first note-on. The edge
+  tests (above) fail on each, and the suite on 15 more mutants of the
+  packing and the ring (pitch and velocity one bit narrower, no cycle flag,
+  no used bit, either base not repacked, the tick base on the newest event,
+  either base never moved, absolute ticks only, the gap rule against the
+  oldest event, the gap rule after the stale rule (in the checking build),
+  no gap rule, a full ring that does not drop, the window's boundary off by
+  one). The edge tests' scripts, through the oracle, are identical to
+  Movy.
 
 ## What M2 and later still need
 
