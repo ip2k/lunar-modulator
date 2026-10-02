@@ -9,25 +9,47 @@ history.
 ## [Unreleased]
 
 ### Added
-- Modulation primitives in `engines/mod/` (`fm1_mp.h`), for the modulation
-  runtime docs/16 is designing. They are heap-free C99, use no libm, and are
-  not yet wired into an engine or the simulator.
-  - An LFO with sine, triangle, saw up and down, square with pulse width,
-    smooth random, sample-and-hold and random walk. Its rate is a ratio
-    (Hz, or BPM/60 × cycles per beat), and it has retrigger, one-shot,
-    half-cycle and drift-free sync.
-  - Its random shapes draw once per accumulator wrap, so none is missed
-    however large the block. Schwung's S&H misses wraps here: at 30 Hz in
-    128-frame blocks its rule catches 99 of 174.
-  - A multistage envelope after Mutable Instruments' Peaks: ADSR, AD, AD
-    and ADR loops, and linear, exponential or quartic curves.
-  - A slew limiter (linear or exponential, separate rise and fall),
-    sample-and-hold and track-and-hold, a Turing-machine register, and a
-    clock divider and multiplier on integer ticks.
-  - Every random source is seeded per instance. Results are bit-identical
-    whatever the block size.
-  - A desktop test tool, `fm1-mod`, and `tests/test_engines_mod.py` (87
-    tests).
+- **Crush**, a new effect: a bitcrusher and sample-rate reducer. Bits (1 to
+  16, smooth between whole numbers), Rate (100 Hz up to every sample, on an
+  even pitch scale), Jitter (random hold lengths that repeat exactly each
+  time) and Mix on the first page; Tone (a low-pass on the crushed sound) and
+  Level on the second. Silence stays silent at any setting. Our own code,
+  after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT); documented in
+  `engines/README.md` and chapter 6 of the manual, tested in
+  `tests/test_engines_crush.py`.
+- **Fold**, a new effect: a wavefolder, written for this project. Fold sets
+  how hard the sound is driven into the folds, Symmetry makes them uneven
+  (adding even harmonics), Shape goes from a bright triangle fold to a softer
+  sine fold, and Mix blends it with the dry sound; a second page has Tone (a
+  low-pass on the folded sound) and Level. Its anti-aliasing keeps the harsh
+  digital fold-back of a plain folder 21–23 dB lower. Silence stays silent
+  at any setting, and knob changes glide instead of clicking. Parameters
+  and design in `engines/README.md`, and a section in chapter 6 of the
+  manual.
+- **Echo**, a new effect: a stereo ping-pong delay from 10 ms to 1 second, with
+  Feedback, Ping-pong (from two straight delays to echoes that alternate
+  left and right), Mix, Tone (damping of the repeats), Wow (a slow,
+  tape-like wobble of the delay) and Level (how much of the input enters
+  the echo). Beyond about 370 ms the echoes darken, like a bucket-brigade
+  delay's, so that one instance stays at 64 KB. Turning Time glides the
+  pitch of what is in the line, like a tape echo's speed. Written in this
+  repository (MIT); `engines/README.md` documents its parameters, and
+  chapter 6 of the manual has a section.
+- The virtual FM-1 offers Crush, Fold and Echo in both effect slots and
+  Macro's and Macro Heavy's third page; its module is rebuilt and six new
+  parity scenarios (`sim/web/test/scenarios.json`) check the new effects and
+  the page in the browser's module against the native renderer. A test now
+  requires every engine and effect to appear in a scenario. The README's
+  screenshots show the third page.
+- Macro and Macro Heavy have a third page with Plaits' own envelope and
+  low-pass gate controls. **Env Pitch**, **Env Timbre** and **Env Morph**
+  set how far the envelope that every note restarts moves the pitch, Timbre
+  and Morph (Plaits' three attenuverters; on Chip, Env Timbre sets the
+  arpeggio's own fade, and on Speech, Env Pitch the words' intonation).
+  **LPG** chooses Gate (the gate follows the key, as before), Ping (each
+  note strikes the gate, which closes over Decay even while the key is held)
+  or Off (no gate: full brightness, a plain fade after key-up). At their
+  defaults both engines sound exactly as before. Six-Op FM is unchanged.
 - docs/16: the design for modulation as a rack of modules inside the
   modulation matrix, so cables can chain module to module (A→B→C→D).
   - Up to 8 modules sit in a rack. Every module output is a source in the
@@ -79,6 +101,25 @@ history.
   functionality gates for new modules, static registry against loader,
   where a custom build is made, the web flasher's verification, licence
   metadata, and hosting the catalogue.
+- Modulation primitives in `engines/mod/` (`fm1_mp.h`), for the modulation
+  runtime docs/16 is designing. They are heap-free C99, use no libm, and are
+  not yet wired into an engine or the simulator.
+  - An LFO with sine, triangle, saw up and down, square with pulse width,
+    smooth random, sample-and-hold and random walk. Its rate is a ratio
+    (Hz, or BPM/60 × cycles per beat), and it has retrigger, one-shot,
+    half-cycle and drift-free sync.
+  - Its random shapes draw once per accumulator wrap, so none is missed
+    however large the block. Schwung's S&H misses wraps here: at 30 Hz in
+    128-frame blocks its rule catches 99 of 174.
+  - A multistage envelope after Mutable Instruments' Peaks: ADSR, AD, AD
+    and ADR loops, and linear, exponential or quartic curves.
+  - A slew limiter (linear or exponential, separate rise and fall),
+    sample-and-hold and track-and-hold, a Turing-machine register, and a
+    clock divider and multiplier on integer ticks.
+  - Every random source is seeded per instance. Results are bit-identical
+    whatever the block size.
+  - A desktop test tool, `fm1-mod`, and `tests/test_engines_mod.py` (87
+    tests).
 - docs/15: the plan for the sequencer in the virtual FM-1 (docs/13 stage M4
   in the browser), in stages S1–S10, each with its tests and exit numbers.
   - S1 moves `fm1-render`'s per-block sequencer hosting into a shared,
@@ -447,6 +488,8 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- Macro Heavy: a parameter set to NaN now falls back to its default, as
+  the engine API says (`fm1_param_clamp`), instead of to its minimum.
 - **The second core is not idle.** The stock firmware renders its msfa
   voices on cpu1, outside the OS, and runs the OS, the UI and the effects
   on cpu0. The routine at V13 file `0x86AD6` polls `0x01C16EC0` and calls
