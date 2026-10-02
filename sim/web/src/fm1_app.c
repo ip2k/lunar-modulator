@@ -805,7 +805,7 @@ int fm1_app_seq_reset(fm1_app_t *a, int tracks) {
 int fm1_app_seq_import(fm1_app_t *a, const char *txt, size_t len) {
   if (!a->seq) return 0;
   seq_drop(a);
-  return fm1_seq_import_movy1(a->seq, txt, len);
+  return fm1_seq_host_import(&a->seq_host, txt, len);   /* resolves the lanes' uids once */
 }
 
 int fm1_app_seq_route(fm1_app_t *a, int track, int kind, int index) {

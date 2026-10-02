@@ -56,13 +56,16 @@ const char *const kShapeNames[kNumShapes] = {
 
 enum Param { P_SHAPE, P_TIMBRE, P_COLOR, P_ATTACK, P_RELEASE, P_VOLUME, P_COUNT };
 
+// Uids (API v2) are fixed: never renumber one. Shape sets every voice's
+// oscillator at once (NOLOCK).
 const fm1_param_t kParams[P_COUNT] = {
-  { "Shape",   FM1_PARAM_ENUM,  0, kNumShapes - 1, 0, kShapeNames, 0 },
-  { "Timbre",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Color",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Attack",  FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 0 },
-  { "Release", FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 1 },
-  { "Volume",  FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1 },
+  { "Shape",   FM1_PARAM_ENUM,  0, kNumShapes - 1, 0, kShapeNames, 0,
+    1, FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Shape" },
+  { "Timbre",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Timbre" },
+  { "Color",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Color" },
+  { "Attack",  FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Atk" },
+  { "Release", FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Rel" },
+  { "Volume",  FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Vol" },
 };
 
 const int kNumVoices = 12;

@@ -5,7 +5,8 @@
 //              --note 0:69:100:1.5 --seconds 2 --out a4.wav   (one command)
 //
 // --list prints every engine and its parameters as JSON, with the names of
-// an enum parameter's values.
+// an enum parameter's values and each parameter's API v2 fields: uid, flags
+// (by name), unit and abbr.
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
@@ -29,11 +30,13 @@
 // track 0 plays the engine when there is one, or --route T:engine / --route
 // T:midi:CH. Notes and locks reach the engine at their own frame: the block is
 // rendered in pieces split at event frames. A lock sets the engine parameter
-// its lane's label names (`target:Name`, matched by name), scaled from
-// 0..127. All of that per-block hosting, and the routing default above, is
-// the shared bridge (include/fm1_seq_host.h).
-// The summary adds seq_dropped (events past the buffer), seq_max_block_events
-// and seq_splits (render calls that start inside a block). MIT licence.
+// its lane's label names (`target:Name`, matched by name and resolved to the
+// parameter's uid when the lane is labelled), scaled from 0..127; a lock on a
+// NOLOCK parameter is refused. All of that per-block hosting, and the routing
+// default above, is the shared bridge (include/fm1_seq_host.h). The summary
+// adds seq_dropped (events past the buffer), seq_max_block_events, seq_splits
+// (render calls that start inside a block) and seq_locks_refused (locks on
+// NOLOCK parameters). MIT licence.
 
 #include "fm1_engine.h"
 #include "fm1_mix_limiter.h"
@@ -190,6 +193,36 @@ void PrintJsonString(const char *s) {
   putchar('"');
 }
 
+const char *UnitName(uint8_t u) {
+  switch (u) {
+    case FM1_UNIT_NONE: return "none";
+    case FM1_UNIT_SEMI: return "semi";
+    case FM1_UNIT_MS: return "ms";
+    case FM1_UNIT_HZ: return "hz";
+    case FM1_UNIT_PCT: return "pct";
+    case FM1_UNIT_DEG: return "deg";
+    default: return "?";
+  }
+}
+
+void PrintFlags(uint8_t f) {
+  static const struct { uint8_t bit; const char *name; } kFlags[] = {
+    { FM1_PARAM_LATCH, "latch" }, { FM1_PARAM_SMOOTH, "smooth" }, { FM1_PARAM_NOLOCK, "nolock" },
+    { FM1_PARAM_MOD, "mod" }, { FM1_PARAM_INPUT, "input" },
+  };
+  uint8_t known = 0;
+  bool first = true;
+  putchar('[');
+  for (size_t k = 0; k < sizeof(kFlags) / sizeof(kFlags[0]); ++k) {
+    known |= kFlags[k].bit;
+    if (!(f & kFlags[k].bit)) continue;
+    printf(first ? "\"%s\"" : ",\"%s\"", kFlags[k].name);
+    first = false;
+  }
+  if (f & ~known) printf(first ? "\"0x%02x\"" : ",\"0x%02x\"", f & ~known);   // a test catches it
+  putchar(']');
+}
+
 void List() {
   printf("[");
   for (size_t i = 0; i < fm1_engine_count; ++i) {
@@ -207,6 +240,10 @@ void List() {
       printf("\"name\":"); PrintJsonString(q.name);
       printf(",\"type\":%d,\"min\":%g,\"max\":%g,\"def\":%g,\"page\":%u",
              q.type, q.min, q.max, q.def, q.page);
+      printf(",\"uid\":%u,\"flags\":", q.uid);
+      PrintFlags(q.flags);
+      printf(",\"unit\":\"%s\",\"abbr\":", UnitName(q.unit));
+      PrintJsonString(q.abbr ? q.abbr : "");
       if (q.type == FM1_PARAM_ENUM && q.enum_names) {   // what a UI shows for each value
         printf(",\"names\":[");
         const int n = static_cast<int>(q.max - q.min) + 1;
@@ -405,10 +442,13 @@ int main(int argc, char **argv) {
     sq.mem.resize(fm1_seq_size(&lim) + 8u);
     sq.seq = fm1_seq_create(sq.mem.data(), &lim, static_cast<uint32_t>(lrintf(rate)));
     if (!sq.seq) { fprintf(stderr, "sequencer refused these limits\n"); return 1; }
+    sq.ev.resize(events_cap > 0 ? static_cast<size_t>(events_cap) : 65536u);
+    fm1_seq_host_init(&sq.host, sq.seq, sq.ev.data(), static_cast<uint32_t>(sq.ev.size()));
+    fm1_seq_host_bind(&sq.host, sound.e);   // lane labels resolve against the sound engine
     if (seq_path) {
       size_t len = 0;
       char *txt = fm1_read_file(seq_path, &len);
-      if (!txt || !fm1_seq_import_movy1(sq.seq, txt, len)) {
+      if (!txt || !fm1_seq_host_import(&sq.host, txt, len)) {
         fprintf(stderr, "%s: not a movy1 set\n", seq_path);
         free(txt);
         return 1;
@@ -431,8 +471,6 @@ int main(int argc, char **argv) {
     // without `rt` lines routes every track to MIDI channel t+1.
     if (routes.empty()) fm1_seq_default_route(sq.seq, sound.e != NULL);
     if (log_path && !(sq.log = fopen(log_path, "w"))) { fprintf(stderr, "cannot write %s\n", log_path); return 1; }
-    sq.ev.resize(events_cap > 0 ? static_cast<size_t>(events_cap) : 65536u);
-    fm1_seq_host_init(&sq.host, sq.seq, sq.ev.data(), static_cast<uint32_t>(sq.ev.size()));
   }
   const fm1_seq_sink_t sink = { &sound, sound.e, SinkRender, SinkNoteOn, SinkNoteOff, SinkSetParam };
 
@@ -565,11 +603,13 @@ int main(int argc, char **argv) {
     fm1_seq_stats_t st;
     fm1_seq_get_stats(sq.seq, &st);
     printf(",\"seq_bytes\":%zu,\"seq_events\":%llu,\"seq_notes_to_engine\":%llu,"
-           "\"seq_locks_to_engine\":%llu,\"seq_refused\":%lu,\"seq_dropped\":%lu,"
+           "\"seq_locks_to_engine\":%llu,\"seq_locks_refused\":%llu,\"seq_refused\":%lu,"
+           "\"seq_dropped\":%lu,"
            "\"seq_max_block_events\":%lu,\"seq_splits\":%llu,\"seq_ns_per_block\":%.1f",
            sq.mem.size() - 8u, static_cast<unsigned long long>(sq.events),
            static_cast<unsigned long long>(sq.host.notes_to_engine),
            static_cast<unsigned long long>(sq.host.locks_to_engine),
+           static_cast<unsigned long long>(sq.host.locks_refused),
            static_cast<unsigned long>(st.refused), static_cast<unsigned long>(st.dropped_events),
            static_cast<unsigned long>(sq.host.max_n),
            static_cast<unsigned long long>(sq.host.splits), blocks ? seq_ns / blocks : 0.0);

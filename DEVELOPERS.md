@@ -476,7 +476,8 @@ which lands with the plan PR; its stages S0–S7 are named below.
 - **Depends on:**
   - the core and Capture (built and tested [verified: CI]);
   - API v2 parameter uids and the LATCH, SMOOTH and NOLOCK flags (docs/13
-    M2);
+    M2): built in docs/15 stage S7a, with locks on NOLOCK parameters
+    refused; SMOOTH's ramp inside the engines is stage S7b;
   - the gesture state machine and screen views (M4);
   - the UI-to-audio command ring and undo.
 - **Where it is planned:** [docs/13](docs/13-movy-port.md) §4, §6 and §9 (M2
@@ -501,7 +502,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Arpeggiator** · *Core built, not wired yet*
 - **Depends on:**
   - the MIDI-effect slot (`FM1_KIND_MIDI_FX`, reserved [verified:
-    `fm1_engine.h` line 46]) with its API v2 contract: transport and tempo
+    `fm1_engine.h` line 53]) with its API v2 contract: transport and tempo
     in `fm1_host_t`, frame-stamped events, at least 32 outputs per call;
   - the shared helpers and the tick clock (see MIDI effects);
   - its own seeded xorshift generator, never the global `stmlib::Random`
@@ -537,11 +538,13 @@ which lands with the plan PR; its stages S0–S7 are named below.
 
 **LFOs, envelopes, modulation matrix** · *Planned, design chosen*
 - **Depends on:**
-  - API v2 uids, SMOOTH and NOLOCK, plus a new MOD flag (docs/13 M2);
+  - API v2 uids, SMOOTH and NOLOCK, plus a new MOD flag (docs/13 M2):
+    built in docs/15 stage S7a, with INPUT, units and abbreviations for
+    docs/16 [verified: engines/README.md, "Parameters"];
   - tempo and a beat position in `fm1_host_t`;
   - a fixed control grid of 16 or 32 frames, so output stays identical at
     any host block size (the owner's choice).
-  - `fm1_engine.h` has no modulation kind [verified: lines 41–47], and the
+  - `fm1_engine.h` has no modulation kind [verified: lines 48–54], and the
     matrix needs none: it runs in the host.
 - **Where it is planned:** options note §3–§4, option C in two stages.
   - **C1** (stage S1), `fm1_mod`: 2 global LFOs (Elektron-style pages; free,
@@ -719,12 +722,13 @@ modulation source, a MIDI effect, an audio effect, or another kind.
     32-bit and ASan + UBSan builds in CI.
 - **Depends on:**
   - API v2 (docs/13 M2): parameter uids, the LATCH, SMOOTH and NOLOCK
-    flags, and `FM1_KIND_MIDI_FX` with its `process()`. Today
-    `FM1_ENGINE_API_VERSION` is 1 and the MIDI-effect kind is reserved
-    [verified: `fm1_engine.h` lines 38 and 46]. An SDK needs that contract
-    settled and versioned first [inferred];
+    flags, and `FM1_KIND_MIDI_FX` with its `process()`. Since docs/15 stage
+    S7a, `FM1_ENGINE_API_VERSION` is 2 and every parameter has its uid and
+    flags; the MIDI-effect kind is still reserved [verified: `fm1_engine.h`
+    lines 45 and 53]. An SDK needs that contract settled and versioned
+    first [inferred];
   - the modulation and effects lines' additions to `fm1_host_t` (tempo, a
-    beat position) and the MOD flag;
+    beat position); the MOD flag is in since S7a;
   - stage B numbers (I8), so a module can state its cost in cycles per
     block on pi32v2;
   - an answer to the toolchain problem: JieLi's compiler is closed and
@@ -801,7 +805,7 @@ modulation source, a MIDI effect, an audio effect, or another kind.
   both a stable API and a way to put modules on a unit.
   - Modulation sources need a place to plug in first [inferred].
     `fm1_kind_t` has a sound kind, an audio-effect kind and a reserved
-    MIDI-effect kind [verified: `fm1_engine.h` lines 41–47], and the
+    MIDI-effect kind [verified: `fm1_engine.h` lines 48–54], and the
     planned modulation matrix runs in the host (options note §3–§4).
 - **Where it is planned:** nowhere yet; docs/11 §5 (the loader) is the
   closest.

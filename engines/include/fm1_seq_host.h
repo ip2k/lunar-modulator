@@ -16,6 +16,19 @@
  *      empties the buffer;
  *   7. effects, limiter and output, which are the host's own.
  *
+ * Lock targets (engine API v2). A lane's label (`synth:Timbre`) resolves to
+ * the uid of the parameter it names when the lane is labelled (an `alabel`
+ * through fm1_seq_host_line or fm1_seq_host_cmd), when a set is imported
+ * (fm1_seq_host_import), and when the sound engine changes (dispatch sees a
+ * new sink->engine, or fm1_seq_host_bind). Locks then go to that uid. A lock
+ * on a NOLOCK parameter is refused and counted (locks_refused), and like a
+ * lock on a lane that names nothing, it neither reaches the engine nor
+ * splits the block. Labels stay text, so `movy1` sets keep `synth:<Name>`.
+ * A stored uid is used only while its parameter has the name the label
+ * gives, so a host that labels lanes or imports on the core directly, past
+ * the bridge, still locks the right parameter: such a lane resolves afresh
+ * at each lock until fm1_seq_host_bind stores it again.
+ *
  * Event room. Commands, live input and advance share one buffer per block,
  * and advance needs fm1_seq_min_events(lim) of it to keep every note-off,
  * Start and Stop (fm1_seq.h). So a host applies a command only while
@@ -59,11 +72,31 @@ typedef struct fm1_seq_host {
   uint32_t max_n;               /* the most any block has held (after advance) */
   uint64_t notes_to_engine;     /* note-ons the sink received */
   uint64_t locks_to_engine;     /* locks the sink received as set_param */
+  uint64_t locks_refused;       /* locks on a NOLOCK parameter, never sent */
   uint64_t splits;              /* render calls that start inside a block */
+  const fm1_engine_t *engine;   /* what lane_uid is resolved against; NULL
+                                   until the first bind or dispatch */
+  uint16_t lane_uid[FM1_SEQ_MAX_TRACKS][FM1_SEQ_LANES];  /* each lane's target
+                                   uid, 0 when its label names nothing */
 } fm1_seq_host_t;
 
-/* Binds a host to an instance and a buffer; every counter starts at 0. */
+/* Binds a host to an instance and a buffer; every counter starts at 0, and
+ * no engine is bound yet. */
 void fm1_seq_host_init(fm1_seq_host_t *h, fm1_seq_t *seq, fm1_seq_ev_t *ev, uint32_t cap);
+
+/* Makes e the engine lane labels resolve against and resolves every lane.
+ * Dispatch calls it when its sink's engine differs from the bound one. */
+void fm1_seq_host_bind(fm1_seq_host_t *h, const fm1_engine_t *e);
+
+/* fm1_seq_import_movy1 through the bridge: replaces the set, then resolves
+ * every lane against the bound engine. Returns the import's result. */
+int fm1_seq_host_import(fm1_seq_host_t *h, const char *txt, size_t len);
+
+/* The uid a lane's locks go to: 0 when the lane is unlabelled or its label
+ * names no parameter of the bound engine. Always the label's own parameter,
+ * even for a label set past the bridge (above). A NOLOCK parameter's uid is
+ * returned, so a UI can say why its locks are refused. */
+uint16_t fm1_seq_host_lane_uid(const fm1_seq_host_t *h, uint8_t track, uint8_t lane);
 
 /* "rt XX" (XX one of F8 FA FB FC, either case; spaces or tabs around it) in
  * ops[0..len): the MIDI realtime status byte, else 0. */
@@ -75,7 +108,8 @@ uint32_t fm1_seq_apply_line(fm1_seq_t *s, const char *ops, size_t len, fm1_seq_e
                             uint32_t cap);
 
 /* Inputs before advance. Each appends its events at ev[n..] (frame 0 of the
- * coming block) and returns how many. */
+ * coming block) and returns how many. A line or command that labels a lane
+ * (`alabel`) resolves the label to a uid as it is applied. */
 uint32_t fm1_seq_host_line(fm1_seq_host_t *h, const char *ops, size_t len);
 uint32_t fm1_seq_host_cmd(fm1_seq_host_t *h, const fm1_seq_cmd_t *c);
 uint32_t fm1_seq_host_realtime(fm1_seq_host_t *h, uint8_t status);
@@ -98,8 +132,11 @@ uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames);
 /* Plays the block's events into `sink` and empties the buffer. Only
  * note-ons, note-offs and locks of tracks routed to the engine reach it;
  * clicks, clock, Start, Stop and MIDI-routed tracks are the host's to send
- * elsewhere (or log). A lock whose lane label names no parameter of
- * sink->engine is skipped, and does not split the block. The engine renders
+ * elsewhere (or log). A lock goes to the parameter whose uid its lane
+ * resolved to (binding sink->engine first if it is not the bound one); a
+ * lock on a lane that names no parameter of sink->engine is skipped, one on
+ * a NOLOCK parameter is refused and counted, and neither splits the block.
+ * The engine renders
  * `block` (frames stereo frames) in pieces split at each event's frame
  * (clamped to the block), and receives the events in emission order: at one
  * frame, note-offs, locks, note-ons. A NULL sink only empties the buffer. */
@@ -109,6 +146,9 @@ void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
 /* The parameter a lane label names: the part after the last ':' ("synth:
  * Timbre" names Timbre), compared without ASCII case. -1 if none. */
 int fm1_seq_lane_param(const fm1_engine_t *e, const char *label);
+
+/* The uid of that parameter (fm1_engine.h, API v2), or 0 if none. */
+uint16_t fm1_seq_lane_uid(const fm1_engine_t *e, const char *label);
 
 /* A 7-bit lock value on p's range: linear for FLOAT (v / FM1_SEQ_VAL_MAX of
  * the way from min to max), Movy's planned bins floor(v * n / 128) for an

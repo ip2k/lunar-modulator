@@ -31,7 +31,7 @@ python -m pytest tests/test_seq*.py               # the sequencer tests
 | `seq/seq_cmd.c` | The verb parser and dispatcher (command.rs) |
 | `seq/seq_persist.c` | `movy1` export and import (persist.rs) |
 | `seq/seq_capture.c` | Capture, the retroactive record (capture.rs and engine.rs's capture functions), in 12-byte events |
-| `include/fm1_seq_host.h`, `seq/seq_host.c` | The host bridge: the per-block code every host shares (commands into the event buffer, advance, split renders into a sound engine, lane labels to parameters); C99, no heap, no stdio, like the core (below, Host contract) |
+| `include/fm1_seq_host.h`, `seq/seq_host.c` | The host bridge: the per-block code every host shares (commands into the event buffer, advance, split renders into a sound engine, lane labels resolved to parameter uids, NOLOCK refusals); C99, no heap, no stdio, like the core (below, Host contract) |
 | `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input) and the JSON Lines event log, shared by the two tools |
 | `host/seq_tool.c` | `fm1-seq`: runs the core alone and dumps state as JSON; `fm1-seq-check` is the same tool on a core built with `-DSQ_CHECK_INDEX` |
 | `test/seq_host_test.c` | `fm1-seq-host-test`: the host bridge's own checks, where `fm1-render` does not reach it (typed commands, realtime input and live notes against text lines; every sink call at its event's frame) |
@@ -307,10 +307,12 @@ engine to `note_on`/`note_off` at the event's own frame, by rendering the
 block in pieces split at each event; with no `--route` and no routes in the
 set, track 0 plays the engine. A lock on such
 a track sets the engine parameter its lane's label names: the part of
-`synth:Timbre` after the last `:`, matched by name without case. FLOAT
+`synth:Timbre` after the last `:`, matched by name without case and resolved
+to the parameter's uid (engine API v2) when the lane is labelled. FLOAT
 parameters scale 0..127 onto min..max; ENUM parameters use Movy's planned bins
-⌊v·n/128⌋. A label that names no parameter is ignored. MIDI-routed tracks are
-only logged. Output is byte-identical at host blocks of 1, 7 and 64 frames for
+⌊v·n/128⌋. A label that names no parameter is ignored, and a lock on a
+NOLOCK parameter (Macro's Model) is refused and counted. MIDI-routed tracks
+are only logged. Output is byte-identical at host blocks of 1, 7 and 64 frames for
 Test Sine, Macro and Six-Op [verified: tests/test_seq_render.py].
 
 ## Host contract (`include/fm1_seq_host.h`)
@@ -354,8 +356,9 @@ it with the core's objects [verified: tests/test_seq_core.py].
 6. `fm1_seq_host_dispatch(h, n, block, &sink)` renders the sound engine in
    pieces split at the frame of each note-on, note-off and lock of a track
    routed to the engine, in emission order (at one frame: offs, locks, ons),
-   and empties the buffer. A lock whose lane label names no parameter of the
-   engine is skipped before any split. Clicks, clock, Start, Stop and
+   and empties the buffer. A lock whose lane names no parameter of the
+   engine is skipped before any split, and so is a lock on a NOLOCK
+   parameter, which is counted (below). Clicks, clock, Start, Stop and
    MIDI-routed tracks are the host's to send elsewhere; `fm1-render` only
    logs them. A NULL sink only empties the buffer (`fm1-render` with no
    engine).
@@ -365,6 +368,47 @@ A lane's label names a parameter by the part after its last `:`, compared
 without ASCII case (`fm1_seq_lane_param`), and a 7-bit value maps onto it
 by `fm1_seq_lock_value`: min + range·v/127 for FLOAT, the bins ⌊v·n/128⌋ for
 an ENUM of n values. Both are the expressions `fm1-render` had.
+
+**Where locks resolve (engine API v2, docs/15 stage S7a).** A lock targets
+the parameter's uid (engines/README.md, "Parameters"), not its index, so a
+reordered parameter table cannot move it. Labels stay text in the core and
+in `movy1` sets (`synth:<Name>`, the owner's choice, O13); the bridge turns
+each into a uid (`fm1_seq_lane_uid`) and keeps one per lane, 16 tracks × 8
+lanes × 2 bytes in `fm1_seq_host_t`:
+
+- **When a lane is labelled:** a line holding `alabel` through
+  `fm1_seq_host_line`, or a typed `alabel` through `fm1_seq_host_cmd`,
+  resolves as it is applied.
+- **When a set is imported:** `fm1_seq_host_import` (what hosts import
+  through; `fm1-render --seq` does).
+- **When the engine changes:** dispatch binds `sink->engine` if it is not
+  the bound one, and `fm1_seq_host_bind` does it explicitly (`fm1-render`
+  binds its sound engine before importing).
+- **A released lane** (`aclr`, a deleted clip, D13) loses its label in the
+  core; `fm1_seq_host_lane_uid` reads the label's first byte and gives 0.
+  Only `alabel` and an import give a lane a label, and through the bridge
+  both resolve it, so the stored uid equals a fresh resolution of the label
+  against the bound engine. engines/test/seq_host_test.c checks that after
+  every block of a script that labels, relabels and releases lanes
+  mid-play, through text and typed commands alike.
+- **A label set past the bridge** (an import or `alabel` on the core
+  directly, as a host may do): `fm1_seq_host_lane_uid` uses the stored uid
+  only while its parameter still has the name the label gives, and
+  resolves the label afresh otherwise, so such a lane's locks still reach
+  the parameter it names (one name lookup per lock, as before API v2),
+  until `fm1_seq_host_bind` stores it again. Names are unique without case
+  in every engine [verified: tests/test_engine_params.py], so the check
+  and a fresh resolution agree.
+
+At dispatch a lock goes to `fm1_param_index(engine, uid)`. A lock on a
+NOLOCK parameter is refused there: it is counted in `locks_refused`
+(`fm1-render`'s `seq_locks_refused`), never reaches the engine and splits
+nothing, so the audio is that of the same script without the lane
+[verified: tests/test_seq_render.py, Macro's and Macro Heavy's Model,
+Shapes' Shape and Sophie's Pad]. A lane on a NOLOCK parameter still resolves
+to its uid, so a lock UI can say why its locks are refused. Resolution
+changes no output: of 1,458 renders before and after the change, only the
+38 that lock a NOLOCK parameter differ (engines/README.md, "Parameters").
 
 **Event room.** Commands, live input and advance share one buffer per
 block. One command can cause up to `fm1_seq_cmd_max_events(&limits)` = gates
@@ -409,9 +453,10 @@ resets every route to MIDI channel t+1, and an export writes only routes
 other than that, so a host applies its default again after an import.
 
 **`fm1-render`'s summary** carries the bridge's counters:
-`seq_notes_to_engine`, `seq_locks_to_engine`, `seq_splits` (render calls that
-start inside a block), `seq_max_block_events` (the most events one block
-held) and `seq_dropped` (the core's `dropped_events`). The WAV alone cannot
+`seq_notes_to_engine`, `seq_locks_to_engine`, `seq_locks_refused` (locks on
+NOLOCK parameters), `seq_splits` (render calls that start inside a block),
+`seq_max_block_events` (the most events one block held) and `seq_dropped`
+(the core's `dropped_events`). The WAV alone cannot
 show a split: an engine's output does not depend on how a block is cut into
 render calls [verified for Test Sine, Macro and Six-Op at 1, 7 and 64
 frames], so `seq_splits` is what shows that a skipped lock did not split
@@ -457,8 +502,10 @@ commands and Start/Stop carry the number of ticks serviced so far.
   349,525 Hz, 46,080 master ticks of offsets, a playhead at 8,448, notes
   103.2 s and 2^19 cycles apart, the gap rule before the stale rule).
   Movy's outcome for each edge script was checked through the oracle.
-- `tests/test_seq_render.py` (58): routing through `fm1-render`, notes and
-  locks at their own frame, FLOAT and ENUM lock mapping, block-size identity
+- `tests/test_seq_render.py` (62): routing through `fm1-render`, notes and
+  locks at their own frame, FLOAT and ENUM lock mapping (the ENUM case on
+  Six-Op's Patch since API v2), locks on NOLOCK parameters refused and
+  counted with the audio of the script without the lane, block-size identity
   of the audio, the renderer's log equal to `fm1-seq`'s, plain renders
   unchanged. The host bridge: lane labels (case, the last `:`, an unknown
   label sent and skipped), a float lock equal to the parameter set directly,
@@ -471,9 +518,15 @@ commands and Start/Stop carry the number of ticks serviced so far.
   clock) and live notes give the events and the set their text lines give;
   the sink receives every engine-routed note and lock at its own frame and
   in order, with no empty render, and nothing from a MIDI-routed track; a
-  hand-made event past the block plays at its end; and every 7-bit lock
+  hand-made event past the block plays at its end; every 7-bit lock
   value on ranges such as -24..24, where the expression's parenthesisation
-  shows. Twenty-nine mutants of the bridge and of `fm1-render`'s use of it
+  shows; and API v2: the flag helpers (NOLOCK over MOD), every lane's uid
+  equal to a fresh resolution of its label after every block, a lock sent
+  to its uid's parameter where the
+  index is not uid − 1, NOLOCK locks refused, counted and splitting
+  nothing, a new engine, an import, a typed `alabel` and a released lane
+  each re-resolving, and a label set on the core directly, past the bridge,
+  still reaching its parameter. Twenty-nine mutants of the bridge and of `fm1-render`'s use of it
   each fail at least one of these [verified 2026-10-02]: label case, the
   last `:`, a label compared only to the shorter name, a lock resolved after
   its split, MIDI-routed locks sent, the first parameter never locked, the
@@ -493,7 +546,14 @@ engine tests), with no warnings and the same instance sizes. With the host
 bridge [verified 2026-10-02]: the engine, sequencer and Movy tests (1,481
 passed, 18-undo's 2 expected failures) under clang ASan + UBSan, and under
 GCC 13 in a container on aeon at 64 bits and with `-m32`, with no warnings;
-`fm1-seq-host-test` gives the same counts on all three.
+`fm1-seq-host-test` gives the same counts on all three. With engine API v2
+[verified 2026-10-02]: the whole suite on macOS clang (2,037 passed, 2
+skipped, 2 expected failures); the engine, sequencer and Movy tests (1,968)
+and the app layer's under clang ASan + UBSan, with no report or failure;
+GCC 12 in a container on aeon at 64 bits and with `-m32` (1,965 passed, 1
+skipped, the 2 expected failures; the app layer's 33 passed), with no
+warnings; `fm1-seq-host-test` the same counts on all of them; and JieLi's
+pi32v2 compiler over all 67 objects in four profiles.
 
 ## The oracle's verdict (stage M3)
 
@@ -555,11 +615,12 @@ tools/movy-oracle on aeon, the C core on the Mac]:
 
 ## What M2 and later still need
 
-- **Engine API v2** (docs/13 §6): a stable `uint16_t uid` per parameter so a
-  lane names its target by uid rather than by label text, and flags LATCH,
-  SMOOTH and NOLOCK (Macro's Model refused as NOLOCK is M2's exit test). Today
-  the label match and the bins live in the host bridge
-  (`fm1_seq_lane_param`, `fm1_seq_lock_value`).
+- **Engine API v2** (docs/13 §6): done in part (docs/15 stage S7a). Every
+  parameter has a stable uid, flags (LATCH, SMOOTH, NOLOCK, MOD, INPUT), a
+  unit and an abbreviation; lanes resolve to uids; Macro's Model is refused
+  as NOLOCK (M2's exit test). Still to come: SMOOTH's ramp inside the
+  engines (S7b), tempo and a beat position in `fm1_host_t`, and the virtual
+  FM-1 showing uids and flags in its catalogue.
 - `FM1_KIND_MIDI_FX` for per-track MIDI effects.
 - The command ring between the UI and audio tasks, and undo (binary
   per-clip snapshots in a byte budget, docs/13 §5) with the UI, stage M4;

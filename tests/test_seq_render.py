@@ -1,11 +1,12 @@
-"""The sequencer through fm1-render (docs/13 §7 and stage M2, the parts that
-need no engine API change): per-track routing to the sound engine or to
-USB-MIDI, notes and locks at their own frame through split renders, locks
-reaching the engine parameter their lane names, and the same audio at any
-host block size. fm1-render hosts the core through the shared bridge
-(engines/include/fm1_seq_host.h), so these are its tests too: lane labels,
-locks that split a block only when the engine takes them, the event log of
-every oracle script, and a buffer the size the virtual FM-1 will use.
+"""The sequencer through fm1-render (docs/13 §7 and stage M2): per-track
+routing to the sound engine or to USB-MIDI, notes and locks at their own
+frame through split renders, locks reaching the engine parameter their lane
+names (resolved to its uid, engine API v2), locks on NOLOCK parameters
+refused and counted, and the same audio at any host block size. fm1-render
+hosts the core through the shared bridge (engines/include/fm1_seq_host.h),
+so these are its tests too: lane labels, locks that split a block only when
+the engine takes them, the event log of every oracle script, and a buffer
+the size the virtual FM-1 will use.
 """
 import json
 import math
@@ -57,7 +58,7 @@ def test_track_zero_plays_the_engine_by_default(seq_tools, tmp_path):
     s, left, ev, _ = render(tmp_path, TWO_TRACKS)
     assert s["seq_notes_to_engine"] == len(ons(ev, 0)) > 0
     assert len(ons(ev, 1)) > 0, "track 1 goes to USB-MIDI: logged, not played"
-    assert s["seq_bytes"] == 18056 and s["seq_refused"] == 0
+    assert s["seq_bytes"] == 18056 and s["seq_refused"] == 0 and s["seq_locks_refused"] == 0
     assert rms(left) > 100
 
 
@@ -114,16 +115,50 @@ def test_locks_set_the_parameter_their_lane_names(seq_tools, tmp_path):
 
 
 def test_an_enum_lock_selects_a_bin(seq_tools, tmp_path):
-    """A lock on Macro's Model (ENUM, eight models) picks bin floor(v*8/128):
-    0 and 15 are both model 0, 16 is model 1."""
+    """A lock on Six-Op's Patch (ENUM, 96 patches, LATCH: read at note-on)
+    picks bin floor(v*96/128): 0 and 1 are both patch 0, 2 is patch 1. The
+    lane's base goes out at Play before the first note-on (D2), so the first
+    note already plays it. (Macro's Model, which this test used before API
+    v2, is NOLOCK now.)"""
     script = (f"#! rate={RATE} block=64 tracks=1 end={RATE}\n"
               "@0 tog 0 0 57 100;slen 0 0 0 -1 300\n"
-              "@0 alabel 0 0 synth:Model;abaseq 0 0 {v};play\n")
+              "@0 alabel 0 0 synth:Patch;abaseq 0 0 {v};play\n")
     raw = {}
-    for v in (0, 15, 16):
-        s, _, _, raw[v] = render(tmp_path, script.format(v=v), engine="macro", name=f"m{v}")
-        assert s["seq_locks_to_engine"] == 1
-    assert raw[0] == raw[15] and raw[0] != raw[16]
+    for v in (0, 1, 2):
+        s, _, _, raw[v] = render(tmp_path, script.format(v=v), engine="sixop", name=f"m{v}")
+        assert s["seq_locks_to_engine"] == 1 and s["seq_locks_refused"] == 0
+    assert raw[0] == raw[1] and raw[0] != raw[2]
+
+
+NOLOCK_LANE = (f"#! rate={RATE} block=64 tracks=1 end={RATE}\n"
+               "@0 tog 0 0 {notes};tog 0 4 {notes};tog 0 8 {notes};slen 0 0 0 -1 380\n"
+               "@0 alabel 0 0 synth:{name};abase 0 0 30;aset 0 0 2 90 1;aset 0 0 6 127 1\n"
+               "@0 play\n")
+
+
+@pytest.mark.parametrize("engine,name", [("macro", "Model"), ("macro-heavy", "Model"),
+                                         ("shapes", "Shape"), ("sw-sophie", "Pad")])
+def test_a_lock_on_a_nolock_parameter_is_refused(seq_tools, tmp_path, engine, name):
+    """API v2: a NOLOCK parameter (Macro's Model rebuilds every voice) never
+    takes a lock. Every lock the lane sends is refused and counted, none
+    reaches the engine or splits a block, and the audio is that of the same
+    script without the lane. A lane on a lockable parameter of the same
+    engine does reach it."""
+    notes = "36 100 38 90" if engine == "sw-sophie" else "60 100 64 90"
+    script = NOLOCK_LANE.format(notes=notes, name=name)
+    s, _, ev, raw = render(tmp_path, script, engine=engine, name="lane")
+    lines = script.splitlines(keepends=True)
+    s0, _, _, raw0 = render(tmp_path, "".join(lines[:2] + lines[3:]), engine=engine,
+                            name="nolane")
+    sent = len([e for e in ev if e["kind"] == "cc"])
+    assert sent >= 3 and s["seq_locks_refused"] == sent
+    assert s["seq_locks_to_engine"] == 0 and s["seq_splits"] == s0["seq_splits"]
+    assert raw == raw0
+    other = {"macro": "Timbre", "macro-heavy": "Timbre", "shapes": "Timbre",
+             "sw-sophie": "Tune"}[engine]
+    s, _, _, _ = render(tmp_path, script.replace(f"synth:{name}", f"synth:{other}"),
+                        engine=engine, name="lockable")
+    assert s["seq_locks_to_engine"] == sent and s["seq_locks_refused"] == 0
 
 
 @pytest.mark.parametrize("engine", ["test-sine", "macro", "sixop"])

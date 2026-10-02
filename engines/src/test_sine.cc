@@ -12,8 +12,10 @@ namespace test_sine {
 
 enum Param { P_VOLUME, P_COUNT };
 
+// Uids (API v2) are fixed: never renumber one; a new parameter takes the next
+// free uid. Every parameter is read each block: SMOOTH and MOD.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Volume", FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 0 },
+  { "Volume", FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Vol" },
 };
 
 const int kNumVoices = 12;

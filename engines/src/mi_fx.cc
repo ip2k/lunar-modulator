@@ -96,11 +96,13 @@ namespace plate {
 
 enum { P_MIX, P_DECAY, P_DAMPING, P_DIFFUSION, P_COUNT };
 
+// Uids (API v2) are fixed: never renumber one; a new parameter takes the next
+// free uid. Every parameter is read each block: SMOOTH and MOD.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Mix",       FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 0 },
-  { "Decay",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Damping",   FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 0 },
-  { "Diffusion", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
+  { "Mix",       FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
+  { "Decay",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Decay" },
+  { "Damping",   FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Damp" },
+  { "Diffusion", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Diffus" },
 };
 
 // rings::Reverb is FxEngine<32768, FORMAT_16_BIT>: 32,768 uint16_t words.
@@ -174,10 +176,12 @@ namespace ensemble {
 
 enum { P_MIX, P_DEPTH, P_WIDTH, P_COUNT };
 
+// Uids (API v2) are fixed: never renumber one; a new parameter takes the next
+// free uid. Every parameter is read each block: SMOOTH and MOD.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Mix",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Depth", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Width", FM1_PARAM_FLOAT, 0, 1, 1.0f, NULL, 0 },
+  { "Mix",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
+  { "Depth", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Depth" },
+  { "Width", FM1_PARAM_FLOAT, 0, 1, 1.0f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Width" },
 };
 
 // plaits::Ensemble is FxEngine<1024, FORMAT_32_BIT>: 1,024 floats.
@@ -271,11 +275,13 @@ namespace diffuse {
 
 enum { P_MIX, P_TIME, P_TONE, P_WIDTH, P_COUNT };
 
+// Uids (API v2) are fixed: never renumber one; a new parameter takes the next
+// free uid. Every parameter is read each block: SMOOTH and MOD.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Mix",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Time",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Tone",  FM1_PARAM_FLOAT, 0, 1, 0.75f, NULL, 0 },
-  { "Width", FM1_PARAM_FLOAT, 0, 1, 1.0f, NULL, 0 },
+  { "Mix",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
+  { "Time",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Time" },
+  { "Tone",  FM1_PARAM_FLOAT, 0, 1, 0.75f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Tone" },
+  { "Width", FM1_PARAM_FLOAT, 0, 1, 1.0f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Width" },
 };
 
 // plaits::Diffuser is FxEngine<8192, FORMAT_12_BIT>: 8,192 uint16_t words.

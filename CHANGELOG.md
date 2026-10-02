@@ -385,6 +385,25 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Engine API v2: every parameter has a fixed id and says what it allows.**
+  Each parameter of every sound engine and effect now carries an id that
+  never changes, so a sequencer lock (and later a modulation route or a
+  preset) keeps its target even when a parameter list is reordered or
+  extended. Each also says whether it can be locked, whether it is read only
+  when a note starts, whether it should glide when it changes, and whether
+  it can be modulated, plus a unit and a short name for the coming
+  modulation matrix. What you hear changes in one case only: a sequencer
+  lane on a parameter whose change cuts every sounding note (Macro's and
+  Macro Heavy's Model, Shapes' Shape) is now refused instead of applied,
+  and so is one on Sophie's Pad, which only picks the pad her other knobs
+  edit; `fm1-render` counts the refusals. PSX Verb's Model, which empties
+  the reverb, is marked the same for when effects can be locked. Six-Op
+  FM's Patch and Sophie's Model stay lockable: they change the next notes
+  only. Lane names in saved sets stay as they were
+  (`synth:Timbre`). Every other render is byte-identical, over 1,458 renders
+  before and after. Details in `engines/README.md`, "Parameters", and
+  `engines/seq.md`; the ids are pinned in `tests/fixtures/param-uids.json`.
+  Not in the browser simulator yet.
 - **DEVELOPERS.md is reorganized** so it reads in order: a welcome, a
   linked table of contents and a short callout of the one rule; then
   getting started (build, test and play in five minutes, where to go next,

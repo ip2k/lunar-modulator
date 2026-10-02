@@ -94,13 +94,15 @@
 
 enum { P_FOLD, P_SYMMETRY, P_SHAPE, P_MIX, P_TONE, P_LEVEL, P_COUNT };
 
+// Uids (API v2) are fixed: never renumber one; a new parameter takes the next
+// free uid. Every parameter is read each block: SMOOTH and MOD.
 static const fm1_param_t kFoldParams[P_COUNT] = {
-  { "Fold",     FM1_PARAM_FLOAT,  0, 1, 0.4f, NULL, 0 },
-  { "Symmetry", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 0 },
-  { "Shape",    FM1_PARAM_FLOAT,  0, 1, 0.0f, NULL, 0 },
-  { "Mix",      FM1_PARAM_FLOAT,  0, 1, 1.0f, NULL, 0 },
-  { "Tone",     FM1_PARAM_FLOAT,  0, 1, 0.8f, NULL, 1 },
-  { "Level",    FM1_PARAM_FLOAT,  0, 1, 0.7f, NULL, 1 },
+  { "Fold",     FM1_PARAM_FLOAT,  0, 1, 0.4f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Fold" },
+  { "Symmetry", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Sym" },
+  { "Shape",    FM1_PARAM_FLOAT,  0, 1, 0.0f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Shape" },
+  { "Mix",      FM1_PARAM_FLOAT,  0, 1, 1.0f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
+  { "Tone",     FM1_PARAM_FLOAT,  0, 1, 0.8f, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Tone" },
+  { "Level",    FM1_PARAM_FLOAT,  0, 1, 0.7f, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Level" },
 };
 
 /* The smoothed control values. */
