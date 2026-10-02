@@ -38,6 +38,7 @@ ENUM_FLAGS = {
     ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
     ("sw-sophie", "Filter Type"): ["latch", "mod"],
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
+    ("limit", "Mode"): ["nolock"],              # re-aims the gain computer
 }
 
 
@@ -129,6 +130,7 @@ def test_abbreviations_and_units(built):
     units = {(eid, p["name"]): p["unit"] for eid, params in built.items() for p in params
              if p["unit"] != "none"}
     assert units[("echo", "Time")] == "ms" and units[("sw-sophie", "Tune")] == "semi"
+    assert units[("limit", "Release")] == units[("limit", "Lookahead")] == "ms"
     assert units[("sw-sophie", "Color")] == "pct"
     assert units[("sw-sophie", "Ring Time")] == "ms"     # hidden: from the contract
 

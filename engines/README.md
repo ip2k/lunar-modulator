@@ -32,6 +32,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `crush` | Crush | effect | – | this repository, after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT) | [below](#crush); a bitcrusher and sample-rate reducer |
 | `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
 | `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
+| `limit` | Limiter | effect | – | this repository, after Geraint Luff's look-ahead limiter design | a look-ahead brickwall limiter, 0–5 ms; [below](#limiter) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -220,6 +221,130 @@ How it works [verified: tests/test_engines_echo.py and
   reset call to drop the tail without re-creating the 64 KiB instance (the
   host feature listed below).
 
+## Limiter
+
+A look-ahead brickwall limiter (`src/fx_limit.cc`, our own code, MIT), for
+the master or for one sound. Its gain path follows Geraint Luff's design
+("Designing a straightforward limiter", Signalsmith Audio, 2022
+[reported]): a moving minimum of the gain each frame needs, then moving
+averages whose lengths add up to the minimum's window, ahead of a delay of
+the same length. No code is taken from the article or from Signalsmith's
+library. Mutable's stmlib has a `Limiter`, a peak follower with no
+lookahead [verified: `third_party/mutable/stmlib/dsp/limiter.h`]; it is
+not used.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Ceiling | −24 to 0 dB (−1) | The most the output reaches. In dB, which has no unit code in the API yet, so its unit field says none |
+| 1 | Drive | −12 to +24 dB (0) | Gain before the limiter: push a sound into it for loudness, or turn it down |
+| 1 | Release | 1–1,000 ms (100) | How fast the gain comes back: the time constant of its recovery, after a hold as long as the lookahead |
+| 1 | Lookahead | 0–5 ms (2) | How far ahead the gain sees peaks coming. It is also the effect's latency: 88 frames at 2 ms and 44,118 Hz. At 0 there is no delay, and a soft clip catches what the attack misses (below). NOLOCK: a change crossfades to the new delay over 5 ms |
+| 2 | Mode | Brickwall, Soft Clip (Brickwall) | Brickwall: nothing above the ceiling, nothing changed below it. Soft Clip: peaks up to +12 dB over the ceiling are rounded off by a curve from 6 dB below it. NOLOCK; a change crossfades over 5 ms |
+| 2 | Link | 0–1 (1) | Stereo link. Each channel's detector takes the larger of its own peak and Link × the other's: at 1 one gain moves both channels, so the stereo image holds; at 0 each channel is limited on its own |
+| 2 | Mix | 0–1 (1) | Blends the delayed dry input back in (parallel limiting). Below 1 the output can pass the ceiling, by design |
+
+How it works [verified: tests/test_engines_limit.py and
+`build/fm1-limit-test`, 2026-10-02, unless marked]:
+
+- **The path:** input guard (NaN reads as 0, ±16 clamp, as the Mutable
+  effects) → Drive → the lookahead line, and the detector: the gain each
+  frame needs (Ceiling / peak, or 1), an envelope that follows a deeper
+  need at once and recovers with Release → a minimum over the last D + 1
+  frames → two box filters whose lengths add up to D → the gain for the
+  frame leaving the line D frames later → the output stage → Mix.
+- **Why it never passes the ceiling:** every value the boxes average at
+  frame n is a minimum over a window that contains frame n − D, so their
+  mean is never above the gain frame n − D needed, and that frame's audio
+  is what leaves the line. The gain path is integer arithmetic: the
+  envelope's gain is rounded down to 22 fractional bits, and the minimum
+  and both sums are exact, so nothing drifts and a run of unity gains is
+  exactly 1.0. A final clamp to ±Ceiling covers the last float rounding.
+  On 11 hostile signals (full-scale square waves at 50 Hz, 1 kHz, 11 kHz
+  and Nyquist, impulses up to ±16, full-scale and clamped noise, DC steps,
+  onsets, a chirp) under 1,320 settings, in random host blocks, no output
+  sample is above the ceiling, and before the clamp the envelope alone is
+  at most 1.2 × 10⁻⁷ over (one float step). The ceiling is the effect's own
+  float value of 10^(Ceiling/20), within 2 × 10⁻⁷ of it.
+- **Transparent below the ceiling:** noise under the ceiling comes out bit
+  for bit, delayed by the lookahead, in every mode (under the stage's knee
+  at Lookahead 0 and in Soft Clip). After 0.3 s of limiting at +12 dB, with
+  Release 50 ms, the output is exact again 747 ms later, once the reduction
+  is under the gain path's step (2⁻²²); the envelope works in reduction
+  (1 − gain), so its recovery never stalls a float step short of unity.
+- **Latency is the lookahead,** rounded to a frame: 0, 22, 88 and 221
+  frames for 0, 0.5, 2 and 5 ms at 44,118 Hz, checked at 44.1, 48, 96 and
+  192 kHz.
+- **Release:** after a burst at +12 dB, the gain makes up 63 % of the way
+  back in the Release time plus half the lookahead (the hold and the boxes
+  centre the gain curve D/2 late): 101.0 ms for Release 100 at 2 ms,
+  500.0 ms for 500 at Lookahead 0.
+- **Lookahead 0:** no delay, so no ramp. An instant attack would flatten
+  the leading edge of every louder peak at the ceiling, a hard clip;
+  instead the envelope attacks over 1 ms and aims 1 dB under the ceiling,
+  and a soft clip from there towards the ceiling catches what the attack
+  lets through. The output stays under the ceiling (measured at most
+  0.99999 of it); below −1 dB re the ceiling the signal is untouched.
+- **Soft Clip:** the envelope lets peaks reach four times the ceiling, and
+  the curve y = c − (c − K)² / (|v| − K + (c − K)) above the knee K = c/2
+  rounds them: slope 1 at the knee, approaching c and never reaching it,
+  so the output tops out at 15/16 of the ceiling (−0.56 dB). It adds odd
+  harmonics: the renderer's 440 Hz sine at +6 dB into a −3 dB ceiling
+  comes out with its third harmonic at −16 dB, against −124 dB through
+  Brickwall, whose gain barely moves within a cycle.
+- **Changes:** Ceiling, Drive, Link and Mix glide over 5 ms, sample by
+  sample, so any block size gives the same output (checked at 64, 7 and 1
+  frames with every parameter moving, Lookahead and Mode included). The
+  line stores Drive and Ceiling with each frame, so a turned Ceiling
+  reaches the detector and the delayed audio together and the ceiling
+  holds while it glides. A Lookahead change crossfades from the old delay
+  to the new over 5 ms (a 440 Hz sine shows no larger step than its own);
+  another change waits for the crossfade to finish. Mode crossfades its
+  output stage over 5 ms.
+- **The host's bus limiter stays.** `include/fm1_mix_limiter.h` runs after
+  every chain: a peak follower with an instant attack, a 100 ms release and
+  a fixed 0.98 ceiling, and the guard that turns non-finite samples into
+  silence. It is the only stage that sees everything that reaches the DAC,
+  so it remains the last line of defence. This effect is optional and adds
+  what the bus limiter cannot: lookahead (no flattened onsets), a ceiling
+  of your own, drive, release, stereo link and a soft-clip mode. With
+  Ceiling at −0.18 dB or lower (0.98) and nothing louder after it, the bus
+  limiter has nothing left to do.
+- **True peak: not implemented.** Peaks between samples can pass the
+  ceiling after the DAC's reconstruction, typically by well under 1 dB and
+  by up to about 3 dB on pathological signals [inferred]; the default
+  −1 dB ceiling leaves room for that. A true-peak option would detect on a
+  4× oversampled copy (a polyphase interpolator of about 12 taps per phase,
+  about 100 multiply-adds per stereo frame) and add the interpolator's
+  delay to the latency [inferred].
+- **Memory:** grows with the host rate, fixed at `create`: 5 ms of frames,
+  at most 510. Per frame of lookahead: 16 bytes of line (the input and the
+  two controls), 12 for the two hold deques and about 8 for the box
+  filters. 8,272 bytes at 44,118 Hz, 8,960 at 48 kHz, 17,600 at 96 kHz and
+  19,696 at 102 kHz and above, where the cap makes the longest lookahead
+  shorter than 5 ms (2.66 ms at 192 kHz). The instance holds no pointers:
+  a 32-bit (`-m32`) build has the same sizes [verified: GCC in a Linux
+  container, 2026-10-02].
+- **Cost, desktop only:** 1.1 µs per 64-frame block on an Apple M1 Max
+  with no gain reduction, 1.3 µs limiting hard, 1.7–1.8 µs at Lookahead 0
+  or in Soft Clip (their curve divides): 0.08–0.12 % of the block, against
+  Fold's 1.8 µs and Echo's 2.2 µs in the same run (20 s of noise, best of
+  five). Two divides per frame in the detector while it limits, and two
+  more in a soft clip; the hold's deque is amortised, one push and at most
+  one pop per frame on average. Stage B measures pi32v2.
+- **Determinism:** no libm. 2^x (for dB) and the one-pole coefficients are
+  polynomials written here, and the gain path is integers. A 32-bit and a
+  64-bit Linux build with `-ffp-contract=off` give identical results in
+  every check of `fm1-limit-test`; the Mac's default build, which fuses
+  multiply-adds, differs only in the last bits of the ceiling (3 × 10⁻⁸)
+  [verified].
+- `build/fm1-limit-test` (`test/limit_test.cc`) reads the float output with
+  no WAV and no bus limiter after it, and links the effect built once more
+  with `FM1_LIMIT_PROBE`, which only records how far the envelope alone
+  comes to the ceiling. It covers the ceiling, latency, transparency,
+  release, Link, changes mid-stream, the crossfades, silence, a 20 s sweep
+  of every parameter to any value (NaN and infinities included) with bad
+  input mixed in, and the host rates it accepts (8–384 kHz).
+
 ## Parameters (engine API v2)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -260,6 +385,8 @@ moves to the fixture's `retired` list, so its uid is never given out again.
 Every FLOAT parameter here is SMOOTH and MOD (`FM1_PARAM_CONTINUOUS`),
 except Sophie's, which are LATCH and MOD: a triggered voice copies its pad's
 patch (`sophie.c`, `trigger_voice`), so Sophie reads all of them at note-on.
+The Limiter's Lookahead is NOLOCK: it sets the effect's latency, and a
+change crossfades between two delays and restarts the gain's hold.
 `fm1_param_lockable`, `fm1_param_modulatable` and `fm1_param_index(engine,
 uid)` are the helpers. `fm1-render --list` prints each parameter's uid,
 flags (by name), unit and abbreviation. The four fields make `fm1_param_t`
@@ -270,7 +397,7 @@ the registry defines.
 
 **The ENUM parameters** [verified against each engine's code, 2026-10-02].
 docs/15's table had eight; Macro's and Macro Heavy's LPG came with their
-third page.
+third page, and the Limiter's Mode with the effect.
 
 | Engine | Parameter | Flags | Why |
 | --- | --- | --- | --- |
@@ -283,10 +410,13 @@ third page.
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
 | sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
+| limit | Mode | NOLOCK | Re-aims the gain computer, whose plan for the frames already in the lookahead line was made for the old mode; a set-up choice, not a performance control. A change crossfades the output stage over 5 ms |
 
-**Units and abbreviations.** Echo's Time and Sophie's Ring Time are in ms,
-Sophie's Tune in semitones and its 0–100 knobs in %. Sophie's Decay is in
-seconds, for which there is no unit code yet, so it has none. Every other
+**Units and abbreviations.** Echo's Time, Sophie's Ring Time and the
+Limiter's Release and Lookahead are in ms, Sophie's Tune in semitones and
+its 0–100 knobs in %. Sophie's Decay is in seconds and the Limiter's
+Ceiling and Drive in dB, for which there are no unit codes yet, so they
+have none. Every other
 parameter is a bare number (the 0–1 knobs, gains, bits, indices).
 
 **No sound changed** [verified 2026-10-02, Apple clang, before and after on
@@ -324,7 +454,7 @@ sound).
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Echo) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, Echo, Limiter) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
 | `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |
@@ -394,6 +524,7 @@ upstream candidate). Our own code gets none.
   | Macro Heavy, 4 voices | 71,104 | 70,880 | ~17 KB per voice (Particle and String arenas) |
   | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
   | Echo | 65,728 | 65,728 | 16,384 stereo cells of 16-bit words |
+  | Limiter | 8,272 | 8,272 | 5 ms of lookahead at 44,118 Hz; 19,696 at 102 kHz and above |
   | Macro, 12 voices | 31,744 | 18,864 | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,848 | 18,848 | |
   | Six-Op FM, 8 voices | 12,528 | 10,796 | |
@@ -437,6 +568,7 @@ upstream candidate). Our own code gets none.
   | Shapes (12) | 0.2–0.6 % |
   | Each Mutable effect | 0.03–0.06 % |
   | Fold | 0.12 % |
+  | Limiter | 0.08–0.12 % |
 
   pi32v2 is a much narrower core and these figures do not transfer; stage B
   measures the real ones. They do rank the engines for the voice caps.
