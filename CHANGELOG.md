@@ -9,6 +9,16 @@ history.
 ## [Unreleased]
 
 ### Added
+- docs/14: the verification ladder, the plan for showing 1:1 behaviour once
+  the AC79 dev kit and JieLi's USB updater arrive. The rungs are the desktop
+  renderer, the browser module, the dev kit and the FM-1, in that order.
+  - Bit-exact wherever the arithmetic is the same: sequencer events, screens,
+    LEDs and MIDI.
+  - The DSP is bit-exact too, in a "ladder" build profile with float
+    contraction off and one libm.
+  - Named tolerances only for named causes.
+  - One golden corpus, run by a heap-free runner on every rung.
+  - The FM-1 rung opens only after a byte-identical dump and restore.
 - Branding art in `assets/branding/`: a 1280×320 README banner (PNG and
   SVG) and a 240×240 boot screen for the FM-1's display (PNG plus raw
   RGB565 for later firmware use). A seeded script draws everything from
