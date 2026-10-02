@@ -48,6 +48,7 @@ ENUM_FLAGS = {
     ("comp", "Character"): [],
     ("comp", "Auto Rel"): [],
     ("comp", "Auto Gain"): [],
+    ("limit", "Mode"): ["nolock"],              # re-aims the gain computer
 }
 
 
@@ -139,6 +140,7 @@ def test_abbreviations_and_units(built):
     units = {(eid, p["name"]): p["unit"] for eid, params in built.items() for p in params
              if p["unit"] != "none"}
     assert units[("echo", "Time")] == "ms" and units[("sw-sophie", "Tune")] == "semi"
+    assert units[("limit", "Release")] == units[("limit", "Lookahead")] == "ms"
     assert units[("sw-sophie", "Color")] == "pct"
     assert units[("sw-sophie", "Ring Time")] == "ms"     # hidden: from the contract
 

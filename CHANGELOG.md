@@ -88,6 +88,20 @@ history.
   scenario covers it once the browser module is rebuilt. For developers,
   `include/fm1_comp.h` reads its gain reduction, for a later modulation
   source.
+- **Limiter**, a new effect: a look-ahead brickwall limiter for the master
+  or for one sound. Ceiling (−24 to 0 dB), Drive (−12 to +24 dB), Release
+  (1 ms to 1 s) and Lookahead (0 to 5 ms) on the first page; Mode
+  (Brickwall or Soft Clip), Link (how much the two channels share one gain)
+  and Mix (blending the dry sound back in) on the second. In Brickwall mode
+  nothing passes the ceiling, and anything under it comes through
+  untouched, only delayed by the lookahead. Lookahead 0 adds no delay and
+  catches peaks with a gentle soft clip instead; Soft Clip mode rounds
+  peaks off for a louder, warmer sound. The firmware's own output limiter
+  stays after every effect. Written for this project (MIT), after Geraint
+  Luff's look-ahead limiter design; parameters and design in
+  `engines/README.md`, tested in `tests/test_engines_limit.py`. A new
+  parity scenario plays it twice in one chain; the virtual FM-1 offers it
+  once its module is rebuilt.
 - A first look at the sequencer on the virtual FM-1's panel, behind a lab
   switch: add `?lab` (or `#lab`) to the page's address. The public page is
   unchanged until patterns can be made and recorded on the panel (docs/15

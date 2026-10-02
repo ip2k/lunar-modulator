@@ -146,6 +146,15 @@
       {"name": "Auto Rel", "type": "enum", "uid": 9, "flags": []},
       {"name": "Auto Gain", "type": "enum", "uid": 10, "flags": []}
     ],
+    "limit": [
+      {"name": "Ceiling", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Drive", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Release", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Lookahead", "type": "float", "uid": 4, "flags": ["nolock"]},
+      {"name": "Mode", "type": "enum", "uid": 5, "flags": ["nolock"]},
+      {"name": "Link", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 7, "flags": ["smooth", "mod"]}
+    ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ]
