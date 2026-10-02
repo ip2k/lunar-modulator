@@ -1,0 +1,13 @@
+# Rule M1 on the panel, replayed (review of MG3): hold LFO and turn KNOB3,
+# a cable from LFO1 into Timbre; then KNOB3 alone, twice, moves Timbre's
+# base while LFO1 swings round it (the sidecar's --param-at, which
+# fm1-render sends through the base as the panel did). Hold ENV and turn
+# KNOB2, ENV1 into Harmonics the other way, then KNOB2 alone moves its base.
+--button 0.05:PLAY/STOP
+--button 0.10:LFO:0.2
+--turn 0.15:KNOB3:40
+--turn 0.50:KNOB3:10
+--turn 0.70:KNOB3:-25
+--button 0.90:ENV:0.2
+--turn 0.95:KNOB2:-30
+--turn 1.30:KNOB2:7

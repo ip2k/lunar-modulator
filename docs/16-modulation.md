@@ -1203,6 +1203,11 @@ marked]:
     100 %, so the envelopes follow every note on the sound (the keys, MIDI
     in and the sequencer's tracks routed to it). They are ordinary slots 1
     and 2, re-patchable: a cable into GATE breaks its normal to KEY.
+    KEY is a legato gate: high while any note is held, so a note played
+    while another still sounds does not restart the envelopes [verified:
+    `mod_core.c`, `note_at` and `feed_level`]. Separate notes each open
+    them; restarting on every overlapping note too waits for per-voice
+    envelopes (MG9) or a retriggering KEY (an owner question).
   - Envelopes and LFOs are global in this stage; per-voice comes next.
 - **Names by kind.** Modules are named by kind and order, as the owner
   names them: the default rack reads LFO1, LFO2, ENV1, ENV2, CHN1, not §5.3's
@@ -1226,15 +1231,16 @@ marked]:
 - **Kind changes** switch off the cables that touch the module (MG1) and
   the UI remembers them: changing the position back to that kind switches
   on those whose other end still exists (an end gone stays off, so no
-  cable comes back refused).
+  cable comes back refused), and remembers the other kind's cables in
+  turn, so cables made on the second kind do not lose the first's.
 - **§5.5's marks**: the label from `abbr`, a gold diamond after it with
   4 px either side, a gold bracket of ± the cables' summed depth round the
   base on the bar, and a red 1 px tick at the value sent now. A cable into
   a parameter that takes none is not marked (MATRIX shows it `!`).
 - **CHAIN**: the selected cable, then the deepest cable into its source
   module and on up, then the deepest out of its target module and on down
-  (a lower slot wins a tie, a loop is cut where it closes); 8 lines shown
-  round the selected cable.
+  (a lower slot wins a tie, a loop is cut where it closes, a refused
+  cable is not followed); 8 lines shown round the selected cable.
 - **Destination codes.** A slot names its target by `dst_unit` and a uid.
   Built: 0 SOUND (sound unit 1), 1 FX1 and 2 FX2 (the two effect slots), 3
   HOST, 4–7 reserved, 8–15 MODULE at positions 1–8. Kept free for the
@@ -1253,12 +1259,15 @@ marked]:
   session byte for byte. A slot without a target, or switched off with an
   end gone, has no line; it runs as nothing in both. `--mod-format-check`
   reads back about 25,000 lines from 300 random rounds, 0 refused.
-- **Tests** (`tests/test_sim_mod.py`, 28): the switch; the default rack and
+- **Tests** (`tests/test_sim_mod.py`, 33): the switch; the default rack and
   cables; buttons, pages and LEDs; the gesture on HOME, FX and RACK; rule
-  M1 on a routed knob; every MATRIX field; a kind change and its restore;
-  envelopes from the sequencer, MIDI in and the keys, and the default cable
-  re-patched; five golden traces (`tests/fixtures/mod-ui/`) whose `.mod`
-  logs replay through `fm1-render --mod` byte for byte. The layout sweep
+  M1 on a routed knob; every MATRIX field; a kind change and its restore,
+  also after the other kind got cables of its own; a hold with any turn is
+  no tap; a new MATRIX cable from the selected LFO; CHAIN past a refused
+  cable; envelopes from the sequencer, MIDI in and the keys, and the
+  default cable re-patched; six golden traces (`tests/fixtures/mod-ui/`,
+  one of them knob turns on routed parameters) whose `.mod` logs replay
+  through `fm1-render --mod` byte for byte. The layout sweep
   went from 815 to 1,084 screens, 0 faults: RACK at every position and
   page, each kind at its extremes, routed and not, the picker and a grab;
   every sound's and effect's pages with a cable on each parameter; MATRIX

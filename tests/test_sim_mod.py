@@ -226,6 +226,56 @@ def test_a_kind_change_switches_cables_off_and_back(tools):
     assert back["mod"]["rack"][3] == "env" and slots(back)[2]["flags"] == ON | GATE_DST
 
 
+def test_a_kind_change_back_keeps_both_kinds_cables(tools):
+    """Review fix: ENV1 becomes Chance (KEY > its GATE goes off), the Chance
+    gets a cable of its own (LFO1 into its Rate), and the change back to
+    Envelope brings KEY > GATE back and switches the Chance's cable off;
+    changing to Chance again brings that one back. Before the fix the
+    Chance's cable made the Envelope's forgotten."""
+    to_chance = ["--button", "0.05:ENV", "--turn", "0.10:ALGORITHM:1", "--button", "1.3:LFO:0.2",
+                 "--turn", "1.35:KNOB2:30"]
+    back = lab(tools, *to_chance, "--turn", "1.6:ALGORITHM:-1", "--button", "1.65:HOME", seconds="2")
+    assert back["mod"]["rack"][2] == "env"
+    assert slots(back)[1]["flags"] == ON | GATE_DST and slots(back)[3]["flags"] & ON == 0
+    again = lab(tools, *to_chance, "--turn", "1.6:ALGORITHM:-1", "--button", "1.65:HOME",
+                "--button", "1.7:ENV", "--turn", "1.75:ALGORITHM:1", "--button", "1.8:HOME", seconds="2")
+    assert again["mod"]["rack"][2] == "chance"
+    assert slots(again)[1]["flags"] == GATE_DST and slots(again)[3]["flags"] == ON
+    assert (slots(again)[3]["src"], slots(again)[3]["unit"]) == (64, 8 + 2)
+
+
+def test_a_hold_with_any_turn_is_no_tap(tools):
+    """Review fix: ENV held while a knob turns in SEQ mode (where the knobs
+    turn the sound and no cable is made) is not a tap: letting go leaves
+    SEQ mode as it was."""
+    s = lab(tools, "--button", "0.05:SEQ", "--button", "0.1:ENV:0.2", "--turn", "0.15:KNOB3:5")
+    assert s["mode"] == MODES["SEQ"] and set(slots(s)) == {1, 2}
+    assert s["values0"][2] == pytest.approx(0.55)
+
+
+def test_a_new_matrix_cable_starts_from_the_selected_lfo(tools):
+    """Review fix: an amount turned on an empty slot before KNOB1 or KNOB2
+    makes a cable from the selected LFO (LFO2, the last one shown), as the
+    destination picker's own commit does, not from VEL."""
+    s = lab(tools, "--button", "0.05:LFO", "--button", "0.1:LFO", "--button", "0.15:EDIT",
+            "--turn", "0.2:SELECT:4", "--turn", "0.25:KNOB3:20", "--turn", "0.3:KNOB2:3", seconds="1.5")
+    x = slots(s)[5]
+    assert (x["src"], x["unit"], x["dst"], x["amount"], x["flags"]) == (64 + 8, 0, 4, q14(20), ON)
+
+
+def test_chain_does_not_run_on_through_a_refused_cable(tools, tmp_path):
+    """Review fix: LFO2 has two cables out, into Macro's Model (NOLOCK:
+    refused, `!` in MATRIX) and into Timbre. CHAIN through LFO1 > LFO2 Rate
+    follows the one that carries something."""
+    script = tmp_path / "m.mod"
+    script.write_text("rack default\nslot 1 lfo1 > lfo2.rate amt=20\nslot 2 lfo2 > snd:Model amt=50\n"
+                      "slot 3 lfo2 > snd:Timbre amt=30\n")
+    s = lab(tools, "--mod", str(script), "--button", "0.05:EDIT", "--button", "0.1:SEL")
+    assert s["mode"] == MODES["CHAIN"] and s["mod"]["refused"] == 1 << 1
+    assert s["mod"]["chain"] == ["LFO1 Out", " +20 >LFO2 Rate", "LFO2 Out", " +30 >Timbre"]
+    assert s["mod"]["chain_hl"] == 1
+
+
 # ---- envelopes follow every note --------------------------------------------------------------
 
 def rms(samples):

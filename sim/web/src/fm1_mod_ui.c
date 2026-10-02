@@ -624,11 +624,15 @@ static void note_shown(fm1_mod_ui_t *u, const fm1_mod_t *m) {
 
 int fm1_mod_ui_set_kind(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned pos, int kind) {
   char line[FM1_MOD_UI_LINE];
-  uint32_t before = 0, after = 0, off;
+  uint32_t before = 0, after = 0, off, back = 0;
   unsigned i;
   int r;
   const int old = fm1_mod_kind_at(env->m, pos);
   if (pos >= FM1_MOD_POSITIONS || old == kind) return 0;
+  /* The cables a change back to `kind` brings back, read before this
+   * change remembers its own (a module that got cables of its own before
+   * the change back must not make the first kind's cables forgotten). */
+  if (kind >= 0 && kind == u->off_kind[pos]) back = u->off_slots[pos];
   for (i = 0; i < FM1_MOD_SLOTS; ++i) {
     fm1_mod_slot_t s;
     fm1_mod_get_slot(env->m, i, &s);
@@ -645,16 +649,16 @@ int fm1_mod_ui_set_kind(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned p
     if (s.flags & FM1_MOD_SLOT_ON) after |= 1u << i;
   }
   off = before & ~after;
-  if (off && old >= 0) {
+  if (off && old >= 0) {               /* this change's cables, for a change back */
     u->off_kind[pos] = (int8_t)old;
     u->off_slots[pos] = off;
+  } else if (back) {                   /* restored below: nothing left to remember */
+    u->off_kind[pos] = -1;
+    u->off_slots[pos] = 0;
   }
   kind_line(env, pos, line, sizeof line);
   emit(env, line);
-  if (kind >= 0 && kind == u->off_kind[pos]) {
-    const uint32_t back = u->off_slots[pos];
-    u->off_kind[pos] = -1;
-    u->off_slots[pos] = 0;
+  if (back) {
     for (i = 0; i < FM1_MOD_SLOTS; ++i) {
       fm1_mod_slot_t s;
       if (!((back >> i) & 1u)) continue;
@@ -945,6 +949,7 @@ void fm1_mod_ui_matrix_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int kn
   if (fm1_mod_ui_empty(u, env->m, i)) {            /* a fresh slot: nothing in it */
     memset(&s, 0, sizeof s);
     s.via = FM1_MOD_NONE;
+    s.src = default_source(u, env->m);             /* as the destination picker's commit */
   }
   if (u->mpage == 0) {
     if (knob == 0) {                               /* KNOB1: the source, "--" first */
@@ -1237,8 +1242,10 @@ int fm1_mod_ui_chain(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigne
   for (j = 0; j < FM1_MOD_SLOTS; ++j) {
     fm1_mod_dest_t d;
     fm1_mod_get_slot(env->m, j, &c.s[j]);
-    if ((c.s[j].flags & FM1_MOD_SLOT_ON) && fm1_mod_ui_has_dst(&c.s[j]) &&
-        fm1_mod_ui_slot_dest(env, &c.s[j], &d)) {
+    /* A refused cable (MATRIX's `!`) carries nothing, so no path runs on
+     * through it; the selected one is still shown. */
+    if ((c.s[j].flags & FM1_MOD_SLOT_ON) && !((u->plan.refused >> j) & 1u) &&
+        fm1_mod_ui_has_dst(&c.s[j]) && fm1_mod_ui_slot_dest(env, &c.s[j], &d)) {
       char t[8];
       fm1_mod_ui_source(env->m, c.s[j].src, 0, t, sizeof t);
       if (strcmp(t, "?") != 0) c.ok |= 1u << j;

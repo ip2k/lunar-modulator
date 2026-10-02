@@ -199,9 +199,26 @@ static void mod_bind(fm1_app_t *a, int unit) {
 
 /* A new runtime with `seed`, bound to the chain; with `deflt`, the default
  * rack and its cables (the lab's start). */
-static void mod_start(fm1_app_t *a, uint32_t seed, int deflt) {
-  if (a->mod) fm1_mod_destroy(a->mod);
+/* The runtime goes; every parameter it moved goes back to its base, so a
+ * runtime that follows (or none) starts from what the knobs say. */
+static void mod_release(fm1_app_t *a) {
+  if (!a->mod) return;
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    const fm1_app_unit_t *x = &a->unit[u];
+    for (uint16_t i = 0; x->e && i < x->e->n_params && i < FM1_MOD_UNIT_PARAMS; ++i) {
+      if (fm1_mod_sent(a->mod, (unsigned)u, i) != x->value[i]) x->e->set_param(x->self, i, x->value[i]);
+    }
+  }
+  if (a->unit[0].e && a->unit[0].e->pitch_bend &&
+      fm1_mod_sent(a->mod, FM1_MOD_HOST, FM1_MOD_HOST_PITCH) != a->bend) {
+    a->unit[0].e->pitch_bend(a->unit[0].self, a->bend);
+  }
+  fm1_mod_destroy(a->mod);
   a->mod = NULL;
+}
+
+static void mod_start(fm1_app_t *a, uint32_t seed, int deflt) {
+  mod_release(a);                      /* a script's reset after the lab's runtime ran */
   if (fm1_mod_size() > sizeof a->mod_mem) return;
   a->mod = fm1_mod_create(a->mod_mem, &a->host, seed);
   if (!a->mod) return;
@@ -232,18 +249,7 @@ static int is_mod_mode(int mode) {
 /* The runtime goes; every parameter it moved goes back to its base. */
 static void mod_stop(fm1_app_t *a) {
   if (!a->mod) return;
-  for (int u = 0; u < FM1_APP_UNITS; ++u) {
-    const fm1_app_unit_t *x = &a->unit[u];
-    for (uint16_t i = 0; x->e && i < x->e->n_params && i < FM1_MOD_UNIT_PARAMS; ++i) {
-      if (fm1_mod_sent(a->mod, (unsigned)u, i) != x->value[i]) x->e->set_param(x->self, i, x->value[i]);
-    }
-  }
-  if (a->unit[0].e && a->unit[0].e->pitch_bend &&
-      fm1_mod_sent(a->mod, FM1_MOD_HOST, FM1_MOD_HOST_PITCH) != a->bend) {
-    a->unit[0].e->pitch_bend(a->unit[0].self, a->bend);
-  }
-  fm1_mod_destroy(a->mod);
-  a->mod = NULL;
+  mod_release(a);
   fm1_mod_ui_init(&a->mui);
   if (is_mod_mode(a->mode)) a->mode = FM1_MODE_HOME;
   a->dirty = 1;
@@ -673,10 +679,12 @@ static int mod_encoder(fm1_app_t *a, int encoder, int delta) {
          (algo || (knob == 1 && u->mpage == 0))))) {
     mod_commit(a);
   }
+  /* Any turn while ENV or LFO is held makes the hold no tap, so letting go
+   * does not open RACK (a knob in SEQ mode or MATRIX, SELECT, PRESETS). */
+  if (u->held != FM1_MOD_UI_NONE) u->held_used = 1;
   if (knob >= 0 && u->held != FM1_MOD_UI_NONE &&
       (a->mode == FM1_MODE_HOME || a->mode == FM1_MODE_FX || a->mode == FM1_MODE_RACK)) {
     mod_gesture(a, &env, knob, delta, &out);
-    u->held_used = 1;
   } else if (a->mode == FM1_MODE_RACK) {
     if (encoder == FM1_ENC_SELECT) fm1_mod_ui_rack_select(&env, u, delta);
     else if (algo) fm1_mod_ui_rack_algorithm(&env, u, delta, &out);

@@ -1499,6 +1499,16 @@ static void print_mod(void) {
   for (uint16_t i = 0; g_app.unit[0].e && i < g_app.unit[0].e->n_params && i < FM1_MOD_UNIT_PARAMS; ++i) {
     printf(i ? ",%.9g" : "%.9g", (double)fm1_mod_sent(g_app.mod, 0, i));
   }
+  {                                    /* CHAIN's lines through the selected slot */
+    char lines[FM1_MOD_UI_CHAIN_LINES][FM1_MOD_UI_ROW_CHARS + 1];
+    int hl = -1;
+    const int n = fm1_mod_ui_chain(&env, u, u->slot, lines, &hl);
+    printf("],\"chain_hl\":%d,\"chain\":[", hl);
+    for (int k = 0; k < n; ++k) {
+      if (k) printf(",");
+      json_string(lines[k]);
+    }
+  }
   printf("]}");
 }
 

@@ -125,8 +125,9 @@ the app layer `fm1_app_set_lab` is the one switch, and `fm1_app_init`
 leaves it off. The harness takes `--lab`. Nothing else changes between the
 two: the engines, the sequencer and the module are the same. With the
 switch off no modulation runtime exists and the page is what it was before
-modulation came: every screen the layout sweep saves with the switch off is
-byte for byte what main's harness saves [verified 2026-10-02], and the
+modulation came: every one of the 335 screens the layout sweep draws with
+the switch off is byte for byte what main's harness draws [verified
+2026-10-02, every screen written out by both builds], and the
 renders without the switch go the same way as before (no hook, no split).
 
 | | Off (the public page) | On |
@@ -211,7 +212,7 @@ CHN1), as the owner names them.
 - **SEL in MATRIX**: CHAIN, the longest path through the selected cable,
   node and cable lines alternating (`LFO2 Wrap  +1`, `+100 >ENV1 Gate`),
   the selected cable in the accent colour, `+N` for a node's other cables
-  and `~` for one a tick late. SELECT steps to the next cable; SEL goes
+  and `~` for one a tick late; a refused cable (`!`) is not followed. SELECT steps to the next cable; SEL goes
   back to MATRIX.
 - **On every parameter page** (HOME, FX, RACK) a parameter that cables
   reach shows its short label, a gold diamond after it, a gold bracket of
@@ -487,10 +488,13 @@ from the panel marked not replayable; and the UI state's size.
 switch off keeping ENV, LFO and EDIT as stubs and nothing running; the
 default rack and its two cables; LFO, ENV, EDIT and SEL and their LEDs;
 the gesture on HOME, FX and RACK, and its refusal; rule M1 on a routed
-knob; every MATRIX field; a kind change switching cables off and back on;
-the envelopes opening for notes from the sequencer, MIDI in and the keys,
-and the default cable re-patched; five golden gesture traces
-(`tests/fixtures/mod-ui/`) whose `.mod` logs replay through
+knob; every MATRIX field; a kind change switching cables off and back on,
+also after the other kind got cables of its own; a hold with any turn
+being no tap; a new MATRIX cable starting from the selected LFO; CHAIN
+not running on through a refused cable; the envelopes opening for notes
+from the sequencer, MIDI in and the keys, and the default cable
+re-patched; six golden gesture traces (`tests/fixtures/mod-ui/`, one of
+them knob turns on routed parameters) whose `.mod` logs replay through
 `fm1-render --mod` byte for byte; and `--mod-format-check`.
 
 CI also runs the four files in its 32-bit job (`-m32`, like pi32v2's
