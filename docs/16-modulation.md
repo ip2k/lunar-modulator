@@ -1279,7 +1279,7 @@ marked]:
   26.
 - **Sizes.** `fm1_app_t` grew by 23,568 B to 1,228,416 B (64-bit clang): the
   runtime's 20,480 B, a block's writes (2,304 B) and the pages' state
-  (104 B). The browser module grew from 464,688 B to 557,349 B, more than
+  (104 B). The browser module grew from 464,688 B to 557,391 B, more than
   §4.5's 20–40 KB: the runtime and its kinds, the pages and the script
   reader with strtod [verified: `www/fm1.wasm.json`].
 - **The dead-code audit is due** (§8, "Size and the dead-code audit"): the

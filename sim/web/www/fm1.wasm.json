@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "6e710ada845f7a8bd6e007309b235903c66a2becc58d428714a055e8323e0fb2",
-  "wasm_bytes": 557349,
+  "wasm_sha256": "d5172f7c48cb5acaa2f4157a93bac37b3637c686b5628ac5613064292a55e009",
+  "wasm_bytes": 557391,
   "sources_sha256": {
     "engines": "c611efe5758afbd3b18955b604ac18b9f5603e9b8820b498a8842afd8fba3d16",
-    "sim": "e3625780c54e68cc6523de21c243a54e443383092016ddb72b9cff4aae48a14d"
+    "sim": "d51994f69cefa2152d167d2860848c4e2e81b61d1e51f169ea01479f1fd49188"
   },
   "engines": "working tree",
-  "built": "2026-10-02T21:53:35Z",
+  "built": "2026-10-02T21:57:17Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [

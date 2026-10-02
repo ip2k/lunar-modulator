@@ -316,7 +316,7 @@ The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, and since docs/16 MG3 the modulation runtime,
 its kinds, its script reader (`host/mod_script.c`: snprintf and strtod,
 no files) and modulation's pages: 26 of 26 scenarios pass, identical to
-musl and to render.js, and it imports nothing; it is 557,349 bytes, up from
+musl and to render.js, and it imports nothing; it is 557,391 bytes, up from
 464,688 before MG3, 459,122 before S3 and 391 KB before the sequencer
 [verified, 2026-10-02, `www/fm1.wasm.json`].
 
