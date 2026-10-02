@@ -306,7 +306,8 @@ class Instance {
       p.accent = compressed;
       if (model_ == MODEL_CHIPTUNE) {
         static_cast<ChiptuneEngine *>(v.engine)->set_envelope_shape(
-            chip_envelope ? value_[P_ENV_TIMBRE] : ChiptuneEngine::NO_ENVELOPE);
+            chip_envelope ? value_[P_ENV_TIMBRE]
+                          : static_cast<float>(ChiptuneEngine::NO_ENVELOPE));
       }
 
       bool already_enveloped = v.engine->post_processing_settings.already_enveloped;
