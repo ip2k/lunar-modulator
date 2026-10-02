@@ -367,11 +367,12 @@ What differs, deliberately:
 - **Patch selection.** HARMONICS' hysteresis scan over the 32 patches of one
   bank becomes a single **Patch** list of all 96 patches.
   - Entries are named `"<bank> <name>"` from the patch data, for example
-    `2 E.PIANO 1`.
+    `2 E.PIANO 1`. 23 names that are trademarks or a person's name are
+    shown under names of our own ("The patch data", below).
   - The API's enum names are static, so a separate Bank parameter could not
     show the voice names of the bank it selects (see the API request below).
   - `test_patch_names_match_the_banks` re-reads `resources.cc` and checks
-    the table.
+    the table's stored names.
 - **Transpose.** The patch's own transpose is applied (DX7 "C3" = 24).
   - Plaits unpacks it but never reads it [verified: grep].
   - 47 of the 96 patches are transposed, most of them an octave down.
@@ -437,21 +438,82 @@ under Plaits' MIT header:
 
 Their names match well-known DX7 factory and third-party patches (`E.PIANO
 1`, `*PPG*Vol.1`, `CS 80`). The source does not say where they came from.
-The names are shown as they are stored, and some carry third-party
-trademarks or a person's name: `FENDER 1`, `STEINWAY`, `*Hammond 1`,
-`*PPG*Vol.1/2`, `FAIRLIGHT`, `*Fairl. 3`, `CS 80`, `JX-33-P`, `M1 PADS`,
-`Mooger Low`, `VANGELIS 1`. The credits string therefore says "DX7 patch
-banks as distributed with Plaits" rather than claiming them as MIT code.
-See the open issue below.
+The credits string therefore says "DX7 patch banks as distributed with
+Plaits" rather than claiming them as MIT code. See the open issue below.
+
+**The names shown.** The browser simulator will be published on GitHub
+Pages, and a public page counts as distribution (the owner's decision,
+2026-10-01). So the 23 patches whose stored name is a third-party
+trademark, a product or company name, or a person's name are listed under a
+descriptive name of our own, at most 10 characters like the stored ones.
+
+- **Where.** The `RENAMED(stored, shown)` entries of the Patch table in
+  `src/mi_sixop.cc`. The vendored files are untouched.
+- **Personal builds** may show the stored names. Compile `mi_sixop.cc` with
+  `-DFM1_SIXOP_ORIGINAL_NAMES`. Every build also links
+  `build/fm1-render-original-names`, which is `fm1-render` with only that
+  flag added (`mk/plaits-heavy.mk`).
+- **Only the names change.** The Patch values, their order and the patch
+  data are the same. All 96 patches render byte-identical to the build
+  before the rename, and in both builds [verified: a two-note render of
+  every patch, 2026-10-01]. The tests check five of them in both builds.
+- **The stored names stay in the data.** Bytes 118–127 of each packed patch
+  still hold them, since the data is Plaits' unchanged. Neither the engine
+  nor `fm1-render` shows them; only the test tool `fm1-ref-plaits` reports
+  them, for the comparison with upstream.
+- **The reasons** below are our reading of each name [inferred]. None was
+  checked against a trademark register. Four are renamed out of caution,
+  where the name only reads as a mark or a name.
+
+| Patch | Stored name | Shown as | Why |
+| --- | --- | --- | --- |
+| 1 | `Mooger Low` | `Fat Low` | Moog |
+| 3 | `MORHOL TB1` | `ACID BASS` | Caution: "TB" reads as Roland's TB-303, and "MORHOL" may be a name |
+| 5 | `BILL BASS` | `PLUCK BASS` | A first name |
+| 12 | `CROMA 2` | `PRISM 2` | Caution: reads as the Rhodes Chroma |
+| 16 | `CS 80` | `POLY 80` | Yamaha CS-80 |
+| 19 | `DX-TROTT` | `FM-TROTT` | Yamaha's DX line |
+| 24 | `AMYTAL` | `SEDATIVE` | A drug's brand name |
+| 25 | `FAIRLIGHT` | `SAMPLER 1` | Fairlight |
+| 26 | `*PPG*Vol.1` | `*Wavetbl 1` | PPG |
+| 27 | `*PPG*Vol.2` | `*Wavetbl 2` | PPG |
+| 28 | `*Fairl. 3` | `*Sampler 3` | Fairlight |
+| 33 | `FENDER 1` | `TINE EP 1` | Fender |
+| 34 | `WINTRHODES` | `WINTER EP` | Rhodes |
+| 36 | `*Mark III` | `*Tines III` | The Rhodes Mark III |
+| 38 | `SYN-CLAV` | `SYNTH CLAV` | Caution: reads as Synclavier |
+| 39 | `CLAVINET` | `FUNK CLAV` | Hohner's Clavinet |
+| 42 | `STEINWAY` | `BIG GRAND` | Steinway |
+| 62 | `SYNDM 25.8` | `SYNTH DRUM` | Caution: reads as Syndrum |
+| 65 | `*Hammond 1` | `*Drawbar 1` | Hammond |
+| 72 | `JX-33-P` | `POLY PAD` | Roland JX-3P |
+| 75 | `M1 PADS` | `LUSH PADS` | Korg M1 |
+| 76 | `CARLOS   2` | `BAROQUE 2` | Wendy Carlos |
+| 86 | `VANGELIS 1` | `CINEMA 1` | Vangelis |
+
+"Patch" is the parameter's value, 0–95; the list shows the bank before the
+name (`1 Fat Low`). The new names were chosen from each patch's envelopes
+and algorithm (a held bass, a slow-attack pad, a tremolo), not by ear
+[inferred].
+
+Kept after the same review, as generic words or no known mark [inferred]:
+`CLAV-E.PNO` and `CLAV 3` (General MIDI's own name for the instrument is
+"Clavi" [reported: GM 1 sound set]), `E.PIANO 1`, `GRD PIANO1`, `RS-EP C`, `TUB BELLS`, `*Planets`,
+`PAPAGAYO`, `CIRRUS` and `ENTRIX`. The credits string's "DX7" names the
+patch format, not a patch.
+
+`tests/test_engines_plaits_heavy.py` keeps this table, the code and the
+default build's `--list` in step. The listed names must not match a
+deny-list of the renamed names and of synth makers' marks, case-insensitive.
 
 ## Tests
 
-`tests/test_engines_plaits_heavy.py` has 183 tests:
+`tests/test_engines_plaits_heavy.py` has 191 tests:
 
 | Group | Tests | What they check |
 | --- | --- | --- |
 | Registry | 1 | Ids and names avoid Mutable Instruments' names; pages, name lengths and credits |
-| Patch names | 1 | The patch-name table matches `resources.cc` |
+| Patch names | 9 | The table's stored names match `resources.cc`; the renamed patches match the table above; the default build lists none of the denied names; the original-names build lists the stored ones and renders the same bytes (5 patches) |
 | Every model and patch | 13 + 96 | One note each: no non-finite samples, no raw clipping, audible |
 | Macro Heavy tuning | 18 | At A3, A4 and A5, after a low-pass that leaves the fundamental (eight one-pole passes for modal, whose second partial is 5.5 dB above its first at A4, four for the rest). ±5 cents for additive, formant, swarm, speech vowels and modal (structure 0.25); ±12 cents for string |
 | Six-Op tuning | 6 | ±5 cents for three patches with transposes of none, −12 and +12 |
@@ -681,10 +743,11 @@ the same peaks as on macOS. That was not re-run after the review fixes.
 - **`stmlib::Random`** is one global generator shared by every instance and
   voice. Output is deterministic per process, not per instance.
 - **Patch data provenance and names.** The DX7 patch data carries Plaits'
-  MIT header but no provenance. Its patch names, shown in the UI, include
-  third-party trademarks and a person's name (listed under "The patch
-  data"). For a commercial build, have the three banks and their names
-  reviewed, or ship user banks instead.
+  MIT header but no provenance. The names that are trademarks or a
+  person's name are no longer shown by default ("The patch data"), but the
+  data still holds them, and the renaming rests on our own reading. For a
+  commercial build, have the three banks and their names reviewed, or ship
+  user banks instead.
 - **Pi32v2 cost** is unmeasured; see stage B. So are one speech word-bank
   parse (above), the resamplers' share ("Voice cap") and the FPU's
   divide-by-zero behaviour.

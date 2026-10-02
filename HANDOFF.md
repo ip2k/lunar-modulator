@@ -158,9 +158,11 @@ this first, then `README.md`, then `docs/`.
    which found and fixed a Shapes block-size bug (drift and a crash). Left
    before stage B: Shapes' memory (207 KB for 12 voices). Since 2026-10-01
    the Mutable engines run at their native rates (Braids 96 kHz, Plaits
-   47,872.34 Hz) through `fm1_resampler.h` and match upstream at 44,118 Hz. Open for the
-   owner: Six-Op FM's patch names carry third-party trademarks, which matters
-   only if the project is distributed. Stage B, the pi32v2 benchmark and a
+   47,872.34 Hz) through `fm1_resampler.h` and match upstream at 44,118 Hz. Six-Op
+   FM's 23 patch names that are trademarks or a person's name are shown
+   under names of our own since 2026-10-01, because the browser simulator is
+   going public; `-DFM1_SIXOP_ORIGINAL_NAMES` restores them for personal
+   builds (`engines/plaits-heavy.md`). Stage B, the pi32v2 benchmark and a
    `-fPIC` test, wants the AC79 dev board from item 4
    (the JL-AC79-DevKit V1.0 with an AC7916; docs/07 §3).
 8. **Sequencer (docs/12, docs/13, 2026-10-01).** An Elektron-style
