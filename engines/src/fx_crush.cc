@@ -53,13 +53,15 @@ namespace crush {
 
 enum { P_BITS, P_RATE, P_JITTER, P_MIX, P_TONE, P_LEVEL, P_COUNT };
 
+// Uids (API v2) are fixed: never renumber one; a new parameter takes the next
+// free uid. Every parameter is read each block: SMOOTH and MOD.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Bits",   FM1_PARAM_FLOAT, 1, 16, 8.0f,  NULL, 0 },
-  { "Rate",   FM1_PARAM_FLOAT, 0, 1,  0.75f, NULL, 0 },
-  { "Jitter", FM1_PARAM_FLOAT, 0, 1,  0.0f,  NULL, 0 },
-  { "Mix",    FM1_PARAM_FLOAT, 0, 1,  1.0f,  NULL, 0 },
-  { "Tone",   FM1_PARAM_FLOAT, 0, 1,  1.0f,  NULL, 1 },
-  { "Level",  FM1_PARAM_FLOAT, 0, 2,  1.0f,  NULL, 1 },
+  { "Bits",   FM1_PARAM_FLOAT, 1, 16, 8.0f,  NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Bits" },
+  { "Rate",   FM1_PARAM_FLOAT, 0, 1,  0.75f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Rate" },
+  { "Jitter", FM1_PARAM_FLOAT, 0, 1,  0.0f,  NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Jitter" },
+  { "Mix",    FM1_PARAM_FLOAT, 0, 1,  1.0f,  NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
+  { "Tone",   FM1_PARAM_FLOAT, 0, 1,  1.0f,  NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Tone" },
+  { "Level",  FM1_PARAM_FLOAT, 0, 2,  1.0f,  NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Level" },
 };
 
 const float kMinRateHz = 100.0f;     // Rate 0

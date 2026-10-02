@@ -1,0 +1,122 @@
+{
+  "about": "Every engine's and effect's parameter uids and flags (engine API v2, engines/README.md, \"Parameters\"), pinned so that a reordered or edited table cannot move a lock or a route. tests/test_engine_params.py compares the build with this file. A uid is never changed or reused: a new parameter is added here with the next free uid, and a removed one moves to `retired` with its uid. Schwung modules list every defined parameter, the hidden ones too.",
+  "engines": {
+    "macro": [
+      {"name": "Model", "type": "enum", "uid": 1, "flags": ["nolock"]},
+      {"name": "Harmonics", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Timbre", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Morph", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Decay", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Colour", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Volume", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Env Pitch", "type": "float", "uid": 8, "flags": ["smooth", "mod"]},
+      {"name": "Env Timbre", "type": "float", "uid": 9, "flags": ["smooth", "mod"]},
+      {"name": "Env Morph", "type": "float", "uid": 10, "flags": ["smooth", "mod"]},
+      {"name": "LPG", "type": "enum", "uid": 11, "flags": []}
+    ],
+    "shapes": [
+      {"name": "Shape", "type": "enum", "uid": 1, "flags": ["nolock"]},
+      {"name": "Timbre", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Color", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Attack", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Release", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Volume", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
+    ],
+    "macro-heavy": [
+      {"name": "Model", "type": "enum", "uid": 1, "flags": ["nolock"]},
+      {"name": "Harmonics", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Timbre", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Morph", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Decay", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Colour", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Volume", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Word Speed", "type": "float", "uid": 12, "flags": ["smooth", "mod"]},
+      {"name": "Env Pitch", "type": "float", "uid": 8, "flags": ["smooth", "mod"]},
+      {"name": "Env Timbre", "type": "float", "uid": 9, "flags": ["smooth", "mod"]},
+      {"name": "Env Morph", "type": "float", "uid": 10, "flags": ["smooth", "mod"]},
+      {"name": "LPG", "type": "enum", "uid": 11, "flags": []}
+    ],
+    "sixop": [
+      {"name": "Patch", "type": "enum", "uid": 1, "flags": ["latch", "mod"]},
+      {"name": "Brightness", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Envelope", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Volume", "type": "float", "uid": 4, "flags": ["smooth", "mod"]}
+    ],
+    "sw-sophie": [
+      {"name": "Pad", "type": "enum", "uid": 2935, "flags": ["nolock"]},
+      {"name": "Tune", "type": "float", "uid": 3346, "flags": ["latch", "mod"]},
+      {"name": "Decay", "type": "float", "uid": 3245, "flags": ["latch", "mod"]},
+      {"name": "Model", "type": "enum", "uid": 3572, "flags": ["latch", "mod"]},
+      {"name": "Color", "type": "float", "uid": 3425, "flags": ["latch", "mod"]},
+      {"name": "Metal", "type": "float", "uid": 3924, "flags": ["latch", "mod"]},
+      {"name": "Feedback", "type": "float", "uid": 3660, "flags": ["latch", "mod"]},
+      {"name": "Sweep", "type": "float", "uid": 2851, "flags": ["latch", "mod"]},
+      {"name": "Crush", "type": "float", "uid": 2962, "flags": ["latch", "mod"]},
+      {"name": "Drive", "type": "float", "uid": 3029, "flags": ["latch", "mod"]},
+      {"name": "Level", "type": "float", "uid": 3727, "flags": ["latch", "mod"]},
+      {"name": "Cutoff", "type": "float", "uid": 3283, "flags": ["latch", "mod"]},
+      {"name": "Resonance", "type": "float", "uid": 3803, "flags": ["latch", "mod"]},
+      {"name": "Filter Type", "type": "enum", "uid": 2536, "flags": ["latch", "mod"]},
+      {"name": "Ring Time", "type": "float", "uid": 3733, "flags": ["latch", "mod"]},
+      {"name": "Ring Fdbk", "type": "float", "uid": 2290, "flags": ["latch", "mod"]},
+      {"name": "Ring Mix", "type": "float", "uid": 2951, "flags": ["latch", "mod"]},
+      {"name": "Ring Tone", "type": "float", "uid": 2235, "flags": ["latch", "mod"]}
+    ],
+    "test-sine": [
+      {"name": "Volume", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
+    ],
+    "plate": [
+      {"name": "Mix", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Decay", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Damping", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Diffusion", "type": "float", "uid": 4, "flags": ["smooth", "mod"]}
+    ],
+    "ensemble": [
+      {"name": "Mix", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Depth", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Width", "type": "float", "uid": 3, "flags": ["smooth", "mod"]}
+    ],
+    "diffuse": [
+      {"name": "Mix", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Time", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Tone", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Width", "type": "float", "uid": 4, "flags": ["smooth", "mod"]}
+    ],
+    "sw-psxverb": [
+      {"name": "Model", "type": "enum", "uid": 3572, "flags": ["nolock"]},
+      {"name": "Decay", "type": "float", "uid": 3245, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 2516, "flags": ["smooth", "mod"]},
+      {"name": "Level", "type": "float", "uid": 2746, "flags": ["smooth", "mod"]},
+      {"name": "Input", "type": "float", "uid": 3391, "flags": ["smooth", "mod"]}
+    ],
+    "crush": [
+      {"name": "Bits", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Rate", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Jitter", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Tone", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Level", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
+    ],
+    "fold": [
+      {"name": "Fold", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Symmetry", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Shape", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Tone", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Level", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
+    ],
+    "echo": [
+      {"name": "Time", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Feedback", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Ping-pong", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Tone", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Wow", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Level", "type": "float", "uid": 7, "flags": ["smooth", "mod"]}
+    ],
+    "test-gain": [
+      {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
+    ]
+  },
+  "retired": {}
+}

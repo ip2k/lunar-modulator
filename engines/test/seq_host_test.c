@@ -13,6 +13,11 @@
  *   - The room figures, the realtime-line parser (length-bounded), lane
  *     labels, and every lock value on ranges other than 0..1 (where the
  *     expression's parenthesisation shows).
+ *   - Engine API v2: every lane's uid equals a fresh resolution of its label
+ *     after every block, through text and typed commands alike; a lock goes
+ *     to its uid's parameter, whose index is not uid - 1; a NOLOCK
+ *     parameter's locks are refused, counted and split nothing; a new
+ *     engine, an import and a released lane re-resolve.
  *
  * Prints one JSON line of counts; exits 1 after the first failed check is
  * reported. Desktop test code (stdio); the bridge itself has none. MIT
@@ -34,19 +39,47 @@ static int failed;
 
 /* A pretend engine: a FLOAT and an ENUM of 8 values, then FLOATs on ranges
  * like Sophie's (Tune, Decay, Sweep), where min + range * v / 127 and
- * min + range * (v / 127) round differently. */
+ * min + range * (v / 127) round differently, and a NOLOCK ENUM. Uids are
+ * deliberately not index + 1. */
+#define CONT FM1_PARAM_CONTINUOUS
 static const fm1_param_t kParams[] = {
-  { "Timbre", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.5f, NULL, 0 },
-  { "Model", FM1_PARAM_ENUM, 0.0f, 7.0f, 0.0f, NULL, 0 },
-  { "Tune", FM1_PARAM_FLOAT, -24.0f, 24.0f, 0.0f, NULL, 0 },
-  { "Decay", FM1_PARAM_FLOAT, 0.03f, 4.0f, 0.28f, NULL, 0 },
-  { "Sweep", FM1_PARAM_FLOAT, -100.0f, 100.0f, 55.0f, NULL, 0 },
+  { "Timbre", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.5f, NULL, 0, 40, CONT, FM1_UNIT_NONE, "Timbre" },
+  { "Model", FM1_PARAM_ENUM, 0.0f, 7.0f, 0.0f, NULL, 0, 7, FM1_PARAM_LATCH, FM1_UNIT_NONE, "Model" },
+  { "Tune", FM1_PARAM_FLOAT, -24.0f, 24.0f, 0.0f, NULL, 0, 3, CONT, FM1_UNIT_SEMI, "Tune" },
+  { "Decay", FM1_PARAM_FLOAT, 0.03f, 4.0f, 0.28f, NULL, 0, 12, CONT, FM1_UNIT_NONE, "Decay" },
+  { "Sweep", FM1_PARAM_FLOAT, -100.0f, 100.0f, 55.0f, NULL, 0, 1, CONT, FM1_UNIT_PCT, "Sweep" },
+  { "Bank", FM1_PARAM_ENUM, 0.0f, 3.0f, 0.0f, NULL, 1, 2, FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Bank" },
 };
 #define N_PARAMS (sizeof(kParams) / sizeof(kParams[0]))
 static const fm1_engine_t kEngine = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "fake", "Fake", "", kParams,
   (uint16_t)N_PARAMS, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
+/* A second engine that names Timbre and Bank too, at other uids and with
+ * Bank lockable: a lane follows the engine it plays. */
+static const fm1_param_t kOtherParams[] = {
+  { "Bank", FM1_PARAM_ENUM, 0.0f, 3.0f, 0.0f, NULL, 0, 9, 0, FM1_UNIT_NONE, "Bank" },
+  { "Timbre", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.5f, NULL, 0, 5, CONT, FM1_UNIT_NONE, "Timbre" },
+};
+static const fm1_engine_t kOther = {
+  FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "other", "Other", "", kOtherParams,
+  2, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+};
+#undef CONT
+
+/* Every lane of h resolves as its label does now, against e. */
+static int lanes_match(const fm1_seq_host_t *h, const fm1_engine_t *e) {
+  unsigned t, lane;
+  for (t = 0; t < FM1_SEQ_MAX_TRACKS; ++t) {
+    for (lane = 0; lane < FM1_SEQ_LANES; ++lane) {
+      const char *label = fm1_seq_lane_label(h->seq, (uint8_t)t, (uint8_t)lane);
+      if (fm1_seq_host_lane_uid(h, (uint8_t)t, (uint8_t)lane) != fm1_seq_lane_uid(e, label)) {
+        return 0;
+      }
+    }
+  }
+  return 1;
+}
 
 /* What the sink was asked to do, with the frame the block had reached. */
 enum { C_ON = 1, C_OFF, C_PARAM };
@@ -116,7 +149,10 @@ static const step_t kScript[] = {
   { 0, "alabel 0 0 synth:Timbre" }, { 0, "alabel 0 1 x:MODEL" },
   { 0, "alabel 0 2 synth:Nothing" }, { 0, "abase 0 0 10" }, { 0, "aset 0 0 2 90 1" },
   { 0, "aset 0 1 5 40 1" }, { 0, "aset 0 2 3 70 1" }, { 0, "swing 62" }, { 0, "play" },
-  { 300, "rec 0" }, { 330, "non 0 62 87" }, { 370, "nof 0 62" }, { 1000, "rt FA" },
+  { 300, "rec 0" }, { 330, "non 0 62 87" }, { 370, "nof 0 62" },
+  { 700, "alabel 0 3 synth:bank" }, { 700, "aset 0 3 4 100 1" },        /* NOLOCK */
+  { 800, "alabel 0 2 synth:sweep" },                                   /* relabelled */
+  { 1000, "rt FA" }, { 1200, "aclr 0 3" },                             /* released */
   { 1500, "rt FC" }, { 2000, "stop" }, { 2600, "play" }, { 3800, "stop" },
 };
 #define BLOCKS 4000u
@@ -159,7 +195,7 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
   static trace_t tr;
   static float block[2 * BLOCK];
   static fm1_seq_ev_t seen[CAP];
-  uint32_t k, i, rt_events = 0, midi_ons = 0, midi_locks = 0;
+  uint32_t k, i, rt_events = 0, midi_ons = 0, midi_locks = 0, nolock = 0;
   size_t next = 0;
   fm1_seq_host_init(&a, make(mem_text), ev_text, CAP);
   fm1_seq_host_init(&b, make(mem_typed), ev_typed, CAP);
@@ -172,6 +208,7 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
   sink.set_param = t_param;
   fm1_seq_set_route(a.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_set_route(b.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
+  fm1_seq_host_bind(&b, &kEngine);   /* b never dispatches into a sink */
   *n_events = *n_calls = *n_inside = 0;
   for (k = 0; k < BLOCKS; ++k) {
     uint32_t na, nb;
@@ -180,6 +217,8 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
     }
     if (k >= CLOCK_FROM && k < CLOCK_TO && (k - CLOCK_FROM) % 16u == 0) apply_both(&a, &b, "rt F8");
     if (k == 1000) rt_events = a.n;
+    CHECK(k == 0 || lanes_match(&a, &kEngine));   /* resolved at alabel, before dispatch */
+    CHECK(lanes_match(&b, &kEngine));
     na = fm1_seq_host_advance(&a, BLOCK);
     nb = fm1_seq_host_advance(&b, BLOCK);
     CHECK(na == a.n && nb == b.n && na == nb);
@@ -212,6 +251,10 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
         if (e->kind == FM1_SEQ_EV_LOCK) {
           p = fm1_seq_lane_param(&kEngine, fm1_seq_lane_label(a.seq, e->track, e->a));
           if (p < 0) continue;
+          if (kParams[p].flags & FM1_PARAM_NOLOCK) {
+            ++nolock;
+            continue;
+          }
         }
         CHECK(c < tr.n);
         if (c >= tr.n) break;
@@ -234,7 +277,9 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
   CHECK(a.splits == *n_inside && *n_inside > 0);
   CHECK(a.max_n == b.max_n && a.max_n > 0);
   CHECK(a.notes_to_engine > 0 && a.locks_to_engine > 0);
+  CHECK(a.locks_refused == nolock && nolock > 0);    /* Bank's locks, every one */
   CHECK(b.notes_to_engine == 0 && b.splits == 0);    /* a NULL sink plays nothing */
+  CHECK(b.locks_refused == 0);
   CHECK(midi_ons > 0 && midi_locks > 0);             /* track 2 played, to MIDI only */
   {
     const size_t la = fm1_seq_export_movy1(a.seq, set_text, sizeof(set_text));
@@ -351,6 +396,87 @@ static void hand_made_block(void) {
   }
 }
 
+/* Engine API v2 in one block each: a lock goes to the parameter its uid
+ * names (index 3 for uid 12), a NOLOCK one is refused before any split, a
+ * new engine moves the lane to its own uid for the same name (and its Bank
+ * is lockable), an import resolves, and a released lane resolves to none. */
+static void uids_and_refusals(void) {
+  static trace_t tr;
+  static float block[2 * BLOCK];
+  static const char setup[] = "alabel 0 0 synth:decay;alabel 0 1 synth:Bank;alabel 0 2 Timbre";
+  static const char set[] = "movy1\nbpm 12000\ntk 0 0 0\nau 0 0 64 synth:sweep\n";
+  fm1_seq_ev_t ev[16];
+  fm1_seq_host_t h;
+  fm1_seq_sink_t sink;
+  uint32_t n = 0;
+  sink.ctx = &tr;
+  sink.engine = &kEngine;
+  sink.render = t_render;
+  sink.note_on = t_on;
+  sink.note_off = t_off;
+  sink.set_param = t_param;
+  fm1_seq_host_init(&h, make(mem_text), ev, 16);
+  CHECK(h.engine == NULL && h.locks_refused == 0);
+  fm1_seq_set_route(h.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
+  CHECK(fm1_seq_host_line(&h, setup, sizeof(setup) - 1u) == 0);
+  CHECK(fm1_seq_host_lane_uid(&h, 0, 0) == 0);           /* no engine bound yet */
+  fm1_seq_host_bind(&h, &kEngine);
+  CHECK(fm1_seq_host_lane_uid(&h, 0, 0) == 12 && fm1_seq_host_lane_uid(&h, 0, 1) == 2 &&
+        fm1_seq_host_lane_uid(&h, 0, 2) == 40 && fm1_seq_host_lane_uid(&h, 0, 3) == 0);
+  CHECK(fm1_seq_host_lane_uid(&h, 16, 0) == 0 && fm1_seq_host_lane_uid(&h, 0, 8) == 0);
+  CHECK(fm1_param_index(&kEngine, 12) == 3 && fm1_param_index(&kEngine, 0) == -1 &&
+        fm1_param_index(&kEngine, 99) == -1 && fm1_param_index(NULL, 12) == -1);
+  CHECK(fm1_seq_lane_uid(&kEngine, "x:SWEEP") == 1 && fm1_seq_lane_uid(&kEngine, "") == 0 &&
+        fm1_seq_lane_uid(&kEngine, "Nothing") == 0 && fm1_seq_lane_uid(NULL, "Tune") == 0);
+#define EV(fr, k, t, aa, bb)                                                  \
+  do {                                                                        \
+    ev[n].tick = 0; ev[n].frame = (fr); ev[n].kind = (k); ev[n].track = (t);  \
+    ev[n].a = (aa); ev[n].b = (bb); ++n;                                      \
+  } while (0)
+  EV(5, FM1_SEQ_EV_LOCK, 0, 1, 127);       /* Bank: NOLOCK, refused */
+  EV(9, FM1_SEQ_EV_LOCK, 0, 0, 127);       /* Decay, index 3 */
+  EV(9, FM1_SEQ_EV_LOCK, 0, 1, 64);        /* Bank again */
+#undef EV
+  h.n = n;
+  memset(&tr, 0, sizeof(tr));
+  tr.block = block;
+  fm1_seq_host_dispatch(&h, BLOCK, block, &sink);
+  CHECK(h.locks_refused == 2 && h.locks_to_engine == 1 && h.splits == 1 && tr.pieces == 2u);
+  CHECK(tr.n == 1u && tr.calls[0].kind == C_PARAM && tr.calls[0].index == 3 &&
+        tr.calls[0].value == fm1_seq_lock_value(&kParams[3], 127) && tr.calls[0].at == 9);
+  /* Another engine: Timbre moves to its uid there, Bank becomes lockable. */
+  n = 0;
+  ev[0].tick = 0; ev[0].frame = 0; ev[0].kind = FM1_SEQ_EV_LOCK; ev[0].track = 0;
+  ev[0].a = 1; ev[0].b = 127;
+  ev[1] = ev[0];
+  ev[1].a = 2;
+  h.n = 2;
+  sink.engine = &kOther;
+  memset(&tr, 0, sizeof(tr));
+  tr.block = block;
+  fm1_seq_host_dispatch(&h, BLOCK, block, &sink);
+  CHECK(h.engine == &kOther && fm1_seq_host_lane_uid(&h, 0, 2) == 5 &&
+        fm1_seq_host_lane_uid(&h, 0, 0) == 0);
+  CHECK(h.locks_refused == 2 && h.locks_to_engine == 3 && tr.n == 2u);
+  CHECK(tr.n == 2u && tr.calls[0].index == 0 && tr.calls[0].value == 3.0f &&
+        tr.calls[1].index == 1 && tr.calls[1].value == 1.0f);
+  /* An import through the bridge resolves; a released lane resolves to none. */
+  fm1_seq_host_bind(&h, &kEngine);
+  CHECK(fm1_seq_host_import(&h, set, sizeof(set) - 1u) == 1);
+  CHECK(fm1_seq_host_lane_uid(&h, 0, 0) == 1 && fm1_seq_host_lane_uid(&h, 0, 1) == 0 &&
+        lanes_match(&h, &kEngine));
+  CHECK(fm1_seq_host_line(&h, "aclr 0 0", 8) <= 1u);
+  CHECK(fm1_seq_host_lane_uid(&h, 0, 0) == 0 && lanes_match(&h, &kEngine));
+  h.n = 0;
+  {
+    /* A typed alabel resolves its track. */
+    fm1_seq_cmd_t c;
+    CHECK(fm1_seq_parse("alabel 0 5 a:tune", 17, &c) == 1);
+    fm1_seq_host_cmd(&h, &c);
+    CHECK(fm1_seq_host_lane_uid(&h, 0, 5) == 3 && lanes_match(&h, &kEngine));
+  }
+}
+
 /* A buffer of none: every event counted as dropped, nothing written. */
 static void no_buffer(void) {
   fm1_seq_host_t h;
@@ -370,6 +496,7 @@ int main(void) {
   parsers_and_figures();
   inputs_and_dispatch(&events, &calls, &inside);
   hand_made_block();
+  uids_and_refusals();
   no_buffer();
   printf("{\"ok\":%s,\"events\":%llu,\"sink_calls\":%llu,\"splits\":%llu}\n", failed ? "false" : "true",
          (unsigned long long)events, (unsigned long long)calls, (unsigned long long)inside);

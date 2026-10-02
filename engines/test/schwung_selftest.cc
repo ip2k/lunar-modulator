@@ -190,10 +190,12 @@ audio_fx_api_v2_t *ProbeFxHeadroomInit(const host_api_v1_t *) {
 
 const char *const kModeNames[4] = { "A", "B", "C", "D" };
 const fm1_param_t kProbeParams[4] = {
-  { "Gain", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Mode", FM1_PARAM_ENUM, 0, 3, 0, kModeNames, 0 },
-  { "Slot", FM1_PARAM_ENUM, 0, 15, 0, NULL, 0 },
-  { "Tune", FM1_PARAM_FLOAT, -24, 24, 0, NULL, 0 },
+  { "Gain", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, KeyUid("gain"), FM1_PARAM_CONTINUOUS,
+    FM1_UNIT_NONE, "Gain" },
+  { "Mode", FM1_PARAM_ENUM, 0, 3, 0, kModeNames, 0, KeyUid("mode"), 0, FM1_UNIT_NONE, "Mode" },
+  { "Slot", FM1_PARAM_ENUM, 0, 15, 0, NULL, 0, KeyUid("slot"), 0, FM1_UNIT_NONE, "Slot" },
+  { "Tune", FM1_PARAM_FLOAT, -24, 24, 0, NULL, 0, KeyUid("tune"), FM1_PARAM_CONTINUOUS,
+    FM1_UNIT_SEMI, "Tune" },
 };
 const ParamKey kProbeKeys[4] = {
   { "gain", VALUE_FLOAT, 0 }, { "mode", VALUE_INDEX, 0 },
@@ -617,10 +619,11 @@ int Contract(const char *id) {
     const fm1_param_t &p = m->params[i];
     const ParamKey &k = m->keys[i];
     printf("%s{\"name\":%s,\"key\":%s,\"format\":\"%s\",\"offset\":%d,\"type\":%d,"
-           "\"min\":%s,\"max\":%s,\"def\":%s,\"page\":%u,\"enum_names\":",
+           "\"min\":%s,\"max\":%s,\"def\":%s,\"page\":%u,\"uid\":%u,\"flags\":%u,"
+           "\"enum_names\":",
            i ? "," : "", Quote(p.name).c_str(), Quote(k.key).c_str(),
            k.format == VALUE_INDEX ? "index" : "float", k.offset, p.type,
-           Num(p.min).c_str(), Num(p.max).c_str(), Num(p.def).c_str(), p.page);
+           Num(p.min).c_str(), Num(p.max).c_str(), Num(p.def).c_str(), p.page, p.uid, p.flags);
     if (p.enum_names) {
       printf("[");
       const int n = static_cast<int>(p.max - p.min + 1.5f);

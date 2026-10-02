@@ -279,11 +279,13 @@ clear its last lock. A sound never stays at a value that no step asked for.
   range.
 - On a list parameter, such as Model, Shape, Patch or Pad, the 128 values
   are divided evenly between the entries.
-- In the FM-1 build, parameters that disturb every sounding note when they
-  change are planned to refuse locks: Macro's Model, which cuts the notes,
-  and Shapes' Shape, which strikes them again. A lock on
-  Six-Op FM's Patch changes the patch for that step's notes only, as Six-Op
-  FM reads it when a note starts.
+- Parameters that disturb every sounding note when they change refuse
+  locks: Macro's and Macro Heavy's Model, which cut the notes, and Shapes'
+  Shape, which strikes them again. So does Sophie's Pad, which only chooses
+  the pad her other knobs edit. A refused lock is simply not played; the
+  desktop renderer counts them. A lock on Six-Op FM's Patch or on Sophie's
+  Model changes the sound of that step's notes only, as those engines read
+  it when a note starts.
 - Continuous parameters are planned to glide to a locked value over 2 to
   3 ms, so a lock under a ringing note does not click.
 - The sound engine itself cannot be locked. To change engine on a step, put

@@ -284,6 +284,14 @@ locks use Movy's planned bins, `⌊v·n/128⌋` (plan D14 [reported]).
 arrays, one slot per track, mirroring Schwung's MIDI FX → synth chain.
 Nothing else changes: sample offsets come from split renders.
 
+As built in docs/15 stage S7a [verified: engines/README.md, "Parameters";
+engines/seq.md, "Host contract"]: the uid and flags, plus MOD and INPUT for
+docs/16, a unit and an abbreviation. Lane labels stay `synth:<Name>` text
+and resolve to uids in the host bridge when a lane is labelled or a set
+imported; a lock on a NOLOCK parameter is refused and counted; no other
+render changed. SMOOTH's ramp (S7b) and `FM1_KIND_MIDI_FX` are still to
+come.
+
 **Persistence under the one rule.** Until docs/07's dump and restore, sets
 live only in desktop and dev-board builds. Then RAM, with `movy1` text export
 and import over SysEx: ASCII needs no 7-bit packing, and a full FM-1 pool is
@@ -364,7 +372,7 @@ about 90 KB [inferred], sent in chunks. Flash last: a binary image of about
 | --- | --- | --- | --- |
 | M0 — decisions | owner | §10, questions 1–5 | answers recorded here |
 | M1 — core | desktop, `engines/` | `fm1_seq`: clock, pools, `step_tick`, automation, conditions, RNG, swing, quantise, scale, gates, record, launch, scenes, song, `movy1` I/O, a verb parser for tests, `compat` | transcribed tests pass in compat; fixtures round-trip byte-identical (apart from the envelope); tick-identical at four block sizes; no heap; within budget |
-| M2 — render | desktop | `fm1-render` flags (§7), split renders, LOCK → `set_param` by uid, API v2, MIDI_FX | the §7 assertions; Macro Model refused as NOLOCK; output identical at host blocks of 1, 7 and 64 |
+| M2 — render | desktop | `fm1-render` flags (§7), split renders, LOCK → `set_param` by uid, API v2, MIDI_FX | the §7 assertions; Macro Model refused as NOLOCK; output identical at host blocks of 1, 7 and 64. Done in part: split renders (docs/15 S1), and API v2's uids, flags and NOLOCK refusal (S7a). Open: SMOOTH's ramp (S7b), MIDI_FX |
 | M3 — oracle | desktop, if approved | a `seq-core` driver and random scripts | no unexplained difference in 10,000 scripts |
 | M4 — UI | desktop | §4's gesture state machine in pure C; TFT views rendered to PNG | `automation.mjs` traces reproduced; no overlap in the PNGs |
 | B — bench | JieLi AC79 dev board | pi32v2 build, worst-case cycles per block, USB-MIDI clock in and out | the sequencer takes ≤ 2 % of any block; jitter figures |

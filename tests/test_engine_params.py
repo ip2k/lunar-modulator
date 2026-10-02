@@ -1,0 +1,169 @@
+"""Engine API v2's parameter fields (engines/include/fm1_engine.h,
+engines/README.md, "Parameters"): every engine's and effect's uids and
+flags against the pinned record in tests/fixtures/param-uids.json, the rules
+the flags follow, the decision taken for every ENUM parameter, abbreviations
+and units, and the Schwung adapters' uids derived from their keys.
+
+The fixture is the contract: a reordered table keeps its uids and passes; a
+changed, reused or dropped uid fails, so no lock or route can silently move.
+"""
+import json
+import re
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from tests.engine_helpers import ENGINES, renderer  # noqa: F401
+
+FIXTURE = Path(__file__).resolve().parent / "fixtures" / "param-uids.json"
+SELFTEST = ENGINES / "build" / "fm1-schwung-selftest"
+FLAG_BITS = [(0x01, "latch"), (0x02, "smooth"), (0x04, "nolock"), (0x08, "mod"), (0x10, "input")]
+UNITS = {"none", "semi", "ms", "hz", "pct", "deg"}
+UID_MAX = 0x0FFF
+
+# The decision for every ENUM parameter (docs/15 S7a's table, O13, as
+# checked against each engine's code in this stage). Six-Op's Patch and
+# Sophie's pad parameters are read at note-on (LATCH), so they take
+# modulation too; Macro's LPG is read every block and lockable, but a
+# rounded route could end a note held under Off, so it takes none.
+ENUM_FLAGS = {
+    ("macro", "Model"): ["nolock"],             # rebuilds every voice
+    ("macro", "LPG"): [],
+    ("macro-heavy", "Model"): ["nolock"],       # as Macro's
+    ("macro-heavy", "LPG"): [],
+    ("shapes", "Shape"): ["nolock"],            # every voice's oscillator at once
+    ("sixop", "Patch"): ["latch", "mod"],       # read per voice at note-on
+    ("sw-sophie", "Pad"): ["nolock"],           # the edit focus, not a sound
+    ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
+    ("sw-sophie", "Filter Type"): ["latch", "mod"],
+    ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
+}
+
+
+def catalog(renderer):
+    """{engine id: [parameter, ...]} with flags as names, every defined
+    parameter (a Schwung adapter's hidden ones from its contract)."""
+    listed = json.loads(subprocess.run([str(renderer), "--list"], check=True,
+                                       capture_output=True, text=True).stdout)
+    out = {}
+    for e in listed:
+        params = [dict(p, type="enum" if p["type"] == 1 else "float") for p in e["params"]]
+        if e["id"].startswith("sw-"):
+            c = json.loads(subprocess.run([str(SELFTEST), "--contract", e["id"]], check=True,
+                                          capture_output=True, text=True).stdout)
+            shown = {p["name"]: p for p in params}
+            params = []
+            for p in c["params"]:
+                row = dict(p, type="enum" if p["type"] == 1 else "float",
+                           flags=[n for b, n in FLAG_BITS if p["flags"] & b])
+                if p["name"] in shown:
+                    assert shown[p["name"]]["uid"] == row["uid"]
+                    assert shown[p["name"]]["flags"] == row["flags"]
+                    row.update(unit=shown[p["name"]]["unit"], abbr=shown[p["name"]]["abbr"])
+                params.append(row)
+        out[e["id"]] = params
+    return out
+
+
+@pytest.fixture(scope="module")
+def built(renderer):
+    return catalog(renderer)
+
+
+def test_uids_and_flags_match_the_fixture(built):
+    """Every parameter of every engine and effect has the uid, type and flags
+    the fixture pins, and nothing is missing or extra on either side."""
+    pinned = json.loads(FIXTURE.read_text())["engines"]
+    assert set(built) == set(pinned), set(built) ^ set(pinned)
+    for eid, params in built.items():
+        have = {p["name"]: (p["uid"], p["type"], p["flags"]) for p in params}
+        want = {p["name"]: (p["uid"], p["type"], p["flags"]) for p in pinned[eid]}
+        assert have == want, eid
+
+
+def test_uids_are_unique_nonzero_12_bit_and_never_reused(built):
+    retired = json.loads(FIXTURE.read_text())["retired"]
+    for eid, params in built.items():
+        uids = [p["uid"] for p in params]
+        assert all(0 < u <= UID_MAX for u in uids), eid
+        assert len(set(uids)) == len(uids), eid
+        assert not set(uids) & set(retired.get(eid, [])), eid
+
+
+def test_flags_follow_the_rules(built):
+    """NOLOCK never with MOD; every FLOAT takes modulation unless it is NOLOCK
+    and is SMOOTH unless the engine reads it at note-on (LATCH); LATCH and
+    SMOOTH never together; INPUT only on a FLOAT -1..1 with default 0; no
+    unknown bit."""
+    for eid, params in built.items():
+        for p in params:
+            f = set(p["flags"])
+            assert f <= {n for _, n in FLAG_BITS}, (eid, p["name"], f)
+            assert not {"nolock", "mod"} <= f, (eid, p["name"])
+            assert not {"latch", "smooth"} <= f, (eid, p["name"])
+            if p["type"] == "float" and "nolock" not in f:
+                assert "mod" in f and ("smooth" in f or "latch" in f), (eid, p["name"])
+            if "input" in f:
+                assert p["type"] == "float" and (p["min"], p["max"], p["def"]) == (-1, 1, 0)
+
+
+def test_every_enum_has_its_decided_flags(built):
+    enums = {(eid, p["name"]): p["flags"] for eid, params in built.items()
+             for p in params if p["type"] == "enum"}
+    assert enums == ENUM_FLAGS
+
+
+def test_abbreviations_and_units(built, renderer):
+    """abbr: 1-6 printable characters, unique in the engine, and still unique
+    cut to 5 (a matrix row with a unit prefix, docs/16 §5.3). unit: one of
+    the six. Checked on what --list shows (hidden Schwung parameters have no
+    row there)."""
+    listed = json.loads(subprocess.run([str(renderer), "--list"], check=True,
+                                       capture_output=True, text=True).stdout)
+    for e in listed:
+        abbrs = [p["abbr"] for p in e["params"]]
+        assert all(re.fullmatch(r"[ -~]{1,6}", a) for a in abbrs), (e["id"], abbrs)
+        assert len(set(abbrs)) == len(abbrs), e["id"]
+        assert len({a[:5] for a in abbrs}) == len(abbrs), e["id"]
+        assert all(p["unit"] in UNITS for p in e["params"]), e["id"]
+    units = {(e["id"], p["name"]): p["unit"] for e in listed for p in e["params"]
+             if p["unit"] != "none"}
+    assert units[("echo", "Time")] == "ms" and units[("sw-sophie", "Tune")] == "semi"
+    assert units[("sw-sophie", "Color")] == "pct"
+
+
+def fnv1a_uid(key):
+    """schwung_shim.h's KeyUid, computed independently."""
+    h = 2166136261
+    for c in key.encode():
+        h = ((h ^ c) * 16777619) & 0xFFFFFFFF
+    return 0x800 | ((h ^ (h >> 11) ^ (h >> 22)) & 0x7FF)
+
+
+@pytest.mark.parametrize("engine", ["sw-sophie", "sw-psxverb"])
+def test_schwung_uids_derive_from_the_module_keys(renderer, engine):
+    """A Schwung parameter's uid is 0x800 plus its key's FNV-1a hash folded
+    to 11 bits, so a module that reorders its parameters keeps every uid;
+    native engines number from 1, below 0x800."""
+    c = json.loads(subprocess.run([str(SELFTEST), "--contract", engine], check=True,
+                                  capture_output=True, text=True).stdout)
+    assert [p["uid"] for p in c["params"]] == [fnv1a_uid(p["key"]) for p in c["params"]]
+
+
+def test_native_uids_stay_below_the_derived_range(built):
+    for eid, params in built.items():
+        if not eid.startswith("sw-"):
+            assert all(p["uid"] < 0x800 for p in params), eid
+
+
+def test_macro_heavy_shares_macros_uids(built):
+    """The parameters both engines have keep one uid, so a lock survives a
+    swap between them; Macro Heavy's own Word Speed takes the next one."""
+    macro = {p["name"]: p["uid"] for p in built["macro"]}
+    heavy = {p["name"]: p["uid"] for p in built["macro-heavy"]}
+    assert {n: heavy[n] for n in macro} == macro
+    assert heavy["Word Speed"] == max(macro.values()) + 1
+    names = [p["name"] for p in built["macro-heavy"]]
+    assert [heavy[n] for n in names] != list(range(1, len(names) + 1)), \
+        "uid is not index + 1 here: the case that catches a host using one for the other"

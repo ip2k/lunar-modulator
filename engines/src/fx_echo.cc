@@ -60,14 +60,16 @@ namespace echo {
 
 enum { P_TIME, P_FEEDBACK, P_PINGPONG, P_MIX, P_TONE, P_WOW, P_LEVEL, P_COUNT };
 
+// Uids (API v2) are fixed: never renumber one; a new parameter takes the next
+// free uid. Every parameter is read each block: SMOOTH and MOD.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Time",      FM1_PARAM_FLOAT, 10, 1000, 300, NULL, 0 },   // milliseconds
-  { "Feedback",  FM1_PARAM_FLOAT, 0, 1, 0.4f, NULL, 0 },
-  { "Ping-pong", FM1_PARAM_FLOAT, 0, 1, 1.0f, NULL, 0 },
-  { "Mix",       FM1_PARAM_FLOAT, 0, 1, 0.35f, NULL, 0 },
-  { "Tone",      FM1_PARAM_FLOAT, 0, 1, 0.6f, NULL, 1 },
-  { "Wow",       FM1_PARAM_FLOAT, 0, 1, 0.1f, NULL, 1 },
-  { "Level",     FM1_PARAM_FLOAT, 0, 1, 1.0f, NULL, 1 },
+  { "Time",      FM1_PARAM_FLOAT, 10, 1000, 300, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Time" },
+  { "Feedback",  FM1_PARAM_FLOAT, 0, 1, 0.4f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Fdbk" },
+  { "Ping-pong", FM1_PARAM_FLOAT, 0, 1, 1.0f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "PingPg" },
+  { "Mix",       FM1_PARAM_FLOAT, 0, 1, 0.35f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
+  { "Tone",      FM1_PARAM_FLOAT, 0, 1, 0.6f, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Tone" },
+  { "Wow",       FM1_PARAM_FLOAT, 0, 1, 0.1f, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Wow" },
+  { "Level",     FM1_PARAM_FLOAT, 0, 1, 1.0f, NULL, 1, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Level" },
 };
 
 const uint32_t kCells = 16384;                // per side; a power of two

@@ -1294,6 +1294,30 @@ API v2 now, the flag table, and the label format.
 
 **Size:** M.
 
+**As built (2026-10-02, branch `feature/2026-10-02@engine-api-v2`).** O13
+and docs/16's request (§2.2, question 7) were approved. Where the build
+differs from the plan above [verified: engines/README.md, "Parameters";
+engines/seq.md, "Host contract"]:
+- **Ten ENUM parameters**, not eight: Macro's and Macro Heavy's LPG came
+  with their third page. Both are lockable with no flag.
+- **Sophie.** A triggered voice copies its pad's patch, so Model and Filter
+  Type leave sounding voices intact: LATCH and MOD, not NOLOCK. Pad stays
+  NOLOCK for another reason: it is the module's edit focus, so a lock on it
+  would change what the other lanes' locks mean. Sophie's FLOAT parameters
+  are LATCH rather than SMOOTH, for the same copy.
+- **Also added for docs/16:** the MOD and INPUT flags and the `unit` and
+  `abbr` fields.
+- **The bridge** keeps one resolved uid per lane (256 bytes in
+  `fm1_seq_host_t`) and adds `fm1_seq_host_bind`, `fm1_seq_host_import` and
+  `fm1_seq_host_lane_uid`. `fm1-render --list` shows each parameter's uid,
+  flags, unit and abbreviation, and its summary `seq_locks_refused`.
+- **The simulator is unchanged.** `sim/web/src` already accepts v2 only
+  (its check compares against `FM1_ENGINE_API_VERSION`). The catalogue JSON
+  with uids and flags, and the module's rebuild, are left to the stage that
+  adopts v2 in the app; until then `fm1.wasm.json`'s engines hash is stale,
+  which is a warning. The parity scenarios' inputs were run natively before
+  and after, identical.
+
 ### S7b. SMOOTH inside the engines
 
 **Goal.** Locks and knob moves on continuous parameters stop clicking, and

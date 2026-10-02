@@ -9,8 +9,10 @@
 namespace fm1 {
 namespace test_gain {
 
+// Uids (API v2) are fixed: never renumber one; a new parameter takes the next
+// free uid. Every parameter is read each block: SMOOTH and MOD.
 const fm1_param_t kParams[1] = {
-  { "Gain", FM1_PARAM_FLOAT, 0, 2, 1.0f, NULL, 0 },
+  { "Gain", FM1_PARAM_FLOAT, 0, 2, 1.0f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Gain" },
 };
 
 struct Instance { float gain; };

@@ -47,25 +47,36 @@ enum Param {
 
 const uint16_t kExposed = P_CRUSH;   // pages 0 and 1
 
+// Uids (API v2) derive from the module's keys (schwung_shim.h, KeyUid). A
+// triggered voice copies its pad's patch (sophie.c, trigger_voice), so every
+// pad parameter, Model and Filter Type included, is read at note-on: LATCH,
+// and a change never touches a sounding voice. Pad is the edit focus, not a
+// sound: it chooses which pad the other knobs edit, so a lock on it would
+// change what every other lane's locks mean (NOLOCK).
+// Units are the module's own (chain_params): Tune in semitones, Ring Time in
+// ms, the 0..100 knobs in %; Decay is in seconds, which has no unit code.
+const uint8_t kPadFlags = FM1_PARAM_LATCH | FM1_PARAM_MOD;
 const fm1_param_t kParams[P_COUNT] = {
-  { "Pad",       FM1_PARAM_ENUM,  0, 15, 0, kPadNames, 0 },
-  { "Tune",      FM1_PARAM_FLOAT, -24, 24, -5, NULL, 0 },
-  { "Decay",     FM1_PARAM_FLOAT, 0.03f, 4, 0.28f, NULL, 0 },
-  { "Model",     FM1_PARAM_ENUM,  0, 3, 0, kModelNames, 0 },
-  { "Color",     FM1_PARAM_FLOAT, 0, 100, 24, NULL, 1 },
-  { "Metal",     FM1_PARAM_FLOAT, 0, 100, 8, NULL, 1 },
-  { "Feedback",  FM1_PARAM_FLOAT, 0, 100, 6, NULL, 1 },
-  { "Sweep",     FM1_PARAM_FLOAT, -100, 100, 55, NULL, 1 },
-  { "Crush",     FM1_PARAM_FLOAT, 0, 100, 0, NULL, 2 },
-  { "Drive",     FM1_PARAM_FLOAT, 0, 100, 58, NULL, 2 },
-  { "Level",     FM1_PARAM_FLOAT, 0, 100, 100, NULL, 2 },
-  { "Cutoff",    FM1_PARAM_FLOAT, 0, 100, 100, NULL, 2 },
-  { "Resonance", FM1_PARAM_FLOAT, 0, 100, 0, NULL, 3 },
-  { "Filter Type", FM1_PARAM_ENUM, 0, 4, 0, kFilterNames, 3 },
-  { "Ring Time", FM1_PARAM_FLOAT, 0.5f, 30, 6, NULL, 4 },
-  { "Ring Fdbk", FM1_PARAM_FLOAT, 0, 95, 0, NULL, 4 },
-  { "Ring Mix",  FM1_PARAM_FLOAT, 0, 100, 0, NULL, 4 },
-  { "Ring Tone", FM1_PARAM_FLOAT, 0, 100, 70, NULL, 4 },
+  { "Pad",       FM1_PARAM_ENUM,  0, 15, 0, kPadNames, 0,
+    KeyUid("focused_pad"), FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Pad" },
+  { "Tune",      FM1_PARAM_FLOAT, -24, 24, -5, NULL, 0, KeyUid("tune"), kPadFlags, FM1_UNIT_SEMI, "Tune" },
+  { "Decay",     FM1_PARAM_FLOAT, 0.03f, 4, 0.28f, NULL, 0, KeyUid("decay"), kPadFlags, FM1_UNIT_NONE, "Decay" },
+  { "Model",     FM1_PARAM_ENUM,  0, 3, 0, kModelNames, 0, KeyUid("model"), kPadFlags, FM1_UNIT_NONE, "Model" },
+  { "Color",     FM1_PARAM_FLOAT, 0, 100, 24, NULL, 1, KeyUid("color"), kPadFlags, FM1_UNIT_PCT, "Color" },
+  { "Metal",     FM1_PARAM_FLOAT, 0, 100, 8, NULL, 1, KeyUid("metal"), kPadFlags, FM1_UNIT_PCT, "Metal" },
+  { "Feedback",  FM1_PARAM_FLOAT, 0, 100, 6, NULL, 1, KeyUid("feedback"), kPadFlags, FM1_UNIT_PCT, "Fdbk" },
+  { "Sweep",     FM1_PARAM_FLOAT, -100, 100, 55, NULL, 1, KeyUid("sweep"), kPadFlags, FM1_UNIT_PCT, "Sweep" },
+  { "Crush",     FM1_PARAM_FLOAT, 0, 100, 0, NULL, 2, KeyUid("crush"), kPadFlags, FM1_UNIT_PCT, "Crush" },
+  { "Drive",     FM1_PARAM_FLOAT, 0, 100, 58, NULL, 2, KeyUid("drive"), kPadFlags, FM1_UNIT_PCT, "Drive" },
+  { "Level",     FM1_PARAM_FLOAT, 0, 100, 100, NULL, 2, KeyUid("level"), kPadFlags, FM1_UNIT_PCT, "Level" },
+  { "Cutoff",    FM1_PARAM_FLOAT, 0, 100, 100, NULL, 2, KeyUid("cutoff"), kPadFlags, FM1_UNIT_PCT, "Cutoff" },
+  { "Resonance", FM1_PARAM_FLOAT, 0, 100, 0, NULL, 3, KeyUid("resonance"), kPadFlags, FM1_UNIT_PCT, "Reso" },
+  { "Filter Type", FM1_PARAM_ENUM, 0, 4, 0, kFilterNames, 3,
+    KeyUid("filter_type"), kPadFlags, FM1_UNIT_NONE, "FltTyp" },
+  { "Ring Time", FM1_PARAM_FLOAT, 0.5f, 30, 6, NULL, 4, KeyUid("ring_time"), kPadFlags, FM1_UNIT_MS, "RTime" },
+  { "Ring Fdbk", FM1_PARAM_FLOAT, 0, 95, 0, NULL, 4, KeyUid("ring_feedback"), kPadFlags, FM1_UNIT_PCT, "RFdbk" },
+  { "Ring Mix",  FM1_PARAM_FLOAT, 0, 100, 0, NULL, 4, KeyUid("ring_mix"), kPadFlags, FM1_UNIT_PCT, "RMix" },
+  { "Ring Tone", FM1_PARAM_FLOAT, 0, 100, 70, NULL, 4, KeyUid("ring_tone"), kPadFlags, FM1_UNIT_PCT, "RTone" },
 };
 
 const ParamKey kKeys[P_COUNT] = {
