@@ -86,10 +86,14 @@ unsigned Tables() {
   return n;
 }
 
+// Upstream's Init() leaves the ball's position and velocity unset; a static
+// object starts them at 0, as the module's own static one does.
+peaks::BouncingBall up_ball;
+
 unsigned Ball() {
   unsigned n = 0;
   for (int trial = 0; trial < 120; ++trial) {
-    peaks::BouncingBall up;
+    peaks::BouncingBall &up = up_ball;
     mod_mi_bounce_t me;
     uint16_t p[4];
     up.Init();
@@ -271,7 +275,7 @@ unsigned BounceKind() {
     fm1_mod_set_kind(rt.m, 0, kind);
     for (unsigned i = 0; i < 4; ++i) fm1_mod_set_param(rt.m, 0, i, knob[i]);
     // The original at 48 kHz over the same timeline.
-    peaks::BouncingBall up;
+    peaks::BouncingBall &up = up_ball;
     uint16_t p[4] = { Knob(1.0f - knob[0]), Knob(knob[1]), Knob(knob[2]), 0 };
     {
       float v = knob[3] * 32767.0f + 32768.0f;
