@@ -9,6 +9,15 @@ history.
 ## [Unreleased]
 
 ### Added
+- notes/2026-10-02-delay-reverb-eq-gates-options.md: research on delays,
+  reverbs, EQ, a DJ filter and tilt for the master bus, bus saturation, and a
+  Drawmer DS201-style gate. It also designs side-chaining: the gate and the
+  compressor each get a key input patched separately from their audio
+  input, either audio (the sound itself, another sound or the master,
+  through key filters) or a trigger from the modulation matrix, with gain
+  reduction and gate state usable as modulation sources. Every pick is MIT,
+  public domain or our own code. It lays out stages B1–B8 and 17 owner
+  decisions.
 - Step entry on the virtual FM-1's panel, still behind the lab switch
   (`?lab`; docs/15 stage S4). In SEQ mode the white keys are the bar's 16
   steps and the black keys sequencer controls, so they no longer play the
