@@ -28,6 +28,15 @@ terms it is used under.
 - **Crush** is this project's own code. Pairing a sample-rate reducer with a
   bit reducer follows **DaisySP**'s Decimator and Bitcrush, by
   **Electro-Smith**, MIT licence; none of DaisySP's code is used.
+- **Fold** is this project's own code, after the wavefolders of Serge and
+  Buchla synthesizers and the folding in Mutable Instruments' Warps and
+  Plaits by **Emilie Gillet**; its anti-aliasing follows the method of
+  **Parker, Zavalishin and Le Bivic** (DAFx-16). No code is taken from any
+  of them.
+- **Echo** is this project's own code. Its ping-pong layout is the textbook
+  one, after **Udo Zölzer**'s *DAFX*, and its 16-bit delay memory follows
+  **Emilie Gillet**'s effects engine in Rings and Clouds; none of their code
+  is used.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and

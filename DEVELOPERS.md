@@ -156,7 +156,7 @@ review.
 
 ### The engine platform
 
-- **The API:** five swappable sound engines and five effects behind one C
+- **The API:** five swappable sound engines and seven effects behind one C
   API ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
@@ -178,6 +178,10 @@ review.
   - Crush, a bitcrusher and sample-rate reducer, is our own code, after
     DaisySP's Decimator and Bitcrush (Electro-Smith, MIT)
     ([`engines/README.md`](engines/README.md#crush)).
+  - Fold, a wavefolder with antiderivative anti-aliasing, and Echo, a
+    stereo ping-pong delay, are our own code too
+    ([`engines/README.md`](engines/README.md#fold),
+    [Echo](engines/README.md#echo)).
 - **Sample rates:** the Mutable engines run at their modules' own rates and
   are resampled to the FM-1's 44,118 Hz: Braids at 96 kHz, Plaits at
   47,872 Hz ([`engines/resampler.md`](engines/resampler.md)).
