@@ -70,7 +70,12 @@ int fm1_seq_host_import(fm1_seq_host_t *h, const char *txt, size_t len) {
   return ok;
 }
 
-uint16_t fm1_seq_host_lane_uid(const fm1_seq_host_t *h, uint8_t track, uint8_t lane) {
+/* The uid a lane's locks go to on engine e: the stored one while its
+ * parameter on e has the name the label gives, else the label resolved on e
+ * afresh. Against the bound engine this is fm1_seq_host_lane_uid; another
+ * sound unit's engine (dispatch_slots) gets the same rule. */
+static uint16_t lane_uid_on(const fm1_seq_host_t *h, const fm1_engine_t *e, uint8_t track,
+                            uint8_t lane) {
   const char *label;
   uint16_t uid;
   int i;
@@ -85,9 +90,13 @@ uint16_t fm1_seq_host_lane_uid(const fm1_seq_host_t *h, uint8_t track, uint8_t l
    * locks still reach the parameter it names. Engine names are unique
    * without case (tests/test_engine_params.py), so the two agree. */
   uid = h->lane_uid[track][lane];
-  i = fm1_param_index(h->engine, uid);
-  if (i >= 0 && same_name(h->engine->params[i].name, label_name(label))) return uid;
-  return fm1_seq_lane_uid(h->engine, label);
+  i = fm1_param_index(e, uid);
+  if (i >= 0 && same_name(e->params[i].name, label_name(label))) return uid;
+  return fm1_seq_lane_uid(e, label);
+}
+
+uint16_t fm1_seq_host_lane_uid(const fm1_seq_host_t *h, uint8_t track, uint8_t lane) {
+  return lane_uid_on(h, h->engine, track, lane);
 }
 
 static int is_blank(char c) { return c == ' ' || c == '\t'; }
@@ -183,58 +192,80 @@ uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames) {
   return h->n;
 }
 
-/* The index of the parameter a lock reaches, or -1: its lane names nothing
- * (or nothing any more), or the parameter is NOLOCK, which is counted. */
-static int lock_target(fm1_seq_host_t *h, const fm1_seq_ev_t *e) {
-  const int i = fm1_param_index(h->engine, fm1_seq_host_lane_uid(h, e->track, e->a));
+/* The index of the parameter a lock reaches on engine e, or -1: its lane
+ * names nothing there (or nothing any more), or the parameter is NOLOCK,
+ * which is counted. */
+static int lock_target(fm1_seq_host_t *h, const fm1_engine_t *e, const fm1_seq_ev_t *ev) {
+  const int i = fm1_param_index(e, lane_uid_on(h, e, ev->track, ev->a));
   if (i < 0) return -1;
-  if (!fm1_param_lockable(&h->engine->params[i])) {
+  if (!fm1_param_lockable(&e->params[i])) {
     ++h->locks_refused;
     return -1;
   }
   return i;
 }
 
+/* One sink's share of the block: the events of tracks routed to the engine
+ * (any slot when `slot` is negative, else that slot only), with its render
+ * split at their frames. Leaves the buffer as it is. */
+static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm1_seq_sink_t *sink,
+                      int slot) {
+  uint32_t k, cur = 0;
+  for (k = 0; k < h->n; ++k) {
+    const fm1_seq_ev_t *e = &h->ev[k];
+    fm1_seq_track_info_t ti;
+    int param = -1;
+    uint32_t f;
+    if (e->kind != FM1_SEQ_EV_NOTE_ON && e->kind != FM1_SEQ_EV_NOTE_OFF &&
+        e->kind != FM1_SEQ_EV_LOCK) continue;
+    if (!fm1_seq_get_track(h->seq, e->track, &ti) || ti.route_kind != FM1_SEQ_ROUTE_ENGINE) {
+      continue;
+    }
+    if (slot >= 0 && ti.route_index != (unsigned)slot) continue;
+    if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
+      param = lock_target(h, sink->engine, e);
+      if (param < 0) continue;
+    }
+    f = e->frame < frames ? e->frame : frames;
+    if (f > cur) {
+      sink->render(sink->ctx, block + 2u * cur, f - cur);
+      if (cur) ++h->splits;
+      cur = f;
+    }
+    if (e->kind == FM1_SEQ_EV_NOTE_ON) {
+      sink->note_on(sink->ctx, e->a, e->b);
+      ++h->notes_to_engine;
+    } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
+      sink->note_off(sink->ctx, e->a);
+    } else {
+      sink->set_param(sink->ctx, (uint16_t)param,
+                      fm1_seq_lock_value(&sink->engine->params[param], e->b));
+      ++h->locks_to_engine;
+    }
+  }
+  if (cur < frames) {
+    sink->render(sink->ctx, block + 2u * cur, frames - cur);
+    if (cur) ++h->splits;
+  }
+}
+
 void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
                            const fm1_seq_sink_t *sink) {
-  uint32_t k, cur = 0;
   if (sink) {
     if (sink->engine != h->engine) fm1_seq_host_bind(h, sink->engine);
-    for (k = 0; k < h->n; ++k) {
-      const fm1_seq_ev_t *e = &h->ev[k];
-      fm1_seq_track_info_t ti;
-      int param = -1;
-      uint32_t f;
-      if (e->kind != FM1_SEQ_EV_NOTE_ON && e->kind != FM1_SEQ_EV_NOTE_OFF &&
-          e->kind != FM1_SEQ_EV_LOCK) continue;
-      if (!fm1_seq_get_track(h->seq, e->track, &ti) || ti.route_kind != FM1_SEQ_ROUTE_ENGINE) {
-        continue;
-      }
-      if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
-        param = lock_target(h, e);
-        if (param < 0) continue;
-      }
-      f = e->frame < frames ? e->frame : frames;
-      if (f > cur) {
-        sink->render(sink->ctx, block + 2u * cur, f - cur);
-        if (cur) ++h->splits;
-        cur = f;
-      }
-      if (e->kind == FM1_SEQ_EV_NOTE_ON) {
-        sink->note_on(sink->ctx, e->a, e->b);
-        ++h->notes_to_engine;
-      } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
-        sink->note_off(sink->ctx, e->a);
-      } else {
-        sink->set_param(sink->ctx, (uint16_t)param,
-                        fm1_seq_lock_value(&sink->engine->params[param], e->b));
-        ++h->locks_to_engine;
-      }
-    }
-    if (cur < frames) {
-      sink->render(sink->ctx, block + 2u * cur, frames - cur);
-      if (cur) ++h->splits;
-    }
+    play_sink(h, frames, block, sink, -1);
+  }
+  h->n = 0;
+}
+
+void fm1_seq_host_dispatch_slots(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_slot_t *slots,
+                                 unsigned n) {
+  unsigned k;
+  if (n && slots[0].sink && slots[0].sink->engine != h->engine) {
+    fm1_seq_host_bind(h, slots[0].sink->engine);
+  }
+  for (k = 0; k < n && k <= 255u; ++k) {
+    if (slots[k].sink) play_sink(h, frames, slots[k].block, slots[k].sink, (int)k);
   }
   h->n = 0;
 }

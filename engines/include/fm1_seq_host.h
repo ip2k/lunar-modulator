@@ -143,6 +143,28 @@ uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames);
 void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
                            const fm1_seq_sink_t *sink);
 
+/* Several sound units (the virtual FM-1's multi-sound, docs/15 §3.16):
+ * one engine slot per sound unit, and a track routed to the engine plays the
+ * slot its route index names (`route t 1 k`: slot k). fm1_seq_host_dispatch
+ * above is the one-unit case, which ignores the index. */
+typedef struct fm1_seq_slot {
+  const fm1_seq_sink_t *sink;   /* NULL: an empty slot; its tracks' events reach nothing */
+  float *block;                 /* where the slot's sound renders, frames stereo frames */
+} fm1_seq_slot_t;
+
+/* Plays the block's events into slots[0..n): each slot's sink renders its
+ * own block in pieces split at the frames of its own tracks' events only,
+ * and receives those events in emission order, exactly as dispatch does for
+ * one sink. Slots are played in index order, all of slot 0's calls first. A
+ * lock goes to the parameter its lane names on that slot's engine (the
+ * stored uid while it still names that parameter there, else resolved
+ * afresh); slot 0's engine is the bound one, as dispatch binds its sink's.
+ * Events of a track routed past slot n - 1 or to an empty slot are dropped
+ * and split nothing. The counters add up over the slots. Empties the
+ * buffer. */
+void fm1_seq_host_dispatch_slots(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_slot_t *slots,
+                                 unsigned n);
+
 /* The parameter a lane label names: the part after the last ':' ("synth:
  * Timbre" names Timbre), compared without ASCII case. -1 if none. */
 int fm1_seq_lane_param(const fm1_engine_t *e, const char *label);
