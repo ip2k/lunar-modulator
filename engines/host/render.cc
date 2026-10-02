@@ -755,7 +755,17 @@ int main(int argc, char **argv) {
     }
     return true;
   };
-  if (md.m && !ModApplyLines(0)) return 2;
+  // A bad script line exits with the units released, so a sanitizer
+  // build's leak check passes the error tests (test_mod_flags_need_mod).
+  auto ModFail = [&]() {
+    if (md.log) fclose(md.log);
+    fm1_mod_destroy(md.m);
+    free(md.mem);
+    Release(sound);
+    for (size_t k = 0; k < fx.size(); ++k) Release(fx[k]);
+    return 2;
+  };
+  if (md.m && !ModApplyLines(0)) return ModFail();
 
   const uint32_t total = seq_end ? static_cast<uint32_t>(seq_end)
                                  : static_cast<uint32_t>(seconds * rate);
@@ -838,7 +848,7 @@ int main(int argc, char **argv) {
       sq.events += n_seq;
     }
     if (md.m) {
-      if (!ModApplyLines(pos)) return 2;
+      if (!ModApplyLines(pos)) return ModFail();
       md.writes.clear();
       md.pos = pos;
     }
