@@ -148,8 +148,9 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
    (`engines/README.md`). The exit test is met: at the upstream rates the
    engines match upstream Mutable code sample for sample or within 0.5 LSB,
    which found and fixed a Shapes block-size bug (drift and a crash). Left
-   before stage B: Shapes at 44,118 Hz (decimate from 96 kHz or accept
-   longer decays) and its memory (206 KB for 12 voices). Open for the
+   before stage B: Shapes' memory (207 KB for 12 voices). Since 2026-10-01
+   the Mutable engines run at their native rates (Braids 96 kHz, Plaits
+   47,872.34 Hz) through `fm1_resampler.h` and match upstream at 44,118 Hz. Open for the
    owner: Six-Op FM's patch names carry third-party trademarks, which matters
    only if the project is distributed. Stage B, the pi32v2 benchmark and a
    `-fPIC` test, wants the AC79 dev board from item 4

@@ -35,8 +35,11 @@ def test_reference_sine_is_in_tune(renderer, tmp_path):
 
 
 @pytest.mark.parametrize("key", [45, 69, 93])
-def test_macro_rate_compensation_keeps_tuning(renderer, tmp_path, key):
-    # 2-op FM with zero modulation index and no feedback is a pure sine.
+def test_macro_keeps_tuning_at_the_fm1_rate(renderer, tmp_path, key):
+    # 2-op FM with zero modulation index and no feedback is a pure sine. Macro
+    # runs Plaits at its own rate and resamples, so no pitch correction is
+    # involved (until 2026-10-01 a pitch offset compensated for the host's
+    # rate, which this test checked).
     _, left, _ = render(renderer, tmp_path, "macro",
                         params=["Model=6", "Timbre=0", "Morph=0.5", "Harmonics=0.5"],
                         notes=[f"0:{key}:100:1.5"])

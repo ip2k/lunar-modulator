@@ -106,18 +106,19 @@ upstream candidate). Our own code gets none.
 
   | Engine | 64-bit bytes | 32-bit bytes | Why |
   | --- | --- | --- | --- |
-  | Shapes, 12 voices | 205,800 | 204,832¹ | each Braids oscillator carries ~17 KB of physical-model state |
+  | Shapes, 12 voices | 207,080 | 204,832¹ | each Braids oscillator carries ~17 KB of physical-model state |
   | PSX Verb | 134,224 | 134,208 | a fixed 128 KB work area, as upstream |
   | Sophie, 12 voices | 77,904 | 77,888 | ring delays per voice |
-  | Macro Heavy, 4 voices | 68,512 | 68,304 | ~17 KB per voice (Particle and String arenas) |
+  | Macro Heavy, 4 voices | 71,088 | 68,304¹ | ~17 KB per voice (Particle and String arenas) |
   | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
-  | Macro, 12 voices | 30,496 | 17,616 | mostly pointer tables, which halve on 32-bit |
+  | Macro, 12 voices | 31,728 | 17,616¹ | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,848 | 18,848 | |
-  | Six-Op FM, 8 voices | 11,304 | 9,572 | |
+  | Six-Op FM, 8 voices | 12,528 | 9,572¹ | |
   | Ensemble | 4,704 | 4,704 | |
 
-  ¹ Before Shapes gained its 24-sample output buffer (104 bytes on 64-bit);
-  CI's 32-bit job prints the current figure.
+  ¹ 32-bit figures from before the native-rate change, which adds one or
+  two resampler states (about 1.3 KB each) per engine; CI's 32-bit job
+  prints the current figures.
 
   The stock layout leaves a gap of 387,924 bytes, part of it stock's heap
   (docs/11 §2, [inferred]). Most engine-plus-two-effects chains fit in it;
@@ -186,12 +187,28 @@ on the host's block size, and 11 shapes crashed on odd-sized calls (a heap
 overflow under ASan). Shapes now renders exactly 24-sample blocks and buffers
 them, as Macro does with 12.
 
-At the FM-1's 44,118 Hz only pitch is corrected, so this is where the
-engines still differ from the modules: Plaits' envelopes run 8.5 % long,
-Braids' struck shapes ring 1.6–2.8 times as long, TIMBRE-derived rates run
-low (the noise engine's clock by 1.41 semitones, a strict xfail), and the
-string model reads -9.5 cents at A2. The effects rescale their loop gains
-and damping, keeping decay within 3–4 %.
+**Native rates (2026-10-01, the owner's decision).** The Mutable engines
+now run at their modules' own rates whatever the host's rate: Shapes runs
+Braids at 96 kHz, and Macro, Macro Heavy and Six-Op run Plaits at
+47,872.34 Hz. Each engine resamples its mix once with `fm1_resampler.h`
+([resampler.md](resampler.md)), which passes samples through bit for bit
+when the rates are equal. At the FM-1's 44,118 Hz this removed every
+difference pitch-only correction had left: Plaits' envelopes ran 8.5 % long,
+Braids' struck shapes rang 1.6–2.8 times as long, TIMBRE-derived rates ran
+low (the noise clock by 1.41 semitones), and the string model read -9.5 cents
+at A2. Now, against upstream rendered at its own rate and resampled the same
+way [verified: tests/test_engines_reference_*.py]:
+- 20 of the 21 Macro and Macro Heavy slots match byte for byte, and Chiptune
+  to 1 LSB;
+- Six-Op matches closely (correlation ≥ 0.988);
+- all 47 shapes match within 0.55 LSB, and struck decays at 0.9995–1.006 of
+  upstream.
+
+The cost is CPU: Shapes takes 2.5–3× its old time and the Plaits engines
+1.1–1.5× (desktop), mostly the extra samples plus about 70–114
+multiply-adds per output for the resampler. Hosts above an engine's native
+rate are refused. The effects still rescale their loop gains and damping,
+keeping decay within 3–4 %.
 
 ## Open questions and next steps
 
@@ -199,21 +216,15 @@ and damping, keeping decay within 3–4 %.
   name, and the banks' origin is not stated upstream. Harmless for a
   personal build; for anything distributed, rename or drop them
   (plaits-heavy.md, "The patch data").
-- **Shapes at the FM-1 rate:** Braids' time constants are per sample at
-  96 kHz, so at 44,118 Hz struck shapes ring 1.6–2.8 times as long. Options:
-  - accept it;
-  - run Braids at 96 kHz and resample by 96,000/44,118, a fractional ratio;
-  - run Braids at twice the host rate (88,236 Hz) and decimate by 2 with a
-    half-band filter: decays within 8 % of the module, like Plaits'
-    envelopes, and a cheap integer decimator.
-
-  Either oversampled option costs about 2.2 times Shapes' CPU [verified,
-  desktop: 12 voices take 3.2–5.7 ms per second of audio at 44,118 Hz and
-  5.6–12.8 ms at 96 kHz, shapes 0, 12, 26, 33, 40; the ratio is 1.56 for
-  CSaw and 2.17–2.24 for the others]. Also its memory: a voice cap for the
-  FM-1 build, or a split.
-- **Plaits at the FM-1 rate:** per-model TIMBRE offsets for the noise,
-  particle and swarm rates (reference-plaits.md suggests them).
+- **Shapes' memory:** 207 KB for 12 voices. A voice cap for the FM-1 build,
+  or a split of the physical-model shapes.
+- **Resampler cost on pi32v2:** the stronger second stage costs about 114
+  multiply-adds per output; the cheaper half-band version (about 70, with
+  18–22 kHz unprotected) is commit `f12448c`. Stage B measures which the
+  FM-1 can afford.
+- **Effects at native rates:** not done. Each effect would need a resampler
+  on its input and output; the measured gap is small (decay within 3–4 %,
+  delays 8.5 % long).
 - **Six-Op's polarity** is inverted relative to Macro and Macro Heavy
   against the same upstream output words. Harmless alone; worth making
   consistent before engines are layered or crossfaded.

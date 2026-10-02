@@ -2,27 +2,34 @@
 // Instruments Braids macro-oscillator (code by Emilie Gillet, MIT; vendored in
 // third_party/mutable).
 //
-// Braids is fixed point and was written for 96 kHz; each voice here is one
-// braids::MacroOscillator rendered at the host's rate with the pitch corrected
-// by 12*log2(96000 / rate) semitones (the approach of the Schwung and CTAG
-// ports). Braids has no amplitude envelope of its own on this path, so each
-// voice gets a simple attack/release envelope; Strike() on note-on excites the
-// physical and percussive models.
+// Braids is fixed point and was written for 96 kHz, and its time constants
+// are counted in samples and blocks at that rate. Each voice here is one
+// braids::MacroOscillator rendered at 96 kHz whatever the host's rate, and the
+// summed mono mix goes through one resampler (include/fm1_resampler.h,
+// engines/resampler.md) to the host's rate. At 44,118 Hz this keeps Braids'
+// timing (its struck shapes used to ring 1.6-2.8 times as long when it ran at
+// the host's rate with only its pitch corrected), at the cost of rendering
+// 96,000 / 44,118 = 2.18 times as many samples; at a 96 kHz host the
+// resampler passes the mix through bit for bit. Hosts below 24 kHz or above
+// 96 kHz are refused. Braids has no amplitude envelope of its own on this
+// path, so each voice gets a simple attack/release envelope, also run at
+// 96 kHz; Strike() on note-on excites the physical and percussive models.
 //
 // The oscillators always render exactly 24 samples at a time, Braids' own
-// block (braids.cc kBlockSize), whatever the host block size; the mix is
-// buffered out across host calls, as the Macro wrapper does with Plaits'
-// 12-sample blocks. Several shapes advance once per block rather than per
-// sample, so 64-frame host blocks rendered as 24 + 24 + 16 made the struck
-// models decay 9-16 % faster than upstream and moved the analog, comb, vowel,
-// wave-line and granular shapes off upstream's output
-// (engines/reference-braids-fx.md). Note events land at the next 24-sample
-// boundary.
+// block (braids.cc kBlockSize), whatever the host block size; the resampler
+// pulls the mix from a 24-sample buffer as each output sample needs it, as
+// the Macro wrapper buffers Plaits' 12-sample blocks. Several shapes advance
+// once per block rather than per sample, so 64-frame host blocks rendered as
+// 24 + 24 + 16 made the struck models decay 9-16 % faster than upstream and
+// moved the analog, comb, vowel, wave-line and granular shapes off upstream's
+// output (engines/reference-braids-fx.md). Note events land at the next
+// 24-sample boundary at 96 kHz (0.25 ms).
 //
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
+#include "fm1_resampler.h"
 
 #include <cmath>
 #include <cstring>
@@ -78,9 +85,10 @@ inline float KnobSeconds(float knob) { return 0.001f * powf(4000.0f, knob); }
 
 class Instance {
  public:
-  void Init(const fm1_host_t *host) {
-    rate_ = host->sample_rate;
-    pitch_offset_ = 12.0f * log2f(kNativeRate / rate_);
+  // False when the resampler refuses the host's rate (below 24 kHz or above
+  // 96 kHz).
+  bool Init(const fm1_host_t *host) {
+    const bool ok = fm1_resampler_init(&resampler_, kNativeRate, host->sample_rate) != 0;
     bend_ = 0.0f;
     clock_ = 0;
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
@@ -94,6 +102,7 @@ class Instance {
       voice_[i].age = 0;
     }
     ApplyShape();
+    return ok;
   }
 
   void NoteOn(uint8_t key, uint8_t velocity) {
@@ -123,30 +132,34 @@ class Instance {
     if (index == P_SHAPE) ApplyShape();
   }
 
-  // Hands out the buffered mix, rendering a new 24-sample chunk whenever the
-  // last one is used up, so the oscillators never see another block size.
+  // Each output sample pulls the 96 kHz mix the resampler needs for it,
+  // rendering a new 24-sample chunk whenever the last one is used up, so the
+  // oscillators never see another block size and the output does not depend
+  // on the host's.
   void Render(float *out_lr, uint32_t frames) {
-    while (frames) {
-      if (!pending_) {
-        RenderChunk();
-        pending_ = kChunk;
+    for (uint32_t f = 0; f < frames; ++f) {
+      uint32_t need = fm1_resampler_needed(&resampler_);
+      while (need) {
+        if (!pending_) {
+          RenderChunk();
+          pending_ = kChunk;
+        }
+        const uint32_t took = fm1_resampler_push(
+            &resampler_, &mix_[kChunk - pending_],
+            need < pending_ ? need : static_cast<uint32_t>(pending_));
+        pending_ -= took;
+        need -= took;
       }
-      const size_t take = frames < pending_ ? frames : pending_;
-      const float *src = &mix_[kChunk - pending_];
-      for (size_t s = 0; s < take; ++s) {
-        out_lr[2 * s] = out_lr[2 * s + 1] = src[s];
-      }
-      out_lr += 2 * take;
-      frames -= static_cast<uint32_t>(take);
-      pending_ -= take;
+      out_lr[2 * f] = out_lr[2 * f + 1] = fm1_resampler_pop(&resampler_);
     }
   }
 
  private:
   void RenderChunk() {
-    // Per-sample envelope coefficients (one-pole towards the target).
-    const float attack = 1.0f - expf(-1.0f / (KnobSeconds(value_[P_ATTACK]) * rate_));
-    const float release = 1.0f - expf(-1.0f / (KnobSeconds(value_[P_RELEASE]) * rate_));
+    // Per-sample envelope coefficients (one-pole towards the target), at
+    // Braids' rate like everything else in the chunk.
+    const float attack = 1.0f - expf(-1.0f / (KnobSeconds(value_[P_ATTACK]) * kNativeRate));
+    const float release = 1.0f - expf(-1.0f / (KnobSeconds(value_[P_RELEASE]) * kNativeRate));
     const float gain = value_[P_VOLUME] * 0.25f / 32768.0f;
     const int16_t timbre = static_cast<int16_t>(value_[P_TIMBRE] * 32767.0f);
     const int16_t color = static_cast<int16_t>(value_[P_COLOR] * 32767.0f);
@@ -157,7 +170,7 @@ class Instance {
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
       if (!v.active) continue;
-      float note = v.key + bend_ + pitch_offset_;
+      float note = v.key + bend_;
       int32_t pitch = static_cast<int32_t>(note * 128.0f);
       if (pitch < 0) pitch = 0;
       if (pitch > 32767) pitch = 32767;
@@ -202,11 +215,10 @@ class Instance {
 
   Voice voice_[kNumVoices];
   uint8_t sync_[kChunk];
-  float mix_[kChunk];              // the current chunk, handed out by Render
-  size_t pending_;                 // samples of mix_ not yet handed out
+  float mix_[kChunk];              // the current chunk at 96 kHz
+  size_t pending_;                 // samples of mix_ not yet resampled
+  fm1_resampler_t resampler_;      // 96 kHz mix -> host rate
   float value_[P_COUNT];
-  float rate_;
-  float pitch_offset_;
   float bend_;
   uint32_t clock_;
 };
@@ -215,7 +227,10 @@ size_t InstanceSize(const fm1_host_t *) { return sizeof(Instance); }
 
 void *Create(void *mem, const fm1_host_t *host) {
   Instance *self = new (mem) Instance();
-  self->Init(host);
+  if (!self->Init(host)) {
+    self->~Instance();
+    return NULL;
+  }
   return self;
 }
 
