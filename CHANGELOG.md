@@ -55,6 +55,27 @@ history.
   note strikes the gate, which closes over Decay even while the key is held)
   or Off (no gate: full brightness, a plain fade after key-up). At their
   defaults both engines sound exactly as before. Six-Op FM is unchanged.
+- The arpeggiator core (`engines/midi_fx/`), built and tested on the
+  desktop but not yet playable in the simulator or on the FM-1.
+  - 22 note orders: up, down, the up-down family, converge and diverge,
+    thumb and pinky, MCL's octave-lift orders, crawl, random, shuffle, walk
+    and chord. Keys are listed by pitch, as played or reversed.
+  - 1–4 octaves, walked as one list as Yarns does, one pass per octave, or a
+    random octave per pass.
+  - Yarns' 22 rhythm patterns and Euclidean rhythms with length, fill and
+    rotate.
+  - Rates from 1/32 triplet to whole notes, or one step per sequencer trig.
+  - Gate up to 200 %, swing as the sequencer's, ratchets, repeats.
+  - Chance per step for playing, ratcheting, chords and octave jumps, and
+    velocity and gate spread, all from a seed. A loop length makes a random
+    phrase repeat exactly.
+  - Latch, the hold pedal, joining a playing chord now or at the next pass,
+    and key sync.
+  - Every note it starts gets exactly one note-off, even when settings
+    change mid-note.
+  - It follows Yarns (Emilie Gillet, MIT), MCL (Justin Mammarella, BSD-3)
+    and Super Arp (Handcrafted Media, MIT); their notices are in
+    `engines/midi_fx/CREDITS.md`.
 - docs/16: the design for modulation as a rack of modules inside the
   modulation matrix, so cables can chain module to module (A→B→C→D).
   - Up to 8 modules sit in a rack. Every module output is a source in the
