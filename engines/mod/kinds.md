@@ -77,6 +77,13 @@ Maths, Joranalogue's Contour 1, Serge's DUSG and Befaco's Rampage
 
 - **A segment takes its whole time** from wherever it starts (Contour 1's
   way; Maths keeps its slope). A retrigger rises from the current value.
+- **Slew after a moving target.** When the target moves on in the
+  direction OUT is going, a slow start (Shape above 0) keeps its place on
+  its curve: the curve's end moves to the new target and its start moves
+  so that OUT stays put. Restarting the curve each tick the target moved
+  would hold OUT on the curve's flat start, near where it began. At Shape
+  0 and below the glide starts afresh from OUT, whose start is the fast
+  part.
 - **CYCLE** high makes any mode but Slew cycle; **HOLD** high freezes it.
 - **Outputs:** OUT (0..1), INV (1 − OUT), UP and DOWN (gates while rising
   and falling), EOR and EOC (triggers at the end of a rise and of a fall),
@@ -85,7 +92,8 @@ Maths, Joranalogue's Contour 1, Serge's DUSG and Befaco's Rampage
 - **Checked** [verified: `fm1-mod-kinds-test`]: EOR and EOC fall one rise
   and one fall after the trigger, to a frame plus 0.2 %; a cycle's period;
   Retrig 0 and 1; HOLD; AR's sustain and release; Slew's glide time and
-  its shapes at the midpoint; a synced cycle of exactly one beat at 120 BPM
+  its shapes at the midpoint, and every shape arriving at a target that
+  wobbles each tick; a synced cycle of exactly one beat at 120 BPM
   (22,059 frames, ± 2).
 
 ### Bounce (BNC)

@@ -16,7 +16,11 @@
  *   Cycle  rises and falls for ever; TRIG restarts it;
  *   Slew   OUT glides to the floor (Floor + IN) whenever it moves, rising
  *          in Rise and falling in Fall per full-scale move: a lag with a
- *          shape;
+ *          shape. When the target moves on in the direction OUT is going,
+ *          a slow start (Shape above 0) keeps its place on its curve, so a
+ *          target that moves every tick cannot hold it at the curve's flat
+ *          start; at Shape 0 and below the glide starts afresh from where
+ *          OUT is;
  *   Gated  cycles while GATE is high, finishing the cycle it is in.
  * CYCLE high makes any mode but Slew cycle; HOLD high freezes the function
  * where it is. A TRIG is taken only once the function is far enough
@@ -152,6 +156,29 @@ static void start(fun_t *s, ctx_t *c, unsigned state, float to, float span) {
   kind_gate_set(&s->down, &gout[O_DOWN], c->at, state == S_FALL);
 }
 
+/* Slew mode: the target moved to `to`. Moving on in the direction OUT is
+ * already going, a slow-starting shape keeps its phase: the curve's end
+ * moves to the new target and its start moves so that OUT stays where it
+ * is, so OUT goes on at the curve's slope there. Restarting would put it
+ * back on the flat start each tick a moving target moves, and OUT would
+ * barely move. Fast and linear shapes start afresh from OUT (their start
+ * is their fast part), as does a glide reversing or near its curve's end. */
+static void retarget(fun_t *s, ctx_t *c, float to) {
+  const float d = to - s->value;
+  const unsigned state = d > 0.0f ? S_RISE : S_FALL;
+  if (s->shape > 0.0f && s->state == state) {
+    const float y = shaped(s->phase, s->shape);
+    if (y < 0.99f) {
+      s->from = (s->value - to * y) / (1.0f - y);
+      s->to = to;
+      s->span = to > s->from ? to - s->from : s->from - to;
+      set_inc(s);
+      return;
+    }
+  }
+  start(s, c, state, to, d > 0.0f ? d : -d);
+}
+
 static int cycling(const fun_t *s) {
   return s->mode != M_SLEW &&
          (s->mode == M_CYCLE || s->cycle || (s->mode == M_GATED && s->gate));
@@ -250,7 +277,7 @@ static void fun_process(void *self, const fm1_mod_io_t *io) {
     /* Glide to the floor whenever it moves: a new segment from here. */
     const float d = c.floor - s->value;
     if (d != 0.0f && (s->state == S_IDLE || mod_bits(s->to) != mod_bits(c.floor))) {
-      start(s, &c, d > 0.0f ? S_RISE : S_FALL, c.floor, d > 0.0f ? d : -d);
+      retarget(s, &c, c.floor);
     }
   } else if (s->state == S_IDLE && cycling(s) && !s->hold) {
     start(s, &c, S_RISE, c.level, 1.0f);

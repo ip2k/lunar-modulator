@@ -827,6 +827,33 @@ static void function(void) {
     fm1_mod_destroy(m);
   }
 
+  /* Slew to a target that wobbles a little every tick (a vibrato on a
+   * step to 0.5): every shape rises without falling back until it is
+   * there, and is there by twice the glide's time. A slow start (+1)
+   * keeps its place on its curve as the target moves; were it to restart
+   * at the curve's flat start each tick, it would stay near 0. */
+  for (k = 0; k < 3; ++k) {
+    const float shape = (float)k - 1.0f;
+    const unsigned glide = (unsigned)(0.5f * fm1_mp_env_time_from_knob(0.5f) * RATE / G);
+    unsigned n, rising = 1, arrived = 0;
+    float last = 0.0f;
+    m = make(0, 0, 1);
+    put(m, 0, "function");
+    set(m, 0, "Mode", 3.0f);
+    set(m, 0, "Rise", 0.5f);
+    set(m, 0, "Shape", shape);
+    step(m);
+    for (n = 1; n <= 2u * glide; ++n) {
+      set(m, 0, "In", n & 1u ? 0.502f : 0.498f);
+      step(m);
+      if (!arrived && out(m, 0, 0) < last) rising = 0;
+      last = out(m, 0, 0);
+      if (!arrived && last >= 0.497f) arrived = n;
+    }
+    CHECK(rising && arrived && last >= 0.497f && last <= 0.503f);
+    fm1_mod_destroy(m);
+  }
+
   /* Sync 1/4 at 120 BPM: one cycle per beat, 22,059 frames, Start
    * restarting it. */
   m = make(0, 0, 1);
