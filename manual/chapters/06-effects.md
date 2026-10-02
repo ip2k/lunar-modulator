@@ -25,8 +25,8 @@ pages, then the second slot's. The bottom bar shows where you are, such as
 *1/2 FX2*: page 1 of 2, second slot.
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
-*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb and Test Gain, and round
-again. In the simulator you can also use the **Effect 1** and **Effect 2**
+*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Echo and Test
+Gain, and round again. In the simulator you can also use the **Effect 1** and **Effect 2**
 lists under the panel.
 
 **To empty a slot:** turn [[ALGORITHM]] to *Empty slot*, one step before
@@ -61,7 +61,9 @@ more than two.
     about 48,000 samples a second, so at the FM-1's 44,118 their delays come
     out about 9 % longer, a slightly larger room, and their slow modulation
     about 8 % slower. Their decay times are corrected, and stay within a few per
-cent of the originals'.
+    cent of the originals'. Crush, Fold and Echo, written for Lunar Modulator,
+    work out their frequencies and times from the output's rate, so they need
+    no correction.
 
 ## Plate
 
@@ -154,6 +156,120 @@ room to a hall and Space Echo.
 PSX Verb takes about 131 KB of memory, the most of any effect.
 
 {{engine-table sw-psxverb}}
+
+## Crush
+
+{{status sim desktop planned}}
+
+A bitcrusher and sample-rate reducer, for the grit of early samplers and game
+consoles. It holds each sample for a while and rounds it to a coarse step, so
+the sound loses its top end in a shower of aliasing and its quiet detail in
+buzz. Both channels are held at the same moments.
+
+- **Bits** sets how fine the steps are, from 16, all but untouched, down to
+  1. It turns smoothly between whole numbers, so it can sweep. Silence stays
+  silent at any setting, but at very low Bits quiet sounds fall under the
+  first step and drop out: at 1 bit only full-scale sound comes through.
+- **Rate** sets how often a new sample is taken, from 100 times a second at
+  the left to every sample at the right; the default is about 9,600. The
+  scale is even in pitch, so each step of the knob sounds alike.
+- **Jitter** makes each hold a little longer or shorter at random, which
+  roughens the tone and smears the aliasing into noise. At the left every
+  hold is the same length. The randomness repeats exactly each time the
+  effect starts.
+- **Mix** fades from the dry sound at the left to the crushed sound alone at
+  the right, the default.
+- **Tone**, on page 2, darkens the crushed sound: at the right nothing is
+  filtered, at the left only the lows below about 150 Hz remain.
+- **Level**, on page 2, sets how loud the crushed sound is, up to twice its
+  level.
+
+!!! tip "Starting points"
+    - **Old sampler:** Bits 12, Rate about 0.8, Tone about 0.8.
+    - **Broken game console:** Bits 4, Rate about 0.5, Jitter a little.
+    - **Radio static:** Bits 2 to 3, Rate low, Jitter high, Mix about 0.5.
+    - Turn the engine up rather than Level when low Bits makes a quiet
+      sound vanish: the steps are fixed against full scale.
+
+{{engine-table crush}}
+
+## Fold
+
+{{status sim desktop planned}}
+
+A wavefolder, written for Lunar Modulator, after the folders of Serge and
+Buchla synthesizers. It turns the sound up into a fold point and folds
+whatever passes it back on itself, again and again, so a plain wave grows
+bright, hollow, ringing overtones that move as the level changes. Each
+channel is folded on its own.
+
+- **Fold** sets how hard the sound is driven into the folds, from not at all
+  at the left (a sound within full scale passes unfolded) to sixteen times
+  at the right. The louder the note, the more it folds, so velocity and the
+  engine's envelope shape the tone.
+- **Symmetry** shifts the sound before it is folded. In the middle the folds
+  are even; away from it they are lopsided and add a hollow, reedy colour,
+  and at either end a quiet sound is folded on one side only.
+- **Shape** chooses the fold: at the left sharp corners, bright and buzzy; at
+  the right rounded ones, softer; in between a blend.
+- **Mix** fades from the dry sound at the left to the folded sound alone at
+  the right, the default.
+- **Tone**, on page 2, darkens the folded sound, from about 200 Hz at the
+  left to almost nothing filtered at the right.
+- **Level**, on page 2, sets how loud the folded sound is.
+
+Silence stays silent at any setting, and the knobs glide over a few
+milliseconds, so turning them does not click. Fold is built to keep the harsh,
+unrelated tones of a digital folder low, and it has no tail: when the sound
+stops, so does the effect.
+
+!!! tip "Starting points"
+    - **West-coast lead:** a sine from Shapes or Macro, Fold about 0.6, Shape
+      about 0.5, and play with velocity.
+    - **Reedy bass:** Fold about 0.4, Symmetry about 0.4, Tone about 0.6.
+    - **Movement:** put Ensemble or Echo after Fold, and sweep Fold slowly by
+      hand while a note holds.
+
+{{engine-table fold}}
+
+## Echo
+
+{{status sim desktop planned}}
+
+A stereo echo, written for Lunar Modulator, whose repeats can bounce from one
+side to the other. Up to about a third of a second the echoes are clean
+copies; longer ones grow darker with each repeat, like those of an old
+analogue echo pedal, so that the effect keeps to 64 KB of memory however long
+the time.
+
+- **Time** sets the delay, from 10 milliseconds at the left to one second at
+  the right; the default is 300. Turning it while echoes sound bends their
+  pitch, like changing a tape echo's speed.
+- **Feedback** sets how many times the sound repeats, from a single echo at
+  the left to a long, slowly fading trail at the right. It never runs away.
+- **Ping-pong** at the right, the default, sends the repeats left, right,
+  left; at the left each side echoes on its own side.
+- **Mix** fades from the dry sound to the echoes. The dry sound stays at full
+  level up to the middle and the echoes are at full level from the middle
+  on, so the middle has both at full level.
+- **Tone**, on page 2, darkens each repeat a little more than the one before:
+  at the left the trail turns dull quickly, at the right it stays bright.
+- **Wow**, on page 2, adds a slow wobble to the delay, like a worn tape; it
+  sounds the same every time you play.
+- **Level**, on page 2, sets how much of the sound goes into the echo. Turn
+  it down to let the echoes ring on while what you play next stays dry.
+
+!!! tip "Starting points"
+    - **Slapback:** Time about 100, Feedback low, Ping-pong at the left, Mix
+      about 0.3.
+    - **Wide bounce:** Time about 300, Feedback about 0.5, Ping-pong at the
+      right.
+    - **Dub trail:** Time about 600, Feedback high, Tone about 0.3, Wow about
+      0.3.
+
+Echo does not yet follow the sequencer's tempo; set Time by ear.
+
+{{engine-table echo}}
 
 ## Test Gain
 

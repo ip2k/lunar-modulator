@@ -8,6 +8,15 @@
 // engines are offered for now (docs/11 §4): each needs at most a few hundred
 // bytes of arena per voice.
 //
+// Page 3 holds the module's three attenuverters as Env Pitch, Env Timbre and
+// Env Morph: how far the decay envelope, restarted by every note-on, moves
+// the note, TIMBRE and MORPH, as Voice::Render applies it with TRIG patched.
+// On Chip, Env Timbre sets the chiptune engine's own envelope instead, as on
+// the module. Its LPG parameter drives the low-pass gate as LEVEL does (Gate,
+// the default), as TRIG alone does (Ping), or bypasses it (Off);
+// mi_plaits_env.h has the details. At their defaults the output is what it
+// was before they existed, byte for byte.
+//
 // Rate: the engines are written for 47,872.34 Hz (Plaits' real I2S rate,
 // kCorrectedSampleRate), and their time constants and TIMBRE-derived rates
 // are counted in samples and blocks at that rate. They run at that rate here
@@ -30,6 +39,7 @@
 
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
+#include "mi_plaits_env.h"
 
 #include <cstring>
 #include <new>
@@ -43,6 +53,7 @@ namespace fm1 {
 namespace macro {
 
 using namespace plaits;
+using namespace plaits_env;
 
 enum Model {
   MODEL_VA_VCF,
@@ -66,9 +77,11 @@ const float kOutGain[MODEL_COUNT] = {
   1.0f, 0.7f, 0.7f, 0.5f, 0.8f, 0.7f, 0.6f, 0.6f,
 };
 
+// New parameters go at the end, so existing indices keep their meaning.
 enum Param {
   P_MODEL, P_HARMONICS, P_TIMBRE, P_MORPH,
   P_DECAY, P_COLOUR, P_VOLUME,
+  P_ENV_PITCH, P_ENV_TIMBRE, P_ENV_MORPH, P_LPG,
   P_COUNT
 };
 
@@ -80,6 +93,10 @@ const fm1_param_t kParams[P_COUNT] = {
   { "Decay",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1 },
   { "Colour",    FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1 },
   { "Volume",    FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1 },
+  { "Env Pitch",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2 },   // FM attenuverter
+  { "Env Timbre", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2 },   // TIMBRE attenuverter
+  { "Env Morph",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2 },   // MORPH attenuverter
+  { "LPG",        FM1_PARAM_ENUM, 0, LPG_MODE_COUNT - 1, LPG_GATE, kLpgModeNames, 2 },
 };
 
 const int kNumVoices = 12;
@@ -109,6 +126,7 @@ struct Voice {
   float out[kBlockSize];
   float aux[kBlockSize];
   int16_t pcm[kBlockSize];
+  float release;            // LPG Off: the key's gain, released at key-up
   uint8_t key;
   float velocity;
   bool gate;
@@ -143,6 +161,7 @@ class Instance {
     v->rising = true;
     v->age = ++clock_;
     if (!v->active) {
+      v->release = 1.0f;
       v->engine->Reset();
       v->lpg.Init();
       v->decay.Init();
@@ -217,6 +236,7 @@ class Instance {
       v.lpg.Init();
       v.decay.Init();
       v.post.Init();
+      v.release = 1.0f;
       v.gate = v.active = v.rising = false;
       v.age = 0;
     }
@@ -249,6 +269,15 @@ class Instance {
     const float decay_tail = (20.0f * kBlockSize) / kSampleRate *
         stmlib::SemitonesToRatio(-72.0f * decay + 12.0f * hf) - short_decay;
     const float voice_gain = value_[P_VOLUME] * 0.25f / 32768.0f;
+    const LpgMode lpg_mode = ToLpgMode(value_[P_LPG]);
+
+    // The attenuverters, as Voice::Render applies them with TRIG patched. On
+    // Chip, TIMBRE's sets the engine's own envelope instead (engine index 7
+    // there); at 0 the engine keeps NO_ENVELOPE, as before this page existed.
+    const bool chip_envelope = model_ == MODEL_CHIPTUNE && value_[P_ENV_TIMBRE] != 0.0f;
+    const float env_pitch = AttenuverterAmount(value_[P_ENV_PITCH]);
+    const float env_timbre = chip_envelope ? 0.0f : AttenuverterAmount(value_[P_ENV_TIMBRE]);
+    const float env_morph = AttenuverterAmount(value_[P_ENV_MORPH]);
 
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
@@ -257,28 +286,79 @@ class Instance {
       EngineParameters p;
       p.trigger = (v.rising ? TRIGGER_RISING_EDGE : TRIGGER_LOW) |
                   (v.gate ? TRIGGER_HIGH : TRIGGER_LOW);
-      if (v.rising) v.decay.Trigger();
+      const bool triggered = v.rising;
+      if (triggered) {
+        v.decay.Trigger();
+        if (lpg_mode == LPG_PING) v.lpg.Trigger();   // LEVEL unpatched: TRIG pings
+      }
       v.rising = false;
       v.decay.Process(short_decay * 2.0f);
+      const float envelope = v.decay.value();
 
-      p.note = v.key + bend_;
+      // No clamp on the note, as before: NoteToFrequency clamps its own.
+      p.note = v.key + bend_ + env_pitch * (envelope * envelope * 48.0f);
       p.harmonics = value_[P_HARMONICS];
-      p.timbre = value_[P_TIMBRE];
-      p.morph = value_[P_MORPH];
+      p.timbre = Modulate(value_[P_TIMBRE], env_timbre, envelope, 0.0f, 1.0f);
+      p.morph = Modulate(value_[P_MORPH], env_morph, envelope, 0.0f, 1.0f);
       float level = v.gate ? v.velocity : 0.0f;
       float compressed = 1.3f * level / (0.3f + level);
       if (compressed > 1.0f) compressed = 1.0f;
       p.accent = compressed;
+      if (model_ == MODEL_CHIPTUNE) {
+        static_cast<ChiptuneEngine *>(v.engine)->set_envelope_shape(
+            chip_envelope ? value_[P_ENV_TIMBRE]
+                          : static_cast<float>(ChiptuneEngine::NO_ENVELOPE));
+      }
 
       bool already_enveloped = v.engine->post_processing_settings.already_enveloped;
       v.engine->Render(p, v.out, v.aux, kBlockSize, &already_enveloped);
 
-      v.lpg.ProcessLP(compressed, short_decay, decay_tail, hf);
-      v.post.Process(kOutGain[model_], false, v.lpg.gain(), v.lpg.frequency(),
-                     v.lpg.hf_bleed(), v.out, v.pcm, kBlockSize, 1);
-      for (size_t n = 0; n < kBlockSize; ++n) mix[n] += v.pcm[n] * voice_gain;
+      if (lpg_mode == LPG_GATE) {
+        v.lpg.ProcessLP(compressed, short_decay, decay_tail, hf);
+        v.post.Process(kOutGain[model_], false, v.lpg.gain(), v.lpg.frequency(),
+                       v.lpg.hf_bleed(), v.out, v.pcm, kBlockSize, 1);
+        for (size_t n = 0; n < kBlockSize; ++n) mix[n] += v.pcm[n] * voice_gain;
+        if (!v.gate && v.lpg.gain() < 1e-4f) v.active = false;
+        continue;
+      }
 
-      if (!v.gate && v.lpg.gain() < 1e-4f) v.active = false;
+      // Ping and Off: the velocity's accent scales the voice, since LEVEL no
+      // longer carries it (1 at velocity 127, so Ping is Plaits' there).
+      const float gain = voice_gain * Accent(v.velocity);
+      float gain_from = 1.0f, gain_to = 1.0f;
+      bool done;
+      if (lpg_mode == LPG_PING) {
+        // Pinged: rising until it peaks, then closing over Decay, held or
+        // not. The voice ends once the gate is closing and nearly shut; on the
+        // trigger's block the gain before it says nothing, so not then.
+        const float before = v.lpg.gain();
+        const float attack = NoteToFrequency(p.note) * float(kBlockSize) * 2.0f;
+        v.lpg.ProcessPing(attack, short_decay, decay_tail, hf);
+        done = !triggered && v.lpg.gain() < 1e-4f && v.lpg.gain() <= before;
+      } else {
+        // Off: bypassed, as Voice does for self-enveloped engines; the key
+        // gates a gain with the gate's release curve (Macro Heavy's release).
+        v.lpg.Init();
+        gain_from = v.release;
+        if (v.gate) {
+          v.release = 1.0f;  // a retrigger mid-release ramps back over one block
+        } else {
+          const float r2 = v.release * v.release;
+          v.release -= v.release * (short_decay + (1.0f - r2 * r2) * decay_tail);
+        }
+        gain_to = v.release;
+        done = !v.gate && v.release < 1e-4f;
+      }
+      v.post.Process(kOutGain[model_], lpg_mode == LPG_OFF, v.lpg.gain(),
+                     v.lpg.frequency(), v.lpg.hf_bleed(), v.out, v.pcm, kBlockSize, 1);
+      const float step = (gain_to - gain_from) / kBlockSize;
+      for (size_t n = 0; n < kBlockSize; ++n) {
+        mix[n] += v.pcm[n] * (gain * (gain_from + step * (n + 1)));
+      }
+      if (done) {
+        v.active = false;
+        v.gate = false;
+      }
     }
     memcpy(mix_, mix, sizeof(mix_));
   }

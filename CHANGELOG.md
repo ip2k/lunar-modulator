@@ -9,6 +9,47 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Crush**, a new effect: a bitcrusher and sample-rate reducer. Bits (1 to
+  16, smooth between whole numbers), Rate (100 Hz up to every sample, on an
+  even pitch scale), Jitter (random hold lengths that repeat exactly each
+  time) and Mix on the first page; Tone (a low-pass on the crushed sound) and
+  Level on the second. Silence stays silent at any setting. Our own code,
+  after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT); documented in
+  `engines/README.md` and chapter 6 of the manual, tested in
+  `tests/test_engines_crush.py`.
+- **Fold**, a new effect: a wavefolder, written for this project. Fold sets
+  how hard the sound is driven into the folds, Symmetry makes them uneven
+  (adding even harmonics), Shape goes from a bright triangle fold to a softer
+  sine fold, and Mix blends it with the dry sound; a second page has Tone (a
+  low-pass on the folded sound) and Level. Its anti-aliasing keeps the harsh
+  digital fold-back of a plain folder 21–23 dB lower. Silence stays silent
+  at any setting, and knob changes glide instead of clicking. Parameters
+  and design in `engines/README.md`, and a section in chapter 6 of the
+  manual.
+- **Echo**, a new effect: a stereo ping-pong delay from 10 ms to 1 second, with
+  Feedback, Ping-pong (from two straight delays to echoes that alternate
+  left and right), Mix, Tone (damping of the repeats), Wow (a slow,
+  tape-like wobble of the delay) and Level (how much of the input enters
+  the echo). Beyond about 370 ms the echoes darken, like a bucket-brigade
+  delay's, so that one instance stays at 64 KB. Turning Time glides the
+  pitch of what is in the line, like a tape echo's speed. Written in this
+  repository (MIT); `engines/README.md` documents its parameters, and
+  chapter 6 of the manual has a section.
+- The virtual FM-1 offers Crush, Fold and Echo in both effect slots and
+  Macro's and Macro Heavy's third page; its module is rebuilt and six new
+  parity scenarios (`sim/web/test/scenarios.json`) check the new effects and
+  the page in the browser's module against the native renderer. A test now
+  requires every engine and effect to appear in a scenario. The README's
+  screenshots show the third page.
+- Macro and Macro Heavy have a third page with Plaits' own envelope and
+  low-pass gate controls. **Env Pitch**, **Env Timbre** and **Env Morph**
+  set how far the envelope that every note restarts moves the pitch, Timbre
+  and Morph (Plaits' three attenuverters; on Chip, Env Timbre sets the
+  arpeggio's own fade, and on Speech, Env Pitch the words' intonation).
+  **LPG** chooses Gate (the gate follows the key, as before), Ping (each
+  note strikes the gate, which closes over Decay even while the key is held)
+  or Off (no gate: full brightness, a plain fade after key-up). At their
+  defaults both engines sound exactly as before. Six-Op FM is unchanged.
 - The arpeggiator core (`engines/midi_fx/`), built and tested on the
   desktop but not yet playable in the simulator or on the FM-1.
   - 22 note orders: up, down, the up-down family, converge and diverge,
@@ -449,6 +490,8 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- Macro Heavy: a parameter set to NaN now falls back to its default, as
+  the engine API says (`fm1_param_clamp`), instead of to its minimum.
 - **The second core is not idle.** The stock firmware renders its msfa
   voices on cpu1, outside the OS, and runs the OS, the UI and the effects
   on cpu0. The routine at V13 file `0x86AD6` polls `0x01C16EC0` and calls

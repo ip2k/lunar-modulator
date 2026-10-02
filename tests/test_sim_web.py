@@ -93,6 +93,32 @@ def test_app_renders_what_fm1_render_renders(tools, tmp_path, s):
     assert summary["peak"] > 0.01, "the scenario makes no sound"
 
 
+def test_scenarios_cover_every_engine_effect_and_page(tools):
+    """scenarios.json promises that every engine and effect appears at least
+    once, so parity.mjs checks each in the browser's module. A sound engine's
+    page past the first is covered when some scenario sets one of its
+    parameters (Macro's page 3, the envelope and gate, needs a scenario that
+    moves it)."""
+    res = subprocess.run([str(tools["render"]), "--list"], check=True,
+                         capture_output=True, text=True)
+    catalog = json.loads(res.stdout)
+    used = {s["engine"] for s in SCENARIOS} | {fx for s in SCENARIOS for fx, _ in s.get("fx", [])}
+    missing = sorted(e["id"] for e in catalog if e["id"] not in used)
+    assert not missing, f"no parity scenario uses {missing}"
+    set_names = {}
+    for s in SCENARIOS:
+        names = set_names.setdefault(s["engine"], set())
+        for p in s.get("params", []) + [p.split(":", 1)[1] for p in s.get("param_at", [])]:
+            names.add(p.split("=", 1)[0])
+    for e in catalog:
+        if e["kind"] != "sound" or e["id"] not in ("macro", "macro-heavy"):
+            continue
+        last_page = max(p["page"] for p in e["params"])
+        on_last = {p["name"] for p in e["params"] if p["page"] == last_page}
+        assert on_last & set_names.get(e["id"], set()), \
+            f"no scenario sets a parameter on {e['id']}'s page {last_page + 1}"
+
+
 def test_every_screen_passes_the_layout_check(tools, tmp_path):
     """Every page of every engine and effect, at defaults, minima, maxima and
     each list entry, the global page and every popup (the refusals, SEL
