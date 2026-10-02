@@ -13,6 +13,8 @@ is being built to turn the FM-1 into a multi-engine instrument:
 - four effects;
 - next, a step sequencer with parameter locks.
 
+![Lunar Modulator in the browser: the to-scale FM-1 panel with a chord held on Macro](assets/screenshots/virtual-fm1.png)
+
 It is an independent project, not affiliated with or endorsed by M-VAVE,
 Cuvave or any space agency.
 
@@ -135,8 +137,6 @@ with their LEDs, MASTER and the seven encoders.
   keyboard.
 - On a phone the panel keeps playable key sizes and scrolls sideways; turned
   to landscape it fits whole.
-
-![Lunar Modulator in the browser: the to-scale FM-1 panel with a chord held on Macro](assets/screenshots/virtual-fm1.png)
 
 <img src="assets/screenshots/panel-params.png" width="560" alt="The screen beside KNOB1-4, turned: Model 2-op FM, Harmonics 0.68, Timbre 0.28, Morph 0.81"> <img src="assets/screenshots/phone.png" width="200" alt="The page on a 390-pixel-wide phone: the panel keeps playable key sizes and scrolls sideways">
 

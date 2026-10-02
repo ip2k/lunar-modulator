@@ -178,6 +178,19 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **DEVELOPERS.md is reorganized** so it reads in order: a welcome, a
+  linked table of contents and a short callout of the one rule; then
+  getting started (build, test and play in five minutes, where to go next,
+  all the commands), how Lunar Modulator works (its layers first), the
+  hardware, where development stands (the status, the roadmap in detail,
+  the path to an installable build), contributing (the one
+  rule, conventions, licences, pull requests, credits) and reference (key
+  facts, formerly "The short version"; the recommended path; the documents
+  by topic). The roadmap's wide table became one entry per line, grouped,
+  and the path to an installable build gained a table of its milestones.
+  Nothing was dropped.
+- The README shows the virtual FM-1 screenshot right under the
+  introduction, before the preview notice, instead of further down.
 - **The roadmap, rewritten from the 2026-10-01 studies.**
   - The README's roadmap gives each line a status and says where it stands.
     The arpeggiator (our own, after Yarns, with MCL's note orders, in the
