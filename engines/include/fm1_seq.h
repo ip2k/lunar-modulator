@@ -69,8 +69,9 @@ typedef struct fm1_seq_limits {
   uint16_t clip_notes;   /* per-clip caps, Movy's: 512 notes, */
   uint16_t clip_locks;   /*   1,024 locks */
   uint16_t clip_trigs;   /*   and 1,024 trig rows */
-  uint16_t capture;      /* Capture (retroactive record) ring, in events;
-                            0 leaves Capture out and its bytes with it */
+  uint16_t capture;      /* Capture (retroactive record) ring, in events of
+                            12 bytes; 0 leaves Capture out and its bytes
+                            with it */
 } fm1_seq_limits_t;
 
 enum {
@@ -81,8 +82,9 @@ enum {
 
 /* Fills *lim with the FM-1 defaults for `tracks` tracks: 192 notes, 192 locks
  * and 32 trig rows per track in the global pools, 64 gates, 64 song entries,
- * 16 recording notes, 16 pad mutes per track, Movy's per-clip caps, no
- * Capture, compat off. */
+ * 16 recording notes, 16 pad mutes per track, Movy's per-clip caps, a
+ * Capture ring of 256 events (3,072 bytes; the owner's choice, 2026-10-01),
+ * compat off. */
 void fm1_seq_limits_default(fm1_seq_limits_t *lim, uint8_t tracks);
 
 typedef struct fm1_seq fm1_seq_t;
