@@ -7,11 +7,14 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-01 for the
-state of `main` after PRs #3–#18 (2026-09-29 to 2026-10-01, `3067c80`). Read
-it first, then `README.md`, then `CLAUDE.md`, then the `docs/` a task needs.
-It is a summary: where it and a doc disagree, the doc wins and this file is
-stale. "Issue #2" means two different issues, so this file always names the
-repository.
+state of `main` after PRs #3–#20 (2026-09-29 to 2026-10-01, `a534dd4`).
+Read it first, then `README.md`, then `CLAUDE.md` (mirrored for Codex in
+`AGENTS.md`: edit the two together), then the `docs/` a task needs. It is a
+summary: where it and a doc disagree, the doc wins and this file is stale.
+
+A bare PR or issue number means this repository, `ip2k/lunar-modulator`;
+any other repository is named. "Issue #2" exists both here and at aroum's,
+so it is always written in full.
 
 ## 1. Where things stand (2026-10-01)
 
@@ -20,22 +23,26 @@ repository.
   JieLi's compiler, so speed and memory on pi32v2 are not measured.
 - **Owner:** Sean (GitHub `ip2k`), on a MacBook with Claude Desktop / Claude
   Code. A personal, non-commercial project (`CLAUDE.md`). There is **one
-  FM-1** (do not brick it). The official updater disk image
-  `M-UPGRADE-FM1*.dmg` is in `~/Downloads`; it embeds V14, not V15 (V15 is
-  only on the CDN, docs/02 §1).
+  FM-1** (do not brick it). The official updater (`M-UPGRADE-FM1`) embeds
+  V14, not V15 (V15 is only on the CDN, docs/02 §1). Its disk image was in
+  `~/Downloads` on 2026-09-06 and is gone; the carved updater binary, the
+  V14 package carved from it, V15's CDN package and Baud Girl's
+  `FM-1_092.fwsc` are in the main checkout's git-ignored `scratch/`.
 - **The owner's unit runs Baud Girl's FM-1+VA**, which the owner installed
   themselves through Baud Girl's browser installer. It answered `FM-1_015`
   on 2026-09-06 and `FM-1_092` since [verified 2026-09-29]. The package is
   V15 plus 90 hook patches and 110 KB of appended code, with VM moved to
   `0xD9000` (`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §3).
   - This project has only ever sent the unit read-only requests.
-  - A flash dump taken now captures FM-1+VA, not stock. The way back to
-    stock, V15's `.fwsc` through the same installer, is [reported] and has
-    not been tried here. Whether to roll back before the first dump is the
-    owner's call (docs/07 §4 note, docs/14 §4.1).
+  - A flash dump taken now captures FM-1+VA, not stock (docs/07 §4 note,
+    docs/14 §4.1). The way back to stock, V15's `.fwsc` through the same
+    installer, is [reported] and has not been tried here. A rollback is a
+    write through the stock updater, so whether to do it before the first
+    dump is the owner's decision and the owner's action, like the FM-1+VA
+    install; this project does not send it.
 - **Recovery is closer, but not proven on this unit.**
   - Other owners report reaching the FM-1's mask-ROM mode. In
-    [ip2k/lunar-modulator#2](https://github.com/ip2k/lunar-modulator/issues/2)
+    [issue #2 here](https://github.com/ip2k/lunar-modulator/issues/2)
     ("Working UBOOT dongle (fyi)", from 2026-09-16), czietz's quick
     Raspberry Pi Pico dongle gets their FM-1 into UBOOT mode about one
     power-on in two. On 2026-09-29 masanaohayashi reported that it worked on
@@ -46,49 +53,63 @@ repository.
     (docs/10 §2, E1).
   - Our own `USB_KEY` dongle (docs/10, `dongle/`) is specified, implemented
     and simulated; CI builds its UF2, but nobody has built the hardware or
-    run it. Checking it against czietz's tool found a wiring bug, fixed on
-    2026-10-01: both pull-ups went to GP16, which tied D+ to D− when
-    switched off, so the SOF phase would have timed out every time. D−'s
-    pull-up now has its own pin, GP19 (docs/10 §2, E3).
+    run it. Checking it against czietz's tool found a wiring bug, fixed in
+    PR #17: both pull-ups went to GP16, which tied D+ to D− when switched
+    off, so the SOF phase would have timed out every time. D−'s pull-up now
+    has its own pin, GP19 (docs/10 §2, E3). Since PR #19 it keys with D+ as
+    the clock (polarity A) by default (docs/10 §6).
   - **On order** (the owner, 2026-10-01): the JL-AC79-DevKit V1.0 (core
     board with an AC7916) and JieLi's USB updater dongle (docs/14). They are
     the first real pi32v2 target and a second way into mask-ROM mode; the
-    dump and restore get rehearsed on the kit first. The updater's version
-    and whether the USB-A-female-to-USB-C adapter it needs is on hand are
+    dump and restore get rehearsed on the kit first. The updater's version,
+    and whether the USB-A-female-to-USB-C adapter it needs is on hand, are
     not recorded (docs/07 §2.1).
-  - We have not answered ip2k/lunar-modulator#2. The owner posts the reply;
-    a draft is in `scratch/drafts/2026-10-01-issue-2-reply.md` (git-ignored,
-    unsent). Never post it ourselves.
+  - We have not answered ip2k/lunar-modulator#2. A reply is drafted in
+    `scratch/drafts/2026-10-01-issue-2-reply.md` (git-ignored, unsent).
+    Whether and when to post it is the owner's decision, not taken on
+    2026-10-01. Never post it ourselves.
 - **Elsewhere, non-stock firmware runs on FM-1s**, installed through the
   stock update path with rollbacks to V15: Echomatter's `FM-1_016`
-  (2026-09-04, AL-255 PR #2, merged 2026-09-08), and since 2026-09-26 Baud
-  Girl's FM-1+VA (`FM-1_020` … `FM-1_092`, source not published). See
-  docs/04 and docs/03 §5.
-- **Tests:** 1,442 collected; 1,440 pass and 2 xfail, both undo, which is
-  not ported yet [verified: `pytest` on this branch, 2026-10-01]. Of those,
-  963 are engine tests (427 of them compare against upstream reference
-  renders), 427 sequencer tests, 26 for the virtual FM-1 and 26 for the
-  tools and the dongle. CI runs the suite on Linux and macOS, and the
-  engine, sequencer and virtual-FM-1 tests again as a 32-bit build and under
-  ASan + UBSan. It also builds the dongle's UF2 and runs AL-255's suite on
-  our fork (`.github/workflows/ci.yml`). CI does not run Movy; it replays
-  the oracle's committed fixtures.
+  (2026-09-04, AL-255/FM-1-RE PR #2, merged 2026-09-08), and since
+  2026-09-26 Baud Girl's FM-1+VA (`FM-1_020` … `FM-1_092`, source not
+  published). See docs/04 and docs/03 §5.
+- **Tests:** 1,443 collected; 1,441 pass and 2 xfail, both undo, which is
+  not ported yet [verified: `pytest` at `a534dd4`, 2026-10-01]. Of those,
+  963 are engine tests (427 of them in the two reference-render files,
+  `tests/test_engines_reference_*.py`, which compare against upstream
+  Mutable code and hold its negative controls), 427 sequencer tests, 26 for
+  the virtual FM-1 and 27 for the tools and the dongle. CI runs the suite on
+  Linux and macOS, and the engine, sequencer and virtual-FM-1 tests again as
+  a 32-bit build and under ASan + UBSan. It also builds the dongle's UF2 and
+  runs AL-255's suite on our fork (`.github/workflows/ci.yml`). CI does not
+  run Movy; it replays the oracle's committed fixtures.
 - **Where the repo lives:** `~/Developer/mvave-fm1-firmware` on the owner's
   MacBook (the folder keeps its old name), remote `ip2k/lunar-modulator`
   (published 2026-09-06 as `ip2k/mvave-fm1-open-firmware`, renamed with the
   project on 2026-10-01; GitHub redirects the old URLs). Work goes on
-  short-lived branches and merges through pull requests. The cloud session's
-  stray branch `claude/mvave-fm1-open-firmware-ly2w6u` on
-  `ip2k/busybar-dual-timer` is already gone [verified 2026-10-01: GitHub's
-  branch list], although README's "Repository history" still gives the
-  command to delete it.
-- **Open pull requests** besides this one, at 2026-10-01:
-  - #19, the dongle's default becomes polarity A, D+ as the clock; #20, the
-    virtual FM-1 bundles the Exo 2 typeface. Both wait for the owner.
+  short-lived branches and merges through pull requests.
+  - The repository is public. Before a branch's first push, search its
+    whole history (`git log -p origin/main..HEAD`) for LAN addresses, local
+    usernames and the unit's USB serial. A LAN address and an SSH user
+    already reached `main`'s history through PRs #14 and #16; they are out
+    of the tree, those PRs record it, and history is not rewritten.
+  - The cloud session's stray branch `claude/mvave-fm1-open-firmware-ly2w6u`
+    on `ip2k/busybar-dual-timer` is already gone [verified 2026-10-01:
+    GitHub's branch list], although README's "Repository history" still
+    gives the command to delete it.
+- **Open pull requests** at 2026-10-01:
+  - #21, the sequencer's Capture on by default with 256 events packed into
+    12 bytes (the owner's choice).
   - #1, Echomatter's "WIP: Decode FM-1 firmware and add reversible local
     workbench" (2026-09-15): 47 files, about 10,300 lines, based on `main`
-    before PR #3, with docs numbered 11–19 that collide with ours. Nobody
-    has reviewed or answered it. The owner's call.
+    before #3, with docs numbered 11–22, of which 11–14 collide with ours.
+    Nobody has reviewed or answered it. The owner's call.
+- **In flight, not on `main`** (2026-10-01): a user manual on the local,
+  unpushed branch `feature/2026-10-01@user-manual`, to be published with
+  the virtual FM-1 on GitHub Pages (the simulator at `/`, the manual at
+  `/manual/`; the owner's request; Pages is not enabled yet). Other
+  sessions' branches and worktrees: `git worktree list` in the main
+  checkout.
 - **Unrelated to the BUSY Bar project.** Do not mix the two.
 
 ### What is in the repository
@@ -100,7 +121,7 @@ repository.
 | `engines/` | The engine platform, stage A: a C API with no heap; five sound engines (Macro, Shapes, Macro Heavy, Six-Op FM, Sophie) and four effects (Plate, Ensemble, Diffuse, PSX Verb), plus a test engine and effect; the Schwung shim; the desktop renderer `fm1-render`; reference renderers | `engines/README.md` |
 | `engines/seq/` | `fm1_seq`, the sequencer core (docs/13 stage M1), about 4,600 lines of C99 | `engines/seq.md` |
 | `tools/movy-oracle/` | Movy's own `seq-core` run in containers on a LAN Docker host (`MOVY_ORACLE_HOST`), and a random script generator; its golden fixtures are committed under `tests/fixtures/movy/` | its README |
-| `sim/web/` | The virtual FM-1: the app layer in WebAssembly behind a to-scale panel, with the firmware's own screen. The built module is committed; it runs from a copy of the repository and is not hosted anywhere. Rebuilt in containers on a Docker host (`FM1_SIM_HOST`) | `sim/web/README.md` |
+| `sim/web/` | The virtual FM-1: the app layer in WebAssembly behind a to-scale panel, with the firmware's own screen. The built module is committed; it runs from a copy of the repository and is not hosted anywhere yet. Rebuilt in containers on a Docker host (`FM1_SIM_HOST`) | `sim/web/README.md` |
 | `dongle/` | The RP2040 `USB_KEY` firmware (PIO + C) and a ROM/dongle co-simulator | docs/10 |
 | `tools/` | The read-only identity query (`fm1_identify.py`, verified on hardware), the msfa table finder, the `.fwsc` carver, `seq_bench.py` (the sequencer's worst cases for stage B) | `CLAUDE.md` "Commands" |
 | `assets/branding/`, `photos/` | The banner and boot screen, Audiowide and its licence; the owner's photos of the unit, by date | |
@@ -113,9 +134,10 @@ repository.
    `C188612-11B8` (the owner's), LQFP48.
 2. Stock firmware = JieLi AC79 SDK (FreeRTOS-derived kernel, closed `.a` libs
    for BT/audio/fs/cpu) + M-VAVE glue + **Google msfa (Dexed) FM engine**.
-   Verified here: msfa algorithm table at `0x8C46C` (V13) / `0x8CBCC` (V14) /
-   `0x8BE8C` (V15, intact in `FM-1_092`) of `app.bin`, with the Dexed-family
-   fix in algorithms 4 and 6.
+   Verified here: the msfa algorithm table at `0x8C46C` (V13) / `0x8CBCC`
+   (V14) / `0x8BE8C` (V15, intact in `FM-1_092`) of `app.bin`, with
+   algorithms 4 and 6 changed (`0x41` for `0xC1`), the fix carried in the
+   Dexed family [inferred: docs/02].
 3. Update = **USB-MIDI SysEx**, device-pull protocol, **CRC16 only, no
    signature**, chip key `0x980F` in the package. Two stages: verifier in the
    app → reboot into a RAM OTA loader (`4D4A:4155`) → flash write → reset.
@@ -147,9 +169,9 @@ repository.
      FM-1s, then handed over by moving the cable to the PC [reported].
    - kagaimiq's `usb-key.md` and the diagram in `how-to-enter-uboot.md`
      agree; only that page's prose says D−.
-   - Our dongle's first attempt is fixed polarity A, D+ as the clock
-     (docs/10 §6). On `main` that needs a rebuild; PR #19 makes it the
-     default.
+   - Our dongle keys polarity A (D+ as the clock) by default since #19;
+     holding its button at boot selects B, and alternating is a build option
+     (docs/10 §6).
 7. Toolchain = JieLi's closed **Clang/LLVM 4.0.1** fork (`pi32v2` backend),
    Linux build available from `pkgman.jieliapp.com`; AL-255 built C++11 with
    it. No Rust, no GCC/LLVM upstream, no JS runtime. Nothing has been built
@@ -181,11 +203,14 @@ repository.
   bootloader (L4), then blob removal (L2); an open compiler (L3) is out of
   scope unless a contributor wants it. See docs/05.
 - **Recovery before any flash.** The one rule in `CLAUDE.md` stands: nothing
-  is written to the FM-1 until a full dump and a byte-identical restore have
-  been shown on that unit. Bench work stays read-only until docs/08 Phase 2
-  is done (exit: two byte-identical dump/restore cycles on the FM-1). The
-  rules of engagement are in docs/07 §4. The owner's own install of FM-1+VA
-  does not relax them, and neither do reports from other units.
+  gets flashed to, or written on, the FM-1 until a full flash dump and a
+  byte-identical restore have been demonstrated on that unit, and until then
+  the only traffic allowed is the read-only identity query
+  `F0 00 32 45 00 00 00 40 7F F7` and passive captures (docs/14 §4.1 lists
+  what that excludes). docs/08 Phase 2's exit is two byte-identical
+  dump/restore cycles on the FM-1. The rules of engagement are in docs/07
+  §4. The owner's own install of FM-1+VA does not relax them, and neither
+  do reports from other units.
 - **Licences** (`CLAUDE.md` → "Project status and licences"): the repository
   is MIT. GPL or LXR code may come in only under `third_party/<name>/`, with
   its licence and an `UPSTREAM.md`, behind a build switch; a binary that
@@ -204,8 +229,9 @@ repository.
 - **Sequencer** (docs/12, docs/13 §10): Movy is the target. Its semantics are
   reproduced exactly in `compat` mode, with every planned fix on by default.
   4–8 tracks, each routed to the engine or to USB-MIDI; about half of
-  docs/13's 72 KiB; 7-bit locks; Capture off until a ring size is chosen.
-  It is credited as "after Movy by megadake (MIT)" and the UI calls it
+  docs/13's 72 KiB; 7-bit locks. Capture: the owner chose on by default with
+  256 packed 12-byte events; #21 implements it, and on `main` it is still
+  off. It is credited as "after Movy by megadake (MIT)" and the UI calls it
   "Sequencer" (docs/13 §8). Movy is read through the GitHub API and built or
   run only through `tools/movy-oracle/`, in containers.
 - **Verification** (docs/14): bit-exact wherever both sides do the same
@@ -223,13 +249,8 @@ repository.
 ## 4. Open questions (ranked)
 
 1. Does `USB_KEY` reach the mask ROM on *this* unit? Reported yes on two
-   other FM-1s (ip2k/lunar-modulator#2, docs/10 §1.1): D+ is the clock, the
-   FM-1 is switched on while the key runs, and the cable is then moved to
-   the PC. Still unknown (docs/10 §8): the VID:PID and inquiry string the
-   FM-1 shows in UBOOT mode (vendor `WL82` expected [inferred]), whether
-   jl-uboot-tool's `wl82loader.bin` works on it, how briefly the ROM listens
-   after power-up, and the series or ESD parts on the USB path. The
-   ip2k/lunar-modulator#2 draft asks the reporters.
+   other FM-1s (§1). What is still unknown, and what the ip2k/lunar-modulator#2
+   draft asks the reporters, is in docs/10 §8.
 2. Flash: in-package or discrete, exact size (JEDEC ID)? Answerable once
    UBOOT mode is reached.
 3. pi32v2 cost, measured on the dev kit in stage B (docs/14 §5, step 8):
@@ -250,11 +271,12 @@ repository.
 6. What the sequencer UI needs from the hardware (docs/13 §10, question 6):
    what the 14 buttons say, whether KNOB1–4's push switches are readable,
    whether the key LEDs dim, whether the keys sense velocity, the scan rate,
-   and room in flash for sets. Also Capture's ring size and undo's depth.
+   and room in flash for sets. Also undo's depth.
 7. Engines: Six-Op FM's output is inverted relative to Macro and Macro
-   Heavy; effects at native rates are deferred; Six-Op's patch data and PSX
-   Verb's presets need their provenance checked before any shared release
-   (engines/README.md "Open questions and next steps").
+   Heavy, and effects at native rates are not done (engines/README.md "Open
+   questions and next steps"). Six-Op's patch data needs review before
+   anything commercial (same section), and PSX Verb's presets before
+   shipping (`engines/third_party/schwung-modules/psxverb/UPSTREAM.md`).
 8. Any GPL-only Dexed code in the stock image (licensing lever)?
 
 Answered since 2026-09-06: the step-1 verifier refuses only the running
@@ -268,61 +290,70 @@ Done, for the record: the repository move and bench session 1
 against V15 and the board photographed (2026-09-29); engine stages A and A2,
 the reference renders and native rates (2026-09-30 to 10-01); the sequencer
 core and the Movy oracle (M1 and M3); the virtual FM-1, the rename and
-docs/14; the issue write-up and the dongle fix; the README's status and
-credits (all 2026-10-01).
+docs/14; the issue #2 write-up, the dongle fix and its D+ default; the
+README's status and credits (all 2026-10-01).
 
 Now, roughly in order:
 
-1. **Open PRs** (§1): this one, #19 and #20 wait for the owner's review;
-   Echomatter's #1 needs the owner's answer.
-2. **The owner answers ip2k/lunar-modulator#2** from the draft in
-   `scratch/drafts/`. Its questions (the UBOOT name, the tool and commands,
-   the number of tries, battery during the cable swap) shape the first
-   attempt here.
+1. **Open PRs** (§1): #21 waits for the owner's review; Echomatter's #1
+   needs the owner's answer.
+2. **ip2k/lunar-modulator#2**, if the owner chooses to answer it from the
+   draft: its questions (the UBOOT name, the tool and commands, the number
+   of tries, battery during the cable swap) shape the first attempt here.
 3. **When the dev kit and JieLi's updater arrive**, docs/14 §5's first week:
    record the parts, set up the toolchain, the kit's own dump and restore
    through the vendor dongle with jl-uboot-tool read-only, blink and UART,
-   FPU probes, audio out, then rung R2 offline and the stage B numbers.
-4. **Recovery on the FM-1** (docs/08 Phase 2, docs/10 §5–§6): decide on a
-   rollback to V15 first (§1), enter UBOOT mode, dump the flash twice and
-   compare, restore byte for byte, twice. Only then does the one rule allow
-   writing anything.
-5. **Sequencer** (docs/13 §9, `engines/seq.md`): the rest of M2 (engine API
-   v2: a stable uid per parameter, LATCH/SMOOTH/NOLOCK, a MIDI-effect kind);
-   M4 (the UI state machine, TFT views, a command ring, undo); wiring it
-   into the virtual FM-1, where SEQ, PLAY/STOP and REC still say "not in
-   the simulator yet"; stage B on the kit; stages C and D on the FM-1 after
-   the dump and restore.
+   FPU probes, audio out, then rung R2 offline and the stage B numbers. The
+   owner has asked whether both of the AC791N's cores can be used (stock
+   runs its work on one [reported: AL-255]); a second-core probe fits that
+   week.
+4. **Recovery on the FM-1** (docs/08 Phase 2, docs/10 §5–§6): once the owner
+   has decided about a rollback to V15 (§1), enter UBOOT mode, dump the
+   flash twice and compare, restore byte for byte, twice. Only then does the
+   one rule allow writing anything.
+5. **Sequencer** (docs/13 §9, `engines/seq.md`): Capture (#21); then wiring
+   it into the virtual FM-1 (stage S1), where SEQ, PLAY/STOP and REC still
+   say "not in the simulator yet"; the rest of M2 (engine API v2: a stable
+   uid per parameter, LATCH/SMOOTH/NOLOCK, a MIDI-effect kind); M4 (the UI
+   state machine, TFT views, a command ring, undo); stage B on the kit;
+   stages C and D on the FM-1 after the dump and restore.
 6. **Engines:** Shapes' voice cap and the resampler variant, with stage B's
    numbers; Six-Op's polarity.
-7. **The owner's calls, all unsent:** the 2026-09-29 email to Baud Girl and
+7. **The owner's queued requests** (2026-10-01), in this order after the
+   sequencer is in the simulator: arpeggiators; configurable LFOs,
+   envelopes and a modulation matrix; eurorack-style effects such as
+   sample-and-hold (MIT/BSD/Apache code preferred, §3). Also a development
+   roadmap in the README. The user manual and GitHub Pages are already in
+   flight (§1).
+8. **The owner's calls, all unsent:** the 2026-09-29 email to Baud Girl and
    issue for AL-255 (`scratch/drafts/`); the items in
    `notes/upstream-candidates.md` (Plaits bugs, the Movy questions D3–D6,
    kagaimiq's D−/D+ sentence, an O&C shift); whether to ask aroum to tone
    down their README, which since `cb5796c` (2026-09-13) links our dongle as
    if it enabled recovery. Anything upstream follows the
    `oss-contributions` rules: we draft, the owner posts. The threads have
-   been quiet: AL-255 PR #3 has only a third-party comment (2026-09-12), and
-   AL-255 issue #1 and aroum/fm1-custom-fw#2 (our extractor report) have no
-   reply.
-8. **Docs that lag behind**, found during this refresh and left for a
+   been quiet: AL-255/FM-1-RE PR #3 has only a third-party comment
+   (2026-09-12), and AL-255/FM-1-RE issue #1 and aroum/fm1-custom-fw#2 (our
+   extractor report) have no reply.
+9. **Docs that lag behind**, found during this refresh and left for a
    follow-up PR: docs/02's V15 row ("running on the owner's unit"); docs/04
-   (AL-255 PR #2 merged, aroum's head moved); docs/06 (`5627d51` labelled
+   (AL-255's PR #2 merged, aroum's head moved); docs/06 (`5627d51` labelled
    v0.31.0, "8 knobs"); docs/08 ("if one can be bought", "the dongle is
    built"); docs/11 ("about 360 engine tests"); docs/13 §10 answer 1 ("D1–D7
    are the defaults"); docs/14 ("about 350" reference tests, now 427);
    README's "Repository history"; and the GitHub repository description
    ("Research stage").
-9. **The dead-code audit is due** (`CLAUDE.md` → Conventions). The mark is
-   7,463 lines (2026-09-30). The same scope now holds about 24,200 lines,
-   plus about 4,800 in `sim/` [by a `wc -l` count calibrated to give 7,457
-   at the mark, 2026-10-01]: about 21,500 added, against an interval of
-   about 10,000.
+10. **The dead-code audit is due** (`CLAUDE.md` → Conventions). The mark is
+    7,463 lines (2026-09-30). The same scope now holds about 24,200 lines,
+    plus about 4,800 in `sim/` [by a `wc -l` count on 2026-10-01 that gives
+    7,457 at the mark]: about 21,500 added, against an interval of about
+    10,000.
 
 ## 6. Reference material
 
 Clone into `reference/` (git-ignored), except Movy (§3). The pins are what
-the docs cite; where an upstream has moved since, the head is noted.
+the docs cite; where an upstream has moved since, its head on 2026-10-01 is
+noted.
 
 | Repo | Commit | Why |
 | --- | --- | --- |
@@ -333,22 +364,24 @@ the docs cite; where an upstream has moved since, the head is noted.
 | `kagaimiq/jl-uboot-tool` | `adb3f18` 2025-03-16 | UBOOT dumper/flasher, `wl82loader.bin` |
 | `kagaimiq/jl-misctools` | `0a5b12d` 2025-02-20 | `fwunpack_newfw.py` |
 | `jeffreywugz/fw-AC79_AIoT_SDK` (`release/AC79NN_SDK_V1.0.3`) | mirror, not pinned yet (docs/14 §5) | vendor SDK: `WL82.h`, `cpu/wl82/tools`, datasheets |
-| `pichenettes/eurorack`, `pichenettes/stmlib` | `08460a6` 2023-08-16, `e3bd7c9` 2023-05-30 | the Plaits, Braids and Rings code behind the engines (`engines/third_party/mutable/UPSTREAM.md`) |
-| `charlesvestal/schwung`, `charlesvestal/schwung-psxverb`, `mestela/schwung-sophie` | `70c4171`, `b0b44db`, `5682295` | the Schwung module API, PSX Verb and Sophie (`engines/third_party/schwung*/`) |
+| `pichenettes/eurorack`, `pichenettes/stmlib` | `08460a6` 2023-08-16; `e3bd7c9` 2023-05-30, eurorack's submodule pin (head `d18def8`, 2023-09-03) | the Plaits, Braids and Rings code behind the engines (`engines/third_party/mutable/UPSTREAM.md`) |
+| `charlesvestal/schwung`, `charlesvestal/schwung-psxverb`, `mestela/schwung-sophie` | `70c4171` (head `ba3b39d`, 2026-09-30); `b0b44db`; `5682295` (head `abd132d`, 2026-10-01) | the Schwung module API, PSX Verb and Sophie (`engines/third_party/schwung*/`) |
 | `DimaDake/schwung-movy` (MIT, megadake) | `9190e79` 2026-10-01 (`module.json` 0.34.0) | the sequencer `fm1_seq` replicates, and the oracle; docs/06 read the earlier `5627d51`, which is not the v0.31.0 tag (docs/13) |
 | czietz's "Quick and very dirty JieLi UBOOT tool" (gist `9a94cf3c…`) | revision of 2026-09-27, no licence | the Pico dongle of ip2k/lunar-modulator#2; summarized in docs/10 §1.1, not copied |
 
-Baud Girl's FM-1+VA has no repository: its pages and installer were read on
-2026-09-29 (notes/2026-09-29 §1). The sources surveyed but not used yet
-(CHOMPI, O&C, monome, jhjlim) are pinned in their notes.
+Baud Girl's FM-1+VA has no public repository (Baud Girl mentions a private
+one [reported]); its pages and installer were read on 2026-09-29
+(`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`, Sources and §1). The
+sources surveyed but not used yet (CHOMPI, O&C, monome, jhjlim) are pinned
+in their notes.
 
 Web pages the 2026-09-06 research sandbox could not reach: since read are
 the user manual PDF (docs/12), fm1-editor.com through its source repository
-(desk review §2), the updater dongle's manual (docs/07 §2.1) and M-VAVE's
-download centre and MIDI guide (desk review §3); kagaimiq.github.io and
-gitee.com are covered by the repositories and mirrors. Still unread: the
-cuvave.com product page, synthanatomy.com, fwradar.com, the
-elektronauts/gearspace/reddit threads and the madushan.caas.lk blog post.
+(desk review §2) and the updater dongle's manual (docs/07 §2.1);
+kagaimiq.github.io and gitee.com are covered by the repositories and
+mirrors. Still unread: the cuvave.com product page, synthanatomy.com,
+fwradar.com, the elektronauts/gearspace/reddit threads and the
+madushan.caas.lk blog post.
 
 ## 7. Starting a new session
 
@@ -356,13 +389,14 @@ Paste this as the first message (adjust the task):
 
 > This is Lunar Modulator, open firmware for the M-VAVE FM-1, in
 > `~/Developer/mvave-fm1-firmware`. Read `HANDOFF.md`, `README.md` and
-> `CLAUDE.md` first. Rules: the FM-1 on my desk is the only unit, and
-> nothing is written to it until a full dump and a byte-identical restore
-> have been shown (docs/07 §4); keep the [verified]/[reported]/[inferred]
-> marks honest; feature work goes on a branch and merges through a PR.
-> Before starting, check the open PRs, and ask me whether the dev kit and
-> JieLi's updater have arrived and whether I have answered
-> ip2k/lunar-modulator#2. Today's task: …
+> `CLAUDE.md` first. Rules: the FM-1 on my desk is the only unit; nothing
+> is flashed to or written on it, and nothing but the read-only identity
+> query is sent to it, until a full dump and a byte-identical restore have
+> been shown on it (`CLAUDE.md`, docs/07 §4); keep the
+> [verified]/[reported]/[inferred] marks honest; feature work goes on a
+> branch and merges through a PR. Before starting, check the open PRs, and
+> ask me whether the dev kit and JieLi's updater have arrived. Today's
+> task: …
 
 <details>
 <summary>The 2026-09-06 kick-off prompt (historical)</summary>
