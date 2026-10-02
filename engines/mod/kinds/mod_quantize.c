@@ -5,7 +5,7 @@
  * or below middle C (Range 5, the default, makes IN the SEMI unit, so the
  * NOTE source or another pitch passes in tune). Quantize snaps it to the
  * nearest note of Scale (Braids' 49: the church modes, blues, pentatonics,
- * world and quarter-tone scales and 29 ragas) on Root, with Braids'
+ * world and quarter-tone scales and 25 ragas) on Root, with Braids'
  * hysteresis: a pitch must move a little past the midpoint to change note.
  * Trans then adds whole semitones. PITCH is SEMI (semitones / 60), so into
  * a SEMI destination at 100 % it plays exact notes. Scale Off passes the

@@ -13,7 +13,7 @@ Mix and Filter), through fm1-render --mod and the two C tools:
   tick's parameters, outputs and edges in a scripted patch, with an excerpt;
   FM1_UPDATE_GOLDEN=1 rewrites it;
 - byte identity of audio and tick log at host blocks of 1, 7 and 64 frames,
-  and across memory fills, with two racks of the new kinds routed into the
+  and across memory fills, with three racks of the new kinds routed into the
   sound, an effect, PITCH and AMP;
 - a chain of glue modules entered backwards in the rack arriving in the
   tick a direct cable does (CV and gates), and feedback loops one tick late;
@@ -251,15 +251,42 @@ slot 12 cmp2.above > snd:Morph amt=20
 slot 13 coi4.a > host:amp amt=-30
 slot 14 log3.not > host:pitch amt=2
 """
+# Divide's Mult 16 (its run queued as room frees) and Function's slow-start
+# Slew after a moving target (the MG2 review's fixes), with the rest.
+RACK_C = """seed 3
+mod 1 divide mode1=mult value1=16 mode2=mult value2=11 delay=3
+mod 2 function mode=slew rise=0.6 fall=0.5 shape=0.8
+mod 3 lfo rate=0.66
+mod 4 burst count=8 spacing=0.1 length=0.05 accel=-0.4
+mod 5 filter cutoff=0.6 res=0.97 blend=0.4
+mod 6 slew up=0.3 down=0.5 spread=-0.7
+mod 7 register change=0.3 length=13 slew=0.2
+mod 8 quantize scale=bhairav range=3 trans=-7
+slot 1 lfo3 > fun2.in amt=60
+slot 2 fun2 > snd:Timbre amt=40
+slot 3 div1.out1 > bst4.trig
+slot 4 bst4 > flt5.ping
+slot 5 flt5 > snd:Morph amt=30
+slot 6 div1.out2 > reg7.clock
+slot 7 reg7.cv > qnt8.in amt=70
+slot 8 qnt8.pitch > host:pitch
+slot 9 lfo3 > slw6.in
+slot 10 slw6.out6 > fx1:Gain amt=25
+slot 11 fun2.eoc > div1.reset
+slot 12 flt5.hp > host:amp amt=-20
+slot 13 reg7.bit > slw6.thru
+slot 14 slw6.out2 > fun2.floor amt=10
+"""
+RACKS = {"a": RACK_A, "b": RACK_B, "c": RACK_C}
 
 
-@pytest.mark.parametrize("rack", ["a", "b"])
+@pytest.mark.parametrize("rack", sorted(RACKS))
 def test_audio_and_ticks_are_the_same_at_host_blocks_of_1_7_and_64(renderer, tmp_path, rack):
     """docs/16 §2.7 with the MG2 kinds: the WAV and the tick log at host
     blocks of 1, 7 and 64 frames are byte-identical, with chains, gate
     cables and every new kind active into the sound, an effect, PITCH and
     AMP. Commands sit on multiples of 448 frames."""
-    mod = RACK_A if rack == "a" else RACK_B
+    mod = RACKS[rack]
     out = {}
     for block in (1, 7, 64):
         args = ["--engine", "macro", "--fx", "test-gain", "--frames", str(block),
@@ -275,7 +302,7 @@ def test_audio_and_ticks_are_the_same_at_host_blocks_of_1_7_and_64(renderer, tmp
 
 
 def test_any_fill_renders_the_same_across_fills(renderer, tmp_path):
-    for mod in (RACK_A, RACK_B):
+    for mod in RACKS.values():
         outs = []
         for fill in ("0", "0xA5", "0xFF"):
             args = ["--engine", "macro", "--fx", "test-gain", "--fill", fill,

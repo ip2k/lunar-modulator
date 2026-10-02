@@ -229,7 +229,7 @@ so a pitch source passes in tune.
 
 | Uid | Parameter | Range | What it does |
 | --- | --- | --- | --- |
-| 1 | Scale | Off, Semitones, Ionian … Jogeshwari (49) | Braids' scales: church modes, blues, pentatonics, world and quarter-tone scales, 29 ragas |
+| 1 | Scale | Off, Semitones, Ionian … Jogeshwari (49) | Braids' scales: church modes, blues, pentatonics, world and quarter-tone scales, 25 ragas |
 | 2 | Root | C … B | |
 | 3 | Range | 0–5 octaves | IN's span |
 | 4 | Trans | −24–24 semitones (SEMI), rounded | added after quantising |
@@ -258,7 +258,9 @@ An edge sits at the frame where the straight line between the last tick's
 d and this tick's crosses the threshold, so Compare is the sample-accurate
 way to turn a CV into a gate (a CV cable into a gate input switches at the
 tick's first frame) [verified: test]. NOT inverts GATE; RISE and FALL are
-triggers at its edges.
+triggers at its edges. Only where d ends a tick decides the zone: a jump
+across the whole window, or across the MID band, inside one tick makes no
+pulse there (an analog comparator would see none either on a step).
 
 ### Logic (LOG)
 
@@ -389,10 +391,11 @@ Linux x86-64 gcc, gcc `-m32` and clang ASan + UBSan in containers]:
   every 173rd tick's outputs, in `tests/fixtures/mod-golden.json`
   (`FM1_UPDATE_GOLDEN=1` rewrites it). The hashes are the same on every
   build above;
-- **block sizes:** two racks of the new kinds (eight positions each,
+- **block sizes:** three racks of the new kinds (eight positions each,
   fourteen cables, into the sound, an effect, PITCH and AMP, with the
   sequencer playing) give the same WAV and tick log at host blocks of 1, 7
-  and 64, and from fills of 0x00, 0xA5 and 0xFF;
+  and 64, and from fills of 0x00, 0xA5 and 0xFF; the third has Divide's
+  Mult 16 on the sequencer's clock and a slow-start Slew after an LFO;
 - **chains:** LFO → Mix → Calc (Neg) → Calc (Neg) → Timbre, entered with the
   LFO at the bottom of the rack, writes what a direct cable writes, in the
   same ticks; LFO WRAP → Logic → Coin → Divide → an Envelope's gate starts

@@ -1197,13 +1197,20 @@ the tests) [verified 2026-10-02]:
   Divide's SWING and DELAY are per module, its outputs triggers; Slew has
   six outputs and a THRU gate (the table's DEFEAT); Coin's IN and Burst's
   and Bounce's TRIG are normalled to the note trigger, Divide's CLOCK and
-  Register's CLOCK to the sequencer's.
+  Register's CLOCK to the sequencer's. Register has no OUT MODE or
+  DIRECTION (BIT is a gate, CLOCK AND the new bit; the register shifts one
+  way), its MODIFY is WRITE and its SCALE is SPAN, whole semitones.
+  Ports keep to five characters, so Function's RISING and FALLING are UP
+  and DOWN, Compare's INSIDE is MID and Quantize's CHANGED is CHG. Calc
+  adds SNAP and FADE. Filter's CUTOFF is a 0–1 log knob, not Hz: the
+  matrix adds amount × range in a straight line, so a cable then moves
+  it by octaves.
 - **Sizes:** 4 B (Mix) to 312 B (Burst, Peaks' 32-pulse buffer) on arm64,
   the same or less with `gcc -m32`; all sixteen kinds add up to 1,412 B, so
   any rack fits the 8 KB arena. `fm1_mod_size()` is unchanged.
 - **Tests:** a golden trace per kind (the same on clang arm64, gcc x86-64,
   gcc `-m32` and the sanitizer build), block-size identity at 1, 7 and 64
-  and any fill with two racks of the new kinds, a chain of glue modules
+  and any fill with three racks of the new kinds, a chain of glue modules
   entered backwards arriving in the tick a direct cable does, feedback
   exactly one tick late, the Filter's response and ringing against its
   transfer function and poles, and every kind fuzzed with random and
