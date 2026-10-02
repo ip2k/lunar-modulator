@@ -379,7 +379,7 @@ history.
   the reverb, is marked the same for when effects can be locked. Six-Op
   FM's Patch and Sophie's Model stay lockable: they change the next notes
   only. Lane names in saved sets stay as they were
-  (`synth:Timbre`). Every other render is byte-identical, over 1,360 renders
+  (`synth:Timbre`). Every other render is byte-identical, over 1,458 renders
   before and after. Details in `engines/README.md`, "Parameters", and
   `engines/seq.md`; the ids are pinned in `tests/fixtures/param-uids.json`.
   Not in the browser simulator yet.

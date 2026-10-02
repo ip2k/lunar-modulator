@@ -400,9 +400,8 @@ nothing, so the audio is that of the same script without the lane
 [verified: tests/test_seq_render.py, Macro's and Macro Heavy's Model,
 Shapes' Shape and Sophie's Pad]. A lane on a NOLOCK parameter still resolves
 to its uid, so a lock UI can say why its locks are refused. Resolution
-changes no output: 1,360 renders before and after the change are identical
-except the eight that lock a NOLOCK parameter (engines/README.md,
-"Parameters").
+changes no output: of 1,458 renders before and after the change, only the
+38 that lock a NOLOCK parameter differ (engines/README.md, "Parameters").
 
 **Event room.** Commands, live input and advance share one buffer per
 block. One command can cause up to `fm1_seq_cmd_max_events(&limits)` = gates
@@ -522,7 +521,14 @@ engine tests), with no warnings and the same instance sizes. With the host
 bridge [verified 2026-10-02]: the engine, sequencer and Movy tests (1,481
 passed, 18-undo's 2 expected failures) under clang ASan + UBSan, and under
 GCC 13 in a container on aeon at 64 bits and with `-m32`, with no warnings;
-`fm1-seq-host-test` gives the same counts on all three.
+`fm1-seq-host-test` gives the same counts on all three. With engine API v2
+[verified 2026-10-02]: the whole suite on macOS clang (2,037 passed, 2
+skipped, 2 expected failures); the engine, sequencer and Movy tests (1,968)
+and the app layer's under clang ASan + UBSan, with no report or failure;
+GCC 12 in a container on aeon at 64 bits and with `-m32` (1,965 passed, 1
+skipped, the 2 expected failures; the app layer's 33 passed), with no
+warnings; `fm1-seq-host-test` the same counts on all of them; and JieLi's
+pi32v2 compiler over all 67 objects in four profiles.
 
 ## The oracle's verdict (stage M3)
 

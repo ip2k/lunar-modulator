@@ -290,20 +290,26 @@ seconds, for which there is no unit code yet, so it has none. Every other
 parameter is a bare number (the 0–1 knobs, gains, bits, indices).
 
 **No sound changed** [verified 2026-10-02, Apple clang, before and after on
-one machine]: 1,360 runs of `fm1-render` and the virtual FM-1's native
-harness. They cover the 34 oracle scripts on all six sound engines in both
-modes at 64-frame blocks and at each script's own (the Plaits-based engines
-refuse the five 48 kHz scripts, the same way before and after); 28 `movy1`
-sets played alone (four sets and the oracle's 24 end states); every sound
-parameter as a
-lock lane at blocks of 64 and 7; the host-block script at 1, 7 and 64 frames
-on every engine; every parameter of every engine and effect at its minimum,
-middle and maximum and turned mid-note; and the simulator's 18 parity
-scenarios through both hosts. Every WAV, event log, exit code and error is
-byte-identical, and so is every summary less its timing and the new
-`seq_locks_refused`, except the 8 runs that lock a NOLOCK parameter: Macro's
-and Macro Heavy's Model and Shapes' Shape (their audio changes: the locks
-are refused) and Sophie's Pad (only its counters change: Pad alone makes no
+one machine, clean builds]: 1,458 runs of `fm1-render` and the virtual
+FM-1's native harness. They cover:
+- the 34 oracle scripts on all six sound engines in both modes, at 64-frame
+  blocks and at each script's own (the Plaits-based engines refuse the five
+  48 kHz scripts, the same way before and after);
+- 28 `movy1` sets played alone (four sets and the oracle's 24 end states);
+- every sound parameter as a lock lane, at blocks of 64 and 7;
+- 72 seeded scripts that lock four random parameters per engine, relabel
+  one lane and release another while playing, in both modes;
+- the host-block script at 1, 7 and 64 frames on every engine;
+- every parameter of every engine and effect at its minimum, middle and
+  maximum and turned mid-note; instance fills 0xA5 and 0xFF; 48 kHz;
+- the simulator's 18 parity scenarios, through both hosts.
+
+Every WAV, event log, exit code and error is byte-identical, and so is
+every summary less its timing and the new `seq_locks_refused`, in every run
+that refuses no lock. The 38 that do (8 of the sweep, 30 of the seeded
+scripts) are the only ones that differ: their locks on Macro's and Macro
+Heavy's Model and Shapes' Shape are refused, which changes their audio,
+and on Sophie's Pad, which changes only their counters (Pad alone makes no
 sound).
 
 ## Layout
