@@ -23,10 +23,31 @@
  *                       and truncated text), and write the representative
  *                       ones to DIR as PPM
  *   --list              the catalogue JSON
+ *   --sizes             the sequencer's memory figures and sizeof(fm1_app_t)
+ *
+ * The sequencer, with fm1-render's meaning for its flags (engines/host/
+ * render.cc): --cmd FILE plays a timed verb script, --seq FILE.movy1 loads a
+ * set first (alone, it plays from the start), --tracks N (1..8; else the
+ * script's header), --route T:engine|T:midi:CH, --events N (the bridge's
+ * room, at most the app's 256) and --log-events FILE.jsonl. Rate and the run
+ * length come from the script as fm1-render takes them at --frames 64: the
+ * app's blocks are always 64 frames. Script lines apply at the first block
+ * starting at or after their frame, after the panel and notes, through
+ * fm1_app_seq_line; a line the event-room rule cuts short is finished at
+ * the next block. With no --route the default-route rule applies, as in
+ * fm1-render. --log-cmds FILE writes the lines as they were applied, as a
+ * verb script (header `#! rate block=64 tracks end`, then `@<block start>
+ * <ops>`), so fm1-render can replay the run. Test hooks: --seq-reset T:N and
+ * --seq-import T:FILE recreate the instance or import a set at time T, as a
+ * UI would (then the default route, unless --route was given); --seq-ui
+ * T:OP sends one op as a typed command at time T, as the panel will
+ * (fm1_app_seq_cmd), and sends it again after each render while the app
+ * answers BUSY.
  *
  * Prints one line of JSON. Test code: C99 with stdio. MIT licence.
  */
 #include "fm1_app.h"
+#include "seq_script.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -35,8 +56,12 @@
 #include <string.h>
 
 #define MAX_EVENTS 512
+#define MAX_ROUTES 64
 
-typedef enum { EV_NOTE, EV_BEND, EV_PARAM, EV_KEY, EV_BUTTON, EV_TURN, EV_SELECT } ev_kind_t;
+typedef enum {
+  EV_NOTE, EV_BEND, EV_PARAM, EV_KEY, EV_BUTTON, EV_TURN, EV_SELECT, EV_SEQ_RESET, EV_SEQ_IMPORT,
+  EV_SEQ_UI
+} ev_kind_t;
 
 typedef struct {
   double time;
@@ -59,7 +84,10 @@ static void usage(void) {
           "       [--note T:KEY:VEL:DUR] [--bend T:ST] [--param-at T:NAME=V]\n"
           "       [--key T:KEY:VEL:DUR] [--button T:NAME[:DUR]] [--turn T:ENC:DELTA]\n"
           "       [--select T:UNIT:ID|-]\n"
-          "       [--master P] [--seconds S] [--rate HZ] [--out F.wav] [--screen F.ppm]\n");
+          "       [--master P] [--seconds S] [--rate HZ] [--out F.wav] [--screen F.ppm]\n"
+          "       [--cmd FILE] [--seq FILE.movy1] [--tracks N] [--route T:engine|T:midi:CH]...\n"
+          "       [--events N] [--log-events FILE.jsonl] [--log-cmds FILE.verbs]\n"
+          "       [--seq-reset T:N] [--seq-import T:FILE.movy1] [--seq-ui T:OP] | --sizes\n");
 }
 
 static event_t *add_event(double t, ev_kind_t kind) {
@@ -305,6 +333,67 @@ static int run_screens(const char *dir, float rate) {
   return g_faults ? 1 : 0;
 }
 
+/* ---- the sequencer's sizes ------------------------------------------------------ */
+
+static int print_sizes(void) {
+  fm1_seq_limits_t lim8, lim4;
+  fm1_seq_limits_default(&lim8, 8);
+  fm1_seq_limits_default(&lim4, 4);
+  printf("{\"app_bytes\":%zu,\"seq_arena\":%u,\"seq_tracks\":%d,\"seq_bytes_8\":%zu,"
+         "\"seq_bytes_4\":%zu,\"seq_event_bytes\":%zu,\"seq_pending_bytes\":%zu,"
+         "\"seq_ui_bytes\":%u,\"seq_budget\":%u,\"seq_need\":%u,\"seq_events\":%u}\n",
+         sizeof(fm1_app_t), FM1_APP_SEQ_BYTES, FM1_APP_SEQ_TRACKS, fm1_seq_size(&lim8),
+         fm1_seq_size(&lim4), sizeof g_app.seq_ev, sizeof g_app.seq_pend, FM1_APP_SEQ_UI_BYTES,
+         FM1_APP_SEQ_BUDGET,
+         (unsigned)(fm1_seq_cmd_max_events(&lim8) + fm1_seq_min_events(&lim8)),
+         FM1_APP_SEQ_EVENTS);
+  return 0;
+}
+
+/* --log-cmds: a script line as applied, less trailing separators. */
+static void log_cmd(FILE *f, uint32_t pos, const char *t, size_t k) {
+  while (k && (t[k - 1] == ' ' || t[k - 1] == '\t' || t[k - 1] == ';')) --k;
+  if (f && k) fprintf(f, "@%u %.*s\n", (unsigned)pos, (int)k, t);
+}
+
+/* --seq-ui: typed commands as a UI sends them; the frames they went in at. */
+#define MAX_UI 64
+static fm1_seq_cmd_t g_ui[MAX_UI];
+static int g_ui_n, g_ui_next;
+static uint64_t g_ui_frames[MAX_UI];
+static int g_ui_applied;
+
+static void on_cmd(void *ctx, uint64_t frame, const fm1_seq_cmd_t *c) {
+  (void)ctx;
+  (void)c;
+  if (g_ui_applied < MAX_UI) g_ui_frames[g_ui_applied] = frame;
+  ++g_ui_applied;
+}
+
+typedef struct { int track, engine, channel; } route_t;
+
+static int apply_routes(const route_t *r, int n, int tracks) {
+  for (int k = 0; k < n; ++k) {
+    if (r[k].track < 0 || r[k].track >= tracks ||
+        !fm1_app_seq_route(&g_app, r[k].track, r[k].engine ? FM1_SEQ_ROUTE_ENGINE : FM1_SEQ_ROUTE_MIDI,
+                           r[k].engine ? 0 : r[k].channel)) {
+      fprintf(stderr, "bad --route for track %d\n", r[k].track);
+      return 0;
+    }
+  }
+  if (!n) fm1_app_seq_default_route(&g_app);
+  return 1;
+}
+
+static int import_file(const char *path) {
+  size_t len = 0;
+  char *txt = fm1_read_file(path, &len);
+  int ok = txt && fm1_app_seq_import(&g_app, txt, len);
+  free(txt);
+  if (!ok) fprintf(stderr, "%s: not a movy1 set\n", path);
+  return ok;
+}
+
 /* ---- the render ---------------------------------------------------------------- */
 
 static int find_param(int unit, const char *name) {
@@ -324,6 +413,10 @@ int main(int argc, char **argv) {
   int np = 0;
   double secs = 2.0;
   float rate = 44118.0f, master = 1.0f;
+  const char *cmd_path = NULL, *seq_path = NULL, *log_path = NULL, *log_cmds_path = NULL;
+  int tracks = -1, seconds_given = 0, rate_given = 0, n_routes = 0;
+  long events_cap = -1;
+  route_t routes[MAX_ROUTES];
 
   for (int i = 1; i < argc; ++i) {
     const char *a = argv[i];
@@ -333,14 +426,50 @@ int main(int argc, char **argv) {
       puts(j);
       return 0;
     }
+    if (strcmp(a, "--sizes") == 0) return print_sizes();
     if (i + 1 >= argc) { usage(); return 2; }
     const char *v = argv[++i];
     if (strcmp(a, "--screens") == 0) return run_screens(v, rate);
     else if (strcmp(a, "--engine") == 0) engine = v;
     else if (strcmp(a, "--out") == 0) out_path = v;
     else if (strcmp(a, "--screen") == 0) screen_path = v;
-    else if (strcmp(a, "--seconds") == 0) secs = atof(v);
-    else if (strcmp(a, "--rate") == 0) rate = (float)atof(v);
+    else if (strcmp(a, "--seconds") == 0) { secs = atof(v); seconds_given = 1; }
+    else if (strcmp(a, "--rate") == 0) { rate = (float)atof(v); rate_given = 1; }
+    else if (strcmp(a, "--cmd") == 0) cmd_path = v;
+    else if (strcmp(a, "--seq") == 0) seq_path = v;
+    else if (strcmp(a, "--log-events") == 0) log_path = v;
+    else if (strcmp(a, "--log-cmds") == 0) log_cmds_path = v;
+    else if (strcmp(a, "--tracks") == 0) tracks = atoi(v);
+    else if (strcmp(a, "--events") == 0) {      /* decimal, as fm1-render reads it */
+      char *end = NULL;
+      events_cap = strtol(v, &end, 10);
+      if (end == v || *end || events_cap < 1 || events_cap > (long)FM1_APP_SEQ_EVENTS) {
+        fprintf(stderr, "--events wants 1..%u\n", FM1_APP_SEQ_EVENTS);
+        return 2;
+      }
+    } else if (strcmp(a, "--route") == 0) {
+      char kind[16] = { 0 };
+      int t = 0, ch = 0;
+      const int got = sscanf(v, "%d:%15[a-z]:%d", &t, kind, &ch);
+      if (n_routes >= MAX_ROUTES) { usage(); return 2; }
+      if (got >= 2 && strcmp(kind, "engine") == 0) {
+        routes[n_routes++] = (route_t){ t, 1, 0 };
+      } else if (got == 3 && strcmp(kind, "midi") == 0 && ch >= 1 && ch <= 16) {
+        routes[n_routes++] = (route_t){ t, 0, ch };
+      } else {
+        fprintf(stderr, "--route wants T:engine or T:midi:CH\n");
+        return 2;
+      }
+    } else if (strcmp(a, "--seq-ui") == 0) {
+      const char *colon = strchr(v, ':');
+      if (!colon) { usage(); return 2; }
+      add_event(atof(v), EV_SEQ_UI)->a = i;
+    } else if (strcmp(a, "--seq-reset") == 0 || strcmp(a, "--seq-import") == 0) {
+      const char *colon = strchr(v, ':');
+      if (!colon) { usage(); return 2; }
+      event_t *e = add_event(atof(v), a[6] == 'r' ? EV_SEQ_RESET : EV_SEQ_IMPORT);
+      e->a = a[6] == 'r' ? atoi(colon + 1) : i;   /* the file: argv[i] after the colon */
+    }
     else if (strcmp(a, "--master") == 0) master = (float)atof(v);
     else if (strcmp(a, "--param") == 0) {
       if (np >= 16 || !split_param(v, pname[np], sizeof pname[np], &pval[np])) { usage(); return 2; }
@@ -413,6 +542,44 @@ int main(int argc, char **argv) {
     } else { usage(); return 2; }
   }
 
+  const int use_seq = cmd_path || seq_path;
+  fm1_script_t script;
+  uint64_t seq_end = 0;              /* the script's run length, in frames */
+  memset(&script, 0, sizeof script);
+  if (use_seq) {
+    char err[256];
+    if (cmd_path && !fm1_script_load(cmd_path, &script, err, sizeof err)) {
+      fprintf(stderr, "%s\n", err);
+      return 1;
+    }
+    if (!cmd_path) { script.rate = 44118; script.block = 128; script.tracks = 8; }
+    if (!rate_given) rate = (float)script.rate;
+    if (tracks < 0) tracks = script.tracks;
+    if (!seconds_given && (script.has_end || script.n)) {   /* fm1-render at --frames 64 */
+      uint64_t end = script.end;
+      if (!script.has_end) {
+        const uint64_t last = script.cmds[script.n - 1].frame;
+        end = ((last + FM1_APP_MAX_FRAMES - 1u) / FM1_APP_MAX_FRAMES + 1u) * FM1_APP_MAX_FRAMES;
+      }
+      secs = (double)end / rate;
+      seq_end = end;
+    }
+    if (tracks < 1 || tracks > FM1_APP_SEQ_TRACKS) {
+      fprintf(stderr, "the app's sequencer has 1..%d tracks\n", FM1_APP_SEQ_TRACKS);
+      return 2;
+    }
+  } else if (n_routes || log_path || log_cmds_path || tracks >= 0 || events_cap > 0) {
+    fprintf(stderr, "--route, --log-events, --log-cmds, --tracks and --events need --cmd or --seq\n");
+    return 2;
+  }
+  for (int k = 0; k < g_nev; ++k) {
+    if ((g_ev[k].kind == EV_SEQ_RESET || g_ev[k].kind == EV_SEQ_IMPORT ||
+         g_ev[k].kind == EV_SEQ_UI) && !use_seq) {
+      fprintf(stderr, "--seq-reset, --seq-import and --seq-ui need --cmd or --seq\n");
+      return 2;
+    }
+  }
+
   fm1_app_init(&g_app, rate);
   if (engine) {
     int r = fm1_app_select(&g_app, 0, fm1_app_find(engine));
@@ -433,6 +600,24 @@ int main(int argc, char **argv) {
     }
   }
   fm1_app_master(&g_app, master, 0);
+  FILE *log = NULL, *log_cmds = NULL;
+  if (use_seq) {
+    /* As fm1-render: the instance at the script's track count, the set,
+     * the routes given or else the default route. */
+    if (fm1_app_seq_reset(&g_app, tracks) != 0) return 1;
+    if (seq_path && !import_file(seq_path)) return 1;
+    if (!apply_routes(routes, n_routes, tracks)) return 2;
+    if (events_cap > 0) g_app.seq_host.cap = (uint32_t)events_cap;
+    g_app.on_cmd = on_cmd;
+    if (log_path && !(log = fopen(log_path, "w"))) {
+      fprintf(stderr, "cannot write %s\n", log_path);
+      return 1;
+    }
+    if (log_cmds_path && !(log_cmds = fopen(log_cmds_path, "w"))) {
+      fprintf(stderr, "cannot write %s\n", log_cmds_path);
+      return 1;
+    }
+  }
   for (int k = 0; k < g_nev; ++k) {
     if (g_ev[k].kind == EV_PARAM && find_param(0, g_ev[k].name) < 0) return 1;
     if (g_ev[k].kind == EV_SELECT && strcmp(g_ev[k].name, "-") != 0 &&
@@ -442,11 +627,19 @@ int main(int argc, char **argv) {
     }
   }
 
-  uint32_t total = (uint32_t)(secs * rate);
+  uint32_t total = seq_end ? (uint32_t)seq_end : (uint32_t)(secs * rate);
   float *out = calloc((size_t)total * 2 + 2, sizeof(float));
   if (!out) return 1;
   double sum2 = 0.0;
   float peak = 0.0f;
+  size_t next_cmd = 0;
+  const char *rest = NULL;           /* a line the event-room rule cut short */
+  int implicit_play = use_seq && !cmd_path;   /* --seq alone plays the set */
+  uint64_t seq_events = 0;
+  if (log_cmds) {
+    fprintf(log_cmds, "#! rate=%ld block=%u tracks=%d end=%u\n", lrintf(rate),
+            FM1_APP_MAX_FRAMES, tracks, (unsigned)total);
+  }
   for (uint32_t pos = 0; pos < total; pos += FM1_APP_MAX_FRAMES) {
     double now = pos / (double)rate;
     uint32_t n = total - pos < FM1_APP_MAX_FRAMES ? total - pos : FM1_APP_MAX_FRAMES;
@@ -461,6 +654,18 @@ int main(int argc, char **argv) {
         int idx = strcmp(e->name, "-") == 0 ? -1 : fm1_app_find(e->name);
         int r = fm1_app_select(&g_app, e->a, idx);
         if (r) fprintf(stderr, "select %s into unit %d: %d\n", e->name, e->a, r);
+      } else if (e->kind == EV_SEQ_RESET || e->kind == EV_SEQ_IMPORT) {
+        if (e->kind == EV_SEQ_RESET && fm1_app_seq_reset(&g_app, e->a) != 0) {
+          fprintf(stderr, "bad --seq-reset track count %d\n", e->a);
+          return 2;
+        }
+        if (e->kind == EV_SEQ_IMPORT && !import_file(strchr(argv[e->a], ':') + 1)) return 1;
+        rest = NULL;                   /* what was queued went with the instance */
+        if (!n_routes) fm1_app_seq_default_route(&g_app);
+      } else if (e->kind == EV_SEQ_UI) {
+        const char *op = strchr(argv[e->a], ':') + 1;
+        if (g_ui_n >= MAX_UI) { usage(); return 2; }
+        fm1_seq_parse(op, strlen(op), &g_ui[g_ui_n++]);
       } else continue;
       e->done = 1;
     }
@@ -479,7 +684,40 @@ int main(int argc, char **argv) {
         e->done = 1;
       }
     }
+    while (g_ui_next < g_ui_n) {       /* typed commands, in order, until one is BUSY */
+      if (fm1_app_seq_cmd(&g_app, &g_ui[g_ui_next]) == FM1_APP_SEQ_BUSY) break;
+      ++g_ui_next;
+    }
+    if (use_seq) {                     /* lines due now, after the panel and notes */
+      for (;;) {
+        const char *t;
+        if (implicit_play) {
+          t = "play";
+          implicit_play = 0;
+        } else if (rest) {
+          t = rest;
+        } else if (next_cmd < script.n && script.cmds[next_cmd].frame <= pos) {
+          if (script.cmds[next_cmd].snap) { ++next_cmd; continue; }   /* fm1-seq's */
+          t = script.cmds[next_cmd++].ops;
+        } else {
+          break;
+        }
+        const size_t len = strlen(t);
+        const size_t k = fm1_app_seq_line(&g_app, t, len);
+        log_cmd(log_cmds, pos, t, k);
+        rest = k < len ? t + k : NULL;
+        if (rest) break;
+      }
+    }
     const float *b = fm1_app_render(&g_app, n);
+    if (use_seq) {
+      uint32_t n_ev = 0;
+      const fm1_seq_ev_t *ev = fm1_app_seq_events(&g_app, &n_ev);
+      for (uint32_t k = 0; log && k < n_ev; ++k) {
+        fm1_script_log_event(log, pos / FM1_APP_MAX_FRAMES, pos, &ev[k]);
+      }
+      seq_events += n_ev;
+    }
     memcpy(&out[(size_t)pos * 2], b, (size_t)n * 2 * sizeof(float));
     for (uint32_t i = 0; i < 2 * n; ++i) {
       float x = b[i];
@@ -515,6 +753,32 @@ int main(int argc, char **argv) {
     const fm1_engine_t *e = g_app.unit[u].e;
     for (uint16_t p = 0; e && p < e->n_params; ++p) printf(p ? ",%g" : "%g", (double)g_app.unit[u].value[p]);
     printf("]");
+  }
+  if (use_seq) {
+    fm1_seq_stats_t st;
+    int seq_sounding = 0;
+    size_t left = (rest ? 1u : 0u);
+    for (size_t k = next_cmd; k < script.n; ++k) left += !script.cmds[k].snap;
+    for (int n = 0; n < 128; ++n) seq_sounding += g_app.seq_note_count[n];
+    fm1_seq_get_stats(g_app.seq, &st);
+    printf(",\"seq_bytes\":%zu,\"seq_events\":%llu,\"seq_notes_to_engine\":%llu,"
+           "\"seq_locks_to_engine\":%llu,\"seq_refused\":%lu,\"seq_dropped\":%llu,"
+           "\"seq_max_block_events\":%lu,\"seq_splits\":%llu,\"seq_held\":%llu,"
+           "\"seq_busy\":%llu,\"seq_lines_left\":%zu,\"seq_sounding\":%d,"
+           "\"seq_ui_left\":%d,\"seq_ui_frames\":[",
+           fm1_seq_size(&g_app.seq_lim), (unsigned long long)seq_events,
+           (unsigned long long)g_app.seq_host.notes_to_engine,
+           (unsigned long long)g_app.seq_host.locks_to_engine, (unsigned long)st.refused,
+           (unsigned long long)fm1_app_seq_dropped(&g_app), (unsigned long)g_app.seq_host.max_n,
+           (unsigned long long)g_app.seq_host.splits, (unsigned long long)g_app.seq_held,
+           (unsigned long long)g_app.seq_busy, left, seq_sounding, g_ui_n - g_ui_next);
+    for (int k = 0; k < g_ui_applied && k < MAX_UI; ++k) {
+      printf(k ? ",%llu" : "%llu", (unsigned long long)g_ui_frames[k]);
+    }
+    printf("]");
+    if (log) fclose(log);
+    if (log_cmds) fclose(log_cmds);
+    fm1_script_free(&script);
   }
   printf("}\n");
   for (int u = 0; u < FM1_APP_UNITS; ++u) {

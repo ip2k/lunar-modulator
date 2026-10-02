@@ -208,9 +208,11 @@ nothing of ours in the path, and more than 400 tests compare the two.
 - **Checked against Movy:** Movy's own unmodified core, run in a container,
   drives 24 golden fixtures that ours matches event for event, undo aside
   ([`engines/seq.md`](engines/seq.md)).
-- **Not in the browser yet:** it is not wired into the virtual FM-1, so
-  there is no screen to show. SEQ, PLAY/STOP and REC still say "not in the
-  simulator yet".
+- **In the browser, headless:** the virtual FM-1's app layer hosts it
+  through the same bridge and plays scripts and sets exactly as the desktop
+  renderer does, natively and in the browser module (stage S2 of
+  [docs/15](docs/15-sequencer-in-simulator.md)). Nothing on the panel drives
+  it yet: SEQ, PLAY/STOP and REC still say "not in the simulator yet".
 
 ### The arpeggiator core
 
@@ -487,7 +489,8 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Screen and controls refinement** · *In progress*
 - **Depends on:** the simulator (ongoing). On the device: the TFT strip
   driver, key matrix and encoders (I12), and one sized arena for the app
-  layer, whose `fm1_app_t` is 1,168,288 B today against 578 KB of SRAM
+  layer, whose `fm1_app_t` is 1,204,768 B today, the sequencer's arena
+  included, against 578 KB of SRAM
   [verified: sim/web/README.md] (I2).
 - **Where it is planned:** docs/13 M4;
   [docs/14](docs/14-verification-ladder.md) §4.3;

@@ -1,0 +1,14 @@
+#! rate=44118 block=64 tracks=1 end=97059
+# Capture while playing: four notes played in (non/nof) during the first bar
+# of an empty clip, committed with `cap`, then heard on the next pass.
+@0 bpm 24000;watch 0
+@0 play
+@2000 non 0 60 100
+@7000 nof 0 60
+@9000 non 0 64 100
+@14000 nof 0 64
+@16000 non 0 67 100
+@21000 nof 0 67
+@23000 non 0 72 100
+@28000 nof 0 72
+@30000 cap 0

@@ -23,7 +23,7 @@ reads *1/1 Globe* while the page is open.
 | --- | --- |
 | Rate | The sample rate the firmware runs at, such as 44118 Hz |
 | Block | How many samples the firmware computes at a time: 64 |
-| RAM | Two figures in kilobytes: the memory the current engine and both effects take, then the 379K the FM-1 has free for them |
+| RAM | Two figures in kilobytes: the memory the current engine, both effects and the sequencer take (the sequencer about 34K of it, playing or not), then the 379K the FM-1 has free for them |
 | Voices | How many notes the current engine plays at once |
 | FX1, FX2 | The effect in each slot, by its short identifier such as `plate`, or `--` for an empty slot |
 | Octave | The keyboard's octave, from −3 to +3 ([chapter 4](04-playing.md#octave-and-transpose)) |

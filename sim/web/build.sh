@@ -8,8 +8,8 @@
 #      Node) with Emscripten;
 #   3. test/parity.mjs: the WebAssembly output against fm1-render (GCC with
 #      glibc, and with musl when build-on-aeon.sh has built that in
-#      build/musl/), scenario by scenario, and the screens against the native
-#      harness;
+#      build/musl/), scenario by scenario, sequencer scripts (test/seq/)
+#      included, and the screens against the native harness;
 #   4. www/fm1.wasm and its build record www/fm1.wasm.json, only if all of
 #      that passed.
 #
@@ -69,7 +69,8 @@ record = {
         {"name": s["name"], "samples": s["samples"], "libm_sensitive": s["libm_sensitive"],
          **{k: (None if s[k] is None else {"differing": s[k]["differing"], "max_lsb": s[k]["max"]})
             for k in ("app_vs_js", "app_vs_musl", "app_vs_glibc")},
-         "screen_px_differing": s["screen"]["differing"], "ram_bytes": s["ram"]}
+         "screen_px_differing": s["screen"]["differing"], "ram_bytes": s["ram"],
+         **({"cmd": s["cmd"], "seq": s["seq"]} if s.get("cmd") else {})}
         for s in parity["scenarios"]
     ],
 }

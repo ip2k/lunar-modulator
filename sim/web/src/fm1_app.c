@@ -59,6 +59,15 @@
 #define NAME_CHARS 16
 #define POPUP_CHARS 18
 
+/* Compile-time checks of the sequencer's fixed sizes (docs/15 §2.6; C99 has
+ * no static_assert): the event buffer is 3,072 B and the pending record one
+ * 240-byte command, on 32- and 64-bit builds alike. The instance's own size
+ * comes from fm1_seq_size at run time; fm1_app_seq_reset refuses limits
+ * whose instance does not fit FM1_APP_SEQ_BYTES, and tests/test_sim_web.py
+ * checks the budget sum. */
+typedef char fm1_app_seq_events_are_3k[sizeof(fm1_seq_ev_t) * FM1_APP_SEQ_EVENTS == 3072u ? 1 : -1];
+typedef char fm1_app_seq_cmd_is_240[sizeof(fm1_seq_cmd_t) == 240u ? 1 : -1];
+
 /* ---- small helpers ---------------------------------------------------------- */
 
 static int eq_nocase(const char *a, const char *b) {
@@ -186,6 +195,7 @@ void fm1_app_init(fm1_app_t *a, float sample_rate) {
   a->dirty = 1;
   a->leds_changed = 1;
   a->tft.record = 0;
+  fm1_app_seq_reset(a, FM1_APP_SEQ_TRACKS);
 }
 
 static void release(fm1_app_unit_t *u) {
@@ -264,6 +274,7 @@ int fm1_app_default_chain(fm1_app_t *a) {
     refusal_popup(a, macro, r);
   }
   int f = fm1_app_select(a, 1, fm1_app_find("plate"));
+  fm1_app_seq_default_route(a);
   return r != 0 ? r : f;
 }
 
@@ -295,6 +306,7 @@ float fm1_app_get_param(const fm1_app_t *a, int unit, int index) {
 size_t fm1_app_ram(const fm1_app_t *a) {
   size_t total = 0;
   for (int u = 0; u < FM1_APP_UNITS; ++u) total += a->unit[u].bytes;
+  if (a->seq) total += fm1_seq_size(&a->seq_lim) + sizeof a->seq_ev;
   return total;
 }
 
@@ -323,6 +335,19 @@ void fm1_app_pitch_bend(fm1_app_t *a, float semitones) {
   if (s->e && s->e->pitch_bend) s->e->pitch_bend(s->self, semitones);
 }
 
+/* The sequencer's notes on unit 0, released (a reset, an import, a change
+ * of sound). The core still holds their gates; their note-offs, when they
+ * come, find nothing to release. */
+static void seq_release(fm1_app_t *a) {
+  fm1_app_unit_t *s = &a->unit[0];
+  for (int n = 0; n < 128; ++n) {
+    while (a->seq_note_count[n]) {
+      if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)n);
+      --a->seq_note_count[n];
+    }
+  }
+}
+
 void fm1_app_all_notes_off(fm1_app_t *a) {
   fm1_app_unit_t *s = &a->unit[0];
   for (int n = 0; n < 128; ++n) {
@@ -331,6 +356,7 @@ void fm1_app_all_notes_off(fm1_app_t *a) {
       --a->note_count[n];
     }
   }
+  seq_release(a);
   for (int k = 0; k < FM1_APP_KEYS; ++k) a->key_down[k] = 0;
 }
 
@@ -579,11 +605,57 @@ static void update_leds(fm1_app_t *a) {
 
 /* ---- audio --------------------------------------------------------------------- */
 
+/* The bridge's sink: unit 0, called exactly as fm1-render's sink calls its
+ * engine (no velocity clamp: the core's velocities are 1..127 already).
+ * The app counts the notes, to release them, and mirrors each lock for the
+ * screen without touching value[], the knob's own value. */
+static void sink_render(void *ctx, float *lr, uint32_t n) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  a->unit[0].e->render(a->unit[0].self, lr, n);
+}
+
+static void sink_note_on(void *ctx, uint8_t note, uint8_t velocity) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  a->unit[0].e->note_on(a->unit[0].self, note, velocity);
+  if (note < 128 && a->seq_note_count[note] < 255) ++a->seq_note_count[note];
+}
+
+static void sink_note_off(void *ctx, uint8_t note) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  a->unit[0].e->note_off(a->unit[0].self, note);
+  if (note < 128 && a->seq_note_count[note]) --a->seq_note_count[note];
+}
+
+static void sink_set_param(void *ctx, uint16_t index, float value) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  a->unit[0].e->set_param(a->unit[0].self, index, value);
+  if (index < FM1_APP_MAX_PARAMS) {
+    a->lock_shown[index] = value;
+    a->lock_mask |= 1u << index;
+  }
+}
+
+static void seq_flush(fm1_app_t *a);
+
 const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   uint32_t n = frames > FM1_APP_MAX_FRAMES ? FM1_APP_MAX_FRAMES : frames;
   float *out = a->out;
-  if (a->unit[0].e) {
-    a->unit[0].e->render(a->unit[0].self, out, n);
+  const fm1_app_unit_t *s = &a->unit[0];
+  if (a->seq) {
+    /* docs/15 §2.4, steps 2-6: what was held, the block's own events, then
+     * the sound split at each one it takes. */
+    seq_flush(a);
+    a->seq_last_n = fm1_seq_host_advance(&a->seq_host, n);
+    if (s->e) {
+      const fm1_seq_sink_t sink = { a, s->e, sink_render, sink_note_on, sink_note_off,
+                                    sink_set_param };
+      fm1_seq_host_dispatch(&a->seq_host, n, out, &sink);
+    } else {
+      fm1_seq_host_dispatch(&a->seq_host, n, out, NULL);
+      for (uint32_t i = 0; i < 2 * n; ++i) out[i] = 0.0f;
+    }
+  } else if (s->e) {
+    s->e->render(s->self, out, n);
   } else {
     for (uint32_t i = 0; i < 2 * n; ++i) out[i] = 0.0f;
   }
@@ -608,6 +680,157 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   }
   update_leds(a);
   return out;
+}
+
+/* ---- the sequencer ------------------------------------------------------------- */
+
+/* Room an op needs (the event-room rule, fm1_seq_host.h): the most one
+ * command can cause, and the block's own minimum after it. 201 events at 8
+ * tracks, of 256. */
+static uint32_t seq_need(const fm1_app_t *a) {
+  return fm1_seq_cmd_max_events(&a->seq_lim) + fm1_seq_min_events(&a->seq_lim);
+}
+
+static int seq_fits(const fm1_app_t *a) {
+  return fm1_seq_host_room(&a->seq_host) >= seq_need(a);
+}
+
+static void seq_apply(fm1_app_t *a, const fm1_seq_cmd_t *c) {
+  fm1_seq_host_cmd(&a->seq_host, c);
+  if (a->on_cmd) a->on_cmd(a->on_cmd_ctx, a->frames, c);
+}
+
+/* A held command goes in as soon as it fits: first thing at the next
+ * block, since every input and every render calls this first. */
+static void seq_flush(fm1_app_t *a) {
+  if (a->seq_pending && seq_fits(a)) {
+    a->seq_pending = 0;
+    seq_apply(a, &a->seq_pend);
+  }
+}
+
+static int is_blank(char c) { return c == ' ' || c == '\t'; }
+
+size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len) {
+  if (!a->seq) return 0;
+  seq_flush(a);
+  if (a->seq_pending) return 0;
+  if (fm1_seq_realtime_status(ops, len) || (len && ops[0] == '#')) {
+    /* Realtime input is one op. A batch tag suppresses a resent batch, which
+     * only the core can tell, so a tagged line goes in whole, given room for
+     * every op in it (or an empty buffer, if that is more than it has). */
+    uint32_t k = 1, need;
+    for (size_t i = 0; i < len; ++i) k += ops[i] == ';';
+    need = k * fm1_seq_cmd_max_events(&a->seq_lim) + fm1_seq_min_events(&a->seq_lim);
+    if (need > a->seq_host.cap) need = a->seq_host.cap;
+    if (fm1_seq_host_room(&a->seq_host) < need) return 0;
+    fm1_seq_host_line(&a->seq_host, ops, len);
+    return len;
+  }
+  /* Op by op, as fm1_seq_apply_text splits and trims them; with no tag and
+   * no compat mode its loop is exactly parse and apply per op. */
+  for (size_t i = 0; i <= len; ++i) {
+    size_t start = i, b;
+    while (i < len && ops[i] != ';') ++i;
+    b = i;
+    while (start < b && is_blank(ops[start])) ++start;
+    while (b > start && is_blank(ops[b - 1])) --b;
+    if (b > start) {
+      fm1_seq_cmd_t c;
+      if (!seq_fits(a)) return start;
+      fm1_seq_parse(ops + start, b - start, &c);
+      fm1_seq_host_cmd(&a->seq_host, &c);
+    }
+  }
+  return len;
+}
+
+int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c) {
+  if (!a->seq) return FM1_APP_SEQ_REFUSED;
+  seq_flush(a);
+  if (a->seq_pending) {
+    ++a->seq_busy;
+    return FM1_APP_SEQ_BUSY;
+  }
+  if (seq_fits(a)) {
+    seq_apply(a, c);
+    return FM1_APP_SEQ_APPLIED;
+  }
+  a->seq_pend = *c;
+  a->seq_pending = 1;
+  ++a->seq_held;
+  return FM1_APP_SEQ_HELD;
+}
+
+void fm1_app_seq_note_in(fm1_app_t *a, int track, int pitch, int velocity) {
+  if (!a->seq || track < 0 || track > 255 || pitch < 0 || pitch > 127) return;
+  seq_flush(a);
+  fm1_seq_host_note_in(&a->seq_host, (uint8_t)track, (uint8_t)pitch,
+                       (uint8_t)clampi(velocity, 0, 127));
+}
+
+/* Before a reset or an import: the instance's gates are about to go, so
+ * its notes on the engine are released now, and nothing queued for it
+ * (a held command, events for the next block) is played. */
+static void seq_drop(fm1_app_t *a) {
+  seq_release(a);
+  a->lock_mask = 0;
+  a->seq_pending = 0;
+  a->seq_host.n = 0;
+  a->seq_last_n = 0;
+}
+
+int fm1_app_seq_reset(fm1_app_t *a, int tracks) {
+  fm1_seq_limits_t lim;
+  fm1_seq_stats_t st;
+  if (tracks < 1 || tracks > FM1_APP_SEQ_TRACKS) return -1;
+  if (a->seq) {
+    seq_drop(a);
+    fm1_seq_get_stats(a->seq, &st);
+    a->seq_dropped_before += st.dropped_events;
+  }
+  fm1_seq_limits_default(&lim, (uint8_t)tracks);
+  a->seq_lim = lim;
+  a->seq = fm1_seq_size(&lim) <= sizeof a->seq_mem
+               ? fm1_seq_create(a->seq_mem, &lim, (uint32_t)lrintf(a->host.sample_rate))
+               : NULL;
+  if (a->seq_host.seq) {   /* the same buffer; the counters run on */
+    a->seq_host.seq = a->seq;
+  } else {
+    fm1_seq_host_init(&a->seq_host, a->seq, a->seq_ev, FM1_APP_SEQ_EVENTS);
+  }
+  return a->seq ? 0 : -1;
+}
+
+int fm1_app_seq_import(fm1_app_t *a, const char *txt, size_t len) {
+  if (!a->seq) return 0;
+  seq_drop(a);
+  return fm1_seq_import_movy1(a->seq, txt, len);
+}
+
+int fm1_app_seq_route(fm1_app_t *a, int track, int kind, int index) {
+  if (!a->seq || track < 0 || track > 255 || kind < 0 || kind > 255 || index < 0 || index > 255) {
+    return 0;
+  }
+  return fm1_seq_set_route(a->seq, (uint8_t)track, (uint8_t)kind, (uint8_t)index);
+}
+
+int fm1_app_seq_default_route(fm1_app_t *a) {
+  return a->seq ? fm1_seq_default_route(a->seq, a->unit[0].e != NULL) : 0;
+}
+
+const fm1_seq_t *fm1_app_seq(const fm1_app_t *a) { return a->seq; }
+
+const fm1_seq_ev_t *fm1_app_seq_events(const fm1_app_t *a, uint32_t *n) {
+  if (n) *n = a->seq_last_n;
+  return a->seq_ev;
+}
+
+uint64_t fm1_app_seq_dropped(const fm1_app_t *a) {
+  fm1_seq_stats_t st;
+  if (!a->seq) return a->seq_dropped_before;
+  fm1_seq_get_stats(a->seq, &st);
+  return a->seq_dropped_before + st.dropped_events;
 }
 
 /* ---- the screen ---------------------------------------------------------------- */

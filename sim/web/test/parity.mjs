@@ -24,11 +24,19 @@
 // is within 1 LSB of glibc unless the scenario is marked libm_sensitive (a
 // feedback loop that amplifies glibc's and musl's last-bit differences in
 // sinf/expf), the screens match and the module made no import calls.
+//
+// A scenario with `cmd` plays a sequencer verb script (fm1-render --cmd).
+// Every leg applies each line at the first 64-frame block starting at or
+// after its frame, after the notes; the app gets it through fm1w_seq_text.
+// This file reads the script itself (as seq_script.c's fm1_script_load
+// does), so before any audio is compared, its list of applied (block, line)
+// pairs must equal the one the native harness logged (--log-cmds), and the
+// module must have dropped no sequencer event.
 // MIT licence.
 
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { instantiateFm1, BLOCK } from '../www/fm1-wasm.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) => {
@@ -42,9 +50,11 @@ mkdirSync(args.work, { recursive: true });
 
 const scenarios = JSON.parse(readFileSync(args.scenarios, 'utf8')).scenarios;
 const wasmModule = await WebAssembly.compile(readFileSync(args.wasm));
+const cmdPath = (s) => resolve(dirname(args.scenarios), s.cmd);
 
 function cliArgs(s) {
   const a = ['--seconds', String(s.seconds), '--rate', String(s.rate ?? 44118), '--engine', s.engine];
+  if (s.cmd) a.push('--cmd', cmdPath(s));
   for (const p of s.params ?? []) a.push('--param', p);
   for (const n of s.notes ?? []) a.push('--note', n);
   for (const b of s.bends ?? []) a.push('--bend', b);
@@ -86,6 +96,51 @@ function toInt16(x) {
   return f % 2 === 0 ? f : f + 1;
 }
 
+// A verb script as engines/host/seq_script.c's fm1_script_load reads it:
+// lines trimmed of trailing CR, spaces and tabs and of leading spaces and
+// tabs; `#!` header keys anywhere (decimal values only); other `#` lines
+// skipped, `#?@` test directives kept but never applied; `@<frame> <ops>`;
+// commands stably sorted by frame, then line.
+function loadScript(path) {
+  const s = { rate: 44118, block: 128, tracks: 8, end: null, cmds: [] };
+  readFileSync(path, 'latin1').split('\n').forEach((raw, i) => {
+    let p = raw.replace(/[\r \t]+$/, '').replace(/^[ \t]+/, '');
+    if (!p) return;
+    if (p[0] === '#' && !(p[1] === '?' && p[2] === '@')) {
+      if (p[1] === '!') {
+        for (const tok of p.slice(2).split(/[ \t]+/)) {
+          const eq = tok.indexOf('=');
+          if (eq < 0 || !/^[0-9]+$/.test(tok.slice(eq + 1))) continue;
+          const key = tok.slice(0, eq), v = Number(tok.slice(eq + 1));
+          if (key === 'rate') s.rate = v >>> 0;
+          else if (key === 'block') s.block = v >>> 0;
+          else if (key === 'tracks') s.tracks = v & 255;
+          else if (key === 'end') s.end = v;
+        }
+      }
+      return;
+    }
+    const snap = p[0] === '#';
+    if (snap) p = p.slice(2);
+    const m = /^@([0-9]+)(?:[ \t]+|$)/.exec(p);
+    if (!m) throw new Error(`${path}:${i + 1}: expected '@<frame> <ops>'`);
+    s.cmds.push({ frame: Number(m[1]), ops: p.slice(m[0].length), line: i + 1, snap });
+  });
+  s.cmds.sort((x, y) => x.frame - y.frame || x.line - y.line);
+  return s;
+}
+
+// A line as the harness's --log-cmds writes it: less trailing ';' and blanks.
+const logged = (ops) => ops.replace(/[ \t;]+$/, '');
+
+// The harness's --log-cmds file: [frame, ops] for every line it applied.
+function readCmdLog(path) {
+  return readFileSync(path, 'latin1').split('\n').filter((l) => l.startsWith('@')).map((l) => {
+    const m = /^@([0-9]+) (.*)$/.exec(l);
+    return [Number(m[1]), m[2]];
+  });
+}
+
 function splitParam(arg) {
   const eq = arg.indexOf('=');
   return [arg.slice(0, eq), Math.fround(parseFloat(arg.slice(eq + 1)))];
@@ -113,6 +168,17 @@ async function renderApp(s) {
     }
   });
   ex.fm1w_master(1, 0);
+
+  // The sequencer, as fm1-sim-render sets it up for --cmd: an instance at the
+  // script's track count, and the default route (track 0 plays the sound).
+  const script = s.cmd ? loadScript(cmdPath(s)) : null;
+  const applied = [];
+  let nextCmd = 0;
+  if (script) {
+    if (script.block !== BLOCK) throw new Error(`${s.cmd}: block=${script.block}, not ${BLOCK}`);
+    if (ex.fm1w_seq_reset(script.tracks) !== 0) throw new Error(`${s.cmd}: tracks=${script.tracks}`);
+  }
+  const textBuf = script ? new Uint8Array(w.memory.buffer, ex.fm1w_text_buf(), ex.fm1w_text_cap()) : null;
 
   // Events as render.cc builds them: --bend and --param-at in argv order
   // (cliArgs puts bends first), notes as on/off pairs.
@@ -149,13 +215,25 @@ async function renderApp(s) {
         e.done = true;
       }
     }
+    while (script && nextCmd < script.cmds.length && script.cmds[nextCmd].frame <= pos) {
+      const c = script.cmds[nextCmd++];
+      if (c.snap) continue;                       // fm1-seq's test directives
+      if (c.ops.length > textBuf.length) throw new Error(`${s.cmd}: line ${c.line} too long`);
+      for (let i = 0; i < c.ops.length; ++i) textBuf[i] = c.ops.charCodeAt(i) & 255;
+      const took = ex.fm1w_seq_text(c.ops.length);
+      if (took !== c.ops.length) {
+        throw new Error(`${s.cmd}: line ${c.line} took ${took} of ${c.ops.length} bytes (event room)`);
+      }
+      applied.push([pos, logged(c.ops)]);
+    }
     const ptr = ex.fm1w_render(n);
     const f = new Float32Array(w.memory.buffer, ptr, 2 * n);
     for (let i = 0; i < 2 * n; ++i) out[2 * pos + i] = toInt16(f[i]);
   }
   ex.fm1w_draw(0);
   const screen = new Uint16Array(w.memory.buffer, ex.fm1w_screen(), 240 * 240).slice();
-  return { out, screen, imports: w.imports, calls: w.calls, ram: ex.fm1w_ram() };
+  const seq = script ? { applied: applied.filter(([, ops]) => ops), dropped: ex.fm1w_seq_dropped() } : null;
+  return { out, screen, imports: w.imports, calls: w.calls, ram: ex.fm1w_ram(), seq };
 }
 
 function readPpmAs565(path) {
@@ -211,11 +289,24 @@ for (const s of scenarios) {
   execFileSync(args.native, [...cli, '--out', join(dir, 'glibc.wav')], quiet);
   execFileSync(process.execPath, [args['render-js'], ...cli, '--out', join(dir, 'js.wav')], quiet);
   if (args.musl) execFileSync(args.musl, [...cli, '--out', join(dir, 'musl.wav')], quiet);
-  const native = JSON.parse(execFileSync(args.sim, [...cli, '--screen', join(dir, 'screen.ppm')], quiet)
-    .toString().trim().split('\n').pop());
+  const simArgs = [...cli, '--screen', join(dir, 'screen.ppm')];
+  if (s.cmd) simArgs.push('--log-cmds', join(dir, 'cmds.verbs'));
+  const native = JSON.parse(execFileSync(args.sim, simArgs, quiet).toString().trim().split('\n').pop());
   const glibc = readWav(join(dir, 'glibc.wav'));
   const js = readWav(join(dir, 'js.wav'));
   const app = await renderApp(s);
+  let seq = null;
+  if (s.cmd) {
+    // The third reader of the script (above) against the harness's own:
+    // the same lines at the same blocks, before any audio counts.
+    const harness = readCmdLog(join(dir, 'cmds.verbs'));
+    seq = {
+      lines: app.seq.applied.length,
+      lines_match: JSON.stringify(harness) === JSON.stringify(app.seq.applied),
+      dropped: app.seq.dropped,
+      native_dropped: native.seq_dropped,
+    };
+  }
   writePpm(join(dir, 'app-screen.ppm'), app.screen);
   writeWav(join(dir, 'app.wav'), app.out, Math.round(s.rate ?? 44118));
   imports = app.imports;
@@ -229,16 +320,21 @@ for (const s of scenarios) {
     screen: compare(readPpmAs565(join(dir, 'screen.ppm')), app.screen, masked),
     ram: { wasm32: app.ram, native64: native.ram },
     calls: app.calls.length,
+    cmd: s.cmd ?? null,
+    seq,
   };
-  r.pass = r.app_vs_js.differing === 0 &&
+  r.pass = (!seq || (seq.lines_match && seq.dropped === 0 && seq.native_dropped === 0)) &&
+    r.app_vs_js.differing === 0 &&
     (!r.app_vs_musl || r.app_vs_musl.differing === 0) &&
     (r.app_vs_glibc.max <= 1 || r.libm_sensitive) &&
     r.screen.differing === 0 && r.calls === 0;
   results.push(r);
   const fmt = (c) => c ? `${c.differing} differ (max ${c.max})` : 'not run';
+  const seqNote = seq ? `; ${seq.lines} script lines${seq.lines_match ? '' : ' NOT as the harness applied them'}, ` +
+    `${seq.dropped} events dropped` : '';
   console.log(`${r.pass ? 'pass' : 'FAIL'} ${s.name}: of ${r.samples} samples, vs js ${fmt(r.app_vs_js)}, ` +
     `vs musl ${fmt(r.app_vs_musl)}, vs glibc ${fmt(r.app_vs_glibc)}${r.libm_sensitive ? ' [libm-sensitive]' : ''}; ` +
-    `screen ${r.screen.differing} px; RAM ${r.ram.wasm32} B (wasm32) / ${r.ram.native64} B (native 64-bit)`);
+    `screen ${r.screen.differing} px; RAM ${r.ram.wasm32} B (wasm32) / ${r.ram.native64} B (native 64-bit)${seqNote}`);
 }
 const summary = {
   passed: results.filter((r) => r.pass).length,

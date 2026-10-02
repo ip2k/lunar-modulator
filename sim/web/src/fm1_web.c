@@ -12,6 +12,13 @@
 
 static fm1_app_t g_app;
 
+/* Text in: JavaScript writes a script line (later, a whole `movy1` set)
+ * here and passes its length. 64 KiB holds the largest set an 8-track
+ * instance exports, 53,208 B with every pool full and 256-step clips
+ * (docs/15 §2.7); EXPORTED_FUNCTIONS cannot export data, so the address and
+ * size come from functions. */
+static char g_text[65536];
+
 void fm1w_init(float sample_rate) { fm1_app_init(&g_app, sample_rate); }
 int fm1w_default_chain(void) { return fm1_app_default_chain(&g_app); }
 
@@ -55,3 +62,27 @@ int fm1w_leds_changed(void) {
   return c;
 }
 int fm1w_mode(void) { return g_app.mode; }
+
+char *fm1w_text_buf(void) { return g_text; }
+unsigned fm1w_text_cap(void) { return (unsigned)sizeof g_text; }
+
+/* The sequencer. fm1w_seq_text applies the first `len` bytes of the text
+ * buffer as one script line at the coming block's start and returns the
+ * bytes it took (fm1_app_seq_line): fewer than `len` means the rest must
+ * wait for the next render. -1 for a length past the buffer. */
+int fm1w_seq_text(unsigned len) {
+  if (len > sizeof g_text) return -1;
+  return (int)fm1_app_seq_line(&g_app, g_text, len);
+}
+
+/* A new instance of `tracks` tracks (1..8), then the default route, as
+ * fm1-render routes by default: track 0 plays the sound when one is loaded.
+ * 0, or -1 for a bad count. */
+int fm1w_seq_reset(int tracks) {
+  int r = fm1_app_seq_reset(&g_app, tracks);
+  if (r == 0) fm1_app_seq_default_route(&g_app);
+  return r;
+}
+
+/* Events dropped since init (0 unless a note may have hung). */
+unsigned fm1w_seq_dropped(void) { return (unsigned)fm1_app_seq_dropped(&g_app); }

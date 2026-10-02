@@ -30,8 +30,8 @@
 // T:midi:CH. Notes and locks reach the engine at their own frame: the block is
 // rendered in pieces split at event frames. A lock sets the engine parameter
 // its lane's label names (`target:Name`, matched by name), scaled from
-// 0..127. All of that per-block hosting is the shared bridge
-// (include/fm1_seq_host.h); the routing default above is this host's policy.
+// 0..127. All of that per-block hosting, and the routing default above, is
+// the shared bridge (include/fm1_seq_host.h).
 // The summary adds seq_dropped (events past the buffer), seq_max_block_events
 // and seq_splits (render calls that start inside a block). MIT licence.
 
@@ -415,12 +415,6 @@ int main(int argc, char **argv) {
       }
       free(txt);
     }
-    bool set_routes = false;     // a set's own `rt` lines count as routing
-    for (int t = 0; t < tracks; ++t) {
-      fm1_seq_track_info_t ti;
-      fm1_seq_get_track(sq.seq, static_cast<uint8_t>(t), &ti);
-      if (ti.route_kind != FM1_SEQ_ROUTE_MIDI || ti.route_index != t % 16 + 1) set_routes = true;
-    }
     for (size_t k = 0; k < routes.size(); ++k) {
       if (routes[k].track < 0 || routes[k].track >= tracks ||
           !fm1_seq_set_route(sq.seq, static_cast<uint8_t>(routes[k].track),
@@ -430,11 +424,12 @@ int main(int argc, char **argv) {
         return 2;
       }
     }
-    // This host's routing policy (engines/seq.md, Host contract): track 0
-    // plays the engine only with no --route, no routes in the set, and an
-    // engine loaded. An imported set without `rt` lines routes every track
-    // to MIDI channel t+1.
-    if (routes.empty() && !set_routes && sound.e) fm1_seq_set_route(sq.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
+    // The default-route rule (engines/seq.md, Host contract; the bridge's
+    // fm1_seq_default_route, which the virtual FM-1 applies too): track 0
+    // plays the engine only with no --route, no routes in the set (its own
+    // `rt` lines count as routing) and an engine loaded. An imported set
+    // without `rt` lines routes every track to MIDI channel t+1.
+    if (routes.empty()) fm1_seq_default_route(sq.seq, sound.e != NULL);
     if (log_path && !(sq.log = fopen(log_path, "w"))) { fprintf(stderr, "cannot write %s\n", log_path); return 1; }
     sq.ev.resize(events_cap > 0 ? static_cast<size_t>(events_cap) : 65536u);
     fm1_seq_host_init(&sq.host, sq.seq, sq.ev.data(), static_cast<uint32_t>(sq.ev.size()));
