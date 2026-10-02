@@ -14,7 +14,8 @@
 
 import { createRequire } from 'node:module';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { serve } from './serve.mjs';
 
 const require = createRequire(`${process.env.PLAYWRIGHT_DIR || '/pw'}/`);
@@ -106,6 +107,13 @@ function differing(a, b) {
 }
 
 async function parityFigure(scenario, rate) {
+  // The caption describes this scenario; refuse to draw it over another one.
+  const scenarios = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'scenarios.json'), 'utf8'));
+  const sc = scenarios.scenarios.find((x) => x.name === scenario);
+  const described = sc && sc.engine === 'sixop' && sc.params.join() === 'Patch=32' &&
+    sc.notes.map((n) => n.split(':')[1]).join() === '60,64,67' &&
+    sc.fx.length === 1 && sc.fx[0][0] === 'ensemble' && (sc.rate ?? 44118) === rate;
+  if (!described) throw new Error(`parity figure: ${scenario} is not the scenario its caption describes`);
   const dir = join(parityDir, scenario);
   const app = readWav(join(dir, 'app.wav'));
   const glibc = readWav(join(dir, 'glibc.wav'));

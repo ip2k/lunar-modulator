@@ -33,11 +33,11 @@ the "Power on" button, as browsers require a gesture.
 | Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 287 screens (every page of every engine and effect at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, SEL outside FX mode and an emptied slot) pass a layout check: nothing off screen, no text cut short, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`] |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
-| Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_app.c`); Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 for small text where installed, else the system's sans-serif |
+| Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_app.c`); Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 for small text where installed, else the system's sans-serif. Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
 | Info | GLO shows the sample rate, block size, the chain's RAM against the 379 KB the stock layout leaves free (docs/11 §2), voices, octave and transpose. WebAssembly has 4-byte pointers like pi32v2, so these are the 32-bit instance sizes |
 
-Tested in headless Chromium 153 (Playwright 1.63, on aeon) only
-[verified: `build/screenshots/report.json`, 2026-10-01]: the page is titled
+Tested in Chromium only. In headless Chromium 153 (Playwright 1.63, on
+aeon) [verified: `build/screenshots/report.json`, 2026-10-01]: the page is titled
 "Lunar Modulator", Audiowide loads from `fonts/`, the background is the
 palette's base; it powers on, a
 three-note chord reaches the output (RMS 0.046), three key LEDs light, FX,
@@ -54,8 +54,18 @@ sideways, the smallest targets are 24.8 px (OCT−/OCT+, 5.2 mm tall) and
 the keys 35 and 31.5 px wide, the panel opens scrolled just far enough to
 show the whole screen, and dragging the case pans it; at 844 × 390 the
 panel fits with 25 px targets, the header shrinks to the name and tagline,
-and Power on sits over the panel's top row. Firefox, Safari, real touch
-screens and real MIDI hardware are not tested.
+and Power on sits over the panel's top row. Published as a static host
+would publish it, over https (a self-signed certificate) under
+`/some/where/lunar/`, it is a secure context, every request succeeds and
+stays under that path, Audiowide loads and a key reaches the output at
+44,118 Hz (RMS 0.031); over plain http from a name that is not localhost,
+Power on says the page needs https or localhost and opens no
+AudioContext. By hand in Chromium 152 on macOS (the Claude desktop app's
+browser pane), from `python3 -m http.server`: 44,118 Hz, the panel's keys
+and the computer keyboard reach the output (RMS 0.022), a scroll over
+KNOB1 turns it, and at 375 px the page does not scroll sideways
+[verified, 2026-10-01]. Firefox, Safari, real touch screens and real MIDI
+hardware are not tested.
 
 ## The panel
 
@@ -245,7 +255,8 @@ in each engine's `credits` string and in the page's footer.
 Publishing is copying `www/` as it is: `index.html`, `style.css`, `app.js`,
 `worklet.js`, `fm1-wasm.mjs`, `fm1.wasm` and `fonts/`. The host must serve
 `.js` and `.mjs` as JavaScript (module scripts and the worklet's import
-need it; Python's `http.server` does) and the page over https or from
-localhost. The page has been tested from a local static server only; a
+need it; Python's `http.server` does from 3.9 on [verified: 3.9 to 3.12])
+and the page over https or from localhost. The page test serves it over
+https under a sub-path (above); a real static host has not been tried. A
 host that serves pages from an opaque origin (a sandboxed iframe) would
 also need CORS headers on the module scripts [inferred].

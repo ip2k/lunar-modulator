@@ -36,6 +36,9 @@
   --surface: var(--rp-surface);
   --text: var(--rp-text);
   --muted: var(--rp-subtle);
+  /* Subtle on surface is 4.46:1, just under WCAG's 4.5 for body text; a
+   * tenth of text lifts it to 4.9:1 (on base, subtle alone is 4.9:1). */
+  --muted-on-surface: color-mix(in srgb, var(--rp-subtle) 90%, var(--rp-text));
   --border: var(--rp-highlight-med);
   --accent: var(--rp-iris);
   --accent-text: var(--rp-base);
@@ -215,7 +218,7 @@ h2 { font: 400 1.1rem/1.3 var(--display); letter-spacing: 0.03em; margin: 0 0 12
   box-shadow: 0 8px 28px rgb(0 0 0 / 0.35);
   text-align: center;
 }
-.power-card p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.power-card p { margin: 0; color: var(--muted-on-surface); font-size: 0.92rem; }
 
 button, select {
   font: inherit;
@@ -279,7 +282,7 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
 .help dl > div { display: grid; grid-template-columns: 9rem 1fr; gap: 12px; }
 .help dt { font-weight: 600; color: var(--rp-iris); }
 .help dd { margin: 0; }
-.help .fine { margin: 14px 0 0; font-size: 0.85rem; color: var(--muted); }
+.help .fine { margin: 14px 0 0; font-size: 0.85rem; color: var(--muted-on-surface); }
 kbd {
   font: 0.85em/1 ui-monospace, Menlo, Consolas, monospace;
   color: var(--text);

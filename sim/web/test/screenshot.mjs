@@ -15,10 +15,15 @@
 // flowing on two recycled buffers; and on a phone, targets of at least
 // 24 px with no page-wide horizontal scroll. And the theme: the title, the
 // Audiowide face loaded from the page's own fonts/, the palette's base as
-// the page background. MIT licence.
+// the page background. And publishing: the page served over https under a
+// path, as a static host would publish it, plays with every file found
+// there; served over plain http from a name that is not localhost (not a
+// secure context), Power on says what the page needs. MIT licence.
 
 import { createRequire } from 'node:module';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { serve } from './serve.mjs';
 
@@ -30,7 +35,11 @@ mkdirSync(out, { recursive: true });
 const { server, url } = await serve(www, 8765);
 
 const report = { checks: {}, logs: [] };
-const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+// lunar.test stands for another machine's address: a name that is not
+// localhost, so plain http from it is not a secure context.
+const browser = await chromium.launch({
+  args: ['--autoplay-policy=no-user-gesture-required', '--host-resolver-rules=MAP lunar.test 127.0.0.1'],
+});
 report.browser = `Chromium ${browser.version()} (Playwright, headless)`;
 
 async function tftPng(page, name) {
@@ -236,6 +245,75 @@ async function targets(page) {
 }
 const bigEnough = (t, px) => Math.min(t.white_key, t.black_key, t.button, t.knob) >= px;
 
+// A self-signed certificate for 127.0.0.1, made for this run only.
+function selfSigned() {
+  const dir = mkdtempSync(join(tmpdir(), 'fm1-tls-'));
+  execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1',
+    '-subj', '/CN=127.0.0.1', '-addext', 'subjectAltName=IP:127.0.0.1',
+    '-keyout', join(dir, 'key.pem'), '-out', join(dir, 'cert.pem')], { stdio: 'ignore' });
+  return { key: readFileSync(join(dir, 'key.pem')), cert: readFileSync(join(dir, 'cert.pem')) };
+}
+
+async function publishingChecks(browser) {
+  const r = {};
+  // https, under a path, the page's URL a directory: as a static host
+  // publishes www/. Every request must succeed and stay under that path.
+  const https = await serve(www, 8443, { prefix: '/some/where/lunar/', tls: selfSigned() });
+  const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1280, height: 900 } });
+  const page = await ctx.newPage();
+  const failed = [], outside = [];
+  page.on('pageerror', (e) => report.logs.push(`https pageerror: ${e.message}`));
+  page.on('response', (res) => { if (res.status() >= 400) failed.push(`${res.status()} ${res.url()}`); });
+  page.on('requestfailed', (req) => failed.push(`failed ${req.url()}`));
+  page.on('request', (req) => {
+    const u = req.url();
+    if (!u.startsWith(https.url) && !u.endsWith('/favicon.ico')) outside.push(u);
+  });
+  await page.goto(https.url);
+  const font = await page.evaluate(async () => {
+    await document.fonts.load('400 24px Audiowide');
+    return document.fonts.check('400 24px Audiowide');
+  });
+  await page.click('#power-on');
+  await page.waitForFunction(() => window.fm1 && window.fm1.screens > 0, null, { timeout: 20000 });
+  await page.keyboard.down('KeyG');
+  await wait(page, 400);
+  const rms = await level(page);
+  await page.keyboard.up('KeyG');
+  r.https = {
+    url: https.url,
+    secure_context: await page.evaluate(() => window.isSecureContext),
+    rate: await page.evaluate(() => window.fm1.ctx.sampleRate),
+    display_font_loaded: font, key_rms: rms,
+    failed: failed.filter((f) => !f.endsWith('/favicon.ico')), outside,
+  };
+  await ctx.close();
+  https.server.close();
+
+  // Plain http from a name that is not localhost: no AudioWorklet there, so
+  // Power on explains instead of failing.
+  const plain = await serve(www, 8767, { host: 'lunar.test' });
+  const p2 = await browser.newPage();
+  p2.on('pageerror', (e) => report.logs.push(`insecure pageerror: ${e.message}`));
+  await p2.goto(plain.url);
+  await p2.click('#power-on');
+  await wait(p2, 300);
+  r.insecure_http = {
+    url: plain.url,
+    secure_context: await p2.evaluate(() => window.isSecureContext),
+    started: await p2.evaluate(() => window.fm1.ctx !== null),
+    status: await p2.textContent('#status'),
+  };
+  await p2.close();
+  plain.server.close();
+
+  r.pass = r.https.secure_context === true && r.https.display_font_loaded === true && r.https.key_rms > 0.005 &&
+    r.https.failed.length === 0 && r.https.outside.length === 0 &&
+    r.insecure_http.secure_context === false && r.insecure_http.started === false &&
+    /secure context/.test(r.insecure_http.status);
+  return r;
+}
+
 async function press(page, button) {
   await page.locator(`[data-button="${button}"]`).scrollIntoViewIfNeeded();
   const box = await page.locator(`[data-button="${button}"]`).boundingBox();
@@ -335,6 +413,8 @@ try {
   report.checks.landscape = await targets(landscape);
   await landscape.screenshot({ path: join(out, '07-landscape.png') });
   await landscape.close();
+
+  report.checks.publishing = await publishingChecks(browser);
 } catch (err) {
   report.error = String(err && err.stack || err);
 } finally {
@@ -348,6 +428,7 @@ report.pass = !report.error && theme.title === 'Lunar Modulator' && theme.displa
   theme.body_background === 'rgb(35, 33, 54)' && c.screens > 0 && c.chord_rms > 0.01 && c.lit_keys === 3 &&
   c.fx_led === true && c.phone_scroll_width <= 390 && bigEnough(c.phone, 24) && c.phone_pan_px > 100 &&
   c.landscape.page_scroll_width <= 844 && bigEnough(c.landscape, 24) && c.input && c.input.pass &&
+  c.publishing && c.publishing.pass &&
   !report.logs.some((l) => l.startsWith('error') || l.includes('pageerror'));
 writeFileSync(join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify({ pass: report.pass, browser: report.browser, ...c, error: report.error }, null, 0));

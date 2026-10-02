@@ -23,7 +23,8 @@ history.
   Audiowide for the name and the tagline "Intergalactic Modulation
   Station", and an oscilloscope that scales to the sound. The page finds
   its files relative to itself, so `sim/web/www/` publishes as static files
-  over https at any path. Screenshots of the engines, an effect page, a
+  over https at any path (tested under a sub-path); opened over plain http
+  from another machine, Power on says it needs https or localhost. Screenshots of the engines, an effect page, a
   parameter page, the phone layout and a parity figure are in
   `assets/screenshots/`; `build-on-aeon.sh` now needs `FM1_SIM_HOST` and
   remakes them with `--readme-screenshots`.

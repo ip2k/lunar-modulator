@@ -19,7 +19,15 @@ README. Taken on 2026-10-01 in headless Chromium 153 (Playwright 1.63) from
 | `phone.png` | The page at 390 × 844 (2× pixels): the panel keeps playable sizes and scrolls sideways in its own box |
 
 The `screen-*.png` files are the firmware's 240 × 240 frame buffer with each
-pixel doubled, not a photograph of the page.
+pixel doubled, not a photograph of the page. The page's small text is the
+container's sans-serif, since Exo 2 is not bundled yet
+(`sim/web/www/fonts/README.md`).
+
+Still current after the 2026-10-01 review's page changes (a contrast
+tweak to text on surfaces, a message for insecure origins), which none of
+the pictures show: a fresh run differed from these only in the level meter
+and the oscilloscope, which follow the audio's timing [verified: pixel
+comparison of every picture].
 
 ## Remaking them
 

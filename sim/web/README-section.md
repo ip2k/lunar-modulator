@@ -2,8 +2,9 @@
 Draft for the top-level README (written in sim/web/ so the README itself is
 left to the branch that is editing it). Image paths are relative to the
 repository root, so the two sections can be pasted into README.md as they
-are. The sequencer paragraph describes feature/2026-10-01@seq-core, which
-is not on main yet: its engines/seq.md link resolves once that merges.
+are; they fit after the status note and before "The short version". The
+sequencer paragraph describes feature/2026-10-01@seq-core, which is not on
+main yet: its engines/seq.md link resolves once that merges.
 -->
 
 ## Features
@@ -11,7 +12,8 @@ is not on main yet: its engines/seq.md link resolves once that merges.
 Nothing here runs on an FM-1 yet: the engines, effects and sequencer core
 are built and tested on a desktop, and the virtual FM-1 runs them in a
 browser. The screenshots below are that virtual FM-1, showing the
-firmware's own 240 × 240 screen.
+firmware's own 240 × 240 screen, and one figure compares its output with
+the native renderer's.
 
 ### Sound engines
 
@@ -59,11 +61,15 @@ under full scale.
 Every engine and effect built from Mutable Instruments code is compared
 with the upstream classes it wraps: reference renderers drive the original
 Plaits, Braids and Rings code as the modules' own firmware does, with
-nothing of ours in the path, and about 350 tests compare the two. At the
-upstream rates the engines match sample for sample or within half a
-16-bit step ([`engines/reference-plaits.md`](engines/reference-plaits.md),
+nothing of ours in the path, and more than 400 tests compare the two. At
+the upstream rates 21 of Plaits' 24 engines match sample for sample
+(Chiptune once its low-pass gate has opened), its three six-op banks
+correlate at 0.99 or better (the wrapper's timing differs by design), and
+Braids' 47 shapes and the effects lie within about half a 16-bit step
+(0.55 LSB at worst) ([`engines/reference-plaits.md`](engines/reference-plaits.md),
 [`engines/reference-braids-fx.md`](engines/reference-braids-fx.md)); the
-two Schwung modules are compiled unmodified. The browser adds nothing: twelve note scripts covering every engine and effect
+two Schwung modules are compiled unmodified. The browser adds nothing:
+twelve note scripts covering every engine and effect
 render identically, sample for sample, in the browser's WebAssembly module
 and in the native renderer built with GCC and musl; against GCC with glibc
 ten of the twelve are identical, and the two that differ are Sophie's,
@@ -117,14 +123,17 @@ cd sim/web/www && python3 -m http.server 8000
 
 Open <http://localhost:8000/> and press **Power on** (browsers only start
 audio after a click). The page needs `http://localhost` or `https://`;
-opening `index.html` as a file does not work. It loads nothing from
-anywhere else, so `sim/web/www/` can also be published as static files.
+opening `index.html` as a file does not work, and over plain `http://` from
+another machine's address Power on says so instead of starting. It loads
+nothing from anywhere else and finds its files relative to itself, so
+`sim/web/www/` can also be published as static files, at any path.
 
 **Browsers.** It needs WebAssembly, an AudioWorklet and a secure context.
-It is tested in headless Chromium 153 only; Firefox, Safari, real touch
-screens and MIDI hardware are not tested yet. "Connect MIDI input" needs a
-browser with Web MIDI; without it the panel and the computer keyboard
-still play.
+It is tested in Chromium only: headless Chromium 153 on Linux, from a local
+server and over https under a sub-path, and Chromium 152 on macOS, from
+`python3 -m http.server`. Firefox, Safari, real touch screens and MIDI
+hardware are not tested yet. "Connect MIDI input" needs a browser with Web
+MIDI; without it the panel and the computer keyboard still play.
 
 **Controls.**
 

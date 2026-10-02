@@ -224,6 +224,13 @@ function powerOn() {
 }
 
 async function start() {
+  // Browsers hide AudioWorklet (and Web MIDI) from pages that are not a
+  // secure context: plain http from another machine's address, say.
+  if (!window.isSecureContext) {
+    statusEl.textContent = 'This page needs a secure context for its audio: open it over https, ' +
+      'or from http://localhost on the machine that serves it.';
+    return;
+  }
   if (!window.AudioWorkletNode) {
     statusEl.textContent = 'This browser has no AudioWorklet; the simulator needs it (and a page served over http://localhost or https).';
     return;
