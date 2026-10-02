@@ -1220,10 +1220,8 @@ static void node_text(chain_t *c, unsigned src, const uint32_t on_path, char *ou
     for (j = 0; j < FM1_MOD_SLOTS; ++j) {
       if (((c->ok >> j) & 1u) && !((on_path >> j) & 1u) && src_module(&c->s[j]) == pos) ++more;
     }
-    if (more) {
-      char t[40];                      /* then cut to a row (GCC's -Wformat-truncation) */
-      snprintf(t, sizeof t, "%-13.13s +%d", name, more);
-      snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%s", t);
+    if (more) {                        /* at most 31; the bound lets GCC see it fits */
+      snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%-13.13s +%d", name, more > 99 ? 99 : more);
       return;
     }
   }
