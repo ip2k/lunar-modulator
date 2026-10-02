@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "5b6bd13142b49c3b810c94b59b74baea6d0ad8768bbafe20183b6b17bff32069",
-  "wasm_bytes": 448212,
+  "wasm_sha256": "38dcfacc1218db60adbe064b7bc90cfe890f563c1b0b95cade45f340ca7d3302",
+  "wasm_bytes": 402182,
   "sources_sha256": {
-    "engines": "1e208142510f4148c0f1a04900d748bf9a477e3aed725affd8902b19bd3e0a6f",
-    "sim": "2facd8b0e94f54cfbe5ea7998f8571f3f2628c7e45409a0f1e8eb21558450ac3"
+    "engines": "1b49219b9c16aa3103433e26177a0977a2f5064232c7cce5a3c643b46928c380",
+    "sim": "fc0f87c25c94f71278124a06c7c595f8b8d2d0c44aa8e56fb6bd06054d58acd6"
   },
   "engines": "working tree",
-  "built": "2026-10-02T08:12:02Z",
+  "built": "2026-10-02T08:45:52Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,12 +17,12 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 17,
+    "passed": 18,
     "failed": 0,
-    "identical_to_js": 17,
-    "identical_to_musl": 17,
+    "identical_to_js": 18,
+    "identical_to_musl": 18,
     "identical_to_glibc": 15,
-    "max_lsb_vs_glibc_exact_scenarios": 0
+    "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
     {
@@ -43,8 +43,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 124152,
-        "native64": 137032
+        "wasm32": 89408,
+        "native64": 102096
       }
     },
     {
@@ -65,8 +65,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 53816,
-        "native64": 66680
+        "wasm32": 19072,
+        "native64": 31744
       }
     },
     {
@@ -87,8 +87,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 72664,
-        "native64": 85528
+        "wasm32": 37920,
+        "native64": 50592
       }
     },
     {
@@ -109,8 +109,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 241168,
-        "native64": 242032
+        "wasm32": 206216,
+        "native64": 207080
       }
     },
     {
@@ -131,8 +131,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 306800,
-        "native64": 307680
+        "wasm32": 271848,
+        "native64": 272728
       }
     },
     {
@@ -153,8 +153,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 105832,
-        "native64": 106040
+        "wasm32": 70896,
+        "native64": 71104
       }
     },
     {
@@ -175,8 +175,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 240040,
-        "native64": 240264
+        "wasm32": 205104,
+        "native64": 205328
       }
     },
     {
@@ -197,8 +197,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 50456,
-        "native64": 52184
+        "wasm32": 15504,
+        "native64": 17232
       }
     },
     {
@@ -219,8 +219,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 247048,
-        "native64": 247080
+        "wasm32": 212096,
+        "native64": 212128
       }
     },
     {
@@ -241,8 +241,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 112840,
-        "native64": 112856
+        "wasm32": 77888,
+        "native64": 77904
       }
     },
     {
@@ -263,8 +263,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 54108,
-        "native64": 54108
+        "wasm32": 19156,
+        "native64": 19156
       }
     },
     {
@@ -285,13 +285,13 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 119448,
-        "native64": 132328
+        "wasm32": 84704,
+        "native64": 97392
       }
     },
     {
-      "name": "seq-sine-volume-locks",
-      "samples": 132354,
+      "name": "crush-chip-jitter",
+      "samples": 88236,
       "libm_sensitive": false,
       "app_vs_js": {
         "differing": 0,
@@ -307,19 +307,34 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 11064,
-        "native64": 11064
-      },
-      "cmd": "seq/sine-volume-locks.verbs",
-      "seq": {
-        "lines": 6,
-        "lines_match": true,
-        "dropped": 0,
-        "native_dropped": 0
+        "wasm32": 19168,
+        "native64": 31840
       }
     },
     {
-      "name": "seq-sixop-two-tracks-swing",
+      "name": "fold-sine-asymmetric",
+      "samples": 97058,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 19,
+        "max_lsb": 1
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 211080,
+        "native64": 211944
+      }
+    },
+    {
+      "name": "echo-pluck-pingpong",
       "samples": 141176,
       "libm_sensitive": false,
       "app_vs_js": {
@@ -336,20 +351,13 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 29720,
-        "native64": 31448
-      },
-      "cmd": "seq/sixop-two-tracks-swing.verbs",
-      "seq": {
-        "lines": 4,
-        "lines_match": true,
-        "dropped": 0,
-        "native_dropped": 0
+        "wasm32": 272040,
+        "native64": 272904
       }
     },
     {
-      "name": "seq-sixop-patch-enum-lock",
-      "samples": 105882,
+      "name": "echo-long-darkened",
+      "samples": 158824,
       "libm_sensitive": false,
       "app_vs_js": {
         "differing": 0,
@@ -365,20 +373,13 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 21560,
-        "native64": 23288
-      },
-      "cmd": "seq/sixop-patch-enum-lock.verbs",
-      "seq": {
-        "lines": 4,
-        "lines_match": true,
-        "dropped": 0,
-        "native_dropped": 0
+        "wasm32": 84960,
+        "native64": 97632
       }
     },
     {
-      "name": "seq-capture-while-playing",
-      "samples": 194118,
+      "name": "macro-lpg-ping-env",
+      "samples": 114706,
       "libm_sensitive": false,
       "app_vs_js": {
         "differing": 0,
@@ -394,21 +395,14 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 95256,
-        "native64": 108136
-      },
-      "cmd": "seq/capture-while-playing.verbs",
-      "seq": {
-        "lines": 11,
-        "lines_match": true,
-        "dropped": 0,
-        "native_dropped": 0
+        "wasm32": 19072,
+        "native64": 31744
       }
     },
     {
-      "name": "seq-capture-stopped-capsel",
-      "samples": 308826,
-      "libm_sensitive": true,
+      "name": "macro-heavy-lpg-off",
+      "samples": 97058,
+      "libm_sensitive": false,
       "app_vs_js": {
         "differing": 0,
         "max_lsb": 0
@@ -423,15 +417,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 216976,
-        "native64": 217840
-      },
-      "cmd": "seq/capture-stopped-capsel.verbs",
-      "seq": {
-        "lines": 19,
-        "lines_match": true,
-        "dropped": 0,
-        "native_dropped": 0
+        "wasm32": 136528,
+        "native64": 136752
       }
     }
   ]

@@ -30,6 +30,129 @@ history.
     which writes what it applied as a script `fm1-render` can replay.
   - CI's staleness check now covers the sequencer code and the parity
     scripts, so changing either needs a rebuilt module.
+- **Crush**, a new effect: a bitcrusher and sample-rate reducer. Bits (1 to
+  16, smooth between whole numbers), Rate (100 Hz up to every sample, on an
+  even pitch scale), Jitter (random hold lengths that repeat exactly each
+  time) and Mix on the first page; Tone (a low-pass on the crushed sound) and
+  Level on the second. Silence stays silent at any setting. Our own code,
+  after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT); documented in
+  `engines/README.md` and chapter 6 of the manual, tested in
+  `tests/test_engines_crush.py`.
+- **Fold**, a new effect: a wavefolder, written for this project. Fold sets
+  how hard the sound is driven into the folds, Symmetry makes them uneven
+  (adding even harmonics), Shape goes from a bright triangle fold to a softer
+  sine fold, and Mix blends it with the dry sound; a second page has Tone (a
+  low-pass on the folded sound) and Level. Its anti-aliasing keeps the harsh
+  digital fold-back of a plain folder 21–23 dB lower. Silence stays silent
+  at any setting, and knob changes glide instead of clicking. Parameters
+  and design in `engines/README.md`, and a section in chapter 6 of the
+  manual.
+- **Echo**, a new effect: a stereo ping-pong delay from 10 ms to 1 second, with
+  Feedback, Ping-pong (from two straight delays to echoes that alternate
+  left and right), Mix, Tone (damping of the repeats), Wow (a slow,
+  tape-like wobble of the delay) and Level (how much of the input enters
+  the echo). Beyond about 370 ms the echoes darken, like a bucket-brigade
+  delay's, so that one instance stays at 64 KB. Turning Time glides the
+  pitch of what is in the line, like a tape echo's speed. Written in this
+  repository (MIT); `engines/README.md` documents its parameters, and
+  chapter 6 of the manual has a section.
+- The virtual FM-1 offers Crush, Fold and Echo in both effect slots and
+  Macro's and Macro Heavy's third page; its module is rebuilt and six new
+  parity scenarios (`sim/web/test/scenarios.json`) check the new effects and
+  the page in the browser's module against the native renderer. A test now
+  requires every engine and effect to appear in a scenario. The README's
+  screenshots show the third page.
+- Macro and Macro Heavy have a third page with Plaits' own envelope and
+  low-pass gate controls. **Env Pitch**, **Env Timbre** and **Env Morph**
+  set how far the envelope that every note restarts moves the pitch, Timbre
+  and Morph (Plaits' three attenuverters; on Chip, Env Timbre sets the
+  arpeggio's own fade, and on Speech, Env Pitch the words' intonation).
+  **LPG** chooses Gate (the gate follows the key, as before), Ping (each
+  note strikes the gate, which closes over Decay even while the key is held)
+  or Off (no gate: full brightness, a plain fade after key-up). At their
+  defaults both engines sound exactly as before. Six-Op FM is unchanged.
+- docs/16: the design for modulation as a rack of modules inside the
+  modulation matrix, so cables can chain module to module (A→B→C→D).
+  - Up to 8 modules sit in a rack. Every module output is a source in the
+    matrix, and every module parameter and gate input is a destination, so a
+    chain is just one 1:1 cable per hop, in 32 slots.
+  - The order is worked out from the cables, so a chain adds no delay; a
+    feedback loop is allowed and marked, one control tick late.
+  - A first wave of 17 modules, all MIT code, ported or our own:
+    - envelopes and function generators: Segments (after Mutable
+      Instruments' Stages), Function (after Make Noise's Maths), Curves (an
+      arbitrary function generator drawn on the 16 white keys), Envelope,
+      Bounce;
+    - LFOs and randomness: LFO, Chance (sample-and-hold and smooth random),
+      Register (a Turing-Machine-style looping shift register);
+    - gates: Coin, Divide, Burst;
+    - utilities: Calc, Mix, Slew, Compare, Logic, Quantize.
+  - About 20 more modules later, after Tides, Marbles, Frames, Streams,
+    Grids, Ornament & Crime (Phazerville) applets and Just Friends.
+  - Where Mutable Instruments, Ornament & Crime and the disting fit: which
+    code is MIT and portable, which is GPL and gets our own version, and
+    which disting algorithm each of our modules covers (the disting firmware
+    is closed, so ideas only).
+  - Budgets: about 12.7 KB of RAM (3.3 % of the free SRAM) and 1–2 % of a
+    core for a typical rack, estimated, not measured on the chip.
+  - Panel: LFO opens the RACK, EDIT the MATRIX, and ENV patches any output to
+    the next knob turned.
+  - Stages MG0–MG9, each with its tests, and 18 owner decisions.
+- The options note points to docs/16 where it is superseded.
+- DEVELOPERS.md's "Research to do" adds Berry, the small MIT scripting
+  language docs/11 names beside Lua: could module authors write simple
+  modulation modules in it, with a few knobs, as part of the SDK?
+- **Roadmap: modules from the community.** Four new lines in the README's
+  roadmap and in DEVELOPERS.md's "The roadmap in detail", each with its
+  status, dependencies, where it is planned and its effort (not yet
+  estimated for the SDK, the builder and the catalogue):
+  - develop in the simulator, checked on real hardware (docs/14), as the
+    accelerator for everything below (in preparation);
+  - a module SDK and friendly guides for writing and porting sound engines,
+    modulation sources, MIDI effects and audio effects, after API v2
+    (planned; tooling to be researched);
+  - a custom firmware builder with a browser installer, for when modules no
+    longer fit one image, with its own checksums and manifest on top of the
+    update protocol's CRC16, and the stock path back to factory firmware
+    (planned, after the installable build);
+  - a hosted catalogue of community modules, after the SDK and the builder
+    (planned).
+- DEVELOPERS.md's "Research to do": tooling for module authors (PlatformIO
+  or whatever embedded-audio developers use most today), quality and
+  functionality gates for new modules, static registry against loader,
+  where a custom build is made, the web flasher's verification, licence
+  metadata, and hosting the catalogue.
+- docs/15: the plan for the sequencer in the virtual FM-1 (docs/13 stage M4
+  in the browser), in stages S1–S10, each with its tests and exit numbers.
+  - S1 moves `fm1-render`'s per-block sequencer hosting into a shared,
+    heap-free C99 bridge, with no change in behaviour.
+  - S2 hosts the sequencer in the app with no UI, and proves it plays every
+    oracle script exactly as `fm1-render` does, natively and in WebAssembly.
+  - S3 is the first playable stage: PLAY/STOP and a SEQ grid. Later stages
+    add step entry, record and Capture, tracks, engine API v2 (a silent stage,
+    then SMOOTH), parameter locks, Session, and sets saved in the browser.
+  - Outside SEQ mode every printed button keeps its meaning; in SEQ mode the
+    black keys carry the sequencer's roles.
+  - Memory: at most 36,216 B of the 36,864 B half budget at 8 tracks, and
+    22,392 B at 4.
+  - 24 owner decisions, each with a proposed default and the stage it
+    blocks. docs/13 §9 points to it.
+- notes/2026-10-01-arp-modulation-effects-options.md: open-source options
+  for an arpeggiator, configurable LFOs and envelopes, a modulation matrix
+  and eurorack-type effects such as sample-and-hold, with every licence
+  checked at a pinned commit.
+  - Arpeggiator: our own C core, `fm1_arp`, after Yarns' `ClockArpeggiator`,
+    with MCL's extra orders and Super Arp's seeded modifiers. It would be the
+    first `FM1_KIND_MIDI_FX`, so ARP and SEQ can run together.
+  - Modulation: 2 global LFOs, 2 envelopes and a 16-slot host-side matrix
+    first, then per-note sources once engine API v2 exists. Modulation is an
+    offset from a base value, which locks and knobs set.
+  - Effects first: CRUSH, S&H FILTER, FOLD and CHORUS; ECHO and REPEAT once
+    the engines get tempo.
+  - Every pick is MIT or BSD; GPL sources serve as design references only.
+    It lists twelve owner decisions. It also answers the cores question: the
+    stock firmware uses both cores, and nothing from this project runs on
+    the device yet.
 - The sequencer host bridge (`engines/include/fm1_seq_host.h`). It is the
   per-block code that plays the sequencer through a sound engine: commands,
   advance, and renders split at each note and lock. `fm1-render` now runs on
@@ -217,6 +340,19 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **DEVELOPERS.md is reorganized** so it reads in order: a welcome, a
+  linked table of contents and a short callout of the one rule; then
+  getting started (build, test and play in five minutes, where to go next,
+  all the commands), how Lunar Modulator works (its layers first), the
+  hardware, where development stands (the status, the roadmap in detail,
+  the path to an installable build, research to do), contributing (the one
+  rule, conventions, licences, pull requests, credits) and reference (key
+  facts, formerly "The short version"; the recommended path; the documents
+  by topic). The roadmap's wide table became one entry per line, grouped,
+  and the path to an installable build gained a table of its milestones.
+  Nothing was dropped.
+- The README shows the virtual FM-1 screenshot right under the
+  introduction, before the preview notice, instead of further down.
 - **The roadmap, rewritten from the 2026-10-01 studies.**
   - The README's roadmap gives each line a status and says where it stands.
     The arpeggiator (our own, after Yarns, with MCL's note orders, in the
@@ -354,6 +490,8 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- Macro Heavy: a parameter set to NaN now falls back to its default, as
+  the engine API says (`fm1_param_clamp`), instead of to its minimum.
 - **The second core is not idle.** The stock firmware renders its msfa
   voices on cpu1, outside the OS, and runs the OS, the UI and the effects
   on cpu0. The routine at V13 file `0x86AD6` polls `0x01C16EC0` and calls

@@ -212,15 +212,17 @@ LPG is re-initialised while bypassed.
 
 - **Prosody and speed.** With TRIG patched, Plaits takes the prosody amount
   from the FM attenuverter and the word speed from the MORPH attenuverter.
-  Here prosody is fixed at 0, which keeps words on the played pitch. Word
-  Speed (-1..1, Plaits' units) is a parameter; it changes the playback
-  length of a word by up to 4x either way.
+  Here prosody is Env Pitch (page 3, since 2026-10-02), 0 by default, which
+  keeps words on the played pitch. Word Speed (-1..1, Plaits' units) stays a
+  parameter of its own, apart from Env Morph; it changes the playback length
+  of a word by up to 4x either way.
 - **`already_enveloped`.** Speech reports it per block. It is true for word
   playback (HARMONICS above about 0.44, where a word bank is selected) and
   false for vowels and phonemes below that.
-- **Envelope scaling.** Plaits' `internal_envelope_amplitude` scaling is
-  moot here: like Macro, this wrapper applies no internal-envelope
-  modulation (all modulation amounts are 0).
+- **Envelope scaling.** Plaits' `internal_envelope_amplitude` scaling
+  applies to Env Pitch and Env Morph as in `Voice`: their reach fades out as
+  HARMONICS goes from 1/6 to 1/3, into the word banks [verified:
+  tests/test_engines_plaits_env.py, speech at all three reference points].
 
 **One word bank for all speech voices.** Plaits' `SpeechEngine` keeps its
 own LPC word bank and parses it (up to 4.8 KB of bitstream into 926
