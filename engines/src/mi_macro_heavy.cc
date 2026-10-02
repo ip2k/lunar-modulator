@@ -16,10 +16,18 @@
 //   are not). For those the low-pass gate is bypassed, as Voice does;
 // - the speech special cases: prosody amount and word speed (Voice takes them
 //   from the FM and MORPH attenuverters when TRIG is patched; here prosody is
-//   0, which keeps words on the played pitch, and speed is a parameter).
+//   Env Pitch, 0 by default, which keeps words on the played pitch, and speed
+//   is a parameter of its own);
+// - the decay envelope and the three attenuverters it reaches FREQ, TIMBRE
+//   and MORPH through (Env Pitch, Env Timbre, Env Morph on page 3, with
+//   Voice's scaling for speech), and the LPG mode (Gate, Ping, Off), as in
+//   Macro (mi_plaits_env.h). At their defaults the output is what it was
+//   before they existed, byte for byte.
 // What it adds: a release after note-off for the self-enveloped models, with
 // the same curve and the same Decay/Colour controls as the low-pass gate, so
-// a keyboard's note-off is honoured; Plaits has no note-off to honour.
+// a keyboard's note-off is honoured; Plaits has no note-off to honour. (With
+// the LPG on Ping they ring out as on the module; on Off the same release
+// gates the other models.)
 // What it changes: speech runs SpeechVoiceEngine (below), Plaits' SpeechEngine
 // with one LPC word bank shared by all voices, so a Harmonics move into
 // another word bank parses the bank once, not once per voice.
@@ -46,6 +54,7 @@
 
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
+#include "mi_plaits_env.h"
 
 #include <cstring>
 #include <new>
@@ -61,6 +70,7 @@ namespace fm1 {
 namespace macro_heavy {
 
 using namespace plaits;
+using namespace plaits_env;
 
 // The LPC word bank every speech voice reads. Instance::UpdateWordBank picks
 // the bank from Harmonics once per 12-sample block and parses it (up to
@@ -208,9 +218,11 @@ const ModelInfo kModelInfo[MODEL_COUNT] = {
   { true, 0.8f, 0.8f },     // hi-hat
 };
 
+// New parameters go at the end, so existing indices keep their meaning.
 enum Param {
   P_MODEL, P_HARMONICS, P_TIMBRE, P_MORPH,
   P_DECAY, P_COLOUR, P_VOLUME, P_WORD_SPEED,
+  P_ENV_PITCH, P_ENV_TIMBRE, P_ENV_MORPH, P_LPG,
   P_COUNT
 };
 
@@ -223,6 +235,10 @@ const fm1_param_t kParams[P_COUNT] = {
   { "Colour",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1 },
   { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1 },
   { "Word Speed", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 1 },
+  { "Env Pitch",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2 },   // FM attenuverter
+  { "Env Timbre", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2 },   // TIMBRE attenuverter
+  { "Env Morph",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2 },   // MORPH attenuverter
+  { "LPG",        FM1_PARAM_ENUM, 0, LPG_MODE_COUNT - 1, LPG_GATE, kLpgModeNames, 2 },
 };
 
 // Four voices. RAM sets the cap first: every voice carries a 16 KB arena (the
@@ -313,6 +329,7 @@ struct Voice {
   alignas(16) char arena[kArenaBytes];
   Engine *engine;           // NULL: the model failed its arena check, silent
   LPGEnvelope lpg;
+  DecayEnvelope decay;      // Voice's internal envelope, for the attenuverters
   ChannelPostProcessor post_out;
   ChannelPostProcessor post_aux;
   float out[kBlockSize];
@@ -366,6 +383,7 @@ class Instance {
       v->release = 1.0f;
       if (v->engine) v->engine->Reset();   // speech: nothing, the bank is shared
       v->lpg.Init();
+      v->decay.Init();
       v->post_out.Init();
       v->post_aux.Init();
       v->active = true;
@@ -382,9 +400,7 @@ class Instance {
 
   void SetParam(uint16_t index, float value) {
     if (index >= P_COUNT) return;
-    const fm1_param_t &p = kParams[index];
-    if (!(value >= p.min)) value = p.min;  // also catches NaN
-    if (value > p.max) value = p.max;
+    value = fm1_param_clamp(&kParams[index], value);   // NaN: the default
     value_[index] = value;
     if (index == P_MODEL) {
       int m = static_cast<int>(value + 0.5f);
@@ -486,6 +502,7 @@ class Instance {
         v.engine->Reset();
       }
       v.lpg.Init();
+      v.decay.Init();
       v.post_out.Init();
       v.post_aux.Init();
       v.release = 1.0f;
@@ -546,6 +563,19 @@ class Instance {
         stmlib::SemitonesToRatio(-72.0f * decay + 12.0f * hf) - short_decay;
     const float voice_gain = value_[P_VOLUME] * 0.25f / 32768.0f;
     if (model_ == MODEL_SPEECH) UpdateWordBank();
+    const LpgMode lpg_mode = ToLpgMode(value_[P_LPG]);
+
+    // The attenuverters, as Voice::Render applies them with TRIG patched. For
+    // speech (engine index 15 there) the envelope's reach on the note and
+    // MORPH fades out as HARMONICS moves into the word banks.
+    const float env_pitch = AttenuverterAmount(value_[P_ENV_PITCH]);
+    const float env_timbre = AttenuverterAmount(value_[P_ENV_TIMBRE]);
+    const float env_morph = AttenuverterAmount(value_[P_ENV_MORPH]);
+    float env_amplitude = 1.0f;
+    if (model_ == MODEL_SPEECH) {
+      env_amplitude = 2.0f - value_[P_HARMONICS] * 6.0f;
+      CONSTRAIN(env_amplitude, 0.0f, 1.0f);
+    }
 
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
@@ -555,13 +585,21 @@ class Instance {
       EngineParameters p;
       p.trigger = (v.rising ? TRIGGER_RISING_EDGE : TRIGGER_LOW) |
                   (v.gate ? TRIGGER_HIGH : TRIGGER_LOW);
+      const bool triggered = v.rising;
+      if (triggered) {
+        v.decay.Trigger();
+        if (lpg_mode == LPG_PING) v.lpg.Trigger();   // LEVEL unpatched: TRIG pings
+      }
       v.rising = false;
+      v.decay.Process(short_decay * 2.0f);
+      const float envelope = v.decay.value();
       float note = v.key + bend_;
+      note += env_pitch * (env_amplitude * envelope * envelope * 48.0f);
       CONSTRAIN(note, -119.0f, 120.0f);  // Voice's range for the note
       p.note = note;
       p.harmonics = value_[P_HARMONICS];
-      p.timbre = value_[P_TIMBRE];
-      p.morph = value_[P_MORPH];
+      p.timbre = Modulate(value_[P_TIMBRE], env_timbre, envelope, 0.0f, 1.0f);
+      p.morph = Modulate(value_[P_MORPH], env_morph, env_amplitude * envelope, 0.0f, 1.0f);
       // Accent is the note's velocity for its whole life (drums, strings and
       // speech read it at the trigger or as the word's gain); the low-pass
       // gate's level drops to zero at note-off, as LEVEL does on the module.
@@ -571,18 +609,24 @@ class Instance {
 
       if (model_ == MODEL_SPEECH) {
         SpeechVoiceEngine *speech = static_cast<SpeechVoiceEngine *>(v.engine);
-        speech->set_prosody_amount(0.0f);
+        speech->set_prosody_amount(value_[P_ENV_PITCH]);   // Voice: the FM attenuverter
         speech->set_speed(value_[P_WORD_SPEED]);
       }
 
       bool already_enveloped = info.already_enveloped;
       v.engine->Render(p, v.out, v.aux, kBlockSize, &already_enveloped);
 
+      // The gate is bypassed for the self-enveloped models, as Voice does,
+      // and for every model with the LPG Off. Bypassed, a plain gain takes the
+      // key's note-off (with the LPG on Ping, the self-enveloped models ring
+      // out instead, as on the module).
+      const bool bypass = already_enveloped || lpg_mode == LPG_OFF;
       float gain_from = 1.0f, gain_to = 1.0f;
-      if (already_enveloped) {
+      bool ping_shut = false;
+      if (bypass) {
         v.lpg.Init();   // as Voice does while the gate is bypassed
         gain_from = v.release;
-        if (v.gate) {
+        if (v.gate || (already_enveloped && lpg_mode == LPG_PING)) {
           v.release = 1.0f;  // a retrigger mid-release ramps back over one block
         } else {
           // The low-pass gate's own release curve, on a plain gain.
@@ -590,22 +634,34 @@ class Instance {
           v.release -= v.release * (short_decay + (1.0f - r2 * r2) * decay_tail);
         }
         gain_to = v.release;
+      } else if (lpg_mode == LPG_PING) {
+        // Pinged, as in Macro: shut once closing and below 1e-4, never on the
+        // trigger's own block.
+        const float before = v.lpg.gain();
+        const float attack = NoteToFrequency(p.note) * float(kBlockSize) * 2.0f;
+        v.lpg.ProcessPing(attack, short_decay, decay_tail, hf);
+        ping_shut = !triggered && v.lpg.gain() < 1e-4f && v.lpg.gain() <= before;
       } else {
         v.lpg.ProcessLP(v.gate ? accent : 0.0f, short_decay, decay_tail, hf);
       }
-      v.post_out.Process(info.out_gain, already_enveloped, v.lpg.gain(),
+      v.post_out.Process(info.out_gain, bypass, v.lpg.gain(),
                          v.lpg.frequency(), v.lpg.hf_bleed(), v.out, v.pcm_out,
                          kBlockSize, 1);
       if (stereo) {
-        v.post_aux.Process(info.aux_gain, already_enveloped, v.lpg.gain(),
+        v.post_aux.Process(info.aux_gain, bypass, v.lpg.gain(),
                            v.lpg.frequency(), v.lpg.hf_bleed(), v.aux, v.pcm_aux,
                            kBlockSize, 1);
       }
 
+      // On Ping and Off the velocity's accent scales the models the gate
+      // would have shaped (1 at velocity 127); the self-enveloped ones have it
+      // as their accent already.
+      const float level = (lpg_mode != LPG_GATE && !already_enveloped) ? accent : 1.0f;
+      const float vg = voice_gain * level;
       const float step = (gain_to - gain_from) / kBlockSize;
       bool silent = true;
       for (size_t n = 0; n < kBlockSize; ++n) {
-        const float g = voice_gain * (gain_from + step * (n + 1));
+        const float g = vg * (gain_from + step * (n + 1));
         const int16_t l = v.pcm_out[n];
         const int16_t r = stereo ? v.pcm_aux[n] : l;
         mix_l[n] += l * g;
@@ -619,6 +675,15 @@ class Instance {
         v.silent_blocks = silent ? v.silent_blocks + 1 : 0;
         const uint32_t hold = v.gate ? silent_while_held_ : silent_after_release_;
         if ((!v.gate && v.release < 1e-4f) || v.silent_blocks > hold) {
+          v.active = false;
+          v.gate = false;
+        }
+      } else if (lpg_mode == LPG_OFF) {
+        v.silent_blocks = 0;
+        if (!v.gate && v.release < 1e-4f) v.active = false;
+      } else if (lpg_mode == LPG_PING) {
+        v.silent_blocks = 0;
+        if (ping_shut) {
           v.active = false;
           v.gate = false;
         }

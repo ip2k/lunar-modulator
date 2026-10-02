@@ -75,6 +75,19 @@ acoustic instruments do.
   the right only the level falls.
 - **Volume** is the engine's output level.
 - Playing harder makes a note louder and brighter.
+- Page 3 holds Plaits' own envelope, which every note restarts and Decay
+  shortens or lengthens:
+  - **Env Pitch**, **Env Timbre** and **Env Morph** set how far it moves the
+    note, Timbre and Morph, from nothing in the middle to the most at either
+    end, to the right upwards and to the left downwards. A short Decay with
+    some Env Pitch gives a falling zap or a drum-like thump. On Chip, Env
+    Timbre sets the arpeggio's own fade instead: the further from the
+    middle, the shorter each note.
+  - **LPG** chooses how the low-pass gate plays: **Gate** follows the key,
+    as described above; **Ping** strikes the gate at each key press and lets
+    it close over the Decay time even if you hold the key, like a plucked or
+    struck sound; **Off** takes the gate out, so the note keeps its full
+    brightness and only its level fades after you let go.
 
 | Model | Harmonics | Timbre | Morph |
 | --- | --- | --- | --- |
@@ -122,6 +135,9 @@ needs much more memory than Macro's, so Macro Heavy plays four notes at once.
 - **Word Speed**, on page 2, sets how fast the Speech model says its words:
   from a quarter of the normal speed at the left, through normal at 0, to
   four times as fast at the right.
+- Page 3 works as in Macro. On Speech, Env Pitch also lets a spoken word's
+  own pitch contour through. With LPG on Ping, String, Modal and the drums
+  ring out after you let go, instead of fading.
 - **String, Modal, Bass Drum, Snare and Hi-Hat** sound by themselves: a key
   press strikes them, and they ring for as long as Morph sets. Speech, when
   it says words, says one word per key press. When you let go of the key,

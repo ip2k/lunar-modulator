@@ -295,8 +295,8 @@ int RenderMain(int argc, char **argv) {
 
   // Knobs: the note is the patch's (the module's V/OCT input would be
   // averaged with the previous block's value in Voice::Render); attenuverters
-  // at the given amounts, centred (0) by default, as the wrappers apply no
-  // internal-envelope modulation.
+  // at the given amounts, centred (0) by default, the wrappers' defaults
+  // (their page 3: Env Pitch, Env Timbre, Env Morph).
   plaits::Patch patch;
   patch.note = note;
   patch.harmonics = harmonics;

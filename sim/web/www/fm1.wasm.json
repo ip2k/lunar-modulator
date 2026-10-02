@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "43e6ccd32c9365c9379e933bb3d1d5bff53f9e6bf94fc98f6245fffcd3f7a9b4",
-  "wasm_bytes": 391277,
+  "wasm_sha256": "38dcfacc1218db60adbe064b7bc90cfe890f563c1b0b95cade45f340ca7d3302",
+  "wasm_bytes": 402182,
   "sources_sha256": {
-    "engines": "3a0d2a095322187b8dae15057289372625948b7aae6b04bae6cde5e94165c31b",
-    "sim": "c40e2ebc0717195f4ff1c965b27143a184c217c0b8e963bdcd9e1c41ec345354"
+    "engines": "1b49219b9c16aa3103433e26177a0977a2f5064232c7cce5a3c643b46928c380",
+    "sim": "fc0f87c25c94f71278124a06c7c595f8b8d2d0c44aa8e56fb6bd06054d58acd6"
   },
   "engines": "working tree",
-  "built": "2026-10-02T07:35:55Z",
+  "built": "2026-10-02T08:45:52Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,12 +17,12 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 12,
+    "passed": 18,
     "failed": 0,
-    "identical_to_js": 12,
-    "identical_to_musl": 12,
-    "identical_to_glibc": 10,
-    "max_lsb_vs_glibc_exact_scenarios": 0
+    "identical_to_js": 18,
+    "identical_to_musl": 18,
+    "identical_to_glibc": 15,
+    "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
     {
@@ -43,8 +43,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 89200,
-        "native64": 102080
+        "wasm32": 89408,
+        "native64": 102096
       }
     },
     {
@@ -65,8 +65,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 18864,
-        "native64": 31728
+        "wasm32": 19072,
+        "native64": 31744
       }
     },
     {
@@ -87,8 +87,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 37712,
-        "native64": 50576
+        "wasm32": 37920,
+        "native64": 50592
       }
     },
     {
@@ -153,8 +153,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 70880,
-        "native64": 71088
+        "wasm32": 70896,
+        "native64": 71104
       }
     },
     {
@@ -175,8 +175,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 205088,
-        "native64": 205312
+        "wasm32": 205104,
+        "native64": 205328
       }
     },
     {
@@ -285,8 +285,140 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 84496,
-        "native64": 97376
+        "wasm32": 84704,
+        "native64": 97392
+      }
+    },
+    {
+      "name": "crush-chip-jitter",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 19168,
+        "native64": 31840
+      }
+    },
+    {
+      "name": "fold-sine-asymmetric",
+      "samples": 97058,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 19,
+        "max_lsb": 1
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 211080,
+        "native64": 211944
+      }
+    },
+    {
+      "name": "echo-pluck-pingpong",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 272040,
+        "native64": 272904
+      }
+    },
+    {
+      "name": "echo-long-darkened",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 84960,
+        "native64": 97632
+      }
+    },
+    {
+      "name": "macro-lpg-ping-env",
+      "samples": 114706,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 19072,
+        "native64": 31744
+      }
+    },
+    {
+      "name": "macro-heavy-lpg-off",
+      "samples": 97058,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 136528,
+        "native64": 136752
       }
     }
   ]

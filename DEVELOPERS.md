@@ -131,7 +131,7 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** five swappable sound engines and four effects behind one C
+- **The API:** five swappable sound engines and seven effects behind one C
   API ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
@@ -150,6 +150,14 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     - **Ensemble and Diffuse:** Plaits' ensemble and diffuser.
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
     compatibility shim.
+  - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
+    and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
+    antiderivative anti-aliasing) and Echo (a stereo ping-pong delay) are
+    our own code ([`engines/README.md`](engines/README.md#crush)).
+- **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
+  Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
+  checked sample for sample against upstream `Voice`
+  ([`engines/README.md`](engines/README.md#macro-and-macro-heavy-page-3-the-envelope-and-the-gate)).
 - **Sample rates:** the Mutable engines run at their modules' own rates and
   are resampled to the FM-1's 44,118 Hz: Braids at 96 kHz, Plaits at
   47,872 Hz ([`engines/resampler.md`](engines/resampler.md)).
@@ -176,13 +184,14 @@ nothing of ours in the path, and more than 400 tests compare the two.
     [`engines/reference-braids-fx.md`](engines/reference-braids-fx.md));
   - the two Schwung modules are compiled unmodified.
 - **The browser adds nothing:**
-  - twelve note scripts covering every engine and effect render
+  - eighteen note scripts covering every engine and effect render
     identically, sample for sample, in the browser's WebAssembly module and
     in the native renderer built with GCC and musl;
-  - against GCC with glibc ten of the twelve are identical, and the two that
+  - against GCC with glibc fifteen of the eighteen are identical. Two that
     differ are Sophie's, whose feedback FM amplifies last-bit differences
-    between the two C libraries' `sinf` and `expf` [verified:
-    `sim/web/www/fm1.wasm.json`, 2026-10-01].
+    between the two C libraries' `sinf` and `expf`; the third is Fold's
+    sine fold, 19 samples 1 LSB apart [verified:
+    `sim/web/www/fm1.wasm.json`, 2026-10-02].
 
 ![Six-Op FM's chord rendered natively and in the browser, with a flat difference line: 0 of 105,882 samples differ](assets/screenshots/parity.png)
 
@@ -534,6 +543,12 @@ which lands with the plan PR; its stages S0–S7 are named below.
   all [inferred].
 
 **More effects** · *Planned*
+- **Done so far (2026-10-02):** Crush, Fold and Echo, our own code
+  ([`engines/README.md`](engines/README.md#crush)). Crush adds jitter and
+  fractional bits, so it does not use Plaits' `SampleRateReducer`. Echo
+  keeps its own fixed 64 KB per instance and slows its clock beyond 371 ms,
+  like a bucket-brigade delay, rather than taking the shared arena; it has
+  no tempo sync yet.
 - **Depends on:**
   - the effect API (exists);
   - tempo and a beat position in `fm1_host_t` for ECHO, REPEAT and the S&H
