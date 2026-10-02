@@ -17,7 +17,9 @@ a JieLi chip or an FM-1; nothing flashed by this project.**
 - A virtual FM-1 runs the engines and effects in a browser (`sim/web/`).
 - The research phase and one read-only bench session are done
   (`notes/2026-09-06-bench.md`).
-- An AC79 dev kit and JieLi's USB updater are on order (docs/14). The owner's unit ran stock `FM-1_015` until
+- An AC79 dev kit and JieLi's USB updater are on order (docs/14).
+
+The owner's unit ran stock `FM-1_015` until
 the owner installed Baud Girl's FM-1+VA; it identifies as **`FM-1_092`** since
 (2026-09-29). The `USB_KEY` recovery
 dongle (docs/10, `dongle/`) is implemented and simulated, not yet tried. Other

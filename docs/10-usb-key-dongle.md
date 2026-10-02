@@ -182,7 +182,7 @@ What it tells us about the FM-1:
 | --- | --- | --- |
 | Parts | Pico, cut USB cable | Pico, 2 × 2.2 kΩ, 2 × 100 Ω, relay or mux (or none, §3) |
 | Drive | push-pull: SPI1, then PWM | open-drain PIO (E1) |
-| Key | 50 kHz, `16 EF` MSB first, D+ clock; SPI mode 0, so the clock idles low | same bit rate and order; our clock idles released (high); D+ or D− clock, alternating by default |
+| Key | 50 kHz, `16 EF` MSB first, D+ clock; SPI mode 0, so the clock idles low | same bit rate and order; our clock idles released (high); D+ clock by default, D− by the button, both alternating as a build option |
 | Between packets | a new SPI object per packet | 160 µs with both lines released, sampled for the ACK |
 | Acknowledge | not detected | both lines low ≥ 100 µs |
 | SOF | 1 kHz square wave for 2 s, blind | 4 µs pulses every 1 ms, from D+ high until the chip releases D+ |
@@ -313,7 +313,7 @@ Pin map (`dongle/firmware/config.h`)
 | GP15 | `PIN_DM` | open-drain / input | D− of the target (via 100 Ω) |
 | GP16 | `PIN_PULLUP_DP` | output-high or hi-Z | top of D+'s 2.2 kΩ pull-up |
 | GP17 | `PIN_MUX_SEL` | output | 1 = relay energised = dongle owns the bus |
-| GP18 | `PIN_BUTTON` | input, internal pull-up | short press: restart; hold at boot: fixed polarity |
+| GP18 | `PIN_BUTTON` | input, internal pull-up | short press: restart; hold at boot: fixed polarity B (D− clock) |
 | GP19 | `PIN_PULLUP_DM` | output-high or hi-Z | top of D−'s 2.2 kΩ pull-up |
 | GP25 | LED | output | state indication |
 
@@ -406,22 +406,24 @@ one line per transition with microsecond timestamps.
    the TARGET port with a USB-A→C cable. A switched-off FM-1 does not
    enumerate on USB power [verified 2026-09-06], so nothing should appear on
    the PC yet.
-3. Start keying (default: alternating polarity, `SOF_MODE_DONGLE`). Switch the
-   FM-1 on. Expected within a second: `ACK polarity=<A|B> packets=<n>`, then
-   `D+ high`, `SOF pulses`, `D+ released after <n> pulses`, `bus → PC`, and
-   `UBOOT1.00` on the PC.
-   - Since §1.1, a better first attempt is **fixed polarity A** (D+ clock),
-     the polarity reported working on two FM-1s.
-   - If the ROM's listening window is shorter than one 20 ms alternate block,
-     alternate mode misses whenever power-up lands in a B block.
-   - Today fixed A needs a rebuild with `DEFAULT_POLARITY_MODE` set to
-     `POLARITY_DP_CLOCK` in `config.h`, since the button selects only B.
-   - If alternate mode misses, try the switch several times before concluding
-     anything: a window shorter than one 20 ms block would make about one
-     power-on in two miss [inferred].
-4. If no ACK: repeat with each fixed polarity (hold the button at boot to
-   select B; A as in step 3), then with the FM-1 already on before keying,
-   then with `SOF_MODE_PC`. Record every attempt in `notes/`.
+3. Start keying, then switch the FM-1 on.
+   - The defaults are **fixed polarity A** (D+ clock), the polarity reported
+     working on two FM-1s (§1.1), and `SOF_MODE_DONGLE`. A is the default
+     since 2026-10-01; it was alternate before.
+   - Expected within a second: `ACK polarity=A packets=<n>`, then `D+ high`,
+     `SOF pulses`, `D+ released after <n> pulses`, `bus → PC`, and
+     `UBOOT1.00` on the PC.
+4. If no ACK:
+   - Try the switch several times before concluding anything: czietz's tool
+     reaches the mode about one power-on in two (§1.1).
+   - Then try fixed polarity B (hold the button at boot).
+   - Then try alternate mode, a build with `DEFAULT_POLARITY_MODE` set to
+     `POLARITY_ALTERNATE`. If the ROM's listening window is shorter than one
+     20 ms block, it misses whenever power-up lands in the wrong block
+     [inferred].
+   - Then try with the FM-1 already on before keying, and then with
+     `SOF_MODE_PC`.
+   - Record every attempt in `notes/`.
 5. If the stock app boots instead (the FM-1's screen comes up, `4C4A:C755`
    appears on the PC after the relay switches), the ROM did not honour the
    key: see §7.

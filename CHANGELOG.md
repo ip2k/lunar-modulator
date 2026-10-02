@@ -9,6 +9,10 @@ history.
 ## [Unreleased]
 
 ### Added
+- The virtual FM-1's small text is set in Exo 2 (Natanael Gama, SIL OFL
+  1.1), bundled unmodified from google/fonts in `sim/web/www/fonts/exo2/`
+  with its licence and checked by hash. Before, it used Exo 2 only where
+  installed and otherwise the system's sans-serif.
 - docs/10 §1.1: reports from other FM-1 owners (issue #2) and what they
   mean for our dongle.
   - czietz's Raspberry Pi Pico `USB_KEY` dongle (an unlisted MicroPython
@@ -167,6 +171,12 @@ history.
   notes, and each takes 12 bytes instead of 20 with nothing lost, so the
   whole sequencer fits in 31,880 B at 8 tracks (86 % of its budget) and
   18,056 B at 4. Captures land exactly as before, and as on Movy.
+- The `USB_KEY` dongle now keys with D+ as the clock (polarity A) by
+  default. That is the polarity czietz's Pico dongle reached UBOOT mode with
+  on two FM-1s (docs/10 §1.1).
+  - The button held at boot still selects D− (polarity B).
+  - Alternating between the two is now a build option.
+  - docs/10 §6 and dongle/README.md follow, and a test checks the default.
 - The README no longer describes the project as "research, and later
   code".
   - The intro says what you can use today: the virtual FM-1 in a browser,
