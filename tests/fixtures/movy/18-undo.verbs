@@ -1,0 +1,24 @@
+#! rate=44118 block=128 tracks=4
+# 18 Undo while playing. usnap stores the state under an id; ucommit drops a
+# snapshot equal to the current state; uswap restores one id and stores the
+# current state under another (undo and redo); a dropped id restores nothing.
+# Tempo is part of the snapshot. Undo keeps the transport, but it wraps each
+# playhead by the clip length, not by the loop end: track 1 has a window at
+# steps 16-31, and after the undo its playhead lands below the window and
+# plays step 10, which is outside it (a Movy defect; see the README).
+@0 tog 0 0 60 100
+@0 tog 0 4 62 100
+@0 tog 1 10 55 100
+@0 tog 1 20 57 100
+@0 loop 1 16 16
+@0 play
+@10000 usnap 1
+@10000 tog 0 8 64 100
+@10000 bpm 15000
+@10000 ucommit 1
+@20000 usnap 3
+@20000 ucommit 3
+@45000 uswap 1 2
+@70000 uswap 2 4
+@100000 uswap 3 5
+@110000 stop

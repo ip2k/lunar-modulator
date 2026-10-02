@@ -278,6 +278,7 @@ Details, the panel's measurements and the parity results are in
 | [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md) | Baud Girl's FM-1+VA, its `FM-1_092` package diffed against V15, and the owner's board photos |
 | [`photos/`](photos/) | The owner's photos of their unit, by date, with the crops the notes cite |
 | [`engines/`](engines/) | The engine platform, stage A: the C engine API, sound engines and effects from Mutable Instruments code, a Schwung module shim, a desktop renderer and tests |
+| [`tools/movy-oracle/`](tools/movy-oracle/) | The Movy oracle: a driver for Movy's own `seq-core`, run in containers on the LAN, plus a random script generator; it produced the golden fixtures the sequencer tests use |
 | [`notes/upstream-candidates.md`](notes/upstream-candidates.md) | Findings worth sending to other projects, none posted yet |
 
 Confidence marks used throughout the docs: **[verified]** checked in this

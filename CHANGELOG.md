@@ -24,7 +24,18 @@ history.
   RGB565 for later firmware use). A seeded script draws everything from
   code: starfield, crescent moon, an orbiting station and an FM waveform.
   The lettering is set in Audiowide (SIL OFL 1.1), committed unmodified with
-  its licence. The README now opens with the banner.
+  its licence, and the colours are the Rosé Pine Moon palette, as on the
+  virtual FM-1. The README now opens with the banner.
+- The sequencer core, `fm1_seq` (docs/13 stage M1): a C99, heap-free port of
+  Movy's sequencer with every planned fix on by default and an exact Movy
+  mode for tests. It has 4–8 tracks, each routed to the engine or to USB-MIDI
+  on its own channel (14,984 B at 4 tracks, 28,808 B at 8). `fm1-render`
+  plays Movy sets and timed command scripts, with sample-accurate notes and
+  parameter locks (engines/seq.md).
+- A Movy oracle (docs/13 stage M3): Movy's own unmodified `seq-core`, built
+  and run in containers on the LAN, drives 24 golden fixtures and random
+  scripts. Our core matches it event for event on all but undo, which is not
+  ported yet (tools/movy-oracle/).
 - A survey of monome, Ornament & Crime (via PaulStoffregen/O_C_T41 and
   Phazerville) and jhjlim's repositories as FM-1 sources
   (`notes/2026-10-01-monome-oc-jhjlim-survey.md`). O&C's MIT cores

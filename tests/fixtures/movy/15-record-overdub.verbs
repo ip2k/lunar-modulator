@@ -1,0 +1,30 @@
+#! rate=44118 block=128 tracks=4
+# 15 Overdub and a queued take (R12; Movy's side of docs/13 D4). Rec on a
+# clip with notes punches in at once. A note in the last half-step anchors
+# to the loop-end step and grows the clip by a bar (D4). A note held over
+# the wrap keeps its length across the lap. Rec off while a pad is held
+# leaves a tail, written at its release. Rec on an empty clip while playing
+# queues the take to the next bar, and a note up to 12 ticks before that bar
+# is pre-roll. 120 BPM, Play at frame 0: positions are master ticks.
+@0 tog 0 0 60 100
+@0 tog 0 8 62 100
+@0 play
+@1024 rec 0
+# pos 100 to 110: step 4, suppressed until the wrap
+@23040 non 0 72 100
+@25344 nof 0 72
+# pos 376 to 380: anchors to step 16, the clip grows to two bars
+@86400 non 0 74 100
+@87424 nof 0 74
+# pos 740 to 788, 20 ticks into the next pass: one lap, gate 48
+@170112 non 0 76 100
+@181120 nof 0 76
+# held at master tick 868, Rec off at 880, released at 1000
+@199552 non 0 79 100
+@202240 rec 0
+@229888 nof 0 79
+# track 1 is empty: its take waits for the bar at master tick 1152
+@232192 rec 1
+@264320 non 1 48 100
+@266624 nof 1 48
+@358528 stop

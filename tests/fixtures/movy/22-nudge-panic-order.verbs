@@ -1,0 +1,12 @@
+#! rate=44118 block=128 tracks=1
+# D5 in compat, minimised from a random script: one enudge over three notes in
+# insertion order 60 (step 0), 62 (step 20, past the 16-step clip), 64 (step 1).
+# Movy nudges 60, panics on 62 (clamp min 456 > max 383, clip.rs 674), and the
+# rest of the edit is lost: 64 keeps tick 24 and plays at master tick 24.
+@0 tog 0 0 60 100
+@0 tog 0 20 62 100
+@0 tog 0 1 64 100
+@0 clen 0 16
+@0 enudge 0 0 31 -1 5
+@0 play
+@44118 stop
