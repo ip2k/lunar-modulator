@@ -4,6 +4,9 @@
 //   fm1-render --engine macro --param Model=6 --param Timbre=0
 //              --note 0:69:100:1.5 --seconds 2 --out a4.wav   (one command)
 //
+// --list prints every engine and its parameters as JSON, with the names of
+// an enum parameter's values.
+//
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
 // 16-bit stereo WAV, and prints one line of JSON: the engine's raw peak and
@@ -198,8 +201,18 @@ void List() {
       const fm1_param_t &q = e->params[p];
       printf(p ? ",{" : "{");
       printf("\"name\":"); PrintJsonString(q.name);
-      printf(",\"type\":%d,\"min\":%g,\"max\":%g,\"def\":%g,\"page\":%u}",
+      printf(",\"type\":%d,\"min\":%g,\"max\":%g,\"def\":%g,\"page\":%u",
              q.type, q.min, q.max, q.def, q.page);
+      if (q.type == FM1_PARAM_ENUM && q.enum_names) {   // what a UI shows for each value
+        printf(",\"names\":[");
+        const int n = static_cast<int>(q.max - q.min) + 1;
+        for (int k = 0; k < n; ++k) {
+          if (k) putchar(',');
+          PrintJsonString(q.enum_names[k]);
+        }
+        putchar(']');
+      }
+      putchar('}');
     }
     printf("]}");
   }
