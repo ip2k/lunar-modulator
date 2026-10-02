@@ -31,7 +31,7 @@ python -m pytest tests/test_seq*.py               # the sequencer tests
 | `seq/seq_cmd.c` | The verb parser and dispatcher (command.rs) |
 | `seq/seq_persist.c` | `movy1` export and import (persist.rs) |
 | `seq/seq_capture.c` | Capture, the retroactive record (capture.rs and engine.rs's capture functions), in 12-byte events |
-| `include/fm1_seq_host.h`, `seq/seq_host.c` | The host bridge: the per-block code every host shares (commands into the event buffer, advance, split renders into a sound engine, lane labels resolved to parameter uids, NOLOCK refusals); C99, no heap, no stdio, like the core (below, Host contract) |
+| `include/fm1_seq_host.h`, `seq/seq_host.c` | The host bridge: the per-block code every host shares (commands into the event buffer, advance, split renders into a sound engine, lane labels resolved to parameter uids, NOLOCK refusals, the metronome's click); C99, no heap, no stdio, like the core (below, Host contract) |
 | `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input), the JSON Lines event log, and `fm1_seq_cmd_format`, a typed command as text that `fm1_seq_parse` reads back to the same record (the virtual FM-1's harness logs its panel's commands so, for `fm1-render` to replay) |
 | `host/seq_tool.c` | `fm1-seq`: runs the core alone and dumps state as JSON; `fm1-seq-check` is the same tool on a core built with `-DSQ_CHECK_INDEX` |
 | `test/seq_host_test.c` | `fm1-seq-host-test`: the host bridge's own checks, where `fm1-render` does not reach it (typed commands, realtime input and live notes against text lines; every sink call at its event's frame) |
@@ -362,7 +362,22 @@ it with the core's objects [verified: tests/test_seq_core.py].
    MIDI-routed tracks are the host's to send elsewhere; `fm1-render` only
    logs them. A NULL sink only empties the buffer (`fm1-render` with no
    engine).
-7. Effects, the limiter and the output, which are the host's own.
+7. Effects, which are the host's own; then the metronome's click,
+   `fm1_seq_click_mix` over the block's events (the buffer still holds
+   them after dispatch); then the limiter and the output.
+
+**The metronome's click** (owner decision O11, 2026-10-02; docs/15 S6).
+Every host sounds the core's CLICK events with the bridge's one voice,
+`fm1_seq_click_t`, so `fm1-render` and the virtual FM-1 agree to the bit:
+each CLICK starts a click at its own frame while `metro` is on (the
+count-in's clicks too, and only then); the click is a triangle tone of
+rate / 2000 frames a half-period (about 1 kHz at 44,118 Hz; rate / 3200,
+about 1.7 kHz and louder, on a downbeat, `a = 1`) under a quadratic decay
+over rate / 50 frames (20 ms), computed in integers and added to both
+channels, so no libm and no rounding of its own enter it; a new click
+restarts the voice. It renders the same at host blocks of 1, 7 and 64
+[verified: tests/test_seq_render.py]. `fm1-render`'s summary counts the
+clicks sounded (`seq_clicks`). The voice is 20 bytes.
 
 **Several sound units** (the virtual FM-1's multi-sound, docs/15 §3.16).
 Step 6 can instead be `fm1_seq_host_dispatch_slots(h, n, slots, count)`:
@@ -476,8 +491,9 @@ other than that, so a host applies its default again after an import.
 **`fm1-render`'s summary** carries the bridge's counters:
 `seq_notes_to_engine`, `seq_locks_to_engine`, `seq_locks_refused` (locks on
 NOLOCK parameters), `seq_splits` (render calls that start inside a block),
-`seq_max_block_events` (the most events one block held) and `seq_dropped`
-(the core's `dropped_events`). The WAV alone cannot
+`seq_max_block_events` (the most events one block held), `seq_dropped`
+(the core's `dropped_events`) and `seq_clicks` (the metronome's clicks
+sounded). The WAV alone cannot
 show a split: an engine's output does not depend on how a block is cut into
 render calls [verified for Test Sine, Macro and Six-Op at 1, 7 and 64
 frames], so `seq_splits` is what shows that a skipped lock did not split

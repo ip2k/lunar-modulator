@@ -212,8 +212,10 @@ nothing of ours in the path, and more than 400 tests compare the two.
   same bridge and plays scripts and sets exactly as the desktop renderer
   does, natively and in the browser module (stage S2 of
   [docs/15](docs/15-sequencer-in-simulator.md)). On the panel, PLAY/STOP,
-  SEQ mode's Track view and a demo pattern (stage S3), step entry (S4) and
-  recording, step record and Capture (S5) work behind a lab switch (`?lab`
+  SEQ mode's Track view and a demo pattern (stage S3), step entry (S4),
+  recording, step record and Capture (S5), and eight tracks with mute, the
+  Set, Clip and Track pages and a metronome click (S6) work behind a lab
+  switch (`?lab`
   in the page's address; [`sim/web/README.md`](sim/web/README.md), "The
   lab switch"); the public page keeps SEQ, PLAY/STOP and REC as "not in
   the simulator yet" until the owner opens it. Behind the same switch, up
