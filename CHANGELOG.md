@@ -37,6 +37,26 @@ history.
     the next knob turned.
   - Stages MG0–MG9, each with its tests, and 18 owner decisions.
 - The options note points to docs/16 where it is superseded.
+- **Roadmap: modules from the community.** Four new lines in the README's
+  roadmap and in DEVELOPERS.md's "The roadmap in detail", each with its
+  status, dependencies, where it is planned and its effort (not yet
+  estimated for the SDK, the builder and the catalogue):
+  - develop in the simulator, checked on real hardware (docs/14), as the
+    accelerator for everything below (in preparation);
+  - a module SDK and friendly guides for writing and porting sound engines,
+    modulation sources, MIDI effects and audio effects, after API v2
+    (planned; tooling to be researched);
+  - a custom firmware builder with a browser installer, for when modules no
+    longer fit one image, with its own checksums and manifest on top of the
+    update protocol's CRC16, and the stock path back to factory firmware
+    (planned, after the installable build);
+  - a hosted catalogue of community modules, after the SDK and the builder
+    (planned).
+- DEVELOPERS.md's "Research to do": tooling for module authors (PlatformIO
+  or whatever embedded-audio developers use most today), quality and
+  functionality gates for new modules, static registry against loader,
+  where a custom build is made, the web flasher's verification, licence
+  metadata, and hosting the catalogue.
 - docs/15: the plan for the sequencer in the virtual FM-1 (docs/13 stage M4
   in the browser), in stages S1–S10, each with its tests and exit numbers.
   - S1 moves `fm1-render`'s per-block sequencer hosting into a shared,
@@ -65,8 +85,9 @@ history.
   - Effects first: CRUSH, S&H FILTER, FOLD and CHORUS; ECHO and REPEAT once
     the engines get tempo.
   - Every pick is MIT or BSD; GPL sources serve as design references only.
-    It lists twelve owner decisions, and notes that the project uses one
-    core and runs nothing on the device yet.
+    It lists twelve owner decisions. It also answers the cores question: the
+    stock firmware uses both cores, and nothing from this project runs on
+    the device yet.
 - The sequencer host bridge (`engines/include/fm1_seq_host.h`). It is the
   per-block code that plays the sequencer through a sound engine: commands,
   advance, and renders split at each note and lock. `fm1-render` now runs on
@@ -254,6 +275,19 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **DEVELOPERS.md is reorganized** so it reads in order: a welcome, a
+  linked table of contents and a short callout of the one rule; then
+  getting started (build, test and play in five minutes, where to go next,
+  all the commands), how Lunar Modulator works (its layers first), the
+  hardware, where development stands (the status, the roadmap in detail,
+  the path to an installable build, research to do), contributing (the one
+  rule, conventions, licences, pull requests, credits) and reference (key
+  facts, formerly "The short version"; the recommended path; the documents
+  by topic). The roadmap's wide table became one entry per line, grouped,
+  and the path to an installable build gained a table of its milestones.
+  Nothing was dropped.
+- The README shows the virtual FM-1 screenshot right under the
+  introduction, before the preview notice, instead of further down.
 - **The roadmap, rewritten from the 2026-10-01 studies.**
   - The README's roadmap gives each line a status and says where it stands.
     The arpeggiator (our own, after Yarns, with MCL's note orders, in the
