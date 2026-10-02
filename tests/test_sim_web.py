@@ -17,6 +17,7 @@ import re
 import shutil
 import subprocess
 import warnings
+from urllib.parse import unquote
 
 import pytest
 
@@ -196,7 +197,7 @@ def test_page_is_self_contained():
     refs += re.findall(r'url\("?([^")]+)"?\)', css)
     for ref in refs:
         assert not ref.startswith("/"), f"{ref} is not relative"
-        assert (www / ref).is_file(), ref
+        assert (www / unquote(ref)).is_file(), ref   # browsers percent-decode: Exo2%5Bwght%5D.ttf
     for name in ("worklet.js", "fm1-wasm.mjs", "fm1.wasm"):
         assert (www / name).exists(), name
     # The worklet and the module are found next to app.js, wherever it is.
@@ -212,6 +213,8 @@ def test_page_is_self_contained():
 FONTS = {
     "audiowide/Audiowide-Regular.ttf": "8b50bedc0f99bcfcb5686a3dbeb5b51d1c0190d5",
     "audiowide/OFL.txt": "19bb4adffab57778a892f98e9552441208896226",
+    "exo2/Exo2[wght].ttf": "9cb20188a07687580312d2099e6c79ca8ecb7b58",
+    "exo2/OFL.txt": "5bec9840d2e0df42d80d6fac55279d1d5e5b9199",
 }
 
 

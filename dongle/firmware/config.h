@@ -39,7 +39,8 @@
 #define POLARITY_DP_CLOCK         0        // D+ clock, D- data  (jielie usb-key.md)
 #define POLARITY_DM_CLOCK         1        // D- clock, D+ data  (how-to-enter-uboot.md prose only; its diagram and czietz's tool use D+)
 #define POLARITY_ALTERNATE        2
-#define DEFAULT_POLARITY_MODE     POLARITY_ALTERNATE
+#define DEFAULT_POLARITY_MODE     POLARITY_DP_CLOCK   // D+ clock, as reported on two FM-1s (docs/10 §1.1);
+                                                    // button held at boot = D- clock; ALTERNATE here tries both
 #define SOF_MODE_PC               0        // hand the bus to the PC right after the ACK
 #define SOF_MODE_DONGLE           1        // generate the 1 ms edges ourselves, then hand over
 #define DEFAULT_SOF_MODE          SOF_MODE_DONGLE

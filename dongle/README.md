@@ -16,7 +16,7 @@ this repository.
 
 docs/10 §1.1 covers:
 - what these reports show, and how the tool differs from this design;
-- why fixed polarity A is the better first attempt;
+- why fixed polarity A (now the default) is the better first attempt;
 - the relay-free minimal build (docs/10 §3).
 
 ## Layout
@@ -58,10 +58,16 @@ cmake -S dongle/firmware -B dongle/firmware/build && cmake --build dongle/firmwa
 4. On the PC: `python3 reference/jl-uboot-tool/jldevfind.py` should list a
    `UBOOT1.00` device. Read-only commands only until docs/08 Phase 2 exits.
 
-Button: held at boot = fixed polarity B (D− clock); short press after a
-result = restart. Fixed polarity A (D+ clock, the likely one) needs
-`DEFAULT_POLARITY_MODE` set to `POLARITY_DP_CLOCK` in `config.h`. LED: 1 Hz
-keying, 3 fast blinks ACK, solid DONE, 5 Hz FAILED, 10 Hz FAULT.
+**Polarity:** the default is fixed A, the D+ clock reported working on two
+FM-1s (docs/10 §1.1).
+- Button held at boot: fixed polarity B (D− clock).
+- To try both, build with `DEFAULT_POLARITY_MODE` set to `POLARITY_ALTERNATE`
+  in `config.h`.
+
+**Button:** a short press after a result restarts.
+
+**LED:** 1 Hz keying, 3 fast blinks ACK, solid DONE, 5 Hz FAILED, 10 Hz
+FAULT.
 
 Without the relay (docs/10 §3, minimal build): when the console says `DONE`,
 unplug the FM-1 from the dongle and plug it into the PC, with its power switch

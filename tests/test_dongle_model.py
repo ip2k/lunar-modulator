@@ -87,6 +87,20 @@ def test_no_ack_with_absent_or_unpowered_target():
     assert d.state == "key" and rom.state == "off"
 
 
+def test_default_is_d_plus_clock_and_reaches_uboot():
+    # Default since 2026-10-01: polarity A (D+ clock), the one reported working on two FM-1s
+    # (docs/10 §1.1). The button held at boot selects B; POLARITY_ALTERNATE is a build option.
+    assert PARAMS["DEFAULT_POLARITY_MODE"] == PARAMS["POLARITY_DP_CLOCK"]
+    rom = JieLiMaskRom(clock_line="dp")
+    d = dongle()
+    cosim.run(d, rom, max_us=80_000)
+    assert d.state == "done" and d.ack_polarity == POLARITY_DP_CLOCK, d.log
+    rom = JieLiMaskRom(clock_line="dm")
+    d = dongle()
+    cosim.run(d, rom, max_us=20_000)
+    assert d.state == "key" and d.ack_polarity is None   # a D- clock ROM needs the button (B)
+
+
 def test_selftest_fault_when_a_dongle_line_is_shorted():
     # A short or missing pull-up on the dongle's own side must stop the sequence before keying.
     d = dongle()

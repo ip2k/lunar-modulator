@@ -164,7 +164,7 @@ vendored upstream code on its own and drive it as the modules' firmware does:
 `plaits::Voice` every 12 samples at 47,872 Hz, and `braids::MacroOscillator`
 every 24 samples at 96 kHz, with Rings' reverb and Plaits' ensemble and
 diffuser at their native rates. The tests render both sides and compare
-[verified: tests/test_engines_reference_*.py, about 350 tests]:
+[verified: tests/test_engines_reference_*.py, 427 tests on 2026-10-01]:
 
 | Engine | At the upstream rate | Details |
 | --- | --- | --- |

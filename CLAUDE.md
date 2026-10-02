@@ -5,11 +5,21 @@ Guidance for Claude Code working in this repo.
 ## What this is
 
 **Lunar Modulator** (tagline **INTERGALACTIC MODULATION STATION**) is open
-firmware for the **M-VAVE FM-1**: research and, later, code toward an
-open-source firmware for it (JieLi AC791N SoC, pi32v2 CPU, msfa/Dexed FM
-engine). Status: **research phase
-complete; one read-only bench session done (`notes/2026-09-06-bench.md`);
-nothing flashed by this project.** The owner's unit ran stock `FM-1_015` until
+firmware for the **M-VAVE FM-1** (JieLi AC791N SoC, pi32v2 CPU; the stock
+firmware's FM engine is msfa/Dexed).
+
+Status, 2026-10-01: **the code runs on a desktop and in a browser, not yet on
+a JieLi chip or an FM-1; nothing flashed by this project.**
+- Built and tested on the desktop: an engine platform with Mutable- and
+  Schwung-derived engines and effects (`engines/`, checked against reference
+  renders), and a C99 port of Movy's sequencer core with its Movy oracle
+  (`engines/seq.md`).
+- A virtual FM-1 runs the engines and effects in a browser (`sim/web/`).
+- The research phase and one read-only bench session are done
+  (`notes/2026-09-06-bench.md`).
+- An AC79 dev kit and JieLi's USB updater are on order (docs/14).
+
+The owner's unit ran stock `FM-1_015` until
 the owner installed Baud Girl's FM-1+VA; it identifies as **`FM-1_092`** since
 (2026-09-29). The `USB_KEY` recovery
 dongle (docs/10, `dongle/`) is implemented and simulated, not yet tried. Other

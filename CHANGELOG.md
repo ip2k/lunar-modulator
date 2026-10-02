@@ -21,6 +21,10 @@ history.
   workflow (`.github/workflows/pages.yml`) that also builds and checks it on
   pull requests. Every chapter is written in full, with the firmware's own
   screen shown from the simulator, and the published simulator links to it.
+- The virtual FM-1's small text is set in Exo 2 (Natanael Gama, SIL OFL
+  1.1), bundled unmodified from google/fonts in `sim/web/www/fonts/exo2/`
+  with its licence and checked by hash. Before, it used Exo 2 only where
+  installed and otherwise the system's sans-serif.
 - docs/10 §1.1: reports from other FM-1 owners (issue #2) and what they
   mean for our dongle.
   - czietz's Raspberry Pi Pico `USB_KEY` dongle (an unlisted MicroPython
@@ -57,7 +61,8 @@ history.
 - The sequencer core, `fm1_seq` (docs/13 stage M1): a C99, heap-free port of
   Movy's sequencer with every planned fix on by default and an exact Movy
   mode for tests. It has 4–8 tracks, each routed to the engine or to USB-MIDI
-  on its own channel (14,984 B at 4 tracks, 28,808 B at 8). `fm1-render`
+  on its own channel (18,056 B at 4 tracks, 31,880 B at 8, Capture
+  included). `fm1-render`
   plays Movy sets and timed command scripts, with sample-accurate notes and
   parameter locks (engines/seq.md).
 - A Movy oracle (docs/13 stage M3): Movy's own unmodified `seq-core`, built
@@ -173,6 +178,39 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- Capture (record-after: turn what you just played into a clip) is on by
+  default. The sequencer remembers your last 256 note events, about 128
+  notes, and each takes 12 bytes instead of 20 with nothing lost, so the
+  whole sequencer fits in 31,880 B at 8 tracks (86 % of its budget) and
+  18,056 B at 4. Captures land exactly as before, and as on Movy.
+- The `USB_KEY` dongle now keys with D+ as the clock (polarity A) by
+  default. That is the polarity czietz's Pico dongle reached UBOOT mode with
+  on two FM-1s (docs/10 §1.1).
+  - The button held at boot still selects D− (polarity B).
+  - Alternating between the two is now a build option.
+  - docs/10 §6 and dongle/README.md follow, and a test checks the default.
+- The README no longer describes the project as "research, and later
+  code".
+  - The intro says what you can use today: the virtual FM-1 in a browser,
+    with five engines and four effects, and a sequencer core on the
+    desktop.
+  - The status (2026-10-01) says where things stand: nothing runs on a JieLi
+    chip or an FM-1, and nothing has been flashed. The AC79 dev kit and
+    JieLi's updater are on order. Other owners report reaching the FM-1's
+    mask-ROM mode (issue #2).
+  - The Credits now cover:
+    - Baud Girl's FM-1+VA findings;
+    - czietz's and masanaohayashi's dongle reports and what they taught us;
+    - Echomatter;
+    - Emilie Gillet's Mutable Instruments code;
+    - Charles Vestal's Schwung and PSX Verb, and Matt Estela's Sophie;
+    - the Rosé Pine palette and Audiowide.
+  - The recommended path, the Movy paragraph (four free knobs, not eight)
+    and the repository map's test row are current.
+  - CLAUDE.md, AGENTS.md, docs/05, 07 and 08, sim/web/README.md and
+    engines/README.md lose matching stale lines: "research and, later, code",
+    "nothing else has started", "the mask-ROM path remains undemonstrated",
+    and "about 350" reference tests (427).
 - The project is now **Lunar Modulator**, tagline **INTERGALACTIC
   MODULATION STATION**: open firmware for the M-VAVE FM-1, formerly "Open
   firmware for the M-VAVE FM-1". The repository becomes
@@ -191,8 +229,8 @@ history.
   engines/plaits-heavy.md). `fm1-render --list` now also prints the names
   of enum parameters' values.
 - docs/13 records the owner's choice of 7-bit locks with smoothing, and of
-  Capture as an optional feature. docs/11 corrects its claim that Clouds'
-  spectral mode needs its own FFT.
+  Capture with 256 packed events, on by default. docs/11 corrects its claim
+  that Clouds' spectral mode needs its own FFT.
 - The Mutable engines run at their modules' own sample rates, whatever the
   host's: Shapes at 96 kHz, and Macro, Macro Heavy and Six-Op at
   47,872.34 Hz. Each resamples its mix to the host. At the FM-1's 44,118 Hz
