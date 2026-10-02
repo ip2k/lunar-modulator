@@ -9,6 +9,21 @@ history.
 ## [Unreleased]
 
 ### Added
+- notes/2026-10-01-arp-modulation-effects-options.md: open-source options
+  for an arpeggiator, configurable LFOs and envelopes, a modulation matrix
+  and eurorack-type effects such as sample-and-hold, with every licence
+  checked at a pinned commit.
+  - Arpeggiator: our own C core, `fm1_arp`, after Yarns' `ClockArpeggiator`,
+    with MCL's extra orders and Super Arp's seeded modifiers. It would be the
+    first `FM1_KIND_MIDI_FX`, so ARP and SEQ can run together.
+  - Modulation: 2 global LFOs, 2 envelopes and a 16-slot host-side matrix
+    first, then per-note sources once engine API v2 exists. Modulation is an
+    offset from a base value, which locks and knobs set.
+  - Effects first: CRUSH, S&H FILTER, FOLD and CHORUS; ECHO and REPEAT once
+    the engines get tempo.
+  - Every pick is MIT or BSD; GPL sources serve as design references only.
+    It lists twelve owner decisions, and notes that the project uses one
+    core and runs nothing on the device yet.
 - The virtual FM-1's small text is set in Exo 2 (Natanael Gama, SIL OFL
   1.1), bundled unmodified from google/fonts in `sim/web/www/fonts/exo2/`
   with its licence and checked by hash. Before, it used Exo 2 only where
