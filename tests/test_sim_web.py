@@ -1,6 +1,6 @@
 """The virtual FM-1 (sim/web): its app layer renders what fm1-render renders,
-every screen passes the layout check, the panel follows the M-VAVE manual,
-and the page is self-contained.
+sequencer scripts included, every screen passes the layout check, the panel
+follows the M-VAVE manual, and the page is self-contained.
 
 The WebAssembly side is built and compared on aeon by sim/web/build-on-aeon.sh
 (test/parity.mjs); its results are recorded in sim/web/www/fm1.wasm.json,
@@ -16,6 +16,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import warnings
 from urllib.parse import unquote
 
@@ -53,6 +54,8 @@ def tools():
 def scenario_args(s):
     args = ["--seconds", str(s["seconds"]), "--rate", str(s.get("rate", 44118))]
     args += ["--engine", s["engine"]]
+    if "cmd" in s:
+        args += ["--cmd", str(SIM / "test" / s["cmd"])]
     for p in s.get("params", []):
         args += ["--param", p]
     for n in s.get("notes", []):
@@ -86,11 +89,207 @@ def test_app_renders_what_fm1_render_renders(tools, tmp_path, s):
     byte. The browser runs this layer; parity.mjs checks the WebAssembly build
     of it against fm1-render on aeon."""
     ref, app = tmp_path / "ref.wav", tmp_path / "app.wav"
-    run(tools["render"], scenario_args(s) + ["--out", str(ref)])
-    summary = run(tools["sim"], scenario_args(s) + ["--out", str(app)])
+    logs = []
+    if "cmd" in s:          # a sequencer script: the event logs must match too
+        logs = [tmp_path / "ref.jsonl", tmp_path / "app.jsonl"]
+    ref_summary = run(tools["render"], scenario_args(s) + ["--out", str(ref)]
+                      + (["--log-events", str(logs[0])] if logs else []))
+    summary = run(tools["sim"], scenario_args(s) + ["--out", str(app)]
+                  + (["--log-events", str(logs[1])] if logs else []))
     assert summary["engine"] == s["engine"]
     assert app.read_bytes() == ref.read_bytes()
     assert summary["peak"] > 0.01, "the scenario makes no sound"
+    if logs:
+        assert logs[1].read_bytes() == logs[0].read_bytes()
+        assert ref_summary["seq_dropped"] == summary["seq_dropped"] == 0
+        assert summary["seq_notes_to_engine"] == ref_summary["seq_notes_to_engine"] > 0
+        assert summary["seq_locks_to_engine"] == ref_summary["seq_locks_to_engine"]
+        assert summary["seq_splits"] == ref_summary["seq_splits"]
+        assert summary["seq_lines_left"] == summary["seq_held"] == 0
+        header = (SIM / "test" / s["cmd"]).read_text(encoding="utf-8").splitlines()[0]
+        assert re.search(r"\bblock=64\b", header), "parity runs at 64-frame blocks"
+
+
+# ---- The sequencer in the app (docs/15 S2) --------------------------------------------------
+
+RATE = 44118
+FIXTURES = ROOT / "tests" / "fixtures" / "movy"
+
+
+def sim_run(tools, tmp_path, script, *extra, engine="test-sine", name="s", tool="sim"):
+    """A verb script through fm1-sim-render (tool="sim") or fm1-render ("render"):
+    the summary, the WAV's bytes and the event log."""
+    path = tmp_path / f"{name}.verbs"
+    path.write_text(script)
+    wav, log = tmp_path / f"{name}-{tool}.wav", tmp_path / f"{name}-{tool}.jsonl"
+    args = ["--cmd", str(path), "--out", str(wav), "--log-events", str(log)]
+    if engine:
+        args += ["--engine", engine]
+    summary = run(tools[tool], args + list(extra))
+    events = [json.loads(line) for line in log.read_text().splitlines()]
+    return summary, wav.read_bytes(), events
+
+
+def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
+    """docs/15 §2.6: the 8-track instance (Capture included) fits the 32 KiB
+    arena, and with the 256-event buffer, the pending command record and the
+    UI state's bound it stays inside the sequencer's 36,864 B, half of
+    docs/13 §5's 72 KiB. fm1_app_t grew by about 36 KB."""
+    z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
+                                  text=True).stdout)
+    print(f"sizeof(fm1_app_t) = {z['app_bytes']} B")
+    assert z["seq_tracks"] == 8                                   # owner decision O3: 8 until decided
+    assert (z["seq_bytes_8"], z["seq_bytes_4"]) == (31880, 18056)
+    assert z["seq_bytes_8"] <= z["seq_arena"] == 32768
+    assert (z["seq_event_bytes"], z["seq_pending_bytes"]) == (3072, 240)
+    total = z["seq_bytes_8"] + z["seq_event_bytes"] + z["seq_pending_bytes"] + z["seq_ui_bytes"]
+    assert total == 36216 <= z["seq_budget"] == 36864
+    assert z["app_bytes"] <= 1_210_000
+    assert z["seq_need"] == 201 <= z["seq_events"] == 256
+    script = f"#! rate={RATE} block=64 tracks=8 end=6400\n@0 tog 0 0 60 100\n@0 play\n"
+    for tracks, size in ((8, 31880), (4, 18056)):
+        s, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}")
+        assert s["seq_bytes"] == size
+        r, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}",
+                          tool="render")
+        assert s["ram"] == r["instance_bytes"] + size + 3072, "the RAM figure counts the sequencer"
+
+
+def full_load(stop_at, tracks=8):
+    """8 tracks, each an 8-note chord on step 0 held for most of the bar, all
+    8 lanes locked away from their base, every track on the engine: 64 gates
+    and 64 lanes, both full. A stop then sends 128 events at once."""
+    lines = [f"#! rate={RATE} block=64 tracks={tracks} end={stop_at * 2 + 640}"]
+    for t in range(tracks):
+        chord = " ".join(f"{48 + 3 * t + k} 100" for k in range(8))
+        lines.append(f"@0 tog {t} 0 {chord};slen {t} 0 0 -1 380;route {t} 1 0")
+        lines.append("@0 " + ";".join(f"alabel {t} {lane} synth:L{lane};aset {t} {lane} 0 100 1"
+                                      for lane in range(8)))
+    lines.append("@0 play")
+    return lines
+
+
+def test_a_burst_of_transport_lines_keeps_every_note_off(tools, tmp_path):
+    """The event-room rule (fm1_seq_host.h) on script lines: stop, play and a
+    restart in one gap at full load. The stop's 128 events leave less room
+    than another op may need (201 of 256), so the rest waits a block, and
+    nothing is dropped; a final stop leaves nothing sounding."""
+    stop_at = 8192
+    script = "\n".join(full_load(stop_at) + [f"@{stop_at} stop", f"@{stop_at} play",
+                                             f"@{stop_at} play", f"@{stop_at * 2} stop"]) + "\n"
+    log = tmp_path / "cmds.verbs"
+    s, _, ev = sim_run(tools, tmp_path, script, "--log-cmds", str(log))
+    assert s["seq_dropped"] == 0 and s["seq_lines_left"] == 0
+    assert s["seq_sounding"] == 0 and s["seq_notes_to_engine"] == 128
+    applied = [line for line in log.read_text().splitlines() if line.startswith("@")]
+    assert applied[-4:] == [f"@{stop_at} stop", f"@{stop_at + 64} play", f"@{stop_at + 64} play",
+                            f"@{stop_at * 2} stop"]
+    assert len([e for e in ev if e["kind"] == "off"]) == 128
+
+
+def test_the_room_rule_holds_back_what_would_be_dropped(tools, tmp_path):
+    """A stop at full load (128 events) and 128 audible lane bases (`abase`,
+    one lock each) in one gap: fm1-render with the app's 256 events drops
+    some; the app applies ops only while 201 are free, carries the rest of
+    the line to the next blocks, and drops nothing."""
+    stop_at = 8192
+    bases = ";".join(f"abase {t} {lane} {20 + lane}" for t in range(8) for lane in range(8))
+    script = "\n".join(full_load(stop_at) + [f"@{stop_at} stop", f"@{stop_at} {bases};{bases}"]) + "\n"
+    r, _, _ = sim_run(tools, tmp_path, script, "--events", "256", tool="render")
+    assert r["seq_dropped"] > 0
+    s, _, ev = sim_run(tools, tmp_path, script)
+    assert s["seq_dropped"] == 0 and s["seq_lines_left"] == 0 and s["seq_sounding"] == 0
+    blocks = sorted({e["block"] for e in ev if e["kind"] == "cc" and e["block"] >= stop_at // 64})
+    assert len(blocks) >= 2, "the bases went out over more than one block"
+
+
+def test_typed_commands_wait_for_room(tools, tmp_path):
+    """The UI's path (fm1_app_seq_cmd): stop, play and a restart sent in one
+    gap at full load. The stop applies; the play no longer fits and is held
+    in the pending record; the restart finds the record full (BUSY) and is
+    sent again after the render. Both go in at the next block's start, in
+    order, and nothing is dropped or left sounding."""
+    stop_at = 8192
+    script = "\n".join(full_load(stop_at) + [f"@{stop_at * 2} stop"]) + "\n"
+    t = f"{(stop_at - 32) / RATE:.9f}"      # mid-block, so rounding cannot move it
+    s, _, _ = sim_run(tools, tmp_path, script, "--seq-ui", f"{t}:stop", "--seq-ui", f"{t}:play",
+                      "--seq-ui", f"{t}:play")
+    assert (s["seq_held"], s["seq_busy"], s["seq_ui_left"]) == (1, 1, 0)
+    assert s["seq_ui_frames"] == [stop_at, stop_at + 64, stop_at + 64]
+    assert s["seq_dropped"] == 0 and s["seq_sounding"] == 0
+
+
+TWO_TRACKS = (f"#! rate={RATE} block=64 tracks=4 end={RATE}\n"
+              "@0 tog 0 0 84 100;tog 0 4 86 100;tog 1 2 76 100\n@0 play\n")
+
+
+@pytest.mark.parametrize("routes,engine_tracks", [
+    ([], {0}),                                            # the default route
+    (["--route", "1:engine"], {1}),                       # a --route replaces it
+    (["--route", "0:midi:1"], set()),
+    (["--route", "0:engine", "--route", "1:engine"], {0, 1}),
+])
+def test_routes_play_the_engine_as_in_fm1_render(tools, tmp_path, routes, engine_tracks):
+    """Track 0 plays the engine with no route given; --route and `route`
+    verbs choose otherwise, and the app agrees with fm1-render on every
+    note, event and sample."""
+    for k, script in enumerate([TWO_TRACKS, TWO_TRACKS.replace("@0 play", "@0 route 2 1 0;play")]):
+        r, rwav, rev = sim_run(tools, tmp_path, script, *routes, name=f"r{k}", tool="render")
+        s, swav, sev = sim_run(tools, tmp_path, script, *routes, name=f"r{k}")
+        want = engine_tracks | ({2} if k else set())
+        ons = [e for e in sev if e["kind"] == "on"]
+        assert s["seq_notes_to_engine"] == r["seq_notes_to_engine"] == \
+            len([e for e in ons if e["track"] in want])
+        assert (swav, sev) == (rwav, rev)
+
+
+@pytest.mark.parametrize("extra,engine_tracks", [("", {0}), ("rt 2 1 0\n", {2}),
+                                                 ("rt 0 0 5\n", set())])
+def test_an_imported_set_keeps_its_routes(tools, tmp_path, extra, engine_tracks):
+    """A set's own `rt` lines are its routing; a set without them plays track
+    0 on the engine, by the default-route rule (an import first puts every
+    track back on USB-MIDI channel t+1). --seq alone plays from the start."""
+    path = tmp_path / "set.movy1"
+    path.write_text((FIXTURES / "movy-chains.movy1").read_text() + extra)
+    out = {}
+    for tool, blocks in (("render", ["--frames", "64"]), ("sim", [])):   # a set alone: 128
+        wav, log = tmp_path / f"{tool}.wav", tmp_path / f"{tool}.jsonl"
+        out[tool] = (run(tools[tool], ["--seq", str(path), "--engine", "macro", "--seconds", "2",
+                                       "--out", str(wav), "--log-events", str(log), *blocks]),
+                     wav.read_bytes(), log.read_text())
+    s, r = out["sim"][0], out["render"][0]
+    ev = [json.loads(line) for line in out["sim"][2].splitlines()]
+    assert s["seq_notes_to_engine"] == r["seq_notes_to_engine"] == \
+        len([e for e in ev if e["kind"] == "on" and e["track"] in engine_tracks])
+    assert out["sim"][1:] == out["render"][1:]
+    assert s["seq_dropped"] == 0
+
+
+HELD = (f"#! rate={RATE} block=64 tracks=2 end={RATE}\n"
+        "@0 tog 0 0 60 100 64 100;slen 0 0 0 -1 380;tog 1 0 67 100;slen 1 0 0 -1 380;route 1 1 0\n"
+        "@0 play\n")
+
+
+@pytest.mark.parametrize("hook", [None, ["--seq-reset", "0.3:4"], ["--seq-import", "0.3:SET"],
+                                  ["--select", "0.3:0:test-sine"]])
+def test_a_reset_import_or_new_sound_leaves_no_note_hanging(tools, tmp_path, hook):
+    """Three sequencer notes sound on the engine for most of a bar. Recreating
+    the instance or importing a set mid-note emits no event, so the app
+    releases the sequencer's notes itself; so does a change of sound. The
+    engine is silent from then on (Test Sine holds a note until its
+    note-off), and nothing counts as sounding."""
+    empty = tmp_path / "empty.movy1"
+    empty.write_text("movy1\nbpm 12000\n")
+    extra = [a.replace("SET", str(empty)) for a in hook] if hook else []
+    s, wav, _ = sim_run(tools, tmp_path, HELD, *extra)
+    left = left_channel(wav)
+    tail = left[int(0.32 * RATE):]
+    assert s["seq_notes_to_engine"] == 3
+    if hook:
+        assert s["seq_sounding"] == 0
+        assert max(abs(v) for v in tail) == 0
+    else:
+        assert s["seq_sounding"] == 3 and max(abs(v) for v in tail) > 0.1
 
 
 def test_every_screen_passes_the_layout_check(tools, tmp_path):
@@ -235,6 +434,24 @@ def test_wasm_exports_match_the_web_layer():
     assert exported == listed
 
 
+def test_the_staleness_gate_covers_what_the_module_links():
+    """fm1.wasm links the sequencer core and bridge, and the parity record
+    covers the sequencer scripts: a change to any of them makes the module
+    stale (a CI failure), not only a warning (docs/15 §6.5)."""
+    sys.path.insert(0, str(SIM / "tools"))
+    try:
+        from source_hash import sim_files
+    finally:
+        sys.path.pop(0)
+    hashed = {p.relative_to(ROOT).as_posix() for p in sim_files(ROOT)}
+    for s in SCENARIOS:
+        if "cmd" in s:
+            assert f"sim/web/test/{s['cmd']}" in hashed, s["name"]
+    want = [p.relative_to(ROOT).as_posix() for p in (ENGINES / "seq").glob("*.[ch]")]
+    want += ["engines/include/fm1_seq.h", "engines/include/fm1_seq_host.h"]
+    assert want and not [w for w in want if w not in hashed]
+
+
 def test_committed_wasm_matches_its_build_record():
     """build-on-aeon.sh writes fm1.wasm.json next to the module: its hash, the
     hashes of the sources it was built from, and the parity results.
@@ -251,6 +468,10 @@ def test_committed_wasm_matches_its_build_record():
     parity = record["parity"]
     assert parity["failed"] == 0 and parity["passed"] >= len(SCENARIOS)
     assert record["imports"] == []
+    names = {s["name"]: s for s in record["scenarios"]}
+    for s in SCENARIOS:
+        if "cmd" in s and s["name"] in names:
+            assert names[s["name"]]["seq"]["lines_match"] and names[s["name"]]["seq"]["dropped"] == 0
     assert all("@sha256:" in i for i in record["images"]) and len(record["images"]) >= 2
     current = source_hashes()
     stale = [k for k in ("engines", "sim") if current[k] != record["sources_sha256"].get(k)]

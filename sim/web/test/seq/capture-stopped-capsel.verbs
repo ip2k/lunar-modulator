@@ -1,0 +1,25 @@
+#! rate=44118 block=64 tracks=1 end=154413
+# Capture while stopped: eight notes an eighth apart at 120 BPM played in
+# with no transport, then `cap`: Capture's tempo search offers 60, 120
+# and 240 BPM and plays the take at 120; half a second later `capsel 2`
+# rewrites it at 240. The search scores tempos with logf, so a last-bit
+# libm difference could change the candidates (libm_sensitive).
+@0 watch 0
+@640 non 0 60 100
+@6144 nof 0 60
+@11648 non 0 65 100
+@17152 nof 0 65
+@22656 non 0 70 100
+@28160 nof 0 70
+@33664 non 0 63 100
+@39168 nof 0 63
+@44672 non 0 68 100
+@50176 nof 0 68
+@55680 non 0 61 100
+@61184 nof 0 61
+@66688 non 0 66 100
+@72192 nof 0 66
+@77696 non 0 71 100
+@83200 nof 0 71
+@88704 cap 0
+@110754 capsel 2

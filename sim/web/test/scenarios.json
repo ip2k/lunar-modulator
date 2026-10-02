@@ -1,5 +1,5 @@
 {
-  "about": "Note scripts rendered by engines/build/fm1-render, by the app layer natively (tests/test_sim_web.py) and by the WebAssembly module under Node (sim/web/test/parity.mjs). Fields map to fm1-render's options; every engine and effect appears at least once.",
+  "about": "Note scripts rendered by engines/build/fm1-render, by the app layer natively (tests/test_sim_web.py) and by the WebAssembly module under Node (sim/web/test/parity.mjs). Fields map to fm1-render's options; every engine and effect appears at least once. `cmd` is a sequencer verb script (fm1-render --cmd), relative to this file, at 64-frame blocks (#! block=64); it routes tracks with `route` verbs only, so track 0 plays the engine by the default-route rule.",
   "scenarios": [
     {"name": "macro-va-pair-chord", "engine": "macro", "params": ["Model=4"],
      "notes": ["0:57:100:1", "0:60:100:1", "0:64:100:1"],
@@ -39,6 +39,18 @@
      "notes": ["0:69:100:0.5"], "fx": [["test-gain", ["Gain=1.5"]], ["diffuse", []]],
      "seconds": 0.8},
     {"name": "macro-at-44100", "engine": "macro", "params": ["Model=2"], "rate": 44100,
-     "notes": ["0:62:100:0.6"], "fx": [["plate", []]], "seconds": 0.8}
+     "notes": ["0:62:100:0.6"], "fx": [["plate", []]], "seconds": 0.8},
+    {"name": "seq-sine-volume-locks", "engine": "test-sine", "params": [],
+     "cmd": "seq/sine-volume-locks.verbs", "fx": [], "seconds": 1.5},
+    {"name": "seq-sixop-two-tracks-swing", "engine": "sixop", "params": ["Patch=12"],
+     "cmd": "seq/sixop-two-tracks-swing.verbs", "fx": [["ensemble", []]], "seconds": 1.6},
+    {"name": "seq-sixop-patch-enum-lock", "engine": "sixop", "params": [],
+     "cmd": "seq/sixop-patch-enum-lock.verbs", "fx": [], "seconds": 1.2},
+    {"name": "seq-capture-while-playing", "engine": "macro", "params": ["Model=1"],
+     "cmd": "seq/capture-while-playing.verbs", "fx": [["plate", ["Mix=0.2"]]], "seconds": 2.2},
+    {"name": "seq-capture-stopped-capsel", "engine": "shapes", "params": ["Shape=28"],
+     "libm_sensitive": true,
+     "why": "Capture's stopped tempo search scores each candidate tempo with logf (seq_capture.c); a last-bit difference between glibc's logf and musl's could reorder near-tied candidates and so the take. Identical to static musl and to fm1-render.js.",
+     "cmd": "seq/capture-stopped-capsel.verbs", "fx": [], "seconds": 3.5}
   ]
 }

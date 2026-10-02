@@ -9,8 +9,11 @@ their bytes, in sorted path order:
   engines  engines/, less build output, dotfiles and Markdown: every engine,
            effect and the host the module links
   sim      sim/web's own inputs: src/, mk/ (the link flags and export list),
-           build.sh, and the parity test and its scenarios, whose results the
-           record carries
+           build.sh, and the parity test, its scenarios and their sequencer
+           scripts (test/seq/), whose results the record carries; and the
+           sequencer core and host bridge the module links (engines/seq/,
+           include/fm1_seq*.h), so that an engines-only change to them
+           cannot ship a module that behaves differently with only a warning
 
 build-on-aeon.sh records both in www/fm1.wasm.json; tests/test_sim_web.py
 warns when the tree has moved on since, and fails in CI when the sim's own
@@ -23,10 +26,13 @@ from pathlib import Path
 
 SIM_INPUTS = ("sim/web/src", "sim/web/mk", "sim/web/build.sh", "sim/web/test/parity.mjs",
               "sim/web/test/scenarios.json", "sim/web/test/fm1_sim_render.c",
-              "sim/web/www/fm1-wasm.mjs")
+              "sim/web/test/seq", "sim/web/www/fm1-wasm.mjs",
+              "engines/seq", "engines/include/fm1_seq*.h")
 
 
 def _files(root, base):
+    if "*" in base.name:
+        return sorted(p for p in base.parent.glob(base.name) if p.is_file())
     if base.is_file():
         return [base]
     return [p for p in base.rglob("*") if p.is_file()]

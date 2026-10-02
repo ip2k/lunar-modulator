@@ -316,8 +316,8 @@ Test Sine, Macro and Six-Op [verified: tests/test_seq_render.py].
 ## Host contract (`include/fm1_seq_host.h`)
 
 Every host of the core runs the same per-block code, `seq/seq_host.c`:
-`fm1-render` now, the virtual FM-1's app layer and the firmware's audio task
-next. It was extracted from `fm1-render` with no change in behaviour: over
+`fm1-render`, the virtual FM-1's app layer (sim/web, since docs/15 stage
+S2) and the firmware's audio task next. It was extracted from `fm1-render` with no change in behaviour: over
 810 runs of the old and new renderer and `fm1-seq` (the 34 oracle scripts
 with no engine, Test Sine, and Macro and Six-Op at 44,118 Hz or Shapes at
 48 kHz, in both modes at 64-frame blocks and at each script's own; the
@@ -379,18 +379,34 @@ buffer to keep every note-off, Start and Stop. So a host applies a command
 only while `fm1_seq_host_room(h)` is at least `fm1_seq_cmd_max_events` +
 `fm1_seq_min_events`, and holds it for the next block otherwise. The bound
 is per op: a text line may hold several. 256 events (3 KB, the virtual
-FM-1's plan) take that full stop with nothing dropped; `fm1-render`'s
+FM-1's buffer) take that full stop with nothing dropped; `fm1-render`'s
 default 65,536 never come near the rule, and `--events N` runs it at a
 device's size. In the default mode at 64-frame blocks no oracle script puts
-more than 7 events in one block [verified].
+more than 7 events in one block [verified]. The virtual FM-1 enforces the
+rule (sim/web/src/fm1_app.c): a script line goes in op by op and its rest
+waits a block when the room runs out; a typed command waits in one pending
+record, and a second one meanwhile is refused (BUSY) for the sender to
+repeat. The core's own reserve is separate: beside a block's events it keeps
+room for the note-off of every sounding gate, so a block of e events needs
+about e + 64. tools/seq_bench.py's burst reaches 193 events in a block and
+so needs 257: at 256 it drops 400 of 76,800 note-ons, whole, and hangs
+nothing [verified 2026-10-02: `fm1-render --events`].
 
 **Routing is the host's policy.** The bridge acts on each track's route;
-setting the routes is up to the host. `fm1-render` routes track 0 to the
-engine only when no `--route` is given, the set has no `rt` lines (every
-track still on MIDI channel t+1) and an engine is loaded. Importing a set
-(`fm1_seq_import_movy1`) first resets every route to MIDI channel t+1, and an
-export writes only routes other than that, so a host applies its default
-again after an import.
+setting the routes is up to the host. The default-route rule is one bridge
+function, `fm1_seq_default_route`, which `fm1-render` and the virtual FM-1
+both call: track 0 goes to the engine only when the host routes nothing
+itself (`fm1-render`: no `--route`), the set has no `rt` lines (every track
+still on MIDI channel t+1, `fm1_seq_routes_default`) and an engine is
+loaded. Moving it out of `fm1-render` changed nothing: 788 runs of the
+renderer before and after (the 34 oracle scripts with no engine, Test Sine,
+and Macro and Six-Op or Shapes, in both modes at both block sizes; scripts
+with `route` verbs; Movy's sets and sets with `rt` lines, alone and under
+commands, at 8 and 16 tracks; each with and without `--route`) gave
+byte-identical WAVs, event logs and summaries less timing [verified
+2026-10-02, Apple clang]. Importing a set (`fm1_seq_import_movy1`) first
+resets every route to MIDI channel t+1, and an export writes only routes
+other than that, so a host applies its default again after an import.
 
 **`fm1-render`'s summary** carries the bridge's counters:
 `seq_notes_to_engine`, `seq_locks_to_engine`, `seq_splits` (render calls that
