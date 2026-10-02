@@ -199,7 +199,7 @@ module sets it up:
 | Note | `patch.note` = the MIDI note, V/OCT CV 0 | `Voice` averages the V/OCT CV with the previous block's; the knob's note is used as is |
 | HARMONICS, TIMBRE, MORPH | `patch.*` | The wrappers pass the same values |
 | Decay, LPG colour | `patch.decay`, `patch.lpg_colour` | The wrappers' Decay and Colour |
-| Attenuverters (FM, TIMBRE, MORPH) | 0 | The wrappers apply no internal-envelope modulation. At 0 the attenuverters also set speech prosody 0, word speed 0 and the chiptune envelope shape 0 |
+| Attenuverters (FM, TIMBRE, MORPH) | 0 | The wrappers' defaults (Env Pitch, Env Timbre, Env Morph on page 3, since 2026-10-02), where the internal envelope reaches nothing. At 0 the attenuverters also set speech prosody 0, word speed 0 and the chiptune envelope shape 0. tests/test_engines_plaits_env.py compares the page at other values, and `--mode ping` and `--mode free` against the LPG's Ping and Off (engines/README.md, "page 3") |
 | TRIG, LEVEL | both patched; TRIG 1 and LEVEL = velocity/127 while the note is held, both 0 after | As the wrappers drive their engines (plaits-heavy.md). `--mode ping` (TRIG only) and `--mode free` are there too |
 
 **Trigger timing.** `Voice` writes TRIG into a `DelayLine` and reads it at
@@ -1061,7 +1061,9 @@ for in the comparison.
    at full level until the next trigger.
    - Macro sets `NO_ENVELOPE` and runs every model through the LPG, so
      velocity, Decay and Colour shape the chip note, and key-up releases it
-     [verified: code, `test_chiptune_keeps_the_low_pass_gate`].
+     [verified: code, `test_chiptune_keeps_the_low_pass_gate`]. Since
+     2026-10-02 a non-zero Env Timbre sets the chiptune's own envelope, as
+     the TIMBRE attenuverter does upstream; the LPG stays.
    - Compared with Colour 1 (no LPG filter) and velocity 127 (gain settles to
      1), from 10 ms to the note-off, at both rates.
    - Not described before this stream.

@@ -35,6 +35,41 @@ The Mutable Instruments engines are credited to Emilie Gillet in each
 engine's `credits` string and named without MI's trademarks
 (`third_party/mutable/UPSTREAM.md`).
 
+### Macro and Macro Heavy, page 3: the envelope and the gate
+
+Plaits' `Voice` (Emilie Gillet, MIT) runs a decay envelope that every
+trigger restarts. With TRIG patched it reaches FREQ, TIMBRE and MORPH through
+the three attenuverters, and the low-pass gate is driven one of three ways
+depending on what is patched. Both wrappers run that envelope per voice and
+expose it on a third page, after the existing parameters, so earlier indices
+keep their meaning (`src/mi_plaits_env.h`, shared by both). Decay and Colour,
+on page 2 since stage A, set the envelope's and the gate's times.
+
+| Parameter | Range, default | What it does |
+| --- | --- | --- |
+| Env Pitch | −1..1, 0 | The FM attenuverter: the note moves by amount × env² × 48 semitones, where amount is Plaits' curve (a ±0.05 dead band, then a square law to ±0.9975), so ±0.5 is ±11.3 semitones at the note-on. On Speech it also sets the prosody amount, as on the module |
+| Env Timbre | −1..1, 0 | The TIMBRE attenuverter: amount × env added to Timbre, clamped to 0..1. On Macro's Chip it sets the chiptune engine's own envelope instead (shorter as \|value\| rises), as on the module |
+| Env Morph | −1..1, 0 | The MORPH attenuverter, as Env Timbre. On Speech the envelope's reach on the note and Morph fades out as Harmonics enters the word banks (Voice's scaling); Word Speed stays its own parameter |
+| LPG | Gate, Ping, Off; Gate | **Gate**: LEVEL patched, the gate follows the key at the note's velocity (stage A's only behaviour). **Ping**: TRIG alone, each note-on pings the gate, which closes over Decay whether the key is held or not; the self-enveloped Heavy models then ring out without the key-up release. **Off**: the gate is bypassed, as Plaits does for its self-enveloped models, and the key gates a plain gain released with the gate's own curve. On Ping and Off the velocity's accent, 1.3v / (0.3 + v), scales the voice, since LEVEL no longer carries it (1 at velocity 127) |
+
+- **Defaults change nothing** [verified]: at the page's defaults both engines
+  write the same bytes as before it existed, across 338 before/after renders
+  (every model, chords past the cap, bends, knob turns, both rates, host
+  blocks of 7, 12 and 64, instance fills 0xA5 and 0xFF), and the reference
+  suite is unchanged and passes.
+- **Against upstream** [verified: tests/test_engines_plaits_env.py], sample
+  for sample at 47,872.34 Hz and within 1 LSB at 44,118 Hz: the
+  attenuverters on all 21 slots the two engines wrap (speech prosody and
+  Chip's own envelope included); Ping as the module with TRIG alone on the
+  14 slots that are always under the gate (not Chip, whose gate upstream
+  bypasses, nor Speech and the self-enveloped models, which read the accent
+  upstream fixes at 0.8 there); Off, while the key is held, as the module
+  with nothing patched on the 11 of those that do not read TRIG.
+- **Six-Op FM** has no page 3: its engine is self-enveloped (no gate), and
+  its DX7 envelopes are its own.
+- Changing the LPG mode while notes sound does not restart them. A note held
+  under Off has no gate state to ping from, so it ends when switched to Ping.
+
 ## Layout
 
 | Path | What |
@@ -110,15 +145,17 @@ upstream candidate). Our own code gets none.
   | Shapes, 12 voices | 207,080 | 206,212 | each Braids oscillator carries ~17 KB of physical-model state |
   | PSX Verb | 134,224 | 134,208 | a fixed 128 KB work area, as upstream |
   | Sophie, 12 voices | 77,904 | 77,888 | ring delays per voice |
-  | Macro Heavy, 4 voices | 71,088 | 70,880 | ~17 KB per voice (Particle and String arenas) |
+  | Macro Heavy, 4 voices | 71,104 | 70,880 | ~17 KB per voice (Particle and String arenas) |
   | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
-  | Macro, 12 voices | 31,728 | 18,864 | mostly pointer tables, which halve on 32-bit |
+  | Macro, 12 voices | 31,744 | 18,864 | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,848 | 18,848 | |
   | Six-Op FM, 8 voices | 12,528 | 10,796 | |
   | Ensemble | 4,704 | 4,704 | |
 
   The 32-bit figures include the native-rate resamplers (about 1.3 KB each)
-  [verified: CI's 32-bit job on PR #12].
+  [verified: CI's 32-bit job on PR #12]. Page 3 (2026-10-02) added 16 bytes
+  to Macro and to Macro Heavy on the 64-bit build [verified]; their 32-bit
+  figures predate it and grow by a similar few bytes [inferred].
 
   The stock layout leaves a gap of 387,924 bytes, part of it stock's heap
   (docs/11 §2, [inferred]). Most engine-plus-two-effects chains fit in it;

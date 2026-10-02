@@ -84,8 +84,9 @@ def test_registry_lists_heavy_engines(renderer):
         # docs/11 §7: no Mutable Instruments module names in ids or names.
         for banned in ("plaits", "braids", "rings", "clouds", "elements", "mutable"):
             assert banned not in e["id"].lower() and banned not in e["name"].lower()
-        assert all(p["page"] in (0, 1) for p in e["params"])
-        assert sum(p["page"] == 0 for p in e["params"]) <= 4
+        pages = [p["page"] for p in e["params"]]
+        assert all(pages.count(page) <= 4 for page in pages)   # four knobs a page
+        assert set(pages) == set(range(max(pages) + 1))        # no empty page
         assert all(len(p["name"]) <= 12 for p in e["params"])
     model = next(p for p in heavy["params"] if p["name"] == "Model")
     assert model["max"] == len(HEAVY_MODELS) - 1
