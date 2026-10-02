@@ -36,6 +36,15 @@ history.
   delay's, so that one instance stays at 64 KB. Turning Time glides the
   pitch of what is in the line, like a tape echo's speed. Written in this
   repository (MIT); `engines/README.md` documents its parameters.
+- Macro and Macro Heavy have a third page with Plaits' own envelope and
+  low-pass gate controls. **Env Pitch**, **Env Timbre** and **Env Morph**
+  set how far the envelope that every note restarts moves the pitch, Timbre
+  and Morph (Plaits' three attenuverters; on Chip, Env Timbre sets the
+  arpeggio's own fade, and on Speech, Env Pitch the words' intonation).
+  **LPG** chooses Gate (the gate follows the key, as before), Ping (each
+  note strikes the gate, which closes over Decay even while the key is held)
+  or Off (no gate: full brightness, a plain fade after key-up). At their
+  defaults both engines sound exactly as before. Six-Op FM is unchanged.
 - The user manual (`manual/`, `tools/manual/`): chapters for welcome and
   safety, getting started, a panel tour with a measured drawing of the panel,
   playing, the sound engines, effects, the sequencer, MIDI, settings,
@@ -342,6 +351,8 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- Macro Heavy: a parameter set to NaN now falls back to its default, as
+  the engine API says (`fm1_param_clamp`), instead of to its minimum.
 - **The second core is not idle.** The stock firmware renders its msfa
   voices on cpu1, outside the OS, and runs the OS, the UI and the effects
   on cpu0. The routine at V13 file `0x86AD6` polls `0x01C16EC0` and calls
