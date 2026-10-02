@@ -13,6 +13,8 @@ is being built to turn the FM-1 into a multi-engine instrument:
 - four effects;
 - next, a step sequencer with parameter locks.
 
+![Lunar Modulator in the browser: the to-scale FM-1 panel with a chord held on Macro](assets/screenshots/virtual-fm1.png)
+
 It is an independent project, not affiliated with or endorsed by M-VAVE,
 Cuvave or any space agency.
 
@@ -136,8 +138,6 @@ with their LEDs, MASTER and the seven encoders.
 - On a phone the panel keeps playable key sizes and scrolls sideways; turned
   to landscape it fits whole.
 
-![Lunar Modulator in the browser: the to-scale FM-1 panel with a chord held on Macro](assets/screenshots/virtual-fm1.png)
-
 <img src="assets/screenshots/panel-params.png" width="560" alt="The screen beside KNOB1-4, turned: Model 2-op FM, Harmonics 0.68, Timbre 0.28, Morph 0.81"> <img src="assets/screenshots/phone.png" width="200" alt="The page on a 390-pixel-wide phone: the panel keeps playable key sizes and scrolls sideways">
 
 ### Sequencer (coming next)
@@ -177,6 +177,10 @@ on the first installable build ([Installing on your FM-1](#installing-on-your-fm
 | MIDI out on the 3.5 mm jack | To be investigated | Probably not possible without a hardware change. M-VAVE's manual and Baud Girl's both call the jack an input [reported], and on the board it appears to feed only the input circuit [inferred]. A measurement on an opened FM-1 will settle it. |
 | BLE MIDI | To be investigated | A stock feature, built on JieLi's closed Bluetooth libraries. Lunar Modulator could keep it in builds that use those libraries. Its memory cost is not measured yet, and the first preview will not have it. |
 | The FM-1's second CPU core | To be tried on the development kit | The stock firmware appears to play its synth voices on the second core already [inferred, from its code]. Whether Lunar Modulator can do the same will be tried on the development kit. It could make room for more voices and effects. |
+| Develop in the simulator, checked on real hardware | In preparation | New sounds and effects are written, heard and tested in the browser simulator first, with no synth at risk. The same code is then checked on the JieLi development kit (on order) and, once a safe restore is proven, on an FM-1, so that what the simulator plays is what the synth plays. |
+| A module SDK and friendly guides | Planned | Inviting, easy documentation and a software kit for writing new modules (sound engines, modulation sources, MIDI effects, audio effects) or porting existing ones, as Mutable Instruments' and Schwung's code was ported here. Every new module gets automatic tests and quality checks. Which tools make this easiest, PlatformIO or whatever embedded-audio developers use most today, is to be researched. |
+| A custom firmware builder with a browser installer | Planned | If there are more modules than fit in one firmware image, a builder lets you choose what goes into yours. The aim is for it to run in the browser and install with a web flasher, as Baud Girl's FM-1+VA installer does [reported]. It would check every file and checksum before writing, and always keep a way back to the factory firmware. |
+| A catalogue of community modules | Planned | A hosted catalogue of modules made by the community: sound engines, modulation sources, MIDI effects, audio effects and any other kind. Each lists what it needs and passes the same checks as the built-in modules. It comes after the module SDK and the builder. |
 
 The detail behind each line is in
 [`DEVELOPERS.md`](DEVELOPERS.md#the-roadmap-in-detail), with

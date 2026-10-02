@@ -62,7 +62,8 @@ void fm1_script_free(fm1_script_t *s);
 char *fm1_read_file(const char *path, size_t *len);
 
 /* Applies one script line's ops (fm1_seq_apply_text) or its realtime input
- * ("rt FA"), writing the events to out. Returns how many. */
+ * ("rt FA"), writing the events to out. Returns how many. A wrapper over
+ * fm1_seq_apply_line (fm1_seq_host.h), which every host uses. */
 uint32_t fm1_script_apply(fm1_seq_t *s, const char *ops, fm1_seq_ev_t *out, uint32_t cap);
 
 /* One event-log line. `block_start` is the absolute frame of the block. */
