@@ -162,6 +162,18 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- The `USB_KEY` dongle's two 2.2 kΩ pull-ups each get their own pin (GP16
+  for D+, GP19 for D−; docs/10 §3).
+  - On the one pin they shared, switching them off still joined D+ and D−
+    through 4.4 kΩ, so D− followed the chip's D+ pull-up.
+  - The SOF phase, which waits for D+ high and D− low, would have failed on
+    every attempt.
+  - The co-simulation modelled the pull-ups as independent and could not
+    see this; a test now reproduces it with the shared wiring.
+  - The pull-up pins' pad pull-downs are now disabled, so "off" is hi-Z as
+    the code says.
+  - Found by a review of the docs/10 update, before anyone built the
+    dongle.
 - docs/10 §1 credited the D−-clock reading to the diagram in kagaimiq's
   `how-to-enter-uboot.md`. In fact that diagram clocks on D+; only the page's
   prose says D−. The `USB_KEY` trap in CLAUDE.md, AGENTS.md, HANDOFF and

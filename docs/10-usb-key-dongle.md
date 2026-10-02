@@ -226,6 +226,15 @@ Electrical and safety
 - E3 The pull-ups (2.2 kΩ to 3.3 V) must be switchable, because during the
   SOF phase the dongle has to *see* the chip release its own D+ pull-up, and a
   strong dongle pull-up would mask that (2.2 kΩ against 15 kΩ still reads high).
+  Each pull-up has its own pin: GP16 for D+, GP19 for D−, with the pads'
+  default pull-downs disabled.
+  - Until 2026-10-01 both resistors went to GP16. Switched off (hi-Z), they
+    still joined D+ and D− through 4.4 kΩ.
+  - D− then followed the chip's D+ pull-up to about 2.4 V, which reads high
+    [inferred: resistor divider, with the chip's 15 kΩ pull-down].
+  - The SOF phase waits for D+ high and D− low, so it would have timed out
+    every time.
+  - `tests/test_dongle_model.py` now reproduces this with the shared node.
 - E4 With the dongle unpowered the target must be connected straight to the
   PC (relay normally-closed contacts = PC side).
 - E5 Nothing here writes to the device. Entering `UBOOT1.00` is a read-only
@@ -244,7 +253,7 @@ Electrical and safety
                  │         │       │                       │          │
                  │  Pico   │   GP14 ─100Ω─┬── D+ (dongle side)        │
                  │  GP16 ──┴─2.2k──────────┤                          │
-                 │  GP16 ────2.2k──┐       │                          │
+                 │  GP19 ────2.2k──┐       │                          │
                  │  GP15 ─100Ω─────┴───────┼── D− (dongle side)       │
                  │  GP17 ── 2N7002 gate → K1 coil (+flyback diode)    │
                  │  GP18 ── button to GND  GP25 ── on-board LED        │
@@ -261,7 +270,7 @@ Bill of materials (reference build, all through-hole/breakout friendly)
 | J2 | USB-C or micro-B female breakout (HOST) | the PC's pass-through connection; supplies TARGET VBUS |
 | K1 | DPDT signal relay, 3 V or 5 V coil (e.g. Omron G6K-2F-Y / Panasonic TQ2) | transparent switch for a full-speed bus; NC contacts wired to the PC so the default path is "straight through" |
 | Q1, D1 | 2N7002 (or any logic-level N-MOSFET), 1N4148 across the coil | coil current exceeds a GPIO's 12 mA |
-| R1, R2 | 2.2 kΩ from D+ and D− (dongle side) to GP16 | switchable strong pull-ups (E3, §1 item 4) |
+| R1, R2 | 2.2 kΩ from D+ (dongle side) to GP16, and from D− to GP19 | switchable strong pull-ups, one pin each (E3, §1 item 4) |
 | R3, R4 | 100 Ω in series with GP14 and GP15 | fault current limit, ESD |
 | SW1 | tactile button GP18–GND | restart; held at boot: fixed polarity B |
 
@@ -302,9 +311,10 @@ Pin map (`dongle/firmware/config.h`)
 | --- | --- | --- | --- |
 | GP14 | `PIN_DP` | open-drain / input | D+ of the target (via 100 Ω) |
 | GP15 | `PIN_DM` | open-drain / input | D− of the target (via 100 Ω) |
-| GP16 | `PIN_PULLUP_EN` | output-high or hi-Z | top of the two 2.2 kΩ pull-ups |
+| GP16 | `PIN_PULLUP_DP` | output-high or hi-Z | top of D+'s 2.2 kΩ pull-up |
 | GP17 | `PIN_MUX_SEL` | output | 1 = relay energised = dongle owns the bus |
 | GP18 | `PIN_BUTTON` | input, internal pull-up | short press: restart; hold at boot: fixed polarity |
+| GP19 | `PIN_PULLUP_DM` | output-high or hi-Z | top of D−'s 2.2 kΩ pull-up |
 | GP25 | LED | output | state indication |
 
 Power: the Pico runs from its own micro-USB (also the console). TARGET VBUS

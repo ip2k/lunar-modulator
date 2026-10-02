@@ -48,7 +48,8 @@ cmake -S dongle/firmware -B dongle/firmware/build && cmake --build dongle/firmwa
 
 ## Use
 
-1. Wire it as in docs/10 §3 (two 2.2 kΩ pull-ups on GP16, 100 Ω series
+1. Wire it as in docs/10 §3 (2.2 kΩ pull-ups from GP16 to D+ and from GP19
+   to D−, each on its own pin, 100 Ω series
    resistors, DPDT relay with the PC on the normally-closed contacts).
 2. Plug the Pico into the PC; open the serial console (115200). `SELFTEST ok`
    must appear with nothing on the TARGET port yet.

@@ -5,7 +5,9 @@
 // --- pins (Raspberry Pi Pico) ---------------------------------------------
 #define PIN_DP            14   // target D+ via 100 R, open-drain / input
 #define PIN_DM            15   // target D- via 100 R, open-drain / input
-#define PIN_PULLUP_EN     16   // top of the two 2.2 k pull-ups: out-high = on, hi-Z = off
+#define PIN_PULLUP_DP     16   // top of D+'s 2.2 k pull-up: out-high = on, hi-Z = off
+#define PIN_PULLUP_DM     19   // top of D-'s 2.2 k pull-up. One pin each: on a shared pin, "off"
+                               // still joins D+ and D- through 4.4 k (docs/10 E3)
 #define PIN_MUX_SEL       17   // relay / mux select
 #define PIN_BUTTON        18   // to GND, internal pull-up
 #define MUX_SEL_DONGLE    1    // level on PIN_MUX_SEL that gives the dongle the bus
