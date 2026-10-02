@@ -17,7 +17,8 @@
  * each tick at its own frame (D1), as the Movy oracle's --frames tick does.
  * Without --cmd, nothing runs: --seq FILE --export OUT round-trips
  * a set. --sizes prints fm1_seq_size() for 1-16 tracks with the default
- * limits, with Capture, and the item sizes. MIT licence.
+ * limits (Capture's 256 events included) and without Capture, and the item
+ * sizes. MIT licence.
  */
 #define _POSIX_C_SOURCE 200112L   /* clock_gettime */
 
@@ -157,17 +158,18 @@ static void sizes(void) {
     fm1_seq_limits_default(&lim, (uint8_t)t);
     printf("%s\"%u\":%lu", t > 1 ? "," : "", t, (unsigned long)fm1_seq_size(&lim));
   }
-  printf("},\"capture256\":{");
+  printf("},\"no_capture\":{");
   for (t = 1; t <= FM1_SEQ_MAX_TRACKS; ++t) {
     fm1_seq_limits_default(&lim, (uint8_t)t);
-    lim.capture = 256;
+    lim.capture = 0;
     printf("%s\"%u\":%lu", t > 1 ? "," : "", t, (unsigned long)fm1_seq_size(&lim));
   }
   fm1_seq_limits_default(&lim, 8);
   printf("},\"limits8\":{\"notes\":%u,\"locks\":%u,\"trigs\":%u,\"gates\":%u,\"song\":%u,"
-         "\"rec_notes\":%u,\"pad_mutes\":%u},\"cmd_bytes\":%lu,\"event_bytes\":%lu}\n",
+         "\"rec_notes\":%u,\"pad_mutes\":%u,\"capture\":%u},\"cmd_bytes\":%lu,"
+         "\"event_bytes\":%lu}\n",
          lim.notes, lim.locks, lim.trigs, lim.gates, lim.song, lim.rec_notes, lim.pad_mutes,
-         (unsigned long)sizeof(fm1_seq_cmd_t), (unsigned long)sizeof(fm1_seq_ev_t));
+         lim.capture, (unsigned long)sizeof(fm1_seq_cmd_t), (unsigned long)sizeof(fm1_seq_ev_t));
 }
 
 static int cmp_u64(const void *a, const void *b) {

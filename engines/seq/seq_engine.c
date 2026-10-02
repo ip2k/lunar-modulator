@@ -60,7 +60,7 @@ void fm1_seq_limits_default(fm1_seq_limits_t *lim, uint8_t tracks) {
   lim->clip_notes = 512;
   lim->clip_locks = 1024;
   lim->clip_trigs = 1024;
-  lim->capture = 0;
+  lim->capture = 256;
 }
 
 size_t fm1_seq_size(const fm1_seq_limits_t *lim) {

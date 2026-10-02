@@ -4,8 +4,11 @@
  * engine.rs (lines 1185-1618), commit 9190e79, MIT, Copyright (c) 2026
  * megadake.
  *
- * Optional: with limits.capture == 0 the ring has no bytes and every entry
- * point here returns at once. Two changes from Movy, both for the FM-1:
+ * On by default (limits.capture: 256 events, 3,072 bytes); with
+ * limits.capture == 0 the ring has no bytes and every entry point here
+ * returns at once. Three changes from Movy, all for the FM-1:
+ *   - each event is packed into 12 bytes (Movy's CapEvent takes 24) without
+ *     losing anything Movy reads from it (below);
  *   - the tempo search and the frame-to-tick conversion run in float, not
  *     f64 (pi32v2 has a single-precision FPU [inferred]); a candidate can
  *     differ from Movy's only where two scores tie to within float rounding;
@@ -13,6 +16,42 @@
  *     (Movy copies it to a second Vec). The ring is idle while a take is
  *     frozen, because input is refused while the selector is up.
  * Scratch on the stack during a stopped capture: about 1.3 KB.
+ *
+ * The packed event (seq_int.h sq_cap_t), and why no width loses anything:
+ *   - pitch and velocity, 7 bits each: `non`, `nof` and fm1_seq_note_in take
+ *     pitches 0..127 only and clamp a note-on's velocity to 1..127, and a
+ *     note-off carries 0, so the velocity tells Movy's `on` too (as in MIDI).
+ *   - track, 4 bits: input for a track past the instance's (at most 16) is
+ *     refused before it is stamped.
+ *   - clip tick, 14 bits: a playhead stays below its clip's loop end, at most
+ *     (255 + 256) steps of 24 ticks, 12,264.
+ *   - frame, 25 bits from a base: every use is a difference between two
+ *     events of the ring (or of a frozen take), and the 8-bar window keeps
+ *     those within 8 bars at the slowest tempo: 96 s at 20 BPM, 4,235,328
+ *     frames at 44,118 Hz, below 2^25 at any rate up to 349,525 Hz. The base
+ *     moves to the oldest event when the newest would not fit, and the
+ *     newest event's frame stands in for Movy's `last_frame`.
+ *   - master tick, 16 bits and a flag: a tick below 2^16 as it is, a larger
+ *     one as an offset from a base. The ring's ticks above 2^16 all come
+ *     from one transport run (a run takes 2^16 ticks to reach them, more
+ *     than the ring spans), so they lie within the ring's span in ticks: 96 s
+ *     at 300 BPM is 46,080. After a restart that keeps the ring (MIDI Start
+ *     while playing) the new ticks are small again and stored as they are.
+ *   - cycle, its low 20 bits and a flag for 2^20 or more: its one use is
+ *     `e.cycle != cycle` while playing, against the track's cycle now, and
+ *     only for events the gap rule has not dropped, at most window + gap
+ *     (104 s) old. In 104 s a 1-step loop at Movy's 255X and 300 BPM wraps
+ *     530,400 times, below 2^20 - 1, so the low bits tell two cycles of one
+ *     run apart, and the flag tells a cycle that ran for hours before a
+ *     launch or a restart reset it to 1 from any cycle reached since.
+ *   - used, 1 bit: a commit's scratch (Movy's `used` vector), set on the
+ *     note-off that ends a note.
+ * Outside those ranges (a sample rate above 349,525 Hz at the slowest
+ * tempos; a clock that drives more than 65,535 master ticks through one
+ * window, which only an external clock above about 426 BPM can) the ring
+ * drops its oldest events until the new one packs, a deviation from Movy,
+ * and the checking build (SQ_CHECK_INDEX), which also keeps every value
+ * unpacked, traps.
  */
 #include "seq_int.h"
 
@@ -26,6 +65,109 @@
 enum { CAP_NONE = 0, CAP_SELECT = 1, CAP_FIXED = 2 };
 enum { WHY_NONE = 0, WHY_EXT = 1, WHY_NOTES = 2 };
 
+/* ---- The packed event ----------------------------------------------------- */
+
+#define CAP_FRAME_MAX 0x01FFFFFFu   /* w[0] bits 0-24 */
+#define CAP_TICK_MAX 0x0000FFFFu    /* w[1] bits 0-15 */
+#define CAP_TICK_REL 0x00010000u    /* w[1] bit 16: an offset from cap_base_tick */
+#define CAP_CLIP_MAX 0x3FFFu        /* w[1] bits 17-30 */
+#define CAP_USED 0x80000000u        /* w[1] bit 31 */
+#define CAP_CYCLE_LOW 0x000FFFFFu   /* w[2] bits 0-19 */
+#define CAP_CYCLE_HIGH 0x00100000u  /* w[2] bit 20 */
+
+#ifdef SQ_CHECK_INDEX
+#define CAP_CHECK(cond) do { if (!(cond)) __builtin_trap(); } while (0)
+#else
+#define CAP_CHECK(cond) ((void)0)
+/* Three words, on 32- and 64-bit targets alike (C99 has no static_assert). */
+typedef char sq_cap_is_12_bytes[sizeof(sq_cap_t) == 12u ? 1 : -1];
+#endif
+
+/* One input event, unpacked: CapEvent's fields, `on` being vel > 0. */
+typedef struct {
+  uint32_t frame, tick, cycle;
+  uint16_t clip_tick;
+  uint8_t track, pitch, vel;
+} cap_in_t;
+
+static unsigned cap_on(const sq_cap_t *e) { return (e->w[2] >> 25) != 0u; }
+static uint8_t cap_pitch(const sq_cap_t *e) { return (uint8_t)(e->w[0] >> 25); }
+static unsigned cap_track(const sq_cap_t *e) { return (unsigned)((e->w[2] >> 21) & 0xFu); }
+static uint8_t cap_vel(const sq_cap_t *e) { return (uint8_t)(e->w[2] >> 25); }
+static unsigned cap_used(const sq_cap_t *e) { return (e->w[1] & CAP_USED) != 0u; }
+
+static void cap_set_used(sq_cap_t *e, int used) {
+  e->w[1] = used ? (e->w[1] | CAP_USED) : (e->w[1] & ~CAP_USED);
+}
+
+static uint32_t cap_frame(const fm1_seq_t *s, const sq_cap_t *e) {
+  const uint32_t frame = s->cap_base_frame + (e->w[0] & CAP_FRAME_MAX);
+  CAP_CHECK(frame == e->chk_frame);
+  return frame;
+}
+
+static uint32_t cap_tick(const fm1_seq_t *s, const sq_cap_t *e) {
+  const uint32_t v = e->w[1] & CAP_TICK_MAX;
+  const uint32_t tick = (e->w[1] & CAP_TICK_REL) ? s->cap_base_tick + v : v;
+  CAP_CHECK(tick == e->chk_tick);
+  return tick;
+}
+
+static uint16_t cap_clip_tick(const sq_cap_t *e) {
+  const uint16_t clip_tick = (uint16_t)((e->w[1] >> 17) & CAP_CLIP_MAX);
+  CAP_CHECK(clip_tick == e->chk_clip_tick);
+  return clip_tick;
+}
+
+static uint32_t cycle_key(uint32_t cycle) {
+  return (cycle & CAP_CYCLE_LOW) | (cycle > CAP_CYCLE_LOW ? CAP_CYCLE_HIGH : 0u);
+}
+
+/* Movy's `e.cycle == cycle`. */
+static int cap_same_cycle(const sq_cap_t *e, uint32_t cycle) {
+  const int same = (e->w[2] & (CAP_CYCLE_LOW | CAP_CYCLE_HIGH)) == cycle_key(cycle);
+  CAP_CHECK(same == (e->chk_cycle == cycle));
+  return same;
+}
+
+/* The offset fields, against the bases as they stand. */
+static void cap_put_frame(const fm1_seq_t *s, sq_cap_t *e, uint32_t frame) {
+  const uint32_t off = frame - s->cap_base_frame;
+  CAP_CHECK(off <= CAP_FRAME_MAX);
+  e->w[0] = (e->w[0] & ~CAP_FRAME_MAX) | (off & CAP_FRAME_MAX);
+}
+
+static void cap_put_tick(const fm1_seq_t *s, sq_cap_t *e, uint32_t tick) {
+  uint32_t v = tick, rel = 0;
+  if (tick > CAP_TICK_MAX) {
+    v = tick - s->cap_base_tick;
+    rel = CAP_TICK_REL;
+  }
+  CAP_CHECK(v <= CAP_TICK_MAX);
+  e->w[1] = (e->w[1] & ~(CAP_TICK_MAX | CAP_TICK_REL)) | (v & CAP_TICK_MAX) | rel;
+}
+
+static void cap_pack(const fm1_seq_t *s, sq_cap_t *e, const cap_in_t *in) {
+  const uint32_t clip_tick = (uint32_t)in->clip_tick < CAP_CLIP_MAX ? in->clip_tick : CAP_CLIP_MAX;
+  CAP_CHECK((uint32_t)in->clip_tick <= CAP_CLIP_MAX && (uint32_t)in->pitch <= 127u &&
+            (uint32_t)in->vel <= 127u && (uint32_t)in->track <= 15u);
+  e->w[0] = (uint32_t)(in->pitch & 0x7Fu) << 25;
+  e->w[1] = clip_tick << 17;
+  e->w[2] = cycle_key(in->cycle) | ((uint32_t)(in->track & 0xFu) << 21) |
+            ((uint32_t)(in->vel & 0x7Fu) << 25);
+#ifdef SQ_CHECK_INDEX
+  e->chk_frame = in->frame;
+  e->chk_tick = in->tick;
+  e->chk_cycle = in->cycle;
+  e->chk_clip_tick = in->clip_tick;
+  e->chk_pad = 0;
+#endif
+  cap_put_frame(s, e, in->frame);
+  cap_put_tick(s, e, in->tick);
+}
+
+/* ---- The ring (capture.rs CaptureRing) ------------------------------------ */
+
 static sq_cap_t *ring_at(fm1_seq_t *s, unsigned i) {
   return &sq_cap(s)[(s->cap_head + i) % s->lim.capture];
 }
@@ -34,6 +176,92 @@ void sq_capture_clear(fm1_seq_t *s) {
   s->cap_head = 0;
   s->cap_len = 0;
 }
+
+static void ring_drop_oldest(fm1_seq_t *s) {
+  s->cap_head = (uint16_t)((s->cap_head + 1u) % s->lim.capture);
+  --s->cap_len;
+}
+
+/* Moves the frame base onto the ring's oldest event if every frame, and the
+ * new one, then packs. Returns 0, changing nothing, if they would not. */
+static int rebase_frames(fm1_seq_t *s, uint32_t frame) {
+  const uint32_t base = cap_frame(s, ring_at(s, 0));
+  unsigned i;
+  if ((uint32_t)(frame - base) > CAP_FRAME_MAX) return 0;
+  for (i = 1; i < s->cap_len; ++i) {
+    if ((uint32_t)(cap_frame(s, ring_at(s, i)) - base) > CAP_FRAME_MAX) return 0;
+  }
+  for (i = 0; i < s->cap_len; ++i) {
+    sq_cap_t *e = ring_at(s, i);
+    const uint32_t off = cap_frame(s, e) - base;
+    e->w[0] = (e->w[0] & ~CAP_FRAME_MAX) | off;
+  }
+  s->cap_base_frame = base;
+  return 1;
+}
+
+/* The same for the ticks stored as offsets, onto the oldest of them. */
+static int rebase_ticks(fm1_seq_t *s, uint32_t tick) {
+  uint32_t base = tick;
+  unsigned i;
+  int any = 0;
+  for (i = 0; i < s->cap_len && !any; ++i) {
+    const sq_cap_t *e = ring_at(s, i);
+    if (e->w[1] & CAP_TICK_REL) {
+      base = cap_tick(s, e);
+      any = 1;
+    }
+  }
+  if ((uint32_t)(tick - base) > CAP_TICK_MAX) return 0;
+  for (i = 0; i < s->cap_len; ++i) {
+    const sq_cap_t *e = ring_at(s, i);
+    if ((e->w[1] & CAP_TICK_REL) && (uint32_t)(cap_tick(s, e) - base) > CAP_TICK_MAX) return 0;
+  }
+  for (i = 0; i < s->cap_len; ++i) {
+    sq_cap_t *e = ring_at(s, i);
+    if (e->w[1] & CAP_TICK_REL) {
+      const uint32_t off = cap_tick(s, e) - base;
+      e->w[1] = (e->w[1] & ~CAP_TICK_MAX) | off;
+    }
+  }
+  s->cap_base_tick = base;
+  return 1;
+}
+
+/* Sets the bases so that `in` packs: at `in` itself on an empty ring, else
+ * moved only when an offset would overflow. Returns 0 if `in` cannot be
+ * packed beside the ring's events, which happens only outside the ranges
+ * above. */
+static int ring_fit(fm1_seq_t *s, const cap_in_t *in) {
+  if (s->cap_len == 0) {
+    s->cap_base_frame = in->frame;
+    s->cap_base_tick = in->tick;
+    return 1;
+  }
+  if ((uint32_t)(in->frame - s->cap_base_frame) > CAP_FRAME_MAX && !rebase_frames(s, in->frame)) {
+    return 0;
+  }
+  if (in->tick > CAP_TICK_MAX && (uint32_t)(in->tick - s->cap_base_tick) > CAP_TICK_MAX &&
+      !rebase_ticks(s, in->tick)) {
+    return 0;
+  }
+  return 1;
+}
+
+#ifdef SQ_CHECK_INDEX
+/* The checking build: after every push, every event of the ring still
+ * unpacks to what it was given. */
+static void ring_check(fm1_seq_t *s) {
+  unsigned i;
+  for (i = 0; i < s->cap_len; ++i) {
+    const sq_cap_t *e = ring_at(s, i);
+    (void)cap_frame(s, e);
+    (void)cap_tick(s, e);
+    (void)cap_clip_tick(e);
+    CAP_CHECK(cap_same_cycle(e, e->chk_cycle));
+  }
+}
+#endif
 
 static uint64_t bar_frames(const fm1_seq_t *s) {
   return (uint64_t)s->sample_rate * 60u * 4u * 100u / (s->bpm_x100 ? s->bpm_x100 : 1u);
@@ -45,52 +273,59 @@ static uint64_t gap_frames(const fm1_seq_t *s) {
 }
 
 /* CaptureRing::push: a gap ends the phrase, the window bounds its age. */
-static void ring_push(fm1_seq_t *s, const sq_cap_t *ev, uint64_t gap, uint64_t window) {
-  const unsigned cap = s->lim.capture;
-  if (s->cap_len > 0 && (uint64_t)(uint32_t)(ev->frame - s->cap_last_frame) > gap) {
+static void ring_push(fm1_seq_t *s, const cap_in_t *in, uint64_t gap, uint64_t window) {
+  if (s->cap_len > 0 &&
+      (uint64_t)(uint32_t)(in->frame - cap_frame(s, ring_at(s, s->cap_len - 1u))) > gap) {
     sq_capture_clear(s);
   }
-  s->cap_last_frame = ev->frame;
-  while (s->cap_len > 0 && (uint64_t)(uint32_t)(ev->frame - sq_cap(s)[s->cap_head].frame) > window) {
-    s->cap_head = (uint16_t)((s->cap_head + 1u) % cap);
-    --s->cap_len;
+  while (s->cap_len > 0 && (uint64_t)(uint32_t)(in->frame - cap_frame(s, ring_at(s, 0))) > window) {
+    ring_drop_oldest(s);
   }
-  sq_cap(s)[(s->cap_head + s->cap_len) % cap] = *ev;
-  if (s->cap_len == cap) s->cap_head = (uint16_t)((s->cap_head + 1u) % cap);
-  else ++s->cap_len;
+  if (s->cap_len == s->lim.capture) ring_drop_oldest(s);   /* full: the newest replaces it */
+  while (!ring_fit(s, in)) {
+    CAP_CHECK(0);
+    ring_drop_oldest(s);
+  }
+  cap_pack(s, ring_at(s, s->cap_len), in);
+  ++s->cap_len;
+#ifdef SQ_CHECK_INDEX
+  ring_check(s);
+#endif
 }
 
 /* capture_push (engine.rs 1203-1248). */
 void sq_capture_push(fm1_seq_t *s, unsigned t, uint8_t pitch, uint8_t vel, int on, uint64_t frame) {
   const sq_track_t *tr;
-  sq_cap_t ev;
+  cap_in_t in;
   unsigned i;
   if (s->lim.capture == 0) return;
   if (t >= s->n_tracks || s->count_in_left > 0) return;
   if (s->cap_mode != CAP_NONE) return;
   if (s->recording && t == s->rec_track) return;
+  CAP_CHECK(!on || vel > 0);   /* a note-on's velocity is 1..127: it marks the kind */
   tr = &sq_tracks(s)[t];
   if (on && s->playing) {
     for (i = 0; i < s->cap_len; ++i) {
       const sq_cap_t *e = ring_at(s, i);
-      const uint32_t d = e->clip_tick > tr->pos_tick ? (uint32_t)(e->clip_tick - tr->pos_tick)
-                                                     : (uint32_t)(tr->pos_tick - e->clip_tick);
-      if (e->on && e->track == t && e->cycle != tr->cycle && d < SQ_TPS) {
-        sq_capture_clear(s);
-        break;
+      if (cap_on(e) && cap_track(e) == t && !cap_same_cycle(e, tr->cycle)) {
+        const uint16_t ct = cap_clip_tick(e);
+        const uint32_t d = ct > tr->pos_tick ? (uint32_t)(ct - tr->pos_tick)
+                                             : (uint32_t)(tr->pos_tick - ct);
+        if (d < SQ_TPS) {
+          sq_capture_clear(s);
+          break;
+        }
       }
     }
   }
-  memset(&ev, 0, sizeof(ev));
-  ev.frame = (uint32_t)frame;
-  ev.abs_tick = (uint32_t)s->master_tick;
-  ev.clip_tick = tr->pos_tick;
-  ev.cycle = tr->cycle;
-  ev.track = (uint8_t)t;
-  ev.on = on ? 1 : 0;
-  ev.pitch = pitch;
-  ev.vel = vel;
-  ring_push(s, &ev, gap_frames(s), (uint64_t)CAP_MAX_BARS * bar_frames(s));
+  in.frame = (uint32_t)frame;
+  in.tick = (uint32_t)s->master_tick;
+  in.cycle = tr->cycle;
+  in.clip_tick = tr->pos_tick;
+  in.track = (uint8_t)t;
+  in.pitch = pitch;
+  in.vel = on ? vel : 0;
+  ring_push(s, &in, gap_frames(s), (uint64_t)CAP_MAX_BARS * bar_frames(s));
 }
 
 unsigned sq_capture_pending(fm1_seq_t *s, unsigned t) {
@@ -98,7 +333,7 @@ unsigned sq_capture_pending(fm1_seq_t *s, unsigned t) {
   if (s->lim.capture == 0) return 0;
   for (i = 0; i < s->cap_len; ++i) {
     const sq_cap_t *e = ring_at(s, i);
-    n += e->track == t && e->on;
+    n += cap_track(e) == t && cap_on(e);
   }
   return n;
 }
@@ -118,7 +353,7 @@ static unsigned estimate_tempos(fm1_seq_t *s, const sq_cap_t *take, unsigned n_t
   unsigned n_on = 0, i, j, n_min = 0, n_dis = 0, n_pick, best;
   const float sr = (float)s->sample_rate;
   const float span = (float)(span_frames ? span_frames : 1u);
-  for (i = 0; i < n_take; ++i) n_on += take[i].on;
+  for (i = 0; i < n_take; ++i) n_on += cap_on(&take[i]);
   if (n_on < 3) return 0;
   for (i = 0; i < N_BPM; ++i) {
     const float bpm = (float)(BPM_MIN + i);
@@ -126,8 +361,8 @@ static unsigned estimate_tempos(fm1_seq_t *s, const sq_cap_t *take, unsigned n_t
     float fit = 0.0f, bars;
     for (j = 0; j < n_take; ++j) {
       float beats;
-      if (!take[j].on) continue;
-      beats = (float)(uint32_t)(take[j].frame - first) / fpb;
+      if (!cap_on(&take[j])) continue;
+      beats = (float)(uint32_t)(cap_frame(s, &take[j]) - first) / fpb;
       fit += fabsf(beats - roundf(beats * 4.0f) / 4.0f);
     }
     fit /= (float)n_on;
@@ -185,6 +420,18 @@ static unsigned estimate_tempos(fm1_seq_t *s, const sq_cap_t *take, unsigned n_t
   return n_pick;
 }
 
+/* The frame of the take's first note-on (Movy's cap_take_first). */
+static int take_first(const fm1_seq_t *s, const sq_cap_t *take, unsigned n, uint32_t *first) {
+  unsigned i;
+  for (i = 0; i < n; ++i) {
+    if (cap_on(&take[i])) {
+      *first = cap_frame(s, &take[i]);
+      return 1;
+    }
+  }
+  return 0;
+}
+
 /* capture_write_take (engine.rs 1378-1450): the frozen take at grid_bpm. */
 static int write_take(fm1_seq_t *s, uint32_t grid_bpm, int set_tempo, int keep_length) {
   const unsigned t = s->cap_track;
@@ -194,7 +441,7 @@ static int write_take(fm1_seq_t *s, uint32_t grid_bpm, int set_tempo, int keep_l
   const unsigned n = s->cap_take_len;
   const float fpt = (float)s->sample_rate * 60.0f / ((float)(grid_bpm ? grid_bpm : 1u) * 96.0f);
   const int transpose = sq_active_transpose(s, t);
-  uint32_t span_ticks, loop_start, span_end = 0;
+  uint32_t span_ticks, loop_start, span_end = 0, first = 0;
   uint16_t len_steps;
   uint8_t snum, sden;
   unsigned i, j;
@@ -207,23 +454,25 @@ static int write_take(fm1_seq_t *s, uint32_t grid_bpm, int set_tempo, int keep_l
   snum = sq_clips(s)[clip].scale_num;
   sden = sq_clips(s)[clip].scale_den;
   if (!keep_length) sq_clip_delete_range(s, clip, 0, SQ_MAX_STEPS - 1u, -1);
-  for (i = 0; i < n; ++i) take[i].pad = 0;
+  take_first(s, take, n, &first);
+  for (i = 0; i < n; ++i) cap_set_used(&take[i], 0);
   for (i = 0; i < n; ++i) {
     const sq_cap_t ev = take[i];
-    uint32_t start, gate = SQ_TPS, tick;
+    uint32_t start, gate = SQ_TPS, tick, ev_frame;
     uint16_t step;
     int32_t stored;
-    if (!ev.on) continue;
+    if (!cap_on(&ev)) continue;
+    ev_frame = cap_frame(s, &ev);
     for (j = i + 1; j < n; ++j) {
-      if (!take[j].on && take[j].pitch == ev.pitch && !take[j].pad) {
-        const uint32_t d = (uint32_t)(take[j].frame - ev.frame);
+      if (!cap_on(&take[j]) && cap_pitch(&take[j]) == cap_pitch(&ev) && !cap_used(&take[j])) {
+        const uint32_t d = (uint32_t)(cap_frame(s, &take[j]) - ev_frame);
         const uint32_t g = (uint32_t)roundf((float)d / fpt);
-        take[j].pad = 1;
+        cap_set_used(&take[j], 1);
         gate = g ? g : 1u;
         break;
       }
     }
-    start = (uint32_t)roundf((float)(uint32_t)(ev.frame - s->cap_take_first) / fpt);
+    start = (uint32_t)roundf((float)(uint32_t)(ev_frame - first) / fpt);
     tick = keep_length ? loop_start + start % span_ticks : start;
     step = sq_anchor_step(s, tick, snum, sden);
     if (keep_length) {
@@ -233,9 +482,9 @@ static int write_take(fm1_seq_t *s, uint32_t grid_bpm, int set_tempo, int keep_l
       const uint32_t last = (s->lim.compat ? 0u : loop_start / SQ_TPS) + (len_steps ? len_steps - 1u : 0u);
       if (step > last) step = (uint16_t)last;
     }
-    stored = (int32_t)ev.pitch - transpose;
+    stored = (int32_t)cap_pitch(&ev) - transpose;
     sq_clip_add_raw(s, clip, step, sq_unswing(s, tick, step, snum, sden), gate,
-                    (uint8_t)(stored < 0 ? 0 : (stored > 127 ? 127 : stored)), ev.vel);
+                    (uint8_t)(stored < 0 ? 0 : (stored > 127 ? 127 : stored)), cap_vel(&ev));
     if (start + gate > span_end) span_end = start + gate;
     wrote = 1;
   }
@@ -268,23 +517,16 @@ static int commit_stopped(fm1_seq_t *s, unsigned t) {
   sq_cap_t *e = sq_cap(s);
   unsigned i, n = 0;
   uint32_t first = 0, last;
-  int have_first = 0, clip_has_notes, free_tempo, wrote;
+  int clip_has_notes, free_tempo, wrote;
   uint32_t existing, grid;
   ring_linearize(s);
   for (i = 0; i < s->cap_len; ++i) {
-    if (e[i].track == t) e[n++] = e[i];
+    if (cap_track(&e[i]) == t) e[n++] = e[i];
   }
   s->cap_take_len = (uint16_t)n;
   s->cap_len = 0;                       /* the ring now holds the frozen take */
-  for (i = 0; i < n && !have_first; ++i) {
-    if (e[i].on) {
-      first = e[i].frame;
-      have_first = 1;
-    }
-  }
-  if (!have_first) return 0;
-  last = n ? e[n - 1u].frame : first;
-  s->cap_take_first = first;
+  if (!take_first(s, e, n, &first)) return 0;
+  last = n ? cap_frame(s, &e[n - 1u]) : first;
   s->cap_track = (uint8_t)t;
   s->cap_n = (uint8_t)estimate_tempos(s, e, n, first, (uint32_t)(last - first), s->cap_cands,
                                       &s->cap_best);
@@ -340,36 +582,37 @@ static int commit_playing(fm1_seq_t *s, unsigned t) {
   sden = sq_clips(s)[clip].scale_den;
   for (i = 0; i < s->cap_len && !have; ++i) {
     const sq_cap_t *e = ring_at(s, i);
-    if (e->track == t && e->on) {
-      first_abs = e->abs_tick;
+    if (cap_track(e) == t && cap_on(e)) {
+      first_abs = cap_tick(s, e);
       have = 1;
     }
   }
   if (!have) return 0;
   first_phase = first_abs % SQ_TPB;
-  for (i = 0; i < s->cap_len; ++i) ring_at(s, i)->pad = 0;
+  for (i = 0; i < s->cap_len; ++i) cap_set_used(ring_at(s, i), 0);
   for (i = 0; i < s->cap_len; ++i) {
     const sq_cap_t ev = *ring_at(s, i);
-    uint32_t end = now_abs, gate, tick;
+    uint32_t end = now_abs, gate, tick, at;
     uint16_t step;
     int32_t stored;
-    if (ev.track != t || !ev.on) continue;
+    if (cap_track(&ev) != t || !cap_on(&ev)) continue;
+    at = cap_tick(s, &ev);
     for (j = i + 1; j < s->cap_len; ++j) {
       sq_cap_t *o = ring_at(s, j);
-      if (o->track == ev.track && !o->on && o->pitch == ev.pitch && !o->pad) {
-        o->pad = 1;
-        end = o->abs_tick;
+      if (cap_track(o) == t && !cap_on(o) && cap_pitch(o) == cap_pitch(&ev) && !cap_used(o)) {
+        cap_set_used(o, 1);
+        end = cap_tick(s, o);
         break;
       }
     }
-    gate = end > ev.abs_tick ? end - ev.abs_tick : 0;
+    gate = end > at ? end - at : 0;
     if (gate < 1) gate = 1;
-    tick = fresh ? loop_start + first_phase + (ev.abs_tick > first_abs ? ev.abs_tick - first_abs : 0)
-                 : ev.clip_tick % span;
-    stored = (int32_t)ev.pitch - transpose;
+    tick = fresh ? loop_start + first_phase + (at > first_abs ? at - first_abs : 0)
+                 : cap_clip_tick(&ev) % span;
+    stored = (int32_t)cap_pitch(&ev) - transpose;
     step = sq_anchor_step(s, tick, snum, sden);
     sq_clip_add_raw(s, clip, step, sq_unswing(s, tick, step, snum, sden), gate,
-                    (uint8_t)(stored < 0 ? 0 : (stored > 127 ? 127 : stored)), ev.vel);
+                    (uint8_t)(stored < 0 ? 0 : (stored > 127 ? 127 : stored)), cap_vel(&ev));
     if (tick + gate > span_end) span_end = tick + gate;
     wrote = 1;
   }
