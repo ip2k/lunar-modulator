@@ -42,6 +42,13 @@
 // the same encoders (fm1w_button, fm1w_encoder). So the panel scenario is
 // two-step parity in WebAssembly, and the module's screen at the end (the
 // Track view) is compared with the harness's.
+//
+// A scenario with `sounds`, `inserts`, `levels` or `sound_notes` (and `lab`)
+// plays several sound units (docs/15 §3.16): fm1-render gets --sound,
+// --insert, --level and --sound-note, and --slots for any lab scenario, so
+// its tracks play the unit their route names as the module's do; the module
+// loads the same units through fm1w_sound_unit and fm1w_insert_unit, in the
+// same order, and plays those notes with fm1w_unit_note_on.
 // MIT licence.
 
 import { execFileSync } from 'node:child_process';

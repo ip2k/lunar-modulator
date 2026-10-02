@@ -9,6 +9,32 @@ history.
 ## [Unreleased]
 
 ### Added
+- Several sounds at once on the virtual FM-1, behind the lab switch
+  (`?lab`; docs/15 §3.16, the owner's decision of 2026-10-02).
+  - Up to four sounds play together, each with its own two insert effects
+    and its own level into the mix; the two effect slots you had are now
+    the master effects, after the sounds are mixed. Each sequencer track
+    plays the sound its route names.
+  - Hold SEL (SHIFT) and turn PRESETS to choose which sound you play and
+    edit: the keys, MIDI IN, HOME, PRESETS and ALGORITHM then act on it,
+    and the title shows it (`S2 Shapes`). PRESETS on Sounds 2–4 also
+    offers Empty, to remove that sound. The page's Sound menu follows.
+  - FX mode shows the chain of the sound you are on: its two inserts, a
+    Mix page where KNOB1–4 set the four sounds' levels, then the two
+    master effects. SEL and SELECT swap the two inserts, as they swap the
+    master effects.
+  - A RAM meter in the bottom bar shows how much of the FM-1's free memory
+    the whole setup would take, and refuses any sound or effect that would
+    not fit, with a popup saying by how much; turning PRESETS or ALGORITHM
+    skips past such choices. What plays in the simulator fits the device.
+  - Without the lab switch nothing changes: one sound and two effects,
+    sounding exactly as before.
+  - For developers: `fm1_app_unit_*` routes tracks to sound units (for
+    stage S6); `fm1-render` takes `--sound`, `--insert`, `--level`,
+    `--sound-note`, `--sound-param-at`, `--level-at` and `--slots`; three
+    new parity scenarios play two and four sounds with inserts and the
+    panel gestures (28 of 28 pass); 1,001 screens pass the layout check (87
+    new). The browser module grew from 482 KB to 496 KB.
 - Step entry on the virtual FM-1's panel, still behind the lab switch
   (`?lab`; docs/15 stage S4). In SEQ mode the white keys are the bar's 16
   steps and the black keys sequencer controls, so they no longer play the

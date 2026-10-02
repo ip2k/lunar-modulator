@@ -2,9 +2,11 @@
  * engine platform (engines/include/fm1_engine.h) behind the FM-1's front
  * panel, for the browser simulator in sim/web and its native test harness.
  *
- * It owns one sound engine and two audio-effect slots, renders them in host
- * blocks of at most 64 frames through the host's bus limiter
- * (fm1_mix_limiter.h), and turns the panel's inputs into engine calls:
+ * It owns one sound engine and two audio-effect slots (with the lab switch,
+ * up to four sound units with two inserts each, mixed into those two as
+ * the master bus: below), renders them in host blocks of at most 64 frames
+ * through the host's bus limiter (fm1_mix_limiter.h), and turns the
+ * panel's inputs into engine calls:
  *
  *   27 keys       F3..G5: note = key + 53 + 12 * octave + transpose
  *                 (the M-VAVE manual's formula), with OCT-/OCT+ and

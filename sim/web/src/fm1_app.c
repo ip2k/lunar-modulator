@@ -68,12 +68,15 @@ static int unit_sound(int unit) {
 /* Units only the lab switch offers: sound units 1..3 and the inserts. */
 static int unit_is_lab(int unit) { return unit > FM1_APP_FX_SLOTS; }
 
+/* Sound unit `sound`'s unit (callers keep it in range; unit 0 otherwise). */
 static fm1_app_unit_t *sound_of(fm1_app_t *a, int sound) {
-  return &a->unit[fm1_app_sound_unit(sound)];
+  const int u = fm1_app_sound_unit(sound);
+  return &a->unit[u < 0 ? 0 : u];
 }
 
 static const fm1_app_unit_t *sound_of_c(const fm1_app_t *a, int sound) {
-  return &a->unit[fm1_app_sound_unit(sound)];
+  const int u = fm1_app_sound_unit(sound);
+  return &a->unit[u < 0 ? 0 : u];
 }
 
 /* The current sound's unit: what the keys play and HOME shows. */
@@ -986,7 +989,7 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
         fm1_app_unit_set_level(a, knob, a->level[knob] + (float)delta);
         break;
       }
-      if (!a->unit[unit].e) break;
+      if (unit < 0 || !a->unit[unit].e) break;
       if (knob < page_params(a->unit[unit].e, page, idx)) {
         turn_param(a, unit, idx[knob], delta);
         if (a->mode == FM1_MODE_SEQ) {   /* its name and value on the hint line */

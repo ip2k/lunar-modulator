@@ -22,7 +22,9 @@
 // (docs/15 S3): with ?lab, PLAY/STOP plays the demo pattern (sound within a
 // second, its LED lit), Space stops and starts it, SEQ shows the Track view
 // with the white keys following the playhead and the status line names the
-// tempo; with #lab the switch is on too; without either, Space sends nothing
+// tempo; multi-sound: SHIFT + PRESETS makes Sound 2 current, the Sound
+// dropdown follows and loads Shapes there, and a key plays it with Sound 1's
+// level at 0; with #lab the switch is on too; without either, Space sends nothing
 // and PLAY/STOP stays a stub. Step entry (docs/15 S4): in SEQ mode OP3 (A#3)
 // pages to bar 2, the computer's step keys enter four steps there, which
 // light those keys, and played, they sound and their lights move with the
@@ -430,6 +432,45 @@ async function labChecks(browser) {
   r.step_lights_seen = seen.size;
   await page.close();
 
+  // Multi-sound (docs/15 §3.16): SEL held as SHIFT while PRESETS turns makes
+  // Sound 2 current and the Sound dropdown follows it; choosing Shapes there
+  // loads it into Sound 2; with Sound 1's level at 0 on the Mix page (FX,
+  // SELECT back from M1, KNOB1 down), a held key still sounds: it plays
+  // Sound 2.
+  const multi = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  multi.on('pageerror', (e) => report.logs.push(`multi pageerror: ${e.message}`));
+  await multi.goto(`${url}?lab`);
+  await multi.click('#power-on');
+  await multi.waitForFunction(() => window.fm1 && window.fm1.state && window.fm1.screens > 0, null,
+    { timeout: 20000 });
+  await wait(multi, 300);
+  const panel = (msgs) => multi.evaluate((m) => { for (const x of m) window.fm1.node.port.postMessage(x); }, msgs);
+  await panel([{ type: 'button', button: 3, down: true }, { type: 'encoder', encoder: 1, delta: 1 },
+    { type: 'button', button: 3, down: false }]);
+  await wait(multi, 300);
+  r.multi_sound = await multi.evaluate(() => window.fm1.state.sound);
+  r.multi_label = await multi.textContent('label[for="sel-sound"]');
+  const shapes = await multi.evaluate(() => window.fm1.catalog.findIndex((e) => e.id === 'shapes'));
+  await multi.selectOption('#sel-sound', String(shapes));
+  await wait(multi, 300);
+  r.multi_units = await multi.evaluate(() => window.fm1.state.units);
+  r.multi_shapes = shapes;
+  await panel([{ type: 'button', button: 2, down: true }, { type: 'button', button: 2, down: false },
+    { type: 'encoder', encoder: 0, delta: -1 }, { type: 'encoder', encoder: 3, delta: -64 },
+    { type: 'encoder', encoder: 3, delta: -64 }]);
+  await wait(multi, 200);
+  await tftPng(multi, 'tft-09-multi-mix.png');
+  await panel([{ type: 'button', button: 8, down: true }, { type: 'button', button: 8, down: false }]);
+  r.multi_quiet_rms = (await loudest(multi, 300, 1)).rms;
+  await multi.locator('[data-key="12"]').scrollIntoViewIfNeeded();
+  const kb = await multi.locator('[data-key="12"]').boundingBox();
+  await multi.mouse.move(kb.x + kb.width / 2, kb.y + kb.height / 2);
+  await multi.mouse.down();
+  r.multi_rms = (await loudest(multi, 1000, 0.01)).rms;
+  await tftPng(multi, 'tft-10-multi-sound-2.png');
+  await multi.mouse.up();
+  await multi.close();
+
   const hash = await browser.newPage();
   await hash.goto(`${url}#lab`);
   r.hash_lab = await hash.evaluate(() => window.fm1.lab);
@@ -463,7 +504,9 @@ async function labChecks(browser) {
     r.mode_after_home === 0 && r.hash_lab === true &&
     r.step_keys === '1000100010001000' && r.steps_rms > 0.01 && r.step_lights_seen >= 3 &&
     r.off_space_messages === 0 && r.off_rms < 0.001 && r.off_mode === 0 && r.off_play_led === false &&
-    r.off_seq_status === null && r.off_help_hidden === true;
+    r.off_seq_status === null && r.off_help_hidden === true &&
+    r.multi_sound === 1 && r.multi_label === 'Sound 2 (PRESETS)' && r.multi_units[0] === r.multi_shapes &&
+    r.multi_quiet_rms < 0.001 && r.multi_rms > 0.01;
   return r;
 }
 

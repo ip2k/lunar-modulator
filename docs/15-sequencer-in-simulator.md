@@ -44,7 +44,7 @@ to an FM-1 (CLAUDE.md). Web MIDI stays input only unless the owner opts in
 | How is it checked? | **Parity:** the module equals `fm1-render` built to JavaScript and against musl exactly, and against glibc within 1 LSB. **Oracle:** every oracle script played through the app equals `fm1-render`. **Gestures:** panel traces replay through `fm1-render` byte for byte. **Layout:** every new screen passes the layout check. **Staleness:** CI's gate covers the new inputs (§6). |
 | What does it cost in RAM? | At 8 tracks, at most 36,216 B of the 36,864 B half budget, leaving 648 B. At 4 tracks, at most 22,392 B (§2.6). |
 | What does the owner decide? | 24 decisions (§8). S1 needs none. S2 needs one constant. |
-| What is left out? | Compat mode in the app, undo (until M4/D14, or O16), MIDI out (O18), more than one sound unit (O10), and anything on an FM-1. |
+| What is left out? | Compat mode in the app, undo (until M4/D14, or O16), MIDI out (O18), and anything on an FM-1. Several sound units, first left out (O10), are in since 2026-10-02 (§3.16). |
 
 ## 2. Architecture
 
@@ -253,7 +253,9 @@ same in 32-bit and 64-bit builds.
   pending record + `sizeof(fm1_seq_ui_t)` ≤ 36,864.
 - **Text buffer:** 65,536 B of BSS in fm1_web.c (§2.7).
 - **`fm1_app_t`:** 1,168,288 B natively today [verified: sim/web/README.md
-  144]. It grows by about 37 KB [inferred].
+  144]. It grows by about 37 KB [inferred]. Multi-sound (§3.16) makes it
+  4,880,816 B: four 512 KiB sound arenas and ten 256 KiB effect arenas
+  [verified 2026-10-02: `fm1-sim-render --sizes`, clang, 64-bit].
 - **`fm1.wasm`:** 391,277 B today. It grows by about 60–80 KB of code
   [inferred from the 5 seq objects' arm64 text, about 78 KB].
 - All of it fits the module's fixed 8 MiB of memory.
@@ -447,8 +449,10 @@ playing restarts (S4); D12 makes that a Stop and a Start.
   - then Set, Clip and Track.
 
   In the Capture picker it chooses the candidate.
-- **PRESETS** chooses the sound in unit 0, which every engine-routed track
-  shares [O10].
+- **PRESETS** chooses the current sound's engine; SHIFT + PRESETS chooses
+  the current sound (§3.16). With the lab switch each engine-routed track
+  plays the sound its route names; without it, every one shares unit 0
+  [O10, answered 2026-10-02].
 - **ALGORITHM** turns the model, the engine's first ENUM parameter. It **never
   creates a lock**. Whether a parameter can be locked at all is its flag
   (NOLOCK, from S7a), not which encoder turns it. For Six-Op, ALGORITHM turns
@@ -560,6 +564,79 @@ layouts, its LFO assign and its MIX page are dropped here, as in docs/13 §4.
     KeyY and KeyU, which play black keys 1, 3, 5, 8 and 10.
 - **The existing KEYMAP is unchanged.** In SEQ mode its black-key letters reach
   the role keys, as the panel does.
+
+### 3.16 Multi-sound [O10, answered 2026-10-02]
+
+The owner replaced O10's proposed default: up to **four sound units**
+(engine instances) play at once, each sequencer track routed to one of
+them; **each sound unit has two insert effect slots**; the two effect
+slots the panel had stay as the **master bus**, after the sounds are mixed,
+and each sound has its own level into that mix. A **RAM meter** against the
+FM-1's budget refuses any engine or effect that would not fit, so what
+plays in the simulator fits the device. It is all behind the lab switch
+(O24); with the switch off the panel has one sound and two effects, as
+before.
+
+**Why two inserts per sound, not one.** Every instance's RAM is metered,
+and an empty slot costs the FM-1 only its record [inferred: the firmware's
+one arena sized to the chain, §2.6], so the budget limits what is loaded,
+not how many slots there are; and two inserts let a sound carry a colour
+effect and a space effect of its own while the master bus is shared. The
+simulator's cost is its fixed arenas: eight more 256 KiB effect arenas, 2
+MiB of the module's 8 MiB. CPU per slot is not measured (stage B).
+
+**The signal path.** Each sound renders its own block, split at its own
+tracks' events, then its inserts in order, then its level (0–100 %, unity
+by default and skipped there); the sounds are summed in order; then the
+master slots, the bus limiter and MASTER. A track routed to the engine
+plays the sound its route index names (`route t 1 k`, Sound k + 1; the
+bridge's `fm1_seq_host_dispatch_slots`, engines/seq.md); a lock lane
+resolves on that sound's engine; a track routed to an empty sound plays
+nothing. `fm1-render --slots` (with `--sound`, `--insert`, `--level`)
+renders the same, so parity holds across sound units.
+
+**The RAM meter.** It replaces the RAM figure in the bottom bar (a bar and
+the percentage of 387,924 B, red past 100 %) and feeds GLO's RAM line:
+every instance at the build's word size (32-bit in the browser's module,
+as on pi32v2; the native harness's 64-bit figures are a little larger),
+the sequencer's instance, events, pending record and UI bound (36,216 B at
+8 tracks), and a 512-byte mix block per sound past the first. A choice that
+would pass the budget is refused (`fm1_app_select` returns -4) with a
+popup naming it and by how much; a chain already past the budget may
+shrink but not grow.
+
+**The gestures** (with the lab switch; O1 and O2 hold: SEL is SHIFT
+outside FX mode, and the black keys carry sequencer roles only in SEQ
+mode, so choosing a sound uses neither the keys nor a new button):
+
+| Input | HOME, GLO, SEQ mode | FX mode |
+| --- | --- | --- |
+| SHIFT + PRESETS | the current sound, Sound 1 to 4, no wrap; a popup `Sound 2 of 4` with its engine, or `Empty:` / `turn PRESETS` | — (SEL is the slot grab, as before; choose the sound outside FX mode) |
+| PRESETS | the current sound's engine, stepping past one this host refuses or that would not fit, with a popup naming the first one skipped; on Sounds 2–4 the list starts with Empty, which unloads the sound (Sound 1 always holds one) | the same |
+| ALGORITHM | the current sound's model | the selected slot's effect, stepping past one that would not fit; nothing on the Mix page |
+| SELECT | the current sound's pages | walks the current sound's In1 and In2, the Mix page, then M1 and M2 (the master bus), page by page; FX mode opens on the master slot that was selected |
+| SEL, then SELECT (FX mode) | — | swaps the selected insert with the other, or master slot with master slot; nothing on the Mix page |
+| KNOB1–4 | the current sound's page | the selected slot's page; on the Mix page, the levels of Sounds 1–4, a percent a detent |
+| Keys, MIDI IN | play the current sound; a release goes to the sound the note started on | the same |
+| Steps held in SEQ mode | unchanged (§3.5): the UI takes SELECT and KNOB1–4, PRESETS and SHIFT + PRESETS act as above | — |
+
+**The screens** (§4's rules; the layout sweep checks every state). The
+title names the current sound once a second one is in use (`S2 Shapes`;
+`S3 (empty)` for an empty one, whose HOME page reads `Empty sound:` /
+`turn PRESETS`). FX mode's first line is the chain, `S2 In1 In2 Mix M1
+M2`, the selected slot in the accent colour and an empty one dim; the
+second line the selected slot and its effect (`> In1 Ensemble`, `*` when
+grabbed); then the slot's page, or on the Mix page four rows, `S1` …
+`S4`, each with its engine and level (`Macro 100%`) over a level bar. The
+bottom bar reads `1/2 S2 In1`, `1/1 Mix` or `1/3 M1`, beside the meter.
+
+**For stage S6.** `fm1_app_unit_route(a, track, sound)` routes a track to
+a sound unit, `fm1_app_unit_of_track` reads it back, and
+`fm1_app_unit_set_current` makes a sound current (for example, to follow
+the focused track); the rest of `fm1_app_unit_*` (sim/web/src/fm1_app.h)
+loads sounds and inserts, sets levels and plays notes on a given sound.
+Which sound a new track starts on, and whether focusing a track makes its
+sound current, are S6's.
 
 ## 4. Screens
 
@@ -1261,7 +1338,10 @@ transpose and quantise on the four knobs.
   - `fm1-render` routes only track 0 to the engine by default; every other
     track starts on MIDI channel t mod 16 + 1 (§2.3).
   - Every engine-routed track shares the one sound unit, as in render.cc,
-    which ignores `route_index` [verified: render.cc 493–522].
+    which ignores `route_index` [verified: render.cc 493–522]. Since
+    2026-10-02 (O10, §3.16) the lab switch routes by slot instead: each
+    engine-routed track plays the sound unit its route index names, as
+    `fm1-render --slots` does, and S6 routes tracks with `fm1_app_unit_*`.
   - What tracks 1–7 do in the browser is O10. The proposal is that the
     browser's start chain routes them to the engine with `route` verbs, so
     they can be heard. That is browser policy only, like the demo pattern.
@@ -1817,7 +1897,7 @@ strict mode, for PRs that touch `engines/`, `sim/web/`, `manual/` or
 | **Memory at 8 tracks:** 648 B spare. Any core growth (an undo ring, new per-track fields) forces 4 tracks, a smaller Capture ring or a smaller event buffer | Tests pin the arena and the budget sum; O3 |
 | **Layout.** 96 boxes, the 4 px gap, 2× text and ASCII only. Grids drawn as one box per cell overflow. The knob strip and two toasts did not fit as first drawn | One graphic box per grid; O23; two-line toasts; the longest strings in the sweep |
 | **Capture empties by design.** `watch`, `clipsel`, `launch` and every edit verb clear it, so navigation that sends one as a side effect loses a take | The browsing gestures send none; S6 and S9 traces assert it |
-| **One shared sound unit.** Engine-routed tracks share 12 voices and one patch, so locks collide, and one track's note-off can end another's note of the same pitch. render.cc behaves the same | O10; changing it changes both hosts and memory |
+| **One shared sound unit.** Engine-routed tracks share 12 voices and one patch, so locks collide, and one track's note-off can end another's note of the same pitch. render.cc behaves the same | O10, answered: up to four sound units with the lab switch (§3.16), in both hosts; tracks on one sound still share it |
 | **No undo.** CLEAR taps, CLEAR + step and clip deletes cannot be undone until M4/D14, or O16 | The O15 confirm |
 | **Browser checks run only on aeon.** Changing HOME's key LEDs or FX behaviour breaks `lit_keys` and `fx_led` silently in CI | O6; each PR reports the aeon run |
 | **Unmeasured performance.** The sequencer's cost in WebAssembly inside the AudioWorklet, and on phones, is unknown. Native worst blocks are at most 87 µs on an M1 Max, against 1,451 µs per block [verified: engines/seq.md 260–265] | S2 records Node's `seq_ns_per_block`; the page getter keeps redraws linear |
@@ -1843,7 +1923,7 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
 | O7 | The Capture gesture, and the REC LED while Capture holds notes | SHIFT + REC (alternatives: a dedicated button, a REC double-tap); REC blinks slowly while `capture_pending` > 0 | S5 |
 | O8 | Step record | REC held while stopped, as in Movy, with ▶ moving the record head; it may be deferred without holding up S5. Open: whether the head should advance by itself on key release (a change from Movy), and whether the mode latches | S5 |
 | O9 | A new deviation row: Capture committed while playing clamps a last-half-step note, as D4 does, instead of growing the clip by a bar | Adopt it in default mode; compat keeps Movy's behaviour. It can land alone in `engines/`; after S2 that needs a rebuild of the module | S5 |
-| O10 | Several tracks on one sound, and the browser's default routes | (a) every engine-routed track shares unit 0, as render.cc does. The alternatives: (b) more sound units, each a 512 KiB arena in the simulator and FM-1 RAM; (c) MIDI-routed tracks only. In the browser, tracks 1–7 are routed to the engine by `route` verbs on the start chain; `fm1-render`'s default stays track 0 only | S6 |
+| O10 | Several tracks on one sound, and the browser's default routes | (a) every engine-routed track shares unit 0, as render.cc does. The alternatives: (b) more sound units, each a 512 KiB arena in the simulator and FM-1 RAM; (c) MIDI-routed tracks only. In the browser, tracks 1–7 are routed to the engine by `route` verbs on the start chain; `fm1-render`'s default stays track 0 only. **Answered 2026-10-02: (b), up to four sound units (§3.16)** | S6 |
 | O11 | A metronome click | A deterministic, libm-free click voice in the shared bridge, sounding only while `metro` is on, so both hosts have it. The alternative is no click audio | S6 |
 | O12 | Track solo | Muting the other tracks in the UI, rather than a new core verb | S6 |
 | O13 | Engine API v2 | Approve v2 now. **Flags:** the table in S7a, covering all eight ENUM parameters, with SMOOTH for continuous parameters. **Label format:** keep `synth:<Name>` in `movy1` and resolve it to a uid when a lane is labelled or imported. **SMOOTH:** a 2–3 ms ramp, engine-side, keyed to absolute native samples, with docs/12 §5.3 rewritten to match | S7a (the ramp time: S7b) |
@@ -1858,6 +1938,20 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
 | O22 | Pitches on a held step: how a pitch is added or removed, and how that coexists with SHIFT + N shortcuts and `aclrs` | With a step held, SHIFT turns the white keys into pitches in the current octave, each press sending `addp`. SHIFT + N shortcuts apply only with no step held. Step + SHIFT + one knob detent stays `aclrs`. The black keys keep their roles, so SHIFT + ◀ ▶ still nudges by one tick, and sharps come from MIDI IN or a chord played in KEYS mode first. Open: how a pitch is removed. docs/13 §4 is updated to match | S4 |
 | O23 | Text in the Track view's knob strip | (b): four bars only, with the turned knob's name and value on the hint line in 2× text. The alternatives are (a) 1× text with short names, or (c) a 2 × 2 layout | S3 |
 | O24 | Whether intermediate stages ship on the public page, now that every merge to main deploys | Ship each stage, with manual chapter 07 saying what works, rather than hiding SEQ mode behind a flag until S5 or S6. A flag would add a code path to test | S3 |
+
+**Answered by the owner, 2026-10-02** (multi-sound; recorded when it
+landed):
+- **O10, replaced:** (b), more sound units: up to 4 at once, each
+  sequencer track routed to one of them; each sound unit has its own
+  insert effect slots (2 per sound, §3.16 says why), and the existing two
+  effect slots stay as the master bus after the sounds are mixed, each
+  sound with its own level into the mix. A RAM meter against the FM-1's
+  budget (FM1_APP_RAM_BUDGET, 387,924 B, and the app's other fixed costs,
+  with per-instance sizes at 32 bits) refuses any engine or effect choice
+  that would not fit, with a clear popup, shown where the RAM figure was.
+  Multi-sound is behind the lab switch; with it off there is one sound and
+  today's behaviour. The panel UI follows §3's conventions and O1/O2:
+  §3.16 has its gesture table.
 
 **Answered by the owner, 2026-10-02** (for S3; recorded when S3 landed):
 - **O1, O2:** as proposed. In SEQ mode the black keys carry the

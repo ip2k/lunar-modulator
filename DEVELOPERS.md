@@ -216,7 +216,11 @@ nothing of ours in the path, and more than 400 tests compare the two.
   switch (`?lab` in the page's address; stage S3,
   [`sim/web/README.md`](sim/web/README.md), "The lab switch"); the public
   page keeps SEQ, PLAY/STOP and REC as "not in the simulator yet" until
-  step entry and recording work.
+  step entry and recording work. Behind the same switch, up to four sound
+  units play at once, each with two inserts and a level, mixed into the two
+  effect slots as the master bus; each track plays the sound its route
+  names, and a RAM meter refuses any choice that would not fit the FM-1
+  (docs/15 §3.16).
 
 ### The arpeggiator core
 

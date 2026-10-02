@@ -35,7 +35,7 @@ python -m pytest tests/test_seq*.py               # the sequencer tests
 | `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input), the JSON Lines event log, and `fm1_seq_cmd_format`, a typed command as text that `fm1_seq_parse` reads back to the same record (the virtual FM-1's harness logs its panel's commands so, for `fm1-render` to replay) |
 | `host/seq_tool.c` | `fm1-seq`: runs the core alone and dumps state as JSON; `fm1-seq-check` is the same tool on a core built with `-DSQ_CHECK_INDEX` |
 | `test/seq_host_test.c` | `fm1-seq-host-test`: the host bridge's own checks, where `fm1-render` does not reach it (typed commands, realtime input and live notes against text lines; every sink call at its event's frame) |
-| `host/render.cc` | `fm1-render --cmd/--seq/--log-events/--compat/--tracks/--route/--events`, through the host bridge |
+| `host/render.cc` | `fm1-render --cmd/--seq/--log-events/--compat/--tracks/--route/--events`, through the host bridge; `--slots` and the multi-sound flags play one sound unit per slot (Host contract) |
 | `mk/seq.mk` | The build fragment |
 
 ## Design
@@ -363,6 +363,27 @@ it with the core's objects [verified: tests/test_seq_core.py].
    logs them. A NULL sink only empties the buffer (`fm1-render` with no
    engine).
 7. Effects, the limiter and the output, which are the host's own.
+
+**Several sound units** (the virtual FM-1's multi-sound, docs/15 §3.16).
+Step 6 can instead be `fm1_seq_host_dispatch_slots(h, n, slots, count)`:
+one sink and one block per sound unit, and a track routed to the engine
+plays the slot its route index names (`route t 1 k`, `rt t 1 k`), where
+`fm1_seq_host_dispatch` plays every engine-routed track on its one sink
+whatever the index. Each slot's sink renders its own block split at its own
+tracks' events only, in emission order, slots in index order; a track routed
+to an empty slot (or past the last) reaches nothing and splits nothing; a
+lock resolves on its slot's engine, by the same rule as below with that
+engine in place of the bound one (slot 0's engine is the bound one). The
+host then runs each unit's inserts, scales it by its level and sums the
+units before its master effects. `fm1_seq_host_dispatch` is the one-sink
+case of the same loop, with no change in behaviour [verified 2026-10-02:
+every parity scenario, the 40 oracle runs of tests/test_sim_seq.py and the
+26 gesture traces render byte-identical WAVs and event logs before and after,
+natively, and the browser module's parity holds 28 of 28]. `fm1-render`
+plays it with `--slots` or any multi-sound flag: `--sound K:ID`,
+`--sound-param K:NAME=V`, `--insert K:ID`, `--insert-param K:NAME=V`,
+`--level K:PCT`, `--sound-note K:T:KEY:VEL:DUR`, `--sound-param-at
+K:T:NAME=V` and `--level-at K:T:PCT`.
 
 A lane's label names a parameter by the part after its last `:`, compared
 without ASCII case (`fm1_seq_lane_param`), and a 7-bit value maps onto it
