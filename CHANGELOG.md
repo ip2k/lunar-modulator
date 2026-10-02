@@ -9,6 +9,23 @@ history.
 ## [Unreleased]
 
 ### Added
+- docs/14: the verification ladder, the plan for showing 1:1 behaviour once
+  the AC79 dev kit and JieLi's USB updater arrive. The rungs are the desktop
+  renderer, the browser module, the dev kit and the FM-1, in that order.
+  - Bit-exact wherever the arithmetic is the same: sequencer events, screens,
+    LEDs and MIDI.
+  - The DSP is bit-exact too, in a "ladder" build profile with float
+    contraction off and one libm.
+  - Named tolerances only for named causes.
+  - One golden corpus, run by a heap-free runner on every rung.
+  - The FM-1 rung opens only after a byte-identical dump and restore.
+- Branding art in `assets/branding/`: a 1280×320 README banner (PNG and
+  SVG) and a 240×240 boot screen for the FM-1's display (PNG plus raw
+  RGB565 for later firmware use). A seeded script draws everything from
+  code: starfield, crescent moon, an orbiting station and an FM waveform.
+  The lettering is set in Audiowide (SIL OFL 1.1), committed unmodified with
+  its licence, and the colours are the Rosé Pine Moon palette, as on the
+  virtual FM-1. The README now opens with the banner.
 - The sequencer core, `fm1_seq` (docs/13 stage M1): a C99, heap-free port of
   Movy's sequencer with every planned fix on by default and an exact Movy
   mode for tests. It has 4–8 tracks, each routed to the engine or to USB-MIDI
@@ -27,6 +44,27 @@ history.
   as code; Kria lanes, the Ansible arpeggiator, Meadowphysics and Teletype's
   interpreter model are worth reimplementing; jhjlim's repositories have
   nothing to take.
+- A virtual FM-1 in the browser (`sim/web/`): every engine and effect,
+  compiled to WebAssembly, behind a to-scale FM-1 panel with the firmware's
+  own 240 × 240 screen. Play it with the mouse, touch, the computer keyboard
+  or a MIDI keyboard; serve `sim/web/www/` from localhost. Its output equals
+  the native renderer's byte for byte (Sophie aside, against glibc), and
+  `sim/web/build-on-aeon.sh` rebuilds and checks it in one command. On a
+  phone the panel keeps playable 25–35 px controls and scrolls sideways in
+  its own box; turning the phone to landscape shows it whole. Above
+  47,872 Hz, where Macro, Macro Heavy and Six-Op cannot run, it starts with
+  Shapes, steps over them and says why. It wears Lunar Modulator's look:
+  the Rosé Pine Moon palette on the page and on the firmware's screen,
+  Audiowide for the name and the tagline "Intergalactic Modulation
+  Station", and an oscilloscope that scales to the sound. The page finds
+  its files relative to itself, so `sim/web/www/` publishes as static files
+  over https at any path (tested under a sub-path); opened over plain http
+  from another machine, Power on says it needs https or localhost. Screenshots of the engines, an effect page, a
+  parameter page, the phone layout and a parity figure are in
+  `assets/screenshots/`; `build-on-aeon.sh` now needs `FM1_SIM_HOST` and
+  remakes them with `--readme-screenshots`.
+- `sim/web/emulators.md`: there is no public emulator of the FM-1, its SoC
+  or its CPU; what each route to one would take.
 - `engines/include/fm1_resampler.h`: a reusable, heap-free resampler
   (polyphase windowed sinc to twice the host rate, then a 123-tap low-pass).
   Equal rates pass through bit for bit; everything above the output's
@@ -107,6 +145,14 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- The project is now **Lunar Modulator**, tagline **INTERGALACTIC
+  MODULATION STATION**: open firmware for the M-VAVE FM-1, formerly "Open
+  firmware for the M-VAVE FM-1". The repository becomes
+  `ip2k/lunar-modulator` (GitHub redirects `ip2k/mvave-fm1-open-firmware`).
+  The short form is "Lunar"; the look is a space theme with a NASA-style
+  typeface, using no NASA, M-VAVE or Cuvave marks. README, HANDOFF,
+  CLAUDE.md and AGENTS.md carry the new name; CLAUDE.md and AGENTS.md set
+  out the naming rules.
 - Six-Op FM lists 23 of its 96 patches under names of our own, because the
   browser simulator is going public: the stored names that are trademarks
   or a person's name (`FENDER 1`, `STEINWAY`, `*Hammond 1`, `VANGELIS 1`,

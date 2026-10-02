@@ -1,0 +1,2 @@
+# build output of sim/web/build.sh, build-on-aeon.sh and tests/test_sim_web.py
+build/
