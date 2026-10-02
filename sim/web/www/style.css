@@ -2,13 +2,22 @@
  * Rosé Pine Moon palette (rosepinetheme.com, MIT; the values are
  * rose-pine/palette's), which the firmware's screen uses too (src/fm1_app.c).
  * Audiowide (Astigmatic, SIL OFL 1.1) for display type, unmodified, in
- * fonts/audiowide/ with its licence; Exo 2 for small text where installed.
+ * fonts/audiowide/ with its licence; Exo 2 (Natanael Gama, SIL OFL 1.1) for
+ * small text, unmodified, in fonts/exo2/ with its licence.
  * MIT licence, like the rest of this repository. */
 
 @font-face {
   font-family: "Audiowide";
   src: url("fonts/audiowide/Audiowide-Regular.ttf") format("truetype");
   font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Exo 2";
+  src: url("fonts/exo2/Exo2%5Bwght%5D.ttf") format("truetype");
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
