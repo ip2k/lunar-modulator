@@ -118,7 +118,7 @@ does = "Sets the chosen clip's loop window: its first step and its length."
 [verb.dbl]
 group = "Clips"
 args = "<track>"
-does = "Double Loop: doubles the chosen clip's length and copies its content into the new half."
+does = "Double Loop: doubles the chosen clip's length and copies the notes in its loop window into the new half. Locks and conditions are not copied."
 
 [verb.cscl]
 group = "Clips"
@@ -328,9 +328,9 @@ group = "Undo"
 does = "Accepted and ignored for now."
 
 [verb.link]
-group = "Movy on the Move only"
+group = "Transport and tempo"
 args = "<0|1>"
-does = "Movy's link to the Move's own transport. Stored; no effect in Lunar Modulator."
+does = "Movy's link to the Move's own transport. Here, while it is 1, an incoming MIDI Start also starts a stopped sequencer and a MIDI Stop stops it. Off by default; kept in a saved set."
 
 [verb.minject]
 group = "Movy on the Move only"

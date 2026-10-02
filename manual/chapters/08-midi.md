@@ -73,8 +73,8 @@ The sequencer can follow MIDI clock from another instrument or a computer:
 | Message | What the sequencer does |
 | --- | --- |
 | Clock (F8) | Follows the tempo of the pulses, smoothing out small changes. If the pulses arrive while the sequencer plays, it joins at the next bar of the incoming clock, counted from its first pulse |
-| Start (FA) | Restarts the sequencer from the beginning, if it is playing |
-| Stop (FC) | Stops following: the sequencer carries on at the last tempo |
+| Start (FA) | Restarts the sequencer from the beginning, if it is playing. With the set's `link` setting on, it also starts a stopped sequencer |
+| Stop (FC) | Stops following: the sequencer carries on at the last tempo. With `link` on, it stops the sequencer |
 | Continue (FB) | Resumes following |
 | No pulses for half a second | Stops following, as Stop does |
 
@@ -82,10 +82,10 @@ While it follows a clock, the sequencer sends no clock of its own. When it
 stops following, it plays on at the tempo it last measured and sends Start
 to its own followers at the next bar.
 
-This is how the sequencer behaves in the desktop tools today. In them, Start
-and Stop do not start or stop a sequencer that is stopped or playing on its
-own. For the FM-1 the plan adds Song Position and a Continue that resumes
-where the music stopped, as part of the MIDI implementation below.
+This is how the sequencer behaves in the desktop tools today. The `link`
+setting is off unless a script turns it on with `link 1`, or a set was saved
+with it on. For the FM-1 the plan adds Song Position and a Continue that
+resumes where the music stopped, as part of the MIDI implementation below.
 
 ## Implementation chart
 

@@ -103,6 +103,8 @@ acoustic instruments do.
 Macro's output is mono; the effects spread it in stereo. 2-op FM is the
 heaviest of its models for the processor, and the others are light.
 
+{{screen macro Macro on its VA Pair model, page 1, while a chord sounds.}}
+
 {{engine-table macro}}
 
 ## Macro Heavy
@@ -125,6 +127,8 @@ needs much more memory than Macro's, so Macro Heavy plays four notes at once.
   it says words, says one word per key press. When you let go of the key,
   Decay and Colour set how quickly whatever is still sounding fades.
 - Str Machine plays in stereo. The other models are mono.
+
+{{screen macro-heavy Macro Heavy on Str Machine, page 1.}}
 
 | Model | Harmonics | Timbre | Morph |
 | --- | --- | --- | --- |
@@ -179,6 +183,8 @@ through the patches, and the knobs adjust the one you have chosen.
 - **Volume**, on page 2, is the engine's output level.
 - Eight notes play at once.
 
+{{screen sixop Six-Op FM on its default patch, 2 E.PIANO 1. Its first page has three controls.}}
+
 The banks:
 
 | Bank | Patch numbers | What is in it |
@@ -218,6 +224,8 @@ attack and release envelope.
   to 4 seconds at the right.
 - **Volume**, on page 2, is the engine's output level.
 - Playing harder makes a note louder.
+
+{{screen shapes Shapes on Pluck, page 1.}}
 
 | No. | Shape | Timbre | Color |
 | --- | --- | --- | --- |
@@ -305,6 +313,8 @@ for its pad's Decay, whether or not you keep the key down.
 - **Sweep** bends the start of each hit: a fast drop in pitch towards the
   right, a fast rise towards the left.
 - Playing harder makes a hit louder. Sophie ignores pitch bend.
+
+{{screen sophie Sophie on pad 1, the kick, just after it was struck.}}
 
 **To play Sophie from the FM-1's keys:** press [[OCT-]] twice. The pads then
 run from the eighth key, a C, upwards: kick, rim, snare, clap and so on, up

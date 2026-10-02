@@ -172,6 +172,8 @@ The simulator starts on this page, and [[HOME]] returns to it.
 - **Oscilloscope.** A strip at the bottom shows the waveform of the output.
   It is scaled to fill the strip, so quiet sounds show up too.
 
+{{screen params The sound’s page: Macro on its 2-op FM model, page 1 of 2, after turning KNOB1 to KNOB4. The level meter is at the top right, the memory figure at the bottom right.}}
+
 ### The effects page
 
 [[FX]] shows the effect chain:
@@ -182,6 +184,8 @@ The simulator starts on this page, and [[HOME]] returns to it.
 - **The chosen effect's parameters**, as rows and bars like the sound's page.
   An empty slot says *Empty slot: turn ALGORITHM* instead.
 - **The bottom bar** shows the page and the slot, such as *1/2 FX2*.
+
+{{screen fx FX mode: Plate in slot 1, PSX Verb in slot 2, chosen, with its first page on the knobs.}}
 
 ### The global page
 

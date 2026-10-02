@@ -30,9 +30,9 @@ When you play a note and no voice is free, the engine takes one over:
 - **Sophie** takes the hit that started longest ago.
 - **Test Sine** ignores the new note until a voice is free.
 
-Playing a key again while its note is still fading restarts that note in the
-same voice, on every engine but Sophie, where each hit gets a voice of its
-own.
+On Macro, Macro Heavy, Six-Op FM and Shapes, playing a key again while its
+note is still fading restarts that note in the same voice. On Sophie each hit
+gets a voice of its own.
 
 !!! note "Many notes at once"
     Twelve voices playing loudly together can add up to more than the output

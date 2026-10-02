@@ -71,8 +71,9 @@ The FM-1's keyboard will have two jobs:
   or slots instead.
 
 Which control switches between the two modes, and which black key carries
-which function, is decided with the FM-1's interface. [[SEQ]],
-[[PLAY/STOP]] and [[REC]] are reserved for the sequencer.
+which function, is still to be decided with the rest of the FM-1's
+interface. [[SEQ]], [[PLAY/STOP]] and [[REC]] are reserved for the
+sequencer.
 
 ### What the screen shows
 
@@ -278,8 +279,9 @@ clear its last lock. A sound never stays at a value that no step asked for.
   range.
 - On a list parameter, such as Model, Shape, Patch or Pad, the 128 values
   are divided evenly between the entries.
-- In the FM-1 build, parameters whose change restarts every voice, such as
-  Macro's Model and Shapes' Shape, are planned to refuse locks. A lock on
+- In the FM-1 build, parameters that disturb every sounding note when they
+  change are planned to refuse locks: Macro's Model, which cuts the notes,
+  and Shapes' Shape, which strikes them again. A lock on
   Six-Op FM's Patch changes the patch for that step's notes only, as Six-Op
   FM reads it when a note starts.
 - Continuous parameters are planned to glide to a locked value over 2 to
@@ -542,6 +544,12 @@ Capture keeps listening while you are not recording. If you played something
 you like, press Capture afterwards and it becomes a clip. Capture's control
 on the FM-1 is still to be assigned.
 
+!!! note "Capture in the desktop tools"
+    The desktop tools leave Capture out unless you give it room:
+    `fm1-seq --capture 256` runs the sequencer with a 256-event Capture, as
+    planned for the FM-1. `fm1-render` runs without Capture, so its `cap`
+    command does nothing there.
+
 ### What Capture keeps
 
 - The notes you play on the keys or at [[MIDI IN]], for any track except one
@@ -676,9 +684,11 @@ When MIDI clock arrives while the sequencer plays, the sequencer follows it:
   on by itself at the last tempo, and sends Start to its own followers at
   the next bar.
 
-In the desktop tools a MIDI Start or Stop does not start or stop the
-sequencer itself. On the FM-1, Continue and Song Position are planned as
-well ([chapter 8](08-midi.md#following-an-external-clock)).
+In the desktop tools, a MIDI Start or Stop also starts or stops the
+sequencer itself, but only while the set's `link` setting is on: `link 1` in
+a script, or a set saved with it on. It is off otherwise. On the FM-1,
+Continue and Song Position are planned as well
+([chapter 8](08-midi.md#following-an-external-clock)).
 
 ## Memory
 

@@ -70,7 +70,7 @@ A set is everything the sequencer holds ([chapter 7](07-sequencer.md#how-a-patte
 
 | Kept | Not kept |
 | --- | --- |
-| The tempo and the swing | Whether the sequencer was playing |
+| The tempo, the swing and the external-clock `link` setting ([chapter 8](08-midi.md#following-an-external-clock)) | Whether the sequencer was playing |
 | The song | The playhead's position |
 | Each track's chosen clip, its mute, its muted or soloed drum notes, and its routing | How many times each clip has looped, which conditions count |
 | Each track's lock lanes, with their parameters and base values | The random sequence behind probability |

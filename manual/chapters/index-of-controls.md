@@ -7,7 +7,7 @@ it always matches the edition you are reading.
 - **Controls are listed by kind**: the encoders, the potentiometer, the
   buttons, the labels printed under the black keys, and the connectors.
   Names are written as the panel prints them.
-- **The first entry** under each control is its place in the panel tour
+- **The first entry** under each control, in bold, is its place in the panel tour
   ([chapter 3](03-panel-tour.md)), which shows where it sits on the
   instrument.
 - **Sequencer functions without a button yet**, such as <kbd class="ctl role">SHIFT</kbd>, are

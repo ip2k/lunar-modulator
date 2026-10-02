@@ -19,7 +19,8 @@ history.
   script verbs are generated from the code at build time. Published on GitHub
   Pages at `/manual/` beside the simulator, with an A5 PDF, by a new
   workflow (`.github/workflows/pages.yml`) that also builds and checks it on
-  pull requests. Many sections are still outlines, marked *Draft*.
+  pull requests. Every chapter is written in full, with the firmware's own
+  screen shown from the simulator, and the published simulator links to it.
 - docs/10 §1.1: reports from other FM-1 owners (issue #2) and what they
   mean for our dongle.
   - czietz's Raspberry Pi Pico `USB_KEY` dongle (an unlisted MicroPython

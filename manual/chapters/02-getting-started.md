@@ -50,8 +50,8 @@ To stop, click **Power off** or the [[POWER]] switch. The simulator keeps
 nothing: it starts from the same settings every time.
 
 !!! note "When an engine refuses to start"
-    The simulator asks your browser for 44,118 samples a second, the FM-1's
-    rate, and then for 44,100. If the browser insists on a faster rate, such
+    The simulator asks your browser for 44,118 samples a second, the rate
+    reported for the FM-1, and then for 44,100. If the browser insists on a faster rate, such
     as 48,000, the three engines built from Plaits (Macro, Macro Heavy and
     Six-Op FM) cannot run. The simulator then starts with Shapes, steps over
     those three when you turn [[PRESETS]], and says why on its screen and in
@@ -300,13 +300,13 @@ Each step below has to succeed before the next one starts:
 4. **The FM-1, installed.** Install it with a way back built in: a key held
    at power-up that returns the unit to its update mode, and a copy of the
    original firmware kept.
-5. **For everyone.** Publish an installer that works over USB, as the FM-1's
-   own updates do, and that can also put the original firmware back.
+5. **For everyone.** Publish an installer that works over USB and can also
+   put the original firmware back.
 
 ### What you will need
 
-When a device version exists, the plan is that you will need only a USB-C
-cable and a computer: installing will work through the FM-1's USB socket, as
-its own updates do, with nothing inside the case. Until then, keep playing
-your FM-1 with the firmware it has, and play Lunar Modulator in the
-simulator.
+When a device version exists, the plan is that installing it will need a
+computer and the FM-1's USB socket, and nothing inside the case
+([chapter 10](10-updating-and-recovery.md#how-it-will-be-installed)). Until
+then, keep playing your FM-1 with the firmware it has, and play Lunar
+Modulator in the simulator.

@@ -155,6 +155,12 @@ server and over https under a sub-path, and Chromium 152 on macOS, from
 hardware are not tested yet. "Connect MIDI input" needs a browser with Web
 MIDI; without it the panel and the computer keyboard still play.
 
+**The user manual** describes every control, engine and effect, the
+sequencer and the road to the device, with a PDF. Its source is
+[`manual/`](manual/); `.github/workflows/pages.yml` publishes it beside the
+simulator, at <https://ip2k.github.io/lunar-modulator/manual/> once the
+workflow has deployed from main.
+
 **Controls.**
 
 | Control | Mouse or touch | Computer keyboard |

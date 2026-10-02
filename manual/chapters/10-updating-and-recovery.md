@@ -47,6 +47,16 @@ The open design is complete: its firmware builds, and it has been tested
 against a simulation of the chip's recovery mode. Neither dongle has been
 used on an FM-1 by this project yet.
 
+Other FM-1 owners have reported that the route works. czietz built a
+simpler dongle of their own from a Raspberry Pi Pico, which brings their
+FM-1 into recovery mode about one power-on in two, and masanaohayashi used
+it to back up their FM-1's firmware and to write firmware to it. Their
+reports, in issue #2 on the project's repository, also showed which of the
+two USB data lines carries the signal, and this project's dongle now tries
+that one first. This project has not run their dongle, and the one rule
+still asks for the whole procedure below on a unit before anything is
+written to it.
+
 ### How it connects
 
 The dongle sits between the computer and the FM-1:
@@ -119,7 +129,8 @@ Both are tested before anyone is asked to install it.
 The installer is not decided. Two routes exist: the FM-1's own update
 method over USB-MIDI, through which third-party firmware already installs
 on working units, and the processor's recovery mode with a dongle. Either
-way you will need a USB-C cable and a computer, and nothing inside the case.
+way the case stays closed: the first route needs a computer and a USB-C
+cable, the second a recovery dongle as well.
 
 ### Updating and going back
 

@@ -55,12 +55,12 @@ The reason is that an FM-1 has no safety net. Its firmware lives in a single
 bank of memory, and the board has no recovery button and no test connector.
 The FM-1's own update method runs inside the firmware that is already
 installed: it can replace a working firmware, but it cannot rescue one that no
-longer starts. Owners of other FM-1s have reported reading and rewriting
+longer starts. Owners of other FM-1s have reported reading out and writing
 their units' memory with a small USB dongle, but this project has not yet
 done so itself. Until a way back has been shown to work on the unit in
 question, a failed install could leave the instrument permanently unusable.
 
-!!! warning "Do not install anything on your FM-1"
+!!! warning "There is nothing to install on your FM-1 yet"
     There is no Lunar Modulator firmware for the FM-1 yet, and this project
     will not offer one until the one rule is met. Be wary of any file that
     claims to be Lunar Modulator for the device: it is not from this project.
@@ -110,9 +110,6 @@ follow M-VAVE's manual for them.
 - **Generated reference.** The parameter tables, value lists and sequencer
   tables are generated from the firmware's code each time the manual is built,
   so they always match the build named below.
-- **Draft sections.** A section that is still being written shows a dashed
-  *Draft* box with an outline of what it will cover, and the front page then
-  says *Draft*.
 - **Online and in print.** The newest edition is on the project's website,
   with a PDF of the whole manual beside it. Corrections are welcome as issues
   on the [project's repository](https://github.com/ip2k/lunar-modulator).
