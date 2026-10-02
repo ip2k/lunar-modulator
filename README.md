@@ -308,14 +308,72 @@ documentation on renaming a repository]. The local folder keeps its old name.
 
 ## Credits
 
-This is a synthesis of other people's work, credited in
-[`docs/04-prior-art.md`](docs/04-prior-art.md). In particular: **aroum**
-(updater analysis, teardown photos), **AL-255** (firmware disassembly, protocol
-captures, safety analysis, experimental firmware; WTFPL), **kagaimiq** (JieLi
-documentation and tools), **probonopd** (SMK-37 Pro notes), Google's
-music-synthesizer-for-android and the Dexed / Synth_Dexed / MiniDexed lineage,
-and **charlesvestal** and **DimaDake** for Schwung and Movy. Vendor firmware
-images are not redistributed here; see the sources.
+This is a synthesis of other people's work. The details are in
+[`docs/04-prior-art.md`](docs/04-prior-art.md) and in each
+`engines/third_party/*/UPSTREAM.md`.
+
+**FM-1 research and recovery**
+
+- **aroum**: updater analysis and teardown photos.
+- **AL-255**: firmware disassembly, protocol captures, the safety analysis
+  behind this project's one rule, and experimental firmware (WTFPL).
+- **Echomatter**: in AL-255's
+  [PR #2](https://github.com/AL-255/FM-1-RE/pull/2), installed a
+  version-bumped V15 package on an FM-1 and rolled it back (2026-09-04). It is
+  the first non-stock install we know of.
+- **Baud Girl** ([FM-1+VA](https://baudgirl.com/work/FM-1+VA)): the first
+  third-party FM-1 firmware that owners install, and the hardware
+  measurements behind [docs/03](docs/03-update-protocol.md) §5. From them we
+  learned [reported]:
+  - The stock updater's first step only refuses the version already running,
+    and package content is not authenticated. So a rebuilt package with a new
+    version number installs.
+  - The OTA loader can rewrite the flash head (`uboot.boot`,
+    `isd_config.ini`). That makes keeping it byte-identical to V15 a
+    bootloader-safety rule (docs/07 §4 rule 2), not just caution.
+  - An install interrupted after the first step can be resumed: the synth
+    stays in its loader (`ota-FM-1`) across power cycles.
+  - Their install page reports testing builds on a private FM-1 emulator.
+
+  Their `FM-1_092` package also showed us that a package with a moved
+  partition table installs and runs [verified here]. Their manual filled in
+  port names and control details for docs/01 and docs/03. FM-1+VA is closed
+  source, and nothing of it is used or redistributed here. The owner's unit
+  runs it (`FM-1_092`).
+- **czietz** and **masanaohayashi**, in
+  [issue #2](https://github.com/ip2k/lunar-modulator/issues/2): czietz's
+  Raspberry Pi Pico `USB_KEY` dongle, and masanaohayashi's report of using it
+  to back up and write an FM-1's firmware. Theirs are the first reports we
+  know of that the FM-1's mask-ROM download mode can be reached through its
+  USB-C port. From them we learned [reported]:
+  - the key's clock line is D+;
+  - moving the cable from the dongle to the PC works as the hand-over;
+  - the ROM may listen for the key only briefly after power-up [inferred].
+
+  Checking our dongle against their tool also turned up a wiring bug in ours,
+  fixed before anyone built it ([docs/10](docs/10-usb-key-dongle.md) §1.1).
+- **kagaimiq**: JieLi documentation and tools (jielie, jl-uboot-tool,
+  jl-misctools, ghidra-jieli).
+- **probonopd**: SMK-37 Pro notes.
+
+**Code and sound**
+
+- **Emilie Gillet** (Mutable Instruments): the Plaits, Braids, Rings and
+  stmlib code (MIT). It powers the Macro, Macro Heavy, Six-Op FM and Shapes
+  engines and the Plate, Ensemble and Diffuse effects.
+- **Charles Vestal** for Schwung and its PSX Verb module, and **Matt Estela**
+  for the Sophie drum module (MIT).
+- **DimaDake** for Movy, whose sequencer `fm1_seq` ports (MIT).
+- Google's music-synthesizer-for-android and the Dexed / Synth_Dexed /
+  MiniDexed lineage, the engine of the stock firmware.
+
+**The look**
+
+- The Rosé Pine palette (MIT).
+- The Audiowide typeface by Astigmatic (SIL OFL 1.1).
+
+Vendor firmware images and Baud Girl's packages are not redistributed here;
+see the sources.
 
 ## License
 
