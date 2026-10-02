@@ -9,6 +9,14 @@ history.
 ## [Unreleased]
 
 ### Added
+- A survey of monome, Ornament & Crime (via PaulStoffregen/O_C_T41 and
+  Phazerville) and jhjlim's repositories as FM-1 sources
+  (`notes/2026-10-01-monome-oc-jhjlim-survey.md`). O&C's MIT cores
+  (quantiser and scales, Tonnetz, Turing and logistic generators, TB-3PO,
+  Peaks/Frames/Streams modulation) and Clouds' pitch shifter are worth taking
+  as code; Kria lanes, the Ansible arpeggiator, Meadowphysics and Teletype's
+  interpreter model are worth reimplementing; jhjlim's repositories have
+  nothing to take.
 - `engines/include/fm1_resampler.h`: a reusable, heap-free resampler
   (polyphase windowed sinc to twice the host rate, then a 123-tap low-pass).
   Equal rates pass through bit for bit; everything above the output's
@@ -89,6 +97,9 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- docs/13 records the owner's choice of 7-bit locks with smoothing, and of
+  Capture as an optional feature. docs/11 corrects its claim that Clouds'
+  spectral mode needs its own FFT.
 - The Mutable engines run at their modules' own sample rates, whatever the
   host's: Shapes at 96 kHz, and Macro, Macro Heavy and Six-Op at
   47,872.34 Hz. Each resamples its mix to the host. At the FM-1's 44,118 Hz

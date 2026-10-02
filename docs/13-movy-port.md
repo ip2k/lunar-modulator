@@ -354,7 +354,13 @@ about 90 KB [inferred], sent in chunks. Flash last: a binary image of about
    asked for an FM-1 emulator, or a virtual FM-1 with its screen in a
    browser, if one exists or can be made.
 
-The questions below are kept for the record; 5 and 6 remain open.
+5. **Capture and lock width:** Capture stays as an optional switch, because
+   it costs only about 3 KB. Lock values are 7-bit, as in Movy, behind one
+   typedef, and the engine-side SMOOTH ramp prevents zipper noise. A
+   per-parameter 14-bit "fine" option is added only if a real parameter
+   proves too coarse.
+
+The questions below are kept for the record; only 6 (hardware) remains open.
 
 **For the owner:**
 
