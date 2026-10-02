@@ -1,0 +1,2 @@
+# Generated binary art; keep git from treating the raw framebuffer as text.
+*.rgb565 binary

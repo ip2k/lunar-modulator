@@ -23,6 +23,8 @@
 // - HARMONICS' patch scan (a hysteresis quantizer over 32 patches of one
 //   bank) becomes one "Patch" list of all 96 patches, named "<bank> <name>"
 //   from the patch data, because the FM-1 picks from lists with an encoder.
+//   23 stored names that are trademarks or a person's name are shown under
+//   names of our own unless built with -DFM1_SIXOP_ORIGINAL_NAMES (below).
 // - The patch's own transpose (DX7 "C3" = 24) is applied, which Plaits
 //   ignores; on a keyboard the patches then sound in their intended octave.
 // - Two discarded one-sample renders with the gate low precede every
@@ -65,42 +67,63 @@ const int kNumBanks = 3;
 const int kPatchesPerBank = 32;
 const int kNumPatches = kNumBanks * kPatchesPerBank;
 
-// "<bank> <name>", the names stored in syx_bank_0..2 (plaits/resources.cc,
-// bytes 118..127 of each packed patch, trailing spaces trimmed). The tests
-// re-read resources.cc and check this table against it. Some names carry
-// third-party trademarks or a person's name (FENDER, STEINWAY, *Hammond,
-// *PPG*, FAIRLIGHT, CS 80, JX-33-P, M1 PADS, VANGELIS); the data's origin is
-// unstated (plaits-heavy.md, open issues). Review both before a commercial
-// build.
+// The Patch list: "<bank> <name>" for each of the 96 patches.
+//
+// A name is the one stored in syx_bank_0..2 (plaits/resources.cc, bytes
+// 118..127 of each packed patch, trailing spaces trimmed), except where that
+// name is a third-party trademark, a product or company name or a person's
+// name. Those 23 are shown under a descriptive name of our own, the second
+// argument of RENAMED: the browser simulator is to be published, and a
+// public page counts as distribution. A build with
+// -DFM1_SIXOP_ORIGINAL_NAMES shows the stored names instead, for personal
+// builds. Only the names differ; the patch data, and so the sound, is the
+// same either way. The tests re-read resources.cc and check the stored
+// names against it, and keep the mapping in step with plaits-heavy.md ("The
+// patch data"), which says why each one was renamed. The data's origin is
+// unstated (plaits-heavy.md, open issues).
+#ifdef FM1_SIXOP_ORIGINAL_NAMES
+#define RENAMED(stored, shown) stored
+#else
+#define RENAMED(stored, shown) shown
+#endif
+
 const char *const kPatchNames[kNumPatches] = {
   // Bank 1
-  "1 SOLID BASS", "1 Mooger Low", "1 LeaderTape", "1 MORHOL TB1",
-  "1 BASS    3", "1 BILL BASS", "1 BASS    1", "1 ELEC BASS",
-  "1 S.BAS 27.7", "1 RESONANCES", "1 SYN-BASS 2", "1 PRC SYNTH1",
-  "1 CROMA 2", "1 ANALOG  4", "1 ANALOG A", "1 ANALOG  6",
-  "1 CS 80", "1 INSERT 1", "1 SPIRAL", "1 DX-TROTT",
-  "1 GASHAUS", "1 RING DING", "1 PAPAGAYO", "1 WINEGLASS",
-  "1 AMYTAL", "1 FAIRLIGHT", "1 *PPG*Vol.1", "1 *PPG*Vol.2",
-  "1 *Fairl. 3", "1 *Vocoder 2", "1 *Sequence", "1 Bounce 4",
+  /*  0 */ "1 SOLID BASS", RENAMED("1 Mooger Low", "1 Fat Low"),
+           "1 LeaderTape", RENAMED("1 MORHOL TB1", "1 ACID BASS"),
+  /*  4 */ "1 BASS    3", RENAMED("1 BILL BASS", "1 PLUCK BASS"), "1 BASS    1", "1 ELEC BASS",
+  /*  8 */ "1 S.BAS 27.7", "1 RESONANCES", "1 SYN-BASS 2", "1 PRC SYNTH1",
+  /* 12 */ RENAMED("1 CROMA 2", "1 PRISM 2"), "1 ANALOG  4", "1 ANALOG A", "1 ANALOG  6",
+  /* 16 */ RENAMED("1 CS 80", "1 POLY 80"), "1 INSERT 1",
+           "1 SPIRAL", RENAMED("1 DX-TROTT", "1 FM-TROTT"),
+  /* 20 */ "1 GASHAUS", "1 RING DING", "1 PAPAGAYO", "1 WINEGLASS",
+  /* 24 */ RENAMED("1 AMYTAL", "1 SEDATIVE"), RENAMED("1 FAIRLIGHT", "1 SAMPLER 1"),
+           RENAMED("1 *PPG*Vol.1", "1 *Wavetbl 1"), RENAMED("1 *PPG*Vol.2", "1 *Wavetbl 2"),
+  /* 28 */ RENAMED("1 *Fairl. 3", "1 *Sampler 3"), "1 *Vocoder 2", "1 *Sequence", "1 Bounce 4",
   // Bank 2
-  "2 E.PIANO 1", "2 FENDER 1", "2 WINTRHODES", "2 RS-EP C",
-  "2 *Mark III", "2 CLAV-E.PNO", "2 SYN-CLAV", "2 CLAVINET",
-  "2 PIANO   5", "2 GRD PIANO1", "2 STEINWAY", "2 GUIT ACOUS",
-  "2 SITAR", "2 KOTO", "2 HARPSICH 1", "2 CLAV    3",
-  "2 XYLOPHONE", "2 MARIMBA", "2 VIBE    1", "2 GLOKENSPL",
-  "2 BELL C", "2 BELLS", "2 TUB BELLS", "2 GONG    2",
-  "2 KETTLE 6", "2 MID DRM 3", "2 ORI DRUM 1", "2 WOOD 6",
-  "2 LATN DRM 4", "2 CIMBAL", "2 SYNDM 25.8", "2 B.DRM-SNAR",
+  /* 32 */ "2 E.PIANO 1", RENAMED("2 FENDER 1", "2 TINE EP 1"),
+           RENAMED("2 WINTRHODES", "2 WINTER EP"), "2 RS-EP C",
+  /* 36 */ RENAMED("2 *Mark III", "2 *Tines III"), "2 CLAV-E.PNO",
+           RENAMED("2 SYN-CLAV", "2 SYNTH CLAV"), RENAMED("2 CLAVINET", "2 FUNK CLAV"),
+  /* 40 */ "2 PIANO   5", "2 GRD PIANO1", RENAMED("2 STEINWAY", "2 BIG GRAND"), "2 GUIT ACOUS",
+  /* 44 */ "2 SITAR", "2 KOTO", "2 HARPSICH 1", "2 CLAV    3",
+  /* 48 */ "2 XYLOPHONE", "2 MARIMBA", "2 VIBE    1", "2 GLOKENSPL",
+  /* 52 */ "2 BELL C", "2 BELLS", "2 TUB BELLS", "2 GONG    2",
+  /* 56 */ "2 KETTLE 6", "2 MID DRM 3", "2 ORI DRUM 1", "2 WOOD 6",
+  /* 60 */ "2 LATN DRM 4", "2 CIMBAL", RENAMED("2 SYNDM 25.8", "2 SYNTH DRUM"), "2 B.DRM-SNAR",
   // Bank 3
-  "3 CLICK 124", "3 *Hammond 1", "3 E.ORGAN 3", "3 60-S ORGAN",
-  "3 OPTIC 28", "3 PIPES   1", "3 PIPES   3", "3 PIPES   2",
-  "3 JX-33-P", "3 SOUNDTRACK", "3 ICE PAD  2", "3 M1 PADS",
-  "3 CARLOS   2", "3 SOFT TOUCH", "3 *Planets", "3 CIRRUS",
-  "3 ENTRIX", "3 MAL POLY", "3 Textures 6", "3 Etherial5a",
-  "3 'Airy'", "3 BORON A", "3 VANGELIS 1", "3 STRINGS C",
-  "3 STRINGS 3", "3 STRINGS 2", "3 STRINGS 7", "3 FULL STRIN",
-  "3 SYN-ORCH", "3 BRASS   1", "3 BRASS 6 BC", "3 BR TRUMPET",
+  /* 64 */ "3 CLICK 124", RENAMED("3 *Hammond 1", "3 *Drawbar 1"), "3 E.ORGAN 3", "3 60-S ORGAN",
+  /* 68 */ "3 OPTIC 28", "3 PIPES   1", "3 PIPES   3", "3 PIPES   2",
+  /* 72 */ RENAMED("3 JX-33-P", "3 POLY PAD"), "3 SOUNDTRACK",
+           "3 ICE PAD  2", RENAMED("3 M1 PADS", "3 LUSH PADS"),
+  /* 76 */ RENAMED("3 CARLOS   2", "3 BAROQUE 2"), "3 SOFT TOUCH", "3 *Planets", "3 CIRRUS",
+  /* 80 */ "3 ENTRIX", "3 MAL POLY", "3 Textures 6", "3 Etherial5a",
+  /* 84 */ "3 'Airy'", "3 BORON A", RENAMED("3 VANGELIS 1", "3 CINEMA 1"), "3 STRINGS C",
+  /* 88 */ "3 STRINGS 3", "3 STRINGS 2", "3 STRINGS 7", "3 FULL STRIN",
+  /* 92 */ "3 SYN-ORCH", "3 BRASS   1", "3 BRASS 6 BC", "3 BR TRUMPET",
 };
+
+#undef RENAMED
 
 enum Param { P_PATCH, P_BRIGHTNESS, P_ENVELOPE, P_VOLUME, P_COUNT };
 

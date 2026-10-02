@@ -27,6 +27,11 @@ def test_registry_lists_engines(renderer):
             assert e["max_voices"] == 0
         assert all(p["page"] in (0, 1) for p in e["params"])  # four knobs a page
         assert sum(p["page"] == 0 for p in e["params"]) <= 4
+        for p in e["params"]:   # an enum lists one name per value, nothing else does
+            if p["type"] == 1:
+                assert len(p["names"]) == p["max"] - p["min"] + 1 and all(p["names"])
+            else:
+                assert "names" not in p
 
 
 def test_reference_sine_is_in_tune(renderer, tmp_path):

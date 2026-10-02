@@ -1,6 +1,14 @@
 # 08 — Roadmap
 
-Phases with exit criteria. Phase 0 is done; nothing else has started.
+Phases with exit criteria. Status on 2026-10-01:
+- Phase 0 is done.
+- Phase 1 has had one read-only bench session (`notes/2026-09-06-bench.md`).
+- Phase 2's dongle is built and simulated (docs/10), and an AC79 dev kit and
+  JieLi's USB updater are on order (docs/14).
+- Parts of Phase 4 and Phase 5 exist on the desktop and in a browser: the
+  engine platform (`engines/`), the sequencer core (`engines/seq.md`) and the
+  virtual FM-1 (`sim/web/`).
+- Nothing has run on a JieLi chip.
 
 ## Phase 0 — Research (done, 2026-09-06)
 
@@ -28,6 +36,12 @@ Detailed commands in docs/09.
   from CI, logic tested against a ROM model); rehearse on an AC791N dev board
   if one can be bought (JL_AC79_DevKit V1.0 on Taobao), otherwise proceed
   carefully on the FM-1 following docs/10 §6.
+  - czietz's MicroPython dongle, reported working on two FM-1s (issue #2),
+    can also run on our dongle board as a second implementation for that
+    rehearsal: SPI1 on GP14/GP15 instead of GP10/GP11, relay energised,
+    pull-ups off.
+  - It drives push-pull, so it is not for this project's FM-1 (docs/10
+    §1.1).
 - Reach `UBOOT1.00`; record VID:PID, the SCSI inquiry string, the exact key
   polarity and timing that worked, the power-switch sequence.
 - Extend `jl-uboot-tool` for wl82 if needed (read-only first): chip ID, flash

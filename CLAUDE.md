@@ -4,19 +4,51 @@ Guidance for Claude Code working in this repo.
 
 ## What this is
 
-Research and, later, code toward an open-source firmware for the **M-VAVE FM-1**
-(JieLi AC791N SoC, pi32v2 CPU, msfa/Dexed FM engine). Status: **research phase
-complete; one read-only bench session done (`notes/2026-09-06-bench.md`);
-nothing flashed by this project.** The owner's unit ran stock `FM-1_015` until
+**Lunar Modulator** (tagline **INTERGALACTIC MODULATION STATION**) is open
+firmware for the **M-VAVE FM-1** (JieLi AC791N SoC, pi32v2 CPU; the stock
+firmware's FM engine is msfa/Dexed).
+
+Status, 2026-10-01: **the code runs on a desktop and in a browser, not yet on
+a JieLi chip or an FM-1; nothing flashed by this project.**
+- Built and tested on the desktop: an engine platform with Mutable- and
+  Schwung-derived engines and effects (`engines/`, checked against reference
+  renders), and a C99 port of Movy's sequencer core with its Movy oracle
+  (`engines/seq.md`).
+- A virtual FM-1 runs the engines and effects in a browser (`sim/web/`).
+- The research phase and one read-only bench session are done
+  (`notes/2026-09-06-bench.md`).
+- An AC79 dev kit and JieLi's USB updater are on order (docs/14). The owner's unit ran stock `FM-1_015` until
 the owner installed Baud Girl's FM-1+VA; it identifies as **`FM-1_092`** since
 (2026-09-29). The `USB_KEY` recovery
-dongle (docs/10, `dongle/`) is implemented and simulated, not yet tried.
+dongle (docs/10, `dongle/`) is implemented and simulated, not yet tried. Other
+owners report that czietz's simpler Pico dongle reaches UBOOT mode on their
+FM-1s, and one reports a firmware backup and a write that way (issue #2,
+docs/10 §1.1).
 Elsewhere, Echomatter ran a version-bumped V15-derived package on their FM-1
 via the stock OTA path and rolled it back (AL-255 PR #2, 2026-09-04), and
 since 2026-09-26 Baud Girl's FM-1+VA (a modified V15, source not published)
 installs from a browser for anyone (docs/04, `notes/2026-09-29-*`).
 `HANDOFF.md` is the context summary; `README.md` has the verdict; `docs/` has
 the detail.
+
+**The name** (owner's choice, 2026-10-01). Until then the project was "Open
+firmware for the M-VAVE FM-1", repository `ip2k/mvave-fm1-open-firmware`; it
+is now `ip2k/lunar-modulator`. The local folder `~/Developer/mvave-fm1-firmware`
+keeps its old name. Rules:
+
+- Full name **Lunar Modulator**; short form **Lunar**. Never "Lunar Module"
+  (the Apollo spacecraft), "Lunar Mod" or "LM".
+- Tagline **INTERGALACTIC MODULATION STATION**, in capitals.
+- Wherever the project is described, keep the descriptor "open firmware for
+  the M-VAVE FM-1". The device's name only says what the firmware runs on;
+  it implies no tie to M-VAVE or Cuvave.
+- The look is a space theme set in Audiowide (SIL OFL 1.1); the art, the
+  font and its licence are in `assets/branding/` (see its README). In
+  published text name the typeface, never "the NASA font". Never use NASA's
+  insignia (the "meatball"), its "worm" logotype, its seal, or any other
+  NASA name or mark, and nothing that suggests NASA endorsement. Never use
+  M-VAVE's or Cuvave's logos. Mutable Instruments module names (Plaits,
+  Braids, Clouds, …) are credited as sources, never used as product names.
 
 This project is unrelated to the BUSY Bar timer repo it was briefly hosted in.
 
@@ -65,6 +97,8 @@ python3 reference/jl-misctools/firmware/fwunpack_newfw.py FM-1.fwsc     # unpack
 python tools/fm1_identify.py                                   # read-only identity query + decode, any OS (verified on hardware)
 python -m pytest                                               # tools, PIO emulation, dongle/ROM co-simulation and engine tests
 make -C engines && engines/build/fm1-render --list             # engine platform, desktop build (docs/11, engines/README.md)
+cd sim/web/www && python3 -m http.server 8000                  # the virtual FM-1 at http://localhost:8000/ (sim/web/README.md)
+FM1_SIM_HOST=user@host sim/web/build-on-aeon.sh                # rebuild and check its WebAssembly module in containers on a Docker host
 tools/fm1_identify.sh                                          # Linux, ALSA raw MIDI, read-only, untested
 python3 reference/FM-1-RE/tools/fm1_ota.py scan                # AL-255's client, read-only scan
 ```
@@ -76,7 +110,9 @@ vendor packages there.
 
 - **Dead-code audit:** not done yet. The mark is 7,463 lines of the repo's
   own source (`dongle/`, `engines/` less `third_party/`, `tests/`, `tools/`)
-  at the stage A2 merge, 2026-09-30; audit after about 10,000 more.
+  at the stage A2 merge, 2026-09-30; audit after about 10,000 more. `sim/`
+  is in scope too: it arrived on 2026-10-01 with about 4,200 lines (less its
+  built module, record and font data), which count toward the next audit.
 - **Confidence marks in every technical claim:** `[verified]` (checked here
   against binaries, photos or SDK files), `[reported]` (named source, not
   re-checked), `[inferred]`. Never upgrade a claim without doing the check.
@@ -105,8 +141,12 @@ vendor packages there.
    the update service; it installs non-stock images fine (Baud Girl), but it
    cannot save one that does not boot. `0xF0000000/"success"` is a terminal
    acknowledgement, not authorization.
-3. **kagaimiq's two `USB_KEY` write-ups disagree** on which USB line is the
-   clock. Try both.
+3. **The `USB_KEY` clock is D+.**
+   - czietz's Pico dongle clocks on D+ and has reached UBOOT mode on two FM-1s
+     (issue #2, docs/10 §1.1).
+   - kagaimiq's `usb-key.md` and the diagram in his `how-to-enter-uboot.md`
+     agree; only that page's prose says D−.
+   - Try D+ first, and keep both roles in the dongle.
 4. **ghidra-jieli mis-decodes the `80 ff` long-call prefix**; use the vendor
    `objdump` from the JieLi Linux toolchain as the source of truth.
 5. **Raw MIDI on Linux is unusable while PipeWire/JACK/aseq hold the port**;

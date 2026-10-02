@@ -59,9 +59,12 @@ platform for features M-VAVE will never ship.
 - JieLi's mask-ROM USB boot mode (`UBOOT1.00`) *should* be reachable through
   the USB connector with the `USB_KEY` signal, and would allow full dump and
   restore with `jl-uboot-tool` (`wl82loader.bin`) or the vendor's
-  `isd_download`. **This has never been demonstrated on an FM-1.** Until it
-  is, every custom flash risks a permanent brick. docs/07 is the plan to close
-  this.
+  `isd_download`. Until 2026-09 this had never been demonstrated on an FM-1.
+  - Now two owners report reaching it with czietz's Pico dongle, and one
+    reports a firmware backup and a write [reported: issue #2, docs/10 §1.1].
+  - It has not been done on this project's unit. Until it is, every custom
+    flash here risks a permanent brick.
+  - docs/07 is the plan to close this.
 
 ### 3.2 The verifier gate
 
@@ -127,7 +130,7 @@ carry effects in float.
 
 | Question | Answer |
 | --- | --- |
-| Can custom code run on the FM-1? | **Yes, routinely**: first a version-bumped V15 package (Echomatter, AL-255 PR #2, 2026-09-04), then Baud Girl's public FM-1+VA releases `FM-1_020` … `FM-1_092` (2026-09), all through the stock OTA path. The mask-ROM path remains undemonstrated. |
+| Can custom code run on the FM-1? | **Yes, routinely**: first a version-bumped V15 package (Echomatter, AL-255 PR #2, 2026-09-04), then Baud Girl's public FM-1+VA releases `FM-1_020` … `FM-1_092` (2026-09), all through the stock OTA path. The mask-ROM path is reported working on two other FM-1s, with a firmware backup and a write on one (issue #2, docs/10 §1.1), and is not yet shown on this project's unit. |
 | Can it be sound-compatible with stock? | Yes: same msfa engine, same DX7 patch format. |
 | Can it be fully open source? | The application, bootloader and (with work) drivers can be. The compiler and the Bluetooth stack cannot in any foreseeable timeframe without a dedicated compiler/BLE effort. |
 | Is it safe to start hacking on the one device we have? | **Not until recovery is proven.** First milestone is a full flash dump and a byte-identical restore. |

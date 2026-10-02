@@ -35,7 +35,7 @@ SW_OUR_OBJ := $(BUILD)/our/src/schwung_shim.o $(BUILD)/our/src/sw_sophie.o \
 $(SW_OUR_OBJ): COMMON += -isystem third_party/schwung
 $(SW_OUR_OBJ): src/schwung_shim.h src/schwung_abi.h
 
-$(BUILD)/fm1-render: $(SW_OBJ)
+RENDER_EXTRA_OBJ += $(SW_OBJ)
 
 # fm1-schwung-selftest: arena bounds and exhaustion, re-blocking, MIDI and
 # parameter encoding, and the parameter tables against the modules' own

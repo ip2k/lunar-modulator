@@ -1,8 +1,10 @@
 """Shared helpers for the engine tests (tests/test_engines*.py): build the
-desktop renderer, render through it, read the WAV back, measure pitch and level.
+desktop renderer, render through it, read the WAV back, measure pitch and level,
+read Six-Op FM's patch-name table.
 """
 import json
 import math
+import re
 import shutil
 import subprocess
 import wave
@@ -76,3 +78,18 @@ def rms(samples, start_s, end_s):
     return math.sqrt(sum(x * x for x in seg) / max(1, len(seg)))
 
 
+
+
+def sixop_patch_names():
+    """The Patch table of engines/src/mi_sixop.cc as (stored, shown) pairs:
+    the name stored in the patch data and the one the default build lists.
+    They differ where the table has RENAMED("<stored>", "<shown>")."""
+    src = (ENGINES / "src" / "mi_sixop.cc").read_text()
+    table = src[src.index("kPatchNames[kNumPatches] = {"):]
+    table = table[:table.index("};")]
+    string = r'"((?:[^"\\]|\\.)*)"'
+    pairs = []
+    for m in re.finditer(r"RENAMED\(\s*%s\s*,\s*%s\s*\)|%s" % (string, string, string), table):
+        stored, shown, plain = m.groups()
+        pairs.append((stored, shown) if plain is None else (plain, plain))
+    return pairs

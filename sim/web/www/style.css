@@ -1,0 +1,313 @@
+/* style.css -- Lunar Modulator's page: the virtual FM-1. One dark theme, the
+ * Rosé Pine Moon palette (rosepinetheme.com, MIT; the values are
+ * rose-pine/palette's), which the firmware's screen uses too (src/fm1_app.c).
+ * Audiowide (Astigmatic, SIL OFL 1.1) for display type, unmodified, in
+ * fonts/audiowide/ with its licence; Exo 2 for small text where installed.
+ * MIT licence, like the rest of this repository. */
+
+@font-face {
+  font-family: "Audiowide";
+  src: url("fonts/audiowide/Audiowide-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Rosé Pine Moon */
+  --rp-base: #232136;
+  --rp-surface: #2a273f;
+  --rp-overlay: #393552;
+  --rp-muted: #6e6a86;
+  --rp-subtle: #908caa;
+  --rp-text: #e0def4;
+  --rp-love: #eb6f92;
+  --rp-gold: #f6c177;
+  --rp-rose: #ea9a97;
+  --rp-pine: #3e8fb0;
+  --rp-foam: #9ccfd8;
+  --rp-iris: #c4a7e7;
+  --rp-highlight-low: #2a283e;
+  --rp-highlight-med: #44415a;
+  --rp-highlight-high: #56526e;
+
+  /* the page */
+  --bg: var(--rp-base);
+  --surface: var(--rp-surface);
+  --text: var(--rp-text);
+  --muted: var(--rp-subtle);
+  /* Subtle on surface is 4.46:1, just under WCAG's 4.5 for body text; a
+   * tenth of text lifts it to 4.9:1 (on base, subtle alone is 4.9:1). */
+  --muted-on-surface: color-mix(in srgb, var(--rp-subtle) 90%, var(--rp-text));
+  --border: var(--rp-highlight-med);
+  --accent: var(--rp-iris);
+  --accent-text: var(--rp-base);
+  --focus: var(--rp-gold);
+  --display: "Audiowide", "Exo 2", system-ui, sans-serif;
+  --small: "Exo 2", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* the device */
+  --case: var(--rp-overlay);
+  --case-edge: var(--rp-highlight-high);
+  --case-inner: var(--rp-highlight-med);
+  --print: var(--rp-text);
+  --print-rear: var(--rp-subtle);
+  --frame: var(--rp-highlight-high);
+  --knob: var(--rp-base);
+  --knob-ring: var(--rp-muted);
+  --knob-mark: var(--rp-text);
+  --cap: var(--rp-highlight-med);
+  --cap-edge: var(--rp-highlight-high);
+  --cap-text: var(--rp-text);
+  --cap-lit: var(--rp-gold);
+  --cap-lit-text: var(--rp-base);
+  --key-white: var(--rp-text);
+  --key-white-edge: var(--rp-subtle);
+  --key-black: var(--rp-base);
+  --key-black-edge: var(--rp-highlight-low);
+  --key-slot: var(--rp-muted);
+  --key-lit: var(--rp-gold);
+  --combo: var(--rp-subtle);
+  --bezel: var(--rp-surface);
+  --screen: var(--rp-base);
+  --port: var(--rp-base);
+  --lever: var(--rp-muted);
+  --lever-on: var(--rp-foam);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 var(--small);
+}
+
+a { color: var(--rp-foam); }
+a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.top, main { max-width: 1400px; margin: 0 auto; padding: 0 16px; }
+.top { padding-top: 24px; }
+.brand {
+  font: 400 clamp(1.5rem, 1rem + 2.6vw, 2.6rem)/1.15 var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+  color: var(--text);
+}
+.tagline {
+  font: 400 clamp(0.62rem, 0.45rem + 0.9vw, 0.95rem)/1.4 var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--rp-iris);
+  margin: 8px 0 12px;
+}
+h2 { font: 400 1.1rem/1.3 var(--display); letter-spacing: 0.03em; margin: 0 0 12px; }
+.lede { margin: 0 0 20px; color: var(--muted); max-width: 72ch; }
+
+/* ---- the device ---------------------------------------------------------- */
+
+/* The power overlay sits on the wrap, so it covers what is visible however
+ * far the panel has been scrolled. */
+.device-wrap { position: relative; }
+.device-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+
+.device {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 167.5 / 107;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.narrow-hint { display: none; margin: 8px 0 0; color: var(--muted); font-size: 0.9rem; }
+
+/* Narrower than 800 px, the to-scale panel would leave its smallest targets
+ * (OCT-/OCT+, 5.2 mm tall) under 24 px, WCAG 2.5.8's minimum. It keeps
+ * 800 px (4.8 px/mm: keys 35 px and 31 px wide, buttons 34 px, OCT 25 px
+ * tall) and scrolls sideways in its own box, never the page; app.js pans it
+ * when the case is dragged. */
+@media (max-width: 831px) {
+  .device { width: 800px; }
+  .narrow-hint { display: block; }
+}
+
+#panel { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+/* The TFT's active area: 27.72 mm square at (48.96, 10.89) mm in a viewBox
+ * that starts at (-3, -8) and spans 167.5 x 107 mm. */
+#tft {
+  position: absolute;
+  left: calc((48.96 + 3) / 167.5 * 100%);
+  top: calc((10.89 + 8) / 107 * 100%);
+  width: calc(27.72 / 167.5 * 100%);
+  height: calc(27.72 / 107 * 100%);
+  image-rendering: pixelated;
+  background: var(--screen);
+}
+
+.case { fill: var(--case); stroke: var(--case-edge); stroke-width: 0.5; }
+.case-inner { fill: none; stroke: var(--case-inner); stroke-width: 0.35; }
+.print { fill: var(--print); font-family: var(--small); font-weight: 600; font-size: 2.15px; text-anchor: middle; letter-spacing: 0.08px; }
+.print.small { font-size: 1.7px; }
+.print.rear { fill: var(--print-rear); }
+.frame { fill: none; stroke: var(--frame); stroke-width: 0.45; }
+.bezel { fill: var(--bezel); stroke: var(--frame); stroke-width: 0.4; }
+.port { fill: var(--port); }
+.port-hole { fill: #000; }
+
+.knob { cursor: ns-resize; }
+.knob .body { fill: var(--knob); }
+.knob .ring { fill: none; stroke: var(--knob-ring); stroke-width: 0.6; stroke-dasharray: 0.45 0.35; }
+.knob .mark { stroke: var(--knob-mark); stroke-width: 0.55; stroke-linecap: round; }
+.knob:focus { outline: none; }
+.knob:focus-visible .body { stroke: var(--focus); stroke-width: 0.5; }
+
+.btn { cursor: pointer; }
+.btn .cap { fill: var(--cap); stroke: var(--cap-edge); stroke-width: 0.3; }
+.btn .label { fill: var(--cap-text); font: 700 1.85px var(--small); text-anchor: middle; }
+.btn .label.two { font-size: 1.55px; }
+.btn .divider { stroke: var(--cap-text); stroke-width: 0.18; }
+.btn.lit .cap { fill: var(--cap-lit); stroke: var(--rp-rose); filter: drop-shadow(0 0 0.8px var(--rp-gold)); }
+.btn.lit .label { fill: var(--cap-lit-text); }
+.btn.lit .divider { stroke: var(--cap-lit-text); }
+.btn.down .cap { transform-box: fill-box; transform-origin: center; transform: scale(0.94); }
+.btn:focus { outline: none; }
+.btn:focus-visible .cap { stroke: var(--focus); stroke-width: 0.6; }
+
+.key { cursor: pointer; }
+.key .cap { stroke-width: 0.3; }
+.key.white .cap { fill: var(--key-white); stroke: var(--key-white-edge); }
+.key.black .cap { fill: var(--key-black); stroke: var(--key-black-edge); }
+.key .slot { fill: var(--key-slot); }
+.key .combo { fill: var(--combo); font: 600 1.35px var(--small); text-anchor: middle; }
+.key.lit .slot { fill: var(--key-lit); filter: drop-shadow(0 0 0.7px var(--rp-gold)); }
+.key.lit.white .cap { fill: color-mix(in srgb, var(--rp-gold) 22%, var(--rp-text)); }
+.key.lit.black .cap { fill: var(--rp-highlight-med); }
+
+.power .lever { fill: var(--lever); transition: transform 120ms; }
+.power.on .lever { transform: translateX(2.2px); fill: var(--lever-on); }
+.power { cursor: pointer; }
+
+.power-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  border-radius: 12px;
+  padding: 16px;
+}
+.power-overlay[hidden] { display: none; }
+.power-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 24rem;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.35);
+  text-align: center;
+}
+.power-card p { margin: 0; color: var(--muted-on-surface); font-size: 0.92rem; }
+
+button, select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  min-height: 36px;
+}
+button { cursor: pointer; }
+button:hover:not(:disabled), select:hover:not(:disabled) { border-color: var(--rp-highlight-high); }
+button:disabled, select:disabled { opacity: 0.55; cursor: default; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.power-button {
+  font: 400 1.2rem/1.2 var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+  padding: 12px 28px;
+  min-height: 48px;
+}
+.power-button:hover { background: var(--rp-rose); border-color: var(--rp-rose); }
+
+/* ---- controls and help ------------------------------------------------- */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: flex-end;
+  margin-top: 16px;
+}
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
+.field label { font-size: 0.85rem; color: var(--muted); }
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.status { color: var(--muted); margin: 10px 0 0; min-height: 1.5em; font-variant-numeric: tabular-nums; }
+
+.mirror { margin-top: 16px; }
+.mirror canvas {
+  width: min(480px, 100%);
+  aspect-ratio: 1;
+  image-rendering: pixelated;
+  background: var(--screen);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: block;
+}
+
+.help {
+  margin: 24px 0 40px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.help dl { margin: 0; display: grid; gap: 10px; }
+.help dl > div { display: grid; grid-template-columns: 9rem 1fr; gap: 12px; }
+.help dt { font-weight: 600; color: var(--rp-iris); }
+.help dd { margin: 0; }
+.help .fine { margin: 14px 0 0; font-size: 0.85rem; color: var(--muted-on-surface); }
+kbd {
+  font: 0.85em/1 ui-monospace, Menlo, Consolas, monospace;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+  background: var(--bg);
+}
+code { font: 0.9em ui-monospace, Menlo, Consolas, monospace; color: var(--rp-foam); }
+
+@media (max-width: 640px) {
+  .power-card { padding: 14px 16px; }
+  .power-card p { display: none; }
+  .help dl > div { grid-template-columns: 1fr; gap: 2px; }
+  .field { min-width: 0; flex: 1 1 140px; }
+}
+
+/* A phone on its side: the panel, not the header, gets the first screenful,
+ * and Power on sits where it can be seen without scrolling. */
+@media (max-height: 520px) {
+  .top { padding-top: 12px; }
+  .brand { font-size: 1.4rem; }
+  .tagline { margin: 4px 0 10px; }
+  .lede { display: none; }
+  /* below the rear ports' labels, over the case's top row */
+  .power-overlay { align-items: flex-start; padding-top: 6%; }
+}

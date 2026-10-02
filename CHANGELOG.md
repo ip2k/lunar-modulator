@@ -9,6 +9,39 @@ history.
 ## [Unreleased]
 
 ### Added
+- docs/10 §1.1: reports from other FM-1 owners (issue #2) and what they
+  mean for our dongle.
+  - czietz's Raspberry Pi Pico `USB_KEY` dongle (an unlisted MicroPython
+    gist they linked there) gets their FM-1 into UBOOT mode, about one
+    power-on in two.
+  - masanaohayashi used it to put their FM-1 into boot mode, back up its
+    firmware and write firmware.
+  - The dongle clocks the key on D+ (our polarity A), fakes the SOFs with a
+    1 kHz square wave, and hands over by moving the cable to the PC.
+  - docs/10 now recommends fixed polarity A for the first attempt.
+  - It adds a relay-free minimal build that relies on the FM-1's battery.
+  - It expects the FM-1 to show up as vendor `WL82`, product `UBOOT1.00`
+    [inferred].
+  - README, HANDOFF and docs/05 and 07 no longer say the mask-ROM route has
+    never worked on an FM-1. It is reported on two other units, and not yet
+    shown on this project's.
+- docs/14: the verification ladder, the plan for showing 1:1 behaviour once
+  the AC79 dev kit and JieLi's USB updater arrive. The rungs are the desktop
+  renderer, the browser module, the dev kit and the FM-1, in that order.
+  - Bit-exact wherever the arithmetic is the same: sequencer events, screens,
+    LEDs and MIDI.
+  - The DSP is bit-exact too, in a "ladder" build profile with float
+    contraction off and one libm.
+  - Named tolerances only for named causes.
+  - One golden corpus, run by a heap-free runner on every rung.
+  - The FM-1 rung opens only after a byte-identical dump and restore.
+- Branding art in `assets/branding/`: a 1280×320 README banner (PNG and
+  SVG) and a 240×240 boot screen for the FM-1's display (PNG plus raw
+  RGB565 for later firmware use). A seeded script draws everything from
+  code: starfield, crescent moon, an orbiting station and an FM waveform.
+  The lettering is set in Audiowide (SIL OFL 1.1), committed unmodified with
+  its licence, and the colours are the Rosé Pine Moon palette, as on the
+  virtual FM-1. The README now opens with the banner.
 - The sequencer core, `fm1_seq` (docs/13 stage M1): a C99, heap-free port of
   Movy's sequencer with every planned fix on by default and an exact Movy
   mode for tests. It has 4–8 tracks, each routed to the engine or to USB-MIDI
@@ -28,6 +61,27 @@ history.
   as code; Kria lanes, the Ansible arpeggiator, Meadowphysics and Teletype's
   interpreter model are worth reimplementing; jhjlim's repositories have
   nothing to take.
+- A virtual FM-1 in the browser (`sim/web/`): every engine and effect,
+  compiled to WebAssembly, behind a to-scale FM-1 panel with the firmware's
+  own 240 × 240 screen. Play it with the mouse, touch, the computer keyboard
+  or a MIDI keyboard; serve `sim/web/www/` from localhost. Its output equals
+  the native renderer's byte for byte (Sophie aside, against glibc), and
+  `sim/web/build-on-aeon.sh` rebuilds and checks it in one command. On a
+  phone the panel keeps playable 25–35 px controls and scrolls sideways in
+  its own box; turning the phone to landscape shows it whole. Above
+  47,872 Hz, where Macro, Macro Heavy and Six-Op cannot run, it starts with
+  Shapes, steps over them and says why. It wears Lunar Modulator's look:
+  the Rosé Pine Moon palette on the page and on the firmware's screen,
+  Audiowide for the name and the tagline "Intergalactic Modulation
+  Station", and an oscilloscope that scales to the sound. The page finds
+  its files relative to itself, so `sim/web/www/` publishes as static files
+  over https at any path (tested under a sub-path); opened over plain http
+  from another machine, Power on says it needs https or localhost. Screenshots of the engines, an effect page, a
+  parameter page, the phone layout and a parity figure are in
+  `assets/screenshots/`; `build-on-aeon.sh` now needs `FM1_SIM_HOST` and
+  remakes them with `--readme-screenshots`.
+- `sim/web/emulators.md`: there is no public emulator of the FM-1, its SoC
+  or its CPU; what each route to one would take.
 - `engines/include/fm1_resampler.h`: a reusable, heap-free resampler
   (polyphase windowed sinc to twice the host rate, then a 123-tap low-pass).
   Equal rates pass through bit for bit; everything above the output's
@@ -113,6 +167,45 @@ history.
   notes, and each takes 12 bytes instead of 20 with nothing lost, so the
   whole sequencer fits in 31,880 B at 8 tracks (86 % of its budget) and
   18,056 B at 4. Captures land exactly as before, and as on Movy.
+- The README no longer describes the project as "research, and later
+  code".
+  - The intro says what you can use today: the virtual FM-1 in a browser,
+    with five engines and four effects, and a sequencer core on the
+    desktop.
+  - The status (2026-10-01) says where things stand: nothing runs on a JieLi
+    chip or an FM-1, and nothing has been flashed. The AC79 dev kit and
+    JieLi's updater are on order. Other owners report reaching the FM-1's
+    mask-ROM mode (issue #2).
+  - The Credits now cover:
+    - Baud Girl's FM-1+VA findings;
+    - czietz's and masanaohayashi's dongle reports and what they taught us;
+    - Echomatter;
+    - Emilie Gillet's Mutable Instruments code;
+    - Charles Vestal's Schwung and PSX Verb, and Matt Estela's Sophie;
+    - the Rosé Pine palette and Audiowide.
+  - The recommended path, the Movy paragraph (four free knobs, not eight)
+    and the repository map's test row are current.
+  - CLAUDE.md, AGENTS.md, docs/05, 07 and 08, sim/web/README.md and
+    engines/README.md lose matching stale lines: "research and, later, code",
+    "nothing else has started", "the mask-ROM path remains undemonstrated",
+    and "about 350" reference tests (427).
+- The project is now **Lunar Modulator**, tagline **INTERGALACTIC
+  MODULATION STATION**: open firmware for the M-VAVE FM-1, formerly "Open
+  firmware for the M-VAVE FM-1". The repository becomes
+  `ip2k/lunar-modulator` (GitHub redirects `ip2k/mvave-fm1-open-firmware`).
+  The short form is "Lunar"; the look is a space theme with a NASA-style
+  typeface, using no NASA, M-VAVE or Cuvave marks. README, HANDOFF,
+  CLAUDE.md and AGENTS.md carry the new name; CLAUDE.md and AGENTS.md set
+  out the naming rules.
+- Six-Op FM lists 23 of its 96 patches under names of our own, because the
+  browser simulator is going public: the stored names that are trademarks
+  or a person's name (`FENDER 1`, `STEINWAY`, `*Hammond 1`, `VANGELIS 1`,
+  `CARLOS   2`...) become descriptive ones (`TINE EP 1`, `BIG GRAND`,
+  `*Drawbar 1`, `CINEMA 1`, `BAROQUE 2`...). The patches, their order and
+  their sound are unchanged. Personal builds can restore the stored names
+  with `-DFM1_SIXOP_ORIGINAL_NAMES` (the mapping is in
+  engines/plaits-heavy.md). `fm1-render --list` now also prints the names
+  of enum parameters' values.
 - docs/13 records the owner's choice of 7-bit locks with smoothing, and of
   Capture with 256 packed events, on by default. docs/11 corrects its claim
   that Clouds' spectral mode needs its own FFT.
@@ -153,6 +246,22 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- The `USB_KEY` dongle's two 2.2 kΩ pull-ups each get their own pin (GP16
+  for D+, GP19 for D−; docs/10 §3).
+  - On the one pin they shared, switching them off still joined D+ and D−
+    through 4.4 kΩ, so D− followed the chip's D+ pull-up.
+  - The SOF phase, which waits for D+ high and D− low, would have failed on
+    every attempt.
+  - The co-simulation modelled the pull-ups as independent and could not
+    see this; a test now reproduces it with the shared wiring.
+  - The pull-up pins' pad pull-downs are now disabled, so "off" is hi-Z as
+    the code says.
+  - Found by a review of the docs/10 update, before anyone built the
+    dongle.
+- docs/10 §1 credited the D−-clock reading to the diagram in kagaimiq's
+  `how-to-enter-uboot.md`. In fact that diagram clocks on D+; only the page's
+  prose says D−. The `USB_KEY` trap in CLAUDE.md, AGENTS.md, HANDOFF and
+  docs/07 now says D+ is the clock, as reported on two FM-1s.
 - Shapes crashed on 11 of its 47 shapes when rendered in blocks that were
   not a multiple of 24 samples, and 22 shapes drifted from Braids (bells and
   drums decayed too fast, some shapes glitched). It now always renders Braids

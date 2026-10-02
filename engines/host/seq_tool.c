@@ -307,8 +307,9 @@ int main(int argc, char **argv) {
   ev = (fm1_seq_ev_t *)malloc(ev_cap * sizeof(*ev));
   if (!ev) return 1;
   if (state) fputs("{\"snaps\":[", state);
-  qsort(snaps, n_snaps, sizeof(*snaps), cmp_u64);
-  qsort(peeks, n_peeks, sizeof(*peeks), cmp_u64);
+  /* glibc declares qsort's base nonnull even for zero items; the lists stay NULL when unused. */
+  if (n_snaps > 1) qsort(snaps, n_snaps, sizeof(*snaps), cmp_u64);
+  if (n_peeks > 1) qsort(peeks, n_peeks, sizeof(*peeks), cmp_u64);
 
   total = (uint64_t)end;
   for (;;) {

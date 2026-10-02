@@ -23,6 +23,26 @@ def test_config_constants():
     assert PARAMS["MUX_SEL_PC"] == 0                  # de-energised relay = PC
 
 
+def test_each_pullup_has_its_own_pin():
+    pins = [PARAMS[k] for k in ("PIN_DP", "PIN_DM", "PIN_PULLUP_DP", "PIN_PULLUP_DM", "PIN_MUX_SEL", "PIN_BUTTON")]
+    assert len(set(pins)) == len(pins) and 25 not in pins   # GP25 is the on-board LED
+    assert "PIN_PULLUP_EN" not in PARAMS                    # the shared pin of the first wiring
+
+
+def test_shared_pullup_pin_fails_the_sof_phase():
+    # The first wiring tied both 2.2 k pull-ups to one pin. Switched off, they still joined D+ and D-
+    # through 4.4 k, so D- followed the chip's D+ pull-up and the SOF phase, which waits for D+ high
+    # and D- low, timed out. One pin per pull-up (config.h) fixes it; the default model is that.
+    rom = JieLiMaskRom(clock_line="dp")
+    d = dongle(polarity_mode=POLARITY_DP_CLOCK, sof_mode=SOF_MODE_DONGLE)
+    cosim.run(d, rom, max_us=600_000, pullup_node="shared")
+    assert d.state == "failed" and ("failed", d.log[-1][1], "dp_never_high") == d.log[-1], d.log
+    rom = JieLiMaskRom(clock_line="dp")
+    d = dongle(polarity_mode=POLARITY_DP_CLOCK, sof_mode=SOF_MODE_DONGLE)
+    cosim.run(d, rom, max_us=80_000)
+    assert d.state == "done", d.log
+
+
 @pytest.mark.parametrize("rom_clock", ["dp", "dm"])
 def test_alternate_polarity_reaches_uboot_with_dongle_sof(rom_clock):
     rom = JieLiMaskRom(clock_line=rom_clock)
