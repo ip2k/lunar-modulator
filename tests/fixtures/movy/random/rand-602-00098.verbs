@@ -1,0 +1,153 @@
+#! rate=44118 block=128 tracks=8
+# gen_scripts.py seed=602 index=98 no-d5 no-undo
+@0 tdrum 0 1
+@0 tog 0 3 36 127 44 64
+@0 tog 0 5 36 64 36 110
+@0 ltog 0 15 42 40
+@0 tog 0 10 49 64 40 90
+@0 ltog 0 6 38 90
+@0 econd 0 6 6 49 1 3
+@0 econd 0 6 6 -1 2 2
+@0 clipsel 0 1
+@0 dbl 0
+@0 ltog 0 0 49 105
+@0 ltog 0 2 49 127
+@0 eprob 0 2 2 -1 90
+@0 econd 0 0 0 42 3 3
+@0 cq 0 100
+@0 alabel 0 3 fx:time
+@0 alabel 0 3 synth:decay
+@0 alabel 0 6 fx:time
+@0 abaseq 0 3 66
+@0 abase 0 6 77
+@0 aset 0 3 7 67 1
+@0 dbl 1
+@0 tog 1 10 52 1
+@0 tog 1 18 60 100
+@0 eprob 1 10 10 -1 50
+@0 clipsel 1 2
+@0 dbl 2
+@0 tog 1 3 55 64
+@0 tog 1 41 53 1
+@0 tog 1 27 60 64
+@0 tog 1 63 55 90
+@0 tog 1 50 55 64 55 64
+@0 tog 1 54 55 90 59 97
+@0 tog 1 6 74 40
+@0 tog 1 42 60 90 74 40
+@0 tog 1 1 69 40
+@0 tog 1 37 69 100
+@0 tog 1 18 74 14
+@0 econd 1 41 41 -1 5 64
+@0 eprob 1 3 3 -1 10
+@0 alabel 1 4 synth:timbre
+@0 alabel 1 1 synth:reso
+@0 alabel 1 4 synth:cutoff
+@0 abaseq 1 1 115
+@0 abase 1 4 100
+@0 aset 1 2 10 17 1
+@0 aset 1 4 9 121 1
+@0 aset 1 5 52 96 1
+@0 aset 1 1 57 65 1
+@0 clipsel 1 0
+@0 tog 2 2 67 40
+@0 tog 2 8 52 110
+@0 tog 2 10 52 64
+@0 tog 2 14 59 100
+@0 tog 2 1 74 110
+@0 cscl 2 2 3
+@0 ctr 2 -5
+@0 cq 2 50
+@0 clipsel 2 2
+@0 tog 2 32 53 64 53 127
+@0 tog 2 26 69 90
+@0 tog 2 5 72 90
+@0 tog 2 36 62 110
+@0 tog 2 41 60 58 72 110
+@0 tog 2 27 65 100 64 100
+@0 tog 2 54 55 1
+@0 tog 2 21 64 100 72 40
+@0 tog 2 57 69 110
+@0 tog 2 56 67 52
+@0 tog 2 31 72 40
+@0 tog 2 13 50 110
+@0 econd 2 25 25 74 1 4
+@0 alabel 2 2 synth:attack
+@0 alabel 2 3 synth:attack
+@0 alabel 2 7 synth:morph
+@0 abaseq 2 2 25
+@0 abase 2 3 20
+@0 abase 2 7 122
+@0 aset 2 7 21 0 1
+@0 aset 2 7 41 76 1
+@0 aset 2 6 1 80 1
+@0 aset 2 3 33 46 1
+@0 aset 2 2 61 23 1
+@0 aset 2 6 59 74 1
+@0 clipsel 2 0
+@1771 rec 2
+@85006 non 2 62 110
+@85034 non 2 50 127
+@87792 nof 2 50
+@90520 nof 2 62
+@90556 non 2 74 127
+@91935 nof 2 74
+@107113 non 2 62 110
+@109882 non 2 71 90
+@112651 non 2 50 90
+@123709 non 2 53 1
+@126487 non 2 67 1
+@129224 nof 2 53
+@131941 nof 2 71
+@132002 nof 2 67
+@134710 nof 2 50
+@143056 non 2 53 100
+@145829 non 2 52 110
+@148571 nof 2 53
+@151344 nof 2 52
+@151370 non 2 52 127
+@156745 nof 2 62
+@167923 non 2 65 78
+@169302 nof 2 65
+@201003 nof 2 52
+@286269 rec 2
+@289113 aset 0 6 3 55
+@311202 clipdup 2
+@311249 ctr 0 -12
+@333417 asetr 0 6 11 12 108
+@336345 tog 2 21 55 40
+@339244 songadd 0
+@344771 psolo 2 71
+@355823 abaseq 1 4 44
+@366937 tog 3 6 64 40 67 1 48 127
+@369872 tog 2 39 48 1
+@375467 aset 0 7 0 20
+@397648 clipcopy 2 0
+@397648 clippaste 2 0
+@400533 cpy 0 2 5
+@400533 pst 1 19
+@400533 cpyclr
+@406230 evel 0 2 2 -1 50
+@417359 swing 50
+@425713 aset 0 6 4 121 1
+@431328 aset 1 4 21 91 1
+@436965 swing 75
+@438495 ctr 1 -12
+@444058 eprob 1 18 18 -1 50
+@446998 aset 2 3 26 21 1
+@448501 econd 1 10 10 71 1 8
+@454160 aset 1 1 12 90
+@459697 abaseq 2 6 17
+@462564 tog 3 1 60 100
+@468186 mute 0 0
+@471048 bpm 10033
+@471139 tog 1 9 67 50 72 90 50 40
+@471152 aset 1 4 14 78 0
+@524006 aclr 5 7
+@576966 econd 1 10 10 64 1 8
+@583683 cscl 0 1 1
+@610106 etrn 2 14 14 -1 -1
+@616856 addp 0 11 14 46 100
+@643280 tog 0 15 46 25
+@645076 einv 2 30 30 -1 0
+@651247 stop

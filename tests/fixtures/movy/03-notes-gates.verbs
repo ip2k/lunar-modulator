@@ -1,0 +1,24 @@
+#! rate=44118 block=128 tracks=4
+# 03 Notes, gates and note-offs (R3 c, R4 a-b, R10).
+# A chord's gates expire together and leave in swap_remove order; a
+# same-pitch note on the next step retriggers after its own off; mute flushes
+# the track's gates at once; a track stopped at the bar has its gate flushed
+# by service_tick before step_tick runs; Stop flushes every open gate.
+# D1 trace: no D2-D7 behaviour is involved, so the FM-1 default mode should
+# produce <stem>.d1.jsonl: the same events, each tick at its own frame.
+@0 tog 0 0 60 100 64 90 67 80
+@0 tog 0 1 60 100
+@0 tog 0 4 48 100
+@0 slen 0 4 4 48 200
+@0 tog 1 0 36 127
+@0 slen 1 0 0 36 300
+@0 tog 1 8 38 110
+@0 tog 2 2 72 100
+@0 slen 2 2 2 72 380
+@0 play
+# pos 48: track 1's long 36 is sounding
+@11136 mute 1 1
+@23040 mute 1 0
+@45000 stoptrk 2
+# pos 390: the second pass's chord and 36 are open
+@89700 stop

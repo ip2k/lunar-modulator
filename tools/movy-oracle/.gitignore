@@ -1,0 +1,4 @@
+# Movy checkout for local builds (run-on-aeon.sh keeps its own on aeon)
+schwung-movy/
+# Cargo build output
+driver/target/

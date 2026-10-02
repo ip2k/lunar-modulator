@@ -1,0 +1,23 @@
+#! rate=44118 block=128 tracks=4
+# 10 Loop windows (R4 c, R13). Notes outside the window stay in the clip but
+# do not play; a press in a sub-bar loop's hidden tail places nothing;
+# Double Loop copies the window's notes and doubles the length; shrinking
+# the window under the playhead wraps it on the next tick.
+@0 tog 0 0 60 100
+@0 tog 0 4 62 100
+@0 tog 0 18 64 100
+@0 tog 0 20 65 100
+@0 tog 0 30 67 100
+@0 loop 0 16 16
+@0 tog 1 0 48 100
+@0 tog 1 2 50 100
+@0 clen 1 3
+@0 tog 1 3 52 100
+@0 tog 2 0 55 100
+@0 tog 2 1 57 100
+@0 clen 2 2
+@0 dbl 2
+@0 play
+@40000 clen 0 3
+@60000 loop 0 0 16
+@95000 stop

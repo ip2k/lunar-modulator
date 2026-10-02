@@ -1,0 +1,23 @@
+#! rate=44118 block=128 tracks=4
+# 01 Clock and tempo (docs/13 R1, R2).
+# The integer accumulator; F8 on every fourth master tick; Start on the first
+# block that plays, Stop on the falling edge. Tempo changes keep the
+# accumulator; out-of-range tempos clamp to 20.00..300.00 BPM. Tick 0 fires
+# one tick period after Play, not at it.
+# D1 trace: no D2-D7 behaviour is involved, so the FM-1 default mode should
+# produce <stem>.d1.jsonl: the same events, each tick at its own frame.
+@0 tog 0 0 60 100
+@0 tog 0 4 62 100
+@0 tog 0 8 64 100
+@0 tog 0 12 65 100
+@0 bpm 13333
+@0 play
+@20000 bpm 30000
+@26000 bpm 999999
+@30000 bpm 2000
+@33000 bpm -5
+@36000 bpm 18733
+@70000 stop
+@72000 bpm 9000
+@74000 play
+@96000 stop

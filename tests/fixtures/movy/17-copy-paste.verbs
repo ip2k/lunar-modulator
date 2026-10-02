@@ -1,0 +1,30 @@
+#! rate=44118 block=128 tracks=4
+# 17 Copy and paste (R13). Step copy carries notes and locks, not trig rows,
+# and a paste replaces the destination span. A clip copy carries
+# everything (notes, locks, rows, length, scale, transpose, quantise).
+# Duplicate fills the next empty slot and selects it; deleting a clip frees
+# lanes no other clip locks.
+@0 tog 0 0 60 100
+@0 tog 0 2 62 100
+@0 econd 0 2 2 -1 1 2
+@0 alabel 0 0 synth:cutoff
+@0 abaseq 0 0 40
+@0 aset 0 0 1 90 1
+@0 tog 0 9 70 100
+@0 cpy 0 0 3
+@0 pst 0 8
+@0 ctr 0 5
+@0 cq 0 50
+@0 cscl 0 2 1
+@0 clipcopy 0 0
+@0 clippaste 1 2
+@0 clipdup 0
+@0 tog 0 4 64 100
+@0 alabel 2 3 fx:mix
+@0 abaseq 2 3 64
+@0 tog 2 0 50 100
+@0 aset 2 3 0 10 1
+@0 clipdel 2
+@0 tog 2 0 50 100
+@0 play
+@90000 stop

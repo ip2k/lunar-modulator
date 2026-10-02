@@ -1,0 +1,33 @@
+#! rate=44118 block=128 tracks=4
+# 06 Trig conditions (R7). A:B plays when ((cycle-1) mod B)+1 == A, XOR
+# invert, with the cycle counting this track's loop passes from 1. A pitch
+# row governs before the whole-step row; a chord shares one decision per
+# (step, lane key). One- and two-step clips make the cycles short. Play
+# while playing resets the cycles.
+# Track 0: step 0 whole-step 1:2; step 1 chord 62 64 67 with a 2:3 row for
+# 62, a whole-step 1:3 row, and an inverted 1:1 row for 67 (never plays).
+# D1 trace: no D2-D7 behaviour is involved, so the FM-1 default mode should
+# produce <stem>.d1.jsonl: the same events, each tick at its own frame.
+@0 tog 0 0 60 100
+@0 tog 0 1 62 100 64 100 67 100
+@0 clen 0 2
+@0 econd 0 0 0 -1 1 2
+@0 econd 0 1 1 62 2 3
+@0 econd 0 1 1 -1 1 3
+@0 einv 0 1 1 67 1
+# Track 1: 4:7 plays cycles 4, 11, 18.
+@0 tog 1 0 48 100
+@0 clen 1 1
+@0 econd 1 0 0 -1 4 7
+# Track 2: inverted 1:2 plays even cycles.
+@0 tog 2 0 50 100
+@0 clen 2 1
+@0 econd 2 0 0 -1 1 2
+@0 einv 2 0 0 -1 1
+# Track 3: 5:3 can never match; it never plays.
+@0 tog 3 0 52 100
+@0 clen 3 1
+@0 econd 3 0 0 -1 5 3
+@0 play
+@100000 play
+@130000 stop

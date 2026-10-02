@@ -1,0 +1,24 @@
+#! rate=44118 block=128 tracks=4
+# 11 Transpose, drum tracks and pad mute and solo (R7). The emitted pitch is
+# clamp(pitch + transpose, 0, 127); a drum track (tdrum) ignores the clip
+# transpose; pad mute and solo test the emitted pitch and flush ringing
+# gates. Step entry stores the pitch less the active clip's transpose; etrn
+# changes the stored pitch.
+@0 ctr 0 7
+@0 tog 0 0 67 100
+@0 tog 0 4 20 100
+@0 tdrum 1 1
+@0 ctr 1 12
+@0 ltog 1 0 36 100
+@0 ltog 1 0 38 100
+@0 ltog 1 4 42 100
+@0 ltog 1 8 36 100
+@0 slen 1 0 0 36 200
+@0 play
+@11000 pmute 1 36 1
+@30000 psolo 1 38
+@50000 psolo 1 -1
+@55000 ctr 0 -36
+@60000 etrn 0 0 0 -1 5
+@60000 pmute 1 36 0
+@115000 stop
