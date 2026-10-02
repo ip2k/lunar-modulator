@@ -219,8 +219,12 @@ keeping decay within 3–4 %.
   or a split of the physical-model shapes.
 - **Resampler cost on pi32v2:** the stronger second stage costs about 114
   multiply-adds per output; the cheaper half-band version (about 70, with
-  18–22 kHz unprotected) is commit `f12448c`. Stage B measures which the
-  FM-1 can afford.
+  18–22 kHz unprotected) is commit `f12448c`. The owner's decision
+  (2026-10-01): keep Braids at 96 kHz with the full resampler, and decide
+  again once stage B measures the cost on pi32v2. Until then two cheaper
+  variants stay candidates for build options: the half-band second stage,
+  and Braids at twice the host rate (88,236 Hz) with only a half-band
+  decimator (about 18 multiply-adds, but Braids' timing about 8 % off).
 - **Effects at native rates:** not done. Each effect would need a resampler
   on its input and output; the measured gap is small (decay within 3–4 %,
   delays 8.5 % long).
