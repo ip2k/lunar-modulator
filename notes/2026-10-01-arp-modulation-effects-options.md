@@ -19,20 +19,22 @@
 
 **No CPU figure in this note is measured on pi32v2.** All of them stay [inferred] until the dev board (docs/14).
 
-## Cores: one, and on the device none yet
+## Cores: stock uses two; ours runs on none yet
 
-This answers the question that started the run. The project does not use both cores. Nothing it builds runs on the FM-1 yet.
+This answers the question that started the run. Nothing this project builds runs on the FM-1 yet, so it uses no cores there. The stock firmware does use both (corrected 2026-10-02; see below).
 
 - **Nothing runs on the device.** Nothing from this project has been flashed (CLAUDE.md, "The one rule") [verified]. `engines/`, `sim/`, `dongle/` and `tools/` run on a desktop or in WebAssembly.
 - **Our code is written for one core.**
   - The engine contract has one control task and one audio task (`engines/include/fm1_engine.h` 19–23) [verified].
   - The browser simulator runs the whole firmware in one AudioWorklet, "as the FM-1 runs UI and audio on one core" (`sim/web/www/worklet.js` 1–2). It draws the screen on that same thread (`sim/web/README.md` 242–243) [verified].
   - The only threads in the project's own code are in the desktop ThreadSanitizer probe for the Schwung shim, `engines/test/schwung_race.cc` [verified: `git grep`].
-- **Stock firmware uses one core too.** Its FreeRTOS-derived SMP kernel boots cpu1 (`cpu1_boot_start`) but runs its work on cpu0 [reported: AL-255 `02-rtos.md`, `01-boot.md`, via docs/11 §2 line 43].
+- **Stock firmware uses both cores** (corrected 2026-10-02; this note first said one).
+  - It renders the msfa voices on cpu1. The cpu1 entry polls a flag and calls `dx7note_compute_block`, its only call site [verified: V13 disassembly, file `0x86AD6`–`0x86B3E`]. That this entry runs on cpu1 is [reported: AL-255's symbol names; inferred from `cpu1_run_flag`].
+  - cpu0 runs the effects chain and the output.
+  - The earlier reading, "boots cpu1 but runs its work on cpu0", came from AL-255's `02-rtos.md` and `01-boot.md`. docs/11 §2 is corrected on main.
 - **The second core is an open question, not yet a plan.**
   - "Whether an SDK build can put audio on the second core" is unknown 3 in docs/11 §8 [verified].
-  - docs/08 line 116 lists "Second core: offload effects or the UI" [verified].
-  - The AC79 dev kit (docs/14, stage B) is where the question gets answered.
+  - Whether *our* SDK build can use cpu1 the same way is the second-core probe in docs/14's first week on the AC79 dev kit.
 
 **What it means for this note** [inferred]:
 - The arpeggiator, LFOs, envelopes and matrix are control-rate work, about 1 % of a core. They should stay on the audio task beside `set_param`, so their timing stays sample-exact.
