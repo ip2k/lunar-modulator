@@ -68,6 +68,8 @@ def scenario_args(s):
         args += ["--fx", fx_id]
         for p in fx_params:
             args += ["--fx-param", p]
+    for p in s.get("fx_param_at", []):
+        args += ["--fx-param-at", p]
     return args
 
 
@@ -329,6 +331,49 @@ def test_scenarios_cover_every_engine_effect_and_page(tools):
         on_last = {p["name"] for p in e["params"] if p["page"] == last_page}
         assert on_last & set_names.get(e["id"], set()), \
             f"no scenario sets a parameter on {e['id']}'s page {last_page + 1}"
+
+
+def test_scenarios_turn_every_effect_mid_render(tools):
+    """Every effect has a knob turned while a note sounds (`fx_param_at`,
+    T:K:NAME=VALUE for the scenario's K-th effect: fm1-render
+    --fx-param-at), so parity covers its glides and switches, not only its
+    settings at the start. Each turn names an effect in the scenario's chain
+    and one of its parameters, inside the run and after the first note, so
+    there is sound (a note or its tail) going through."""
+    res = subprocess.run([str(tools["render"]), "--list"], check=True,
+                         capture_output=True, text=True)
+    catalog = {e["id"]: e for e in json.loads(res.stdout)}
+    turned = set()
+    for s in SCENARIOS:
+        first_on = min((float(n.split(":")[0]) for n in s.get("notes", [])), default=None)
+        for p in s.get("fx_param_at", []):
+            t, k, nv = p.split(":", 2)
+            fx_id = s["fx"][int(k) - 1][0]
+            names = {q["name"] for q in catalog[fx_id]["params"]}
+            assert nv.split("=", 1)[0] in names, f"{s['name']}: {fx_id} has no {nv}"
+            assert 0 < float(t) < s["seconds"], f"{s['name']}: {p} outside the run"
+            assert first_on is not None and float(t) > first_on, f"{s['name']}: {p} before any note"
+            turned.add(fx_id)
+    missing = sorted(e for e, v in catalog.items() if v["kind"] == "audio_fx" and e not in turned)
+    assert not missing, f"no parity scenario turns {missing} mid-render"
+
+
+def test_fx_param_at_turns_an_effect_at_its_time(tools, tmp_path):
+    """fm1-render and the app's harness apply --fx-param-at at the block
+    boundary, through the effect's set_param, as --param-at for the sound."""
+    base = ["--engine", "shapes", "--note", "0:57:100:0.5", "--seconds", "0.3",
+            "--fx", "test-gain", "--fx", "fold"]
+    for tool in ("render", "sim"):
+        flat, turned = tmp_path / f"{tool}-a.wav", tmp_path / f"{tool}-b.wav"
+        run(tools[tool], base + ["--fx-param", "Fold=0.4", "--out", str(flat)])
+        run(tools[tool], base + ["--fx-param-at", "0.1:2:Fold=0.9", "--out", str(turned)])
+        a, b = left_channel(flat.read_bytes()), left_channel(turned.read_bytes())
+        first = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), None)
+        assert first is not None and first >= int(0.1 * 44118) - 64, (tool, first)
+    for bad in ("0.1:3:Fold=1", "0.1:0:Fold=1", "0.1:2:Nope=1", "0.1:Fold=1"):
+        res = subprocess.run([str(tools["render"]), *base, "--fx-param-at", bad],
+                             capture_output=True, text=True)
+        assert res.returncode != 0, bad
 
 
 def test_every_screen_passes_the_layout_check(tools, tmp_path):
