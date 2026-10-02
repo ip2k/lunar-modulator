@@ -52,7 +52,7 @@ jobs:
               print(f'{e["id"]:12} {e["kind"]:9} {size:>8} B')
           EOF
       - run: pip install pytest
-      - run: python -m pytest -v tests/test_engine*.py
+      - run: python -m pytest -v tests/test_engine*.py tests/test_seq*.py tests/test_movy*.py
 
   engines-sanitizers:
     # ASan + UBSan over every engine test. Vendored files with documented
@@ -74,7 +74,7 @@ jobs:
       - name: Engine tests against the sanitizer build
         env:
           UBSAN_OPTIONS: suppressions=${{ github.workspace }}/engines/sanitizers/ubsan.supp:halt_on_error=1:print_stacktrace=1
-        run: python -m pytest -v tests/test_engine*.py
+        run: python -m pytest -v tests/test_engine*.py tests/test_seq*.py tests/test_movy*.py
 
   dongle-firmware:
     name: dongle firmware (RP2040 UF2)

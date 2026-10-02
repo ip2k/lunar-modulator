@@ -12,12 +12,12 @@
 # Movy's code is only ever built and run inside the container, never here.
 # --clean deletes the whole remote work directory.
 #
-# Environment: MOVY_ORACLE_HOST (claude@192.168.1.25), MOVY_ORACLE_REMOTE
+# Environment: MOVY_ORACLE_HOST (required: user@host of a Linux machine with Docker), MOVY_ORACLE_REMOTE
 # (/home/claude/mvave-fm1/oracle), MOVY_ORACLE_IMAGE (rust:1.98.1-bookworm),
 # MOVY_ORACLE_SESSION (the session label on the containers).
 set -euo pipefail
 
-HOST="${MOVY_ORACLE_HOST:-claude@192.168.1.25}"
+HOST="${MOVY_ORACLE_HOST:?set MOVY_ORACLE_HOST=user@host (a Linux machine with Docker)}"
 REMOTE="${MOVY_ORACLE_REMOTE:-/home/claude/mvave-fm1/oracle}"
 IMAGE="${MOVY_ORACLE_IMAGE:-rust:1.98.1-bookworm}"
 SESSION="${MOVY_ORACLE_SESSION:-movy-oracle-or-virtual-fm1}"

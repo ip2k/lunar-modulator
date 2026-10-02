@@ -33,8 +33,8 @@ tools/movy-oracle/run-on-aeon.sh --clean                # delete the work direct
 `OUT_DIR/<stem>.jsonl` for each `IN_DIR/<stem>.verbs`, `<stem>.out.movy1`
 with `--movy1`, `summary.jsonl` (one line per script: rate, block, tracks,
 blocks run, events, final master tick, and every panic Movy caught) and
-`errors.txt` if a script could not be run. It needs `ssh claude@192.168.1.25`
-(override with `MOVY_ORACLE_HOST`); containers carry the labels
+`errors.txt` if a script could not be run. It needs `ssh $MOVY_ORACLE_HOST`, a Linux machine with Docker, set in the
+environment; containers carry the labels
 `project=mvave-fm1-firmware` and `session=movy-oracle-or-virtual-fm1`. The
 work directory on aeon, `/home/claude/mvave-fm1/oracle`, holds the checkout
 (35 MB) and the build; each job's files are deleted when it ends.
