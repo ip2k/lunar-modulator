@@ -38,6 +38,9 @@ ENUM_FLAGS = {
     ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
     ("sw-sophie", "Filter Type"): ["latch", "mod"],
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
+    ("drive", "Type"): [],                      # crossfades over 5 ms: lockable; no MOD,
+                                                # a rounded route would step, not sweep
+    ("drive", "Auto"): [],                      # its gain glides: lockable
 }
 
 

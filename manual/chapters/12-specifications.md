@@ -63,6 +63,7 @@ and is the one to trust if the two ever differ.
 | PSX Verb | – | 131 KB |
 | Crush | – | under 1 KB |
 | Fold | – | under 1 KB |
+| Drive | – | under 1 KB |
 | Echo | – | 64 KB |
 | Test Gain | – | under 1 KB |
 
