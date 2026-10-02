@@ -128,7 +128,9 @@ static inline int fm1_mod_gate_end(const fm1_mod_gate_t *g) {
 /* ---- The transport, as a kind flagged TRANSPORT sees it ------------------- */
 typedef struct fm1_mod_transport {
   uint32_t bpm_x100;                    /* the sequencer's tempo; 12000 without one */
-  uint8_t running;                      /* the transport plays */
+  uint8_t running;                      /* the transport ran at the tick's start,
+                                           t(k-1): RUN's level there, so it is the
+                                           same at any block size */
   uint8_t start;                        /* frame of a Start in this tick, or NONE */
   uint8_t reserved[2];
 } fm1_mod_transport_t;
@@ -154,7 +156,10 @@ typedef struct fm1_mod_io {
   uint32_t routed;                      /* bit i: parameter i has an enabled slot */
   uint32_t gate_connected;              /* bit j: gate input j has an enabled slot */
   const fm1_mod_gate_t *gate;           /* one per gate input (normalled when
-                                           unconnected) */
+                                           unconnected); each starts where the
+                                           last tick's ended: a cable patched or
+                                           pulled, or a normal broken, is an
+                                           edge at frame 0 */
   const fm1_mod_transport_t *tp;
   float *out;                           /* every output's value at t(k); a gate's
                                            level there */
@@ -288,8 +293,11 @@ int fm1_mod_bind(fm1_mod_t *m, unsigned unit, const fm1_engine_t *e);
  * old instance is destroyed; the new one starts from its defaults, seeded
  * by the runtime's seed and the position. When a different kind replaces
  * one, the slots that touch the position are switched off (docs/16 §2.4:
- * disabled, never deleted). Returns how many, or -1 if the kind does not
- * fit the arena or the index is bad (the position is then empty). */
+ * disabled, never deleted). Returns how many, or -1 if the index is bad or
+ * the kind does not fit the arena (the old module then stays), or if the
+ * kind's create fails (the position is then empty). The new module's gate
+ * inputs start low, so one whose input is high sees a rise at its first
+ * tick. */
 int fm1_mod_set_kind(fm1_mod_t *m, unsigned pos, int kind);
 int fm1_mod_kind_at(const fm1_mod_t *m, unsigned pos);   /* -1: empty */
 /* The default rack, which reproduces the options note's C1: LFO, LFO,
@@ -306,6 +314,11 @@ float fm1_mod_param_base(const fm1_mod_t *m, unsigned pos, unsigned index);
 /* Its effective value at the last tick (base + routes). */
 float fm1_mod_param(const fm1_mod_t *m, unsigned pos, unsigned index);
 
+/* An edit that keeps a slot's ends (source, VIA, unit, destination and
+ * GATE_DST) keeps its running state: a gate cable stays high or low and
+ * its probability stream runs on, so turning an amount never restarts or
+ * strands a gate. New ends make a new cable, low, with its stream from the
+ * seed. */
 int fm1_mod_set_slot(fm1_mod_t *m, unsigned i, const fm1_mod_slot_t *s);
 int fm1_mod_get_slot(const fm1_mod_t *m, unsigned i, fm1_mod_slot_t *out);
 /* Q1.14 from a float in -1..1; NaN gives 0. */
@@ -318,7 +331,9 @@ int16_t fm1_mod_q14(float x);
  * default. */
 float fm1_mod_set_base(fm1_mod_t *m, unsigned unit, unsigned index, float value);
 float fm1_mod_base(const fm1_mod_t *m, unsigned unit, unsigned index);
-/* What the runtime last sent (or the host sent through set_base). */
+/* What the runtime last sent, or what the host sent through set_base,
+ * clamped to the range as the engine holds it (NaN as the default, an
+ * ENUM rounded), so a route at zero amount writes nothing. */
 float fm1_mod_sent(const fm1_mod_t *m, unsigned unit, unsigned index);
 
 /* ---- Time: one block at a time ------------------------------------------------
@@ -331,8 +346,10 @@ float fm1_mod_sent(const fm1_mod_t *m, unsigned unit, unsigned index);
 void fm1_mod_live_note(fm1_mod_t *m, uint8_t key, uint8_t velocity);
 
 /* Starts a block of `frames`. bpm_x100 0 keeps the last tempo. Returns the
- * frame of the block's first tick, or a value >= frames for none. */
-uint32_t fm1_mod_begin(fm1_mod_t *m, uint32_t frames, uint32_t bpm_x100, int running);
+ * frame of the block's first tick, or a value >= frames for none. The
+ * transport's state reaches the kinds through fm1_mod_seq_run, at its
+ * frame, not per block. */
+uint32_t fm1_mod_begin(fm1_mod_t *m, uint32_t frames, uint32_t bpm_x100);
 
 /* Events of the current block, at their frame, in frame order. */
 void fm1_mod_note(fm1_mod_t *m, uint32_t frame, uint8_t key, uint8_t velocity);  /* on the sound */

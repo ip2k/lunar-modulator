@@ -171,7 +171,9 @@ static void env_reset(void *self, uint32_t why) {
   if (why == FM1_MOD_RESET_PRESET) {
     fm1_mp_env_init(&s->env, s->env.sample_rate);
     s->configured = 0;
-    s->active = 0;
+    /* ACT falls at the next tick's first frame, as an edge: the runtime
+     * keeps a gate output's level from tick to tick. */
+    if (s->active) s->fall_next = 1;
   }
 }
 

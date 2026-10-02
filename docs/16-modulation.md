@@ -1161,8 +1161,12 @@ and the tests) [verified 2026-10-02]:
   passes the signal); SEMI into SEMI is rounded to 1/1,024 semitone so whole
   notes stay whole; an edge a module makes sits at the boundary after the
   sample that caused it; a gate input can be normalled to a system gate
-  (the Envelope's GATE to KEY, the LFO's RESET to TRIG); in MG1 an edit
-  takes effect at the next tick on one task, without §2.5's double buffer.
+  (the Envelope's GATE to KEY, the LFO's RESET to TRIG), and a gate input
+  carries on from tick to tick, so a cable patched or pulled is an edge at
+  the tick's first frame; changing a kind switches its slots off, and
+  switching them on again after a change back is the UI's (MG3); in MG1 an
+  edit takes effect at the next tick on one task, without §2.5's double
+  buffer.
 
 **Interleaving.** MG1 and MG2 are desktop-only and touch no UI, so they can
 proceed alongside docs/15's S3–S6 once S7a has merged. MG3 needs S2. MG6 needs

@@ -181,6 +181,7 @@ int fm1_mod_set_kind(fm1_mod_t *m, unsigned pos, int kind) {
   }
   m->kind[pos] = MOD_NONE;
   m->inst_off[pos] = m->inst_bytes[pos] = m->handle[pos] = 0;
+  m->gin_level[pos] = 0;
   for (i = 0; i < FM1_MOD_MAX_PARAMS; ++i) m->base[pos][i] = m->peff[pos][i] = 0.0f;
   for (j = 0; j < 2u; ++j) {
     for (i = 0; i < FM1_MOD_MAX_OUTS; ++i) {
@@ -221,7 +222,7 @@ static uint8_t remap_src(uint8_t src, const uint8_t *perm) {
 }
 
 int fm1_mod_move(fm1_mod_t *m, unsigned from, unsigned to) {
-  uint8_t perm[FM1_MOD_POSITIONS], kind[FM1_MOD_POSITIONS];
+  uint8_t perm[FM1_MOD_POSITIONS], kind[FM1_MOD_POSITIONS], gin[FM1_MOD_POSITIONS];
   uint16_t off[FM1_MOD_POSITIONS], bytes[FM1_MOD_POSITIONS], handle[FM1_MOD_POSITIONS];
   unsigned p, i;
   if (from >= FM1_MOD_POSITIONS || to >= FM1_MOD_POSITIONS) return 0;
@@ -237,11 +238,13 @@ int fm1_mod_move(fm1_mod_t *m, unsigned from, unsigned to) {
   memcpy(off, m->inst_off, sizeof(off));
   memcpy(bytes, m->inst_bytes, sizeof(bytes));
   memcpy(handle, m->handle, sizeof(handle));
+  memcpy(gin, m->gin_level, sizeof(gin));
   for (p = 0; p < FM1_MOD_POSITIONS; ++p) {
     m->kind[perm[p]] = kind[p];
     m->inst_off[perm[p]] = off[p];
     m->inst_bytes[perm[p]] = bytes[p];
     m->handle[perm[p]] = handle[p];
+    m->gin_level[perm[p]] = gin[p];
   }
   /* Rows of per-position state, moved through a rotation of one step at a
    * time so no scratch copy of the larger arrays is needed. */
@@ -303,11 +306,20 @@ int16_t fm1_mod_q14(float x) {
   return (int16_t)mod_round(x);
 }
 
+/* Whether two slots join the same ends: an amount, offset, polarity, curve
+ * or ON edit keeps the cable (fm1_mod.h). */
+static int same_ends(const fm1_mod_slot_t *a, const fm1_mod_slot_t *b) {
+  return a->src == b->src && a->via == b->via && a->dst_unit == b->dst_unit &&
+         a->dst == b->dst && !((a->flags ^ b->flags) & FM1_MOD_SLOT_GATE_DST);
+}
+
 int fm1_mod_set_slot(fm1_mod_t *m, unsigned i, const fm1_mod_slot_t *s) {
   if (i >= FM1_MOD_SLOTS || !s) return 0;
+  if (!same_ends(&m->slot[i], s)) {
+    m->srt[i].level = 0;
+    fm1_mp_rng_seed(&m->srt[i].rng, mod_mix(m->seed, 0x100u + i));
+  }
   m->slot[i] = *s;
-  m->srt[i].level = 0;
-  fm1_mp_rng_seed(&m->srt[i].rng, mod_mix(m->seed, 0x100u + i));
   m->dirty = 1;
   return 1;
 }
@@ -353,7 +365,7 @@ float fm1_mod_set_base(fm1_mod_t *m, unsigned unit, unsigned index, float value)
     m->sink_sent[unit][index] = v;
     return v;
   }
-  m->sink_sent[unit][index] = value;
+  m->sink_sent[unit][index] = meta_clamp(&q, value);   /* what the engine holds */
   return value;
 }
 
@@ -465,11 +477,10 @@ void fm1_mod_seq_run(fm1_mod_t *m, uint32_t frame, int running) {
   if (running) feed_trigger(m, G_START, at);
 }
 
-uint32_t fm1_mod_begin(fm1_mod_t *m, uint32_t frames, uint32_t bpm_x100, int running) {
+uint32_t fm1_mod_begin(fm1_mod_t *m, uint32_t frames, uint32_t bpm_x100) {
   m->blk = m->now;
   m->now += frames;
   if (bpm_x100) m->bpm_x100 = bpm_x100;
-  m->running = (uint8_t)(running != 0);
   if (m->next_tick < m->blk) {
     /* Blocks went by without their ticks (a host that skipped the hook):
      * carry on from the first tick inside this block. */
@@ -690,9 +701,24 @@ static void run_module(fm1_mod_t *m, unsigned pos, const fm1_mod_transport_t *tp
   for (i = 0; i < kd->n_gate_in; ++i) {
     const uint8_t d = m->plan.gdest[pos][i];
     const int normal = gate_index(kd->gate_in[i].normal);
+    const unsigned was = (m->gin_level[pos] >> i) & 1u;
     if (d != MOD_NONE) gate_merge(m, m->plan.dest[d].slots, &gin[i]);
     else if (normal >= 0) gin[i] = m->sys_gate[normal];
     else mod_gate_clear(&gin[i], 0);
+    if (gin[i].start != was) {
+      /* A cable patched or pulled, or a normal broken, since the last tick:
+       * the module sees the jump as an edge at the tick's first frame, so a
+       * gate it holds never sticks. */
+      const fm1_mod_gate_t g = gin[i];
+      unsigned e;
+      mod_gate_clear(&gin[i], was);
+      mod_gate_edge(&gin[i], 0, g.start, &m->stats.edges_dropped);
+      for (e = 0; e < g.n; ++e) {
+        mod_gate_edge(&gin[i], g.ev[e].frame, g.ev[e].high, &m->stats.edges_dropped);
+      }
+    }
+    m->gin_level[pos] = (uint8_t)((m->gin_level[pos] & ~(1u << i)) |
+                                  ((unsigned)fm1_mod_gate_end(&gin[i]) << i));
   }
   for (i = 0; i < kd->n_out; ++i) {
     out[i] = m->out[prev][pos][i];
@@ -803,7 +829,7 @@ uint32_t fm1_mod_tick(fm1_mod_t *m, uint32_t frame, const fm1_mod_write_t **w) {
   take_system(m);
   m->cur ^= 1u;
   tp.bpm_x100 = m->bpm_x100;
-  tp.running = m->running;
+  tp.running = m->sys_gate[G_RUN].start;   /* at t(k-1), from Start and Stop at their frames */
   tp.start = m->start_frame;
   tp.reserved[0] = tp.reserved[1] = 0;
   for (i = 0; i < m->plan.n_order; ++i) run_module(m, m->plan.order[i], &tp);

@@ -68,6 +68,10 @@ python3 engines/mod/gen_tables.py                # regenerate mp_tables.c (--che
 - **Writes.** Each tick computes every routed destination and writes a
   value only when its bits changed. The bridge splits a unit's render at a
   tick only when that tick writes to it.
+- **Transport.** A kind flagged TRANSPORT reads the sequencer's tempo,
+  whether the transport ran at the tick's start (RUN's level there, set by
+  Start and Stop at their frames, not per block) and the frame of a Start
+  inside the tick.
 - **Block sizes.** All of this runs on absolute frames, so the WAV and the
   tick log are byte-identical at host blocks of 1, 7 and 64 frames with
   routes active on Macro, Test Sine and Six-Op, an effect, PITCH and AMP
@@ -109,8 +113,10 @@ final = clamp(base + (c1 + c2 + ...)), an ENUM rounded
   destination's base through `fm1_mod_set_base`, which returns what the host
   sends: the value itself when nothing routes there, else base plus the
   last tick's offset. A destination that stops being routed goes back to
-  its base at the next tick. A zero amount writes nothing at all [verified:
-  `test_a_zero_amount_writes_nothing`].
+  its base at the next tick. A zero amount writes nothing at all, even over
+  a base set out of range or to NaN, which the runtime holds clamped as the
+  engine does [verified: `test_a_zero_amount_writes_nothing`,
+  `gate_continuity` in the C test].
 
 ### Sources and destinations
 
@@ -152,6 +158,18 @@ reach the sound engine: the sequencer's tracks routed to it and live notes.
   TRIG, so with no cable the Envelope follows the keys, as the options
   note's paraphonic C1 envelope did. `gate_connected` still says "no
   cable", as a eurorack module senses a jack.
+- **A gate input never jumps.** Each tick it starts where the last one
+  ended. Patching a cable in, pulling one out or breaking a normal changes
+  its level between ticks, and the module sees that as an edge at the
+  tick's first frame, as a jack would give it; so an envelope held open
+  is released when its gate goes, and a newly placed module whose input is
+  already high sees a rise [verified: `gate_continuity` in the C test,
+  `test_editing_or_repatching_a_gate_never_strands_it`].
+- **Editing a cable keeps it.** An edit that keeps a slot's ends (source,
+  VIA, unit, destination, GATE_DST), such as turning its amount, keeps the
+  cable's state: a gate cable stays high or low and its probability stream
+  runs on, so an envelope it holds open still sees the key's release. New
+  ends make a new cable, low, with its stream from the seed.
 
 ### The planner
 
@@ -316,10 +334,10 @@ and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
   compile only, 83 of 83 objects in all four profiles, no warning from our
   code]: `struct fm1_mod` lays out the same as on i386 and x86-64, and
   `fm1_mod_size()` is 20,016 B on all three. The runtime and its three
-  kinds are 29,268 B of text at `-O2` (25,200 B of code) and 18,768 B at
+  kinds are 29,988 B of text at `-O2` (25,920 B of code) and 19,016 B at
   the SDK's `-Oz`; the primitives add 9,224 B and 7,614 B. The deepest
-  stack frames are `fm1_mod_tick` (904 B, the gate merge's scratch),
-  `mod_plan_build` (812 B) and `fm1_mod_move` (688 B), inside the SDK's
+  stack frames are `fm1_mod_tick` (920 B, the gate merge's scratch),
+  `mod_plan_build` (812 B) and `fm1_mod_move` (736 B), inside the SDK's
   2,560 B limit. Cycles per tick wait for the dev board (docs/14 stage B).
 
 ### What MG1 leaves for later

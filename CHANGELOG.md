@@ -25,7 +25,9 @@ history.
     gate and note trigger, and the sequencer's clock, beats, bars, start,
     transport and each track's gates and velocities.
   - A gate cable set below 100 % lets each trigger through with that
-    chance, the same way every time for a given seed.
+    chance, the same way every time for a given seed. Turning a cable's
+    depth, or plugging and unplugging a gate cable while a note is held,
+    never leaves an envelope stuck open.
   - Pitch (added to the pitch bend) and a tremolo gain can be modulated too.
   - A sequencer lock moves a parameter's centre while modulation keeps
     swinging round it, and Stop puts the centre back.

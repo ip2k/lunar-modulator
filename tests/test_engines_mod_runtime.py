@@ -17,7 +17,8 @@ fm1_mod_host.h, engines/mod/mod_*.c and kinds/), through fm1-render's
   running;
 - system sources at their frames (KEY, TRIG, the sequencer's CLOCK, BEAT,
   BAR, RUN, START and track gates), a tempo-synced LFO, gate cables as
-  seeded probability;
+  seeded probability, gate inputs that never strand a gate when a cable is
+  edited, patched or pulled;
 - no allocator, stdio or libm in the runtime's objects; the curve tables
   generated; every kind's uids, ports and the system source ids pinned in
   tests/fixtures/mod-uids.json; fm1_mod_size() pinned, the same at 32 and
@@ -99,6 +100,7 @@ def test_the_core_checks_itself(renderer):
     assert out["failed"] == 0 and out["size"] == MOD_BYTES
     assert out["plans"] == 3000 and out["plans_with_loops"] > 500
     assert out["chain_ticks"] > 300 and out["feedback_ticks"] == 12 and out["nan_writes"] > 50
+    assert out["continuity"] == 5
 
 
 def test_size_is_pinned_and_listed(renderer):
@@ -482,7 +484,7 @@ def test_system_gates_land_at_their_frames(renderer, tmp_path):
     on1 = [at(e) for e in events if e["kind"] == "on" and e["track"] == 1]
     clocks = [e for e in events if e["kind"] == "clock"]
     assert on0 and on1 and clocks
-    assert rises(16) == rises(17)[:len(rises(16))] or rises(16)    # KEY rises within TRIG's
+    assert rises(16) and set(rises(16)) <= set(rises(17))           # KEY rises at a note-on
     assert rises(17) == on0                                          # TRIG: track 0 plays the sound
     assert rises(24) == on0 and rises(25) == on1                    # SEQ1, SEQ2: any route
     assert rises(18) == [at(e) for e in clocks if e["tick"] % 24 == 0]
@@ -502,6 +504,45 @@ def test_a_synced_lfo_wraps_on_the_beat(renderer, tmp_path):
     wraps = [t["t"] - TICK + f for t in ticks for port, f, h in t["m"][0]["e"] if port == 2 and h]
     gaps = {b - a for a, b in zip(wraps, wraps[1:])}
     assert wraps[0] == 448 and gaps == {22059} and len(wraps) >= 5, (wraps[:5], gaps)
+
+
+def test_editing_or_repatching_a_gate_never_strands_it(renderer, tmp_path):
+    """Gate inputs carry on from tick to tick: turning a gate cable's amount
+    while the key is held keeps the cable high, so the release still
+    reaches the envelope; a cable patched into a normalled input while the
+    key is held is a fall at the next tick's first frame, and pulling it a
+    rise; a reset envelope's ACT falls as an edge. The same at host blocks
+    of 7 and 64 (edits sit on multiples of 448 frames; the key is held
+    throughout, since a live note-off lands on a block boundary)."""
+    edit = ("mod 1 env attack=0.2 decay=0.3 sustain=0.6 release=0.3\n"
+            "slot 1 key > env1.gate\n"
+            "@8960 slot 1 key > env1.gate amt=90\n")
+    args = ["--engine", "test-sine", "--note", "0:60:100:0.4", "--seconds", "1"]
+    _, _, ticks = run(renderer, tmp_path, args, mod=edit, name="edit")
+    off = int(0.4 * RATE)
+    env = [(t["t"], t["m"][0]["o"]) for t in ticks]
+    assert all(o[2] == 1 for t, o in env if 8960 < t <= off)
+    assert env[-1][1] == [0, 0, 0], "the envelope released"
+    eoc = [t["t"] - TICK + f for t in ticks for port, f, h in t["m"][0]["e"] if port == 2 and h]
+    assert len(eoc) == 1 and eoc[0] > off
+
+    repatch = ("mod 1 env attack=0 decay=0.2 sustain=0.8 release=0\n"
+               "@4480 slot 1 seq1 > env1.gate\n@8960 slot 1 off\n@13440 reset\n")
+    logs = {}
+    held = ["--engine", "test-sine", "--note", "0:60:100:2", "--seconds", "0.5"]
+    for block in (7, 64):
+        _, raw, ticks = run(renderer, tmp_path, held + ["--frames", str(block)], mod=repatch,
+                            name=f"repatch{block}")
+        logs[block] = (raw, ticks)
+    assert logs[7] == logs[64]
+    act = {t["t"]: [e for e in t["m"][0]["e"] if e[0] == 3] for t in logs[64][1]}
+    # An edit applies before the tick at its frame, which sees the jump at
+    # its frame 0: patched low, the gate falls there and ACT falls when the
+    # 0.5 ms release ends, inside that tick; pulled, the key's gate rises at
+    # frame 0 and so does ACT; reset, ACT falls at frame 0.
+    assert [h for _, f, h in act[4480]] == [0] and act[4480][0][1] <= 24
+    assert act[8960] == [[3, 0, 1]]
+    assert act[13440] == [[3, 0, 0]]
 
 
 def test_a_gate_cable_is_a_seeded_probability(renderer, tmp_path):

@@ -19,6 +19,9 @@
  *     back to its base;
  *   - gate cables: probability per rising edge from the slot's own seeded
  *     generator, the falling edge with it; edges keep their frame;
+ *   - gate inputs never jump: an amount edit keeps a cable's state, a cable
+ *     patched or pulled is an edge at frame 0, a reset envelope's ACT falls
+ *     as an edge; a zero amount over a base set out of range writes nothing;
  *   - fm1_mod_size(), printed for tests/test_engines_mod_runtime.py to pin at 32 and 64
  *     bits.
  *
@@ -98,7 +101,7 @@ static unsigned out_of(unsigned pos, unsigned port) { return FM1_MOD_SRC_MODULE 
 
 /* One block with its ticks; collects every write into w (up to cap). */
 static uint32_t block(fm1_mod_t *m, uint32_t frames, fm1_mod_write_t *w, uint32_t cap) {
-  uint32_t tf = fm1_mod_begin(m, frames, 0, 0), n = 0;
+  uint32_t tf = fm1_mod_begin(m, frames, 0), n = 0;
   while (tf < frames) {
     const fm1_mod_write_t *x;
     const uint32_t k = fm1_mod_tick(m, tf, &x);
@@ -559,7 +562,7 @@ static void edge_frames(void) {
   uint32_t tf;
   fm1_mod_set_kind(m, 0, K_ENV);       /* GATE normalled to KEY */
   block(m, 64, w, 8);                  /* frames 0-63; ticks at 32 and 64 */
-  tf = fm1_mod_begin(m, 64, 0, 0);     /* frames 64-127: tick at 0 (frame 64), then 32 */
+  tf = fm1_mod_begin(m, 64, 0);     /* frames 64-127: tick at 0 (frame 64), then 32 */
   CHECK(tf == 0);
   fm1_mod_note(m, 0, 60, 100);         /* at frame 64 itself: after the tick at 64 */
   fm1_mod_tick(m, 0, NULL);
@@ -568,7 +571,7 @@ static void edge_frames(void) {
   fm1_mod_tick(m, 32, NULL);           /* covers 64-95: the note at offset 0 */
   g = fm1_mod_gate_out(m, 0, 2);
   CHECK(g->n == 1 && g->ev[0].frame == 0 && g->ev[0].high == 1);
-  tf = fm1_mod_begin(m, 64, 0, 0);     /* frames 128-191 */
+  tf = fm1_mod_begin(m, 64, 0);     /* frames 128-191 */
   fm1_mod_note(m, 13, 60, 0);          /* frame 141 */
   fm1_mod_tick(m, 0, NULL);            /* covers 96-127: nothing yet */
   fm1_mod_tick(m, 32, NULL);           /* covers 128-159: KEY falls at 13 */
@@ -577,9 +580,102 @@ static void edge_frames(void) {
   fm1_mod_destroy(m);
 }
 
+/* Gate inputs never strand a gate. An amount edit keeps a gate cable's
+ * state, so a key released after it still releases the envelope; a cable
+ * patched into a normalled input, or pulled from it, is an edge at the
+ * tick's first frame; a reset envelope's ACT falls as an edge. */
+static uint32_t act_end(const fm1_mod_t *m, unsigned pos) {
+  return (uint32_t)fm1_mod_gate_end(fm1_mod_gate_out(m, pos, 2));
+}
+
+static void gate_continuity(unsigned *checks) {
+  fm1_mod_t *m = make(0, 0, 4);
+  fm1_mod_slot_t s;
+  fm1_mod_write_t w[8];
+  const fm1_mod_gate_t *g;
+  unsigned b;
+  fm1_mod_set_kind(m, 0, K_ENV);           /* Gate mode, GATE normalled to KEY */
+  fm1_mod_set_param(m, 0, 0, 0.0f);        /* 0.5 ms attack and decay */
+  fm1_mod_set_param(m, 0, 1, 0.0f);
+  fm1_mod_set_param(m, 0, 3, 0.0f);        /* 0.5 ms release */
+  s = cable(FM1_MOD_SRC_KEY, FM1_MOD_MODULE + 0u, 0, 1.0f);
+  s.flags = (uint8_t)(s.flags | FM1_MOD_SLOT_GATE_DST);
+  fm1_mod_set_slot(m, 0, &s);
+  fm1_mod_live_note(m, 60, 100);
+  for (b = 0; b < 4; ++b) block(m, 64, w, 8);
+  CHECK(act_end(m, 0) == 1 && m->srt[0].level == 1);
+  /* Turning the cable's amount while the key is held keeps it high and its
+   * stream where it was. */
+  {
+    const fm1_mp_rng_t before = m->srt[0].rng;
+    s.amount = fm1_mod_q14(0.9f);
+    fm1_mod_set_slot(m, 0, &s);
+    CHECK(m->srt[0].level == 1 && m->srt[0].rng.s == before.s);
+  }
+  for (b = 0; b < 4; ++b) block(m, 64, w, 8);
+  CHECK(act_end(m, 0) == 1);
+  fm1_mod_live_note(m, 60, 0);             /* the release passes the cable */
+  for (b = 0; b < 4; ++b) block(m, 64, w, 8);
+  CHECK(act_end(m, 0) == 0);
+  ++*checks;
+
+  /* New ends make a new cable: SEQ1 (low) into GATE while the key is held
+   * is a fall at the next tick's first frame, and the envelope releases. */
+  fm1_mod_live_note(m, 62, 100);
+  for (b = 0; b < 4; ++b) block(m, 64, w, 8);
+  CHECK(act_end(m, 0) == 1 && m->gin_level[0] == 1);
+  s = cable(FM1_MOD_SRC_SEQ_GATE, FM1_MOD_MODULE + 0u, 0, 1.0f);
+  s.flags = (uint8_t)(s.flags | FM1_MOD_SLOT_GATE_DST);
+  fm1_mod_set_slot(m, 0, &s);
+  CHECK(m->srt[0].level == 0);
+  block(m, 64, w, 8);
+  CHECK(m->gin_level[0] == 0);
+  for (b = 0; b < 4; ++b) block(m, 64, w, 8);
+  CHECK(act_end(m, 0) == 0);
+  ++*checks;
+
+  /* Pulling the cable gives GATE back to KEY, still held: a rise at frame
+   * 0, and the envelope opens again. */
+  s.flags = (uint8_t)(s.flags & ~FM1_MOD_SLOT_ON);
+  fm1_mod_set_slot(m, 0, &s);
+  block(m, 64, w, 8);
+  CHECK(act_end(m, 0) == 1 && m->gin_level[0] == 1);
+  ++*checks;
+
+  /* A reset (a preset load) while ACT is high: ACT falls at frame 0. */
+  fm1_mod_reset(m, FM1_MOD_RESET_PRESET);
+  block(m, 32, w, 8);
+  g = fm1_mod_gate_out(m, 0, 2);
+  CHECK(g->start == 1 && g->n == 1 && g->ev[0].frame == 0 && g->ev[0].high == 0);
+  ++*checks;
+  fm1_mod_destroy(m);
+
+  /* Rule M1 at a zero amount: an unrouted base set out of range, or NaN,
+   * is held clamped as the engine holds it, so a zero-amount route writes
+   * nothing. */
+  m = make(0, 0, 4);
+  fm1_mod_set_kind(m, 0, K_LFO);
+  CHECK(fm1_mod_set_base(m, FM1_MOD_SOUND, I_TIMBRE, 1.5f) == 1.5f);   /* passed on as sent */
+  CHECK(fm1_mod_sent(m, FM1_MOD_SOUND, I_TIMBRE) == 1.0f);
+  CHECK(fm1_mod_set_base(m, FM1_MOD_HOST, FM1_MOD_HOST_PITCH, 60.0f) == 60.0f);
+  {
+    const float r = fm1_mod_set_base(m, FM1_MOD_SOUND, I_TUNE, NAN);
+    CHECK(r != r && fm1_mod_sent(m, FM1_MOD_SOUND, I_TUNE) == 0.0f);   /* NaN: the default */
+  }
+  s = cable(out_of(0, 0), FM1_MOD_SOUND, 3, 0.0f);
+  fm1_mod_set_slot(m, 0, &s);
+  s = cable(out_of(0, 0), FM1_MOD_SOUND, 5, 0.0f);
+  fm1_mod_set_slot(m, 1, &s);
+  s = cable(out_of(0, 0), FM1_MOD_HOST, FM1_MOD_HOST_PITCH_UID, 0.0f);
+  fm1_mod_set_slot(m, 2, &s);
+  for (b = 0; b < 20; ++b) CHECK(block(m, 64, w, 8) == 0);
+  ++*checks;
+  fm1_mod_destroy(m);
+}
+
 int main(void) {
   unsigned plans = 0, loops = 0, chain_ticks = 0, fb_ticks = 0, fill_writes = 0, nan_checked = 0;
-  unsigned gate_ticks = 0;
+  unsigned gate_ticks = 0, continuity = 0;
   K_LFO = fm1_mod_kind_find("lfo");
   K_ENV = fm1_mod_kind_find("ENV");
   K_CHN = fm1_mod_kind_find("chance");
@@ -594,10 +690,12 @@ int main(void) {
   rules();
   gates(&gate_ticks);
   edge_frames();
+  gate_continuity(&continuity);
   printf("{\"size\":%zu,\"plans\":%u,\"plans_with_loops\":%u,\"chain_ticks\":%u,"
          "\"feedback_ticks\":%u,\"fill_writes\":%u,\"nan_writes\":%u,\"gate_ticks\":%u,"
+         "\"continuity\":%u,"
          "\"failed\":%d}\n",
          fm1_mod_size(), plans, loops, chain_ticks, fb_ticks, fill_writes, nan_checked,
-         gate_ticks, failed);
+         gate_ticks, continuity, failed);
   return failed;
 }

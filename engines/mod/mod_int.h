@@ -103,8 +103,9 @@ struct fm1_mod {
   uint8_t sink_n[3];
   uint8_t cur;                                 /* the output buffer this tick writes */
   uint8_t dirty;                               /* the plan needs a rebuild */
-  uint8_t running;
   uint8_t start_frame;                         /* this tick's Start, or NONE */
+  uint8_t gin_level[FM1_MOD_POSITIONS];        /* bit j: gate input j's level at the
+                                                  last tick's end, as the module saw it */
   uint8_t reserved[3];
 };
 

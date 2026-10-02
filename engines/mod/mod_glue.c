@@ -11,7 +11,8 @@ static uint32_t glue_begin(void *ctx, uint32_t frames, const fm1_engine_t *engin
     fm1_mod_bind(g->mod, FM1_MOD_SOUND, engine);
     g->sound = engine;
   }
-  return fm1_mod_begin(g->mod, frames, bpm_x100, playing);
+  (void)playing;   /* Start and Stop reach the runtime as events, at their frames */
+  return fm1_mod_begin(g->mod, frames, bpm_x100);
 }
 
 static void glue_event(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int to_engine) {
