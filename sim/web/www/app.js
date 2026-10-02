@@ -526,6 +526,12 @@ function setMaster(pos) {
 // then.
 const heldKeys = new Map();   // event.code -> release function
 const OCT_KEYS = { KeyZ: 'OCT-', KeyX: 'OCT+' };
+// Lab, SEQ mode (the owner's decision O19 in docs/15): the 16 steps, white
+// keys 1-16, on keys the instrument does not use, and Shift as SEL (SHIFT).
+const STEP_KEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8',
+  'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM', 'Comma', 'Period', 'Slash'];
+const SEQ_MODE = 3;
+const inSeq = () => LAB && sim.state && sim.state.mode === SEQ_MODE;
 
 function releaseKeys() {
   const releases = [...heldKeys.values()];
@@ -582,6 +588,27 @@ function keydown(e) {
     const g = buttonEls[button];
     hold(e.code, () => { g.classList.add('down'); send({ type: 'button', button, down: true }); },
       () => { g.classList.remove('down'); send({ type: 'button', button, down: false }); });
+    return;
+  }
+  // Lab, SEQ mode: Shift holds SEL, which is SHIFT there; the step keys
+  // press white keys 1-16. Their releases go where the press went, whatever
+  // the mode is by then.
+  if (inSeq() && (e.code === 'ShiftLeft' || e.code === 'ShiftRight')) {
+    e.preventDefault();
+    if (e.repeat) return;
+    const button = BUTTONS.indexOf('SEL');
+    const g = buttonEls[button];
+    hold(e.code, () => { g.classList.add('down'); send({ type: 'button', button, down: true }); },
+      () => { g.classList.remove('down'); send({ type: 'button', button, down: false }); });
+    return;
+  }
+  const step = inSeq() ? STEP_KEYS.indexOf(e.code) : -1;
+  if (step >= 0) {
+    e.preventDefault();
+    if (e.repeat) return;
+    const key = WHITE_STEPS[step];
+    hold(e.code, () => send({ type: 'key', key, down: true, velocity: 100 }),
+      () => send({ type: 'key', key, down: false }));
     return;
   }
   const k = KEYMAP.indexOf(e.code);

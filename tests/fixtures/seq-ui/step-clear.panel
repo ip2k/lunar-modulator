@@ -1,0 +1,13 @@
+# O22's clear: hold a step and tap SHIFT (SEL) with nothing else: the step's
+# notes go (`del`). On an empty step it sends nothing. SHIFT with a knob
+# detent is not a tap: held step + SHIFT + a detent is kept for `aclrs`
+# (stage S8) and does nothing on the Step pages.
+--button 0.03:PLAY/STOP
+--button 0.05:SEQ
+--key 0.10:7:100:0.5
+--button 0.20:SEL:0.05
+--key 0.70:2:100:0.5
+--button 0.80:SEL:0.05
+--key 1.30:14:100:0.5
+--button 1.40:SEL:0.3
+--turn 1.50:KNOB1:3

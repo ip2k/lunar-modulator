@@ -27,17 +27,26 @@
  * and sets through it.
  *
  * The lab switch (fm1_app_set_lab, off at init) puts the sequencer on the
- * panel (docs/15 S3), for the page's lab preview and the tests while the
- * public page hides it until step entry and recording work (owner decision
- * O24, 2026-10-02):
+ * panel (docs/15 S3 and S4), for the page's lab preview and the tests while
+ * the public page hides it until step entry and recording work (owner
+ * decision O24, 2026-10-02):
  *   SEQ           SEQ mode, the Track view (fm1_seq_view.h); HOME, FX and
- *                 GLO leave it; the keys still play the sound
+ *                 GLO leave it. There the white keys are the bar's 16 steps
+ *                 and the black keys the sequencer's roles (O1): they play
+ *                 nothing, and fm1_seq_ui.h has every gesture (step entry,
+ *                 the Step pages, bar paging)
+ *   SEL           SHIFT outside FX mode (O2), in every mode; its LED is on
+ *                 while it is held
  *   PLAY/STOP     `play` or `stop`, in every mode, as a typed command
- *                 through fm1_seq_ui.h and fm1_app_seq_cmd; its LED is on
- *                 while the transport runs, SEQ's in SEQ mode, and in SEQ
- *                 mode the white keys show the bar's steps and the playhead
+ *                 through fm1_seq_ui.h and fm1_app_seq_cmd (SHIFT + PLAY
+ *                 restarts); its LED is on while the transport runs, SEQ's
+ *                 in SEQ mode, and in SEQ mode the keys' LEDs are the UI's
+ *   notes         a note played outside SEQ mode or at MIDI IN is
+ *                 remembered as the chord a step tap writes, and with steps
+ *                 held in SEQ mode a MIDI IN note adds its pitch to them
  * With the switch off, SEQ and PLAY/STOP say they are not in the simulator
- * yet, as REC still does with it on.
+ * yet, as REC still does with it on, and SEL outside FX mode says where it
+ * works.
  *
  * The screen is a 240 x 240 RGB565 frame buffer (fm1_tft.h) drawn with the
  * stock layout: a top bar with the sound's name, the mode's content, and a
@@ -152,6 +161,7 @@ typedef struct fm1_app {
   int octave, transpose;
   uint8_t key_down[FM1_APP_KEYS];
   uint8_t key_note[FM1_APP_KEYS];      /* note each held key started */
+  uint8_t key_vel[FM1_APP_KEYS];       /* ...and its velocity, 1..127 */
   uint8_t note_count[128];             /* notes sounding, from any source */
   uint8_t button_down[FM1_APP_BUTTONS];
 

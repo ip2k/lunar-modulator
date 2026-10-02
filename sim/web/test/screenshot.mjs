@@ -23,7 +23,10 @@
 // second, its LED lit), Space stops and starts it, SEQ shows the Track view
 // with the white keys following the playhead and the status line names the
 // tempo; with #lab the switch is on too; without either, Space sends nothing
-// and PLAY/STOP stays a stub. MIT licence.
+// and PLAY/STOP stays a stub. Step entry (docs/15 S4): in SEQ mode OP3 (A#3)
+// pages to bar 2, the computer's step keys enter four steps there, which
+// light those keys, and played, they sound and their lights move with the
+// playhead. MIT licence.
 
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
@@ -319,6 +322,15 @@ async function publishingChecks(browser) {
   return r;
 }
 
+async function pressKey(page, key) {
+  await page.locator(`[data-key="${key}"]`).scrollIntoViewIfNeeded();
+  const box = await page.locator(`[data-key="${key}"]`).boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await wait(page, 60);
+  await page.mouse.up();
+}
+
 async function press(page, button) {
   await page.locator(`[data-button="${button}"]`).scrollIntoViewIfNeeded();
   const box = await page.locator(`[data-button="${button}"]`).boundingBox();
@@ -390,6 +402,32 @@ async function labChecks(browser) {
   await press(page, 8);                                         // HOME leaves SEQ mode
   await wait(page, 200);
   r.mode_after_home = await page.evaluate(() => window.fm1.state.mode);
+  // Step entry: SEQ, stop, A#3 (OP3) to bar 2, steps 1, 5, 9 and 13 there
+  // from the computer's step keys (1, 5, C, M); stopped, exactly those
+  // four white keys light. Played, the pattern sounds and the lights move.
+  await press(page, 11);
+  await wait(page, 200);
+  await unfocus(page);
+  await page.keyboard.press('Space');
+  await wait(page, 200);
+  await pressKey(page, 5);
+  await wait(page, 150);
+  for (const code of ['Digit1', 'Digit5', 'KeyC', 'KeyM']) {
+    await page.keyboard.press(code);
+    await wait(page, 120);
+  }
+  await wait(page, 250);
+  r.step_keys = await whites();
+  await tftPng(page, 'tft-08-seq-steps.png');
+  await unfocus(page);
+  await page.keyboard.press('Space');
+  r.steps_rms = (await loudest(page, 1000, 0.01)).rms;
+  const seen = new Set([await whites()]);
+  for (let i = 0; i < 40 && seen.size < 3; ++i) {
+    await wait(page, 150);
+    seen.add(await whites());
+  }
+  r.step_lights_seen = seen.size;
   await page.close();
 
   const hash = await browser.newPage();
@@ -423,6 +461,7 @@ async function labChecks(browser) {
     r.mode === 3 && r.seq_led && r.white_keys[0] !== r.white_keys[1] && r.white_keys.every((k) => k.includes('1')) &&
     r.play_led_after_space === false && r.playing_after_space === false && r.playing_after_second_space === true &&
     r.mode_after_home === 0 && r.hash_lab === true &&
+    r.step_keys === '1000100010001000' && r.steps_rms > 0.01 && r.step_lights_seen >= 3 &&
     r.off_space_messages === 0 && r.off_rms < 0.001 && r.off_mode === 0 && r.off_play_led === false &&
     r.off_seq_status === null && r.off_help_hidden === true;
   return r;

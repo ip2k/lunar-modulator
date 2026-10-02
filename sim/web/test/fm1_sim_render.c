@@ -29,8 +29,9 @@
  *   --start             the browser's start chain (fm1_app_default_chain)
  *                       in place of --engine: Macro, Plate, the default
  *                       route and, with --lab, the demo pattern
- *   --panel FILE        panel input from a file: one --key, --button or
- *                       --turn flag and its value per line ('#' comments)
+ *   --panel FILE        panel input from a file: one --key, --button,
+ *                       --turn or --note (MIDI IN) flag and its value per
+ *                       line ('#' comments)
  *   --format-check      every verb through fm1_seq_cmd_format and back
  *                       through fm1_seq_parse; prints JSON, exit 1 on a
  *                       difference
@@ -55,9 +56,11 @@
  * panel changed, at mid-block (docs/15 §6.3). So
  *   fm1-render --cmd FILE.verbs $(arguments in FILE.args)
  * renders the same samples ("two-step parity"), unless the summary says
- * "replayable":0: the panel or --select changed the sound or an effect, a
- * key was played (key notes are logged from docs/15 S5), MASTER was not at
- * full gain, or --seq-reset or --seq-import ran.
+ * "replayable":0: the panel or --select changed the sound or an effect,
+ * MASTER was not at full gain, or --seq-reset or --seq-import ran. A key
+ * that played the sound (outside SEQ mode) is in the sidecar as a --note
+ * at mid-block times, written at its press, so notes keep their order; in
+ * SEQ mode the keys play nothing, and what they did is in the script.
  *
  * Test hooks: --seq-reset T:N and --seq-import T:FILE recreate the instance or import a set at time T, as a
  * UI would (then the default route, unless --route was given); --seq-ui
@@ -142,17 +145,19 @@ static int lookup(const char *const *names, int n, const char *s) {
   return -1;
 }
 
-/* --key T:KEY:VEL:DUR, --button T:NAME[:DUR] or --turn T:ENCODER:DELTA, from
- * the command line or a --panel line: 1, 0 for a malformed value, -1 for an
- * unknown name (reported). */
+/* --key T:KEY:VEL:DUR, --button T:NAME[:DUR], --turn T:ENCODER:DELTA or, in
+ * a --panel file, --note T:KEY:VEL:DUR (a note at MIDI IN, which the replay
+ * gets in the sidecar): 1, 0 for a malformed value, -1 for an unknown name
+ * (reported). */
 static int add_panel(const char *flag, const char *v) {
-  if (strcmp(flag, "--key") == 0) {
+  if (strcmp(flag, "--key") == 0 || strcmp(flag, "--note") == 0) {
+    const ev_kind_t kind = flag[2] == 'k' ? EV_KEY : EV_NOTE;
     double t, dur;
     int key, vel;
     if (sscanf(v, "%lf:%d:%d:%lf", &t, &key, &vel, &dur) != 4) return 0;
-    event_t *on = add_event(t, EV_KEY);
+    event_t *on = add_event(t, kind);
     on->on = 1, on->a = key, on->b = vel;
-    event_t *off = add_event(t + dur, EV_KEY);
+    event_t *off = add_event(t + dur, kind);
     off->on = 0, off->a = key;
     return 1;
   }
@@ -190,7 +195,9 @@ static int add_panel(const char *flag, const char *v) {
   return 0;
 }
 
-/* --panel FILE: one --key, --button or --turn and its value per line. */
+static void side(const char *flag, const char *value);
+
+/* --panel FILE: one --key, --button, --turn or --note and its value per line. */
 static int read_panel(const char *path) {
   size_t len = 0;
   char *txt = fm1_read_file(path, &len);
@@ -211,12 +218,15 @@ static int read_panel(const char *path) {
     for (v = p; *v && *v != ' ' && *v != '\t'; ++v) {}
     if (*v) *v++ = '\0';
     while (*v == ' ' || *v == '\t') ++v;
-    if (strcmp(p, "--key") != 0 && strcmp(p, "--button") != 0 && strcmp(p, "--turn") != 0) {
-      fprintf(stderr, "%s:%d: want --key, --button or --turn\n", path, lineno);
+    if (strcmp(p, "--key") != 0 && strcmp(p, "--button") != 0 && strcmp(p, "--turn") != 0 &&
+        strcmp(p, "--note") != 0) {
+      fprintf(stderr, "%s:%d: want --key, --button, --turn or --note\n", path, lineno);
       ok = 0;
     } else if (add_panel(p, v) <= 0) {
       fprintf(stderr, "%s:%d: bad %s %s\n", path, lineno, p, v);
       ok = 0;
+    } else if (strcmp(p, "--note") == 0) {
+      side("--note", v);                   /* the replay plays it as MIDI IN did */
     }
   }
   free(txt);
@@ -240,6 +250,38 @@ static void side(const char *flag, const char *value) {
   memcpy(copy, value, n);
   g_side_flag[g_nside] = flag;
   g_side_value[g_nside++] = copy;
+}
+
+/* A key that played the sound: its --note goes into the sidecar at its press,
+ * so the replay starts notes in the app's order, and gets its length at the
+ * release. */
+static int g_key_side[FM1_APP_KEYS];          /* sidecar index + 1, 0: none */
+static double g_key_t0[FM1_APP_KEYS];
+
+static void key_note_text(int key, double dur) {
+  char buf[96];
+  const int k = g_key_side[key] - 1;
+  snprintf(buf, sizeof buf, "%.9f:%u:%u:%.9f", g_key_t0[key], (unsigned)g_app.key_note[key],
+           (unsigned)g_app.key_vel[key], dur);
+  free(g_side_value[k]);
+  g_side_value[k] = malloc(strlen(buf) + 1);
+  if (!g_side_value[k]) exit(2);
+  memcpy(g_side_value[k], buf, strlen(buf) + 1);
+}
+
+/* After a key edge at block `pos`: a note it started or ended. Times sit at
+ * mid-block (docs/15 §6.3), where fm1-render applies them at this block. */
+static void key_logged(int key, int was_down, uint32_t pos, float rate) {
+  const double t = pos ? (pos - 32.0) / rate : 0.0;
+  if (!was_down && g_app.key_down[key]) {
+    side("--note", "0:0:0:0");
+    g_key_side[key] = g_nside;
+    g_key_t0[key] = t;
+    key_note_text(key, 3600.0);            /* still held at the end: never released */
+  } else if (was_down && !g_app.key_down[key] && g_key_side[key]) {
+    key_note_text(key, t - g_key_t0[key]);
+    g_key_side[key] = 0;
+  }
 }
 
 /* The units before a panel event, to see what it changed. */
@@ -491,7 +533,15 @@ static void seq_screens(const char *dir, float rate) {
   seq_line("loop 0 20 8;clen 0 6");
   play_to(18);
   check_screen("seq-loop-window", dir, 1);
-  expect(fm1_seq_ui_key_leds(&g_app.ui) == 0, "bar 1 lies outside the loop: no key lit");
+  /* The bar on the keys follows the loop into bar 2, the loop's first: the
+   * back key is dark, the forward one lit (bar 3 is the empty bar after the
+   * loop, Movy's way to grow it). */
+  {
+    const uint32_t keys = fm1_seq_ui_key_leds(&g_app.ui, g_app.frames);
+    expect(g_app.ui.bar == 1, "the bar on the keys did not follow the loop");
+    expect(!((keys >> FM1_SEQ_UI_KEY_BAR_BACK) & 1u) && ((keys >> FM1_SEQ_UI_KEY_BAR_ON) & 1u),
+           "the bar keys' LEDs");
+  }
   press(FM1_BTN_PLAY);
   fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
   /* Track 8, which has no clip; and popups over the Track view. */
@@ -572,6 +622,185 @@ static void seq_screens(const char *dir, float rate) {
   expect(g_app.mode == FM1_MODE_HOME, "the lab switch off leaves SEQ mode");
   press(FM1_BTN_SEQ);
   expect(g_app.mode == FM1_MODE_HOME && g_app.popup_lines == 3, "SEQ with the lab switch off");
+  destroy_units();
+}
+
+/* ---- --screens, lab on: step entry (docs/15 §4, S4) ------------------- */
+
+static void blocks(int n) {
+  for (int k = 0; k < n; ++k) fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
+}
+
+static void key_edge(int key, int down) {
+  fm1_app_key(&g_app, key, down, 100);
+  blocks(1);
+}
+
+static void turn(int encoder, int delta) {
+  fm1_app_encoder(&g_app, encoder, delta);
+  blocks(1);
+}
+
+static void step_check(const char *name, const char *dir, int save) {
+  g_app.popup_lines = 0;
+  check_screen(name, dir, save);
+}
+
+/* The Step pages and the Track view's S4 marks, each value at its extremes:
+ * a 16-bar clip, so LEN reaches 16 bars and the bar keys bar 16. */
+static void seq_step_screens(const char *dir, float rate) {
+  char name[128];
+  const int hold = (int)((uint32_t)g_app.ui.hold_frames / FM1_APP_MAX_FRAMES + 2u);
+  destroy_units();
+  fm1_app_init(&g_app, rate);
+  fm1_app_set_lab(&g_app, 1);
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  fm1_app_seq_default_route(&g_app);
+  blocks(1);
+  press(FM1_BTN_SEQ);
+  blocks(1);
+  /* Step entry from nothing: a tap enters note 60 at 100 (O5); the bar keys
+   * page nothing without a clip. */
+  key_edge(fm1_white_key(0), 1);
+  key_edge(fm1_white_key(0), 0);
+  expect(g_app.ui.notes == 1u && g_app.ui.length == 16, "a tap did not enter step 1");
+  key_edge(1, 1);
+  key_edge(1, 0);
+  expect(g_app.ui.bar == 0, "F#3 paged back from bar 1");
+  seq_line("clen 0 256;tog 0 3 48 90;tog 0 6 60 100 64 90;slen 0 6 6 64 48;"
+           "eprob 0 3 3 -1 50;econd 0 9 9 -1 2 3;einv 0 12 12 -1 1;tog 0 12 55 80;"
+           "eprob 0 70 70 60 20");
+  blocks(1);
+  step_check("seq-step-marks", dir, 1);
+  /* SHIFT: its legend, and full velocity on (a popup) and off. */
+  fm1_app_button(&g_app, FM1_BTN_SEL, 1);
+  blocks(1);
+  check_screen("seq-shift-legend", dir, 1);
+  key_edge(fm1_white_key(FM1_SEQ_UI_FULL_VEL_KEY), 1);
+  expect(g_app.ui.full_vel == 1 && g_app.popup_lines == 2, "SHIFT + 10 did not turn full velocity on");
+  check_screen("seq-popup-full-velocity", dir, 1);
+  key_edge(fm1_white_key(FM1_SEQ_UI_FULL_VEL_KEY), 0);
+  step_check("seq-shift-legend-full-velocity", dir, 0);
+  key_edge(fm1_white_key(FM1_SEQ_UI_FULL_VEL_KEY), 1);
+  key_edge(fm1_white_key(FM1_SEQ_UI_FULL_VEL_KEY), 0);
+  fm1_app_button(&g_app, FM1_BTN_SEL, 0);
+  blocks(1);
+  expect(g_app.ui.full_vel == 0 && !g_app.ui.shift, "SHIFT + 10 again did not turn it off");
+  /* The bar keys: through all 16 bars and back; the hint names the bar. */
+  for (int b = 1; b < 16; ++b) {
+    key_edge(FM1_SEQ_UI_KEY_BAR_ON, 1);
+    key_edge(FM1_SEQ_UI_KEY_BAR_ON, 0);
+    snprintf(name, sizeof name, "seq-bar-%d", b + 1);
+    step_check(name, dir, b == 4 || b == 15);
+  }
+  expect(g_app.ui.bar == 15 && g_app.ui.grid_first == 192, "A#3 did not reach bar 16");
+  for (int b = 15; b > 0; --b) {
+    key_edge(FM1_SEQ_UI_KEY_BAR_BACK, 1);
+    key_edge(FM1_SEQ_UI_KEY_BAR_BACK, 0);
+  }
+  expect(g_app.ui.bar == 0, "F#3 did not come back to bar 1");
+  seq_line("clen 0 16");
+  blocks(1);
+  key_edge(FM1_SEQ_UI_KEY_BAR_ON, 1);
+  key_edge(FM1_SEQ_UI_KEY_BAR_ON, 0);
+  step_check("seq-bar-2-empty", dir, 1);
+  key_edge(FM1_SEQ_UI_KEY_BAR_BACK, 1);
+  key_edge(FM1_SEQ_UI_KEY_BAR_BACK, 0);
+  seq_line("clen 0 256");
+  blocks(1);
+  /* Step 7 held (its chord: 60 and 64, two lengths) past the threshold:
+   * Step page 1, then every field at its extremes. */
+  key_edge(fm1_white_key(6), 1);
+  blocks(hold);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_STEP, "a hold did not open the Step page");
+  step_check("seq-step-p1-mixed", dir, 1);
+  turn(FM1_ENC_KNOB1, -64);
+  turn(FM1_ENC_KNOB2, -64);
+  turn(FM1_ENC_KNOB3, -64);
+  turn(FM1_ENC_KNOB4, -64);
+  expect(g_app.ui.hold.vel == 1 && g_app.ui.hold.gate == 12 && g_app.ui.hold.prob == 10,
+         "the Step page's minima");
+  step_check("seq-step-p1-min", dir, 1);
+  turn(FM1_ENC_KNOB1, 64);
+  turn(FM1_ENC_KNOB2, 64);
+  turn(FM1_ENC_KNOB3, 64);
+  turn(FM1_ENC_KNOB4, 64);
+  /* 16 bars asked; the core holds the note to the clip's end, 250 steps on. */
+  expect(g_app.ui.hold.vel == 127 && g_app.ui.hold.gate == 250 * 24 && g_app.ui.hold.prob == 100 &&
+         g_app.ui.hold.cond_a == 8 && g_app.ui.hold.cond_b == 8, "the Step page's maxima");
+  step_check("seq-step-p1-max", dir, 1);
+  for (int i = 0; i < FM1_SEQ_UI_LENGTHS; ++i) {       /* every length, prob and condition */
+    seq_line("slen 0 6 6 -1 1");
+    blocks(1);
+    turn(FM1_ENC_KNOB2, i - fm1_seq_ui_length_index(g_app.ui.hold.gate));
+    snprintf(name, sizeof name, "seq-step-len-%d", i);
+    step_check(name, dir, 0);
+  }
+  for (int i = 0; i < FM1_SEQ_UI_PROBS; ++i) {
+    turn(FM1_ENC_KNOB3, fm1_seq_ui_prob_index(g_app.ui.hold.prob) - i);
+    snprintf(name, sizeof name, "seq-step-prob-%d", i);
+    step_check(name, dir, 0);
+  }
+  for (int i = 0; i < FM1_SEQ_UI_CONDS; ++i) {
+    turn(FM1_ENC_KNOB4, i - fm1_seq_ui_cond_index(g_app.ui.hold.cond_a, g_app.ui.hold.cond_b));
+    snprintf(name, sizeof name, "seq-step-cond-%d", i);
+    step_check(name, dir, 0);
+  }
+  /* Step page 2: INV off and on, the nudge at both ends, a chord of 12
+   * from note 1 (the longest name, "C#-1 +11"). */
+  turn(FM1_ENC_SELECT, 1);
+  step_check("seq-step-p2", dir, 1);
+  turn(FM1_ENC_KNOB1, 1);
+  expect(g_app.ui.hold.inv == 1, "INV did not turn on");
+  seq_line("enudge 0 6 6 -1 -99");
+  blocks(1);
+  step_check("seq-step-p2-nudge-min", dir, 0);
+  seq_line("enudge 0 6 6 -1 99");
+  blocks(1);
+  step_check("seq-step-p2-nudge-max", dir, 1);
+  key_edge(fm1_white_key(6), 0);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_TRACK && g_app.ui.held_n == 0, "the hold did not end");
+  seq_line("tog 0 10 1 100 2 100 3 100 4 100 5 100 6 100 7 100 8 100 9 100 10 100 11 100 12 100");
+  blocks(1);
+  key_edge(fm1_white_key(10), 1);
+  blocks(hold);
+  step_check("seq-step-p2-chord", dir, 0);
+  /* SHIFT during the hold: the legend on the first line and the strip. */
+  fm1_app_button(&g_app, FM1_BTN_SEL, 1);
+  blocks(1);
+  step_check("seq-step-shift", dir, 1);
+  fm1_app_button(&g_app, FM1_BTN_SEL, 0);              /* a SHIFT tap: the step is cleared */
+  blocks(1);
+  expect(g_app.ui.hold.notes == 0, "a SHIFT tap did not clear the held step");
+  turn(FM1_ENC_SELECT, -1);
+  step_check("seq-step-p1-empty", dir, 1);
+  key_edge(fm1_white_key(10), 0);
+  /* Every white key held in bar 16, the last first: "Step 256 +15". */
+  for (int b = 0; b < 15; ++b) {
+    key_edge(FM1_SEQ_UI_KEY_BAR_ON, 1);
+    key_edge(FM1_SEQ_UI_KEY_BAR_ON, 0);
+  }
+  for (int n = 15; n >= 0; --n) key_edge(fm1_white_key(n), 1);
+  turn(FM1_ENC_KNOB1, 1);
+  expect(g_app.ui.held_n == 16 && g_app.ui.hold.step == 255, "sixteen held steps");
+  step_check("seq-step-sixteen-held", dir, 1);
+  for (int n = 15; n >= 0; --n) key_edge(fm1_white_key(n), 0);
+  /* Playing and recording on the track: REC on the status line, and the
+   * playhead in the step strip under a hold. */
+  for (int b = 0; b < 15; ++b) {
+    key_edge(FM1_SEQ_UI_KEY_BAR_BACK, 1);
+    key_edge(FM1_SEQ_UI_KEY_BAR_BACK, 0);
+  }
+  seq_line("clen 0 16;play;rec 0");
+  blocks(400);
+  expect(g_app.ui.recording && g_app.ui.rec_track == 0, "not recording on track 1");
+  step_check("seq-recording", dir, 1);
+  key_edge(fm1_white_key(3), 1);
+  blocks(hold);
+  step_check("seq-step-playing", dir, 0);
+  key_edge(fm1_white_key(3), 0);
+  seq_line("stop");
+  blocks(1);
   destroy_units();
 }
 
@@ -670,6 +899,7 @@ static int run_screens(const char *dir, float rate) {
   }
   check_screen("popup-refuses-rate", dir, 1);
   seq_screens(dir, rate);
+  seq_step_screens(dir, rate);
   printf("{\"screens\":%d,\"faults\":%d}\n", g_screens, g_faults);
   return g_faults ? 1 : 0;
 }
@@ -1109,8 +1339,9 @@ int main(int argc, char **argv) {
           if (e->on) fm1_app_note_on(&g_app, e->a, e->b);
           else fm1_app_note_off(&g_app, e->a);
         } else if (e->kind == EV_KEY) {
+          const int was_down = g_app.key_down[e->a];
           fm1_app_key(&g_app, e->a, e->on, e->b);
-          g_replayable = 0;                    /* key notes are logged from S5 */
+          key_logged(e->a, was_down, pos, rate);
         } else {
           continue;
         }
@@ -1189,10 +1420,31 @@ int main(int argc, char **argv) {
   }
   printf(",\"lab\":%d,\"replayable\":%d", g_lab, g_replayable);
   if (g_lab) {
+    /* key_leds: bit n for white key n; role_leds: bit per black key, in
+     * key order (F#3 first). */
+    const uint32_t keys = fm1_seq_ui_key_leds(&g_app.ui, g_app.frames);
+    unsigned white = 0, black = 0, nb = 0;
+    for (int k = 0, n = 0; k < FM1_APP_KEYS; ++k) {
+      if (fm1_white_key(n) == k) white |= ((keys >> k) & 1u) << n++;
+      else black |= ((keys >> k) & 1u) << nb++;
+    }
     printf(",\"seq_view\":{\"track\":%u,\"step\":%u,\"clip_playing\":%u,\"playing\":%u,"
-           "\"knob\":%d,\"key_leds\":%u}",
+           "\"knob\":%d,\"key_leds\":%u,\"role_leds\":%u,\"view\":%u,\"step_page\":%u,"
+           "\"bar\":%u,\"held\":%u,\"shift\":%u,\"full_vel\":%u,\"hint\":%u,"
+           "\"length\":%u,\"loop_start\":%u}",
            (unsigned)g_app.ui.track, (unsigned)g_app.ui.step, (unsigned)g_app.ui.clip_playing,
-           (unsigned)g_app.ui.playing, (int)g_app.ui.knob, (unsigned)fm1_seq_ui_key_leds(&g_app.ui));
+           (unsigned)g_app.ui.playing, (int)g_app.ui.knob, white, black, (unsigned)g_app.ui.view,
+           (unsigned)g_app.ui.step_page, (unsigned)g_app.ui.bar, (unsigned)g_app.ui.held_n,
+           (unsigned)g_app.ui.shift, (unsigned)g_app.ui.full_vel, (unsigned)g_app.ui.hint,
+           (unsigned)g_app.ui.length, (unsigned)g_app.ui.loop_start);
+    if (g_app.ui.held_n && g_app.ui.hold_valid) {   /* what the Step pages show */
+      const fm1_seq_ui_hold_t *h = &g_app.ui.hold;
+      printf(",\"hold\":{\"step\":%u,\"notes\":%u,\"tick\":%u,\"gate\":%u,\"vel\":%u,"
+             "\"pitch\":%u,\"gate_mixed\":%u,\"prob\":%u,\"cond\":[%u,%u],\"inv\":%u}",
+             (unsigned)h->step, (unsigned)h->notes, (unsigned)h->tick, (unsigned)h->gate,
+             (unsigned)h->vel, (unsigned)h->pitch, (unsigned)h->gate_mixed, (unsigned)h->prob,
+             (unsigned)h->cond_a, (unsigned)h->cond_b, (unsigned)h->inv);
+    }
   }
   if (use_seq) {
     fm1_seq_stats_t st;

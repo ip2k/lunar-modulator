@@ -139,7 +139,7 @@ plays pitches, as stock does.
 | Hold one step and turn a knob: an immediate, quiet lock | Hold a white key and turn KNOB1–4 |
 | Step page VEL/LEN/PROB/COND/INV on knobs 1–5 | Page 1 VEL/LEN/PROB/COND, page 2 INV, switched with SELECT |
 | Hold step A and press B: length | Hold white A and press white B |
-| Hold a step and press a pad: that pitch toggles in the step | Hold the step and SHIFT: the keys are pitches while SHIFT is down. Or play the pitch at MIDI IN |
+| Hold a step and press a pad: that pitch toggles in the step | Pitches are only added (owner decision O22, 2026-10-02; docs/15 §3.5): hold the step and SHIFT, and each white key adds its pitch in the current octave (`addp`); a note at MIDI IN adds any pitch. A tap of SHIFT alone while the step is held clears its notes (`del`) |
 | A tap writes the held pads, else the remembered set, else the last pitch | The same order; keys played in KEYS mode, or MIDI IN notes, are the "pads" |
 | With steps held: the volume encoder sets velocity, ◀ ▶ nudge ±2 ticks (±1 with Shift), +/− transpose | The VEL knob; two accidentals as ◀ ▶ (which also page bars); two keys or buttons for −/+ |
 | Touch-tap a knob during a hold: clears that lock | Hold the step and SHIFT, and turn that knob |

@@ -215,6 +215,8 @@ typedef struct fm1_seq_info {
   uint8_t capture_mode;     /* 0 none, 1 tempo selector, 2 fitted to the tempo */
   uint8_t capture_n, capture_sel;
   uint16_t capture_cands[3];  /* candidate tempos, BPM, ascending */
+  uint8_t rec_track;        /* the track `rec` armed last: the one recording or
+                               counting in while either flag is set */
 } fm1_seq_info_t;
 
 typedef struct fm1_seq_track_info {
@@ -260,6 +262,35 @@ int fm1_seq_get_clip(const fm1_seq_t *s, uint8_t track, uint8_t slot, fm1_seq_cl
 int fm1_seq_get_note(const fm1_seq_t *s, uint8_t track, uint8_t slot, uint16_t i,
                      fm1_seq_note_info_t *out);
 void fm1_seq_get_stats(const fm1_seq_t *s, fm1_seq_stats_t *out);
+
+/* One step of a clip as a UI draws it (docs/15 §2.5): what fm1_seq_get_page
+ * gathers for a run of steps in one pass over the clip's notes, locks and
+ * trig rows, where asking step by step would scan every list per step. */
+typedef struct fm1_seq_step_info {
+  uint8_t notes;            /* notes anchored on the step, saturating at 255 */
+  uint8_t lock_mask;        /* bit per lane with a lock on the step */
+  uint8_t trig;             /* FM1_SEQ_TRIG_* */
+  uint8_t prob;             /* the whole-step trig row's probability, 0..100;
+                               100 without one */
+  uint8_t cond_a, cond_b;   /* its condition A:B; 1:1 without one */
+  uint8_t reserved[2];
+  fm1_seq_val_t lock[FM1_SEQ_LANES];   /* the locked values; 0 off the mask */
+} fm1_seq_step_info_t;
+
+enum {
+  FM1_SEQ_TRIG_STEP = 1,    /* the step has a whole-step trig row (Movy's lane -1) */
+  FM1_SEQ_TRIG_PITCH = 2,   /* ...and/or one for a single pitch */
+  FM1_SEQ_TRIG_INV = 4      /* the whole-step row inverts its condition */
+};
+
+/* Steps first .. first + n - 1 of a clip, in one pass: out[k] is step
+ * first + k (locks and trig rows sit on steps 0..255; a note can anchor on
+ * 256, Movy's last half-step of a 16-bar clip). Returns 0
+ * for a track or slot out of range, with out[] untouched; else 1. Read only,
+ * no allocation: a UI calls it on the audio thread whenever the clip may
+ * have changed. */
+int fm1_seq_get_page(const fm1_seq_t *s, uint8_t track, uint8_t slot, uint16_t first, uint16_t n,
+                     fm1_seq_step_info_t *out);
 
 /* Movy's Clip::effective_at, the steady-state oracle of the lock latch. */
 int fm1_seq_effective_at(const fm1_seq_t *s, uint8_t track, uint8_t slot, uint8_t lane,
