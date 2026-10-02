@@ -1,9 +1,14 @@
-# Hand-off package — M-VAVE FM-1 open firmware
+# Hand-off package — Lunar Modulator
+
+**INTERGALACTIC MODULATION STATION.** Lunar Modulator is open firmware for
+the M-VAVE FM-1; until 2026-10-01 the project was called "Open firmware for
+the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
 original conversation; last updated 2026-09-29 (Baud Girl's FM-1+VA, the
-owner's PCB photos). Read this first, then `README.md`, then `docs/`.
+owner's PCB photos) and 2026-10-01 (engines, sequencer, the new name). Read
+this first, then `README.md`, then `docs/`.
 
 ## 1. Where things stand
 
@@ -27,7 +32,10 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
   with a virtual-analog engine installed from a browser (`FM-1_020` …
   `FM-1_092`; source not published). See docs/04.
 - **Where the repo lives now:** `~/Developer/mvave-fm1-firmware` on the
-  owner's MacBook, branch `main`, remote `ip2k/mvave-fm1-open-firmware`. Moved there on
+  owner's MacBook (the folder keeps its old name), branch `main`, remote
+  `ip2k/lunar-modulator` (published 2026-09-06 as
+  `ip2k/mvave-fm1-open-firmware` and renamed with the project on
+  2026-10-01; GitHub redirects the old URLs). Moved there on
   2026-09-06 from the orphan branch `claude/mvave-fm1-open-firmware-ly2w6u` of
   `ip2k/busybar-dual-timer`, which the cloud session used because its GitHub
   integration could not create repositories. Delete that branch once a remote
@@ -118,7 +126,7 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
 ## 5. Immediate next actions (in order)
 
 1. ~~Move the repo.~~ Done 2026-09-06: `~/Developer/mvave-fm1-firmware`,
-   pushed to `ip2k/mvave-fm1-open-firmware`.
+   pushed to the repository now named `ip2k/lunar-modulator`.
 2. ~~docs/09 §1–§3.~~ Done 2026-09-06 (`notes/2026-09-06-bench.md`).
 3. ~~Power-switch-off enumeration test.~~ Done 2026-09-06 (no enumeration when
    off). Still open: the case-open photo list (docs/09 §5).
@@ -186,10 +194,10 @@ madushan.caas.lk blog post.
 
 Paste this as the first message of the new project (adjust paths):
 
-> This project is the open-source firmware effort for the M-VAVE FM-1 FM
-> synthesizer. The repository (`~/Developer/mvave-fm1-firmware`) contains a
-> completed research phase: read `HANDOFF.md`, then `README.md`, then
-> `docs/01`–`09` and `CLAUDE.md`. Rules: the FM-1 on my desk is the only unit;
+> This project, Lunar Modulator, is the open-source firmware effort for the
+> M-VAVE FM-1 FM synthesizer. The repository
+> (`~/Developer/mvave-fm1-firmware`) contains a completed research phase:
+> read `HANDOFF.md`, then `README.md`, then `docs/01`–`09` and `CLAUDE.md`. Rules: the FM-1 on my desk is the only unit;
 > nothing may be flashed or sent to it beyond the read-only identity query
 > until recovery is proven (docs/07). Today's tasks: (1) run
 > `docs/09-first-session-checklist.md` §1 to extract and analyse the V15

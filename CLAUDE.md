@@ -4,8 +4,10 @@ Guidance for Claude Code working in this repo.
 
 ## What this is
 
-Research and, later, code toward an open-source firmware for the **M-VAVE FM-1**
-(JieLi AC791N SoC, pi32v2 CPU, msfa/Dexed FM engine). Status: **research phase
+**Lunar Modulator** (tagline **INTERGALACTIC MODULATION STATION**) is open
+firmware for the **M-VAVE FM-1**: research and, later, code toward an
+open-source firmware for it (JieLi AC791N SoC, pi32v2 CPU, msfa/Dexed FM
+engine). Status: **research phase
 complete; one read-only bench session done (`notes/2026-09-06-bench.md`);
 nothing flashed by this project.** The owner's unit ran stock `FM-1_015` until
 the owner installed Baud Girl's FM-1+VA; it identifies as **`FM-1_092`** since
@@ -17,6 +19,24 @@ since 2026-09-26 Baud Girl's FM-1+VA (a modified V15, source not published)
 installs from a browser for anyone (docs/04, `notes/2026-09-29-*`).
 `HANDOFF.md` is the context summary; `README.md` has the verdict; `docs/` has
 the detail.
+
+**The name** (owner's choice, 2026-10-01). Until then the project was "Open
+firmware for the M-VAVE FM-1", repository `ip2k/mvave-fm1-open-firmware`; it
+is now `ip2k/lunar-modulator`. The local folder `~/Developer/mvave-fm1-firmware`
+keeps its old name. Rules:
+
+- Full name **Lunar Modulator**; short form **Lunar**. Never "Lunar Module"
+  (the Apollo spacecraft), "Lunar Mod" or "LM".
+- Tagline **INTERGALACTIC MODULATION STATION**, in capitals.
+- Wherever the project is described, keep the descriptor "open firmware for
+  the M-VAVE FM-1". The device's name only says what the firmware runs on;
+  it implies no tie to M-VAVE or Cuvave.
+- The look is a space theme with a NASA-style display typeface; art goes in
+  `assets/branding/`. Never use NASA's insignia (the "meatball"), its "worm"
+  logotype, its seal, or any other NASA name or mark, and nothing that
+  suggests NASA endorsement. Never use M-VAVE's or Cuvave's logos. Mutable
+  Instruments module names (Plaits, Braids, Clouds, …) are credited as
+  sources, never used as product names.
 
 This project is unrelated to the BUSY Bar timer repo it was briefly hosted in.
 

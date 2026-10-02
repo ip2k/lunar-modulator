@@ -1,8 +1,17 @@
-# Open firmware for the M-VAVE FM-1
+# Lunar Modulator
 
-Research toward a fully open-source firmware for the M-VAVE (Cuvave) **FM-1**, a
+<!-- BANNER: assets/branding/banner.png goes here, added with the branding art.
+     Alt text: "Lunar Modulator: INTERGALACTIC MODULATION STATION". -->
+
+**INTERGALACTIC MODULATION STATION**
+
+Lunar Modulator is open firmware for the M-VAVE FM-1: research, and later
+code, toward a fully open-source firmware for the M-VAVE (Cuvave) **FM-1**, a
 ~€70 battery-powered six-operator, 12-voice FM synthesizer with 27 silicone keys,
 a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
+Until 2026-10-01 the project was called "Open firmware for the M-VAVE FM-1"
+(`ip2k/mvave-fm1-open-firmware`). It is an independent project, not
+affiliated with or endorsed by M-VAVE, Cuvave or any space agency.
 
 > **Status (2026-09-29): research phase; first read-only bench session done.**
 > This project has flashed nothing. V15 has been unpacked and compared with
@@ -126,6 +135,10 @@ branch can then be deleted:
 ```bash
 git push https://github.com/ip2k/busybar-dual-timer --delete claude/mvave-fm1-open-firmware-ly2w6u
 ```
+
+On 2026-10-01 the project was renamed Lunar Modulator and the repository
+`ip2k/lunar-modulator`; GitHub redirects the old URLs [reported, GitHub's
+documentation on renaming a repository]. The local folder keeps its old name.
 
 ## Credits
 

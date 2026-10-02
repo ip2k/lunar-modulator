@@ -97,6 +97,14 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- The project is now **Lunar Modulator**, tagline **INTERGALACTIC
+  MODULATION STATION**: open firmware for the M-VAVE FM-1, formerly "Open
+  firmware for the M-VAVE FM-1". The repository becomes
+  `ip2k/lunar-modulator` (GitHub redirects `ip2k/mvave-fm1-open-firmware`).
+  The short form is "Lunar"; the look is a space theme with a NASA-style
+  typeface, using no NASA, M-VAVE or Cuvave marks. README, HANDOFF,
+  CLAUDE.md and AGENTS.md carry the new name; CLAUDE.md and AGENTS.md set
+  out the naming rules.
 - docs/13 records the owner's choice of 7-bit locks with smoothing, and of
   Capture as an optional feature. docs/11 corrects its claim that Clouds'
   spectral mode needs its own FFT.
