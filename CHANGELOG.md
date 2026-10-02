@@ -9,6 +9,21 @@ history.
 ## [Unreleased]
 
 ### Added
+- docs/15: the plan for the sequencer in the virtual FM-1 (docs/13 stage M4
+  in the browser), in stages S1–S10, each with its tests and exit numbers.
+  - S1 moves `fm1-render`'s per-block sequencer hosting into a shared,
+    heap-free C99 bridge, with no change in behaviour.
+  - S2 hosts the sequencer in the app with no UI, and proves it plays every
+    oracle script exactly as `fm1-render` does, natively and in WebAssembly.
+  - S3 is the first playable stage: PLAY/STOP and a SEQ grid. Later stages
+    add step entry, record and Capture, tracks, engine API v2 (a silent stage,
+    then SMOOTH), parameter locks, Session, and sets saved in the browser.
+  - Outside SEQ mode every printed button keeps its meaning; in SEQ mode the
+    black keys carry the sequencer's roles.
+  - Memory: at most 36,216 B of the 36,864 B half budget at 8 tracks, and
+    22,392 B at 4.
+  - 24 owner decisions, each with a proposed default and the stage it
+    blocks. docs/13 §9 points to it.
 - notes/2026-10-01-arp-modulation-effects-options.md: open-source options
   for an arpeggiator, configurable LFOs and envelopes, a modulation matrix
   and eurorack-type effects such as sample-and-hold, with every licence
