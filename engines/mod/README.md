@@ -8,8 +8,9 @@ Two layers, both heap-free C99 with no libm:
   inputs are destinations, so a chain A → B → C → D is three ordinary
   slots. `include/fm1_mod.h` is its API, `include/fm1_mod_host.h` puts it on
   the sequencer's host bridge, and `fm1-render --mod` plays it. The first
-  three module kinds are **LFO**, **Envelope** and **Chance**. Not in the
-  simulator yet (MG3).
+  three module kinds are **LFO**, **Envelope** and **Chance**. The virtual
+  FM-1 hosts it behind its lab switch, with the RACK, MATRIX and CHAIN
+  pages (docs/16 MG3; sim/web/README.md, "The lab switch").
 - **The primitives** (`fm1_mp.h`): an LFO, a multistage envelope, a slew
   limiter, sample-and-hold, a Turing-machine register and a clock
   divider/multiplier, after §3–§5 of the arpeggiator, modulation and effects
@@ -264,7 +265,8 @@ Envelope, Envelope, Chance) takes 640 B of the 8 KB arena.
 `fm1_mod_glue_t` (`include/fm1_mod_host.h`) is that hook for a runtime; it
 hands writes to the effects and AMP to the host, which renders each effect
 split at its own writes. Plain `fm1_seq_host_dispatch` is the hook-less
-case, so the virtual FM-1 is unchanged until MG3. A bridge initialised with
+case, which the virtual FM-1 keeps with its lab switch off; with it on, the
+app runs this glue as `fm1-render` does (MG3). A bridge initialised with
 no sequencer runs only ticks, which is how `fm1-render` modulates without
 `--cmd`.
 
@@ -342,9 +344,9 @@ and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
 
 ### What MG1 leaves for later
 
-- **The simulator** (MG3): RACK, MATRIX, CHAIN, PATCH; the app hosting the
-  glue. Owner, 2026-10-02: the LFO button will open the rack at the LFOs
-  and ENV at the envelopes.
+- **The simulator** (MG3, built 2026-10-02 behind the lab switch): RACK,
+  MATRIX, CHAIN and the routing gesture; the app hosts the glue
+  (docs/16 §8, "MG3, as built").
 - **Locks on module parameters and slot depths** (MG6). Locks on the
   sound's parameters already move the base (rule M1).
 - **`fm1_host_t` is unchanged.** Tempo and the transport reach the kinds
@@ -355,8 +357,8 @@ and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
   runs on one task and an edit takes effect at the next tick. The firmware's
   control task needs the two buffers.
 - **Changing a kind switches off the slots that touch it** (docs/16:
-  disabled, never deleted); restoring them on a change back is the UI's
-  (MG3).
+  disabled, never deleted); the simulator's RACK switches them on again on
+  a change back (MG3, `sim/web/src/fm1_mod_ui.c`).
 
 ### No render changed
 

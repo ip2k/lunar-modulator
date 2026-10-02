@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "70e0763981ca89f05f40afcb30e5fdeffdeb71f38a883331491f237bf4ba0505",
-  "wasm_bytes": 466635,
+  "wasm_sha256": "76d24cb492ff9b16971e9de74f1ffd2d2c28a7d31fd9fce079e496c802769c90",
+  "wasm_bytes": 557311,
   "sources_sha256": {
-    "engines": "a64e30f8507b093b3ee5911bb5888d778bace1a37d5d1a4a8aa9f0f6c10d1cb7",
-    "sim": "ac3ff894363167167da3fadff0d71bfcd3610613ad627122478c82e026f82c7d"
+    "engines": "c611efe5758afbd3b18955b604ac18b9f5603e9b8820b498a8842afd8fba3d16",
+    "sim": "609c5b815ac99aa4123d4ba66924b6a974a4a5fa0991c8115b4ec9a81bc8da42"
   },
   "engines": "working tree",
-  "built": "2026-10-02T19:03:54Z",
+  "built": "2026-10-02T21:26:34Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 24,
+    "passed": 26,
     "failed": 0,
-    "identical_to_js": 24,
-    "identical_to_musl": 24,
-    "identical_to_glibc": 21,
+    "identical_to_js": 26,
+    "identical_to_musl": 26,
+    "identical_to_glibc": 23,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -445,6 +445,61 @@
       }
     },
     {
+      "name": "mod-macro-routes",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 205400,
+        "native64": 218088
+      },
+      "mod": "mod/routes.mod"
+    },
+    {
+      "name": "mod-panel-gestures",
+      "samples": 211766,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 139672,
+        "native64": 152360
+      },
+      "cmd": "mod/panel-gestures.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 1,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "mod/panel-gestures.panel"
+    },
+    {
       "name": "seq-panel-play-stop",
       "samples": 194118,
       "libm_sensitive": false,
@@ -462,8 +517,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 119656,
-        "native64": 132344
+        "wasm32": 139672,
+        "native64": 152360
       },
       "cmd": "seq/panel-play-stop.verbs",
       "seq": {

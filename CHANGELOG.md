@@ -9,6 +9,38 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Modulation on the virtual FM-1's panel (docs/16 MG3), behind the lab
+  switch:** add `?lab` (or `#lab`) to the page's address. The public page is
+  unchanged: there ENV, LFO and EDIT still say they are not in the
+  simulator yet.
+  - Two LFOs, two envelopes and a random source (Chance) are ready from the
+    start, and every note opens both envelopes, whether it comes from the
+    keys, MIDI in or the sequencer. Nothing moves the sound until you
+    connect something.
+  - LFO or ENV shows those modules a page at a time: their settings on the
+    four knobs, SELECT through every module and page, ALGORITHM to put
+    another kind of module in a place, or empty it. Changing a module back
+    brings its connections back. SEL picks a module up so SELECT can move
+    it.
+  - Hold LFO or ENV and turn a knob on the sound's page, an effect's page or
+    a module's page: the LFO or envelope you looked at last now moves that
+    setting, and the turn sets by how much. Turning again changes the same
+    connection.
+  - EDIT lists all 32 connections. KNOB1 picks what moves, KNOB2 what is
+    moved (from a list; ALGORITHM jumps between the sound, the effects, the
+    host and each module), KNOB3 how much and KNOB4 an offset; ALGORITHM
+    turns to a second page with a second source that scales the first, a
+    curve, the polarity and on or off. SEL shows the chain a connection is
+    part of.
+  - A setting that something moves shows a gold diamond by its name, the
+    range it moves over in gold on its bar, and where it is now in red.
+  - For developers: `fm1-sim-render --lab --log-cmds` also logs the
+    modulation as `fm1-render --mod` lines, so a session on the panel
+    replays byte for byte; `--mod FILE` plays a modulation script, as
+    `fm1-render --mod` does. Two new parity scenarios check the browser
+    module with modulation running (26 of 26 pass), and the layout check
+    now covers 1,084 screens. The browser module grew from 465 KB to about
+    557 KB.
 - **Modulation, first stage (docs/16 MG1):** the engine and `fm1-render` can
   now modulate sounds; not yet playable in the simulator or on the FM-1.
   - A rack of up to 8 modulation modules inside a matrix of 32 cables. Any

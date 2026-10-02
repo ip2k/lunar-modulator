@@ -1202,7 +1202,7 @@ static int import_file(const char *path) {
 typedef struct {
   uint64_t frame;
   int order;
-  char text[512];
+  char text[1024];
 } mod_line_t;
 
 static mod_line_t *g_mod;

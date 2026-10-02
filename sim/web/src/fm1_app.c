@@ -564,6 +564,9 @@ static int kind_of_button(int button) {
 static int mod_button(fm1_app_t *a, int button, int down) {
   fm1_mod_ui_t *u = &a->mui;
   if (down) mod_commit(a);                /* any press settles a waiting picker */
+  if (down && u->held != FM1_MOD_UI_NONE && button != u->held) {
+    u->held_used = 1;                     /* a held ENV or LFO with another press is no tap */
+  }
   switch (button) {
     case FM1_BTN_ENV:
     case FM1_BTN_LFO:
@@ -580,8 +583,9 @@ static int mod_button(fm1_app_t *a, int button, int down) {
           a->fx_grab = 0;
           a->dirty = 1;
         }
+        /* The other one, still held, had a press during its hold: no tap. */
         u->held = a->button_down[other] ? (uint8_t)other : (uint8_t)FM1_MOD_UI_NONE;
-        u->held_used = 0;
+        u->held_used = u->held != FM1_MOD_UI_NONE;
       }
       return 1;
     case FM1_BTN_EDIT:

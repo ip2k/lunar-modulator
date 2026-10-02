@@ -214,9 +214,10 @@ nothing of ours in the path, and more than 400 tests compare the two.
   [docs/15](docs/15-sequencer-in-simulator.md)). On the panel, PLAY/STOP,
   SEQ mode's read-only Track view and a demo pattern work behind a lab
   switch (`?lab` in the page's address; stage S3,
-  [`sim/web/README.md`](sim/web/README.md), "The lab switch"); the public
-  page keeps SEQ, PLAY/STOP and REC as "not in the simulator yet" until
-  step entry and recording work.
+  [`sim/web/README.md`](sim/web/README.md), "The lab switch"), and so does
+  modulation (docs/16 MG3); the public page keeps SEQ, PLAY/STOP, REC, ENV,
+  LFO and EDIT as "not in the simulator yet" until step entry and
+  recording work.
 
 ### The arpeggiator core
 
@@ -545,8 +546,12 @@ which lands with the plan PR; its stages S0–S7 are named below.
   runtime (a rack of up to 8 modules in a 32-slot matrix with chains and
   feedback, a 32-frame tick), the modules LFO, Envelope and Chance, and
   `fm1-render --mod` ([`engines/mod/README.md`](engines/mod/README.md#the-runtime)).
-  Next: the glue modules (MG2), then the simulator's RACK and MATRIX pages
-  (MG3).
+  Stage MG3 puts it in the virtual FM-1 behind the lab switch: the RACK,
+  MATRIX and CHAIN pages, the hold-and-turn routing gesture, routed
+  parameters marked on every page, and panel sessions that replay through
+  `fm1-render --mod` byte for byte ([`sim/web/README.md`](sim/web/README.md),
+  "The lab switch"). Next: the glue modules (MG2) and per-voice envelopes
+  and LFOs (MG9, which the owner has made essential).
 - **Depends on:**
   - API v2 uids, SMOOTH and NOLOCK, plus a new MOD flag (docs/13 M2):
     built in docs/15 stage S7a, with INPUT, units and abbreviations for

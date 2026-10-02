@@ -1114,7 +1114,7 @@ int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_
   fm1_mod_ui_dest_name(env, d, 0, b, sizeof b);
   if (found < 0) {
     say->n = 2;
-    snprintf(say->line[0], sizeof say->line[0], "%s > %s", a, b);
+    snprintf(say->line[0], sizeof say->line[0], "%.6s > %.6s", a, b);
     snprintf(say->line[1], sizeof say->line[1], "Matrix full");
     return 0;
   }
@@ -1133,7 +1133,7 @@ int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_
   fm1_mod_ui_set_slot(env, u, (unsigned)found, &s);
   fm1_mod_ui_matrix_select(u, found - (int)u->slot);   /* MATRIX opens on it */
   say->n = 2;
-  snprintf(say->line[0], sizeof say->line[0], "%s > %s", a, b);
+  snprintf(say->line[0], sizeof say->line[0], "%.6s > %.6s", a, b);
   snprintf(say->line[1], sizeof say->line[1], "%+d%%", pct);
   return 1;
 }
@@ -1201,7 +1201,7 @@ static void cable_text(chain_t *c, unsigned j, char *out) {
       snprintf(dst, sizeof dst, "%s %.6s", kSinks[sink_group(d.unit)].name, p->abbr);
     }
   }
-  snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%4s >%.12s%s", amt, dst,
+  snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%4.4s >%.12s%s", amt, dst,
            ((c->u->plan.delayed >> j) & 1u) ? "~" : "");
 }
 
