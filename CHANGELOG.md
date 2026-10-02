@@ -9,6 +9,16 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Fold**, a new effect: a wavefolder, written for this project. Fold sets
+  how hard the sound is driven into the folds, Symmetry makes them uneven
+  (adding even harmonics), Shape goes from a bright triangle fold to a softer
+  sine fold, and Mix blends it with the dry sound; a second page has Tone (a
+  low-pass on the folded sound) and Level. Its anti-aliasing keeps the harsh
+  digital fold-back of a plain folder 21–23 dB lower. Silence stays silent
+  at any setting, and knob changes glide instead of clicking. In
+  `fm1-render --list` and the effect lists (the published simulator gains it
+  when its module is next rebuilt). Parameters and design in
+  `engines/README.md`.
 - The user manual (`manual/`, `tools/manual/`): chapters for welcome and
   safety, getting started, a panel tour with a measured drawing of the panel,
   playing, the sound engines, effects, the sequencer, MIDI, settings,

@@ -29,11 +29,68 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
 | `diffuse` | Diffuse | effect | – | Plaits' diffuser | [mi-fx.md](mi-fx.md) |
 | `sw-psxverb` | PSX Verb | effect | – | a Schwung module (Charles Vestal, MIT), through the shim | [schwung.md](schwung.md) |
+| `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
 engine's `credits` string and named without MI's trademarks
 (`third_party/mutable/UPSTREAM.md`).
+
+### Fold
+
+A wavefolder (`src/fx_fold.cc`, our own code, MIT): the input is amplified,
+offset and folded back on itself each time it passes a fold point, as the
+Serge and Buchla folders do [reported]; Mutable Instruments Warps
+(cross-folding, [reported]) and Plaits (its waveshaping engine's wavefolder,
+[verified: `third_party/mutable/plaits/dsp/engine/waveshaping_engine.cc`])
+do it digitally. No code is taken from any of them. Stereo in, stereo out,
+each channel folded on its own.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Fold | 0–1 (0.4) | Gain into the folder, 1× to 16× (2^(4 × Fold)). At 0 a signal within ±1 is not folded at all |
+| 1 | Symmetry | −1 to +1 (0) | An offset added before folding, in units of the folder's input (fold points at ±1). Away from 0 the folds are uneven and even harmonics appear; at ±1 a quiet signal is rectified |
+| 1 | Shape | 0–1 (0) | 0 folds with a triangle (straight segments, sharp corners: bright), 1 with a sine (rounded corners: softer), a blend between |
+| 1 | Mix | 0–1 (1) | Dry to wet. At 0 the input passes through unchanged |
+| 2 | Tone | 0–1 (0.8) | A 12 dB/octave low-pass on the wet signal, 200 Hz to 19.4 kHz (at most 0.45 of the host's rate) |
+| 2 | Level | 0–1 (0.7) | The wet signal's gain |
+
+- **The path:** input guard (NaN reads as 0, ±16 clamp, as the Mutable
+  effects) → gain and offset → fold → minus the fold of silence → DC blocker
+  (10 Hz) → Tone → Level → Mix. Subtracting the fold of silence, computed by
+  the same code on the same values, makes silence in exact silence out at
+  any setting and keeps a moving Symmetry from stepping the output
+  (tests/test_engines_fold.py).
+- **Anti-aliasing: first-order ADAA** (antiderivative anti-aliasing; Parker,
+  Zavalishin and Le Bivic, DAFx-16, 2016; applied to wavefolders by Esqueda,
+  Pöntynen, Parker and Bilbao, 2017 [reported]) rather than oversampling.
+  Each output is the mean of the curve between the previous input and this
+  one. The sine's mean has a closed form, sin(πm/2) · sinc(πd/4) for
+  midpoint m and step d; the triangle's is computed piecewise for small
+  steps, so neither divides a small difference by a small step and there is
+  no epsilon. Against a plain per-sample fold of the renderer's 440 Hz sine
+  (triangle, Tone open), aliases below 5 kHz are 21–23 dB lower: −75 against
+  −52 dB at Fold 0.5, −50 against −29 dB at Fold 1 [verified:
+  tests/test_engines_fold.py]. The sine shape of a 440 Hz sine makes nothing
+  that aliases. The price: a half-sample delay and a gentle roll-off of the
+  wet path (−0.6 dB at 5 kHz, −3 dB at 11 kHz before any folding).
+- **Cost:** about 65–80 floating-point operations and at most one divide per
+  sample and channel, at most about 10,000 operations and 128 divides per
+  64-frame stereo block, worst case and average alike: about 1.4 streams of
+  the native-rate resampler ([resampler.md](resampler.md)). 2x oversampling
+  with short half-band filters would cost about as much and gain less on a
+  heavy fold [inferred]. Desktop: 1.8 µs per block (0.12 % of it, below).
+- **Glide:** every control moves to a new value over about 5 ms, sample by
+  sample, so output does not depend on block size; values set before the
+  first block apply from its first sample. Filter states below 1e-20 flush to
+  zero, so long tails never run in subnormals.
+- **Memory:** 160 bytes, no delay lines; the struct holds no pointers, so
+  the same on a 32-bit build [inferred].
+- fm1-render sets an effect's parameters only before the first block, so
+  `build/fm1-fold-test` (`test/fold_test.cc`) drives Fold directly: every
+  parameter changed mid-stream to any value, NaN and infinities included,
+  between blocks of 1–64 frames; the glide; and the host rates it accepts
+  (8–384 kHz).
 
 ## Layout
 
@@ -44,6 +101,7 @@ engine's `credits` string and named without MI's trademarks
 | `include/fm1_mix_limiter.h` | The host's mix-bus limiter and bus guard. Twelve voices started in phase can exceed full scale; the bus holds the output under 0.98, and non-finite samples become silence |
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
+| `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
 | `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |
@@ -152,6 +210,7 @@ upstream candidate). Our own code gets none.
   | Six-Op FM (8) | 0.75 % |
   | Shapes (12) | 0.2–0.6 % |
   | Each Mutable effect | 0.03–0.06 % |
+  | Fold | 0.12 % |
 
   pi32v2 is a much narrower core and these figures do not transfer; stage B
   measures the real ones. They do rank the engines for the voice caps.
