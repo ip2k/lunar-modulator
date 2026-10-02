@@ -1,0 +1,21 @@
+#! rate=44118 block=128 tracks=4
+# 05 The first step's lock order, and Stop (Movy's side of docs/13 D2, D6).
+# After Play, and after a bar launch, the entered step's locks follow its
+# note-ons in the same tick; on later steps a lock leads its step by one
+# clip tick. Stop sends nothing for the lanes, which stay at their last lock;
+# Play then re-sends from step 0.
+@0 tog 0 0 60 100
+@0 tog 0 8 62 100
+@0 alabel 0 0 synth:cutoff
+@0 abaseq 0 0 40
+@0 aset 0 0 0 100 1
+@0 aset 0 0 4 20 1
+@0 clipsel 0 1
+@0 tog 0 0 67 100
+@0 aset 0 0 0 5 1
+@0 clipsel 0 0
+@0 play
+@27000 stop
+@30000 play
+@40000 launch 0 1
+@125000 stop

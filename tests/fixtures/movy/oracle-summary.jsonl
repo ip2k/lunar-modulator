@@ -1,0 +1,21 @@
+{"script":"01-clock-tempo.verbs","rate":44118,"block":128,"tracks":4,"blocks":751,"events":144,"end_tick":71,"panics":[]}
+{"script":"02-clock-rate48k-block7.verbs","rate":48000,"block":7,"tracks":8,"blocks":5716,"events":112,"end_tick":400,"panics":[]}
+{"script":"03-notes-gates.verbs","rate":44118,"block":128,"tracks":4,"blocks":702,"events":124,"end_tick":390,"panics":[]}
+{"script":"04-locks-latch.verbs","rate":44118,"block":128,"tracks":4,"blocks":1017,"events":174,"end_tick":565,"panics":[]}
+{"script":"05-locks-first-step.verbs","rate":44118,"block":128,"tracks":4,"blocks":978,"events":153,"end_tick":413,"panics":[]}
+{"script":"06-conditions.verbs","rate":44118,"block":128,"tracks":4,"blocks":1017,"events":206,"end_tick":130,"panics":[]}
+{"script":"07-probability.verbs","rate":44118,"block":128,"tracks":4,"blocks":939,"events":183,"end_tick":252,"panics":[]}
+{"script":"08-quantise-swing.verbs","rate":44118,"block":128,"tracks":4,"blocks":1382,"events":421,"end_tick":769,"panics":[]}
+{"script":"09-scale.verbs","rate":44118,"block":128,"tracks":4,"blocks":744,"events":142,"end_tick":413,"panics":[]}
+{"script":"10-loop-window.verbs","rate":44118,"block":128,"tracks":4,"blocks":744,"events":182,"end_tick":413,"panics":[]}
+{"script":"11-transpose-drum.verbs","rate":44118,"block":128,"tracks":4,"blocks":900,"events":147,"end_tick":500,"panics":[]}
+{"script":"12-launch-session.verbs","rate":44118,"block":128,"tracks":4,"blocks":1017,"events":162,"end_tick":121,"panics":[]}
+{"script":"13-scenes-song.verbs","rate":44118,"block":128,"tracks":4,"blocks":2970,"events":444,"end_tick":86,"panics":[]}
+{"script":"14-record-countin.verbs","rate":44118,"block":128,"tracks":4,"blocks":2802,"events":419,"end_tick":1560,"panics":[]}
+{"script":"15-record-overdub.verbs","rate":44118,"block":128,"tracks":4,"blocks":2802,"events":408,"end_tick":1560,"panics":[]}
+{"script":"16-edits.verbs","rate":44118,"block":128,"tracks":4,"blocks":705,"events":138,"end_tick":392,"panics":[]}
+{"script":"17-copy-paste.verbs","rate":44118,"block":128,"tracks":4,"blocks":705,"events":149,"end_tick":392,"panics":[]}
+{"script":"18-undo.verbs","rate":44118,"block":128,"tracks":4,"blocks":861,"events":158,"end_tick":560,"panics":[]}
+{"script":"19-nudge-panic.verbs","rate":44118,"block":128,"tracks":4,"blocks":705,"events":112,"end_tick":392,"panics":[{"block":0,"frame":0,"line":13,"cmd":"enudge 0 16 20 -1 1","panic":"min > max. min = 384, max = 383 at seq-core/src/clip.rs:674"},{"block":0,"frame":0,"line":19,"cmd":"enudge 1 0 15 -1 2","panic":"min > max. min = 120, max = 95 at seq-core/src/clip.rs:674"}]}
+{"script":"20-movy1-import.verbs","rate":44118,"block":128,"tracks":4,"blocks":2345,"events":339,"end_tick":1060,"panics":[]}
+{"script":"21-capture-optional.verbs","rate":44118,"block":128,"tracks":4,"blocks":3126,"events":220,"end_tick":797,"panics":[]}

@@ -1,0 +1,28 @@
+# movy-oracle: replays a verb script through Movy's seq-core and writes the
+# shared event log (docs/13 stage M3; tools/movy-oracle/README.md).
+#
+# Our code, MIT, like the rest of this repository. seq-core is Movy's
+# (MIT, "Copyright (c) 2026 megadake"), used unmodified from a checkout
+# pinned at 9190e79a2f461e71d2bf0a9fa77042011945021e that run-on-aeon.sh
+# places beside this directory. Never committed here.
+
+[package]
+name = "movy-oracle"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Its own workspace: Cargo must not adopt Movy's engine/Cargo.toml.
+[workspace]
+
+[dependencies]
+seq-core = { path = "../schwung-movy/engine/crates/seq-core" }
+
+# Movy ships release builds (engine/Cargo.toml). Release semantics matter
+# here: integer overflow wraps instead of panicking, as on the device.
+[profile.release]
+opt-level = 3
+overflow-checks = false
+debug-assertions = false
+panic = "unwind"

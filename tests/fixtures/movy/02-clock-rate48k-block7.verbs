@@ -1,0 +1,15 @@
+#! rate=48000 block=7 tracks=8
+# 02 The clock at another rate and an odd block size (R1, R2). In Movy and in
+# compat mode an event's frame is its block's start, so frames move with the
+# block size while ticks do not. 300.00 BPM at 48 kHz is exactly 100 frames
+# per master tick. Track 7 is the last of eight.
+# D1 trace: no D2-D7 behaviour is involved, so the FM-1 default mode should
+# produce <stem>.d1.jsonl: the same events, each tick at its own frame.
+@0 tog 0 0 60 100
+@0 tog 0 1 61 100
+@0 tog 7 2 62 100
+@0 tog 7 5 63 100
+@0 bpm 30000
+@0 play
+@19000 bpm 29999
+@40000 stop

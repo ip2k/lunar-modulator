@@ -1,0 +1,37 @@
+#! rate=44118 block=128 tracks=4
+# 21 Capture, record-after (optional in the FM-1 port; docs/13 §10 q5).
+# Stopped: a phrase on track 0, then `cap 0` estimates the tempo from the
+# onsets (Movy scores its candidates in f64), writes the take at that tempo
+# into the empty clip, sets the transport tempo and plays; `capsel 1`
+# re-derives the take at the second candidate; `capdone` closes the overlay.
+# Playing: a phrase on track 1, then `cap 1` writes it into the empty clip,
+# keeping the bar phase it was played at, and launches it at the next bar.
+# Capture input is stamped with the frame of the block it lands on.
+@1000 non 0 60 100
+@9000 nof 0 60
+@27471 non 0 62 100
+@35000 nof 0 62
+@53942 non 0 64 100
+@60000 nof 0 64
+@67177 non 0 65 100
+@75000 nof 0 65
+@80413 non 0 67 100
+@90000 nof 0 67
+@106884 non 0 64 100
+@115000 nof 0 64
+@133354 non 0 62 100
+@141000 nof 0 62
+@159825 non 0 60 100
+@170000 nof 0 60
+@180000 cap 0
+@200000 capsel 1
+@220000 capdone
+@230000 watch 1
+@250000 non 1 48 100
+@256000 nof 1 48
+@262000 non 1 50 100
+@268000 nof 1 50
+@274000 non 1 52 100
+@286000 nof 1 52
+@300000 cap 1
+@400000 stop

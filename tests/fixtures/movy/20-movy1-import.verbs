@@ -1,0 +1,12 @@
+#! rate=44118 block=128 tracks=4
+# 20 A movy1 set loaded before block 0, as movy-dsp's `state` param (R14),
+# from 20-movy1-import.in.movy1. Loading clamps values (velocity 0 to 1,
+# transpose 99 to 36, quantise 250 to 100), ignores unknown lines, gives a
+# legacy four-field note its straight-grid step, lets the saved length win
+# over a note past it, and moves a selection that names an empty slot to
+# the lowest real clip. The set has a song (scene 0 twice, then scene 1), a
+# muted track, a pad mute and a pad solo, two lanes with locks, trig rows,
+# off-grid notes and per-clip quantise, scale and transpose. Play starts the
+# song. 20-movy1-import.out.movy1 is Movy's own export after the run.
+@0 play
+@300000 stop
