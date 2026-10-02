@@ -16,18 +16,16 @@ history.
   Level on the second. Silence stays silent at any setting. Our own code,
   after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT); documented in
   `engines/README.md` and chapter 6 of the manual, tested in
-  `tests/test_engines_crush.py`. It reaches the browser simulator when its
-  module is next rebuilt.
+  `tests/test_engines_crush.py`.
 - **Fold**, a new effect: a wavefolder, written for this project. Fold sets
   how hard the sound is driven into the folds, Symmetry makes them uneven
   (adding even harmonics), Shape goes from a bright triangle fold to a softer
   sine fold, and Mix blends it with the dry sound; a second page has Tone (a
   low-pass on the folded sound) and Level. Its anti-aliasing keeps the harsh
   digital fold-back of a plain folder 21–23 dB lower. Silence stays silent
-  at any setting, and knob changes glide instead of clicking. In
-  `fm1-render --list` and the effect lists (the published simulator gains it
-  when its module is next rebuilt). Parameters and design in
-  `engines/README.md`.
+  at any setting, and knob changes glide instead of clicking. Parameters
+  and design in `engines/README.md`, and a section in chapter 6 of the
+  manual.
 - **Echo**, a new effect: a stereo ping-pong delay from 10 ms to 1 second, with
   Feedback, Ping-pong (from two straight delays to echoes that alternate
   left and right), Mix, Tone (damping of the repeats), Wow (a slow,
@@ -35,7 +33,14 @@ history.
   the echo). Beyond about 370 ms the echoes darken, like a bucket-brigade
   delay's, so that one instance stays at 64 KB. Turning Time glides the
   pitch of what is in the line, like a tape echo's speed. Written in this
-  repository (MIT); `engines/README.md` documents its parameters.
+  repository (MIT); `engines/README.md` documents its parameters, and
+  chapter 6 of the manual has a section.
+- The virtual FM-1 offers Crush, Fold and Echo in both effect slots and
+  Macro's and Macro Heavy's third page; its module is rebuilt and six new
+  parity scenarios (`sim/web/test/scenarios.json`) check the new effects and
+  the page in the browser's module against the native renderer. A test now
+  requires every engine and effect to appear in a scenario. The README's
+  screenshots show the third page.
 - Macro and Macro Heavy have a third page with Plaits' own envelope and
   low-pass gate controls. **Env Pitch**, **Env Timbre** and **Env Morph**
   set how far the envelope that every note restarts moves the pitch, Timbre
