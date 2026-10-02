@@ -42,6 +42,177 @@
       ],
       "gates": ["Trig"],
       "outs": ["Held", "Smth", "Step"]
+    },
+    "function": {
+      "guid": "FUN ", "abbr": "FUN",
+      "params": [
+        {"name": "Rise", "type": "float", "uid": 1, "flags": ["mod"]},
+        {"name": "Fall", "type": "float", "uid": 2, "flags": ["mod"]},
+        {"name": "Shape", "type": "float", "uid": 3, "flags": ["mod"]},
+        {"name": "Mode", "type": "enum", "uid": 4, "flags": []},
+        {"name": "Level", "type": "float", "uid": 5, "flags": ["mod"]},
+        {"name": "Floor", "type": "float", "uid": 6, "flags": ["mod"]},
+        {"name": "Retrig", "type": "float", "uid": 7, "flags": ["mod"]},
+        {"name": "Sync", "type": "enum", "uid": 8, "flags": []},
+        {"name": "In", "type": "float", "uid": 9, "flags": ["input"]}
+      ],
+      "gates": ["Trig", "Gate", "Cycle", "Hold"],
+      "outs": ["Out", "Inv", "Up", "Down", "EOR", "EOC"]
+    },
+    "bounce": {
+      "guid": "BNC ", "abbr": "BNC",
+      "params": [
+        {"name": "Gravity", "type": "float", "uid": 1, "flags": ["mod"]},
+        {"name": "Bounce", "type": "float", "uid": 2, "flags": ["mod"]},
+        {"name": "Height", "type": "float", "uid": 3, "flags": ["mod"]},
+        {"name": "Velocity", "type": "float", "uid": 4, "flags": ["mod"]}
+      ],
+      "gates": ["Trig"],
+      "outs": ["Out", "Hit"]
+    },
+    "register": {
+      "guid": "REG ", "abbr": "REG",
+      "params": [
+        {"name": "Change", "type": "float", "uid": 1, "flags": ["mod"]},
+        {"name": "Length", "type": "float", "uid": 2, "flags": ["mod"]},
+        {"name": "Level", "type": "float", "uid": 3, "flags": ["mod"]},
+        {"name": "Offset", "type": "float", "uid": 4, "flags": ["mod"]},
+        {"name": "Span", "type": "float", "uid": 5, "flags": ["mod"]},
+        {"name": "Slew", "type": "float", "uid": 6, "flags": ["mod"]}
+      ],
+      "gates": ["Clock", "Write"],
+      "outs": ["CV", "Bit", "Pitch"]
+    },
+    "coin": {
+      "guid": "COI ", "abbr": "COI",
+      "params": [
+        {"name": "Prob", "type": "float", "uid": 1, "flags": ["mod"]},
+        {"name": "Mode", "type": "enum", "uid": 2, "flags": []},
+        {"name": "Latch", "type": "enum", "uid": 3, "flags": []}
+      ],
+      "gates": ["In"],
+      "outs": ["A", "B"]
+    },
+    "divide": {
+      "guid": "DIV ", "abbr": "DIV",
+      "params": [
+        {"name": "Mode1", "type": "enum", "uid": 1, "flags": []},
+        {"name": "Value1", "type": "float", "uid": 2, "flags": ["mod"]},
+        {"name": "Fill1", "type": "float", "uid": 3, "flags": ["mod"]},
+        {"name": "Rot1", "type": "float", "uid": 4, "flags": ["mod"]},
+        {"name": "Mode2", "type": "enum", "uid": 5, "flags": []},
+        {"name": "Value2", "type": "float", "uid": 6, "flags": ["mod"]},
+        {"name": "Fill2", "type": "float", "uid": 7, "flags": ["mod"]},
+        {"name": "Rot2", "type": "float", "uid": 8, "flags": ["mod"]},
+        {"name": "Swing", "type": "float", "uid": 9, "flags": ["mod"]},
+        {"name": "Delay", "type": "float", "uid": 10, "flags": ["mod"]}
+      ],
+      "gates": ["Clock", "Reset"],
+      "outs": ["Out1", "Out2"]
+    },
+    "burst": {
+      "guid": "BST ", "abbr": "BST",
+      "params": [
+        {"name": "Mode", "type": "enum", "uid": 1, "flags": []},
+        {"name": "Count", "type": "float", "uid": 2, "flags": ["mod"]},
+        {"name": "Spacing", "type": "float", "uid": 3, "flags": ["mod"]},
+        {"name": "Length", "type": "float", "uid": 4, "flags": ["mod"]},
+        {"name": "Delay", "type": "float", "uid": 5, "flags": ["mod"]},
+        {"name": "Accel", "type": "float", "uid": 6, "flags": ["mod"]},
+        {"name": "Accept", "type": "float", "uid": 7, "flags": ["mod"]},
+        {"name": "Repeat", "type": "float", "uid": 8, "flags": ["mod"]},
+        {"name": "Jitter", "type": "float", "uid": 9, "flags": ["mod"]}
+      ],
+      "gates": ["Trig", "Clock"],
+      "outs": ["Out", "Gate", "Done"]
+    },
+    "slew": {
+      "guid": "SLW ", "abbr": "SLW",
+      "params": [
+        {"name": "Up", "type": "float", "uid": 1, "flags": ["mod"]},
+        {"name": "Down", "type": "float", "uid": 2, "flags": ["mod"]},
+        {"name": "Type", "type": "enum", "uid": 3, "flags": []},
+        {"name": "Spread", "type": "float", "uid": 4, "flags": ["mod"]},
+        {"name": "In", "type": "float", "uid": 5, "flags": ["input"]}
+      ],
+      "gates": ["Thru"],
+      "outs": ["Out", "Out2", "Out3", "Out4", "Out5", "Out6"]
+    },
+    "quantize": {
+      "guid": "QNT ", "abbr": "QNT",
+      "params": [
+        {"name": "Scale", "type": "enum", "uid": 1, "flags": ["mod"]},
+        {"name": "Root", "type": "enum", "uid": 2, "flags": ["mod"]},
+        {"name": "Range", "type": "float", "uid": 3, "flags": ["mod"]},
+        {"name": "Trans", "type": "float", "uid": 4, "flags": ["mod"]},
+        {"name": "In", "type": "float", "uid": 5, "flags": ["input"]}
+      ],
+      "gates": ["Clock"],
+      "outs": ["Pitch", "Chg"]
+    },
+    "compare": {
+      "guid": "CMP ", "abbr": "CMP",
+      "params": [
+        {"name": "Mode", "type": "enum", "uid": 1, "flags": []},
+        {"name": "Thresh", "type": "float", "uid": 2, "flags": ["mod"]},
+        {"name": "Hyst", "type": "float", "uid": 3, "flags": ["mod"]},
+        {"name": "Width", "type": "float", "uid": 4, "flags": ["mod"]},
+        {"name": "A", "type": "float", "uid": 5, "flags": ["input"]},
+        {"name": "B", "type": "float", "uid": 6, "flags": ["input"]}
+      ],
+      "gates": [],
+      "outs": ["Gate", "Not", "Rise", "Fall", "Above", "Mid", "Below"]
+    },
+    "logic": {
+      "guid": "LOG ", "abbr": "LOG",
+      "params": [
+        {"name": "Op", "type": "enum", "uid": 1, "flags": ["mod"]}
+      ],
+      "gates": ["A", "B"],
+      "outs": ["Out", "Not"]
+    },
+    "calc": {
+      "guid": "CLC ", "abbr": "CLC",
+      "params": [
+        {"name": "Op", "type": "enum", "uid": 1, "flags": ["mod"]},
+        {"name": "Amount", "type": "float", "uid": 2, "flags": ["mod"]},
+        {"name": "Offset", "type": "float", "uid": 3, "flags": ["mod"]},
+        {"name": "Snap", "type": "enum", "uid": 4, "flags": []},
+        {"name": "Fade", "type": "float", "uid": 5, "flags": ["mod"]},
+        {"name": "A", "type": "float", "uid": 6, "flags": ["input"]},
+        {"name": "B", "type": "float", "uid": 7, "flags": ["input"]}
+      ],
+      "gates": [],
+      "outs": ["Out", "Inv"]
+    },
+    "mix": {
+      "guid": "MIX ", "abbr": "MIX",
+      "params": [
+        {"name": "Gain1", "type": "float", "uid": 1, "flags": ["mod"]},
+        {"name": "Gain2", "type": "float", "uid": 2, "flags": ["mod"]},
+        {"name": "Gain3", "type": "float", "uid": 3, "flags": ["mod"]},
+        {"name": "Gain4", "type": "float", "uid": 4, "flags": ["mod"]},
+        {"name": "Offset", "type": "float", "uid": 5, "flags": ["mod"]},
+        {"name": "In1", "type": "float", "uid": 6, "flags": ["input"]},
+        {"name": "In2", "type": "float", "uid": 7, "flags": ["input"]},
+        {"name": "In3", "type": "float", "uid": 8, "flags": ["input"]},
+        {"name": "In4", "type": "float", "uid": 9, "flags": ["input"]}
+      ],
+      "gates": [],
+      "outs": ["Sum", "Avg", "Inv"]
+    },
+    "filter": {
+      "guid": "FLT ", "abbr": "FLT",
+      "params": [
+        {"name": "Cutoff", "type": "float", "uid": 1, "flags": ["mod"]},
+        {"name": "Res", "type": "float", "uid": 2, "flags": ["mod"]},
+        {"name": "Blend", "type": "float", "uid": 3, "flags": ["mod"]},
+        {"name": "Level", "type": "float", "uid": 4, "flags": ["mod"]},
+        {"name": "Strike", "type": "float", "uid": 5, "flags": ["mod"]},
+        {"name": "In", "type": "float", "uid": 6, "flags": ["input"]}
+      ],
+      "gates": ["Ping"],
+      "outs": ["Out", "LP", "BP", "HP"]
     }
   },
   "sources": {
