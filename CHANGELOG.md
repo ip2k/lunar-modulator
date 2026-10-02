@@ -9,6 +9,25 @@ history.
 ## [Unreleased]
 
 ### Added
+- Modulation primitives in `engines/mod/` (`fm1_mp.h`), for the modulation
+  runtime docs/16 is designing. They are heap-free C99, use no libm, and are
+  not yet wired into an engine or the simulator.
+  - An LFO with sine, triangle, saw up and down, square with pulse width,
+    smooth random, sample-and-hold and random walk. Its rate is a ratio
+    (Hz, or BPM/60 × cycles per beat), and it has retrigger, one-shot,
+    half-cycle and drift-free sync.
+  - Its random shapes draw once per accumulator wrap, so none is missed
+    however large the block. Schwung's S&H misses wraps here: at 30 Hz in
+    128-frame blocks its rule catches 99 of 174.
+  - A multistage envelope after Mutable Instruments' Peaks: ADSR, AD, AD
+    and ADR loops, and linear, exponential or quartic curves.
+  - A slew limiter (linear or exponential, separate rise and fall),
+    sample-and-hold and track-and-hold, a Turing-machine register, and a
+    clock divider and multiplier on integer ticks.
+  - Every random source is seeded per instance. Results are bit-identical
+    whatever the block size.
+  - A desktop test tool, `fm1-mod`, and `tests/test_engines_mod.py` (87
+    tests).
 - The user manual (`manual/`, `tools/manual/`): chapters for welcome and
   safety, getting started, a panel tour with a measured drawing of the panel,
   playing, the sound engines, effects, the sequencer, MIDI, settings,
