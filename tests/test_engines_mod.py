@@ -599,7 +599,7 @@ def test_no_heap_no_stdio_no_libm(mod_tool):
     nm = shutil.which("nm")
     if not nm:
         pytest.skip("no nm")
-    objs = sorted(p for p in (ENGINES / "build" / "mod" / "mod").glob("*.o")
+    objs = sorted(p for p in (ENGINES / "build" / "mod" / "mod").glob("mp_*.o")
                   if p.name != "mp_tool.o")
     assert len(objs) == 8
     for o in objs:

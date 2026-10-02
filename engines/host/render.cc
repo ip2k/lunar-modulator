@@ -36,12 +36,28 @@
 // default above, is the shared bridge (include/fm1_seq_host.h). The summary
 // adds seq_dropped (events past the buffer), seq_max_block_events, seq_splits
 // (render calls that start inside a block) and seq_locks_refused (locks on
-// NOLOCK parameters). MIT licence.
+// NOLOCK parameters).
+//
+// Modulation (docs/16, include/fm1_mod.h): --mod FILE sets up the rack of
+// modules and the matrix's slots from a text file (host/mod_script.h; a line
+// may start with @FRAME to apply at the first block that starts there),
+// --log-mod FILE.jsonl writes every tick, --list-mod prints the module kinds,
+// the system sources and the host parameters as JSON. The runtime runs as
+// the bridge's control-rate hook, with or without the sequencer: notes,
+// locks and the clock feed its sources, each tick runs at its own frame,
+// and a render is split only where a tick writes a value (the sound's
+// parameters and HOST PITCH inside the bridge, the effects' and HOST AMP
+// here). --param-at and --bend go through the bases (rule M1). With no
+// slot on, every render is byte-identical to one without --mod. The summary
+// adds mod_* counters. MIT licence.
 
 #include "fm1_engine.h"
 #include "fm1_mix_limiter.h"
+#include "fm1_mod.h"
+#include "fm1_mod_host.h"
 #include "fm1_seq.h"
 #include "fm1_seq_host.h"
+#include "mod_script.h"
 #include "seq_script.h"
 
 #include <algorithm>
@@ -83,10 +99,11 @@ void Usage() {
       "                  [--fill BYTE] [--fault T[..T1]:VALUE]...\n"
       "                  [--cmd FILE] [--seq FILE.movy1] [--log-events FILE.jsonl]\n"
       "                  [--compat] [--tracks N] [--route T:engine|T:midi:CH]...\n"
-      "                  [--events N]\n"
+      "                  [--events N] [--mod FILE] [--log-mod FILE.jsonl]\n"
+      "       fm1-render --list-mod\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
-      "engine from the sequencer.\n");
+      "engine from the sequencer; --mod modulates it.\n");
 }
 
 // The sequencer side of a render (--cmd, --seq).
@@ -175,6 +192,190 @@ void SinkNoteOff(void *ctx, uint8_t note) {
 void SinkSetParam(void *ctx, uint16_t index, float value) {
   const Unit *u = static_cast<const Unit *>(ctx);
   u->e->set_param(u->self, index, value);
+}
+void SinkBend(void *ctx, float semitones) {
+  const Unit *u = static_cast<const Unit *>(ctx);
+  if (u->e->pitch_bend) u->e->pitch_bend(u->self, semitones);
+}
+
+// --mod: the runtime, its glue to the bridge, the script's timed lines, the
+// block's writes to the effects and AMP, and the tick log.
+struct ModLine {
+  uint64_t frame;
+  std::string text;
+};
+
+struct Modulation {
+  void *mem = NULL;
+  fm1_mod_t *m = NULL;
+  fm1_mod_glue_t glue;
+  std::vector<ModLine> lines;
+  size_t next_line = 0;
+  std::vector<std::pair<uint32_t, fm1_mod_write_t> > writes;   // this block's FX and AMP
+  fm1_mod_ramp_t amp;
+  bool amp_used = false;
+  FILE *log = NULL;
+  uint64_t pos = 0;                  // the block's first frame, for the log
+  uint64_t bridge_splits = 0;
+  Modulation() { memset(&glue, 0, sizeof(glue)); fm1_mod_ramp_init(&amp, 1.0f); }
+};
+
+void ModWrite(void *ctx, uint32_t frame, const fm1_mod_write_t *w) {
+  Modulation *md = static_cast<Modulation *>(ctx);
+  md->writes.push_back(std::make_pair(frame, *w));
+}
+
+const char *ModUnitName(unsigned u) {
+  static const char *const kNames[] = { "snd", "fx1", "fx2", "host" };
+  return u < 4 ? kNames[u] : "?";
+}
+
+void ModTicked(void *ctx, uint32_t frame, const fm1_mod_write_t *w, uint32_t n) {
+  Modulation *md = static_cast<Modulation *>(ctx);
+  if (!md->log) return;
+  FILE *f = md->log;
+  fm1_mod_t *m = md->m;
+  fm1_mod_stats_t st;
+  fm1_mod_get_stats(m, &st);
+  fprintf(f, "{\"k\":%llu,\"t\":%llu,\"m\":[", static_cast<unsigned long long>(st.ticks),
+          static_cast<unsigned long long>(md->pos + frame));
+  bool first = true;
+  for (unsigned p = 0; p < FM1_MOD_POSITIONS; ++p) {
+    const int k = fm1_mod_kind_at(m, p);
+    if (k < 0) continue;
+    const fm1_mod_kind_t *kd = fm1_mod_kinds[k];
+    fprintf(f, "%s{\"p\":%u,\"id\":\"%s\",\"v\":[", first ? "" : ",", p + 1, kd->id);
+    first = false;
+    for (unsigned i = 0; i < kd->n_params; ++i) fprintf(f, i ? ",%.9g" : "%.9g", fm1_mod_param(m, p, i));
+    fprintf(f, "],\"o\":[");
+    for (unsigned i = 0; i < kd->n_out; ++i) fprintf(f, i ? ",%.9g" : "%.9g", fm1_mod_out(m, p, i));
+    fprintf(f, "],\"e\":[");
+    bool fe = true;
+    for (unsigned i = 0; i < kd->n_out; ++i) {
+      const fm1_mod_gate_t *g = fm1_mod_gate_out(m, p, i);
+      for (unsigned e = 0; kd->out[i].kind == FM1_PORT_GATE && e < g->n; ++e) {
+        fprintf(f, "%s[%u,%u,%u]", fe ? "" : ",", i + 1, g->ev[e].frame, g->ev[e].high);
+        fe = false;
+      }
+    }
+    fprintf(f, "]}");
+  }
+  fprintf(f, "],\"g\":[");          // system gates with edges in this tick
+  first = true;
+  for (unsigned id = 0; id < FM1_MOD_SRC_SYSTEM; ++id) {
+    const fm1_mod_gate_t *g = fm1_mod_system_gate(m, id);
+    for (unsigned e = 0; g && e < g->n; ++e) {
+      fprintf(f, "%s[%u,%u,%u]", first ? "" : ",", id, g->ev[e].frame, g->ev[e].high);
+      first = false;
+    }
+  }
+  fprintf(f, "],\"s\":[");
+  fm1_mod_sink_info_t si;
+  for (unsigned i = 0; fm1_mod_sink(m, i, &si); ++i) {
+    fprintf(f, "%s{\"u\":\"%s\",\"i\":%u,\"uid\":%u,\"b\":%.9g,\"v\":%.9g}", i ? "," : "",
+            ModUnitName(si.unit), si.index, si.uid, si.base, si.value);
+  }
+  fprintf(f, "],\"w\":[");
+  for (uint32_t i = 0; i < n; ++i) {
+    fprintf(f, "%s[\"%s\",%u,%.9g]", i ? "," : "", ModUnitName(w[i].unit), w[i].index, w[i].value);
+  }
+  fprintf(f, "]}\n");
+}
+
+// --list-mod: the kinds (with every parameter's uid and flags, as --list
+// prints engines'), the system sources and the host unit.
+void PrintFlags(uint8_t f);
+const char *UnitName(uint8_t u);
+void PrintJsonString(const char *s);
+
+const char *PortKind(uint8_t k) {
+  return k == FM1_PORT_CV_UNI ? "cv_uni" : k == FM1_PORT_GATE ? "gate" : "cv_bi";
+}
+
+void PrintParams(const fm1_param_t *params, unsigned n) {
+  for (unsigned p = 0; p < n; ++p) {
+    const fm1_param_t &q = params[p];
+    printf(p ? ",{" : "{");
+    printf("\"name\":"); PrintJsonString(q.name);
+    printf(",\"type\":%d,\"min\":%g,\"max\":%g,\"def\":%g,\"page\":%u,\"uid\":%u,\"flags\":",
+           q.type, q.min, q.max, q.def, q.page, q.uid);
+    PrintFlags(q.flags);
+    printf(",\"unit\":\"%s\",\"abbr\":", UnitName(q.unit));
+    PrintJsonString(q.abbr ? q.abbr : "");
+    if (q.type == FM1_PARAM_ENUM && q.enum_names) {
+      printf(",\"names\":[");
+      const int k = static_cast<int>(q.max - q.min) + 1;
+      for (int i = 0; i < k; ++i) { if (i) putchar(','); PrintJsonString(q.enum_names[i]); }
+      putchar(']');
+    }
+    putchar('}');
+  }
+}
+
+void PrintPorts(const fm1_port_t *ports, unsigned n) {
+  for (unsigned i = 0; i < n; ++i) {
+    printf(i ? ",{" : "{");
+    printf("\"name\":"); PrintJsonString(ports[i].name);
+    printf(",\"kind\":\"%s\",\"unit\":\"%s\"", PortKind(ports[i].kind), UnitName(ports[i].unit));
+    if (ports[i].normal != FM1_MOD_NONE) {
+      const fm1_mod_source_info_t *si = fm1_mod_system_source(ports[i].normal);
+      printf(",\"normal\":"); PrintJsonString(si ? si->name : "?");
+    }
+    putchar('}');
+  }
+}
+
+void ListMod() {
+  printf("{\"tick\":%u,\"positions\":%u,\"slots\":%u,\"arena\":%u,\"bytes\":%zu,\"kinds\":[",
+         FM1_MOD_TICK, FM1_MOD_POSITIONS, FM1_MOD_SLOTS, FM1_MOD_ARENA, fm1_mod_size());
+  fm1_host_t host = { FM1_ENGINE_API_VERSION, 44118.0f, 64 };
+  for (size_t i = 0; i < fm1_mod_kind_count; ++i) {
+    const fm1_mod_kind_t *k = fm1_mod_kinds[i];
+    const uint32_t g = k->guid;
+    const char guid[5] = { char(g >> 24), char(g >> 16), char(g >> 8), char(g), 0 };
+    printf(i ? ",{" : "{");
+    printf("\"id\":"); PrintJsonString(k->id);
+    printf(",\"guid\":"); PrintJsonString(guid);
+    printf(",\"name\":"); PrintJsonString(k->name);
+    printf(",\"abbr\":"); PrintJsonString(k->abbr);
+    printf(",\"credits\":"); PrintJsonString(k->credits);
+    printf(",\"transport\":%s,\"instance_bytes\":%zu,\"params\":[",
+           (k->flags & FM1_MOD_KIND_TRANSPORT) ? "true" : "false", k->instance_size(&host));
+    PrintParams(k->params, k->n_params);
+    printf("],\"gates\":[");
+    PrintPorts(k->gate_in, k->n_gate_in);
+    printf("],\"outs\":[");
+    PrintPorts(k->out, k->n_out);
+    printf("]}");
+  }
+  printf("],\"sources\":[");
+  bool first = true;
+  for (unsigned id = 0; id < FM1_MOD_SRC_SYSTEM; ++id) {
+    const fm1_mod_source_info_t *si = fm1_mod_system_source(id);
+    if (!si) continue;
+    printf("%s{\"id\":%u,\"name\":", first ? "" : ",", id);
+    first = false;
+    PrintJsonString(si->name);
+    printf(",\"kind\":\"%s\",\"unit\":\"%s\"}", PortKind(si->kind), UnitName(si->unit));
+  }
+  printf("],\"host\":[");
+  PrintParams(fm1_mod_host_params, FM1_MOD_HOST_PARAMS);
+  printf("]}\n");
+}
+
+// Renders an effect over a block, split at its own writes from the ticks.
+void RenderFx(const Unit &u, unsigned unit, const Modulation *md, float *block, uint32_t n) {
+  uint32_t cur = 0;
+  if (md) {
+    for (size_t k = 0; k < md->writes.size(); ++k) {
+      const uint32_t f = md->writes[k].first;
+      const fm1_mod_write_t &w = md->writes[k].second;
+      if (w.unit != unit) continue;
+      if (f > cur) { u.e->render(u.self, block + 2u * cur, f - cur); cur = f; }
+      if (w.index < u.e->n_params) u.e->set_param(u.self, w.index, w.value);
+    }
+  }
+  if (cur < n) u.e->render(u.self, block + 2u * cur, n - cur);
 }
 
 bool ParseParam(const char *arg, std::vector<std::pair<std::string, float> > *out) {
@@ -300,11 +501,13 @@ int main(int argc, char **argv) {
   int tracks = -1;
   long events_cap = -1;            // --events: the block's event buffer
   std::vector<Route> routes;
+  const char *mod_path = NULL, *mod_log_path = NULL;
 
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
     const char *next = i + 1 < argc ? argv[i + 1] : NULL;
     if (a == "--list") { List(); return 0; }
+    if (a == "--list-mod") { ListMod(); return 0; }
     if (a == "--compat") { compat = true; continue; }
     if (!next) { Usage(); return 2; }
     ++i;
@@ -317,6 +520,8 @@ int main(int argc, char **argv) {
     else if (a == "--cmd") cmd_path = next;
     else if (a == "--seq") seq_path = next;
     else if (a == "--log-events") log_path = next;
+    else if (a == "--mod") mod_path = next;
+    else if (a == "--log-mod") mod_log_path = next;
     else if (a == "--tracks") tracks = atoi(next);
     else if (a == "--events") {      // a decimal count: base 0 would read 010 as 8
       char *end = NULL;
@@ -404,6 +609,10 @@ int main(int argc, char **argv) {
     return 2;
   }
   if (!engine_id && fx.empty() && input == "silence" && faults.empty() && !use_seq) { Usage(); return 2; }
+  if (mod_log_path && !mod_path) {
+    fprintf(stderr, "--log-mod needs --mod\n");
+    return 2;
+  }
   if (input != "silence" && input != "impulse" && input != "noise" && input != "sine") {
     Usage(); return 2;
   }
@@ -472,7 +681,81 @@ int main(int argc, char **argv) {
     if (routes.empty()) fm1_seq_default_route(sq.seq, sound.e != NULL);
     if (log_path && !(sq.log = fopen(log_path, "w"))) { fprintf(stderr, "cannot write %s\n", log_path); return 1; }
   }
-  const fm1_seq_sink_t sink = { &sound, sound.e, SinkRender, SinkNoteOn, SinkNoteOff, SinkSetParam };
+  const fm1_seq_sink_t sink = { &sound, sound.e, SinkRender, SinkNoteOn, SinkNoteOff, SinkSetParam,
+                                SinkBend };
+
+  // --mod: the runtime in its own memory (filled like the engines'), bound
+  // to the sound and the first two effects, with the bases the command line
+  // set, then the script's untimed lines.
+  Modulation md;
+  fm1_seq_host_t bare;               // the bridge without a sequencer
+  memset(&bare, 0, sizeof(bare));
+  if (mod_path) {
+    FILE *f = fopen(mod_path, "r");
+    if (!f) { fprintf(stderr, "cannot read %s\n", mod_path); return 1; }
+    char buf[1024];
+    uint32_t seed = 0;
+    while (fgets(buf, sizeof(buf), f)) {
+      const char *t = buf;
+      uint64_t frame = 0;
+      while (*t == ' ' || *t == '\t') ++t;
+      if (*t == '@') {
+        char *end = NULL;
+        frame = strtoull(t + 1, &end, 10);
+        if (end == t + 1) { fprintf(stderr, "%s: bad @FRAME: %s", mod_path, buf); fclose(f); return 2; }
+        t = end;
+      }
+      std::string text(t);
+      while (!text.empty() && (text.back() == '\n' || text.back() == '\r')) text.pop_back();
+      if (frame == 0) fm1_mod_script_seed(text.c_str(), &seed);
+      md.lines.push_back(ModLine{ frame, text });
+    }
+    fclose(f);
+    std::stable_sort(md.lines.begin(), md.lines.end(),
+                     [](const ModLine &x, const ModLine &y) { return x.frame < y.frame; });
+    if (posix_memalign(&md.mem, 16, fm1_mod_size()) != 0) return 1;
+    memset(md.mem, fill, fm1_mod_size());
+    md.m = fm1_mod_create(md.mem, &host, seed);
+    if (!md.m) { fprintf(stderr, "modulation runtime refused its memory\n"); return 1; }
+    const fm1_engine_t *units[3] = { sound.e, fx.size() > 0 ? fx[0].e : NULL,
+                                     fx.size() > 1 ? fx[1].e : NULL };
+    for (unsigned u = 0; u < 3; ++u) {
+      if (!units[u]) continue;
+      fm1_mod_bind(md.m, u, units[u]);
+      const Unit &un = u == 0 ? sound : fx[u - 1];
+      for (size_t p = 0; p < un.params.size(); ++p) {
+        for (uint16_t q = 0; q < un.e->n_params; ++q) {
+          if (strcasecmp(un.e->params[q].name, un.params[p].first.c_str()) == 0) {
+            fm1_mod_set_base(md.m, u, q, un.params[p].second);
+          }
+        }
+      }
+    }
+    fm1_mod_glue_init(&md.glue, md.m, sound.e);
+    md.glue.ctx = &md;
+    md.glue.write = ModWrite;
+    md.glue.ticked = ModTicked;
+    if (mod_log_path && !(md.log = fopen(mod_log_path, "w"))) {
+      fprintf(stderr, "cannot write %s\n", mod_log_path);
+      return 1;
+    }
+    fm1_seq_host_init(&bare, NULL, NULL, 0);
+    fm1_seq_host_bind(&bare, sound.e);
+  }
+  auto ModApplyLines = [&](uint64_t upto) -> bool {
+    const fm1_engine_t *units[3] = { sound.e, fx.size() > 0 ? fx[0].e : NULL,
+                                     fx.size() > 1 ? fx[1].e : NULL };
+    while (md.next_line < md.lines.size() && md.lines[md.next_line].frame <= upto) {
+      char err[256];
+      if (!fm1_mod_script_line(md.m, md.lines[md.next_line].text.c_str(), units, err, sizeof(err))) {
+        fprintf(stderr, "%s: %s\n", mod_path, err);
+        return false;
+      }
+      ++md.next_line;
+    }
+    return true;
+  };
+  if (md.m && !ModApplyLines(0)) return 2;
 
   const uint32_t total = seq_end ? static_cast<uint32_t>(seq_end)
                                  : static_cast<uint32_t>(seconds * rate);
@@ -495,15 +778,28 @@ int main(int argc, char **argv) {
       for (size_t k = 0; k < controls.size(); ++k) {   // controls first, in the order given
         Control &c = controls[k];
         if (c.done || c.time > now) continue;
-        if (c.bend) sound.e->pitch_bend(sound.self, c.value);
-        else sound.e->set_param(sound.self, c.index, c.value);
+        if (c.bend) {
+          const float v = md.m ? fm1_mod_set_base(md.m, FM1_MOD_HOST, FM1_MOD_HOST_PITCH, c.value) : c.value;
+          sound.e->pitch_bend(sound.self, v);
+        } else {
+          const float v = md.m ? fm1_mod_set_base(md.m, FM1_MOD_SOUND, c.index, c.value) : c.value;
+          sound.e->set_param(sound.self, c.index, v);
+        }
         c.done = true;
       }
       for (size_t k = 0; k < events.size(); ++k) {     // offs before ons at the same time
-        if (!done[k] && !events[k].on && events[k].time <= now) { sound.e->note_off(sound.self, events[k].key); done[k] = true; }
+        if (!done[k] && !events[k].on && events[k].time <= now) {
+          sound.e->note_off(sound.self, events[k].key);
+          if (md.m) fm1_mod_live_note(md.m, events[k].key, 0);
+          done[k] = true;
+        }
       }
       for (size_t k = 0; k < events.size(); ++k) {
-        if (!done[k] && events[k].on && events[k].time <= now) { sound.e->note_on(sound.self, events[k].key, events[k].velocity); done[k] = true; }
+        if (!done[k] && events[k].on && events[k].time <= now) {
+          sound.e->note_on(sound.self, events[k].key, events[k].velocity);
+          if (md.m) fm1_mod_live_note(md.m, events[k].key, events[k].velocity);
+          done[k] = true;
+        }
       }
     } else {
       for (uint32_t f = 0; f < n; ++f) {
@@ -541,12 +837,21 @@ int main(int argc, char **argv) {
       }
       sq.events += n_seq;
     }
+    if (md.m) {
+      if (!ModApplyLines(pos)) return 2;
+      md.writes.clear();
+      md.pos = pos;
+    }
     auto t0 = std::chrono::steady_clock::now();
     if (use_seq) {
       // Split the block at each event the engine receives (D1: an event's own
-      // frame; in compat mode every event is at the block start). Without an
-      // engine the events are only logged.
-      fm1_seq_host_dispatch(&sq.host, n, block, sound.e ? &sink : NULL);
+      // frame; in compat mode every event is at the block start), and where a
+      // modulation tick writes to it. Without an engine the events are only
+      // logged.
+      fm1_seq_host_dispatch_ticks(&sq.host, n, block, sound.e ? &sink : NULL,
+                                  md.m ? &md.glue.hook : NULL);
+    } else if (md.m) {
+      fm1_seq_host_dispatch_ticks(&bare, n, block, sound.e ? &sink : NULL, &md.glue.hook);
     } else if (sound.e) {
       sound.e->render(sound.self, block, n);
     }
@@ -557,7 +862,22 @@ int main(int argc, char **argv) {
         }
       }
     }
-    for (size_t k = 0; k < fx.size(); ++k) fx[k].e->render(fx[k].self, block, n);
+    for (size_t k = 0; k < fx.size(); ++k) {
+      RenderFx(fx[k], static_cast<unsigned>(k + 1), md.m && k < 2 ? &md : NULL, block, n);
+    }
+    if (md.m) {                       // HOST AMP, before the limiter
+      uint32_t cur = 0;
+      for (size_t k = 0; k < md.writes.size(); ++k) {
+        const fm1_mod_write_t &w = md.writes[k].second;
+        if (w.unit != FM1_MOD_HOST || w.index != FM1_MOD_HOST_AMP) continue;
+        const uint32_t f = md.writes[k].first;
+        if (md.amp_used && f > cur) fm1_mod_ramp_apply(&md.amp, pos + cur, block + 2u * cur, f - cur);
+        fm1_mod_ramp_set(&md.amp, pos + f, w.value);
+        md.amp_used = true;
+        cur = f;
+      }
+      if (md.amp_used && cur < n) fm1_mod_ramp_apply(&md.amp, pos + cur, block + 2u * cur, n - cur);
+    }
     auto t1 = std::chrono::steady_clock::now();
     render_ns += std::chrono::duration<double, std::nano>(t1 - t0).count();
     ++blocks;
@@ -615,6 +935,26 @@ int main(int argc, char **argv) {
            static_cast<unsigned long long>(sq.host.splits), blocks ? seq_ns / blocks : 0.0);
     if (sq.log) fclose(sq.log);
     fm1_script_free(&sq.script);
+  }
+  if (md.m) {
+    fm1_mod_stats_t st;
+    fm1_mod_plan_info_t plan;
+    fm1_mod_get_stats(md.m, &st);
+    fm1_mod_get_plan(md.m, &plan);
+    auto bits = [](uint32_t x) { unsigned c = 0; for (; x; x &= x - 1) ++c; return c; };
+    printf(",\"mod_bytes\":%zu,\"mod_ticks\":%llu,\"mod_writes\":%llu,\"mod_sound_writes\":%llu,"
+           "\"mod_other_writes\":%llu,\"mod_active\":%u,\"mod_refused\":%u,\"mod_delayed\":%u,"
+           "\"mod_splits\":%llu,\"mod_edges_dropped\":%u,\"mod_nonfinite\":%u",
+           fm1_mod_size(), static_cast<unsigned long long>(st.ticks),
+           static_cast<unsigned long long>(st.writes),
+           static_cast<unsigned long long>(md.glue.sound_writes),
+           static_cast<unsigned long long>(md.glue.other_writes), bits(plan.active),
+           bits(plan.refused), bits(plan.delayed),
+           static_cast<unsigned long long>(use_seq ? sq.host.splits : bare.splits),
+           st.edges_dropped, st.nonfinite);
+    if (md.log) fclose(md.log);
+    fm1_mod_destroy(md.m);
+    free(md.mem);
   }
   printf("}\n");
   Release(sound);

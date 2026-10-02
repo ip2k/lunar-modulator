@@ -3,8 +3,10 @@
  * hand engine-routed notes and locks to a sound engine at their own frame.
  * Extracted from fm1-render (engines/host/render.cc) without a change in
  * behaviour; lane labels resolve to parameter uids (engine API v2) when they
- * are set, and locks on NOLOCK parameters are refused. C99, no heap, no
- * stdio. MIT licence. */
+ * are set, and locks on NOLOCK parameters are refused. Dispatch can run a
+ * control-rate hook (the modulation tick, docs/16 MG1) at its own frames,
+ * splitting a render only where a tick writes. C99, no heap, no stdio. MIT
+ * licence. */
 #include "fm1_seq_host.h"
 
 #include <string.h>
@@ -197,44 +199,94 @@ static int lock_target(fm1_seq_host_t *h, const fm1_seq_ev_t *e) {
 
 void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
                            const fm1_seq_sink_t *sink) {
-  uint32_t k, cur = 0;
-  if (sink) {
-    if (sink->engine != h->engine) fm1_seq_host_bind(h, sink->engine);
-    for (k = 0; k < h->n; ++k) {
-      const fm1_seq_ev_t *e = &h->ev[k];
-      fm1_seq_track_info_t ti;
-      int param = -1;
-      uint32_t f;
-      if (e->kind != FM1_SEQ_EV_NOTE_ON && e->kind != FM1_SEQ_EV_NOTE_OFF &&
-          e->kind != FM1_SEQ_EV_LOCK) continue;
-      if (!fm1_seq_get_track(h->seq, e->track, &ti) || ti.route_kind != FM1_SEQ_ROUTE_ENGINE) {
-        continue;
-      }
-      if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
-        param = lock_target(h, e);
-        if (param < 0) continue;
-      }
-      f = e->frame < frames ? e->frame : frames;
-      if (f > cur) {
-        sink->render(sink->ctx, block + 2u * cur, f - cur);
-        if (cur) ++h->splits;
-        cur = f;
-      }
-      if (e->kind == FM1_SEQ_EV_NOTE_ON) {
-        sink->note_on(sink->ctx, e->a, e->b);
-        ++h->notes_to_engine;
-      } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
-        sink->note_off(sink->ctx, e->a);
-      } else {
-        sink->set_param(sink->ctx, (uint16_t)param,
-                        fm1_seq_lock_value(&sink->engine->params[param], e->b));
-        ++h->locks_to_engine;
+  fm1_seq_host_dispatch_ticks(h, frames, block, sink, NULL);
+}
+
+/* The hook's tick at frame tf: when it writes to the sink, the render up to
+ * tf first, then the writes. Returns the next tick's frame. */
+static uint32_t run_tick(fm1_seq_host_t *h, const fm1_seq_hook_t *hk, uint32_t tf, uint32_t *cur,
+                         float *block, const fm1_seq_sink_t *sink) {
+  const fm1_seq_hook_write_t *w = NULL;
+  uint32_t next = tf, i;
+  const uint32_t n = hk->tick(hk->ctx, tf, &w, &next);
+  if (n && w && sink) {
+    if (tf > *cur) {
+      sink->render(sink->ctx, block + 2u * *cur, tf - *cur);
+      if (*cur) ++h->splits;
+      *cur = tf;
+    }
+    for (i = 0; i < n; ++i) {
+      if (w[i].bend) {
+        if (sink->pitch_bend) sink->pitch_bend(sink->ctx, w[i].value);
+      } else if (sink->engine && w[i].index < sink->engine->n_params) {
+        sink->set_param(sink->ctx, w[i].index, w[i].value);
       }
     }
-    if (cur < frames) {
-      sink->render(sink->ctx, block + 2u * cur, frames - cur);
+  }
+  return next > tf ? next : tf + 1u;   /* always forward */
+}
+
+void fm1_seq_host_dispatch_ticks(fm1_seq_host_t *h, uint32_t frames, float *block,
+                                 const fm1_seq_sink_t *sink, const fm1_seq_hook_t *hk) {
+  uint32_t k, cur = 0, tf = frames;
+  if (sink && sink->engine != h->engine) fm1_seq_host_bind(h, sink->engine);
+  if (hk) {
+    uint32_t bpm = 0;
+    int playing = 0;
+    if (h->seq) {
+      fm1_seq_info_t info;
+      fm1_seq_get_info(h->seq, &info);
+      bpm = info.bpm_x100;
+      playing = info.playing;
+    }
+    tf = hk->begin(hk->ctx, frames, sink ? sink->engine : NULL, bpm, playing);
+  }
+  for (k = 0; k < h->n; ++k) {
+    const fm1_seq_ev_t *e = &h->ev[k];
+    const uint32_t f = e->frame < frames ? e->frame : frames;
+    fm1_seq_track_info_t ti;
+    int param = -1, to_engine = 0;
+    if (sink && (e->kind == FM1_SEQ_EV_NOTE_ON || e->kind == FM1_SEQ_EV_NOTE_OFF ||
+                 e->kind == FM1_SEQ_EV_LOCK)) {
+      to_engine = fm1_seq_get_track(h->seq, e->track, &ti) &&
+                  ti.route_kind == FM1_SEQ_ROUTE_ENGINE;
+    }
+    if (hk) {
+      /* Ticks before this frame; at this frame, before a note-on but after
+       * note-offs and locks (M6). */
+      while (tf < frames && (tf < f || (tf == f && e->kind == FM1_SEQ_EV_NOTE_ON))) {
+        tf = run_tick(h, hk, tf, &cur, block, sink);
+      }
+      hk->event(hk->ctx, f, e, to_engine);
+    }
+    if (!to_engine) continue;
+    if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
+      param = lock_target(h, e);
+      if (param < 0) continue;
+    }
+    if (f > cur) {
+      sink->render(sink->ctx, block + 2u * cur, f - cur);
       if (cur) ++h->splits;
+      cur = f;
     }
+    if (e->kind == FM1_SEQ_EV_NOTE_ON) {
+      sink->note_on(sink->ctx, e->a, e->b);
+      ++h->notes_to_engine;
+    } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
+      sink->note_off(sink->ctx, e->a);
+    } else {
+      float v = fm1_seq_lock_value(&sink->engine->params[param], e->b);
+      if (hk) v = hk->lock(hk->ctx, (uint16_t)param, v);
+      sink->set_param(sink->ctx, (uint16_t)param, v);
+      ++h->locks_to_engine;
+    }
+  }
+  if (hk) {
+    while (tf < frames) tf = run_tick(h, hk, tf, &cur, block, sink);
+  }
+  if (sink && cur < frames) {
+    sink->render(sink->ctx, block + 2u * cur, frames - cur);
+    if (cur) ++h->splits;
   }
   h->n = 0;
 }

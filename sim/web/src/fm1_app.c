@@ -648,7 +648,7 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
     a->seq_last_n = fm1_seq_host_advance(&a->seq_host, n);
     if (s->e) {
       const fm1_seq_sink_t sink = { a, s->e, sink_render, sink_note_on, sink_note_off,
-                                    sink_set_param };
+                                    sink_set_param, NULL };   /* no modulation yet (MG3) */
       fm1_seq_host_dispatch(&a->seq_host, n, out, &sink);
     } else {
       fm1_seq_host_dispatch(&a->seq_host, n, out, NULL);
