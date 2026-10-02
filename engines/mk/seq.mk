@@ -32,7 +32,10 @@ $(BUILD)/fm1-seq: $(SEQ_TOOL_OBJ) $(SEQ_HOST_OBJ) $(SEQ_OBJ)
 $(BUILD)/fm1-seq-check: $(SEQ_TOOL_OBJ) $(SEQ_HOST_OBJ) $(SEQ_CHECK_OBJ)
 	$(CC) $(OPT) $(EXTRA) -o $@ $^ -lm
 
-# fm1-render plays sequences through the sound engine (--seq, --cmd).
-$(BUILD)/fm1-render: $(SEQ_OBJ) $(SEQ_HOST_OBJ)
+# fm1-render plays sequences through the sound engine (--seq, --cmd). The
+# objects go into RENDER_EXTRA_OBJ, not onto fm1-render's prerequisites, so
+# every renderer variant that links RENDER_OBJ (fm1-render-original-names in
+# mk/plaits-heavy.mk) gets them too.
+RENDER_EXTRA_OBJ += $(SEQ_OBJ) $(SEQ_HOST_OBJ)
 
 -include $(SEQ_OBJ:.o=.d) $(SEQ_CHECK_OBJ:.o=.d) $(SEQ_HOST_OBJ:.o=.d) $(SEQ_TOOL_OBJ:.o=.d)
