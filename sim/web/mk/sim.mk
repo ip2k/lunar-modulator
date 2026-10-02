@@ -44,8 +44,10 @@ $(BUILD)/fm1.wasm: $(SIM_APP_OBJ) $(BUILD)/sim/src/fm1_web.o $(SIM_ENGINE_OBJ)
 	$(CXX) $(OPT) $(EXTRA) $(WASM_LDFLAGS) -o $@ $^
 
 # The reference host itself compiled to WebAssembly and run by Node, so the
-# parity test can separate the compiler and libm from the app layer.
-$(BUILD)/fm1-render.js: $(OUR_OBJ) $(TP_OBJ) $(SW_OBJ)
+# parity test can separate the compiler and libm from the app layer. It links
+# exactly what native fm1-render links (RENDER_OBJ: our engines, Mutable's,
+# Schwung's modules and the sequencer), so it cannot fall behind the host.
+$(BUILD)/fm1-render.js: $(RENDER_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -sNODERAWFS=1 -sALLOW_MEMORY_GROWTH=1 -sEXIT_RUNTIME=1 -o $@ $^
 
 -include $(SIM_APP_OBJ:.o=.d) $(BUILD)/sim/src/fm1_web.d $(BUILD)/sim/test/fm1_sim_render.d
