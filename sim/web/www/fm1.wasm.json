@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "7e0fdd6aed0b576a2604e1b1fe48100038a15e6e200147c6badc69172c2bd776",
-  "wasm_bytes": 482291,
+  "wasm_sha256": "39e2cf91cc0a832dbfbe6fa0a93abf2cd87e0f62c62cf3d3d19d9b184f70333a",
+  "wasm_bytes": 495646,
   "sources_sha256": {
-    "engines": "af710ba01819480c3ab15ebf7cd96f5832a418d54126c23845817f0792e12019",
-    "sim": "8236029c6cf517be31afb5c4cf5ca0d98edb2666fa75b455b5962f72fc49c8fb"
+    "engines": "885c6d9902f88ee67ad87f5832f69068841d292222ee4c99fa2d0846a282b4fa",
+    "sim": "a7deb16a4463b6ebedf013273b9ee69af247d3ab6a9431da648b8f2c0bd9f3a8"
   },
   "engines": "working tree",
-  "built": "2026-10-02T20:08:12Z",
+  "built": "2026-10-02T21:12:07Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 25,
+    "passed": 28,
     "failed": 0,
-    "identical_to_js": 25,
-    "identical_to_musl": 25,
-    "identical_to_glibc": 22,
+    "identical_to_js": 28,
+    "identical_to_musl": 28,
+    "identical_to_glibc": 25,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -462,8 +462,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 119656,
-        "native64": 132344
+        "wasm32": 120920,
+        "native64": 133608
       },
       "cmd": "seq/panel-play-stop.verbs",
       "seq": {
@@ -494,8 +494,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 119656,
-        "native64": 132344
+        "wasm32": 120920,
+        "native64": 133608
       },
       "cmd": "seq/panel-step-entry.verbs",
       "seq": {
@@ -639,6 +639,91 @@
         "wasm32": 171480,
         "native64": 171704
       }
+    },
+    {
+      "name": "multi-two-sounds-inserts",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 351296,
+        "native64": 364848
+      }
+    },
+    {
+      "name": "multi-four-sounds-seq",
+      "samples": 211766,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 348944,
+        "native64": 364224
+      },
+      "cmd": "seq/multi-four-sounds.verbs",
+      "seq": {
+        "lines": 10,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "multi-panel",
+      "samples": 220590,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 311616,
+        "native64": 325168
+      },
+      "cmd": "seq/panel-multi-sound.verbs",
+      "seq": {
+        "lines": 4,
+        "lines_match": true,
+        "ui_cmds": 2,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-multi-sound.panel"
     }
   ]
 }
