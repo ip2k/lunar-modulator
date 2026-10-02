@@ -281,9 +281,10 @@ int main(int argc, char **argv) {
     else if (a == "--seq") seq_path = next;
     else if (a == "--log-events") log_path = next;
     else if (a == "--tracks") tracks = atoi(next);
-    else if (a == "--events") {
-      events_cap = strtol(next, NULL, 0);
-      if (events_cap < 1 || events_cap > 65536) {
+    else if (a == "--events") {      // a decimal count: base 0 would read 010 as 8
+      char *end = NULL;
+      events_cap = strtol(next, &end, 10);
+      if (end == next || *end || events_cap < 1 || events_cap > 65536) {
         fprintf(stderr, "--events wants 1..65536\n");
         return 2;
       }

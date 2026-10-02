@@ -324,7 +324,15 @@ with no engine, Test Sine, and Macro and Six-Op at 44,118 Hz or Shapes at
 renderer tests' scripts; Movy's three sets; errors and refusals), every
 WAV, event log, exported set, state dump and error is byte-identical, and so
 is every summary less its timing and its three new fields; only the usage
-text gains `[--events N]` [verified 2026-10-02, Apple clang]. It is C99
+text gains `[--events N]` [verified 2026-10-02, Apple clang]. A review ran
+7,016 more on two clean builds, old and new, with the same result
+[verified 2026-10-02, Apple clang]: Sophie and Macro Heavy as well; blocks
+from 1 to 256 frames; 60 seeded random scripts with Capture, lanes renamed
+onto each engine's parameters, `route` verbs that move tracks between the
+engine and MIDI mid-play, and `rt` lines; 16 sets with `rt` lines, played
+alone and under commands; `--route`, `--fx`, `--input`, `--fault`,
+`--note`, `--param-at`, `--bend` and `--seconds` beside the sequencer; and
+`fm1-seq` and `fm1-seq-check` over every script. It is C99
 with no heap and no stdio, in `SEQ_SRC` beside the core, so `nm -u` checks
 it with the core's objects [verified: tests/test_seq_core.py].
 
@@ -361,9 +369,12 @@ an ENUM of n values. Both are the expressions `fm1-render` had.
 **Event room.** Commands, live input and advance share one buffer per
 block. One command can cause up to `fm1_seq_cmd_max_events(&limits)` = gates
 + 8 × tracks + 1 events: every gate's note-off, a D6 base revert on every
-lane of every track, and a Start or Stop. That is 129 at 8 tracks and 64
-gates, and a stop at full load sends exactly that many [verified:
-tests/test_seq_render.py]. Advance needs `fm1_seq_min_events(&limits)` of the
+lane of every track, and a Start or Stop (`play` while playing sends a
+Stop, D12). That is 129 at 8 tracks and 64 gates. A stop at full load sends
+128 (64 note-offs, 64 base reverts), and the block's advance adds the
+transport's Stop, so that block holds 129 [verified: tests/test_seq_render.py;
+the 128 counted on the core directly, 2026-10-02]. Advance needs
+`fm1_seq_min_events(&limits)` of the
 buffer to keep every note-off, Start and Stop. So a host applies a command
 only while `fm1_seq_host_room(h)` is at least `fm1_seq_cmd_max_events` +
 `fm1_seq_min_events`, and holds it for the next block otherwise. The bound
@@ -430,26 +441,43 @@ commands and Start/Stop carry the number of ticks serviced so far.
   349,525 Hz, 46,080 master ticks of offsets, a playhead at 8,448, notes
   103.2 s and 2^19 cycles apart, the gap rule before the stale rule).
   Movy's outcome for each edge script was checked through the oracle.
-- `tests/test_seq_render.py` (55): routing through `fm1-render`, notes and
+- `tests/test_seq_render.py` (58): routing through `fm1-render`, notes and
   locks at their own frame, FLOAT and ENUM lock mapping, block-size identity
   of the audio, the renderer's log equal to `fm1-seq`'s, plain renders
   unchanged. The host bridge: lane labels (case, the last `:`, an unknown
   label sent and skipped), a float lock equal to the parameter set directly,
-  an unknown label adding no split, every oracle script logged as `fm1-seq`
-  logs it with nothing dropped, a full 8-track stop in a 256-event buffer,
-  and `fm1-seq-host-test`: typed commands, realtime input (an external Start
-  that ends sounding notes, then MIDI clock) and live notes give the events
-  and the set their text lines give, and the sink receives every
-  engine-routed note and lock at its own frame and in order. Ten mutants of
-  the bridge (label case, the last `:`, a lock resolved after its split,
-  inputs at `ev[0]`, a buffer never emptied, no `max_n`, float locks over
-  128, live velocity lost, realtime or typed events not kept) each fail at
-  least one of these [verified 2026-10-02].
+  an unknown label adding no split, a lane on a MIDI-routed track that never
+  reaches the engine, no engine (events logged, the input untouched), every
+  oracle script logged as `fm1-seq` logs it with nothing dropped, a full
+  8-track stop in a 256-event buffer, a 16-track block of more than 256
+  events in the default buffer, and `fm1-seq-host-test`: typed commands,
+  realtime input (an external Start that ends sounding notes, then MIDI
+  clock) and live notes give the events and the set their text lines give;
+  the sink receives every engine-routed note and lock at its own frame and
+  in order, with no empty render, and nothing from a MIDI-routed track; a
+  hand-made event past the block plays at its end; and every 7-bit lock
+  value on ranges such as -24..24, where the expression's parenthesisation
+  shows. Twenty-nine mutants of the bridge and of `fm1-render`'s use of it
+  each fail at least one of these [verified 2026-10-02]: label case, the
+  last `:`, a label compared only to the shorter name, a lock resolved after
+  its split, MIDI-routed locks sent, the first parameter never locked, the
+  frame clamp, an empty tail render, splits miscounted, note-offs counted as
+  notes, inputs at `ev[0]`, a buffer never emptied, the room one short, no
+  `max_n`, float locks over 128, the float expression reparenthesised, ENUM
+  bins of n−1, live velocity or note-offs lost, realtime or typed events
+  not kept, a realtime line at frame 1, trailing blanks refused, the room
+  bound without its transport event, the log after dispatch, a 256-event
+  default, a sink with no engine, `seq_dropped` from the wrong counter, and
+  the loader's `rt` check a byte short.
 
 Run on [verified 2026-10-01, with the oracle's fixtures in place]: macOS
 clang, the whole suite, and under clang ASan + UBSan; GCC 12 in a container
 on aeon, 64-bit (the sequencer and oracle tests) and `-m32` (those and the
-engine tests), with no warnings and the same instance sizes.
+engine tests), with no warnings and the same instance sizes. With the host
+bridge [verified 2026-10-02]: the engine, sequencer and Movy tests (1,481
+passed, 18-undo's 2 expected failures) under clang ASan + UBSan, and under
+GCC 13 in a container on aeon at 64 bits and with `-m32`, with no warnings;
+`fm1-seq-host-test` gives the same counts on all three.
 
 ## The oracle's verdict (stage M3)
 

@@ -5,10 +5,14 @@
  *     notes (host_note_in) give the same events and the same set as the
  *     text lines fm1-render applies (host_line).
  *   - Dispatch hands a sink every engine-routed note and lock at its own
- *     frame, in emission order, renders every frame of the block once, and
- *     counts a split for each piece that starts inside it.
+ *     frame, in emission order, renders every frame of the block once (no
+ *     empty pieces), and counts a split for each piece that starts inside
+ *     it. A MIDI-routed track's notes and locks never reach it, even when
+ *     the lane names a parameter.
+ *   - A hand-made buffer: a frame past the block is clamped to its end.
  *   - The room figures, the realtime-line parser (length-bounded), lane
- *     labels and lock values.
+ *     labels, and every lock value on ranges other than 0..1 (where the
+ *     expression's parenthesisation shows).
  *
  * Prints one JSON line of counts; exits 1 after the first failed check is
  * reported. Desktop test code (stdio); the bridge itself has none. MIT
@@ -28,14 +32,20 @@ static int failed;
     }                                                                     \
   } while (0)
 
-/* A pretend engine: one FLOAT and one ENUM of 8 values. */
+/* A pretend engine: a FLOAT and an ENUM of 8 values, then FLOATs on ranges
+ * like Sophie's (Tune, Decay, Sweep), where min + range * v / 127 and
+ * min + range * (v / 127) round differently. */
 static const fm1_param_t kParams[] = {
   { "Timbre", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.5f, NULL, 0 },
   { "Model", FM1_PARAM_ENUM, 0.0f, 7.0f, 0.0f, NULL, 0 },
+  { "Tune", FM1_PARAM_FLOAT, -24.0f, 24.0f, 0.0f, NULL, 0 },
+  { "Decay", FM1_PARAM_FLOAT, 0.03f, 4.0f, 0.28f, NULL, 0 },
+  { "Sweep", FM1_PARAM_FLOAT, -100.0f, 100.0f, 55.0f, NULL, 0 },
 };
+#define N_PARAMS (sizeof(kParams) / sizeof(kParams[0]))
 static const fm1_engine_t kEngine = {
-  FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "fake", "Fake", "", kParams, 2, 8,
-  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+  FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "fake", "Fake", "", kParams,
+  (uint16_t)N_PARAMS, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
 
 /* What the sink was asked to do, with the frame the block had reached. */
@@ -58,7 +68,7 @@ typedef struct {
 
 static void t_render(void *ctx, float *lr, uint32_t frames) {
   trace_t *t = (trace_t *)ctx;
-  if (lr != t->block + 2u * t->rendered) t->bad_piece = 1;
+  if (lr != t->block + 2u * t->rendered || frames == 0) t->bad_piece = 1;
   if (t->rendered) ++t->inside;
   t->rendered += frames;
   ++t->pieces;
@@ -90,7 +100,9 @@ static char set_text[16384], set_typed[16384];
 /* One op per entry, applied at the start of block `at`; "rt XX" is realtime
  * input and "non"/"nof" live notes on the typed side. Track 0's notes are
  * long, so the external Start at block 1000 (while playing) ends sounding
- * notes from inside fm1_seq_realtime_in; MIDI clock follows it. */
+ * notes from inside fm1_seq_realtime_in; MIDI clock follows it. Track 1 is
+ * routed to the engine; track 2 stays on MIDI, with a note and a lane that
+ * names Timbre, none of which may reach the sink. */
 typedef struct {
   uint32_t at;
   const char *op;
@@ -99,6 +111,8 @@ typedef struct {
 static const step_t kScript[] = {
   { 0, "tog 0 0 60 100 64 90" }, { 0, "tog 0 3 67 100" }, { 0, "tog 0 6 72 80" },
   { 0, "slen 0 0 15 -1 300" }, { 0, "tog 1 2 48 100" }, { 0, "route 1 1 0" },
+  { 0, "tog 2 1 55 100" }, { 0, "route 2 0 3" }, { 0, "alabel 2 0 synth:Timbre" },
+  { 0, "aset 2 0 1 99 1" }, { 0, "aset 2 0 5 7 1" },
   { 0, "alabel 0 0 synth:Timbre" }, { 0, "alabel 0 1 x:MODEL" },
   { 0, "alabel 0 2 synth:Nothing" }, { 0, "abase 0 0 10" }, { 0, "aset 0 0 2 90 1" },
   { 0, "aset 0 1 5 40 1" }, { 0, "aset 0 2 3 70 1" }, { 0, "swing 62" }, { 0, "play" },
@@ -145,7 +159,7 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
   static trace_t tr;
   static float block[2 * BLOCK];
   static fm1_seq_ev_t seen[CAP];
-  uint32_t k, i, rt_events = 0;
+  uint32_t k, i, rt_events = 0, midi_ons = 0, midi_locks = 0;
   size_t next = 0;
   fm1_seq_host_init(&a, make(mem_text), ev_text, CAP);
   fm1_seq_host_init(&b, make(mem_typed), ev_typed, CAP);
@@ -190,7 +204,11 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
         if (e->kind != FM1_SEQ_EV_NOTE_ON && e->kind != FM1_SEQ_EV_NOTE_OFF &&
             e->kind != FM1_SEQ_EV_LOCK) continue;
         fm1_seq_get_track(a.seq, e->track, &ti);
-        if (ti.route_kind != FM1_SEQ_ROUTE_ENGINE) continue;
+        if (ti.route_kind != FM1_SEQ_ROUTE_ENGINE) {
+          if (e->track == 2 && e->kind == FM1_SEQ_EV_NOTE_ON) ++midi_ons;
+          if (e->track == 2 && e->kind == FM1_SEQ_EV_LOCK) ++midi_locks;
+          continue;
+        }
         if (e->kind == FM1_SEQ_EV_LOCK) {
           p = fm1_seq_lane_param(&kEngine, fm1_seq_lane_label(a.seq, e->track, e->a));
           if (p < 0) continue;
@@ -217,6 +235,7 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
   CHECK(a.max_n == b.max_n && a.max_n > 0);
   CHECK(a.notes_to_engine > 0 && a.locks_to_engine > 0);
   CHECK(b.notes_to_engine == 0 && b.splits == 0);    /* a NULL sink plays nothing */
+  CHECK(midi_ons > 0 && midi_locks > 0);             /* track 2 played, to MIDI only */
   {
     const size_t la = fm1_seq_export_movy1(a.seq, set_text, sizeof(set_text));
     const size_t lb = fm1_seq_export_movy1(b.seq, set_typed, sizeof(set_typed));
@@ -253,6 +272,83 @@ static void parsers_and_figures(void) {
   CHECK(fm1_seq_lock_value(&kParams[1], 15) == 0.0f);
   CHECK(fm1_seq_lock_value(&kParams[1], 16) == 1.0f);
   CHECK(fm1_seq_lock_value(&kParams[1], 127) == 7.0f);
+  {
+    /* Every 7-bit value on every parameter: FLOAT is min + range * v / 127,
+     * evaluated left to right as fm1-render's LockValue was; ENUM is min +
+     * floor(v * n / 128). The pinned values are where min + range * (v /
+     * 127) would round to a neighbouring float. */
+    unsigned q, v;
+    for (q = 0; q < N_PARAMS; ++q) {
+      const fm1_param_t *p = &kParams[q];
+      for (v = 0; v <= FM1_SEQ_VAL_MAX; ++v) {
+        const float want = p->type == FM1_PARAM_ENUM
+            ? p->min + (float)(v * ((unsigned)(p->max - p->min) + 1u) / 128u)
+            : p->min + (p->max - p->min) * (float)v / (float)FM1_SEQ_VAL_MAX;
+        CHECK(fm1_seq_lock_value(p, v) == want);
+      }
+    }
+    CHECK(fm1_seq_lock_value(&kParams[2], 6) == -21.732282638549805f);
+    CHECK(fm1_seq_lock_value(&kParams[3], 9) == 0.3113385736942291f);
+    CHECK(fm1_seq_lock_value(&kParams[4], 9) == -85.82677459716797f);
+  }
+}
+
+/* A buffer the host filled itself. The core never puts an event past the
+ * block, so only a hand-made buffer reaches the clamp: such an event plays
+ * at the block's end, and no empty piece follows it. A lock on a
+ * MIDI-routed track (whose lane names a parameter) and one whose label names
+ * none are skipped without a split. */
+static void hand_made_block(void) {
+  static trace_t tr;
+  static float block[2 * BLOCK];
+  static const char setup[] =
+      "alabel 0 0 synth:Timbre;alabel 0 1 x:Nothing;alabel 1 0 synth:Tune;route 1 0 2";
+  fm1_seq_ev_t ev[16], scratch[16];
+  fm1_seq_host_t h;
+  fm1_seq_sink_t sink;
+  fm1_seq_t *s = make(mem_text);
+  uint32_t n = 0;
+  sink.ctx = &tr;
+  sink.engine = &kEngine;
+  sink.render = t_render;
+  sink.note_on = t_on;
+  sink.note_off = t_off;
+  sink.set_param = t_param;
+  CHECK(fm1_seq_apply_text(s, setup, sizeof(setup) - 1u, scratch, 16) == 0);
+  fm1_seq_set_route(s, 0, FM1_SEQ_ROUTE_ENGINE, 0);
+  fm1_seq_host_init(&h, s, ev, 16);
+#define EV(fr, k, t, aa, bb)                                                  \
+  do {                                                                        \
+    ev[n].tick = 0; ev[n].frame = (fr); ev[n].kind = (k); ev[n].track = (t);  \
+    ev[n].a = (aa); ev[n].b = (bb); ++n;                                      \
+  } while (0)
+  EV(0, FM1_SEQ_EV_NOTE_OFF, 0, 60, 0);
+  EV(0, FM1_SEQ_EV_LOCK, 0, 0, 127);       /* Timbre 1 */
+  EV(0, FM1_SEQ_EV_NOTE_ON, 0, 62, 90);
+  EV(10, FM1_SEQ_EV_NOTE_ON, 1, 50, 100);  /* MIDI */
+  EV(10, FM1_SEQ_EV_LOCK, 1, 0, 64);       /* MIDI, though its lane names Tune */
+  EV(12, FM1_SEQ_EV_CLICK, FM1_SEQ_NONE, 1, 0);
+  EV(12, FM1_SEQ_EV_LOCK, 0, 1, 5);        /* names no parameter */
+  EV(20, FM1_SEQ_EV_LOCK, 0, 0, 0);        /* Timbre 0 */
+  EV(70, FM1_SEQ_EV_NOTE_OFF, 0, 62, 0);   /* past the 64-frame block */
+#undef EV
+  h.n = n;
+  memset(&tr, 0, sizeof(tr));
+  tr.block = block;
+  fm1_seq_host_dispatch(&h, BLOCK, block, &sink);
+  CHECK(h.n == 0 && tr.rendered == BLOCK && !tr.bad_piece && tr.pieces == 2u);
+  CHECK(h.splits == 1u && tr.inside == 1u && h.notes_to_engine == 1u && h.locks_to_engine == 2u);
+  CHECK(tr.n == 5u);
+  if (tr.n == 5u) {
+    CHECK(tr.calls[0].kind == C_OFF && tr.calls[0].a == 60 && tr.calls[0].at == 0);
+    CHECK(tr.calls[1].kind == C_PARAM && tr.calls[1].index == 0 && tr.calls[1].value == 1.0f &&
+          tr.calls[1].at == 0);
+    CHECK(tr.calls[2].kind == C_ON && tr.calls[2].a == 62 && tr.calls[2].b == 90 &&
+          tr.calls[2].at == 0);
+    CHECK(tr.calls[3].kind == C_PARAM && tr.calls[3].index == 0 && tr.calls[3].value == 0.0f &&
+          tr.calls[3].at == 20);
+    CHECK(tr.calls[4].kind == C_OFF && tr.calls[4].a == 62 && tr.calls[4].at == BLOCK);
+  }
 }
 
 /* A buffer of none: every event counted as dropped, nothing written. */
@@ -273,6 +369,7 @@ int main(void) {
   uint64_t events = 0, calls = 0, inside = 0;
   parsers_and_figures();
   inputs_and_dispatch(&events, &calls, &inside);
+  hand_made_block();
   no_buffer();
   printf("{\"ok\":%s,\"events\":%llu,\"sink_calls\":%llu,\"splits\":%llu}\n", failed ? "false" : "true",
          (unsigned long long)events, (unsigned long long)calls, (unsigned long long)inside);

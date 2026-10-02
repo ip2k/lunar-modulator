@@ -288,10 +288,10 @@ def full_stop_script(tracks=8, stop_at=4096):
 
 def test_an_app_sized_event_buffer_takes_a_full_stop(seq_tools, tmp_path):
     """256 events per block, the size the virtual FM-1 is to use: a stop at
-    full load sends 64 note-offs and 64 base reverts (D6) at once, then the
-    transport's Stop, 129 = fm1_seq_cmd_max_events at 8 tracks and 64 gates.
-    Nothing is dropped and every note closes. A 100-event buffer does drop,
-    and says so."""
+    full load sends 64 note-offs and 64 base reverts (D6) at once, and the
+    block's advance adds the transport's Stop: 129 events, which is
+    fm1_seq_cmd_max_events at 8 tracks and 64 gates. Nothing is dropped and
+    every note closes. A 100-event buffer does drop, and says so."""
     script = full_stop_script()
     s, _, ev, _ = render(tmp_path, script, extra=["--events", "256"], name="app")
     assert s["seq_dropped"] == 0 and s["seq_refused"] == 0
@@ -308,6 +308,59 @@ def test_an_app_sized_event_buffer_takes_a_full_stop(seq_tools, tmp_path):
     assert s["seq_max_block_events"] >= len(stop)
     s, _, _, _ = render(tmp_path, script, extra=["--events", "100"], name="small")
     assert s["seq_dropped"] > 0
+
+
+def test_the_default_event_buffer_holds_more_than_an_app_sized_one(seq_tools, tmp_path):
+    """fm1-render's default stays 65,536 events: 16 tracks at full load put
+    more than 256 events in one block, which the default holds whole and an
+    app-sized buffer does not. --events takes a decimal count, nothing else."""
+    script = full_stop_script(tracks=16)
+    s, _, _, _ = render(tmp_path, script, name="default")
+    assert s["seq_dropped"] == 0 and s["seq_max_block_events"] > 256
+    s, _, _, _ = render(tmp_path, script, extra=["--events", "256"], name="app")
+    assert s["seq_dropped"] > 0 and s["seq_max_block_events"] <= 256
+    cmd_file = tmp_path / "default.txt"
+    for bad in ("0", "65537", "0x100", "256k", ""):
+        res = subprocess.run([str(RENDER), "--cmd", str(cmd_file), "--events", bad],
+                             capture_output=True, text=True)
+        assert res.returncode == 2 and "--events wants 1..65536" in res.stderr, bad
+
+
+MIDI_LANE = (f"#! rate={RATE} block=64 tracks=2 end={RATE}\n"
+             "@0 tog 0 0 84 100;slen 0 0 0 -1 380;tog 1 0 60 100;tog 1 4 64 100\n"
+             "@0 alabel 1 0 synth:Volume;abase 1 0 127;aset 1 0 2 0 1;aset 1 0 6 64 1\n"
+             "@0 play\n")
+
+
+def test_a_lane_on_a_midi_track_never_reaches_the_engine(seq_tools, tmp_path):
+    """Track 1 goes to USB-MIDI: its locks are logged (CC 102+lane) even
+    though the lane names the engine's Volume, but the engine never gets
+    them, so the sound is that of the same script without the lane. Routed
+    to the engine, the same locks reach it."""
+    s, _, ev, raw = render(tmp_path, MIDI_LANE, name="midi")
+    assert len([e for e in ev if e["kind"] == "cc" and e["track"] == 1]) >= 2
+    assert s["seq_locks_to_engine"] == 0 and s["seq_notes_to_engine"] > 0
+    lines = MIDI_LANE.splitlines(keepends=True)
+    _, _, _, ref = render(tmp_path, "".join(lines[:2] + lines[3:]), name="nolane")
+    assert raw == ref
+    s, _, _, _ = render(tmp_path, MIDI_LANE.replace("@0 play", "@0 route 1 1 0;play"), name="routed")
+    assert s["seq_locks_to_engine"] >= 2
+
+
+def test_with_no_engine_the_events_are_logged_and_the_input_passes(seq_tools, tmp_path):
+    """No --engine: the bridge gets no sink, so nothing is rendered or split
+    and the --input signal goes through untouched, while the log holds the
+    events an engine would have had."""
+    common = ["--input", "sine", "--rate", str(RATE), "--frames", "64", "--seconds", "0.75"]
+    s, _, ev, raw = render(tmp_path, TWO_TRACKS, extra=common, engine=None, name="none")
+    assert s["engine"] is None and s["seq_notes_to_engine"] == 0 and s["seq_splits"] == 0
+    assert s["seq_events"] == len(ev) > 0 and len(ons(ev, 0)) > 0
+    _, _, ev_engine, _ = render(tmp_path, TWO_TRACKS, extra=common[2:], name="engine")
+    assert ev == ev_engine
+    wav = tmp_path / "plain.wav"
+    subprocess.run([str(RENDER), *common, "--out", str(wav)], check=True, capture_output=True)
+    with wave.open(str(wav), "rb") as w:
+        assert w.readframes(w.getnframes()) == raw
 
 
 def test_the_bridge_checks_itself(seq_tools):
