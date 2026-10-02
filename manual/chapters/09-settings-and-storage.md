@@ -1,59 +1,142 @@
 # Settings and storage
 
-This chapter covers the global page, where settings that apply to everything
-live, and how sounds and patterns are kept.
+This chapter covers the global page, where Lunar Modulator shows what
+applies to the whole instrument, and how sounds and sequencer sets are kept.
+
+!!! warning "Nothing is stored on the FM-1"
+    Lunar Modulator writes nothing to an FM-1's memory, and will not until
+    the one rule is met ([chapter 1](01-welcome-and-safety.md#the-one-rule)).
+    The sounds, patterns and settings your FM-1 holds now stay as they are.
 
 ## The global page
 
 {{status sim planned}}
 
-Press [[GLO]] to open the global page, and press it again to leave. In the
-simulator it shows:
+### To open the global page
 
-- the sample rate and block size the firmware runs at;
-- how much memory the current engine and effects take, against the memory
-  the FM-1 has free for them (about 379 KB);
-- the engine's number of voices;
-- the octave and transpose.
+Press [[GLO]]. Press [[GLO]] again, or [[HOME]], to leave it. The bottom bar
+reads *1/1 Globe* while the page is open.
 
-The memory figure tells you whether a combination would fit on the FM-1:
-the simulator can run combinations the device could not.
+### What it shows
 
-!!! outline "To be written"
-    - Settings planned for the page: MIDI channel, pitch bend range, velocity
-      curve or fixed velocity, tuning, the screen's brightness.
-    - How a setting is changed: [[SELECT]] to the page, a knob for the value.
+| Line | What it means |
+| --- | --- |
+| Rate | The sample rate the firmware runs at, such as 44118 Hz |
+| Block | How many samples the firmware computes at a time: 64 |
+| RAM | Two figures in kilobytes: the memory the current engine and both effects take, then the 379K the FM-1 has free for them |
+| Voices | How many notes the current engine plays at once |
+| FX1, FX2 | The effect in each slot, by its short identifier such as `plate`, or `--` for an empty slot |
+| Octave | The keyboard's octave, from −3 to +3 ([chapter 4](04-playing.md#octave-and-transpose)) |
+| Transpose | The transpose in semitones, from −12 to +12 |
 
-## Saving sounds
+The knobs change nothing on this page.
+
+!!! tip "Will it fit on the FM-1?"
+    The RAM line tells you whether a combination of engine and effects would
+    fit on the FM-1. The simulator plays combinations the FM-1 could not: if
+    the first figure is larger than the second, choose a smaller engine or
+    effect, or empty a slot ([chapter 6](06-effects.md#the-effect-chain)).
+
+### Settings on the FM-1
+
+On the FM-1, the global page is planned to hold the settings that apply to
+the whole instrument. Which ones is not decided yet. The questions still
+open include the MIDI channel the sound engine listens on, the pitch bend
+range, and, should the FM-1's keys turn out not to sense how hard they are
+played, a fixed velocity.
+
+## Sounds
 
 {{status planned}}
 
-!!! outline "To be written"
-    - What a sound is: the engine, its parameters and the two effects.
-    - [[SAVE]]: storing a sound in a slot, naming it, recalling it with
-      [[PRESETS]].
-    - Not in the simulator yet: it starts with every engine at its defaults
-      each time.
+A sound is everything you hear from the keys: the sound engine with its
+parameters, and the two effect slots with theirs.
 
-## Saving patterns
+In the simulator, nothing is kept. Each engine starts at its defaults when
+you choose it with [[PRESETS]], and closing or reloading the page starts the
+simulator afresh. Choosing another engine also ends every sounding note.
+
+Saving and recalling sounds is planned for the FM-1, with [[SAVE]], and has
+not been designed in detail yet. As with sequencer sets, nothing will be
+written to the FM-1's flash memory before the one rule has been met.
+
+## Sequencer sets
 
 {{status desktop planned}}
 
-!!! outline "To be written"
-    - The desktop tools save and load sequencer sets as text, in Movy's
-      `movy1` format.
-    - On the FM-1, patterns are planned to live in memory first, with export
-      and import over USB (system exclusive), and in flash last, in their own
-      area with two copies so a power cut while saving cannot lose both.
-    - Nothing is written to the FM-1's flash until the one rule is met
-      (chapter 1).
+A set is everything the sequencer holds ([chapter 7](07-sequencer.md#how-a-pattern-is-organised)).
+
+### What a set keeps
+
+| Kept | Not kept |
+| --- | --- |
+| The tempo and the swing | Whether the sequencer was playing |
+| The song | The playhead's position |
+| Each track's chosen clip, its mute, its muted or soloed drum notes, and its routing | How many times each clip has looped, which conditions count |
+| Each track's lock lanes, with their parameters and base values | The random sequence behind probability |
+| Every clip: its length, loop window, speed, transpose and quantise | Which tracks are drum tracks |
+| Every note, lock, condition and probability | The default quantise for new clips |
+
+### In the desktop tools
+
+The desktop tools save and load sets as text in Movy's `movy1` format, a
+plain text file you can read, keep under version control or share:
+
+```bash
+engines/build/fm1-seq --cmd pattern.txt --export pattern.movy1     # save the set a script builds
+engines/build/fm1-seq --seq pattern.movy1 --export copy.movy1      # load a set and save it again
+engines/build/fm1-render --engine macro --seq pattern.movy1 --seconds 8 --out set.wav
+```
+
+Movy reads these files too, and Lunar Modulator reads Movy's. The
+differences:
+
+- Lunar Modulator adds a line for each track you route away from its
+  default, which Movy ignores.
+- It keeps what it loads within its own ranges, clip speeds of 1/8X to 4X
+  among them.
+- It leaves out what does not fit its memory: notes and locks beyond its
+  pools, and tracks beyond the number it was started with.
+
+### On the FM-1
+
+The FM-1 build is planned to keep sets in three stages:
+
+1. **In memory.** The set lives in the instrument's working memory and is
+   lost when you switch off.
+2. **On a computer.** You save a set to a computer and load it back over
+   USB-MIDI, as system exclusive messages carrying the same `movy1` text.
+   A full set is about 90 KB and is sent in parts.
+3. **In flash memory, last.** Sets will be written to an area of their own,
+   apart from the areas M-VAVE's firmware uses, only when you save. Each set
+   is kept twice, so a power cut while saving cannot lose both copies.
+
+The third stage waits for the one rule
+([chapter 10](10-updating-and-recovery.md#the-one-rule-again)).
 
 ## Backing up
 
 {{status planned}}
 
-!!! outline "To be written"
-    - Exporting every sound and pattern to a computer, and importing them.
-    - What the stock firmware's patches and patterns become: they stay in
-      their own areas, untouched, and can be read only after a full backup
-      of the device exists (chapter 10).
+### Your work
+
+Planned: one export that saves every sound and every set to a computer, and
+an import that brings them back. Until sounds and sets can be stored on the
+FM-1 itself, saving a set to a computer is the backup.
+
+### Your FM-1's own sounds and patterns
+
+The patches, patterns and settings that M-VAVE's firmware keeps in the FM-1's
+flash memory stay in their own areas. Lunar Modulator is planned never to
+write there.
+
+- Reading them would need their formats, which only a complete copy of the
+  FM-1's memory can show.
+- That copy is exactly what the one rule asks for first: a full read-out of
+  the FM-1's memory, kept safe, before anything is written
+  ([chapter 10](10-updating-and-recovery.md#the-recovery-dongle)).
+
+!!! tip "Keep your own copies"
+    If you use a patch editor or librarian with M-VAVE's firmware, keep your
+    banks on your computer as well. The FM-1 accepts voices and banks over
+    MIDI but does not send its stored banks back.

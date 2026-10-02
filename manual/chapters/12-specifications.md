@@ -2,23 +2,27 @@
 
 ## The instrument
 
-These are the FM-1's own specifications as far as Lunar Modulator is
-concerned. The *source* column says where each figure comes from: measured on
-a unit by this project, M-VAVE's documentation, or published analysis by
-others who have studied the FM-1.
+These are the M-VAVE FM-1's own specifications, as far as they matter to
+Lunar Modulator. The *source* column says where each figure comes from:
+*checked on a unit* means seen on an FM-1's board or read from its firmware
+by this project; *M-VAVE* means M-VAVE's documentation; *published analysis*
+means the work of others who have studied the FM-1, credited in
+[chapter 13](13-credits-and-licences.md).
 
 | Item | Specification | Source |
 | --- | --- | --- |
-| Processor | JieLi AC791N, a 32-bit pi32v2 core running at 240 MHz (320 MHz maximum) | Measured (chip and firmware strings); clock from others' analysis |
-| Memory | 578 KB of RAM on the chip, of which about 514 KB is usable; 1 MB of flash | RAM from the chip maker's documentation; flash size from others' analysis |
-| Display | 1.54-inch colour screen, 240 × 240 pixels | Others' analysis and M-VAVE's documentation |
-| Keys | 27 keys, F3 to G5, each with a light | Measured |
-| Controls | 7 encoders, 1 potentiometer ([[MASTER]]), 14 buttons with lights | Measured; names from M-VAVE's documentation |
-| Connectors | USB-C; 3.5 mm stereo audio output; 3.5 mm MIDI input | Measured |
-| USB | USB 2.0 full speed, MIDI and audio | Measured, with M-VAVE's firmware |
-| Wireless | Bluetooth LE, used by M-VAVE's firmware for MIDI | Others' analysis |
-| Battery | Lithium polymer, 3.7 V, 2000 mAh | Measured (cell label) |
-| Size | 161.5 × 96.5 mm | M-VAVE's documentation |
+| Processor | JieLi AC791N, with a 32-bit pi32v2 core. M-VAVE's firmware runs it at 240 MHz of a possible 320 MHz | Chip checked on a unit; clock from published analysis |
+| Memory | 578 KB of RAM on the chip, of which about 514 KB is usable; 1 MB of flash memory, probably inside the chip's package | RAM from the chip maker's documentation; flash from published analysis |
+| Display | 1.54-inch colour screen, 240 × 240 pixels | Published analysis and M-VAVE |
+| Keys | 27, from F3 to G5, each with a light | Count checked on a unit; range from M-VAVE |
+| Knobs | 7 encoders and 1 potentiometer ([[MASTER]]) | Checked on a unit |
+| Buttons | 14, each with a light | Checked on a unit; names from M-VAVE |
+| Connectors | USB-C; 3.5 mm stereo audio output; 3.5 mm MIDI input (TRS, input only) | Checked on a unit; MIDI input from M-VAVE |
+| Speaker | Built in | Checked on a unit (its connector on the board) |
+| USB | USB 2.0 full speed. With M-VAVE's firmware: MIDI, and two channels of audio in each direction at 44.1 kHz | Checked on a unit |
+| Wireless | Bluetooth LE, which M-VAVE's firmware uses for MIDI | Published analysis |
+| Power | Lithium-polymer battery, 3.7 V, 2000 mAh (7.4 Wh), charged over USB-C; slide switch | Battery checked on a unit (cell label); charging from M-VAVE |
+| Size | 161.5 × 96.5 mm | M-VAVE |
 
 ## Lunar Modulator
 
@@ -26,18 +30,82 @@ others who have studied the FM-1.
 
 | Item | Specification |
 | --- | --- |
-| Audio | 44,118 Hz, 64-sample blocks (1.45 ms), stereo |
-| Engines' own rates | The Plaits-based engines run at 47,872 Hz and Shapes at 96 kHz, each converted to the output rate, so they sound and time as on the modules they come from |
-| Sound engines | One at a time; chapter 5 lists them and their voices |
-| Effects | Two slots in series, then the limiter (chapter 6) |
-| Limiter | Ceiling 0.98 of full scale (−0.18 dBFS), instant attack, about 100 ms release |
-| Memory for sounds | About 379 KB on the FM-1 for the engine and both effects, the room M-VAVE's firmware leaves free; the global page shows what a combination takes |
-| Sequencer | Chapter 7 |
-| Licence | MIT for Lunar Modulator's own code; third-party code under its own licence (chapter 13) |
+| Sample rate | 44,118 samples a second, the rate reported for the FM-1's audio output. The simulator uses 44,100 or the computer's own rate when the browser cannot give it 44,118 |
+| Block | 64 samples, 1.45 ms at 44,118 |
+| Output | Stereo |
+| Engines' own rates | Macro, Macro Heavy and Six-Op FM run Plaits' code at 47,872 samples a second, and Shapes runs Braids' at 96,000, each converted to the output's rate, so that they sound and keep time as on the modules they come from. The three Plaits-based engines cannot run when the output is faster than 47,872 |
+| Sound engines | Six, one at a time ([chapter 5](05-sound-engines.md)) |
+| Effects | Five, Test Gain included, in two slots in series ([chapter 6](06-effects.md)) |
+| Limiter | Ceiling 0.98 of full scale (−0.18 dBFS), instant attack, about 100 ms release; samples that are not numbers become silence |
+| [[MASTER]] | After the limiter. Half way round is a quarter of full level, about −12 dB |
+| Pitch bend | Up to ±48 semitones in the engines; ±2 semitones from MIDI in the simulator |
+| Memory for sounds | About 379 KB (387,924 bytes) for the engine and both effects: the room M-VAVE's firmware leaves free on the FM-1. The real figure for Lunar Modulator on the device will be known once it runs there |
+| Sequencer | 4 to 8 tracks planned for the FM-1 ([chapter 7](07-sequencer.md)) |
+| Licence | MIT for Lunar Modulator's own code; code from other projects under its own licence ([chapter 13](13-credits-and-licences.md)) |
 
-!!! outline "To be written"
-    - Measured CPU load per engine on the FM-1's processor, from the JieLi
-      development board (stage B), replacing the desktop estimates.
-    - The FM-1 build's voice limits per engine, once memory and CPU are
-      measured on the device.
-    - Power: battery life with Lunar Modulator, once it runs on the device.
+### Engines and effects in figures
+
+Memory is given as a 32-bit build lays it out, as in the simulator and on the
+FM-1. The screen's memory figure adds up these numbers for the chain in use,
+and is the one to trust if the two ever differ.
+
+| Engine or effect | Voices | Memory, about |
+| --- | --- | --- |
+| Macro | 12 | 18 KB |
+| Macro Heavy | 4 | 69 KB |
+| Six-Op FM | 8 | 11 KB |
+| Shapes | 12 | 201 KB |
+| Sophie | 12 | 76 KB |
+| Test Sine | 12 | under 1 KB |
+| Plate | – | 64 KB |
+| Ensemble | – | 5 KB |
+| Diffuse | – | 18 KB |
+| PSX Verb | – | 131 KB |
+| Test Gain | – | under 1 KB |
+
+### The sequencer
+
+{{status desktop planned}}
+
+{{seq-glance}}
+
+## The simulator
+
+{{status sim}}
+
+| Item | Specification |
+| --- | --- |
+| Runs in | A web browser with WebAssembly and the Web Audio API's AudioWorklet, from an `https://` address or from the computer it runs on |
+| Tested in | Chromium. Firefox, Safari, real touch screens and real MIDI hardware are not tested yet |
+| Sample rate | Asks for 44,118, then 44,100; otherwise the computer's own rate |
+| Input | Mouse, touch, the computer keyboard, and MIDI from a keyboard: notes, velocity, pitch bend, control changes 7 and 123 |
+| Output | Audio only. It sends no MIDI |
+| Screen | The firmware's 240 × 240 screen, redrawn up to about 30 times a second while sound plays |
+| Panel | To scale, 161.5 × 96.5 mm. On narrow screens it keeps a width of 800 pixels and scrolls sideways |
+| Download | About 390 KB for the firmware, plus the page; nothing is loaded from other websites |
+
+## The desktop tools
+
+{{status desktop}}
+
+| Item | Specification |
+| --- | --- |
+| Renderer | `fm1-render` plays notes, or the sequencer, through one engine, any number of effects and the limiter, into a 16-bit stereo WAV file. Unless told otherwise: 44,118 samples a second, 64-sample blocks, 2 seconds |
+| Sequencer tool | `fm1-seq` runs the sequencer alone, writes the events it produces, and saves and loads sets as text |
+| Builds with | `make` and a C and C++11 compiler. The project's automatic tests build and run them on Linux and macOS |
+
+## Still to be measured on the device
+
+{{status planned}}
+
+These figures will be added once Lunar Modulator runs on the hardware:
+
+- the processor load of each engine and effect on the FM-1's processor, first
+  measured on a JieLi development board;
+- how many voices each engine can play on the FM-1, which memory and
+  processor load will decide;
+- battery life with Lunar Modulator;
+- whether the FM-1's keys sense how hard they are played;
+- which kind of TRS adapter the [[MIDI IN]] jack expects;
+- the exact sample rate of the FM-1's audio output, so far reported, not
+  measured, as 44,118.
