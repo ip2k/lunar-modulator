@@ -9,6 +9,18 @@ history.
 ## [Unreleased]
 
 ### Added
+- The user manual (`manual/`, `tools/manual/`): chapters for welcome and
+  safety, getting started, a panel tour with a measured drawing of the panel,
+  playing, the sound engines, effects, the sequencer, MIDI, settings,
+  updating and recovery, troubleshooting, specifications and credits, a
+  glossary and a generated index of controls. Every function says where it
+  runs today: in the browser simulator, in the desktop tools, or planned for
+  the device. Parameter tables, list values, the sequencer's figures and its
+  script verbs are generated from the code at build time. Published on GitHub
+  Pages at `/manual/` beside the simulator, with an A5 PDF, by a new
+  workflow (`.github/workflows/pages.yml`) that also builds and checks it on
+  pull requests. Every chapter is written in full, with the firmware's own
+  screen shown from the simulator, and the published simulator links to it.
 - The virtual FM-1's small text is set in Exo 2 (Natanael Gama, SIL OFL
   1.1), bundled unmodified from google/fonts in `sim/web/www/fonts/exo2/`
   with its licence and checked by hash. Before, it used Exo 2 only where

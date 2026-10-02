@@ -184,6 +184,12 @@ server and over https under a sub-path, and Chromium 152 on macOS, from
 hardware are not tested yet. "Connect MIDI input" needs a browser with Web
 MIDI; without it the panel and the computer keyboard still play.
 
+**The user manual** describes every control, engine and effect, the
+sequencer and the road to the device, with a PDF. Its source is
+[`manual/`](manual/); `.github/workflows/pages.yml` publishes it beside the
+simulator, at <https://ip2k.github.io/lunar-modulator/manual/> once the
+workflow has deployed from main.
+
 **Controls.**
 
 | Control | Mouse or touch | Computer keyboard |
@@ -330,6 +336,7 @@ Details, the panel's measurements and the parity results are in
 | [`engines/`](engines/) | The engine platform, stage A: the C engine API, sound engines and effects from Mutable Instruments code, a Schwung module shim, a desktop renderer and tests |
 | [`tools/movy-oracle/`](tools/movy-oracle/) | The Movy oracle: a driver for Movy's own `seq-core`, run in containers on the LAN, plus a random script generator; it produced the golden fixtures the sequencer tests use |
 | [`notes/upstream-candidates.md`](notes/upstream-candidates.md) | Findings worth sending to other projects, none posted yet |
+| [`manual/`](manual/), [`tools/manual/`](tools/manual/) | The user manual: chapters in Markdown, a Rosé Pine Dawn theme, and the build that generates its reference tables from the code and publishes it with a PDF on GitHub Pages ([`manual/README.md`](manual/README.md), [`.github/workflows/pages.yml`](.github/workflows/pages.yml)) |
 
 Confidence marks used throughout the docs: **[verified]** checked in this
 project against binaries, photos or SDK files; **[reported]** taken from a
