@@ -161,6 +161,12 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- The `USB_KEY` dongle now keys with D+ as the clock (polarity A) by
+  default. That is the polarity czietz's Pico dongle reached UBOOT mode with
+  on two FM-1s (docs/10 §1.1).
+  - The button held at boot still selects D− (polarity B).
+  - Alternating between the two is now a build option.
+  - docs/10 §6 and dongle/README.md follow, and a test checks the default.
 - The README no longer describes the project as "research, and later
   code".
   - The intro says what you can use today: the virtual FM-1 in a browser,
