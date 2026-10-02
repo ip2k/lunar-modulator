@@ -27,10 +27,10 @@ python3 engines/mod/gen_mi_tables.py --check      # mod_mi_tables.c is current
 | Burst (`burst`, BST) | port of Peaks, plus ours | TRIG (normal TRIG), CLOCK | OUT, GATE, DONE | 312 |
 | Slew (`slew`, SLW) | own | THRU; IN | OUT, OUT2–OUT6 | 144 |
 | Quantize (`quantize`, QNT) | port of Braids | CLOCK; IN | PITCH (SEMI), CHG | 28 |
-| Compare (`compare`, CMP) | own | A, B | GATE, NOT, RISE, FALL, ABOVE, MID, BELOW | 44 |
+| Compare (`compare`, CMP) | own | —; A, B | GATE, NOT, RISE, FALL, ABOVE, MID, BELOW | 44 |
 | Logic (`logic`, LOG) | own | A, B | OUT, NOT | 12 |
-| Calc (`calc`, CLC) | own | A, B | OUT, INV | 12 |
-| Mix (`mix`, MIX) | own | IN1–IN4 | SUM, AVG, INV | 4 |
+| Calc (`calc`, CLC) | own | —; A, B | OUT, INV | 12 |
+| Mix (`mix`, MIX) | own | —; IN1–IN4 | SUM, AVG, INV | 4 |
 | Filter (`filter`, FLT) | own | PING; IN | OUT, LP, BP, HP | 40 |
 
 - **Sizes** are `fm1-render --list-mod` on arm64 macOS [verified]; a
