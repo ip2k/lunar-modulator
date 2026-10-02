@@ -106,19 +106,18 @@ upstream candidate). Our own code gets none.
 
   | Engine | 64-bit bytes | 32-bit bytes | Why |
   | --- | --- | --- | --- |
-  | Shapes, 12 voices | 207,080 | 204,832¹ | each Braids oscillator carries ~17 KB of physical-model state |
+  | Shapes, 12 voices | 207,080 | 206,212 | each Braids oscillator carries ~17 KB of physical-model state |
   | PSX Verb | 134,224 | 134,208 | a fixed 128 KB work area, as upstream |
   | Sophie, 12 voices | 77,904 | 77,888 | ring delays per voice |
-  | Macro Heavy, 4 voices | 71,088 | 68,304¹ | ~17 KB per voice (Particle and String arenas) |
+  | Macro Heavy, 4 voices | 71,088 | 70,880 | ~17 KB per voice (Particle and String arenas) |
   | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
-  | Macro, 12 voices | 31,728 | 17,616¹ | mostly pointer tables, which halve on 32-bit |
+  | Macro, 12 voices | 31,728 | 18,864 | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,848 | 18,848 | |
-  | Six-Op FM, 8 voices | 12,528 | 9,572¹ | |
+  | Six-Op FM, 8 voices | 12,528 | 10,796 | |
   | Ensemble | 4,704 | 4,704 | |
 
-  ¹ 32-bit figures from before the native-rate change, which adds one or
-  two resampler states (about 1.3 KB each) per engine; CI's 32-bit job
-  prints the current figures.
+  The 32-bit figures include the native-rate resamplers (about 1.3 KB each)
+  [verified: CI's 32-bit job on PR #12].
 
   The stock layout leaves a gap of 387,924 bytes, part of it stock's heap
   (docs/11 §2, [inferred]). Most engine-plus-two-effects chains fit in it;

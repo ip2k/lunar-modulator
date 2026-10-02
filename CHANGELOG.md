@@ -9,7 +9,6 @@ history.
 ## [Unreleased]
 
 ### Added
-<<<<<<< HEAD
 - A survey of monome, Ornament & Crime (via PaulStoffregen/O_C_T41 and
   Phazerville) and jhjlim's repositories as FM-1 sources
   (`notes/2026-10-01-monome-oc-jhjlim-survey.md`). O&C's MIT cores
@@ -18,12 +17,10 @@ history.
   as code; Kria lanes, the Ansible arpeggiator, Meadowphysics and Teletype's
   interpreter model are worth reimplementing; jhjlim's repositories have
   nothing to take.
-=======
 - `engines/include/fm1_resampler.h`: a reusable, heap-free resampler
   (polyphase windowed sinc to twice the host rate, then a 123-tap low-pass).
   Equal rates pass through bit for bit; everything above the output's
   Nyquist is at least 93 dB down (engines/resampler.md).
->>>>>>> origin/main
 - docs/13: the plan to replicate Movy's sequencer (schwung-movy, MIT) on the
   FM-1, read at Movy's `9190e79`: its exact playback rules, a mapping of
   every core gesture to the FM-1's keys, knobs and screen, a no-heap C99 core
@@ -100,11 +97,9 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
-<<<<<<< HEAD
 - docs/13 records the owner's choice of 7-bit locks with smoothing, and of
   Capture as an optional feature. docs/11 corrects its claim that Clouds'
   spectral mode needs its own FFT.
-=======
 - The Mutable engines run at their modules' own sample rates, whatever the
   host's: Shapes at 96 kHz, and Macro, Macro Heavy and Six-Op at
   47,872.34 Hz. Each resamples its mix to the host. At the FM-1's 44,118 Hz
@@ -114,7 +109,6 @@ history.
   Six-Op (close). The cost is CPU: Shapes 2.5–3×, the Plaits engines
   1.1–1.5× on the desktop. Hosts faster than an engine's native rate are
   refused.
->>>>>>> origin/main
 - docs/12 defers to docs/13 where Movy and Elektron differ, and corrects its
   claim that Movy waits 300 ms before locking; docs/06 and docs/12 correct
   Movy's version label (`9190e79` is 299 commits past the v0.34.0 tag).
