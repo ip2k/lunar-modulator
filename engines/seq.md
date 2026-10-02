@@ -87,10 +87,10 @@ does with it needs; `seq_capture.c` gives the reasoning in full:
 | Pitch | 7 | `non`, `nof` and `fm1_seq_note_in` take 0–127 only |
 | Velocity, which also tells the kind | 7 | a note-on's is clamped to 1–127, a note-off's is 0, so it says which the event is (Movy's `on`), as in MIDI |
 | Track | 4 | at most 16; input for a track past the instance's is refused before it is stamped |
-| Playhead (clip tick) | 14 | below the clip's loop end, at most (255 + 256) steps × 24 = 12,264 |
+| Playhead (clip tick) | 14 | below the clip's loop end, at most (255 + 256) steps × 24 = 12,264: a take written into an empty clip whose loop starts late makes it 256 steps long from there |
 | Frame | 25, from a base | only differences between events of the ring (or of a frozen take) are used, and the 8-bar window keeps those within 96 s at 20 BPM: 4,235,328 frames at 44,118 Hz, below 2^25 up to 349,525 Hz. The base moves onto the oldest event when the newest would not fit; the newest event's frame is Movy's `last_frame` |
 | Master tick | 16 and a flag | below 2^16 as it is, above as an offset from a base. The ring's ticks above 2^16 all come from one transport run and lie within 96 s at 300 BPM (46,080 ticks) of each other; after a restart that keeps the ring (a MIDI Start while playing) the new ticks are small again |
-| Cycle | 20 and a flag | only compared for equality with the track's cycle now, for events at most 104 s old (window and gap): a 1-step loop at Movy's 255X and 300 BPM wraps 530,400 times in that, below 2^20 − 1, and the flag tells a cycle of 2^20 or more (hours of looping before a restart) from any cycle reached since |
+| Cycle | 20 and a flag | only compared for equality with the track's cycle now, for events at most 104 s old (window and gap; the gap rule is applied first, so older events are gone before any comparison): a 1-step loop at Movy's 255X and 300 BPM wraps 530,400 times in that, more than 2^19 and below 2^20 − 1, and the flag tells a cycle of 2^20 or more (hours of looping before a restart) from any cycle reached since |
 | Used | 1 | a commit's scratch: this note-off already ends a note |
 
 The two bases take the place of two fields the 20-byte layout had, so the
@@ -98,11 +98,22 @@ instance did not grow. A push moves a base only when an offset would
 overflow, every few minutes of unbroken playing, and then repacks the ring
 (256 events). Outside the ranges above, at a sample rate above 349,525 Hz
 with a slow tempo, or when a clock drives more than 65,535 master ticks
-through one window (only an external clock above about 426 BPM can), the
-ring drops its oldest events until the new one packs, which Movy would not.
-The checking build keeps every value unpacked beside the packed one and
-traps on any difference, after every push and on every read, and in that
-fallback.
+through one window (only an external clock averaging above about 426 BPM
+can), the ring drops its oldest events until the new one packs, which Movy
+would not; such a clock can also wrap a 1-step loop at compat's 255X 2^20
+times within window and gap, and the stale rule then keeps notes Movy
+drops. The checking build keeps every value unpacked beside the packed one
+and traps on any difference, after every push and on every read, and in
+that fallback.
+
+Movy applies Capture's gap rule (silence ends the phrase) after its stale
+rule (a note played over an earlier pass's note clears the ring); the core
+applies it first. Either order clears the ring when the gap is exceeded and
+changes nothing when it is not, so the outcome is Movy's, but the stale rule
+then never compares a cycle with one from before the silence, however long
+the silence was: with it second, the checking build trapped on a note-on
+after 206 s of silence over a one-step loop at 254X, whose cycle had moved
+exactly 2^20 [verified: tests/test_seq_core.py, the Movy oracle].
 
 **Events.** `fm1_seq_ev_t` is 12 bytes: the master tick, the frame offset in
 the block, kind, track, two arguments. At one frame the order is Movy's
@@ -194,7 +205,9 @@ build, the default skips them.
   locks) and Movy's 512-event Capture ring.
 - Capture's events are packed into 12 bytes, exactly within the ranges
   under Design; beyond them (above 349,525 Hz at a slow tempo, an external
-  clock above about 426 BPM) the ring drops its oldest events early.
+  clock averaging above about 426 BPM) the ring drops its oldest events
+  early, and with a 1-step loop at compat's 255X the stale rule can keep
+  notes Movy drops.
 - The external clock's tempo smoothing and Capture's tempo search run in
   float, not f64. A result can differ from Movy's only at a near-tie
   [inferred]; none has in the oracle's scripts.
@@ -329,10 +342,14 @@ commands and Start/Stop carry the number of ticks serviced so far.
   identity, 10,000 steps without drift, the memory figures, no heap, fill
   independence, a short event buffer, 24 random scripts through the checking
   build, the verb parser's and the `movy1` loader's integer rules, Movy's
-  three set fixtures, routing, and Capture's packing: a note on cycle
-  2^20 + k against one on cycle k after a restart (Movy's outcome, checked
-  through the oracle), and a 25-minute run whose take must equal a 16-bar
-  run's, through both builds.
+  three set fixtures, routing, and Capture's packing, through both builds:
+  a note on cycle 2^20 + k against one on cycle k after a restart, a
+  25-minute run whose take must equal a 16-bar run's, a full ring that
+  wraps while both bases move, and each field at the edge of its range
+  (tracks 9 and 15 of 16, a take led by a stray note-off, a 96-s window at
+  349,525 Hz, 46,080 master ticks of offsets, a playhead at 8,448, notes
+  103.2 s and 2^19 cycles apart, the gap rule before the stale rule).
+  Movy's outcome for each edge script was checked through the oracle.
 - `tests/test_seq_render.py` (13): routing through `fm1-render`, notes and
   locks at their own frame, FLOAT and ENUM lock mapping, block-size identity
   of the audio, the renderer's log equal to `fm1-seq`'s, plain renders
@@ -384,6 +401,22 @@ tools/movy-oracle on aeon, the C core on the Mac]:
   whole-block and frame-by-frame cross-check refuses): 70 identical to
   Movy. Four mutants of the packing (the cycle flag, the tick base, and
   either base's repacking) each fail the new tests.
+- **Capture, reviewed (2026-10-01):** the 2,301 scripts above rerun through
+  the oracle, and the 9,500 of the random-script verdict (1,732 of them
+  with Capture: 290 stopped and 928 playing captures that wrote a take),
+  identical to Movy through `fm1-seq` and `fm1-seq-check`; the 2,301 also
+  from Apple clang under ASan and UBSan and from GCC 12 at 64 and 32 bits,
+  with no warnings. Six mutants passed the first tests: the frame, master
+  tick, playhead and cycle each one bit narrower, the track 3 bits, and a
+  take timed from its first event rather than its first note-on. The edge
+  tests (above) fail on each, and the suite on 15 more mutants of the
+  packing and the ring (pitch and velocity one bit narrower, no cycle flag,
+  no used bit, either base not repacked, the tick base on the newest event,
+  either base never moved, absolute ticks only, the gap rule against the
+  oldest event, the gap rule after the stale rule (in the checking build),
+  no gap rule, a full ring that does not drop, the window's boundary off by
+  one). The edge tests' scripts, through the oracle, are identical to
+  Movy.
 
 ## What M2 and later still need
 

@@ -407,12 +407,16 @@ Movy's full Capture fits; at 8 tracks only a smaller or packed ring does.
 Capture matched Movy in 2,300 oracle scripts, 237 of them stopped captures.
 Packed, it still does [verified 2026-10-01: 2,300 new capture scripts, 225
 of them stopped captures, through the oracle, from clang under ASan and
-UBSan and from GCC 12 at 64 and 32 bits]. engines/seq.md gives each field's
-width and its reason: the frame and master tick are offsets from two bases,
-the velocity also tells a note-on from a note-off, and the cycle keeps 20
-bits and a flag. Only above 349,525 Hz at the slowest tempos, or under an
-external clock above about 426 BPM, would the ring drop its oldest events
-early, where Movy keeps them.
+UBSan and from GCC 12 at 64 and 32 bits; in review, those again and the
+9,500 earlier random scripts, 1,732 of them with Capture, through both the
+plain and the checking build, and a test at the edge of each field's range,
+each through the oracle too]. engines/seq.md gives each field's width and
+its reason: the frame and master tick are offsets from two bases, the
+velocity also tells a note-on from a note-off, and the cycle keeps 20 bits
+and a flag. Only above 349,525 Hz at the slowest tempos, or under an
+external clock averaging above about 426 BPM, would the ring drop its oldest
+events early, where Movy keeps them (and, with a one-step loop at compat's
+255X, keep a note Movy's stale rule drops).
 
 **Lock resolution** [verified: the core rebuilt with `fm1_seq_val_t` as
 `uint16_t` and a 14-bit maximum, no warnings]: 200 B per track (a lock grows

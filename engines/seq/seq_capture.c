@@ -24,7 +24,8 @@
  *   - track, 4 bits: input for a track past the instance's (at most 16) is
  *     refused before it is stamped.
  *   - clip tick, 14 bits: a playhead stays below its clip's loop end, at most
- *     (255 + 256) steps of 24 ticks, 12,264.
+ *     (255 + 256) steps of 24 ticks, 12,264 (a take written into an empty
+ *     clip whose loop starts late makes it 256 steps long from there).
  *   - frame, 25 bits from a base: every use is a difference between two
  *     events of the ring (or of a frozen take), and the 8-bar window keeps
  *     those within 8 bars at the slowest tempo: 96 s at 20 BPM, 4,235,328
@@ -39,19 +40,22 @@
  *     while playing) the new ticks are small again and stored as they are.
  *   - cycle, its low 20 bits and a flag for 2^20 or more: its one use is
  *     `e.cycle != cycle` while playing, against the track's cycle now, and
- *     only for events the gap rule has not dropped, at most window + gap
- *     (104 s) old. In 104 s a 1-step loop at Movy's 255X and 300 BPM wraps
- *     530,400 times, below 2^20 - 1, so the low bits tell two cycles of one
- *     run apart, and the flag tells a cycle that ran for hours before a
- *     launch or a restart reset it to 1 from any cycle reached since.
+ *     only for events the gap rule has not dropped (sq_capture_push applies
+ *     that rule first), at most window + gap (104 s) old. In 104 s a 1-step
+ *     loop at Movy's 255X and 300 BPM wraps 530,400 times, more than 2^19
+ *     and below 2^20 - 1, so the low bits tell two cycles of one run apart,
+ *     and the flag tells a cycle that ran for hours before a launch or a
+ *     restart reset it to 1 from any cycle reached since.
  *   - used, 1 bit: a commit's scratch (Movy's `used` vector), set on the
  *     note-off that ends a note.
  * Outside those ranges (a sample rate above 349,525 Hz at the slowest
  * tempos; a clock that drives more than 65,535 master ticks through one
- * window, which only an external clock above about 426 BPM can) the ring
- * drops its oldest events until the new one packs, a deviation from Movy,
- * and the checking build (SQ_CHECK_INDEX), which also keeps every value
- * unpacked, traps.
+ * window, which only an external clock averaging above about 426 BPM can)
+ * the ring drops its oldest events until the new one packs, a deviation from
+ * Movy. Such a clock can also wrap a 1-step loop at compat's 255X 2^20 times
+ * within window and gap, and the stale rule then keeps notes Movy drops.
+ * The checking build (SQ_CHECK_INDEX), which also keeps every value
+ * unpacked, traps on any of these.
  */
 #include "seq_int.h"
 
@@ -272,12 +276,9 @@ static uint64_t gap_frames(const fm1_seq_t *s) {
   return g < 2u * sr ? 2u * sr : (g > 8u * sr ? 8u * sr : g);
 }
 
-/* CaptureRing::push: a gap ends the phrase, the window bounds its age. */
-static void ring_push(fm1_seq_t *s, const cap_in_t *in, uint64_t gap, uint64_t window) {
-  if (s->cap_len > 0 &&
-      (uint64_t)(uint32_t)(in->frame - cap_frame(s, ring_at(s, s->cap_len - 1u))) > gap) {
-    sq_capture_clear(s);
-  }
+/* CaptureRing::push, after its gap rule (sq_capture_push applies that first):
+ * the window bounds the phrase's age. */
+static void ring_push(fm1_seq_t *s, const cap_in_t *in, uint64_t window) {
   while (s->cap_len > 0 && (uint64_t)(uint32_t)(in->frame - cap_frame(s, ring_at(s, 0))) > window) {
     ring_drop_oldest(s);
   }
@@ -304,6 +305,16 @@ void sq_capture_push(fm1_seq_t *s, unsigned t, uint8_t pitch, uint8_t vel, int o
   if (s->recording && t == s->rec_track) return;
   CAP_CHECK(!on || vel > 0);   /* a note-on's velocity is 1..127: it marks the kind */
   tr = &sq_tracks(s)[t];
+  in.frame = (uint32_t)frame;
+  /* CaptureRing::push's gap rule: silence ends the phrase. Movy applies it
+   * after the stale rule below; when it clears the ring it does so in either
+   * order, and when it does not the order changes nothing, so the outcome is
+   * Movy's. First, the stale rule only ever compares cycles with events at
+   * most window + gap old, the range the packed cycle is sized for. */
+  if (s->cap_len > 0 &&
+      (uint64_t)(uint32_t)(in.frame - cap_frame(s, ring_at(s, s->cap_len - 1u))) > gap_frames(s)) {
+    sq_capture_clear(s);
+  }
   if (on && s->playing) {
     for (i = 0; i < s->cap_len; ++i) {
       const sq_cap_t *e = ring_at(s, i);
@@ -318,14 +329,13 @@ void sq_capture_push(fm1_seq_t *s, unsigned t, uint8_t pitch, uint8_t vel, int o
       }
     }
   }
-  in.frame = (uint32_t)frame;
   in.tick = (uint32_t)s->master_tick;
   in.cycle = tr->cycle;
   in.clip_tick = tr->pos_tick;
   in.track = (uint8_t)t;
   in.pitch = pitch;
   in.vel = on ? vel : 0;
-  ring_push(s, &in, gap_frames(s), (uint64_t)CAP_MAX_BARS * bar_frames(s));
+  ring_push(s, &in, (uint64_t)CAP_MAX_BARS * bar_frames(s));
 }
 
 unsigned sq_capture_pending(fm1_seq_t *s, unsigned t) {
