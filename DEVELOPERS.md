@@ -1181,6 +1181,26 @@ decision recorded where it belongs.
    JieLi's libraries and never combines the two ([Licences](#licences)).
 7. **Hosting the catalogue.** Where it lives, how modules are reviewed, and
    how entries are kept in step with the API version.
+8. **Berry for scripted modules.** Berry (MIT, an interpreter under 40 KB
+   of code) is the lighter alternative to Lua that docs/11 §5 names for the
+   scripting tier. Could people write their own modulation modules in it,
+   with a few simple controls (knobs, a mode, a trigger), as part of the
+   module SDK? A scripted module would be one more kind in docs/16's rack
+   (§7), run at the control tick and never at audio rate. To find out:
+   - Berry's RAM floor, and whether its garbage collector can run in a fixed
+     pool without pauses longer than one 32-frame tick;
+   - the cost per tick of a small script (an LFO, a sample-and-hold, a
+     clock divider) natively, in WebAssembly, and later on pi32v2 (stage B);
+   - how a script declares its parameters and ports so they appear on the
+     four-knob pages and in the matrix like any built-in module;
+   - sandboxing: a script that overruns its time or memory is stopped and
+     marked, never left to stall the audio;
+   - whether the same script runs byte-identically in the simulator and on
+     the device, and how authors would try one in the browser.
+
+   monome crow's 256 KB board was dominated by its Lua heap (docs/11 §5).
+   Teletype's fixed-memory interpreter is the fallback model
+   ([survey note](notes/2026-10-01-monome-oc-jhjlim-survey.md)).
 
 ## Contributing
 

@@ -1087,8 +1087,10 @@ range conversion.
   about 12 times per tick at 16.7 kHz, integer CV) looks feasible but would
   carry their Arduino `random()` calls and heap; porting chosen applets is
   cleaner [inferred].
-- A scripted kind (a Teletype-like or ASL-like language) belongs to docs/11
-  §5's scripting tier.
+- A scripted kind belongs to docs/11 §5's scripting tier. The owner wants
+  Berry (MIT, under 40 KB of code) explored for it, so that people can write
+  simple modulation modules with a few knobs (DEVELOPERS.md, "Research to
+  do", item 8). Teletype's and ASL's languages are the other models.
 
 **Upstream candidates** (for `notes/upstream-candidates.md`; drafts only, and
 nothing is sent without the owner's sign-off, per CLAUDE.md):

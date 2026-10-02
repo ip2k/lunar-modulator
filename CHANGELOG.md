@@ -37,6 +37,9 @@ history.
     the next knob turned.
   - Stages MG0–MG9, each with its tests, and 18 owner decisions.
 - The options note points to docs/16 where it is superseded.
+- DEVELOPERS.md's "Research to do" adds Berry, the small MIT scripting
+  language docs/11 names beside Lua: could module authors write simple
+  modulation modules in it, with a few knobs, as part of the SDK?
 - **Roadmap: modules from the community.** Four new lines in the README's
   roadmap and in DEVELOPERS.md's "The roadmap in detail", each with its
   status, dependencies, where it is planned and its effort (not yet
