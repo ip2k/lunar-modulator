@@ -19,7 +19,7 @@ chip. Every claim about pi32v2 stays [inferred] until §5's probes replace it.
 | Dev board ↔ FM-1? | Same ISA, FPU, toolchain and object code, so the output before the DAC should be bit-exact. The differences are confined to the board: analog stage, crystal tolerance, flash and cache timing, keys, LEDs, TFT [inferred]. **This rung opens only after the FM-1 has been dumped and restored byte for byte** (CLAUDE.md, the one rule). |
 | Stock firmware ↔ ours? | Never 1:1. Stock is msfa with its own effects, trims and UI. Before the gate it is a black box: the owner plays it by hand and we observe passively (§4.1). |
 | How? | One golden corpus, one heap-free C runner built for every rung, per-block hashes, one diff tool, and a results record per rung like `www/fm1.wasm.json` (§3). |
-| First week? | Inventory, toolchain, the kit's own dump and restore, blink and UART, FPU probes, audio out, then rung 2 offline and the stage B numbers (§5). |
+| First week? | Inventory, toolchain, the kit's own dump and restore, blink and UART, FPU probes, the second-core probe, audio out, then rung 2 offline and the stage B numbers (§5). |
 
 ## 2. The ladder
 
@@ -232,6 +232,7 @@ only runs whose hashes are equal.
 | Display | 240 × 240 RGB565, ST7789-class on SPI1 `0x11D00`, ten strips [reported] | the LCD board; controller and size unknown | a strip flush of a 240 × 240 frame; the frame hash is compared, not the panel's pixels |
 | Audio | internal DAC through a DMA ring, 44,118 Hz, 64 frames, calibration trims; amp `U5`/`U9` unidentified [reported] | the AC7916's DAC to the kit's output [inferred] | `bsp_audio_start(rate, 64, callback)`; the board reports its true rate and R0 renders at that rate |
 | Clocks | 24 MHz crystal [verified], 240 MHz [reported] | crystal unknown | both set to 240 MHz for cycle counts, with 320 MHz as a second figure |
+| Cores | two pi32v2 cores. Stock runs JieLi's OS on cpu0 and renders the msfa voices bare-metal on cpu1 [inferred; §5.1] | two pi32v2 cores [reported: docs/07 §3] | the board image declares which core runs audio; the runner logs `cnum` with every block's cycle count |
 | Memory | 578 KB SRAM, no SDRAM [verified]; 1 MB flash [reported] | the AC7916 may carry SDRAM [reported] and more flash | the kit links with the FM-1's limits: no SDRAM, the FM-1's app area and SRAM gap |
 | Results | USB-C only; the TRS jack is MIDI in | UART console and USB | one `bsp_report()` sink: UART, CDC or SysEx |
 | Power | battery and slide switch; absent from USB until switched on [verified] | USB | — |
@@ -246,13 +247,113 @@ only runs whose hashes are equal.
 | 3 | The kit's own dump and restore. Rule 1 covers every device, and this also rehearses docs/10 §5 for the FM-1. Enter download mode through the vendor dongle, then run `jl-uboot-tool` read-only | JEDEC ID; two identical dumps, a restore, a third identical dump; VID:PID, inquiry string and every step recorded |
 | 4 | Blink and UART | the build id on the console; a toggled pin's period, measured on a logic analyser, within crystal tolerance at 240 MHz |
 | 5 | A probe image covering: the cycle counter against a timer; `sizeof`/`alignof`; `char` signedness; float divide by zero; subnormal handling and cost; NaN and overflow in float → int; fused ops in `objdump` at `-O2`, with and without `-ffp-contract=off`; libm's float functions swept against musl | every [inferred] cell in §2.2 becomes [verified] or is corrected |
+| 5b | The second-core probe (§5.1): how cpu1 starts; per-core counters; the FPU on each core; one core against two; cross-core ordering; three ways to keep audio on cpu1; flash writes; power (optional) | `notes/<date>-devkit-cpu1.md` holds: a yes or no, with the method named, for "audio on cpu1 in an SDK build"; the dual-core factor for code in RAM and in flash; FPU results bit-identical across the cores; how long a flash write stalls cpu1 |
 | 6 | Audio out: Test Sine through the DAC path, captured twice | the measured sample rate and noise floor; the two captures set class A's floor |
 | 7 | R2 offline: the runner with the 12 scenarios, the Movy fixtures and the 287 screens compiled in | every case is E against R0, or each difference has a named cause; Sophie is E once libm is pinned |
 | 8 | Stage B: cycles per block for each engine at its voice cap, each effect, the resampler and seq_bench's worst cases; the linker map against the budget; `-fPIC` and its relocations | docs/11 §8's exit (a cycle table, and a yes or no on Tier 2) and docs/13's stage B exit (the sequencer takes ≤ 2 % of any block); the resampler and Shapes decisions in engines/README.md taken |
 | 9 | R2 live: the same chains driven from the DAC interrupt | pre-DAC hashes equal the offline ones for ten minutes, with no underrun and the worst block within budget |
 
-Steps 8 and 9 may run into week two. The FM-1 receives nothing but the
+Steps 8 and 9 may run into week two. Step 5b takes 4–5 days and may spill
+into week two as well. Steps 8 and 9 report each figure for one core and,
+if 5b says yes, also with audio on cpu1. The FM-1 receives nothing but the
 identity query all week.
+
+### 5.1 Step 5b: the second-core probe
+
+**What is known.**
+- **Stock already uses both cores** (docs/11 §2 has the evidence):
+  - cpu0 runs JieLi's OS, the UI, MIDI, USB and BLE, and an audio task that
+    runs the six FX slots and feeds the DAC [reported: AL-255; the core
+    inferred].
+  - cpu1 runs a routine outside the OS. It busy-polls a state byte at
+    `0x01C16EC0` and calls the msfa block render, which has no other caller
+    (V13 file `0x86AD6`) [verified: V13 disassembly]. That it runs on cpu1
+    is [reported: AL-255's symbol names; inferred from the
+    `cpu1_run_flag`].
+  - `irq_info_table` is the SDK's `CPU_CORE_NUM 1` table: {SOFT5, prio 7,
+    cpu0}, {SOFT4, prio 7, cpu1}, then the sentinels [verified: V13 file
+    `0x4DD48`; V15 and FM-1_092 file `0x4D4A0`, identical].
+  - The build stamp reads "modified #define CPU_CORE_NUM 1" [verified].
+  - `app.bin` appears to run from `0x02000120`, not `0x02000000`, which is
+    why earlier readings put nothing on cpu1 [inferred: docs/01 §2].
+- **What the public SDK offers.** JieLi documents this mode [reported: AC79
+  doc 7.40; the SDK's `init.c` verified]. It needs `CPU_CORE_NUM 1` and a
+  single-core `system.a`, which the doc says to request from JieLi. Its
+  rules:
+  - `cpu1_main` may not call the OS or `printf`;
+  - the two cores synchronise with `spin_lock`;
+  - a flash write suspends cpu1, unless `cpu1_run_flag = 0` and everything
+    cpu1 runs is in RAM.
+- **What the public SDK lacks.** It has no task-to-core API:
+  `os_task_create` takes no core argument [verified: `os_api.h`], and no
+  affinity symbol is in either public `system.a` [verified: 2026-10-01
+  study]. The AC792N SDK has `os_task_create_affinity_core`; the AC79 SDK
+  does not [verified: both `os_api.h`].
+- **Interrupts can be pinned:** `irq_info_table` and `request_irq` take a
+  cpu argument [verified: `hwi.h`].
+- **Speed.** JieLi's own CoreMark at 320 MHz, two threads, `-Oz`, gives
+  about 2.3–2.4 per MHz for both cores together [verified: JieLi's
+  BenchMark page screenshots]. Per core that may be about a third of a
+  Cortex-M4F per clock on integer code [inferred], which would undercut
+  docs/11 §2's per-cycle-parity assumption.
+- **The FPU.** Both cores probably have one: the SDK README calls the chip a
+  dual-core floating-point DSP [reported], and stock's cpu1 path uses inline
+  float instructions with no soft-float calls [inferred].
+
+**What to build.** One probe image from the pinned SDK, in variants:
+- the public SMP `system.a`, with its `SYSTEM-$` stamp and SHA-256 recorded;
+- `cpu1_main` patched (it lives in the open `apps/common/system/init.c`);
+- the step-5 FPU probes;
+- Macro (12 voices), Six-Op FM (8), Macro Heavy's Particle (4) and Plate, as
+  render kernels;
+- a UI-like load: SPI DMA strips plus flash-resident code.
+
+| Case | Do | Measure and record |
+| --- | --- | --- |
+| C1 boot | Boot the SMP default and log from cpu0. Compare with stock's start sequence: mailbox `0x01C7FFF8`, `0x10008` bit 3, corex2 `C1_CON` bit 3 set and bit 1 cleared | `cnum` per task; `cpu1_run_flag`; the mailbox word; `C0_CON` and `C1_CON` before and after; cpu1's PC (`q32DSP(1)->PCRS`) |
+| C2 counters | On each core, read `TTMR_CNT` and corex2 `Cn_TL_CKCNT` across 1 s, timed by a GPIO toggle on a logic analyser, at 240 and 320 MHz | whether both count sysclk; these become stage B's cycle counters |
+| C3 FPU per core | Run the step-5 probes once with `cnum` 0 and once with 1 (inside an IRQ pinned to each core), then time a 1,024-op float kernel on each core | results bit-identical across the cores; time per op |
+| C4 scaling | Render each kernel for 10,000 blocks on cpu0 alone, on cpu1 alone, and on both at once; first with code in flash, then with hot code in RAM (`.volatile_ram_code`); then again with the UI-like load on cpu0 | cycles per block (min, mean, max); stall % from `Cn_IF/RD/WR_UACNT`; the slowdown on cpu1 caused by cpu0's load |
+| C5 litmus | Pass data and then a flag 10⁸ times, with and without `csync`. Have both cores increment a counter under `spin_lock` 10⁷ times each. Run an SPSC ring at 64 frames and 44,118 Hz for 10 minutes with a CRC per block | ordering failures (expect none with `csync`); the counter exactly 2×10⁷; no bad CRC |
+| C6a pin by interrupt | Register the DAC/ALNK interrupt on cpu1 and render inside the ISR | worst block, jitter, and the throughput lost by tasks the scheduler puts on cpu1 |
+| C6b pin by priority | Render in a top-priority task woken by the audio interrupt, with BLE and USB active | `cnum` per block as a migration histogram; the worst block |
+| C6c bare metal under the SMP library | Patch `cpu1_main` to skip `os_start` and run the render loop; soak cpu0's OS for 1 h (task create and delete, `os_time_dly`, USB, BLE advertising) | any hang or watchdog reset |
+| C7 flash writes | After step 3's dump and restore, erase and program 4 KB on a scratch sector of the kit while cpu1 renders. Repeat with `cpu1_run_flag = 0` and all of cpu1's code and constant data in RAM | how long cpu1 is suspended; underruns; the RAM the second variant costs |
+| C8 power (optional) | Measure supply current with cpu1 busy-polling as stock does, then with cpu1 in `idle`, woken by `IRQ_SOFT4` each block | current in each case |
+
+**Record** everything in `notes/<date>-devkit-cpu1.md`, with the toolchain
+archive's hash, the SDK commit and the `system.a` hash.
+
+**Exit:**
+- a yes or no, with the method named (C6a, C6b or C6c, or "needs JieLi's
+  single-core library"), for "audio on cpu1 in an SDK build, with the worst
+  block within budget";
+- the dual-core factor for code in RAM and in flash;
+- FPU parity across the cores;
+- cpu1's suspension time during a flash write.
+
+**The decisions it informs:**
+1. **How Lunar splits the work.** Four candidates:
+   - A, stock-like: engine, effects, resampler, limiter and
+     `fm1_seq_advance` on cpu1, and everything else on cpu0, joined by
+     docs/13 §6's command ring;
+   - B, stock's own pipeline: voices on cpu1 and effects on cpu0, at one
+     block more latency;
+   - C: one engine's voices split across both cores;
+   - D: one engine per core.
+
+   A is the first candidate [inferred].
+2. **The budget.** docs/11 §2 gains a two-core column, and engines/README.md
+   gets voice caps for both budgets. CPU-bound engines (Six-Op FM, Macro's
+   2-op FM, Particle) gain; memory-bound ones (Shapes, PSX Verb) do not,
+   because the second core brings no SRAM [inferred].
+3. **The library.** Whether to ask JieLi for the single-core `system.a`, and
+   on what licence terms.
+4. **RAM-resident code.** How much audio code must sit in RAM to keep
+   playing through flash writes, against the SRAM gap.
+
+None of C1–C8 runs on the FM-1. All week, the FM-1 receives only the
+identity query.
 
 ## 6. Risks and open questions
 
@@ -265,7 +366,12 @@ identity query all week.
 | The dongle or `jl-uboot-tool` on AC79 | the dongle listings name only Bluetooth families, and jl-uboot-tool lists WL82 as "unknown" | step 3, read-only first; the RP2040 dongle (docs/10) as the fallback |
 | The AC7916 is not the FM-1's AC791N variant | caches, flash interface, SDRAM and DAC wiring may differ | compare cycles only for SRAM-resident code; R3 settles the rest |
 | The kit's audio path | it may be speaker and microphone only [inferred] | step 1; an adapter, or tap the speaker amp's input |
-| USB CDC in the AC79 SDK | needed for transport stage 2 | read the SDK's USB classes; use SysEx otherwise |
+| USB CDC in the AC79 SDK | needed for transport stage 2 | settled: the SDK has a CDC class (`cdc.c`) [verified: 2026-10-01 MIDI study]; SysEx stays the fallback |
+| No task-to-core API in the public AC79 SDK | audio cannot be pinned to cpu1 through the OS | C6a–C6c; otherwise JieLi's single-core `system.a` |
+| The single-core `system.a` is supplied by JieLi on request only [reported: doc 7.40] | stock's arrangement may be unreachable with public libraries | the owner decides whether to ask, after C6 |
+| Flash writes suspend cpu1 | audio drops out during preset saves | C7; RAM-resident audio code with `cpu1_run_flag = 0` |
+| Both cores fetch from one flash and cache controller | cpu0's UI and BLE code may stall cpu1's audio | C4 under the UI-like load |
+| stmlib's random generator is a global in vendored code | splitting one engine's voices across the cores races, and ladder results stop being bit-exact | confine such engines to one core (splits A, B and D), or give the generator per-core state behind a build flag |
 | The runner's SRAM | the simulator's `fm1_app_t` is 1.17 MB | one sized arena and strip rendering, before step 7 |
 | Results from RAM-only runs on the FM-1 | after the jump, can the ROM loader still read RAM? | a RAM mailbox read back, a USB stack in the RAM image, or hashes drawn on the TFT |
 | Passive bus taps on the FM-1 | the case must be open | the owner decides |

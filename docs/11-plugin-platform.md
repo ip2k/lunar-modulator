@@ -39,8 +39,8 @@ Nothing was built or run, so every CPU figure for the FM-1 below is
 | Audio clock | 44,118 Hz, 64-sample blocks, i.e. 1.451 ms per block | [reported] AL-255 `04-synth-engine.md` §2 |
 | Cycles per output sample, one core | 5,440 at 240 MHz (the stock clock), 7,250 at 320 MHz (the family maximum) | arithmetic |
 | Same figure on CTAG TBD's ESP32 | 5,442 (`CPU_MAX_ALLOWED_CYCLES 174150` per 32-frame block at 240 MHz, 44.1 kHz) | [verified] CTAG `SPManager.cpp` |
-| Stock load | **Not measured.** msfa renders 12 voices plus 6 FX slots on one core. "240 of 320 MHz" in older docs is clock speed, not load | — |
-| Second core | The kernel is a FreeRTOS-derived SMP scheduler for both pi32v2 cores, and stock boots cpu1 (`cpu1_boot_start`) but runs its work on cpu0 | [reported] AL-255 `02-rtos.md`, `01-boot.md` |
+| Stock load | **Not measured.** msfa renders its 12 voices on cpu1; the 6 FX slots, the fade and the output run in a task on cpu0 (next row). "240 of 320 MHz" in older docs is clock speed, not load | — |
+| Second core | **Stock uses both cores**: JieLi's OS on cpu0, and the msfa voice render on cpu1, outside the OS. The routine at V13 file `0x86AD6` (AL-255's "engine task pump loop") writes 1 to `0x01C1FF08`, busy-polls a state byte at `0x01C16EC0` and, on value 2, calls `dx7note_compute_block` (`0x862FA`), its only call site. That routine is cpu1's: AL-255's `cpu1_boot_start` writes `0x020001B8` to the cpu1 mailbox `0x01C7FFF8`, clears `0x01C1FF08` and waits for it to turn non-zero, and the vector at file `0x98` returns into this routine, which has the shape of the SDK's `cpu1_main` (`cpu1_run_flag = 1` first). The interrupt table is the SDK's `CPU_CORE_NUM 1` table: SOFT5 on cpu0, SOFT4 on cpu1. In that mode the OS runs on cpu0 only and `cpu1_main` runs bare-metal; it needs a single-core `system.a` that JieLi supplies on request. cpu0 runs the UI, MIDI, USB and BLE, and the audio task with the fade, the six FX slots and the output. **AL-255's docs are partly wrong here.** `reversing/01-hardware-map.md` reads `CPU_CORE_NUM 1` as a single core, and `io/01-boot.md` takes cpu1's entry `0x01C023D6` for the cross-core IPC path. With `app.bin` running from `0x02000120` (docs/01 §2), that address is the render loop above | the loop and call [verified: V13 disassembly]; that it runs on cpu1 [reported: AL-255's symbol names; inferred from the `cpu1_run_flag`]; the mailbox write, the wait and the vector [verified: V13 disassembly, file `0x5A0C8` and `0x98`]; the interrupt table [verified: bytes at V13 file `0x4DD48` and V15 and FM-1_092 file `0x4D4A0`, against the SDK's `demo_hello`]; the mode and its library [reported: JieLi AC79 doc 7.40; the SDK's `init.c` verified]; cpu0's audio task [reported: AL-255 `io/03-audio-dac.md` §7.2; its core inferred] |
 | Code in RAM | Stock copies msfa's hot kernels from flash to SRAM at boot and runs them there | [reported] AL-255 `04-synth-engine.md` §2 |
 | Free SRAM in the stock layout | Stock `.bss` ends at `0x01C211FC` and the boot info struct sits at `0x01C7FD50`: a gap of about 387 KB, part of it used by stock's heap. AL-255's demo used 192 KB of it; FM-1+VA uses the top | [inferred] from AL-255 addresses and `link.ld` |
 | Flash for code | App area up to `0xD9000` in FM-1+VA's layout (about 852 KB). The stock app is 581 KB; FM-1+VA's is 692 KB | [verified] docs/01 §2 |
@@ -65,11 +65,12 @@ What that buys, in round numbers [inferred]:
   That per-cycle parity is the big unknown.
 - **One weak data point:** Synth_Dexed on a Teensy 3.6 (Cortex-M4F) plays
   12 notes with effects at 180 MHz [verified: MicroDexed `config.h`], and
-  the FM-1 plays 12 msfa notes with effects at 240 MHz. That fits
-  "M4F-class per clock" but does not prove it, because the FM-1's headroom
-  is unknown.
-- **The second core** is the largest lever if the SDK lets us use it; CTAG
-  pins audio to its own core on the ESP32 for the same reason.
+  the FM-1 plays 12 msfa notes at 240 MHz on one core, with its effects on
+  the other. That fits "M4F-class per clock" but does not prove it, because
+  the FM-1's headroom is unknown.
+- **The second core** is the largest lever if the SDK lets us use it. Stock
+  already gives it the voices (above), and CTAG pins audio to its own core
+  on the ESP32 for the same reason. docs/14 §5.1 probes it on the dev kit.
 
 ## 3. Schwung compatibility
 
@@ -394,7 +395,10 @@ switch. docs/12 §6 has the full rules.
 
 1. pi32v2 DSP throughput per clock compared with a Cortex-M4F or an ESP32.
 2. The stock msfa load.
-3. Whether an SDK build can put audio on the second core.
+3. Whether an SDK build can put audio on the second core. Stock does (§2),
+   with a modified single-core `system.a` [verified: its build stamp]; the
+   public SDK has no task-to-core API [verified: 2026-10-01 second-core
+   study]. docs/14 §5.1 probes it.
 4. How much SRAM an open firmware with BLE-MIDI leaves free.
 5. Whether JieLi's Clang produces PIC or usable relocations, and whether it
    defines anything like `__arm__` that trips `#ifdef`s.

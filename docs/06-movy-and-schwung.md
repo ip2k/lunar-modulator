@@ -29,7 +29,7 @@ per-track LFOs, drum layouts, transport lock with Move.
 
 | | Ableton Move (Movy's host) | M-VAVE FM-1 |
 | --- | --- | --- |
-| CPU | quad-core ARM Cortex-A72, 1.5 GHz | one used pi32v2 core (custom Blackfin-like ISA) at 240 MHz, second core idle, 320 MHz max |
+| CPU | quad-core ARM Cortex-A72, 1.5 GHz | two pi32v2 cores (custom Blackfin-like ISA) at 240 MHz, 320 MHz max; stock renders its voices on the second (docs/11 §2) |
 | Memory | 2 GB RAM, 64 GB storage | 578 KB SRAM, 1 MB flash |
 | OS | Linux with a full userland, SSH | FreeRTOS-derived kernel inside the vendor SDK, XIP from flash |
 | Languages | anything with an aarch64 Linux target: Rust, C, JS in QuickJS | C/C++ via JieLi's closed Clang fork; **no Rust, no mainline LLVM/GCC, no JS runtime worth the RAM** |

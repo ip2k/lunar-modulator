@@ -30,8 +30,12 @@ Elsewhere, Echomatter ran a version-bumped V15-derived package on their FM-1
 via the stock OTA path and rolled it back (AL-255 PR #2, 2026-09-04), and
 since 2026-09-26 Baud Girl's FM-1+VA (a modified V15, source not published)
 installs from a browser for anyone (docs/04, `notes/2026-09-29-*`).
-`HANDOFF.md` is the context summary; `README.md` has the verdict; `docs/` has
-the detail.
+`HANDOFF.md` is the context summary. `README.md` is the product page, for
+users. `DEVELOPERS.md` holds everything technical: specifications, the
+hardware, how the software works, the research, where development stands,
+and how to build and contribute. `docs/` has the detail.
+
+Keep technical material out of the README and put it in DEVELOPERS.md.
 
 **The name** (owner's choice, 2026-10-01). Until then the project was "Open
 firmware for the M-VAVE FM-1", repository `ip2k/mvave-fm1-open-firmware`; it
