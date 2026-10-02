@@ -161,6 +161,11 @@ The seed is saved with the preset. The screen holds about 19 characters a line a
 
 ## 3. LFOs and envelopes
 
+> **Superseded in part (2026-10-02).** [docs/16](../docs/16-modulation.md) turns
+> §3 and §4 into one design: the LFOs, envelopes and CHANCE become module
+> kinds in a rack inside the matrix, with 32 slots and chains. Rules M1–M7
+> stand. Its plan MG0–MG9 replaces this note's modulation stages.
+
 ### 3.1 Options
 
 | Source | Licence | What it gives | Fit |
@@ -213,6 +218,11 @@ The seed is saved with the preset. The screen holds about 19 characters a line a
 **Upstream candidate.** The Schwung S&H wrap bug, with its fix (detect a wrap by comparing phase with the previous phase, and keep a separate "has value" flag), goes on `notes/upstream-candidates.md`. Per CLAUDE.md, anything sent upstream is a draft only and needs the owner's sign-off.
 
 ## 4. Modulation matrix
+
+> **Superseded in part (2026-10-02).** [docs/16](../docs/16-modulation.md) turns
+> §3 and §4 into one design: the LFOs, envelopes and CHANCE become module
+> kinds in a rack inside the matrix, with 32 slots and chains. Rules M1–M7
+> stand. Its plan MG0–MG9 replaces this note's modulation stages.
 
 ### 4.1 What the code already implies
 
