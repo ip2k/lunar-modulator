@@ -10,7 +10,7 @@ commit `9190e79`; what was read is listed in
 [third_party/movy/UPSTREAM.md](third_party/movy/UPSTREAM.md).
 
 ```bash
-make -C engines                                   # build/fm1-seq, build/fm1-seq-check, build/fm1-render
+make -C engines                                   # build/fm1-seq, build/fm1-seq-check, build/fm1-render, build/fm1-seq-host-test
 engines/build/fm1-seq --sizes                     # fm1_seq_size() for 1-16 tracks
 engines/build/fm1-seq --cmd song.txt --log song.jsonl --state song.json
 engines/build/fm1-seq --compat --cmd s.verbs --log s.jsonl   # Movy exactly (--compat-frames: with D1 frames)
@@ -31,9 +31,11 @@ python -m pytest tests/test_seq*.py               # the sequencer tests
 | `seq/seq_cmd.c` | The verb parser and dispatcher (command.rs) |
 | `seq/seq_persist.c` | `movy1` export and import (persist.rs) |
 | `seq/seq_capture.c` | Capture, the retroactive record (capture.rs and engine.rs's capture functions), in 12-byte events |
+| `include/fm1_seq_host.h`, `seq/seq_host.c` | The host bridge: the per-block code every host shares (commands into the event buffer, advance, split renders into a sound engine, lane labels to parameters); C99, no heap, no stdio, like the core (below, Host contract) |
 | `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input) and the JSON Lines event log, shared by the two tools |
 | `host/seq_tool.c` | `fm1-seq`: runs the core alone and dumps state as JSON; `fm1-seq-check` is the same tool on a core built with `-DSQ_CHECK_INDEX` |
-| `host/render.cc` | `fm1-render --cmd/--seq/--log-events/--compat/--tracks/--route` |
+| `test/seq_host_test.c` | `fm1-seq-host-test`: the host bridge's own checks, where `fm1-render` does not reach it (typed commands, realtime input and live notes against text lines; every sink call at its event's frame) |
+| `host/render.cc` | `fm1-render --cmd/--seq/--log-events/--compat/--tracks/--route/--events`, through the host bridge |
 | `mk/seq.mk` | The build fragment |
 
 ## Design
@@ -300,15 +302,93 @@ sets it, `fm1_seq_set_route` from C, and a `movy1` set stores it as
 `rt <t> <kind> <index>`. The events are the same either way: routing is the
 host's to act on.
 
-`fm1-render` sends a track routed to the engine to `note_on`/`note_off` at the
-event's own frame, by rendering the block in pieces split at each event; with
-no `--route` and no routes in the set, track 0 plays the engine. A lock on such
+`fm1-render`, through the host bridge (below), sends a track routed to the
+engine to `note_on`/`note_off` at the event's own frame, by rendering the
+block in pieces split at each event; with no `--route` and no routes in the
+set, track 0 plays the engine. A lock on such
 a track sets the engine parameter its lane's label names: the part of
 `synth:Timbre` after the last `:`, matched by name without case. FLOAT
 parameters scale 0..127 onto min..max; ENUM parameters use Movy's planned bins
 ⌊v·n/128⌋. A label that names no parameter is ignored. MIDI-routed tracks are
 only logged. Output is byte-identical at host blocks of 1, 7 and 64 frames for
 Test Sine, Macro and Six-Op [verified: tests/test_seq_render.py].
+
+## Host contract (`include/fm1_seq_host.h`)
+
+Every host of the core runs the same per-block code, `seq/seq_host.c`:
+`fm1-render` now, the virtual FM-1's app layer and the firmware's audio task
+next. It was extracted from `fm1-render` with no change in behaviour: over
+810 runs of the old and new renderer and `fm1-seq` (the 34 oracle scripts
+with no engine, Test Sine, and Macro and Six-Op at 44,118 Hz or Shapes at
+48 kHz, in both modes at 64-frame blocks and at each script's own; the
+renderer tests' scripts; Movy's three sets; errors and refusals), every
+WAV, event log, exported set, state dump and error is byte-identical, and so
+is every summary less its timing and its three new fields; only the usage
+text gains `[--events N]` [verified 2026-10-02, Apple clang]. It is C99
+with no heap and no stdio, in `SEQ_SRC` beside the core, so `nm -u` checks
+it with the core's objects [verified: tests/test_seq_core.py].
+
+**Per block of n frames:**
+
+1. The host's own controls and live notes go straight to the engine
+   (`fm1-render`: `--param-at` and `--bend`, then `--note` offs before ons).
+2. Commands due now: `fm1_seq_host_line` (a script or UI line: Movy ops, or
+   `rt F8|FA|FB|FC` realtime input) or `fm1_seq_host_cmd` (a typed record).
+   Each appends its events (a stop's note-offs, an auditioned lock) at frame
+   0. `fm1-render`'s implicit `play` for `--seq` alone goes through it too.
+3. Live input at frame 0: `fm1_seq_host_note_in` (recording and Capture) and
+   `fm1_seq_host_realtime` (MIDI clock and transport).
+4. `fm1_seq_host_advance(h, n)`: the block's own events, after those.
+5. A test harness logs `ev[0..n)` here. `fm1-render --log-events` and
+   `fm1-seq --log` write the same bytes for every oracle script, in both
+   modes, at 64-frame blocks and at the script's own [verified:
+   tests/test_seq_render.py].
+6. `fm1_seq_host_dispatch(h, n, block, &sink)` renders the sound engine in
+   pieces split at the frame of each note-on, note-off and lock of a track
+   routed to the engine, in emission order (at one frame: offs, locks, ons),
+   and empties the buffer. A lock whose lane label names no parameter of the
+   engine is skipped before any split. Clicks, clock, Start, Stop and
+   MIDI-routed tracks are the host's to send elsewhere; `fm1-render` only
+   logs them. A NULL sink only empties the buffer (`fm1-render` with no
+   engine).
+7. Effects, the limiter and the output, which are the host's own.
+
+A lane's label names a parameter by the part after its last `:`, compared
+without ASCII case (`fm1_seq_lane_param`), and a 7-bit value maps onto it
+by `fm1_seq_lock_value`: min + range·v/127 for FLOAT, the bins ⌊v·n/128⌋ for
+an ENUM of n values. Both are the expressions `fm1-render` had.
+
+**Event room.** Commands, live input and advance share one buffer per
+block. One command can cause up to `fm1_seq_cmd_max_events(&limits)` = gates
++ 8 × tracks + 1 events: every gate's note-off, a D6 base revert on every
+lane of every track, and a Start or Stop. That is 129 at 8 tracks and 64
+gates, and a stop at full load sends exactly that many [verified:
+tests/test_seq_render.py]. Advance needs `fm1_seq_min_events(&limits)` of the
+buffer to keep every note-off, Start and Stop. So a host applies a command
+only while `fm1_seq_host_room(h)` is at least `fm1_seq_cmd_max_events` +
+`fm1_seq_min_events`, and holds it for the next block otherwise. The bound
+is per op: a text line may hold several. 256 events (3 KB, the virtual
+FM-1's plan) take that full stop with nothing dropped; `fm1-render`'s
+default 65,536 never come near the rule, and `--events N` runs it at a
+device's size. In the default mode at 64-frame blocks no oracle script puts
+more than 7 events in one block [verified].
+
+**Routing is the host's policy.** The bridge acts on each track's route;
+setting the routes is up to the host. `fm1-render` routes track 0 to the
+engine only when no `--route` is given, the set has no `rt` lines (every
+track still on MIDI channel t+1) and an engine is loaded. Importing a set
+(`fm1_seq_import_movy1`) first resets every route to MIDI channel t+1, and an
+export writes only routes other than that, so a host applies its default
+again after an import.
+
+**`fm1-render`'s summary** carries the bridge's counters:
+`seq_notes_to_engine`, `seq_locks_to_engine`, `seq_splits` (render calls that
+start inside a block), `seq_max_block_events` (the most events one block
+held) and `seq_dropped` (the core's `dropped_events`). The WAV alone cannot
+show a split: an engine's output does not depend on how a block is cut into
+render calls [verified for Test Sine, Macro and Six-Op at 1, 7 and 64
+frames], so `seq_splits` is what shows that a skipped lock did not split
+its block.
 
 ## The shared formats
 
@@ -350,10 +430,21 @@ commands and Start/Stop carry the number of ticks serviced so far.
   349,525 Hz, 46,080 master ticks of offsets, a playhead at 8,448, notes
   103.2 s and 2^19 cycles apart, the gap rule before the stale rule).
   Movy's outcome for each edge script was checked through the oracle.
-- `tests/test_seq_render.py` (13): routing through `fm1-render`, notes and
+- `tests/test_seq_render.py` (55): routing through `fm1-render`, notes and
   locks at their own frame, FLOAT and ENUM lock mapping, block-size identity
   of the audio, the renderer's log equal to `fm1-seq`'s, plain renders
-  unchanged.
+  unchanged. The host bridge: lane labels (case, the last `:`, an unknown
+  label sent and skipped), a float lock equal to the parameter set directly,
+  an unknown label adding no split, every oracle script logged as `fm1-seq`
+  logs it with nothing dropped, a full 8-track stop in a 256-event buffer,
+  and `fm1-seq-host-test`: typed commands, realtime input (an external Start
+  that ends sounding notes, then MIDI clock) and live notes give the events
+  and the set their text lines give, and the sink receives every
+  engine-routed note and lock at its own frame and in order. Ten mutants of
+  the bridge (label case, the last `:`, a lock resolved after its split,
+  inputs at `ev[0]`, a buffer never emptied, no `max_n`, float locks over
+  128, live velocity lost, realtime or typed events not kept) each fail at
+  least one of these [verified 2026-10-02].
 
 Run on [verified 2026-10-01, with the oracle's fixtures in place]: macOS
 clang, the whole suite, and under clang ASan + UBSan; GCC 12 in a container
@@ -423,7 +514,8 @@ tools/movy-oracle on aeon, the C core on the Mac]:
 - **Engine API v2** (docs/13 §6): a stable `uint16_t uid` per parameter so a
   lane names its target by uid rather than by label text, and flags LATCH,
   SMOOTH and NOLOCK (Macro's Model refused as NOLOCK is M2's exit test). Today
-  the label match and the bins live in `fm1-render`.
+  the label match and the bins live in the host bridge
+  (`fm1_seq_lane_param`, `fm1_seq_lock_value`).
 - `FM1_KIND_MIDI_FX` for per-track MIDI effects.
 - The command ring between the UI and audio tasks, and undo (binary
   per-clip snapshots in a byte budget, docs/13 §5) with the UI, stage M4;

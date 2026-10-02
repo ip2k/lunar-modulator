@@ -9,6 +9,24 @@ history.
 ## [Unreleased]
 
 ### Added
+- The sequencer host bridge (`engines/include/fm1_seq_host.h`). It is the
+  per-block code that plays the sequencer through a sound engine: commands,
+  advance, and renders split at each note and lock. `fm1-render` now runs on
+  it, and the virtual FM-1 and the firmware are to share it next.
+  - Sound, event logs and exported sets are byte-identical to before, across
+    810 runs of the renderer and fm1-seq over the oracle scripts, the test
+    scripts and Movy's sets.
+  - `fm1-render --events N` sizes the event buffer each block's commands and
+    playback share, to try a device's size. The default stays 65,536.
+  - The summary adds three fields: `seq_dropped` (events that did not fit),
+    `seq_max_block_events` (the most in one block) and `seq_splits` (renders
+    that start inside a block).
+  - engines/seq.md documents the host contract. It covers the order of work
+    in a block, how much room a command needs, and which track plays the
+    engine by default.
+  - A new test tool, `fm1-seq-host-test`, checks the parts of the bridge
+    that `fm1-render` does not use yet: typed commands, MIDI realtime input
+    and live notes.
 - The virtual FM-1's small text is set in Exo 2 (Natanael Gama, SIL OFL
   1.1), bundled unmodified from google/fonts in `sim/web/www/fonts/exo2/`
   with its licence and checked by hash. Before, it used Exo 2 only where
