@@ -343,10 +343,13 @@ manual numbers steps. Verbs count from 0, so a step index is bar page × 16 +
 - **Hold A, press B:** `slen`. Pressing B again trims to B's start.
 - **Several steps held:** edits apply to all of them.
 - **Any gesture made during a hold** cancels the toggle.
-- **A pitch on a held step:** docs/13 §4 has step held + SHIFT turn the keys
-  into pitches. The mapping below also uses SHIFT + white key for Movy's
-  shortcuts, and `addp` has no gesture yet. That is O22, which blocks S4; S4
-  updates docs/13 §4 to match the answer.
+- **A pitch on a held step** (O22, answered 2026-10-02, changed by the
+  owner from the proposal): pitches are only ever added. With a step held,
+  SHIFT turns the white keys into pitches in the current octave, and each
+  press adds one to every held step (`addp`); a note at MIDI IN does the
+  same with any pitch. There is no per-pitch removal: SHIFT pressed and
+  released with nothing else touched, while a step is held, clears that
+  step's notes (`del t s s -1`). The final gesture table is in §3.5.
 
 ### 3.4 The black keys in the SEQ Track view [O1]
 
@@ -371,8 +374,9 @@ drawn as `<` and `>`, because the font has ASCII only [verified: fm1_tft.c 87].
 ### 3.5 SHIFT
 
 SHIFT is SEL outside FX mode [O2]. FX mode keeps SEL's slot grab (S4). With no
-step held, SHIFT + white key N gives Movy's shortcut N [reported: Movy MANUAL.md],
-with a legend on the bottom strip while SHIFT is held:
+step held, SHIFT + white key N gives Movy's shortcut N [verified: Movy's
+`src/seq/step-shortcuts.ts` and MANUAL.md at `9190e79`, read in S4], with a
+legend on the hint line while SHIFT is held:
 
 | White key | Function | Stage |
 | --- | --- | --- |
@@ -383,6 +387,30 @@ with a legend on the bottom strip while SHIFT is held:
 | 10 | full velocity | S4 |
 | 15 | double the loop, `dbl` | S9 |
 | 16 | quantise cycle, `cq` 0 / default / 100 | S6 |
+
+**The gestures as built in S4** (O1, O2, O5, O19, O21 and O22; SEQ mode
+with the lab switch on; `t` is the focused track, `s` a step). Every edit
+on held steps is one command per held step, in press order, as Movy's
+`step-edit.ts` sends them, and cancels those steps' toggles.
+
+| Input | No step held | Steps held |
+| --- | --- | --- |
+| White key | A tap toggles the step on release: `tog t s` with the last chord played, each pitch with its velocity, else note 60 at velocity 100 (O5); 127 with full velocity. A press of 13,236 frames or more (⌈0.3 · rate⌉) is a hold: the Step page, no toggle. A tap in the hidden rest of a short clip's last bar enters nothing, as Movy | One step held, with a note, and B pressed after it: `slen` to the end of B, B again to its start, and so on; B before it: nothing. Otherwise B is held too: steps pressed together each toggle on release unless edited, however long the first was held alone |
+| SHIFT + white key N | Movy's shortcut N: 10 is full velocity (S4); the rest come with S6 and S9 and do nothing yet | `addp t s s p v` on every held step: p is the key's pitch in the current octave (53 + key + 12 × octave + transpose), v the key's velocity |
+| SHIFT tap (pressed and released with nothing else touched) | nothing | `del t s s -1` on every held step with notes: the step's notes are cleared (O22) |
+| Knob detent with SHIFT held | the sound, as without SHIFT | kept for `aclrs` on the lock pages (S8); nothing on the Step pages |
+| SHIFT + PLAY/STOP | while playing, a restart (`play`; D12 adds the Stop and Start); stopped, `play`. In every mode but FX, where SEL grabs a slot | the same |
+| F#3 / A#3 (◀ ▶) | the bar on the keys, back and on: the loop's bars and one empty bar after them, as Movy's `maxBarOffset`, except that Movy counts a loop shorter than a bar as a whole bar from its start, so a short loop starting mid-bar gets a second empty bar there [verified: `state.ts` at `9190e79`] | `enudge t s s -1 ∓2` (Movy's coarse step, 2 ticks), ∓1 with SHIFT |
+| Other black keys | inert until their stage (§3.4) | inert |
+| OCT− / OCT+ | the octave, as stock; both: reset | `etrn t s s -1 ∓1`, ∓12 with SHIFT |
+| SELECT | the sound's pages | Step page 1/2 or 2/2, remembered from hold to hold (O21) |
+| KNOB1–4 | the sound's page, its name and value on the hint line | Step page 1: VEL (`evel`, 4 per detent, relative), LEN (`slen` with Movy's 21 lengths, from 1/32 to 16 bars), PROB (`eprob`, 100 % down to 10 %), COND (`econd`, the 36 A:B pairs); page 2: INV (`einv`, on with a turn up, off down) and the nudge and note as read-outs. The values move from the first held step's |
+| MIDI IN note | sounds, and joins the chord a tap writes: every note held when one goes down, the last 12 | sounds, and `addp` on every held step |
+| Keys outside SEQ mode | play the sound and join the chord, as MIDI IN | — |
+| HOME, FX, GLO | leave SEQ mode | leave SEQ mode; the held steps go, with no toggle |
+
+The computer keyboard [O19]: Digit1–Digit8 and C, V, B, N, M, comma, period
+and slash press white keys 1–16 in SEQ mode, and Shift holds SEL there.
 
 ### 3.6 Transport
 
@@ -1090,6 +1118,66 @@ step).
 
 **Size:** L.
 
+**As built (2026-10-02, branch `feature/2026-10-02@seq-step-entry`, on S3's
+branch).** Everything stays behind the lab switch (O24). The gestures are
+§3.5's table. Where the build differs from, or adds to, the plan above
+[verified: tests/test_seq_ui.py, tests/test_seq_core.py, `fm1-sim-render
+--screens`]:
+- **O22, as the owner changed it:** pitches on a held step are only added
+  (SHIFT + white key, or a note at MIDI IN, `addp`); a SHIFT tap during a
+  hold clears the step (`del`). It cannot collide with the shortcuts
+  (SHIFT + N needs no step held), with `addp` or the SHIFT nudge and
+  transpose (another input while SHIFT is down makes it no tap), or with
+  `aclrs` (a knob detent is such an input).
+- **Movy facts read at `9190e79`** into the git-ignored `reference/`
+  [verified]: `step-page-vm.ts` (LEN's 21 lengths in ticks, 12 to 6,144;
+  PROB 100 to 10; COND's 36 pairs, B up to 8; INV), `step-edit.ts` (VEL
+  is a relative `evel` of 4 per detent; LEN an absolute `slen`; nudge 2
+  ticks, 1 with Shift; transpose `etrn` with lane −1; one command per held
+  step), `router-steps.ts` (the tap on release, the hold-A-press-B length
+  and its end/start toggle, steps pressed together each entered, the
+  hidden rest of a short clip's bar) and `step-shortcuts.ts` (Shift + 10 is
+  full velocity). Movy's `hold` verb is not sent: the C core stores it and
+  nothing reads it.
+- **Full velocity** sets every step entered, and the keys played outside
+  SEQ mode, to 127; MIDI IN's own notes keep their velocity.
+- **OCT on held steps** belongs to them: the app does not count that press
+  as held, so ALGORITHM turned while it is down still turns the model, and
+  the other OCT pressed after the steps' release moves the octave instead
+  of resetting it.
+- **The Step pages** stay two (Step 1/2 and 2/2): the sound's pages join
+  them as lock pages in S8. Step page 2's nudge and note are read-outs.
+- **The Track view** draws the grid's four bars round the bar on the keys
+  (from S3's fixed first four), a trig tick under steps with a probability,
+  condition or invert row, held steps framed, and a bracket at both ends of
+  the bar on the keys; the hint line names the bar after ◀ ▶, and SHIFT's
+  shortcut while SEL is held.
+- **The bar on the keys follows the loop:** it is kept between the loop's
+  first bar and the empty bar after it, so a loop moved away takes it
+  along (S3's sweep had kept it on bar 1, outside the loop).
+- **Gesture traces:** 22 new golden traces in tests/fixtures/seq-ui/
+  (`step-*`), each replayed by `fm1-render` byte for byte. A key that plays
+  the sound is now logged into the replay's sidecar as a `--note` at
+  mid-block times (half of S5's harness item; S5 adds `non`/`nof`), and a
+  `--panel` file may hold `--note` lines for MIDI IN. `fm1-render` plays a
+  block's note-offs, then its note-ons, in argument order, so a run whose
+  notes went to the sound in another order within a block (a MIDI IN note
+  after a key's) says `"replayable":0`.
+- **Screens:** 99 more, 914 in all, 0 faults; the lab-off screens are
+  byte-identical to S3's (293 compared).
+- **Core:** `fm1_seq_get_page` and `fm1_seq_info_t.rec_track`. The Track
+  view shows REC when the focused track records.
+- **The UI state** is 456 B of its 1,024 [verified: `fm1-sim-render
+  --sizes`].
+- **On aeon** [verified: `www/fm1.wasm.json` and the screenshot report,
+  2026-10-02]: parity 25 of 25 (S2 and S3 had added more scenarios than
+  §6.1 counted), with the new `seq-panel-step-entry` covering probability,
+  condition, invert, a two-bar clip, a nudge, `addp` and the clear;
+  identical to js and musl in 25, to glibc in 22; imports none. In
+  headless Chromium, A#3 and four step keys enter bar 2 (exactly those
+  four keys light), and played, the pattern sounds (RMS 0.024) and the
+  lights move. The module is 482,291 B, up from 466,635.
+
 ### S5. Record and Capture (record-after, on by default)
 
 **Goal.** Play on the keys and keep it: REC with a count-in and overdub, and
@@ -1784,6 +1872,14 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
   come in S4.
 - **O23:** option (b), four bars in the knob strip and the turned knob's
   name and value on the hint line in 2x text.
+- **O22, changed** (for S4): pitches on a held step are only added: with a
+  step held, SHIFT turns the white keys into pitches in the current
+  octave, each press adding one (`addp`). There is no per-pitch removal: to
+  remove pitches the user clears the whole step with SHIFT, tapped while
+  the step is held (`del`). SHIFT + N shortcuts apply only with no step
+  held, and step + SHIFT + one knob detent stays `aclrs` (S8). §3.5 has the
+  final gesture table; docs/13 §4 records the answer.
+- **O1, O2, O5, O19, O21** (for S4): as proposed.
 - **O24, changed:** hide the sequencer from the public page until it is
   usable, that is until step entry and recording (S5, S6). S3 adds a
   runtime lab switch instead: the page turns it on for an address with

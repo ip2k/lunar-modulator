@@ -130,6 +130,47 @@ static void refusal_popup(fm1_app_t *a, int index, int code) {
   popup(a, entry(index) ? entry(index)->name : "?", why, NULL, -1);
 }
 
+/* ---- the sequencer's panel UI (fm1_seq_ui.h) ------------------------------------- */
+
+/* The UI's commands go in through fm1_app_seq_cmd, under the event-room rule. */
+static int ui_cmd(void *ctx, const fm1_seq_cmd_t *c) { return fm1_app_seq_cmd((fm1_app_t *)ctx, c); }
+
+static fm1_seq_ui_emit_t ui_out(fm1_app_t *a) {
+  fm1_seq_ui_emit_t out;
+  out.ctx = a;
+  out.cmd = ui_cmd;
+  return out;
+}
+
+/* After an edge the UI took: the screen and LEDs follow, and its toast, if
+ * any, becomes a popup. */
+static void ui_after(fm1_app_t *a) {
+  switch (a->ui.toast) {
+    case FM1_SEQ_TOAST_FULL_VEL_ON: popup(a, "Full velocity", "on", NULL, -1); break;
+    case FM1_SEQ_TOAST_FULL_VEL_OFF: popup(a, "Full velocity", "off", NULL, -1); break;
+    default: break;
+  }
+  a->ui.toast = FM1_SEQ_TOAST_NONE;
+  a->dirty = 1;
+  a->leds_changed = 1;
+}
+
+static void forget_knob_hint(fm1_app_t *a) {
+  a->ui.knob = -1;
+  if (a->ui.hint == FM1_SEQ_HINT_KNOB) a->ui.hint = FM1_SEQ_HINT_NONE;
+}
+
+/* The note key 0 plays now: SHIFT's pitches on a held step use it. */
+static int base_note(const fm1_app_t *a) {
+  return FM1_APP_FIRST_NOTE + 12 * a->octave + a->transpose;
+}
+
+/* HOME, FX and GLO leave SEQ mode; its holds go without a toggle. */
+static void set_mode(fm1_app_t *a, int mode) {
+  if (a->mode == FM1_MODE_SEQ && mode != FM1_MODE_SEQ) fm1_seq_ui_leave(&a->ui);
+  a->mode = mode;
+}
+
 /* ---- set-up and units --------------------------------------------------------- */
 
 void fm1_app_init(fm1_app_t *a, float sample_rate) {
@@ -150,7 +191,7 @@ void fm1_app_init(fm1_app_t *a, float sample_rate) {
   a->dirty = 1;
   a->leds_changed = 1;
   a->tft.record = 0;
-  fm1_seq_ui_init(&a->ui);
+  fm1_seq_ui_init(&a->ui, sample_rate);
   fm1_app_seq_reset(a, FM1_APP_SEQ_TRACKS);
 }
 
@@ -215,7 +256,7 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   }
   if (unit == 0) {
     a->page = clampi(a->page, 0, page_count(e) - 1);
-    a->ui.knob = -1;                     /* the Track view's hint named the last sound's knob */
+    forget_knob_hint(a);                 /* the Track view's hint named the last sound's knob */
   } else if (a->fx_slot == unit - 1) {
     a->fx_page = clampi(a->fx_page, 0, page_count(e) - 1);
   }
@@ -241,7 +282,14 @@ int fm1_app_default_chain(fm1_app_t *a) {
 
 void fm1_app_set_lab(fm1_app_t *a, int on) {
   a->lab = on != 0;
-  if (!a->lab && a->mode == FM1_MODE_SEQ) a->mode = FM1_MODE_HOME;
+  if (!a->lab) {
+    /* Nothing of the sequencer stays on the panel: no hold, no SHIFT, no
+     * full velocity. */
+    if (a->mode == FM1_MODE_SEQ) a->mode = FM1_MODE_HOME;
+    fm1_seq_ui_leave(&a->ui);
+    a->ui.shift = 0;
+    a->ui.full_vel = 0;
+  }
   a->dirty = 1;
   a->leds_changed = 1;
 }
@@ -301,6 +349,11 @@ void fm1_app_note_on(fm1_app_t *a, int note, int velocity) {
   fm1_app_unit_t *s = &a->unit[0];
   if (s->e && s->e->note_on) s->e->note_on(s->self, (uint8_t)note, (uint8_t)velocity);
   if (a->note_count[note] < 255) ++a->note_count[note];
+  if (a->lab && a->seq) {           /* the chord a step tap writes, or a held step's pitch */
+    const fm1_seq_ui_emit_t out = ui_out(a);
+    fm1_seq_ui_note(&a->ui, note, velocity, a->mode, &out);
+    ui_after(a);
+  }
 }
 
 void fm1_app_note_off(fm1_app_t *a, int note) {
@@ -308,6 +361,7 @@ void fm1_app_note_off(fm1_app_t *a, int note) {
   fm1_app_unit_t *s = &a->unit[0];
   if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)note);
   if (a->note_count[note]) --a->note_count[note];
+  if (a->lab && a->seq) fm1_seq_ui_note(&a->ui, note, 0, a->mode, NULL);
 }
 
 void fm1_app_pitch_bend(fm1_app_t *a, float semitones) {
@@ -341,6 +395,7 @@ void fm1_app_all_notes_off(fm1_app_t *a) {
   }
   seq_release(a);
   for (int k = 0; k < FM1_APP_KEYS; ++k) a->key_down[k] = 0;
+  fm1_seq_ui_notes_off(&a->ui);
 }
 
 /* ---- the panel ---------------------------------------------------------------- */
@@ -354,14 +409,30 @@ void fm1_app_key(fm1_app_t *a, int key, int down, int velocity) {
   if (key < 0 || key >= FM1_APP_KEYS) return;
   if (down) {
     if (a->key_down[key]) return;
-    int note = FM1_APP_FIRST_NOTE + key + 12 * a->octave + a->transpose;
+    if (a->lab && a->seq) {
+      /* In SEQ mode the white keys are steps and the black keys roles
+       * (owner decision O1): the UI takes them, and they play nothing. */
+      const fm1_seq_ui_emit_t out = ui_out(a);
+      if (fm1_seq_ui_key(&a->ui, a->seq, key, 1, velocity, a->frames, a->mode, base_note(a),
+                         &out)) {
+        ui_after(a);
+        return;
+      }
+      if (a->ui.full_vel) velocity = 127;    /* SHIFT + 10: full velocity */
+    }
+    int note = base_note(a) + key;
     if (note < 0 || note > 127) return;
     a->key_down[key] = 1;
     a->key_note[key] = (uint8_t)note;
+    a->key_vel[key] = (uint8_t)clampi(velocity, 1, 127);
     fm1_app_note_on(a, note, velocity);
   } else if (a->key_down[key]) {
     a->key_down[key] = 0;
     fm1_app_note_off(a, a->key_note[key]);
+  } else if (fm1_seq_ui_has_key(&a->ui, key)) {   /* a step's release, in any mode */
+    const fm1_seq_ui_emit_t out = ui_out(a);
+    fm1_seq_ui_key(&a->ui, a->seq, key, 0, 0, a->frames, a->mode, base_note(a), &out);
+    ui_after(a);
   }
 }
 
@@ -383,11 +454,20 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
   if (a->lab && a->seq && (down != 0) != (was != 0)) {
     /* Every edge goes to the sequencer's UI first; what it sends goes in
      * as typed commands, under the event-room rule (a second command while
-     * one is held is refused and counted in seq_busy). */
-    fm1_seq_cmd_t cmd[FM1_SEQ_UI_MAX_CMDS];
-    int n = fm1_seq_ui_button(&a->ui, button, down != 0, a->frames, a->mode, cmd);
-    for (int k = 0; k < n; ++k) fm1_app_seq_cmd(a, &cmd[k]);
-    if (n) a->dirty = 1;
+     * one is held is refused and counted in seq_busy). An edge it takes
+     * (SEL as SHIFT, OCT on held steps) goes no further. An OCT press it
+     * took transposed the held steps, so the app does not count it as
+     * held either: ALGORITHM keeps turning the model rather than the
+     * keys' transpose, and the other OCT moves the octave rather than
+     * resetting it. SEL stays held, as SHIFT needs its release. */
+    const fm1_seq_ui_emit_t out = ui_out(a);
+    const int took = fm1_seq_ui_button(&a->ui, a->seq, button, down != 0, a->frames, a->mode,
+                                       &out);
+    ui_after(a);
+    if (took) {
+      if (down && button != FM1_BTN_SEL) a->button_down[button] = 0;
+      return;
+    }
   }
   if (!down || was) return;
   switch (button) {
@@ -405,7 +485,7 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
       break;
     }
     case FM1_BTN_FX:
-      a->mode = a->mode == FM1_MODE_FX ? FM1_MODE_HOME : FM1_MODE_FX;
+      set_mode(a, a->mode == FM1_MODE_FX ? FM1_MODE_HOME : FM1_MODE_FX);
       a->fx_grab = 0;
       a->dirty = 1;
       break;
@@ -418,12 +498,12 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
       }
       break;
     case FM1_BTN_GLO:
-      a->mode = a->mode == FM1_MODE_GLOBAL ? FM1_MODE_HOME : FM1_MODE_GLOBAL;
+      set_mode(a, a->mode == FM1_MODE_GLOBAL ? FM1_MODE_HOME : FM1_MODE_GLOBAL);
       a->fx_grab = 0;
       a->dirty = 1;
       break;
     case FM1_BTN_HOME:
-      a->mode = FM1_MODE_HOME;
+      set_mode(a, FM1_MODE_HOME);
       a->fx_grab = 0;
       a->dirty = 1;
       break;
@@ -435,7 +515,7 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
       a->mode = FM1_MODE_SEQ;
       a->fx_grab = 0;
       fm1_seq_ui_enter(&a->ui);
-      fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen);
+      fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen, a->frames);
       a->dirty = 1;
       break;
     case FM1_BTN_PLAY:                   /* the UI sent `play` or `stop` above */
@@ -500,11 +580,19 @@ static void fx_step(fm1_app_t *a, int delta) {
 void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
   if (encoder < 0 || encoder >= FM1_ENC_COUNT || delta == 0) return;
   delta = clampi(delta, -64, 64);
+  if (a->lab && a->seq) {               /* with steps held: the Step pages */
+    const fm1_seq_ui_emit_t out = ui_out(a);
+    const int took = fm1_seq_ui_encoder(&a->ui, a->seq, encoder, delta, a->frames, a->mode, &out);
+    if (took) {
+      ui_after(a);
+      return;
+    }
+  }
   switch (encoder) {
     case FM1_ENC_SELECT:
       if (a->mode == FM1_MODE_HOME || a->mode == FM1_MODE_SEQ) {
         a->page = clampi(a->page + delta, 0, page_count(a->unit[0].e) - 1);
-        a->ui.knob = -1;                 /* the hint named the last page's knob */
+        forget_knob_hint(a);             /* the hint named the last page's knob */
       } else if (a->mode == FM1_MODE_FX && a->fx_grab) {
         int to = clampi(a->fx_slot + (delta > 0 ? 1 : -1), 0, FM1_APP_FX_SLOTS - 1);
         if (to != a->fx_slot) {                 /* swap the units, arenas and all */
@@ -611,20 +699,19 @@ static void update_leds(fm1_app_t *a) {
   led[FM1_APP_KEYS + FM1_BTN_OCT_DOWN] = (uint8_t)octave_led(a, -a->octave);
   led[FM1_APP_KEYS + FM1_BTN_OCT_UP] = (uint8_t)octave_led(a, a->octave);
   led[FM1_APP_KEYS + FM1_BTN_FX] = a->mode == FM1_MODE_FX;
-  led[FM1_APP_KEYS + FM1_BTN_SEL] = (uint8_t)(a->mode == FM1_MODE_FX && a->fx_grab);
+  led[FM1_APP_KEYS + FM1_BTN_SEL] = (uint8_t)((a->mode == FM1_MODE_FX && a->fx_grab) ||
+                                               (a->lab && a->ui.shift));
   led[FM1_APP_KEYS + FM1_BTN_GLO] = a->mode == FM1_MODE_GLOBAL;
   if (a->lab) {
     /* SEQ in SEQ mode, PLAY while the transport runs; in SEQ mode the
-     * white keys show the bar's steps, the playhead inverted (sequencer
-     * notes light no key outside it: owner decision O6). */
+     * white keys show the bar's steps, the playhead inverted, and the two
+     * bar keys their role (sequencer notes light no key outside it: owner
+     * decision O6). */
     led[FM1_APP_KEYS + FM1_BTN_SEQ] = a->mode == FM1_MODE_SEQ;
     led[FM1_APP_KEYS + FM1_BTN_PLAY] = a->ui.playing != 0;
     if (a->mode == FM1_MODE_SEQ) {
-      const uint16_t steps = fm1_seq_ui_key_leds(&a->ui);
-      for (int n = 0; n < FM1_APP_WHITE_KEYS; ++n) {
-        const int k = fm1_white_key(n);
-        led[k] = (uint8_t)(a->key_down[k] || ((steps >> n) & 1u));
-      }
+      const uint32_t keys = fm1_seq_ui_key_leds(&a->ui, a->frames);
+      for (int k = 0; k < FM1_APP_KEYS; ++k) led[k] = (uint8_t)(a->key_down[k] || ((keys >> k) & 1u));
     }
   }
   if (memcmp(led, a->led, sizeof led) != 0) {
@@ -709,10 +796,8 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
     a->dirty = 1;
   }
   if (a->lab && a->seq) {
-    if (fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen) && a->mode == FM1_MODE_SEQ) a->dirty = 1;
-    if (a->ui.knob >= 0 && a->frames >= a->ui.knob_until) {
-      a->ui.knob = -1;
-      if (a->mode == FM1_MODE_SEQ) a->dirty = 1;
+    if (fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen, a->frames) && a->mode == FM1_MODE_SEQ) {
+      a->dirty = 1;
     }
   }
   update_leds(a);
@@ -1048,7 +1133,7 @@ static void draw(fm1_app_t *a) {
     snd.pages = page_count(s->e);
     snd.n = page_params(s->e, a->page, snd.idx);
     snd.model = model_param(s->e);
-    fm1_seq_view_track(t, &a->ui, &snd);
+    fm1_seq_view_draw(t, &a->ui, &snd);
     fm1_seq_view_bottom(&a->ui, &snd, buf, sizeof buf);
     draw_bottom(a, buf);
   } else {

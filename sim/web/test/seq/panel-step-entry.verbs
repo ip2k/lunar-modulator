@@ -1,0 +1,9 @@
+#! rate=44118 block=64 tracks=8 end=264708
+# The step-entry scenario (docs/15 S4): two notes on track 1 at 300 BPM,
+# stopped; panel-step-entry.panel then makes a two-bar pattern on the panel
+# with the lab switch on: a chord from MIDI IN entered on two steps, a
+# probability, a condition and an invert, a second bar, a nudge, a pitch
+# added with SHIFT and a step cleared with a SHIFT tap, then plays it twice.
+# The render legs replay what the native harness logged (--log-cmds, with
+# its .args sidecar), the module presses the same keys and buttons.
+@0 bpm 30000;tog 0 0 45 110;tog 0 8 52 90

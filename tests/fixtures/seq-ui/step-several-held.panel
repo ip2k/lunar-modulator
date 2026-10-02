@@ -1,0 +1,10 @@
+# Steps 2 (empty), 5 and 9 held together, and KNOB2 (LEN) turned 3
+# detents: each held step gets the length three up the list from step 2's,
+# the first held (empty, so from the shortest): 1/4, 96 ticks. Released,
+# none toggles.
+--button 0.05:SEQ
+--key 0.10:2:100:0.5
+--key 0.15:7:100:0.45
+--key 0.20:14:100:0.4
+--turn 0.30:KNOB2:3
+--button 0.80:PLAY/STOP

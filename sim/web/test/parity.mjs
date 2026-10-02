@@ -142,8 +142,9 @@ function loadScript(path) {
 }
 
 // A --panel file as fm1-sim-render reads it (read_panel, add_panel): one
-// --key, --button or --turn and its value per line, '#' comments; events in
-// file order, a button's or key's press then its release.
+// --key, --button, --turn or --note (MIDI IN) and its value per line, '#'
+// comments; events in file order, a button's, key's or note's press then
+// its release.
 const BUTTON_NAMES = ['OCT-', 'OCT+', 'FX', 'SEL', 'ENV', 'LFO', 'EDIT', 'GLO', 'HOME', 'SAVE', 'ARP',
   'SEQ', 'PLAY/STOP', 'REC'];
 const ENCODER_NAMES = ['SELECT', 'PRESETS', 'ALGORITHM', 'KNOB1', 'KNOB2', 'KNOB3', 'KNOB4'];
@@ -152,8 +153,8 @@ function loadPanel(path) {
   readFileSync(path, 'latin1').split('\n').forEach((raw, i) => {
     const p = raw.replace(/[\r \t]+$/, '').replace(/^[ \t]+/, '');
     if (!p || p[0] === '#') return;
-    const m = /^(--key|--button|--turn)[ \t]+(.*)$/.exec(p);
-    if (!m) throw new Error(`${path}:${i + 1}: want --key, --button or --turn`);
+    const m = /^(--key|--button|--turn|--note)[ \t]+(.*)$/.exec(p);
+    if (!m) throw new Error(`${path}:${i + 1}: want --key, --button, --turn or --note`);
     const parts = m[2].split(':');
     const t = parseFloat(parts[0]);
     if (m[1] === '--button') {
@@ -167,7 +168,8 @@ function loadPanel(path) {
       controls.push({ t, encoder: id, delta: parseInt(parts[2], 10) });
     } else {
       const [key, vel, dur] = parts.slice(1).map(Number);
-      keys.push({ t, on: true, key, vel }, { t: t + dur, on: false, key });
+      const midi = m[1] === '--note';
+      keys.push({ t, on: true, key, vel, midi }, { t: t + dur, on: false, key, midi });
     }
   });
   return { controls, keys };
@@ -248,7 +250,7 @@ async function renderApp(s) {
   if (s.panel) {
     const panel = loadPanel(panelPath(s));
     controls.push(...panel.controls);
-    events.push(...panel.keys.map((k) => ({ ...k, panel: true })));
+    events.push(...panel.keys.map((k) => ({ ...k, panel: !k.midi })));
   }
   const total = Math.trunc(s.seconds * rate);
   const out = new Int16Array(total * 2);
