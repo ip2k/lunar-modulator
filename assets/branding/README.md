@@ -5,6 +5,19 @@ Lunar Modulator's README banner and its boot screen for the FM-1's display.
 starfield, the moon and its craters, the orbit and its station, and the FM
 waveform. It uses no photographs, stock images or third-party artwork.
 
+The colours are the Rosé Pine Moon palette (https://rosepinetheme.com/palette/,
+MIT), the same palette as the virtual FM-1's page and screen, with the
+page's roles:
+- space runs from base to overlay, with iris and pine nebulae;
+- the moon's lit side is gold, shading to rose, with rose craters, and its
+  dark side is highlight-low;
+- the name is text shading to iris, and the tagline is iris;
+- the FM wave and the station are foam;
+- the stars are tints of text, foam, iris, gold and rose.
+
+`ROSE_PINE_MOON` and `PALETTE` at the top of the picture code hold the
+values. Changed from the first deep-blue and cyan palette on 2026-10-01.
+
 ![Lunar Modulator: INTERGALACTIC MODULATION STATION](banner.png)
 
 | File | What it is |
@@ -61,9 +74,9 @@ name"):
 - No M-VAVE or Cuvave logos.
 
 The design also stays away from the look of well-known agency insignia, such
-as a blue disc with a white orbit ring and a red chevron. Here the moon's
-dark side is neutral charcoal rather than blue, nothing is red, and the
-orbit crosses a moon, not lettering.
+as a blue disc with a white orbit ring and a red chevron. Here there is no
+blue disc: the moon is a gold crescent with a dark purple-grey side. Nothing
+is red, and the orbit crosses a moon, not lettering.
 
 ## Regenerating
 
@@ -125,8 +138,10 @@ RGB/BGR setting on SPI1 have not been checked.
   - on the FM-1's 1.54-inch 240×240 panel (about 0.115 mm per pixel), that
     is about 2.1 mm and 1.1 mm [inferred];
   - not yet viewed on the device.
-- `banner.svg` rendered in Chromium against `banner.png`: the mean absolute
-  difference is 0.7/255 per channel, with differences only on anti-aliased
-  edges [verified].
+- `banner.svg` rendered in Chromium against `banner.png`:
+  - the mean absolute difference was 0.7/255 per channel, with differences
+    only on anti-aliased edges [verified];
+  - that was measured with the first palette; the shapes and the SVG writer
+    have not changed since [inferred].
 - `boot-splash-240.rgb565`, decoded and expanded, equals
   `boot-splash-240.png` pixel for pixel [verified].

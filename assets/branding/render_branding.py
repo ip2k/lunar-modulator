@@ -546,29 +546,56 @@ def render_svg(scene, title: str, credit: str) -> str:
 # The picture
 
 
-PALETTE = {
-    "space_top": "#03040b",
-    "space_bottom": "#0c1436",
-    "nebula_violet": "#40227a",
-    "nebula_teal": "#0f4f73",
-    "moon_light": "#fbf6ea",
-    "moon_mid": "#e6dec9",
-    "moon_limb": "#c9c0aa",
-    "moon_dark": "#1a1d2c",
-    "crater": "#a9a08a",
-    "glow": "#8fa6ff",
-    "orbit": "#9db4ff",
-    "title_top": "#ffffff",
-    "title_bottom": "#c3cfeb",
-    "accent": "#7fdcff",
-    "wave": "#5fd0ff",
+# Rosé Pine Moon (https://rosepinetheme.com/palette/, MIT), the palette of the
+# virtual FM-1's page and screen. The roles follow the page: text for the
+# name, iris for the tagline, gold for what is lit, foam for the signal.
+ROSE_PINE_MOON = {
+    "base": "#232136",
+    "surface": "#2a273f",
+    "overlay": "#393552",
+    "muted": "#6e6a86",
+    "subtle": "#908caa",
+    "text": "#e0def4",
+    "love": "#eb6f92",
+    "gold": "#f6c177",
+    "rose": "#ea9a97",
+    "pine": "#3e8fb0",
+    "foam": "#9ccfd8",
+    "iris": "#c4a7e7",
+    "highlight_low": "#2a283e",
+    "highlight_med": "#44415a",
+    "highlight_high": "#56526e",
 }
-STAR_COLOURS = ["#ffffff", "#dfe8ff", "#cddcff", "#fff1dc", "#ffe6c7"]
+RP = ROSE_PINE_MOON
+PALETTE = {
+    "space_top": RP["base"],
+    "space_bottom": RP["overlay"],
+    "nebula_violet": RP["iris"],
+    "nebula_teal": RP["pine"],
+    "moon_light": RP["gold"],
+    "moon_mid": RP["gold"],
+    "moon_limb": RP["rose"],
+    "moon_dark": RP["highlight_low"],
+    "crater": RP["rose"],
+    "glow": RP["gold"],
+    "orbit": RP["iris"],
+    "title_top": RP["text"],
+    "title_bottom": RP["iris"],
+    "accent": RP["iris"],
+    "wave": RP["foam"],
+    "station": RP["foam"],
+    "hub": RP["text"],
+}
+# The palette's light colours are far brighter than the deep blues the
+# nebulae were tuned for, so their opacities are scaled down.
+NEBULA_ALPHA = {RP["iris"]: 0.30, RP["pine"]: 0.55}
+STAR_COLOURS = [RP["text"], RP["text"], RP["foam"], RP["iris"], RP["gold"], RP["rose"]]
 
 
 def add_backdrop(scene, nebulae):
     scene.layer = BACKDROP
     for cx, cy, r, colour, alpha in nebulae:
+        alpha *= NEBULA_ALPHA.get(colour, 1.0)
         scene.fill(
             Circle(cx, cy, r),
             Radial(cx, cy, r, [(0, colour, alpha), (0.45, colour, alpha * 0.45), (1, colour, 0)]),
@@ -638,7 +665,7 @@ def add_moon(scene, rng, cx, cy, r, orbit, station_t):
     k = max(1.0, r / 32)
     scene.fill(
         Circle(sx, sy, 7 * k),
-        Radial(sx, sy, 7 * k, [(0, P["accent"], 0.55), (1, P["accent"], 0)]),
+        Radial(sx, sy, 7 * k, [(0, P["station"], 0.55), (1, P["station"], 0)]),
     )
     panels = []
     for side in (-1, 1):
@@ -654,9 +681,9 @@ def add_moon(scene, rng, cx, cy, r, orbit, station_t):
         ]
         shape = polygon(quad)
         panels.append(shape.bbox)
-        scene.fill(shape, Solid(P["accent"]))
+        scene.fill(shape, Solid(P["station"]))
     hub = Circle(sx, sy, 1.9 * k)
-    scene.fill(hub, Solid("#ffffff"))
+    scene.fill(hub, Solid(P["hub"]))
     station_box = union(hub.bbox, *panels)
     if math.hypot(sx - cx, sy - cy) < r + 7 * k:
         raise SystemExit("station overlaps the moon; move station_t")
