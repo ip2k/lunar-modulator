@@ -9,6 +9,22 @@ history.
 ## [Unreleased]
 
 ### Added
+- docs/10 §1.1: reports from other FM-1 owners (issue #2) and what they
+  mean for our dongle.
+  - czietz's Raspberry Pi Pico `USB_KEY` dongle (an unlisted MicroPython
+    gist they linked there) gets their FM-1 into UBOOT mode, about one
+    power-on in two.
+  - masanaohayashi used it to put their FM-1 into boot mode, back up its
+    firmware and write firmware.
+  - The dongle clocks the key on D+ (our polarity A), fakes the SOFs with a
+    1 kHz square wave, and hands over by moving the cable to the PC.
+  - docs/10 now recommends fixed polarity A for the first attempt.
+  - It adds a relay-free minimal build that relies on the FM-1's battery.
+  - It expects the FM-1 to show up as vendor `WL82`, product `UBOOT1.00`
+    [inferred].
+  - README, HANDOFF and docs/05 and 07 no longer say the mask-ROM route has
+    never worked on an FM-1. It is reported on two other units, and not yet
+    shown on this project's.
 - docs/14: the verification ladder, the plan for showing 1:1 behaviour once
   the AC79 dev kit and JieLi's USB updater arrive. The rungs are the desktop
   renderer, the browser module, the dev kit and the FM-1, in that order.
@@ -202,6 +218,22 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- The `USB_KEY` dongle's two 2.2 kΩ pull-ups each get their own pin (GP16
+  for D+, GP19 for D−; docs/10 §3).
+  - On the one pin they shared, switching them off still joined D+ and D−
+    through 4.4 kΩ, so D− followed the chip's D+ pull-up.
+  - The SOF phase, which waits for D+ high and D− low, would have failed on
+    every attempt.
+  - The co-simulation modelled the pull-ups as independent and could not
+    see this; a test now reproduces it with the shared wiring.
+  - The pull-up pins' pad pull-downs are now disabled, so "off" is hi-Z as
+    the code says.
+  - Found by a review of the docs/10 update, before anyone built the
+    dongle.
+- docs/10 §1 credited the D−-clock reading to the diagram in kagaimiq's
+  `how-to-enter-uboot.md`. In fact that diagram clocks on D+; only the page's
+  prose says D−. The `USB_KEY` trap in CLAUDE.md, AGENTS.md, HANDOFF and
+  docs/07 now says D+ is the clock, as reported on two FM-1s.
 - Shapes crashed on 11 of its 47 shapes when rendered in blocks that were
   not a multiple of 24 samples, and 22 shapes drifted from Braids (bells and
   drums decayed too fast, some shapes glitched). It now always renders Braids

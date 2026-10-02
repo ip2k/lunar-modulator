@@ -171,6 +171,21 @@ No V16 as of 2026-09-08.
 - **ghidra-jieli**: https://github.com/kagaimiq/ghidra-jieli — SLEIGH processor
   module for pi32/pi32v2/q32s (needs the `80 ff` long-call fix).
 
+### czietz — a Pico `USB_KEY` dongle for the FM-1
+- **"Quick and very dirty JieLi UBOOT tool"**: an unlisted gist from
+  2026-09-27, https://gist.github.com/czietz/9a94cf3c3e68f2ceb45fab682e1cbbd5, which czietz linked in issue #2 on this repository
+  (https://github.com/ip2k/mvave-fm1-open-firmware/issues/2).
+  - MicroPython on a bare Raspberry Pi Pico. It sends the key with SPI1 at
+    50 kHz, clocked on D+, then fakes the SOFs with a 1 kHz square wave on D+.
+  - czietz reports it gets their FM-1 into UBOOT mode, about one power-on in
+    two.
+  - masanaohayashi reports that it put their FM-1 into boot mode, and that
+    they then backed up and wrote its firmware.
+  - The gist gives `WL80UBOOT1.00` as an example of the name shown on the
+    PC.
+  - No licence.
+  - What it shows for this project: docs/10 §1.1.
+
 ### JieLi (Zhuhai Jieli Technology) official
 - **fw-AC79_AIoT_SDK** — https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK
   (GitHub mirrors: `jeffreywugz/fw-AC79_AIoT_SDK`, `amitv87/fw-AC79_AIoT_SDK`,

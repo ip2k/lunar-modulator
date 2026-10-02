@@ -63,17 +63,25 @@ this first, then `README.md`, then `docs/`.
    V15. Two further reported facts: the OTA loader **can rewrite the flash
    head** (`uboot.boot`, `isd_config.ini`), so keep it byte-identical; and a
    loader left waiting after step 1 (`ota-FM-1`) can be resumed (docs/03 §5).
-5. **No proven recovery path**: single flash bank, no debug pads/buttons (the
-   one candidate header was the battery connector's leads, 2026-09-29),
-   mask-ROM USB boot never demonstrated on an FM-1. AL-255's verdict:
-   NO-GO for non-stock flashing. This is the gate for everything. The
-   `USB_KEY` dongle that should open it is specified and implemented
-   (docs/10, `dongle/`), not yet tried.
+5. **No recovery path proven on this project's unit.**
+   - Single flash bank, no debug pads or buttons. The one candidate header
+     was the battery connector's leads (2026-09-29).
+   - AL-255's verdict: NO-GO for non-stock flashing. This is the gate for
+     everything.
+   - Our `USB_KEY` dongle, which should open it, is specified and implemented
+     (docs/10, `dongle/`), not yet tried.
+   - Since 2026-09-16, other owners report that mask-ROM USB boot works on
+     *their* FM-1s with czietz's simpler Pico dongle. One of them backed up
+     and wrote firmware that way [reported: issue #2, docs/10 §1.1].
 6. Most promising recovery: JieLi **`USB_KEY`** (`0x16EF` bit-banged on D+/D−
    at ~50 kHz at power-up, ACK = both lines low 1–2 ms, then SOF clock
    detection) → mask-ROM "UBOOT1.00" mass-storage mode → `jl-uboot-tool`
-   with its `wl82loader.bin` (`0x1C02000`) or vendor `isd_download`. The two
-   kagaimiq docs disagree on which line is clock; try both.
+   with its `wl82loader.bin` (`0x1C02000`) or vendor `isd_download`.
+   - The clock is D+: czietz's dongle reached UBOOT mode that way on two
+     FM-1s (issue #2).
+   - kagaimiq's `usb-key.md` and the diagram in `how-to-enter-uboot.md`
+     agree; only that page's prose says D−.
+   - Try D+ first (docs/10 §1 item 3).
 7. Toolchain = JieLi's closed **Clang/LLVM 4.0.1** fork (`pi32v2` backend),
    Linux build available from `pkgman.jieliapp.com`; AL-255 built C++11 with
    it. No Rust, no GCC/LLVM upstream, no JS runtime.
@@ -106,7 +114,13 @@ this first, then `README.md`, then `docs/`.
 ## 4. Open questions (ranked)
 
 1. Does `USB_KEY` reach the AC791N's mask ROM through the FM-1's USB-C port,
-   and with which clock/data polarity and power sequence?
+   and with which clock/data polarity and power sequence? Reported yes on two
+   other FM-1s (issue #2, docs/10 §1.1):
+   - the clock is D+;
+   - the FM-1 is switched on while the key runs;
+   - the cable is then moved to the PC.
+
+   Not yet tried on this project's unit; try polarity A first.
 2. ~~What does the step-1 verifier compare?~~ Largely answered (2026-09-29,
    [reported] Baud Girl): it refuses the running version; whether by version
    string or file list is still open, and matters little.

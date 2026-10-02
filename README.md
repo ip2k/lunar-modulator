@@ -217,7 +217,10 @@ Details, the panel's measurements and the parity results are in
   ([docs/03](docs/03-update-protocol.md) §5). There is still **no proven
   recovery path** for a device whose application does not run: one flash
   bank, no debug pads, no recovery button, and JieLi's mask-ROM USB boot mode
-  has never been demonstrated on this device.
+  has not been demonstrated on this project's unit. Other owners now report
+  reaching it with czietz's Pico dongle, and one reports backing up and
+  writing firmware that way ([issue #2](https://github.com/ip2k/mvave-fm1-open-firmware/issues/2),
+  [docs/10](docs/10-usb-key-dongle.md) §1.1).
   AL-255's standing verdict remains *NO-GO for non-stock flashing* until
   recovery exists; [docs/10](docs/10-usb-key-dongle.md) is the dongle that
   should provide it.

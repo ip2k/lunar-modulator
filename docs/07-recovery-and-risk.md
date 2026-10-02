@@ -73,9 +73,12 @@ data lines at power-up **[reported: kagaimiq `isp/usb/usb-key.md`,
   data, at roughly **50 kHz** (not critical; reception is bit-banged in ROM),
   repeated until the chip acknowledges by **pulling both D+ and D− low for
   1–2 ms**.
-- **The two kagaimiq documents disagree on which line is clock.** `usb-key.md`
-  says D+ is clock and D− is data; `how-to-enter-uboot.md` says D− is clock and
-  D+ is data. Try both polarities.
+- **The clock is D+.**
+  - `usb-key.md` and the ASCII diagram in `how-to-enter-uboot.md` put the
+    clock on D+; only that page's prose says D−.
+  - czietz's Pico dongle clocks on D+ and has reached UBOOT mode on two FM-1s
+    [reported: issue #2, docs/10 §1.1].
+  - Try D+ first; the dongle keeps both.
 - After the ACK the chip pulls D+ up and measures **SOF pulses** to calibrate
   its PLL, so the host bus must be quiet: use a dedicated USB 2.0 hub (an MTT
   hub such as Terminus FE2.1 isolates per port) or a separate host controller,
@@ -144,7 +147,7 @@ programmer become the simplest recovery path of all; read it on the bench
 | Risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
 | Custom package bricks the only device | high if attempted before recovery | total loss of the unit | **do not flash non-stock before 2.1 is proven**; buy a second FM-1 or an AC791N dev board for first experiments. The board is **JL-AC79-DevKit V1.0**: base board, core board JL-AC79-WIFI V1.0 with an **AC7916** (same dual pi32v2 at up to 320 MHz, 578 KB SRAM), LCD board and cameras. eBay resellers list it for about US$126–144 delivered (2026-09-30). The AC7916 may carry in-package SDRAM the FM-1 lacks; keep benchmark state in internal SRAM. It is also where to rehearse `USB_KEY` and the JieLi USB updater before the FM-1 |
-| `USB_KEY` does not work on AC791N through the connector | medium | forces soldering (2.4) | try both clock/data polarities, quiet bus, dev-board rehearsal |
+| `USB_KEY` does not work on AC791N through the connector | low (reported working on two FM-1s through the USB-C port, docs/10 §1.1) | forces soldering (2.4) | D+ clock first, then the other polarity; quiet bus; dev-board rehearsal |
 | Wrong loader / wrong chip family in tooling | medium | corrupt flash | jl-uboot-tool marks WL82 "unknown": read-only operations first, compare dump with the stock package before any write |
 | Interrupted write (power loss, USB drop) | medium | unbootable app | battery charged, no hubs during writes, dump before every write. Through the stock path, a loader left waiting after step 1 can be resumed [reported: Baud Girl] |
 | Package changes the flash head (`uboot.boot`, `isd_config.ini`) | low if rule 2 is kept | the OTA loader rewrites the second-stage bootloader [reported: Baud Girl FINDINGS 5.4]; a bad one bricks the unit | keep the head byte-identical to V15 and compare its SHA-256 (file bytes `[0x414, 0x4414)`) before anything is sent |
