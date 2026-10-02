@@ -67,7 +67,7 @@ and is the one to trust if the two ever differ.
 | Echo | – | 64 KB |
 | Filter | – | 18 KB |
 | Comp | – | under 1 KB |
-| Limiter | – | 8 KB |
+| Limiter | – | 9 KB |
 | Test Gain | – | under 1 KB |
 
 ### The sequencer
