@@ -32,6 +32,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `crush` | Crush | effect | – | this repository, after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT) | [below](#crush); a bitcrusher and sample-rate reducer |
 | `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
 | `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
+| `comp` | Comp | effect | – | this repository, after Giannoulis, Massberg and Reiss (JAES 2012) | a feed-forward compressor: peak or RMS, soft knee, parallel mix; [below](#comp) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -220,6 +221,124 @@ How it works [verified: tests/test_engines_echo.py and
   reset call to drop the tail without re-creating the 64 KiB instance (the
   host feature listed below).
 
+## Comp
+
+A feed-forward compressor written here (`src/fx_comp.cc`, MIT). The design
+is the one laid out by Giannoulis, Massberg and Reiss, "Digital Dynamic
+Range Compressor Design — A Tutorial and Analysis" (*JAES* 60(6), 2012)
+[reported: the paper]: a static curve with a quadratic soft knee, its
+reduction smoothed in dB by one-pole "branching" or "decoupled" stages, and
+automatic makeup from the curve. No code is taken from anywhere; the
+Airwindows compressors (MIT) were not used. Stereo-linked: one detector
+reads the louder channel at each frame, and both channels get one gain.
+
+    guard -> level (peak or RMS, the louder channel) -> dB -> curve -> smoothing in dB
+          -> gain = Makeup - reduction;   out = dry x (1 - Mix) + dry x gain x Mix
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Threshold | −60 to 0 dB (−18) | Where the reduction starts: the middle of the knee |
+| 1 | Ratio | 1–21 (4) | 1:1 (nothing) to 20:1 above the knee: slope S = 1 − 1/Ratio. From 20 to 21 the slope goes on from 0.95 to 1, so 21 is ∞:1, a limiter's flat line |
+| 1 | Attack | 0–100 ms (10) | The time constant of the reduction rising: with Peak, 63 % of a step after Attack. 0 is instant |
+| 1 | Release | 10–2,000 ms (150) | The time constant of it falling back |
+| 2 | Knee | 0–24 dB (6) | The soft knee's width around Threshold, a quadratic blend from no reduction into the slope. 0 is a hard corner |
+| 2 | Makeup | −12 to +24 dB (0) | Gain after the reduction. With Auto Gain, a trim on the automatic makeup |
+| 2 | Mix | 0–1 (1) | Parallel compression: dry × (1 − Mix) + compressed × Mix. 0 is the input bit for bit, 1 the compressed signal exactly |
+| 2 | Character | Peak, RMS, Glue, Punch (Peak) | Presets of detector and curve (below) |
+| 3 | Auto Rel | Off, On (Off) | Programme-dependent release (below) |
+| 3 | Auto Gain | Off, On (Off) | Adds the curve's reduction at 0 dBFS to Makeup, so a steady full-scale signal stays at full scale: 22.5 dB at −30 dB and 4:1 |
+
+| Character | Detector | Smoothing | Curve |
+| --- | --- | --- | --- |
+| Peak | peak, max(\|L\|, \|R\|) | one stage: Attack rising, Release falling | as set |
+| RMS | RMS over 10 ms | as Peak | as set |
+| Glue | RMS over 30 ms | decoupled: the first stage catches at once and falls by Release, the second follows it both ways by Attack, so recovery is rounder and slower | Knee + 6 dB |
+| Punch | peak | two attack stages of Attack / 2 in series: the reduction starts with zero slope, so the front of a hit passes, and reaches 63 % at 1.07 × Attack; Release as set | as set |
+
+- **Level.** As power: the peak squared, or a one-pole mean of 2 max(L²,
+  R²). The factor 2 calibrates RMS to a sine, so a sine reads its peak level
+  in both detectors: on the renderer's sine RMS and Glue sit within 0.05 dB
+  of the curve, as Peak does with Attack 0. In dB, 10 log10 of the power,
+  floored at −200 dB.
+- **The curve:** d = level − Threshold, W = Knee; no reduction for 2d ≤ −W,
+  S·d for 2d ≥ W, and S·(d + W/2)²/(2W) between (the paper's soft-knee
+  gain computer), continuous at both ends.
+- **Auto Rel.** A slow envelope with Release as its time constant follows
+  the first stage, which then releases five times faster, and the larger of
+  the two applies. After a short peak the reduction lets go quickly; after
+  long compression, slowly. One more one-pole per frame.
+- **No libm.** The logarithm and the exponential are polynomials written
+  here (`src/fx_comp_math.h`): log2 within 2.1 ulp of its result (1.9e-7
+  on [1/16, 16]: under 1e-6 dB near 0 dBFS), exp2 within 2.4e-7 relative.
+  Everything else is +, −, ×, ÷ and comparisons, and floating-point
+  contraction is off for the file under clang (`#pragma STDC FP_CONTRACT
+  OFF`). Without the pragma Apple clang's arm64 build fuses multiply-adds
+  and its output differs.
+- **Bit-identical across builds** [verified, 2026-10-02]: every float of
+  three 2.9-second renders with parameters changed mid-stream hashes the same
+  from Apple clang on arm64 (default and `-ffp-contract=off`), GCC on i386
+  (SSE) and x86-64, and Emscripten 6.0.10's WebAssembly under Node
+  (`fm1-comp-test`'s `hash`, pinned in tests/test_engines_comp.py, so CI's
+  Linux, macOS and 32-bit jobs check it too). `-ffp-contract=fast` differs,
+  as it must. With JieLi's clang for pi32v2
+  the file compiles without a warning in four profiles (`-O2` with
+  contraction off, on and fast, and `-Oz`), and `fast` emits the same code
+  as `off` (nothing fused).
+- **Measured** [verified: tests/test_engines_comp.py and
+  `build/fm1-comp-test`, 2026-10-02]:
+  - The static curve: 3,168 points (thresholds −40, −20 and 0 dB; ratios
+    1–21; knees 0–24 dB; levels −60 to +20 dB) match the formula within
+    4e-6 dB at the accessor and 8e-6 dB in the output.
+  - Time constants on exact steps: Peak's attack and release within 1 % of
+    the setting (2, 10, 50 and 50, 200, 1,000 ms); Punch's attack 1.073 ×.
+    RMS and Glue add their averaging (RMS release on a step: 111, 266,
+    1,123 ms; Glue 246, 383, 1,227 ms).
+  - Auto Rel at Release 500 ms: 100 ms after a 10 ms burst, 603 ms after
+    2 s of compression; Off: 500 ms after both.
+  - A steady sine 24 dB over the threshold: the reduction ripples 0.02 dB
+    (440 Hz) and 0.09 dB (100 Hz) with Peak, under 0.01 dB with RMS and
+    Glue. Peak with a 10 ms attack catches only part of each peak and
+    settles about 1 dB under the curve; with Attack 0 it sits on it.
+  - Silence after loud noise: exact zeros out (18 dB of makeup and Auto
+    Gain on), and the reduction falls without ever rising, to exactly 0.
+  - Changing Character or Auto Rel mid-compression moved the reduction 8
+    and 15 dB, at most 0.073 dB from one frame to the next: the step
+    between the old smoothing and the new becomes an offset that decays in
+    5 ms.
+- **Contracts:** the input guard of `mi_fx.cc` (NaN to 0, clamp to ±16);
+  parameters through `fm1_param_clamp`; Threshold, Ratio, Knee, Makeup, Mix
+  and the detector's crossfade glide over 5 ms, sample by sample, so any
+  block size gives the same output; values set before the first render
+  apply at once. Silence in is exact silence out. A fault does not latch: a
+  second after it the output is the clean render's within one 16-bit step.
+  States flush to zero (power below 1e-20, reductions below 1e-6 dB).
+- **Memory:** 192 bytes (`sizeof` 188) on x86-64, i386 and pi32v2: no
+  pointers [verified: gcc and JieLi's clang, 2026-10-02]. Code for pi32v2:
+  3.6 KB at `-O2`, 2.1 KB at `-Oz`, and 0.8 KB of constant data.
+- **Cost:** about 75 operations, one divide (the logarithm) and one
+  exponential per stereo frame [inferred: by count]. Desktop (Apple M1
+  Max, `fm1-comp-test --cost`, noise): 1.5 µs per 64-frame block with Peak,
+  1.6 µs with Glue, Auto Rel and Auto Gain, 1.8 µs while a parameter
+  glides: 0.10–0.12 % of the 1.451 ms block, about Fold's.
+- **Gain reduction for modulation:** `fm1_comp_reduction_db(instance)`
+  (`include/fm1_comp.h`) returns the reduction applied to the last frame,
+  in dB (0 or more, finite, makeup not included). It is already smoothed by
+  Attack and Release, so a source reading it once per block or tick does not
+  alias. It is not part of `fm1_engine_t`: a host checks that the unit's
+  engine is `comp` first. It is the REDUCTION output docs/16 §3.7 plans for
+  Duck, here from a compressor in the chain rather than a tap.
+- **Units.** Attack and Release are in ms. Threshold, Knee and Makeup are in
+  dB, which `fm1_unit_t` has no code for yet (`FM1_UNIT_DB` would be the
+  addition), so they show as bare numbers.
+- **Not yet: sidechain.** The detector takes a level per frame, so a key
+  signal only changes where that level comes from. The plan, in order: a
+  high-pass on the detector's input, inside the effect (one more one-pole;
+  stops low notes pumping the mix); then a key from elsewhere in the chain,
+  which needs the host to hand an effect a second buffer. That is either
+  docs/16 §3.7's audio tap, or an engine API addition (a key buffer next to
+  `render`'s); neither exists yet. Lookahead, which needs a delay line, is
+  not planned.
+
 ## Parameters (engine API v2)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -283,10 +402,12 @@ third page.
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
 | sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
+| comp | Character, Auto Rel, Auto Gain | none | Read every frame, and a change hands over or glides without a step, so they can be locked. Not effects of a note, so no LATCH. No MOD: a rounded route would flip the detector or the release at control rate |
 
-**Units and abbreviations.** Echo's Time and Sophie's Ring Time are in ms,
-Sophie's Tune in semitones and its 0–100 knobs in %. Sophie's Decay is in
-seconds, for which there is no unit code yet, so it has none. Every other
+**Units and abbreviations.** Echo's Time, Comp's Attack and Release and
+Sophie's Ring Time are in ms, Sophie's Tune in semitones and its 0–100
+knobs in %. Sophie's Decay is in seconds and Comp's Threshold, Knee and
+Makeup in dB, for which there are no unit codes yet, so they have none. Every other
 parameter is a bare number (the 0–1 knobs, gains, bits, indices).
 
 **No sound changed** [verified 2026-10-02, Apple clang, before and after on
@@ -324,7 +445,8 @@ sound).
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Echo) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, Echo, Comp; `fx_comp_math.h` is Comp's log2 and exp2 without libm) |
+| `include/fm1_comp.h` | Comp's gain-reduction accessor, for a later modulation source ([above](#comp)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
 | `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |
@@ -437,6 +559,7 @@ upstream candidate). Our own code gets none.
   | Shapes (12) | 0.2–0.6 % |
   | Each Mutable effect | 0.03–0.06 % |
   | Fold | 0.12 % |
+  | Comp | 0.10–0.12 % |
 
   pi32v2 is a much narrower core and these figures do not transfer; stage B
   measures the real ones. They do rank the engines for the voice caps.

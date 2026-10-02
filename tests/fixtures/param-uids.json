@@ -114,6 +114,18 @@
       {"name": "Wow", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
       {"name": "Level", "type": "float", "uid": 7, "flags": ["smooth", "mod"]}
     ],
+    "comp": [
+      {"name": "Threshold", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Ratio", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Attack", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Release", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Knee", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Makeup", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Character", "type": "enum", "uid": 8, "flags": []},
+      {"name": "Auto Rel", "type": "enum", "uid": 9, "flags": []},
+      {"name": "Auto Gain", "type": "enum", "uid": 10, "flags": []}
+    ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ]

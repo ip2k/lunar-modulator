@@ -38,6 +38,12 @@ ENUM_FLAGS = {
     ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
     ("sw-sophie", "Filter Type"): ["latch", "mod"],
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
+    # Comp's switches are read every sample and hand over without a step, so
+    # they can be locked; no MOD, since a rounded route would flip the
+    # detector or the release at control rate.
+    ("comp", "Character"): [],
+    ("comp", "Auto Rel"): [],
+    ("comp", "Auto Gain"): [],
 }
 
 

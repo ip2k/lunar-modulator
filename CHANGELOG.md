@@ -9,6 +9,22 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Comp**, a new effect: a compressor, written for this project. Threshold
+  (−60 to 0 dB), Ratio (1:1 to 20:1, and a limiter at the top of the
+  knob), Attack and Release on the first page; Knee (soft or hard), Makeup,
+  Mix (parallel compression) and Character on the second: Peak and RMS
+  choose how it listens, Glue holds a part together with a slower, rounder
+  response, Punch lets the front of each hit through. On a third page,
+  Auto Rel makes the release follow the music (quick after short peaks,
+  slow after long loud passages) and Auto Gain sets the makeup so that a
+  full-scale sound stays at full scale. Both channels are compressed
+  together. Silence stays silent, knob turns glide, and switching Character
+  or Auto Rel mid-note does not jump. It computes the same bits on the
+  desktop and in the browser's WebAssembly. Parameters and design in
+  `engines/README.md`, a section in chapter 6 of the manual; a new parity
+  scenario covers it once the browser module is rebuilt. For developers,
+  `include/fm1_comp.h` reads its gain reduction, for a later modulation
+  source.
 - A first look at the sequencer on the virtual FM-1's panel, behind a lab
   switch: add `?lab` (or `#lab`) to the page's address. The public page is
   unchanged until patterns can be made and recorded on the panel (docs/15
