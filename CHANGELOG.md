@@ -9,6 +9,32 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Modulation, first stage (docs/16 MG1):** the engine and `fm1-render` can
+  now modulate sounds; not yet playable in the simulator or on the FM-1.
+  - A rack of up to 8 modulation modules inside a matrix of 32 cables. Any
+    module output can move a sound, effect or host parameter, or another
+    module's knob, input or gate, so modules chain: a chain of four arrives
+    in the same 0.7 ms step as a single cable, whatever order the rack is
+    in. Feedback loops are allowed and run one step late.
+  - Three modules: **LFO** (eight shapes, free, trig, hold, one-shot and
+    half-cycle modes, and sync to the sequencer's tempo), **Envelope** (ADSR
+    or AD after Mutable Instruments' Peaks, with loops; with no cable it
+    follows the keys) and **Chance** (sample-and-hold, track-and-hold,
+    smooth random and drift).
+  - Sources from playing: velocity, note, a random value per note, the key
+    gate and note trigger, and the sequencer's clock, beats, bars, start,
+    transport and each track's gates and velocities.
+  - A gate cable set below 100 % lets each trigger through with that
+    chance, the same way every time for a given seed.
+  - Pitch (added to the pitch bend) and a tremolo gain can be modulated too.
+  - A sequencer lock moves a parameter's centre while modulation keeps
+    swinging round it, and Stop puts the centre back.
+  - Every render without an active cable is byte for byte what it was, and
+    the output is the same at any block size with cables active.
+  - `fm1-render --mod FILE`, `--log-mod` and `--list-mod`; documented in
+    `engines/mod/README.md`, tested in `tests/test_engines_mod_runtime.py`
+    and `fm1-mod-core-test`. The JieLi compile check covers the modulation
+    code (83 objects).
 - The virtual FM-1 now runs the sequencer inside its app layer, with no
   panel controls yet (docs/15 stage S2; PLAY/STOP and SEQ mode come next).
   - It plays any verb script or `movy1` set exactly as `fm1-render` does,

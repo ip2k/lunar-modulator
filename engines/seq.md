@@ -362,6 +362,17 @@ it with the core's objects [verified: tests/test_seq_core.py].
    MIDI-routed tracks are the host's to send elsewhere; `fm1-render` only
    logs them. A NULL sink only empties the buffer (`fm1-render` with no
    engine).
+   `fm1_seq_host_dispatch_ticks(h, n, block, &sink, &hook)` does the same
+   and also runs a control-rate hook, the modulation runtime's tick
+   (docs/16 stage MG1, `include/fm1_mod_host.h`): it hands the hook every
+   event at its frame, runs each tick at its own frame (at one frame:
+   note-offs and locks, the tick and its writes, then note-ons, docs/16's
+   rule M6), passes each lock's value through the hook (a lock moves a
+   routed parameter's base, rule M1), and splits the render only at a tick
+   that writes to the engine. With nothing routed a tick writes nothing, so
+   the audio is what plain dispatch gives [verified: engines/mod/README.md,
+   "No render changed"]. The sink's `pitch_bend`, new with it, carries the
+   host's PITCH and may be NULL.
 7. Effects, the limiter and the output, which are the host's own.
 
 A lane's label names a parameter by the part after its last `:`, compared
