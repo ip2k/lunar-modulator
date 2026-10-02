@@ -25,8 +25,8 @@ pages, then the second slot's. The bottom bar shows where you are, such as
 *1/2 FX2*: page 1 of 2, second slot.
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
-*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Echo and Test
-Gain, and round again. In the simulator you can also use the **Effect 1** and **Effect 2**
+*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo and
+Test Gain, and round again. In the simulator you can also use the **Effect 1** and **Effect 2**
 lists under the panel.
 
 **To empty a slot:** turn [[ALGORITHM]] to *Empty slot*, one step before
@@ -61,9 +61,9 @@ more than two.
     about 48,000 samples a second, so at the FM-1's 44,118 their delays come
     out about 9 % longer, a slightly larger room, and their slow modulation
     about 8 % slower. Their decay times are corrected, and stay within a few per
-    cent of the originals'. Crush, Fold and Echo, written for Lunar Modulator,
-    work out their frequencies and times from the output's rate, so they need
-    no correction.
+    cent of the originals'. Crush, Fold, Drive and Echo, written for Lunar
+    Modulator, work out their frequencies and times from the output's rate,
+    so they need no correction.
 
 ## Plate
 
@@ -231,6 +231,61 @@ stops, so does the effect.
       hand while a note holds.
 
 {{engine-table fold}}
+
+## Drive
+
+{{status sim desktop planned}}
+
+Overdrive and saturation, written for Lunar Modulator: the sound is turned
+up into a curve that flattens its peaks, from a gentle warmth to a buzzing
+fuzz. Each channel is shaped on its own.
+
+- **Type** chooses the curve. Changing it fades from one to the next in a
+  few milliseconds, so it does not click.
+    - **Soft:** smooth, rounded saturation, the most even-tempered.
+    - **Tube:** lopsided, so it adds a warm second harmonic even when barely
+      driven, and squashes one side of the wave before the other.
+    - **Diode:** clean up to a point, then a firmer knee, like the clipping
+      diodes in an overdrive pedal.
+    - **Fuzz:** a hard clip with corners, lopsided and with a little gate of
+      its own, so decaying notes break up and sputter.
+    - **Tape:** gentle, with more headroom; loud high notes and bright
+      sounds saturate first and come out softened.
+- **Drive** sets how hard the sound is driven, from −12 dB at the left
+  (nearly clean) to +36 dB at the right. Louder notes are driven harder, so
+  velocity and the engine's envelope change the tone.
+- **Tone** tilts the driven sound: in the middle it is left alone, to the
+  left the highs are cut (darker, less fizz), to the right the lows (thinner,
+  brighter).
+- **Mix** fades from the dry sound at the left to the driven sound alone at
+  the right, the default. In between, the dry sound keeps its punch under
+  the drive.
+- **Bias**, on page 2, makes the clipping uneven, which adds a hollow,
+  reedy colour; in the middle the curve is used as it is.
+- **Gate**, on page 2, makes the quietest part of each wave drop out, from
+  nothing at the left to a lot at the right: a crackle on every Type, and
+  on Fuzz the starved, sputtering sound of a fuzz with a dying battery. More
+  Drive lets more of the sound through.
+- **Level**, on page 2, sets how loud the driven sound is, from −24 to +12 dB.
+- **Auto**, on page 2, is on by default: it keeps the driven sound about as
+  loud as the dry sound whatever Drive and Type are, so turning Drive
+  changes the character and not the volume. Turn it off to let Drive make
+  the sound louder too, as on a pedal.
+
+Silence stays silent at any setting, and the knobs glide over a few
+milliseconds, so turning them does not click. Drive is built to keep the
+harsh, unrelated tones of a digital clipper low, and it has no tail: when
+the sound stops, so does the effect.
+
+!!! tip "Starting points"
+    - **Warm bass:** Tube, Drive about +12 dB, Tone a little left of the
+      middle.
+    - **Lead:** Diode, Drive +24 dB, Tone about 0.4, then a little Echo.
+    - **Broken fuzz:** Fuzz, Drive +24 dB, Gate about 0.4, Bias a little off
+      the middle, and play notes that decay.
+    - **Tape glue:** Tape, Drive about +18 dB, Mix about 0.6, on chords.
+
+{{engine-table drive}}
 
 ## Echo
 

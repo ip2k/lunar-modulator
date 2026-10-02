@@ -39,6 +39,9 @@ ENUM_FLAGS = {
     ("sw-sophie", "Filter Type"): ["latch", "mod"],
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
     ("filter", "Type"): ["mod"],                # crossfades over 5 ms: nothing cut
+    ("drive", "Type"): [],                      # crossfades over 5 ms: lockable; no MOD,
+                                                # a rounded route would step, not sweep
+    ("drive", "Auto"): [],                      # its gain glides: lockable
 }
 
 

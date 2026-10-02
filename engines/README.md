@@ -31,6 +31,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `sw-psxverb` | PSX Verb | effect | – | a Schwung module (Charles Vestal, MIT), through the shim | [schwung.md](schwung.md) |
 | `crush` | Crush | effect | – | this repository, after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT) | [below](#crush); a bitcrusher and sample-rate reducer |
 | `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
+| `drive` | Drive | effect | – | this repository | overdrive and saturation: Soft, Tube, Diode, Fuzz and Tape, anti-aliased; [below](#drive) |
 | `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
 | `filter` | Filter | effect | – | this repository | seven filter types (SVF, ladder, diode ladder, Sallen-Key, Steiner, comb, formant), zero-delay feedback; [below](#filter) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
@@ -160,6 +161,150 @@ each channel folded on its own.
   parameter changed mid-stream to any value, NaN and infinities included,
   between blocks of 1–64 frames; the glide; and the host rates it accepts
   (8–384 kHz).
+
+## Drive
+
+Overdrive and saturation (`src/fx_drive.cc`, our own code, MIT): five
+curves, chosen by Type, that the sound is driven into, each anti-aliased.
+No code is taken from anywhere; the anti-aliasing is Parker, Zavalishin and
+Le Bivic's (DAFx-16), as Fold's. Stereo in, stereo out, each channel shaped
+on its own.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Type | Soft, Tube, Diode, Fuzz, Tape (Soft) | The curve (below). A change crossfades over 5 ms; a second change waits for the first to finish |
+| 1 | Drive | −12 to +36 dB (+12) | Gain into the curve. At −12 dB the renderer's 0.5 sine stays within 0.5 % of linear on Soft |
+| 1 | Tone | 0–1 (0.5) | A tilt about 800 Hz: 0.5 is flat; towards 0 the highs fall, by up to 18 dB (a first-order shelf from 800 Hz to 6.4 kHz); towards 1 the lows below 800 Hz fall the same way |
+| 1 | Mix | 0–1 (1) | Dry to wet. At 0 the input passes through unchanged |
+| 2 | Bias | −1 to +1 (0) | An offset at the curve's input, in its units (Soft saturates at ±2.5): the clipping becomes uneven and even harmonics appear (−14.5 dB second harmonic at ±0.5, Drive 12) |
+| 2 | Gate | 0–1 (0) | A dead zone at the curve's input, ±0.5 at 1, after Drive: what stays inside comes out silent, what passes is shifted towards zero. Crossover distortion on every Type, a sputtering, starved fuzz on decays. Being after Drive, more Drive opens it |
+| 2 | Level | −24 to +12 dB (0) | The wet signal's gain |
+| 2 | Auto | Off, On (On) | On divides the wet signal by what the curve does to a reference sine's level (0.5 peak), so Drive changes the character and not the loudness |
+
+Drive and Level are in decibels; `fm1_unit_t` has no code for them yet, so
+their unit is `none`.
+
+- **The path:** input guard (NaN reads as 0, ±16 clamp, as the Mutable
+  effects) → pre-emphasis (Tape) → × Drive → dead zone (Gate) → + Bias →
+  curve, anti-aliased → minus the same of silence → de-emphasis (Tape) → DC
+  blocker (10 Hz) → tilt (Tone) → × Level × Auto → Mix. Subtracting the
+  shaper of silence, computed by the same code on the same values, makes
+  silence in exact silence out at any setting, and keeps moving Bias, Gate
+  or Type from stepping the output [verified: tests/test_engines_drive.py].
+- **The curves.** Each Type is a C2 piecewise quintic, Hermite between
+  knots where its value, slope and curvature are given, and constant beyond
+  its outer knots. `python -m tests.test_engines_drive` generates the
+  coefficient table from the knots, and the tests check the source against
+  them, the continuity, and that no curve ever falls [verified]:
+
+  | Type | Knots: value (slope, curvature) | Character |
+  | --- | --- | --- |
+  | Soft | −1 at −2.5, 0 at 0 (slope 1), +1 at +2.5 | tanh-like, within 0.047 of tanh; odd harmonics only |
+  | Tube | −0.8 at −1.6, 0 at 0 (slope 1, curvature 0.3), +1 at +2.2 | uneven: a second harmonic at every level (−27 dB at Drive 12), the negative side compressing earlier and lower [inferred: the usual reading of triode curves; no circuit model] |
+  | Diode | linear to ±0.6, then ±1 at ±1.35 | a hard knee, as a pair of diodes to ground; capped, where a real pair keeps rising logarithmically [inferred] |
+  | Fuzz | a hard clip at ±1 (corners, C0) | with its own offset of 0.25 (asymmetric: −19 dB second harmonic at Drive 12) and dead zone of 0.04 (gated), added to Bias and Gate |
+  | Tape | Soft at twice the scale: ±2 at ±5 | 6 dB more headroom, inside a first-order pre-emphasis (+12 dB above 3.2 kHz, the 50 µs record time constant) and its exact inverse after |
+
+- **Tape's emphasis:** quiet signals pass flat, loud highs saturate first
+  and come out softened [reported: tape's record and replay equalisation;
+  no code taken]. Measured on sines, Auto off: at 0.05 and −12 dB Tape
+  equals Soft at 200 Hz and at 5 kHz within 0.005 dB; at 0.5 and +24 dB
+  Soft's 5 kHz comes out 0.2 dB under its 200 Hz and Tape's 10.5 dB under
+  [verified: `fm1-drive-test`]. For the other Types the emphasis amount is
+  0 and both filters are exactly the identity; it glides in and out with a
+  change of Type.
+- **Anti-aliasing: first-order ADAA for every Type.** Each output is the
+  mean of the shaper (dead zone, offset and curve together) over the
+  segment from the previous input to this one. For a piecewise polynomial
+  the mean needs no division by a small step: within a piece, in local
+  coordinates, the mean of tᵏ over [a, b] is h₍ₖ₊₁₎(a, b)/(k + 1), with
+  hₙ = (bⁿ − aⁿ)/(b − a) computed by the recurrence hₙ = s·hₙ₋₁ − p·hₙ₋₂
+  (s = a + b, p = ab), and across pieces the means are weighted by length.
+  No epsilon, no fallback; a step of zero gives the curve itself. Against
+  Simpson's rule in double, 3,000 random steps per Type from 0.01 to 30
+  wide and steps of 10⁻⁶ to 10⁻³ at the knots are within 1.4·10⁻⁶ [verified].
+  The price is Fold's: a half-sample delay and −0.6 dB at 5 kHz, −3 dB at
+  11 kHz on the wet path.
+
+  Aliases of a 0.5 sine against its fundamental, ADAA against the same
+  path with the curve applied plainly per sample [verified:
+  `fm1-drive-test`, 2026-10-02]:
+
+  | | Below 5 kHz | Whole band |
+  | --- | --- | --- |
+  | All 26 cases that alias above −120 dB (five Types; 440 and 1,760 Hz; Drive 12, 24, 36 dB) | 20.6–29.3 dB lower | 4.8–10.5 dB lower |
+  | Fuzz, Drive 24, 440 Hz | −76.3 against −51.4 dB | −49.4 against −42.4 dB |
+  | Worst: any Type, Drive 36, 1,760 Hz | −47.6 to −51.3 dB, against −22.0 to −24.5 | −23.9 to −29.6, against −15.8 to −19.1 |
+  | Soft, Drive 24, 440 Hz | −130.1 against −106.4 dB | −88.7 against −83.5 dB |
+
+  ADAA averages over one sample, so it removes little of what folds to just
+  under Nyquist. **2x oversampling was measured and not taken** [verified:
+  scratch build, the shaper alone between near-ideal 255-tap filters, the
+  19 cases at Drive 24 and 36 dB that alias above −120 dB]: against the
+  plain curve at the host rate, the plain curve at 2x lowers the aliases
+  below 5 kHz by 7.5–37 dB and across the band by 11–46 dB; ADAA at 2x by
+  40–71 and 28–60 dB (ADAA at 1x: 21–26 and 5–8). With the resampler's own pieces (its
+  123-tap decimating low-pass and a matching interpolator) it would cost
+  about 185 multiply-adds per sample and channel plus a second curve
+  evaluation, about three times Drive's whole cost, and the filters' delay
+  would have to be the same for every Type to keep the crossfade and Mix
+  clean [inferred]. The choice is the same for all five Types because
+  ADAA's gain is: 21–29 dB below 5 kHz whatever the curve. A short
+  half-band pair could make 2x affordable; that is a candidate for later,
+  after listening on the dev board.
+- **Auto:** the wet signal is divided by the reference sine's level over
+  the AC level the static shaper makes of it, a 64-point quadrature (16
+  values of |sin| at four phases each), clamped to −36…+18 dB and computed
+  when a parameter changes, at the next block. From Drive −12 to +36 dB the
+  renderer's 440 Hz sine comes out within 0.1 dB of its own level on Soft,
+  Tube, Diode and Fuzz, and within 1.6 dB on Tape, whose de-emphasis
+  lowers the harmonics the curve makes, which a static quadrature does not
+  see. Off, Drive raises the level by up to 8.5 dB [verified:
+  tests/test_engines_drive.py].
+- **Glide and switching:** every control moves to a new value over about
+  5 ms, sample by sample, so the output does not depend on the block size
+  (1, 7 and 64 frames give the same bytes, every Type); values set before
+  the first block apply from its first sample. A Type change crossfades
+  the two curves over 5 ms (both evaluated on the same input): on a sine at
+  Drive 24 the largest step between samples at a change is no larger than
+  in steady playing (0.190 against 0.196), where switching at once would
+  make 0.435 [verified: `fm1-drive-test`]. Type and Auto take locks but no
+  modulation: a rounded route would step between Types, not sweep. Filter
+  states below 10⁻²⁰ flush to zero.
+- **Determinism:** no libm beyond `floorf`, `fabsf` and `sqrtf`, which IEEE
+  754 defines exactly; 2^x, sine and cosine for the controls are
+  polynomials in the file. A `#pragma STDC FP_CONTRACT OFF` keeps clang
+  from fusing multiply-adds, which Apple clang otherwise does (96 fused
+  operations in this file; Fold has 64) [verified: `objdump`]; GCC ignores
+  the pragma, so a GCC build for a target with a fused instruction needs
+  docs/14's `-ffp-contract=off`. `fm1-drive-test
+  hash`, the bits of 2 s of output per Type with every parameter moving,
+  is the same from Apple clang on arm64, GCC 12 on x86-64 and GCC 12 at
+  `-m32 -msse2 -mfpmath=sse` [verified, 2026-10-02]; x87 arithmetic
+  (`-m32` alone) differs, as its excess precision does everywhere. JieLi's
+  clang 4.0.1 compiles the file for pi32v2 without a warning at `-O2` and
+  `-Oz`, with identical code at `-ffp-contract=off` and `=fast` [verified].
+- **Memory and cost:** 240 bytes per instance on x86-64, i386 and pi32v2
+  (the struct is 236, no pointers) [verified: fm1-render's `fx_bytes`, CI's
+  i386 flags, JieLi clang]; 4.9 KB of code and 1.3 KB of tables on pi32v2
+  [verified: section sizes at `-O2`]. Per sample and channel: the guard,
+  two one-pole filters for the emphasis, one piece of a curve (two short
+  searches and about 25 operations; up to three pieces and one divide when
+  a step crosses knots or the dead zone's edges), the DC blocker, the tilt
+  and the mix, about 75 operations: about 10,000 per 64-frame stereo block,
+  twice the curve work during a Type crossfade [inferred]. On the desktop
+  (Apple M1 Max, noise in) a block takes 2.6 µs at the defaults (0.18 % of
+  the 1.451 ms block; Fold 1.8 µs), 3.8–4.3 µs at Drive 30 with Bias and
+  Gate, and 5.5 µs while switching Type every 8 blocks [verified:
+  `fm1-render`'s `ns_per_block` and `fm1-drive-test bench`].
+- fm1-render sets an effect's parameters only before the first block, so
+  `build/fm1-drive-test` (`test/drive_test.cc`, which includes the effect's
+  source to reach its curves) drives Drive directly: every parameter
+  changed mid-stream to any value, NaN and infinities included, between
+  blocks of 1–64 frames; the glide and the crossfade; silence while Type,
+  Drive, Bias and Gate move; the anti-aliased mean against quadrature;
+  aliasing against a plain curve; the emphasis; and the host rates it
+  accepts (8–384 kHz).
 
 ## Echo
 
@@ -394,7 +539,7 @@ the registry defines.
 
 **The ENUM parameters** [verified against each engine's code, 2026-10-02].
 docs/15's table had eight; Macro's and Macro Heavy's LPG came with their
-third page.
+third page, Drive's Type and Auto with the effect.
 
 | Engine | Parameter | Flags | Why |
 | --- | --- | --- | --- |
@@ -408,11 +553,14 @@ third page.
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
 | sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
 | filter | Type | MOD | A change crossfades the old type into the new over 5 ms (the new from rest), so nothing is cut: lockable, and a rounded route steps through the types. Neither NOLOCK nor LATCH (an effect has no note-on) describes it |
+| drive | Type | none | A change crossfades the two curves over 5 ms, so a lock is clean. No MOD: a rounded route would step between Types, not sweep |
+| drive | Auto | none | Its gain glides like any other, so it can be locked |
 
 **Units and abbreviations.** Echo's Time and Sophie's Ring Time are in ms,
-Filter's Cutoff in Hz, Sophie's Tune in semitones and its 0–100 knobs in %. Sophie's Decay is in
-seconds, for which there is no unit code yet, so it has none. Every other
-parameter is a bare number (the 0–1 knobs, gains, bits, indices).
+Filter's Cutoff in Hz, Sophie's Tune in semitones and its 0–100 knobs in %.
+Sophie's Decay is in seconds and Drive's Drive and Level in decibels, for
+which there are no unit codes yet, so they have none. Every other parameter
+is a bare number (the 0–1 knobs, gains, bits, indices).
 
 **No sound changed** [verified 2026-10-02, Apple clang, before and after on
 one machine, clean builds]: 1,458 runs of `fm1-render` and the virtual
@@ -449,7 +597,7 @@ sound).
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Echo, [Filter](#filter)) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
 | `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |

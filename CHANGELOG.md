@@ -58,6 +58,20 @@ history.
   for sample like the desktop build (checked against GCC with glibc and
   musl). Four new parity scenarios cover its seven types; the browser module
   needs its rebuild.
+- **Drive**, a new effect: overdrive and saturation, written for this
+  project. Type picks the curve: Soft (smooth, tanh-like), Tube (uneven,
+  with a second harmonic at every level), Diode (a harder knee), Fuzz (a
+  hard, lopsided clip with a built-in gate) or Tape (gentle, with loud highs
+  saturating first and coming out softened); changing it crossfades instead
+  of clicking. Drive (−12 to +36 dB), Tone (a tilt: darker to the left,
+  thinner to the right, flat in the middle) and Mix on the first page; Bias
+  (uneven clipping), Gate (quiet parts drop out, a sputtering fuzz), Level
+  and Auto on the second. With Auto on, the default, Drive changes the
+  character and not the loudness. Its anti-aliasing keeps the harsh tones a
+  plain digital clipper folds back below 5 kHz 21–29 dB lower. Silence stays
+  silent at any setting. Parameters and design in `engines/README.md`, and
+  a section in chapter 6 of the manual. Two new parity scenarios cover it;
+  the browser module has not been rebuilt with it yet.
 - A first look at the sequencer on the virtual FM-1's panel, behind a lab
   switch: add `?lab` (or `#lab`) to the page's address. The public page is
   unchanged until patterns can be made and recorded on the panel (docs/15

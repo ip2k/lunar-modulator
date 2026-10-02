@@ -33,6 +33,10 @@ terms it is used under.
   Plaits by **Emilie Gillet**; its anti-aliasing follows the method of
   **Parker, Zavalishin and Le Bivic** (DAFx-16). No code is taken from any
   of them.
+- **Drive** is this project's own code: its curves are written here, its
+  tape emphasis follows tape's record and replay equalisation, and its
+  anti-aliasing follows the method of **Parker, Zavalishin and Le Bivic**
+  (DAFx-16). No code is taken from anyone.
 - **Echo** is this project's own code. Its ping-pong layout is the textbook
   one, after **Udo Zölzer**'s *DAFX*, and its 16-bit delay memory follows
   **Emilie Gillet**'s effects engine in Rings and Clouds; none of their code
