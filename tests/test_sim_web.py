@@ -87,15 +87,27 @@ def test_app_renders_what_fm1_render_renders(tools, tmp_path, s):
     """Same engines, same events at the same block boundaries, same bus
     limiter: with MASTER at full gain the app's WAV is fm1-render's, byte for
     byte. The browser runs this layer; parity.mjs checks the WebAssembly build
-    of it against fm1-render on aeon."""
+    of it against fm1-render on aeon. A scenario played on the panel
+    (`panel`, the lab switch on) is replayed by fm1-render from what the
+    harness logged (--log-cmds and its .args sidecar), as parity.mjs does."""
     ref, app = tmp_path / "ref.wav", tmp_path / "app.wav"
     logs = []
     if "cmd" in s:          # a sequencer script: the event logs must match too
         logs = [tmp_path / "ref.jsonl", tmp_path / "app.jsonl"]
-    ref_summary = run(tools["render"], scenario_args(s) + ["--out", str(ref)]
-                      + (["--log-events", str(logs[0])] if logs else []))
-    summary = run(tools["sim"], scenario_args(s) + ["--out", str(app)]
+    sim_args = scenario_args(s)
+    ref_args = scenario_args(s)
+    if "panel" in s:
+        sim_args += ["--lab"] * bool(s.get("lab")) + [
+            "--panel", str(SIM / "test" / s["panel"]), "--log-cmds", str(tmp_path / "c.verbs")]
+    summary = run(tools["sim"], sim_args + ["--out", str(app)]
                   + (["--log-events", str(logs[1])] if logs else []))
+    if "panel" in s:
+        assert summary["replayable"] == 1 and summary["seq_ui_cmds"]
+        ref_args = (["--seconds", str(s["seconds"]), "--rate", str(s.get("rate", 44118)),
+                     "--cmd", str(tmp_path / "c.verbs")]
+                    + (tmp_path / "c.args").read_text().splitlines())
+    ref_summary = run(tools["render"], ref_args + ["--out", str(ref)]
+                      + (["--log-events", str(logs[0])] if logs else []))
     assert summary["engine"] == s["engine"]
     assert app.read_bytes() == ref.read_bytes()
     assert summary["peak"] > 0.01, "the scenario makes no sound"
@@ -138,7 +150,7 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
     print(f"sizeof(fm1_app_t) = {z['app_bytes']} B")
-    assert z["seq_tracks"] == 8                                   # owner decision O3: 8 until decided
+    assert z["seq_tracks"] == 8                                   # owner decision O3 (2026-10-02)
     assert (z["seq_bytes_8"], z["seq_bytes_4"]) == (31880, 18056)
     assert z["seq_bytes_8"] <= z["seq_arena"] == 32768
     assert (z["seq_event_bytes"], z["seq_pending_bytes"]) == (3072, 240)
@@ -146,6 +158,7 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     assert total == 36216 <= z["seq_budget"] == 36864
     assert z["app_bytes"] <= 1_210_000
     assert z["seq_need"] == 201 <= z["seq_events"] == 256
+    assert z["seq_ui_size"] <= z["seq_ui_bytes"]
     script = f"#! rate={RATE} block=64 tracks=8 end=6400\n@0 tog 0 0 60 100\n@0 play\n"
     for tracks, size in ((8, 31880), (4, 18056)):
         s, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}")
@@ -323,13 +336,19 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     each list entry, the global page and every popup (the refusals, SEL
     outside FX mode and an emptied slot included): no text off screen or cut
     short, and no two labels, or a label and a bar, closer than 4 px
-    (FM1_APP_LAYOUT_GAP)."""
+    (FM1_APP_LAYOUT_GAP). With the lab switch on, SEQ mode's Track view:
+    empty, the demo pattern, the playhead on its first and last step, 20 and
+    300 BPM playing and stopped, a four-bar clip, a loop inside it, a track
+    with no clip, popups over it, and the hint line with every sound's every
+    knob at its extremes and list entries, and every model; the harness
+    also checks there that PLAY/STOP and SEQ light their LEDs, that HOME, FX
+    and GLO leave SEQ mode, and that the switch off brings the stubs back."""
     res = subprocess.run([str(tools["sim"]), "--screens", str(tmp_path)],
                          capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 280
+    assert summary["screens"] >= 815             # 335 before the Track view (docs/15 S3)
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 
@@ -371,6 +390,64 @@ def test_buttons_and_encoders(tools, tmp_path):
     g = run(tools["sim"], ["--engine", "macro", "--seconds", "0.2", "--button", "0:GLO",
                            "--turn", "0.01:ALGORITHM:3"])
     assert g["mode"] == 2 and g["values0"][0] == 3        # GLO page; ALGORITHM = Model
+
+
+# ---- The sequencer on the panel, lab switch on (docs/15 S3) ----------------------------------
+
+PATTERN = "#! rate=44118 block=64 tracks=8 end={end}\n@0 tog 0 0 60 100;tog 0 4 64 100;tog 0 8 67 100\n"
+WHITE = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26]   # white key n -> key index
+
+
+def lab_run(tools, tmp_path, seconds, *panel, lab=True):
+    script = tmp_path / "pattern.verbs"
+    script.write_text(PATTERN.format(end=int(seconds * 44118)))
+    return run(tools["sim"], [*(["--lab"] if lab else []), "--engine", "test-sine", "--cmd", str(script),
+                              *panel])
+
+
+def test_play_lights_its_led_while_playing(tools, tmp_path):
+    playing = lab_run(tools, tmp_path, 0.6, "--button", "0.1:PLAY/STOP")
+    assert playing["leds"][27 + 12] == "1" and playing["seq_view"]["playing"] == 1
+    stopped = lab_run(tools, tmp_path, 0.6, "--button", "0.1:PLAY/STOP", "--button", "0.4:PLAY/STOP")
+    assert stopped["leds"][27 + 12] == "0" and stopped["seq_view"]["playing"] == 0
+    assert [t for _, t in stopped["seq_ui_cmds"]] == ["play", "stop"]
+
+
+def test_seq_opens_seq_mode(tools, tmp_path):
+    s = lab_run(tools, tmp_path, 0.3, "--button", "0.1:SEQ")
+    assert s["mode"] == 3 and s["leds"][27 + 11] == "1" and s["popup"] == []
+    home = lab_run(tools, tmp_path, 0.3, "--button", "0.1:SEQ", "--button", "0.2:HOME")
+    assert home["mode"] == 0 and home["leds"][27 + 11] == "0"
+
+
+@pytest.mark.parametrize("seconds", [0.30, 0.55, 0.80, 1.05, 1.30, 1.55, 1.80, 2.05])
+def test_key_leds_follow_the_playhead_in_seq_mode(tools, tmp_path, seconds):
+    """In SEQ mode the white keys show the bar: a step with a note lit, the
+    playhead's step inverted; the playhead moves on with the transport."""
+    s = lab_run(tools, tmp_path, seconds, "--button", "0.05:SEQ", "--button", "0.1:PLAY/STOP")
+    v = s["seq_view"]
+    assert v["clip_playing"] == 1
+    head = v["step"] % 16
+    expected = {0, 4, 8} ^ {head}
+    lit = {n for n in range(16) if s["leds"][WHITE[n]] == "1"}
+    assert lit == expected
+    assert v["key_leds"] == sum(1 << n for n in expected)
+    # 120 BPM: a step is 0.125 s from the block PLAY went in at (frame 4416);
+    # the run ends 0.6 of a step into one, so rounding cannot move it.
+    assert head == int((seconds * 44118 - 4416) / 44118 * 8) % 16
+
+
+def test_home_key_leds_are_unchanged(tools, tmp_path):
+    """Outside SEQ mode the sequencer's notes light no key (owner decision
+    O6): HOME's key LEDs while the pattern plays are those of a run without
+    the lab switch, the keys held and nothing else."""
+    lab = lab_run(tools, tmp_path, 0.7, "--button", "0.1:PLAY/STOP", "--key", "0.2:5:100:0.4")
+    off = lab_run(tools, tmp_path, 0.7, "--key", "0.2:5:100:0.4", lab=False)
+    assert lab["mode"] == off["mode"] == 0
+    assert lab["leds"][:27] == off["leds"][:27] == "0" * 27
+    held = lab_run(tools, tmp_path, 0.5, "--button", "0.1:PLAY/STOP", "--key", "0.2:5:100:0.4")
+    assert held["leds"][:27] == "0" * 5 + "1" + "0" * 21
+    assert lab["seq_notes_to_engine"] > 0
 
 
 def test_emptying_a_slot_returns_to_its_one_page(tools):
@@ -471,8 +548,9 @@ def test_the_staleness_gate_covers_what_the_module_links():
         sys.path.pop(0)
     hashed = {p.relative_to(ROOT).as_posix() for p in sim_files(ROOT)}
     for s in SCENARIOS:
-        if "cmd" in s:
-            assert f"sim/web/test/{s['cmd']}" in hashed, s["name"]
+        for key in ("cmd", "panel"):
+            if key in s:
+                assert f"sim/web/test/{s[key]}" in hashed, s["name"]
     want = [p.relative_to(ROOT).as_posix() for p in (ENGINES / "seq").glob("*.[ch]")]
     want += ["engines/include/fm1_seq.h", "engines/include/fm1_seq_host.h"]
     assert want and not [w for w in want if w not in hashed]

@@ -1741,3 +1741,27 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
 | O22 | Pitches on a held step: how a pitch is added or removed, and how that coexists with SHIFT + N shortcuts and `aclrs` | With a step held, SHIFT turns the white keys into pitches in the current octave, each press sending `addp`. SHIFT + N shortcuts apply only with no step held. Step + SHIFT + one knob detent stays `aclrs`. The black keys keep their roles, so SHIFT + ◀ ▶ still nudges by one tick, and sharps come from MIDI IN or a chord played in KEYS mode first. Open: how a pitch is removed. docs/13 §4 is updated to match | S4 |
 | O23 | Text in the Track view's knob strip | (b): four bars only, with the turned knob's name and value on the hint line in 2× text. The alternatives are (a) 1× text with short names, or (c) a 2 × 2 layout | S3 |
 | O24 | Whether intermediate stages ship on the public page, now that every merge to main deploys | Ship each stage, with manual chapter 07 saying what works, rather than hiding SEQ mode behind a flag until S5 or S6. A flag would add a code path to test | S3 |
+
+**Answered by the owner, 2026-10-02** (for S3; recorded when S3 landed):
+- **O1, O2:** as proposed. In SEQ mode the black keys carry the
+  sequencer's roles and SEL is SHIFT; every printed button keeps its
+  meaning (S4).
+- **O3:** 8 tracks.
+- **O4:** yes, the demo pattern: one bar of 16 steps on track 0 (track 1 to
+  the user), applied only by the browser's start chain, never in tests or
+  parity runs.
+- **O6:** no, sequencer notes do not light the key LEDs outside SEQ mode.
+- **O19:** Space is PLAY/STOP when no button has focus (S3); the step keys
+  come in S4.
+- **O23:** option (b), four bars in the knob strip and the turned knob's
+  name and value on the hint line in 2x text.
+- **O24, changed:** hide the sequencer from the public page until it is
+  usable, that is until step entry and recording (S5, S6). S3 adds a
+  runtime lab switch instead: the page turns it on for an address with
+  `?lab` or `#lab` and passes it to the module (`fm1w_set_lab`). Off, SEQ,
+  PLAY/STOP and REC behave as before S3, Space does nothing, no sequencer
+  UI is reachable and the demo pattern is not loaded; the parity runs,
+  gesture traces and the layout sweep cover the lab-on screens and keep
+  the lab-off ones. The switch is documented in sim/web/README.md, not in
+  the user manual, and the manual's chapter 07 stays as it is while the
+  features are hidden.

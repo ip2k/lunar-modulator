@@ -68,10 +68,16 @@
         SELECT swaps them), GLO the global page, HOME goes back. MASTER is the volume.
         <kbd>Esc</kbd> releases every note.</dd></div>
       <div><dt>MIDI</dt><dd>Notes, pitch bend (&plusmn;2 semitones), CC&nbsp;7 volume, CC&nbsp;123 all notes off.</dd></div>
+      <div data-lab hidden><dt>Sequencer (lab)</dt><dd>A preview of work in progress. PLAY/STOP, or
+        <kbd>Space</kbd>, starts and stops the sequencer, which holds a one-bar demo pattern on track 1.
+        SEQ shows the track: the tempo, the transport and four bars of steps with the playhead, which
+        the white keys' lights follow; HOME, FX or GLO go back. The knobs still turn the sound, and the
+        one you turn shows its name and value. Making patterns on the panel comes later.</dd></div>
     </dl>
     <p class="fine">Panel to scale from the M-VAVE manual's dimensions (161.5 &times; 96.5&nbsp;mm) and the
-      owner's board photo; the encoders' printed names and the 14 buttons are the manual's. ENV, LFO, EDIT,
-      SAVE, ARP, SEQ, PLAY/STOP and REC are not in the simulator yet. Engines credit Emilie Gillet
+      owner's board photo; the encoders' printed names and the 14 buttons are the manual's. <span
+      data-lab-off>ENV, LFO, EDIT, SAVE, ARP, SEQ, PLAY/STOP and REC are not in the simulator yet.</span><span
+      data-lab hidden>ENV, LFO, EDIT, SAVE, ARP and REC are not in the simulator yet.</span> Engines credit Emilie Gillet
       (Mutable Instruments, MIT) and the Schwung module authors; see the repository's
       <code>engines/README.md</code>. Colours: Ros&eacute; Pine Moon (MIT). Type: Audiowide by
       Astigmatic (SIL Open Font License 1.1, <a href="fonts/audiowide/OFL.txt">licence</a>).

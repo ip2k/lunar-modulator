@@ -1,0 +1,5 @@
+# Two presses before the next block: the second sees the first (stop after
+# play, in the same block), then a third plays.
+--button 0.1000:PLAY/STOP
+--button 0.10005:PLAY/STOP
+--button 0.50:PLAY/STOP

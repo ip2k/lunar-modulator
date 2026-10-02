@@ -86,3 +86,33 @@ int fm1w_seq_reset(int tracks) {
 
 /* Events dropped since init (0 unless a note may have hung). */
 unsigned fm1w_seq_dropped(void) { return (unsigned)fm1_app_seq_dropped(&g_app); }
+
+/* The lab switch (fm1_app_set_lab): the page turns it on for an address
+ * with ?lab or #lab, before fm1w_default_chain, which then loads the demo
+ * pattern. Off, the sequencer stays off the panel. */
+void fm1w_set_lab(int on) { fm1_app_set_lab(&g_app, on); }
+
+/* A snapshot of the transport for the page's status line, refreshed by each
+ * call: eight 32-bit words, [0] playing, [1] tempo in hundredths of a BPM,
+ * [2] recording, [3] the watched track, [4] counting in, [5] following an
+ * external clock, [6] and [7] the master tick's low and high halves. */
+static uint32_t g_seq_info[8];
+
+const uint32_t *fm1w_seq_info(void) {
+  fm1_seq_info_t i;
+  const fm1_seq_t *s = fm1_app_seq(&g_app);
+  if (!s) {
+    for (int k = 0; k < 8; ++k) g_seq_info[k] = 0;
+    return g_seq_info;
+  }
+  fm1_seq_get_info(s, &i);
+  g_seq_info[0] = i.playing;
+  g_seq_info[1] = i.bpm_x100;
+  g_seq_info[2] = i.recording;
+  g_seq_info[3] = i.watch_track;
+  g_seq_info[4] = i.counting_in;
+  g_seq_info[5] = i.following;
+  g_seq_info[6] = (uint32_t)i.master_tick;
+  g_seq_info[7] = (uint32_t)(i.master_tick >> 32);
+  return g_seq_info;
+}

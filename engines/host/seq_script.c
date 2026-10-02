@@ -173,3 +173,76 @@ void fm1_script_log_event(FILE *f, uint64_t block, uint64_t block_start, const f
     break;
   }
 }
+
+/* ---- Typed commands as text (fm1_seq_cmd_format) --------------------------
+ * The names are seq_cmd.c's, by verb; the round-trip check in
+ * tests/test_seq_ui.py (fm1-sim-render --format-check) parses every one
+ * back, so this table cannot drift from the parser unnoticed. */
+static const char *const kVerbName[FM1_SEQ_V_COUNT] = {
+  [FM1_SEQ_V_UNKNOWN] = "?",
+  [FM1_SEQ_V_PLAY] = "play", [FM1_SEQ_V_STOP] = "stop", [FM1_SEQ_V_LINK] = "link",
+  [FM1_SEQ_V_MINJECT] = "minject", [FM1_SEQ_V_BPM] = "bpm", [FM1_SEQ_V_SWING] = "swing",
+  [FM1_SEQ_V_WATCH] = "watch", [FM1_SEQ_V_WLANE] = "wlane", [FM1_SEQ_V_TDRUM] = "tdrum",
+  [FM1_SEQ_V_MUTE] = "mute", [FM1_SEQ_V_PMUTE] = "pmute", [FM1_SEQ_V_PSOLO] = "psolo",
+  [FM1_SEQ_V_TOG] = "tog", [FM1_SEQ_V_EVEL] = "evel", [FM1_SEQ_V_ELEN] = "elen",
+  [FM1_SEQ_V_ENUDGE] = "enudge", [FM1_SEQ_V_ETRN] = "etrn", [FM1_SEQ_V_HOLD] = "hold",
+  [FM1_SEQ_V_SLEN] = "slen", [FM1_SEQ_V_CLEN] = "clen", [FM1_SEQ_V_CSCL] = "cscl",
+  [FM1_SEQ_V_CTR] = "ctr", [FM1_SEQ_V_EPROB] = "eprob", [FM1_SEQ_V_ECOND] = "econd",
+  [FM1_SEQ_V_EINV] = "einv", [FM1_SEQ_V_REC] = "rec", [FM1_SEQ_V_CAP] = "cap",
+  [FM1_SEQ_V_CAPCLR] = "capclr", [FM1_SEQ_V_CAPSEL] = "capsel",
+  [FM1_SEQ_V_CAPDONE] = "capdone", [FM1_SEQ_V_METRO] = "metro", [FM1_SEQ_V_CQ] = "cq",
+  [FM1_SEQ_V_DQ] = "dq", [FM1_SEQ_V_NON] = "non", [FM1_SEQ_V_NOF] = "nof",
+  [FM1_SEQ_V_DEL] = "del", [FM1_SEQ_V_CLIPDUP] = "clipdup", [FM1_SEQ_V_CLIPDEL] = "clipdel",
+  [FM1_SEQ_V_CLIPSEL] = "clipsel", [FM1_SEQ_V_LAUNCH] = "launch", [FM1_SEQ_V_SONG] = "song",
+  [FM1_SEQ_V_SONGADD] = "songadd", [FM1_SEQ_V_STOPTRK] = "stoptrk",
+  [FM1_SEQ_V_CLIPCOPY] = "clipcopy", [FM1_SEQ_V_CLIPPASTE] = "clippaste",
+  [FM1_SEQ_V_CLIPDELAT] = "clipdelat", [FM1_SEQ_V_CPY] = "cpy", [FM1_SEQ_V_PST] = "pst",
+  [FM1_SEQ_V_CPYCLR] = "cpyclr", [FM1_SEQ_V_ADDP] = "addp", [FM1_SEQ_V_LOOP] = "loop",
+  [FM1_SEQ_V_DBL] = "dbl", [FM1_SEQ_V_LTOG] = "ltog", [FM1_SEQ_V_ALABEL] = "alabel",
+  [FM1_SEQ_V_ABASE] = "abase", [FM1_SEQ_V_ABASEQ] = "abaseq", [FM1_SEQ_V_ASET] = "aset",
+  [FM1_SEQ_V_ACLR] = "aclr", [FM1_SEQ_V_ACLRS] = "aclrs", [FM1_SEQ_V_ACLRSTEP] = "aclrstep",
+  [FM1_SEQ_V_ASETR] = "asetr", [FM1_SEQ_V_USNAP] = "usnap", [FM1_SEQ_V_USWAP] = "uswap",
+  [FM1_SEQ_V_UCOMMIT] = "ucommit", [FM1_SEQ_V_UDROP] = "udrop", [FM1_SEQ_V_UCLR] = "uclr",
+  [FM1_SEQ_V_ROUTE] = "route",
+};
+
+const char *fm1_seq_verb_name(unsigned v) { return v < FM1_SEQ_V_COUNT ? kVerbName[v] : NULL; }
+
+/* Does `text` spell the integer v as a token fm1_seq_parse reads (an
+ * optional sign and digits only)? */
+static int spells(const char *text, int64_t v) {
+  fm1_seq_cmd_t c;
+  char op[2 + FM1_SEQ_LABEL_MAX];
+  size_t n = strlen(text);
+  if (!n || n >= FM1_SEQ_LABEL_MAX) return 0;
+  memcpy(op, "? ", 2);
+  memcpy(op + 2, text, n);
+  /* As the first argument of an unknown verb: parsed, never applied. */
+  return fm1_seq_parse(op, n + 2, &c) && (c.valid & 1u) && c.arg[0] == v;
+}
+
+size_t fm1_seq_cmd_format(const fm1_seq_cmd_t *c, char *buf, size_t cap) {
+  char tmp[640];
+  size_t len = 0;
+  const char *name = fm1_seq_verb_name(c->verb);
+  int n = snprintf(tmp, sizeof tmp, "%s", name ? name : "?");
+  len = n > 0 ? (size_t)n : 0;
+  for (unsigned i = 0; i < c->argc && i < FM1_SEQ_CMD_ARGS && len < sizeof tmp; ++i) {
+    const int valid = (c->valid >> i) & 1u;
+    if (i == 2 && c->text[0] && (!valid || spells(c->text, c->arg[2]))) {
+      n = snprintf(tmp + len, sizeof tmp - len, " %s", c->text);
+    } else if (valid) {
+      n = snprintf(tmp + len, sizeof tmp - len, " %lld", (long long)c->arg[i]);
+    } else {
+      n = snprintf(tmp + len, sizeof tmp - len, " _");
+    }
+    if (n > 0) len += (size_t)n;
+  }
+  if (len >= sizeof tmp) len = sizeof tmp - 1u;
+  if (cap) {
+    const size_t m = len < cap - 1u ? len : cap - 1u;
+    memcpy(buf, tmp, m);
+    buf[m] = '\0';
+  }
+  return len;
+}
