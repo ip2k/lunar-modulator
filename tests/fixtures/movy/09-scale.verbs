@@ -1,0 +1,24 @@
+#! rate=44118 block=128 tracks=4
+# 09 Clip scale (R3 f). Each master tick adds num to the track's accumulator
+# and runs step_tick while it reaches den; gates count in clip ticks, so they
+# scale too. A bar launch keeps the accumulator; Play zeroes it. Entering a
+# note in the selected slot while playing queues that slot to the bar.
+@0 tog 0 0 60 100
+@0 tog 0 4 62 100
+@0 tog 0 8 64 100
+@0 tog 0 12 65 100
+@0 cscl 0 2 1
+@0 tog 1 0 48 100
+@0 tog 1 4 50 100
+@0 cscl 1 1 2
+@0 tog 2 0 55 100
+@0 tog 2 1 57 100
+@0 tog 2 2 59 100
+@0 tog 2 3 60 100
+@0 cscl 2 3 4
+@0 play
+@40000 cscl 2 4 3
+@44000 clipsel 2 1
+@44000 tog 2 0 52 100
+@44000 cscl 2 2 3
+@95000 stop

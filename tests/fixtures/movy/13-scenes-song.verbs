@@ -1,0 +1,22 @@
+#! rate=44118 block=128 tracks=4
+# 13 Scenes and song (R11). `song <s>` starts a new song from scene s and
+# launches it (Movy's scene press); `songadd` appends. A scene lasts its
+# longest clip rounded up to whole bars; the next scene is armed a bar early;
+# a repeated scene is one entry and is not relaunched; an empty scene stops
+# every track and ends the song while the transport runs on. Play restarts
+# the song from its first entry.
+# Scene 0: track 0 a bar, track 1 half a bar. Scene 1: track 0 only.
+@0 tog 0 0 60 100
+@0 tog 0 8 62 100
+@0 tog 1 0 48 100
+@0 clen 1 8
+@0 clipsel 0 1
+@0 tog 0 0 67 100
+@0 clen 0 4
+@0 clipsel 0 0
+@0 song 0
+@0 songadd 0
+@0 songadd 1
+@0 songadd 2
+@360000 play
+@380000 stop

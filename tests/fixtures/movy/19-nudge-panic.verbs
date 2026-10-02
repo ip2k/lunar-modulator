@@ -1,0 +1,22 @@
+#! rate=44118 block=128 tracks=4
+# 19 Movy's side of docs/13 D5. Nudge and length caps use length_ticks where
+# the loop end is meant. In a window at steps 16-31 a +1 nudge on step 16
+# moves the note back to tick 383; on step 17 clamp(lo, hi) gets lo > hi and
+# Movy panics; movy-dsp catches it and the rest of that command is lost (step
+# 20 is not nudged). The same happens with no offset when a clip is
+# shortened under its notes (track 1). elen on step 20 collapses the gate
+# to 1 tick. The oracle's summary lists both panics.
+@0 tog 0 16 60 100
+@0 tog 0 17 62 100
+@0 tog 0 20 64 100
+@0 loop 0 16 16
+@0 enudge 0 16 20 -1 1
+@0 elen 0 20 20 -1 10
+@0 tog 1 0 48 100
+@0 tog 1 6 50 100
+@0 tog 1 9 52 100
+@0 clen 1 4
+@0 enudge 1 0 15 -1 2
+@0 clen 1 16
+@0 play
+@90000 stop

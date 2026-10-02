@@ -38,7 +38,7 @@ names below are in `engine/crates/seq-core/src/`; `movy-dsp/` is under
 | --- | --- |
 | Can the FM-1 replicate it? | **Yes, the sequencer, closely** [inferred]. `seq-core` is about 5,100 lines of dependency-free Rust logic [verified: `lib.rs` 1–2, `Cargo.toml`], and nothing in it needs Linux. A C99 rewrite can reproduce its event stream tick for tick. The Move's surface and Schwung's chains cannot be copied. |
 | How closely? | **Engine:** tick-identical in a `compat` mode used for tests. The shipped default adds sample offsets and fixes behaviours that look like bugs (§3.3). **UI:** every core gesture gets an FM-1 equivalent. Touch gestures and the pad grid are substituted (§4). |
-| What does it cost? | [inferred] **RAM:** about 72 KiB for Movy's whole 16 × 8 grid, with pooled storage: 18.9 % of the 387,924 B stock gap (§5). **CPU:** under 1 % typical, and bounded at worst by a fire-tick index. **Code:** about 4–6k lines of C for the core and 3–5k for the FM-1 UI. |
+| What does it cost? | [inferred] **RAM:** about 72 KiB for Movy's whole 16 × 8 grid, with pooled storage: 18.9 % of the 387,924 B stock gap (§5). **CPU:** under 1 % typical. A fire-tick index makes a scan cost the notes due, not the notes stored, but that is not a bound: every note can fall due on one tick, and Movy's core runs up to 255 clip steps per tick (D8 clamps that to 4). The desktop worst case is in engines/seq.md; stage B measures pi32v2. **Code:** about 4–6k lines of C for the core and 3–5k for the FM-1 UI. |
 | What has to change? | Fixed pools instead of `Vec`s; binary undo; direct `set_param` lanes instead of CC 102+lane, which is Movy's own plan D1 [reported: `plans/2026-09-30-drum-modules-schwung-pages.md` line 76]; frame offsets; tracks routed to the engine or to USB-MIDI. **For this goal, docs/12's Elektron revert rule and its MCL lock store are superseded** by Movy's latch and sparse locks. |
 | What gates it? | Nothing on the desktop. On the device, the one rule (CLAUDE.md, docs/07). A differential test needs the owner's approval to build Movy's code (§7). |
 
@@ -92,19 +92,33 @@ Its README calls it an early prototype [reported].
 
 ### 3.3 Deliberate deviations (a `compat` flag turns each off for tests)
 
+The owner's answer (§10, 1) is to fix everything that can be fixed. D1–D7
+come from the plan; D8–D13 from running Movy as an oracle and from the
+review of the C core (2026-10-01): each is a Movy behaviour that the code,
+the oracle or both show [verified], with no Movy test pinning it.
+
 | # | Movy at `9190e79` | FM-1 default | Why |
 | --- | --- | --- | --- |
-| D1 | Events at the block start (128 frames) | Each tick at its own frame: offset `k−1`, where `k = ceil((thr − accum)/(bpm_x100·96))` [inferred] | Sample-accurate timing with the same tick counts |
+| D1 | Events at the block start (128 frames) | Each tick at its own frame: offset `k−1`, where `k = ceil((thr − accum)/(bpm_x100·96))` [inferred]. Following an external clock, the frame at which the follow target reaches the tick, as Movy fed one frame at a time would fire it [verified: oracle fixtures 23, 24] | Sample-accurate timing with the same tick counts |
 | D2 | After Play or a launch, the first step's locks come after its note-ons | Emit them before the scan when `last_auto_step == −1` | LATCH engines read at note-on. Movy's plan Phase 2 wants a test pinning the same [reported: the plan, lines 214–218] |
 | D3 | After a count-in, step 0 plays at master tick 383, while the bar falls at 384 [inferred from 2062–2094] | Start on 384 | Keeps clips aligned with later launches |
-| D4 | An overdub note in the last half-step anchors to the loop-end step and grows the clip by a bar [inferred from 377–390; `clip.rs` 342–353, 400–409] | Clamp it to the last step, as Capture does (1429–1431) | The clip silently doubles |
-| D5 | With `loop_start` > 0, nudge's `clamp(lo, hi)` can get lo > hi, which panics in Rust, and length caps collapse to 1 tick, because the code uses `length_ticks` [verified: `clip.rs` 544–614, 665–676] | Use `loop_end_ticks` | A crash and data loss |
-| D6 | Stop leaves lanes at their last lock (960–981) | Send `base` for every lane whose `auto_cur` differs | Matches docs/12 §5.5 rule 4. **The owner's call** |
-| D7 | Unbounded gate and item lists | 64 gates, freeing the oldest; edits refused, with a toast, when a pool is full | There is no heap |
+| D4 | An overdub note in the last half-step anchors to the loop-end step and grows the clip by a bar [inferred from 377–390; `clip.rs` 342–353, 400–409]. So does a first take's, which is meant to grow, except in a 16-bar clip, which cannot: its note stays on step 256 | Clamp it to the last step, as Capture does (1429–1431); a first take's too once its clip is 16 bars long | The clip silently doubles, or a note sits where only R5's fold-back plays it |
+| D5 | With `loop_start` > 0, nudge's `clamp(lo, hi)` can get lo > hi, which panics in Rust, and length caps collapse to 1 tick, because the code uses `length_ticks` [verified: `clip.rs` 544–614, 665–676]. Capture into a clip with notes clamps anchors to `len_steps − 1`, before such a window (1429–1431) [verified] | Use `loop_end_ticks`, and the window's last step | A crash and data loss. In compat the C core reproduces the panic: the edit stops at that note and the rest of its batch is lost, as movy-dsp's `catch_unwind` leaves it [verified: oracle fixture 22] |
+| D6 | Stop leaves lanes at their last lock (960–981); so do a track stopping at the bar and a lane released while it holds a lock's value (`aclr`, `aclrs`, `aclrstep`, `clipdel` …) | Send `base` for every lane whose `auto_cur` differs: at Stop, at a track's stop on the bar (after its note-offs) and when a lane is released | Matches docs/12 §5.5 rule 4. **The owner's call**. Otherwise a parameter stays at a value no lock asks for until the knob moves |
+| D7 | Unbounded gate and item lists | 64 gates, freeing the oldest; edits refused, with a toast, when a pool is full. An edit that adds several items (a chord, `addp`, `asetr`, Double Loop, step copy and paste, a trig range) is applied whole or not at all | There is no heap |
+| D8 | Clip speed 1/255X–255X in the core (`command.rs` `cscl`, `persist.rs` `cp`), though the UI offers 1/8X–4X (`clip-scale.ts` 6–8) [reported for the UI] | Clamp to 1/8X–4X | At 255X one master tick runs 255 step_ticks per track: 2,817 events and 1.35 ms in one block on the desktop [verified: review, 2026-10-01] |
+| D9 | A bar launch or stop sends the outgoing clip's look-ahead lock one clip tick before the bar, a value for a step that never plays, then the new clip's (oracle fixture 05) | No look-ahead when a launch or stop already queued for the track falls before its next step | Two values in two ticks |
+| D10 | A live-recorded or captured note anchors to the nearest *swung* step but keeps the played tick; playback adds the swing again (R5), so an off-beat replays late by the swing at quantise below 100 (oracle fixture 14: played at 172, replayed at 178) | Store the tick less its anchor's swing | Quantise 0 replays what was played |
+| D11 | R5's "subtract the length once" folds a note anchored up to one window length past the loop end back into the window (after `clen` or `loop` shrinks a clip under its notes); a note on an offset window's first step that fires early never plays, though at step 0 it is clamped to tick 0 (oracle fixture 10) | A note anchored outside the window is silent; one inside never fires before the loop start | The LED (its step) and the sound disagree |
+| D12 | Play while playing restarts at tick 0 but sends neither Stop nor Start, so a MIDI clock follower is left out of phase (oracle fixture 06) | Stop at the restart, Start on the next block | Followers restart with us |
+| D13 | `aclr` unassigns a lane but keeps its base and carried value, which a lane labelled again resumes from (2342–2351) | Reset both, as `free_unused_lanes` does | A new lane starts clean |
+| (D14) | `undo_restore` wraps each playhead with `pos %= length_ticks` (2531–2536), below an offset window (oracle fixture 18) | Wrap within the window, when undo is ported (M4) | The D5 bug again |
 
 Kept as Movy has them: the single free-running RNG (tests reset it through
 a hook); a launch from stopped restarting every track whose `playing_slot`
-survived the stop (579–596, 678–681; §10); Play while playing restarts.
+survived the stop (579–596, 678–681; §10); Play while playing restarts (D12
+only adds the Stop and Start). A look-ahead lock for a launch queued after it
+was sent (D9 can only drop what it sees queued).
 
 ## 4. Mapping to the FM-1 [inferred unless marked]
 
@@ -204,6 +218,13 @@ gestures; a worst-case clip (15 KB) does not fit (§10).
 - **Typical:** 4 tracks of 128 notes at 120 BPM cost about 0.25 % with
   cached fire ticks, even without the index. Automation is one bit test per
   lane on an empty step.
+- **Worst case** [verified on the desktop, 2026-10-01]: the index bounds a
+  scan by the notes due, not by a constant. 8 tracks of 12-note chords on
+  every step with 8 locked lanes at 300 BPM and 4X (D8) cost 4.1–4.4 µs per
+  64-frame block on average and 81–83 µs in the worst block on an M1 Max,
+  with at most 193 events in one block; Movy's 255X ran 2,817 events in one
+  block. engines/seq.md lists what stage B must time on pi32v2
+  (tools/seq_bench.py writes the scripts).
 
 ## 6. Architecture of the port
 
@@ -354,11 +375,44 @@ about 90 KB [inferred], sent in chunks. Flash last: a binary image of about
    asked for an FM-1 emulator, or a virtual FM-1 with its screen in a
    browser, if one exists or can be made.
 
-5. **Capture and lock width:** Capture stays as an optional switch, because
-   it costs only about 3 KB. Lock values are 7-bit, as in Movy, behind one
-   typedef, and the engine-side SMOOTH ramp prevents zipper noise. A
-   per-parameter 14-bit "fine" option is added only if a real parameter
-   proves too coarse.
+5. **Capture and lock width (the owner's decision, 2026-10-01):** lock values
+   are 7-bit, as in Movy, behind `fm1_seq_val_t`, and the engine-side SMOOTH
+   ramp prevents zipper noise. A per-parameter 14-bit "fine" option is added
+   only if a real parameter proves too coarse. Capture (record-after) is an
+   optional limit, off by default, until the owner picks a ring size from the
+   measured costs below. The earlier estimate of about 3 KB was low.
+
+**Capture's cost** [verified: `fm1-seq --sizes`; 20 B per event as built,
+12 B planned in §5 [inferred]], against the half budget of 36,864 B:
+
+| Option | Bytes | 4 tracks | 8 tracks |
+| --- | --- | --- | --- |
+| Off (the default) | 0 | 14,984 (41 %) | 28,808 (78 %) |
+| Movy's 512 events × 20 B | 10,240 | 25,224 (68 %) | 39,048 (106 %) |
+| 256 events × 20 B (about 128 notes, Movy's 8-bar window when sparse) | 5,120 | 20,104 (55 %) | 33,928 (92 %) |
+| 512 × 12 B, packed | 6,144 | 21,128 (57 %) | 34,952 (95 %) |
+| 256 × 12 B, packed | 3,072 | 18,056 (49 %) | 31,880 (86 %) |
+| 128 × 12 B, packed (about 64 notes) | 1,536 | 16,520 (45 %) | 30,344 (82 %) |
+
+Besides the ring: about 1.55 KB of stack while a stopped capture searches
+its tempo (211 tempos in float, run inside the `cap` command), and undo,
+still to come (§5 planned a 12 KiB ring), shares what is left. At 4 tracks
+Movy's full Capture fits; at 8 tracks only a smaller or packed ring does.
+Capture matched Movy in 2,300 oracle scripts, 237 of them stopped captures.
+
+**Lock resolution** [verified: the core rebuilt with `fm1_seq_val_t` as
+`uint16_t` and a 14-bit maximum, no warnings]: 200 B per track (a lock grows
+from 3 to 4 B, the lane bases from 8 to 16 B), so 15,784 B at 4 tracks and
+30,408 B at 8 (82 %); events stay 12 B. What else widening needs: a `movy1`
+extension (Movy parses lock values as `u8` and clamps them to 127), and on
+USB-MIDI a CC pair or NRPN instead of CC 102+lane. Alternatives that keep
+7-bit storage [inferred]: map each lane's 0–127 onto a chosen range of its
+parameter (fine where it matters); smooth continuous parameters (the SMOOTH
+flag, §6) to hide 128-step zipper noise; widen only ENUM-free fine-tune
+lanes. The FM engine's own parameters are DX7-style, mostly 0–99
+[reported: the DX7 voice format msfa reads], so 7 bits cover them; the
+float parameters of the Macro and Six-Op engines are where 128 steps can be
+heard [inferred].
 
 The questions below are kept for the record; only 6 (hardware) remains open.
 
