@@ -1,12 +1,20 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "09df19c22f29fbc59d813ddc3203b1f1ba4a6fd4de7b7d2266357c717de7da11",
-  "wasm_bytes": 370735,
-  "sources_sha256": "dff42e3b2a41feb369035524362357196186116089cada6a338e1961b31d9dac",
+  "wasm_sha256": "daf69dbcb283dc6b4861f8faaca645f4e72d43dc9d00e85dee5d4318dc4e7143",
+  "wasm_bytes": 391141,
+  "sources_sha256": {
+    "engines": "cd9238df35d734ce857d95028b41bd1711d2eaa750b0ed46901b74413d296c2f",
+    "sim": "bbde1eeb20e29e7c7afda62f8191f7c7bcce4ed8058a51ad17ceb0234efeb4e5"
+  },
   "engines": "working tree",
-  "built": "2026-10-02T00:08:00Z",
+  "built": "2026-10-02T00:51:24Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "images": [
+    "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
+    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
+  ],
   "imports": [],
   "parity": {
     "passed": 12,
@@ -35,8 +43,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 87952,
-        "native64": 100848
+        "wasm32": 89200,
+        "native64": 102080
       }
     },
     {
@@ -57,8 +65,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 17616,
-        "native64": 30496
+        "wasm32": 18864,
+        "native64": 31728
       }
     },
     {
@@ -79,8 +87,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 36464,
-        "native64": 49344
+        "wasm32": 37712,
+        "native64": 50576
       }
     },
     {
@@ -101,8 +109,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 204932,
-        "native64": 205800
+        "wasm32": 206216,
+        "native64": 207080
       }
     },
     {
@@ -123,8 +131,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 270564,
-        "native64": 271448
+        "wasm32": 271848,
+        "native64": 272728
       }
     },
     {
@@ -145,8 +153,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 68304,
-        "native64": 68512
+        "wasm32": 70880,
+        "native64": 71088
       }
     },
     {
@@ -167,8 +175,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 202512,
-        "native64": 202736
+        "wasm32": 205088,
+        "native64": 205312
       }
     },
     {
@@ -189,8 +197,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 14276,
-        "native64": 16008
+        "wasm32": 15504,
+        "native64": 17232
       }
     },
     {
@@ -277,8 +285,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 83248,
-        "native64": 96144
+        "wasm32": 84496,
+        "native64": 97376
       }
     }
   ]

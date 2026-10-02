@@ -13,13 +13,18 @@
 # machine but ssh, tar and scp; nothing is installed on aeon's host.
 #
 # --engines-ref builds against engines/ as committed at GIT_REF instead of the
-# working tree, e.g. to try a branch that changes the engines; that module and
-# its record land in sim/web/build/ref-GIT_REF/, not in www/.
+# working tree, e.g. to try a branch that changes the engines; that module,
+# its record, parity.json and the screenshots land in sim/web/build/ref-GIT_REF/,
+# and www/ and the working tree's own results in sim/web/build/ stay as they
+# were. The record names each container image by digest, since tags move.
 #
 # Environment: FM1_AEON (ssh target, default claude@192.168.1.25),
 # FM1_REMOTE_DIR (default /home/claude/mvave-fm1/virtual), FM1_SESSION (the
 # session label on the containers). MIT licence, like the rest of this repository.
 set -euo pipefail
+# macOS tar would add AppleDouble ._* files (provenance attributes) to the
+# staged tree, and a scan of www/ then trips over them.
+export COPYFILE_DISABLE=1
 
 HOST=${FM1_AEON:-claude@192.168.1.25}
 REMOTE=${FM1_REMOTE_DIR:-/home/claude/mvave-fm1/virtual}
@@ -35,7 +40,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --engines-ref) ENGINES_REF=$2; shift 2 ;;
     --no-screenshot) SCREENSHOT=0; shift ;;
-    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
   esac
 done
@@ -56,6 +61,20 @@ fi
 tar -C "$ROOT" --no-xattrs --exclude='sim/web/build' --exclude='.DS_Store' --exclude='__pycache__' -cf - sim/web \
   | ssh "$HOST" "tar -x -C '$STAGE'"
 
+echo "== images (by digest)"
+IMAGES=("$ALPINE_IMAGE" "$EMSDK_IMAGE")
+if [ "$SCREENSHOT" = 1 ]; then IMAGES+=("$PLAYWRIGHT_IMAGE"); fi
+DIGESTS=$(ssh "$HOST" bash -s -- "${IMAGES[@]}" <<'REMOTE'
+for i in "$@"; do
+  docker image inspect "$i" >/dev/null 2>&1 || docker pull -q "$i" >/dev/null
+  d=$(docker image inspect --format '{{index .RepoDigests 0}}' "$i")
+  echo "$i@${d#*@}"
+done
+REMOTE
+)
+DIGESTS=$(printf '%s' "$DIGESTS" | paste -sd';' -)
+echo "$DIGESTS" | tr ';' '\n'
+
 echo "== static musl reference in $ALPINE_IMAGE"
 ssh "$HOST" "docker run --rm ${LABELS[*]} -v '$STAGE:/src' -w /src $ALPINE_IMAGE \
   sh -c 'apk add -q build-base >/dev/null && \
@@ -63,7 +82,7 @@ ssh "$HOST" "docker run --rm ${LABELS[*]} -v '$STAGE:/src' -w /src $ALPINE_IMAGE
            /src/sim/web/build/musl/fm1-render >/dev/null; s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
 echo "== build and parity in $EMSDK_IMAGE"
-ssh "$HOST" "docker run --rm ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' \
+ssh "$HOST" "docker run --rm ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' \
   -v '$STAGE:/src' -w /src $EMSDK_IMAGE \
   sh -c 'bash sim/web/build.sh; s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
@@ -77,19 +96,23 @@ if [ "$SCREENSHOT" = 1 ]; then
 fi
 
 echo "== fetching results"
-# A build of another ref's engines is a trial: its module goes to
-# build/ref-<ref>/, so www/fm1.wasm always matches this working tree.
+# A build of another ref's engines is a trial: its module and every result go
+# to build/ref-<ref>/, so www/fm1.wasm always matches this working tree and
+# build/ keeps this tree's parity and screenshots.
 if [ -n "$ENGINES_REF" ]; then
   DEST=$SIM/build/ref-$(printf '%s' "$ENGINES_REF" | tr -c 'A-Za-z0-9._-' '_')
+  RESULTS=$DEST
 else
   DEST=$SIM/www
+  RESULTS=$SIM/build
 fi
-mkdir -p "$DEST" "$SIM/build"
+mkdir -p "$DEST" "$RESULTS"
 scp -q "$HOST:$STAGE/sim/web/www/fm1.wasm" "$HOST:$STAGE/sim/web/www/fm1.wasm.json" "$DEST/"
-rm -rf "$SIM/build/screenshots" "$SIM/build/parity.json"
-scp -q "$HOST:$STAGE/sim/web/build/parity.json" "$SIM/build/"
-if [ "$SCREENSHOT" = 1 ]; then
-  scp -q -r "$HOST:$STAGE/sim/web/build/screenshots" "$SIM/build/"
+rm -f "$RESULTS/parity.json"
+scp -q "$HOST:$STAGE/sim/web/build/parity.json" "$RESULTS/"
+if [ "$SCREENSHOT" = 1 ]; then              # replaced only by a new set
+  rm -rf "$RESULTS/screenshots"
+  scp -q -r "$HOST:$STAGE/sim/web/build/screenshots" "$RESULTS/"
 fi
 python3 -c "import json,sys; r=json.load(open(sys.argv[1])); print(sys.argv[1], r['wasm_bytes'], 'bytes; parity', r['parity'])" \
   "$DEST/fm1.wasm.json"

@@ -1,6 +1,6 @@
 # Emulating the FM-1: what exists, and what each route would take
 
-Survey for the owner's question (docs/13 §8, answer 4): "If there's an
+Survey for the owner's question (docs/13 §10, answer 4): "If there's an
 emulator for the FM-1 or we can make one with a virtual screen output that
 runs in a browser, that might be awesome." Checked 2026-10-01 against the
 local clones under `reference/` and the web.
@@ -35,12 +35,14 @@ What it would have to model [inferred unless marked]:
   and an FPU. Sources: jielie's opcode tables, the SLEIGH modules, and JieLi's
   `objdump` as the decoding oracle (CLAUDE.md trap 4). Thousands of lines and
   a test corpus of decoded instructions.
-- **Speed.** The stock app keeps a 240 MHz core about two-thirds busy with 12
-  voices (docs/01 §5), so real-time audio needs on the order of 150 million
-  guest instructions a second. An interpreter in WebAssembly manages perhaps
-  50–300 million on a fast desktop; dependable real time needs a dynamic
-  recompiler to WebAssembly. Non-real-time (render to a buffer, then play) is
-  easier.
+- **Speed.** The stock app clocks its one core at 240 MHz of a possible
+  320 (docs/01 §1, §5); nothing has measured how much of that it uses. An
+  emulator that keeps up in the worst case must therefore run up to 240
+  million guest cycles a second, fewer if it skips the idle loop, which a
+  worst-case estimate cannot count on. An interpreter in WebAssembly manages
+  perhaps 50–300 million guest instructions a second on a fast desktop, so
+  dependable real time needs a dynamic recompiler to WebAssembly.
+  Non-real-time (render to a buffer, then play) is easier.
 - **Peripherals**, from WL82.h (AC79 SDK, Apache-2.0) and AL-255's notes:
   clocks and PLL, timers, the interrupt controller, the flash controller and
   XIP cache (SPI0, `0x11C00`; SFC `0x40200`), the TFT on SPI1 (`0x11D00`; an

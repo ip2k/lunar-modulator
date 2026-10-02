@@ -43,23 +43,26 @@ node "$SIM/test/parity.mjs" --native "$OUT/native/fm1-render" --sim "$OUT/native
 echo "== record"
 cp "$OUT/wasm/fm1.wasm" "$SIM/www/fm1.wasm"
 EMCC_VERSION=$(emcc --version | head -1) GCC_VERSION=$(gcc --version | head -1) \
-ENGINES_REF=${ENGINES_REF:-working tree} python3 - "$ROOT" "$OUT/parity.json" "$SIM/www" <<'EOF'
+ENGINES_REF=${ENGINES_REF:-working tree} FM1_IMAGES=${FM1_IMAGES:-} \
+python3 - "$ROOT" "$OUT/parity.json" "$SIM/www" <<'EOF'
 import hashlib, json, os, sys, datetime
 from pathlib import Path
 root, parity_path, www = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
 sys.path.insert(0, str(root / "sim" / "web" / "tools"))
-from source_hash import source_hash
+from source_hash import source_hashes
 parity = json.loads(parity_path.read_text())
 wasm = (www / "fm1.wasm").read_bytes()
 record = {
     "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
     "wasm_sha256": hashlib.sha256(wasm).hexdigest(),
     "wasm_bytes": len(wasm),
-    "sources_sha256": source_hash(root),
+    "sources_sha256": source_hashes(root),
     "engines": os.environ["ENGINES_REF"],
     "built": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     "emcc": os.environ["EMCC_VERSION"],
     "native_reference": os.environ["GCC_VERSION"],
+    # The containers by digest (build-on-aeon.sh passes them; tags move).
+    "images": [i for i in os.environ["FM1_IMAGES"].split(";") if i],
     "imports": parity["imports"],
     "parity": {k: v for k, v in parity.items() if k not in ("scenarios", "imports")},
     "scenarios": [
@@ -70,6 +73,16 @@ record = {
         for s in parity["scenarios"]
     ],
 }
-(www / "fm1.wasm.json").write_text(json.dumps(record, indent=2) + "\n")
+# A rebuild of the same module from the same sources keeps the old time, so
+# the committed record changes only when something it records did.
+path = www / "fm1.wasm.json"
+try:
+    old = json.loads(path.read_text())
+except (OSError, ValueError):
+    old = {}
+if (old.get("wasm_sha256"), old.get("sources_sha256")) == (record["wasm_sha256"],
+                                                            record["sources_sha256"]):
+    record["built"] = old.get("built", record["built"])
+path.write_text(json.dumps(record, indent=2) + "\n")
 print(json.dumps(record["parity"]))
 EOF

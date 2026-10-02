@@ -15,9 +15,13 @@
 </header>
 
 <main>
-  <div class="device" id="device">
-    <svg id="panel" viewBox="-3 -8 167.5 107" role="group" aria-label="FM-1 front panel"></svg>
-    <canvas id="tft" width="240" height="240" aria-label="FM-1 screen"></canvas>
+  <div class="device-wrap">
+    <div class="device-scroll" id="device-scroll">
+      <div class="device" id="device">
+        <svg id="panel" viewBox="-3 -8 167.5 107" role="group" aria-label="FM-1 front panel"></svg>
+        <canvas id="tft" width="240" height="240" aria-label="FM-1 screen"></canvas>
+      </div>
+    </div>
     <div class="power-overlay" id="power-overlay">
       <div class="power-card">
         <button type="button" id="power-on" class="power-button">Power on</button>
@@ -25,6 +29,8 @@
       </div>
     </div>
   </div>
+  <p class="narrow-hint">The panel is wider than this screen so its keys stay playable: drag the case
+    sideways for the rest, or turn the phone to landscape.</p>
 
   <div class="mirror" id="mirror" hidden>
     <canvas id="tft-mirror" width="240" height="240" aria-label="FM-1 screen, enlarged"></canvas>

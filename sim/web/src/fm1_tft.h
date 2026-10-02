@@ -46,6 +46,7 @@ typedef struct fm1_tft {
   int record;                 /* log boxes for fm1_tft_check_layout */
   int n_boxes;
   int overflow;               /* more boxes than FM1_TFT_MAX_BOXES */
+  int truncated;              /* text runs cut short by max_chars */
   fm1_tft_box_t boxes[FM1_TFT_MAX_BOXES];
 } fm1_tft_t;
 
@@ -71,15 +72,18 @@ void fm1_tft_pixel(fm1_tft_t *t, int x, int y, uint16_t color);
 int fm1_tft_text_width(const char *s, int max_chars, int scale);
 
 /* Draw at most max_chars characters of s with its top-left at (x, y);
- * characters outside 0x20..0x7E draw as '?'. Logged as one text box.
- * Returns the width drawn. */
+ * characters outside 0x20..0x7E draw as '?'. Logged as one text box; a
+ * string longer than max_chars counts as truncated. Returns the width
+ * drawn. */
 int fm1_tft_text(fm1_tft_t *t, int x, int y, const char *s, int max_chars, int scale,
                  uint16_t color);
 
 /* Count layout faults among visible boxes: a box not wholly on screen, two
  * text boxes, or a text box and a graphic, closer than `gap` pixels (or
- * overlapping). Graphics may touch each other. Writes up to max_report
- * descriptions of the faults (pairs of box indices) when report is not NULL. */
+ * overlapping), and each text run cut short by its max_chars. Graphics may
+ * touch each other. Writes up to max_report descriptions of the faults
+ * (pairs of box indices; -1 -1 for too many boxes, -2 -2 for truncated
+ * text) when report is not NULL. */
 int fm1_tft_check_layout(const fm1_tft_t *t, int gap, int *report, int max_report);
 
 #ifdef __cplusplus

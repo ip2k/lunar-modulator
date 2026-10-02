@@ -55,9 +55,16 @@ extern "C" {
 #define FM1_APP_MAX_PARAMS 32
 #define FM1_APP_SCOPE 512
 
+/* Pixels the screen keeps between any two labels, or a label and a bar
+ * (fm1_tft_check_layout's gap in the tests). */
+#define FM1_APP_LAYOUT_GAP 4
+
 /* Arena sizes. The largest instances today are Shapes at 12 voices
  * (~206 KB) and PSX Verb (~134 KB); the arenas leave room for growth and
- * the screen reports the real total against the FM-1's budget below. */
+ * the screen reports the real total against the FM-1's budget below.
+ * These 1 MiB of fixed arenas are a simulator convenience: on the FM-1
+ * (578 KB of SRAM, about 379 KB free in the stock layout) the firmware
+ * would size one arena to the chain it loads. */
 #define FM1_APP_SOUND_BYTES (512u * 1024u)
 #define FM1_APP_FX_BYTES (256u * 1024u)
 
@@ -143,11 +150,15 @@ int fm1_app_find(const char *id);
  * empties an effect slot). The instance memory is zeroed and the engine
  * created with its defaults, as fm1-render does. Changing the sound releases
  * its notes first. Returns 0, or -1 (wrong kind or unknown), -2 (does not
- * fit the arena) or -3 (the engine refused this host). */
+ * fit the arena; the unit keeps its engine) or -3 (the engine refused this
+ * host, e.g. a Plaits-based one above 47,872 Hz; the unit's previous engine
+ * is created again with its values). */
 int fm1_app_select(fm1_app_t *a, int unit, int index);
 
-/* The browser's starting chain: Macro, then Plate. */
-void fm1_app_default_chain(fm1_app_t *a);
+/* The browser's starting chain: Macro, then Plate. If Macro refuses the
+ * host's rate, the first sound that loads instead, with a popup saying why.
+ * Returns 0, or the first fm1_app_select error. */
+int fm1_app_default_chain(fm1_app_t *a);
 
 /* Parameters of a unit, by index (fm1_app_param_index finds a name, case
  * insensitive; -1 if absent). Values clamp as fm1_param_clamp does. */

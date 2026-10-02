@@ -147,9 +147,10 @@ function button(id, x, y, w, h) {
   g.dataset.button = String(BUTTONS.indexOf(id));
   el('rect', { class: 'cap', x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 1.4 }, g);
   if (id === 'PLAY/STOP') {
-    el('text', { class: 'label two', x, y: y - 0.45 }, g, 'PLAY');
+    // 0.7 mm between each word and the divider (about 6 px on a desktop).
+    el('text', { class: 'label two', x, y: y - 0.65 }, g, 'PLAY');
     el('line', { class: 'divider', x1: x - 2.1, x2: x + 2.1, y1: y + 0.05, y2: y + 0.05 }, g);
-    el('text', { class: 'label two', x, y: y + 1.75 }, g, 'STOP');
+    el('text', { class: 'label two', x, y: y + 1.9 }, g, 'STOP');
   } else {
     el('text', { class: 'label', x, y: y + 0.65 }, g, id);
   }
@@ -173,60 +174,84 @@ const image = new ImageData(240, 240);
 
 const sim = {
   ctx: null, node: null, analyser: null, catalog: null, state: null, master: 0.75,
-  requestedRate: null, screens: 0, midi: null,
+  requestedRate: null, screens: 0, midi: null, notice: '',
 };
 window.fm1 = sim;    // for the headless screenshot test and the console
+
+// Macro, Macro Heavy and Six-Op run Plaits at 47,872.34 Hz and resample to
+// the host, so they refuse faster hosts (engines/resampler.md).
+const PLAITS_RATE = 47872;
 
 function send(msg) { if (sim.node) sim.node.port.postMessage(msg); }
 
 async function makeContext() {
   let last = null;
-  for (const rate of [44118, 44100, null]) {
+  for (const rate of [44118, 44100]) {
     try {
-      const opts = { latencyHint: 'interactive' };
-      if (rate) opts.sampleRate = rate;
-      const ctx = new AudioContext(opts);
-      sim.requestedRate = rate;
-      return ctx;
+      const ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: rate });
+      if (ctx.sampleRate <= PLAITS_RATE) {
+        sim.requestedRate = rate;
+        return ctx;
+      }
+      await ctx.close();          // the browser ignored the rate it was asked for
     } catch (err) {
       last = err;
     }
   }
-  throw last;
+  // Last resort, the device's own rate. Above 47,872 Hz the firmware starts
+  // with the first sound that runs and says which ones refused.
+  try {
+    const ctx = new AudioContext({ latencyHint: 'interactive' });
+    sim.requestedRate = null;
+    return ctx;
+  } catch (err) {
+    throw last || err;
+  }
 }
 
-async function powerOn() {
-  if (sim.ctx) return;
+// One start at a time: a second click while the first is still awaiting the
+// worklet gets the same promise, not a second AudioContext.
+let starting = null;
+function powerOn() {
+  if (sim.ctx) return Promise.resolve();
+  if (!starting) starting = start().finally(() => { starting = null; });
+  return starting;
+}
+
+async function start() {
   if (!window.AudioWorkletNode) {
     statusEl.textContent = 'This browser has no AudioWorklet; the simulator needs it (and a page served over http://localhost or https).';
     return;
   }
   statusEl.textContent = 'Starting...';
+  let ctx = null;
   try {
-    const ctx = await makeContext();
+    ctx = await makeContext();
     await ctx.audioWorklet.addModule('worklet.js');
     const wasm = await (await fetch('fm1.wasm')).arrayBuffer();
     const node = new AudioWorkletNode(ctx, 'fm1', {
       numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2],
     });
-    node.port.onmessage = (e) => onWorklet(e.data);
+    node.port.onmessage = (e) => onWorklet(e.data, node);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 2048;
     node.connect(ctx.destination);
     node.connect(analyser);
-    Object.assign(sim, { ctx, node, analyser });
+    Object.assign(sim, { ctx, node, analyser, notice: '' });
     node.port.postMessage({ type: 'init', wasm, master: sim.master }, [wasm]);
     await ctx.resume();
     overlay.hidden = true;
     powerEl.classList.add('on');
     document.getElementById('power-off').disabled = false;
   } catch (err) {
-    statusEl.textContent = `Could not start audio: ${err.message || err}`;
+    if (ctx && ctx !== sim.ctx && ctx.state !== 'closed') await ctx.close();
     await powerOff();
+    statusEl.textContent = `Could not start audio: ${err.message || err}`;
   }
 }
 
 async function powerOff() {
+  releaseEverything();
   if (sim.ctx) await sim.ctx.close();
   Object.assign(sim, { ctx: null, node: null, analyser: null, state: null });
   overlay.hidden = false;
@@ -238,7 +263,7 @@ async function powerOff() {
   statusEl.textContent = 'Powered off.';
 }
 
-function onWorklet(m) {
+function onWorklet(m, node) {
   switch (m.type) {
     case 'ready':
       sim.catalog = m.catalog;
@@ -252,6 +277,9 @@ function onWorklet(m) {
       break;
     case 'screen':
       drawScreen(m.px);
+      // Hand the buffer back, so the audio thread reuses two buffers rather
+      // than allocating 115 KB per screen.
+      node.port.postMessage({ type: 'screen-buffer', buffer: m.px.buffer }, [m.px.buffer]);
       break;
     case 'leds':
       m.leds.forEach((on, i) => {
@@ -260,8 +288,15 @@ function onWorklet(m) {
       });
       break;
     case 'refused': {
-      const name = sim.catalog ? sim.catalog[m.index].name : m.index;
-      statusEl.textContent = `${name} was refused (${m.code === -2 ? 'too large for its slot' : 'error ' + m.code}).`;
+      const entry = sim.catalog && sim.catalog[m.index];
+      const name = entry ? entry.name : `Engine ${m.index}`;
+      const why = m.code === -2 ? 'it is too large for its slot'
+        : m.code === -3 ? `it does not run at ${Math.round(m.rate).toLocaleString('en')} Hz ` +
+          `(Macro, Macro Heavy and Six-Op need ${PLAITS_RATE.toLocaleString('en')} Hz or less)`
+          : `error ${m.code}`;
+      sim.notice = `${name} was refused: ${why}.` +
+        (m.start ? ' The first sound that runs was loaded instead.' : '');
+      showStatus();
       break;
     }
     case 'error':
@@ -284,7 +319,11 @@ function fillSelects() {
 }
 
 selects.forEach((s, unit) => s.addEventListener('change', () => {
+  sim.notice = '';
   send({ type: 'select', unit, index: Number(s.value) });
+  // Give the keyboard back to the instrument: a focused select would turn
+  // the note keys into type-ahead and pick another sound or effect.
+  s.blur();
 }));
 
 function showStatus() {
@@ -296,7 +335,7 @@ function showStatus() {
   const ram = (b) => `${Math.ceil(b / 1024)} KB`;
   statusEl.textContent = `Running at ${rate.toLocaleString('en')} Hz${fellBack}, 64-frame blocks, ` +
     `${(latency * 1000).toFixed(0)} ms output latency. Chain RAM ${ram(st.ram)} of the ` +
-    `${ram(387924)} the stock layout leaves free.`;
+    `${ram(387924)} the stock layout leaves free.${sim.notice ? ' ' + sim.notice : ''}`;
 }
 
 function drawScreen(px) {
@@ -315,10 +354,36 @@ function drawScreen(px) {
 
 // ---- pointer input ---------------------------------------------------------------
 const active = new Map();   // pointerId -> release function
+const scroller = document.getElementById('device-scroll');
+
+// On a narrow screen the panel is wider than the page and scrolls sideways
+// in its own box (style.css); dragging the case pans it, since the device
+// takes every touch on the controls for itself.
+function startPan(e) {
+  if (scroller.scrollWidth <= scroller.clientWidth && e.pointerType !== 'touch') return;
+  e.preventDefault();
+  panel.setPointerCapture(e.pointerId);
+  let lastX = e.clientX, lastY = e.clientY;
+  const move = (ev) => {
+    if (ev.pointerId !== e.pointerId) return;
+    scroller.scrollLeft -= ev.clientX - lastX;
+    if (ev.pointerType === 'touch') window.scrollBy(0, lastY - ev.clientY);
+    lastX = ev.clientX;
+    lastY = ev.clientY;
+  };
+  panel.addEventListener('pointermove', move);
+  active.set(e.pointerId, () => panel.removeEventListener('pointermove', move));
+}
 
 panel.addEventListener('pointerdown', (e) => {
+  // Playing the panel takes the keyboard back from a select or button.
+  const focused = document.activeElement;
+  if (focused && focused !== document.body && !panel.contains(focused) && focused.blur) focused.blur();
   const target = e.target.closest('[data-key], [data-button], [data-encoder], [data-master], .power');
-  if (!target) return;
+  if (!target) {
+    startPan(e);
+    return;
+  }
   e.preventDefault();
   if (target.classList.contains('power')) {
     if (sim.ctx) powerOff(); else powerOn();
@@ -374,11 +439,37 @@ for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
   });
 }
 
+// Scrolling over an encoder: the first wheel event of a gesture turns it one
+// detent at once (a single mouse notch, however small its delta), then the
+// gesture turns one detent per 60 px of vertical scroll, at most one per
+// event, so a trackpad flick or a fast wheel does not race the encoder.
+// Horizontal scrolling turns nothing.
+const WHEEL_DETENT_PX = 60;
+const WHEEL_GESTURE_GAP_MS = 200;
+const wheel = { target: null, acc: 0, last: -Infinity };
+
 panel.addEventListener('wheel', (e) => {
   const target = e.target.closest('[data-encoder], [data-master]');
   if (!target || !sim.node) return;
   e.preventDefault();
-  const dir = e.deltaY < 0 ? 1 : -1;
+  if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+  const px = e.deltaY * (e.deltaMode === 1 ? 100 / 3 : e.deltaMode === 2 ? 300 : 1);
+  const fresh = target !== wheel.target || e.timeStamp - wheel.last > WHEEL_GESTURE_GAP_MS;
+  wheel.last = e.timeStamp;
+  let dir = 0;
+  if (fresh) {
+    wheel.target = target;
+    wheel.acc = 0;
+    dir = px < 0 ? 1 : -1;
+  } else {
+    if (Math.sign(px) !== Math.sign(wheel.acc)) wheel.acc = 0;
+    wheel.acc += px;
+    if (Math.abs(wheel.acc) >= WHEEL_DETENT_PX) {
+      dir = wheel.acc < 0 ? 1 : -1;
+      wheel.acc = Math.sign(wheel.acc) * Math.min(Math.abs(wheel.acc) - WHEEL_DETENT_PX, WHEEL_DETENT_PX - 1);
+    }
+  }
+  if (!dir) return;
   if (target.dataset.master !== undefined) setMaster(sim.master + dir * 0.02);
   else turn(target, dir);
 }, { passive: false });
@@ -396,43 +487,73 @@ function setMaster(pos) {
 }
 
 // ---- keyboard ---------------------------------------------------------------------
-const held = new Set();
-function keyboard(e, down) {
+// Each held computer key remembers what it pressed, so its release reaches
+// the same key or button whatever has focus or which modifiers are down by
+// then.
+const heldKeys = new Map();   // event.code -> release function
+const OCT_KEYS = { KeyZ: 'OCT-', KeyX: 'OCT+' };
+
+function releaseKeys() {
+  const releases = [...heldKeys.values()];
+  heldKeys.clear();
+  for (const release of releases) release();
+}
+
+// Window blur, a hidden tab, power off: let go of everything held, keys,
+// buttons and pointers, or the firmware keeps them down (a held OCT button
+// turns ALGORITHM into transpose; a held FX swallows the next press).
+function releaseEverything() {
+  releaseKeys();
+  const releases = [...active.values()];
+  active.clear();
+  for (const release of releases) release();
+}
+
+function hold(code, down, up) {
+  if (heldKeys.has(code)) return;
+  down();
+  heldKeys.set(code, up);
+}
+
+function keydown(e) {
+  // macOS does not deliver the keyup of a key released while Cmd is down,
+  // so Cmd lets go of every held key first.
+  if (e.key === 'Meta') { releaseKeys(); return; }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;     // browser and system shortcuts
   if (e.target.closest && e.target.closest('select, input, textarea')) return;
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
   const focused = document.activeElement;
   if (focused && focused.dataset && (focused.dataset.encoder !== undefined || focused.dataset.master !== undefined) &&
       ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
-    if (down) {
-      const d = e.code === 'ArrowUp' || e.code === 'ArrowRight' ? 1 : -1;
-      if (focused.dataset.master !== undefined) setMaster(sim.master + d * 0.02); else turn(focused, d);
-    }
+    const d = e.code === 'ArrowUp' || e.code === 'ArrowRight' ? 1 : -1;
+    if (focused.dataset.master !== undefined) setMaster(sim.master + d * 0.02); else turn(focused, d);
     e.preventDefault();
     return;
   }
   if (focused && focused.dataset && focused.dataset.button !== undefined && (e.code === 'Enter' || e.code === 'Space')) {
-    if (e.repeat) return;
-    send({ type: 'button', button: Number(focused.dataset.button), down });
-    focused.classList.toggle('down', down);
     e.preventDefault();
+    if (e.repeat) return;
+    const g = focused;
+    const button = Number(g.dataset.button);
+    hold(e.code, () => { g.classList.add('down'); send({ type: 'button', button, down: true }); },
+      () => { g.classList.remove('down'); send({ type: 'button', button, down: false }); });
     return;
   }
   const k = KEYMAP.indexOf(e.code);
   if (k >= 0) {
     e.preventDefault();
     if (e.repeat) return;
-    if (down && !held.has(e.code)) { held.add(e.code); send({ type: 'key', key: k, down: true, velocity: 100 }); }
-    if (!down && held.has(e.code)) { held.delete(e.code); send({ type: 'key', key: k, down: false }); }
+    hold(e.code, () => send({ type: 'key', key: k, down: true, velocity: 100 }),
+      () => send({ type: 'key', key: k, down: false }));
     return;
   }
-  const buttons = { KeyZ: 'OCT-', KeyX: 'OCT+' };
-  if (buttons[e.code]) {
+  if (OCT_KEYS[e.code]) {
     e.preventDefault();
     if (e.repeat) return;
-    send({ type: 'button', button: BUTTONS.indexOf(buttons[e.code]), down });
+    const button = BUTTONS.indexOf(OCT_KEYS[e.code]);
+    hold(e.code, () => send({ type: 'button', button, down: true }),
+      () => send({ type: 'button', button, down: false }));
     return;
   }
-  if (!down) return;
   const encoders = {
     ArrowLeft: ['SELECT', -1], ArrowRight: ['SELECT', 1], ArrowUp: ['PRESETS', 1],
     ArrowDown: ['PRESETS', -1], Minus: ['ALGORITHM', -1], Equal: ['ALGORITHM', 1],
@@ -444,15 +565,25 @@ function keyboard(e, down) {
     return;
   }
   if (e.code === 'Escape') {
-    held.clear();
+    releaseKeys();
     send({ type: 'panic' });
   }
 }
-window.addEventListener('keydown', (e) => keyboard(e, true));
-window.addEventListener('keyup', (e) => keyboard(e, false));
-window.addEventListener('blur', () => {
-  for (const code of held) send({ type: 'key', key: KEYMAP.indexOf(code), down: false });
-  held.clear();
+
+function keyup(e) {
+  if (e.key === 'Meta') { releaseKeys(); return; }
+  const release = heldKeys.get(e.code);
+  if (!release) return;
+  heldKeys.delete(e.code);
+  release();
+  e.preventDefault();
+}
+
+window.addEventListener('keydown', keydown);
+window.addEventListener('keyup', keyup);
+window.addEventListener('blur', releaseEverything);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') releaseEverything();
 });
 
 // ---- Web MIDI -----------------------------------------------------------------------

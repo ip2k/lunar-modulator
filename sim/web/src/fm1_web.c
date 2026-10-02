@@ -13,7 +13,7 @@
 static fm1_app_t g_app;
 
 void fm1w_init(float sample_rate) { fm1_app_init(&g_app, sample_rate); }
-void fm1w_default_chain(void) { fm1_app_default_chain(&g_app); }
+int fm1w_default_chain(void) { return fm1_app_default_chain(&g_app); }
 
 const char *fm1w_catalog(void) { return fm1_app_catalog_json(); }
 int fm1w_select(int unit, int index) { return fm1_app_select(&g_app, unit, index); }

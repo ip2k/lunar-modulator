@@ -30,6 +30,7 @@ void fm1_tft_begin(fm1_tft_t *t, uint16_t color) {
   for (int i = 0; i < FM1_TFT_W * FM1_TFT_H; ++i) t->px[i] = color;
   t->n_boxes = 0;
   t->overflow = 0;
+  t->truncated = 0;
 }
 
 void fm1_tft_paint(fm1_tft_t *t, int x, int y, int w, int h, uint16_t color) {
@@ -80,6 +81,7 @@ int fm1_tft_text(fm1_tft_t *t, int x, int y, const char *s, int max_chars, int s
   int n = text_len(s, max_chars);
   int w = fm1_tft_text_width(s, n, scale);
   log_box(t, x, y, w, FM1_TFT_TEXT_H(scale), FM1_BOX_TEXT);
+  if (t->record && s[n]) ++t->truncated;
   for (int i = 0; i < n; ++i) {
     int c = (unsigned char)s[i];
     if (c < FM1_FONT_FIRST || c > FM1_FONT_LAST) c = '?';
@@ -100,6 +102,10 @@ int fm1_tft_check_layout(const fm1_tft_t *t, int gap, int *report, int max_repor
   int faults = 0;
   if (t->overflow) {
     if (report && faults < max_report) { report[2 * faults] = -1; report[2 * faults + 1] = -1; }
+    ++faults;
+  }
+  for (int k = 0; k < t->truncated; ++k) {
+    if (report && faults < max_report) { report[2 * faults] = -2; report[2 * faults + 1] = -2; }
     ++faults;
   }
   for (int i = 0; i < t->n_boxes; ++i) {

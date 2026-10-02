@@ -24,7 +24,7 @@ from tests.engine_helpers import ROOT, pitch_hz
 
 SIM = ROOT / "sim" / "web"
 ENGINES = ROOT / "engines"
-SCENARIOS = json.loads((SIM / "test" / "scenarios.json").read_text())["scenarios"]
+SCENARIOS = json.loads((SIM / "test" / "scenarios.json").read_text(encoding="utf-8"))["scenarios"]
 
 
 @pytest.fixture(scope="session")
@@ -94,14 +94,16 @@ def test_app_renders_what_fm1_render_renders(tools, tmp_path, s):
 
 def test_every_screen_passes_the_layout_check(tools, tmp_path):
     """Every page of every engine and effect, at defaults, minima, maxima and
-    each list entry, the global page and every popup: no text off screen, and
-    no two labels, or a label and a bar, closer than 2 px."""
+    each list entry, the global page and every popup (the refusals, SEL
+    outside FX mode and an emptied slot included): no text off screen or cut
+    short, and no two labels, or a label and a bar, closer than 4 px
+    (FM1_APP_LAYOUT_GAP)."""
     res = subprocess.run([str(tools["sim"]), "--screens", str(tmp_path)],
                          capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 200
+    assert summary["screens"] >= 280
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 
@@ -145,6 +147,38 @@ def test_buttons_and_encoders(tools, tmp_path):
     assert g["mode"] == 2 and g["values0"][0] == 3        # GLO page; ALGORITHM = Model
 
 
+def test_emptying_a_slot_returns_to_its_one_page(tools):
+    """The Effect 2 dropdown's "(none)" on PSX Verb's second page: the empty
+    slot shows page 1 of 1, not "2/1" (the select path used to keep the page)."""
+    s = run(tools["sim"], ["--engine", "macro", "--fx", "plate", "--fx", "sw-psxverb",
+                           "--seconds", "0.1", "--button", "0:FX", "--turn", "0.01:SELECT:2",
+                           "--select", "0.03:2:-"])
+    assert s["fx"] == ["plate", ""]
+    assert (s["fx_slot"], s["fx_page"]) == (1, 0)
+
+
+def test_a_sound_that_refuses_the_rate_is_stepped_over(tools):
+    """Above 47,872 Hz the Plaits-based sounds (Macro, Macro Heavy, Six-Op)
+    refuse the host. PRESETS steps over them and says why; a refused load
+    puts the previous sound back with its values instead of leaving silence."""
+    up = run(tools["sim"], ["--engine", "shapes", "--rate", "48000", "--seconds", "0.1",
+                            "--turn", "0:PRESETS:1"])
+    assert up["engine"] == "sw-sophie"
+    assert up["popup"] == ["Macro Heavy", "refuses 48000 Hz"]
+    down = run(tools["sim"], ["--engine", "shapes", "--rate", "48000", "--seconds", "0.1",
+                              "--turn", "0:PRESETS:-1"])
+    assert down["engine"] == "test-sine"
+    kept = run(tools["sim"], ["--engine", "shapes", "--param", "Timbre=0.8", "--rate", "48000",
+                              "--seconds", "0.3", "--select", "0.1:0:macro",
+                              "--key", "0.15:0:100:0.1"])
+    assert kept["engine"] == "shapes"
+    assert kept["values0"][1] == pytest.approx(0.8)
+    assert kept["peak"] > 0.01
+    at_plaits_rate = run(tools["sim"], ["--engine", "shapes", "--rate", "47872", "--seconds", "0.1",
+                                        "--turn", "0:PRESETS:1"])
+    assert at_plaits_rate["engine"] == "macro-heavy"
+
+
 def test_page_is_self_contained():
     """No CDN, no fonts, nothing fetched from another origin: the page works
     from a local static server and can be published as static files."""
@@ -152,9 +186,9 @@ def test_page_is_self_contained():
     for f in www.iterdir():
         if f.suffix in (".html", ".js", ".mjs", ".css"):
             # The SVG namespace is an identifier, never fetched.
-            text = f.read_text().replace("http://www.w3.org/2000/svg", "")
+            text = f.read_text(encoding="utf-8").replace("http://www.w3.org/2000/svg", "")
             assert not re.search(r"(https?:)?//[a-z0-9.-]+\.[a-z]{2,}/", text, re.I), f.name
-    html = (www / "index.html").read_text()
+    html = (www / "index.html").read_text(encoding="utf-8")
     for ref in re.findall(r'(?:src|href)="([^"#]+)"', html):
         assert (www / ref).exists(), ref
     for name in ("worklet.js", "fm1-wasm.mjs", "fm1.wasm"):
@@ -162,29 +196,41 @@ def test_page_is_self_contained():
 
 
 def test_wasm_exports_match_the_web_layer():
-    exported = set(re.findall(r"^\S.*?\b(fm1w_\w+)\(", (SIM / "src" / "fm1_web.c").read_text(), re.M))
-    mk = (SIM / "mk" / "sim.mk").read_text()
+    exported = set(re.findall(r"^\S.*?\b(fm1w_\w+)\(", (SIM / "src" / "fm1_web.c").read_text(encoding="utf-8"), re.M))
+    mk = (SIM / "mk" / "sim.mk").read_text(encoding="utf-8")
     listed = set(re.findall(r"\bfm1w_\w+", mk.split("WASM_EXPORTS :=")[1].split("comma")[0]))
     assert exported == listed
 
 
 def test_committed_wasm_matches_its_build_record():
     """build-on-aeon.sh writes fm1.wasm.json next to the module: its hash, the
-    hash of the sources it was built from, and the parity results."""
-    record = json.loads((SIM / "www" / "fm1.wasm.json").read_text())
+    hashes of the sources it was built from, and the parity results.
+
+    When sim/web's own inputs (src/, mk/, build.sh, the parity test) have
+    changed since, the module is stale: a warning locally, a failure in CI
+    (CI=true), so a pull request that changes the simulator carries its
+    rebuilt module. When only engines/ has changed, CI warns too: engine
+    work elsewhere should not need aeon, but rebuild before the module is
+    published."""
+    record = json.loads((SIM / "www" / "fm1.wasm.json").read_text(encoding="utf-8"))
     wasm = (SIM / "www" / "fm1.wasm").read_bytes()
     assert hashlib.sha256(wasm).hexdigest() == record["wasm_sha256"]
     parity = record["parity"]
     assert parity["failed"] == 0 and parity["passed"] >= len(SCENARIOS)
     assert record["imports"] == []
-    current = source_hash()
-    if current != record["sources_sha256"]:
-        warnings.warn("sim/web/www/fm1.wasm was built from other sources than these; "
-                      "rebuild with sim/web/build-on-aeon.sh")
+    assert all("@sha256:" in i for i in record["images"]) and len(record["images"]) >= 2
+    current = source_hashes()
+    stale = [k for k in ("engines", "sim") if current[k] != record["sources_sha256"].get(k)]
+    if "sim" in stale and os.environ.get("CI") == "true":
+        pytest.fail("sim/web changed since www/fm1.wasm was built; rebuild it with "
+                    "sim/web/build-on-aeon.sh and commit www/fm1.wasm and fm1.wasm.json")
+    if stale:
+        warnings.warn(f"sim/web/www/fm1.wasm was built from other {' and '.join(stale)} "
+                      "sources than these; rebuild with sim/web/build-on-aeon.sh")
 
 
-def source_hash():
-    """The hash build-on-aeon.sh records (sim/web/tools/source_hash.py)."""
+def source_hashes():
+    """The hashes build-on-aeon.sh records (sim/web/tools/source_hash.py)."""
     res = subprocess.run(["python3", str(SIM / "tools" / "source_hash.py"), str(ROOT)],
                          check=True, capture_output=True, text=True)
-    return res.stdout.strip()
+    return json.loads(res.stdout)

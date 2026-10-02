@@ -26,16 +26,21 @@
 #define C_METER FM1_RGB565(96, 220, 120)
 
 /* Screen geometry: 2x text is 12 px a character and 18 px tall, so a line
- * holds 19 characters between the 6 px margins. */
+ * holds 19 characters between the 6 px margins. Every label, value and bar
+ * keeps FM1_APP_LAYOUT_GAP (4 px) from the next, and from the title and
+ * bottom bars. */
 #define SCALE 2
 #define MARGIN 6
 #define LINE_CHARS 19
 #define RIGHT (FM1_TFT_W - MARGIN)
 #define TITLE_H 24
 #define BOTTOM_Y 216
+#define CONTENT_Y (TITLE_H + 4)        /* the first line under the title bar */
 #define ROW_PITCH 36
-#define BAR_DY 21
+#define BAR_DY 22
 #define BAR_H 7
+#define LINE_PITCH 22                  /* plain text lines: 18 px and a 4 px gap */
+#define POPUP_PITCH 26
 #define LABEL_CHARS 10
 #define NAME_CHARS 16
 #define POPUP_CHARS 18
@@ -138,6 +143,15 @@ static void popup(fm1_app_t *a, const char *l0, const char *l1, const char *l2, 
   a->dirty = 1;
 }
 
+/* Why fm1_app_select refused registry entry `index`, as a popup. */
+static void refusal_popup(fm1_app_t *a, int index, int code) {
+  char why[24];
+  if (code == -2) snprintf(why, sizeof why, "does not fit");
+  else if (code == -3) snprintf(why, sizeof why, "refuses %.0f Hz", (double)a->host.sample_rate);
+  else snprintf(why, sizeof why, "cannot load");
+  popup(a, entry(index) ? entry(index)->name : "?", why, NULL, -1);
+}
+
 /* ---- set-up and units --------------------------------------------------------- */
 
 void fm1_app_init(fm1_app_t *a, float sample_rate) {
@@ -168,6 +182,21 @@ static void release(fm1_app_unit_t *u) {
   u->bytes = 0;
 }
 
+/* Create registry entry `index` (already checked, `bytes` its instance
+ * size) in an empty unit, with its defaults. 0 if the engine refused this
+ * host. */
+static int load(fm1_app_t *a, fm1_app_unit_t *u, int index, size_t bytes) {
+  const fm1_engine_t *e = fm1_engines[index];
+  memset(u->mem, 0, bytes);
+  u->self = e->create(u->mem, &a->host);
+  if (!u->self) return 0;
+  u->e = e;
+  u->index = index;
+  u->bytes = bytes;
+  for (uint16_t i = 0; i < e->n_params; ++i) u->value[i] = e->params[i].def;
+  return 1;
+}
+
 int fm1_app_select(fm1_app_t *a, int unit, int index) {
   if (unit < 0 || unit >= FM1_APP_UNITS) return -1;
   fm1_app_unit_t *u = &a->unit[unit];
@@ -175,6 +204,7 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   fm1_kind_t want = unit == 0 ? FM1_KIND_SOUND : FM1_KIND_AUDIO_FX;
   if (index == -1 && unit > 0) {
     release(u);
+    if (a->fx_slot == unit - 1) a->fx_page = 0;   /* an empty slot has one page */
     a->dirty = 1;
     return 0;
   }
@@ -184,24 +214,43 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   }
   size_t bytes = e->instance_size(&a->host);
   if (bytes > u->cap) return -2;
+  int prev = u->index;
+  size_t prev_bytes = u->bytes;
+  float prev_value[FM1_APP_MAX_PARAMS];
+  memcpy(prev_value, u->value, sizeof prev_value);
   if (unit == 0) fm1_app_all_notes_off(a);
   release(u);
-  memset(u->mem, 0, bytes);
-  u->self = e->create(u->mem, &a->host);
-  if (!u->self) return -3;
-  u->e = e;
-  u->index = index;
-  u->bytes = bytes;
-  for (uint16_t i = 0; i < e->n_params; ++i) u->value[i] = e->params[i].def;
+  if (!load(a, u, index, bytes)) {
+    /* The engine refused this host (the Plaits-based ones refuse rates
+     * above 47,872 Hz): put the previous engine back with its values,
+     * rather than leave the unit silent. */
+    if (prev >= 0 && load(a, u, prev, prev_bytes)) {
+      for (uint16_t i = 0; i < u->e->n_params; ++i) {
+        u->value[i] = prev_value[i];
+        u->e->set_param(u->self, i, prev_value[i]);
+      }
+    }
+    a->dirty = 1;
+    return -3;
+  }
   if (unit == 0) a->page = clampi(a->page, 0, page_count(e) - 1);
   else if (a->fx_slot == unit - 1) a->fx_page = clampi(a->fx_page, 0, page_count(e) - 1);
   a->dirty = 1;
   return 0;
 }
 
-void fm1_app_default_chain(fm1_app_t *a) {
-  fm1_app_select(a, 0, fm1_app_find("macro"));
-  fm1_app_select(a, 1, fm1_app_find("plate"));
+int fm1_app_default_chain(fm1_app_t *a) {
+  int macro = fm1_app_find("macro");
+  int r = fm1_app_select(a, 0, macro);
+  if (r != 0) {
+    /* Not at this rate: the first sound that loads, and say why. */
+    for (size_t i = 0; i < fm1_engine_count && !a->unit[0].e; ++i) {
+      if (fm1_engines[i]->kind == FM1_KIND_SOUND) fm1_app_select(a, 0, (int)i);
+    }
+    refusal_popup(a, macro, r);
+  }
+  int f = fm1_app_select(a, 1, fm1_app_find("plate"));
+  return r != 0 ? r : f;
 }
 
 int fm1_app_param_index(const fm1_app_t *a, int unit, const char *name) {
@@ -421,13 +470,19 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
       break;
     case FM1_ENC_PRESETS: {
       int cur = a->unit[0].index < 0 ? 0 : a->unit[0].index;
-      int to = cur;
-      for (int k = 0; k < (delta > 0 ? delta : -delta); ++k) to = next_sound(to, delta > 0 ? 1 : -1);
-      if (to != a->unit[0].index && fm1_app_select(a, 0, to) != 0) {
-        popup(a, fm1_engines[to]->name, "does not fit", NULL, -1);
-        break;
+      int dir = delta > 0 ? 1 : -1;
+      int to = cur, refused = -1, code = 0;
+      for (int k = 0; k < (delta > 0 ? delta : -delta); ++k) to = next_sound(to, dir);
+      /* A sound this host cannot run is stepped over, so every other one
+       * stays reachable; the popup names the first one skipped. */
+      for (int tries = 0; tries < (int)fm1_engine_count && to != a->unit[0].index; ++tries) {
+        int r = fm1_app_select(a, 0, to);
+        if (r == 0) break;
+        if (refused < 0) refused = to, code = r;
+        to = next_sound(to, dir);
       }
-      preset_popup(a);
+      if (refused >= 0) refusal_popup(a, refused, code);
+      else preset_popup(a);
       break;
     }
     case FM1_ENC_ALGORITHM:
@@ -440,7 +495,7 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
         for (int k = 0; k < (delta > 0 ? delta : -delta); ++k) to = next_fx(to, delta > 0 ? 1 : -1);
         int r = fm1_app_select(a, slot, to);
         a->fx_page = 0;
-        if (r != 0) popup(a, fm1_engines[to]->name, "does not fit", NULL, -1);
+        if (r != 0) refusal_popup(a, to, r);
         else if (to < 0) popup(a, "Empty slot", NULL, NULL, -1);
         else popup(a, fm1_engines[to]->name, NULL, NULL, -1);
       } else if (a->unit[0].e) {
@@ -635,7 +690,7 @@ static void draw_scope(fm1_app_t *a) {
 /* Popups take the whole centre area, between the top and bottom bars, as
  * stock's do ("overlaying the current mode"), so nothing peeks out. */
 static void draw_popup(fm1_app_t *a) {
-  const int pitch = 24;
+  const int pitch = POPUP_PITCH;   /* the highlight keeps 5 px from the next line */
   const int top = TITLE_H, bottom = BOTTOM_Y;
   fm1_tft_fill(&a->tft, 0, top, FM1_TFT_W, bottom - top, C_POPUP_BG);
   fm1_tft_paint(&a->tft, 0, top, FM1_TFT_W, 2, C_ACCENT);
@@ -672,9 +727,9 @@ static void draw(fm1_app_t *a) {
     int m = model_param(s->e);
     if (m >= 0) {
       format_value(&s->e->params[m], s->value[m], buf, sizeof buf);
-      fm1_tft_text(t, MARGIN, 27, buf, LINE_CHARS, SCALE, C_ACCENT);
+      fm1_tft_text(t, MARGIN, CONTENT_Y, buf, LINE_CHARS, SCALE, C_ACCENT);
     }
-    if (s->e) draw_params(a, 0, a->page, 50);
+    if (s->e) draw_params(a, 0, a->page, CONTENT_Y + LINE_PITCH);
     draw_scope(a);
     snprintf(buf, sizeof buf, "%d/%d Sound", a->page + 1, page_count(s->e));
     draw_bottom(a, buf);
@@ -684,34 +739,37 @@ static void draw(fm1_app_t *a) {
       int sel = k == a->fx_slot;
       snprintf(buf, sizeof buf, "%s %d %s", sel ? (a->fx_grab ? "*" : ">") : " ", k + 1,
                f->e ? f->e->name : "--");
-      fm1_tft_text(t, MARGIN, 27 + 20 * k, buf, LINE_CHARS, SCALE, sel ? C_ACCENT : C_DIM);
+      fm1_tft_text(t, MARGIN, CONTENT_Y + LINE_PITCH * k, buf, LINE_CHARS, SCALE,
+                   sel ? C_ACCENT : C_DIM);
     }
     const fm1_app_unit_t *f = &a->unit[1 + a->fx_slot];
+    const int y0 = CONTENT_Y + LINE_PITCH * FM1_APP_FX_SLOTS;
     if (f->e) {
-      draw_params(a, 1 + a->fx_slot, a->fx_page, 70);
+      draw_params(a, 1 + a->fx_slot, a->fx_page, y0);
     } else {
-      fm1_tft_text(t, MARGIN, 76, "Empty slot:", LINE_CHARS, SCALE, C_DIM);
-      fm1_tft_text(t, MARGIN, 98, "turn ALGORITHM", LINE_CHARS, SCALE, C_DIM);
+      fm1_tft_text(t, MARGIN, y0 + 4, "Empty slot:", LINE_CHARS, SCALE, C_DIM);
+      fm1_tft_text(t, MARGIN, y0 + 4 + LINE_PITCH, "turn ALGORITHM", LINE_CHARS, SCALE, C_DIM);
     }
     snprintf(buf, sizeof buf, "%d/%d FX%d", a->fx_page + 1, page_count(f->e), a->fx_slot + 1);
     draw_bottom(a, buf);
   } else {
+    /* Eight lines at a 23 px pitch (the sound's name is in the title bar). */
+    const int pitch = 23;
     char v[32];
-    int y = 28;
+    int y = CONTENT_Y;
     snprintf(v, sizeof v, "%.0f Hz", (double)a->host.sample_rate);
-    draw_line(a, y, "Rate", v); y += 20;
+    draw_line(a, y, "Rate", v); y += pitch;
     snprintf(v, sizeof v, "%u", (unsigned)a->host.max_frames);
-    draw_line(a, y, "Block", v); y += 20;
+    draw_line(a, y, "Block", v); y += pitch;
     snprintf(v, sizeof v, "%uK/%uK", (unsigned)((fm1_app_ram(a) + 1023) / 1024),
              (unsigned)((FM1_APP_RAM_BUDGET + 512) / 1024));
-    draw_line(a, y, "RAM", v); y += 20;
+    draw_line(a, y, "RAM", v); y += pitch;
     snprintf(v, sizeof v, "%u", s->e ? (unsigned)s->e->max_voices : 0u);
-    draw_line(a, y, "Voices", v); y += 20;
-    draw_line(a, y, "Sound", s->e ? s->e->id : "--"); y += 20;
-    draw_line(a, y, "FX1", a->unit[1].e ? a->unit[1].e->id : "--"); y += 20;
-    draw_line(a, y, "FX2", a->unit[2].e ? a->unit[2].e->id : "--"); y += 20;
+    draw_line(a, y, "Voices", v); y += pitch;
+    draw_line(a, y, "FX1", a->unit[1].e ? a->unit[1].e->id : "--"); y += pitch;
+    draw_line(a, y, "FX2", a->unit[2].e ? a->unit[2].e->id : "--"); y += pitch;
     snprintf(v, sizeof v, "%+d", a->octave);
-    draw_line(a, y, "Octave", a->octave ? v : "0"); y += 20;
+    draw_line(a, y, "Octave", a->octave ? v : "0"); y += pitch;
     snprintf(v, sizeof v, "%+d", a->transpose);
     draw_line(a, y, "Transpose", a->transpose ? v : "0");
     draw_bottom(a, "1/1 Globe");

@@ -13,12 +13,15 @@
  *       panel input at time T (KEY 0..26 is F3..G5 at octave 0; NAME as
  *       printed, e.g. OCT+, FX, PLAY/STOP; ENCODER SELECT, PRESETS,
  *       ALGORITHM, KNOB1..KNOB4)
+ *   --select T:UNIT:ID  load engine ID (or - to empty an effect slot) into
+ *                       unit 0..2 at time T, as the page's dropdowns do
  *   --screen FILE.ppm   the screen after the render, as a PPM image
  *   --screens DIR       draw every page of every engine and effect at its
  *                       defaults, minima, maxima and list values, plus the
- *                       global page and each popup, check each for layout
- *                       faults (fm1_tft_check_layout, 2 px gap), and write
- *                       the representative ones to DIR as PPM
+ *                       global page and every popup, check each for layout
+ *                       faults (fm1_tft_check_layout with FM1_APP_LAYOUT_GAP,
+ *                       and truncated text), and write the representative
+ *                       ones to DIR as PPM
  *   --list              the catalogue JSON
  *
  * Prints one line of JSON. Test code: C99 with stdio. MIT licence.
@@ -33,7 +36,7 @@
 
 #define MAX_EVENTS 512
 
-typedef enum { EV_NOTE, EV_BEND, EV_PARAM, EV_KEY, EV_BUTTON, EV_TURN } ev_kind_t;
+typedef enum { EV_NOTE, EV_BEND, EV_PARAM, EV_KEY, EV_BUTTON, EV_TURN, EV_SELECT } ev_kind_t;
 
 typedef struct {
   double time;
@@ -55,6 +58,7 @@ static void usage(void) {
           "       [--engine ID [--param NAME=V]...] [--fx ID [--fx-param NAME=V]...]...\n"
           "       [--note T:KEY:VEL:DUR] [--bend T:ST] [--param-at T:NAME=V]\n"
           "       [--key T:KEY:VEL:DUR] [--button T:NAME[:DUR]] [--turn T:ENC:DELTA]\n"
+          "       [--select T:UNIT:ID|-]\n"
           "       [--master P] [--seconds S] [--rate HZ] [--out F.wav] [--screen F.ppm]\n");
 }
 
@@ -139,12 +143,16 @@ static int g_screens, g_faults;
 static void check_screen(const char *name, const char *dir, int save) {
   int report[8];
   fm1_app_draw_checked(&g_app);
-  int n = fm1_tft_check_layout(&g_app.tft, 2, report, 4);
+  int n = fm1_tft_check_layout(&g_app.tft, FM1_APP_LAYOUT_GAP, report, 4);
   ++g_screens;
   if (n) {
     if (g_faults < 20) {
       for (int k = 0; k < n && k < 4; ++k) {
         int i = report[2 * k], j = report[2 * k + 1];
+        if (i == -2) {
+          fprintf(stderr, "layout fault in %s: text cut short\n", name);
+          continue;
+        }
         const fm1_tft_box_t *a = i >= 0 ? &g_app.tft.boxes[i] : NULL;
         const fm1_tft_box_t *b = j >= 0 ? &g_app.tft.boxes[j] : NULL;
         fprintf(stderr, "layout fault in %s: box %d (%d,%d %dx%d) vs box %d (%d,%d %dx%d)\n", name,
@@ -257,6 +265,42 @@ static int run_screens(const char *dir, float rate) {
     snprintf(name, sizeof name, "popup-button-%d", b);
     check_screen(name, dir, b == FM1_BTN_PLAY);
   }
+  fm1_app_button(&g_app, FM1_BTN_SEL, 1);              /* SEL outside FX mode */
+  fm1_app_button(&g_app, FM1_BTN_SEL, 0);
+  check_screen("popup-sel", dir, 0);
+  fm1_app_button(&g_app, FM1_BTN_FX, 1);               /* FX: slot 2 to empty */
+  fm1_app_button(&g_app, FM1_BTN_FX, 0);
+  g_app.fx_slot = 1;
+  g_app.fx_page = 0;
+  fm1_app_select(&g_app, 2, fm1_app_find("diffuse"));
+  fm1_app_encoder(&g_app, FM1_ENC_ALGORITHM, -64);
+  while (g_app.unit[2].e) fm1_app_encoder(&g_app, FM1_ENC_ALGORITHM, -1);
+  check_screen("popup-empty-slot", dir, 1);
+  fm1_app_select(&g_app, 2, fm1_app_find("sw-psxverb"));   /* emptied on its 2nd page */
+  fm1_app_encoder(&g_app, FM1_ENC_SELECT, 1);
+  fm1_app_select(&g_app, 2, -1);
+  check_screen("fx-emptied-on-page-2", dir, 0);
+  if (g_app.fx_page != 0) {
+    fprintf(stderr, "emptied slot left on page %d\n", g_app.fx_page + 1);
+    ++g_faults;
+  }
+  g_app.mode = FM1_MODE_HOME;
+  g_app.popup_lines = 0;
+  /* Refusals: an arena too small, and a host rate the Plaits-based engines
+   * refuse (last, at its own rate: the Schwung shim keeps its first rate). */
+  g_app.unit[0].cap = 1024;
+  fm1_app_encoder(&g_app, FM1_ENC_PRESETS, 1);
+  g_app.unit[0].cap = FM1_APP_SOUND_BYTES;
+  check_screen("popup-does-not-fit", dir, 1);
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    if (g_app.unit[u].e) g_app.unit[u].e->destroy(g_app.unit[u].self);
+  }
+  fm1_app_init(&g_app, 96000.0f);
+  if (fm1_app_default_chain(&g_app) != -3 || !g_app.unit[0].e) {
+    fprintf(stderr, "at 96000 Hz the default chain should fall back from Macro\n");
+    ++g_faults;
+  }
+  check_screen("popup-refuses-rate", dir, 1);
   printf("{\"screens\":%d,\"faults\":%d}\n", g_screens, g_faults);
   return g_faults ? 1 : 0;
 }
@@ -347,6 +391,13 @@ int main(int argc, char **argv) {
       dn->on = 1, dn->a = b;
       event_t *up = add_event(t + dur, EV_BUTTON);
       up->on = 0, up->a = b;
+    } else if (strcmp(a, "--select") == 0) {
+      double t;
+      int unit, n = 0;
+      if (sscanf(v, "%lf:%d:%n", &t, &unit, &n) != 2 || !n) { usage(); return 2; }
+      event_t *e = add_event(t, EV_SELECT);
+      e->a = unit;
+      snprintf(e->name, sizeof e->name, "%s", v + n);
     } else if (strcmp(a, "--turn") == 0) {
       char name[32];
       const char *c1 = strchr(v, ':');
@@ -384,6 +435,11 @@ int main(int argc, char **argv) {
   fm1_app_master(&g_app, master, 0);
   for (int k = 0; k < g_nev; ++k) {
     if (g_ev[k].kind == EV_PARAM && find_param(0, g_ev[k].name) < 0) return 1;
+    if (g_ev[k].kind == EV_SELECT && strcmp(g_ev[k].name, "-") != 0 &&
+        fm1_app_find(g_ev[k].name) < 0) {
+      fprintf(stderr, "unknown engine %s\n", g_ev[k].name);
+      return 1;
+    }
   }
 
   uint32_t total = (uint32_t)(secs * rate);
@@ -401,7 +457,11 @@ int main(int argc, char **argv) {
       else if (e->kind == EV_PARAM) fm1_app_set_param(&g_app, 0, find_param(0, e->name), e->value);
       else if (e->kind == EV_TURN) fm1_app_encoder(&g_app, e->a, e->b);
       else if (e->kind == EV_BUTTON) fm1_app_button(&g_app, e->a, e->on);
-      else continue;
+      else if (e->kind == EV_SELECT) {
+        int idx = strcmp(e->name, "-") == 0 ? -1 : fm1_app_find(e->name);
+        int r = fm1_app_select(&g_app, e->a, idx);
+        if (r) fprintf(stderr, "select %s into unit %d: %d\n", e->name, e->a, r);
+      } else continue;
       e->done = 1;
     }
     for (int pass = 0; pass < 2; ++pass) {             /* offs before ons */
@@ -439,13 +499,17 @@ int main(int argc, char **argv) {
   for (int n = 0; n < 128; ++n) sounding += g_app.note_count[n];
   printf("{\"engine\":\"%s\",\"rate\":%g,\"frames\":%u,\"peak\":%.6f,\"rms\":%.6f,"
          "\"ram\":%u,\"mode\":%d,\"octave\":%d,\"transpose\":%d,\"sounding\":%d,"
-         "\"fx\":[\"%s\",\"%s\"],\"leds\":\"",
+         "\"fx\":[\"%s\",\"%s\"],\"fx_slot\":%d,\"fx_page\":%d,\"leds\":\"",
          g_app.unit[0].e ? g_app.unit[0].e->id : "", (double)rate, total, (double)peak,
          total ? sqrt(sum2 / (2.0 * total)) : 0.0, (unsigned)fm1_app_ram(&g_app), g_app.mode,
          g_app.octave, g_app.transpose, sounding, g_app.unit[1].e ? g_app.unit[1].e->id : "",
-         g_app.unit[2].e ? g_app.unit[2].e->id : "");
+         g_app.unit[2].e ? g_app.unit[2].e->id : "", g_app.fx_slot, g_app.fx_page);
   for (int i = 0; i < FM1_APP_LEDS; ++i) putchar(g_app.led[i] ? '1' : '0');
-  printf("\"");
+  printf("\",\"popup\":[");
+  for (int i = 0; i < g_app.popup_lines; ++i) {
+    printf(i ? ",\"%s\"" : "\"%s\"", g_app.popup[i]);   /* popups hold plain names */
+  }
+  printf("]");
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
     printf(",\"values%d\":[", u);
     const fm1_engine_t *e = g_app.unit[u].e;

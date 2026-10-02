@@ -9,6 +9,18 @@ history.
 ## [Unreleased]
 
 ### Added
+- A virtual FM-1 in the browser (`sim/web/`): every engine and effect,
+  compiled to WebAssembly, behind a to-scale FM-1 panel with the firmware's
+  own 240 × 240 screen. Play it with the mouse, touch, the computer keyboard
+  or a MIDI keyboard; serve `sim/web/www/` from localhost. Its output equals
+  the native renderer's byte for byte (Sophie aside, against glibc), and
+  `sim/web/build-on-aeon.sh` rebuilds and checks it in one command. On a
+  phone the panel keeps playable 25–35 px controls and scrolls sideways in
+  its own box; turning the phone to landscape shows it whole. Above
+  47,872 Hz, where Macro, Macro Heavy and Six-Op cannot run, it starts with
+  Shapes, steps over them and says why.
+- `sim/web/emulators.md`: there is no public emulator of the FM-1, its SoC
+  or its CPU; what each route to one would take.
 - `engines/include/fm1_resampler.h`: a reusable, heap-free resampler
   (polyphase windowed sinc to twice the host rate, then a 123-tap low-pass).
   Equal rates pass through bit for bit; everything above the output's
