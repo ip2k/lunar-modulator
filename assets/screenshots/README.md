@@ -1,7 +1,7 @@
 # Screenshots
 
 Pictures of Lunar Modulator in the virtual FM-1 (`sim/web/`), for the
-README. Taken on 2026-10-01 in headless Chromium 153 (Playwright 1.63) from
+README and DEVELOPERS.md (the parity figure). Taken on 2026-10-01 in headless Chromium 153 (Playwright 1.63) from
 `sim/web/www/` as committed with them (`fm1.wasm` `633b45af…`).
 
 | File | What it shows |

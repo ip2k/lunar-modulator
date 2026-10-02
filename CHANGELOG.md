@@ -165,6 +165,22 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **The README is now the product page.** It covers what Lunar Modulator
+  does, how to try it in a browser, a roadmap, and why it is not installable
+  on an FM-1 yet.
+- **Everything technical moves to a new `DEVELOPERS.md`:**
+  - where development stands, "The short version" and the path to the
+    device;
+  - how the software works, including the reference-render comparison;
+  - the hardware, with what is known about MIDI out, BLE MIDI and the second
+    core;
+  - the roadmap in detail, building and testing, and the conventions.
+- The two files link to each other, and each says what it is for.
+- "Repository history" is gone, and the repository map sits at the bottom of
+  the README.
+- The product page calls it "Sequencer", following docs/13 §8. Its credit
+  now reads "Sequencer design and logic after Movy by megadake (MIT)".
+- The credits add the Exo 2 typeface.
 - The `USB_KEY` dongle now keys with D+ as the clock (polarity A) by
   default. That is the polarity czietz's Pico dongle reached UBOOT mode with
   on two FM-1s (docs/10 §1.1).
@@ -197,8 +213,8 @@ history.
   MODULATION STATION**: open firmware for the M-VAVE FM-1, formerly "Open
   firmware for the M-VAVE FM-1". The repository becomes
   `ip2k/lunar-modulator` (GitHub redirects `ip2k/mvave-fm1-open-firmware`).
-  The short form is "Lunar"; the look is a space theme with a NASA-style
-  typeface, using no NASA, M-VAVE or Cuvave marks. README, HANDOFF,
+  The short form is "Lunar"; the look is a space theme set in Audiowide,
+  using no NASA, M-VAVE or Cuvave marks. README, HANDOFF,
   CLAUDE.md and AGENTS.md carry the new name; CLAUDE.md and AGENTS.md set
   out the naming rules.
 - Six-Op FM lists 23 of its 96 patches under names of our own, because the
