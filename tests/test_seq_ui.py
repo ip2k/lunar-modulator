@@ -111,7 +111,8 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
     scen = json.loads((ROOT / "sim/web/test/scenarios.json").read_text())["scenarios"]
     panels = [x for x in scen if "panel" in x]
     assert {x["name"] for x in panels} >= {"seq-panel-play-stop", "seq-panel-step-entry",
-                                           "seq-panel-record", "seq-panel-capture-stopped"}
+                                           "seq-panel-record", "seq-panel-capture-stopped",
+                                           "multi-panel"}
     for sc in panels:
         seq = ROOT / "sim" / "web" / "test"
         args = ["--engine", sc["engine"], "--seconds", str(sc["seconds"])]
@@ -121,6 +122,10 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
             args += ["--fx", fx]
             for p in ps:
                 args += ["--fx-param", p]
+        for k, sound, ps in sc.get("sounds", []):           # multi-sound (docs/15 §3.16)
+            args += ["--sound", f"{k}:{sound}"] + [a for p in ps for a in ("--sound-param", f"{k}:{p}")]
+        for k, fx, ps in sc.get("inserts", []):
+            args += ["--insert", f"{k}:{fx}"] + [a for p in ps for a in ("--insert-param", f"{k}:{p}")]
         s, r, log, a, b = two_step(tools, tmp_path, sc["name"], seq / sc["panel"], seq / sc["cmd"],
                                    *args, lab=sc.get("lab", False))
         assert s["replayable"] == 1 and a == b and s["peak"] > 0.01
@@ -144,6 +149,14 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
             assert sidecar.count("--note") == 9, "eight keys and the MIDI IN note"
         if sc["name"] == "seq-panel-capture-stopped":
             assert played[-3:] == ["cap 0", "capsel 1", "capdone"]
+        if sc["name"] == "multi-panel":
+            assert sidecar.startswith("--slots\n"), "the replay routes by slot"
+            assert sidecar.count("--sound-note\n1:") == 2, "Sound 2's key and MIDI IN note"
+            assert sidecar.count("--sound-param-at\n1:") == 1 and sidecar.count("--level-at") == 2
+            # The keys and MIDI IN notes are live input to track 1 too (S5).
+            verbs = [t.split()[0] for t in played]
+            assert verbs[0] == "play" and verbs[-1] == "stop"
+            assert verbs.count("non") == verbs.count("nof") == 4 and len(verbs) == 10
 
 
 def test_every_verb_round_trips_through_its_text(tools):

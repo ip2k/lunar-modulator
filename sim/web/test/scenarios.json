@@ -92,6 +92,26 @@
     {"name": "macro-heavy-lpg-off", "engine": "macro-heavy",
      "params": ["Model=9", "LPG=2", "Env Timbre=0.5", "Env Morph=0.6"],
      "notes": ["0:45:110:0.4", "0.3:52:90:0.4"], "param_at": ["0.5:LPG=1"],
-     "fx": [["plate", ["Mix=0.2"]]], "seconds": 1.1}
+     "fx": [["plate", ["Mix=0.2"]]], "seconds": 1.1},
+    {"name": "multi-two-sounds-inserts", "engine": "macro", "params": ["Model=1", "Timbre=0.3"], "lab": true,
+     "why": "Multi-sound (docs/15 §3.16, the lab switch on): Macro as Sound 1 through a Crush insert at 80 %, Shapes as Sound 2 through Diffuse and Ensemble at 60 %, summed and through the master Plate. Notes on each sound (--note on Sound 1, --sound-note on Sound 2); the render legs run fm1-render --slots with the same units.",
+     "sounds": [[1, "shapes", ["Shape=5", "Color=0.7"]]],
+     "inserts": [[0, "crush", ["Bits=9", "Mix=0.6"]], [1, "diffuse", ["Mix=0.35"]], [1, "ensemble", []]],
+     "levels": ["0:80", "1:60"],
+     "notes": ["0:48:110:0.6", "0.5:55:100:0.6"], "sound_notes": ["1:0.1:72:100:0.5", "1:0.6:79:90:0.4"],
+     "fx": [["plate", ["Mix=0.25"]]], "seconds": 1.4},
+    {"name": "multi-four-sounds-seq", "engine": "macro", "params": ["Model=2"], "lab": true,
+     "why": "Four tracks routed to four slots (`route t 1 k`, docs/15 §3.16): Macro, Shapes and Six-Op as Sounds 1, 2 and 4, Sound 3 empty, so track 2 plays nothing; each sound renders split at its own tracks' events (fm1_seq_host_dispatch_slots) through its own inserts and level, and each lock lane resolves on its own track's sound (Shapes' Color, Six-Op's Brightness, Macro's Timbre).",
+     "cmd": "seq/multi-four-sounds.verbs",
+     "sounds": [[1, "shapes", ["Shape=12"]], [3, "sixop", ["Patch=7"]]],
+     "inserts": [[0, "crush", ["Bits=10"]], [1, "diffuse", ["Mix=0.35"]], [1, "ensemble", []], [3, "fold", ["Fold=0.4"]]],
+     "levels": ["0:90", "1:70", "3:85"],
+     "fx": [["plate", ["Mix=0.2"]]], "seconds": 2.4},
+    {"name": "multi-panel", "engine": "macro", "params": ["Model=3"], "lab": true,
+     "why": "Multi-sound from the panel (docs/15 §3.16): SHIFT + PRESETS makes Sound 2 current, a key and a MIDI IN note play it, KNOB2 turns its Timbre, the Mix page sets both levels, and SHIFT + PRESETS goes back to Sound 1, while two tracks play the two sounds. The render legs replay the harness's log and sidecar (--sound-note, --sound-param-at, --level-at), so this is two-step parity across sound units.",
+     "cmd": "seq/panel-multi-sound.verbs", "panel": "seq/panel-multi-sound.panel",
+     "sounds": [[1, "shapes", ["Shape=20"]]],
+     "inserts": [[1, "ensemble", ["Mix=0.6"]]],
+     "fx": [["plate", ["Mix=0.25"]]], "seconds": 2.5}
   ]
 }

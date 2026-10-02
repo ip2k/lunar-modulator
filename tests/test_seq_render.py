@@ -402,8 +402,9 @@ def test_the_bridge_checks_itself(seq_tools):
     """engines/test/seq_host_test.c drives the bridge where fm1-render does
     not: typed commands, realtime input and live notes against the same text
     lines (same events every block, same set), every sink call at its
-    event's frame and in order, the room figures, the length-bounded `rt`
-    parser, lane labels and lock values."""
+    event's frame and in order, one sink per sound unit (dispatch_slots:
+    each slot its own tracks and splits, an empty slot nothing), the room
+    figures, the length-bounded `rt` parser, lane labels and lock values."""
     res = subprocess.run([str(seq_tools.parent / "fm1-seq-host-test")], capture_output=True,
                          text=True)
     assert res.returncode == 0, res.stderr
