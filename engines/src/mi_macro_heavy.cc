@@ -226,19 +226,30 @@ enum Param {
   P_COUNT
 };
 
+// Uids (API v2) are fixed: never renumber one. The parameters Macro also has
+// keep Macro's uids, so a lock survives a swap between the two; Word Speed,
+// Macro Heavy's own, takes 12, the first uid Macro does not use. Flags as
+// Macro's: Model rebuilds every voice (NOLOCK), LPG is lockable but not a
+// modulation target.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Model",      FM1_PARAM_ENUM,  0, MODEL_COUNT - 1, 0, kModelNames, 0 },
-  { "Harmonics",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Timbre",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Morph",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Decay",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1 },
-  { "Colour",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1 },
-  { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1 },
-  { "Word Speed", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 1 },
-  { "Env Pitch",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2 },   // FM attenuverter
-  { "Env Timbre", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2 },   // TIMBRE attenuverter
-  { "Env Morph",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2 },   // MORPH attenuverter
-  { "LPG",        FM1_PARAM_ENUM, 0, LPG_MODE_COUNT - 1, LPG_GATE, kLpgModeNames, 2 },
+  { "Model",      FM1_PARAM_ENUM,  0, MODEL_COUNT - 1, 0, kModelNames, 0,
+    1, FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Model" },
+  { "Harmonics",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Harm" },
+  { "Timbre",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Timbre" },
+  { "Morph",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Morph" },
+  { "Decay",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Decay" },
+  { "Colour",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Colour" },
+  { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Vol" },
+  { "Word Speed", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 1,
+    12, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "WrdSpd" },
+  { "Env Pitch",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2,   // FM attenuverter
+    8, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "EnvPit" },
+  { "Env Timbre", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2,   // TIMBRE attenuverter
+    9, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "EnvTim" },
+  { "Env Morph",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2,   // MORPH attenuverter
+    10, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "EnvMor" },
+  { "LPG",        FM1_PARAM_ENUM, 0, LPG_MODE_COUNT - 1, LPG_GATE, kLpgModeNames, 2,
+    11, 0, FM1_UNIT_NONE, "LPG" },
 };
 
 // Four voices. RAM sets the cap first: every voice carries a 16 KB arena (the

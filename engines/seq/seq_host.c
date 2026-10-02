@@ -2,8 +2,32 @@
  * commands into a shared event buffer, advance, and the split renders that
  * hand engine-routed notes and locks to a sound engine at their own frame.
  * Extracted from fm1-render (engines/host/render.cc) without a change in
- * behaviour. C99, no heap, no stdio. MIT licence. */
+ * behaviour; lane labels resolve to parameter uids (engine API v2) when they
+ * are set, and locks on NOLOCK parameters are refused. C99, no heap, no
+ * stdio. MIT licence. */
 #include "fm1_seq_host.h"
+
+#include <string.h>
+
+static char lower(char c) { return c >= 'A' && c <= 'Z' ? (char)(c - 'A' + 'a') : c; }
+
+/* strcasecmp in the C locale, which is what fm1-render had. */
+static int same_name(const char *a, const char *b) {
+  for (; *a && *b; ++a, ++b) {
+    if (lower(*a) != lower(*b)) return 0;
+  }
+  return *a == *b;
+}
+
+/* What a lane label names: the part after its last ':' ("synth:Timbre"). */
+static const char *label_name(const char *label) {
+  const char *name = label;
+  const char *p;
+  for (p = label; *p; ++p) {
+    if (*p == ':') name = p + 1;
+  }
+  return name;
+}
 
 void fm1_seq_host_init(fm1_seq_host_t *h, fm1_seq_t *seq, fm1_seq_ev_t *ev, uint32_t cap) {
   h->seq = seq;
@@ -13,7 +37,57 @@ void fm1_seq_host_init(fm1_seq_host_t *h, fm1_seq_t *seq, fm1_seq_ev_t *ev, uint
   h->max_n = 0;
   h->notes_to_engine = 0;
   h->locks_to_engine = 0;
+  h->locks_refused = 0;
   h->splits = 0;
+  h->engine = NULL;
+  memset(h->lane_uid, 0, sizeof(h->lane_uid));
+}
+
+/* Every lane of track t, from the core's labels, against the bound engine.
+ * Out-of-range tracks read as unlabelled (fm1_seq_lane_label gives ""). */
+static void resolve_track(fm1_seq_host_t *h, unsigned t) {
+  unsigned lane;
+  for (lane = 0; lane < FM1_SEQ_LANES; ++lane) {
+    h->lane_uid[t][lane] =
+        h->seq ? fm1_seq_lane_uid(h->engine, fm1_seq_lane_label(h->seq, (uint8_t)t, (uint8_t)lane))
+               : 0u;
+  }
+}
+
+static void resolve_all(fm1_seq_host_t *h) {
+  unsigned t;
+  for (t = 0; t < FM1_SEQ_MAX_TRACKS; ++t) resolve_track(h, t);
+}
+
+void fm1_seq_host_bind(fm1_seq_host_t *h, const fm1_engine_t *e) {
+  h->engine = e;
+  resolve_all(h);
+}
+
+int fm1_seq_host_import(fm1_seq_host_t *h, const char *txt, size_t len) {
+  const int ok = fm1_seq_import_movy1(h->seq, txt, len);
+  resolve_all(h);
+  return ok;
+}
+
+uint16_t fm1_seq_host_lane_uid(const fm1_seq_host_t *h, uint8_t track, uint8_t lane) {
+  const char *label;
+  uint16_t uid;
+  int i;
+  if (track >= FM1_SEQ_MAX_TRACKS || lane >= FM1_SEQ_LANES || !h->seq) return 0;
+  /* A lane the core has released since (aclr, a deleted clip...) is
+   * unlabelled now. */
+  label = fm1_seq_lane_label(h->seq, track, lane);
+  if (!label[0]) return 0;
+  /* The stored uid, while its parameter still has the name the label gives:
+   * every `alabel` and import through the bridge keeps it so. A label set on
+   * the core directly, past the bridge, resolves afresh here instead, so its
+   * locks still reach the parameter it names. Engine names are unique
+   * without case (tests/test_engine_params.py), so the two agree. */
+  uid = h->lane_uid[track][lane];
+  i = fm1_param_index(h->engine, uid);
+  if (i >= 0 && same_name(h->engine->params[i].name, label_name(label))) return uid;
+  return fm1_seq_lane_uid(h->engine, label);
 }
 
 static int is_blank(char c) { return c == ' ' || c == '\t'; }
@@ -62,15 +136,34 @@ uint32_t fm1_seq_cmd_max_events(const fm1_seq_limits_t *lim) {
   return (uint32_t)lim->gates + 8u * (uint32_t)lim->tracks + 1u;
 }
 
+/* Whether a line may label a lane: it holds "alabel" anywhere. Rare (lane
+ * set-up), and re-resolving an unchanged label is harmless, so a crude test
+ * is enough; a resent batch the core suppresses resolves to what it had. */
+static int mentions_alabel(const char *ops, size_t len) {
+  static const char w[] = "alabel";
+  size_t i, k;
+  for (i = 0; i + (sizeof(w) - 1u) <= len; ++i) {
+    for (k = 0; k < sizeof(w) - 1u && ops[i + k] == w[k]; ++k) {
+    }
+    if (k == sizeof(w) - 1u) return 1;
+  }
+  return 0;
+}
+
 uint32_t fm1_seq_host_line(fm1_seq_host_t *h, const char *ops, size_t len) {
   const uint32_t k = fm1_seq_apply_line(h->seq, ops, len, tail(h), fm1_seq_host_room(h));
   h->n += k;
+  if (mentions_alabel(ops, len)) resolve_all(h);
   return k;
 }
 
 uint32_t fm1_seq_host_cmd(fm1_seq_host_t *h, const fm1_seq_cmd_t *c) {
   const uint32_t k = fm1_seq_apply(h->seq, c, tail(h), fm1_seq_host_room(h));
   h->n += k;
+  if (c->verb == FM1_SEQ_V_ALABEL && (c->valid & 1u) && c->arg[0] >= 0 &&
+      c->arg[0] < (int64_t)FM1_SEQ_MAX_TRACKS) {
+    resolve_track(h, (unsigned)c->arg[0]);
+  }
   return k;
 }
 
@@ -90,10 +183,23 @@ uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames) {
   return h->n;
 }
 
+/* The index of the parameter a lock reaches, or -1: its lane names nothing
+ * (or nothing any more), or the parameter is NOLOCK, which is counted. */
+static int lock_target(fm1_seq_host_t *h, const fm1_seq_ev_t *e) {
+  const int i = fm1_param_index(h->engine, fm1_seq_host_lane_uid(h, e->track, e->a));
+  if (i < 0) return -1;
+  if (!fm1_param_lockable(&h->engine->params[i])) {
+    ++h->locks_refused;
+    return -1;
+  }
+  return i;
+}
+
 void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
                            const fm1_seq_sink_t *sink) {
   uint32_t k, cur = 0;
   if (sink) {
+    if (sink->engine != h->engine) fm1_seq_host_bind(h, sink->engine);
     for (k = 0; k < h->n; ++k) {
       const fm1_seq_ev_t *e = &h->ev[k];
       fm1_seq_track_info_t ti;
@@ -105,7 +211,7 @@ void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
         continue;
       }
       if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
-        param = fm1_seq_lane_param(sink->engine, fm1_seq_lane_label(h->seq, e->track, e->a));
+        param = lock_target(h, e);
         if (param < 0) continue;
       }
       f = e->frame < frames ? e->frame : frames;
@@ -133,28 +239,22 @@ void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
   h->n = 0;
 }
 
-static char lower(char c) { return c >= 'A' && c <= 'Z' ? (char)(c - 'A' + 'a') : c; }
-
-/* strcasecmp in the C locale, which is what fm1-render had. */
-static int same_name(const char *a, const char *b) {
-  for (; *a && *b; ++a, ++b) {
-    if (lower(*a) != lower(*b)) return 0;
-  }
-  return *a == *b;
-}
-
 int fm1_seq_lane_param(const fm1_engine_t *e, const char *label) {
-  const char *name = label;
-  const char *p;
+  const char *name;
   uint16_t q;
   if (!e || !label) return -1;
-  for (p = label; *p; ++p) {
-    if (*p == ':') name = p + 1;
-  }
+  name = label_name(label);
   for (q = 0; q < e->n_params; ++q) {
     if (same_name(e->params[q].name, name)) return q;
   }
   return -1;
+}
+
+uint16_t fm1_seq_lane_uid(const fm1_engine_t *e, const char *label) {
+  int i;
+  if (!label || !label[0]) return 0;   /* the common case: an unused lane */
+  i = fm1_seq_lane_param(e, label);
+  return i < 0 ? 0u : e->params[i].uid;
 }
 
 float fm1_seq_lock_value(const fm1_param_t *p, unsigned v) {

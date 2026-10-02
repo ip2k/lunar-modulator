@@ -257,6 +257,10 @@ typedef struct fm1_mod_kind {
 - **Two new parameter fields**, also for S7a: `abbr` (up to 6 characters, for
   matrix rows; 5 when a unit prefix is added) and `unit` (SEMI, ms, Hz, %,
   degrees).
+- **Built.** The owner approved both (§9, question 7), and S7a added the
+  flags and the fields to every engine and effect [verified:
+  engines/README.md, "Parameters"; `fm1_unit_t` numbers NONE 0 and SEMI 1
+  as `fm1_port_unit_t` above, so the two can share it].
 - **Gates are separate** because they carry edges with frame offsets. That is
   what keeps a trigger sample-accurate inside a module.
 - **`routed` and `gate_connected`** tell a module what is patched, as a
@@ -1157,7 +1161,7 @@ due during this plan; check the mark at MG3.
 6. **Inputs.** Module CV inputs as parameters, plus INPUT parameters and gate
    ports (recommended)?
 7. **S7a additions.** Ask S7a now for the MOD and INPUT flags and the `abbr`
-   and `unit` fields?
+   and `unit` fields? **Answered (2026-10-02): yes; built in S7a.**
 8. **Buttons.** LFO = RACK, EDIT = MATRIX, ENV = PATCH, SEL held + white key
    for stages in RACK?
 9. **Arena.** 8 KB (recommended) or 16 KB?

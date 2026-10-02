@@ -51,6 +51,21 @@ float fm1_sw_strtof(const char *s, char **end);
 namespace fm1 {
 namespace schwung {
 
+// A Schwung parameter's uid (API v2), derived from its key, the module's own
+// stable name for it: 0x800 plus the 32-bit FNV-1a hash of the key folded to
+// 11 bits. A module that reorders or extends its parameters keeps every uid,
+// and an adapter needs no numbering of its own. Native engines number from 1,
+// below 0x800, so the two never meet. A collision inside one module fails
+// tests/test_engine_params.py; it would be settled by a salt in that adapter.
+// constexpr (C++11: one return statement), so the tables stay constant data.
+constexpr uint32_t KeyHash(const char *s, uint32_t h = 2166136261u) {
+  return *s ? KeyHash(s + 1, (h ^ static_cast<uint8_t>(*s)) * 16777619u) : h;
+}
+constexpr uint16_t KeyUidFold(uint32_t h) {
+  return static_cast<uint16_t>(0x800u | ((h ^ (h >> 11) ^ (h >> 22)) & 0x7FFu));
+}
+constexpr uint16_t KeyUid(const char *key) { return KeyUidFold(KeyHash(key)); }
+
 // How an fm1 parameter value becomes the string the module's set_param reads.
 enum ValueFormat {
   VALUE_FLOAT = 0,  // the value with six decimals, e.g. "0.350000"

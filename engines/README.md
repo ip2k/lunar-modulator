@@ -220,11 +220,103 @@ How it works [verified: tests/test_engines_echo.py and
   reset call to drop the tail without re-creating the 64 KiB instance (the
   host feature listed below).
 
+## Parameters (engine API v2)
+
+Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
+more fields after its name, type, range, default, enum names and page
+(`include/fm1_engine.h`):
+
+| Field | What it is |
+| --- | --- |
+| `uid` | 1–4,095, unique in its engine and never changed or reused. It is what a sequencer lock, a modulation route (docs/16) or a preset stores, so reordering or extending a table moves nothing. A uid means something only together with its engine's id |
+| `flags` | `FM1_PARAM_LATCH`, `SMOOTH`, `NOLOCK`, `MOD` and `INPUT`, below |
+| `unit` | `FM1_UNIT_NONE`, `SEMI`, `MS`, `HZ`, `PCT` or `DEG`: the unit the value itself is in |
+| `abbr` | Up to 6 characters, for matrix rows (docs/16 §5.3). Distinct within an engine, and still distinct cut to 5, for rows that add a unit prefix |
+
+**Uids.** Native engines and effects number their parameters from 1, in the
+order they first shipped; a new parameter takes the next free uid. Macro
+Heavy keeps Macro's uids for the 11 parameters both have (Word Speed is 12),
+so a lane survives a swap between the two; its table is the one where a uid
+is not the index plus 1, which catches a host that uses one for the other.
+The Schwung adapters derive each uid from the module's own key for the
+parameter: 0x800 plus the key's 32-bit FNV-1a hash folded to 11 bits
+(`KeyUid` in `src/schwung_shim.h`, a C++11 `constexpr`, so the tables stay
+constant data). A module that reorders or extends its parameters keeps every
+uid, and the two ranges never meet. `tests/fixtures/param-uids.json` pins
+every uid and flag, the Schwung modules' hidden parameters included, and
+`tests/test_engine_params.py` fails when one changes. A removed parameter
+moves to the fixture's `retired` list, so its uid is never given out again.
+
+**Flags.** They describe the parameter; hosts act on them.
+
+| Flag | Meaning | What a host does |
+| --- | --- | --- |
+| LATCH | The engine reads it at note-on: a change reaches the notes that start after it, never a sounding one | Nothing more: at one frame, locks come before note-ons (D2, engines/seq.md) |
+| SMOOTH | Continuous and read every block | The engine ramps a change, from docs/15 stage S7b; until then the flag is a hint |
+| NOLOCK | A change is destructive: it rebuilds voices, clears a buffer or moves the edit focus | A lock on it is refused and counted (engines/seq.md, Host contract); never a modulation destination |
+| MOD | Accepts modulation (docs/16 §2.2). Every FLOAT has it by default; an ENUM only when it says so, and is then rounded. Never with NOLOCK | The modulation matrix, from docs/16 stage MG1 |
+| INPUT | A bare signal input: FLOAT, −1..1, default 0, hidden from the knob pages | Modulation modules only; no engine has one |
+
+Every FLOAT parameter here is SMOOTH and MOD (`FM1_PARAM_CONTINUOUS`),
+except Sophie's, which are LATCH and MOD: a triggered voice copies its pad's
+patch (`sophie.c`, `trigger_voice`), so Sophie reads all of them at note-on.
+`fm1_param_lockable`, `fm1_param_modulatable` and `fm1_param_index(engine,
+uid)` are the helpers. `fm1-render --list` prints each parameter's uid,
+flags (by name), unit and abbreviation. The four fields make `fm1_param_t`
+36 bytes on pi32v2 and i386 (28 before) and 48 on x86-64 (40) [verified:
+`tools/jieli/compile-check.sh`, 2026-10-02, 67 of 67 objects compiled in
+all four profiles]: 704 bytes more of read-only data for the 88 parameters
+the registry defines.
+
+**The ENUM parameters** [verified against each engine's code, 2026-10-02].
+docs/15's table had eight; Macro's and Macro Heavy's LPG came with their
+third page.
+
+| Engine | Parameter | Flags | Why |
+| --- | --- | --- | --- |
+| macro | Model | NOLOCK | `set_param` rebuilds all 12 voices (`BuildEngines`), cutting every note |
+| macro | LPG | none | Read every block, and a change leaves notes sounding, so it can be locked. No MOD: a rounded route could end a note held under Off by switching to Ping |
+| macro-heavy | Model, LPG | as Macro's | the same code |
+| shapes | Shape | NOLOCK | Sets every voice's oscillator at once |
+| sixop | Patch | LATCH, MOD | Read per voice at note-on, so a lock or a route picks the patch of the next notes |
+| sw-sophie | Pad | NOLOCK | The module's edit focus, not a sound: it picks the pad the other parameters edit, so a lock on it would change what every other lane's locks mean. A change does leave sounding voices intact, the condition docs/15's table gave for lockable; the focus decided it |
+| sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
+| sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
+| sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
+
+**Units and abbreviations.** Echo's Time and Sophie's Ring Time are in ms,
+Sophie's Tune in semitones and its 0–100 knobs in %. Sophie's Decay is in
+seconds, for which there is no unit code yet, so it has none. Every other
+parameter is a bare number (the 0–1 knobs, gains, bits, indices).
+
+**No sound changed** [verified 2026-10-02, Apple clang, before and after on
+one machine, clean builds]: 1,458 runs of `fm1-render` and the virtual
+FM-1's native harness. They cover:
+- the 34 oracle scripts on all six sound engines in both modes, at 64-frame
+  blocks and at each script's own (the Plaits-based engines refuse the five
+  48 kHz scripts, the same way before and after);
+- 28 `movy1` sets played alone (four sets and the oracle's 24 end states);
+- every sound parameter as a lock lane, at blocks of 64 and 7;
+- 72 seeded scripts that lock four random parameters per engine, relabel
+  one lane and release another while playing, in both modes;
+- the host-block script at 1, 7 and 64 frames on every engine;
+- every parameter of every engine and effect at its minimum, middle and
+  maximum and turned mid-note; instance fills 0xA5 and 0xFF; 48 kHz;
+- the simulator's 18 parity scenarios, through both hosts.
+
+Every WAV, event log, exit code and error is byte-identical, and so is
+every summary less its timing and the new `seq_locks_refused`, in every run
+that refuses no lock. The 38 that do (8 of the sweep, 30 of the seeded
+scripts) are the only ones that differ: their locks on Macro's and Macro
+Heavy's Model and Shapes' Shape are refused, which changes their audio,
+and on Sophie's Pad, which changes only their counters (Pad alone makes no
+sound).
+
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `include/fm1_engine.h` | The engine API. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs); `fm1_param_clamp` for NaN-safe ranges; the threading contract |
+| `include/fm1_engine.h` | The engine API, version 2. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, flags, a unit and an abbreviation ([above](#parameters-engine-api-v2)); `fm1_param_clamp` for NaN-safe ranges; the threading contract |
 | `mod/` | Modulation primitives: an LFO, a Peaks-style envelope, slew, S&H, a Turing register and a tick clock divider. Heap-free C99, not wired in yet ([mod/README.md](mod/README.md)) |
 | `include/fm1_seq.h`, `seq/` | The sequencer core: a heap-free C99 port of Movy's sequencer, with 4–8 routed tracks ([seq.md](seq.md), docs/13) |
 | `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`. Not wired into the renderer yet ([midi_fx/README.md](midi_fx/README.md)) |
@@ -429,7 +521,8 @@ keeping decay within 3–4 %.
 - **Host features the streams asked for:** a random seed (`--seed`; stmlib's
   generator is a global in vendored code, so the host cannot seed it without
   depending on one library), an active-voice diagnostic so voice freeing can be tested
-  without timing, parameter smoothing (host or engine), and a reset call so
+  without timing, parameter smoothing (engine-side, the owner's choice: the
+  SMOOTH flag is set, the ramp is docs/15 stage S7b), and a reset call so
   effects can drop their tails without re-creating a 64 KB instance. Also a
   per-file SHA-256 manifest from `vendor.py`, so a test can pin the whole
   vendored tree rather than the files one lane compiles.

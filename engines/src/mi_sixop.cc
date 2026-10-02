@@ -132,11 +132,17 @@ enum Param { P_PATCH, P_BRIGHTNESS, P_ENVELOPE, P_VOLUME, P_COUNT };
 // release rates by 2^(-|e - 0.3| * 8), so the default 0.5 plays attacks and
 // decays as programmed with releases about three times longer.
 
+// Uids (API v2) are fixed: never renumber one. Patch is read per voice at
+// note-on (LATCH), so a lock or a route picks the patch of the notes that
+// start after it and leaves sounding ones alone.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Patch",      FM1_PARAM_ENUM,  0, kNumPatches - 1, 32, kPatchNames, 0 },  // E.PIANO 1
-  { "Brightness", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },  // Plaits' TIMBRE
-  { "Envelope",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },  // Plaits' MORPH
-  { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1 },
+  { "Patch",      FM1_PARAM_ENUM,  0, kNumPatches - 1, 32, kPatchNames, 0,  // E.PIANO 1
+    1, FM1_PARAM_LATCH | FM1_PARAM_MOD, FM1_UNIT_NONE, "Patch" },
+  { "Brightness", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0,  // Plaits' TIMBRE
+    2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Bright" },
+  { "Envelope",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0,  // Plaits' MORPH
+    3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Env" },
+  { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Vol" },
 };
 
 // Eight voices. The FM-1's stock msfa plays 12 six-op voices plus effects on
