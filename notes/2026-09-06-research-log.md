@@ -39,7 +39,9 @@ user's MacBook and were **not** reachable from the sandbox.
    (single slice, fat binary with a decoy trailer): byte-identical carves.
 5. Attempted to create `ip2k/mvave-fm1-open-firmware` via the GitHub
    integration: `403 Resource not accessible by integration`. Fallback: orphan
-   branch on `ip2k/busybar-dual-timer`.
+   branch on `ip2k/busybar-dual-timer`. (The repository was published under
+   that name later on 2026-09-06 and renamed `ip2k/lunar-modulator`, with the
+   project, on 2026-10-01.)
 
 ## Numbers worth keeping
 
