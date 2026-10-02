@@ -9,6 +9,17 @@ history.
 ## [Unreleased]
 
 ### Added
+- The user manual (`manual/`, `tools/manual/`): chapters for welcome and
+  safety, getting started, a panel tour with a measured drawing of the panel,
+  playing, the sound engines, effects, the sequencer, MIDI, settings,
+  updating and recovery, troubleshooting, specifications and credits, a
+  glossary and a generated index of controls. Every function says where it
+  runs today: in the browser simulator, in the desktop tools, or planned for
+  the device. Parameter tables, list values, the sequencer's figures and its
+  script verbs are generated from the code at build time. Published on GitHub
+  Pages at `/manual/` beside the simulator, with an A5 PDF, by a new
+  workflow (`.github/workflows/pages.yml`) that also builds and checks it on
+  pull requests. Many sections are still outlines, marked *Draft*.
 - A survey of monome, Ornament & Crime (via PaulStoffregen/O_C_T41 and
   Phazerville) and jhjlim's repositories as FM-1 sources
   (`notes/2026-10-01-monome-oc-jhjlim-survey.md`). O&C's MIT cores

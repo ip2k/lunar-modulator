@@ -108,6 +108,7 @@ a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
 | [`photos/`](photos/) | The owner's photos of their unit, by date, with the crops the notes cite |
 | [`engines/`](engines/) | The engine platform, stage A: the C engine API, sound engines and effects from Mutable Instruments code, a Schwung module shim, a desktop renderer and tests |
 | [`notes/upstream-candidates.md`](notes/upstream-candidates.md) | Findings worth sending to other projects, none posted yet |
+| [`manual/`](manual/), [`tools/manual/`](tools/manual/) | The user manual: chapters in Markdown, a Rosé Pine Dawn theme, and the build that generates its reference tables from the code and publishes it with a PDF on GitHub Pages ([`manual/README.md`](manual/README.md), [`.github/workflows/pages.yml`](.github/workflows/pages.yml)) |
 
 Confidence marks used throughout the docs: **[verified]** checked in this
 project against binaries, photos or SDK files; **[reported]** taken from a
