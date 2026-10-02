@@ -964,10 +964,14 @@ upstream candidate). Our own code gets none.
   | Shapes (12) | 0.2–0.6 % |
   | Each Mutable effect | 0.03–0.06 % |
   | Fold | 0.12 % |
-  | Drive | 0.18–0.30 % |
-  | Filter | 0.06–0.34 % |
-  | Comp | 0.10–0.12 % |
-  | Limiter | 0.08–0.12 % |
+  | Drive | 0.17–0.23 % |
+  | Filter | 0.05–0.26 % (Comb to Steiner) |
+  | Comp | 0.11–0.14 % |
+  | Limiter | 0.08–0.11 % |
+
+  The four effects of the second pack: noise in, best of five 20-second
+  runs of `fm1-render`, Fold 0.13 % and Plate 0.06 % in the same run
+  [verified, 2026-10-02].
 
   pi32v2 is a much narrower core and these figures do not transfer; stage B
   measures the real ones. They do rank the engines for the voice caps.
