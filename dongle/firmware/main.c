@@ -38,9 +38,12 @@ static void dlog(const char *fmt, ...) {
 }
 
 // ------------------------------------------------------------- hardware ----
+static const uint PULLUP_PINS[2] = {PIN_PULLUP_DP, PIN_PULLUP_DM};
 static void pullups(bool on) {
-    if (on) { gpio_set_dir(PIN_PULLUP_EN, GPIO_OUT); gpio_put(PIN_PULLUP_EN, 1); }
-    else    { gpio_set_dir(PIN_PULLUP_EN, GPIO_IN); }   // hi-Z: no pull-up, no pull-down
+    for (int i = 0; i < 2; i++) {
+        if (on) { gpio_set_dir(PULLUP_PINS[i], GPIO_OUT); gpio_put(PULLUP_PINS[i], 1); }
+        else    { gpio_set_dir(PULLUP_PINS[i], GPIO_IN); }   // hi-Z: pad pulls are disabled in main()
+    }
 }
 static void mux_to_dongle(void) { gpio_put(PIN_MUX_SEL, MUX_SEL_DONGLE); }
 static void mux_to_pc(void)     { gpio_put(PIN_MUX_SEL, MUX_SEL_PC); }
@@ -176,7 +179,8 @@ int main(void) {
     stdio_init_all();
     gpio_init(PICO_DEFAULT_LED_PIN); gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
     gpio_init(PIN_MUX_SEL); gpio_set_dir(PIN_MUX_SEL, GPIO_OUT); mux_to_pc();
-    gpio_init(PIN_PULLUP_EN); pullups(false);
+    for (int i = 0; i < 2; i++) { gpio_init(PULLUP_PINS[i]); gpio_disable_pulls(PULLUP_PINS[i]); }  // pads default to pull-down
+    pullups(false);
     gpio_init(PIN_BUTTON); gpio_set_dir(PIN_BUTTON, GPIO_IN); gpio_pull_up(PIN_BUTTON);
     gpio_init(PIN_DP); gpio_init(PIN_DM);
     gpio_disable_pulls(PIN_DP); gpio_disable_pulls(PIN_DM);          // RP2040 pads default to pull-down

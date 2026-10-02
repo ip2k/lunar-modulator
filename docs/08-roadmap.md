@@ -28,6 +28,12 @@ Detailed commands in docs/09.
   from CI, logic tested against a ROM model); rehearse on an AC791N dev board
   if one can be bought (JL_AC79_DevKit V1.0 on Taobao), otherwise proceed
   carefully on the FM-1 following docs/10 §6.
+  - czietz's MicroPython dongle, reported working on two FM-1s (issue #2),
+    can also run on our dongle board as a second implementation for that
+    rehearsal: SPI1 on GP14/GP15 instead of GP10/GP11, relay energised,
+    pull-ups off.
+  - It drives push-pull, so it is not for this project's FM-1 (docs/10
+    §1.1).
 - Reach `UBOOT1.00`; record VID:PID, the SCSI inquiry string, the exact key
   polarity and timing that worked, the power-switch sequence.
 - Extend `jl-uboot-tool` for wl82 if needed (read-only first): chip ID, flash

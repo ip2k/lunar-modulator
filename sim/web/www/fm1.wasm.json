@@ -1,0 +1,293 @@
+{
+  "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
+  "wasm_sha256": "43e6ccd32c9365c9379e933bb3d1d5bff53f9e6bf94fc98f6245fffcd3f7a9b4",
+  "wasm_bytes": 391277,
+  "sources_sha256": {
+    "engines": "29336bca6e94e9c17b2a25033b61c8b081a441637416a10b3c0b92d353ee0ba8",
+    "sim": "c40e2ebc0717195f4ff1c965b27143a184c217c0b8e963bdcd9e1c41ec345354"
+  },
+  "engines": "working tree",
+  "built": "2026-10-02T04:22:53Z",
+  "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
+  "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "images": [
+    "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
+    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
+  ],
+  "imports": [],
+  "parity": {
+    "passed": 12,
+    "failed": 0,
+    "identical_to_js": 12,
+    "identical_to_musl": 12,
+    "identical_to_glibc": 10,
+    "max_lsb_vs_glibc_exact_scenarios": 0
+  },
+  "scenarios": [
+    {
+      "name": "macro-va-pair-chord",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 89200,
+        "native64": 102080
+      }
+    },
+    {
+      "name": "macro-models-and-bend",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 18864,
+        "native64": 31728
+      }
+    },
+    {
+      "name": "macro-past-the-voice-cap",
+      "samples": 70588,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 37712,
+        "native64": 50576
+      }
+    },
+    {
+      "name": "shapes-sine-bend",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 206216,
+        "native64": 207080
+      }
+    },
+    {
+      "name": "shapes-pluck-plate",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 271848,
+        "native64": 272728
+      }
+    },
+    {
+      "name": "macro-heavy-speech",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 70880,
+        "native64": 71088
+      }
+    },
+    {
+      "name": "macro-heavy-modal-drums",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 205088,
+        "native64": 205312
+      }
+    },
+    {
+      "name": "sixop-epiano",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 15504,
+        "native64": 17232
+      }
+    },
+    {
+      "name": "sophie-kit",
+      "samples": 88236,
+      "libm_sensitive": true,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 23286,
+        "max_lsb": 4082
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 212096,
+        "native64": 212128
+      }
+    },
+    {
+      "name": "sophie-clap-no-feedback",
+      "samples": 52940,
+      "libm_sensitive": true,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 694,
+        "max_lsb": 12330
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 77888,
+        "native64": 77904
+      }
+    },
+    {
+      "name": "test-sine-gain",
+      "samples": 70588,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 19156,
+        "native64": 19156
+      }
+    },
+    {
+      "name": "macro-at-44100",
+      "samples": 70560,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 84496,
+        "native64": 97376
+      }
+    }
+  ]
+}

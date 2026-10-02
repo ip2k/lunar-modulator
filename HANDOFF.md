@@ -1,9 +1,14 @@
-# Hand-off package — M-VAVE FM-1 open firmware
+# Hand-off package — Lunar Modulator
+
+**INTERGALACTIC MODULATION STATION.** Lunar Modulator is open firmware for
+the M-VAVE FM-1; until 2026-10-01 the project was called "Open firmware for
+the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
 original conversation; last updated 2026-09-29 (Baud Girl's FM-1+VA, the
-owner's PCB photos). Read this first, then `README.md`, then `docs/`.
+owner's PCB photos) and 2026-10-01 (engines, sequencer, the new name). Read
+this first, then `README.md`, then `docs/`.
 
 ## 1. Where things stand
 
@@ -27,7 +32,10 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
   with a virtual-analog engine installed from a browser (`FM-1_020` …
   `FM-1_092`; source not published). See docs/04.
 - **Where the repo lives now:** `~/Developer/mvave-fm1-firmware` on the
-  owner's MacBook, branch `main`, remote `ip2k/mvave-fm1-open-firmware`. Moved there on
+  owner's MacBook (the folder keeps its old name), branch `main`, remote
+  `ip2k/lunar-modulator` (published 2026-09-06 as
+  `ip2k/mvave-fm1-open-firmware` and renamed with the project on
+  2026-10-01; GitHub redirects the old URLs). Moved there on
   2026-09-06 from the orphan branch `claude/mvave-fm1-open-firmware-ly2w6u` of
   `ip2k/busybar-dual-timer`, which the cloud session used because its GitHub
   integration could not create repositories. Delete that branch once a remote
@@ -55,17 +63,25 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
    V15. Two further reported facts: the OTA loader **can rewrite the flash
    head** (`uboot.boot`, `isd_config.ini`), so keep it byte-identical; and a
    loader left waiting after step 1 (`ota-FM-1`) can be resumed (docs/03 §5).
-5. **No proven recovery path**: single flash bank, no debug pads/buttons (the
-   one candidate header was the battery connector's leads, 2026-09-29),
-   mask-ROM USB boot never demonstrated on an FM-1. AL-255's verdict:
-   NO-GO for non-stock flashing. This is the gate for everything. The
-   `USB_KEY` dongle that should open it is specified and implemented
-   (docs/10, `dongle/`), not yet tried.
+5. **No recovery path proven on this project's unit.**
+   - Single flash bank, no debug pads or buttons. The one candidate header
+     was the battery connector's leads (2026-09-29).
+   - AL-255's verdict: NO-GO for non-stock flashing. This is the gate for
+     everything.
+   - Our `USB_KEY` dongle, which should open it, is specified and implemented
+     (docs/10, `dongle/`), not yet tried.
+   - Since 2026-09-16, other owners report that mask-ROM USB boot works on
+     *their* FM-1s with czietz's simpler Pico dongle. One of them backed up
+     and wrote firmware that way [reported: issue #2, docs/10 §1.1].
 6. Most promising recovery: JieLi **`USB_KEY`** (`0x16EF` bit-banged on D+/D−
    at ~50 kHz at power-up, ACK = both lines low 1–2 ms, then SOF clock
    detection) → mask-ROM "UBOOT1.00" mass-storage mode → `jl-uboot-tool`
-   with its `wl82loader.bin` (`0x1C02000`) or vendor `isd_download`. The two
-   kagaimiq docs disagree on which line is clock; try both.
+   with its `wl82loader.bin` (`0x1C02000`) or vendor `isd_download`.
+   - The clock is D+: czietz's dongle reached UBOOT mode that way on two
+     FM-1s (issue #2).
+   - kagaimiq's `usb-key.md` and the diagram in `how-to-enter-uboot.md`
+     agree; only that page's prose says D−.
+   - Try D+ first (docs/10 §1 item 3).
 7. Toolchain = JieLi's closed **Clang/LLVM 4.0.1** fork (`pi32v2` backend),
    Linux build available from `pkgman.jieliapp.com`; AL-255 built C++11 with
    it. No Rust, no GCC/LLVM upstream, no JS runtime.
@@ -98,7 +114,13 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
 ## 4. Open questions (ranked)
 
 1. Does `USB_KEY` reach the AC791N's mask ROM through the FM-1's USB-C port,
-   and with which clock/data polarity and power sequence?
+   and with which clock/data polarity and power sequence? Reported yes on two
+   other FM-1s (issue #2, docs/10 §1.1):
+   - the clock is D+;
+   - the FM-1 is switched on while the key runs;
+   - the cable is then moved to the PC.
+
+   Not yet tried on this project's unit; try polarity A first.
 2. ~~What does the step-1 verifier compare?~~ Largely answered (2026-09-29,
    [reported] Baud Girl): it refuses the running version; whether by version
    string or file list is still open, and matters little.
@@ -118,7 +140,7 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
 ## 5. Immediate next actions (in order)
 
 1. ~~Move the repo.~~ Done 2026-09-06: `~/Developer/mvave-fm1-firmware`,
-   pushed to `ip2k/mvave-fm1-open-firmware`.
+   pushed to the repository now named `ip2k/lunar-modulator`.
 2. ~~docs/09 §1–§3.~~ Done 2026-09-06 (`notes/2026-09-06-bench.md`).
 3. ~~Power-switch-off enumeration test.~~ Done 2026-09-06 (no enumeration when
    off). Still open: the case-open photo list (docs/09 §5).
@@ -163,7 +185,13 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
    for a no-heap C99 `fm1_seq` core with Movy's semantics, a `compat` mode
    for tests, and seven deliberate deviations. Waiting on the owner: the
    docs/13 §10 questions (deviations, track count, a 72 KiB budget, and
-   approval to build Movy's `seq-core` as a test oracle).
+   approval to build Movy's `seq-core` as a test oracle). **Since then
+   (2026-10-01):** the owner answered (fix everything; 4–8 routed tracks;
+   about half the budget; oracle approved; 7-bit locks), and stages M1 and
+   M3 are built: `fm1_seq` (engines/seq.md) matches Movy's own code in 23 of
+   24 golden fixtures (undo is not ported) and in thousands of random
+   scripts. Open: Capture's ring size, undo, the note-index rebuild cost on
+   pi32v2 (stage B).
 
 ## 6. Reference material already gathered (clone these locally)
 
@@ -188,10 +216,10 @@ madushan.caas.lk blog post.
 
 Paste this as the first message of the new project (adjust paths):
 
-> This project is the open-source firmware effort for the M-VAVE FM-1 FM
-> synthesizer. The repository (`~/Developer/mvave-fm1-firmware`) contains a
-> completed research phase: read `HANDOFF.md`, then `README.md`, then
-> `docs/01`–`09` and `CLAUDE.md`. Rules: the FM-1 on my desk is the only unit;
+> This project, Lunar Modulator, is the open-source firmware effort for the
+> M-VAVE FM-1 FM synthesizer. The repository
+> (`~/Developer/mvave-fm1-firmware`) contains a completed research phase:
+> read `HANDOFF.md`, then `README.md`, then `docs/01`–`09` and `CLAUDE.md`. Rules: the FM-1 on my desk is the only unit;
 > nothing may be flashed or sent to it beyond the read-only identity query
 > until recovery is proven (docs/07). Today's tasks: (1) run
 > `docs/09-first-session-checklist.md` §1 to extract and analyse the V15

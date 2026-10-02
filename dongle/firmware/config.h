@@ -5,7 +5,9 @@
 // --- pins (Raspberry Pi Pico) ---------------------------------------------
 #define PIN_DP            14   // target D+ via 100 R, open-drain / input
 #define PIN_DM            15   // target D- via 100 R, open-drain / input
-#define PIN_PULLUP_EN     16   // top of the two 2.2 k pull-ups: out-high = on, hi-Z = off
+#define PIN_PULLUP_DP     16   // top of D+'s 2.2 k pull-up: out-high = on, hi-Z = off
+#define PIN_PULLUP_DM     19   // top of D-'s 2.2 k pull-up. One pin each: on a shared pin, "off"
+                               // still joins D+ and D- through 4.4 k (docs/10 E3)
 #define PIN_MUX_SEL       17   // relay / mux select
 #define PIN_BUTTON        18   // to GND, internal pull-up
 #define MUX_SEL_DONGLE    1    // level on PIN_MUX_SEL that gives the dongle the bus
@@ -35,7 +37,7 @@
 
 // --- modes (compile-time defaults; the button can override polarity) ---------
 #define POLARITY_DP_CLOCK         0        // D+ clock, D- data  (jielie usb-key.md)
-#define POLARITY_DM_CLOCK         1        // D- clock, D+ data  (jl-uboot-tool how-to-enter-uboot.md)
+#define POLARITY_DM_CLOCK         1        // D- clock, D+ data  (how-to-enter-uboot.md prose only; its diagram and czietz's tool use D+)
 #define POLARITY_ALTERNATE        2
 #define DEFAULT_POLARITY_MODE     POLARITY_ALTERNATE
 #define SOF_MODE_PC               0        // hand the bus to the PC right after the ACK

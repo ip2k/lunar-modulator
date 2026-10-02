@@ -1,0 +1,31 @@
+#! rate=44118 block=128 tracks=4
+# 14 Recording from stopped (R12; Movy's side of docs/13 D3). Rec arms a
+# one-bar count-in (clicks on each beat) and starts the transport; step 0
+# plays at master tick 383, the tick before the bar. A note up to 12 ticks
+# early is pre-roll: it anchors at step 0 and keeps its length. A first take
+# grows by a bar at each loop end while recording. The anchor is the nearest
+# swung step, ties to the later one (swing 66 delays odd steps 6 ticks). A
+# note finished on the pass it was played on is suppressed until the wrap.
+# 120 BPM: a master tick is 229.78 frames; after the count-in the clip
+# position is (master ticks serviced - 383).
+@0 swing 66
+@0 metro 1
+@0 rec 0
+# 9 ticks before the take: pre-roll, gate 13 + 9
+@86272 non 0 60 100
+@91008 nof 0 60
+# pos 104: step 4
+@112000 non 0 62 90
+@114304 nof 0 62
+# pos 135: 9 ticks from step 5 (swung to 126) and from step 6: step 6
+@119040 non 0 64 80
+@119552 nof 0 64
+# pos 172: step 7, which swing delays
+@127616 non 0 65 70
+@128768 nof 0 65
+# pos 370 to 407, across the first bar's end, where the clip grows
+@173056 non 0 67 100
+@181632 nof 0 67
+@183936 rec 0
+# the take plays from its first wrap (master tick 1151)
+@358528 stop
