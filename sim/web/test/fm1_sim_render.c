@@ -34,6 +34,15 @@
  *   --format-check      every verb through fm1_seq_cmd_format and back
  *                       through fm1_seq_parse; prints JSON, exit 1 on a
  *                       difference
+ *   --mod FILE          modulation as fm1-render --mod FILE plays it
+ *                       (engines/host/mod_script.h): a new runtime with the
+ *                       file's seed, its untimed lines after the chain is
+ *                       set up, `@FRAME` lines at the first block starting
+ *                       there (fm1_app_mod_reset, fm1_app_mod_line)
+ *   --mod-format-check  random slots, bases and racks written as script
+ *                       lines (fm1_mod_ui.h) and read back by mod_script.c
+ *                       into a second runtime: the same records; JSON, exit
+ *                       1 on a difference
  *
  * The sequencer, with fm1-render's meaning for its flags (engines/host/
  * render.cc): --cmd FILE plays a timed verb script, --seq FILE.movy1 loads a
@@ -52,12 +61,18 @@
  * sidecar, FILE less `.verbs` plus `.args`: the run's --engine, --param,
  * --fx, --fx-param, --note, --bend, --param-at, --seq and --route
  * arguments, one per line, then a --param-at for every sound parameter the
- * panel changed, at mid-block (docs/15 §6.3). So
+ * panel changed, at mid-block (docs/15 §6.3). With modulation running (the
+ * lab switch, or --mod) it also writes FILE less `.verbs` plus `.mod`: the
+ * runtime's whole state before the first block (fm1_app_mod_dump) and every
+ * edit after it, the panel's and --mod's timed lines, as `@<block start>
+ * <line>`; the sidecar then ends with `--mod` and that file (docs/16 MG3).
+ * So
  *   fm1-render --cmd FILE.verbs $(arguments in FILE.args)
  * renders the same samples ("two-step parity"), unless the summary says
  * "replayable":0: the panel or --select changed the sound or an effect, a
  * key was played (key notes are logged from docs/15 S5), MASTER was not at
- * full gain, or --seq-reset or --seq-import ran.
+ * full gain, --seq-reset or --seq-import ran, or a modulation edit had no
+ * script line (the effects swapped places, a per-voice cable).
  *
  * Test hooks: --seq-reset T:N and --seq-import T:FILE recreate the instance or import a set at time T, as a
  * UI would (then the default route, unless --route was given); --seq-ui
@@ -68,6 +83,7 @@
  * Prints one line of JSON. Test code: C99 with stdio. MIT licence.
  */
 #include "fm1_app.h"
+#include "mod_script.h"
 #include "seq_script.h"
 
 #include <math.h>
@@ -112,7 +128,8 @@ static void usage(void) {
           "       [--cmd FILE] [--seq FILE.movy1] [--tracks N] [--route T:engine|T:midi:CH]...\n"
           "       [--events N] [--log-events FILE.jsonl] [--log-cmds FILE.verbs]\n"
           "       [--seq-reset T:N] [--seq-import T:FILE.movy1] [--seq-ui T:OP]\n"
-          "       [--lab] [--panel FILE] [--start] | --sizes | --format-check\n");
+          "       [--lab] [--panel FILE] [--start] [--mod FILE]\n"
+          "       | --sizes | --format-check | --mod-format-check\n");
 }
 
 static event_t *add_event(double t, ev_kind_t kind) {
@@ -575,6 +592,358 @@ static void seq_screens(const char *dir, float rate) {
   destroy_units();
 }
 
+/* ---- --screens, lab on: the modulation pages (docs/16 §5, stage MG3) ---- */
+
+static void mod_line(const char *line) {
+  char err[256];
+  if (!fm1_app_mod_line(&g_app, line, err, sizeof err)) {
+    fprintf(stderr, "screens: \"%s\": %s\n", line, err);
+    ++g_faults;
+  }
+}
+
+static void blocks(int n) {
+  for (int k = 0; k < n; ++k) fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
+}
+
+static void turn(int encoder, int delta) { fm1_app_encoder(&g_app, encoder, delta); }
+
+/* A screen with no popup over it, then that popup timed out. */
+static void settle(void) {
+  while (g_app.popup_lines) blocks(16);
+}
+
+/* Every page of the module at position 6 (index 5) at its parameters'
+ * extremes and list entries, routed and not. */
+static void mod_sweep_module(const char *dir, const char *id) {
+  char name[128], line[128];
+  const int k = fm1_mod_kind_find(id);
+  const fm1_mod_kind_t *kd = fm1_mod_kinds[k];
+  snprintf(line, sizeof line, "mod 6 %s", id);
+  mod_line(line);
+  g_app.mui.pos = 5;
+  for (int routed = 0; routed < 2; ++routed) {
+    if (routed) {                      /* a cable into every parameter, both signs */
+      int slot = 10;
+      for (unsigned i = 0; i < kd->n_params && slot <= 32; ++i, ++slot) {
+        snprintf(line, sizeof line, "slot %d lfo1 > mod6:%s amt=%d", slot, kd->params[i].abbr,
+                 i % 2 ? -100 : 35);
+        mod_line(line);
+      }
+      blocks(2);
+    }
+    for (int page = 0; page < fm1_mod_ui_rack_pages(g_app.mod, 5); ++page) {
+      g_app.mui.page = (uint8_t)page;
+      snprintf(name, sizeof name, "rack-%s-p%d%s", id, page + 1, routed ? "-routed" : "");
+      check_screen(name, dir, 1);
+      for (int pass = 0; pass < 2; ++pass) {
+        for (unsigned i = 0; i < kd->n_params; ++i) {
+          fm1_mod_set_param(g_app.mod, 5, i, pass ? kd->params[i].max : kd->params[i].min);
+        }
+        blocks(1);
+        snprintf(name, sizeof name, "rack-%s-p%d-%s%s", id, page + 1, pass ? "max" : "min",
+                 routed ? "-routed" : "");
+        check_screen(name, dir, 0);
+      }
+      for (unsigned i = 0; i < kd->n_params; ++i) {
+        const fm1_param_t *p = &kd->params[i];
+        if (p->type != FM1_PARAM_ENUM || p->page != page) continue;
+        for (int v = (int)p->min; v <= (int)p->max; ++v) {
+          fm1_mod_set_param(g_app.mod, 5, i, (float)v);
+          snprintf(name, sizeof name, "rack-%s-p%d-%s-%d%s", id, page + 1, p->name, v,
+                   routed ? "-routed" : "");
+          check_screen(name, dir, 0);
+        }
+      }
+      for (unsigned i = 0; i < kd->n_params; ++i) fm1_mod_set_param(g_app.mod, 5, i, kd->params[i].def);
+    }
+  }
+  for (int slot = 10; slot <= 32; ++slot) {
+    snprintf(line, sizeof line, "slot %d clear", slot);
+    mod_line(line);
+  }
+  mod_line("mod 6 none");
+}
+
+static void mod_screens(const char *dir, float rate) {
+  char name[128], line[160];
+  destroy_units();
+  fm1_app_init(&g_app, rate);
+  fm1_app_set_lab(&g_app, 1);
+  expect(g_app.mod != NULL, "the lab switch starts no modulation runtime");
+  if (!g_app.mod) return;
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  fm1_app_select(&g_app, 1, fm1_app_find("plate"));
+  fm1_app_select(&g_app, 2, fm1_app_find("echo"));
+  fm1_app_seq_default_route(&g_app);
+  fm1_app_note_on(&g_app, 57, 100);
+  blocks(40);
+  /* LFO: RACK at LFO1, then LFO2; ENV at ENV1; the LEDs. */
+  press(FM1_BTN_LFO);
+  expect(g_app.mode == FM1_MODE_RACK && g_app.mui.pos == 0, "LFO does not open RACK at LFO1");
+  blocks(1);
+  expect(g_app.led[FM1_APP_KEYS + FM1_BTN_LFO] == 1, "the LFO LED is off on LFO1's page");
+  check_screen("rack-lfo1", dir, 1);
+  press(FM1_BTN_LFO);
+  expect(g_app.mui.pos == 1, "LFO again does not step to LFO2");
+  press(FM1_BTN_ENV);
+  expect(g_app.mode == FM1_MODE_RACK && g_app.mui.pos == 2, "ENV does not open RACK at ENV1");
+  blocks(1);
+  expect(g_app.led[FM1_APP_KEYS + FM1_BTN_ENV] == 1 && g_app.led[FM1_APP_KEYS + FM1_BTN_LFO] == 0,
+         "ENV1's page lights ENV alone");
+  check_screen("rack-env1", dir, 1);
+  /* SELECT walks every position and page, there and back. */
+  g_app.mui.pos = 0;
+  g_app.mui.page = 0;
+  for (int k = 0; k < 16; ++k) {
+    snprintf(name, sizeof name, "rack-walk-%02d", k);
+    check_screen(name, dir, k == 8 || k == 10);
+    turn(FM1_ENC_SELECT, 1);
+  }
+  expect(g_app.mui.pos == 7, "SELECT does not reach the last position");
+  turn(FM1_ENC_SELECT, -64);
+  expect(g_app.mui.pos == 0 && g_app.mui.page == 0, "SELECT does not come back to the first");
+  /* The kind picker on an empty position, and its commit after a second. */
+  g_app.mui.pos = 6;
+  for (int k = 0; k < (int)fm1_mod_kind_count + 1; ++k) {
+    turn(FM1_ENC_ALGORITHM, 1);
+    snprintf(name, sizeof name, "rack-picker-%d", k);
+    check_screen(name, dir, k == 0);
+  }
+  turn(FM1_ENC_ALGORITHM, 1);              /* round to the first kind again */
+  settle();
+  expect(fm1_mod_kind_at(g_app.mod, 6) == 0, "the kind picker did not commit its choice");
+  check_screen("rack-new-module", dir, 1);
+  turn(FM1_ENC_ALGORITHM, -1);             /* back to Empty */
+  settle();
+  expect(fm1_mod_kind_at(g_app.mod, 6) < 0, "the kind picker did not empty the position");
+  /* Grab: SEL, then SELECT moves the module. */
+  g_app.mui.pos = 4;
+  press(FM1_BTN_SEL);
+  expect(g_app.mui.grab == 1, "SEL does not grab in RACK");
+  blocks(1);
+  check_screen("rack-grab", dir, 1);
+  turn(FM1_ENC_SELECT, 1);
+  expect(g_app.mui.pos == 5 && fm1_mod_kind_at(g_app.mod, 5) == fm1_mod_kind_find("chance"),
+         "SELECT does not move a grabbed module");
+  turn(FM1_ENC_SELECT, -1);
+  press(FM1_BTN_SEL);
+  /* Every kind's every page. */
+  for (size_t k = 0; k < fm1_mod_kind_count; ++k) mod_sweep_module(dir, fm1_mod_kinds[k]->id);
+  /* The gesture's popups: a cable made, a parameter that takes none, a full
+   * matrix and no LFO in the rack; then the routed marks on HOME and FX. */
+  g_app.mode = FM1_MODE_HOME;
+  g_app.page = 0;
+  fm1_app_button(&g_app, FM1_BTN_LFO, 1);
+  turn(FM1_ENC_KNOB2, 12);
+  check_screen("gesture-made", dir, 1);
+  turn(FM1_ENC_KNOB1, 1);
+  check_screen("gesture-no-cable", dir, 0);
+  fm1_app_button(&g_app, FM1_BTN_LFO, 0);
+  expect(g_app.mode == FM1_MODE_HOME, "a held LFO that turned a knob opened RACK");
+  settle();
+  /* Every sound's every page with a cable on each knob. */
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    const fm1_engine_t *e = fm1_engines[i];
+    int pages = 1;
+    if (e->kind != FM1_KIND_SOUND || fm1_app_select(&g_app, 0, (int)i) != 0) continue;
+    settle();
+    for (uint16_t q = 0; q < e->n_params; ++q) {
+      if (e->params[q].page + 1 > pages) pages = e->params[q].page + 1;
+    }
+    for (int slot = 3; slot <= 32; ++slot) {
+      snprintf(line, sizeof line, "slot %d clear", slot);
+      mod_line(line);
+    }
+    for (uint16_t q = 0, slot = 3; q < e->n_params && slot <= 32; ++q) {
+      if (!fm1_param_modulatable(&e->params[q])) continue;
+      snprintf(line, sizeof line, "slot %u %s > snd:%s amt=%d", (unsigned)slot++, q % 2 ? "env3" : "lfo1",
+               e->params[q].abbr, q % 3 ? 60 : -100);
+      mod_line(line);
+    }
+    blocks(3);
+    for (int page = 0; page < pages; ++page) {
+      g_app.page = page;
+      for (int pass = 0; pass < 3; ++pass) {
+        for (uint16_t q = 0; pass < 2 && q < e->n_params; ++q) {
+          fm1_app_set_param(&g_app, 0, q, pass ? e->params[q].max : e->params[q].min);
+        }
+        blocks(1);
+        snprintf(name, sizeof name, "home-routed-%s-p%d-%s", e->id, page + 1,
+                 pass == 2 ? "def" : pass ? "max" : "min");
+        check_screen(name, dir, page == 0 && pass == 2);
+        for (uint16_t q = 0; pass < 2 && q < e->n_params; ++q) {
+          fm1_app_set_param(&g_app, 0, q, e->params[q].def);
+        }
+      }
+    }
+  }
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  settle();
+  /* FX: every effect in slot 1 with a cable on each parameter. */
+  g_app.mode = FM1_MODE_FX;
+  g_app.fx_slot = 0;
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    const fm1_engine_t *e = fm1_engines[i];
+    int pages = 1;
+    if (e->kind != FM1_KIND_AUDIO_FX || fm1_app_select(&g_app, 1, (int)i) != 0) continue;
+    for (uint16_t q = 0; q < e->n_params; ++q) {
+      if (e->params[q].page + 1 > pages) pages = e->params[q].page + 1;
+    }
+    for (int slot = 3; slot <= 32; ++slot) {
+      snprintf(line, sizeof line, "slot %d clear", slot);
+      mod_line(line);
+    }
+    for (uint16_t q = 0, slot = 3; q < e->n_params && slot <= 32; ++q) {
+      if (!fm1_param_modulatable(&e->params[q])) continue;
+      snprintf(line, sizeof line, "slot %u chance5 > fx1:%s amt=%d", (unsigned)slot++, e->params[q].abbr,
+               q % 2 ? 100 : -45);
+      mod_line(line);
+    }
+    blocks(3);
+    for (int page = 0; page < pages; ++page) {
+      g_app.fx_page = page;
+      snprintf(name, sizeof name, "fx-routed-%s-p%d", e->id, page + 1);
+      check_screen(name, dir, page == 0);
+    }
+    g_app.fx_page = 0;
+  }
+  fm1_app_select(&g_app, 1, fm1_app_find("plate"));
+  for (int slot = 3; slot <= 32; ++slot) {
+    snprintf(line, sizeof line, "slot %d clear", slot);
+    mod_line(line);
+  }
+  /* MATRIX: EDIT; the default two cables, then 0, 1, 7 and 32 slots; both
+   * pages; a refused, an off, a delayed and a per-voice row; every field's
+   * hint; the destination picker. */
+  g_app.mode = FM1_MODE_HOME;
+  press(FM1_BTN_EDIT);
+  expect(g_app.mode == FM1_MODE_MATRIX, "EDIT does not open MATRIX");
+  blocks(1);
+  expect(g_app.led[FM1_APP_KEYS + FM1_BTN_EDIT] == 1, "the EDIT LED is off in MATRIX");
+  turn(FM1_ENC_SELECT, -64);
+  check_screen("matrix-default", dir, 1);
+  mod_line("slot 1 clear");
+  mod_line("slot 2 clear");
+  blocks(1);
+  check_screen("matrix-empty", dir, 1);
+  mod_line("slot 1 lfo1 > snd:Timbre amt=40");
+  blocks(1);
+  check_screen("matrix-one", dir, 0);
+  {
+    static const char *const kSeven[] = {
+      "slot 2 lfo2.wrap > env3:gate amt=100",
+      "slot 3 env3.eoc > chance5:trig amt=75",
+      "slot 4 chance5.smth > lfo2.rate amt=-100 ofs=-100",
+      "slot 5 lfo1 > snd:Model amt=50",              /* NOLOCK: refused */
+      "slot 6 seq8 > fx2:PingPg amt=-100 off",
+      "slot 7 lfo2 > lfo1.rate amt=12",              /* with slot 8: a loop */
+      "slot 8 lfo1 > lfo2.phase amt=100 via=chance5.held pol=inv curve=square",
+    };
+    for (size_t k = 0; k < sizeof kSeven / sizeof kSeven[0]; ++k) mod_line(kSeven[k]);
+  }
+  blocks(2);
+  expect(g_app.mui.plan.refused != 0 && g_app.mui.plan.delayed != 0,
+         "MATRIX's sweep has no refused or no delayed row");
+  check_screen("matrix-seven", dir, 1);
+  g_app.mui.mpage = 1;
+  check_screen("matrix-seven-b", dir, 1);
+  g_app.mui.mpage = 0;
+  for (int f = 0; f < 8; ++f) {                         /* each field's hint */
+    g_app.mui.mpage = (uint8_t)(f / 4);
+    g_app.mui.field = (int8_t)f;
+    g_app.mui.field_until = UINT64_MAX;
+    for (int sl = 0; sl < 8; sl += 7) {
+      g_app.mui.slot = (uint8_t)sl;
+      snprintf(name, sizeof name, "matrix-hint-%d-slot%d", f, sl + 1);
+      check_screen(name, dir, 0);
+    }
+  }
+  g_app.mui.field = -1;
+  g_app.mui.mpage = 0;
+  g_app.mui.slot = 0;
+  {                                                     /* a per-voice row */
+    fm1_mod_slot_t v;
+    fm1_mod_get_slot(g_app.mod, 0, &v);
+    v.flags |= FM1_MOD_SLOT_VOICE;
+    fm1_mod_set_slot(g_app.mod, 0, &v);
+    check_screen("matrix-voice", dir, 0);
+    v.flags &= (uint8_t)~FM1_MOD_SLOT_VOICE;
+    fm1_mod_set_slot(g_app.mod, 0, &v);
+  }
+  /* 32 slots, the widest names: module outputs past the first, effect
+   * parameters, gate inputs. */
+  for (int slot = 9; slot <= 32; ++slot) {
+    static const char *const kSrc[] = { "lfo1.wrap", "env4.act", "chance5.step", "clock", "start", "sqv8" };
+    static const char *const kDst[] = { "fx2:PingPg", "env4:gate", "chance5:trig", "lfo2:reset",
+                                        "snd:EnvMor", "host:pitch", "host:amp", "env3.sus" };
+    snprintf(line, sizeof line, "slot %d %s > %s amt=%d ofs=%d pol=bi curve=log", slot,
+             kSrc[slot % 6], kDst[slot % 8], slot % 2 ? -100 : 100, -100);
+    mod_line(line);
+  }
+  blocks(2);
+  for (int sl = 0; sl < 32; sl += 5) {
+    turn(FM1_ENC_SELECT, sl - g_app.mui.slot);
+    for (int pg = 0; pg < 2; ++pg) {
+      g_app.mui.mpage = (uint8_t)pg;
+      snprintf(name, sizeof name, "matrix-full-slot%d-%c", sl + 1, pg ? 'b' : 'a');
+      check_screen(name, dir, sl == 30);
+    }
+  }
+  g_app.mui.mpage = 0;
+  turn(FM1_ENC_SELECT, 31);
+  expect(g_app.mui.slot == 31 && g_app.mui.top == 25, "SELECT does not scroll to slot 32");
+  check_screen("matrix-last", dir, 1);
+  turn(FM1_ENC_SELECT, -64);
+  /* The destination picker: open, at both ends, a group jump. */
+  turn(FM1_ENC_KNOB2, 1);
+  check_screen("matrix-picker", dir, 1);
+  turn(FM1_ENC_KNOB2, -999);
+  check_screen("matrix-picker-first", dir, 0);
+  turn(FM1_ENC_ALGORITHM, 3);
+  check_screen("matrix-picker-group", dir, 1);
+  turn(FM1_ENC_KNOB2, 999);
+  check_screen("matrix-picker-last", dir, 0);
+  settle();
+  /* CHAIN: SEL on the loop's cable and on a chain through three modules. */
+  turn(FM1_ENC_SELECT, 2 - g_app.mui.slot);             /* slot 3: ENV1 EOC into CHN1 */
+  press(FM1_BTN_SEL);
+  expect(g_app.mode == FM1_MODE_CHAIN, "SEL does not open CHAIN from MATRIX");
+  blocks(1);
+  expect(g_app.led[FM1_APP_KEYS + FM1_BTN_SEL] == 1, "the SEL LED is off in CHAIN");
+  check_screen("chain-slot3", dir, 1);
+  for (int k = 0; k < 32; ++k) {
+    snprintf(name, sizeof name, "chain-%02d", g_app.mui.slot + 1);
+    check_screen(name, dir, g_app.mui.slot == 6);
+    turn(FM1_ENC_SELECT, 1);
+  }
+  g_app.mui.slot = 20;
+  mod_line("slot 21 clear");
+  check_screen("chain-empty", dir, 1);
+  press(FM1_BTN_SEL);
+  expect(g_app.mode == FM1_MODE_MATRIX, "SEL in CHAIN does not go back to MATRIX");
+  /* Popups over the pages. */
+  turn(FM1_ENC_PRESETS, 1);
+  check_screen("matrix-popup", dir, 0);
+  settle();
+  /* HOME, FX and GLO leave the pages; the switch off brings the stubs back. */
+  press(FM1_BTN_HOME);
+  expect(g_app.mode == FM1_MODE_HOME, "HOME does not leave MATRIX");
+  press(FM1_BTN_LFO);
+  press(FM1_BTN_GLO);
+  expect(g_app.mode == FM1_MODE_GLOBAL, "GLO does not leave RACK");
+  press(FM1_BTN_EDIT);
+  fm1_app_set_lab(&g_app, 0);
+  expect(g_app.mode == FM1_MODE_HOME && !g_app.mod, "the switch off keeps modulation");
+  for (int b = FM1_BTN_ENV; b <= FM1_BTN_EDIT; ++b) {
+    g_app.popup_lines = 0;
+    press(b);
+    expect(g_app.mode == FM1_MODE_HOME && g_app.popup_lines == 3,
+           "ENV, LFO or EDIT with the switch off is not the stub");
+  }
+  destroy_units();
+}
+
 static int run_screens(const char *dir, float rate) {
   fm1_app_init(&g_app, rate);
   for (size_t i = 0; i < fm1_engine_count; ++i) {
@@ -670,6 +1039,7 @@ static int run_screens(const char *dir, float rate) {
   }
   check_screen("popup-refuses-rate", dir, 1);
   seq_screens(dir, rate);
+  mod_screens(dir, rate);
   printf("{\"screens\":%d,\"faults\":%d}\n", g_screens, g_faults);
   return g_faults ? 1 : 0;
 }
@@ -680,11 +1050,14 @@ static int print_sizes(void) {
   fm1_seq_limits_t lim8, lim4;
   fm1_seq_limits_default(&lim8, 8);
   fm1_seq_limits_default(&lim4, 4);
-  printf("{\"app_bytes\":%zu,\"seq_arena\":%u,\"seq_tracks\":%d,\"seq_bytes_8\":%zu,"
+  printf("{\"app_bytes\":%zu,\"mod_bytes\":%zu,\"mod_arena\":%u,\"mod_ui_bytes\":%zu,"
+         "\"mod_writes_bytes\":%zu,"
+         "\"seq_arena\":%u,\"seq_tracks\":%d,\"seq_bytes_8\":%zu,"
          "\"seq_bytes_4\":%zu,\"seq_event_bytes\":%zu,\"seq_pending_bytes\":%zu,"
          "\"seq_ui_bytes\":%u,\"seq_ui_size\":%zu,\"seq_budget\":%u,\"seq_need\":%u,"
          "\"seq_events\":%u}\n",
-         sizeof(fm1_app_t), FM1_APP_SEQ_BYTES, FM1_APP_SEQ_TRACKS, fm1_seq_size(&lim8),
+         sizeof(fm1_app_t), fm1_mod_size(), FM1_APP_MOD_BYTES, sizeof(fm1_mod_ui_t),
+         sizeof g_app.mod_wr, FM1_APP_SEQ_BYTES, FM1_APP_SEQ_TRACKS, fm1_seq_size(&lim8),
          fm1_seq_size(&lim4), sizeof g_app.seq_ev, sizeof g_app.seq_pend, FM1_APP_SEQ_UI_BYTES,
          sizeof(fm1_seq_ui_t),
          FM1_APP_SEQ_BUDGET,
@@ -824,6 +1197,311 @@ static int import_file(const char *path) {
   return ok;
 }
 
+/* ---- modulation: --mod, the .mod log and --mod-format-check (docs/16 MG3) ---- */
+
+typedef struct {
+  uint64_t frame;
+  int order;
+  char text[512];
+} mod_line_t;
+
+static mod_line_t *g_mod;
+static int g_mod_n, g_mod_next;
+static uint32_t g_mod_seed;
+static FILE *g_log_mod;
+
+static int mod_line_cmp(const void *x, const void *y) {
+  const mod_line_t *a = (const mod_line_t *)x, *b = (const mod_line_t *)y;
+  if (a->frame != b->frame) return a->frame < b->frame ? -1 : 1;
+  return a->order - b->order;                    /* stable, as fm1-render sorts */
+}
+
+/* --mod FILE, read as fm1-render reads it: leading blanks, an optional
+ * @FRAME, the seed from a line at frame 0, lines sorted by frame. */
+static int load_mod(const char *path) {
+  FILE *f = fopen(path, "r");
+  char buf[1024];
+  if (!f) {
+    fprintf(stderr, "cannot read %s\n", path);
+    return 0;
+  }
+  while (fgets(buf, sizeof buf, f)) {
+    const char *t = buf;
+    uint64_t frame = 0;
+    mod_line_t *l;
+    size_t n;
+    while (*t == ' ' || *t == '\t') ++t;
+    if (*t == '@') {
+      char *end = NULL;
+      frame = strtoull(t + 1, &end, 10);
+      if (end == t + 1) {
+        fprintf(stderr, "%s: bad @FRAME: %s", path, buf);
+        fclose(f);
+        return 0;
+      }
+      t = end;
+    }
+    g_mod = realloc(g_mod, (size_t)(g_mod_n + 1) * sizeof *g_mod);
+    if (!g_mod) return 0;
+    l = &g_mod[g_mod_n];
+    l->frame = frame;
+    l->order = g_mod_n++;
+    snprintf(l->text, sizeof l->text, "%s", t);
+    n = strlen(l->text);
+    while (n && (l->text[n - 1] == '\n' || l->text[n - 1] == '\r')) l->text[--n] = '\0';
+    if (frame == 0) fm1_mod_script_seed(l->text, &g_mod_seed);
+  }
+  fclose(f);
+  if (g_mod_n) qsort(g_mod, (size_t)g_mod_n, sizeof *g_mod, mod_line_cmp);
+  return 1;
+}
+
+/* The --mod lines due by `upto`, as fm1-render applies them. */
+static int apply_mod(uint64_t upto) {
+  while (g_mod_next < g_mod_n && g_mod[g_mod_next].frame <= upto) {
+    char err[256];
+    if (!fm1_app_mod_line(&g_app, g_mod[g_mod_next].text, err, sizeof err)) {
+      fprintf(stderr, "--mod: %s\n", err);
+      return 0;
+    }
+    ++g_mod_next;
+  }
+  return 1;
+}
+
+static void log_mod_edit(void *ctx, uint64_t frame, const char *line) {
+  (void)ctx;
+  if (g_log_mod) fprintf(g_log_mod, "@%llu %s\n", (unsigned long long)frame, line);
+}
+
+static void log_mod_dump(void *ctx, const char *line) {
+  (void)ctx;
+  if (g_log_mod) fprintf(g_log_mod, "%s\n", line);
+}
+
+/* --mod-format-check: script lines written by fm1_mod_ui.c and read by
+ * mod_script.c rebuild the same runtime state. */
+static uint32_t g_rng = 1u;
+static uint32_t rnd(uint32_t n) {
+  g_rng = g_rng * 1664525u + 1013904223u;
+  return n ? (g_rng >> 8) % n : 0;
+}
+
+static fm1_mod_t *g_mod2;            /* the replay's runtime */
+static int g_fmt_lines, g_fmt_bad;
+
+static void replay_line(void *ctx, const char *line) {
+  const fm1_engine_t *units[FM1_APP_UNITS];
+  char err[256];
+  (void)ctx;
+  for (int u = 0; u < FM1_APP_UNITS; ++u) units[u] = g_app.unit[u].e;
+  ++g_fmt_lines;
+  if (!fm1_mod_script_line(g_mod2, line, units, err, sizeof err)) {
+    if (g_fmt_bad < 10) fprintf(stderr, "mod format: \"%s\": %s\n", line, err);
+    ++g_fmt_bad;
+  }
+}
+
+static int has_dst(const fm1_mod_slot_t *s) {
+  return (s->flags & FM1_MOD_SLOT_GATE_DST) || s->dst != 0;
+}
+
+/* The runtime states the script can say are the same: kinds, bases, and
+ * every slot with a destination (one without is the same as a cleared one
+ * to the runtime: off, and never planned). */
+static int same_mod_state(const fm1_mod_t *a, const fm1_mod_t *b, const char *what) {
+  for (unsigned pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
+    const int k = fm1_mod_kind_at(a, pos);
+    if (k != fm1_mod_kind_at(b, pos)) {
+      fprintf(stderr, "mod format (%s): position %u holds %d, not %d\n", what, pos + 1, k,
+              fm1_mod_kind_at(b, pos));
+      return 0;
+    }
+    for (unsigned i = 0; k >= 0 && i < fm1_mod_kinds[k]->n_params; ++i) {
+      const float x = fm1_mod_param_base(a, pos, i), y = fm1_mod_param_base(b, pos, i);
+      if (memcmp(&x, &y, sizeof x) != 0) {
+        fprintf(stderr, "mod format (%s): base %u.%u %.9g vs %.9g\n", what, pos + 1, i, (double)x,
+                (double)y);
+        return 0;
+      }
+    }
+  }
+  for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
+    fm1_mod_slot_t x, y;
+    fm1_mod_get_slot(a, i, &x);
+    fm1_mod_get_slot(b, i, &y);
+    if (!has_dst(&x)) {
+      memset(&x, 0, sizeof x);
+      x.via = FM1_MOD_NONE;
+    }
+    if (memcmp(&x, &y, sizeof x) != 0) {
+      fprintf(stderr, "mod format (%s): slot %u differs (src %u/%u dst %u:%u/%u:%u amt %d/%d "
+              "ofs %d/%d via %u/%u flags %02x/%02x)\n", what, i + 1, x.src, y.src, x.dst_unit, x.dst,
+              y.dst_unit, y.dst, x.amount, y.amount, x.offset, y.offset, x.via, y.via, x.flags, y.flags);
+      return 0;
+    }
+  }
+  return 1;
+}
+
+static void random_slot(const fm1_mod_ui_env_t *env, fm1_mod_slot_t *s) {
+  uint8_t src[FM1_MOD_UI_MAX_SOURCES];
+  fm1_mod_dest_t dst[FM1_MOD_UI_MAX_DESTS];
+  const int ns = fm1_mod_ui_sources(env->m, src, FM1_MOD_UI_MAX_SOURCES);
+  const int nd = fm1_mod_ui_dests(env, dst, FM1_MOD_UI_MAX_DESTS);
+  const fm1_mod_dest_t *d = &dst[rnd((uint32_t)nd)];
+  memset(s, 0, sizeof *s);
+  s->src = src[rnd((uint32_t)ns)];
+  s->via = rnd(3) ? (uint8_t)FM1_MOD_NONE : src[rnd((uint32_t)ns)];
+  s->dst_unit = d->unit;
+  s->dst = d->dst;
+  s->amount = (int16_t)((int)rnd(32769) - 16384);
+  s->offset = (int16_t)(rnd(4) ? (int)rnd(32769) - 16384 : 0);
+  s->flags = (uint8_t)((rnd(4) ? FM1_MOD_SLOT_ON : 0) | (d->gate ? FM1_MOD_SLOT_GATE_DST : 0) |
+                       (rnd(4) << FM1_MOD_SLOT_POL_SHIFT) |
+                       (rnd(FM1_MOD_CURVE_COUNT) << FM1_MOD_SLOT_CURVE_SHIFT));
+}
+
+static int mod_format_check(void) {
+  static unsigned char mem2[FM1_APP_MOD_BYTES] FM1_APP_ALIGN16;
+  const char *units[FM1_APP_UNITS] = { "macro", "plate", "echo" };
+  fm1_mod_ui_env_t env;
+  int rounds = 0, failures = 0;
+  fm1_app_init(&g_app, 44118.0f);
+  fm1_app_set_lab(&g_app, 1);
+  for (int u = 0; u < FM1_APP_UNITS; ++u) fm1_app_select(&g_app, u, fm1_app_find(units[u]));
+  memset(&env, 0, sizeof env);
+  env.m = g_app.mod;
+  for (int u = 0; u < FM1_APP_UNITS; ++u) env.unit[u] = g_app.unit[u].e;
+  for (int round = 0; round < 300; ++round) {
+    fm1_mod_ui_t ui;
+    const uint32_t seed = rnd(1000000);
+    ++rounds;
+    /* A random runtime written whole (the dump), and read back. */
+    fm1_app_mod_reset(&g_app, seed);
+    env.m = g_app.mod;
+    for (unsigned pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
+      const int k = (int)rnd((uint32_t)fm1_mod_kind_count + 2u) - 1;
+      fm1_mod_set_kind(g_app.mod, pos, k < (int)fm1_mod_kind_count ? k : -1);
+      for (unsigned i = 0; k >= 0 && k < (int)fm1_mod_kind_count && i < fm1_mod_kinds[k]->n_params; ++i) {
+        const fm1_param_t *p = &fm1_mod_kinds[k]->params[i];
+        if (rnd(2)) continue;
+        fm1_mod_set_param(g_app.mod, pos, i,
+                          p->type == FM1_PARAM_ENUM ? p->min + (float)rnd((uint32_t)(p->max - p->min) + 1u)
+                                                    : p->min + (p->max - p->min) * (float)rnd(100001) / 100000.0f);
+      }
+    }
+    for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
+      fm1_mod_slot_t s;
+      if (rnd(4) == 0) continue;
+      random_slot(&env, &s);
+      fm1_mod_set_slot(g_app.mod, i, &s);
+    }
+    g_mod2 = fm1_mod_create(mem2, &g_app.host, seed);
+    if (!fm1_app_mod_dump(&g_app, replay_line, NULL)) {
+      fprintf(stderr, "mod format: round %d: the dump has a slot no line can say\n", round);
+      ++failures;
+      continue;
+    }
+    if (!same_mod_state(g_app.mod, g_mod2, "dump")) {
+      ++failures;
+      continue;
+    }
+    /* Edits as the panel makes them, each line applied to the replay at
+     * once: slots, kinds (with their switch-off and restore), bases, moves. */
+    fm1_mod_ui_init(&ui);
+    env.emit = replay_line;
+    for (int e = 0; e < 40; ++e) {
+      const uint32_t what = rnd(10);
+      const unsigned pos = rnd(FM1_MOD_POSITIONS);
+      if (what < 5) {
+        fm1_mod_slot_t s;
+        if (rnd(5) == 0) {
+          memset(&s, 0, sizeof s);
+          s.via = FM1_MOD_NONE;
+        } else {
+          random_slot(&env, &s);
+        }
+        fm1_mod_ui_set_slot(&env, &ui, rnd(FM1_MOD_SLOTS), &s);
+      } else if (what < 7) {
+        fm1_mod_ui_set_kind(&env, &ui, pos, (int)rnd((uint32_t)fm1_mod_kind_count + 1u) - 1);
+      } else if (what < 9) {
+        const int k = fm1_mod_kind_at(g_app.mod, pos);
+        if (k >= 0) {
+          const unsigned i = rnd(fm1_mod_kinds[k]->n_params);
+          const fm1_param_t *p = &fm1_mod_kinds[k]->params[i];
+          fm1_mod_ui_set_param(&env, &ui, pos, i, p->min - 0.5f + (p->max - p->min + 1.0f) * (float)rnd(1001) / 1000.0f);
+        }
+      } else {
+        fm1_mod_ui_move(&env, &ui, pos, rnd(FM1_MOD_POSITIONS));
+      }
+    }
+    env.emit = NULL;
+    if (ui.unloggable) fprintf(stderr, "mod format: round %d: an edit had no line\n", round);
+    if (ui.unloggable || !same_mod_state(g_app.mod, g_mod2, "edits")) ++failures;
+  }
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    if (g_app.unit[u].e) g_app.unit[u].e->destroy(g_app.unit[u].self);
+  }
+  printf("{\"rounds\":%d,\"lines\":%d,\"refused_lines\":%d,\"failures\":%d}\n", rounds, g_fmt_lines,
+         g_fmt_bad, failures);
+  return failures || g_fmt_bad ? 1 : 0;
+}
+
+/* The summary's "mod": the rack, every slot that is not empty (its record
+ * and its MATRIX row), the pages' state and the runtime's counters. */
+static void print_mod(void) {
+  fm1_mod_ui_env_t env;
+  fm1_mod_stats_t st;
+  fm1_mod_plan_info_t plan;
+  const fm1_mod_ui_t *u = &g_app.mui;
+  int first = 1;
+  memset(&env, 0, sizeof env);
+  env.m = g_app.mod;
+  for (int k = 0; k < FM1_APP_UNITS; ++k) env.unit[k] = g_app.unit[k].e;
+  fm1_mod_get_stats(g_app.mod, &st);
+  fm1_mod_get_plan(g_app.mod, &plan);
+  printf(",\"mod\":{\"rack\":[");
+  for (unsigned pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
+    const int k = fm1_mod_kind_at(g_app.mod, pos);
+    printf("%s\"%s\"", pos ? "," : "", k >= 0 ? fm1_mod_kinds[k]->id : "");
+  }
+  printf("],\"slots\":[");
+  for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
+    fm1_mod_slot_t s;
+    char row[FM1_MOD_UI_ROW_CHARS + 1];
+    if (fm1_mod_ui_empty(u, g_app.mod, i)) continue;
+    fm1_mod_get_slot(g_app.mod, i, &s);
+    fm1_mod_ui_row(&env, u, i, 0, row);
+    printf("%s{\"slot\":%u,\"src\":%u,\"via\":%u,\"unit\":%u,\"dst\":%u,\"amount\":%d,"
+           "\"offset\":%d,\"flags\":%u,\"row\":", first ? "" : ",", i + 1, s.src, s.via, s.dst_unit,
+           s.dst, s.amount, s.offset, s.flags);
+    json_string(row);
+    printf("}");
+    first = 0;
+  }
+  printf("],\"bases\":[");
+  for (unsigned pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
+    const int k = fm1_mod_kind_at(g_app.mod, pos);
+    printf("%s[", pos ? "," : "");
+    for (unsigned i = 0; k >= 0 && i < fm1_mod_kinds[k]->n_params; ++i) {
+      printf(i ? ",%.9g" : "%.9g", (double)fm1_mod_param_base(g_app.mod, pos, i));
+    }
+    printf("]");
+  }
+  printf("],\"pos\":%u,\"page\":%u,\"slot\":%u,\"mpage\":%u,\"picker\":%u,\"held\":%d,"
+         "\"sel_lfo\":%d,\"sel_env\":%d,\"grab\":%u,\"active\":%u,\"refused\":%u,"
+         "\"delayed\":%u,\"ticks\":%llu,\"writes\":%llu,\"unloggable\":%u,\"sent0\":[",
+         u->pos + 1, u->page + 1, u->slot + 1, u->mpage, u->picker,
+         u->held == FM1_MOD_UI_NONE ? -1 : u->held, u->sel_lfo == FM1_MOD_UI_NONE ? -1 : u->sel_lfo + 1,
+         u->sel_env == FM1_MOD_UI_NONE ? -1 : u->sel_env + 1, u->grab, plan.active, plan.refused,
+         plan.delayed, (unsigned long long)st.ticks, (unsigned long long)st.writes, u->unloggable);
+  for (uint16_t i = 0; g_app.unit[0].e && i < g_app.unit[0].e->n_params && i < FM1_MOD_UNIT_PARAMS; ++i) {
+    printf(i ? ",%.9g" : "%.9g", (double)fm1_mod_sent(g_app.mod, 0, i));
+  }
+  printf("]}");
+}
+
 /* ---- the render ---------------------------------------------------------------- */
 
 static int find_param(int unit, const char *name) {
@@ -844,6 +1522,8 @@ int main(int argc, char **argv) {
   double secs = 2.0;
   float rate = 44118.0f, master = 1.0f;
   const char *cmd_path = NULL, *seq_path = NULL, *log_path = NULL, *log_cmds_path = NULL;
+  const char *mod_path = NULL;
+  char log_mod_path[1024] = "";
   int tracks = -1, seconds_given = 0, rate_given = 0, n_routes = 0;
   long events_cap = -1;
   route_t routes[MAX_ROUTES];
@@ -858,6 +1538,7 @@ int main(int argc, char **argv) {
     }
     if (strcmp(a, "--sizes") == 0) return print_sizes();
     if (strcmp(a, "--format-check") == 0) return format_check();
+    if (strcmp(a, "--mod-format-check") == 0) return mod_format_check();
     if (strcmp(a, "--lab") == 0) { g_lab = 1; continue; }
     if (strcmp(a, "--start") == 0) { g_start = 1; continue; }
     if (i + 1 >= argc) { usage(); return 2; }
@@ -879,6 +1560,7 @@ int main(int argc, char **argv) {
     else if (strcmp(a, "--seq") == 0) seq_path = v;
     else if (strcmp(a, "--log-events") == 0) log_path = v;
     else if (strcmp(a, "--log-cmds") == 0) log_cmds_path = v;
+    else if (strcmp(a, "--mod") == 0) mod_path = v;
     else if (strcmp(a, "--tracks") == 0) tracks = atoi(v);
     else if (strcmp(a, "--events") == 0) {      /* decimal, as fm1-render reads it */
       char *end = NULL;
@@ -1044,6 +1726,27 @@ int main(int argc, char **argv) {
   } else if (g_lab) {
     fm1_app_seq_default_route(&g_app);   /* as the browser's start chain */
   }
+  /* --mod: a new runtime with the file's seed and its untimed lines, after
+   * the chain, as fm1-render builds its own; then the log of everything
+   * that follows. */
+  if (mod_path) {
+    if (!load_mod(mod_path)) return 2;
+    fm1_app_mod_reset(&g_app, g_mod_seed);
+    if (!apply_mod(0)) return 2;
+  }
+  if (g_log_cmds && g_app.mod) {
+    size_t n = strlen(log_cmds_path);
+    if (n > 6 && strcmp(log_cmds_path + n - 6, ".verbs") == 0) n -= 6;
+    snprintf(log_mod_path, sizeof log_mod_path, "%.*s.mod", (int)n, log_cmds_path);
+    if (!(g_log_mod = fopen(log_mod_path, "w"))) {
+      fprintf(stderr, "cannot write %s\n", log_mod_path);
+      return 1;
+    }
+    fprintf(g_log_mod, "# The virtual FM-1's modulation (fm1-sim-render --log-cmds): its state at\n"
+                       "# the start, then every edit at the block it led (fm1-render --mod).\n");
+    if (!fm1_app_mod_dump(&g_app, log_mod_dump, NULL)) g_replayable = 0;
+    g_app.on_mod = log_mod_edit;
+  }
   for (int k = 0; k < g_nev; ++k) {
     if (g_ev[k].kind == EV_PARAM && find_param(0, g_ev[k].name) < 0) return 1;
     if (g_ev[k].kind == EV_SELECT && strcmp(g_ev[k].name, "-") != 0 &&
@@ -1142,6 +1845,7 @@ int main(int argc, char **argv) {
         if (rest) break;
       }
     }
+    if (mod_path && !apply_mod(pos)) return 2;     /* as fm1-render, before the block */
     const float *b = fm1_app_render(&g_app, n);
     if (use_seq) {
       uint32_t n_ev = 0;
@@ -1187,7 +1891,9 @@ int main(int argc, char **argv) {
     for (uint16_t p = 0; e && p < e->n_params; ++p) printf(p ? ",%g" : "%g", (double)g_app.unit[u].value[p]);
     printf("]");
   }
+  if (g_app.mui.unloggable) g_replayable = 0;    /* a modulation edit no line can say */
   printf(",\"lab\":%d,\"replayable\":%d", g_lab, g_replayable);
+  if (g_app.mod) print_mod();
   if (g_lab) {
     printf(",\"seq_view\":{\"track\":%u,\"step\":%u,\"clip_playing\":%u,\"playing\":%u,"
            "\"knob\":%d,\"key_leds\":%u}",
@@ -1225,6 +1931,7 @@ int main(int argc, char **argv) {
     printf("]");
     if (log) fclose(log);
     if (g_log_cmds) fclose(g_log_cmds);
+    if (g_log_mod) fclose(g_log_mod);
     fm1_script_free(&script);
     if (log_cmds_path) {               /* the sidecar: FILE.verbs -> FILE.args */
       char path[1024];
@@ -1237,6 +1944,7 @@ int main(int argc, char **argv) {
         return 1;
       }
       for (int k = 0; k < g_nside; ++k) fprintf(f, "%s\n%s\n", g_side_flag[k], g_side_value[k]);
+      if (log_mod_path[0]) fprintf(f, "--mod\n%s\n", log_mod_path);
       fclose(f);
     }
   }

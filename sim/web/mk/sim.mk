@@ -14,18 +14,27 @@ SIM ?= $(abspath ../sim/web)
 
 SIM_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Wall -Wextra -Iinclude -I$(SIM)/src -MMD -MP
 
-# Every engine object fm1-render links, without its main(), and the
-# sequencer core with its host bridge (SEQ_OBJ, mk/seq.mk: C99, no heap, no
-# stdio). The script reader (SEQ_HOST_OBJ) allocates and uses stdio, so only
-# the native harness links it; in fm1.wasm it would add WASI imports.
-SIM_ENGINE_OBJ := $(filter-out $(BUILD)/our/host/render.o,$(OUR_OBJ)) $(TP_OBJ) $(SW_OBJ) $(SEQ_OBJ)
-# The app layer: the panel, the chain and the screen, and the sequencer's
-# panel UI and screens (fm1_seq_ui, fm1_seq_view).
+# Every engine object fm1-render links, without its main(), the sequencer
+# core with its host bridge (SEQ_OBJ, mk/seq.mk: C99, no heap, no stdio),
+# and the modulation runtime with its kinds and primitives (MODC_OBJ,
+# MOD_OBJ, mk/mod.mk: no heap, no stdio, no libm) and its script reader
+# (MOD_SCRIPT_OBJ: snprintf and strtod, no files, no heap), which the app
+# takes lines through. The verb script reader (SEQ_HOST_OBJ) allocates and
+# uses stdio, so only the native harness links it; in fm1.wasm it would add
+# WASI imports.
+SIM_ENGINE_OBJ := $(filter-out $(BUILD)/our/host/render.o,$(OUR_OBJ)) $(TP_OBJ) $(SW_OBJ) $(SEQ_OBJ) \
+  $(MODC_OBJ) $(MOD_OBJ) $(MOD_SCRIPT_OBJ)
+# The app layer: the panel, the chain and the screen, the sequencer's panel
+# UI and screens (fm1_seq_ui, fm1_seq_view), and modulation's (fm1_mod_ui,
+# fm1_mod_view; docs/16 MG3).
 SIM_APP_OBJ := $(BUILD)/sim/src/fm1_app.o $(BUILD)/sim/src/fm1_tft.o \
-  $(BUILD)/sim/src/fm1_seq_ui.o $(BUILD)/sim/src/fm1_seq_view.o
+  $(BUILD)/sim/src/fm1_seq_ui.o $(BUILD)/sim/src/fm1_seq_view.o \
+  $(BUILD)/sim/src/fm1_mod_ui.o $(BUILD)/sim/src/fm1_mod_view.o
 
-# The harness reads verb scripts (host/seq_script.h).
+# The harness reads verb scripts (host/seq_script.h); the app reads
+# modulation lines (host/mod_script.h).
 $(BUILD)/sim/test/fm1_sim_render.o: SIM_CFLAGS += -Ihost
+$(BUILD)/sim/src/fm1_app.o: SIM_CFLAGS += -Ihost
 
 $(BUILD)/sim/%.o: $(SIM)/%.c
 	@mkdir -p $(dir $@)
@@ -44,7 +53,7 @@ WASM_EXPORTS := fm1w_init fm1w_default_chain fm1w_catalog fm1w_select fm1w_unit_
   fm1w_pitch_bend fm1w_all_notes_off fm1w_key fm1w_button fm1w_encoder fm1w_master \
   fm1w_render fm1w_draw fm1w_screen fm1w_leds fm1w_leds_changed fm1w_mode \
   fm1w_text_buf fm1w_text_cap fm1w_seq_text fm1w_seq_reset fm1w_seq_dropped \
-  fm1w_set_lab fm1w_seq_info
+  fm1w_set_lab fm1w_seq_info fm1w_mod_reset fm1w_mod_text
 comma := ,
 empty :=
 space := $(empty) $(empty)
