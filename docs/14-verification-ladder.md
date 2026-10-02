@@ -8,7 +8,9 @@ between that board and the FM-1. On order: the **JL-AC79-DevKit V1.0**
 
 This plan builds on docs/07, 10, 11 §8 (stage B) and 13 §7 and §9, on the
 notes in `engines/`, and on the virtual FM-1 (`sim/web/`). Nothing in it has run on a JieLi
-chip. Every claim about pi32v2 stays [inferred] until §5's probes replace it.
+chip. The 2026-10-02 compile check (§5.2) verified what compiling alone can
+show: code generation, sizes and symbols. Every claim about how pi32v2 code
+behaves when run stays [inferred] until §5's probes replace it.
 
 ## 1. Short answer
 
@@ -29,7 +31,7 @@ chip. Every claim about pi32v2 stays [inferred] until §5's probes replace it.
 | --- | --- | --- | --- |
 | R0 desktop | `fm1-render`, `fm1-seq`, `fm1-sim-render`: 64-bit, `-m32`, ASan + UBSan | clang and GCC, CI | [verified] in CI |
 | R1 browser | `fm1.wasm`: the virtual FM-1's app layer and every engine | Emscripten 6.0.10 on aeon | [verified] 12/12 against musl R0 |
-| R2 dev board | the same C sources on the AC7916, in two modes: *offline* (a render loop) and *live* (driven by the DAC interrupt) | JieLi Clang/LLVM 4.0.1 with its own libc/libm [reported: AL-255 docs/04] | stage B; not started |
+| R2 dev board | the same C sources on the AC7916, in two modes: *offline* (a render loop) and *live* (driven by the DAC interrupt) | JieLi Clang/LLVM 4.0.1 with newlib 2.2.0's libc and libm [verified: §5.2] | stage B: compile-only done (§5.2); nothing run |
 | R3 FM-1, ours | R2's portable code with the FM-1's board-support layer; RAM-only first, flash later | the same | gated by the one rule |
 | Rs FM-1, installed | `FM-1_092` (Baud Girl's FM-1+VA) today; stock V15 if the owner rolls back | — | black box only |
 
@@ -38,13 +40,13 @@ chip. Every claim about pi32v2 stays [inferred] until §5's probes replace it.
 | Source | R0 ↔ R1 | R0/R1 ↔ R2 | R2 ↔ R3 | Handling |
 | --- | --- | --- | --- | --- |
 | Integer code (seq, screen, LEDs, MIDI) | none [verified: screens match pixel for pixel, except the RAM figure, which shows 32-bit sizes] | none, provided `char` signedness, shifts and wrapping agree [inferred] | none | class E; keep `-fwrapv` on vendored code (engines/README.md) |
-| Multiply-add contraction | none: Wasm has no fused op, and x86-64 GCC emits none without `-mfma` [inferred]. macOS arm64 clang contracts by default [inferred] | Clang 4 probably does not contract by default. Whether pi32v2 has a fused op is unknown [inferred] | none | `-ffp-contract=off` on every rung in the ladder profile |
-| libm (`sinf`, `expf`, `exp2f`, `powf`, `logf`) | none, since both sides use musl; glibc differs on Sophie [verified] | JieLi's `libm.a` [reported]; origin unknown | none | compile musl's float functions (MIT) into the ladder profile on every rung, with `-fno-builtin` for them, because GCC folds constant calls using correctly rounded results [inferred] |
+| Multiply-add contraction | none: Wasm has no fused op, and x86-64 GCC emits none without `-mfma` [inferred]. macOS arm64 clang contracts by default [inferred] | none: the pi32v2 code is byte-identical with `-ffp-contract=fast` and `=off` in all 622 code sections [verified: §5.2]. Whether the FPU has a fused op the backend never uses is unknown | none | `-ffp-contract=off` on every rung in the ladder profile |
+| libm (`sinf`, `expf`, `exp2f`, `powf`, `logf`) | none, since both sides use musl; glibc differs on Sophie [verified] | JieLi's `libm.a` is newlib's fdlibm (`__ieee754_*`, `__kernel_*`), not musl; `sqrtf` is a library call, not an instruction [verified: §5.2] | none | compile musl's float functions (MIT) into the ladder profile on every rung, with `-fno-builtin` for them, because GCC folds constant calls using correctly rounded results [inferred] |
 | Subnormals | IEEE on both | flush-to-zero behaviour unknown (mi-fx.md). Subnormals sit near 10⁻³⁸, far below a 16-bit LSB, so they change CPU time and float hashes, not int16 output [inferred] | none | compare int16 output, not float state; time the effect tails |
 | Float divide by zero | gives inf | trap or inf unknown. Plaits' String model relies on inf (plaits-heavy.md, quirk 12) | none | probe first; before the board runs the corpus, list every divide by zero in it under UBSan's `float-divide-by-zero` |
 | NaN or out-of-range float → int | target-specific | unknown | none | our code clamps (host contracts, engines/README.md); list the conversions in vendored code |
-| `double` | hardware | software, because the FPU is single precision [verified: SDK README]. Basic ops round the same way; libm double functions do not [inferred] | none | keep `double` out of the audio and runner paths |
-| Struct layout | both have 4-byte pointers | alignment of 8-byte types may differ (i386 aligns them to 4 inside structs) [inferred] | none | compare a `sizeof` table; seq already lays out the same on 32 and 64 bits [verified: seq.md] |
+| `double` | hardware | software (compiler-rt `__muldf3` and so on), because the FPU is single precision [verified: SDK README; §5.2]. Basic ops round the same way; libm double functions do not [inferred]. The engines use `double` only at create, Test Sine excepted [verified: §5.2] | none | keep `double` out of the audio and runner paths |
+| Struct layout | both have 4-byte pointers | none: pi32v2 aligns `double` and `uint64_t` to 4 inside structs, as i386 does, and every engine instance and sequencer record has i386's size [verified: §5.2] | none | compare a `sizeof` table; seq already lays out the same on 32 and 64 bits [verified: seq.md] |
 | Clocks, DAC, analog | n/a | rate set by the kit's clock tree | crystal ppm, analog stage, amp | compare before the DAC; analog as class A |
 | CPU cycles | desktop and browser figures do not transfer | measured | flash/XIP and cache can differ by part | reported; gated only against the budget |
 
@@ -355,11 +357,40 @@ archive's hash, the SDK commit and the `system.a` hash.
 None of C1–C8 runs on the FM-1. All week, the FM-1 receives only the
 identity query.
 
+### 5.2 Stage B, compile-only (done 2026-10-02)
+
+The pi32v2 half of I2's compile step was done ahead of the kit, in a
+container on the build host (`tools/jieli/compile-check.sh`;
+[`notes/2026-10-02-jieli-compile-check.md`](../notes/2026-10-02-jieli-compile-check.md)).
+
+**What was built.** JieLi's Linux toolchain (Clang 4.0.1) at a pinned
+SHA-256, with the AC79 SDK V1.1.9's flags and libc++ headers. It compiled
+everything a firmware would link: the engines, the vendored Mutable and
+Schwung code, the sequencer core and the app layer. That is 63 objects, each
+in the ladder profile, with `-ffp-contract=fast`, at the SDK's `-Oz` and
+with `-fPIC`. Nothing was linked or run.
+
+**What it showed** [verified]:
+
+| Question | Answer |
+| --- | --- |
+| Does the code compile? | Yes, 63 of 63 in every profile, with no C++11 or dialect problem. The one fix: the SDK's libc++ has no `math.h` wrapper, so `<cmath>` fails (42 objects) until libc++ 7.0.0's `math.h` is added to the include path |
+| Do the external symbols resolve? | Yes, all of them, in what the SDK's `demo_hello` links. No C++ runtime is needed beyond one `std::sort` |
+| Code and tables | 386 KB at `-O2`, 343 KB at `-Oz`, before `--gc-sections` and before the SDK's own base |
+| Fused multiply-add | None. The ladder profile's `-ffp-contract=off` changes nothing on pi32v2 |
+| Instance sizes at 32 bits | Equal to i386's for every engine; `-m32` desktop builds give device sizes |
+| Largest stack frame | 2,224 B, the app's `draw`. Audio-path frames are under 500 B |
+| `-fPIC` | Compiles, with GOT and function-descriptor relocations. Linking it is untested |
+
+**Still open** for steps 2, 5 and 8: linking and the SDK base's size, cycles,
+newlib's libm against musl, and the SDK's link-time `-inline-threshold=5`,
+which would reach our engines in an LTO build.
+
 ## 6. Risks and open questions
 
 | Item | Why it matters | How it is settled |
 | --- | --- | --- |
-| JieLi's Clang 4.0.1 (2017) | an old front end: C99 and C++11 should build, newer builtins may not [inferred] | step 2 builds `engines/` |
+| JieLi's Clang 4.0.1 (2017) | an old front end: C99 and C++11 should build, newer builtins may not [inferred] | settled for compiling (§5.2): all 63 objects build once libc++'s `math.h` is supplied, which the SDK's libc++ copy lacks; linking is step 2 |
 | pi32v2 traps on float divide by zero | Plaits' String model would fault | step 5; add a guard in our wrapper |
 | Subnormal cost | effect tails decay into subnormals (mi-fx.md) | step 5 timings; flush in the wrapper if slow |
 | JieLi's libm differs from musl | affects Sophie, and Capture's tempo search near a tie | pin musl's float functions in the ladder profile; keep JieLi's only if stage B shows it is worth accepting class C |

@@ -9,6 +9,11 @@ history.
 ## [Unreleased]
 
 ### Added
+- Compile-only stage B (`tools/jieli/compile-check.sh`,
+  `notes/2026-10-02-jieli-compile-check.md`). The engines, the sequencer and
+  the app layer compile for the FM-1's processor with JieLi's toolchain: 63
+  of 63 objects. The note has their sizes and their instance sizes at 32
+  bits. No user-facing change.
 - The user manual (`manual/`, `tools/manual/`): chapters for welcome and
   safety, getting started, a panel tour with a measured drawing of the panel,
   playing, the sound engines, effects, the sequencer, MIDI, settings,
