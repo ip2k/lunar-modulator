@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "45894f21057ae1083aef5d08210a65d808bd274c2d097deccbef483f6501ad3c",
-  "wasm_bytes": 461073,
+  "wasm_sha256": "70e0763981ca89f05f40afcb30e5fdeffdeb71f38a883331491f237bf4ba0505",
+  "wasm_bytes": 466635,
   "sources_sha256": {
-    "engines": "882aaf2992ca00a9c294da8dc9d006090d6effde7e740406484d8e8d4d485666",
-    "sim": "0dc3e5e6ac3c9561aa241a89993cf0b5ae38922a73bdbad9c9d2eba48743486d"
+    "engines": "a64e30f8507b093b3ee5911bb5888d778bace1a37d5d1a4a8aa9f0f6c10d1cb7",
+    "sim": "ac3ff894363167167da3fadff0d71bfcd3610613ad627122478c82e026f82c7d"
   },
   "engines": "working tree",
-  "built": "2026-10-02T16:04:39Z",
+  "built": "2026-10-02T19:03:54Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 23,
+    "passed": 24,
     "failed": 0,
-    "identical_to_js": 23,
-    "identical_to_musl": 23,
-    "identical_to_glibc": 20,
+    "identical_to_js": 24,
+    "identical_to_musl": 24,
+    "identical_to_glibc": 21,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -314,6 +314,8 @@
       "seq": {
         "lines": 6,
         "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
         "dropped": 0,
         "native_dropped": 0
       }
@@ -343,6 +345,8 @@
       "seq": {
         "lines": 4,
         "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
         "dropped": 0,
         "native_dropped": 0
       }
@@ -372,6 +376,8 @@
       "seq": {
         "lines": 4,
         "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
         "dropped": 0,
         "native_dropped": 0
       }
@@ -401,6 +407,8 @@
       "seq": {
         "lines": 11,
         "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
         "dropped": 0,
         "native_dropped": 0
       }
@@ -430,9 +438,43 @@
       "seq": {
         "lines": 19,
         "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
         "dropped": 0,
         "native_dropped": 0
       }
+    },
+    {
+      "name": "seq-panel-play-stop",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 119656,
+        "native64": 132344
+      },
+      "cmd": "seq/panel-play-stop.verbs",
+      "seq": {
+        "lines": 2,
+        "lines_match": true,
+        "ui_cmds": 3,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-play-stop.panel"
     },
     {
       "name": "crush-chip-jitter",
