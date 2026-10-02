@@ -25,24 +25,34 @@
 //   from the patch data, because the FM-1 picks from lists with an encoder.
 // - The patch's own transpose (DX7 "C3" = 24) is applied, which Plaits
 //   ignores; on a keyboard the patches then sound in their intended octave.
-// - FMVoice runs at the host's real rate (it takes the rate in Init), so
-//   there is no pitch offset and DX7 envelope times are exact.
 // - Two discarded one-sample renders with the gate low precede every
 //   note-on, so a stolen or retriggered voice restarts its envelopes
 //   (fm::Voice only sees a note-on on a gate edge) and a new patch's setup
 //   happens then, not as a silent first block.
 //
+// Rate: FMVoice runs at Plaits' 47,872.34 Hz whatever the host's rate, as
+// upstream's SixOpEngine::Init sets it up, in this wrapper's 16-sample blocks
+// (envelopes and LFO step once per block), and the mono mix goes through
+// fm1_resampler.h to the host's rate, as in Macro. At a 47,872.34 Hz host the
+// resampler passes the mix through bit for bit. Hosts above 47,872.34 Hz or
+// below a quarter of it are refused. Note events land on the next 16-sample
+// block at 47,872.34 Hz. (Until 2026-10-01 FMVoice ran at the host's rate.
+// Its pitch and DX7 times were right there too, since FMVoice takes the rate
+// in Init; running at upstream's rate makes its samples upstream's, as for
+// Macro and Macro Heavy, so all three compare with upstream the same way.)
+//
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
+#include "fm1_resampler.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstring>
 #include <new>
 
 #include "stmlib/dsp/dsp.h"
+#include "plaits/dsp/dsp.h"
 #include "plaits/dsp/engine2/six_op_engine.h"
 #include "plaits/resources.h"
 
@@ -113,7 +123,7 @@ const fm1_param_t kParams[P_COUNT] = {
 // On the desktop eight voices cost half of Macro's twelve; stage B measures
 // the chip, and twelve is a one-line change if it allows.
 const int kNumVoices = 8;
-const size_t kBlock = 16;         // envelope/LFO update interval, divides 64
+const size_t kBlock = 16;         // envelope/LFO update interval, at 47,872.34 Hz
 const size_t kPatchBytes = fm::Patch::SYX_SIZE;
 
 // A voice is freed once its key is up and its output has stayed below the
@@ -138,24 +148,30 @@ struct Voice {
 
 class Instance {
  public:
-  void Init(const fm1_host_t *host) {
+  // False when the resampler refuses the host's rate (above 47,872.34 Hz or
+  // below a quarter of it).
+  bool Init(const fm1_host_t *host) {
+    const bool ok =
+        fm1_resampler_init(&resampler_, kCorrectedSampleRate, host->sample_rate) != 0;
     algorithms_.Init();
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
-      v.fm.Init(&algorithms_, host->sample_rate);
+      v.fm.Init(&algorithms_, kCorrectedSampleRate);
       v.patch_index = -1;
       v.silent_blocks = 0;
       v.note_offset = 0.0f;
       v.gate = v.active = false;
       v.age = 0;
     }
-    const float blocks_per_second = host->sample_rate / kBlock;
+    const float blocks_per_second = kCorrectedSampleRate / kBlock;
     silent_after_release_ = static_cast<uint32_t>(kSilentAfterRelease * blocks_per_second);
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
     bend_ = 0.0f;
     lead_ = -1;
     clock_ = 0;
+    memset(mix_, 0, sizeof(mix_));
     pending_ = 0;
+    return ok;
   }
 
   void NoteOn(uint8_t key, uint8_t velocity) {
@@ -213,18 +229,23 @@ class Instance {
     value_[index] = value;
   }
 
+  // Each output sample pulls the 47,872.34 Hz mix the resampler needs for it,
+  // rendering a new 16-sample block whenever the last one is used up.
   void Render(float *out_lr, uint32_t frames) {
-    while (frames) {
-      if (!pending_) {
-        RenderBlock();
-        pending_ = kBlock;
+    for (uint32_t f = 0; f < frames; ++f) {
+      uint32_t need = fm1_resampler_needed(&resampler_);
+      while (need) {
+        if (!pending_) {
+          RenderBlock();
+          pending_ = kBlock;
+        }
+        const uint32_t took = fm1_resampler_push(
+            &resampler_, &mix_[kBlock - pending_],
+            need < pending_ ? need : static_cast<uint32_t>(pending_));
+        pending_ -= took;
+        need -= took;
       }
-      size_t take = frames < pending_ ? frames : pending_;
-      const float *src = &block_[2 * (kBlock - pending_)];
-      memcpy(out_lr, src, take * 2 * sizeof(float));
-      out_lr += 2 * take;
-      frames -= take;
-      pending_ -= take;
+      out_lr[2 * f] = out_lr[2 * f + 1] = fm1_resampler_pop(&resampler_);
     }
   }
 
@@ -291,7 +312,7 @@ class Instance {
       v.silent_blocks = (silent && !v.gate) ? v.silent_blocks + 1 : 0;
       if (v.silent_blocks > silent_after_release_) v.active = false;
     }
-    for (size_t n = 0; n < kBlock; ++n) block_[2 * n] = block_[2 * n + 1] = mix[n];
+    memcpy(mix_, mix, sizeof(mix_));
   }
 
   fm::Algorithms<6> algorithms_;  // shared, read-only after Init
@@ -300,17 +321,21 @@ class Instance {
   float value_[P_COUNT];
   float bend_;
   int lead_;                      // most recently triggered voice, drives the LFO
-  uint32_t silent_after_release_;
+  uint32_t silent_after_release_; // in 16-sample blocks at 47,872.34 Hz
   uint32_t clock_;
-  float block_[2 * kBlock];
-  size_t pending_;
+  float mix_[kBlock];             // the current block at 47,872.34 Hz
+  size_t pending_;                // samples of mix_ not yet resampled
+  fm1_resampler_t resampler_;     // 47,872.34 Hz mix -> host rate, one per instance
 };
 
 size_t InstanceSize(const fm1_host_t *) { return sizeof(Instance); }
 
 void *Create(void *mem, const fm1_host_t *host) {
   Instance *self = new (mem) Instance();
-  self->Init(host);
+  if (!self->Init(host)) {
+    self->~Instance();
+    return NULL;
+  }
   return self;
 }
 

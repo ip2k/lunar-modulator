@@ -142,8 +142,9 @@ def test_every_sixop_patch_sounds_cleanly(renderer, tmp_path, patch):
     # Structure 0.25 is where the modal resonator has no stiffness, so its
     # first mode sits on f0 (elsewhere Plaits tunes the third mode instead).
     ("modal", ["Model=9", "Harmonics=0.25", "Morph=0.8"], 5.0),
-    # The string model reads 6-9 cents sharp at Plaits' own 47,872 Hz too
-    # (engines/plaits-heavy.md): an upstream property, not the rate change.
+    # The string model reads 6-9 cents sharp here, at Plaits' own 47,872 Hz,
+    # where it runs at any host rate (engines/plaits-heavy.md): an upstream
+    # property of these settings.
     ("string", ["Model=8", "Harmonics=0.25", "Morph=0.8"], 12.0),
 ])
 @pytest.mark.parametrize("key", [57, 69, 81])
@@ -151,7 +152,12 @@ def test_heavy_tuning(renderer, tmp_path, name, params, tolerance, key):
     ref = 440.0 * 2 ** ((key - 69) / 12)
     _, left, _ = render(renderer, tmp_path, "macro-heavy", params=params,
                         notes=[f"0:{key}:100:1.4"], seconds=1.2)
-    f = pitch_hz(lowpass(left, 1.5 * ref), 0.3, 0.6)
+    # The modal model's partials rise with their order here (A4: -48, -42.5,
+    # -39.4 dB), so four one-pole passes leave the second as strong as the
+    # first, and the zero crossings counted the octave at A4 (+1200.4 cents)
+    # once the model ran at Plaits' own rate; eight passes put it 22 dB under.
+    passes = 8 if name == "modal" else 4
+    f = pitch_hz(lowpass(left, 1.5 * ref, passes), 0.3, 0.6)
     assert abs(cents(f, ref)) < tolerance
 
 
@@ -253,6 +259,52 @@ def test_string_machine_is_stereo_and_others_mono(renderer, tmp_path):
     assert left == right
 
 
+@pytest.mark.parametrize("frames", [64, 7])
+def test_string_machine_entered_later_renders_as_if_created_in_it(renderer, tmp_path, frames):
+    """Outside the string machine the right channel's resampler stops once it
+    holds the left one's state, and on a change into the string machine
+    takes a copy of it (mi_macro_heavy.cc). An instance that plays nothing as
+    Additive and is switched to the string machine at 0.1 s must then render
+    exactly what an instance created as the string machine renders, both
+    channels: without the copy the right channel's resampler is out of step
+    with the left."""
+    outs = []
+    for name, params, extra in (("switched", ["Model=4"], ["--param-at", "0.1:Model=0"]),
+                                ("created", ["Model=0"], [])):
+        wav = tmp_path / f"{name}.wav"
+        args = ["--engine", "macro-heavy", "--seconds", "0.6", "--frames", str(frames),
+                "--note", "0.2:57:100:0.3", "--out", str(wav), *extra]
+        for p in params:
+            args += ["--param", p]
+        run_raw(renderer, *args)
+        outs.append(wav.read_bytes())
+    left, right = stereo(tmp_path / "created.wav")
+    assert rms(right, 0.25, 0.45) > 1e-3 and left != right
+    assert outs[0] == outs[1]
+
+
+def test_string_machine_block_keeps_its_aux_after_a_model_change(renderer, tmp_path):
+    """A model change takes effect on the next 12-sample block, and what the
+    string machine has already rendered keeps both its channels. At
+    47,872.34 Hz in 1-frame host blocks, a change to Additive before sample
+    1,000 (blocks start at 996 and 1,008) leaves samples 1,000-1,007 in
+    stereo, AUX on the right, and the channels are equal from 1,008 on. The
+    right channel's resampler runs on after the string machine until it holds
+    the left one's state (mi_macro_heavy.cc); one that stopped at the change
+    put the left channel's samples there instead, which the wrapper before
+    the native-rate change (2bf4133) did not do. (At 44,118 Hz the same
+    resampler rings out AUX for about 65 output samples:
+    test_fm1_rate_output_is_the_native_output_resampled.)"""
+    wav = tmp_path / "change.wav"
+    run_raw(renderer, "--engine", "macro-heavy", "--rate", "47872.34", "--frames", "1",
+            "--param", "Model=0", "--note", "0:57:100:0.1",
+            "--param-at", f"{999.5 / 47872.34:.9f}:Model=4", "--seconds", "0.05",
+            "--out", str(wav))
+    left, right = stereo(wav)
+    assert left[1000:1008] != right[1000:1008]
+    assert left[1008:] == right[1008:]
+
+
 def test_sixop_stolen_held_voice_attacks_again(renderer, tmp_path):
     """fm::Voice only starts its envelopes on a gate edge. When every voice is
     held and a new key steals one, the wrapper must still give it a fresh
@@ -270,9 +322,13 @@ def test_sixop_note_sounds_from_its_first_block(renderer, tmp_path, patch):
     """fm::Voice spends the first render after a patch is loaded on Setup()
     and renders nothing. The wrapper runs that render at note-on, so a note on
     a newly loaded patch sounds from its first 16-sample block rather than
-    starting with a blank one (which would read exactly 0 here)."""
-    _, left, _ = render(renderer, tmp_path, "sixop", params=[f"Patch={patch}"],
-                        notes=["0:69:127:0.05"], seconds=0.05)
+    starting with a blank one (which would read exactly 0 here). Checked at
+    Plaits' own rate, where the resampler passes the wrapper's blocks
+    through: at 44,118 Hz its 30-sample delay would hide the first block."""
+    wav = tmp_path / "first.wav"
+    run_raw(renderer, "--engine", "sixop", "--param", f"Patch={patch}", "--note", "0:69:127:0.05",
+            "--seconds", "0.05", "--rate", "47872.34", "--out", str(wav))
+    left, _ = stereo(wav)
     assert max(abs(x) for x in left[:16]) > 0.01
 
 
@@ -346,10 +402,16 @@ def test_rendering_is_deterministic(renderer, tmp_path, engine, params):
 def test_instance_sizes_are_bounded(renderer, tmp_path):
     heavy, _, _ = render(renderer, tmp_path, "macro-heavy", seconds=0.1)
     sixop, _, _ = render(renderer, tmp_path, "sixop", seconds=0.1)
+    # Tight on purpose: the resamplers are 1,288 B each (fm1_resampler.h),
+    # and these bounds are what catches one per voice instead of one per
+    # output channel per instance (resampling is linear, so the renders
+    # cannot tell). Each leaves less than one resampler of room.
     # Macro Heavy: four voices, each with a 16 KB arena (the particle engine's
-    # diffuser alone takes all of it). 68,512 B on a 64-bit host, 68,304 B on
-    # 32-bit targets (plaits-heavy.md).
-    assert heavy["instance_bytes"] < 70_000
-    # Six-Op FM: eight FMVoices plus one shared algorithm table. 11,304 B on a
-    # 64-bit host, 9,572 B on 32-bit targets.
-    assert sixop["instance_bytes"] < 12_000
+    # diffuser alone takes all of it), and two resamplers (the string
+    # machine's L and R). 71,088 B on a 64-bit host, 70,880 B on 32-bit
+    # targets (plaits-heavy.md); a resampler per voice would add 5,152 B.
+    assert heavy["instance_bytes"] < 72_000
+    # Six-Op FM: eight FMVoices, one shared algorithm table and one
+    # resampler. 12,528 B on a 64-bit host, 10,796 B on 32-bit targets; a
+    # resampler per voice would add 10,304 B.
+    assert sixop["instance_bytes"] < 13_500
