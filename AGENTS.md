@@ -86,6 +86,8 @@ python3 reference/jl-misctools/firmware/fwunpack_newfw.py FM-1.fwsc     # unpack
 python tools/fm1_identify.py                                   # read-only identity query + decode, any OS (verified on hardware)
 python -m pytest                                               # tools, PIO emulation, dongle/ROM co-simulation and engine tests
 make -C engines && engines/build/fm1-render --list             # engine platform, desktop build (docs/11, engines/README.md)
+cd sim/web/www && python3 -m http.server 8000                  # the virtual FM-1 at http://localhost:8000/ (sim/web/README.md)
+sim/web/build-on-aeon.sh                                       # rebuild and check its WebAssembly module, on aeon in containers
 tools/fm1_identify.sh                                          # Linux, ALSA raw MIDI, read-only, untested
 python3 reference/FM-1-RE/tools/fm1_ota.py scan                # AL-255's client, read-only scan
 ```
@@ -97,7 +99,9 @@ vendor packages there.
 
 - **Dead-code audit:** not done yet. The mark is 7,463 lines of the repo's
   own source (`dongle/`, `engines/` less `third_party/`, `tests/`, `tools/`)
-  at the stage A2 merge, 2026-09-30; audit after about 10,000 more.
+  at the stage A2 merge, 2026-09-30; audit after about 10,000 more. `sim/`
+  is in scope too: it arrived on 2026-10-01 with about 4,200 lines (less its
+  built module, record and font data), which count toward the next audit.
 - **Confidence marks in every technical claim:** `[verified]` (checked here
   against binaries, photos or SDK files), `[reported]` (named source, not
   re-checked), `[inferred]`. Never upgrade a claim without doing the check.
