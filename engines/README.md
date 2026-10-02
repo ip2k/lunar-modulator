@@ -457,7 +457,10 @@ How it works:
   resonance and drive from an impulse, at 96 kHz, two chains of two filters
   after Macro, host blocks of 7) are byte-identical from GCC with glibc,
   GCC with musl and Emscripten under Node [verified: containers on the LAN
-  build host, 2026-10-02]. The browser module is not rebuilt here.
+  build host, 2026-10-02]. A `#pragma STDC FP_CONTRACT OFF` keeps clang from
+  fusing multiply-adds (Apple clang fused 218 operations in this file before
+  the review added it, 2026-10-02 [verified: `objdump`]), so the Mac's
+  native build computes the same bits too.
 - **Contracts:** the input guard of `mi_fx.cc`; `fm1_param_clamp`; every
   field set in `create`; silence in gives exact silence out from rest at any
   setting, self-oscillating ones included; tails flush to exact zero within
@@ -627,7 +630,7 @@ not used.
 | 1 | Drive | −12 to +24 dB (0) | Gain before the limiter: push a sound into it for loudness, or turn it down |
 | 1 | Release | 1–1,000 ms (100) | How fast the gain comes back: the time constant of its recovery, after a hold as long as the lookahead |
 | 1 | Lookahead | 0–5 ms (2) | How far ahead the gain sees peaks coming. It is also the effect's latency: 88 frames at 2 ms and 44,118 Hz. At 0 there is no delay, and a soft clip catches what the attack misses (below). NOLOCK: a change crossfades to the new delay over 5 ms |
-| 2 | Mode | Brickwall, Soft Clip (Brickwall) | Brickwall: nothing above the ceiling, nothing changed below it. Soft Clip: peaks up to +12 dB over the ceiling are rounded off by a curve from 6 dB below it. NOLOCK; a change crossfades over 5 ms |
+| 2 | Mode | Brickwall, Soft Clip (Brickwall) | Brickwall: nothing above the ceiling, nothing changed below it. Soft Clip: peaks up to +12 dB over the ceiling are rounded off by a curve from 6 dB below it. NOLOCK; a change glides the stage over 5 ms, frame by frame as the audio leaves the line (below) |
 | 2 | Link | 0–1 (1) | Stereo link. Each channel's detector takes the larger of its own peak and Link × the other's: at 1 one gain moves both channels, so the stereo image holds; at 0 each channel is limited on its own |
 | 2 | Mix | 0–1 (1) | Blends the delayed dry input back in (parallel limiting). Below 1 the output can pass the ceiling, by design |
 
@@ -686,8 +689,33 @@ How it works [verified: tests/test_engines_limit.py and
   reaches the detector and the delayed audio together and the ceiling
   holds while it glides. A Lookahead change crossfades from the old delay
   to the new over 5 ms (a 440 Hz sine shows no larger step than its own);
-  another change waits for the crossfade to finish. Mode crossfades its
-  output stage over 5 ms.
+  another change waits for the crossfade to finish. Mode glides its output
+  stage over 5 ms.
+- **Turning Lookahead or Mode while it limits** leaves the ceiling to the
+  gain path, never to the final clamp (fixed in review, 2026-10-02: before,
+  the clamp flattened peaks up to 41 times the ceiling, +32 dB, on bursts
+  in the test below). Both taps of a Lookahead crossfade share one gain, so
+  while they fade the hold spans the longer delay plus one frame and the
+  boxes at most the shorter: every value the boxes average is then a
+  minimum over a window holding both taps' frames. A longer lookahead
+  replays frames the old hold has forgotten; the hold takes their need from
+  the line (recomputed from the stored input, Drive, Ceiling and Mode: one
+  divide per loud frame, once per change), and the crossfade starts only
+  when the boxes hold nothing from before the change (a box length later),
+  so the gain has ramped down to them as it would for any peak. Shorter
+  boxes restart at the held gain, as on `create`: a step, if the gain was
+  ramping at that moment. When the crossfade ends a shorter hold simply
+  forgets sooner, and longer boxes restart at the held gain only once their
+  output is within 2⁻¹² of it, so there is no audible step; until then the
+  gain ramps over the shorter span, which is safe. Lookahead 0 takes over
+  from the gain in use with its own envelope. The line stores Mode with
+  each frame, so a frame leaves through the stage its gain was made for,
+  and the envelope aims at four times the ceiling only once Mode has
+  reached Soft Clip (part-way, the blend of the two stages with a +12 dB
+  gain would pass the ceiling). Checked in `fm1-limit-test` with 27,325
+  changes of Lookahead (0 included), Mode and Link on bursts at four host
+  rates: before the clamp the envelope and the stage stay within 1.2 ×
+  10⁻⁷ of the ceiling [verified, 2026-10-02].
 - **The host's bus limiter stays.** `include/fm1_mix_limiter.h` runs after
   every chain: a peak follower with an instant attack, a 100 ms release and
   a fixed 0.98 ceiling, and the guard that turns non-finite samples into
@@ -705,26 +733,29 @@ How it works [verified: tests/test_engines_limit.py and
   about 100 multiply-adds per stereo frame) and add the interpolator's
   delay to the latency [inferred].
 - **Memory:** grows with the host rate, fixed at `create`: 5 ms of frames,
-  at most 510. Per frame of lookahead: 16 bytes of line (the input and the
-  two controls), 12 for the two hold deques and about 8 for the box
-  filters. 8,272 bytes at 44,118 Hz, 8,960 at 48 kHz, 17,600 at 96 kHz and
-  19,696 at 102 kHz and above, where the cap makes the longest lookahead
+  at most 510. Per frame of lookahead: 20 bytes of line (the input and the
+  three controls), 12 for the two hold deques and about 8 for the box
+  filters. 9,184 bytes at 44,118 Hz, 9,936 at 48 kHz, 19,536 at 96 kHz and
+  21,760 at 102 kHz and above, where the cap makes the longest lookahead
   shorter than 5 ms (2.66 ms at 192 kHz). The instance holds no pointers:
   a 32-bit (`-m32`) build has the same sizes [verified: GCC in a Linux
   container, 2026-10-02].
 - **Cost, desktop only:** 1.1 µs per 64-frame block on an Apple M1 Max
-  with no gain reduction, 1.3 µs limiting hard, 1.7–1.8 µs at Lookahead 0
-  or in Soft Clip (their curve divides): 0.08–0.12 % of the block, against
-  Fold's 1.8 µs and Echo's 2.2 µs in the same run (20 s of noise, best of
-  five). Two divides per frame in the detector while it limits, and two
-  more in a soft clip; the hold's deque is amortised, one push and at most
-  one pop per frame on average. Stage B measures pi32v2.
+  with no gain reduction, 1.3 µs limiting hard, 1.2 µs at Lookahead 0 and
+  1.5 µs in Soft Clip at +12 dB (their curve divides): 0.08–0.10 % of the
+  block, against Fold's 1.8 µs in the same run (20 s of noise, best of
+  five; after the review's fix, 2026-10-02). Two divides per frame in the
+  detector while it limits, and two more in a soft clip; the hold's deque
+  is amortised, one push and at most one pop per frame on average. A
+  Lookahead change adds one pass over the line (at most 510 frames, a
+  divide per loud one) to the block it lands in. Stage B measures pi32v2.
 - **Determinism:** no libm. 2^x (for dB) and the one-pole coefficients are
   polynomials written here, and the gain path is integers. A 32-bit and a
   64-bit Linux build with `-ffp-contract=off` give identical results in
-  every check of `fm1-limit-test`; the Mac's default build, which fuses
-  multiply-adds, differs only in the last bits of the ceiling (3 × 10⁻⁸)
-  [verified].
+  every check of `fm1-limit-test`. A `#pragma STDC FP_CONTRACT OFF` keeps
+  clang from fusing multiply-adds (Apple clang fused 44 operations here
+  before the review added it, 2026-10-02 [verified: `objdump`]), so the
+  Mac's native build computes the same bits as well.
 - `build/fm1-limit-test` (`test/limit_test.cc`) reads the float output with
   no WAV and no bus limiter after it, and links the effect built once more
   with `FM1_LIMIT_PROBE`, which only records how far the envelope alone
@@ -920,10 +951,11 @@ upstream candidate). Our own code gets none.
   | Macro Heavy, 4 voices | 71,104 | 70,880 | ~17 KB per voice (Particle and String arenas) |
   | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
   | Echo | 65,728 | 65,728 | 16,384 stereo cells of 16-bit words |
-  | Limiter | 8,272 | 8,272 | 5 ms of lookahead at 44,118 Hz; 19,696 at 102 kHz and above |
   | Macro, 12 voices | 31,744 | 18,864 | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,848 | 18,848 | |
+  | Filter | 18,368 | 18,368 | Comb's two delay lines, fs / 20 Hz each |
   | Six-Op FM, 8 voices | 12,528 | 10,796 | |
+  | Limiter | 9,184 | 9,184 | 5 ms of lookahead at 44,118 Hz; 21,760 at 102 kHz and above |
   | Ensemble | 4,704 | 4,704 | |
 
   The 32-bit figures include the native-rate resamplers (about 1.3 KB each)

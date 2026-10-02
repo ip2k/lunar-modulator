@@ -15,6 +15,7 @@
 
 extern "C" const fm1_engine_t fm1_engine_limit;
 extern "C" float fm1_limit_probe_worst;   // fx_limit.cc built with FM1_LIMIT_PROBE
+extern "C" float fm1_limit_probe_stage;
 
 namespace {
 
@@ -541,8 +542,78 @@ void Rates() {
 
 }  // namespace
 
+// 10. Lookahead, Mode and Link turned while the limiter works: loud bursts
+// over a moderate bed, in random host blocks, at four host rates, with
+// Lookahead jumping anywhere in 0..5 ms (0 included), Mode flipping and Link
+// moving. The ceiling must come from the gain path and the stage, never from
+// the final clamp: the largest |v| / c before it (BRICKWALL) and the largest
+// stage output / c (either Mode, gliding included), with a lookahead, and
+// the largest output / 10^(Ceiling/20). Then the same steady limiting (a
+// 440 Hz sine at +12 dB into -6 dB) while Lookahead moves 2 -> 4.5 -> 1 ms:
+// the largest step between samples against the steady signal's.
+void Knobs() {
+  const float rates[] = { 8000.0f, 44118.0f, 96000.0f, 384000.0f };
+  float envelope = 0.0f, stage = 0.0f;
+  double out = 0.0;
+  uint32_t changes = 0;
+  float buf[128];
+  for (float rate : rates) {
+    for (uint32_t seed = 1; seed <= 25; ++seed) {
+      void *self = Make(rate, 0x5A);
+      Lcg rng = { 1000u + seed };
+      const float ceiling = -24.0f * rng.Unit();
+      const double c = pow(10.0, ceiling / 20.0);
+      Set(self, "Ceiling", ceiling);
+      Set(self, "Drive", -12.0f + 36.0f * rng.Unit());
+      Set(self, "Release", 1.0f + 200.0f * rng.Unit());
+      fm1_limit_probe_worst = fm1_limit_probe_stage = 0.0f;
+      const uint32_t total = static_cast<uint32_t>(1.5f * rate);
+      for (uint32_t pos = 0; pos < total;) {
+        const uint32_t k = rng.Next() % 24;
+        if (k == 0) {
+          Set(self, "Lookahead", (rng.Next() & 3) == 0 ? 0.0f : 5.0f * rng.Unit());
+          ++changes;
+        }
+        if (k == 1) Set(self, "Mode", static_cast<float>(rng.Next() & 1));
+        if (k == 2) Set(self, "Link", rng.Unit());
+        uint32_t n = 1 + rng.Next() % 64;
+        if (n > total - pos) n = total - pos;
+        for (uint32_t i = 0; i < n; ++i) {
+          const float amp = rng.Next() % 200 == 0 ? 16.0f : ((rng.Next() & 1) ? 0.3f : 2.0f);
+          buf[2 * i] = amp * rng.Bipolar();
+          buf[2 * i + 1] = (rng.Next() & 3) ? buf[2 * i] : amp * rng.Bipolar();
+        }
+        E.render(self, buf, n);
+        for (uint32_t i = 0; i < 2 * n; ++i) out = fmax(out, fabs(buf[i]) / c);
+        pos += n;
+      }
+      E.destroy(self);
+      envelope = fmaxf(envelope, fm1_limit_probe_worst);
+      stage = fmaxf(stage, fm1_limit_probe_stage);
+    }
+  }
+  printf("\"knobs\":{\"changes\":%u,\"envelope\":%.9g,\"stage\":%.9g,\"out\":%.9g",
+         changes, envelope, stage, out);
+  const uint32_t total = kRate;
+  void *self = Make(kRate, 0);
+  Set(self, "Ceiling", -6.0f);
+  for (uint32_t i = 0; i < total; ++i) {
+    g_out[2 * i] = g_out[2 * i + 1] = 2.0f * static_cast<float>(sin(2 * M_PI * 440.0 * i / kRate));
+  }
+  for (uint32_t pos = 0; pos < total; pos += 64) {
+    if (pos == 11008) Set(self, "Lookahead", 4.5f);
+    if (pos == 22016) Set(self, "Lookahead", 1.0f);
+    E.render(self, &g_out[2 * pos], 64 < total - pos ? 64 : total - pos);
+  }
+  E.destroy(self);
+  printf(",\"steady_step\":%.6f,\"moving_step\":%.6f}",
+         MaxStep(g_out, 4000, 11000),
+         fmaxf(MaxStep(g_out, 11000, 12500), MaxStep(g_out, 22000, 23500)));
+}
+
 int main() {
   printf("{");
+  Knobs(); printf(",");
   Rates(); printf(",");
   Latency(); printf(",");
   Transparency(); printf(",");

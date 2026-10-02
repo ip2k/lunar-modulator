@@ -108,8 +108,8 @@
  *
  * Determinism. No libm in the audio path or anywhere else: 2^x, log2 and
  * tan are the polynomials below (only fabsf, floorf and sqrtf, which IEEE
- * 754 defines exactly), so a WebAssembly build matches the native one
- * sample for sample. Nothing relies on fused multiply-adds.
+ * 754 defines exactly), and clang fuses no multiply-add here (the pragma
+ * below), so a WebAssembly build matches the native one sample for sample.
  *
  * Control rate. The filter controls (cutoff, resonance, drive, mode, morph)
  * glide at a control rate of one step per 8 samples, counted from create,
@@ -137,6 +137,14 @@
 
 #include <math.h>
 #include <string.h>
+
+/* No fused multiply-adds in this file: the browser's WebAssembly cannot fuse,
+ * so a native build that did would round differently (Apple clang on arm64
+ * fuses by default). GCC ignores the pragma: build for a GCC target with FMA
+ * with -ffp-contract=off (the x86 builds here have none to use). */
+#if defined(__clang__)
+#pragma STDC FP_CONTRACT OFF
+#endif
 
 /* The per-type processors run once or twice per frame; inlined, their
  * states stay in registers. */

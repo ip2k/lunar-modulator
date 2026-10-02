@@ -83,8 +83,11 @@ history.
   nothing passes the ceiling, and anything under it comes through
   untouched, only delayed by the lookahead. Lookahead 0 adds no delay and
   catches peaks with a gentle soft clip instead; Soft Clip mode rounds
-  peaks off for a louder, warmer sound. The firmware's own output limiter
-  stays after every effect. Written for this project (MIT), after Geraint
+  peaks off for a louder, warmer sound. Turning Lookahead or switching Mode
+  while it is limiting fades smoothly and never flattens a peak (in review,
+  a change could briefly hard-clip peaks far over the ceiling; fixed
+  before release). It uses about 9 KB of memory at 44.1 kHz. The
+  firmware's own output limiter stays after every effect. Written for this project (MIT), after Geraint
   Luff's look-ahead limiter design; parameters and design in
   `engines/README.md`, tested in `tests/test_engines_limit.py`, and a
   section in chapter 6 of the manual. A new parity scenario plays it twice

@@ -11,8 +11,9 @@ parameter doing what it says. Through fm1-limit-test
 waves, impulses, full-scale and clamped noise, DC steps, onsets, a chirp)
 under 1,320 settings, latency against Lookahead at four host rates, exact
 transparency, the release time, Link, parameters changed while audio runs at
-block sizes that change between calls, the Lookahead and Mode crossfades,
-host rates and instance sizes.
+block sizes that change between calls, the Lookahead and Mode crossfades
+(the ceiling held by the gain path, not the final clamp, while they are
+turned under limiting), host rates and instance sizes.
 
 The figures in the comments were measured on the desktop build (2026-10-02).
 """
@@ -72,13 +73,13 @@ def test_limiter_is_registered(renderer):  # noqa: F811
 
 
 def test_instance_size_follows_the_rate(renderer, tmp_path, tool):  # noqa: F811
-    # 5 ms of frames, at most 510: 8,272 bytes at the FM-1's rate, 19,696 at
+    # 5 ms of frames, at most 510: 9,184 bytes at the FM-1's rate, 21,760 at
     # the cap (102 kHz and above). A refused rate still gets a size.
     s, _, _ = render(renderer, tmp_path, input="silence", seconds=0.05, fx=fx())
-    assert s["fx_bytes"] == [8272]
+    assert s["fx_bytes"] == [9184]
     sizes = {rate: size for rate, _, size in tool["rates"]}
-    assert sizes["44118"] == 8272 and sizes["48000"] == 8960 and sizes["96000"] == 17600
-    assert sizes["102000"] == sizes["192000"] == sizes["384000"] == 19696
+    assert sizes["44118"] == 9184 and sizes["48000"] == 9936 and sizes["96000"] == 19536
+    assert sizes["102000"] == sizes["192000"] == sizes["384000"] == 21760
     assert all(size % 16 == 0 for size in sizes.values())
 
 
@@ -342,6 +343,24 @@ def test_lookahead_and_mode_changes_do_not_click(tool):
     m = tool["mode_move"]
     assert m["moving_step"] <= 1.05 * m["steady_step"]
     assert m["peak"] <= db(-3) + 1e-6
+
+
+def test_turning_lookahead_and_mode_never_needs_the_clamp(tool):
+    # Lookahead (0 included), Mode and Link turned again and again while loud
+    # bursts are limited, at 8, 44.1, 96 and 384 kHz: before the final clamp,
+    # the envelope (BRICKWALL) and the stage (either Mode, gliding included)
+    # stay within a float step of the ceiling. Before the Lookahead crossfade
+    # and the stage's Mode were fixed (2026-10-02 review), a crossfade let
+    # replayed or unseen peaks through and a SOFT CLIP -> BRICKWALL change
+    # kept +12 dB gains on the frames in the line: up to 41x (+32 dB) here,
+    # flattened by the clamp.
+    k = tool["knobs"]
+    assert k["changes"] > 1000
+    assert k["envelope"] <= 1.0 + 3e-7 and k["stage"] <= 1.0 + 3e-7
+    assert k["out"] <= 1.0 + 3e-7
+    # Steady limiting (+12 dB into -6 dB) while Lookahead moves 2 -> 4.5 ->
+    # 1 ms: no step larger than the sine's own.
+    assert k["moving_step"] <= 1.05 * k["steady_step"]
 
 
 def test_any_parameter_change_mid_stream_stays_finite(tool):
