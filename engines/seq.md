@@ -2,7 +2,7 @@
 
 A C99 sequencer that replays [Movy](https://github.com/DimaDake/schwung-movy)'s
 `seq-core` (MIT, megadake) tick for tick, plus the FM-1 changes the owner
-asked for (docs/13 §10): deviations D1–D7 on by default, 4–8 routed tracks,
+asked for (docs/13 §10): deviations D1–D13 on by default, 4–8 routed tracks,
 about half of docs/13's 72 KiB, 7-bit locks behind one typedef, Capture as an
 optional switch. Desktop only: nothing here runs on, or is sent to, any FM-1
 or MIDI device. Pinned to Movy commit `9190e79`; what was read is listed in
@@ -12,9 +12,11 @@ or MIDI device. Pinned to Movy commit `9190e79`; what was read is listed in
 make -C engines                                   # build/fm1-seq, build/fm1-seq-check, build/fm1-render
 engines/build/fm1-seq --sizes                     # fm1_seq_size() for 1-16 tracks
 engines/build/fm1-seq --cmd song.txt --log song.jsonl --state song.json
+engines/build/fm1-seq --compat --cmd s.verbs --log s.jsonl   # Movy exactly (--compat-frames: with D1 frames)
 engines/build/fm1-render --engine macro --cmd song.txt --log-events song.jsonl --out song.wav
 engines/build/fm1-render --engine macro --seq set.movy1 --seconds 8 --out set.wav
-python -m pytest tests/test_seq*.py               # 200 tests
+python3 tools/seq_bench.py --out DIR --run        # the worst-case scripts for stage B, timed
+python -m pytest tests/test_seq*.py               # the sequencer tests
 ```
 
 ## Files
@@ -28,7 +30,7 @@ python -m pytest tests/test_seq*.py               # 200 tests
 | `seq/seq_cmd.c` | The verb parser and dispatcher (command.rs) |
 | `seq/seq_persist.c` | `movy1` export and import (persist.rs) |
 | `seq/seq_capture.c` | Capture, the retroactive record (capture.rs and engine.rs's capture functions) |
-| `host/seq_script.[ch]` | Desktop only: the timed verb-script reader and the JSON Lines event log, shared by the two tools |
+| `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input) and the JSON Lines event log, shared by the two tools |
 | `host/seq_tool.c` | `fm1-seq`: runs the core alone and dumps state as JSON; `fm1-seq-check` is the same tool on a core built with `-DSQ_CHECK_INDEX` |
 | `host/render.cc` | `fm1-render --cmd/--seq/--log-events/--compat/--tracks/--route` |
 | `mk/seq.mk` | The build fragment |
@@ -80,13 +82,31 @@ the block, kind, track, two arguments. At one frame the order is Movy's
 emission order: gate note-offs, then (D2) the locks of a step starting there,
 then note-ons, then the locks of the step the playhead enters.
 
+**A full event buffer never leaves a note sounding.** Each call writes into
+the caller's buffer and keeps room in it for the note-off of every sounding
+gate: a note-on that does not fit is dropped whole (no gate, so no note-off
+later), a lock that does not fit is not marked as sent (the latch sends it at
+a later step), a clock tick or click is lost; each counts in
+`dropped_events`. A buffer of `fm1_seq_min_events(&limits)` (the gates plus
+8) always holds every note-off, Start and Stop. How many events one block
+can carry has no small bound: every note in the pools can fall due on one
+tick. The worst case measured, tools/seq_bench.py's burst (8 tracks of
+12-note chords on every step, 8 locked lanes, 300 BPM, 4X), peaks at 193
+events in one 64-frame block (2.3 KB of events) [verified, desktop].
+
 **Commands.** `fm1_seq_cmd_t` is Movy's `cmd` op as a typed record: the verb
 and up to 26 integer arguments parsed exactly as command.rs parses them (an
 `i64` per token, an unparseable token absent), then clamped and truncated
 exactly as Movy does (`as u16` in `loop`, `as i32` in the edit deltas,
 wrapping adds as in Movy's release build). `fm1_seq_apply_text` is
-`apply_batch`, `#<seq>` tags included. A UI builds the records directly; the
-single-producer ring docs/13 §6 describes is stage M4's.
+`apply_batch`, `#<seq>` tags included. Where Movy panics (D5's nudge),
+compat mode does what movy-dsp's `catch_unwind` leaves: the edit stops at the
+note that panics, the op neither re-seeds empty clips nor marks the set
+dirty, and the rest of its batch is dropped. A UI builds the records
+directly; the single-producer ring docs/13 §6 describes is stage M4's, and
+its record should be compact (one `fm1_seq_cmd_t` is 240 bytes, so 32 of
+them would be 7.5 KB): a verb, a track and a few small arguments, with a
+chord's pitches passed some other way.
 
 ## Movy's rules, and where they live
 
@@ -108,20 +128,30 @@ single-producer ring docs/13 §6 describes is stage M4's.
 
 ## The deviations (docs/13 §3.3)
 
-All on by default; `limits.compat = 1` (`--compat`) turns every one off.
+All on by default; `limits.compat` (`--compat`) turns every one off.
+`FM1_SEQ_COMPAT_MOVY_FRAMES` (`--compat-frames`) is Movy's behaviour with D1's
+frames, which the Movy oracle's `--frames tick` traces are compared with.
 
 | # | Movy at 9190e79 | FM-1 default | Test |
 | --- | --- | --- | --- |
-| D1 | A block's events all at its start | Each tick at its own frame: tick *j* of a block falls in frame ⌈(*j*·thr − accum)/(bpm×100·96)⌉ − 1 | `test_d1_events_fall_on_their_own_frame`, block-size identity at 1, 7, 64 and 128 frames |
+| D1 | A block's events all at its start | Each tick at its own frame: tick *j* of a block falls in frame ⌈(*j*·thr − accum)/(bpm×100·96)⌉ − 1; following an external clock, the frame at which the follow target reaches the tick | `test_d1_events_fall_on_their_own_frame`, block-size identity at 1, 7, 64 and 128 frames, the oracle's D1 traces (`test_golden_d1_frames`) |
 | D2 | The first step after Play or a launch sends its locks after its note-ons | Before them, as every later step does | `test_d2_first_step_locks_come_before_its_notes` |
 | D3 | After a count-in, step 0 plays on master tick 383 | On 384, the bar | `test_d3_count_in_starts_on_the_bar` |
-| D4 | An overdub note in the last half-step anchors on the loop end and grows the clip by a bar | Clamped to the last step; a first take still grows | `test_d4_overdub_at_the_loop_end_keeps_the_length` |
-| D5 | Nudge and length caps use `length_ticks`: with a loop start past 0 the nudge panics and gates collapse to 1 tick | `loop_end_ticks` | `test_d5_nudge_and_length_use_the_loop_end` |
-| D6 | Stop leaves lanes at their last lock | Each lane whose last value differs from its base is sent back to it, after the note-offs | `test_d6_stop_reverts_locked_lanes` |
-| D7 | Unbounded lists | Fixed pools; a full pool refuses the edit and counts it in `fm1_seq_stats_t.refused` (the UI's toast); a full gate pool ends its oldest note first | `test_d7_*` |
+| D4 | An overdub note in the last half-step anchors on the loop end and grows the clip by a bar; a 16-bar first take's stays on step 256 | Clamped to the last step; a first take that can still grow keeps Movy's growth | `test_d4_*` |
+| D5 | Nudge and length caps use `length_ticks`: with a loop start past 0 the nudge panics and gates collapse to 1 tick; Capture clamps anchors to `len_steps − 1` | `loop_end_ticks`, and the window's last step | `test_d5_*` |
+| D6 | Stop, a track's stop on the bar and a lane's release leave a lane at its last lock | Each lane whose last value differs from its base is sent back to it, after the note-offs | `test_d6_*` |
+| D7 | Unbounded lists | Fixed pools; a full pool refuses the edit, whole (a chord, `addp`, `asetr`, Double Loop, step copy and paste, a trig range), and counts it in `fm1_seq_stats_t.refused` (the UI's toast); a full gate pool ends its oldest note first | `test_d7_*` |
+| D8 | Clip speed 1/255X to 255X | 1/8X to 4X, Movy's UI range | `test_d8_*` |
+| D9 | A bar launch or stop sends the outgoing clip's look-ahead lock first | Not when the launch or stop is already queued | `test_d9_no_lock_for_a_step_that_never_plays` |
+| D10 | A recorded or captured note keeps its played tick, so playback adds the swing twice | Its tick less its anchor's swing | `test_d10_recorded_ticks_are_stored_without_the_swing` |
+| D11 | Notes anchored up to a window length past the loop end fold back and play; an early note on an offset window's first step is lost | Notes outside the window are silent; none fires before the loop start | `test_d11_*` |
+| D12 | Play while playing sends neither Stop nor Start | Stop, then Start on the next block | `test_d12_play_while_playing_sends_stop_and_start` |
+| D13 | `aclr` keeps the lane's base and carried value | Resets both | `test_d13_aclr_resets_base_and_carry` |
 
-Where Movy would panic (D5's nudge, `cpy` with s0 > s1 in a debug build),
-compat mode skips the input and counts it in `compat_divergence`.
+`fm1_seq_stats_t.movy_faults` counts the inputs on which Movy's code faults
+(D5's nudge panic, and `cpy` with s0 > s1, whose `u16` span wraps in a release
+build and panics in a debug one), in both modes: compat replays the release
+build, the default skips them.
 
 **Other differences, in both modes** [verified unless marked]:
 
@@ -136,10 +166,16 @@ compat mode skips the input and counts it in `compat_divergence`.
   mutes, pools of 16,384 notes and locks) and Movy's 512-event Capture ring.
 - The external clock's tempo smoothing and Capture's tempo search run in
   float, not f64. A result can differ from Movy's only at a near-tie
-  [inferred].
+  [inferred]; none has in the oracle's scripts.
 - Not ported: the Move transport link and MovePlay inject (`minject` is
   stored and ignored, so `play` always starts at once), the undo ring (the
-  `usnap`…`uclr` verbs are accepted and do nothing), status strings.
+  `usnap`…`uclr` verbs are accepted and do nothing; docs/13 keeps D14 for
+  when it is), status strings.
+- Live input's frame offset (`fm1_seq_note_in`) reaches Capture's stamps
+  only. Recording stamps the playhead at the block's start, as Movy does: at
+  the FM-1's 64-frame blocks that is the tick the note was played on or the
+  one before [inferred]. Placing it exactly would mean applying input between
+  ticks inside `fm1_seq_advance`; that belongs with the UI's input path (M4).
 - FM-1 additions Movy ignores: the verb `route` and the `movy1` line `rt`
   (written only outside compat mode, only for non-default routes).
 
@@ -170,26 +206,44 @@ Not instance memory: one `fm1_seq_cmd_t` is 240 bytes and one event 12.
 
 Time in `fm1_seq_advance`, from `fm1-seq --state` (`advance_ns_per_block`,
 `advance_ns_max`), 64-frame blocks at 44,118 Hz (1.451 ms each), three runs
-each (the generating scripts are not committed; each case is a few lines of
-`tog`/`ltog`/`aset` verbs):
+each. tools/seq_bench.py writes the two worst-case scripts.
 
 | Case | Mean per block | Worst block | Mean, share of a block |
 | --- | --- | --- | --- |
 | 4 tracks × 16 notes, 2 locked lanes each, 120 BPM | 50 ns | 3–30 µs (scheduler noise) | 0.003 % |
 | 8 tracks, every pool full (1,536 notes, 1,536 locks, 256 trig rows), 16-bar clips at 4X and 300 BPM, swing, quantise 50 | 1.7 µs | 75–87 µs | 0.12 % |
 | one 512-note clip whose quantise changes every bar | 55 ns | 29–31 µs | |
+| seq_bench burst: 8 tracks of 12-note chords on every step, 8 locked lanes on every step, 300 BPM, asked for at 255X (D8: 4X) | 4.1–4.4 µs | 81–83 µs | 0.3 % |
+| the same in compat, at Movy's 255X | 139–145 µs | 367–373 µs | 9.7 % |
+| seq_bench edit: `addp`, `asetr` and Double Loop over 256 steps against a nearly full note pool | 0.5 µs | 63–67 µs | |
 
 The worst blocks are fire-tick index rebuilds: the first scan after Play
 builds every clip's index, and a quantise, swing, scale or loop change
 rebuilds that clip's, here about 30 µs for 512 notes on the M1. pi32v2 runs
 at 240 MHz with a narrower core, so the same rebuild could take a sizeable
-part of one 64-frame block there [inferred]; stage B measures it. If it does,
-the remedies are cheap: rebuild in the control task and swap the index in,
-spread the rebuild over a few blocks (the old index stays valid for notes the
-edit did not touch), or update the index incrementally for single-note edits,
-which are most edits. Applying commands runs on the audio task too; a burst
-of thousands of verbs in one block (a set built by script) took about 1 ms
-here, while a UI sends a handful per block.
+part of one 64-frame block there [inferred]; stage B measures it, with the
+seq_bench scripts. Work still on the audio task that stage B must time or
+move [inferred costs]:
+
+- **Index rebuilds.** Rebuild in the control task and swap the index in,
+  spread a rebuild over a few blocks (the old index stays valid for notes
+  the edit did not touch), or update it incrementally for single-note edits,
+  which are most edits.
+- **Pool inserts.** Each insert moves the rest of its pool (`memmove`) and
+  every later clip's offset; a range edit (`addp`, `asetr`, Double Loop,
+  paste) does that once per item. Batching an edit's inserts into one move
+  is the remedy.
+- **Commands.** A burst of thousands of verbs in one block (a set built by
+  script) took about 1 ms here, while a UI sends a handful per block.
+  Capture's stopped tempo search (211 tempos × the take's note-ons, with
+  `logf`) runs inside the `cap` command and needs about 1.55 KB of stack;
+  on the device it belongs in the control task.
+- **32-bit arithmetic.** The per-tick path keeps the bar phase in a 16-bit
+  counter (no 64-bit `%`), counts ticks by subtraction (no 64-bit `/`) and
+  computes D1's frame in 32 bits whenever it fits, which it always does at
+  64-frame blocks (64 × 2,880,000 < 2³²). The clock accumulator stays 64-bit,
+  for sample rates and block sizes the desktop tools allow; at the FM-1's it
+  would fit in 32 bits (docs/13 §5).
 
 ## Routing (docs/13 §10, answer 2)
 
@@ -212,34 +266,72 @@ Test Sine, Macro and Six-Op [verified: tests/test_seq_render.py].
 ## The shared formats
 
 The verb script and the event log (`host/seq_script.h`) are shared with the
-Movy oracle (stage M3). Two additions here, both invisible to a reader that
-does not know them: the header key `end=<frames>` (the run length; both tools
-otherwise stop after the block in which the last command applies) and test
-lines `#?@<frame> <label>`, which ask `fm1-seq` for a state dump at that
-point among the commands. A lock is logged as kind `cc` with
-`a = 102 + lane` in both modes. `tick` is the master tick being serviced
-(0-based from the last transport start); events from commands and Start/Stop
-carry the number of ticks serviced so far.
+Movy oracle (tools/movy-oracle/README.md has the specification). Both sides
+read the header key `end=<frames>` (the run length: whole blocks, the last
+one shorter, and a command due at the end frame applied after them; without
+it the run stops after the block in which the last command applies) and the
+line `@<frame> rt F8|FA|FB|FC`, MIDI realtime input (`fm1_seq_realtime_in`;
+Movy's `Engine::on_external_realtime`), delivered like a command. Test lines
+`#?@<frame> <label>` are this repository's only: comments to the oracle, they
+ask `fm1-seq` for a state dump at that point among the commands. A lock is
+logged as kind `cc` with `a = 102 + lane` in both modes. `tick` is the master
+tick being serviced (0-based from the last transport start); events from
+commands and Start/Stop carry the number of ticks serviced so far.
 
-## Tests (200, all passing)
+## Tests
 
 - `tests/test_seq_movy.py` (136): Movy's own tests transcribed into verb
   scripts in compat mode, each naming its source test and line: clock.rs,
   engine.rs (transport, playback, automation, quantise and swing, recording,
   launches, scenes, song, Capture), clip.rs, command.rs, persist.rs. Skipped:
   the Move link and inject tests, status strings, undo.
-- `tests/test_seq_core.py` (51): D1–D7 against compat, block-size identity,
-  10,000 steps without drift, the memory figures, no heap, fill
-  independence, 24 random scripts through the checking build, the verb
-  parser's integer rules, Movy's three fixtures, routing.
+- `tests/test_seq_oracle.py`: the C core against Movy's own output, from the
+  oracle (tests/fixtures/movy/, which comes with tools/movy-oracle; without
+  it the module skips). Every curated fixture through `fm1-seq --compat` and
+  `fm1-render --compat` (events and the exported set), the D1 traces through
+  `--compat-frames` and the default mode (with the D-rows they reach), and a
+  dozen seeded random scripts. 18-undo is an expected failure.
+- `tests/test_seq_core.py`: D1–D13 against compat, compat's panic, block-size
+  identity, 10,000 steps without drift, the memory figures, no heap, fill
+  independence, a short event buffer, 24 random scripts through the checking
+  build, the verb parser's and the `movy1` loader's integer rules, Movy's
+  three set fixtures, routing.
 - `tests/test_seq_render.py` (13): routing through `fm1-render`, notes and
   locks at their own frame, FLOAT and ENUM lock mapping, block-size identity
   of the audio, the renderer's log equal to `fm1-seq`'s, plain renders
   unchanged.
 
-Run on: macOS clang (the whole suite), clang ASan + UBSan (the sequencer and
-engine tests: 923 passed, 1 expected failure), GCC 12 64-bit and `-m32` in a
-container on aeon (the sequencer tests, and with `-m32` the engine tests too).
+Run on [verified 2026-10-01, with the oracle's fixtures in place]: macOS
+clang, the whole suite, and under clang ASan + UBSan; GCC 12 in a container
+on aeon, 64-bit (the sequencer and oracle tests) and `-m32` (those and the
+engine tests), with no warnings and the same instance sizes.
+
+## The oracle's verdict (stage M3)
+
+No unexplained difference [verified 2026-10-01, Movy 9190e79 run by
+tools/movy-oracle on aeon, the C core on the Mac]:
+
+- **Curated fixtures** (24): every one identical through `fm1-seq --compat`
+  and `fm1-render --compat`, events and exported set, except 18-undo (undo
+  is not ported). The six D1 traces are identical through `--compat-frames`,
+  external-clock follow included (23, 24). In the default mode 01, 02, 03
+  and 23 are identical; 06 differs only by D12's Stop and Start, 24 only by
+  D2's order and D6's base at Stop.
+- **Random scripts:** 9,500 undo-free scripts (2,000 new from
+  `gen_scripts.py --no-undo`, seeds 601-604, and 7,500 from the review), 7.48
+  million events and 32 hours of audio, with 225 of Movy's D5 panics in 217
+  of them: 9,500 identical in compat, events and sets. Through `fm1-render
+  --compat`, 1,020 of 1,020 identical. With D1's frames (`--compat-frames`
+  against the oracle's `--frames tick`), 1,300 of 1,300 identical, 200 of
+  them at 48 kHz in 7-frame blocks.
+- **The default mode** runs all 9,500 under the checking build (`fm1-seq-check`,
+  which traps on a stale fire-tick index) with every note-on closed by its
+  note-off; 2,000 of them, in both modes, under ASan and UBSan without a
+  report.
+- **Mutants:** 47 single changes to the core (the review's 31, two of them
+  rewritten for the new code, and 16 for D1 under an external clock, D4-D13,
+  compat's panic, the event buffer and the `movy1` integers); the suite fails
+  on every one.
 
 ## What M2 and later still need
 
@@ -249,8 +341,8 @@ container on aeon (the sequencer tests, and with `-m32` the engine tests too).
   the label match and the bins live in `fm1-render`.
 - `FM1_KIND_MIDI_FX` for per-track MIDI effects.
 - The command ring between the UI and audio tasks, and undo (binary
-  per-clip snapshots in a byte budget, docs/13 §5) with the UI, stage M4.
-- External clock: F2/FB handling beyond Movy's, and the oracle's check of the
-  float smoothing.
-- Stage M3, the oracle: random scripts against Movy's `seq-core`, every
-  difference mapped to a row above.
+  per-clip snapshots in a byte budget, docs/13 §5) with the UI, stage M4;
+  D14 with it.
+- External clock: F2/FB handling beyond Movy's.
+- Stage B: the cycle budget on pi32v2 with tools/seq_bench.py's scripts, and
+  the moves listed under CPU.

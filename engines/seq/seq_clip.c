@@ -8,7 +8,11 @@
  *
  * Deviations, active only without limits.compat (docs/13 §3.3):
  *   D5  length caps and nudge limits use the loop end, not the length;
- *   D7  a full pool refuses the edit and counts it (fm1_seq_stats_t.refused).
+ *   D7  a full pool refuses the edit, whole, and counts it
+ *       (fm1_seq_stats_t.refused);
+ *   D8  clip speed within 1/8X-4X;
+ *   D10 performed notes store their tick without their anchor's swing;
+ *   D11 notes anchored outside the loop window stay silent.
  */
 #include "seq_int.h"
 
@@ -33,6 +37,26 @@ static uint16_t clip_cap(const fm1_seq_t *s, int kind) {
   if (kind == SQ_K_LOCKS) return s->lim.clip_locks;
   return s->lim.clip_trigs;
 }
+
+/* D7 (FM-1 default): an edit that adds several items to one pool is applied
+ * whole or not at all. If the pool cannot take everything it would add,
+ * nothing changes and the edit counts as refused, as a whole-clip copy is.
+ * Movy's per-clip caps still drop what is past them silently, as in Movy, so
+ * `need` is what the edit adds within its clip's cap. */
+int sq_pool_room(fm1_seq_t *s, int kind, unsigned need, unsigned freed) {
+  if (s->lim.compat || need <= freed) return 1;
+  if ((unsigned)s->used[kind] + (need - freed) <= pool_cap(s, kind)) return 1;
+  ++s->stats.refused;
+  return 0;
+}
+
+/* Items one clip can still take under Movy's per-clip cap. */
+unsigned sq_clip_room(const fm1_seq_t *s, unsigned clip, int kind) {
+  const unsigned len = sq_cclips(s)[clip].seg[kind].len, cap = clip_cap(s, kind);
+  return len < cap ? cap - len : 0u;
+}
+
+static unsigned min_u(unsigned a, unsigned b) { return a < b ? a : b; }
 
 void sq_clip_invalidate(fm1_seq_t *s, unsigned clip) {
   sq_clips(s)[clip].flags &= (uint8_t)~SQ_C_INDEX_OK;
@@ -195,7 +219,34 @@ uint32_t sq_swing_delay(const fm1_seq_t *s, uint16_t step, uint8_t scale_num, ui
   return (s->swing_pct - 50u) * (num * SQ_TPS / den) / 60u;
 }
 
-/* The fire tick of R5 (engine.rs 2151-2166), computed as step_tick does. */
+/* D10 (FM-1 default): a note placed from a performance (live recording,
+ * Capture) anchors to the nearest *swung* step, but Movy stores the played
+ * tick, so playback, which adds the swing again (R5), puts an off-beat late
+ * by the swing at quantise below 100. Storing the tick less its anchor's
+ * swing makes quantise 0 replay what was played. */
+uint32_t sq_unswing(const fm1_seq_t *s, uint32_t tick, uint16_t step, uint8_t num, uint8_t den) {
+  uint32_t sw;
+  if (s->lim.compat) return tick;
+  sw = sq_swing_delay(s, step, num, den);
+  return tick > sw ? tick - sw : 0u;
+}
+
+/* D8 (FM-1 default): clip speed within Movy's UI range, 1/8X to 4X
+ * (src/seq/clip-scale.ts). Movy's core takes 1/255 to 255X, which runs up to
+ * 255 step_ticks per master tick per track. */
+void sq_scale_limit(const fm1_seq_t *s, uint8_t *num, uint8_t *den) {
+  if (s->lim.compat) return;
+  if (*num > 4u * *den) *num = (uint8_t)(4u * *den);       /* then den < 64 */
+  if (*den > 8u * *num) *den = (uint8_t)(8u * *num);       /* then num < 32 */
+}
+
+/* The fire tick of R5 (engine.rs 2151-2166), computed as step_tick does.
+ * D11 (FM-1 default): a note anchored outside the loop window stays silent,
+ * and one inside it never fires before the loop start. Movy folds a note
+ * anchored up to one window length past the loop end back into the window
+ * (after `clen` or `loop` shrinks a clip under its notes), and drops a note
+ * of the window's first step nudged or played early when the window does not
+ * start at step 0 (at step 0 it clamps such a note to tick 0). */
 static uint16_t note_fire(const fm1_seq_t *s, const sq_clip_t *c, const sq_note_t *n) {
   const uint32_t clip_end = sq_end_ticks(c);
   const uint32_t span = sq_len_ticks(c) ? sq_len_ticks(c) : 1u;
@@ -207,6 +258,12 @@ static uint16_t note_fire(const fm1_seq_t *s, const sq_clip_t *c, const sq_note_
   const int64_t pulled = dev - (dev * quant + half) / 100;
   int64_t fire = anchor + pulled + (int64_t)sq_swing_delay(s, step, c->scale_num, c->scale_den);
   uint32_t f;
+  if (!s->lim.compat) {
+    if (step < c->loop_start || (uint32_t)step >= (uint32_t)c->loop_start + c->length_steps) {
+      return (uint16_t)SQ_FIRE_NEVER;
+    }
+    if (fire < (int64_t)sq_start_ticks(c)) fire = (int64_t)sq_start_ticks(c);
+  }
   if (fire < 0) fire = 0;
   f = (uint32_t)fire;
   if (f >= clip_end) f -= span;
@@ -366,6 +423,11 @@ void sq_clip_clear_step_locks(fm1_seq_t *s, unsigned clip, uint16_t step) {
 void sq_clip_set_lock_range(fm1_seq_t *s, unsigned clip, uint8_t lane, uint16_t s0, uint16_t s1,
                             fm1_seq_val_t val) {
   uint32_t step;
+  unsigned fresh = 0;
+  for (step = s0; step <= s1 && step < SQ_MAX_STEPS; ++step) {
+    fresh += !sq_clip_lock_at(s, clip, lane, (uint16_t)step, NULL);
+  }
+  if (!sq_pool_room(s, SQ_K_LOCKS, min_u(fresh, sq_clip_room(s, clip, SQ_K_LOCKS)), 0)) return;
   for (step = s0; step <= s1; ++step) sq_clip_set_lock(s, clip, lane, (uint16_t)step, val);
 }
 
@@ -421,6 +483,16 @@ sq_props_t sq_clip_governing_trig(fm1_seq_t *s, unsigned clip, uint16_t step, ui
 void sq_clip_edit_trig(fm1_seq_t *s, unsigned clip, uint16_t s0, uint16_t s1, uint8_t lane,
                        int what, uint8_t v1, uint8_t v2) {
   uint32_t step;
+  /* A new row is made only where none exists and the change leaves the
+   * defaults; an edit that removes rows (one back to the defaults) adds none. */
+  const int adds = what == SQ_TRIG_PROB ? v1 < 100 : (what == SQ_TRIG_COND ? (v1 > 1 || v2 > 1) : v1 != 0);
+  if (adds && s0 < s1) {
+    unsigned fresh = 0;
+    for (step = s0; step <= s1 && step < SQ_MAX_STEPS; ++step) {
+      fresh += find_trig(s, clip, (uint16_t)step, lane) < 0;
+    }
+    if (!sq_pool_room(s, SQ_K_TRIGS, min_u(fresh, sq_clip_room(s, clip, SQ_K_TRIGS)), 0)) return;
+  }
   for (step = s0; step <= s1; ++step) {
     const int idx = find_trig(s, clip, (uint16_t)step, lane);
     sq_props_t p = idx >= 0 ? props_of(sq_ctrig(s, &sq_clips(s)[clip], (unsigned)idx))
@@ -626,6 +698,7 @@ int sq_clip_toggle_step(fm1_seq_t *s, unsigned clip, uint16_t step, const uint8_
   }
   if (in_hidden_tail(&sq_clips(s)[clip], step)) return 0;
   if (n == 0) return 0;
+  if (!sq_pool_room(s, SQ_K_NOTES, min_u(n, sq_clip_room(s, clip, SQ_K_NOTES)), 0)) return 0;
   for (i = 0; i < n; ++i) push_note(s, clip, step, pv[2 * i], pv[2 * i + 1], 0);
   return 1;
 }
@@ -685,6 +758,14 @@ void sq_clip_double(fm1_seq_t *s, unsigned clip) {
   unsigned i;
   if (len == 0) return;
   if ((uint32_t)start + 2u * len > SQ_MAX_STEPS) return;
+  if (!s->lim.compat) {
+    unsigned in_window = 0;
+    for (i = 0; i < count; ++i) {
+      const uint16_t st = SQ_NSTEP(sq_cnote(s, c, i));
+      in_window += st >= start && st < start + len;
+    }
+    if (!sq_pool_room(s, SQ_K_NOTES, min_u(in_window, sq_clip_room(s, clip, SQ_K_NOTES)), 0)) return;
+  }
   for (i = 0; i < count; ++i) {
     sq_note_t n = *sq_cnote(s, &sq_clips(s)[clip], i);
     const uint16_t st = SQ_NSTEP(&n);
@@ -742,8 +823,16 @@ void sq_clip_edit(fm1_seq_t *s, unsigned clip, uint16_t s0, uint16_t s1, int lan
       const int32_t end1 = clip_end > 0 ? (int32_t)clip_end - 1 : 0;
       const int32_t hi = anchor + (int32_t)SQ_TPS < end1 ? anchor + (int32_t)SQ_TPS : end1;
       if (lo > hi) {
-        /* Movy's clamp(lo, hi) panics here (D5); nothing to replay. */
-        ++s->stats.compat_divergence;
+        /* Movy's `clamp(lo, hi)` panics here (D5, clip.rs 674). movy-dsp
+         * catches it, so the notes before this one keep the nudge and the
+         * rest of the edit, and of its batch, is lost: compat stops here.
+         * The FM-1 default (whose window cannot produce this for a note
+         * inside it) skips the note. */
+        ++s->stats.movy_faults;
+        if (s->lim.compat) {
+          s->panicked = 1;
+          break;
+        }
         continue;
       }
       n[i].tick = (uint16_t)clamp32(wrap_add(n[i].tick, v), lo, hi);
@@ -761,6 +850,19 @@ void sq_clip_add_pitch_range(fm1_seq_t *s, unsigned clip, uint16_t s0, uint16_t 
                              uint8_t vel, int inherit) {
   uint32_t step;
   const uint32_t last = s1 < SQ_MAX_STEPS - 1u ? s1 : SQ_MAX_STEPS - 1u;
+  if (!s->lim.compat && s0 <= last) {
+    const sq_clip_t *c = &sq_clips(s)[clip];
+    const sq_note_t *n = &sq_notes(s)[c->seg[SQ_K_NOTES].off];
+    unsigned fresh = 0, i;
+    for (step = s0; step <= last; ++step) {
+      int present = 0;
+      for (i = 0; i < c->seg[SQ_K_NOTES].len && !present; ++i) {
+        present = SQ_NSTEP(&n[i]) == step && n[i].pitch == pitch;
+      }
+      fresh += !present;
+    }
+    if (!sq_pool_room(s, SQ_K_NOTES, min_u(fresh, sq_clip_room(s, clip, SQ_K_NOTES)), 0)) return;
+  }
   for (step = s0; step <= last; ++step) {
     const sq_clip_t *c = &sq_clips(s)[clip];
     const sq_note_t *n = &sq_notes(s)[c->seg[SQ_K_NOTES].off];

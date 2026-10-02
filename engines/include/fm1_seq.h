@@ -5,7 +5,7 @@
  * (github.com/DimaDake/schwung-movy, engine/crates/seq-core, commit 9190e79,
  * MIT, Copyright (c) 2026 megadake; engines/third_party/movy/). It replays
  * Movy's event stream tick for tick when `limits.compat` is set; without it
- * the deviations D1-D7 of docs/13 §3.3 are on. engines/seq.md has the design.
+ * the deviations D1-D13 of docs/13 §3.3 are on. engines/seq.md has the design.
  *
  * No heap: the host asks fm1_seq_size() for the bytes one instance needs
  * under a set of limits, provides that memory (8-byte aligned, contents
@@ -55,8 +55,10 @@ typedef uint8_t fm1_seq_val_t;
 /* Sizes of everything that has no fixed bound in Movy (docs/13 §5, D7). */
 typedef struct fm1_seq_limits {
   uint8_t tracks;        /* 1..16; the FM-1 build uses 4..8 */
-  uint8_t compat;        /* 1: Movy 9190e79's behaviour exactly, for tests;
-                            0: the FM-1 default, deviations D1-D7 on */
+  uint8_t compat;        /* FM1_SEQ_COMPAT_*: 0 the FM-1 default, deviations
+                            D1-D13 on; 1 Movy 9190e79's behaviour exactly, for
+                            tests; 2 the same with D1's frames, to compare with
+                            Movy run one frame at a time */
   uint8_t gates;         /* sounding sequenced notes; D7 frees the oldest */
   uint8_t song;          /* song entries (scene presses) */
   uint8_t rec_notes;     /* notes held while recording, and their tails */
@@ -70,6 +72,12 @@ typedef struct fm1_seq_limits {
   uint16_t capture;      /* Capture (retroactive record) ring, in events;
                             0 leaves Capture out and its bytes with it */
 } fm1_seq_limits_t;
+
+enum {
+  FM1_SEQ_COMPAT_OFF = 0,          /* the FM-1 default */
+  FM1_SEQ_COMPAT_MOVY = 1,         /* Movy exactly: every event at its block's start */
+  FM1_SEQ_COMPAT_MOVY_FRAMES = 2   /* Movy exactly, but each tick at its own frame */
+};
 
 /* Fills *lim with the FM-1 defaults for `tracks` tracks: 192 notes, 192 locks
  * and 32 trig rows per track in the global pools, 64 gates, 64 song entries,
@@ -145,8 +153,18 @@ size_t fm1_seq_size(const fm1_seq_limits_t *lim);
  * 120.00 BPM, stopped, every clip empty. NULL on bad limits or alignment. */
 fm1_seq_t *fm1_seq_create(void *mem, const fm1_seq_limits_t *lim, uint32_t sample_rate);
 
+/* The smallest event buffer that keeps every note-off, Start and Stop: one
+ * slot per gate and a few more. A call's events beyond its buffer are
+ * dropped and counted (fm1_seq_stats_t.dropped_events), but room is always
+ * kept for the note-off of every sounding note: a note-on that does not fit
+ * is dropped whole, a lock that does not fit goes out at a later step, a
+ * clock tick or click is lost. */
+static inline uint32_t fm1_seq_min_events(const fm1_seq_limits_t *lim) {
+  return (uint32_t)lim->gates + 8u;
+}
+
 /* Runs one audio block of `frames` frames and writes its events to out[].
- * Returns the number written; events past `cap` are dropped and counted. */
+ * Returns the number written (see fm1_seq_min_events for a full buffer). */
 uint32_t fm1_seq_advance(fm1_seq_t *s, uint32_t frames, fm1_seq_ev_t *out, uint32_t cap);
 
 /* Applies one command at the start of the next block (frame 0). Returns the
@@ -225,7 +243,11 @@ typedef struct fm1_seq_stats {
   uint32_t refused;            /* edits dropped because a pool or cap was full (D7) */
   uint32_t dropped_events;     /* events past the caller's buffer */
   uint32_t gates_evicted;      /* oldest gates freed for new notes (D7) */
-  uint32_t compat_divergence;  /* inputs on which Movy panics; compat skips them */
+  uint32_t movy_faults;        /* inputs on which Movy's code faults: a panic (D5's
+                                  nudge) or an overflow only a debug build traps
+                                  (`cpy` with s0 > s1). Counted in both modes:
+                                  compat replays Movy's release build, panic and
+                                  all; the FM-1 default skips the input */
   uint16_t notes_used, locks_used, trigs_used;
 } fm1_seq_stats_t;
 

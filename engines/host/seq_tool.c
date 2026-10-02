@@ -1,16 +1,21 @@
 /* seq_tool.c -- fm1-seq: runs the sequencer core alone, for tests.
  *
  *   fm1-seq --sizes
- *   fm1-seq [--cmd FILE] [--seq FILE.movy1] [--compat] [--tracks N] [--rate HZ]
+ *   fm1-seq [--cmd FILE] [--seq FILE.movy1] [--compat | --compat-frames] [--tracks N] [--rate HZ]
  *           [--block N] [--end FRAMES] [--log FILE.jsonl] [--state FILE.json]
  *           [--snap FRAME]... [--peek FRAME]... [--export FILE.movy1] [--fill BYTE] [--seed N]
  *           [--notes N] [--locks N] [--trigs N] [--gates N] [--capture N]
- *           [--song N] [--rec N]
+ *           [--song N] [--rec N] [--events N]
  *
  * Plays a verb script (seq_script.h) through fm1_seq in blocks, writes the
  * event log, and dumps state as JSON at each --snap frame (the first block
  * boundary at or after it, once that boundary's commands are applied), each
- * --peek frame (the same boundary, before its commands) and at the end. Without --cmd, nothing runs: --seq FILE --export OUT round-trips
+ * --peek frame (the same boundary, before its commands) and at the end.
+ * --events N gives each block (its commands and its advance together) an
+ * event buffer of N, as a device's would be; the default is 65536.
+ * --compat runs Movy's behaviour exactly; --compat-frames does too, but logs
+ * each tick at its own frame (D1), as the Movy oracle's --frames tick does.
+ * Without --cmd, nothing runs: --seq FILE --export OUT round-trips
  * a set. --sizes prints fm1_seq_size() for 1-16 tracks with the default
  * limits, with Capture, and the item sizes. MIT licence.
  */
@@ -26,12 +31,13 @@
 
 static void usage(void) {
   fputs("usage: fm1-seq --sizes\n"
-        "       fm1-seq [--cmd FILE] [--seq FILE.movy1] [--compat] [--tracks N] [--rate HZ]\n"
+        "       fm1-seq [--cmd FILE] [--seq FILE.movy1] [--compat | --compat-frames]\n"
+        "               [--tracks N] [--rate HZ]\n"
         "               [--block N] [--end FRAMES] [--log FILE.jsonl] [--state FILE.json]\n"
         "               [--snap FRAME]... [--peek FRAME]... [--export FILE.movy1]\n"
         "               [--fill BYTE] [--seed N]\n"
         "               [--notes N] [--locks N] [--trigs N] [--gates N] [--capture N]\n"
-        "               [--song N] [--rec N]\n", stderr);
+        "               [--song N] [--rec N] [--events N]\n", stderr);
 }
 
 static void json_str(FILE *f, const char *s, size_t n) {
@@ -75,9 +81,9 @@ static void dump_state(FILE *f, const fm1_seq_t *s, const char *kind, const char
           (unsigned long)in.capture_gen, in.capture_pending, in.capture_mode, in.capture_sel);
   for (i = 0; i < in.capture_n && i < 3; ++i) fprintf(f, i ? ",%u" : "%u", in.capture_cands[i]);
   fprintf(f, "]},\"stats\":{\"refused\":%lu,\"dropped_events\":%lu,\"gates_evicted\":%lu,"
-          "\"compat_divergence\":%lu,\"notes_used\":%u,\"locks_used\":%u,\"trigs_used\":%u},\"tracks\":[",
+          "\"movy_faults\":%lu,\"notes_used\":%u,\"locks_used\":%u,\"trigs_used\":%u},\"tracks\":[",
           (unsigned long)st.refused, (unsigned long)st.dropped_events,
-          (unsigned long)st.gates_evicted, (unsigned long)st.compat_divergence, st.notes_used,
+          (unsigned long)st.gates_evicted, (unsigned long)st.movy_faults, st.notes_used,
           st.locks_used, st.trigs_used);
   for (t = 0; t < in.tracks; ++t) {
     fm1_seq_track_info_t ti;
@@ -180,7 +186,7 @@ int main(int argc, char **argv) {
              *export_path = NULL;
   int compat = 0, fill = 0, i;
   long tracks = -1, rate = -1, block = -1, notes = -1, locks = -1, trigs = -1, gates = -1,
-       capture = -1, song = -1, rec = -1;
+       capture = -1, song = -1, rec = -1, events = -1;
   long long end = -1, seed = -1;
   uint64_t *snaps = NULL, *peeks = NULL;
   size_t n_snaps = 0, next_snap = 0, n_peeks = 0, next_peek = 0, k;
@@ -191,7 +197,7 @@ int main(int argc, char **argv) {
   size_t bytes;
   FILE *log = NULL, *state = NULL;
   fm1_seq_ev_t *ev;
-  const uint32_t ev_cap = 65536;
+  uint32_t ev_cap = 65536;
   uint64_t frame = 0, blockno = 0, total;
   size_t next_cmd = 0;
   double ns_max = 0.0, ns_sum = 0.0, adv_max = 0.0, adv_sum = 0.0;
@@ -203,7 +209,8 @@ int main(int argc, char **argv) {
     const char *a = argv[i];
     const char *v = i + 1 < argc ? argv[i + 1] : NULL;
     if (strcmp(a, "--sizes") == 0) { sizes(); return 0; }
-    if (strcmp(a, "--compat") == 0) { compat = 1; continue; }
+    if (strcmp(a, "--compat") == 0) { compat = FM1_SEQ_COMPAT_MOVY; continue; }
+    if (strcmp(a, "--compat-frames") == 0) { compat = FM1_SEQ_COMPAT_MOVY_FRAMES; continue; }
     if (!v) { usage(); return 2; }
     ++i;
     if (strcmp(a, "--cmd") == 0) cmd_path = v;
@@ -224,6 +231,7 @@ int main(int argc, char **argv) {
     else if (strcmp(a, "--capture") == 0) capture = strtol(v, NULL, 0);
     else if (strcmp(a, "--song") == 0) song = strtol(v, NULL, 0);
     else if (strcmp(a, "--rec") == 0) rec = strtol(v, NULL, 0);
+    else if (strcmp(a, "--events") == 0) events = strtol(v, NULL, 0);
     else if (strcmp(a, "--snap") == 0 || strcmp(a, "--peek") == 0) {
       const int peek = a[2] == 'p';
       uint64_t **list = peek ? &peeks : &snaps;
@@ -257,7 +265,7 @@ int main(int argc, char **argv) {
   fm1_seq_limits_default(&lim, (uint8_t)tracks);
   if (compat) {
     /* Movy has no global caps; give the comparison runs generous pools. */
-    lim.compat = 1;
+    lim.compat = (uint8_t)compat;
     lim.notes = 16384;
     lim.locks = 16384;
     lim.trigs = 8192;
@@ -293,6 +301,7 @@ int main(int argc, char **argv) {
   }
   if (log_path && !(log = fopen(log_path, "w"))) { fprintf(stderr, "cannot write %s\n", log_path); return 1; }
   if (state_path && !(state = fopen(state_path, "w"))) { fprintf(stderr, "cannot write %s\n", state_path); return 1; }
+  if (events > 0 && events < 65536) ev_cap = (uint32_t)events;
   ev = (fm1_seq_ev_t *)malloc(ev_cap * sizeof(*ev));
   if (!ev) return 1;
   if (state) fputs("{\"snaps\":[", state);
@@ -319,7 +328,7 @@ int main(int argc, char **argv) {
           first_snap = 0;
         }
       } else {
-        n_ev += fm1_seq_apply_text(s, ops, strlen(ops), ev + n_ev, ev_cap - n_ev);
+        n_ev += fm1_script_apply(s, ops, ev + n_ev, ev_cap - n_ev);
       }
       ++next_cmd;
     }

@@ -226,12 +226,16 @@ static int write_take(fm1_seq_t *s, uint32_t grid_bpm, int set_tempo, int keep_l
     start = (uint32_t)roundf((float)(uint32_t)(ev.frame - s->cap_take_first) / fpt);
     tick = keep_length ? loop_start + start % span_ticks : start;
     step = sq_anchor_step(s, tick, snum, sden);
-    if (keep_length && step > (len_steps ? len_steps - 1u : 0u)) {
-      step = (uint16_t)(len_steps ? len_steps - 1u : 0u);
+    if (keep_length) {
+      /* Movy clamps to len_steps - 1, a step before the window when the
+       * window starts past step 0 (D5's length-for-end); the FM-1 clamps to
+       * the window's last step. */
+      const uint32_t last = (s->lim.compat ? 0u : loop_start / SQ_TPS) + (len_steps ? len_steps - 1u : 0u);
+      if (step > last) step = (uint16_t)last;
     }
     stored = (int32_t)ev.pitch - transpose;
-    sq_clip_add_raw(s, clip, step, tick, gate, (uint8_t)(stored < 0 ? 0 : (stored > 127 ? 127 : stored)),
-                    ev.vel);
+    sq_clip_add_raw(s, clip, step, sq_unswing(s, tick, step, snum, sden), gate,
+                    (uint8_t)(stored < 0 ? 0 : (stored > 127 ? 127 : stored)), ev.vel);
     if (start + gate > span_end) span_end = start + gate;
     wrote = 1;
   }
@@ -364,8 +368,8 @@ static int commit_playing(fm1_seq_t *s, unsigned t) {
                  : ev.clip_tick % span;
     stored = (int32_t)ev.pitch - transpose;
     step = sq_anchor_step(s, tick, snum, sden);
-    sq_clip_add_raw(s, clip, step, tick, gate, (uint8_t)(stored < 0 ? 0 : (stored > 127 ? 127 : stored)),
-                    ev.vel);
+    sq_clip_add_raw(s, clip, step, sq_unswing(s, tick, step, snum, sden), gate,
+                    (uint8_t)(stored < 0 ? 0 : (stored > 127 ? 127 : stored)), ev.vel);
     if (tick + gate > span_end) span_end = tick + gate;
     wrote = 1;
   }

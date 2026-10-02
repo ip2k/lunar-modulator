@@ -171,40 +171,46 @@ static int is_ws(char c) {
   return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' || c == '\r';
 }
 
-/* Rust's integer FromStr for a type whose range is [lo, hi]. */
-static int parse_int(tok_t t, int64_t lo, int64_t hi, int64_t *out) {
+/* Rust's FromStr for an unsigned integer type whose largest value is `max`:
+ * an optional '+', at least one digit, nothing else, and no overflow (a
+ * '-', even on "-0", is an error). */
+static int parse_u(tok_t t, uint64_t max, uint64_t *out) {
   size_t i = 0;
-  int neg = 0;
   uint64_t v = 0;
   if (t.n == 0) return 0;
-  if (t.p[0] == '+' || t.p[0] == '-') {
-    if (t.p[0] == '-') {
-      if (lo >= 0) return 0;
-      neg = 1;
-    }
+  if (t.p[0] == '+') {
     i = 1;
     if (t.n == 1) return 0;
   }
   for (; i < t.n; ++i) {
     const unsigned d = (unsigned)(t.p[i] - '0');
     if (d > 9) return 0;
-    if (v > ((uint64_t)1 << 62)) return 0;
+    if (v > max / 10u || (v == max / 10u && d > max % 10u)) return 0;
     v = v * 10u + d;
   }
-  if (neg) {
-    if (v > (uint64_t)(-(lo + 1)) + 1u) return 0;
-    *out = -(int64_t)v;
-  } else {
-    if (v > (uint64_t)hi) return 0;
-    *out = (int64_t)v;
-  }
+  *out = v;
   return 1;
 }
 
-#define U8_MAX_ 255
-#define U16_MAX_ 65535
-#define U32_MAX_ 4294967295ll
-#define USIZE_MAX_ 4611686018427387904ll  /* parse bound; any real index is far below */
+/* The same for a signed type whose range is [lo, hi], lo < 0. */
+static int parse_i(tok_t t, int64_t lo, int64_t hi, int64_t *out) {
+  uint64_t m;
+  int neg = 0;
+  if (t.n > 0 && (t.p[0] == '-' || t.p[0] == '+')) {
+    neg = t.p[0] == '-';
+    ++t.p;
+    --t.n;
+    if (t.n == 0 || t.p[0] == '+' || t.p[0] == '-') return 0;
+  }
+  if (!parse_u(t, neg ? (uint64_t)(-(lo + 1)) + 1u : (uint64_t)hi, &m)) return 0;
+  *out = neg ? -(int64_t)m : (int64_t)m;
+  return 1;
+}
+
+#define U8_MAX_ 255u
+#define U16_MAX_ 65535u
+#define U32_MAX_ 4294967295u
+#define USIZE_MAX_ UINT64_MAX     /* Movy's usize: 64 bits on the Move (aarch64) */
 
 /* split_whitespace over one line. */
 typedef struct {
@@ -220,9 +226,9 @@ static int word(words_t *w, tok_t *t) {
   return 1;
 }
 
-static int word_int(words_t *w, int64_t lo, int64_t hi, int64_t *v) {
+static int word_u(words_t *w, uint64_t max, uint64_t *v) {
   tok_t t;
-  return word(w, &t) && parse_int(t, lo, hi, v);
+  return word(w, &t) && parse_u(t, max, v);
 }
 
 /* Splits t at the next `sep`, like str::split. Returns 0 when exhausted. */
@@ -242,12 +248,12 @@ static int split_next(tok_t *rest, char sep, int *done, tok_t *part) {
 }
 
 static void load_clip(fm1_seq_t *s, words_t *w) {
-  int64_t t, slot, len, lstart;
+  uint64_t t, slot, len, lstart;
   tok_t notes;
   unsigned clip;
   sq_clip_t *c;
-  if (!word_int(w, 0, USIZE_MAX_, &t) || !word_int(w, 0, USIZE_MAX_, &slot) ||
-      !word_int(w, 0, U16_MAX_, &len) || !word_int(w, 0, U16_MAX_, &lstart)) return;
+  if (!word_u(w, USIZE_MAX_, &t) || !word_u(w, USIZE_MAX_, &slot) ||
+      !word_u(w, U16_MAX_, &len) || !word_u(w, U16_MAX_, &lstart)) return;
   if (t >= s->n_tracks || slot >= 8) return;
   clip = sq_clip_no((unsigned)t, (unsigned)slot);
   sq_clip_reset(s, clip);
@@ -257,17 +263,17 @@ static void load_clip(fm1_seq_t *s, words_t *w) {
     while (split_next(&notes, ';', &done, &note)) {
       tok_t f[6];
       int nf = 0, fd = 0;
-      int64_t tick, gate, pitch, vel, step;
+      uint64_t tick, gate, pitch, vel, step;
       while (nf < 6 && split_next(&note, ':', &fd, &f[nf])) ++nf;
       if (!fd) {
         tok_t extra;
         while (split_next(&note, ':', &fd, &extra)) ++nf;
       }
       if (nf < 4) continue;
-      if (!parse_int(f[0], 0, U32_MAX_, &tick) || !parse_int(f[1], 0, U32_MAX_, &gate) ||
-          !parse_int(f[2], 0, U8_MAX_, &pitch) || !parse_int(f[3], 0, U8_MAX_, &vel)) continue;
-      if (nf < 5 || !parse_int(f[4], 0, U16_MAX_, &step)) {
-        step = (int64_t)(uint16_t)((tick + SQ_TPS / 2u) / SQ_TPS);
+      if (!parse_u(f[0], U32_MAX_, &tick) || !parse_u(f[1], U32_MAX_, &gate) ||
+          !parse_u(f[2], U8_MAX_, &pitch) || !parse_u(f[3], U8_MAX_, &vel)) continue;
+      if (nf < 5 || !parse_u(f[4], U16_MAX_, &step)) {
+        step = (uint16_t)((tick + SQ_TPS / 2u) / SQ_TPS);
       }
       sq_clip_add_raw(s, clip, (uint16_t)step, (uint32_t)tick, gate < 1 ? 1u : (uint32_t)gate,
                       (uint8_t)(pitch > 127 ? 127 : pitch), (uint8_t)(vel < 1 ? 1 : (vel > 127 ? 127 : vel)));
@@ -277,52 +283,55 @@ static void load_clip(fm1_seq_t *s, words_t *w) {
   c = &sq_clips(s)[clip];
   c->loop_start = (uint8_t)(lstart < SQ_MAX_STEPS - 1u ? lstart : SQ_MAX_STEPS - 1u);
   {
-    const int64_t max = (int64_t)SQ_MAX_STEPS - c->loop_start;
+    const uint64_t max = SQ_MAX_STEPS - c->loop_start;
     c->length_steps = (uint16_t)(len < 1 ? 1 : (len > max ? max : len));
   }
   sq_clip_invalidate(s, clip);
 }
 
 static void load_locks(fm1_seq_t *s, words_t *w) {
-  int64_t t, slot;
+  uint64_t t, slot;
   tok_t list, item;
   int done = 0;
-  if (!word_int(w, 0, USIZE_MAX_, &t) || !word_int(w, 0, USIZE_MAX_, &slot)) return;
+  if (!word_u(w, USIZE_MAX_, &t) || !word_u(w, USIZE_MAX_, &slot)) return;
   if (t >= s->n_tracks || slot >= 8) return;
   if (!word(w, &list)) return;
   while (split_next(&list, ';', &done, &item)) {
     tok_t f[3], extra;
     int nf = 0, fd = 0;
-    int64_t lane, step, val;
+    uint64_t lane, step, val;
     while (nf < 3 && split_next(&item, ':', &fd, &f[nf])) ++nf;
     if (!fd && split_next(&item, ':', &fd, &extra)) continue;   /* more than 3 fields */
     if (nf != 3) continue;
-    if (!parse_int(f[0], 0, U8_MAX_, &lane) || !parse_int(f[1], 0, U16_MAX_, &step) ||
-        !parse_int(f[2], 0, U8_MAX_, &val)) continue;
+    /* Movy parses the value as a u8 and keeps min(127): widening
+     * fm1_seq_val_t needs a format of its own, not a wider bound here. */
+    if (!parse_u(f[0], U8_MAX_, &lane) || !parse_u(f[1], U16_MAX_, &step) ||
+        !parse_u(f[2], U8_MAX_, &val)) continue;
     sq_clip_set_lock(s, sq_clip_no((unsigned)t, (unsigned)slot), (uint8_t)(lane & 7), (uint16_t)step,
                      (fm1_seq_val_t)(val > FM1_SEQ_VAL_MAX ? FM1_SEQ_VAL_MAX : val));
   }
 }
 
 static void load_trigs(fm1_seq_t *s, words_t *w) {
-  int64_t t, slot;
+  uint64_t t, slot;
   tok_t list, item;
   int done = 0;
-  if (!word_int(w, 0, USIZE_MAX_, &t) || !word_int(w, 0, USIZE_MAX_, &slot)) return;
+  if (!word_u(w, USIZE_MAX_, &t) || !word_u(w, USIZE_MAX_, &slot)) return;
   if (t >= s->n_tracks || slot >= 8) return;
   if (!word(w, &list)) return;
   while (split_next(&list, ';', &done, &item)) {
     tok_t f[6], extra;
     int nf = 0, fd = 0;
-    int64_t step, lane, prob, a, b, inv;
+    uint64_t step, prob, a, b, inv;
+    int64_t lane;
     unsigned clip;
     uint8_t l;
     while (nf < 6 && split_next(&item, ':', &fd, &f[nf])) ++nf;
     if (!fd && split_next(&item, ':', &fd, &extra)) continue;
     if (nf != 6) continue;
-    if (!parse_int(f[0], 0, U16_MAX_, &step) || !parse_int(f[1], -32768, 32767, &lane) ||
-        !parse_int(f[2], 0, U8_MAX_, &prob) || !parse_int(f[3], 0, U8_MAX_, &a) ||
-        !parse_int(f[4], 0, U8_MAX_, &b) || !parse_int(f[5], 0, U8_MAX_, &inv)) continue;
+    if (!parse_u(f[0], U16_MAX_, &step) || !parse_i(f[1], -32768, 32767, &lane) ||
+        !parse_u(f[2], U8_MAX_, &prob) || !parse_u(f[3], U8_MAX_, &a) ||
+        !parse_u(f[4], U8_MAX_, &b) || !parse_u(f[5], U8_MAX_, &inv)) continue;
     clip = sq_clip_no((unsigned)t, (unsigned)slot);
     l = lane >= 0 && lane < 128 ? (uint8_t)lane : SQ_NONE;
     sq_clip_edit_trig(s, clip, (uint16_t)step, (uint16_t)step, l, SQ_TRIG_PROB,
@@ -372,7 +381,7 @@ int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len) {
   while (p < end) {
     words_t w;
     tok_t key;
-    int64_t a, b, c;
+    uint64_t a, b, c;
     eol = p;
     while (eol < end && *eol != '\n') ++eol;
     w.p = p;
@@ -380,27 +389,27 @@ int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len) {
     p = eol < end ? eol + 1 : end;
     if (!word(&w, &key)) continue;
     if (line_is(key, "bpm")) {
-      if (word_int(&w, 0, U32_MAX_, &a)) sq_set_bpm(s, (uint32_t)a);
+      if (word_u(&w, U32_MAX_, &a)) sq_set_bpm(s, (uint32_t)a);
     } else if (line_is(key, "swing")) {
-      if (word_int(&w, 0, U32_MAX_, &a)) s->swing_pct = (uint32_t)(a < 50 ? 50 : (a > 80 ? 80 : a));
+      if (word_u(&w, U32_MAX_, &a)) s->swing_pct = (uint32_t)(a < 50 ? 50 : (a > 80 ? 80 : a));
     } else if (line_is(key, "link")) {
-      if (word_int(&w, 0, U8_MAX_, &a)) s->link_enabled = a != 0;
+      if (word_u(&w, U8_MAX_, &a)) s->link_enabled = a != 0;
     } else if (line_is(key, "sg")) {
       tok_t x;
       s->song_len = 0;
       while (word(&w, &x)) {
-        if (parse_int(x, 0, U8_MAX_, &a) && a < (int64_t)FM1_SEQ_SLOTS) {
+        if (parse_u(x, U8_MAX_, &a) && a < FM1_SEQ_SLOTS) {
           if (s->song_len < s->lim.song) sq_song(s)[s->song_len++] = (uint8_t)a;
           else ++s->stats.refused;
         }
       }
     } else if (line_is(key, "tk")) {
       /* Every token that parses, then exactly three of them. */
-      int64_t v[3];
+      uint64_t v[3];
       int n = 0;
       tok_t x;
       while (word(&w, &x)) {
-        if (parse_int(x, 0, USIZE_MAX_, &a)) {
+        if (parse_u(x, USIZE_MAX_, &a)) {
           if (n < 3) v[n] = a;
           ++n;
         }
@@ -410,27 +419,28 @@ int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len) {
         sq_tracks(s)[v[0]].muted = v[2] != 0;
       }
     } else if (line_is(key, "pm")) {
-      if (word_int(&w, 0, USIZE_MAX_, &a) && word_int(&w, 0, U8_MAX_, &b) && a < s->n_tracks &&
-          b < 128) {
+      if (word_u(&w, USIZE_MAX_, &a) && word_u(&w, U8_MAX_, &b) && a < s->n_tracks && b < 128) {
         sq_set_pad_mute(s, (unsigned)a, (uint8_t)b, 1);
       }
     } else if (line_is(key, "ps")) {
-      if (word_int(&w, 0, USIZE_MAX_, &a) && word_int(&w, 0, U8_MAX_, &b) && a < s->n_tracks &&
-          b < 128) {
+      if (word_u(&w, USIZE_MAX_, &a) && word_u(&w, U8_MAX_, &b) && a < s->n_tracks && b < 128) {
         sq_tracks(s)[a].pad_solo = (uint8_t)b;
       }
     } else if (line_is(key, "cl")) {
       load_clip(s, &w);
     } else if (line_is(key, "cp")) {
-      int64_t sn, sd, tr, q = 0;
-      if (word_int(&w, 0, USIZE_MAX_, &a) && word_int(&w, 0, USIZE_MAX_, &b) &&
-          word_int(&w, 0, U8_MAX_, &sn) && word_int(&w, 0, U8_MAX_, &sd) &&
-          word_int(&w, -128, 127, &tr)) {
-        if (!word_int(&w, 0, U8_MAX_, &q)) q = 0;
+      uint64_t sn, sd, q = 0;
+      int64_t tr;
+      tok_t x;
+      if (word_u(&w, USIZE_MAX_, &a) && word_u(&w, USIZE_MAX_, &b) &&
+          word_u(&w, U8_MAX_, &sn) && word_u(&w, U8_MAX_, &sd) &&
+          word(&w, &x) && parse_i(x, -128, 127, &tr)) {
+        if (!word_u(&w, U8_MAX_, &q)) q = 0;
         if (a < s->n_tracks && b < 8) {
           sq_clip_t *cl = sq_clip(s, (unsigned)a, (unsigned)b);
           cl->scale_num = (uint8_t)(sn < 1 ? 1 : sn);
           cl->scale_den = (uint8_t)(sd < 1 ? 1 : sd);
+          sq_scale_limit(s, &cl->scale_num, &cl->scale_den);   /* D8 */
           cl->transpose = (int8_t)(tr < -36 ? -36 : (tr > 36 ? 36 : tr));
           cl->quant = (uint8_t)(q > 100 ? 100 : q);
           sq_clip_invalidate(s, sq_clip_no((unsigned)a, (unsigned)b));
@@ -438,8 +448,8 @@ int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len) {
       }
     } else if (line_is(key, "au")) {
       tok_t label;
-      if (word_int(&w, 0, USIZE_MAX_, &a) && word_int(&w, 0, USIZE_MAX_, &b) &&
-          word_int(&w, 0, U8_MAX_, &c) && a < s->n_tracks && b < 8) {
+      if (word_u(&w, USIZE_MAX_, &a) && word_u(&w, USIZE_MAX_, &b) &&
+          word_u(&w, U8_MAX_, &c) && a < s->n_tracks && b < 8) {
         sq_track_t *tr = &sq_tracks(s)[a];
         size_t m = 0;
         tr->lanes_assigned |= (uint8_t)(1u << b);
@@ -455,8 +465,8 @@ int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len) {
     } else if (line_is(key, "tg")) {
       load_trigs(s, &w);
     } else if (line_is(key, "rt")) {
-      if (word_int(&w, 0, USIZE_MAX_, &a) && word_int(&w, 0, U8_MAX_, &b) &&
-          word_int(&w, 0, U8_MAX_, &c) && a < s->n_tracks) {
+      if (word_u(&w, USIZE_MAX_, &a) && word_u(&w, U8_MAX_, &b) &&
+          word_u(&w, U8_MAX_, &c) && a < s->n_tracks) {
         if (!fm1_seq_set_route(s, (uint8_t)a, (uint8_t)b, (uint8_t)c)) ++s->stats.refused;
       }
     }

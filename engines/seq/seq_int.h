@@ -149,7 +149,8 @@ struct fm1_seq {
   uint16_t song_pos;
   int16_t watch_lane;           /* -1: melodic view */
   uint16_t cap_cands[3];
-  uint16_t pad16_;
+  uint16_t bar_tick;            /* master_tick % 384: the per-tick path needs no
+                                   64-bit modulo on a 32-bit core */
 
   /* 1-byte fields */
   fm1_seq_limits_t lim;         /* 20 bytes, alignment 2 */
@@ -161,7 +162,8 @@ struct fm1_seq {
   uint8_t resume_anchor_pending, link_enabled, move_inject_ok, has_cmd_seq;
   uint8_t dirty, n_gates, n_pend, n_tail;
   uint8_t cap_mode, cap_why, cap_track, cap_sel, cap_n, cap_best, cap_has_guess;
-  uint8_t pad_[1];
+  uint8_t panicked;             /* compat: this op hit one of Movy's panics, so the
+                                   rest of its batch is lost (movy-dsp's catch_unwind) */
 };
 
 /* Clip numbers: track t, slot k is t*8+k; then the step clipboard (copy_steps
@@ -228,7 +230,8 @@ typedef struct {
   uint16_t frame;
 } sq_out_t;
 
-void sq_emit(sq_out_t *o, uint8_t kind, uint8_t track, uint8_t a, fm1_seq_val_t b);
+/* 1 if the event went out; 0 if the buffer had no room for it (seq_engine.c). */
+int sq_emit(sq_out_t *o, uint8_t kind, uint8_t track, uint8_t a, fm1_seq_val_t b);
 
 /* seq_clip.c: pools and Movy's Clip methods. */
 int sq_seg_insert(fm1_seq_t *s, unsigned clip, int kind, unsigned pos, const void *item);
@@ -239,6 +242,8 @@ int sq_clip_copy(fm1_seq_t *s, unsigned dst, unsigned src);
 void sq_clip_reset(fm1_seq_t *s, unsigned clip);   /* Clip::new() */
 void sq_clip_clear(fm1_seq_t *s, unsigned clip);   /* Clip::clear() */
 void sq_clip_invalidate(fm1_seq_t *s, unsigned clip);
+int sq_pool_room(fm1_seq_t *s, int kind, unsigned need, unsigned freed);
+unsigned sq_clip_room(const fm1_seq_t *s, unsigned clip, int kind);
 void sq_invalidate_all(fm1_seq_t *s);
 void sq_clip_index(fm1_seq_t *s, unsigned clip);
 #ifdef SQ_CHECK_INDEX
@@ -283,6 +288,8 @@ void sq_clip_add_pitch_range(fm1_seq_t *s, unsigned clip, uint16_t s0, uint16_t 
 int sq_effective_at(const fm1_seq_t *s, unsigned clip, uint8_t lane, uint16_t step,
                     fm1_seq_val_t base);
 uint32_t sq_swing_delay(const fm1_seq_t *s, uint16_t step, uint8_t num, uint8_t den);
+uint32_t sq_unswing(const fm1_seq_t *s, uint32_t tick, uint16_t step, uint8_t num, uint8_t den);
+void sq_scale_limit(const fm1_seq_t *s, uint8_t *num, uint8_t *den);
 
 /* seq_engine.c */
 void sq_reseed_empty_clips(fm1_seq_t *s);
@@ -301,15 +308,16 @@ void sq_flush_silenced_pad_gates(fm1_seq_t *s, unsigned t, sq_out_t *o);
 void sq_toggle_record(fm1_seq_t *s, unsigned t);
 void sq_live_note_on(fm1_seq_t *s, unsigned t, uint8_t pitch, uint8_t vel, uint64_t frame);
 void sq_live_note_off(fm1_seq_t *s, unsigned t, uint8_t pitch, uint64_t frame);
-void sq_delete_clip_at(fm1_seq_t *s, unsigned t, unsigned slot);
+void sq_delete_clip_at(fm1_seq_t *s, unsigned t, unsigned slot, sq_out_t *o);
 void sq_duplicate_clip(fm1_seq_t *s, unsigned t);
 void sq_copy_clip(fm1_seq_t *s, unsigned t, unsigned slot);
-void sq_paste_clip(fm1_seq_t *s, unsigned t, unsigned slot);
-void sq_delete_range(fm1_seq_t *s, unsigned t, uint16_t s0, uint16_t s1, int lane);
+void sq_paste_clip(fm1_seq_t *s, unsigned t, unsigned slot, sq_out_t *o);
+void sq_delete_range(fm1_seq_t *s, unsigned t, uint16_t s0, uint16_t s1, int lane, sq_out_t *o);
 void sq_copy_steps(fm1_seq_t *s, unsigned t, uint16_t s0, uint16_t s1);
 void sq_paste_steps(fm1_seq_t *s, unsigned t, uint16_t dest);
 void sq_clear_clipboard(fm1_seq_t *s);
-void sq_free_unused_lanes(fm1_seq_t *s, unsigned t);
+void sq_free_unused_lanes(fm1_seq_t *s, unsigned t, sq_out_t *o);
+void sq_release_lane(fm1_seq_t *s, unsigned t, unsigned lane, sq_out_t *o);
 int sq_active_transpose(const fm1_seq_t *s, unsigned t);
 int sq_pad_voice_silent(fm1_seq_t *s, unsigned t, uint8_t pitch);
 void sq_set_pad_mute(fm1_seq_t *s, unsigned t, uint8_t note, int muted);

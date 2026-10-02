@@ -465,7 +465,7 @@ int main(int argc, char **argv) {
       while (sq.next_cmd < sq.script.n && sq.script.cmds[sq.next_cmd].frame <= pos) {
         const char *ops = sq.script.cmds[sq.next_cmd].ops;
         if (!sq.script.cmds[sq.next_cmd].snap) {     // test directives are fm1-seq's
-          n_seq += fm1_seq_apply_text(sq.seq, ops, strlen(ops), ev + n_seq, cap - n_seq);
+          n_seq += fm1_script_apply(sq.seq, ops, ev + n_seq, cap - n_seq);
         }
         ++sq.next_cmd;
       }

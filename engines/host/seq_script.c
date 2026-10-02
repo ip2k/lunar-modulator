@@ -45,6 +45,33 @@ static int parse_u64(const char *p, const char **end, uint64_t *v) {
   return 1;
 }
 
+/* "rt XX", XX one of F8 FA FB FC (either case): the status byte, else 0. */
+static unsigned realtime_status(const char *ops) {
+  unsigned v = 0;
+  int i;
+  if (strncmp(ops, "rt", 2) != 0 || (ops[2] != ' ' && ops[2] != '\t')) return 0;
+  ops += 3;
+  while (*ops == ' ' || *ops == '\t') ++ops;
+  for (i = 0; i < 2; ++i) {
+    const char c = ops[i];
+    const unsigned d = c >= '0' && c <= '9' ? (unsigned)(c - '0')
+                       : c >= 'a' && c <= 'f' ? (unsigned)(c - 'a' + 10)
+                       : c >= 'A' && c <= 'F' ? (unsigned)(c - 'A' + 10) : 16u;
+    if (d > 15) return 0;
+    v = v * 16u + d;
+  }
+  ops += 2;
+  while (*ops == ' ' || *ops == '\t') ++ops;
+  if (*ops) return 0;
+  return v == 0xF8 || v == 0xFA || v == 0xFB || v == 0xFC ? v : 0;
+}
+
+uint32_t fm1_script_apply(fm1_seq_t *s, const char *ops, fm1_seq_ev_t *out, uint32_t cap) {
+  const unsigned rt = realtime_status(ops);
+  if (rt) return fm1_seq_realtime_in(s, 0, (uint8_t)rt, out, cap);
+  return fm1_seq_apply_text(s, ops, strlen(ops), out, cap);
+}
+
 static void header(fm1_script_t *s, char *line) {
   char *p = line + 2;
   while (*p) {
@@ -111,6 +138,11 @@ int fm1_script_load(const char *path, fm1_script_t *s, char *err, size_t errlen)
       return 0;
     }
     while (*after == ' ' || *after == '\t') ++after;
+    if (!snap && strncmp(after, "rt", 2) == 0 && (after[2] == ' ' || after[2] == '\t') &&
+        !realtime_status(after)) {
+      snprintf(err, errlen, "%s:%zu: expected 'rt F8|FA|FB|FC'", path, lineno);
+      return 0;
+    }
     if (s->n == cap) {
       fm1_script_cmd_t *grown;
       cap *= 2;

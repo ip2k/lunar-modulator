@@ -195,6 +195,13 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
   if (clears_capture(c->verb)) sq_capture_clear(s);
   switch (c->verb) {
   case FM1_SEQ_V_PLAY:
+    /* D12 (FM-1 default): Play while playing restarts at tick 0 (R10); Movy
+     * keeps its clock session, so a MIDI clock follower stays a beat out of
+     * phase. Close it with a Stop here; the block's Start reopens it. */
+    if (!s->lim.compat && s->playing && s->emitting_clock &&
+        sq_emit(o, FM1_SEQ_EV_STOP, SQ_NONE, 0, 0)) {
+      s->emitting_clock = 0;
+    }
     sq_play(s);
     break;
   case FM1_SEQ_V_STOP:
@@ -316,6 +323,7 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
       sq_clip_t *cl = &sq_clips(s)[active_clip(s, (unsigned)t)];
       cl->scale_num = (uint8_t)clamp64(x, 1, 255);
       cl->scale_den = (uint8_t)clamp64(y, 1, 255);
+      sq_scale_limit(s, &cl->scale_num, &cl->scale_den);     /* D8 */
       sq_clip_invalidate(s, active_clip(s, (unsigned)t));
     }
     break;
@@ -396,7 +404,7 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
     const int ht = next(&a, &t), h0 = next(&a, &x), h1 = next(&a, &y), hp = next(&a, &z);
     if (ht && h0 && h1 && hp) {
       sq_delete_range(s, as_index(t), (uint16_t)clamp64(x, 0, 255), (uint16_t)clamp64(y, 0, 255),
-                      lane_arg(z));
+                      lane_arg(z), o);
     }
     break;
   }
@@ -404,7 +412,7 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
     if (next(&a, &t)) sq_duplicate_clip(s, as_index(t));
     break;
   case FM1_SEQ_V_CLIPDEL:
-    if (next(&a, &t) && track_arg(s, t)) sq_delete_clip_at(s, (unsigned)t, sq_tracks(s)[t].active);
+    if (next(&a, &t) && track_arg(s, t)) sq_delete_clip_at(s, (unsigned)t, sq_tracks(s)[t].active, o);
     break;
   case FM1_SEQ_V_CLIPSEL: {
     const int ht = next(&a, &t), hs = next(&a, &x);
@@ -434,12 +442,12 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
   }
   case FM1_SEQ_V_CLIPPASTE: {
     const int ht = next(&a, &t), hs = next(&a, &x);
-    if (ht && hs) sq_paste_clip(s, as_index(t), as_index(x < 0 ? 0 : x));
+    if (ht && hs) sq_paste_clip(s, as_index(t), as_index(x < 0 ? 0 : x), o);
     break;
   }
   case FM1_SEQ_V_CLIPDELAT: {
     const int ht = next(&a, &t), hs = next(&a, &x);
-    if (ht && hs) sq_delete_clip_at(s, as_index(t), as_index(x < 0 ? 0 : x));
+    if (ht && hs) sq_delete_clip_at(s, as_index(t), as_index(x < 0 ? 0 : x), o);
     break;
   }
   case FM1_SEQ_V_CPY: {
@@ -534,8 +542,14 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
     if (ht && hl && track_arg(s, t) && x >= 0 && x < 8) {
       unsigned k;
       for (k = 0; k < FM1_SEQ_SLOTS; ++k) sq_clip_clear_lane(s, sq_clip_no((unsigned)t, k), (uint8_t)x);
-      sq_tracks(s)[t].lanes_assigned &= (uint8_t)~(1u << x);
-      sq_tracks(s)[t].label[x][0] = '\0';
+      if (s->lim.compat) {
+        /* Movy (engine.rs 2342-2351) unassigns the lane but keeps its base
+         * and carried value, which a relabelled lane then resumes from. */
+        sq_tracks(s)[t].lanes_assigned &= (uint8_t)~(1u << x);
+        sq_tracks(s)[t].label[x][0] = '\0';
+      } else {
+        sq_release_lane(s, (unsigned)t, (unsigned)x, o);   /* D13, and D6 */
+      }
     }
     break;
   }
@@ -543,7 +557,7 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
     const int ht = next(&a, &t), hl = next(&a, &x), hs = next(&a, &y);
     if (ht && hl && hs && track_arg(s, t) && x >= 0 && x < 8) {
       sq_clip_clear_lock(s, active_clip(s, (unsigned)t), (uint8_t)x, (uint16_t)clamp64(y, 0, 255));
-      sq_free_unused_lanes(s, (unsigned)t);
+      sq_free_unused_lanes(s, (unsigned)t, o);
     }
     break;
   }
@@ -551,7 +565,7 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
     const int ht = next(&a, &t), hs = next(&a, &x);
     if (ht && hs && track_arg(s, t)) {
       sq_clip_clear_step_locks(s, active_clip(s, (unsigned)t), (uint16_t)clamp64(x, 0, 255));
-      sq_free_unused_lanes(s, (unsigned)t);
+      sq_free_unused_lanes(s, (unsigned)t, o);
     }
     break;
   }
@@ -577,7 +591,10 @@ uint32_t fm1_seq_apply(fm1_seq_t *s, const fm1_seq_cmd_t *c, fm1_seq_ev_t *out, 
   o.n = 0;
   o.tick = (uint32_t)s->master_tick;
   o.frame = 0;
+  s->panicked = 0;
   apply_op(s, c, &o);
+  /* A Movy panic unwinds out of apply_batch: no re-seed, no dirty flag. */
+  if (s->panicked) return o.n;
   /* apply_batch: re-seed empty clips after every op; edits mark the set dirty. */
   sq_reseed_empty_clips(s);
   if (!is_undo_verb(c->verb)) s->dirty = 1;
@@ -617,6 +634,8 @@ uint32_t fm1_seq_apply_text(fm1_seq_t *s, const char *batch, size_t len, fm1_seq
       fm1_seq_cmd_t c;
       fm1_seq_parse(batch + a, b - a, &c);
       n += fm1_seq_apply(s, &c, out ? out + n : NULL, cap > n ? cap - n : 0);
+      /* compat: movy-dsp's catch_unwind drops the rest of a panicked batch. */
+      if (s->panicked) break;
     }
     ++i;
   }

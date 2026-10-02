@@ -3,7 +3,7 @@
  *
  * Derived from Movy's seq-core engine.rs, clock.rs and track.rs (commit
  * 9190e79, MIT, Copyright (c) 2026 megadake). Rule numbers R1-R14 and
- * deviations D1-D7 are docs/13 §3. Line numbers in comments are engine.rs's.
+ * deviations D1-D13 are docs/13 §3. Line numbers in comments are engine.rs's.
  *
  * Left out, being specific to the Ableton Move: the MovePlay inject and the
  * linked Play that waits for Move (`minject` is accepted and ignored, so
@@ -92,7 +92,7 @@ fm1_seq_t *fm1_seq_create(void *mem, const fm1_seq_limits_t *lim, uint32_t sampl
   s->magic = SQ_MAGIC;
   s->size = (uint32_t)l.total;
   s->lim = *lim;
-  s->lim.compat = lim->compat ? 1 : 0;
+  s->lim.compat = lim->compat > FM1_SEQ_COMPAT_MOVY_FRAMES ? FM1_SEQ_COMPAT_MOVY : lim->compat;
   s->sample_rate = sample_rate;
   s->threshold = (uint64_t)sample_rate * 60u * 100u;
   s->bpm_x100 = 12000;
@@ -127,19 +127,30 @@ void fm1_seq_rng_seed(fm1_seq_t *s, uint64_t seed) { s->rng = seed; }
 
 /* ---- Emission ------------------------------------------------------------ */
 
-void sq_emit(sq_out_t *o, uint8_t kind, uint8_t track, uint8_t a, fm1_seq_val_t b) {
+/* The caller's buffer keeps room for the note-off of every sounding gate,
+ * so a full buffer never leaves a note hanging: a note-on that does not fit
+ * is dropped whole (the caller pushes no gate for it), a lock is not marked
+ * as sent (the latch sends it at a later step), and a clock tick or click is
+ * lost; each is counted in dropped_events. A note-off needs only its own
+ * slot. With cap >= limits.gates + 8 (fm1_seq_min_events) every note-off,
+ * Start and Stop fits. */
+int sq_emit(sq_out_t *o, uint8_t kind, uint8_t track, uint8_t a, fm1_seq_val_t b) {
   fm1_seq_ev_t *e;
-  if (o->n >= o->cap || !o->out) {
+  uint32_t need = 1u;
+  if (kind != FM1_SEQ_EV_NOTE_OFF) need += o->s->n_gates;
+  if (kind == FM1_SEQ_EV_NOTE_ON) need += 1u;    /* and its own note-off later */
+  if (!o->out || o->n > o->cap || need > o->cap - o->n) {
     ++o->s->stats.dropped_events;
-    return;
+    return 0;
   }
   e = &o->out[o->n++];
   e->tick = o->tick;
-  e->frame = o->s->lim.compat ? 0 : o->frame;
+  e->frame = o->s->lim.compat == FM1_SEQ_COMPAT_MOVY ? 0 : o->frame;
   e->kind = kind;
   e->track = track;
   e->a = a;
   e->b = b;
+  return 1;
 }
 
 static void out_init(sq_out_t *o, fm1_seq_t *s, fm1_seq_ev_t *out, uint32_t cap) {
@@ -328,8 +339,30 @@ void sq_flush_silenced_pad_gates(fm1_seq_t *s, unsigned t, sq_out_t *o) {
 
 /* ---- Clip operations (engine.rs 411-570) ----------------------------------- */
 
+/* D6 (FM-1 default): a lane last sent a value other than its base goes back
+ * to the base, so no parameter is left at a value no lock asks for any more.
+ * Movy does neither on Stop, on a track stop nor on a lane's release. */
+static void revert_lane(fm1_seq_t *s, unsigned t, unsigned lane, sq_out_t *o) {
+  const sq_track_t *tr = &sq_tracks(s)[t];
+  if (s->lim.compat || !(tr->lanes_assigned & (1u << lane))) return;
+  if (tr->auto_cur[lane] >= 0 && tr->auto_cur[lane] != tr->base[lane]) {
+    sq_emit(o, FM1_SEQ_EV_LOCK, (uint8_t)t, (uint8_t)lane, tr->base[lane]);
+  }
+}
+
+/* The reset free_unused_lanes gives a lane: unassigned, unlabelled, base 0,
+ * nothing carried. The FM-1 sends it back to its base first (D6). */
+void sq_release_lane(fm1_seq_t *s, unsigned t, unsigned lane, sq_out_t *o) {
+  sq_track_t *tr = &sq_tracks(s)[t];
+  revert_lane(s, t, lane, o);
+  tr->lanes_assigned &= (uint8_t)~(1u << lane);
+  tr->label[lane][0] = '\0';
+  tr->base[lane] = 0;
+  tr->auto_cur[lane] = -1;
+}
+
 /* free_unused_lanes: a lane no clip on the track locks is released. */
-void sq_free_unused_lanes(fm1_seq_t *s, unsigned t) {
+void sq_free_unused_lanes(fm1_seq_t *s, unsigned t, sq_out_t *o) {
   sq_track_t *tr;
   unsigned lane, k;
   if (!track_ok(s, t)) return;
@@ -340,12 +373,7 @@ void sq_free_unused_lanes(fm1_seq_t *s, unsigned t) {
     for (k = 0; k < FM1_SEQ_SLOTS && !used; ++k) {
       used = sq_clip_has_lock_on_lane(s, sq_clip_no(t, k), (uint8_t)lane);
     }
-    if (!used) {
-      tr->lanes_assigned &= (uint8_t)~(1u << lane);
-      tr->label[lane][0] = '\0';
-      tr->base[lane] = 0;
-      tr->auto_cur[lane] = -1;
-    }
+    if (!used) sq_release_lane(s, t, lane, o);
   }
 }
 
@@ -365,11 +393,11 @@ void sq_duplicate_clip(fm1_seq_t *s, unsigned t) {
   }
 }
 
-void sq_delete_clip_at(fm1_seq_t *s, unsigned t, unsigned slot) {
+void sq_delete_clip_at(fm1_seq_t *s, unsigned t, unsigned slot, sq_out_t *o) {
   if (!track_ok(s, t) || slot >= FM1_SEQ_SLOTS) return;
   sq_clip_clear(s, sq_clip_no(t, slot));
   drop_rec_notes_for(s, t, slot);
-  sq_free_unused_lanes(s, t);
+  sq_free_unused_lanes(s, t, o);
 }
 
 void sq_copy_clip(fm1_seq_t *s, unsigned t, unsigned slot) {
@@ -377,18 +405,18 @@ void sq_copy_clip(fm1_seq_t *s, unsigned t, unsigned slot) {
   if (sq_clip_copy(s, SQ_CLIP_CLIPCB(s), sq_clip_no(t, slot))) s->clip_clipboard = 1;
 }
 
-void sq_paste_clip(fm1_seq_t *s, unsigned t, unsigned slot) {
+void sq_paste_clip(fm1_seq_t *s, unsigned t, unsigned slot, sq_out_t *o) {
   if (!track_ok(s, t) || slot >= FM1_SEQ_SLOTS || !s->clip_clipboard) return;
   if (sq_clip_copy(s, sq_clip_no(t, slot), SQ_CLIP_CLIPCB(s))) {
     sq_tracks(s)[t].active = (uint8_t)slot;
-    sq_free_unused_lanes(s, t);
+    sq_free_unused_lanes(s, t, o);
   }
 }
 
-void sq_delete_range(fm1_seq_t *s, unsigned t, uint16_t s0, uint16_t s1, int lane) {
+void sq_delete_range(fm1_seq_t *s, unsigned t, uint16_t s0, uint16_t s1, int lane, sq_out_t *o) {
   if (!track_ok(s, t)) return;
   sq_clip_delete_range(s, sq_clip_no(t, sq_tracks(s)[t].active), s0, s1, lane);
-  sq_free_unused_lanes(s, t);
+  sq_free_unused_lanes(s, t, o);
 }
 
 /* copy_steps (engine.rs 507-533): notes and locks relative to s0, kept in the
@@ -401,8 +429,23 @@ void sq_copy_steps(fm1_seq_t *s, unsigned t, uint16_t s0, uint16_t s1) {
   if (!track_ok(s, t)) return;
   src = sq_clip_no(t, sq_tracks(s)[t].active);
   if (s0 > s1) {
-    ++s->stats.compat_divergence;
+    ++s->stats.movy_faults;   /* release wraps (replayed in compat), debug panics */
     if (!s->lim.compat) return;
+  }
+  if (!s->lim.compat) {
+    /* D7: the clipboard is replaced whole or not at all. */
+    const sq_clip_t *c = &sq_clips(s)[src];
+    unsigned nn = 0, nl = 0;
+    for (i = 0; i < c->seg[SQ_K_NOTES].len; ++i) {
+      const uint16_t st = SQ_NSTEP(sq_cnote(s, c, i));
+      nn += st >= s0 && st <= s1;
+    }
+    for (i = 0; i < c->seg[SQ_K_LOCKS].len; ++i) {
+      const uint8_t st = sq_clock(s, c, i)->step;
+      nl += st >= s0 && st <= s1;
+    }
+    if (!sq_pool_room(s, SQ_K_NOTES, nn, sq_clips(s)[cb].seg[SQ_K_NOTES].len) ||
+        !sq_pool_room(s, SQ_K_LOCKS, nl, sq_clips(s)[cb].seg[SQ_K_LOCKS].len)) return;
   }
   s->clipboard_span = (uint16_t)(s1 - s0 + 1u);
   sq_seg_clear(s, cb, SQ_K_NOTES);
@@ -435,10 +478,36 @@ void sq_paste_steps(fm1_seq_t *s, unsigned t, uint16_t dest) {
   if (!track_ok(s, t) || s->clipboard_span == 0) return;
   span = s->clipboard_span;
   dst = sq_clip_no(t, sq_tracks(s)[t].active);
+  end = (uint16_t)(dest + span);
+  if (!s->lim.compat) {
+    /* D7: the paste replaces its span whole or not at all. Count what it
+     * removes (notes anchored in the span, its steps' locks) and adds (the
+     * clipboard's items that land before step 256, within the clip cap). */
+    const sq_clip_t *c = &sq_clips(s)[dst];
+    const sq_clip_t *k = &sq_clips(s)[cb];
+    const uint16_t last = (uint16_t)(dest + span - 1u);
+    unsigned dn = 0, dl = 0, an = 0, al = 0;
+    for (i = 0; i < c->seg[SQ_K_NOTES].len; ++i) {
+      const uint16_t st = SQ_NSTEP(sq_cnote(s, c, i));
+      dn += st >= dest && st <= last;
+    }
+    for (i = 0; i < c->seg[SQ_K_LOCKS].len; ++i) {
+      const uint8_t st = sq_clock(s, c, i)->step;
+      dl += st >= dest && st < end;
+    }
+    for (i = 0; i < k->seg[SQ_K_NOTES].len; ++i) {
+      an += (unsigned)dest + SQ_NSTEP(sq_cnote(s, k, i)) < SQ_MAX_STEPS;
+    }
+    for (i = 0; i < k->seg[SQ_K_LOCKS].len; ++i) al += (unsigned)dest + sq_clock(s, k, i)->step < SQ_MAX_STEPS;
+    an = an < s->lim.clip_notes - (c->seg[SQ_K_NOTES].len - dn) ? an
+                                                                : s->lim.clip_notes - (c->seg[SQ_K_NOTES].len - dn);
+    al = al < s->lim.clip_locks - (c->seg[SQ_K_LOCKS].len - dl) ? al
+                                                                : s->lim.clip_locks - (c->seg[SQ_K_LOCKS].len - dl);
+    if (!sq_pool_room(s, SQ_K_NOTES, an, dn) || !sq_pool_room(s, SQ_K_LOCKS, al, dl)) return;
+  }
   /* u16 arithmetic as Movy's; a range whose end wrapped below its start is
    * empty, as Rust's `a..b` is. */
   sq_clip_delete_range(s, dst, dest, (uint16_t)(dest + span - 1u), -1);
-  end = (uint16_t)(dest + span);
   for (st = dest; st < end; ++st) sq_clip_clear_step_locks(s, dst, (uint16_t)st);
   base_tick = (uint32_t)dest * SQ_TPS;
   n = sq_clips(s)[cb].seg[SQ_K_NOTES].len;
@@ -477,6 +546,7 @@ static void start_transport(fm1_seq_t *s) {
   }
   clock_reset(s);
   s->master_tick = 0;
+  s->bar_tick = 0;
   s->playing = 1;
 }
 
@@ -793,7 +863,7 @@ void sq_toggle_record(fm1_seq_t *s, unsigned t) {
 static int preroll_offset(const fm1_seq_t *s, int32_t *off) {
   uint32_t left;
   if (s->pending_rec) {
-    left = (uint32_t)(SQ_TPB - s->master_tick % SQ_TPB);
+    left = SQ_TPB - s->bar_tick;
   } else {
     left = s->count_in_left;
   }
@@ -840,11 +910,16 @@ static void commit_rec_note(fm1_seq_t *s, sq_rec_t p, int tail) {
   tick = (uint32_t)(p.start_tick > 0 ? p.start_tick : 0);
   step = sq_anchor_step(s, tick, c->scale_num, c->scale_den);
   if (!s->lim.compat) {
+    /* A first take keeps Movy's anchor on the loop end, and record_note grows
+     * the clip a bar to hold it, unless the clip is already 16 bars long:
+     * then the anchor (256) could not be reached, and Movy's fold-back (R5)
+     * is what plays it, which D11 leaves out. */
     const uint32_t last = (uint32_t)c->loop_start + c->length_steps - 1u;
     const int growing = s->recording && s->rec_empty_start && p.track == s->rec_track &&
-                        tr->playing == p.slot;
+                        tr->playing == p.slot && last + 1u < SQ_MAX_STEPS;
     if (!growing && step > last) step = (uint16_t)last;
   }
+  tick = sq_unswing(s, tick, step, c->scale_num, c->scale_den);   /* D10 */
   sq_clip_record_note(s, sq_clip_no(p.track, p.slot), step, tick, (uint32_t)g, stored, p.vel,
                       cycle == p.start_cycle);
 }
@@ -940,14 +1015,7 @@ void sq_stop(fm1_seq_t *s, sq_out_t *o) {
   flush_gates(s, o);
   for (t = 0; t < s->n_tracks; ++t) {
     sq_track_t *tr = &sq_tracks(s)[t];
-    if (!s->lim.compat) {
-      for (lane = 0; lane < FM1_SEQ_LANES; ++lane) {
-        if ((tr->lanes_assigned & (1u << lane)) && tr->auto_cur[lane] >= 0 &&
-            tr->auto_cur[lane] != tr->base[lane]) {
-          sq_emit(o, FM1_SEQ_EV_LOCK, (uint8_t)t, (uint8_t)lane, tr->base[lane]);
-        }
-      }
-    }
+    for (lane = 0; lane < FM1_SEQ_LANES; ++lane) revert_lane(s, t, lane, o);
     tr->last_auto_step = -1;
     memset(tr->auto_cur, 0xFF, sizeof(tr->auto_cur));
   }
@@ -973,9 +1041,8 @@ static void emit_automation(fm1_seq_t *s, unsigned t, unsigned slot, uint16_t st
         v = tr->auto_cur[lane] >= 0 ? (fm1_seq_val_t)tr->auto_cur[lane] : tr->base[lane];
       }
     }
-    if ((int16_t)v != tr->auto_cur[lane]) {
+    if ((int16_t)v != tr->auto_cur[lane] && sq_emit(o, FM1_SEQ_EV_LOCK, (uint8_t)t, (uint8_t)lane, v)) {
       tr->auto_cur[lane] = (int16_t)v;
-      sq_emit(o, FM1_SEQ_EV_LOCK, (uint8_t)t, (uint8_t)lane, v);
     }
   }
 }
@@ -1030,14 +1097,33 @@ static void scan_notes(fm1_seq_t *s, unsigned t, unsigned slot, uint16_t pos, sq
     emit = emit < 0 ? 0 : (emit > 127 ? 127 : emit);
     if (sq_pad_voice_silent(s, t, (uint8_t)emit)) continue;
     gate_make_room(s, o);
-    sq_emit(o, FM1_SEQ_EV_NOTE_ON, (uint8_t)t, (uint8_t)emit, x->vel);
-    gate_push(s, (uint8_t)t, (uint8_t)emit, x->gate);
+    if (sq_emit(o, FM1_SEQ_EV_NOTE_ON, (uint8_t)t, (uint8_t)emit, x->vel)) {
+      gate_push(s, (uint8_t)t, (uint8_t)emit, x->gate);
+    }
   }
   for (k = lo; k < j; ++k) n[n[k].ix].step &= (uint16_t)~(SQ_N_DECIDED | SQ_N_PLAYS);
 }
 
+/* D9: the locks of a step just entered lead its notes by one clip tick. If a
+ * bar launch or stop already queued for this track falls before the track's
+ * next step_tick, that step never plays, and Movy's look-ahead would send a
+ * value for nothing (and then, D2, the new clip's own). Called inside
+ * step_tick, where master_tick and bar_tick already count the tick being
+ * serviced and scale_acc holds what is left after this step_tick. */
+static int replaced_before_next_step(const fm1_seq_t *s, unsigned t) {
+  const sq_track_t *tr = &sq_ctracks(s)[t];
+  const sq_clip_t *c = sq_cclip(s, t, tr->playing);
+  const uint32_t num = c->scale_num ? c->scale_num : 1u, den = c->scale_den ? c->scale_den : 1u;
+  uint32_t to_bar, wait;
+  if (tr->queued == SQ_NONE && !tr->pending_stop) return 0;
+  if (tr->scale_acc >= den) return 0;                     /* another step_tick this tick */
+  to_bar = s->bar_tick ? SQ_TPB - s->bar_tick : 0u;      /* service ticks before the bar's */
+  wait = (den - tr->scale_acc + num - 1u) / num;          /* service ticks to the next step_tick */
+  return wait > to_bar;
+}
+
 /* step_tick (engine.rs 2100-2255, R4): offs, (D2 locks), ons, advance and
- * wrap, then the locks of the step just entered. */
+ * wrap, then the locks of the step just entered (unless D9 drops them). */
 static void step_tick(fm1_seq_t *s, unsigned t, sq_out_t *o) {
   sq_track_t *tr = &sq_tracks(s)[t];
   const unsigned slot = tr->playing;
@@ -1086,7 +1172,7 @@ static void step_tick(fm1_seq_t *s, unsigned t, sq_out_t *o) {
   }
   expire_rec_tail(s, t);
   cur = (int16_t)(tr->pos_tick / SQ_TPS);
-  if (cur != tr->last_auto_step) {
+  if (cur != tr->last_auto_step && !(!s->lim.compat && replaced_before_next_step(s, t))) {
     tr->last_auto_step = cur;
     emit_automation(s, t, slot, (uint16_t)cur, o);
   }
@@ -1096,10 +1182,11 @@ static void step_tick(fm1_seq_t *s, unsigned t, sq_out_t *o) {
 static void service_tick(fm1_seq_t *s, sq_out_t *o) {
   unsigned t, i;
   int skip_steps = 0;
-  if (s->master_tick % FM1_SEQ_PPQN == 0 && (s->count_in_left > 0 || s->metronome)) {
-    sq_emit(o, FM1_SEQ_EV_CLICK, SQ_NONE, s->master_tick % SQ_TPB == 0 ? 1 : 0, 0);
+  uint32_t stopped = 0;            /* tracks stopping at this bar (D6) */
+  if (s->bar_tick % FM1_SEQ_PPQN == 0 && (s->count_in_left > 0 || s->metronome)) {
+    sq_emit(o, FM1_SEQ_EV_CLICK, SQ_NONE, s->bar_tick == 0 ? 1 : 0, 0);
   }
-  if (s->master_tick % SQ_TPB == 0) {
+  if (s->bar_tick == 0) {
     for (t = 0; t < s->n_tracks; ++t) {
       sq_track_t *tr = &sq_tracks(s)[t];
       if (tr->queued != SQ_NONE) {
@@ -1116,6 +1203,7 @@ static void service_tick(fm1_seq_t *s, sq_out_t *o) {
       if (tr->pending_stop) {
         tr->pending_stop = 0;
         tr->playing = SQ_NONE;
+        stopped |= 1u << t;
       }
       if (tr->pending_select != SQ_NONE) {
         tr->active = tr->pending_select;
@@ -1143,7 +1231,18 @@ static void service_tick(fm1_seq_t *s, sq_out_t *o) {
       sq_emit(o, FM1_SEQ_EV_NOTE_OFF, g.track, g.pitch, 0);
     }
   }
+  /* D6: a track that stopped at the bar sends its lanes back to their base,
+   * after its note-offs, as Stop does; Movy leaves them. */
+  for (t = 0; stopped && t < s->n_tracks; ++t) {
+    sq_track_t *tr = &sq_tracks(s)[t];
+    unsigned lane;
+    if (!(stopped & (1u << t)) || s->lim.compat) continue;
+    for (lane = 0; lane < FM1_SEQ_LANES; ++lane) revert_lane(s, t, lane, o);
+    tr->last_auto_step = -1;
+    memset(tr->auto_cur, 0xFF, sizeof(tr->auto_cur));
+  }
   ++s->master_tick;
+  if (++s->bar_tick == SQ_TPB) s->bar_tick = 0;
   if (s->count_in_left > 0) {
     if (--s->count_in_left == 0) {
       s->recording = 1;
@@ -1225,9 +1324,37 @@ void sq_external_realtime(fm1_seq_t *s, uint8_t status, uint64_t frame, sq_out_t
 
 /* ---- One block (R1, R2, D1) ------------------------------------------------------ */
 
+/* The playhead target while following (engine.rs 1938-1948): Move's ticks at
+ * 96 PPQN, plus the fraction of an interval since the last one, measured at
+ * `frame_now`. Float where Movy uses f64. */
+static uint64_t follow_target(const fm1_seq_t *s, uint64_t frame_now) {
+  uint64_t abs = s->ext_ticks * 4u;
+  if (s->ext_interval > 0.0f) {
+    const uint64_t since = frame_now > s->ext_last_frame ? frame_now - s->ext_last_frame : 0;
+    float frac = (float)since / s->ext_interval;
+    if (frac > 1.0f) frac = 1.0f;
+    abs += (uint64_t)(frac * 4.0f);
+  }
+  return abs > s->ext_base * 4u ? abs - s->ext_base * 4u : 0;
+}
+
+/* D1 while following: the frame of the block (0-based) at which the target,
+ * advancing frame by frame from `first` (the block's first frame number
+ * after it), first reaches `tick` + 1, which is when Movy fed one frame at a
+ * time would fire it. */
+static uint16_t follow_frame(const fm1_seq_t *s, uint64_t first, uint32_t frames, uint64_t tick) {
+  uint32_t lo = 0, hi = frames ? frames - 1u : 0u;
+  while (lo < hi) {
+    const uint32_t mid = lo + (hi - lo) / 2u;
+    if (follow_target(s, first + mid) > tick) hi = mid;
+    else lo = mid + 1u;
+  }
+  return (uint16_t)lo;
+}
+
 uint32_t fm1_seq_advance(fm1_seq_t *s, uint32_t frames, fm1_seq_ev_t *out, uint32_t cap) {
   sq_out_t o;
-  uint64_t fired, j, a0 = 0, inc = 0;
+  uint64_t fired, j, need = 0, inc = 0;
   int following;
   out_init(&o, s, out, cap);
   s->frame_now += frames;
@@ -1257,49 +1384,49 @@ uint32_t fm1_seq_advance(fm1_seq_t *s, uint32_t frames, fm1_seq_ev_t *out, uint3
   s->was_following = (uint8_t)following;
 
   if (following) {
-    uint64_t abs = s->ext_ticks * 4u, target;
-    if (s->ext_interval > 0.0f) {
-      const uint64_t since = s->frame_now > s->ext_last_frame ? s->frame_now - s->ext_last_frame : 0;
-      float frac = (float)since / s->ext_interval;
-      if (frac > 1.0f) frac = 1.0f;
-      abs += (uint64_t)(frac * 4.0f);
-    }
-    target = abs > s->ext_base * 4u ? abs - s->ext_base * 4u : 0;
+    const uint64_t target = follow_target(s, s->frame_now);
     fired = target > s->master_tick ? target - s->master_tick : 0;
     if (fired > 96) fired = 96;
   } else {
-    /* clock.advance: whole ticks in this block. For D1, tick j (1-based) falls
-     * in the frame where the running sum first reaches j thresholds. */
-    a0 = s->accum;
+    /* clock.advance: whole ticks in this block, by subtraction (at most one
+     * at the FM-1's 64-frame blocks; no 64-bit division). For D1, tick j
+     * (1-based) falls in the frame where the running sum first reaches j
+     * thresholds: `need` is that sum's distance from the block's start. */
     inc = (uint64_t)s->bpm_x100 * FM1_SEQ_PPQN;
+    need = s->threshold - s->accum;                          /* > 0 */
     s->accum += (uint64_t)frames * inc;
-    fired = s->accum / s->threshold;
-    s->accum -= fired * s->threshold;
+    fired = 0;
+    while (s->accum >= s->threshold) {
+      s->accum -= s->threshold;
+      ++fired;
+    }
     s->clock_tick += fired;
   }
 
   if (s->playing && !s->emitting_clock && !following && !s->resume_anchor_pending) {
-    s->emitting_clock = 1;
-    sq_emit(&o, FM1_SEQ_EV_START, SQ_NONE, 0, 0);
+    if (sq_emit(&o, FM1_SEQ_EV_START, SQ_NONE, 0, 0)) s->emitting_clock = 1;
   } else if (!s->playing && s->emitting_clock) {
-    s->emitting_clock = 0;
-    sq_emit(&o, FM1_SEQ_EV_STOP, SQ_NONE, 0, 0);
+    if (sq_emit(&o, FM1_SEQ_EV_STOP, SQ_NONE, 0, 0)) s->emitting_clock = 0;
   }
   if (!s->playing) return o.n;
-  for (j = 1; j <= fired; ++j) {
-    if (!following && inc) {
-      const uint64_t need = j * s->threshold - a0;           /* > 0 */
-      o.frame = (uint16_t)((need + inc - 1u) / inc - 1u);
+  for (j = 1; j <= fired; ++j, need += s->threshold) {
+    if (s->lim.compat == FM1_SEQ_COMPAT_MOVY) {
+      o.frame = 0;                       /* Movy: every event at the block start */
+    } else if (following) {
+      o.frame = follow_frame(s, s->frame_now - frames + 1u, frames, s->master_tick);
     } else {
-      o.frame = 0;
+      /* ceil(need / inc) - 1, in 32 bits whenever it fits (always at the
+       * FM-1's block size: 64 frames x 2,880,000 < 2^32). */
+      const uint64_t q = need + inc - 1u;
+      o.frame = (uint16_t)((q <= 0xFFFFFFFFu ? (uint32_t)q / (uint32_t)inc : q / inc) - 1u);
     }
     o.tick = (uint32_t)s->master_tick;
-    if (s->resume_anchor_pending && !following && s->master_tick % SQ_TPB == 0) {
+    if (s->resume_anchor_pending && !following && s->bar_tick == 0 &&
+        sq_emit(&o, FM1_SEQ_EV_START, SQ_NONE, 0, 0)) {
       s->resume_anchor_pending = 0;
       s->emitting_clock = 1;
-      sq_emit(&o, FM1_SEQ_EV_START, SQ_NONE, 0, 0);
     }
-    if (s->emitting_clock && !following && s->master_tick % 4u == 0) {
+    if (s->emitting_clock && !following && (s->bar_tick & 3u) == 0) {
       sq_emit(&o, FM1_SEQ_EV_CLOCK, SQ_NONE, 0, 0);
     }
     service_tick(s, &o);

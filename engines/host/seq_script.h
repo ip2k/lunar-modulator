@@ -11,6 +11,12 @@
  * Test directive (a comment to every other reader): "#?@<frame> <label>"
  * asks fm1-seq for a state dump at that point among the commands.
  *
+ * One line is not Movy's: "@<frame> rt <F8|FA|FB|FC>" is MIDI realtime input
+ * (clock, start, continue, stop), delivered like a command: before the first
+ * block starting at or after <frame>, through fm1_seq_realtime_in at frame 0
+ * of that block. The Movy oracle hands it to Engine::on_external_realtime,
+ * which is where movy-dsp's on_midi delivers Move's transport.
+ *
  * Event log: one JSON object per event, in emission order:
  *   {"block":B,"frame":F,"tick":T,"kind":K,"track":t|null,"a":A|null,"b":B|null}
  * with kind on|off|cc|clock|start|stop|click; a lock is "cc" with
@@ -54,6 +60,10 @@ void fm1_script_free(fm1_script_t *s);
 
 /* Reads a whole file into a NUL-terminated buffer (free() it). */
 char *fm1_read_file(const char *path, size_t *len);
+
+/* Applies one script line's ops (fm1_seq_apply_text) or its realtime input
+ * ("rt FA"), writing the events to out. Returns how many. */
+uint32_t fm1_script_apply(fm1_seq_t *s, const char *ops, fm1_seq_ev_t *out, uint32_t cap);
 
 /* One event-log line. `block_start` is the absolute frame of the block. */
 void fm1_script_log_event(FILE *f, uint64_t block, uint64_t block_start, const fm1_seq_ev_t *e);
