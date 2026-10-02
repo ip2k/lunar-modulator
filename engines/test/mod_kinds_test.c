@@ -547,6 +547,20 @@ static void divide(void) {
   CHECK((r & 0xFFFFu) == 1 + 4 * 5 && (r >> 16) == 6);
   for (i = 1; i < 21; ++i) CHECK(g1[i] == base + 1000u + 250u * (i - 1u));
   fm1_mod_destroy(m);
+  /* Mult 16 on a 2,000-frame clock: all sixteen per period, though only 8
+   * triggers wait at once (the run is queued as room frees). */
+  m = make(0, 0, 1);
+  put(m, 0, "divide");
+  set(m, 0, "Mode1", 1.0f);
+  set(m, 0, "Value1", 16.0f);
+  set(m, 0, "Mode2", 3.0f);
+  set(m, 0, "Fill2", 0.0f);                        /* Prob 0: none */
+  r = divide_run(m, 2000, 4, -1, g1, g2, 256);
+  CHECK((r & 0xFFFFu) == 1 + 16 * 3 && (r >> 16) == 0);
+  for (i = 1; i < 49; ++i) {
+    CHECK(g1[i] == base + 2000u * (1u + (i - 1u) / 16u) + 125u * ((i - 1u) % 16u));
+  }
+  fm1_mod_destroy(m);
   /* Swing 1 and a 10 ms delay, Div 1: odd triggers half a step late. */
   m = make(0, 0, 1);
   put(m, 0, "divide");

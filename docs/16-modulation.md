@@ -1199,7 +1199,7 @@ the tests) [verified 2026-10-02]:
   and Bounce's TRIG are normalled to the note trigger, Divide's CLOCK and
   Register's CLOCK to the sequencer's.
 - **Sizes:** 4 B (Mix) to 312 B (Burst, Peaks' 32-pulse buffer) on arm64,
-  the same or less with `gcc -m32`; all sixteen kinds add up to 1,396 B, so
+  the same or less with `gcc -m32`; all sixteen kinds add up to 1,412 B, so
   any rack fits the 8 KB arena. `fm1_mod_size()` is unchanged.
 - **Tests:** a golden trace per kind (the same on clang arm64, gcc x86-64,
   gcc `-m32` and the sanitizer build), block-size identity at 1, 7 and 64

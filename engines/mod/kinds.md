@@ -23,7 +23,7 @@ python3 engines/mod/gen_mi_tables.py --check      # mod_mi_tables.c is current
 | Bounce (`bounce`, BNC) | port of Peaks | TRIG (normal TRIG) | OUT, HIT | 36 |
 | Register (`register`, REG) | own, on `fm1_mp` | CLOCK (normal CLOCK), WRITE | CV, BIT, PITCH (SEMI) | 88 |
 | Coin (`coin`, COI) | own | IN (normal TRIG) | A, B | 24 |
-| Divide (`divide`, DIV) | own | CLOCK (normal CLOCK), RESET (normal START) | OUT1, OUT2 | 192 |
+| Divide (`divide`, DIV) | own | CLOCK (normal CLOCK), RESET (normal START) | OUT1, OUT2 | 208 |
 | Burst (`burst`, BST) | port of Peaks, plus ours | TRIG (normal TRIG), CLOCK | OUT, GATE, DONE | 312 |
 | Slew (`slew`, SLW) | own | THRU; IN | OUT, OUT2–OUT6 | 144 |
 | Quantize (`quantize`, QNT) | port of Braids | CLOCK; IN | PITCH (SEMI), CHG | 28 |
@@ -37,7 +37,7 @@ python3 engines/mod/gen_mi_tables.py --check      # mod_mi_tables.c is current
   `gcc -m32` build gives the same or less (its `uint64_t` aligns to 4)
   [verified 2026-10-02 in a container]. Every kind is under 256 B but
   Burst, which ports Peaks' 32-pulse buffer whole. The sixteen kinds'
-  instances add up to 1,396 B, so any rack of eight fits the 8 KB arena
+  instances add up to 1,412 B, so any rack of eight fits the 8 KB arena
   with room to spare.
 - **Uids** are pinned in `tests/fixtures/mod-uids.json`, 1 upwards in
   table order. Gate inputs and parameters never share a name, since a
@@ -152,7 +152,7 @@ and GateDelay applets and Piqued's Euclidean filter (MIT; no code taken).
 | 1, 5 | Mode1, Mode2 | Div, Mult, Euclid, Prob | |
 | 2, 6 | Value1, Value2 | 1–16, rounded | Div: every Nth step. Mult: N per clock period. Euclid: the loop's length |
 | 3, 7 | Fill1, Fill2 | 0–1 | Euclid: hits = Fill × Value. Prob: the chance of a step |
-| 4, 8 | Rot1, Rot2 | 0–15, rounded | Div and Euclid: steps of rotation |
+| 4, 8 | Rot1, Rot2 | 0–15, rounded | Div and Euclid: moves the pattern that many steps earlier (Div 3, Rot 1: steps 2, 5, 8, …) |
 | 9 | Swing | 0–1 | every second trigger of a channel late by Swing × half its period (1: three quarters of the way) |
 | 10 | Delay | 0–1,000 ms | every trigger later |
 
@@ -161,7 +161,8 @@ and GateDelay applets and Piqued's Euclidean filter (MIT; no code taken).
 - Mult measures the period between the last two clocks; each clock
   restarts its run. Euclid is Bjorklund's pattern in its Bresenham form:
   step p hits when (p × hits) mod length < hits (3 of 8 is x..x..x.).
-- Up to 8 triggers wait per channel. Prob draws once per step and channel
+- Up to 8 triggers wait per channel; a Mult run is queued as room frees,
+  so Mult 16 sends all sixteen. Prob draws once per step and channel
   in every mode [verified: test, exact frames for Div, Euclid, Mult, Swing,
   Delay and RESET].
 

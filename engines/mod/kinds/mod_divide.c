@@ -4,18 +4,21 @@
  * CLOCK (normalled to the sequencer's CLOCK, a trigger each step) counts
  * steps; RESET (normalled to START) makes the next clock step 0. Each
  * channel sends a trigger on OUT1 or OUT2 for the steps its Mode picks:
- *   Div     every Value-th step, Rot steps late (Value 1-16);
+ *   Div     every Value-th step (Value 1-16), the pattern moved Rot steps
+ *           earlier (Div 3, Rot 1: steps 2, 5, 8, ...);
  *   Mult    Value evenly spaced triggers per clock period, the period
  *           measured between the last two clocks (one on the first clock);
  *   Euclid  Fill x Value hits spread evenly over a loop of Value steps
- *           (Bjorklund's pattern in its Bresenham form), rotated Rot steps;
+ *           (Bjorklund's pattern in its Bresenham form), moved Rot steps
+ *           earlier;
  *   Prob    each step passes with probability Fill.
  * Swing delays every second trigger of a channel by Swing x half its
  * period (Div: Value steps; Mult: a Value-th of a step; else one step), so
  * 1 lands the off-beat three quarters of the way. Delay (0-1,000 ms) moves
  * every trigger later. A clock's own triggers keep its frame. In Mult a new
  * clock restarts the run, dropping what it had not yet sent; RESET drops
- * everything scheduled. Up to 8 triggers wait per channel; more are dropped.
+ * everything scheduled. Up to 8 triggers wait per channel, more are dropped;
+ * a Mult run is queued as room frees, so all 16 of x16 are sent.
  * Prob draws once per step and channel whatever the mode, from the
  * instance's own generator, so switching modes never shifts the stream.
  *
@@ -57,9 +60,13 @@ static const fm1_port_t kOuts[] = { { "Out1", FM1_PORT_GATE, FM1_UNIT_NONE, MOD_
 
 typedef struct channel {
   uint64_t at[QUEUE];          /* absolute frames of waiting triggers, ascending */
+  uint64_t run_at;             /* Mult: the clock that started the run */
+  uint32_t run_period;         /* its clock period */
   uint32_t sent;               /* triggers scheduled since RESET (for Swing) */
   mod_trig_t trig;
-  uint8_t n, reserved[3];
+  uint8_t n;
+  uint8_t run_v, run_j;        /* Mult: triggers in the run, the next to queue */
+  uint8_t reserved;
 } channel_t;
 
 typedef struct divide {
@@ -80,10 +87,13 @@ static size_t divide_size(const fm1_host_t *host) {
 static void channel_init(channel_t *c) {
   unsigned i;
   for (i = 0; i < QUEUE; ++i) c->at[i] = 0;
+  c->run_at = 0;
+  c->run_period = 0;
   c->sent = 0;
   mod_trig_init(&c->trig);
   c->n = 0;
-  c->reserved[0] = c->reserved[1] = c->reserved[2] = 0;
+  c->run_v = c->run_j = 0;
+  c->reserved = 0;
 }
 
 static void *divide_create(void *mem, const fm1_host_t *host, uint32_t seed) {
@@ -118,6 +128,23 @@ static void emit(const divide_t *s, channel_t *c, const float *p, uint64_t at,
   schedule(c, at + extra);
 }
 
+/* Queues the Mult run's next triggers while the queue has room: its
+ * triggers come in time order, so the queue never holds more than 8 and a
+ * run of 16 is not cut short. */
+static void refill(const divide_t *s, channel_t *c, const float *p) {
+  while (c->run_j < c->run_v && c->n < QUEUE) {
+    emit(s, c, p, c->run_at + (uint64_t)c->run_period * c->run_j / c->run_v,
+         c->run_period / c->run_v);
+    ++c->run_j;
+  }
+}
+
+/* Ends a channel's waiting triggers and its Mult run. */
+static void drop(channel_t *c) {
+  c->n = 0;
+  c->run_v = c->run_j = 0;
+}
+
 static void clock(divide_t *s, const float *p, uint64_t at) {
   unsigned k;
   if (s->have_last && at > s->last && at - s->last < 0x80000000ull) {
@@ -137,14 +164,13 @@ static void clock(divide_t *s, const float *p, uint64_t at) {
       case M_DIV:
         if ((s->step + rot) % v == 0) emit(s, c, p, at, (uint64_t)s->period * v);
         break;
-      case M_MULT: {
-        uint32_t j;
-        c->n = 0;                                    /* a new clock restarts the run */
-        for (j = 0; j < (s->period ? v : 1u); ++j) {
-          emit(s, c, p, at + (uint64_t)s->period * j / v, s->period / v);
-        }
+      case M_MULT:
+        drop(c);                                     /* a new clock restarts the run */
+        c->run_at = at;
+        c->run_period = s->period;
+        c->run_v = (uint8_t)(s->period ? v : 1u);
+        refill(s, c, p);
         break;
-      }
       case M_EUCLID: {
         const uint32_t hits = (uint32_t)kind_int(fill * (float)v, 0, (int)v);
         const uint32_t pos = (s->step + rot) % v;
@@ -182,7 +208,7 @@ static void divide_process(void *self, const fm1_mod_io_t *io) {
         } else {
           s->step = 0;
           for (k = 0; k < 2u; ++k) {
-            s->ch[k].n = 0;
+            drop(&s->ch[k]);
             s->ch[k].sent = 0;
           }
         }
@@ -192,14 +218,15 @@ static void divide_process(void *self, const fm1_mod_io_t *io) {
   }
   for (k = 0; k < 2u; ++k) {
     channel_t *c = &s->ch[k];
-    unsigned i = 0, j;
-    while (i < c->n && c->at[i] < t1) {
+    refill(s, c, io->p);
+    while (c->n && c->at[0] < t1) {
+      unsigned j;
       mod_trig_fire(&c->trig, &io->gout[O_OUT1 + k],
-                    c->at[i] > t0 ? (unsigned)(c->at[i] - t0) : 0u);
-      ++i;
+                    c->at[0] > t0 ? (unsigned)(c->at[0] - t0) : 0u);
+      for (j = 1; j < c->n; ++j) c->at[j - 1u] = c->at[j];
+      --c->n;
+      refill(s, c, io->p);
     }
-    for (j = i; j < c->n; ++j) c->at[j - i] = c->at[j];
-    c->n = (uint8_t)(c->n - i);
     mod_trig_end(&c->trig, &io->gout[O_OUT1 + k], &io->out[O_OUT1 + k]);
   }
 }
@@ -210,7 +237,8 @@ static void divide_reset(void *self, uint32_t why) {
     s->step = 0;
     s->period = 0;
     s->have_last = 0;
-    s->ch[0].n = s->ch[1].n = 0;
+    drop(&s->ch[0]);
+    drop(&s->ch[1]);
     s->ch[0].sent = s->ch[1].sent = 0;
   }
 }
