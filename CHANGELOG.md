@@ -165,6 +165,37 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **The roadmap, rewritten from the 2026-10-01 studies.**
+  - The README's roadmap gives each line a status and says where it stands.
+    The arpeggiator (our own, after Yarns, with MCL's note orders, in the
+    first MIDI-effect slot so it plays alongside the sequencer) and the
+    LFOs, envelopes and 16-slot modulation matrix are planned with their
+    design chosen. Sample-and-hold is now researched: random and
+    Turing-style sources first, then a bitcrusher, a random-stepped filter,
+    a wavefolder and a chorus, and an echo and a beat-repeat once effects
+    follow the tempo.
+  - The README's install section says Lunar will bring its own installer
+    and update service, and that the first preview goes first to owners who
+    can already restore their FM-1.
+  - DEVELOPERS.md's "The roadmap in detail" gives each line its
+    dependencies, where it is planned and a rough effort, and links the
+    arpeggiator, modulation and effects options note.
+  - A new DEVELOPERS.md section, "The path to an installable build", lays
+    out milestones I0–I15 from today to a release, with the owner's bench
+    work, the earliest safe preview, and two needs no plan covered: Lunar's
+    own update service (the public SDK has no USB-MIDI class and the FM-1's
+    update loader is M-VAVE's own) and its own installer.
+  - DEVELOPERS.md's hardware notes add what is known about MIDI out on the
+    jack (probably needs a hardware change) and over USB (stock already
+    exposes a sending port; the SDK has no USB-MIDI class), Bluetooth's code
+    size by AL-255's two indexes (55–115 KB), and a list of bench checks
+    that write nothing.
+- docs/14 adds step 5b to the dev kit's first week: a second-core probe
+  (§5.1) that measures how cpu1 starts, per-core counters, the FPU on each
+  core, one core against two, cross-core ordering, three ways to keep audio
+  on cpu1 and flash-write stalls. It decides how Lunar splits its work
+  across the cores. §4.3 gains a Cores row and §6 five risks; the USB CDC
+  question is settled (the SDK has `cdc.c`).
 - **The README is now the product page.** It covers what Lunar Modulator
   does, how to try it in a browser, a roadmap, and why it is not installable
   on an FM-1 yet.
@@ -266,6 +297,18 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- **The second core is not idle.** The stock firmware renders its msfa
+  voices on cpu1, outside the OS, and runs the OS, the UI and the effects
+  on cpu0. The routine at V13 file `0x86AD6` polls `0x01C16EC0` and calls
+  the voice render, its only caller [verified: V13 disassembly]; that it
+  runs on cpu1 is inferred from the `cpu1_run_flag` and AL-255's symbol
+  names. `CPU_CORE_NUM 1` is the SDK's mode with the OS on one core, not
+  one core used. AL-255's docs, which this project followed, read cpu1 as
+  unused because their addresses assume `app.bin` runs from `0x02000000`;
+  it appears to run from `0x02000120`. Corrected in docs/01, 05, 06, 08
+  and 11, DEVELOPERS.md, the README roadmap, HANDOFF, `engines/plaits-heavy.md`,
+  `sim/web/README.md`, `sim/web/emulators.md` and a comment in
+  `sim/web/www/worklet.js`.
 - The `USB_KEY` dongle's two 2.2 kΩ pull-ups each get their own pin (GP16
   for D+, GP19 for D−; docs/10 §3).
   - On the one pin they shared, switching them off still joined D+ and D−

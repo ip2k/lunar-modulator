@@ -156,22 +156,29 @@ step.
 
 ## Roadmap
 
-| Feature | Where it stands |
-| --- | --- |
-| Sound engines and effects | Available in the browser simulator |
-| Sequencer | Core built and tested; coming to the simulator's panel and screen next |
-| Arpeggiator and MIDI effects (chords, scales, note echo, …) | Researching open-source designs; after the sequencer |
-| LFOs, envelopes and a modulation matrix | Researching; after the arpeggiator |
-| More effects, including eurorack-style ones such as sample-and-hold | Researching |
-| Screen and controls refinement | Ongoing with each feature |
-| Installing on the FM-1 | Waiting on a build for the FM-1's chip and a proven backup and restore; see [below](#installing-on-your-fm-1) |
-| DX7 patches and SysEx, presets saved on the synth | Planned with the device firmware |
-| MIDI out over USB | Planned with the device firmware (the stock FM-1 already sends notes over USB). The simulator receives MIDI but sends none yet |
-| MIDI out on the 3.5 mm jack | To be investigated: the jack only receives on the stock firmware, and whether the board can send through it is not known yet |
-| BLE MIDI | Under consideration: possible with JieLi's closed Bluetooth libraries, which the stock firmware uses; the first releases may ship without it |
-| The FM-1's second CPU core | To be tried on a JieLi development kit; it could make room for more voices and effects |
+Nothing on this list installs on an FM-1 yet: everything on the device waits
+on the first installable build ([Installing on your FM-1](#installing-on-your-fm-1)).
+"The simulator" means the virtual FM-1 in your browser.
 
-[`DEVELOPERS.md`](DEVELOPERS.md) has the detail behind each line.
+| Feature | Status | Where it stands |
+| --- | --- | --- |
+| Sound engines and effects | Available in the simulator | Five engines and four effects ([What it does](#what-it-does)). |
+| Sequencer | In progress | The core is built and tested, Capture included. It comes to the simulator's panel and screen next. |
+| Screen and controls refinement | In progress | Ongoing with each feature. All 287 of the simulator's screens pass a layout check. |
+| Arpeggiator | Planned, design chosen | Our own arpeggiator, after Mutable Instruments' Yarns, with the extra note orders of MCL (MegaCommand Live): rhythm patterns and Euclidean rhythms, octave modes, ratchets, swing, latch, and chance settings that can repeat a variation. It takes the first MIDI-effect slot, so it plays alongside the sequencer, which the stock firmware cannot do [reported]. |
+| MIDI effects (chords, scales, note echo, …) | Planned | A short chain of effects on each track, between the keys or the sequencer and the sound. The first set: transpose and note range, scale, chord, velocity, note echo and chance. They come to the simulator first. |
+| LFOs, envelopes and a modulation matrix | Planned, design chosen | Two LFOs with tempo sync and trigger modes, two ADSR envelopes after Mutable Instruments' Peaks, and a 16-slot modulation matrix that reaches the engines' and effects' parameters. Per-note envelopes come later, for the engines that can take them. |
+| More effects, including eurorack-style ones such as sample-and-hold | Planned | Sample-and-hold, smooth random and Turing-machine-style modulation sources come first, then a bitcrusher (sample-and-hold at audio rate), a random-stepped filter, a wavefolder and a chorus. A ping-pong echo and a beat-repeat follow once effects can keep the sequencer's tempo. On the FM-1, memory is the limit: one long echo or repeat at a time. |
+| Installing on a real FM-1 | In preparation | Not installable yet. First, Lunar Modulator has to run on a JieLi development kit (on order), and a full backup and a byte-identical restore of an FM-1 have to be proven. It also needs its own installer and its own update service, so that an FM-1 running it can always go back to the stock firmware. The first installable build will be a small preview, offered first to owners who can already restore their own FM-1 ([below](#installing-on-your-fm-1)). |
+| DX7 patches and SysEx, presets saved on the synth | Planned | Comes with the firmware for the FM-1 itself. |
+| MIDI out over USB | Planned | The FM-1 already shows the computer a MIDI port that can send [verified]. On the device, this needs Lunar Modulator's own USB-MIDI driver. The simulator receives MIDI but sends none yet; that needs Web MIDI output. |
+| MIDI out on the 3.5 mm jack | To be investigated | Probably not possible without a hardware change. M-VAVE's manual and Baud Girl's both call the jack an input [reported], and on the board it appears to feed only the input circuit [inferred]. A measurement on an opened FM-1 will settle it. |
+| BLE MIDI | To be investigated | A stock feature, built on JieLi's closed Bluetooth libraries. Lunar Modulator could keep it in builds that use those libraries. Its memory cost is not measured yet, and the first preview will not have it. |
+| The FM-1's second CPU core | To be tried on the development kit | The stock firmware appears to play its synth voices on the second core already [inferred, from its code]. Whether Lunar Modulator can do the same will be tried on the development kit. It could make room for more voices and effects. |
+
+The detail behind each line is in
+[`DEVELOPERS.md`](DEVELOPERS.md#the-roadmap-in-detail), with
+[the path to an installable build](DEVELOPERS.md#the-path-to-an-installable-build).
 
 ## Installing on your FM-1
 
@@ -192,7 +199,14 @@ step.
 
 Once both are done, the plan is for Lunar Modulator to install over USB
 through the FM-1's own update path, as other third-party firmware already
-does, with a way back to the stock firmware. [`DEVELOPERS.md`](DEVELOPERS.md) explains
+does.
+- It will come with its own installer, and it will answer the FM-1's update
+  requests itself, so that a unit running it can always go back to the stock
+  firmware.
+- The first installable build will be a small preview, offered first to
+  owners who can already back up and restore their own FM-1.
+
+[`DEVELOPERS.md`](DEVELOPERS.md#the-path-to-an-installable-build) explains
 the plan and the rules this project follows until then.
 
 ## Documentation
