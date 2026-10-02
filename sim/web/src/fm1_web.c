@@ -3,7 +3,10 @@
  * (test/parity.mjs) call. No Emscripten runtime is used; the module is built
  * standalone and these names are exported as they are.
  *
- * Unit numbers: 0 is the sound, 1 and 2 the effect slots in order.
+ * Unit numbers (fm1_app.h, FM1_APP_UNITS): 0 is the sound, 1 and 2 the
+ * effect slots in order (the master bus); with the lab switch, 3..5 are
+ * sound units 1..3 and 6..13 the inserts (fm1w_sound_unit, fm1w_insert_unit
+ * give them).
  * C99. MIT licence, like the rest of this repository.
  */
 #include "fm1_app.h"
@@ -11,6 +14,21 @@
 #include <stdint.h>
 
 static fm1_app_t g_app;
+
+/* Multi-sound (lab switch; fm1_app.h's fm1_app_unit_*): sound units by
+ * number 0..3, the user's Sounds 1..4. */
+int fm1w_sound_unit(int sound) { return fm1_app_sound_unit(sound); }
+int fm1w_insert_unit(int sound, int slot) { return fm1_app_insert_unit(sound, slot); }
+int fm1w_unit_current(void) { return fm1_app_unit_current(&g_app); }
+int fm1w_unit_set_current(int sound) { return fm1_app_unit_set_current(&g_app, sound); }
+float fm1w_unit_level(int sound) { return fm1_app_unit_level(&g_app, sound); }
+void fm1w_unit_set_level(int sound, float percent) { fm1_app_unit_set_level(&g_app, sound, percent); }
+void fm1w_unit_note_on(int sound, int note, int velocity) {
+  fm1_app_unit_note_on(&g_app, sound, note, velocity);
+}
+void fm1w_unit_note_off(int sound, int note) { fm1_app_unit_note_off(&g_app, sound, note); }
+int fm1w_unit_route(int track, int sound) { return fm1_app_unit_route(&g_app, track, sound); }
+unsigned fm1w_ram_budget(void) { return FM1_APP_RAM_BUDGET; }
 
 /* Text in: JavaScript writes a script line (later, a whole `movy1` set)
  * here and passes its length. 64 KiB holds the largest set an 8-track

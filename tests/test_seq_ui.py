@@ -97,7 +97,7 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
     S4's step entry with its MIDI IN notes replayed as --note."""
     scen = json.loads((ROOT / "sim/web/test/scenarios.json").read_text())["scenarios"]
     panels = [x for x in scen if "panel" in x]
-    assert {x["name"] for x in panels} >= {"seq-panel-play-stop", "seq-panel-step-entry"}
+    assert {x["name"] for x in panels} >= {"seq-panel-play-stop", "seq-panel-step-entry", "multi-panel"}
     for sc in panels:
         seq = ROOT / "sim" / "web" / "test"
         args = ["--engine", sc["engine"], "--seconds", str(sc["seconds"])]
@@ -107,6 +107,10 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
             args += ["--fx", fx]
             for p in ps:
                 args += ["--fx-param", p]
+        for k, sound, ps in sc.get("sounds", []):           # multi-sound (docs/15 §3.16)
+            args += ["--sound", f"{k}:{sound}"] + [a for p in ps for a in ("--sound-param", f"{k}:{p}")]
+        for k, fx, ps in sc.get("inserts", []):
+            args += ["--insert", f"{k}:{fx}"] + [a for p in ps for a in ("--insert-param", f"{k}:{p}")]
         s, r, log, a, b = two_step(tools, tmp_path, sc["name"], seq / sc["panel"], seq / sc["cmd"],
                                    *args, lab=sc.get("lab", False))
         assert s["replayable"] == 1 and a == b and s["peak"] > 0.01
@@ -120,6 +124,11 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
             verbs = {t.split()[0] for t in played}
             assert verbs == {"tog", "eprob", "econd", "einv", "enudge", "addp", "del", "play"}
             assert any(t.startswith("tog 0 16 ") for t in played), "the clip's second bar"
+        if sc["name"] == "multi-panel":
+            assert sidecar.startswith("--slots\n"), "the replay routes by slot"
+            assert sidecar.count("--sound-note\n1:") == 2, "Sound 2's key and MIDI IN note"
+            assert sidecar.count("--sound-param-at\n1:") == 1 and sidecar.count("--level-at") == 2
+            assert played == ["play", "stop"]
 
 
 def test_every_verb_round_trips_through_its_text(tools):

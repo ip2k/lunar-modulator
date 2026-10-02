@@ -65,6 +65,19 @@
  * and makes the run not replayable. In SEQ mode the keys play nothing, and
  * what they did is in the script.
  *
+ * Multi-sound (docs/15 §3.16), with --lab only, as fm1-render takes them:
+ * --sound K:ID loads sound unit K (1..3), --sound-param K:NAME=V, --insert
+ * K:ID (the next insert slot of unit K, 0..3) and --insert-param K:NAME=V,
+ * --level K:PCT, and the timed --sound-note K:T:KEY:VEL:DUR, --sound-param-at
+ * K:T:NAME=V and --level-at K:T:PCT; --slots is accepted and implied (the
+ * sidecar always says it with --lab, since the app routes tracks by slot
+ * then). Keys and MIDI IN play the current sound: a note on a sound unit
+ * other than 0 goes into the sidecar as --sound-note, a knob turn on its
+ * page as --sound-param-at, a level on the Mix page as --level-at; a change
+ * of an insert or of the sound units, a bend on another sound, or a note-off
+ * that would release another unit's note of the same pitch makes the run
+ * not replayable.
+ *
  * Test hooks: --seq-reset T:N and --seq-import T:FILE recreate the instance or import a set at time T, as a
  * UI would (then the default route, unless --route was given); --seq-ui
  * T:OP sends one op as a typed command at time T, as the panel will
@@ -87,7 +100,7 @@
 
 typedef enum {
   EV_NOTE, EV_BEND, EV_PARAM, EV_KEY, EV_BUTTON, EV_TURN, EV_SELECT, EV_SEQ_RESET, EV_SEQ_IMPORT,
-  EV_SEQ_UI
+  EV_SEQ_UI, EV_LEVEL
 } ev_kind_t;
 
 typedef struct {
@@ -99,6 +112,8 @@ typedef struct {
   char name[32];
   int side;            /* note: its --note in the replay's sidecar, index + 1; 0 none */
   int done;
+  int sound;           /* note, param, level: its sound unit; -1 a note on the current one */
+  int played;          /* a note-off of the current sound's: where its note-on went */
 } event_t;
 
 static fm1_app_t g_app;
@@ -119,7 +134,10 @@ static void usage(void) {
           "       [--cmd FILE] [--seq FILE.movy1] [--tracks N] [--route T:engine|T:midi:CH]...\n"
           "       [--events N] [--log-events FILE.jsonl] [--log-cmds FILE.verbs]\n"
           "       [--seq-reset T:N] [--seq-import T:FILE.movy1] [--seq-ui T:OP]\n"
-          "       [--lab] [--panel FILE] [--start] | --sizes | --format-check\n");
+          "       [--lab] [--panel FILE] [--start] | --sizes | --format-check\n"
+          "       with --lab: [--sound K:ID [--sound-param K:NAME=V]...] [--insert K:ID\n"
+          "       [--insert-param K:NAME=V]...] [--level K:PCT] [--slots]\n"
+          "       [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=V] [--level-at K:T:PCT]\n");
 }
 
 static event_t *add_event(double t, ev_kind_t kind) {
@@ -131,6 +149,7 @@ static event_t *add_event(double t, ev_kind_t kind) {
   memset(e, 0, sizeof *e);
   e->time = t;
   e->kind = kind;
+  e->sound = kind == EV_NOTE ? -1 : 0;
   return e;
 }
 
@@ -271,8 +290,15 @@ static double g_key_t0[FM1_APP_KEYS];
 static void key_note_text(int key, double dur) {
   char buf[96];
   const int k = g_key_side[key] - 1;
-  snprintf(buf, sizeof buf, "%.9f:%u:%u:%.9f", g_key_t0[key], (unsigned)g_app.key_note[key],
-           (unsigned)g_app.key_vel[key], dur);
+  const int snd = g_app.key_sound[key];
+  if (snd) {                                /* a key on another sound unit */
+    g_side_flag[k] = "--sound-note";
+    snprintf(buf, sizeof buf, "%d:%.9f:%u:%u:%.9f", snd, g_key_t0[key], (unsigned)g_app.key_note[key],
+             (unsigned)g_app.key_vel[key], dur);
+  } else {
+    snprintf(buf, sizeof buf, "%.9f:%u:%u:%.9f", g_key_t0[key], (unsigned)g_app.key_note[key],
+             (unsigned)g_app.key_vel[key], dur);
+  }
   free(g_side_value[k]);
   g_side_value[k] = malloc(strlen(buf) + 1);
   if (!g_side_value[k]) exit(2);
@@ -298,6 +324,7 @@ static void key_logged(int key, int was_down, uint32_t pos, float rate) {
 typedef struct {
   int index[FM1_APP_UNITS];
   float value[FM1_APP_UNITS][FM1_APP_MAX_PARAMS];
+  float level[FM1_APP_SOUNDS];
 } units_t;
 
 static void units_now(units_t *u) {
@@ -305,25 +332,44 @@ static void units_now(units_t *u) {
     u->index[k] = g_app.unit[k].index;
     memcpy(u->value[k], g_app.unit[k].value, sizeof u->value[k]);
   }
+  memcpy(u->level, g_app.level, sizeof u->level);
 }
 
 /* After a panel event in the block at `pos`: a sound parameter it changed
- * replays as --param-at at mid-block, where fm1-render applies it at the
- * same block start (docs/15 §6.3); a new sound or effect, or an effect's
- * parameter, cannot be replayed. */
+ * replays as --param-at at mid-block (--sound-param-at for another sound
+ * unit), where fm1-render applies it at the same block start (docs/15
+ * §6.3), and a level on the Mix page as --level-at; a new sound or effect,
+ * or an effect's parameter, cannot be replayed. */
 static void panel_changed(const units_t *b, uint32_t pos, float rate) {
-  const fm1_engine_t *e = g_app.unit[0].e;
+  const double t = pos ? (pos - 32.0) / rate : 0.0;
+  int sound_unit[FM1_APP_UNITS];
+  for (int k = 0; k < FM1_APP_UNITS; ++k) sound_unit[k] = -1;
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) sound_unit[fm1_app_sound_unit(k)] = k;
   for (int k = 0; k < FM1_APP_UNITS; ++k) {
     if (g_app.unit[k].index != b->index[k]) g_replayable = 0;
-    if (k && memcmp(g_app.unit[k].value, b->value[k], sizeof b->value[k]) != 0) g_replayable = 0;
+    if (sound_unit[k] < 0 && memcmp(g_app.unit[k].value, b->value[k], sizeof b->value[k]) != 0) {
+      g_replayable = 0;
+    }
   }
-  if (!g_replayable || !e) return;
-  for (uint16_t i = 0; i < e->n_params; ++i) {
-    if (g_app.unit[0].value[i] != b->value[0][i]) {
-      char buf[96];
-      snprintf(buf, sizeof buf, "%.9f:%s=%.9g", pos ? (pos - 32.0) / rate : 0.0,
-               e->params[i].name, (double)g_app.unit[0].value[i]);
-      side("--param-at", buf);
+  if (!g_replayable) return;
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    const int u = fm1_app_sound_unit(k);
+    const fm1_engine_t *e = g_app.unit[u].e;
+    char buf[128];
+    if (g_app.level[k] != b->level[k]) {
+      snprintf(buf, sizeof buf, "%d:%.9f:%.9g", k, t, (double)g_app.level[k]);
+      side("--level-at", buf);
+    }
+    for (uint16_t i = 0; e && i < e->n_params; ++i) {
+      if (g_app.unit[u].value[i] == b->value[u][i]) continue;
+      if (k) {
+        snprintf(buf, sizeof buf, "%d:%.9f:%s=%.9g", k, t, e->params[i].name,
+                 (double)g_app.unit[u].value[i]);
+        side("--sound-param-at", buf);
+      } else {
+        snprintf(buf, sizeof buf, "%.9f:%s=%.9g", t, e->params[i].name, (double)g_app.unit[u].value[i]);
+        side("--param-at", buf);
+      }
     }
   }
 }
@@ -814,6 +860,231 @@ static void seq_step_screens(const char *dir, float rate) {
   destroy_units();
 }
 
+/* ---- --screens, lab on: multi-sound (docs/15 §3.16) ------------------- */
+
+/* Every page of a unit shown in FX mode's lab layout at FX slot `slot`, at
+ * its defaults, extremes and list entries (as sweep_unit does for HOME). */
+static void sweep_fx_lab(int unit, int slot, const char *tag, const char *dir, int save) {
+  const fm1_engine_t *e = g_app.unit[unit].e;
+  char name[160];
+  int pages = 1;
+  g_app.fx_slot = slot;
+  for (uint16_t i = 0; i < e->n_params; ++i) {
+    if (e->params[i].page + 1 > pages) pages = e->params[i].page + 1;
+  }
+  for (int page = 0; page < pages; ++page) {
+    g_app.fx_page = page;
+    snprintf(name, sizeof name, "multi-%s-%s-p%d", tag, e->id, page + 1);
+    check_screen(name, dir, save && page == 0);
+    for (int pass = 0; pass < 2; ++pass) {
+      for (uint16_t i = 0; i < e->n_params; ++i) {
+        fm1_app_set_param(&g_app, unit, i, pass ? e->params[i].max : e->params[i].min);
+      }
+      snprintf(name, sizeof name, "multi-%s-%s-p%d-%s", tag, e->id, page + 1, pass ? "max" : "min");
+      check_screen(name, dir, 0);
+    }
+    for (uint16_t i = 0; i < e->n_params; ++i) {
+      const fm1_param_t *q = &e->params[i];
+      if (q->type != FM1_PARAM_ENUM || q->page != page) continue;
+      for (int v = (int)q->min; v <= (int)q->max; ++v) {
+        fm1_app_set_param(&g_app, unit, i, (float)v);
+        snprintf(name, sizeof name, "multi-%s-%s-p%d-%s-%d", tag, e->id, page + 1, q->name, v);
+        check_screen(name, dir, 0);
+      }
+    }
+    for (uint16_t i = 0; i < e->n_params; ++i) fm1_app_set_param(&g_app, unit, i, e->params[i].def);
+  }
+  g_app.fx_page = 0;
+}
+
+static void turn_now(int encoder, int delta) { fm1_app_encoder(&g_app, encoder, delta); }
+
+/* SHIFT (SEL outside FX mode) held around one PRESETS turn: the current sound. */
+static void shift_presets(int delta) {
+  fm1_app_button(&g_app, FM1_BTN_SEL, 1);
+  turn_now(FM1_ENC_PRESETS, delta);
+  fm1_app_button(&g_app, FM1_BTN_SEL, 0);
+}
+
+static void multi_screens(const char *dir, float rate) {
+  char name[160];
+  destroy_units();
+  fm1_app_init(&g_app, rate);
+  fm1_app_set_lab(&g_app, 1);
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  fm1_app_select(&g_app, 1, fm1_app_find("plate"));
+  fm1_app_seq_default_route(&g_app);
+  blocks(1);
+  /* One sound in the lab: the title as before, the RAM meter in the bottom
+   * bar, and FX mode's five slots, opening on M1 where the slot was. */
+  check_screen("multi-home-one-sound", dir, 1);
+  press(FM1_BTN_FX);
+  expect(g_app.mode == FM1_MODE_FX && g_app.fx_slot == 3, "FX mode does not open on M1 (Plate)");
+  check_screen("multi-fx-m1-plate", dir, 1);
+  turn_now(FM1_ENC_SELECT, -64);
+  expect(g_app.fx_slot == 0 && g_app.fx_page == 0, "SELECT does not walk back to In1");
+  check_screen("multi-fx-in1-empty", dir, 1);
+  turn_now(FM1_ENC_SELECT, 2);
+  expect(g_app.fx_slot == 2, "SELECT does not reach the Mix page");
+  check_screen("multi-fx-mix-one-sound", dir, 1);
+  press(FM1_BTN_SEL);                                    /* Mix: nothing to grab */
+  expect(!g_app.fx_grab, "SEL grabbed the Mix page");
+  turn_now(FM1_ENC_KNOB1, -64);                          /* a percent a detent */
+  expect(g_app.level[0] == 36.0f, "KNOB1 on Mix does not turn Sound 1's level a percent a detent");
+  turn_now(FM1_ENC_KNOB1, -64);
+  expect(g_app.level[0] == 0.0f, "KNOB1 on Mix does not take Sound 1's level to 0");
+  check_screen("multi-fx-mix-level-0", dir, 0);
+  turn_now(FM1_ENC_KNOB1, 64);
+  turn_now(FM1_ENC_KNOB1, 64);
+  expect(g_app.level[0] == 100.0f, "KNOB1 on Mix does not bring the level back to 100");
+  turn_now(FM1_ENC_ALGORITHM, 1);                         /* the Mix page has no effect */
+  expect(g_app.popup_lines == 0, "ALGORITHM on the Mix page");
+  /* Every effect in an insert, every page at its extremes (In1), and every
+   * effect on M2 (its first page). */
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    if (fm1_engines[i]->kind != FM1_KIND_AUDIO_FX) continue;
+    if (fm1_app_unit_insert(&g_app, 0, 0, (int)i) == 0) {
+      g_app.popup_lines = 0;
+      sweep_fx_lab(fm1_app_insert_unit(0, 0), 0, "in1", dir, fm1_engines[i] == fm1_engine_find("ensemble"));
+    }
+    if (fm1_app_select(&g_app, 2, (int)i) == 0) {
+      g_app.fx_slot = 4;
+      g_app.fx_page = 0;
+      g_app.popup_lines = 0;
+      snprintf(name, sizeof name, "multi-m2-%s", fm1_engines[i]->id);
+      check_screen(name, dir, 0);
+    }
+  }
+  fm1_app_unit_insert(&g_app, 0, 0, fm1_app_find("ensemble"));
+  fm1_app_unit_insert(&g_app, 0, 1, fm1_app_find("diffuse"));
+  fm1_app_select(&g_app, 2, -1);
+  /* SEL then SELECT swaps the two inserts; the grab marker. */
+  g_app.fx_slot = 0;
+  g_app.fx_page = 0;
+  press(FM1_BTN_SEL);
+  expect(g_app.fx_grab == 1, "SEL does not grab In1");
+  check_screen("multi-fx-in1-grabbed", dir, 1);
+  turn_now(FM1_ENC_SELECT, 1);
+  expect(g_app.fx_slot == 1 && g_app.unit[fm1_app_insert_unit(0, 1)].e == fm1_engine_find("ensemble") &&
+             g_app.unit[fm1_app_insert_unit(0, 0)].e == fm1_engine_find("diffuse"),
+         "SEL + SELECT does not swap the inserts");
+  turn_now(FM1_ENC_SELECT, 1);                            /* the group ends at In2 */
+  expect(g_app.fx_slot == 1, "a grabbed insert left its group");
+  press(FM1_BTN_SEL);
+  press(FM1_BTN_HOME);
+  /* SHIFT + PRESETS: Sound 2, empty; PRESETS walks Empty and the sounds. */
+  shift_presets(1);
+  expect(g_app.sound == 1 && g_app.popup_lines == 3, "SHIFT + PRESETS does not choose Sound 2");
+  check_screen("multi-popup-sound-2-empty", dir, 1);
+  g_app.popup_lines = 0;
+  check_screen("multi-home-empty-sound", dir, 1);
+  expect(!g_app.ui.shift, "SHIFT stuck after SHIFT + PRESETS");
+  turn_now(FM1_ENC_PRESETS, 1);
+  expect(g_app.unit[fm1_app_sound_unit(1)].e != NULL, "PRESETS does not load Sound 2");
+  check_screen("multi-popup-presets-sound-2", dir, 1);
+  turn_now(FM1_ENC_PRESETS, -1);
+  expect(g_app.unit[fm1_app_sound_unit(1)].e == NULL, "PRESETS does not reach Empty on Sound 2");
+  check_screen("multi-popup-presets-empty", dir, 0);
+  /* Every sound as Sound 2: HOME's title "S2 <name>", the Mix page's row. */
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    if (fm1_engines[i]->kind != FM1_KIND_SOUND) continue;
+    if (fm1_app_unit_select(&g_app, 1, (int)i) != 0) continue;
+    g_app.popup_lines = 0;
+    g_app.mode = FM1_MODE_HOME;
+    snprintf(name, sizeof name, "multi-home-s2-%s", fm1_engines[i]->id);
+    check_screen(name, dir, fm1_engines[i] == fm1_engine_find("shapes"));
+    g_app.mode = FM1_MODE_FX;
+    g_app.fx_slot = 2;
+    snprintf(name, sizeof name, "multi-mix-s2-%s", fm1_engines[i]->id);
+    check_screen(name, dir, 0);
+    g_app.mode = FM1_MODE_SEQ;
+    snprintf(name, sizeof name, "multi-seq-s2-%s", fm1_engines[i]->id);
+    check_screen(name, dir, 0);
+  }
+  /* Four sounds: Sound 3 Six-Op, Sound 4 Test Sine; their levels at both
+   * ends; Sound 3 empty again. */
+  fm1_app_unit_select(&g_app, 1, fm1_app_find("sw-sophie"));
+  expect(fm1_app_unit_select(&g_app, 2, fm1_app_find("sixop")) == 0, "Six-Op as Sound 3");
+  expect(fm1_app_unit_select(&g_app, 3, fm1_app_find("test-sine")) == 0, "Test Sine as Sound 4");
+  g_app.mode = FM1_MODE_FX;
+  g_app.fx_slot = 2;
+  g_app.popup_lines = 0;
+  check_screen("multi-fx-mix-four", dir, 1);
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) fm1_app_unit_set_level(&g_app, k, (float)(k * 33));
+  check_screen("multi-fx-mix-four-levels", dir, 0);
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) fm1_app_unit_set_level(&g_app, k, 100.0f);
+  fm1_app_unit_select(&g_app, 2, -1);
+  check_screen("multi-fx-mix-sound-3-empty", dir, 0);
+  /* The current sound's inserts follow it: Sound 2's, then Sound 1's. */
+  g_app.fx_slot = 0;
+  check_screen("multi-fx-s2-in1-empty", dir, 0);
+  /* The RAM meter refuses: Shapes on Sound 1 with Shapes already on Sound 2
+   * passes the budget; the popup says by how much. */
+  fm1_app_unit_set_current(&g_app, 0);
+  fm1_app_unit_select(&g_app, 1, fm1_app_find("shapes"));
+  g_app.mode = FM1_MODE_HOME;
+  {
+    const size_t before = fm1_app_ram(&g_app);
+    const int r = fm1_app_unit_select(&g_app, 0, fm1_app_find("shapes"));
+    expect(r == FM1_APP_SELECT_RAM && fm1_app_ram(&g_app) == before, "the meter let Shapes twice in");
+  }
+  expect(g_app.unit[0].e != NULL, "Sound 1 emptied by a refusal");
+  turn_now(FM1_ENC_PRESETS, 1);                           /* Macro -> Shapes is stepped over */
+  expect(g_app.unit[0].e && g_app.unit[0].e != fm1_engine_find("shapes"), "PRESETS loaded what does not fit");
+  expect(g_app.popup_lines == 3, "no refusal popup from PRESETS");
+  check_screen("multi-popup-ram-refused", dir, 1);
+  g_app.popup_lines = 0;
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  /* ALGORITHM in FX mode steps over an effect that does not fit (PSX Verb). */
+  g_app.mode = FM1_MODE_FX;
+  g_app.fx_slot = 3;
+  fm1_app_select(&g_app, 1, fm1_app_find("diffuse"));
+  fm1_app_unit_insert(&g_app, 1, 0, fm1_app_find("plate"));
+  {
+    const int psx = fm1_app_find("sw-psxverb");
+    int prev = psx - 1;                                   /* the effect before it in the list */
+    while (prev >= 0 && fm1_engines[prev]->kind != FM1_KIND_AUDIO_FX) --prev;
+    expect(psx >= 0 && prev >= 0 && fm1_app_ram_with(&g_app, 1, psx) > FM1_APP_RAM_BUDGET,
+           "PSX Verb fits beside Shapes and Plate");
+    fm1_app_select(&g_app, 1, prev);
+    turn_now(FM1_ENC_ALGORITHM, 1);
+    expect(g_app.unit[1].index != psx && g_app.unit[1].index != prev && g_app.popup_lines == 3,
+           "ALGORITHM did not step over PSX Verb");
+    check_screen("multi-popup-fx-ram-refused", dir, 1);
+    g_app.popup_lines = 0;
+  }
+  /* The meter's states: a quarter, nearly full, and past the budget (the
+   * switch turned on over a chain from the public page). */
+  g_app.mode = FM1_MODE_HOME;
+  for (int k = 1; k < FM1_APP_SOUNDS; ++k) fm1_app_unit_select(&g_app, k, -1);
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    for (int j = 0; j < FM1_APP_INSERTS; ++j) fm1_app_unit_insert(&g_app, k, j, -1);
+  }
+  check_screen("multi-meter-low", dir, 0);
+  fm1_app_unit_select(&g_app, 1, fm1_app_find("shapes"));
+  fm1_app_unit_insert(&g_app, 1, 0, fm1_app_find("plate"));
+  check_screen("multi-meter-high", dir, 1);
+  g_app.mode = FM1_MODE_GLOBAL;
+  check_screen("multi-global", dir, 1);
+  destroy_units();
+  fm1_app_init(&g_app, rate);
+  fm1_app_select(&g_app, 0, fm1_app_find("shapes"));
+  fm1_app_select(&g_app, 1, fm1_app_find("sw-psxverb"));
+  fm1_app_select(&g_app, 2, fm1_app_find("plate"));
+  fm1_app_set_lab(&g_app, 1);
+  expect(fm1_app_ram(&g_app) > FM1_APP_RAM_BUDGET, "Shapes, PSX Verb and Plate fit the budget");
+  check_screen("multi-meter-over", dir, 1);
+  expect(fm1_app_select(&g_app, 2, fm1_app_find("diffuse")) == 0, "a chain past the budget cannot shrink");
+  expect(fm1_app_select(&g_app, 2, fm1_app_find("plate")) == FM1_APP_SELECT_RAM, "a chain past the budget grew");
+  /* The switch off: one sound and the master bus again. */
+  fm1_app_unit_select(&g_app, 1, fm1_app_find("test-sine"));
+  fm1_app_set_lab(&g_app, 0);
+  expect(!g_app.unit[fm1_app_sound_unit(1)].e && g_app.sound == 0, "the switch off kept Sound 2");
+  expect(fm1_app_unit_select(&g_app, 1, fm1_app_find("test-sine")) == FM1_APP_SELECT_BAD,
+         "Sound 2 loads with the switch off");
+  destroy_units();
+}
+
 static int run_screens(const char *dir, float rate) {
   fm1_app_init(&g_app, rate);
   for (size_t i = 0; i < fm1_engine_count; ++i) {
@@ -910,6 +1181,7 @@ static int run_screens(const char *dir, float rate) {
   check_screen("popup-refuses-rate", dir, 1);
   seq_screens(dir, rate);
   seq_step_screens(dir, rate);
+  multi_screens(dir, rate);
   printf("{\"screens\":%d,\"faults\":%d}\n", g_screens, g_faults);
   return g_faults ? 1 : 0;
 }
@@ -920,11 +1192,17 @@ static int print_sizes(void) {
   fm1_seq_limits_t lim8, lim4;
   fm1_seq_limits_default(&lim8, 8);
   fm1_seq_limits_default(&lim4, 4);
-  printf("{\"app_bytes\":%zu,\"seq_arena\":%u,\"seq_tracks\":%d,\"seq_bytes_8\":%zu,"
+  printf("{\"app_bytes\":%zu,\"sounds\":%d,\"inserts\":%d,\"master_slots\":%d,"
+         "\"units\":%d,\"sound_arena\":%u,\"fx_arena\":%u,\"arena_bytes\":%zu,"
+         "\"ram_budget\":%u,\"mix_block_bytes\":%u,",
+         sizeof(fm1_app_t), FM1_APP_SOUNDS, FM1_APP_INSERTS, FM1_APP_FX_SLOTS, FM1_APP_UNITS,
+         FM1_APP_SOUND_BYTES, FM1_APP_FX_BYTES, sizeof g_app.sound_mem + sizeof g_app.fx_mem,
+         FM1_APP_RAM_BUDGET, FM1_APP_MIX_BLOCK_BYTES);
+  printf("\"seq_arena\":%u,\"seq_tracks\":%d,\"seq_bytes_8\":%zu,"
          "\"seq_bytes_4\":%zu,\"seq_event_bytes\":%zu,\"seq_pending_bytes\":%zu,"
          "\"seq_ui_bytes\":%u,\"seq_ui_size\":%zu,\"seq_budget\":%u,\"seq_need\":%u,"
          "\"seq_events\":%u}\n",
-         sizeof(fm1_app_t), FM1_APP_SEQ_BYTES, FM1_APP_SEQ_TRACKS, fm1_seq_size(&lim8),
+         FM1_APP_SEQ_BYTES, FM1_APP_SEQ_TRACKS, fm1_seq_size(&lim8),
          fm1_seq_size(&lim4), sizeof g_app.seq_ev, sizeof g_app.seq_pend, FM1_APP_SEQ_UI_BYTES,
          sizeof(fm1_seq_ui_t),
          FM1_APP_SEQ_BUDGET,
@@ -1066,6 +1344,122 @@ static int import_file(const char *path) {
 
 /* ---- the render ---------------------------------------------------------------- */
 
+/* Multi-sound set-up from the command line (--sound, --insert, their
+ * parameters and --level), applied after the sound and the master effects,
+ * in fm1-render's order. */
+typedef struct {
+  char id[32];
+  int np;
+  char pname[16][32];
+  float pval[16];
+} unit_spec_t;
+static unit_spec_t g_more[FM1_APP_SOUNDS];                 /* [0] unused: --engine */
+static unit_spec_t g_ins[FM1_APP_SOUNDS][FM1_APP_INSERTS];
+static int g_nins[FM1_APP_SOUNDS];
+static float g_level[FM1_APP_SOUNDS];
+static int g_level_set[FM1_APP_SOUNDS];
+static int g_multi;                                         /* any multi-sound flag */
+
+/* "K:REST" with K a sound unit 0..3: K, and REST in *rest; -1 if malformed. */
+static int sound_arg(const char *v, const char **rest) {
+  char *end = NULL;
+  const long k = strtol(v, &end, 10);
+  if (end == v || *end != ':' || k < 0 || k >= FM1_APP_SOUNDS) return -1;
+  *rest = end + 1;
+  return (int)k;
+}
+
+static int add_unit_param(unit_spec_t *u, const char *arg) {
+  if (u->np >= 16 || !split_param(arg, u->pname[u->np], sizeof u->pname[0], &u->pval[u->np])) return 0;
+  ++u->np;
+  return 1;
+}
+
+/* --sound, --sound-param, --insert, --insert-param, --level, --sound-note,
+ * --sound-param-at and --level-at: 1, or 0 for a malformed value. */
+static int add_multi(const char *flag, const char *v) {
+  const char *rest = NULL;
+  const int k = sound_arg(v, &rest);
+  g_multi = 1;
+  if (k < 0) return 0;
+  if (strcmp(flag, "--sound") == 0) {
+    if (k == 0) return 0;                               /* unit 0 is --engine */
+    snprintf(g_more[k].id, sizeof g_more[k].id, "%s", rest);
+    return 1;
+  }
+  if (strcmp(flag, "--sound-param") == 0) return add_unit_param(&g_more[k], rest);
+  if (strcmp(flag, "--insert") == 0) {
+    if (g_nins[k] >= FM1_APP_INSERTS) return 0;
+    snprintf(g_ins[k][g_nins[k]++].id, sizeof g_ins[k][0].id, "%s", rest);
+    return 1;
+  }
+  if (strcmp(flag, "--insert-param") == 0) return g_nins[k] && add_unit_param(&g_ins[k][g_nins[k] - 1], rest);
+  if (strcmp(flag, "--level") == 0) {
+    g_level[k] = (float)atof(rest);
+    g_level_set[k] = 1;
+    return 1;
+  }
+  if (strcmp(flag, "--sound-note") == 0) {
+    double t, dur;
+    int key, vel;
+    if (sscanf(rest, "%lf:%d:%d:%lf", &t, &key, &vel, &dur) != 4) return 0;
+    event_t *on = add_event(t, EV_NOTE);
+    on->on = 1, on->a = key, on->b = vel, on->sound = k;
+    event_t *off = add_event(t + dur, EV_NOTE);
+    off->on = 0, off->a = key, off->sound = k;
+    return 1;
+  }
+  {                                                     /* --sound-param-at, --level-at: K:T:... */
+    const char *colon = strchr(rest, ':');
+    event_t *e;
+    if (!colon) return 0;
+    e = add_event(atof(rest), strcmp(flag, "--level-at") == 0 ? EV_LEVEL : EV_PARAM);
+    e->sound = k;
+    if (e->kind == EV_LEVEL) e->value = (float)atof(colon + 1);
+    else if (!split_param(colon + 1, e->name, sizeof e->name, &e->value)) return 0;
+    return 1;
+  }
+}
+
+static int is_multi_flag(const char *a) {
+  return strcmp(a, "--sound") == 0 || strcmp(a, "--sound-param") == 0 || strcmp(a, "--insert") == 0 ||
+         strcmp(a, "--insert-param") == 0 || strcmp(a, "--level") == 0 ||
+         strcmp(a, "--sound-note") == 0 || strcmp(a, "--sound-param-at") == 0 ||
+         strcmp(a, "--level-at") == 0;
+}
+
+/* Loads the multi-sound set-up: 0, or 1 after saying what failed. */
+static int load_multi(void) {
+  for (int k = 1; k < FM1_APP_SOUNDS; ++k) {
+    const int u = fm1_app_sound_unit(k);
+    if (!g_more[k].id[0]) {
+      if (g_more[k].np) { fprintf(stderr, "--sound-param for sound unit %d without --sound\n", k); return 1; }
+      continue;
+    }
+    const int r = fm1_app_select(&g_app, u, fm1_app_find(g_more[k].id));
+    if (r) { fprintf(stderr, "cannot load %s into sound unit %d (%d)\n", g_more[k].id, k, r); return 1; }
+    for (int q = 0; q < g_more[k].np; ++q) {
+      const int idx = fm1_app_param_index(&g_app, u, g_more[k].pname[q]);
+      if (idx < 0) { fprintf(stderr, "unknown parameter for %s: %s\n", g_more[k].id, g_more[k].pname[q]); return 1; }
+      fm1_app_set_param(&g_app, u, idx, g_more[k].pval[q]);
+    }
+  }
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    for (int j = 0; j < g_nins[k]; ++j) {
+      const int u = fm1_app_insert_unit(k, j);
+      const int r = fm1_app_select(&g_app, u, fm1_app_find(g_ins[k][j].id));
+      if (r) { fprintf(stderr, "cannot load %s as insert %d of sound unit %d (%d)\n", g_ins[k][j].id, j, k, r); return 1; }
+      for (int q = 0; q < g_ins[k][j].np; ++q) {
+        const int idx = fm1_app_param_index(&g_app, u, g_ins[k][j].pname[q]);
+        if (idx < 0) { fprintf(stderr, "unknown parameter for %s: %s\n", g_ins[k][j].id, g_ins[k][j].pname[q]); return 1; }
+        fm1_app_set_param(&g_app, u, idx, g_ins[k][j].pval[q]);
+      }
+    }
+    if (g_level_set[k]) fm1_app_unit_set_level(&g_app, k, g_level[k]);
+  }
+  return 0;
+}
+
 static int find_param(int unit, const char *name) {
   int i = fm1_app_param_index(&g_app, unit, name);
   if (i < 0) fprintf(stderr, "unknown parameter for unit %d: %s\n", unit, name);
@@ -1087,6 +1481,7 @@ int main(int argc, char **argv) {
   int tracks = -1, seconds_given = 0, rate_given = 0, n_routes = 0;
   long events_cap = -1;
   route_t routes[MAX_ROUTES];
+  int side_note_pair_later = 0;
 
   for (int i = 1; i < argc; ++i) {
     const char *a = argv[i];
@@ -1099,16 +1494,24 @@ int main(int argc, char **argv) {
     if (strcmp(a, "--sizes") == 0) return print_sizes();
     if (strcmp(a, "--format-check") == 0) return format_check();
     if (strcmp(a, "--lab") == 0) { g_lab = 1; continue; }
+    if (strcmp(a, "--slots") == 0) continue;                 /* implied by --lab */
     if (strcmp(a, "--start") == 0) { g_start = 1; continue; }
     if (i + 1 >= argc) { usage(); return 2; }
     const char *v = argv[++i];
     /* What fm1-render needs to replay a --log-cmds file (its sidecar). */
     if (strcmp(a, "--engine") == 0 || strcmp(a, "--param") == 0 || strcmp(a, "--fx") == 0 ||
         strcmp(a, "--fx-param") == 0 || strcmp(a, "--note") == 0 || strcmp(a, "--bend") == 0 ||
-        strcmp(a, "--param-at") == 0 || strcmp(a, "--seq") == 0 || strcmp(a, "--route") == 0) {
+        strcmp(a, "--param-at") == 0 || strcmp(a, "--seq") == 0 || strcmp(a, "--route") == 0 ||
+        is_multi_flag(a)) {
       side(a, v);
+      if (strcmp(a, "--sound-note") == 0) side_note_pair_later = 1;
     }
     if (strcmp(a, "--screens") == 0) return run_screens(v, rate);
+    else if (is_multi_flag(a)) {
+      if (!add_multi(a, v)) { fprintf(stderr, "bad %s %s\n", a, v); return 2; }
+      if (side_note_pair_later) side_note_pair();          /* the --sound-note just added */
+      side_note_pair_later = 0;
+    }
     else if (strcmp(a, "--panel") == 0) { if (!read_panel(v)) return 2; }
     else if (strcmp(a, "--engine") == 0) engine = v;
     else if (strcmp(a, "--out") == 0) out_path = v;
@@ -1241,6 +1644,10 @@ int main(int argc, char **argv) {
     }
   }
 
+  if (g_multi && !g_lab) {
+    fprintf(stderr, "--sound, --insert, --level and their timed forms need --lab\n");
+    return 2;
+  }
   fm1_app_init(&g_app, rate);
   if (g_lab) fm1_app_set_lab(&g_app, 1);
   if (master != 1.0f) g_replayable = 0;      /* fm1-render has no MASTER */
@@ -1262,6 +1669,7 @@ int main(int argc, char **argv) {
       fm1_app_set_param(&g_app, 1 + s, idx, fx_pval[s][p]);
     }
   }
+  if (load_multi()) return 1;               /* after the sound and the master bus, as fm1-render */
   fm1_app_master(&g_app, master, 0);
   FILE *log = NULL;
   if (use_seq) {
@@ -1286,7 +1694,14 @@ int main(int argc, char **argv) {
     fm1_app_seq_default_route(&g_app);   /* as the browser's start chain */
   }
   for (int k = 0; k < g_nev; ++k) {
-    if (g_ev[k].kind == EV_PARAM && find_param(0, g_ev[k].name) < 0) return 1;
+    if (g_ev[k].kind == EV_PARAM && find_param(fm1_app_sound_unit(g_ev[k].sound), g_ev[k].name) < 0) {
+      return 1;
+    }
+    if ((g_ev[k].kind == EV_NOTE || g_ev[k].kind == EV_LEVEL || g_ev[k].kind == EV_PARAM) &&
+        g_ev[k].sound > 0 && !fm1_app_unit_engine(&g_app, g_ev[k].sound)) {
+      fprintf(stderr, "a timed event for sound unit %d, which has no --sound\n", g_ev[k].sound);
+      return 2;
+    }
     if (g_ev[k].kind == EV_SELECT && strcmp(g_ev[k].name, "-") != 0 &&
         fm1_app_find(g_ev[k].name) < 0) {
       fprintf(stderr, "unknown engine %s\n", g_ev[k].name);
@@ -1313,8 +1728,15 @@ int main(int argc, char **argv) {
     for (int k = 0; k < g_nev; ++k) {                  /* controls first, in order */
       event_t *e = &g_ev[k];
       if (e->done || e->time > now) continue;
-      if (e->kind == EV_BEND) fm1_app_pitch_bend(&g_app, e->value);
-      else if (e->kind == EV_PARAM) fm1_app_set_param(&g_app, 0, find_param(0, e->name), e->value);
+      if (e->kind == EV_BEND) {
+        if (g_app.sound != 0) g_replayable = 0;       /* fm1-render bends sound 0 */
+        fm1_app_pitch_bend(&g_app, e->value);
+      } else if (e->kind == EV_PARAM) {
+        const int u = fm1_app_sound_unit(e->sound);
+        fm1_app_set_param(&g_app, u, find_param(u, e->name), e->value);
+      } else if (e->kind == EV_LEVEL) {
+        fm1_app_unit_set_level(&g_app, e->sound, e->value);
+      }
       else if (e->kind == EV_TURN || e->kind == EV_BUTTON) {
         units_t before;
         units_now(&before);
@@ -1352,9 +1774,43 @@ int main(int argc, char **argv) {
         event_t *e = &g_ev[k];
         int ix = 0;
         if (e->done || e->time > now || e->on != pass) continue;
-        if (e->kind == EV_NOTE) {
-          if (e->on) fm1_app_note_on(&g_app, e->a, e->b);
-          else fm1_app_note_off(&g_app, e->a);
+        if (e->kind == EV_NOTE && e->sound >= 0) {     /* --sound-note: that unit */
+          if (e->on) fm1_app_unit_note_on(&g_app, e->sound, e->a, e->b);
+          else fm1_app_unit_note_off(&g_app, e->sound, e->a);
+          ix = e->side;
+        } else if (e->kind == EV_NOTE) {               /* MIDI IN: the current sound */
+          const int pitch = e->a < 0 ? 0 : (e->a > 127 ? 127 : e->a);
+          if (e->on) {
+            /* Replayed on the unit it plays now; a pitch another unit holds
+             * would make its note-off ambiguous. */
+            for (int u = 0; u < FM1_APP_SOUNDS; ++u) {
+              if (u != g_app.sound && g_app.note_count[u][pitch]) g_replayable = 0;
+            }
+            if (e->side && g_app.sound && strcmp(g_side_flag[e->side - 1], "--note") == 0) {
+              char buf[160];
+              snprintf(buf, sizeof buf, "%d:%s", g_app.sound, g_side_value[e->side - 1]);
+              free(g_side_value[e->side - 1]);
+              g_side_value[e->side - 1] = malloc(strlen(buf) + 1);
+              if (!g_side_value[e->side - 1]) exit(2);
+              memcpy(g_side_value[e->side - 1], buf, strlen(buf) + 1);
+              g_side_flag[e->side - 1] = "--sound-note";
+            }
+            for (int j = k + 1; j < g_nev; ++j) {      /* its off: where this on went */
+              if (g_ev[j].kind == EV_NOTE && !g_ev[j].on && g_ev[j].side == e->side &&
+                  g_ev[j].a == e->a && !g_ev[j].done) {
+                g_ev[j].played = g_app.sound;
+                break;
+              }
+            }
+            fm1_app_note_on(&g_app, e->a, e->b);
+          } else {
+            int to = g_app.sound;                      /* fm1_app_note_off's choice */
+            for (int u = 0; u < FM1_APP_SOUNDS && !g_app.note_count[to][pitch]; ++u) {
+              if (g_app.note_count[u][pitch]) to = u;
+            }
+            if (to != e->played) g_replayable = 0;
+            fm1_app_note_off(&g_app, e->a);
+          }
           ix = e->side;
         } else if (e->kind == EV_KEY) {
           const int was_down = g_app.key_down[e->a], was_side = g_key_side[e->a];
@@ -1422,7 +1878,9 @@ int main(int argc, char **argv) {
     if (!write_ppm(screen_path, &g_app.tft)) return 1;
   }
   int sounding = 0;
-  for (int n = 0; n < 128; ++n) sounding += g_app.note_count[n];
+  for (int u = 0; u < FM1_APP_SOUNDS; ++u) {
+    for (int n = 0; n < 128; ++n) sounding += g_app.note_count[u][n];
+  }
   printf("{\"engine\":\"%s\",\"rate\":%g,\"frames\":%u,\"peak\":%.6f,\"rms\":%.6f,"
          "\"ram\":%u,\"mode\":%d,\"octave\":%d,\"transpose\":%d,\"sounding\":%d,"
          "\"fx\":[\"%s\",\"%s\"],\"fx_slot\":%d,\"fx_page\":%d,\"leds\":\"",
@@ -1443,6 +1901,25 @@ int main(int argc, char **argv) {
     printf("]");
   }
   printf(",\"lab\":%d,\"replayable\":%d", g_lab, g_replayable);
+  if (g_lab) {                       /* multi-sound: the units, the current one, levels, inserts */
+    printf(",\"current\":%d,\"sounds\":[", fm1_app_unit_current(&g_app));
+    for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+      const fm1_engine_t *e = fm1_app_unit_engine(&g_app, k);
+      printf(k ? ",\"%s\"" : "\"%s\"", e ? e->id : "");
+    }
+    printf("],\"levels\":[");
+    for (int k = 0; k < FM1_APP_SOUNDS; ++k) printf(k ? ",%g" : "%g", (double)fm1_app_unit_level(&g_app, k));
+    printf("],\"inserts\":[");
+    for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+      printf(k ? ",[" : "[");
+      for (int j = 0; j < FM1_APP_INSERTS; ++j) {
+        const fm1_engine_t *e = g_app.unit[fm1_app_insert_unit(k, j)].e;
+        printf(j ? ",\"%s\"" : "\"%s\"", e ? e->id : "");
+      }
+      printf("]");
+    }
+    printf("],\"ram_budget\":%u,\"fx_unit_slot\":%d", FM1_APP_RAM_BUDGET, g_app.fx_slot);
+  }
   if (g_lab) {
     /* key_leds: bit n for white key n; role_leds: bit per black key, in
      * key order (F#3 first). */
@@ -1475,7 +1952,9 @@ int main(int argc, char **argv) {
     int seq_sounding = 0;
     size_t left = (rest ? 1u : 0u);
     for (size_t k = next_cmd; k < script.n; ++k) left += !script.cmds[k].snap;
-    for (int n = 0; n < 128; ++n) seq_sounding += g_app.seq_note_count[n];
+    for (int u = 0; u < FM1_APP_SOUNDS; ++u) {
+      for (int n = 0; n < 128; ++n) seq_sounding += g_app.seq_note_count[u][n];
+    }
     fm1_seq_get_stats(g_app.seq, &st);
     printf(",\"seq_bytes\":%zu,\"seq_events\":%llu,\"seq_notes_to_engine\":%llu,"
            "\"seq_locks_to_engine\":%llu,\"seq_refused\":%lu,\"seq_dropped\":%llu,"
@@ -1512,6 +1991,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "cannot write %s\n", path);
         return 1;
       }
+      if (g_lab) fprintf(f, "--slots\n");   /* the app routes tracks by slot with the lab switch */
       for (int k = 0; k < g_nside; ++k) fprintf(f, "%s\n%s\n", g_side_flag[k], g_side_value[k]);
       fclose(f);
     }
