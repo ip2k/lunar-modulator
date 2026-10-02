@@ -9,6 +9,37 @@ history.
 ## [Unreleased]
 
 ### Added
+- docs/16: the design for modulation as a rack of modules inside the
+  modulation matrix, so cables can chain module to module (A→B→C→D).
+  - Up to 8 modules sit in a rack. Every module output is a source in the
+    matrix, and every module parameter and gate input is a destination, so a
+    chain is just one 1:1 cable per hop, in 32 slots.
+  - The order is worked out from the cables, so a chain adds no delay; a
+    feedback loop is allowed and marked, one control tick late.
+  - A first wave of 17 modules, all MIT code, ported or our own:
+    - envelopes and function generators: Segments (after Mutable
+      Instruments' Stages), Function (after Make Noise's Maths), Curves (an
+      arbitrary function generator drawn on the 16 white keys), Envelope,
+      Bounce;
+    - LFOs and randomness: LFO, Chance (sample-and-hold and smooth random),
+      Register (a Turing-Machine-style looping shift register);
+    - gates: Coin, Divide, Burst;
+    - utilities: Calc, Mix, Slew, Compare, Logic, Quantize.
+  - About 20 more modules later, after Tides, Marbles, Frames, Streams,
+    Grids, Ornament & Crime (Phazerville) applets and Just Friends.
+  - Where Mutable Instruments, Ornament & Crime and the disting fit: which
+    code is MIT and portable, which is GPL and gets our own version, and
+    which disting algorithm each of our modules covers (the disting firmware
+    is closed, so ideas only).
+  - Budgets: about 12.7 KB of RAM (3.3 % of the free SRAM) and 1–2 % of a
+    core for a typical rack, estimated, not measured on the chip.
+  - Panel: LFO opens the RACK, EDIT the MATRIX, and ENV patches any output to
+    the next knob turned.
+  - Stages MG0–MG9, each with its tests, and 18 owner decisions.
+- The options note points to docs/16 where it is superseded.
+- DEVELOPERS.md's "Research to do" adds Berry, the small MIT scripting
+  language docs/11 names beside Lua: could module authors write simple
+  modulation modules in it, with a few knobs, as part of the SDK?
 - **Roadmap: modules from the community.** Four new lines in the README's
   roadmap and in DEVELOPERS.md's "The roadmap in detail", each with its
   status, dependencies, where it is planned and its effort (not yet
