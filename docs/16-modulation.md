@@ -1209,12 +1209,13 @@ the tests) [verified 2026-10-02]:
   the same or less with `gcc -m32`; all sixteen kinds add up to 1,412 B, so
   any rack fits the 8 KB arena. `fm1_mod_size()` is unchanged.
 - **Tests:** a golden trace per kind (the same on clang arm64, gcc x86-64,
-  gcc `-m32` and the sanitizer build), block-size identity at 1, 7 and 64
-  and any fill with three racks of the new kinds, a chain of glue modules
-  entered backwards arriving in the tick a direct cable does, feedback
-  exactly one tick late, the Filter's response and ringing against its
-  transfer function and poles, and every kind fuzzed with random and
-  extreme parameters.
+  gcc `-m32`, the sanitizer build and Emscripten's `fm1-render.js`, whose
+  renders of three racks also match native gcc's byte for byte), block-size
+  identity at 1, 7 and 64 and any fill with three racks of the new kinds, a
+  chain of glue modules entered backwards arriving in the tick a direct
+  cable does, feedback exactly one tick late, the Filter's response and
+  ringing against its transfer function and poles, and every kind fuzzed
+  with random and extreme parameters.
 
 **Interleaving.** MG1 and MG2 are desktop-only and touch no UI, so they can
 proceed alongside docs/15's S3–S6 once S7a has merged. MG3 needs S2. MG6 needs

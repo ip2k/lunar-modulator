@@ -390,7 +390,11 @@ Linux x86-64 gcc, gcc `-m32` and clang ASan + UBSan in containers]:
   for 1 s; the SHA-256 of every tick's parameters, outputs and edges, and
   every 173rd tick's outputs, in `tests/fixtures/mod-golden.json`
   (`FM1_UPDATE_GOLDEN=1` rewrites it). The hashes are the same on every
-  build above;
+  build above, and on `fm1-render.js` (Emscripten 6.0.10, run by Node),
+  the build the simulator's parity test uses; there the three racks
+  below also give the WAV and tick log of native gcc, byte for byte
+  [verified 2026-10-02 in a container; the simulator hosts no kinds until
+  MG3];
 - **block sizes:** three racks of the new kinds (eight positions each,
   fourteen cables, into the sound, an effect, PITCH and AMP, with the
   sequencer playing) give the same WAV and tick log at host blocks of 1, 7
