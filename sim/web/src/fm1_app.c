@@ -10,54 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 
-/* ---- colours (RGB565) ---------------------------------------------------- */
-
-/* Lunar Modulator's palette: Rosé Pine Moon (rosepinetheme.com, MIT; values
- * from rose-pine/palette), the same tokens as the page's style.css. */
-#define RP_BASE FM1_RGB565(0x23, 0x21, 0x36)
-#define RP_SURFACE FM1_RGB565(0x2a, 0x27, 0x3f)
-#define RP_OVERLAY FM1_RGB565(0x39, 0x35, 0x52)
-#define RP_SUBTLE FM1_RGB565(0x90, 0x8c, 0xaa)
-#define RP_TEXT FM1_RGB565(0xe0, 0xde, 0xf4)
-#define RP_LOVE FM1_RGB565(0xeb, 0x6f, 0x92)
-#define RP_GOLD FM1_RGB565(0xf6, 0xc1, 0x77)
-#define RP_FOAM FM1_RGB565(0x9c, 0xcf, 0xd8)
-#define RP_IRIS FM1_RGB565(0xc4, 0xa7, 0xe7)
-#define RP_HIGHLIGHT_MED FM1_RGB565(0x44, 0x41, 0x5a)
-
-#define C_BG RP_BASE
-#define C_TEXT RP_TEXT
-#define C_DIM RP_SUBTLE
-#define C_ACCENT RP_IRIS
-#define C_MODEL RP_GOLD
-#define C_BAR_BG RP_HIGHLIGHT_MED
-#define C_TITLE_BG RP_OVERLAY
-#define C_BOTTOM_BG RP_SURFACE
-#define C_WARN RP_LOVE
-#define C_SCOPE_BG RP_SURFACE
-#define C_SCOPE RP_FOAM
-#define C_POPUP_BG RP_SURFACE
-#define C_METER RP_FOAM
-
-/* Screen geometry: 2x text is 12 px a character and 18 px tall, so a line
- * holds 19 characters between the 6 px margins. Every label, value and bar
- * keeps FM1_APP_LAYOUT_GAP (4 px) from the next, and from the title and
- * bottom bars. */
-#define SCALE 2
-#define MARGIN 6
-#define LINE_CHARS 19
-#define RIGHT (FM1_TFT_W - MARGIN)
-#define TITLE_H 24
-#define BOTTOM_Y 216
-#define CONTENT_Y (TITLE_H + 4)        /* the first line under the title bar */
-#define ROW_PITCH 36
-#define BAR_DY 22
-#define BAR_H 7
-#define LINE_PITCH 22                  /* plain text lines: 18 px and a 4 px gap */
-#define POPUP_PITCH 26
-#define LABEL_CHARS 10
-#define NAME_CHARS 16
-#define POPUP_CHARS 18
+#include "fm1_look.h"
+#include "fm1_seq_view.h"
 
 /* Compile-time checks of the sequencer's fixed sizes (docs/15 §2.6; C99 has
  * no static_assert): the event buffer is 3,072 B and the pending record one
@@ -67,6 +21,7 @@
  * checks the budget sum. */
 typedef char fm1_app_seq_events_are_3k[sizeof(fm1_seq_ev_t) * FM1_APP_SEQ_EVENTS == 3072u ? 1 : -1];
 typedef char fm1_app_seq_cmd_is_240[sizeof(fm1_seq_cmd_t) == 240u ? 1 : -1];
+typedef char fm1_app_seq_ui_fits[sizeof(fm1_seq_ui_t) <= FM1_APP_SEQ_UI_BYTES ? 1 : -1];
 
 /* ---- small helpers ---------------------------------------------------------- */
 
@@ -127,7 +82,7 @@ static int enum_index(const fm1_param_t *p, float v) {
   return clampi(i, 0, n - 1);
 }
 
-static void format_value(const fm1_param_t *p, float v, char *buf, size_t size) {
+void fm1_look_value(const fm1_param_t *p, float v, char *buf, size_t size) {
   if (p->type == FM1_PARAM_ENUM) {
     const char *name = p->enum_names ? p->enum_names[enum_index(p, v)] : NULL;
     if (name) snprintf(buf, size, "%s", name);
@@ -195,6 +150,7 @@ void fm1_app_init(fm1_app_t *a, float sample_rate) {
   a->dirty = 1;
   a->leds_changed = 1;
   a->tft.record = 0;
+  fm1_seq_ui_init(&a->ui);
   fm1_app_seq_reset(a, FM1_APP_SEQ_TRACKS);
 }
 
@@ -257,8 +213,12 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
     a->dirty = 1;
     return -3;
   }
-  if (unit == 0) a->page = clampi(a->page, 0, page_count(e) - 1);
-  else if (a->fx_slot == unit - 1) a->fx_page = clampi(a->fx_page, 0, page_count(e) - 1);
+  if (unit == 0) {
+    a->page = clampi(a->page, 0, page_count(e) - 1);
+    a->ui.knob = -1;                     /* the Track view's hint named the last sound's knob */
+  } else if (a->fx_slot == unit - 1) {
+    a->fx_page = clampi(a->fx_page, 0, page_count(e) - 1);
+  }
   a->dirty = 1;
   return 0;
 }
@@ -275,7 +235,30 @@ int fm1_app_default_chain(fm1_app_t *a) {
   }
   int f = fm1_app_select(a, 1, fm1_app_find("plate"));
   fm1_app_seq_default_route(a);
+  if (a->lab) fm1_app_seq_demo(a);
   return r != 0 ? r : f;
+}
+
+void fm1_app_set_lab(fm1_app_t *a, int on) {
+  a->lab = on != 0;
+  if (!a->lab && a->mode == FM1_MODE_SEQ) a->mode = FM1_MODE_HOME;
+  a->dirty = 1;
+  a->leds_changed = 1;
+}
+
+/* The demo pattern (O4): one bar in C minor at the default 120 BPM, a
+ * bass note on each half bar and an answering figure above it, three notes
+ * held for two steps; no locks (those come with S8). Track 0 plays the
+ * sound by the default route. */
+const char fm1_app_demo_pattern[] =
+    "tog 0 0 48 110;tog 0 2 60 80;tog 0 3 55 90;tog 0 4 63 95;tog 0 6 62 80;"
+    "tog 0 7 60 70;tog 0 8 46 110;tog 0 10 58 80;tog 0 11 53 90;tog 0 12 62 95;"
+    "tog 0 13 60 80;tog 0 14 55 85;tog 0 15 58 75;"
+    "slen 0 0 0 -1 48;slen 0 4 4 -1 48;slen 0 8 8 -1 48";
+
+int fm1_app_seq_demo(fm1_app_t *a) {
+  const size_t len = sizeof fm1_app_demo_pattern - 1u;
+  return a->seq && fm1_app_seq_line(a, fm1_app_demo_pattern, len) == len;
 }
 
 int fm1_app_param_index(const fm1_app_t *a, int unit, const char *name) {
@@ -389,10 +372,23 @@ static void show_signed(fm1_app_t *a, const char *what, int v) {
   popup(a, buf, NULL, NULL, -1);
 }
 
+static void stub_popup(fm1_app_t *a, int button) {
+  popup(a, kButtonNames[button], "not in the", "simulator yet", -1);
+}
+
 void fm1_app_button(fm1_app_t *a, int button, int down) {
   if (button < 0 || button >= FM1_APP_BUTTONS) return;
   int was = a->button_down[button];
   a->button_down[button] = (uint8_t)(down != 0);
+  if (a->lab && a->seq && (down != 0) != (was != 0)) {
+    /* Every edge goes to the sequencer's UI first; what it sends goes in
+     * as typed commands, under the event-room rule (a second command while
+     * one is held is refused and counted in seq_busy). */
+    fm1_seq_cmd_t cmd[FM1_SEQ_UI_MAX_CMDS];
+    int n = fm1_seq_ui_button(&a->ui, button, down != 0, a->frames, a->mode, cmd);
+    for (int k = 0; k < n; ++k) fm1_app_seq_cmd(a, &cmd[k]);
+    if (n) a->dirty = 1;
+  }
   if (!down || was) return;
   switch (button) {
     case FM1_BTN_OCT_DOWN:
@@ -431,8 +427,22 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
       a->fx_grab = 0;
       a->dirty = 1;
       break;
+    case FM1_BTN_SEQ:                    /* the Track view, from any mode */
+      if (!a->lab || !a->seq) {
+        stub_popup(a, button);
+        break;
+      }
+      a->mode = FM1_MODE_SEQ;
+      a->fx_grab = 0;
+      fm1_seq_ui_enter(&a->ui);
+      fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen);
+      a->dirty = 1;
+      break;
+    case FM1_BTN_PLAY:                   /* the UI sent `play` or `stop` above */
+      if (!a->lab || !a->seq) stub_popup(a, button);
+      break;
     default:
-      popup(a, kButtonNames[button], "not in the", "simulator yet", -1);
+      stub_popup(a, button);
       break;
   }
 }
@@ -492,8 +502,9 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
   delta = clampi(delta, -64, 64);
   switch (encoder) {
     case FM1_ENC_SELECT:
-      if (a->mode == FM1_MODE_HOME) {
+      if (a->mode == FM1_MODE_HOME || a->mode == FM1_MODE_SEQ) {
         a->page = clampi(a->page + delta, 0, page_count(a->unit[0].e) - 1);
+        a->ui.knob = -1;                 /* the hint named the last page's knob */
       } else if (a->mode == FM1_MODE_FX && a->fx_grab) {
         int to = clampi(a->fx_slot + (delta > 0 ? 1 : -1), 0, FM1_APP_FX_SLOTS - 1);
         if (to != a->fx_slot) {                 /* swap the units, arenas and all */
@@ -543,7 +554,7 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
         if (m >= 0) {
           char buf[24];
           turn_param(a, 0, m, delta);
-          format_value(&a->unit[0].e->params[m], a->unit[0].value[m], buf, sizeof buf);
+          fm1_look_value(&a->unit[0].e->params[m], a->unit[0].value[m], buf, sizeof buf);
           popup(a, a->unit[0].e->params[m].name, buf, NULL, -1);
         }
       }
@@ -554,7 +565,12 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
       int page = a->mode == FM1_MODE_FX ? a->fx_page : a->page;
       int idx[4];
       if (a->mode == FM1_MODE_GLOBAL || !a->unit[unit].e) break;
-      if (knob < page_params(a->unit[unit].e, page, idx)) turn_param(a, unit, idx[knob], delta);
+      if (knob < page_params(a->unit[unit].e, page, idx)) {
+        turn_param(a, unit, idx[knob], delta);
+        if (a->mode == FM1_MODE_SEQ) {   /* its name and value on the hint line */
+          fm1_seq_ui_knob(&a->ui, knob, a->frames + (uint64_t)(2.0f * a->host.sample_rate));
+        }
+      }
       break;
     }
   }
@@ -597,6 +613,20 @@ static void update_leds(fm1_app_t *a) {
   led[FM1_APP_KEYS + FM1_BTN_FX] = a->mode == FM1_MODE_FX;
   led[FM1_APP_KEYS + FM1_BTN_SEL] = (uint8_t)(a->mode == FM1_MODE_FX && a->fx_grab);
   led[FM1_APP_KEYS + FM1_BTN_GLO] = a->mode == FM1_MODE_GLOBAL;
+  if (a->lab) {
+    /* SEQ in SEQ mode, PLAY while the transport runs; in SEQ mode the
+     * white keys show the bar's steps, the playhead inverted (sequencer
+     * notes light no key outside it: owner decision O6). */
+    led[FM1_APP_KEYS + FM1_BTN_SEQ] = a->mode == FM1_MODE_SEQ;
+    led[FM1_APP_KEYS + FM1_BTN_PLAY] = a->ui.playing != 0;
+    if (a->mode == FM1_MODE_SEQ) {
+      const uint16_t steps = fm1_seq_ui_key_leds(&a->ui);
+      for (int n = 0; n < FM1_APP_WHITE_KEYS; ++n) {
+        const int k = fm1_white_key(n);
+        led[k] = (uint8_t)(a->key_down[k] || ((steps >> n) & 1u));
+      }
+    }
+  }
   if (memcmp(led, a->led, sizeof led) != 0) {
     memcpy(a->led, led, sizeof led);
     a->leds_changed = 1;
@@ -678,6 +708,13 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
     a->popup_lines = 0;
     a->dirty = 1;
   }
+  if (a->lab && a->seq) {
+    if (fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen) && a->mode == FM1_MODE_SEQ) a->dirty = 1;
+    if (a->ui.knob >= 0 && a->frames >= a->ui.knob_until) {
+      a->ui.knob = -1;
+      if (a->mode == FM1_MODE_SEQ) a->dirty = 1;
+    }
+  }
   update_leds(a);
   return out;
 }
@@ -696,6 +733,7 @@ static int seq_fits(const fm1_app_t *a) {
 }
 
 static void seq_apply(fm1_app_t *a, const fm1_seq_cmd_t *c) {
+  ++a->seq_gen;
   fm1_seq_host_cmd(&a->seq_host, c);
   if (a->on_cmd) a->on_cmd(a->on_cmd_ctx, a->frames, c);
 }
@@ -713,6 +751,7 @@ static int is_blank(char c) { return c == ' ' || c == '\t'; }
 
 size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len) {
   if (!a->seq) return 0;
+  ++a->seq_gen;
   seq_flush(a);
   if (a->seq_pending) return 0;
   if (fm1_seq_realtime_status(ops, len) || (len && ops[0] == '#')) {
@@ -764,6 +803,7 @@ int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c) {
 
 void fm1_app_seq_note_in(fm1_app_t *a, int track, int pitch, int velocity) {
   if (!a->seq || track < 0 || track > 255 || pitch < 0 || pitch > 127) return;
+  ++a->seq_gen;
   seq_flush(a);
   fm1_seq_host_note_in(&a->seq_host, (uint8_t)track, (uint8_t)pitch,
                        (uint8_t)clampi(velocity, 0, 127));
@@ -773,6 +813,7 @@ void fm1_app_seq_note_in(fm1_app_t *a, int track, int pitch, int velocity) {
  * its notes on the engine are released now, and nothing queued for it
  * (a held command, events for the next block) is played. */
 static void seq_drop(fm1_app_t *a) {
+  ++a->seq_gen;
   seq_release(a);
   a->lock_mask = 0;
   a->seq_pending = 0;
@@ -790,6 +831,7 @@ int fm1_app_seq_reset(fm1_app_t *a, int tracks) {
     a->seq_dropped_before += st.dropped_events;
   }
   fm1_seq_limits_default(&lim, (uint8_t)tracks);
+  ++a->seq_gen;
   a->seq_lim = lim;
   a->seq = fm1_seq_size(&lim) <= sizeof a->seq_mem
                ? fm1_seq_create(a->seq_mem, &lim, (uint32_t)lrintf(a->host.sample_rate))
@@ -812,6 +854,7 @@ int fm1_app_seq_route(fm1_app_t *a, int track, int kind, int index) {
   if (!a->seq || track < 0 || track > 255 || kind < 0 || kind > 255 || index < 0 || index > 255) {
     return 0;
   }
+  ++a->seq_gen;
   return fm1_seq_set_route(a->seq, (uint8_t)track, (uint8_t)kind, (uint8_t)index);
 }
 
@@ -835,16 +878,16 @@ uint64_t fm1_app_seq_dropped(const fm1_app_t *a) {
 
 /* ---- the screen ---------------------------------------------------------------- */
 
-static void draw_bar(fm1_tft_t *t, int y, const fm1_param_t *p, float v) {
-  const int x = MARGIN, w = FM1_TFT_W - 2 * MARGIN;
-  fm1_tft_graphic(t, x, y, w, BAR_H);
-  fm1_tft_paint(t, x, y, w, BAR_H, C_BAR_BG);
+void fm1_look_bar(fm1_tft_t *t, int x, int y, int w, int h, const fm1_param_t *p, float v,
+                  uint16_t fill) {
+  fm1_tft_graphic(t, x, y, w, h);
+  fm1_tft_paint(t, x, y, w, h, C_BAR_BG);
   if (p->type == FM1_PARAM_ENUM) {
     int n = (int)(p->max - p->min) + 1;
     int i = enum_index(p, v);
     int seg = w / n < 3 ? 3 : w / n;
     int sx = x + (i * (w - seg)) / (n > 1 ? n - 1 : 1);
-    fm1_tft_paint(t, sx, y, seg, BAR_H, C_ACCENT);
+    fm1_tft_paint(t, sx, y, seg, h, fill);
     return;
   }
   float range = p->max - p->min;
@@ -854,10 +897,10 @@ static void draw_bar(fm1_tft_t *t, int y, const fm1_param_t *p, float v) {
   if (p->min < 0.0f && p->max > 0.0f) {          /* bipolar: from the zero point */
     int zero = x + (int)floorf((-p->min / range) * (float)w + 0.5f);
     int a0 = pos < zero ? pos : zero, a1 = pos < zero ? zero : pos;
-    fm1_tft_paint(t, a0, y, a1 - a0 > 0 ? a1 - a0 : 1, BAR_H, C_ACCENT);
-    fm1_tft_paint(t, zero, y, 1, BAR_H, C_TEXT);
+    fm1_tft_paint(t, a0, y, a1 - a0 > 0 ? a1 - a0 : 1, h, fill);
+    fm1_tft_paint(t, zero, y, 1, h, C_TEXT);
   } else {
-    fm1_tft_paint(t, x, y, pos - x, BAR_H, C_ACCENT);
+    fm1_tft_paint(t, x, y, pos - x, h, fill);
   }
 }
 
@@ -869,13 +912,10 @@ static void draw_params(fm1_app_t *a, int unit, int page, int y0) {
     const fm1_param_t *p = &u->e->params[idx[s]];
     char value[24];
     int y = y0 + s * ROW_PITCH;
-    int label_chars = (int)strlen(p->name) < LABEL_CHARS ? (int)strlen(p->name) : LABEL_CHARS;
-    int value_chars = LINE_CHARS - 1 - label_chars;
-    format_value(p, u->value[idx[s]], value, sizeof value);
-    fm1_tft_text(&a->tft, MARGIN, y, p->name, label_chars, SCALE, C_DIM);
-    int vw = fm1_tft_text_width(value, value_chars, SCALE);
-    fm1_tft_text(&a->tft, RIGHT - vw, y, value, value_chars, SCALE, C_TEXT);
-    draw_bar(&a->tft, y + BAR_DY, p, u->value[idx[s]]);
+    fm1_look_value(p, u->value[idx[s]], value, sizeof value);
+    fm1_look_row(&a->tft, y, p->name, value, C_TEXT);
+    fm1_look_bar(&a->tft, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H, p, u->value[idx[s]],
+                 C_ACCENT);
   }
 }
 
@@ -949,12 +989,16 @@ static void draw_popup(fm1_app_t *a) {
   }
 }
 
-static void draw_line(fm1_app_t *a, int y, const char *label, const char *value) {
+void fm1_look_row(fm1_tft_t *t, int y, const char *label, const char *value, uint16_t color) {
   int label_chars = (int)strlen(label) < LABEL_CHARS ? (int)strlen(label) : LABEL_CHARS;
   int value_chars = LINE_CHARS - 1 - label_chars;
-  fm1_tft_text(&a->tft, MARGIN, y, label, label_chars, SCALE, C_DIM);
+  fm1_tft_text(t, MARGIN, y, label, label_chars, SCALE, C_DIM);
   int w = fm1_tft_text_width(value, value_chars, SCALE);
-  fm1_tft_text(&a->tft, RIGHT - w, y, value, value_chars, SCALE, C_TEXT);
+  fm1_tft_text(t, RIGHT - w, y, value, value_chars, SCALE, color);
+}
+
+static void draw_line(fm1_app_t *a, int y, const char *label, const char *value) {
+  fm1_look_row(&a->tft, y, label, value, C_TEXT);
 }
 
 static void draw(fm1_app_t *a) {
@@ -970,7 +1014,7 @@ static void draw(fm1_app_t *a) {
   if (a->mode == FM1_MODE_HOME) {
     int m = model_param(s->e);
     if (m >= 0) {
-      format_value(&s->e->params[m], s->value[m], buf, sizeof buf);
+      fm1_look_value(&s->e->params[m], s->value[m], buf, sizeof buf);
       fm1_tft_text(t, MARGIN, CONTENT_Y, buf, LINE_CHARS, SCALE, C_MODEL);
     }
     if (s->e) draw_params(a, 0, a->page, CONTENT_Y + LINE_PITCH);
@@ -995,6 +1039,17 @@ static void draw(fm1_app_t *a) {
       fm1_tft_text(t, MARGIN, y0 + 4 + LINE_PITCH, "turn ALGORITHM", LINE_CHARS, SCALE, C_DIM);
     }
     snprintf(buf, sizeof buf, "%d/%d FX%d", a->fx_page + 1, page_count(f->e), a->fx_slot + 1);
+    draw_bottom(a, buf);
+  } else if (a->mode == FM1_MODE_SEQ) {
+    fm1_seq_view_sound_t snd;
+    snd.e = s->e;
+    snd.value = s->value;
+    snd.page = a->page;
+    snd.pages = page_count(s->e);
+    snd.n = page_params(s->e, a->page, snd.idx);
+    snd.model = model_param(s->e);
+    fm1_seq_view_track(t, &a->ui, &snd);
+    fm1_seq_view_bottom(&a->ui, &snd, buf, sizeof buf);
     draw_bottom(a, buf);
   } else {
     /* Eight lines at a 23 px pitch (the sound's name is in the title bar). */

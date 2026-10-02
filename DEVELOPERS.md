@@ -208,11 +208,15 @@ nothing of ours in the path, and more than 400 tests compare the two.
 - **Checked against Movy:** Movy's own unmodified core, run in a container,
   drives 24 golden fixtures that ours matches event for event, undo aside
   ([`engines/seq.md`](engines/seq.md)).
-- **In the browser, headless:** the virtual FM-1's app layer hosts it
-  through the same bridge and plays scripts and sets exactly as the desktop
-  renderer does, natively and in the browser module (stage S2 of
-  [docs/15](docs/15-sequencer-in-simulator.md)). Nothing on the panel drives
-  it yet: SEQ, PLAY/STOP and REC still say "not in the simulator yet".
+- **In the browser:** the virtual FM-1's app layer hosts it through the
+  same bridge and plays scripts and sets exactly as the desktop renderer
+  does, natively and in the browser module (stage S2 of
+  [docs/15](docs/15-sequencer-in-simulator.md)). On the panel, PLAY/STOP,
+  SEQ mode's read-only Track view and a demo pattern work behind a lab
+  switch (`?lab` in the page's address; stage S3,
+  [`sim/web/README.md`](sim/web/README.md), "The lab switch"); the public
+  page keeps SEQ, PLAY/STOP and REC as "not in the simulator yet" until
+  step entry and recording work.
 
 ### The arpeggiator core
 

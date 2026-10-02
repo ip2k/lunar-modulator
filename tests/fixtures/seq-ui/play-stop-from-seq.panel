@@ -1,0 +1,7 @@
+# In SEQ mode: play, turn KNOB1 (Test Sine's Volume, which the replay gets as
+# --param-at), stop, and play again.
+--button 0.05:SEQ
+--button 0.10:PLAY/STOP
+--turn 0.50:KNOB1:-20
+--button 1.30:PLAY/STOP
+--button 1.60:PLAY/STOP

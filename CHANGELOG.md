@@ -37,6 +37,23 @@ history.
     `engines/mod/README.md`, tested in `tests/test_engines_mod_runtime.py`
     and `fm1-mod-core-test`. The JieLi compile check covers the modulation
     code (83 objects).
+- A first look at the sequencer on the virtual FM-1's panel, behind a lab
+  switch: add `?lab` (or `#lab`) to the page's address. The public page is
+  unchanged until patterns can be made and recorded on the panel (docs/15
+  stage S3).
+  - PLAY/STOP, or the space bar, starts and stops the sequencer in any
+    mode, and its light is on while it plays. A one-bar demo pattern is
+    loaded at start, so there is something to hear at once.
+  - SEQ shows the track: the tempo, PLAY or STOP, four bars of steps with
+    the playhead, the four knobs as bars, and the name and value of the
+    knob being turned. The white keys light up for the bar's steps and the
+    playhead. HOME, FX or GLO go back; the keys still play the sound.
+  - The status line shows the tempo and whether the sequencer plays.
+  - For developers: `fm1-sim-render --lab --panel FILE` plays panel input,
+    and `--log-cmds` now logs the panel's commands with a file of the
+    arguments `fm1-render` needs, which replays the session sample for
+    sample. A new parity scenario checks the browser module the same way
+    (24 of 24 pass). The browser module grew from 459 KB to 465 KB.
 - The virtual FM-1 now runs the sequencer inside its app layer, with no
   panel controls yet (docs/15 stage S2; PLAY/STOP and SEQ mode come next).
   - It plays any verb script or `movy1` set exactly as `fm1-render` does,
@@ -44,9 +61,9 @@ history.
     byte-identical sound and event logs, and five new parity scenarios
     (float and list locks, two tracks with swing, Capture while playing and
     while stopped) match in WebAssembly, against musl and against glibc.
-  - 8 tracks (the owner's decision on 4 or 8 is pending), a 256-event
-    buffer and one held command: 36,216 B of the sequencer's 36,864 B
-    budget. The RAM figure on GLO now counts it.
+  - 8 tracks (the owner's choice), a 256-event buffer and one held
+    command: 36,216 B of the sequencer's 36,864 B budget. The RAM figure
+    on GLO now counts it.
   - A command that could overflow the event buffer waits a block instead,
     so a burst of stops and starts never loses a note-off.
   - Track 0 plays the sound by default, as in `fm1-render`; a set's own

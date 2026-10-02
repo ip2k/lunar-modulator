@@ -557,7 +557,7 @@ existing figure, not a new line.
 
 | Screen | Stage | Layout |
 | --- | --- | --- |
-| Track view | S3; marks in S4, lock dots in S8 | **Status line** (y 28–46): BPM on the left; PLAY, REC with the count-in, or EXT on the right. **Grid** (y 50–115): 4 × 16, one graphic box, cells 12 × 14 px from x 8. Filled = notes, corner dot = locks, tick = a trig row, outline = outside the loop, inverted = the playhead, bracket = the bar on the keys. **Knob strip:** per O23. **Hint line:** y 190–208. **Bottom bar:** `n/N Seq T1`, with the RAM figure |
+| Track view | S3; marks in S4, lock dots in S8 | **Status line** (y 28–46): BPM on the left; PLAY, REC with the count-in, or EXT on the right (S3 draws PLAY or STOP). **Grid**: 4 × 16, one graphic box. Proposed at y 50–115 with cells 12 × 14 px from x 8; S3 drew it at y 50–156 with cells 12 × 22 px from x 6, 2 px between steps, 4 px between beats and 6 px between bars, which leaves room for the strip [verified: fm1_seq_view.c, the layout sweep]. Filled = notes, corner dot = locks, tick = a trig row, outline = outside the loop, inverted = the playhead, bracket = the bar on the keys. **Knob strip:** per O23; in S3, four bars 8 px tall at y 168. **Hint line:** y 190–208. **Bottom bar:** `n/N Seq T1`, with the RAM figure |
 | Held-step pages | S4 | HOME's `draw_params` geometry (four rows of label, value and bar). A 16-step strip replaces the scope |
 | Lock pages | S8 | The same geometry. Locked values in engine units over dim bases [O14], and a dot on each parameter with a lane |
 | Set, Clip, Track | S6 | The same geometry. Track page 2 lists the 8 lanes at a 23 px pitch, showing each label's text after its last `:` and the base |
@@ -1770,3 +1770,31 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
 | O22 | Pitches on a held step: how a pitch is added or removed, and how that coexists with SHIFT + N shortcuts and `aclrs` | With a step held, SHIFT turns the white keys into pitches in the current octave, each press sending `addp`. SHIFT + N shortcuts apply only with no step held. Step + SHIFT + one knob detent stays `aclrs`. The black keys keep their roles, so SHIFT + ◀ ▶ still nudges by one tick, and sharps come from MIDI IN or a chord played in KEYS mode first. Open: how a pitch is removed. docs/13 §4 is updated to match | S4 |
 | O23 | Text in the Track view's knob strip | (b): four bars only, with the turned knob's name and value on the hint line in 2× text. The alternatives are (a) 1× text with short names, or (c) a 2 × 2 layout | S3 |
 | O24 | Whether intermediate stages ship on the public page, now that every merge to main deploys | Ship each stage, with manual chapter 07 saying what works, rather than hiding SEQ mode behind a flag until S5 or S6. A flag would add a code path to test | S3 |
+
+**Answered by the owner, 2026-10-02** (for S3; recorded when S3 landed):
+- **O1, O2:** as proposed. In SEQ mode the black keys carry the
+  sequencer's roles and SEL is SHIFT; every printed button keeps its
+  meaning (S4).
+- **O3:** 8 tracks.
+- **O4:** yes, the demo pattern: one bar of 16 steps on track 0 (track 1 to
+  the user), applied only by the browser's start chain, never in tests or
+  parity runs.
+- **O6:** no, sequencer notes do not light the key LEDs outside SEQ mode.
+- **O19:** Space is PLAY/STOP when no button has focus (S3); the step keys
+  come in S4.
+- **O23:** option (b), four bars in the knob strip and the turned knob's
+  name and value on the hint line in 2x text.
+- **O24, changed:** hide the sequencer from the public page until it is
+  usable, that is until step entry and recording (S5, S6). S3 adds a
+  runtime lab switch instead: the page turns it on for an address with
+  `?lab` or `#lab` and passes it to the module (`fm1w_set_lab`). Off, SEQ,
+  PLAY/STOP and REC behave as before S3, Space does nothing, no sequencer
+  UI is reachable and the demo pattern is not loaded; the parity runs,
+  gesture traces and the layout sweep cover the lab-on screens and keep
+  the lab-off ones. The switch is documented in sim/web/README.md, not in
+  the user manual, and the manual's chapter 07 stays as it is while the
+  features are hidden. S3's scope items written for the public page
+  therefore hold with the switch on only, or wait for the stage that
+  removes it: the two buttons dropping their popup, the stub-button sweep
+  dropping SEQ and PLAY/STOP (its saved popup stays `popup-button-12`),
+  chapter 07 and `manual.toml`'s roles.

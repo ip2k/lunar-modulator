@@ -1,5 +1,5 @@
 {
-  "about": "Note scripts rendered by engines/build/fm1-render, by the app layer natively (tests/test_sim_web.py) and by the WebAssembly module under Node (sim/web/test/parity.mjs). Fields map to fm1-render's options; every engine and effect appears at least once. `cmd` is a sequencer verb script (fm1-render --cmd), relative to this file, at 64-frame blocks (#! block=64); it routes tracks with `route` verbs only, so track 0 plays the engine by the default-route rule.",
+  "about": "Note scripts rendered by engines/build/fm1-render, by the app layer natively (tests/test_sim_web.py) and by the WebAssembly module under Node (sim/web/test/parity.mjs). Fields map to fm1-render's options; every engine and effect appears at least once. `cmd` is a sequencer verb script (fm1-render --cmd), relative to this file, at 64-frame blocks (#! block=64); it routes tracks with `route` verbs only, so track 0 plays the engine by the default-route rule. `panel` is panel input (fm1-sim-render --panel) with the lab switch on (`lab`): the render legs then play what the native harness logged (--log-cmds and its sidecar of arguments) instead of `cmd`.",
   "scenarios": [
     {"name": "macro-va-pair-chord", "engine": "macro", "params": ["Model=4"],
      "notes": ["0:57:100:1", "0:60:100:1", "0:64:100:1"],
@@ -52,6 +52,10 @@
      "libm_sensitive": true,
      "why": "Capture's stopped tempo search scores each candidate tempo with logf (seq_capture.c); a last-bit difference between glibc's logf and musl's could reorder near-tied candidates and so the take. Identical to static musl and to fm1-render.js.",
      "cmd": "seq/capture-stopped-capsel.verbs", "fx": [], "seconds": 3.5},
+    {"name": "seq-panel-play-stop", "engine": "macro", "params": ["Model=2"], "lab": true,
+     "why": "The panel drives the sequencer (docs/15 S3, the lab switch on): the module presses the buttons and turns the encoders; the render legs replay the commands and knob turns the native harness logged (--log-cmds and its .args sidecar), so this is also two-step parity.",
+     "cmd": "seq/panel-play-stop.verbs", "panel": "seq/panel-play-stop.panel",
+     "fx": [["plate", ["Mix=0.25"]]], "seconds": 2.2},
     {"name": "crush-chip-jitter", "engine": "macro", "params": ["Model=3", "Timbre=0.4"],
      "notes": ["0:52:110:0.5", "0.3:59:100:0.5"], "param_at": ["0.45:Model=0"],
      "fx": [["crush", ["Bits=3.5", "Rate=0.45", "Jitter=0.6", "Tone=0.7", "Mix=0.8"]]],
