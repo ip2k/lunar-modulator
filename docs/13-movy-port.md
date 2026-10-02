@@ -371,6 +371,8 @@ about 90 KB [inferred], sent in chunks. Flash last: a binary image of about
 | C — FM-1 | after docs/07's dump and restore | GRID and KEYS modes, LEDs, TFT, RAM sets, SysEx | core gestures playable; export/import round trip |
 | D — FM-1 | after C | flash set partition | an A/B save survives a power cut mid-write |
 
+docs/15 plans M4 in the virtual FM-1 as stages S1–S10, with M2's engine API v2 landing before its lock UI.
+
 ## 10. Open questions
 
 **The owner's answers (2026-10-01):**

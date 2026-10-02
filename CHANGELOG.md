@@ -9,6 +9,36 @@ history.
 ## [Unreleased]
 
 ### Added
+- docs/15: the plan for the sequencer in the virtual FM-1 (docs/13 stage M4
+  in the browser), in stages S1–S10, each with its tests and exit numbers.
+  - S1 moves `fm1-render`'s per-block sequencer hosting into a shared,
+    heap-free C99 bridge, with no change in behaviour.
+  - S2 hosts the sequencer in the app with no UI, and proves it plays every
+    oracle script exactly as `fm1-render` does, natively and in WebAssembly.
+  - S3 is the first playable stage: PLAY/STOP and a SEQ grid. Later stages
+    add step entry, record and Capture, tracks, engine API v2 (a silent stage,
+    then SMOOTH), parameter locks, Session, and sets saved in the browser.
+  - Outside SEQ mode every printed button keeps its meaning; in SEQ mode the
+    black keys carry the sequencer's roles.
+  - Memory: at most 36,216 B of the 36,864 B half budget at 8 tracks, and
+    22,392 B at 4.
+  - 24 owner decisions, each with a proposed default and the stage it
+    blocks. docs/13 §9 points to it.
+- notes/2026-10-01-arp-modulation-effects-options.md: open-source options
+  for an arpeggiator, configurable LFOs and envelopes, a modulation matrix
+  and eurorack-type effects such as sample-and-hold, with every licence
+  checked at a pinned commit.
+  - Arpeggiator: our own C core, `fm1_arp`, after Yarns' `ClockArpeggiator`,
+    with MCL's extra orders and Super Arp's seeded modifiers. It would be the
+    first `FM1_KIND_MIDI_FX`, so ARP and SEQ can run together.
+  - Modulation: 2 global LFOs, 2 envelopes and a 16-slot host-side matrix
+    first, then per-note sources once engine API v2 exists. Modulation is an
+    offset from a base value, which locks and knobs set.
+  - Effects first: CRUSH, S&H FILTER, FOLD and CHORUS; ECHO and REPEAT once
+    the engines get tempo.
+  - Every pick is MIT or BSD; GPL sources serve as design references only.
+    It lists twelve owner decisions, and notes that the project uses one
+    core and runs nothing on the device yet.
 - The sequencer host bridge (`engines/include/fm1_seq_host.h`). It is the
   per-block code that plays the sequencer through a sound engine: commands,
   advance, and renders split at each note and lock. `fm1-render` now runs on
