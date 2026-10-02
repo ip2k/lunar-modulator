@@ -383,15 +383,22 @@ lanes × 2 bytes in `fm1_seq_host_t`:
   through; `fm1-render --seq` does).
 - **When the engine changes:** dispatch binds `sink->engine` if it is not
   the bound one, and `fm1_seq_host_bind` does it explicitly (`fm1-render`
-  binds its sound engine before importing). A host that labels lanes or
-  imports on the core directly, past the bridge, calls it afterwards.
+  binds its sound engine before importing).
 - **A released lane** (`aclr`, a deleted clip, D13) loses its label in the
   core; `fm1_seq_host_lane_uid` reads the label's first byte and gives 0.
-  Only `alabel` and an import give a lane a label, and both resolve it, so
-  the stored uid always equals a fresh resolution of the label against the
-  bound engine. engines/test/seq_host_test.c checks that after every block
-  of a script that labels, relabels and releases lanes mid-play, through
-  text and typed commands alike.
+  Only `alabel` and an import give a lane a label, and through the bridge
+  both resolve it, so the stored uid equals a fresh resolution of the label
+  against the bound engine. engines/test/seq_host_test.c checks that after
+  every block of a script that labels, relabels and releases lanes
+  mid-play, through text and typed commands alike.
+- **A label set past the bridge** (an import or `alabel` on the core
+  directly, as a host may do): `fm1_seq_host_lane_uid` uses the stored uid
+  only while its parameter still has the name the label gives, and
+  resolves the label afresh otherwise, so such a lane's locks still reach
+  the parameter it names (one name lookup per lock, as before API v2),
+  until `fm1_seq_host_bind` stores it again. Names are unique without case
+  in every engine [verified: tests/test_engine_params.py], so the check
+  and a fresh resolution agree.
 
 At dispatch a lock goes to `fm1_param_index(engine, uid)`. A lock on a
 NOLOCK parameter is refused there: it is counted in `locks_refused`
@@ -500,8 +507,9 @@ commands and Start/Stop carry the number of ticks serviced so far.
   shows; and API v2: every lane's uid equal to a fresh resolution of its
   label after every block, a lock sent to its uid's parameter where the
   index is not uid − 1, NOLOCK locks refused, counted and splitting
-  nothing, and a new engine, an import, a typed `alabel` and a released
-  lane each re-resolving. Twenty-nine mutants of the bridge and of `fm1-render`'s use of it
+  nothing, a new engine, an import, a typed `alabel` and a released lane
+  each re-resolving, and a label set on the core directly, past the bridge,
+  still reaching its parameter. Twenty-nine mutants of the bridge and of `fm1-render`'s use of it
   each fail at least one of these [verified 2026-10-02]: label case, the
   last `:`, a label compared only to the shorter name, a lock resolved after
   its split, MIDI-routed locks sent, the first parameter never locked, the

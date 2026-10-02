@@ -56,7 +56,7 @@ namespace schwung {
 // 11 bits. A module that reorders or extends its parameters keeps every uid,
 // and an adapter needs no numbering of its own. Native engines number from 1,
 // below 0x800, so the two never meet. A collision inside one module fails
-// tests/test_engines.py; it would be settled by a salt in that adapter.
+// tests/test_engine_params.py; it would be settled by a salt in that adapter.
 // constexpr (C++11: one return statement), so the tables stay constant data.
 constexpr uint32_t KeyHash(const char *s, uint32_t h = 2166136261u) {
   return *s ? KeyHash(s + 1, (h ^ static_cast<uint8_t>(*s)) * 16777619u) : h;

@@ -1309,7 +1309,12 @@ engines/seq.md, "Host contract"]:
   `abbr` fields.
 - **The bridge** keeps one resolved uid per lane (256 bytes in
   `fm1_seq_host_t`) and adds `fm1_seq_host_bind`, `fm1_seq_host_import` and
-  `fm1_seq_host_lane_uid`. `fm1-render --list` shows each parameter's uid,
+  `fm1_seq_host_lane_uid`. A stored uid is used only while its parameter
+  has the name the lane's label gives, so a host that imports or labels on
+  the core directly, past the bridge, still locks the right parameter
+  [verified: engines/test/seq_host_test.c]. The app on S2's branch imports
+  that way (`fm1_seq_import_movy1`); `fm1_seq_host_import` is the better
+  call once both have merged. `fm1-render --list` shows each parameter's uid,
   flags, unit and abbreviation, and its summary `seq_locks_refused`.
 - **The simulator is unchanged.** `sim/web/src` already accepts v2 only
   (its check compares against `FM1_ENGINE_API_VERSION`). The catalogue JSON

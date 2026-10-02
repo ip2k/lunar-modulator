@@ -9,6 +9,26 @@
 
 #include <string.h>
 
+static char lower(char c) { return c >= 'A' && c <= 'Z' ? (char)(c - 'A' + 'a') : c; }
+
+/* strcasecmp in the C locale, which is what fm1-render had. */
+static int same_name(const char *a, const char *b) {
+  for (; *a && *b; ++a, ++b) {
+    if (lower(*a) != lower(*b)) return 0;
+  }
+  return *a == *b;
+}
+
+/* What a lane label names: the part after its last ':' ("synth:Timbre"). */
+static const char *label_name(const char *label) {
+  const char *name = label;
+  const char *p;
+  for (p = label; *p; ++p) {
+    if (*p == ':') name = p + 1;
+  }
+  return name;
+}
+
 void fm1_seq_host_init(fm1_seq_host_t *h, fm1_seq_t *seq, fm1_seq_ev_t *ev, uint32_t cap) {
   h->seq = seq;
   h->ev = ev;
@@ -51,12 +71,23 @@ int fm1_seq_host_import(fm1_seq_host_t *h, const char *txt, size_t len) {
 }
 
 uint16_t fm1_seq_host_lane_uid(const fm1_seq_host_t *h, uint8_t track, uint8_t lane) {
+  const char *label;
+  uint16_t uid;
+  int i;
   if (track >= FM1_SEQ_MAX_TRACKS || lane >= FM1_SEQ_LANES || !h->seq) return 0;
   /* A lane the core has released since (aclr, a deleted clip...) is
-   * unlabelled now; only `alabel` and an import give a lane a label, and
-   * both resolve it. */
-  if (!fm1_seq_lane_label(h->seq, track, lane)[0]) return 0;
-  return h->lane_uid[track][lane];
+   * unlabelled now. */
+  label = fm1_seq_lane_label(h->seq, track, lane);
+  if (!label[0]) return 0;
+  /* The stored uid, while its parameter still has the name the label gives:
+   * every `alabel` and import through the bridge keeps it so. A label set on
+   * the core directly, past the bridge, resolves afresh here instead, so its
+   * locks still reach the parameter it names. Engine names are unique
+   * without case (tests/test_engine_params.py), so the two agree. */
+  uid = h->lane_uid[track][lane];
+  i = fm1_param_index(h->engine, uid);
+  if (i >= 0 && same_name(h->engine->params[i].name, label_name(label))) return uid;
+  return fm1_seq_lane_uid(h->engine, label);
 }
 
 static int is_blank(char c) { return c == ' ' || c == '\t'; }
@@ -208,24 +239,11 @@ void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
   h->n = 0;
 }
 
-static char lower(char c) { return c >= 'A' && c <= 'Z' ? (char)(c - 'A' + 'a') : c; }
-
-/* strcasecmp in the C locale, which is what fm1-render had. */
-static int same_name(const char *a, const char *b) {
-  for (; *a && *b; ++a, ++b) {
-    if (lower(*a) != lower(*b)) return 0;
-  }
-  return *a == *b;
-}
-
 int fm1_seq_lane_param(const fm1_engine_t *e, const char *label) {
-  const char *name = label;
-  const char *p;
+  const char *name;
   uint16_t q;
   if (!e || !label) return -1;
-  for (p = label; *p; ++p) {
-    if (*p == ':') name = p + 1;
-  }
+  name = label_name(label);
   for (q = 0; q < e->n_params; ++q) {
     if (same_name(e->params[q].name, name)) return q;
   }

@@ -19,7 +19,7 @@ from tests.engine_helpers import ENGINES, renderer  # noqa: F401
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "param-uids.json"
 SELFTEST = ENGINES / "build" / "fm1-schwung-selftest"
 FLAG_BITS = [(0x01, "latch"), (0x02, "smooth"), (0x04, "nolock"), (0x08, "mod"), (0x10, "input")]
-UNITS = {"none", "semi", "ms", "hz", "pct", "deg"}
+UNITS = ["none", "semi", "ms", "hz", "pct", "deg"]     # fm1_unit_t's order
 UID_MAX = 0x0FFF
 
 # The decision for every ENUM parameter (docs/15 S7a's table, O13, as
@@ -56,11 +56,11 @@ def catalog(renderer):
             params = []
             for p in c["params"]:
                 row = dict(p, type="enum" if p["type"] == 1 else "float",
-                           flags=[n for b, n in FLAG_BITS if p["flags"] & b])
+                           flags=[n for b, n in FLAG_BITS if p["flags"] & b],
+                           unit=UNITS[p["unit"]] if p["unit"] < len(UNITS) else p["unit"])
                 if p["name"] in shown:
-                    assert shown[p["name"]]["uid"] == row["uid"]
-                    assert shown[p["name"]]["flags"] == row["flags"]
-                    row.update(unit=shown[p["name"]]["unit"], abbr=shown[p["name"]]["abbr"])
+                    for field in ("uid", "flags", "unit", "abbr"):
+                        assert shown[p["name"]][field] == row[field], (e["id"], p["name"], field)
                 params.append(row)
         out[e["id"]] = params
     return out
@@ -114,23 +114,33 @@ def test_every_enum_has_its_decided_flags(built):
     assert enums == ENUM_FLAGS
 
 
-def test_abbreviations_and_units(built, renderer):
-    """abbr: 1-6 printable characters, unique in the engine, and still unique
-    cut to 5 (a matrix row with a unit prefix, docs/16 §5.3). unit: one of
-    the six. Checked on what --list shows (hidden Schwung parameters have no
-    row there)."""
-    listed = json.loads(subprocess.run([str(renderer), "--list"], check=True,
-                                       capture_output=True, text=True).stdout)
-    for e in listed:
-        abbrs = [p["abbr"] for p in e["params"]]
-        assert all(re.fullmatch(r"[ -~]{1,6}", a) for a in abbrs), (e["id"], abbrs)
-        assert len(set(abbrs)) == len(abbrs), e["id"]
-        assert len({a[:5] for a in abbrs}) == len(abbrs), e["id"]
-        assert all(p["unit"] in UNITS for p in e["params"]), e["id"]
-    units = {(e["id"], p["name"]): p["unit"] for e in listed for p in e["params"]
+def test_abbreviations_and_units(built):
+    """abbr: 1-6 printable characters (never NULL), unique in the engine, and
+    still unique cut to 5 (a matrix row with a unit prefix, docs/16 §5.3).
+    unit: one of the six. Every defined parameter, the Schwung modules'
+    hidden ones included (from their contract)."""
+    for eid, params in built.items():
+        abbrs = [p["abbr"] for p in params]
+        assert all(isinstance(a, str) and re.fullmatch(r"[ -~]{1,6}", a) for a in abbrs), \
+            (eid, abbrs)
+        assert len(set(abbrs)) == len(abbrs), eid
+        assert len({a[:5] for a in abbrs}) == len(abbrs), eid
+        assert all(p["unit"] in UNITS for p in params), eid
+    units = {(eid, p["name"]): p["unit"] for eid, params in built.items() for p in params
              if p["unit"] != "none"}
     assert units[("echo", "Time")] == "ms" and units[("sw-sophie", "Tune")] == "semi"
     assert units[("sw-sophie", "Color")] == "pct"
+    assert units[("sw-sophie", "Ring Time")] == "ms"     # hidden: from the contract
+
+
+def test_names_are_unique_without_case(built):
+    """A lane label names its parameter by name without ASCII case
+    (fm1_seq_lane_param), and the bridge trusts a stored uid while its
+    parameter's name matches the label (engines/seq.md, "Where locks
+    resolve"): both need every name in an engine distinct without case."""
+    for eid, params in built.items():
+        names = [p["name"].lower() for p in params]
+        assert len(set(names)) == len(names), eid
 
 
 def fnv1a_uid(key):

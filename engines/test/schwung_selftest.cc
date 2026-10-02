@@ -620,10 +620,11 @@ int Contract(const char *id) {
     const ParamKey &k = m->keys[i];
     printf("%s{\"name\":%s,\"key\":%s,\"format\":\"%s\",\"offset\":%d,\"type\":%d,"
            "\"min\":%s,\"max\":%s,\"def\":%s,\"page\":%u,\"uid\":%u,\"flags\":%u,"
-           "\"enum_names\":",
+           "\"unit\":%u,\"abbr\":%s,\"enum_names\":",
            i ? "," : "", Quote(p.name).c_str(), Quote(k.key).c_str(),
            k.format == VALUE_INDEX ? "index" : "float", k.offset, p.type,
-           Num(p.min).c_str(), Num(p.max).c_str(), Num(p.def).c_str(), p.page, p.uid, p.flags);
+           Num(p.min).c_str(), Num(p.max).c_str(), Num(p.def).c_str(), p.page, p.uid, p.flags,
+           p.unit, p.abbr ? Quote(p.abbr).c_str() : "null");
     if (p.enum_names) {
       printf("[");
       const int n = static_cast<int>(p.max - p.min + 1.5f);

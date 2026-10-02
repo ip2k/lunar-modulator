@@ -17,7 +17,8 @@
  *     after every block, through text and typed commands alike; a lock goes
  *     to its uid's parameter, whose index is not uid - 1; a NOLOCK
  *     parameter's locks are refused, counted and split nothing; a new
- *     engine, an import and a released lane re-resolve.
+ *     engine, an import and a released lane re-resolve; and a label set
+ *     on the core directly, past the bridge, still reaches its parameter.
  *
  * Prints one JSON line of counts; exits 1 after the first failed check is
  * reported. Desktop test code (stdio); the bridge itself has none. MIT
@@ -67,15 +68,17 @@ static const fm1_engine_t kOther = {
 };
 #undef CONT
 
-/* Every lane of h resolves as its label does now, against e. */
+/* Every lane of h resolves as its label does now, against e, and every
+ * labelled lane's stored uid already is that (the getter alone would
+ * re-resolve a stale one, so it cannot show that the bridge kept it). */
 static int lanes_match(const fm1_seq_host_t *h, const fm1_engine_t *e) {
   unsigned t, lane;
   for (t = 0; t < FM1_SEQ_MAX_TRACKS; ++t) {
     for (lane = 0; lane < FM1_SEQ_LANES; ++lane) {
       const char *label = fm1_seq_lane_label(h->seq, (uint8_t)t, (uint8_t)lane);
-      if (fm1_seq_host_lane_uid(h, (uint8_t)t, (uint8_t)lane) != fm1_seq_lane_uid(e, label)) {
-        return 0;
-      }
+      const uint16_t fresh = fm1_seq_lane_uid(e, label);
+      if (fm1_seq_host_lane_uid(h, (uint8_t)t, (uint8_t)lane) != fresh) return 0;
+      if (label[0] && h->lane_uid[t][lane] != fresh) return 0;
     }
   }
   return 1;
@@ -474,6 +477,36 @@ static void uids_and_refusals(void) {
     CHECK(fm1_seq_parse("alabel 0 5 a:tune", 17, &c) == 1);
     fm1_seq_host_cmd(&h, &c);
     CHECK(fm1_seq_host_lane_uid(&h, 0, 5) == 3 && lanes_match(&h, &kEngine));
+  }
+  {
+    /* Labels set on the core directly, past the bridge: the stored uids are
+     * stale (lane 5 still holds Tune's, lane 6 none), yet the getter and a
+     * lock follow the labels, Sweep (index 4) and Decay (index 3). */
+    static const char relabel[] = "alabel 0 5 synth:SWEEP;alabel 0 6 synth:decay";
+    CHECK(fm1_seq_apply_text(h.seq, relabel, sizeof(relabel) - 1u, NULL, 0) == 0);
+    CHECK(h.lane_uid[0][5] == 3 && h.lane_uid[0][6] == 0);
+    CHECK(fm1_seq_host_lane_uid(&h, 0, 5) == 1 && fm1_seq_host_lane_uid(&h, 0, 6) == 12);
+    ev[0].tick = 0; ev[0].frame = 0; ev[0].kind = FM1_SEQ_EV_LOCK; ev[0].track = 0;
+    ev[0].a = 5; ev[0].b = 0;
+    ev[1] = ev[0];
+    ev[1].a = 6;
+    ev[1].b = 127;
+    h.n = 2;
+    sink.engine = &kEngine;
+    fm1_seq_set_route(h.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);   /* the import reset it */
+    memset(&tr, 0, sizeof(tr));
+    tr.block = block;
+    fm1_seq_host_dispatch(&h, BLOCK, block, &sink);
+    CHECK(tr.n == 2u && tr.calls[0].index == 4 &&
+          tr.calls[0].value == fm1_seq_lock_value(&kParams[4], 0) && tr.calls[1].index == 3 &&
+          tr.calls[1].value == fm1_seq_lock_value(&kParams[3], 127));
+    /* And an import on the core: Sweep on lane 0, where Bank was bound. */
+    fm1_seq_host_bind(&h, &kEngine);
+    CHECK(fm1_seq_host_line(&h, "alabel 0 0 synth:Bank", 21) == 0 && h.lane_uid[0][0] == 2);
+    CHECK(fm1_seq_import_movy1(h.seq, set, sizeof(set) - 1u) == 1);
+    CHECK(h.lane_uid[0][0] == 2 && fm1_seq_host_lane_uid(&h, 0, 0) == 1);
+    fm1_seq_host_bind(&h, &kEngine);
+    CHECK(h.lane_uid[0][0] == 1 && lanes_match(&h, &kEngine));
   }
 }
 

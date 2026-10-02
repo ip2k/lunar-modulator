@@ -24,8 +24,10 @@
  * on a NOLOCK parameter is refused and counted (locks_refused), and like a
  * lock on a lane that names nothing, it neither reaches the engine nor
  * splits the block. Labels stay text, so `movy1` sets keep `synth:<Name>`.
- * A host that labels lanes or imports on the core directly, past the
- * bridge, calls fm1_seq_host_bind afterwards.
+ * A stored uid is used only while its parameter has the name the label
+ * gives, so a host that labels lanes or imports on the core directly, past
+ * the bridge, still locks the right parameter: such a lane resolves afresh
+ * at each lock until fm1_seq_host_bind stores it again.
  *
  * Event room. Commands, live input and advance share one buffer per block,
  * and advance needs fm1_seq_min_events(lim) of it to keep every note-off,
@@ -91,7 +93,8 @@ void fm1_seq_host_bind(fm1_seq_host_t *h, const fm1_engine_t *e);
 int fm1_seq_host_import(fm1_seq_host_t *h, const char *txt, size_t len);
 
 /* The uid a lane's locks go to: 0 when the lane is unlabelled or its label
- * names no parameter of the bound engine. A NOLOCK parameter's uid is
+ * names no parameter of the bound engine. Always the label's own parameter,
+ * even for a label set past the bridge (above). A NOLOCK parameter's uid is
  * returned, so a UI can say why its locks are refused. */
 uint16_t fm1_seq_host_lane_uid(const fm1_seq_host_t *h, uint8_t track, uint8_t lane);
 
