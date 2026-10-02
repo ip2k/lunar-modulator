@@ -25,8 +25,7 @@ pages, then the second slot's. The bottom bar shows where you are, such as
 *1/2 FX2*: page 1 of 2, second slot.
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
-*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo and
-Test Gain, and round again. In the simulator you can also use the **Effect 1** and **Effect 2**
+*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Comp andTest Gain, and round again. In the simulator you can also use the **Effect 1** and **Effect 2**
 lists under the panel.
 
 **To empty a slot:** turn [[ALGORITHM]] to *Empty slot*, one step before
@@ -61,7 +60,7 @@ more than two.
     about 48,000 samples a second, so at the FM-1's 44,118 their delays come
     out about 9 % longer, a slightly larger room, and their slow modulation
     about 8 % slower. Their decay times are corrected, and stay within a few per
-    cent of the originals'. Crush, Fold, Drive and Echo, written for Lunar
+    cent of the originals'. Crush, Fold, Drive, Echo and Comp, written for Lunar
     Modulator, work out their frequencies and times from the output's rate,
     so they need no correction.
 
@@ -325,6 +324,73 @@ the time.
 Echo does not yet follow the sequencer's tempo; set Time by ear.
 
 {{engine-table echo}}
+
+## Comp
+
+{{status desktop planned}}
+
+A compressor, written for Lunar Modulator. When the sound gets louder than a
+threshold, Comp turns it down, so loud and quiet notes sit closer together:
+drums hit harder and hang together, chords sustain evenly, a bass line
+stays steady. Both channels are turned down together, so the stereo picture
+does not move.
+
+- **Threshold** sets the level above which Comp starts to work, from −60 dB
+  at the left to 0 dB, full scale, at the right. The lower it is, the more
+  of the sound is compressed.
+- **Ratio** sets how hard. At 4, the default, every 4 dB that the sound
+  rises past the threshold comes out as 1 dB. It goes from 1 (no
+  compression) to 20, and at 21, the far right, nothing gets past the
+  threshold at all: Comp becomes a limiter.
+- **Attack** sets how quickly Comp reacts, from at once at 0 to 100
+  milliseconds. A slower attack lets the start of each note or hit through
+  before the sound is turned down, which keeps it punchy.
+- **Release** sets how quickly the sound comes back up once it gets
+  quieter, from 10 milliseconds to 2 seconds. Short releases pump with the
+  rhythm; long ones hold the level steady.
+- **Knee**, on page 2, softens the threshold. At 0 the compression starts
+  all at once; the higher the knee, the more gently it eases in, over that
+  many dB around the threshold.
+- **Makeup**, on page 2, turns the result up, or down, by up to 24 dB, to
+  win back the level the compression took.
+- **Mix**, on page 2, blends the untouched sound back in. At the right, the
+  default, you hear only the compressed sound; in between is parallel
+  compression, where the dry sound's hits ride on the compressed sound's
+  body.
+- **Character**, on page 2, chooses how Comp listens and reacts:
+    - **Peak** reacts to every peak: precise, for taming hits and for
+      limiting.
+    - **RMS** reacts to the average loudness, which is gentler and closer
+      to how loud the sound seems.
+    - **Glue** listens like RMS, but more slowly, lets go more smoothly and
+      has a softer knee: for holding chords or a whole part together.
+    - **Punch** reacts to peaks but eases into each one, so the front of
+      every hit gets through before Comp clamps down.
+- **Auto Rel**, on page 3, makes the release follow the music. After a
+  short peak the sound comes back quickly; after a long loud passage,
+  slowly. Short hits leave no holes and long notes do not pump.
+- **Auto Gain**, on page 3, sets the makeup for you, so that a sound at
+  full scale stays at full scale however Threshold, Ratio and Knee are set.
+  Makeup then adds to it or takes from it.
+
+Silence stays silent at any setting, and the knobs glide over a few
+milliseconds, so turning them does not click; changing Character or Auto
+Rel while Comp is working does not jump either.
+
+!!! tip "Starting points"
+    - **Tighter drums:** Peak, Threshold about −20, Ratio 4, Attack about
+      10, Release about 100, Auto Gain on.
+    - **Smooth pad:** Glue, Threshold about −24, Ratio 2 to 3, Attack about
+      30, Release about 400, Auto Rel on.
+    - **Parallel punch:** Punch, Threshold about −35, Ratio 8, Mix about
+      0.5, then Makeup to taste.
+    - **Brick wall:** Peak, Ratio 21, Attack 0, Release about 50, the
+      threshold just under the loudest peaks.
+
+Comp listens only to the sound passing through it. Making one sound duck
+under another (a sidechain) may come later.
+
+{{engine-table comp}}
 
 ## Test Gain
 

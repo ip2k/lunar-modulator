@@ -42,6 +42,12 @@ ENUM_FLAGS = {
     ("drive", "Type"): [],                      # crossfades over 5 ms: lockable; no MOD,
                                                 # a rounded route would step, not sweep
     ("drive", "Auto"): [],                      # its gain glides: lockable
+    # Comp's switches are read every sample and hand over without a step, so
+    # they can be locked; no MOD, since a rounded route would flip the
+    # detector or the release at control rate.
+    ("comp", "Character"): [],
+    ("comp", "Auto Rel"): [],
+    ("comp", "Auto Gain"): [],
 }
 
 

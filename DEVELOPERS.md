@@ -153,9 +153,9 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
     antiderivative anti-aliasing), Drive (overdrive and saturation, five
-    anti-aliased curves) and Echo (a stereo ping-pong delay) are our own
-    code ([`engines/README.md`](engines/README.md#crush)).
-- **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
+    anti-aliased curves), Echo (a stereo ping-pong delay) and Comp (a
+    feed-forward compressor, without libm) are our own code
+    ([`engines/README.md`](engines/README.md#crush)).- **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
   checked sample for sample against upstream `Voice`
   ([`engines/README.md`](engines/README.md#macro-and-macro-heavy-page-3-the-envelope-and-the-gate)).
@@ -570,7 +570,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
   all [inferred].
 
 **More effects** · *Planned*
-- **Done so far (2026-10-02):** Crush, Fold, Drive and Echo, our own code
+- **Done so far (2026-10-02):** Crush, Fold, Drive, Echo and Comp, our own code
   ([`engines/README.md`](engines/README.md#crush)). Crush adds jitter and
   fractional bits, so it does not use Plaits' `SampleRateReducer`. Echo
   keeps its own fixed 64 KB per instance and slows its clock beyond 371 ms,
