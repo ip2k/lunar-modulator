@@ -1,5 +1,6 @@
 // worklet.js -- the virtual FM-1's audio thread. One fm1.wasm instance runs
-// the whole firmware here, as the FM-1 runs UI and audio on one core: panel
+// the whole firmware here (the stock FM-1 renders its voices on its second
+// core and the UI and effects on the first, docs/11 section 2): panel
 // input arrives as port messages between render quanta (so at block
 // boundaries), each 128-frame quantum is rendered as two 64-frame host
 // blocks, and the screen and LEDs go back to the page when they change.

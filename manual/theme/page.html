@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>$title · $manual_title $document</title>
+<meta name="description" content="$description">
+<meta name="generator" content="tools/manual/build.py, commit $commit">
+$font_link<link rel="stylesheet" href="assets/manual.css">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+</head>
+<body class="$body_class">
+<a class="skip" href="#content">Skip to the text</a>
+<header class="masthead">
+  <a class="wordmark" href="index.html"><span class="wm-name">$manual_title</span><span class="wm-doc">$document</span></a>
+  <nav aria-label="Manual">
+    <a href="index.html#contents">Contents</a>
+    <a href="$pdf_name">PDF</a>
+    <a href="../">Simulator</a>
+  </nav>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="Chapters">
+    <details open>
+      <summary>Chapters</summary>
+      <ol>
+$sidebar
+      </ol>
+    </details>
+  </nav>
+  <main id="content">
+    <article class="$article_class">
+$body
+    </article>
+    <nav class="pager" aria-label="Previous and next chapter">
+$pager
+    </nav>
+  </main>
+  <nav class="onpage" aria-label="On this page">
+$onpage
+  </nav>
+</div>
+<footer class="colophon">
+  <p>$edition</p>
+  <p>$manual_title is independent open firmware for the M-VAVE FM-1. It is not made, endorsed or supported by M-VAVE or Cuvave. Text and code are under the MIT licence; see <a href="13-credits-and-licences.html">Credits and licences</a>.</p>
+</footer>
+</body>
+</html>
