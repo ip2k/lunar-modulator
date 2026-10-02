@@ -13,32 +13,21 @@
 // the button it pressed, a select giving the keyboard back, one
 // AudioContext for a double click on Power on, wheel detents, screens still
 // flowing on two recycled buffers; and on a phone, targets of at least
-// 24 px with no page-wide horizontal scroll. MIT licence.
+// 24 px with no page-wide horizontal scroll. And the theme: the title, the
+// Audiowide face loaded from the page's own fonts/, the palette's base as
+// the page background. MIT licence.
 
 import { createRequire } from 'node:module';
-import { createServer } from 'node:http';
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { extname, join, normalize } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { serve } from './serve.mjs';
 
 const require = createRequire(`${process.env.PLAYWRIGHT_DIR || '/pw'}/`);
 const { chromium } = require('playwright');
 
 const [www, out] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
-
-const TYPES = {
-  '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
-  '.css': 'text/css', '.wasm': 'application/wasm', '.json': 'application/json',
-};
-const server = createServer((req, res) => {
-  const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^\/+/, '');
-  const file = join(www, path || 'index.html');
-  if (!file.startsWith(www) || !existsSync(file)) { res.writeHead(404); res.end(); return; }
-  res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
-  res.end(readFileSync(file));
-});
-await new Promise((r) => server.listen(8765, '127.0.0.1', r));
-const url = 'http://127.0.0.1:8765/index.html';
+const { server, url } = await serve(www, 8765);
 
 const report = { checks: {}, logs: [] };
 const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
@@ -56,6 +45,7 @@ const level = (page) => page.evaluate(() => {
 });
 const wait = (page, ms) => page.waitForTimeout(ms);
 async function wheel(page, selector, ticks) {
+  await page.locator(selector).scrollIntoViewIfNeeded();
   const box = await page.locator(selector).boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   for (let i = 0; i < Math.abs(ticks); ++i) {
@@ -188,6 +178,9 @@ async function inputChecks(browser) {
 
   // Wheel: horizontal turns nothing, a trackpad's small deltas add up, each
   // mouse notch is one detent.
+  // Selecting above scrolled the page down to the dropdown; a player scrolls
+  // back to the knob before turning it.
+  await page.locator('[data-encoder="3"]').scrollIntoViewIfNeeded();
   const knob1 = await page.locator('[data-encoder="3"]').boundingBox();
   await page.mouse.move(knob1.x + knob1.width / 2, knob1.y + knob1.height / 2);
   await resetSent(page);
@@ -244,6 +237,7 @@ async function targets(page) {
 const bigEnough = (t, px) => Math.min(t.white_key, t.black_key, t.button, t.knob) >= px;
 
 async function press(page, button) {
+  await page.locator(`[data-button="${button}"]`).scrollIntoViewIfNeeded();
   const box = await page.locator(`[data-button="${button}"]`).boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
@@ -256,6 +250,19 @@ try {
   page.on('console', (m) => report.logs.push(`${m.type()}: ${m.text()}`));
   page.on('pageerror', (e) => report.logs.push(`pageerror: ${e.message}`));
   await page.goto(url);
+  // The theme: the title, the display face actually loaded from fonts/, the
+  // palette's base behind everything.
+  report.checks.theme = await page.evaluate(async () => {
+    await document.fonts.ready;
+    const loaded = await document.fonts.load('400 24px Audiowide');
+    return {
+      title: document.title,
+      display_font_loaded: loaded.length > 0 && document.fonts.check('400 24px Audiowide'),
+      body_background: getComputedStyle(document.body).backgroundColor,
+      brand: getComputedStyle(document.querySelector('.brand')).textTransform === 'uppercase' &&
+        document.querySelector('.brand').textContent.trim(),
+    };
+  });
   await page.screenshot({ path: join(out, '01-powered-off.png'), fullPage: true });
 
   await page.click('#power-on');
@@ -336,7 +343,9 @@ try {
 }
 
 const c = report.checks;
-report.pass = !report.error && c.screens > 0 && c.chord_rms > 0.01 && c.lit_keys === 3 &&
+const theme = c.theme || {};
+report.pass = !report.error && theme.title === 'Lunar Modulator' && theme.display_font_loaded === true &&
+  theme.body_background === 'rgb(35, 33, 54)' && c.screens > 0 && c.chord_rms > 0.01 && c.lit_keys === 3 &&
   c.fx_led === true && c.phone_scroll_width <= 390 && bigEnough(c.phone, 24) && c.phone_pan_px > 100 &&
   c.landscape.page_scroll_width <= 844 && bigEnough(c.landscape, 24) && c.input && c.input.pass &&
   !report.logs.some((l) => l.startsWith('error') || l.includes('pageerror'));

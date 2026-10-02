@@ -1,8 +1,8 @@
 // app.js -- the virtual FM-1's page: draws the front panel to scale, turns
 // mouse, touch, computer-keyboard and Web MIDI input into panel events for
 // the firmware in the AudioWorklet (worklet.js), and shows the screen and
-// LEDs it sends back. No dependencies. MIT licence, like the rest of this
-// repository.
+// LEDs it sends back. No dependencies. Part of Lunar Modulator; MIT licence,
+// like the rest of this repository.
 
 import { BUTTONS, ENCODERS, KEYS } from './fm1-wasm.mjs';
 
@@ -184,6 +184,11 @@ const PLAITS_RATE = 47872;
 
 function send(msg) { if (sim.node) sim.node.port.postMessage(msg); }
 
+// The worklet and the module sit next to this script. Resolving them from
+// it, not from the document, keeps them found wherever the page is served
+// (a subdirectory, a static host that wraps the page, https or localhost).
+const asset = (name) => new URL(name, import.meta.url).href;
+
 async function makeContext() {
   let last = null;
   for (const rate of [44118, 44100]) {
@@ -227,8 +232,10 @@ async function start() {
   let ctx = null;
   try {
     ctx = await makeContext();
-    await ctx.audioWorklet.addModule('worklet.js');
-    const wasm = await (await fetch('fm1.wasm')).arrayBuffer();
+    await ctx.audioWorklet.addModule(asset('worklet.js'));
+    const res = await fetch(asset('fm1.wasm'));
+    if (!res.ok) throw new Error(`fm1.wasm: HTTP ${res.status}`);
+    const wasm = await res.arrayBuffer();
     const node = new AudioWorkletNode(ctx, 'fm1', {
       numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2],
     });
@@ -621,9 +628,18 @@ function onMidi(e) {
   else if (type === 0xb0 && a === 123) send({ type: 'panic' });
 }
 
+// On a narrow screen the panel opens scrolled just far enough to show the
+// whole screen: the case's left edge, which has no controls, goes first.
+function revealScreen() {
+  if (scroller.scrollWidth <= scroller.clientWidth) return;
+  const need = tft.getBoundingClientRect().right + 8 - scroller.getBoundingClientRect().right;
+  if (need > 0) scroller.scrollLeft += need;
+}
+
 // ---- wiring --------------------------------------------------------------------------
 drawPanel();
 setAngle(masterEl, -150 + 300 * sim.master);
+revealScreen();
 document.getElementById('power-on').addEventListener('click', powerOn);
 document.getElementById('power-off').addEventListener('click', powerOff);
 document.getElementById('midi').addEventListener('click', connectMidi);

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # sim/web/build-on-aeon.sh -- rebuild the virtual FM-1 on aeon in one command:
 #
-#   sim/web/build-on-aeon.sh [--engines-ref GIT_REF] [--no-screenshot]
+#   FM1_SIM_HOST=user@host sim/web/build-on-aeon.sh [--engines-ref GIT_REF]
+#       [--no-screenshot] [--readme-screenshots]
 #
 # Copies engines/ and sim/web/ (no build output) to aeon, builds a static
 # musl fm1-render in Alpine (musl is Emscripten's C library, so it separates
@@ -18,16 +19,21 @@
 # and www/ and the working tree's own results in sim/web/build/ stay as they
 # were. The record names each container image by digest, since tags move.
 #
-# Environment: FM1_AEON (ssh target, default claude@192.168.1.25),
-# FM1_REMOTE_DIR (default /home/claude/mvave-fm1/virtual), FM1_SESSION (the
-# session label on the containers). MIT licence, like the rest of this repository.
+# --readme-screenshots also runs test/readme-screenshots.mjs in the same
+# container: the README's pictures (the panel, every engine's screen, an
+# effect page, a parameter page, the phone layout and the parity figure) go
+# to sim/web/build/readme-screenshots/, to be looked at and copied to
+# assets/screenshots/ (assets/screenshots/README.md).
+#
+# Environment: FM1_SIM_HOST (required: user@host of a Linux machine with
+# Docker), FM1_REMOTE_DIR (default ~/mvave-fm1/virtual on that host),
+# FM1_SESSION (the session label on the containers). MIT licence, like the
+# rest of this repository.
 set -euo pipefail
 # macOS tar would add AppleDouble ._* files (provenance attributes) to the
 # staged tree, and a scan of www/ then trips over them.
 export COPYFILE_DISABLE=1
 
-HOST=${FM1_AEON:-claude@192.168.1.25}
-REMOTE=${FM1_REMOTE_DIR:-/home/claude/mvave-fm1/virtual}
 SESSION=${FM1_SESSION:-virtual-fm1}
 EMSDK_IMAGE=emscripten/emsdk:6.0.10
 ALPINE_IMAGE=alpine:3.22
@@ -36,14 +42,23 @@ PLAYWRIGHT_NPM=playwright@1.63.0
 
 ENGINES_REF=""
 SCREENSHOT=1
+README_SHOTS=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --engines-ref) ENGINES_REF=$2; shift 2 ;;
     --no-screenshot) SCREENSHOT=0; shift ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    --readme-screenshots) README_SHOTS=1; shift ;;
+    -h|--help) sed -n '2,31p' "$0"; exit 0 ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
   esac
 done
+if [ "$README_SHOTS" = 1 ] && [ "$SCREENSHOT" = 0 ]; then
+  echo "--readme-screenshots needs the page step; drop --no-screenshot" >&2
+  exit 2
+fi
+HOST="${FM1_SIM_HOST:?set FM1_SIM_HOST=user@host (a Linux machine with Docker)}"
+# The remote directory defaults to one under the remote user's home.
+REMOTE=${FM1_REMOTE_DIR:-$(ssh "$HOST" 'printf %s "$HOME"')/mvave-fm1/virtual}
 
 ROOT=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 SIM=$ROOT/sim/web
@@ -92,7 +107,10 @@ if [ "$SCREENSHOT" = 1 ]; then
     -v '$REMOTE/playwright:/pw' -v '$STAGE:/src' -w /pw $PLAYWRIGHT_IMAGE \
     sh -c '[ -d node_modules/playwright ] || npm install --no-save --no-audit --no-fund $PLAYWRIGHT_NPM >/dev/null; \
            PLAYWRIGHT_DIR=/pw node /src/sim/web/test/screenshot.mjs /src/sim/web/www /src/sim/web/build/screenshots; \
-           s=\$?; chown -R \$(stat -c %u:%g /src) /src /pw; exit \$s'"
+           s=\$?; if [ $README_SHOTS = 1 ] && [ \$s = 0 ]; then \
+             PLAYWRIGHT_DIR=/pw node /src/sim/web/test/readme-screenshots.mjs /src/sim/web/www \
+               /src/sim/web/build/readme-screenshots /src/sim/web/build/parity; s=\$?; fi; \
+           chown -R \$(stat -c %u:%g /src) /src /pw; exit \$s'"
 fi
 
 echo "== fetching results"
@@ -113,6 +131,10 @@ scp -q "$HOST:$STAGE/sim/web/build/parity.json" "$RESULTS/"
 if [ "$SCREENSHOT" = 1 ]; then              # replaced only by a new set
   rm -rf "$RESULTS/screenshots"
   scp -q -r "$HOST:$STAGE/sim/web/build/screenshots" "$RESULTS/"
+fi
+if [ "$README_SHOTS" = 1 ]; then
+  rm -rf "$RESULTS/readme-screenshots"
+  scp -q -r "$HOST:$STAGE/sim/web/build/readme-screenshots" "$RESULTS/"
 fi
 python3 -c "import json,sys; r=json.load(open(sys.argv[1])); print(sys.argv[1], r['wasm_bytes'], 'bytes; parity', r['parity'])" \
   "$DEST/fm1.wasm.json"

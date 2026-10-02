@@ -1,23 +1,28 @@
 # sim/web — a virtual FM-1 in the browser
 
-The open firmware's engines and effects, compiled to WebAssembly, running
+Lunar Modulator's engines and effects, compiled to WebAssembly, running
 behind a to-scale FM-1 front panel with the firmware's own 240 × 240 screen.
 Play it with the mouse, a touch screen, the computer keyboard or a MIDI
 keyboard. Nothing here talks to a real FM-1.
+
+![The virtual FM-1 playing a chord](../../assets/screenshots/virtual-fm1.png)
 
 Is there an emulator of the FM-1 itself? Not a public one; see
 [emulators.md](emulators.md) for what exists and what each route would take.
 
 ```bash
 cd sim/web/www && python3 -m http.server 8000     # then open http://localhost:8000/
-sim/web/build-on-aeon.sh                         # rebuild fm1.wasm on aeon, test it, screenshot it
+FM1_SIM_HOST=user@host sim/web/build-on-aeon.sh  # rebuild fm1.wasm on a Docker host, test it, screenshot it
 python -m pytest tests/test_sim_web.py           # native checks, no WebAssembly needed
 ```
 
 The page needs a secure context for its AudioWorklet and Web MIDI, which
-`http://localhost` is; opening `index.html` as a file does not work. It has
-no dependencies and loads nothing from other origins, so the `www/` folder
-can be published as static files as it is (but see "Before publishing").
+`http://localhost` and any `https://` page are; opening `index.html` as a
+file does not work. It has no dependencies and loads nothing from other
+origins; every reference is relative, and `app.js` finds the worklet and
+the module next to itself, so the `www/` folder can be published as static
+files at any path as it is (but see "Before publishing"). Audio starts on
+the "Power on" button, as browsers require a gesture.
 
 ## What works
 
@@ -25,14 +30,17 @@ can be published as static files as it is (but see "Before publishing").
 | --- | --- |
 | Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Test Gain. One sound and two effect slots, then the host's bus limiter, as `fm1-render` runs them |
 | Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy and Six-Op run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the three, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
-| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. 287 screens (every page of every engine and effect at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, SEL outside FX mode and an emptied slot) pass a layout check: nothing off screen, no text cut short, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`] |
+| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 287 screens (every page of every engine and effect at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, SEL outside FX mode and an emptied slot) pass a layout check: nothing off screen, no text cut short, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`] |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
+| Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_app.c`); Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 for small text where installed, else the system's sans-serif |
 | Info | GLO shows the sample rate, block size, the chain's RAM against the 379 KB the stock layout leaves free (docs/11 §2), voices, octave and transpose. WebAssembly has 4-byte pointers like pi32v2, so these are the 32-bit instance sizes |
 
 Tested in headless Chromium 153 (Playwright 1.63, on aeon) only
-[verified: `build/screenshots/report.json`, 2026-10-01]: it powers on, a
-three-note chord reaches the output (RMS 0.047), three key LEDs light, FX,
+[verified: `build/screenshots/report.json`, 2026-10-01]: the page is titled
+"Lunar Modulator", Audiowide loads from `fonts/`, the background is the
+palette's base; it powers on, a
+three-note chord reaches the output (RMS 0.046), three key LEDs light, FX,
 SELECT and ALGORITHM put Ensemble in slot 2. The input checks: a double
 click on Power on opens one AudioContext and Power off closes it; a key
 released under Cmd, Ctrl or Alt is released, and Cmd alone releases held
@@ -43,8 +51,10 @@ a horizontal scroll turns nothing, 20 trackpad events of 4 px turn 2 detents,
 five mouse notches five; screens keep coming (29 a second while a note
 sounds) on two recycled buffers. At 390 × 844 the page does not scroll
 sideways, the smallest targets are 24.8 px (OCT−/OCT+, 5.2 mm tall) and
-the keys 35 and 31.5 px wide, and dragging the case pans the panel; at
-844 × 390 the panel fits with 25 px targets. Firefox, Safari, real touch
+the keys 35 and 31.5 px wide, the panel opens scrolled just far enough to
+show the whole screen, and dragging the case pans it; at 844 × 390 the
+panel fits with 25 px targets, the header shrinks to the name and tagline,
+and Power on sits over the panel's top row. Firefox, Safari, real touch
 screens and real MIDI hardware are not tested.
 
 ## The panel
@@ -145,9 +155,11 @@ memory) and about 390 KB.
 
 ### `build-on-aeon.sh`
 
-One command; about 20 seconds once aeon has the three images (the first run
-pulls them). On aeon, in containers (nothing runs on the
-Mac but ssh, tar and scp; nothing is installed on aeon's host):
+One command, run against any Linux machine with Docker that you can ssh
+to (`FM1_SIM_HOST=user@host`; the project's has been aeon, a box on the
+owner's LAN); about 20 seconds once that host has the three images (the
+first run pulls them). There, in containers (nothing runs locally but ssh,
+tar and scp; nothing is installed on the host):
 
 1. `alpine:3.22`: a static musl `fm1-render`.
 2. `emscripten/emsdk:6.0.10` (`build.sh`): native `fm1-render` and
@@ -157,7 +169,11 @@ Mac but ssh, tar and scp; nothing is installed on aeon's host):
    (hashes of the module and of the sources, the parity results).
 3. `mcr.microsoft.com/playwright:v1.63.0-noble`: `test/screenshot.mjs` opens
    the page in headless Chromium, plays it and writes screenshots and a
-   report to `build/screenshots/`.
+   report to `build/screenshots/`; with `--readme-screenshots`,
+   `test/readme-screenshots.mjs` then takes the README's pictures (the page,
+   each engine's screen, an effect page, a parameter page, the phone and
+   the parity figure) into `build/readme-screenshots/`, for a person to look
+   at and copy to `assets/screenshots/` ([its README](../../assets/screenshots/README.md)).
 
 Options: `--engines-ref REF` builds another commit's engines as a trial:
 its module, record, `parity.json` and screenshots go to `build/ref-REF/`,
@@ -166,10 +182,10 @@ never to `www/`, and the working tree's own results in `build/` stay;
 names the three images by digest (`images`), since tags move, and a
 rebuild of a byte-identical module from unchanged sources keeps the
 record's `built` time, so the file changes only when something in it did.
-`FM1_AEON`, `FM1_REMOTE_DIR` and `FM1_SESSION` override the host, the
-directory (`/home/claude/mvave-fm1/virtual`; `src/` there is the staging copy,
-replaced on every run, and `playwright/` caches the Playwright package, about
-20 MB) and the containers' session label.
+`FM1_SIM_HOST` (required) names the host; `FM1_REMOTE_DIR` and
+`FM1_SESSION` override the directory there (`~/mvave-fm1/virtual`; `src/`
+in it is the staging copy, replaced on every run, and `playwright/` caches
+the Playwright package, about 20 MB) and the containers' session label.
 
 ### Tests
 
@@ -225,3 +241,11 @@ trademarks and a person's name (engines/README.md, "Open questions"). Fine
 for a personal page; rename or drop them before the page is shared widely.
 Every engine is MIT (Mutable Instruments, Schwung modules); the credits are
 in each engine's `credits` string and in the page's footer.
+
+Publishing is copying `www/` as it is: `index.html`, `style.css`, `app.js`,
+`worklet.js`, `fm1-wasm.mjs`, `fm1.wasm` and `fonts/`. The host must serve
+`.js` and `.mjs` as JavaScript (module scripts and the worklet's import
+need it; Python's `http.server` does) and the page over https or from
+localhost. The page has been tested from a local static server only; a
+host that serves pages from an opaque origin (a sandboxed iframe) would
+also need CORS headers on the module scripts [inferred].

@@ -3,15 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Virtual FM-1</title>
-<meta name="description" content="The open FM-1 firmware's sound engines running in the browser behind a to-scale M-VAVE FM-1 front panel, with its 240 x 240 screen.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#232136">
+<title>Lunar Modulator</title>
+<meta name="description" content="Lunar Modulator, an open firmware for the M-VAVE FM-1: its sound engines and effects running in the browser behind a to-scale FM-1 front panel, with the firmware's own 240 x 240 screen.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="top">
-  <h1>Virtual FM-1</h1>
-  <p class="lede">The open firmware's engines and effects, compiled to WebAssembly, behind a
-    to-scale FM-1 panel. The screen is the firmware's own 240&nbsp;&times;&nbsp;240 frame buffer.</p>
+  <h1 class="brand">Lunar Modulator</h1>
+  <p class="tagline">Intergalactic Modulation Station</p>
+  <p class="lede">An open firmware for the M-VAVE FM-1, running in your browser. Its engines and effects
+    are compiled to WebAssembly behind a to-scale FM-1 panel; the screen is the firmware's own
+    240&nbsp;&times;&nbsp;240 frame buffer.</p>
 </header>
 
 <main>
@@ -25,7 +29,7 @@
     <div class="power-overlay" id="power-overlay">
       <div class="power-card">
         <button type="button" id="power-on" class="power-button">Power on</button>
-        <p>Starts audio. Then play the keys, or your computer keyboard.</p>
+        <p>Starts the audio. Then play the keys, your computer keyboard or a MIDI keyboard.</p>
       </div>
     </div>
   </div>
@@ -69,7 +73,9 @@
       owner's board photo; the encoders' printed names and the 14 buttons are the manual's. ENV, LFO, EDIT,
       SAVE, ARP, SEQ, PLAY/STOP and REC are not in the simulator yet. Engines credit Emilie Gillet
       (Mutable Instruments, MIT) and the Schwung module authors; see the repository's
-      <code>engines/README.md</code>.</p>
+      <code>engines/README.md</code>. Colours: Ros&eacute; Pine Moon (MIT). Type: Audiowide by
+      Astigmatic (SIL Open Font License 1.1, <a href="fonts/audiowide/OFL.txt">licence</a>).
+      M-VAVE and FM-1 are their owners' names for their synthesizer; this project is not affiliated with them.</p>
   </section>
 </main>
 

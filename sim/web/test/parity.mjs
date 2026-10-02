@@ -56,6 +56,18 @@ function cliArgs(s) {
   return a;
 }
 
+// A 16-bit stereo WAV at `rate`, like render.cc's, so the app's output can
+// sit next to the native renders (readme-screenshots.mjs plots one pair).
+function writeWav(path, samples, rate) {
+  const data = Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength);
+  const h = Buffer.alloc(44);
+  h.write('RIFF', 0); h.writeUInt32LE(36 + data.length, 4); h.write('WAVE', 8);
+  h.write('fmt ', 12); h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(2, 22);
+  h.writeUInt32LE(rate, 24); h.writeUInt32LE(rate * 4, 28); h.writeUInt16LE(4, 32); h.writeUInt16LE(16, 34);
+  h.write('data', 36); h.writeUInt32LE(data.length, 40);
+  writeFileSync(path, Buffer.concat([h, data]));
+}
+
 function readWav(path) {
   const b = readFileSync(path);
   return new Int16Array(b.buffer.slice(b.byteOffset + 44, b.byteOffset + b.length));
@@ -205,6 +217,7 @@ for (const s of scenarios) {
   const js = readWav(join(dir, 'js.wav'));
   const app = await renderApp(s);
   writePpm(join(dir, 'app-screen.ppm'), app.screen);
+  writeWav(join(dir, 'app.wav'), app.out, Math.round(s.rate ?? 44118));
   imports = app.imports;
   const r = {
     name: s.name,

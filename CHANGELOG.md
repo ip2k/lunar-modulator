@@ -18,7 +18,15 @@ history.
   phone the panel keeps playable 25–35 px controls and scrolls sideways in
   its own box; turning the phone to landscape shows it whole. Above
   47,872 Hz, where Macro, Macro Heavy and Six-Op cannot run, it starts with
-  Shapes, steps over them and says why.
+  Shapes, steps over them and says why. It wears Lunar Modulator's look:
+  the Rosé Pine Moon palette on the page and on the firmware's screen,
+  Audiowide for the name and the tagline "Intergalactic Modulation
+  Station", and an oscilloscope that scales to the sound. The page finds
+  its files relative to itself, so `sim/web/www/` publishes as static files
+  over https at any path. Screenshots of the engines, an effect page, a
+  parameter page, the phone layout and a parity figure are in
+  `assets/screenshots/`; `build-on-aeon.sh` now needs `FM1_SIM_HOST` and
+  remakes them with `--readme-screenshots`.
 - `sim/web/emulators.md`: there is no public emulator of the FM-1, its SoC
   or its CPU; what each route to one would take.
 - `engines/include/fm1_resampler.h`: a reusable, heap-free resampler

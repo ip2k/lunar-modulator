@@ -1,58 +1,75 @@
-/* style.css -- the virtual FM-1's page. Page colours follow the system theme;
- * the device keeps its own colours, as hardware does. MIT licence. */
+/* style.css -- Lunar Modulator's page: the virtual FM-1. One dark theme, the
+ * Rosé Pine Moon palette (rosepinetheme.com, MIT; the values are
+ * rose-pine/palette's), which the firmware's screen uses too (src/fm1_app.c).
+ * Audiowide (Astigmatic, SIL OFL 1.1) for display type, unmodified, in
+ * fonts/audiowide/ with its licence; Exo 2 for small text where installed.
+ * MIT licence, like the rest of this repository. */
+
+@font-face {
+  font-family: "Audiowide";
+  src: url("fonts/audiowide/Audiowide-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
-  --bg: #f3f1f6;
-  --surface: #ffffff;
-  --text: #1d1a24;
-  --muted: #5d5868;
-  --border: #d6d1df;
-  --accent: #6a4fb3;
-  --accent-text: #ffffff;
-  --focus: #e0a020;
+  /* Rosé Pine Moon */
+  --rp-base: #232136;
+  --rp-surface: #2a273f;
+  --rp-overlay: #393552;
+  --rp-muted: #6e6a86;
+  --rp-subtle: #908caa;
+  --rp-text: #e0def4;
+  --rp-love: #eb6f92;
+  --rp-gold: #f6c177;
+  --rp-rose: #ea9a97;
+  --rp-pine: #3e8fb0;
+  --rp-foam: #9ccfd8;
+  --rp-iris: #c4a7e7;
+  --rp-highlight-low: #2a283e;
+  --rp-highlight-med: #44415a;
+  --rp-highlight-high: #56526e;
+
+  /* the page */
+  --bg: var(--rp-base);
+  --surface: var(--rp-surface);
+  --text: var(--rp-text);
+  --muted: var(--rp-subtle);
+  --border: var(--rp-highlight-med);
+  --accent: var(--rp-iris);
+  --accent-text: var(--rp-base);
+  --focus: var(--rp-gold);
+  --display: "Audiowide", "Exo 2", system-ui, sans-serif;
+  --small: "Exo 2", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   /* the device */
-  --case: #6b5b95;
-  --case-edge: #574a7c;
-  --case-inner: #75659f;
-  --print: #f1edf8;
-  --frame: #4c4070;
-  --knob: #2b2930;
-  --knob-ring: #5a5762;
-  --knob-mark: #f1edf8;
-  --cap: #e9e6ee;
-  --cap-text: #2b2833;
-  --cap-lit: #ffd27a;
-  --key-white: #ecebef;
-  --key-black: #3a3742;
-  --key-slot: #9d99a6;
-  --key-lit: #fff3c4;
-  --bezel: #121116;
-  --port: #2a2730;
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #15131a;
-    --surface: #1f1c26;
-    --text: #ece9f2;
-    --muted: #a7a1b3;
-    --border: #3a3546;
-    --accent: #9b84e0;
-    --accent-text: #15131a;
-    color-scheme: dark;
-  }
-}
-
-:root[data-theme="dark"] {
-  --bg: #15131a;
-  --surface: #1f1c26;
-  --text: #ece9f2;
-  --muted: #a7a1b3;
-  --border: #3a3546;
-  --accent: #9b84e0;
-  --accent-text: #15131a;
+  --case: var(--rp-overlay);
+  --case-edge: var(--rp-highlight-high);
+  --case-inner: var(--rp-highlight-med);
+  --print: var(--rp-text);
+  --print-rear: var(--rp-subtle);
+  --frame: var(--rp-highlight-high);
+  --knob: var(--rp-base);
+  --knob-ring: var(--rp-muted);
+  --knob-mark: var(--rp-text);
+  --cap: var(--rp-highlight-med);
+  --cap-edge: var(--rp-highlight-high);
+  --cap-text: var(--rp-text);
+  --cap-lit: var(--rp-gold);
+  --cap-lit-text: var(--rp-base);
+  --key-white: var(--rp-text);
+  --key-white-edge: var(--rp-subtle);
+  --key-black: var(--rp-base);
+  --key-black-edge: var(--rp-highlight-low);
+  --key-slot: var(--rp-muted);
+  --key-lit: var(--rp-gold);
+  --combo: var(--rp-subtle);
+  --bezel: var(--rp-surface);
+  --screen: var(--rp-base);
+  --port: var(--rp-base);
+  --lever: var(--rp-muted);
+  --lever-on: var(--rp-foam);
   color-scheme: dark;
 }
 
@@ -63,14 +80,30 @@ html, body { margin: 0; }
 body {
   background: var(--bg);
   color: var(--text);
-  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 16px/1.5 var(--small);
 }
 
+a { color: var(--rp-foam); }
+a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
 .top, main { max-width: 1400px; margin: 0 auto; padding: 0 16px; }
-.top { padding-top: 20px; }
-h1 { font-size: 1.6rem; margin: 0 0 4px; letter-spacing: 0.01em; }
-h2 { font-size: 1.15rem; margin: 0 0 8px; }
-.lede { margin: 0 0 16px; color: var(--muted); max-width: 70ch; }
+.top { padding-top: 24px; }
+.brand {
+  font: 400 clamp(1.5rem, 1rem + 2.6vw, 2.6rem)/1.15 var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+  color: var(--text);
+}
+.tagline {
+  font: 400 clamp(0.62rem, 0.45rem + 0.9vw, 0.95rem)/1.4 var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--rp-iris);
+  margin: 8px 0 12px;
+}
+h2 { font: 400 1.1rem/1.3 var(--display); letter-spacing: 0.03em; margin: 0 0 12px; }
+.lede { margin: 0 0 20px; color: var(--muted); max-width: 72ch; }
 
 /* ---- the device ---------------------------------------------------------- */
 
@@ -111,14 +144,14 @@ h2 { font-size: 1.15rem; margin: 0 0 8px; }
   width: calc(27.72 / 167.5 * 100%);
   height: calc(27.72 / 107 * 100%);
   image-rendering: pixelated;
-  background: #000;
+  background: var(--screen);
 }
 
 .case { fill: var(--case); stroke: var(--case-edge); stroke-width: 0.5; }
 .case-inner { fill: none; stroke: var(--case-inner); stroke-width: 0.35; }
-.print { fill: var(--print); font-family: "DejaVu Sans Mono", Menlo, Consolas, monospace; font-size: 2.15px; text-anchor: middle; letter-spacing: 0.05px; }
+.print { fill: var(--print); font-family: var(--small); font-weight: 600; font-size: 2.15px; text-anchor: middle; letter-spacing: 0.08px; }
 .print.small { font-size: 1.7px; }
-.print.rear { fill: var(--muted); }
+.print.rear { fill: var(--print-rear); }
 .frame { fill: none; stroke: var(--frame); stroke-width: 0.45; }
 .bezel { fill: var(--bezel); stroke: var(--frame); stroke-width: 0.4; }
 .port { fill: var(--port); }
@@ -132,27 +165,29 @@ h2 { font-size: 1.15rem; margin: 0 0 8px; }
 .knob:focus-visible .body { stroke: var(--focus); stroke-width: 0.5; }
 
 .btn { cursor: pointer; }
-.btn .cap { fill: var(--cap); stroke: #b8b3c2; stroke-width: 0.3; }
-.btn .label { fill: var(--cap-text); font: 700 1.85px system-ui, -apple-system, "Segoe UI", sans-serif; text-anchor: middle; }
+.btn .cap { fill: var(--cap); stroke: var(--cap-edge); stroke-width: 0.3; }
+.btn .label { fill: var(--cap-text); font: 700 1.85px var(--small); text-anchor: middle; }
 .btn .label.two { font-size: 1.55px; }
 .btn .divider { stroke: var(--cap-text); stroke-width: 0.18; }
-.btn.lit .cap { fill: var(--cap-lit); stroke: #e3a73a; filter: drop-shadow(0 0 0.8px #ffcf6a); }
+.btn.lit .cap { fill: var(--cap-lit); stroke: var(--rp-rose); filter: drop-shadow(0 0 0.8px var(--rp-gold)); }
+.btn.lit .label { fill: var(--cap-lit-text); }
+.btn.lit .divider { stroke: var(--cap-lit-text); }
 .btn.down .cap { transform-box: fill-box; transform-origin: center; transform: scale(0.94); }
 .btn:focus { outline: none; }
 .btn:focus-visible .cap { stroke: var(--focus); stroke-width: 0.6; }
 
 .key { cursor: pointer; }
 .key .cap { stroke-width: 0.3; }
-.key.white .cap { fill: var(--key-white); stroke: #c9c5d1; }
-.key.black .cap { fill: var(--key-black); stroke: #26232c; }
+.key.white .cap { fill: var(--key-white); stroke: var(--key-white-edge); }
+.key.black .cap { fill: var(--key-black); stroke: var(--key-black-edge); }
 .key .slot { fill: var(--key-slot); }
-.key .combo { fill: #d8d4e0; font: 600 1.35px system-ui, -apple-system, sans-serif; text-anchor: middle; }
-.key.lit .slot { fill: var(--key-lit); filter: drop-shadow(0 0 0.7px #fff0b0); }
-.key.lit.white .cap { fill: #fffaf0; }
-.key.lit.black .cap { fill: #55505e; }
+.key .combo { fill: var(--combo); font: 600 1.35px var(--small); text-anchor: middle; }
+.key.lit .slot { fill: var(--key-lit); filter: drop-shadow(0 0 0.7px var(--rp-gold)); }
+.key.lit.white .cap { fill: color-mix(in srgb, var(--rp-gold) 22%, var(--rp-text)); }
+.key.lit.black .cap { fill: var(--rp-highlight-med); }
 
-.power .lever { fill: #8c8796; transition: transform 120ms; }
-.power.on .lever { transform: translateX(2.2px); fill: #f1edf8; }
+.power .lever { fill: var(--lever); transition: transform 120ms; }
+.power.on .lever { transform: translateX(2.2px); fill: var(--lever-on); }
 .power { cursor: pointer; }
 
 .power-overlay {
@@ -162,7 +197,7 @@ h2 { font-size: 1.15rem; margin: 0 0 8px; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
   border-radius: 12px;
   padding: 16px;
 }
@@ -171,16 +206,16 @@ h2 { font-size: 1.15rem; margin: 0 0 8px; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  max-width: 22rem;
-  padding: 16px 20px;
+  gap: 12px;
+  max-width: 24rem;
+  padding: 20px 24px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.35);
   text-align: center;
 }
-.power-card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.power-card p { margin: 0; color: var(--muted); font-size: 0.92rem; }
 
 button, select {
   font: inherit;
@@ -192,17 +227,21 @@ button, select {
   min-height: 36px;
 }
 button { cursor: pointer; }
+button:hover:not(:disabled), select:hover:not(:disabled) { border-color: var(--rp-highlight-high); }
 button:disabled, select:disabled { opacity: 0.55; cursor: default; }
 button:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 .power-button {
+  font: 400 1.2rem/1.2 var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   background: var(--accent);
   color: var(--accent-text);
   border-color: var(--accent);
-  font-size: 1.15rem;
-  font-weight: 600;
-  padding: 10px 24px;
+  padding: 12px 28px;
+  min-height: 48px;
 }
+.power-button:hover { background: var(--rp-rose); border-color: var(--rp-rose); }
 
 /* ---- controls and help ------------------------------------------------- */
 
@@ -223,7 +262,8 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
   width: min(480px, 100%);
   aspect-ratio: 1;
   image-rendering: pixelated;
-  background: #000;
+  background: var(--screen);
+  border: 1px solid var(--border);
   border-radius: 6px;
   display: block;
 }
@@ -237,22 +277,34 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
 }
 .help dl { margin: 0; display: grid; gap: 10px; }
 .help dl > div { display: grid; grid-template-columns: 9rem 1fr; gap: 12px; }
-.help dt { font-weight: 600; }
+.help dt { font-weight: 600; color: var(--rp-iris); }
 .help dd { margin: 0; }
 .help .fine { margin: 14px 0 0; font-size: 0.85rem; color: var(--muted); }
 kbd {
   font: 0.85em/1 ui-monospace, Menlo, Consolas, monospace;
+  color: var(--text);
   border: 1px solid var(--border);
   border-bottom-width: 2px;
   border-radius: 4px;
   padding: 1px 5px;
   background: var(--bg);
 }
+code { font: 0.9em ui-monospace, Menlo, Consolas, monospace; color: var(--rp-foam); }
 
 @media (max-width: 640px) {
-  .power-card { padding: 10px 14px; }
+  .power-card { padding: 14px 16px; }
   .power-card p { display: none; }
-  h1 { font-size: 1.35rem; }
   .help dl > div { grid-template-columns: 1fr; gap: 2px; }
   .field { min-width: 0; flex: 1 1 140px; }
+}
+
+/* A phone on its side: the panel, not the header, gets the first screenful,
+ * and Power on sits where it can be seen without scrolling. */
+@media (max-height: 520px) {
+  .top { padding-top: 12px; }
+  .brand { font-size: 1.4rem; }
+  .tagline { margin: 4px 0 10px; }
+  .lede { display: none; }
+  /* below the rear ports' labels, over the case's top row */
+  .power-overlay { align-items: flex-start; padding-top: 6%; }
 }

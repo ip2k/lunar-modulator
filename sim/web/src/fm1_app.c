@@ -12,18 +12,32 @@
 
 /* ---- colours (RGB565) ---------------------------------------------------- */
 
-#define C_BG FM1_RGB565(0, 0, 0)
-#define C_TEXT FM1_RGB565(240, 240, 240)
-#define C_DIM FM1_RGB565(150, 150, 160)
-#define C_ACCENT FM1_RGB565(255, 184, 48)
-#define C_BAR_BG FM1_RGB565(48, 48, 56)
-#define C_TITLE_BG FM1_RGB565(52, 40, 96)
-#define C_BOTTOM_BG FM1_RGB565(28, 28, 36)
-#define C_WARN FM1_RGB565(255, 80, 64)
-#define C_SCOPE_BG FM1_RGB565(56, 56, 56)
-#define C_SCOPE FM1_RGB565(255, 220, 0)
-#define C_POPUP_BG FM1_RGB565(20, 20, 28)
-#define C_METER FM1_RGB565(96, 220, 120)
+/* Lunar Modulator's palette: Rosé Pine Moon (rosepinetheme.com, MIT; values
+ * from rose-pine/palette), the same tokens as the page's style.css. */
+#define RP_BASE FM1_RGB565(0x23, 0x21, 0x36)
+#define RP_SURFACE FM1_RGB565(0x2a, 0x27, 0x3f)
+#define RP_OVERLAY FM1_RGB565(0x39, 0x35, 0x52)
+#define RP_SUBTLE FM1_RGB565(0x90, 0x8c, 0xaa)
+#define RP_TEXT FM1_RGB565(0xe0, 0xde, 0xf4)
+#define RP_LOVE FM1_RGB565(0xeb, 0x6f, 0x92)
+#define RP_GOLD FM1_RGB565(0xf6, 0xc1, 0x77)
+#define RP_FOAM FM1_RGB565(0x9c, 0xcf, 0xd8)
+#define RP_IRIS FM1_RGB565(0xc4, 0xa7, 0xe7)
+#define RP_HIGHLIGHT_MED FM1_RGB565(0x44, 0x41, 0x5a)
+
+#define C_BG RP_BASE
+#define C_TEXT RP_TEXT
+#define C_DIM RP_SUBTLE
+#define C_ACCENT RP_IRIS
+#define C_MODEL RP_GOLD
+#define C_BAR_BG RP_HIGHLIGHT_MED
+#define C_TITLE_BG RP_OVERLAY
+#define C_BOTTOM_BG RP_SURFACE
+#define C_WARN RP_LOVE
+#define C_SCOPE_BG RP_SURFACE
+#define C_SCOPE RP_FOAM
+#define C_POPUP_BG RP_SURFACE
+#define C_METER RP_FOAM
 
 /* Screen geometry: 2x text is 12 px a character and 18 px tall, so a line
  * holds 19 characters between the 6 px margins. Every label, value and bar
@@ -673,11 +687,18 @@ static void draw_scope(fm1_app_t *a) {
   for (int i = 1; i + w <= FM1_APP_SCOPE; ++i) {   /* first rising zero crossing */
     if (s[i - 1] < 0.0f && s[i] >= 0.0f) { start = i; break; }
   }
+  /* The trace fills the strip: scaled to the window's peak, but never by
+   * more than x16, so quiet noise stays a flat line. */
+  float peak = 1.0f / 16.0f;
+  for (int i = 0; i < w; ++i) {
+    float m = fabsf(s[start + i]);
+    if (m > peak) peak = m;
+  }
   fm1_tft_graphic(&a->tft, x, y, w, h);
   fm1_tft_paint(&a->tft, x, y, w, h, C_SCOPE_BG);
   int prev = -1;
   for (int i = 0; i < w; ++i) {
-    float v = s[start + i];
+    float v = s[start + i] / peak;
     v = v > 1.0f ? 1.0f : (v < -1.0f ? -1.0f : v);
     int py = y + h / 2 - (int)floorf(v * (float)(h / 2 - 1) + 0.5f);
     py = clampi(py, y, y + h - 1);
@@ -727,7 +748,7 @@ static void draw(fm1_app_t *a) {
     int m = model_param(s->e);
     if (m >= 0) {
       format_value(&s->e->params[m], s->value[m], buf, sizeof buf);
-      fm1_tft_text(t, MARGIN, CONTENT_Y, buf, LINE_CHARS, SCALE, C_ACCENT);
+      fm1_tft_text(t, MARGIN, CONTENT_Y, buf, LINE_CHARS, SCALE, C_MODEL);
     }
     if (s->e) draw_params(a, 0, a->page, CONTENT_Y + LINE_PITCH);
     draw_scope(a);

@@ -180,8 +180,10 @@ def test_a_sound_that_refuses_the_rate_is_stepped_over(tools):
 
 
 def test_page_is_self_contained():
-    """No CDN, no fonts, nothing fetched from another origin: the page works
-    from a local static server and can be published as static files."""
+    """No CDN, nothing fetched from another origin, every reference relative:
+    the page works from a local static server and can be published as static
+    files, at any path, over http://localhost or https. Its fonts are its own
+    files (fonts/)."""
     www = SIM / "www"
     for f in www.iterdir():
         if f.suffix in (".html", ".js", ".mjs", ".css"):
@@ -189,10 +191,38 @@ def test_page_is_self_contained():
             text = f.read_text(encoding="utf-8").replace("http://www.w3.org/2000/svg", "")
             assert not re.search(r"(https?:)?//[a-z0-9.-]+\.[a-z]{2,}/", text, re.I), f.name
     html = (www / "index.html").read_text(encoding="utf-8")
-    for ref in re.findall(r'(?:src|href)="([^"#]+)"', html):
-        assert (www / ref).exists(), ref
+    refs = re.findall(r'(?:src|href)="([^"#]+)"', html)
+    css = (www / "style.css").read_text(encoding="utf-8")
+    refs += re.findall(r'url\("?([^")]+)"?\)', css)
+    for ref in refs:
+        assert not ref.startswith("/"), f"{ref} is not relative"
+        assert (www / ref).is_file(), ref
     for name in ("worklet.js", "fm1-wasm.mjs", "fm1.wasm"):
         assert (www / name).exists(), name
+    # The worklet and the module are found next to app.js, wherever it is.
+    app = (www / "app.js").read_text(encoding="utf-8")
+    assert "new URL(name, import.meta.url)" in app
+    assert "addModule(asset('worklet.js'))" in app and "fetch(asset('fm1.wasm'))" in app
+
+
+# Git blob hashes of google/fonts' ofl/audiowide files (main, 2026-10-01):
+# the font must stay unmodified, since a subset or any other change is a
+# Modified Version that the SIL OFL's Reserved Font Name clause forbids
+# calling "Audiowide".
+FONTS = {
+    "audiowide/Audiowide-Regular.ttf": "8b50bedc0f99bcfcb5686a3dbeb5b51d1c0190d5",
+    "audiowide/OFL.txt": "19bb4adffab57778a892f98e9552441208896226",
+}
+
+
+def test_fonts_are_unmodified_and_licensed():
+    fonts = SIM / "www" / "fonts"
+    for rel, blob in FONTS.items():
+        data = (fonts / rel).read_bytes()
+        assert hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest() == blob, rel
+    for font in fonts.rglob("*.ttf"):
+        assert (font.parent / "OFL.txt").is_file(), font
+        assert str(font.relative_to(fonts)) in FONTS, f"{font} has no recorded hash"
 
 
 def test_wasm_exports_match_the_web_layer():
