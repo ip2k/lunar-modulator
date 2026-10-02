@@ -13,6 +13,10 @@
  *   - The room figures, the realtime-line parser (length-bounded), lane
  *     labels, and every lock value on ranges other than 0..1 (where the
  *     expression's parenthesisation shows).
+ *   - Several sound units (dispatch_slots): each slot's sink gets only its
+ *     own tracks' events, split only at their frames; a track routed to an
+ *     empty slot or past the last reaches nothing and splits nothing; a
+ *     lock resolves on its slot's engine, and slot 0's engine is bound.
  *   - Engine API v2: every lane's uid equals a fresh resolution of its label
  *     after every block, through text and typed commands alike; a lock goes
  *     to its uid's parameter, whose index is not uid - 1; a NOLOCK
@@ -520,6 +524,83 @@ static void uids_and_refusals(void) {
   }
 }
 
+/* Several sound units (fm1_seq_host_dispatch_slots): tracks 0..3 routed to
+ * slots 0, 1, 2 (empty) and 7 (past the last of three). Slot 0 plays
+ * kEngine and slot 1 kOther; track 1's Timbre lane, cached on kEngine's uid
+ * (40), resolves on kOther to its own (5, index 1). */
+static void slots(void) {
+  static trace_t ta, tb;
+  static float block_a[2 * BLOCK], block_b[2 * BLOCK], block_c[2 * BLOCK];
+  static const char setup[] = "alabel 0 0 synth:Timbre;alabel 1 0 synth:Timbre";
+  fm1_seq_ev_t ev[16], scratch[16];
+  fm1_seq_host_t h;
+  fm1_seq_sink_t sa, sb;
+  fm1_seq_slot_t slot[3];
+  fm1_seq_t *s = make(mem_text);
+  uint32_t n = 0;
+  sa.ctx = &ta;
+  sa.engine = &kEngine;
+  sa.render = t_render;
+  sa.note_on = t_on;
+  sa.note_off = t_off;
+  sa.set_param = t_param;
+  sb = sa;
+  sb.ctx = &tb;
+  sb.engine = &kOther;
+  slot[0].sink = &sa;
+  slot[0].block = block_a;
+  slot[1].sink = &sb;
+  slot[1].block = block_b;
+  slot[2].sink = NULL;                     /* an empty sound unit */
+  slot[2].block = block_c;
+  CHECK(fm1_seq_apply_text(s, setup, sizeof(setup) - 1u, scratch, 16) == 0);
+  fm1_seq_set_route(s, 0, FM1_SEQ_ROUTE_ENGINE, 0);
+  fm1_seq_set_route(s, 1, FM1_SEQ_ROUTE_ENGINE, 1);
+  fm1_seq_set_route(s, 2, FM1_SEQ_ROUTE_ENGINE, 2);
+  fm1_seq_set_route(s, 3, FM1_SEQ_ROUTE_ENGINE, 7);
+  fm1_seq_host_init(&h, s, ev, 16);
+  fm1_seq_host_bind(&h, &kEngine);
+  CHECK(h.lane_uid[1][0] == 40);
+#define EV(fr, k, t, aa, bb)                                                    do {                                                                            ev[n].tick = 0; ev[n].frame = (fr); ev[n].kind = (k); ev[n].track = (t);      ev[n].a = (aa); ev[n].b = (bb); ++n;                                        } while (0)
+  EV(0, FM1_SEQ_EV_NOTE_ON, 0, 60, 100);   /* slot 0 */
+  EV(8, FM1_SEQ_EV_NOTE_ON, 1, 64, 90);    /* slot 1 */
+  EV(8, FM1_SEQ_EV_LOCK, 1, 0, 127);       /* slot 1: kOther's Timbre, index 1 */
+  EV(16, FM1_SEQ_EV_NOTE_ON, 2, 67, 80);   /* slot 2, empty: nothing, no split */
+  EV(24, FM1_SEQ_EV_NOTE_ON, 3, 72, 80);   /* slot 7, past the last: nothing */
+  EV(32, FM1_SEQ_EV_LOCK, 0, 0, 0);        /* slot 0: kEngine's Timbre, index 0 */
+  EV(40, FM1_SEQ_EV_NOTE_OFF, 1, 64, 0);   /* slot 1 */
+#undef EV
+  h.n = n;
+  memset(&ta, 0, sizeof(ta));
+  memset(&tb, 0, sizeof(tb));
+  ta.block = block_a;
+  tb.block = block_b;
+  fm1_seq_host_dispatch_slots(&h, BLOCK, slot, 3);
+  CHECK(h.n == 0 && h.engine == &kEngine);
+  CHECK(ta.rendered == BLOCK && tb.rendered == BLOCK && !ta.bad_piece && !tb.bad_piece);
+  CHECK(ta.pieces == 2u && tb.pieces == 3u && h.splits == 3u);
+  CHECK(h.notes_to_engine == 2u && h.locks_to_engine == 2u && h.locks_refused == 0u);
+  CHECK(ta.n == 2u && tb.n == 3u);
+  if (ta.n == 2u) {
+    CHECK(ta.calls[0].kind == C_ON && ta.calls[0].a == 60 && ta.calls[0].at == 0);
+    CHECK(ta.calls[1].kind == C_PARAM && ta.calls[1].index == 0 && ta.calls[1].value == 0.0f &&
+          ta.calls[1].at == 32);
+  }
+  if (tb.n == 3u) {
+    CHECK(tb.calls[0].kind == C_ON && tb.calls[0].a == 64 && tb.calls[0].at == 8);
+    CHECK(tb.calls[1].kind == C_PARAM && tb.calls[1].index == 1 && tb.calls[1].value == 1.0f &&
+          tb.calls[1].at == 8);
+    CHECK(tb.calls[2].kind == C_OFF && tb.calls[2].a == 64 && tb.calls[2].at == 40);
+  }
+  /* The one-sink dispatch plays every engine-routed track on its sink,
+   * whatever the slot: four note-ons and both locks on kEngine. */
+  h.n = n;
+  memset(&ta, 0, sizeof(ta));
+  ta.block = block_a;
+  fm1_seq_host_dispatch(&h, BLOCK, block_a, &sa);
+  CHECK(h.notes_to_engine == 6u && ta.n == 7u && ta.pieces == 6u);
+}
+
 /* A buffer of none: every event counted as dropped, nothing written. */
 static void no_buffer(void) {
   fm1_seq_host_t h;
@@ -540,6 +621,7 @@ int main(void) {
   inputs_and_dispatch(&events, &calls, &inside);
   hand_made_block();
   uids_and_refusals();
+  slots();
   no_buffer();
   printf("{\"ok\":%s,\"events\":%llu,\"sink_calls\":%llu,\"splits\":%llu}\n", failed ? "false" : "true",
          (unsigned long long)events, (unsigned long long)calls, (unsigned long long)inside);
