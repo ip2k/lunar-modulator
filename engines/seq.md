@@ -32,7 +32,7 @@ python -m pytest tests/test_seq*.py               # the sequencer tests
 | `seq/seq_persist.c` | `movy1` export and import (persist.rs) |
 | `seq/seq_capture.c` | Capture, the retroactive record (capture.rs and engine.rs's capture functions), in 12-byte events |
 | `include/fm1_seq_host.h`, `seq/seq_host.c` | The host bridge: the per-block code every host shares (commands into the event buffer, advance, split renders into a sound engine, lane labels resolved to parameter uids, NOLOCK refusals); C99, no heap, no stdio, like the core (below, Host contract) |
-| `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input) and the JSON Lines event log, shared by the two tools |
+| `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input), the JSON Lines event log, and `fm1_seq_cmd_format`, a typed command as text that `fm1_seq_parse` reads back to the same record (the virtual FM-1's harness logs its panel's commands so, for `fm1-render` to replay) |
 | `host/seq_tool.c` | `fm1-seq`: runs the core alone and dumps state as JSON; `fm1-seq-check` is the same tool on a core built with `-DSQ_CHECK_INDEX` |
 | `test/seq_host_test.c` | `fm1-seq-host-test`: the host bridge's own checks, where `fm1-render` does not reach it (typed commands, realtime input and live notes against text lines; every sink call at its event's frame) |
 | `host/render.cc` | `fm1-render --cmd/--seq/--log-events/--compat/--tracks/--route/--events`, through the host bridge |

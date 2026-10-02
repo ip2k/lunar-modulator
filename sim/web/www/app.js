@@ -6,6 +6,19 @@
 
 import { BUTTONS, ENCODERS, KEYS } from './fm1-wasm.mjs';
 
+// The lab switch (sim/web/README.md, "The lab switch"): an address with a
+// `lab` query parameter or hash (?lab, #lab) turns on sequencer features
+// that are still being built; the public page hides them until step entry
+// and recording work (the owner's decision O24 in docs/15).
+const LAB = (() => {
+  try {
+    const u = new URL(window.location.href);
+    return u.searchParams.has('lab') || u.hash.replace(/^#/, '').split(/[&,;]/).includes('lab');
+  } catch (err) {
+    return false;
+  }
+})();
+
 // ---- panel geometry, millimetres --------------------------------------------
 // Case 161.5 x 96.5 mm (M-VAVE manual, specifications). Control centres
 // measured on the owner's board photo (photos/2026-09-29/3-top.jpg) at
@@ -174,7 +187,7 @@ const image = new ImageData(240, 240);
 
 const sim = {
   ctx: null, node: null, analyser: null, catalog: null, state: null, master: 0.75,
-  requestedRate: null, screens: 0, midi: null, notice: '',
+  requestedRate: null, screens: 0, midi: null, notice: '', lab: LAB, seq: null,
 };
 window.fm1 = sim;    // for the headless screenshot test and the console
 
@@ -252,7 +265,7 @@ async function start() {
     node.connect(ctx.destination);
     node.connect(analyser);
     Object.assign(sim, { ctx, node, analyser, notice: '' });
-    node.port.postMessage({ type: 'init', wasm, master: sim.master }, [wasm]);
+    node.port.postMessage({ type: 'init', wasm, master: sim.master, lab: LAB }, [wasm]);
     await ctx.resume();
     overlay.hidden = true;
     powerEl.classList.add('on');
@@ -267,7 +280,7 @@ async function start() {
 async function powerOff() {
   releaseEverything();
   if (sim.ctx) await sim.ctx.close();
-  Object.assign(sim, { ctx: null, node: null, analyser: null, state: null });
+  Object.assign(sim, { ctx: null, node: null, analyser: null, state: null, seq: null });
   overlay.hidden = false;
   powerEl.classList.remove('on');
   document.getElementById('power-off').disabled = true;
@@ -283,6 +296,10 @@ function onWorklet(m, node) {
       sim.catalog = m.catalog;
       fillSelects();
       if (m.imports.length) console.warn('fm1.wasm imports', m.imports);
+      break;
+    case 'seq':
+      sim.seq = m;
+      showStatus();
       break;
     case 'state':
       sim.state = m;
@@ -347,9 +364,12 @@ function showStatus() {
   const fellBack = sim.requestedRate !== 44118 ? ` (the browser refused 44,118 Hz)` : '';
   const latency = sim.ctx.outputLatency || sim.ctx.baseLatency || 0;
   const ram = (b) => `${Math.ceil(b / 1024)} KB`;
+  const q = sim.seq;
+  const seq = LAB && q ? ` Sequencer: ${(q.bpm_x100 / 100).toFixed(2)} BPM, ` +
+    `${q.recording ? 'recording' : q.playing ? 'playing' : 'stopped'}${q.following ? ' (external clock)' : ''}.` : '';
   statusEl.textContent = `Running at ${rate.toLocaleString('en')} Hz${fellBack}, 64-frame blocks, ` +
     `${(latency * 1000).toFixed(0)} ms output latency. Chain RAM ${ram(st.ram)} of the ` +
-    `${ram(387924)} the stock layout leaves free.${sim.notice ? ' ' + sim.notice : ''}`;
+    `${ram(387924)} the stock layout leaves free.${seq}${sim.notice ? ' ' + sim.notice : ''}`;
 }
 
 function drawScreen(px) {
@@ -552,6 +572,18 @@ function keydown(e) {
       () => { g.classList.remove('down'); send({ type: 'button', button, down: false }); });
     return;
   }
+  // Lab: Space is PLAY/STOP, unless a button (the panel's, handled above,
+  // the page's or the power switch) has focus and Space presses that.
+  if (LAB && e.code === 'Space' && !(focused && (focused.tagName === 'BUTTON' ||
+      (focused.classList && focused.classList.contains('power'))))) {
+    e.preventDefault();
+    if (e.repeat) return;
+    const button = BUTTONS.indexOf('PLAY/STOP');
+    const g = buttonEls[button];
+    hold(e.code, () => { g.classList.add('down'); send({ type: 'button', button, down: true }); },
+      () => { g.classList.remove('down'); send({ type: 'button', button, down: false }); });
+    return;
+  }
   const k = KEYMAP.indexOf(e.code);
   if (k >= 0) {
     e.preventDefault();
@@ -644,6 +676,10 @@ function revealScreen() {
 }
 
 // ---- wiring --------------------------------------------------------------------------
+if (LAB) {
+  for (const e of document.querySelectorAll('[data-lab]')) e.hidden = false;
+  for (const e of document.querySelectorAll('[data-lab-off]')) e.hidden = true;
+}
 drawPanel();
 setAngle(masterEl, -150 + 300 * sim.master);
 revealScreen();

@@ -1,0 +1,5 @@
+# The pattern every gesture trace in this directory starts from: one bar on
+# track 1 (index 0), four notes, stopped. tests/test_seq_ui.py plays it with
+# Test Sine. The run's length is the header's `end` (2 s at 44,118 Hz).
+#! rate=44118 block=64 tracks=8 end=88236
+@0 tog 0 0 48 110;tog 0 4 55 90;tog 0 8 60 100;tog 0 12 63 90

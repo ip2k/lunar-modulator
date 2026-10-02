@@ -58,7 +58,7 @@ jobs:
           FM1_SIM_CC: gcc
           FM1_SIM_CXX: g++
           FM1_SIM_EXTRA: -m32 -msse2 -mfpmath=sse
-        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py
+        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py
 
   engines-sanitizers:
     # ASan + UBSan over every engine test. Vendored files with documented
@@ -88,7 +88,7 @@ jobs:
           FM1_SIM_OPT: -O1
           FM1_SIM_EXTRA: -fsanitize=address,undefined -fno-omit-frame-pointer -g -fsanitize-ignorelist=sanitizers/ignorelist.txt
           UBSAN_OPTIONS: suppressions=${{ github.workspace }}/engines/sanitizers/ubsan.supp:halt_on_error=1:print_stacktrace=1
-        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py
+        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py
 
   dongle-firmware:
     name: dongle firmware (RP2040 UF2)

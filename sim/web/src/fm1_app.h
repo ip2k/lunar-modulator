@@ -22,9 +22,22 @@
  * It hosts the sequencer core (engines/include/fm1_seq.h) through the shared
  * host bridge (fm1_seq_host.h), as fm1-render does: script lines and typed
  * commands at block starts, then each block's events, with the sound
- * engine's render split at every note and lock of a track routed to it. It
- * has no panel controls yet (docs/15 S3 onward); fm1_app_seq_* below drive
- * it, and the harness and the parity test play scripts and sets through it.
+ * engine's render split at every note and lock of a track routed to it.
+ * fm1_app_seq_* below drive it; the harness and the parity test play scripts
+ * and sets through it.
+ *
+ * The lab switch (fm1_app_set_lab, off at init) puts the sequencer on the
+ * panel (docs/15 S3), for the page's lab preview and the tests while the
+ * public page hides it until step entry and recording work (owner decision
+ * O24, 2026-10-02):
+ *   SEQ           SEQ mode, the Track view (fm1_seq_view.h); HOME, FX and
+ *                 GLO leave it; the keys still play the sound
+ *   PLAY/STOP     `play` or `stop`, in every mode, as a typed command
+ *                 through fm1_seq_ui.h and fm1_app_seq_cmd; its LED is on
+ *                 while the transport runs, SEQ's in SEQ mode, and in SEQ
+ *                 mode the white keys show the bar's steps and the playhead
+ * With the switch off, SEQ and PLAY/STOP say they are not in the simulator
+ * yet, as REC still does with it on.
  *
  * The screen is a 240 x 240 RGB565 frame buffer (fm1_tft.h) drawn with the
  * stock layout: a top bar with the sound's name, the mode's content, and a
@@ -46,17 +59,16 @@
 
 #include "fm1_engine.h"
 #include "fm1_mix_limiter.h"
+#include "fm1_panel.h"
 #include "fm1_seq.h"
 #include "fm1_seq_host.h"
+#include "fm1_seq_ui.h"
 #include "fm1_tft.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define FM1_APP_KEYS 27
-#define FM1_APP_FIRST_NOTE 53          /* key 0 is F3 at octave 0, transpose 0 */
-#define FM1_APP_BUTTONS 14
 #define FM1_APP_LEDS (FM1_APP_KEYS + FM1_APP_BUTTONS)
 #define FM1_APP_FX_SLOTS 2
 #define FM1_APP_UNITS (1 + FM1_APP_FX_SLOTS)
@@ -86,15 +98,16 @@ extern "C" {
  * 31,880 B at 8 tracks, Capture included, the same on 32- and 64-bit
  * builds. Every block's commands and events share one buffer of
  * FM1_APP_SEQ_EVENTS (3,072 B). With the pending command record (240 B) and
- * the UI state to come (at most 1,024 B) that is 36,216 B of the
+ * the UI state (fm1_seq_ui_t, at most 1,024 B) that is 36,216 B of the
  * sequencer's 36,864 B budget, half of docs/13 §5's 72 KiB. The track count
- * is the owner's decision O3 (docs/15 §8): 8 until it is made; 4 would
- * leave room for docs/13's undo ring. */
+ * is the owner's decision O3 (docs/15 §8, answered 2026-10-02): 8, the
+ * count the firmware will use (4 would have left room for docs/13's undo
+ * ring). */
 #define FM1_APP_SEQ_TRACKS 8
 #define FM1_APP_SEQ_BYTES 32768u      /* the instance's arena */
 #define FM1_APP_SEQ_EVENTS 256u       /* the block's event buffer, in events */
 #define FM1_APP_SEQ_BUDGET 36864u     /* the sequencer's share of FM-1 RAM */
-#define FM1_APP_SEQ_UI_BYTES 1024u    /* the SEQ mode UI state's bound (S3) */
+#define FM1_APP_SEQ_UI_BYTES 1024u    /* the SEQ mode UI state's bound */
 
 /* What fm1_app_seq_cmd did with a command. */
 enum {
@@ -112,20 +125,6 @@ enum {
 #else
 #define FM1_APP_ALIGN16
 #endif
-
-typedef enum {
-  FM1_BTN_OCT_DOWN = 0, FM1_BTN_OCT_UP,
-  FM1_BTN_FX, FM1_BTN_SEL, FM1_BTN_ENV, FM1_BTN_LFO, FM1_BTN_EDIT, FM1_BTN_GLO,
-  FM1_BTN_HOME, FM1_BTN_SAVE, FM1_BTN_ARP, FM1_BTN_SEQ, FM1_BTN_PLAY, FM1_BTN_REC
-} fm1_app_button_t;
-
-typedef enum {
-  FM1_ENC_SELECT = 0, FM1_ENC_PRESETS, FM1_ENC_ALGORITHM,
-  FM1_ENC_KNOB1, FM1_ENC_KNOB2, FM1_ENC_KNOB3, FM1_ENC_KNOB4,
-  FM1_ENC_COUNT
-} fm1_app_encoder_t;
-
-typedef enum { FM1_MODE_HOME = 0, FM1_MODE_FX, FM1_MODE_GLOBAL } fm1_app_mode_t;
 
 typedef struct fm1_app_unit {
   const fm1_engine_t *e;         /* NULL when the slot is empty */
@@ -181,10 +180,15 @@ typedef struct fm1_app {
   fm1_seq_cmd_t seq_pend;
   uint64_t seq_dropped_before;   /* events dropped by instances since replaced */
   uint64_t seq_held, seq_busy;   /* commands held for room, and refused */
+  uint32_t seq_gen;              /* bumped by every sequencer input */
   /* Native-harness hook: every typed command as it is applied, with the
    * frame of the block it leads. NULL in the browser. */
   void (*on_cmd)(void *ctx, uint64_t frame, const fm1_seq_cmd_t *c);
   void *on_cmd_ctx;
+
+  /* The sequencer on the panel, behind the lab switch. */
+  int lab;
+  fm1_seq_ui_t ui;
 
   fm1_tft_t tft;
   unsigned char sound_mem[FM1_APP_SOUND_BYTES] FM1_APP_ALIGN16;
@@ -213,9 +217,23 @@ int fm1_app_select(fm1_app_t *a, int unit, int index);
 
 /* The browser's starting chain: Macro, then Plate. If Macro refuses the
  * host's rate, the first sound that loads instead, with a popup saying why.
- * Then the sequencer's default route (fm1_app_seq_default_route). Returns 0,
- * or the first fm1_app_select error. */
+ * Then the sequencer's default route (fm1_app_seq_default_route) and, with
+ * the lab switch on, the demo pattern (fm1_app_seq_demo). Returns 0, or the
+ * first fm1_app_select error. */
 int fm1_app_default_chain(fm1_app_t *a);
+
+/* The lab switch: on, the sequencer is on the panel (SEQ mode, PLAY/STOP,
+ * their LEDs); off (as fm1_app_init leaves it), those buttons say they are
+ * not in the simulator yet and nothing of the sequencer shows. Turning it
+ * off in SEQ mode goes back to HOME. */
+void fm1_app_set_lab(fm1_app_t *a, int on);
+
+/* The demo pattern (owner decision O4): a one-bar, 16-step figure on track
+ * 1 (index 0), as one line of verbs; the browser's start chain applies it
+ * with the lab switch on, and nothing else does, so the tests and the parity
+ * runs start empty. 1 if it went in whole. */
+int fm1_app_seq_demo(fm1_app_t *a);
+extern const char fm1_app_demo_pattern[];
 
 /* Parameters of a unit, by index (fm1_app_param_index finds a name, case
  * insensitive; -1 if absent). Values clamp as fm1_param_clamp does. */
