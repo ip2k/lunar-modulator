@@ -178,7 +178,10 @@ programmer become the simplest recovery path of all; read it on the bench
 installing and removing non-stock applications at scale. That is new
 evidence, but it is evidence about *transfers*. Rule 1 exists for the image
 that does not come back, and no FM-1 has yet been dumped and restored through
-mask ROM. The rules stand unchanged unless the owner decides otherwise.
+mask ROM. Since 2026-10-01 a backup and a write through mask ROM are reported
+on another owner's FM-1 (issue #2, docs/10 §1.1), but not a byte-identical
+restore, and nothing here on this project's unit. The rules stand unchanged
+unless the owner decides otherwise.
 
 The owner has since installed FM-1+VA on the unit by their own decision (it
 identifies as `FM-1_092` on 2026-09-29). That leaves the rules as they are:
