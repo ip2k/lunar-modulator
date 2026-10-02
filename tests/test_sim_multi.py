@@ -10,9 +10,12 @@ The parity scenarios multi-* (sim/web/test/scenarios.json) check the app
 against fm1-render --slots natively (tests/test_sim_web.py) and in
 WebAssembly (parity.mjs); this file checks the panel and the meter.
 """
+import json
 import subprocess
 
-from tests.test_sim_web import SCENARIOS, run, scenario_args, tools  # noqa: F401
+import pytest
+
+from tests.test_sim_web import SCENARIOS, left_channel, run, scenario_args, tools  # noqa: F401
 
 BUDGET = 387924
 SEQ_FIXED = 31880 + 3264          # the sequencer's instance (8 tracks) and event buffer (272 events)
@@ -265,6 +268,42 @@ def test_tracks_play_the_sound_their_route_names(tools, tmp_path):
     assert s["seq_notes_to_engine"] == r["seq_notes_to_engine"] == 3, "track 2's slot is empty"
     one = run(tools["sim"], ["--cmd", str(path), "--engine", "test-sine"])
     assert one["seq_notes_to_engine"] == 4, "without the switch every engine route plays sound 0"
+
+
+# Track 1 holds one note for a bar (2 s at 120 BPM) on Sound 1; a quarter of
+# a second in, it is routed elsewhere ({route}).
+REROUTED = ("#! rate=44118 block=64 tracks=4 end=66177\n"
+            "@0 bpm 12000;tog 1 0 60 100;slen 1 0 0 -1 384;route 1 1 0;play\n"
+            "@11025 {route}\n")
+
+
+@pytest.mark.parametrize("route,lab", [("route 1 1 1", True), ("route 1 0 5", True),
+                                       ("route 1 0 5", False)])
+def test_a_track_routed_elsewhere_lets_go_of_its_note_where_it_sounds(tools, tmp_path, route, lab):
+    """docs/15 S6, found in its review: the Track page reroutes a playing
+    track, and before the fix the note it held stayed on, on Sound 1, for
+    good (its note-off went to the new route). The core now closes the
+    track's gates on a route that moves it, and the bridge sends those
+    note-offs where the notes went; the app and fm1-render agree, with
+    several sound units (--slots) and with one."""
+    path = tmp_path / "r.verbs"
+    path.write_text(REROUTED.format(route=route))
+    units = ["--engine", "test-sine", "--sound", "1:test-sine"] if lab else ["--engine", "test-sine"]
+    out = {}
+    for name, tool, extra in (("sim", "sim", ["--lab"] if lab else []),
+                              ("ref", "render", ["--frames", "64"] + (["--slots"] if lab else []))):
+        wav, log = tmp_path / f"{name}.wav", tmp_path / f"{name}.jsonl"
+        out[name] = (run(tools[tool], ["--cmd", str(path), *units, *extra, "--out", str(wav),
+                                       "--log-events", str(log)]), wav.read_bytes(), log.read_bytes())
+    assert out["sim"][1:] == out["ref"][1:]
+    ev = [json.loads(line) for line in out["ref"][2].decode().splitlines()]
+    notes = [(e["kind"], e["track"], e["a"]) for e in ev if e["kind"] in ("on", "off")]
+    assert notes == [("on", 1, 60), ("off", 1, 60)]
+    off = next(e for e in ev if e["kind"] == "off")
+    assert off["block"] == 11025 // 64 + 1, "the note-off comes with the route, not a bar later"
+    left = left_channel(out["ref"][1])
+    assert max(abs(x) for x in left[5000:11000]) > 0.05
+    assert max(abs(x) for x in left[13000:]) == 0, "nothing left sounding on Sound 1"
 
 
 def test_the_switch_off_leaves_one_sound(tools):

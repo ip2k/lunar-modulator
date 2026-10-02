@@ -647,6 +647,21 @@ def test_a_focus_from_home_goes_back_there_and_capture_follows(tools, tmp_path):
     assert plain["mode"] == 3
 
 
+@pytest.mark.parametrize("button,mode", [("FX", 1), ("GLO", 2)])
+def test_a_focus_from_fx_or_glo_goes_back_there(tools, tmp_path, button, mode):
+    s = tracks_run(tools, tmp_path, [f"--button 0.05:{button}", "--button 0.10:SEQ:0.1",
+                                     "--key 0.12:4:100:0.02"], seconds=0.4)
+    assert s["mode"] == mode and s["seq_view"]["track"] == 2 and cmds_of(s) == ["watch 2"]
+
+
+def test_seq_let_go_outside_seq_mode_leaves_the_white_keys_steps(tools, tmp_path):
+    """SEQ held, HOME pressed, SEQ let go in HOME: nothing is held over, so
+    back in SEQ mode a white key is a step again, not a track."""
+    s = tracks_run(tools, tmp_path, ["--button 0.05:SEQ:0.2", "--button 0.10:HOME",
+                                     "--button 0.40:SEQ", "--key 0.45:2:100:0.02"], seconds=0.6)
+    assert s["mode"] == 3 and s["seq_view"]["track"] == 0 and cmds_of(s) == ["tog 0 1 60 100"]
+
+
 def test_focus_says_when_capture_was_emptied(tools, tmp_path):
     played = ["--note 0.05:60:100:0.1", "--button 0.30:SEQ:0.2", "--key 0.35:4:100:0.02"]
     s = tracks_run(tools, tmp_path, played, seconds=0.45)

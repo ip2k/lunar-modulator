@@ -31,6 +31,16 @@
  * the bridge, still locks the right parameter: such a lane resolves afresh
  * at each lock until fm1_seq_host_bind stores it again.
  *
+ * Rerouting. A `route` that moves a track elsewhere closes the track's
+ * gates at once (the core's note-offs, among the block's inputs), and
+ * dispatch sends a note-off from the block's inputs to where the track's
+ * notes went at the last dispatch, not to its new route: every gate it
+ * closes was opened in an earlier block, so its note sounds there. A note is
+ * then never left hanging on a sound the track no longer plays (docs/15 S6,
+ * found in its review). Everything else follows the route the track has at
+ * dispatch. A host that reroutes past the bridge (fm1_seq_set_route) closes
+ * no gate, so it does so only while nothing sounds (set-up, an import).
+ *
  * Event room. Commands, live input and advance share one buffer per block,
  * and advance needs fm1_seq_min_events(lim) of it to keep every note-off,
  * Start and Stop (fm1_seq.h). So a host applies a command only while
@@ -80,7 +90,15 @@ typedef struct fm1_seq_host {
                                    until the first bind or dispatch */
   uint16_t lane_uid[FM1_SEQ_MAX_TRACKS][FM1_SEQ_LANES];  /* each lane's target
                                    uid, 0 when its label names nothing */
+  uint32_t cmd_n;               /* the events the block's inputs left before
+                                   its advance (steps 2-3) */
+  uint8_t dest[FM1_SEQ_MAX_TRACKS];  /* where each track's notes went at the
+                                   last dispatch: its engine slot, 0x80 | its
+                                   MIDI channel, FM1_SEQ_HOST_NO_DEST before
+                                   the first (Rerouting, below) */
 } fm1_seq_host_t;
+
+#define FM1_SEQ_HOST_NO_DEST 0xFFu
 
 /* Binds a host to an instance and a buffer; every counter starts at 0, and
  * no engine is bound yet. */

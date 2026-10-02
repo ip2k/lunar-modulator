@@ -300,7 +300,13 @@ Each track carries a route: an engine slot (0–7) or a USB-MIDI channel
 (1–16). The default is MIDI channel *track*+1. `route <t> <0|1> <ch|slot>`
 sets it, `fm1_seq_set_route` from C, and a `movy1` set stores it as
 `rt <t> <kind> <index>`. The events are the same either way: routing is the
-host's to act on.
+host's to act on. A `route` verb that moves a track elsewhere closes the
+track's gates at once, as `mute t 1` does: their note-offs are among that
+block's command events, and the host bridge sends them where the notes went
+(Host contract, step 6), so no note is left hanging on a sound the track
+no longer plays (docs/15 S6, found in its review) [verified: tests/test_sim_multi.py].
+`fm1_seq_set_route` closes nothing; hosts call it only while nothing
+sounds (set-up, an import).
 
 `fm1-render`, through the host bridge (below), sends a track routed to the
 engine to `note_on`/`note_off` at the event's own frame, by rendering the
@@ -361,7 +367,10 @@ it with the core's objects [verified: tests/test_seq_core.py].
    parameter, which is counted (below). Clicks, clock, Start, Stop and
    MIDI-routed tracks are the host's to send elsewhere; `fm1-render` only
    logs them. A NULL sink only empties the buffer (`fm1-render` with no
-   engine).
+   engine). Each event follows its track's route at dispatch, except a
+   note-off from the block's commands or live input (steps 2–3): it closes
+   a gate an earlier block opened, so it goes where the track's notes went
+   at the last dispatch, which the bridge remembers per track (`dest`).
 7. Effects, which are the host's own; then the metronome's click,
    `fm1_seq_click_mix` over the block's events (the buffer still holds
    them after dispatch); then the limiter and the output.

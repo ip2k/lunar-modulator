@@ -23,7 +23,9 @@ history.
     (the owner's choice).
   - Hold SHIFT to see its shortcuts. SHIFT and white key 2 open the Track
     page (which sound the track plays, or MIDI out on a channel, its mute,
-    and its lanes on a second page), 3 the Clip page (speed from 1/8X to
+    and its lanes on a second page; moving a playing track elsewhere lets
+    go of the note it holds, rather than leaving it sounding on the old
+    sound), 3 the Clip page (speed from 1/8X to
     4X, length, transpose, quantize), 5, 7 or 9 the Set page (tempo,
     swing, the quantize new clips get, metronome). SELECT also walks on
     to these pages from the sound's.

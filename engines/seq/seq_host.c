@@ -41,6 +41,8 @@ void fm1_seq_host_init(fm1_seq_host_t *h, fm1_seq_t *seq, fm1_seq_ev_t *ev, uint
   h->splits = 0;
   h->engine = NULL;
   memset(h->lane_uid, 0, sizeof(h->lane_uid));
+  h->cmd_n = 0;
+  memset(h->dest, FM1_SEQ_HOST_NO_DEST, sizeof(h->dest));
 }
 
 /* Every lane of track t, from the core's labels, against the bound engine.
@@ -187,6 +189,7 @@ void fm1_seq_host_note_in(fm1_seq_host_t *h, uint8_t track, uint8_t pitch, uint8
 }
 
 uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames) {
+  h->cmd_n = h->n;                      /* the inputs' events end here */
   h->n += fm1_seq_advance(h->seq, frames, tail(h), fm1_seq_host_room(h));
   if (h->n > h->max_n) h->max_n = h->n;
   return h->n;
@@ -205,6 +208,39 @@ static int lock_target(fm1_seq_host_t *h, const fm1_engine_t *e, const fm1_seq_e
   return i;
 }
 
+/* A track's route as a destination: its engine slot, or 0x80 | its MIDI
+ * channel. */
+static uint8_t dest_of(const fm1_seq_track_info_t *ti) {
+  return ti->route_kind == FM1_SEQ_ROUTE_ENGINE ? ti->route_index
+                                                : (uint8_t)(0x80u | ti->route_index);
+}
+
+/* Where event k goes: the track's route now, except that a note-off from
+ * the block's inputs goes where the track's notes went at the last
+ * dispatch (Rerouting, fm1_seq_host.h). 0xFF: nowhere (no such track). */
+static uint8_t dest_of_event(const fm1_seq_host_t *h, uint32_t k) {
+  const fm1_seq_ev_t *e = &h->ev[k];
+  fm1_seq_track_info_t ti;
+  if (!fm1_seq_get_track(h->seq, e->track, &ti)) return FM1_SEQ_HOST_NO_DEST;
+  if (e->kind == FM1_SEQ_EV_NOTE_OFF && k < h->cmd_n && e->track < FM1_SEQ_MAX_TRACKS &&
+      h->dest[e->track] != FM1_SEQ_HOST_NO_DEST) {
+    return h->dest[e->track];
+  }
+  return dest_of(&ti);
+}
+
+/* After a dispatch: each track's route, for the next block's note-offs. */
+static void dispatched(fm1_seq_host_t *h) {
+  unsigned t;
+  for (t = 0; t < FM1_SEQ_MAX_TRACKS; ++t) {
+    fm1_seq_track_info_t ti;
+    h->dest[t] = h->seq && fm1_seq_get_track(h->seq, (uint8_t)t, &ti) ? dest_of(&ti)
+                                                                      : FM1_SEQ_HOST_NO_DEST;
+  }
+  h->cmd_n = 0;
+  h->n = 0;
+}
+
 /* One sink's share of the block: the events of tracks routed to the engine
  * (any slot when `slot` is negative, else that slot only), with its render
  * split at their frames. Leaves the buffer as it is. */
@@ -213,15 +249,14 @@ static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm
   uint32_t k, cur = 0;
   for (k = 0; k < h->n; ++k) {
     const fm1_seq_ev_t *e = &h->ev[k];
-    fm1_seq_track_info_t ti;
     int param = -1;
     uint32_t f;
+    uint8_t d;
     if (e->kind != FM1_SEQ_EV_NOTE_ON && e->kind != FM1_SEQ_EV_NOTE_OFF &&
         e->kind != FM1_SEQ_EV_LOCK) continue;
-    if (!fm1_seq_get_track(h->seq, e->track, &ti) || ti.route_kind != FM1_SEQ_ROUTE_ENGINE) {
-      continue;
-    }
-    if (slot >= 0 && ti.route_index != (unsigned)slot) continue;
+    d = dest_of_event(h, k);
+    if (d & 0x80u) continue;                  /* MIDI, or no such track */
+    if (slot >= 0 && d != (unsigned)slot) continue;
     if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
       param = lock_target(h, sink->engine, e);
       if (param < 0) continue;
@@ -255,7 +290,7 @@ void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
     if (sink->engine != h->engine) fm1_seq_host_bind(h, sink->engine);
     play_sink(h, frames, block, sink, -1);
   }
-  h->n = 0;
+  dispatched(h);
 }
 
 void fm1_seq_host_dispatch_slots(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_slot_t *slots,
@@ -267,7 +302,7 @@ void fm1_seq_host_dispatch_slots(fm1_seq_host_t *h, uint32_t frames, const fm1_s
   for (k = 0; k < n && k <= 255u; ++k) {
     if (slots[k].sink) play_sink(h, frames, slots[k].block, slots[k].sink, (int)k);
   }
-  h->n = 0;
+  dispatched(h);
 }
 
 /* ---- the metronome's click (O11) ----------------------------------------- */

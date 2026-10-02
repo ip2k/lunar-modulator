@@ -284,7 +284,8 @@ focused track: the steps, REC, Capture and what you play all go to it.
 - **Pages:** hold SHIFT (SEL) to see the shortcuts. SHIFT and white key 2
   open the Track page: where the track plays (one of the four sounds, or
   MIDI out on a channel, which the simulator does not send) and its mute;
-  turn SELECT for its lanes. SHIFT and 3 open the Clip page: speed (1/8X
+  turn SELECT for its lanes. Moving a playing track elsewhere lets go of
+  the note it holds where it was sounding. SHIFT and 3 open the Clip page: speed (1/8X
   to 4X), length, transpose and quantize. SHIFT and 5, 7 or 9 open the
   Set page: tempo (1 BPM a click, 0.1 with SHIFT held), swing, the
   quantize new clips get, and the metronome. SELECT also walks from the
@@ -468,7 +469,7 @@ The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, with step entry since S4, record and Capture
 since S5, multi-sound, and tracks, mute, the pages and the click since S6:
 32 of 32 scenarios pass, identical to musl and to render.js, and it imports
-nothing; it is 514,270 bytes, up from 490,916 with S5 and 496,050 with
+nothing; it is 514,688 bytes (514,270 before S6's review), up from 490,916 with S5 and 496,050 with
 multi-sound (each alone), 466,635 before S4, 459,122 before S3 and 391 KB
 before the sequencer [verified, 2026-10-02, `www/fm1.wasm.json`].
 

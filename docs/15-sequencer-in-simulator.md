@@ -1606,6 +1606,24 @@ tests/test_sim_seq.py, tests/test_seq_render.py, `fm1-sim-render
   one and the screen says `Track 2`; the lab-off checks pass unchanged.
   The module is 514,270 B.
 
+**Review (2026-10-02).** The review found one bug and fixed it: a track
+rerouted on its Track page while a note sounded left that note on for
+good on the old sound, since its note-off followed the new route
+[verified: `fm1-render`, a bar-long note rerouted from Sound 1 to MIDI out
+kept sounding to the end]. A `route` that moves a track now closes the
+track's gates at once (the core, `seq_cmd.c`), and the bridge sends a
+note-off from the block's commands where the track's notes went at the
+last dispatch (`fm1_seq_host_t.dest` and `cmd_n`), so both
+hosts let go of it there [verified: tests/test_sim_multi.py, to another
+sound and to MIDI out, with and without the lab switch, the app equal to
+`fm1-render`]. The bridge's own state, `fm1_seq_host_t`, is 352 B
+natively (328 B before; it holds the lanes' 256 B of uids since S7a) and
+is not in §2.6's sum or the on-screen RAM figure; counted, 8 tracks still
+fit the 36,864 B, with about 100 B to spare [inferred: about 336 B at
+32 bits]. The module, rebuilt, is 514,688 B: parity 32 of 32, identical to
+js and musl in all 32 and to glibc in 29 as before, no imports, and the
+headless Chromium checks pass [verified: `www/fm1.wasm.json`, 2026-10-02].
+
 ### S7a. Engine API v2 (docs/13 M2): uid, flags, NOLOCK, with byte-identical audio
 
 **Goal.** Fix what a lock targets and which parameters can be locked, before
