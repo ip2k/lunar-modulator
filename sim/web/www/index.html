@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Virtual FM-1</title>
+<meta name="description" content="The open FM-1 firmware's sound engines running in the browser behind a to-scale M-VAVE FM-1 front panel, with its 240 x 240 screen.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1>Virtual FM-1</h1>
+  <p class="lede">The open firmware's engines and effects, compiled to WebAssembly, behind a
+    to-scale FM-1 panel. The screen is the firmware's own 240&nbsp;&times;&nbsp;240 frame buffer.</p>
+</header>
+
+<main>
+  <div class="device" id="device">
+    <svg id="panel" viewBox="-3 -8 167.5 107" role="group" aria-label="FM-1 front panel"></svg>
+    <canvas id="tft" width="240" height="240" aria-label="FM-1 screen"></canvas>
+    <div class="power-overlay" id="power-overlay">
+      <div class="power-card">
+        <button type="button" id="power-on" class="power-button">Power on</button>
+        <p>Starts audio. Then play the keys, or your computer keyboard.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mirror" id="mirror" hidden>
+    <canvas id="tft-mirror" width="240" height="240" aria-label="FM-1 screen, enlarged"></canvas>
+  </div>
+
+  <section class="controls" aria-label="Simulator controls">
+    <div class="field"><label for="sel-sound">Sound (PRESETS)</label><select id="sel-sound" disabled></select></div>
+    <div class="field"><label for="sel-fx1">Effect 1</label><select id="sel-fx1" disabled></select></div>
+    <div class="field"><label for="sel-fx2">Effect 2</label><select id="sel-fx2" disabled></select></div>
+    <div class="buttons">
+      <button type="button" id="midi">Connect MIDI input</button>
+      <button type="button" id="zoom" aria-pressed="false">Screen &times;2</button>
+      <button type="button" id="power-off" disabled>Power off</button>
+    </div>
+  </section>
+  <p class="status" id="status" role="status">Powered off.</p>
+
+  <section class="help" aria-label="How to play">
+    <h2>Playing it</h2>
+    <dl>
+      <div><dt>Keys</dt><dd>Click or touch; lower on a key plays louder. Computer keys
+        <kbd>A</kbd> <kbd>W</kbd> <kbd>S</kbd> <kbd>E</kbd> <kbd>D</kbd> <kbd>R</kbd> <kbd>F</kbd>
+        <kbd>G</kbd> <kbd>Y</kbd> <kbd>H</kbd> <kbd>U</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>O</kbd>
+        <kbd>L</kbd> <kbd>P</kbd> <kbd>;</kbd> <kbd>[</kbd> <kbd>'</kbd> play the first 19 keys, F3 to B4.</dd></div>
+      <div><dt>OCT&minus; / OCT+</dt><dd><kbd>Z</kbd> / <kbd>X</kbd>. Both at once reset octave and transpose;
+        hold one and turn ALGORITHM to transpose, as on the FM-1.</dd></div>
+      <div><dt>Encoders</dt><dd>Drag up or down, or scroll. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> SELECT (page),
+        <kbd>&uarr;</kbd> <kbd>&darr;</kbd> PRESETS (sound), <kbd>-</kbd> <kbd>=</kbd> ALGORITHM
+        (the sound's model, or the effect in FX mode). KNOB1&ndash;4 turn the four parameters on screen.</dd></div>
+      <div><dt>Buttons</dt><dd>FX shows the two effect slots (SELECT moves between them, SEL then
+        SELECT swaps them), GLO the global page, HOME goes back. MASTER is the volume.
+        <kbd>Esc</kbd> releases every note.</dd></div>
+      <div><dt>MIDI</dt><dd>Notes, pitch bend (&plusmn;2 semitones), CC&nbsp;7 volume, CC&nbsp;123 all notes off.</dd></div>
+    </dl>
+    <p class="fine">Panel to scale from the M-VAVE manual's dimensions (161.5 &times; 96.5&nbsp;mm) and the
+      owner's board photo; the encoders' printed names and the 14 buttons are the manual's. ENV, LFO, EDIT,
+      SAVE, ARP, SEQ, PLAY/STOP and REC are not in the simulator yet. Engines credit Emilie Gillet
+      (Mutable Instruments, MIT) and the Schwung module authors; see the repository's
+      <code>engines/README.md</code>.</p>
+  </section>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

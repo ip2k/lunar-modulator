@@ -1,0 +1,285 @@
+{
+  "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
+  "wasm_sha256": "09df19c22f29fbc59d813ddc3203b1f1ba4a6fd4de7b7d2266357c717de7da11",
+  "wasm_bytes": 370735,
+  "sources_sha256": "dff42e3b2a41feb369035524362357196186116089cada6a338e1961b31d9dac",
+  "engines": "working tree",
+  "built": "2026-10-02T00:08:00Z",
+  "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
+  "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "imports": [],
+  "parity": {
+    "passed": 12,
+    "failed": 0,
+    "identical_to_js": 12,
+    "identical_to_musl": 12,
+    "identical_to_glibc": 10,
+    "max_lsb_vs_glibc_exact_scenarios": 0
+  },
+  "scenarios": [
+    {
+      "name": "macro-va-pair-chord",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 87952,
+        "native64": 100848
+      }
+    },
+    {
+      "name": "macro-models-and-bend",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 17616,
+        "native64": 30496
+      }
+    },
+    {
+      "name": "macro-past-the-voice-cap",
+      "samples": 70588,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 36464,
+        "native64": 49344
+      }
+    },
+    {
+      "name": "shapes-sine-bend",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 204932,
+        "native64": 205800
+      }
+    },
+    {
+      "name": "shapes-pluck-plate",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 270564,
+        "native64": 271448
+      }
+    },
+    {
+      "name": "macro-heavy-speech",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 68304,
+        "native64": 68512
+      }
+    },
+    {
+      "name": "macro-heavy-modal-drums",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 202512,
+        "native64": 202736
+      }
+    },
+    {
+      "name": "sixop-epiano",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 14276,
+        "native64": 16008
+      }
+    },
+    {
+      "name": "sophie-kit",
+      "samples": 88236,
+      "libm_sensitive": true,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 23286,
+        "max_lsb": 4082
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 212096,
+        "native64": 212128
+      }
+    },
+    {
+      "name": "sophie-clap-no-feedback",
+      "samples": 52940,
+      "libm_sensitive": true,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 694,
+        "max_lsb": 12330
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 77888,
+        "native64": 77904
+      }
+    },
+    {
+      "name": "test-sine-gain",
+      "samples": 70588,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 19156,
+        "native64": 19156
+      }
+    },
+    {
+      "name": "macro-at-44100",
+      "samples": 70560,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 83248,
+        "native64": 96144
+      }
+    }
+  ]
+}
