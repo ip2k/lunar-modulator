@@ -1288,11 +1288,20 @@ plan above [verified: tests/test_seq_ui.py, tests/test_seq_core.py,
     [verified]. So it is no deviation and needs no row, and since step
     record is the UI's alone, compat mode is untouched. The plan's
     premise came from a [reported] summary and was wrong.
-  - **Two differences from Movy:** the head starts on the loop's first step
-    (Movy parks it on step 1 whatever the loop: the same for every loop
-    that starts there), and a step back does not play the step's notes
-    (Movy's preview), which `fm1-render` could not replay. Movy's drum
-    rule (pads only add) waits for drum tracks.
+  - **Three differences from Movy:** the head starts on the loop's first
+    step (Movy parks it on step 1 whatever the loop); it wraps at the
+    loop's end, where Movy's `advanceHead` compares the head with the
+    loop's length, so for a loop that starts on a later bar Movy's head,
+    once in the loop, returns to its first step at every advance, and its
+    step buttons refuse every step past the length (`step-rec-head.ts`,
+    `step-rec.ts` at `9190e79`) [verified; the wrap here:
+    `test_step_record_wraps_at_the_end_of_a_loop_on_a_later_bar`]; and a
+    step back does not play the step's notes (Movy's preview), which
+    `fm1-render` could not replay. The first two agree with Movy for a
+    loop on bar 1. Movy's drum rule (pads only add) waits for drum tracks.
+  - **MIDI IN in step record** is ours (Movy steps on pads): a pitch
+    already down is one pad, so a second note-on of it enters nothing and
+    its first release closes the chord.
 - **Capture (O7).** SHIFT + REC sends `cap <focused>` outside FX mode, or,
   with nothing buffered, shows `Nothing to capture` and sends nothing, as
   Movy's `captureButton`. The next block says what it did: `Captured`
@@ -1302,7 +1311,8 @@ plan above [verified: tests/test_seq_ui.py, tests/test_seq_core.py,
   drawn over every mode where popups go. The picker (mode 1) lists the
   candidates, one a line, the one taken highlighted; SELECT or KNOB1 sends
   `capsel`, heard at once. The fitted tempo (mode 2) reads `Captured` /
-  `at 117.50 BPM`. **Both stay until a press, as Movy's overlay does,**
+  `at 117.50 BPM`; there SELECT and KNOB1 do nothing, as Movy's jog
+  (`captureJog` at `9190e79`) [verified]. **Both stay until a press, as Movy's overlay does,**
   rather than mode 2 being a one-second toast as proposed: the core takes
   no Capture input until `capdone`. Any press (a button, a key, another
   encoder) sends `capdone` and does nothing else, as in Movy, where a key

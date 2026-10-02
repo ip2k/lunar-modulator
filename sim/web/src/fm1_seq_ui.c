@@ -259,7 +259,8 @@ static void srec_grow_to(fm1_seq_ui_t *u, unsigned step, const fm1_seq_ui_emit_t
 }
 
 /* One step on (Movy's advanceHead): a new clip grows to take the step left;
- * an existing one wraps to its loop's start at its end. */
+ * an existing one wraps to its loop's start at its loop's end. Movy compares
+ * the head with the loop's length instead, the same for a loop on bar 1. */
 static void srec_advance(fm1_seq_ui_t *u, const fm1_seq_ui_emit_t *out) {
   unsigned next = u->srec_head + 1u;
   srec_grow_to(u, u->srec_head, out);
@@ -860,13 +861,14 @@ int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int del
   (void)frame;
   u->shift_clean = 0;
   if (u->capture_mode && delta) {
-    /* The picker: SELECT or KNOB1 takes the next tempo, heard at once
-     * (Movy's jog); any other encoder closes the overlay. */
-    if (u->capture_mode == FM1_SEQ_UI_CAPTURE_PICK &&
-        (encoder == FM1_ENC_SELECT || encoder == FM1_ENC_KNOB1)) {
+    /* SELECT and KNOB1 are the overlay's own control, Movy's jog: in the
+     * picker they take the next tempo, heard at once, and over the fitted
+     * tempo they do nothing (Movy's captureJog); any other encoder closes
+     * the overlay. */
+    if (encoder == FM1_ENC_SELECT || encoder == FM1_ENC_KNOB1) {
       const int next = clampi(u->capture_sel + (delta > 0 ? 1 : -1), 0,
                               u->capture_n ? u->capture_n - 1 : 0);
-      if (next != u->capture_sel) {
+      if (u->capture_mode == FM1_SEQ_UI_CAPTURE_PICK && next != u->capture_sel) {
         const int64_t arg[1] = { next };
         emit(out, FM1_SEQ_V_CAPSEL, 1, arg);
         u->capture_sel = (uint8_t)next;
@@ -930,6 +932,12 @@ int fm1_seq_ui_note(fm1_seq_ui_t *u, int pitch, int velocity, int mode,
   u->shift_clean = 0;
   velocity = clampi(velocity, 1, 127);
   if (mode == FM1_MODE_SEQ && u->srec) {     /* step record: a pitch at the head, as a key */
+    /* A pitch already down is one pad, as Movy's map of held pads: a
+     * second note-on enters nothing, and the first release lets it go, so
+     * an unbalanced stream cannot hold the chord open. */
+    for (int k = 0; k < u->srec_midi_n; ++k) {
+      if (u->srec_midi[k] == pitch) return 1;
+    }
     if (u->srec_midi_n < (int)sizeof u->srec_midi) {
       u->srec_midi[u->srec_midi_n++] = (uint8_t)pitch;
       srec_note_on(u, pitch, u->full_vel ? 127 : velocity, out);

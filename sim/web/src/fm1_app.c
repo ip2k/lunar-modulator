@@ -398,8 +398,8 @@ void fm1_app_note_off(fm1_app_t *a, int note) {
     const fm1_seq_ui_emit_t out = ui_out(a);   /* step record's head may move on */
     fm1_seq_ui_note(&a->ui, note, 0, a->mode, &out);
     ui_after(a);
-    feed_off(a, note);
   }
+  feed_off(a, note);   /* given while the switch was on: released whatever it is now */
 }
 
 void fm1_app_pitch_bend(fm1_app_t *a, float semitones) {

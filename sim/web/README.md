@@ -239,8 +239,9 @@ goes to track 1 as well as to the sound:
   playing. Then the screen shows the tempos it found: SELECT (or KNOB1)
   tries another, heard at once, and any other press keeps the one you
   hear. Over a pattern the take is fitted to the set's tempo instead, and
-  the screen says which. Anything that edits the pattern, or REC, empties
-  what Capture holds.
+  the screen says which (any press closes it). Anything that edits the
+  pattern, REC, and starting or stopping the transport empty what Capture
+  holds.
 
 docs/15 §5 (S5, as built) has the commands each gesture sends.
 

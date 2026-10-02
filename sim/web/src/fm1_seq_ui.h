@@ -307,14 +307,16 @@ int fm1_seq_ui_has_key(const fm1_seq_ui_t *u, int key);
 
 /* An encoder turned (fm1_app_encoder_t): 1 when the UI took it (in SEQ
  * mode, SELECT and KNOB1..4 with steps held; in any mode while Capture's
- * overlay is up: SELECT and KNOB1 move the picker, the others close it); 0
- * leaves it to the app. */
+ * overlay is up: SELECT and KNOB1 move the picker, and over the fitted
+ * tempo do nothing, as Movy's jog; the others close it); 0 leaves it to
+ * the app. */
 int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int delta,
                        uint64_t frame, int mode, const fm1_seq_ui_emit_t *out);
 
 /* A note played on the sound, from MIDI IN or from a key outside SEQ mode
  * (velocity 0 releases it). In step record (SEQ mode) it enters its pitch at
- * the head, as a key does; with steps held in SEQ mode it adds its pitch to
+ * the head, as a key does (a pitch already down is entered once, and let go
+ * at its first release); with steps held in SEQ mode it adds its pitch to
  * them; otherwise it builds the chord a step tap writes: every note held
  * when one goes down. Returns 1 when the note went into the pattern as an
  * edit (step record, a held step), so it is not live input as well. */

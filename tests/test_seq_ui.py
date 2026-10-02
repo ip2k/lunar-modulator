@@ -486,3 +486,68 @@ def test_a_stopped_capture_opens_the_picker_until_a_press(tools, tmp_path):
                                "--engine", "test-sine")
     assert s["rec"]["capture_mode"] == 0 and log.rstrip().endswith("capdone") and a == b
     assert (tmp_path / "picker.args").read_text().count("--note") == 6, "the closing key sounded"
+
+
+def test_live_input_is_released_once_whatever_the_mode_or_a_panic(tools, tmp_path):
+    """A key played in HOME is live input; entering SEQ mode while it is
+    held does not keep its release from the sequencer. A change of sound
+    (PRESETS) lets every note given go at once, and the key's own release
+    afterwards gives nothing more, so no note is left on or let go twice."""
+    seq = rec_run(tools, tmp_path, ["--key 0.10:7:100:0.5", "--button 0.30:SEQ"], 1.0)
+    assert [t for _, t in seq["seq_ui_cmds"]] == ["non 0 60 100", "nof 0 60"]
+    assert seq["seq_ui_cmds"][1][0] >= int(0.6 * 44118) - 64
+    panic = rec_run(tools, tmp_path, ["--key 0.10:7:100:0.5", "--turn 0.30:PRESETS:1"], 1.0)
+    cmds = panic["seq_ui_cmds"]
+    assert [t for _, t in cmds] == ["non 0 60 100", "nof 0 60"]
+    assert cmds[1][0] < int(0.35 * 44118), "released at the change of sound, not at the key's"
+
+
+def test_step_record_takes_a_midi_pitch_already_down_once(tools, tmp_path):
+    """A second note-on of a pitch already down in step record enters
+    nothing, and its first release closes the chord (one pad, as Movy's
+    map of held pads), so the head moves on and the chord is not held open
+    by a release that never comes."""
+    s = rec_run(tools, tmp_path, ["--button 0.05:SEQ", "--button 0.10:REC:5",
+                                  "--note 0.30:62:100:0.3", "--note 0.40:62:90:0.05"], 0.5,
+                "steps.verbs")
+    assert [t for _, t in s["seq_ui_cmds"]] == ["del 0 0 0 -1", "addp 0 0 0 62 100"]
+    assert s["rec"]["srec"] == 1 and s["rec"]["head"] == 1
+
+
+def test_step_record_wraps_at_the_end_of_a_loop_on_a_later_bar(tools, tmp_path):
+    """A loop on bar 2 (steps 17-32 of a 3-bar clip): the head starts on its
+    first step and wraps at its end, the bar on the keys following it, and
+    SHIFT + white key 1 moves it to the loop's first step (docs/15 S5: Movy
+    compares the head with the loop's length, the same for a loop on bar
+    1). Leaving SEQ mode ends step record, and REC's release then records
+    nothing."""
+    script = tmp_path / "loop.verbs"
+    script.write_text("#! rate=44118 block=64 tracks=8 end=176472\n"
+                      "@0 bpm 24000;clen 0 48;tog 0 20 60 100;loop 0 16 16\n")
+    base = ["--button 0.05:SEQ", "--button 0.10:REC:3"]
+    rests = [f"--key {0.2 + k * 0.1:.2f}:5:100:0.03" for k in range(20)]
+    start = rec_run(tools, tmp_path, base, 0.15, script)
+    assert start["rec"]["head"] == 16 and start["seq_view"]["bar"] == 1
+    wrapped = rec_run(tools, tmp_path, base + rests, 2.25, script)
+    assert wrapped["rec"]["head"] == 20 and wrapped["seq_view"]["bar"] == 1
+    jump = rec_run(tools, tmp_path, base + rests + ["--button 2.30:SEL:0.2", "--key 2.35:0:100:0.05",
+                                                     "--button 2.70:HOME"], 3.5, script)
+    assert jump["rec"]["srec"] == 0 and jump["seq_view"]["playing"] == 0
+    assert [t for _, t in jump["seq_ui_cmds"]] == [], "rests and a jump to an empty step send nothing"
+    moved = rec_run(tools, tmp_path, base + rests + ["--button 2.30:SEL:0.2",
+                                                      "--key 2.35:0:100:0.05"], 2.45, script)
+    assert moved["rec"]["head"] == 16
+
+
+def test_the_fitted_tempo_stays_through_select_and_knob1(tools, tmp_path):
+    """Over the fitted tempo (capture_mode 2) SELECT and KNOB1 do nothing,
+    as Movy's jog does there; another press closes it (`capdone`)."""
+    panel = TRACES / "capture-stopped-fitted.panel"
+    lines = [l for l in panel.read_text().splitlines() if l and not l.startswith("#")]
+    lines = [l for l in lines if "FX" not in l] + ["--turn 2.20:SELECT:1", "--turn 2.30:KNOB1:-1"]
+    up = rec_run(tools, tmp_path, lines, 2.40)
+    assert up["rec"]["capture_mode"] == 2
+    assert [t for _, t in up["seq_ui_cmds"]][-1] == "cap 0"
+    closed = rec_run(tools, tmp_path, lines + ["--turn 2.45:KNOB2:1"], 2.60)
+    assert closed["rec"]["capture_mode"] == 0
+    assert [t for _, t in closed["seq_ui_cmds"]][-2:] == ["cap 0", "capdone"]
