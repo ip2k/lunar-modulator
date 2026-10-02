@@ -545,10 +545,9 @@ you like, press Capture afterwards and it becomes a clip. Capture's control
 on the FM-1 is still to be assigned.
 
 !!! note "Capture in the desktop tools"
-    The desktop tools leave Capture out unless you give it room:
-    `fm1-seq --capture 256` runs the sequencer with a 256-event Capture, as
-    planned for the FM-1. `fm1-render` runs without Capture, so its `cap`
-    command does nothing there.
+    `fm1-seq` and `fm1-render` run with Capture on and 256 events, as planned
+    for the FM-1. In compat mode, which reproduces Movy exactly, they keep
+    512 like Movy. `fm1-seq --capture 0` runs without it.
 
 ### What Capture keeps
 
