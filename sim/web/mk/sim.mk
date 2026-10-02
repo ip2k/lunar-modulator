@@ -14,15 +14,22 @@ SIM ?= $(abspath ../sim/web)
 
 SIM_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Wall -Wextra -Iinclude -I$(SIM)/src -MMD -MP
 
-# Every engine object fm1-render links, without its main().
-SIM_ENGINE_OBJ := $(filter-out $(BUILD)/our/host/render.o,$(OUR_OBJ)) $(TP_OBJ) $(SW_OBJ)
+# Every engine object fm1-render links, without its main(), and the
+# sequencer core with its host bridge (SEQ_OBJ, mk/seq.mk: C99, no heap, no
+# stdio). The script reader (SEQ_HOST_OBJ) allocates and uses stdio, so only
+# the native harness links it; in fm1.wasm it would add WASI imports.
+SIM_ENGINE_OBJ := $(filter-out $(BUILD)/our/host/render.o,$(OUR_OBJ)) $(TP_OBJ) $(SW_OBJ) $(SEQ_OBJ)
 SIM_APP_OBJ := $(BUILD)/sim/src/fm1_app.o $(BUILD)/sim/src/fm1_tft.o
+
+# The harness reads verb scripts (host/seq_script.h).
+$(BUILD)/sim/test/fm1_sim_render.o: SIM_CFLAGS += -Ihost
 
 $(BUILD)/sim/%.o: $(SIM)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(SIM_CFLAGS) -c $< -o $@
 
-$(BUILD)/fm1-sim-render: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_sim_render.o $(SIM_ENGINE_OBJ)
+$(BUILD)/fm1-sim-render: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_sim_render.o $(SIM_ENGINE_OBJ) \
+    $(SEQ_HOST_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
 # The WebAssembly module: standalone (no Emscripten JavaScript runtime), a
@@ -32,7 +39,8 @@ $(BUILD)/fm1-sim-render: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_sim_render.o $(SIM
 WASM_EXPORTS := fm1w_init fm1w_default_chain fm1w_catalog fm1w_select fm1w_unit_index \
   fm1w_set_param fm1w_get_param fm1w_ram fm1w_unit_bytes fm1w_note_on fm1w_note_off \
   fm1w_pitch_bend fm1w_all_notes_off fm1w_key fm1w_button fm1w_encoder fm1w_master \
-  fm1w_render fm1w_draw fm1w_screen fm1w_leds fm1w_leds_changed fm1w_mode
+  fm1w_render fm1w_draw fm1w_screen fm1w_leds fm1w_leds_changed fm1w_mode \
+  fm1w_text_buf fm1w_text_cap fm1w_seq_text fm1w_seq_reset fm1w_seq_dropped
 comma := ,
 empty :=
 space := $(empty) $(empty)

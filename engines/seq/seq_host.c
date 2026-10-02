@@ -264,3 +264,20 @@ float fm1_seq_lock_value(const fm1_param_t *p, unsigned v) {
   }
   return p->min + (p->max - p->min) * (float)v / (float)FM1_SEQ_VAL_MAX;
 }
+
+int fm1_seq_routes_default(const fm1_seq_t *s) {
+  fm1_seq_info_t info;
+  uint8_t t;
+  fm1_seq_get_info(s, &info);
+  for (t = 0; t < info.tracks; ++t) {
+    fm1_seq_track_info_t ti;
+    fm1_seq_get_track(s, t, &ti);
+    if (ti.route_kind != FM1_SEQ_ROUTE_MIDI || ti.route_index != t % 16u + 1u) return 0;
+  }
+  return 1;
+}
+
+int fm1_seq_default_route(fm1_seq_t *s, int have_engine) {
+  if (!have_engine || !fm1_seq_routes_default(s)) return 0;
+  return fm1_seq_set_route(s, 0, FM1_SEQ_ROUTE_ENGINE, 0) ? 1 : 0;
+}

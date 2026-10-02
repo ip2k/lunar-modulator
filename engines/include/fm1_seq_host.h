@@ -155,6 +155,18 @@ uint16_t fm1_seq_lane_uid(const fm1_engine_t *e, const char *label);
  * ENUM of n values. */
 float fm1_seq_lock_value(const fm1_param_t *p, unsigned v);
 
+/* Routing default. The core starts every track on USB-MIDI channel
+ * t mod 16 + 1, and an import puts every route back there before it reads
+ * the set's own `rt` lines. 1 while every track is still there. */
+int fm1_seq_routes_default(const fm1_seq_t *s);
+
+/* The default-route rule (engines/seq.md, Host contract): when no track is
+ * routed (fm1_seq_routes_default) and the host has a sound engine, track 0
+ * plays it. A host applies it after create, reset or an import, unless it
+ * routes tracks itself (fm1-render's --route). fm1-render and the virtual
+ * FM-1 both use it. Returns 1 when it routed track 0. */
+int fm1_seq_default_route(fm1_seq_t *s, int have_engine);
+
 #ifdef __cplusplus
 }
 #endif

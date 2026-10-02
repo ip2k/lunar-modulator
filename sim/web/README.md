@@ -34,7 +34,8 @@ the "Power on" button, as browsers require a gesture.
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
 | Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_app.c`); Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
-| Info | GLO shows the sample rate, block size, the chain's RAM against the 379 KB the stock layout leaves free (docs/11 §2), voices, octave and transpose. WebAssembly has 4-byte pointers like pi32v2, so these are the 32-bit instance sizes |
+| Info | GLO shows the sample rate, block size, the chain's RAM against the 379 KB the stock layout leaves free (docs/11 §2), voices, octave and transpose. WebAssembly has 4-byte pointers like pi32v2, so these are the 32-bit instance sizes. The RAM figure includes the sequencer: its instance (31,880 B at 8 tracks, the same at 32 and 64 bits) and its 3,072-byte event buffer |
+| Sequencer | The app hosts the sequencer core (engines/seq.md) through the shared host bridge (`engines/include/fm1_seq_host.h`), exactly as `fm1-render` does: script lines and commands at block starts, each block's events, and the sound's render split at every note and lock of a track routed to it. 8 tracks (owner decision O3 in docs/15 §8 is pending), a 256-event buffer, one pending command record, and the event-room rule: an op goes in only while 201 events of room are free, otherwise it waits a block, so no note-off is ever lost. No panel control drives it yet (docs/15 S3 onward); the harness and the parity test play verb scripts and `movy1` sets through it. Every one of the 34 Movy oracle scripts plays through the app byte for byte as through `fm1-render` at 64-frame blocks [verified: `tests/test_sim_seq.py`] |
 
 Tested in Chromium only. In headless Chromium 153 (Playwright 1.63, on
 aeon) [verified: `build/screenshots/report.json`, 2026-10-01]: the page is titled
@@ -94,20 +95,35 @@ PIT, GLO, MONO, POLY) come from the manual's panel drawing [reported].
 | FX, SEL | effect chain mode; SEL grabs a slot so SELECT reorders it | the same, with two slots |
 | GLO | global settings | the global page above |
 | HOME | home (oscilloscope) | home: the sound's page, with an oscilloscope strip |
-| ENV, LFO, EDIT, SAVE, ARP, SEQ, PLAY/STOP, REC | | a popup: not in the simulator yet |
+| ENV, LFO, EDIT, SAVE, ARP, SEQ, PLAY/STOP, REC | | a popup: not in the simulator yet (the sequencer runs inside the app, but no button drives it yet) |
 
 ## Parity: does the browser sound like the native engines?
 
-`build-on-aeon.sh` renders twelve note scripts (`test/scenarios.json`;
-every engine and effect, pitch bend, parameter changes mid-note, more notes
-than voices, 44,100 Hz) four ways and compares the 16-bit output sample by
-sample [verified: `www/fm1.wasm.json`]:
+`build-on-aeon.sh` renders seventeen scenarios (`test/scenarios.json`)
+four ways and compares the 16-bit output sample by sample [verified:
+`www/fm1.wasm.json`, 2026-10-02]. Twelve are note scripts: every engine and
+effect, pitch bend, parameter changes mid-note, more notes than voices,
+44,100 Hz. Five play sequencer verb scripts (`test/seq/`, `fm1-render
+--cmd`): Test Sine's Volume under float locks with a stop that sends the
+lanes back to their bases; two Six-Op tracks with swing and a clip at
+twice the speed; locks on Six-Op's Patch, a list; Capture committed while
+playing; and a stopped Capture whose tempo is then changed with `capsel`.
 
 | Against | Result |
 | --- | --- |
-| `render.cc` compiled to WebAssembly (Node) | identical in all 12: the app layer adds nothing |
-| native `fm1-render`, GCC with musl (static, Alpine) | identical in all 12: the compiler adds nothing |
-| native `fm1-render`, GCC with glibc | identical in the 10 scenarios without Sophie. Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB) |
+| `render.cc` compiled to WebAssembly (Node) | identical in all 17: the app layer adds nothing |
+| native `fm1-render`, GCC with musl (static, Alpine) | identical in all 17: the compiler adds nothing |
+| native `fm1-render`, GCC with glibc | identical in the 15 scenarios without Sophie. Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB) |
+
+The sequencer scenarios add three rules. Every leg applies a script line at
+the first 64-frame block starting at or after its frame, after the notes;
+the module drops no sequencer event (`fm1w_seq_dropped`); and `parity.mjs`,
+which reads the script itself to feed the module, first checks that it
+applied the same lines at the same blocks as the native harness logged
+(`fm1-sim-render --log-cmds`), so a third reader of the script format
+cannot drift unnoticed. The stopped Capture is marked `libm_sensitive`:
+its tempo search scores candidates with `logf`, so glibc could choose
+differently from musl; in this build it did not.
 
 The Sophie difference is libm, not the port: Sophie calls `sinf`, `expf`,
 `exp2f` and `powf` per sample and per note, its feedback FM amplifies their
@@ -119,10 +135,23 @@ toolchain ships will decide Sophie's last bits there too.
 The screen the browser module draws matches the native harness's pixel for
 pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 
-The module is built from main's engines as of PR #12 (Shapes at 96 kHz and
-Plaits at 47,872 Hz through `fm1_resampler.h`): 12 of 12 scenarios pass,
-identical to musl and to render.js, identical to glibc but for Sophie; the
-module is 391 KB [verified, 2026-10-01, `www/fm1.wasm.json`].
+The module now links the sequencer core and its host bridge: 17 of 17
+scenarios pass, identical to musl and to render.js, identical to glibc but
+for Sophie, and it imports nothing; it is 448 KB, up from 391 KB [verified,
+2026-10-02, `www/fm1.wasm.json`].
+
+The sequencer's own cost in WebAssembly, measured with `fm1-render.js` under
+Node 24.19 in the emsdk container on aeon: tools/seq_bench.py's burst (8
+tracks of 12-note chords on every step and 8 locked lanes, 300 BPM, up to
+193 events in a block) takes 5.7–10.2 µs per 64-frame block for commands and
+advance (three runs; the first includes the JIT's warm-up), against 1.7–1.8
+µs for native GCC on the same host and the 1,451 µs a block lasts
+[verified, 2026-10-02]. Phones are not measured. That burst is also the one
+load that 256 events do not hold whole: the core keeps room for the note-off
+of every sounding gate (64) beside a block's events, so a 193-event block
+needs 257, and at 256 the burst drops 400 of its 76,800 note-ons (whole,
+with nothing left hanging) [verified: `fm1-render --events`]. No oracle
+script puts more than 7 events in a block.
 
 ## How it is built
 
@@ -132,17 +161,20 @@ www/app.js        page: panel (SVG), input, screen canvas, MIDI    main thread
 www/worklet.js    AudioWorkletProcessor: 2 x 64-frame blocks per quantum
 www/fm1-wasm.mjs  loader shared with the Node test (no Emscripten runtime)
 www/fm1.wasm      src/fm1_web.c   flat exports (fm1w_*)
-                  src/fm1_app.c   the "firmware": chain, panel logic, screen
+                  src/fm1_app.c   the "firmware": chain, panel logic, screen,
+                                  the sequencer's host
                   src/fm1_tft.c   240 x 240 RGB565 frame buffer, 5 x 9 font
-                  engines/        every engine, effect and the bus limiter
+                  engines/        every engine, effect and the bus limiter,
+                                  the sequencer core and its host bridge
 ```
 
 `src/` is C99 with no heap: instance memory lives in fixed arenas inside
 `fm1_app_t`. Nothing in it is browser-specific, so the same app layer builds
 natively as `fm1-sim-render`, the test harness. Its panel logic and drawing
 code are meant to carry over to the firmware, but not `fm1_app_t` as it
-stands: it is 1,168,288 bytes (1 MiB of fixed arenas and a 115,200-byte
-full frame buffer; clang, 64-bit), against the FM-1's 578 KB of SRAM and
+stands: it is 1,204,768 bytes (1 MiB of fixed arenas, a 115,200-byte full
+frame buffer, and the sequencer's 32 KiB arena and 3 KiB event buffer;
+clang, 64-bit), against the FM-1's 578 KB of SRAM and
 the ~379 KB the stock layout leaves free [verified: `sizeof`; SRAM from
 docs/01]. The firmware needs one arena sized to the chain it loads and
 strip rendering (ten 240 × 24 strips, 11.5 KB each, as stock does;
@@ -161,7 +193,17 @@ block lasts [reported: the 2026-10-01 review]; phones are not measured.
 `mk/sim.mk` is read after `engines/Makefile`, so it reuses that Makefile's
 source lists, flags and rules unchanged, and builds whatever engines the tree
 has. The module is standalone (`-sSTANDALONE_WASM`, no imports, 8 MB fixed
-memory) and about 390 KB.
+memory) and about 450 KB. It links the sequencer core and bridge
+(`SEQ_OBJ`: C99, no heap, no stdio) but not the script reader
+(`host/seq_script.c`), which allocates and uses stdio; only the native
+harness links that.
+
+The sequencer's text comes in through `fm1w_text_buf()`, a 64 KiB buffer
+(the largest `movy1` set an 8-track instance exports is 53,208 B), and
+`fm1w_seq_text(len)`, which applies one script line at the coming block's
+start and returns the bytes it took. `fm1w_seq_reset(tracks)` makes a new
+instance and applies the default route (track 0 plays the sound, as in
+`fm1-render`); `fm1w_seq_dropped()` reports any event that did not fit.
 
 ### `build-on-aeon.sh`
 
@@ -200,22 +242,34 @@ the Playwright package, about 20 MB) and the containers' session label.
 ### Tests
 
 `tests/test_sim_web.py` runs in the normal suite (and CI): the app layer's
-output equals `fm1-render`'s byte for byte for every scenario, natively; the
-287-screen layout sweep; the panel against the manual's formula (octave,
+output equals `fm1-render`'s byte for byte for every scenario, natively, and
+for the sequencer scenarios so do the event logs; the sequencer's sizes
+against its arena and the 36,864 B budget; the event-room rule on script
+lines and on typed commands (a stop, a play and a restart at full load in
+one gap, and 128 lane bases after a stop, which `fm1-render --events 256`
+drops and the app holds back), with nothing dropped or left sounding; routes
+(the default route, `--route`, `route` verbs and a set's own `rt` lines)
+as in `fm1-render`; no note left hanging after a reset, an import or a
+change of sound; the 287-screen layout sweep; the panel against the manual's formula (octave,
 transpose, reset); buttons and encoders; an effect slot emptied on its
 second page; sounds that refuse a 48 kHz host stepped over and the previous
 one kept; the page loads nothing from other origins; the exports match; and
 `www/fm1.wasm` matches its record. The record carries two source hashes
 (`tools/source_hash.py`): engines/ (less Markdown) and sim/web's own inputs
-(`src/`, `mk/`, `build.sh`, the parity test and its scenarios, the
-harness, the loader). When sim/web's inputs have changed since the last
+(`src/`, `mk/`, `build.sh`, the parity test, its scenarios and their
+sequencer scripts in `test/seq/`, the harness, the loader), which since
+the module links the sequencer include `engines/seq/` and
+`engines/include/fm1_seq*.h` too. When sim/web's inputs have changed since the last
 build, the test fails in CI (`CI=true`) and warns locally; when only the
 engines have, it warns, so engine work elsewhere does not need aeon.
 Rebuild with `build-on-aeon.sh` before publishing the page or merging a
 change to the simulator.
 
-CI also runs this file in its 32-bit job (`-m32`, like pi32v2's pointers)
-and under ASan + UBSan, through the variables below.
+`tests/test_sim_seq.py` plays all 34 Movy oracle scripts through the app
+with Test Sine, and six with Macro, against `fm1-render --frames 64`: event
+logs and WAVs byte-identical, nothing dropped. CI also runs both files in
+its 32-bit job (`-m32`, like pi32v2's pointers) and under ASan + UBSan,
+through the variables below.
 
 The harness builds into `sim/web/build/native` with the default compiler.
 `FM1_SIM_EXTRA` (with `FM1_SIM_CC`, `FM1_SIM_CXX`, `FM1_SIM_OPT`) builds it
@@ -234,8 +288,10 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
   nothing about whether a chain fits the FM-1's cycle budget (stage B
   measures that), nor about FPU edge cases on the real core.
 - **No drivers**: no SPI, DMA, ADC or USB; the panel calls the app directly.
-- **Eight buttons** do nothing yet. The sequencer core is built
-  (engines/seq.md); it is not yet wired to PLAY/STOP, REC and SEQ.
+- **Eight buttons** do nothing yet. The sequencer runs inside the app
+  (docs/15 stage S2), but nothing on the panel drives it: PLAY/STOP, SEQ
+  and REC come in S3 to S5. Compat mode (Movy's exact behaviour) stays on
+  `fm1-seq` and `fm1-render`; the app runs the FM-1's default mode.
 - **MIDI in only**; the virtual FM-1 sends nothing.
 - **Encoders without acceleration**; a float parameter moves a hundredth of
   its range per detent.

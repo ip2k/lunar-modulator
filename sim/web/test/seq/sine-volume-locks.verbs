@@ -1,0 +1,10 @@
+#! rate=44118 block=64 tracks=1 end=66177
+# Test Sine's Volume (FLOAT) under a lock lane: a quiet base set with
+# abaseq (no lock sent), locks on steps 4, 8 and 12, then a stop, which sends
+# every lane back to its base (D6), and a second start.
+@0 bpm 24000
+@0 tog 0 0 69 100;tog 0 4 72 100;tog 0 8 76 100;tog 0 12 72 100;slen 0 0 15 -1 80
+@0 alabel 0 0 synth:Volume;abaseq 0 0 90;aset 0 0 4 30 1;aset 0 0 8 127 1;aset 0 0 12 60 1
+@0 play
+@33000 stop
+@44118 play

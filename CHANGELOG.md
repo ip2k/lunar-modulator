@@ -9,6 +9,27 @@ history.
 ## [Unreleased]
 
 ### Added
+- The virtual FM-1 now runs the sequencer inside its app layer, with no
+  panel controls yet (docs/15 stage S2; PLAY/STOP and SEQ mode come next).
+  - It plays any verb script or `movy1` set exactly as `fm1-render` does,
+    natively and in the browser module: the 34 Movy oracle scripts give
+    byte-identical sound and event logs, and five new parity scenarios
+    (float and list locks, two tracks with swing, Capture while playing and
+    while stopped) match in WebAssembly, against musl and against glibc.
+  - 8 tracks (the owner's decision on 4 or 8 is pending), a 256-event
+    buffer and one held command: 36,216 B of the sequencer's 36,864 B
+    budget. The RAM figure on GLO now counts it.
+  - A command that could overflow the event buffer waits a block instead,
+    so a burst of stops and starts never loses a note-off.
+  - Track 0 plays the sound by default, as in `fm1-render`; a set's own
+    routes are kept. Resetting, importing or changing the sound releases
+    the sequencer's notes.
+  - The browser module grew from 391 KB to 448 KB.
+  - `fm1-sim-render` takes `fm1-render`'s sequencer flags (`--cmd`, `--seq`,
+    `--tracks`, `--route`, `--events`, `--log-events`) and `--log-cmds`,
+    which writes what it applied as a script `fm1-render` can replay.
+  - CI's staleness check now covers the sequencer code and the parity
+    scripts, so changing either needs a rebuilt module.
 - Compile-only stage B (`tools/jieli/compile-check.sh`,
   `notes/2026-10-02-jieli-compile-check.md`). The engines, the sequencer and
   the app layer compile for the FM-1's processor with JieLi's toolchain: 63
