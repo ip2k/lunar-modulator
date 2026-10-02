@@ -1221,7 +1221,9 @@ static void node_text(chain_t *c, unsigned src, const uint32_t on_path, char *ou
       if (((c->ok >> j) & 1u) && !((on_path >> j) & 1u) && src_module(&c->s[j]) == pos) ++more;
     }
     if (more) {
-      snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%-13.13s +%d", name, more);
+      char t[40];                      /* then cut to a row (GCC's -Wformat-truncation) */
+      snprintf(t, sizeof t, "%-13.13s +%d", name, more);
+      snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%s", t);
       return;
     }
   }

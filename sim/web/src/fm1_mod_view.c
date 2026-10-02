@@ -94,7 +94,7 @@ void fm1_mod_view_rack(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_
   const fm1_mod_t *m = env->m;
   const int k = fm1_mod_kind_at(m, u->pos);
   const fm1_mod_kind_t *kd = k >= 0 ? fm1_mod_kinds[k] : NULL;
-  char buf[40], label[8];
+  char buf[64], label[8];               /* room for any count GCC can imagine */
   unsigned p, i;
   int outs = 0, ins = 0, late = 0;
   /* The rack: one graphic, a cell per position. */
