@@ -10,7 +10,10 @@ complete; one read-only bench session done (`notes/2026-09-06-bench.md`);
 nothing flashed by this project.** The owner's unit ran stock `FM-1_015` until
 the owner installed Baud Girl's FM-1+VA; it identifies as **`FM-1_092`** since
 (2026-09-29). The `USB_KEY` recovery
-dongle (docs/10, `dongle/`) is implemented and simulated, not yet tried.
+dongle (docs/10, `dongle/`) is implemented and simulated, not yet tried. Other
+owners report that czietz's simpler Pico dongle reaches UBOOT mode on their
+FM-1s, and one reports a firmware backup and a write that way (issue #2,
+docs/10 §1.1).
 Elsewhere, Echomatter ran a version-bumped V15-derived package on their FM-1
 via the stock OTA path and rolled it back (AL-255 PR #2, 2026-09-04), and
 since 2026-09-26 Baud Girl's FM-1+VA (a modified V15, source not published)
@@ -105,8 +108,12 @@ vendor packages there.
    the update service; it installs non-stock images fine (Baud Girl), but it
    cannot save one that does not boot. `0xF0000000/"success"` is a terminal
    acknowledgement, not authorization.
-3. **kagaimiq's two `USB_KEY` write-ups disagree** on which USB line is the
-   clock. Try both.
+3. **The `USB_KEY` clock is D+.**
+   - czietz's Pico dongle clocks on D+ and has reached UBOOT mode on two FM-1s
+     (issue #2, docs/10 §1.1).
+   - kagaimiq's `usb-key.md` and the diagram in his `how-to-enter-uboot.md`
+     agree; only that page's prose says D−.
+   - Try D+ first, and keep both roles in the dongle.
 4. **ghidra-jieli mis-decodes the `80 ff` long-call prefix**; use the vendor
    `objdump` from the JieLi Linux toolchain as the source of truth.
 5. **Raw MIDI on Linux is unusable while PipeWire/JACK/aseq hold the port**;

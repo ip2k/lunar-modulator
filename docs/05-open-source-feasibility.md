@@ -59,9 +59,12 @@ platform for features M-VAVE will never ship.
 - JieLi's mask-ROM USB boot mode (`UBOOT1.00`) *should* be reachable through
   the USB connector with the `USB_KEY` signal, and would allow full dump and
   restore with `jl-uboot-tool` (`wl82loader.bin`) or the vendor's
-  `isd_download`. **This has never been demonstrated on an FM-1.** Until it
-  is, every custom flash risks a permanent brick. docs/07 is the plan to close
-  this.
+  `isd_download`. Until 2026-09 this had never been demonstrated on an FM-1.
+  - Now two owners report reaching it with czietz's Pico dongle, and one
+    reports a firmware backup and a write [reported: issue #2, docs/10 §1.1].
+  - It has not been done on this project's unit. Until it is, every custom
+    flash here risks a permanent brick.
+  - docs/07 is the plan to close this.
 
 ### 3.2 The verifier gate
 

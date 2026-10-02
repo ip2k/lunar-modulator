@@ -6,6 +6,19 @@ bill of materials and bench procedure are in
 [`docs/10-usb-key-dongle.md`](../docs/10-usb-key-dongle.md). **Status: not yet
 run against an FM-1.**
 
+Related work: czietz's MicroPython version for a bare Pico, from issue #2 on
+this repository.
+- It reaches UBOOT mode on FM-1s, about one power-on in two. czietz and
+  masanaohayashi both used it, and masanaohayashi also backed up and wrote
+  firmware with it [reported].
+- It clocks the key on D+ (our polarity A) and fakes the SOFs with a 1 kHz
+  square wave. The FM-1 is then moved by hand to the PC.
+
+docs/10 §1.1 covers:
+- what these reports show, and how the tool differs from this design;
+- why fixed polarity A is the better first attempt;
+- the relay-free minimal build (docs/10 §3).
+
 ## Layout
 
 | Path | What |
@@ -45,8 +58,13 @@ cmake -S dongle/firmware -B dongle/firmware/build && cmake --build dongle/firmwa
    `UBOOT1.00` device. Read-only commands only until docs/08 Phase 2 exits.
 
 Button: held at boot = fixed polarity B (D− clock); short press after a
-result = restart. LED: 1 Hz keying, 3 fast blinks ACK, solid DONE, 5 Hz
-FAILED, 10 Hz FAULT.
+result = restart. Fixed polarity A (D+ clock, the likely one) needs
+`DEFAULT_POLARITY_MODE` set to `POLARITY_DP_CLOCK` in `config.h`. LED: 1 Hz
+keying, 3 fast blinks ACK, solid DONE, 5 Hz FAILED, 10 Hz FAULT.
+
+Without the relay (docs/10 §3, minimal build): when the console says `DONE`,
+unplug the FM-1 from the dongle and plug it into the PC, with its power switch
+left on and its battery charged.
 
 ## Tests
 

@@ -9,6 +9,22 @@ history.
 ## [Unreleased]
 
 ### Added
+- docs/10 §1.1: reports from other FM-1 owners (issue #2) and what they
+  mean for our dongle.
+  - czietz's Raspberry Pi Pico `USB_KEY` dongle (an unlisted MicroPython
+    gist they linked there) gets their FM-1 into UBOOT mode, about one
+    power-on in two.
+  - masanaohayashi used it to put their FM-1 into boot mode, back up its
+    firmware and write firmware.
+  - The dongle clocks the key on D+ (our polarity A), fakes the SOFs with a
+    1 kHz square wave, and hands over by moving the cable to the PC.
+  - docs/10 now recommends fixed polarity A for the first attempt.
+  - It adds a relay-free minimal build that relies on the FM-1's battery.
+  - It expects the FM-1 to show up as vendor `WL82`, product `UBOOT1.00`
+    [inferred].
+  - README, HANDOFF and docs/05 and 07 no longer say the mask-ROM route has
+    never worked on an FM-1. It is reported on two other units, and not yet
+    shown on this project's.
 - A survey of monome, Ornament & Crime (via PaulStoffregen/O_C_T41 and
   Phazerville) and jhjlim's repositories as FM-1 sources
   (`notes/2026-10-01-monome-oc-jhjlim-survey.md`). O&C's MIT cores
@@ -146,6 +162,10 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- docs/10 §1 credited the D−-clock reading to the diagram in kagaimiq's
+  `how-to-enter-uboot.md`. In fact that diagram clocks on D+; only the page's
+  prose says D−. The `USB_KEY` trap in CLAUDE.md, AGENTS.md, HANDOFF and
+  docs/07 now says D+ is the clock, as reported on two FM-1s.
 - Shapes crashed on 11 of its 47 shapes when rendered in blocks that were
   not a multiple of 24 samples, and 22 shapes drifted from Braids (bells and
   drums decayed too fast, some shapes glitched). It now always renders Braids

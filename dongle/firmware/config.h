@@ -35,7 +35,7 @@
 
 // --- modes (compile-time defaults; the button can override polarity) ---------
 #define POLARITY_DP_CLOCK         0        // D+ clock, D- data  (jielie usb-key.md)
-#define POLARITY_DM_CLOCK         1        // D- clock, D+ data  (jl-uboot-tool how-to-enter-uboot.md)
+#define POLARITY_DM_CLOCK         1        // D- clock, D+ data  (how-to-enter-uboot.md prose only; its diagram and czietz's tool use D+)
 #define POLARITY_ALTERNATE        2
 #define DEFAULT_POLARITY_MODE     POLARITY_ALTERNATE
 #define SOF_MODE_PC               0        // hand the bus to the PC right after the ACK
