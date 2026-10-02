@@ -2,12 +2,18 @@
 need no engine API change): per-track routing to the sound engine or to
 USB-MIDI, notes and locks at their own frame through split renders, locks
 reaching the engine parameter their lane names, and the same audio at any
-host block size.
+host block size. fm1-render hosts the core through the shared bridge
+(engines/include/fm1_seq_host.h), so these are its tests too: lane labels,
+locks that split a block only when the engine takes them, the event log of
+every oracle script, and a buffer the size the virtual FM-1 will use.
 """
 import json
 import math
+import re
+import struct
 import subprocess
 import wave
+from pathlib import Path
 
 import pytest
 
@@ -15,6 +21,8 @@ from tests.seq_helpers import RENDER, ons, seq_tools  # noqa: F401
 from tests.test_seq_core import d1_frame
 
 RATE = 44118
+FIX = Path(__file__).resolve().parent / "fixtures" / "movy"
+ORACLE = sorted(FIX.glob("*.verbs")) + sorted((FIX / "random").glob("*.verbs"))
 
 
 def render(tmp_path, script, extra=(), name="r", engine="test-sine", seconds=None):
@@ -171,3 +179,198 @@ def test_plain_renders_are_unchanged(seq_tools, tmp_path):
     bad = subprocess.run([str(RENDER), "--engine", "test-sine", "--route", "0:engine"],
                          capture_output=True, text=True)
     assert bad.returncode == 2
+    bad = subprocess.run([str(RENDER), "--engine", "test-sine", "--events", "256"],
+                         capture_output=True, text=True)
+    assert bad.returncode == 2 and "--events needs --cmd or --seq" in bad.stderr
+
+
+# ---- The host bridge (engines/include/fm1_seq_host.h) ---------------------------------------
+
+LANE = (f"#! rate={RATE} block=64 tracks=1 end={RATE}\n"
+        "@0 tog 0 0 60 100;slen 0 0 0 -1 380\n"
+        "@0 alabel 0 0 {label};abase 0 0 {base};aset 0 0 2 {a} 1;aset 0 0 6 {b} 1\n@0 play\n")
+
+
+@pytest.mark.parametrize("engine,name,values", [("macro", "Timbre", (0, 127, 20)),
+                                                ("test-sine", "Volume", (127, 0, 90))])
+def test_a_lane_label_names_the_parameter_after_its_last_colon(seq_tools, tmp_path, engine, name,
+                                                               values):
+    """The part after the last ':' names the parameter, without ASCII case:
+    three spellings lock the same parameter, and a label naming none of the
+    engine's is sent and skipped, which sounds different."""
+    base, a, b = values
+    locks, raws = [], []
+    for k, label in enumerate([f"synth:{name.upper()}", name.lower(), f"a:b:{name}"]):
+        s, _, _, raw = render(tmp_path, LANE.format(label=label, base=base, a=a, b=b), engine=engine,
+                              name=f"l{k}")
+        locks.append(s["seq_locks_to_engine"])
+        raws.append(raw)
+    assert locks[0] > 0 and locks[0] == locks[1] == locks[2]
+    assert raws[0] == raws[1] == raws[2]
+    s, _, ev, raw = render(tmp_path, LANE.format(label="synth:Nothing", base=base, a=a, b=b),
+                           engine=engine, name="none")
+    assert s["seq_locks_to_engine"] == 0 and len([e for e in ev if e["kind"] == "cc"]) >= 2
+    assert raw != raws[0], "the locks change the sound"
+
+
+@pytest.mark.parametrize("v", [127, 64, 1])
+def test_a_float_lock_sets_min_plus_range_times_v_over_127(seq_tools, tmp_path, v):
+    """fm1_seq_lock_value's float expression, which fm1-render always used: a
+    lock of v on test-sine's Volume (0..1), sent before the note, sounds
+    exactly like Volume set to the float v/127 at the start."""
+    want = struct.unpack("<f", struct.pack("<f", v / 127))[0]
+    plain = f"#! rate={RATE} block=64 tracks=1 end=8820\n@0 tog 0 0 69 100\n@0 play\n"
+    locked = plain.replace("@0 play", f"@0 alabel 0 0 synth:Volume;abase 0 0 {v};play")
+    s, _, _, raw = render(tmp_path, locked, name="locked")
+    _, _, _, ref = render(tmp_path, plain, extra=["--param", f"Volume={want:.17g}"], name="param")
+    assert s["seq_locks_to_engine"] > 0 and raw == ref
+
+
+def test_a_lock_the_engine_cannot_take_does_not_split_the_block(seq_tools, tmp_path):
+    """The engines render a block cut into pieces exactly as a whole one (the
+    same WAV at blocks of 1, 7 and 64, above), so the WAV cannot show a
+    split; seq_splits (render calls starting inside a block) can. A lane
+    naming no parameter adds no split; one naming Volume does."""
+    plain = (f"#! rate={RATE} block=64 tracks=1 end={RATE}\n"
+             "@0 tog 0 0 84 100;tog 0 4 86 100\n@0 play\n")
+    lane = plain.replace("@0 play", "@0 alabel 0 0 synth:Nothing;abase 0 0 0;aset 0 0 2 90 1;"
+                                    "aset 0 0 6 30 1\n@0 play")
+    s0, _, _, raw0 = render(tmp_path, plain, name="plain")
+    s1, _, ev1, raw1 = render(tmp_path, lane, name="lane")
+    s2, _, _, _ = render(tmp_path, lane.replace("synth:Nothing", "synth:Volume"), name="known")
+    assert len([e for e in ev1 if e["kind"] == "cc"]) >= 2 and s1["seq_locks_to_engine"] == 0
+    assert s1["seq_splits"] == s0["seq_splits"] > 0
+    assert raw1 == raw0
+    assert s2["seq_locks_to_engine"] > 0 and s2["seq_splits"] > s0["seq_splits"]
+
+
+def script_block(script):
+    return int(re.search(r"\bblock=(\d+)", script.read_text().splitlines()[0]).group(1))
+
+
+@pytest.mark.parametrize("script", ORACLE, ids=lambda p: p.stem)
+def test_every_oracle_script_logs_as_fm1_seq_and_drops_nothing(seq_tools, tmp_path, script):
+    """fm1-render, through the bridge, logs byte for byte what fm1-seq logs:
+    at 64-frame blocks and at the script's own, in both modes. Nothing is
+    dropped, and in the default mode a 64-frame block holds at most 7 events
+    (measured), far inside the 256 the virtual FM-1 is to have. Integer-only,
+    so it holds at 32 bits and under the sanitizers too."""
+    state = script.with_name(script.stem + ".in.movy1")
+    extra = ["--seq", str(state)] if state.exists() else []
+    rlog, slog = tmp_path / "r.jsonl", tmp_path / "s.jsonl"
+    for compat in (False, True):
+        mode = ["--compat"] if compat else []
+        for block in sorted({64, script_block(script)}):
+            res = subprocess.run([str(RENDER), "--cmd", str(script), *extra, *mode, "--engine",
+                                  "test-sine", "--frames", str(block), "--log-events", str(rlog)],
+                                 check=True, capture_output=True, text=True)
+            subprocess.run([str(seq_tools), "--cmd", str(script), *extra, *mode, "--block",
+                            str(block), "--log", str(slog)], check=True, capture_output=True)
+            assert rlog.read_bytes() == slog.read_bytes(), (compat, block)
+            s = json.loads(res.stdout)
+            assert s["seq_dropped"] == 0, (compat, block)
+            if not compat and block == 64:
+                assert 0 < s["seq_max_block_events"] <= 7
+
+
+def full_stop_script(tracks=8, stop_at=4096):
+    """Every track plays an 8-note chord with all 8 lanes locked away from
+    their base: 64 gates and 64 lanes, both full at 8 tracks."""
+    lines = [f"#! rate={RATE} block=64 tracks={tracks} end={stop_at + 640}"]
+    for t in range(tracks):
+        chord = " ".join(f"{48 + 3 * t + k} 100" for k in range(8))
+        lines.append(f"@0 tog {t} 0 {chord};slen {t} 0 0 -1 380")
+        lines.append("@0 " + ";".join(f"alabel {t} {lane} synth:L{lane};aset {t} {lane} 0 100 1"
+                                      for lane in range(8)))
+    lines += ["@0 play", f"@{stop_at} stop"]
+    return "\n".join(lines) + "\n"
+
+
+def test_an_app_sized_event_buffer_takes_a_full_stop(seq_tools, tmp_path):
+    """256 events per block, the size the virtual FM-1 is to use: a stop at
+    full load sends 64 note-offs and 64 base reverts (D6) at once, and the
+    block's advance adds the transport's Stop: 129 events, which is
+    fm1_seq_cmd_max_events at 8 tracks and 64 gates. Nothing is dropped and
+    every note closes. A 100-event buffer does drop, and says so."""
+    script = full_stop_script()
+    s, _, ev, _ = render(tmp_path, script, extra=["--events", "256"], name="app")
+    assert s["seq_dropped"] == 0 and s["seq_refused"] == 0
+    stop = [e for e in ev if e["block"] == 4096 // 64]
+    assert len([e for e in stop if e["kind"] == "off"]) == 64
+    assert len([e for e in stop if e["kind"] == "cc" and e["b"] == 0]) == 64
+    assert [e["kind"] for e in stop][-1] == "stop" and len(stop) == 64 + 8 * 8 + 1
+    sounding = {}
+    for e in ev:
+        if e["kind"] in ("on", "off"):
+            k = (e["track"], e["a"])
+            sounding[k] = sounding.get(k, 0) + (1 if e["kind"] == "on" else -1)
+    assert len(sounding) == 64 and not any(sounding.values()), "a note left sounding"
+    assert s["seq_max_block_events"] >= len(stop)
+    s, _, _, _ = render(tmp_path, script, extra=["--events", "100"], name="small")
+    assert s["seq_dropped"] > 0
+
+
+def test_the_default_event_buffer_holds_more_than_an_app_sized_one(seq_tools, tmp_path):
+    """fm1-render's default stays 65,536 events: 16 tracks at full load put
+    more than 256 events in one block, which the default holds whole and an
+    app-sized buffer does not. --events takes a decimal count, nothing else."""
+    script = full_stop_script(tracks=16)
+    s, _, _, _ = render(tmp_path, script, name="default")
+    assert s["seq_dropped"] == 0 and s["seq_max_block_events"] > 256
+    s, _, _, _ = render(tmp_path, script, extra=["--events", "256"], name="app")
+    assert s["seq_dropped"] > 0 and s["seq_max_block_events"] <= 256
+    cmd_file = tmp_path / "default.txt"
+    for bad in ("0", "65537", "0x100", "256k", ""):
+        res = subprocess.run([str(RENDER), "--cmd", str(cmd_file), "--events", bad],
+                             capture_output=True, text=True)
+        assert res.returncode == 2 and "--events wants 1..65536" in res.stderr, bad
+
+
+MIDI_LANE = (f"#! rate={RATE} block=64 tracks=2 end={RATE}\n"
+             "@0 tog 0 0 84 100;slen 0 0 0 -1 380;tog 1 0 60 100;tog 1 4 64 100\n"
+             "@0 alabel 1 0 synth:Volume;abase 1 0 127;aset 1 0 2 0 1;aset 1 0 6 64 1\n"
+             "@0 play\n")
+
+
+def test_a_lane_on_a_midi_track_never_reaches_the_engine(seq_tools, tmp_path):
+    """Track 1 goes to USB-MIDI: its locks are logged (CC 102+lane) even
+    though the lane names the engine's Volume, but the engine never gets
+    them, so the sound is that of the same script without the lane. Routed
+    to the engine, the same locks reach it."""
+    s, _, ev, raw = render(tmp_path, MIDI_LANE, name="midi")
+    assert len([e for e in ev if e["kind"] == "cc" and e["track"] == 1]) >= 2
+    assert s["seq_locks_to_engine"] == 0 and s["seq_notes_to_engine"] > 0
+    lines = MIDI_LANE.splitlines(keepends=True)
+    _, _, _, ref = render(tmp_path, "".join(lines[:2] + lines[3:]), name="nolane")
+    assert raw == ref
+    s, _, _, _ = render(tmp_path, MIDI_LANE.replace("@0 play", "@0 route 1 1 0;play"), name="routed")
+    assert s["seq_locks_to_engine"] >= 2
+
+
+def test_with_no_engine_the_events_are_logged_and_the_input_passes(seq_tools, tmp_path):
+    """No --engine: the bridge gets no sink, so nothing is rendered or split
+    and the --input signal goes through untouched, while the log holds the
+    events an engine would have had."""
+    common = ["--input", "sine", "--rate", str(RATE), "--frames", "64", "--seconds", "0.75"]
+    s, _, ev, raw = render(tmp_path, TWO_TRACKS, extra=common, engine=None, name="none")
+    assert s["engine"] is None and s["seq_notes_to_engine"] == 0 and s["seq_splits"] == 0
+    assert s["seq_events"] == len(ev) > 0 and len(ons(ev, 0)) > 0
+    _, _, ev_engine, _ = render(tmp_path, TWO_TRACKS, extra=common[2:], name="engine")
+    assert ev == ev_engine
+    wav = tmp_path / "plain.wav"
+    subprocess.run([str(RENDER), *common, "--out", str(wav)], check=True, capture_output=True)
+    with wave.open(str(wav), "rb") as w:
+        assert w.readframes(w.getnframes()) == raw
+
+
+def test_the_bridge_checks_itself(seq_tools):
+    """engines/test/seq_host_test.c drives the bridge where fm1-render does
+    not: typed commands, realtime input and live notes against the same text
+    lines (same events every block, same set), every sink call at its
+    event's frame and in order, the room figures, the length-bounded `rt`
+    parser, lane labels and lock values."""
+    res = subprocess.run([str(seq_tools.parent / "fm1-seq-host-test")], capture_output=True,
+                         text=True)
+    assert res.returncode == 0, res.stderr
+    out = json.loads(res.stdout)
+    assert out["ok"] and out["events"] > 100 and out["sink_calls"] > 20 and out["splits"] > 10
