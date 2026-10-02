@@ -1,9 +1,10 @@
-"""The sequencer on the virtual FM-1's panel (docs/15 stages S3 to S5),
+"""The sequencer on the virtual FM-1's panel (docs/15 stages S3 to S6),
 behind the lab switch: golden gesture traces with two-step parity (§6.3),
 the typed commands' text round trip, the demo pattern, the switch itself,
 step entry (taps, holds, the Step pages, SHIFT, bar paging and the LEDs),
-and record and Capture (REC, step record, SHIFT + REC, live input from the
-keys and MIDI IN, and REC's LED).
+record and Capture (REC, step record, SHIFT + REC, live input from the
+keys and MIDI IN, and REC's LED), and tracks (focus, mute, the Set, Clip
+and Track pages, the metronome's click and the browser's routes).
 
 A gesture trace is a .panel file (one --key, --button, --turn or --note per
 line) and its golden .verbs, what `fm1-sim-render --lab --log-cmds` writes
@@ -14,7 +15,9 @@ notes the keys and MIDI IN played, the knob turns on the sound), renders
 the same bytes as the panel run. Every trace here plays Test Sine; S3's
 start from tests/fixtures/seq-ui/input.verbs, S4's (step-*) from
 steps.verbs, a bar at 240 BPM, S5's (rec-*, capture-*) from rec.verbs, two
-notes at 240 BPM for 4 s, or the input TRACE_INPUT names. A note
+notes at 240 BPM for 4 s, S6's (track-*, mute-*, set-*, metro-*, clip-*,
+pages-*) from tracks.verbs, four tracks routed to the sound, or the input
+TRACE_INPUT names. A note
 played that no step takes is live input, logged as `non` and `nof` ops at
 the block it led, so the replay records and captures the same. The parity
 scenarios under sim/web/test/seq/ play Macro and Plate
@@ -36,11 +39,19 @@ TRACE_INPUT = {"step-hidden-tail": "tail.verbs", "step-record-grow": "empty.verb
 WHITE = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26]   # white key n -> key index
 BUTTONS = ["OCT-", "OCT+", "FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ",
            "PLAY/STOP", "REC"]
+BLACK = [1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25]                     # role_leds bit n -> key index
+MUTE_KEY, PREV_KEY, NEXT_KEY = 13, 20, 22                            # F#4, C#5, D#5 (S6)
+ROLE_MUTE, ROLE_PREV, ROLE_NEXT = (1 << BLACK.index(MUTE_KEY), 1 << BLACK.index(PREV_KEY),
+                                   1 << BLACK.index(NEXT_KEY))
+
+
+S6_PREFIXES = ("track-", "mute-", "set-", "metro-", "clip-", "pages-")
 
 
 def trace_input(stem):
     default = ("steps.verbs" if stem.startswith("step-") else
-               "rec.verbs" if stem.startswith(("rec-", "capture-")) else "input.verbs")
+               "rec.verbs" if stem.startswith(("rec-", "capture-")) else
+               "tracks.verbs" if stem.startswith(S6_PREFIXES) else "input.verbs")
     return TRACES / TRACE_INPUT.get(stem, default)
 
 
@@ -69,6 +80,9 @@ def test_there_are_the_s3_and_s4_traces():
           "step-record", "step-record-grow", "capture-playing", "capture-stopped-picker",
           "capture-stopped-fitted", "capture-nothing"}
     assert stems >= s5
+    s6 = {"track-focus", "track-focus-from-home", "mute-tap", "mute-map", "set-page",
+          "metro-shortcut", "clip-page", "clip-quant-cycle", "track-page-route", "pages-browse"}
+    assert stems >= s6
 
 
 @pytest.mark.parametrize("panel", PANELS, ids=lambda p: p.stem)
@@ -81,6 +95,13 @@ def test_a_trace_logs_its_golden_verbs_and_replays_byte_for_byte(tools, tmp_path
     assert s["seq_dropped"] == r["seq_dropped"] == 0 and s["seq_busy"] == s["seq_held"] == 0
     assert s["seq_notes_to_engine"] == r["seq_notes_to_engine"]
     played = [t for _, t in s["seq_ui_cmds"]]
+    if panel.stem.startswith(S6_PREFIXES):
+        # Browsing never empties Capture (docs/15 §3.6): no `clipsel` or
+        # `launch` from any of these, and `watch` only from a focus gesture.
+        verbs = [t.split()[0] for t in played]
+        assert "clipsel" not in verbs and "launch" not in verbs
+        assert ("watch" in verbs) == (panel.stem in {"track-focus", "track-focus-from-home",
+                                                      "track-page-route"})
     if panel.stem != "seq-enter-exit":
         # Something starts the transport: PLAY/STOP, REC from stopped, or a
         # stopped Capture.
@@ -112,7 +133,7 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
     panels = [x for x in scen if "panel" in x]
     assert {x["name"] for x in panels} >= {"seq-panel-play-stop", "seq-panel-step-entry",
                                            "seq-panel-record", "seq-panel-capture-stopped",
-                                           "multi-panel"}
+                                           "multi-panel", "seq-panel-tracks"}
     for sc in panels:
         seq = ROOT / "sim" / "web" / "test"
         args = ["--engine", sc["engine"], "--seconds", str(sc["seconds"])]
@@ -149,6 +170,11 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
             assert sidecar.count("--note") == 9, "eight keys and the MIDI IN note"
         if sc["name"] == "seq-panel-capture-stopped":
             assert played[-3:] == ["cap 0", "capsel 1", "capdone"]
+        if sc["name"] == "seq-panel-tracks":
+            assert played == ["play", "watch 1", "route 1 1 1", "mute 3 1", "swing 60", "bpm 12400",
+                              "cscl 1 1 2", "cscl 1 2 1", "metro 1", "metro 0", "mute 1 1"]
+            assert sidecar.startswith("--slots\n") and s["current"] == 1, "Sound 2 follows track 2"
+            assert s["seq_clicks"] == r["seq_clicks"] == 2
         if sc["name"] == "multi-panel":
             assert sidecar.startswith("--slots\n"), "the replay routes by slot"
             assert sidecar.count("--sound-note\n1:") == 2, "Sound 2's key and MIDI IN note"
@@ -282,12 +308,15 @@ def lit_keys(s):
 
 def test_the_keys_leds_in_seq_mode(tools, tmp_path):
     """Stopped, in bar 1: the four steps with notes; the bar keys F#3 (back)
-    dark and A#3 (on) lit, since a second, empty bar can be reached. A held
-    step is lit, the steps under its note blink at the 1 s rate, and both bar
-    keys light (they nudge)."""
+    dark and A#3 (on) lit, since a second, empty bar can be reached; since
+    S6 MUTE (F#4) and the next track (D#5) lit too, the previous (C#5) dark
+    on track 1. A held step is lit, the steps under its note blink at the
+    1 s rate, and both bar keys light (they nudge); MUTE and the track keys
+    go dark."""
     s = step_run(tools, tmp_path, ["--button 0.05:SEQ"], seconds=0.3)
-    assert lit_keys(s) == {WHITE[0], WHITE[4], WHITE[8], WHITE[12], 5}
-    assert s["seq_view"]["role_leds"] == 0b100 and s["seq_view"]["key_leds"] == 0x1111
+    assert lit_keys(s) == {WHITE[0], WHITE[4], WHITE[8], WHITE[12], 5, MUTE_KEY, NEXT_KEY}
+    assert s["seq_view"]["role_leds"] == 0b100 | ROLE_MUTE | ROLE_NEXT
+    assert s["seq_view"]["key_leds"] == 0x1111
     # Step 1 held with its note 4 steps long: steps 2-4 blink, on for the
     # first half of each second (frame % 44118 < 22059).
     hold = ["--button 0.05:SEQ", "--key 0.10:0:100:5", "--turn 0.15:KNOB2:2"]
@@ -303,10 +332,11 @@ def test_bar_paging_stops_at_the_loops_bars_and_one_more(tools, tmp_path):
     empty = "#! rate=44118 block=64 tracks=8 end=44118\n@0 bpm 24000\n"
     s = step_run(tools, tmp_path, ["--button 0.05:SEQ", "--key 0.10:5:100:0.02"], script=empty,
                  seconds=0.3)
-    assert s["seq_view"]["bar"] == 0 and s["seq_view"]["role_leds"] == 0, "no clip: bar 1 only"
+    assert s["seq_view"]["bar"] == 0 and s["seq_view"]["role_leds"] == ROLE_MUTE | ROLE_NEXT, \
+        "no clip: bar 1 only"
     s = step_run(tools, tmp_path, ["--button 0.05:SEQ"] + [f"--key {0.1 + 0.05 * k:.2f}:5:100:0.02"
                                                          for k in range(4)], seconds=0.5)
-    assert s["seq_view"]["bar"] == 1 and s["seq_view"]["role_leds"] == 0b001
+    assert s["seq_view"]["bar"] == 1 and s["seq_view"]["role_leds"] == 0b001 | ROLE_MUTE | ROLE_NEXT
     assert s["seq_view"]["hint"] == 2, "the hint line names the bar"
 
 
@@ -564,3 +594,183 @@ def test_the_fitted_tempo_stays_through_select_and_knob1(tools, tmp_path):
     closed = rec_run(tools, tmp_path, lines + ["--turn 2.45:KNOB2:1"], 2.60)
     assert closed["rec"]["capture_mode"] == 0
     assert [t for _, t in closed["seq_ui_cmds"]][-2:] == ["cap 0", "capdone"]
+
+
+# ---- Tracks, mute and the pages (docs/15 S6) --------------------------------------------------
+
+def tracks_run(tools, tmp_path, panel_lines, *extra, seconds=None):
+    """A panel run from tracks.verbs: four tracks at 240 BPM, Test Sine."""
+    panel = tmp_path / "p.panel"
+    panel.write_text("\n".join(panel_lines) + "\n")
+    args = ["--lab", "--engine", "test-sine", "--cmd", str(TRACES / "tracks.verbs"), "--panel",
+            str(panel), *extra]
+    if seconds is not None:
+        args += ["--seconds", str(seconds)]
+    return run(tools["sim"], args)
+
+
+def cmds_of(s):
+    return [t for _, t in s["seq_ui_cmds"]]
+
+
+def test_the_traces_do_what_their_names_say(tools, tmp_path):
+    """The S6 traces' commands, beyond the golden text: the focus gestures'
+    `watch`, the mute map's tracks, the pages' values, and nothing at all
+    from browsing."""
+    def played(stem):
+        return cmds_of(run(tools["sim"], ["--lab", "--engine", "test-sine", "--cmd",
+                                          str(TRACES / "tracks.verbs"), "--panel",
+                                          str(TRACES / f"{stem}.panel")]))
+    assert played("track-focus") == ["watch 1", "watch 2", "watch 1", "play"]
+    assert played("mute-map") == ["play", "mute 1 1", "mute 2 1", "mute 1 0"]
+    assert played("set-page") == ["bpm 24300", "bpm 24320", "swing 60", "dq 70", "metro 1", "play"]
+    assert played("clip-page") == ["cscl 0 1 2", "play", "cscl 0 2 1", "clen 0 8", "ctr 0 7",
+                                   "cq 0 50"]
+    assert played("clip-quant-cycle") == ["dq 70", "cq 0 70", "cq 0 100", "cq 0 0", "play"]
+    assert played("track-page-route") == ["play", "watch 1", "route 1 0 2", "route 1 0 5",
+                                          "route 1 1 0", "mute 1 1", "mute 1 0"]
+    assert played("pages-browse") == ["play"]
+
+
+def test_a_focus_from_home_goes_back_there_and_capture_follows(tools, tmp_path):
+    """SEQ held with a white key focuses its track from HOME and goes back
+    there on SEQ's release; the keys' live input and Capture then follow the
+    track (the core's `watch`)."""
+    s = run(tools["sim"], ["--lab", "--engine", "test-sine", "--cmd", str(TRACES / "tracks.verbs"),
+                           "--panel", str(TRACES / "track-focus-from-home.panel")])
+    assert s["mode"] == 0 and s["seq_view"]["track"] == 2
+    assert cmds_of(s) == ["play", "watch 2", "non 2 65 100", "nof 2 65", "cap 2"]
+    held = tracks_run(tools, tmp_path, ["--button 0.05:SEQ:0.5"], seconds=0.3)
+    assert held["mode"] == 3 and held["seq_view"]["key_leds"] == 1, "SEQ held: the focused key"
+    # A SEQ press with no focus stays in SEQ mode.
+    plain = tracks_run(tools, tmp_path, ["--button 0.05:SEQ:0.1"], seconds=0.3)
+    assert plain["mode"] == 3
+
+
+def test_focus_says_when_capture_was_emptied(tools, tmp_path):
+    played = ["--note 0.05:60:100:0.1", "--button 0.30:SEQ:0.2", "--key 0.35:4:100:0.02"]
+    s = tracks_run(tools, tmp_path, played, seconds=0.45)
+    assert s["popup"] == ["Track 3", "Capture emptied"]
+    again = tracks_run(tools, tmp_path, ["--button 0.30:SEQ:0.2", "--key 0.35:4:100:0.02"],
+                       seconds=0.45)
+    assert again["popup"] == ["Track 3"]
+    same = tracks_run(tools, tmp_path, ["--note 0.05:60:100:0.1", "--button 0.30:SEQ:0.2",
+                                        "--key 0.35:0:100:0.02"], seconds=0.45)
+    assert same["popup"] == [] and "watch" not in " ".join(cmds_of(same)), \
+        "the focused track again: nothing sent, Capture kept"
+    assert same["rec"]["capture_pending"] == 1
+
+
+def test_the_track_keys_stop_at_the_ends(tools, tmp_path):
+    s = tracks_run(tools, tmp_path, ["--button 0.05:SEQ"] +
+                   [f"--key {0.1 + 0.05 * k:.2f}:22:100:0.02" for k in range(10)], seconds=0.8)
+    assert s["seq_view"]["track"] == 7 and cmds_of(s) == [f"watch {t}" for t in range(1, 8)]
+    assert s["seq_view"]["role_leds"] & ROLE_PREV and not s["seq_view"]["role_leds"] & ROLE_NEXT
+
+
+@pytest.mark.parametrize("seconds,muted", [(0.55, set()), (0.75, {1})])
+def test_the_mute_map_lights_the_tracks_that_sound(tools, tmp_path, seconds, muted):
+    """MUTE held: white keys 1-8 lit while their track sounds, and MUTE;
+    track 2, muted from the map, goes dark."""
+    s = tracks_run(tools, tmp_path, ["--button 0.05:SEQ", "--key 0.50:13:100:0.5",
+                                     "--key 0.60:2:100:0.05"], seconds=seconds)
+    assert lit_keys(s) == {WHITE[t] for t in range(8) if t not in muted} | {MUTE_KEY}
+    assert s["tracks"]["muted"] == sum(1 << t for t in muted)
+    assert s["seq_view"]["hint"] == 0
+
+
+def test_mute_and_track_keys_wait_while_steps_are_held(tools, tmp_path):
+    s = tracks_run(tools, tmp_path, ["--button 0.05:SEQ", "--key 0.10:0:100:0.5",
+                                     "--key 0.20:13:100:0.05", "--key 0.30:22:100:0.05"],
+                   seconds=0.8)
+    assert [t for t in cmds_of(s) if t.split()[0] in ("mute", "watch")] == []
+    assert s["seq_view"]["track"] == 0
+
+
+def test_shift_with_a_page_open_keeps_it_and_a_step_key_closes_it(tools, tmp_path):
+    base = ["--button 0.05:SEQ", "--button 0.10:SEL:0.05", "--key 0.12:7:100:0.01"]
+    page = tracks_run(tools, tmp_path, base, seconds=0.3)
+    assert page["seq_view"]["view"] == 2 and page["popup"] == []
+    metro = tracks_run(tools, tmp_path, base + ["--button 0.30:SEL:0.05", "--key 0.32:9:100:0.01"],
+                       seconds=0.5)
+    assert metro["seq_view"]["view"] == 2 and metro["popup"] == ["Metronome", "on"]
+    step = tracks_run(tools, tmp_path, base + ["--key 0.30:2:100:0.02"], seconds=0.5)
+    assert step["seq_view"]["view"] == 0 and cmds_of(step) == ["tog 0 1 60 100"]
+
+
+def test_the_tempo_knob_clamps_and_takes_a_tenth_with_shift(tools, tmp_path):
+    base = ["--button 0.05:SEQ", "--button 0.10:SEL:0.05", "--key 0.12:7:100:0.01"]
+    up = tracks_run(tools, tmp_path, base + [f"--turn {0.2 + 0.01 * k:.2f}:KNOB1:64" for k in range(2)],
+                    seconds=0.5)
+    assert cmds_of(up)[-1] == "bpm 30000" and up["rec"]["bpm_x100"] == 30000
+    fine = tracks_run(tools, tmp_path, base + ["--button 0.20:SEL:0.1", "--turn 0.22:KNOB1:-3"],
+                      seconds=0.5)
+    assert cmds_of(fine) == ["bpm 23970"]
+
+
+@pytest.mark.parametrize("delta,speed", [(-64, [1, 8]), (-1, [3, 4]), (1, [3, 2]), (64, [4, 1])])
+def test_the_speed_knob_walks_movys_eight_speeds(tools, tmp_path, delta, speed):
+    s = tracks_run(tools, tmp_path, ["--button 0.05:SEQ", "--button 0.10:SEL:0.05",
+                                     "--key 0.12:4:100:0.01", f"--turn 0.20:KNOB1:{delta}"],
+                   seconds=0.4)
+    assert s["tracks"]["speed"] == speed and cmds_of(s) == [f"cscl 0 {speed[0]} {speed[1]}"]
+
+
+def test_the_length_knob_makes_a_clip_only_turned_up(tools, tmp_path):
+    """Track 5 has no clip: KNOB2 down sends nothing, up makes one of a step
+    a detent, and the clip is at most 256 steps."""
+    focus = ["--button 0.02:SEQ", "--button 0.05:SEQ:0.1", "--key 0.07:7:100:0.01",
+             "--button 0.20:SEL:0.05", "--key 0.22:4:100:0.01"]
+    down = tracks_run(tools, tmp_path, focus + ["--turn 0.30:KNOB2:-3"], seconds=0.5)
+    assert cmds_of(down) == ["watch 4"] and down["seq_view"]["length"] == 0
+    up = tracks_run(tools, tmp_path, focus + ["--turn 0.30:KNOB2:3", "--turn 0.32:KNOB2:64",
+                                              "--turn 0.34:KNOB2:64", "--turn 0.36:KNOB2:64",
+                                              "--turn 0.38:KNOB2:64", "--turn 0.40:KNOB2:64"],
+                    seconds=0.6)
+    assert cmds_of(up)[:2] == ["watch 4", "clen 4 3"] and cmds_of(up)[-1] == "clen 4 256"
+
+
+def test_a_route_on_the_track_page_makes_its_sound_current(tools, tmp_path):
+    """Focusing a track or routing it to a sound makes that sound current
+    (S6), so the keys play what the track plays; SHIFT + PRESETS can still
+    choose another one after."""
+    s = tracks_run(tools, tmp_path, ["--button 0.05:SEQ", "--button 0.10:SEL:0.05",
+                                     "--key 0.12:2:100:0.01", "--turn 0.20:KNOB2:1"],
+                   "--sound", "1:shapes", seconds=0.4)
+    assert cmds_of(s) == ["route 0 1 1"] and s["current"] == 1
+    assert s["tracks"]["route"] == [1, 1]
+    back = tracks_run(tools, tmp_path, ["--button 0.05:SEQ", "--button 0.10:SEL:0.05",
+                                        "--key 0.12:2:100:0.01", "--turn 0.20:KNOB2:1",
+                                        "--button 0.30:SEQ:0.2", "--key 0.32:2:100:0.01"],
+                      "--sound", "1:shapes", seconds=0.6)
+    assert back["current"] == 0, "track 2, on Sound 1: Sound 1 current again"
+
+
+def test_the_browsers_start_routes_every_track_to_sound_1(tools):
+    """O10 as changed (2026-10-02): on the browser's start chain, with the
+    lab switch, every track plays Sound 1 until the user routes it; track 1
+    by the default-route rule, the others by fm1_app_seq_start_routes. The
+    Track page reads it."""
+    panel = ["--button", "0.05:SEQ", "--button", "0.08:SEQ:0.1", "--key", "0.09:12:100:0.01"]
+    s = run(tools["sim"], ["--lab", "--start", "--seconds", "0.4", *panel])
+    assert s["seq_view"]["track"] == 7 and s["tracks"]["route"] == [1, 0]
+    off = run(tools["sim"], ["--start", "--seconds", "0.2"])
+    assert "tracks" not in off
+
+
+def test_the_click_sounds_only_while_the_metronome_is_on(tools, tmp_path):
+    """O11: the bridge's click, the same in the app and fm1-render, block
+    for block; none with `metro 0`, not even the count-in's."""
+    script = tmp_path / "click.verbs"
+    script.write_text("#! rate=44118 block=64 tracks=8 end=132354\n"
+                      "@0 metro 1;play\n@44118 metro 0\n@66000 metro 1\n")
+    a, b = tmp_path / "a.wav", tmp_path / "b.wav"
+    s = run(tools["sim"], ["--engine", "test-sine", "--cmd", str(script), "--out", str(a)])
+    r = run(tools["render"], ["--engine", "test-sine", "--cmd", str(script), "--frames", "64",
+                              "--out", str(b)])
+    assert s["seq_clicks"] == r["seq_clicks"] == 5 and a.read_bytes() == b.read_bytes()
+    assert s["peak"] > 0.3
+    count_in = tmp_path / "count.verbs"
+    count_in.write_text("#! rate=44118 block=64 tracks=8 end=88236\n@0 rec 0\n")
+    quiet = run(tools["sim"], ["--engine", "test-sine", "--cmd", str(count_in)])
+    assert quiet["seq_clicks"] == 0 and quiet["peak"] == 0

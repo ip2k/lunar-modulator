@@ -1,0 +1,15 @@
+# Track 2 focused (SEQ held, white key 2), SHIFT (SEL) + white key 2 opens
+# its Track page: KNOB1 routes it to MIDI out (channel 2, silent here),
+# KNOB2 to channel 5, KNOB1 back to Sound 1; KNOB3 mutes it and unmutes
+# it. Playing throughout.
+--button 0.03:SEQ
+--button 0.05:PLAY/STOP
+--button 0.10:SEQ:0.1
+--key 0.12:2:100:0.01
+--button 0.30:SEL:0.05
+--key 0.32:2:100:0.01
+--turn 0.60:KNOB1:1
+--turn 1.00:KNOB2:3
+--turn 1.40:KNOB1:-1
+--turn 1.80:KNOB3:1
+--turn 2.20:KNOB3:-1

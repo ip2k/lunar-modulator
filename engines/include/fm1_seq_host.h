@@ -14,7 +14,9 @@
  *   6. fm1_seq_host_dispatch(h, frames, block, &sink): renders the sound
  *      engine in pieces split at the frame of each event it receives, and
  *      empties the buffer;
- *   7. effects, limiter and output, which are the host's own.
+ *   7. effects, which are the host's own; the metronome's click
+ *      (fm1_seq_click_mix, from the block's events); then the host's limiter
+ *      and output.
  *
  * Lock targets (engine API v2). A lane's label (`synth:Timbre`) resolves to
  * the uid of the parameter it names when the lane is labelled (an `alabel`
@@ -164,6 +166,35 @@ typedef struct fm1_seq_slot {
  * buffer. */
 void fm1_seq_host_dispatch_slots(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_slot_t *slots,
                                  unsigned n);
+
+/* The metronome's click (owner decision O11, 2026-10-02; docs/15 S6), so
+ * that every host sounds the core's CLICK events the same way. A voice of
+ * integers only: no libm and no rounding of its own, so each build and
+ * each host adds the same bits. A CLICK event starts a click at its own
+ * frame, while the metronome is on (`metro 1`; the count-in's clicks too,
+ * and only then): a triangle tone of rate / 2000 half-periods (about 1 kHz;
+ * rate / 3200, about 1.7 kHz and louder, on a downbeat) under a quadratic
+ * decay of rate / 50 frames (20 ms), added to both channels of the block
+ * after the host's effects and before its limiter. A new click restarts
+ * the voice; a click outlives the block it starts in and `metro 0`. */
+typedef struct fm1_seq_click {
+  uint32_t len;                 /* a click's length in frames, rate / 50 */
+  uint16_t half[2];             /* its tone's half-period in frames: plain, downbeat */
+  uint32_t pos;                 /* frames into the click sounding; len when none */
+  uint8_t accent;               /* the click sounding is a downbeat's */
+  uint8_t reserved[3];
+  uint32_t clicks;              /* clicks started, for logs and tests */
+} fm1_seq_click_t;
+
+/* A silent voice for `rate` frames a second. */
+void fm1_seq_click_init(fm1_seq_click_t *c, uint32_t rate);
+
+/* Adds the clicks of one block to lr (frames stereo frames, interleaved):
+ * ev[0..n) are the block's events as fm1_seq_host_advance left them (the
+ * buffer keeps them after dispatch), s the instance whose metronome gates
+ * them. A NULL s sounds no new click. */
+void fm1_seq_click_mix(fm1_seq_click_t *c, const fm1_seq_t *s, const fm1_seq_ev_t *ev, uint32_t n,
+                       uint32_t frames, float *lr);
 
 /* The parameter a lane label names: the part after the last ':' ("synth:
  * Timbre" names Timbre), compared without ASCII case. -1 if none. */

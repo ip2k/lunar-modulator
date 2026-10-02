@@ -18,6 +18,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.engine_helpers import ROOT
 from tests.seq_helpers import RENDER, ons, seq_tools  # noqa: F401
 from tests.test_seq_core import d1_frame
 
@@ -322,13 +323,14 @@ def full_stop_script(tracks=8, stop_at=4096):
 
 
 def test_an_app_sized_event_buffer_takes_a_full_stop(seq_tools, tmp_path):
-    """256 events per block, the size the virtual FM-1 is to use: a stop at
+    """272 events per block, the size the virtual FM-1 uses (256 until stage
+    S6, docs/15): a stop at
     full load sends 64 note-offs and 64 base reverts (D6) at once, and the
     block's advance adds the transport's Stop: 129 events, which is
     fm1_seq_cmd_max_events at 8 tracks and 64 gates. Nothing is dropped and
     every note closes. A 100-event buffer does drop, and says so."""
     script = full_stop_script()
-    s, _, ev, _ = render(tmp_path, script, extra=["--events", "256"], name="app")
+    s, _, ev, _ = render(tmp_path, script, extra=["--events", "272"], name="app")
     assert s["seq_dropped"] == 0 and s["seq_refused"] == 0
     stop = [e for e in ev if e["block"] == 4096 // 64]
     assert len([e for e in stop if e["kind"] == "off"]) == 64
@@ -347,13 +349,13 @@ def test_an_app_sized_event_buffer_takes_a_full_stop(seq_tools, tmp_path):
 
 def test_the_default_event_buffer_holds_more_than_an_app_sized_one(seq_tools, tmp_path):
     """fm1-render's default stays 65,536 events: 16 tracks at full load put
-    more than 256 events in one block, which the default holds whole and an
+    more than 272 events in one block, which the default holds whole and an
     app-sized buffer does not. --events takes a decimal count, nothing else."""
     script = full_stop_script(tracks=16)
     s, _, _, _ = render(tmp_path, script, name="default")
-    assert s["seq_dropped"] == 0 and s["seq_max_block_events"] > 256
-    s, _, _, _ = render(tmp_path, script, extra=["--events", "256"], name="app")
-    assert s["seq_dropped"] > 0 and s["seq_max_block_events"] <= 256
+    assert s["seq_dropped"] == 0 and s["seq_max_block_events"] > 272
+    s, _, _, _ = render(tmp_path, script, extra=["--events", "272"], name="app")
+    assert s["seq_dropped"] > 0 and s["seq_max_block_events"] <= 272
     cmd_file = tmp_path / "default.txt"
     for bad in ("0", "65537", "0x100", "256k", ""):
         res = subprocess.run([str(RENDER), "--cmd", str(cmd_file), "--events", bad],
@@ -410,3 +412,37 @@ def test_the_bridge_checks_itself(seq_tools):
     assert res.returncode == 0, res.stderr
     out = json.loads(res.stdout)
     assert out["ok"] and out["events"] > 100 and out["sink_calls"] > 20 and out["splits"] > 10
+
+
+def test_seq_benchs_burst_fits_the_apps_272_events_and_not_256(seq_tools, tmp_path):
+    """docs/15 S6 (the S2 open issue): tools/seq_bench.py's burst puts 193
+    events in a block beside the 64 gates' note-offs the core keeps room
+    for, 257 in all. The app's old 256 dropped 400 of its note-ons; its 272
+    hold it whole."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("seq_bench", ROOT / "tools" / "seq_bench.py")
+    bench = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bench)
+    script = bench.burst("255 1", seconds=2)
+    small, _, _, _ = render(tmp_path, script, extra=["--events", "256"], name="b256")
+    app, _, _, _ = render(tmp_path, script, extra=["--events", "272"], name="b272")
+    assert small["seq_dropped"] > 0
+    assert app["seq_dropped"] == 0 and app["seq_max_block_events"] == 193
+
+
+def test_the_click_is_the_same_at_host_blocks_of_1_7_and_64(seq_tools, tmp_path):
+    """O11: the metronome's click starts at its event's own frame and is
+    computed in integers, so it renders the same in any block size; none
+    sounds while `metro` is off."""
+    script = (f"#! rate={RATE} block={{block}} tracks=4 end={RATE * 3}\n"
+              "@0 tog 0 0 60 100\n@0 metro 1;play\n"
+              f"@{RATE} metro 0\n@{RATE * 3 // 2 + 37} metro 1\n")
+    out = {}
+    for block in (1, 7, 64):
+        s, _, _, raw = render(tmp_path, script.format(block=block), engine="test-sine", name=f"c{block}")
+        out[block] = raw
+        assert s["seq_clicks"] == 5
+    assert out[1] == out[64] and out[7] == out[64]
+    off, _, _, _ = render(tmp_path, script.format(block=64).replace("metro 1;", ""), engine="test-sine",
+                          name="off")
+    assert off["seq_clicks"] == 3, "only from the second metro 1 on"

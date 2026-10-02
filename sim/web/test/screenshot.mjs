@@ -462,6 +462,14 @@ async function labChecks(browser) {
   await wait(page, 200);
   r.rec_led_captured = await recStates(1300);
   await tftPng(page, 'tft-09-seq-captured.png');
+  // Tracks (S6): SEQ held with white key 2 focuses track 2, and the core's
+  // watched track follows (the toast names it).
+  await page.evaluate((m) => { for (const x of m) window.fm1.node.port.postMessage(x); }, [
+    { type: 'button', button: 11, down: true }, { type: 'key', key: 2, down: true, velocity: 100 },
+    { type: 'key', key: 2, down: false }, { type: 'button', button: 11, down: false }]);
+  await wait(page, 300);
+  r.focus_watch = await page.evaluate(() => window.fm1.seq && window.fm1.seq.watch_track);
+  await tftPng(page, 'tft-11-seq-track-2.png');
   await page.close();
 
   // Multi-sound (docs/15 §3.16): SEL held as SHIFT while PRESETS turns makes
@@ -539,6 +547,7 @@ async function labChecks(browser) {
     r.step_keys === '1000100010001000' && r.steps_rms > 0.01 && r.step_lights_seen >= 3 &&
     r.recording_after_rec === true && r.rec_led_recording === true && r.recording_after_second_rec === false &&
     r.rec_led_buffered.length === 2 && r.rec_led_captured.length === 1 && r.rec_led_captured[0] === false &&
+    r.focus_watch === 1 &&
     r.off_space_messages === 0 && r.off_rms < 0.001 && r.off_mode === 0 && r.off_play_led === false && r.off_rec_led === false &&
     r.off_seq_status === null && r.off_help_hidden === true &&
     r.multi_sound === 1 && r.multi_label === 'Sound 2 (PRESETS)' && r.multi_units[0] === r.multi_shapes &&

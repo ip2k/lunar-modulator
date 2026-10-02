@@ -270,6 +270,73 @@ void fm1_seq_host_dispatch_slots(fm1_seq_host_t *h, uint32_t frames, const fm1_s
   h->n = 0;
 }
 
+/* ---- the metronome's click (O11) ----------------------------------------- */
+
+#define CLICK_GAIN 8192             /* 0.25 full scale, in Q15 */
+#define CLICK_GAIN_ACCENT 11469     /* 0.35 on a downbeat */
+
+void fm1_seq_click_init(fm1_seq_click_t *c, uint32_t rate) {
+  uint32_t h0 = rate / 2000u, h1 = rate / 3200u;
+  memset(c, 0, sizeof(*c));
+  c->len = rate / 50u ? rate / 50u : 1u;
+  c->half[0] = (uint16_t)(h0 < 1u ? 1u : (h0 > 0xFFFFu ? 0xFFFFu : h0));
+  c->half[1] = (uint16_t)(h1 < 1u ? 1u : (h1 > 0xFFFFu ? 0xFFFFu : h1));
+  c->pos = c->len;
+}
+
+/* The click's sample at c->pos, in Q15: a triangle of c->half[accent]
+ * frames a half-period under (left / len)^2, times its gain. Integer
+ * division truncates toward zero in C99, the same on every target. */
+static int32_t click_sample(const fm1_seq_click_t *c) {
+  const int64_t half = c->half[c->accent];
+  const int64_t period = 2 * half;
+  const int64_t t = (int64_t)c->pos % period;
+  const int64_t tri = 2 * (t < half ? t : period - t) - half;   /* -half .. half */
+  const int64_t w = tri * 32767 / half;
+  const uint64_t left = (uint64_t)(c->len - c->pos);
+  const int64_t env = (int64_t)(left * left * 32767u / ((uint64_t)c->len * c->len));
+  return (int32_t)(w * env / 32768 * (c->accent ? CLICK_GAIN_ACCENT : CLICK_GAIN) / 32768);
+}
+
+/* Frames from..to of the voice into lr: exact, since the sample is an
+ * integer below 2^24 and 1/32768 a power of two. */
+static void click_run(fm1_seq_click_t *c, float *lr, uint32_t from, uint32_t to) {
+  uint32_t i;
+  for (i = from; i < to && c->pos < c->len; ++i, ++c->pos) {
+    const float x = (float)click_sample(c) * (1.0f / 32768.0f);
+    lr[2u * i] += x;
+    lr[2u * i + 1u] += x;
+  }
+}
+
+void fm1_seq_click_mix(fm1_seq_click_t *c, const fm1_seq_t *s, const fm1_seq_ev_t *ev, uint32_t n,
+                       uint32_t frames, float *lr) {
+  uint32_t k, cur = 0;
+  int on = -1;                  /* the metronome, read at the block's first click */
+  for (k = 0; k < n; ++k) {
+    uint32_t f;
+    if (ev[k].kind != FM1_SEQ_EV_CLICK) continue;
+    if (on < 0) {
+      fm1_seq_info_t info;
+      on = 0;
+      if (s) {
+        fm1_seq_get_info(s, &info);
+        on = info.metronome != 0;
+      }
+    }
+    if (!on) break;
+    f = ev[k].frame < frames ? ev[k].frame : frames;
+    if (f > cur) {
+      click_run(c, lr, cur, f);
+      cur = f;
+    }
+    c->pos = 0;
+    c->accent = ev[k].a != 0;
+    ++c->clicks;
+  }
+  click_run(c, lr, cur, frames);
+}
+
 int fm1_seq_lane_param(const fm1_engine_t *e, const char *label) {
   const char *name;
   uint16_t q;

@@ -160,26 +160,28 @@ def sim_run(tools, tmp_path, script, *extra, engine="test-sine", name="s", tool=
 
 def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     """docs/15 §2.6: the 8-track instance (Capture included) fits the 32 KiB
-    arena, and with the 256-event buffer, the pending command record and the
-    UI state's bound it stays inside the sequencer's 36,864 B, half of
-    docs/13 §5's 72 KiB. fm1_app_t grew by about 36 KB for the sequencer, and
-    to 4.9 MB for multi-sound's arenas."""
+    arena, and with the 272-event buffer (256 until stage S6), the pending
+    command record, the UI state's bound and the metronome's click voice it
+    stays inside the sequencer's 36,864 B, half of docs/13 §5's 72 KiB.
+    fm1_app_t grew by about 36 KB for the sequencer, and to 4.9 MB for
+    multi-sound's arenas."""
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
     print(f"sizeof(fm1_app_t) = {z['app_bytes']} B")
     assert z["seq_tracks"] == 8                                   # owner decision O3 (2026-10-02)
     assert (z["seq_bytes_8"], z["seq_bytes_4"]) == (31880, 18056)
     assert z["seq_bytes_8"] <= z["seq_arena"] == 32768
-    assert (z["seq_event_bytes"], z["seq_pending_bytes"]) == (3072, 240)
-    total = z["seq_bytes_8"] + z["seq_event_bytes"] + z["seq_pending_bytes"] + z["seq_ui_bytes"]
-    assert total == 36216 <= z["seq_budget"] == 36864
+    assert (z["seq_event_bytes"], z["seq_pending_bytes"], z["seq_click_bytes"]) == (3264, 240, 20)
+    total = (z["seq_bytes_8"] + z["seq_event_bytes"] + z["seq_pending_bytes"] + z["seq_ui_bytes"]
+             + z["seq_click_bytes"])
+    assert total == 36428 <= z["seq_budget"] == 36864
     # Multi-sound (docs/15 §3.16): four 512 KiB sound arenas and ten 256 KiB
     # effect arenas (two master slots, two inserts per sound), 4.5 MiB of the
     # module's fixed 8 MiB; fm1_app_t is 4,880,816 B natively (clang, 64-bit).
     assert (z["sounds"], z["inserts"], z["master_slots"], z["units"]) == (4, 2, 2, 14)
     assert z["arena_bytes"] == 4 * 512 * 1024 + 10 * 256 * 1024
     assert z["app_bytes"] <= 4_900_000
-    assert z["seq_need"] == 201 <= z["seq_events"] == 256
+    assert z["seq_need"] == 201 <= z["seq_events"] == 272
     assert z["seq_ui_size"] <= z["seq_ui_bytes"]
     script = f"#! rate={RATE} block=64 tracks=8 end=6400\n@0 tog 0 0 60 100\n@0 play\n"
     for tracks, size in ((8, 31880), (4, 18056)):
@@ -187,7 +189,7 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
         assert s["seq_bytes"] == size
         r, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}",
                           tool="render")
-        assert s["ram"] == r["instance_bytes"] + size + 3072, "the RAM figure counts the sequencer"
+        assert s["ram"] == r["instance_bytes"] + size + 3264, "the RAM figure counts the sequencer"
 
 
 def full_load(stop_at, tracks=8):
@@ -375,7 +377,14 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     a chord, a tie, SHIFT's hint and the head in every bar of a 16-bar
     clip, Capture's toasts, a stopped Capture's picker and fitted tempo,
     and both overlays at their extremes (one to three candidates from 20 to
-    300 BPM, tempos from 20 to 300 BPM), over SEQ mode and HOME.
+    300 BPM, tempos from 20 to 300 BPM), over SEQ mode and HOME. Tracks
+    (S6): the status line's eight tracks, each focused and muted, the
+    focus and Capture toasts, the mute map, SHIFT's legend with its states
+    at both ends, the Set page at its extremes, the Clip page at every speed
+    and its other extremes, with no clip, the Track page routed to each
+    sound unit (the longest name), past them and to every MIDI channel,
+    and Track page 2 with eight tracks' lane labels, none to eight, the
+    longest cut to fit, bases 0 to 127.
     Multi-sound (docs/15 §3.16): FX mode's five slots, every effect as an
     insert at its extremes and on M2, the grab, the Mix page with one to
     four sounds and their levels, every sound as Sound 2 in HOME, the Mix
@@ -387,7 +396,8 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 1040            # 335 before S3, 815 before S4, 914 before S5, 953 before multi-sound
+    assert summary["screens"] >= 1109            # 335 before S3, 815 before S4, 914 before S5,
+    #                                              953 before multi-sound, 1,040 before S6
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

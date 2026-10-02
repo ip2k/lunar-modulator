@@ -33,10 +33,14 @@
 // its lane's label names (`target:Name`, matched by name and resolved to the
 // parameter's uid when the lane is labelled), scaled from 0..127; a lock on a
 // NOLOCK parameter is refused. All of that per-block hosting, and the routing
-// default above, is the shared bridge (include/fm1_seq_host.h). The summary
-// adds seq_dropped (events past the buffer), seq_max_block_events, seq_splits
-// (render calls that start inside a block) and seq_locks_refused (locks on
-// NOLOCK parameters).
+// default above, is the shared bridge (include/fm1_seq_host.h). So is the
+// metronome's click (owner decision O11; fm1_seq_click_mix): while `metro`
+// is on, each CLICK event sounds a short integer-only click at its own
+// frame, added after the effects and before the limiter, as the virtual
+// FM-1 adds it. The summary adds seq_dropped (events past the buffer),
+// seq_max_block_events, seq_splits (render calls that start inside a block),
+// seq_locks_refused (locks on NOLOCK parameters) and seq_clicks (clicks
+// sounded).
 //
 // Several sound units, as the virtual FM-1 runs them with its lab switch
 // (docs/15 §3.16): --sound K:ID loads sound unit K (1..3; --engine is unit
@@ -622,6 +626,8 @@ int main(int argc, char **argv) {
   std::vector<bool> done(events.size(), false);
   fm1_mix_limiter_t limiter;
   fm1_mix_limiter_init(&limiter, rate);
+  fm1_seq_click_t click;
+  fm1_seq_click_init(&click, static_cast<uint32_t>(lrintf(rate)));
   uint32_t noise = 0x12345678u;       // deterministic white noise
   double sine_phase = 0.0;
   double render_ns = 0.0, seq_ns = 0.0;
@@ -685,6 +691,7 @@ int main(int argc, char **argv) {
         block[2 * f] = block[2 * f + 1] = x;
       }
     }
+    uint32_t n_seq = 0;                 // the block's events, for the click
     if (use_seq) {
       // Commands due now, then the block (fm1_seq_host.h, steps 2-4).
       auto s0 = std::chrono::steady_clock::now();
@@ -699,7 +706,7 @@ int main(int argc, char **argv) {
         }
         ++sq.next_cmd;
       }
-      const uint32_t n_seq = fm1_seq_host_advance(&sq.host, n);
+      n_seq = fm1_seq_host_advance(&sq.host, n);
       seq_ns += std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - s0).count();
       if (sq.log) {
         for (uint32_t k = 0; k < n_seq; ++k) fm1_script_log_event(sq.log, blocks, pos, &sq.ev[k]);
@@ -746,6 +753,7 @@ int main(int argc, char **argv) {
       }
     }
     for (size_t k = 0; k < fx.size(); ++k) fx[k].e->render(fx[k].self, block, n);
+    if (use_seq) fm1_seq_click_mix(&click, sq.seq, sq.ev.data(), n_seq, n, block);   // O11
     auto t1 = std::chrono::steady_clock::now();
     render_ns += std::chrono::duration<double, std::nano>(t1 - t0).count();
     ++blocks;
@@ -810,14 +818,16 @@ int main(int argc, char **argv) {
     printf(",\"seq_bytes\":%zu,\"seq_events\":%llu,\"seq_notes_to_engine\":%llu,"
            "\"seq_locks_to_engine\":%llu,\"seq_locks_refused\":%llu,\"seq_refused\":%lu,"
            "\"seq_dropped\":%lu,"
-           "\"seq_max_block_events\":%lu,\"seq_splits\":%llu,\"seq_ns_per_block\":%.1f",
+           "\"seq_max_block_events\":%lu,\"seq_splits\":%llu,\"seq_clicks\":%lu,"
+           "\"seq_ns_per_block\":%.1f",
            sq.mem.size() - 8u, static_cast<unsigned long long>(sq.events),
            static_cast<unsigned long long>(sq.host.notes_to_engine),
            static_cast<unsigned long long>(sq.host.locks_to_engine),
            static_cast<unsigned long long>(sq.host.locks_refused),
            static_cast<unsigned long>(st.refused), static_cast<unsigned long>(st.dropped_events),
            static_cast<unsigned long>(sq.host.max_n),
-           static_cast<unsigned long long>(sq.host.splits), blocks ? seq_ns / blocks : 0.0);
+           static_cast<unsigned long long>(sq.host.splits), static_cast<unsigned long>(click.clicks),
+           blocks ? seq_ns / blocks : 0.0);
     if (sq.log) fclose(sq.log);
     fm1_script_free(&sq.script);
   }

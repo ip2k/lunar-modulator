@@ -40,7 +40,7 @@
  * render.cc): --cmd FILE plays a timed verb script, --seq FILE.movy1 loads a
  * set first (alone, it plays from the start), --tracks N (1..8; else the
  * script's header), --route T:engine|T:midi:CH, --events N (the bridge's
- * room, at most the app's 256) and --log-events FILE.jsonl. Rate and the run
+ * room, at most the app's 272) and --log-events FILE.jsonl. Rate and the run
  * length come from the script as fm1-render takes them at --frames 64: the
  * app's blocks are always 64 frames. Script lines apply at the first block
  * starting at or after their frame, after the panel and notes, through
@@ -1070,6 +1070,272 @@ static void seq_rec_screens(const char *dir, float rate) {
   destroy_units();
 }
 
+/* ---- --screens, lab on: tracks, mute and the pages (docs/15 §4, S6) --- */
+
+/* SEQ held, white key n, SEQ let go: focus track n + 1. */
+static void seq_focus(int n) {
+  button_edge(FM1_BTN_SEQ, 1);
+  key_edge(fm1_white_key(n), 1);
+  key_edge(fm1_white_key(n), 0);
+  button_edge(FM1_BTN_SEQ, 0);
+}
+
+/* SHIFT + white key n (0-based): Movy's shortcut n + 1. */
+static void shift_key(int n) {
+  button_edge(FM1_BTN_SEL, 1);
+  key_edge(fm1_white_key(n), 1);
+  key_edge(fm1_white_key(n), 0);
+  button_edge(FM1_BTN_SEL, 0);
+}
+
+static void seq_track_screens(const char *dir, float rate) {
+  char name[128];
+  destroy_units();
+  fm1_app_init(&g_app, rate);
+  fm1_app_set_lab(&g_app, 1);
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  fm1_app_seq_default_route(&g_app);
+  blocks(1);
+  button_edge(FM1_BTN_SEQ, 1);
+  button_edge(FM1_BTN_SEQ, 0);
+  expect(g_app.mode == FM1_MODE_SEQ && g_app.ui.tracks == 8, "SEQ mode with 8 tracks");
+  for (int t = 0; t < 8; ++t) {                      /* a bar on every track */
+    char ops[96];
+    snprintf(ops, sizeof ops, "tog %d %d %d 100;tog %d %d %d 100", t, t, 60 + t, t, 8 + t, 67 + t);
+    seq_line(ops);
+  }
+  blocks(1);
+  check_screen("seq-tracks-eight", dir, 1);
+  /* SEQ + white keys 1-8 focus every track; the toast names it. */
+  for (int n = 0; n < 8; ++n) {
+    seq_focus(n);
+    expect(g_app.ui.track == (unsigned)(n ? n : 0) && g_app.mode == FM1_MODE_SEQ,
+           "SEQ + a white key did not focus its track");
+    if (n == 7) {
+      expect(g_app.popup_lines == 1 && strcmp(g_app.popup[0], "Track 8") == 0, "no toast for track 8");
+      check_screen("seq-toast-track-8", dir, 1);
+    }
+    snprintf(name, sizeof name, "seq-track-%d", n + 1);
+    step_check(name, dir, n == 7);
+  }
+  seq_focus(0);
+  /* From HOME: SEQ + key 3 focuses track 3 and goes back to HOME; a note
+   * played there, then SEQ + key 2: Capture emptied, and the toast says so. */
+  button_edge(FM1_BTN_HOME, 1);
+  button_edge(FM1_BTN_HOME, 0);
+  seq_focus(2);
+  expect(g_app.ui.track == 2 && g_app.mode == FM1_MODE_HOME, "SEQ + key from HOME did not go back");
+  midi_note(64, 4, 4);
+  expect(g_app.ui.capture_pending == 1, "the note was not buffered on track 3");
+  seq_focus(1);
+  expect(g_app.popup_lines == 2 && strcmp(g_app.popup[1], "Capture emptied") == 0,
+         "focusing did not say Capture was emptied");
+  check_screen("home-toast-capture-emptied", dir, 1);
+  g_app.popup_lines = 0;
+  button_edge(FM1_BTN_SEQ, 1);
+  check_screen("seq-seq-held", dir, 1);
+  button_edge(FM1_BTN_SEQ, 0);
+  /* C#5 and D#5: the previous and the next track. */
+  key_edge(FM1_SEQ_UI_KEY_TRACK_NEXT, 1);
+  key_edge(FM1_SEQ_UI_KEY_TRACK_NEXT, 0);
+  expect(g_app.ui.track == 2, "D#5 did not focus the next track");
+  key_edge(FM1_SEQ_UI_KEY_TRACK_PREV, 1);
+  key_edge(FM1_SEQ_UI_KEY_TRACK_PREV, 0);
+  key_edge(FM1_SEQ_UI_KEY_TRACK_PREV, 1);
+  key_edge(FM1_SEQ_UI_KEY_TRACK_PREV, 0);
+  expect(g_app.ui.track == 0, "C#5 did not focus the previous track");
+  g_app.popup_lines = 0;
+  /* MUTE: a tap mutes track 1; held, the mute map, then every track muted. */
+  key_edge(FM1_SEQ_UI_KEY_MUTE, 1);
+  key_edge(FM1_SEQ_UI_KEY_MUTE, 0);
+  expect(g_app.ui.muted == 1u, "a MUTE tap did not mute track 1");
+  step_check("seq-track-1-muted", dir, 1);
+  key_edge(FM1_SEQ_UI_KEY_MUTE, 1);
+  step_check("seq-mute-map", dir, 1);
+  for (int n = 1; n < 8; ++n) {
+    key_edge(fm1_white_key(n), 1);
+    key_edge(fm1_white_key(n), 0);
+  }
+  key_edge(FM1_SEQ_UI_KEY_MUTE, 0);
+  expect(g_app.ui.muted == 0xFFu, "the mute map did not mute every track");
+  step_check("seq-all-muted", dir, 0);
+  key_edge(FM1_SEQ_UI_KEY_MUTE, 1);
+  for (int n = 0; n < 8; ++n) {
+    key_edge(fm1_white_key(n), 1);
+    key_edge(fm1_white_key(n), 0);
+  }
+  key_edge(FM1_SEQ_UI_KEY_MUTE, 0);
+  expect(g_app.ui.muted == 0u, "the mute map did not unmute every track");
+  /* SHIFT's legend, its states at both ends. */
+  button_edge(FM1_BTN_SEL, 1);
+  step_check("seq-shift-legend-s6", dir, 1);
+  button_edge(FM1_BTN_SEL, 0);
+  shift_key(5);                                      /* metronome on, */
+  expect(g_app.ui.metro == 1 && g_app.popup_lines == 2, "SHIFT + 6 did not turn the metronome on");
+  check_screen("seq-toast-metro-on", dir, 1);
+  shift_key(9);                                      /* full velocity on, */
+  shift_key(15);                                     /* quantize 0 -> 100 (the default is 0) */
+  expect(g_app.ui.clip_quant == 100 && g_app.popup_lines == 2, "SHIFT + 16 did not cycle quantize");
+  check_screen("seq-toast-quant", dir, 1);
+  button_edge(FM1_BTN_SEL, 1);
+  step_check("seq-shift-legend-on", dir, 0);
+  button_edge(FM1_BTN_SEL, 0);
+  shift_key(5);
+  shift_key(9);
+  shift_key(15);
+  expect(g_app.ui.metro == 0 && g_app.ui.clip_quant == 0, "SHIFT + 6 and + 16 did not go back");
+  g_app.popup_lines = 0;
+  /* SELECT past the sound's last page: Set, Clip, Track 1/2 and 2/2, and back. */
+  turn(FM1_ENC_SELECT, 10);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_SET, "SELECT past the sound's pages is not the Set page");
+  turn(FM1_ENC_SELECT, 1);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_CLIP, "SELECT does not reach the Clip page");
+  turn(FM1_ENC_SELECT, 1);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_TRACKPG && g_app.ui.track_page == 0, "no Track page 1");
+  turn(FM1_ENC_SELECT, 5);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_TRACKPG && g_app.ui.track_page == 1, "no Track page 2");
+  turn(FM1_ENC_SELECT, -4);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_TRACK, "SELECT back does not reach the Track view");
+  /* The Set page at its extremes. */
+  shift_key(4);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_SET, "SHIFT + 5 does not open the Set page");
+  step_check("seq-set", dir, 1);
+  {
+    static const char *const sets[] = { "bpm 2000;swing 50;dq 0;metro 0", "bpm 30000;swing 80;dq 100;metro 1",
+                                         "bpm 11750;swing 66;dq 70;metro 0", "bpm 29999;swing 51;dq 10;metro 1" };
+    for (int k = 0; k < 4; ++k) {
+      seq_line(sets[k]);
+      blocks(1);
+      snprintf(name, sizeof name, "seq-set-%d", k + 1);
+      step_check(name, dir, k == 1);
+    }
+  }
+  seq_line("bpm 12000;swing 50;dq 0;metro 0");
+  blocks(1);
+  turn(FM1_ENC_KNOB1, 3);                            /* 123 BPM; with SHIFT 123.20 */
+  button_edge(FM1_BTN_SEL, 1);
+  turn(FM1_ENC_KNOB1, 2);
+  button_edge(FM1_BTN_SEL, 0);
+  turn(FM1_ENC_KNOB2, 7);
+  turn(FM1_ENC_KNOB3, 7);
+  turn(FM1_ENC_KNOB4, 1);
+  expect(g_app.ui.bpm_x100 == 12320 && g_app.ui.swing == 57 && g_app.ui.dq == 70 && g_app.ui.metro == 1,
+         "the Set page's knobs");
+  step_check("seq-set-turned", dir, 0);
+  /* The Clip page: every speed, the length at its ends, transpose, quantize. */
+  shift_key(2);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_CLIP, "SHIFT + 3 does not open the Clip page");
+  for (int i = 0; i < FM1_SEQ_UI_SPEEDS; ++i) {
+    char ops[48];
+    snprintf(ops, sizeof ops, "cscl 0 %u %u", (unsigned)fm1_seq_ui_speeds[i][0],
+             (unsigned)fm1_seq_ui_speeds[i][1]);
+    seq_line(ops);
+    blocks(1);
+    snprintf(name, sizeof name, "seq-clip-speed-%u-%u", (unsigned)fm1_seq_ui_speeds[i][0],
+             (unsigned)fm1_seq_ui_speeds[i][1]);
+    step_check(name, dir, i == 0);
+  }
+  {
+    static const char *const clips[] = { "clen 0 1;ctr 0 -36;cq 0 0", "clen 0 256;ctr 0 36;cq 0 100",
+                                         "clen 0 16;ctr 0 0;cq 0 70" };
+    for (int k = 0; k < 3; ++k) {
+      seq_line(clips[k]);
+      blocks(1);
+      snprintf(name, sizeof name, "seq-clip-%d", k + 1);
+      step_check(name, dir, k == 1);
+    }
+  }
+  seq_line("cscl 0 1 1");
+  blocks(1);
+  turn(FM1_ENC_KNOB1, -3);                           /* 1X -> 1/4X, then to 2X */
+  expect(g_app.ui.clip_num == 1 && g_app.ui.clip_den == 4, "SPEED down");
+  turn(FM1_ENC_KNOB1, 5);
+  turn(FM1_ENC_KNOB2, -8);
+  turn(FM1_ENC_KNOB3, 5);
+  turn(FM1_ENC_KNOB4, -2);
+  expect(g_app.ui.clip_num == 2 && g_app.ui.clip_den == 1 && g_app.ui.length == 8 && g_app.ui.clip_tr == 5 &&
+             g_app.ui.clip_quant == 50, "the Clip page's knobs");
+  step_check("seq-clip-turned", dir, 0);
+  seq_focus(1);                                      /* a track with no clip in its slot */
+  seq_line("clipsel 1 3");
+  blocks(1);
+  g_app.popup_lines = 0;
+  shift_key(2);
+  expect(g_app.ui.length == 0, "slot 4 of track 2 has a clip");
+  step_check("seq-clip-none", dir, 1);
+  seq_focus(0);
+  /* The Track page: a route to each sound unit, loaded or empty, past
+   * them, to MIDI channels 1-16, muted or not. */
+  fm1_app_unit_select(&g_app, 1, fm1_app_find("macro-heavy"));
+  fm1_app_unit_select(&g_app, 3, fm1_app_find("sixop"));
+  shift_key(1);                                      /* on the page it was left on (O21) */
+  expect(g_app.ui.view == FM1_SEQ_VIEW_TRACKPG && g_app.ui.track_page == 1, "SHIFT + 2: no Track page");
+  turn(FM1_ENC_SELECT, -1);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_TRACKPG && g_app.ui.track_page == 0, "SELECT back: no Track page 1");
+  for (int k = 0; k < 5; ++k) {
+    char ops[32];
+    snprintf(ops, sizeof ops, "route 0 1 %d", k);
+    seq_line(ops);
+    blocks(1);
+    g_app.popup_lines = 0;
+    snprintf(name, sizeof name, "seq-trackpg-sound-%d", k + 1);
+    step_check(name, dir, k == 1);
+  }
+  for (int ch = 1; ch <= 16; ++ch) {
+    char ops[32];
+    snprintf(ops, sizeof ops, "route 0 0 %d;mute 0 %d", ch, ch & 1);
+    seq_line(ops);
+    blocks(1);
+    snprintf(name, sizeof name, "seq-trackpg-midi-%d", ch);
+    step_check(name, dir, ch == 16);
+  }
+  seq_line("route 0 1 0;mute 0 0");
+  blocks(1);
+  turn(FM1_ENC_KNOB2, 1);                            /* Sound 2: the current sound follows */
+  expect(g_app.ui.route_index == 1 && fm1_app_unit_of_track(&g_app, 0) == 1 && g_app.sound == 1,
+         "KNOB2 on the Track page did not route track 1 to Sound 2");
+  turn(FM1_ENC_KNOB1, 1);
+  expect(g_app.ui.route_kind == FM1_SEQ_ROUTE_MIDI && g_app.ui.route_index == 1, "KNOB1: MIDI out");
+  turn(FM1_ENC_KNOB2, 20);
+  turn(FM1_ENC_KNOB3, 1);
+  expect(g_app.ui.route_index == 16 && (g_app.ui.muted & 1u), "KNOB2 and KNOB3 on the Track page");
+  step_check("seq-trackpg-turned", dir, 0);
+  turn(FM1_ENC_KNOB1, -1);
+  turn(FM1_ENC_KNOB3, -1);
+  expect(g_app.ui.route_kind == FM1_SEQ_ROUTE_ENGINE && g_app.ui.route_index == 0 && !(g_app.ui.muted & 1u),
+         "back to Sound 1, unmuted");
+  /* Track page 2: every track's lanes, from none to all eight with the
+   * longest labels, bases 0 to 127. */
+  turn(FM1_ENC_SELECT, 1);
+  expect(g_app.ui.track_page == 1, "SELECT on Track page 1 is not page 2");
+  step_check("seq-lanes-none", dir, 1);
+  for (int t = 0; t < 8; ++t) {
+    for (int lane = 0; lane <= t; ++lane) {
+      char ops[160];
+      snprintf(ops, sizeof ops, "alabel %d %d %s;abase %d %d %d", t, lane,
+               lane % 3 == 0 ? "synth:Brightness" : lane % 3 == 1 ? "synth:ABCDEFGHIJKLMNOPQRS" : "x:Y",
+               t, lane, (lane * 127) / 7);
+      seq_line(ops);
+    }
+    blocks(1);
+    seq_focus(t);
+    g_app.popup_lines = 0;
+    shift_key(1);
+    if (g_app.ui.track_page != 1) turn(FM1_ENC_SELECT, 1);
+    snprintf(name, sizeof name, "seq-lanes-track-%d", t + 1);
+    step_check(name, dir, t == 7);
+  }
+  /* SEQ goes back to the Track view; a step key closes a page too. */
+  button_edge(FM1_BTN_SEQ, 1);
+  button_edge(FM1_BTN_SEQ, 0);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_TRACK, "SEQ does not close the Track page");
+  shift_key(2);
+  key_edge(fm1_white_key(3), 1);
+  key_edge(fm1_white_key(3), 0);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_TRACK, "a step key does not close the Clip page");
+  destroy_units();
+}
+
 /* ---- --screens, lab on: multi-sound (docs/15 §3.16) ------------------- */
 
 /* Every page of a unit shown in FX mode's lab layout at FX slot `slot`, at
@@ -1399,6 +1665,7 @@ static int run_screens(const char *dir, float rate) {
   seq_screens(dir, rate);
   seq_step_screens(dir, rate);
   seq_rec_screens(dir, rate);
+  seq_track_screens(dir, rate);
   multi_screens(dir, rate);
   printf("{\"screens\":%d,\"faults\":%d}\n", g_screens, g_faults);
   return g_faults ? 1 : 0;
@@ -1419,13 +1686,13 @@ static int print_sizes(void) {
   printf("\"seq_arena\":%u,\"seq_tracks\":%d,\"seq_bytes_8\":%zu,"
          "\"seq_bytes_4\":%zu,\"seq_event_bytes\":%zu,\"seq_pending_bytes\":%zu,"
          "\"seq_ui_bytes\":%u,\"seq_ui_size\":%zu,\"seq_budget\":%u,\"seq_need\":%u,"
-         "\"seq_events\":%u}\n",
+         "\"seq_events\":%u,\"seq_click_bytes\":%zu}\n",
          FM1_APP_SEQ_BYTES, FM1_APP_SEQ_TRACKS, fm1_seq_size(&lim8),
          fm1_seq_size(&lim4), sizeof g_app.seq_ev, sizeof g_app.seq_pend, FM1_APP_SEQ_UI_BYTES,
          sizeof(fm1_seq_ui_t),
          FM1_APP_SEQ_BUDGET,
          (unsigned)(fm1_seq_cmd_max_events(&lim8) + fm1_seq_min_events(&lim8)),
-         FM1_APP_SEQ_EVENTS);
+         FM1_APP_SEQ_EVENTS, sizeof g_app.click);
   return 0;
 }
 
@@ -2201,6 +2468,13 @@ int main(int argc, char **argv) {
            (unsigned)g_app.ui.step_page, (unsigned)g_app.ui.bar, (unsigned)g_app.ui.held_n,
            (unsigned)g_app.ui.shift, (unsigned)g_app.ui.full_vel, (unsigned)g_app.ui.hint,
            (unsigned)g_app.ui.length, (unsigned)g_app.ui.loop_start);
+    /* Tracks, mute and the pages (S6), as the UI mirrors them. */
+    printf(",\"tracks\":{\"tracks\":%u,\"muted\":%u,\"track_page\":%u,\"swing\":%u,\"dq\":%u,"
+           "\"metro\":%u,\"speed\":[%u,%u],\"clip_quant\":%u,\"clip_tr\":%d,\"route\":[%u,%u]}",
+           (unsigned)g_app.ui.tracks, (unsigned)g_app.ui.muted, (unsigned)g_app.ui.track_page,
+           (unsigned)g_app.ui.swing, (unsigned)g_app.ui.dq, (unsigned)g_app.ui.metro,
+           (unsigned)g_app.ui.clip_num, (unsigned)g_app.ui.clip_den, (unsigned)g_app.ui.clip_quant,
+           (int)g_app.ui.clip_tr, (unsigned)g_app.ui.route_kind, (unsigned)g_app.ui.route_index);
     /* Record and Capture (S5): the transport's record state, step record's
      * head, and Capture as the UI mirrors it. */
     printf(",\"rec\":{\"recording\":%u,\"counting_in\":%u,\"rec_track\":%u,\"srec\":%u,"
@@ -2235,13 +2509,14 @@ int main(int argc, char **argv) {
            "\"seq_locks_to_engine\":%llu,\"seq_refused\":%lu,\"seq_dropped\":%llu,"
            "\"seq_max_block_events\":%lu,\"seq_splits\":%llu,\"seq_held\":%llu,"
            "\"seq_busy\":%llu,\"seq_lines_left\":%zu,\"seq_sounding\":%d,"
-           "\"seq_ui_left\":%d,\"seq_ui_frames\":[",
+           "\"seq_clicks\":%lu,\"seq_ui_left\":%d,\"seq_ui_frames\":[",
            fm1_seq_size(&g_app.seq_lim), (unsigned long long)seq_events,
            (unsigned long long)g_app.seq_host.notes_to_engine,
            (unsigned long long)g_app.seq_host.locks_to_engine, (unsigned long)st.refused,
            (unsigned long long)fm1_app_seq_dropped(&g_app), (unsigned long)g_app.seq_host.max_n,
            (unsigned long long)g_app.seq_host.splits, (unsigned long long)g_app.seq_held,
-           (unsigned long long)g_app.seq_busy, left, seq_sounding, g_ui_n - g_ui_next);
+           (unsigned long long)g_app.seq_busy, left, seq_sounding, (unsigned long)g_app.click.clicks,
+           g_ui_n - g_ui_next);
     for (int k = 0; k < g_ui_applied && k < MAX_UI; ++k) {
       printf(k ? ",%llu" : "%llu", (unsigned long long)g_ui_frames[k]);
     }

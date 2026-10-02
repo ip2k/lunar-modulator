@@ -161,15 +161,18 @@ enum {
  * default limits (fm1_seq_limits_default) for FM1_APP_SEQ_TRACKS tracks:
  * 31,880 B at 8 tracks, Capture included, the same on 32- and 64-bit
  * builds. Every block's commands and events share one buffer of
- * FM1_APP_SEQ_EVENTS (3,072 B). With the pending command record (240 B) and
- * the UI state (fm1_seq_ui_t, at most 1,024 B) that is 36,216 B of the
- * sequencer's 36,864 B budget, half of docs/13 §5's 72 KiB. The track count
- * is the owner's decision O3 (docs/15 §8, answered 2026-10-02): 8, the
- * count the firmware will use (4 would have left room for docs/13's undo
- * ring). */
+ * FM1_APP_SEQ_EVENTS (3,264 B). With the pending command record (240 B),
+ * the UI state (fm1_seq_ui_t, at most 1,024 B) and the metronome's click
+ * voice (20 B) that is 36,428 B of the sequencer's 36,864 B budget, half of
+ * docs/13 §5's 72 KiB. The track count is the owner's decision O3 (docs/15
+ * §8, answered 2026-10-02): 8, the count the firmware will use (4 would
+ * have left room for docs/13's undo ring). The buffer was 256 events until
+ * stage S6: one short of the worst burst measured, seq_bench's 193 events
+ * in a block beside the 64 gates' note-offs the core keeps room for (257);
+ * 272 holds it whole, and fits the budget at 8 tracks. */
 #define FM1_APP_SEQ_TRACKS 8
 #define FM1_APP_SEQ_BYTES 32768u      /* the instance's arena */
-#define FM1_APP_SEQ_EVENTS 256u       /* the block's event buffer, in events */
+#define FM1_APP_SEQ_EVENTS 272u       /* the block's event buffer, in events */
 #define FM1_APP_SEQ_BUDGET 36864u     /* the sequencer's share of FM-1 RAM */
 #define FM1_APP_SEQ_UI_BYTES 1024u    /* the SEQ mode UI state's bound */
 
@@ -265,6 +268,7 @@ typedef struct fm1_app {
   uint64_t seq_dropped_before;   /* events dropped by instances since replaced */
   uint64_t seq_held, seq_busy;   /* commands held for room, and refused */
   uint32_t seq_gen;              /* bumped by every sequencer input */
+  fm1_seq_click_t click;         /* the metronome's click (O11), from the block's events */
   /* Native-harness hooks: every typed command as it is applied, and every
    * live note given to the sequencer (velocity 0: its release), with the
    * frame of the block they lead. NULL in the browser. */
@@ -275,6 +279,8 @@ typedef struct fm1_app {
   /* The sequencer on the panel, behind the lab switch. */
   int lab;
   fm1_seq_ui_t ui;
+  int seq_from_mode;             /* the mode SEQ was pressed in: a track focused
+                                    while it is held goes back there (S6) */
   uint8_t key_sound_only[FM1_APP_KEYS];   /* step record's keys: the sound only */
   uint8_t seq_fed[128];                   /* notes down given to the sequencer as */
   uint8_t seq_fed_track[128];             /* live input, and the track each went to */
@@ -311,8 +317,9 @@ int fm1_app_select(fm1_app_t *a, int unit, int index);
 /* The browser's starting chain: Macro, then Plate. If Macro refuses the
  * host's rate, the first sound that loads instead, with a popup saying why.
  * Then the sequencer's default route (fm1_app_seq_default_route) and, with
- * the lab switch on, the demo pattern (fm1_app_seq_demo). Returns 0, or the
- * first fm1_app_select error. */
+ * the lab switch on, the browser's routes (fm1_app_seq_start_routes) and the
+ * demo pattern (fm1_app_seq_demo). Returns 0, or the first fm1_app_select
+ * error. */
 int fm1_app_default_chain(fm1_app_t *a);
 
 /* The lab switch: on, the sequencer is on the panel (SEQ mode, PLAY/STOP,
@@ -329,6 +336,15 @@ void fm1_app_set_lab(fm1_app_t *a, int on);
  * runs start empty. 1 if it went in whole. */
 int fm1_app_seq_demo(fm1_app_t *a);
 extern const char fm1_app_demo_pattern[];
+
+/* The browser's routes (owner decision O10 as changed on 2026-10-02, docs/15
+ * S6): every track but the first that is still on its default MIDI route
+ * plays Sound 1 (`route t 1 0`), so each can be heard before the user routes
+ * it on its Track page; track 1 plays Sound 1 by the default-route rule.
+ * The start chain applies it with the lab switch on, after the default
+ * route; nothing else does, so tests and parity runs route with verbs.
+ * Returns the tracks routed. */
+int fm1_app_seq_start_routes(fm1_app_t *a);
 
 /* Parameters of a unit, by index (fm1_app_param_index finds a name, case
  * insensitive; -1 if absent). Values clamp as fm1_param_clamp does. */

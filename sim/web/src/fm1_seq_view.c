@@ -4,6 +4,7 @@
 #include "fm1_seq_view.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include "fm1_look.h"
 
@@ -31,6 +32,18 @@
 /* The Step pages: HOME's rows, and the bar's steps where HOME has its scope. */
 #define STEPS_Y 192
 #define STEPS_H 20
+/* The tracks on the status line, centred between the tempo (at most
+ * "300.00 BPM", 118 px from MARGIN) and the transport (4 characters, 46 px
+ * to RIGHT), with 8 px clear on each side. */
+#define TRACKS_X 132
+#define TRACKS_Y (STATUS_Y + 2)
+#define TRACK_W 5
+#define TRACK_H 14
+#define LEGEND_PITCH 22                /* SHIFT's legend, from GRID_Y */
+#define LANE_PITCH 23                  /* Track page 2: eight lanes */
+
+typedef char fm1_seq_view_tracks_fit[TRACKS_X >= MARGIN + 118 + 8 &&
+                                     TRACKS_X + 8 * TRACK_W + 7 + 8 <= RIGHT - 46 ? 1 : -1];
 
 typedef char fm1_seq_view_grid_fits[BOX_X >= 0 && BOX_X + BOX_W <= FM1_TFT_W &&
                                     GRID_Y + GRID_H < STRIP_Y ? 1 : -1];
@@ -52,13 +65,26 @@ static void draw_status(fm1_tft_t *t, const fm1_seq_ui_t *u) {
   fm1_tft_text(t, MARGIN, STATUS_Y, bpm, 10, SCALE, C_TEXT);
   fm1_tft_text(t, RIGHT - fm1_tft_text_width(state, 4, SCALE), STATUS_Y, state, 4, SCALE,
                rec || u->srec ? C_WARN : count ? C_MODEL : u->playing ? C_PLAY : C_DIM);
+  /* The tracks (S6): the focused one gold, a muted one an outline. */
+  if (u->tracks) {
+    const unsigned n = u->tracks < 8u ? u->tracks : 8u;
+    fm1_tft_graphic(t, TRACKS_X, TRACKS_Y, (int)n * (TRACK_W + 1) - 1, TRACK_H);
+    for (unsigned k = 0; k < n; ++k) {
+      const int x = TRACKS_X + (int)k * (TRACK_W + 1);
+      const uint16_t c = k == u->track ? C_MODEL : C_ACCENT;
+      if ((u->muted >> k) & 1u) fm1_tft_frame(t, x, TRACKS_Y, TRACK_W, TRACK_H, c);
+      else fm1_tft_paint(t, x, TRACKS_Y, TRACK_W, TRACK_H, c);
+    }
+  }
 }
 
 /* One step's cell: a note filled, inside the loop or outlined outside it,
- * the playhead inverted. */
-static void draw_cell(fm1_tft_t *t, int x, int y, int w, int h, int in_loop, int note, int head) {
+ * the playhead inverted; a muted track's notes dim. */
+static void draw_cell(fm1_tft_t *t, int x, int y, int w, int h, int in_loop, int note, int head,
+                      int muted) {
   if (in_loop) {
-    const uint16_t c = note ? (head ? C_TEXT : C_ACCENT) : (head ? C_DIM : C_BAR_BG);
+    const uint16_t c = note ? (head ? C_TEXT : (muted ? C_DIM : C_ACCENT))
+                            : (head ? C_DIM : C_BAR_BG);
     fm1_tft_paint(t, x, y, w, h, c);
   } else {
     fm1_tft_frame(t, x, y, w, h, C_BAR_BG);
@@ -66,16 +92,21 @@ static void draw_cell(fm1_tft_t *t, int x, int y, int w, int h, int in_loop, int
   }
 }
 
+static int focused_muted(const fm1_seq_ui_t *u) {
+  return u->track < 16u && ((u->muted >> u->track) & 1u);
+}
+
 static void draw_grid(fm1_tft_t *t, const fm1_seq_ui_t *u) {
   const unsigned end = (unsigned)u->loop_start + u->length;
   const uint16_t held = fm1_seq_ui_held_mask(u);
+  const int muted = focused_muted(u);
   fm1_tft_graphic(t, BOX_X, GRID_Y, BOX_W, GRID_H);
   for (unsigned g = 0; g < FM1_SEQ_UI_GRID_STEPS; ++g) {
     const unsigned step = u->grid_first + g, col = g % 16u, row = g / 16u;
     const int x = col_x(col);
     const int y = GRID_Y + (int)(row * (CELL_H + ROW_GAP));
     draw_cell(t, x, y, CELL_W, CELL_H, u->length && step >= u->loop_start && step < end,
-              (int)((u->notes >> g) & 1u), u->clip_playing && u->step == step);
+              (int)((u->notes >> g) & 1u), u->clip_playing && u->step == step, muted);
     if ((u->trigs >> g) & 1u) fm1_tft_paint(t, x + 2, y + CELL_H - TICK_H - 2, CELL_W - 4, TICK_H, C_SCOPE);
     if (step / 16u == u->bar && ((held >> col) & 1u)) {
       fm1_tft_frame(t, x - 1, y - 1, CELL_W + 2, CELL_H + 2, C_MODEL);
@@ -91,11 +122,31 @@ static void draw_grid(fm1_tft_t *t, const fm1_seq_ui_t *u) {
   }
 }
 
+/* SHIFT held with no step held (S6): what SHIFT + white key N does, in the
+ * grid's place, as Movy's step-shortcuts.ts has them. */
+static void draw_legend(fm1_tft_t *t, const fm1_seq_ui_t *u) {
+  char v[24];
+  int y = GRID_Y;
+  fm1_look_row(t, y, "Key 2", "Track page", C_TEXT); y += LEGEND_PITCH;
+  fm1_look_row(t, y, "Key 3", "Clip page", C_TEXT); y += LEGEND_PITCH;
+  fm1_look_row(t, y, "5 7 9", "Set page", C_TEXT); y += LEGEND_PITCH;
+  fm1_look_row(t, y, "Key 6", u->metro ? "Metro on" : "Metro off", C_TEXT); y += LEGEND_PITCH;
+  fm1_look_row(t, y, "Key 10", u->full_vel ? "Full vel on" : "Full vel off", C_TEXT);
+  y += LEGEND_PITCH;
+  snprintf(v, sizeof v, "Quant %u%%", (unsigned)u->clip_quant);
+  fm1_look_row(t, y, "Key 16", v, C_TEXT);
+}
+
 static void draw_track(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd) {
+  const int legend = u->shift && !u->srec && !u->held_n;
   draw_status(t, u);
-  draw_grid(t, u);
+  if (legend) {
+    draw_legend(t, u);
+  } else {
+    draw_grid(t, u);
+  }
   /* The knob strip: four bars, no text (O23 b). */
-  for (int k = 0; snd->e && k < snd->n; ++k) {
+  for (int k = 0; !legend && snd->e && k < snd->n; ++k) {
     const fm1_param_t *p = &snd->e->params[snd->idx[k]];
     fm1_look_bar(t, GRID_X + k * (STRIP_W + STRIP_GAP), STRIP_Y, STRIP_W, STRIP_H, p,
                  snd->value[snd->idx[k]], k == u->knob ? C_TEXT : C_ACCENT);
@@ -114,8 +165,10 @@ static void draw_track(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_s
       snprintf(v, sizeof v, "%u", (unsigned)u->srec_head + 1u);
     }
     fm1_look_row(t, HINT_Y, "Step rec", v, C_WARN);
-  } else if (u->shift) {
-    fm1_look_row(t, HINT_Y, "Key 10", u->full_vel ? "Full vel on" : "Full vel off", C_MODEL);
+  } else if (u->seq_held) {
+    fm1_look_row(t, HINT_Y, "Keys 1-8", "pick track", C_MODEL);
+  } else if (u->mute_held) {
+    fm1_look_row(t, HINT_Y, "Keys 1-8", "mute", C_MODEL);
   } else if (u->hint == FM1_SEQ_HINT_BAR) {
     char v[24];
     const unsigned bars = u->length ? ((unsigned)u->loop_start + u->length + 15u) / 16u : 0u;
@@ -174,7 +227,7 @@ static void draw_steps(fm1_tft_t *t, const fm1_seq_ui_t *u) {
     } else {
       draw_cell(t, x, STEPS_Y, CELL_W, STEPS_H, u->length && step >= u->loop_start && step < end,
                 g < FM1_SEQ_UI_GRID_STEPS && ((u->notes >> g) & 1u),
-                u->clip_playing && u->step == step);
+                u->clip_playing && u->step == step, focused_muted(u));
     }
   }
 }
@@ -233,8 +286,107 @@ static void draw_step(fm1_tft_t *t, const fm1_seq_ui_t *u) {
   }
 }
 
+/* ---- the Set, Clip and Track pages (S6) ------------------------------------------ */
+
+static void draw_set(fm1_tft_t *t, const fm1_seq_ui_t *u) {
+  static const fm1_param_t kTempo = { "Tempo", FM1_PARAM_FLOAT, 20.0f, 300.0f, 120.0f, NULL, 0, 0, 0, 0, "" };
+  static const fm1_param_t kSwing = { "Swing", FM1_PARAM_FLOAT, 50.0f, 80.0f, 50.0f, NULL, 0, 0, 0, 0, "" };
+  static const fm1_param_t kQuant = { "Def quant", FM1_PARAM_FLOAT, 0.0f, 100.0f, 0.0f, NULL, 0, 0, 0, 0, "" };
+  static const fm1_param_t kMetro = { "Metronome", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.0f, NULL, 0, 0, 0, 0, "" };
+  char v[24];
+  fm1_tft_text(t, MARGIN, CONTENT_Y, "Set: all tracks", LINE_CHARS, SCALE, C_MODEL);
+  snprintf(v, sizeof v, "%u.%02u BPM", (unsigned)(u->bpm_x100 / 100u), (unsigned)(u->bpm_x100 % 100u));
+  step_row(t, 0, kTempo.name, v, &kTempo, (float)u->bpm_x100 / 100.0f, 1);
+  snprintf(v, sizeof v, "%u%%", (unsigned)u->swing);
+  step_row(t, 1, kSwing.name, v, &kSwing, (float)u->swing, 1);
+  snprintf(v, sizeof v, "%u%%", (unsigned)u->dq);
+  step_row(t, 2, kQuant.name, v, &kQuant, (float)u->dq, 1);
+  step_row(t, 3, kMetro.name, u->metro ? "On" : "Off", &kMetro, (float)(u->metro != 0), 1);
+}
+
+static void draw_clip(fm1_tft_t *t, const fm1_seq_ui_t *u) {
+  static const fm1_param_t kSpeed = { "Speed", FM1_PARAM_ENUM, 0.0f, (float)(FM1_SEQ_UI_SPEEDS - 1),
+                                      (float)FM1_SEQ_UI_SPEED_1X, NULL, 0, 0, 0, 0, "" };
+  static const fm1_param_t kLength = { "Length", FM1_PARAM_FLOAT, 1.0f, (float)FM1_SEQ_MAX_STEPS,
+                                       16.0f, NULL, 0, 0, 0, 0, "" };
+  static const fm1_param_t kTrans = { "Transpose", FM1_PARAM_FLOAT, -36.0f, 36.0f, 0.0f, NULL, 0, 0, 0, 0, "" };
+  static const fm1_param_t kQuant = { "Quantize", FM1_PARAM_FLOAT, 0.0f, 100.0f, 0.0f, NULL, 0, 0, 0, 0, "" };
+  const int i = fm1_seq_ui_speed_index(u->clip_num, u->clip_den);
+  const unsigned num = fm1_seq_ui_speeds[i][0], den = fm1_seq_ui_speeds[i][1];
+  char line[24], v[24];
+  snprintf(line, sizeof line, "Clip: track %u", (unsigned)u->track + 1u);
+  fm1_tft_text(t, MARGIN, CONTENT_Y, line, LINE_CHARS, SCALE, C_MODEL);
+  if (den == 1u) snprintf(v, sizeof v, "%uX", num);
+  else snprintf(v, sizeof v, "%u/%uX", num, den);
+  step_row(t, 0, kSpeed.name, v, &kSpeed, (float)i, 1);
+  if (u->length) snprintf(v, sizeof v, "%u step%s", (unsigned)u->length, u->length == 1 ? "" : "s");
+  step_row(t, 1, kLength.name, u->length ? v : "--", &kLength, (float)u->length, u->length != 0);
+  if (u->clip_tr) snprintf(v, sizeof v, "%+d", (int)u->clip_tr);
+  step_row(t, 2, kTrans.name, u->clip_tr ? v : "0", &kTrans, (float)u->clip_tr, 1);
+  snprintf(v, sizeof v, "%u%%", (unsigned)u->clip_quant);
+  step_row(t, 3, kQuant.name, v, &kQuant, (float)u->clip_quant, 1);
+}
+
+/* A label's name: the text after its last ':', as the bridge resolves it. */
+static const char *lane_name(const char *label) {
+  const char *name = label;
+  for (const char *p = label; *p; ++p) {
+    if (*p == ':') name = p + 1;
+  }
+  return name;
+}
+
+static void draw_trackpg(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd) {
+  static const fm1_param_t kRoute = { "Route", FM1_PARAM_ENUM, 0.0f, 1.0f, 0.0f, NULL, 0, 0, 0, 0, "" };
+  static const fm1_param_t kSound = { "Sound", FM1_PARAM_ENUM, 0.0f, (float)(FM1_SEQ_UI_SOUNDS - 1),
+                                      0.0f, NULL, 0, 0, 0, 0, "" };
+  static const fm1_param_t kChannel = { "Channel", FM1_PARAM_ENUM, 1.0f, 16.0f, 1.0f, NULL, 0, 0, 0, 0, "" };
+  static const fm1_param_t kMute = { "Mute", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.0f, NULL, 0, 0, 0, 0, "" };
+  char v[24];
+  if (u->track_page) {                       /* the lanes: label and 7-bit base */
+    fm1_seq_track_info_t tr;
+    memset(&tr, 0, sizeof tr);
+    if (snd->seq) fm1_seq_get_track(snd->seq, u->track, &tr);
+    for (unsigned lane = 0; lane < FM1_SEQ_LANES; ++lane) {
+      const int y = CONTENT_Y + (int)lane * LANE_PITCH;
+      const char *label = snd->seq ? fm1_seq_lane_label(snd->seq, u->track, (uint8_t)lane) : "";
+      if (label[0]) {
+        char b[8];
+        snprintf(v, sizeof v, "%u %.13s", lane + 1u, lane_name(label));
+        snprintf(b, sizeof b, "%u", (unsigned)tr.base[lane]);
+        fm1_tft_text(t, MARGIN, y, v, 15, SCALE, C_TEXT);
+        fm1_tft_text(t, RIGHT - fm1_tft_text_width(b, 3, SCALE), y, b, 3, SCALE, C_TEXT);
+      } else {
+        snprintf(v, sizeof v, "%u --", lane + 1u);
+        fm1_tft_text(t, MARGIN, y, v, 15, SCALE, C_DIM);
+      }
+    }
+    return;
+  }
+  snprintf(v, sizeof v, "Track %u of %u", (unsigned)u->track + 1u, (unsigned)u->tracks);
+  fm1_tft_text(t, MARGIN, CONTENT_Y, v, LINE_CHARS, SCALE, C_MODEL);
+  if (u->route_kind == FM1_SEQ_ROUTE_ENGINE) {
+    const unsigned k = u->route_index;
+    const char *name = k < FM1_SEQ_UI_SOUNDS ? snd->unit_name[k] : NULL;
+    step_row(t, 0, kRoute.name, "Sound", &kRoute, 0.0f, 1);
+    snprintf(v, sizeof v, "%u %.11s", k + 1u, k >= FM1_SEQ_UI_SOUNDS ? "none" : name ? name : "Empty");
+    step_row(t, 1, kSound.name, v, &kSound, (float)k, k < FM1_SEQ_UI_SOUNDS);
+  } else {
+    step_row(t, 0, kRoute.name, "MIDI out", &kRoute, 1.0f, 1);
+    snprintf(v, sizeof v, "%u", (unsigned)u->route_index);
+    step_row(t, 1, kChannel.name, v, &kChannel, (float)u->route_index, 1);
+  }
+  {
+    const int muted = focused_muted(u);
+    step_row(t, 2, kMute.name, muted ? "On" : "Off", &kMute, (float)muted, 1);
+  }
+}
+
 void fm1_seq_view_draw(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd) {
   if (u->view == FM1_SEQ_VIEW_STEP && u->held_n) draw_step(t, u);
+  else if (u->view == FM1_SEQ_VIEW_SET) draw_set(t, u);
+  else if (u->view == FM1_SEQ_VIEW_CLIP) draw_clip(t, u);
+  else if (u->view == FM1_SEQ_VIEW_TRACKPG) draw_trackpg(t, u, snd);
   else draw_track(t, u, snd);
 }
 
@@ -242,6 +394,13 @@ void fm1_seq_view_bottom(const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd,
                          size_t size) {
   if (u->view == FM1_SEQ_VIEW_STEP && u->held_n) {
     snprintf(buf, size, "%d/%d Step T%u", u->step_page + 1, FM1_SEQ_UI_STEP_PAGES,
+             (unsigned)u->track + 1u);
+  } else if (u->view == FM1_SEQ_VIEW_SET) {
+    snprintf(buf, size, "1/1 Set");
+  } else if (u->view == FM1_SEQ_VIEW_CLIP) {
+    snprintf(buf, size, "1/1 Clip T%u", (unsigned)u->track + 1u);
+  } else if (u->view == FM1_SEQ_VIEW_TRACKPG) {
+    snprintf(buf, size, "%d/%d Track %u", u->track_page + 1, FM1_SEQ_UI_TRACK_PAGES,
              (unsigned)u->track + 1u);
   } else {
     snprintf(buf, size, "%d/%d Seq T%u", snd->page + 1, snd->pages, (unsigned)u->track + 1u);

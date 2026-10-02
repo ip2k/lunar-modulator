@@ -15,8 +15,8 @@ import subprocess
 from tests.test_sim_web import SCENARIOS, run, scenario_args, tools  # noqa: F401
 
 BUDGET = 387924
-SEQ_FIXED = 31880 + 3072          # the sequencer's instance (8 tracks) and event buffer
-LAB_FIXED = 240 + 1024            # with the lab switch: the pending record and the UI bound
+SEQ_FIXED = 31880 + 3264          # the sequencer's instance (8 tracks) and event buffer (272 events)
+LAB_FIXED = 240 + 1024 + 20       # with the lab switch: the pending record, the UI bound, the click
 MIX_BLOCK = 512
 
 

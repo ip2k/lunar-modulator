@@ -14,12 +14,14 @@
 #include "fm1_seq_view.h"
 
 /* Compile-time checks of the sequencer's fixed sizes (docs/15 §2.6; C99 has
- * no static_assert): the event buffer is 3,072 B and the pending record one
- * 240-byte command, on 32- and 64-bit builds alike. The instance's own size
- * comes from fm1_seq_size at run time; fm1_app_seq_reset refuses limits
- * whose instance does not fit FM1_APP_SEQ_BYTES, and tests/test_sim_web.py
- * checks the budget sum. */
-typedef char fm1_app_seq_events_are_3k[sizeof(fm1_seq_ev_t) * FM1_APP_SEQ_EVENTS == 3072u ? 1 : -1];
+ * no static_assert): the event buffer is 3,264 B, the pending record one
+ * 240-byte command and the click voice 20 B, on 32- and 64-bit builds
+ * alike. The instance's own size comes from fm1_seq_size at run time;
+ * fm1_app_seq_reset refuses limits whose instance does not fit
+ * FM1_APP_SEQ_BYTES, and tests/test_sim_web.py checks the budget sum. */
+typedef char fm1_app_seq_events_are_3k[sizeof(fm1_seq_ev_t) * FM1_APP_SEQ_EVENTS == 3264u ? 1 : -1];
+typedef char fm1_app_seq_click_is_20[sizeof(fm1_seq_click_t) == 20u ? 1 : -1];
+typedef char fm1_app_seq_ui_sounds[FM1_SEQ_UI_SOUNDS == FM1_APP_SOUNDS ? 1 : -1];
 typedef char fm1_app_seq_cmd_is_240[sizeof(fm1_seq_cmd_t) == 240u ? 1 : -1];
 typedef char fm1_app_seq_ui_fits[sizeof(fm1_seq_ui_t) <= FM1_APP_SEQ_UI_BYTES ? 1 : -1];
 
@@ -224,14 +226,41 @@ static void ui_toast(fm1_app_t *a) {
     case FM1_SEQ_TOAST_FULL_VEL_OFF: popup(a, "Full velocity", "off", NULL, -1); break;
     case FM1_SEQ_TOAST_CAPTURED: popup(a, "Captured", NULL, NULL, -1); break;
     case FM1_SEQ_TOAST_NOTHING: popup(a, "Nothing to capture", NULL, NULL, -1); break;
+    case FM1_SEQ_TOAST_TRACK:
+    case FM1_SEQ_TOAST_TRACK_EMPTIED: {
+      char line[24];
+      snprintf(line, sizeof line, "Track %u", (unsigned)a->ui.toast_arg + 1u);
+      popup(a, line, a->ui.toast == FM1_SEQ_TOAST_TRACK_EMPTIED ? "Capture emptied" : NULL, NULL, -1);
+      break;
+    }
+    case FM1_SEQ_TOAST_METRO_ON: popup(a, "Metronome", "on", NULL, -1); break;
+    case FM1_SEQ_TOAST_METRO_OFF: popup(a, "Metronome", "off", NULL, -1); break;
+    case FM1_SEQ_TOAST_QUANT: {
+      char line[24];
+      snprintf(line, sizeof line, "%u%%", (unsigned)a->ui.toast_arg);
+      popup(a, "Clip quantize", line, NULL, -1);
+      break;
+    }
     default: break;
   }
   a->ui.toast = FM1_SEQ_TOAST_NONE;
 }
 
+/* The focused track's sound becomes the current one when the UI focused a
+ * track or routed it to a sound (S6): the keys then play, and HOME edits,
+ * what the track plays. SHIFT + PRESETS still chooses any sound after. */
+static void ui_follow(fm1_app_t *a) {
+  if (!a->ui.follow) return;
+  a->ui.follow = 0;
+  if (a->ui.route_kind == FM1_SEQ_ROUTE_ENGINE && a->ui.route_index < fm1_app_unit_count(a)) {
+    fm1_app_unit_set_current(a, a->ui.route_index);
+  }
+}
+
 /* After an edge the UI took: the screen and LEDs follow, and its toast, if
  * any, becomes a popup. */
 static void ui_after(fm1_app_t *a) {
+  ui_follow(a);
   ui_toast(a);
   a->dirty = 1;
   a->leds_changed = 1;
@@ -284,6 +313,7 @@ void fm1_app_init(fm1_app_t *a, float sample_rate) {
   a->leds_changed = 1;
   a->tft.record = 0;
   fm1_seq_ui_init(&a->ui, sample_rate);
+  fm1_seq_click_init(&a->click, (uint32_t)lrintf(sample_rate));
   fm1_app_seq_reset(a, FM1_APP_SEQ_TRACKS);
 }
 
@@ -404,8 +434,27 @@ int fm1_app_default_chain(fm1_app_t *a) {
   }
   int f = fm1_app_select(a, 1, fm1_app_find("plate"));
   fm1_app_seq_default_route(a);
-  if (a->lab) fm1_app_seq_demo(a);
+  if (a->lab) {
+    fm1_app_seq_start_routes(a);
+    fm1_app_seq_demo(a);
+  }
   return r != 0 ? r : f;
+}
+
+int fm1_app_seq_start_routes(fm1_app_t *a) {
+  int n = 0;
+  fm1_seq_info_t info;
+  if (!a->seq) return 0;
+  fm1_seq_get_info(a->seq, &info);
+  for (int t = 1; t < info.tracks; ++t) {
+    fm1_seq_track_info_t ti;
+    if (!fm1_seq_get_track(a->seq, (uint8_t)t, &ti) || ti.route_kind != FM1_SEQ_ROUTE_MIDI ||
+        ti.route_index != t % 16 + 1) {
+      continue;                          /* routed already: left as it is */
+    }
+    n += fm1_app_seq_route(a, t, FM1_SEQ_ROUTE_ENGINE, 0);
+  }
+  return n;
 }
 
 void fm1_app_set_lab(fm1_app_t *a, int on) {
@@ -441,6 +490,7 @@ void fm1_app_set_lab(fm1_app_t *a, int on) {
     fm1_seq_ui_leave(&a->ui);
     a->ui.shift = 0;
     a->ui.full_vel = 0;
+    a->ui.seq_held = 0;
   }
   a->dirty = 1;
   a->leds_changed = 1;
@@ -498,7 +548,7 @@ static size_t ram_of(const fm1_app_t *a, int unit, size_t bytes, int loaded) {
   }
   if (a->seq) {
     total += fm1_seq_size(&a->seq_lim) + sizeof a->seq_ev;
-    if (a->lab) total += sizeof a->seq_pend + FM1_APP_SEQ_UI_BYTES;
+    if (a->lab) total += sizeof a->seq_pend + FM1_APP_SEQ_UI_BYTES + sizeof a->click;
   }
   if (a->lab && sounds > 1) total += (size_t)(sounds - 1) * FM1_APP_MIX_BLOCK_BYTES;
   return total;
@@ -800,6 +850,15 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
       return;
     }
   }
+  if (button == FM1_BTN_SEQ && !down && was && a->lab && a->ui.seq_gestured &&
+      a->seq_from_mode != FM1_MODE_SEQ && a->mode == FM1_MODE_SEQ) {
+    /* SEQ held to focus a track from another mode: back there (S6). */
+    a->ui.seq_gestured = 0;
+    set_mode(a, a->seq_from_mode);
+    a->dirty = 1;
+    a->leds_changed = 1;
+    return;
+  }
   if (!down || was) return;
   switch (button) {
     case FM1_BTN_OCT_DOWN:
@@ -843,6 +902,7 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
         stub_popup(a, button);
         break;
       }
+      a->seq_from_mode = a->mode;
       a->mode = FM1_MODE_SEQ;
       a->fx_grab = 0;
       fm1_seq_ui_enter(&a->ui);
@@ -989,7 +1049,13 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
   const int snd_unit = fm1_app_sound_unit(a->sound);   /* the current sound */
   switch (encoder) {
     case FM1_ENC_SELECT:
-      if (a->mode == FM1_MODE_HOME || a->mode == FM1_MODE_SEQ) {
+      if (a->mode == FM1_MODE_SEQ && a->lab && a->page + delta >= page_count(cur(a)->e)) {
+        /* Past the sound's last page: the Set page (S6, O21), then Clip
+         * and Track (fm1_seq_ui.h). */
+        a->page = page_count(cur(a)->e) - 1;
+        fm1_seq_ui_open(&a->ui, FM1_SEQ_VIEW_SET);
+        forget_knob_hint(a);
+      } else if (a->mode == FM1_MODE_HOME || a->mode == FM1_MODE_SEQ) {
         a->page = clampi(a->page + delta, 0, page_count(cur(a)->e) - 1);
         forget_knob_hint(a);             /* the hint named the last page's knob */
       } else if (a->mode == FM1_MODE_FX && a->fx_grab) {
@@ -1253,6 +1319,9 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   for (int u = 1; u <= FM1_APP_FX_SLOTS; ++u) {   /* the master bus, after the mix */
     if (a->unit[u].e) a->unit[u].e->render(a->unit[u].self, out, n);
   }
+  /* The metronome's click (O11), from the block's events, as fm1-render
+   * adds it: after the effects, before the limiter. */
+  if (a->seq) fm1_seq_click_mix(&a->click, a->seq, a->seq_ev, a->seq_last_n, n, out);
   fm1_mix_limiter_process(&a->limiter, out, n);
   for (uint32_t i = 0; i < n; ++i) {
     float m = 0.5f * (out[2 * i] + out[2 * i + 1]);
@@ -1275,7 +1344,7 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
         (changed & FM1_SEQ_UI_SYNC_OVERLAY)) {
       a->dirty = 1;
     }
-    if (a->ui.toast) ui_after(a);   /* what a Capture did */
+    if (a->ui.toast || a->ui.follow) ui_after(a);   /* what a Capture did */
   }
   update_leds(a);
   return out;
@@ -1732,6 +1801,10 @@ static void draw(fm1_app_t *a) {
     snd.pages = page_count(s->e);
     snd.n = page_params(s->e, a->page, snd.idx);
     snd.model = model_param(s->e);
+    snd.seq = a->seq;
+    for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+      snd.unit_name[k] = k < fm1_app_unit_count(a) && sound_of(a, k)->e ? sound_of(a, k)->e->name : NULL;
+    }
     fm1_seq_view_draw(t, &a->ui, &snd);
     fm1_seq_view_bottom(&a->ui, &snd, buf, sizeof buf);
     draw_bottom(a, buf);
