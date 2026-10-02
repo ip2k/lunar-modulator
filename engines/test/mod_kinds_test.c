@@ -777,6 +777,13 @@ static void function(void) {
   CHECK(out(m, 0, 3) == 1.0f && out(m, 0, 0) < 0.8f);
   steps(m, 30000);
   CHECK(out(m, 0, 0) == 0.0f);
+  /* Held at the top, a switch to AD lets it fall. */
+  fm1_mod_live_note(m, 60, 100);
+  steps(m, 3000);
+  CHECK(out(m, 0, 0) == 0.8f);
+  set(m, 0, "Mode", 0.0f);
+  steps(m, 2);
+  CHECK(out(m, 0, 3) == 1.0f && out(m, 0, 0) < 0.8f);
   fm1_mod_destroy(m);
 
   /* Slew: OUT glides to Floor + IN, a full move in Rise; half a move in

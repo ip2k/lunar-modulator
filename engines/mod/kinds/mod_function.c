@@ -240,11 +240,15 @@ static void fun_process(void *self, const fm1_mod_io_t *io) {
   s->hold = io->gate[G_HOLD].start;
 
   if (s->state == S_IDLE) s->value = s->mode == M_SLEW ? s->value : c.floor;
-  if (s->state == S_TOP) s->value = c.level;
+  if (s->state == S_TOP) {
+    /* AR holds at Level; a switch to another mode lets it go. */
+    if (s->mode == M_AR) s->value = c.level;
+    else if (s->mode == M_SLEW) s->state = S_IDLE;
+    else start(s, &c, S_FALL, c.floor, 1.0f);
+  }
   if (s->mode == M_SLEW) {
     /* Glide to the floor whenever it moves: a new segment from here. */
     const float d = c.floor - s->value;
-    if (s->state == S_TOP) s->state = S_IDLE;
     if (d != 0.0f && (s->state == S_IDLE || mod_bits(s->to) != mod_bits(c.floor))) {
       start(s, &c, d > 0.0f ? S_RISE : S_FALL, c.floor, d > 0.0f ? d : -d);
     }

@@ -206,7 +206,8 @@ exactly.
 | 4 | Spread | −1–1 | output j (OUT is 0) takes the time × (1 + Spread × j), or ÷ (1 − Spread × j) below 0: OUT6 six times slower at +1, six times faster at −1 |
 | 5 | In | INPUT | |
 
-THRU high: every output follows IN at once. IN changes once a tick, so the
+THRU high: every output follows IN at once; so does an output whose time
+is under a tick (0.73 ms). IN changes once a tick, so the
 limiter steps a tick at a time with exact 32-sample steps, in Q4.28 as
 `fm1_mp_slew` [verified: test, linear times to a tick, 1 − 1/e after the
 time constant, spread ×6 and ÷6].

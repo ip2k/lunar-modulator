@@ -541,8 +541,11 @@ which lands with the plan PR; its stages S0–S7 are named below.
   runtime (a rack of up to 8 modules in a 32-slot matrix with chains and
   feedback, a 32-frame tick), the modules LFO, Envelope and Chance, and
   `fm1-render --mod` ([`engines/mod/README.md`](engines/mod/README.md#the-runtime)).
-  Next: the glue modules (MG2), then the simulator's RACK and MATRIX pages
-  (MG3).
+  Stage MG2 added thirteen modules: Function, Bounce, Register, Coin,
+  Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix and a resonant
+  Filter, the Peaks and Braids parts checked against the original code
+  ([`engines/mod/kinds.md`](engines/mod/kinds.md)). Next: the simulator's
+  RACK and MATRIX pages (MG3).
 - **Depends on:**
   - API v2 uids, SMOOTH and NOLOCK, plus a new MOD flag (docs/13 M2):
     built in docs/15 stage S7a, with INPUT, units and abbreviations for
