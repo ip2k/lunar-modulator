@@ -326,7 +326,7 @@ pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, with step entry since S4 and record and
 Capture since S5: 27 of 27 scenarios pass, identical to musl and to
-render.js, and it imports nothing; it is 490,870 bytes, up from 482,291
+render.js, and it imports nothing; it is 490,916 bytes, up from 482,291
 before S5, 466,635 before S4, 459,122 before S3 and 391 KB before the
 sequencer [verified, 2026-10-02, `www/fm1.wasm.json`].
 

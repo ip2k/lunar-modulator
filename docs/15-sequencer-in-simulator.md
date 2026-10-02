@@ -1340,8 +1340,13 @@ plan above [verified: tests/test_seq_ui.py, tests/test_seq_core.py,
 - **Gesture traces:** 11 new golden traces in tests/fixtures/seq-ui/
   (`rec-*`, `step-record*`, `capture-*`), each replayed by `fm1-render`
   byte for byte.
-- **Screens:** 39 more, 953 in all, 0 faults; the lab-off screens are
-  byte-identical to S4's (60 compared).
+- **Screens:** 39 more, 953 in all, 0 faults. Of the PPMs the sweep
+  saves, the 36 with the lab switch off are byte-identical to S4's; of
+  the 35 lab-on ones S4 also saved, 24 are identical and 11 (the hint
+  line's and each sound's page) differ only because the sweep's REC now
+  counts in and the next block's read shows track 1's loop, where S4's
+  showed the stale mirror of track 8, which has no clip [verified:
+  `fm1-sim-render --screens` at S4's head and here, in review].
 - **The UI state** is 536 B of its 1,024; `fm1_app_t` is 1,205,920 B
   [verified: `fm1-sim-render --sizes`].
 - **On aeon** [verified: `www/fm1.wasm.json` and the screenshot report,
@@ -1353,7 +1358,7 @@ plan above [verified: tests/test_seq_ui.py, tests/test_seq_core.py,
   mode while playing overdubs at once and REC again stops; two keys
   played in HOME make REC blink, and Shift (SHIFT) + REC captures them and
   REC goes dark; with the switch off REC stays a stub. The module is
-  490,870 B, up from 482,291.
+  490,916 B, up from 482,291.
 
 ### S6. Tracks, mute, and the Set, Clip and Track pages
 
