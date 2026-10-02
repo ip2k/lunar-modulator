@@ -9,6 +9,11 @@ history.
 ## [Unreleased]
 
 ### Added
+- Compile-only stage B (`tools/jieli/compile-check.sh`,
+  `notes/2026-10-02-jieli-compile-check.md`). The engines, the sequencer and
+  the app layer compile for the FM-1's processor with JieLi's toolchain: 63
+  of 63 objects. The note has their sizes and their instance sizes at 32
+  bits. No user-facing change.
 - **Crush**, a new effect: a bitcrusher and sample-rate reducer. Bits (1 to
   16, smooth between whole numbers), Rate (100 Hz up to every sample, on an
   even pitch scale), Jitter (random hold lengths that repeat exactly each

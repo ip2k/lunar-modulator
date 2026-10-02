@@ -888,6 +888,11 @@ I1; the desktop half needs nothing. 3–5 sessions.
     `-ffp-contract=off`.
   - List the libm functions used.
   - Compare a `sizeof`/`alignof` table with `-m32`.
+  - *Compile step done 2026-10-02*: all 63 objects build, with libc++'s
+    `math.h` added. Linking is still to do.
+    [`notes/2026-10-02-jieli-compile-check.md`](notes/2026-10-02-jieli-compile-check.md),
+    `tools/jieli/compile-check.sh`, [docs/14](docs/14-verification-ladder.md)
+    §5.2.
 - **Desktop half.**
   - Replace `fm1_app_t`'s 1.17 MB of arenas with one sized arena and strip
     rendering.
