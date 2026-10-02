@@ -19,6 +19,7 @@ extern const fm1_engine_t fm1_engine_diffuse;
 extern const fm1_engine_t fm1_engine_sw_psxverb;
 extern const fm1_engine_t fm1_engine_crush;
 extern const fm1_engine_t fm1_engine_fold;
+extern const fm1_engine_t fm1_engine_echo;
 extern const fm1_engine_t fm1_engine_test_gain;
 
 const fm1_engine_t *const fm1_engines[] = {
@@ -36,6 +37,7 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_sw_psxverb,
   &fm1_engine_crush,
   &fm1_engine_fold,
+  &fm1_engine_echo,
   &fm1_engine_test_gain,
 };
 const size_t fm1_engine_count = sizeof(fm1_engines) / sizeof(fm1_engines[0]);

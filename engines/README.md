@@ -31,6 +31,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `sw-psxverb` | PSX Verb | effect | – | a Schwung module (Charles Vestal, MIT), through the shim | [schwung.md](schwung.md) |
 | `crush` | Crush | effect | – | this repository, after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT) | [below](#crush); a bitcrusher and sample-rate reducer |
 | `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
+| `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -68,7 +69,7 @@ a 64-bit desktop, all floats and one `uint32_t`, so the same on 32-bit
 about 0.03 % of the block, against Plate's 900 ns in the same run
 [verified: fm1-render's `ns_per_block`, 20 s of noise].
 
-### Fold
+## Fold
 
 A wavefolder (`src/fx_fold.cc`, our own code, MIT): the input is amplified,
 offset and folded back on itself each time it passes a fold point, as the
@@ -124,6 +125,66 @@ each channel folded on its own.
   between blocks of 1–64 frames; the glide; and the host rates it accepts
   (8–384 kHz).
 
+## Echo
+
+A stereo ping-pong delay written here (`src/fx_echo.cc`, MIT). It shares no
+code with anything vendored. Ideas credited in the source: the ping-pong
+topology is the textbook one (Zölzer, *DAFX*), the slowing clock comes from
+bucket-brigade echoes, and the 16-bit truncating delay word is the format of
+Emilie Gillet's FxEngine in Rings and Clouds.
+
+| Page | Parameter | Range | Default | What it does |
+| --- | --- | --- | --- | --- |
+| 1 | Time | 10–1,000 | 300 | Delay in milliseconds. Turning it glides the delay over about 0.1 s, so what is in the line bends in pitch, as on a tape echo |
+| 1 | Feedback | 0–1 | 0.4 | Loop gain: 1 is 0.95, never 1 or more |
+| 1 | Ping-pong | 0–1 | 1 | 0: two straight delays, one per side. 1: the mono sum enters the left line and each line feeds the other, so the repeats go left, right, left. In between, both crossfade |
+| 1 | Mix | 0–1 | 0.35 | Dry at full level up to 0.5, echoes at full level from 0.5. Mix 0 passes the input through bit for bit |
+| 2 | Tone | 0–1 | 0.6 | Low-pass inside the loop, 400 Hz at 0 rising six octaves to 1. The first echo is undamped; each repeat is filtered once more |
+| 2 | Wow | 0–1 | 0.1 | Slow modulation of the delay, up to ±3 ms: a 0.55 Hz sine plus a smoothed random walk from a fixed seed, so renders stay deterministic. About ±20 cents at 1 |
+| 2 | Level | 0–1 | 1 | How much of the input enters the echo. Turn it down to let the echoes ring out while new playing stays dry |
+
+How it works [verified: tests/test_engines_echo.py and
+`build/fm1-echo-selftest`, 2026-10-02, unless marked]:
+
+- **Memory:** 16,384 cells per side of 16-bit words (64 KiB), plus 192 bytes
+  of state: 65,728 bytes, whatever the host rate. The 32-bit figure equals
+  the 64-bit one because the instance holds no pointers [inferred; CI's
+  32-bit job reports it]. The words hold ±2.0, 6 dB of headroom over full
+  scale. A soft clip before the store is linear up to ±1 and bends towards
+  ±2.
+- **Time beyond the line:** up to 16,380 cells (371 ms at 44,118 Hz) the line
+  runs at the host rate, and the echo lands within 0.02 samples of Time.
+  Beyond that the cell count stays fixed and the line's clock slows, as in a
+  bucket-brigade delay. At 1,000 ms the cells run at 16.4 kHz. Two one-pole
+  low-passes in series on the way in, and two on the way out, with their
+  cutoff tied to the clock, limit the aliasing. Long echoes keep their level (a 440 Hz sine
+  -0.19 dB at 1,000 ms) but lose their highs, and land up to 0.13 ms late.
+- **Stability:** every element of the loop is a convex combination (linear
+  interpolation, the one-pole filters, the cross-feed), so none gains above
+  1, and the loop gain is at most 0.95. Interpolation is linear, not
+  all-pass or cubic, because it has no feedback of its own and never exceeds
+  its inputs under any modulation. Maximum feedback on ten seconds of noise
+  peaks at 1.42 at most and settles (at 10 and 372 ms; a 1,000 ms loop is
+  still filling after ten passes).
+- **Silence:** the store truncates towards zero, so no small signal can
+  recirculate for ever (there is no dead band). With the input silent, the
+  line decays to exact zeros (1.3 s at 10 ms and full feedback, after
+  full-scale noise). The float filter states are flushed below 1e-15, so no
+  subnormal is left in the loop or the output.
+- **Contracts:** the input guard of `mi_fx.cc` (NaN to 0, clamp to ±16, dry
+  path included). Parameters go through `fm1_param_clamp`. Gains glide over
+  5 ms against zipper noise. Before the first render every glide snaps, so
+  parameters set at load apply from the first sample. Rendering is per
+  sample, so any block size gives the same output. The selftest turns every
+  parameter to any value, NaN and infinities included, hundreds of times
+  while bad input is mixed in. It sweeps Time end to end every 20 ms at
+  three host rates, and refuses host rates outside 1 kHz–1 MHz.
+- **Cost, desktop only:** about 2.2 µs per 64-frame block on an M1 Max, 0.15 %
+  of the block, against Plate's 0.06 %. Stage B measures pi32v2.
+- **Not yet:** tempo sync, which waits for the host to expose tempo, and a
+  reset call to drop the tail without re-creating the 64 KiB instance (the
+  host feature listed below).
+
 ## Layout
 
 | Path | What |
@@ -134,6 +195,7 @@ each channel folded on its own.
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
+| `src/fx_*.cc` | Effects written in this repository (Echo) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
 | `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |
@@ -202,6 +264,7 @@ upstream candidate). Our own code gets none.
   | Sophie, 12 voices | 77,904 | 77,888 | ring delays per voice |
   | Macro Heavy, 4 voices | 71,088 | 70,880 | ~17 KB per voice (Particle and String arenas) |
   | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
+  | Echo | 65,728 | 65,728 | 16,384 stereo cells of 16-bit words |
   | Macro, 12 voices | 31,728 | 18,864 | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,848 | 18,848 | |
   | Six-Op FM, 8 voices | 12,528 | 10,796 | |

@@ -28,6 +28,14 @@ history.
   `fm1-render --list` and the effect lists (the published simulator gains it
   when its module is next rebuilt). Parameters and design in
   `engines/README.md`.
+- **Echo**, a new effect: a stereo ping-pong delay from 10 ms to 1 second, with
+  Feedback, Ping-pong (from two straight delays to echoes that alternate
+  left and right), Mix, Tone (damping of the repeats), Wow (a slow,
+  tape-like wobble of the delay) and Level (how much of the input enters
+  the echo). Beyond about 370 ms the echoes darken, like a bucket-brigade
+  delay's, so that one instance stays at 64 KB. Turning Time glides the
+  pitch of what is in the line, like a tape echo's speed. Written in this
+  repository (MIT); `engines/README.md` documents its parameters.
 - The user manual (`manual/`, `tools/manual/`): chapters for welcome and
   safety, getting started, a panel tour with a measured drawing of the panel,
   playing, the sound engines, effects, the sequencer, MIDI, settings,
