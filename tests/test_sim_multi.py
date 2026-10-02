@@ -151,6 +151,72 @@ def test_the_meter_refuses_what_would_not_fit(tools):
     assert s["ram"] <= BUDGET
 
 
+def test_the_refusal_popup_gives_the_first_refusals_figure(tools):
+    """PRESETS steps over two sounds that would not fit (Shapes, then Macro
+    Heavy) to Six-Op; the popup names the first one skipped and by how much
+    that one would pass the budget, not the last one's figure."""
+    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "plate", "--fx", "diffuse"]
+    s = lab(tools, *chain, "--turn", "0.1:PRESETS:1", seconds=0.3)
+    assert s["engine"] == "sixop" and s["popup"][:2] == ["Shapes", "does not fit"]
+    rest = (instance_bytes(tools, "shapes") + instance_bytes(tools, "plate", "fx") +
+            instance_bytes(tools, "diffuse", "fx") + SEQ_FIXED + LAB_FIXED + MIX_BLOCK)
+    assert rest + instance_bytes(tools, "macro-heavy") > BUDGET, "Macro Heavy must be refused too"
+    over = rest + instance_bytes(tools, "shapes") - BUDGET
+    assert s["popup"][2] == f"{-(-over // 1024)}K over budget"
+
+
+def test_a_note_on_an_empty_sound_replays(tools, tmp_path):
+    """A key and a MIDI note on an empty current sound play nothing; the
+    sidecar carries them as --sound-note, which fm1-render takes and plays
+    nothing with, so the run replays byte for byte."""
+    script = tmp_path / "in.verbs"
+    script.write_text("#! rate=44118 block=64 tracks=2 end=44118\n@0 bpm 12000\n")
+    s = run(tools["sim"], ["--lab", "--engine", "test-sine", "--cmd", str(script), "--note", "0.05:57:100:0.6",
+                           "--button", "0.1:SEL:0.1", "--turn", "0.15:PRESETS:1", "--key", "0.3:5:100:0.2",
+                           "--note", "0.5:60:100:0.1", "--log-cmds", str(tmp_path / "c.verbs"),
+                           "--out", str(tmp_path / "a.wav")])
+    assert s["current"] == 1 and s["sounds"][1] == "" and s["replayable"] == 1 and s["peak"] > 0.1
+    args = (tmp_path / "c.args").read_text().splitlines()
+    assert args.count("--sound-note") == 2
+    run(tools["render"], ["--cmd", str(tmp_path / "c.verbs"), *args, "--out", str(tmp_path / "b.wav")])
+    assert (tmp_path / "a.wav").read_bytes() == (tmp_path / "b.wav").read_bytes()
+
+
+def test_the_unit_route_api_goes_in_as_a_typed_command(tools, tmp_path):
+    """fm1_app_unit_route (stage S6's API) sends a typed `route t 1 k`, so
+    the harness logs it with the panel's commands and fm1-render replays
+    it: track 1, on MIDI by default, plays Sound 2 from then on. It needs
+    the lab switch."""
+    script = tmp_path / "in.verbs"
+    script.write_text("#! rate=44118 block=64 tracks=2 end=44118\n@0 bpm 12000\n"
+                      "@0 tog 0 0 60 100;tog 1 4 67 100;tog 1 8 72 100;play\n")
+    units = ["--engine", "test-sine", "--sound", "1:test-sine", "--level", "1:50"]
+    s = run(tools["sim"], ["--lab", *units, "--cmd", str(script), "--unit-route", "0.2:1:1",
+                           "--log-cmds", str(tmp_path / "c.verbs"), "--out", str(tmp_path / "a.wav"),
+                           "--log-events", str(tmp_path / "a.jsonl")])
+    assert s["replayable"] == 1 and s["seq_notes_to_engine"] == 2
+    assert [c[1] for c in s["seq_ui_cmds"]] == ["route 1 1 1"]
+    assert "route 1 1 1" in (tmp_path / "c.verbs").read_text()
+    args = (tmp_path / "c.args").read_text().splitlines()
+    r = run(tools["render"], ["--cmd", str(tmp_path / "c.verbs"), *args, "--out", str(tmp_path / "b.wav"),
+                              "--log-events", str(tmp_path / "b.jsonl")])
+    assert r["seq_notes_to_engine"] == 2
+    assert (tmp_path / "a.wav").read_bytes() == (tmp_path / "b.wav").read_bytes()
+    assert (tmp_path / "a.jsonl").read_bytes() == (tmp_path / "b.jsonl").read_bytes()
+    off = subprocess.run([str(tools["sim"]), "--engine", "test-sine", "--cmd", str(script),
+                          "--unit-route", "0.2:1:1", "--seconds", "0.3"], capture_output=True, text=True)
+    assert off.returncode == 2 and "--lab" in off.stderr
+
+
+def test_levels_stay_in_range(tools):
+    """--level and --level-at take 0..100, in the harness as in fm1-render."""
+    for tool, extra in (("sim", ["--lab"]), ("render", [])):
+        for flag, value in (("--level", "0:150"), ("--level-at", "0:0.1:-5")):
+            res = subprocess.run([str(tools[tool]), *extra, "--engine", "test-sine", flag, value,
+                                  "--seconds", "0.1"], capture_output=True, text=True)
+            assert res.returncode == 2, (tool, flag)
+
+
 def test_algorithm_steps_over_an_effect_that_would_not_fit(tools):
     """In FX mode (lab) ALGORITHM steps over an effect the meter refuses, so
     every effect past it stays reachable, and says which one it skipped:

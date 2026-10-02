@@ -25,13 +25,15 @@ history.
     master effects.
   - A RAM meter in the bottom bar shows how much of the FM-1's free memory
     the whole setup would take, and refuses any sound or effect that would
-    not fit, with a popup saying by how much; turning PRESETS or ALGORITHM
-    skips past such choices. What plays in the simulator fits the device.
+    not fit, with a popup saying by how much, whether you choose it on the
+    panel or in the page's menus; turning PRESETS or ALGORITHM skips past
+    such choices. What plays in the simulator fits the device.
   - Without the lab switch nothing changes: one sound and two effects,
     sounding exactly as before.
   - For developers: `fm1_app_unit_*` routes tracks to sound units (for
-    stage S6); `fm1-render` takes `--sound`, `--insert`, `--level`,
-    `--sound-note`, `--sound-param-at`, `--level-at` and `--slots`; three
+    stage S6), the route going in as a logged, replayable command;
+    `fm1-render` takes `--sound`, `--insert`, `--level`, `--sound-note`,
+    `--sound-param-at`, `--level-at` and `--slots`; three
     new parity scenarios play two and four sounds with inserts and the
     panel gestures (28 of 28 pass); 1,001 screens pass the layout check (87
     new). The browser module grew from 482 KB to 496 KB.

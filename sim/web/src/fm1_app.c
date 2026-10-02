@@ -341,10 +341,13 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   if (a->lab) {
     /* The RAM meter: refuse what would take the chain past the FM-1's
      * budget, unless it does not grow (a chain already past it, from
-     * before the switch, can still shrink). */
+     * before the switch, can still shrink). The popup says so whoever
+     * asked (the page's menus, fm1_app_unit_*); PRESETS and ALGORITHM,
+     * which step past a refusal, put up their own after it. */
     const size_t now = fm1_app_ram(a), with = fm1_app_ram_with(a, unit, index);
     if (with > FM1_APP_RAM_BUDGET && with > now) {
       a->ram_over = with - FM1_APP_RAM_BUDGET;
+      refusal_popup(a, index, FM1_APP_SELECT_RAM);
       return FM1_APP_SELECT_RAM;
     }
   }
@@ -408,7 +411,8 @@ void fm1_app_set_lab(fm1_app_t *a, int on) {
   }
   if (!a->lab && was) {
     /* Multi-sound goes: every sound unit but the first and every insert,
-     * their notes first; sound 0 is the sound again, at full level. */
+     * their notes first; sound 0 is the sound again, and every level is
+     * back at 100 %. */
     for (int k = 1; k < FM1_APP_SOUNDS; ++k) {
       if (sound_of(a, k)->e) release_sound(a, k);
       release(sound_of(a, k));
@@ -417,6 +421,7 @@ void fm1_app_set_lab(fm1_app_t *a, int on) {
       for (int j = 0; j < FM1_APP_INSERTS; ++j) release(&a->unit[fm1_app_insert_unit(k, j)]);
     }
     a->sound = 0;
+    for (int k = 0; k < FM1_APP_SOUNDS; ++k) a->level[k] = FM1_APP_LEVEL_MAX;
     a->page = clampi(a->page, 0, page_count(a->unit[0].e) - 1);
     a->fx_slot = a->fx_slot >= FX_M1 ? a->fx_slot - FX_M1 : 0;
     a->fx_page = clampi(a->fx_page, 0, page_count(a->unit[1 + a->fx_slot].e) - 1);
@@ -543,9 +548,20 @@ void fm1_app_unit_set_level(fm1_app_t *a, int sound, float percent) {
   a->dirty = 1;
 }
 
+/* A typed `route t 1 sound`, as the panel's commands go in (the event-room
+ * rule, and the harness's --log-cmds), so a gesture that routes a track
+ * replays through fm1-render. */
 int fm1_app_unit_route(fm1_app_t *a, int track, int sound) {
-  if (!a->lab || sound < 0 || sound >= FM1_APP_SOUNDS) return 0;
-  return fm1_app_seq_route(a, track, FM1_SEQ_ROUTE_ENGINE, sound);
+  fm1_seq_cmd_t c;
+  int64_t arg[3];
+  if (!a->lab || !a->seq || track < 0 || track > 255 || sound < 0 || sound >= FM1_APP_SOUNDS) {
+    return FM1_APP_SEQ_REFUSED;
+  }
+  arg[0] = track;
+  arg[1] = FM1_SEQ_ROUTE_ENGINE;
+  arg[2] = sound;
+  fm1_seq_cmd_make(&c, FM1_SEQ_V_ROUTE, 3u, arg);
+  return fm1_app_seq_cmd(a, &c);
 }
 
 int fm1_app_unit_of_track(const fm1_app_t *a, int track) {
@@ -890,15 +906,17 @@ static void fx_swap(fm1_app_t *a, int delta) {
 static void fx_choose_lab(fm1_app_t *a, int unit, int delta) {
   const int dir = delta > 0 ? 1 : -1;
   int to = a->unit[unit].index, refused = -1, code = 0, r = -1;
+  size_t over = 0;
   for (int k = 0; k < (delta > 0 ? delta : -delta); ++k) to = next_fx(to, dir);
   for (int tries = 0; tries <= (int)fm1_engine_count; ++tries) {
     r = fm1_app_select(a, unit, to);
     if (r == 0) break;
-    if (refused < 0) refused = to, code = r;
+    if (refused < 0) refused = to, code = r, over = a->ram_over;
     to = next_fx(to, dir);
     if (to == a->unit[unit].index) break;
   }
   a->fx_page = 0;
+  a->ram_over = over;                    /* the popup's figure is the first refusal's */
   if (refused >= 0) refusal_popup(a, refused, code);
   else if (to < 0) popup(a, "Empty slot", NULL, NULL, -1);
   else popup(a, fm1_engines[to]->name, NULL, NULL, -1);
@@ -939,16 +957,20 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
       int cur_index = cur(a)->index < 0 && !empty_ok ? 0 : cur(a)->index;
       int dir = delta > 0 ? 1 : -1;
       int to = cur_index, refused = -1, code = 0;
+      size_t over = 0;
       for (int k = 0; k < (delta > 0 ? delta : -delta); ++k) to = next_preset(a, to, dir);
       /* A sound this host cannot run (or, with the lab switch, one that
        * would not fit the RAM) is stepped over, so every other one stays
-       * reachable; the popup names the first one skipped. */
+       * reachable; the popup names the first one skipped, and by how much
+       * it would pass the budget (a later refusal's figure is another
+       * sound's). */
       for (int tries = 0; tries < (int)fm1_engine_count + empty_ok && to != cur(a)->index; ++tries) {
         int r = fm1_app_select(a, snd_unit, to);
         if (r == 0) break;
-        if (refused < 0) refused = to, code = r;
+        if (refused < 0) refused = to, code = r, over = a->ram_over;
         to = next_preset(a, to, dir);
       }
+      a->ram_over = over;
       if (refused >= 0) refusal_popup(a, refused, code);
       else preset_popup(a);
       break;

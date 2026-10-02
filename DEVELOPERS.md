@@ -498,8 +498,9 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Screen and controls refinement** · *In progress*
 - **Depends on:** the simulator (ongoing). On the device: the TFT strip
   driver, key matrix and encoders (I12), and one sized arena for the app
-  layer, whose `fm1_app_t` is 1,204,768 B today, the sequencer's arena
-  included, against 578 KB of SRAM
+  layer, whose `fm1_app_t` is 4,880,816 B today (4.5 MiB of it the fixed
+  arenas of multi-sound's four sound units and ten effect slots), the
+  sequencer's arena included, against 578 KB of SRAM
   [verified: sim/web/README.md] (I2).
 - **Where it is planned:** docs/13 M4;
   [docs/14](docs/14-verification-ladder.md) §4.3;
@@ -925,7 +926,7 @@ I1; the desktop half needs nothing. 3–5 sessions.
     `tools/jieli/compile-check.sh`, [docs/14](docs/14-verification-ladder.md)
     §5.2.
 - **Desktop half.**
-  - Replace `fm1_app_t`'s 1.17 MB of arenas with one sized arena and strip
+  - Replace `fm1_app_t`'s 4.5 MiB of arenas with one sized arena and strip
     rendering.
   - Write the ladder runner and the R0 manifest.
   - Write the `bsp_*` contract of docs/14 §4.3, with a desktop

@@ -48,7 +48,8 @@
 // --note, --param-at and a level change for unit K. Any of these, or
 // --slots, turns slots on: a track routed to the engine plays the unit its
 // route index names (`route t 1 K`), not unit 0 whatever the index, and an
-// empty unit plays nothing. Each unit renders its own block (split at its
+// empty unit plays nothing (a --sound-note to it included); --input is not
+// taken with slots. Each unit renders its own block (split at its
 // own tracks' events, fm1_seq_host_dispatch_slots), through its inserts,
 // times its level (PCT / 100, skipped at 100), and the units are summed in
 // order (the first one copied, the rest added) before --fault, the --fx
@@ -552,11 +553,11 @@ int main(int argc, char **argv) {
       return 1;
     }
   }
-  for (size_t k = 0; k < events.size(); ++k) {
-    if (events[k].sound && !units[events[k].sound]->e) {
-      fprintf(stderr, "--sound-note for sound unit %d, which has no --sound\n", events[k].sound);
-      return 2;
-    }
+  // A --sound-note on a unit with no --sound plays nothing, as a key on an
+  // empty sound plays nothing in the virtual FM-1 (whose replays carry it).
+  if (slots && input != "silence") {
+    fprintf(stderr, "--input feeds the effect chain without a sound; not with --slots\n");
+    return 2;
   }
 
   if (use_seq) {

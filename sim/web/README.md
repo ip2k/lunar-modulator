@@ -245,9 +245,11 @@ place of docs/15 O10's one shared sound). With the lab switch:
   state bound (36,216 B at 8 tracks), and a 512-byte mix block for each
   sound past the first [inferred: the firmware's layout]. A choice that
   would take it past the budget is refused (`fm1_app_select` returns -4,
-  `FM1_APP_SELECT_RAM`) with a popup (`Shapes` / `does not fit` / `17K over
-  budget`), and PRESETS and ALGORITHM step past such a choice to the next
-  one that fits, so whatever plays here fits the device. A chain already
+  `FM1_APP_SELECT_RAM`) with a popup (`Shapes` / `does not fit` / `150K
+  over budget`, the figure of the first choice refused), from the panel,
+  the page's menus or the API alike, and PRESETS and ALGORITHM step past
+  such a choice to the next one that fits, so whatever plays here fits the
+  device. A chain already
   past the budget (the switch turned on over Shapes, PSX Verb and Plate)
   may shrink but not grow. Shapes twice does not fit; Macro, Shapes and
   Six-Op with four inserts and Plate do (about 349 KB at 32 bits).
@@ -258,7 +260,10 @@ place of docs/15 O10's one shared sound). With the lab switch:
 - **The API** stage S6 routes tracks with is `fm1_app_unit_*`
   (`src/fm1_app.h`): the current sound, a sound's engine, inserts and
   level, notes on a given sound, `fm1_app_unit_route(a, track, sound)` and
-  `fm1_app_unit_of_track`; `fm1_app_sound_unit` and `fm1_app_insert_unit`
+  `fm1_app_unit_of_track`. The route goes in as a typed `route t 1 k`, as
+  the panel's commands do, so the harness logs it and `fm1-render` replays
+  it (`fm1-sim-render --unit-route T:TRACK:SOUND` calls it).
+  `fm1_app_sound_unit` and `fm1_app_insert_unit`
   give the unit ids `fm1_app_select` and `fm1_app_set_param` take (0 is
   Sound 1 and 1, 2 the master slots, as before; 3–5 are Sounds 2–4 and
   6–13 the inserts). The module exports them as `fm1w_sound_unit`,
@@ -291,7 +296,8 @@ the panel, an effect's parameter, MASTER below full, or notes sent to the
 sound in one block in an order `fm1-render` would not play them, such as a
 MIDI IN note after a key's) says `"replayable":0`. With the lab switch the
 sidecar starts with `--slots`, a note on another sound goes into it as
-`--sound-note`, a knob turn on another sound's page as `--sound-param-at`
+`--sound-note` (one on an empty sound too, which plays nothing in
+either), a knob turn on another sound's page as `--sound-param-at`
 and a level on the Mix page as `--level-at`; an insert's change, a bend
 on another sound, or a MIDI note-off that another sound's note of the
 same pitch would make ambiguous is not replayable. The harness takes the
@@ -364,7 +370,7 @@ pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, with step entry since S4 and multi-sound
 since: 28 of 28 scenarios pass, identical to musl and to render.js, and it
-imports nothing; it is 495,646 bytes, up from 482,291 before multi-sound,
+imports nothing; it is 496,050 bytes, up from 482,291 before multi-sound,
 466,635 before S4, 459,122 before S3 and 391 KB before the sequencer
 [verified, 2026-10-02, `www/fm1.wasm.json`]. Built from the S4 tree, the
 old module renders every one of the 25 scenarios it had to the same bytes

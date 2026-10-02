@@ -255,7 +255,8 @@ same in 32-bit and 64-bit builds.
 - **`fm1_app_t`:** 1,168,288 B natively today [verified: sim/web/README.md
   144]. It grows by about 37 KB [inferred]. Multi-sound (§3.16) makes it
   4,880,816 B: four 512 KiB sound arenas and ten 256 KiB effect arenas
-  [verified 2026-10-02: `fm1-sim-render --sizes`, clang, 64-bit].
+  [verified 2026-10-02: `fm1-sim-render --sizes`, clang, 64-bit]; 4,880,384 B
+  at 32 bits [verified 2026-10-02: the same, gcc 12 `-m32`].
 - **`fm1.wasm`:** 391,277 B today. It grows by about 60–80 KB of code
   [inferred from the 5 seq objects' arm64 text, about 78 KB].
 - All of it fits the module's fixed 8 MiB of memory.
@@ -598,12 +599,17 @@ renders the same, so parity holds across sound units.
 **The RAM meter.** It replaces the RAM figure in the bottom bar (a bar and
 the percentage of 387,924 B, red past 100 %) and feeds GLO's RAM line:
 every instance at the build's word size (32-bit in the browser's module,
-as on pi32v2; the native harness's 64-bit figures are a little larger),
+as on pi32v2; the native harness's 64-bit figures are larger, Macro's by
+12,880 B [verified: engines/README.md's size table], so near the budget the
+native harness refuses sooner than the browser and a gesture trace there
+can play differently in the two),
 the sequencer's instance, events, pending record and UI bound (36,216 B at
 8 tracks), and a 512-byte mix block per sound past the first. A choice that
 would pass the budget is refused (`fm1_app_select` returns -4) with a
-popup naming it and by how much; a chain already past the budget may
-shrink but not grow.
+popup naming it and by how much, whether the panel, the page's menus or
+the API asked (PRESETS and ALGORITHM, which step past it, give the first
+refused choice's figure); a chain already past the budget may shrink but
+not grow.
 
 **The gestures** (with the lab switch; O1 and O2 hold: SEL is SHIFT
 outside FX mode, and the black keys carry sequencer roles only in SEQ
@@ -631,7 +637,9 @@ grabbed); then the slot's page, or on the Mix page four rows, `S1` …
 bottom bar reads `1/2 S2 In1`, `1/1 Mix` or `1/3 M1`, beside the meter.
 
 **For stage S6.** `fm1_app_unit_route(a, track, sound)` routes a track to
-a sound unit, `fm1_app_unit_of_track` reads it back, and
+a sound unit with a typed `route t 1 k`, sent as the panel's commands are
+(the event-room rule; the harness logs it, so a gesture that routes
+replays through `fm1-render`), `fm1_app_unit_of_track` reads it back, and
 `fm1_app_unit_set_current` makes a sound current (for example, to follow
 the focused track); the rest of `fm1_app_unit_*` (sim/web/src/fm1_app.h)
 loads sounds and inserts, sets levels and plays notes on a given sound.

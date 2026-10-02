@@ -76,7 +76,10 @@
  * page as --sound-param-at, a level on the Mix page as --level-at; a change
  * of an insert or of the sound units, a bend on another sound, or a note-off
  * that would release another unit's note of the same pitch makes the run
- * not replayable.
+ * not replayable. --unit-route T:TRACK:SOUND calls fm1_app_unit_route at
+ * time T (stage S6's API), whose typed `route` goes into the --log-cmds
+ * file as the panel's commands do; if the app is busy it is sent again
+ * after each render until it goes in.
  *
  * Test hooks: --seq-reset T:N and --seq-import T:FILE recreate the instance or import a set at time T, as a
  * UI would (then the default route, unless --route was given); --seq-ui
@@ -100,7 +103,7 @@
 
 typedef enum {
   EV_NOTE, EV_BEND, EV_PARAM, EV_KEY, EV_BUTTON, EV_TURN, EV_SELECT, EV_SEQ_RESET, EV_SEQ_IMPORT,
-  EV_SEQ_UI, EV_LEVEL
+  EV_SEQ_UI, EV_LEVEL, EV_UNIT_ROUTE
 } ev_kind_t;
 
 typedef struct {
@@ -137,7 +140,8 @@ static void usage(void) {
           "       [--lab] [--panel FILE] [--start] | --sizes | --format-check\n"
           "       with --lab: [--sound K:ID [--sound-param K:NAME=V]...] [--insert K:ID\n"
           "       [--insert-param K:NAME=V]...] [--level K:PCT] [--slots]\n"
-          "       [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=V] [--level-at K:T:PCT]\n");
+          "       [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=V] [--level-at K:T:PCT]\n"
+          "       [--unit-route T:TRACK:SOUND]\n");
 }
 
 static event_t *add_event(double t, ev_kind_t kind) {
@@ -1027,6 +1031,11 @@ static void multi_screens(const char *dir, float rate) {
     const size_t before = fm1_app_ram(&g_app);
     const int r = fm1_app_unit_select(&g_app, 0, fm1_app_find("shapes"));
     expect(r == FM1_APP_SELECT_RAM && fm1_app_ram(&g_app) == before, "the meter let Shapes twice in");
+    /* Refused from the page's menu or the API, the popup says so too. */
+    expect(g_app.popup_lines == 3 && strcmp(g_app.popup[0], "Shapes") == 0 &&
+               strcmp(g_app.popup[1], "does not fit") == 0 && strstr(g_app.popup[2], "K over budget"),
+           "no popup for a refusal from the menu");
+    g_app.popup_lines = 0;
   }
   expect(g_app.unit[0].e != NULL, "Sound 1 emptied by a refusal");
   turn_now(FM1_ENC_PRESETS, 1);                           /* Macro -> Shapes is stepped over */
@@ -1078,8 +1087,10 @@ static void multi_screens(const char *dir, float rate) {
   expect(fm1_app_select(&g_app, 2, fm1_app_find("plate")) == FM1_APP_SELECT_RAM, "a chain past the budget grew");
   /* The switch off: one sound and the master bus again. */
   fm1_app_unit_select(&g_app, 1, fm1_app_find("test-sine"));
+  fm1_app_unit_set_level(&g_app, 0, 40.0f);
   fm1_app_set_lab(&g_app, 0);
   expect(!g_app.unit[fm1_app_sound_unit(1)].e && g_app.sound == 0, "the switch off kept Sound 2");
+  expect(g_app.level[0] == FM1_APP_LEVEL_MAX, "the switch off kept Sound 1's level");
   expect(fm1_app_unit_select(&g_app, 1, fm1_app_find("test-sine")) == FM1_APP_SELECT_BAD,
          "Sound 2 loads with the switch off");
   destroy_units();
@@ -1394,10 +1405,10 @@ static int add_multi(const char *flag, const char *v) {
     return 1;
   }
   if (strcmp(flag, "--insert-param") == 0) return g_nins[k] && add_unit_param(&g_ins[k][g_nins[k] - 1], rest);
-  if (strcmp(flag, "--level") == 0) {
+  if (strcmp(flag, "--level") == 0) {           /* 0..100, as fm1-render takes it */
     g_level[k] = (float)atof(rest);
     g_level_set[k] = 1;
-    return 1;
+    return g_level[k] >= 0.0f && g_level[k] <= 100.0f;
   }
   if (strcmp(flag, "--sound-note") == 0) {
     double t, dur;
@@ -1415,9 +1426,11 @@ static int add_multi(const char *flag, const char *v) {
     if (!colon) return 0;
     e = add_event(atof(rest), strcmp(flag, "--level-at") == 0 ? EV_LEVEL : EV_PARAM);
     e->sound = k;
-    if (e->kind == EV_LEVEL) e->value = (float)atof(colon + 1);
-    else if (!split_param(colon + 1, e->name, sizeof e->name, &e->value)) return 0;
-    return 1;
+    if (e->kind == EV_LEVEL) {
+      e->value = (float)atof(colon + 1);
+      return e->value >= 0.0f && e->value <= 100.0f;
+    }
+    return split_param(colon + 1, e->name, sizeof e->name, &e->value);
   }
 }
 
@@ -1547,6 +1560,13 @@ int main(int argc, char **argv) {
       const char *colon = strchr(v, ':');
       if (!colon) { usage(); return 2; }
       add_event(atof(v), EV_SEQ_UI)->a = i;
+    } else if (strcmp(a, "--unit-route") == 0) {
+      double t;
+      int track, sound;
+      if (sscanf(v, "%lf:%d:%d", &t, &track, &sound) != 3) { usage(); return 2; }
+      event_t *e = add_event(t, EV_UNIT_ROUTE);
+      e->a = track;
+      e->b = sound;
     } else if (strcmp(a, "--seq-reset") == 0 || strcmp(a, "--seq-import") == 0) {
       const char *colon = strchr(v, ':');
       if (!colon) { usage(); return 2; }
@@ -1638,8 +1658,12 @@ int main(int argc, char **argv) {
   }
   for (int k = 0; k < g_nev; ++k) {
     if ((g_ev[k].kind == EV_SEQ_RESET || g_ev[k].kind == EV_SEQ_IMPORT ||
-         g_ev[k].kind == EV_SEQ_UI) && !use_seq) {
-      fprintf(stderr, "--seq-reset, --seq-import and --seq-ui need --cmd or --seq\n");
+         g_ev[k].kind == EV_SEQ_UI || g_ev[k].kind == EV_UNIT_ROUTE) && !use_seq) {
+      fprintf(stderr, "--seq-reset, --seq-import, --seq-ui and --unit-route need --cmd or --seq\n");
+      return 2;
+    }
+    if (g_ev[k].kind == EV_UNIT_ROUTE && !g_lab) {
+      fprintf(stderr, "--unit-route needs --lab\n");
       return 2;
     }
   }
@@ -1697,9 +1721,10 @@ int main(int argc, char **argv) {
     if (g_ev[k].kind == EV_PARAM && find_param(fm1_app_sound_unit(g_ev[k].sound), g_ev[k].name) < 0) {
       return 1;
     }
-    if ((g_ev[k].kind == EV_NOTE || g_ev[k].kind == EV_LEVEL || g_ev[k].kind == EV_PARAM) &&
-        g_ev[k].sound > 0 && !fm1_app_unit_engine(&g_app, g_ev[k].sound)) {
-      fprintf(stderr, "a timed event for sound unit %d, which has no --sound\n", g_ev[k].sound);
+    /* A note or a level on an empty sound unit is taken (it plays
+     * nothing, as fm1-render plays it); a parameter needs the engine. */
+    if (g_ev[k].kind == EV_PARAM && g_ev[k].sound > 0 && !fm1_app_unit_engine(&g_app, g_ev[k].sound)) {
+      fprintf(stderr, "--sound-param-at for sound unit %d, which has no --sound\n", g_ev[k].sound);
       return 2;
     }
     if (g_ev[k].kind == EV_SELECT && strcmp(g_ev[k].name, "-") != 0 &&
@@ -1761,6 +1786,13 @@ int main(int argc, char **argv) {
         const char *op = strchr(argv[e->a], ':') + 1;
         if (g_ui_n >= MAX_UI) { usage(); return 2; }
         fm1_seq_parse(op, strlen(op), &g_ui[g_ui_n++]);
+      } else if (e->kind == EV_UNIT_ROUTE) {
+        const int r = fm1_app_unit_route(&g_app, e->a, e->b);
+        if (r == FM1_APP_SEQ_BUSY) continue;            /* again after the next render */
+        if (r == FM1_APP_SEQ_REFUSED) {
+          fprintf(stderr, "--unit-route %d:%d refused\n", e->a, e->b);
+          return 2;
+        }
       } else continue;
       e->done = 1;
     }

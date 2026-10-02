@@ -294,7 +294,7 @@ int fm1_app_find(const char *id);
  * refused this host, e.g. a Plaits-based one above 47,872 Hz; the unit's
  * previous engine is created again with its values) or, with the lab switch
  * on, _RAM (-4: the chain would pass the FM-1's RAM budget and grow; the
- * unit keeps its engine). */
+ * unit keeps its engine, and a popup names it and by how much). */
 int fm1_app_select(fm1_app_t *a, int unit, int index);
 
 /* The browser's starting chain: Macro, then Plate. If Macro refuses the
@@ -307,8 +307,9 @@ int fm1_app_default_chain(fm1_app_t *a);
 /* The lab switch: on, the sequencer is on the panel (SEQ mode, PLAY/STOP,
  * their LEDs) and so is multi-sound; off (as fm1_app_init leaves it), those
  * buttons say they are not in the simulator yet and nothing of either
- * shows. Turning it off in SEQ mode goes back to HOME, and empties every
- * sound unit but 0 and every insert, releasing their notes. */
+ * shows. Turning it off in SEQ mode goes back to HOME; turning it off
+ * empties every sound unit but 0 and every insert, releasing their notes,
+ * and sets every level back to 100 %. */
 void fm1_app_set_lab(fm1_app_t *a, int on);
 
 /* The demo pattern (owner decision O4): a one-bar, 16-step figure on track
@@ -454,10 +455,15 @@ void fm1_app_unit_set_level(fm1_app_t *a, int sound, float percent);
 void fm1_app_unit_note_on(fm1_app_t *a, int sound, int note, int velocity);
 void fm1_app_unit_note_off(fm1_app_t *a, int sound, int note);
 
-/* Routes a track to a sound unit (`route t 1 sound`), with the lab switch
- * on: 1 if accepted. fm1_app_unit_of_track is the sound unit a track plays
- * (with the switch off every engine-routed track plays sound 0, as
- * fm1-render's one engine), or -1 for a MIDI-routed one. */
+/* Routes a track to a sound unit, with the lab switch on: a typed `route t
+ * 1 sound` sent as the panel sends its commands (fm1_app_seq_cmd, so the
+ * harness logs it and fm1-render replays it). Returns fm1_app_seq_cmd's
+ * result (FM1_APP_SEQ_APPLIED: in effect now; _HELD: at the next block;
+ * _BUSY: send it again after the next render), or FM1_APP_SEQ_REFUSED with
+ * the switch off, no sequencer or an argument out of range.
+ * fm1_app_unit_of_track is the sound unit a track plays (with the switch off
+ * every engine-routed track plays sound 0, as fm1-render's one engine), or
+ * -1 for a MIDI-routed one or one routed past the last sound unit. */
 int fm1_app_unit_route(fm1_app_t *a, int track, int sound);
 int fm1_app_unit_of_track(const fm1_app_t *a, int track);
 
