@@ -73,10 +73,12 @@ static void dump_state(FILE *f, const fm1_seq_t *s, const char *kind, const char
   fputc(',', f);
   fprintf(f, "\"frame\":%llu,\"block\":%llu,\"master_tick\":%llu,\"bpm_x100\":%lu,\"swing\":%u,"
           "\"playing\":%u,\"recording\":%u,\"counting_in\":%u,\"metronome\":%u,\"link\":%u,"
-          "\"following\":%u,\"watch_track\":%u,\"default_quant\":%u,\"song_pos\":%u,\"song\":[",
+          "\"following\":%u,\"watch_track\":%u,\"rec_track\":%u,\"default_quant\":%u,"
+          "\"song_pos\":%u,\"song\":[",
           (unsigned long long)frame, (unsigned long long)block, (unsigned long long)in.master_tick,
           (unsigned long)in.bpm_x100, in.swing_pct, in.playing, in.recording, in.counting_in,
-          in.metronome, in.link, in.following, in.watch_track, in.default_quant, in.song_pos);
+          in.metronome, in.link, in.following, in.watch_track, in.rec_track, in.default_quant,
+          in.song_pos);
   for (i = 0; i < in.song_len; ++i) fprintf(f, i ? ",%u" : "%u", in.song[i]);
   fprintf(f, "],\"capture\":{\"gen\":%lu,\"pending\":%u,\"mode\":%u,\"sel\":%u,\"cands\":[",
           (unsigned long)in.capture_gen, in.capture_pending, in.capture_mode, in.capture_sel);
@@ -132,6 +134,24 @@ static void dump_state(FILE *f, const fm1_seq_t *s, const char *kind, const char
         fm1_seq_get_note(s, (uint8_t)t, (uint8_t)k, (uint16_t)i, &n);
         fprintf(f, "%s[%u,%u,%u,%u,%u,%u,%u]", i ? "," : "", n.tick, n.gate, n.pitch, n.vel,
                 n.step, n.suppress, n.fired);
+      }
+      /* fm1_seq_get_page over every step a note, lock or row can sit on:
+       * [step, notes, lock mask, trig flags, prob, A, B, [8 lock values]]
+       * for each step with anything on it (docs/15 §2.5). */
+      fputs("],\"page\":[", f);
+      {
+        static fm1_seq_step_info_t pg[FM1_SEQ_MAX_STEPS + 1u];
+        int first_step = 1;
+        fm1_seq_get_page(s, (uint8_t)t, (uint8_t)k, 0, FM1_SEQ_MAX_STEPS + 1u, pg);
+        for (i = 0; i <= FM1_SEQ_MAX_STEPS; ++i) {
+          const fm1_seq_step_info_t *p = &pg[i];
+          if (!p->notes && !p->lock_mask && !p->trig) continue;
+          fprintf(f, "%s[%u,%u,%u,%u,%u,%u,%u,[%u,%u,%u,%u,%u,%u,%u,%u]]", first_step ? "" : ",", i,
+                  p->notes, p->lock_mask, p->trig, p->prob, p->cond_a, p->cond_b, p->lock[0],
+                  p->lock[1], p->lock[2], p->lock[3], p->lock[4], p->lock[5], p->lock[6],
+                  p->lock[7]);
+          first_step = 0;
+        }
       }
       fputs("]}", f);
     }

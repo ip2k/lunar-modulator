@@ -342,13 +342,19 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     with no clip, popups over it, and the hint line with every sound's every
     knob at its extremes and list entries, and every model; the harness
     also checks there that PLAY/STOP and SEQ light their LEDs, that HOME, FX
-    and GLO leave SEQ mode, and that the switch off brings the stubs back."""
+    and GLO leave SEQ mode, and that the switch off brings the stubs back.
+    Step entry (docs/15 S4): the grid's marks, SHIFT's legend and the full
+    velocity popup, every bar of a 16-bar clip and an empty one, the Step
+    pages with every field at its minimum and maximum, every length,
+    probability and condition, the nudge at both ends, a 12-note chord,
+    SHIFT's legend on a hold, sixteen steps held and the REC status, with
+    the gestures that reach them checked on the way."""
     res = subprocess.run([str(tools["sim"]), "--screens", str(tmp_path)],
                          capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 815             # 335 before the Track view (docs/15 S3)
+    assert summary["screens"] >= 914             # 335 before the Track view (S3), 815 before S4
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

@@ -18,6 +18,34 @@ history.
   reduction and gate state usable as modulation sources. Every pick is MIT,
   public domain or our own code. It lays out stages B1–B8 and 17 owner
   decisions.
+- Step entry on the virtual FM-1's panel, still behind the lab switch
+  (`?lab`; docs/15 stage S4). In SEQ mode the white keys are the bar's 16
+  steps and the black keys sequencer controls, so they no longer play the
+  sound there.
+  - Tap a step to enter the last chord you played (on the keys or at MIDI
+    IN, each note at its own velocity), or C4; tap again to clear it.
+  - Hold a step for its Step page: velocity, length (1/32 to 16 bars),
+    probability (100 % to 10 %) and condition (1:1 to 8:8) on the four
+    knobs, and invert on the second page (SELECT). Holding several steps
+    edits them all. Hold a step and press a later one to stretch its note
+    up to there.
+  - SEL is SHIFT outside FX mode. With a step held, SHIFT and the white
+    keys add pitches, and a tap of SHIFT alone clears the step (the owner's
+    choice: pitches are only added). SHIFT and key 10 turn full velocity on
+    or off; SHIFT and PLAY/STOP restart.
+  - OP1 and OP3 page through the bars (one empty bar past the pattern
+    grows it), or nudge held steps; OCT transposes held steps.
+  - The grid marks steps with a probability, condition or invert, the
+    held steps and the bar on the keys; the key lights show held steps and
+    the length of a held note. On a computer keyboard, `1`–`8` and
+    `C V B N M , . /` are the steps and Shift is SHIFT.
+  - For developers: `fm1_seq_get_page` reads a run of steps in one pass,
+    and `fm1_seq_info_t` names the recording track. 22 new gesture traces
+    replay through `fm1-render` byte for byte; keys that play the sound are
+    now in the replay's arguments too. A new parity scenario enters a
+    two-bar pattern from the panel (25 of 25 pass). 914 screens pass the
+    layout check (99 new); the screens with the lab switch off are
+    unchanged. The browser module grew from 467 KB to 482 KB.
 - A first look at the sequencer on the virtual FM-1's panel, behind a lab
   switch: add `?lab` (or `#lab`) to the page's address. The public page is
   unchanged until patterns can be made and recorded on the panel (docs/15

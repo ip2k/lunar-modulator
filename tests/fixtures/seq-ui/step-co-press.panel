@@ -1,0 +1,8 @@
+# Steps pressed together while the first is empty are each entered on
+# release (Movy's multi-step entry), even after the first was held past
+# the threshold alone.
+--button 0.05:SEQ
+--key 0.10:2:100:0.7
+--key 0.50:9:100:0.1
+--key 0.55:11:100:0.1
+--button 1.00:PLAY/STOP

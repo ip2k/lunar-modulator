@@ -1,0 +1,8 @@
+# HOME during a hold leaves SEQ mode: the held step is let go without a
+# toggle, and the keys play the sound again (C4 here, in the replay's
+# sidecar as a --note).
+--button 0.05:SEQ
+--key 0.10:2:100:0.3
+--button 0.20:HOME
+--key 0.50:7:100:0.2
+--button 0.80:PLAY/STOP
