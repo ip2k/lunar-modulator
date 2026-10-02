@@ -455,12 +455,19 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
     /* Every edge goes to the sequencer's UI first; what it sends goes in
      * as typed commands, under the event-room rule (a second command while
      * one is held is refused and counted in seq_busy). An edge it takes
-     * (SEL as SHIFT, OCT on held steps) goes no further. */
+     * (SEL as SHIFT, OCT on held steps) goes no further. An OCT press it
+     * took transposed the held steps, so the app does not count it as
+     * held either: ALGORITHM keeps turning the model rather than the
+     * keys' transpose, and the other OCT moves the octave rather than
+     * resetting it. SEL stays held, as SHIFT needs its release. */
     const fm1_seq_ui_emit_t out = ui_out(a);
     const int took = fm1_seq_ui_button(&a->ui, a->seq, button, down != 0, a->frames, a->mode,
                                        &out);
     ui_after(a);
-    if (took) return;
+    if (took) {
+      if (down && button != FM1_BTN_SEL) a->button_down[button] = 0;
+      return;
+    }
   }
   if (!down || was) return;
   switch (button) {

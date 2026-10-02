@@ -298,6 +298,35 @@ def test_full_velocity_plays_the_keys_at_127(tools, tmp_path):
     assert args[args.index("--note") + 1].split(":")[1:3] == ["60", "127"]
 
 
+def test_oct_on_a_held_step_is_not_held_for_the_keys(tools, tmp_path):
+    """OCT+ pressed on a held step transposes the step and nothing else:
+    while it is still down, ALGORITHM does not transpose the keys, and OCT-
+    after the step's release moves the octave rather than resetting it."""
+    s = step_run(tools, tmp_path, ["--button 0.05:SEQ", "--key 0.10:0:100:0.3",
+                                   "--button 0.20:OCT+:0.6", "--turn 0.30:ALGORITHM:3",
+                                   "--button 0.60:OCT-"], seconds=1.0)
+    assert [t for _, t in s["seq_ui_cmds"]] == ["etrn 0 0 0 -1 1"]
+    assert (s["octave"], s["transpose"], s["popup"]) == (-1, 0, ["Octave -1"])
+
+
+@pytest.mark.parametrize("first,replayable", [("note", 1), ("key", 0)])
+def test_notes_in_one_block_replay_only_in_the_apps_order(tools, tmp_path, first, replayable):
+    """fm1-render plays a block's note-offs, then its note-ons, in the order
+    of its --note arguments. A key's --note joins the sidecar when the key is
+    pressed, after every MIDI IN note: a MIDI IN note played after a key in
+    the same block cannot be replayed in that order, and the run says so
+    (here the replay would differ)."""
+    lines = ["--note 0.20:60:100:0.3", "--key 0.20:9:100:0.3"]
+    panel = tmp_path / "p.panel"
+    panel.write_text("\n".join(lines if first == "note" else lines[::-1]) + "\n")
+    cmd = tmp_path / "in.verbs"
+    cmd.write_text("#! rate=44118 block=64 tracks=8 end=44118\n@0 bpm 12000\n")
+    s, _, _, a, b = two_step(tools, tmp_path, "order", panel, cmd, "--engine", "test-sine", lab=False)
+    assert s["replayable"] == replayable
+    if replayable:
+        assert a == b
+
+
 @pytest.mark.parametrize("mode,lab,popup,sel_led", [
     ("HOME", True, [], "1"),                              # SHIFT: no popup, its LED on
     ("HOME", False, ["SEL", "works in FX mode"], "0"),    # the public page: as before

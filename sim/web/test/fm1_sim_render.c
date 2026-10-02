@@ -57,10 +57,13 @@
  *   fm1-render --cmd FILE.verbs $(arguments in FILE.args)
  * renders the same samples ("two-step parity"), unless the summary says
  * "replayable":0: the panel or --select changed the sound or an effect,
- * MASTER was not at full gain, or --seq-reset or --seq-import ran. A key
- * that played the sound (outside SEQ mode) is in the sidecar as a --note
- * at mid-block times, written at its press, so notes keep their order; in
- * SEQ mode the keys play nothing, and what they did is in the script.
+ * MASTER was not at full gain, --seq-reset or --seq-import ran, or notes
+ * in one block went to the sound in an order fm1-render cannot replay. A
+ * key that played the sound (outside SEQ mode) is in the sidecar as a
+ * --note at mid-block times, written at its press, so keys keep their
+ * order; a MIDI IN note played after a key's in the same block would not,
+ * and makes the run not replayable. In SEQ mode the keys play nothing, and
+ * what they did is in the script.
  *
  * Test hooks: --seq-reset T:N and --seq-import T:FILE recreate the instance or import a set at time T, as a
  * UI would (then the default route, unless --route was given); --seq-ui
@@ -94,6 +97,7 @@ typedef struct {
   int a, b;            /* note/key and velocity; encoder/button id and delta */
   float value;
   char name[32];
+  int side;            /* note: its --note in the replay's sidecar, index + 1; 0 none */
   int done;
 } event_t;
 
@@ -196,6 +200,7 @@ static int add_panel(const char *flag, const char *v) {
 }
 
 static void side(const char *flag, const char *value);
+static void side_note_pair(void);
 
 /* --panel FILE: one --key, --button, --turn or --note and its value per line. */
 static int read_panel(const char *path) {
@@ -227,6 +232,7 @@ static int read_panel(const char *path) {
       ok = 0;
     } else if (strcmp(p, "--note") == 0) {
       side("--note", v);                   /* the replay plays it as MIDI IN did */
+      side_note_pair();
     }
   }
   free(txt);
@@ -251,6 +257,10 @@ static void side(const char *flag, const char *value) {
   g_side_flag[g_nside] = flag;
   g_side_value[g_nside++] = copy;
 }
+
+/* The --note just added to the sidecar replays the last two events, a
+ * note's on and off. */
+static void side_note_pair(void) { g_ev[g_nev - 2].side = g_ev[g_nev - 1].side = g_nside; }
 
 /* A key that played the sound: its --note goes into the sidecar at its press,
  * so the replay starts notes in the app's order, and gets its length at the
@@ -1163,6 +1173,7 @@ int main(int argc, char **argv) {
       on->on = 1, on->a = key, on->b = vel;
       event_t *off = add_event(t + dur, EV_NOTE);
       off->on = 0, off->a = key;
+      side_note_pair();                    /* copied into the sidecar above */
     } else if (strcmp(a, "--key") == 0 || strcmp(a, "--button") == 0 || strcmp(a, "--turn") == 0) {
       const int r = add_panel(a, v);
       if (r == 0) usage();
@@ -1332,18 +1343,31 @@ int main(int argc, char **argv) {
       e->done = 1;
     }
     for (int pass = 0; pass < 2; ++pass) {             /* offs before ons */
+      /* fm1-render plays a block's due note-offs, then its note-ons, each in
+       * the order of its --note arguments. A note the app plays here out of
+       * that order (a MIDI IN note after a key's in the same block, whose
+       * --note was added when the key was pressed) cannot be replayed. */
+      int last_side = 0;
       for (int k = 0; k < g_nev; ++k) {
         event_t *e = &g_ev[k];
+        int ix = 0;
         if (e->done || e->time > now || e->on != pass) continue;
         if (e->kind == EV_NOTE) {
           if (e->on) fm1_app_note_on(&g_app, e->a, e->b);
           else fm1_app_note_off(&g_app, e->a);
+          ix = e->side;
         } else if (e->kind == EV_KEY) {
-          const int was_down = g_app.key_down[e->a];
+          const int was_down = g_app.key_down[e->a], was_side = g_key_side[e->a];
           fm1_app_key(&g_app, e->a, e->on, e->b);
           key_logged(e->a, was_down, pos, rate);
+          if (!was_down && g_app.key_down[e->a]) ix = g_key_side[e->a];
+          else if (was_down && !g_app.key_down[e->a]) ix = was_side;
         } else {
           continue;
+        }
+        if (ix) {
+          if (ix < last_side) g_replayable = 0;
+          last_side = ix;
         }
         e->done = 1;
       }

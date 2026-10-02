@@ -400,7 +400,7 @@ on held steps is one command per held step, in press order, as Movy's
 | SHIFT tap (pressed and released with nothing else touched) | nothing | `del t s s -1` on every held step with notes: the step's notes are cleared (O22) |
 | Knob detent with SHIFT held | the sound, as without SHIFT | kept for `aclrs` on the lock pages (S8); nothing on the Step pages |
 | SHIFT + PLAY/STOP | while playing, a restart (`play`; D12 adds the Stop and Start); stopped, `play`. In every mode but FX, where SEL grabs a slot | the same |
-| F#3 / A#3 (◀ ▶) | the bar on the keys, back and on: the loop's bars and one empty bar after them, as Movy's `maxBarOffset` | `enudge t s s -1 ∓2` (Movy's coarse step, 2 ticks), ∓1 with SHIFT |
+| F#3 / A#3 (◀ ▶) | the bar on the keys, back and on: the loop's bars and one empty bar after them, as Movy's `maxBarOffset`, except that Movy counts a loop shorter than a bar as a whole bar from its start, so a short loop starting mid-bar gets a second empty bar there [verified: `state.ts` at `9190e79`] | `enudge t s s -1 ∓2` (Movy's coarse step, 2 ticks), ∓1 with SHIFT |
 | Other black keys | inert until their stage (§3.4) | inert |
 | OCT− / OCT+ | the octave, as stock; both: reset | `etrn t s s -1 ∓1`, ∓12 with SHIFT |
 | SELECT | the sound's pages | Step page 1/2 or 2/2, remembered from hold to hold (O21) |
@@ -1141,6 +1141,10 @@ branch).** Everything stays behind the lab switch (O24). The gestures are
   nothing reads it.
 - **Full velocity** sets every step entered, and the keys played outside
   SEQ mode, to 127; MIDI IN's own notes keep their velocity.
+- **OCT on held steps** belongs to them: the app does not count that press
+  as held, so ALGORITHM turned while it is down still turns the model, and
+  the other OCT pressed after the steps' release moves the octave instead
+  of resetting it.
 - **The Step pages** stay two (Step 1/2 and 2/2): the sound's pages join
   them as lock pages in S8. Step page 2's nudge and note are read-outs.
 - **The Track view** draws the grid's four bars round the bar on the keys
@@ -1155,7 +1159,10 @@ branch).** Everything stays behind the lab switch (O24). The gestures are
   (`step-*`), each replayed by `fm1-render` byte for byte. A key that plays
   the sound is now logged into the replay's sidecar as a `--note` at
   mid-block times (half of S5's harness item; S5 adds `non`/`nof`), and a
-  `--panel` file may hold `--note` lines for MIDI IN.
+  `--panel` file may hold `--note` lines for MIDI IN. `fm1-render` plays a
+  block's note-offs, then its note-ons, in argument order, so a run whose
+  notes went to the sound in another order within a block (a MIDI IN note
+  after a key's) says `"replayable":0`.
 - **Screens:** 99 more, 914 in all, 0 faults; the lab-off screens are
   byte-identical to S3's (293 compared).
 - **Core:** `fm1_seq_get_page` and `fm1_seq_info_t.rec_track`. The Track
@@ -1169,7 +1176,7 @@ branch).** Everything stays behind the lab switch (O24). The gestures are
   identical to js and musl in 25, to glibc in 22; imports none. In
   headless Chromium, A#3 and four step keys enter bar 2 (exactly those
   four keys light), and played, the pattern sounds (RMS 0.024) and the
-  lights move. The module is 482,275 B, up from 466,635.
+  lights move. The module is 482,291 B, up from 466,635.
 
 ### S5. Record and Capture (record-after, on by default)
 

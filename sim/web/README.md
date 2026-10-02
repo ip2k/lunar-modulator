@@ -220,9 +220,9 @@ the sound (written at its press, so notes keep their order, at mid-block
 times), and a `--param-at` at mid-block for every sound parameter the
 panel turned. `fm1-render --cmd FILE.verbs` with those arguments renders
 the same bytes. A run the replay cannot follow (a new sound or effect from
-the panel, an effect's parameter, MASTER below full) says
-`"replayable":0`; a key and a MIDI IN note starting in the same block may
-replay in the other order, so traces avoid that. `--format-check` writes
+the panel, an effect's parameter, MASTER below full, or notes sent to the
+sound in one block in an order `fm1-render` would not play them, such as a
+MIDI IN note after a key's) says `"replayable":0`. `--format-check` writes
 and reads back every verb.
 
 ## Parity: does the browser sound like the native engines?
@@ -283,7 +283,7 @@ pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, with step entry since S4: 25 of 25 scenarios
 pass, identical to musl and to render.js, and it imports nothing; it is
-482,275 bytes, up from 466,635 before S4, 459,122 before S3 and 391 KB
+482,291 bytes, up from 466,635 before S4, 459,122 before S3 and 391 KB
 before the sequencer [verified, 2026-10-02, `www/fm1.wasm.json`].
 
 The sequencer's own cost in WebAssembly, measured with `fm1-render.js` under
@@ -441,11 +441,13 @@ and the hidden rest of a short clip), each logging its golden script and
 replaying through `fm1-render` byte for byte; the mode and button LEDs the
 S3 traces end in; the parity scenarios' own traces; the Step page's
 threshold and read-outs, the keys' LEDs in SEQ mode, the bar keys'
-limits, sixteen held steps, the 12-note chord, full velocity on the keys
-and SEL as SHIFT; every verb through `fm1_seq_cmd_format` and back; the
-demo pattern only on the start chain with the switch on; the switch off
-changing nothing; a sound changed from the panel marked not replayable;
-and the UI state's size. `tests/test_seq_core.py` checks
+limits, sixteen held steps, the 12-note chord, full velocity on the keys,
+SEL as SHIFT, OCT on a held step left out of the keys' octave and
+transpose, and notes in one block that the replay would play in another
+order marked not replayable; every verb through `fm1_seq_cmd_format` and
+back; the demo pattern only on the start chain with the switch on; the
+switch off changing nothing; a sound changed from the panel marked not
+replayable; and the UI state's size. `tests/test_seq_core.py` checks
 `fm1_seq_get_page` against every Movy fixture's `movy1` export.
 
 CI also runs the three files in its 32-bit job (`-m32`, like pi32v2's
