@@ -1,0 +1,108 @@
+/* The Lunar Modulator user manual: the printed book (print.html, and the PDF
+ * WeasyPrint makes from it). Loaded after manual.css, whose tokens it uses.
+ * The page size comes from manual.toml (`paper`), set by build.py.
+ * Running heads use string-set; the contents, cross-references and the index
+ * of controls get page numbers from target-counter (WeasyPrint; a browser
+ * prints the same page without them). Pages are numbered from the cover, so
+ * a page's number is also its number in a PDF viewer. Do not counter-reset
+ * `page` on an element: the element counter it creates hides the page counter
+ * from target-counter in everything after it. */
+
+@page {
+  size: A5;               /* build.py adds manual.toml's `paper` after this */
+  margin: 17mm 13mm 18mm 13mm;
+  background: #faf4ed;
+  @top-left { content: string(doc); font: 600 7pt "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif; color: #464261; vertical-align: bottom; padding-bottom: 3mm; }
+  @top-right { content: string(chapter); font: 600 7pt "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif; color: #464261; vertical-align: bottom; padding-bottom: 3mm; }
+  @bottom-center { content: counter(page); font: 600 8pt "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif; color: #464261; }
+}
+@page cover {
+  margin: 0;
+  background: #faf4ed;
+  @top-left { content: none; } @top-right { content: none; } @bottom-center { content: none; }
+}
+@page front {
+  @top-left { content: none; } @top-right { content: none; }
+  @bottom-center { content: counter(page); font: 600 8pt "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif; color: #464261; }
+}
+@page :blank { @top-left { content: none; } @top-right { content: none; } @bottom-center { content: none; } }
+
+html { font-size: 9pt; }
+body.book {
+  background: transparent;
+  font: 400 9pt/1.45 var(--font-body);
+  string-set: doc "Lunar Modulator \2014  User Manual";
+}
+
+/* ---- cover ---------------------------------------------------------- */
+
+.book .cover { page: cover; break-after: page; }
+.book .cover .banner { width: 100%; height: auto; display: block; }
+.book .cover .cover-text { padding: 14mm 13mm 0; }
+.book .cover .cover-title { font-size: 28pt; }
+.book .cover .cover-tagline { font-size: 8.5pt; margin: 2mm 0 9mm; }
+.book .cover .cover-doc { font-size: 15pt; }
+.book .cover .cover-descriptor { font-size: 10pt; margin-bottom: 10mm; }
+.book .cover .cover-foot { padding: 8mm 13mm 0; font-size: 7.5pt; }
+.book .cover .cover-notice { border: 1px solid #dfdad9; border-left: 4pt solid #b4637a; background: #fffaf3; padding: 3mm 4mm; border-radius: 2mm; font-size: 8.5pt; }
+
+.book .front { page: front; break-before: page; }
+.book .front h1 { margin-top: 0; }
+.book .legal p { font-size: 8pt; }
+
+/* ---- contents -------------------------------------------------------- */
+
+.book nav.toc { page: front; break-before: page; }
+.book nav.toc h1 { margin-top: 0; }
+.book nav.toc ol { list-style: none; margin: 0; padding: 0; }
+.book nav.toc li { margin: 0; }
+.book nav.toc li.l1 { margin-top: 2.6mm; font-weight: 600; }
+.book nav.toc li.l2 { padding-left: 9mm; font-size: 8.5pt; }
+.book nav.toc a { color: #464261; text-decoration: none; display: block; }
+.book nav.toc .tn { display: inline-block; min-width: 9mm; font-variant-numeric: tabular-nums; }
+.book nav.toc li.l2 .tn { min-width: 9mm; }
+.book nav.toc a::after { content: leader(". ") target-counter(attr(href url), page); font-variant-numeric: tabular-nums; }
+
+/* ---- chapters -------------------------------------------------------- */
+
+.book article.chapter { break-before: page; }
+.book h1 { string-set: chapter attr(data-running); font-size: 19pt; margin: 0 0 6mm; bookmark-level: 1; }
+.book h1 .secno { font-size: 7.5pt; margin-bottom: 2mm; }
+.book h2 { font-size: 12.5pt; margin: 7mm 0 2.5mm; padding-top: 2.5mm; break-after: avoid; bookmark-level: 2; }
+.book h3 { font-size: 10.5pt; margin: 5mm 0 2mm; break-after: avoid; bookmark-level: 3; }
+.book h4 { font-size: 9.5pt; margin: 4mm 0 1.5mm; break-after: avoid; bookmark-level: none; }
+.book p, .book li { orphans: 2; widows: 2; }
+.book dt { break-after: avoid; }
+.book dd { break-before: avoid; }
+.book p, .book ul, .book ol, .book dl, .book figure, .book pre, .book .admonition { margin-bottom: 2.6mm; }
+.book a { color: #286983; text-decoration: none; }
+.book a.xref::after { content: " (page " target-counter(attr(href url), page) ")"; color: #464261; }
+.book a[href^="http"]::after { content: none; }
+
+.book .admonition { break-inside: avoid; padding: 2.4mm 3.2mm .6mm; border-radius: 1.5mm; }
+.book .status { font-size: 7.5pt; }
+.book .status-lead { font-size: 6.5pt; }
+.book kbd.ctl { font-size: 6.6pt; }
+
+.book .table-wrap { overflow: visible; border-radius: 1.5mm; }
+.book table { font-size: 7.6pt; line-height: 1.35; }
+.book caption { padding: 1.6mm 2.2mm; }
+.book th, .book td { padding: 1.1mm 2mm; }
+.book thead th { font-size: 7.2pt; }
+.book tr { break-inside: avoid; }
+.book caption, .book thead { break-after: avoid; }
+.book .values { break-inside: auto; padding: 2mm 3mm .5mm; }
+.book .values ol { columns: 3; font-size: 7.4pt; }
+.book .values.long ol { columns: 3; }
+.book .reference-meta, .book .values-missing { font-size: 7.6pt; }
+
+.book figure { break-inside: avoid; }
+.book figure .figure-svg { padding: 1.5mm; }
+.book figcaption { font-size: 8pt; }
+.book figure.screen .screen-shot { width: 40mm; height: 40mm; }
+
+.book pre { font-size: 7.4pt; white-space: pre-wrap; break-inside: avoid; }
+.book .pager, .book .onpage { display: none; }
+
+/* Back matter keeps its own running head. */
+.book article.backmatter h1 .secno { display: none; }

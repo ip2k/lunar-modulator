@@ -1,0 +1,338 @@
+# What each sequencer script verb does, for the generated table in chapter 7.
+#
+# The verbs themselves come from the code (kVerbs in engines/seq/seq_cmd.c),
+# in its order; this file only describes them. A verb the code has and this
+# file lacks shows as "Not described yet" and the build warns; an entry here
+# for a verb the code no longer has also warns. Arguments are as seq_cmd.c
+# parses them: integers, tracks and steps counted from 0, out-of-range values
+# clamped. <pitch> is a MIDI note, or -1 for every note on the step.
+
+[groups]
+order = ["Transport and tempo", "Steps and notes", "Conditions and probability", "Clips",
+         "Launching, scenes and song", "Recording and Capture", "Tracks and routing",
+         "Parameter locks", "Undo", "Movy on the Move only"]
+
+[verb.play]
+group = "Transport and tempo"
+does = "Starts from the beginning: the song from its first scene, or each track's chosen clip. While playing, restarts, sending Stop and then Start to MIDI clock followers."
+
+[verb.stop]
+group = "Transport and tempo"
+does = "Stops. Ends recording, ends every sounding note and returns locked parameters to their base values."
+
+[verb.bpm]
+group = "Transport and tempo"
+args = "<bpm×100>"
+does = "Sets the tempo in hundredths of a beat per minute, 2000 to 30000 (20 to 300 BPM)."
+
+[verb.swing]
+group = "Transport and tempo"
+args = "<percent>"
+does = "Sets the swing, 50 (straight) to 80."
+
+[verb.metro]
+group = "Transport and tempo"
+args = "<0|1>"
+does = "Turns the metronome click off or on."
+
+[verb.tog]
+group = "Steps and notes"
+args = "<track> <step> [<pitch> <velocity>]…"
+does = "Toggles a step in the track's chosen clip, with up to 12 pitch and velocity pairs (a chord)."
+
+[verb.ltog]
+group = "Steps and notes"
+args = "<track> <step> <pitch> <velocity>"
+does = "Toggles one pitch on a step, leaving the step's other notes."
+
+[verb.addp]
+group = "Steps and notes"
+args = "<track> <from> <to> <pitch> <velocity>"
+does = "Adds a pitch to every step from one step to another, where the step does not have it yet."
+
+[verb.del]
+group = "Steps and notes"
+args = "<track> <from> <to> <pitch>"
+does = "Deletes notes on a range of steps: one pitch, or all with -1."
+
+[verb.evel]
+group = "Steps and notes"
+args = "<track> <from> <to> <pitch> <change>"
+does = "Changes the velocity of the notes on a range of steps by the given amount."
+
+[verb.elen]
+group = "Steps and notes"
+args = "<track> <from> <to> <pitch> <change>"
+does = "Changes the length of the notes on a range of steps, in ticks."
+
+[verb.slen]
+group = "Steps and notes"
+args = "<track> <from> <to> <pitch> <ticks>"
+does = "Sets the length of the notes on a range of steps, in ticks (at least 1)."
+
+[verb.enudge]
+group = "Steps and notes"
+args = "<track> <from> <to> <pitch> <change>"
+does = "Moves the notes on a range of steps earlier or later, in ticks, within a step of where they belong."
+
+[verb.etrn]
+group = "Steps and notes"
+args = "<track> <from> <to> <pitch> <change>"
+does = "Transposes the notes on a range of steps by semitones."
+
+[verb.hold]
+group = "Steps and notes"
+args = "<track> <step|-1>"
+does = "Tells the sequencer which step is held, so that locks set while holding it are not sounded at once; -1 releases it."
+
+[verb.eprob]
+group = "Conditions and probability"
+args = "<track> <from> <to> <pitch> <percent>"
+does = "Sets the probability, 0 to 100 %, of a range of steps or of one pitch on them."
+
+[verb.econd]
+group = "Conditions and probability"
+args = "<track> <from> <to> <pitch> <A> <B>"
+does = "Sets the condition A:B (each 1 to 64): play on the A-th pass of every B."
+
+[verb.einv]
+group = "Conditions and probability"
+args = "<track> <from> <to> <pitch> <0|1>"
+does = "Inverts the condition, so the step plays on the passes it would skip."
+
+[verb.clipsel]
+group = "Clips"
+args = "<track> <slot>"
+does = "Chooses which of the track's eight slots the edits apply to."
+
+[verb.clen]
+group = "Clips"
+args = "<track> <steps>"
+does = "Sets the chosen clip's length in steps."
+
+[verb.loop]
+group = "Clips"
+args = "<track> <start> <length>"
+does = "Sets the chosen clip's loop window: its first step and its length."
+
+[verb.dbl]
+group = "Clips"
+args = "<track>"
+does = "Double Loop: doubles the chosen clip's length and copies the notes in its loop window into the new half. Locks and conditions are not copied."
+
+[verb.cscl]
+group = "Clips"
+args = "<track> <numerator> <denominator>"
+does = "Sets the chosen clip's speed as a fraction of the tempo, from 1/8 to 4."
+
+[verb.ctr]
+group = "Clips"
+args = "<track> <semitones>"
+does = "Transposes the chosen clip, -36 to +36 semitones, without changing its notes."
+
+[verb.cq]
+group = "Clips"
+args = "<track> <percent>"
+does = "Sets the chosen clip's quantise, 0 (as played) to 100 (on the grid)."
+
+[verb.dq]
+group = "Clips"
+args = "<percent>"
+does = "Sets the quantise new clips start with."
+
+[verb.cpy]
+group = "Clips"
+args = "<track> <from> <to>"
+does = "Copies a range of steps, notes and locks, to the step clipboard."
+
+[verb.pst]
+group = "Clips"
+args = "<track> <step>"
+does = "Pastes the step clipboard from the given step on."
+
+[verb.cpyclr]
+group = "Clips"
+does = "Empties the step clipboard."
+
+[verb.clipdup]
+group = "Clips"
+args = "<track>"
+does = "Duplicates the chosen clip into the next empty slot and chooses the copy."
+
+[verb.clipcopy]
+group = "Clips"
+args = "<track> <slot>"
+does = "Copies a clip to the clip clipboard."
+
+[verb.clippaste]
+group = "Clips"
+args = "<track> <slot>"
+does = "Pastes the clip clipboard into a slot and chooses it."
+
+[verb.clipdel]
+group = "Clips"
+args = "<track>"
+does = "Deletes the chosen clip."
+
+[verb.clipdelat]
+group = "Clips"
+args = "<track> <slot>"
+does = "Deletes the clip in a slot."
+
+[verb.launch]
+group = "Launching, scenes and song"
+args = "<track> <slot>"
+does = "Launches a clip on the next bar; starts playback if stopped. An empty slot stops the track."
+
+[verb.stoptrk]
+group = "Launching, scenes and song"
+args = "<track>"
+does = "Stops a track on the next bar."
+
+[verb.song]
+group = "Launching, scenes and song"
+args = "<scene>"
+does = "Starts a new song with this scene and launches it."
+
+[verb.songadd]
+group = "Launching, scenes and song"
+args = "<scene>"
+does = "Adds a scene to the end of the song."
+
+[verb.rec]
+group = "Recording and Capture"
+args = "<track>"
+does = "Starts or stops recording on a track: with a one-bar count-in when stopped, at once (overdub) or on the next bar (first take) when playing."
+
+[verb.non]
+group = "Recording and Capture"
+args = "<track> <pitch> <velocity>"
+does = "A note played live, for recording and Capture."
+
+[verb.nof]
+group = "Recording and Capture"
+args = "<track> <pitch>"
+does = "The end of a note played live."
+
+[verb.watch]
+group = "Recording and Capture"
+args = "<track>"
+does = "Chooses the track Capture listens to, and empties what it holds."
+
+[verb.wlane]
+group = "Recording and Capture"
+args = "<pitch|-1>"
+does = "The drum note the step editor works on, or -1 for whole steps."
+
+[verb.cap]
+group = "Recording and Capture"
+args = "<track>"
+does = "Capture: turns what was just played into a clip on the track. When stopped, it first offers tempos to choose from."
+
+[verb.capsel]
+group = "Recording and Capture"
+args = "<candidate>"
+does = "Chooses one of the tempos Capture offers."
+
+[verb.capdone]
+group = "Recording and Capture"
+does = "Accepts the chosen tempo and closes Capture's choice."
+
+[verb.capclr]
+group = "Recording and Capture"
+does = "Empties what Capture holds."
+
+[verb.mute]
+group = "Tracks and routing"
+args = "<track> <0|1>"
+does = "Mutes or unmutes a track; muting ends its sounding notes."
+
+[verb.tdrum]
+group = "Tracks and routing"
+args = "<track> <0|1>"
+does = "Makes a track a drum track: clip transpose does not apply, and single drum notes can be muted or soloed."
+
+[verb.pmute]
+group = "Tracks and routing"
+args = "<track> <pitch> <0|1>"
+does = "Mutes or unmutes one drum note on a track."
+
+[verb.psolo]
+group = "Tracks and routing"
+args = "<track> <pitch>"
+does = "Solos one drum note on a track; a value outside 0 to 127 ends the solo."
+
+[verb.route]
+group = "Tracks and routing"
+args = "<track> <0|1> <channel|slot>"
+does = "Lunar Modulator's own verb: 0 sends the track to a USB-MIDI channel (1 to 16), 1 to a sound engine slot."
+
+[verb.alabel]
+group = "Parameter locks"
+args = "<track> <lane> <label>"
+does = "Assigns a lock lane (0 to 7) to a parameter by name, such as synth:Timbre."
+
+[verb.abase]
+group = "Parameter locks"
+args = "<track> <lane> <value>"
+does = "Sets a lane's base value, 0 to 127, and sends it at once if the lane is assigned."
+
+[verb.abaseq]
+group = "Parameter locks"
+args = "<track> <lane> <value>"
+does = "Sets a lane's base value without sending it."
+
+[verb.aset]
+group = "Parameter locks"
+args = "<track> <lane> <step> <value> [<quiet>]"
+does = "Locks a value on a step and sends it at once, unless a fifth argument other than 0 asks for quiet."
+
+[verb.asetr]
+group = "Parameter locks"
+args = "<track> <lane> <from> <to> <value> [<quiet>]"
+does = "Locks the same value on a range of steps."
+
+[verb.aclrs]
+group = "Parameter locks"
+args = "<track> <lane> <step>"
+does = "Clears one lock; a lane with no locks left is freed."
+
+[verb.aclrstep]
+group = "Parameter locks"
+args = "<track> <step>"
+does = "Clears every lock on a step."
+
+[verb.aclr]
+group = "Parameter locks"
+args = "<track> <lane>"
+does = "Clears a lane in every clip of the track and frees it; the parameter returns to its base."
+
+[verb.usnap]
+group = "Undo"
+does = "Accepted and ignored for now: undo comes with the FM-1's interface."
+
+[verb.uswap]
+group = "Undo"
+does = "Accepted and ignored for now."
+
+[verb.ucommit]
+group = "Undo"
+does = "Accepted and ignored for now."
+
+[verb.udrop]
+group = "Undo"
+does = "Accepted and ignored for now."
+
+[verb.uclr]
+group = "Undo"
+does = "Accepted and ignored for now."
+
+[verb.link]
+group = "Transport and tempo"
+args = "<0|1>"
+does = "Movy's link to the Move's own transport. Here, while it is 1, an incoming MIDI Start also starts a stopped sequencer and a MIDI Stop stops it. Off by default; kept in a saved set."
+
+[verb.minject]
+group = "Movy on the Move only"
+args = "<0|1>"
+does = "Movy's note injection on the Move. Stored; no effect in Lunar Modulator."

@@ -13,7 +13,7 @@ this project (photos, binaries, SDK files), **[reported]** from a named source,
 | Marking | `C156211-11B8` (aroum's unit) and `C188612-11B8` (the owner's unit) under the slanted "JL" logo; the first group changes per lot, `11B8` is common to both | [verified] aroum's `photo_01.png` and the owner's close-up (`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §2); JieLi markings never carry the real part number ([kagaimiq, chip-marks](https://github.com/kagaimiq/jielie/blob/main/chips/chip-marks.md)) |
 | Package | LQFP48, leads exposed | [reported] AL-255 `01-hardware-map.md`; photo is consistent (gull-wing leads, not a QFN). The sibling SMK-37 Pro keyboard was identified as AC7911BA in QFN48 by its community |
 | CPU | JieLi **pi32v2**: 32-bit, little-endian, Blackfin-derived custom ISA, 16 GPRs, 16/32/48-bit instruction words, algebraic assembly, ELF machine `0xF1` | [reported] kagaimiq `cpu/pi32v2.md`, AL-255 `04-toolchain-and-vendoring.md` |
-| Cores | Two "DSP" cores in the family; **stock build uses one** (`CPU_CORE_NUM 1`) | [verified] string `SYSTEM-*modified #define CPU_CORE_NUM 1 *-…-@20220920` in V13 `app.bin`; family spec from the AC79 SDK README |
+| Cores | Two pi32v2 "DSP" cores, and **stock uses both**: JieLi's OS runs on cpu0 in the SDK's `CPU_CORE_NUM 1` mode, and the msfa voice render runs on cpu1, outside the OS (docs/11 §2). `CPU_CORE_NUM 1` means one core for the OS, not one core used | [verified] string `SYSTEM-*modified #define CPU_CORE_NUM 1 *-…-@20220920` in the V13, V15 and FM-1_092 `app.bin`; the render loop and its call [verified: V13 disassembly, file `0x86AD6`]; that it runs on cpu1 [reported: AL-255's symbol names; inferred from the `cpu1_run_flag`]; the mode [reported: JieLi AC79 doc 7.40]; family spec from the AC79 SDK README |
 | Clock | Family max 320 MHz; stock app runs at **240 MHz** from a 24 MHz crystal | [reported] AL-255 `architecture.md`; SDK README for the family max |
 | FPU / accel | Single-precision FPU, hardware FFT/matrix, AES-128/256, SHA, CRC16, RNG | [verified] AC79 SDK README |
 | SRAM | **578 KB** on chip, of which 32 KB I-cache and 32 KB D-cache (8-way each) are carved out, so about 514 KB is usable | [verified] AC79 SDK README (`片上集成了共578K字节SRAM`); caches [reported] JL-AC79-DevKit V1.0 listing, 2026-09-30 (docs/07 §3) |
@@ -47,6 +47,22 @@ should start from `AC7911B_Datasheet_V1.1.pdf` (1.8 MB) in the SDK mirror.
 Static RAM use of the stock app is therefore about 135 KB plus heap and the
 two 11.5 KB display strip buffers; against 578 KB of SRAM that leaves a lot of
 headroom for more voices, effects or a sequencer.
+
+**Load address** [inferred]: `app.bin` appears to run from `0x02000120`,
+not `0x02000000`. The runtime addresses AL-255 read from literals stand, but
+each is `0x120` above its file offset, and the app spans
+`0x02000120`–`0x0208E6BC`.
+- AL-255's `cpu1_boot_start` writes `0x020001B8` to the cpu1 mailbox; that
+  lands on the cpu1 vector at file `0x98` only with this offset [verified:
+  V13 disassembly].
+- The `.data` image (`0x9E7C` bytes) would overrun V13's 583,068-byte file
+  by `0x100` bytes from file `0x84820`; from `0x84700` it fits [verified:
+  arithmetic].
+- How this squares with the SPL's jump to `0x020000A0` (docs/02 §3) is not
+  worked out.
+- RAM-code addresses that AL-255 derived from file offsets are therefore
+  `0x120` low. That is how cpu1's entry was read as the cross-core IPC path
+  (docs/11 §2).
 
 ### Flash layout (1 MB) [reported: AL-255 `architecture.md`, from the JLFS directory in `FM-1.fwsc`]
 
@@ -121,8 +137,10 @@ and described in `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §2.
 
 ## 5. What the SoC gives an open firmware
 
-- Plenty of compute headroom: the stock app renders 12 msfa voices on one core
-  at 240 MHz with a third of the clock unused and a whole second core idle.
+- Compute headroom: the stock app runs at 240 MHz of a possible 320. It
+  renders its 12 msfa voices on the second core and everything else,
+  effects included, on the first (docs/11 §2). How loaded either core is has
+  not been measured.
 - 578 KB SRAM against ~135 KB static use.
 - A colour TFT with a fast SPI path and an existing strip-buffer rendering
   model that a custom UI can copy.

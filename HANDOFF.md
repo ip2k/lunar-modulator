@@ -8,7 +8,7 @@ Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
 original conversation; last updated 2026-09-29 (Baud Girl's FM-1+VA, the
 owner's PCB photos) and 2026-10-01 (engines, sequencer, the new name). Read
-this first, then `README.md`, then `docs/`.
+this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
 ## 1. Where things stand
 
@@ -38,14 +38,15 @@ this first, then `README.md`, then `docs/`.
   2026-10-01; GitHub redirects the old URLs). Moved there on
   2026-09-06 from the orphan branch `claude/mvave-fm1-open-firmware-ly2w6u` of
   `ip2k/busybar-dual-timer`, which the cloud session used because its GitHub
-  integration could not create repositories. Delete that branch once a remote
-  exists — see `README.md` → "Repository history".
+  integration could not create repositories. That branch was deleted on
+  2026-09-06.
 - **Unrelated to the BUSY Bar project.** Do not mix the two.
 
 ## 2. The ten facts that matter
 
-1. SoC = **JieLi AC791N** (WL82), custom **pi32v2** CPU, one core used at
-   240 MHz, 578 KB SRAM, 1 MB flash (probably in-package), XIP from
+1. SoC = **JieLi AC791N** (WL82), two custom **pi32v2** cores at 240 MHz
+   (stock: the OS on cpu0, the msfa voices bare-metal on cpu1 [inferred],
+   docs/11 §2), 578 KB SRAM, 1 MB flash (probably in-package), XIP from
    `0x02000000`, RAM at `0x01C00000`. Marking `C156211-11B8` (aroum's unit) /
    `C188612-11B8` (the owner's), LQFP48.
 2. Stock firmware = JieLi AC79 SDK (FreeRTOS-derived kernel, closed `.a` libs
@@ -220,7 +221,7 @@ Paste this as the first message of the new project (adjust paths):
 > This project, Lunar Modulator, is the open-source firmware effort for the
 > M-VAVE FM-1 FM synthesizer. The repository
 > (`~/Developer/mvave-fm1-firmware`) contains a completed research phase:
-> read `HANDOFF.md`, then `README.md`, then `docs/01`–`09` and `CLAUDE.md`. Rules: the FM-1 on my desk is the only unit;
+> read `HANDOFF.md`, then `DEVELOPERS.md`, then `docs/01`–`09` and `CLAUDE.md`. Rules: the FM-1 on my desk is the only unit;
 > nothing may be flashed or sent to it beyond the read-only identity query
 > until recovery is proven (docs/07). Today's tasks: (1) run
 > `docs/09-first-session-checklist.md` §1 to extract and analyse the V15

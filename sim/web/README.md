@@ -239,8 +239,9 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
 - **MIDI in only**; the virtual FM-1 sends nothing.
 - **Encoders without acceleration**; a float parameter moves a hundredth of
   its range per detent.
-- **The screen is drawn on the audio thread**, as UI and audio share one
-  core on the FM-1: a full redraw at most every ~33 ms while sound plays.
+- **The screen is drawn on the audio thread**, as UI and the effect chain
+  share cpu0 on the stock FM-1 (its voices render on cpu1, docs/11 §2): a
+  full redraw at most every ~33 ms while sound plays.
   Phones are not measured; if one drops out, a lower scope rate there is
   the next step.
 

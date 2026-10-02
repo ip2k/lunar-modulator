@@ -4,78 +4,95 @@
 
 **INTERGALACTIC MODULATION STATION**
 
-Lunar Modulator is open firmware for the M-VAVE FM-1, a ~€70
-battery-powered six-operator, 12-voice FM synthesizer from M-VAVE (Cuvave)
-with 27 silicone keys, a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI
-and a 3.5 mm MIDI input. Today you can play Lunar Modulator in a browser,
-from a copy of this repository, as a virtual FM-1: five sound engines and
-four effects behind a to-scale drawing of the FM-1's panel, with the
-firmware's own 240 × 240 screen. A C99 reimplementation of the sequencer
-core of [Movy](https://github.com/DimaDake/schwung-movy), a community step
-sequencer for Ableton Move, is built and tested on the desktop but not yet
-connected to the panel. The research on the device that all of this rests
-on is in [`docs/`](docs/), much of it built on reverse engineering by aroum,
-AL-255 and kagaimiq ([Credits](#credits)). Until 2026-10-01 the project was
-called "Open firmware for the M-VAVE FM-1" (`ip2k/mvave-fm1-open-firmware`).
+Lunar Modulator is open firmware for the M-VAVE FM-1, the compact,
+battery-powered FM synthesizer from M-VAVE (Cuvave) with 27 keys, a 1.54"
+colour screen, USB-C (MIDI and audio), BLE MIDI and a 3.5 mm MIDI input. It
+is being built to turn the FM-1 into a multi-engine instrument:
+- five sound engines with more than 160 models, shapes and patches between
+  them;
+- four effects;
+- next, a step sequencer with parameter locks.
+
 It is an independent project, not affiliated with or endorsed by M-VAVE,
 Cuvave or any space agency.
 
-> **Status (2026-10-01): the code runs on a desktop and in a browser, not
-> yet on a JieLi chip or an FM-1. This project has flashed nothing.**
->
-> - **Desktop and browser:** CI builds the engines, effects and sequencer
->   core on Linux and macOS, and on Linux also as a 32-bit build and under
->   ASan + UBSan; more than 1,400 tests pass [verified: CI on `main`,
->   2026-10-01]. The virtual FM-1 is tested in Chromium only
->   ([Features](#features), [Try it in your browser](#try-it-in-your-browser)).
-> - **On a JieLi chip:** nothing has been built with JieLi's compiler yet, so
->   speed and memory on pi32v2 are not measured. A JieLi AC79 dev kit and
->   JieLi's USB updater dongle are on order, to run the code there first and
->   to rehearse a flash dump and restore on the kit
->   ([`docs/14`](docs/14-verification-ladder.md)).
-> - **On the FM-1:** this project writes nothing to an FM-1 until a full
->   flash dump and a byte-identical restore have been shown on the owner's
->   unit ([`docs/07`](docs/07-recovery-and-risk.md) §4). The dump goes
->   through the chip's mask-ROM USB mode, entered over the USB-C port with a
->   `USB_KEY` dongle: JieLi's (on order), or ours, which is specified,
->   implemented and simulated but not yet run on hardware
->   ([`docs/10`](docs/10-usb-key-dongle.md), [`dongle/`](dongle/)). Two other
->   FM-1 owners report reaching that mode with czietz's Pico dongle, and one
->   reports backing up and writing firmware afterwards [reported:
->   [issue #2](https://github.com/ip2k/lunar-modulator/issues/2),
->   [`docs/10`](docs/10-usb-key-dongle.md) §1.1]; nobody here has run it.
-> - **The owner's unit** runs Baud Girl's
->   [FM-1+VA](https://baudgirl.com/work/FM-1+VA), a third-party firmware the
->   owner installed themselves; it identified as `FM-1_092` on 2026-09-29
->   [verified]. This project has only ever sent it read-only requests
->   ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md),
->   [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md)).
->
-> For the verdict on how open the firmware can be, read
-> [`docs/05`](docs/05-open-source-feasibility.md); for the plan from desktop
-> to device, [`docs/14`](docs/14-verification-ladder.md).
+> **Preview: not yet installable on an FM-1.**
+> - Lunar Modulator runs today as a virtual FM-1 in your browser, with the
+>   firmware's own screen and sound.
+> - Before it can be installed, it has to run on a JieLi development kit;
+>   nothing has run on a JieLi chip yet.
+> - A full backup and a byte-identical restore of an FM-1's memory also
+>   have to be proven, so that a unit that fails to start can be put back
+>   ([Installing on your FM-1](#installing-on-your-fm-1)).
+> - This project has never written anything to an FM-1.
 
-## Features
+*This page presents Lunar Modulator as a product: what it does, how to try
+it, and what is coming. Everything technical lives in
+[`DEVELOPERS.md`](DEVELOPERS.md): specifications, the hardware, how the
+software works, the research behind it, where development stands, and how to
+build, test and contribute.*
 
-Nothing here runs on an FM-1 yet. The engines, effects and sequencer core
-are built and tested on a desktop. The virtual FM-1 runs the engines and
-effects in a browser; the sequencer is not wired into it yet. The
-screenshots below are that virtual FM-1, showing the
-firmware's own 240 × 240 screen, and one figure compares its output with
-the native renderer's.
+## Try it in your browser
+
+Play it online at **<https://ip2k.github.io/lunar-modulator/>** and press
+**Power on**. To run it from a copy of this repository instead, you need
+Python 3 (the built module is included) and a current browser with
+WebAssembly and AudioWorklet support:
+
+```bash
+cd sim/web/www && python3 -m http.server 8000
+```
+
+Open <http://localhost:8000/> and press **Power on**: browsers only start
+audio after a click.
+- The page needs `http://localhost` or `https://`. Opening `index.html` as a
+  file does not work.
+- It has been tested in Chromium only so far. Firefox, Safari, real touch
+  screens and MIDI hardware are not tested yet.
+- "Connect MIDI input" plays the synth from a MIDI keyboard, in browsers with
+  Web MIDI. Without it, the panel and the computer keyboard still play.
+
+**Controls.**
+
+| Control | Mouse or touch | Computer keyboard |
+| --- | --- | --- |
+| Keys | Click or touch; lower on a key plays louder | `A` `S` `D` `F` `G` `H` `J` `K` `L` `;` `'` play the white keys F3 to B4, `W` `E` `R` `Y` `U` `O` `P` `[` the black ones |
+| OCT− / OCT+ | Click | `Z` / `X`. Both together reset octave and transpose; hold one and turn ALGORITHM to transpose ±12 |
+| SELECT | Drag up or down, or scroll | `←` `→`: the page, or in FX mode the slot and its pages |
+| PRESETS | Drag or scroll | `↑` `↓`: the sound engine |
+| ALGORITHM | Drag or scroll | `-` `=`: the engine's model (Model, Shape, Patch or Pad), or in FX mode the effect in the selected slot |
+| KNOB1–4 | Drag or scroll | Tab to a knob, then the arrow keys: the four parameters on the screen |
+| MASTER | Drag or scroll | Tab to it, then the arrow keys: the volume |
+| FX, SEL, GLO, HOME | Click | Tab to a button, then Enter or Space. FX: the effect slots; SEL then SELECT: swap them; GLO: rate, block, RAM, voices, effects, octave and transpose; HOME: back to the sound |
+| Everything | | `Esc` releases every note |
+
+ENV, LFO, EDIT, SAVE, ARP, SEQ, PLAY/STOP and REC say "not in the
+simulator yet": those features are on the [roadmap](#roadmap).
+- The menus under the panel pick the sound and both effects directly.
+- "Screen ×2" shows the screen enlarged.
+- A MIDI keyboard plays notes, with pitch bend (±2 semitones), CC 7 (volume)
+  and CC 123 (all notes off).
+
+## What it does
+
+Everything below runs today in the browser simulator, and the pictures are
+its screen; none of it runs on an FM-1 yet.
 
 ### Sound engines
 
-Five swappable sound engines behind one C API with no heap
-([`engines/`](engines/README.md)). **Macro** is Plaits' eight light
-models (virtual analogue, phase distortion, terrain, chiptune, VA pair,
-waveshaper, 2-op FM, wavetable) with 12 voices; **Shapes** is Braids' 47
-shapes; **Macro Heavy** is Plaits' other 13 (string machine, chords,
-speech, modal, particle, three drums and more) with 4 voices; **Six-Op FM**
-is Plaits' DX7-style engine with its 96 patches, 8 voices; **Sophie** is a
-16-pad FM drum kit, an MIT Schwung module compiled unmodified through a
-compatibility shim. Each engine pages its parameters four at a time, one
-per knob, as the FM-1's four free knobs want.
+Five sound engines; PRESETS switches between them.
+- **Macro:** eight models, 12 voices. Virtual analogue, phase distortion,
+  terrain, chiptune, VA pair, waveshaper, 2-op FM and wavetable.
+- **Shapes:** 47 classic digital oscillator shapes.
+- **Macro Heavy:** 13 more models, 4 voices. String machine, chords, speech,
+  modal, particle, three drums and more.
+- **Six-Op FM:** a DX7-style engine with 96 patches and 8 voices.
+- **Sophie:** a 16-pad FM drum kit.
+
+Each engine shows its parameters four at a time, one per knob (KNOB1–4):
+SELECT turns the page and ALGORITHM picks the model, shape, patch or pad.
+The engines are built on Emilie Gillet's Mutable Instruments code and a
+Schwung module ([Credits](#credits)).
 
 <table>
 <tr>
@@ -96,262 +113,115 @@ per knob, as the FM-1's four free knobs want.
 
 ### Effects
 
-Effects chain after any engine: **Plate** (Rings' reverb), **Ensemble** and
-**Diffuse** (Plaits), and **PSX Verb**, a second MIT Schwung module. The
-virtual FM-1 has two effect slots: FX shows them, SELECT moves between
-them and their pages, ALGORITHM picks the effect, SEL then SELECT swaps
-the two. A host limiter on the bus keeps twelve voices started in phase
-under full scale.
+Two effect slots follow any engine:
+- **Plate**, a reverb;
+- **Ensemble**, a chorus;
+- **Diffuse**, a diffuser;
+- **PSX Verb**, a reverb with several models.
+
+FX shows the slots, SELECT moves between them and their pages, and
+ALGORITHM picks the effect. SEL then SELECT swaps the two slots. A limiter
+on the output keeps a full twelve-voice chord from clipping.
 
 <img src="assets/screenshots/screen-fx.png" width="240" alt="FX mode: slot 1 Plate, slot 2 PSX Verb selected, with its Model, Decay, Mix and Level">
 
-### Renders checked against the reference, sample by sample
-
-Every engine and effect built from Mutable Instruments code is compared
-with the upstream classes it wraps: reference renderers drive the original
-Plaits, Braids and Rings code as the modules' own firmware does, with
-nothing of ours in the path, and more than 400 tests compare the two. At
-the upstream rates 21 of Plaits' 24 engines match sample for sample
-(Chiptune once its low-pass gate has opened), its three six-op banks
-correlate at 0.99 or better (the wrapper's timing differs by design), and
-Braids' 47 shapes and the effects lie within about half a 16-bit step
-(0.55 LSB at worst) ([`engines/reference-plaits.md`](engines/reference-plaits.md),
-[`engines/reference-braids-fx.md`](engines/reference-braids-fx.md)); the
-two Schwung modules are compiled unmodified. The browser adds nothing:
-twelve note scripts covering every engine and effect
-render identically, sample for sample, in the browser's WebAssembly module
-and in the native renderer built with GCC and musl; against GCC with glibc
-ten of the twelve are identical, and the two that differ are Sophie's,
-whose feedback FM amplifies last-bit differences between the two C
-libraries' `sinf` and `expf` [verified: `sim/web/www/fm1.wasm.json`,
-2026-10-01].
-
-![Six-Op FM's chord rendered natively and in the browser, with a flat difference line: 0 of 105,882 samples differ](assets/screenshots/parity.png)
-
-### Sequencer core
-
-`fm1_seq` is a C99, heap-free port of Movy's sequencer (schwung-movy, MIT)
-with the fixes planned in [docs/13](docs/13-movy-port.md) on by default and
-an exact-Movy mode for tests: 4–8 tracks, each routed to the engine or to
-USB-MIDI on its own channel, in 14,984 bytes at 4 tracks and 28,808 at 8.
-The desktop renderer plays Movy sets and timed scripts through it with
-sample-accurate notes and parameter locks, and Movy's own unmodified core,
-run in a container, drives 24 golden fixtures that ours matches event for
-event, undo aside ([`engines/seq.md`](engines/seq.md)). It is not wired
-into the virtual FM-1 yet, so there is no screen to show: SEQ, PLAY/STOP
-and REC still say "not in the simulator yet".
-
 ### The virtual FM-1
 
-The firmware's app layer (panel logic, the effect chain and the screen
-drawing) compiled to WebAssembly and run in an AudioWorklet, behind a
-to-scale drawing of the FM-1's front panel: the 27 keys, the 14 buttons
-with their LEDs, MASTER and the seven encoders. The screen is the
-firmware's own RGB565 frame buffer, copied to a canvas; every one of its
-287 screens passes a layout check with no text cut short and nothing
-closer than 4 px. Turn KNOB1–4 and the four parameters on the page follow.
-Play it with the mouse, a touch screen, the computer keyboard or a MIDI
-keyboard.
+A to-scale drawing of the FM-1's front panel: the 27 keys, the 14 buttons
+with their LEDs, MASTER and the seven encoders.
+- The screen is the firmware's own 240 × 240 display.
+- Turn KNOB1–4 and the four parameters on the screen follow.
+- Play it with the mouse, a touch screen, the computer keyboard or a MIDI
+  keyboard.
+- On a phone the panel keeps playable key sizes and scrolls sideways; turned
+  to landscape it fits whole.
 
 ![Lunar Modulator in the browser: the to-scale FM-1 panel with a chord held on Macro](assets/screenshots/virtual-fm1.png)
 
 <img src="assets/screenshots/panel-params.png" width="560" alt="The screen beside KNOB1-4, turned: Model 2-op FM, Harmonics 0.68, Timbre 0.28, Morph 0.81"> <img src="assets/screenshots/phone.png" width="200" alt="The page on a 390-pixel-wide phone: the panel keeps playable key sizes and scrolls sideways">
 
-On a phone the panel keeps playable sizes (keys 31–35 px wide, no target
-under 24 px) and scrolls sideways in its own box; turned to landscape it
-fits whole.
+### Sequencer (coming next)
 
-## Try it in your browser
+A step sequencer whose design and logic follow Movy by megadake
+([Credits](#credits)):
+- **Tracks:** 4 to 8, each playing the synth or a USB-MIDI channel.
+- **Per note:** velocity and length.
+- **Per step:** probability, A:B conditions and chords.
+- **Per clip:** playback speed (1/8× to 4×), transpose and quantise.
+- **Parameter locks:** hold a step and turn a knob to change that step's
+  sound.
+- **Capture:** turns what you just played into a clip, without having
+  pressed record.
 
-The built module is in the repository, so all it takes is Python 3 and a
-current browser:
+Its core is built and tested. Bringing it to the panel and screen is the next
+step.
 
-```bash
-cd sim/web/www && python3 -m http.server 8000
-```
+## Roadmap
 
-Open <http://localhost:8000/> and press **Power on** (browsers only start
-audio after a click). The page needs `http://localhost` or `https://`;
-opening `index.html` as a file does not work, and over plain `http://` from
-another machine's address Power on says so instead of starting. It loads
-nothing from anywhere else and finds its files relative to itself, so
-`sim/web/www/` can also be published as static files, at any path.
+Nothing on this list installs on an FM-1 yet: everything on the device waits
+on the first installable build ([Installing on your FM-1](#installing-on-your-fm-1)).
+"The simulator" means the virtual FM-1 in your browser.
 
-**Browsers.** It needs WebAssembly, an AudioWorklet and a secure context.
-It is tested in Chromium only: headless Chromium 153 on Linux, from a local
-server and over https under a sub-path, and Chromium 152 on macOS, from
-`python3 -m http.server`. Firefox, Safari, real touch screens and MIDI
-hardware are not tested yet. "Connect MIDI input" needs a browser with Web
-MIDI; without it the panel and the computer keyboard still play.
-
-**Controls.**
-
-| Control | Mouse or touch | Computer keyboard |
+| Feature | Status | Where it stands |
 | --- | --- | --- |
-| Keys | Click or touch; lower on a key plays louder | `A` `S` `D` `F` `G` `H` `J` `K` `L` `;` `'` play the white keys F3 to B4, `W` `E` `R` `Y` `U` `O` `P` `[` the black ones |
-| OCT− / OCT+ | Click | `Z` / `X`. Both together reset octave and transpose; hold one and turn ALGORITHM to transpose ±12 |
-| SELECT | Drag up or down, or scroll | `←` `→`: the page, or in FX mode the slot and its pages |
-| PRESETS | Drag or scroll | `↑` `↓`: the sound engine |
-| ALGORITHM | Drag or scroll | `-` `=`: the engine's model (Model, Shape, Patch or Pad), or in FX mode the effect in the selected slot |
-| KNOB1–4 | Drag or scroll | Tab to a knob, then the arrow keys: the four parameters on the screen |
-| MASTER | Drag or scroll | Tab to it, then the arrow keys: the volume |
-| FX, SEL, GLO, HOME | Click | Tab to a button, then Enter or Space. FX: the effect slots; SEL then SELECT: swap them; GLO: rate, block, RAM, voices, effects, octave and transpose; HOME: back to the sound |
-| Everything | | `Esc` releases every note |
+| Sound engines and effects | Available in the simulator | Five engines and four effects ([What it does](#what-it-does)). |
+| Sequencer | In progress | The core is built and tested, Capture included. It comes to the simulator's panel and screen next. |
+| Screen and controls refinement | In progress | Ongoing with each feature. All 287 of the simulator's screens pass a layout check. |
+| Arpeggiator | Planned, design chosen | Our own arpeggiator, after Mutable Instruments' Yarns, with the extra note orders of MCL (MegaCommand Live): rhythm patterns and Euclidean rhythms, octave modes, ratchets, swing, latch, and chance settings that can repeat a variation. It takes the first MIDI-effect slot, so it plays alongside the sequencer, which the stock firmware cannot do [reported]. |
+| MIDI effects (chords, scales, note echo, …) | Planned | A short chain of effects on each track, between the keys or the sequencer and the sound. The first set: transpose and note range, scale, chord, velocity, note echo and chance. They come to the simulator first. |
+| LFOs, envelopes and a modulation matrix | Planned, design chosen | Two LFOs with tempo sync and trigger modes, two ADSR envelopes after Mutable Instruments' Peaks, and a 16-slot modulation matrix that reaches the engines' and effects' parameters. Per-note envelopes come later, for the engines that can take them. |
+| More effects, including eurorack-style ones such as sample-and-hold | Planned | Sample-and-hold, smooth random and Turing-machine-style modulation sources come first, then a bitcrusher (sample-and-hold at audio rate), a random-stepped filter, a wavefolder and a chorus. A ping-pong echo and a beat-repeat follow once effects can keep the sequencer's tempo. On the FM-1, memory is the limit: one long echo or repeat at a time. |
+| Installing on a real FM-1 | In preparation | Not installable yet. First, Lunar Modulator has to run on a JieLi development kit (on order), and a full backup and a byte-identical restore of an FM-1 have to be proven. It also needs its own installer and its own update service, so that an FM-1 running it can always go back to the stock firmware. The first installable build will be a small preview, offered first to owners who can already restore their own FM-1 ([below](#installing-on-your-fm-1)). |
+| DX7 patches and SysEx, presets saved on the synth | Planned | Comes with the firmware for the FM-1 itself. |
+| MIDI out over USB | Planned | The FM-1 already shows the computer a MIDI port that can send [verified]. On the device, this needs Lunar Modulator's own USB-MIDI driver. The simulator receives MIDI but sends none yet; that needs Web MIDI output. |
+| MIDI out on the 3.5 mm jack | To be investigated | Probably not possible without a hardware change. M-VAVE's manual and Baud Girl's both call the jack an input [reported], and on the board it appears to feed only the input circuit [inferred]. A measurement on an opened FM-1 will settle it. |
+| BLE MIDI | To be investigated | A stock feature, built on JieLi's closed Bluetooth libraries. Lunar Modulator could keep it in builds that use those libraries. Its memory cost is not measured yet, and the first preview will not have it. |
+| The FM-1's second CPU core | To be tried on the development kit | The stock firmware appears to play its synth voices on the second core already [inferred, from its code]. Whether Lunar Modulator can do the same will be tried on the development kit. It could make room for more voices and effects. |
 
-ENV, LFO, EDIT, SAVE, ARP, SEQ, PLAY/STOP and REC show "not in the
-simulator yet". The dropdowns under the panel pick the sound and both
-effects directly, "Screen ×2" shows the screen enlarged, and a MIDI
-keyboard plays notes with pitch bend (±2 semitones), CC 7 (volume) and
-CC 123 (all notes off).
+The detail behind each line is in
+[`DEVELOPERS.md`](DEVELOPERS.md#the-roadmap-in-detail), with
+[the path to an installable build](DEVELOPERS.md#the-path-to-an-installable-build).
 
-**Rebuilding the module.** Only needed after changing `engines/` or
-`sim/web/src/`. It builds in containers on any Linux machine with Docker
-that you can reach over ssh, checks the result sample by sample against
-the native renderer, plays the page in headless Chromium, and only then
-replaces `sim/web/www/fm1.wasm`:
+## Installing on your FM-1
 
-```bash
-FM1_SIM_HOST=user@host sim/web/build-on-aeon.sh   # about 20 s once the images are pulled
-python -m pytest tests/test_sim_web.py            # the native checks, no WebAssembly needed
-```
+**Not yet.** Two things have to happen first.
+- **Lunar Modulator has to run on the FM-1's chip.** So far it runs on
+  desktops and in the browser. The first JieLi build will be on a JieLi
+  development kit.
+- **A safe way back has to be proven.** The FM-1 has one copy of its firmware
+  and no recovery button, so a bad install could leave a synth that does not
+  start. Before Lunar Modulator offers an install, it must be shown that the
+  FM-1's memory can be backed up in full and restored byte for byte.
+  - That goes through the chip's USB download mode. Two other FM-1 owners
+    report reaching it with a small Raspberry Pi Pico adapter, and one
+    reports backing up and writing firmware that way
+    ([issue #2](https://github.com/ip2k/lunar-modulator/issues/2)).
+  - This project will check it first on the development kit, then on an
+    FM-1.
 
-Details, the panel's measurements and the parity results are in
-[`sim/web/README.md`](sim/web/README.md).
+Once both are done, the plan is for Lunar Modulator to install over USB
+through the FM-1's own update path, as other third-party firmware already
+does.
+- It will come with its own installer, and it will answer the FM-1's update
+  requests itself, so that a unit running it can always go back to the stock
+  firmware.
+- The first installable build will be a small preview, offered first to
+  owners who can already back up and restore their own FM-1.
 
-## The short version
+[`DEVELOPERS.md`](DEVELOPERS.md#the-path-to-an-installable-build) explains
+the plan and the rules this project follows until then.
 
-- **The chip is a JieLi AC791N** (JieLi's "WL82" family) running JieLi's own
-  Blackfin-derived **pi32v2** CPU core, executing in place from a 1 MB flash
-  image. It is the same platform JieLi sells for Wi-Fi speakers and story
-  machines. The board is silkscreened `DX7 MB V07`.
-- **The stock synth engine is Google's msfa, the Dexed core.** Verified in this
-  repo: the 32-entry FM algorithm table from `fm_core.cc` sits byte-for-byte at
-  offset `0x8C46C` of the V13 application image (with the Dexed-family fix for
-  algorithms 4 and 6). The factory bank is reportedly the DX7 ROM1A cartridge.
-- **Updates are plain USB-MIDI SysEx with CRC16 and no signature.** Two prior
-  projects, [aroum/fm1-custom-fw](https://github.com/aroum/fm1-custom-fw) and
-  [AL-255/FM-1-RE](https://github.com/AL-255/FM-1-RE), have reverse-engineered
-  the protocol byte-for-byte, disassembled two firmware versions and even built
-  an experimental pi32v2 firmware blob.
-- **Non-stock firmware now runs on FM-1s, installed over USB-MIDI.** On
-  2026-09-04 a contributor to AL-255's repository (Echomatter,
-  [PR #2](https://github.com/AL-255/FM-1-RE/pull/2)) installed a V15-derived
-  package with its version bumped to 016 and rolled it back to stock V15.
-  Since 2026-09-26 Baud Girl's
-  [FM-1+VA](https://baudgirl.com/work/FM-1+VA) (a modified V15 with a
-  virtual-analog engine and a 64-step sequencer; source not published)
-  installs from a browser,
-  `FM-1_020` through `FM-1_092` so far. The stock step-1 check turns out to
-  be a same-version refusal, and content is not authenticated
-  ([docs/03](docs/03-update-protocol.md) §5). There is still **no proven
-  recovery path** for a device whose application does not run: one flash
-  bank, no debug pads, no recovery button, and JieLi's mask-ROM USB boot mode
-  has not been demonstrated on this project's unit. Other owners now report
-  reaching it with czietz's Pico dongle, and one reports backing up and
-  writing firmware that way ([issue #2](https://github.com/ip2k/mvave-fm1-open-firmware/issues/2),
-  [docs/10](docs/10-usb-key-dongle.md) §1.1).
-  AL-255's standing verdict remains *NO-GO for non-stock flashing* until
-  recovery exists; [docs/10](docs/10-usb-key-dongle.md) is the dongle that
-  should provide it.
-- **"Wholly open source" is bounded by JieLi.** The compiler is a closed
-  Clang/LLVM 4.0.1 fork with a proprietary pi32v2 backend, and the vendor SDK
-  links closed `.a` libraries (Bluetooth controller and stack, audio server,
-  filesystem, even `cpu.a`). The SDK sources, register headers and a
-  replacement bootloader are Apache-2.0. The realistic first target is *an open
-  application on the vendor SDK*; blob removal and an open toolchain come later.
-- **schwung-movy cannot be ported, but its design can.** Movy is
-  TypeScript + Rust running inside Ableton Move, a quad-core Cortex-A72 Linux
-  computer with 2 GB of RAM. The FM-1 is a 240 MHz custom-ISA microcontroller
-  with 578 KB of SRAM and no Rust or LLVM target. Movy's 8-knob parameter
-  pages become two pages of four on the FM-1's four free knobs. Its
-  Move-style sequencer model is the specification for `fm1_seq`, our C
-  reimplementation ([docs/13](docs/13-movy-port.md),
-  [`engines/seq.md`](engines/seq.md)).
+## Documentation
 
-## Recommended path
-
-1. **Bench characterization, read-only** ([docs/09](docs/09-first-session-checklist.md)).
-   The first session was done on 2026-09-06
-   ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md)).
-2. **Prove recovery before anything else** ([docs/07](docs/07-recovery-and-risk.md)):
-   - Get the chip into its mask-ROM USB boot mode through the USB-C port with
-     the `USB_KEY` signal.
-   - Dump the flash, restore it, and repeat.
-   - Rehearse on the AC79 dev kit first, which is on order
-     ([docs/14](docs/14-verification-ladder.md)).
-   - Everything else on the FM-1 waits on this.
-   - The dongles for it are JieLi's updater (on order) and ours
-     ([docs/10](docs/10-usb-key-dongle.md) / [`dongle/`](dongle/)). Other
-     owners report the route works with a Pico dongle ([docs/10](docs/10-usb-key-dongle.md)
-     §1.1).
-3. **First custom code through the mask-ROM route**: the vendor SDK's
-   `demo_hello` for AC791N, on the dev kit and then adapted to the FM-1 board.
-4. **The synth**:
-   - The engine platform ([`engines/`](engines/README.md)), built and checked
-     against reference renders on the desktop, brought to pi32v2. Its cost and
-     memory are measured on the dev kit first (stage B,
-     [docs/14](docs/14-verification-ladder.md)).
-   - Then a USB-MIDI class device, DX7 SysEx and presets in flash.
-5. **UI and sequencer** after Movy ([docs/13](docs/13-movy-port.md)). The
-   sequencer core and its Movy oracle are built and tested on the desktop
-   ([`engines/seq.md`](engines/seq.md)); the UI and the rest of the port
-   follow.
-6. **Ship through the stock OTA path** (new version number, stock flash head),
-   as Baud Girl's releases already do, so users install without opening the case.
-
-## Repository map
-
-| Path | What it is |
-| --- | --- |
-| [`docs/01-hardware.md`](docs/01-hardware.md) | SoC, memory, board, connectors, what is still unknown |
-| [`docs/02-stock-firmware.md`](docs/02-stock-firmware.md) | Package format, boot chain, what the stock app is made of, the msfa finding |
-| [`docs/03-update-protocol.md`](docs/03-update-protocol.md) | The SysEx update protocol and its step-1 version gate |
-| [`docs/04-prior-art.md`](docs/04-prior-art.md) | Every project, SDK, tool and thread this work stands on |
-| [`docs/05-open-source-feasibility.md`](docs/05-open-source-feasibility.md) | What "open firmware" can mean here, the blockers, the verdict |
-| [`docs/06-movy-and-schwung.md`](docs/06-movy-and-schwung.md) | Why Movy cannot be ported and what to take from it anyway |
-| [`docs/07-recovery-and-risk.md`](docs/07-recovery-and-risk.md) | Recovery paths, risk register, rules of engagement |
-| [`docs/08-roadmap.md`](docs/08-roadmap.md) | Phased plan with exit criteria |
-| [`docs/09-first-session-checklist.md`](docs/09-first-session-checklist.md) | Exact commands for the first hands-on session |
-| [`docs/10-usb-key-dongle.md`](docs/10-usb-key-dongle.md) | The RP2040 `USB_KEY` dongle: protocol, hardware, firmware, bench procedure |
-| [`docs/11-plugin-platform.md`](docs/11-plugin-platform.md) | Feasibility of a Schwung-style engine/plugin platform: Schwung module compatibility, Mutable Instruments engines, loader design |
-| [`docs/12-sequencer.md`](docs/12-sequencer.md) | Feasibility of an Elektron-style sequencer with per-step parameter locks: semantics, prior art and licences (Movy, MCL, Eloquencer, LMN-3, …), data model, timing, controls, staged plan |
-| [`docs/13-movy-port.md`](docs/13-movy-port.md) | Port plan for replicating Movy's sequencer on the FM-1: exact semantics, mapping to the FM-1's controls, memory and CPU, a C99 no-heap core, tests, staged plan |
-| [`docs/14-verification-ladder.md`](docs/14-verification-ladder.md) | The verification ladder: how to show 1:1 behaviour from the desktop renderer and the browser to the AC79 dev kit and then the FM-1 — tolerance classes, a ladder build profile, FPU probes, the first week with the kit |
-| [`dongle/`](dongle/) | Dongle firmware (PIO + C), ROM/dongle simulator, tests |
-| [`tools/check_msfa_table.py`](tools/check_msfa_table.py) | Finds the msfa algorithm table in an `app.bin` (tested on V13 and V14) |
-| [`tools/extract_fwsc_from_updater.py`](tools/extract_fwsc_from_updater.py) | Carves the embedded `.fwsc` out of an M-UPGRADE updater binary (verified on the macOS DMG) |
-| [`tools/fm1_identify.py`](tools/fm1_identify.py) | Read-only identity query with decoder, any OS via mido (verified on hardware 2026-09-06) |
-| [`tools/fm1_identify.sh`](tools/fm1_identify.sh) | Read-only SysEx identity query via ALSA `amidi` (untested on hardware) |
-| [`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md) | Bench session 1: USB descriptors, identity reply, MIDI probes, V14 vs V15 |
-| [`tests/`](tests/), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | pytest suite (tools, PIO emulation, dongle/ROM co-simulation, the engines and their reference renders, the sequencer and its Movy oracle fixtures, the virtual FM-1) and CI: tests on Linux/macOS, 32-bit and ASan + UBSan builds of the engines, sequencer and virtual FM-1, the RP2040 UF2 build, AL-255's suite on our fork |
-| [`notes/2026-09-06-research-log.md`](notes/2026-09-06-research-log.md) | What was checked, what was blocked, where the numbers come from |
-| [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md) | Baud Girl's FM-1+VA, its `FM-1_092` package diffed against V15, and the owner's board photos |
-| [`photos/`](photos/) | The owner's photos of their unit, by date, with the crops the notes cite |
-| [`engines/`](engines/) | The engine platform, stage A: the C engine API, sound engines and effects from Mutable Instruments code, a Schwung module shim, a desktop renderer and tests |
-| [`tools/movy-oracle/`](tools/movy-oracle/) | The Movy oracle: a driver for Movy's own `seq-core`, run in containers on the LAN, plus a random script generator; it produced the golden fixtures the sequencer tests use |
-| [`notes/upstream-candidates.md`](notes/upstream-candidates.md) | Findings worth sending to other projects, none posted yet |
-
-Confidence marks used throughout the docs: **[verified]** checked in this
-project against binaries, photos or SDK files; **[reported]** taken from a
-named source and not independently re-checked; **[inferred]** our reading of
-the evidence.
-
-## Repository history
-
-The research phase was produced in a Claude Code cloud session that could not
-create GitHub repositories (the integration returned `403`), so its first
-commit briefly lived on an orphan branch of `ip2k/busybar-dual-timer`. On
-2026-09-06 that branch was cloned into `~/Developer/mvave-fm1-firmware` as this
-repository's `main`, published as `ip2k/mvave-fm1-open-firmware`. The stray
-branch can then be deleted:
-
-```bash
-git push https://github.com/ip2k/busybar-dual-timer --delete claude/mvave-fm1-open-firmware-ly2w6u
-```
-
-On 2026-10-01 the project was renamed Lunar Modulator and the repository
-`ip2k/lunar-modulator`; GitHub redirects the old URLs [reported, GitHub's
-documentation on renaming a repository]. The local folder keeps its old name.
+- **[The user manual](https://ip2k.github.io/lunar-modulator/manual/):**
+  every control, engine and effect, the sequencer, and the road to the
+  device, with a PDF. Its source is [`manual/`](manual/).
+- [`DEVELOPERS.md`](DEVELOPERS.md): where development stands, how the
+  firmware works, the hardware, and building and testing.
+- [`docs/`](docs/): the research documents, listed in the
+  [repository map](#repository-map).
+- [`sim/web/README.md`](sim/web/README.md): the browser simulator in detail.
+- [`CHANGELOG.md`](CHANGELOG.md): what changed.
 
 ## Credits
 
@@ -410,7 +280,8 @@ This is a synthesis of other people's work. The details are in
   engines and the Plate, Ensemble and Diffuse effects.
 - **Charles Vestal** for Schwung and its PSX Verb module, and **Matt Estela**
   for the Sophie drum module (MIT).
-- **DimaDake** for Movy, whose sequencer `fm1_seq` ports (MIT).
+- Sequencer design and logic after Movy by **megadake** (MIT),
+  [github.com/DimaDake/schwung-movy](https://github.com/DimaDake/schwung-movy).
 - Google's music-synthesizer-for-android and the Dexed / Synth_Dexed /
   MiniDexed lineage, the engine of the stock firmware.
 
@@ -418,6 +289,7 @@ This is a synthesis of other people's work. The details are in
 
 - The Rosé Pine palette (MIT).
 - The Audiowide typeface by Astigmatic (SIL OFL 1.1).
+- The Exo 2 typeface by Natanael Gama (SIL OFL 1.1).
 
 Vendor firmware images and Baud Girl's packages are not redistributed here;
 see the sources.
@@ -426,3 +298,40 @@ see the sources.
 
 MIT for the contents of this repository. Third-party material keeps its own
 license as noted where it is referenced.
+
+## Repository map
+
+| Path | What it is |
+| --- | --- |
+| [`DEVELOPERS.md`](DEVELOPERS.md) | For contributors: where development stands, how the firmware works, the hardware, building and testing, the project's rules |
+| [`manual/`](manual/), [`tools/manual/`](tools/manual/) | The user manual: chapters in Markdown, a Rosé Pine Dawn theme, and the build that generates its reference from the code and publishes it to GitHub Pages |
+| [`sim/web/`](sim/web/) | The browser simulator: the firmware's app layer, its WebAssembly build, the page and its tests |
+| [`assets/`](assets/) | The branding art (`assets/branding/`) and the README's screenshots (`assets/screenshots/`) |
+| [`CHANGELOG.md`](CHANGELOG.md), [`HANDOFF.md`](HANDOFF.md) | What changed, and the context summary for whoever picks the work up next |
+| [`docs/01-hardware.md`](docs/01-hardware.md) | SoC, memory, board, connectors, what is still unknown |
+| [`docs/02-stock-firmware.md`](docs/02-stock-firmware.md) | Package format, boot chain, what the stock app is made of, the msfa finding |
+| [`docs/03-update-protocol.md`](docs/03-update-protocol.md) | The SysEx update protocol and its step-1 version gate |
+| [`docs/04-prior-art.md`](docs/04-prior-art.md) | Every project, SDK, tool and thread this work stands on |
+| [`docs/05-open-source-feasibility.md`](docs/05-open-source-feasibility.md) | What "open firmware" can mean here, the blockers, the verdict |
+| [`docs/06-movy-and-schwung.md`](docs/06-movy-and-schwung.md) | Why Movy cannot be ported and what to take from it anyway |
+| [`docs/07-recovery-and-risk.md`](docs/07-recovery-and-risk.md) | Recovery paths, risk register, rules of engagement |
+| [`docs/08-roadmap.md`](docs/08-roadmap.md) | Phased plan with exit criteria |
+| [`docs/09-first-session-checklist.md`](docs/09-first-session-checklist.md) | Exact commands for the first hands-on session |
+| [`docs/10-usb-key-dongle.md`](docs/10-usb-key-dongle.md) | The RP2040 `USB_KEY` dongle: protocol, hardware, firmware, bench procedure |
+| [`docs/11-plugin-platform.md`](docs/11-plugin-platform.md) | Feasibility of a Schwung-style engine/plugin platform: Schwung module compatibility, Mutable Instruments engines, loader design |
+| [`docs/12-sequencer.md`](docs/12-sequencer.md) | Feasibility of an Elektron-style sequencer with per-step parameter locks: semantics, prior art and licences (Movy, MCL, Eloquencer, LMN-3, …), data model, timing, controls, staged plan |
+| [`docs/13-movy-port.md`](docs/13-movy-port.md) | Port plan for replicating Movy's sequencer on the FM-1: exact semantics, mapping to the FM-1's controls, memory and CPU, a C99 no-heap core, tests, staged plan |
+| [`docs/14-verification-ladder.md`](docs/14-verification-ladder.md) | The verification ladder: how to show 1:1 behaviour from the desktop renderer and the browser to the AC79 dev kit and then the FM-1 — tolerance classes, a ladder build profile, FPU probes, the first week with the kit |
+| [`dongle/`](dongle/) | Dongle firmware (PIO + C), ROM/dongle simulator, tests |
+| [`tools/check_msfa_table.py`](tools/check_msfa_table.py) | Finds the msfa algorithm table in an `app.bin` (tested on V13 and V14) |
+| [`tools/extract_fwsc_from_updater.py`](tools/extract_fwsc_from_updater.py) | Carves the embedded `.fwsc` out of an M-UPGRADE updater binary (verified on the macOS DMG) |
+| [`tools/fm1_identify.py`](tools/fm1_identify.py) | Read-only identity query with decoder, any OS via mido (verified on hardware 2026-09-06) |
+| [`tools/fm1_identify.sh`](tools/fm1_identify.sh) | Read-only SysEx identity query via ALSA `amidi` (untested on hardware) |
+| [`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md) | Bench session 1: USB descriptors, identity reply, MIDI probes, V14 vs V15 |
+| [`tests/`](tests/), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | pytest suite (tools, PIO emulation, dongle/ROM co-simulation, the engines and their reference renders, the sequencer and its Movy oracle fixtures, the virtual FM-1) and CI: tests on Linux/macOS, 32-bit and ASan + UBSan builds of the engines, sequencer and virtual FM-1, the RP2040 UF2 build, AL-255's suite on our fork |
+| [`notes/2026-09-06-research-log.md`](notes/2026-09-06-research-log.md) | What was checked, what was blocked, where the numbers come from |
+| [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md) | Baud Girl's FM-1+VA, its `FM-1_092` package diffed against V15, and the owner's board photos |
+| [`photos/`](photos/) | The owner's photos of their unit, by date, with the crops the notes cite |
+| [`engines/`](engines/) | The engine platform, stage A: the C engine API, sound engines and effects from Mutable Instruments code, a Schwung module shim, a desktop renderer and tests |
+| [`tools/movy-oracle/`](tools/movy-oracle/) | The Movy oracle: a driver for Movy's own `seq-core`, run in containers on the LAN, plus a random script generator; it produced the golden fixtures the sequencer tests use |
+| [`notes/upstream-candidates.md`](notes/upstream-candidates.md) | Findings worth sending to other projects, none posted yet |

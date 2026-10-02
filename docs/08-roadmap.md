@@ -113,7 +113,10 @@ Detailed commands in docs/09.
 - Toolchain: document the pi32v2 ISA formally from the vendor objdump +
   ghidra-jieli; fix ghidra-jieli's `80 ff` long-call decoding; evaluate an LLVM
   backend as a separate project.
-- Second core: offload effects or the UI.
+- Second core: stock already renders its voices on cpu1, outside the OS
+  (docs/11 §2). Whether an SDK build can do the same is tested on the dev
+  kit (docs/14 §5.1). A blob-free firmware must also start cpu1 itself
+  (the mailbox and `C1_CON` writes, not yet understood).
 
 ## Research items (any time)
 
