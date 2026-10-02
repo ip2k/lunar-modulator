@@ -238,7 +238,8 @@ polyphonic track (FM-1+VA parity plus locks) and leave room for four.
     re-initialises all 12 voices and clears gate and active (`mi_macro.cc`
     146–157, 175–201). A Model lock would cut every note. Macro reads its
     other parameters per block, for all voices.
-  - **Six-Op FM** reads Patch per voice at note-on (`mi_sixop.cc` 161–173).
+  - **Six-Op FM** reads Patch per voice at note-on (`mi_sixop.cc`,
+    `Instance::NoteOn`).
     A Patch lock is therefore a per-note sound lock at no extra cost.
   - **msfa** (the stock engine) copies the patch into the voice at note-on,
     as Dexed's `dx7note` does [reported: FM-1 lane].
@@ -276,7 +277,7 @@ of a step:
     (`fm1_engine.h` 10) [verified].
   - Onsets are then quantised only inside each engine: 12 samples in Macro,
     16 in Six-Op, and 24 at 96 kHz in Shapes [verified: engines/README.md,
-    `mi_sixop.cc` 116].
+    `mi_sixop.cc` `kBlock`].
 - **Order at one offset:** note-offs, reverts, locks, note-ons, so LATCH
   parameters see the lock. For comparison, Movy sends a lock one tick before
   its notes, and Schwung evaluates lanes one block early [reported: lanes].

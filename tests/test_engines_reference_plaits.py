@@ -65,7 +65,8 @@ import pytest
 if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from tests.engine_helpers import ENGINES, renderer  # noqa: E402,F401  (fixture: builds engines/)
+from tests.engine_helpers import (ENGINES, renderer,  # noqa: E402,F401  (fixture: builds engines/)
+                                  sixop_patch_names)
 
 REF = ENGINES / "build" / "fm1-ref-plaits"
 RENDER = ENGINES / "build" / "fm1-render"
@@ -726,10 +727,9 @@ def test_every_upstream_slot_is_mapped_once(wavs):
 
 def test_sixop_patch_scan_maps_to_patch_names(wavs):
     """The patch HARMONICS selects upstream, as the reference reports it, is
-    the Patch entry of the same name in mi_sixop.cc, for all 96 patches."""
-    src = (ENGINES / "src" / "mi_sixop.cc").read_text()
-    table = src[src.index("kPatchNames[kNumPatches] = {"):]
-    names = re.findall(r'"((?:[^"\\]|\\.)*)"', table[:table.index("};")])
+    the Patch entry with that stored name in mi_sixop.cc, for all 96 patches
+    (23 of them are shown under another name; plaits-heavy.md)."""
+    names = [stored for stored, _ in sixop_patch_names()]
     cmds = []
     for s in SLOTS[2:5]:
         for slot in range(32):

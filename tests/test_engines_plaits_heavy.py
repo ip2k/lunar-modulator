@@ -15,7 +15,7 @@ import wave
 import pytest
 
 from tests.engine_helpers import (ENGINES, RATE, cents, pitch_hz,  # noqa: F401
-                                  render, renderer, rms)
+                                  render, renderer, rms, sixop_patch_names)
 
 HEAVY_MODELS = ["Str Machine", "Chords", "Speech", "Formant", "Additive", "Swarm",
                 "Filt Noise", "Particle", "String", "Modal", "Bass Drum", "Snare",
@@ -23,6 +23,9 @@ HEAVY_MODELS = ["Str Machine", "Chords", "Speech", "Formant", "Additive", "Swarm
 HEAVY_VOICES = 4
 SIXOP_VOICES = 8
 RESOURCES = ENGINES / "third_party" / "mutable" / "plaits" / "resources.cc"
+# fm1-render with Six-Op FM built with -DFM1_SIXOP_ORIGINAL_NAMES
+# (mk/plaits-heavy.mk), which lists the patch names as stored.
+ORIGINAL_NAMES = ENGINES / "build" / "fm1-render-original-names"
 
 
 def syx_banks():
@@ -90,20 +93,101 @@ def test_registry_lists_heavy_engines(renderer):
     assert patch["max"] == 95
 
 
-def test_patch_names_match_the_banks():
-    """kPatchNames in mi_sixop.cc is "<bank> <name>" of every patch in
-    syx_bank_0..2 (bytes 118..127 of each packed patch)."""
-    src = (ENGINES / "src" / "mi_sixop.cc").read_text()
-    table = src[src.index("kPatchNames[kNumPatches] = {"):]
-    table = table[:table.index("};")]
-    ours = re.findall(r'"((?:[^"\\]|\\.)*)"', table)
-    expected = []
+def stored_names():
+    """ "<bank> <name>" of every patch in syx_bank_0..2 (bytes 118..127 of
+    each packed patch, trailing spaces trimmed)."""
+    names = []
     for b, data in enumerate(syx_banks()):
         for i in range(32):
             name = bytes(x & 0x7F for x in data[i * 128 + 118:i * 128 + 128])
-            expected.append(f"{b + 1} {name.decode('ascii').rstrip()}")
-    assert ours == expected
-    assert all(len(n) <= 12 for n in ours)
+            names.append(f"{b + 1} {name.decode('ascii').rstrip()}")
+    return names
+
+
+def listed_patch_names(binary):
+    out = subprocess.run([str(binary), "--list"], check=True,
+                         capture_output=True, text=True).stdout
+    sixop = next(e for e in json.loads(out) if e["id"] == "sixop")
+    return next(p for p in sixop["params"] if p["name"] == "Patch")["names"]
+
+
+# The stored names that are third-party trademarks, product or company names,
+# or a person's name, as plaits-heavy.md ("The patch data") lists them.
+RENAMED_STORED = [
+    "Mooger Low", "MORHOL TB1", "BILL BASS", "CROMA 2", "CS 80", "DX-TROTT", "AMYTAL",
+    "FAIRLIGHT", "*PPG*Vol.1", "*PPG*Vol.2", "*Fairl. 3", "FENDER 1", "WINTRHODES",
+    "*Mark III", "SYN-CLAV", "CLAVINET", "STEINWAY", "SYNDM 25.8", "*Hammond 1",
+    "JX-33-P", "M1 PADS", "CARLOS   2", "VANGELIS 1",
+]
+# Marks and names no public patch name may carry, case-insensitive: the ones
+# renamed above and the usual suspects of synth patch names, so a new or
+# edited name is caught too. Generic words (clav, organ, grand, tine) are not
+# here. Word boundaries keep the short ones from matching inside words.
+DENIED = [
+    r"moog", r"fender", r"rhodes", r"wurli", r"clavinet", r"hohner", r"steinway",
+    r"hammond", r"leslie", r"mellotron", r"\bppg\b", r"fairl", r"synclav", r"syn-clav",
+    r"syndm", r"syndrum", r"oberheim", r"\bob-?x", r"prophet", r"sequential", r"juno",
+    r"jupiter", r"\bjx\b", r"\bcs[ -]?80\b", r"\bm1\b", r"\bdx\b", r"dx-?7",
+    r"yamaha", r"roland", r"korg", r"ensoniq", r"kurzweil", r"casio", r"\barp\b",
+    r"mark iii", r"vangelis", r"carlos", r"amytal", r"morhol", r"croma", r"chroma",
+    r"\bbill\b", r"\btb-?\d", r"\b303\b",
+]
+
+
+def test_patch_names_match_the_banks():
+    """The stored names in mi_sixop.cc's Patch table are "<bank> <name>" of
+    every patch in syx_bank_0..2, and the names it shows are as long and
+    shaped the same."""
+    pairs = sixop_patch_names()
+    assert [stored for stored, _ in pairs] == stored_names()
+    shown = [s for _, s in pairs]
+    assert len(set(shown)) == 96
+    for i, name in enumerate(shown):
+        assert name.startswith(f"{i // 32 + 1} ") and len(name) <= 12, name
+        assert all(32 <= ord(c) < 127 for c in name), name
+
+
+def test_renamed_patches_match_the_docs():
+    """Exactly the RENAMED_STORED patches are renamed, and plaits-heavy.md's
+    mapping table lists each one with the name the code shows."""
+    pairs = sixop_patch_names()
+    renamed = {i: (stored, shown) for i, (stored, shown) in enumerate(pairs) if stored != shown}
+    assert sorted(stored[2:] for stored, _ in renamed.values()) == sorted(RENAMED_STORED)
+    doc = (ENGINES / "plaits-heavy.md").read_text()
+    rows = re.findall(r"^\| (\d+) \| `([^`]+)` \| `([^`]+)` \|", doc, re.M)
+    assert {int(i): (f"{int(i) // 32 + 1} {a}", f"{int(i) // 32 + 1} {b}")
+            for i, a, b in rows} == renamed
+
+
+def test_sixop_lists_no_marks_or_names(renderer):
+    """What the default build lists, which is what the published simulator
+    shows: the table's shown names, none of them denied."""
+    listed = listed_patch_names(renderer)
+    assert listed == [shown for _, shown in sixop_patch_names()]
+    for stored in RENAMED_STORED:   # the deny-list alone would catch each original
+        assert any(re.search(pattern, stored.lower()) for pattern in DENIED), stored
+    for name in listed:
+        lowered = name.lower()
+        assert not any(stored.lower() in lowered for stored in RENAMED_STORED), name
+        assert not any(re.search(pattern, lowered) for pattern in DENIED), name
+
+
+def test_original_names_build_lists_the_stored_names(renderer):
+    assert listed_patch_names(ORIGINAL_NAMES) == stored_names()
+
+
+# Renamed patches, one per kind of name: Mooger Low, FAIRLIGHT, FENDER 1,
+# STEINWAY, VANGELIS 1.
+@pytest.mark.parametrize("patch", [1, 25, 33, 42, 86])
+def test_original_names_build_renders_the_same_bytes(renderer, tmp_path, patch):
+    """Only the names differ between the builds; the patch data is the same."""
+    wavs = []
+    for binary in (renderer, ORIGINAL_NAMES):
+        wav = tmp_path / f"{binary.name}.wav"
+        run_raw(binary, "--engine", "sixop", "--param", f"Patch={patch}", "--note", "0:57:100:0.5",
+                "--note", "0.1:64:90:0.4", "--seconds", "0.8", "--out", str(wav))
+        wavs.append(wav.read_bytes())
+    assert wavs[0] == wavs[1]
 
 
 # --- every model and patch renders cleanly ---------------------------------------

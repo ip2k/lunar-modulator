@@ -97,6 +97,15 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- Six-Op FM lists 23 of its 96 patches under names of our own, because the
+  browser simulator is going public: the stored names that are trademarks
+  or a person's name (`FENDER 1`, `STEINWAY`, `*Hammond 1`, `VANGELIS 1`,
+  `CARLOS   2`...) become descriptive ones (`TINE EP 1`, `BIG GRAND`,
+  `*Drawbar 1`, `CINEMA 1`, `BAROQUE 2`...). The patches, their order and
+  their sound are unchanged. Personal builds can restore the stored names
+  with `-DFM1_SIXOP_ORIGINAL_NAMES` (the mapping is in
+  engines/plaits-heavy.md). `fm1-render --list` now also prints the names
+  of enum parameters' values.
 - docs/13 records the owner's choice of 7-bit locks with smoothing, and of
   Capture as an optional feature. docs/11 corrects its claim that Clouds'
   spectral mode needs its own FFT.

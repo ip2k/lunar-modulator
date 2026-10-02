@@ -7,7 +7,7 @@ same sources are meant to build with JieLi's toolchain for the AC79 dev board
 
 ```bash
 make -C engines                                  # build/fm1-render (+ the Schwung selftest)
-engines/build/fm1-render --list                  # engines, effects and parameters (JSON)
+engines/build/fm1-render --list                  # engines, effects, parameters and enum names (JSON)
 engines/build/fm1-render --engine macro --param Model=4 \
     --note 0:57:100:1 --note 0:60:100:1 --note 0:64:100:1 \
     --fx ensemble --fx plate --fx-param Mix=0.3 \
@@ -211,10 +211,11 @@ keeping decay within 3–4 %.
 
 ## Open questions and next steps
 
-- **Six-Op FM's patch names** include third-party trademarks and a person's
-  name, and the banks' origin is not stated upstream. Harmless for a
-  personal build; for anything distributed, rename or drop them
-  (plaits-heavy.md, "The patch data").
+- **Six-Op FM's patch data** has no stated origin upstream. The 23 patch
+  names that are trademarks or a person's name are shown under names of our
+  own; `-DFM1_SIXOP_ORIGINAL_NAMES` shows the stored ones in a personal build
+  (plaits-heavy.md, "The patch data"). The data itself still needs review
+  before anything commercial.
 - **Shapes' memory:** 207 KB for 12 voices. A voice cap for the FM-1 build,
   or a split of the physical-model shapes.
 - **Resampler cost on pi32v2:** the stronger second stage costs about 114
