@@ -177,7 +177,13 @@ owner's PCB photos). Read this first, then `README.md`, then `docs/`.
    for a no-heap C99 `fm1_seq` core with Movy's semantics, a `compat` mode
    for tests, and seven deliberate deviations. Waiting on the owner: the
    docs/13 §10 questions (deviations, track count, a 72 KiB budget, and
-   approval to build Movy's `seq-core` as a test oracle).
+   approval to build Movy's `seq-core` as a test oracle). **Since then
+   (2026-10-01):** the owner answered (fix everything; 4–8 routed tracks;
+   about half the budget; oracle approved; 7-bit locks), and stages M1 and
+   M3 are built: `fm1_seq` (engines/seq.md) matches Movy's own code in 23 of
+   24 golden fixtures (undo is not ported) and in thousands of random
+   scripts. Open: Capture's ring size, undo, the note-index rebuild cost on
+   pi32v2 (stage B).
 
 ## 6. Reference material already gathered (clone these locally)
 

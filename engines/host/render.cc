@@ -18,10 +18,23 @@
 // time T, and --fault T0..T1:VALUE every frame from T0 up to T1, after the
 // source and before the effects, to test recovery from bad samples. The
 // timing is the desktop's and says nothing about pi32v2; it only catches
-// regressions. MIT licence.
+// regressions.
+//
+// The sequencer (engines/seq.md): --cmd FILE plays a timed Movy verb script
+// (host/seq_script.h) through the fm1_seq core, --seq FILE.movy1 loads a set
+// first, --log-events FILE.jsonl writes every sequencer event, --compat
+// selects Movy's exact behaviour, --tracks N sizes it. Each track goes to the
+// sound engine or to USB-MIDI (logged only): by default track 0 plays the
+// engine when there is one, or --route T:engine / --route T:midi:CH. Notes
+// and locks reach the engine at their own frame: the block is rendered in
+// pieces split at event frames. A lock sets the engine parameter its lane's
+// label names (`target:Name`, matched by name), scaled from 0..127. MIT
+// licence.
 
 #include "fm1_engine.h"
 #include "fm1_mix_limiter.h"
+#include "fm1_seq.h"
+#include "seq_script.h"
 
 #include <algorithm>
 #include <chrono>
@@ -60,8 +73,50 @@ void Usage() {
       "                  [--fx ID [--fx-param NAME=VALUE]...]...\n"
       "                  [--seconds S] [--rate HZ] [--frames N] [--out FILE.wav]\n"
       "                  [--fill BYTE] [--fault T[..T1]:VALUE]...\n"
+      "                  [--cmd FILE] [--seq FILE.movy1] [--log-events FILE.jsonl]\n"
+      "                  [--compat] [--tracks N] [--route T:engine|T:midi:CH]...\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
-      "processes it in order, then the bus limiter.\n");
+      "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
+      "engine from the sequencer.\n");
+}
+
+// The sequencer side of a render (--cmd, --seq).
+struct Route {
+  int track;
+  bool engine;
+  int channel;
+};
+
+struct Sequencer {
+  std::vector<unsigned char> mem;
+  fm1_seq_t *seq = NULL;
+  fm1_script_t script;
+  size_t next_cmd = 0;
+  std::vector<fm1_seq_ev_t> ev;
+  FILE *log = NULL;
+  uint64_t events = 0, notes_to_engine = 0, locks_to_engine = 0;
+  Sequencer() { memset(&script, 0, sizeof(script)); }
+};
+
+// A lane's label is "target:Name" (Movy's "synth:cutoff"); the part after the
+// last ':' names the engine parameter, case-insensitively.
+int LaneParam(const fm1_engine_t *e, const char *label) {
+  const char *name = strrchr(label, ':');
+  name = name ? name + 1 : label;
+  for (uint16_t q = 0; q < e->n_params; ++q) {
+    if (strcasecmp(e->params[q].name, name) == 0) return q;
+  }
+  return -1;
+}
+
+// 0..127 onto the parameter's range: linear for FLOAT, Movy's planned bins
+// floor(v*n/128) for ENUM (docs/13 §6). Both follow FM1_SEQ_VAL_MAX.
+float LockValue(const fm1_param_t &p, unsigned v) {
+  if (p.type == FM1_PARAM_ENUM) {
+    const unsigned n = static_cast<unsigned>(p.max - p.min) + 1u;
+    return p.min + static_cast<float>(v * n / (FM1_SEQ_VAL_MAX + 1u));
+  }
+  return p.min + (p.max - p.min) * static_cast<float>(v) / static_cast<float>(FM1_SEQ_VAL_MAX);
 }
 
 struct Fault {                       // --fault: frames [first, last] get value
@@ -199,19 +254,38 @@ int main(int argc, char **argv) {
   std::vector<Unit> fx;
   std::vector<Event> events;
   std::vector<Control> controls;
+  const char *cmd_path = NULL, *seq_path = NULL, *log_path = NULL;
+  bool compat = false, seconds_given = false, rate_given = false, frames_given = false;
+  int tracks = -1;
+  std::vector<Route> routes;
 
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
     const char *next = i + 1 < argc ? argv[i + 1] : NULL;
     if (a == "--list") { List(); return 0; }
+    if (a == "--compat") { compat = true; continue; }
     if (!next) { Usage(); return 2; }
     ++i;
     if (a == "--engine") engine_id = next;
     else if (a == "--out") out_path = next;
     else if (a == "--input") input = next;
-    else if (a == "--seconds") seconds = atof(next);
-    else if (a == "--rate") rate = static_cast<float>(atof(next));
-    else if (a == "--frames") max_frames = static_cast<uint32_t>(atoi(next));
+    else if (a == "--seconds") { seconds = atof(next); seconds_given = true; }
+    else if (a == "--rate") { rate = static_cast<float>(atof(next)); rate_given = true; }
+    else if (a == "--frames") { max_frames = static_cast<uint32_t>(atoi(next)); frames_given = true; }
+    else if (a == "--cmd") cmd_path = next;
+    else if (a == "--seq") seq_path = next;
+    else if (a == "--log-events") log_path = next;
+    else if (a == "--tracks") tracks = atoi(next);
+    else if (a == "--route") {
+      Route r;
+      char kind[16] = {0};
+      int ch = 0;
+      const int got = sscanf(next, "%d:%15[a-z]:%d", &r.track, kind, &ch);
+      if (got >= 2 && strcmp(kind, "engine") == 0) { r.engine = true; r.channel = 0; }
+      else if (got == 3 && strcmp(kind, "midi") == 0 && ch >= 1 && ch <= 16) { r.engine = false; r.channel = ch; }
+      else { fprintf(stderr, "--route wants T:engine or T:midi:CH\n"); return 2; }
+      routes.push_back(r);
+    }
     else if (a == "--fill") fill = static_cast<int>(strtol(next, NULL, 0)) & 0xFF;
     else if (a == "--fault") {
       const char *colon = strchr(next, ':');
@@ -249,7 +323,34 @@ int main(int argc, char **argv) {
     fprintf(stderr, "--bend and --param-at need --engine\n");
     return 2;
   }
-  if (!engine_id && fx.empty() && input == "silence" && faults.empty()) { Usage(); return 2; }
+  const bool use_seq = cmd_path || seq_path;
+  Sequencer sq;
+  uint64_t seq_end = 0;            // a script's run length, in frames (exact)
+  if (use_seq) {
+    char err[256];
+    if (cmd_path && !fm1_script_load(cmd_path, &sq.script, err, sizeof(err))) {
+      fprintf(stderr, "%s\n", err);
+      return 1;
+    }
+    if (!cmd_path) { sq.script.rate = 44118; sq.script.block = 128; sq.script.tracks = 8; }
+    if (!rate_given) rate = static_cast<float>(sq.script.rate);
+    if (!frames_given) max_frames = sq.script.block;
+    if (tracks < 0) tracks = sq.script.tracks;
+    if (!seconds_given && (sq.script.has_end || sq.script.n)) {
+      uint64_t end = sq.script.end;
+      if (!sq.script.has_end) {   // through the block in which the last command applies
+        const uint64_t last = sq.script.cmds[sq.script.n - 1].frame;
+        end = ((last + max_frames - 1u) / max_frames + 1u) * max_frames;
+      }
+      seconds = static_cast<double>(end) / rate;
+      seq_end = end;
+    }
+    if (tracks < 1 || tracks > 16 || max_frames < 1 || max_frames > 65535) { Usage(); return 2; }
+  } else if (!routes.empty() || log_path || compat || tracks >= 0) {
+    fprintf(stderr, "--route, --log-events, --compat and --tracks need --cmd or --seq\n");
+    return 2;
+  }
+  if (!engine_id && fx.empty() && input == "silence" && faults.empty() && !use_seq) { Usage(); return 2; }
   if (input != "silence" && input != "impulse" && input != "noise" && input != "sine") {
     Usage(); return 2;
   }
@@ -277,7 +378,49 @@ int main(int argc, char **argv) {
     if (!Instantiate(fx[k], fx_ids[k].c_str(), FM1_KIND_AUDIO_FX, host, fill)) return 1;
   }
 
-  const uint32_t total = static_cast<uint32_t>(seconds * rate);
+  if (use_seq) {
+    fm1_seq_limits_t lim;
+    fm1_seq_limits_default(&lim, static_cast<uint8_t>(tracks));
+    if (compat) {   // Movy has no global caps: generous pools, as fm1-seq --compat
+      lim.compat = 1;
+      lim.notes = 16384; lim.locks = 16384; lim.trigs = 8192;
+      lim.gates = 255; lim.song = 255; lim.rec_notes = 64; lim.pad_mutes = 128; lim.capture = 512;
+    }
+    sq.mem.resize(fm1_seq_size(&lim) + 8u);
+    sq.seq = fm1_seq_create(sq.mem.data(), &lim, static_cast<uint32_t>(lrintf(rate)));
+    if (!sq.seq) { fprintf(stderr, "sequencer refused these limits\n"); return 1; }
+    if (seq_path) {
+      size_t len = 0;
+      char *txt = fm1_read_file(seq_path, &len);
+      if (!txt || !fm1_seq_import_movy1(sq.seq, txt, len)) {
+        fprintf(stderr, "%s: not a movy1 set\n", seq_path);
+        free(txt);
+        return 1;
+      }
+      free(txt);
+    }
+    bool set_routes = false;     // a set's own `rt` lines count as routing
+    for (int t = 0; t < tracks; ++t) {
+      fm1_seq_track_info_t ti;
+      fm1_seq_get_track(sq.seq, static_cast<uint8_t>(t), &ti);
+      if (ti.route_kind != FM1_SEQ_ROUTE_MIDI || ti.route_index != t % 16 + 1) set_routes = true;
+    }
+    for (size_t k = 0; k < routes.size(); ++k) {
+      if (routes[k].track < 0 || routes[k].track >= tracks ||
+          !fm1_seq_set_route(sq.seq, static_cast<uint8_t>(routes[k].track),
+                             routes[k].engine ? FM1_SEQ_ROUTE_ENGINE : FM1_SEQ_ROUTE_MIDI,
+                             static_cast<uint8_t>(routes[k].engine ? 0 : routes[k].channel))) {
+        fprintf(stderr, "bad --route for track %d\n", routes[k].track);
+        return 2;
+      }
+    }
+    if (routes.empty() && !set_routes && sound.e) fm1_seq_set_route(sq.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
+    if (log_path && !(sq.log = fopen(log_path, "w"))) { fprintf(stderr, "cannot write %s\n", log_path); return 1; }
+    sq.ev.resize(65536);
+  }
+
+  const uint32_t total = seq_end ? static_cast<uint32_t>(seq_end)
+                                 : static_cast<uint32_t>(seconds * rate);
   std::vector<float> out(static_cast<size_t>(total) * 2);
   std::vector<float> raw(out.size());
   std::vector<bool> done(events.size(), false);
@@ -285,8 +428,10 @@ int main(int argc, char **argv) {
   fm1_mix_limiter_init(&limiter, rate);
   uint32_t noise = 0x12345678u;       // deterministic white noise
   double sine_phase = 0.0;
-  double render_ns = 0.0;
+  double render_ns = 0.0, seq_ns = 0.0;
   uint32_t blocks = 0;
+  uint32_t n_seq = 0;
+  bool implicit_play = use_seq && !cmd_path;   // --seq alone plays the set from the start
 
   for (uint32_t pos = 0; pos < total; pos += max_frames) {
     const double now = pos / static_cast<double>(rate);
@@ -321,8 +466,61 @@ int main(int argc, char **argv) {
         block[2 * f] = block[2 * f + 1] = x;
       }
     }
+    n_seq = 0;
+    if (use_seq) {
+      auto s0 = std::chrono::steady_clock::now();
+      fm1_seq_ev_t *ev = sq.ev.data();
+      const uint32_t cap = static_cast<uint32_t>(sq.ev.size());
+      if (implicit_play) {
+        n_seq += fm1_seq_apply_text(sq.seq, "play", 4, ev, cap);
+        implicit_play = false;
+      }
+      while (sq.next_cmd < sq.script.n && sq.script.cmds[sq.next_cmd].frame <= pos) {
+        const char *ops = sq.script.cmds[sq.next_cmd].ops;
+        if (!sq.script.cmds[sq.next_cmd].snap) {     // test directives are fm1-seq's
+          n_seq += fm1_script_apply(sq.seq, ops, ev + n_seq, cap - n_seq);
+        }
+        ++sq.next_cmd;
+      }
+      n_seq += fm1_seq_advance(sq.seq, n, ev + n_seq, cap - n_seq);
+      seq_ns += std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - s0).count();
+      if (sq.log) {
+        for (uint32_t k = 0; k < n_seq; ++k) fm1_script_log_event(sq.log, blocks, pos, &ev[k]);
+      }
+      sq.events += n_seq;
+    }
     auto t0 = std::chrono::steady_clock::now();
-    if (sound.e) sound.e->render(sound.self, block, n);
+    if (sound.e && use_seq) {
+      // Split the block at each event the engine receives (D1: an event's own
+      // frame; in compat mode every event is at the block start).
+      uint32_t cur = 0;
+      for (uint32_t k = 0; k < n_seq; ++k) {
+        const fm1_seq_ev_t &e = sq.ev[k];
+        fm1_seq_track_info_t ti;
+        if (e.kind != FM1_SEQ_EV_NOTE_ON && e.kind != FM1_SEQ_EV_NOTE_OFF && e.kind != FM1_SEQ_EV_LOCK) continue;
+        if (!fm1_seq_get_track(sq.seq, e.track, &ti) || ti.route_kind != FM1_SEQ_ROUTE_ENGINE) continue;
+        int param = -1;
+        if (e.kind == FM1_SEQ_EV_LOCK) {
+          param = LaneParam(sound.e, fm1_seq_lane_label(sq.seq, e.track, e.a));
+          if (param < 0) continue;
+        }
+        const uint32_t f = e.frame < n ? e.frame : n;
+        if (f > cur) {
+          sound.e->render(sound.self, block + 2 * cur, f - cur);
+          cur = f;
+        }
+        if (e.kind == FM1_SEQ_EV_NOTE_ON) { sound.e->note_on(sound.self, e.a, e.b); ++sq.notes_to_engine; }
+        else if (e.kind == FM1_SEQ_EV_NOTE_OFF) sound.e->note_off(sound.self, e.a);
+        else {
+          sound.e->set_param(sound.self, static_cast<uint16_t>(param),
+                             LockValue(sound.e->params[param], e.b));
+          ++sq.locks_to_engine;
+        }
+      }
+      if (cur < n) sound.e->render(sound.self, block + 2 * cur, n - cur);
+    } else if (sound.e) {
+      sound.e->render(sound.self, block, n);
+    }
     for (size_t k = 0; k < faults.size(); ++k) {
       for (uint32_t f = 0; f < n; ++f) {
         if (pos + f >= faults[k].first && pos + f <= faults[k].last) {
@@ -367,11 +565,24 @@ int main(int argc, char **argv) {
   printf(",\"rate\":%g,\"frames\":%u,\"block\":%u,"
          "\"instance_bytes\":%zu,\"raw_peak\":%.6f,\"raw_clipped\":%u,"
          "\"peak\":%.6f,\"rms\":%.6f,\"clipped\":%u,"
-         "\"nonfinite\":%u,\"ns_per_block\":%.1f,\"realtime_x\":%.1f}\n",
+         "\"nonfinite\":%u,\"ns_per_block\":%.1f,\"realtime_x\":%.1f",
          rate, total, max_frames, sound.bytes, raw_peak, raw_clipped, peak,
          out.empty() ? 0.0 : sqrt(sum2 / out.size()), clipped, nonfinite,
          blocks ? render_ns / blocks : 0.0,
          render_ns > 0 ? audio_s / (render_ns * 1e-9) : 0.0);
+  if (use_seq) {
+    fm1_seq_stats_t st;
+    fm1_seq_get_stats(sq.seq, &st);
+    printf(",\"seq_bytes\":%zu,\"seq_events\":%llu,\"seq_notes_to_engine\":%llu,"
+           "\"seq_locks_to_engine\":%llu,\"seq_refused\":%lu,\"seq_ns_per_block\":%.1f",
+           sq.mem.size() - 8u, static_cast<unsigned long long>(sq.events),
+           static_cast<unsigned long long>(sq.notes_to_engine),
+           static_cast<unsigned long long>(sq.locks_to_engine),
+           static_cast<unsigned long>(st.refused), blocks ? seq_ns / blocks : 0.0);
+    if (sq.log) fclose(sq.log);
+    fm1_script_free(&sq.script);
+  }
+  printf("}\n");
   Release(sound);
   for (size_t k = 0; k < fx.size(); ++k) Release(fx[k]);
   return 0;

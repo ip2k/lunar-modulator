@@ -1,0 +1,29 @@
+#! rate=44118 block=128 tracks=4
+# 16 Note edits (R13). Lengths cap at the next same-pitch note and at the
+# clip end; nudges stay within 24 ticks of the anchor; velocity clamps to
+# 1..127; addp adds a pitch to every step of a range that lacks it; del
+# removes a range (or one pitch of it); ltog joins an occupied step and
+# takes its span; tog on an occupied step clears it.
+@0 tog 0 0 60 100
+@0 tog 0 4 60 100
+@0 tog 0 12 62 100
+@0 elen 0 0 0 -1 200
+@0 elen 0 12 12 -1 500
+@0 slen 0 4 4 60 1000
+@0 evel 0 0 4 -1 50
+@0 evel 0 12 12 62 -200
+@0 tog 0 8 64 100
+@0 enudge 0 8 8 -1 30
+@0 tog 0 10 65 100
+@0 enudge 0 10 10 -1 -30
+@0 addp 0 0 15 72 60
+@0 del 0 1 3 72
+@0 del 0 13 15 -1
+@0 tog 1 2 48 100
+@0 slen 1 2 2 48 40
+@0 ltog 1 2 52 90
+@0 tog 1 6 50 100 53 100
+@0 tog 1 6 50 100
+@0 etrn 1 2 2 52 -3
+@0 play
+@90000 stop

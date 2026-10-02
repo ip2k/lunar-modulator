@@ -1,0 +1,28 @@
+#! rate=44118 block=128 tracks=4
+# 04 Locks and the latch (R8, R9).
+# An 8-step clip with notes at steps 0 and 4. Lane 0: base 40, locks 100 at
+# step 2 and 55 at step 6. Lane 1: base 10 (set quietly), lock 90 at step 1.
+# Entering a step emits its lock, else base if a note is anchored there,
+# else the carried value, and only on a change; the carry survives the wrap.
+# abase sends at once on an assigned lane, abaseq does not; aset auditions
+# unless quiet; a lock on an unassigned lane never sounds; removing a lane's
+# last lock frees it; aclr unassigns a lane but keeps its carried value.
+@0 clen 0 8
+@0 tog 0 0 60 100
+@0 tog 0 4 62 100
+@0 alabel 0 0 synth:cutoff
+@0 alabel 0 1 synth:reso
+@0 abase 0 0 40
+@0 abaseq 0 1 10
+@0 aset 0 0 2 100 1
+@0 aset 0 0 6 55
+@0 aset 0 1 1 90 1
+@0 aset 0 5 3 127
+@0 play
+@50000 abase 0 1 20
+@60000 abaseq 0 0 30
+@66000 aset 0 0 6 70 1
+@90000 aclrs 0 1 1
+@110000 aclr 0 0
+@115000 alabel 0 0 synth:cutoff
+@130000 stop

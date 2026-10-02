@@ -1,0 +1,24 @@
+#! rate=44118 block=128 tracks=4
+# 12 Clip launches (R11). While playing, a launch queues to the master bar,
+# where the playhead goes to the loop start, the carry resets and the cycle
+# restarts at 1; launching an empty slot, or stoptrk, stops the track at the
+# bar. From stopped, a launch starts the transport and also restarts every
+# track whose playing slot survived Stop (kept as Movy has it, docs/13 §3.3).
+@0 tog 0 0 60 100
+@0 tog 0 8 64 100
+@0 clipsel 0 1
+@0 tog 0 0 72 100
+@0 tog 0 4 74 100
+@0 clen 0 8
+@0 clipsel 0 0
+@0 tog 1 0 48 100
+@0 tog 1 8 50 100
+@0 tog 2 4 55 100
+@0 econd 2 4 4 -1 1 2
+@0 play
+@30000 launch 0 1
+@30000 launch 1 3
+@30000 stoptrk 2
+@100000 stop
+@102000 launch 2 0
+@130000 stop

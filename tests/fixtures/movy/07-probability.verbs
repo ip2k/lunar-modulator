@@ -1,0 +1,23 @@
+#! rate=44118 block=128 tracks=4
+# 07 Probability (R7). The roll is xorshift64*, seeded 0x9E3779B97F4A7C15 when
+# the engine is created and never reseeded, so each roll depends on every
+# roll before it, across Stop and Play. A roll is taken only when the
+# condition passes and prob < 100 (so prob 0 still consumes one); a chord
+# shares one roll.
+@0 tog 0 0 60 100
+@0 clen 0 1
+@0 eprob 0 0 0 -1 50
+@0 tog 1 0 48 100 52 100 55 100
+@0 clen 1 2
+@0 eprob 1 0 0 -1 30
+@0 tog 2 0 72 100
+@0 clen 2 1
+@0 econd 2 0 0 -1 2 2
+@0 eprob 2 0 0 -1 50
+@0 tog 3 0 40 100
+@0 clen 3 1
+@0 eprob 3 0 0 -1 0
+@0 play
+@60000 stop
+@62000 play
+@120000 stop
