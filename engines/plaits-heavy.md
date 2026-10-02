@@ -416,8 +416,9 @@ What differs, deliberately:
 
 ### Voice cap: 8
 
-The FM-1's stock msfa plays 12 six-op voices plus effects on one pi32v2 core
-[reported: AL-255, docs/11 §2]. msfa is fixed point, with its hot loops
+The FM-1's stock msfa plays 12 six-op voices on one pi32v2 core, with its
+effects on the other (docs/11 §2: the render loop [verified], its core
+[inferred]). msfa is fixed point, with its hot loops
 copied to RAM.
 
 Plaits' float operators should cost the same order per voice [inferred].

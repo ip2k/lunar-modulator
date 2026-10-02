@@ -39,9 +39,11 @@ platform for features M-VAVE will never ship.
    is a matter of build flags and a DAC ring buffer, not DSP research.
 4. **The update path has no cryptography.** CRC16 only; the chip key is in the
    package. Nothing legal or cryptographic stands between us and the flash.
-5. **Headroom.** 12 voices use one core at 240 MHz with 578 KB SRAM barely
-   touched; a second core sits idle. More voices, better effects, a real
-   sequencer and a richer UI are all within budget.
+5. **Headroom.** Stock runs at 240 MHz of a possible 320, with 578 KB SRAM
+   barely touched. Its 12 voices render on the second core and the UI and
+   effects on the first (docs/11 §2) [inferred]; how loaded either core is
+   has not been measured. More voices, better effects, a real sequencer and
+   a richer UI are all within budget.
 6. **Precedent on the platform.** JieLi chips are hacked regularly (kagaimiq's
    tools, the esp8266.ru community, probonopd's SMK-37 Pro notes); the mask-ROM
    USB boot and the SCSI download protocol are understood for many siblings and
@@ -116,7 +118,7 @@ radio hardware. An open firmware may have to ship without Bluetooth first.
 
 | Resource | Stock use | Available |
 | --- | --- | --- |
-| CPU | 12 msfa voices + FX + UI on one core at 240 MHz | up to 320 MHz and a second core |
+| CPU | 12 msfa voices on cpu1; FX, UI, MIDI, USB and BLE on cpu0; 240 MHz [inferred: docs/11 §2] | up to 320 MHz on both cores |
 | SRAM | ~135 KB static + heap + 23 KB display strips | 578 KB |
 | Flash | 583 KB app in a 1 MB map (VM 340 KB, USR 72 KB) | ~400 KB free if the VM region is shrunk; no room for large sample banks |
 | Audio | internal DAC, 44.1 kHz, 64-sample blocks (~1.5 ms) | I2S/SPDIF also on chip, unused on this board |

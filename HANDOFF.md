@@ -44,8 +44,9 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
 ## 2. The ten facts that matter
 
-1. SoC = **JieLi AC791N** (WL82), custom **pi32v2** CPU, one core used at
-   240 MHz, 578 KB SRAM, 1 MB flash (probably in-package), XIP from
+1. SoC = **JieLi AC791N** (WL82), two custom **pi32v2** cores at 240 MHz
+   (stock: the OS on cpu0, the msfa voices bare-metal on cpu1 [inferred],
+   docs/11 §2), 578 KB SRAM, 1 MB flash (probably in-package), XIP from
    `0x02000000`, RAM at `0x01C00000`. Marking `C156211-11B8` (aroum's unit) /
    `C188612-11B8` (the owner's), LQFP48.
 2. Stock firmware = JieLi AC79 SDK (FreeRTOS-derived kernel, closed `.a` libs
