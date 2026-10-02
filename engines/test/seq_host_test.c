@@ -429,6 +429,16 @@ static void uids_and_refusals(void) {
   CHECK(fm1_seq_host_lane_uid(&h, 16, 0) == 0 && fm1_seq_host_lane_uid(&h, 0, 8) == 0);
   CHECK(fm1_param_index(&kEngine, 12) == 3 && fm1_param_index(&kEngine, 0) == -1 &&
         fm1_param_index(&kEngine, 99) == -1 && fm1_param_index(NULL, 12) == -1);
+  {
+    /* The flag helpers: NOLOCK wins over MOD, and an ENUM without MOD
+     * takes locks but no route. */
+    fm1_param_t both = kParams[0];
+    both.flags = FM1_PARAM_NOLOCK | FM1_PARAM_MOD;
+    CHECK(fm1_param_lockable(&kParams[0]) && fm1_param_modulatable(&kParams[0]));
+    CHECK(fm1_param_lockable(&kParams[1]) && !fm1_param_modulatable(&kParams[1]));
+    CHECK(!fm1_param_lockable(&kParams[5]) && !fm1_param_modulatable(&kParams[5]));
+    CHECK(!fm1_param_lockable(&both) && !fm1_param_modulatable(&both));
+  }
   CHECK(fm1_seq_lane_uid(&kEngine, "x:SWEEP") == 1 && fm1_seq_lane_uid(&kEngine, "") == 0 &&
         fm1_seq_lane_uid(&kEngine, "Nothing") == 0 && fm1_seq_lane_uid(NULL, "Tune") == 0);
 #define EV(fr, k, t, aa, bb)                                                  \

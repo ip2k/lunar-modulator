@@ -504,8 +504,9 @@ commands and Start/Stop carry the number of ticks serviced so far.
   in order, with no empty render, and nothing from a MIDI-routed track; a
   hand-made event past the block plays at its end; every 7-bit lock
   value on ranges such as -24..24, where the expression's parenthesisation
-  shows; and API v2: every lane's uid equal to a fresh resolution of its
-  label after every block, a lock sent to its uid's parameter where the
+  shows; and API v2: the flag helpers (NOLOCK over MOD), every lane's uid
+  equal to a fresh resolution of its label after every block, a lock sent
+  to its uid's parameter where the
   index is not uid − 1, NOLOCK locks refused, counted and splitting
   nothing, a new engine, an import, a typed `alabel` and a released lane
   each re-resolving, and a label set on the core directly, past the bridge,
