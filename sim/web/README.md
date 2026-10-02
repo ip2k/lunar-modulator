@@ -234,8 +234,8 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
   nothing about whether a chain fits the FM-1's cycle budget (stage B
   measures that), nor about FPU edge cases on the real core.
 - **No drivers**: no SPI, DMA, ADC or USB; the panel calls the app directly.
-- **Eight buttons** do nothing yet. The sequencer (docs/13) can be wired to
-  PLAY/STOP, REC and SEQ when its core lands.
+- **Eight buttons** do nothing yet. The sequencer core is built
+  (engines/seq.md); it is not yet wired to PLAY/STOP, REC and SEQ.
 - **MIDI in only**; the virtual FM-1 sends nothing.
 - **Encoders without acceleration**; a float parameter moves a hundredth of
   its range per detent.
@@ -246,9 +246,10 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
 
 ## Before publishing
 
-The module contains Six-Op FM's 96 patch names, which include third-party
-trademarks and a person's name (engines/README.md, "Open questions"). Fine
-for a personal page; rename or drop them before the page is shared widely.
+Six-Op FM's 23 patch names that are third-party trademarks or a person's
+name are shown under descriptive names of our own (PR #15; engines/README.md,
+"Open questions"), and the module was rebuilt with them. The stored names are
+still in the vendored patch data, but they are not displayed.
 Every engine is MIT (Mutable Instruments, Schwung modules); the credits are
 in each engine's `credits` string and in the page's footer.
 

@@ -1,6 +1,14 @@
 # 08 — Roadmap
 
-Phases with exit criteria. Phase 0 is done; nothing else has started.
+Phases with exit criteria. Status on 2026-10-01:
+- Phase 0 is done.
+- Phase 1 has had one read-only bench session (`notes/2026-09-06-bench.md`).
+- Phase 2's dongle is built and simulated (docs/10), and an AC79 dev kit and
+  JieLi's USB updater are on order (docs/14).
+- Parts of Phase 4 and Phase 5 exist on the desktop and in a browser: the
+  engine platform (`engines/`), the sequencer core (`engines/seq.md`) and the
+  virtual FM-1 (`sim/web/`).
+- Nothing has run on a JieLi chip.
 
 ## Phase 0 — Research (done, 2026-09-06)
 

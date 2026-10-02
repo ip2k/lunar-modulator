@@ -130,7 +130,7 @@ carry effects in float.
 
 | Question | Answer |
 | --- | --- |
-| Can custom code run on the FM-1? | **Yes, routinely**: first a version-bumped V15 package (Echomatter, AL-255 PR #2, 2026-09-04), then Baud Girl's public FM-1+VA releases `FM-1_020` … `FM-1_092` (2026-09), all through the stock OTA path. The mask-ROM path remains undemonstrated. |
+| Can custom code run on the FM-1? | **Yes, routinely**: first a version-bumped V15 package (Echomatter, AL-255 PR #2, 2026-09-04), then Baud Girl's public FM-1+VA releases `FM-1_020` … `FM-1_092` (2026-09), all through the stock OTA path. The mask-ROM path is reported working on two other FM-1s, with a firmware backup and a write on one (issue #2, docs/10 §1.1), and is not yet shown on this project's unit. |
 | Can it be sound-compatible with stock? | Yes: same msfa engine, same DX7 patch format. |
 | Can it be fully open source? | The application, bootloader and (with work) drivers can be. The compiler and the Bluetooth stack cannot in any foreseeable timeframe without a dedicated compiler/BLE effort. |
 | Is it safe to start hacking on the one device we have? | **Not until recovery is proven.** First milestone is a full flash dump and a byte-identical restore. |

@@ -161,6 +161,28 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- The README no longer describes the project as "research, and later
+  code".
+  - The intro says what you can use today: the virtual FM-1 in a browser,
+    with five engines and four effects, and a sequencer core on the
+    desktop.
+  - The status (2026-10-01) says where things stand: nothing runs on a JieLi
+    chip or an FM-1, and nothing has been flashed. The AC79 dev kit and
+    JieLi's updater are on order. Other owners report reaching the FM-1's
+    mask-ROM mode (issue #2).
+  - The Credits now cover:
+    - Baud Girl's FM-1+VA findings;
+    - czietz's and masanaohayashi's dongle reports and what they taught us;
+    - Echomatter;
+    - Emilie Gillet's Mutable Instruments code;
+    - Charles Vestal's Schwung and PSX Verb, and Matt Estela's Sophie;
+    - the Rosé Pine palette and Audiowide.
+  - The recommended path, the Movy paragraph (four free knobs, not eight)
+    and the repository map's test row are current.
+  - CLAUDE.md, AGENTS.md, docs/05, 07 and 08, sim/web/README.md and
+    engines/README.md lose matching stale lines: "research and, later, code",
+    "nothing else has started", "the mask-ROM path remains undemonstrated",
+    and "about 350" reference tests (427).
 - The project is now **Lunar Modulator**, tagline **INTERGALACTIC
   MODULATION STATION**: open firmware for the M-VAVE FM-1, formerly "Open
   firmware for the M-VAVE FM-1". The repository becomes

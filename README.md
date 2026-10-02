@@ -4,34 +4,63 @@
 
 **INTERGALACTIC MODULATION STATION**
 
-Lunar Modulator is open firmware for the M-VAVE FM-1: research, and later
-code, toward a fully open-source firmware for the M-VAVE (Cuvave) **FM-1**, a
-~€70 battery-powered six-operator, 12-voice FM synthesizer with 27 silicone keys,
-a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI and a 3.5 mm MIDI input.
-Until 2026-10-01 the project was called "Open firmware for the M-VAVE FM-1"
-(`ip2k/mvave-fm1-open-firmware`). It is an independent project, not
-affiliated with or endorsed by M-VAVE, Cuvave or any space agency.
+Lunar Modulator is open firmware for the M-VAVE FM-1, a ~€70
+battery-powered six-operator, 12-voice FM synthesizer from M-VAVE (Cuvave)
+with 27 silicone keys, a 1.54" colour TFT, USB-C (MIDI + audio), BLE-MIDI
+and a 3.5 mm MIDI input. Today you can play Lunar Modulator in a browser,
+from a copy of this repository, as a virtual FM-1: five sound engines and
+four effects behind a to-scale drawing of the FM-1's panel, with the
+firmware's own 240 × 240 screen. A C99 reimplementation of the sequencer
+core of [Movy](https://github.com/DimaDake/schwung-movy), a community step
+sequencer for Ableton Move, is built and tested on the desktop but not yet
+connected to the panel. The research on the device that all of this rests
+on is in [`docs/`](docs/), much of it built on reverse engineering by aroum,
+AL-255 and kagaimiq ([Credits](#credits)). Until 2026-10-01 the project was
+called "Open firmware for the M-VAVE FM-1" (`ip2k/mvave-fm1-open-firmware`).
+It is an independent project, not affiliated with or endorsed by M-VAVE,
+Cuvave or any space agency.
 
-> **Status (2026-09-29): research phase; first read-only bench session done.**
-> This project has flashed nothing. V15 has been unpacked and compared with
-> V14 ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md)), and the case
-> has been opened for [photos](photos/2026-09-29/). A third-party firmware,
-> Baud Girl's [FM-1+VA](https://baudgirl.com/work/FM-1+VA), now ships to users
-> through the stock update path; the owner installed it, so the unit
-> identifies as `FM-1_092` instead of stock `FM-1_015`, and its package has
-> been diffed against V15
-> ([`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md)). The `USB_KEY`
-> recovery dongle is specified, implemented and simulated but not yet tried
-> ([`docs/10`](docs/10-usb-key-dongle.md), [`dongle/`](dongle/)). Start with
-> [`docs/05-open-source-feasibility.md`](docs/05-open-source-feasibility.md) for
-> the verdict and [`docs/09-first-session-checklist.md`](docs/09-first-session-checklist.md)
-> for what to do with the device on the bench.
+> **Status (2026-10-01): the code runs on a desktop and in a browser, not
+> yet on a JieLi chip or an FM-1. This project has flashed nothing.**
+>
+> - **Desktop and browser:** CI builds the engines, effects and sequencer
+>   core on Linux and macOS, and on Linux also as a 32-bit build and under
+>   ASan + UBSan; more than 1,400 tests pass [verified: CI on `main`,
+>   2026-10-01]. The virtual FM-1 is tested in Chromium only
+>   ([Features](#features), [Try it in your browser](#try-it-in-your-browser)).
+> - **On a JieLi chip:** nothing has been built with JieLi's compiler yet, so
+>   speed and memory on pi32v2 are not measured. A JieLi AC79 dev kit and
+>   JieLi's USB updater dongle are on order, to run the code there first and
+>   to rehearse a flash dump and restore on the kit
+>   ([`docs/14`](docs/14-verification-ladder.md)).
+> - **On the FM-1:** this project writes nothing to an FM-1 until a full
+>   flash dump and a byte-identical restore have been shown on the owner's
+>   unit ([`docs/07`](docs/07-recovery-and-risk.md) §4). The dump goes
+>   through the chip's mask-ROM USB mode, entered over the USB-C port with a
+>   `USB_KEY` dongle: JieLi's (on order), or ours, which is specified,
+>   implemented and simulated but not yet run on hardware
+>   ([`docs/10`](docs/10-usb-key-dongle.md), [`dongle/`](dongle/)). Two other
+>   FM-1 owners report reaching that mode with czietz's Pico dongle, and one
+>   reports backing up and writing firmware afterwards [reported:
+>   [issue #2](https://github.com/ip2k/lunar-modulator/issues/2),
+>   [`docs/10`](docs/10-usb-key-dongle.md) §1.1]; nobody here has run it.
+> - **The owner's unit** runs Baud Girl's
+>   [FM-1+VA](https://baudgirl.com/work/FM-1+VA), a third-party firmware the
+>   owner installed themselves; it identified as `FM-1_092` on 2026-09-29
+>   [verified]. This project has only ever sent it read-only requests
+>   ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md),
+>   [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md)).
+>
+> For the verdict on how open the firmware can be, read
+> [`docs/05`](docs/05-open-source-feasibility.md); for the plan from desktop
+> to device, [`docs/14`](docs/14-verification-ladder.md).
 
 ## Features
 
-Nothing here runs on an FM-1 yet: the engines, effects and sequencer core
-are built and tested on a desktop, and the virtual FM-1 runs them in a
-browser. The screenshots below are that virtual FM-1, showing the
+Nothing here runs on an FM-1 yet. The engines, effects and sequencer core
+are built and tested on a desktop. The virtual FM-1 runs the engines and
+effects in a browser; the sequencer is not wired into it yet. The
+screenshots below are that virtual FM-1, showing the
 firmware's own 240 × 240 screen, and one figure compares its output with
 the native renderer's.
 
@@ -233,22 +262,40 @@ Details, the panel's measurements and the parity results are in
 - **schwung-movy cannot be ported, but its design can.** Movy is
   TypeScript + Rust running inside Ableton Move, a quad-core Cortex-A72 Linux
   computer with 2 GB of RAM. The FM-1 is a 240 MHz custom-ISA microcontroller
-  with 578 KB of SRAM and no Rust or LLVM target. Movy's 8-knob parameter-page
-  UI maps almost one-to-one onto the FM-1's 8 knobs, and its Move-style
-  sequencer model is a good specification for a C reimplementation.
+  with 578 KB of SRAM and no Rust or LLVM target. Movy's 8-knob parameter
+  pages become two pages of four on the FM-1's four free knobs. Its
+  Move-style sequencer model is the specification for `fm1_seq`, our C
+  reimplementation ([docs/13](docs/13-movy-port.md),
+  [`engines/seq.md`](engines/seq.md)).
 
 ## Recommended path
 
 1. **Bench characterization, read-only** ([docs/09](docs/09-first-session-checklist.md)).
+   The first session was done on 2026-09-06
+   ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md)).
 2. **Prove recovery before anything else** ([docs/07](docs/07-recovery-and-risk.md)):
-   get the chip into its mask-ROM USB boot mode through the USB-C port with the
-   `USB_KEY` signal, dump the flash, restore it, repeat. Everything else waits
-   on this. The dongle for it is [docs/10](docs/10-usb-key-dongle.md) / [`dongle/`](dongle/).
+   - Get the chip into its mask-ROM USB boot mode through the USB-C port with
+     the `USB_KEY` signal.
+   - Dump the flash, restore it, and repeat.
+   - Rehearse on the AC79 dev kit first, which is on order
+     ([docs/14](docs/14-verification-ladder.md)).
+   - Everything else on the FM-1 waits on this.
+   - The dongles for it are JieLi's updater (on order) and ours
+     ([docs/10](docs/10-usb-key-dongle.md) / [`dongle/`](dongle/)). Other
+     owners report the route works with a Pico dongle ([docs/10](docs/10-usb-key-dongle.md)
+     §1.1).
 3. **First custom code through the mask-ROM route**: the vendor SDK's
-   `demo_hello` for AC791N, adapted to the FM-1 board.
-4. **The synth**: port msfa / Synth_Dexed, USB-MIDI class device, DX7 SysEx,
-   presets in flash.
-5. **UI and sequencer** inspired by Movy ([docs/06](docs/06-movy-and-schwung.md)).
+   `demo_hello` for AC791N, on the dev kit and then adapted to the FM-1 board.
+4. **The synth**:
+   - The engine platform ([`engines/`](engines/README.md)), built and checked
+     against reference renders on the desktop, brought to pi32v2. Its cost and
+     memory are measured on the dev kit first (stage B,
+     [docs/14](docs/14-verification-ladder.md)).
+   - Then a USB-MIDI class device, DX7 SysEx and presets in flash.
+5. **UI and sequencer** after Movy ([docs/13](docs/13-movy-port.md)). The
+   sequencer core and its Movy oracle are built and tested on the desktop
+   ([`engines/seq.md`](engines/seq.md)); the UI and the rest of the port
+   follow.
 6. **Ship through the stock OTA path** (new version number, stock flash head),
    as Baud Girl's releases already do, so users install without opening the case.
 
@@ -276,7 +323,7 @@ Details, the panel's measurements and the parity results are in
 | [`tools/fm1_identify.py`](tools/fm1_identify.py) | Read-only identity query with decoder, any OS via mido (verified on hardware 2026-09-06) |
 | [`tools/fm1_identify.sh`](tools/fm1_identify.sh) | Read-only SysEx identity query via ALSA `amidi` (untested on hardware) |
 | [`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md) | Bench session 1: USB descriptors, identity reply, MIDI probes, V14 vs V15 |
-| [`tests/`](tests/), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | pytest suite (tools, PIO emulation, dongle/ROM co-simulation) and CI: tests on Linux/macOS, RP2040 UF2 build, AL-255's suite on our fork |
+| [`tests/`](tests/), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | pytest suite (tools, PIO emulation, dongle/ROM co-simulation, the engines and their reference renders, the sequencer and its Movy oracle fixtures, the virtual FM-1) and CI: tests on Linux/macOS, 32-bit and ASan + UBSan builds of the engines, sequencer and virtual FM-1, the RP2040 UF2 build, AL-255's suite on our fork |
 | [`notes/2026-09-06-research-log.md`](notes/2026-09-06-research-log.md) | What was checked, what was blocked, where the numbers come from |
 | [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md) | Baud Girl's FM-1+VA, its `FM-1_092` package diffed against V15, and the owner's board photos |
 | [`photos/`](photos/) | The owner's photos of their unit, by date, with the crops the notes cite |
