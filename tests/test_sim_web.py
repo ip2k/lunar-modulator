@@ -450,6 +450,17 @@ def test_home_key_leds_are_unchanged(tools, tmp_path):
     assert lab["seq_notes_to_engine"] > 0
 
 
+def test_a_new_sound_clears_the_track_views_knob_hint(tools):
+    """The Track view's hint line names the knob last turned for two
+    seconds. PRESETS loads another sound, whose knob of that number nobody
+    turned, so the hint gives way to the model line at once."""
+    base = ["--lab", "--engine", "macro", "--seconds", "0.6", "--button", "0.05:SEQ",
+            "--turn", "0.1:KNOB2:5"]
+    assert run(tools["sim"], base)["seq_view"]["knob"] == 1
+    s = run(tools["sim"], base + ["--turn", "0.3:PRESETS:1"])
+    assert s["engine"] != "macro" and s["mode"] == 3 and s["seq_view"]["knob"] == -1
+
+
 def test_emptying_a_slot_returns_to_its_one_page(tools):
     """The Effect 2 dropdown's "(none)" on PSX Verb's second page: the empty
     slot shows page 1 of 1, not "2/1" (the select path used to keep the page)."""

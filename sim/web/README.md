@@ -146,7 +146,8 @@ and bottom bars:
 - the knob strip: four bars for KNOB1–4 on the current sound page, no text
   (O23, option b); the knob being turned is drawn brighter;
 - the hint line: that knob's name and value, as HOME's rows show them, for
-  two seconds; otherwise the sound's model in gold, as HOME's first line;
+  two seconds or until SELECT or PRESETS moves on; otherwise the sound's
+  model in gold, as HOME's first line;
 - the bottom bar: `1/3 Seq T1` (sound page, mode, track) and the RAM figure.
 
 SELECT pages through the sound and KNOB1–4 turn it, as in HOME. The UI
@@ -220,7 +221,7 @@ pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 
 The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view: 24 of 24 scenarios pass, identical to musl
-and to render.js, and it imports nothing; it is 464,676 bytes, up from
+and to render.js, and it imports nothing; it is 464,688 bytes, up from
 459,122 before S3 and 391 KB before the sequencer [verified, 2026-10-02,
 `www/fm1.wasm.json`].
 
@@ -348,7 +349,8 @@ as in `fm1-render`; no note left hanging after a reset, an import or a
 change of sound; the 815-screen layout sweep; the panel against the manual's formula (octave,
 transpose, reset); buttons and encoders; with the lab switch, PLAY/STOP's
 LED while playing, SEQ mode, the white keys following the playhead in SEQ
-mode (eight points across two bars) and HOME's key LEDs unchanged; an effect slot emptied on its
+mode (eight points across two bars), HOME's key LEDs unchanged and the
+Track view's knob hint cleared by a new sound; an effect slot emptied on its
 second page; sounds that refuse a 48 kHz host stepped over and the previous
 one kept; the page loads nothing from other origins; the exports match; and
 `www/fm1.wasm` matches its record. The record carries two source hashes

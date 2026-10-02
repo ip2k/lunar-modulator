@@ -557,7 +557,7 @@ existing figure, not a new line.
 
 | Screen | Stage | Layout |
 | --- | --- | --- |
-| Track view | S3; marks in S4, lock dots in S8 | **Status line** (y 28–46): BPM on the left; PLAY, REC with the count-in, or EXT on the right. **Grid** (y 50–115): 4 × 16, one graphic box, cells 12 × 14 px from x 8. Filled = notes, corner dot = locks, tick = a trig row, outline = outside the loop, inverted = the playhead, bracket = the bar on the keys. **Knob strip:** per O23. **Hint line:** y 190–208. **Bottom bar:** `n/N Seq T1`, with the RAM figure |
+| Track view | S3; marks in S4, lock dots in S8 | **Status line** (y 28–46): BPM on the left; PLAY, REC with the count-in, or EXT on the right (S3 draws PLAY or STOP). **Grid**: 4 × 16, one graphic box. Proposed at y 50–115 with cells 12 × 14 px from x 8; S3 drew it at y 50–156 with cells 12 × 22 px from x 6, 2 px between steps, 4 px between beats and 6 px between bars, which leaves room for the strip [verified: fm1_seq_view.c, the layout sweep]. Filled = notes, corner dot = locks, tick = a trig row, outline = outside the loop, inverted = the playhead, bracket = the bar on the keys. **Knob strip:** per O23; in S3, four bars 8 px tall at y 168. **Hint line:** y 190–208. **Bottom bar:** `n/N Seq T1`, with the RAM figure |
 | Held-step pages | S4 | HOME's `draw_params` geometry (four rows of label, value and bar). A 16-step strip replaces the scope |
 | Lock pages | S8 | The same geometry. Locked values in engine units over dim bases [O14], and a dot on each parameter with a lane |
 | Set, Clip, Track | S6 | The same geometry. Track page 2 lists the 8 lanes at a 23 px pitch, showing each label's text after its last `:` and the base |
@@ -1764,4 +1764,8 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
   gesture traces and the layout sweep cover the lab-on screens and keep
   the lab-off ones. The switch is documented in sim/web/README.md, not in
   the user manual, and the manual's chapter 07 stays as it is while the
-  features are hidden.
+  features are hidden. S3's scope items written for the public page
+  therefore hold with the switch on only, or wait for the stage that
+  removes it: the two buttons dropping their popup, the stub-button sweep
+  dropping SEQ and PLAY/STOP (its saved popup stays `popup-button-12`),
+  chapter 07 and `manual.toml`'s roles.

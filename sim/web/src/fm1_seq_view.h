@@ -8,8 +8,9 @@
  *   knob strip    four bars, KNOB1..4 on the current sound page, no text
  *                 (owner decision O23, option b)
  *   hint line     the knob last turned, its full name and value as HOME's
- *                 rows show them, for two seconds; otherwise the sound's
- *                 model, as HOME's first line
+ *                 rows show them, for two seconds or until SELECT or
+ *                 PRESETS moves on; otherwise the sound's model, as
+ *                 HOME's first line
  * Every text run keeps the app's 4 px gap and 2x text; the layout sweep
  * (fm1-sim-render --screens) checks each state.
  *

@@ -213,8 +213,12 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
     a->dirty = 1;
     return -3;
   }
-  if (unit == 0) a->page = clampi(a->page, 0, page_count(e) - 1);
-  else if (a->fx_slot == unit - 1) a->fx_page = clampi(a->fx_page, 0, page_count(e) - 1);
+  if (unit == 0) {
+    a->page = clampi(a->page, 0, page_count(e) - 1);
+    a->ui.knob = -1;                     /* the Track view's hint named the last sound's knob */
+  } else if (a->fx_slot == unit - 1) {
+    a->fx_page = clampi(a->fx_page, 0, page_count(e) - 1);
+  }
   a->dirty = 1;
   return 0;
 }
