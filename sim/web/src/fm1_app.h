@@ -27,7 +27,7 @@
  * and sets through it.
  *
  * The lab switch (fm1_app_set_lab, off at init) puts the sequencer on the
- * panel (docs/15 S3 and S4), for the page's lab preview and the tests while
+ * panel (docs/15 S3 to S5), for the page's lab preview and the tests while
  * the public page hides it until step entry and recording work (owner
  * decision O24, 2026-10-02):
  *   SEQ           SEQ mode, the Track view (fm1_seq_view.h); HOME, FX and
@@ -43,10 +43,16 @@
  *                 in SEQ mode, and in SEQ mode the keys' LEDs are the UI's
  *   notes         a note played outside SEQ mode or at MIDI IN is
  *                 remembered as the chord a step tap writes, and with steps
- *                 held in SEQ mode a MIDI IN note adds its pitch to them
- * With the switch off, SEQ and PLAY/STOP say they are not in the simulator
- * yet, as REC still does with it on, and SEL outside FX mode says where it
- * works.
+ *                 held in SEQ mode a MIDI IN note adds its pitch to them;
+ *                 one that no step takes is live input to the focused track
+ *                 (fm1_app_seq_note_in), for recording and Capture (S5)
+ *   REC           `rec`; held while stopped in SEQ mode, step record; with
+ *                 SHIFT, Capture, whose stopped tempo picker or fitted tempo
+ *                 stays over the screen until a press (fm1_seq_ui.h, S5).
+ *                 Its LED: on while recording, fast during a count-in, slow
+ *                 while Capture holds notes
+ * With the switch off, SEQ, PLAY/STOP and REC say they are not in the
+ * simulator yet, and SEL outside FX mode says where it works.
  *
  * The screen is a 240 x 240 RGB565 frame buffer (fm1_tft.h) drawn with the
  * stock layout: a top bar with the sound's name, the mode's content, and a
@@ -191,14 +197,19 @@ typedef struct fm1_app {
   uint64_t seq_dropped_before;   /* events dropped by instances since replaced */
   uint64_t seq_held, seq_busy;   /* commands held for room, and refused */
   uint32_t seq_gen;              /* bumped by every sequencer input */
-  /* Native-harness hook: every typed command as it is applied, with the
-   * frame of the block it leads. NULL in the browser. */
+  /* Native-harness hooks: every typed command as it is applied, and every
+   * live note given to the sequencer (velocity 0: its release), with the
+   * frame of the block they lead. NULL in the browser. */
   void (*on_cmd)(void *ctx, uint64_t frame, const fm1_seq_cmd_t *c);
+  void (*on_note_in)(void *ctx, uint64_t frame, int track, int pitch, int velocity);
   void *on_cmd_ctx;
 
   /* The sequencer on the panel, behind the lab switch. */
   int lab;
   fm1_seq_ui_t ui;
+  uint8_t key_sound_only[FM1_APP_KEYS];   /* step record's keys: the sound only */
+  uint8_t seq_fed[128];                   /* notes down given to the sequencer as */
+  uint8_t seq_fed_track[128];             /* live input, and the track each went to */
 
   fm1_tft_t tft;
   unsigned char sound_mem[FM1_APP_SOUND_BYTES] FM1_APP_ALIGN16;
@@ -292,7 +303,10 @@ size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len);
  * _REFUSED. */
 int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c);
 
-/* Live notes for recording and Capture (velocity 0 releases), at frame 0. */
+/* Live notes for recording and Capture (velocity 0 releases), at frame 0
+ * of the coming block, as a `non` or `nof` op would be applied there; the
+ * harness's on_note_in hook logs it so. With the lab switch on, the app
+ * gives it the notes it plays that no step took (fm1_seq_ui_note). */
 void fm1_app_seq_note_in(fm1_app_t *a, int track, int pitch, int velocity);
 
 /* A new, empty instance of `tracks` tracks (1..FM1_APP_SEQ_TRACKS): the

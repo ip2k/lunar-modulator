@@ -1,0 +1,4 @@
+# SHIFT + REC with nothing played: a toast, and no command.
+--button 0.10:SEL:0.1
+--button 0.15:REC
+--button 0.50:PLAY/STOP

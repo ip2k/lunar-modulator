@@ -18,7 +18,8 @@ enum {
   ROLE_LENGTH,                      /* hold A, press B: B's press set A's length */
   ROLE_PITCH,                       /* SHIFT + white key with steps held: addp */
   ROLE_SHORTCUT,                    /* SHIFT + white key, nothing held */
-  ROLE_BLACK                        /* a black key's role, or none yet */
+  ROLE_BLACK,                       /* a black key's role, or none yet */
+  ROLE_SREC                         /* step record: a pitch at the head */
 };
 
 #define VEL_PER_DETENT 4            /* Movy's VEL_STEP */
@@ -84,6 +85,7 @@ void fm1_seq_ui_init(fm1_seq_ui_t *u, float rate) {
   u->knob = -1;
   u->rate = rate > 1.0f ? (uint32_t)(rate + 0.5f) : 1u;
   u->hold_frames = (u->rate * 3u + 9u) / 10u;      /* ceil(0.3 x rate): 13,236 at 44,118 Hz */
+  u->tap_frames = (u->rate + 1u) / 2u;             /* ceil(0.5 x rate): 22,059 */
 }
 
 void fm1_seq_ui_enter(fm1_seq_ui_t *u) { u->view = FM1_SEQ_VIEW_TRACK; }
@@ -200,12 +202,214 @@ static void drop_all_held(fm1_seq_ui_t *u) {
   u->view = FM1_SEQ_VIEW_TRACK;
 }
 
-void fm1_seq_ui_leave(fm1_seq_ui_t *u) {
+/* The held steps go with no toggle; keys still down stay the UI's until
+ * released, so their releases do nothing. */
+static void let_go_of_steps(fm1_seq_ui_t *u) {
   drop_all_held(u);
   for (int k = 0; k < FM1_APP_KEYS; ++k) {
-    if (u->key_role[k] == ROLE_STEP) u->key_role[k] = ROLE_NONE;   /* releases do nothing */
+    if (u->key_role[k] == ROLE_STEP) u->key_role[k] = ROLE_NONE;
   }
+}
+
+/* ---- step record (O8; Movy's step-rec.ts and step-rec-head.ts) --------------------- */
+
+/* Leave step record (REC up, PLAY, leaving SEQ mode). Keys still down as
+ * pitches keep sounding until released; their releases enter nothing. REC's
+ * release after this is no tap. */
+static void srec_end(fm1_seq_ui_t *u) {
+  if (!u->srec) return;
+  u->srec = 0;
+  u->srec_open = 0;
+  u->srec_chord_n = 0;
+  u->srec_midi_n = 0;
+  u->srec_keys = 0;
+  u->srec_tie = 0;
+  u->rec_touched = 1;
+}
+
+void fm1_seq_ui_leave(fm1_seq_ui_t *u) {
+  let_go_of_steps(u);
+  srec_end(u);
   u->hint = FM1_SEQ_HINT_NONE;
+}
+
+/* The head moves (Movy's setHead): a fresh step, and the bar on the keys
+ * follows it. */
+static void srec_set_head(fm1_seq_ui_t *u, unsigned step) {
+  if (step > FM1_SEQ_MAX_STEPS - 1u) step = FM1_SEQ_MAX_STEPS - 1u;
+  u->srec_head = (uint16_t)step;
+  u->srec_fresh = 1;
+  u->bar = (uint8_t)(step / 16u);
+}
+
+/* Grow mode only (Movy's growTo): the clip takes in `step`. The core rounds
+ * a clip up to its bar when a note lands past it, so this goes after the
+ * write that caused it and trims the clip back to what was played; it never
+ * shrinks it. */
+static void srec_grow_to(fm1_seq_ui_t *u, unsigned step, const fm1_seq_ui_emit_t *out) {
+  unsigned want = step + 1u;
+  int64_t arg[2];
+  if (!u->srec_grow) return;
+  if (want > FM1_SEQ_MAX_STEPS) want = FM1_SEQ_MAX_STEPS;
+  if (want <= u->srec_grown) return;
+  u->srec_grown = (uint16_t)want;
+  arg[0] = u->track;
+  arg[1] = want;
+  emit(out, FM1_SEQ_V_CLEN, 2, arg);
+}
+
+/* One step on (Movy's advanceHead): a new clip grows to take the step left;
+ * an existing one wraps to its loop's start at its end. */
+static void srec_advance(fm1_seq_ui_t *u, const fm1_seq_ui_emit_t *out) {
+  unsigned next = u->srec_head + 1u;
+  srec_grow_to(u, u->srec_head, out);
+  if (u->srec_grow) {
+    if (next >= FM1_SEQ_MAX_STEPS) next = 0;
+  } else if (next >= (unsigned)u->loop_start + u->length) {
+    next = u->loop_start;
+  }
+  srec_set_head(u, next);
+}
+
+/* REC down, stopped, in SEQ mode (Movy's headBegin): an empty clip grows to
+ * what is played, a clip with a length wraps. The head starts on the loop's
+ * first step (Movy parks it on step 1 whatever the loop; the same for every
+ * loop that starts there). */
+static void srec_begin(fm1_seq_ui_t *u) {
+  let_go_of_steps(u);
+  u->srec = 1;
+  u->rec_touched = 0;
+  u->srec_open = 0;
+  u->srec_chord_n = 0;
+  u->srec_midi_n = 0;
+  u->srec_keys = 0;
+  u->srec_tie = 0;
+  u->srec_grow = u->length == 0;
+  u->srec_grown = u->length;
+  u->hint = FM1_SEQ_HINT_NONE;
+  u->knob = -1;
+  srec_set_head(u, u->srec_grow ? 0u : u->loop_start);
+}
+
+/* A pitch played (Movy's stepRecPad): onto the open chord's step, or a new
+ * chord at the head. Its first pitch on a fresh step replaces what is there
+ * (a melodic track's rule); a tied chord's later pitches take its length. */
+static void srec_note_on(fm1_seq_ui_t *u, int pitch, int vel, const fm1_seq_ui_emit_t *out) {
+  unsigned step;
+  int64_t arg[5];
+  u->rec_touched = 1;
+  if (!u->srec_open) {
+    u->srec_open = 1;
+    u->srec_chord_n = 0;
+    u->srec_anchor = u->srec_head;
+    u->srec_tie = 0;
+  }
+  if (u->srec_chord_n >= FM1_SEQ_CHORD_MAX) return;   /* a `tog`'s 12 at most */
+  step = u->srec_anchor;
+  arg[0] = u->track;
+  arg[1] = step;
+  arg[2] = step;
+  if (u->srec_chord_n == 0 && u->srec_fresh) {
+    arg[3] = -1;
+    emit(out, FM1_SEQ_V_DEL, 4, arg);
+  }
+  u->srec_fresh = 0;
+  arg[3] = pitch;
+  arg[4] = vel;
+  emit(out, FM1_SEQ_V_ADDP, 5, arg);
+  srec_grow_to(u, step, out);
+  if (u->srec_tie) {
+    arg[4] = (int64_t)(u->srec_tie + 1u) * FM1_SEQ_TICKS_PER_STEP;
+    emit(out, FM1_SEQ_V_SLEN, 5, arg);
+  }
+  u->srec_chord[u->srec_chord_n++] = (uint8_t)pitch;
+}
+
+/* A key or note let go (Movy's stepRecPadRelease): when the last is up, the
+ * chord closes and the head moves on by itself. */
+static void srec_maybe_advance(fm1_seq_ui_t *u, const fm1_seq_ui_emit_t *out) {
+  if (!u->srec || !u->srec_open || u->srec_keys || u->srec_midi_n) return;
+  u->srec_open = 0;
+  u->srec_chord_n = 0;
+  u->srec_tie = 0;
+  srec_advance(u, out);
+}
+
+/* A#3 (dir +1) and F#3 (-1) (Movy's stepRecArrow): with a chord open, tie it
+ * into the next step or untie it, the head riding to the tied note's end;
+ * with none, a rest, or a step back. */
+static void srec_arrow(fm1_seq_ui_t *u, int dir, const fm1_seq_ui_emit_t *out) {
+  u->rec_touched = 1;
+  if (u->srec_open) {
+    unsigned end;
+    if (dir > 0 && u->srec_anchor + u->srec_tie + 1u < FM1_SEQ_MAX_STEPS) ++u->srec_tie;
+    else if (dir < 0 && u->srec_tie > 0) --u->srec_tie;
+    else return;
+    for (unsigned k = 0; k < u->srec_chord_n; ++k) {
+      const int64_t arg[5] = { u->track, u->srec_anchor, u->srec_anchor, u->srec_chord[k],
+                               (int64_t)(u->srec_tie + 1u) * FM1_SEQ_TICKS_PER_STEP };
+      emit(out, FM1_SEQ_V_SLEN, 5, arg);
+    }
+    end = (unsigned)u->srec_anchor + u->srec_tie;
+    srec_grow_to(u, end, out);
+    srec_set_head(u, end);                   /* the chord stays open */
+    return;
+  }
+  if (dir > 0) srec_advance(u, out);
+  else srec_set_head(u, u->srec_head ? u->srec_head - 1u : 0u);
+}
+
+/* SHIFT + white key (Movy's stepRecStepTap, its step buttons): the head goes
+ * to that step of the bar, which is cleared if it had notes; past a clip's
+ * end only while it grows. */
+static void srec_jump(fm1_seq_ui_t *u, const fm1_seq_t *s, unsigned step,
+                      const fm1_seq_ui_emit_t *out) {
+  u->rec_touched = 1;
+  if (!u->srec_grow && step >= (unsigned)u->loop_start + u->length) return;
+  if (step_notes(u, s, (uint16_t)step)) {
+    const int64_t arg[4] = { u->track, step, step, -1 };
+    emit(out, FM1_SEQ_V_DEL, 4, arg);
+  }
+  srec_grow_to(u, step, out);
+  srec_set_head(u, step);
+}
+
+int fm1_seq_ui_srec_can_go_back(const fm1_seq_ui_t *u) {
+  return u->srec && (u->srec_open ? u->srec_tie > 0 : u->srec_head > 0);
+}
+
+/* ---- Capture (O7) ----------------------------------------------------------------- */
+
+/* A press while the overlay is up closes it (`capdone`) and does nothing
+ * else, as Movy's: a key that both closed it and wrote into the take just
+ * captured is not worth the risk without undo. */
+static int close_overlay(fm1_seq_ui_t *u, const fm1_seq_ui_emit_t *out) {
+  emit(out, FM1_SEQ_V_CAPDONE, 0, NULL);
+  u->capture_mode = FM1_SEQ_UI_CAPTURE_NONE;     /* until the next sync reads it */
+  return 1;
+}
+
+/* SHIFT + REC: the notes buffered go into the focused track's clip; with
+ * none, a toast (Movy's captureButton). The next sync says what it did. */
+static void capture(fm1_seq_ui_t *u, const fm1_seq_ui_emit_t *out) {
+  int64_t arg[1];
+  if (!u->capture_pending) {
+    u->toast = FM1_SEQ_TOAST_NOTHING;
+    return;
+  }
+  arg[0] = u->track;
+  emit(out, FM1_SEQ_V_CAP, 1, arg);
+  u->cap_sent = 1;
+  u->cap_gen_sent = u->capture_gen;
+  u->capture_pending = 0;
+}
+
+int fm1_seq_ui_rec_led(const fm1_seq_ui_t *u, uint64_t frame, int held) {
+  const uint32_t fast = u->rate / 4u ? u->rate / 4u : 1u;
+  if (u->recording || u->srec) return 1;
+  if (u->counting_in) return (frame % fast) < fast / 2u;
+  if (u->capture_pending) return (frame % u->rate) < u->rate / 2u;
+  return held != 0;
 }
 
 /* ---- sync ------------------------------------------------------------------------ */
@@ -284,6 +488,20 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
   u->rec_track = i.rec_track;
   u->bpm_x100 = i.bpm_x100;
   u->master_tick = i.master_tick;
+  u->capture_pending = i.capture_pending;
+  u->capture_mode = i.capture_mode;
+  u->capture_n = i.capture_n < 3 ? i.capture_n : 3;
+  u->capture_sel = i.capture_sel;
+  memcpy(u->capture_cands, i.capture_cands, sizeof u->capture_cands);
+  u->capture_gen = i.capture_gen;
+  if (u->cap_sent) {
+    /* The `cap` sent at SHIFT + REC: a take written opens the core's overlay
+     * (a stopped Capture's picker or fitted tempo) or says so. */
+    u->cap_sent = 0;
+    if (i.capture_gen == u->cap_gen_sent) u->toast = FM1_SEQ_TOAST_NOTHING;
+    else if (i.capture_mode == FM1_SEQ_UI_CAPTURE_NONE) u->toast = FM1_SEQ_TOAST_CAPTURED;
+  }
+  if (u->srec && i.playing) srec_end(u);     /* a stopped-transport mode, as Movy's */
   if (u->track >= i.tracks) u->track = 0;
   memset(&tr, 0, sizeof tr);
   memset(&c, 0, sizeof c);
@@ -296,7 +514,9 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
   u->loop_start = c.loop_start;
   u->clip_playing = (uint8_t)(i.playing && c.length_steps && tr.playing == tr.active);
   u->step = u->clip_playing ? (uint16_t)(tr.pos_tick / FM1_SEQ_TICKS_PER_STEP) : 0;
-  if (!u->held_n) bar_bounds(u);        /* a hold keeps its bar while the clip grows */
+  /* A hold keeps its bar while the clip grows; step record's head takes
+   * the bar with it. */
+  if (!u->held_n && !u->srec) bar_bounds(u);
   u->grid_first = (uint16_t)(u->bar / 4u * FM1_SEQ_UI_GRID_STEPS);
   if (!u->notes_valid || u->notes_gen != gen || u->notes_track != u->track ||
       u->notes_slot != u->slot || u->notes_first != u->grid_first) {
@@ -318,14 +538,25 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
     u->hint = FM1_SEQ_HINT_NONE;
     u->knob = -1;
   }
-  return was.playing != u->playing || was.recording != u->recording ||
-         was.counting_in != u->counting_in || was.following != u->following ||
-         was.bpm_x100 != u->bpm_x100 || was.slot != u->slot ||
-         was.clip_playing != u->clip_playing || was.step != u->step ||
-         was.loop_start != u->loop_start || was.length != u->length || was.notes != u->notes ||
-         was.trigs != u->trigs || was.view != u->view || was.bar != u->bar ||
-         was.hint != u->hint || was.knob != u->knob || was.rec_track != u->rec_track ||
-         memcmp(&was.hold, &u->hold, sizeof u->hold) != 0;
+  {
+    const int overlay = was.capture_mode != u->capture_mode ||
+                        (u->capture_mode && (was.capture_n != u->capture_n ||
+                                             was.capture_sel != u->capture_sel ||
+                                             was.bpm_x100 != u->bpm_x100 ||
+                                             memcmp(was.capture_cands, u->capture_cands,
+                                                    sizeof u->capture_cands) != 0));
+    const int seq = was.playing != u->playing || was.recording != u->recording ||
+                    was.counting_in != u->counting_in || was.following != u->following ||
+                    was.bpm_x100 != u->bpm_x100 || was.slot != u->slot ||
+                    was.clip_playing != u->clip_playing || was.step != u->step ||
+                    was.loop_start != u->loop_start || was.length != u->length ||
+                    was.notes != u->notes || was.trigs != u->trigs || was.view != u->view ||
+                    was.bar != u->bar || was.hint != u->hint || was.knob != u->knob ||
+                    was.rec_track != u->rec_track || was.srec != u->srec ||
+                    was.capture_pending != u->capture_pending ||
+                    memcmp(&was.hold, &u->hold, sizeof u->hold) != 0;
+    return (seq ? FM1_SEQ_UI_SYNC_SEQ : 0) | (overlay ? FM1_SEQ_UI_SYNC_OVERLAY : 0);
+  }
 }
 
 /* ---- buttons ------------------------------------------------------------------- */
@@ -343,9 +574,46 @@ static void clear_held(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_emi
   u->hold_valid = 0;
 }
 
+/* REC: Capture with SHIFT; stopped in SEQ mode, step record while held and
+ * `rec` on a quick untouched release (Movy's router.ts and step-rec.ts);
+ * otherwise `rec` at once. */
+static int rec_button(fm1_seq_ui_t *u, int down, uint64_t frame, int mode,
+                      const fm1_seq_ui_emit_t *out) {
+  const int64_t t = u->track;
+  if (down) {
+    u->rec_press = frame;
+    if (u->shift && mode != FM1_MODE_FX) {
+      u->rec_role = FM1_SEQ_UI_REC_CAPTURE;
+      capture(u, out);
+    } else if (!u->playing && mode == FM1_MODE_SEQ) {
+      u->rec_role = FM1_SEQ_UI_REC_STEP;
+      srec_begin(u);
+    } else {
+      u->rec_role = FM1_SEQ_UI_REC_SENT;
+      emit(out, FM1_SEQ_V_REC, 1, &t);
+    }
+    return 1;
+  }
+  if (u->rec_role == FM1_SEQ_UI_REC_STEP) {
+    const int tap = !u->rec_touched && frame - u->rec_press < u->tap_frames;
+    srec_end(u);
+    if (tap) emit(out, FM1_SEQ_V_REC, 1, &t);
+  }
+  u->rec_role = FM1_SEQ_UI_REC_NONE;
+  return 1;
+}
+
 int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down, uint64_t frame,
                       int mode, const fm1_seq_ui_emit_t *out) {
-  (void)frame;
+  if (down && u->capture_mode) {
+    if (button == FM1_BTN_REC) u->rec_role = FM1_SEQ_UI_REC_NONE;   /* its release does nothing */
+    u->shift_clean = 0;
+    return close_overlay(u, out);
+  }
+  if (button == FM1_BTN_REC) {
+    if (down) u->shift_clean = 0;
+    return rec_button(u, down, frame, mode, out);
+  }
   if (button == FM1_BTN_SEL) {
     if (down && mode != FM1_MODE_FX) {
       u->shift = 1;
@@ -369,6 +637,7 @@ int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down,
     /* SHIFT + PLAY while playing restarts (D12 makes it a Stop and a Start). */
     const int restart = u->playing && u->shift;
     fm1_seq_cmd_t c;
+    srec_end(u);                             /* step record is a stopped-transport mode */
     fm1_seq_cmd_make(&c, restart || !u->playing ? FM1_SEQ_V_PLAY : FM1_SEQ_V_STOP, 0, NULL);
     if (out && out->cmd) out->cmd(out->ctx, &c);
     /* Until the next block's sync reads the core: a second press before
@@ -499,13 +768,41 @@ int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int v
     u->keys_down &= ~(1u << key);
     u->key_role[key] = ROLE_NONE;
     if (role == ROLE_STEP) white_up(u, s, key, frame, out);
+    if (role == ROLE_SREC) {
+      u->srec_keys &= ~(1u << key);
+      srec_maybe_advance(u, out);
+    }
     return 1;
   }
-  if (mode != FM1_MODE_SEQ || fm1_seq_ui_has_key(u, key)) return mode == FM1_MODE_SEQ;
+  if (fm1_seq_ui_has_key(u, key)) return mode == FM1_MODE_SEQ;
+  if (u->capture_mode) {                     /* any mode: the press closes the overlay */
+    u->keys_down |= 1u << key;
+    u->key_role[key] = ROLE_NONE;
+    u->shift_clean = 0;
+    return close_overlay(u, out);
+  }
+  if (mode != FM1_MODE_SEQ) return 0;
   u->keys_down |= 1u << key;
   u->shift_clean = 0;
   {
     const int n = white_index(key);
+    if (u->srec) {
+      const int pitch = base_note + key;
+      u->key_role[key] = n < 0 ? ROLE_BLACK : ROLE_SHORTCUT;
+      if (n < 0) {
+        if (key == FM1_SEQ_UI_KEY_BAR_BACK || key == FM1_SEQ_UI_KEY_BAR_ON) {
+          srec_arrow(u, key == FM1_SEQ_UI_KEY_BAR_ON ? 1 : -1, out);
+        }
+      } else if (u->shift) {
+        srec_jump(u, s, u->bar * 16u + (unsigned)n, out);
+      } else if (pitch >= 0 && pitch <= 127) {
+        u->key_role[key] = ROLE_SREC;
+        u->srec_keys |= 1u << key;
+        srec_note_on(u, pitch, u->full_vel ? 127 : clampi(velocity, 1, 127), out);
+        return FM1_SEQ_UI_KEY_SOUND;
+      }
+      return 1;
+    }
     if (n < 0) {
       u->key_role[key] = ROLE_BLACK;
       black_down(u, key, frame, out);
@@ -562,6 +859,22 @@ int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int del
                        uint64_t frame, int mode, const fm1_seq_ui_emit_t *out) {
   (void)frame;
   u->shift_clean = 0;
+  if (u->capture_mode && delta) {
+    /* The picker: SELECT or KNOB1 takes the next tempo, heard at once
+     * (Movy's jog); any other encoder closes the overlay. */
+    if (u->capture_mode == FM1_SEQ_UI_CAPTURE_PICK &&
+        (encoder == FM1_ENC_SELECT || encoder == FM1_ENC_KNOB1)) {
+      const int next = clampi(u->capture_sel + (delta > 0 ? 1 : -1), 0,
+                              u->capture_n ? u->capture_n - 1 : 0);
+      if (next != u->capture_sel) {
+        const int64_t arg[1] = { next };
+        emit(out, FM1_SEQ_V_CAPSEL, 1, arg);
+        u->capture_sel = (uint8_t)next;
+      }
+      return 1;
+    }
+    return close_overlay(u, out);
+  }
   if (mode != FM1_MODE_SEQ || !u->held_n || delta == 0) return 0;
   if (encoder == FM1_ENC_SELECT) {
     u->step_page = (uint8_t)clampi(u->step_page + (delta > 0 ? 1 : -1), 0,
@@ -591,15 +904,38 @@ static void sounding_remove(fm1_seq_ui_t *u, int pitch) {
   }
 }
 
-void fm1_seq_ui_note(fm1_seq_ui_t *u, int pitch, int velocity, int mode,
-                     const fm1_seq_ui_emit_t *out) {
-  if (pitch < 0 || pitch > 127) return;
+/* Step record's MIDI IN notes down: their pitches, in press order. */
+static int srec_midi_remove(fm1_seq_ui_t *u, int pitch) {
+  for (int k = 0; k < u->srec_midi_n; ++k) {
+    if (u->srec_midi[k] == pitch) {
+      memmove(&u->srec_midi[k], &u->srec_midi[k + 1], (size_t)(u->srec_midi_n - k - 1));
+      --u->srec_midi_n;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+int fm1_seq_ui_note(fm1_seq_ui_t *u, int pitch, int velocity, int mode,
+                    const fm1_seq_ui_emit_t *out) {
+  if (pitch < 0 || pitch > 127) return 0;
   if (velocity <= 0) {                       /* a release touches nothing SHIFT does */
+    if (srec_midi_remove(u, pitch)) {
+      srec_maybe_advance(u, out);
+      return 1;
+    }
     sounding_remove(u, pitch);
-    return;
+    return 0;
   }
   u->shift_clean = 0;
   velocity = clampi(velocity, 1, 127);
+  if (mode == FM1_MODE_SEQ && u->srec) {     /* step record: a pitch at the head, as a key */
+    if (u->srec_midi_n < (int)sizeof u->srec_midi) {
+      u->srec_midi[u->srec_midi_n++] = (uint8_t)pitch;
+      srec_note_on(u, pitch, u->full_vel ? 127 : velocity, out);
+    }
+    return 1;
+  }
   if (mode == FM1_MODE_SEQ && u->held_n) {
     for (int k = 0; k < u->held_n; ++k) {
       const int64_t arg[5] = { u->track, u->held[k].step, u->held[k].step, pitch,
@@ -608,7 +944,7 @@ void fm1_seq_ui_note(fm1_seq_ui_t *u, int pitch, int velocity, int mode,
     }
     gesture(u);
     u->hold_valid = 0;
-    return;
+    return 1;
   }
   /* The chord a tap writes: every note held as this one goes down. */
   sounding_remove(u, pitch);
@@ -621,9 +957,15 @@ void fm1_seq_ui_note(fm1_seq_ui_t *u, int pitch, int velocity, int mode,
   ++u->sounding_n;
   memcpy(u->chord, u->sounding, sizeof u->chord);
   u->chord_n = u->sounding_n;
+  return 0;
 }
 
-void fm1_seq_ui_notes_off(fm1_seq_ui_t *u) { u->sounding_n = 0; }
+/* A panic: MIDI IN's notes down are gone, so step record's chord closes on
+ * its keys alone. */
+void fm1_seq_ui_notes_off(fm1_seq_ui_t *u) {
+  u->sounding_n = 0;
+  u->srec_midi_n = 0;
+}
 
 void fm1_seq_ui_knob(fm1_seq_ui_t *u, int knob, uint64_t until) {
   if (knob < 0 || knob > 3) return;
@@ -660,6 +1002,8 @@ uint32_t fm1_seq_ui_key_leds(const fm1_seq_ui_t *u, uint64_t frame) {
   uint32_t m = 0;
   const uint16_t held = fm1_seq_ui_held_mask(u), under = fm1_seq_ui_under_mask(u);
   const int slow_on = (frame % u->rate) < u->rate / 2u;    /* the 1 s blink */
+  const uint32_t fast = u->rate / 4u ? u->rate / 4u : 1u;
+  const int fast_on = (frame % fast) < fast / 2u;          /* the 0.25 s blink */
   for (unsigned n = 0; n < FM1_APP_WHITE_KEYS; ++n) {
     const unsigned step = u->bar * 16u + n, g = step - u->grid_first;
     int on = g < FM1_SEQ_UI_GRID_STEPS && ((u->notes >> g) & 1u) && step >= u->loop_start &&
@@ -667,7 +1011,13 @@ uint32_t fm1_seq_ui_key_leds(const fm1_seq_ui_t *u, uint64_t frame) {
     if (u->clip_playing && u->step == step) on = !on;
     if ((under >> n) & 1u) on = slow_on;
     if ((held >> n) & 1u) on = 1;
+    if (u->srec && u->srec_head == step) on = fast_on;   /* the record head */
     if (on) m |= 1u << fm1_white_key((int)n);
+  }
+  if (u->srec) {                             /* step record: a rest or tie, and back */
+    m |= 1u << FM1_SEQ_UI_KEY_BAR_ON;
+    if (fm1_seq_ui_srec_can_go_back(u)) m |= 1u << FM1_SEQ_UI_KEY_BAR_BACK;
+    return m;
   }
   if (u->held_n || u->bar > u->bar_min) m |= 1u << FM1_SEQ_UI_KEY_BAR_BACK;
   if (u->held_n || u->bar < u->bar_max) m |= 1u << FM1_SEQ_UI_KEY_BAR_ON;

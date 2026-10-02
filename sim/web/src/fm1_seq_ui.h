@@ -50,6 +50,34 @@
  *                  otherwise notes from MIDI IN and from the keys outside
  *                  SEQ mode are the chord a tap writes
  *
+ * S5 adds record and Capture (docs/15 §5 S5, owner decisions O7-O9):
+ *
+ *   REC            `rec` on the focused track, in every mode: stopped, a
+ *                  bar's count-in; playing on an empty clip, a take from the
+ *                  next bar; over notes, an overdub at once; recording or
+ *                  counting in, off again. In SEQ mode with the transport
+ *                  stopped it acts on release, as Movy's Rec does: a quick
+ *                  untouched tap records, and held it is step record (O8)
+ *   step record    REC held, stopped, in SEQ mode (Movy's step-rec.ts at
+ *                  9190e79): each white key enters its pitch, in the
+ *                  current octave, at the record head (`del` on a fresh
+ *                  step, `addp`, and `clen` while an empty clip grows to what
+ *                  is played), and sounds; keys held together are a chord on
+ *                  one step, and the head moves on when the last is let go.
+ *                  A#3 (the bar-on key) leaves a rest, or with keys down ties
+ *                  the chord into the next step; F#3 steps back, or unties.
+ *                  SHIFT + white key moves the head to that step, clearing
+ *                  it. MIDI IN notes enter as the keys do. Letting go of REC
+ *                  ends it; nothing latches
+ *   SHIFT + REC    Capture (O7): `cap` on the focused track, outside FX
+ *                  mode. Played, a toast; stopped, the core may open its
+ *                  tempo picker (SELECT or KNOB1 send `capsel`) or its fitted
+ *                  tempo, held on the screen until any press, which sends
+ *                  `capdone` and does nothing else (Movy's overlay)
+ *   notes          a note played on the keys outside SEQ mode or at MIDI IN
+ *                  that no step takes is live input (fm1_app_seq_note_in),
+ *                  for recording and Capture
+ *
  * C99, no heap, no stdio. MIT licence, like the rest of this repository.
  */
 #ifndef FM1_SEQ_UI_H_
@@ -74,7 +102,27 @@ enum {
 enum { FM1_SEQ_HINT_NONE = 0, FM1_SEQ_HINT_KNOB, FM1_SEQ_HINT_BAR };
 
 /* A one-off message for the app's popup (fm1_seq_ui_t.toast). */
-enum { FM1_SEQ_TOAST_NONE = 0, FM1_SEQ_TOAST_FULL_VEL_ON, FM1_SEQ_TOAST_FULL_VEL_OFF };
+enum {
+  FM1_SEQ_TOAST_NONE = 0, FM1_SEQ_TOAST_FULL_VEL_ON, FM1_SEQ_TOAST_FULL_VEL_OFF,
+  FM1_SEQ_TOAST_CAPTURED,           /* a Capture wrote its take */
+  FM1_SEQ_TOAST_NOTHING             /* SHIFT + REC with nothing buffered */
+};
+
+/* What REC's press did, for its release (fm1_seq_ui_t.rec_role). */
+enum {
+  FM1_SEQ_UI_REC_NONE = 0,
+  FM1_SEQ_UI_REC_SENT,              /* `rec` went at the press */
+  FM1_SEQ_UI_REC_STEP,              /* stopped in SEQ mode: step record while held,
+                                       `rec` on an untouched quick release */
+  FM1_SEQ_UI_REC_CAPTURE            /* SHIFT + REC: Capture */
+};
+
+/* Capture's modes, as fm1_seq_info_t.capture_mode has them. */
+enum { FM1_SEQ_UI_CAPTURE_NONE = 0, FM1_SEQ_UI_CAPTURE_PICK = 1, FM1_SEQ_UI_CAPTURE_FITTED = 2 };
+
+/* fm1_seq_ui_key's answer for a key that step record took: it enters its
+ * pitch, and the app plays the key's note on the sound (only there). */
+#define FM1_SEQ_UI_KEY_SOUND 2
 
 #define FM1_SEQ_UI_GRID_STEPS 64u   /* the Track view's grid: 4 bars of 16 */
 #define FM1_SEQ_UI_MAX_HELD 16      /* steps held at once: every white key */
@@ -181,6 +229,35 @@ typedef struct fm1_seq_ui {
   uint32_t notes_gen;
   uint16_t notes_first;
   uint8_t notes_track, notes_slot, notes_valid, hold_valid;
+
+  /* REC (S5): what its press did, and whether anything happened since. */
+  uint8_t rec_role;                 /* FM1_SEQ_UI_REC_* */
+  uint8_t rec_touched;              /* step record: a key, arrow or note while held */
+  uint32_t tap_frames;              /* ceil(0.5 x rate): Movy's Rec tap */
+  uint64_t rec_press;               /* frame of REC's press */
+
+  /* Step record (O8), while REC is held. Movy's step-rec.ts and
+   * step-rec-head.ts: the head, whether the clip grows to what is played
+   * (it was empty) or the head wraps, and the chord under the fingers. */
+  uint8_t srec;                     /* active */
+  uint8_t srec_grow;                /* the clip was empty when REC went down */
+  uint8_t srec_fresh;               /* nothing written at the head since it arrived */
+  uint8_t srec_open;                /* a chord is open: keys or notes are down */
+  uint8_t srec_chord_n, srec_midi_n;
+  uint16_t srec_head;               /* the step the next note goes to */
+  uint16_t srec_grown;              /* grow mode: the steps played into so far */
+  uint16_t srec_anchor, srec_tie;   /* the open chord's step, and its tie */
+  uint32_t srec_keys;               /* keys down as pitches, bit per key index */
+  uint8_t srec_chord[FM1_SEQ_CHORD_MAX];   /* the open chord's pitches */
+  uint8_t srec_midi[16];            /* MIDI IN notes down */
+
+  /* Capture (O7), read from the core once per block. */
+  uint16_t capture_pending;         /* note-ons buffered for the watched track */
+  uint8_t capture_mode;             /* FM1_SEQ_UI_CAPTURE_*: the overlay */
+  uint8_t capture_n, capture_sel;   /* the picker's candidates and the one taken */
+  uint8_t cap_sent;                 /* a `cap` went: the next sync says what it did */
+  uint16_t capture_cands[3];        /* candidate tempos, BPM, ascending */
+  uint32_t capture_gen, cap_gen_sent;
 } fm1_seq_ui_t;
 
 /* Track 1 focused, the Track view, bar 1, Step page 1, no hint, nothing
@@ -196,43 +273,67 @@ void fm1_seq_ui_enter(fm1_seq_ui_t *u);
  * down stay the UI's until released, so their releases do nothing. */
 void fm1_seq_ui_leave(fm1_seq_ui_t *u);
 
-/* Reads the transport, the focused track's clip and the held step, once per
- * block, after the sequencer's advance, and opens the Step page for a step
- * held past the threshold at `frame`. `gen` changes whenever the app gave the
- * sequencer input (a line, a command, a reset, an import), so the steps are
- * read again. Returns 1 when anything the screen or the LEDs show changed. */
+/* Reads the transport, Capture, the focused track's clip and the held step,
+ * once per block, after the sequencer's advance, and opens the Step page for
+ * a step held past the threshold at `frame`. `gen` changes whenever the app
+ * gave the sequencer input (a line, a command, a reset, an import), so the
+ * steps are read again. A `cap` sent since the last call is answered here: a
+ * toast, or the core's overlay. Step record ends if the transport runs.
+ * Returns FM1_SEQ_UI_SYNC_SEQ when anything SEQ mode's screen or the LEDs
+ * show changed, plus FM1_SEQ_UI_SYNC_OVERLAY when Capture's overlay, drawn
+ * over every mode, did. */
+#define FM1_SEQ_UI_SYNC_SEQ 1
+#define FM1_SEQ_UI_SYNC_OVERLAY 2
 int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t frame);
 
 /* A button edge at `frame` (fm1_app_button_t; down 1 or 0) in panel mode
  * `mode` (fm1_app_mode_t). Returns 1 when the UI took it and the app must
- * not act on it as well: SEL as SHIFT, OCT with steps held; PLAY/STOP's
+ * not act on it as well: SEL as SHIFT, OCT with steps held, REC, and any
+ * press while Capture's overlay is up (it closes the overlay); PLAY/STOP's
  * command is sent here, and the app only keeps its LED. */
 int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down, uint64_t frame,
                       int mode, const fm1_seq_ui_emit_t *out);
 
-/* A key edge (0..26): a press in SEQ mode (`mode`), or the release of a key
- * the UI took (fm1_seq_ui_has_key). `base_note` is the note key 0 plays now
- * (53 + 12 x octave + transpose), for SHIFT's pitches. Returns 1 if the UI
- * took it; 0 leaves the key to the app, which plays it. */
+/* A key edge (0..26): a press in SEQ mode (`mode`), a press in any mode
+ * while Capture's overlay is up, or the release of a key the UI took
+ * (fm1_seq_ui_has_key). `base_note` is the note key 0 plays now (53 + 12 x
+ * octave + transpose), for SHIFT's and step record's pitches. Returns 1 if
+ * the UI took it, FM1_SEQ_UI_KEY_SOUND if step record took it and the app
+ * plays its note (on the sound only, not as live input); 0 leaves the key to
+ * the app, which plays it. */
 int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int velocity,
                    uint64_t frame, int mode, int base_note, const fm1_seq_ui_emit_t *out);
 int fm1_seq_ui_has_key(const fm1_seq_ui_t *u, int key);
 
-/* An encoder turned (fm1_app_encoder_t) in SEQ mode: 1 when the UI took it
- * (SELECT and KNOB1..4 with steps held); 0 leaves it to the app. */
+/* An encoder turned (fm1_app_encoder_t): 1 when the UI took it (in SEQ
+ * mode, SELECT and KNOB1..4 with steps held; in any mode while Capture's
+ * overlay is up: SELECT and KNOB1 move the picker, the others close it); 0
+ * leaves it to the app. */
 int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int delta,
                        uint64_t frame, int mode, const fm1_seq_ui_emit_t *out);
 
 /* A note played on the sound, from MIDI IN or from a key outside SEQ mode
- * (velocity 0 releases it). With steps held in SEQ mode it adds its pitch to
+ * (velocity 0 releases it). In step record (SEQ mode) it enters its pitch at
+ * the head, as a key does; with steps held in SEQ mode it adds its pitch to
  * them; otherwise it builds the chord a step tap writes: every note held
- * when one goes down. */
-void fm1_seq_ui_note(fm1_seq_ui_t *u, int pitch, int velocity, int mode,
-                     const fm1_seq_ui_emit_t *out);
+ * when one goes down. Returns 1 when the note went into the pattern as an
+ * edit (step record, a held step), so it is not live input as well. */
+int fm1_seq_ui_note(fm1_seq_ui_t *u, int pitch, int velocity, int mode,
+                    const fm1_seq_ui_emit_t *out);
 
 /* Every note released at once (a change of sound, the page's panic): none
  * held any more; the chord stays. */
 void fm1_seq_ui_notes_off(fm1_seq_ui_t *u);
+
+/* REC's LED at `frame`, when the sequencer is on the panel: on while
+ * recording or step recording; fast (0.25 s) during the count-in or while a
+ * take waits for its bar; slow (1 s) while Capture holds notes and nothing
+ * records (O7); else as the button. */
+int fm1_seq_ui_rec_led(const fm1_seq_ui_t *u, uint64_t frame, int held);
+
+/* Step record's head can step back (F#3's LED): a tie to undo, or a step
+ * before it. */
+int fm1_seq_ui_srec_can_go_back(const fm1_seq_ui_t *u);
 
 /* KNOB1..4 (0..3) turned on the sound in the Track view: its name and value
  * take the hint line until frame `until`. */

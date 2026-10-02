@@ -142,15 +142,22 @@ static fm1_seq_ui_emit_t ui_out(fm1_app_t *a) {
   return out;
 }
 
-/* After an edge the UI took: the screen and LEDs follow, and its toast, if
- * any, becomes a popup. */
-static void ui_after(fm1_app_t *a) {
+/* The UI's toast, if any, as a popup. */
+static void ui_toast(fm1_app_t *a) {
   switch (a->ui.toast) {
     case FM1_SEQ_TOAST_FULL_VEL_ON: popup(a, "Full velocity", "on", NULL, -1); break;
     case FM1_SEQ_TOAST_FULL_VEL_OFF: popup(a, "Full velocity", "off", NULL, -1); break;
+    case FM1_SEQ_TOAST_CAPTURED: popup(a, "Captured", NULL, NULL, -1); break;
+    case FM1_SEQ_TOAST_NOTHING: popup(a, "Nothing to capture", NULL, NULL, -1); break;
     default: break;
   }
   a->ui.toast = FM1_SEQ_TOAST_NONE;
+}
+
+/* After an edge the UI took: the screen and LEDs follow, and its toast, if
+ * any, becomes a popup. */
+static void ui_after(fm1_app_t *a) {
+  ui_toast(a);
   a->dirty = 1;
   a->leds_changed = 1;
 }
@@ -343,25 +350,56 @@ size_t fm1_app_ram(const fm1_app_t *a) {
 
 /* ---- notes -------------------------------------------------------------------- */
 
-void fm1_app_note_on(fm1_app_t *a, int note, int velocity) {
-  if (note < 0 || note > 127) return;
-  velocity = clampi(velocity, 1, 127);
+/* A note on the sound, and nothing else (a step record key's). */
+static void sound_on(fm1_app_t *a, int note, int velocity) {
   fm1_app_unit_t *s = &a->unit[0];
   if (s->e && s->e->note_on) s->e->note_on(s->self, (uint8_t)note, (uint8_t)velocity);
   if (a->note_count[note] < 255) ++a->note_count[note];
-  if (a->lab && a->seq) {           /* the chord a step tap writes, or a held step's pitch */
-    const fm1_seq_ui_emit_t out = ui_out(a);
-    fm1_seq_ui_note(&a->ui, note, velocity, a->mode, &out);
+}
+
+static void sound_off(fm1_app_t *a, int note) {
+  fm1_app_unit_t *s = &a->unit[0];
+  if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)note);
+  if (a->note_count[note]) --a->note_count[note];
+}
+
+/* A note played that no step took is live input to the focused track
+ * (docs/15 §3.2, S5): recording and Capture hear it. Its release goes to
+ * the same track, once per note given. */
+static void feed_on(fm1_app_t *a, int note, int velocity) {
+  if (a->seq_fed[note] == 255) return;
+  ++a->seq_fed[note];
+  a->seq_fed_track[note] = a->ui.track;
+  fm1_app_seq_note_in(a, a->ui.track, note, velocity);
+}
+
+static void feed_off(fm1_app_t *a, int note) {
+  if (!a->seq_fed[note]) return;
+  --a->seq_fed[note];
+  fm1_app_seq_note_in(a, a->seq_fed_track[note], note, 0);
+}
+
+void fm1_app_note_on(fm1_app_t *a, int note, int velocity) {
+  if (note < 0 || note > 127) return;
+  velocity = clampi(velocity, 1, 127);
+  sound_on(a, note, velocity);
+  if (a->lab && a->seq) {           /* the chord a step tap writes, a held step's pitch, */
+    const fm1_seq_ui_emit_t out = ui_out(a);   /* step record's, or live input */
+    const int edit = fm1_seq_ui_note(&a->ui, note, velocity, a->mode, &out);
     ui_after(a);
+    if (!edit) feed_on(a, note, velocity);
   }
 }
 
 void fm1_app_note_off(fm1_app_t *a, int note) {
   if (note < 0 || note > 127) return;
-  fm1_app_unit_t *s = &a->unit[0];
-  if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)note);
-  if (a->note_count[note]) --a->note_count[note];
-  if (a->lab && a->seq) fm1_seq_ui_note(&a->ui, note, 0, a->mode, NULL);
+  sound_off(a, note);
+  if (a->lab && a->seq) {
+    const fm1_seq_ui_emit_t out = ui_out(a);   /* step record's head may move on */
+    fm1_seq_ui_note(&a->ui, note, 0, a->mode, &out);
+    ui_after(a);
+    feed_off(a, note);
+  }
 }
 
 void fm1_app_pitch_bend(fm1_app_t *a, float semitones) {
@@ -394,7 +432,10 @@ void fm1_app_all_notes_off(fm1_app_t *a) {
     }
   }
   seq_release(a);
-  for (int k = 0; k < FM1_APP_KEYS; ++k) a->key_down[k] = 0;
+  for (int k = 0; k < FM1_APP_KEYS; ++k) a->key_down[k] = a->key_sound_only[k] = 0;
+  for (int n = 0; n < 128; ++n) {   /* live input let go too: no note left open */
+    while (a->seq_fed[n]) feed_off(a, n);
+  }
   fm1_seq_ui_notes_off(&a->ui);
 }
 
@@ -408,15 +449,20 @@ static const char *const kButtonNames[FM1_APP_BUTTONS] = {
 void fm1_app_key(fm1_app_t *a, int key, int down, int velocity) {
   if (key < 0 || key >= FM1_APP_KEYS) return;
   if (down) {
+    int sound_only = 0;
     if (a->key_down[key]) return;
     if (a->lab && a->seq) {
       /* In SEQ mode the white keys are steps and the black keys roles
-       * (owner decision O1): the UI takes them, and they play nothing. */
+       * (owner decision O1): the UI takes them, and they play nothing,
+       * except in step record, where a white key enters its pitch and
+       * sounds it (only on the sound: it is no live input). */
       const fm1_seq_ui_emit_t out = ui_out(a);
-      if (fm1_seq_ui_key(&a->ui, a->seq, key, 1, velocity, a->frames, a->mode, base_note(a),
-                         &out)) {
+      const int took = fm1_seq_ui_key(&a->ui, a->seq, key, 1, velocity, a->frames, a->mode,
+                                       base_note(a), &out);
+      if (took) {
         ui_after(a);
-        return;
+        if (took != FM1_SEQ_UI_KEY_SOUND) return;
+        sound_only = 1;
       }
       if (a->ui.full_vel) velocity = 127;    /* SHIFT + 10: full velocity */
     }
@@ -425,11 +471,18 @@ void fm1_app_key(fm1_app_t *a, int key, int down, int velocity) {
     a->key_down[key] = 1;
     a->key_note[key] = (uint8_t)note;
     a->key_vel[key] = (uint8_t)clampi(velocity, 1, 127);
-    fm1_app_note_on(a, note, velocity);
-  } else if (a->key_down[key]) {
+    a->key_sound_only[key] = (uint8_t)sound_only;
+    if (sound_only) sound_on(a, note, a->key_vel[key]);
+    else fm1_app_note_on(a, note, velocity);
+    return;
+  }
+  if (a->key_down[key]) {
     a->key_down[key] = 0;
-    fm1_app_note_off(a, a->key_note[key]);
-  } else if (fm1_seq_ui_has_key(&a->ui, key)) {   /* a step's release, in any mode */
+    if (a->key_sound_only[key]) sound_off(a, a->key_note[key]);
+    else fm1_app_note_off(a, a->key_note[key]);
+    a->key_sound_only[key] = 0;
+  }
+  if (fm1_seq_ui_has_key(&a->ui, key)) {   /* a step's or step record's release, in any mode */
     const fm1_seq_ui_emit_t out = ui_out(a);
     fm1_seq_ui_key(&a->ui, a->seq, key, 0, 0, a->frames, a->mode, base_note(a), &out);
     ui_after(a);
@@ -459,13 +512,14 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
      * took transposed the held steps, so the app does not count it as
      * held either: ALGORITHM keeps turning the model rather than the
      * keys' transpose, and the other OCT moves the octave rather than
-     * resetting it. SEL stays held, as SHIFT needs its release. */
+     * resetting it. SEL and REC stay held, as SHIFT and step record need
+     * their releases. */
     const fm1_seq_ui_emit_t out = ui_out(a);
     const int took = fm1_seq_ui_button(&a->ui, a->seq, button, down != 0, a->frames, a->mode,
                                        &out);
     ui_after(a);
     if (took) {
-      if (down && button != FM1_BTN_SEL) a->button_down[button] = 0;
+      if (down && button != FM1_BTN_SEL && button != FM1_BTN_REC) a->button_down[button] = 0;
       return;
     }
   }
@@ -709,6 +763,8 @@ static void update_leds(fm1_app_t *a) {
      * decision O6). */
     led[FM1_APP_KEYS + FM1_BTN_SEQ] = a->mode == FM1_MODE_SEQ;
     led[FM1_APP_KEYS + FM1_BTN_PLAY] = a->ui.playing != 0;
+    led[FM1_APP_KEYS + FM1_BTN_REC] =
+        (uint8_t)fm1_seq_ui_rec_led(&a->ui, a->frames, a->button_down[FM1_BTN_REC]);
     if (a->mode == FM1_MODE_SEQ) {
       const uint32_t keys = fm1_seq_ui_key_leds(&a->ui, a->frames);
       for (int k = 0; k < FM1_APP_KEYS; ++k) led[k] = (uint8_t)(a->key_down[k] || ((keys >> k) & 1u));
@@ -796,9 +852,12 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
     a->dirty = 1;
   }
   if (a->lab && a->seq) {
-    if (fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen, a->frames) && a->mode == FM1_MODE_SEQ) {
+    const int changed = fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen, a->frames);
+    if (((changed & FM1_SEQ_UI_SYNC_SEQ) && a->mode == FM1_MODE_SEQ) ||
+        (changed & FM1_SEQ_UI_SYNC_OVERLAY)) {
       a->dirty = 1;
     }
+    if (a->ui.toast) ui_after(a);   /* what a Capture did */
   }
   update_leds(a);
   return out;
@@ -890,8 +949,9 @@ void fm1_app_seq_note_in(fm1_app_t *a, int track, int pitch, int velocity) {
   if (!a->seq || track < 0 || track > 255 || pitch < 0 || pitch > 127) return;
   ++a->seq_gen;
   seq_flush(a);
-  fm1_seq_host_note_in(&a->seq_host, (uint8_t)track, (uint8_t)pitch,
-                       (uint8_t)clampi(velocity, 0, 127));
+  velocity = clampi(velocity, 0, 127);
+  fm1_seq_host_note_in(&a->seq_host, (uint8_t)track, (uint8_t)pitch, (uint8_t)velocity);
+  if (a->on_note_in) a->on_note_in(a->on_cmd_ctx, a->frames, track, pitch, velocity);
 }
 
 /* Before a reset or an import: the instance's gates are about to go, so
@@ -1058,20 +1118,49 @@ static void draw_scope(fm1_app_t *a) {
 
 /* Popups take the whole centre area, between the top and bottom bars, as
  * stock's do ("overlaying the current mode"), so nothing peeks out. */
-static void draw_popup(fm1_app_t *a) {
+static void draw_popup_lines(fm1_app_t *a, const char (*text)[24], int lines, int mark) {
   const int pitch = POPUP_PITCH;   /* the highlight keeps 5 px from the next line */
   const int top = TITLE_H, bottom = BOTTOM_Y;
   fm1_tft_fill(&a->tft, 0, top, FM1_TFT_W, bottom - top, C_POPUP_BG);
   fm1_tft_paint(&a->tft, 0, top, FM1_TFT_W, 2, C_ACCENT);
   fm1_tft_paint(&a->tft, 0, bottom - 2, FM1_TFT_W, 2, C_ACCENT);
-  int y0 = (top + bottom) / 2 - (a->popup_lines * pitch - (pitch - 18)) / 2;
-  for (int i = 0; i < a->popup_lines; ++i) {
+  int y0 = (top + bottom) / 2 - (lines * pitch - (pitch - 18)) / 2;
+  for (int i = 0; i < lines; ++i) {
     int ly = y0 + i * pitch;
-    int w = fm1_tft_text_width(a->popup[i], POPUP_CHARS, SCALE);
-    if (i == a->popup_mark) fm1_tft_paint(&a->tft, 12, ly - 3, FM1_TFT_W - 24, 24, C_ACCENT);
-    fm1_tft_text(&a->tft, 120 - w / 2, ly, a->popup[i], POPUP_CHARS, SCALE,
-                 i == a->popup_mark ? C_BG : C_TEXT);
+    int w = fm1_tft_text_width(text[i], POPUP_CHARS, SCALE);
+    if (i == mark) fm1_tft_paint(&a->tft, 12, ly - 3, FM1_TFT_W - 24, 24, C_ACCENT);
+    fm1_tft_text(&a->tft, 120 - w / 2, ly, text[i], POPUP_CHARS, SCALE,
+                 i == mark ? C_BG : C_TEXT);
   }
+}
+
+static void draw_popup(fm1_app_t *a) {
+  draw_popup_lines(a, (const char (*)[24])a->popup, a->popup_lines, a->popup_mark);
+}
+
+static void bpm_text(char *buf, size_t size, unsigned bpm_x100) {
+  if (bpm_x100 % 100u) snprintf(buf, size, "%u.%02u BPM", bpm_x100 / 100u, bpm_x100 % 100u);
+  else snprintf(buf, size, "%u BPM", bpm_x100 / 100u);
+}
+
+/* Capture's overlay after a stopped Capture (O7), over every mode until a
+ * press closes it, as Movy's: the tempo picker, one candidate a line with
+ * the one taken highlighted (SELECT or KNOB1 takes another), or the tempo
+ * the take was fitted to (the set's, or the external clock's). */
+static void draw_capture(fm1_app_t *a) {
+  const fm1_seq_ui_t *u = &a->ui;
+  char text[3][24];
+  int lines = 0, mark = -1;
+  if (u->capture_mode == FM1_SEQ_UI_CAPTURE_PICK && u->capture_n) {
+    for (int k = 0; k < u->capture_n; ++k) bpm_text(text[lines++], sizeof text[0], u->capture_cands[k] * 100u);
+    mark = u->capture_sel < u->capture_n ? u->capture_sel : -1;
+  } else {
+    char bpm[16];
+    bpm_text(bpm, sizeof bpm, u->bpm_x100);
+    snprintf(text[lines++], sizeof text[0], "Captured");
+    snprintf(text[lines++], sizeof text[0], "at %s", bpm);
+  }
+  draw_popup_lines(a, (const char (*)[24])text, lines, mark);
 }
 
 void fm1_look_row(fm1_tft_t *t, int y, const char *label, const char *value, uint16_t color) {
@@ -1159,6 +1248,7 @@ static void draw(fm1_app_t *a) {
     draw_bottom(a, "1/1 Globe");
   }
   if (a->popup_lines) draw_popup(a);
+  else if (a->lab && a->ui.capture_mode) draw_capture(a);
 }
 
 int fm1_app_draw(fm1_app_t *a, uint32_t min_frames) {

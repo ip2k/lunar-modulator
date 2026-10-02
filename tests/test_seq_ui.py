@@ -1,8 +1,9 @@
-"""The sequencer on the virtual FM-1's panel (docs/15 stages S3 and S4),
+"""The sequencer on the virtual FM-1's panel (docs/15 stages S3 to S5),
 behind the lab switch: golden gesture traces with two-step parity (§6.3),
 the typed commands' text round trip, the demo pattern, the switch itself,
-and step entry: taps, holds, the Step pages, SHIFT, bar paging and the
-LEDs.
+step entry (taps, holds, the Step pages, SHIFT, bar paging and the LEDs),
+and record and Capture (REC, step record, SHIFT + REC, live input from the
+keys and MIDI IN, and REC's LED).
 
 A gesture trace is a .panel file (one --key, --button, --turn or --note per
 line) and its golden .verbs, what `fm1-sim-render --lab --log-cmds` writes
@@ -12,7 +13,10 @@ sidecar of arguments the harness writes next to it (.args: the engine, the
 notes the keys and MIDI IN played, the knob turns on the sound), renders
 the same bytes as the panel run. Every trace here plays Test Sine; S3's
 start from tests/fixtures/seq-ui/input.verbs, S4's (step-*) from
-steps.verbs, a bar at 240 BPM, or the input TRACE_INPUT names. The parity
+steps.verbs, a bar at 240 BPM, S5's (rec-*, capture-*) from rec.verbs, the
+same with two notes and 4 s long, or the input TRACE_INPUT names. A note
+played that no step takes is live input, logged as `non` and `nof` ops at
+the block it led, so the replay records and captures the same. The parity
 scenarios under sim/web/test/seq/ play Macro and Plate
 (tests/test_sim_web.py, and in WebAssembly on the build host).
 """
@@ -27,14 +31,17 @@ from tests.test_sim_web import run, tools  # noqa: F401  (the native build of bo
 
 TRACES = ROOT / "tests" / "fixtures" / "seq-ui"
 PANELS = sorted(TRACES.glob("*.panel"))
-TRACE_INPUT = {"step-hidden-tail": "tail.verbs"}
+TRACE_INPUT = {"step-hidden-tail": "tail.verbs", "step-record-grow": "empty.verbs",
+               "rec-empty-clip-waits": "empty.verbs", "capture-stopped-picker": "empty.verbs"}
 WHITE = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26]   # white key n -> key index
 BUTTONS = ["OCT-", "OCT+", "FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ",
            "PLAY/STOP", "REC"]
 
 
 def trace_input(stem):
-    return TRACES / TRACE_INPUT.get(stem, "steps.verbs" if stem.startswith("step-") else "input.verbs")
+    default = ("steps.verbs" if stem.startswith("step-") else
+               "rec.verbs" if stem.startswith(("rec-", "capture-")) else "input.verbs")
+    return TRACES / TRACE_INPUT.get(stem, default)
 
 
 def two_step(tools, tmp_path, name, panel, cmd, *args, lab=True):
@@ -58,6 +65,10 @@ def test_there_are_the_s3_and_s4_traces():
           "step-chord-from-keys", "step-chord-from-midi", "step-midi-adds-pitch", "step-shift-play",
           "step-co-press", "step-hold-then-home", "step-hidden-tail"}
     assert stems >= s4 and len(s4) >= 15
+    s5 = {"rec-count-in", "rec-seq-tap", "rec-overdub", "rec-empty-clip-waits", "rec-hold-untouched",
+          "step-record", "step-record-grow", "capture-playing", "capture-stopped-picker",
+          "capture-stopped-fitted", "capture-nothing"}
+    assert stems >= s5
 
 
 @pytest.mark.parametrize("panel", PANELS, ids=lambda p: p.stem)
@@ -71,7 +82,9 @@ def test_a_trace_logs_its_golden_verbs_and_replays_byte_for_byte(tools, tmp_path
     assert s["seq_notes_to_engine"] == r["seq_notes_to_engine"]
     played = [t for _, t in s["seq_ui_cmds"]]
     if panel.stem != "seq-enter-exit":
-        assert "play" in played and s["peak"] > 0.01
+        # Something starts the transport: PLAY/STOP, REC from stopped, or a
+        # stopped Capture.
+        assert {"play", "rec 0", "cap 0"} & set(played) and s["peak"] > 0.01
     if panel.stem.startswith("play-"):
         assert played[0] == "play"
 
@@ -97,7 +110,8 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
     S4's step entry with its MIDI IN notes replayed as --note."""
     scen = json.loads((ROOT / "sim/web/test/scenarios.json").read_text())["scenarios"]
     panels = [x for x in scen if "panel" in x]
-    assert {x["name"] for x in panels} >= {"seq-panel-play-stop", "seq-panel-step-entry"}
+    assert {x["name"] for x in panels} >= {"seq-panel-play-stop", "seq-panel-step-entry",
+                                           "seq-panel-record", "seq-panel-capture-stopped"}
     for sc in panels:
         seq = ROOT / "sim" / "web" / "test"
         args = ["--engine", sc["engine"], "--seconds", str(sc["seconds"])]
@@ -118,8 +132,18 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
         if sc["name"] == "seq-panel-step-entry":
             assert sidecar.count("--note") == 3, "the chord at MIDI IN"
             verbs = {t.split()[0] for t in played}
-            assert verbs == {"tog", "eprob", "econd", "einv", "enudge", "addp", "del", "play"}
+            # The chord at MIDI IN is live input too (S5): three `non`, three `nof`.
+            assert verbs == {"tog", "eprob", "econd", "einv", "enudge", "addp", "del", "play", "non",
+                             "nof"}
+            assert sum(t.startswith("non ") for t in played) == 3
             assert any(t.startswith("tog 0 16 ") for t in played), "the clip's second bar"
+        if sc["name"] == "seq-panel-record":
+            verbs = [t.split()[0] for t in played]
+            assert verbs.count("rec") == 2 and "cap" in verbs and "slen" in verbs
+            assert verbs.count("non") == verbs.count("nof") == 5, "two keys recorded, three captured"
+            assert sidecar.count("--note") == 9, "eight keys and the MIDI IN note"
+        if sc["name"] == "seq-panel-capture-stopped":
+            assert played[-3:] == ["cap 0", "capsel 1", "capdone"]
 
 
 def test_every_verb_round_trips_through_its_text(tools):
@@ -151,6 +175,13 @@ def test_with_the_lab_switch_off_nothing_changes(tools, tmp_path):
     assert s["leds"] == "0" * 41
     seq = run(tools["sim"], ["--engine", "test-sine", "--seconds", "0.2", "--button", "0.1:SEQ"])
     assert seq["mode"] == 0 and seq["popup"] == ["SEQ", "not in the", "simulator yet"]
+    # REC too (S5), with SEL held as SHIFT would be; and keys and MIDI IN are
+    # no live input: nothing reaches the sequencer, nothing is captured.
+    rec = run(tools["sim"], ["--engine", "test-sine", "--cmd", str(script), "--key", "0.1:7:100:0.2",
+                             "--note", "0.15:64:100:0.2", "--button", "0.5:SEL:0.2",
+                             "--button", "0.55:REC"])
+    assert rec["popup"] == ["REC", "not in the", "simulator yet"]
+    assert rec["seq_ui_cmds"] == [] and "rec" not in rec and rec["leds"][27 + 13] == "0"
 
 
 def test_the_demo_pattern_plays_on_the_browsers_start_only(tools):
@@ -283,7 +314,9 @@ def test_the_remembered_chord_is_the_last_twelve_held(tools, tmp_path):
     s = step_run(tools, tmp_path, [*notes, "--button 0.50:SEQ", "--key 0.60:2:100:0.02"],
                  seconds=0.8)
     pairs = " ".join(f"{40 + k} {60 + k}" for k in range(1, 13))
-    assert [t for _, t in s["seq_ui_cmds"]] == [f"tog 0 1 {pairs}"]
+    cmds = [t for _, t in s["seq_ui_cmds"]]
+    assert [t for t in cmds if t.split()[0] not in ("non", "nof")] == [f"tog 0 1 {pairs}"]
+    assert sum(t.startswith("non ") for t in cmds) == sum(t.startswith("nof ") for t in cmds) == 13
 
 
 def test_full_velocity_plays_the_keys_at_127(tools, tmp_path):
@@ -348,3 +381,108 @@ def test_the_ui_state_holds_its_s4_fields_in_its_bound(tools):
                                   text=True).stdout)
     assert z["seq_ui_size"] <= 1024
     assert z["seq_ui_size"] >= 16 * 16, "sixteen held steps fit"
+
+
+# ---- Record and Capture (docs/15 S5) ---------------------------------------------------------
+
+REC_LED = 27 + 13
+
+
+def rec_run(tools, tmp_path, panel_lines, seconds, script="rec.verbs", *extra):
+    """A panel run from tests/fixtures/seq-ui/`script`, the lab switch on,
+    Test Sine, ended at `seconds` (whatever is held then stays held)."""
+    panel = tmp_path / "p.panel"
+    panel.write_text("\n".join(panel_lines) + "\n")
+    return run(tools["sim"], ["--lab", "--engine", "test-sine", "--cmd", str(TRACES / script),
+                              "--panel", str(panel), "--seconds", str(seconds), *extra])
+
+
+@pytest.mark.parametrize("seconds,lit,state", [
+    (0.50, "1", "counting_in"),     # the count-in: fast, 22,059 % 11,029 < 5,514
+    (0.65, "0", "counting_in"),     # 28,676 % 11,029 >= 5,514
+    (1.50, "1", "recording"),       # the take, from the bar at 1.1 s: on
+    (3.00, "0", None),              # REC again at 2.6 s: off
+])
+def test_recs_led_follows_the_count_in_and_the_take(tools, tmp_path, seconds, lit, state):
+    s = rec_run(tools, tmp_path, ["--button 0.10:REC", "--button 2.60:REC"], seconds)
+    assert s["leds"][REC_LED] == lit
+    if state:
+        assert s["rec"][state] == 1
+    assert s["popup"] == []
+
+
+@pytest.mark.parametrize("seconds,lit", [(0.5, "0"), (1.3, "1"), (1.8, "0")])
+def test_recs_led_blinks_slowly_while_capture_holds_notes(tools, tmp_path, seconds, lit):
+    """O7: keys played stopped are buffered for Capture; REC blinks at 1 s
+    (57,353 % 44,118 < 22,059 at 1.3 s; 79,412 % 44,118 is not, at 1.8 s),
+    and is dark with nothing buffered."""
+    keys = [] if seconds == 0.5 else ["--key 0.10:7:100:0.1", "--key 0.30:9:100:0.1"]
+    s = rec_run(tools, tmp_path, keys, seconds)
+    assert s["leds"][REC_LED] == lit
+    assert s["rec"]["capture_pending"] == len(keys)
+
+
+@pytest.mark.parametrize("held,cmds", [(0.40, ["rec 0"]), (0.60, [])])
+def test_a_rec_tap_in_seq_mode_is_shorter_than_half_a_second(tools, tmp_path, held, cmds):
+    """Stopped in SEQ mode, REC acts on its release (Movy's Rec): let go
+    within ceil(0.5 x rate) frames and untouched, it records; later, it was
+    step record, which ends with nothing entered."""
+    s = rec_run(tools, tmp_path, ["--button 0.05:SEQ", f"--button 0.10:REC:{held}"], 1.0)
+    assert [t for _, t in s["seq_ui_cmds"]] == cmds
+    assert s["rec"]["srec"] == 0 and s["rec"]["counting_in"] == len(cmds)
+
+
+def test_step_records_leds_show_the_head_and_the_arrows(tools, tmp_path):
+    """REC held in SEQ mode: the head's key blinks fast (0.25 s), A#3 is lit
+    (a rest), F#3 only once there is a step to go back to; the screen's
+    status says STEP."""
+    base = ["--button 0.05:SEQ", "--button 0.10:REC:5"]
+    at_start = rec_run(tools, tmp_path, base, 0.50, "steps.verbs")
+    assert at_start["rec"]["srec"] == 1 and at_start["rec"]["head"] == 0
+    assert at_start["seq_view"]["role_leds"] == 0b100          # A#3 only
+    assert at_start["leds"][REC_LED] == "1"
+    on, off = (rec_run(tools, tmp_path, base + ["--key 0.20:5:100:0.05"], t, "steps.verbs")
+               for t in (0.50, 0.65))
+    assert on["rec"]["head"] == off["rec"]["head"] == 1
+    assert on["seq_view"]["role_leds"] == off["seq_view"]["role_leds"] == 0b101
+    assert on["seq_view"]["key_leds"] & 0b10 and not off["seq_view"]["key_leds"] & 0b10
+
+
+def test_step_record_takes_full_velocity_and_ends_with_play(tools, tmp_path):
+    """SHIFT + 10's full velocity enters step record's pitches at 127;
+    PLAY/STOP while REC is held ends step record (a stopped-transport mode),
+    and REC's release then records nothing."""
+    s = rec_run(tools, tmp_path, ["--button 0.05:SEQ", "--button 0.10:SEL:0.05",
+                                  "--key 0.12:16:100:0.02", "--button 0.30:REC:0.5",
+                                  "--key 0.40:0:60:0.1", "--button 0.60:PLAY/STOP"], 1.2,
+                "steps.verbs")
+    assert [t for _, t in s["seq_ui_cmds"]] == ["del 0 0 0 -1", "addp 0 0 0 53 127", "play"]
+    assert s["rec"]["srec"] == 0 and s["rec"]["counting_in"] == 0 and s["rec"]["recording"] == 0
+
+
+def test_capture_while_playing_says_captured(tools, tmp_path):
+    s = rec_run(tools, tmp_path, ["--button 0.10:PLAY/STOP", "--key 0.30:9:100:0.1",
+                                  "--button 0.60:SEL:0.1", "--button 0.65:REC"], 0.8)
+    assert [t for _, t in s["seq_ui_cmds"]][-1] == "cap 0" and s["popup"] == ["Captured"]
+    nothing = rec_run(tools, tmp_path, ["--button 0.60:SEL:0.1", "--button 0.65:REC"], 0.8)
+    assert nothing["seq_ui_cmds"] == [] and nothing["popup"] == ["Nothing to capture"]
+
+
+def test_a_stopped_capture_opens_the_picker_until_a_press(tools, tmp_path):
+    """The stopped Capture's tempo picker (O7): the core's three candidates,
+    the transport running at the one taken, and the overlay up until a
+    press; SELECT takes another tempo, heard at once. A key pressed then
+    closes it and plays nothing: no note in the replay's sidecar."""
+    panel = TRACES / "capture-stopped-picker.panel"
+    lines = [l for l in panel.read_text().splitlines() if l and not l.startswith("#")]
+    up = rec_run(tools, tmp_path, lines, 3.55, "empty.verbs")
+    r = up["rec"]
+    assert r["capture_mode"] == 1 and r["capture_n"] == 3 and up["seq_view"]["playing"] == 1
+    assert r["bpm_x100"] == 100 * r["capture_cands"][r["capture_sel"]]
+    picked = rec_run(tools, tmp_path, lines, 3.65, "empty.verbs")["rec"]
+    assert picked["capture_sel"] == r["capture_sel"] - 1
+    assert picked["bpm_x100"] == 100 * picked["capture_cands"][picked["capture_sel"]]
+    s, _, log, a, b = two_step(tools, tmp_path, "picker", panel, TRACES / "empty.verbs",
+                               "--engine", "test-sine")
+    assert s["rec"]["capture_mode"] == 0 and log.rstrip().endswith("capdone") and a == b
+    assert (tmp_path / "picker.args").read_text().count("--note") == 6, "the closing key sounded"

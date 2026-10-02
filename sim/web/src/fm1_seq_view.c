@@ -39,15 +39,19 @@ static int col_x(unsigned col) {
   return GRID_X + (int)(col * (CELL_W + CELL_GAP) + (col / 4u) * (BEAT_GAP - CELL_GAP));
 }
 
+/* The transport on the right: REC while the focused track records (gold
+ * through its count-in or while the take waits for the bar), STEP in step
+ * record, else PLAY or STOP. */
 static void draw_status(fm1_tft_t *t, const fm1_seq_ui_t *u) {
   char bpm[24];
-  const int rec = u->recording && u->rec_track == u->track;
-  const char *state = rec ? "REC" : u->playing ? "PLAY" : "STOP";
+  const int mine = u->rec_track == u->track;
+  const int rec = mine && u->recording, count = mine && !u->recording && u->counting_in;
+  const char *state = rec || count ? "REC" : u->srec ? "STEP" : u->playing ? "PLAY" : "STOP";
   snprintf(bpm, sizeof bpm, "%u.%02u BPM", (unsigned)(u->bpm_x100 / 100u),
            (unsigned)(u->bpm_x100 % 100u));
   fm1_tft_text(t, MARGIN, STATUS_Y, bpm, 10, SCALE, C_TEXT);
   fm1_tft_text(t, RIGHT - fm1_tft_text_width(state, 4, SCALE), STATUS_Y, state, 4, SCALE,
-               rec ? C_WARN : u->playing ? C_PLAY : C_DIM);
+               rec || u->srec ? C_WARN : count ? C_MODEL : u->playing ? C_PLAY : C_DIM);
 }
 
 /* One step's cell: a note filled, inside the loop or outlined outside it,
@@ -76,6 +80,9 @@ static void draw_grid(fm1_tft_t *t, const fm1_seq_ui_t *u) {
     if (step / 16u == u->bar && ((held >> col) & 1u)) {
       fm1_tft_frame(t, x - 1, y - 1, CELL_W + 2, CELL_H + 2, C_MODEL);
     }
+    if (u->srec && step == u->srec_head) {   /* step record's head */
+      fm1_tft_frame(t, x - 1, y - 1, CELL_W + 2, CELL_H + 2, C_WARN);
+    }
   }
   {
     const int y = GRID_Y + (int)((u->bar % 4u) * (CELL_H + ROW_GAP));
@@ -93,9 +100,21 @@ static void draw_track(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_s
     fm1_look_bar(t, GRID_X + k * (STRIP_W + STRIP_GAP), STRIP_Y, STRIP_W, STRIP_H, p,
                  snd->value[snd->idx[k]], k == u->knob ? C_TEXT : C_ACCENT);
   }
-  /* The hint line: SHIFT's shortcuts, the knob being turned or the bar the
-   * keys moved to, else the sound's model. */
-  if (u->shift) {
+  /* The hint line: step record's head (SHIFT's jump while SEL is held),
+   * SHIFT's shortcuts, the knob being turned or the bar the keys moved to,
+   * else the sound's model. */
+  if (u->srec && u->shift) {
+    fm1_look_row(t, HINT_Y, "Keys", "move the head", C_MODEL);
+  } else if (u->srec) {
+    char v[24];
+    if (u->srec_open && u->srec_tie) {
+      snprintf(v, sizeof v, "%u-%u", (unsigned)u->srec_anchor + 1u,
+               (unsigned)u->srec_anchor + u->srec_tie + 1u);
+    } else {
+      snprintf(v, sizeof v, "%u", (unsigned)u->srec_head + 1u);
+    }
+    fm1_look_row(t, HINT_Y, "Step rec", v, C_WARN);
+  } else if (u->shift) {
     fm1_look_row(t, HINT_Y, "Key 10", u->full_vel ? "Full vel on" : "Full vel off", C_MODEL);
   } else if (u->hint == FM1_SEQ_HINT_BAR) {
     char v[24];

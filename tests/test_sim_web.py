@@ -348,13 +348,18 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     pages with every field at its minimum and maximum, every length,
     probability and condition, the nudge at both ends, a 12-note chord,
     SHIFT's legend on a hold, sixteen steps held and the REC status, with
-    the gestures that reach them checked on the way."""
+    the gestures that reach them checked on the way. Record and Capture
+    (S5): the count-in and the take, step record's head on an empty clip,
+    a chord, a tie, SHIFT's hint and the head in every bar of a 16-bar
+    clip, Capture's toasts, a stopped Capture's picker and fitted tempo,
+    and both overlays at their extremes (one to three candidates from 20 to
+    300 BPM, tempos from 20 to 300 BPM), over SEQ mode and HOME."""
     res = subprocess.run([str(tools["sim"]), "--screens", str(tmp_path)],
                          capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 914             # 335 before the Track view (S3), 815 before S4
+    assert summary["screens"] >= 953             # 335 before S3, 815 before S4, 914 before S5
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

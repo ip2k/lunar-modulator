@@ -1,0 +1,7 @@
+# REC while playing over notes: an overdub that starts at once.
+--button 0.10:PLAY/STOP
+--button 0.30:REC
+--key 0.55:9:100:0.1
+--key 1.20:12:80:0.1
+--button 1.90:REC
+--button 3.00:PLAY/STOP

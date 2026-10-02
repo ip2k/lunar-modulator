@@ -46,9 +46,12 @@
  * starting at or after their frame, after the panel and notes, through
  * fm1_app_seq_line; a line the event-room rule cuts short is finished at
  * the next block. With no --route the default-route rule applies, as in
- * fm1-render. --log-cmds FILE writes the lines as they were applied, and
- * every typed command (the panel's, --seq-ui's) as fm1_seq_cmd_format
- * writes it, at the block it led, as a verb script (header `#! rate
+ * fm1-render. --log-cmds FILE writes the lines as they were applied, every
+ * typed command (the panel's, --seq-ui's) as fm1_seq_cmd_format writes it,
+ * and every live note the app gave the sequencer (with --lab, a note no
+ * step took, from a key outside SEQ mode or MIDI IN: docs/15 S5) as the
+ * `non` or `nof` op fm1-render applies the same way, each at the block it
+ * led, as a verb script (header `#! rate
  * block=64 tracks end`, then `@<block start> <ops>`), and next to it a
  * sidecar, FILE less `.verbs` plus `.args`: the run's --engine, --param,
  * --fx, --fx-param, --note, --bend, --param-at, --seq and --route
@@ -562,10 +565,16 @@ static void seq_screens(const char *dir, float rate) {
   fm1_app_encoder(&g_app, FM1_ENC_ALGORITHM, 1);
   check_screen("seq-popup-algorithm", dir, 1);
   g_app.popup_lines = 0;
-  press(FM1_BTN_REC);                                  /* still a stub with lab on */
-  expect(g_app.popup_lines == 3, "REC does not say it is not in the simulator yet");
-  check_screen("seq-popup-rec", dir, 0);
-  g_app.popup_lines = 0;
+  press(FM1_BTN_REC);                                  /* S5: a tap, stopped: a count-in */
+  fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
+  expect(g_app.popup_lines == 0 && g_app.ui.counting_in && g_app.ui.playing,
+         "REC did not start a count-in");
+  check_screen("seq-count-in-loop-window", dir, 0);
+  press(FM1_BTN_REC);                                  /* again, playing: off at once */
+  press(FM1_BTN_PLAY);
+  fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
+  expect(!g_app.ui.counting_in && !g_app.ui.playing && !g_app.ui.recording,
+         "REC and PLAY/STOP did not end the count-in");
   /* The hint line and the knob strip: every sound, page and knob, each
    * value at its extremes and every list entry; then the model line. */
   for (size_t i = 0; i < fm1_engine_count; ++i) {
@@ -814,6 +823,203 @@ static void seq_step_screens(const char *dir, float rate) {
   destroy_units();
 }
 
+/* ---- --screens, lab on: record and Capture (docs/15 §4, S5) ----------- */
+
+static void button_edge(int button, int down) {
+  fm1_app_button(&g_app, button, down);
+  blocks(1);
+}
+
+/* A note at MIDI IN, `len` blocks long, then `gap` blocks of silence. */
+static void midi_note(int pitch, int len, int gap) {
+  fm1_app_note_on(&g_app, pitch, 100);
+  blocks(len);
+  fm1_app_note_off(&g_app, pitch);
+  blocks(gap);
+}
+
+/* Quarter notes at MIDI IN, stopped, at `bpm`: something for a stopped
+ * Capture to read a tempo from. */
+static void play_quarters(int n, double bpm, float rate) {
+  const int beat = (int)(60.0 / bpm * rate / FM1_APP_MAX_FRAMES + 0.5);
+  for (int k = 0; k < n; ++k) midi_note(60 + (k % 4) * 3, beat / 2, beat - beat / 2);
+}
+
+static void shift_rec(void) {
+  button_edge(FM1_BTN_SEL, 1);
+  button_edge(FM1_BTN_REC, 1);
+  button_edge(FM1_BTN_REC, 0);
+  button_edge(FM1_BTN_SEL, 0);
+}
+
+static void seq_rec_screens(const char *dir, float rate) {
+  char name[128];
+  destroy_units();
+  fm1_app_init(&g_app, rate);
+  fm1_app_set_lab(&g_app, 1);
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  fm1_app_seq_default_route(&g_app);
+  blocks(1);
+  press(FM1_BTN_SEQ);
+  blocks(1);
+  /* REC tapped, stopped: a bar's count-in (gold REC), then the take. */
+  seq_line("tog 0 0 60 100");
+  blocks(1);
+  button_edge(FM1_BTN_REC, 1);
+  button_edge(FM1_BTN_REC, 0);
+  expect(g_app.ui.counting_in && g_app.ui.rec_track == 0, "a REC tap did not count in");
+  step_check("seq-count-in", dir, 1);
+  blocks(1400);                                        /* a bar at 120 BPM: 2 s */
+  expect(g_app.ui.recording && !g_app.ui.counting_in, "the count-in did not become a take");
+  step_check("seq-recording-take", dir, 0);
+  button_edge(FM1_BTN_REC, 1);                         /* playing: off at once */
+  button_edge(FM1_BTN_REC, 0);
+  button_edge(FM1_BTN_PLAY, 1);
+  button_edge(FM1_BTN_PLAY, 0);
+  expect(!g_app.ui.recording && !g_app.ui.playing, "REC and PLAY/STOP did not stop the take");
+
+  /* Step record on an empty clip: it grows to what is played. */
+  fm1_app_seq_reset(&g_app, FM1_APP_SEQ_TRACKS);
+  fm1_app_seq_default_route(&g_app);
+  blocks(1);
+  button_edge(FM1_BTN_REC, 1);
+  expect(g_app.ui.srec && g_app.ui.srec_grow && g_app.ui.srec_head == 0, "REC held: no step record");
+  step_check("seq-step-rec-empty", dir, 1);
+  key_edge(fm1_white_key(0), 1);                       /* a chord of two on step 1, */
+  key_edge(fm1_white_key(2), 1);
+  step_check("seq-step-rec-chord", dir, 0);
+  key_edge(FM1_SEQ_UI_KEY_BAR_ON, 1);                  /* tied into step 2 */
+  key_edge(FM1_SEQ_UI_KEY_BAR_ON, 0);
+  expect(g_app.ui.srec_tie == 1 && g_app.ui.srec_head == 1, "A#3 with keys down did not tie");
+  step_check("seq-step-rec-tie", dir, 1);
+  key_edge(fm1_white_key(0), 0);
+  key_edge(fm1_white_key(2), 0);
+  expect(g_app.ui.srec_head == 2 && g_app.ui.length == 2, "the head did not move on");
+  key_edge(fm1_white_key(4), 1);
+  key_edge(fm1_white_key(4), 0);
+  key_edge(FM1_SEQ_UI_KEY_BAR_ON, 1);                  /* a rest */
+  key_edge(FM1_SEQ_UI_KEY_BAR_ON, 0);
+  key_edge(FM1_SEQ_UI_KEY_BAR_BACK, 1);                /* and back */
+  key_edge(FM1_SEQ_UI_KEY_BAR_BACK, 0);
+  expect(g_app.ui.srec_head == 3 && g_app.ui.length == 4, "a rest and a step back");
+  button_edge(FM1_BTN_SEL, 1);
+  step_check("seq-step-rec-shift", dir, 1);
+  key_edge(fm1_white_key(0), 1);                       /* SHIFT + key 1: the head there */
+  key_edge(fm1_white_key(0), 0);
+  button_edge(FM1_BTN_SEL, 0);
+  expect(g_app.ui.srec_head == 0 && g_app.ui.notes == 0x4u, "SHIFT + key 1 did not move the head");
+  button_edge(FM1_BTN_REC, 0);
+  expect(!g_app.ui.srec && !g_app.ui.counting_in && !g_app.ui.playing,
+         "letting go of REC after step record recorded");
+  step_check("seq-step-rec-done", dir, 0);
+
+  /* A 16-bar clip: the head wraps at its end. Every bar's head, then a
+   * chord on the last step tied as far as it goes. */
+  seq_line("clen 0 256;tog 0 255 60 100");
+  blocks(1);
+  button_edge(FM1_BTN_REC, 1);
+  expect(g_app.ui.srec && !g_app.ui.srec_grow, "step record on a clip should wrap");
+  for (int k = 1; k < 256; ++k) {
+    key_edge(FM1_SEQ_UI_KEY_BAR_ON, 1);
+    key_edge(FM1_SEQ_UI_KEY_BAR_ON, 0);
+    if (k % 16 == 15) {
+      snprintf(name, sizeof name, "seq-step-rec-head-%d", k + 1);
+      step_check(name, dir, k == 255);
+    }
+  }
+  expect(g_app.ui.srec_head == 255 && g_app.ui.bar == 15, "the head did not reach step 256");
+  key_edge(FM1_SEQ_UI_KEY_BAR_BACK, 1);
+  key_edge(FM1_SEQ_UI_KEY_BAR_BACK, 0);
+  for (int n = 0; n < 12; ++n) key_edge(fm1_white_key(n), 1);
+  for (int k = 0; k < 4; ++k) {
+    key_edge(FM1_SEQ_UI_KEY_BAR_ON, 1);
+    key_edge(FM1_SEQ_UI_KEY_BAR_ON, 0);
+  }
+  expect(g_app.ui.srec_tie == 1 && g_app.ui.srec_chord_n == 12, "a tie stops at step 256");
+  step_check("seq-step-rec-tie-to-the-end", dir, 1);
+  for (int n = 0; n < 12; ++n) key_edge(fm1_white_key(n), 0);
+  expect(g_app.ui.srec_head == 0, "the head did not wrap");
+  button_edge(FM1_BTN_REC, 0);
+
+  /* Capture: nothing buffered; then played over a playing clip; then
+   * stopped, into an empty clip (the picker) and over notes (fitted). */
+  fm1_app_seq_reset(&g_app, FM1_APP_SEQ_TRACKS);
+  fm1_app_seq_default_route(&g_app);
+  blocks(1);
+  shift_rec();
+  expect(g_app.popup_lines == 1, "SHIFT + REC with nothing buffered");
+  check_screen("seq-capture-nothing", dir, 1);
+  g_app.popup_lines = 0;
+  seq_line("tog 0 0 48 100;play");
+  blocks(1);
+  play_quarters(4, 120.0, rate);
+  expect(g_app.ui.capture_pending == 4, "the notes played were not buffered");
+  shift_rec();
+  expect(g_app.popup_lines == 1 && g_app.ui.notes != 0x1u, "a Capture while playing");
+  check_screen("seq-capture-captured", dir, 1);
+  g_app.popup_lines = 0;
+  seq_line("stop");
+  fm1_app_seq_reset(&g_app, FM1_APP_SEQ_TRACKS);
+  fm1_app_seq_default_route(&g_app);
+  blocks(1);
+  play_quarters(8, 100.0, rate);
+  shift_rec();
+  expect(g_app.ui.capture_mode == FM1_SEQ_UI_CAPTURE_PICK && g_app.ui.capture_n >= 2 &&
+         g_app.ui.playing, "a stopped Capture into an empty clip did not open the picker");
+  step_check("seq-capture-picker", dir, 1);
+  {
+    const unsigned sel = g_app.ui.capture_sel;
+    turn(FM1_ENC_SELECT, sel ? -1 : 1);
+    expect(g_app.ui.capture_sel != sel &&
+           g_app.ui.bpm_x100 == g_app.ui.capture_cands[g_app.ui.capture_sel] * 100u,
+           "SELECT did not take another tempo");
+  }
+  button_edge(FM1_BTN_HOME, 1);                        /* any press: closed, nothing else */
+  button_edge(FM1_BTN_HOME, 0);
+  expect(g_app.ui.capture_mode == 0 && g_app.mode == FM1_MODE_SEQ, "HOME should only close it");
+  seq_line("stop;bpm 11750");
+  blocks(1);
+  play_quarters(8, 100.0, rate);
+  shift_rec();
+  expect(g_app.ui.capture_mode == FM1_SEQ_UI_CAPTURE_FITTED, "a stopped Capture over notes");
+  step_check("seq-capture-fitted", dir, 1);
+  key_edge(fm1_white_key(3), 1);                       /* a key closes it too, and plays nothing */
+  key_edge(fm1_white_key(3), 0);
+  expect(g_app.ui.capture_mode == 0 && g_app.ui.held_n == 0, "a key did not close it");
+  seq_line("stop");
+  blocks(1);
+  /* Every overlay at its extremes, drawn from the UI's mirror: the picker
+   * with one, two and three candidates from 20 to 300 BPM, each taken, and
+   * the fitted tempo at its narrowest and widest. */
+  {
+    static const uint16_t cands[3] = { 20, 150, 300 };
+    for (int n = 1; n <= 3; ++n) {
+      for (int sel = 0; sel < n; ++sel) {
+        g_app.ui.capture_mode = FM1_SEQ_UI_CAPTURE_PICK;
+        g_app.ui.capture_n = (uint8_t)n;
+        g_app.ui.capture_sel = (uint8_t)sel;
+        for (int k = 0; k < 3; ++k) g_app.ui.capture_cands[k] = cands[(k + 3 - n) % 3];
+        snprintf(name, sizeof name, "seq-capture-picker-%d-of-%d", sel + 1, n);
+        step_check(name, dir, n == 3 && sel == 1);
+      }
+    }
+    static const unsigned bpm[4] = { 2000, 11750, 29999, 30000 };
+    for (int k = 0; k < 4; ++k) {
+      g_app.ui.capture_mode = FM1_SEQ_UI_CAPTURE_FITTED;
+      g_app.ui.bpm_x100 = bpm[k];
+      snprintf(name, sizeof name, "seq-capture-fitted-%u", bpm[k]);
+      step_check(name, dir, 0);
+    }
+    g_app.ui.capture_mode = FM1_SEQ_UI_CAPTURE_PICK;   /* over HOME too */
+    g_app.ui.capture_n = 3;
+    g_app.mode = FM1_MODE_HOME;
+    step_check("home-capture-picker", dir, 1);
+    g_app.mode = FM1_MODE_SEQ;
+    g_app.ui.capture_mode = 0;
+  }
+  destroy_units();
+}
+
 static int run_screens(const char *dir, float rate) {
   fm1_app_init(&g_app, rate);
   for (size_t i = 0; i < fm1_engine_count; ++i) {
@@ -910,6 +1116,7 @@ static int run_screens(const char *dir, float rate) {
   check_screen("popup-refuses-rate", dir, 1);
   seq_screens(dir, rate);
   seq_step_screens(dir, rate);
+  seq_rec_screens(dir, rate);
   printf("{\"screens\":%d,\"faults\":%d}\n", g_screens, g_faults);
   return g_faults ? 1 : 0;
 }
@@ -959,6 +1166,26 @@ static void on_cmd(void *ctx, uint64_t frame, const fm1_seq_cmd_t *c) {
   if (g_ui_applied < MAX_UI) g_ui_frames[g_ui_applied] = frame;
   ++g_ui_applied;
   fm1_seq_cmd_format(c, text, sizeof text);
+  if (g_log_cmds) fprintf(g_log_cmds, "@%llu %s\n", (unsigned long long)frame, text);
+  if (g_ui_log_n < MAX_UI_LOG) {
+    size_t n = strlen(text) + 1;
+    char *copy = malloc(n);
+    if (copy) {
+      memcpy(copy, text, n);
+      g_ui_log_frame[g_ui_log_n] = frame;
+      g_ui_log_text[g_ui_log_n++] = copy;
+    }
+  }
+}
+
+/* A live note the app gave the sequencer (the keys outside SEQ mode, MIDI
+ * IN): logged as the `non` or `nof` op fm1-render applies the same way, at
+ * frame 0 of the block it leads, and listed with the panel's commands. */
+static void on_note_in(void *ctx, uint64_t frame, int track, int pitch, int velocity) {
+  char text[64];
+  (void)ctx;
+  if (velocity) snprintf(text, sizeof text, "non %d %d %d", track, pitch, velocity);
+  else snprintf(text, sizeof text, "nof %d %d", track, pitch);
   if (g_log_cmds) fprintf(g_log_cmds, "@%llu %s\n", (unsigned long long)frame, text);
   if (g_ui_log_n < MAX_UI_LOG) {
     size_t n = strlen(text) + 1;
@@ -1272,6 +1499,7 @@ int main(int argc, char **argv) {
     if (!apply_routes(routes, n_routes, tracks)) return 2;
     if (events_cap > 0) g_app.seq_host.cap = (uint32_t)events_cap;
     g_app.on_cmd = on_cmd;
+    g_app.on_note_in = on_note_in;
     if (log_path && !(log = fopen(log_path, "w"))) {
       fprintf(stderr, "cannot write %s\n", log_path);
       return 1;
@@ -1461,6 +1689,18 @@ int main(int argc, char **argv) {
            (unsigned)g_app.ui.step_page, (unsigned)g_app.ui.bar, (unsigned)g_app.ui.held_n,
            (unsigned)g_app.ui.shift, (unsigned)g_app.ui.full_vel, (unsigned)g_app.ui.hint,
            (unsigned)g_app.ui.length, (unsigned)g_app.ui.loop_start);
+    /* Record and Capture (S5): the transport's record state, step record's
+     * head, and Capture as the UI mirrors it. */
+    printf(",\"rec\":{\"recording\":%u,\"counting_in\":%u,\"rec_track\":%u,\"srec\":%u,"
+           "\"head\":%u,\"grow\":%u,\"capture_pending\":%u,\"capture_mode\":%u,"
+           "\"capture_n\":%u,\"capture_sel\":%u,\"capture_cands\":[%u,%u,%u],\"bpm_x100\":%u}",
+           (unsigned)g_app.ui.recording, (unsigned)g_app.ui.counting_in,
+           (unsigned)g_app.ui.rec_track, (unsigned)g_app.ui.srec, (unsigned)g_app.ui.srec_head,
+           (unsigned)g_app.ui.srec_grow, (unsigned)g_app.ui.capture_pending,
+           (unsigned)g_app.ui.capture_mode, (unsigned)g_app.ui.capture_n,
+           (unsigned)g_app.ui.capture_sel, (unsigned)g_app.ui.capture_cands[0],
+           (unsigned)g_app.ui.capture_cands[1], (unsigned)g_app.ui.capture_cands[2],
+           (unsigned)g_app.ui.bpm_x100);
     if (g_app.ui.held_n && g_app.ui.hold_valid) {   /* what the Step pages show */
       const fm1_seq_ui_hold_t *h = &g_app.ui.hold;
       printf(",\"hold\":{\"step\":%u,\"notes\":%u,\"tick\":%u,\"gate\":%u,\"vel\":%u,"
