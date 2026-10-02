@@ -99,6 +99,7 @@ body.book {
 .book figure { break-inside: avoid; }
 .book figure .figure-svg { padding: 1.5mm; }
 .book figcaption { font-size: 8pt; }
+.book figure.screen .screen-shot { width: 40mm; height: 40mm; }
 
 .book pre { font-size: 7.4pt; white-space: pre-wrap; break-inside: avoid; }
 .book .pager, .book .onpage { display: none; }

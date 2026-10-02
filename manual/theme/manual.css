@@ -66,7 +66,10 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-padding-top: 4.5rem; }
+/* The sticky masthead wraps onto two lines on a phone: keep a linked
+   heading clear of it. */
+@media (max-width: 40rem) { html { scroll-padding-top: 8rem; } }
 
 body {
   margin: 0;
@@ -188,6 +191,9 @@ kbd.ctl {
   box-shadow: 0 1px 0 var(--rule-strong);
   white-space: nowrap;
   vertical-align: .08em;
+  /* Breathing room when chips wrap onto consecutive lines, as in a narrow
+     table column ("KNOB1 to / KNOB4"). */
+  margin: .14em 0;
 }
 kbd.ctl.role { border-style: dashed; box-shadow: none; background: transparent; }
 
@@ -282,6 +288,10 @@ figure { margin: 1.4rem 0 1.6rem; }
 figure > a { display: block; }
 figure .figure-svg { display: block; width: 100%; height: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: var(--radius); padding: .6rem; }
 figcaption { font-size: .92rem; margin-top: .55rem; }
+/* The firmware's own 240 x 240 screen, from the simulator (each pixel
+   doubled in the file, so it stays sharp at 1x and 2x). */
+figure.screen { max-width: 22rem; }
+figure.screen .screen-shot { display: block; width: 240px; max-width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--rule-strong); border-radius: var(--radius); }
 figcaption .fig-label { font-weight: 700; margin-right: .35em; }
 
 /* ---- pager and colophon -------------------------------------------- */
@@ -333,3 +343,8 @@ figcaption .fig-label { font-weight: 700; margin-right: .35em; }
   .layout { display: block; padding: 0; }
   body { background: #fff; }
 }
+
+/* ---- index of controls ------------------------------------------------- */
+
+/* Each control's own section in the panel tour leads its entry. */
+.controls-index a.xref.home { font-weight: 600; }

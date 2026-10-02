@@ -194,6 +194,16 @@ def test_full_build(renderer, tmp_path):  # noqa: F811
     assert (site / "index.html").is_file()
     index = (manual / "index-of-controls.html").read_text()
     assert "<kbd class='ctl'>SELECT</kbd>" in index and "Not described yet" not in index
+    # A heading's smart apostrophe reaches the index as itself, not as
+    # Python-Markdown's stash placeholder (the build also refuses one).
+    assert "wzxhzdk" not in index
+    # Each control's entry starts at its own section of the panel tour.
+    assert ("<dt><kbd class='ctl'>SELECT</kbd></dt><dd><a class='xref home' "
+            "href='03-panel-tour.html#knobs'>") in index
+    # The firmware's screens come from the simulator's screenshots, when present.
+    if (ROOT / "assets" / "screenshots" / "screen-params.png").is_file():
+        assert (manual / "assets" / "screens" / "screen-params.png").is_file()
+        assert "assets/screens/screen-params.png" in (manual / "03-panel-tour.html").read_text()
     engines = json.loads((manual / "reference.json").read_text())["engines"]
     ch5 = (manual / "05-sound-engines.html").read_text()
     for e in engines:

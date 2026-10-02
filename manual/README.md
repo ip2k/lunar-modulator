@@ -62,6 +62,7 @@ Additions:
 | `{{seq-glance}}`, `{{seq-memory}}`, `{{seq-verbs}}` | The sequencer's figures (`fm1_seq.h`), its memory by track count (`fm1-seq --sizes`) and its script verbs (`seq_cmd.c` with `data/seq-verbs.toml`) |
 | `{{requires seq}}` | A note when this build lacks the sequencer's code |
 | `{{figure panel}}`, `{{figure edge}}` | A numbered figure from `figures.py` |
+| `{{screen params Caption text.}}` | A numbered figure of the firmware's screen, from the simulator's `assets/screenshots/screen-params.png` (left out, with a warning, when the file is missing). The caption is plain text: write the typographic apostrophe (’) yourself |
 | `{{status-key}}`, `{{build-info}}`, `{{controls-index}}` | The status legend, the edition table, the generated index of controls |
 
 Directives sit on a line of their own and are never expanded inside code
@@ -102,12 +103,17 @@ repository.
 
 `_site/manual/reference.json` holds the engine data the tables came from.
 
+The published simulator page (the copy in `_site/`, never `sim/web/www`)
+gains two links to the manual: one in its opening paragraph and a *Manual*
+row in its help list.
+
 ## Checks
 
 `--strict` (CI) fails on: an unknown control, role, status or directive; an
 `{{engine-table}}` naming no engine; a chapter without exactly one title; a
 feature section without a status; a link to a page or anchor that does not
-exist, or a missing asset; a forbidden word. Warnings (missing list names,
+exist, or a missing asset; a forbidden word; a Markdown placeholder
+(`wzxhzdk`) left in a page. Warnings (missing list names,
 undescribed verbs, engines without a section, no branding fonts) are printed,
 as GitHub annotations in Actions, and do not fail the build.
 `tests/test_manual.py` checks the palette and its contrast, the generated

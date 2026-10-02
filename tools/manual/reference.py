@@ -25,6 +25,11 @@ DASH = "\u2013"
 KIND_LABEL = {"sound": "Sound engine", "audio_fx": "Effect", "midi_fx": "MIDI effect"}
 
 
+def prose(s: str) -> str:
+    """Typographic apostrophes in generated prose, as smarty gives the chapters."""
+    return re.sub(r"(?<=\w)'(?=\w)", "\u2019", s)
+
+
 def esc(s) -> str:
     return html.escape(str(s), quote=True)
 
@@ -270,7 +275,7 @@ def seq_glance(seq: SeqInfo) -> str:
             "each lane drives one parameter")
     if "FM1_SEQ_VAL_MAX" in d:
         row("Lock values", f"0 – {d['FM1_SEQ_VAL_MAX']}",
-            "scaled onto the parameter's own range")
+            "scaled onto the parameter’s own range")
     if "FM1_SEQ_CHORD_MAX" in d:
         row("Notes on one step", f"up to {d['FM1_SEQ_CHORD_MAX']} at once", "a chord")
     if "FM1_SEQ_BPM_X100_MIN" in d and "FM1_SEQ_BPM_X100_MAX" in d:
@@ -332,7 +337,7 @@ def seq_verbs(seq: SeqInfo, notes: dict, warnings: list[str]) -> str:
             args = " ".join(d.get("args", "").split())
             body.append(f"<tr><th scope='row'><code>{esc(v)}</code></th>"
                         f"<td><code>{esc(args) or DASH}</code></td>"
-                        f"<td>{esc(d.get('does', 'Not described yet.'))}</td></tr>")
+                        f"<td>{esc(prose(d.get('does', 'Not described yet.')))}</td></tr>")
     return ("<table class='verbs'><caption>Sequencer commands for scripts</caption>"
             "<thead><tr><th scope='col'>Verb</th><th scope='col'>Arguments</th>"
             "<th scope='col'>What it does</th></tr></thead>"

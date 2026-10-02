@@ -85,6 +85,7 @@ class Build:
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     sim_dir: Path | None = None
+    screens: set = field(default_factory=set)        # assets/screenshots/screen-*.png in use
 
 
 # ---- inputs ------------------------------------------------------------------------------
@@ -187,14 +188,14 @@ def make_directive(b: Build):
                 b.warnings.append(f"{e.id} ({e.name}) has no section in the manual; "
                                   f"{ch.file} lists it with its generated table only")
                 lines += [f"## {e.name}", "", "{{status desktop}}", "",
-                          f"{e.name} is in the firmware's list of "
+                          f"{e.name} is in the firmware’s list of "
                           f"{'sound engines' if kind == 'sound' else 'effects'}, and this manual "
                           "does not describe it yet. Its parameters, generated from the code:", "",
                           ("html", reference.engine_table(e)), ""]
             return lines
         if name in ("seq-glance", "seq-memory", "seq-verbs"):
             if b.seq is None:
-                return note("This table is generated from the sequencer's code, which is not "
+                return note("This table is generated from the sequencer’s code, which is not "
                             "part of this build yet.")
             if name == "seq-glance":
                 out = reference.seq_glance(b.seq)
@@ -217,6 +218,26 @@ def make_directive(b: Build):
                              f"<img class='figure-svg' src='assets/figures/{key}.svg'"
                              f"{size} alt='{html.escape(alt)}'></a><figcaption><span class='fig-label'>"
                              f"{label}</span>{html.escape(caption)}</figcaption></figure>")]
+        if name == "screen":
+            # {{screen KEY caption}}: the firmware's own screen, from the simulator's
+            # screenshots (assets/screenshots/screen-KEY.png, 480 x 480, each pixel doubled).
+            key = args[0] if args else ""
+            caption = " ".join(args[1:])
+            src = b.repo / "assets" / "screenshots" / f"screen-{key}.png"
+            if not re.fullmatch(r"[a-z0-9-]+", key) or not caption:
+                b.errors.append(f"{ch.file}: {{{{screen}}}} wants a name and a caption")
+                return []
+            if not src.is_file():
+                b.warnings.append(f"{ch.file}: no {src.relative_to(b.repo)}; that screen is left out")
+                return []
+            b.screens.add(src)
+            ch.figures += 1
+            label = f"Figure {ch.number}.{ch.figures}" if ch.number else f"Figure {ch.figures}"
+            return [("html", f"<figure class='screen' id='screen-{key}'>"
+                             f"<img class='screen-shot' src='assets/screens/{src.name}' width='240' "
+                             f"height='240' alt='The screen. {html.escape(caption)}'>"
+                             f"<figcaption><span class='fig-label'>{label}</span>"
+                             f"{html.escape(caption)}</figcaption></figure>")]
         if name == "controls-index":
             return [("html", CONTROLS_INDEX_TOKEN)]
         if name == "requires":
@@ -224,7 +245,7 @@ def make_directive(b: Build):
             what = args[0] if args else ""
             if what == "seq" and b.seq is None:
                 return [("html", "<div class='admonition note'><p class='admonition-title'>Not in this "
-                                 "build yet</p><p>The sequencer's code is still being reviewed and is "
+                                 "build yet</p><p>The sequencer’s code is still being reviewed and is "
                                  "not part of the build this edition was made from, so the tables "
                                  "generated from it are missing. Where this chapter says <em>On the "
                                  "desktop</em>, it refers to that code under review.</p></div>")]
@@ -326,16 +347,18 @@ def controls_index(b: Build, vocab: dict[str, list[str]], roles: list[str]) -> s
         for name in names:
             out.append(f"<dt><kbd class='ctl'>{html.escape(name)}</kbd></dt>")
             refs = list(where.get((name, False), []))
-            if home and all(not (c is home[0] and h is home[1]) for c, h in refs):
-                refs.insert(0, home)
+            if home:
+                # First, whether or not the text mentions the control there.
+                refs = [home] + [(c, h) for c, h in refs if not (c is home[0] and h is home[1])]
             if not refs:
                 out.append("<dd>Not described yet.</dd>")
                 continue
             items = []
-            for ch, h in refs:
+            for i, (ch, h) in enumerate(refs):
                 label = (f"{h.number} {h.text}" if h.number else h.text) if h else ch.title
                 href = f"{ch.page}#{h.id}" if h else ch.page
-                items.append(f"<a class='xref' href='{href}'>{html.escape(label)}</a>")
+                cls = "xref home" if home and i == 0 else "xref"
+                items.append(f"<a class='{cls}' href='{href}'>{html.escape(label)}</a>")
             out.append(f"<dd>{'; '.join(items)}</dd>")
         out.append("</dl>")
     if roles:
@@ -387,6 +410,10 @@ def write_site(b: Build) -> None:
     shutil.copy2(theme / "icon.svg", assets / "icon.svg")
     for key, (draw, _caption, _alt) in figures.FIGURES.items():
         (assets / "figures" / f"{key}.svg").write_text(draw() + "\n")
+    if b.screens:
+        (assets / "screens").mkdir(exist_ok=True)
+        for src in sorted(b.screens):
+            shutil.copy2(src, assets / "screens" / src.name)
     font_link = ""
     banner_screen = banner_print = None
     if b.branding:
@@ -510,7 +537,7 @@ def front_matter(b: Build) -> str:
     return (
         f"<h1 style='bookmark-level: 1'>About this manual</h1>"
         f"<p>This manual describes {t}, {html.escape(b.cfg['descriptor'][0].lower() + b.cfg['descriptor'][1:])}. "
-        "It is generated from the project's sources: the reference tables come from the code that "
+        "It is generated from the project’s sources: the reference tables come from the code that "
         "the firmware is built from, so they change when the code does.</p>"
         "<p><strong>Nothing in it runs on an FM-1 yet.</strong> Every function carries a status that "
         "says where it works today:</p>"
@@ -521,11 +548,31 @@ def front_matter(b: Build) -> str:
         f"<a href='{b.cfg['site_url']}manual/'>{html.escape(b.cfg['site_url'])}manual/</a>.</p>"
         "<h2>Trademarks and licences</h2>"
         f"<p>{t} is an independent project. It is not made, endorsed or supported by M-VAVE or Cuvave; "
-        "\"FM-1\" names the instrument the firmware is written for. Mutable Instruments module names "
+        "“FM-1” names the instrument the firmware is written for. Mutable Instruments module names "
         "identify where code came from; they are not product names here. Chapter 13 credits every "
         "source and licence.</p>"
-        f"<p>The manual and the firmware's own code are under the MIT licence. Set in IBM Plex Sans and "
+        f"<p>The manual and the firmware’s own code are under the MIT licence. Set in IBM Plex Sans and "
         "Audiowide (SIL Open Font License 1.1). Colours: Rosé Pine Dawn (MIT).</p>")
+
+
+def link_simulator_to_manual(b: Build, page: Path) -> None:
+    """The published simulator page links to the manual beside it. Only the
+    copy in the site is changed: sim/web/www has no manual/ folder, so its own
+    page must not link there. Warns, and leaves the page alone, if the page's
+    markup no longer has the two places the links go."""
+    text = page.read_text()
+    lede = re.search(r'(<p class="lede">.*?)(</p>)', text, re.S)
+    help_dl = text.rfind("</dl>")
+    if not lede or help_dl < 0:
+        b.warnings.append("sim/web/www/index.html: no lede or help list to link the manual from")
+        return
+    pdf = html.escape(b.cfg["pdf_name"])
+    row = (f'      <div><dt>Manual</dt><dd>The <a href="manual/">user manual</a> describes every control, '
+           f'engine and effect; also as a <a href="manual/{pdf}">PDF</a>.</dd></div>\n    ')
+    text = text[:help_dl] + row + text[help_dl:]
+    text = (text[:lede.start()] + lede.group(1).rstrip()
+            + ' Read the <a href="manual/">user manual</a>.' + lede.group(2) + text[lede.end():])
+    page.write_text(text)
 
 
 def assemble_site(b: Build, site: Path) -> None:
@@ -539,6 +586,7 @@ def assemble_site(b: Build, site: Path) -> None:
                 shutil.copytree(item, dest, dirs_exist_ok=True)
             else:
                 shutil.copy2(item, dest)
+        link_simulator_to_manual(b, site / "index.html")
         print(f"manual: simulator from {sim.relative_to(b.repo)} is the site's front page", file=sys.stderr)
     else:
         font_link = ('<link rel="stylesheet" href="manual/assets/fonts.css">\n'
@@ -584,6 +632,11 @@ def check_words(b: Build) -> None:
     for name, text in files:
         for word, why in policy.problems(text):
             b.errors.append(f"{name}: '{word}' is {why} (tools/manual/policy.py)")
+    # Python-Markdown's stash placeholders must never reach a page: one did,
+    # in the index of controls, for a heading with an apostrophe.
+    for p in b.out.glob("*.html"):
+        if re.search(r"wzxhzdk|[\x02\x03]", p.read_text()):
+            b.errors.append(f"{p.name}: an unresolved Markdown placeholder (wzxhzdk) in the output")
 
 
 def make_pdf(b: Build) -> Path:

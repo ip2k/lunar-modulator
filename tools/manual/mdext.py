@@ -11,11 +11,13 @@ which sections mention which controls and which carry a status. Python-Markdown
 """
 from __future__ import annotations
 
+import html
 import re
 import xml.etree.ElementTree as etree
 from dataclasses import dataclass, field
 
 from markdown.extensions import Extension
+from markdown.extensions.toc import stashedHTML2text, unescape
 from markdown.inlinepatterns import InlineProcessor
 from markdown.preprocessors import Preprocessor
 from markdown.treeprocessors import Treeprocessor
@@ -163,7 +165,12 @@ class StructureProcessor(Treeprocessor):
                     number = ".".join([ch.number] + [str(c) for c in counters[1:level]])
                 else:
                     number = ""
-                text = "".join(el.itertext()).strip()
+                # Smart quotes and other entities sit in the HTML stash as
+                # placeholders until the page is serialised: resolve them, as
+                # toc does, so "The sound's page" is not "The soundwzxhzdk:10s page".
+                raw = stashedHTML2text(unescape("".join(el.itertext())), self.md,
+                                       strip_entities=False)
+                text = html.unescape(raw).strip()
                 hid = el.get("id", "")
                 if number:
                     span = etree.Element("span", {"class": "secno"})

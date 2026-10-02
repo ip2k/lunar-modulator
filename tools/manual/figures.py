@@ -63,7 +63,9 @@ A = {
     "screen": f'fill="{SCREEN}"',
     "print": f'fill="{INK}" font-size="2" {FONT}',
     "label": f'fill="{INK}" font-size="1.55" {FONT}',
-    "combo": f'fill="{PAPER}" font-size="1.35" {FONT}',
+    # Smaller than the simulator's 1.35 and set higher on the key, so "MONO"
+    # keeps clear of the key's rounded end at print size.
+    "combo": f'fill="{PAPER}" font-size="1.15" {FONT}',
     "lead": f'fill="none" stroke="{ACCENT}" stroke-width=".3"',
     "bubble": f'fill="{ACCENT}"',
     "bubble-num": f'fill="{PAPER}" font-size="2.6" font-family="IBM Plex Sans, Helvetica Neue, Arial, sans-serif" font-weight="700" text-anchor="middle"',
@@ -173,7 +175,7 @@ def panel_svg(*, callouts: bool = True, title: str = "The FM-1's front panel") -
                  f"y='{_f(y - h / 2)}' width='{w}' height='{h}' rx='{_f(w / 2)}'/>")
         if not is_white:
             if COMBO[black]:
-                o.append(f"<text {A['combo']} x='{_f(x)}' y='{_f(y + h / 2 - 1.6)}'>"
+                o.append(f"<text {A['combo']} x='{_f(x)}' y='{_f(y + h / 2 - 2.3)}'>"
                          f"{escape(COMBO[black])}</text>")
             black += 1
 
