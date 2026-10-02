@@ -9,6 +9,10 @@ history.
 ## [Unreleased]
 
 ### Added
+- The virtual FM-1's small text is set in Exo 2 (Natanael Gama, SIL OFL
+  1.1), bundled unmodified from google/fonts in `sim/web/www/fonts/exo2/`
+  with its licence and checked by hash. Before, it used Exo 2 only where
+  installed and otherwise the system's sans-serif.
 - docs/10 §1.1: reports from other FM-1 owners (issue #2) and what they
   mean for our dongle.
   - czietz's Raspberry Pi Pico `USB_KEY` dongle (an unlisted MicroPython
