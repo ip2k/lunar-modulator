@@ -9,6 +9,12 @@ history.
 ## [Unreleased]
 
 ### Added
+- Branding art in `assets/branding/`: a 1280×320 README banner (PNG and
+  SVG) and a 240×240 boot screen for the FM-1's display (PNG plus raw
+  RGB565 for later firmware use). A seeded script draws everything from
+  code: starfield, crescent moon, an orbiting station and an FM waveform.
+  The lettering is set in Audiowide (SIL OFL 1.1), committed unmodified with
+  its licence. The README now opens with the banner.
 - A survey of monome, Ornament & Crime (via PaulStoffregen/O_C_T41 and
   Phazerville) and jhjlim's repositories as FM-1 sources
   (`notes/2026-10-01-monome-oc-jhjlim-survey.md`). O&C's MIT cores

@@ -31,12 +31,13 @@ keeps its old name. Rules:
 - Wherever the project is described, keep the descriptor "open firmware for
   the M-VAVE FM-1". The device's name only says what the firmware runs on;
   it implies no tie to M-VAVE or Cuvave.
-- The look is a space theme with a NASA-style display typeface; art goes in
-  `assets/branding/`. Never use NASA's insignia (the "meatball"), its "worm"
-  logotype, its seal, or any other NASA name or mark, and nothing that
-  suggests NASA endorsement. Never use M-VAVE's or Cuvave's logos. Mutable
-  Instruments module names (Plaits, Braids, Clouds, …) are credited as
-  sources, never used as product names.
+- The look is a space theme set in Audiowide (SIL OFL 1.1); the art, the
+  font and its licence are in `assets/branding/` (see its README). In
+  published text name the typeface, never "the NASA font". Never use NASA's
+  insignia (the "meatball"), its "worm" logotype, its seal, or any other
+  NASA name or mark, and nothing that suggests NASA endorsement. Never use
+  M-VAVE's or Cuvave's logos. Mutable Instruments module names (Plaits,
+  Braids, Clouds, …) are credited as sources, never used as product names.
 
 This project is unrelated to the BUSY Bar timer repo it was briefly hosted in.
 

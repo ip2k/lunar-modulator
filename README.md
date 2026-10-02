@@ -1,7 +1,6 @@
 # Lunar Modulator
 
-<!-- BANNER: assets/branding/banner.png goes here, added with the branding art.
-     Alt text: "Lunar Modulator: INTERGALACTIC MODULATION STATION". -->
+![Lunar Modulator: INTERGALACTIC MODULATION STATION](assets/branding/banner.png)
 
 **INTERGALACTIC MODULATION STATION**
 
