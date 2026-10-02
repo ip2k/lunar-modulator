@@ -12,8 +12,6 @@ WebAssembly (parity.mjs); this file checks the panel and the meter.
 """
 import subprocess
 
-import pytest
-
 from tests.test_sim_web import SCENARIOS, run, scenario_args, tools  # noqa: F401
 
 BUDGET = 387924
