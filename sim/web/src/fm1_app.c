@@ -544,12 +544,13 @@ static void mod_swap_fx(fm1_app_t *a) {
   a->mui.unloggable = 1;
 }
 
-/* A waiting picker's choice, now. */
+/* A waiting picker's choice, now; its popup goes with it. */
 static void mod_commit(fm1_app_t *a) {
   fm1_mod_ui_env_t env;
   if (!a->mod || !a->mui.picker) return;
   mod_env(a, &env);
   fm1_mod_ui_commit(&env, &a->mui);
+  a->popup_lines = 0;
   a->dirty = 1;
 }
 
@@ -666,8 +667,7 @@ static int mod_encoder(fm1_app_t *a, int encoder, int delta) {
       !((u->picker == FM1_MOD_PICK_KIND && a->mode == FM1_MODE_RACK && algo) ||
         (u->picker == FM1_MOD_PICK_DEST && a->mode == FM1_MODE_MATRIX &&
          (algo || (knob == 1 && u->mpage == 0))))) {
-    fm1_mod_ui_commit(&env, u);
-    a->dirty = 1;
+    mod_commit(a);
   }
   if (knob >= 0 && u->held != FM1_MOD_UI_NONE &&
       (a->mode == FM1_MODE_HOME || a->mode == FM1_MODE_FX || a->mode == FM1_MODE_RACK)) {

@@ -42,10 +42,20 @@
 // the same encoders (fm1w_button, fm1w_encoder). So the panel scenario is
 // two-step parity in WebAssembly, and the module's screen at the end (the
 // Track view) is compared with the harness's.
+//
+// A scenario with `mod` modulates (docs/16 MG3): a file of fm1-render's
+// --mod lines (engines/host/mod_script.h). The native legs and the harness
+// take it as --mod; the module gets a new runtime with the file's seed
+// (fm1w_mod_reset) after the chain is set up and its lines through
+// fm1w_mod_text, the untimed ones first and each `@FRAME` line at the first
+// block starting there, after the script's lines, as fm1-render applies
+// them. A panel scenario with the lab switch modulates from the panel: the
+// harness logs the runtime's state and every edit (.mod, named in the
+// sidecar), which the render legs replay.
 // MIT licence.
 
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { instantiateFm1, BLOCK } from '../www/fm1-wasm.mjs';
 
@@ -62,6 +72,7 @@ const scenarios = JSON.parse(readFileSync(args.scenarios, 'utf8')).scenarios;
 const wasmModule = await WebAssembly.compile(readFileSync(args.wasm));
 const cmdPath = (s) => resolve(dirname(args.scenarios), s.cmd);
 const panelPath = (s) => resolve(dirname(args.scenarios), s.panel);
+const modPath = (s) => resolve(dirname(args.scenarios), s.mod);
 
 function cliArgs(s) {
   const a = ['--seconds', String(s.seconds), '--rate', String(s.rate ?? 44118), '--engine', s.engine];
@@ -74,7 +85,31 @@ function cliArgs(s) {
     a.push('--fx', id);
     for (const p of ps) a.push('--fx-param', p);
   }
+  if (s.mod) a.push('--mod', modPath(s));
   return a;
+}
+
+// A --mod file as fm1-render reads it (render.cc, the harness's load_mod):
+// leading blanks off, an optional @FRAME, trailing CR and LF off, the seed
+// from a `seed N` line at frame 0, lines stably sorted by frame.
+function loadMod(path) {
+  let seed = 0;
+  const lines = readFileSync(path, 'latin1').split('\n').map((raw, order) => {
+    let t = raw.replace(/^[ \t]+/, '').replace(/[\r]+$/, '');
+    let frame = 0;
+    const m = /^@([0-9]+)/.exec(t);
+    if (m) {
+      frame = Number(m[1]);
+      t = t.slice(m[0].length);
+    } else if (t.startsWith('@')) {
+      throw new Error(`${path}: bad @FRAME: ${raw}`);
+    }
+    const sm = /^[ \t]*seed[ \t]+([0-9]+)[ \t]*$/i.exec(t);
+    if (frame === 0 && sm) seed = Number(sm[1]) >>> 0;
+    return { frame, order, text: t };
+  });
+  lines.sort((x, y) => x.frame - y.frame || x.order - y.order);
+  return { seed, lines };
 }
 
 // A 16-bit stereo WAV at `rate`, like render.cc's, so the app's output can
@@ -222,7 +257,24 @@ async function renderApp(s) {
     if (script.block !== BLOCK) throw new Error(`${s.cmd}: block=${script.block}, not ${BLOCK}`);
     if (ex.fm1w_seq_reset(script.tracks) !== 0) throw new Error(`${s.cmd}: tracks=${script.tracks}`);
   }
-  const textBuf = script ? new Uint8Array(w.memory.buffer, ex.fm1w_text_buf(), ex.fm1w_text_cap()) : null;
+  const textBuf = new Uint8Array(w.memory.buffer, ex.fm1w_text_buf(), ex.fm1w_text_cap());
+
+  // Modulation from a file: a new runtime with its seed, then its untimed
+  // lines, after the chain (fm1-render binds the units, then reads them).
+  const mod = s.mod ? loadMod(modPath(s)) : null;
+  let nextMod = 0;
+  const modUpTo = (frame) => {
+    while (mod && nextMod < mod.lines.length && mod.lines[nextMod].frame <= frame) {
+      const t = mod.lines[nextMod++].text;
+      if (t.length >= 1024) throw new Error(`${s.mod}: a line of ${t.length} bytes`);
+      for (let i = 0; i < t.length; ++i) textBuf[i] = t.charCodeAt(i) & 255;
+      if (ex.fm1w_mod_text(t.length) !== 1) throw new Error(`${s.mod}: the module refused "${t}"`);
+    }
+  };
+  if (mod) {
+    ex.fm1w_mod_reset(mod.seed);
+    modUpTo(0);
+  }
 
   // Events as render.cc builds them: --bend and --param-at in argv order
   // (cliArgs puts bends first), notes as on/off pairs.
@@ -283,6 +335,7 @@ async function renderApp(s) {
       }
       applied.push([pos, logged(c.ops)]);
     }
+    modUpTo(pos);
     const ptr = ex.fm1w_render(n);
     const f = new Float32Array(w.memory.buffer, ptr, 2 * n);
     for (let i = 0; i < 2 * n; ++i) out[2 * pos + i] = toInt16(f[i]);
@@ -395,10 +448,13 @@ for (const s of scenarios) {
     calls: app.calls.length,
     cmd: s.cmd ?? null,
     panel: s.panel ?? null,
+    mod: s.mod ?? null,
+    mod_logged: s.panel && s.lab ? existsSync(join(dir, 'cmds.mod')) : null,
     seq,
   };
   r.pass = (!seq || (seq.lines_match && seq.dropped === 0 && seq.native_dropped === 0 &&
                      (!s.panel || (seq.replayable && seq.ui_cmds > 0)))) &&
+    (r.mod_logged === null || r.mod_logged) &&
     r.app_vs_js.differing === 0 &&
     (!r.app_vs_musl || r.app_vs_musl.differing === 0) &&
     (r.app_vs_glibc.max <= 1 || r.libm_sensitive) &&

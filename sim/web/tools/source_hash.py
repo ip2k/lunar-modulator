@@ -10,10 +10,13 @@ their bytes, in sorted path order:
            effect and the host the module links
   sim      sim/web's own inputs: src/, mk/ (the link flags and export list),
            build.sh, and the parity test, its scenarios and their sequencer
-           scripts (test/seq/), whose results the record carries; and the
-           sequencer core and host bridge the module links (engines/seq/,
-           include/fm1_seq*.h), so that an engines-only change to them
-           cannot ship a module that behaves differently with only a warning
+           and modulation scripts (test/seq/, test/mod/), whose results the
+           record carries; and the sequencer core and host bridge, and the
+           modulation runtime, its kinds and its script reader, that the
+           module links (engines/seq/, include/fm1_seq*.h, engines/mod/,
+           include/fm1_mod*.h, host/mod_script.*), so that an engines-only
+           change to them cannot ship a module that behaves differently with
+           only a warning
 
 build-on-aeon.sh records both in www/fm1.wasm.json; tests/test_sim_web.py
 warns when the tree has moved on since, and fails in CI when the sim's own
@@ -26,8 +29,9 @@ from pathlib import Path
 
 SIM_INPUTS = ("sim/web/src", "sim/web/mk", "sim/web/build.sh", "sim/web/test/parity.mjs",
               "sim/web/test/scenarios.json", "sim/web/test/fm1_sim_render.c",
-              "sim/web/test/seq", "sim/web/www/fm1-wasm.mjs",
-              "engines/seq", "engines/include/fm1_seq*.h")
+              "sim/web/test/seq", "sim/web/test/mod", "sim/web/www/fm1-wasm.mjs",
+              "engines/seq", "engines/include/fm1_seq*.h",
+              "engines/mod", "engines/include/fm1_mod*.h", "engines/host/mod_script*")
 
 
 def _files(root, base):
@@ -55,9 +59,12 @@ def sim_files(root):
     out = []
     for name in SIM_INPUTS:
         for p in _files(root, root / name):
-            if not any(part.startswith(".") or part == "__pycache__"
-                       for part in p.relative_to(root).parts):
-                out.append(p)
+            rel = p.relative_to(root)
+            if any(part.startswith(".") or part == "__pycache__" for part in rel.parts):
+                continue
+            if rel.parts[0] == "engines" and p.suffix == ".md":   # documentation, as engine_files
+                continue
+            out.append(p)
     return out
 
 

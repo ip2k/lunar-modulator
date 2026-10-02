@@ -1,0 +1,15 @@
+# RACK: ENV opens it at ENV1 (made the selected envelope), SELECT walks to
+# LFO2's page (back two pages), and holding ENV turns LFO2's Rate and Depth
+# from ENV1: a chain. KNOB1 alone then turns LFO2's own Rate base. LFO
+# steps on to the next LFO, LFO1 (wrapping round); ENV opens ENV1 (the
+# envelope last shown) and again steps to ENV2.
+--button 0.05:PLAY/STOP
+--button 0.10:ENV
+--turn 0.20:SELECT:-2
+--button 0.30:ENV:0.4
+--turn 0.40:KNOB1:25
+--turn 0.50:KNOB3:-50
+--turn 0.90:KNOB1:-10
+--button 1.00:LFO
+--button 1.10:ENV
+--button 1.20:ENV
