@@ -9,6 +9,27 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Filter**, a new effect: seven classic filter types in one, every knob a
+  modulation target. Type picks SVF (low-pass, band-pass, high-pass, notch),
+  Ladder (24, 18, 12 or 6 dB per octave), Diode (a 303-style diode ladder),
+  K35 (an MS-20-style Sallen-Key), Steiner (a gritty Steiner-Parker-style
+  filter with low-pass, band-pass and high-pass inputs), Comb (tuned by
+  Cutoff, positive or negative, peaks or notches) or Formant (the vowels
+  A-E-I-O-U for men, women and children). Cutoff runs 20 Hz to 18 kHz;
+  Resonance goes up to self-oscillation, in tune with Cutoff, on all five
+  analogue-style types; Drive saturates. On the second page, Mode (the
+  response, slope, input or voice, blended between), Morph (stereo spread,
+  comb polarity or the vowel), Mix and Level. Changing Type crossfades over
+  5 ms, so it never clicks, and the sequencer may lock it. Silence stays
+  silent at any setting. Our own code (MIT), after Zavalishin's *The Art of
+  VA Filter Design*, Andrew Simper's SVF, Huovilainen's ladder, the
+  Korg35, diode-ladder and Steiner-Parker circuits, Zölzer's universal comb
+  and Peterson and Barney's vowel measurements; documented in
+  engines/README.md ("Filter"). It uses about 18 KB of memory at 44.1 kHz
+  (Comb's delay line) and no maths library, so the browser plays it sample
+  for sample like the desktop build (checked against GCC with glibc and
+  musl). Four new parity scenarios cover its seven types; the browser module
+  needs its rebuild.
 - A first look at the sequencer on the virtual FM-1's panel, behind a lab
   switch: add `?lab` (or `#lab`) to the page's address. The public page is
   unchanged until patterns can be made and recorded on the panel (docs/15

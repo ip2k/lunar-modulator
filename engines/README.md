@@ -32,6 +32,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `crush` | Crush | effect | – | this repository, after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT) | [below](#crush); a bitcrusher and sample-rate reducer |
 | `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
 | `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
+| `filter` | Filter | effect | – | this repository | seven filter types (SVF, ladder, diode ladder, Sallen-Key, Steiner, comb, formant), zero-delay feedback; [below](#filter) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -220,6 +221,129 @@ How it works [verified: tests/test_engines_echo.py and
   reset call to drop the tail without re-creating the 64 KiB instance (the
   host feature listed below).
 
+## Filter
+
+A multimode filter (`src/fx_filter.cc`, our own code, MIT) with seven
+types, every one of whose parameters is a modulation target. No code is
+taken from anywhere; the designs are credited below and in the source.
+Stereo in, stereo out.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Type | SVF, Ladder, Diode, K35, Steiner, Comb, Formant (Ladder) | The filter. A change crossfades the old type into the new one over 5 ms; the new one starts from rest |
+| 1 | Cutoff | 20 Hz–18 kHz, log (2 kHz) | The corner, or the resonance: where each type self-oscillates. Never above 0.45 of the host rate (3.6 kHz at 8 kHz) |
+| 1 | Resonance | 0–1 (0.25) | Up to self-oscillation for SVF, Ladder, Diode, K35 and Steiner (from about 0.93–0.96); Comb's loop gain; Formant's bandwidth |
+| 1 | Drive | 0–1 (0) | Input gain 1× to 16× into the filter's saturating curves, output down by its square root: quiet signals up to 12 dB louder, loud ones saturate |
+| 2 | Mode | 0–3, continuous (0) | Per type, below; between whole numbers the two neighbours are blended |
+| 2 | Morph | 0–1 (0) | Spread for the five analogue-style types (left channel up to an octave down, right up); polarity for Comb; the vowel for Formant |
+| 2 | Mix | 0–1 (1) | Dry to wet. At 0 the input passes through unchanged |
+| 2 | Level | 0–2 (1) | The wet signal's gain |
+
+| Type | After | Mode 0 / 1 / 2 / 3 | Notes |
+| --- | --- | --- | --- |
+| SVF | Andrew Simper's (Cytomic) trapezoidal state-variable filter | low-pass / band-pass / high-pass / notch | Linear but for its self-oscillation: the damping goes slightly negative at the top of Resonance and an energy term (bp² + lp², last sample) holds the oscillation at a fixed, sinusoidal level |
+| Ladder | the transistor ladder (Huovilainen, DAFx-04; Zavalishin ch. 5) | 24 / 18 / 12 / 6 dB/octave (taps on the 4th to the 1st stage) | One saturating curve where the feedback meets the input. Self-oscillates from k = 4 |
+| Diode | a TB-303-style diode ladder: four coupled capacitors, written here from the node equations | as Ladder | The coupled stages make a tridiagonal system. Analysed here: it oscillates at k = 18.39 and 1.195× its integrators' frequency, and with no feedback it is already −3 dB at 0.119× [verified: tests and a numerical scan]. Its tuning follows a fitted curve between the two, so Cutoff is near −3 dB with no resonance and the pitch at full resonance |
+| K35 | the Korg35 Sallen-Key low-pass of the later Korg MS-20 (Zavalishin ch. 5; Will Pirkle's application note) | low-pass / band-pass / high-pass / notch | H = 1/(s² + (2 − k)s + 1); the feedback through the saturating curve. Self-oscillates from k = 2 |
+| Steiner | the Steiner-Parker Synthacon's filter: an equal-component Sallen-Key with mixed inputs | low-pass in / band-pass in / high-pass in / notch (L, −2B, H) | y (s² + (3 − K)s + 1) = L + sB + (s² + 2s)H, from its node equations (written here), so its high-pass input has a 6 dB/octave skirt below the corner. Both resistors are diodes, whose current saturates, and the feedback passes an asymmetric clip |
+| Comb | Zölzer's universal comb (*DAFX*, ch. 2) | feedback (peaks) … feedforward (notches) | One delay of fs / Cutoff samples, linear interpolation; Resonance is the loop gain, 0.25–0.98; Morph 0 positive (peaks at multiples of Cutoff), 0.5 none, 1 negative (odd multiples of Cutoff/2: an octave lower, hollow) |
+| Formant | three band-passes at the first three formants of A, E, I, O, U | voice: men 0, women 1.5, children 3 | Formant frequencies from Peterson and Barney (JASA 24, 1952, Table II, averages for the vowels of hod, head, heed, hawed and who'd) [reported]. Morph sweeps A–E–I–O–U; Cutoff shifts every formant by half its distance from 1 kHz, in octaves; Resonance narrows them |
+
+How it works:
+
+- **Zero-delay feedback** (Zavalishin, *The Art of VA Filter Design*,
+  rev. 2): trapezoidal integrators, the bilinear transform's frequency
+  prewarped so the resonance lands on Cutoff. A saturating curve inside a
+  loop is replaced by its secant gain (curve ÷ input) at the previous
+  sample's operating point, the loop is solved as a linear system, and the
+  true curve is then applied once to the solution, so every state stays
+  bounded however hard the loop is driven (the "cheap non-linear
+  zero-delay filter" Teemu Voipio published on the KVR forum, 2012
+  [reported]). SVF, Ladder and Diode solve once per sample. K35 and Steiner
+  take the secant again at that first solution and solve a second time: a
+  fixed single refinement, never a convergence loop. Without it K35's
+  self-oscillation drifted 16 cents sharp at 5 kHz and Steiner's up to a
+  semitone [verified].
+- **The curve** is v − v³/6.75 up to |v| = 1.5, where it reaches ±1 with
+  zero slope: no divide below its knee.
+- **Resonance compensation.** Ladder and Diode lose bass as their feedback
+  rises (DC gain 1/(1 + k)), so their input, and Diode's output, rise with
+  k. The others keep their pass band and their output falls as the peak
+  grows. Near self-oscillation the Ladder and Diode taps above the 4th
+  stage are scaled down, since they swing further than it. At Resonance 0.9
+  and Cutoff 2 kHz the pass band sits 4.3 dB (Ladder) to 7.4 dB (SVF) down;
+  self-oscillation peaks at 0.35–0.65 (−9 to −4 dBFS) on every type and
+  Mode, the notches excepted, which cancel it [verified].
+- **Measured** [verified: tests/test_engines_filter.py, 2026-10-02]:
+  - SVF at Resonance 0 is a Butterworth: −3.01 dB at Cutoff (at 8, 44.1,
+    96 and 384 kHz alike), 12 dB/octave; the notch is −118 dB deep.
+  - Ladder at Resonance 0: −3.01 dB per pole at Cutoff, and 6.0, 12.0,
+    18.0 and 24.0 dB/octave on the four taps.
+  - K35 and Steiner at Resonance 0: −6.02 and −9.54 dB at Cutoff (two
+    coincident poles; Sallen-Key Q 1/3). Steiner's high-pass input falls
+    5.7 dB per octave below its corner, K35's high-pass 11.7.
+  - Self-oscillation, over 110 Hz–5 kHz at 44,118 Hz and at 440 Hz at
+    8, 96 and 384 kHz: SVF within 0.01 cent of Cutoff, Ladder and Diode
+    within 1, K35 within 2.5; Steiner a steady 19–23 cents flat (its
+    diodes load the oscillation). None oscillates at Resonance 0.85.
+  - Comb: peaks 21 dB above its troughs at Resonance 0.8; feedforward
+    notches −34 dB at Resonance 1. Formant: at a vowel's formants the
+    gain is 8–33 dB above that at the other vowel's.
+  - Drive 1 raises the 3rd harmonic of a 0.5 sine from −62 to −112 dB
+    (Drive 0) to −10 to −27 dB. Steiner makes a 2nd harmonic (−64 dB at
+    Drive 0) where K35 makes none, and a louder input darkens it (2 kHz
+    falls 2 dB further than 250 Hz) where K35's tilt holds.
+- **Type changes** crossfade over 5 ms with both types running, so no
+  switch clicks: across all 42 ordered pairs, a 440 Hz sine's largest step
+  between neighbouring samples at the switch is at most 4 % above either
+  type's own [verified]. A change asked for during a crossfade waits for
+  its end.
+- **Glide and control rate:** Cutoff, Resonance, Drive, Mode and Morph
+  glide (5 ms) and the coefficients follow every 8 samples, counted from
+  `create`, so any block size gives the same output; Comb's delay moves
+  sample by sample between those steps, so it never jumps. Mix and Level
+  glide every sample. Values set before the first block apply from its
+  first sample.
+- **Determinism.** No libm anywhere in the effect: 2^x, log2 and tan are
+  polynomials in the file, beside fabsf, floorf and sqrtf, which IEEE 754
+  rounds exactly. 24 renders (every type with every parameter moved, at full
+  resonance and drive from an impulse, at 96 kHz, two chains of two filters
+  after Macro, host blocks of 7) are byte-identical from GCC with glibc,
+  GCC with musl and Emscripten under Node [verified: containers on the LAN
+  build host, 2026-10-02]. The browser module is not rebuilt here.
+- **Contracts:** the input guard of `mi_fx.cc`; `fm1_param_clamp`; every
+  field set in `create`; silence in gives exact silence out from rest at any
+  setting, self-oscillating ones included; tails flush to exact zero within
+  0.2 s (states below 1e-15 flush, so no subnormals). Host rates 8–384 kHz;
+  10 s of random parameter changes (NaN and infinities included) and noise
+  bursts at the guard's limit stay finite at 8, 44.1, 96 and 384 kHz, and
+  every type at Resonance 1, Drive 1 and Level 2 under that noise stays
+  below 2.0 [verified].
+- **Memory:** 688 bytes of state plus Comb's two delay lines of fs/20 Hz + 4
+  floats: 18,368 bytes at 44,118 Hz (3,920 at 8 kHz, 154,320 at 384 kHz).
+  The same on i386, since the instance holds no pointers [verified: GCC
+  −m32 in a container]. The lines are never cleared: a type reset marks
+  them empty and reads beyond what was written since return 0.
+- **Cost** per 64-frame stereo block on the desktop (Apple M1 Max, best of
+  seven, noise in), against Plate's 0.89 µs and Fold's 1.8 µs in the same
+  runs: Comb 0.8, Formant 0.9, SVF 1.4, Ladder 2.2, Diode 2.4, K35 3.2 and
+  Steiner 3.6–4.8 µs; with Cutoff and Resonance moved twice a block and
+  Spread on, up to 4.9 µs (Steiner), 0.34 % of the block [verified:
+  `fm1-filter-test --bench` and `fm1-render`]. A crossfade costs both types
+  for 5 ms. By operation count, Steiner's worst case is about 1.4 Folds and
+  the others less [inferred]; stage B measures pi32v2.
+- **Names.** The types are named for their circuits, not their products:
+  K35 is the MS-20-style filter, Diode the 303-style one; neither M-VAVE nor
+  any synth maker is involved.
+- **Type's flags: MOD.** Since a change crossfades, nothing is cut: the
+  sequencer may lock it and a modulation route may step it (rounded).
+  NOLOCK (a destructive change) and LATCH (read at note-on; an effect has
+  none) would both misdescribe it (the ENUM table below).
+- `build/fm1-filter-test` (`test/filter_test.cc`) drives Filter where
+  fm1-render cannot: changes mid-stream, the crossfade, host rates, sine
+  sweeps and self-oscillation. `--gain` and `--osc` print one measurement;
+  `--bench` the cost.
+
 ## Parameters (engine API v2)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -283,9 +407,10 @@ third page.
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
 | sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
+| filter | Type | MOD | A change crossfades the old type into the new over 5 ms (the new from rest), so nothing is cut: lockable, and a rounded route steps through the types. Neither NOLOCK nor LATCH (an effect has no note-on) describes it |
 
 **Units and abbreviations.** Echo's Time and Sophie's Ring Time are in ms,
-Sophie's Tune in semitones and its 0–100 knobs in %. Sophie's Decay is in
+Filter's Cutoff in Hz, Sophie's Tune in semitones and its 0–100 knobs in %. Sophie's Decay is in
 seconds, for which there is no unit code yet, so it has none. Every other
 parameter is a bare number (the 0–1 knobs, gains, bits, indices).
 
@@ -324,7 +449,7 @@ sound).
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Echo) |
+| `src/fx_*.cc` | Effects written in this repository (Echo, [Filter](#filter)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
 | `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |
