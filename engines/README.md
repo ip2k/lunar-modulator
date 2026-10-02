@@ -867,6 +867,7 @@ sound).
 | `--frames N`, `--rate HZ` | Host block and rate (64 and 44,118 by default) |
 | `--bend T:SEMITONES` | A pitch-bend event (finite, within ±48), at a block boundary like notes |
 | `--param-at T:NAME=VALUE` | Turn a sound engine's parameter during the render |
+| `--fx-param-at T:K:NAME=VALUE` | Turn a parameter of the K-th effect (the first `--fx` is 1) during the render, at a block boundary like `--param-at`; the parity scenarios' `fx_param_at` |
 | `--fill BYTE` | What instance memory holds before `create`; every engine must render byte-identically from any fill |
 | `--fault T[..T1]:VALUE` | Overwrite the bus after the source with `nan`, `inf` or any value, for one frame or a span, to test recovery |
 

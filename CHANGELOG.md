@@ -9,6 +9,86 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Drive, Filter, Comp and Limiter on the virtual FM-1:** the effect
+  slots now offer twelve effects (ALGORITHM steps through Plate,
+  Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp,
+  Limiter and Test Gain).
+  - Every effect's knobs are now checked turning mid-note in the browser,
+    not only at their starting values: each new effect's parity scenarios
+    turn its knobs and switches while notes play, and four new scenarios do
+    the same for the older effects.
+  - For developers: `fm1-render --fx-param-at T:K:NAME=VALUE` turns a
+    parameter of the K-th effect during a render, as `--param-at` does for
+    the sound; the app's native harness takes it too, and the scenarios'
+    `fx_param_at` drives the browser module the same way. A test keeps
+    every effect turned in some scenario.
+  - 37 of 37 parity scenarios pass, identical to musl and to render.js;
+    1,016 screens pass the layout check (102 new). The browser module grew
+    from 482 KB to 512 KB.
+- **Filter**, a new effect: seven classic filter types in one, every knob a
+  modulation target. Type picks SVF (low-pass, band-pass, high-pass, notch),
+  Ladder (24, 18, 12 or 6 dB per octave), Diode (a 303-style diode ladder),
+  K35 (an MS-20-style Sallen-Key), Steiner (a gritty Steiner-Parker-style
+  filter with low-pass, band-pass and high-pass inputs), Comb (tuned by
+  Cutoff, positive or negative, peaks or notches) or Formant (the vowels
+  A-E-I-O-U for men, women and children). Cutoff runs 20 Hz to 18 kHz;
+  Resonance goes up to self-oscillation, in tune with Cutoff, on all five
+  analogue-style types; Drive saturates. On the second page, Mode (the
+  response, slope, input or voice, blended between), Morph (stereo spread,
+  comb polarity or the vowel), Mix and Level. Changing Type crossfades over
+  5 ms, so it never clicks, and the sequencer may lock it. Silence stays
+  silent at any setting. Our own code (MIT), after Zavalishin's *The Art of
+  VA Filter Design*, Andrew Simper's SVF, Huovilainen's ladder, the
+  Korg35, diode-ladder and Steiner-Parker circuits, Zölzer's universal comb
+  and Peterson and Barney's vowel measurements; documented in
+  engines/README.md ("Filter"). It uses about 18 KB of memory at 44.1 kHz
+  (Comb's delay line) and no maths library, so the browser plays it sample
+  for sample like the desktop build (checked against GCC with glibc and
+  musl). Four new parity scenarios cover its seven types, and a section in
+  chapter 6 of the manual describes it.
+- **Drive**, a new effect: overdrive and saturation, written for this
+  project. Type picks the curve: Soft (smooth, tanh-like), Tube (uneven,
+  with a second harmonic at every level), Diode (a harder knee), Fuzz (a
+  hard, lopsided clip with a built-in gate) or Tape (gentle, with loud highs
+  saturating first and coming out softened); changing it crossfades instead
+  of clicking. Drive (−12 to +36 dB), Tone (a tilt: darker to the left,
+  thinner to the right, flat in the middle) and Mix on the first page; Bias
+  (uneven clipping), Gate (quiet parts drop out, a sputtering fuzz), Level
+  and Auto on the second. With Auto on, the default, Drive changes the
+  character and not the loudness. Its anti-aliasing keeps the harsh tones a
+  plain digital clipper folds back below 5 kHz 21–29 dB lower. Silence stays
+  silent at any setting. Parameters and design in `engines/README.md`, and
+  a section in chapter 6 of the manual. Two new parity scenarios cover it.
+- **Comp**, a new effect: a compressor, written for this project. Threshold
+  (−60 to 0 dB), Ratio (1:1 to 20:1, and a limiter at the top of the
+  knob), Attack and Release on the first page; Knee (soft or hard), Makeup,
+  Mix (parallel compression) and Character on the second: Peak and RMS
+  choose how it listens, Glue holds a part together with a slower, rounder
+  response, Punch lets the front of each hit through. On a third page,
+  Auto Rel makes the release follow the music (quick after short peaks,
+  slow after long loud passages) and Auto Gain sets the makeup so that a
+  full-scale sound stays at full scale. Both channels are compressed
+  together. Silence stays silent, knob turns glide, and switching Character
+  or Auto Rel mid-note does not jump. It computes the same bits on the
+  desktop and in the browser's WebAssembly. Parameters and design in
+  `engines/README.md`, a section in chapter 6 of the manual; a new parity
+  scenario covers it. For developers,
+  `include/fm1_comp.h` reads its gain reduction, for a later modulation
+  source.
+- **Limiter**, a new effect: a look-ahead brickwall limiter for the master
+  or for one sound. Ceiling (−24 to 0 dB), Drive (−12 to +24 dB), Release
+  (1 ms to 1 s) and Lookahead (0 to 5 ms) on the first page; Mode
+  (Brickwall or Soft Clip), Link (how much the two channels share one gain)
+  and Mix (blending the dry sound back in) on the second. In Brickwall mode
+  nothing passes the ceiling, and anything under it comes through
+  untouched, only delayed by the lookahead. Lookahead 0 adds no delay and
+  catches peaks with a gentle soft clip instead; Soft Clip mode rounds
+  peaks off for a louder, warmer sound. The firmware's own output limiter
+  stays after every effect. Written for this project (MIT), after Geraint
+  Luff's look-ahead limiter design; parameters and design in
+  `engines/README.md`, tested in `tests/test_engines_limit.py`, and a
+  section in chapter 6 of the manual. A new parity scenario plays it twice
+  in one chain.
 - Step entry on the virtual FM-1's panel, still behind the lab switch
   (`?lab`; docs/15 stage S4). In SEQ mode the white keys are the bar's 16
   steps and the black keys sequencer controls, so they no longer play the
@@ -37,71 +117,6 @@ history.
     two-bar pattern from the panel (25 of 25 pass). 914 screens pass the
     layout check (99 new); the screens with the lab switch off are
     unchanged. The browser module grew from 467 KB to 482 KB.
-- **Filter**, a new effect: seven classic filter types in one, every knob a
-  modulation target. Type picks SVF (low-pass, band-pass, high-pass, notch),
-  Ladder (24, 18, 12 or 6 dB per octave), Diode (a 303-style diode ladder),
-  K35 (an MS-20-style Sallen-Key), Steiner (a gritty Steiner-Parker-style
-  filter with low-pass, band-pass and high-pass inputs), Comb (tuned by
-  Cutoff, positive or negative, peaks or notches) or Formant (the vowels
-  A-E-I-O-U for men, women and children). Cutoff runs 20 Hz to 18 kHz;
-  Resonance goes up to self-oscillation, in tune with Cutoff, on all five
-  analogue-style types; Drive saturates. On the second page, Mode (the
-  response, slope, input or voice, blended between), Morph (stereo spread,
-  comb polarity or the vowel), Mix and Level. Changing Type crossfades over
-  5 ms, so it never clicks, and the sequencer may lock it. Silence stays
-  silent at any setting. Our own code (MIT), after Zavalishin's *The Art of
-  VA Filter Design*, Andrew Simper's SVF, Huovilainen's ladder, the
-  Korg35, diode-ladder and Steiner-Parker circuits, Zölzer's universal comb
-  and Peterson and Barney's vowel measurements; documented in
-  engines/README.md ("Filter"). It uses about 18 KB of memory at 44.1 kHz
-  (Comb's delay line) and no maths library, so the browser plays it sample
-  for sample like the desktop build (checked against GCC with glibc and
-  musl). Four new parity scenarios cover its seven types; the browser module
-  needs its rebuild.
-- **Drive**, a new effect: overdrive and saturation, written for this
-  project. Type picks the curve: Soft (smooth, tanh-like), Tube (uneven,
-  with a second harmonic at every level), Diode (a harder knee), Fuzz (a
-  hard, lopsided clip with a built-in gate) or Tape (gentle, with loud highs
-  saturating first and coming out softened); changing it crossfades instead
-  of clicking. Drive (−12 to +36 dB), Tone (a tilt: darker to the left,
-  thinner to the right, flat in the middle) and Mix on the first page; Bias
-  (uneven clipping), Gate (quiet parts drop out, a sputtering fuzz), Level
-  and Auto on the second. With Auto on, the default, Drive changes the
-  character and not the loudness. Its anti-aliasing keeps the harsh tones a
-  plain digital clipper folds back below 5 kHz 21–29 dB lower. Silence stays
-  silent at any setting. Parameters and design in `engines/README.md`, and
-  a section in chapter 6 of the manual. Two new parity scenarios cover it;
-  the browser module has not been rebuilt with it yet.
-- **Comp**, a new effect: a compressor, written for this project. Threshold
-  (−60 to 0 dB), Ratio (1:1 to 20:1, and a limiter at the top of the
-  knob), Attack and Release on the first page; Knee (soft or hard), Makeup,
-  Mix (parallel compression) and Character on the second: Peak and RMS
-  choose how it listens, Glue holds a part together with a slower, rounder
-  response, Punch lets the front of each hit through. On a third page,
-  Auto Rel makes the release follow the music (quick after short peaks,
-  slow after long loud passages) and Auto Gain sets the makeup so that a
-  full-scale sound stays at full scale. Both channels are compressed
-  together. Silence stays silent, knob turns glide, and switching Character
-  or Auto Rel mid-note does not jump. It computes the same bits on the
-  desktop and in the browser's WebAssembly. Parameters and design in
-  `engines/README.md`, a section in chapter 6 of the manual; a new parity
-  scenario covers it once the browser module is rebuilt. For developers,
-  `include/fm1_comp.h` reads its gain reduction, for a later modulation
-  source.
-- **Limiter**, a new effect: a look-ahead brickwall limiter for the master
-  or for one sound. Ceiling (−24 to 0 dB), Drive (−12 to +24 dB), Release
-  (1 ms to 1 s) and Lookahead (0 to 5 ms) on the first page; Mode
-  (Brickwall or Soft Clip), Link (how much the two channels share one gain)
-  and Mix (blending the dry sound back in) on the second. In Brickwall mode
-  nothing passes the ceiling, and anything under it comes through
-  untouched, only delayed by the lookahead. Lookahead 0 adds no delay and
-  catches peaks with a gentle soft clip instead; Soft Clip mode rounds
-  peaks off for a louder, warmer sound. The firmware's own output limiter
-  stays after every effect. Written for this project (MIT), after Geraint
-  Luff's look-ahead limiter design; parameters and design in
-  `engines/README.md`, tested in `tests/test_engines_limit.py`. A new
-  parity scenario plays it twice in one chain; the virtual FM-1 offers it
-  once its module is rebuilt.
 - A first look at the sequencer on the virtual FM-1's panel, behind a lab
   switch: add `?lab` (or `#lab`) to the page's address. The public page is
   unchanged until patterns can be made and recorded on the panel (docs/15

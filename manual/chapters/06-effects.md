@@ -25,8 +25,9 @@ pages, then the second slot's. The bottom bar shows where you are, such as
 *1/2 FX2*: page 1 of 2, second slot.
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
-*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Comp andTest Gain, and round again. In the simulator you can also use the **Effect 1** and **Effect 2**
-lists under the panel.
+*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo,
+Filter, Comp, Limiter and Test Gain, and round again. In the simulator you can
+also use the **Effect 1** and **Effect 2** lists under the panel.
 
 **To empty a slot:** turn [[ALGORITHM]] to *Empty slot*, one step before
 Plate, or choose *(none)* in the list.
@@ -60,9 +61,9 @@ more than two.
     about 48,000 samples a second, so at the FM-1's 44,118 their delays come
     out about 9 % longer, a slightly larger room, and their slow modulation
     about 8 % slower. Their decay times are corrected, and stay within a few per
-    cent of the originals'. Crush, Fold, Drive, Echo and Comp, written for Lunar
-    Modulator, work out their frequencies and times from the output's rate,
-    so they need no correction.
+    cent of the originals'. Crush, Fold, Drive, Echo, Filter, Comp and
+    Limiter, written for Lunar Modulator, work out their frequencies and
+    times from the output's rate, so they need no correction.
 
 ## Plate
 
@@ -325,9 +326,75 @@ Echo does not yet follow the sequencer's tempo; set Time by ear.
 
 {{engine-table echo}}
 
+## Filter
+
+{{status sim desktop planned}}
+
+A filter with seven characters in one, written for Lunar Modulator. It takes
+away part of the sound's spectrum, the highs, the lows or a band, and as
+Resonance rises it rings at the cutoff, up to a whistle of its own. Each
+channel is filtered on its own, so Morph can pull them apart.
+
+- **Type** chooses the filter. Changing it fades from the old one to the new
+  in a few milliseconds, so it does not click.
+    - **SVF:** a clean state-variable filter. Mode picks low-pass, band-pass,
+      high-pass or notch.
+    - **Ladder:** the classic four-stage ladder, the default: round and
+      thick, and its bass holds as Resonance rises. Mode picks how steep it
+      is, from 24 dB per octave down to 6.
+    - **Diode:** a diode ladder in the style of the TB-303: rubbery and
+      squelchy at high Resonance. Mode as for Ladder.
+    - **K35:** the MS-20-style Sallen-Key filter: bright and aggressive, it
+      screams as Resonance rises. Mode picks low-pass, band-pass, high-pass
+      or notch.
+    - **Steiner:** a gritty, uneven filter in the style of the
+      Steiner-Parker. Mode picks which input the sound goes into: low-pass,
+      band-pass, high-pass, or a notch.
+    - **Comb:** a short echo tuned by Cutoff, which makes metallic,
+      flanger-like peaks or notches at the multiples of that pitch. Mode
+      goes from peaks at the left to notches at the right; Morph sets their
+      polarity: at the left they sit on Cutoff's harmonics, at the right
+      the sound turns hollow and an octave lower.
+    - **Formant:** the vowels A, E, I, O and U, as a voice shapes them.
+      Morph sweeps through the vowels; Mode picks the voice, a man's at the
+      left, a woman's in the middle, a child's at the right; Cutoff shifts
+      the vowels up or down; Resonance makes them narrower and more vocal.
+- **Cutoff** sets where the filter works, from 20 Hz to 18 kHz; the default
+  is 2 kHz. When a filter rings on its own, it rings at this pitch.
+- **Resonance** emphasises the sound around Cutoff. Near the right, from
+  about 0.93, SVF, Ladder, Diode, K35 and Steiner whistle on their own, in
+  tune with Cutoff (Steiner a little flat). On Comb it sets how long the
+  echo rings; on Formant, how narrow the vowels are.
+- **Drive** pushes the sound into the filter's saturation: quiet sounds come
+  up to 12 dB louder, loud ones thicken and grit.
+- **Mode**, on page 2, changes the response as each Type above describes.
+  It turns smoothly: between two positions you hear a blend of both.
+- **Morph**, on page 2, spreads the two channels for SVF, Ladder, Diode, K35
+  and Steiner: at the right, the left channel's cutoff is up to an octave
+  lower and the right's an octave higher. On Comb and Formant it does what
+  their entries above say.
+- **Mix**, on page 2, fades from the dry sound at the left to the filtered
+  sound alone at the right, the default.
+- **Level**, on page 2, sets the filtered sound's level, up to twice
+  (6 dB) at the right.
+
+Silence stays silent at any setting, even with a filter ringing, and the
+knobs glide over a few milliseconds, so turning them does not click.
+
+!!! tip "Starting points"
+    - **Acid bass:** Diode, Cutoff about 400 Hz, Resonance about 0.8, Drive
+      about 0.5, low notes, and turn Cutoff while they play.
+    - **Talking pad:** Formant, Resonance about 0.6, and sweep Morph slowly.
+    - **Screaming lead:** K35, Resonance about 0.9, Drive about 0.3.
+    - **Metallic ring:** Comb, Cutoff on the note you play, Resonance about
+      0.8.
+    - **Wide sweep:** Ladder, Morph about 0.3, and sweep Cutoff.
+
+{{engine-table filter}}
+
 ## Comp
 
-{{status desktop planned}}
+{{status sim desktop planned}}
 
 A compressor, written for Lunar Modulator. When the sound gets louder than a
 threshold, Comp turns it down, so loud and quiet notes sit closer together:
@@ -392,6 +459,53 @@ under another (a sidechain) may come later.
 
 {{engine-table comp}}
 
+## Limiter
+
+{{status sim desktop planned}}
+
+A look-ahead brickwall limiter, written for Lunar Modulator, for the whole
+sound (in the second slot) or to tame one effect's peaks. It sees peaks a
+few milliseconds before they arrive and turns the sound down just in time,
+so nothing passes its ceiling, and it leaves anything quieter untouched.
+
+- **Ceiling** is the most the output reaches, from −24 dB at the left to
+  0 dB, full scale, at the right; the default is −1 dB.
+- **Drive** turns the sound up into the limiter, by up to 24 dB, for a
+  louder, denser sound; to the left of 0 it turns the sound down.
+- **Release** sets how quickly the sound comes back up after a peak, from
+  1 millisecond to 1 second; the default is 100 milliseconds. Short releases
+  are louder but can pump or distort low notes; long ones are smoother.
+- **Lookahead** sets how far ahead the limiter looks, from 0 to
+  5 milliseconds; the default is 2. The sound is delayed by as much. At 0
+  there is no delay, and the limiter catches the front of each peak with a
+  gentle soft clip instead.
+- **Mode**, on page 2, chooses how peaks are handled:
+    - **Brickwall** turns them down, so nothing passes the ceiling and
+      nothing below it is changed.
+    - **Soft Clip** lets them run into a curve that rounds them off just
+      under the ceiling: louder and warmer, with some added harmonics.
+- **Link**, on page 2, at the right, the default, turns both channels down
+  together, so the stereo picture holds. At the left each channel is limited
+  on its own: louder, but a peak on one side can shift the picture.
+- **Mix**, on page 2, blends the untouched sound back in (parallel
+  limiting). Below the right end, the output can pass the ceiling.
+
+Turning Lookahead fades from the old delay to the new, and switching Mode
+fades too, so neither clicks; the sequencer does not lock either of them.
+The other knobs glide over a few milliseconds.
+
+!!! tip "Starting points"
+    - **Safety on the whole sound:** in the second slot, Ceiling −1 dB, the
+      rest at their defaults.
+    - **Louder:** Drive +6 to +9 dB, Release about 60 milliseconds.
+    - **Warm and loud:** Soft Clip, Drive about +6 dB, Lookahead 0.
+
+The limiter at the very end of the chain ([below](#the-limiter)) stays in
+place. With Ceiling at −0.2 dB or lower and nothing louder after it, it has
+nothing left to do.
+
+{{engine-table limit}}
+
 ## Test Gain
 
 {{status sim desktop}}
@@ -416,6 +530,9 @@ twelve-note chord cannot clip however its notes add up.
 - It also protects your ears and equipment from faults: a sample that is not
   a number becomes silence, and a wildly large one is clamped and holds the
   output down briefly instead of passing through.
+
+For a ceiling of your own, lookahead or a softer clip, put the
+[Limiter](#limiter) effect in a slot.
 
 [[MASTER]] comes after the limiter and only turns the result down. The level
 meter in the screen's top bar shows the output before [[MASTER]], and turns

@@ -41,6 +41,19 @@ terms it is used under.
   one, after **Udo Zölzer**'s *DAFX*, and its 16-bit delay memory follows
   **Emilie Gillet**'s effects engine in Rings and Clouds; none of their code
   is used.
+- **Filter** is this project's own code: zero-delay-feedback filters after
+  **Vadim Zavalishin**'s *The Art of VA Filter Design*, **Andrew Simper**'s
+  (Cytomic) state-variable filter, **Antti Huovilainen**'s ladder model
+  (DAFx-04), the Korg35, diode-ladder and Steiner-Parker circuits, and
+  **Udo Zölzer**'s universal comb (*DAFX*); its non-linear solver follows a
+  method **Teemu Voipio** published, and its vowels are the measurements of
+  **Peterson and Barney** (1952). No code is taken from any of them.
+- **Comp** is this project's own code, after the compressor design of
+  **Giannoulis, Massberg and Reiss** (*Journal of the Audio Engineering
+  Society*, 2012). No code is taken from anyone.
+- **Limiter** is this project's own code, after **Geraint Luff**'s
+  look-ahead limiter design (Signalsmith Audio, 2022). No code is taken from
+  the article or from Signalsmith's library.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and
