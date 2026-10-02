@@ -9,6 +9,26 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Roadmap: modules from the community.** Four new lines in the README's
+  roadmap and in DEVELOPERS.md's "The roadmap in detail", each with its
+  status, dependencies, where it is planned and its effort (not yet
+  estimated for the SDK, the builder and the catalogue):
+  - develop in the simulator, checked on real hardware (docs/14), as the
+    accelerator for everything below (in preparation);
+  - a module SDK and friendly guides for writing and porting sound engines,
+    modulation sources, MIDI effects and audio effects, after API v2
+    (planned; tooling to be researched);
+  - a custom firmware builder with a browser installer, for when modules no
+    longer fit one image, with its own checksums and manifest on top of the
+    update protocol's CRC16, and the stock path back to factory firmware
+    (planned, after the installable build);
+  - a hosted catalogue of community modules, after the SDK and the builder
+    (planned).
+- DEVELOPERS.md's "Research to do": tooling for module authors (PlatformIO
+  or whatever embedded-audio developers use most today), quality and
+  functionality gates for new modules, static registry against loader,
+  where a custom build is made, the web flasher's verification, licence
+  metadata, and hosting the catalogue.
 - The user manual (`manual/`, `tools/manual/`): chapters for welcome and
   safety, getting started, a panel tour with a measured drawing of the panel,
   playing, the sound engines, effects, the sequencer, MIDI, settings,
@@ -183,7 +203,7 @@ history.
   getting started (build, test and play in five minutes, where to go next,
   all the commands), how Lunar Modulator works (its layers first), the
   hardware, where development stands (the status, the roadmap in detail,
-  the path to an installable build), contributing (the one
+  the path to an installable build, research to do), contributing (the one
   rule, conventions, licences, pull requests, credits) and reference (key
   facts, formerly "The short version"; the recommended path; the documents
   by topic). The roadmap's wide table became one entry per line, grouped,

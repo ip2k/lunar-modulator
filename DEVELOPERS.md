@@ -47,6 +47,7 @@ GitHub's documentation on renaming a repository].
 - [Where development stands](#where-development-stands)
   - [The roadmap in detail](#the-roadmap-in-detail)
   - [The path to an installable build](#the-path-to-an-installable-build)
+  - [Research to do](#research-to-do)
 - [Contributing](#contributing)
   - [The one rule](#the-one-rule)
   - [Conventions](#conventions)
@@ -383,8 +384,8 @@ gets only the identity query and passive captures.
 
 ## Where development stands
 
-The status first, then the roadmap line by line and the path to an
-installable build.
+The status first, then the roadmap line by line, the path to an installable
+build, and the research still to do.
 
 > **Status (2026-10-01): the code runs on a desktop and in a browser, not
 > yet on a JieLi chip or an FM-1. This project has flashed nothing.**
@@ -632,6 +633,145 @@ which lands with the plan PR; its stages S0–S7 are named below.
   [docs/08](docs/08-roadmap.md) Phase 7.
 - **Rough effort:** 4–5 days on the kit; 2–3 days to rehearse an
   audio/control split on the desktop under ThreadSanitizer [inferred].
+
+#### Modules from the community
+
+These four lines turn the engine platform into something other people can
+build on: modules written and heard in the simulator, checked on hardware,
+chosen per build and shared through a catalogue. Apart from the
+verification ladder ([docs/14](docs/14-verification-ladder.md)), none of
+them is designed yet; what follows is what the repository already says that
+bears on them.
+A "module" here means anything the platform swaps in: a sound engine, a
+modulation source, a MIDI effect, an audio effect, or another kind.
+
+**Develop in the simulator, checked on real hardware** · *In preparation*
+- **Why it speeds things up:** a module is written, heard and tested in the
+  browser and the desktop renderer, with no FM-1 at risk. The verification
+  ladder then shows that the dev kit and the FM-1 play the same: bit-exact
+  wherever both sides do the same arithmetic, with tolerances only for
+  named causes ([docs/14](docs/14-verification-ladder.md) §1).
+- **What exists:** the simulator runs every registered engine and effect.
+  Its renders match the native renderer's sample for sample in 12 of 12
+  note scripts against musl, and in 10 of 12 against glibc
+  ([Renders checked against the reference](#renders-checked-against-the-reference-sample-by-sample)).
+- **Depends on:**
+  - the ladder runner, the R0 manifest and the `bsp_*` contract (I2);
+  - the kit and JieLi's dongle (on order), and stage B numbers on the kit
+    (I8);
+  - for the FM-1 rung, the gate (I9): that rung opens only after a dump and
+    a byte-identical restore.
+- **Where it is planned:** [docs/14](docs/14-verification-ladder.md) §2–5;
+  I2 and I8 of [the install path](#the-path-to-an-installable-build).
+- **Rough effort:** inside the install path (I2 3–5 sessions, I8 3–5
+  sessions). Running a contributed module's cases on every rung should need
+  nothing beyond docs/14 §3's one corpus and one runner [inferred].
+
+**A module SDK and friendly guides** · *Planned; tooling to be researched*
+- **The aim:** inviting, easy documentation and an SDK for writing new
+  modules and porting existing ones, with tests and quality gates that
+  cover every new module ([Research to do](#research-to-do), items 1–2).
+- **What exists:**
+  - the API ([`fm1_engine.h`](engines/include/fm1_engine.h)) and the static
+    registry (`engines/src/registry.cc`, tier 0 of
+    [docs/11](docs/11-plugin-platform.md) §5.2);
+  - two porting routes already used: Mutable Instruments code vendored
+    unmodified behind thin wrappers, and Schwung modules compiled unmodified
+    through a shim ([`engines/schwung.md`](engines/schwung.md));
+  - generic checks that every registered engine already passes: output
+    independent of what instance memory held before `create`, any
+    parameter value survived (NaN included), and every parameter moved
+    while notes sound [verified: `tests/test_engine_host.py`]; plus the
+    32-bit and ASan + UBSan builds in CI.
+- **Depends on:**
+  - API v2 (docs/13 M2): parameter uids, the LATCH, SMOOTH and NOLOCK
+    flags, and `FM1_KIND_MIDI_FX` with its `process()`. Today
+    `FM1_ENGINE_API_VERSION` is 1 and the MIDI-effect kind is reserved
+    [verified: `fm1_engine.h` lines 38 and 46]. An SDK needs that contract
+    settled and versioned first [inferred];
+  - the modulation and effects lines' additions to `fm1_host_t` (tempo, a
+    beat position) and the MOD flag;
+  - stage B numbers (I8), so a module can state its cost in cycles per
+    block on pi32v2;
+  - an answer to the toolchain problem: JieLi's compiler is closed and
+    whether it may be redistributed is unknown, which tier 0 sidesteps by
+    building contributions from source in CI (docs/11 §5.2).
+- **Where it is planned:** docs/11 §5.2 has the loader tiers (tier 0, a
+  static registry; tier 1, RAM units over USB-MIDI with a
+  `{magic, api_version, size, crc32, requirements, entry}` header; tier 2,
+  relocatable ELF, which depends on whether JieLi's Clang can emit PIC) and
+  disting NT-style per-pool memory declarations
+  (`requirements(host, pool)`). The guides and the SDK itself are not
+  planned in any doc yet.
+- **Rough effort:** not estimated.
+
+**A custom firmware builder with a browser installer** · *Planned*
+- **Why:** the FM-1 has 1 MB of flash. The app area runs up to `0xD9000`
+  (about 852 KB) in FM-1+VA's layout; the stock app is 581 KB and
+  FM-1+VA's 692 KB [verified: docs/01 §2, via docs/11 §2]. Some modules are
+  large on their own: Elements needs about 364 KiB of sample tables, "no,
+  on flash grounds" [inferred: docs/11 §4]. If modules outgrow one image, a
+  builder lets each person choose what goes into their build [inferred].
+- **The aim:** a builder that runs in a browser and installs through a web
+  flasher, as Baud Girl's FM-1+VA installer does, verifying everything and
+  always keeping a way back to the factory firmware.
+- **Prior art:** Baud Girl's installer is a Web MIDI page for Chrome and
+  Edge, ported from AL-255's `fm1_ota.py` with three fixes. It gates on the
+  SHA-256 of V15's flash head, refuses to reinstall the running version,
+  resumes an install whose synth is left in its loader, and rolls back to
+  M-VAVE's `.fwsc` through the same page [reported:
+  [docs/04](docs/04-prior-art.md),
+  [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md)
+  §1].
+- **Verification it must add:** the update protocol checks CRC16 only, and
+  package content is not authenticated
+  ([docs/03](docs/03-update-protocol.md) §5). So the builder and flasher
+  bring their own checks [inferred]:
+  - SHA-256 for every module and for the built image, from a manifest;
+  - the head, `ota.bin`, `cfg` and `isd_config.ini` byte-identical to V15's
+    ([docs/07](docs/07-recovery-and-risk.md) §4 rule 2), as I3's `.fwsc`
+    builder already requires;
+  - the identity read before and after (rule 6), a known identity and a
+    direct connection, as I15's installers require;
+  - the licence rules: no GPL or LXR code in a build that is shared while it
+    links JieLi's libraries, and never GPL and LXR together
+    ([Licences](#licences)).
+- **Factory restore:** M-VAVE's V15 `.fwsc` through the stock path. That
+  works only while Lunar answers the update path's first step itself (I13).
+  As I15 plans, the package comes from the user's own copy, so no vendor
+  binary is redistributed; whether the installer fetches it or asks for it
+  is still open.
+- **Depends on:** the install path through I15 (I3's `.fwsc` builder and
+  installer client, I13's update service, I14's round trip); the module SDK
+  (modules to choose from); and a way to build outside JieLi's closed
+  toolchain, or a build service (Research to do, item 4).
+- **Where it is planned:** it extends I3 and I15. I15 plans a Web MIDI page
+  beside the virtual FM-1 that builds the package on the user's machine from
+  the user's own V15 `.fwsc` plus our `app.bin`. Nothing more is planned
+  yet.
+- **Rough effort:** not estimated; after I15.
+
+**A catalogue of community modules** · *Planned*
+- **The aim:** a hosted catalogue of modules of every kind (sound engines,
+  modulation sources, MIDI effects, audio effects, and any other type
+  community members make), each listed with what it needs and the gates it
+  passes.
+- **Prior art:** Schwung's module catalog at schwung.dev, whose 147 modules
+  docs/11 surveyed ([docs/04](docs/04-prior-art.md) §4;
+  [docs/11](docs/11-plugin-platform.md) §3); Korg's logue units, 259
+  indexed, 83 of them paid and about 30 % open (docs/11 §5.1).
+- **What an entry would carry** [inferred]: the licence and whether the
+  module may go into a shareable build; memory per pool; cycles per block
+  measured on stage B hardware; voices; and the quality gates it passed.
+- **Depends on:** the module SDK and the builder and installer above, so
+  both a stable API and a way to put modules on a unit.
+  - Modulation sources need a place to plug in first [inferred].
+    `fm1_kind_t` has a sound kind, an audio-effect kind and a reserved
+    MIDI-effect kind [verified: `fm1_engine.h` lines 41–47], and the
+    planned modulation matrix runs in the host (options note §3–§4).
+- **Where it is planned:** nowhere yet; docs/11 §5 (the loader) is the
+  closest.
+- **Rough effort:** not estimated.
 
 ### The path to an installable build
 
@@ -983,6 +1123,64 @@ their FM-1 through mask ROM.
   counter?
 - Distribution: does the installer fetch M-VAVE's V15 `.fwsc`, or ask the
   user for it?
+
+### Research to do
+
+Questions still to study, beyond the ones
+[still open before the preview](#the-earliest-safe-installable-preview) and
+docs/11 §8's unknowns. Each would end in a note under `notes/` and a
+decision recorded where it belongs.
+
+1. **Tooling for module authors.** Research PlatformIO integration, or
+   whatever is most popular for embedded audio development today, to make
+   writing and porting modules as easy as possible.
+   - Compare what the platforms in docs/11 §5.1 give their developers:
+     Daisy and DaisySP, Korg's logue SDK, OWL's online compiler,
+     Axoloti, disting NT and CTAG TBD.
+   - Whether a project template can start on the desktop and the simulator,
+     where no JieLi toolchain is needed, and add the pi32v2 build later.
+   - Whether JieLi's toolchain can be wrapped for such a tool at all, given
+     that it is closed and its redistribution terms are unknown (docs/11
+     §5.2).
+2. **Quality and functionality gates for new modules.** What every module
+   must pass before it enters a build or the catalogue. Candidates
+   [inferred]:
+   - the generic engine checks that the built-in modules already pass
+     ([A module SDK and friendly guides](#modules-from-the-community));
+   - the 32-bit and ASan + UBSan builds;
+   - a reference-render comparison wherever an upstream exists, as for the
+     Mutable engines;
+   - declared memory within budget, and cycles per block measured on stage B
+     hardware against a stated budget. docs/11 §5.2 plans a host that
+     refuses or mutes an overrunning instance visibly, never silently;
+     logue v1's silent failures are the warning (docs/11 §5.1);
+   - parameters that fit the TFT and the four-knob pages: labels of at most
+     12 characters [verified: `fm1_engine.h` line 55] and every screen
+     through the simulator's layout check;
+   - cases in the docs/14 corpus, so a module is checked on every rung;
+   - a licence check (item 6).
+3. **Static registry or loader for community modules.** Tier 0 builds
+   everything into the image; tiers 1 and 2 load units at run time and
+   could make a firmware builder unnecessary (docs/11 §5.2). Tier 2 waits on
+   whether JieLi's Clang emits position-independent code (docs/11 §8,
+   unknown 5).
+4. **Where a custom build is made.** JieLi's compiler is a closed native
+   program, so a browser builder would need prebuilt modules and a linker
+   that runs there, prebuilt combinations from CI, or a build service like
+   OWL's online compiler [inferred]. Also whether JieLi's toolchain and the
+   SDK's closed libraries may be redistributed or run as a service.
+5. **The web flasher's verification.** The manifest format and its hashes;
+   whether to sign builds as well as hash them; exactly what the flasher
+   checks before and after writing; and whether it reports failures
+   anywhere. Baud Girl's install page sends progress events and failure
+   traces to its own server [verified:
+   [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md)
+   §1].
+6. **Licence metadata for modules.** How each module declares its licence,
+   and how the builder keeps GPL and LXR code out of shared builds that link
+   JieLi's libraries and never combines the two ([Licences](#licences)).
+7. **Hosting the catalogue.** Where it lives, how modules are reviewed, and
+   how entries are kept in step with the API version.
 
 ## Contributing
 
