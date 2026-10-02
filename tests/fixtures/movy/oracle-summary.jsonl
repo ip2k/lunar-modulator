@@ -19,3 +19,6 @@
 {"script":"19-nudge-panic.verbs","rate":44118,"block":128,"tracks":4,"blocks":705,"events":112,"end_tick":392,"panics":[{"block":0,"frame":0,"line":13,"cmd":"enudge 0 16 20 -1 1","panic":"min > max. min = 384, max = 383 at seq-core/src/clip.rs:674"},{"block":0,"frame":0,"line":19,"cmd":"enudge 1 0 15 -1 2","panic":"min > max. min = 120, max = 95 at seq-core/src/clip.rs:674"}]}
 {"script":"20-movy1-import.verbs","rate":44118,"block":128,"tracks":4,"blocks":2345,"events":339,"end_tick":1060,"panics":[]}
 {"script":"21-capture-optional.verbs","rate":44118,"block":128,"tracks":4,"blocks":3126,"events":220,"end_tick":797,"panics":[]}
+{"script":"22-nudge-panic-order.verbs","rate":44118,"block":128,"tracks":1,"blocks":346,"events":56,"end_tick":192,"panics":[{"block":0,"frame":0,"line":10,"cmd":"enudge 0 0 31 -1 5","panic":"min > max. min = 456, max = 383 at seq-core/src/clip.rs:674"}]}
+{"script":"23-ext-clock-follow.verbs","rate":48000,"block":64,"tracks":2,"blocks":8350,"events":234,"end_tick":1208,"panics":[]}
+{"script":"24-ext-clock-stale.verbs","rate":48000,"block":64,"tracks":2,"blocks":8181,"events":332,"end_tick":1648,"panics":[]}

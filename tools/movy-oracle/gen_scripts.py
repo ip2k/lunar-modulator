@@ -20,6 +20,9 @@ Only verbs the FM-1 port keeps are used: never `link`/`minject` (the Move
 transport link), `hold`, or the external clock. `--capture` adds Capture
 (record-after) phrases. `--no-d5` keeps every loop window at step 0, so no
 script reaches docs/13 D5 (Movy's nudge can panic on an offset window).
+`--no-undo` leaves the undo ring out (`usnap`, `uswap`, `ucommit`, `uclr`):
+the C core does not port it yet (docs/13 M4), so only such scripts can gate
+the differential test; the gesture an undo would have wrapped stays in.
 
 Our code, MIT. Nothing here runs Movy; run-on-aeon.sh does that in a
 container on aeon.
@@ -556,7 +559,10 @@ class Gen:
             if k < 0.06:
                 self.g_record(cur)
             elif k < 0.11:
-                self.g_undo(cur)
+                if self.a.no_undo:
+                    getattr(self, self.r.choices(names, weights)[0])(cur)
+                else:
+                    self.g_undo(cur)
             elif self.a.capture and k < 0.14:
                 self.g_capture(cur)
             else:
@@ -566,7 +572,8 @@ class Gen:
         self.cmds.sort(key=lambda c: (c[0], c[1]))
         head = (f"#! rate={self.rate} block={self.a.block} tracks={self.n}\n"
                 f"# gen_scripts.py seed={self.a.seed} index={self.index}"
-                f"{' capture' if self.a.capture else ''}{' no-d5' if self.a.no_d5 else ''}\n")
+                f"{' capture' if self.a.capture else ''}{' no-d5' if self.a.no_d5 else ''}"
+                f"{' no-undo' if self.a.no_undo else ''}\n")
         return head + "".join(f"@{f} {c}\n" for f, _, c in self.cmds)
 
 
@@ -582,6 +589,8 @@ def main() -> None:
     ap.add_argument("--max-seconds", type=float, default=16.0)
     ap.add_argument("--capture", action="store_true", help="add Capture (record-after) phrases")
     ap.add_argument("--no-d5", action="store_true", help="keep loop windows at step 0 (no D5)")
+    ap.add_argument("--no-undo", action="store_true",
+                    help="leave the undo ring out (the C core does not port it yet)")
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     for i in range(args.count):

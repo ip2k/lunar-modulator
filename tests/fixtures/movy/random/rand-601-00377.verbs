@@ -1,0 +1,62 @@
+#! rate=44118 block=128 tracks=8
+# gen_scripts.py seed=601 index=377 no-undo
+@0 tog 0 12 53 90 52 90
+@0 tog 0 7 50 90
+@0 tog 0 4 74 40
+@0 tog 0 28 64 1
+@0 tog 0 9 50 54
+@0 tog 0 14 55 100
+@0 tog 0 19 53 127 48 90
+@0 tog 0 15 65 100
+@0 tog 0 26 48 64 48 40
+@0 tog 0 18 50 110
+@0 eprob 0 4 4 55 90
+@0 econd 0 18 18 64 5 64
+@0 cscl 0 1 1
+@0 ctr 0 -12
+@0 alabel 0 6 synth:morph
+@0 alabel 0 2 synth:morph
+@0 alabel 0 3 synth:morph
+@0 abaseq 0 2 115
+@0 abase 0 3 55
+@0 abase 0 6 40
+@0 aset 0 3 24 1 1
+@0 aset 0 3 8 61 1
+@0 aset 0 6 6 18 1
+@0 aset 0 5 13 124 1
+@0 aset 0 6 15 76 1
+@0 tog 1 1 53 100
+@0 tog 1 13 64 40
+@0 tog 1 10 59 59
+@0 tog 1 30 59 100
+@0 cscl 1 1 1
+@0 clipsel 1 1
+@0 tog 1 25 71 64
+@0 tog 1 58 50 64 48 1
+@0 tog 1 56 60 50
+@0 tog 1 31 48 110
+@0 tog 1 12 59 1 53 1
+@0 tog 1 41 62 90
+@0 tog 1 53 60 127
+@0 tog 1 52 72 110
+@0 tog 1 28 57 110
+@0 tog 1 16 57 100
+@0 eprob 1 58 58 -1 50
+@0 eprob 1 12 12 69 10
+@0 eprob 1 41 41 -1 50
+@0 cscl 1 1 1
+@6068 song 0
+@6068 songadd 1
+@17204 eprob 1 16 16 69 0
+@39299 pmute 1 65 1
+@61539 elen 0 4 4 60 24
+@61541 pmute 0 65 1
+@105703 swing 70
+@116851 metro 1
+@122542 del 1 31 31 -1
+@128152 loop 1 0 64
+@133742 stop
+@177919 mute 0 0
+@177939 tog 1 2 57 1
+@208176 play
+@208176 stop

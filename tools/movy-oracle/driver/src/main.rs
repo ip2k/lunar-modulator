@@ -13,10 +13,20 @@
 //! * `set_param("state", text)` runs `persist::load` and clears `dirty`.
 //! * Every FFI entry point catches panics, and the instance carries on.
 //!
+//! * `on_midi` hands Move's MIDI realtime bytes to
+//!   `Engine::on_external_realtime`, whose events also wait for the next
+//!   `render`. A script's `rt <F8|FA|FB|FC>` line does the same.
+//!
 //! The master tick of each event is not visible from outside the engine, so
 //! a second engine replays the same script one frame per `advance_block` call
-//! (at most one tick can fire in one frame). That run attributes each event
-//! to its tick and frame, and every block is checked to produce exactly the
+//! and attributes each event to its tick and frame. On the internal clock a
+//! frame services a tick when the public `clock.tick` moves and the transport
+//! plays. In a block that starts following an external clock, or ends it
+//! (`Engine::status`, `ext=`, before and after the block's input; only that
+//! input can turn following on, and handing back resets `clock.tick`), the
+//! tick count itself (`tick=`) is read around every frame. A frame may service at most one
+//! tick, which the internal clock always satisfies and an external clock does
+//! while its tempo is steady. Every block is checked to produce exactly the
 //! events of the whole-block run, which is the one reported.
 
 use std::fmt::Write as _;
@@ -64,13 +74,31 @@ struct Cmd {
     line: usize,
     frame: u64,
     text: String,
+    /// `rt XX`: MIDI realtime input instead of a `cmd` batch.
+    realtime: Option<u8>,
 }
 
 struct Script {
     rate: u32,
     block: u32,
     tracks: u32,
+    /// `end=<frames>`: the run length. Without it the run ends with the block
+    /// in which the last command is applied.
+    end: Option<u64>,
     cmds: Vec<Cmd>,
+}
+
+/// `rt F8|FA|FB|FC` (hex, either case): the status byte.
+fn parse_realtime(cmd: &str) -> Option<Result<u8, String>> {
+    let rest = cmd.strip_prefix("rt")?;
+    if !rest.starts_with(char::is_whitespace) {
+        return None;
+    }
+    let arg = rest.trim();
+    Some(match u8::from_str_radix(arg, 16) {
+        Ok(b @ (0xF8 | 0xFA | 0xFB | 0xFC)) if arg.len() == 2 => Ok(b),
+        _ => Err(format!("rt takes F8, FA, FB or FC, not {arg:?}")),
+    })
 }
 
 fn parse_script(src: &str) -> Result<Script, String> {
@@ -78,6 +106,7 @@ fn parse_script(src: &str) -> Result<Script, String> {
         rate: DEFAULT_RATE,
         block: DEFAULT_BLOCK,
         tracks: DEFAULT_TRACKS,
+        end: None,
         cmds: Vec::new(),
     };
     let mut header_seen = false;
@@ -102,13 +131,17 @@ fn parse_script(src: &str) -> Result<Script, String> {
                 let (k, v) = kv
                     .split_once('=')
                     .ok_or_else(|| format!("line {n}: header item {kv:?} is not key=value"))?;
-                let v: u32 = v
+                let v: u64 = v
                     .parse()
                     .map_err(|_| format!("line {n}: {k}={v:?} is not an unsigned integer"))?;
+                let small = || {
+                    u32::try_from(v).map_err(|_| format!("line {n}: {k}={v} is too large"))
+                };
                 match k {
-                    "rate" => s.rate = v,
-                    "block" => s.block = v,
-                    "tracks" => s.tracks = v,
+                    "rate" => s.rate = small()?,
+                    "block" => s.block = small()?,
+                    "tracks" => s.tracks = small()?,
+                    "end" => s.end = Some(v),
                     _ => return Err(format!("line {n}: unknown header key {k:?}")),
                 }
             }
@@ -146,10 +179,14 @@ fn parse_script(src: &str) -> Result<Script, String> {
             ));
         }
         last_frame = frame;
+        let realtime = parse_realtime(cmd)
+            .transpose()
+            .map_err(|e| format!("line {n}: {e}"))?;
         s.cmds.push(Cmd {
             line: n,
             frame,
             text: cmd.to_string(),
+            realtime,
         });
     }
     if !(1000..=768_000).contains(&s.rate) {
@@ -161,8 +198,8 @@ fn parse_script(src: &str) -> Result<Script, String> {
     if !(1..=MOVY_TRACKS).contains(&s.tracks) {
         return Err(format!("tracks={} is outside 1..{MOVY_TRACKS}", s.tracks));
     }
-    if s.cmds.is_empty() {
-        return Err("the script has no commands, so it has no length".into());
+    if s.cmds.is_empty() && s.end.is_none() {
+        return Err("the script has no commands and no end=, so it has no length".into());
     }
     Ok(s)
 }
@@ -287,14 +324,18 @@ impl Log {
     }
 }
 
-/// Movy's private `master_tick`, read from the status line the UI polls
-/// (`Engine::status`, `tick=`). `status` takes `&self`.
-fn master_tick(e: &Engine) -> Result<u64, String> {
+/// A field of the status line the UI polls (`Engine::status`, `&self`).
+fn status_field(e: &Engine, key: &str) -> Result<u64, String> {
     let s = e.status();
     s.split_whitespace()
-        .find_map(|kv| kv.strip_prefix("tick="))
+        .find_map(|kv| kv.strip_prefix(key))
         .and_then(|v| v.parse().ok())
-        .ok_or_else(|| "status has no tick= field".to_string())
+        .ok_or_else(|| format!("status has no {key} field"))
+}
+
+/// Movy's private `master_tick` (`tick=`).
+fn master_tick(e: &Engine) -> Result<u64, String> {
+    status_field(e, "tick=")
 }
 
 struct RunOut {
@@ -328,24 +369,36 @@ fn run(
     let block = script.block as u64;
     let last = script.cmds.last().map_or(0, |c| c.frame);
     // The last command lands before the first block starting at or after its
-    // frame; that block is the last one run.
-    let last_block = last.div_ceil(block);
+    // frame; that block is the last one run. With end=, the run is that many
+    // frames: whole blocks, the last one shorter if need be, and a command
+    // due at the end frame itself is applied after them.
+    let total = script.end.unwrap_or((last.div_ceil(block) + 1) * block);
 
     let mut out_a: Vec<OutEvent> = Vec::with_capacity(256);
     let mut out_b: Vec<OutEvent> = Vec::with_capacity(256);
     let mut sub: Vec<OutEvent> = Vec::with_capacity(64);
     let mut tagged: Vec<(u64, u64, OutEvent)> = Vec::with_capacity(256);
     let mut ci = 0usize;
+    let mut bi = 0u64;
+    let mut start = 0u64;
+    let mut was_following = false;
 
-    for bi in 0..=last_block {
-        let start = bi * block;
-
-        // Commands due by this block's start, each one `set_param("cmd")`.
+    loop {
+        // Commands due by this block's start, each one `set_param("cmd")`,
+        // or for `rt`, one `on_midi` byte.
         while ci < script.cmds.len() && script.cmds[ci].frame <= start {
             let c = &script.cmds[ci];
             let tick = master_tick(&a)?;
-            let pa = guarded(|| apply_batch(&mut a, &c.text, &mut out_a));
-            let pb = guarded(|| apply_batch(&mut b, &c.text, &mut out_b));
+            let (pa, pb) = match c.realtime {
+                Some(status) => (
+                    guarded(|| a.on_external_realtime(status, &mut out_a)),
+                    guarded(|| b.on_external_realtime(status, &mut out_b)),
+                ),
+                None => (
+                    guarded(|| apply_batch(&mut a, &c.text, &mut out_a)),
+                    guarded(|| apply_batch(&mut b, &c.text, &mut out_b)),
+                ),
+            };
             if pa != pb || out_a != out_b {
                 return Err(format!(
                     "line {}: the two engines disagree on {:?}",
@@ -367,32 +420,51 @@ fn run(
             ci += 1;
         }
 
+        if start >= total {
+            break;
+        }
+
         // The block itself.
-        let mt0 = master_tick(&a)?;
-        let pa = guarded(|| a.advance_block(script.block, &mut out_a));
-        let mut mt = mt0;
+        let frames = block.min(total - start);
+        let pa = guarded(|| a.advance_block(frames as u32, &mut out_a));
+        let mut mt = master_tick(&b)?;
+        // Following can only start with a block's realtime input, and only
+        // the block after following stops hands back to the internal clock,
+        // so any other block runs on the internal clock throughout.
+        let follows = was_following || status_field(&b, "ext=")? != 0;
         let mut pb = None;
         tagged.clear();
-        for j in 0..block {
+        for j in 0..frames {
+            let before = mt;
             let t0 = b.clock.tick;
             let p = guarded(|| b.advance_block(1, &mut sub));
             if pb.is_none() {
                 pb = p;
             }
-            let fired = b.clock.tick.wrapping_sub(t0);
-            if fired > 1 {
-                return Err(format!("block {bi}: {fired} ticks in one frame"));
+            if follows {
+                mt = master_tick(&b)?;
+            } else if b.clock.tick.wrapping_sub(t0) > 1 {
+                return Err(format!("block {bi}: two ticks in one frame"));
+            } else if b.clock.tick != t0 && b.playing {
+                mt += 1;
             }
             // Every event of a frame that serviced a tick belongs to that
             // tick: its F8, its service_tick and step_tick output, and a Start
             // pushed in the same call (which is then tick 0). Other events
-            // carry the ticks serviced so far.
-            let this = mt;
-            if fired == 1 && b.playing {
-                mt += 1;
+            // carry the ticks serviced so far. A count that went down is a
+            // restart inside advance_block (following an external clock from
+            // its next bar); its events precede the restart.
+            let fired = if mt >= before { mt - before } else { mt };
+            if fired > 1 {
+                return Err(format!(
+                    "block {bi}: {fired} ticks in one frame (an external clock's tempo jumped?)"
+                ));
+            }
+            if mt < before && fired > 0 {
+                return Err(format!("block {bi}: a restart and a tick in one frame"));
             }
             for ev in sub.drain(..) {
-                tagged.push((j, this, ev));
+                tagged.push((j, before, ev));
             }
         }
         // movy-dsp would drain a panicked block's events one block late; no
@@ -411,11 +483,9 @@ fn run(
                 tagged.len()
             ));
         }
-        let (ma, mb) = (master_tick(&a)?, master_tick(&b)?);
-        if ma != mt || mb != mt || a.clock.tick != b.clock.tick {
-            return Err(format!(
-                "block {bi}: tick bookkeeping lost sync ({ma}, {mb}, {mt})"
-            ));
+        let ma = master_tick(&a)?;
+        if ma != mt || a.clock.tick != b.clock.tick {
+            return Err(format!("block {bi}: tick bookkeeping lost sync ({ma}, {mt})"));
         }
         for &(j, t, ev) in &tagged {
             let frame = match mode {
@@ -425,6 +495,9 @@ fn run(
             log.emit(bi, frame, t, ev)?;
         }
         out_a.clear();
+        was_following = status_field(&b, "ext=")? != 0;
+        start += frames;
+        bi += 1;
     }
 
     let end_tick = master_tick(&a)?;
@@ -434,7 +507,7 @@ fn run(
         script.rate,
         script.block,
         script.tracks,
-        last_block + 1,
+        bi,
         log.events,
         end_tick,
         panics.join(",")

@@ -2,12 +2,14 @@
 
 Checks the shared formats only (tools/movy-oracle/README.md): the verb
 scripts, the event logs Movy's seq-core produced for them, and the movy1
-sets. It does not run Movy; tools/movy-oracle/regen-fixtures.sh regenerates
-the traces on aeon. The C core's own tests compare against these files.
+sets, for the curated fixtures and the seeded random scripts in random/. It
+does not run Movy; tools/movy-oracle/regen-fixtures.sh regenerates the traces
+on aeon. The C core runs them in tests/test_seq_oracle.py.
 """
 
 from __future__ import annotations
 
+import gzip
 import json
 import pathlib
 import re
@@ -16,6 +18,7 @@ import pytest
 
 FIX = pathlib.Path(__file__).parent / "fixtures" / "movy"
 SCRIPTS = sorted(FIX.glob("*.verbs"))
+RANDOM = sorted((FIX / "random").glob("*.verbs"))
 KEYS = ["block", "frame", "tick", "kind", "track", "a", "b"]
 MOVY_TRACKS = 16
 
@@ -35,10 +38,24 @@ OTHER_VERBS = {
     "capclr", "capsel", "capdone", "cpyclr", "usnap", "uswap", "ucommit",
     "udrop", "uclr",
 }
+# Not a Movy verb: MIDI realtime input, Engine::on_external_realtime.
+REALTIME = {"F8", "FA", "FB", "FC"}
+
+
+def read_text(path: pathlib.Path) -> str:
+    if path.suffix == ".gz":
+        return gzip.decompress(path.read_bytes()).decode("utf-8")
+    return path.read_text(encoding="utf-8")
+
+
+def sibling(script: pathlib.Path, suffix: str) -> pathlib.Path:
+    """<stem><suffix>, gzipped for the random scripts."""
+    plain = script.with_name(script.stem + suffix)
+    return plain if plain.exists() else script.with_name(script.stem + suffix + ".gz")
 
 
 def parse_script(path: pathlib.Path) -> dict:
-    run = {"rate": 44118, "block": 128, "tracks": 8, "cmds": []}
+    run = {"rate": 44118, "block": 128, "tracks": 8, "end": None, "cmds": []}
     header = False
     last = 0
     for n, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
@@ -52,7 +69,7 @@ def parse_script(path: pathlib.Path) -> dict:
             header = True
             for kv in line[2:].split():
                 key, _, value = kv.partition("=")
-                assert key in ("rate", "block", "tracks"), f"{where}: header key {key!r}"
+                assert key in ("rate", "block", "tracks", "end"), f"{where}: header key {key!r}"
                 assert value.isdigit(), f"{where}: {kv!r}"
                 run[key] = int(value)
             continue
@@ -70,14 +87,20 @@ def parse_script(path: pathlib.Path) -> dict:
     assert 1 <= run["tracks"] <= MOVY_TRACKS
     assert run["cmds"], f"{path.name}: no commands"
     # The last command lands before the first block starting at or after it,
-    # and that block is the last one run.
-    run["last_block"] = -(-run["cmds"][-1][1] // run["block"])
+    # and that block is the last one run; end= runs that many frames instead
+    # (the last block shorter), then applies what is due at the end frame.
+    if run["end"] is None:
+        run["blocks"] = -(-run["cmds"][-1][1] // run["block"]) + 1
+        run["last_block"] = run["blocks"] - 1
+    else:
+        run["blocks"] = -(-run["end"] // run["block"])
+        run["last_block"] = run["blocks"]
     return run
 
 
 def load_log(path: pathlib.Path) -> list[dict]:
     events = []
-    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for n, line in enumerate(read_text(path).splitlines(), 1):
         ev = json.loads(line)
         assert list(ev) == KEYS, f"{path.name}:{n}: keys {list(ev)}"
         events.append(ev)
@@ -92,11 +115,14 @@ def test_fixtures_exist():
     assert "9190e79" in readme and "megadake" in readme and "MIT" in readme
 
 
-@pytest.mark.parametrize("script", SCRIPTS, ids=lambda p: p.stem)
+@pytest.mark.parametrize("script", SCRIPTS + RANDOM, ids=lambda p: p.stem)
 def test_script_uses_movy_verbs(script):
     run = parse_script(script)
     for n, _, cmd in run["cmds"]:
         verb, *args = cmd.split()
+        if verb == "rt":
+            assert len(args) == 1 and args[0] in REALTIME, f"{script.name}:{n}: {cmd!r}"
+            continue
         assert verb in TRACK_VERBS | OTHER_VERBS, f"{script.name}:{n}: verb {verb!r}"
         assert all(re.fullmatch(r"-?\d+", a) for a in args if verb != "alabel"), (
             f"{script.name}:{n}: {cmd!r}")
@@ -126,10 +152,10 @@ def check_event(ev: dict, run: dict, where: str) -> None:
         assert a is None and b is None, where
 
 
-@pytest.mark.parametrize("script", SCRIPTS, ids=lambda p: p.stem)
+@pytest.mark.parametrize("script", SCRIPTS + RANDOM, ids=lambda p: p.stem)
 def test_event_log(script):
     run = parse_script(script)
-    events = load_log(script.with_suffix(".jsonl"))
+    events = load_log(sibling(script, ".jsonl"))
     assert events, script.stem
     prev_block, prev_tick, prev_clock = 0, 0, None
     playing = False
@@ -187,9 +213,9 @@ def test_d1_traces_present():
         assert FIX / (p.name[: -len(".d1.jsonl")] + ".verbs") in D1_SCRIPTS, p.name
 
 
-@pytest.mark.parametrize("script", SCRIPTS, ids=lambda p: p.stem)
+@pytest.mark.parametrize("script", SCRIPTS + RANDOM, ids=lambda p: p.stem)
 def test_movy1_sets(script):
-    out = script.with_name(script.stem + ".out.movy1").read_text(encoding="utf-8")
+    out = read_text(sibling(script, ".out.movy1"))
     lines = out.splitlines()
     assert lines[0] == "movy1", script.stem
     assert [ln.split()[0] for ln in lines[1:4]] == ["bpm", "swing", "link"], script.stem
@@ -209,7 +235,7 @@ def test_oracle_summary():
     for r, s in zip(rows, SCRIPTS):
         run = parse_script(s)
         assert (r["rate"], r["block"], r["tracks"]) == (run["rate"], run["block"], run["tracks"])
-        assert r["blocks"] == run["last_block"] + 1, s.stem
+        assert r["blocks"] == run["blocks"], s.stem
         assert r["events"] == len(load_log(s.with_suffix(".jsonl"))), s.stem
         # Only the D5 fixture is meant to reach Movy's nudge panic.
         if "panic" in s.stem:
@@ -218,3 +244,24 @@ def test_oracle_summary():
                 assert p["cmd"].startswith("enudge ") and "clip.rs" in p["panic"]
         else:
             assert r["panics"] == [], s.stem
+
+
+def test_random_scripts():
+    """A few seeded random scripts (gen_scripts.py --no-undo) with Movy's
+    traces, gzipped: the C core's differential check in the test suite. The
+    README lists their seeds and options; the oracle summary covers them."""
+    assert len(RANDOM) >= 8
+    readme = (FIX / "random" / "README.md").read_text(encoding="utf-8")
+    rows = [json.loads(line) for line in
+            (FIX / "random" / "oracle-summary.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [r["script"] for r in rows] == [s.name for s in RANDOM]
+    for r, s in zip(rows, RANDOM):
+        assert s.stem in readme, s.stem
+        text = s.read_text(encoding="utf-8")
+        assert "no-undo" in text.splitlines()[1], f"{s.stem}: undo is not ported (docs/13 M4)"
+        assert not re.search(r"^@\d+ u(snap|swap|commit|drop|clr)\b", text, re.M), s.stem
+        run = parse_script(s)
+        assert r["blocks"] == run["blocks"], s.stem
+        for p in r["panics"]:   # only Movy's D5 nudge panic, which compat reproduces
+            assert p["cmd"].startswith("enudge ") and "clip.rs" in p["panic"], s.stem
+        assert r["events"] == len(load_log(sibling(s, ".jsonl"))), s.stem
