@@ -214,6 +214,20 @@ nothing of ours in the path, and more than 400 tests compare the two.
   [docs/15](docs/15-sequencer-in-simulator.md)). Nothing on the panel drives
   it yet: SEQ, PLAY/STOP and REC still say "not in the simulator yet".
 
+### The arpeggiator core
+
+`fm1_arp` is a C99, heap-free arpeggiator on note events, in 728 bytes. It
+follows Yarns' arpeggiator (Emilie Gillet, MIT), adds MCL's note orders and
+trig-stepped rate (Justin Mammarella, BSD-3), and adds Super Arp's seeded,
+loopable random modifiers (Handcrafted Media, MIT); it reimplements them and
+compiles no upstream code. The host supplies clock ticks or steps; the core
+has no tempo, so its output is the same at any block size. Its note ledger
+gives every note-on exactly one note-off. With octaves walked as one list, it
+plays Yarns' notes and rests step for step, checked against a Python rewrite
+of Yarns' loop [verified: `tests/test_engine_arp.py`]. It is not wired into
+the renderer or the virtual FM-1 yet: that needs the MIDI-effect contract of
+API v2 ([`engines/midi_fx/README.md`](engines/midi_fx/README.md)).
+
 ### The virtual FM-1
 
 - **What runs:** the firmware's app layer (panel logic, the effect chain and
@@ -484,7 +498,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 - **Rough effort:** ongoing; the device drivers are part of I12 (6–10
   sessions).
 
-**Arpeggiator** · *Planned, design chosen*
+**Arpeggiator** · *Core built, not wired yet*
 - **Depends on:**
   - the MIDI-effect slot (`FM1_KIND_MIDI_FX`, reserved [verified:
     `fm1_engine.h` line 46]) with its API v2 contract: transport and tempo
@@ -502,8 +516,10 @@ which lands with the plan PR; its stages S0–S7 are named below.
     effect, so ARP and SEQ run together);
   - [CHOMPI note](notes/2026-10-01-chompi-evaluation.md) step 3;
   - Deluge and Ansible (GPL) are design references only.
-- **Rough effort:** 1–2 days with golden tests once the slot, helpers and
-  clock exist [inferred: options note §2.1; CHOMPI note].
+- **Status:** the core is built and tested on the desktop, not wired
+  ([`engines/midi_fx/`](engines/midi_fx/README.md), 2026-10-02).
+- **Rough effort:** what is left is the slot, the clock feed and the ARP
+  pages [inferred].
 
 **MIDI effects** · *Planned*
 - **Depends on:**
@@ -891,6 +907,11 @@ I1; the desktop half needs nothing. 3–5 sessions.
     `-ffp-contract=off`.
   - List the libm functions used.
   - Compare a `sizeof`/`alignof` table with `-m32`.
+  - *Compile step done 2026-10-02*: all 63 objects build, with libc++'s
+    `math.h` added. Linking is still to do.
+    [`notes/2026-10-02-jieli-compile-check.md`](notes/2026-10-02-jieli-compile-check.md),
+    `tools/jieli/compile-check.sh`, [docs/14](docs/14-verification-ladder.md)
+    §5.2.
 - **Desktop half.**
   - Replace `fm1_app_t`'s 1.17 MB of arenas with one sized arena and strip
     rendering.

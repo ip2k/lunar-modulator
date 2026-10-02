@@ -30,6 +30,11 @@ history.
     which writes what it applied as a script `fm1-render` can replay.
   - CI's staleness check now covers the sequencer code and the parity
     scripts, so changing either needs a rebuilt module.
+- Compile-only stage B (`tools/jieli/compile-check.sh`,
+  `notes/2026-10-02-jieli-compile-check.md`). The engines, the sequencer and
+  the app layer compile for the FM-1's processor with JieLi's toolchain: 63
+  of 63 objects. The note has their sizes and their instance sizes at 32
+  bits. No user-facing change.
 - **Crush**, a new effect: a bitcrusher and sample-rate reducer. Bits (1 to
   16, smooth between whole numbers), Rate (100 Hz up to every sample, on an
   even pitch scale), Jitter (random hold lengths that repeat exactly each
@@ -71,6 +76,27 @@ history.
   note strikes the gate, which closes over Decay even while the key is held)
   or Off (no gate: full brightness, a plain fade after key-up). At their
   defaults both engines sound exactly as before. Six-Op FM is unchanged.
+- The arpeggiator core (`engines/midi_fx/`), built and tested on the
+  desktop but not yet playable in the simulator or on the FM-1.
+  - 22 note orders: up, down, the up-down family, converge and diverge,
+    thumb and pinky, MCL's octave-lift orders, crawl, random, shuffle, walk
+    and chord. Keys are listed by pitch, as played or reversed.
+  - 1–4 octaves, walked as one list as Yarns does, one pass per octave, or a
+    random octave per pass.
+  - Yarns' 22 rhythm patterns and Euclidean rhythms with length, fill and
+    rotate.
+  - Rates from 1/32 triplet to whole notes, or one step per sequencer trig.
+  - Gate up to 200 %, swing as the sequencer's, ratchets, repeats.
+  - Chance per step for playing, ratcheting, chords and octave jumps, and
+    velocity and gate spread, all from a seed. A loop length makes a random
+    phrase repeat exactly.
+  - Latch, the hold pedal, joining a playing chord now or at the next pass,
+    and key sync.
+  - Every note it starts gets exactly one note-off, even when settings
+    change mid-note.
+  - It follows Yarns (Emilie Gillet, MIT), MCL (Justin Mammarella, BSD-3)
+    and Super Arp (Handcrafted Media, MIT); their notices are in
+    `engines/midi_fx/CREDITS.md`.
 - docs/16: the design for modulation as a rack of modules inside the
   modulation matrix, so cables can chain module to module (A→B→C→D).
   - Up to 8 modules sit in a rack. Every module output is a source in the
@@ -122,6 +148,25 @@ history.
   functionality gates for new modules, static registry against loader,
   where a custom build is made, the web flasher's verification, licence
   metadata, and hosting the catalogue.
+- Modulation primitives in `engines/mod/` (`fm1_mp.h`), for the modulation
+  runtime docs/16 is designing. They are heap-free C99, use no libm, and are
+  not yet wired into an engine or the simulator.
+  - An LFO with sine, triangle, saw up and down, square with pulse width,
+    smooth random, sample-and-hold and random walk. Its rate is a ratio
+    (Hz, or BPM/60 × cycles per beat), and it has retrigger, one-shot,
+    half-cycle and drift-free sync.
+  - Its random shapes draw once per accumulator wrap, so none is missed
+    however large the block. Schwung's S&H misses wraps here: at 30 Hz in
+    128-frame blocks its rule catches 99 of 174.
+  - A multistage envelope after Mutable Instruments' Peaks: ADSR, AD, AD
+    and ADR loops, and linear, exponential or quartic curves.
+  - A slew limiter (linear or exponential, separate rise and fall),
+    sample-and-hold and track-and-hold, a Turing-machine register, and a
+    clock divider and multiplier on integer ticks.
+  - Every random source is seeded per instance. Results are bit-identical
+    whatever the block size.
+  - A desktop test tool, `fm1-mod`, and `tests/test_engines_mod.py` (87
+    tests).
 - docs/15: the plan for the sequencer in the virtual FM-1 (docs/13 stage M4
   in the browser), in stages S1–S10, each with its tests and exit numbers.
   - S1 moves `fm1-render`'s per-block sequencer hosting into a shared,
