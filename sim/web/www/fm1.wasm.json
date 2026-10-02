@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "70e0763981ca89f05f40afcb30e5fdeffdeb71f38a883331491f237bf4ba0505",
-  "wasm_bytes": 466635,
+  "wasm_sha256": "e6bb409cc91c9ddbc4b9671dd09f03be63b5e7559998d3939584edeb8dd5b6e5",
+  "wasm_bytes": 482275,
   "sources_sha256": {
-    "engines": "a64e30f8507b093b3ee5911bb5888d778bace1a37d5d1a4a8aa9f0f6c10d1cb7",
-    "sim": "ac3ff894363167167da3fadff0d71bfcd3610613ad627122478c82e026f82c7d"
+    "engines": "af710ba01819480c3ab15ebf7cd96f5832a418d54126c23845817f0792e12019",
+    "sim": "65ed9c660f20e4b9646e37c2a6cdeb0f1e7b0f199fbd6b39b85ae3b1ac94ed69"
   },
   "engines": "working tree",
-  "built": "2026-10-02T19:03:54Z",
+  "built": "2026-10-02T19:41:51Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 24,
+    "passed": 25,
     "failed": 0,
-    "identical_to_js": 24,
-    "identical_to_musl": 24,
-    "identical_to_glibc": 21,
+    "identical_to_js": 25,
+    "identical_to_musl": 25,
+    "identical_to_glibc": 22,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -475,6 +475,38 @@
         "native_dropped": 0
       },
       "panel": "seq/panel-play-stop.panel"
+    },
+    {
+      "name": "seq-panel-step-entry",
+      "samples": 529416,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 119656,
+        "native64": 132344
+      },
+      "cmd": "seq/panel-step-entry.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 13,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-step-entry.panel"
     },
     {
       "name": "crush-chip-jitter",
