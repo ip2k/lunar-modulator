@@ -165,6 +165,27 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- HANDOFF.md, the project's context summary, now describes `main` after
+  PRs #3–#20 instead of the research phase.
+  - Where things stand: the code runs on a desktop and in a browser, not on
+    a JieLi chip or an FM-1, and 1,441 of 1,443 tests pass (2 xfail, undo).
+  - What the repository holds: 14 docs, the engine platform, the sequencer
+    core and its Movy oracle, the virtual FM-1 and the dongle.
+  - Recovery: the reports in ip2k/lunar-modulator#2, which we have not
+    answered; our dongle's pull-up fix and its new D+ default; the dev kit
+    and JieLi's updater on order.
+  - Corrections:
+    - the one rule is stated in full again, traffic limit included;
+    - the FM-1 has four free parameter knobs, not eight;
+    - Movy is pinned at `9190e79`, not `5627d51`;
+    - `isd_download` is a writer and never a recovery tool for the FM-1;
+    - Phase 2 is in docs/08;
+    - the identity reply's checksum fails on `FM-1_092`.
+  - New: open and in-flight work, the dead-code audit now due, a list of
+    docs that still lag, and a current kick-off prompt. The 2026-09-06
+    prompt is kept, marked historical.
+- The rename entry names the typeface, Audiowide, as CLAUDE.md's naming
+  rules ask.
 - The `USB_KEY` dongle now keys with D+ as the clock (polarity A) by
   default. That is the polarity czietz's Pico dongle reached UBOOT mode with
   on two FM-1s (docs/10 §1.1).
@@ -197,8 +218,8 @@ history.
   MODULATION STATION**: open firmware for the M-VAVE FM-1, formerly "Open
   firmware for the M-VAVE FM-1". The repository becomes
   `ip2k/lunar-modulator` (GitHub redirects `ip2k/mvave-fm1-open-firmware`).
-  The short form is "Lunar"; the look is a space theme with a NASA-style
-  typeface, using no NASA, M-VAVE or Cuvave marks. README, HANDOFF,
+  The short form is "Lunar"; the look is a space theme set in Audiowide,
+  using no NASA, M-VAVE or Cuvave marks. README, HANDOFF,
   CLAUDE.md and AGENTS.md carry the new name; CLAUDE.md and AGENTS.md set
   out the naming rules.
 - Six-Op FM lists 23 of its 96 patches under names of our own, because the
