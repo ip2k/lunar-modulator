@@ -1138,9 +1138,11 @@ static void draw_popup(fm1_app_t *a) {
   draw_popup_lines(a, (const char (*)[24])a->popup, a->popup_lines, a->popup_mark);
 }
 
+/* A tempo as "120 BPM", or "117.50 BPM" (the core's are 20.00 to 300.00). */
 static void bpm_text(char *buf, size_t size, unsigned bpm_x100) {
-  if (bpm_x100 % 100u) snprintf(buf, size, "%u.%02u BPM", bpm_x100 / 100u, bpm_x100 % 100u);
-  else snprintf(buf, size, "%u BPM", bpm_x100 / 100u);
+  const unsigned v = bpm_x100 % 1000000u;
+  if (v % 100u) snprintf(buf, size, "%u.%02u BPM", v / 100u, v % 100u);
+  else snprintf(buf, size, "%u BPM", v / 100u);
 }
 
 /* Capture's overlay after a stopped Capture (O7), over every mode until a
@@ -1152,7 +1154,9 @@ static void draw_capture(fm1_app_t *a) {
   char text[3][24];
   int lines = 0, mark = -1;
   if (u->capture_mode == FM1_SEQ_UI_CAPTURE_PICK && u->capture_n) {
-    for (int k = 0; k < u->capture_n; ++k) bpm_text(text[lines++], sizeof text[0], u->capture_cands[k] * 100u);
+    for (int k = 0; k < u->capture_n; ++k) {
+      bpm_text(text[lines++], sizeof text[0], u->capture_cands[k] * 100u);
+    }
     mark = u->capture_sel < u->capture_n ? u->capture_sel : -1;
   } else {
     char bpm[16];

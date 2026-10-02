@@ -52,7 +52,7 @@ to an FM-1 (CLAUDE.md). Web MIDI stays input only unless the owner opts in
 
 | Layer | Files | Rules |
 | --- | --- | --- |
-| Core | `engines/seq/*.c`, `engines/include/fm1_seq.h` | Unchanged except for three additions. S4 adds a read-only page getter and `rec_track` in `fm1_seq_info_t`. S5 adds a D-row in `commit_playing`, if O9 approves it. |
+| Core | `engines/seq/*.c`, `engines/include/fm1_seq.h` | Unchanged except for two additions. S4 adds a read-only page getter and `rec_track` in `fm1_seq_info_t`. S5 adds nothing: O9 kept Movy's Capture growth, so the proposed D-row in `commit_playing` was not made. |
 | Host bridge, new in S1 | `engines/include/fm1_seq_host.h`, `engines/seq/seq_host.c` | C99 with `-Wpedantic`, no heap, no stdio. It goes in `SEQ_SRC`, so `test_the_core_never_allocates` covers it; that test's object count goes from 5 to 6 [verified: tests/test_seq_core.py 895–896]. It is linked into `fm1-seq`, `fm1-seq-check`, `fm1-render` and `fm1-render.js`, and from S2 into `fm1-sim-render` and `fm1.wasm`. |
 | Script host code | `engines/host/seq_script.[ch]` | It allocates and uses stdio, so only the native tools link it. `fm1.wasm` never does, because stdio and malloc would add WASI imports, and parity fails on any import. S3 adds `fm1_seq_cmd_format`. |
 | Reference host | `engines/host/render.cc` | It keeps its CLI and its 65,536-entry event buffer [verified: render.cc 419]. S1 adds `seq_dropped`, `seq_max_block_events`, `seq_splits` and `--events N`. |
@@ -1247,6 +1247,104 @@ record), O9 (the D-row, which can also land alone in `engines/`).
 
 **Size:** M.
 
+**As built (2026-10-02, branch `feature/2026-10-02@seq-record`, on S4's
+branch).** Everything stays behind the lab switch (O24); the owner's
+answers to O7–O9 are in §8. Where the build differs from, or adds to, the
+plan above [verified: tests/test_seq_ui.py, tests/test_seq_core.py,
+`fm1-sim-render --screens`]:
+- **Live input.** A note played that no step takes is live input to the
+  focused track (`fm1_app_seq_note_in`, at frame 0 of the coming block):
+  the keys outside SEQ mode, and MIDI IN in every mode. A note that went
+  into the pattern as an edit (a held step's `addp`, step record) is not,
+  as Movy's router skips its capture path for a pad it consumed. A release
+  goes to the track its note went to, and a change of sound or a panic
+  releases every note given. With the switch off nothing is given.
+- **REC** sends `rec <focused>` in every mode. In SEQ mode with the
+  transport stopped it acts on its release, as Movy's Rec does
+  (`router.ts`, `step-rec.ts` at `9190e79`): let go untouched within
+  ⌈0.5 · rate⌉ frames (Movy's 500 ms tap; 22,059 at 44,118 Hz), it
+  records; held, it is step record. Elsewhere, or while playing, it acts
+  on the press.
+- **Step record (O8)** follows Movy's `step-rec.ts` and `step-rec-head.ts`
+  at `9190e79` [verified: read into the git-ignored `reference/`]:
+  - each white key enters its pitch, in the current octave, at the record
+    head and sounds (on the sound only: it is no live input): `del` on a
+    fresh step, then `addp`, and in a clip that was empty a `clen` that
+    grows it to what is played, rests included. MIDI IN notes enter the
+    same way, which is how sharps go in;
+  - keys held together are a chord on one step, and the head moves on when
+    the last is let go;
+  - A#3 (▶) leaves a rest, or with keys down ties the chord into the next
+    step (`slen` per pitch; the head rides to the tied note's end); F#3
+    (◀) steps back, or unties;
+  - SHIFT + white key moves the head to that step of the bar and clears it
+    (Movy's step buttons); past a clip's end only while the clip grows;
+  - a clip that had a length wraps at its loop's end;
+  - nothing latches: letting go of REC ends it, and so do PLAY/STOP,
+    leaving SEQ mode and the transport starting.
+  - **The head advances by itself on key release,** as the owner asked.
+    Movy at `9190e79` already does so: its head "advances only when the
+    LAST pad comes up" (`step-rec.ts`; MANUAL.md, "Step recording")
+    [verified]. So it is no deviation and needs no row, and since step
+    record is the UI's alone, compat mode is untouched. The plan's
+    premise came from a [reported] summary and was wrong.
+  - **Two differences from Movy:** the head starts on the loop's first step
+    (Movy parks it on step 1 whatever the loop: the same for every loop
+    that starts there), and a step back does not play the step's notes
+    (Movy's preview), which `fm1-render` could not replay. Movy's drum
+    rule (pads only add) waits for drum tracks.
+- **Capture (O7).** SHIFT + REC sends `cap <focused>` outside FX mode, or,
+  with nothing buffered, shows `Nothing to capture` and sends nothing, as
+  Movy's `captureButton`. The next block says what it did: `Captured`
+  while playing, and for a stopped take whose tempo needed no choice;
+  otherwise the core's overlay.
+- **The overlay** is the core's `capture_mode`, read once per block and
+  drawn over every mode where popups go. The picker (mode 1) lists the
+  candidates, one a line, the one taken highlighted; SELECT or KNOB1 sends
+  `capsel`, heard at once. The fitted tempo (mode 2) reads `Captured` /
+  `at 117.50 BPM`. **Both stay until a press, as Movy's overlay does,**
+  rather than mode 2 being a one-second toast as proposed: the core takes
+  no Capture input until `capdone`. Any press (a button, a key, another
+  encoder) sends `capdone` and does nothing else, as in Movy, where a key
+  that both closed it and wrote into the take would need undo; releases go
+  through, and MIDI IN notes are no presses.
+- **O9, as the owner changed it:** no D-row. Capture committed while
+  playing anchors a last-half-step note on the loop end and grows the clip
+  by a bar in both modes, as Movy does;
+  `test_capture_while_playing_grows_the_clip_as_movy` pins it (16 steps
+  become 32, the note on step 16).
+- **LEDs.** REC is on while recording or step recording, fast (0.25 s)
+  during the count-in or while a take waits for its bar, and slow (1 s)
+  while Capture holds notes and nothing records. In step record the head's
+  white key blinks fast, A#3 is lit, and F#3 while a step back or an untie
+  is possible.
+- **Screens.** The status line reads REC in gold through the count-in or a
+  waiting take, in red while the focused track records, and STEP in step
+  record; the grid frames the head in red; the hint line gives the head's
+  step (`Step rec 17`; a tie, `17-19`) or, with SEL held, `Keys move the
+  head`.
+- **Harness.** `--log-cmds` logs live input as `non` and `nof` ops at the
+  block they led (a second hook, `on_note_in`) and lists them with the
+  panel's commands, so traces that play keys or MIDI IN replay byte for
+  byte, which closes S3's open issue; three S4 traces gained those lines.
+- **Gesture traces:** 11 new golden traces in tests/fixtures/seq-ui/
+  (`rec-*`, `step-record*`, `capture-*`), each replayed by `fm1-render`
+  byte for byte.
+- **Screens:** 39 more, 953 in all, 0 faults; the lab-off screens are
+  byte-identical to S4's (60 compared).
+- **The UI state** is 536 B of its 1,024; `fm1_app_t` is 1,205,920 B
+  [verified: `fm1-sim-render --sizes`].
+- **On aeon** [verified: `www/fm1.wasm.json` and the screenshot report,
+  2026-10-02]: parity 27 of 27, with `seq-panel-record` (a take after a
+  count-in, step record with a tie, a rest and a MIDI IN note, and Capture
+  while playing) and `seq-panel-capture-stopped` (the picker,
+  `libm_sensitive`); identical to js and musl in 27, to glibc in 24, the
+  stopped Capture included; imports none. In headless Chromium, REC in SEQ
+  mode while playing overdubs at once and REC again stops; two keys
+  played in HOME make REC blink, and Shift (SHIFT) + REC captures them and
+  REC goes dark; with the switch off REC stays a stub. The module is
+  490,870 B, up from 482,291.
+
 ### S6. Tracks, mute, and the Set, Clip and Track pages
 
 **Goal.** 4–8 tracks to focus and mute, with tempo, swing, clip speed, length,
@@ -1765,8 +1863,8 @@ Two gaps open once the module links the sequencer:
 1. **Parity inputs.** Scripts under `sim/web/test/seq/` are not hashed, so
    editing a `.verbs` file would leave a stale parity record.
 2. **Sequencer code.** From S2, `fm1.wasm` links `engines/seq`, so an
-   engines-only change (for example O9's D-row landed alone) would ship a
-   module that behaves differently, with only a warning.
+   engines-only change (for example a new deviation row landed alone) would
+   ship a module that behaves differently, with only a warning.
 
 **The fix, in S2:** add `sim/web/test/seq`, `engines/seq` and
 `engines/include/fm1_seq*.h` to `SIM_INPUTS`. More generally, any stage that
@@ -1894,3 +1992,19 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
   removes it: the two buttons dropping their popup, the stub-button sweep
   dropping SEQ and PLAY/STOP (its saved popup stays `popup-button-12`),
   chapter 07 and `manual.toml`'s roles.
+
+**Answered by the owner, 2026-10-02** (for S5; recorded when S5 was built):
+- **O7:** as proposed. Capture is SHIFT + REC (SHIFT is SEL in SEQ mode),
+  and REC blinks slowly while played notes wait for Capture
+  (`capture_pending` > 0).
+- **O8:** step record is REC held while the sequencer is stopped, as in
+  Movy, with the right black-key role (▶, A#3) moving the record head; the
+  head advances by itself when the keys are let go, and the mode does not
+  latch (REC is held). The owner asked for the advance as a change from
+  Movy, documented as a deviation with compat keeping Movy's way; Movy's
+  `step-rec.ts` at `9190e79` turned out to advance on the last release
+  already [verified], so no deviation was needed (S5's as-built notes).
+- **O9, changed:** Capture committed while playing grows the clip by a bar
+  exactly as Movy does; the proposed clamp is not made.
+- **Also:** notes played on the keys are logged, so gesture traces that
+  press keys replay byte for byte (S3's open issue).

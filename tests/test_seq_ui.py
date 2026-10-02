@@ -13,8 +13,8 @@ sidecar of arguments the harness writes next to it (.args: the engine, the
 notes the keys and MIDI IN played, the knob turns on the sound), renders
 the same bytes as the panel run. Every trace here plays Test Sine; S3's
 start from tests/fixtures/seq-ui/input.verbs, S4's (step-*) from
-steps.verbs, a bar at 240 BPM, S5's (rec-*, capture-*) from rec.verbs, the
-same with two notes and 4 s long, or the input TRACE_INPUT names. A note
+steps.verbs, a bar at 240 BPM, S5's (rec-*, capture-*) from rec.verbs, two
+notes at 240 BPM for 4 s, or the input TRACE_INPUT names. A note
 played that no step takes is live input, logged as `non` and `nof` ops at
 the block it led, so the replay records and captures the same. The parity
 scenarios under sim/web/test/seq/ play Macro and Plate
