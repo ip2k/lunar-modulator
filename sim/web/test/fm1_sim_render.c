@@ -1623,6 +1623,17 @@ int main(int argc, char **argv) {
   }
 
   const int use_seq = cmd_path || seq_path;
+  /* Before anything is loaded, so a refusal leaves nothing allocated. */
+  if (g_multi && !g_lab) {
+    fprintf(stderr, "--sound, --insert, --level and their timed forms need --lab\n");
+    return 2;
+  }
+  for (int k = 0; k < g_nev; ++k) {
+    if (g_ev[k].kind == EV_UNIT_ROUTE && !g_lab) {
+      fprintf(stderr, "--unit-route needs --lab\n");
+      return 2;
+    }
+  }
   if (g_start && (use_seq || engine || n_fx)) {
     fprintf(stderr, "--start is the whole chain: no --engine, --fx, --cmd or --seq with it\n");
     return 2;
@@ -1662,16 +1673,8 @@ int main(int argc, char **argv) {
       fprintf(stderr, "--seq-reset, --seq-import, --seq-ui and --unit-route need --cmd or --seq\n");
       return 2;
     }
-    if (g_ev[k].kind == EV_UNIT_ROUTE && !g_lab) {
-      fprintf(stderr, "--unit-route needs --lab\n");
-      return 2;
-    }
   }
 
-  if (g_multi && !g_lab) {
-    fprintf(stderr, "--sound, --insert, --level and their timed forms need --lab\n");
-    return 2;
-  }
   fm1_app_init(&g_app, rate);
   if (g_lab) fm1_app_set_lab(&g_app, 1);
   if (master != 1.0f) g_replayable = 0;      /* fm1-render has no MASTER */
