@@ -39,6 +39,24 @@ history.
   - Every pick is MIT or BSD; GPL sources serve as design references only.
     It lists twelve owner decisions, and notes that the project uses one
     core and runs nothing on the device yet.
+- The sequencer host bridge (`engines/include/fm1_seq_host.h`). It is the
+  per-block code that plays the sequencer through a sound engine: commands,
+  advance, and renders split at each note and lock. `fm1-render` now runs on
+  it, and the virtual FM-1 and the firmware are to share it next.
+  - Sound, event logs and exported sets are byte-identical to before, across
+    810 runs of the renderer and fm1-seq over the oracle scripts, the test
+    scripts and Movy's sets.
+  - `fm1-render --events N` sizes the event buffer each block's commands and
+    playback share, to try a device's size. The default stays 65,536.
+  - The summary adds three fields: `seq_dropped` (events that did not fit),
+    `seq_max_block_events` (the most in one block) and `seq_splits` (renders
+    that start inside a block).
+  - engines/seq.md documents the host contract. It covers the order of work
+    in a block, how much room a command needs, and which track plays the
+    engine by default.
+  - A new test tool, `fm1-seq-host-test`, checks the parts of the bridge
+    that `fm1-render` does not use yet: typed commands, MIDI realtime input
+    and live notes.
 - The user manual (`manual/`, `tools/manual/`): chapters for welcome and
   safety, getting started, a panel tour with a measured drawing of the panel,
   playing, the sound engines, effects, the sequencer, MIDI, settings,

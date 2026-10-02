@@ -123,12 +123,15 @@ was sent (D9 can only drop what it sees queued).
 ## 4. Mapping to the FM-1 [inferred unless marked]
 
 **Inputs.** 27 keys, F3–G5: 16 naturals and 11 accidentals (docs/12 §5.6).
-About 14 LED buttons, whose printed functions are not recorded yet (docs/01:
-K30–K41), so PLAY, REC, SHIFT, CLEAR, COPY, LOOP, SESSION, MUTE and UNDO
-below are *roles* to assign. KNOB1–4 are encoders without touch; SELECT and
-ALGORITHM navigate, PRESETS picks presets and MASTER is volume [reported:
-docs/11 §2]. A 240×240 TFT. **GRID** mode makes the white keys steps (or
-bars, or slots); **KEYS** mode plays pitches, as stock does.
+About 14 LED buttons (docs/01: K30–K41). Their printed names come from the
+M-VAVE manual's panel drawing [reported; sim/web/README.md, The panel]: OCT−,
+OCT+, FX, SEL, ENV, LFO, EDIT, GLO, HOME, SAVE, ARP, SEQ, PLAY/STOP and REC.
+So PLAY and REC below are printed buttons (PLAY/STOP, REC); SHIFT, CLEAR,
+COPY, LOOP, SESSION, MUTE and UNDO have none and stay *roles* to assign.
+KNOB1–4 are encoders without touch; SELECT and ALGORITHM navigate, PRESETS
+picks presets and MASTER is volume [reported: docs/11 §2]. A 240×240 TFT.
+**GRID** mode makes the white keys steps (or bars, or slots); **KEYS** mode
+plays pitches, as stock does.
 
 | Movy gesture [verified in `src/seq/`] | FM-1 gesture |
 | --- | --- |
@@ -235,17 +238,25 @@ dev board and the FM-1. `limits.compat` selects Movy's exact behaviour
 (§3.3).
 
 ```c
-typedef struct { uint16_t frame; uint8_t kind, track, a, b; } fm1_seq_ev_t;
-  /* NOTE_ON(pitch,vel) NOTE_OFF(pitch) LOCK(lane,val) CLICK(accent) START STOP CLOCK */
+typedef struct { uint32_t tick; uint16_t frame; uint8_t kind, track, a, b; } fm1_seq_ev_t;
+  /* NOTE_ON(pitch,vel) NOTE_OFF(pitch) LOCK(lane,val) CLICK(accent) START STOP CLOCK;
+     tick: the master tick being serviced */
 size_t     fm1_seq_size(const fm1_seq_limits_t *lim);
 fm1_seq_t *fm1_seq_create(void *mem, const fm1_seq_limits_t *lim, uint32_t sample_rate);
 uint32_t   fm1_seq_advance(fm1_seq_t *s, uint32_t frames, fm1_seq_ev_t *out, uint32_t cap);
 uint32_t   fm1_seq_apply(fm1_seq_t *s, const fm1_seq_cmd_t *c, fm1_seq_ev_t *out, uint32_t cap);
-void       fm1_seq_note_in(fm1_seq_t *s, uint16_t frame, uint8_t pitch, uint8_t vel);
-void       fm1_seq_realtime_in(fm1_seq_t *s, uint16_t frame, uint8_t status); /* F8 FA FB FC */
+void       fm1_seq_note_in(fm1_seq_t *s, uint16_t frame, uint8_t track, uint8_t pitch, uint8_t vel);
+uint32_t   fm1_seq_realtime_in(fm1_seq_t *s, uint16_t frame, uint8_t status,   /* F8 FA FB FC */
+                               fm1_seq_ev_t *out, uint32_t cap);
 size_t     fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap);
 int        fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len);
 ```
+
+As built (`engines/include/fm1_seq.h`). The host's side of a block, from
+commands into the event buffer through the split renders below, is one
+shared bridge, `fm1_seq_host.h` (engines/seq.md, Host contract):
+`fm1-render` runs it now, and the virtual FM-1 and the firmware are to run
+the same code.
 
 - **Commands.** `fm1_seq_cmd_t` carries Movy's verbs as typed records (tog,
   ltog, aset with its quiet flag, econd, launch, song …). The UI task queues
