@@ -48,7 +48,7 @@ ENUM_FLAGS = {
     ("comp", "Character"): [],
     ("comp", "Auto Rel"): [],
     ("comp", "Auto Gain"): [],
-    ("limit", "Mode"): ["nolock"],              # re-aims the gain computer
+    ("limit", "Mode"): ["nolock"],              # a set-up choice (could be lifted)
 }
 
 

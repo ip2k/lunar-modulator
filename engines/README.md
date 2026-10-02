@@ -460,7 +460,9 @@ How it works:
   build host, 2026-10-02]. A `#pragma STDC FP_CONTRACT OFF` keeps clang from
   fusing multiply-adds (Apple clang fused 218 operations in this file before
   the review added it, 2026-10-02 [verified: `objdump`]), so the Mac's
-  native build computes the same bits too.
+  native build computes the same bits too [verified: a hash of the output
+  bits of every type with its parameters moving, Apple clang arm64 against
+  GCC 12 x86-64 and i686 with SSE, 2026-10-02].
 - **Contracts:** the input guard of `mi_fx.cc`; `fm1_param_clamp`; every
   field set in `create`; silence in gives exact silence out from rest at any
   setting, self-oscillating ones included; tails flush to exact zero within
@@ -693,8 +695,8 @@ How it works [verified: tests/test_engines_limit.py and
   stage over 5 ms.
 - **Turning Lookahead or Mode while it limits** leaves the ceiling to the
   gain path, never to the final clamp (fixed in review, 2026-10-02: before,
-  the clamp flattened peaks up to 41 times the ceiling, +32 dB, on bursts
-  in the test below). Both taps of a Lookahead crossfade share one gain, so
+  the clamp flattened peaks of up to 41 times the ceiling, +32 dB, in the
+  check at the end of this item). Both taps of a Lookahead crossfade share one gain, so
   while they fade the hold spans the longer delay plus one frame and the
   boxes at most the shorter: every value the boxes average is then a
   minimum over a window holding both taps' frames. A longer lookahead
@@ -713,9 +715,10 @@ How it works [verified: tests/test_engines_limit.py and
   and the envelope aims at four times the ceiling only once Mode has
   reached Soft Clip (part-way, the blend of the two stages with a +12 dB
   gain would pass the ceiling). Checked in `fm1-limit-test` with 27,325
-  changes of Lookahead (0 included), Mode and Link on bursts at four host
-  rates: before the clamp the envelope and the stage stay within 1.2 ×
-  10⁻⁷ of the ceiling [verified, 2026-10-02].
+  Lookahead turns (0 included), and Mode and Link turned too, on bursts at
+  8, 44.1, 96 and 384 kHz: before the clamp the envelope and the stage stay
+  within 1.2 × 10⁻⁷ of the ceiling, on the Mac and in 64- and 32-bit GCC
+  builds [verified, 2026-10-02].
 - **The host's bus limiter stays.** `include/fm1_mix_limiter.h` runs after
   every chain: a peak follower with an instant attack, a 100 ms release and
   a fixed 0.98 ceiling, and the guard that turns non-finite samples into
@@ -755,7 +758,8 @@ How it works [verified: tests/test_engines_limit.py and
   every check of `fm1-limit-test`. A `#pragma STDC FP_CONTRACT OFF` keeps
   clang from fusing multiply-adds (Apple clang fused 44 operations here
   before the review added it, 2026-10-02 [verified: `objdump`]), so the
-  Mac's native build computes the same bits as well.
+  Mac's native build computes the same bits as well [verified: an output
+  hash against GCC 12 x86-64 and i686 with SSE, 2026-10-02].
 - `build/fm1-limit-test` (`test/limit_test.cc`) reads the float output with
   no WAV and no bus limiter after it, and links the effect built once more
   with `FM1_LIMIT_PROBE`, which only records how far the envelope alone
@@ -805,7 +809,8 @@ Every FLOAT parameter here is SMOOTH and MOD (`FM1_PARAM_CONTINUOUS`),
 except Sophie's, which are LATCH and MOD: a triggered voice copies its pad's
 patch (`sophie.c`, `trigger_voice`), so Sophie reads all of them at note-on.
 The Limiter's Lookahead is NOLOCK: it sets the effect's latency, and a
-change crossfades between two delays and restarts the gain's hold.
+change crossfades between two delays and reshapes the gain's hold and
+boxes ("Limiter").
 `fm1_param_lockable`, `fm1_param_modulatable` and `fm1_param_index(engine,
 uid)` are the helpers. `fm1-render --list` prints each parameter's uid,
 flags (by name), unit and abbreviation. The four fields make `fm1_param_t`
@@ -834,7 +839,7 @@ Gain, Filter's Type and the Limiter's Mode with their effects.
 | drive | Type | none | A change crossfades the two curves over 5 ms, so a lock is clean. No MOD: a rounded route would step between Types, not sweep |
 | drive | Auto | none | Its gain glides like any other, so it can be locked |
 | comp | Character, Auto Rel, Auto Gain | none | Read every frame, and a change hands over or glides without a step, so they can be locked. Not effects of a note, so no LATCH. No MOD: a rounded route would flip the detector or the release at control rate |
-| limit | Mode | NOLOCK | Re-aims the gain computer, whose plan for the frames already in the lookahead line was made for the old mode; a set-up choice, not a performance control. A change crossfades the output stage over 5 ms |
+| limit | Mode | NOLOCK | A set-up choice, not a performance control. A change glides the output stage over 5 ms, frame by frame as the line delivers them (each frame carries the Mode its gain was made for), so it needs no lock guard; NOLOCK could be lifted (review, 2026-10-02) |
 
 **Units and abbreviations.** Echo's Time, Comp's Attack and Release,
 Sophie's Ring Time and the Limiter's Release and Lookahead are in ms,
