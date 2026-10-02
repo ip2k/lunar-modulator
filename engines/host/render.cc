@@ -23,17 +23,22 @@
 // The sequencer (engines/seq.md): --cmd FILE plays a timed Movy verb script
 // (host/seq_script.h) through the fm1_seq core, --seq FILE.movy1 loads a set
 // first, --log-events FILE.jsonl writes every sequencer event, --compat
-// selects Movy's exact behaviour, --tracks N sizes it. Each track goes to the
-// sound engine or to USB-MIDI (logged only): by default track 0 plays the
-// engine when there is one, or --route T:engine / --route T:midi:CH. Notes
-// and locks reach the engine at their own frame: the block is rendered in
-// pieces split at event frames. A lock sets the engine parameter its lane's
-// label names (`target:Name`, matched by name), scaled from 0..127. MIT
-// licence.
+// selects Movy's exact behaviour, --tracks N sizes it, --events N sizes the
+// event buffer each block's commands and advance share (default 65,536). Each
+// track goes to the sound engine or to USB-MIDI (logged only): by default
+// track 0 plays the engine when there is one, or --route T:engine / --route
+// T:midi:CH. Notes and locks reach the engine at their own frame: the block is
+// rendered in pieces split at event frames. A lock sets the engine parameter
+// its lane's label names (`target:Name`, matched by name), scaled from
+// 0..127. All of that per-block hosting is the shared bridge
+// (include/fm1_seq_host.h); the routing default above is this host's policy.
+// The summary adds seq_dropped (events past the buffer), seq_max_block_events
+// and seq_splits (render calls that start inside a block). MIT licence.
 
 #include "fm1_engine.h"
 #include "fm1_mix_limiter.h"
 #include "fm1_seq.h"
+#include "fm1_seq_host.h"
 #include "seq_script.h"
 
 #include <algorithm>
@@ -75,6 +80,7 @@ void Usage() {
       "                  [--fill BYTE] [--fault T[..T1]:VALUE]...\n"
       "                  [--cmd FILE] [--seq FILE.movy1] [--log-events FILE.jsonl]\n"
       "                  [--compat] [--tracks N] [--route T:engine|T:midi:CH]...\n"
+      "                  [--events N]\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
       "engine from the sequencer.\n");
@@ -93,31 +99,11 @@ struct Sequencer {
   fm1_script_t script;
   size_t next_cmd = 0;
   std::vector<fm1_seq_ev_t> ev;
+  fm1_seq_host_t host;               // the bridge over seq and ev
   FILE *log = NULL;
-  uint64_t events = 0, notes_to_engine = 0, locks_to_engine = 0;
-  Sequencer() { memset(&script, 0, sizeof(script)); }
+  uint64_t events = 0;
+  Sequencer() { memset(&script, 0, sizeof(script)); memset(&host, 0, sizeof(host)); }
 };
-
-// A lane's label is "target:Name" (Movy's "synth:cutoff"); the part after the
-// last ':' names the engine parameter, case-insensitively.
-int LaneParam(const fm1_engine_t *e, const char *label) {
-  const char *name = strrchr(label, ':');
-  name = name ? name + 1 : label;
-  for (uint16_t q = 0; q < e->n_params; ++q) {
-    if (strcasecmp(e->params[q].name, name) == 0) return q;
-  }
-  return -1;
-}
-
-// 0..127 onto the parameter's range: linear for FLOAT, Movy's planned bins
-// floor(v*n/128) for ENUM (docs/13 §6). Both follow FM1_SEQ_VAL_MAX.
-float LockValue(const fm1_param_t &p, unsigned v) {
-  if (p.type == FM1_PARAM_ENUM) {
-    const unsigned n = static_cast<unsigned>(p.max - p.min) + 1u;
-    return p.min + static_cast<float>(v * n / (FM1_SEQ_VAL_MAX + 1u));
-  }
-  return p.min + (p.max - p.min) * static_cast<float>(v) / static_cast<float>(FM1_SEQ_VAL_MAX);
-}
 
 struct Fault {                       // --fault: frames [first, last] get value
   double t0, t1;
@@ -168,6 +154,24 @@ bool Instantiate(Unit &u, const char *id, fm1_kind_t kind, const fm1_host_t &hos
 void Release(Unit &u) {
   if (u.self) u.e->destroy(u.self);
   free(u.mem);
+}
+
+// The bridge's sink: the sound engine, called exactly as the engine API says.
+void SinkRender(void *ctx, float *lr, uint32_t n) {
+  const Unit *u = static_cast<const Unit *>(ctx);
+  u->e->render(u->self, lr, n);
+}
+void SinkNoteOn(void *ctx, uint8_t note, uint8_t vel) {
+  const Unit *u = static_cast<const Unit *>(ctx);
+  u->e->note_on(u->self, note, vel);
+}
+void SinkNoteOff(void *ctx, uint8_t note) {
+  const Unit *u = static_cast<const Unit *>(ctx);
+  u->e->note_off(u->self, note);
+}
+void SinkSetParam(void *ctx, uint16_t index, float value) {
+  const Unit *u = static_cast<const Unit *>(ctx);
+  u->e->set_param(u->self, index, value);
 }
 
 bool ParseParam(const char *arg, std::vector<std::pair<std::string, float> > *out) {
@@ -257,6 +261,7 @@ int main(int argc, char **argv) {
   const char *cmd_path = NULL, *seq_path = NULL, *log_path = NULL;
   bool compat = false, seconds_given = false, rate_given = false, frames_given = false;
   int tracks = -1;
+  long events_cap = -1;            // --events: the block's event buffer
   std::vector<Route> routes;
 
   for (int i = 1; i < argc; ++i) {
@@ -276,6 +281,14 @@ int main(int argc, char **argv) {
     else if (a == "--seq") seq_path = next;
     else if (a == "--log-events") log_path = next;
     else if (a == "--tracks") tracks = atoi(next);
+    else if (a == "--events") {      // a decimal count: base 0 would read 010 as 8
+      char *end = NULL;
+      events_cap = strtol(next, &end, 10);
+      if (end == next || *end || events_cap < 1 || events_cap > 65536) {
+        fprintf(stderr, "--events wants 1..65536\n");
+        return 2;
+      }
+    }
     else if (a == "--route") {
       Route r;
       char kind[16] = {0};
@@ -349,6 +362,9 @@ int main(int argc, char **argv) {
   } else if (!routes.empty() || log_path || compat || tracks >= 0) {
     fprintf(stderr, "--route, --log-events, --compat and --tracks need --cmd or --seq\n");
     return 2;
+  } else if (events_cap > 0) {
+    fprintf(stderr, "--events needs --cmd or --seq\n");
+    return 2;
   }
   if (!engine_id && fx.empty() && input == "silence" && faults.empty() && !use_seq) { Usage(); return 2; }
   if (input != "silence" && input != "impulse" && input != "noise" && input != "sine") {
@@ -414,10 +430,16 @@ int main(int argc, char **argv) {
         return 2;
       }
     }
+    // This host's routing policy (engines/seq.md, Host contract): track 0
+    // plays the engine only with no --route, no routes in the set, and an
+    // engine loaded. An imported set without `rt` lines routes every track
+    // to MIDI channel t+1.
     if (routes.empty() && !set_routes && sound.e) fm1_seq_set_route(sq.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
     if (log_path && !(sq.log = fopen(log_path, "w"))) { fprintf(stderr, "cannot write %s\n", log_path); return 1; }
-    sq.ev.resize(65536);
+    sq.ev.resize(events_cap > 0 ? static_cast<size_t>(events_cap) : 65536u);
+    fm1_seq_host_init(&sq.host, sq.seq, sq.ev.data(), static_cast<uint32_t>(sq.ev.size()));
   }
+  const fm1_seq_sink_t sink = { &sound, sound.e, SinkRender, SinkNoteOn, SinkNoteOff, SinkSetParam };
 
   const uint32_t total = seq_end ? static_cast<uint32_t>(seq_end)
                                  : static_cast<uint32_t>(seconds * rate);
@@ -430,7 +452,6 @@ int main(int argc, char **argv) {
   double sine_phase = 0.0;
   double render_ns = 0.0, seq_ns = 0.0;
   uint32_t blocks = 0;
-  uint32_t n_seq = 0;
   bool implicit_play = use_seq && !cmd_path;   // --seq alone plays the set from the start
 
   for (uint32_t pos = 0; pos < total; pos += max_frames) {
@@ -466,58 +487,33 @@ int main(int argc, char **argv) {
         block[2 * f] = block[2 * f + 1] = x;
       }
     }
-    n_seq = 0;
     if (use_seq) {
+      // Commands due now, then the block (fm1_seq_host.h, steps 2-4).
       auto s0 = std::chrono::steady_clock::now();
-      fm1_seq_ev_t *ev = sq.ev.data();
-      const uint32_t cap = static_cast<uint32_t>(sq.ev.size());
       if (implicit_play) {
-        n_seq += fm1_seq_apply_text(sq.seq, "play", 4, ev, cap);
+        fm1_seq_host_line(&sq.host, "play", 4);
         implicit_play = false;
       }
       while (sq.next_cmd < sq.script.n && sq.script.cmds[sq.next_cmd].frame <= pos) {
         const char *ops = sq.script.cmds[sq.next_cmd].ops;
         if (!sq.script.cmds[sq.next_cmd].snap) {     // test directives are fm1-seq's
-          n_seq += fm1_script_apply(sq.seq, ops, ev + n_seq, cap - n_seq);
+          fm1_seq_host_line(&sq.host, ops, strlen(ops));
         }
         ++sq.next_cmd;
       }
-      n_seq += fm1_seq_advance(sq.seq, n, ev + n_seq, cap - n_seq);
+      const uint32_t n_seq = fm1_seq_host_advance(&sq.host, n);
       seq_ns += std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - s0).count();
       if (sq.log) {
-        for (uint32_t k = 0; k < n_seq; ++k) fm1_script_log_event(sq.log, blocks, pos, &ev[k]);
+        for (uint32_t k = 0; k < n_seq; ++k) fm1_script_log_event(sq.log, blocks, pos, &sq.ev[k]);
       }
       sq.events += n_seq;
     }
     auto t0 = std::chrono::steady_clock::now();
-    if (sound.e && use_seq) {
+    if (use_seq) {
       // Split the block at each event the engine receives (D1: an event's own
-      // frame; in compat mode every event is at the block start).
-      uint32_t cur = 0;
-      for (uint32_t k = 0; k < n_seq; ++k) {
-        const fm1_seq_ev_t &e = sq.ev[k];
-        fm1_seq_track_info_t ti;
-        if (e.kind != FM1_SEQ_EV_NOTE_ON && e.kind != FM1_SEQ_EV_NOTE_OFF && e.kind != FM1_SEQ_EV_LOCK) continue;
-        if (!fm1_seq_get_track(sq.seq, e.track, &ti) || ti.route_kind != FM1_SEQ_ROUTE_ENGINE) continue;
-        int param = -1;
-        if (e.kind == FM1_SEQ_EV_LOCK) {
-          param = LaneParam(sound.e, fm1_seq_lane_label(sq.seq, e.track, e.a));
-          if (param < 0) continue;
-        }
-        const uint32_t f = e.frame < n ? e.frame : n;
-        if (f > cur) {
-          sound.e->render(sound.self, block + 2 * cur, f - cur);
-          cur = f;
-        }
-        if (e.kind == FM1_SEQ_EV_NOTE_ON) { sound.e->note_on(sound.self, e.a, e.b); ++sq.notes_to_engine; }
-        else if (e.kind == FM1_SEQ_EV_NOTE_OFF) sound.e->note_off(sound.self, e.a);
-        else {
-          sound.e->set_param(sound.self, static_cast<uint16_t>(param),
-                             LockValue(sound.e->params[param], e.b));
-          ++sq.locks_to_engine;
-        }
-      }
-      if (cur < n) sound.e->render(sound.self, block + 2 * cur, n - cur);
+      // frame; in compat mode every event is at the block start). Without an
+      // engine the events are only logged.
+      fm1_seq_host_dispatch(&sq.host, n, block, sound.e ? &sink : NULL);
     } else if (sound.e) {
       sound.e->render(sound.self, block, n);
     }
@@ -574,11 +570,14 @@ int main(int argc, char **argv) {
     fm1_seq_stats_t st;
     fm1_seq_get_stats(sq.seq, &st);
     printf(",\"seq_bytes\":%zu,\"seq_events\":%llu,\"seq_notes_to_engine\":%llu,"
-           "\"seq_locks_to_engine\":%llu,\"seq_refused\":%lu,\"seq_ns_per_block\":%.1f",
+           "\"seq_locks_to_engine\":%llu,\"seq_refused\":%lu,\"seq_dropped\":%lu,"
+           "\"seq_max_block_events\":%lu,\"seq_splits\":%llu,\"seq_ns_per_block\":%.1f",
            sq.mem.size() - 8u, static_cast<unsigned long long>(sq.events),
-           static_cast<unsigned long long>(sq.notes_to_engine),
-           static_cast<unsigned long long>(sq.locks_to_engine),
-           static_cast<unsigned long>(st.refused), blocks ? seq_ns / blocks : 0.0);
+           static_cast<unsigned long long>(sq.host.notes_to_engine),
+           static_cast<unsigned long long>(sq.host.locks_to_engine),
+           static_cast<unsigned long>(st.refused), static_cast<unsigned long>(st.dropped_events),
+           static_cast<unsigned long>(sq.host.max_n),
+           static_cast<unsigned long long>(sq.host.splits), blocks ? seq_ns / blocks : 0.0);
     if (sq.log) fclose(sq.log);
     fm1_script_free(&sq.script);
   }
