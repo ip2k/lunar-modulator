@@ -29,11 +29,43 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
 | `diffuse` | Diffuse | effect | – | Plaits' diffuser | [mi-fx.md](mi-fx.md) |
 | `sw-psxverb` | PSX Verb | effect | – | a Schwung module (Charles Vestal, MIT), through the shim | [schwung.md](schwung.md) |
+| `crush` | Crush | effect | – | this repository, after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT) | [below](#crush); a bitcrusher and sample-rate reducer |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
 engine's `credits` string and named without MI's trademarks
 (`third_party/mutable/UPSTREAM.md`).
+
+## Crush
+
+`src/fx_crush.cc` is our own code (MIT): an audio-rate sample-and-hold
+followed by a quantiser, the pairing of DaisySP's `Decimator` and `Bitcrush`
+(Electro-Smith, MIT). No DaisySP code is used, and none of Plaits' vendored
+`SampleRateReducer` either, which the roadmap had proposed: ours adds jitter
+and fractional bits. Per frame, with one hold clock for both channels:
+
+    guard -> hold (Rate, Jitter) -> quantise (Bits) -> low-pass (Tone) -> x Level = wet
+    out = dry x (1 - Mix) + wet x Mix
+
+| Page | Knob | Range, default | What it does |
+| --- | --- | --- | --- |
+| 1 | Bits | 1–16, 8 | Quantiser step 2^(1 − Bits), the step of a Bits-bit converter spanning ±1; fractional values sweep smoothly. Mid-tread (round to the nearest step): zero is a level, so silence stays silent and no DC appears. Quiet input falls under the first step at low Bits: at 1 bit the levels are −1, 0 and +1, and the host's ±0.5 noise comes out silent |
+| 1 | Rate | 0–1, 0.75 | The hold rate on a log scale, 100 Hz × (host rate / 100 Hz)^Rate: 100 Hz at 0, 9,626 Hz at the default (a hold of 4.58 samples at 44,118 Hz), every sample at 1. Holds of a fractional length alternate between its floor and ceiling and average to it exactly |
+| 1 | Jitter | 0–1, 0 | Each hold's length × (1 + 0.9 × Jitter × u), u uniform in [−1, 1), at least one sample. The mean rate is kept wherever the hold is 10 samples or longer (Rate up to about 0.62); faster, the one-sample floor lengthens it (by 22.5 % at Rate 1, Jitter 1). u comes from the instance's own xorshift32, seeded alike in every `create`, so renders repeat exactly |
+| 1 | Mix | 0–1, 1 | A linear crossfade; 0 is the dry signal exactly |
+| 2 | Tone | 0–1, 1 | A one-pole low-pass on the wet signal, coefficient k₀^(1 − Tone) with k₀ for 150 Hz: about 150 Hz at 0, 1.1 kHz at 0.5, 8 kHz at 0.9, and no filter at 1 |
+| 2 | Level | 0–2, 1 | The wet signal's gain |
+
+The input passes the same guard as the Mutable effects' (NaN reads as 0,
+anything beyond ±16 is clamped, dry path included), and the hold clock never
+looks at the samples, so bad input cannot latch the effect: once the next
+hold is taken the output is the clean render's again [verified:
+tests/test_engines_crush.py]. The low-pass state is flushed to zero below
+10^-20 so a tail never goes subnormal on pi32v2. An instance is 96 bytes on
+a 64-bit desktop, all floats and one `uint32_t`, so the same on 32-bit
+[inferred]. On this desktop (Apple M1 Max) it took 400–500 ns per 64-frame block,
+about 0.03 % of the block, against Plate's 900 ns in the same run
+[verified: fm1-render's `ns_per_block`, 20 s of noise].
 
 ## Layout
 

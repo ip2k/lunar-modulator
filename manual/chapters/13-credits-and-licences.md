@@ -25,6 +25,9 @@ terms it is used under.
   with a compatibility layer of its own, so that Schwung modules such as
   Sophie and PSX Verb build from their own source. Schwung's licence notes
   that it began as a fork of Move Anything by Bobby Digitales.
+- **Crush** is this project's own code. Pairing a sample-rate reducer with a
+  bit reducer follows **DaisySP**'s Decimator and Bitcrush, by
+  **Electro-Smith**, MIT licence; none of DaisySP's code is used.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and

@@ -9,6 +9,15 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Crush**, a new effect: a bitcrusher and sample-rate reducer. Bits (1 to
+  16, smooth between whole numbers), Rate (100 Hz up to every sample, on an
+  even pitch scale), Jitter (random hold lengths that repeat exactly each
+  time) and Mix on the first page; Tone (a low-pass on the crushed sound) and
+  Level on the second. Silence stays silent at any setting. Our own code,
+  after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT); documented in
+  `engines/README.md` and chapter 6 of the manual, tested in
+  `tests/test_engines_crush.py`. It reaches the browser simulator when its
+  module is next rebuilt.
 - The user manual (`manual/`, `tools/manual/`): chapters for welcome and
   safety, getting started, a panel tour with a measured drawing of the panel,
   playing, the sound engines, effects, the sequencer, MIDI, settings,

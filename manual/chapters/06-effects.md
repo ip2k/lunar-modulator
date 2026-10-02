@@ -25,7 +25,7 @@ pages, then the second slot's. The bottom bar shows where you are, such as
 *1/2 FX2*: page 1 of 2, second slot.
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
-*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb and Test Gain, and round
+*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush and Test Gain, and round
 again. In the simulator you can also use the **Effect 1** and **Effect 2**
 lists under the panel.
 
@@ -154,6 +154,42 @@ room to a hall and Space Echo.
 PSX Verb takes about 131 KB of memory, the most of any effect.
 
 {{engine-table sw-psxverb}}
+
+## Crush
+
+{{status sim desktop planned}}
+
+A bitcrusher and sample-rate reducer, for the grit of early samplers and game
+consoles. It holds each sample for a while and rounds it to a coarse step, so
+the sound loses its top end in a shower of aliasing and its quiet detail in
+buzz. Both channels are held at the same moments.
+
+- **Bits** sets how fine the steps are, from 16, all but untouched, down to
+  1. It turns smoothly between whole numbers, so it can sweep. Silence stays
+  silent at any setting, but at very low Bits quiet sounds fall under the
+  first step and drop out: at 1 bit only full-scale sound comes through.
+- **Rate** sets how often a new sample is taken, from 100 times a second at
+  the left to every sample at the right; the default is about 9,600. The
+  scale is even in pitch, so each step of the knob sounds alike.
+- **Jitter** makes each hold a little longer or shorter at random, which
+  roughens the tone and smears the aliasing into noise. At the left every
+  hold is the same length. The randomness repeats exactly each time the
+  effect starts.
+- **Mix** fades from the dry sound at the left to the crushed sound alone at
+  the right, the default.
+- **Tone**, on page 2, darkens the crushed sound: at the right nothing is
+  filtered, at the left only the lows below about 150 Hz remain.
+- **Level**, on page 2, sets how loud the crushed sound is, up to twice its
+  level.
+
+!!! tip "Starting points"
+    - **Old sampler:** Bits 12, Rate about 0.8, Tone about 0.8.
+    - **Broken game console:** Bits 4, Rate about 0.5, Jitter a little.
+    - **Radio static:** Bits 2 to 3, Rate low, Jitter high, Mix about 0.5.
+    - Turn the engine up rather than Level when low Bits makes a quiet
+      sound vanish: the steps are fixed against full scale.
+
+{{engine-table crush}}
 
 ## Test Gain
 
