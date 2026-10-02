@@ -41,3 +41,27 @@ PLAITS_HEAVY_TP := \
   stmlib/utils/random.cc
 
 TP_SRC += $(filter-out $(TP_SRC),$(PLAITS_HEAVY_TP))
+
+# fm1-render-original-names: fm1-render with Six-Op FM built with
+# -DFM1_SIXOP_ORIGINAL_NAMES, so its Patch list shows the names stored in the
+# patch data rather than the public ones (plaits-heavy.md, "The patch data").
+# Built with everything else, so CI's 32-bit and sanitizer builds make it with
+# their own flags; it costs one more compile of mi_sixop.cc and a link. The
+# tests check that it lists the stored names and renders the same bytes.
+.DEFAULT_GOAL := all
+
+SIXOP_ORIGINAL_NAMES_OBJ := $(BUILD)/original-names/src/mi_sixop.o
+
+all: $(BUILD)/fm1-render-original-names
+
+# fm1-render as a prerequisite builds every object it links; the link line is
+# expanded when it runs, after the main Makefile has set RENDER_OBJ.
+$(BUILD)/fm1-render-original-names: $(SIXOP_ORIGINAL_NAMES_OBJ) $(BUILD)/fm1-render
+	$(CXX) $(OPT) $(EXTRA) -o $@ $(SIXOP_ORIGINAL_NAMES_OBJ) \
+	  $(filter-out $(BUILD)/our/src/mi_sixop.o,$(RENDER_OBJ)) -lm
+
+$(SIXOP_ORIGINAL_NAMES_OBJ): src/mi_sixop.cc
+	@mkdir -p $(dir $@)
+	$(CXX) $(COMMON) $(OUR_WARN) -DFM1_SIXOP_ORIGINAL_NAMES -c $< -o $@
+
+-include $(SIXOP_ORIGINAL_NAMES_OBJ:.o=.d)

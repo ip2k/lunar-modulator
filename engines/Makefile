@@ -51,11 +51,15 @@ TP_SRC := \
 
 OUR_OBJ := $(patsubst %.cc,$(BUILD)/our/%.o,$(OUR_SRC))
 TP_OBJ := $(patsubst %.cc,$(BUILD)/tp/%.o,$(TP_SRC))
+# Everything fm1-render links. Fragments add objects built by rules of their
+# own (Schwung's C modules) to RENDER_EXTRA_OBJ; a variant of the renderer
+# (mk/plaits-heavy.mk) links this list with one object swapped.
+RENDER_OBJ = $(OUR_OBJ) $(TP_OBJ) $(RENDER_EXTRA_OBJ)
 
 .PHONY: all clean
 all: $(BUILD)/fm1-render
 
-$(BUILD)/fm1-render: $(OUR_OBJ) $(TP_OBJ)
+$(BUILD)/fm1-render: $(RENDER_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
 $(BUILD)/our/%.o: %.cc
