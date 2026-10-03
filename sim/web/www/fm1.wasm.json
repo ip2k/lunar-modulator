@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "8b8a8a03197609b3a95985968f00d7fd6c2c6ba4b94121052dce243a2936054f",
-  "wasm_bytes": 513835,
+  "wasm_sha256": "63b6292a3306b60e3f35afb1c3a604364c9d7b982350219ea0b5bbec9d3f991a",
+  "wasm_bytes": 515934,
   "sources_sha256": {
-    "engines": "45a54b6d10770f9b970af9ced29d49a80ad7ee08c1e8ae7639766cecd8310663",
-    "sim": "1a8ed8312616eb1949848e04ba5b94359955a0a1dc7a2afeb23392e66f039557"
+    "engines": "6c1756fd5022b41d3f168ff6ffd6bdec112039c493a5a85e711a542edec9daa5",
+    "sim": "bc844cca9b517ec65b46b390554bdda8c48d98ca16289217cb7d30835d3c14f9"
   },
   "engines": "working tree",
-  "built": "2026-10-02T22:38:33Z",
+  "built": "2026-10-03T01:10:23Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 37,
+    "passed": 39,
     "failed": 0,
-    "identical_to_js": 37,
-    "identical_to_musl": 37,
-    "identical_to_glibc": 34,
+    "identical_to_js": 39,
+    "identical_to_musl": 39,
+    "identical_to_glibc": 36,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -641,7 +641,7 @@
       }
     },
     {
-      "name": "filter-diode-steiner",
+      "name": "filter-diode-skmixed",
       "samples": 88236,
       "libm_sensitive": false,
       "app_vs_js": {
@@ -685,7 +685,7 @@
       }
     },
     {
-      "name": "filter-k35-svf",
+      "name": "filter-sallenkey-svf",
       "samples": 79412,
       "libm_sensitive": false,
       "app_vs_js": {
@@ -729,6 +729,50 @@
       }
     },
     {
+      "name": "switches-filter-drive-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 72632,
+        "native64": 85304
+      }
+    },
+    {
+      "name": "switches-comp-limit-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 65240,
+        "native64": 77912
+      }
+    },
+    {
       "name": "comp-glue-parallel",
       "samples": 105882,
       "libm_sensitive": false,
@@ -746,8 +790,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 119848,
-        "native64": 132536
+        "wasm32": 119864,
+        "native64": 132552
       }
     },
     {
@@ -768,8 +812,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 72392,
-        "native64": 85064
+        "wasm32": 76040,
+        "native64": 88712
       }
     },
     {

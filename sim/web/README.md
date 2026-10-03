@@ -283,11 +283,12 @@ The screen the browser module draws matches the native harness's pixel for
 pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 
 The module links the sequencer core, its host bridge and, since stage S3,
-its panel UI and Track view, with step entry since S4: 37 of 37 scenarios
-pass, identical to musl and to render.js, and it imports nothing; it is
-512,338 bytes, up from 482,291 before the second effects pack (Drive,
-Filter, Comp, Limiter), 466,635 before S4, 459,122 before S3 and 391 KB
-before the sequencer [verified, 2026-10-02, `www/fm1.wasm.json`].
+its panel UI and Track view, with step entry since S4: 39 of 39 scenarios
+pass, identical to musl and to render.js (two of them turn the effects'
+switches every 4.4 ms), and it imports nothing; it is 515,934 bytes, up
+from 482,291 before the second effects pack (Drive, Filter, Comp,
+Limiter), 466,635 before S4, 459,122 before S3 and 391 KB before the
+sequencer [verified, 2026-10-02, `www/fm1.wasm.json`].
 
 The sequencer's own cost in WebAssembly, measured with `fm1-render.js` under
 Node 24.19 in the emsdk container on aeon: tools/seq_bench.py's burst (8

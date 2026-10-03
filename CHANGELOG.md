@@ -22,9 +22,10 @@ history.
     the sound; the app's native harness takes it too, and the scenarios'
     `fx_param_at` drives the browser module the same way. A test keeps
     every effect turned in some scenario.
-  - 37 of 37 parity scenarios pass, identical to musl and to render.js;
+  - 39 of 39 parity scenarios pass, identical to musl and to render.js
+    (two of them turn every switch of the new effects every 4.4 ms);
     1,016 screens pass the layout check (102 new). The browser module grew
-    from 482 KB to 512 KB.
+    from 482 KB to 516 KB.
 - **Filter**, a new effect: seven classic filter types in one, every knob a
   modulation target. Type picks SVF (low-pass, band-pass, high-pass, notch),
   Ladder (24, 18, 12 or 6 dB per octave), Diode (a 303-style diode ladder),
