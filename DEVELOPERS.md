@@ -573,7 +573,15 @@ which lands with the plan PR; its stages S0–S7 are named below.
 
 **More effects** · *Planned*
 - **Done so far (2026-10-02):** Crush, Fold, Drive, Echo, Filter, Comp and Limiter, our own code
-  ([`engines/README.md`](engines/README.md#crush)). Crush adds jitter and
+  ([`engines/README.md`](engines/README.md#crush)). Their switch-like
+  controls (Filter's Type, Drive's Type and Auto, Comp's Character, Auto
+  Rel and Auto Gain, the Limiter's Mode and Lookahead) change without a
+  click, so they can be locked and modulated: the rule is that a switch
+  that changes cleanly is lockable and modulatable
+  ([`engines/README.md`](engines/README.md#parameters-engine-api-v2)).
+  Filter's types are named for their circuits (Sallen-Key, SK Mixed),
+  never for a maker; Comp's Auto Gain is capped at 24 dB and never pushes
+  an input under full scale past it. Crush adds jitter and
   fractional bits, so it does not use Plaits' `SampleRateReducer`. Echo
   keeps its own fixed 64 KB per instance and slows its clock beyond 371 ms,
   like a bucket-brigade delay, rather than taking the shared arena; it has

@@ -28,15 +28,20 @@ history.
 - **Filter**, a new effect: seven classic filter types in one, every knob a
   modulation target. Type picks SVF (low-pass, band-pass, high-pass, notch),
   Ladder (24, 18, 12 or 6 dB per octave), Diode (a 303-style diode ladder),
-  K35 (an MS-20-style Sallen-Key), Steiner (a gritty Steiner-Parker-style
-  filter with low-pass, band-pass and high-pass inputs), Comb (tuned by
+  Sallen-Key (bright and aggressive, after the Korg-35 filter of the later
+  MS-20), SK Mixed (a gritty mixed-input Sallen-Key, after the
+  Steiner-Parker Synthacon's filter, with low-pass, band-pass and
+  high-pass inputs), Comb (tuned by
   Cutoff, positive or negative, peaks or notches) or Formant (the vowels
   A-E-I-O-U for men, women and children). Cutoff runs 20 Hz to 18 kHz;
   Resonance goes up to self-oscillation, in tune with Cutoff, on all five
   analogue-style types; Drive saturates. On the second page, Mode (the
   response, slope, input or voice, blended between), Morph (stereo spread,
-  comb polarity or the vowel), Mix and Level. Changing Type crossfades over
-  5 ms, so it never clicks, and the sequencer may lock it. Silence stays
+  comb polarity or the vowel), Mix and Level. Changing Type starts the new
+  filter unheard and then crossfades to it, within 10 ms, so it never
+  clicks, even changed on every step: the sequencer may lock it and
+  modulation may step through the types. The types are named for their
+  circuits, never for a maker. Silence stays
   silent at any setting. Our own code (MIT), after Zavalishin's *The Art of
   VA Filter Design*, Andrew Simper's SVF, Huovilainen's ladder, the
   Korg35, diode-ladder and Steiner-Parker circuits, Zölzer's universal comb
@@ -55,7 +60,8 @@ history.
   thinner to the right, flat in the middle) and Mix on the first page; Bias
   (uneven clipping), Gate (quiet parts drop out, a sputtering fuzz), Level
   and Auto on the second. With Auto on, the default, Drive changes the
-  character and not the loudness. Its anti-aliasing keeps the harsh tones a
+  character and not the loudness. Type and Auto can be locked and
+  modulated without clicks. Its anti-aliasing keeps the harsh tones a
   plain digital clipper folds back below 5 kHz 21–29 dB lower. Silence stays
   silent at any setting. Parameters and design in `engines/README.md`, and
   a section in chapter 6 of the manual. Two new parity scenarios cover it.
@@ -67,9 +73,12 @@ history.
   response, Punch lets the front of each hit through. On a third page,
   Auto Rel makes the release follow the music (quick after short peaks,
   slow after long loud passages) and Auto Gain sets the makeup so that a
-  full-scale sound stays at full scale. Both channels are compressed
-  together. Silence stays silent, knob turns glide, and switching Character
-  or Auto Rel mid-note does not jump. It computes the same bits on the
+  full-scale sound stays at full scale, up to 24 dB of it, and never
+  pushes anything past full scale, not even the start of a hit before the
+  attack has caught up (it rounds that peak off along the compressor's
+  curve instead). Both channels are compressed together. Silence stays
+  silent, knob turns glide, and Character, Auto Rel and Auto Gain switch
+  mid-note without a jump, so they can be locked and modulated. It computes the same bits on the
   desktop and in the browser's WebAssembly. Parameters and design in
   `engines/README.md`, a section in chapter 6 of the manual; a new parity
   scenario covers it. For developers,
@@ -84,9 +93,11 @@ history.
   untouched, only delayed by the lookahead. Lookahead 0 adds no delay and
   catches peaks with a gentle soft clip instead; Soft Clip mode rounds
   peaks off for a louder, warmer sound. Turning Lookahead or switching Mode
-  while it is limiting fades smoothly and never flattens a peak (in review,
-  a change could briefly hard-clip peaks far over the ceiling; fixed
-  before release). It uses about 9 KB of memory at 44.1 kHz. The
+  while it is limiting fades smoothly and never flattens a peak, even on
+  every step, so both can be locked and modulated (in review, a change
+  could briefly hard-clip peaks far over the ceiling, and a fast run of
+  Lookahead changes could click; both fixed before release). It uses about
+  11 KB of memory at 44.1 kHz. The
   firmware's own output limiter stays after every effect. Written for this project (MIT), after Geraint
   Luff's look-ahead limiter design; parameters and design in
   `engines/README.md`, tested in `tests/test_engines_limit.py`, and a

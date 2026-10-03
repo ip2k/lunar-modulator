@@ -44,10 +44,13 @@ terms it is used under.
 - **Filter** is this project's own code: zero-delay-feedback filters after
   **Vadim Zavalishin**'s *The Art of VA Filter Design*, **Andrew Simper**'s
   (Cytomic) state-variable filter, **Antti Huovilainen**'s ladder model
-  (DAFx-04), the Korg35, diode-ladder and Steiner-Parker circuits, and
-  **Udo Zölzer**'s universal comb (*DAFX*); its non-linear solver follows a
-  method **Teemu Voipio** published, and its vowels are the measurements of
-  **Peterson and Barney** (1952). No code is taken from any of them.
+  (DAFx-04), the diode-ladder circuit, and **Udo Zölzer**'s universal comb
+  (*DAFX*); its Sallen-Key type is after the Korg-35 filter of the later
+  MS-20, and its SK Mixed type after the Steiner-Parker Synthacon's filter
+  (their makers' names appear here only as credit); its non-linear solver
+  follows a method **Teemu Voipio** published, and its vowels are the
+  measurements of **Peterson and Barney** (1952). No code is taken from any
+  of them.
 - **Comp** is this project's own code, after the compressor design of
   **Giannoulis, Massberg and Reiss** (*Journal of the Audio Engineering
   Society*, 2012). No code is taken from anyone.

@@ -241,7 +241,8 @@ up into a curve that flattens its peaks, from a gentle warmth to a buzzing
 fuzz. Each channel is shaped on its own.
 
 - **Type** chooses the curve. Changing it fades from one to the next in a
-  few milliseconds, so it does not click.
+  few milliseconds, so it does not click, even when the sequencer or a
+  modulation source changes it on every step.
     - **Soft:** smooth, rounded saturation, the most even-tempered.
     - **Tube:** lopsided, so it adds a warm second harmonic even when barely
       driven, and squashes one side of the wave before the other.
@@ -335,8 +336,10 @@ away part of the sound's spectrum, the highs, the lows or a band, and as
 Resonance rises it rings at the cutoff, up to a whistle of its own. Each
 channel is filtered on its own, so Morph can pull them apart.
 
-- **Type** chooses the filter. Changing it fades from the old one to the new
-  in a few milliseconds, so it does not click.
+- **Type** chooses the filter. Changing it starts the new one quietly in
+  the background, then fades over to it, all within about 10 milliseconds,
+  so it does not click, even when the sequencer or a modulation source
+  changes it on every step.
     - **SVF:** a clean state-variable filter. Mode picks low-pass, band-pass,
       high-pass or notch.
     - **Ladder:** the classic four-stage ladder, the default: round and
@@ -344,12 +347,12 @@ channel is filtered on its own, so Morph can pull them apart.
       is, from 24 dB per octave down to 6.
     - **Diode:** a diode ladder in the style of the TB-303: rubbery and
       squelchy at high Resonance. Mode as for Ladder.
-    - **K35:** the MS-20-style Sallen-Key filter: bright and aggressive, it
-      screams as Resonance rises. Mode picks low-pass, band-pass, high-pass
-      or notch.
-    - **Steiner:** a gritty, uneven filter in the style of the
-      Steiner-Parker. Mode picks which input the sound goes into: low-pass,
-      band-pass, high-pass, or a notch.
+    - **Sallen-Key:** a Sallen-Key filter, after the Korg-35 filter of the
+      later MS-20: bright and aggressive, it screams as Resonance rises.
+      Mode picks low-pass, band-pass, high-pass or notch.
+    - **SK Mixed:** a mixed-input Sallen-Key, after the Steiner-Parker
+      Synthacon's filter: gritty and uneven. Mode picks which input the
+      sound goes into: low-pass, band-pass, high-pass, or a notch.
     - **Comb:** a short echo tuned by Cutoff, which makes metallic,
       flanger-like peaks or notches at the multiples of that pitch. Mode
       goes from peaks at the left to notches at the right; Morph sets their
@@ -362,15 +365,17 @@ channel is filtered on its own, so Morph can pull them apart.
 - **Cutoff** sets where the filter works, from 20 Hz to 18 kHz; the default
   is 2 kHz. When a filter rings on its own, it rings at this pitch.
 - **Resonance** emphasises the sound around Cutoff. Near the right, from
-  about 0.93, SVF, Ladder, Diode, K35 and Steiner whistle on their own, in
-  tune with Cutoff (Steiner a little flat). On Comb it sets how long the
+  about 0.93, SVF, Ladder, Diode, Sallen-Key and SK Mixed whistle on their
+  own, in tune with Cutoff (SK Mixed a little flat). On Comb it sets how
+  long the
   echo rings; on Formant, how narrow the vowels are.
 - **Drive** pushes the sound into the filter's saturation: quiet sounds come
   up to 12 dB louder, loud ones thicken and grit.
 - **Mode**, on page 2, changes the response as each Type above describes.
   It turns smoothly: between two positions you hear a blend of both.
-- **Morph**, on page 2, spreads the two channels for SVF, Ladder, Diode, K35
-  and Steiner: at the right, the left channel's cutoff is up to an octave
+- **Morph**, on page 2, spreads the two channels for SVF, Ladder, Diode,
+  Sallen-Key and SK Mixed: at the right, the left channel's cutoff is up to
+  an octave
   lower and the right's an octave higher. On Comb and Formant it does what
   their entries above say.
 - **Mix**, on page 2, fades from the dry sound at the left to the filtered
@@ -385,7 +390,7 @@ knobs glide over a few milliseconds, so turning them does not click.
     - **Acid bass:** Diode, Cutoff about 400 Hz, Resonance about 0.8, Drive
       about 0.5, low notes, and turn Cutoff while they play.
     - **Talking pad:** Formant, Resonance about 0.6, and sweep Morph slowly.
-    - **Screaming lead:** K35, Resonance about 0.9, Drive about 0.3.
+    - **Screaming lead:** Sallen-Key, Resonance about 0.9, Drive about 0.3.
     - **Metallic ring:** Comb, Cutoff on the note you play, Resonance about
       0.8.
     - **Wide sweep:** Ladder, Morph about 0.3, and sweep Cutoff.
@@ -437,12 +442,22 @@ does not move.
   short peak the sound comes back quickly; after a long loud passage,
   slowly. Short hits leave no holes and long notes do not pump.
 - **Auto Gain**, on page 3, sets the makeup for you, so that a sound at
-  full scale stays at full scale however Threshold, Ratio and Knee are set.
-  Makeup then adds to it or takes from it.
+  full scale stays at full scale however Threshold, Ratio and Knee are set,
+  up to 24 dB of it: past that, at very low thresholds and high ratios,
+  the sound comes out quieter. It never pushes a sound past full scale:
+  even the start of a hit, before Attack has caught up, is turned down
+  just as far as the compression would turn it down once settled, so a
+  sound that does not pass full scale on the way in does not pass it on
+  the way out. Where it has to do that it rounds the peaks of the wave
+  off, a little like a soft clip, so with a slow Attack the starts of
+  notes can sound slightly grittier; a shorter Attack, or the Limiter for
+  a clean ceiling, avoids it. Makeup then adds to it or takes from it; with
+  Makeup above 0 the output can pass full scale by that much.
 
 Silence stays silent at any setting, and the knobs glide over a few
-milliseconds, so turning them does not click; changing Character or Auto
-Rel while Comp is working does not jump either.
+milliseconds, so turning them does not click; changing Character, Auto Rel
+or Auto Gain while Comp is working does not jump either, so the sequencer
+and modulation sources can change them on every step.
 
 !!! tip "Starting points"
     - **Tighter drums:** Peak, Threshold about −20, Ratio 4, Attack about
@@ -491,8 +506,9 @@ so nothing passes its ceiling, and it leaves anything quieter untouched.
   limiting). Below the right end, the output can pass the ceiling.
 
 Turning Lookahead fades from the old delay to the new, and switching Mode
-fades too, so neither clicks; the sequencer does not lock either of them.
-The other knobs glide over a few milliseconds.
+fades too, so neither clicks, even when the sequencer or a modulation
+source changes them on every step; the ceiling holds throughout. The other
+knobs glide over a few milliseconds.
 
 !!! tip "Starting points"
     - **Safety on the whole sound:** in the second slot, Ceiling −1 dB, the

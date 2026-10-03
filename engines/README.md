@@ -33,7 +33,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
 | `drive` | Drive | effect | – | this repository | overdrive and saturation: Soft, Tube, Diode, Fuzz and Tape, anti-aliased; [below](#drive) |
 | `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
-| `filter` | Filter | effect | – | this repository | seven filter types (SVF, ladder, diode ladder, Sallen-Key, Steiner, comb, formant), zero-delay feedback; [below](#filter) |
+| `filter` | Filter | effect | – | this repository | seven filter types (SVF, ladder, diode ladder, Sallen-Key, mixed-input Sallen-Key, comb, formant), zero-delay feedback; [below](#filter) |
 | `comp` | Comp | effect | – | this repository, after Giannoulis, Massberg and Reiss (JAES 2012) | a feed-forward compressor: peak or RMS, soft knee, parallel mix; [below](#comp) |
 | `limit` | Limiter | effect | – | this repository, after Geraint Luff's look-ahead limiter design | a look-ahead brickwall limiter, 0–5 ms; [below](#limiter) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
@@ -270,9 +270,11 @@ their unit is `none`.
   the two curves over 5 ms (both evaluated on the same input): on a sine at
   Drive 24 the largest step between samples at a change is no larger than
   in steady playing (0.190 against 0.196), where switching at once would
-  make 0.435 [verified: `fm1-drive-test`]. Type and Auto take locks but no
-  modulation: a rounded route would step between Types, not sweep. Filter
-  states below 10⁻²⁰ flush to zero.
+  make 0.435 [verified: `fm1-drive-test`]. Type and Auto take locks and
+  modulation (rounded): switched every third block, faster than the
+  crossfade, they step the output no more than holding either value does
+  [verified: tests/test_engines_fx_switches.py]. Filter states below 10⁻²⁰
+  flush to zero.
 - **Determinism:** no libm beyond `floorf`, `fabsf` and `sqrtf`, which IEEE
   754 defines exactly; 2^x, sine and cosine for the controls are
   polynomials in the file. A `#pragma STDC FP_CONTRACT OFF` keeps clang
@@ -282,7 +284,9 @@ their unit is `none`.
   docs/14's `-ffp-contract=off`. `fm1-drive-test
   hash`, the bits of 2 s of output per Type with every parameter moving,
   is the same from Apple clang on arm64, GCC 12 on x86-64 and GCC 12 at
-  `-m32 -msse2 -mfpmath=sse` [verified, 2026-10-02]; x87 arithmetic
+  `-m32 -msse2 -mfpmath=sse` [verified, 2026-10-02], and with Type and
+  Auto turned every third block the same again, and from Emscripten 6.0.10
+  under Node [verified, 2026-10-02]; x87 arithmetic
   (`-m32` alone) differs, as its excess precision does everywhere. JieLi's
   clang 4.0.1 compiles the file for pi32v2 without a warning at `-O2` and
   `-Oz`, with identical code at `-ffp-contract=off` and `=fast` [verified].
@@ -377,9 +381,9 @@ Stereo in, stereo out.
 
 | Page | Knob | Range (default) | What it does |
 | --- | --- | --- | --- |
-| 1 | Type | SVF, Ladder, Diode, K35, Steiner, Comb, Formant (Ladder) | The filter. A change crossfades the old type into the new one over 5 ms; the new one starts from rest |
+| 1 | Type | SVF, Ladder, Diode, Sallen-Key, SK Mixed, Comb, Formant (Ladder) | The filter. A change starts the new type from rest, unheard, with its input faded in over 5 ms, then crossfades into it over 5 ms more |
 | 1 | Cutoff | 20 Hz–18 kHz, log (2 kHz) | The corner, or the resonance: where each type self-oscillates. Never above 0.45 of the host rate (3.6 kHz at 8 kHz) |
-| 1 | Resonance | 0–1 (0.25) | Up to self-oscillation for SVF, Ladder, Diode, K35 and Steiner (from about 0.93–0.96); Comb's loop gain; Formant's bandwidth |
+| 1 | Resonance | 0–1 (0.25) | Up to self-oscillation for SVF, Ladder, Diode, Sallen-Key and SK Mixed (from about 0.93–0.96); Comb's loop gain; Formant's bandwidth |
 | 1 | Drive | 0–1 (0) | Input gain 1× to 16× into the filter's saturating curves, output down by its square root: quiet signals up to 12 dB louder, loud ones saturate |
 | 2 | Mode | 0–3, continuous (0) | Per type, below; between whole numbers the two neighbours are blended |
 | 2 | Morph | 0–1 (0) | Spread for the five analogue-style types (left channel up to an octave down, right up); polarity for Comb; the vowel for Formant |
@@ -391,8 +395,8 @@ Stereo in, stereo out.
 | SVF | Andrew Simper's (Cytomic) trapezoidal state-variable filter | low-pass / band-pass / high-pass / notch | Linear but for its self-oscillation: the damping goes slightly negative at the top of Resonance and an energy term (bp² + lp², last sample) holds the oscillation at a fixed, sinusoidal level |
 | Ladder | the transistor ladder (Huovilainen, DAFx-04; Zavalishin ch. 5) | 24 / 18 / 12 / 6 dB/octave (taps on the 4th to the 1st stage) | One saturating curve where the feedback meets the input. Self-oscillates from k = 4 |
 | Diode | a TB-303-style diode ladder: four coupled capacitors, written here from the node equations | as Ladder | The coupled stages make a tridiagonal system. Analysed here: it oscillates at k = 18.39 and 1.195× its integrators' frequency, and with no feedback it is already −3 dB at 0.119× [verified: tests and a numerical scan]. Its tuning follows a fitted curve between the two, so Cutoff is near −3 dB with no resonance and the pitch at full resonance |
-| K35 | the Korg35 Sallen-Key low-pass of the later Korg MS-20 (Zavalishin ch. 5; Will Pirkle's application note) | low-pass / band-pass / high-pass / notch | H = 1/(s² + (2 − k)s + 1); the feedback through the saturating curve. Self-oscillates from k = 2 |
-| Steiner | the Steiner-Parker Synthacon's filter: an equal-component Sallen-Key with mixed inputs | low-pass in / band-pass in / high-pass in / notch (L, −2B, H) | y (s² + (3 − K)s + 1) = L + sB + (s² + 2s)H, from its node equations (written here), so its high-pass input has a 6 dB/octave skirt below the corner. Both resistors are diodes, whose current saturates, and the feedback passes an asymmetric clip |
+| Sallen-Key | a Sallen-Key low-pass with positive feedback through a one-pole high-pass, after the Korg-35 filter of the later Korg MS-20 (Zavalishin ch. 5; Will Pirkle's application note on the Korg35) | low-pass / band-pass / high-pass / notch | H = 1/(s² + (2 − k)s + 1); the feedback through the saturating curve. Self-oscillates from k = 2 |
+| SK Mixed | a mixed-input Sallen-Key: an equal-component Sallen-Key whose inputs, not outputs, are mixed, after the Steiner-Parker Synthacon filter | low-pass in / band-pass in / high-pass in / notch (L, −2B, H) | y (s² + (3 − K)s + 1) = L + sB + (s² + 2s)H, from its node equations (written here), so its high-pass input has a 6 dB/octave skirt below the corner. Both resistors are diodes, whose current saturates, and the feedback passes an asymmetric clip |
 | Comb | Zölzer's universal comb (*DAFX*, ch. 2) | feedback (peaks) … feedforward (notches) | One delay of fs / Cutoff samples, linear interpolation; Resonance is the loop gain, 0.25–0.98; Morph 0 positive (peaks at multiples of Cutoff), 0.5 none, 1 negative (odd multiples of Cutoff/2: an octave lower, hollow) |
 | Formant | three band-passes at the first three formants of A, E, I, O, U | voice: men 0, women 1.5, children 3 | Formant frequencies from Peterson and Barney (JASA 24, 1952, Table II, averages for the vowels of hod, head, heed, hawed and who'd) [reported]. Morph sweeps A–E–I–O–U; Cutoff shifts every formant by half its distance from 1 kHz, in octaves; Resonance narrows them |
 
@@ -406,11 +410,11 @@ How it works:
   true curve is then applied once to the solution, so every state stays
   bounded however hard the loop is driven (the "cheap non-linear
   zero-delay filter" Teemu Voipio published on the KVR forum, 2012
-  [reported]). SVF, Ladder and Diode solve once per sample. K35 and Steiner
-  take the secant again at that first solution and solve a second time: a
-  fixed single refinement, never a convergence loop. Without it K35's
-  self-oscillation drifted 16 cents sharp at 5 kHz and Steiner's up to a
-  semitone [verified].
+  [reported]). SVF, Ladder and Diode solve once per sample. Sallen-Key and
+  SK Mixed take the secant again at that first solution and solve a second
+  time: a fixed single refinement, never a convergence loop. Without it
+  Sallen-Key's self-oscillation drifted 16 cents sharp at 5 kHz and SK
+  Mixed's up to a semitone [verified].
 - **The curve** is v − v³/6.75 up to |v| = 1.5, where it reaches ±1 with
   zero slope: no divide below its knee.
 - **Resonance compensation.** Ladder and Diode lose bass as their feedback
@@ -426,25 +430,34 @@ How it works:
     96 and 384 kHz alike), 12 dB/octave; the notch is −118 dB deep.
   - Ladder at Resonance 0: −3.01 dB per pole at Cutoff, and 6.0, 12.0,
     18.0 and 24.0 dB/octave on the four taps.
-  - K35 and Steiner at Resonance 0: −6.02 and −9.54 dB at Cutoff (two
-    coincident poles; Sallen-Key Q 1/3). Steiner's high-pass input falls
-    5.7 dB per octave below its corner, K35's high-pass 11.7.
+  - Sallen-Key and SK Mixed at Resonance 0: −6.02 and −9.54 dB at Cutoff
+    (two coincident poles; Sallen-Key Q 1/3). SK Mixed's high-pass input
+    falls 5.7 dB per octave below its corner, Sallen-Key's high-pass 11.7.
   - Self-oscillation, over 110 Hz–5 kHz at 44,118 Hz and at 440 Hz at
     8, 96 and 384 kHz: SVF within 0.01 cent of Cutoff, Ladder and Diode
-    within 1, K35 within 2.5; Steiner a steady 19–23 cents flat (its
-    diodes load the oscillation). None oscillates at Resonance 0.85.
+    within 1, Sallen-Key within 2.5; SK Mixed a steady 19–23 cents flat
+    (its diodes load the oscillation). None oscillates at Resonance 0.85.
   - Comb: peaks 21 dB above its troughs at Resonance 0.8; feedforward
     notches −34 dB at Resonance 1. Formant: at a vowel's formants the
     gain is 8–33 dB above that at the other vowel's.
   - Drive 1 raises the 3rd harmonic of a 0.5 sine from −62 to −112 dB
-    (Drive 0) to −10 to −27 dB. Steiner makes a 2nd harmonic (−64 dB at
-    Drive 0) where K35 makes none, and a louder input darkens it (2 kHz
-    falls 2 dB further than 250 Hz) where K35's tilt holds.
-- **Type changes** crossfade over 5 ms with both types running, so no
-  switch clicks: across all 42 ordered pairs, a 440 Hz sine's largest step
-  between neighbouring samples at the switch is at most 4 % above either
-  type's own [verified]. A change asked for during a crossfade waits for
-  its end.
+    (Drive 0) to −10 to −27 dB. SK Mixed makes a 2nd harmonic (−64 dB at
+    Drive 0) where Sallen-Key makes none, and a louder input darkens it
+    (2 kHz falls 2 dB further than 250 Hz) where Sallen-Key's tilt holds.
+- **Type changes.** The new type starts from rest, runs unheard for 5 ms
+  with its input faded in from silence, and only then is crossfaded in over
+  5 ms, both types running throughout. A type started from rest rings up
+  (a resonance) or arrives late (a Comb's first echo, a delay after it
+  starts): faded straight in, as before 2026-10-02, that start was heard
+  and stepped the output by up to 24 times the crossfade's own allowance
+  when Type was turned every few blocks (30 random settings, the method of
+  tests/test_engines_fx_switches.py, on the old build); with its input
+  faded in it swells instead, and is mostly over before it is heard (130
+  random settings within the allowance) [verified, 2026-10-02]. Across all 42 ordered
+  pairs, a 440 Hz sine's largest step between neighbouring samples at a
+  switch is at most 0.9 % above either type's own (4 % before) [verified:
+  `fm1-filter-test`]. A change asked for meanwhile waits for the crossfade
+  to end, so a change takes 10 ms to complete.
 - **Glide and control rate:** Cutoff, Resonance, Drive, Mode and Morph
   glide (5 ms) and the coefficients follow every 8 samples, counted from
   `create`, so any block size gives the same output; Comb's delay moves
@@ -462,7 +475,9 @@ How it works:
   the review added it, 2026-10-02 [verified: `objdump`]), so the Mac's
   native build computes the same bits too [verified: a hash of the output
   bits of every type with its parameters moving, Apple clang arm64 against
-  GCC 12 x86-64 and i686 with SSE, 2026-10-02].
+  GCC 12 x86-64 and i686 with SSE, 2026-10-02]. With Type turned every
+  third block (the warm-up and the input fade), the same again, and the
+  same from Emscripten 6.0.10 under Node [verified, 2026-10-02].
 - **Contracts:** the input guard of `mi_fx.cc`; `fm1_param_clamp`; every
   field set in `create`; silence in gives exact silence out from rest at any
   setting, self-oscillating ones included; tails flush to exact zero within
@@ -478,19 +493,27 @@ How it works:
   them empty and reads beyond what was written since return 0.
 - **Cost** per 64-frame stereo block on the desktop (Apple M1 Max, best of
   seven, noise in), against Plate's 0.89 µs and Fold's 1.8 µs in the same
-  runs: Comb 0.8, Formant 0.9, SVF 1.4, Ladder 2.2, Diode 2.4, K35 3.2 and
-  Steiner 3.6–4.8 µs; with Cutoff and Resonance moved twice a block and
-  Spread on, up to 4.9 µs (Steiner), 0.34 % of the block [verified:
-  `fm1-filter-test --bench` and `fm1-render`]. A crossfade costs both types
-  for 5 ms. By operation count, Steiner's worst case is about 1.4 Folds and
-  the others less [inferred]; stage B measures pi32v2.
-- **Names.** The types are named for their circuits, not their products:
-  K35 is the MS-20-style filter, Diode the 303-style one; neither M-VAVE nor
-  any synth maker is involved.
-- **Type's flags: MOD.** Since a change crossfades, nothing is cut: the
-  sequencer may lock it and a modulation route may step it (rounded).
-  NOLOCK (a destructive change) and LATCH (read at note-on; an effect has
-  none) would both misdescribe it (the ENUM table below).
+  runs: Comb 0.8, Formant 0.9, SVF 1.4, Ladder 2.2, Diode 2.4, Sallen-Key
+  3.2 and SK Mixed 3.6–4.8 µs; with Cutoff and Resonance moved twice a
+  block and Spread on, up to 4.9 µs (SK Mixed), 0.34 % of the block
+  [verified: `fm1-filter-test --bench` and `fm1-render`]. A Type change
+  costs both types for 10 ms. By operation count, SK Mixed's worst case is
+  about 1.4 Folds and the others less [inferred]; stage B measures pi32v2.
+- **Names.** The types are named for their circuits, never for a maker, a
+  person or a part number (owner, 2026-10-02): Sallen-Key and SK Mixed (a
+  mixed-input Sallen-Key) were "K35" and "Steiner" until then. What each
+  is after is credited above: Sallen-Key the Korg-35 filter of the later
+  MS-20, SK Mixed the Steiner-Parker Synthacon's, Diode the TB-303's diode
+  ladder, Ladder the transistor ladder. Neither M-VAVE nor any synth maker
+  is involved. The uids did not change, so locks and routes on Type keep
+  their meaning.
+- **Type's flags: MOD.** Since a change warms the new type up and
+  crossfades, nothing is cut: the sequencer may lock it and a modulation
+  route may step it (rounded), however fast. Turned every third block,
+  faster than a change completes, it steps the output no more than holding
+  any type does [verified: tests/test_engines_fx_switches.py]. NOLOCK (a
+  destructive change) and LATCH (read at note-on; an effect has none) would
+  both misdescribe it (the ENUM table below).
 - `build/fm1-filter-test` (`test/filter_test.cc`) drives Filter where
   fm1-render cannot: changes mid-stream, the crossfade, host rates, sine
   sweeps and self-oscillation. `--gain` and `--osc` print one measurement;
@@ -508,7 +531,8 @@ Airwindows compressors (MIT) were not used. Stereo-linked: one detector
 reads the louder channel at each frame, and both channels get one gain.
 
     guard -> level (peak or RMS, the louder channel) -> dB -> curve -> smoothing in dB
-          -> gain = Makeup - reduction;   out = dry x (1 - Mix) + dry x gain x Mix
+          -> [Auto Gain: at least the curve's reduction at this frame's peak]
+          -> gain = Makeup (+ Auto Gain's) - reduction;   out = dry x (1 - Mix) + dry x gain x Mix
 
 | Page | Knob | Range (default) | What it does |
 | --- | --- | --- | --- |
@@ -521,7 +545,7 @@ reads the louder channel at each frame, and both channels get one gain.
 | 2 | Mix | 0–1 (1) | Parallel compression: dry × (1 − Mix) + compressed × Mix. 0 is the input bit for bit, 1 the compressed signal exactly |
 | 2 | Character | Peak, RMS, Glue, Punch (Peak) | Presets of detector and curve (below) |
 | 3 | Auto Rel | Off, On (Off) | Programme-dependent release (below) |
-| 3 | Auto Gain | Off, On (Off) | Adds the curve's reduction at 0 dBFS to Makeup, so a steady full-scale signal stays at full scale: 22.5 dB at −30 dB and 4:1 |
+| 3 | Auto Gain | Off, On (Off) | Adds the curve's reduction at 0 dBFS to Makeup, at most 24 dB, so a steady full-scale signal stays at full scale (22.5 dB at −30 dB and 4:1), and keeps every input at or under 0 dBFS at or under 0 dBFS, onsets included (below) |
 
 | Character | Detector | Smoothing | Curve |
 | --- | --- | --- | --- |
@@ -542,6 +566,66 @@ reads the louder channel at each frame, and both channels get one gain.
   the first stage, which then releases five times faster, and the larger of
   the two applies. After a short peak the reduction lets go quickly; after
   long compression, slowly. One more one-pole per frame.
+- **Auto Gain** (redesigned 2026-10-02, at the owner's request: "cap it to
+  something sensible; ideally real auto-gain would avoid clipping"). Two
+  parts:
+  - *The makeup* is A = the curve's reduction at 0 dBFS, capped at 24 dB,
+    the manual Makeup's top. Uncapped, Threshold −60 dB at 21:1 asked for
+    60 dB, and with Makeup's own 24 a total of 84. Now a full-scale steady
+    sine comes out at full scale when the curve asks for 24 dB or less
+    (−0.06 dBFS at −20 dB and 4:1: RMS's ripple and the margin below), and
+    24 dB under the curve's reduction when it asks for more (−36.08 dBFS at
+    −60 dB and 21:1) [verified: `fm1-comp-test`].
+  - *The bound.* With Auto Gain on, the reduction applied to a frame is at
+    least the curve's for that frame's own peak (the louder channel's
+    |sample|), so the gain never exceeds the static curve's gain for the
+    sample it multiplies, even while Attack still lags behind an onset.
+    The curve's slope is at most 1, so x − curve(x) only grows with x, and
+    with A ≤ curve(0) an input at or under 0 dBFS comes out at or under
+    0 dBFS: the output in dB is x + A − applied ≤ x + A − curve(x) ≤
+    A − curve(0) ≤ 0 (with Makeup at or under 0 dB; a positive Makeup
+    lifts that by itself). A margin of 10⁻⁴ dB on the bound covers float
+    rounding. Before, the makeup was added whatever the reduction was
+    doing, so an onset met the full makeup before the reduction caught up:
+    the renderer's sine at Threshold −24 dB, 21:1 and Attack 100 ms came
+    out at +18 dBFS; now at 0 dBFS at most [verified:
+    tests/test_engines_comp.py].
+  - *What the bound does to the sound.* Below it, Attack, Release and
+    Character shape the gain as ever. Where it acts it follows the
+    waveform within a cycle, so it is a waveshaper along the static curve
+    (a soft clip, a hard one at 21:1 with no knee): at an onset, for about
+    the Attack time, the low parts of the waveform get the full makeup and
+    its peaks the curve's gain; and where the smoothed reduction sits below
+    the curve at the peaks in steady playing, it rounds those peaks. On a
+    steady sine with RMS or Glue it never acts (the same 16-bit output as
+    the same makeup set by hand); with Peak and Punch, which settle
+    about 1 dB under the curve, it rounds each peak, 24–28 dB down on the
+    signal; on noise, whose peaks every detector reads late, 19–25 dB down
+    (−30 dB, 4:1, Attack 10 ms) [verified: renders against Auto Gain off
+    with Makeup set by hand to the same 22.5 dB, 2026-10-02]. For clean
+    onsets with Auto Gain, use a short Attack; for a clean ceiling with
+    lookahead, the Limiter.
+  - *Mix and Character keep it.* Every Character's reduction passes the
+    bound, including while it hands over. Parallel Mix adds the dry signal,
+    which is within 0 dBFS when the input is, and has the same sign as the
+    compressed one: the output stays within (1 − Mix) + Mix ×
+    10^(Makeup/20), so within 0 dBFS. On a grid of 144 extreme settings
+    (Threshold −60 dB, 21:1, no knee; every Attack, Release, Character, Auto
+    Rel and Mix) and 160 random ones, a quarter of them with Auto Gain
+    switched every third block, over full-scale squares (50 Hz, 1 kHz,
+    Nyquist), impulses on silence and on a quiet bed, burst onsets,
+    full-scale noise, DC steps, one channel loud and one quiet, and a swell
+    through the knee, nothing passes it [verified: `fm1-comp-test`'s
+    `autogain`].
+  - *Switching it* glides A and the bound in and out together over 5 ms.
+    Part-way, with a share w of each, the applied reduction is at least
+    w curve(x) ≥ w (x + A) ≥ x + w A for x ≤ 0 dB, so the bound holds
+    while it glides.
+  - *Auto Gain off is unchanged:* the static curve, the time constants and
+    every output bit (108 renders of three inputs at 36 settings, with and
+    without changes mid-stream, byte-identical before and after
+    [verified, 2026-10-02]; the two Auto-Gain-off hashes below did not
+    move).
 - **No libm.** The logarithm and the exponential are polynomials written
   here (`src/fx_comp_math.h`): log2 within 2.1 ulp of its result (1.9e-7
   on [1/16, 16]: under 1e-6 dB near 0 dBFS), exp2 within 2.4e-7 relative.
@@ -554,7 +638,9 @@ reads the louder channel at each frame, and both channels get one gain.
   from Apple clang on arm64 (default and `-ffp-contract=off`), GCC on i386
   (SSE) and x86-64, and Emscripten 6.0.10's WebAssembly under Node
   (`fm1-comp-test`'s `hash`, pinned in tests/test_engines_comp.py, so CI's
-  Linux, macOS and 32-bit jobs check it too). `-ffp-contract=fast` differs,
+  Linux, macOS and 32-bit jobs check it too). The first of the three runs
+  with Auto Gain on and was pinned again for its redesign, after the same
+  check on all four builds [verified, 2026-10-02]. `-ffp-contract=fast` differs,
   as it must. With JieLi's clang for pi32v2
   the file compiles without a warning in four profiles (`-O2` with
   contraction off, on and fast, and `-Oz`), and `fast` emits the same code
@@ -579,27 +665,34 @@ reads the louder channel at each frame, and both channels get one gain.
   - Changing Character or Auto Rel mid-compression moved the reduction 8
     and 15 dB, at most 0.073 dB from one frame to the next: the step
     between the old smoothing and the new becomes an offset that decays in
-    5 ms.
+    5 ms. Character, Auto Rel and Auto Gain switched every third block step
+    the output no more than holding either value does [verified:
+    tests/test_engines_fx_switches.py].
 - **Contracts:** the input guard of `mi_fx.cc` (NaN to 0, clamp to ±16);
-  parameters through `fm1_param_clamp`; Threshold, Ratio, Knee, Makeup, Mix
-  and the detector's crossfade glide over 5 ms, sample by sample, so any
+  parameters through `fm1_param_clamp`; Threshold, Ratio, Knee, Makeup, Mix,
+  Auto Gain's share and the detector's crossfade glide over 5 ms, sample by
+  sample, so any
   block size gives the same output; values set before the first render
   apply at once. Silence in is exact silence out. A fault does not latch: a
   second after it the output is the clean render's within one 16-bit step.
   States flush to zero (power below 1e-20, reductions below 1e-6 dB).
-- **Memory:** 192 bytes (`sizeof` 188) on x86-64, i386 and pi32v2: no
-  pointers [verified: gcc and JieLi's clang, 2026-10-02]. Code for pi32v2:
-  3.6 KB at `-O2`, 2.1 KB at `-Oz`, and 0.8 KB of constant data.
+- **Memory:** 208 bytes on x86-64 and i386 [verified: GCC 12 in Linux
+  containers, 2026-10-02], and so on pi32v2, since it holds no pointers
+  [inferred; 192 before Auto Gain's redesign, verified then with JieLi's
+  clang]. Code for pi32v2 before the redesign: 3.6 KB at `-O2`, 2.1 KB at
+  `-Oz`, and 0.8 KB of constant data.
 - **Cost:** about 75 operations, one divide (the logarithm) and one
-  exponential per stereo frame [inferred: by count]. Desktop (Apple M1
-  Max, `fm1-comp-test --cost`, noise): 1.5 µs per 64-frame block with Peak,
-  1.6 µs with Glue, Auto Rel and Auto Gain, 1.8 µs while a parameter
-  glides: 0.10–0.12 % of the 1.451 ms block, about Fold's.
+  exponential per stereo frame; Auto Gain adds the curve once more, and
+  for RMS and Glue a second logarithm (the bound needs the peak's level)
+  [inferred: by count]. Desktop (Apple M1 Max, `fm1-comp-test --cost`,
+  noise): 1.5 µs per 64-frame block with Peak, 2.0 µs with Glue, Auto Rel
+  and Auto Gain (1.6 before the bound), 2.2 µs while a parameter glides:
+  0.10–0.15 % of the 1.451 ms block, about Fold's [verified, 2026-10-02].
 - **Gain reduction for modulation:** `fm1_comp_reduction_db(instance)`
-  (`include/fm1_comp.h`) returns the reduction applied to the last frame,
-  in dB (0 or more, finite, makeup not included). It is already smoothed by
-  Attack and Release, so a source reading it once per block or tick does not
-  alias. It is not part of `fm1_engine_t`: a host checks that the unit's
+  (`include/fm1_comp.h`) returns the smoothed reduction of the last frame,
+  in dB (0 or more, finite, makeup not included). It is smoothed by Attack
+  and Release, so a source reading it once per block or tick does not
+  alias; Auto Gain's bound, which follows the waveform, is not in it. It is not part of `fm1_engine_t`: a host checks that the unit's
   engine is `comp` first. It is the REDUCTION output docs/16 §3.7 plans for
   Duck, here from a compressor in the chain rather than a tap.
 - **Units.** Attack and Release are in ms. Threshold, Knee and Makeup are in
@@ -631,8 +724,8 @@ not used.
 | 1 | Ceiling | −24 to 0 dB (−1) | The most the output reaches. In dB, which has no unit code in the API yet, so its unit field says none |
 | 1 | Drive | −12 to +24 dB (0) | Gain before the limiter: push a sound into it for loudness, or turn it down |
 | 1 | Release | 1–1,000 ms (100) | How fast the gain comes back: the time constant of its recovery, after a hold as long as the lookahead |
-| 1 | Lookahead | 0–5 ms (2) | How far ahead the gain sees peaks coming. It is also the effect's latency: 88 frames at 2 ms and 44,118 Hz. At 0 there is no delay, and a soft clip catches what the attack misses (below). NOLOCK: a change crossfades to the new delay over 5 ms |
-| 2 | Mode | Brickwall, Soft Clip (Brickwall) | Brickwall: nothing above the ceiling, nothing changed below it. Soft Clip: peaks up to +12 dB over the ceiling are rounded off by a curve from 6 dB below it. NOLOCK; a change glides the stage over 5 ms, frame by frame as the audio leaves the line (below) |
+| 1 | Lookahead | 0–5 ms (2) | How far ahead the gain sees peaks coming. It is also the effect's latency: 88 frames at 2 ms and 44,118 Hz. At 0 there is no delay, and a soft clip catches what the attack misses (below). A change crossfades to the new delay over 5 ms, each delay with its own gain, so it can be locked and modulated |
+| 2 | Mode | Brickwall, Soft Clip (Brickwall) | Brickwall: nothing above the ceiling, nothing changed below it. Soft Clip: peaks up to +12 dB over the ceiling are rounded off by a curve from 6 dB below it. A change glides the stage over 5 ms, frame by frame as the audio leaves the line (below), so it can be locked and modulated (rounded) |
 | 2 | Link | 0–1 (1) | Stereo link. Each channel's detector takes the larger of its own peak and Link × the other's: at 1 one gain moves both channels, so the stereo image holds; at 0 each channel is limited on its own |
 | 2 | Mix | 0–1 (1) | Blends the delayed dry input back in (parallel limiting). Below 1 the output can pass the ceiling, by design |
 
@@ -692,33 +785,45 @@ How it works [verified: tests/test_engines_limit.py and
   holds while it glides. A Lookahead change crossfades from the old delay
   to the new over 5 ms (a 440 Hz sine shows no larger step than its own);
   another change waits for the crossfade to finish. Mode glides its output
-  stage over 5 ms.
+  stage over 5 ms. Both can be locked and modulated: turned every third
+  block (Mode also every 64th, so its glide completes) while a swelling
+  sine is limited, they step the output no more than holding any value
+  does plus a crossfade's allowance (2c/220): at most 0.2 of it in
+  `fm1-limit-test`'s `modulated`, 0.8 in tests/test_engines_fx_switches.py
+  (Lookahead through 0 in Soft Clip) [verified, 2026-10-02].
 - **Turning Lookahead or Mode while it limits** leaves the ceiling to the
-  gain path, never to the final clamp (fixed in review, 2026-10-02: before,
-  the clamp flattened peaks of up to 41 times the ceiling, +32 dB, in the
-  check at the end of this item). Both taps of a Lookahead crossfade share one gain, so
-  while they fade the hold spans the longer delay plus one frame and the
-  boxes at most the shorter: every value the boxes average is then a
-  minimum over a window holding both taps' frames. A longer lookahead
-  replays frames the old hold has forgotten; the hold takes their need from
-  the line (recomputed from the stored input, Drive, Ceiling and Mode: one
-  divide per loud frame, once per change), and the crossfade starts only
-  when the boxes hold nothing from before the change (a box length later),
-  so the gain has ramped down to them as it would for any peak. Shorter
-  boxes restart at the held gain, as on `create`: a step, if the gain was
-  ramping at that moment. When the crossfade ends a shorter hold simply
-  forgets sooner, and longer boxes restart at the held gain only once their
-  output is within 2⁻¹² of it, so there is no audible step; until then the
-  gain ramps over the shorter span, which is safe. Lookahead 0 takes over
-  from the gain in use with its own envelope. The line stores Mode with
-  each frame, so a frame leaves through the stage its gain was made for,
-  and the envelope aims at four times the ceiling only once Mode has
-  reached Soft Clip (part-way, the blend of the two stages with a +12 dB
-  gain would pass the ceiling). Checked in `fm1-limit-test` with 27,325
-  Lookahead turns (0 included), and Mode and Link turned too, on bursts at
-  8, 44.1, 96 and 384 kHz: before the clamp the envelope and the stage stay
-  within 1.2 × 10⁻⁷ of the ceiling, on the Mac and in 64- and 32-bit GCC
-  builds [verified, 2026-10-02].
+  gain path, never to the final clamp, and never steps the output (both
+  fixed on 2026-10-02: in review, the clamp had flattened peaks of up to 41
+  times the ceiling, +32 dB; then, with Lookahead and Mode made lockable
+  and modulatable, a Lookahead turned every few blocks stepped the output
+  by up to 16 times a crossfade's allowance, and the stage passed the
+  ceiling by 18 % before the clamp). Each tap of a Lookahead crossfade has
+  a gain path of its own: the old tap keeps its boxes, untouched, and the
+  new one gets a second set, its own length, started at the held gain (as
+  on `create`) and faded in from nothing, so it starts smoothly however far
+  the old gain had ramped. Both sets average the one hold, which spans the
+  longer delay plus one frame while the taps fade, so every value either
+  set averages is a minimum over a window holding its own tap's frame. A
+  longer lookahead replays frames the old hold has forgotten; the hold
+  takes their need from the line (recomputed from the stored input, Drive,
+  Ceiling and Mode: one divide per loud frame, once per change). When the
+  crossfade ends the new set is the only one, and a shorter hold simply
+  forgets sooner, which its boxes smooth. Lookahead 0 has its own envelope
+  (1 ms attack), run only while a tap with no delay is heard: a fade to 0
+  starts it from the lookahead envelope's reduction, and a fade from 0
+  restarts the hold from the line, so the path faded in has been running
+  since the fade began. The line stores Mode with each frame, so a frame
+  leaves through the stage its gain was made for, and the envelope aims at
+  four times the ceiling only once Mode has reached Soft Clip (part-way,
+  the blend of the two stages with a +12 dB gain would pass the ceiling).
+  Checked in `fm1-limit-test` with 27,325 Lookahead turns (0 included), and
+  Mode and Link turned too, on bursts at 8, 44.1, 96 and 384 kHz, and with
+  Lookahead and Mode turned every few blocks on a swelling sine: before the
+  clamp the envelope and the stage stay within 1.2 × 10⁻⁷ of the ceiling
+  [verified on the Mac, 2026-10-02]. With Lookahead and Mode turned every
+  third block, the output's bits are the same from Apple clang arm64, GCC
+  12 x86-64 and i686 (SSE) and Emscripten 6.0.10 under Node [verified: a
+  hash of the four new effects with their switches turned, 2026-10-02].
 - **The host's bus limiter stays.** `include/fm1_mix_limiter.h` runs after
   every chain: a peak follower with an instant attack, a 100 ms release and
   a fixed 0.98 ceiling, and the guard that turns non-finite samples into
@@ -737,21 +842,24 @@ How it works [verified: tests/test_engines_limit.py and
   delay to the latency [inferred].
 - **Memory:** grows with the host rate, fixed at `create`: 5 ms of frames,
   at most 510. Per frame of lookahead: 20 bytes of line (the input and the
-  three controls), 12 for the two hold deques and about 8 for the box
-  filters. 9,184 bytes at 44,118 Hz, 9,936 at 48 kHz, 19,536 at 96 kHz and
-  21,760 at 102 kHz and above, where the cap makes the longest lookahead
-  shorter than 5 ms (2.66 ms at 192 kHz). The instance holds no pointers:
-  a 32-bit (`-m32`) build has the same sizes [verified: GCC in a Linux
-  container, 2026-10-02].
-- **Cost, desktop only:** 1.1 µs per 64-frame block on an Apple M1 Max
-  with no gain reduction, 1.3 µs limiting hard, 1.2 µs at Lookahead 0 and
-  1.5 µs in Soft Clip at +12 dB (their curve divides): 0.08–0.10 % of the
-  block, against Fold's 1.8 µs in the same run (20 s of noise, best of
-  five; after the review's fix, 2026-10-02). Two divides per frame in the
-  detector while it limits, and two more in a soft clip; the hold's deque
-  is amortised, one push and at most one pop per frame on average. A
-  Lookahead change adds one pass over the line (at most 510 frames, a
-  divide per loud one) to the block it lands in. Stage B measures pi32v2.
+  three controls), 12 for the two hold deques and about 16 for the two
+  sets of box filters. 11,008 bytes at 44,118 Hz, 11,920 at 48 kHz, 23,440
+  at 96 kHz and 26,912 at 102 kHz and above, where the cap makes the
+  longest lookahead shorter than 5 ms (2.66 ms at 192 kHz) [verified:
+  `fm1-limit-test`]. The instance holds no pointers, so a 32-bit build has
+  the same sizes [verified: GCC 12 i686 in a Linux container,
+  2026-10-02].
+- **Cost, desktop only:** 1.0 µs per 64-frame block on an Apple M1 Max
+  with no gain reduction, 1.2 µs limiting hard, 1.1 µs at Lookahead 0 and
+  1.4 µs in Soft Clip at +12 dB (their curve divides): 0.07–0.10 % of the
+  block (20 s of noise, best of five, `fm1-render`, 2026-10-02, after the
+  gain path per tap; Lookahead 0 no longer runs the hold and the boxes).
+  Two divides per frame in the detector while it limits, and two more in a
+  soft clip; the hold's deque is amortised, one push and at most one pop
+  per frame on average. A Lookahead change adds one pass over the line (at
+  most 510 frames, a divide per loud one) to the block it lands in, and
+  runs the boxes (and at 0, Lookahead 0's envelope) twice for the 5 ms of
+  the crossfade. Stage B measures pi32v2.
 - **Determinism:** no libm. 2^x (for dB) and the one-pole coefficients are
   polynomials written here, and the gain path is integers. A 32-bit and a
   64-bit Linux build with `-ffp-contract=off` give identical results in
@@ -808,9 +916,26 @@ moves to the fixture's `retired` list, so its uid is never given out again.
 Every FLOAT parameter here is SMOOTH and MOD (`FM1_PARAM_CONTINUOUS`),
 except Sophie's, which are LATCH and MOD: a triggered voice copies its pad's
 patch (`sophie.c`, `trigger_voice`), so Sophie reads all of them at note-on.
-The Limiter's Lookahead is NOLOCK: it sets the effect's latency, and a
-change crossfades between two delays and reshapes the gain's hold and
-boxes ("Limiter").
+The Limiter's Lookahead is SMOOTH and MOD like any FLOAT: it sets the
+effect's latency, but a change crossfades between two delays, each with a
+gain path of its own, so no change steps the output ("Limiter"). It was
+NOLOCK until 2026-10-02.
+
+**The rule for switch-like controls** (owner, 2026-10-02): a switch-like
+control that changes cleanly, because the engine crossfades, glides or
+hands over every change so that no change, however fast, steps the output,
+is lockable and modulatable (MOD; an ENUM is rounded when modulated, docs/16
+§2.2). Only a destructive change is NOLOCK. The effects' switches follow it:
+Filter's Type, Drive's Type and Auto, Comp's Character, Auto Rel and Auto
+Gain, and the Limiter's Mode and Lookahead are all lockable and MOD, and
+`tests/test_engines_fx_switches.py` turns each of them every third block
+(faster than its crossfade) on a steady sine and on sharp onsets, checking
+that the output stays finite, keeps the effect's ceiling and steps no more
+than with the control held at any of its values, plus the bound a 5 ms
+crossfade allows (2P/220 for outputs of peak P). Where that check first
+failed, the effect was made clean rather than the control left NOLOCK: the
+Filter's new type now warms up unheard before its crossfade, and the
+Limiter's Lookahead crossfade got a gain path per tap.
 `fm1_param_lockable`, `fm1_param_modulatable` and `fm1_param_index(engine,
 uid)` are the helpers. `fm1-render --list` prints each parameter's uid,
 flags (by name), unit and abbreviation. The four fields make `fm1_param_t`
@@ -835,11 +960,11 @@ Gain, Filter's Type and the Limiter's Mode with their effects.
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
 | sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
-| filter | Type | MOD | A change crossfades the old type into the new over 5 ms (the new from rest), so nothing is cut: lockable, and a rounded route steps through the types. Neither NOLOCK nor LATCH (an effect has no note-on) describes it |
-| drive | Type | none | A change crossfades the two curves over 5 ms, so a lock is clean. No MOD: a rounded route would step between Types, not sweep |
-| drive | Auto | none | Its gain glides like any other, so it can be locked |
-| comp | Character, Auto Rel, Auto Gain | none | Read every frame, and a change hands over or glides without a step, so they can be locked. Not effects of a note, so no LATCH. No MOD: a rounded route would flip the detector or the release at control rate |
-| limit | Mode | NOLOCK | A set-up choice, not a performance control. A change glides the output stage over 5 ms, frame by frame as the line delivers them (each frame carries the Mode its gain was made for), so it needs no lock guard; NOLOCK could be lifted (review, 2026-10-02) |
+| filter | Type | MOD | A change warms the new type up from rest, unheard, then crossfades into it over 5 ms, so nothing is cut: lockable, and a rounded route steps through the types, however fast. Neither NOLOCK nor LATCH (an effect has no note-on) describes it |
+| drive | Type | MOD | A change crossfades the two curves over 5 ms (the rule above) |
+| drive | Auto | MOD | Its gain glides like any other (the rule above) |
+| comp | Character, Auto Rel, Auto Gain | MOD | Read every frame; Character and Auto Rel hand the smoothing over through an offset that decays in 5 ms and Character crossfades the detector, Auto Gain glides its makeup and its bound in, so no change steps (the rule above). Not effects of a note, so no LATCH. Until 2026-10-02 they took no MOD |
+| limit | Mode | MOD | A change glides the output stage over 5 ms, frame by frame as the line delivers them (each frame carries the Mode its gain was made for). NOLOCK until 2026-10-02 |
 
 **Units and abbreviations.** Echo's Time, Comp's Attack and Release,
 Sophie's Ring Time and the Limiter's Release and Lookahead are in ms,
@@ -960,7 +1085,7 @@ upstream candidate). Our own code gets none.
   | Diffuse | 18,848 | 18,848 | |
   | Filter | 18,368 | 18,368 | Comb's two delay lines, fs / 20 Hz each |
   | Six-Op FM, 8 voices | 12,528 | 10,796 | |
-  | Limiter | 9,184 | 9,184 | 5 ms of lookahead at 44,118 Hz; 21,760 at 102 kHz and above |
+  | Limiter | 11,008 | 11,008 | 5 ms of lookahead at 44,118 Hz; 26,912 at 102 kHz and above |
   | Ensemble | 4,704 | 4,704 | |
 
   The 32-bit figures include the native-rate resamplers (about 1.3 KB each)
@@ -1002,9 +1127,9 @@ upstream candidate). Our own code gets none.
   | Each Mutable effect | 0.03–0.06 % |
   | Fold | 0.12 % |
   | Drive | 0.17–0.23 % |
-  | Filter | 0.05–0.26 % (Comb to Steiner) |
-  | Comp | 0.11–0.14 % |
-  | Limiter | 0.08–0.11 % |
+  | Filter | 0.05–0.26 % (Comb to SK Mixed) |
+  | Comp | 0.11–0.15 % |
+  | Limiter | 0.07–0.10 % |
 
   The four effects of the second pack: noise in, best of five 20-second
   runs of `fm1-render`, Fold 0.13 % and Plate 0.06 % in the same run
