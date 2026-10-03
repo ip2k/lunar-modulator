@@ -611,11 +611,15 @@ reads the louder channel at each frame, and both channels get one gain.
     compressed one: the output stays within (1 − Mix) + Mix ×
     10^(Makeup/20), so within 0 dBFS. On a grid of 144 extreme settings
     (Threshold −60 dB, 21:1, no knee; every Attack, Release, Character, Auto
-    Rel and Mix) and 160 random ones, a quarter of them with Auto Gain
-    switched every third block, over full-scale squares (50 Hz, 1 kHz,
-    Nyquist), impulses on silence and on a quiet bed, burst onsets,
-    full-scale noise, DC steps, one channel loud and one quiet, and a swell
-    through the knee, nothing passes it [verified: `fm1-comp-test`'s
+    Rel and Mix), 128 at the tight corner (the curve asking for no more than
+    the cap, so the bound alone holds a full-scale input at full scale:
+    −24 dB at 21:1 with no knee, and 0 dBFS on a gentler slope and inside a
+    knee; half of them with Auto Gain switched) and 160 random ones, a
+    quarter of them with Auto Gain switched every third block, over
+    full-scale squares (50 Hz, 1 kHz, Nyquist), impulses on silence and on
+    a quiet bed, burst onsets, full-scale noise, DC steps, one channel loud
+    and one quiet, and a swell through the knee, nothing passes it; the
+    tight corner reaches 0.9999966 of full scale [verified: `fm1-comp-test`'s
     `autogain`].
   - *Switching it* glides A and the bound in and out together over 5 ms.
     Part-way, with a share w of each, the applied reduction is at least

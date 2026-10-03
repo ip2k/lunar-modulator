@@ -13,7 +13,7 @@ releases; release to exact zeros with no pumping; the ripple on a steady
 tone; the hand-over when Character or Auto Rel changes; parameters changed
 while audio runs at any block size; the gain-reduction accessor; host
 rates; the accuracy of its log2 and exp2 against libm; Auto Gain clip-safe
-on hostile full-scale signals at 304 settings. Fast modulation of the
+on hostile full-scale signals at 432 settings. Fast modulation of the
 switches: tests/test_engines_fx_switches.py.
 
 The figures in the comments were measured on the desktop build (Apple
@@ -500,17 +500,23 @@ def test_auto_gain_is_clip_safe(tool):
     # Nyquist), impulses on silence and on a quiet bed, burst onsets, noise,
     # DC steps, one channel loud and one quiet, and a swell through the knee,
     # at the extreme (Threshold -60 dB, Ratio 21, no knee) over a grid of
-    # Attack, Release, Character, Auto Rel and Mix (144 settings), then 160
-    # random settings, a quarter of them with Auto Gain switched on and off
-    # every third block. The output never passes its bound: 0 dBFS, and the
-    # compressed path 10^(Makeup/20) (so the output (1 - Mix) + Mix
-    # 10^(Makeup/20)). Measured: 0.902 of it at the extreme, where the cap
-    # holds the compressed path at -36 dBFS and Mix's dry share is the rest;
-    # 0.99999992 at random settings, where a signal under the threshold
-    # passes untouched at full scale.
+    # Attack, Release, Character, Auto Rel and Mix (144 settings); at the
+    # tight corner, where the curve asks for no more than the cap so only the
+    # bound keeps a full-scale input at full scale (-24 dB at 21:1 with no
+    # knee, and 0 dBFS on a gentler slope and inside a knee: 128 settings,
+    # half with Auto Gain switched); then 160 random settings, a quarter of
+    # them with Auto Gain switched on and off every third block. The output
+    # never passes its bound: 0 dBFS, and the compressed path 10^(Makeup/20)
+    # (so the output (1 - Mix) + Mix 10^(Makeup/20)). Measured: 0.902 of it
+    # at the extreme, where the cap holds the compressed path at -36 dBFS and
+    # Mix's dry share is the rest; 0.9999966 at the tight corner (-1e-4 dB,
+    # the margin, and closer while Auto Gain glides out); 0.99999992 at
+    # random settings, where a signal under the threshold passes untouched
+    # at full scale.
     a = tool["autogain"]
-    assert a["runs"] == 304
+    assert a["runs"] == 432
     assert a["grid"] <= 1.0 and a["random"] <= 1.0 and a["toggled"] <= 1.0
+    assert 0.9999 < a["tight"] <= 1.0               # the corner does reach the bound
 
 
 def test_log2_and_exp2_are_accurate(tool):

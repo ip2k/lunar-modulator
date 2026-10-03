@@ -531,7 +531,9 @@ void Hash() {
 // steps, one channel loud and the other quiet, and a slow swell from silence
 // to full scale (through the knee). Settings: the extreme (Threshold -60 dB,
 // Ratio 21, no knee, so Auto Gain asks for 60 dB and gets its cap, 24) at
-// every Attack, Release, Character, Auto Rel and Mix in a grid, then random
+// every Attack, Release, Character, Auto Rel and Mix in a grid; the tight
+// corner (the curve asking for no more than the cap, so nothing but the
+// bound stands between a full-scale input and full scale); then random
 // ones. Reports the largest |output| / bound in double, and the steady level
 // of a full-scale sine through the cap and through a curve under it.
 const int kAgSignals = 10;
@@ -642,6 +644,30 @@ void AutoGain() {
       }
     }
   }
+  // The tight corner: where the curve asks for no more than the cap, Auto
+  // Gain's makeup is all of the curve's reduction at 0 dBFS, so a full-scale
+  // input above the threshold comes out at full scale less the margin: the
+  // bound alone keeps it there (at -60 dB and 21:1 the cap leaves 36 dB).
+  // -24 dB at 21:1 with no knee asks for exactly the cap; the others put
+  // 0 dBFS on a slope under 1 and inside a knee.
+  double tight = 0.0;
+  const float corners[][3] = { { -24.0f, 21.0f, 0.0f }, { -12.0f, 4.0f, 12.0f },
+                               { -3.0f, 21.0f, 24.0f }, { -20.0f, 2.0f, 6.0f } };
+  const float tight_attacks[] = { 0.0f, 100.0f };
+  for (const auto &corner : corners) {
+    for (float attack : tight_attacks) {
+      for (int character = 0; character < 4; ++character) {
+        for (int auto_rel = 0; auto_rel < 2; ++auto_rel) {
+          for (int toggle = 0; toggle < 2; ++toggle) {
+            const AgSetting g = { corner[0], corner[1], corner[2], attack, 200.0f, 0.0f, 1.0f,
+                                  static_cast<float>(character), static_cast<float>(auto_rel) };
+            tight = fmax(tight, AgRun(g, toggle != 0, 3000u + runs));
+            ++runs;
+          }
+        }
+      }
+    }
+  }
   Lcg rng = { 2024u };
   for (int k = 0; k < 160; ++k, ++runs) {
     AgSetting g;
@@ -659,9 +685,9 @@ void AutoGain() {
     if (toggle) toggled = fmax(toggled, w);
     else random = fmax(random, w);
   }
-  printf("\"autogain\":{\"runs\":%d,\"grid\":%.9g,\"random\":%.9g,\"toggled\":%.9g,"
-         "\"capped_db\":%.4f,\"uncapped_db\":%.4f}",
-         runs, grid, random, toggled, AgSteadyDb(-60.0f, 21.0f), AgSteadyDb(-20.0f, 4.0f));
+  printf("\"autogain\":{\"runs\":%d,\"grid\":%.9g,\"tight\":%.9g,\"random\":%.9g,"
+         "\"toggled\":%.9g,\"capped_db\":%.4f,\"uncapped_db\":%.4f}",
+         runs, grid, tight, random, toggled, AgSteadyDb(-60.0f, 21.0f), AgSteadyDb(-20.0f, 4.0f));
 }
 
 // 12. Cost: ns per 64-frame stereo block of noise, 0.5 s warm-up then 20 s.
