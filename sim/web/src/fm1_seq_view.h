@@ -44,8 +44,8 @@
  * outline where it has none. With several steps held the pages show the
  * sound's values, which their knobs edit. The hint line follows a live
  * take's value while its knob turns, and with CLEAR held says a knob clears
- * its lane. Track page 2 writes a label's '_' as
- * the space it stands for.
+ * its lane (on a lock page, the first line does). Track page 2 writes a
+ * label's '_' as the space it stands for.
  * Every text run keeps the app's 4 px gap and 2x text; the layout sweep
  * (fm1-sim-render --screens) checks each state.
  *

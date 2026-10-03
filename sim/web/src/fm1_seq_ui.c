@@ -1469,7 +1469,10 @@ int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int del
   }
   if (encoder >= FM1_ENC_KNOB1 && encoder <= FM1_ENC_KNOB4) {
     if (u->step_page >= FM1_SEQ_UI_STEP_PAGES) {   /* a lock page */
-      if (u->held_n == 1) {
+      /* One step held, or CLEAR held with any number: CLEAR + a knob is
+       * CLEAR's gesture whatever is held (Movy's router: only its step page
+       * owns the knobs before Clear does), so it clears the lane. */
+      if (u->held_n == 1 || u->clear_held) {
         lock_knob(u, s, snd, encoder - FM1_ENC_KNOB1, delta, out);
         return 1;
       }

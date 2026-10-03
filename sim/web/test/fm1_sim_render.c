@@ -1404,6 +1404,10 @@ static void seq_lock_screens(const char *dir, float rate) {
   key_edge(FM1_SEQ_UI_KEY_CLEAR, 1);                 /* step + CLEAR: aclrstep */
   expect(g_app.ui.hold.lock_mask == 0 && g_app.popup_lines == 1, "step + CLEAR did not clear its locks");
   check_screen("seq-lock-toast-locks-cleared", dir, 1);
+  expect(g_app.ui.clear_held && g_app.ui.view == FM1_SEQ_VIEW_STEP &&
+             g_app.ui.step_page >= FM1_SEQ_UI_STEP_PAGES,
+         "step + CLEAR left the lock page");
+  step_check("seq-lock-clear-held-page", dir, 1);    /* the first line: a knob clears its lane */
   key_edge(fm1_white_key(0), 0);                     /* the step let go, CLEAR still held: */
   step_check("seq-lock-clear-held", dir, 1);         /* the hint says a knob clears its lane */
   key_edge(fm1_white_key(0), 1);

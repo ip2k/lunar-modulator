@@ -90,7 +90,8 @@ def test_there_are_the_s3_and_s4_traces():
     s6 = {"track-focus", "track-focus-from-home", "mute-tap", "mute-map", "set-page",
           "metro-shortcut", "clip-page", "clip-quant-cycle", "track-page-route", "pages-browse"}
     assert stems >= s6
-    s8 = {"lock-knob-sync", "lock-eight-lanes", "lock-several-held"} | set(MOVY_TRACES)
+    s8 = {"lock-knob-sync", "lock-eight-lanes", "lock-several-held",
+          "lock-several-clear"} | set(MOVY_TRACES)
     assert stems >= s8
 
 
@@ -1008,6 +1009,21 @@ def test_a_live_take_starts_again_from_the_knob_after_a_pause(tools, tmp_path):
     assert [int(c.split()[-1]) for c in takes] == [67, 70, 65]
     assert all(len(c.split()) == 5 for c in takes), "heard: no quiet flag"
     assert s["values0"][2] == pytest.approx(64 / 127, abs=1e-6), "snapped once, at the lane's birth"
+
+
+def test_clear_and_a_knob_clear_the_lane_however_many_steps_are_held(tools, tmp_path):
+    """CLEAR + a knob is CLEAR's gesture whatever is held (Movy's router: only
+    its step page owns the knobs before Clear does). With two steps held on a
+    lock page a knob edits the sound, but with CLEAR held too it clears the
+    parameter's lane (`aclr`) and leaves the knob where it was."""
+    lines = [l for l in (TRACES / "lock-several-clear.panel").read_text().splitlines()
+             if l and not l.startswith("#") and "PLAY/STOP" not in l]
+    s = lock_run(tools, tmp_path, lines, seconds=0.8)
+    assert cmds(s) == ["alabel 0 0 synth:Timbre", "abase 0 0 64", "aset 0 0 4 66 1",
+                       "abaseq 0 0 65", "aclr 0 0"]
+    assert s["popup"] == ["Timbre", "lane cleared"] and s["locks"]["assigned"] == 0
+    assert s["values0"][2] == pytest.approx(65 / 127, abs=1e-6), "CLEAR's detent turned nothing"
+    assert s["seq_view"]["held"] == 2 and s["seq_view"]["step_page"] == 2
 
 
 def test_the_clear_key_lights_with_a_lane_and_a_tap_does_nothing_yet(tools, tmp_path):

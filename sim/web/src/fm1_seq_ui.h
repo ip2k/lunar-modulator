@@ -466,8 +466,9 @@ int fm1_seq_ui_has_key(const fm1_seq_ui_t *u, int key);
  * the Step pages and then the lock pages of `snd` (S8), and a knob on a
  * lock page locks the held step's parameter; with several steps held a lock
  * page's knob is left to the app (0), which turns the sound's parameter on
- * page step_page - FM1_SEQ_UI_STEP_PAGES. `snd` may be NULL: no lock
- * sound. */
+ * page step_page - FM1_SEQ_UI_STEP_PAGES, unless CLEAR is held: then it
+ * clears that parameter's lane, however many steps are held. `snd` may be
+ * NULL: no lock sound. */
 int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int delta,
                        uint64_t frame, int mode, const fm1_seq_ui_sound_t *snd,
                        const fm1_seq_ui_emit_t *out);

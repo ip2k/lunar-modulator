@@ -32,10 +32,10 @@ history.
   - For developers: `fm1_seq_value7` (the inverse of a lock's value) and
     the lane label writer join the shared bridge; a lane label writes a
     space in a parameter's name as `_` (`synth:Env_Pitch`), since a label
-    is one word. Nine new gesture traces replay through `fm1-render` byte
+    is one word. Ten new gesture traces replay through `fm1-render` byte
     for byte, six of them taken from Movy's own automation tests; a new
-    parity scenario plays locks from the panel; 1,163 screens pass the
-    layout check (54 new), and the screens with the lab switch off are
+    parity scenario plays locks from the panel; 1,164 screens pass the
+    layout check (55 new), and the screens with the lab switch off are
     unchanged.
 - Tracks on the virtual FM-1's panel, still behind the lab switch (`?lab`;
   docs/15 stage S6). There are eight tracks, all playing Sound 1 to begin
@@ -546,10 +546,10 @@ history.
 ### Changed
 - **Sophie's Pad can be locked** (the owner's decision). It picks which of
   Sophie's sixteen pads her other knobs edit, so a lock on it changes which
-  pad the locks after it, on that step and later, edit. It was refused
-  before. Nothing else about any engine changed: 708 renders before and
-  after are byte-identical, apart from lanes whose labels write a space as
-  `_`, which reach their parameter now.
+  pad the locks after it, on that step and later, edit. Nothing else about
+  any engine changed: 708 renders before and after are byte-identical,
+  apart from lanes whose labels write a space as `_`, which reach their
+  parameter now.
 - **Engine API v2: every parameter has a fixed id and says what it allows.**
   Each parameter of every sound engine and effect now carries an id that
   never changes, so a sequencer lock (and later a modulation route or a
@@ -559,13 +559,13 @@ history.
   it can be modulated, plus a unit and a short name for the coming
   modulation matrix. What you hear changes in one case only: a sequencer
   lane on a parameter whose change cuts every sounding note (Macro's and
-  Macro Heavy's Model, Shapes' Shape) is now refused instead of applied,
-  and so is one on Sophie's Pad, which only picks the pad her other knobs
-  edit; `fm1-render` counts the refusals. PSX Verb's Model, which empties
+  Macro Heavy's Model, Shapes' Shape) is now refused instead of applied;
+  `fm1-render` counts the refusals. PSX Verb's Model, which empties
   the reverb, is marked the same for when effects can be locked. Six-Op
   FM's Patch and Sophie's Model stay lockable: they change the next notes
-  only. Lane names in saved sets stay as they were
-  (`synth:Timbre`). Every other render is byte-identical, over 1,458 renders
+  only. Sophie's Pad stays lockable too (above). Lane names in saved sets
+  stay as they were (`synth:Timbre`). Every other render is
+  byte-identical, over 1,458 renders
   before and after. Details in `engines/README.md`, "Parameters", and
   `engines/seq.md`; the ids are pinned in `tests/fixtures/param-uids.json`.
   Not in the browser simulator yet.

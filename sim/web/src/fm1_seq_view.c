@@ -363,7 +363,9 @@ static void draw_lock(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_so
   int idx[4], n;
   const int page = u->step_page - FM1_SEQ_UI_STEP_PAGES;
   const fm1_seq_ui_hold_t *h = &u->hold;
-  if (u->shift && u->held_n == 1) {         /* SHIFT + a knob clears its lock (aclrs) */
+  if (u->clear_held) {                      /* CLEAR + a knob clears its lane (aclr) */
+    snprintf(line, sizeof line, "Knob: clear lane");
+  } else if (u->shift && u->held_n == 1) {  /* SHIFT + a knob clears its lock (aclrs) */
     snprintf(line, sizeof line, "Knob: clear lock");
   } else if (u->held_n > 1) {
     snprintf(line, sizeof line, "Step %u +%u sound", (unsigned)h->step + 1u, (unsigned)u->held_n - 1u);

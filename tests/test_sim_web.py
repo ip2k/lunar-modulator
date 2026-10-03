@@ -384,7 +384,11 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     and its other extremes, with no clip, the Track page routed to each
     sound unit (the longest name), past them and to every MIDI channel,
     and Track page 2 with eight tracks' lane labels, none to eight, the
-    longest cut to fit, bases 0 to 127.
+    longest cut to fit, bases 0 to 127. Locks (S8): the lock pages with no
+    lane, one and eight, every sound engine's pages locked at both ends and
+    laned without a lock, the toasts, SHIFT and CLEAR held, several steps
+    held, another sound's lock pages, a lock on every grid step, a live
+    take's hint and a spaced label on Track page 2.
     Multi-sound (docs/15 §3.16): FX mode's five slots, every effect as an
     insert at its extremes and on M2, the grab, the Mix page with one to
     four sounds and their levels, every sound as Sound 2 in HOME, the Mix
@@ -396,8 +400,8 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 1109            # 335 before S3, 815 before S4, 914 before S5,
-    #                                              953 before multi-sound, 1,040 before S6
+    assert summary["screens"] >= 1164            # 335 before S3, 815 before S4, 914 before S5,
+    #                                              953 before multi-sound, 1,040 before S6, 1,109 before S8
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

@@ -368,7 +368,7 @@ drawn as `<` and `>`, because the font has ASCII only [verified: fm1_tft.c 87].
 | G#3 | OP2 | LOOP. Held, the white keys are bars 1–16; LOOP + SELECT resizes (`loop`, `dbl`) | S9 |
 | A#3 | OP3 | ▶ bar page. With a step held: `enudge` + (SHIFT: one tick) | S4 |
 | C#4 | OP4 | COPY: `cpy` / `pst`, and `cpyclr` on release; `clipcopy` / `clippaste` in Session | S9 |
-| D#4 | OP5 | CLEAR. + step: `del` + `aclrstep` (S9). + one knob detent: `aclr` (S8). Tap: delete the clip, with a confirm until undo exists [O15] | S8, S9 |
+| D#4 | OP5 | CLEAR. Steps held, then CLEAR: `aclrstep` per held step with a lock (S8, as built). Held + one knob detent: `aclr` (S8). CLEAR, then a step: `del` + `aclrstep` (S9). Tap: delete the clip, with a confirm until undo exists [O15] | S8, S9 |
 | F#4 | OP6 | MUTE. A tap mutes the focused track; held, white keys 1–8 are a mute map; no solo (O12, answered: mute only) | S6 |
 | G#4 | PIT | UNDO, inert until undo exists (M4/D14) [O16] | — |
 | A#4 | GLO | spare | — |
@@ -469,7 +469,8 @@ playing restarts (S4); D12 makes that a Stop and a Start.
   parameter's 7-bit value v7 by ±1.
 - It sets `value[] = fm1_seq_lock_value(p, v7)`, the bridge's exact
   expression, and sends `abase t lane v7`, then `abaseq` after 600 ms idle (R8:
-  no snap-back to a stale base).
+  no snap-back to a stale base). As built (S8): `abaseq` at every detent,
+  and none after (§5 S8, as built).
 - The grid is v/127 for FLOAT and the ⌊v·n/128⌋ bins for ENUM. Today a detent
   is 1/100 of the range [verified: sim/web/README.md, Limits]. Without the
   snap, the engine would play a different value from the one the screen shows,
@@ -485,10 +486,12 @@ playing restarts (S4); D12 makes that a Stop and a Start.
 - **Step page 2:** INV, plus read-outs of nudge and transpose.
 - **Lock pages** (S8), on the first turn of a parameter without a lane:
   1. `alabel t lane synth:<Name>`;
-  2. `abaseq t lane value7(current)`, so the base equals what the knob shows;
+  2. `abaseq t lane value7(current)`, so the base equals what the knob shows
+     (as built: `abase`, Movy's, with the knob first put on the grid);
   3. `aset t lane step v 1`, which is quiet.
 
-  NOLOCK parameters are hidden. A ninth lane gives the toast `8 lanes used`.
+  NOLOCK parameters are hidden (as built: named `no lock`, and a turn says
+  `cannot be locked`). A ninth lane gives the toast `8 lanes used`.
 
 **Two or more steps held:** the Step pages edit every held step. The sound
 pages edit the sound, with no lock.
@@ -1863,7 +1866,8 @@ tests/test_seq_ui.py, tests/test_seq_render.py, engines/test/seq_host_test.c,
   turn says `Model` / `cannot be locked` and sends nothing, as Movy's
   SP-35 (a held step that cannot lock a parameter says so rather than
   edit the sound under the hand). A ninth lane says `8 lanes used`. With
-  several steps held the lock pages show and edit the sound, with no lock.
+  several steps held the lock pages show and edit the sound, with no lock;
+  CLEAR held still makes a knob clear its lane (below).
 - **The knob grid and the bases with no step held.** A knob on a
   parameter with a lane (any track's, on that sound) moves one 7-bit step
   a detent, and every such lane takes the knob's value as its base at
@@ -1887,10 +1891,16 @@ tests/test_seq_ui.py, tests/test_seq_render.py, engines/test/seq_host_test.c,
   release then clears no notes. Steps held + CLEAR (D#4): `aclrstep` for
   each held step with a lock (`Locks cleared`); Movy sends it for every
   held step, but every edit verb empties Capture, so the FM-1 spares the
-  steps with none. CLEAR held + a detent (on a lock page, or on the
-  current sound's page when it is the lock sound): `aclr` of that
-  parameter's lane (`<Name>` / `lane cleared`), and the hint line says so
-  while CLEAR is held. CLEAR's tap and CLEAR + a step do nothing until S9.
+  steps with none. CLEAR held + a detent (on a lock page, however many
+  steps are held, or on the current sound's page when it is the lock
+  sound): `aclr` of that parameter's lane (`<Name>` / `lane cleared`), and
+  the hint line (on a lock page the first line, `Knob: clear lane`) says
+  so while CLEAR is held. As Movy's router has it, CLEAR + a knob is
+  CLEAR's gesture whatever is held; only the Step pages keep their knobs
+  (Movy's step page owns them first) [verified: reference/movy
+  `src/midi/router.ts` at `9190e79`; S8's review made several held steps
+  follow it, `lock-several-clear`]. CLEAR's tap and CLEAR + a step do
+  nothing until S9.
   CLEAR is lit while the track has a lane.
 - **Labels.** A lane label is one token of a script or a set, so a
   parameter name with a space is written with `_` (`synth:Env_Pitch`); the
@@ -1917,10 +1927,11 @@ tests/test_seq_ui.py, tests/test_seq_render.py, engines/test/seq_host_test.c,
   nothing, the live take's `aset 0 0 7 N` with no `abase` after it, the
   NOLOCK refusal, `aclrs 0 0 4`, `aclr` with no `clipdel`, and `aclrstep`.
   With Movy under `reference/movy` the test also finds each assertion,
-  word for word, in its source; without it that part is skipped. Three
-  more (`lock-knob-sync`, `lock-eight-lanes`, `lock-several-held`) cover
-  the knob sync, the 8-lane cap and several steps held. All nine replay
-  through `fm1-render` byte for byte.
+  word for word, in its source; without it that part is skipped. Four
+  more (`lock-knob-sync`, `lock-eight-lanes`, `lock-several-held`,
+  `lock-several-clear`) cover the knob sync, the 8-lane cap, several steps
+  held, and CLEAR + a knob with several held. All ten replay through
+  `fm1-render` byte for byte.
 - **Sophie's Pad** is lockable (the owner, below), with no flag. A Pad
   lock moves the edit focus at its step, so the locks after it in lane
   order there, and later, edit the pad it names [verified:
@@ -1932,12 +1943,13 @@ tests/test_seq_ui.py, tests/test_seq_render.py, engines/test/seq_host_test.c,
   with `_`, and the new trace that labels them, which reach their
   parameter now [verified 2026-10-02, a script over both builds]. A Pad
   lane alone renders as before: Pad only moves the focus.
-- **Screens.** 54 new, 1,163 in all, 0 faults, at most 96 boxes; every
+- **Screens.** 55 new, 1,164 in all, 0 faults, at most 96 boxes; every
   screen the sweep saved at the merge base is byte-identical here
   [verified: `fm1-sim-render --screens` at both, compared]. They cover the
   lock pages with no lane, one, and eight, every sound engine's pages
-  locked at both ends and laned without a lock, the toasts, SHIFT on a
-  lock page, CLEAR held, several steps held, another sound's lock pages,
+  locked at both ends and laned without a lock, the toasts, SHIFT and
+  CLEAR on a lock page, CLEAR held in the Track view, several steps held,
+  another sound's lock pages,
   a lock on every grid step, a live take's hint and a spaced label on
   Track page 2. The UI state is 600 B of its 1,024 (552 at S6); `fm1_app_t`
   is 4,881,488 B natively.
@@ -1948,7 +1960,7 @@ tests/test_seq_ui.py, tests/test_seq_render.py, engines/test/seq_host_test.c,
   (the two Sophie scenarios and Fold's 1 LSB, as before); imports none.
   The headless Chromium checks pass with the switch on and off, the
   help's new "Locks (lab)" entry shown only with it. The module is
-  526,033 B (514,688 with S6).
+  526,111 B (514,688 with S6).
 - **Sanitizers:** the simulator's tests (test_sim_web, test_sim_seq,
   test_seq_ui, test_sim_multi) under ASan and UBSan, and the engine and
   sequencer tests against a sanitized engines build, report nothing
