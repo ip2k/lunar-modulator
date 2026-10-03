@@ -51,8 +51,8 @@
  * writes it, at the block it led, as a verb script (header `#! rate
  * block=64 tracks end`, then `@<block start> <ops>`), and next to it a
  * sidecar, FILE less `.verbs` plus `.args`: the run's --engine, --param,
- * --fx, --fx-param, --note, --bend, --param-at, --seq and --route
- * arguments, one per line, then a --param-at for every sound parameter the
+ * --fx, --fx-param, --note, --bend, --param-at, --fx-param-at, --seq and
+ * --route arguments, one per line, then a --param-at for every sound parameter the
  * panel changed, at mid-block (docs/15 §6.3). So
  *   fm1-render --cmd FILE.verbs $(arguments in FILE.args)
  * renders the same samples ("two-step parity"), unless the summary says
@@ -113,6 +113,7 @@ static void usage(void) {
           "usage: fm1-sim-render --list | --screens DIR |\n"
           "       [--engine ID [--param NAME=V]...] [--fx ID [--fx-param NAME=V]...]...\n"
           "       [--note T:KEY:VEL:DUR] [--bend T:ST] [--param-at T:NAME=V]\n"
+          "       [--fx-param-at T:K:NAME=V]\n"
           "       [--key T:KEY:VEL:DUR] [--button T:NAME[:DUR]] [--turn T:ENC:DELTA]\n"
           "       [--select T:UNIT:ID|-]\n"
           "       [--master P] [--seconds S] [--rate HZ] [--out F.wav] [--screen F.ppm]\n"
@@ -1105,7 +1106,8 @@ int main(int argc, char **argv) {
     /* What fm1-render needs to replay a --log-cmds file (its sidecar). */
     if (strcmp(a, "--engine") == 0 || strcmp(a, "--param") == 0 || strcmp(a, "--fx") == 0 ||
         strcmp(a, "--fx-param") == 0 || strcmp(a, "--note") == 0 || strcmp(a, "--bend") == 0 ||
-        strcmp(a, "--param-at") == 0 || strcmp(a, "--seq") == 0 || strcmp(a, "--route") == 0) {
+        strcmp(a, "--param-at") == 0 || strcmp(a, "--fx-param-at") == 0 ||
+        strcmp(a, "--seq") == 0 || strcmp(a, "--route") == 0) {
       side(a, v);
     }
     if (strcmp(a, "--screens") == 0) return run_screens(v, rate);
@@ -1189,6 +1191,20 @@ int main(int argc, char **argv) {
       if (!colon) { usage(); return 2; }
       e = add_event(atof(v), EV_PARAM);
       if (!split_param(colon + 1, e->name, sizeof e->name, &e->value)) { usage(); return 2; }
+    } else if (strcmp(a, "--fx-param-at") == 0) {
+      /* T:K:NAME=V, K the effect's place in the chain (1 = the first --fx), as fm1-render */
+      const char *c1 = strchr(v, ':');
+      const char *c2 = c1 ? strchr(c1 + 1, ':') : NULL;
+      char *end = NULL;
+      long unit = c1 ? strtol(c1 + 1, &end, 10) : 0;
+      event_t *e;
+      if (!c2 || end != c2 || unit < 1 || unit > FM1_APP_FX_SLOTS) {
+        fprintf(stderr, "--fx-param-at wants T:K:NAME=V, K from 1 to %d\n", FM1_APP_FX_SLOTS);
+        return 2;
+      }
+      e = add_event(atof(v), EV_PARAM);
+      e->a = (int)unit;
+      if (!split_param(c2 + 1, e->name, sizeof e->name, &e->value)) { usage(); return 2; }
     } else if (strcmp(a, "--select") == 0) {
       double t;
       int unit, n = 0;
@@ -1286,7 +1302,7 @@ int main(int argc, char **argv) {
     fm1_app_seq_default_route(&g_app);   /* as the browser's start chain */
   }
   for (int k = 0; k < g_nev; ++k) {
-    if (g_ev[k].kind == EV_PARAM && find_param(0, g_ev[k].name) < 0) return 1;
+    if (g_ev[k].kind == EV_PARAM && find_param(g_ev[k].a, g_ev[k].name) < 0) return 1;
     if (g_ev[k].kind == EV_SELECT && strcmp(g_ev[k].name, "-") != 0 &&
         fm1_app_find(g_ev[k].name) < 0) {
       fprintf(stderr, "unknown engine %s\n", g_ev[k].name);
@@ -1314,7 +1330,7 @@ int main(int argc, char **argv) {
       event_t *e = &g_ev[k];
       if (e->done || e->time > now) continue;
       if (e->kind == EV_BEND) fm1_app_pitch_bend(&g_app, e->value);
-      else if (e->kind == EV_PARAM) fm1_app_set_param(&g_app, 0, find_param(0, e->name), e->value);
+      else if (e->kind == EV_PARAM) fm1_app_set_param(&g_app, e->a, find_param(e->a, e->name), e->value);
       else if (e->kind == EV_TURN || e->kind == EV_BUTTON) {
         units_t before;
         units_now(&before);
