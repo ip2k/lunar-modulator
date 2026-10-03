@@ -367,17 +367,15 @@ channel is filtered on its own, so Morph can pull them apart.
 - **Resonance** emphasises the sound around Cutoff. Near the right, from
   about 0.93, SVF, Ladder, Diode, Sallen-Key and SK Mixed whistle on their
   own, in tune with Cutoff (SK Mixed a little flat). On Comb it sets how
-  long the
-  echo rings; on Formant, how narrow the vowels are.
+  long the echo rings; on Formant, how narrow the vowels are.
 - **Drive** pushes the sound into the filter's saturation: quiet sounds come
   up to 12 dB louder, loud ones thicken and grit.
 - **Mode**, on page 2, changes the response as each Type above describes.
   It turns smoothly: between two positions you hear a blend of both.
 - **Morph**, on page 2, spreads the two channels for SVF, Ladder, Diode,
   Sallen-Key and SK Mixed: at the right, the left channel's cutoff is up to
-  an octave
-  lower and the right's an octave higher. On Comb and Formant it does what
-  their entries above say.
+  an octave lower and the right's an octave higher. On Comb and Formant it
+  does what their entries above say.
 - **Mix**, on page 2, fades from the dry sound at the left to the filtered
   sound alone at the right, the default.
 - **Level**, on page 2, sets the filtered sound's level, up to twice
