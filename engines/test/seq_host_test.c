@@ -23,6 +23,9 @@
  *     parameter's locks are refused, counted and split nothing; a new
  *     engine, an import and a released lane re-resolve; and a label set
  *     on the core directly, past the bridge, still reaches its parameter.
+ *   - The lock UI's grid (docs/15 S8): fm1_seq_value7 inverts every lock
+ *     value, a knob step moves one 7-bit value or one list entry, and the
+ *     label a UI writes for a parameter, a space as '_', resolves to it.
  *
  * Prints one JSON line of counts; exits 1 after the first failed check is
  * reported. Desktop test code (stdio); the bridge itself has none. MIT
@@ -345,6 +348,90 @@ static void parsers_and_figures(void) {
   }
 }
 
+/* docs/15 S8: the 7-bit grid a lock UI turns on. FLOAT: value7 inverts
+ * lock_value at every v; ENUM: every entry's lowest v, so lock_value of it
+ * is the entry, and value7 of any v in a bin is that bin's lowest. A knob
+ * step moves one v (FLOAT) or one entry (ENUM), clamped. Labels: '_'
+ * stands for a space, in either case, and the UI's label for a parameter
+ * resolves to it. */
+static const fm1_param_t kSpaced[] = {
+  { "Env Pitch", FM1_PARAM_FLOAT, -1.0f, 1.0f, 0.0f, NULL, 0, 21, FM1_PARAM_CONTINUOUS,
+    FM1_UNIT_NONE, "EnvP" },
+  { "Filter Type", FM1_PARAM_ENUM, 0.0f, 4.0f, 0.0f, NULL, 0, 22, 0, FM1_UNIT_NONE, "FltTyp" },
+  { "Patch", FM1_PARAM_ENUM, 0.0f, 95.0f, 32.0f, NULL, 0, 23, 0, FM1_UNIT_NONE, "Patch" },
+  { "Wide", FM1_PARAM_ENUM, 0.0f, 127.0f, 0.0f, NULL, 0, 24, 0, FM1_UNIT_NONE, "Wide" },
+  { "Flat", FM1_PARAM_FLOAT, 2.0f, 2.0f, 2.0f, NULL, 0, 25, 0, FM1_UNIT_NONE, "Flat" },
+};
+static const fm1_engine_t kSpacedEngine = {
+  FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "spaced", "Spaced", "", kSpaced,
+  (uint16_t)(sizeof(kSpaced) / sizeof(kSpaced[0])), 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL
+};
+
+static void value7_and_labels(void) {
+  volatile float zero = 0.0f;
+  const float nan = zero / zero;
+  unsigned q, v;
+  const fm1_param_t *all[N_PARAMS + 4];
+  unsigned n = 0;
+  char label[FM1_SEQ_LABEL_MAX];
+  for (q = 0; q < N_PARAMS; ++q) all[n++] = &kParams[q];
+  for (q = 0; q < 4; ++q) all[n++] = &kSpaced[q];
+  for (q = 0; q < n; ++q) {
+    const fm1_param_t *p = all[q];
+    unsigned prev = 0;
+    for (v = 0; v <= FM1_SEQ_VAL_MAX; ++v) {
+      const float x = fm1_seq_lock_value(p, v);
+      const unsigned w = fm1_seq_value7(p, x);
+      if (p->type == FM1_PARAM_FLOAT) {
+        CHECK(w == v);
+        CHECK(fm1_seq_value7_step(p, v, 1) == (v < 127u ? v + 1u : 127u));
+        CHECK(fm1_seq_value7_step(p, v, -3) == (v >= 3u ? v - 3u : 0u));
+      } else {
+        CHECK(w <= v && fm1_seq_lock_value(p, w) == x);           /* the bin's lowest */
+        CHECK(w == 0 || fm1_seq_lock_value(p, w - 1u) != x);
+        CHECK(v == 0 || w == prev || w == v);                   /* bins are runs */
+        CHECK(fm1_seq_lock_value(p, fm1_seq_value7_step(p, v, 1)) ==
+              (x < p->max ? x + 1.0f : p->max));
+        CHECK(fm1_seq_lock_value(p, fm1_seq_value7_step(p, v, -1)) ==
+              (x > p->min ? x - 1.0f : p->min));
+      }
+      prev = w;
+    }
+    if (p->type == FM1_PARAM_ENUM) {
+      float e;
+      for (e = p->min; e <= p->max; e += 1.0f) {
+        CHECK(fm1_seq_lock_value(p, fm1_seq_value7(p, e)) == e);
+      }
+    }
+    /* Out of range, NaN and the halfway point. */
+    CHECK(fm1_seq_value7(p, p->min - 1000.0f) == 0u);
+    CHECK(fm1_seq_value7(p, p->max + 1000.0f) ==
+          (p->type == FM1_PARAM_ENUM ? fm1_seq_value7(p, p->max) : 127u));
+    CHECK(fm1_seq_value7(p, nan) == fm1_seq_value7(p, p->def));
+  }
+  CHECK(fm1_seq_value7(&kParams[0], 0.5f) == 64u);              /* 63.5 rounds up (Movy's norm7) */
+  CHECK(fm1_seq_value7(&kParams[0], 63.0f / 127.0f + 0.001f) == 63u);
+  CHECK(fm1_seq_value7(&kSpaced[3], 5.0f) == 5u);               /* 128 entries: v == entry */
+  CHECK(fm1_seq_value7(&kSpaced[4], 2.0f) == 0u);               /* an empty range */
+  CHECK(fm1_seq_value7_step(&kSpaced[1], 127u, 1) == fm1_seq_value7(&kSpaced[1], 4.0f));
+  CHECK(fm1_seq_lane_label_for(&kSpaced[0], label, sizeof label) == 15u);
+  CHECK(strcmp(label, "synth:Env_Pitch") == 0);
+  CHECK(fm1_seq_lane_param(&kSpacedEngine, label) == 0);
+  CHECK(fm1_seq_lane_param(&kSpacedEngine, "synth:env_PITCH") == 0);
+  CHECK(fm1_seq_lane_param(&kSpacedEngine, "synth:Env Pitch") == 0);
+  CHECK(fm1_seq_lane_param(&kSpacedEngine, "synth:EnvPitch") == -1);
+  CHECK(fm1_seq_lane_param(&kSpacedEngine, "synth:Env__Pitch") == -1);
+  CHECK(fm1_seq_lane_label_for(&kSpaced[1], label, sizeof label) == 17u);
+  CHECK(fm1_seq_lane_param(&kSpacedEngine, label) == 1);
+  CHECK(fm1_seq_lane_uid(&kSpacedEngine, label) == 22u);
+  CHECK(fm1_seq_lane_label_for(&kSpaced[1], label, 8) == 7u && strcmp(label, "synth:F") == 0);
+  for (q = 0; q < N_PARAMS; ++q) {                              /* the UI's label round-trips */
+    CHECK(fm1_seq_lane_label_for(&kParams[q], label, sizeof label) > 6u);
+    CHECK(fm1_seq_lane_param(&kEngine, label) == (int)q);
+  }
+}
+
 /* A buffer the host filled itself. The core never puts an event past the
  * block, so only a hand-made buffer reaches the clamp: such an event plays
  * at the block's end, and no empty piece follows it. A lock on a
@@ -618,6 +705,7 @@ static void no_buffer(void) {
 int main(void) {
   uint64_t events = 0, calls = 0, inside = 0;
   parsers_and_figures();
+  value7_and_labels();
   inputs_and_dispatch(&events, &calls, &inside);
   hand_made_block();
   uids_and_refusals();

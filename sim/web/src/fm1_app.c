@@ -219,6 +219,40 @@ static fm1_seq_ui_emit_t ui_out(fm1_app_t *a) {
   return out;
 }
 
+/* The lock sound (docs/15 S8): the sound unit the focused track routes to,
+ * whose parameters its lanes lock, and whether it is the current sound.
+ * Returns its index, or -1 (a MIDI route, an empty sound, the lab switch
+ * off), with snd's engine NULL. */
+static int lock_sound(fm1_app_t *a, fm1_seq_ui_sound_t *snd) {
+  const int k = a->lab && a->seq ? fm1_app_unit_of_track(a, a->ui.track) : -1;
+  const fm1_app_unit_t *u = k >= 0 ? sound_of(a, k) : NULL;
+  snd->e = u ? u->e : NULL;
+  snd->value = u ? u->value : NULL;
+  snd->current = k == a->sound;
+  return u && u->e ? k : -1;
+}
+
+/* A parameter name of the lock sound for a toast. */
+static const char *lock_param_name(fm1_app_t *a, int param) {
+  fm1_seq_ui_sound_t snd;
+  return lock_sound(a, &snd) >= 0 && param < snd.e->n_params ? snd.e->params[param].name : "?";
+}
+
+/* The UI made a lane on a parameter of the lock sound: the knob goes onto
+ * the 7-bit grid, to the value the lane's base gives (fm1_seq_lock_value of
+ * fm1_seq_value7), so a stop's D6 revert sends the engine exactly value[]. */
+static void ui_snap(fm1_app_t *a) {
+  fm1_seq_ui_sound_t snd;
+  const int param = a->ui.snap;
+  const int k = lock_sound(a, &snd);
+  a->ui.snap = -1;
+  if (k >= 0 && param >= 0 && param < snd.e->n_params) {
+    const fm1_param_t *p = &snd.e->params[param];
+    const float v = fm1_seq_lock_value(p, fm1_seq_value7(p, snd.value[param]));
+    if (v != snd.value[param]) fm1_app_set_param(a, fm1_app_sound_unit(k), param, v);
+  }
+}
+
 /* The UI's toast, if any, as a popup. */
 static void ui_toast(fm1_app_t *a) {
   switch (a->ui.toast) {
@@ -241,6 +275,17 @@ static void ui_toast(fm1_app_t *a) {
       popup(a, "Clip quantize", line, NULL, -1);
       break;
     }
+    case FM1_SEQ_TOAST_LANES_FULL: popup(a, "8 lanes used", NULL, NULL, -1); break;
+    case FM1_SEQ_TOAST_NOLOCK:
+      popup(a, lock_param_name(a, a->ui.toast_arg), "cannot be locked", NULL, -1);
+      break;
+    case FM1_SEQ_TOAST_LOCK_CLEARED:
+      popup(a, lock_param_name(a, a->ui.toast_arg), "lock cleared", NULL, -1);
+      break;
+    case FM1_SEQ_TOAST_LANE_CLEARED:
+      popup(a, lock_param_name(a, a->ui.toast_arg), "lane cleared", NULL, -1);
+      break;
+    case FM1_SEQ_TOAST_LOCKS_CLEARED: popup(a, "Locks cleared", NULL, NULL, -1); break;
     default: break;
   }
   a->ui.toast = FM1_SEQ_TOAST_NONE;
@@ -260,6 +305,7 @@ static void ui_follow(fm1_app_t *a) {
 /* After an edge the UI took: the screen and LEDs follow, and its toast, if
  * any, becomes a popup. */
 static void ui_after(fm1_app_t *a) {
+  if (a->ui.snap >= 0) ui_snap(a);
   ui_follow(a);
   ui_toast(a);
   a->dirty = 1;
@@ -925,6 +971,63 @@ static void turn_param(fm1_app_t *a, int unit, int index, int delta) {
   fm1_app_set_param(a, unit, index, fm1_param_clamp(p, v));
 }
 
+/* The lanes on parameter `index` of sound unit `sound`: every lane, of every
+ * track that plays the sound, whose label names it (lab switch on). With
+ * `sync`, each takes the knob's 7-bit value as its base, quietly (`abaseq`,
+ * Movy's base sync, sent at once rather than at a knob's release), so no
+ * stale base snaps the parameter back at the next note (R8) and a stop's D6
+ * revert sends the engine exactly value[]; the knob is put on the grid
+ * first if a script left it off. Returns how many there are. */
+static int sound_lanes(fm1_app_t *a, int sound, int index, int sync) {
+  fm1_seq_info_t info;
+  fm1_app_unit_t *u = sound_of(a, sound);
+  const fm1_param_t *p;
+  unsigned v7;
+  int n = 0;
+  if (!a->lab || !a->seq || !u->e || index < 0 || index >= u->e->n_params) return 0;
+  p = &u->e->params[index];
+  v7 = fm1_seq_value7(p, u->value[index]);
+  fm1_seq_get_info(a->seq, &info);
+  for (int t = 0; t < info.tracks; ++t) {
+    fm1_seq_track_info_t ti;
+    if (fm1_app_unit_of_track(a, t) != sound || !fm1_seq_get_track(a->seq, (uint8_t)t, &ti)) continue;
+    for (unsigned lane = 0; lane < FM1_SEQ_LANES; ++lane) {
+      const char *label = fm1_seq_lane_label(a->seq, (uint8_t)t, (uint8_t)lane);
+      if (!((ti.lanes_assigned >> lane) & 1u) || !label[0] || fm1_seq_lane_param(u->e, label) != index) {
+        continue;
+      }
+      if (sync && !n) {
+        const float on_grid = fm1_seq_lock_value(p, v7);
+        if (on_grid != u->value[index]) fm1_app_set_param(a, fm1_app_sound_unit(sound), index, on_grid);
+      }
+      ++n;
+      if (sync && ti.base[lane] != v7) {
+        fm1_seq_cmd_t c;
+        const int64_t arg[3] = { t, lane, v7 };
+        fm1_seq_cmd_make(&c, FM1_SEQ_V_ABASEQ, 3u, arg);
+        fm1_app_seq_cmd(a, &c);
+      }
+    }
+  }
+  return n;
+}
+
+/* A knob detent (or ALGORITHM's) on sound unit `sound`'s parameter. With the
+ * lab switch, a parameter with a lane turns on its 7-bit grid, one step a
+ * detent (owner decision O14: v/127 of the range, or one list entry), so the
+ * engine plays the value the lanes' bases give, and the bases follow. */
+static void turn_sound(fm1_app_t *a, int sound, int index, int delta) {
+  const int unit = fm1_app_sound_unit(sound);
+  const fm1_param_t *p = &a->unit[unit].e->params[index];
+  if (p->type == FM1_PARAM_FLOAT && sound_lanes(a, sound, index, 0)) {
+    const unsigned v = fm1_seq_value7_step(p, fm1_seq_value7(p, a->unit[unit].value[index]), delta);
+    fm1_app_set_param(a, unit, index, fm1_seq_lock_value(p, v));
+  } else {
+    turn_param(a, unit, index, delta);
+  }
+  sound_lanes(a, sound, index, 1);
+}
+
 /* The next sound (dir +1/-1) in registry order, wrapping. */
 static int next_sound(int from, int dir) {
   int n = (int)fm1_engine_count;
@@ -1038,9 +1141,12 @@ static void fx_choose_lab(fm1_app_t *a, int unit, int delta) {
 void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
   if (encoder < 0 || encoder >= FM1_ENC_COUNT || delta == 0) return;
   delta = clampi(delta, -64, 64);
-  if (a->lab && a->seq) {               /* with steps held: the Step pages */
+  if (a->lab && a->seq) {               /* with steps held: the Step and lock pages */
     const fm1_seq_ui_emit_t out = ui_out(a);
-    const int took = fm1_seq_ui_encoder(&a->ui, a->seq, encoder, delta, a->frames, a->mode, &out);
+    fm1_seq_ui_sound_t snd;
+    int took;
+    lock_sound(a, &snd);
+    took = fm1_seq_ui_encoder(&a->ui, a->seq, encoder, delta, a->frames, a->mode, &snd, &out);
     if (took) {
       ui_after(a);
       return;
@@ -1114,7 +1220,8 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
         int m = model_param(cur(a)->e);
         if (m >= 0) {
           char buf[24];
-          turn_param(a, snd_unit, m, delta);
+          if (a->lab) turn_sound(a, a->sound, m, delta);   /* its lanes' bases follow (S8) */
+          else turn_param(a, snd_unit, m, delta);
           fm1_look_value(&cur(a)->e->params[m], cur(a)->value[m], buf, sizeof buf);
           popup(a, cur(a)->e->params[m].name, buf, NULL, -1);
         }
@@ -1124,16 +1231,42 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
       int knob = encoder - FM1_ENC_KNOB1;
       int unit = a->mode == FM1_MODE_FX ? fx_unit_at(a, a->fx_slot) : snd_unit;
       int page = a->mode == FM1_MODE_FX ? a->fx_page : a->page;
+      int sound = a->mode == FM1_MODE_FX ? -1 : a->sound;   /* the sound unit turned, if any */
+      int several = 0;
       int idx[4];
+      fm1_seq_ui_sound_t snd;
       if (a->mode == FM1_MODE_GLOBAL) break;
       if (a->mode == FM1_MODE_FX && unit < 0) {   /* the Mix page: KNOBn is sound n's level */
         fm1_app_unit_set_level(a, knob, a->level[knob] + (float)delta);
         break;
       }
+      if (a->lab && a->seq && a->mode == FM1_MODE_SEQ && a->ui.held_n > 1 &&
+          a->ui.view == FM1_SEQ_VIEW_STEP && a->ui.step_page >= FM1_SEQ_UI_STEP_PAGES) {
+        /* Several steps held on a lock page (S8): the lock sound's page
+         * edits the sound, with no lock. */
+        sound = lock_sound(a, &snd);
+        if (sound < 0) break;
+        unit = fm1_app_sound_unit(sound);
+        page = a->ui.step_page - FM1_SEQ_UI_STEP_PAGES;
+        several = 1;
+      }
       if (unit < 0 || !a->unit[unit].e) break;
       if (knob < page_params(a->unit[unit].e, page, idx)) {
-        turn_param(a, unit, idx[knob], delta);
-        if (a->mode == FM1_MODE_SEQ) {   /* its name and value on the hint line */
+        if (a->lab && a->seq && sound >= 0 && !several) {
+          /* CLEAR + knob, or a live take of the focused track (S8). */
+          const fm1_seq_ui_emit_t out = ui_out(a);
+          lock_sound(a, &snd);
+          if (fm1_seq_ui_sound_knob(&a->ui, a->seq, &snd, idx[knob], delta, a->frames, &out)) {
+            ui_after(a);
+            if (a->mode == FM1_MODE_SEQ) {
+              fm1_seq_ui_knob(&a->ui, knob, a->frames + (uint64_t)(2.0f * a->host.sample_rate));
+            }
+            break;
+          }
+        }
+        if (a->lab && sound >= 0) turn_sound(a, sound, idx[knob], delta);
+        else turn_param(a, unit, idx[knob], delta);
+        if (a->mode == FM1_MODE_SEQ && !several) {   /* its name and value on the hint line */
           fm1_seq_ui_knob(&a->ui, knob, a->frames + (uint64_t)(2.0f * a->host.sample_rate));
         }
       }
@@ -1339,7 +1472,12 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
     a->dirty = 1;
   }
   if (a->lab && a->seq) {
+    fm1_seq_ui_sound_t snd;
+    const uint8_t page_was = a->ui.step_page;
     const int changed = fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen, a->frames);
+    lock_sound(a, &snd);
+    fm1_seq_ui_lock_pages(&a->ui, fm1_seq_ui_pages(snd.e));   /* the lock pages there are now */
+    if (a->ui.step_page != page_was && a->mode == FM1_MODE_SEQ) a->dirty = 1;
     if (((changed & FM1_SEQ_UI_SYNC_SEQ) && a->mode == FM1_MODE_SEQ) ||
         (changed & FM1_SEQ_UI_SYNC_OVERLAY)) {
       a->dirty = 1;
@@ -1514,6 +1652,11 @@ void fm1_look_bar(fm1_tft_t *t, int x, int y, int w, int h, const fm1_param_t *p
                   uint16_t fill) {
   fm1_tft_graphic(t, x, y, w, h);
   fm1_tft_paint(t, x, y, w, h, C_BAR_BG);
+  fm1_look_fill(t, x, y, w, h, p, v, fill);
+}
+
+void fm1_look_fill(fm1_tft_t *t, int x, int y, int w, int h, const fm1_param_t *p, float v,
+                   uint16_t fill) {
   if (p->type == FM1_PARAM_ENUM) {
     int n = (int)(p->max - p->min) + 1;
     int i = enum_index(p, v);
@@ -1804,6 +1947,13 @@ static void draw(fm1_app_t *a) {
     snd.seq = a->seq;
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
       snd.unit_name[k] = k < fm1_app_unit_count(a) && sound_of(a, k)->e ? sound_of(a, k)->e->name : NULL;
+    }
+    {                                    /* the lock pages' sound: the focused track's (S8) */
+      fm1_seq_ui_sound_t ls;
+      snd.lock_sound = lock_sound(a, &ls);
+      snd.lock_e = ls.e;
+      snd.lock_value = ls.value;
+      snd.lock_current = ls.current;
     }
     fm1_seq_view_draw(t, &a->ui, &snd);
     fm1_seq_view_bottom(&a->ui, &snd, buf, sizeof buf);

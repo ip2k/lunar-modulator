@@ -9,6 +9,34 @@ history.
 ## [Unreleased]
 
 ### Added
+- Parameter locks on the virtual FM-1's panel, still behind the lab switch
+  (`?lab`; docs/15 stage S8).
+  - Hold a step and turn SELECT past its two Step pages: the next pages
+    are the sound's own, and a knob there locks its parameter on that
+    step. The locked value shows in the parameter's own units, in gold,
+    over the dim value it has on the other steps, and a dot after the bar
+    marks a parameter with a lane (a track has eight). A step with locks
+    gets a gold dot in the grid.
+  - A lock goes to the sound the track plays, even when another sound is
+    the one the keys play.
+  - Parameters that cannot be locked (Macro's Model, Shapes' Shape) say
+    so, and a ninth lane says "8 lanes used".
+  - SHIFT and a knob clears that step's lock. OP5 (D#4) pressed while
+    steps are held clears their locks; held, a knob clears that
+    parameter's lane on the track.
+  - Recording while playing, a knob writes its moves into the step that
+    plays, and you hear them.
+  - A knob on a parameter that has a lane now turns in 128 steps, the
+    same steps a lock uses, and the lane's value between locks follows it
+    at once. So what the knob shows is what plays, also after a stop.
+  - For developers: `fm1_seq_value7` (the inverse of a lock's value) and
+    the lane label writer join the shared bridge; a lane label writes a
+    space in a parameter's name as `_` (`synth:Env_Pitch`), since a label
+    is one word. Nine new gesture traces replay through `fm1-render` byte
+    for byte, six of them taken from Movy's own automation tests; a new
+    parity scenario plays locks from the panel; 1,163 screens pass the
+    layout check (54 new), and the screens with the lab switch off are
+    unchanged.
 - Tracks on the virtual FM-1's panel, still behind the lab switch (`?lab`;
   docs/15 stage S6). There are eight tracks, all playing Sound 1 to begin
   with.
@@ -516,6 +544,12 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Sophie's Pad can be locked** (the owner's decision). It picks which of
+  Sophie's sixteen pads her other knobs edit, so a lock on it changes which
+  pad the locks after it, on that step and later, edit. It was refused
+  before. Nothing else about any engine changed: 708 renders before and
+  after are byte-identical, apart from lanes whose labels write a space as
+  `_`, which reach their parameter now.
 - **Engine API v2: every parameter has a fixed id and says what it allows.**
   Each parameter of every sound engine and effect now carries an id that
   never changes, so a sequencer lock (and later a modulation route or a

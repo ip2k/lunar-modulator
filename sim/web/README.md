@@ -30,12 +30,12 @@ the "Power on" button, as browsers require a gesture.
 | --- | --- |
 | Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Test Gain. One sound and two effect slots, then the host's bus limiter, as `fm1-render` runs them; with the lab switch, up to four sounds with two inserts and a level each, mixed into those two slots as the master bus (below, "Multi-sound") |
 | Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy and Six-Op run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the three, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
-| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 1,109 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`]. They are every page of every engine and effect at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, SEL outside FX mode and an emptied slot (335 screens), and, with the lab switch on, the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, and multi-sound's FX chain, Mix page, titles, popups and RAM meter in 87 more |
+| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 1,163 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`]. They are every page of every engine and effect at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, SEL outside FX mode and an emptied slot (335 screens), and, with the lab switch on, the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 87, and parameter locks (S8) in 54 more |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
 | Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_app.c`); Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
 | Info | GLO shows the sample rate, block size, the chain's RAM against the 379 KB the stock layout leaves free (docs/11 §2), voices, octave and transpose. WebAssembly has 4-byte pointers like pi32v2, so these are the 32-bit instance sizes. The RAM figure includes the sequencer: its instance (31,880 B at 8 tracks, the same at 32 and 64 bits) and its 3,264-byte event buffer (3,072 B, 256 events, until stage S6, so a chain's figure can read 1K more than before: 4 of the 54 one-effect chains do). With the lab switch it is the RAM meter's figure (below) |
-| Sequencer | The app hosts the sequencer core (engines/seq.md) through the shared host bridge (`engines/include/fm1_seq_host.h`), exactly as `fm1-render` does: script lines and commands at block starts, each block's events, and the sound's render split at every note and lock of a track routed to it. 8 tracks (owner decision O3, 2026-10-02), a 272-event buffer (256 until stage S6), one pending command record, and the event-room rule: an op goes in only while 201 events of room are free, otherwise it waits a block, so no note-off is ever lost. The harness and the parity test play verb scripts and `movy1` sets through it; every one of the 34 Movy oracle scripts plays through the app byte for byte as through `fm1-render` at 64-frame blocks [verified: `tests/test_sim_seq.py`]. On the panel only with the lab switch (below): PLAY/STOP, SEQ mode's Track view and a demo pattern (docs/15 stage S3), step entry: the white keys as steps, the Step pages, SHIFT and bar paging (S4), record, step record and Capture (S5), and tracks, mute, the Set, Clip and Track pages and the metronome's click (S6) |
+| Sequencer | The app hosts the sequencer core (engines/seq.md) through the shared host bridge (`engines/include/fm1_seq_host.h`), exactly as `fm1-render` does: script lines and commands at block starts, each block's events, and the sound's render split at every note and lock of a track routed to it. 8 tracks (owner decision O3, 2026-10-02), a 272-event buffer (256 until stage S6), one pending command record, and the event-room rule: an op goes in only while 201 events of room are free, otherwise it waits a block, so no note-off is ever lost. The harness and the parity test play verb scripts and `movy1` sets through it; every one of the 34 Movy oracle scripts plays through the app byte for byte as through `fm1-render` at 64-frame blocks [verified: `tests/test_sim_seq.py`]. On the panel only with the lab switch (below): PLAY/STOP, SEQ mode's Track view and a demo pattern (docs/15 stage S3), step entry: the white keys as steps, the Step pages, SHIFT and bar paging (S4), record, step record and Capture (S5), tracks, mute, the Set, Clip and Track pages and the metronome's click (S6), and parameter locks from KNOB1–4 (S8) |
 
 Tested in Chromium only. In headless Chromium 153 (Playwright 1.63, on
 aeon) [verified: `build/screenshots/report.json`, 2026-10-01]: the page is titled
@@ -140,7 +140,8 @@ two: the engines, the sequencer and the module are the same.
 | Start | Macro and Plate, the sequencer empty | the same, every track on Sound 1 (track 1 by the default route, the others by `fm1_app_seq_start_routes`, O10 as changed on 2026-10-02) and the demo pattern: one bar on track 1 in C minor at 120 BPM (`fm1_app_demo_pattern`, O4) |
 | Tracks | — | 8 (O3): SEQ + white key 1–8 focuses one from any mode, C#5 and D#5 step through them, F#4 mutes; SHIFT + 2, 3 and 5/7/9 open the Track, Clip and Set pages, 6 the metronome, 16 the clip's quantize (S6, below) |
 | Metronome | — (a script's `metro 1` clicks) | the click, the shared bridge's (`fm1_seq_click_mix`, O11), on the Set page or SHIFT + 6 |
-| LEDs | as before | SEQ in SEQ mode, PLAY/STOP while the transport runs, SEL while SHIFT is held; in SEQ mode the white keys show the bar's steps, lit for a note, the playhead's inverted, held keys lit and the steps under the held step's note blinking slowly, and F#3 and A#3 lit while they can page or nudge (in step record, the head's key blinking fast, A#3 lit, F#3 while it can step back); F#4 (MUTE) lit with no step held, C#5 and D#5 while there is a track before or after; MUTE held, white keys 1–8 lit while their track sounds; SEQ held, the focused track's key. REC on while recording or step recording, fast during a count-in or a waiting take, slow while Capture holds notes (O7). Sequencer notes light no key outside SEQ mode (O6) |
+| Locks | — (a script's lanes play; the knobs keep their 1/100 detent and send nothing) | a held step's lock pages, past Step 2/2, lock the focused track's sound's parameters; a knob on a parameter with a lane turns on the 7-bit grid and the lanes' bases follow; a live take while recording; SHIFT + knob, D#4 (CLEAR) with steps held or + knob clear (S8, below) |
+| LEDs | as before | SEQ in SEQ mode, PLAY/STOP while the transport runs, SEL while SHIFT is held; in SEQ mode the white keys show the bar's steps, lit for a note, the playhead's inverted, held keys lit and the steps under the held step's note blinking slowly, and F#3 and A#3 lit while they can page or nudge (in step record, the head's key blinking fast, A#3 lit, F#3 while it can step back); F#4 (MUTE) lit with no step held, C#5 and D#5 while there is a track before or after, D#4 (CLEAR) while the track has a lane; MUTE held, white keys 1–8 lit while their track sounds; SEQ held, the focused track's key. REC on while recording or step recording, fast during a count-in or a waiting take, slow while Capture holds notes (O7). Sequencer notes light no key outside SEQ mode (O6) |
 | Status line, help | as before | the tempo and the transport (posted by the worklet only when they change); a "Sequencer (lab)" entry in the help, "counting in" in the status line, and ENV, LFO, EDIT, SAVE and ARP in the stub list |
 | Full velocity | — | SHIFT + white key 10 in SEQ mode: every step entered, and the keys played outside SEQ mode, at 127 |
 | Sounds | one sound and two effect slots | up to four sounds, each with two inserts and a level, then the two slots as the master bus; SHIFT + PRESETS chooses the current sound (below, "Multi-sound") |
@@ -162,8 +163,9 @@ and bottom bars:
   logged graphic: a filled cell for a note, an outline outside the loop
   (a note there a dim bar), the playhead inverted, a tick under a step
   with a probability, condition or invert, held steps framed, step
-  record's head framed red, and a mark at both ends of the bar on the keys;
-  a muted track's notes dim; with SHIFT held (no step held) the shortcuts'
+  record's head framed red, a gold dot in the corner of a step with a lock
+  (S8), and a mark at both ends of the bar on the keys; a muted track's
+  notes dim; with SHIFT held (no step held) the shortcuts'
   legend in its place (`Key 2  Track page` to `Key 16  Quant 0%`, with the
   metronome's, full velocity's and the clip quantize's states);
 - the knob strip: four bars for KNOB1–4 on the current sound page, no text
@@ -172,8 +174,9 @@ and bottom bars:
   `17-19`), or with SEL held `Keys move the head`; else that knob's name
   and value, as HOME's rows show them, or
   the bar the keys moved to, for two seconds or until SELECT or PRESETS
-  moves on; with SEQ held `Keys 1-8  pick track`, with MUTE held `Keys
-  1-8  mute`; otherwise the sound's model in gold, as HOME's first line;
+  moves on (a live take's value in gold, S8); with SEQ held `Keys 1-8
+  pick track`, with MUTE held `Keys 1-8  mute`, with CLEAR held `Knob
+  clears lane`; otherwise the sound's model in gold, as HOME's first line;
 - the bottom bar: `1/3 Seq T1` (sound page, mode, track) and the RAM figure.
 
 **The Step pages** (S4), while steps are held: the held step on the first
@@ -183,8 +186,21 @@ of label, value and bar. Page 1: Velocity, Length (`1/32` to `16 bars`,
 (`1:1` to `8:8`); page 2: Invert, and the Nudge (`+2 ticks`) and Note
 (`C4 +2`: a chord) as read-outs. Under them, where HOME has its scope, the
 bar's 16 steps: held ones gold, the steps under the first held step's
-note marked. With SHIFT held the first line reads `Keys add a pitch` and
-the strip `Tap SHIFT: clear`. The bottom bar reads `1/2 Step T1`.
+note marked, and a step with a lock dotted gold. With SHIFT held the first
+line reads `Keys add a pitch` and the strip `Tap SHIFT: clear`. The bottom
+bar reads `1/2 Step T1`.
+
+**The lock pages** (S8), past Step 2/2 with one step held: the pages of
+the sound the focused track plays (the lock sound, which need not be the
+current one: then the first line reads `Lock step 5 S2`), in HOME's rows
+with a shorter bar and a dot after it. A parameter locked on the step
+shows the lock in its own units, in gold, as a narrow gold bar inside the
+dim bar of its base, and a filled dot; one with a lane but no lock here
+shows the base, dim, and an outlined dot; one with no lane the knob's
+value, dim; a NOLOCK one `no lock`. The first line reads `Lock step 5`
+(with SHIFT held, `Knob: clear lock`), the bottom bar `1/3 Lock T1`. With
+several steps held the pages read `Step 2 +1 sound` and show and edit the
+sound itself.
 
 **The Set, Clip and Track pages** (S6), HOME's rows again, the page's
 subject on the first line: Set (`Set: all tracks`): Tempo (`120.00 BPM`),
@@ -199,7 +215,7 @@ or `1/2 Track 1`.
 
 With no step held, SELECT pages through the sound and KNOB1–4 turn it, as
 in HOME; past the sound's last page SELECT goes on to the Set, Clip and
-Track pages. The UI state (`fm1_seq_ui_t`) is 552 bytes against its 1,024-byte
+Track pages. The UI state (`fm1_seq_ui_t`) is 600 bytes (552 before S8) against its 1,024-byte
 bound; it reads the transport and the focused clip once per block, the
 grid's 64 steps again (through `fm1_seq_get_page`) only after the
 sequencer had input, and the held step while one is held [verified:
@@ -297,6 +313,32 @@ focused track: the steps, REC, Capture and what you play all go to it.
 
 docs/15 §5 (S6, as built) has the commands each gesture sends.
 
+**Locks, for the manual** (S8; the same wait for the lab switch). A lock
+sets a parameter for one step only; between locks the parameter has its
+lane's value, which is the knob's.
+
+- **Lock a step:** hold the step and turn SELECT past the two Step pages:
+  the pages that follow are the sound's own. Turn a knob there and its
+  parameter is locked on that step: the value shows in gold, over the dim
+  value it has on other steps. Each parameter you lock takes one of the
+  track's eight lanes; a ninth says `8 lanes used`. Some parameters cannot
+  be locked (they rebuild the sound, like Macro's Model) and say so.
+- **See them:** a step with locks has a gold dot in the grid; on the lock
+  pages a dot after the bar marks a parameter with a lane, filled where
+  the held step has a lock.
+- **Clear:** SHIFT and a knob clears that step's lock. OP5 (D#4) pressed
+  with steps held clears all their locks. Hold OP5 and turn a knob to
+  clear that parameter's lane from the track.
+- **Record moves:** while the track records, a knob's moves go into the
+  steps as they play, and you hear them.
+- **Turn a locked parameter:** with no step held, its knob turns in the
+  128 steps a lock uses, and the lane follows, so what you hear between
+  locks, and after a stop, is what the knob shows.
+- A lock goes to the sound the track plays, even when the keys play
+  another one.
+
+docs/15 §5 (S8, as built) has the commands each gesture sends.
+
 **Multi-sound** (docs/15 §3.16; the owner's decision of 2026-10-02, in
 place of docs/15 O10's one shared sound). With the lab switch:
 
@@ -342,8 +384,8 @@ place of docs/15 O10's one shared sound). With the lab switch:
   Six-Op with four inserts and Plate do (about 349 KB at 32 bits).
 - **Memory.** Each sound unit has a 512 KiB arena and each effect slot a
   256 KiB one: 4.5 MiB of the module's fixed 8 MiB. `fm1_app_t` is
-  4,881,424 B natively (clang, 64-bit) [verified: `fm1-sim-render
-  --sizes`].
+  4,881,488 B natively (clang, 64-bit; 4,881,424 B before S8) [verified:
+  `fm1-sim-render --sizes`].
 - **The API** stage S6 routes tracks with is `fm1_app_unit_*`
   (`src/fm1_app.h`): the current sound, a sound's engine, inserts and
   level, notes on a given sound, `fm1_app_unit_route(a, track, sound)` and
@@ -393,7 +435,7 @@ writes and reads back every verb.
 
 ## Parity: does the browser sound like the native engines?
 
-`build-on-aeon.sh` renders 32 scenarios (`test/scenarios.json`) four ways
+`build-on-aeon.sh` renders 33 scenarios (`test/scenarios.json`) four ways
 and compares the 16-bit output sample by sample [verified:
 `www/fm1.wasm.json`, 2026-10-02]. Eighteen are note scripts: every engine
 and effect, pitch bend, parameter changes mid-note, more notes than voices,
@@ -403,7 +445,7 @@ with a stop that sends the lanes back to their bases; two Six-Op tracks
 with swing and a clip at twice the speed; locks on Six-Op's Patch, a list;
 Capture committed while playing; a stopped Capture whose tempo is then
 changed with `capsel`; and the metronome's click on, off and on again with
-swing, then a REC count-in (`metro-click.verbs`, S6). Five are played on
+swing, then a REC count-in (`metro-click.verbs`, S6). Six are played on
 the panel with the lab switch on:
 `seq/panel-play-stop.panel` (SEQ, PLAY/STOP in SEQ mode and in HOME, and
 knob turns on two sound pages, ending in the Track view) and
@@ -419,7 +461,11 @@ tempo picker and a key closing it; `libm_sensitive`, as the scripted
 stopped Capture) and `seq/panel-tracks.panel` (S6: SEQ + a white key
 focuses track 2, its Track page routes it to Sound 2, the mute map mutes
 track 4, the Set page's swing and tempo, track 2's Clip page at 1/2X and
-2X, the click on and off with SHIFT + 6, a MUTE tap). Three play several sound
+2X, the click on and off with SHIFT + 6, a MUTE tap) and
+`seq/panel-locks.panel` (S8: locks on two steps from the lock pages, a
+knob turned with no step held while playing, which its lane's base
+follows, and a stop just after the locks, which sends the lanes back to
+their bases). Three play several sound
 units with the lab switch (docs/15 §3.16): `multi-two-sounds-inserts`
 (Macro through a Crush insert at 80 % and Shapes through Diffuse and
 Ensemble at 60 %, notes on each, into the master Plate),
@@ -431,9 +477,9 @@ tracks on two sounds, replayed through `fm1-render --slots`).
 
 | Against | Result |
 | --- | --- |
-| `render.cc` compiled to WebAssembly (Node) | identical in all 32: the app layer adds nothing |
-| native `fm1-render`, GCC with musl (static, Alpine) | identical in all 32: the compiler adds nothing |
-| native `fm1-render`, GCC with glibc | identical in 29. Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB), and Fold within 1 LSB (19 samples) |
+| `render.cc` compiled to WebAssembly (Node) | identical in all 33: the app layer adds nothing |
+| native `fm1-render`, GCC with musl (static, Alpine) | identical in all 33: the compiler adds nothing |
+| native `fm1-render`, GCC with glibc | identical in 30. Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB), and Fold within 1 LSB (19 samples) |
 
 The sequencer scenarios add three rules. Every leg applies a script line at
 the first 64-frame block starting at or after its frame, after the notes;
@@ -467,9 +513,10 @@ pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 
 The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, with step entry since S4, record and Capture
-since S5, multi-sound, and tracks, mute, the pages and the click since S6:
-32 of 32 scenarios pass, identical to musl and to render.js, and it imports
-nothing; it is 514,688 bytes (514,270 before S6's review), up from 490,916 with S5 and 496,050 with
+since S5, multi-sound, tracks, mute, the pages and the click since S6, and
+parameter locks since S8: 33 of 33 scenarios pass, identical to musl and to
+render.js, and it imports nothing; it is 526,033 bytes (514,688 with S6),
+up from 490,916 with S5 and 496,050 with
 multi-sound (each alone), 466,635 before S4, 459,122 before S3 and 391 KB
 before the sequencer [verified, 2026-10-02, `www/fm1.wasm.json`].
 

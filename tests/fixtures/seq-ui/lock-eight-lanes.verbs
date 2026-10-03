@@ -1,0 +1,27 @@
+#! rate=44118 block=64 tracks=8 end=88236
+@0 bpm 24000;tog 0 0 48 110;tog 0 4 55 90;tog 0 8 60 100;tog 0 12 63 90
+@8832 alabel 0 0 synth:Harmonics
+@8832 abase 0 0 64
+@8832 aset 0 0 4 65 1
+@9728 alabel 0 1 synth:Timbre
+@9728 abase 0 1 64
+@9728 aset 0 1 4 65 1
+@10624 alabel 0 2 synth:Morph
+@10624 abase 0 2 64
+@10624 aset 0 2 4 65 1
+@14144 alabel 0 3 synth:Decay
+@14144 abase 0 3 64
+@14144 aset 0 3 4 63 1
+@15040 alabel 0 4 synth:Colour
+@15040 abase 0 4 64
+@15040 aset 0 4 4 63 1
+@15936 alabel 0 5 synth:Volume
+@15936 abase 0 5 89
+@15936 aset 0 5 4 88 1
+@18560 alabel 0 6 synth:Env_Pitch
+@18560 abase 0 6 64
+@18560 aset 0 6 4 69 1
+@19456 alabel 0 7 synth:Env_Timbre
+@19456 abase 0 7 64
+@19456 aset 0 7 4 59 1
+@52992 play

@@ -215,8 +215,16 @@ void fm1_seq_click_mix(fm1_seq_click_t *c, const fm1_seq_t *s, const fm1_seq_ev_
                        uint32_t frames, float *lr);
 
 /* The parameter a lane label names: the part after the last ':' ("synth:
- * Timbre" names Timbre), compared without ASCII case. -1 if none. */
+ * Timbre" names Timbre), compared without ASCII case, with '_' standing for
+ * a space ("synth:Env_Pitch" names Env Pitch: a label is one token of a
+ * script or a set, docs/15 S8). -1 if none. */
 int fm1_seq_lane_param(const fm1_engine_t *e, const char *label);
+
+/* The label a lock UI gives a lane for parameter p: "synth:" and p's name,
+ * each space written as '_', so fm1_seq_lane_param reads it back as p. At
+ * most size - 1 bytes and a NUL (FM1_SEQ_LABEL_MAX holds every name of 12
+ * characters or fewer); returns the length written. */
+size_t fm1_seq_lane_label_for(const fm1_param_t *p, char *buf, size_t size);
 
 /* The uid of that parameter (fm1_engine.h, API v2), or 0 if none. */
 uint16_t fm1_seq_lane_uid(const fm1_engine_t *e, const char *label);
@@ -225,6 +233,21 @@ uint16_t fm1_seq_lane_uid(const fm1_engine_t *e, const char *label);
  * the way from min to max), Movy's planned bins floor(v * n / 128) for an
  * ENUM of n values. */
 float fm1_seq_lock_value(const fm1_param_t *p, unsigned v);
+
+/* The inverse of fm1_seq_lock_value (docs/15 S8): the 7-bit value of x on
+ * p's range. FLOAT: (x - min) / (max - min) of 127, rounded half up, so
+ * fm1_seq_value7(p, fm1_seq_lock_value(p, v)) == v for every v in 0..127.
+ * ENUM: the lowest v whose bin is x's entry (rounded to the nearest), so
+ * fm1_seq_lock_value(p, fm1_seq_value7(p, e)) == e for every entry e of a
+ * list of at most 128 (every one registered: Six-Op's 96 patches are the
+ * most). Out of range clamps; NaN reads as the default. No libm. */
+unsigned fm1_seq_value7(const fm1_param_t *p, float x);
+
+/* A knob detent on a lane's parameter (owner decision O14): `delta` steps on
+ * p's 7-bit grid from v, clamped, as the value a lock or a base takes. One
+ * step is v/127 of the range for FLOAT, and one entry, the bins' grid, for
+ * ENUM. */
+unsigned fm1_seq_value7_step(const fm1_param_t *p, unsigned v, int delta);
 
 /* Routing default. The core starts every track on USB-MIDI channel
  * t mod 16 + 1, and an import puts every route back there before it reads

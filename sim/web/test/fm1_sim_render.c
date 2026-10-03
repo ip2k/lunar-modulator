@@ -35,6 +35,9 @@
  *   --format-check      every verb through fm1_seq_cmd_format and back
  *                       through fm1_seq_parse; prints JSON, exit 1 on a
  *                       difference
+ *   --lock-check        every parameter of every engine on the lock UI's
+ *                       7-bit grid (docs/15 S8): value7 against lock_value,
+ *                       a knob step, the lane label; JSON, exit 1 on a fault
  *
  * The sequencer, with fm1-render's meaning for its flags (engines/host/
  * render.cc): --cmd FILE plays a timed verb script, --seq FILE.movy1 loads a
@@ -140,7 +143,7 @@ static void usage(void) {
           "       [--cmd FILE] [--seq FILE.movy1] [--tracks N] [--route T:engine|T:midi:CH]...\n"
           "       [--events N] [--log-events FILE.jsonl] [--log-cmds FILE.verbs]\n"
           "       [--seq-reset T:N] [--seq-import T:FILE.movy1] [--seq-ui T:OP]\n"
-          "       [--lab] [--panel FILE] [--start] | --sizes | --format-check\n"
+          "       [--lab] [--panel FILE] [--start] | --sizes | --format-check | --lock-check\n"
           "       with --lab: [--sound K:ID [--sound-param K:NAME=V]...] [--insert K:ID\n"
           "       [--insert-param K:NAME=V]...] [--level K:PCT] [--slots]\n"
           "       [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=V] [--level-at K:T:PCT]\n"
@@ -1336,6 +1339,179 @@ static void seq_track_screens(const char *dir, float rate) {
   destroy_units();
 }
 
+/* ---- --screens, lab on: parameter locks (docs/15 §4, S8) -------------- */
+
+/* Up to 8 lanes on track 1 for the lockable parameters of unit 0's engine,
+ * in index order, each locked at `v` on step `step` (v < 0: no lock). */
+static int lanes_on_every_param(int step, int v) {
+  const fm1_engine_t *e = g_app.unit[0].e;
+  int lane = 0;
+  seq_line("aclr 0 0;aclr 0 1;aclr 0 2;aclr 0 3;aclr 0 4;aclr 0 5;aclr 0 6;aclr 0 7");
+  for (uint16_t q = 0; e && q < e->n_params && lane < (int)FM1_SEQ_LANES; ++q) {
+    char label[FM1_SEQ_LABEL_MAX], ops[160];
+    if (!fm1_param_lockable(&e->params[q])) continue;
+    fm1_seq_lane_label_for(&e->params[q], label, sizeof label);
+    if (v >= 0) snprintf(ops, sizeof ops, "alabel 0 %d %s;abaseq 0 %d %d;aset 0 %d %d %d 1", lane, label,
+                         lane, 127 - v, lane, step, v);
+    else snprintf(ops, sizeof ops, "alabel 0 %d %s;abaseq 0 %d 64", lane, label, lane);
+    seq_line(ops);
+    ++lane;
+  }
+  blocks(1);
+  return lane;
+}
+
+static void seq_lock_screens(const char *dir, float rate) {
+  char name[128];
+  const int hold = (int)((uint32_t)g_app.ui.hold_frames / FM1_APP_MAX_FRAMES + 2u);
+  destroy_units();
+  fm1_app_init(&g_app, rate);
+  fm1_app_set_lab(&g_app, 1);
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  fm1_app_seq_default_route(&g_app);
+  blocks(1);
+  press(FM1_BTN_SEQ);
+  blocks(1);
+  seq_line("clen 0 64;tog 0 0 60 100;tog 0 5 62 100;tog 0 21 64 100;tog 0 63 67 100");
+  blocks(1);
+  /* A step held, SELECT past Step 2/2: the first lock page, no lanes yet. */
+  key_edge(fm1_white_key(0), 1);
+  blocks(hold);
+  turn(FM1_ENC_SELECT, 1);
+  turn(FM1_ENC_SELECT, 1);
+  expect(g_app.ui.step_page == FM1_SEQ_UI_STEP_PAGES && g_app.ui.lock_pages == 3,
+         "SELECT past Step 2/2 is not Macro's first lock page");
+  step_check("seq-lock-no-lanes", dir, 1);
+  turn(FM1_ENC_KNOB1, 1);                            /* Model: NOLOCK */
+  expect(g_app.popup_lines == 2 && strcmp(g_app.popup[1], "cannot be locked") == 0,
+         "Model did not say it cannot be locked");
+  check_screen("seq-lock-toast-nolock", dir, 1);
+  g_app.popup_lines = 0;
+  turn(FM1_ENC_KNOB3, 5);                            /* Timbre: a lane, a lock */
+  expect(g_app.ui.lanes == 1u && g_app.ui.hold.lock_mask == 1u && g_app.ui.hold.lock[0] == 69,
+         "KNOB3 did not lock Timbre at 64 + 5");
+  step_check("seq-lock-one-lane", dir, 1);
+  button_edge(FM1_BTN_SEL, 1);                       /* SHIFT: a knob clears its lock */
+  step_check("seq-lock-shift", dir, 1);
+  turn(FM1_ENC_KNOB3, 1);
+  expect(g_app.ui.hold.lock_mask == 0 && g_app.popup_lines == 2, "SHIFT + KNOB3 did not clear the lock");
+  check_screen("seq-lock-toast-lock-cleared", dir, 1);
+  button_edge(FM1_BTN_SEL, 0);
+  g_app.popup_lines = 0;
+  turn(FM1_ENC_KNOB3, -1);                           /* the lane again (the last lock freed it), */
+  seq_line("aset 0 0 9 30 1");                       /* and a lock elsewhere, so it outlives */
+  blocks(1);
+  key_edge(FM1_SEQ_UI_KEY_CLEAR, 1);                 /* step + CLEAR: aclrstep */
+  expect(g_app.ui.hold.lock_mask == 0 && g_app.popup_lines == 1, "step + CLEAR did not clear its locks");
+  check_screen("seq-lock-toast-locks-cleared", dir, 1);
+  key_edge(fm1_white_key(0), 0);                     /* the step let go, CLEAR still held: */
+  step_check("seq-lock-clear-held", dir, 1);         /* the hint says a knob clears its lane */
+  key_edge(fm1_white_key(0), 1);
+  blocks(hold);
+  turn(FM1_ENC_KNOB3, 1);                            /* CLEAR + knob: aclr */
+  expect(g_app.ui.lanes == 0 && g_app.popup_lines == 2, "CLEAR + KNOB3 did not clear the lane");
+  check_screen("seq-lock-toast-lane-cleared", dir, 1);
+  key_edge(FM1_SEQ_UI_KEY_CLEAR, 0);
+  key_edge(fm1_white_key(0), 0);
+  g_app.popup_lines = 0;
+  /* Every sound engine's lock pages: 8 lanes (as many as it has lockable
+   * parameters), locked at 0 and at 127 over the other end's base, and laned
+   * with no lock on the step; a ninth lane's toast. */
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    int lanes;
+    if (fm1_engines[i]->kind != FM1_KIND_SOUND || fm1_app_select(&g_app, 0, (int)i) != 0) continue;
+    blocks(1);
+    for (int pass = 0; pass < 3; ++pass) {
+      lanes = lanes_on_every_param(5, pass == 0 ? 0 : pass == 1 ? 127 : -1);
+      key_edge(fm1_white_key(5), 1);
+      blocks(hold);
+      for (int k = 0; k < 8 && g_app.ui.step_page < FM1_SEQ_UI_STEP_PAGES; ++k) turn(FM1_ENC_SELECT, 1);
+      while (g_app.ui.step_page > FM1_SEQ_UI_STEP_PAGES) turn(FM1_ENC_SELECT, -1);
+      for (int page = 0; page < g_app.ui.lock_pages; ++page) {
+        snprintf(name, sizeof name, "seq-lock-%s-p%d-%s", fm1_engines[i]->id, page + 1,
+                 pass == 0 ? "min" : pass == 1 ? "max" : "base");
+        step_check(name, dir, page == 0 && pass == 1);
+        if (page + 1 < g_app.ui.lock_pages) turn(FM1_ENC_SELECT, 1);
+      }
+      if (pass == 1 && lanes == (int)FM1_SEQ_LANES) {
+        /* A ninth lane: the first lockable parameter past the eighth. */
+        const fm1_engine_t *e = g_app.unit[0].e;
+        int seen = 0, target = -1;
+        for (uint16_t q = 0; q < e->n_params && target < 0; ++q) {
+          if (fm1_param_lockable(&e->params[q]) && seen++ == (int)FM1_SEQ_LANES) target = q;
+        }
+        if (target >= 0) {
+          int idx[4], n;
+          while (g_app.ui.step_page > FM1_SEQ_UI_STEP_PAGES) turn(FM1_ENC_SELECT, -1);
+          while (g_app.ui.step_page - FM1_SEQ_UI_STEP_PAGES < e->params[target].page) {
+            turn(FM1_ENC_SELECT, 1);
+          }
+          n = fm1_seq_ui_page_params(e, e->params[target].page, idx);
+          for (int k = 0; k < n; ++k) {
+            if (idx[k] == target) turn(FM1_ENC_KNOB1 + k, 1);
+          }
+          expect(g_app.popup_lines == 1 && strcmp(g_app.popup[0], "8 lanes used") == 0,
+                 "a ninth lane did not say 8 lanes used");
+          snprintf(name, sizeof name, "seq-lock-%s-toast-lanes-full", e->id);
+          check_screen(name, dir, i == 0);
+          g_app.popup_lines = 0;
+        }
+      }
+      key_edge(fm1_white_key(5), 0);
+    }
+  }
+  /* The Track view: a lock on every step of the grid's four bars. */
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  seq_line("alabel 0 0 synth:Env_Timbre;asetr 0 0 0 63 90 1");
+  blocks(1);
+  expect(g_app.ui.locks == ~(uint64_t)0, "not every step has a lock");
+  step_check("seq-locks-every-step", dir, 1);
+  /* Several steps held on a lock page (two without notes, so the second is
+   * no length gesture): the sound, no lock. */
+  key_edge(fm1_white_key(1), 1);
+  key_edge(fm1_white_key(2), 1);
+  turn(FM1_ENC_KNOB2, 1);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_STEP && g_app.ui.step_page >= FM1_SEQ_UI_STEP_PAGES &&
+             g_app.ui.held_n == 2 && g_app.ui.lanes == 1u,
+         "two steps held left the lock pages, or locked");
+  step_check("seq-lock-several", dir, 1);
+  key_edge(fm1_white_key(2), 0);
+  key_edge(fm1_white_key(1), 0);
+  /* Track page 2: a label's '_' is the space it stands for. */
+  shift_key(1);
+  if (g_app.ui.track_page != 1) turn(FM1_ENC_SELECT, 1);
+  step_check("seq-lanes-spaced", dir, 1);
+  button_edge(FM1_BTN_SEQ, 1);
+  button_edge(FM1_BTN_SEQ, 0);
+  /* A live take: recording, KNOB2 (Harmonics) turned; the hint follows it. */
+  seq_line("aclr 0 0;play;rec 0");
+  blocks(30);
+  expect(g_app.ui.recording && g_app.ui.clip_playing, "not recording on track 1");
+  {
+    const unsigned from = fm1_seq_value7(&g_app.unit[0].e->params[1], g_app.unit[0].value[1]);
+    turn(FM1_ENC_KNOB2, 9);
+    expect(g_app.ui.take_param == 1 && g_app.ui.take_v == from + 9u,
+           "KNOB2 did not take Harmonics 9 steps on");
+  }
+  step_check("seq-take-hint", dir, 1);
+  seq_line("stop");
+  blocks(1);
+  /* The lock pages of another sound than the current one: "S2". */
+  fm1_app_unit_select(&g_app, 1, fm1_app_find("shapes"));
+  seq_line("route 0 1 1");
+  blocks(1);
+  expect(fm1_app_unit_of_track(&g_app, 0) == 1 && g_app.sound == 0, "track 1 on Sound 2, Sound 1 current");
+  key_edge(fm1_white_key(2), 1);
+  blocks(hold);
+  while (g_app.ui.step_page < FM1_SEQ_UI_STEP_PAGES) turn(FM1_ENC_SELECT, 1);
+  turn(FM1_ENC_KNOB2, 3);
+  expect(fm1_seq_ui_lane_of(g_app.seq, 0, fm1_app_unit_engine(&g_app, 1), 1) >= 0,
+         "the lock did not go to Sound 2's Timbre");
+  step_check("seq-lock-other-sound", dir, 1);
+  key_edge(fm1_white_key(2), 0);
+  destroy_units();
+}
+
 /* ---- --screens, lab on: multi-sound (docs/15 §3.16) ------------------- */
 
 /* Every page of a unit shown in FX mode's lab layout at FX slot `slot`, at
@@ -1667,6 +1843,7 @@ static int run_screens(const char *dir, float rate) {
   seq_rec_screens(dir, rate);
   seq_track_screens(dir, rate);
   multi_screens(dir, rate);
+  seq_lock_screens(dir, rate);
   printf("{\"screens\":%d,\"faults\":%d}\n", g_screens, g_faults);
   return g_faults ? 1 : 0;
 }
@@ -1821,6 +1998,62 @@ static int format_check(void) {
   printf("{\"verbs\":%d,\"records\":%d,\"failures\":%d}\n", named, g_fmt_records,
          g_fmt_failures);
   return g_fmt_failures ? 1 : 0;
+}
+
+/* --lock-check (docs/15 S8): on every parameter of every registered engine
+ * and effect, the 7-bit grid the lock UI turns on. FLOAT: fm1_seq_value7
+ * inverts fm1_seq_lock_value at every v in 0..127. ENUM: every entry's
+ * fm1_seq_value7 locks back to it, and every v's is its bin's lowest. A
+ * knob step from every v moves one v or one entry. The label the UI gives a
+ * lane for the parameter resolves to it, and fits a label. */
+static int g_lock_checks, g_lock_failures;
+
+static void lock_expect(int ok, const fm1_engine_t *e, const fm1_param_t *p, unsigned v,
+                        const char *what) {
+  ++g_lock_checks;
+  if (ok) return;
+  if (g_lock_failures++ < 20) fprintf(stderr, "%s %s v=%u: %s\n", e->id, p->name, v, what);
+}
+
+static int lock_check(void) {
+  unsigned params = 0;
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    const fm1_engine_t *e = fm1_engines[i];
+    for (uint16_t q = 0; q < e->n_params; ++q) {
+      const fm1_param_t *p = &e->params[q];
+      char label[FM1_SEQ_LABEL_MAX];
+      ++params;
+      for (unsigned v = 0; v <= FM1_SEQ_VAL_MAX; ++v) {
+        const float x = fm1_seq_lock_value(p, v);
+        const unsigned w = fm1_seq_value7(p, x);
+        const unsigned up = fm1_seq_value7_step(p, v, 1), down = fm1_seq_value7_step(p, v, -1);
+        if (p->type == FM1_PARAM_FLOAT) {
+          lock_expect(w == v, e, p, v, "value7(lock_value(v)) != v");
+          lock_expect(up == (v < FM1_SEQ_VAL_MAX ? v + 1u : v) && down == (v ? v - 1u : 0u), e, p, v,
+                      "a knob step is not one 7-bit value");
+        } else {
+          lock_expect(w <= v && fm1_seq_lock_value(p, w) == x &&
+                          (w == 0 || fm1_seq_lock_value(p, w - 1u) != x),
+                      e, p, v, "value7 is not the bin's lowest");
+          lock_expect(fm1_seq_lock_value(p, up) == (x < p->max ? x + 1.0f : p->max) &&
+                          fm1_seq_lock_value(p, down) == (x > p->min ? x - 1.0f : p->min),
+                      e, p, v, "a knob step is not one entry");
+        }
+      }
+      if (p->type == FM1_PARAM_ENUM) {
+        for (float x = p->min; x <= p->max; x += 1.0f) {
+          lock_expect(fm1_seq_lock_value(p, fm1_seq_value7(p, x)) == x, e, p, (unsigned)x,
+                      "an entry no lock reaches");
+        }
+      }
+      lock_expect(fm1_seq_lane_label_for(p, label, sizeof label) + 1u < sizeof label &&
+                      fm1_seq_lane_param(e, label) == (int)q && !strchr(label, ' '),
+                  e, p, 0, "its lane label does not name it");
+    }
+  }
+  printf("{\"engines\":%u,\"params\":%u,\"checks\":%d,\"failures\":%d}\n",
+         (unsigned)fm1_engine_count, params, g_lock_checks, g_lock_failures);
+  return g_lock_failures ? 1 : 0;
 }
 
 typedef struct { int track, engine, channel; } route_t;
@@ -2000,6 +2233,7 @@ int main(int argc, char **argv) {
     }
     if (strcmp(a, "--sizes") == 0) return print_sizes();
     if (strcmp(a, "--format-check") == 0) return format_check();
+    if (strcmp(a, "--lock-check") == 0) return lock_check();
     if (strcmp(a, "--lab") == 0) { g_lab = 1; continue; }
     if (strcmp(a, "--slots") == 0) continue;                 /* implied by --lab */
     if (strcmp(a, "--start") == 0) { g_start = 1; continue; }
@@ -2494,6 +2728,44 @@ int main(int argc, char **argv) {
              (unsigned)h->step, (unsigned)h->notes, (unsigned)h->tick, (unsigned)h->gate,
              (unsigned)h->vel, (unsigned)h->pitch, (unsigned)h->gate_mixed, (unsigned)h->prob,
              (unsigned)h->cond_a, (unsigned)h->cond_b, (unsigned)h->inv);
+      /* Locks (S8): the held step's, lane by lane (-1 none). */
+      printf(",\"hold_locks\":[");
+      for (unsigned lane = 0; lane < FM1_SEQ_LANES; ++lane) {
+        printf(lane ? ",%d" : "%d", (h->lock_mask >> lane) & 1u ? (int)h->lock[lane] : -1);
+      }
+      printf("]");
+    }
+    {
+      /* Locks (S8): the focused track's lanes (label, 7-bit base), the grid's
+       * lock bits, the live take, and for sound unit 0 what the engine last
+       * heard through a lock beside the knob's value, both %.9g, so equal
+       * text is equal bits ("knob sync"). */
+      fm1_seq_track_info_t tr;
+      memset(&tr, 0, sizeof tr);
+      fm1_seq_get_track(g_app.seq, g_app.ui.track, &tr);
+      printf(",\"locks\":{\"lanes\":[");
+      for (unsigned lane = 0; lane < FM1_SEQ_LANES; ++lane) {
+        printf(lane ? "," : "");
+        json_string(fm1_seq_lane_label(g_app.seq, g_app.ui.track, (uint8_t)lane));
+      }
+      printf("],\"bases\":[");
+      for (unsigned lane = 0; lane < FM1_SEQ_LANES; ++lane) printf(lane ? ",%u" : "%u", (unsigned)tr.base[lane]);
+      printf("],\"assigned\":%u,\"grid\":%llu,\"take\":%d,\"take_v\":%u,\"clear\":%u,"
+             "\"lock_pages\":%u,\"shown_mask\":%u,\"shown\":[",
+             (unsigned)tr.lanes_assigned, (unsigned long long)g_app.ui.locks, (int)g_app.ui.take_param,
+             (unsigned)g_app.ui.take_v, (unsigned)g_app.ui.clear_held, (unsigned)g_app.ui.lock_pages,
+             (unsigned)g_app.lock_mask[0]);
+      {
+        const fm1_engine_t *e = g_app.unit[0].e;
+        for (uint16_t q = 0; e && q < e->n_params; ++q) {
+          printf(q ? ",\"%.9g\"" : "\"%.9g\"", (double)g_app.lock_shown[0][q]);
+        }
+        printf("],\"value\":[");
+        for (uint16_t q = 0; e && q < e->n_params; ++q) {
+          printf(q ? ",\"%.9g\"" : "\"%.9g\"", (double)g_app.unit[0].value[q]);
+        }
+      }
+      printf("]}");
     }
   }
   if (use_seq) {

@@ -26,7 +26,9 @@ UID_MAX = 0x0FFF
 # checked against each engine's code in this stage). Six-Op's Patch and
 # Sophie's pad parameters are read at note-on (LATCH), so they take
 # modulation too; Macro's LPG is read every block and lockable, but a
-# rounded route could end a note held under Off, so it takes none.
+# rounded route could end a note held under Off, so it takes none. Sophie's
+# Pad, the edit focus, was NOLOCK until the owner made it lockable for the
+# lock pages (2026-10-02, docs/15 S8); it takes no modulation.
 ENUM_FLAGS = {
     ("macro", "Model"): ["nolock"],             # rebuilds every voice
     ("macro", "LPG"): [],
@@ -34,7 +36,7 @@ ENUM_FLAGS = {
     ("macro-heavy", "LPG"): [],
     ("shapes", "Shape"): ["nolock"],            # every voice's oscillator at once
     ("sixop", "Patch"): ["latch", "mod"],       # read per voice at note-on
-    ("sw-sophie", "Pad"): ["nolock"],           # the edit focus, not a sound
+    ("sw-sophie", "Pad"): [],                   # the edit focus: lockable (owner, docs/15 S8)
     ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
     ("sw-sophie", "Filter Type"): ["latch", "mod"],
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
