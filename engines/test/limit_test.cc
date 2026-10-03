@@ -455,6 +455,112 @@ void Smooth() {
   }
 }
 
+// 11. Lookahead and Mode modulated: changed every third block (4.4 ms, under
+// the 5 ms crossfade, so changes also queue) while a 440 Hz sine swells and
+// fades between 0.3 and 2.0 with raised-cosine ramps (1-10 ms) into a -6 dB
+// ceiling with Drive +6 dB, so the gain is often ramping when a change
+// lands. The largest step between samples, against the largest with the
+// control held at each of several values over the same input, from the
+// start (its own release and attack included); a crossfade between two
+// outputs within the ceiling c can add at most 2c / 220 to a step. Six
+// inputs per case. Before each tap of a Lookahead crossfade had a gain path
+// of its own (2026-10-02), a shorter lookahead restarted the shared boxes
+// at the held gain, and changes to and from 0 swapped envelopes: steps of
+// up to 8 times the held ones.
+const uint32_t kModFrames = 64 * 2068;   // 3 s at 44,118 Hz, whole blocks
+float g_mod_in[2 * kModFrames], g_mod_out[2 * kModFrames];
+
+void ModInput(uint32_t seed) {
+  Lcg r = { seed };
+  float amp = 0.3f, from = 0.3f, target = 2.0f;
+  uint32_t left = 0, ramp = 0, ramp_len = 1;
+  for (uint32_t i = 0; i < kModFrames; ++i) {
+    if (left == 0) {
+      from = amp;
+      target = (r.Next() & 1) ? 2.0f : 0.3f;
+      ramp_len = 50 + r.Next() % 400;
+      ramp = 0;
+      left = ramp_len + 200 + r.Next() % 2000;
+    }
+    if (ramp < ramp_len) {
+      const double t = static_cast<double>(ramp) / ramp_len;
+      amp = from + (target - from) * static_cast<float>(0.5 * (1.0 - cos(M_PI * t)));
+      ++ramp;
+    }
+    --left;
+    g_mod_in[2 * i] = g_mod_in[2 * i + 1] = amp * static_cast<float>(sin(2 * M_PI * 440.0 * i / kRate));
+  }
+}
+
+// kind 0: Lookahead held at `value`, Mode at `mode`. 1: Lookahead 1-5 ms every
+// third block. 2: Lookahead 0-5 ms (0 one time in five). 3: Mode every third
+// block. 4: Mode every 64th block (93 ms: its glide completes). 5: Lookahead (0-5)
+// and Mode together, every second block.
+float ModRun(int kind, float value, float mode, uint32_t seed, float *out_peak) {
+  void *self = Make(kRate, 0x77);
+  Set(self, "Ceiling", -6.0f);
+  Set(self, "Drive", 6.0f);
+  Set(self, "Release", 30.0f);
+  Set(self, "Lookahead", kind == 0 ? value : 2.0f);
+  Set(self, "Mode", mode);
+  memcpy(g_mod_out, g_mod_in, sizeof(g_mod_out));
+  Lcg r = { seed * 7u + 3u };
+  for (uint32_t pos = 0, block = 0; pos < kModFrames; pos += 64, ++block) {
+    if ((kind == 1 || kind == 2) && block % 3 == 0) {
+      Set(self, "Lookahead", kind == 1 ? 1.0f + 4.0f * r.Unit()
+                                       : (r.Next() % 5 == 0 ? 0.0f : 5.0f * r.Unit()));
+    }
+    if (kind == 3 && block % 3 == 0) Set(self, "Mode", static_cast<float>((block / 3) & 1));
+    if (kind == 4 && block % 64 == 0) Set(self, "Mode", static_cast<float>((block / 64) & 1));
+    if (kind == 5 && block % 2 == 0) {
+      Set(self, "Lookahead", r.Next() % 5 == 0 ? 0.0f : 5.0f * r.Unit());
+      Set(self, "Mode", static_cast<float>(r.Next() & 1));
+    }
+    E.render(self, &g_mod_out[2 * pos], 64);
+  }
+  E.destroy(self);
+  float peak = 0.0f;
+  for (uint32_t i = 0; i < 2 * kModFrames; ++i) peak = fmaxf(peak, fabsf(g_mod_out[i]));
+  *out_peak = peak;
+  return MaxStep(g_mod_out, 0, kModFrames);
+}
+
+void Modulated() {
+  const char *names[] = { "", "lookahead", "lookahead0", "mode", "mode_slow", "both" };
+  const float held_la[] = { 1.0f, 2.0f, 3.5f, 5.0f };
+  const float held_la0[] = { 0.0f, 0.1f, 0.5f, 1.0f, 2.5f, 5.0f };
+  const double c = pow(10.0, -6.0 / 20.0);
+  printf("\"modulated\":{");
+  fm1_limit_probe_worst = fm1_limit_probe_stage = 0.0f;
+  float peak_all = 0.0f;
+  for (int kind = 1; kind <= 5; ++kind) {
+    float worst_ratio = 0.0f, moving_max = 0.0f, steady_max = 0.0f;
+    for (uint32_t seed = 1; seed <= 6; ++seed) {
+      ModInput(seed);
+      float peak, steady = 0.0f;
+      const bool la = kind == 1, la0 = kind == 2 || kind == 5;
+      const int n_la = la ? 4 : (la0 ? 6 : 1);
+      const int n_mode = kind >= 3 ? 2 : 1;
+      for (int a = 0; a < n_la; ++a) {
+        for (int m = 0; m < n_mode; ++m) {
+          const float v = la ? held_la[a] : (la0 ? held_la0[a] : 2.0f);
+          steady = fmaxf(steady, ModRun(0, v, static_cast<float>(m), seed, &peak));
+        }
+      }
+      const float moving = ModRun(kind, 0.0f, 0.0f, seed, &peak);
+      peak_all = fmaxf(peak_all, peak);
+      const float allowance = static_cast<float>(2.0 * c / 220.0);
+      worst_ratio = fmaxf(worst_ratio, (moving - steady) / allowance);
+      moving_max = fmaxf(moving_max, moving);
+      steady_max = fmaxf(steady_max, steady);
+    }
+    printf("%s\"%s\":{\"excess\":%.4f,\"moving\":%.6f,\"steady\":%.6f}", kind > 1 ? "," : "",
+           names[kind], worst_ratio, moving_max, steady_max);
+  }
+  printf(",\"peak\":%.9g,\"envelope\":%.9g,\"stage\":%.9g}", peak_all / c,
+         fm1_limit_probe_worst, fm1_limit_probe_stage);
+}
+
 // 8. Every parameter, at every kind of value (min, max, default, random,
 // beyond the range, NaN, infinities), changed between blocks of random size
 // while hostile input plays (with NaN and infinities in it), for 20 s.
@@ -621,6 +727,7 @@ int main() {
   Link(); printf(",");
   Changes(); printf(",");
   Smooth(); printf(",");
+  Modulated(); printf(",");
   Silence(); printf(",");
   Sweep(); printf(",");
   Ceiling();

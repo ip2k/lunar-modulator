@@ -57,21 +57,23 @@
 // the final clamp.
 //
 // Lookahead changes: the line's read crossfades from the old delay to the
-// new over 5 ms, and the gain both taps share must suit both: while they
-// fade, the hold spans the longer delay (plus one frame) and the boxes at
-// most the shorter, so every gain is a minimum over a window holding both
-// taps' frames (the argument above, for each tap). A longer lookahead
-// replays frames the old hold has forgotten: the hold takes them from the
-// line (their need computed again from the stored input, Drive, Ceiling and
-// Mode, one divide per loud frame, once), and the crossfade starts only once
-// the boxes hold nothing computed before the change (box-length frames
-// later), so the gain has ramped down to them as it would for any peak.
-// Shorter boxes restart at the held gain, as on create (a step, if the gain
-// was ramping). Once the crossfade is over, a shorter hold just forgets
-// sooner, while longer boxes wait until their output is within 2^-12 of the
-// held gain (no audible step) to restart at it. Lookahead 0 holds the
-// envelope at the gain in use when its crossfade ends, so its own attack
-// takes over without a step.
+// new over 5 ms, and each tap keeps a gain path of its own while they fade,
+// so neither ever steps. The old tap goes on with its boxes, untouched; the
+// new tap gets a second set of boxes, its own length, that starts at the
+// held gain (as on create) and is faded in from nothing, so its start is
+// smooth however far the old gain had ramped. Both sets average the one
+// hold, which spans the longer delay plus one frame while they fade, so
+// every value either set averages is a minimum over a window holding its
+// tap's frame (the argument above, for each tap). A longer lookahead replays
+// frames the old hold has forgotten: the hold takes them from the line
+// (their need computed again from the stored input, Drive, Ceiling and Mode,
+// one divide per loud frame, once). When the crossfade ends the new set is
+// the only one, and a shorter hold just forgets sooner, which its boxes
+// smooth. Lookahead 0 has its own envelope (below), run only while a tap
+// with no delay is heard: a fade to 0 starts it from the lookahead
+// envelope's reduction, and a fade from 0 restarts the hold from the line,
+// so either way the path faded in has been running since the fade began. A
+// change asked for during a crossfade waits for its end.
 //
 // The soft clip from a knee K to the ceiling c is the rational curve
 //   y = c - (c - K)^2 / (|v| - K + (c - K))   for |v| > K,
@@ -85,8 +87,8 @@
 // Memory: the line holds Drive, Ceiling and Mode with each frame, so a turned
 // knob takes effect at the same moment for the detector and for the delayed
 // audio: the ceiling holds while Ceiling glides. Instance memory grows with
-// the host rate (5 ms of frames, at most 510): 9,184 bytes at 44,118 Hz,
-// 21,760 at the cap (102 kHz and above); the instance holds no pointers, so
+// the host rate (5 ms of frames, at most 510): 11,008 bytes at 44,118 Hz,
+// 26,912 at the cap (102 kHz and above); the instance holds no pointers, so
 // a 32-bit build's is the same. Above 102 kHz the longest lookahead is 510
 // frames, shorter than 5 ms.
 //
@@ -122,15 +124,16 @@ enum { P_CEILING, P_DRIVE, P_RELEASE, P_LOOKAHEAD, P_MODE, P_LINK, P_MIX, P_COUN
 const char *const kModeNames[] = { "Brickwall", "Soft Clip" };
 
 // Uids (API v2) are fixed: never renumber one; a new parameter takes the next
-// free uid. Lookahead changes the latency and Mode the gain computer, so
-// neither is locked or modulated (NOLOCK); the rest are read every frame.
+// free uid. Every parameter can be locked and modulated: the floats glide,
+// Lookahead crossfades its delay with a gain path per tap, and Mode (rounded
+// when modulated) glides its stage frame by frame; none of them steps.
 // Ceiling and Drive are in dB, which has no unit code yet.
 const fm1_param_t kParams[P_COUNT] = {
   { "Ceiling",   FM1_PARAM_FLOAT, -24, 0,    -1.0f,  NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Ceil" },
   { "Drive",     FM1_PARAM_FLOAT, -12, 24,   0.0f,   NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Drive" },
   { "Release",   FM1_PARAM_FLOAT, 1,   1000, 100.0f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Rel" },
-  { "Lookahead", FM1_PARAM_FLOAT, 0,   5,    2.0f,   NULL, 0, 4, FM1_PARAM_NOLOCK, FM1_UNIT_MS, "Look" },
-  { "Mode",      FM1_PARAM_ENUM,  0,   1,    0.0f,   kModeNames, 1, 5, FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Mode" },
+  { "Lookahead", FM1_PARAM_FLOAT, 0,   5,    2.0f,   NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Look" },
+  { "Mode",      FM1_PARAM_ENUM,  0,   1,    0.0f,   kModeNames, 1, 5, FM1_PARAM_MOD, FM1_UNIT_NONE, "Mode" },
   { "Link",      FM1_PARAM_FLOAT, 0,   1,    1.0f,   NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Link" },
   { "Mix",       FM1_PARAM_FLOAT, 0,   1,    1.0f,   NULL, 1, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
 };
@@ -219,11 +222,24 @@ struct Glide {
   }
 };
 
-struct Channel {
-  float red;                 // the envelope's gain reduction, 1 - gain
-  uint32_t dq_head, dq_count;  // the hold's deque: a ring of dq_cap entries
+// One channel's pair of box filters in one set.
+struct Box {
   uint32_t sum1, pos1;       // box 1: the sum of its values, the next slot
   uint32_t sum2, pos2;       // box 2
+};
+
+struct Channel {
+  float red;                 // the envelope's gain reduction, 1 - gain
+  float red0;                // Lookahead 0's envelope (1 ms attack, -1 dB)
+  uint32_t dq_head, dq_count;  // the hold's deque: a ring of dq_cap entries
+  Box box[2];                // two sets: the new tap's and, while they fade, the old's
+};
+
+// The geometry of one set of boxes.
+struct BoxSet {
+  uint32_t d, b1, b1_shift, b2;   // (b1 - 1) + (b2 - 1) = d
+  uint32_t full2;                 // box 2's sum at unity gain
+  float inv2;                     // 1 / full2
 };
 
 // The arrays after the struct, by byte offset (no pointers, so the instance
@@ -231,7 +247,7 @@ struct Channel {
 //   x    float[2n]       the guarded input, left and right, per frame
 //   ctl  float[3n]       Drive and Ceiling (linear) and Mode (0..1) per frame
 //   dqv  uint32[2][cap]  the hold's deque values (cap = n + 1)
-//   b1   uint32[2][b1cap], b2 uint32[2][b2cap]   the box filters
+//   b1   uint32[2 sets][2][b1cap], b2 uint32[2 sets][2][b2cap]   the box filters
 //   dqt  uint16[2][cap]  the deque entries' frame stamps
 struct Instance {
   float rate;
@@ -248,12 +264,9 @@ struct Instance {
 
   uint32_t d, d_target, d_old;   // lookahead in frames: in use, asked for, fading out
   uint32_t fade_pos;             // 0, or frames into the crossfade from d_old
-  uint32_t wait;                 // frames before the crossfade starts (the old tap alone)
   uint32_t h;                    // the hold's window, frames
-  uint32_t box_d, b1, b1_shift, b2;   // the boxes: (b1 - 1) + (b2 - 1) = box_d
-  uint32_t full2;                // box 2's sum at unity gain
-  float inv2;                    // 1 / full2
-  int regrow;                    // the boxes wait to grow to d
+  uint32_t cur;                  // the set of boxes for d; the other is d_old's while fading
+  BoxSet set[2];
   uint32_t write;                // the line slot of the current frame
   uint32_t now;                  // frame counter
   int primed;                    // 0 until the first render
@@ -290,8 +303,8 @@ Layout MakeLayout(float rate) {
   l.off_x = off;   off += 8u * l.n;
   l.off_ctl = off; off += 12u * l.n;
   l.off_dqv = off; off += 8u * l.dq_cap;
-  l.off_b1 = off;  off += 8u * l.b1cap;
-  l.off_b2 = off;  off += 8u * l.b2cap;
+  l.off_b1 = off;  off += 16u * l.b1cap;
+  l.off_b2 = off;  off += 16u * l.b2cap;
   l.off_dqt = off; off += 4u * l.dq_cap;
   l.bytes = Round16(off);
   return l;
@@ -317,17 +330,17 @@ Arrays ArraysOf(Instance *s) {
 
 // The boxes for D frames: box 1 the largest power of two not above D / 2 + 1,
 // box 2 the rest, so that (b1 - 1) + (b2 - 1) = D. With a lookahead of d
-// they span d and the hold d + 1 frames; while a Lookahead change fades they
-// may span less (above).
-void SetBoxes(Instance *s, uint32_t d) {
-  s->box_d = d;
+// they span d and the hold d + 1 frames.
+void SetBoxes(Instance *s, uint32_t set, uint32_t d) {
+  BoxSet &g = s->set[set];
+  g.d = d;
   uint32_t b1 = 1, shift = 0;
   while (2u * b1 <= d / 2u + 1u) { b1 *= 2u; ++shift; }
-  s->b1 = b1;
-  s->b1_shift = shift;
-  s->b2 = d + 2u - b1;
-  s->full2 = s->b2 << 22;
-  s->inv2 = 1.0f / static_cast<float>(s->full2);
+  g.b1 = b1;
+  g.b1_shift = shift;
+  g.b2 = d + 2u - b1;
+  g.full2 = g.b2 << 22;
+  g.inv2 = 1.0f / static_cast<float>(g.full2);
 }
 
 inline uint32_t Held(const Instance *s, const Arrays &a, uint32_t c) {
@@ -335,25 +348,39 @@ inline uint32_t Held(const Instance *s, const Arrays &a, uint32_t c) {
   return k.dq_count ? a.dqv[c * s->dq_cap + k.dq_head] : kUnityQ;
 }
 
-// Restart the boxes at each channel's held gain (the lowest in the hold's
-// window), so they start from a gain no higher than any frame in it needs.
-void FillBoxes(Instance *s, const Arrays &a) {
+inline uint32_t *Ring1(const Instance *s, const Arrays &a, uint32_t set, uint32_t c) {
+  return a.b1 + (2u * set + c) * s->b1cap;
+}
+
+inline uint32_t *Ring2(const Instance *s, const Arrays &a, uint32_t set, uint32_t c) {
+  return a.b2 + (2u * set + c) * s->b2cap;
+}
+
+// Restart a set of boxes at each channel's held gain (the lowest in the
+// hold's window), so they start from a gain no higher than any frame in it
+// needs.
+void FillBoxes(Instance *s, const Arrays &a, uint32_t set) {
+  const BoxSet &g = s->set[set];
   for (uint32_t c = 0; c < 2; ++c) {
-    Channel &k = s->ch[c];
+    Box &k = s->ch[c].box[set];
     const uint32_t held = Held(s, a, c);
-    uint32_t *r1 = a.b1 + c * s->b1cap;
-    uint32_t *r2 = a.b2 + c * s->b2cap;
-    for (uint32_t i = 0; i < s->b1; ++i) r1[i] = held;
-    for (uint32_t i = 0; i < s->b2; ++i) r2[i] = held;
-    k.sum1 = s->b1 * held;
-    k.sum2 = s->b2 * held;
+    uint32_t *r1 = Ring1(s, a, set, c);
+    uint32_t *r2 = Ring2(s, a, set, c);
+    for (uint32_t i = 0; i < g.b1; ++i) r1[i] = held;
+    for (uint32_t i = 0; i < g.b2; ++i) r2[i] = held;
+    k.sum1 = g.b1 * held;
+    k.sum2 = g.b2 * held;
     k.pos1 = k.pos2 = 0;
   }
 }
 
-// Restart the hold, as one entry, and the boxes at each channel's held gain.
-// With no history (create) that is unity.
-void Refill(Instance *s, const Arrays &a) {
+// The lookahead d in force at once, with no crossfade (create, and settings
+// made before the first render): the hold as one entry and the boxes at each
+// channel's held gain; with no history (create) that is unity.
+void SetLookahead(Instance *s, const Arrays &a, uint32_t d) {
+  s->d = d;
+  s->h = d + 1;
+  s->cur = 0;
   for (uint32_t c = 0; c < 2; ++c) {
     Channel &k = s->ch[c];
     const uint32_t held = Held(s, a, c);
@@ -362,17 +389,8 @@ void Refill(Instance *s, const Arrays &a) {
     k.dq_head = 0;
     k.dq_count = 1;
   }
-  FillBoxes(s, a);
-}
-
-// The lookahead d in force at once, with no crossfade (create, and settings
-// made before the first render).
-void SetLookahead(Instance *s, const Arrays &a, uint32_t d) {
-  s->d = d;
-  s->h = d + 1;
-  s->regrow = 0;
-  SetBoxes(s, d);
-  Refill(s, a);
+  SetBoxes(s, 0, d);
+  FillBoxes(s, a, 0);
 }
 
 void Apply(Instance *s, int index) {
@@ -394,24 +412,38 @@ void Apply(Instance *s, int index) {
   }
 }
 
-// One frame of one channel's gain path: the gain this frame needs in, the
-// gain for the frame leaving the line out.
-inline float GainStep(Instance *s, const Arrays &a, uint32_t c, float g, int zero) {
-  Channel &k = s->ch[c];
-  const float need = 1.0f - g;
-  float red = k.red;
+// One step of an envelope's reduction (1 - gain) towards need: an attack
+// (instant, or one-pole with k_attack) and the one-pole release.
+inline float Envelope(const Instance *s, float red, float need, int instant) {
   if (need > red) {
-    red = zero ? red + s->k_attack0 * (need - red) : need;   // attack
+    red = instant ? need : red + s->k_attack0 * (need - red);   // attack
   } else if (need < red) {
-    const float next = red + s->k_release * (need - red);   // release
+    const float next = red + s->k_release * (need - red);       // release
     red = next == red ? need : next;   // the step fell under float resolution
     if (red < kReductionFloor) red = 0.0f;
   }
-  k.red = red;
-  // 1 - red can sit an ulp of 1 above g, which is much of g when g is small;
-  // with a lookahead the gain never exceeds what this frame needs.
-  float gain = 1.0f - red;
-  if (!zero && gain > g) gain = g;
+  return red;
+}
+
+// Lookahead 0's path for one channel: its envelope, aiming at what this
+// frame needs (g0, the ceiling 1 dB down), attacks over 1 ms; its gain,
+// quantised as the boxes' is, goes straight to the stage.
+inline float ZeroGain(Instance *s, uint32_t c, float g0) {
+  Channel &k = s->ch[c];
+  k.red0 = Envelope(s, k.red0, 1.0f - g0, 0);
+  const uint32_t q = static_cast<uint32_t>((1.0f - k.red0) * kUnityQf);   // rounds down
+  return q == kUnityQ ? 1.0f : static_cast<float>(q) * (1.0f / kUnityQf);
+}
+
+// One frame of one channel's lookahead envelope and hold: the gain this frame
+// needs in, the hold's minimum out.
+inline uint32_t HoldStep(Instance *s, const Arrays &a, uint32_t c, float g) {
+  Channel &k = s->ch[c];
+  k.red = Envelope(s, k.red, 1.0f - g, 1);
+  // 1 - red can sit an ulp of 1 above g, which is much of g when g is small:
+  // the gain never exceeds what this frame needs.
+  float gain = 1.0f - k.red;
+  if (gain > g) gain = g;
   const uint32_t q = static_cast<uint32_t>(gain * kUnityQf);   // rounds down
 
   // The hold: a deque of increasing values, oldest first; its front is the
@@ -436,20 +468,26 @@ inline float GainStep(Instance *s, const Arrays &a, uint32_t c, float g, int zer
   dqv[slot] = q;
   dqt[slot] = stamp;
   ++k.dq_count;
-  const uint32_t held = dqv[k.dq_head];
+  return dqv[k.dq_head];
+}
 
-  // The boxes, in exact integer sums; box 1's mean is a shift.
-  uint32_t *r1 = a.b1 + c * s->b1cap;
+// One frame of one channel's boxes in one set: the hold's minimum in, the
+// gain for the frame leaving that set's tap out. Exact integer sums; box 1's
+// mean is a shift.
+inline float BoxStep(Instance *s, const Arrays &a, uint32_t set, uint32_t c, uint32_t held) {
+  const BoxSet &g = s->set[set];
+  Box &k = s->ch[c].box[set];
+  uint32_t *r1 = Ring1(s, a, set, c);
   k.sum1 += held - r1[k.pos1];
   r1[k.pos1] = held;
-  k.pos1 = (k.pos1 + 1u) & (s->b1 - 1u);
-  const uint32_t mean1 = k.sum1 >> s->b1_shift;
-  uint32_t *r2 = a.b2 + c * s->b2cap;
+  k.pos1 = (k.pos1 + 1u) & (g.b1 - 1u);
+  const uint32_t mean1 = k.sum1 >> g.b1_shift;
+  uint32_t *r2 = Ring2(s, a, set, c);
   k.sum2 += mean1 - r2[k.pos2];
   r2[k.pos2] = mean1;
-  if (++k.pos2 == s->b2) k.pos2 = 0;
-  if (k.sum2 == s->full2) return 1.0f;
-  const float out = static_cast<float>(k.sum2) * s->inv2;
+  if (++k.pos2 == g.b2) k.pos2 = 0;
+  if (k.sum2 == g.full2) return 1.0f;
+  const float out = static_cast<float>(k.sum2) * g.inv2;
   return out > 1.0f ? 1.0f : out;
 }
 
@@ -461,7 +499,7 @@ inline float Aim(float c, float soft, int zero) {
 }
 
 // The lowest gain any of the line's last `span` frames (now - span .. now - 1)
-// needs, per channel, quantised as GainStep quantises it: recomputed from the
+// needs, per channel, quantised as HoldStep quantises it: recomputed from the
 // stored input, Drive, Ceiling and Mode, with the current Link.
 void LineNeeds(const Instance *s, const Arrays &a, uint32_t span, uint32_t q[2]) {
   const float link = s->link.value;
@@ -503,52 +541,37 @@ void PushHold(Instance *s, const Arrays &a, uint32_t c, uint32_t q) {
   ++k.dq_count;
 }
 
-// A Lookahead change starts: the read crossfades from d_old to d, and the
-// hold and the boxes are made to suit both taps (above).
+// A Lookahead change starts: the read crossfades from d_old to d. The old
+// tap keeps its boxes; the new one gets the other set, d long, started at the
+// held gain after the hold has grown to suit both taps (above).
 void StartChange(Instance *s, const Arrays &a) {
   const uint32_t d_old = s->d, d = s->d_target;
   s->d_old = d_old;
   s->d = d;
   s->fade_pos = 1;
-  s->wait = 0;
-  s->regrow = 0;
+  for (uint32_t c = 0; c < 2; ++c) {
+    Channel &k = s->ch[c];
+    if (d == 0) k.red0 = k.red;          // Lookahead 0's envelope starts here
+    if (d_old == 0) {                    // the hold and its envelope were idle
+      k.dq_count = 0;
+      k.red = k.red0;
+    }
+  }
   if (d > d_old) {
-    s->h = d + 1;                       // the boxes (at most d_old) stay...
-    s->wait = s->box_d;                 // ...until they hold nothing older than this
+    s->h = d + 1;                       // the hold spans both taps' frames
     uint32_t q[2];
     LineNeeds(s, a, d, q);
     PushHold(s, a, 0, q[0]);
     PushHold(s, a, 1, q[1]);
-  } else if (s->box_d > d) {
-    SetBoxes(s, d);                     // the hold (d_old + 1) stays
-    FillBoxes(s, a);
   }
+  s->cur ^= 1u;
+  SetBoxes(s, s->cur, d);
+  FillBoxes(s, a, s->cur);
 }
 
-// The crossfade is over: the hold shrinks to d + 1 (it forgets sooner), the
-// boxes grow to d when they can do so without a step, and at Lookahead 0
-// the envelope takes over from the gain in use.
-void EndChange(Instance *s, const Arrays &a) {
-  s->h = s->d + 1;
-  if (s->box_d != s->d) s->regrow = 1;
-  if (s->d == 0) {
-    for (uint32_t c = 0; c < 2; ++c) {
-      const float red = 1.0f - static_cast<float>(Held(s, a, c)) * (1.0f / kUnityQf);
-      if (red > s->ch[c].red) s->ch[c].red = red;
-    }
-  }
-}
-
-// Whether both channels' boxes put out their held gain, to within 2^-12.
-bool Settled(const Instance *s, const Arrays &a) {
-  for (uint32_t c = 0; c < 2; ++c) {
-    const int64_t diff = static_cast<int64_t>(s->ch[c].sum2) -
-                         static_cast<int64_t>(s->b2) * static_cast<int64_t>(Held(s, a, c));
-    const int64_t tol = static_cast<int64_t>(s->b2) << 10;
-    if (diff > tol || diff < -tol) return false;
-  }
-  return true;
-}
+// The crossfade is over: the old tap's boxes are free, and the hold shrinks
+// to d + 1 (it forgets sooner; the boxes smooth what it lets go of).
+void EndChange(Instance *s) { s->h = s->d + 1; }
 
 #ifdef FM1_LIMIT_PROBE
 // Test builds only (fm1-limit-test, engines/mk/limit.mk): the largest |v| / c
@@ -578,6 +601,12 @@ inline float Stage(float v, float c, float soft, int zero) {
   return Clamp(y, c);
 }
 
+// One tap's path to the output: the driven frame from slot r times its gain,
+// through the stage for its Mode and Ceiling (zero: Lookahead 0's).
+inline float TapOut(const Arrays &a, uint32_t r, uint32_t c, float gain, int zero) {
+  return Stage(a.ctl[3 * r] * a.x[2 * r + c] * gain, a.ctl[3 * r + 1], a.ctl[3 * r + 2], zero);
+}
+
 void Render(Instance *s, float *lr, uint32_t frames) {
   const Arrays a = ArraysOf(s);
   if (!s->primed) {
@@ -593,11 +622,6 @@ void Render(Instance *s, float *lr, uint32_t frames) {
   const uint32_t n = s->n;
   for (uint32_t f = 0; f < frames; ++f) {
     if (s->fade_pos == 0 && s->d_target != s->d) StartChange(s, a);
-    if (s->regrow && Settled(s, a)) {
-      SetBoxes(s, s->d);
-      FillBoxes(s, a);
-      s->regrow = 0;
-    }
     const float kg = s->k_glide;
     s->drive.Step(kg);
     s->ceiling.Step(kg);
@@ -606,7 +630,6 @@ void Render(Instance *s, float *lr, uint32_t frames) {
     s->soft.Step(kg);
     const float drive = s->drive.value, c = s->ceiling.value;
     const float link = s->link.value, mix = s->mix.value, soft = s->soft.value;
-    const int zero = s->d == 0 && s->fade_pos == 0;   // a crossfade has a tap ahead
 
     // Into the line.
     const float xl = Guard(lr[2 * f]), xr = Guard(lr[2 * f + 1]);
@@ -617,55 +640,54 @@ void Render(Instance *s, float *lr, uint32_t frames) {
     a.ctl[3 * w + 1] = c;
     a.ctl[3 * w + 2] = soft;
 
-    // The detector and the gain path.
+    // The detector, and the envelopes: the lookahead one into the hold, and
+    // Lookahead 0's, each only while a tap that needs it is heard.
     const float al = Abs(drive * xl), ar = Abs(drive * xr);
     const float ll = link * ar, lrr = link * al;
     const float pl = al > ll ? al : ll, pr = ar > lrr ? ar : lrr;
-    const float e = Aim(c, soft, zero);
-    const float gl = GainStep(s, a, 0, pl > e ? e / pl : 1.0f, zero);
-    const float gr = GainStep(s, a, 1, pr > e ? e / pr : 1.0f, zero);
+    const int zero = s->d == 0, zero_old = s->fade_pos != 0 && s->d_old == 0;
+    uint32_t hl = kUnityQ, hr = kUnityQ;
+    float zl = 1.0f, zr = 1.0f;
+    if (!zero || (s->fade_pos != 0 && !zero_old)) {
+      const float e = Aim(c, soft, 0);
+      hl = HoldStep(s, a, 0, pl > e ? e / pl : 1.0f);
+      hr = HoldStep(s, a, 1, pr > e ? e / pr : 1.0f);
+    }
+    if (zero || zero_old) {
+      const float e0 = Aim(c, soft, 1);
+      zl = ZeroGain(s, 0, pl > e0 ? e0 / pl : 1.0f);
+      zr = ZeroGain(s, 1, pr > e0 ? e0 / pr : 1.0f);
+    }
 
-    // Out of the line, d frames later.
+    // Out of the line, d frames later: the new tap, and while they fade the
+    // old one, each with its own gain and stage.
+    const uint32_t cur = s->cur;
+    const float gl = zero ? zl : BoxStep(s, a, cur, 0, hl);
+    const float gr = zero ? zr : BoxStep(s, a, cur, 1, hr);
     uint32_t r = w >= s->d ? w - s->d : w + n - s->d;
     float dl = a.x[2 * r], dr = a.x[2 * r + 1];
-    const float dd = a.ctl[3 * r];
-    float cd = a.ctl[3 * r + 1], sd = a.ctl[3 * r + 2];
-    float ul = dd * dl, ur = dd * dr;
+    float yl = TapOut(a, r, 0, gl, zero), yr = TapOut(a, r, 1, gr, zero);
     int ended = 0;
     if (s->fade_pos) {
-      r = w >= s->d_old ? w - s->d_old : w + n - s->d_old;
-      const float ol = a.x[2 * r], orr = a.x[2 * r + 1];
-      const float od = a.ctl[3 * r], oc = a.ctl[3 * r + 1], os = a.ctl[3 * r + 2];
-      if (s->wait) {                    // the old tap alone
-        ul = od * ol;
-        ur = od * orr;
-        dl = ol;
-        dr = orr;
-        cd = oc;
-        sd = os;
-        --s->wait;
-      } else {
-        const float t = static_cast<float>(s->fade_pos) * s->fade_step, u = 1.0f - t;
-        ul = u * (od * ol) + t * ul;
-        ur = u * (od * orr) + t * ur;
-        dl = u * ol + t * dl;
-        dr = u * orr + t * dr;
-        cd = u * oc + t * cd;
-        sd = u * os + t * sd;
-        if (++s->fade_pos >= s->fade_len) {
-          s->fade_pos = 0;
-          ended = 1;
-        }
+      const float ol = zero_old ? zl : BoxStep(s, a, cur ^ 1u, 0, hl);
+      const float orr = zero_old ? zr : BoxStep(s, a, cur ^ 1u, 1, hr);
+      const uint32_t ro = w >= s->d_old ? w - s->d_old : w + n - s->d_old;
+      const float t = static_cast<float>(s->fade_pos) * s->fade_step, u = 1.0f - t;
+      yl = u * TapOut(a, ro, 0, ol, zero_old) + t * yl;
+      yr = u * TapOut(a, ro, 1, orr, zero_old) + t * yr;
+      dl = u * a.x[2 * ro] + t * dl;
+      dr = u * a.x[2 * ro + 1] + t * dr;
+      if (++s->fade_pos >= s->fade_len) {
+        s->fade_pos = 0;
+        ended = 1;
       }
     }
-    const float yl = Stage(ul * gl, cd, sd, zero);
-    const float yr = Stage(ur * gr, cd, sd, zero);
     lr[2 * f] = (1.0f - mix) * dl + mix * yl;
     lr[2 * f + 1] = (1.0f - mix) * dr + mix * yr;
 
     s->write = w + 1u == n ? 0u : w + 1u;
     ++s->now;
-    if (ended) EndChange(s, a);
+    if (ended) EndChange(s);
   }
 }
 

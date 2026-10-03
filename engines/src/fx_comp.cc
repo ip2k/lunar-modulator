@@ -5,8 +5,9 @@
  *
  *   guard -> level (the louder channel; peak or RMS) -> dB -> static curve
  *   (Threshold, Ratio, Knee) = the reduction it asks for -> smoothing in dB
- *   (Attack, Release; Character; Auto Rel) -> gain = Makeup - reduction
- *   -> out = dry x (1 - Mix) + dry x gain x Mix
+ *   (Attack, Release; Character; Auto Rel) -> [Auto Gain: at least the
+ *   curve's reduction at this frame's peak] -> gain = Makeup (+ Auto
+ *   Gain's) - reduction -> out = dry x (1 - Mix) + dry x gain x Mix
  *
  * The design is the textbook one of Giannoulis, Massberg and Reiss, "Digital
  * Dynamic Range Compressor Design -- A Tutorial and Analysis" (JAES 60(6),
@@ -37,9 +38,28 @@
  *                    the reduction starts with zero slope (an S-shaped
  *                    onset that lets the front of a hit through) and
  *                    reaches 63 % at 1.07 Attack; Release as set.
- *   Makeup    dB added after the reduction. Auto Gain adds the curve's
- *             reduction at 0 dBFS, so a full-scale steady signal stays at
- *             full scale; Makeup then trims it.
+ *   Makeup    dB added after the reduction; Makeup then trims Auto Gain's.
+ *   Auto Gain adds A = the curve's reduction at 0 dBFS, at most 24 dB (the
+ *             manual Makeup's top), so a full-scale steady signal stays at
+ *             full scale (under it, where the cap bites). It is clip-safe:
+ *             the reduction applied is at least the curve's for this
+ *             frame's own peak (both channels' louder), so the gain never
+ *             exceeds the static curve's for the sample it multiplies, even
+ *             while the smoothing still lags behind an onset. Since the
+ *             curve's slope is at most 1, x - curve(x) only grows with x,
+ *             and A <= curve(0) then keeps every input at or under 0 dBFS
+ *             at or under 0 dBFS (with Makeup at or under 0; Makeup above 0
+ *             lifts that bound by itself). Below the bound Attack, Release
+ *             and Character shape the gain as ever; where the bound acts it
+ *             follows the waveform within a cycle, a soft clip along the
+ *             curve (a hard one at 21:1 with no knee): at an onset, and with
+ *             the RMS detectors, which read below a signal's peaks, on the
+ *             peaks themselves. Mix keeps the bound: dry and compressed are
+ *             each within it and have the same sign. Turning Auto Gain on or
+ *             off glides both A and the bound in or out together (5 ms), and
+ *             the bound holds part-way too: with a share w of each, the
+ *             applied reduction is at least w curve(x) >= w (x + A) >=
+ *             x + w A for x <= 0 dB. A margin of 1e-4 dB covers rounding.
  *
  * Gain reduction, for a modulation source: fm1_comp_reduction_db()
  * (include/fm1_comp.h) returns the last frame's smoothed reduction in dB.
@@ -55,16 +75,17 @@
  * effects' (mi_fx.cc): NaN reads as 0 and anything beyond +/-16 is clamped,
  * so non-finite input cannot reach the state. Silence in gives exact silence
  * out at any setting (the gain multiplies the input). Threshold, Ratio,
- * Knee, Makeup and Mix glide (one pole, 5 ms) sample by sample; Character
- * crossfades the detector over the same 5 ms; a change of Character or
- * Auto Rel that would step the reduction hands over through an offset that
- * decays in 5 ms. So any block size gives the same output, and values set
+ * Knee, Makeup, Mix and Auto Gain's share glide (one pole, 5 ms) sample by
+ * sample; Character crossfades the detector over the same 5 ms; a change of
+ * Character or Auto Rel that would step the reduction hands over through an
+ * offset that decays in 5 ms. So any block size gives the same output, and values set
  * before the first render take effect at once. States flush to zero (the
  * mean power below 1e-20, reductions below 1e-6 dB): no subnormals.
  *
  * Cost, per frame (stereo): one divide in the logarithm, one exponential,
  * the curve and three one-pole steps: about 75 operations, under 5,000 per
- * 64-frame block. Measured on the desktop in engines/README.md.
+ * 64-frame block; Auto Gain adds the curve once more and, for RMS and Glue,
+ * a second logarithm. Measured on the desktop in engines/README.md.
  *
  * Written in the C subset of C++11 so it would build as C99 unchanged apart
  * from the extern "C" linkage below. MIT licence, like the rest of this
@@ -107,10 +128,10 @@ static const char *const kOffOn[2] = { "Off", "On" };
 
 /* Uids (API v2) are fixed: never renumber one; a new parameter takes the next
  * free uid. The FLOATs are read every sample: SMOOTH and MOD. The switches
- * change nothing destructively and glide (no NOLOCK) and are not note-bound
- * (no LATCH); they take no modulation, since a rounded route would flip the
- * detector or the release at control rate. Threshold, Knee and Makeup are in
- * dB, for which fm1_unit_t has no code yet. */
+ * change nothing destructively (Character and Auto Rel hand over, Auto Gain
+ * glides; no NOLOCK) and are not note-bound (no LATCH), so they can be locked
+ * and modulated (MOD; a route is rounded), however fast. Threshold, Knee and
+ * Makeup are in dB, for which fm1_unit_t has no code yet. */
 static const fm1_param_t kCompParams[P_COUNT] = {
   { "Threshold", FM1_PARAM_FLOAT, -60, 0, -18, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Thresh" },
   { "Ratio",     FM1_PARAM_FLOAT, 1, 21, 4, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Ratio" },
@@ -119,13 +140,13 @@ static const fm1_param_t kCompParams[P_COUNT] = {
   { "Knee",      FM1_PARAM_FLOAT, 0, 24, 6, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Knee" },
   { "Makeup",    FM1_PARAM_FLOAT, -12, 24, 0, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Makeup" },
   { "Mix",       FM1_PARAM_FLOAT, 0, 1, 1, NULL, 1, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
-  { "Character", FM1_PARAM_ENUM, 0, C_COUNT - 1, C_PEAK, kCharacterNames, 1, 8, 0, FM1_UNIT_NONE, "Char" },
-  { "Auto Rel",  FM1_PARAM_ENUM, 0, 1, 0, kOffOn, 2, 9, 0, FM1_UNIT_NONE, "ARel" },
-  { "Auto Gain", FM1_PARAM_ENUM, 0, 1, 0, kOffOn, 2, 10, 0, FM1_UNIT_NONE, "AGain" },
+  { "Character", FM1_PARAM_ENUM, 0, C_COUNT - 1, C_PEAK, kCharacterNames, 1, 8, FM1_PARAM_MOD, FM1_UNIT_NONE, "Char" },
+  { "Auto Rel",  FM1_PARAM_ENUM, 0, 1, 0, kOffOn, 2, 9, FM1_PARAM_MOD, FM1_UNIT_NONE, "ARel" },
+  { "Auto Gain", FM1_PARAM_ENUM, 0, 1, 0, kOffOn, 2, 10, FM1_PARAM_MOD, FM1_UNIT_NONE, "AGain" },
 };
 
-/* The gliding control values. */
-enum { S_THRESHOLD, S_SLOPE, S_KNEE, S_MAKEUP, S_MIX, S_RMS, S_COUNT };
+/* The gliding control values. S_AUTO is Auto Gain's share, 0..1. */
+enum { S_THRESHOLD, S_SLOPE, S_KNEE, S_MAKEUP, S_MIX, S_RMS, S_AUTO, S_COUNT };
 
 static const float kSmoothSeconds = 0.005f;   /* glides and hand-overs */
 static const float kInputLimit = 16.0f;       /* the input guard, as mi_fx.cc */
@@ -135,6 +156,8 @@ static const float kDbPerLog2Power = 3.01029996f;   /* 10 log10(2) */
 static const float kLog2PerDb = 0.166096405f;       /* log2(10) / 20 */
 static const float kLog2e = 1.44269504f;
 static const float kAutoFastDivisor = 5.0f;   /* Auto Rel: first stage */
+static const float kAutoGainMax = 24.0f;      /* dB: Auto Gain's cap, Makeup's top */
+static const float kBoundMargin = 1e-4f;      /* dB: Auto Gain's bound, over rounding */
 static const float kRmsSeconds[C_COUNT] = { 0.010f, 0.010f, 0.030f, 0.010f };
 static const float kKneeAdd[C_COUNT] = { 0.0f, 0.0f, 6.0f, 0.0f };
 
@@ -155,6 +178,7 @@ typedef struct CompInstance {
   float glide;              /* one-pole step of the glides */
   float glide_pole;         /* 1 - glide: the hand-over offset's decay */
   float kq;                 /* S / (2 W) at value[], 0 for a hard knee */
+  float auto_db;            /* Auto Gain's full makeup at value[], dB */
   float k_rms;              /* RMS mean: one-pole step */
   CompPoles poles;          /* in force */
   CompPoles applied;        /* in force at the end of the last render */
@@ -264,16 +288,12 @@ static void CompMakePoles(const CompInstance *self, CompPoles *k) {
   }
 }
 
-/* Makeup, with Auto Gain's share: the curve's reduction at 0 dB, from the
- * targets (the result glides like any other value). */
-static void CompSetMakeupTarget(CompInstance *self) {
-  float m = self->param[P_MAKEUP];
-  if (CompIndex(self->param[P_AUTO_MAKEUP])) {
-    const float t = self->target[S_THRESHOLD], s = self->target[S_SLOPE];
-    const float w = self->target[S_KNEE];
-    m = m + CompCurve(0.0f, t, s, w, CompKq(s, w));
-  }
-  self->target[S_MAKEUP] = m;
+/* Auto Gain's makeup at the values in use: the curve's reduction at 0 dB,
+ * capped. kq must be current. */
+static void CompUpdateAuto(CompInstance *self) {
+  const float a = CompCurve(0.0f, self->value[S_THRESHOLD], self->value[S_SLOPE],
+                            self->value[S_KNEE], self->kq);
+  self->auto_db = a < kAutoGainMax ? a : kAutoGainMax;
 }
 
 static void CompSetTarget(CompInstance *self, int index) {
@@ -289,6 +309,8 @@ static void CompSetTarget(CompInstance *self, int index) {
       self->k_rms = 1.0f - CompPole(kRmsSeconds[character], self->sample_rate);
       break;
     case P_MIX: self->target[S_MIX] = v; break;
+    case P_MAKEUP: self->target[S_MAKEUP] = v; break;
+    case P_AUTO_MAKEUP: self->target[S_AUTO] = CompIndex(v) ? 1.0f : 0.0f; break;
     default: break;
   }
   switch (index) {
@@ -304,18 +326,12 @@ static void CompSetTarget(CompInstance *self, int index) {
       break;
     default: break;
   }
-  switch (index) {
-    case P_THRESHOLD: case P_RATIO: case P_KNEE: case P_CHARACTER:
-    case P_MAKEUP: case P_AUTO_MAKEUP:
-      CompSetMakeupTarget(self);
-      break;
-    default: break;
-  }
 }
 
 static void CompSnap(CompInstance *self) {
   for (int k = 0; k < S_COUNT; ++k) self->value[k] = self->target[k];
   self->kq = CompKq(self->value[S_SLOPE], self->value[S_KNEE]);
+  CompUpdateAuto(self);
   self->applied = self->poles;
   self->handover = 0;
 }
@@ -373,7 +389,10 @@ static void CompRender(void *s, float *lr, uint32_t frames) {
         gliding = 1;
       }
     }
-    if (gliding) self->kq = CompKq(self->value[S_SLOPE], self->value[S_KNEE]);
+    if (gliding) {
+      self->kq = CompKq(self->value[S_SLOPE], self->value[S_KNEE]);
+      CompUpdateAuto(self);
+    }
 
     /* The level: the louder channel, as power (dB = 10 log10). */
     const float l = CompGuard(lr[2 * f]), r = CompGuard(lr[2 * f + 1]);
@@ -408,11 +427,30 @@ static void CompRender(void *s, float *lr, uint32_t frames) {
       if (CompAbs(offset) < kReductionFlush) offset = 0.0f;
     }
 
+    /* Auto Gain, in by its share w: its makeup, and the bound (the curve's
+     * reduction at this frame's peak, which Peak and Punch already have as
+     * c). Off (w = 0), none of it is computed. */
+    float makeup = self->value[S_MAKEUP], applied = reduction;
+    const float w = self->value[S_AUTO];
+    if (w != 0.0f) {
+      makeup = makeup + w * self->auto_db;
+      float cp = c;
+      if (m != 0.0f) {
+        const float pp = p2 > kPowerFloor ? p2 : kPowerFloor;
+        cp = CompCurve(kDbPerLog2Power * CompLog2(pp), self->value[S_THRESHOLD],
+                       self->value[S_SLOPE], self->value[S_KNEE], self->kq);
+      }
+      if (cp > 0.0f) {
+        cp = cp + kBoundMargin;
+        if (cp > applied) applied = applied + w * (cp - applied);
+      }
+    }
+
     /* dry x (1 - Mix) + dry x gain x Mix: at Mix 1 the output is exactly
      * dry x gain, at 0 exactly dry (dry + Mix (wet - dry) would round a deep
      * reduction to the input's last place, not the output's). */
     const float mix = self->value[S_MIX];
-    const float wet = mix * CompExp2(kLog2PerDb * (self->value[S_MAKEUP] - reduction));
+    const float wet = mix * CompExp2(kLog2PerDb * (makeup - applied));
     const float dry = 1.0f - mix;
     lr[2 * f] = l * dry + l * wet;
     lr[2 * f + 1] = r * dry + r * wet;

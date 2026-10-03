@@ -13,7 +13,8 @@ under 1,320 settings, latency against Lookahead at four host rates, exact
 transparency, the release time, Link, parameters changed while audio runs at
 block sizes that change between calls, the Lookahead and Mode crossfades
 (the ceiling held by the gain path, not the final clamp, while they are
-turned under limiting), host rates and instance sizes.
+turned under limiting, and no click while they are turned every few
+blocks), host rates and instance sizes.
 
 The figures in the comments were measured on the desktop build (2026-10-02).
 """
@@ -73,13 +74,14 @@ def test_limiter_is_registered(renderer):  # noqa: F811
 
 
 def test_instance_size_follows_the_rate(renderer, tmp_path, tool):  # noqa: F811
-    # 5 ms of frames, at most 510: 9,184 bytes at the FM-1's rate, 21,760 at
-    # the cap (102 kHz and above). A refused rate still gets a size.
+    # 5 ms of frames, at most 510: 11,008 bytes at the FM-1's rate, 26,912
+    # at the cap (102 kHz and above), with a second set of box filters for a
+    # Lookahead crossfade. A refused rate still gets a size.
     s, _, _ = render(renderer, tmp_path, input="silence", seconds=0.05, fx=fx())
-    assert s["fx_bytes"] == [9184]
+    assert s["fx_bytes"] == [11008]
     sizes = {rate: size for rate, _, size in tool["rates"]}
-    assert sizes["44118"] == 9184 and sizes["48000"] == 9936 and sizes["96000"] == 19536
-    assert sizes["102000"] == sizes["192000"] == sizes["384000"] == 21760
+    assert sizes["44118"] == 11008 and sizes["48000"] == 11920 and sizes["96000"] == 23440
+    assert sizes["102000"] == sizes["192000"] == sizes["384000"] == 26912
     assert all(size % 16 == 0 for size in sizes.values())
 
 
@@ -361,6 +363,24 @@ def test_turning_lookahead_and_mode_never_needs_the_clamp(tool):
     # Steady limiting (+12 dB into -6 dB) while Lookahead moves 2 -> 4.5 ->
     # 1 ms: no step larger than the sine's own.
     assert k["moving_step"] <= 1.05 * k["steady_step"]
+
+
+def test_lookahead_and_mode_modulated_fast_do_not_click(tool):
+    # Lookahead (1-5 ms, and 0-5 ms with 0 among them) and Mode turned every
+    # third block, Mode every 64th too (its glide then completes), and both
+    # every second block, while a sine swells and fades into the ceiling, so
+    # the gain is often ramping when a change lands: no step between samples
+    # beyond the largest with the control held (at 1-6 values, over the same
+    # six inputs) plus the crossfade bound 2c / 220. Measured: 0.20 of that
+    # allowance with Lookahead at 1-5 ms, none elsewhere. Before each tap of
+    # a crossfade had its own gain path (2026-10-02) it was 2.6 and 16 times
+    # the allowance, and the stage passed the ceiling by 18 % before the
+    # clamp.
+    m = tool["modulated"]
+    for name in ("lookahead", "lookahead0", "mode", "mode_slow", "both"):
+        assert m[name]["excess"] <= 1.0, (name, m[name])
+    assert m["peak"] <= 1.0
+    assert m["envelope"] <= 1.0 + 3e-7 and m["stage"] <= 1.0 + 3e-7
 
 
 def test_any_parameter_change_mid_stream_stays_finite(tool):

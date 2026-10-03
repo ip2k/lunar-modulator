@@ -22,8 +22,8 @@
  * on the KVR forum in 2012); then the true curve is applied once to the
  * solved value and the stages advance with it, so every state stays bounded
  * however hard the loop is driven. SVF, Ladder and Diode solve once per
- * sample. K35 and Steiner, whose curves sit deeper in the loop, take the
- * secant again at that first solution and solve a second time: a fixed
+ * sample. Sallen-Key and SK Mixed, whose curves sit deeper in the loop, take
+ * the secant again at that first solution and solve a second time: a fixed
  * single refinement, never a convergence loop. Without it their
  * self-oscillation drifted up to 75 cents sharp above 5 kHz [verified].
  *
@@ -56,25 +56,24 @@
  *            normalisation of w follows it (a fitted curve), so Cutoff
  *            sits near the -3 dB point with no resonance and is the
  *            self-oscillation pitch at full resonance. Mode taps as Ladder.
- *   K35      The Sallen-Key low-pass of the Korg MS-20's later filter
- *            (the Korg35): two one-poles with positive feedback through a
- *            one-pole high-pass, H = 1 / (s^2 + (2 - k) s + 1), the
- *            feedback through a saturating curve (Zavalishin ch. 5; Will
- *            Pirkle's application note on the Korg35). Mode as SVF, the
- *            band-pass and high-pass taken from the same loop.
- *            Self-oscillates from k = 2.
- *   Steiner  After the Steiner-Parker Synthacon's filter: an equal-component
- *            Sallen-Key whose inputs are mixed rather than its outputs. The
+ *   Sallen-Key  A Sallen-Key low-pass: two one-poles with positive
+ *            feedback through a one-pole high-pass, H = 1 / (s^2 + (2 - k) s
+ *            + 1), the feedback through a saturating curve (Zavalishin
+ *            ch. 5; the circuit it follows is credited in engines/README.md,
+ *            "Filter"). Mode as SVF, the band-pass and high-pass taken from
+ *            the same loop. Self-oscillates from k = 2.
+ *   SK Mixed  An equal-component Sallen-Key whose inputs are mixed rather
+ *            than its outputs (credited in engines/README.md, "Filter"). The
  *            low-pass input drives the first resistor, the band-pass input
  *            the bottom of the first capacitor (with the feedback), the
  *            high-pass input the bottom of the second. Node equations
  *            (written here): y (s^2 + (3 - K) s + 1) = L + s B + (s^2 + 2 s) H,
  *            so its high-pass input has a 6 dB/octave skirt below the
- *            corner, unlike the others' 12. Distinct from K35 in three
- *            ways: the inputs are mixed; the feedback passes an asymmetric
- *            diode clip (even harmonics); and both resistors are diodes,
- *            whose current saturates with the voltage across them, so a
- *            loud input is slew-limited and pulls the corner down: the
+ *            corner, unlike the others' 12. Distinct from Sallen-Key in
+ *            three ways: the inputs are mixed; the feedback passes an
+ *            asymmetric diode clip (even harmonics); and both resistors are
+ *            diodes, whose current saturates with the voltage across them,
+ *            so a loud input is slew-limited and pulls the corner down: the
  *            growl. Mode 0 low-pass input, 1 band-pass, 2 high-pass, 3
  *            notch (L, -2B, H). Self-oscillates from K = 3, about 20 cents
  *            flat at every pitch: the diodes load the oscillation.
@@ -96,8 +95,8 @@
  * Levels. Drive multiplies the input into the filter (1x to 16x, 2^(4
  * Drive)) and divides the output by the square root of that, so quiet
  * signals come out up to 12 dB louder and loud ones saturate. Every type
- * but Ladder and Steiner blends the soft clip into its input as Drive
- * rises; Ladder's loop saturates on its own, and Steiner's diodes take the
+ * but Ladder and SK Mixed blends the soft clip into its input as Drive
+ * rises; Ladder's loop saturates on its own, and SK Mixed's diodes take the
  * level (its input is bounded at +/-4 inside and its make-up falls with
  * Drive, so its small signals stay at unity). Resonance gain compensation:
  * Ladder and Diode lose bass as their feedback rises (DC gain 1 / (1 + k)),
@@ -117,9 +116,12 @@
  * moves them 1 - exp(-8 / (5 ms fs)) of the way to their target and
  * recomputes the coefficients of the running type(s). Comb's delay is
  * interpolated sample by sample across each step, so a moving delay never
- * jumps. Mix and Level glide every sample. A Type change crossfades the old
- * type into the new one over 5 ms (both run meanwhile); a change asked for
- * during a crossfade waits for its end. The new type starts from rest.
+ * jumps. Mix and Level glide every sample. A Type change starts the new type
+ * from rest, unheard, with its input faded in over 5 ms, then crossfades the
+ * old type into it over 5 ms more (both run meanwhile): the new type's start
+ * from rest (a resonance ringing up, a Comb's first echo a delay later)
+ * swells instead of stepping, so a change is clean however fast it comes. A
+ * change asked for meanwhile waits for the crossfade's end.
  *
  * Contracts (fm1_engine.h): no heap; every field read is set in create
  * (Comb's delay line, the bulk of the instance, is read only where written
@@ -155,15 +157,18 @@
 #endif
 
 enum { P_TYPE, P_CUTOFF, P_RES, P_DRIVE, P_MODE, P_MORPH, P_MIX, P_LEVEL, P_COUNT };
-enum { T_SVF, T_LADDER, T_DIODE, T_K35, T_STEINER, T_COMB, T_FORMANT, T_COUNT };
+enum { T_SVF, T_LADDER, T_DIODE, T_SK, T_SKMIX, T_COMB, T_FORMANT, T_COUNT };
 
+/* Generic, descriptive names: what each circuit is, never a maker's or a
+ * person's name (the filters they follow are credited in engines/README.md). */
 static const char *const kFilterTypeNames[T_COUNT] = {
-  "SVF", "Ladder", "Diode", "K35", "Steiner", "Comb", "Formant",
+  "SVF", "Ladder", "Diode", "Sallen-Key", "SK Mixed", "Comb", "Formant",
 };
 
 // Uids (API v2) are fixed: never renumber one; a new parameter takes the next
-// free uid. Every FLOAT is read each block: SMOOTH and MOD. Type crossfades
-// rather than cutting, so a lock or a (rounded) route may move it: MOD.
+// free uid. Every FLOAT is read each block: SMOOTH and MOD. Type warms the
+// new type up and crossfades rather than cutting, so a lock or a (rounded)
+// route may move it, however fast: MOD.
 static const fm1_param_t kFilterParams[P_COUNT] = {
   { "Type",      FM1_PARAM_ENUM,  0, T_COUNT - 1, T_LADDER, kFilterTypeNames, 0, 1,
     FM1_PARAM_MOD, FM1_UNIT_NONE, "Type" },
@@ -212,11 +217,11 @@ static const float kDiodeLog2Span = 3.33444f;   /* to log2(1.19523), the oscilla
  * no resonance and self-oscillation reaches 0.35-0.6 on every tap. */
 static const float kLadderTapR[4] = { 1.0f, 1.29684f, 1.68179f, 2.18102f };
 static const float kDiodeTapR[4] = { 1.0f, 1.39478f, 2.61963f, 4.85516f };
-static const float kK35K = 2.15f;               /* oscillates from 2 */
-static const float kK35Comp = 0.5f;             /* output / (1 + 0.5 k) */
-static const float kSteinerK = 3.15f;           /* oscillates from 3 */
-static const float kSteinerComp = 0.35f;        /* output / (1 + 0.35 K) */
-static const float kSteinerDiode = 0.5f;        /* the diodes' knee: 3 (internal units) */
+static const float kSkK = 2.15f;               /* oscillates from 2 */
+static const float kSkComp = 0.5f;             /* output / (1 + 0.5 k) */
+static const float kSkMixK = 3.15f;           /* oscillates from 3 */
+static const float kSkMixComp = 0.35f;        /* output / (1 + 0.35 K) */
+static const float kSkMixDiode = 0.5f;        /* the diodes' knee: 3 (internal units) */
 static const float kCombLoopMin = 0.25f;        /* loop gain at Resonance 0 */
 static const float kCombLoopSpan = 0.73f;       /* ... and 0.98 at 1 */
 static const float kFormantComp = 1.6f;         /* Formant's make-up gain */
@@ -238,25 +243,25 @@ static const float kFormantBwRel = 0.06f;   /* x 2^(1.5 - 3 Resonance) */
 
 typedef struct { float ic1, ic2, v1, v2; } SvfCh;          /* v1, v2: last outputs */
 typedef struct { float s[4]; float sigma; } LadderCh;      /* Ladder and Diode */
-typedef struct { float s1, s2, s3, sigma; } K35Ch;
-typedef struct { float sa, sb, sigf, sig1, sig2; } SteinerCh;
+typedef struct { float s1, s2, s3, sigma; } SkCh;
+typedef struct { float sa, sb, sigf, sig1, sig2; } SkMixCh;
 typedef struct { float ic1[3], ic2[3]; } FormantCh;
 
 typedef struct FilterCoefs {
   float in_gain, out_gain, drv;   /* Drive: into the filter, out of it, presat blend */
   /* The analogue-style types, per channel (Spread). */
   float g[2];                     /* tan(pi f / fs) */
-  float G[2], G4[2];              /* Ladder, K35: g / (1 + g) and its 4th power */
+  float G[2], G4[2];              /* Ladder, Sallen-Key: g / (1 + g) and its 4th power */
   float dg[2], dc[2][4], di[2][4], dA[2];   /* Diode: g, c_n, 1 / D_n, c1 c2 c3 c4 */
   /* Each type its own weights: two may run at once (a crossfade). */
-  float svf_w[3], k35_w[3];       /* low-, band-, high-pass weights */
+  float svf_w[3], sk_w[3];       /* low-, band-, high-pass weights */
   float lad_w[4], dio_w[4];       /* 4-, 3-, 2-, 1-pole taps */
-  float sin_w[3];                 /* Steiner: LP, BP, HP input weights */
+  float skm_w[3];                 /* SK Mixed: LP, BP, HP input weights */
   float svf_k, svf_comp;
   float lad_k, lad_cin;
   float dio_k, dio_cin, dio_cout;
-  float k35_k, k35_comp;
-  float stn_k, stn_comp;
+  float sk_k, sk_comp;
+  float skm_k, skm_comp;
   /* Comb */
   float comb_d0, comb_d1;         /* delay, samples, at the last and this control step */
   float comb_fb, comb_ff, comb_cin;
@@ -273,6 +278,7 @@ typedef struct FilterInstance {
   float glide1, glide_ctrl;       /* one-pole coefficients: per sample, per step */
   float inv_fade;
   uint32_t fade_len, fade;        /* crossfade length and samples left */
+  uint32_t warm;                  /* samples left before the fade starts (the old type alone) */
   uint32_t count;                 /* samples since create (mod 2^32) */
   uint32_t comb_n, comb_w, comb_filled;
   int cur, prev, want;            /* the running type, the one fading out, the asked */
@@ -281,8 +287,8 @@ typedef struct FilterInstance {
   FilterCoefs co;
   SvfCh svf[2];
   LadderCh lad[2], dio[2];
-  K35Ch k35[2];
-  SteinerCh stn[2];
+  SkCh sk[2];
+  SkMixCh skm[2];
   FormantCh frm[2];
   /* Then Comb's delay lines: 2 x comb_n floats (FilterInstanceSize). */
 } FilterInstance;
@@ -356,7 +362,7 @@ FILT_INLINE float FiltSat(float v, float *secant) {
 }
 
 /* The same, with the negative half clipping at -0.5: a diode pair with
- * unequal knees, for Steiner. */
+ * unequal knees, for SK Mixed. */
 FILT_INLINE float FiltSatAsym(float v, float *secant) {
   if (v >= 0.0f) return FiltSat(v, secant);
   return 0.5f * FiltSat(2.0f * v, secant);
@@ -407,7 +413,7 @@ static void FiltComputeG(FilterInstance *self) {
   self->g_done = 1;
 }
 
-/* SVF and K35: low-pass (0), band-pass (1), high-pass (2), notch (3 = LP + HP). */
+/* SVF and Sallen-Key: low-pass (0), band-pass (1), high-pass (2), notch (3 = LP + HP). */
 static void FiltTwoPoleWeights(float m, float w[3]) {
   if (m <= 1.0f) { w[0] = 1.0f - m; w[1] = m; w[2] = 0.0f; }
   else if (m <= 2.0f) { w[0] = 0.0f; w[1] = 2.0f - m; w[2] = m - 1.0f; }
@@ -426,8 +432,8 @@ static void FiltTapWeights(float m, float rho, const float r[4], float w[4]) {
   w[i + 1] = t / (1.0f + r2 * (r[i + 1] - 1.0f));
 }
 
-/* Steiner's inputs: LP (0), BP (1), HP (2), notch (3: LP - 2 BP + HP). */
-static void FiltSteinerWeights(float m, float w[3]) {
+/* SK Mixed's inputs: LP (0), BP (1), HP (2), notch (3: LP - 2 BP + HP). */
+static void FiltSkMixWeights(float m, float w[3]) {
   if (m <= 1.0f) { w[0] = 1.0f - m; w[1] = m; w[2] = 0.0f; }
   else if (m <= 2.0f) { w[0] = 0.0f; w[1] = 2.0f - m; w[2] = m - 1.0f; }
   else { const float t = m - 2.0f; w[0] = t; w[1] = -2.0f * t; w[2] = 1.0f; }
@@ -494,26 +500,26 @@ static void FiltUpdateCoefs(FilterInstance *self, int type) {
       FiltTapWeights(mode, rho, kDiodeTapR, k->dio_w);
       break;
     }
-    case T_K35: {
+    case T_SK: {
       FiltComputeG(self);
       for (int c = 0; c < 2; ++c) k->G[c] = k->g[c] / (1.0f + k->g[c]);
-      k->k35_k = kK35K * res * sqrtf(res);
-      k->k35_comp = 1.0f / (1.0f + kK35Comp * k->k35_k);
-      FiltTwoPoleWeights(mode, k->k35_w);
+      k->sk_k = kSkK * res * sqrtf(res);
+      k->sk_comp = 1.0f / (1.0f + kSkComp * k->sk_k);
+      FiltTwoPoleWeights(mode, k->sk_w);
       /* The band-pass, 0.5 at its peak with no feedback, x 2; near the
        * oscillation it swings as far as the low-pass, so x 1 there. */
-      const float rho = k->k35_k < 2.0f ? 0.5f * k->k35_k : 1.0f;
-      k->k35_w[1] *= 2.0f / (1.0f + rho * rho);
+      const float rho = k->sk_k < 2.0f ? 0.5f * k->sk_k : 1.0f;
+      k->sk_w[1] *= 2.0f / (1.0f + rho * rho);
       break;
     }
-    case T_STEINER: {
+    case T_SKMIX: {
       FiltComputeG(self);
-      k->stn_k = kSteinerK * res * sqrtf(res);
+      k->skm_k = kSkMixK * res * sqrtf(res);
       /* Its input reaches +/-4 inside, four times the others' clipped
        * range: with Drive its make-up falls to a quarter, so Drive saturates
        * the diodes without raising small signals. */
-      k->stn_comp = 1.0f / ((1.0f + kSteinerComp * k->stn_k) * (1.0f + 3.0f * self->value[C_DRIVE]));
-      FiltSteinerWeights(mode, k->sin_w);
+      k->skm_comp = 1.0f / ((1.0f + kSkMixComp * k->skm_k) * (1.0f + 3.0f * self->value[C_DRIVE]));
+      FiltSkMixWeights(mode, k->skm_w);
       break;
     }
     case T_COMB: {
@@ -574,16 +580,16 @@ static void FiltResetType(FilterInstance *self, int type) {
       }
       break;
     }
-    case T_K35:
+    case T_SK:
       for (int c = 0; c < 2; ++c) {
-        self->k35[c].s1 = self->k35[c].s2 = self->k35[c].s3 = 0.0f;
-        self->k35[c].sigma = 1.0f;
+        self->sk[c].s1 = self->sk[c].s2 = self->sk[c].s3 = 0.0f;
+        self->sk[c].sigma = 1.0f;
       }
       break;
-    case T_STEINER:
+    case T_SKMIX:
       for (int c = 0; c < 2; ++c) {
-        self->stn[c].sa = self->stn[c].sb = 0.0f;
-        self->stn[c].sigf = self->stn[c].sig1 = self->stn[c].sig2 = 1.0f;
+        self->skm[c].sa = self->skm[c].sb = 0.0f;
+        self->skm[c].sigf = self->skm[c].sig1 = self->skm[c].sig2 = 1.0f;
       }
       break;
     case T_COMB: self->comb_filled = 0; break;   /* the line itself is never read stale */
@@ -672,18 +678,18 @@ FILT_INLINE void FiltDiode(FilterInstance *self, const float xin[2], float y[2])
   }
 }
 
-/* K35's loop u = a + sat(k HP(LP(u))) with the curve replaced by a secant
+/* Sallen-Key's loop u = a + sat(k HP(LP(u))) with the curve replaced by a secant
  * gain: the predicted input of the curve. */
-FILT_INLINE float FiltK35Predict(float a, float ks, float G, float H, float s2, float s3) {
+FILT_INLINE float FiltSkPredict(float a, float ks, float G, float H, float s2, float s3) {
   const float u = (a + ks * H * (H * s2 - s3)) / (1.0f - ks * G * H);   /* denominator >= 0.46 */
   return H * (G * u + H * s2 - s3);                                      /* HP(LP(u)) */
 }
 
-FILT_INLINE void FiltK35(FilterInstance *self, const float xin[2], float y[2]) {
+FILT_INLINE void FiltSk(FilterInstance *self, const float xin[2], float y[2]) {
   const FilterCoefs *k = &self->co;
-  const float kf = k->k35_k;
+  const float kf = k->sk_k;
   for (int c = 0; c < 2; ++c) {
-    K35Ch *h = &self->k35[c];
+    SkCh *h = &self->sk[c];
     const float G = k->G[c], H = 1.0f - G;
     const float x = FiltPresat(xin[c], k->drv);
     const float t1 = G * (x - h->s1);                 /* the first low-pass */
@@ -691,9 +697,9 @@ FILT_INLINE void FiltK35(FilterInstance *self, const float xin[2], float y[2]) {
     h->s1 = FiltFlush(a + t1);
     /* Solve with last sample's secant, take the secant there, solve again,
      * then the true curve. */
-    float hp1 = FiltK35Predict(a, kf * h->sigma, G, H, h->s2, h->s3);
+    float hp1 = FiltSkPredict(a, kf * h->sigma, G, H, h->s2, h->s3);
     FiltSat(kf * hp1, &h->sigma);
-    hp1 = FiltK35Predict(a, kf * h->sigma, G, H, h->s2, h->s3);
+    hp1 = FiltSkPredict(a, kf * h->sigma, G, H, h->s2, h->s3);
     const float u = a + FiltSat(kf * hp1, &h->sigma);
     const float t2 = G * (u - h->s2);                 /* the second low-pass */
     const float lp = t2 + h->s2;
@@ -702,15 +708,15 @@ FILT_INLINE void FiltK35(FilterInstance *self, const float xin[2], float y[2]) {
     h->s3 = FiltFlush(t3 + h->s3 + t3);
     const float bp = u - lp;                          /* s / D */
     const float hp = x - (2.0f - kf * h->sigma) * bp - lp;
-    y[c] = (k->k35_w[0] * lp + k->k35_w[1] * bp + k->k35_w[2] * hp) * k->k35_comp;
+    y[c] = (k->sk_w[0] * lp + k->sk_w[1] * bp + k->sk_w[2] * hp) * k->sk_comp;
   }
 }
 
-/* Steiner's two nodes with every curve replaced by its secant gain: the
+/* SK Mixed's two nodes with every curve replaced by its secant gain: the
  * input diode (g1 = g sigma1), the second diode (g2) and the feedback (kf).
  * The determinant is positive for small signals; clamped, the result is an
  * estimate for the curves, never used as a state. */
-FILT_INLINE void FiltSteinerPredict(float g1, float g2, float kf, float xl, float xb, float sa,
+FILT_INLINE void FiltSkMixPredict(float g1, float g2, float kf, float xl, float xb, float sa,
                                     float rb, float *va, float *vb) {
   const float a11 = 1.0f + g1 + g2, a22 = 1.0f + g2;
   const float ra = g1 * xl + sa + xb;
@@ -721,28 +727,28 @@ FILT_INLINE void FiltSteinerPredict(float g1, float g2, float kf, float xl, floa
   *vb = (a11 * rb + g2 * ra) * inv;
 }
 
-FILT_INLINE void FiltSteiner(FilterInstance *self, const float xin[2], float y[2]) {
+FILT_INLINE void FiltSkMix(FilterInstance *self, const float xin[2], float y[2]) {
   const FilterCoefs *k = &self->co;
-  const float K = k->stn_k;
+  const float K = k->skm_k;
   for (int c = 0; c < 2; ++c) {
-    SteinerCh *h = &self->stn[c];
+    SkMixCh *h = &self->skm[c];
     const float g = k->g[c];
     /* Bounded at +/-4 inside: Drive pushes the diodes, not the range. */
     float sx;
     const float x = 4.0f * FiltSat(0.25f * xin[c], &sx);
-    const float xl = k->sin_w[0] * x, xb = k->sin_w[1] * x, xh = k->sin_w[2] * x;
+    const float xl = k->skm_w[0] * x, xb = k->skm_w[1] * x, xh = k->skm_w[2] * x;
     const float g2 = g * h->sig2;                     /* the second diode, last sample's */
     const float rb = h->sb + xh;
     /* 1. Predict with last sample's secants; take the input diode's and
      * the feedback clip's secants there and predict again. */
     float vap, vbp;
-    FiltSteinerPredict(g * h->sig1, g2, K * h->sigf, xl, xb, h->sa, rb, &vap, &vbp);
-    FiltSat(kSteinerDiode * (xl - vap), &h->sig1);
+    FiltSkMixPredict(g * h->sig1, g2, K * h->sigf, xl, xb, h->sa, rb, &vap, &vbp);
+    FiltSat(kSkMixDiode * (xl - vap), &h->sig1);
     FiltSatAsym(vbp, &h->sigf);
-    FiltSteinerPredict(g * h->sig1, g2, K * h->sigf, xl, xb, h->sa, rb, &vap, &vbp);
+    FiltSkMixPredict(g * h->sig1, g2, K * h->sigf, xl, xb, h->sa, rb, &vap, &vbp);
     /* 2. The true curves at the prediction: the input diode's current and
      * the clipped feedback, both bounded. */
-    const float i1 = FiltSat(kSteinerDiode * (xl - vap), &h->sig1) * (1.0f / kSteinerDiode);
+    const float i1 = FiltSat(kSkMixDiode * (xl - vap), &h->sig1) * (1.0f / kSkMixDiode);
     const float fb = K * FiltSatAsym(vbp, &h->sigf);
     /* 3. Solve the rest, linear and passive (determinant 1 + 2 g2). */
     const float rf = g * i1 + h->sa + xb + fb;
@@ -752,8 +758,8 @@ FILT_INLINE void FiltSteiner(FilterInstance *self, const float xin[2], float y[2
     const float vb = (a22 * rb + g2 * rf) * inv;
     h->sa = FiltFlush(2.0f * (va - xb - fb) - h->sa);
     h->sb = FiltFlush(2.0f * (vb - xh) - h->sb);
-    FiltSat(kSteinerDiode * (va - vb), &h->sig2);
-    y[c] = vb * k->stn_comp;
+    FiltSat(kSkMixDiode * (va - vb), &h->sig2);
+    y[c] = vb * k->skm_comp;
   }
 }
 
@@ -808,8 +814,8 @@ static void FiltProcess(FilterInstance *self, int type, const float xin[2], uint
     case T_SVF: FiltSvf(self, xin, y); break;
     case T_LADDER: FiltLadder(self, xin, y); break;
     case T_DIODE: FiltDiode(self, xin, y); break;
-    case T_K35: FiltK35(self, xin, y); break;
-    case T_STEINER: FiltSteiner(self, xin, y); break;
+    case T_SK: FiltSk(self, xin, y); break;
+    case T_SKMIX: FiltSkMix(self, xin, y); break;
     case T_COMB: FiltComb(self, xin, j, y); break;
     case T_FORMANT: FiltFormant(self, xin, y); break;
     default: y[0] = y[1] = 0.0f; break;
@@ -848,6 +854,7 @@ static void FiltPrime(FilterInstance *self) {
   self->level = self->level_t;
   self->cur = self->prev = self->want;
   self->fade = 0;
+  self->warm = 0;
   self->g_done = 0;
   FiltUpdateShared(self);
   FiltStartType(self, self->cur);
@@ -936,6 +943,7 @@ static void FilterRender(void *s, float *lr, uint32_t frames) {
       self->prev = self->cur;
       self->cur = self->want;
       self->fade = self->fade_len;
+      self->warm = self->fade_len;
       FiltStartType(self, self->cur);
     }
     if (self->mix != self->mix_t) self->mix = FiltGlide(self->mix, self->mix_t, self->glide1);
@@ -946,16 +954,31 @@ static void FilterRender(void *s, float *lr, uint32_t frames) {
     const float in_gain = self->co.in_gain;
     const float xin[2] = { in_gain * x[0], in_gain * x[1] };
     float y[2];
-    FiltProcess(self, self->cur, xin, j, y);
+    if (self->warm) {
+      /* The new type starts from rest, unheard, with its input faded in
+       * over 5 ms (so even a Comb's first echo, a delay later, swells in
+       * rather than steps), and only then is its output faded in. */
+      const float ramp = 1.0f - (float)self->warm * self->inv_fade;
+      const float xr[2] = { ramp * xin[0], ramp * xin[1] };
+      FiltProcess(self, self->cur, xr, j, y);
+    } else {
+      FiltProcess(self, self->cur, xin, j, y);
+    }
     int comb = self->cur == T_COMB;
     if (self->fade) {
       float old[2];
       FiltProcess(self, self->prev, xin, j, old);
-      const float wc = 1.0f - (float)self->fade * self->inv_fade;
-      y[0] = old[0] + wc * (y[0] - old[0]);
-      y[1] = old[1] + wc * (y[1] - old[1]);
+      if (self->warm) {
+        y[0] = old[0];
+        y[1] = old[1];
+        --self->warm;
+      } else {
+        const float wc = 1.0f - (float)self->fade * self->inv_fade;
+        y[0] = old[0] + wc * (y[0] - old[0]);
+        y[1] = old[1] + wc * (y[1] - old[1]);
+        --self->fade;
+      }
       comb |= self->prev == T_COMB;
-      --self->fade;
     }
     if (comb) FiltCombAdvance(self);
     const float wet = self->level * self->co.out_gain, mix = self->mix;

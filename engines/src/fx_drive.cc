@@ -118,18 +118,18 @@ static const char *const kTypeNames[T_COUNT] = { "Soft", "Tube", "Diode", "Fuzz"
 static const char *const kAutoNames[2] = { "Off", "On" };
 
 // Uids (API v2) are fixed: never renumber one; a new parameter takes the next
-// free uid. The floats are read every block (SMOOTH and MOD). Type and Auto
-// crossfade or glide, so a lock on them is clean, but they take no
-// modulation: a rounded route would step between Types, not sweep.
+// free uid. The floats are read every block (SMOOTH and MOD). Type crossfades
+// and Auto's gain glides, so a lock or a (rounded) route on either is clean,
+// however fast: MOD.
 static const fm1_param_t kDriveParams[P_COUNT] = {
-  { "Type",  FM1_PARAM_ENUM,    0,  4,  0.0f, kTypeNames, 0, 1, 0, FM1_UNIT_NONE, "Type" },
+  { "Type",  FM1_PARAM_ENUM,    0,  4,  0.0f, kTypeNames, 0, 1, FM1_PARAM_MOD, FM1_UNIT_NONE, "Type" },
   { "Drive", FM1_PARAM_FLOAT, -12, 36, 12.0f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Drive" },
   { "Tone",  FM1_PARAM_FLOAT,   0,  1,  0.5f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Tone" },
   { "Mix",   FM1_PARAM_FLOAT,   0,  1,  1.0f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
   { "Bias",  FM1_PARAM_FLOAT,  -1,  1,  0.0f, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Bias" },
   { "Gate",  FM1_PARAM_FLOAT,   0,  1,  0.0f, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Gate" },
   { "Level", FM1_PARAM_FLOAT, -24, 12,  0.0f, NULL, 1, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Level" },
-  { "Auto",  FM1_PARAM_ENUM,    0,  1,  1.0f, kAutoNames, 1, 8, 0, FM1_UNIT_NONE, "Auto" },
+  { "Auto",  FM1_PARAM_ENUM,    0,  1,  1.0f, kAutoNames, 1, 8, FM1_PARAM_MOD, FM1_UNIT_NONE, "Auto" },
 };
 
 /* The smoothed control values. */

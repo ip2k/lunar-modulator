@@ -31,8 +31,8 @@ const float kRate = 44118.0f;
 const double kPi = 3.141592653589793;
 alignas(16) unsigned char g_mem[1u << 18];   // 384 kHz needs about 155 KB
 
-enum { SVF, LADDER, DIODE, K35, STEINER, COMB, FORMANT, NTYPES };
-const char *const kTypes[NTYPES] = { "svf", "ladder", "diode", "k35", "steiner", "comb", "formant" };
+enum { SVF, LADDER, DIODE, SK, SKMIX, COMB, FORMANT, NTYPES };
+const char *const kTypes[NTYPES] = { "svf", "ladder", "diode", "sk", "skmix", "comb", "formant" };
 
 struct Lcg {
   uint32_t s;
@@ -411,15 +411,15 @@ void Responses() {
     { "diode_0",    { DIODE, 0, 0, 1000, 0, 0 }, 0, kRate, { 30, 1000, 4000, 8000 } },
     { "diode_res",  { DIODE, 0, 0.85f, 1000, 0, 0 }, 0, kRate, { 30, 1000, 500, 2000 } },
     { "diode_1p",   { DIODE, 3, 0, 1000, 0, 0 }, 0, kRate, { 30, 4000, 8000 } },
-    { "k35_lp",     { K35, 0, 0, 1000, 0, 0 }, 0, kRate, { 30, 1000, 4000, 8000 } },
-    { "k35_hp",     { K35, 2, 0, 1000, 0, 0 }, 0, kRate, { 15000, 1000, 250, 125 } },
-    { "k35_bp",     { K35, 1, 0, 1000, 0, 0 }, 0, kRate, { 1000, 100, 10000 } },
-    { "k35_res",    { K35, 0, 0.85f, 1000, 0, 0 }, 0, kRate, { 30, 1000, 4000 } },
-    { "steiner_lp", { STEINER, 0, 0, 1000, 0, 0 }, 0, kRate, { 30, 1000, 4000, 8000 } },
-    { "steiner_hp", { STEINER, 2, 0, 1000, 0, 0 }, 0, kRate, { 15000, 1000, 125, 62.5 } },
-    { "steiner_bp", { STEINER, 1, 0.6f, 1000, 0, 0 }, 0, kRate, { 1000, 100, 10000 } },
-    { "steiner_notch", { STEINER, 3, 0, 1000, 0, 0 }, 0, kRate, { 1000, 30, 15000 } },
-    { "steiner_res", { STEINER, 0, 0.85f, 1000, 0, 0 }, 0, kRate, { 30, 1000, 4000 } },
+    { "sk_lp",     { SK, 0, 0, 1000, 0, 0 }, 0, kRate, { 30, 1000, 4000, 8000 } },
+    { "sk_hp",     { SK, 2, 0, 1000, 0, 0 }, 0, kRate, { 15000, 1000, 250, 125 } },
+    { "sk_bp",     { SK, 1, 0, 1000, 0, 0 }, 0, kRate, { 1000, 100, 10000 } },
+    { "sk_res",    { SK, 0, 0.85f, 1000, 0, 0 }, 0, kRate, { 30, 1000, 4000 } },
+    { "skmix_lp", { SKMIX, 0, 0, 1000, 0, 0 }, 0, kRate, { 30, 1000, 4000, 8000 } },
+    { "skmix_hp", { SKMIX, 2, 0, 1000, 0, 0 }, 0, kRate, { 15000, 1000, 125, 62.5 } },
+    { "skmix_bp", { SKMIX, 1, 0.6f, 1000, 0, 0 }, 0, kRate, { 1000, 100, 10000 } },
+    { "skmix_notch", { SKMIX, 3, 0, 1000, 0, 0 }, 0, kRate, { 1000, 30, 15000 } },
+    { "skmix_res", { SKMIX, 0, 0.85f, 1000, 0, 0 }, 0, kRate, { 30, 1000, 4000 } },
     // Comb at 441.18 Hz (100 samples): positive peaks at k f, troughs at
     // (k + 1/2) f; negative: the reverse; feedforward: notches.
     { "comb_pos",   { COMB, 0, 0.8f, 441.18f, 0, 0 }, 0, kRate, { 441.18, 882.36, 661.77, 1102.95 } },
@@ -443,8 +443,8 @@ void Responses() {
     { "pass_svf",     { SVF, 0, 0.9f, 2000, 0, 0 }, 0, kRate, { 40 } },
     { "pass_ladder",  { LADDER, 0, 0.9f, 2000, 0, 0 }, 0, kRate, { 40 } },
     { "pass_diode",   { DIODE, 0, 0.9f, 2000, 0, 0 }, 0, kRate, { 40 } },
-    { "pass_k35",     { K35, 0, 0.9f, 2000, 0, 0 }, 0, kRate, { 40 } },
-    { "pass_steiner", { STEINER, 0, 0.9f, 2000, 0, 0 }, 0, kRate, { 40 } },
+    { "pass_sk",     { SK, 0, 0.9f, 2000, 0, 0 }, 0, kRate, { 40 } },
+    { "pass_skmix", { SKMIX, 0, 0.9f, 2000, 0, 0 }, 0, kRate, { 40 } },
   };
   printf("\"response\":{");
   for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
@@ -460,7 +460,7 @@ void Responses() {
 
 // 7. Self-oscillation: pitch against Cutoff, and level.
 void Oscillation() {
-  const int types[] = { SVF, LADDER, DIODE, K35, STEINER };
+  const int types[] = { SVF, LADDER, DIODE, SK, SKMIX };
   const float cutoffs[] = { 110.0f, 440.0f, 1760.0f, 5000.0f };
   printf("\"osc\":[");
   int first = 1;
@@ -476,7 +476,7 @@ void Oscillation() {
   }
   // Below the threshold: no oscillation.
   const Settings quiet[] = { { SVF, 0, 0.85f, 1000, 0, 0 }, { LADDER, 0, 0.85f, 1000, 0, 0 },
-                             { DIODE, 0, 0.85f, 1000, 0, 0 }, { K35, 0, 0.85f, 1000, 0, 0 } };
+                             { DIODE, 0, 0.85f, 1000, 0, 0 }, { SK, 0, 0.85f, 1000, 0, 0 } };
   for (size_t i = 0; i < 4; ++i) {
     double hz, peak;
     Oscillate(quiet[i], kRate, &hz, &peak);
@@ -517,12 +517,12 @@ void Harmonics() {
   printf("]");
 }
 
-// 9. Steiner's diodes: with Drive 1, a louder input darkens it (the gain
-// at 2 kHz falls further than at 250 Hz); K35, whose drive clips before
+// 9. SK Mixed's diodes: with Drive 1, a louder input darkens it (the gain
+// at 2 kHz falls further than at 250 Hz); SK, whose drive clips before
 // its loop, keeps its tilt. Cutoff 1 kHz, low-pass, Resonance 0.3.
 void Level() {
   printf("\"level\":[");
-  const int types[] = { STEINER, K35 };
+  const int types[] = { SKMIX, SK };
   const double amps[] = { 0.01, 0.5 };
   for (int t = 0; t < 2; ++t) {
     for (int a = 0; a < 2; ++a) {

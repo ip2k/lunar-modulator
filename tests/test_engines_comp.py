@@ -5,13 +5,16 @@ Through fm1-render: registration and pages, the host contracts (deterministic
 renders, any block size, any prior memory contents, any parameter value,
 NaN included, bad input guarded and not latched, silence in gives silence
 out), and every parameter doing what it says on the renderer's sine and
-noise. Through fm1-comp-test (engines/test/comp_test.cc): the static curve
-against the formula at several thresholds, ratios and knees; attack and
-release time constants measured on exact steps, per Character, and Auto
-Release's two releases; release to exact zeros with no pumping; the ripple
-on a steady tone; the hand-over when Character or Auto Rel changes;
-parameters changed while audio runs at any block size; the gain-reduction
-accessor; host rates; the accuracy of its log2 and exp2 against libm.
+noise; Auto Gain's cap and its 0 dBFS bound on an onset. Through
+fm1-comp-test (engines/test/comp_test.cc): the static curve against the
+formula at several thresholds, ratios and knees; attack and release time
+constants measured on exact steps, per Character, and Auto Release's two
+releases; release to exact zeros with no pumping; the ripple on a steady
+tone; the hand-over when Character or Auto Rel changes; parameters changed
+while audio runs at any block size; the gain-reduction accessor; host
+rates; the accuracy of its log2 and exp2 against libm; Auto Gain clip-safe
+on hostile full-scale signals at 304 settings. Fast modulation of the
+switches: tests/test_engines_fx_switches.py.
 
 The figures in the comments were measured on the desktop build (Apple
 clang, arm64, 2026-10-02).
@@ -149,7 +152,7 @@ def test_out_of_range_parameters_clamp(renderer, tmp_path, entry, value, same_as
 @pytest.mark.parametrize("params", [
     [],
     BUSY,
-    ["Makeup=24", "Auto Gain=1", "Threshold=-60", "Ratio=21"],   # +84 dB of makeup
+    ["Makeup=24", "Auto Gain=1", "Threshold=-60", "Ratio=21"],   # +48 dB of makeup
     ["Character=1", "Mix=0.5", "Auto Rel=1"],
 ])
 def test_silence_in_is_silence_out(renderer, tmp_path, params):  # noqa: F811
@@ -259,6 +262,33 @@ def test_auto_makeup_restores_full_scale(renderer, tmp_path):  # noqa: F811
     trim = reduction_db(renderer, tmp_path, "Threshold=-30", "Knee=0", "Character=1",
                         "Auto Gain=1", "Makeup=-6", name="trim")
     assert trim - got == pytest.approx(6, abs=0.01)                 # Makeup trims it
+
+
+@pytest.mark.parametrize("threshold,ratio,want_db", [(-60, 21, -36.0), (-20, 4, 0.0)])
+def test_auto_gain_is_capped_at_24_db(tool, threshold, ratio, want_db):
+    # Auto Gain adds the curve's reduction at 0 dBFS, at most 24 dB (Makeup's
+    # top): -20 dB at 4:1 asks for 15, so a full-scale sine stays at full
+    # scale; -60 dB at 21:1 asks for 60 and gets 24, so it comes out at
+    # -36 dBFS (measured -36.08 and -0.06: RMS's ripple and the bound's
+    # 1e-4 dB margin).
+    got = tool["autogain"]["capped_db" if threshold == -60 else "uncapped_db"]
+    assert want_db - 0.15 < got <= want_db
+
+
+@pytest.mark.parametrize("source", [[], ["--fault", "0.30..0.35:1", "--fault", "0.5..0.52:-1"]])
+def test_auto_gain_keeps_an_onset_under_full_scale(renderer, tmp_path, source):  # noqa: F811
+    # Attack 100 ms, Threshold -24 dB at 21:1: Auto Gain's 24 dB of makeup
+    # meets the sine's onset (and full-scale DC steps) before the reduction
+    # does. Before the bound (2026-10-02), the onset came out at 0.5 x
+    # 10^(24/20) = 7.9, +18 dBFS; now nothing passes 0 dBFS, and the
+    # steady level is the curve's: T + 24 dB = 0 dBFS at most.
+    params = ["Threshold=-24", "Ratio=21", "Knee=0", "Attack=100", "Auto Gain=1"]
+    s, left, _ = render(renderer, tmp_path, input="sine", seconds=1.0, fx=fx(*params),
+                        extra=source)
+    assert s["nonfinite"] == 0 and 0.5 < s["raw_peak"] <= 1.0
+    off, _, _ = render(renderer, tmp_path, input="sine", seconds=1.0, name="off",
+                       fx=fx(*params[:-1], "Makeup=24"), extra=source)
+    assert off["raw_peak"] > 4.0                    # the same makeup by hand: no bound
 
 
 def test_attack_lets_the_onset_through(renderer, tmp_path):  # noqa: F811
@@ -450,10 +480,11 @@ def test_any_parameter_change_mid_stream_stays_finite(tool):
     # 20 s of noise (some of it +12 dBFS); between blocks of 1-64 frames, up
     # to two parameters jump to their minimum, maximum, default, a random
     # value, beyond the range, NaN or an infinity. The accessor stays finite
-    # and non-negative; NULL reads 0.
+    # and non-negative; NULL reads 0. The most makeup is 48 dB (Makeup's 24
+    # and Auto Gain's cap).
     s = tool["sweep"]
     assert s["samples"] > 20 * RATE
-    assert s["nonfinite"] == 0 and s["peak"] < 16 * 10 ** (84 / 20)
+    assert s["nonfinite"] == 0 and s["peak"] < 16 * 10 ** (48 / 20)
     assert s["bad_reduction"] == 0 and s["null_reads"] == 0
 
 
@@ -462,6 +493,24 @@ def test_host_rates(tool):
     assert accepted == {"0": False, "7999": False, "8000": True, "44118": True,
                         "48000": True, "96000": True, "384000": True, "400000": False,
                         "nan": False, "inf": False, "-44118": False}
+
+
+def test_auto_gain_is_clip_safe(tool):
+    # Auto Gain on, Makeup at or under 0 dB: full-scale squares (50 Hz, 1 kHz,
+    # Nyquist), impulses on silence and on a quiet bed, burst onsets, noise,
+    # DC steps, one channel loud and one quiet, and a swell through the knee,
+    # at the extreme (Threshold -60 dB, Ratio 21, no knee) over a grid of
+    # Attack, Release, Character, Auto Rel and Mix (144 settings), then 160
+    # random settings, a quarter of them with Auto Gain switched on and off
+    # every third block. The output never passes its bound: 0 dBFS, and the
+    # compressed path 10^(Makeup/20) (so the output (1 - Mix) + Mix
+    # 10^(Makeup/20)). Measured: 0.902 of it at the extreme, where the cap
+    # holds the compressed path at -36 dBFS and Mix's dry share is the rest;
+    # 0.99999992 at random settings, where a signal under the threshold
+    # passes untouched at full scale.
+    a = tool["autogain"]
+    assert a["runs"] == 304
+    assert a["grid"] <= 1.0 and a["random"] <= 1.0 and a["toggled"] <= 1.0
 
 
 def test_log2_and_exp2_are_accurate(tool):
@@ -481,4 +530,6 @@ def test_output_is_the_same_bits_on_every_build(tool):
     # GCC/x86-64 and Emscripten's WebAssembly [verified 2026-10-02], which
     # is what keeps the browser bit-exact. A deliberate change to the DSP
     # moves these: check it in the browser's module, then pin the new ones.
-    assert tool["hash"] == ["87350847", "d24bcc95", "0bb3b225"]
+    # The first (Auto Gain on) changed with Auto Gain's cap and bound
+    # (2026-10-02); the other two, with Auto Gain off, are as before.
+    assert tool["hash"] == ["1a8db001", "d24bcc95", "0bb3b225"]

@@ -521,7 +521,150 @@ void Hash() {
   printf("]");
 }
 
-// 11. Cost: ns per 64-frame stereo block of noise, 0.5 s warm-up then 20 s.
+// 11. Auto Gain is clip-safe: with it on and Makeup at or under 0 dB, an
+// input at or under 0 dBFS never comes out above 0 dBFS (nor the compressed
+// path above 10^(Makeup/20), so the output above (1 - Mix) + Mix
+// 10^(Makeup/20)), whatever Attack, Character, Auto Rel or Mix, even
+// while Auto Gain itself is switched on and off every few blocks. Hostile
+// signals at full scale: square waves, the Nyquist square, impulses on
+// silence and on a quiet bed, onsets of loud bursts, full-scale noise, DC
+// steps, one channel loud and the other quiet, and a slow swell from silence
+// to full scale (through the knee). Settings: the extreme (Threshold -60 dB,
+// Ratio 21, no knee, so Auto Gain asks for 60 dB and gets its cap, 24) at
+// every Attack, Release, Character, Auto Rel and Mix in a grid, then random
+// ones. Reports the largest |output| / bound in double, and the steady level
+// of a full-scale sine through the cap and through a curve under it.
+const int kAgSignals = 10;
+
+float AgSignal(int k, uint32_t i, Lcg &rng, float *right) {
+  const double t = i / static_cast<double>(kRate);
+  float x = 0.0f;
+  *right = -2.0f;                                        // -2: the same as the left
+  switch (k) {
+    case 0: x = fmod(t * 50.0, 1.0) < 0.5 ? 1.0f : -1.0f; break;
+    case 1: x = fmod(t * 1000.0, 1.0) < 0.5 ? 1.0f : -1.0f; break;
+    case 2: x = (i & 1) ? -1.0f : 1.0f; break;
+    case 3: x = i % 2205 == 7 ? (((i / 2205) & 1) ? -1.0f : 1.0f) : 0.0f; break;
+    case 4: x = i % 1999 == 0 ? 1.0f : 0.01f * rng.Bipolar(); break;
+    case 5: {
+      const uint32_t phase = i % 6615;                   // 20 ms bursts every 150 ms
+      x = phase < 882 ? static_cast<float>(sin(2.0 * M_PI * 1000.0 * t)) : 0.0f;
+      if (phase < 882 && (i / 6615) % 3 == 2) x = x > 0.0f ? 1.0f : -1.0f;
+      break;
+    }
+    case 6:
+      x = rng.Bipolar();
+      if (rng.Next() % 64 == 0) x = x < 0.0f ? -1.0f : 1.0f;
+      break;
+    case 7: {
+      const float lv[] = { 0.0f, 1.0f, -1.0f, 0.25f, 1.0f, 0.0f, -1.0f };
+      x = lv[(i / 2205) % 7];
+      break;
+    }
+    case 8:
+      x = fmod(t * 200.0, 1.0) < 0.5 ? 1.0f : -1.0f;
+      *right = 0.01f * static_cast<float>(sin(2.0 * M_PI * 440.0 * t));
+      break;
+    default: x = static_cast<float>(fmin(1.0, t / 0.25) * sin(2.0 * M_PI * 440.0 * t)); break;
+  }
+  return x;
+}
+
+struct AgSetting {
+  float threshold, ratio, knee, attack, release, makeup, mix, character, auto_rel;
+};
+
+// One run: every signal through a fresh instance, 0.25 s each; with toggle,
+// Auto Gain switches every third block. Returns the largest |out| / bound.
+double AgRun(const AgSetting &g, bool toggle, uint32_t seed) {
+  // The compressed path is within 10^(Makeup/20) and the dry one within 1,
+  // and they have the same sign: the blend is within their blend.
+  const double bound = (1.0 - g.mix) + g.mix * pow(10.0, (g.makeup < 0.0f ? g.makeup : 0.0f) / 20.0);
+  double worst = 0.0;
+  float buf[128];
+  for (int k = 0; k < kAgSignals; ++k) {
+    void *self = Make(kRate, 0x3C);
+    const Kv kv[] = { { "Threshold", g.threshold }, { "Ratio", g.ratio }, { "Knee", g.knee },
+                      { "Attack", g.attack }, { "Release", g.release }, { "Makeup", g.makeup },
+                      { "Mix", g.mix }, { "Character", g.character }, { "Auto Rel", g.auto_rel },
+                      { "Auto Gain", 1.0f } };
+    SetAll(self, kv, 10);
+    Lcg rng = { seed + 97u * static_cast<uint32_t>(k) };
+    uint32_t i = 0;
+    for (int b = 0; b < 172; ++b) {
+      if (toggle && b % 3 == 2) Set(self, "Auto Gain", static_cast<float>((b / 3) & 1));
+      for (int f = 0; f < 64; ++f, ++i) {
+        float r;
+        const float l = AgSignal(k, i, rng, &r);
+        buf[2 * f] = l;
+        buf[2 * f + 1] = r < -1.5f ? l : r;
+      }
+      E.render(self, buf, 64);
+      for (int f = 0; f < 128; ++f) worst = fmax(worst, fabs(static_cast<double>(buf[f])) / bound);
+    }
+    E.destroy(self);
+  }
+  return worst;
+}
+
+// A full-scale 440 Hz sine, RMS, Attack 0, Auto Gain on: its output peak in
+// dBFS over the last quarter of a second.
+double AgSteadyDb(float threshold, float ratio) {
+  void *self = Make(kRate, 0);
+  const Kv kv[] = { { "Threshold", threshold }, { "Ratio", ratio }, { "Knee", 0.0f },
+                    { "Attack", 0.0f }, { "Character", 1.0f }, { "Auto Gain", 1.0f } };
+  SetAll(self, kv, 6);
+  float peak = 0.0f;
+  for (uint32_t i = 0; i < 44118; ++i) {
+    const float y = Frame(self, static_cast<float>(sin(2.0 * M_PI * 440.0 * i / kRate)));
+    if (i >= 33088) peak = fmaxf(peak, fabsf(y));
+  }
+  E.destroy(self);
+  return 20.0 * log10(peak);
+}
+
+void AutoGain() {
+  double grid = 0.0, random = 0.0, toggled = 0.0;
+  int runs = 0;
+  const float attacks[] = { 0.0f, 10.0f, 100.0f }, releases[] = { 10.0f, 2000.0f };
+  const float mixes[] = { 1.0f, 0.5f, 0.1f };
+  for (float attack : attacks) {
+    for (float release : releases) {
+      for (int character = 0; character < 4; ++character) {
+        for (int auto_rel = 0; auto_rel < 2; ++auto_rel) {
+          for (float mix : mixes) {
+            const AgSetting g = { -60.0f, 21.0f, 0.0f, attack, release, 0.0f, mix,
+                                  static_cast<float>(character), static_cast<float>(auto_rel) };
+            grid = fmax(grid, AgRun(g, false, 11u + runs));
+            ++runs;
+          }
+        }
+      }
+    }
+  }
+  Lcg rng = { 2024u };
+  for (int k = 0; k < 160; ++k, ++runs) {
+    AgSetting g;
+    g.threshold = -60.0f * rng.Unit();
+    g.ratio = 1.0f + 20.0f * rng.Unit();
+    g.knee = 24.0f * rng.Unit();
+    g.attack = 100.0f * rng.Unit();
+    g.release = 10.0f + 1990.0f * rng.Unit();
+    g.makeup = (rng.Next() & 1) ? 0.0f : -12.0f * rng.Unit();
+    g.mix = rng.Unit();
+    g.character = static_cast<float>(rng.Next() % 4);
+    g.auto_rel = static_cast<float>(rng.Next() & 1);
+    const bool toggle = k % 4 == 0;
+    const double w = AgRun(g, toggle, 5000u + k);
+    if (toggle) toggled = fmax(toggled, w);
+    else random = fmax(random, w);
+  }
+  printf("\"autogain\":{\"runs\":%d,\"grid\":%.9g,\"random\":%.9g,\"toggled\":%.9g,"
+         "\"capped_db\":%.4f,\"uncapped_db\":%.4f}",
+         runs, grid, random, toggled, AgSteadyDb(-60.0f, 21.0f), AgSteadyDb(-20.0f, 4.0f));
+}
+
+// 12. Cost: ns per 64-frame stereo block of noise, 0.5 s warm-up then 20 s.
 double Cost(const Kv *kv, int n, bool gliding) {
   void *self = Make(kRate, 0);
   SetAll(self, kv, n);
@@ -580,6 +723,7 @@ int main(int argc, char **argv) {
     Handover(); printf(",");
     Rates(); printf(",");
     Approx(); printf(",");
+    AutoGain(); printf(",");
     Hash();
   }
   printf("}\n");

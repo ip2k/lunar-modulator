@@ -26,7 +26,12 @@ UID_MAX = 0x0FFF
 # checked against each engine's code in this stage). Six-Op's Patch and
 # Sophie's pad parameters are read at note-on (LATCH), so they take
 # modulation too; Macro's LPG is read every block and lockable, but a
-# rounded route could end a note held under Off, so it takes none.
+# rounded route could end a note held under Off, so it takes none. The
+# rule for the effects' switches (owner, 2026-10-02): a switch-like control
+# that changes cleanly (it crossfades, glides or hands over, so no change,
+# however fast, steps the output) is lockable and modulatable, rounded when
+# modulated; tests/test_engines_fx_switches.py turns each of them every
+# third block to check it.
 ENUM_FLAGS = {
     ("macro", "Model"): ["nolock"],             # rebuilds every voice
     ("macro", "LPG"): [],
@@ -38,17 +43,13 @@ ENUM_FLAGS = {
     ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
     ("sw-sophie", "Filter Type"): ["latch", "mod"],
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
-    ("filter", "Type"): ["mod"],                # crossfades over 5 ms: nothing cut
-    ("drive", "Type"): [],                      # crossfades over 5 ms: lockable; no MOD,
-                                                # a rounded route would step, not sweep
-    ("drive", "Auto"): [],                      # its gain glides: lockable
-    # Comp's switches are read every sample and hand over without a step, so
-    # they can be locked; no MOD, since a rounded route would flip the
-    # detector or the release at control rate.
-    ("comp", "Character"): [],
-    ("comp", "Auto Rel"): [],
-    ("comp", "Auto Gain"): [],
-    ("limit", "Mode"): ["nolock"],              # a set-up choice (could be lifted)
+    ("filter", "Type"): ["mod"],                # warms the new type up, then crossfades
+    ("drive", "Type"): ["mod"],                 # crossfades over 5 ms
+    ("drive", "Auto"): ["mod"],                 # its gain glides
+    ("comp", "Character"): ["mod"],             # hands the smoothing over, the detector
+    ("comp", "Auto Rel"): ["mod"],              #   crossfades: no step in the reduction
+    ("comp", "Auto Gain"): ["mod"],             # its makeup and its bound glide in
+    ("limit", "Mode"): ["mod"],                 # glides the stage, frame by frame
 }
 
 

@@ -106,14 +106,14 @@
       {"name": "Level", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
     ],
     "drive": [
-      {"name": "Type", "type": "enum", "uid": 1, "flags": []},
+      {"name": "Type", "type": "enum", "uid": 1, "flags": ["mod"]},
       {"name": "Drive", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
       {"name": "Tone", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
       {"name": "Mix", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
       {"name": "Bias", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
       {"name": "Gate", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
       {"name": "Level", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
-      {"name": "Auto", "type": "enum", "uid": 8, "flags": []}
+      {"name": "Auto", "type": "enum", "uid": 8, "flags": ["mod"]}
     ],
     "echo": [
       {"name": "Time", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
@@ -142,16 +142,16 @@
       {"name": "Knee", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
       {"name": "Makeup", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
       {"name": "Mix", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
-      {"name": "Character", "type": "enum", "uid": 8, "flags": []},
-      {"name": "Auto Rel", "type": "enum", "uid": 9, "flags": []},
-      {"name": "Auto Gain", "type": "enum", "uid": 10, "flags": []}
+      {"name": "Character", "type": "enum", "uid": 8, "flags": ["mod"]},
+      {"name": "Auto Rel", "type": "enum", "uid": 9, "flags": ["mod"]},
+      {"name": "Auto Gain", "type": "enum", "uid": 10, "flags": ["mod"]}
     ],
     "limit": [
       {"name": "Ceiling", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
       {"name": "Drive", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
       {"name": "Release", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
-      {"name": "Lookahead", "type": "float", "uid": 4, "flags": ["nolock"]},
-      {"name": "Mode", "type": "enum", "uid": 5, "flags": ["nolock"]},
+      {"name": "Lookahead", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Mode", "type": "enum", "uid": 5, "flags": ["mod"]},
       {"name": "Link", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
       {"name": "Mix", "type": "float", "uid": 7, "flags": ["smooth", "mod"]}
     ],

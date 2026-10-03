@@ -21,7 +21,7 @@ from tests.test_engines_mi_fx import BANNED, brightness, run
 
 TOOL = ENGINES / "build" / "fm1-filter-test"
 LSB = 1 / 32767.0
-TYPES = ["SVF", "Ladder", "Diode", "K35", "Steiner", "Comb", "Formant"]
+TYPES = ["SVF", "Ladder", "Diode", "Sallen-Key", "SK Mixed", "Comb", "Formant"]
 
 # Every parameter away from its default except Type, Mix and Level; nothing
 # near self-oscillation, so a disturbance dies away.
@@ -64,6 +64,14 @@ def test_filter_is_registered(renderer):  # noqa: F811
     assert pages == [["Type", "Cutoff", "Resonance", "Drive"], ["Mode", "Morph", "Mix", "Level"]]
     t = e["params"][0]
     assert t["type"] == 1 and t["names"] == TYPES
+    # Generic names: what each circuit is, never a maker's, a person's or a
+    # part number (the filters they follow are credited in the README), and
+    # short enough for the screen: the Type row leaves 14 characters for its
+    # value, the ALGORITHM popup 18.
+    assert all(len(n) <= 10 for n in TYPES)
+    makers = ("korg", "k35", "ms-20", "ms20", "steiner", "parker", "synthacon", "moog", "roland",
+              "303", "oberheim")
+    assert not any(m in n.lower() for n in TYPES for m in makers)
     assert all(len(p["name"]) <= 12 for p in e["params"])
     assert all(p["min"] <= p["def"] <= p["max"] for p in e["params"])
     cutoff = e["params"][1]
@@ -303,21 +311,21 @@ def test_diode(tool):
     assert one[4000] > -6 and one[4000] - one[8000] < 3
 
 
-def test_k35(tool):
-    lp, hp, bp = gains(tool, "k35_lp"), gains(tool, "k35_hp"), gains(tool, "k35_bp")
+def test_sallen_key(tool):
+    lp, hp, bp = gains(tool, "sk_lp"), gains(tool, "sk_hp"), gains(tool, "sk_bp")
     # Two coincident poles at Resonance 0: -6 dB at Cutoff, 12 dB/octave.
     assert lp[30] == pytest.approx(0.0, abs=0.05) and lp[1000] == pytest.approx(-6.02, abs=0.05)
     assert lp[4000] - lp[8000] == pytest.approx(13.2, abs=1.0)
     assert hp[15000] == pytest.approx(0.0, abs=0.1) and hp[1000] == pytest.approx(-6.02, abs=0.05)
     assert hp[250] - hp[125] == pytest.approx(11.7, abs=0.5)
     assert bp[1000] == pytest.approx(0.0, abs=0.05) and bp[100] < -12 and bp[10000] < -12
-    r = gains(tool, "k35_res")
+    r = gains(tool, "sk_res")
     assert r[1000] - r[30] > 8
 
 
-def test_steiner_inputs(tool):
-    lp, hp, bp = gains(tool, "steiner_lp"), gains(tool, "steiner_hp"), gains(tool, "steiner_bp")
-    notch = gains(tool, "steiner_notch")
+def test_sk_mixed_inputs(tool):
+    lp, hp, bp = gains(tool, "skmix_lp"), gains(tool, "skmix_hp"), gains(tool, "skmix_bp")
+    notch = gains(tool, "skmix_notch")
     # Sallen-Key Q 1/3 at Resonance 0: -9.5 dB at Cutoff.
     assert lp[30] == pytest.approx(0.0, abs=0.05) and lp[1000] == pytest.approx(-9.54, abs=0.1)
     # The high-pass input: (s^2 + 2 s) / D, a 6 dB/octave skirt below Cutoff.
@@ -366,7 +374,7 @@ def test_cutoff_stays_below_nyquist(tool):
 
 def test_resonance_compensation_keeps_the_pass_band(tool):
     # Resonance 0.9 (Cutoff 2 kHz): the pass band within 4-8 dB of unity.
-    for t in ("svf", "ladder", "diode", "k35", "steiner"):
+    for t in ("svf", "ladder", "diode", "sk", "skmix"):
         db = gains(tool, f"pass_{t}")[40]
         assert -8.0 < db < -3.5, (t, db)
 
@@ -374,12 +382,12 @@ def test_resonance_compensation_keeps_the_pass_band(tool):
 # --- self-oscillation ---------------------------------------------------------
 
 def test_self_oscillation_tracks_cutoff(tool):
-    tol = {"svf": 0.1, "ladder": 1.0, "diode": 1.0, "k35": 4.0}   # cents
+    tol = {"svf": 0.1, "ladder": 1.0, "diode": 1.0, "sk": 4.0}   # cents
     for o in tool["osc"]:
         if o.get("res") is not None:
             continue
         c = 1200 * math.log2(o["hz"] / o["cutoff"])
-        if o["type"] == "steiner":
+        if o["type"] == "skmix":
             assert -25 < c < -5, o                      # the diodes pull it ~20 cents flat
         else:
             assert abs(c) < tol[o["type"]], (o, c)
@@ -395,7 +403,7 @@ def test_self_oscillation_at_other_rates(tool):
     rated = [o for o in tool["osc"] if "rate" in o]
     assert len(rated) == 12
     for o in rated:
-        tol = 4.0 if o["type"] == "k35" else 1.0
+        tol = 4.0 if o["type"] == "sk" else 1.0
         assert abs(1200 * math.log2(o["hz"] / 440.0)) < tol, o
 
 
@@ -403,23 +411,23 @@ def test_self_oscillation_at_other_rates(tool):
 
 def test_drive_adds_harmonics(tool):
     h = {(x["type"], x["drive"]): x for x in tool["harmonics"]}
-    for t in ("svf", "ladder", "diode", "k35", "steiner"):
+    for t in ("svf", "ladder", "diode", "sk", "skmix"):
         clean, driven = h[(t, 0)], h[(t, 1)]
         assert driven["h3"] > clean["h3"] + 30, t       # third harmonic up by 30 dB or more
         assert driven["h3"] > -30, t
-    for t in ("svf", "diode", "k35"):
+    for t in ("svf", "diode", "sk"):
         assert h[(t, 0)]["h3"] < -80, t                 # at Drive 0, 0.5 in: all but clean
     assert h[("ladder", 0)]["h3"] < -60                 # the ladder's loop colours a little
 
 
-def test_steiner_is_not_k35(tool):
+def test_sk_mixed_is_not_sallen_key(tool):
     h = {(x["type"], x["drive"]): x for x in tool["harmonics"]}
-    # Steiner's asymmetric clip makes even harmonics; K35's symmetric one none.
-    assert h[("steiner", 0)]["h2"] > -70 and h[("k35", 0)]["h2"] < -100
+    # SK Mixed's asymmetric clip makes even harmonics; Sallen-Key's symmetric one none.
+    assert h[("skmix", 0)]["h2"] > -70 and h[("sk", 0)]["h2"] < -100
     lv = {(x["type"], x["amp"]): x for x in tool["level"]}
 
     def tilt(t, a):
         return lv[(t, a)]["g2000"] - lv[(t, a)]["g250"]
-    # A louder input darkens Steiner (its diodes saturate); K35's tilt holds.
-    assert tilt("steiner", 0.5) < tilt("steiner", 0.01) - 1.5
-    assert abs(tilt("k35", 0.5) - tilt("k35", 0.01)) < 0.2
+    # A louder input darkens SK Mixed (its diodes saturate); Sallen-Key's tilt holds.
+    assert tilt("skmix", 0.5) < tilt("skmix", 0.01) - 1.5
+    assert abs(tilt("sk", 0.5) - tilt("sk", 0.01)) < 0.2
