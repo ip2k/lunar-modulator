@@ -32,8 +32,8 @@ history.
   Sallen-Key (bright and aggressive, after the Korg-35 filter of the later
   MS-20), SK Mixed (a gritty mixed-input Sallen-Key, after the
   Steiner-Parker Synthacon's filter, with low-pass, band-pass and
-  high-pass inputs), Comb (tuned by
-  Cutoff, positive or negative, peaks or notches) or Formant (the vowels
+  high-pass inputs), Comb (tuned by Cutoff, positive or negative, peaks or
+  notches) or Formant (the vowels
   A-E-I-O-U for men, women and children). Cutoff runs 20 Hz to 18 kHz;
   Resonance goes up to self-oscillation, in tune with Cutoff, on all five
   analogue-style types; Drive saturates. On the second page, Mode (the
@@ -42,9 +42,9 @@ history.
   filter unheard and then crossfades to it, within 10 ms, so it never
   clicks, even changed on every step: the sequencer may lock it and
   modulation may step through the types. The types are named for their
-  circuits, never for a maker. Silence stays
-  silent at any setting. Our own code (MIT), after Zavalishin's *The Art of
-  VA Filter Design*, Andrew Simper's SVF, Huovilainen's ladder, the
+  circuits, never for a maker. Silence stays silent at any setting. Our
+  own code (MIT), after Zavalishin's *The Art of VA Filter Design*, Andrew
+  Simper's SVF, Huovilainen's ladder, the
   Korg35, diode-ladder and Steiner-Parker circuits, Zölzer's universal comb
   and Peterson and Barney's vowel measurements; documented in
   engines/README.md ("Filter"). It uses about 18 KB of memory at 44.1 kHz
@@ -79,8 +79,9 @@ history.
   attack has caught up (it rounds that peak off along the compressor's
   curve instead). Both channels are compressed together. Silence stays
   silent, knob turns glide, and Character, Auto Rel and Auto Gain switch
-  mid-note without a jump, so they can be locked and modulated. It computes the same bits on the
-  desktop and in the browser's WebAssembly. Parameters and design in
+  mid-note without a jump, so they can be locked and modulated. It
+  computes the same bits on the desktop and in the browser's WebAssembly.
+  Parameters and design in
   `engines/README.md`, a section in chapter 6 of the manual; a new parity
   scenario covers it. For developers,
   `include/fm1_comp.h` reads its gain reduction, for a later modulation
@@ -98,9 +99,9 @@ history.
   every step, so both can be locked and modulated (in review, a change
   could briefly hard-clip peaks far over the ceiling, and a fast run of
   Lookahead changes could click; both fixed before release). It uses about
-  11 KB of memory at 44.1 kHz. The
-  firmware's own output limiter stays after every effect. Written for this project (MIT), after Geraint
-  Luff's look-ahead limiter design; parameters and design in
+  11 KB of memory at 44.1 kHz. The firmware's own output limiter stays
+  after every effect. Written for this project (MIT), after Geraint Luff's
+  look-ahead limiter design; parameters and design in
   `engines/README.md`, tested in `tests/test_engines_limit.py`, and a
   section in chapter 6 of the manual. A new parity scenario plays it twice
   in one chain.
