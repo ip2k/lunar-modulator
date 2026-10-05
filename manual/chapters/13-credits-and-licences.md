@@ -37,6 +37,12 @@ terms it is used under.
   one, after **Udo Zölzer**'s *DAFX*, and its 16-bit delay memory follows
   **Emilie Gillet**'s effects engine in Rings and Clouds; none of their code
   is used.
+- **Hall** is this project's own code. It is a feedback delay network after
+  **Jean-Marc Jot** and **Antoine Chaigne** (1991); its structure follows
+  schwung-work's Voidspace and **Geraint Luff**'s Signalsmith basics library
+  (both MIT), its input diffusion **Manfred Schroeder**'s all-passes with
+  **Jon Dattorro**'s coefficients, and its 16-bit delay memory **Emilie
+  Gillet**'s effects engine in Rings and Clouds; none of their code is used.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and

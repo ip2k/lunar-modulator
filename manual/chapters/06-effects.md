@@ -25,8 +25,8 @@ pages, then the second slot's. The bottom bar shows where you are, such as
 *1/2 FX2*: page 1 of 2, second slot.
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
-*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Echo and Test
-Gain, and round again. In the simulator you can also use the **Effect 1** and **Effect 2**
+*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Echo, Hall and
+Test Gain, and round again. In the simulator you can also use the **Effect 1** and **Effect 2**
 lists under the panel.
 
 **To empty a slot:** turn [[ALGORITHM]] to *Empty slot*, one step before
@@ -61,7 +61,7 @@ more than two.
     about 48,000 samples a second, so at the FM-1's 44,118 their delays come
     out about 9 % longer, a slightly larger room, and their slow modulation
     about 8 % slower. Their decay times are corrected, and stay within a few per
-    cent of the originals'. Crush, Fold and Echo, written for Lunar Modulator,
+    cent of the originals'. Crush, Fold, Echo and Hall, written for Lunar Modulator,
     work out their frequencies and times from the output's rate, so they need
     no correction.
 
@@ -270,6 +270,52 @@ the time.
 Echo does not yet follow the sequencer's tempo; set Time by ear.
 
 {{engine-table echo}}
+
+## Hall
+
+{{status sim desktop planned}}
+
+A stereo hall reverb, written for Lunar Modulator: a large, smooth space
+whose tail can ring from a fraction of a second to twenty seconds, or be
+frozen and held. It takes 49 KB of memory, three quarters of Plate's.
+
+- **Decay** sets how long the reverb rings, from 0.2 seconds at the left to
+  20 seconds at the right; the default, 2 seconds, is a concert hall. Size
+  does not change it.
+- **Size** sets how large the hall is: at the left a small room whose first
+  reflections come quickly, at the right a large hall. Turning it while the
+  reverb rings bends the pitch of the tail.
+- **Damping** makes the high frequencies die away faster than the low ones,
+  as they do in a real room: at the left the tail stays bright, at the
+  right it turns dark quickly.
+- **Mix** fades from the dry sound to the reverb. The dry sound stays at
+  full level up to the middle and the reverb is at full level from the
+  middle on.
+- **Pre-delay**, on page 2, waits up to 150 milliseconds before the reverb
+  starts, which keeps the attack of a note clear of it; the default is 20.
+- **Diffusion**, on page 2, at the left lets the first reflections through
+  as separate echoes; at the right they blur into a smooth wash.
+- **Mod**, on page 2, gently moves the reverb's internal delays, like a
+  slow chorus. It keeps long tails from sounding metallic; turn it down for
+  a stiller, purer tail. It sounds the same every time you play.
+- **Freeze**, on page 2, holds the reverb as it is, for as long as it stays
+  on, and lets nothing new in: play over a frozen chord. Off lets it fade
+  away. It switches without a click, so once the sequencer and modulation
+  reach the effects, they will be able to turn it on and off in time.
+- **Width**, on page 3, narrows the reverb from wide stereo at the right to
+  mono at the left.
+- **Low Cut**, on page 3, keeps the bass out of the reverb, so a bass line
+  or a kick stays tight while everything else rings.
+
+!!! tip "Starting points"
+    - **Concert hall:** the defaults.
+    - **Big, dark ambience:** Decay about 0.8, Size at the right, Damping
+      about 0.7, Mod about 0.5, Mix about 0.5.
+    - **Small, bright room:** Decay about 0.2, Size at the left, Damping
+      low, Diffusion at the right.
+    - **Drone pad:** play a chord, turn Freeze on, then play over it.
+
+{{engine-table hall}}
 
 ## Test Gain
 
