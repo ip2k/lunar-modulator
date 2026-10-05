@@ -291,7 +291,7 @@ with confidence marks, are in [docs/01](docs/01-hardware.md),
 | USB | normal `4C4A:C755` (USB-MIDI + UAC1, full-speed, product string `FM-1`), OTA loader `4D4A:4155`, mask ROM `4C4A:8057` `UBOOT1.00` [reported] |
 | Display | 240×240 RGB565 ST7789V TFT on SPI1 (`0x11D00`), PC7–PC10, backlight PA2 [reported] |
 | Controls | 27 keys + 14 buttons in an 11×6 matrix behind two 74HC595s; all 7 encoders scanned in the matrix; MASTER is a pot on PB6 (ADC 4); ADC 3 is the battery on PB1 [reported: Felucca `727f272`, fm1-nes `870f305`; docs/01 §3.1] |
-| Audio | ALNK0 (I2S) to an external codec, not the internal DAC; 44,117.6 Hz, 64-frame halves, IRQ 11 [reported: Felucca/SLOOP and fm1-nes]; stock renders 12 msfa voices on the second core [inferred; stock only, no open firmware does yet] |
+| Audio | ALNK0 (I2S) to an external codec, not the internal DAC, IRQ 11 [reported: Felucca/SLOOP and fm1-nes]; 64-frame halves as in stock [reported: fm1-nes]; about 44,118 Hz (Felucca times 44,117.6 Hz; AL-255 reads stock's as 44,118) [reported]; stock renders 12 msfa voices on the second core [inferred; stock only, no open firmware does yet] |
 | MIDI jack | TRS, input only: UART1 RX on PH8 [reported: Felucca] |
 | Update | USB-MIDI SysEx, CRC16 only; step 1 refuses only the running version, so rebuilt packages with a new version install, and it accepts a non-M-VAVE `ota.bin` [reported: Felucca, SLOOP]; the OTA loader can rewrite `uboot.boot` |
 
@@ -1135,9 +1135,9 @@ the I0 decision. 1 session, 1–2 h.
     That decides Lunar's fail-open design.
 - Partly answered for custom apps: Felucca stages its loader at flash
   `0xE0000` and writes `UPDATA_PARM` to flash `0xE4F00` and RAM
-  `0x01C7FD88`, and the SPL scans 4K-boundary−256 slots in
-  `[0x93000, 0xFC000)` for the magic `0x5441` [reported: Felucca; source
-  verified]. Where stock V15 itself stages `ota.bin` is still for the dumps
+  `0x01C7FD88` [verified: Felucca `firmware/src/ota.c`; reported working],
+  and the SPL scans 4K-boundary−256 slots in `[0x93000, 0xFC000)` for the
+  magic `0x5441` [reported: Felucca]. Where stock V15 itself stages `ota.bin` is still for the dumps
   to show.
 
 **I11. First code on the FM-1. [bench]** Needs I9, I4, I7 and I3's image

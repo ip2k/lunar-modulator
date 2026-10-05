@@ -99,7 +99,7 @@ project builds or sends.
 | USB | normal `4C4A:C755` (USB-MIDI + UAC1, full-speed, product string `FM-1`), OTA loader `4D4A:4155`, mask ROM `4C4A:8057` `UBOOT1.00` [reported] |
 | Display | 240×240 RGB565 ST7789V TFT on SPI1 (`0x11D00`): CS PC7, D/C PC8, SCK PC9, MOSI PC10; backlight PA2, active low [reported] |
 | Controls | 27 keys + 14 buttons in an 11×6 matrix behind two 74HC595s (PA4/PA3/PA1), read on PA0, PA5–PA8, PB7; all 7 encoders scanned in the matrix; MASTER is a pot on PB6 (ADC 4); ADC 3 is the battery on PB1 [reported: Felucca `727f272`, fm1-nes `870f305`] |
-| Audio | ALNK0 (I2S) to an external codec, not the internal DAC; 44,117.6 Hz, 64-frame halves, IRQ 11 [reported: Felucca/SLOOP and fm1-nes, two code lineages]; 12 msfa voices |
+| Audio | ALNK0 (I2S) to an external codec, not the internal DAC, IRQ 11 [reported: Felucca/SLOOP and fm1-nes, two code lineages]; 64-frame halves as in stock [reported: fm1-nes]; about 44,118 Hz (Felucca times 44,117.6 Hz; AL-255 reads stock's as 44,118) [reported]; 12 msfa voices |
 | MIDI jack | TRS, input only: UART1 RX on PH8 [reported: Felucca] |
 | Update | USB-MIDI SysEx, CRC16 only; step 1 refuses only the running version, so rebuilt packages with a new version install, and it accepts a non-M-VAVE `ota.bin` [reported: Felucca, SLOOP]; the OTA loader can rewrite `uboot.boot` |
 
@@ -174,7 +174,8 @@ vendor packages there.
    V15) and the identity string. Always read the identity.
 7. **Do not send syscmd 33–36 or 48** or any `5A AA A5` online-tool frame; some
    copy memory or touch flash (online-tool 0x24 erases, 0x25 writes, 0x26
-   reboots into mask ROM, 0x27 reads [verified: SDK `cfg_tool.h`]).
+   reboots into mask ROM, 0x27 reads [verified: SDK `cfg_tool.h`,
+   `new_cfg_tool.c`]).
 8. **Movy/Schwung are Linux-only by nature**; do not plan around porting them.
 9. **The "soft key" `F0 22 24 35 7D F7` is not the identity query.**
    - Stock V15 reboots into mask-ROM `UBOOT1.00` on it [reported:
@@ -184,7 +185,7 @@ vendor packages there.
    - FM-1-transporter's `fm1t.py` sends it by itself when it sees V15
      [verified: its README]: never run that tool against the owner's unit.
      Its key drive is also push-pull with no series resistors, which docs/10
-     E1 rules out [verified: `pio/usb_key.pio`].
+     E1 rules out [verified: `pio/usb_key.pio`, README].
 10. **Audio is ALNK0 (I2S, `0x12E00`) to an external codec, not the
     `JL_AUDIO` DAC (`0x12F00`)** [reported: Felucca, fm1-nes]. The SDK's
     audio demos and the dev kit's DAC path do not match the FM-1.
