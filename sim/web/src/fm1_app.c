@@ -165,6 +165,21 @@ static int base_note(const fm1_app_t *a) {
   return FM1_APP_FIRST_NOTE + 12 * a->octave + a->transpose;
 }
 
+/* The note a key plays. Sophie is a 16-pad kit on MIDI notes 36-51 (the
+ * General MIDI drum keys), below the keys' range at any useful octave
+ * (53-79 at octave 0), so with Sophie as the sound the 16 white keys play
+ * pads 1-16 whatever the octave, and the black keys play nothing (-1).
+ * MIDI IN keeps the drum map. */
+static int key_note(const fm1_app_t *a, int key) {
+  /* White keys from F: F G A B C D E. */
+  static const int8_t white_of[12] = {0, -1, 1, -1, 2, -1, 3, 4, -1, 5, -1, 6};
+  if (a->unit[0].e && strcmp(a->unit[0].e->id, "sw-sophie") == 0) {
+    const int w = white_of[key % 12];
+    return w < 0 ? -1 : 36 + 7 * (key / 12) + w;
+  }
+  return base_note(a) + key;
+}
+
 /* HOME, FX and GLO leave SEQ mode; its holds go without a toggle. */
 static void set_mode(fm1_app_t *a, int mode) {
   if (a->mode == FM1_MODE_SEQ && mode != FM1_MODE_SEQ) fm1_seq_ui_leave(&a->ui);
@@ -420,7 +435,7 @@ void fm1_app_key(fm1_app_t *a, int key, int down, int velocity) {
       }
       if (a->ui.full_vel) velocity = 127;    /* SHIFT + 10: full velocity */
     }
-    int note = base_note(a) + key;
+    int note = key_note(a, key);
     if (note < 0 || note > 127) return;
     a->key_down[key] = 1;
     a->key_note[key] = (uint8_t)note;

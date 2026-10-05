@@ -407,6 +407,17 @@ def test_font_header_is_current():
     subprocess.run(["python3", str(SIM / "tools" / "gen_font.py"), "--check"], check=True)
 
 
+
+@pytest.mark.parametrize("key,peak", [(0, True), (1, False), (2, True), (26, True)])
+def test_sophie_white_keys_play_its_pads_at_any_octave(tools, key, peak):
+    """Sophie only answers MIDI notes 36-51, below the keys' range (53-79 at
+    octave 0). With Sophie as the sound the 16 white keys play pads 1-16 and the
+    black keys play nothing, at any octave; other engines are unchanged."""
+    for panel in ([], ["--button", "0.05:OCT+:0.02"], ["--button", "0.05:OCT-:0.02"]):
+        summary = run(tools["sim"], ["--engine", "sw-sophie", "--seconds", "0.7",
+                                     "--key", f"0.1:{key}:110:0.3", *panel])
+        assert (summary["peak"] > 0.05) is peak
+
 @pytest.mark.parametrize("panel,note", [
     ([], 53),                                             # key 0 is F3 (manual p.10)
     (["--button", "0:OCT+"], 65),                         # one octave up

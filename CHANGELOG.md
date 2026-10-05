@@ -704,6 +704,10 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- Sophie made no sound from the virtual FM-1's keys: it only plays MIDI
+  notes 36–51 (its 16 pads), below the keys' range at the default octave.
+  With Sophie as the sound, the 16 white keys now play pads 1–16 at any
+  octave, and the black keys play nothing. MIDI IN keeps the drum map.
 - Macro Heavy: a parameter set to NaN now falls back to its default, as
   the engine API says (`fm1_param_clamp`), instead of to its minimum.
 - **The second core is not idle.** The stock firmware renders its msfa
