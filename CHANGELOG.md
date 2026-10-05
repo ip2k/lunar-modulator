@@ -1216,6 +1216,9 @@ history.
 - The simulator page's help credits every source of the modulation
   modules, as the manual does: Braids and Music Thing Modular's Turing
   Machine (Tom Whitwell) were missing.
+- For developers: `fm1-sim-render` frees what a run holds when it stops
+  part way, on a refused `--unit-route`, `--seq-reset` or `--seq-import`,
+  so CI's leak check sees only the refusal.
 - Sophie made no sound from the virtual FM-1's keys: it only plays MIDI
   notes 36–51 (its 16 pads), below the keys' range at the default octave.
   With Sophie as the sound, the 16 white keys now play pads 1–16 at any

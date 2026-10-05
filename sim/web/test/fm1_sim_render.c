@@ -3160,6 +3160,19 @@ static int find_param(int unit, const char *name) {
   return i;
 }
 
+/* A run stopped in the middle (a refused --unit-route, --seq-reset or
+ * --seq-import): what it holds goes, so the sanitizers' leak check (CI's
+ * ASan job, on Linux) sees only the refusal. Returns `code`. */
+static int abandon_run(int code, float *out, fm1_script_t *script) {
+  for (int k = 0; k < g_ui_log_n; ++k) free(g_ui_log_text[k]);
+  for (int k = 0; k < g_nside; ++k) free(g_side_value[k]);
+  g_ui_log_n = g_nside = 0;
+  fm1_script_free(script);
+  destroy_units();
+  free(out);
+  return code;
+}
+
 int main(int argc, char **argv) {
   const char *engine = NULL, *out_path = NULL, *screen_path = NULL;
   const char *fx_id[FM1_APP_FX_SLOTS] = { NULL, NULL };
@@ -3490,21 +3503,23 @@ int main(int argc, char **argv) {
         g_replayable = 0;
         if (e->kind == EV_SEQ_RESET && fm1_app_seq_reset(&g_app, e->a) != 0) {
           fprintf(stderr, "bad --seq-reset track count %d\n", e->a);
-          return 2;
+          return abandon_run(2, out, &script);
         }
-        if (e->kind == EV_SEQ_IMPORT && !import_file(strchr(argv[e->a], ':') + 1)) return 1;
+        if (e->kind == EV_SEQ_IMPORT && !import_file(strchr(argv[e->a], ':') + 1)) {
+          return abandon_run(1, out, &script);
+        }
         rest = NULL;                   /* what was queued went with the instance */
         if (!n_routes) fm1_app_seq_default_route(&g_app);
       } else if (e->kind == EV_SEQ_UI) {
         const char *op = strchr(argv[e->a], ':') + 1;
-        if (g_ui_n >= MAX_UI) { usage(); return 2; }
+        if (g_ui_n >= MAX_UI) { usage(); return abandon_run(2, out, &script); }
         fm1_seq_parse(op, strlen(op), &g_ui[g_ui_n++]);
       } else if (e->kind == EV_UNIT_ROUTE) {
         const int r = fm1_app_unit_route(&g_app, e->a, e->b);
         if (r == FM1_APP_SEQ_BUSY) continue;            /* again after the next render */
         if (r == FM1_APP_SEQ_REFUSED) {
           fprintf(stderr, "--unit-route %d:%d refused\n", e->a, e->b);
-          return 2;
+          return abandon_run(2, out, &script);
         }
       } else continue;
       e->done = 1;
