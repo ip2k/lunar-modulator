@@ -12,7 +12,9 @@
  *           after a second without a turn; SEL grabs the module so SELECT
  *           moves it in the rack.
  *   MATRIX  EDIT opens it: 7 of the 32 slots as rows of 19 characters and a
- *           hint line. Page A: KNOB1 source, KNOB2 destination (a picker,
+ *           hint line. A row is the source (6 characters), a mark for the
+ *           slot's state, then page A's destination (7) and amount (4)
+ *           or page B's VIA (5), curve and polarity. Page A: KNOB1 source, KNOB2 destination (a picker,
  *           ALGORITHM jumps between groups while it is open, commit after a
  *           second), KNOB3 amount, KNOB4 offset. ALGORITHM otherwise flips
  *           to page B: KNOB1 VIA, KNOB2 curve, KNOB3 polarity, KNOB4 on.
@@ -21,10 +23,12 @@
  *           from the selected Envelope or LFO (the last one shown on its
  *           page; the first by default) to that knob's parameter, its
  *           amount following the turn (docs/16's quick assign).
- * Modules are named by kind and order, as the owner names them: the
- * default rack is LFO1, LFO2, ENV1, ENV2 and CHN1 (positions 1-5).
- * fm1-render's script names positions instead (lfo1 lfo2 env3 env4
- * chance5, or mod3).
+ * Modules are named by kind and position, docs/16 §2.4's labels: the
+ * kind's three-letter abbreviation and the rack position, so the default
+ * rack is LFO1, LFO2, ENV3, ENV4 and CHN5, and no two modules share a name
+ * whatever their kinds (Chance, Calc, Compare and Coin all begin with C:
+ * CHN, CLC, CMP, COI). fm1-render's script names positions the same way
+ * (lfo1 lfo2 env3 env4 chance5, or mod3).
  *
  * Destinations. A cable's destination is the slot's dst_unit code and a uid
  * (or a gate input's index). This stage has one sound and the two effect
@@ -66,6 +70,7 @@ extern "C" {
 #define FM1_MOD_UI_NONE 0xFFu
 #define FM1_MOD_UI_ROWS 7            /* MATRIX: slot rows on the screen */
 #define FM1_MOD_UI_ROW_CHARS 19      /* a row, LINE_CHARS */
+#define FM1_MOD_UI_DST_CHARS 7       /* a destination's short form in a row */
 #define FM1_MOD_UI_SINKS 3           /* sink units with an engine: SOUND, FX1, FX2 */
 #define FM1_MOD_UI_MAX_DESTS \
   (FM1_MOD_UI_SINKS * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS + \
@@ -135,10 +140,10 @@ void fm1_mod_ui_init(fm1_mod_ui_t *u);
 
 /* ---- names --------------------------------------------------------------- */
 
-/* "LFO1", "ENV2": the kind's abbreviation and its order among the modules
- * of that kind in rack order; "--" for an empty position. */
+/* "LFO1", "ENV3": the kind's abbreviation and the position (1-8); "--"
+ * for an empty position. */
 void fm1_mod_ui_label(const fm1_mod_t *m, unsigned pos, char *buf, size_t cap);
-/* "Envelope 1", or "Empty 6" (the position). */
+/* "Envelope 3", or "Empty 6": the kind's name and the position. */
 void fm1_mod_ui_title(const fm1_mod_t *m, unsigned pos, char *buf, size_t cap);
 /* A source: short (at most 6 characters: "VEL", "LFO1", "LFO1.2") or full
  * ("LFO1 Wrap"). */
@@ -147,8 +152,10 @@ void fm1_mod_ui_source(const fm1_mod_t *m, unsigned src, int full, char *buf, si
 int fm1_mod_ui_slot_dest(const fm1_mod_ui_env_t *env, const fm1_mod_slot_t *s, fm1_mod_dest_t *d);
 /* Its parameter (NULL for a gate input or nothing). */
 const fm1_param_t *fm1_mod_ui_dest_param(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d);
-/* A destination: short (at most 6: "Timbre", "F1Mix", "E1Atk") or full
- * ("Snd Timbre", "FX1 Mix", "ENV1 Attack"). */
+/* A destination: short (at most FM1_MOD_UI_DST_CHARS: "Timbre", "F1Mix",
+ * "ENV3Atk", the module's label and three characters unique among the
+ * kind's parameters and gate inputs) or full ("Snd Timbre", "FX1 Mix",
+ * "ENV3 Attack"). */
 void fm1_mod_ui_dest_name(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, int full,
                           char *buf, size_t cap);
 

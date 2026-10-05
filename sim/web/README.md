@@ -141,7 +141,7 @@ renders without the switch go the same way as before (no hook, no split).
 | SEL outside FX mode | "SEL works in FX mode" | SHIFT (O2), its LED on while held; FX mode keeps the slot grab, RACK grabs the module, MATRIX opens CHAIN and CHAIN goes back (docs/16 §5.2) |
 | LFO, ENV | "not in the simulator yet" | a tap opens RACK at the LFOs or the Envelopes, a page per module; held while a knob turns on HOME, FX or RACK, a cable from the selected one to that knob's parameter (below) |
 | EDIT | "not in the simulator yet" | MATRIX, the 32 cables; SEL there opens CHAIN; EDIT again goes HOME |
-| Modulation | none | a runtime (`engines/mod`) on the sound, both effects and the host, from the default rack: LFO1, LFO2, ENV1, ENV2 and Chance, with RTRG (the note gate, retriggered by each note-on) cabled into both envelopes' GATE so every note restarts them |
+| Modulation | none | a runtime (`engines/mod`) on the sound, both effects and the host, from the default rack: LFO1, LFO2, ENV3, ENV4 and CHN5 (Chance), with RTRG (the note gate, retriggered by each note-on) cabled into both envelopes' GATE so every note restarts them |
 | PLAY/STOP | "not in the simulator yet" | `play` or `stop`, in every mode, as a typed command (`src/fm1_seq_ui.c`, then `fm1_app_seq_cmd` under the event-room rule) |
 | REC | "not in the simulator yet" | `rec` on the focused track: stopped, a bar's count-in; playing, a take from the next bar over an empty clip, an overdub at once over notes; again, off. In SEQ mode while stopped it acts on its release: a quick tap records, held it is step record. SHIFT + REC is Capture (S5, below) |
 | Keys outside SEQ mode, MIDI IN | play the sound | the same, and they are live input to the focused track (`non`/`nof`): recording and Capture hear them, unless a step took the note |
@@ -425,19 +425,21 @@ logic, `src/fm1_mod_view.c` draws them). The app hosts the runtime on the
 sequencer's bridge exactly as `fm1-render --mod` does: a knob, a lock or
 the bend moves a parameter's base, the runtime adds what its cables give,
 each effect renders split at its own writes, and HOST AMP is applied before
-the limiter. Modules are named by kind and order (LFO1, LFO2, ENV1, ENV2,
-CHN1), as the owner names them.
+the limiter. Modules are named by the kind's three-letter abbreviation and
+the rack position (LFO1, LFO2, ENV3, ENV4, CHN5: Chance, Calc, Compare and
+Coin are CHN, CLC, CMP and COI), so no two share a name.
 
 - **LFO, ENV** (a tap): RACK at the LFO or Envelope last shown (LFO1 and
-  ENV1 at first); another tap there steps to the next one of that kind.
+  ENV3 at first); another tap there steps to the next one of that kind.
   RACK shows a module a page at a time:
   - the rack: eight cells, each filled to its module's first output, the
     one shown outlined, an empty position hollow;
-  - under it `3 ENV1 >2 <1 ~1`: the position, the module, its cables out
-    and in, and those that run a tick late;
+  - under it `ENV3 >2 <1 ~1`: the module, its cables out and in, and those
+    that run a tick late;
   - four parameter rows on KNOB1–4, as HOME's; the bottom bar `1/2 Mod3`.
   SELECT walks every position and page; ALGORITHM opens the kind picker
-  (Empty, LFO, Envelope, Chance), which commits a second after its last
+  (Empty, then all sixteen kinds: LFO, Envelope, Chance and MG2's Function
+  to Filter, `engines/mod/kinds.md`), which commits a second after its last
   turn or at once when another control is used. Changing a kind switches
   off the cables that touch the module and remembers them: changing it
   back switches them on again, those whose other end is still there.
@@ -451,20 +453,21 @@ CHN1), as the owner names them.
 - **EDIT**: MATRIX, seven of the 32 slots as rows of 19 characters, the
   selected one inverted, and a hint line:
   ```
-   LFO1  >Timbre  +40     state, source, > (or ~ a tick late), target, amount
-  -SEQ8  >F2PngP -100     - off, ! refused, v per voice (not made yet)
+  LFO1  >Timbre   +40     source, > (or ~ a tick late), target, amount
+  SEQ8  -F2PngPg -100     - off, ! refused, v per voice (not made yet)
+  LFO2.2>ENV3Gte +100     a module target: its label and 3 characters
   ```
   SELECT moves the selection. Page A: KNOB1 the source (`--` first, which
   empties the slot), KNOB2 the target through a picker (prev, current and
-  next in full, `Snd Timbre`, `FX1 Mix`, `Host Amp`, `ENV1 Attack`,
-  `ENV1 Gate`; ALGORITHM jumps between groups while it is open; it commits
+  next in full, `Snd Timbre`, `FX1 Mix`, `Host Amp`, `ENV3 Attack`,
+  `ENV3 Gate`; ALGORITHM jumps between groups while it is open; it commits
   as the kind picker does), KNOB3 the amount, KNOB4 the offset, 1 % a
   detent. ALGORITHM otherwise turns to page B: KNOB1 VIA, KNOB2 the curve,
   KNOB3 the polarity, KNOB4 on or off. A new cable starts on, at 0 %, from
   the selected LFO unless KNOB1 chose a source first. The hint line names
   the field last turned for two seconds, else the slot's target.
 - **SEL in MATRIX**: CHAIN, the longest path through the selected cable,
-  node and cable lines alternating (`LFO2 Wrap  +1`, `+100 >ENV1 Gate`),
+  node and cable lines alternating (`LFO2 Wrap  +1`, `+100 >ENV3 Gate`),
   the selected cable in the accent colour, `+N` for a node's other cables
   and `~` for one a tick late; a refused cable (`!`) is not followed. SELECT steps to the next cable; SEL goes
   back to MATRIX.

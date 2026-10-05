@@ -135,10 +135,10 @@ void fm1_mod_view_rack(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_
       late += 1;
     }
   }
-  fm1_mod_ui_label(m, u->pos, label, sizeof label);
+  fm1_mod_ui_label(m, u->pos, label, sizeof label);   /* the position is in the label */
   if (!kd) snprintf(buf, sizeof buf, "%s%u empty", u->grab ? "*" : "", u->pos + 1u);
-  else if (late) snprintf(buf, sizeof buf, "%s%u %s >%d <%d ~%d", u->grab ? "*" : "", u->pos + 1u, label, outs, ins, late);
-  else snprintf(buf, sizeof buf, "%s%u %s >%d <%d", u->grab ? "*" : "", u->pos + 1u, label, outs, ins);
+  else if (late) snprintf(buf, sizeof buf, "%s%s >%d <%d ~%d", u->grab ? "*" : "", label, outs, ins, late);
+  else snprintf(buf, sizeof buf, "%s%s >%d <%d", u->grab ? "*" : "", label, outs, ins);
   fm1_tft_text(t, MARGIN, INFO_Y, buf, LINE_CHARS, SCALE, u->grab ? C_MODEL : C_TEXT);
   if (!kd) {
     fm1_tft_text(t, MARGIN, PARAMS_Y + 4, "Empty position:", LINE_CHARS, SCALE, C_DIM);

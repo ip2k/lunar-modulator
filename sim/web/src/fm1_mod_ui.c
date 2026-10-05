@@ -86,23 +86,46 @@ static void squeeze(const char *s, size_t n, char *out, size_t cap) {
   snprintf(out, cap, "%s", b);
 }
 
-static unsigned ordinal(const fm1_mod_t *m, unsigned pos) {
-  const int k = fm1_mod_kind_at(m, pos);
-  unsigned p, n = 0;
-  for (p = 0; p <= pos && p < FM1_MOD_POSITIONS; ++p) n += fm1_mod_kind_at(m, p) == k;
-  return n;
-}
-
 void fm1_mod_ui_label(const fm1_mod_t *m, unsigned pos, char *buf, size_t cap) {
   const fm1_mod_kind_t *kd = kind_at(m, pos);
   if (!kd) snprintf(buf, cap, "--");
-  else snprintf(buf, cap, "%.3s%u", kd->abbr, ordinal(m, pos));
+  else snprintf(buf, cap, "%.3s%u", kd->abbr, pos + 1u);
 }
 
 void fm1_mod_ui_title(const fm1_mod_t *m, unsigned pos, char *buf, size_t cap) {
   const fm1_mod_kind_t *kd = kind_at(m, pos);
   if (!kd) snprintf(buf, cap, "Empty %u", pos + 1u);
-  else snprintf(buf, cap, "%.12s %u", kd->name, ordinal(m, pos));
+  else snprintf(buf, cap, "%.12s %u", kd->name, pos + 1u);
+}
+
+/* Item i of a kind's destinations, parameters first, then gate inputs:
+ * its name for a short form (the abbreviation, or the gate's name). */
+static const char *item_name(const fm1_mod_kind_t *kd, unsigned i) {
+  if (i < kd->n_params) return kd->params[i].abbr ? kd->params[i].abbr : kd->params[i].name;
+  return kd->gate_in[i - kd->n_params].name;
+}
+
+/* An item's three-character form: its name squeezed (vowels out, then the
+ * tail), or, when an earlier item of the kind already has that form, the
+ * first character and the last two ("Accept" after "Accel": "Apt"), or
+ * the first and the item's number. */
+static void item_short(const fm1_mod_kind_t *kd, unsigned item, char out[4]) {
+  char mine[3][4], other[4];
+  unsigned c, j;
+  const char *name = item_name(kd, item);
+  const size_t len = strlen(name);
+  squeeze(name, 3, mine[0], sizeof mine[0]);
+  snprintf(mine[1], sizeof mine[1], "%c%s", name[0], len > 3 ? name + len - 2 : name + (len > 1 ? 1 : len));
+  snprintf(mine[2], sizeof mine[2], "%c%02u", name[0], (item + 1u) % 100u);
+  for (c = 0; c < 3; ++c) {
+    int taken = 0;
+    for (j = 0; j < item && !taken; ++j) {
+      item_short(kd, j, other);
+      taken = strcmp(other, mine[c]) == 0;
+    }
+    if (!taken) break;
+  }
+  snprintf(out, 4, "%s", mine[c < 3 ? c : 2]);
 }
 
 void fm1_mod_ui_source(const fm1_mod_t *m, unsigned src, int full, char *buf, size_t cap) {
@@ -210,9 +233,10 @@ void fm1_mod_ui_dest_name(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, 
     fm1_mod_ui_label(env->m, pos, l, sizeof l);
     if (full) {
       snprintf(buf, cap, "%s %.12s", l, name);
-    } else {
-      squeeze(name, 4, sq, sizeof sq);
-      snprintf(buf, cap, "%c%u%s", kd->abbr[0], ordinal(env->m, pos), sq);
+    } else {                           /* "ENV3Atk", "CHN5Trg": the label, then 3 */
+      char it[4];
+      item_short(kd, d->gate ? kd->n_params + (unsigned)d->index : (unsigned)d->index, it);
+      snprintf(buf, cap, "%s%s", l, it);
     }
   } else {
     const int g = sink_group(d->unit);
@@ -225,7 +249,7 @@ void fm1_mod_ui_dest_name(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, 
       snprintf(buf, cap, "%s %.12s", kSinks[g].name, p->name);
     } else {
       const size_t tag = strlen(kSinks[g].tag);
-      squeeze(p->abbr, 6u - tag, sq, sizeof sq);
+      squeeze(p->abbr, FM1_MOD_UI_DST_CHARS - tag, sq, sizeof sq);
       snprintf(buf, cap, "%s%s", kSinks[g].tag, sq);
     }
   }
@@ -307,28 +331,33 @@ void fm1_mod_ui_row(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned
                     char out[FM1_MOD_UI_ROW_CHARS + 1]) {
   fm1_mod_slot_t s;
   char src[16], dst[16], amt[16];
-  char state = ' ';
+  char mark = 0;
   fm1_mod_dest_t d;
   if (fm1_mod_ui_empty(u, env->m, i) || !fm1_mod_get_slot(env->m, i, &s)) {
-    snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, " --");
+    snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "--");
     return;
   }
-  if ((s.flags & FM1_MOD_SLOT_ON) && ((u->plan.refused >> i) & 1u)) state = '!';
-  else if (s.flags & FM1_MOD_SLOT_VOICE) state = 'v';
-  else if (!(s.flags & FM1_MOD_SLOT_ON)) state = '-';
+  /* The character between the source and the rest says the slot's state:
+   * '-' off, '!' refused (on, but an end missing or a target that takes
+   * no modulation), 'v' per voice; else '~' for a cable a tick late and
+   * '>' on page A, '*' (scaled by VIA) on page B. */
+  if (!(s.flags & FM1_MOD_SLOT_ON)) mark = '-';
+  else if ((u->plan.refused >> i) & 1u) mark = '!';
+  else if (s.flags & FM1_MOD_SLOT_VOICE) mark = 'v';
   fm1_mod_ui_source(env->m, s.src, 0, src, sizeof src);
   if (page == 0) {
-    const char arrow = ((u->plan.delayed >> i) & 1u) && (s.flags & FM1_MOD_SLOT_ON) ? '~' : '>';
+    if (!mark) mark = ((u->plan.delayed >> i) & 1u) ? '~' : '>';
     if (!fm1_mod_ui_has_dst(&s)) snprintf(dst, sizeof dst, "--");
     else if (fm1_mod_ui_slot_dest(env, &s, &d)) fm1_mod_ui_dest_name(env, &d, 0, dst, sizeof dst);
     else snprintf(dst, sizeof dst, "?");
     snprintf(amt, sizeof amt, "%+d", fm1_mod_ui_pct(s.amount));
-    snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%c%-6.6s%c%-6.6s%5.5s", state, src, arrow, dst, amt);
+    snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%-6.6s%c%-7.7s %4.4s", src, mark, dst, amt);
   } else {
     char via[16];
+    if (!mark) mark = '*';
     if (s.via == FM1_MOD_NONE) snprintf(via, sizeof via, "--");
     else fm1_mod_ui_source(env->m, s.via, 0, via, sizeof via);
-    snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%c%-6.6s*%-4.4s %-3.3s %-2.2s", state, src, via,
+    snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%-6.6s%c%-5.5s %-3.3s %-2.2s", src, mark, via,
              kCurveShort[(s.flags & FM1_MOD_SLOT_CURVE_MASK) >> FM1_MOD_SLOT_CURVE_SHIFT],
              kPolShort[(s.flags & FM1_MOD_SLOT_POL_MASK) >> FM1_MOD_SLOT_POL_SHIFT]);
   }
@@ -1119,7 +1148,7 @@ int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_
   fm1_mod_ui_dest_name(env, d, 0, b, sizeof b);
   if (found < 0) {
     say->n = 2;
-    snprintf(say->line[0], sizeof say->line[0], "%.6s > %.6s", a, b);
+    snprintf(say->line[0], sizeof say->line[0], "%.6s > %.7s", a, b);
     snprintf(say->line[1], sizeof say->line[1], "Matrix full");
     return 0;
   }
@@ -1138,7 +1167,7 @@ int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_
   fm1_mod_ui_set_slot(env, u, (unsigned)found, &s);
   fm1_mod_ui_matrix_select(u, found - (int)u->slot);   /* MATRIX opens on it */
   say->n = 2;
-  snprintf(say->line[0], sizeof say->line[0], "%.6s > %.6s", a, b);
+  snprintf(say->line[0], sizeof say->line[0], "%.6s > %.7s", a, b);
   snprintf(say->line[1], sizeof say->line[1], "%+d%%", pct);
   return 1;
 }

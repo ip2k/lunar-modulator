@@ -1257,10 +1257,10 @@ marked]:
   - EDIT opens MATRIX (§5.3); SEL there opens CHAIN (§5.4).
   - The routing gesture: hold ENV or LFO and turn KNOB1–4 on HOME, FX or
     RACK, and a cable from the selected Envelope or LFO (the last one shown
-    on its page, ENV1 and LFO1 at first) to that knob's parameter follows
+    on its page, ENV3 and LFO1 at first) to that knob's parameter follows
     the turn, 1 % a detent. No PATCH latch was built.
-  - The default rack: LFO1, LFO2, ENV1, ENV2, Chance and three empty
-    positions, with two default cables, **RTRG** into ENV1's and ENV2's GATE
+  - The default rack: LFO1, LFO2, ENV3, ENV4, CHN5 and three empty
+    positions, with two default cables, **RTRG** into ENV3's and ENV4's GATE
     at 100 %, so every note restarts the envelopes (the owner's decision of
     2026-10-05: envelopes trigger from every note), whether it comes from
     the keys, MIDI in or the sequencer's tracks. RTRG is a new system
@@ -1275,19 +1275,30 @@ marked]:
     leaves the Envelope on its normal, KEY (an owner question at the end
     of this section: whether the normal should retrigger too).
   - Envelopes and LFOs are global in this stage; per-voice comes next.
-- **Names by kind.** Modules are named by kind and order, as the owner
-  names them: the default rack reads LFO1, LFO2, ENV1, ENV2, CHN1, not §5.3's
-  position numbers. In a 6-character MATRIX field a module destination is
-  the kind's initial, its number and the parameter cut to 4 (`E1Atk`); an
-  effect's is `F1` or `F2` and the parameter (`F1Mix`); the sound's has no
-  prefix. `fm1-render`'s script keeps naming positions (`env3`, `mod3`).
-- **Rows** are §5.3's: page A is state, source, `>` (`~` a tick late),
-  target and amount; the state column is `-` off, `!` refused (on, but an
-  end missing or a target that takes no modulation) or `v` per voice.
-  Page B is state, source, `*` and VIA (4 characters), the curve and the
-  polarity (`lin au`). KNOB1's list starts with `--`, which empties the
-  slot. A new cable starts on, at 0 %, from the selected LFO unless KNOB1
-  chose a source first; ON needs a target.
+- **Names by position.** Modules are named as §2.4 labels them, by the
+  kind's three-letter abbreviation and the rack position: the default rack
+  reads LFO1, LFO2, ENV3, ENV4, CHN5, and RACK's title says `Envelope 3`.
+  MG3 first named them by kind and order (LFO1, LFO2, ENV1, ENV2, CHN1) and
+  a module destination by the kind's initial (`E1Atk`), which collided once
+  MG2's kinds joined: Chance, Calc, Compare and Coin all begin with C. Now
+  no two modules share a label whatever their kinds (CHN, CLC, CMP, COI),
+  and a module destination in MATRIX is the label and three characters of
+  the parameter or gate input (`ENV3Atk`, `CHN5Trg`), unique within the
+  kind: the name with its vowels out, or, after an earlier one took that,
+  its first and last two characters (Burst's Accel is `Acc`, its Accept
+  `Apt`). The layout sweep checks every destination's and every source's
+  short form against every other in racks of every kind [verified:
+  `mod_names` in `fm1_sim_render.c`]. `fm1-render`'s script names
+  positions the same way (`env3`, `mod3`).
+- **Rows** are §5.3's, with the state where the arrow was, so a
+  destination gets seven characters and stays clear of the amount: page A
+  is the source (6), a mark, the target (7) and the amount (4), the mark
+  `>`, `~` a tick late, `-` off, `!` refused (on, but an end missing or a
+  target that takes no modulation) or `v` per voice. Page B is the source,
+  the mark (`*` for a cable scaled by VIA, or the state), VIA (5), the
+  curve and the polarity (`lin au`). KNOB1's list starts with `--`, which
+  empties the slot. A new cable starts on, at 0 %, from the selected LFO
+  unless KNOB1 chose a source first; ON needs a target.
 - **Pickers.** The kind picker (Empty, then every kind) and the
   destination picker (the sound's, FX1's, FX2's and the host's parameters
   that take modulation, then each module's parameters and gate inputs)

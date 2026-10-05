@@ -77,7 +77,7 @@ def test_the_lab_starts_the_default_rack_and_its_cables(tools):
     assert m["rack"] == ["lfo", "lfo", "env", "env", "chance", "", "", ""]
     assert [(s["slot"], s["src"], s["unit"], s["dst"], s["amount"], s["flags"]) for s in m["slots"]] == [
         (1, 23, 8 + 2, 0, Q14, ON | GATE_DST), (2, 23, 8 + 3, 0, Q14, ON | GATE_DST)]
-    assert [s["row"] for s in m["slots"]] == [" RTRG  >E1Gate +100", " RTRG  >E2Gate +100"]
+    assert [s["row"] for s in m["slots"]] == ["RTRG  >ENV3Gte +100", "RTRG  >ENV4Gte +100"]
     assert (m["sel_lfo"], m["sel_env"]) == (1, 3)
 
 
@@ -202,7 +202,7 @@ def test_matrix_edits_every_field(tools):
     assert (x["src"], x["unit"], x["dst"], x["via"]) == (2, 0, 3, 0)    # RAND > Timbre, VIA VEL
     assert (x["amount"], x["offset"]) == (q14(45), q14(-10))
     assert x["flags"] == (2 << 4) | (1 << 1)                           # cube, uni, off
-    assert x["row"] == "-RAND  >Timbre  +45" and s["mod"]["mpage"] == 1
+    assert x["row"] == "RAND  -Timbre   +45" and s["mod"]["mpage"] == 1
 
 
 def test_matrix_clears_a_slot_with_knob1(tools):

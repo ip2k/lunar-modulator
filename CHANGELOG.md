@@ -21,9 +21,12 @@ history.
     sound until you connect something.
   - LFO or ENV shows those modules a page at a time: their settings on the
     four knobs, SELECT through every module and page, ALGORITHM to put
-    another kind of module in a place, or empty it. Changing a module back
-    brings its connections back. SEL picks a module up so SELECT can move
-    it.
+    another of the sixteen kinds of module in a place (the second stage's
+    Function to Filter too), or empty it. Changing a module back brings its
+    connections back. SEL picks a module up so SELECT can move it.
+  - Modules are named by their kind and their place in the rack: LFO1,
+    LFO2, ENV3, ENV4 and CHN5 to begin with. Chance, Calc, Compare and Coin
+    are CHN, CLC, CMP and COI, so no two names are alike.
   - Hold LFO or ENV and turn a knob on the sound's page, an effect's page or
     a module's page: the LFO or envelope you looked at last now moves that
     setting, and the turn sets by how much. Turning again changes the same

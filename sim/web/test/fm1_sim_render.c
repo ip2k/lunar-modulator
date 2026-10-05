@@ -1834,6 +1834,91 @@ static void mod_sweep_module(const char *dir, const char *id) {
   mod_line("mod 6 none");
 }
 
+/* The pages' environment, as the app builds it for them. */
+static void harness_mod_env(fm1_mod_ui_env_t *env) {
+  memset(env, 0, sizeof *env);
+  env->m = g_app.mod;
+  for (int k = 0; k < FM1_MOD_UI_SINKS; ++k) env->unit[k] = g_app.unit[k].e;
+}
+
+/* MATRIX's names never collide (docs/16 MG3): racks holding every kind,
+ * each destination's short form (FM1_MOD_UI_DST_CHARS at most) and each
+ * source's (6 at most) distinct from every other in the lists, and MATRIX
+ * with a cable into every kind's parameters and gate inputs, both pages. */
+static void mod_names(const char *dir) {
+  static fm1_mod_dest_t list[FM1_MOD_UI_MAX_DESTS];
+  static char names[FM1_MOD_UI_MAX_DESTS][16];
+  uint8_t srcs[FM1_MOD_UI_MAX_SOURCES];
+  char name[128], line[64], other[16];
+  fm1_mod_ui_env_t env;
+  for (unsigned base = 0; base < fm1_mod_kind_count; base += FM1_MOD_POSITIONS) {
+    for (unsigned pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
+      snprintf(line, sizeof line, "mod %u %s", pos + 1u,
+               fm1_mod_kinds[(base + pos) % fm1_mod_kind_count]->id);
+      mod_line(line);
+    }
+    harness_mod_env(&env);
+    const int n = fm1_mod_ui_dests(&env, list, FM1_MOD_UI_MAX_DESTS);
+    for (int i = 0; i < n; ++i) {
+      fm1_mod_ui_dest_name(&env, &list[i], 0, names[i], sizeof names[i]);
+      expect(strlen(names[i]) <= FM1_MOD_UI_DST_CHARS, "a destination's short name is too long");
+      for (int j = 0; j < i; ++j) {
+        if (strcmp(names[i], names[j]) == 0) {
+          fprintf(stderr, "screens: two destinations are both %s\n", names[i]);
+          ++g_faults;
+        }
+      }
+    }
+    const int ns = fm1_mod_ui_sources(g_app.mod, srcs, FM1_MOD_UI_MAX_SOURCES);
+    for (int i = 0; i < ns; ++i) {
+      fm1_mod_ui_source(g_app.mod, srcs[i], 0, name, sizeof name);
+      expect(strlen(name) <= 6, "a source's short name is too long");
+      for (int j = 0; j < i; ++j) {
+        fm1_mod_ui_source(g_app.mod, srcs[j], 0, other, sizeof other);
+        if (strcmp(name, other) == 0) {
+          fprintf(stderr, "screens: two sources are both %s\n", name);
+          ++g_faults;
+        }
+      }
+    }
+    /* Cables into the modules' destinations, from module outputs, then
+     * MATRIX over them. */
+    {
+      int k = 0;
+      for (int i = 0; i < n && k < (int)FM1_MOD_SLOTS; ++i) {
+        fm1_mod_slot_t sl;
+        if (list[i].unit < FM1_MOD_MODULE) continue;
+        memset(&sl, 0, sizeof sl);
+        sl.src = srcs[(ns - 1 - k) % ns];
+        sl.via = FM1_MOD_NONE;
+        sl.dst_unit = list[i].unit;
+        sl.dst = list[i].dst;
+        sl.flags = (uint8_t)(FM1_MOD_SLOT_ON | (list[i].gate ? FM1_MOD_SLOT_GATE_DST : 0));
+        sl.amount = fm1_mod_q14((float)((k % 3) - 1) * (k % 2 ? 1.0f : 0.37f));
+        fm1_mod_set_slot(g_app.mod, (unsigned)k++, &sl);
+      }
+    }
+    blocks(2);
+    g_app.mode = FM1_MODE_MATRIX;
+    for (int top = 0; top < (int)FM1_MOD_SLOTS; top += FM1_MOD_UI_ROWS) {
+      g_app.mui.slot = (uint8_t)top;
+      g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
+      for (int pg = 0; pg < 2; ++pg) {
+        g_app.mui.mpage = (uint8_t)pg;
+        snprintf(name, sizeof name, "matrix-kinds-%u-slot%d-%c", base / FM1_MOD_POSITIONS + 1u, top + 1,
+                 pg ? 'b' : 'a');
+        check_screen(name, dir, top == 0 && pg == 0);
+      }
+    }
+    for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
+      snprintf(line, sizeof line, "slot %u clear", i + 1u);
+      mod_line(line);
+    }
+  }
+  g_app.mui.mpage = 0;
+  g_app.mui.slot = g_app.mui.top = 0;
+}
+
 static void mod_screens(const char *dir, float rate) {
   char name[128], line[160];
   destroy_units();
@@ -2095,6 +2180,8 @@ static void mod_screens(const char *dir, float rate) {
   turn_now(FM1_ENC_PRESETS, 1);
   check_screen("matrix-popup", dir, 0);
   settle();
+  mod_names(dir);
+  g_app.mode = FM1_MODE_MATRIX;
   /* HOME, FX and GLO leave the pages; the switch off brings the stubs back. */
   press(FM1_BTN_HOME);
   expect(g_app.mode == FM1_MODE_HOME, "HOME does not leave MATRIX");
