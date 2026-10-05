@@ -146,7 +146,8 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     - **Macro Heavy:** Plaits' other 13.
     - **Six-Op FM:** Plaits' DX7-style engine.
     - **Shapes:** Braids.
-    - **Plate:** Rings' reverb.
+    - **Plate:** Rings' reverb, with a Freeze after Elements'.
+    - **Room:** Clouds' reverb and diffuser.
     - **Ensemble and Diffuse:** Plaits' ensemble and diffuser.
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
     compatibility shim.

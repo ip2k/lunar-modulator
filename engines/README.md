@@ -36,7 +36,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `filter` | Filter | effect | – | this repository | seven filter types (SVF, ladder, diode ladder, Sallen-Key, mixed-input Sallen-Key, comb, formant), zero-delay feedback; [below](#filter) |
 | `comp` | Comp | effect | – | this repository, after Giannoulis, Massberg and Reiss (JAES 2012) | a feed-forward compressor: peak or RMS, soft knee, parallel mix; [below](#comp) |
 | `limit` | Limiter | effect | – | this repository, after Geraint Luff's look-ahead limiter design | a look-ahead brickwall limiter, 0–5 ms; [below](#limiter) |
-| `room` | Room | effect | – | Clouds' reverb and diffuser | a small Dattorro room in 41 KB; [below](#room) |
+| `room` | Room | effect | – | Clouds' reverb and diffuser | a small Dattorro room in 40 KB; [below](#room) |
 | `hall` | Hall | effect | – | this repository | a hall reverb on an eight-line feedback delay network, with Freeze; [below](#hall) |
 | `gate` | Gate | effect | – | this repository; controls after the Drawmer DS201 and DS301 manuals | a noise gate with a Duck mode, key filters, Listen, Lockout and 0–5 ms look-ahead; [below](#gate) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
@@ -945,8 +945,8 @@ to −60 dB (T30 after a noise burst, 44,118 Hz) [verified, 2026-10-05]:
   from sample 1,346 on. With it, five renders (three host rates, blocks of
   64 and 7, every knob moved) hash the same from Apple clang on arm64, GCC
   14.2 on x86-64 (static musl) and Emscripten 6.0.10's WebAssembly under
-  Node [verified, 2026-10-05, in containers on the LAN build host]. The
-  browser module itself is not rebuilt here.
+  Node [verified, 2026-10-05, in containers on the LAN build host]; the
+  browser module's parity scenarios agree (below).
 - **Glide.** Mix and Width glide every frame (one pole, 5 ms) and land
   exactly on their targets. The classes' four coefficients glide on an
   8-frame grid counted from `create`, each step at most 3.6 % of the
@@ -983,11 +983,12 @@ to −60 dB (T30 after a noise burst, 44,118 Hz) [verified, 2026-10-05]:
   took 0.9 µs and Echo 2.1 µs in the same runs. The diffuser is 0.3 µs of
   it [verified, 2026-10-05]. About 1.8 × Plate, against the research's
   1 × estimate [inferred for pi32v2]; stage B measures it.
-- **Browser:** the parity scenario `room-chord-blurred`
-  (`sim/web/test/scenarios.json`) renders the same in the native app
-  harness as in fm1-render. The module in `sim/web/www/` is not rebuilt in
-  this change, so `test_committed_wasm_matches_its_build_record` fails (26
-  scenarios against the record's 25) until it is.
+- **Browser:** the parity scenarios `room-chord-blurred` (every knob turned
+  while a chord rings) and `plate-freeze-into-room` (after Plate, with
+  Plate's Freeze and Room's Decay and Blur turned)
+  (`sim/web/test/scenarios.json`) render the same, sample for sample, in
+  fm1-render, the native app harness, the browser module under Node and
+  render.js [verified: `sim/web/build-on-aeon.sh`, 2026-10-05].
 - **Not yet:** a Freeze (Elements' recipe, notes §3.2, applies here too)
   and a measurement of the 12-bit loop's noise floor, which should sit
   above Plate's 16-bit one [inferred].

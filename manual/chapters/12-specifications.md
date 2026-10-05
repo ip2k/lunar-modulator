@@ -68,7 +68,9 @@ and is the one to trust if the two ever differ.
 | Filter | – | 18 KB |
 | Comp | – | under 1 KB |
 | Limiter | – | 9 KB |
+| Room | – | 40 KB |
 | Hall | – | 49 KB |
+| Gate | – | 2 KB |
 | Test Gain | – | under 1 KB |
 
 ### The sequencer

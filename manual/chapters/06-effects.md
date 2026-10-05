@@ -26,7 +26,7 @@ pages, then the second slot's. The bottom bar shows where you are, such as
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
 *Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo,
-Filter, Comp, Limiter, Room, Hall and Test Gain, and round again. In the
+Filter, Comp, Limiter, Room, Hall, Gate and Test Gain, and round again. In the
 simulator you can also use the **Effect 1** and **Effect 2** lists under the
 panel.
 
@@ -62,9 +62,13 @@ more than two.
     about 48,000 samples a second, so at the FM-1's 44,118 their delays come
     out about 9 % longer, a slightly larger room, and their slow modulation
     about 8 % slower. Their decay times are corrected, and stay within a few per
-    cent of the originals'. Crush, Fold, Drive, Echo, Filter, Comp, Limiter
-    and Hall, written for Lunar Modulator, work out their frequencies and
-    times from the output's rate, so they need no correction.
+    cent of the originals'. Room, from Clouds, was written for 32,000, so its
+    room comes out about a quarter smaller and its slow modulation faster;
+    its decay is corrected the same way, though its shortest settings ring
+    a little shorter than on Clouds. Crush, Fold, Drive, Echo, Filter, Comp,
+    Limiter, Hall and Gate, written for Lunar Modulator, work out their
+    frequencies and times from the output's rate, so they need no
+    correction.
 
 ## Plate
 
@@ -81,11 +85,20 @@ tail.
 - **Diffusion** smears the echoes into a smooth wash; lower values leave
   more distinct reflections. The default, 0.5, is the setting Rings itself
   uses.
+- **Freeze**, on page 2, holds the tail at the level it has and lets
+  nothing new in, as Mutable Instruments Elements does with this reverb:
+  play over a frozen chord, and Mix still blends in what you play. Decay
+  and Damping wait until you turn it off. It switches over 5 milliseconds,
+  so it does not click, and the sequencer and modulation can turn it on
+  and off in time. The hold is long but not endless: the highs fade over
+  seconds and the body over minutes, and a quiet tail runs out sooner
+  (about 25 seconds at −39 dBFS, nearly 3 minutes at −19 dBFS).
 
 !!! tip "Starting points"
     - **A small room:** Decay low, Mix about 0.2.
     - **A long plate for pads:** Decay high, Damping low, Mix about 0.4.
     - **A dark wash:** Decay high, Damping high, Mix towards the right.
+    - **A held chord:** play a chord, turn Freeze on, then play over it.
 
 {{engine-table plate}}
 
@@ -521,6 +534,42 @@ nothing left to do.
 
 {{engine-table limit}}
 
+## Room
+
+{{status sim desktop planned}}
+
+A room reverb, from Mutable Instruments Clouds: smaller and denser than
+Plate, with Clouds' diffuser in front of it to smear each attack before it
+enters the room. It takes 40 KB of memory, under two thirds of Plate's.
+
+- **Mix** fades from the dry sound at the left to the reverb alone at the
+  right; the default is 0.3. At the left the sound passes untouched.
+- **Decay** sets how long the room rings: under a second at the left,
+  about 1.2 seconds at the default, 0.5, about 2.4 seconds at 0.75, and a
+  tail of 15 seconds or more at the right.
+- **Damping** darkens the tail as it decays: at the left it stays bright,
+  and the higher, the darker it turns.
+- **Diffusion** at the left lets the first reflections through as separate
+  echoes; at the right they blur into a smooth wash. The default, 0.8, is
+  the setting Clouds itself uses.
+- **Blur**, on page 2, sends the sound through the diffuser before the
+  room: the attack of each note is smeared and its start thickens. It
+  changes only the reverb, never the dry sound.
+- **Width**, on page 2, narrows the reverb from wide stereo at the right,
+  the default, to mono at the left.
+
+Every knob glides, so turning one while the room rings does not click, and
+silence stays silent.
+
+!!! tip "Starting points"
+    - **A small, tight room:** Decay about 0.2, Diffusion about 0.5, Mix
+      about 0.25.
+    - **Soft attacks:** Blur at the right, Decay about 0.6, Mix about 0.4.
+    - **After Plate:** Plate in the first slot with a little Mix, Room in
+      the second with Decay low, for depth without a longer tail.
+
+{{engine-table room}}
+
 ## Hall
 
 {{status sim desktop planned}}
@@ -566,6 +615,70 @@ frozen and held. It takes 49 KB of memory, three quarters of Plate's.
     - **Drone pad:** play a chord, turn Freeze on, then play over it.
 
 {{engine-table hall}}
+
+## Gate
+
+{{status sim desktop planned}}
+
+A noise gate, written for Lunar Modulator: it lets the sound through while
+it is loud and turns it down, or off, when it falls quiet. It cleans up the
+tail of a sound, cuts a long reverb short in time with the notes, or, in
+Duck mode, does the opposite and turns the sound down while it is loud. Its
+controls follow two classic studio noise gates
+([chapter 13](13-credits-and-licences.md)). Both channels open and close
+together. It takes about 2 KB of memory.
+
+- **Threshold** sets the level at which the gate opens, from −80 dB at the
+  left to 0 dB, full scale, at the right; the default is −40.
+- **Attack** sets how fast it opens, from at once to one second; the
+  default is half a millisecond. A slower attack fades each note in.
+- **Hold** keeps the gate open for this long after the sound has fallen
+  below the threshold, from 2 milliseconds to 2 seconds; the default
+  is 50.
+- **Decay** sets how fast it closes once Hold is over, from 2 milliseconds
+  to 4 seconds; the default is 150.
+- **Range**, on page 2, sets how far down a closed gate turns the sound,
+  from not at all at the right (0 dB) to silence at the left (−90 dB); the
+  default is −80 dB. A little range, −10 to −20 dB, makes a sound breathe
+  instead of cutting it off.
+- **Return**, on page 2, makes the gate wait until the sound falls this
+  many dB below the threshold before it starts to close, so a sound that
+  hovers around the threshold does not make it chatter; the default is 4.
+- **Mode**, on page 2, chooses **Gate**, or **Duck**, which turns the
+  sound down to Range while it is loud and lets it back up over Decay once
+  it is quiet. The change fades over 5 milliseconds.
+- **Key HP** and **Key LP**, on page 3, filter only what the gate listens
+  to, not what you hear: Key HP keeps low notes from opening it, Key LP
+  high ones. At 20 Hz and 20,000 Hz, the defaults, they are out.
+- **Listen**, on page 3, set to Key, lets you hear what the gate listens
+  to, the sound through Key HP and Key LP, while you set them. Set it back
+  to Off to hear the gated sound.
+- **Lockout**, on page 4, stops the gate from opening again for this long
+  after it opens, up to 5 seconds, so a ringing sound or a flam does not
+  set it off twice; the default, 0, is off.
+- **Lookahead**, on page 4, delays the sound by up to 5 milliseconds, so
+  the gate has opened before the note that opens it arrives and its
+  attack comes through whole; the default, 0, adds no delay.
+- **Link**, on page 4, sets what the gate listens to in a stereo sound:
+  **Max**, the louder channel, the default; **Sum**, both together; or
+  **Left**, the left channel only.
+
+Mode, Listen, Link and Lookahead change without a click, so the sequencer
+and modulation can change them on every step. The other knobs glide or
+take effect at once. With Range at 0 dB, the sound passes untouched.
+
+!!! tip "Starting points"
+    - **Gated reverb:** Plate in the first slot with Mix and Decay high,
+      Gate in the second with Threshold about −30, Hold about 60, Decay
+      about 40 and Range at the left.
+    - **A tighter tail:** Threshold just above the noise, Hold about 20,
+      Decay about 100.
+    - **Breathing pad:** Range about −15, Attack about 50, Decay about 400.
+
+For now the gate listens only to the sound passing through it. Opening it
+from another sound or from the sequencer may come later.
+
+{{engine-table gate}}
 
 ## Test Gain
 

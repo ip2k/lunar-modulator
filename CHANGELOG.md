@@ -9,6 +9,21 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Room, Hall, Gate and Plate's Freeze on the virtual FM-1:** the effect
+  slots now offer fifteen effects (ALGORITHM steps through Plate, Ensemble,
+  Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp, Limiter, Room,
+  Hall, Gate and Test Gain), and Plate gains a second page with Freeze.
+  - Every new knob and switch is turned mid-note in the browser's parity
+    scenarios: Room's and Hall's scenarios now move their knobs, and
+    Hall's Freeze, while notes ring; a new scenario freezes Plate in front
+    of Room; and another flips Plate's and Hall's Freeze every 4.4 ms.
+  - A value on screen keeps one decimal when it is a small fraction of a
+    wide range, so the Gate's 0.5 ms Attack reads 0.5, not 0.
+  - 47 of 47 parity scenarios pass, identical to musl and to render.js
+    (four of them turn effects' switches every 4.4 ms); 1,137 screens pass
+    the layout check (82 new). The browser module grew from 525 KB to
+    548 KB. Chapter 6 of the manual has sections for Room and Gate and
+    Plate's Freeze; chapters 12 and 13 list their memory and credits.
 - **Gate**, a new effect: a noise gate that can also duck. Threshold,
   Attack, Hold, Decay and Range (down to silence) set how it opens and
   closes; Return keeps it from chattering on a sound that hovers at the
@@ -26,8 +41,7 @@ history.
   stage still to come, and its hooks are in place. About 2 KB of memory at
   44.1 kHz, no maths library, and the same output, bit for bit, from the
   Mac, 32- and 64-bit Linux builds and WebAssembly. Documented in
-  engines/README.md ("Gate"). Two parity scenarios are added; the virtual
-  FM-1 offers it once its module is rebuilt.
+  engines/README.md ("Gate"). Two parity scenarios are added.
 - **Freeze** on the Plate reverb, a switch on its second page: it holds the
   tail at the level it had and ignores new input, while Mix still blends in
   what you play. It switches over 5 ms, so it does not click and can be
@@ -52,12 +66,11 @@ history.
   silence when Freeze is off, and it sounds the same in the browser as on
   the desktop. Parameters and design in `engines/README.md`, a section in
   chapter 6 of the manual, tests in `tests/test_engines_hall.py` and
-  `engines/test/hall_selftest.cc`, and a new parity scenario for the
-  virtual FM-1 (its browser module is rebuilt with the next effects
-  merge).
-- Room, a new reverb effect: the reverb of Mutable Instruments Clouds with
+  `engines/test/hall_selftest.cc`, and a parity scenario for the virtual
+  FM-1 that turns its knobs and Freeze while notes ring.
+- **Room**, a new reverb effect: the reverb of Mutable Instruments Clouds with
   the diffuser Clouds runs before it, a smaller, denser room than Plate in
-  41 KB (Plate takes 64 KB). Mix, Decay, Damping and Diffusion on the first
+  40 KB (Plate takes 64 KB). Mix, Decay, Damping and Diffusion on the first
   page; Blur (smears the attack before it enters the room) and Width on the
   second. Decay reaches from a short room (under a second) to tails of 15 s
   and more. Every knob glides and can be modulated, Mix 0 passes the sound
@@ -66,9 +79,8 @@ history.
   For developers: the four Clouds files are vendored unmodified,
   `build/fm1-ref-room` renders the upstream classes for 60 reference tests
   (within half an LSB at 32 kHz and at 44,118 Hz), and `build/fm1-room-test`
-  checks the glide, recovery, host rates and the libm-free maths. A new
-  parity scenario plays a chord through Room; the browser module is not
-  rebuilt in this change.
+  checks the glide, recovery, host rates and the libm-free maths. A parity
+  scenario turns every knob while a chord rings through Room.
 - Recording and Capture on the virtual FM-1's panel, still behind the lab
   switch (`?lab`; docs/15 stage S5). What you play on the keys (outside
   SEQ mode) or at MIDI IN now reaches the sequencer as well as the sound.
