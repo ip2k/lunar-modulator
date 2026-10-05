@@ -1,6 +1,8 @@
 # filter.mk -- "Filter", a multimode filter audio effect written for this
 # repository (engines/src/fx_filter.cc; parameters in engines/README.md),
-# and fm1-filter-test, which drives it where fm1-render cannot: parameters
+# "Comb", its seventh type until 2026-10-05 and an effect of its own since
+# (engines/src/fx_comb.cc; the two share src/fx_filter_dsp.h),
+# and fm1-filter-test, which drives both where fm1-render cannot: parameters
 # that change while audio runs, block sizes that change between calls, host
 # rates, frequency responses and self-oscillation
 # (engines/test/filter_test.cc, run by tests/test_engines_filter.py). No
@@ -11,13 +13,13 @@
 # default goal.
 .DEFAULT_GOAL := all
 
-OUR_SRC += src/fx_filter.cc
+OUR_SRC += src/fx_filter.cc src/fx_comb.cc
 
 FILTER_TEST_OBJ := $(BUILD)/our/test/filter_test.o
 
 all: $(BUILD)/fm1-filter-test
 
-$(BUILD)/fm1-filter-test: $(FILTER_TEST_OBJ) $(BUILD)/our/src/fx_filter.o
+$(BUILD)/fm1-filter-test: $(FILTER_TEST_OBJ) $(BUILD)/our/src/fx_filter.o $(BUILD)/our/src/fx_comb.o
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
 -include $(FILTER_TEST_OBJ:.o=.d)

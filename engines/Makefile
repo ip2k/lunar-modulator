@@ -24,6 +24,7 @@ TP_WARN := -w
 TP_DIALECT := -fwrapv
 
 OUR_SRC := src/registry.cc src/mi_macro.cc src/mi_shapes.cc src/test_sine.cc src/test_gain.cc \
+           src/test_ext.cc \
            host/render.cc
 
 TP_SRC := \

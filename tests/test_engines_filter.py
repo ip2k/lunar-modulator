@@ -8,7 +8,10 @@ gives silence out), Mix and Level, and a chain after an engine. Through
 fm1-filter-test (engines/test/filter_test.cc): parameters and types changed
 while audio runs at four host rates, the glide and the Type crossfade,
 frequency responses of every type and mode, self-oscillation pitch and
-level, Drive's harmonics, and the tails flushing to exact silence.
+level, Drive's harmonics, and the tails flushing to exact silence. The tool
+drives Comb too, the Filter's seventh type until 2026-10-05 and an effect of
+its own since (tests/test_engines_comb.py has its renderer tests and the
+split's byte identity).
 """
 import json
 import math
@@ -21,7 +24,7 @@ from tests.test_engines_mi_fx import BANNED, brightness, run
 
 TOOL = ENGINES / "build" / "fm1-filter-test"
 LSB = 1 / 32767.0
-TYPES = ["SVF", "Ladder", "Diode", "Sallen-Key", "SK Mixed", "Comb", "Formant"]
+TYPES = ["SVF", "Ladder", "Diode", "Sallen-Key", "SK Mixed", "Formant"]
 
 # Every parameter away from its default except Type, Mix and Level; nothing
 # near self-oscillation, so a disturbance dies away.
@@ -76,16 +79,17 @@ def test_filter_is_registered(renderer):  # noqa: F811
     assert all(p["min"] <= p["def"] <= p["max"] for p in e["params"])
     cutoff = e["params"][1]
     assert (cutoff["min"], cutoff["max"], cutoff["unit"]) == (20, 18000, "hz")
+    assert "log" in cutoff["flags"]                    # the LOG law (engine API v3)
+    assert "comb" not in e["credits"].lower()           # an effect of its own now
 
 
 def test_instance_size(renderer, tmp_path, tool):  # noqa: F811
     s, _, _ = render(renderer, tmp_path, input="silence", seconds=0.05, fx=fx())
-    # 688 bytes of state and two delay lines of fs / 20 Hz + 4 floats for Comb.
-    assert s["fx_bytes"] == [18368]
+    # 656 bytes of state at any rate: no delay line since Comb left (it took
+    # 18,368 at 44,118 Hz with Comb's two lines of fs / 20 Hz + 4 floats).
+    assert s["fx_bytes"] == [656]
     sizes = {rate: size for rate, ok, size in tool["rates"] if ok}
-    assert sizes == {"8000": 3920, "44118": 18368, "48000": 19920, "96000": 39120,
-                     "384000": 154320}
-    assert all(size % 16 == 0 for size in sizes.values())
+    assert sizes == {"8000": 656, "44118": 656, "48000": 656, "96000": 656, "384000": 656}
 
 
 # --- host contracts, every type ----------------------------------------------
@@ -228,7 +232,8 @@ def test_any_parameter_change_mid_stream_stays_finite(tool):
     # 10 s of noise per host rate, with bursts at the guard's limit (16);
     # between blocks of 1-64 frames, up to two parameters (Type included)
     # jump to their minimum, maximum, default, a random value, beyond the
-    # range, NaN or an infinity. 16 is the dry path at Mix 0.
+    # range, NaN or an infinity. 16 is the dry path at Mix 0. Comb too.
+    assert {s["engine"] for s in tool["sweep"]} == {"filter", "comb"}
     for s in tool["sweep"]:
         assert s["samples"] >= 10 * s["rate"]
         assert s["nonfinite"] == 0 and s["peak"] <= 16.0
@@ -236,7 +241,8 @@ def test_any_parameter_change_mid_stream_stays_finite(tool):
 
 def test_every_type_stays_bounded_when_pushed(tool):
     # Resonance 1, Drive 1, Level 2, every Mode, Cutoff 60 Hz and 18 kHz with
-    # full Spread, noise at the guard's limit and then its ringing.
+    # full Spread, noise at the guard's limit and then its ringing; Comb too.
+    assert len(tool["extremes"]) == len(TYPES) + 1
     for e in tool["extremes"]:
         assert e["nonfinite"] == 0 and e["peak"] < 2.0, e
 
@@ -251,22 +257,24 @@ def test_glide_is_block_size_independent_and_reaches_its_target(tool):
 
 
 def test_type_changes_crossfade_without_a_click(tool):
-    # All 42 ordered pairs, a 440 Hz sine at 0.5 through Cutoff 1.5 kHz: the
+    # All 30 ordered pairs, a 440 Hz sine at 0.5 through Cutoff 1.5 kHz: the
     # largest step between neighbouring samples across the switch is no
     # larger than either type's own (measured: at most 4 % above).
-    assert len(tool["switch"]) == 42
+    assert len(tool["switch"]) == 30
     for s in tool["switch"]:
         assert s["across"] <= 1.1 * s["steady"], s
 
 
 def test_tails_flush_to_exact_silence(tool):
+    assert len(tool["silence"]) == len(TYPES) + 1      # Comb too
     for s in tool["silence"]:
         assert s["rest_peak"] == 0.0, s                     # from rest, at any setting
         assert 0.0 <= s["silent_after_s"] < 0.5, s           # measured 0.01-0.19 s
 
 
-def test_host_rates(tool):
-    accepted = {rate: ok for rate, ok, _ in tool["rates"]}
+@pytest.mark.parametrize("key", ["rates", "comb_rates"])
+def test_host_rates(tool, key):
+    accepted = {rate: ok for rate, ok, _ in tool[key]}
     assert accepted == {"0": False, "7999": False, "8000": True, "44118": True,
                         "48000": True, "96000": True, "384000": True, "400000": False,
                         "nan": False, "inf": False, "-44118": False}
@@ -336,6 +344,7 @@ def test_sk_mixed_inputs(tool):
 
 
 def test_comb(tool):
+    # The Comb effect (fx_comb.cc), as the tool drives it.
     pos, neg, ff = gains(tool, "comb_pos"), gains(tool, "comb_neg"), gains(tool, "comb_ff")
     f = 441.18                                          # 100 samples
     # Positive feedback: peaks at multiples of Cutoff, troughs between.
