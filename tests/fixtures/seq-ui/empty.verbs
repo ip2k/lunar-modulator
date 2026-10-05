@@ -1,0 +1,4 @@
+# Track 1 with no clip, stopped, at 240 BPM, 4 s: for the S5 traces that
+# record or capture into an empty clip, and step record's growing clip.
+#! rate=44118 block=64 tracks=8 end=176472
+@0 bpm 24000

@@ -1,0 +1,9 @@
+# Capture stopped over a clip with notes: the take is fitted to the set's
+# tempo, shown until a press; FX closes it and does nothing else.
+--key 0.10:7:100:0.2
+--key 0.60:11:100:0.2
+--key 1.10:14:100:0.2
+--key 1.60:11:100:0.2
+--button 2.00:SEL:0.1
+--button 2.05:REC
+--button 2.50:FX

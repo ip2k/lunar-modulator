@@ -1,0 +1,7 @@
+#! rate=44118 block=64 tracks=8 end=220590
+# The stopped Capture scenario (docs/15 S5): track 1 empty, stopped.
+# panel-capture-stopped.panel plays six keys at about 100 BPM with the lab
+# switch on, then SHIFT + REC: the core reads a tempo with logf (so glibc may
+# differ; the scenario is libm_sensitive), starts the transport and opens
+# its picker; SELECT takes another tempo, and a key closes it.
+@0 bpm 12000

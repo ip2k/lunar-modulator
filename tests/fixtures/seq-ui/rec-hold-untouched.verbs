@@ -1,0 +1,3 @@
+#! rate=44118 block=64 tracks=8 end=176472
+@0 bpm 24000;tog 0 0 48 110;tog 0 8 60 100
+@52992 play

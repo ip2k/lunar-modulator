@@ -1,0 +1,8 @@
+# Capture while playing: three keys in HOME, then SHIFT (SEL) + REC: `cap`,
+# an overdub where they were heard.
+--button 0.10:PLAY/STOP
+--key 0.30:9:100:0.1
+--key 0.55:12:90:0.1
+--key 0.80:16:80:0.1
+--button 1.00:SEL:0.1
+--button 1.05:REC
