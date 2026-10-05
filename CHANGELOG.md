@@ -9,6 +9,25 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Hall**, a new effect: a stereo hall reverb written for this project, on
+  an eight-line feedback delay network. Decay sets the reverb time from
+  0.2 s to 20 s (2 s by default), Size the size of the hall, Damping how
+  much faster the highs die away, and Mix the balance with the dry sound.
+  A second page has Pre-delay (up to 150 ms), Diffusion (separate early
+  reflections or a smooth wash), Mod (a slow, chorus-like movement that
+  keeps long tails from ringing metallic) and Freeze, which holds the tail
+  indefinitely and lets nothing new in; a third has Width (stereo to mono)
+  and Low Cut (keeps the bass out of the reverb). Freeze switches without
+  a click, so it is ready for sequencer locks and modulation once those
+  reach the effects. It uses 49 KB of memory,
+  three quarters of Plate's, and about 2.6 times Plate's processing on a
+  desktop. Every setting is stable, the tail always dies away to true
+  silence when Freeze is off, and it sounds the same in the browser as on
+  the desktop. Parameters and design in `engines/README.md`, a section in
+  chapter 6 of the manual, tests in `tests/test_engines_hall.py` and
+  `engines/test/hall_selftest.cc`, and a new parity scenario for the
+  virtual FM-1 (its browser module is rebuilt with the next effects
+  merge).
 - Room, a new reverb effect: the reverb of Mutable Instruments Clouds with
   the diffuser Clouds runs before it, a smaller, denser room than Plate in
   41 KB (Plate takes 64 KB). Mix, Decay, Damping and Diffusion on the first

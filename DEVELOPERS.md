@@ -154,8 +154,9 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
     antiderivative anti-aliasing), Drive (overdrive and saturation, five
     anti-aliased curves), Echo (a stereo ping-pong delay), Filter (seven
-    zero-delay-feedback filter types), Comp (a feed-forward compressor) and
-    Limiter (a look-ahead brickwall limiter) are our own code
+    zero-delay-feedback filter types), Comp (a feed-forward compressor),
+    Limiter (a look-ahead brickwall limiter) and Hall (a reverb on an
+    eight-line feedback delay network, with Freeze) are our own code
     ([`engines/README.md`](engines/README.md#crush)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
@@ -573,11 +574,12 @@ which lands with the plan PR; its stages S0–S7 are named below.
 
 **More effects** · *Planned*
 - **Done so far (2026-10-02):** Crush, Fold, Drive, Echo, Filter, Comp and Limiter, our own code
-  ([`engines/README.md`](engines/README.md#crush)). Their switch-like
+  ([`engines/README.md`](engines/README.md#crush)); Hall followed on
+  2026-10-05 ([`engines/README.md`](engines/README.md#hall)). Their switch-like
   controls (Filter's Type, Drive's Type and Auto, Comp's Character, Auto
-  Rel and Auto Gain, the Limiter's Mode and Lookahead) change without a
-  click, so they can be locked and modulated: the rule is that a switch
-  that changes cleanly is lockable and modulatable
+  Rel and Auto Gain, the Limiter's Mode and Lookahead, Hall's Freeze)
+  change without a click, so they can be locked and modulated: the rule is
+  that a switch that changes cleanly is lockable and modulatable
   ([`engines/README.md`](engines/README.md#parameters-engine-api-v2)).
   Filter's types are named for their circuits (Sallen-Key, SK Mixed),
   never for a maker; Comp's Auto Gain is capped at 24 dB and never pushes

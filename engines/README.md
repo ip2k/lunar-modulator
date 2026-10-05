@@ -37,6 +37,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `comp` | Comp | effect | – | this repository, after Giannoulis, Massberg and Reiss (JAES 2012) | a feed-forward compressor: peak or RMS, soft knee, parallel mix; [below](#comp) |
 | `limit` | Limiter | effect | – | this repository, after Geraint Luff's look-ahead limiter design | a look-ahead brickwall limiter, 0–5 ms; [below](#limiter) |
 | `room` | Room | effect | – | Clouds' reverb and diffuser | a small Dattorro room in 41 KB; [below](#room) |
+| `hall` | Hall | effect | – | this repository | a hall reverb on an eight-line feedback delay network, with Freeze; [below](#hall) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -990,6 +991,122 @@ to −60 dB (T30 after a noise burst, 44,118 Hz) [verified, 2026-10-05]:
   and a measurement of the 12-bit loop's noise floor, which should sit
   above Plate's 16-bit one [inferred].
 
+## Hall
+
+A stereo hall reverb written here (`src/fx_hall.cc`, MIT): Jot's feedback
+delay network (Jot and Chaigne, AES 90th Convention, 1991 [reported]) with
+eight lines, as notes/2026-10-02-delay-reverb-eq-gates-options.md §3.2
+recommends. That note's models for the structure were schwung-work's
+"Voidspace" (MIT) and Geraint Luff's Signalsmith `basics` library (MIT); no
+code is taken from either, nor from any other reverb. The input all-passes
+are Schroeder's, with the coefficients Dattorro gives for his plate's input
+diffusers (JAES 1997 [reported]); the 16-bit delay words follow Emilie
+Gillet's FxEngine in Rings and Clouds, as Echo's do.
+
+| Page | Parameter | Range | Default | What it does |
+| --- | --- | --- | --- | --- |
+| 1 | Decay | 0–1 | 0.5 | Decay time (to −60 dB) of the lows and mids, 0.2 s at 0 to 20 s at 1 on a log scale (0.2 × 100^Decay): 2 s at the default. Size does not change it |
+| 1 | Size | 0–1 | 0.7 | Every line's length, × 1/4 at 0 to × 1 at 1 on a log scale: the first reflection after 7.4–29.5 ms, the lines 29.5–65.3 ms at 1. Turning it glides the lengths (0.1 s), which bends the pitch of the tail |
+| 1 | Damping | 0–1 | 0.4 | How much faster the highs decay: up to 32 × at 1, above a crossover that falls from 10 kHz (0) to 1 kHz (1). At 0 the highs decay with the lows, less what the interpolation of moving delays takes (below) |
+| 1 | Mix | 0–1 | 0.3 | Dry at full level up to 0.5, the reverb at full level from 0.5 (Echo's law). Mix 0 passes the input through bit for bit |
+| 2 | Pre-delay | 0–150 ms | 20 | Delay before the reverb starts. Turning it glides (0.1 s) |
+| 2 | Diffusion | 0–1 | 0.7 | The four input all-passes' coefficients, 0 to 0.75/0.625: at 0 the onset is a few distinct reflections, at 1 a smooth wash |
+| 2 | Mod | 0–1 | 0.3 | Each line's length wanders on its own slow random walk (new targets at 0.73–1.37 Hz, smoothed at 1 Hz), up to ±1 ms at 1: a chorused, less metallic tail. Seeded, so renders repeat |
+| 2 | Freeze | Off, On | Off | Holds the tail: the input fades out and the decay becomes an hour, over about 75 ms. Off lets the tail decay at Decay's rate |
+| 3 | Width | 0–1 | 1 | 1: the two sides come from different lines, uncorrelated. 0: their sum on both sides, mono |
+| 3 | Low Cut | 0–1 | 0.2 | A one-pole high-pass on the reverb's input, 10 Hz (0) to 1 kHz (1) on a log scale; 25 Hz at the default. It also keeps DC out of the lines |
+
+How it works [verified: tests/test_engines_hall.py and
+`build/fm1-hall-selftest`, 2026-10-05, unless marked]:
+
+- **Signal path:** the input guard of `mi_fx.cc` → the mono sum → Low Cut →
+  × (1 − Freeze) → pre-delay → four Schroeder all-passes in series (113,
+  167, 263 and 401 samples) → into all eight lines with a fixed sign
+  pattern. Each line is read with linear interpolation, passes a
+  first-order shelf (its gain at DC for Decay, at Nyquist for Damping),
+  and the eight are mixed by the 8 × 8 Hadamard matrix (a fast
+  Walsh-Hadamard transform, scaled by 1/√8) and written back with the
+  input added. The left output is lines 0, 2, 5 and 7, the right lines 1,
+  3, 4 and 6, with alternating signs: no line is on both sides, so the
+  sides are uncorrelated (−0.05 measured) and their sum, at Width 0, has
+  all eight.
+- **Lines:** 1,301 to 2,879 samples at Size 1 (primes about 12 % apart,
+  15,986 in all), scaled by the host's rate over 44,118. Each line's gain
+  is set from its length, 2^(−9.97 × length / (T60 × rate)), so every line
+  loses the same decibels per second and the decay does not depend on the
+  line. The Hadamard mix makes every line feed every other with the same
+  weight, so the echo density grows faster than with an eight-line
+  Householder matrix, which keeps three quarters of each line on its own
+  path; the normalised echo density (Abel and Huang) reaches 0.9 by about
+  0.1 s and stays near 1 [verified: a script on fm1-render's impulse
+  response].
+- **Decay is what it says.** Measured by Schroeder's backward integral
+  between −5 and −25 dB after a burst of low-passed noise: 0.49, 2.03, 7.83
+  s for 0.5, 2.0 and 7.96 s; 1.97 and 2.01 s at Size 0 and 1; 1.99 s at 96
+  kHz. Within 2 %.
+- **Stability:** the Hadamard mix is orthogonal, each shelf's gain is at
+  most its DC gain g < 1 at every frequency (a first-order filter with a
+  real pole and zero has a monotonic magnitude), and linear interpolation
+  is a convex combination, so the loop gain is below 1 at every setting,
+  Freeze included (an hour, not infinity), and every g is capped at
+  1 − 2^−16. The 16-bit words saturate at ±2.0, 6 dB over full scale, as
+  FxEngine's stores do, so nothing can grow without bound even while Size
+  or Mod move the delays: ten seconds of noise into Decay 1, Size 1,
+  Damping 0 and Mod 1 peak at 1.65 and settle; turning every parameter to
+  any value, NaN and infinities included, with bad input mixed in, stays
+  within the dry clamp plus 8 (four words a side).
+- **16-bit words and the tail.** Truncating every store would lose half a
+  word per pass and shorten long decays (8 s measured 6.9 s), so words of
+  four or more round to nearest. Smaller words truncate towards zero, so
+  nothing small recirculates for ever: after full-scale noise the tail
+  reaches exact zeros (3.3 s at Decay 0.6; 12–22 s at Decay 1 across Size,
+  Mod and Damping), with no subnormals. The cost: below about −57 dBFS a
+  tail stops following Decay and fades out within a second or two (from a
+  full-scale start at Decay 1, 53 dB of clean decay) [verified: probes of
+  the tail's level per second, 2026-10-05].
+- **Moving delays and the highs.** The lines read between samples whenever
+  Size is not 1 or Mod moves them, and linear interpolation then dulls the
+  highs on every pass: a built-in air absorption above about 5 kHz, which
+  Damping adds to. Echo's reasons for linear interpolation hold here: it
+  has no feedback of its own and never exceeds its inputs under any
+  modulation (the research note's rule for delays, §2.3).
+- **Freeze** fades the input out, lengthens the decay to an hour, sets
+  each line to a whole number of samples that its walk no longer moves (no
+  interpolation loss) and makes every store round to nearest, all as one
+  glide: 95 % there in 75 ms, exactly there by 0.3 s. From then on the input
+  gain is exactly zero: nothing played reaches the tail (two renders with
+  different input after that point are identical). The held tail lost 0.17 dB in 10 s; a
+  switch on or off makes no jump larger than the wash's own. Off, the tail
+  decays at Decay's rate.
+- **Determinism:** no libm (`nm` shows no math symbols, only `bzero`): the one exponential
+  needed for coefficients is a polynomial in the file, every operation is a
+  single IEEE add, multiply or divide, and `#pragma STDC FP_CONTRACT OFF`
+  stops clang fusing them (without it, arm64 output differs). The output is
+  bit-identical across -O0, -O2, -O3 and -Os and between arm64 and x86-64
+  builds [verified: a hash of 3,000 blocks with parameter changes,
+  2026-10-05]. Slow controls update every 16 samples, counted from create,
+  and delays ramp sample by sample between updates; Mix and Width glide
+  per sample. Any block size gives the same output, and values set before
+  the first block apply from its first sample.
+- **Memory:** two rings of 16-bit words whose sizes are powers of two, so
+  every access is one mask, as in FxEngine: 16,384 words for the lines
+  (15,986 plus each line's ±1 ms of modulation) and 8,192 for the
+  pre-delay and the all-passes, sized for the host's rate. 49,888 bytes at
+  44,100 and 44,118 Hz, 736 of them state; the state holds no pointers and
+  is 736 bytes on i686, armv7 and x86-64 alike [verified: cross-compiled].
+  At 48 kHz both rings need the next power of two: 99,040 bytes.
+- **Cost, desktop only:** about 3.0 µs per 64-frame block on an M1 Max
+  (best of 15 under load), against Plate's 0.9 µs and Echo's 2.1 µs: 34,500
+  instructions and 9,100 cycles per block against Plate's 13,200 and 2,700.
+  About 2.6 Plates by instructions, where the research note guessed one.
+  The eight interpolated reads, the eight rounding stores and the four
+  all-passes make most of it. Running the lines at half the rate (the
+  research note's "derez" idea) would roughly halve both the cost and the
+  lines' memory, at the price of the top octave [inferred]. Stage B
+  measures pi32v2.
+- **Not yet:** a reset call to drop the tail without re-creating the
+  instance, and a tempo-synced pre-delay; both wait on the host.
+
 ## Parameters (engine API v2)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -1079,11 +1196,12 @@ Gain, Filter's Type and the Limiter's Mode with their effects.
 | drive | Auto | MOD | Its gain glides like any other (the rule above) |
 | comp | Character, Auto Rel, Auto Gain | MOD | Read every frame; Character and Auto Rel hand the smoothing over through an offset that decays in 5 ms and Character crossfades the detector, Auto Gain glides its makeup and its bound in, so no change steps (the rule above). Not effects of a note, so no LATCH. Until 2026-10-02 they took no MOD |
 | limit | Mode | MOD | A change glides the output stage over 5 ms, frame by frame as the line delivers them (each frame carries the Mode its gain was made for). NOLOCK until 2026-10-02 |
+| hall | Freeze | MOD | Crossfades over about 75 ms (the input fades out as the decay lengthens) and keeps the tail, so it can be locked, and a route rounds it |
 
-**Units and abbreviations.** Echo's Time, Comp's Attack and Release,
-Sophie's Ring Time and the Limiter's Release and Lookahead are in ms,
-Filter's Cutoff in Hz, Sophie's Tune in semitones and its 0–100 knobs in %.
-Sophie's Decay is in seconds, and Drive's Drive and Level, Comp's
+**Units and abbreviations.** Echo's Time, Hall's Pre-delay, Comp's Attack
+and Release, Sophie's Ring Time and the Limiter's Release and Lookahead are
+in ms, Filter's Cutoff in Hz, Sophie's Tune in semitones and its 0–100 knobs
+in %. Sophie's Decay is in seconds, and Drive's Drive and Level, Comp's
 Threshold, Knee and Makeup and the Limiter's Ceiling and Drive in dB, for
 which there are no unit codes yet, so they have none. Every other parameter
 is a bare number (the 0–1 knobs, gains, bits, indices).
@@ -1123,7 +1241,7 @@ sound).
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comp](#comp), [Limiter](#limiter); `fx_comp_math.h` is Comp's log2 and exp2 without libm) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comp](#comp), [Limiter](#limiter), [Hall](#hall); [Room](#room) wraps Clouds' classes; `fx_comp_math.h` is Comp's log2 and exp2 without libm, `fx_room_math.h` Room's) |
 | `include/fm1_comp.h` | Comp's gain-reduction accessor, for a later modulation source ([above](#comp)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |

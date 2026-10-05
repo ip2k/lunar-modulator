@@ -50,6 +50,7 @@ ENUM_FLAGS = {
     ("comp", "Auto Rel"): ["mod"],              #   crossfades: no step in the reduction
     ("comp", "Auto Gain"): ["mod"],             # its makeup and its bound glide in
     ("limit", "Mode"): ["mod"],                 # glides the stage, frame by frame
+    ("hall", "Freeze"): ["mod"],                # crossfades: the input fades as the decay holds
 }
 
 
