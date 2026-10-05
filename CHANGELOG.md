@@ -20,6 +20,34 @@ history.
   stock SysEx command that this project must not send before the dump-and-
   restore gate). It lists about 30 corrections to our docs and ten owner
   decisions.
+- Parameter locks on the virtual FM-1's panel, still behind the lab switch
+  (`?lab`; docs/15 stage S8).
+  - Hold a step and turn SELECT past its two Step pages: the next pages
+    are the sound's own, and a knob there locks its parameter on that
+    step. The locked value shows in the parameter's own units, in gold,
+    over the dim value it has on the other steps, and a dot after the bar
+    marks a parameter with a lane (a track has eight). A step with locks
+    gets a gold dot in the grid.
+  - A lock goes to the sound the track plays, even when another sound is
+    the one the keys play.
+  - Parameters that cannot be locked (Macro's Model, Shapes' Shape) say
+    so, and a ninth lane says "8 lanes used".
+  - SHIFT and a knob clears that step's lock. OP5 (D#4) pressed while
+    steps are held clears their locks; held, a knob clears that
+    parameter's lane on the track.
+  - Recording while playing, a knob writes its moves into the step that
+    plays, and you hear them.
+  - A knob on a parameter that has a lane now turns in 128 steps, the
+    same steps a lock uses, and the lane's value between locks follows it
+    at once. So what the knob shows is what plays, also after a stop.
+  - For developers: `fm1_seq_value7` (the inverse of a lock's value) and
+    the lane label writer join the shared bridge; a lane label writes a
+    space in a parameter's name as `_` (`synth:Env_Pitch`), since a label
+    is one word. Ten new gesture traces replay through `fm1-render` byte
+    for byte, six of them taken from Movy's own automation tests; a new
+    parity scenario plays locks from the panel; 1,321 screens pass the
+    layout check (55 new), and the screens with the lab switch off are
+    unchanged.
 - Tracks on the virtual FM-1's panel, still behind the lab switch (`?lab`;
   docs/15 stage S6). There are eight tracks, all playing Sound 1 to begin
   with.
@@ -679,6 +707,12 @@ history.
     USB ID), docs/10's third dongle report, docs/12 §6's licence notes (the
     SDK's FreeRTOS and GPL-2.0 headers), HANDOFF's facts and clone list,
     and `tools/jieli/ac79-sdk-sparse.txt`, the SDK sparse-checkout list.
+- **Sophie's Pad can be locked** (the owner's decision). It picks which of
+  Sophie's sixteen pads her other knobs edit, so a lock on it changes which
+  pad the locks after it, on that step and later, edit. Nothing else about
+  any engine changed: 708 renders before and after are byte-identical,
+  apart from lanes whose labels write a space as `_`, which reach their
+  parameter now.
 - **Engine API v2: every parameter has a fixed id and says what it allows.**
   Each parameter of every sound engine and effect now carries an id that
   never changes, so a sequencer lock (and later a modulation route or a
@@ -688,13 +722,13 @@ history.
   it can be modulated, plus a unit and a short name for the coming
   modulation matrix. What you hear changes in one case only: a sequencer
   lane on a parameter whose change cuts every sounding note (Macro's and
-  Macro Heavy's Model, Shapes' Shape) is now refused instead of applied,
-  and so is one on Sophie's Pad, which only picks the pad her other knobs
-  edit; `fm1-render` counts the refusals. PSX Verb's Model, which empties
+  Macro Heavy's Model, Shapes' Shape) is now refused instead of applied;
+  `fm1-render` counts the refusals. PSX Verb's Model, which empties
   the reverb, is marked the same for when effects can be locked. Six-Op
   FM's Patch and Sophie's Model stay lockable: they change the next notes
-  only. Lane names in saved sets stay as they were
-  (`synth:Timbre`). Every other render is byte-identical, over 1,458 renders
+  only. Sophie's Pad stays lockable too (above). Lane names in saved sets
+  stay as they were (`synth:Timbre`). Every other render is
+  byte-identical, over 1,458 renders
   before and after. Details in `engines/README.md`, "Parameters", and
   `engines/seq.md`; the ids are pinned in `tests/fixtures/param-uids.json`.
   Not in the browser simulator yet.

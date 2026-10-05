@@ -1,0 +1,10 @@
+# Two steps held (neither with a note, so the second is held too, not a
+# length gesture): the lock pages edit the sound, with no lock and no lane
+# (docs/15 §3.9); the steps toggle nothing when let go.
+--button 0.05:SEQ
+--key 0.10:2:100:0.6
+--key 0.12:4:100:0.6
+--turn 0.20:SELECT:1
+--turn 0.25:SELECT:1
+--turn 0.30:KNOB3:2
+--button 1.00:PLAY/STOP

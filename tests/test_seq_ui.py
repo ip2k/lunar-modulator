@@ -1,10 +1,12 @@
-"""The sequencer on the virtual FM-1's panel (docs/15 stages S3 to S6),
+"""The sequencer on the virtual FM-1's panel (docs/15 stages S3 to S8),
 behind the lab switch: golden gesture traces with two-step parity (§6.3),
 the typed commands' text round trip, the demo pattern, the switch itself,
 step entry (taps, holds, the Step pages, SHIFT, bar paging and the LEDs),
 record and Capture (REC, step record, SHIFT + REC, live input from the
-keys and MIDI IN, and REC's LED), and tracks (focus, mute, the Set, Clip
-and Track pages, the metronome's click and the browser's routes).
+keys and MIDI IN, and REC's LED), tracks (focus, mute, the Set, Clip
+and Track pages, the metronome's click and the browser's routes), and
+parameter locks (the lock pages, the 7-bit knob grid and the lanes' bases,
+live takes, CLEAR, and the traces transcribed from Movy's own tests).
 
 A gesture trace is a .panel file (one --key, --button, --turn or --note per
 line) and its golden .verbs, what `fm1-sim-render --lab --log-cmds` writes
@@ -16,8 +18,9 @@ the same bytes as the panel run. Every trace here plays Test Sine; S3's
 start from tests/fixtures/seq-ui/input.verbs, S4's (step-*) from
 steps.verbs, a bar at 240 BPM, S5's (rec-*, capture-*) from rec.verbs, two
 notes at 240 BPM for 4 s, S6's (track-*, mute-*, set-*, metro-*, clip-*,
-pages-*) from tracks.verbs, four tracks routed to the sound, or the input
-TRACE_INPUT names. A note
+pages-*) from tracks.verbs, four tracks routed to the sound, S8's (lock-*)
+from steps.verbs with Macro, which has eight lockable parameters and a
+NOLOCK one, or the input TRACE_INPUT names. A note
 played that no step takes is live input, logged as `non` and `nof` ops at
 the block it led, so the replay records and captures the same. The parity
 scenarios under sim/web/test/seq/ play Macro and Plate
@@ -48,8 +51,12 @@ ROLE_MUTE, ROLE_PREV, ROLE_NEXT = (1 << BLACK.index(MUTE_KEY), 1 << BLACK.index(
 S6_PREFIXES = ("track-", "mute-", "set-", "metro-", "clip-", "pages-")
 
 
+def trace_engine(stem):
+    return "macro" if stem.startswith("lock-") else "test-sine"
+
+
 def trace_input(stem):
-    default = ("steps.verbs" if stem.startswith("step-") else
+    default = ("steps.verbs" if stem.startswith(("step-", "lock-")) else
                "rec.verbs" if stem.startswith(("rec-", "capture-")) else
                "tracks.verbs" if stem.startswith(S6_PREFIXES) else "input.verbs")
     return TRACES / TRACE_INPUT.get(stem, default)
@@ -83,12 +90,15 @@ def test_there_are_the_s3_and_s4_traces():
     s6 = {"track-focus", "track-focus-from-home", "mute-tap", "mute-map", "set-page",
           "metro-shortcut", "clip-page", "clip-quant-cycle", "track-page-route", "pages-browse"}
     assert stems >= s6
+    s8 = {"lock-knob-sync", "lock-eight-lanes", "lock-several-held",
+          "lock-several-clear"} | set(MOVY_TRACES)
+    assert stems >= s8
 
 
 @pytest.mark.parametrize("panel", PANELS, ids=lambda p: p.stem)
 def test_a_trace_logs_its_golden_verbs_and_replays_byte_for_byte(tools, tmp_path, panel):
     s, r, log, a, b = two_step(tools, tmp_path, panel.stem, panel, trace_input(panel.stem),
-                               "--engine", "test-sine")
+                               "--engine", trace_engine(panel.stem))
     assert log == panel.with_suffix(".verbs").read_text(), "not the golden trace"
     assert s["replayable"] == 1
     assert a == b, "two-step parity: the replay differs"
@@ -133,7 +143,7 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
     panels = [x for x in scen if "panel" in x]
     assert {x["name"] for x in panels} >= {"seq-panel-play-stop", "seq-panel-step-entry",
                                            "seq-panel-record", "seq-panel-capture-stopped",
-                                           "multi-panel", "seq-panel-tracks"}
+                                           "multi-panel", "seq-panel-tracks", "seq-panel-locks"}
     for sc in panels:
         seq = ROOT / "sim" / "web" / "test"
         args = ["--engine", sc["engine"], "--seconds", str(sc["seconds"])]
@@ -175,6 +185,15 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
                               "cscl 1 1 2", "cscl 1 2 1", "metro 1", "metro 0", "mute 1 1"]
             assert sidecar.startswith("--slots\n") and s["current"] == 1, "Sound 2 follows track 2"
             assert s["seq_clicks"] == r["seq_clicks"] == 2
+        if sc["name"] == "seq-panel-locks":
+            assert played == ["alabel 0 0 synth:Timbre", "abase 0 0 64", "aset 0 0 4 94 1",
+                              "alabel 0 1 synth:Morph", "abase 0 1 64", "aset 0 1 4 44 1",
+                              "alabel 0 2 synth:Harmonics", "abase 0 2 64", "aset 0 2 12 89 1",
+                              "play", "abaseq 0 0 54", "stop", "play"]
+            assert sidecar.count("--param-at") == 4, "three snaps at the lanes' births, one turn"
+            lk = s["locks"]
+            assert lk["shown_mask"] == 0b1110 and lk["shown"][1:4] == lk["value"][1:4], \
+                "after the stop's D6 revert the engine heard the knobs' values to the bit"
         if sc["name"] == "multi-panel":
             assert sidecar.startswith("--slots\n"), "the replay routes by slot"
             assert sidecar.count("--sound-note\n1:") == 2, "Sound 2's key and MIDI IN note"
@@ -789,3 +808,237 @@ def test_the_click_sounds_only_while_the_metronome_is_on(tools, tmp_path):
     count_in.write_text("#! rate=44118 block=64 tracks=8 end=88236\n@0 rec 0\n")
     quiet = run(tools["sim"], ["--engine", "test-sine", "--cmd", str(count_in)])
     assert quiet["seq_clicks"] == 0 and quiet["peak"] == 0
+
+
+# ---- Parameter locks (docs/15 S8) ------------------------------------------------------------
+
+MOVY = ROOT / "reference" / "movy"
+MOVY_SOURCES = [MOVY / "browser-test" / "logic" / "automation.mjs", MOVY / "src" / "seq" / "automation.ts",
+                MOVY / "src" / "seq" / "edit-ops.ts"]
+
+
+def _aset_after(cmds, pattern):
+    hit = [i for i, c in enumerate(cmds) if re.fullmatch(pattern, c)]
+    return cmds[hit[0] + 1:] if hit else None
+
+
+# The traces transcribed from Movy's own tests (tests/fixtures/seq-ui/lock-movy-*, with Movy's MIT
+# notice), each with the assertions of Movy's they reproduce: the assertion as Movy's source at
+# 9190e79 writes it, and what it asks of the commands the FM-1's panel sent for the same gesture.
+# Movy's parameter is `cutoff` at 1 of 0..2; the FM-1's is Macro's Timbre at 0.5 of 0..1, the same
+# 7-bit 64.
+MOVY_TRACES = {
+    "lock-movy-held-step": [
+        ("q.includes('alabel 0 0 synth:cutoff')", lambda c: "alabel 0 0 synth:Timbre" in c),
+        ("q.includes('abase 0 0 64')", lambda c: "abase 0 0 64" in c),
+        (r"/^aset 0 0 4 \d+ 1$/.test(o)", lambda c: any(re.fullmatch(r"aset 0 0 4 \d+ 1", x) for x in c)),
+        ("eq('release after step-auto is NOT a tap', editStepUp(0), false)",
+         lambda c: not any(x.startswith("tog ") for x in c)),
+    ],
+    "lock-movy-live-take": [
+        (r"/^aset 0 0 7 \d+$/.test(o)", lambda c: any(re.fullmatch(r"aset 0 0 7 \d+", x) for x in c)),
+        ("afterRelease.some((o) => o.startsWith('abase 0 0')), false",
+         lambda c: not any(x.startswith("abase") for x in _aset_after(c, r"aset 0 0 7 \d+") or ["abase"])),
+    ],
+    "lock-movy-nolock": [
+        ("peekSeqCmdQueue().some((o) => o.startsWith('aset')), false",
+         lambda c: c == ["play"]),
+    ],
+    "lock-movy-tap-clear": [
+        ("peekSeqCmdQueue().some((o) => o.startsWith('aclrs 0 0 4'))", lambda c: "aclrs 0 0 4" in c),
+    ],
+    "lock-movy-clear-knob": [
+        ("peekSeqCmdQueue().some((o) => o.startsWith('clipdel')), false",
+         lambda c: "aclr 0 0" in c and not any(x.startswith("clipdel") for x in c)),
+    ],
+    "lock-movy-clear-step": [
+        ("() => seqCmd('aclrstep ' + track + ' ' + step)", lambda c: "aclrstep 0 4" in c),
+        ("for (const s of steps) clearStepAllAutomation(watchedTrack(), s);",
+         lambda c: not any(x.startswith("del ") for x in c)),
+    ],
+}
+
+
+def lock_run(tools, tmp_path, panel_lines, *extra, script=None, seconds=None, engine="macro", lab=True):
+    """A panel run from steps.verbs (or `script`), Macro, the lab switch on."""
+    panel = tmp_path / "p.panel"
+    panel.write_text("\n".join(panel_lines) + "\n")
+    cmd = TRACES / "steps.verbs"
+    if script is not None:
+        cmd = tmp_path / "in.verbs"
+        cmd.write_text(script)
+    args = [*(["--lab"] if lab else []), "--engine", engine, "--cmd", str(cmd), "--panel", str(panel),
+            *extra]
+    if seconds is not None:
+        args += ["--seconds", str(seconds)]
+    return run(tools["sim"], args)
+
+
+def cmds(s):
+    return [t for _, t in s["seq_ui_cmds"]]
+
+
+def test_every_parameter_is_on_the_lock_grid(tools):
+    """docs/15 S8's round trip, on every parameter of every registered
+    engine and effect: fm1_seq_value7 inverts every lock value of a FLOAT,
+    and gives every list entry's lowest 7-bit value; a knob detent moves one
+    7-bit value or one entry (O14); the lane label the UI writes names the
+    parameter (a space as '_')."""
+    res = subprocess.run([str(tools["sim"]), "--lock-check"], capture_output=True, text=True)
+    assert res.returncode == 0, res.stderr
+    out = json.loads(res.stdout)
+    assert out["failures"] == 0 and out["engines"] >= 14 and out["params"] >= 78
+    assert out["checks"] >= out["params"] * 128
+
+
+@pytest.mark.parametrize("stem", sorted(MOVY_TRACES))
+def test_movys_automation_traces_are_reproduced(tools, tmp_path, stem):
+    """The Movy-derived traces (docs/15 S8): the panel sends what Movy's
+    tests assert for the same gesture. With Movy at 9190e79 under
+    reference/movy (git-ignored), each assertion is also found, word for
+    word, in its source, so the transcription cannot drift from it."""
+    s = run(tools["sim"], ["--lab", "--engine", "macro", "--cmd", str(TRACES / "steps.verbs"),
+                           "--panel", str(TRACES / f"{stem}.panel")])
+    for quoted, holds in MOVY_TRACES[stem]:
+        assert holds(cmds(s)), (stem, quoted, cmds(s))
+    notice = (TRACES / f"{stem}.panel").read_text()
+    assert "MIT, Copyright (c) 2026 megadake" in notice and "9190e79" in notice
+    if not all(p.is_file() for p in MOVY_SOURCES):
+        pytest.skip("Movy is not under reference/movy")
+    head = subprocess.run(["git", "-C", str(MOVY), "rev-parse", "HEAD"], capture_output=True, text=True)
+    if head.returncode == 0:
+        assert head.stdout.startswith("9190e79")
+    source = "".join(p.read_text(encoding="utf-8") for p in MOVY_SOURCES)
+    for quoted, _ in MOVY_TRACES[stem]:
+        assert quoted in source, f"Movy's source no longer says {quoted!r}"
+
+
+def test_a_nolock_parameter_says_so_on_a_lock_page(tools, tmp_path):
+    lines = [l for l in (TRACES / "lock-movy-nolock.panel").read_text().splitlines()
+             if l and not l.startswith("#")]
+    s = lock_run(tools, tmp_path, lines, seconds=0.5)
+    assert s["popup"] == ["Model", "cannot be locked"] and cmds(s) == []
+    assert s["seq_view"]["step_page"] == 2 and s["locks"]["lock_pages"] == 3
+
+
+def test_the_knob_and_the_base_agree_to_the_bit_after_a_stop(tools, tmp_path):
+    """docs/15 S8's knob sync: after a turn of a laned parameter with no step
+    held (the 7-bit grid, the base following at once) and after the stop's
+    D6 revert, what the engine last heard through the lock path is the
+    knob's value, bit for bit (%.9g text, which round-trips a float)."""
+    s = run(tools["sim"], ["--lab", "--engine", "macro", "--cmd", str(TRACES / "steps.verbs"),
+                           "--panel", str(TRACES / "lock-knob-sync.panel")])
+    assert cmds(s) == ["alabel 0 0 synth:Timbre", "abase 0 0 64", "aset 0 0 4 84 1", "play",
+                       "abaseq 0 0 61", "stop"]
+    lk = s["locks"]
+    assert lk["bases"][0] == 61 and lk["shown_mask"] & (1 << 2)
+    assert lk["shown"][2] == lk["value"][2] == "0.48031497"      # float(61 / 127), as lock_value
+    assert s["seq_locks_to_engine"] >= 4, "the base at play, the lock, its revert"
+
+
+def test_eight_lanes_and_a_ninth(tools, tmp_path):
+    lines = [l for l in (TRACES / "lock-eight-lanes.panel").read_text().splitlines()
+             if l and not l.startswith("#")]
+    s = lock_run(tools, tmp_path, lines, seconds=0.6)
+    assert s["popup"] == ["8 lanes used"]
+    assert s["locks"]["lanes"] == ["synth:Harmonics", "synth:Timbre", "synth:Morph", "synth:Decay",
+                                   "synth:Colour", "synth:Volume", "synth:Env_Pitch",
+                                   "synth:Env_Timbre"]
+    assert s["locks"]["assigned"] == 0xFF and s["hold_locks"] == [65, 65, 65, 63, 63, 88, 69, 59]
+    assert sum(c.startswith("alabel") for c in cmds(s)) == 8
+
+
+def test_a_lock_goes_to_the_sound_its_track_plays(tools, tmp_path):
+    """Multi-sound (docs/15 §3.16): track 1 routed to Sound 2 (Shapes) while
+    Sound 1 (Macro) is current. The lock pages are Shapes' (Color, which
+    Macro has not), the lane resolves on Shapes, the knob that snaps is
+    Shapes', and fm1-render replays it byte for byte."""
+    script = ("#! rate=44118 block=64 tracks=8 end=88236\n"
+              "@0 bpm 24000;tog 0 0 48 110;tog 0 4 55 90;route 0 1 1\n")
+    panel = tmp_path / "other.panel"
+    panel.write_text("--button 0.05:SEQ\n--key 0.10:7:100:0.4\n--turn 0.20:SELECT:1\n"
+                     "--turn 0.25:SELECT:1\n--turn 0.30:KNOB3:6\n--button 0.60:PLAY/STOP\n")
+    cmd = tmp_path / "other.verbs"
+    cmd.write_text(script)
+    s, r, log, a, b = two_step(tools, tmp_path, "other", panel, cmd, "--engine", "macro",
+                               "--sound", "1:shapes")
+    assert cmds(s) == ["alabel 0 0 synth:Color", "abase 0 0 64", "aset 0 0 4 70 1", "play"]
+    assert s["current"] == 0 and s["values0"] == run(tools["sim"], ["--engine", "macro",
+                                                                    "--seconds", "0.01"])["values0"]
+    assert s["values3"][2] == pytest.approx(64 / 127, abs=1e-6), "Sound 2's Color on the grid"
+    assert s["replayable"] == 1 and a == b and s["seq_locks_to_engine"] == r["seq_locks_to_engine"] > 0
+
+
+def test_a_laned_knob_turns_on_the_7_bit_grid_and_every_base_follows(tools, tmp_path):
+    """No step held, the lab switch on: Timbre has a lane on tracks 1 and 2
+    (both on Sound 1) and on track 3 (on Sound 2). KNOB3 in HOME moves one
+    7-bit step a detent, and the two lanes on Sound 1 take the value as
+    their base; track 3's does not move. A knob with no lane keeps its
+    1/100 detent."""
+    script = ("#! rate=44118 block=64 tracks=8 end=22059\n"
+              "@0 route 1 1 0;route 2 1 1;alabel 0 0 synth:Timbre;abaseq 0 0 64;"
+              "alabel 1 3 synth:Timbre;abaseq 1 3 10;alabel 2 0 synth:Timbre;abaseq 2 0 20\n")
+    s = lock_run(tools, tmp_path, ["--turn 0.10:KNOB3:2", "--turn 0.15:KNOB2:1"], "--sound",
+                 "1:macro", script=script, seconds=0.3)
+    assert cmds(s) == ["abaseq 0 0 66", "abaseq 1 3 66"]
+    assert s["values0"][2] == pytest.approx(66 / 127, abs=1e-6)
+    assert s["values0"][1] == pytest.approx(0.51, abs=1e-6), "Harmonics has no lane"
+    off = lock_run(tools, tmp_path, ["--turn 0.10:KNOB3:2"], script=script, seconds=0.3, lab=False)
+    assert off["seq_ui_cmds"] == [] and off["values0"][2] == pytest.approx(0.52, abs=1e-6), \
+        "the public page's knob is as it was"
+
+
+def test_algorithm_on_a_laned_list_moves_its_base(tools, tmp_path):
+    """ALGORITHM turns the model and never makes a lock (docs/15 §3.8), but
+    a lane on it (Six-Op's Patch, LATCH) takes the new patch as its base:
+    the lowest 7-bit value of its bin."""
+    script = "#! rate=44118 block=64 tracks=8 end=22059\n@0 alabel 0 0 synth:Patch;abaseq 0 0 43\n"
+    s = lock_run(tools, tmp_path, ["--turn 0.10:ALGORITHM:3"], script=script, seconds=0.3,
+                 engine="sixop")
+    assert s["values0"][0] == 35 and cmds(s) == ["abaseq 0 0 47"]      # ceil(35 * 128 / 96) = 47
+
+
+def test_a_live_take_starts_again_from_the_knob_after_a_pause(tools, tmp_path):
+    """A live take's detents add up (Movy's accumulator) until 600 ms pass
+    without one, Movy's knob release; the next turn starts from the knob's
+    value again. The knob itself never moves: the take is the lane's."""
+    lines = ["--button 0.05:PLAY/STOP", "--button 0.10:REC", "--turn 0.20:KNOB3:3",
+             "--turn 0.30:KNOB3:3", "--turn 1.00:KNOB3:1"]
+    s = lock_run(tools, tmp_path, lines, seconds=1.2)
+    takes = [c for c in cmds(s) if c.startswith("aset")]
+    assert [int(c.split()[-1]) for c in takes] == [67, 70, 65]
+    assert all(len(c.split()) == 5 for c in takes), "heard: no quiet flag"
+    assert s["values0"][2] == pytest.approx(64 / 127, abs=1e-6), "snapped once, at the lane's birth"
+
+
+def test_clear_and_a_knob_clear_the_lane_however_many_steps_are_held(tools, tmp_path):
+    """CLEAR + a knob is CLEAR's gesture whatever is held (Movy's router: only
+    its step page owns the knobs before Clear does). With two steps held on a
+    lock page a knob edits the sound, but with CLEAR held too it clears the
+    parameter's lane (`aclr`) and leaves the knob where it was."""
+    lines = [l for l in (TRACES / "lock-several-clear.panel").read_text().splitlines()
+             if l and not l.startswith("#") and "PLAY/STOP" not in l]
+    s = lock_run(tools, tmp_path, lines, seconds=0.8)
+    assert cmds(s) == ["alabel 0 0 synth:Timbre", "abase 0 0 64", "aset 0 0 4 66 1",
+                       "abaseq 0 0 65", "aclr 0 0"]
+    assert s["popup"] == ["Timbre", "lane cleared"] and s["locks"]["assigned"] == 0
+    assert s["values0"][2] == pytest.approx(65 / 127, abs=1e-6), "CLEAR's detent turned nothing"
+    assert s["seq_view"]["held"] == 2 and s["seq_view"]["step_page"] == 2
+
+
+def test_the_clear_key_lights_with_a_lane_and_a_tap_does_nothing_yet(tools, tmp_path):
+    clear = 1 << BLACK.index(10)
+    none = lock_run(tools, tmp_path, ["--button 0.05:SEQ", "--key 0.10:10:100:0.05"], seconds=0.3)
+    assert not none["seq_view"]["role_leds"] & clear and cmds(none) == []
+    script = ("#! rate=44118 block=64 tracks=8 end=22059\n"
+              "@0 tog 0 0 60 100;alabel 0 0 synth:Timbre;aset 0 0 0 30 1\n")
+    lit = lock_run(tools, tmp_path, ["--button 0.05:SEQ", "--key 0.10:10:100:0.3",
+                                     "--key 0.20:0:100:0.05"], script=script, seconds=0.5)
+    assert lit["seq_view"]["role_leds"] & clear
+    assert cmds(lit) == [] and lit["seq_view"]["held"] == 0, "CLEAR + a step waits for S9"
+
+
+def test_the_ui_state_holds_its_s8_fields_in_its_bound(tools):
+    z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
+                                  text=True).stdout)
+    assert z["seq_ui_size"] <= 1024

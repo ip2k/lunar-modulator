@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "fm1_look.h"
+#include "fm1_seq_host.h"
 
 /* The Track view's geometry (docs/15 §4): the status line at CONTENT_Y, the
  * grid under it, the knob strip, then the hint line above the bottom bar. */
@@ -41,6 +42,11 @@
 #define TRACK_H 14
 #define LEGEND_PITCH 22                /* SHIFT's legend, from GRID_Y */
 #define LANE_PITCH 23                  /* Track page 2: eight lanes */
+#define LOCK_DOT 3                     /* a step with a lock: a dot in the cell's corner */
+/* The lock pages (S8): HOME's bar, shortened for the lane dot after it. */
+#define DOT_W 6
+#define LOCK_BAR_W (FM1_TFT_W - 2 * MARGIN - DOT_W - 4)
+#define LOCK_INSET 2                   /* the lock's bar inside its base's, top and bottom */
 
 typedef char fm1_seq_view_tracks_fit[TRACKS_X >= MARGIN + 118 + 8 &&
                                      TRACKS_X + 8 * TRACK_W + 7 + 8 <= RIGHT - 46 ? 1 : -1];
@@ -108,6 +114,9 @@ static void draw_grid(fm1_tft_t *t, const fm1_seq_ui_t *u) {
     draw_cell(t, x, y, CELL_W, CELL_H, u->length && step >= u->loop_start && step < end,
               (int)((u->notes >> g) & 1u), u->clip_playing && u->step == step, muted);
     if ((u->trigs >> g) & 1u) fm1_tft_paint(t, x + 2, y + CELL_H - TICK_H - 2, CELL_W - 4, TICK_H, C_SCOPE);
+    if ((u->locks >> g) & 1u) {             /* a lock (S8): a gold dot in the corner */
+      fm1_tft_paint(t, x + CELL_W - LOCK_DOT - 1, y + 1, LOCK_DOT, LOCK_DOT, C_MODEL);
+    }
     if (step / 16u == u->bar && ((held >> col) & 1u)) {
       fm1_tft_frame(t, x - 1, y - 1, CELL_W + 2, CELL_H + 2, C_MODEL);
     }
@@ -169,6 +178,8 @@ static void draw_track(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_s
     fm1_look_row(t, HINT_Y, "Keys 1-8", "pick track", C_MODEL);
   } else if (u->mute_held) {
     fm1_look_row(t, HINT_Y, "Keys 1-8", "mute", C_MODEL);
+  } else if (u->clear_held) {                /* CLEAR (S8): a knob clears its lane */
+    fm1_look_row(t, HINT_Y, "Knob", "clears lane", C_MODEL);
   } else if (u->hint == FM1_SEQ_HINT_BAR) {
     char v[24];
     const unsigned bars = u->length ? ((unsigned)u->loop_start + u->length + 15u) / 16u : 0u;
@@ -178,8 +189,13 @@ static void draw_track(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_s
   } else if (snd->e && u->hint == FM1_SEQ_HINT_KNOB && u->knob >= 0 && u->knob < snd->n) {
     const fm1_param_t *p = &snd->e->params[snd->idx[u->knob]];
     char v[24];
-    fm1_look_value(p, snd->value[snd->idx[u->knob]], v, sizeof v);
-    fm1_look_row(t, HINT_Y, p->name, v, C_TEXT);
+    if (u->take_param == snd->idx[u->knob] && snd->lock_current) {   /* a live take (S8) */
+      fm1_look_value(p, fm1_seq_lock_value(p, u->take_v), v, sizeof v);
+      fm1_look_row(t, HINT_Y, p->name, v, C_MODEL);
+    } else {
+      fm1_look_value(p, snd->value[snd->idx[u->knob]], v, sizeof v);
+      fm1_look_row(t, HINT_Y, p->name, v, C_TEXT);
+    }
   } else if (snd->e && snd->model >= 0) {
     char v[24];
     fm1_look_value(&snd->e->params[snd->model], snd->value[snd->model], v, sizeof v);
@@ -188,6 +204,8 @@ static void draw_track(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_s
 }
 
 /* ---- the Step pages -------------------------------------------------------------- */
+
+static void draw_lock(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd);
 
 void fm1_seq_view_note_name(int note, char *buf, size_t size) {
   static const char *const kNames[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A",
@@ -229,10 +247,14 @@ static void draw_steps(fm1_tft_t *t, const fm1_seq_ui_t *u) {
                 g < FM1_SEQ_UI_GRID_STEPS && ((u->notes >> g) & 1u),
                 u->clip_playing && u->step == step, focused_muted(u));
     }
+    if (g < FM1_SEQ_UI_GRID_STEPS && ((u->locks >> g) & 1u)) {   /* a lock (S8) */
+      fm1_tft_paint(t, x + CELL_W - LOCK_DOT - 1, STEPS_Y + 1, LOCK_DOT, LOCK_DOT,
+                    (held >> n) & 1u ? C_BG : C_MODEL);
+    }
   }
 }
 
-static void draw_step(fm1_tft_t *t, const fm1_seq_ui_t *u) {
+static void draw_step(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd) {
   static const fm1_param_t kVel = { "Velocity", FM1_PARAM_FLOAT, 0.0f, 127.0f, 100.0f, NULL, 0, 0, 0, 0, "" };
   static const fm1_param_t kLen = { "Length", FM1_PARAM_FLOAT, 0.0f, (float)(FM1_SEQ_UI_LENGTHS - 1),
                                     1.0f, NULL, 0, 0, 0, 0, "" };
@@ -243,6 +265,12 @@ static void draw_step(fm1_tft_t *t, const fm1_seq_ui_t *u) {
   const fm1_seq_ui_hold_t *h = &u->hold;
   const int notes = u->hold_valid && h->notes;
   char line[24], v[24];
+  if (u->step_page >= FM1_SEQ_UI_STEP_PAGES) {   /* the lock pages (S8) */
+    draw_lock(t, u, snd);
+    if (u->shift) fm1_tft_text(t, MARGIN, STEPS_Y, "Tap SHIFT: clear", LINE_CHARS, SCALE, C_MODEL);
+    else draw_steps(t, u);
+    return;
+  }
   if (u->shift) {
     fm1_tft_text(t, MARGIN, CONTENT_Y, "Keys add a pitch", LINE_CHARS, SCALE, C_MODEL);
   } else {
@@ -284,6 +312,71 @@ static void draw_step(fm1_tft_t *t, const fm1_seq_ui_t *u) {
   } else {
     draw_steps(t, u);
   }
+}
+
+/* ---- the lock pages (S8) --------------------------------------------------------- */
+
+/* One parameter's row on a lock page: label and value as HOME's, a bar of
+ * LOCK_BAR_W and, after it, the lane's dot. */
+static void lock_row(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd,
+                     int row, int param) {
+  const fm1_param_t *p = &snd->lock_e->params[param];
+  const int y = CONTENT_Y + LINE_PITCH + row * ROW_PITCH;
+  const int one = u->held_n == 1;
+  char v[24];
+  int lane, locked = 0;
+  float base, value;
+  fm1_seq_track_info_t tr;
+  if (!fm1_param_lockable(p) && one) {      /* NOLOCK: named, with nothing to turn */
+    fm1_look_row(t, y, p->name, "no lock", C_DIM);
+    return;
+  }
+  memset(&tr, 0, sizeof tr);
+  if (snd->seq) fm1_seq_get_track(snd->seq, u->track, &tr);
+  lane = fm1_seq_ui_lane_of(snd->seq, u->track, snd->lock_e, param);
+  base = lane >= 0 ? fm1_seq_lock_value(p, tr.base[lane]) : snd->lock_value[param];
+  if (!one) {                               /* several steps held: the sound itself */
+    fm1_look_value(p, snd->lock_value[param], v, sizeof v);
+    fm1_look_row(t, y, p->name, v, C_TEXT);
+    fm1_look_bar(t, MARGIN, y + BAR_DY, LOCK_BAR_W, BAR_H, p, snd->lock_value[param], C_ACCENT);
+  } else {
+    locked = lane >= 0 && u->hold_valid && ((u->hold.lock_mask >> lane) & 1u);
+    value = locked ? fm1_seq_lock_value(p, u->hold.lock[lane]) : base;
+    fm1_look_value(p, value, v, sizeof v);
+    fm1_look_row(t, y, p->name, v, locked ? C_MODEL : C_DIM);
+    fm1_look_bar(t, MARGIN, y + BAR_DY, LOCK_BAR_W, BAR_H, p, base, C_DIM);
+    if (locked) {                           /* the lock, over its base */
+      fm1_look_fill(t, MARGIN, y + BAR_DY + LOCK_INSET, LOCK_BAR_W, BAR_H - 2 * LOCK_INSET, p,
+                    value, C_MODEL);
+    }
+  }
+  if (lane >= 0) {                          /* the lane: filled with a lock on the step */
+    const int dx = RIGHT - DOT_W;
+    fm1_tft_graphic(t, dx, y + BAR_DY, DOT_W, BAR_H);
+    if (locked) fm1_tft_paint(t, dx, y + BAR_DY, DOT_W, BAR_H, C_MODEL);
+    else fm1_tft_frame(t, dx, y + BAR_DY, DOT_W, BAR_H, C_MODEL);
+  }
+}
+
+static void draw_lock(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd) {
+  char line[32];
+  int idx[4], n;
+  const int page = u->step_page - FM1_SEQ_UI_STEP_PAGES;
+  const fm1_seq_ui_hold_t *h = &u->hold;
+  if (u->clear_held) {                      /* CLEAR + a knob clears its lane (aclr) */
+    snprintf(line, sizeof line, "Knob: clear lane");
+  } else if (u->shift && u->held_n == 1) {  /* SHIFT + a knob clears its lock (aclrs) */
+    snprintf(line, sizeof line, "Knob: clear lock");
+  } else if (u->held_n > 1) {
+    snprintf(line, sizeof line, "Step %u +%u sound", (unsigned)h->step + 1u, (unsigned)u->held_n - 1u);
+  } else if (!snd->lock_current && snd->lock_sound >= 0) {
+    snprintf(line, sizeof line, "Lock step %u S%d", (unsigned)h->step + 1u, snd->lock_sound + 1);
+  } else {
+    snprintf(line, sizeof line, "Lock step %u", (unsigned)h->step + 1u);
+  }
+  fm1_tft_text(t, MARGIN, CONTENT_Y, line, LINE_CHARS, SCALE, C_MODEL);
+  n = snd->lock_e ? fm1_seq_ui_page_params(snd->lock_e, page, idx) : 0;
+  for (int r = 0; r < n; ++r) lock_row(t, u, snd, r, idx[r]);
 }
 
 /* ---- the Set, Clip and Track pages (S6) ------------------------------------------ */
@@ -353,6 +446,9 @@ static void draw_trackpg(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view
       if (label[0]) {
         char b[8];
         snprintf(v, sizeof v, "%u %.13s", lane + 1u, lane_name(label));
+        for (char *c = v; *c; ++c) {        /* '_' stands for a space (S8) */
+          if (*c == '_') *c = ' ';
+        }
         snprintf(b, sizeof b, "%u", (unsigned)tr.base[lane]);
         fm1_tft_text(t, MARGIN, y, v, 15, SCALE, C_TEXT);
         fm1_tft_text(t, RIGHT - fm1_tft_text_width(b, 3, SCALE), y, b, 3, SCALE, C_TEXT);
@@ -383,7 +479,7 @@ static void draw_trackpg(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view
 }
 
 void fm1_seq_view_draw(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd) {
-  if (u->view == FM1_SEQ_VIEW_STEP && u->held_n) draw_step(t, u);
+  if (u->view == FM1_SEQ_VIEW_STEP && u->held_n) draw_step(t, u, snd);
   else if (u->view == FM1_SEQ_VIEW_SET) draw_set(t, u);
   else if (u->view == FM1_SEQ_VIEW_CLIP) draw_clip(t, u);
   else if (u->view == FM1_SEQ_VIEW_TRACKPG) draw_trackpg(t, u, snd);
@@ -392,7 +488,10 @@ void fm1_seq_view_draw(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_s
 
 void fm1_seq_view_bottom(const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd, char *buf,
                          size_t size) {
-  if (u->view == FM1_SEQ_VIEW_STEP && u->held_n) {
+  if (u->view == FM1_SEQ_VIEW_STEP && u->held_n && u->step_page >= FM1_SEQ_UI_STEP_PAGES) {
+    snprintf(buf, size, "%d/%d Lock T%u", u->step_page - FM1_SEQ_UI_STEP_PAGES + 1,
+             (int)u->lock_pages, (unsigned)u->track + 1u);
+  } else if (u->view == FM1_SEQ_VIEW_STEP && u->held_n) {
     snprintf(buf, size, "%d/%d Step T%u", u->step_page + 1, FM1_SEQ_UI_STEP_PAGES,
              (unsigned)u->track + 1u);
   } else if (u->view == FM1_SEQ_VIEW_SET) {

@@ -43,7 +43,7 @@
       {"name": "Volume", "type": "float", "uid": 4, "flags": ["smooth", "mod"]}
     ],
     "sw-sophie": [
-      {"name": "Pad", "type": "enum", "uid": 2935, "flags": ["nolock"]},
+      {"name": "Pad", "type": "enum", "uid": 2935, "flags": []},
       {"name": "Tune", "type": "float", "uid": 3346, "flags": ["latch", "mod"]},
       {"name": "Decay", "type": "float", "uid": 3245, "flags": ["latch", "mod"]},
       {"name": "Model", "type": "enum", "uid": 3572, "flags": ["latch", "mod"]},

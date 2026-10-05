@@ -138,7 +138,7 @@ NOLOCK_LANE = (f"#! rate={RATE} block=64 tracks=1 end={RATE}\n"
 
 
 @pytest.mark.parametrize("engine,name", [("macro", "Model"), ("macro-heavy", "Model"),
-                                         ("shapes", "Shape"), ("sw-sophie", "Pad")])
+                                         ("shapes", "Shape")])
 def test_a_lock_on_a_nolock_parameter_is_refused(seq_tools, tmp_path, engine, name):
     """API v2: a NOLOCK parameter (Macro's Model rebuilds every voice) never
     takes a lock. Every lock the lane sends is refused and counted, none
@@ -155,11 +155,45 @@ def test_a_lock_on_a_nolock_parameter_is_refused(seq_tools, tmp_path, engine, na
     assert sent >= 3 and s["seq_locks_refused"] == sent
     assert s["seq_locks_to_engine"] == 0 and s["seq_splits"] == s0["seq_splits"]
     assert raw == raw0
-    other = {"macro": "Timbre", "macro-heavy": "Timbre", "shapes": "Timbre",
-             "sw-sophie": "Tune"}[engine]
+    other = {"macro": "Timbre", "macro-heavy": "Timbre", "shapes": "Timbre"}[engine]
     s, _, _, _ = render(tmp_path, script.replace(f"synth:{name}", f"synth:{other}"),
                         engine=engine, name="lockable")
     assert s["seq_locks_to_engine"] == sent and s["seq_locks_refused"] == 0
+
+
+def test_a_lock_on_sophies_pad_moves_the_edit_focus(seq_tools, tmp_path):
+    """Sophie's Pad is lockable since docs/15 S8 (the owner's decision,
+    2026-10-02; NOLOCK before). Its locks reach the engine, and since Pad is
+    the edit focus, a Tune lock after it at the same step (lane order, D2)
+    tunes the pad it names: the snare (pad 3, bin 16..23) rather than the
+    kick the base leaves focused, so the snare at step 8 sounds otherwise.
+    Until then the two renders are the same: Tune is read at note-on."""
+    script = (f"#! rate={RATE} block=64 tracks=1 end={2 * RATE}\n"
+              "@0 tog 0 0 36 100;tog 0 8 38 100\n"
+              "@0 alabel 0 0 synth:Pad;abaseq 0 0 0;aset 0 0 4 16 1;"
+              "alabel 0 1 synth:Tune;abaseq 0 1 54;aset 0 1 4 127 1\n@0 play\n")
+    s, _, ev, raw = render(tmp_path, script, engine="sw-sophie", name="pad")
+    sent = [e for e in ev if e["kind"] == "cc"]
+    assert s["seq_locks_refused"] == 0 and s["seq_locks_to_engine"] == len(sent) >= 4
+    s0, _, _, raw0 = render(tmp_path, script.replace("aset 0 0 4 16 1;", ""), engine="sw-sophie",
+                            name="nopad")
+    step8 = 4 * (RATE - 64)                 # bytes before step 8's block (1 s at 120 BPM)
+    assert raw[:step8] == raw0[:step8] and raw != raw0, "the snare took the Tune lock"
+
+
+def test_a_label_names_a_parameter_with_a_space_by_an_underscore(seq_tools, tmp_path):
+    """A lane label is one token of a script or a set, so a parameter whose
+    name has a space (Macro's Env Pitch) is labelled with '_' in its place
+    (docs/15 S8, fm1_seq_lane_label_for), and resolves to it in any case."""
+    script = (f"#! rate={RATE} block=64 tracks=1 end={RATE // 2}\n"
+              "@0 tog 0 0 60 100;tog 0 4 64 100\n"
+              "@0 alabel 0 0 synth:{label};abaseq 0 0 64;aset 0 0 4 127 1\n@0 play\n")
+    raws = {}
+    for label in ("Env_Pitch", "env_pitch", "Env-Pitch", "EnvPitch"):
+        s, _, _, raws[label] = render(tmp_path, script.format(label=label), engine="macro",
+                                      name=label.replace("_", "u"))
+        assert s["seq_locks_to_engine"] == (2 if "_" in label else 0)
+    assert raws["Env_Pitch"] == raws["env_pitch"] != raws["EnvPitch"] == raws["Env-Pitch"]
 
 
 @pytest.mark.parametrize("engine", ["test-sine", "macro", "sixop"])
