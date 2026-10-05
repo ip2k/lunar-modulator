@@ -273,9 +273,10 @@ polyphonic track (FM-1+VA parity plus locks) and leave room for four.
       write restarts the ramp from where it stands, so a route follows its
       source through a lag of about one ramp, and its steps are not heard.
     - **Effects that already glide** sample by sample keep their own glide:
-      Fold (5 ms) and Echo (5 ms gains, 0.1 s Time). A new effect may do the
-      same if its glide is per sample and keyed to samples; anything else
-      uses `fm1_smooth.h`.
+      Fold (5 ms) and Echo (5 ms gains, 0.1 s Time and Wow). A new effect
+      may do the same if its glide is per sample and keyed to samples;
+      anything else uses `fm1_smooth.h`, as Echo's Tone does, which had no
+      glide.
   - **NOLOCK:** destructive parameters such as Macro Model and Shapes Shape.
 - **Sound locks** pick a preset per trig on LATCH engines. Caching the
   presets in use costs 16 × 156 B ≈ 2.5 KB. On Macro and Shapes a sound lock

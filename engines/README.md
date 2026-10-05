@@ -181,10 +181,10 @@ Emilie Gillet's FxEngine in Rings and Clouds.
 How it works [verified: tests/test_engines_echo.py and
 `build/fm1-echo-selftest`, 2026-10-02, unless marked]:
 
-- **Memory:** 16,384 cells per side of 16-bit words (64 KiB), plus 192 bytes
-  of state: 65,728 bytes, whatever the host rate. The 32-bit figure equals
-  the 64-bit one because the instance holds no pointers [inferred; CI's
-  32-bit job reports it]. The words hold ±2.0, 6 dB of headroom over full
+- **Memory:** 16,384 cells per side of 16-bit words (64 KiB), plus 208 bytes
+  of state (192 before Tone's SMOOTH ramp): 65,744 bytes, whatever the host
+  rate. The 32-bit figure equals the 64-bit one because the instance holds
+  no pointers [inferred; CI's 32-bit job reports it]. The words hold ±2.0, 6 dB of headroom over full
   scale. A soft clip before the store is linear up to ±1 and bends towards
   ±2.
 - **Time beyond the line:** up to 16,380 cells (371 ms at 44,118 Hz) the line
@@ -316,7 +316,8 @@ code is `include/fm1_smooth.h`, plain C99:
 | Test Sine | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | Volume |
 | Plate, Ensemble, Diffuse, Crush, Test Gain | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | what each runs on; see below |
 | PSX Verb (through the Schwung shim) | the module's block, 64 frames on the FM-1 | 2 | 2.9 ms | Decay, Mix, Level, Input, sent as strings before each module call |
-| Fold, Echo | their own glides | – | 5 ms one-pole; Echo's Time 0.1 s | unchanged |
+| Echo's Tone | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | the loop filter's coefficient, derived once per change |
+| Fold, and Echo but its Tone | their own glides | – | 5 ms one-pole; Echo's Time and Wow 0.1 s | unchanged |
 
 - **Effects ramp what they run on, not the knob.** Plate's loop gain and
   damping, Diffuse's loop gain and tone coefficient, and Crush's quantiser
@@ -328,8 +329,10 @@ code is `include/fm1_smooth.h`, plain C99:
 - **The rule for effects that already glide.** An effect that glides its
   parameters itself, sample by sample, keyed to samples and snapping before
   its first render, keeps its own glide: Fold (5 ms one-pole) and Echo
-  (5 ms gains, 0.1 s Time). That glide gives what SMOOTH promises. A new
-  effect may do the same; anything else uses `fm1_smooth.h`.
+  (5 ms gains, 0.1 s Time and Wow). That glide gives what SMOOTH promises. A
+  new effect may do the same; anything else uses `fm1_smooth.h`, as Echo's
+  Tone does: its loop filter's coefficient had no glide and jumped, which
+  steps the repeats, so it takes the shared ramp.
 - **The Schwung shim** ramps the first eight SMOOTH parameters of a module
   (`kMaxRamps`), in the module's own blocks, from its first render on.
   `tests/test_engine_params.py` checks that no module has more. Sophie's
@@ -345,10 +348,12 @@ code is `include/fm1_smooth.h`, plain C99:
 - **What it does not do.** The value is the engine's, not the voice's.
   While a tail still sounds, a note that starts with a lock begins on the
   ramp. Per-voice values would need a voice-scoped call (docs/12 §5.3, §8).
-  A Harmonics ramp under Macro Heavy's Speech can pass through the word
-  banks between its ends, as a quick turn of the knob would. Shapes still
-  derives its envelope coefficients with `expf` and `powf` once per chunk,
-  as before, so an Attack or Release ramp feeds libm values in between.
+  Under Macro Heavy's Speech the word bank follows Harmonics' new value at
+  once, while the voices' Harmonics ramps, so a ramp across several banks
+  parses one bank, as before the ramps, not each one it passes
+  (plaits-heavy.md). Shapes still derives its envelope coefficients with
+  `expf` and `powf` once per chunk, as before, so an Attack or Release ramp
+  feeds libm values in between.
 - **Cost.** 12 bytes per parameter plus a few per instance (Crush 96 → 176
   bytes, Macro +128), and one test per parameter per control block while
   nothing moves. While a ramp runs, Plate, Ensemble and Diffuse call their
@@ -508,7 +513,7 @@ upstream candidate). Our own code gets none.
   | Sophie, 12 voices | 78,080 | 78,048 | ring delays per voice |
   | Macro Heavy, 4 voices | 71,264 | 71,056 | ~17 KB per voice (Particle and String arenas) |
   | Plate | 65,712 | 65,696 | 32,768 16-bit delay words, as Rings |
-  | Echo | 65,728 | 65,728 | 16,384 stereo cells of 16-bit words |
+  | Echo | 65,744 | 65,744 | 16,384 stereo cells of 16-bit words |
   | Macro, 12 voices | 31,872 | 19,200 | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,912 | 18,912 | |
   | Six-Op FM, 8 voices | 12,584 | 10,848 | |

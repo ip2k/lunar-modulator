@@ -181,3 +181,24 @@ def test_a_lock_under_a_held_note_reaches_the_native_engines_at_its_frame(render
     _, b = seq_render(renderer, tmp_path, script.format(base=0, lock=""), "b", engine)
     f = d1_frame(0, 24 * 3 - 1)
     assert a[:f] == b[:f] and a[f:] != b[f:]
+
+
+@pytest.mark.parametrize("tone0,tone1", [("0", "1"), ("1", "0")])
+def test_echos_tone_ramps_its_loop_filter(renderer, tmp_path, tone0, tone1):
+    """Echo's own glides cover Time, Wow and its gains; Tone's in-loop
+    low-pass coefficient takes the shared ramp. Under noise at full feedback,
+    a Tone change enters the loop gradually: the first eight samples in which
+    it is heard, one 10 ms echo later, differ from the unchanged render by
+    under a tenth of what they differ by a ramp later (a jump of the
+    coefficient measured 0.42 and 0.84 of it; the ramp, 0.03)."""
+    base = ["--source", "noise", "--schedule", "none", "--seconds", "0.2",
+            "--set", "Time=10@0", "--set", "Feedback=1@0", "--set", "Mix=1@0",
+            "--set", "Wow=0@0", "--set", "Ping-pong=0@0", "--set", f"Tone={tone0}@0"]
+    a = floats(drive(tmp_path, "echo", *base, "--set", f"Tone={tone1}@4000", name="a"))[0::2]
+    b = floats(drive(tmp_path, "echo", *base, name="b"))[0::2]
+    d = [x - y for x, y in zip(a, b)]
+    first = next(i for i, v in enumerate(d) if v != 0)
+    assert first == 4000 + 441                # Tone acts on the repeats only
+    early = max(abs(v) for v in d[first:first + 8])
+    late = max(abs(v) for v in d[first + 200:first + 600])
+    assert late > 0.3 and early < 0.1 * late

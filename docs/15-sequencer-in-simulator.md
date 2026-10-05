@@ -1475,8 +1475,12 @@ to it [verified: engines/README.md, "SMOOTH"; tests/test_engine_smooth.py]:
   Plate's damping, Diffuse's tone coefficient, Crush's quantiser step, hold
   interval and pole, derived once per change, so no libm runs in a render.
   Fold and Echo keep their own sample-by-sample glides, which give the same
-  guarantees; that is the rule for effects that already glide. The Schwung
-  shim ramps PSX Verb's parameters in its 64-frame module blocks.
+  guarantees; that is the rule for effects that already glide. Echo's Tone
+  had none, so its loop filter's coefficient takes the shared ramp. The
+  Schwung shim ramps PSX Verb's parameters in its 64-frame module blocks.
+- **Macro Heavy's Speech** picks its word bank from where Harmonics is
+  going, not from the ramp, so a ramp across several banks parses one, as
+  before, not each it passes (engines/plaits-heavy.md).
 - **A lock or a modulation write at frame f** starts the ramp with the
   engine's first control block not yet rendered at f. A D6 revert and a
   lock at one frame make one ramp; a modulation write every tick restarts
@@ -1487,7 +1491,8 @@ to it [verified: engines/README.md, "SMOOTH"; tests/test_engine_smooth.py]:
   per sample and shows the output equal to Volume 127 from the 110th
   sample; `test_audio_is_the_same_at_host_blocks_of_1_7_and_64` covers
   Macro Heavy and Shapes too; `test_locks_set_the_parameter_their_lane_names`
-  now finds silence 110 samples after the lock of 0.
+  now finds silence 110 samples after the lock of 0; a Tone change enters
+  Echo's loop gradually.
 - **Before and after:** 2,141 runs of `fm1-render` and the native harness,
   main against this branch, with a third build that reports each ramp it
   starts. All 1,891 runs that start none are byte-identical: the oracle

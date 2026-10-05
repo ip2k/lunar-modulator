@@ -50,9 +50,9 @@
 // 47,872.34 Hz.
 //
 // SMOOTH parameters ramp while a voice sounds, as in Macro: a tenth of the
-// way per 12-sample block, 2.5 ms in all (fm1_smooth.h). A Harmonics ramp
-// under Speech can pass through the word banks between its ends, as a quick
-// turn of the knob would.
+// way per 12-sample block, 2.5 ms in all (fm1_smooth.h). Under Speech the
+// word bank follows Harmonics' new value at once (one parse), while the
+// voices' Harmonics ramps.
 //
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
@@ -561,12 +561,13 @@ class Instance {
   // Speech: the word bank for this block, as SpeechEngine::Render picks it
   // (the same quantizer, run only while Harmonics is in the LPC range), but
   // once for all voices, sounding or not. So a Harmonics move into another
-  // bank costs one parse in the next block, and a note-on never parses. The
-  // bank cannot change twice within a host block, as Harmonics only changes
-  // between render calls.
+  // bank costs one parse in the next block, and a note-on never parses. It
+  // reads where Harmonics is going, not its SMOOTH ramp (fm1_smooth.h): a
+  // ramp across several banks parses only the last, so the bank changes at
+  // most once per set_param, as before the ramps.
   void UpdateWordBank() {
     if (!voice_[0].engine) return;   // no bank storage
-    const float group = value_[P_HARMONICS] * 6.0f;
+    const float group = smooth_[P_HARMONICS].target * 6.0f;
     if (group <= 2.0f) return;
     speech_.word_bank = speech_.quantizer.Process((group - 2.0f) * 0.275f) - 1;
     if (speech_.word_bank >= 0 && speech_.bank.Load(speech_.word_bank)) {

@@ -443,16 +443,17 @@ history.
   When a continuous parameter changes while a sound plays, the engine now
   glides to the new value over 2.5 ms instead of jumping, so a lock under a
   held note, or a knob turned while playing, is smooth. This holds for every
-  sound engine and for the Plate, Ensemble, Diffuse, Crush and PSX Verb
-  effects; Fold and Echo already glided. A change while nothing sounds, or
-  before an effect starts, still applies at once, so a lock on the step of
-  a note that starts on its own plays from that note's first sample, and
-  sequences of separate notes sound exactly as before. The glide is counted
-  in each engine's own samples, so the sound is the same whatever the
-  host's block size. On the virtual FM-1 only the panel demo that turns
-  knobs while Macro plays sounds different; the other 24 scenarios are
-  unchanged. Engines use 12 bytes more per parameter (Crush 96 → 176 bytes;
-  each Schwung module 176 bytes more).
+  sound engine, for the Plate, Ensemble, Diffuse, Crush and PSX Verb
+  effects and for Echo's Tone; Fold and the rest of Echo already glided. A
+  change while nothing sounds, or before an effect starts, still applies at
+  once, so a lock on the step of a note that starts on its own plays from
+  that note's first sample, and sequences of separate notes sound exactly
+  as before. The glide is counted in each engine's own samples, so the
+  sound is the same whatever the host's block size. On the virtual FM-1
+  only the panel demo that turns knobs while Macro plays sounds different;
+  the other 24 scenarios are unchanged. Engines use 12 bytes more per
+  parameter (Crush 96 → 176 bytes, Echo 16 bytes more, each Schwung module
+  176 bytes more).
 - **Engine API v2: every parameter has a fixed id and says what it allows.**
   Each parameter of every sound engine and effect now carries an id that
   never changes, so a sequencer lock (and later a modulation route or a

@@ -27,6 +27,12 @@
 // the delay (a 100 ms smoothing), which bends the pitch of what is in the
 // line like a tape echo's speed control.
 //
+// Parameters glide sample by sample from the first render on (before it they
+// apply at once): Time and Wow's depth over about 0.1 s, the gains (Feedback,
+// Ping-pong, Mix, Level) with a 5 ms one-pole, and Tone's low-pass
+// coefficient over 2.5 ms with the shared SMOOTH ramp (fm1_smooth.h, docs/15
+// S7b).
+//
 // Wow: a slow modulation of the delay time, a 0.55 Hz sine plus a smoothed
 // random walk from a fixed seed, up to +/-3 ms. Renders stay deterministic.
 //
@@ -50,6 +56,7 @@
 // MIT licence.
 
 #include "fm1_engine.h"
+#include "fm1_smooth.h"
 
 #include <cmath>
 #include <cstring>
@@ -135,6 +142,8 @@ struct Instance {
   float rate;
   float k_time, k_gain;                       // glide coefficients
   float k_tone;                               // in-loop low-pass coefficient
+  fm1_smooth_t k_tone_ramp;                   // its SMOOTH ramp
+  uint32_t smooth_steps;                      // samples in a ramp
   float value[P_COUNT];
   bool running;                               // set by the first render
   Glide time, depth;                          // in samples
@@ -161,6 +170,7 @@ struct Instance {
     if (random_period < 1) random_period = 1;
     k_random = 1.0f - expf(-6.28318530718f * kWowSmoothHz / rate);
     seed = 0x2545F491u;
+    smooth_steps = fm1_smooth_steps(rate, 1);
     for (int i = 0; i < P_COUNT; ++i) value[i] = kParams[i].def;
     for (int i = 0; i < P_COUNT; ++i) Apply(i);
   }
@@ -180,7 +190,8 @@ struct Instance {
       case P_LEVEL: g = &level; break;
       case P_TONE: {
         const float hz = kToneLowHz * powf(2.0f, 6.0f * v);
-        k_tone = 1.0f - expf(-6.28318530718f * hz / rate);
+        fm1_smooth_set(&k_tone_ramp, &k_tone, 1.0f - expf(-6.28318530718f * hz / rate),
+                       running ? smooth_steps : 0);
         return;
       }
       default: return;
@@ -222,6 +233,7 @@ struct Instance {
       pingpong.Step(k_gain, 1e-6f);
       mix.Step(k_gain, 1e-6f);
       level.Step(k_gain, 1e-6f);
+      if (k_tone_ramp.left) fm1_smooth_tick(&k_tone_ramp, &k_tone, 1);
 
       // The delay, and the clock that gives it: the full rate while the line
       // is long enough, a slower one beyond.
