@@ -633,7 +633,7 @@ parameter locks since S8, and since docs/16 MG3 the modulation runtime,
 its kinds, its script reader (`host/mod_script.c`: snprintf and strtod,
 no files) and modulation's pages: 51 of 51 scenarios pass, identical to
 musl and to render.js (two of them turn the effects' switches every 4.4
-ms), and it imports nothing; it is 698,994 bytes, up from 560,033 before
+ms), and it imports nothing; it is 703,751 bytes, up from 560,033 before
 MG3 (the runtime, its sixteen kinds with MG2's Peaks and Braids tables,
 the pages and the script reader), 548,493 before S8 (526,111
 with S8 before the second effects pack), 524,659 before multi-sound and S6

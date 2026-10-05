@@ -54,7 +54,7 @@ history.
     it. Four new parity scenarios check the browser module with modulation
     running, two of them over several sounds (51 of 51
     pass), and the layout check now covers 2,042 screens. The browser
-    module grew from 560 KB to about 699 KB.
+    module grew from 560 KB to about 704 KB.
 - Per-note sound changes, the groundwork for per-voice modulation: Macro,
   Macro Heavy, Six-Op FM and Shapes can now move one playing note's sound
   (its timbre, level, envelope times and the like, and its pitch) without
