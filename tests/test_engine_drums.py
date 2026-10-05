@@ -4,10 +4,10 @@ a 16-pad kit on MIDI notes 36-51.
 Every pad of both kits and every model sounds cleanly; the kicks, toms and
 hats have the character their voicings promise (a long deep kick, a short
 swept punchy one, toms rising with their keys, short closed and long open
-hats); the hats choke one another; velocity, Accent and the kit's knobs
-act; twelve voices hold, a thirteenth pad steals the quietest, and a
-closed hat with every voice busy takes the open hat's; notes outside the
-pads and note-offs do nothing; the per-pad knobs edit only the focused pad, a pad
+hats, bright where the circuits put them); the hats choke one another;
+velocity, Accent and the kit's knobs act; twelve voices hold, a thirteenth
+pad steals the quietest, and a closed hat with every voice busy takes the
+open hat's; notes outside the pads and note-offs do nothing; the per-pad knobs edit only the focused pad, a pad
 given another model plays that model's own voicing, and Kit and Model are
 read when a pad is struck. Per-note offsets as the other engines take them
 (tests/test_engine_note_params.py), on the pads' notes. The output does not
@@ -175,6 +175,34 @@ def test_closed_hat_short_open_hat_long(renderer, tmp_path):
         _, _, x = run(renderer, tmp_path, f"h{key}", notes=[f"0:{key}:127:0.1"], seconds=2.0)
         times[key] = decay_time(x, 40)
     assert times[CLOSED_HH] < 0.12 < times[PEDAL_HH] < 0.4 < times[OPEN_HH]
+
+
+def rms_hz(x, t0, t1):
+    """The RMS frequency over [t0, t1): from the energy of the first
+    difference against the signal's, exact for a sine."""
+    seg = x[int(t0 * RATE):int(t1 * RATE)]
+    e = sum(v * v for v in seg)
+    d = sum((seg[i] - seg[i - 1]) ** 2 for i in range(1, len(seg)))
+    return RATE / math.pi * math.asin(min(1.0, math.sqrt(d / e) / 2))
+
+
+@pytest.mark.parametrize("kit", [0, 1])
+def test_the_hats_are_bright_where_the_circuits_put_them(renderer, tmp_path, kit):
+    """The analogue hats' energy lies in a band near 5-8 kHz (the 808's: its
+    hat path's band-pass near 7.1 kHz and high-pass [reported: Baratatronix;
+    Werner, Abel and Smith]). Every hat pad, in both kits, has an RMS
+    frequency over 5.5 kHz in its first 50 ms, brighter than the snares and
+    the clap. (The first voicings put the Deep hats' band-pass at 1.8 kHz:
+    3.2-3.5 kHz RMS.)"""
+    for key in (CLOSED_HH, PEDAL_HH, OPEN_HH):
+        _, _, x = run(renderer, tmp_path, f"h{key}", [f"Kit={kit}"], [f"0:{key}:127:0.1"],
+                      seconds=0.2)
+        hz = rms_hz(x, 0.0, 0.05)
+        assert hz > 5500, (kit, key, hz)
+        for other in (SNARE, CLAP, SNARE2):
+            _, _, y = run(renderer, tmp_path, f"o{other}", [f"Kit={kit}"],
+                          [f"0:{other}:127:0.1"], seconds=0.2)
+            assert rms_hz(y, 0.0, 0.05) < hz, (kit, key, other)
 
 
 def test_cowbell_rings_at_its_two_pitches(renderer, tmp_path):

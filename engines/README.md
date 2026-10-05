@@ -131,13 +131,20 @@ cowbell on a tom's pad is a cowbell.
 | Kick | Analog Drum, about 1.7 s to −40 dB, a slight pitch sigh | Punch Drum, a drop from about 230 Hz at the attack to 58 Hz within 60 ms (one cycle's pitch: 125 Hz at 9 ms, 88 at 19, 68 at 32), about 0.27 s to −40 dB, a little drive |
 | Toms | Analog Drum, 0.45–0.6 s | Punch Drum, swept, 0.19 s |
 | Snares | Snare (808-style, two modes), Snap Snare | Snap Snare, Snare (with all five modes) |
-| Hi-hats | Hat: closed 0.09 s, pedal 0.23 s, open 0.65 s | Ring Hat: 0.075, 0.125 and 0.36 s |
+| Hi-hats | Hat: closed 0.09 s, pedal 0.23 s, open 0.65 s; most of their energy at 5–8 kHz | Ring Hat: 0.075, 0.125 and 0.36 s; 5–12 kHz |
 | Snares, clap, rim | 0.26 and 0.35 s, 0.29 s, 0.04 s | 0.35 and 0.21 s, 0.28 s, 0.03 s |
 | Cymbals | crash 3.1 s, ride 2.3 s | the same lengths, brighter |
 
 Times are to −40 dB under the loudest 5 ms, struck at full velocity,
 measured with `fm1-render` [verified 2026-10-05]; nothing here has been
-judged by ear yet, and the voicings are a first set.
+judged by ear yet, and the voicings are a first set. The review moved the
+hats' Tone up (Deep 0.6 to 0.85, pedal 0.8; Punch 0.65 to 0.92, pedal
+0.88): the first set put the Deep hats' band-pass at 1.8 kHz, with 45 % of
+their energy under 2 kHz, two octaves under the 808's hat band (its
+band-pass near 7.1 kHz and high-pass, energy at about 5–7 kHz [reported:
+Baratatronix]). Their levels in the kit keep their RMS over the first
+50 ms, and `kModelGain` still makes each model's own voicing peak at the
+same level [verified 2026-10-05: `fm1-render`].
 
 **Parameters.** Pad chooses which pad the per-pad parameters edit, as on
 Sophie; every pad keeps its own set. The knobs are relative to the pad's
@@ -241,7 +248,8 @@ Hat rings at a time, but for a choked one's 4 ms. Stage B measures it.
 model sounds cleanly; the deep kick holds 55 Hz and rings over a second,
 the punch kick sweeps and ends inside 0.5 s; Sweep moves the kick's drop;
 the toms rise with their keys within 35 cents; closed, pedal and open hats
-are short, middle and long; the cowbell rings at 800 Hz; the closed and
+are short, middle and long, and bright (an RMS frequency over 5.5 kHz in
+both kits, above the snares' and the clap's); the cowbell rings at 800 Hz; the closed and
 pedal hats choke the open one within 5 ms, also when its pad plays another
 model, and nothing else is cut; velocity and Accent, Volume, Level, Decay,
 Tune and the bend act; twelve voices hold and a thirteenth pad

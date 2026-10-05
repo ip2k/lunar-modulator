@@ -140,7 +140,7 @@ struct Voicing {
 // struck at full velocity [measured: fm1-render, 2026-10-05]; the voicings'
 // gains then balance the kit.
 const float kModelGain[MODEL_COUNT] = {
-  2.45f, 1.06f, 1.0f, 1.56f, 1.28f, 0.76f, 1.0f, 1.0f, 1.0f, 1.0f,
+  2.45f, 1.06f, 1.0f, 1.56f, 1.83f, 0.93f, 1.0f, 1.0f, 1.0f, 1.0f,
 };
 
 // What a pad given another model by its Model knob plays: the model's own
@@ -150,8 +150,8 @@ const Voicing kModelVoicing[MODEL_COUNT] = {
   { MODEL_PUNCH_DRUM,  0, 34.0f, 0.55f, 0.55f, 0.55f, 0.35f, 0.0f, 1.0f },
   { MODEL_SNARE,       0, 58.4f, 0.45f, 0.35f, 0.55f, 0.00f, 0.0f, 1.0f },
   { MODEL_SNAP_SNARE,  0, 55.0f, 0.50f, 0.70f, 0.60f, 0.30f, 0.0f, 1.0f },
-  { MODEL_HAT,         0, 56.0f, 0.50f, 0.60f, 0.20f, 0.00f, 0.0f, 1.0f },
-  { MODEL_RING_HAT,    0, 56.0f, 0.50f, 0.65f, 0.20f, 0.00f, 0.0f, 1.0f },
+  { MODEL_HAT,         0, 56.0f, 0.50f, 0.85f, 0.20f, 0.00f, 0.0f, 1.0f },
+  { MODEL_RING_HAT,    0, 56.0f, 0.50f, 0.92f, 0.20f, 0.00f, 0.0f, 1.0f },
   { MODEL_CYMBAL,      0, 56.0f, 0.60f, 0.45f, 0.50f, 0.00f, 0.0f, 1.0f },
   { MODEL_CLAP,        0, 83.2f, 0.45f, 0.50f, 0.50f, 0.00f, 0.0f, 1.0f },
   { MODEL_RIM,         0, 69.6f, 0.35f, 0.50f, 0.40f, 0.00f, 0.0f, 1.0f },
@@ -161,7 +161,9 @@ const Voicing kModelVoicing[MODEL_COUNT] = {
 // The two kits, pad by pad in Sophie's order (General MIDI's drum keys).
 // Deep: the long analogue kit. Punch: the synthetic kick and snare, the
 // ring-modulated hats, shorter decays. Toms take their pitch from their
-// key, a fourth up (41 sounds as 46).
+// key, a fourth up (41 sounds as 46). The hats' tone puts their band where
+// the circuits put theirs, most of the energy at 5-8 kHz (the 808's hat
+// band-pass is near 7.1 kHz [reported]; engines/README.md, "Drums").
 const int kNumKits = 2;
 const Voicing kKits[kNumKits][kNumPads] = {
   {  // Deep
@@ -171,11 +173,11 @@ const Voicing kKits[kNumKits][kNumPads] = {
     { MODEL_CLAP,        0, 83.2f, 0.45f, 0.50f, 0.50f, 0.00f, 0.0f, 0.90f },  // 39 Clap
     { MODEL_SNAP_SNARE,  0, 55.0f, 0.50f, 0.70f, 0.60f, 0.30f, 0.0f, 0.85f },  // 40 Snare 2
     { MODEL_ANALOG_DRUM, 0, 46.0f, 0.55f, 0.45f, 0.45f, 0.25f, 0.0f, 0.90f },  // 41 Low Tom
-    { MODEL_HAT,         1, 56.0f, 0.20f, 0.60f, 0.20f, 0.00f, 0.0f, 0.70f },  // 42 Closed HH
+    { MODEL_HAT,         1, 56.0f, 0.20f, 0.85f, 0.20f, 0.00f, 0.0f, 0.52f },  // 42 Closed HH
     { MODEL_ANALOG_DRUM, 0, 48.0f, 0.55f, 0.45f, 0.45f, 0.25f, 0.0f, 0.90f },  // 43 Floor Tom
-    { MODEL_HAT,         1, 56.0f, 0.40f, 0.50f, 0.25f, 0.00f, 0.0f, 0.55f },  // 44 Pedal HH
+    { MODEL_HAT,         1, 56.0f, 0.40f, 0.80f, 0.25f, 0.00f, 0.0f, 0.49f },  // 44 Pedal HH
     { MODEL_ANALOG_DRUM, 0, 50.0f, 0.52f, 0.45f, 0.45f, 0.25f, 0.0f, 0.85f },  // 45 Mid Tom
-    { MODEL_HAT,         1, 56.0f, 0.62f, 0.60f, 0.20f, 0.00f, 0.0f, 0.65f },  // 46 Open HH
+    { MODEL_HAT,         1, 56.0f, 0.62f, 0.85f, 0.20f, 0.00f, 0.0f, 0.50f },  // 46 Open HH
     { MODEL_ANALOG_DRUM, 0, 52.0f, 0.50f, 0.45f, 0.45f, 0.25f, 0.0f, 0.85f },  // 47 Low-Mid
     { MODEL_ANALOG_DRUM, 0, 53.0f, 0.50f, 0.45f, 0.45f, 0.25f, 0.0f, 0.85f },  // 48 High-Mid
     { MODEL_CYMBAL,      0, 56.0f, 0.60f, 0.45f, 0.50f, 0.00f, 0.0f, 0.60f },  // 49 Crash
@@ -189,11 +191,11 @@ const Voicing kKits[kNumKits][kNumPads] = {
     { MODEL_CLAP,        0, 81.0f, 0.40f, 0.60f, 0.55f, 0.00f, 0.0f, 0.90f },   // 39 Clap
     { MODEL_SNARE,       0, 57.0f, 0.40f, 0.80f, 0.60f, 0.00f, 0.0f, 0.85f },   // 40 Snare 2
     { MODEL_PUNCH_DRUM,  0, 46.0f, 0.45f, 0.50f, 0.50f, 0.40f, 0.0f, 0.85f },   // 41 Low Tom
-    { MODEL_RING_HAT,    1, 56.0f, 0.22f, 0.65f, 0.20f, 0.00f, 0.0f, 0.70f },   // 42 Closed HH
+    { MODEL_RING_HAT,    1, 56.0f, 0.22f, 0.92f, 0.20f, 0.00f, 0.0f, 0.85f },   // 42 Closed HH
     { MODEL_PUNCH_DRUM,  0, 48.0f, 0.45f, 0.50f, 0.50f, 0.40f, 0.0f, 0.85f },   // 43 Floor Tom
-    { MODEL_RING_HAT,    1, 56.0f, 0.40f, 0.55f, 0.25f, 0.00f, 0.0f, 0.55f },   // 44 Pedal HH
+    { MODEL_RING_HAT,    1, 56.0f, 0.40f, 0.88f, 0.25f, 0.00f, 0.0f, 0.43f },   // 44 Pedal HH
     { MODEL_PUNCH_DRUM,  0, 50.0f, 0.43f, 0.50f, 0.50f, 0.40f, 0.0f, 0.85f },   // 45 Mid Tom
-    { MODEL_RING_HAT,    1, 56.0f, 0.70f, 0.65f, 0.20f, 0.00f, 0.0f, 0.65f },   // 46 Open HH
+    { MODEL_RING_HAT,    1, 56.0f, 0.70f, 0.92f, 0.20f, 0.00f, 0.0f, 0.80f },   // 46 Open HH
     { MODEL_PUNCH_DRUM,  0, 52.0f, 0.42f, 0.50f, 0.50f, 0.40f, 0.0f, 0.80f },   // 47 Low-Mid
     { MODEL_PUNCH_DRUM,  0, 53.0f, 0.42f, 0.50f, 0.50f, 0.40f, 0.0f, 0.80f },   // 48 High-Mid
     { MODEL_CYMBAL,      0, 57.0f, 0.58f, 0.60f, 0.60f, 0.00f, 0.0f, 0.60f },   // 49 Crash
