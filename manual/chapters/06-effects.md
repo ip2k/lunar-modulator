@@ -597,9 +597,9 @@ frozen and held. It takes 49 KB of memory, three quarters of Plate's.
 - **Mod**, on page 2, gently moves the reverb's internal delays, like a
   slow chorus. It keeps long tails from sounding metallic; turn it down for
   a stiller, purer tail. It sounds the same every time you play.
-- **Freeze**, on page 2, holds the reverb as it is, for as long as it stays
-  on, and lets nothing new in: play over a frozen chord. Off lets it fade
-  away. It switches without a click, so once the sequencer and modulation
+- **Freeze**, on page 2, holds the reverb as it is and lets nothing new
+  in: play over a frozen chord. The hold lasts minutes, fading by about a
+  decibel a minute. Off lets it fade away. It switches without a click, so once the sequencer and modulation
   reach the effects, they will be able to turn it on and off in time.
 - **Width**, on page 3, narrows the reverb from wide stereo at the right to
   mono at the left.

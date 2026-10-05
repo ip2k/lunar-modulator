@@ -57,7 +57,8 @@ history.
   A second page has Pre-delay (up to 150 ms), Diffusion (separate early
   reflections or a smooth wash), Mod (a slow, chorus-like movement that
   keeps long tails from ringing metallic) and Freeze, which holds the tail
-  indefinitely and lets nothing new in; a third has Width (stereo to mono)
+  for minutes (it fades by about a decibel a minute) and lets nothing new
+  in; a third has Width (stereo to mono)
   and Low Cut (keeps the bass out of the reverb). Freeze switches without
   a click, so it is ready for sequencer locks and modulation once those
   reach the effects. It uses 49 KB of memory,
