@@ -6,7 +6,8 @@
 //   Plate     the reverb from Rings: Dattorro's plate topology (Griesinger
 //             loop: four input all-passes, then two all-pass + delay
 //             branches in a modulated loop). Mono in (L+R), stereo out.
-//             64 KB of 16-bit delay memory.
+//             64 KB of 16-bit delay memory. Freeze holds the tail: Elements'
+//             recipe (loop gain 1, no damping, no input) behind a 5 ms ramp.
 //   Ensemble  the string-machine ensemble from Plaits: three taps per side
 //             on two short delay lines, swept by a slow and a fast LFO at
 //             120 degrees. Stereo in, stereo out, with our Width control so
@@ -25,6 +26,8 @@
 //
 // Each effect renders sample by sample, so any block size 1..max_frames gives
 // the same output; the wrappers deinterleave in 32-frame chunks on the stack.
+// (rings::Reverb steps its LFOs on the write pointer, every 32nd sample, not
+// per Process call, so one call of n samples equals n calls of one.)
 // Every input sample passes the input guard first (Guard: NaN to 0, clamped
 // to +/-16), so bad input from upstream never reaches the loops.
 //
@@ -94,19 +97,39 @@ inline float Guard(float x) {
 // ---------------------------------------------------------------------------
 namespace plate {
 
-enum { P_MIX, P_DECAY, P_DAMPING, P_DIFFUSION, P_COUNT };
+enum { P_MIX, P_DECAY, P_DAMPING, P_DIFFUSION, P_FREEZE, P_COUNT };
+
+const char *const kOffOn[2] = { "Off", "On" };
 
 // Uids (API v2) are fixed: never renumber one; a new parameter takes the next
-// free uid. Every parameter is read each block: SMOOTH and MOD.
+// free uid. Every FLOAT is read each block: SMOOTH and MOD. Freeze is a
+// switch that changes cleanly (a 5 ms ramp, below), so it is lockable and
+// MOD; a route rounds it.
 const fm1_param_t kParams[P_COUNT] = {
   { "Mix",       FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
   { "Decay",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Decay" },
   { "Damping",   FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Damp" },
   { "Diffusion", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Diffus" },
+  { "Freeze",    FM1_PARAM_ENUM,  0, 1, 0.0f, kOffOn, 1, 5, FM1_PARAM_MOD, FM1_UNIT_NONE, "Freeze" },
 };
 
 // rings::Reverb is FxEngine<32768, FORMAT_16_BIT>: 32,768 uint16_t words.
 const size_t kDelayWords = 32768;
+const float kInputGain = 0.2f;                // what every upstream user sets
+
+// Freeze. Elements (elements/dsp/part.cc, MIT, 08460a6) freezes this reverb
+// by setting its loop gain to 1, its damping coefficient to 1 (no low-pass)
+// and its input gain to 0, at once, between blocks. Here the three move
+// together along a linear ramp f = 0..1 of kRampSeconds, sample by sample, so
+// neither the input nor the loop steps. The held level is the level the tail
+// had: the loop's all-passes and delay lines carry the louder recent past,
+// so raising the loop gain does not raise the wet at once (engines/mi-fx.md,
+// "Freeze"). Frozen, Decay and Damping wait until release; Mix and Diffusion
+// stay live. Before the first render Freeze snaps, as the house effects'
+// glides do, so a Plate loaded frozen holds an empty loop rather than the
+// first 5 ms of its input.
+const float kRampSeconds = 0.005f;
+const uint32_t kRampFallback = 221;           // 5 ms at 44,118 Hz
 
 // No constructor of our own: `new (mem) Instance()` value-initialises, which
 // zeroes the whole object first. rings::Reverb leaves its two damping-filter
@@ -115,10 +138,21 @@ struct Instance {
   rings::Reverb reverb;
   float value[P_COUNT];
   float native_over_host;
+  float time_base, lp_base;                   // loop gain and damping, from Decay and Damping
+  float inv_ramp_len;
+  uint32_t ramp, ramp_len;                    // Freeze's ramp: 0 (off) .. ramp_len (frozen)
+  bool freeze;                                // where the ramp is heading
+  bool running;                               // set by the first render
   alignas(16) uint16_t delay[kDelayWords];
 
   void Init(const fm1_host_t *host) {
     native_over_host = kRingsRate / host->sample_rate;
+    const float rate = host->sample_rate;
+    ramp_len = (rate >= 1000.0f && rate <= 1e6f)  // NaN fails too
+                   ? static_cast<uint32_t>(kRampSeconds * rate + 0.5f) : kRampFallback;
+    inv_ramp_len = 1.0f / static_cast<float>(ramp_len);
+    ramp = 0;
+    running = false;
     reverb.Init(delay);                       // clears the delay memory
     for (int i = 0; i < P_COUNT; ++i) value[i] = kParams[i].def;
     Apply();
@@ -126,13 +160,22 @@ struct Instance {
 
   // Ranges follow Rings (time 0.35..0.98 in part.cc, lp 0.3..0.9) and
   // Elements (diffusion 0.55..0.70 around the default 0.625), widened a
-  // little for diffusion. Input gain 0.2 is what every upstream user sets.
+  // little for diffusion.
   void Apply() {
-    reverb.set_amount(value[P_MIX]);
-    reverb.set_input_gain(0.2f);
-    reverb.set_time(RateLoopGain(0.35f + 0.63f * value[P_DECAY], native_over_host));
-    reverb.set_lp(RateOnePole(0.9f - 0.6f * value[P_DAMPING], native_over_host));
+    time_base = RateLoopGain(0.35f + 0.63f * value[P_DECAY], native_over_host);
+    lp_base = RateOnePole(0.9f - 0.6f * value[P_DAMPING], native_over_host);
     reverb.set_diffusion(0.5f + 0.25f * value[P_DIFFUSION]);
+    reverb.set_amount(value[P_MIX]);
+    freeze = value[P_FREEZE] >= 0.5f;
+    if (!running) ramp = freeze ? ramp_len : 0;
+    SetUnfrozen();
+  }
+
+  // The loop as it runs with Freeze off.
+  void SetUnfrozen() {
+    reverb.set_input_gain(kInputGain);
+    reverb.set_time(time_base);
+    reverb.set_lp(lp_base);
   }
 
   void Set(uint16_t index, float v) {
@@ -142,18 +185,74 @@ struct Instance {
   }
 
   void Render(float *lr, uint32_t frames) {
-    float l[kChunk], r[kChunk];
+    running = true;
     while (frames) {
-      const uint32_t n = frames < kChunk ? frames : kChunk;
-      for (uint32_t i = 0; i < n; ++i) {
-        l[i] = Guard(lr[2 * i]);              // the dry path too: upstream
-        r[i] = Guard(lr[2 * i + 1]);          // crossfades l, r in place
-      }
-      reverb.Process(l, r, n);
-      for (uint32_t i = 0; i < n; ++i) { lr[2 * i] = l[i]; lr[2 * i + 1] = r[i]; }
+      uint32_t n = frames < kChunk ? frames : kChunk;
+      if (ramp == 0 && !freeze) RenderUnfrozen(lr, n);
+      else if (ramp == ramp_len && freeze) RenderFrozen(lr, n);
+      else n = RenderRamp(lr, n);
       lr += 2 * n;
       frames -= n;
     }
+  }
+
+  // Freeze off: the code that ran before Freeze existed.
+  void RenderUnfrozen(float *lr, uint32_t n) {
+    float l[kChunk], r[kChunk];
+    for (uint32_t i = 0; i < n; ++i) {
+      l[i] = Guard(lr[2 * i]);                // the dry path too: upstream
+      r[i] = Guard(lr[2 * i + 1]);            // crossfades l, r in place
+    }
+    reverb.Process(l, r, n);
+    for (uint32_t i = 0; i < n; ++i) { lr[2 * i] = l[i]; lr[2 * i + 1] = r[i]; }
+  }
+
+  // Frozen: the loop runs on silence at amount 1, so l and r come back as the
+  // wet exactly (0 + (wet - 0) * 1), whatever the input does; the mix is
+  // ours, so at Mix 1 the input cannot reach the output at all.
+  void RenderFrozen(float *lr, uint32_t n) {
+#if defined(__clang__)
+#pragma STDC FP_CONTRACT OFF
+#endif
+    float l[kChunk], r[kChunk];
+    for (uint32_t i = 0; i < n; ++i) l[i] = r[i] = 0.0f;
+    reverb.set_amount(1.0f);
+    reverb.set_input_gain(0.0f);
+    reverb.set_time(1.0f);
+    reverb.set_lp(1.0f);
+    reverb.Process(l, r, n);
+    reverb.set_amount(value[P_MIX]);
+    const float mix = value[P_MIX], dry_gain = 1.0f - mix;
+    for (uint32_t i = 0; i < n; ++i) {
+      lr[2 * i] = Guard(lr[2 * i]) * dry_gain + l[i] * mix;
+      lr[2 * i + 1] = Guard(lr[2 * i + 1]) * dry_gain + r[i] * mix;
+    }
+  }
+
+  // The ramp, one sample per Process call, with upstream's own crossfade.
+  // Stops after the sample on which the ramp lands on 0 or ramp_len, so the
+  // caller takes the steady path from there; returns the frames done.
+  uint32_t RenderRamp(float *lr, uint32_t n) {
+#if defined(__clang__)
+#pragma STDC FP_CONTRACT OFF
+#endif
+    uint32_t i = 0;
+    while (i < n) {
+      if (freeze) ++ramp;
+      else --ramp;
+      const float f = ramp == ramp_len ? 1.0f : static_cast<float>(ramp) * inv_ramp_len;
+      reverb.set_time(time_base + (1.0f - time_base) * f);
+      reverb.set_lp(lp_base + (1.0f - lp_base) * f);
+      reverb.set_input_gain(kInputGain * (1.0f - f));
+      float l = Guard(lr[2 * i]), r = Guard(lr[2 * i + 1]);
+      reverb.Process(&l, &r, 1);
+      lr[2 * i] = l;
+      lr[2 * i + 1] = r;
+      ++i;
+      if (ramp == 0 || ramp == ramp_len) break;
+    }
+    if (ramp == 0) SetUnfrozen();
+    return i;
   }
 };
 

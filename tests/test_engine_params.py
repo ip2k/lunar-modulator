@@ -51,6 +51,7 @@ ENUM_FLAGS = {
     ("comp", "Auto Gain"): ["mod"],             # its makeup and its bound glide in
     ("limit", "Mode"): ["mod"],                 # glides the stage, frame by frame
     ("hall", "Freeze"): ["mod"],                # crossfades: the input fades as the decay holds
+    ("plate", "Freeze"): ["mod"],               # a 5 ms ramp: lockable, a route rounds it
 }
 
 
