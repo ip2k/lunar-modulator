@@ -1,0 +1,22 @@
+# Multi-sound from the panel (docs/15 §3.16, the lab switch on), with Macro
+# as Sound 1 and Shapes, through an Ensemble insert, as Sound 2:
+# PLAY/STOP; SHIFT (SEL held) + PRESETS makes Sound 2 current; a key and a
+# MIDI IN note play it, and KNOB2 turns its Timbre; FX mode, SELECT back to
+# the Mix page, KNOB2 and KNOB1 set the two levels; HOME, SHIFT + PRESETS
+# back to Sound 1, whose key and MIDI IN note play it; PLAY/STOP stops.
+--button 0.05:PLAY/STOP
+--button 0.30:SEL:0.20
+--turn 0.35:PRESETS:1
+--key 0.60:7:100:0.30
+--note 0.65:64:90:0.20
+--turn 0.70:KNOB2:10
+--button 0.90:FX
+--turn 0.95:SELECT:-1
+--turn 1.00:KNOB2:-20
+--turn 1.05:KNOB1:-10
+--button 1.10:HOME
+--button 1.20:SEL:0.20
+--turn 1.25:PRESETS:-1
+--key 1.40:0:100:0.30
+--note 1.50:60:80:0.25
+--button 2.20:PLAY/STOP

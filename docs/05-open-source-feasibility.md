@@ -10,8 +10,8 @@ there is no proven way to recover a bricked FM-1.**
 | Level | What runs | What stays closed | Effort | Status |
 | --- | --- | --- | --- | --- |
 | **L0** | stock M-VAVE firmware | everything | — | shipping |
-| **L1 — open application on the vendor stack** | our C/C++ application (synth, UI, MIDI, sequencer) built with the AC79 SDK: Apache-2.0 sources, headers, linker scripts | JieLi's Clang/LLVM 4.0.1 toolchain (binary), the SDK's `.a` libraries you link (`cpu.a`, `system.a`, `fs.a`, `btstack.a`, `btctrler.a`, `audio_server.a`, `ui.a`, …), the mask ROM | months for a usable synth | AL-255 built and linked a demo blob this way; never executed on device |
-| **L2 — blob-free application** | own drivers written against the public `WL82.h` register map and kagaimiq's peripheral notes; own RTOS or bare-metal scheduler; msfa engine; USB device stack from the open `usb.h` API or written fresh | toolchain and mask ROM; **Bluetooth** (the controller firmware and stack are closed; BLE-MIDI would need an open BLE stack on JieLi's radio, which nobody has done) | long; realistic without Bluetooth first | not started by anyone |
+| **L1 — open application on the vendor stack** | our C/C++ application (synth, UI, MIDI, sequencer) built with the AC79 SDK: Apache-2.0 sources, headers, linker scripts | JieLi's Clang/LLVM 4.0.1 toolchain (binary), the SDK's `.a` libraries you link (`cpu.a`, `system.a`, `fs.a`, `btstack.a`, `btctrler.a`, `audio_server.a`, `ui.a`, …), the mask ROM | months for a usable synth | AL-255 built and linked a demo blob this way, never executed on device; fm1-nes (Keitark) runs an SDK app on one V14 FM-1, written through mask ROM [reported; docs/04] |
+| **L2 — blob-free application** | own drivers written against the public `WL82.h` register map and kagaimiq's peripheral notes; own RTOS or bare-metal scheduler; msfa engine; USB device stack from the open `usb.h` API or written fresh | toolchain and mask ROM; **Bluetooth** (the controller firmware and stack are closed; BLE-MIDI would need an open BLE stack on JieLi's radio, which nobody has done) | long; realistic without Bluetooth first | done by others, without BLE: Felucca 1.0 (hugelton) and its fork SLOOP 2.2 (isod89) run bare metal on FM-1s, installed through the stock path [reported; docs/04] |
 | **L3 — open toolchain** | a GCC or LLVM backend for pi32v2 | mask ROM only | very long; the ISA is documented (kagaimiq opcode tables, ghidra-jieli SLEIGH, the vendor objdump as an oracle) but nobody has written a compiler backend | not started |
 | **L4 — open bootloader** | JieLi's Apache-2.0 `fw-Bootloader` builds `uboot.boot` for wl82 | mask ROM | small once L1 works | available today |
 
@@ -28,7 +28,9 @@ platform for features M-VAVE will never ship.
 1. **The chip is documented enough.** Register map in `WL82.h`, SDK drivers as
    reference code, datasheets in the SDK, the ISA documented by kagaimiq, and
    AL-255's 2062-function map of the stock app showing exactly how the vendor
-   drives the DAC, SPI display, key matrix, ADC, USB and flash on this board.
+   drives the audio output, SPI display, key matrix, ADC, USB and flash on
+   this board. Felucca and fm1-nes have since named the board's pins in
+   working code (docs/01 §3.1).
 2. **The toolchain exists and runs on Linux.** Closed, but freely downloadable,
    and AL-255 compiled C++11 for pi32v2 with it (`-fno-exceptions -fno-rtti`,
    libc/libm/compiler-rt provided). No Windows needed to compile; the vendor's
@@ -36,7 +38,7 @@ platform for features M-VAVE will never ship.
    re-implements the container in Python and `isd_download` has a Linux
    post-build package.
 3. **The synth engine is open.** msfa/Synth_Dexed is the same engine; porting
-   is a matter of build flags and a DAC ring buffer, not DSP research.
+   is a matter of build flags and an audio DMA ring buffer, not DSP research.
 4. **The update path has no cryptography.** CRC16 only; the chip key is in the
    package. Nothing legal or cryptographic stands between us and the flash.
 5. **Headroom.** Stock runs at 240 MHz of a possible 320, with 578 KB SRAM
@@ -92,7 +94,7 @@ memory in UBOOT mode).
 - Libraries: about 110 `.a` files per CPU in the SDK; the hello-world demo alone
   links `cpu.a`, `event.a`, `system.a`, `cfg_tool.a`, `fs.a`, `common_lib.a`,
   `update.a`. Blob-free means rewriting clock/power/cache init, the scheduler,
-  DMA/DAC/USB drivers and flash access from register documentation.
+  DMA/I2S/USB drivers and flash access from register documentation.
 - Redistribution: the SDK repository is Apache-2.0 as a whole, which arguably
   covers the `.a` files, but JieLi's intent for the toolchain is unclear
   (download terms, no license text). Do not vendor the toolchain in a public
@@ -121,7 +123,7 @@ radio hardware. An open firmware may have to ship without Bluetooth first.
 | CPU | 12 msfa voices on cpu1; FX, UI, MIDI, USB and BLE on cpu0; 240 MHz [inferred: docs/11 §2] | up to 320 MHz on both cores |
 | SRAM | ~135 KB static + heap + 23 KB display strips | 578 KB |
 | Flash | 583 KB app in a 1 MB map (VM 340 KB, USR 72 KB) | ~400 KB free if the VM region is shrunk; no room for large sample banks |
-| Audio | internal DAC, 44.1 kHz, 64-sample blocks (~1.5 ms) | I2S/SPDIF also on chip, unused on this board |
+| Audio | I2S (ALNK0) to an external codec, 44,117.6 Hz, 64-frame halves (~1.5 ms) [reported: Felucca, fm1-nes; docs/01 §3.1] | the internal DAC is on chip but unused on this board [reported] |
 | USB | USB-MIDI + UAC1 24-bit stereo | full-speed/high-speed device and host |
 
 msfa is integer fixed-point and was designed for 2012 Android phones; at
@@ -147,8 +149,10 @@ carry effects in float.
    through the USB-C port. If it works: dump, restore, dump again. If not: map
    the LQFP48 pins and try `UART_KEY`/ISP or the debug TAP via soldered wires.
 3. With recovery proven, port the SDK's `demo_hello` to the FM-1 board and
-   flash via mask ROM. Add UART logging over the MIDI TRS jack (it is the UART).
-4. Bring up display, keys, knobs, DAC; then msfa; then USB-MIDI; then presets.
+   flash via mask ROM. Log over USB CDC or on the TFT: the MIDI TRS jack is
+   UART RX only (docs/01 §3.1).
+4. Bring up display, keys, knobs, audio out (I2S); then msfa; then USB-MIDI;
+   then presets.
 5. Design the UI and sequencer with Movy's model as the reference (docs/06).
 6. Package the open firmware for the stock OTA path (new version number,
    stock head, stock loader), which Baud Girl's releases show works, so users

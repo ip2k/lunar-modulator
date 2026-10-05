@@ -759,4 +759,5 @@ extern "C" const fm1_engine_t fm1_engine_limit = {
   fm1::limit::InstanceSize, fm1::limit::Create, fm1::limit::Destroy,
   NULL, NULL, NULL,
   fm1::limit::Set, fm1::limit::RenderEntry,
+  NULL,                     // no notes, so no per-note offsets
 };

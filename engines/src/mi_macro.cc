@@ -17,6 +17,13 @@
 // mi_plaits_env.h has the details. At their defaults the output is what it
 // was before they existed, byte for byte.
 //
+// Per-note offsets (set_param_note, engine API v2; note_offsets.h): every
+// FLOAT parameter is POLY. A voice with an offset computes its controls from
+// its own values with the code that computes the engine's (Controls), and
+// adds its pitch offset to the note after the bend; a voice without one
+// plays the engine's controls, so a render without offsets is byte for byte
+// what it was before they existed.
+//
 // Rate: the engines are written for 47,872.34 Hz (Plaits' real I2S rate,
 // kCorrectedSampleRate), and their time constants and TIMBRE-derived rates
 // are counted in samples and blocks at that rate. They run at that rate here
@@ -34,12 +41,21 @@
 // does not depend on the host's block size. Note events land on the next
 // block rendered at 47,872.34 Hz (0.25 ms).
 //
+// SMOOTH parameters (every FLOAT here) ramp while a voice sounds: each
+// 12-sample block moves them a tenth of the way, so a change takes 2.5 ms at
+// 47,872.34 Hz (fm1_smooth.h). While no voice sounds a change applies at once.
+// A voice with a per-note offset computes its controls from the ramped
+// values plus its offsets, so its offsets ride on the ramp; an offset itself
+// applies at the next block, unramped.
+//
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
+#include "fm1_smooth.h"
 #include "mi_plaits_env.h"
+#include "note_offsets.h"
 
 #include <cstring>
 #include <new>
@@ -90,27 +106,32 @@ enum Param {
 // lock survives a swap between the two. Model rebuilds every voice (NOLOCK);
 // LPG is read every block and a change leaves the notes sounding, so it is
 // lockable, but not a modulation target (a note held under Off ends when
-// switched to Ping).
+// switched to Ping). Every FLOAT is POLY: each voice computes all of them
+// for itself once it has an offset (Controls below).
+const uint8_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
 const fm1_param_t kParams[P_COUNT] = {
   { "Model",     FM1_PARAM_ENUM,  0, MODEL_COUNT - 1, 0, kModelNames, 0,
     1, FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Model" },
-  { "Harmonics", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Harm" },
-  { "Timbre",    FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Timbre" },
-  { "Morph",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Morph" },
-  { "Decay",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Decay" },
-  { "Colour",    FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Colour" },
-  { "Volume",    FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Vol" },
+  { "Harmonics", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, kPoly, FM1_UNIT_NONE, "Harm" },
+  { "Timbre",    FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, kPoly, FM1_UNIT_NONE, "Timbre" },
+  { "Morph",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 4, kPoly, FM1_UNIT_NONE, "Morph" },
+  { "Decay",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 5, kPoly, FM1_UNIT_NONE, "Decay" },
+  { "Colour",    FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 6, kPoly, FM1_UNIT_NONE, "Colour" },
+  { "Volume",    FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 7, kPoly, FM1_UNIT_NONE, "Vol" },
   { "Env Pitch",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2,   // FM attenuverter
-    8, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "EnvPit" },
+    8, kPoly, FM1_UNIT_NONE, "EnvPit" },
   { "Env Timbre", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2,   // TIMBRE attenuverter
-    9, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "EnvTim" },
+    9, kPoly, FM1_UNIT_NONE, "EnvTim" },
   { "Env Morph",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2,   // MORPH attenuverter
-    10, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "EnvMor" },
+    10, kPoly, FM1_UNIT_NONE, "EnvMor" },
   { "LPG",        FM1_PARAM_ENUM, 0, LPG_MODE_COUNT - 1, LPG_GATE, kLpgModeNames, 2,
     11, 0, FM1_UNIT_NONE, "LPG" },
 };
 
 const int kNumVoices = 12;
+
+// A voice's per-note offsets: Harmonics .. Env Morph, and its pitch.
+typedef NoteOffsets<P_HARMONICS, P_LPG - P_HARMONICS> Offsets;
 
 constexpr size_t cmax(size_t a, size_t b) { return a > b ? a : b; }
 
@@ -144,6 +165,19 @@ struct Voice {
   bool active;
   bool rising;
   uint32_t age;
+  Offsets note;             // per-note offsets (set_param_note)
+};
+
+// What RenderBlock computes from the parameters, engine-wide, or for one
+// voice from its own values when it has offsets: the same function, so a
+// voice whose values equal the engine's gets the same numbers bit for bit.
+struct Controls {
+  float harmonics, timbre, morph;
+  float short_decay, decay_tail, hf;   // the decay envelope's and the LPG's times
+  float voice_gain;
+  bool chip_envelope;                  // Chip: Env Timbre sets its own envelope
+  float chip_shape;                    // ...to this
+  float env_pitch, env_timbre, env_morph;   // attenuverter amounts
 };
 
 class Instance {
@@ -155,6 +189,8 @@ class Instance {
         fm1_resampler_init(&resampler_, kCorrectedSampleRate, host->sample_rate) != 0;
     bend_ = 0.0f;
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
+    fm1_smooth_init(smooth_, value_, P_COUNT);
+    smooth_steps_ = fm1_smooth_steps(kCorrectedSampleRate, kBlockSize);
     model_ = MODEL_VA_VCF;
     clock_ = 0;
     memset(mix_, 0, sizeof(mix_));
@@ -171,6 +207,7 @@ class Instance {
     v->gate = true;
     v->rising = true;
     v->age = ++clock_;
+    v->note.Clear();   // a new note, a retrigger or a steal starts at no offset
     if (!v->active) {
       v->release = 1.0f;
       v->engine->Reset();
@@ -192,13 +229,22 @@ class Instance {
   void SetParam(uint16_t index, float value) {
     if (index >= P_COUNT) return;
     value = fm1_param_clamp(&kParams[index], value);
-    value_[index] = value;
+    fm1_smooth_set(&smooth_[index], &value_[index], value, Steps(index));
     if (index == P_MODEL) {
       int m = static_cast<int>(value + 0.5f);
       if (m != model_) {
         model_ = static_cast<Model>(m);
         BuildEngines();
       }
+    }
+  }
+
+  // The voice sounding `key` (one at most: a key retriggers in its own
+  // voice), gated or releasing, takes the offset.
+  void SetParamNote(uint8_t key, uint16_t index, float offset) {
+    if (!Offsets::Normalise(kParams, index, &offset)) return;
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active && voice_[i].key == key) voice_[i].note.Set(index, offset);
     }
   }
 
@@ -223,6 +269,15 @@ class Instance {
   }
 
  private:
+  // A SMOOTH parameter ramps while a voice sounds; anything else, at once.
+  uint32_t Steps(uint16_t index) const {
+    if (!(kParams[index].flags & FM1_PARAM_SMOOTH)) return 0;
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active) return smooth_steps_;
+    }
+    return 0;
+  }
+
   void BuildEngines() {
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
@@ -250,7 +305,39 @@ class Instance {
       v.release = 1.0f;
       v.gate = v.active = v.rising = false;
       v.age = 0;
+      v.note.Clear();
     }
+  }
+
+  Controls MakeControls(const float *value) const {
+    Controls c;
+    c.harmonics = value[P_HARMONICS];
+    c.timbre = value[P_TIMBRE];
+    c.morph = value[P_MORPH];
+    const float decay = value[P_DECAY];
+    c.hf = value[P_COLOUR];
+    c.short_decay = (200.0f * kBlockSize) / kSampleRate *
+        stmlib::SemitonesToRatio(-96.0f * decay);
+    c.decay_tail = (20.0f * kBlockSize) / kSampleRate *
+        stmlib::SemitonesToRatio(-72.0f * decay + 12.0f * c.hf) - c.short_decay;
+    c.voice_gain = value[P_VOLUME] * 0.25f / 32768.0f;
+    // The attenuverters, as Voice::Render applies them with TRIG patched. On
+    // Chip, TIMBRE's sets the engine's own envelope instead (engine index 7
+    // there); at 0 the engine keeps NO_ENVELOPE, as before this page existed.
+    c.chip_envelope = model_ == MODEL_CHIPTUNE && value[P_ENV_TIMBRE] != 0.0f;
+    c.chip_shape = value[P_ENV_TIMBRE];
+    c.env_pitch = AttenuverterAmount(value[P_ENV_PITCH]);
+    c.env_timbre = c.chip_envelope ? 0.0f : AttenuverterAmount(value[P_ENV_TIMBRE]);
+    c.env_morph = AttenuverterAmount(value[P_ENV_MORPH]);
+    return c;
+  }
+
+  // A voice's controls: the engine's, unless it has an offset.
+  Controls VoiceControls(const Voice &v, const Controls &shared) const {
+    if (!v.note.any()) return shared;
+    float value[P_COUNT];
+    for (int i = 0; i < P_COUNT; ++i) value[i] = v.note.Value(kParams, i, value_[i]);
+    return MakeControls(value);
   }
 
   Voice *Allocate(uint8_t key) {
@@ -272,27 +359,19 @@ class Instance {
   }
 
   void RenderBlock() {
+    fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     float mix[kBlockSize] = { 0 };
-    const float decay = value_[P_DECAY];
-    const float hf = value_[P_COLOUR];
-    const float short_decay = (200.0f * kBlockSize) / kSampleRate *
-        stmlib::SemitonesToRatio(-96.0f * decay);
-    const float decay_tail = (20.0f * kBlockSize) / kSampleRate *
-        stmlib::SemitonesToRatio(-72.0f * decay + 12.0f * hf) - short_decay;
-    const float voice_gain = value_[P_VOLUME] * 0.25f / 32768.0f;
+    const Controls shared = MakeControls(value_);
     const LpgMode lpg_mode = ToLpgMode(value_[P_LPG]);
-
-    // The attenuverters, as Voice::Render applies them with TRIG patched. On
-    // Chip, TIMBRE's sets the engine's own envelope instead (engine index 7
-    // there); at 0 the engine keeps NO_ENVELOPE, as before this page existed.
-    const bool chip_envelope = model_ == MODEL_CHIPTUNE && value_[P_ENV_TIMBRE] != 0.0f;
-    const float env_pitch = AttenuverterAmount(value_[P_ENV_PITCH]);
-    const float env_timbre = chip_envelope ? 0.0f : AttenuverterAmount(value_[P_ENV_TIMBRE]);
-    const float env_morph = AttenuverterAmount(value_[P_ENV_MORPH]);
 
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
       if (!v.active) continue;
+      const Controls c = VoiceControls(v, shared);
+      const float short_decay = c.short_decay;
+      const float decay_tail = c.decay_tail;
+      const float hf = c.hf;
+      const float voice_gain = c.voice_gain;
 
       EngineParameters p;
       p.trigger = (v.rising ? TRIGGER_RISING_EDGE : TRIGGER_LOW) |
@@ -307,18 +386,20 @@ class Instance {
       const float envelope = v.decay.value();
 
       // No clamp on the note, as before: NoteToFrequency clamps its own.
-      p.note = v.key + bend_ + env_pitch * (envelope * envelope * 48.0f);
-      p.harmonics = value_[P_HARMONICS];
-      p.timbre = Modulate(value_[P_TIMBRE], env_timbre, envelope, 0.0f, 1.0f);
-      p.morph = Modulate(value_[P_MORPH], env_morph, envelope, 0.0f, 1.0f);
+      float note = v.key + bend_;
+      if (v.note.has_pitch()) note += v.note.pitch;
+      p.note = note + c.env_pitch * (envelope * envelope * 48.0f);
+      p.harmonics = c.harmonics;
+      p.timbre = Modulate(c.timbre, c.env_timbre, envelope, 0.0f, 1.0f);
+      p.morph = Modulate(c.morph, c.env_morph, envelope, 0.0f, 1.0f);
       float level = v.gate ? v.velocity : 0.0f;
       float compressed = 1.3f * level / (0.3f + level);
       if (compressed > 1.0f) compressed = 1.0f;
       p.accent = compressed;
       if (model_ == MODEL_CHIPTUNE) {
         static_cast<ChiptuneEngine *>(v.engine)->set_envelope_shape(
-            chip_envelope ? value_[P_ENV_TIMBRE]
-                          : static_cast<float>(ChiptuneEngine::NO_ENVELOPE));
+            c.chip_envelope ? c.chip_shape
+                            : static_cast<float>(ChiptuneEngine::NO_ENVELOPE));
       }
 
       bool already_enveloped = v.engine->post_processing_settings.already_enveloped;
@@ -375,7 +456,9 @@ class Instance {
   }
 
   Voice voice_[kNumVoices];
-  float value_[P_COUNT];
+  float value_[P_COUNT];           // what the blocks read (SMOOTH: ramped)
+  fm1_smooth_t smooth_[P_COUNT];
+  uint32_t smooth_steps_;          // 12-sample blocks in a ramp
   Model model_;
   float bend_;
   uint32_t clock_;
@@ -401,6 +484,9 @@ void NoteOff(void *s, uint8_t k) { static_cast<Instance *>(s)->NoteOff(k); }
 void Bend(void *s, float st) { static_cast<Instance *>(s)->PitchBend(st); }
 void Set(void *s, uint16_t i, float v) { static_cast<Instance *>(s)->SetParam(i, v); }
 void Render(void *s, float *out, uint32_t n) { static_cast<Instance *>(s)->Render(out, n); }
+void SetNote(void *s, uint8_t k, uint16_t i, float o) {
+  static_cast<Instance *>(s)->SetParamNote(k, i, o);
+}
 
 }  // namespace macro
 }  // namespace fm1
@@ -413,4 +499,5 @@ extern "C" const fm1_engine_t fm1_engine_macro = {
   fm1::macro::InstanceSize, fm1::macro::Create, fm1::macro::Destroy,
   fm1::macro::NoteOn, fm1::macro::NoteOff, fm1::macro::Bend,
   fm1::macro::Set, fm1::macro::Render,
+  fm1::macro::SetNote,
 };

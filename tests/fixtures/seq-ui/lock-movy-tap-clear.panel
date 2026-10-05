@@ -1,0 +1,15 @@
+# Transcribed from Movy's browser-test/logic/automation.mjs at 9190e79
+# (github.com/DimaDake/schwung-movy, MIT, Copyright (c) 2026 megadake;
+# engines/third_party/movy/LICENSE) to the FM-1's panel (docs/15 S8).
+# Its "tap-to-clear": Movy clears a held step's lock with a knob touched and
+# let go unturned (`aclrs 0 0 4`). The FM-1's knobs have no touch, so it is
+# SHIFT and one detent of that knob (docs/15 §3.9); SHIFT's release then
+# clears no notes.
+--button 0.05:SEQ
+--key 0.10:7:100:0.8
+--turn 0.20:SELECT:1
+--turn 0.25:SELECT:1
+--turn 0.30:KNOB3:1
+--button 0.40:SEL:0.2
+--turn 0.50:KNOB3:1
+--button 1.00:PLAY/STOP

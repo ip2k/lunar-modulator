@@ -453,6 +453,7 @@ const fm1_engine_t fm1_engine_isolator = {
   IsoInstanceSize, IsoCreate, IsoDestroy,
   NULL, NULL, NULL,
   IsoSet, IsoRender,
+  NULL,                     // no notes, so no per-note offsets
 };
 
 #ifdef __cplusplus

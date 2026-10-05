@@ -1,0 +1,20 @@
+# Eight lanes on Macro's eight first lockable parameters, across its three
+# lock pages (Model, NOLOCK, skipped), the two last with a space in their
+# names (`synth:Env_Pitch`); a ninth (Env Morph) says "8 lanes used" and
+# sends nothing (docs/15 S8). Then the transport.
+--button 0.05:SEQ
+--key 0.10:7:100:1.0
+--turn 0.15:SELECT:1
+--turn 0.17:SELECT:1
+--turn 0.20:KNOB2:1
+--turn 0.22:KNOB3:1
+--turn 0.24:KNOB4:1
+--turn 0.30:SELECT:1
+--turn 0.32:KNOB1:-1
+--turn 0.34:KNOB2:-1
+--turn 0.36:KNOB3:-1
+--turn 0.40:SELECT:1
+--turn 0.42:KNOB1:5
+--turn 0.44:KNOB2:-5
+--turn 0.46:KNOB3:1
+--button 1.20:PLAY/STOP

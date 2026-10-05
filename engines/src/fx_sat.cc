@@ -625,6 +625,7 @@ const fm1_engine_t fm1_engine_sat = {
   SatInstanceSize, SatCreate, SatDestroy,
   NULL, NULL, NULL,
   SatSet, SatRender,
+  NULL,                     // no notes, so no per-note offsets
 };
 
 #ifdef __cplusplus

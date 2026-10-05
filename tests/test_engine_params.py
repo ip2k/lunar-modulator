@@ -18,7 +18,8 @@ from tests.engine_helpers import ENGINES, renderer  # noqa: F401
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "param-uids.json"
 SELFTEST = ENGINES / "build" / "fm1-schwung-selftest"
-FLAG_BITS = [(0x01, "latch"), (0x02, "smooth"), (0x04, "nolock"), (0x08, "mod"), (0x10, "input")]
+FLAG_BITS = [(0x01, "latch"), (0x02, "smooth"), (0x04, "nolock"), (0x08, "mod"), (0x10, "input"),
+             (0x20, "poly")]
 UNITS = ["none", "semi", "ms", "hz", "pct", "deg"]     # fm1_unit_t's order
 UID_MAX = 0x0FFF
 
@@ -26,7 +27,9 @@ UID_MAX = 0x0FFF
 # checked against each engine's code in this stage). Six-Op's Patch and
 # Sophie's pad parameters are read at note-on (LATCH), so they take
 # modulation too; Macro's LPG is read every block and lockable, but a
-# rounded route could end a note held under Off, so it takes none. The
+# rounded route could end a note held under Off, so it takes none. Sophie's
+# Pad, the edit focus, was NOLOCK until the owner made it lockable for the
+# lock pages (2026-10-02, docs/15 S8); it takes no modulation. The
 # rule for the effects' switches (owner, 2026-10-02): a switch-like control
 # that changes cleanly (it crossfades, glides or hands over, so no change,
 # however fast, steps the output) is lockable and modulatable, rounded when
@@ -39,7 +42,7 @@ ENUM_FLAGS = {
     ("macro-heavy", "LPG"): [],
     ("shapes", "Shape"): ["nolock"],            # every voice's oscillator at once
     ("sixop", "Patch"): ["latch", "mod"],       # read per voice at note-on
-    ("sw-sophie", "Pad"): ["nolock"],           # the edit focus, not a sound
+    ("sw-sophie", "Pad"): [],                   # the edit focus: lockable (owner, docs/15 S8)
     ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
     ("sw-sophie", "Filter Type"): ["latch", "mod"],
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
@@ -110,8 +113,8 @@ def test_uids_are_unique_nonzero_12_bit_and_never_reused(built):
 def test_flags_follow_the_rules(built):
     """NOLOCK never with MOD; every FLOAT takes modulation unless it is NOLOCK
     and is SMOOTH unless the engine reads it at note-on (LATCH); LATCH and
-    SMOOTH never together; INPUT only on a FLOAT -1..1 with default 0; no
-    unknown bit."""
+    SMOOTH never together; INPUT only on a FLOAT -1..1 with default 0; POLY
+    only on a FLOAT that takes modulation, never an INPUT; no unknown bit."""
     for eid, params in built.items():
         for p in params:
             f = set(p["flags"])
@@ -122,6 +125,20 @@ def test_flags_follow_the_rules(built):
                 assert "mod" in f and ("smooth" in f or "latch" in f), (eid, p["name"])
             if "input" in f:
                 assert p["type"] == "float" and (p["min"], p["max"], p["def"]) == (-1, 1, 0)
+            if "poly" in f:
+                assert p["type"] == "float" and "mod" in f and "input" not in f, (eid, p["name"])
+
+
+def test_per_note_engines_match_the_fixture(renderer, built):
+    """set_param_note is there exactly on the engines the fixture names, and
+    only those have POLY parameters (every one of them has some)."""
+    pinned = json.loads(FIXTURE.read_text())["per_note"]
+    listed = json.loads(subprocess.run([str(renderer), "--list"], check=True,
+                                       capture_output=True, text=True).stdout)
+    assert sorted(e["id"] for e in listed if e["per_note"]) == sorted(pinned)
+    with_poly = {eid for eid, params in built.items()
+                 if any("poly" in p["flags"] for p in params)}
+    assert with_poly == set(pinned)
 
 
 def test_every_enum_has_its_decided_flags(built):
@@ -176,6 +193,15 @@ def test_schwung_uids_derive_from_the_module_keys(renderer, engine):
     c = json.loads(subprocess.run([str(SELFTEST), "--contract", engine], check=True,
                                   capture_output=True, text=True).stdout)
     assert [p["uid"] for p in c["params"]] == [fnv1a_uid(p["key"]) for p in c["params"]]
+
+
+def test_the_shim_has_a_ramp_for_every_smooth_parameter(built):
+    """The Schwung shim keeps eight SMOOTH ramps per instance (kMaxRamps in
+    src/schwung_shim.cc, docs/15 S7b); a module with more SMOOTH parameters,
+    hidden ones included, would leave the rest unramped."""
+    for eid, params in built.items():
+        if eid.startswith("sw-"):
+            assert sum("smooth" in p["flags"] for p in params) <= 8, eid
 
 
 def test_native_uids_stay_below_the_derived_range(built):

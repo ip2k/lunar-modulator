@@ -78,6 +78,67 @@
  *                  that no step takes is live input (fm1_app_seq_note_in),
  *                  for recording and Capture
  *
+ * S6 adds tracks, mute and the Set, Clip and Track pages (docs/15 §5 S6,
+ * owner decisions O3, O10-O12: 8 tracks, routed to the sound units, a
+ * metronome click, no solo):
+ *
+ *   SEQ + white key 1-8   focuses track 1-8 (`watch t`, which empties
+ *                  Capture: a toast says so when it held notes), from any
+ *                  mode: SEQ's press opens SEQ mode, and a focus made while
+ *                  it is held goes back to the mode it came from on release
+ *   C#5, D#5       the previous and next track (MONO, POLY printed)
+ *   F#4            MUTE (OP6): a tap mutes or unmutes the focused track
+ *                  (`mute t 0|1`); held, white keys 1-8 mute and unmute
+ *                  tracks 1-8, lit while they sound. SHIFT changes nothing
+ *                  (no solo, O12)
+ *   SHIFT + key    2: the Track page, 3: the Clip page, 5, 7, 9: the Set
+ *                  page, 6: the metronome (`metro`), 16: the focused clip's
+ *                  quantize on to the next of 0, the default, 100 (`cq`),
+ *                  as Movy's step-shortcuts.ts; their legend fills the grid
+ *                  while SHIFT is held
+ *   the pages      KNOB1-4 on the Set page: TEMPO (`bpm`, 1 BPM a detent,
+ *                  0.1 with SHIFT), SWING (50-80 %), DEF QUANT (`dq`, Movy's
+ *                  0-100 % list), METRO; on the Clip page: SPEED (`cscl`,
+ *                  1/8X to 4X), LENGTH (`clen`, 1-256 steps), TRANSPOSE
+ *                  (`ctr`, +-36), QUANT (`cq`); on the Track page: ROUTE
+ *                  (a sound unit or MIDI out), SOUND 1-4 or CHANNEL 1-16
+ *                  (`route`), MUTE; Track page 2 lists the lanes, read only.
+ *                  SELECT walks the sound's pages, then Set, Clip, Track
+ *                  1/2 and 2/2; SEQ goes back to the Track view, and so does
+ *                  a step or bar key
+ *
+ * S8 adds parameter locks from KNOB1-4 (docs/15 §5 S8, owner decision O14:
+ * one 7-bit step a detent, the bins for a list; locked values in the
+ * parameter's own units; effect slots not lockable yet). A lock targets the
+ * sound unit the focused track routes to (the "lock sound", which the app
+ * resolves, fm1_seq_ui_sound_t):
+ *
+ *   lock pages     with one step held, SELECT walks on past Step 2/2 to the
+ *                  lock sound's pages. The first turn of a parameter
+ *                  without a lane labels one (`alabel t lane synth:<Name>`,
+ *                  a space written '_'), sends its base (`abase`, the
+ *                  knob's value on the 7-bit grid, which the app snaps the
+ *                  knob to: snap), then every turn moves the step's lock a
+ *                  step from the lock, else the base (`aset t lane s v 1`,
+ *                  quiet: Movy's held-step lock). A NOLOCK parameter says
+ *                  so ("<Name>" / "cannot be locked") and a ninth lane
+ *                  "8 lanes used". With several steps held the lock pages
+ *                  edit the sound, with no lock
+ *   SHIFT + detent on a lock page, a step held: `aclrs`, that lane's lock
+ *                  on the step
+ *   D#4            CLEAR (OP5): with steps held, `aclrstep` for each with a
+ *                  lock; held, a knob detent clears that parameter's lane
+ *                  (`aclr`, on a lock page or the sound's page); a tap does
+ *                  nothing yet (S9 deletes the clip), nor CLEAR + a step
+ *   live take      a knob turned on the lock sound's page (HOME or the
+ *                  Track view) while the focused track records: `aset t
+ *                  lane step v`, heard (Movy's live take, no quiet flag),
+ *                  at the playing step; detents add up until 600 ms pass
+ *                  without one, Movy's knob release
+ * The knob grid and the lanes' bases with no step held are the app's
+ * (fm1_app.c): a laned parameter turns on the 7-bit grid and every lane on
+ * it, of every track that plays that sound, follows at once (`abaseq`).
+ *
  * C99, no heap, no stdio. MIT licence, like the rest of this repository.
  */
 #ifndef FM1_SEQ_UI_H_
@@ -85,6 +146,7 @@
 
 #include <stdint.h>
 
+#include "fm1_engine.h"
 #include "fm1_panel.h"
 #include "fm1_seq.h"
 
@@ -95,8 +157,13 @@ extern "C" {
 /* What the screen shows in SEQ mode. */
 enum {
   FM1_SEQ_VIEW_TRACK = 0,           /* the Track view: grid, knob strip, hint */
-  FM1_SEQ_VIEW_STEP = 1             /* the held steps' Step page (step_page) */
+  FM1_SEQ_VIEW_STEP = 1,            /* the held steps' Step page (step_page) */
+  FM1_SEQ_VIEW_SET = 2,             /* the Set page: tempo, swing, default quantize, metro */
+  FM1_SEQ_VIEW_CLIP = 3,            /* the Clip page: speed, length, transpose, quantize */
+  FM1_SEQ_VIEW_TRACKPG = 4          /* the Track page (track_page 0: route and mute;
+                                       1: the lanes) */
 };
+#define FM1_SEQ_UI_TRACK_PAGES 2
 
 /* What the Track view's hint line holds instead of the model line. */
 enum { FM1_SEQ_HINT_NONE = 0, FM1_SEQ_HINT_KNOB, FM1_SEQ_HINT_BAR };
@@ -105,7 +172,16 @@ enum { FM1_SEQ_HINT_NONE = 0, FM1_SEQ_HINT_KNOB, FM1_SEQ_HINT_BAR };
 enum {
   FM1_SEQ_TOAST_NONE = 0, FM1_SEQ_TOAST_FULL_VEL_ON, FM1_SEQ_TOAST_FULL_VEL_OFF,
   FM1_SEQ_TOAST_CAPTURED,           /* a Capture wrote its take */
-  FM1_SEQ_TOAST_NOTHING             /* SHIFT + REC with nothing buffered */
+  FM1_SEQ_TOAST_NOTHING,            /* SHIFT + REC with nothing buffered */
+  FM1_SEQ_TOAST_TRACK,              /* a track focused (toast_arg); */
+  FM1_SEQ_TOAST_TRACK_EMPTIED,      /* ...and Capture's notes went with the `watch` */
+  FM1_SEQ_TOAST_METRO_ON, FM1_SEQ_TOAST_METRO_OFF,
+  FM1_SEQ_TOAST_QUANT,              /* SHIFT + 16: the clip's quantize, toast_arg % */
+  FM1_SEQ_TOAST_LANES_FULL,         /* a ninth lane (S8) */
+  FM1_SEQ_TOAST_NOLOCK,             /* the lock sound's parameter toast_arg is NOLOCK */
+  FM1_SEQ_TOAST_LOCK_CLEARED,       /* `aclrs`: parameter toast_arg's lock on the step */
+  FM1_SEQ_TOAST_LANE_CLEARED,       /* `aclr`: parameter toast_arg's lane */
+  FM1_SEQ_TOAST_LOCKS_CLEARED       /* `aclrstep` on the held steps */
 };
 
 /* What REC's press did, for its release (fm1_seq_ui_t.rec_role). */
@@ -130,6 +206,44 @@ enum { FM1_SEQ_UI_CAPTURE_NONE = 0, FM1_SEQ_UI_CAPTURE_PICK = 1, FM1_SEQ_UI_CAPT
 #define FM1_SEQ_UI_KEY_BAR_BACK 1   /* F#3: the previous bar; nudge earlier */
 #define FM1_SEQ_UI_KEY_BAR_ON 5     /* A#3: the next bar; nudge later */
 #define FM1_SEQ_UI_FULL_VEL_KEY 9   /* SHIFT + white key 10: full velocity */
+#define FM1_SEQ_UI_KEY_CLEAR 10     /* D#4 (OP5): CLEAR (S8) */
+#define FM1_SEQ_UI_KEY_MUTE 13      /* F#4 (OP6): MUTE */
+#define FM1_SEQ_UI_KEY_TRACK_PREV 20   /* C#5 (MONO): the previous track */
+#define FM1_SEQ_UI_KEY_TRACK_NEXT 22   /* D#5 (POLY): the next track */
+#define FM1_SEQ_UI_SOUNDS 4         /* sound units a track can play (the app's FM1_APP_SOUNDS) */
+
+/* The sound a lock targets: the sound unit the focused track routes to, as
+ * the app resolves it (docs/15 §3.16), and whether the knobs turn it now. */
+typedef struct fm1_seq_ui_sound {
+  const fm1_engine_t *e;            /* NULL: the track plays MIDI out or an empty sound */
+  const float *value;               /* its parameters' values: the knobs', which the
+                                       lanes' bases follow */
+  int current;                      /* it is the current sound: HOME's and the Track
+                                       view's knobs turn it */
+} fm1_seq_ui_sound_t;
+
+/* A sound's knob pages, and the parameters of one: the first four with that
+ * page, in index order (the app's own rule). */
+int fm1_seq_ui_pages(const fm1_engine_t *e);
+int fm1_seq_ui_page_params(const fm1_engine_t *e, int page, int out[4]);
+
+/* The lane of `track` whose label names parameter `param` of e (the bridge's
+ * rule, fm1_seq_lane_param), or -1. */
+int fm1_seq_ui_lane_of(const fm1_seq_t *s, unsigned track, const fm1_engine_t *e, int param);
+
+/* The Clip page's SPEED, Movy's SCALE_RATIONALS (src/seq/clip-scale.ts at
+ * 9190e79), and the quantize list of the Set and Clip pages (quant.ts). */
+#define FM1_SEQ_UI_SPEEDS 8
+#define FM1_SEQ_UI_SPEED_1X 4
+#define FM1_SEQ_UI_QUANTS 11
+extern const uint8_t fm1_seq_ui_speeds[FM1_SEQ_UI_SPEEDS][2];
+extern const uint8_t fm1_seq_ui_quants[FM1_SEQ_UI_QUANTS];
+/* The speed list's index of num/den (1X off the list), the quantize list's
+ * nearest, and Movy's SHIFT + 16 cycle: the next of 0, the default and 100
+ * above `pct`, wrapping. */
+int fm1_seq_ui_speed_index(unsigned num, unsigned den);
+int fm1_seq_ui_quant_index(unsigned pct);
+unsigned fm1_seq_ui_next_quant(unsigned pct, unsigned def);
 
 /* Movy's Step page values (src/seq/step-page-vm.ts at 9190e79, MIT,
  * megadake): LEN in ticks (24 a step, 384 a bar), PROB in percent. */
@@ -177,6 +291,8 @@ typedef struct fm1_seq_ui_hold {
   uint8_t vel, pitch;               /* its first note's */
   uint8_t gate_mixed;               /* its notes differ in length (LEN shows "...") */
   uint8_t prob, cond_a, cond_b, inv;   /* its whole-step trig row, or the defaults */
+  uint8_t lock_mask;                /* lanes with a lock on it (S8), */
+  fm1_seq_val_t lock[FM1_SEQ_LANES];   /* and their 7-bit values */
 } fm1_seq_ui_hold_t;
 
 typedef struct fm1_seq_ui {
@@ -258,6 +374,37 @@ typedef struct fm1_seq_ui {
   uint8_t cap_sent;                 /* a `cap` went: the next sync says what it did */
   uint16_t capture_cands[3];        /* candidate tempos, BPM, ascending */
   uint32_t capture_gen, cap_gen_sent;
+
+  /* Tracks, mute and the pages (S6). The set's and the focused track's
+   * settings are read once per block, and moved at once by the commands
+   * the pages send, so a second detent before the next block counts. */
+  uint8_t tracks;                   /* the instance's track count */
+  uint8_t track_page;               /* the Track page shown (page memory, O21) */
+  uint8_t seq_held, seq_gestured;   /* SEQ is down; a track was focused while it was */
+  uint8_t mute_held, mute_gestured; /* MUTE is down; the mute map was used */
+  uint8_t follow;                   /* the focused track or its route changed here:
+                                       the app makes its sound current */
+  uint8_t toast_arg;                /* the toast's number: a track, a quantize */
+  uint16_t muted;                   /* bit per track */
+  uint16_t swing;                   /* the set's swing, 50..80 % */
+  uint8_t dq, metro;                /* its default quantize and metronome */
+  uint8_t clip_num, clip_den;       /* the focused clip's speed, */
+  uint8_t clip_quant;               /* quantize */
+  int8_t clip_tr;                   /* and transpose */
+  uint8_t route_kind, route_index;  /* the focused track's route (FM1_SEQ_ROUTE_*) */
+
+  /* Locks (S8). */
+  uint64_t locks;                   /* steps grid_first.. with a lock */
+  uint8_t lanes;                    /* the focused track's lanes in use, bit per lane */
+  uint8_t lock_pages;               /* the lock sound's knob pages (fm1_seq_ui_lock_pages) */
+  uint8_t clear_held;               /* CLEAR (D#4) is down */
+  int8_t snap;                      /* a lane was made on this parameter of the lock
+                                       sound: the app puts the knob on the 7-bit grid
+                                       (-1: none) */
+  int8_t take_param;                /* a live take's parameter of the lock sound, -1 none */
+  uint8_t take_lane, take_v;        /* its lane and its 7-bit value */
+  uint32_t take_idle;               /* ceil(0.6 x rate): a pause this long ends the take */
+  uint64_t take_frame;              /* its last detent */
 } fm1_seq_ui_t;
 
 /* Track 1 focused, the Track view, bar 1, Step page 1, no hint, nothing
@@ -267,6 +414,11 @@ void fm1_seq_ui_init(fm1_seq_ui_t *u, float rate);
 /* SEQ pressed: the Track view (from S9 a press inside SEQ mode goes to
  * Session; in S4 it stays). */
 void fm1_seq_ui_enter(fm1_seq_ui_t *u);
+
+/* A page of SEQ mode (FM1_SEQ_VIEW_SET, _CLIP or _TRACKPG), as SELECT
+ * reaches it past the sound's last page; any other view is the Track view.
+ * Nothing is sent. */
+void fm1_seq_ui_open(fm1_seq_ui_t *u, int view);
 
 /* SEQ mode left (HOME, FX, GLO, the lab switch off): the held steps are let
  * go without toggling, and the Track view comes back next time. Keys still
@@ -290,7 +442,8 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
  * `mode` (fm1_app_mode_t). Returns 1 when the UI took it and the app must
  * not act on it as well: SEL as SHIFT, OCT with steps held, REC, and any
  * press while Capture's overlay is up (it closes the overlay); PLAY/STOP's
- * command is sent here, and the app only keeps its LED. */
+ * command is sent here, and the app only keeps its LED. SEQ's edges are
+ * noted (seq_held) and left to the app. */
 int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down, uint64_t frame,
                       int mode, const fm1_seq_ui_emit_t *out);
 
@@ -306,12 +459,34 @@ int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int v
 int fm1_seq_ui_has_key(const fm1_seq_ui_t *u, int key);
 
 /* An encoder turned (fm1_app_encoder_t): 1 when the UI took it (in SEQ
- * mode, SELECT and KNOB1..4 with steps held; in any mode while Capture's
- * overlay is up: SELECT and KNOB1 move the picker, and over the fitted
- * tempo do nothing, as Movy's jog; the others close it); 0 leaves it to
- * the app. */
+ * mode, SELECT and KNOB1..4 with steps held or on the Set, Clip and Track
+ * pages; in any mode while Capture's overlay is up: SELECT and KNOB1 move
+ * the picker, and over the fitted tempo do nothing, as Movy's jog; the
+ * others close it); 0 leaves it to the app. With steps held SELECT walks
+ * the Step pages and then the lock pages of `snd` (S8), and a knob on a
+ * lock page locks the held step's parameter; with several steps held a lock
+ * page's knob is left to the app (0), which turns the sound's parameter on
+ * page step_page - FM1_SEQ_UI_STEP_PAGES, unless CLEAR is held: then it
+ * clears that parameter's lane, however many steps are held. `snd` may be
+ * NULL: no lock sound. */
 int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int delta,
-                       uint64_t frame, int mode, const fm1_seq_ui_emit_t *out);
+                       uint64_t frame, int mode, const fm1_seq_ui_sound_t *snd,
+                       const fm1_seq_ui_emit_t *out);
+
+/* The lock sound's page count (0: none, so no lock pages), each block and
+ * before an encoder: a remembered lock page past it falls back to the last
+ * one, or to Step page 2/2. */
+void fm1_seq_ui_lock_pages(fm1_seq_ui_t *u, int pages);
+
+/* A detent of a knob on the current sound's page outside the SEQ pages and
+ * held steps (HOME, the Track view): `param` its parameter. The UI takes it
+ * (1) with CLEAR held (`aclr` of that parameter's lane on the focused track,
+ * when the lock sound is the current one) and for a live take while the
+ * focused track records and the lock sound is the current one (a lockable
+ * parameter: `aset` at the playing step, heard; the lane made first if
+ * needed, or "8 lanes used"); otherwise 0, and the app turns the knob. */
+int fm1_seq_ui_sound_knob(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_sound_t *snd,
+                          int param, int delta, uint64_t frame, const fm1_seq_ui_emit_t *out);
 
 /* A note played on the sound, from MIDI IN or from a key outside SEQ mode
  * (velocity 0 releases it). In step record (SEQ mode) it enters its pitch at
@@ -344,7 +519,9 @@ void fm1_seq_ui_knob(fm1_seq_ui_t *u, int knob, uint64_t until);
 /* The keys' LEDs in SEQ mode at `frame`, bit per key index: white keys show
  * the bar's steps with a note inside the loop, the playhead inverted, held
  * keys lit and the steps under the held step's note blinking slowly; F#3
- * and A#3 are lit while their role is available. */
+ * and A#3, MUTE and the track keys are lit while their role is available.
+ * With MUTE held, white keys 1-8 are the mute map, lit while their track
+ * sounds; with SEQ held, the focused track's key is lit. */
 uint32_t fm1_seq_ui_key_leds(const fm1_seq_ui_t *u, uint64_t frame);
 
 /* The steps of the bar on the keys that are held (bit n for white key n). */

@@ -84,6 +84,148 @@ history.
   swept, so turning or modulating a band does not click. It computes the
   same samples in the browser as in a native build (engines/README.md,
   "EQ").
+- Per-note sound changes, the groundwork for per-voice modulation: Macro,
+  Macro Heavy, Six-Op FM and Shapes can now move one playing note's sound
+  (its timbre, level, envelope times and the like, and its pitch) without
+  touching the other notes. A note's changes last through its release and
+  are cleared when the key is played again or its voice is reused. Nothing
+  sounds different until something uses it; the envelopes and LFOs that
+  will drive it come with the modulation work (docs/16, stage MG9). Sophie
+  and the effects do not take per-note changes. For developers: the engine
+  API's `set_param_note` and `POLY` flag, and `fm1-render
+  --note-param-at` / `--note-pitch-at` (engines/README.md, "Per-note
+  offsets").
+- **Modulation, second stage (docs/16 MG2): thirteen more modules** for the
+  modulation rack, in the engine and `fm1-render`; not yet playable in the
+  simulator or on the FM-1.
+  - **Function**: a rise-and-fall function generator in the spirit of
+    Maths and Contour 1: one-shot, attack-release, cycling, gated cycling
+    and a shaped slew, with end-of-rise and end-of-cycle triggers, hold and
+    tempo sync.
+  - **Bounce**: Mutable Instruments Peaks' bouncing ball, exactly as Peaks
+    computes it, with a trigger at each bounce.
+  - **Burst**: Peaks' ratchets, trigger delays and random repeats, exactly
+    as Peaks makes them, plus accelerating ratchets and repeats that follow
+    a clock.
+  - **Register**: a looping random shift register after the Turing
+    Machine, with a gate that flips the next bit and a pitch output in
+    whole notes.
+  - **Coin** (a random gate switch after Branches), **Divide** (two clock
+    dividers, multipliers, Euclidean rhythms or chance gates, with swing
+    and delay), **Slew** (six outputs fanned out in time), **Quantize**
+    (Braids' 49 scales and ragas, exactly as Braids quantises), **Compare**
+    (threshold, window and trend gates, placed to the sample), **Logic**
+    (gates and flip-flops), **Calc** (arithmetic on two signals) and
+    **Mix** (four inputs with gains).
+  - **Filter**: a resonant low-, band- and high-pass filter for
+    modulation signals. Turned up, a note or any gate makes it ring, a
+    decaying wobble at its cutoff that can move any knob.
+  - Every module repeats exactly for a given seed, at any block size, and
+    the Peaks and Braids parts were checked output for output against the
+    original code. Documented in `engines/mod/kinds.md`.
+- **Modulation, first stage (docs/16 MG1):** the engine and `fm1-render` can
+  now modulate sounds; not yet playable in the simulator or on the FM-1.
+  - A rack of up to 8 modulation modules inside a matrix of 32 cables. Any
+    module output can move a sound, effect or host parameter, or another
+    module's knob, input or gate, so modules chain: a chain of four arrives
+    in the same 0.7 ms step as a single cable, whatever order the rack is
+    in. Feedback loops are allowed and run one step late.
+  - Three modules: **LFO** (eight shapes, free, trig, hold, one-shot and
+    half-cycle modes, and sync to the sequencer's tempo), **Envelope** (ADSR
+    or AD after Mutable Instruments' Peaks, with loops; with no cable it
+    follows the keys) and **Chance** (sample-and-hold, track-and-hold,
+    smooth random and drift).
+  - Sources from playing: velocity, note, a random value per note, the key
+    gate and note trigger, and the sequencer's clock, beats, bars, start,
+    transport and each track's gates and velocities.
+  - A gate cable set below 100 % lets each trigger through with that
+    chance, the same way every time for a given seed. Turning a cable's
+    depth, plugging and unplugging a gate cable while a note is held, or
+    replacing the module at its other end, never leaves an envelope stuck
+    open.
+  - Pitch (added to the pitch bend) and a tremolo gain can be modulated too.
+  - A sequencer lock moves a parameter's centre while modulation keeps
+    swinging round it, and Stop puts the centre back.
+  - Every render without an active cable is byte for byte what it was, and
+    the output is the same at any block size with cables active.
+  - `fm1-render --mod FILE`, `--log-mod` and `--list-mod` (one sound unit:
+    not with the multi-sound flags yet; `--param-at`, `--fx-param-at` and
+    `--bend` move the bases), documented in
+    `engines/mod/README.md`, tested in `tests/test_engines_mod_runtime.py`
+    and `fm1-mod-core-test`. The JieLi compile check covers the modulation
+    code too.
+- notes/2026-10-05-community-repos.md: what Lunar learns from JieLi's current
+  AC79 SDK on Gitee and from three FM-1 projects, Felucca (with its recovery
+  tool FM-1-transporter), its fork SLOOP, and fm1-nes. Other open firmware
+  already runs on FM-1s, installed and rolled back through the stock update
+  path. Two independent code bases map the board: audio leaves over I2S to an
+  external codec rather than the internal DAC, the encoders are read through
+  the key matrix, and the display, matrix, MIDI and flash pins are named. A
+  running app can enter the chip's ROM loader without a dongle (including a
+  stock SysEx command that this project must not send before the dump-and-
+  restore gate). It lists about 30 corrections to our docs and ten owner
+  decisions.
+- Parameter locks on the virtual FM-1's panel, still behind the lab switch
+  (`?lab`; docs/15 stage S8).
+  - Hold a step and turn SELECT past its two Step pages: the next pages
+    are the sound's own, and a knob there locks its parameter on that
+    step. The locked value shows in the parameter's own units, in gold,
+    over the dim value it has on the other steps, and a dot after the bar
+    marks a parameter with a lane (a track has eight). A step with locks
+    gets a gold dot in the grid.
+  - A lock goes to the sound the track plays, even when another sound is
+    the one the keys play.
+  - Parameters that cannot be locked (Macro's Model, Shapes' Shape) say
+    so, and a ninth lane says "8 lanes used".
+  - SHIFT and a knob clears that step's lock. OP5 (D#4) pressed while
+    steps are held clears their locks; held, a knob clears that
+    parameter's lane on the track.
+  - Recording while playing, a knob writes its moves into the step that
+    plays, and you hear them.
+  - A knob on a parameter that has a lane now turns in 128 steps, the
+    same steps a lock uses, and the lane's value between locks follows it
+    at once. So what the knob shows is what plays, also after a stop.
+  - For developers: `fm1_seq_value7` (the inverse of a lock's value) and
+    the lane label writer join the shared bridge; a lane label writes a
+    space in a parameter's name as `_` (`synth:Env_Pitch`), since a label
+    is one word. Ten new gesture traces replay through `fm1-render` byte
+    for byte, six of them taken from Movy's own automation tests; a new
+    parity scenario plays locks from the panel; 1,321 screens pass the
+    layout check (55 new), and the screens with the lab switch off are
+    unchanged.
+- Tracks on the virtual FM-1's panel, still behind the lab switch (`?lab`;
+  docs/15 stage S6). There are eight tracks, all playing Sound 1 to begin
+  with.
+  - Hold SEQ and press white key 1 to 8 to work on that track, from any
+    mode (you are back where you were when you let go of SEQ). In SEQ
+    mode MONO and POLY (C#5, D#5) step to the previous and next track.
+    The screen names the track, and says so when choosing it emptied what
+    Capture held. The track's sound becomes the one the keys play.
+  - OP6 (F#4) mutes and unmutes the track; hold it and white keys 1 to 8
+    mute and unmute tracks 1 to 8, lit while they play. The tracks show
+    at the top of the screen, a muted one as an outline. There is no solo
+    (the owner's choice).
+  - Hold SHIFT to see its shortcuts. SHIFT and white key 2 open the Track
+    page (which sound the track plays, or MIDI out on a channel, its mute,
+    and its lanes on a second page; moving a playing track elsewhere lets
+    go of the note it holds, rather than leaving it sounding on the old
+    sound), 3 the Clip page (speed from 1/8X to
+    4X, length, transpose, quantize), 5, 7 or 9 the Set page (tempo,
+    swing, the quantize new clips get, metronome). SELECT also walks on
+    to these pages from the sound's.
+  - A metronome click: SHIFT and white key 6, or the Set page, turn it on
+    and off. SHIFT and white key 16 step the clip's quantize through 0,
+    the default and 100 %.
+  - For developers: the click is a new part of the shared sequencer
+    bridge, so `fm1-render` plays it too, the same to the bit
+    (`seq_clicks` in its summary). The app's event buffer grows from 256
+    to 272 events, which holds the worst burst measured; the public
+    page's RAM figure counts the 192 bytes, so a few chains read 1K more.
+    Ten new gesture traces replay through `fm1-render` byte for byte, two
+    new parity scenarios play tracks from the panel and the click (46 of
+    46 pass, with multi-sound's), and 1,266 screens pass the layout check
+    (69 new); the screens with the lab switch off are unchanged. With
+    multi-sound, the browser module grew from 525 KB to 548 KB.
 - Recording and Capture on the virtual FM-1's panel, still behind the lab
   switch (`?lab`; docs/15 stage S5). What you play on the keys (outside
   SEQ mode) or at MIDI IN now reaches the sequencer as well as the sound.
@@ -110,6 +252,34 @@ history.
     screens pass the layout check (39 new); the screens with the lab
     switch off are unchanged. The browser module grew from 516 KB to
     525 KB.
+- Several sounds at once on the virtual FM-1, behind the lab switch
+  (`?lab`; docs/15 §3.16, the owner's decision of 2026-10-02).
+  - Up to four sounds play together, each with its own two insert effects
+    and its own level into the mix; the two effect slots you had are now
+    the master effects, after the sounds are mixed. Each sequencer track
+    plays the sound its route names.
+  - Hold SEL (SHIFT) and turn PRESETS to choose which sound you play and
+    edit: the keys, MIDI IN, HOME, PRESETS and ALGORITHM then act on it,
+    and the title shows it (`S2 Shapes`). PRESETS on Sounds 2–4 also
+    offers Empty, to remove that sound. The page's Sound menu follows.
+  - FX mode shows the chain of the sound you are on: its two inserts, a
+    Mix page where KNOB1–4 set the four sounds' levels, then the two
+    master effects. SEL and SELECT swap the two inserts, as they swap the
+    master effects.
+  - A RAM meter in the bottom bar shows how much of the FM-1's free memory
+    the whole setup would take, and refuses any sound or effect that would
+    not fit, with a popup saying by how much, whether you choose it on the
+    panel or in the page's menus; turning PRESETS or ALGORITHM skips past
+    such choices. What plays in the simulator fits the device.
+  - Without the lab switch nothing changes: one sound and two effects,
+    sounding exactly as before.
+  - For developers: `fm1_app_unit_*` routes tracks to sound units (for
+    stage S6), the route going in as a logged, replayable command;
+    `fm1-render` takes `--sound`, `--insert`, `--level`, `--sound-note`,
+    `--sound-param-at`, `--level-at` and `--slots`; three
+    new parity scenarios play two and four sounds with inserts and the
+    panel gestures; 142 new screens pass the layout check (its insert
+    sweep runs every effect).
 - notes/2026-10-02-filters-dynamics-options.md: research on classic filter
   designs, compressors, limiters, overdrives and saturators, and how they fit
   the effect slots, the voices and the modulation matrix. Most of the filter
@@ -646,6 +816,67 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Knob turns and sequencer locks no longer click** (docs/15 stage S7b).
+  When a continuous parameter changes while a sound plays, the engine now
+  glides to the new value over 2.5 ms instead of jumping, so a lock under a
+  held note, or a knob turned while playing, is smooth. This holds for every
+  sound engine, for the Plate, Ensemble, Diffuse, Crush and PSX Verb
+  effects and for Echo's Tone; Fold, Drive, Filter, Comp, Limiter and the
+  rest of Echo already glided. A change while nothing sounds, or before an
+  effect starts, still applies at once, so a lock on the step of a note
+  that starts on its own plays from that note's first sample, and
+  sequences of separate notes sound exactly as before. A note with its own
+  per-note offset follows the glide with its offset on top; the offset
+  itself does not glide. The glide is counted in each engine's own
+  samples, so the sound is the same whatever the host's block size. On the
+  virtual FM-1, nine of the 47 test scenarios sound different, all of them
+  ones that turn a knob or play a lock while something sounds (the panel
+  and multi-sound demos, the lock demo, and the effects' knob-turn demos);
+  the rest are unchanged. Engines use 12 bytes more per parameter (Crush
+  96 → 176 bytes, Echo 16 bytes more, each Schwung module 176 bytes more
+  on 64-bit, 160 on 32-bit).
+- **The docs now match what the FM-1 community firmware and JieLi's current
+  SDK show** (from `notes/2026-10-05-community-repos.md`, crediting Felucca
+  by hugelton, SLOOP by isod89, fm1-nes by Keitark, FM-1-transporter by
+  kurogedelic and JieLi's AC79 SDK). No user-facing change; nothing was sent
+  to any FM-1.
+  - **A new safety trap** in CLAUDE.md and AGENTS.md: the stock SysEx
+    `F0 22 24 35 7D F7` (the "soft key") reboots a running V15 into the
+    chip's ROM loader. It is not the identity query, is one byte from the
+    upgrade command, and must not be sent before the dump-and-restore gate;
+    FM-1-transporter sends it by itself, so it is not to be run against the
+    owner's unit. docs/03, docs/07, docs/09, docs/10 and DEVELOPERS.md's
+    one-rule section say the same. The one rule itself is unchanged.
+  - **The hardware tables** (CLAUDE.md, DEVELOPERS.md, docs/01, docs/05,
+    docs/08, docs/14): audio leaves over I2S (ALNK0) to an external codec, not the
+    internal DAC; the seven encoders are scanned in the key matrix, MASTER is
+    a pot on PB6 and ADC 3 is the battery; the flash reads as Puya
+    `0x856014`. docs/01 gains a pin map (§3.1) with each row's source and
+    how it compares with our own photos, the two 74HC595s become matrix
+    column drivers, and its open questions narrow.
+  - **The app starts at `0x02000120`**, now checked against our V15 and
+    FM-1_092 unpacks; docs/02's `0x020000A0` is corrected.
+  - **The install path** (DEVELOPERS.md I0–I15): Felucca and SLOOP already
+    install and roll back through the stock path with their own loader, so
+    I13 gains their update-service, boot-guard and fail-open design; I1
+    keeps the SDK at V1.1.9 because `system.a` gains key checks from
+    V1.2.7, with a refusal check and blob hashes; I3 gains a sparse
+    mask-ROM writer plan; I4 starts from the reported pin map; the "still
+    open" list loses four answered questions.
+  - **The second core:** the SDK has no core argument for tasks, but a
+    `#C<n>` task-name prefix exists; docs/14 adds probes C6d–C6f.
+  - **Status and sources:** docs/05's L1 and L2 rows, docs/04's entries for
+    the four projects and the Gitee SDK, docs/07's recovery paths (three
+    software entries into the ROM loader, the updater's DIP modes, the WL82
+    USB ID), docs/10's third dongle report, docs/12 §6's licence notes (the
+    SDK's FreeRTOS and GPL-2.0 headers), HANDOFF's facts and clone list,
+    and `tools/jieli/ac79-sdk-sparse.txt`, the SDK sparse-checkout list.
+- **Sophie's Pad can be locked** (the owner's decision). It picks which of
+  Sophie's sixteen pads her other knobs edit, so a lock on it changes which
+  pad the locks after it, on that step and later, edit. Nothing else about
+  any engine changed: 708 renders before and after are byte-identical,
+  apart from lanes whose labels write a space as `_`, which reach their
+  parameter now.
 - **Engine API v2: every parameter has a fixed id and says what it allows.**
   Each parameter of every sound engine and effect now carries an id that
   never changes, so a sequencer lock (and later a modulation route or a
@@ -655,13 +886,13 @@ history.
   it can be modulated, plus a unit and a short name for the coming
   modulation matrix. What you hear changes in one case only: a sequencer
   lane on a parameter whose change cuts every sounding note (Macro's and
-  Macro Heavy's Model, Shapes' Shape) is now refused instead of applied,
-  and so is one on Sophie's Pad, which only picks the pad her other knobs
-  edit; `fm1-render` counts the refusals. PSX Verb's Model, which empties
+  Macro Heavy's Model, Shapes' Shape) is now refused instead of applied;
+  `fm1-render` counts the refusals. PSX Verb's Model, which empties
   the reverb, is marked the same for when effects can be locked. Six-Op
   FM's Patch and Sophie's Model stay lockable: they change the next notes
-  only. Lane names in saved sets stay as they were
-  (`synth:Timbre`). Every other render is byte-identical, over 1,458 renders
+  only. Sophie's Pad stays lockable too (above). Lane names in saved sets
+  stay as they were (`synth:Timbre`). Every other render is
+  byte-identical, over 1,458 renders
   before and after. Details in `engines/README.md`, "Parameters", and
   `engines/seq.md`; the ids are pinned in `tests/fixtures/param-uids.json`.
   Not in the browser simulator yet.

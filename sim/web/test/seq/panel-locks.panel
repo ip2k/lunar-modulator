@@ -1,0 +1,20 @@
+# Parameter locks from the panel (docs/15 S8, the lab switch on), with
+# Macro: step 5 held, SELECT past Step 2/2 to the first lock page, KNOB3
+# and KNOB4 lock Timbre and Morph on it (each a lane, its base the knob's
+# value, then a quiet lock); step 13 held, the lock page remembered, KNOB2
+# locks Harmonics there. PLAY; with no step held KNOB3 turns Timbre down on
+# its 7-bit grid and the lane's base follows (`abaseq`); PLAY/STOP just
+# after the second pass's step 5 sends every lane back to its base (D6);
+# PLAY again plays on from the bases.
+--button 0.05:SEQ
+--key 0.10:7:100:0.5
+--turn 0.20:SELECT:1
+--turn 0.25:SELECT:1
+--turn 0.30:KNOB3:30
+--turn 0.35:KNOB4:-20
+--key 0.70:21:100:0.3
+--turn 0.80:KNOB2:25
+--button 1.10:PLAY/STOP
+--turn 1.70:KNOB3:-10
+--button 3.70:PLAY/STOP
+--button 4.00:PLAY/STOP

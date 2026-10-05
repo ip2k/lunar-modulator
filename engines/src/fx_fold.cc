@@ -380,6 +380,7 @@ const fm1_engine_t fm1_engine_fold = {
   FoldInstanceSize, FoldCreate, FoldDestroy,
   NULL, NULL, NULL,
   FoldSet, FoldRender,
+  NULL,                     // no notes, so no per-note offsets
 };
 
 #ifdef __cplusplus

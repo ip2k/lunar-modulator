@@ -25,6 +25,27 @@
  * as read-outs), and the bar's 16 steps in a strip where HOME has its
  * scope, the held steps and the steps under the first one's note marked.
  * With SHIFT held there, the first line and the strip say what SHIFT does.
+ *
+ * S6: the status line's middle holds the tracks, one cell each (the
+ * focused one gold, a muted one an outline); a muted focused track's notes
+ * are dim; with SHIFT held (no step held) the shortcuts' legend takes the
+ * grid's place, and with MUTE or SEQ held the hint line says what the
+ * white keys do. The Set, Clip and Track pages use HOME's rows, the page's
+ * subject on the first line; Track page 2 lists the focused track's eight
+ * lanes, each label's text after its last ':' and its 7-bit base, at a
+ * 23 px pitch.
+ * S8: the grid marks a step with a lock with a gold dot in its corner, as
+ * the Step pages' strip does. The lock pages, past Step 2/2 with one step
+ * held, are the lock sound's pages in HOME's rows: a parameter locked on the
+ * step shows its lock in its own units, in gold, as a narrow gold bar over
+ * the dim bar of its base; one with a lane but no lock here shows the base,
+ * dim; one with no lane the knob's value, dim; a NOLOCK one "no lock". A
+ * dot after the bar marks a lane: filled where the step has a lock, an
+ * outline where it has none. With several steps held the pages show the
+ * sound's values, which their knobs edit. The hint line follows a live
+ * take's value while its knob turns, and with CLEAR held says a knob clears
+ * its lane (on a lock page, the first line does). Track page 2 writes a
+ * label's '_' as the space it stands for.
  * Every text run keeps the app's 4 px gap and 2x text; the layout sweep
  * (fm1-sim-render --screens) checks each state.
  *
@@ -43,20 +64,30 @@
 extern "C" {
 #endif
 
-/* The sound the knobs turn, as the app resolves it. */
+/* The sound the knobs turn, as the app resolves it, and what the Track
+ * page names. */
 typedef struct fm1_seq_view_sound {
   const fm1_engine_t *e;       /* NULL: no sound loaded */
   const float *value;          /* its parameters' values */
   int page, pages;             /* the page KNOB1..4 turn, of how many */
   int n, idx[4];               /* that page's parameters, KNOB1 first */
   int model;                   /* its first list parameter (ALGORITHM's), or -1 */
+  const fm1_seq_t *seq;        /* the sequencer, for Track page 2's lanes (or NULL) */
+  const char *unit_name[FM1_SEQ_UI_SOUNDS];   /* each sound unit's engine, NULL: empty */
+  /* The lock pages' sound (S8): the sound unit the focused track routes to. */
+  const fm1_engine_t *lock_e;  /* NULL: none (a MIDI route, an empty sound) */
+  const float *lock_value;     /* its values: the knobs' */
+  int lock_sound;              /* its index, 0-based, or -1 */
+  int lock_current;            /* it is the current sound (the title's) */
 } fm1_seq_view_sound_t;
 
 /* SEQ mode's content, from CONTENT_Y down to the bottom bar: the Track view
  * or, while steps are held, their Step page (u->view). */
 void fm1_seq_view_draw(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd);
 
-/* The bottom bar's left text in SEQ mode: "1/3 Seq T1", or "1/2 Step T1". */
+/* The bottom bar's left text in SEQ mode: "1/3 Seq T1", "1/2 Step T1",
+ * "1/3 Lock T1", "1/1 Set", "1/1 Clip T1" or "1/2 Track 1": at most 11
+ * characters, so it keeps its gap from the RAM meter. */
 void fm1_seq_view_bottom(const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd, char *buf,
                          size_t size);
 

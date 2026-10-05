@@ -614,6 +614,7 @@ const fm1_engine_t fm1_engine_djfilter = {
   DjInstanceSize, DjCreate, DjDestroy,
   NULL, NULL, NULL,
   DjSet, DjRender,
+  NULL,                     // no notes, so no per-note offsets
 };
 
 #ifdef __cplusplus

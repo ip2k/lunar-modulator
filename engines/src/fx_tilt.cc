@@ -366,6 +366,7 @@ const fm1_engine_t fm1_engine_tilt = {
   TiltInstanceSize, TiltCreate, TiltDestroy,
   NULL, NULL, NULL,
   TiltSet, TiltRender,
+  NULL,                     // no notes, so no per-note offsets
 };
 
 #ifdef __cplusplus

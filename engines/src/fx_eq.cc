@@ -433,6 +433,7 @@ const fm1_engine_t fm1_engine_eq = {
   EqInstanceSize, EqCreate, EqDestroy,
   NULL, NULL, NULL,
   EqSet, EqRender,
+  NULL,                     // no notes, so no per-note offsets
 };
 
 #ifdef __cplusplus

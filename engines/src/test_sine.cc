@@ -1,8 +1,12 @@
 // test_sine.cc -- "Test Sine": a minimal polyphonic sine engine with a linear
 // attack/release. It exists to test the host, the API and the analysis in
 // tests/test_engines.py independently of any third-party DSP. MIT licence.
+//
+// Volume is SMOOTH: a change while a voice sounds ramps sample by sample over
+// 2.5 ms (fm1_smooth.h), the host's samples being this engine's own.
 
 #include "fm1_engine.h"
+#include "fm1_smooth.h"
 
 #include <cmath>
 #include <new>
@@ -36,6 +40,8 @@ class Instance {
     rate_ = host->sample_rate;
     bend_ = 0.0f;
     volume_ = kParams[P_VOLUME].def;
+    fm1_smooth_init(&smooth_, &volume_, 1);
+    smooth_steps_ = fm1_smooth_steps(rate_, 1);
     for (int i = 0; i < kNumVoices; ++i) {
       voice_[i].active = voice_[i].gate = false;
       voice_[i].env = 0.0f;
@@ -65,13 +71,18 @@ class Instance {
 
   void PitchBend(float semitones) { bend_ = semitones; }
 
+  // A ramp while a voice sounds; at once while none does.
   void SetParam(uint16_t index, float value) {
-    if (index == P_VOLUME) volume_ = fm1_param_clamp(&kParams[P_VOLUME], value);
+    if (index == P_VOLUME) {
+      fm1_smooth_set(&smooth_, &volume_, fm1_param_clamp(&kParams[P_VOLUME], value),
+                     Sounding() ? smooth_steps_ : 0);
+    }
   }
 
   void Render(float *out_lr, uint32_t frames) {
     const float step = 1.0f / (0.005f * rate_);   // 5 ms linear ramps
     for (uint32_t n = 0; n < frames; ++n) {
+      fm1_smooth_tick(&smooth_, &volume_, 1);
       float s = 0.0f;
       for (int i = 0; i < kNumVoices; ++i) {
         Voice &v = voice_[i];
@@ -90,10 +101,19 @@ class Instance {
   }
 
  private:
+  bool Sounding() const {
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active) return true;
+    }
+    return false;
+  }
+
   Voice voice_[kNumVoices];
   float rate_;
   float bend_;
   float volume_;
+  fm1_smooth_t smooth_;       // Volume's ramp
+  uint32_t smooth_steps_;     // samples in a ramp
 };
 
 size_t InstanceSize(const fm1_host_t *) { return sizeof(Instance); }
@@ -119,4 +139,5 @@ extern "C" const fm1_engine_t fm1_engine_test_sine = {
   fm1::test_sine::InstanceSize, fm1::test_sine::Create, fm1::test_sine::Destroy,
   fm1::test_sine::NoteOn, fm1::test_sine::NoteOff, fm1::test_sine::Bend,
   fm1::test_sine::Set, fm1::test_sine::Render,
+  NULL,   // no per-note offsets: the host tests' engine without them
 };

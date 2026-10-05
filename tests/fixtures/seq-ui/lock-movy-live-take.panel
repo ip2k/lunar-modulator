@@ -1,0 +1,12 @@
+# Transcribed from Movy's browser-test/logic/automation.mjs at 9190e79
+# (github.com/DimaDake/schwung-movy, MIT, Copyright (c) 2026 megadake;
+# engines/third_party/movy/LICENSE) to the FM-1's panel (docs/15 S8).
+# Its "knob routing" under live record: playing and recording (an overdub,
+# REC over notes), a knob turned at step 8 (index 7) gives Timbre a lane and
+# writes a lock at the playing step that is heard: no quiet flag (`aset 0
+# 0 7 N`); a second detent moves it on from there. No `abase` follows the
+# take (Movy's "recorded-lane release issues no abase revert").
+--button 0.05:PLAY/STOP
+--button 0.10:REC
+--turn 0.53:KNOB3:2
+--turn 0.54:KNOB3:1
