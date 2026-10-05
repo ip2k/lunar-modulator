@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "eab913cf53da1fb6618213d973bd94b33bfc9c0809e607c16c7a2f4291db89ee",
-  "wasm_bytes": 516035,
+  "wasm_sha256": "875ff6357d11d385a2408ffc7b55298908c353600405b3426124a3d447884d49",
+  "wasm_bytes": 524659,
   "sources_sha256": {
     "engines": "92fc1592ab1e36cfaf411cc592615e43bfe9040351907631bcc91484853c8380",
-    "sim": "58736c3966ef1c4d3de17e773944d3fd4e4cf527d923a5b7c9dd028053a6a5ec"
+    "sim": "91b0d3b27b509ad0059ad88fa2e9ef40f243838bae0d4b3bdbea6246d2620146"
   },
   "engines": "working tree",
-  "built": "2026-10-05T16:15:42Z",
+  "built": "2026-10-05T16:40:01Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 39,
+    "passed": 41,
     "failed": 0,
-    "identical_to_js": 39,
-    "identical_to_musl": 39,
-    "identical_to_glibc": 36,
+    "identical_to_js": 41,
+    "identical_to_musl": 41,
+    "identical_to_glibc": 38,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -501,12 +501,76 @@
       "seq": {
         "lines": 1,
         "lines_match": true,
-        "ui_cmds": 13,
+        "ui_cmds": 19,
         "replayable": true,
         "dropped": 0,
         "native_dropped": 0
       },
       "panel": "seq/panel-step-entry.panel"
+    },
+    {
+      "name": "seq-panel-record",
+      "samples": 529416,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 119656,
+        "native64": 132344
+      },
+      "cmd": "seq/panel-record.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 24,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-record.panel"
+    },
+    {
+      "name": "seq-panel-capture-stopped",
+      "samples": 441180,
+      "libm_sensitive": true,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 241168,
+        "native64": 242032
+      },
+      "cmd": "seq/panel-capture-stopped.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 15,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-capture-stopped.panel"
     },
     {
       "name": "crush-chip-jitter",

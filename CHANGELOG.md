@@ -31,10 +31,10 @@ history.
   - For developers: recorded and captured notes are logged as `non` and
     `nof` lines, so every gesture trace that plays keys or MIDI IN replays
     through `fm1-render` byte for byte (11 new traces). Two new parity
-    scenarios record and capture from the panel (27 of 27 pass). 953
+    scenarios record and capture from the panel (41 of 41 pass). 1,055
     screens pass the layout check (39 new); the screens with the lab
-    switch off are unchanged. The browser module grew from 482 KB to
-    491 KB.
+    switch off are unchanged. The browser module grew from 516 KB to
+    525 KB.
 - **Drive, Filter, Comp and Limiter on the virtual FM-1:** the effect
   slots now offer twelve effects (ALGORITHM steps through Plate,
   Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp,
