@@ -16,19 +16,25 @@ history.
   DJ Filter, Tilt, Master Sat, Isolator, EQ and Test Gain). Until there is
   a master chain, put them in the second slot, which is the master of a
   one-sound app.
-  - Each has parity scenarios that turn its knobs and switches while notes
-    play (@@PARITY@@).
-  - For developers: @@DEV@@
-- **DJ Filter**, a new effect for the end of the chain (or the master bus, once
-  there is one): one knob, Sweep, low-passes as it turns left of centre,
-  from 20 kHz down to 60 Hz, and high-passes as it turns right, from 20 Hz
-  up to 8 kHz. Around the centre (Dead Zone, 0.05 by default) the sound
-  passes untouched, bit for bit, and the filter costs nothing. Resonance
-  peaks in the middle of the sweep and never at its ends; Slope chooses
-  12 or 24 dB per octave and crossfades between them; Mix blends in the dry
-  sound; Range shortens the sweep for gentler moves. Sweeps are smooth
-  whether turned by hand, locked or modulated, and crossing from one side
-  to the other neither clicks nor thumps. Every parameter can be locked
+  - Each has a parity scenario that turns its knobs, and its switch where
+    it has one, while notes play; two more turn DJ Filter's Slope, Tilt's
+    Curve, Master Sat's Shape and Isolator's Kill every 4.4 ms.
+  - For developers: `tests/test_engines_fx_switches.py` turns those four
+    switches every third block on a sine and on sharp onsets. 48 of 48
+    parity scenarios pass, identical to musl and to render.js; 1,143
+    screens pass the layout check (88 new). The browser module grew from
+    525 KB to 550 KB. Each effect is under 400 bytes an instance, on
+    64-bit and 32-bit builds alike.
+- **DJ Filter**, a new effect for the end of the chain (or the master bus,
+  once there is one): one knob, Sweep, low-passes as it turns left of
+  centre, from 20 kHz down to 60 Hz, and high-passes as it turns right, from
+  20 Hz up to 8 kHz. Around the centre (Dead Zone, 0.05 by default) the
+  sound passes untouched, bit for bit, and the filter costs nothing.
+  Resonance peaks in the middle of the sweep and never at its ends; Slope
+  chooses 12 or 24 dB per octave and crossfades between them; Mix blends in
+  the dry sound; Range shortens the sweep for gentler moves. Sweeps are
+  smooth whether turned by hand, locked or modulated, and crossing from one
+  side to the other neither clicks nor thumps. Every parameter can be locked
   and modulated. For developers: `src/fx_djfilter.cc`, a trapezoidal SVF
   written here with libm-free maths (the same bits from Apple clang, GCC and
   Emscripten), 224 bytes an instance, and `fm1-djfilter-test`.

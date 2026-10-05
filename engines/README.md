@@ -963,7 +963,8 @@ How it works [verified: tests/test_engines_djfilter.py and
   After full-scale noise into the most resonant settings, silence comes out
   as exact zeros within 0.5 s.
 - **Memory and cost:** 224 bytes, no delay lines; no pointers in the
-  struct, so the same on a 32-bit build [inferred]. About 30 operations a
+  struct, and the same on 32-bit builds [verified: `instance_size` compiled
+  by clang for i386 and wasm32, 2026-10-05]. About 30 operations a
   frame at 12 dB and 50 at 24 dB while filtering; a moving sweep adds a
   divide per filter per frame and a control tick (2^x, tan, two divides)
   every 16 frames; the dead zone costs the guard alone. Desktop (Apple M1
@@ -1306,8 +1307,9 @@ and 2,484 Hz [reported in the note: its constants]).
   5 % of a 240 MHz core [inferred]. Desktop (Apple M1 Max): 1.8 µs per
   block, 0.12 % of it, and 2.0 µs while the crossovers glide
   (`build/fm1-isolator-test --bench`).
-- **Memory:** 240 bytes, no delay lines; the struct holds no pointers, so
-  the same on a 32-bit build [inferred].
+- **Memory:** 240 bytes, no delay lines; the struct holds no pointers, and
+  it is the same on 32-bit builds [verified: `instance_size` compiled by
+  clang for i386 and wasm32, 2026-10-05].
 - `build/fm1-isolator-test` (`test/isolator_test.cc`) drives Isolator
   directly, in float and at any block size: every parameter changed mid-stream to any value, NaN and
   infinities included, between blocks of 1–64 frames; the glides at blocks
@@ -1651,7 +1653,11 @@ upstream candidate). Our own code gets none.
   | Ensemble | 4,704 | 4,704 | |
 
   The 32-bit figures include the native-rate resamplers (about 1.3 KB each)
-  [verified: CI's 32-bit job on PR #12]. Page 3 (2026-10-02) added 16 bytes
+  [verified: CI's 32-bit job on PR #12]. The master-bus effects are small
+  and hold no pointers: DJ Filter 224 bytes, Tilt 144, Master Sat 336,
+  Isolator 240 and EQ 368, on 64-bit and 32-bit builds alike [verified:
+  `fm1-render`'s `fx_bytes`, and `instance_size` compiled by clang for i386
+  and wasm32, 2026-10-05]. Page 3 (2026-10-02) added 16 bytes
   to Macro and to Macro Heavy on the 64-bit build [verified]; their 32-bit
   figures predate it and grow by a similar few bytes [inferred].
 
