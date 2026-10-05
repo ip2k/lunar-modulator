@@ -211,7 +211,7 @@ best of five; desktop figures, which say nothing of pi32v2]:
 
 | Load, per 64-frame block (1,451 µs at 44,118 Hz) | Drums | Macro |
 | --- | --- | --- |
-| Instance, 64-bit and 32-bit (GCC 12 `-m32` in a container) | 7,616 and 7,616 B | 32,448 and 19,584 B |
+| Instance, 64-bit and 32-bit (GCC 12 `-m32` in a container) | 7,616 and 7,424 B | 32,448 and 19,584 B |
 | Twelve voices sounding (twelve pads at Decay 1 struck at once) | 25.0 µs Deep, 15.7 µs Punch | 24.7–26.7 µs (twelve held notes, VA Pair and VA+Filter) |
 | Twelve pads re-struck every 0.4 s | 22.8 µs Deep, 14.1 µs Punch | |
 | One pad re-struck, by model | 2.8 µs (Rim, mostly silent) to 4.8 µs (Analog Drum, Snare) | |
@@ -2613,7 +2613,7 @@ past the table. It found the Isolator's stalled crossover glide
   | Filter | 18,368 | 18,368 | Comb's two delay lines, fs / 20 Hz each |
   | Six-Op FM, 8 voices | 12,776 | 11,008 | |
   | Limiter | 11,008 | 11,008 | 5 ms of lookahead at 44,118 Hz; 26,912 at 102 kHz and above |
-  | Drums, 12 voices | 7,616 | 7,616 | a 224-byte model object per voice (Ring Hat's), 16 pads' values and ramps, one resampler |
+  | Drums, 12 voices | 7,616 | 7,424 | a 224-byte model object per voice (Ring Hat's), 16 pads' values and ramps, one resampler |
   | Ensemble | 4,752 | 4,736 | |
 
   The figures include the native-rate resamplers (about 1.3 KB each), the

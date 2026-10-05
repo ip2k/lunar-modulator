@@ -405,7 +405,7 @@ def test_two_pads_together_are_the_two_apart(renderer, tmp_path):
 
 def test_instance_size(renderer, tmp_path):
     s, _, _ = run(renderer, tmp_path, "size", seconds=0.01)
-    assert s["instance_bytes"] < 12_000      # 7,616 on 64-bit and 32-bit when written
+    assert s["instance_bytes"] < 12_000      # 7,616 on 64-bit, 7,424 on 32-bit, when written
 
 
 def test_no_transcendental_libm_calls():
