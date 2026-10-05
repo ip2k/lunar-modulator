@@ -52,9 +52,9 @@ history.
     `fm1_seq_host_dispatch_slots_ticks` runs the modulation over several
     sound units. The runtime is 22,368 bytes, and the lab's RAM meter counts
     it. Four new parity scenarios check the browser module with modulation
-    running, two of them over several sounds (TODO-NUM-SCEN of
-    TODO-NUM-SCEN pass), and the layout check now covers TODO-NUM-SCREENS
-    screens. The browser module grew from 560 KB to about TODO-NUM-WASMK KB.
+    running, two of them over several sounds (51 of 51
+    pass), and the layout check now covers 2,042 screens. The browser
+    module grew from 560 KB to about 699 KB.
 - **Modulation, second stage (docs/16 MG2): thirteen more modules** for the
   modulation rack, in the engine and `fm1-render`; not yet playable in the
   simulator or on the FM-1.

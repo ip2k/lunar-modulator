@@ -450,14 +450,17 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     parameter (the marker, bracket and live tick); the gesture's popups;
     MATRIX with 0, 1, 7 and 32 slots, both pages, a refused, an off, a
     delayed and a per-voice row, every field's hint and the destination
-    picker; CHAIN through each slot; and the LEDs, the buttons that leave
-    the pages and the stubs with the switch off."""
+    picker; CHAIN through each slot; MATRIX over racks of all sixteen kinds
+    and over cables into every sound unit, insert and master slot, the
+    target picker from Sound 2, with every short name checked unique; and
+    the LEDs, the buttons that leave the pages and the stubs with the
+    switch off."""
     res = subprocess.run([str(tools["sim"]), "--screens", str(tmp_path)],
                          capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 1590            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["screens"] >= 2042            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
     #                                              1321 before modulation (docs/16 MG3)
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3

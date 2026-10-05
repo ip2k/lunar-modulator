@@ -1388,7 +1388,7 @@ marked]:
   adds RTRG's edges, the record pool, and cables into sound unit 2 and its
   insert in `fm1-render` (zero amounts render the plain bytes). The layout
   sweep went from 815 to 1,084 screens with MG3, and from 1,321 (main
-  with S8) to TODO-NUM-SCREENS with the integration, 0 faults: RACK at
+  with S8) to 2,042 with the integration, 0 faults: RACK at
   every position and page, each of the sixteen kinds at its extremes,
   routed and not, the picker and a grab; every sound's and effect's pages
   with a cable on each parameter; MATRIX with 0, 1, 7 and 32 slots, both
@@ -1400,8 +1400,7 @@ marked]:
   cable, timed edits), `mod-panel-gestures` (the panel), `mod-multi-routes`
   (a script over four sound units, their inserts and the master) and
   `mod-multi-panel` (the panel across two sound units), pass native
-  against WebAssembly, identical to musl and to `render.js`: TODO-NUM-SCEN
-  of TODO-NUM-SCEN.
+  against WebAssembly, identical to musl and to `render.js`: 51 of 51.
 - **Sizes.** `fm1_mod_size()` is 22,368 B: MG1's 20,016 B, RTRG's 48 B and
   the record pool's 2,304 B. `fm1_app_t` is 4,915,088 B (64-bit clang),
   33,664 B more than main's with multi-sound: the runtime's 24,576 B
@@ -1409,15 +1408,18 @@ marked]:
   state (104 B). The lab's RAM meter counts the runtime, so
   `multi-four-sounds-seq` (main's) takes Ensemble as its master rather
   than Plate, which would now pass the budget. The browser module grew
-  from 560,033 B (main with S8) to TODO-NUM-WASM B, about 93 KB more than
-  §4.5's 20–40 KB: the runtime and its sixteen kinds, the pages and the
-  script reader with strtod [verified: `www/fm1.wasm.json`].
+  from 560,033 B (main with S8, which linked none of the runtime) to
+  698,994 B, about 139 KB, against §4.5's 20–40 KB: the runtime and its
+  sixteen kinds (MG2's Peaks and Braids tables among them), the pages and
+  the script reader with strtod [verified: `www/fm1.wasm.json`]. (MG3
+  alone, before MG2's kinds, had added 93 KB.)
 - **The dead-code audit is due** (§8, "Size and the dead-code audit"): the
   repository's own code files (dongle/, engines/ less third_party/, sim/,
   tests/, tools/; C, C++, Python, JavaScript, shell and make, less the
-  generated font) come to 51,854 lines at this stage, against CLAUDE.md's
-  mark of 7,463 (2026-09-30) plus sim/'s 4,200 [verified: `wc -l` over
-  `git ls-files`; the mark may have counted fewer kinds of file].
+  generated font) came to 51,854 lines at MG3 and to 74,027 with the
+  integration (main's S5 to S8, multi-sound and MG2 included), against
+  CLAUDE.md's mark of 7,463 (2026-09-30) plus sim/'s 4,200 [verified: `wc
+  -l` over `git ls-files`; the mark may have counted fewer kinds of file].
 - **Left for later:** SEL held with the white keys (MG5), locks on module
   parameters and cable depths and MACRO 1–4 (MG6), per-voice instances
   (MG9, now the next stage), HOST per sound unit (codes 36–39), and the

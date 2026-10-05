@@ -30,7 +30,7 @@ the "Power on" button, as browsers require a gesture.
 | --- | --- |
 | Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Test Gain. One sound and two effect slots, then the host's bus limiter, as `fm1-render` runs them; with the lab switch, up to four sounds with two inserts and a level each, mixed into those two slots as the master bus (below, "Multi-sound") |
 | Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy and Six-Op run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the three, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
-| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). TODO-NUM-SCREENS screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`]. They are every page of every engine and effect at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, SEL outside FX mode and an emptied slot (437 screens), and, with the lab switch on, the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 142 (every effect as an insert, now twelve), parameter locks (S8) in 55, and modulation's pages and marks (below) in TODO-NUM-MODSCREENS |
+| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 2,042 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`]. They are every page of every engine and effect at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, SEL outside FX mode and an emptied slot (437 screens), and, with the lab switch on, the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 142 (every effect as an insert, now twelve), parameter locks (S8) in 55, and modulation's pages and marks (below) in 721 |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
 | Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_app.c`); Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
@@ -155,7 +155,7 @@ renders without the switch go the same way as before (no hook, no split).
 | Status line, help | as before | the tempo and the transport (posted by the worklet only when they change); "Sequencer (lab)" and "Modulation (lab)" entries in the help, "counting in" in the status line, and SAVE and ARP in the stub list |
 | Full velocity | — | SHIFT + white key 10 in SEQ mode: every step entered, and the keys played outside SEQ mode, at 127 |
 | Sounds | one sound and two effect slots | up to four sounds, each with two inserts and a level, then the two slots as the master bus; SHIFT + PRESETS chooses the current sound (below, "Multi-sound") |
-| RAM | the figure in the bottom bar, red past the budget | a meter there, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, TODO-NUM-MODBYTES B) |
+| RAM | the figure in the bottom bar, red past the budget | a meter there, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 22,368 B) |
 
 Tests and parity runs never load the demo pattern or route tracks 2–8:
 only the browser's start chain does (`fm1-sim-render --lab --start` plays
@@ -535,7 +535,7 @@ every time [verified: about 25,000 lines, 0 refused].
 
 ## Parity: does the browser sound like the native engines?
 
-`build-on-aeon.sh` renders TODO-NUM-SCEN scenarios (`test/scenarios.json`) four ways
+`build-on-aeon.sh` renders 51 scenarios (`test/scenarios.json`) four ways
 and compares the 16-bit output sample by sample [verified:
 `www/fm1.wasm.json`, 2026-10-05]. Thirty-two are note scripts: every engine
 and effect, pitch bend, parameter changes mid-note on the sound and on
@@ -582,13 +582,19 @@ modules, a gate cable at 70 % and timed edits (the module takes it through
 `fm1w_mod_reset` and `fm1w_mod_text`); `mod-panel-gestures` makes its
 cables on the panel with the lab switch (the gesture on HOME and FX, knobs
 in RACK, two cables from MATRIX), and its render legs replay the harness's
-`.mod` log with the rest of its sidecar.
+`.mod` log with the rest of its sidecar. Two modulate several sound
+units: `mod-multi-routes` plays a script with cables into Sound 1, Sounds 2
+and 4, an insert on each of them and both of Sound 2's, the master Plate
+and HOST AMP, with notes on three sounds (`fm1-render --slots --mod`), and
+`mod-multi-panel` makes its cables on the panel with Sound 2 current (the
+gesture on HOME, its insert and the master, a MATRIX cable whose picker
+opens at Sound 2) and then on Sound 1, while tracks play both sounds.
 
 | Against | Result |
 | --- | --- |
-| `render.cc` compiled to WebAssembly (Node) | identical in all TODO-NUM-SCEN: the app layer adds nothing |
-| native `fm1-render`, GCC with musl (static, Alpine) | identical in all TODO-NUM-SCEN: the compiler adds nothing |
-| native `fm1-render`, GCC with glibc | identical in TODO-NUM-GLIBC. Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB), and Fold within 1 LSB (19 samples of `fold-sine-asymmetric`) |
+| `render.cc` compiled to WebAssembly (Node) | identical in all 51: the app layer adds nothing |
+| native `fm1-render`, GCC with musl (static, Alpine) | identical in all 51: the compiler adds nothing |
+| native `fm1-render`, GCC with glibc | identical in 48. Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB), and Fold within 1 LSB (19 samples of `fold-sine-asymmetric`) |
 
 The sequencer scenarios add three rules. Every leg applies a script line at
 the first 64-frame block starting at or after its frame, after the notes;
@@ -625,9 +631,11 @@ its panel UI and Track view, with step entry since S4, record and Capture
 since S5, multi-sound, tracks, mute, the pages and the click since S6, and
 parameter locks since S8, and since docs/16 MG3 the modulation runtime,
 its kinds, its script reader (`host/mod_script.c`: snprintf and strtod,
-no files) and modulation's pages: TODO-NUM-SCEN of TODO-NUM-SCEN scenarios pass, identical to musl and
-to render.js (two of them turn the effects' switches every 4.4 ms), and it
-imports nothing; it is TODO-NUM-WASM bytes, up from 559,930 before MG3, 548,493 before S8 (526,111
+no files) and modulation's pages: 51 of 51 scenarios pass, identical to
+musl and to render.js (two of them turn the effects' switches every 4.4
+ms), and it imports nothing; it is 698,994 bytes, up from 560,033 before
+MG3 (the runtime, its sixteen kinds with MG2's Peaks and Braids tables,
+the pages and the script reader), 548,493 before S8 (526,111
 with S8 before the second effects pack), 524,659 before multi-sound and S6
 (514,688 with them before the second effects pack), 516,035 before S5,
 482,291 before the second effects pack (Drive, Filter, Comp, Limiter),
@@ -676,7 +684,7 @@ www/fm1.wasm      src/fm1_web.c   flat exports (fm1w_*)
 `fm1_app_t`. Nothing in it is browser-specific, so the same app layer builds
 natively as `fm1-sim-render`, the test harness. Its panel logic and drawing
 code are meant to carry over to the firmware, but not `fm1_app_t` as it
-stands: it is TODO-NUM-APP bytes (4.5 MiB of fixed arenas, four 512 KiB
+stands: it is 4,915,088 bytes (4.5 MiB of fixed arenas, four 512 KiB
 ones for the sound units and ten 256 KiB ones for the effect slots, a
 115,200-byte full frame buffer, and the sequencer's 32 KiB arena and 3 KiB
 event buffer, and modulation's runtime and a block's writes; clang, 64-bit), against the FM-1's 578 KB of SRAM and
@@ -767,7 +775,7 @@ one gap, and 128 lane bases after a stop, which `fm1-render --events 256`
 drops and the app holds back), with nothing dropped or left sounding; routes
 (the default route, `--route`, `route` verbs and a set's own `rt` lines)
 as in `fm1-render`; no note left hanging after a reset, an import or a
-change of sound; the TODO-NUM-SCREENS-screen layout sweep; the panel against the manual's formula (octave,
+change of sound; the 2,042-screen layout sweep; the panel against the manual's formula (octave,
 transpose, reset); buttons and encoders; with the lab switch, PLAY/STOP's
 LED while playing, SEQ mode, the white keys following the playhead in SEQ
 mode (eight points across two bars), HOME's key LEDs unchanged and the
