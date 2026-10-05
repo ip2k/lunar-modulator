@@ -264,11 +264,13 @@ and reads back every verb.
 
 ## Parity: does the browser sound like the native engines?
 
-`build-on-aeon.sh` renders 27 scenarios (`test/scenarios.json`) four ways
+`build-on-aeon.sh` renders 41 scenarios (`test/scenarios.json`) four ways
 and compares the 16-bit output sample by sample [verified:
-`www/fm1.wasm.json`, 2026-10-02]. Eighteen are note scripts: every engine
-and effect, pitch bend, parameter changes mid-note, more notes than voices,
-44,100 Hz, the low-pass gate. Five play sequencer verb scripts
+`www/fm1.wasm.json`, 2026-10-02]. Thirty-two are note scripts: every engine
+and effect, pitch bend, parameter changes mid-note on the sound and on
+every effect (`fx_param_at`: `fm1-render --fx-param-at T:K:NAME=VALUE`, K
+the effect's place in the chain; the module gets `fm1w_set_param` on that
+slot), more notes than voices, 44,100 Hz, the low-pass gate. Five play sequencer verb scripts
 (`test/seq/`, `fm1-render --cmd`): Test Sine's Volume under float locks
 with a stop that sends the lanes back to their bases; two Six-Op tracks
 with swing and a clip at twice the speed; locks on Six-Op's Patch, a list;
@@ -289,9 +291,9 @@ stopped Capture).
 
 | Against | Result |
 | --- | --- |
-| `render.cc` compiled to WebAssembly (Node) | identical in all 27: the app layer adds nothing |
-| native `fm1-render`, GCC with musl (static, Alpine) | identical in all 27: the compiler adds nothing |
-| native `fm1-render`, GCC with glibc | identical in 24. Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB), and Fold within 1 LSB (19 samples) |
+| `render.cc` compiled to WebAssembly (Node) | identical in all 41: the app layer adds nothing |
+| native `fm1-render`, GCC with musl (static, Alpine) | identical in all 41: the compiler adds nothing |
+| native `fm1-render`, GCC with glibc | identical in 38. Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB), and Fold within 1 LSB (19 samples of `fold-sine-asymmetric`) |
 
 The sequencer scenarios add three rules. Every leg applies a script line at
 the first 64-frame block starting at or after its frame, after the notes;
@@ -325,9 +327,11 @@ pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 
 The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, with step entry since S4 and record and
-Capture since S5: 27 of 27 scenarios pass, identical to musl and to
-render.js, and it imports nothing; it is 490,916 bytes, up from 482,291
-before S5, 466,635 before S4, 459,122 before S3 and 391 KB before the
+Capture since S5: 41 of 41 scenarios pass, identical to musl and to
+render.js (two of them turn the effects' switches every 4.4 ms), and it
+imports nothing; it is XXXSIZE bytes, up from 516,035 before S5,
+482,291 before the second effects pack (Drive, Filter, Comp, Limiter),
+466,635 before S4, 459,122 before S3 and 391 KB before the
 sequencer [verified, 2026-10-02, `www/fm1.wasm.json`].
 
 The sequencer's own cost in WebAssembly, measured with `fm1-render.js` under
@@ -451,14 +455,16 @@ one gap, and 128 lane bases after a stop, which `fm1-render --events 256`
 drops and the app holds back), with nothing dropped or left sounding; routes
 (the default route, `--route`, `route` verbs and a set's own `rt` lines)
 as in `fm1-render`; no note left hanging after a reset, an import or a
-change of sound; the 815-screen layout sweep; the panel against the manual's formula (octave,
+change of sound; the 1,016-screen layout sweep; the panel against the manual's formula (octave,
 transpose, reset); buttons and encoders; with the lab switch, PLAY/STOP's
 LED while playing, SEQ mode, the white keys following the playhead in SEQ
 mode (eight points across two bars), HOME's key LEDs unchanged and the
 Track view's knob hint cleared by a new sound; an effect slot emptied on its
 second page; sounds that refuse a 48 kHz host stepped over and the previous
 one kept; the page loads nothing from other origins; the exports match; and
-`www/fm1.wasm` matches its record. The record carries two source hashes
+`www/fm1.wasm` matches its record; every effect has a knob turned
+mid-render in some scenario (`fx_param_at`), and `--fx-param-at` applies at
+its block in both hosts and refuses a slot or a name that is not there. The record carries two source hashes
 (`tools/source_hash.py`): engines/ (less Markdown) and sim/web's own inputs
 (`src/`, `mk/`, `build.sh`, the parity test, its scenarios and their
 sequencer scripts in `test/seq/`, the harness, the loader), which since
