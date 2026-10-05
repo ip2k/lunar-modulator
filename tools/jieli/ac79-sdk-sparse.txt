@@ -1,0 +1,66 @@
+# tools/jieli/ac79-sdk-sparse.txt -- the sparse-checkout list used to read
+# JieLi's AC79 SDK from Gitee on 2026-10-05 (notes/2026-10-05-community-repos.md):
+# about 30 MB of the 750 MB tree, sources, headers and text only. Closed .a
+# libraries and PDFs are fetched by path when needed and never committed.
+#
+#   git clone --filter=blob:none --no-checkout \
+#       https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git reference/ac79-sdk
+#   git -C reference/ac79-sdk sparse-checkout set --no-cone \
+#       --stdin < tools/jieli/ac79-sdk-sparse.txt
+#   git -C reference/ac79-sdk checkout --detach e30b1ee   # or tag V1.1.9, 8eae664
+#
+# Pin by commit. Gitee's SSL is flaky and lazy blob fetches hung, so check
+# out once and avoid history commands that fetch blobs one by one
+# (log -p, blame, diffs across tags). Read only: build nothing from it here,
+# and run none of its tools against an FM-1 (CLAUDE.md trap 11).
+/LICENSE
+/README.md
+/README-en.md
+/init_env.sh
+/Makefile
+/sdk_tools/
+/cpu/wl82/*.c
+/cpu/wl82/key/
+/cpu/wl82/tools/*.c
+/cpu/wl82/tools/*.txt
+/cpu/wl82/tools/*.bat
+/cpu/wl82/tools/*.ver
+/cpu/wl82/tools/*.cfg
+/cpu/wl82/tools/loader_tools/*.txt
+/cpu/wl82/tools/loader_tools/*.bat
+/cpu/wl82/tools/loader_tools/*.ver
+/cpu/wl82/tools/jtag/*.ini
+/cpu/wl82/tools/jtag/*.config
+/cpu/wl82/tools/jtag/*.bat
+/cpu/wl82/tools/packufw/
+/apps/common/usb/
+/apps/common/system/
+/apps/common/audio_music/
+/apps/common/update/
+/apps/common/key/
+/apps/common/ui/
+/apps/common/ble/
+/apps/common/config/
+/apps/common/debug/
+/apps/common/include/
+/apps/common/c++/
+/apps/common/jl_math/
+/apps/common/product_test_tool/
+/apps/common/example/audio/
+/apps/common/example/peripheral/
+/apps/common/example/system/
+/apps/common/example/update/
+/apps/common/example/bluetooth/
+/apps/common/example/Devkitboard_test/
+/apps/common/example/readme.md
+/apps/common/example/ui/
+/apps/demo/
+/include_lib/driver/
+/include_lib/system/
+/include_lib/update/
+/include_lib/media/
+/include_lib/server/
+/include_lib/btstack/
+/include_lib/btctrler/
+/include_lib/utils/
+/doc/stuff/*.txt

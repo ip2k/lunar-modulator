@@ -132,6 +132,86 @@ Details and marks are in `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`.
   failure traces and script errors to `baudgirl.com/api/event`, tied to the
   site's visitor cookie.
 
+### Felucca (hugelton / Hügelton Instruments) — https://github.com/hugelton/Felucca
+*v1.0 at `727f272` (2026-10-05). **GPL-3.0-only**, except `firmware/src/fm6_core.c`
+(Apache-2.0, an integer C port of msfa) and `phys_dsp.c`/`phys_symp.c` (MIT).
+Read here, not built or run.*
+
+- **What it is**: complete, from-scratch, bare-metal replacement firmware for
+  the FM-1: four tracks, 13 engines including FM6, eight voices, a 64-step
+  sequencer with songs, an arpeggiator, a modulation matrix, effects and a
+  web editor. One core, integer only, no BLE (the author lists BLE as a "v2"
+  goal) [verified: source; reported: running].
+- **How it installs**: a Web MIDI page; the first install goes through stock
+  step 1 from V15 with Felucca's own loader as `ota.bin`, which writes only
+  the app area. A running Felucca answers the update protocol itself and
+  accepts only its own loader or M-VAVE's (recognised by CRC, with a head
+  equal to the device's). "Return to official V15" takes only M-VAVE's
+  `FM-1.fwsc` [reported: users' issues #1–#41; source verified]. Identities
+  `FM-1_900` and `FM-1_9XY` (1.0 is `FM-1_910`).
+- **What it settled for this project**: the board's pin map (docs/01 §3.1),
+  that stock step 1 accepts a foreign loader (docs/03 §5), RAM that survives
+  resets, and a worked design for DEVELOPERS.md's I13.
+- **What we may take**: facts and ideas, restated with credit; code only from
+  the Apache-2.0 and MIT files, in `third_party/` with `UPSTREAM.md`.
+- Details: `notes/2026-10-05-community-repos.md` §2.2.
+
+### FM-1-transporter (kurogedelic) — https://github.com/kurogedelic/FM-1-transporter
+*`a632d92` (2026-10-01). **MIT**, "Copyright (c) 2026 kurogedelic". Read
+through the GitHub API, not cloned or run.*
+
+- Felucca's recovery tool: a Seeed XIAO RP2040 on the FM-1's D+, D− and GND
+  that keys `USB_KEY` `0x16EF`, then acts as USB host to `UBOOT1.00` through
+  Pico-PIO-USB, so the Mac drives dumps and writes over CDC [verified:
+  README].
+- **Reports on FM-1s** [reported: `docs/PROTOCOL.md`, `docs/DEVLOG.md`]:
+  polarity A only (D+ clock); `UBOOT1.00` as `4C4A:8057` `WL80UBOOT1.00`,
+  SCSI `WL82`/`UBOOT1.00`; JEDEC `0x856014`; raw flash reads; keying works
+  after a watchdog reset; stock V15 obeys the soft key `F0 22 24 35 7D F7`;
+  sector writes in `[0x4000, 0x93000)` with verify.
+- **Not for this project's unit as built**: it drives push-pull with no
+  series resistors (`usb_key_pp`, `set pindirs, 3`) against docs/10's E1,
+  and its `fm1t.py` sends the soft key by itself when it sees V15 [verified:
+  `pio/usb_key.pio`, README]. Its PIO-USB host idea is a candidate for
+  `dongle/` (docs/10 §1.1).
+
+### fm1-nes (Keitark) — https://github.com/Keitark/fm1-nes
+*`main` at `870f305` (2026-10-03). Apache-2.0 root; GPL-3.0-only USB audio
+and packet code; MIT `jl_formats.py` cipher routines, jl-uboot-tool guard
+patch and `examples/fablenes/`. The board constants are copied from stock
+FM-1_010, by the author's account.*
+
+- An NES emulator (PeakRacing core) as an AC79 SDK app, with FM-1 board
+  support, a CDC diagnostics port, an app-only packager and a sparse sector
+  planner. Windows-only tooling.
+- **How far it got** [reported: `VALIDATION.md:49-75`]: on 2026-10-03 a
+  217,680-byte app went onto the maintainer's V14 unit through mask ROM (51
+  changed sectors, directory last, one full readback); CDC and UAC enumerated
+  and telemetry ran; the CDC `UBOOT` command entered mask ROM without a
+  dongle. Screen, sound and controls not yet accepted.
+- **What it settled**: SDK `e30b1ee` libraries plus a 6→23-word
+  `boot_info` bridge boot under the FM-1's SPL; SMP with `CPU_CORE_NUM 2`
+  boots; stock's power values and audio route (docs/01 §3.1); a cache-RAM
+  window [reported].
+- **What we may take**: the Apache-2.0 board code and the MIT guard patch,
+  in `third_party/` with `UPSTREAM.md`; the stock-derived tables only as
+  cross-checks, re-derived from our own V15 disassembly.
+
+### SLOOP (isod89) — https://github.com/isod89/sloop-fm1
+*v2.2 at `f2b44c2` (2026-10-04). **GPL-3.0-only**. Read here, not built or run.*
+
+- A four-track live groovebox forked from an earlier Felucca: three synth
+  tracks and a drum track, nine engines, a sequencer and looper, song mode, a
+  web editor and installer [verified: source; reported: running].
+- **Adds beyond Felucca** [verified: source]: the loader checks the CRC16 of
+  the whole served `flash.bin` and refuses a flash whose JEDEC ID is not
+  `0x856014`; a `.noinit` boot guard leads two failed boots to a USB rescue
+  mode and then to UBOOT; the installer checks SHA-256s.
+- Every version reports `FM-1_900`. Rollback to V15 confirmed by the author
+  (issue #8); Baud Girl's installer refuses to go from SLOOP to FM-1+VA
+  [reported].
+- **What we may take**: facts and UI ideas, with credit; no code.
+
 ### M-VAVE official downloads
 https://www.m-vave.com/download lists the V15 `.fwsc` (2026-07-30) as the
 latest PC firmware, V14 updaters for Windows/macOS, release notes and the
@@ -164,7 +244,9 @@ No V16 as of 2026-09-08.
   for chips in USB download ("UBOOT1.00") mode over SCSI vendor commands;
   `jldevfind.py`, `jlrunner.py`, `jluboottool.py`; loader blobs incl.
   **`wl82loader.bin`** (load address `0x1C02000`, protocol v2, "MengLi" memory
-  cipher quirk). WL82 listed as **"unknown"** (present but untested).
+  cipher quirk). WL82 listed as **"unknown"** (present but untested); at
+  `adb3f18` it works on FM-1s with 256-byte I/O [reported: fm1-nes's guard
+  patch; our clone's loader is the same file, verified by hash].
   `docs/how-to-enter-uboot.md`, `usb-protocol.md`, `usb-loader-v2.md`.
 - **jl-misctools**: https://github.com/kagaimiq/jl-misctools — `fwunpack_newfw.py`
   and friends; unpacks `FM-1.fwsc`.
@@ -216,6 +298,20 @@ No V16 as of 2026-09-08.
   - `doc/datasheet/AC791N规格书/`: AC7911B, AC7913A0/A6, AC7915A, AC7916A
     datasheets and reference schematics (Chinese).
   - `doc/AC79NN_SDK_发布版本信息.pdf`: release notes.
+  - **Update, 2026-10-05** (`notes/2026-10-05-community-repos.md` §2.1):
+    Gitee is reachable, if flaky, and current to V1.2.13: branch
+    `release/AC79NN_SDK_V1.2.0` at `e30b1ee` (2026-06-09) is tag
+    `AC79NN_SDK_V1.2.13_2026-04-20` plus a README change. Our pin stays tag
+    `AC79NN_SDK_V1.1.9_2023-08-01` (`8eae664`). The GitHub mirrors are stale
+    (`amitv87` stops at 2024-07; `jeffreywugz` carries V1.0.3), so cite Gitee
+    by commit. From V1.2.7, `system.a` carries `sdk_meky_check`, and V1.2.13
+    adds `sdk_chip_key_verify_v2` [verified: strings per tag]. V1.2.12 added
+    a Linux `isd_download` flow (`cpu/wl82/tools/download_linux.c`,
+    `init_env.sh`).
+  - **Branch `AC791N_OTA_loader`** at `79eda0c` (2025-09-13): Code::Blocks
+    projects for every `ota.bin` loader, including `usb_hid_ota`, the likely
+    template of the FM-1's loader [inferred; strings and load address
+    verified]. Its `update_main.c` is the device-pull step 2 of docs/03.
 - **fw-Bootloader** — https://github.com/Jieli-Tech/fw-Bootloader — Apache-2.0
   "user boot" source producing `uboot.boot`, supporting **AC791N (wl82)** among
   others; custom serial and USB-HID upgrade paths. Makes the SPL layer
@@ -275,3 +371,9 @@ AL-255's `docs/03-dx7-core-identification.md` and this project's
 `kagaimiq/jl-misctools`, `kagaimiq/jl-uboot-tool`, `DimaDake/schwung-movy`,
 and a blobless clone of `jeffreywugz/fw-AC79_AIoT_SDK`. Vendor firmware images
 were inspected in AL-255's checkout and are not redistributed here.
+
+On 2026-10-05, shallow read-only clones of the Gitee AC79 SDK (`e30b1ee`,
+sparse) and its `AC791N_OTA_loader` branch (`79eda0c`), `hugelton/Felucca`
+(`727f272`), `Keitark/fm1-nes` (`870f305`) and `isod89/sloop-fm1`
+(`f2b44c2`); FM-1-transporter (`a632d92`) was read through the API. Nothing
+was built, run or sent to a device (`notes/2026-10-05-community-repos.md`).
