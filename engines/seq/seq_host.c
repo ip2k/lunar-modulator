@@ -49,6 +49,7 @@ void fm1_seq_host_init(fm1_seq_host_t *h, fm1_seq_t *seq, fm1_seq_ev_t *ev, uint
   memset(h->lane_uid, 0, sizeof(h->lane_uid));
   h->cmd_n = 0;
   memset(h->dest, FM1_SEQ_HOST_NO_DEST, sizeof(h->dest));
+  memset(&h->clock, 0, sizeof(h->clock));
 }
 
 /* Every lane of track t, from the core's labels, against the bound engine.
@@ -196,6 +197,7 @@ void fm1_seq_host_note_in(fm1_seq_host_t *h, uint8_t track, uint8_t pitch, uint8
 
 uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames) {
   h->cmd_n = h->n;                      /* the inputs' events end here */
+  fm1_seq_get_clock(h->seq, &h->clock); /* after the inputs: a `play` resets it */
   h->n += fm1_seq_advance(h->seq, frames, tail(h), fm1_seq_host_room(h));
   if (h->n > h->max_n) h->max_n = h->n;
   return h->n;
@@ -553,6 +555,10 @@ float fm1_seq_lock_value(const fm1_param_t *p, unsigned v) {
     const unsigned n = (unsigned)(p->max - p->min) + 1u;
     return p->min + (float)(v * n / (FM1_SEQ_VAL_MAX + 1u));
   }
+  if (fm1_param_is_log(p)) {   /* the LOG law: position v / 127 (API v3) */
+    return fm1_param_at(p, (float)(v > FM1_SEQ_VAL_MAX ? FM1_SEQ_VAL_MAX : v) /
+                               (float)FM1_SEQ_VAL_MAX);
+  }
   return p->min + (p->max - p->min) * (float)v / (float)FM1_SEQ_VAL_MAX;
 }
 
@@ -574,6 +580,7 @@ unsigned fm1_seq_value7(const fm1_param_t *p, float x) {
     return v < FM1_SEQ_VAL_MAX ? v : FM1_SEQ_VAL_MAX;
   }
   if (!(p->max > p->min)) return 0u;
+  if (fm1_param_is_log(p)) return round_7(fm1_param_pos(p, x) * (float)FM1_SEQ_VAL_MAX);
   return round_7((x - p->min) / (p->max - p->min) * (float)FM1_SEQ_VAL_MAX);
 }
 

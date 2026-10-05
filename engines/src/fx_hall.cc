@@ -606,4 +606,5 @@ extern "C" const fm1_engine_t fm1_engine_hall = {
   NULL, NULL, NULL,
   fm1::hall::Set, fm1::hall::Render,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
 };

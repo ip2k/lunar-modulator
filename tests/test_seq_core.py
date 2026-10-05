@@ -901,14 +901,15 @@ HEAP = {"malloc", "calloc", "realloc", "free", "posix_memalign", "aligned_alloc"
 
 
 def test_the_core_never_allocates(seq_tools):
-    """docs/13 §7: no malloc in the link map. The core's objects, and the host
-    bridge every host shares (seq_host.o, fm1_seq_host.h), import no
-    allocator (nor stdio) at all."""
+    """docs/13 §7: no malloc in the link map. The core's objects, the host
+    bridge every host shares (seq_host.o, fm1_seq_host.h) and its effects'
+    side (fx_host.o, fm1_fx_host.h: engine API v3) import no allocator (nor
+    stdio) at all."""
     nm = shutil.which("nm")
     if not nm:
         pytest.skip("no nm")
     objs = sorted((ENGINES / "build" / "c" / "seq").glob("*.o"))
-    assert len(objs) == 6 and "seq_host.o" in [o.name for o in objs]
+    assert len(objs) == 7 and {"seq_host.o", "fx_host.o"} <= {o.name for o in objs}
     for o in objs:
         out = subprocess.check_output([nm, "-u", str(o)], text=True)
         names = {line.split()[-1].lstrip("_") for line in out.splitlines() if line.strip()}

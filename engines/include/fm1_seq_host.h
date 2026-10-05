@@ -140,6 +140,11 @@ typedef struct fm1_seq_host {
                                    last dispatch: its engine slot, 0x80 | its
                                    MIDI channel, FM1_SEQ_HOST_NO_DEST before
                                    the first (Rerouting, below) */
+  fm1_seq_clock_t clock;        /* the core's clock as the last advance began:
+                                   where that block's beats fall, for the
+                                   effects (engine API v3, fm1_fx_host.h); all
+                                   0 before the first advance or without a
+                                   sequencer */
 } fm1_seq_host_t;
 
 #define FM1_SEQ_HOST_NO_DEST 0xFFu
@@ -189,8 +194,9 @@ uint32_t fm1_seq_host_room(const fm1_seq_host_t *h);
  * and 64 gates. */
 uint32_t fm1_seq_cmd_max_events(const fm1_seq_limits_t *lim);
 
-/* Runs the block (fm1_seq_advance) into the room left after the inputs.
- * Returns n, every event the block holds, for a log. */
+/* Runs the block (fm1_seq_advance) into the room left after the inputs,
+ * keeping the clock as it began in h->clock. Returns n, every event the
+ * block holds, for a log. */
 uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames);
 
 /* Plays the block's events into `sink` and empties the buffer. Only
@@ -297,12 +303,15 @@ size_t fm1_seq_lane_label_for(const fm1_param_t *p, char *buf, size_t size);
 uint16_t fm1_seq_lane_uid(const fm1_engine_t *e, const char *label);
 
 /* A 7-bit lock value on p's range: linear for FLOAT (v / FM1_SEQ_VAL_MAX of
- * the way from min to max), Movy's planned bins floor(v * n / 128) for an
+ * the way from min to max), on the LOG law for a LOG parameter (position
+ * v / FM1_SEQ_VAL_MAX, fm1_engine.h: min x (max / min)^(v / 127), exactly
+ * min and max at the ends), Movy's planned bins floor(v * n / 128) for an
  * ENUM of n values. */
 float fm1_seq_lock_value(const fm1_param_t *p, unsigned v);
 
 /* The inverse of fm1_seq_lock_value (docs/15 S8): the 7-bit value of x on
- * p's range. FLOAT: (x - min) / (max - min) of 127, rounded half up, so
+ * p's range. FLOAT: (x - min) / (max - min) of 127 (LOG: its position,
+ * fm1_param_pos), rounded half up, so
  * fm1_seq_value7(p, fm1_seq_lock_value(p, v)) == v for every v in 0..127.
  * ENUM: the lowest v whose bin is x's entry (rounded to the nearest), so
  * fm1_seq_lock_value(p, fm1_seq_value7(p, e)) == e for every entry e of a
@@ -312,8 +321,8 @@ unsigned fm1_seq_value7(const fm1_param_t *p, float x);
 
 /* A knob detent on a lane's parameter (owner decision O14): `delta` steps on
  * p's 7-bit grid from v, clamped, as the value a lock or a base takes. One
- * step is v/127 of the range for FLOAT, and one entry, the bins' grid, for
- * ENUM. */
+ * step is 1/127 of the range for FLOAT (of its octaves for LOG), and one
+ * entry, the bins' grid, for ENUM. */
 unsigned fm1_seq_value7_step(const fm1_param_t *p, unsigned v, int delta);
 
 /* Routing default. The core starts every track on USB-MIDI channel

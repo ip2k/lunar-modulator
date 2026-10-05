@@ -110,13 +110,13 @@ static const char *const kTiltCurveNames[CURVE_COUNT] = { "Shelf", "Slope" };
 /* Uids (API v2) are fixed: never renumber one; a new parameter takes the next
  * free uid. The FLOATs are read every sample: SMOOTH and MOD. Curve changes
  * nothing destructively (it glides) and is not note-bound, so it can be
- * locked and modulated (MOD; a route is rounded). Tilt and Level are in dB,
- * for which fm1_unit_t has no code yet. */
+ * locked and modulated (MOD; a route is rounded). Tilt and Level are in dB
+ * (FM1_UNIT_DB, API v3); Pivot moves on the LOG law (fm1_engine.h). */
 static const fm1_param_t kTiltParams[P_COUNT] = {
-  { "Tilt",  FM1_PARAM_FLOAT, -9, 9, 0.0f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Tilt" },
-  { "Pivot", FM1_PARAM_FLOAT, 200, 5000, 1000.0f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "Pivot" },
+  { "Tilt",  FM1_PARAM_FLOAT, -9, 9, 0.0f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Tilt" },
+  { "Pivot", FM1_PARAM_FLOAT, 200, 5000, 1000.0f, NULL, 0, 2, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "Pivot" },
   { "Curve", FM1_PARAM_ENUM, 0, CURVE_COUNT - 1, CURVE_SHELF, kTiltCurveNames, 0, 3, FM1_PARAM_MOD, FM1_UNIT_NONE, "Curve" },
-  { "Level", FM1_PARAM_FLOAT, -24, 12, 0.0f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Level" },
+  { "Level", FM1_PARAM_FLOAT, -24, 12, 0.0f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Level" },
 };
 
 /* The smoothed control values: the sections' gains at the top, section A's
@@ -367,6 +367,7 @@ const fm1_engine_t fm1_engine_tilt = {
   NULL, NULL, NULL,
   TiltSet, TiltRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
 };
 
 #ifdef __cplusplus

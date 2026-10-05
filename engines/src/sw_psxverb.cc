@@ -93,4 +93,5 @@ extern "C" const fm1_engine_t fm1_engine_sw_psxverb = {
   NULL, NULL, NULL,
   fm1::schwung::SetParam, fm1::schwung::Render,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
 };

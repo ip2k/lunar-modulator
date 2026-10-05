@@ -615,6 +615,7 @@ const fm1_engine_t fm1_engine_djfilter = {
   NULL, NULL, NULL,
   DjSet, DjRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
 };
 
 #ifdef __cplusplus
