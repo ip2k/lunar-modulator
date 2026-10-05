@@ -35,6 +35,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `djfilter` | DJ Filter | effect | – | this repository, a trapezoidal SVF after Simper and Zavalishin | one knob: low-pass left of centre, high-pass right, the input bit for bit in between; [below](#dj-filter) |
 | `tilt` | Tilt | effect | – | this repository | a tilt equaliser, dark to bright about a pivot; [below](#tilt) |
 | `sat` | Master Sat | effect | – | this repository; curve coefficients from Airwindows (Chris Johnson, MIT) | gentle band-limited saturation for the master bus, with Glue; [below](#master-sat) |
+| `isolator` | Isolator | effect | – | this repository | a three-band kill EQ with Linkwitz-Riley crossovers; [below](#isolator) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -578,6 +579,83 @@ insert that distorts on purpose; this one is meant to be left on the bus.
   a sine's harmonics, distortion and aliases at 1 Hz resolution, which the
   tests use for what each knob does.
 
+## Isolator
+
+A three-band DJ kill EQ written here (`src/fx_isolator.cc`, MIT), the design
+of notes/2026-10-02-delay-reverb-eq-gates-options.md §4.4. The band tree is
+Faust's `crossover3LR4` (filters.lib, STK-4.3, `9c42142`), followed for its
+structure only; no code is taken. Stereo in, stereo out, each channel
+filtered on its own.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Low | 0–1 (0.75) | The low band's gain: 0 is a true zero, 0.75 unity, 1 is +6 dB (×2). Below unity (k / 0.75)³, so the middle of the cut, 0.375, is −18 dB; above it 2^(4 (k − 0.75)) |
+| 1 | Mid | 0–1 (0.75) | The mid band's gain, the same law |
+| 1 | High | 0–1 (0.75) | The high band's gain, the same law |
+| 1 | Kill | None, Low, Mid, Low+Mid, High, Low+High, Mid+High, All (None) | Kills bands whatever their knobs say; un-killing returns them to the knobs' gains. Lockable, and modulated rounded |
+| 2 | Low Xover | 80–400 Hz (250) | The low/mid crossover |
+| 2 | High Xover | 1,500–5,000 Hz (2,500) | The mid/high crossover. Both crossovers stay under 0.45 of the host's rate |
+
+The defaults are the note's 250 Hz and 2.5 kHz (Mixxx starts its EQ at 246 Hz
+and 2,484 Hz [reported in the note: its constants]).
+
+- **The bands.** Fourth-order (24 dB/octave) Linkwitz-Riley crossovers, each
+  a pair of Butterworth sections: low = AP2(f2)(LR4-LP(f1)(x)), mid =
+  LR4-LP(f2)(LR4-HP(f1)(x)), high = LR4-HP(f2)(LR4-HP(f1)(x)). LR4-LP plus
+  LR4-HP at one frequency is a second-order all-pass, so the three bands at
+  unity sum to AP2(f1) · AP2(f2) · x: flat in magnitude. Each section is the
+  trapezoidal (TPT) state-variable filter in Cytomic's form; one update gives
+  low-, band- and high-pass, so a crossover's first section serves both of
+  its sides and the all-pass is x − 2k·bp: 7 updates per channel per sample.
+- **Measured** [verified: tests/test_engines_isolator.py through
+  `build/fm1-isolator-test`, float impulse responses, 2026-10-05], at the
+  defaults:
+  - the band sum is flat to within 2.7 × 10⁻⁵ dB from 20 Hz to 20 kHz
+    (float rounding);
+  - each band is −6.02 dB at its crossover, at both ends of both ranges;
+  - kill low: −63.7 dB at 40 Hz. Kill high: −80.4 dB at 15 kHz. Kill mid:
+    −29.8 dB at 600 Hz, −31.1 dB at 1 kHz, but only −19.0 dB at 1.5 kHz,
+    because the mid band is three octaves wide and the crossovers' skirts
+    overlap. These are the note's figures;
+  - Kill gives the same response as a knob at 0, sample for sample.
+- **Unity is bit-exact.** While all three bands ask for exactly unity and
+  nothing is killed (the defaults, whatever the crossovers), the output is
+  the guarded input, bit for bit, rather than the all-passed band sum, which
+  differs from it in phase. The filters keep running, so leaving unity
+  crossfades linearly from the input to the band sum over 5 ms, and returning
+  crossfades back; 5 ms later the output is the input again, bit for bit.
+  During the crossfade the two signals' phase difference makes a brief dip
+  around the crossovers (about −17 dB at f1 halfway through, for the
+  defaults) [inferred: the all-passes' phase]. The alternative, always the
+  band sum, is flat within float rounding but never the input itself.
+- **Glides:** the band gains and the crossovers glide (one pole, 5 ms)
+  sample by sample, so a kill does not click and the output does not depend
+  on block size; values set before the first block apply from its first
+  sample. The crossovers glide in g = tan(πf/fs), the filters' own
+  coefficient. Turning Kill through every mask, the crossovers end to end or
+  Low in and out of unity every third block, on a 100 Hz sine, steps the
+  output by at most 1.31 times the sine's own largest step [verified]. Filter
+  states below 10⁻²⁰ flush to zero, so tails never run in subnormals.
+- **No libm.** tan comes from sin and cos polynomials written here, 2^x from
+  a polynomial, the glide coefficient from a series; contraction is off for
+  the file, so the browser's module computes the same bits [verified:
+  `-ffp-contract=off` and Apple clang's default give identical output;
+  without the pragma they differ].
+- **Cost:** about 103 operations and 28 comparisons per channel and sample,
+  about 13,000 and 3,600 per 64-frame stereo block, no divide unless a
+  crossover is moving. At one operation per cycle on pi32v2 that is about
+  5 % of a 240 MHz core [inferred]. Desktop (Apple M1 Max): 1.8 µs per
+  block, 0.12 % of it, and 2.0 µs while the crossovers glide
+  (`build/fm1-isolator-test --bench`).
+- **Memory:** 240 bytes, no delay lines; the struct holds no pointers, so
+  the same on a 32-bit build [inferred].
+- fm1-render sets an effect's parameters only before the first block, so
+  `build/fm1-isolator-test` (`test/isolator_test.cc`) drives Isolator
+  directly: every parameter changed mid-stream to any value, NaN and
+  infinities included, between blocks of 1–64 frames; the glides at blocks
+  of 64, 7 and 1; the switching; the frequency response in float; and the
+  host rates it accepts (8–384 kHz).
+
 ## Parameters (engine API v2)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -642,12 +720,14 @@ third page.
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
 | sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
 | sat | Shape | MOD | Crossfades over 5 ms, so a lock or a rounded route is clean however fast (the owner's switch rule, 2026-10-02) |
+| isolator | Kill | MOD | The killed bands' gains glide over 5 ms, so a change is clean however fast: lockable, and a route is rounded |
 
 **Units and abbreviations.** Echo's Time and Sophie's Ring Time are in ms,
 Sophie's Tune in semitones and its 0–100 knobs in %, Master Sat's Clean Lo
-and Clean Hi in Hz. Sophie's Decay is in seconds and Master Sat's Drive and
-Level in dB, for which there are no unit codes yet, so they have none. Every
-other parameter is a bare number (the 0–1 knobs, gains, bits, indices).
+and Clean Hi and Isolator's crossovers in Hz. Sophie's Decay is in seconds
+and Master Sat's Drive and Level in dB, for which there are no unit codes
+yet, so they have none. Every other parameter is a bare number (the 0–1
+knobs, gains, bits, indices).
 
 **No sound changed** [verified 2026-10-02, Apple clang, before and after on
 one machine, clean builds]: 1,458 runs of `fm1-render` and the virtual
@@ -684,7 +764,7 @@ sound).
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Crush, Echo, DJ Filter, Tilt, [Master Sat](#master-sat)) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, Echo, DJ Filter, Tilt, [Master Sat](#master-sat), [Isolator](#isolator)) |
 | `src/fx_comp_math.h` | `CompExp2` and `CompLog2`: base-2 exponential and logarithm without libm, the same bits on every build (from Comp's branch, byte for byte; Tilt uses it) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
@@ -799,6 +879,8 @@ upstream candidate). Our own code gets none.
   | Each Mutable effect | 0.03–0.06 % |
   | Fold | 0.12 % |
   | Master Sat | 0.11–0.23 % |
+
+  | Isolator | 0.12 % |
 
   pi32v2 is a much narrower core and these figures do not transfer; stage B
   measures the real ones. They do rank the engines for the voice caps.

@@ -41,6 +41,7 @@ ENUM_FLAGS = {
     ("djfilter", "Slope"): ["mod"],             # crossfades over 5 ms: lockable, rounded
     ("tilt", "Curve"): ["mod"],                 # glides between its two curves
     ("sat", "Shape"): ["mod"],                  # crossfades over 5 ms
+    ("isolator", "Kill"): ["mod"],              # the band gains glide: a clean change
 }
 
 
