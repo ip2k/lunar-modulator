@@ -1588,7 +1588,11 @@ code is `include/fm1_smooth.h`, plain C99:
   and a crossfade for Lookahead). That glide gives what SMOOTH promises. A
   new effect may do the same; anything else uses `fm1_smooth.h`, as Echo's
   Tone does: its loop filter's coefficient had no glide and jumped, which
-  steps the repeats, so it takes the shared ramp.
+  steps the repeats, so it takes the shared ramp. The master-bus pack (DJ
+  Filter, Tilt, Master Sat, Isolator, EQ) came with glides of its own too,
+  keyed to samples and applied at once before the first render (their
+  sections above), and keeps them; `tests/test_engine_smooth.py` drives
+  all five like every other unit [verified 2026-10-05, after merging S7b].
 - **The Schwung shim** ramps the first eight SMOOTH parameters of a module
   (`kMaxRamps`), in the module's own blocks, from its first render on.
   `tests/test_engine_params.py` checks that no module has more. Sophie's

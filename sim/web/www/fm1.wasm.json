@@ -1,26 +1,27 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "d6efdf2c8e9ddd076cf46bd2f6487de958738f5bb319e062d95917be742bf244",
-  "wasm_bytes": 573403,
+  "wasm_sha256": "602b1f498b8a22209f04532948d241980f09aeba5ee9cdbe107593ffea1e392d",
+  "wasm_bytes": 598994,
   "sources_sha256": {
-    "engines": "9feefc497ba6db40a4300f09e00567c92df297f73abf6ea2ce7e1c2acf9b5954",
-    "sim": "c2a7c26d4461f16b581e630ea0fecd987d49f1fc81da370ddd5080d3af75236d"
+    "engines": "7fd547b285961b04ab018cca86c7018abd9ad405b69b1f0a97553b8d79867f0b",
+    "sim": "8840e7d4deb4db370fdf3ff16560c12757135fa79e01463c65eda9a57e5a5abd"
   },
   "engines": "working tree",
-  "built": "2026-10-05T19:43:21Z",
+  "built": "2026-10-05T20:24:55Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
     "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
-    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
+    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
   ],
   "imports": [],
   "parity": {
-    "passed": 47,
+    "passed": 54,
     "failed": 0,
-    "identical_to_js": 47,
-    "identical_to_musl": 47,
-    "identical_to_glibc": 44,
+    "identical_to_js": 54,
+    "identical_to_musl": 54,
+    "identical_to_glibc": 51,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -1060,6 +1061,160 @@
       "ram_bytes": {
         "wasm32": 395056,
         "native64": 395904
+      }
+    },
+    {
+      "name": "djfilter-resonant-low-pass",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 120648,
+        "native64": 133528
+      }
+    },
+    {
+      "name": "tilt-dark-slope-into-echo",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 307664,
+        "native64": 308480
+      }
+    },
+    {
+      "name": "sat-bus-glue",
+      "samples": 114706,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 120760,
+        "native64": 133640
+      }
+    },
+    {
+      "name": "isolator-kill-low-boost-high",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 54968,
+        "native64": 67832
+      }
+    },
+    {
+      "name": "eq-three-bands",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 120792,
+        "native64": 133672
+      }
+    },
+    {
+      "name": "switches-djfilter-tilt-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 55096,
+        "native64": 67960
+      }
+    },
+    {
+      "name": "switches-sat-isolator-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 55304,
+        "native64": 68168
       }
     },
     {

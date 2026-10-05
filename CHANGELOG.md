@@ -13,17 +13,17 @@ history.
   the master-bus effects of the 2026-10-02 effects note. The effect slots
   now offer seventeen effects (ALGORITHM steps through Plate, Ensemble,
   Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp, Limiter,
-  DJ Filter, Tilt, Master Sat, Isolator, EQ and Test Gain). Until there is
-  a master chain, put them in the second slot, which is the master of a
-  one-sound app.
+  DJ Filter, Tilt, Master Sat, Isolator, EQ and Test Gain). Put them in
+  the second slot, the end of the chain; with multi-sound (behind `?lab`)
+  the two slots are the master bus of every sound.
   - Each has a parity scenario that turns its knobs, and its switch where
     it has one, while notes play; two more turn DJ Filter's Slope, Tilt's
     Curve, Master Sat's Shape and Isolator's Kill every 4.4 ms.
   - For developers: `tests/test_engines_fx_switches.py` turns those four
-    switches every third block on a sine and on sharp onsets. 48 of 48
-    parity scenarios pass, identical to musl and to render.js; 1,143
-    screens pass the layout check (88 new). The browser module grew from
-    525 KB to 550 KB. Each effect is under 400 bytes an instance, on
+    switches every third block on a sine and on sharp onsets. 54 of 54
+    parity scenarios pass, identical to musl and to render.js; 1,458
+    screens pass the layout check (137 new). The browser module grew from
+    573 KB to 599 KB. Each effect is under 400 bytes an instance, on
     64-bit and 32-bit builds alike. `tests/test_engines_fx_hostile.py`
     puts all five through the same hostile checks of the engine contracts
     (any block size and memory fill, seconds of garbage parameters and
