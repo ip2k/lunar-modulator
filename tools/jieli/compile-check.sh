@@ -20,11 +20,14 @@
 #                Makefile and the libraries it links checked out (for symbols).
 #                Its V1.2.13 libc++ (version 12) ships math.h, so no shim is
 #                needed. No uboot.boot, wl82loader.bin or ota.bin is fetched.
-#   src/         the staged tree: engines/, sim/web/, tools/jieli/
+#   src/         the staged tree: engines/, sim/web/, firmware/, tools/jieli/
 #   out/         results; copied back to engines/build-jieli/ here. Includes
 #                out/audit_link.json: tools/jieli/audit_link.py run over the
-#                compiled objects (the compile-time half of the key-check
-#                safeguards; the link-time checks run on the real link later).
+#                compiled objects and our sources (the compile-time half of the
+#                key-check safeguards; the link-time checks run on the real
+#                link later), and out/boot-bridge/: the boot_info bridge
+#                compiled for pi32v2, which must call nothing but
+#                __real_boot_info_init.
 #
 # Environment: FM1_JIELI_HOST (required: user@host of a Linux x86-64 machine
 # with Docker), FM1_JIELI_DIR, FM1_SESSION (container label, default
@@ -158,7 +161,7 @@ DIGEST=$(ssh "$HOST" "docker image inspect --format '{{.Id}}' $IMAGE")
 echo "== staging sources"
 ssh "$HOST" "rm -rf '$REMOTE/src' && mkdir -p '$REMOTE/src'"
 tar -C "$ROOT" --no-xattrs --exclude='engines/build*' --exclude='sim/web/build' --exclude='sim/web/www' \
-    --exclude='.DS_Store' --exclude='__pycache__' -cf - engines sim/web tools/jieli \
+    --exclude='.DS_Store' --exclude='__pycache__' -cf - engines sim/web firmware tools/jieli \
   | ssh "$HOST" "tar -x -C '$REMOTE/src'"
 
 echo "== compiling in $IMAGE"

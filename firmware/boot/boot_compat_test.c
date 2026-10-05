@@ -1,12 +1,13 @@
-/* firmware/boot/boot_compat_test.c -- desktop test for boot_compat.c.
+/* firmware/boot/boot_compat_test.c -- desktop test for the boot_info bridge,
+ * firmware/third_party/fm1-nes/boot_compat.c (Apache-2.0, from fm1-nes).
  *
- * Compiles boot_compat.c with -DFM1_BOOT_COMPAT_TEST (no SDK headers) and
+ * Compiles the bridge with -DFM1_BOOT_COMPAT_TEST (no SDK headers) and
  * stands in for the SDK's boot_info_init. Checks the bridge's contract:
  * the six stock words reach the SDK unchanged, words 6..22 arrive zeroed,
  * the source buffer is never written, and the argument stays word-aligned.
  *
  * Built and run by tests/test_boot_compat.py on the desktop. Nothing here
- * runs on a JieLi chip. MIT licence.
+ * runs on a JieLi chip. This driver is Lunar's own: MIT licence.
  */
 #include <stdint.h>
 #include <stdio.h>

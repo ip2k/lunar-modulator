@@ -22,23 +22,37 @@ only, no binutils that know pi32v2). Two kinds of input:
 Checks fall in three buckets per input:
   pass     the condition holds
   fail     a violation -> non-zero exit (the build must stop)
-  pending  the check needs a linked image / vendor objdump and the input is
-           objects only; reported, never a failure
+  pending  the check needs a linked image or the vendor objdump, or a hit in
+           a linked image lies inside the SDK's dormant check and a human
+           must confirm it; reported, never a failure on its own (a real
+           link is not accepted until every pending item is signed off)
 
 On objects, the symbol-reference, eFuse-access and byte-pattern checks all
-run (they are the compile-time half of the safeguards). The structural
-checks of the SDK init-call section and `sdk_meky_check`'s exact scheduling
-need the linked image and are reported pending until then.
+run (they are the compile-time half of the safeguards); any hit in our own
+objects is a failure. On a linked image the same scans run, and a hit is
+attributed to the function whose symbol covers it: the SDK's own dormant
+machinery may legitimately touch its mailbox (V1.2.8+ `boot_info_init` ->
+`mkey_dummy_func` stores the chip key at 0x01C8010C [verified: notes §3]),
+so that one store passes, other hits inside the dormant functions are
+pending (a human confirms them with the vendor objdump), and a hit anywhere
+else fails. The `late_initcall` group check reads the linked image's
+`late_initcall_begin`/`_end` table and requires exactly [sdk_meky_check];
+`sdk_meky_check`'s exact scheduling needs the vendor objdump and stays
+pending until the real link (DEVELOPERS.md I1).
+
+  --sources DIR                       our C/C++ sources: no request_irq(123)
+                                      and no IRQ-123 vector address
 
 What this does NOT cover, by design: the packaging safeguards
 (notes/2026-10-05-softkey-efuse.md §4.4) -- asserting the stock SPL hash
-730e54f0... and byte-identical isd_config.ini/ota.bin/cfg -- live in the
-packaging tool, not here. And nothing in this tool talks to a device.
+730e54f0... and byte-identical isd_config.ini/ota.bin/cfg -- live in
+tools/jieli/package_guard.py. And nothing in this tool talks to a device.
 
 MIT licence, like the rest of this repository.
 """
 import argparse
 import json
+import re
 import struct
 import sys
 from pathlib import Path
@@ -56,11 +70,18 @@ FORBIDDEN_SYMBOLS = (
     "sdk_chip_key_verify_v2",
 )
 ALLOWED_KEYCHECK_SYMBOLS = ("sdk_meky_check", "_mkey_check", "isr_check_key")
+# The SDK functions that make up the dormant check in a linked image: hits of
+# the mailbox / IRQ-123 immediates inside them are the SDK's, not ours.
+DORMANT_FUNCTIONS = ALLOWED_KEYCHECK_SYMBOLS + ("mkey_dummy_func",)
 
 # The post-cpu0_start stub `key_check_demo` hashes 92 bytes from (V1.2.8+).
 STUB_ADDR = 0x0200012E
 # The mailbox words `mkey_dummy_func`/`key_check_demo` read and write.
 MAILBOX_LO, MAILBOX_HI = 0x01C80108, 0x01C80110  # inclusive, word-aligned
+# The one mailbox access a V1.2.8+ link always carries: boot_info_init passes
+# the chip key to mkey_dummy_func, which stores it here [verified: os_api.c IR,
+# notes/2026-10-05-softkey-efuse.md §3]. Allowed in that function only.
+EXPECTED_MAILBOX_STORES = {("mkey_dummy_func", 0x01C8010C)}
 # IRQ 123's vector-table slot (base 0x01C80000, slot 123).
 IRQ123_VECTOR = 0x01C80000 + 123 * 4  # 0x01C801EC
 
@@ -71,10 +92,20 @@ SDK_KEY_BLOB_PREFIX = bytes.fromhex("FE23A8B128D4B429")
 # a strong signal, not a proof).
 KEY_CHECK_DEMO_HASH_PREFIX = bytes.fromhex("9956B646")
 
-# WL82 eFuse controller SFRs (JL_EFUSE 0x13700-0x1371F) and the P33 bytes that
-# reach the eFuse program/read strobes (P3_EFUSE_CON0/CON1/RDAT 0xB0/0xB1/0xB2).
-# No application code touches these; only the (never-linked) download loader.
+# WL82 eFuse controller SFRs (JL_EFUSE 0x13700-0x1371F). No application code
+# touches these; only the (never-linked) download loader. The P33 route to the
+# eFuse strobes (P3_EFUSE_CON0/CON1/RDAT, P33 bytes 0xB0-0xB2) is not
+# byte-scannable (small immediates are everywhere); it is covered by the SDK
+# scan in the notes (no app library does it) and by never linking a loader.
 EFUSE_SFR_LO, EFUSE_SFR_HI = 0x13700, 0x1371F
+
+# Our sources must not claim IRQ 123: request_irq(123, ...) with a literal
+# first argument, or the vector-slot address written out.
+IRQ123_SOURCE_PATTERNS = (
+    re.compile(r"\brequest_irq\s*\(\s*(?:\(\s*\w+\s*\)\s*)?(?:123|0[xX]0*7[bB])\b"),
+    re.compile(r"\b0[xX]0*1[cC]801[eE][cC]\b"),
+)
+SOURCE_SUFFIXES = (".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".s", ".S", ".inc")
 
 SHT_SYMTAB, SHT_NOBITS, SHT_RELA, SHT_REL = 2, 8, 4, 9
 SHF_WRITE, SHF_ALLOC, SHF_EXEC = 0x1, 0x2, 0x4
@@ -150,6 +181,30 @@ class Elf:
                 if idx < len(self.symbols) and self.symbols[idx]["name"]:
                     names.add(self.symbols[idx]["name"])
         return names
+
+    def function_at(self, addr):
+        """Name of the sized symbol (function or object) covering addr, or None."""
+        best = None
+        for s in self.symbols:
+            if s["name"] and s["shndx"] != 0 and s["size"] and s["value"] <= addr < s["value"] + s["size"]:
+                if best is None or s["type"] == 2:  # prefer STT_FUNC
+                    best = s
+        return best["name"] if best else None
+
+    def symbol_value(self, name):
+        for s in self.symbols:
+            if s["name"] == name and s["shndx"] != 0:
+                return s["value"]
+        return None
+
+    def read(self, addr, n):
+        """n bytes at load address addr from an allocated section, or None."""
+        for s in self.sections:
+            if (s["flags"] & SHF_ALLOC) and s["type"] != SHT_NOBITS and s["addr"] <= addr \
+                    and addr + n <= s["addr"] + s["size"]:
+                o = s["offset"] + addr - s["addr"]
+                return self.data[o:o + n]
+        return None
 
     def allocated_bytes(self):
         """Concatenated bytes of allocated PROGBITS sections (code and data),
@@ -234,7 +289,8 @@ def _find_le32(blob, value):
     return hits
 
 
-def audit(elves, flat_images, linked):
+def audit(elves, flat_images, linked, sources=None):
+    """sources: None, or [(path, line number, line)] of our C/C++ sources."""
     checks = []
 
     def record(key, status, detail):
@@ -263,20 +319,35 @@ def audit(elves, flat_images, linked):
 
     # 3-6. Byte / immediate scans over every allocated section and flat image.
     #      Each is a 4-byte little-endian immediate or a literal signature.
+    #      A source is (label, elf or None, load address of the blob, blob).
     scan_sources = []
     for name, e in elves:
         for sec, addr, blob in e.allocated_bytes():
-            scan_sources.append((f"{name}:{sec}", blob))
+            scan_sources.append((f"{name}:{sec}", e, addr, blob))
     for name, blob in flat_images:
-        scan_sources.append((name, blob))
+        scan_sources.append((name, None, None, blob))
 
-    def scan_imm(key, value, label):
-        hits = [f"{src} +0x{off:x}" for src, blob in scan_sources for off in _find_le32(blob, value)]
-        record(key, "fail" if hits else "pass", hits or f"no immediate 0x{value:08X} ({label})")
+    def imm_hits(values, attributable=False):
+        """[(label, offset, value, owning function or None)] for each LE32 hit.
+        attributable: with a linked ELF, skip flat images (their bytes are the
+        ELF's, which can be attributed to functions; a flat image cannot)."""
+        out = []
+        for value in values:
+            for src, e, addr, blob in scan_sources:
+                if attributable and linked and e is None:
+                    continue
+                for off in _find_le32(blob, value):
+                    fn = e.function_at(addr + off) if (linked and e is not None and addr) else None
+                    out.append((src, off, value, fn))
+        return out
+
+    def fmt(hit):
+        src, off, value, fn = hit
+        return f"{src} +0x{off:x} (0x{value:08X}{', in ' + fn if fn else ''})"
 
     def scan_bytes(key, needle, label):
         hits = []
-        for src, blob in scan_sources:
+        for src, _e, _a, blob in scan_sources:
             start = 0
             while True:
                 i = blob.find(needle, start)
@@ -286,51 +357,97 @@ def audit(elves, flat_images, linked):
                 start = i + 1
         record(key, "fail" if hits else "pass", hits or f"no {label}")
 
-    scan_imm("stub_0200012E_unused", STUB_ADDR, "key_check_demo stub call/load")
-    mailbox_hits = [f"{src} +0x{off:x} (0x{w:08X})"
-                    for w in range(MAILBOX_LO, MAILBOX_HI + 4, 4)
-                    for src, blob in scan_sources for off in _find_le32(blob, w)]
-    record("keycheck_mailbox_unwritten", "fail" if mailbox_hits else "pass",
-           mailbox_hits or f"no reference to 0x{MAILBOX_LO:08X}-0x{MAILBOX_HI:08X}")
+    def classify(key, hits, allowed, clean_detail):
+        """Objects: any hit fails (they are ours). Linked image: a hit in
+        `allowed` (function, value) pairs passes, a hit inside the SDK's dormant
+        functions is pending for a human, anything else fails."""
+        if not hits:
+            record(key, "pass", clean_detail)
+            return
+        if not linked:
+            record(key, "fail", [fmt(h) for h in hits])
+            return
+        bad = [h for h in hits if (h[3], h[2]) not in allowed and h[3] not in DORMANT_FUNCTIONS]
+        review = [h for h in hits if (h[3], h[2]) not in allowed and h[3] in DORMANT_FUNCTIONS]
+        ok = [h for h in hits if (h[3], h[2]) in allowed]
+        if bad:
+            record(key, "fail", [fmt(h) for h in bad])
+        elif review:
+            record(key, "pending", ["inside the SDK's dormant check; confirm with the vendor objdump"]
+                   + [fmt(h) for h in review])
+        else:
+            record(key, "pass", ["only the SDK's expected access"] + [fmt(h) for h in ok])
+
+    # 3. The key_check_demo stub: nothing may load or call it, SDK or ours.
+    stub = imm_hits([STUB_ADDR])
+    record("stub_0200012E_unused", "fail" if stub else "pass",
+           [fmt(h) for h in stub] or f"no immediate 0x{STUB_ADDR:08X} (key_check_demo stub call/load)")
+
+    # 4. The key-check mailbox: ours never; the SDK's mkey_dummy_func store is expected.
+    classify("keycheck_mailbox_unwritten",
+             imm_hits(range(MAILBOX_LO, MAILBOX_HI + 4, 4), attributable=True), EXPECTED_MAILBOX_STORES,
+             f"no reference to 0x{MAILBOX_LO:08X}-0x{MAILBOX_HI:08X}")
+
+    # 5-6. The SDK's key blob and key_check_demo's hash never appear.
     scan_bytes("no_sdk_key_blob", SDK_KEY_BLOB_PREFIX, "SDK JL_KEY_2020 blob bytes (FE 23 A8 B1 ...)")
     scan_bytes("no_key_check_demo_hash", KEY_CHECK_DEMO_HASH_PREFIX,
                "key_check_demo hash bytes (99 56 B6 46 ...)")
 
     # 7. IRQ 123 reserved for the SDK: our code must not install its vector.
-    irq_hits = [f"{src} +0x{off:x}" for src, blob in scan_sources
-                for off in _find_le32(blob, IRQ123_VECTOR)]
-    # In a linked image sdk_meky_check legitimately registers IRQ 123; flag only
-    # references that are not inside that function. Without disassembly we can
-    # bound it: objects are ours (any hit is a violation); a linked image gets
-    # a pending note so a human confirms the only hit is sdk_meky_check's.
-    if irq_hits and not linked:
-        record("irq123_reserved", "fail", irq_hits)
-    elif irq_hits and linked:
-        record("irq123_reserved", "pending",
-               [f"IRQ-123 vector 0x{IRQ123_VECTOR:08X} referenced; confirm only sdk_meky_check does"] + irq_hits)
-    else:
-        record("irq123_reserved", "pass", f"no reference to IRQ-123 vector 0x{IRQ123_VECTOR:08X}")
+    #    In a linked image, a reference inside the dormant check is the SDK's
+    #    own (pending, for a human to confirm); anywhere else it fails.
+    classify("irq123_reserved", imm_hits([IRQ123_VECTOR], attributable=True), set(),
+             f"no reference to IRQ-123 vector 0x{IRQ123_VECTOR:08X}")
+    if sources is not None:
+        src_hits = []
+        for path, line_no, line in sources:
+            if any(rx.search(line) for rx in IRQ123_SOURCE_PATTERNS):
+                src_hits.append(f"{path}:{line_no}: {line.strip()[:100]}")
+        record("irq123_unused_in_sources", "fail" if src_hits else "pass",
+               src_hits or "no request_irq(123, ...) or IRQ-123 vector address in our sources")
 
     # 8. eFuse controller never touched (the application never reads or writes
-    #    JL_EFUSE; only the never-linked download loader does).
-    efuse_hits = [f"{src} +0x{off:x} (0x{w:08X})"
-                  for w in range(EFUSE_SFR_LO, EFUSE_SFR_HI + 1, 4)
-                  for src, blob in scan_sources for off in _find_le32(blob, w)]
-    record("no_efuse_controller_access", "fail" if efuse_hits else "pass",
-           efuse_hits or f"no reference to eFuse SFRs 0x{EFUSE_SFR_LO:05X}-0x{EFUSE_SFR_HI:05X}")
+    #    JL_EFUSE; only the never-linked download loader does). No exceptions.
+    efuse = imm_hits(range(EFUSE_SFR_LO, EFUSE_SFR_HI + 1, 4))
+    record("no_efuse_controller_access", "fail" if efuse else "pass",
+           [fmt(h) for h in efuse] or f"no reference to eFuse SFRs 0x{EFUSE_SFR_LO:05X}-0x{EFUSE_SFR_HI:05X}")
 
-    # 9-10. Structural checks that need the linked image's SDK sections and the
-    #       vendor objdump. Reported pending on objects; the real link runs them.
+    # 9. The late_initcall group is exactly [sdk_meky_check] (fm1-nes
+    #    audit_boot.py:251-264): the dormant check is linked, not stubbed or
+    #    dropped, and nothing else was added to the group.
+    image = next((e for _n, e in elves if e.e_type == ET_EXEC), None) if linked else None
+    if image is None:
+        record("late_initcall_group", "pending", "needs the linked image (SDK __initcall section)")
+    else:
+        begin = image.symbol_value("late_initcall_begin")
+        end = image.symbol_value("late_initcall_end")
+        meky = image.symbol_value("sdk_meky_check")
+        if begin is None or end is None:
+            record("late_initcall_group", "fail", "late_initcall_begin/_end not in the symbol table")
+        elif meky is None:
+            record("late_initcall_group", "fail",
+                   "sdk_meky_check is not linked: the dormant check must stay, not be stubbed or dropped")
+        else:
+            raw = image.read(begin, end - begin) if end >= begin else None
+            if raw is None or len(raw) % 4:
+                record("late_initcall_group", "fail",
+                       f"cannot read the table at 0x{begin:08X}-0x{end:08X}")
+            else:
+                ptrs = struct.unpack(f"<{len(raw) // 4}I", raw)
+                ok = ptrs == (meky,)
+                record("late_initcall_group", "pass" if ok else "fail",
+                       f"late_initcall = [{', '.join(f'0x{x:08X}' for x in ptrs)}]; "
+                       f"expected [sdk_meky_check 0x{meky:08X}]")
+
+    # 10. sdk_meky_check's exact scheduling: <= 2 request_irq(123, isr_check_key)
+    #     and sys_timeout_add(_mkey_check, 8000). Needs the vendor objdump's
+    #     decode of pi32v2 long calls (trap 4); pending until the real link.
     if linked:
-        record("late_initcall_group", "pending",
-               "linked image: verify the late_initcall group is exactly [sdk_meky_check] "
-               "(read __initcall section pointers; see fm1-nes audit_boot.py:251-264)")
         record("sdk_meky_check_scheduling", "pending",
                "linked image: verify sdk_meky_check does only <=2 request_irq(123, isr_check_key) "
-               "and sys_timeout_add(_mkey_check, 8000) (needs the vendor objdump; "
-               "fm1-nes audit_boot.py:267-278)")
+               "and sys_timeout_add(_mkey_check, 8000) with the vendor objdump "
+               "(fm1-nes audit_boot.py:267-278 pins its own link's bytes)")
     else:
-        record("late_initcall_group", "pending", "needs the linked image (SDK __initcall section)")
         record("sdk_meky_check_scheduling", "pending", "needs the linked image and the vendor objdump")
 
     failed = [c for c in checks if c["status"] == "fail"]
@@ -345,6 +462,20 @@ def audit(elves, flat_images, linked):
     )
 
 
+def collect_sources(dirs):
+    """[(path, line number, line)] for every C/C++/asm source under dirs."""
+    out = []
+    for d in dirs:
+        root = Path(d)
+        files = [root] if root.is_file() else sorted(p for p in root.rglob("*") if p.is_file())
+        for f in files:
+            if f.suffix not in SOURCE_SUFFIXES:
+                continue
+            for i, line in enumerate(f.read_text(errors="replace").splitlines(), 1):
+                out.append((str(f), i, line))
+    return out
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -352,10 +483,15 @@ def main(argv=None):
     ap.add_argument("--app", help="the flat application image (byte scans), ELF or raw")
     ap.add_argument("--objects", action="append", metavar="DIR|ARCHIVE",
                     help="a directory of .o files or an .a archive (repeatable)")
+    ap.add_argument("--sources", action="append", metavar="DIR",
+                    help="our C/C++ sources, scanned for request_irq(123) (repeatable)")
     ap.add_argument("--json", help="write the full report here")
     args = ap.parse_args(argv)
     if not (args.elf or args.app or args.objects):
         ap.error("give at least one of --elf, --app or --objects")
+    for d in args.sources or []:
+        if not Path(d).exists():
+            ap.error(f"--sources {d}: no such file or directory")
 
     try:
         elves, flat, linked = collect_elves(args)
@@ -369,7 +505,8 @@ def main(argv=None):
         if e.e_machine not in (EM_PI32V2, 0):
             print(f"audit_link: warning: {name} machine 0x{e.e_machine:x} is not pi32v2", file=sys.stderr)
 
-    report = audit(elves, flat, linked)
+    sources = collect_sources(args.sources) if args.sources else None
+    report = audit(elves, flat, linked, sources)
     if args.json:
         Path(args.json).write_text(json.dumps(report, indent=2))
 

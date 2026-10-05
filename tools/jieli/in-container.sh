@@ -2,7 +2,8 @@
 # tools/jieli/in-container.sh -- the compile check itself, run inside the
 # lunar-jieli-check image by tools/jieli/compile-check.sh. Expects:
 #
-#   /src         engines/, sim/web/ (sources and mk/) and tools/jieli/ of the tree
+#   /src         engines/, sim/web/ (sources and mk/), firmware/ and tools/jieli/
+#                of the tree
 #   /opt/jieli   JieLi's Linux toolchain (the archive's top directory), read-only
 #   /sdk         the AC79 SDK V1.2.13 checkout (headers + the libraries
 #                demo_hello links), read-only. Its libc++ ships math.h.
@@ -162,12 +163,35 @@ done
 echo "== analysis"
 python3 "$SRC/tools/jieli/analyze.py" "$OUT"
 
-echo "== link-audit (compile-only: over the ladder objects)"
+echo "== boot_info bridge on pi32v2 (firmware/third_party/fm1-nes/boot_compat.c)"
+# It runs before RAM is initialised, so its object may call nothing but the
+# SDK's boot_info_init (no memcpy/memset the volatile copy should prevent).
+# Test mode (-DFM1_BOOT_COMPAT_TEST) skips the SDK app_config.h, which only a
+# real app has; the code is the same. Ladder and SDK optimisation levels.
+BB=$OUT/boot-bridge
+rm -rf "$BB" && mkdir -p "$BB"
+for o in O2 Oz; do
+  $JCC $SDK_FLAGS $SDK_CODEGEN $SDK_INC -$o -DFM1_BOOT_COMPAT_TEST -c \
+    "$SRC/firmware/third_party/fm1-nes/boot_compat.c" -o "$BB/boot_compat-$o.o" >"$BB/boot_compat-$o.log" 2>&1 \
+    || { echo "   boot bridge -$o failed to compile (see $BB/boot_compat-$o.log)"; FAIL_AUDIT=1; continue; }
+  "$TC/pi32v2/bin/objdump" -d -mcpu=r3 -mattr=+fprev1 "$BB/boot_compat-$o.o" >"$BB/boot_compat-$o.dis.log" 2>&1 || true
+  und=$("$TC/pi32v2/bin/nm" -u "$BB/boot_compat-$o.o" | awk '{print $NF}' | sort -u | tr '\n' ' ')
+  echo "$und" >"$BB/boot_compat-$o.undefined.log"
+  if [ "$und" = "__real_boot_info_init " ]; then
+    echo "   -$o: calls only __real_boot_info_init"
+  else
+    echo "   -$o: unexpected undefined symbols: $und"; FAIL_AUDIT=1
+  fi
+done
+
+echo "== link-audit (compile-only: over the ladder objects and the boot bridge)"
 # The compile-time half of the key-check safeguards (see audit_link.py): no
 # forbidden key-check symbol or reference, no eFuse-controller access, no SDK
-# key-blob bytes, no use of the 0x0200012E stub, the IRQ-123 mailbox or IRQ
-# 123 in our own objects. The link-time structural checks (the late_initcall
-# group, sdk_meky_check's exact scheduling) run on the real link later.
-python3 "$SRC/tools/jieli/audit_link.py" --objects "$OUT/ladder/obj" \
+# key-blob bytes, no use of the 0x0200012E stub, the key-check mailbox or the
+# IRQ-123 vector in our own objects, and no request_irq(123) in our sources.
+# The link-time checks (the late_initcall group, attribution of SDK hits,
+# sdk_meky_check's exact scheduling) run on the real link later.
+python3 "$SRC/tools/jieli/audit_link.py" --objects "$OUT/ladder/obj" --objects "$BB" \
+  --sources "$SRC/engines" --sources "$SRC/sim/web/src" --sources "$SRC/firmware" \
   --json "$OUT/audit_link.json" || { echo "   LINK AUDIT FAILED (see $OUT/audit_link.json)"; FAIL_AUDIT=1; }
 [ -z "${FAIL_AUDIT:-}" ] || exit 1
