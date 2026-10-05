@@ -78,12 +78,39 @@
         A and press B to make A's note reach B. The OP1 and OP3 keys page bars, or nudge held steps; OCT
         transposes them. SEL (or <kbd>Shift</kbd>) is SHIFT: with a step held, the white keys add
         pitches and a tap of SHIFT alone clears the step; with none held, SHIFT and key 10 sets full
-        velocity, and SHIFT with PLAY/STOP restarts.</dd></div>
+        velocity, and SHIFT with PLAY/STOP restarts. REC records what you play on the keys (outside
+        SEQ mode) or at MIDI IN: stopped, after a bar's count-in. Hold REC in SEQ mode while stopped to
+        enter notes one step at a time: the white keys play and enter their notes, keys held together
+        make a chord, OP3 leaves a rest (or ties held keys into the next step), OP1 steps back, and
+        SHIFT with a white key moves to that step. SHIFT and REC keep what you just played (Capture);
+        stopped, it also reads your tempo and starts playing: SELECT tries another tempo, and any other
+        press keeps the one you hear.</dd></div>
+      <div data-lab hidden><dt>Tracks (lab)</dt><dd>Eight tracks, all on Sound 1 to begin with. Hold SEQ
+        and press white key 1&ndash;8 to work on that track, from any mode; MONO and POLY (the black keys
+        C#5 and D#5) step to the previous and next track in SEQ mode. Choosing a track empties what
+        Capture holds. OP6 (F#4) mutes the track; hold it and the white keys 1&ndash;8 mute and unmute
+        tracks, lit while they play. With SHIFT held, white key 2 opens the Track page (its sound, or
+        MIDI out on a channel, and mute; turn SELECT for its lanes), 3 the Clip page (speed, length,
+        transpose, quantize), 5, 7 or 9 the Set page (tempo, swing, default quantize, metronome), 6
+        turns the metronome's click on or off, and 16 steps the clip's quantize. SELECT also walks on
+        from the sound's pages to these; SEQ goes back to the steps.</dd></div>
+      <div data-lab hidden><dt>Locks (lab)</dt><dd>Hold a step and turn SELECT past its two Step pages
+        to the sound's pages: there a knob locks its parameter on that step, shown in gold over the
+        dim value it has elsewhere, and a dot marks a parameter with a lane (eight per track). A step
+        with locks has a gold dot in the grid. SHIFT and a knob clears that step's lock; OP5 (D#4) with
+        steps held clears their locks, and held, a knob clears that parameter's lane on the track.
+        Recording while playing, a knob writes its moves into the step that plays. A knob on a locked
+        parameter turns in its 128 steps, and the lane follows it.</dd></div>
+      <div data-lab hidden><dt>Sounds (lab)</dt><dd>Up to four sounds play at once. Hold SEL and turn
+        PRESETS to choose the one the keys play and the knobs edit; PRESETS then picks its engine (Sounds
+        2&ndash;4 can be empty). In FX mode SELECT walks that sound's two insert effects, a Mix page with
+        the four sounds' levels on the knobs, and the two master effects. The meter in the screen's bottom
+        bar is the FM-1's memory: whatever would not fit is refused.</dd></div>
     </dl>
     <p class="fine">Panel to scale from the M-VAVE manual's dimensions (161.5 &times; 96.5&nbsp;mm) and the
       owner's board photo; the encoders' printed names and the 14 buttons are the manual's. <span
       data-lab-off>ENV, LFO, EDIT, SAVE, ARP, SEQ, PLAY/STOP and REC are not in the simulator yet.</span><span
-      data-lab hidden>ENV, LFO, EDIT, SAVE, ARP and REC are not in the simulator yet.</span> Engines credit Emilie Gillet
+      data-lab hidden>ENV, LFO, EDIT, SAVE and ARP are not in the simulator yet.</span> Engines credit Emilie Gillet
       (Mutable Instruments, MIT) and the Schwung module authors; see the repository's
       <code>engines/README.md</code>. Colours: Ros&eacute; Pine Moon (MIT). Type: Audiowide by
       Astigmatic (SIL Open Font License 1.1, <a href="fonts/audiowide/OFL.txt">licence</a>).

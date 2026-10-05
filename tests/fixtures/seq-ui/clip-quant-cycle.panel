@@ -1,0 +1,12 @@
+# The Set page's default quantize at 70 %, then SHIFT (SEL) + white key 16
+# three times: the focused clip's quantize goes 0, 70, 100 and back to 0.
+--button 0.05:SEQ
+--button 0.10:SEL:0.05
+--key 0.12:7:100:0.01
+--turn 0.20:KNOB3:7
+--button 0.30:SEQ
+--button 0.40:SEL:0.5
+--key 0.45:26:100:0.01
+--key 0.55:26:100:0.01
+--key 0.65:26:100:0.01
+--button 1.00:PLAY/STOP

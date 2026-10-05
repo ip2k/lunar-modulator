@@ -1,0 +1,7 @@
+# The pattern the track and page traces (docs/15 S6) start from: four
+# tracks with a bar each, stopped, at 240 BPM, 4 s at 44,118 Hz. Track 1
+# plays the sound by the default route; tracks 2-4 are routed to it here,
+# as every script routes its tracks with verbs. tests/test_seq_ui.py plays
+# it with Test Sine.
+#! rate=44118 block=64 tracks=8 end=176472
+@0 bpm 24000;tog 0 0 48 110;tog 0 8 60 100;tog 1 2 64 90;tog 1 10 67 90;tog 2 4 72 80;tog 3 6 55 100;tog 3 14 58 100;route 1 1 0;route 2 1 0;route 3 1 0

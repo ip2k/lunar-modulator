@@ -46,6 +46,12 @@ also appear and must be skipped, because updates run over USB only.
    checksum byte `0x19`, so its reply fails the checksum [verified
    2026-09-29 on the owner's unit]. Do not gate on it.
 3. **Upgrade command** host→device, identical for both steps: `F0 22 24 35 7F F7`.
+   **Do not confuse it with the "soft key" `F0 22 24 35 7D F7`**, one byte
+   away: stock V15 answers that by rebooting into mask-ROM `UBOOT1.00`
+   [reported: FM-1-transporter `docs/DEVLOG.md`; AL-255 flagged a `7D`/`7F`
+   trailer calling mask ROM `0xFFC02532`, `FM-1-RE/docs/io/05-midi.md:97`].
+   FM-1_092 is unchecked. Neither is sent to this project's unit before the
+   gate (CLAUDE.md trap 9).
 4. **Step 1 — verification.** The running app pulls parts of the package with
    read requests, checks them, writes a boot record (`FM-1_0xx` + `ota-`, a
    JieLi `UPDATA_PARM`), and soft-resets into the OTA loader, which
@@ -171,6 +177,19 @@ correct JLFS entries) and probed the step-1 verifier on hardware
   The head, `ota.bin` and `cfg` are byte-identical to V15. It is running on
   the owner's unit, so the step-1 gate does not compare reserved-partition
   entries against the installed ones.
+- **Stock step 1 accepts a loader that is not M-VAVE's [reported: Felucca,
+  SLOOP, 2026-10-03 on; source verified, `notes/2026-10-05-community-repos.md`
+  §2.2].** Felucca's and SLOOP's packages carry their own `ota.bin` (named
+  `usb_hid_ota.bin`, loaded at `0x01C0A800`), and owners install them from
+  V15 through stock step 1. So AL-255's modified-loader package above failed
+  for some other reason than a foreign loader [inferred]. Those packages also
+  carry SDK V1.2.1's `uboot.boot` and a synthetic `isd_config`; their own
+  loader writes only the app area `[0x4000, 0x93000)` and never the head.
+- **Identity ranges in use** [reported]: M-VAVE up to `FM-1_019` (the range
+  Baud Girl's installer treats as M-VAVE's); Baud Girl
+  from `FM-1_020` (`FM-1_092` so far); Felucca `FM-1_900` and `FM-1_9XY`
+  for releases (1.0 is `FM-1_910`); SLOOP reports `FM-1_900` for every
+  version. Lunar plans `FM-1_5xx` (DEVELOPERS.md, I15).
 - Therefore the stock update path is a working **install** path for non-stock
   applications. It is **not a recovery mechanism**: it has no way to help a
   device whose application no longer boots or no longer runs the update

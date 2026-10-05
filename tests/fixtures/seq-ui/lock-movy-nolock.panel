@@ -1,0 +1,14 @@
+# Transcribed from Movy's browser-test/logic/automation.mjs at 9190e79
+# (github.com/DimaDake/schwung-movy, MIT, Copyright (c) 2026 megadake;
+# engines/third_party/movy/LICENSE) to the FM-1's panel (docs/15 S8).
+# Its SP-35 check: a parameter that cannot be locked (Macro's Model,
+# NOLOCK) under a held step takes the turn, says so ("Model" / "cannot be
+# locked") and writes no lock; with no step held the knob turns it on the
+# sound, as ever.
+--button 0.05:SEQ
+--key 0.10:7:100:0.5
+--turn 0.20:SELECT:1
+--turn 0.25:SELECT:1
+--turn 0.30:KNOB1:1
+--turn 0.80:KNOB1:1
+--button 1.00:PLAY/STOP

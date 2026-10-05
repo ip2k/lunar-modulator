@@ -427,6 +427,29 @@ first.
 klerc's sequencer, OMX-27, mss-nava-firmware, Polaron as GitHub sees it, and
 takt [reported: sweep lane].
 
+**The SDK and the FM-1 community firmware (added 2026-10-05,
+`notes/2026-10-05-community-repos.md` §2):**
+
+- **JieLi's AC79 SDK is not GPL-free** [verified: SDK at `e30b1ee`]. Its
+  `system.a` holds a modified FreeRTOS V9 kernel (the TCB adds `cpu_id`),
+  and the FreeRTOS V9 headers are GPLv2 with the FreeRTOS linking exception.
+  `uac_audio.h` and `uac_audio_v2.h` (SPDX GPL-2.0, the SDK's only USB-MIDI
+  constants), the sdio headers and `usbnet.h` are GPL-2.0. The rest is
+  Apache-2.0; the closed `.a` files and tools carry no licence. Our reading
+  [inferred, not legal advice]: the kernel is JieLi's distribution under the
+  exception, which our app does not modify; never include the GPL-2.0
+  headers, and write the USB-MIDI descriptors from the USB-MIDI 1.0 spec.
+- **Felucca and SLOOP are GPL-3.0-only**: facts and ideas only, restated in
+  our words with credit. Felucca's exceptions are usable as code:
+  `firmware/src/fm6_core.c` (Apache-2.0, an integer msfa port) and
+  `phys_dsp.c`/`phys_symp.c` (MIT). Its `eng_phase.c` and Hügelton's samples
+  are GPL-3.0.
+- **fm1-nes** is Apache-2.0 at the root (board, keyscan, volume, power,
+  `boot_compat`, packager, planner), with GPL-3.0-only USB audio and packet
+  code and MIT `jl_formats.py` routines and guard patch. Its board constants
+  are copied from stock FM-1_010, so they serve as cross-checks only.
+- **FM-1-transporter** is MIT.
+
 **Manuals** (Elektron, Winter Modular, M-VAVE, Baud Girl) are behaviour
 references: summarise and cite them, never copy. Call the feature "parameter
 locks" and keep Elektron product names out of the UI.

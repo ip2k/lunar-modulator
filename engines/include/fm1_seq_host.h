@@ -14,7 +14,9 @@
  *   6. fm1_seq_host_dispatch(h, frames, block, &sink): renders the sound
  *      engine in pieces split at the frame of each event it receives, and
  *      empties the buffer;
- *   7. effects, limiter and output, which are the host's own.
+ *   7. effects, which are the host's own; the metronome's click
+ *      (fm1_seq_click_mix, from the block's events); then the host's limiter
+ *      and output.
  *
  * Lock targets (engine API v2). A lane's label (`synth:Timbre`) resolves to
  * the uid of the parameter it names when the lane is labelled (an `alabel`
@@ -28,6 +30,16 @@
  * gives, so a host that labels lanes or imports on the core directly, past
  * the bridge, still locks the right parameter: such a lane resolves afresh
  * at each lock until fm1_seq_host_bind stores it again.
+ *
+ * Rerouting. A `route` that moves a track elsewhere closes the track's
+ * gates at once (the core's note-offs, among the block's inputs), and
+ * dispatch sends a note-off from the block's inputs to where the track's
+ * notes went at the last dispatch, not to its new route: every gate it
+ * closes was opened in an earlier block, so its note sounds there. A note is
+ * then never left hanging on a sound the track no longer plays (docs/15 S6,
+ * found in its review). Everything else follows the route the track has at
+ * dispatch. A host that reroutes past the bridge (fm1_seq_set_route) closes
+ * no gate, so it does so only while nothing sounds (set-up, an import).
  *
  * Event room. Commands, live input and advance share one buffer per block,
  * and advance needs fm1_seq_min_events(lim) of it to keep every note-off,
@@ -78,7 +90,15 @@ typedef struct fm1_seq_host {
                                    until the first bind or dispatch */
   uint16_t lane_uid[FM1_SEQ_MAX_TRACKS][FM1_SEQ_LANES];  /* each lane's target
                                    uid, 0 when its label names nothing */
+  uint32_t cmd_n;               /* the events the block's inputs left before
+                                   its advance (steps 2-3) */
+  uint8_t dest[FM1_SEQ_MAX_TRACKS];  /* where each track's notes went at the
+                                   last dispatch: its engine slot, 0x80 | its
+                                   MIDI channel, FM1_SEQ_HOST_NO_DEST before
+                                   the first (Rerouting, below) */
 } fm1_seq_host_t;
+
+#define FM1_SEQ_HOST_NO_DEST 0xFFu
 
 /* Binds a host to an instance and a buffer; every counter starts at 0, and
  * no engine is bound yet. */
@@ -143,9 +163,68 @@ uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames);
 void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
                            const fm1_seq_sink_t *sink);
 
+/* Several sound units (the virtual FM-1's multi-sound, docs/15 §3.16):
+ * one engine slot per sound unit, and a track routed to the engine plays the
+ * slot its route index names (`route t 1 k`: slot k). fm1_seq_host_dispatch
+ * above is the one-unit case, which ignores the index. */
+typedef struct fm1_seq_slot {
+  const fm1_seq_sink_t *sink;   /* NULL: an empty slot; its tracks' events reach nothing */
+  float *block;                 /* where the slot's sound renders, frames stereo frames */
+} fm1_seq_slot_t;
+
+/* Plays the block's events into slots[0..n): each slot's sink renders its
+ * own block in pieces split at the frames of its own tracks' events only,
+ * and receives those events in emission order, exactly as dispatch does for
+ * one sink. Slots are played in index order, all of slot 0's calls first. A
+ * lock goes to the parameter its lane names on that slot's engine (the
+ * stored uid while it still names that parameter there, else resolved
+ * afresh); slot 0's engine is the bound one, as dispatch binds its sink's.
+ * Events of a track routed past slot n - 1 or to an empty slot are dropped
+ * and split nothing. The counters add up over the slots. Empties the
+ * buffer. */
+void fm1_seq_host_dispatch_slots(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_slot_t *slots,
+                                 unsigned n);
+
+/* The metronome's click (owner decision O11, 2026-10-02; docs/15 S6), so
+ * that every host sounds the core's CLICK events the same way. A voice of
+ * integers only: no libm and no rounding of its own, so each build and
+ * each host adds the same bits. A CLICK event starts a click at its own
+ * frame, while the metronome is on (`metro 1`; the count-in's clicks too,
+ * and only then): a triangle tone of rate / 2000 half-periods (about 1 kHz;
+ * rate / 3200, about 1.7 kHz and louder, on a downbeat) under a quadratic
+ * decay of rate / 50 frames (20 ms), added to both channels of the block
+ * after the host's effects and before its limiter. A new click restarts
+ * the voice; a click outlives the block it starts in and `metro 0`. */
+typedef struct fm1_seq_click {
+  uint32_t len;                 /* a click's length in frames, rate / 50 */
+  uint16_t half[2];             /* its tone's half-period in frames: plain, downbeat */
+  uint32_t pos;                 /* frames into the click sounding; len when none */
+  uint8_t accent;               /* the click sounding is a downbeat's */
+  uint8_t reserved[3];
+  uint32_t clicks;              /* clicks started, for logs and tests */
+} fm1_seq_click_t;
+
+/* A silent voice for `rate` frames a second. */
+void fm1_seq_click_init(fm1_seq_click_t *c, uint32_t rate);
+
+/* Adds the clicks of one block to lr (frames stereo frames, interleaved):
+ * ev[0..n) are the block's events as fm1_seq_host_advance left them (the
+ * buffer keeps them after dispatch), s the instance whose metronome gates
+ * them. A NULL s sounds no new click. */
+void fm1_seq_click_mix(fm1_seq_click_t *c, const fm1_seq_t *s, const fm1_seq_ev_t *ev, uint32_t n,
+                       uint32_t frames, float *lr);
+
 /* The parameter a lane label names: the part after the last ':' ("synth:
- * Timbre" names Timbre), compared without ASCII case. -1 if none. */
+ * Timbre" names Timbre), compared without ASCII case, with '_' standing for
+ * a space ("synth:Env_Pitch" names Env Pitch: a label is one token of a
+ * script or a set, docs/15 S8). -1 if none. */
 int fm1_seq_lane_param(const fm1_engine_t *e, const char *label);
+
+/* The label a lock UI gives a lane for parameter p: "synth:" and p's name,
+ * each space written as '_', so fm1_seq_lane_param reads it back as p. At
+ * most size - 1 bytes and a NUL (FM1_SEQ_LABEL_MAX holds every name of 12
+ * characters or fewer); returns the length written. */
+size_t fm1_seq_lane_label_for(const fm1_param_t *p, char *buf, size_t size);
 
 /* The uid of that parameter (fm1_engine.h, API v2), or 0 if none. */
 uint16_t fm1_seq_lane_uid(const fm1_engine_t *e, const char *label);
@@ -154,6 +233,21 @@ uint16_t fm1_seq_lane_uid(const fm1_engine_t *e, const char *label);
  * the way from min to max), Movy's planned bins floor(v * n / 128) for an
  * ENUM of n values. */
 float fm1_seq_lock_value(const fm1_param_t *p, unsigned v);
+
+/* The inverse of fm1_seq_lock_value (docs/15 S8): the 7-bit value of x on
+ * p's range. FLOAT: (x - min) / (max - min) of 127, rounded half up, so
+ * fm1_seq_value7(p, fm1_seq_lock_value(p, v)) == v for every v in 0..127.
+ * ENUM: the lowest v whose bin is x's entry (rounded to the nearest), so
+ * fm1_seq_lock_value(p, fm1_seq_value7(p, e)) == e for every entry e of a
+ * list of at most 128 (every one registered: Six-Op's 96 patches are the
+ * most). Out of range clamps; NaN reads as the default. No libm. */
+unsigned fm1_seq_value7(const fm1_param_t *p, float x);
+
+/* A knob detent on a lane's parameter (owner decision O14): `delta` steps on
+ * p's 7-bit grid from v, clamped, as the value a lock or a base takes. One
+ * step is v/127 of the range for FLOAT, and one entry, the bins' grid, for
+ * ENUM. */
+unsigned fm1_seq_value7_step(const fm1_param_t *p, unsigned v, int delta);
 
 /* Routing default. The core starts every track on USB-MIDI channel
  * t mod 16 + 1, and an import puts every route back there before it reads

@@ -1,0 +1,5 @@
+#! rate=44118 block=64 tracks=8 end=220590
+# A bar for the panel's locks (docs/15 S8): eight notes on track 1 at 120
+# BPM, which the default route plays on Sound 1.
+@0 bpm 12000;tog 0 0 48 110;tog 0 2 55 90;tog 0 4 60 100;tog 0 6 58 80
+@0 tog 0 8 51 110;tog 0 10 55 90;tog 0 12 63 100;tog 0 14 62 80

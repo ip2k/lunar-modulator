@@ -51,14 +51,17 @@ const uint16_t kExposed = P_CRUSH;   // pages 0 and 1
 // triggered voice copies its pad's patch (sophie.c, trigger_voice), so every
 // pad parameter, Model and Filter Type included, is read at note-on: LATCH,
 // and a change never touches a sounding voice. Pad is the edit focus, not a
-// sound: it chooses which pad the other knobs edit, so a lock on it would
-// change what every other lane's locks mean (NOLOCK).
+// sound: it chooses which pad the other knobs edit. It is lockable (the
+// owner's decision, 2026-10-02, docs/15 S8): a lock on it moves the focus
+// at its step, so the locks after it at that frame, and later ones until
+// it moves again, edit the pad it names. No flag: it is read at set_param,
+// not at note-on, and a list that moves the focus takes no modulation.
 // Units are the module's own (chain_params): Tune in semitones, Ring Time in
 // ms, the 0..100 knobs in %; Decay is in seconds, which has no unit code.
 const uint8_t kPadFlags = FM1_PARAM_LATCH | FM1_PARAM_MOD;
 const fm1_param_t kParams[P_COUNT] = {
   { "Pad",       FM1_PARAM_ENUM,  0, 15, 0, kPadNames, 0,
-    KeyUid("focused_pad"), FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Pad" },
+    KeyUid("focused_pad"), 0, FM1_UNIT_NONE, "Pad" },
   { "Tune",      FM1_PARAM_FLOAT, -24, 24, -5, NULL, 0, KeyUid("tune"), kPadFlags, FM1_UNIT_SEMI, "Tune" },
   { "Decay",     FM1_PARAM_FLOAT, 0.03f, 4, 0.28f, NULL, 0, KeyUid("decay"), kPadFlags, FM1_UNIT_NONE, "Decay" },
   { "Model",     FM1_PARAM_ENUM,  0, 3, 0, kModelNames, 0, KeyUid("model"), kPadFlags, FM1_UNIT_NONE, "Model" },

@@ -1,0 +1,16 @@
+# Transcribed from Movy's browser-test/logic/automation.mjs at 9190e79
+# (github.com/DimaDake/schwung-movy, MIT, Copyright (c) 2026 megadake;
+# engines/third_party/movy/LICENSE) to the FM-1's panel (docs/15 S8).
+# Its "automation registry" and "knob routing": the first turn of a
+# parameter on a held step's lock page gives it a lane (`alabel 0 0
+# synth:Timbre`, and `abase 0 0 64`: Timbre at 0.5 is 64, as Movy's cutoff
+# at 1 of 0..2), then writes a quiet lock at the held step (`aset 0 0 4 N
+# 1`); a second turn moves it on. Its "hold+knob gesture": the step's
+# release then toggles nothing. Macro, from steps.verbs.
+--button 0.05:SEQ
+--key 0.10:7:100:0.6
+--turn 0.20:SELECT:1
+--turn 0.25:SELECT:1
+--turn 0.30:KNOB3:1
+--turn 0.40:KNOB3:2
+--button 0.90:PLAY/STOP

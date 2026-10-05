@@ -31,6 +31,15 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
   (2026-09-04), and since 2026-09-26 **Baud Girl's FM-1+VA**, a modified V15
   with a virtual-analog engine installed from a browser (`FM-1_020` …
   `FM-1_092`; source not published). See docs/04.
+- **Open firmware runs on FM-1s too** (2026-10-05,
+  `notes/2026-10-05-community-repos.md`): Felucca 1.0 (hugelton) and its
+  fork SLOOP 2.2 (isod89), bare metal and GPL-3.0-only, install and roll back
+  through the stock path; fm1-nes (Keitark) runs an AC79 SDK app on one V14
+  unit, written through mask ROM [reported]. Their code maps the board
+  (docs/01 §3.1): audio is ALNK0 (I2S) to an external codec, not the internal
+  DAC, and the encoders are scanned in the key matrix. Stock V15 also enters
+  mask ROM on the SysEx "soft key" `F0 22 24 35 7D F7`, which this project
+  must not send before the gate (CLAUDE.md trap 9).
 - **Where the repo lives now:** `~/Developer/mvave-fm1-firmware` on the
   owner's MacBook (the folder keeps its old name), branch `main`, remote
   `ip2k/lunar-modulator` (published 2026-09-06 as
@@ -74,6 +83,8 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
    - Since 2026-09-16, other owners report that mask-ROM USB boot works on
      *their* FM-1s with czietz's simpler Pico dongle. One of them backed up
      and wrote firmware that way [reported: issue #2, docs/10 §1.1].
+     FM-1-transporter (kurogedelic) and fm1-nes report dumps and writes
+     through mask ROM too (docs/10 §1.1, docs/04).
 6. Most promising recovery: JieLi **`USB_KEY`** (`0x16EF` bit-banged on D+/D−
    at ~50 kHz at power-up, ACK = both lines low 1–2 ms, then SOF clock
    detection) → mask-ROM "UBOOT1.00" mass-storage mode → `jl-uboot-tool`
@@ -86,7 +97,9 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 7. Toolchain = JieLi's closed **Clang/LLVM 4.0.1** fork (`pi32v2` backend),
    Linux build available from `pkgman.jieliapp.com`; AL-255 built C++11 with
    it. No Rust, no GCC/LLVM upstream, no JS runtime.
-8. Vendor SDK `fw-AC79_AIoT_SDK` (Gitee; GitHub mirrors) is Apache-2.0 with a
+8. Vendor SDK `fw-AC79_AIoT_SDK` (Gitee, current to V1.2.13; our pin is tag
+   V1.1.9 `8eae664`, because `system.a` gains key checks from V1.2.7,
+   CLAUDE.md trap 11) is Apache-2.0 (with GPL parts, docs/12 §6) with a
    public register map `WL82.h`, linker scripts, `demo_hello`, flashing tools,
    `wl82loader.bin`, a JTAG/debug-TAP folder, and datasheets; ~110 closed `.a`
    libraries per CPU. JieLi's `fw-Bootloader` (Apache-2.0) targets wl82.
@@ -205,14 +218,18 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 | `kagaimiq/jielie` | `1657d25` 2024-09-15 | JieLi docs: ISA, USB_KEY, formats |
 | `kagaimiq/jl-uboot-tool` | `adb3f18` 2025-03-16 | UBOOT dumper/flasher, `wl82loader.bin` |
 | `kagaimiq/jl-misctools` | `0a5b12d` 2025-02-20 | `fwunpack_newfw.py` |
-| `jeffreywugz/fw-AC79_AIoT_SDK` (`release/AC79NN_SDK_V1.0.3`) | mirror | vendor SDK: `WL82.h`, `cpu/wl82/tools`, datasheets |
+| Gitee `Jieli-Tech/fw-AC79_AIoT_SDK` | `e30b1ee` 2026-06-09 (= V1.2.13 + README); tag V1.1.9 `8eae664` is our pin; branch `AC791N_OTA_loader` `79eda0c` | vendor SDK: `WL82.h`, `cpu/wl82/tools`, datasheets, the OTA loaders. Gitee is reachable but its SSL is flaky: pin by commit, clone blobless and sparse with `tools/jieli/ac79-sdk-sparse.txt`, and avoid commands that fetch blobs lazily, which hung. The GitHub mirrors are stale (`amitv87` to 2024-07, `jeffreywugz` V1.0.3): do not cite them |
+| `hugelton/Felucca` | `727f272` 2026-10-05 (v1.0) | bare-metal FM-1 firmware; pin map, update-service design (GPL-3.0-only: facts only) |
+| `isod89/sloop-fm1` | `f2b44c2` 2026-10-04 (v2.2) | Felucca fork; boot guard, loader checks (GPL-3.0-only: facts only) |
+| `Keitark/fm1-nes` | `870f305` 2026-10-03 | SDK app on an FM-1; board support, sparse mask-ROM planner (Apache-2.0 root) |
+| `kurogedelic/FM-1-transporter` | `a632d92` 2026-10-01 | RP2040 `USB_KEY` + USB host recovery tool (MIT); read through the API |
 | `DimaDake/schwung-movy` | `5627d51` 2026-09-05 (v0.31.0) | design reference only |
 
 Web pages that were **blocked** from the research sandbox and still need a
 human read: cuvave.com product page, the user manual PDF, synthanatomy.com
 articles, fwradar.com history, elektronauts/gearspace/reddit threads,
-fm1-editor.com, kagaimiq.github.io (use the repo), gitee.com (use mirrors),
-madushan.caas.lk blog post.
+fm1-editor.com, kagaimiq.github.io (use the repo), madushan.caas.lk blog
+post. gitee.com was on that list; it was reached on 2026-10-05 (above).
 
 ## 7. Kick-off prompt for the new Claude project
 

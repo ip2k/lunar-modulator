@@ -424,6 +424,20 @@ def test_d13_aclr_resets_base_and_carry(seq_tools, tmp_path):
 
 # ---- D4: a first take that ends before it grows ----------------------------------------------
 
+def test_capture_while_playing_grows_the_clip_as_movy(seq_tools, tmp_path):
+    """Capture committed while playing anchors a note played in the loop's
+    last half-step on the loop end and grows the clip by a bar, in both
+    modes, as Movy's capture_commit_playing does. docs/15 proposed a
+    deviation row clamping it as D4 clamps live record (O9); the owner kept
+    Movy's growth (2026-10-02), so the core has none."""
+    s = fm1().cmd("tog 0 0 60 100").play().run_ticks(TPB - 9)
+    s.cmd("non 0 62 100").run_ticks(2).cmd("nof 0 62").run_ticks(4).cmd("cap 0").blocks(2)
+    for compat in (True, False):
+        e = s.run(seq_tools, tmp_path, compat=compat, name=f"c{compat}").end
+        n = [n for n in notes(e, 0) if n["pitch"] == 62]
+        assert len(n) == 1 and (clip(e, 0)["len"], n[0]["step"]) == (32, 16)
+
+
 def test_d4_a_full_length_first_take_keeps_its_last_note(seq_tools, tmp_path):
     """A first take anchors a note in its last half-step on the loop end and
     grows the clip a bar to hold it (record_note). A 16-bar clip cannot grow:

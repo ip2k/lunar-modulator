@@ -11,12 +11,16 @@
 
 static char lower(char c) { return c >= 'A' && c <= 'Z' ? (char)(c - 'A' + 'a') : c; }
 
-/* strcasecmp in the C locale, which is what fm1-render had. */
-static int same_name(const char *a, const char *b) {
-  for (; *a && *b; ++a, ++b) {
-    if (lower(*a) != lower(*b)) return 0;
+/* Whether a lane label's name (`label`, the text after its last ':') names
+ * the parameter called `name`: strcasecmp in the C locale, which is what
+ * fm1-render had, except that '_' in the label stands for a space in the
+ * name. A label is one token of a verb script or a `movy1` set, so it
+ * cannot hold a space: `synth:Env_Pitch` names Env Pitch (docs/15 S8). */
+static int same_name(const char *name, const char *label) {
+  for (; *name && *label; ++name, ++label) {
+    if (lower(*name) != lower(*label) && !(*name == ' ' && *label == '_')) return 0;
   }
-  return *a == *b;
+  return *name == *label;
 }
 
 /* What a lane label names: the part after its last ':' ("synth:Timbre"). */
@@ -41,6 +45,8 @@ void fm1_seq_host_init(fm1_seq_host_t *h, fm1_seq_t *seq, fm1_seq_ev_t *ev, uint
   h->splits = 0;
   h->engine = NULL;
   memset(h->lane_uid, 0, sizeof(h->lane_uid));
+  h->cmd_n = 0;
+  memset(h->dest, FM1_SEQ_HOST_NO_DEST, sizeof(h->dest));
 }
 
 /* Every lane of track t, from the core's labels, against the bound engine.
@@ -70,7 +76,12 @@ int fm1_seq_host_import(fm1_seq_host_t *h, const char *txt, size_t len) {
   return ok;
 }
 
-uint16_t fm1_seq_host_lane_uid(const fm1_seq_host_t *h, uint8_t track, uint8_t lane) {
+/* The uid a lane's locks go to on engine e: the stored one while its
+ * parameter on e has the name the label gives, else the label resolved on e
+ * afresh. Against the bound engine this is fm1_seq_host_lane_uid; another
+ * sound unit's engine (dispatch_slots) gets the same rule. */
+static uint16_t lane_uid_on(const fm1_seq_host_t *h, const fm1_engine_t *e, uint8_t track,
+                            uint8_t lane) {
   const char *label;
   uint16_t uid;
   int i;
@@ -85,9 +96,13 @@ uint16_t fm1_seq_host_lane_uid(const fm1_seq_host_t *h, uint8_t track, uint8_t l
    * locks still reach the parameter it names. Engine names are unique
    * without case (tests/test_engine_params.py), so the two agree. */
   uid = h->lane_uid[track][lane];
-  i = fm1_param_index(h->engine, uid);
-  if (i >= 0 && same_name(h->engine->params[i].name, label_name(label))) return uid;
-  return fm1_seq_lane_uid(h->engine, label);
+  i = fm1_param_index(e, uid);
+  if (i >= 0 && same_name(e->params[i].name, label_name(label))) return uid;
+  return fm1_seq_lane_uid(e, label);
+}
+
+uint16_t fm1_seq_host_lane_uid(const fm1_seq_host_t *h, uint8_t track, uint8_t lane) {
+  return lane_uid_on(h, h->engine, track, lane);
 }
 
 static int is_blank(char c) { return c == ' ' || c == '\t'; }
@@ -178,65 +193,187 @@ void fm1_seq_host_note_in(fm1_seq_host_t *h, uint8_t track, uint8_t pitch, uint8
 }
 
 uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames) {
+  h->cmd_n = h->n;                      /* the inputs' events end here */
   h->n += fm1_seq_advance(h->seq, frames, tail(h), fm1_seq_host_room(h));
   if (h->n > h->max_n) h->max_n = h->n;
   return h->n;
 }
 
-/* The index of the parameter a lock reaches, or -1: its lane names nothing
- * (or nothing any more), or the parameter is NOLOCK, which is counted. */
-static int lock_target(fm1_seq_host_t *h, const fm1_seq_ev_t *e) {
-  const int i = fm1_param_index(h->engine, fm1_seq_host_lane_uid(h, e->track, e->a));
+/* The index of the parameter a lock reaches on engine e, or -1: its lane
+ * names nothing there (or nothing any more), or the parameter is NOLOCK,
+ * which is counted. */
+static int lock_target(fm1_seq_host_t *h, const fm1_engine_t *e, const fm1_seq_ev_t *ev) {
+  const int i = fm1_param_index(e, lane_uid_on(h, e, ev->track, ev->a));
   if (i < 0) return -1;
-  if (!fm1_param_lockable(&h->engine->params[i])) {
+  if (!fm1_param_lockable(&e->params[i])) {
     ++h->locks_refused;
     return -1;
   }
   return i;
 }
 
-void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
-                           const fm1_seq_sink_t *sink) {
+/* A track's route as a destination: its engine slot, or 0x80 | its MIDI
+ * channel. */
+static uint8_t dest_of(const fm1_seq_track_info_t *ti) {
+  return ti->route_kind == FM1_SEQ_ROUTE_ENGINE ? ti->route_index
+                                                : (uint8_t)(0x80u | ti->route_index);
+}
+
+/* Where event k goes: the track's route now, except that a note-off from
+ * the block's inputs goes where the track's notes went at the last
+ * dispatch (Rerouting, fm1_seq_host.h). 0xFF: nowhere (no such track). */
+static uint8_t dest_of_event(const fm1_seq_host_t *h, uint32_t k) {
+  const fm1_seq_ev_t *e = &h->ev[k];
+  fm1_seq_track_info_t ti;
+  if (!fm1_seq_get_track(h->seq, e->track, &ti)) return FM1_SEQ_HOST_NO_DEST;
+  if (e->kind == FM1_SEQ_EV_NOTE_OFF && k < h->cmd_n && e->track < FM1_SEQ_MAX_TRACKS &&
+      h->dest[e->track] != FM1_SEQ_HOST_NO_DEST) {
+    return h->dest[e->track];
+  }
+  return dest_of(&ti);
+}
+
+/* After a dispatch: each track's route, for the next block's note-offs. */
+static void dispatched(fm1_seq_host_t *h) {
+  unsigned t;
+  for (t = 0; t < FM1_SEQ_MAX_TRACKS; ++t) {
+    fm1_seq_track_info_t ti;
+    h->dest[t] = h->seq && fm1_seq_get_track(h->seq, (uint8_t)t, &ti) ? dest_of(&ti)
+                                                                      : FM1_SEQ_HOST_NO_DEST;
+  }
+  h->cmd_n = 0;
+  h->n = 0;
+}
+
+/* One sink's share of the block: the events of tracks routed to the engine
+ * (any slot when `slot` is negative, else that slot only), with its render
+ * split at their frames. Leaves the buffer as it is. */
+static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm1_seq_sink_t *sink,
+                      int slot) {
   uint32_t k, cur = 0;
-  if (sink) {
-    if (sink->engine != h->engine) fm1_seq_host_bind(h, sink->engine);
-    for (k = 0; k < h->n; ++k) {
-      const fm1_seq_ev_t *e = &h->ev[k];
-      fm1_seq_track_info_t ti;
-      int param = -1;
-      uint32_t f;
-      if (e->kind != FM1_SEQ_EV_NOTE_ON && e->kind != FM1_SEQ_EV_NOTE_OFF &&
-          e->kind != FM1_SEQ_EV_LOCK) continue;
-      if (!fm1_seq_get_track(h->seq, e->track, &ti) || ti.route_kind != FM1_SEQ_ROUTE_ENGINE) {
-        continue;
-      }
-      if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
-        param = lock_target(h, e);
-        if (param < 0) continue;
-      }
-      f = e->frame < frames ? e->frame : frames;
-      if (f > cur) {
-        sink->render(sink->ctx, block + 2u * cur, f - cur);
-        if (cur) ++h->splits;
-        cur = f;
-      }
-      if (e->kind == FM1_SEQ_EV_NOTE_ON) {
-        sink->note_on(sink->ctx, e->a, e->b);
-        ++h->notes_to_engine;
-      } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
-        sink->note_off(sink->ctx, e->a);
-      } else {
-        sink->set_param(sink->ctx, (uint16_t)param,
-                        fm1_seq_lock_value(&sink->engine->params[param], e->b));
-        ++h->locks_to_engine;
-      }
+  for (k = 0; k < h->n; ++k) {
+    const fm1_seq_ev_t *e = &h->ev[k];
+    int param = -1;
+    uint32_t f;
+    uint8_t d;
+    if (e->kind != FM1_SEQ_EV_NOTE_ON && e->kind != FM1_SEQ_EV_NOTE_OFF &&
+        e->kind != FM1_SEQ_EV_LOCK) continue;
+    d = dest_of_event(h, k);
+    if (d & 0x80u) continue;                  /* MIDI, or no such track */
+    if (slot >= 0 && d != (unsigned)slot) continue;
+    if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
+      param = lock_target(h, sink->engine, e);
+      if (param < 0) continue;
     }
-    if (cur < frames) {
-      sink->render(sink->ctx, block + 2u * cur, frames - cur);
+    f = e->frame < frames ? e->frame : frames;
+    if (f > cur) {
+      sink->render(sink->ctx, block + 2u * cur, f - cur);
       if (cur) ++h->splits;
+      cur = f;
+    }
+    if (e->kind == FM1_SEQ_EV_NOTE_ON) {
+      sink->note_on(sink->ctx, e->a, e->b);
+      ++h->notes_to_engine;
+    } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
+      sink->note_off(sink->ctx, e->a);
+    } else {
+      sink->set_param(sink->ctx, (uint16_t)param,
+                      fm1_seq_lock_value(&sink->engine->params[param], e->b));
+      ++h->locks_to_engine;
     }
   }
-  h->n = 0;
+  if (cur < frames) {
+    sink->render(sink->ctx, block + 2u * cur, frames - cur);
+    if (cur) ++h->splits;
+  }
+}
+
+void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
+                           const fm1_seq_sink_t *sink) {
+  if (sink) {
+    if (sink->engine != h->engine) fm1_seq_host_bind(h, sink->engine);
+    play_sink(h, frames, block, sink, -1);
+  }
+  dispatched(h);
+}
+
+void fm1_seq_host_dispatch_slots(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_slot_t *slots,
+                                 unsigned n) {
+  unsigned k;
+  if (n && slots[0].sink && slots[0].sink->engine != h->engine) {
+    fm1_seq_host_bind(h, slots[0].sink->engine);
+  }
+  for (k = 0; k < n && k <= 255u; ++k) {
+    if (slots[k].sink) play_sink(h, frames, slots[k].block, slots[k].sink, (int)k);
+  }
+  dispatched(h);
+}
+
+/* ---- the metronome's click (O11) ----------------------------------------- */
+
+#define CLICK_GAIN 8192             /* 0.25 full scale, in Q15 */
+#define CLICK_GAIN_ACCENT 11469     /* 0.35 on a downbeat */
+
+void fm1_seq_click_init(fm1_seq_click_t *c, uint32_t rate) {
+  uint32_t h0 = rate / 2000u, h1 = rate / 3200u;
+  memset(c, 0, sizeof(*c));
+  c->len = rate / 50u ? rate / 50u : 1u;
+  c->half[0] = (uint16_t)(h0 < 1u ? 1u : (h0 > 0xFFFFu ? 0xFFFFu : h0));
+  c->half[1] = (uint16_t)(h1 < 1u ? 1u : (h1 > 0xFFFFu ? 0xFFFFu : h1));
+  c->pos = c->len;
+}
+
+/* The click's sample at c->pos, in Q15: a triangle of c->half[accent]
+ * frames a half-period under (left / len)^2, times its gain. Integer
+ * division truncates toward zero in C99, the same on every target. */
+static int32_t click_sample(const fm1_seq_click_t *c) {
+  const int64_t half = c->half[c->accent];
+  const int64_t period = 2 * half;
+  const int64_t t = (int64_t)c->pos % period;
+  const int64_t tri = 2 * (t < half ? t : period - t) - half;   /* -half .. half */
+  const int64_t w = tri * 32767 / half;
+  const uint64_t left = (uint64_t)(c->len - c->pos);
+  const int64_t env = (int64_t)(left * left * 32767u / ((uint64_t)c->len * c->len));
+  return (int32_t)(w * env / 32768 * (c->accent ? CLICK_GAIN_ACCENT : CLICK_GAIN) / 32768);
+}
+
+/* Frames from..to of the voice into lr: exact, since the sample is an
+ * integer below 2^24 and 1/32768 a power of two. */
+static void click_run(fm1_seq_click_t *c, float *lr, uint32_t from, uint32_t to) {
+  uint32_t i;
+  for (i = from; i < to && c->pos < c->len; ++i, ++c->pos) {
+    const float x = (float)click_sample(c) * (1.0f / 32768.0f);
+    lr[2u * i] += x;
+    lr[2u * i + 1u] += x;
+  }
+}
+
+void fm1_seq_click_mix(fm1_seq_click_t *c, const fm1_seq_t *s, const fm1_seq_ev_t *ev, uint32_t n,
+                       uint32_t frames, float *lr) {
+  uint32_t k, cur = 0;
+  int on = -1;                  /* the metronome, read at the block's first click */
+  for (k = 0; k < n; ++k) {
+    uint32_t f;
+    if (ev[k].kind != FM1_SEQ_EV_CLICK) continue;
+    if (on < 0) {
+      fm1_seq_info_t info;
+      on = 0;
+      if (s) {
+        fm1_seq_get_info(s, &info);
+        on = info.metronome != 0;
+      }
+    }
+    if (!on) break;
+    f = ev[k].frame < frames ? ev[k].frame : frames;
+    if (f > cur) {
+      click_run(c, lr, cur, f);
+      cur = f;
+    }
+    c->pos = 0;
+    c->accent = ev[k].a != 0;
+    ++c->clicks;
+  }
+  click_run(c, lr, cur, frames);
 }
 
 int fm1_seq_lane_param(const fm1_engine_t *e, const char *label) {
@@ -263,6 +400,51 @@ float fm1_seq_lock_value(const fm1_param_t *p, unsigned v) {
     return p->min + (float)(v * n / (FM1_SEQ_VAL_MAX + 1u));
   }
   return p->min + (p->max - p->min) * (float)v / (float)FM1_SEQ_VAL_MAX;
+}
+
+/* floor(x + 0.5) for x in 0..127, without libm: the same on every build. */
+static unsigned round_7(float x) {
+  if (!(x > 0.0f)) return 0u;                   /* NaN and below the range too */
+  if (x >= (float)FM1_SEQ_VAL_MAX) return FM1_SEQ_VAL_MAX;
+  return (unsigned)(x + 0.5f);                  /* truncation of a positive value */
+}
+
+unsigned fm1_seq_value7(const fm1_param_t *p, float x) {
+  if (!(x == x)) x = p->def;
+  if (p->type == FM1_PARAM_ENUM) {
+    const unsigned n = (unsigned)(p->max - p->min) + 1u;
+    const unsigned e = round_7(x - p->min) < n ? round_7(x - p->min) : n - 1u;
+    /* The lowest v with floor(v * n / 128) == e: ceil(e * 128 / n). Every
+     * bin holds one at n <= 128; past that an empty bin gives the next. */
+    const unsigned v = (e * (FM1_SEQ_VAL_MAX + 1u) + n - 1u) / n;
+    return v < FM1_SEQ_VAL_MAX ? v : FM1_SEQ_VAL_MAX;
+  }
+  if (!(p->max > p->min)) return 0u;
+  return round_7((x - p->min) / (p->max - p->min) * (float)FM1_SEQ_VAL_MAX);
+}
+
+unsigned fm1_seq_value7_step(const fm1_param_t *p, unsigned v, int delta) {
+  int to;
+  if (v > FM1_SEQ_VAL_MAX) v = FM1_SEQ_VAL_MAX;
+  if (p->type == FM1_PARAM_ENUM) {          /* one entry, the bins' grid */
+    const int n = (int)(p->max - p->min) + 1;
+    const int e = (int)(fm1_seq_lock_value(p, v) - p->min);
+    to = e + delta;
+    to = to < 0 ? 0 : (to > n - 1 ? n - 1 : to);
+    return fm1_seq_value7(p, p->min + (float)to);
+  }
+  to = (int)v + delta;
+  return (unsigned)(to < 0 ? 0 : (to > (int)FM1_SEQ_VAL_MAX ? (int)FM1_SEQ_VAL_MAX : to));
+}
+
+size_t fm1_seq_lane_label_for(const fm1_param_t *p, char *buf, size_t size) {
+  static const char prefix[] = "synth:";
+  size_t n = 0, k;
+  if (!size) return 0;
+  for (k = 0; prefix[k] && n + 1u < size; ++k) buf[n++] = prefix[k];
+  for (k = 0; p->name[k] && n + 1u < size; ++k) buf[n++] = p->name[k] == ' ' ? '_' : p->name[k];
+  buf[n] = '\0';
+  return n;
 }
 
 int fm1_seq_routes_default(const fm1_seq_t *s) {
