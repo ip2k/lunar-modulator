@@ -6,7 +6,7 @@
 | stmlib | https://github.com/pichenettes/stmlib at `e3bd7c9cc00e4364166f9905c0509b6ffd0535ec` (2023-05-30), the commit eurorack pins as its submodule |
 | Author | Emilie Gillet (Mutable Instruments) |
 | Licence | MIT. Every vendored `.h`/`.cc` carries its MIT header (checked with grep on 2026-09-30); `stmlib/LICENSE` is copied alongside. stmlib's GPL-3 `ui/event_queue.h` is **not** vendored |
-| Copied by | `vendor.py`, which follows `#include`s from the files listed in its `ROOTS` and copies the whole of `plaits/dsp`. Only Rings' reverb and its `fx_engine.h` come from `rings/` |
+| Copied by | `vendor.py`, which follows `#include`s from the files listed in its `ROOTS` and copies the whole of `plaits/dsp`. Only Rings' reverb and its `fx_engine.h` come from `rings/`, and only Clouds' reverb, diffuser, `fx_engine.h` and `frame.h` from `clouds/` |
 | Local changes | **None.** Files are byte-identical to upstream; fixes and adaptations live in our wrappers (`engines/src/mi_*.cc`) |
 
 Re-vendoring:
@@ -24,9 +24,10 @@ python3 engines/third_party/mutable/vendor.py reference/mi-eurorack reference/mi
 Mutable Instruments asks that derivative works not use "Mutable Instruments"
 or the module names. The engines built on this code are called **Macro**
 (from Plaits) and **Shapes** (from Braids) in the firmware and its UI, and the
-effects **Plate** (Rings' reverb), **Ensemble** (Plaits' ensemble) and
-**Diffuse** (Plaits' diffuser); the origin is stated in each engine's
-`credits` string and in these notes, as the MIT licence requires.
+effects **Plate** (Rings' reverb), **Ensemble** (Plaits' ensemble),
+**Diffuse** (Plaits' diffuser) and **Room** (Clouds' reverb and diffuser);
+the origin is stated in each engine's `credits` string and in these notes,
+as the MIT licence requires.
 
 ## What our wrappers work around
 
@@ -95,3 +96,36 @@ What the effect wrappers work around:
 - **Sample rate.** As for the engines: delay lengths and LFO rates are fixed
   in samples. The Plate and Diffuse wrappers rescale their loop gain (and
   Plate its damping) so decay times in seconds match the native rate.
+
+## Room (stream fx-room, 2026-10-05)
+
+Added to `ROOTS` in `vendor.py` for `engines/src/fx_room.cc` (notes in
+`engines/README.md`, "Room"; research in
+`notes/2026-10-02-delay-reverb-eq-gates-options.md` §3.2):
+
+| File | Why |
+| --- | --- |
+| `clouds/dsp/fx/reverb.h` | **Room**: the same Griesinger/Dattorro loop as Rings' (Plate), smaller: `FxEngine<16384, FORMAT_12_BIT>`, 32 KB of delay memory, written for Clouds' 32 kHz |
+| `clouds/dsp/fx/diffuser.h` | Clouds' stereo all-pass diffuser (four all-passes a side, 2,048 floats), which Clouds runs before its reverb; Room's Blur |
+| `clouds/dsp/fx/fx_engine.h` | pulled in by both. It differs from Rings' copy only in its namespace and a line break |
+| `clouds/dsp/frame.h` | `clouds::FloatFrame`, which both classes take but neither includes (Clouds' granular processor includes it first) |
+
+Re-running `vendor.py` against the pinned checkouts added exactly these four
+files and changed no existing file; all four are byte-identical to
+upstream (`cmp`) [verified, 2026-10-05]. All 150 vendored `.h`/`.cc` files
+carry the MIT permission notice and none mentions the GPL (checked with a
+script on 2026-10-05, after this addition).
+
+What the wrapper works around:
+
+- **`FloatFrame` is not included.** The wrapper includes `frame.h` first,
+  as Clouds' granular processor does.
+- **Uninitialised state.** As with Rings' reverb, the two damping states are
+  set only by `Process`; the wrapper value-initialises the instance.
+- **Mix 0.** In Clouds the reverb crossfades from the diffuser's output
+  (the processor's dry input is mixed back only at the very end). Room runs
+  the reverb at full wet and crossfades from its own input, so the diffuser
+  colours only the wet and Mix 0 passes the input bit for bit.
+- **Sample rate.** Clouds ran at 32,000 Hz; at 44,118 Hz every delay and
+  LFO keeps its length in samples. The wrapper rescales the loop gain and
+  the damping, without libm (`src/fx_room_math.h`).

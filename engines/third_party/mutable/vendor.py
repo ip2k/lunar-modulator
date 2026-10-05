@@ -36,6 +36,13 @@ ROOTS = [
     "rings/dsp/fx/reverb.h",
     "plaits/dsp/fx/ensemble.h",
     "plaits/dsp/fx/diffuser.h",
+    # Room (engines/src/fx_room.cc): Clouds' reverb and its stereo diffuser,
+    # header-only; they bring clouds/dsp/fx/fx_engine.h. Both take
+    # clouds::FloatFrame without including the header that defines it (Clouds'
+    # granular processor includes it first), so frame.h is listed too.
+    "clouds/dsp/frame.h",
+    "clouds/dsp/fx/reverb.h",
+    "clouds/dsp/fx/diffuser.h",
 ]
 # Whole directories copied as-is (all Plaits engines, light and heavy).
 TREES = ["plaits/dsp"]

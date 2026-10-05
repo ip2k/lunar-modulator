@@ -32,6 +32,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `crush` | Crush | effect | – | this repository, after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT) | [below](#crush); a bitcrusher and sample-rate reducer |
 | `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
 | `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
+| `room` | Room | effect | – | Clouds' reverb and diffuser | a small Dattorro room in 41 KB; [below](#room) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -219,6 +220,115 @@ How it works [verified: tests/test_engines_echo.py and
 - **Not yet:** tempo sync, which waits for the host to expose tempo, and a
   reset call to drop the tail without re-creating the 64 KiB instance (the
   host feature listed below).
+
+## Room
+
+The reverb of Mutable Instruments Clouds, fed by the stereo diffuser Clouds
+runs before it: `src/fx_room.cc` wraps `clouds::Diffuser` and
+`clouds::Reverb` (Emilie Gillet, MIT), vendored unmodified in
+`third_party/mutable/clouds/` (its `UPSTREAM.md`). It is the port that
+notes/2026-10-02-delay-reverb-eq-gates-options.md §3.2 recommends. The
+reverb is the Griesinger/Dattorro loop that Plate (Rings' copy) also uses,
+smaller: 16,384 12-bit words (32 KB) against Plate's 32,768 16-bit words,
+and a longest delay of 4,782 samples, 108 ms at 44,118 Hz against Plate's
+143 ms.
+
+    guard -> Blur (the diffuser: four all-passes a side) -> the reverb (L+R in,
+             stereo out, full wet) -> Width = wet
+    out = dry + Mix x (wet - dry)
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Mix | 0–1 (0.3) | Dry to wet, Plate's law. At 0 the input passes through bit for bit |
+| 1 | Decay | 0–1 (0.5) | The loop gain per pass, 0.98 × Decay²: from none (the all-passes' own ring) to Clouds' longest |
+| 1 | Damping | 0–1 (0.4) | The in-loop one-pole low-pass, coefficient 0.97 − 0.67 × Damping: Clouds' brightest (0.97) at 0, its darkest (0.6) at 0.55, darker beyond |
+| 1 | Diffusion | 0–1 (0.8) | The all-pass coefficient 0.5 + 0.25 × Diffusion, as Plate's; 0.8 is Clouds' fixed 0.7 |
+| 2 | Blur | 0–1 (0.5) | How much of the input passes Clouds' diffuser before it enters the room: the attack is smeared and the onset thickens |
+| 2 | Width | 0–1 (1) | The wet's stereo width: 1 is the reverb's two outputs exactly, 0 their mean on both sides, exactly mono |
+
+Every parameter is SMOOTH and MOD. Tail lengths at the defaults otherwise,
+to −60 dB (T30 after a noise burst, 44,118 Hz) [verified, 2026-10-05]:
+
+| Decay | 0 | 0.25 | 0.5 | 0.75 | 0.9 | 1 |
+| --- | --- | --- | --- | --- | --- | --- |
+| RT60 | 0.88 s | 0.94 s | 1.23 s | 2.4 s | 4.7 s | 16.5 s |
+
+- **Where it departs from Clouds, and why.**
+  - Decay is a square law from 0. Clouds' own range starts at 0.35, which
+    already rings for 1.5 s: a hall, not a room. The square spends the
+    lower half of the knob on room-sized tails. Its top is Clouds' 0.98.
+  - Damping goes darker than Clouds' 0.6, to 0.3.
+  - Clouds' reverb crossfades from the diffuser's output, at 0.54 × its
+    Reverb knob, with a 1.2 post gain. Room runs it at full wet and
+    crossfades from its own input, so Blur colours only the wet and Mix 0
+    is a bypass. Width is ours.
+- **Rate.** Clouds ran at 32,000 Hz, and the classes keep every delay and LFO
+  in samples. At 44,118 Hz the room is 0.725 times the size and the LFOs run
+  1.38 times as fast (0.69 and 0.41 Hz). As in Plate, the wrapper keeps what
+  it owns in seconds: the loop gain becomes g^(32,000 / host) and the
+  damping 1 − (1 − k)^(32,000 / host). Measured against the classes at
+  32 kHz, a burst's tail decays at 1.04, 1.08, 1.20 and 1.49 times Clouds'
+  dB per second at Decay 0.95, 0.8, 0.5 and 0 (1.38 uncompensated)
+  [verified: tests/test_engines_reference_room.py]. Where the loop gain is
+  small, the all-passes' own ring sets the tail, and it is not rescaled
+  (nor is it in Plate), so a short room is that much shorter.
+- **Without libm, the same bits everywhere.** The powers come from
+  `src/fx_room_math.h` (a log2, an exp2 and a pow written here, within
+  1.5e-6 of libm; `g^1` is `g` exactly). Contraction is off for the file
+  under clang (`#pragma STDC FP_CONTRACT OFF`), the vendored code included.
+  This matters more than in most effects: the loop stores 12-bit words, so
+  a coefficient or a sample one ulp off sooner or later flips a truncation,
+  and the tail then differs by whole LSBs. Without the pragma, Apple clang
+  on arm64 fused multiply-adds and a 3 s render differed by up to 355 LSB
+  from sample 1,346 on. With it, five renders (three host rates, blocks of
+  64 and 7, every knob moved) hash the same from Apple clang on arm64, GCC
+  14.2 on x86-64 (static musl) and Emscripten 6.0.10's WebAssembly under
+  Node [verified, 2026-10-05, in containers on the LAN build host]. The
+  browser module itself is not rebuilt here.
+- **Glide.** Mix and Width glide every frame (one pole, 5 ms) and land
+  exactly on their targets. The classes' four coefficients glide on an
+  8-frame grid counted from `create`, each step at most 3.6 % of the
+  remaining distance (inaudible [inferred]); while one glides the classes
+  run grid cell by grid cell, and once settled the rest of the block in one
+  call (running them frame by frame while gliding took 2.5 µs per block
+  rather than 1.8). The output does not depend on the host's block size
+  (1, 7 and 64 frames, parameters changed mid-stream, in
+  `build/fm1-room-test`).
+- **Guard and silence.** The input guard of `mi_fx.cc` (NaN reads as 0,
+  ±16 clamp, dry path included) keeps non-finite values out of the loop and
+  the vendored float-to-int32 store far inside its range. The 12-bit store
+  truncates towards zero, so with silent input the delay memory decays to
+  zeros. The reverb's two damping states are private: below a coefficient
+  of 0.5 one can stop on the smallest subnormal, which never reaches the
+  memory. The wrapper flushes the wet below 1e-20, so the output reaches
+  exact zeros, 0.9–3.1 s after full-scale noise stops [verified].
+- **Reference renders.** `build/fm1-ref-room` (`test/ref_room.cc`) drives
+  the two classes as Clouds' granular processor does (diffuser, then reverb,
+  in place, in 32-frame blocks), with contraction off as in Room. Within
+  quantisation (0.5 LSB): at 32 kHz with Blur 0, 0.5 and 1, with Clouds' own
+  Reverb and Feedback settings at Clouds' own amount, Mix and Width against
+  their model, at 44,118 Hz with the rate rule (the reference calls the same
+  functions), and after Plate's stereo output. A test constant typed in
+  double precision instead of float moved one coefficient by one ulp and
+  missed by 4.4 LSB, so these matches are exact up to the 16-bit rounding.
+- **Memory:** 41,200 bytes on a 64-bit desktop, 41,168 on 32-bit (clang
+  laying the struct out for i386) [verified]: 32,768 bytes of reverb words,
+  8,192 of diffuser floats, and the classes and the glide state. Rings
+  shares one buffer among its effects; a host that allows one reverb at a
+  time could do the same.
+- **Cost, desktop only** (Apple M1 Max, noise in): 1.6 µs per 64-frame
+  block, 0.11 % of the block, and 1.8 µs while a coefficient glides; Plate
+  took 0.9 µs and Echo 2.1 µs in the same runs. The diffuser is 0.3 µs of
+  it [verified, 2026-10-05]. About 1.8 × Plate, against the research's
+  1 × estimate [inferred for pi32v2]; stage B measures it.
+- **Browser:** the parity scenario `room-chord-blurred`
+  (`sim/web/test/scenarios.json`) renders the same in the native app
+  harness as in fm1-render. The module in `sim/web/www/` is not rebuilt in
+  this change, so `test_committed_wasm_matches_its_build_record` fails (26
+  scenarios against the record's 25) until it is.
+- **Not yet:** a Freeze (Elements' recipe, notes §3.2, applies here too)
+  and a measurement of the 12-bit loop's noise floor, which should sit
+  above Plate's 16-bit one [inferred].
 
 ## Parameters (engine API v2)
 
@@ -457,6 +567,7 @@ diffuser at their native rates. The tests render both sides and compare
 | Six-Op FM (3 slots) | close, not identical: correlation ≥ 0.98, from its 16-sample envelope blocks against upstream's staggered 24-sample chunks | [reference-plaits.md](reference-plaits.md) |
 | Shapes (47 shapes) | within 0.52 LSB, physical models and random shapes included | [reference-braids-fx.md](reference-braids-fx.md) |
 | Plate, Ensemble, Diffuse | within 0.5 LSB | [reference-braids-fx.md](reference-braids-fx.md) |
+| Room | within 0.5 LSB, at Clouds' 32 kHz and at 44,118 Hz | [below](#room) |
 
 The comparison checks our wrappers. The engine DSP is the same object code on
 both sides, so a test pins the 129 vendored Plaits files it compiles by hash.

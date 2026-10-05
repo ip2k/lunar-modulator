@@ -114,6 +114,14 @@
       {"name": "Wow", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
       {"name": "Level", "type": "float", "uid": 7, "flags": ["smooth", "mod"]}
     ],
+    "room": [
+      {"name": "Mix", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Decay", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Damping", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Diffusion", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Blur", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Width", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
+    ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ]
