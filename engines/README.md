@@ -74,7 +74,8 @@ whole account. In short:
   `include/fm1_dx7.h` (`fm1-render --sysex FILE`), every value clamped.
 - **Rate:** msfa runs at the host's rate in 64-sample blocks, its envelope
   clocked by 44,118 / rate (one step a block at the FM-1's rate); its
-  tables are filled by the first create, and another rate is refused.
+  tables are filled by the first create, and another rate is refused, as
+  is any below 16,385 Hz, where msfa's frequency table overflows.
 - **Checked** against Felucca's Apache-2.0 port of the same core
   (`third_party/felucca-fm6/`, `fm1-dx7-oracle`), test only: all 32
   algorithms within 0.3 dB of envelope and 28–40 dB SNR, and the rest in

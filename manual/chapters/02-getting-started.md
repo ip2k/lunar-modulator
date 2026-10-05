@@ -275,7 +275,7 @@ engines/build/fm1-render --engine sw-sophie \
 | `--fx-param NAME=VALUE` | Sets a parameter of the effect before it |
 | `--fx-param-at T:K:NAME=VALUE` | Sets a parameter of the *K*-th effect (the first `--fx` is 1) at time *T*, in seconds |
 | `--seconds S` | The length of the file, 2 seconds unless you say otherwise |
-| `--rate HZ` | The sample rate, 44,118 unless you say otherwise. Macro, Macro Heavy and Six-Op FM refuse rates above 47,872; Shapes runs from 24,000 to 96,000; FM6 from 8,000 to 384,000 |
+| `--rate HZ` | The sample rate, 44,118 unless you say otherwise. Macro, Macro Heavy and Six-Op FM refuse rates above 47,872; Shapes runs from 24,000 to 96,000; FM6 from 16,385 to 384,000 |
 | `--sysex FILE.syx` | Loads DX7 voices from a SysEx file into FM6's user slots (`--engine dx7`): a bank fills User 1 to 32, single voices go to User 1, 2 and on, in the order given ([chapter 5](05-sound-engines.md#fm6)) |
 | `--frames N` | The block size, 64 unless you say otherwise |
 | `--out FILE.wav` | Where to write the sound |

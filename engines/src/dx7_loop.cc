@@ -8,8 +8,6 @@ namespace dx7 {
 
 namespace {
 
-const int32_t kLevelThresh = 1120;   // fm_core.cc's kLevelThresh
-
 // a + b modulo 2^32, as msfa's phases wrap (its own files are built with
 // -fwrapv; this one is not, so the sum is taken unsigned).
 inline int32_t Wrap(int32_t a, int32_t b) {

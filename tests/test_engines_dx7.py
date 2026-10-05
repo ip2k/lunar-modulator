@@ -406,6 +406,26 @@ def test_env_time_scales_the_envelopes(renderer, tmp_path, value, factor):
     assert decay_db_per_s(fast, a, z) / b == pytest.approx(factor, rel=0.04)
 
 
+def test_env_time_never_delays_the_note(renderer, tmp_path):
+    """At any Env Time a note's first block takes an envelope step: the
+    note starts on the block it was played in, and the pitch envelope
+    stands at its start level from then on. (Review, 2026-10-05: at Env
+    Time 1 the clock owed its first step 8 blocks in, so a note started
+    up to 10 ms late and at its unbent pitch.) The voice starts PL4 82,
+    most of an octave up, and glides down; at Env Time 1 eight times
+    slower, so its first 12 ms are still near the top."""
+    v = sine_voice()
+    v.pitch_rates, v.pitch_levels = (99, 99, 99, 99), (50, 50, 50, 82)
+    _, a, _ = play(renderer, tmp_path, v, notes=["0:81:100:0.5"], seconds=0.3, name="a")
+    _, b, _ = play(renderer, tmp_path, v, params=[f"Patch={USER1}", "Env Time=1"],
+                   notes=["0:81:100:0.5"], seconds=0.3, name="b")
+    first = [next(i for i, x in enumerate(y) if x) for y in (a, b)]
+    assert first[0] == first[1] < 64
+    pitches = msfa_table("pitchtab")
+    start = (pitches[82] - pitches[50]) * 1200 / 32          # cents above the key
+    assert cents(pitch_hz(b, 0.002, 0.012), 880.0) == pytest.approx(start, abs=40)
+
+
 def two_op(level2=70, fb=3):
     """Algorithm 1 with every modulator at an instant attack (R1 99)."""
     def mod(level, ratio=1.0):
@@ -656,6 +676,138 @@ def test_retrigger_and_release(renderer, tmp_path):
     s, left, _ = render(renderer, tmp_path, "dx7", params=["Patch=0"],
                         notes=["0:60:100:0.3", "0.15:60:110:0.3"], seconds=3.0)
     assert s["nonfinite"] == 0 and rms(left, 0.2, 0.4) > 1e-3 and rms(left, 2.6, 3.0) < 1e-5
+
+
+def tone(x, f, a, b):
+    """The level of frequency f in x[a s .. b s], through a Hann window (so
+    that a neighbour a few hertz off does not leak in)."""
+    seg = x[int(a * RATE):int(b * RATE)]
+    n = len(seg)
+    return goertzel([v * (0.5 - 0.5 * math.cos(2 * math.pi * i / (n - 1))) for i, v in enumerate(seg)], f)
+
+
+def hz(key):
+    return 440.0 * 2 ** ((key - 69) / 12)
+
+
+def slow_release_voice():
+    """A sine whose release takes many seconds: a released voice that is
+    still sounding."""
+    return Voice("SLOWREL", 32, ops=[Op(level=99, rates=(99, 99, 99, 25), levels=(99, 99, 99, 0))]
+                 + [silent()] * 5)
+
+
+def test_a_steal_takes_a_released_voice_before_a_held_one(renderer, tmp_path):
+    """Twelve voices, one of them (key 52) released but still sounding: a
+    thirteenth note takes that one, and every held note keeps sounding."""
+    keys = [48 + 2 * k for k in range(12)]
+    notes = [f"0:{k}:100:{0.3 if k == 52 else 1.2}" for k in keys] + ["0.4:84:100:0.8"]
+    _, left, _ = play(renderer, tmp_path, slow_release_voice(), params=[f"Patch={USER1}", "Volume=0.3"],
+                      notes=notes, seconds=1.0)
+    ref = tone(left, hz(48), 0.1, 0.3)
+    assert tone(left, hz(52), 0.1, 0.3) == pytest.approx(ref, rel=0.05)    # all twelve sound
+    for k in keys:
+        level = tone(left, hz(k), 0.5, 0.9) / ref
+        assert (level < 0.01) if k == 52 else (level > 0.5), (k, level)
+    assert tone(left, hz(84), 0.5, 0.9) / ref > 0.5
+
+
+def test_a_steal_takes_the_oldest_held_voice_and_a_key_again_its_own(renderer, tmp_path):
+    """Twelve held notes, started one after another: a thirteenth takes the
+    first one's voice; then a key that sounds, played again, restarts in its
+    own voice and takes nobody's."""
+    keys = [48 + 2 * k for k in range(12)]
+    notes = [f"{0.01 * i}:{k}:100:1.5" for i, k in enumerate(keys)]
+    notes += ["0.4:84:100:1.0", "0.7:60:110:0.8"]
+    _, left, _ = play(renderer, tmp_path, slow_release_voice(), params=[f"Patch={USER1}", "Volume=0.3"],
+                      notes=notes, seconds=1.2)
+    ref = tone(left, hz(50), 0.2, 0.38)
+    for k in keys:
+        level = tone(left, hz(k), 0.45, 0.68) / ref
+        assert (level < 0.01) if k == 48 else (level > 0.5), (k, level)
+    for k in keys[1:] + [84]:                       # after the retrigger of 60
+        assert tone(left, hz(k), 0.75, 1.15) / ref > 0.5, k
+
+
+def test_a_tremolo_trough_does_not_end_a_release(renderer, tmp_path):
+    """AMS 3 under a slow square LFO at AMD 99: the carrier is silent for the
+    LFO's low half (1.1 s here), which outlasts the 50 ms after which a
+    released, silent voice ends. The voice is released inside the trough;
+    when the LFO comes back up, its release is still there, as the same
+    voice without tremolo plays it. (Review, 2026-10-05: the voice was ended
+    in the trough and the rest of its release lost.)"""
+    def voice(ams):
+        return Voice("AMTAIL", 32, ops=[Op(level=99, rates=(99, 99, 99, 30), levels=(99, 99, 99, 0),
+                                           ams=ams)] + [silent()] * 5,
+                     lfo_speed=3, lfo_amd=99, lfo_wave=3, lfo_sync=1)
+    notes = ["0:69:100:0.5"]
+    _, deep, _ = play(renderer, tmp_path, voice(3), notes=notes, seconds=2.4, name="deep")
+    _, plain, _ = play(renderer, tmp_path, voice(0), notes=notes, seconds=2.4, name="plain")
+    assert rms(deep, 0.3, 1.0) == 0.0                      # the trough: silent
+    assert rms(plain, 1.2, 2.1) > 0.01
+    assert rms(deep, 1.2, 2.1) == pytest.approx(rms(plain, 1.2, 2.1), rel=1e-3)
+
+
+def test_a_release_that_ends_above_silence_holds(renderer, tmp_path):
+    """A carrier whose L4 is above 0 holds there after its release, as on
+    the keyboards: the voice keeps sounding."""
+    v = Voice("HOLDREL", 32, ops=[Op(level=99, rates=(99, 99, 99, 60), levels=(99, 99, 99, 70))]
+              + [silent()] * 5)
+    _, left, _ = play(renderer, tmp_path, v, notes=["0:69:100:0.3"], seconds=3.0)
+    held = rms(left, 1.0, 1.5)
+    assert held > 0.005 and rms(left, 2.5, 3.0) == pytest.approx(held, rel=1e-3)
+
+
+def test_a_patch_change_leaves_sounding_notes_alone(renderer, tmp_path):
+    """Patch is read at note-on (LATCH): moving it under a held chord
+    changes nothing until the next note, which plays the new voice."""
+    notes = ["0:60:100:1.2", "0:64:90:1.2"]
+    _, _, a = render(renderer, tmp_path, "dx7", params=["Patch=14"], notes=notes, seconds=1.0, name="a")
+    _, _, b = render(renderer, tmp_path, "dx7", params=["Patch=14"], notes=notes, seconds=1.0, name="b",
+                     extra=["--param-at", "0.3:Patch=31", "--param-at", "0.5:Patch=6"])
+    assert a.read_bytes() == b.read_bytes()
+    _, s1, _ = render(renderer, tmp_path, "dx7", params=["Patch=14"], notes=["0.5:72:100:0.4"],
+                      seconds=1.0, name="c", extra=["--param-at", "0.3:Patch=31"])
+    _, s2, _ = render(renderer, tmp_path, "dx7", params=["Patch=31"], notes=["0.5:72:100:0.4"],
+                      seconds=1.0, name="d")
+    assert s1 == s2
+
+
+def read_wav(path):
+    with wave.open(str(path), "rb") as w:
+        rate = w.getframerate()
+        raw = w.readframes(w.getnframes())
+    return rate, [int.from_bytes(raw[i:i + 2], "little", signed=True) / 32767 for i in range(0, len(raw), 4)]
+
+
+@pytest.mark.parametrize("rate", [8000, 16000, 16384])
+def test_rates_msfa_cannot_tune_are_refused(renderer, tmp_path, rate):
+    """msfa's frequency table holds int32_t values up to 2^45 / rate (the
+    top of an octave), which overflow at 16,384 Hz and below: the pitches
+    near the top of each octave come out wrong there, so the engine refuses
+    those rates rather than play out of tune. (Review, 2026-10-05: the
+    floor was 8,000 Hz.)"""
+    r = subprocess.run([str(renderer), "--engine", "dx7", "--rate", str(rate), "--seconds", "0.1",
+                        "--out", str(tmp_path / "x.wav")], capture_output=True, text=True)
+    assert r.returncode != 0 and "dx7 refused this host" in r.stderr
+
+
+def test_the_lowest_rate_is_in_tune_at_an_octaves_top(renderer, tmp_path):
+    """At 16,385 Hz, a fixed 1,023 Hz carrier (log2 frequency 0.998 into its
+    octave, the end of msfa's table) sounds at its frequency."""
+    v = Voice("TOP", 32, ops=[Op(level=99, fixed=1023.3, ratio=None, rates=(99, 99, 99, 99),
+                                 levels=(99, 99, 99, 0))] + [silent()] * 5)
+    wav = tmp_path / "top.wav"
+    subprocess.run([str(renderer), "--engine", "dx7", "--sysex", str(syx(tmp_path, v, "top")),
+                    "--param", f"Patch={USER1}", "--note", "0:60:100:1", "--rate", "16385",
+                    "--seconds", "1", "--out", str(wav)], check=True, capture_output=True)
+    rate, x = read_wav(wav)
+    assert rate == 16385
+    seg = x[int(0.2 * rate):int(0.8 * rate)]
+    ups = [i - 1 + seg[i - 1] / (seg[i - 1] - seg[i]) for i in range(1, len(seg))
+           if seg[i - 1] < 0 <= seg[i]]
+    got = (len(ups) - 1) * rate / (ups[-1] - ups[0])
+    assert abs(cents(got, 10 ** 3.01)) < 1.0
 
 
 def test_instance_size_and_cost(renderer, tmp_path):

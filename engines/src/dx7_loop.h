@@ -25,6 +25,10 @@
 namespace fm1 {
 namespace dx7 {
 
+// An operator gain (Q24) under this is silent: fm_core.cc's kLevelThresh,
+// under which FmCore skips the operator.
+const int32_t kLevelThresh = 1120;
+
 // Operators 0..n-1 of params (msfa's order: the sixth first; n 1..3) over
 // one block as a chain, each modulating the next, the last one added to
 // out. With feedback, the first takes the mean of the last one's previous

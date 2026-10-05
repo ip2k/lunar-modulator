@@ -44,13 +44,20 @@ with or endorsed by Yamaha, and the engine's name is our own.
   64-sample block the voice's envelopes take as many of msfa's envelope
   steps as the clock owes (8 at most at 0, one every 8 blocks at 1). At
   0.5 that is one step a block, msfa's own pace, and a change applies while
-  the note sounds.
+  the note sounds. A note's first block always takes a step, so at any
+  setting the attack starts, and the pitch envelope stands at its start
+  level, from the note's first sample (until 2026-10-05's review, at 1 a
+  note started up to 7 blocks, 10 ms, late and at its unbent pitch).
 - **Voices:** 12. A key played again retriggers its own voice; a new key
   takes a free voice, else the oldest released one, else the oldest held.
-  A released voice ends once its output has been exactly silent (every
-  carrier under msfa's threshold) for 50 ms. A voice holding at a level
-  above silence after its release (the DX7's L4 above 0) sounds until it
-  is stolen, as on the keyboard.
+  A released voice ends once, for 50 ms, every carrier's envelope has been
+  under msfa's threshold (where `FmCore` skips an operator) with a release
+  that ends there too. It is the envelope that is read, not the output: a
+  tremolo's trough can mute a voice for longer than that while its release
+  still has its course to run [verified: tests/test_engines_dx7.py; until
+  2026-10-05's review the output was read, and a deep tremolo cut such
+  releases off]. A voice whose release ends above silence (the DX7's L4
+  above 0 on a carrier) sounds until it is stolen, as on the keyboard.
 - **Pitch bend** is the host's, in semitones; the voice data's own bend
   range is not read (it is a function parameter, not voice data).
 
@@ -192,6 +199,14 @@ than at 44.1 kHz), and the same envelope times at any other rate: a decay
 falls at the same dB per second at 22,050 Hz [verified:
 tests/test_engines_dx7.py].
 
+The engine runs from 16,385 Hz to 384,000 Hz and refuses other rates.
+The floor is msfa's: `Freqlut::init` fills an `int32_t` table up to
+2^45 / rate, the top of an octave, which no longer fits at 16,384 Hz and
+below, so the pitches in each octave's last few percent come out wrong (a
+1,023 Hz operator plays far off at 16,000 Hz) [verified:
+tests/test_engines_dx7.py; until 2026-10-05's review the floor was
+8,000 Hz].
+
 msfa keeps its tables and its rate units in globals. The engine fills them
 in its first create and never again; a later create at another rate is
 refused (create returns NULL), as the Schwung shim refuses one. One rate
@@ -236,6 +251,13 @@ Known, not exhaustive:
   rates in hertz [reported: the table in Felucca's generator, which names
   Dexed's `lfo.cc` as its source].
 - **Detune** is msfa's 12,606 per step at every key; Dexed scales it by key.
+- **Fixed-frequency operators** move with the pitch envelope, the LFO's
+  vibrato, the bend and a per-note pitch offset, as msfa's
+  `Dx7Note::compute` moves every operator. Felucca's port of Dexed's msfa
+  moves a fixed operator with none of them [verified: `fm6_core.c`'s note
+  compute; Dexed itself not checked], and which a DX7 does was not
+  checked here. It matters on voices such as HI-HAT, whose fixed operators
+  bend with the rest.
 - **Keyboard level scaling** groups keys as `offset / 3`; Dexed rounds the
   other way, `(offset + 1) / 3` (within 0.4 dB on the oracle's voices).
 - **Not there:** the mod wheel, breath, foot and aftertouch routings to

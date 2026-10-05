@@ -33,7 +33,7 @@ means the work of others who have studied the FM-1, credited in
 | Sample rate | 44,118 samples a second, the rate reported for the FM-1's audio output. The simulator uses 44,100 or the computer's own rate when the browser cannot give it 44,118 |
 | Block | 64 samples, 1.45 ms at 44,118 |
 | Output | Stereo |
-| Engines' own rates | Macro, Macro Heavy and Six-Op FM run Plaits' code at 47,872 samples a second, and Shapes runs Braids' at 96,000, each converted to the output's rate, so that they sound and keep time as on the modules they come from. The three Plaits-based engines cannot run when the output is faster than 47,872. FM6 runs at the output's rate, whatever it is, with its envelope times kept |
+| Engines' own rates | Macro, Macro Heavy and Six-Op FM run Plaits' code at 47,872 samples a second, and Shapes runs Braids' at 96,000, each converted to the output's rate, so that they sound and keep time as on the modules they come from. The three Plaits-based engines cannot run when the output is faster than 47,872. FM6 runs at the output's rate, from 16,385 samples a second up, with its envelope times kept |
 | Sound engines | Seven, one at a time ([chapter 5](05-sound-engines.md)) |
 | Effects | Seventeen, Test Gain included, in two slots in series ([chapter 6](06-effects.md)) |
 | Limiter | Ceiling 0.98 of full scale (−0.18 dBFS), instant attack, about 100 ms release; samples that are not numbers become silence |

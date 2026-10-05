@@ -122,8 +122,10 @@ const float kEnvTimeQ24 = 6.0f * 16777216.0f;
 // A semitone in msfa's log-frequency units (2^24 = an octave).
 const float kSemitoneQ24 = 16777216.0f / 12.0f;
 
-// A voice is freed once its key is up and its output has been exactly
-// silent (every carrier below msfa's threshold) for 50 ms.
+// A voice is freed once its key is up and, for 50 ms, every carrier's
+// envelope has been under msfa's threshold with a release that ends there
+// too (Quiet below). The envelope, not the output: a tremolo trough mutes
+// the output while the release still has its course to run.
 const float kSilentAfterRelease = 0.05f;
 
 // The output: a voice's carriers sum to about 2^25 per carrier at full
@@ -151,6 +153,7 @@ struct Voice {
   uint8_t algorithm;          // 0..31
   uint8_t feedback;           // the patch's 0..7
   uint8_t ams[6];
+  bool tail;                  // a carrier's release ends above silence (L4)
   uint32_t silent_blocks;
   uint32_t age;
   uint8_t key;
@@ -164,8 +167,14 @@ struct Voice {
 // rate. 0 = not yet.
 uint32_t g_rate_hz = 0;
 
+// The lowest rate msfa's frequency table holds: Freqlut::init fills int32_t
+// entries up to 2^45 / rate (an octave's top), which passes 2^31 - 1 at
+// 16,384 Hz and below, and the pitches in an octave's last few percent
+// come out wrong [verified: tests/test_engines_dx7.py].
+const uint32_t kMinRateHz = 16385;
+
 bool SharedInit(float rate) {
-  if (!(rate >= 8000.0f && rate <= 384000.0f)) return false;
+  if (!(rate >= kMinRateHz - 0.5f && rate <= 384000.0f)) return false;   // NaN fails too
   const uint32_t hz = static_cast<uint32_t>(rate + 0.5f);
   if (g_rate_hz) return g_rate_hz == hz;
   Sin::init();
@@ -361,6 +370,8 @@ class Instance {
     using fm1_msfa::ScaleRate;
     using fm1_msfa::ScaleVelocity;
     const bool fresh = !v->active;
+    const uint8_t carriers = kCarriers[p[V_ALG] & 31];
+    bool tail = false;
     int note = static_cast<int>(key) + static_cast<int>(p[V_TRNSP]) - 24;
     note = note < 0 ? 0 : (note > 127 ? 127 : note);
     const int32_t key_pitch = fm1_msfa::midinote_to_logfreq(note);
@@ -378,6 +389,13 @@ class Instance {
       outlevel += ScaleVelocity(velocity, o[OP_KVS]);
       outlevel = outlevel < 0 ? 0 : outlevel;
       v->env[op].init(rates, levels, outlevel, ScaleRate(note, o[OP_RS]));
+      if ((carriers >> op) & 1) {
+        // Where this carrier's release ends: Env::advance's target for
+        // stage 3 (env.cc), from L4 and the output level.
+        int release = ((Env::scaleoutlevel(levels[3]) >> 1) << 6) + outlevel - 4256;
+        release = release < 16 ? 16 : release;
+        if (!Silent(release << 16)) tail = true;
+      }
       v->basepitch[op] = o[OP_MODE] ? pitch[op] : pitch[op] + key_pitch;   // osc_freq's
       v->ams[op] = o[OP_AMS];
       v->level[op] = 0;
@@ -402,13 +420,36 @@ class Instance {
       v->fb_buf[0] = v->fb_buf[1] = 0;
       v->gain_q16 = -1;              // no ramp into the first block
     }
-    v->env_clock = v->pitch_clock = 0;
+    // The clocks start a hair short of a step, so the note's first block
+    // takes one whatever Env Time is, as msfa's does (the attack begins
+    // and the pitch envelope stands at its start level from the note's
+    // first sample); at one step a block that is the same clock as from 0.
+    v->env_clock = v->pitch_clock = 0xFFFFFFu;
+    v->tail = tail;
     v->silent_blocks = 0;
     v->key = key;
     v->age = ++clock_;
     v->gate = true;
     v->active = true;
     v->note.Clear();   // a new note, a retrigger or a steal starts at no offset
+  }
+
+  // Whether an envelope level (msfa's, Q24 doublings) plays an operator
+  // under FmCore's threshold.
+  static bool Silent(int32_t level) {
+    return Exp2::lookup(level - (14 << 24)) < kLevelThresh;
+  }
+
+  // A released voice that can only stay silent: every carrier's envelope,
+  // before the tremolo (which only takes level away) and where its release
+  // ends, under the threshold. (Brightness moves the modulators only.)
+  static bool Quiet(const Voice &v) {
+    if (v.tail) return false;
+    const uint8_t carriers = kCarriers[v.algorithm & 31];
+    for (int op = 0; op < 6; ++op) {
+      if (((carriers >> op) & 1) && !Silent(v.level[op])) return false;
+    }
+    return true;
   }
 
   // Envelope steps this block on a Q24 clock running at `speed`.
@@ -443,7 +484,7 @@ class Instance {
           mix[k] += static_cast<int32_t>((static_cast<int64_t>(vbuf_[k]) * g) >> kVoiceShift);
         }
       }
-      v.silent_blocks = (silent && !v.gate) ? v.silent_blocks + 1 : 0;
+      v.silent_blocks = (!v.gate && Quiet(v)) ? v.silent_blocks + 1 : 0;
       if (v.silent_blocks > silent_after_release_) {
         v.active = false;
         v.note.Clear();
