@@ -508,10 +508,13 @@ Findings against V1.2.13 [verified unless noted]:
 - **Size (before `--gc-sections` and the SDK base).** ladder: 404 KB code +
   212 KB read-only data = 617 KB text; sdk `-Oz`: 288 KB code + 212 KB = 500 KB.
   The 5.0 MB of bss is the simulator's arenas (`App layer`), not on the device.
-- **Warnings:** only `-Wframe-larger-than=2560`, in the simulator's UI
-  (`fm1_seq_ui_key`/`_encoder` ≈ 4.1–4.6 KB, `fm1_mod_ui_matrix_algorithm`
-  ≈ 4.1 KB) — not the audio path. These are desktop-UI functions; the on-device
-  UI is separate.
+- **Warnings:** only `-Wframe-larger-than=2560`, five at the ladder profile,
+  all in the simulator's UI: `fm1_seq_ui_key` 4,600 B, `fm1_seq_ui_encoder`
+  5,616 B, `fm1_mod_ui_commit` 6,236 B, `fm1_mod_ui_matrix_knob` 6,504 B and
+  `fm1_mod_ui_matrix_algorithm` 6,220 B — not the audio path. These are
+  desktop-UI functions; the on-device UI is separate. (This line first gave
+  4.1–4.6 KB for three of them; the review re-run below corrected it from the
+  report.)
 - **`-fPIC`** still links position-independent relocations (GOT16 ×1211,
   FUNCDESC ×401, GOTFUNCDESC16 ×36, EXTEND_CALL_32M2 ×2790); linking them is
   still untested.
@@ -525,6 +528,32 @@ IRQ-123 vector and no eFuse-SFR access. The two pending checks (the
 scheduling) need the linked image and the vendor objdump; they run on the real
 link at I1/I2. `tests/test_audit_link.py` covers the audit on the desktop with
 synthetic objects.
+
+**Review re-run, same day** (tree `4588df2`, clean; its own work dir
+`~/mvave-fm1/sdk-v1213-review`, the toolchain archive and SDK mirror copied
+from the first; image id `8446ad97…`, rebuilt from the same Dockerfile;
+ran 2026-10-05T23:12Z) [verified]:
+- the same results: 111 of 111 objects in all four profiles, 0 failures;
+  1,199 code sections, 0 differ between `-ffp-contract=off` and `=fast`; the
+  same three host-only UNRESOLVED symbols; the same warnings and sizes;
+- **the `boot_info` bridge compiles for pi32v2** (now
+  `firmware/third_party/fm1-nes/boot_compat.c`, test mode, at `-O2` and
+  `-Oz` with the SDK flags) and calls nothing but `__real_boot_info_init`: at
+  `-O2` it is six word loads and stores, seventeen zero stores to a 92-byte
+  stack frame and one call — no `memcpy`/`memset` before RAM is set up;
+- **audit_link.py PASS, 0 fail, 2 pending**, now over the ladder objects, the
+  bridge's objects and our sources (`engines/`, `sim/web/src/`, `firmware/`:
+  no `request_irq(123, …)`).
+
+The review also changed what the audit does on a linked image: a hit is
+attributed to the function that covers it, so the SDK's own V1.2.8+
+`boot_info_init` → `mkey_dummy_func` store of the chip key at `0x01C8010C`
+passes rather than failing every real link; other hits inside the dormant
+check are pending for a human, anywhere else they fail; and the
+`late_initcall` group is checked from the image's
+`late_initcall_begin`/`_end` table. Only `sdk_meky_check`'s exact scheduling
+still waits for the vendor objdump. Packaging has its own gate,
+`tools/jieli/package_guard.py` (CLAUDE.md trap 11).
 
 Still open (unchanged): linking, `--gc-sections` and the SDK base's size;
 cycles; newlib's libm against musl; the SDK's link-time `-inline-threshold=5`.

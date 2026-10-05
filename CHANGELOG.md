@@ -20,21 +20,29 @@ history.
     survives — no `mkey_check`/`sdk_mkey_lock`/`sdk_mkey_lock_v2_cfun`/
     `key_check_demo`/`sdk_chip_key_verify_v2`, no `0x0200012E` stub, no writes
     to `0x01C80108-0x01C80110`, IRQ 123 reserved, no SDK key-blob bytes, no
-    eFuse-SFR access — while leaving the dormant `sdk_meky_check` in place.
-    It reads the objects itself (standard library only) and is covered by
-    `tests/test_audit_link.py`;
-  - the `boot_info` bridge, `firmware/boot/boot_compat.c`, which copies the
-    stock SPL's 6 hand-off words and zeroes words 6-22 so V1.2.1+'s wider
-    `boot_info_init` reads defined zero, not stale RAM. Tested on the desktop
-    (`tests/test_boot_compat.py`); it runs on-chip at I11;
-  - a hard rule, in CLAUDE.md trap 11 and packaging: never ship any V1.2.x
+    eFuse-SFR access, no `request_irq(123)` in our sources — while leaving
+    the dormant `sdk_meky_check` in place. On a linked image it attributes
+    each hit to its function, so the SDK's own `mkey_dummy_func` mailbox
+    store passes and anything of ours fails, and it checks that the
+    `late_initcall` group is exactly `[sdk_meky_check]`. It reads ELF itself
+    (standard library only) and is covered by `tests/test_audit_link.py`;
+  - a packaging gate, `tools/jieli/package_guard.py`: never ship any V1.2.x
     `uboot.boot`, `uboot_no_ota.boot`, `wl82loader.bin` or `ota.bin` — only
-    V1.1.9's SPL is the FM-1's — and assert the stock SPL hash `730e54f0…`
-    and byte-identical `isd_config.ini`/`ota.bin`/`cfg`.
+    V1.1.9's SPL is the FM-1's. It asserts the stock SPL hash `730e54f0…`
+    and byte-identical `isd_config.ini`/`ota.bin`/`cfg`, and refuses any
+    other SPL or loader in the tree (`tests/test_package_guard.py`);
+  - the `boot_info` bridge from fm1-nes (Apache-2.0, in
+    `firmware/third_party/fm1-nes/` with its licence and `UPSTREAM.md`),
+    which copies the stock SPL's 6 hand-off words and zeroes words 6-22 so
+    V1.2.1+'s wider `boot_info_init` reads defined zero, not stale RAM.
+    Tested on the desktop (`tests/test_boot_compat.py`) and compiled for
+    pi32v2, where it calls nothing but the SDK's own initializer; it has not
+    run on a chip.
 
   `tools/jieli/compile-check.sh` and `tools/jieli/ac79-sdk-sparse.txt` now
   fetch and use V1.2.13 from Gitee (retrying its flaky SSL); the compile-only
-  check was re-run against it on the build host. The V1.2.13 libc++ ships its
+  check was re-run against it on the build host (twice, the second time with
+  the bridge and our sources in the audit). The V1.2.13 libc++ ships its
   own `math.h`, so the V1.1.9 run's one fix is no longer needed. No user-facing
   change. No vendor binary is in the repo.
 - notes/2026-10-05-softkey-efuse.md: a desk-only investigation of the stock

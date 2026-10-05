@@ -1002,8 +1002,12 @@ on the build host. 1–2 sessions.
       `wl82loader.bin` or `ota.bin`.** Only V1.1.9's SPL is the FM-1's: its
       `uboot.boot` is the head of M-VAVE's V15 package (SHA-256 `730e54f0…`,
       git blob `b6cb71ea…`); the V1.2.0 branch's is `1cc0f013…`, the
-      V1.2.1/V1.2.2 era [verified]. Packaging asserts that SPL hash and that
-      `isd_config.ini`, `ota.bin` and `cfg` are byte-identical to stock.
+      V1.2.1/V1.2.2 era [verified]. Every package must pass
+      `tools/jieli/package_guard.py`: it asserts that SPL hash, that
+      `isd_config.ini`, `ota.bin` and `cfg` are byte-identical to a stock
+      reference (whose own SPL must match the pin), and that no other `.boot`
+      or loader file is in the tree. Tested on synthetic files; the pin is
+      checked against a real stock unpack when `FM1_STOCK_UNPACK` is set.
     - **The post-link audit** (`tools/jieli/audit_link.py`, modelled on
       fm1-nes `audit_boot.py`): the build fails if the `late_initcall` group
       is not exactly `[sdk_meky_check]`, if `sdk_meky_check` does more than
@@ -1011,16 +1015,27 @@ on the build host. 1–2 sessions.
       8000)`, if any of `mkey_check`/`sdk_mkey_lock`/`sdk_mkey_lock_v2_cfun`/
       `key_check_demo`/`sdk_chip_key_verify_v2` survives LTO or is referenced,
       if any code loads or calls `0x0200012E` or writes
-      `0x01C80108-0x01C80110`, if the image carries the SDK key-blob bytes or
-      the `key_check_demo` hash, if our code uses IRQ 123, or if anything
-      touches the eFuse SFRs. It reads the objects itself (standard library
-      only); the symbol, byte and eFuse checks run on the compile-only object
-      set now, and the two structural checks run on the real link later.
-    - **The `boot_info` bridge** (port fm1-nes's `boot_compat.c`): copy 6
-      words from the stock SPL hand-off and zero words 6-22, because V1.2.1+
-      `boot_info_init` reads out to +92 bytes while the stock SPL fills only 6
-      words plus a 32-byte header [verified]. Implemented and tested on the
-      desktop (`FM1_BOOT_COMPAT_TEST`); it runs on-chip at I11.
+      `0x01C80108-0x01C80110` (the SDK's own `mkey_dummy_func` store of the
+      chip key at `0x01C8010C`, which every V1.2.8+ `boot_info_init` makes,
+      is the one exception), if the image carries the SDK key-blob bytes or
+      the `key_check_demo` hash, if our code uses IRQ 123 (in objects or as
+      `request_irq(123, …)` in our sources), or if anything touches the eFuse
+      SFRs. It reads ELF itself (standard library only). On a linked image it
+      attributes each hit to the function covering it: the expected SDK store
+      passes, other hits inside the dormant check are pending for a human,
+      and hits anywhere else fail. The symbol, byte, eFuse and source checks
+      run on the compile-only set now; the `late_initcall` check runs on any
+      linked image; `sdk_meky_check`'s exact scheduling waits for the vendor
+      objdump at the real link.
+    - **The `boot_info` bridge** (fm1-nes's `boot_compat.c`, in
+      `firmware/third_party/fm1-nes/` under Apache-2.0 with its `LICENSE`
+      and `UPSTREAM.md`): copy 6 words from the stock SPL hand-off and zero
+      words 6-22, because V1.2.1+ `boot_info_init` reads out to +92 bytes
+      while the stock SPL fills only 6 words plus a 32-byte header
+      [verified]. Its contract is tested on the desktop
+      (`tests/test_boot_compat.py`), and the compile check builds it for
+      pi32v2 and requires it to call nothing but `__real_boot_info_init`
+      [verified]. Its linked code and on-chip run are untested.
     - **eFuse never burned by anything on the device.** The only
       eFuse-programming code is JieLi's download loader, reached from PC tools:
       never send loader `0xFC12` or the raw `0xA1` eFuse write, and never pass
@@ -1069,7 +1084,8 @@ V15 and FM-1_092 packages are in `scratch/`. 2–4 sessions.
   - recomputed CRCs.
 
   It refuses unless the head, `ota.bin`, `cfg` and `isd_config.ini` are
-  byte-identical to V15's.
+  byte-identical to V15's: it calls `tools/jieli/package_guard.py` (written
+  2026-10-05, ahead of the builder) on its staged tree and stops on failure.
 - **A raw 1 MB flash-image builder** for mask-ROM writes (kagaimiq's
   jl-misctools, MIT), and a **sparse writer plan** modelled on fm1-nes's
   `scripts/jl_formats.py` and FM-1-transporter's writer [reported]: write

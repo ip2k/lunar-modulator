@@ -128,8 +128,8 @@ vendor packages there.
   at the stage A2 merge, 2026-09-30; audit after about 10,000 more. `sim/`
   is in scope too: it arrived on 2026-10-01 with about 4,200 lines (less its
   built module, record and font data), which count toward the next audit.
-  `firmware/` is in scope too: it arrived on 2026-10-05 with the `boot_info`
-  bridge (a few dozen lines).
+  `firmware/` (less `third_party/`) is in scope too: it arrived on
+  2026-10-05 with the `boot_info` bridge's test driver (a few dozen lines).
 - **Confidence marks in every technical claim:** `[verified]` (checked here
   against binaries, photos or SDK files), `[reported]` (named source, not
   re-checked), `[inferred]`. Never upgrade a claim without doing the check.
@@ -200,19 +200,21 @@ vendor packages there.
     returns at its "nothing registered" branch and the app never touches
     eFuse [verified: IR of every release]. So do not stub it — leave the
     vendor code intact and gate the link with `tools/jieli/audit_link.py`
-    (no surviving `mkey_check`/`sdk_mkey_lock`/`sdk_chip_key_verify_v2`/
-    `key_check_demo`, no `0x0200012E` stub, no writes to
-    `0x01C80108-0x01C80110`, IRQ 123 reserved, no SDK key-blob bytes, no eFuse
-    SFR access). **Never ship any V1.2.x `uboot.boot`, `uboot_no_ota.boot`,
-    `wl82loader.bin` or `ota.bin`:** packaging asserts the stock SPL hash
+    (`late_initcall` exactly `[sdk_meky_check]`; no surviving `mkey_check`/
+    `sdk_mkey_lock`/`sdk_chip_key_verify_v2`/`key_check_demo`, no `0x0200012E`
+    stub, no writes to `0x01C80108-0x01C80110` but the SDK's own
+    `mkey_dummy_func` store, IRQ 123 reserved, no SDK key-blob bytes, no
+    eFuse SFR access). **Never ship any V1.2.x `uboot.boot`,
+    `uboot_no_ota.boot`, `wl82loader.bin` or `ota.bin`:** every package must
+    pass `tools/jieli/package_guard.py`, which asserts the stock SPL hash
     `730e54f0…` and byte-identical `isd_config.ini`/`ota.bin`/`cfg`, and
-    refuses any package head that is not the device's (only V1.1.9's SPL is
-    the FM-1's; Felucca's and SLOOP's carry V1.2.1's `uboot.boot`). Port
-    fm1-nes's `boot_info` bridge (6 words copied, words 6-22 zeroed) because
-    V1.2.1+ `boot_info_init` reads to +92 while the stock SPL fills only 6
-    words plus a 32-byte header. The only eFuse-burning code is JieLi's USB
-    download loader `wl82loader.bin`, reached from PC tools, not from anything
-    on the device: never send loader command `0xFC12` or the raw `0xA1` eFuse
+    refuses any other SPL or loader (only V1.1.9's SPL is the FM-1's;
+    Felucca's and SLOOP's carry V1.2.1's `uboot.boot`). Link fm1-nes's
+    `boot_info` bridge (`firmware/third_party/fm1-nes/`, Apache-2.0; 6 words
+    copied, words 6-22 zeroed) because V1.2.1+ `boot_info_init` reads to +92
+    while the stock SPL fills only 6 words plus a 32-byte header. The only
+    eFuse-burning code is JieLi's USB download loader `wl82loader.bin`,
+    reached from PC tools, not from anything on the device: never send loader command `0xFC12` or the raw `0xA1` eFuse
     write, and never pass `-key`/`-key1`/`-mkey` to `isd_download` for the
     FM-1 or the dev kit (V1.2.12+ `isd_download` is a writer: dev kit only).
 12. **SDK demo power settings are not the FM-1's.** Stock runs VDDIOM 3.2 V,
