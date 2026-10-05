@@ -265,16 +265,20 @@ polyphonic track (FM-1+VA parity plus locks) and leave room for four.
       first render, a change applies at once. A lock on the trig of a note
       that starts a silent engine therefore plays that note at the locked
       value from its first sample. While a tail still sounds, the new note
-      starts on the ramp, since the value is the engine's, not the voice's.
+      starts on the ramp, since the ramp is the engine's, not the voice's.
+      A voice with a per-note offset (`set_param_note`) plays the ramped
+      base plus its offset; the offset itself is not ramped
+      (engines/README.md, "SMOOTH").
     - **Several writes at one frame** (a D6 revert, then a lock) make one
       ramp, from where the value stands to the last one. A write equal to
       the target already set changes nothing, so a resent base is free.
     - **Modulation** (docs/16) writes every tick (0.725 ms at G = 32). Each
       write restarts the ramp from where it stands, so a route follows its
       source through a lag of about one ramp, and its steps are not heard.
-    - **Effects that already glide** sample by sample keep their own glide:
-      Fold (5 ms) and Echo (5 ms gains, 0.1 s Time and Wow). A new effect
-      may do the same if its glide is per sample and keyed to samples;
+    - **Effects that already glide** keep their own glide: Fold (5 ms),
+      Echo (5 ms gains, 0.1 s Time and Wow), Drive, Filter, Comp and the
+      Limiter (5 ms each). A new effect may do the same if its glide is
+      keyed to samples;
       anything else uses `fm1_smooth.h`, as Echo's Tone does, which had no
       glide.
   - **NOLOCK:** destructive parameters such as Macro Model and Shapes Shape.

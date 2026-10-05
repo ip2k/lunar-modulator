@@ -746,16 +746,20 @@ history.
   glides to the new value over 2.5 ms instead of jumping, so a lock under a
   held note, or a knob turned while playing, is smooth. This holds for every
   sound engine, for the Plate, Ensemble, Diffuse, Crush and PSX Verb
-  effects and for Echo's Tone; Fold and the rest of Echo already glided. A
-  change while nothing sounds, or before an effect starts, still applies at
-  once, so a lock on the step of a note that starts on its own plays from
-  that note's first sample, and sequences of separate notes sound exactly
-  as before. The glide is counted in each engine's own samples, so the
-  sound is the same whatever the host's block size. On the virtual FM-1
-  only the panel demo that turns knobs while Macro plays sounds different;
-  the other 24 scenarios are unchanged. Engines use 12 bytes more per
-  parameter (Crush 96 → 176 bytes, Echo 16 bytes more, each Schwung module
-  176 bytes more).
+  effects and for Echo's Tone; Fold, Drive, Filter, Comp, Limiter and the
+  rest of Echo already glided. A change while nothing sounds, or before an
+  effect starts, still applies at once, so a lock on the step of a note
+  that starts on its own plays from that note's first sample, and
+  sequences of separate notes sound exactly as before. A note with its own
+  per-note offset follows the glide with its offset on top; the offset
+  itself does not glide. The glide is counted in each engine's own
+  samples, so the sound is the same whatever the host's block size. On the
+  virtual FM-1, nine of the 47 test scenarios sound different, all of them
+  ones that turn a knob or play a lock while something sounds (the panel
+  and multi-sound demos, the lock demo, and the effects' knob-turn demos);
+  the rest are unchanged. Engines use 12 bytes more per parameter (Crush
+  96 → 176 bytes, Echo 16 bytes more, each Schwung module 176 bytes more
+  on 64-bit, 160 on 32-bit).
 - **The docs now match what the FM-1 community firmware and JieLi's current
   SDK show** (from `notes/2026-10-05-community-repos.md`, crediting Felucca
   by hugelton, SLOOP by isod89, fm1-nes by Keitark, FM-1-transporter by

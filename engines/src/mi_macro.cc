@@ -44,6 +44,9 @@
 // SMOOTH parameters (every FLOAT here) ramp while a voice sounds: each
 // 12-sample block moves them a tenth of the way, so a change takes 2.5 ms at
 // 47,872.34 Hz (fm1_smooth.h). While no voice sounds a change applies at once.
+// A voice with a per-note offset computes its controls from the ramped
+// values plus its offsets, so its offsets ride on the ramp; an offset itself
+// applies at the next block, unramped.
 //
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).

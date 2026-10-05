@@ -1840,8 +1840,20 @@ to it [verified: engines/README.md, "SMOOTH"; tests/test_engine_smooth.py]:
   `seq-panel-play-stop` sounds different (its knob turns now ramp); the
   others change only their RAM figures. On aeon the 25 scenarios pass, the
   module identical to js and musl in all 25 and to glibc in 22, as before.
-- **Not done:** per-voice values, so a note that starts with a lock while
-  a tail sounds begins on the ramp.
+- **Merged with main (2026-10-05)**, after per-note offsets, the second
+  effects pack, multi-sound and S5–S8 had landed. A voice with a per-note
+  offset plays the ramped base plus its offset, and the offset itself is
+  not ramped (engines/README.md, "SMOOTH", has why and what it leaves to
+  MG9). Drive, Filter, Comp and the Limiter keep their own 5 ms glides
+  under the rule for effects that already glide. Against main, 2,640 runs:
+  all 2,376 that start no ramp are byte-identical; nine of the 47 parity
+  scenarios sound different (knobs or locks turned while something sounds:
+  `seq-panel-play-stop`, `seq-panel-locks`, `multi-panel`,
+  `multi-four-sounds-seq`, `drive-fuzz-gated` and the four `fx-turns-*`).
+  On aeon the 47 pass, identical to js and musl in all 47 and to glibc in
+  44.
+- **Not done:** per-voice ramps, so a note that starts with a lock while a
+  tail sounds begins on the engine's ramp.
 
 ### S8. Parameter locks from KNOB1–4 (7-bit)
 
@@ -1905,8 +1917,9 @@ units, and whether effect-slot parameters can be locked).
 **Size:** M.
 
 **As built (2026-10-02, branch `feature/2026-10-02@seq-locks`, on S6's
-reviewed head; S7b has not merged, so the lock scenario is recorded
-without SMOOTH).** Everything stays behind the lab switch (O24); with it
+reviewed head; S7b had not merged, so the lock scenario was recorded
+without SMOOTH; since S7b merged, 2026-10-05, its locks under notes
+ramp).** Everything stays behind the lab switch (O24); with it
 off the panel is unchanged, the knobs keep their 1/100 detent and send
 nothing even where a script made a lane [verified: tests/test_seq_ui.py].
 The owner's answers (O14, Sophie's Pad, the multi-sound target) are in §8.
@@ -2201,7 +2214,7 @@ a click adds one if O11 approves it.
 | S5 | 20 |
 | S6 | 21 (built: 32, with the click's scenario, after S5 and multi-sound) |
 | S7a | 21, records unchanged |
-| S7b | 21, records re-baselined |
+| S7b | 21, records re-baselined (built: 47, after S8 and MG1; nine sound different) |
 | S8 | 22 (built: 33, after S6's 32) |
 | S9 | 23 |
 | S10 | 24 |

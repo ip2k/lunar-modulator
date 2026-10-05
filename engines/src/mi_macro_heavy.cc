@@ -58,7 +58,8 @@
 // SMOOTH parameters ramp while a voice sounds, as in Macro: a tenth of the
 // way per 12-sample block, 2.5 ms in all (fm1_smooth.h). Under Speech the
 // word bank follows Harmonics' new value at once (one parse), while the
-// voices' Harmonics ramps.
+// voices' Harmonics ramps. A voice with a per-note offset plays the ramped
+// values plus its offsets, as in Macro.
 //
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).

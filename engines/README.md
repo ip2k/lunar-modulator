@@ -1004,7 +1004,7 @@ code is `include/fm1_smooth.h`, plain C99:
 | Plate, Ensemble, Diffuse, Crush, Test Gain | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | what each runs on; see below |
 | PSX Verb (through the Schwung shim) | the module's block, 64 frames on the FM-1 | 2 | 2.9 ms | Decay, Mix, Level, Input, sent as strings before each module call |
 | Echo's Tone | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | the loop filter's coefficient, derived once per change |
-| Fold, and Echo but its Tone | their own glides | – | 5 ms one-pole; Echo's Time and Wow 0.1 s | unchanged |
+| Fold, Drive, Filter, Comp, Limiter, and Echo but its Tone | their own glides | – | 5 ms one-pole (Filter's controls in steps of 8 samples); Echo's Time and Wow 0.1 s | unchanged |
 
 - **Effects ramp what they run on, not the knob.** Plate's loop gain and
   damping, Diffuse's loop gain and tone coefficient, and Crush's quantiser
@@ -1014,9 +1014,13 @@ code is `include/fm1_smooth.h`, plain C99:
   exp2f's value again at the end. While a ramp runs, the vendored effects
   render one frame at a time so that each frame gets its step.
 - **The rule for effects that already glide.** An effect that glides its
-  parameters itself, sample by sample, keyed to samples and snapping before
-  its first render, keeps its own glide: Fold (5 ms one-pole) and Echo
-  (5 ms gains, 0.1 s Time and Wow). That glide gives what SMOOTH promises. A
+  parameters itself, keyed to samples and snapping before its first render,
+  keeps its own glide: Fold (5 ms one-pole) and Echo (5 ms gains, 0.1 s
+  Time and Wow), and the second effects pack, which came with glides of its
+  own: Drive (5 ms, sample by sample), Filter (5 ms, its filter controls
+  in steps of 8 samples counted from create, Mix and Level per sample),
+  Comp (5 ms; Attack and Release are time constants) and the Limiter (5 ms,
+  and a crossfade for Lookahead). That glide gives what SMOOTH promises. A
   new effect may do the same; anything else uses `fm1_smooth.h`, as Echo's
   Tone does: its loop filter's coefficient had no glide and jumped, which
   steps the repeats, so it takes the shared ramp.
@@ -1032,10 +1036,31 @@ code is `include/fm1_smooth.h`, plain C99:
     write restarts the ramp from where it stands, so the parameter follows
     its source through a lag of about one ramp, and the steps are not heard.
   - docs/12 §5.3 has the sequencer's view.
-- **What it does not do.** The value is the engine's, not the voice's.
-  While a tail still sounds, a note that starts with a lock begins on the
-  ramp. Per-voice values would need a voice-scoped call (docs/12 §5.3, §8).
-  Under Macro Heavy's Speech the word bank follows Harmonics' new value at
+- **Per-note offsets ride on the ramp** (answered when S7b merged with
+  them, 2026-10-05). The ramp is the engine's, one per parameter, shared by
+  every voice. A voice with a per-note offset
+  ([below](#per-note-offsets)) plays the ramped base plus its offset,
+  clamped, at every control block: the code that computes a voice's
+  controls reads the same ramped values as the engine-wide code. The
+  offset itself is not ramped: it applies at the next internal block, as
+  it did before S7b.
+  - Why: a ramp per voice would cost 12 bytes per POLY parameter and the
+    pitch in every voice (Macro 1,440 bytes, Shapes 864, Macro Heavy 528,
+    Six-Op 384), and a voice whose offset moved would recompute its
+    controls every block for the ramp's length. A knob, a lock or a route
+    on the base still ramps for every voice.
+  - So a per-voice source must be smooth itself. MG9's per-voice instances
+    write every control tick (0.725 ms, docs/16 §2.6, §6.3); a source that steps
+    by much in one tick (a square LFO, a fast envelope's attack on Volume)
+    steps the voice by as much. Whether that is heard, and whether MG9 then
+    slews its writes or the engines ramp offsets after all, is MG9's to
+    measure [inferred].
+  - Test: a base ramping under a sounding offset is, byte for byte, the
+    base ramping over the same sums with no offset
+    (`tests/test_engine_note_params.py`).
+- **What it does not do.** While a tail still sounds, a note that starts
+  with a lock begins on the ramp, since the ramp is the engine's. Under
+  Macro Heavy's Speech the word bank follows Harmonics' new value at
   once, while the voices' Harmonics ramps, so a ramp across several banks
   parses one bank, as before the ramps, not each one it passes
   (plaits-heavy.md). Shapes still derives its envelope coefficients with
@@ -1060,7 +1085,8 @@ any engine or effect with changes at any frame where fm1-render cannot):
   plus 1/110 of its amplitude per sample, where a jump would be a
   full-scale click, and from its 110th sample the output equals Volume 127
   throughout;
-- a lock on a silent engine's trig plays from the note's first sample.
+- a lock on a silent engine's trig plays from the note's first sample;
+- a per-note offset rides on a ramping base (above).
 
 **What changed in sound** [verified 2026-10-05, Apple clang, main against
 this branch on one machine, with a third build that reports every ramp it
@@ -1089,6 +1115,20 @@ the same kinds as API v2's check below. They cover:
 - Of the parity scenarios, only `seq-panel-play-stop` changes its audio:
   the panel turns knobs while Macro plays. The others change only their
   RAM figures.
+
+**After merging main** (per-note offsets, the second effects pack,
+multi-sound and S5–S8) [verified 2026-10-05, Apple clang, main at
+`bd3d6da` against the merge, the same three builds]: 2,640 runs of the same
+kinds, the new effects and the 47 parity scenarios included.
+- All 2,376 that start no ramp are byte-identical, the 52 that exit with
+  the same error as before among them.
+- Of the 264 that start one, 223 changed their audio.
+- Nine parity scenarios sound different, each because a knob or a lock
+  turns while something sounds: `seq-panel-play-stop`, `seq-panel-locks`,
+  `multi-panel`, `multi-four-sounds-seq`, the four `fx-turns-*` and
+  `drive-fuzz-gated` (its Plate Decay turn; Drive keeps its own glide).
+  `macro-lpg-ping-env` starts a ramp that makes no difference in 16-bit
+  output. The others change only their RAM figures.
 
 **Units and abbreviations.** Echo's Time, Comp's Attack and Release,
 Sophie's Ring Time and the Limiter's Release and Lookahead are in ms,
@@ -1138,12 +1178,12 @@ below.
 | Question | Rule |
 | --- | --- |
 | What may be offset | A parameter flagged POLY (`fm1_param_poly`), or the note's pitch: index `FM1_PARAM_NOTE_PITCH` (0xFFFF), in semitones, added after the key and the bend. Any other index (a non-POLY parameter, an ENUM, one past the table) is ignored |
-| What the voice plays | `fm1_param_note_value`: base + offset, clamped as `set_param` clamps. The base is whatever `set_param` set; a base that moves keeps the offset on top |
+| What the voice plays | `fm1_param_note_value`: base + offset, clamped as `set_param` clamps. The base is the engine's value, ramped while a SMOOTH change runs ([SMOOTH](#smooth-the-ramp-inside-the-engines)); a base that moves, ramp and all, keeps the offset on top |
 | What a call does | Replaces that voice's previous offset for that index; offsets do not add up. A host sends the sum of the note's routes |
 | NaN and infinities | `fm1_param_note_offset`: NaN is 0, no offset (as NaN is the default for `set_param`). An offset is cut to the parameter's span (max − min), past which the sum is at an end whatever the base, so ±inf pin the parameter at its maximum or minimum, as through `set_param`. A pitch offset is cut to ±48 semitones (`FM1_NOTE_PITCH_MAX`), the pitch bend's range |
 | Which voice | Every voice sounding the key, held or releasing. The four engines retrigger a key in its own voice, so there is one |
 | Lifetime | The offsets belong to the voice. `note_on` starts the key's voice at 0, so a host sends a new note's offsets after its note-on, at the same frame. `note_off` keeps them: the release is moved too. A voice that is stolen or ends drops them. A call for a key no voice sounds is ignored, not kept for a later note |
-| When | Where `set_param` would take effect: the next internal block (12 or 16 samples at 47,872 Hz, 24 at 96 kHz). So the output does not depend on the host's block size |
+| When | Where `set_param` would take effect: the next internal block (12 or 16 samples at 47,872 Hz, 24 at 96 kHz), at once: an offset is not ramped, where a SMOOTH change of the base is. So the output does not depend on the host's block size |
 | Thread | The audio task, like `set_param` |
 
 Two choices differ from docs/16 §6.3's sketch, `set_param_mod(index, key,
@@ -1213,12 +1253,17 @@ until it has an offset, so this holds by construction; the runs check it.
 engines]:
 - 0 and −0 on every POLY parameter and the pitch, on every note, render
   what no call renders.
-- For a note sounding alone, an offset is the base moved by as much, byte
-  for byte (each POLY parameter at the note-on, mid-note and through the
-  release; all at once on every Macro and Macro Heavy model, a sample of
-  shapes and patches), and a pitch offset is a pitch bend.
-- A base moved by `set_param` under an offset moves the sum, and a sum
-  past the range is clamped, byte for byte as the base set to it.
+- For a note sounding alone, an offset from the note-on is the base moved
+  by as much, byte for byte, through the release (each POLY parameter; all
+  at once on every Macro and Macro Heavy model, a sample of shapes and
+  patches), and a pitch offset is a pitch bend. Mid-note, where a base
+  change would ramp and an offset does not, a later offset and an offset
+  back to 0 are compared with the same moves against a base that holds the
+  first offset.
+- A base set under an offset gives the sum, and a sum past the range is
+  clamped, byte for byte as the base set to it. A base that ramps under a
+  sounding offset is the base ramping over the same sums alone, byte for
+  byte: the offset rides on the ramp.
 - Two notes with offsets on one render as the two notes rendered apart,
   summed (to 3 LSB at 16 bits), while either offset alone moves its note
   by more than 300 LSB: the other note is untouched.
@@ -1324,28 +1369,29 @@ upstream candidate). Our own code gets none.
 
   | Engine | 64-bit bytes | 32-bit bytes | Why |
   | --- | --- | --- | --- |
-  | Shapes, 12 voices | 207,368 | 206,548 | each Braids oscillator carries ~17 KB of physical-model state |
-  | PSX Verb | 134,224 | 134,208 | a fixed 128 KB work area, as upstream |
-  | Sophie, 12 voices | 77,904 | 77,888 | ring delays per voice |
-  | Macro Heavy, 4 voices | 71,296 | 71,088 | ~17 KB per voice (Particle and String arenas) |
-  | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
-  | Echo | 65,728 | 65,728 | 16,384 stereo cells of 16-bit words |
-  | Macro, 12 voices | 32,320 | 19,456 | mostly pointer tables, which halve on 32-bit |
-  | Diffuse | 18,848 | 18,848 | |
+  | Shapes, 12 voices | 207,448 | 206,624 | each Braids oscillator carries ~17 KB of physical-model state |
+  | PSX Verb | 134,400 | 134,368 | a fixed 128 KB work area, as upstream |
+  | Sophie, 12 voices | 78,080 | 78,048 | ring delays per voice |
+  | Macro Heavy, 4 voices | 71,456 | 71,248 | ~17 KB per voice (Particle and String arenas) |
+  | Plate | 65,712 | 65,696 | 32,768 16-bit delay words, as Rings |
+  | Echo | 65,744 | 65,744 | 16,384 stereo cells of 16-bit words |
+  | Macro, 12 voices | 32,448 | 19,584 | mostly pointer tables, which halve on 32-bit |
+  | Diffuse | 18,912 | 18,912 | |
   | Filter | 18,368 | 18,368 | Comb's two delay lines, fs / 20 Hz each |
-  | Six-Op FM, 8 voices | 12,720 | 10,956 | |
+  | Six-Op FM, 8 voices | 12,776 | 11,008 | |
   | Limiter | 11,008 | 11,008 | 5 ms of lookahead at 44,118 Hz; 26,912 at 102 kHz and above |
-  | Ensemble | 4,704 | 4,704 | |
+  | Ensemble | 4,752 | 4,736 | |
 
-  The 32-bit figures include the native-rate resamplers (about 1.3 KB each)
-  [verified: CI's 32-bit job on PR #12]. The four engines with per-note
-  offsets show their sizes since those (2026-10-05, [verified: gcc 12
-  x86-64 and `-m32`], [above](#per-note-offsets)), which include page 3.
+  The figures include the native-rate resamplers (about 1.3 KB each), the
+  four engines' per-note offsets ([above](#per-note-offsets)) and the
+  SMOOTH ramps (12 bytes per parameter; 176 bytes in each Schwung instance
+  on 64-bit and 160 on 32-bit, for eight ramps, Sophie's unused),
+  measured after S7b merged with main (32-bit: GCC 12.2 in Debian).
 
   The stock layout leaves a gap of 387,924 bytes, part of it stock's heap
   (docs/11 §2, [inferred]). Most engine-plus-two-effects chains fit in it;
   Shapes at 12 voices takes more than half on its own, and Shapes with PSX
-  Verb and Plate (406,352 bytes on 32-bit) does not fit. Shapes needs a lower cap on the
+  Verb and Plate (406,688 bytes on 32-bit) does not fit. Shapes needs a lower cap on the
   FM-1, or its physical-model shapes split into a smaller engine.
 - **Host contracts, now tested for every engine** (tests/test_engine_host.py):
   output does not depend on instance memory's prior contents; any
@@ -1465,13 +1511,6 @@ keeping decay within 3–4 %.
   vendored code stays unmodified, so any fix is in the wrapper (an audio
   change, its own stage) or an upstream candidate. The per-note extremes
   test keeps Shapes within MIDI 0..127 and leaves Comb and Wave Line out.
-- **Per-note offsets and SMOOTH:** an offset reaches its voice at the next
-  internal block, unramped. When docs/15 S7b's ramp for SMOOTH parameters
-  lands, a per-voice source stepping once per host block would step the
-  sum audibly unless the offsets ramp as `set_param` does, or MG9 sends
-  them smoothly [inferred]. Whichever is chosen, the tests that compare an
-  offset with the same move of the base mid-note
-  (`tests/test_engine_note_params.py`) follow it.
 - **Resampler cost on pi32v2:** the stronger second stage costs about 114
   multiply-adds per output; the cheaper half-band version (about 70, with
   18–22 kHz unprotected) is commit `f12448c`. The owner's decision

@@ -1091,6 +1091,14 @@ engines/README.md, "Per-note offsets", has the contract and the tests]:
 - Without a call every render is byte-identical to before (1,900 renders,
   three compilers), and with calls at the same frames the output is the
   same at host blocks of 1, 7 and 64.
+- SMOOTH (S7b, merged after this): a voice plays the engine's ramped base
+  plus its offset, so a knob, lock or mono route on the base still ramps
+  under the note's offset. The offset itself is not ramped; it applies at
+  the next internal block. A per-voice source that steps by much in one
+  tick steps its voice by as much, so MG9 measures whether that is heard
+  and then either slews its per-voice writes or asks the engines for
+  per-voice ramps, at 12 bytes per POLY parameter per voice
+  (engines/README.md, "SMOOTH") [inferred].
 
 ### 6.4 The arpeggiator and MIDI effects
 
