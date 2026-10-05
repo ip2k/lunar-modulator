@@ -9,6 +9,20 @@ history.
 ## [Unreleased]
 
 ### Added
+- DJ Filter, a new effect for the end of the chain (or the master bus, once
+  there is one): one knob, Sweep, low-passes as it turns left of centre,
+  from 20 kHz down to 60 Hz, and high-passes as it turns right, from 20 Hz
+  up to 8 kHz. Around the centre (Dead Zone, 0.05 by default) the sound
+  passes untouched, bit for bit, and the filter costs nothing. Resonance
+  peaks in the middle of the sweep and never at its ends; Slope chooses
+  12 or 24 dB per octave and crossfades between them; Mix blends in the dry
+  sound; Range shortens the sweep for gentler moves. Sweeps are smooth
+  whether turned by hand, locked or modulated, and crossing from one side
+  to the other neither clicks nor thumps. Every parameter can be locked
+  and modulated. For developers: `src/fx_djfilter.cc`, a trapezoidal SVF
+  written here with libm-free maths (the same bits from Apple clang, GCC and
+  Emscripten), 224 bytes an instance, `fm1-djfilter-test`, and a parity
+  scenario (the browser module needs a rebuild for it).
 - notes/2026-10-02-delay-reverb-eq-gates-options.md: research on delays,
   reverbs, EQ, a DJ filter and tilt for the master bus, bus saturation, and a
   Drawmer DS201-style gate. It also designs side-chaining: the gate and the

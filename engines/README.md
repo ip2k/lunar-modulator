@@ -32,6 +32,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `crush` | Crush | effect | – | this repository, after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT) | [below](#crush); a bitcrusher and sample-rate reducer |
 | `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
 | `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
+| `djfilter` | DJ Filter | effect | – | this repository, a trapezoidal SVF after Simper and Zavalishin | one knob: low-pass left of centre, high-pass right, the input bit for bit in between; [below](#dj-filter) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -220,6 +221,114 @@ How it works [verified: tests/test_engines_echo.py and
   reset call to drop the tail without re-creating the 64 KiB instance (the
   host feature listed below).
 
+## DJ Filter
+
+One knob for the end of a chain: turned left of centre it low-passes, turned
+right it high-passes, and around the centre it leaves the sound untouched
+(`src/fx_djfilter.cc`, our own code, MIT). It is the first of the master-bus
+effects in notes/2026-10-02-delay-reverb-eq-gates-options.md (§4.3, §5).
+Until the host has a master chain, put it in the last effect slot (FX2),
+which is the master of a one-sound app; the note's order puts it after the
+Comp and before the limiters, so its sweeps do not pump the Comp's detector
+and its resonant peaks meet a limiter.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Sweep | −1 to +1 (0) | Left of the dead zone the low-pass, right of it the high-pass. With u the travel past the dead zone (0–1), the cutoff falls from 20 kHz to 60 Hz (low-pass) or rises from 20 Hz to 8 kHz (high-pass), equal octaves for equal travel, never above 0.45 of the host rate |
+| 1 | Resonance | 0–1 (0.2) | Q = 0.707 + Resonance × 7.29 × 4u(1 − u): Q 8 (+18 dB at the cutoff) at mid travel and Resonance 1, none at either end of the travel, so the open end never whistles and the far end never booms |
+| 1 | Slope | 12 dB, 24 dB (12 dB) | 24 dB adds a second filter of the same cutoff at Q 0.707 after the first, which alone resonates. A change crossfades the two over 5 ms, so it can be locked and modulated (rounded) |
+| 1 | Mix | 0–1 (1) | The filtered sound against the dry. 0 is a bypass |
+| 2 | Dead Zone | 0–0.2 (0.05) | How far either side of centre the knob passes the input untouched |
+| 2 | Range | 0.1–1 (1) | How much of the sweep the knob reaches, in octaves: at 0.5 the low-pass stops at 1.1 kHz and the high-pass at 400 Hz |
+
+Where the knob puts the cutoff at Range 1 and the default dead zone:
+
+| Sweep (±) | 0.1 | 0.25 | 0.5 | 0.75 | 1 |
+| --- | --- | --- | --- | --- | --- |
+| Low-pass | 14.7 kHz | 5.9 kHz | 1.28 kHz | 277 Hz | 60 Hz |
+| High-pass | 27 Hz | 71 Hz | 342 Hz | 1.65 kHz | 8 kHz |
+| Q at Resonance 0.2 / 1 | 1.0 / 2.2 | 1.7 / 5.6 | 2.2 / 8.0 | 1.8 / 6.4 | 0.71 / 0.71 |
+
+How it works [verified: tests/test_engines_djfilter.py and
+`build/fm1-djfilter-test`, 2026-10-03, unless marked]:
+
+- **The filter** is the trapezoidal state-variable filter of Andrew Simper
+  (Cytomic) and Vadim Zavalishin, the form of stmlib's `Svf`, written out
+  here because entering a side sets its states, which `stmlib::Svf` keeps
+  private. Its states are integrator charges, so new coefficients change the
+  filter's future, not its stored energy: it sweeps without the transients
+  of a direct-form biquad. At 24 points across the sweep, both slopes,
+  Range and Dead Zone, the response is the analytic one (the bilinear
+  transform of the analog filter) within 0.0001 dB.
+- **Exact bypass.** In the dead zone, and at Mix 0 anywhere, the filter does
+  not run and the output is the input bit for bit, negative zero and
+  subnormals included (the guard leaves anything within ±16 alone). Back at
+  the centre after a visit to either side, the output is the input again
+  21 ms (from the left) and 22 ms (from the right) after the knob moves.
+- **Entering and leaving a side.** The travel u in force starts at 0 (the
+  open end), with the states where they would be had the filter been
+  running there: the low-pass's low-pass integrator holds the input, the
+  high-pass's states are zero. The wet share fades in by a smoothstep over
+  the first 8 % of u, which u crosses in no less than 3 ms, and u covers the
+  rest no faster than 0 to 1 in 10 ms. Leaving, u returns to 0 the same way;
+  crossing to the other side goes through 0 and the bypass. On a 0.8 sine
+  at 60 Hz, each of 12 transitions (entering, leaving and crossing sides,
+  with and without a dead zone, the slope switching both ways, Mix from 0)
+  adds at most −72 dB above 4 kHz, on the fastest crossings (−85 dB or less
+  entering a side), and at the default Resonance none thumps: the output
+  stays within 10 % of the note's level.
+- **Smoothing.** Every 16 frames, on the instance's own frame count, a
+  control tick glides the knobs (Sweep through two 5 ms one-poles in series,
+  the rest through one), moves u and works out the coefficients; they ramp
+  linearly to them over the next 16 frames, with h and the wet share
+  recomputed every frame. A sweep written every 32 frames (as the modulation
+  matrix will) leaves −82 dB (low-pass) and −116 dB (high-pass) at the
+  places zipper noise would land, against −45 and −78 dB for the same filter
+  with its coefficients stepped at each write. Changes mid-stream give the
+  same output at host blocks of 64, 12, 7 and 1, from any instance fill.
+- **No libm.** 2^x and tan(πx) are polynomials in the file, and
+  floating-point contraction is off for it, so the bits are the same from
+  Apple clang (arm64, −O0 and −O2), GCC (x86-64, also with FMA available,
+  and i386 with SSE) and Emscripten, with parameters moving at three host
+  rates; without the pragma Apple clang's differ. `nm -u` lists nothing.
+- **Contracts:** the input guard of `mi_fx.cc` (NaN reads as 0, ±16 clamp,
+  dry path included), `fm1_param_clamp`, host rates 8–384 kHz, states
+  flushed below 1e-20. Twenty seconds of every parameter jumping to any
+  value, NaN and infinities included, between blocks of 1–64 frames: finite,
+  peak 1.33 on noise of ±0.5, and back to the exact bypass at the defaults.
+  After full-scale noise into the most resonant settings, silence comes out
+  as exact zeros within 0.5 s.
+- **Memory and cost:** 224 bytes, no delay lines; no pointers in the
+  struct, so the same on a 32-bit build [inferred]. About 30 operations a
+  frame at 12 dB and 50 at 24 dB while filtering; a moving sweep adds a
+  divide per filter per frame and a control tick (2^x, tan, two divides)
+  every 16 frames; the dead zone costs the guard alone. Desktop (Apple M1
+  Max, 20 s of noise, best of three; fm1-render's `ns_per_block`): 62 ns
+  per 64-frame block in the dead zone, 742 ns at 12 dB, 1,011 ns at 24 dB,
+  against Plate's 1,088 ns and Fold's 2,707 ns in the same run; 1.3 µs at
+  24 dB with Sweep written every block (`fm1-djfilter-test --bench`). The
+  note's estimate for pi32v2 is 1–1.5 % of a core [inferred]; the dev kit
+  will measure it.
+
+Where it departs from the research note, and why:
+
+- **The cutoff law is exponential in frequency, not in g.** The note's
+  g = g_a·(g_b/g_a)^u spends a third of the low-pass side's travel between
+  20 kHz and 7 kHz, because tan() stretches the top octaves. Equal octaves
+  per travel cost one polynomial tan() per control tick.
+- **Slope is lockable and modulatable** (owner's policy of 2026-10-02:
+  switches that change cleanly), not NOLOCK as the note had it.
+- **The high-pass starts from zero states**, not the input's DC steady
+  state: measured on a bass note, that doubled what entering added above
+  4 kHz and overshot by 15 % when crossing with no dead zone. The low-pass
+  does start from the input; from zero it added 100 times more when 24 dB
+  starts.
+- **The fade is a smoothstep, evaluated every frame, with u rate-limited.**
+  A linear fade tied to u alone, evaluated per tick, left 25 times more
+  above 4 kHz on a fast crossing.
+- **Range** is the share of the sweep's octaves the knob reaches, at both
+  ends; the note named it without defining it.
+
 ## Parameters (engine API v2)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -324,7 +433,7 @@ sound).
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Echo) |
+| `src/fx_*.cc` | Effects written in this repository (Echo, DJ Filter) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
 | `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |
