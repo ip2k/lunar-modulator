@@ -400,9 +400,13 @@ switch. docs/12 §6 has the full rules.
 1. pi32v2 DSP throughput per clock compared with a Cortex-M4F or an ESP32.
 2. The stock msfa load.
 3. Whether an SDK build can put audio on the second core. Stock does (§2),
-   with a modified single-core `system.a` [verified: its build stamp]; the
-   public SDK has no task-to-core API [verified: 2026-10-01 second-core
-   study]. docs/14 §5.1 probes it.
+   with a modified single-core `system.a` [verified: its build stamp]. The
+   public SDK's `os_task_create` has no core argument, but a task-name
+   prefix `#C<n>` exists: SDK demos and fm1-nes name tasks `#C0…` to pin
+   them to core 0, and the TCB in `system.a` has a `cpu_id` member
+   [verified: SDK `app_main.c` at V1.1.9 and `e30b1ee`, `FreeRTOS.h`,
+   `system.a` DWARF]. Whether `#C1` pins a task to cpu1 is untested
+   [inferred]. docs/14 §5.1 probes it (C6d–C6f).
 4. How much SRAM an open firmware with BLE-MIDI leaves free.
 5. Whether JieLi's Clang produces PIC or usable relocations, and whether it
    defines anything like `__arm__` that trips `#ifdef`s.

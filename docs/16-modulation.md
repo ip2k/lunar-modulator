@@ -712,6 +712,15 @@ Streams' coefficient tables are for 31,089 Hz, so at 44,118 Hz its time
 constants and band splits move by 1.42×. That is acceptable for a follower;
 decimating the tap by 2 brings it close [inferred].
 
+The Comp effect (engines/README.md, "Comp") already computes a smoothed gain
+reduction in dB for its own audio, and `fm1_comp_reduction_db()`
+(`engines/include/fm1_comp.h`) reads it between renders, outside the engine
+API [verified: tests/test_engines_comp.py]. A source that reads it once per
+tick is a REDUCTION output with no audio tap and no follower code: a
+compressor in FX1 or FX2 that ducks other destinations. It only follows the
+audio passing through that Comp; a KEY from another unit still needs the tap
+above [inferred].
+
 ### 3.8 Not modules: left out, ideas only
 
 | Source | Licence | Use |
@@ -1155,7 +1164,11 @@ and the tests) [verified 2026-10-02]:
 - The bridge gained `fm1_seq_host_dispatch_ticks`, a control-rate hook with
   the M6 order at one frame, and the sink a `pitch_bend`. Plain dispatch is
   unchanged, so the virtual FM-1 is too until MG3: 816 renders before and
-  after are byte-identical.
+  after are byte-identical. Merged with docs/15's multi-sound bridge
+  (2026-10-05), the hook runs in its one-sink path and sees every event
+  with the route the bridge gives it; `fm1_seq_host_dispatch_slots` runs
+  no hook yet, and `fm1-render --mod` refuses the sound-unit flags, so
+  modulating several sound units is MG3's.
 - Sources: VEL, NOTE, RAND, KEY, TRIG, the sequencer's CLOCK, BEAT, BAR,
   RUN, START and track gates and velocities. Sinks: SOUND, FX1, FX2 (in
   `fm1-render`), HOST PITCH and AMP. MIDI controllers and MACRO 1–4 wait

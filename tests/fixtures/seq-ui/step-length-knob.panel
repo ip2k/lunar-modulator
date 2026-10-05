@@ -1,0 +1,9 @@
+# Step page 1, KNOB2 (LEN): Movy's 21 lengths, to the shortest (1/32) and
+# the longest (16 bars, which the core holds to the clip's end, one bar),
+# then one down from there: 1/2.
+--button 0.05:SEQ
+--key 0.10:0:100:0.7
+--turn 0.20:KNOB2:-64
+--turn 0.40:KNOB2:64
+--turn 0.60:KNOB2:-1
+--button 0.90:PLAY/STOP

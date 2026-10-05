@@ -1,0 +1,11 @@
+# SEQ held and white key 2 focuses track 2 (`watch 1`); held again with
+# key 2, nothing (the focused track keeps what Capture holds); D#5 and C#5
+# step to track 3 and back. Then PLAY/STOP.
+--button 0.05:SEQ
+--button 0.10:SEQ:0.2
+--key 0.15:2:100:0.03
+--button 0.40:SEQ:0.2
+--key 0.45:2:100:0.03
+--key 0.70:22:100:0.03
+--key 0.80:20:100:0.03
+--button 1.00:PLAY/STOP

@@ -1,0 +1,7 @@
+# A tap on white key 4 enters step 4 (index 3), with note 60 at velocity
+# 100: nothing has been played yet (owner decision O5). PLAY, then a second
+# tap on the same key clears the step.
+--button 0.05:SEQ
+--key 0.10:6:100:0.1
+--button 0.30:PLAY/STOP
+--key 0.80:6:100:0.1

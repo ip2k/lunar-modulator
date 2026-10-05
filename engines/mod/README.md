@@ -170,8 +170,10 @@ reach the sound engine: the sequencer's tracks routed to it and live notes.
   its level between ticks, and the module sees that as an edge at the
   tick's first frame, as a jack would give it; so an envelope held open
   is released when its gate goes, and a newly placed module whose input is
-  already high sees a rise [verified: `gate_continuity` in the C test,
-  `test_editing_or_repatching_a_gate_never_strands_it`].
+  already high sees a rise. Placing a module (a new kind, or the same one
+  again) restarts its outputs low and every gate cable from it with them,
+  so a module it held open sees a fall [verified: `gate_continuity` in the
+  C test, `test_editing_or_repatching_a_gate_never_strands_it`].
 - **Editing a cable keeps it.** An edit that keeps a slot's ends (source,
   VIA, unit, destination, GATE_DST), such as turning its amount, keeps the
   cable's state: a gate cable stays high or low and its probability stream

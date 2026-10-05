@@ -1,0 +1,11 @@
+# Owner decision O22 (as changed on 2026-10-02): with a step held, SHIFT
+# (SEL) turns the white keys into pitches in the current octave, and each
+# press adds one (`addp`). OCT+ first, so the octave is 1: white key 3 is
+# A4 (69), white key 8 F5 (77). The hold toggles nothing.
+--button 0.05:SEQ
+--button 0.07:OCT+
+--key 0.10:7:100:0.6
+--button 0.20:SEL:0.3
+--key 0.25:4:90:0.05
+--key 0.35:12:100:0.05
+--button 1.00:PLAY/STOP

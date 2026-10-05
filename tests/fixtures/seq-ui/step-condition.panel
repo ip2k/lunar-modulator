@@ -1,0 +1,8 @@
+# Step page 1, KNOB4 (COND): the 36 A:B pairs up to 8, to the last (8:8)
+# and the first (1:1), then two up: 2:2.
+--button 0.05:SEQ
+--key 0.10:7:100:0.7
+--turn 0.20:KNOB4:64
+--turn 0.40:KNOB4:-64
+--turn 0.60:KNOB4:2
+--button 0.90:PLAY/STOP

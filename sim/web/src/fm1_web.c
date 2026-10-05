@@ -3,7 +3,10 @@
  * (test/parity.mjs) call. No Emscripten runtime is used; the module is built
  * standalone and these names are exported as they are.
  *
- * Unit numbers: 0 is the sound, 1 and 2 the effect slots in order.
+ * Unit numbers (fm1_app.h, FM1_APP_UNITS): 0 is the sound, 1 and 2 the
+ * effect slots in order (the master bus); with the lab switch, 3..5 are
+ * sound units 1..3 and 6..13 the inserts (fm1w_sound_unit, fm1w_insert_unit
+ * give them).
  * C99. MIT licence, like the rest of this repository.
  */
 #include "fm1_app.h"
@@ -11,6 +14,21 @@
 #include <stdint.h>
 
 static fm1_app_t g_app;
+
+/* Multi-sound (lab switch; fm1_app.h's fm1_app_unit_*): sound units by
+ * number 0..3, the user's Sounds 1..4. */
+int fm1w_sound_unit(int sound) { return fm1_app_sound_unit(sound); }
+int fm1w_insert_unit(int sound, int slot) { return fm1_app_insert_unit(sound, slot); }
+int fm1w_unit_current(void) { return fm1_app_unit_current(&g_app); }
+int fm1w_unit_set_current(int sound) { return fm1_app_unit_set_current(&g_app, sound); }
+float fm1w_unit_level(int sound) { return fm1_app_unit_level(&g_app, sound); }
+void fm1w_unit_set_level(int sound, float percent) { fm1_app_unit_set_level(&g_app, sound, percent); }
+void fm1w_unit_note_on(int sound, int note, int velocity) {
+  fm1_app_unit_note_on(&g_app, sound, note, velocity);
+}
+void fm1w_unit_note_off(int sound, int note) { fm1_app_unit_note_off(&g_app, sound, note); }
+int fm1w_unit_route(int track, int sound) { return fm1_app_unit_route(&g_app, track, sound); }
+unsigned fm1w_ram_budget(void) { return FM1_APP_RAM_BUDGET; }
 
 /* Text in: JavaScript writes a script line (later, a whole `movy1` set)
  * here and passes its length. 64 KiB holds the largest set an 8-track
@@ -86,3 +104,33 @@ int fm1w_seq_reset(int tracks) {
 
 /* Events dropped since init (0 unless a note may have hung). */
 unsigned fm1w_seq_dropped(void) { return (unsigned)fm1_app_seq_dropped(&g_app); }
+
+/* The lab switch (fm1_app_set_lab): the page turns it on for an address
+ * with ?lab or #lab, before fm1w_default_chain, which then loads the demo
+ * pattern. Off, the sequencer stays off the panel. */
+void fm1w_set_lab(int on) { fm1_app_set_lab(&g_app, on); }
+
+/* A snapshot of the transport for the page's status line, refreshed by each
+ * call: eight 32-bit words, [0] playing, [1] tempo in hundredths of a BPM,
+ * [2] recording, [3] the watched track, [4] counting in, [5] following an
+ * external clock, [6] and [7] the master tick's low and high halves. */
+static uint32_t g_seq_info[8];
+
+const uint32_t *fm1w_seq_info(void) {
+  fm1_seq_info_t i;
+  const fm1_seq_t *s = fm1_app_seq(&g_app);
+  if (!s) {
+    for (int k = 0; k < 8; ++k) g_seq_info[k] = 0;
+    return g_seq_info;
+  }
+  fm1_seq_get_info(s, &i);
+  g_seq_info[0] = i.playing;
+  g_seq_info[1] = i.bpm_x100;
+  g_seq_info[2] = i.recording;
+  g_seq_info[3] = i.watch_track;
+  g_seq_info[4] = i.counting_in;
+  g_seq_info[5] = i.following;
+  g_seq_info[6] = (uint32_t)i.master_tick;
+  g_seq_info[7] = (uint32_t)(i.master_tick >> 32);
+  return g_seq_info;
+}

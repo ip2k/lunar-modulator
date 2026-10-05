@@ -1,0 +1,5 @@
+# REC held in SEQ mode while stopped, and let go untouched after the tap's
+# half second: step record began and ended, and nothing records.
+--button 0.05:SEQ
+--button 0.10:REC:0.8
+--button 1.20:PLAY/STOP

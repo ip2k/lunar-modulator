@@ -100,7 +100,7 @@ def test_the_core_checks_itself(renderer):
     assert out["failed"] == 0 and out["size"] == MOD_BYTES
     assert out["plans"] == 3000 and out["plans_with_loops"] > 500
     assert out["chain_ticks"] > 300 and out["feedback_ticks"] == 12 and out["nan_writes"] > 50
-    assert out["continuity"] == 5
+    assert out["continuity"] == 6
 
 
 def test_size_is_pinned_and_listed(renderer):
@@ -263,6 +263,19 @@ def test_mod_flags_need_mod(renderer, tmp_path):
         res = subprocess.run([str(renderer), "--engine", "macro", "--seconds", "0.1",
                               "--mod", str(p)], capture_output=True, text=True)
         assert res.returncode == 2 and msg in res.stderr, (text, res.stderr)
+    # A bad @FRAME, and a bad line that only fails when its frame comes, with
+    # the sequencer's script loaded: each exits 2 with everything released
+    # (the sanitizer build's leak check runs these).
+    cmd = script(tmp_path, seq_text(64, end=448 * 4))
+    for text, msg, extra in [("@x mod 1 lfo", "bad @FRAME", []),
+                             ("mod 1 lfo\n@2000 frobnicate", "unknown line", ["--cmd", str(cmd)])]:
+        p.write_text(text + "\n")
+        res = subprocess.run([str(renderer), "--engine", "macro", "--seconds", "0.1",
+                              "--mod", str(p)] + extra, capture_output=True, text=True)
+        assert res.returncode == 2 and msg in res.stderr, (text, res.stderr)
+    res = subprocess.run([str(renderer), "--engine", "macro", "--seconds", "0.1", "--mod",
+                          str(tmp_path / "missing.mod")], capture_output=True, text=True)
+    assert res.returncode == 1 and "cannot read" in res.stderr
 
 
 # ---- block-size identity with routes ----------------------------------------------------------
@@ -442,6 +455,32 @@ def test_bend_is_the_base_of_pitch(renderer, tmp_path):
     assert all(t["s"][0]["v"] == pytest.approx(3.0 + amt * t["m"][0]["o"][0], abs=1e-4)
                for t in late)
     assert s["mod_sound_writes"] > 100
+
+
+def test_fx_param_at_is_the_base_of_an_effect_parameter(renderer, tmp_path):
+    """M1 on an effect: --fx-param-at moves the base of crush's Mix and the
+    LFO swings round the new value."""
+    s, _, ticks = run(renderer, tmp_path, ["--input", "noise", "--fx", "crush", "--fx-param",
+                                           "Mix=0.5", "--fx-param-at", "0.25:1:Mix=0.8",
+                                           "--seconds", "0.5"],
+                      mod="mod 1 lfo rate=0.8\nslot 1 lfo1 > fx1:Mix amt=10\n")
+    early = [t for t in ticks if t["t"] < 0.2 * RATE]
+    late = [t for t in ticks if t["t"] > 0.3 * RATE]
+    assert early and all(t["s"][0]["u"] == "fx1" and t["s"][0]["b"] == 0.5 for t in early)
+    amt = 1638 / 16384                      # 10 % in Q1.14 of Mix's 0..1
+    assert late and all(t["s"][0]["b"] == pytest.approx(0.8) and t["s"][0]["v"] ==
+                        pytest.approx(min(1.0, 0.8 + amt * t["m"][0]["o"][0]), abs=1e-6)
+                        for t in late)
+    assert s["mod_other_writes"] > 100
+
+
+def test_mod_takes_one_sound_unit(renderer, tmp_path):
+    p = tmp_path / "m.mod"
+    p.write_text("rack default\n")
+    for extra in (["--slots"], ["--sound", "1:test-sine"]):
+        res = subprocess.run([str(renderer), "--engine", "macro", "--seconds", "0.1", "--mod",
+                              str(p)] + extra, capture_output=True, text=True)
+        assert res.returncode == 2 and "one sound unit" in res.stderr, res.stderr
 
 
 def test_amp_makes_a_tremolo(renderer, tmp_path):

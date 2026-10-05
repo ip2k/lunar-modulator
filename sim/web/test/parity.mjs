@@ -32,6 +32,23 @@
 // does), so before any audio is compared, its list of applied (block, line)
 // pairs must equal the one the native harness logged (--log-cmds), and the
 // module must have dropped no sequencer event.
+//
+// A scenario with `panel` (and `lab`, the lab switch) plays the sequencer
+// from the panel (docs/15 S3, §6.3): the native harness runs first with
+// --panel and --log-cmds, and the glibc, js and musl legs replay what it
+// logged, the script lines and the panel's typed commands, with the
+// arguments of its sidecar (.args: the engine and effects, and a --param-at
+// for each knob turn), while the module presses the same buttons and turns
+// the same encoders (fm1w_button, fm1w_encoder). So the panel scenario is
+// two-step parity in WebAssembly, and the module's screen at the end (the
+// Track view) is compared with the harness's.
+//
+// A scenario with `sounds`, `inserts`, `levels` or `sound_notes` (and `lab`)
+// plays several sound units (docs/15 §3.16): fm1-render gets --sound,
+// --insert, --level and --sound-note, and --slots for any lab scenario, so
+// its tracks play the unit their route names as the module's do; the module
+// loads the same units through fm1w_sound_unit and fm1w_insert_unit, in the
+// same order, and plays those notes with fm1w_unit_note_on.
 // MIT licence.
 
 import { execFileSync } from 'node:child_process';
@@ -51,6 +68,7 @@ mkdirSync(args.work, { recursive: true });
 const scenarios = JSON.parse(readFileSync(args.scenarios, 'utf8')).scenarios;
 const wasmModule = await WebAssembly.compile(readFileSync(args.wasm));
 const cmdPath = (s) => resolve(dirname(args.scenarios), s.cmd);
+const panelPath = (s) => resolve(dirname(args.scenarios), s.panel);
 
 function cliArgs(s) {
   const a = ['--seconds', String(s.seconds), '--rate', String(s.rate ?? 44118), '--engine', s.engine];
@@ -63,6 +81,19 @@ function cliArgs(s) {
     a.push('--fx', id);
     for (const p of ps) a.push('--fx-param', p);
   }
+  for (const p of s.fx_param_at ?? []) a.push('--fx-param-at', p);
+  // Multi-sound (docs/15 §3.16): the other sound units, every unit's inserts
+  // and levels, and notes on a given unit.
+  for (const [k, id, ps] of s.sounds ?? []) {
+    a.push('--sound', `${k}:${id}`);
+    for (const p of ps) a.push('--sound-param', `${k}:${p}`);
+  }
+  for (const [k, id, ps] of s.inserts ?? []) {
+    a.push('--insert', `${k}:${id}`);
+    for (const p of ps) a.push('--insert-param', `${k}:${p}`);
+  }
+  for (const lv of s.levels ?? []) a.push('--level', lv);
+  for (const n of s.sound_notes ?? []) a.push('--sound-note', n);
   return a;
 }
 
@@ -130,6 +161,40 @@ function loadScript(path) {
   return s;
 }
 
+// A --panel file as fm1-sim-render reads it (read_panel, add_panel): one
+// --key, --button, --turn or --note (MIDI IN) and its value per line, '#'
+// comments; events in file order, a button's, key's or note's press then
+// its release.
+const BUTTON_NAMES = ['OCT-', 'OCT+', 'FX', 'SEL', 'ENV', 'LFO', 'EDIT', 'GLO', 'HOME', 'SAVE', 'ARP',
+  'SEQ', 'PLAY/STOP', 'REC'];
+const ENCODER_NAMES = ['SELECT', 'PRESETS', 'ALGORITHM', 'KNOB1', 'KNOB2', 'KNOB3', 'KNOB4'];
+function loadPanel(path) {
+  const controls = [], keys = [];
+  readFileSync(path, 'latin1').split('\n').forEach((raw, i) => {
+    const p = raw.replace(/[\r \t]+$/, '').replace(/^[ \t]+/, '');
+    if (!p || p[0] === '#') return;
+    const m = /^(--key|--button|--turn|--note)[ \t]+(.*)$/.exec(p);
+    if (!m) throw new Error(`${path}:${i + 1}: want --key, --button, --turn or --note`);
+    const parts = m[2].split(':');
+    const t = parseFloat(parts[0]);
+    if (m[1] === '--button') {
+      const id = BUTTON_NAMES.indexOf(parts[1]);
+      const dur = parts.length > 2 ? parseFloat(parts[2]) : 0;
+      if (id < 0) throw new Error(`${path}:${i + 1}: unknown button ${parts[1]}`);
+      controls.push({ t, button: id, down: 1 }, { t: t + dur, button: id, down: 0 });
+    } else if (m[1] === '--turn') {
+      const id = ENCODER_NAMES.indexOf(parts[1]);
+      if (id < 0) throw new Error(`${path}:${i + 1}: unknown encoder ${parts[1]}`);
+      controls.push({ t, encoder: id, delta: parseInt(parts[2], 10) });
+    } else {
+      const [key, vel, dur] = parts.slice(1).map(Number);
+      const midi = m[1] === '--note';
+      keys.push({ t, on: true, key, vel, midi }, { t: t + dur, on: false, key, midi });
+    }
+  });
+  return { controls, keys };
+}
+
 // A line as the harness's --log-cmds writes it: less trailing ';' and blanks.
 const logged = (ops) => ops.replace(/[ \t;]+$/, '');
 
@@ -155,6 +220,7 @@ async function renderApp(s) {
   const paramOf = (id, name) => catalog[indexOf(id)].params
     .findIndex((p) => p.name.toLowerCase() === name.toLowerCase());
   ex.fm1w_init(rate);
+  if (s.lab) ex.fm1w_set_lab(1);                  // as fm1-sim-render --lab, after init
   if (ex.fm1w_select(0, indexOf(s.engine)) !== 0) throw new Error(`cannot load ${s.engine}`);
   for (const p of s.params ?? []) {
     const [n, v] = splitParam(p);
@@ -167,6 +233,29 @@ async function renderApp(s) {
       ex.fm1w_set_param(1 + k, paramOf(id, n), v);
     }
   });
+  // Multi-sound, in the harness's and fm1-render's order: the other sound
+  // units, then each unit's inserts in order, then the levels.
+  for (const [k, id, ps] of s.sounds ?? []) {
+    const unit = ex.fm1w_sound_unit(k);
+    if (ex.fm1w_select(unit, indexOf(id)) !== 0) throw new Error(`cannot load ${id} as sound ${k}`);
+    for (const p of ps) {
+      const [n, v] = splitParam(p);
+      ex.fm1w_set_param(unit, paramOf(id, n), v);
+    }
+  }
+  const insertsOf = [0, 0, 0, 0];
+  for (const [k, id, ps] of s.inserts ?? []) {
+    const unit = ex.fm1w_insert_unit(k, insertsOf[k]++);
+    if (ex.fm1w_select(unit, indexOf(id)) !== 0) throw new Error(`cannot load ${id} as an insert of sound ${k}`);
+    for (const p of ps) {
+      const [n, v] = splitParam(p);
+      ex.fm1w_set_param(unit, paramOf(id, n), v);
+    }
+  }
+  for (const lv of s.levels ?? []) {
+    const [k, v] = lv.split(':');
+    ex.fm1w_unit_set_level(Number(k), Math.fround(parseFloat(v)));
+  }
   ex.fm1w_master(1, 0);
 
   // The sequencer, as fm1-sim-render sets it up for --cmd: an instance at the
@@ -181,7 +270,8 @@ async function renderApp(s) {
   const textBuf = script ? new Uint8Array(w.memory.buffer, ex.fm1w_text_buf(), ex.fm1w_text_cap()) : null;
 
   // Events as render.cc builds them: --bend and --param-at in argv order
-  // (cliArgs puts bends first), notes as on/off pairs.
+  // (cliArgs puts bends first), then --fx-param-at (T:K:NAME=V, K the
+  // effect's slot from 1), notes as on/off pairs.
   const controls = [
     ...(s.bends ?? []).map((b) => {
       const [t, st] = b.split(':');
@@ -192,11 +282,33 @@ async function renderApp(s) {
       const [n, v] = splitParam(p.slice(c + 1));
       return { t: parseFloat(p.slice(0, c)), bend: false, idx: paramOf(s.engine, n), v };
     }),
+    ...(s.fx_param_at ?? []).map((p) => {
+      const [t, k] = p.split(':');
+      const [n, v] = splitParam(p.slice(t.length + k.length + 2));
+      const slot = parseInt(k, 10);
+      const fx = (s.fx ?? [])[slot - 1];
+      if (!fx) throw new Error(`${s.name}: --fx-param-at names effect ${k}`);
+      const idx = paramOf(fx[0], n);
+      if (idx < 0) throw new Error(`${s.name}: ${fx[0]} has no parameter ${n}`);
+      return { t: parseFloat(t), bend: false, unit: slot, idx, v };
+    }),
   ];
   const events = [];
   for (const n of s.notes ?? []) {
     const [t, key, vel, dur] = n.split(':').map(Number);
     events.push({ t, on: true, key, vel }, { t: t + dur, on: false, key });
+  }
+  for (const n of s.sound_notes ?? []) {           // after --note, as cliArgs passes them
+    const [sound, t, key, vel, dur] = n.split(':').map(Number);
+    events.push({ t, on: true, key, vel, sound }, { t: t + dur, on: false, key, sound });
+  }
+  // The panel, after every other argument as parity passes it to the
+  // harness: its buttons and encoders with the controls, its keys with the
+  // notes.
+  if (s.panel) {
+    const panel = loadPanel(panelPath(s));
+    controls.push(...panel.controls);
+    events.push(...panel.keys.map((k) => ({ ...k, panel: !k.midi })));
   }
   const total = Math.trunc(s.seconds * rate);
   const out = new Int16Array(total * 2);
@@ -205,13 +317,21 @@ async function renderApp(s) {
     const n = Math.min(BLOCK, total - pos);
     for (const c of controls) {
       if (c.done || c.t > now) continue;
-      if (c.bend) ex.fm1w_pitch_bend(c.v); else ex.fm1w_set_param(0, c.idx, c.v);
+      if (c.button !== undefined) ex.fm1w_button(c.button, c.down);
+      else if (c.encoder !== undefined) ex.fm1w_encoder(c.encoder, c.delta);
+      else if (c.bend) ex.fm1w_pitch_bend(c.v);
+      else ex.fm1w_set_param(c.unit ?? 0, c.idx, c.v);
       c.done = true;
     }
     for (const on of [false, true]) {
       for (const e of events) {
         if (e.done || e.on !== on || e.t > now) continue;
-        if (on) ex.fm1w_note_on(e.key, e.vel); else ex.fm1w_note_off(e.key);
+        if (e.panel) ex.fm1w_key(e.key, on ? 1 : 0, e.vel | 0);
+        else if (e.sound !== undefined) {
+          if (on) ex.fm1w_unit_note_on(e.sound, e.key, e.vel);
+          else ex.fm1w_unit_note_off(e.sound, e.key);
+        } else if (on) ex.fm1w_note_on(e.key, e.vel);
+        else ex.fm1w_note_off(e.key);
         e.done = true;
       }
     }
@@ -286,23 +406,41 @@ for (const s of scenarios) {
   const dir = join(args.work, s.name);
   mkdirSync(dir, { recursive: true });
   const cli = cliArgs(s);
-  execFileSync(args.native, [...cli, '--out', join(dir, 'glibc.wav')], quiet);
-  execFileSync(process.execPath, [args['render-js'], ...cli, '--out', join(dir, 'js.wav')], quiet);
-  if (args.musl) execFileSync(args.musl, [...cli, '--out', join(dir, 'musl.wav')], quiet);
+  // The native harness first: a panel scenario's render legs replay its log.
   const simArgs = [...cli, '--screen', join(dir, 'screen.ppm')];
   if (s.cmd) simArgs.push('--log-cmds', join(dir, 'cmds.verbs'));
+  if (s.lab) simArgs.push('--lab');
+  if (s.panel) simArgs.push('--panel', panelPath(s));
   const native = JSON.parse(execFileSync(args.sim, simArgs, quiet).toString().trim().split('\n').pop());
+  // The lab switch routes tracks by slot (fm1-render --slots); a panel run's
+  // sidecar says so itself.
+  const renderCli = s.panel
+    ? ['--seconds', String(s.seconds), '--rate', String(s.rate ?? 44118), '--cmd', join(dir, 'cmds.verbs'),
+      ...readFileSync(join(dir, 'cmds.args'), 'latin1').split('\n').filter((l) => l !== '')]
+    : [...cli, ...(s.lab ? ['--slots'] : [])];
+  execFileSync(args.native, [...renderCli, '--out', join(dir, 'glibc.wav')], quiet);
+  execFileSync(process.execPath, [args['render-js'], ...renderCli, '--out', join(dir, 'js.wav')], quiet);
+  if (args.musl) execFileSync(args.musl, [...renderCli, '--out', join(dir, 'musl.wav')], quiet);
   const glibc = readWav(join(dir, 'glibc.wav'));
   const js = readWav(join(dir, 'js.wav'));
   const app = await renderApp(s);
   let seq = null;
   if (s.cmd) {
     // The third reader of the script (above) against the harness's own:
-    // the same lines at the same blocks, before any audio counts.
-    const harness = readCmdLog(join(dir, 'cmds.verbs'));
+    // the same lines at the same blocks, before any audio counts. The
+    // harness's log also holds the panel's typed commands, which it lists
+    // in its summary (seq_ui_cmds): those come out, in order, first.
+    const ui = (native.seq_ui_cmds ?? []).map(([f, t]) => JSON.stringify([f, t]));
+    let k = 0;
+    const harness = readCmdLog(join(dir, 'cmds.verbs')).filter((line) => {
+      if (k < ui.length && JSON.stringify(line) === ui[k]) { ++k; return false; }
+      return true;
+    });
     seq = {
       lines: app.seq.applied.length,
-      lines_match: JSON.stringify(harness) === JSON.stringify(app.seq.applied),
+      lines_match: k === ui.length && JSON.stringify(harness) === JSON.stringify(app.seq.applied),
+      ui_cmds: ui.length,
+      replayable: native.replayable === 1,
       dropped: app.seq.dropped,
       native_dropped: native.seq_dropped,
     };
@@ -321,9 +459,11 @@ for (const s of scenarios) {
     ram: { wasm32: app.ram, native64: native.ram },
     calls: app.calls.length,
     cmd: s.cmd ?? null,
+    panel: s.panel ?? null,
     seq,
   };
-  r.pass = (!seq || (seq.lines_match && seq.dropped === 0 && seq.native_dropped === 0)) &&
+  r.pass = (!seq || (seq.lines_match && seq.dropped === 0 && seq.native_dropped === 0 &&
+                     (!s.panel || (seq.replayable && seq.ui_cmds > 0)))) &&
     r.app_vs_js.differing === 0 &&
     (!r.app_vs_musl || r.app_vs_musl.differing === 0) &&
     (r.app_vs_glibc.max <= 1 || r.libm_sensitive) &&
@@ -331,6 +471,7 @@ for (const s of scenarios) {
   results.push(r);
   const fmt = (c) => c ? `${c.differing} differ (max ${c.max})` : 'not run';
   const seqNote = seq ? `; ${seq.lines} script lines${seq.lines_match ? '' : ' NOT as the harness applied them'}, ` +
+    `${seq.ui_cmds ? `${seq.ui_cmds} panel commands${seq.replayable ? '' : ' NOT replayable'}, ` : ''}` +
     `${seq.dropped} events dropped` : '';
   console.log(`${r.pass ? 'pass' : 'FAIL'} ${s.name}: of ${r.samples} samples, vs js ${fmt(r.app_vs_js)}, ` +
     `vs musl ${fmt(r.app_vs_musl)}, vs glibc ${fmt(r.app_vs_glibc)}${r.libm_sensitive ? ' [libm-sensitive]' : ''}; ` +
