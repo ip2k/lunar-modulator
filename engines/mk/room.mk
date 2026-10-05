@@ -22,10 +22,17 @@
 
 OUR_SRC += src/fx_room.cc
 
-ROOM_TEST_OBJ := $(BUILD)/our/test/room_test.o $(BUILD)/our/src/fx_room.o
+# fm1-room-test links the effect built once more with FM1_ROOM_PROBE, which
+# only adds an entry point that counts the diffuser's tiny cells; the audio
+# path is the same code.
+ROOM_TEST_OBJ := $(BUILD)/our/test/room_test.o $(BUILD)/our/test/fx_room_probe.o
 REF_ROOM_OBJ := $(BUILD)/our/test/ref_room.o
 
 all: $(BUILD)/fm1-room-test $(BUILD)/fm1-ref-room
+
+$(BUILD)/our/test/fx_room_probe.o: src/fx_room.cc
+	@mkdir -p $(dir $@)
+	$(CXX) $(COMMON) $(OUR_WARN) -DFM1_ROOM_PROBE -c $< -o $@
 
 $(BUILD)/fm1-room-test: $(ROOM_TEST_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
@@ -33,4 +40,4 @@ $(BUILD)/fm1-room-test: $(ROOM_TEST_OBJ)
 $(BUILD)/fm1-ref-room: $(REF_ROOM_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
--include $(BUILD)/our/test/room_test.d $(BUILD)/our/test/ref_room.d
+-include $(BUILD)/our/test/room_test.d $(BUILD)/our/test/ref_room.d $(BUILD)/our/test/fx_room_probe.d

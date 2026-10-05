@@ -75,7 +75,19 @@
 // the delay memory. The wrapper flushes the wet below 1e-20, so the output
 // itself decays to exact zeros.
 //
-// Memory: 41,200 bytes on a 64-bit desktop, 41,168 on 32-bit, of which
+// The diffuser's memory is floats, and its all-passes do not decay to zero
+// on their own: with silent input an all-pass holding the smallest subnormal
+// writes back 0.625 of it, which rounds to the same subnormal, so every one
+// of its 2,048 cells ends up holding a subnormal for good, and each sample
+// then does subnormal arithmetic (slow on x86 without flush-to-zero, unknown
+// on pi32v2). The memory is the wrapper's, so the wrapper sweeps it: every
+// kSweep frames, counted from create, the next kSweep cells below 1e-20 are
+// set to 0, between two runs of the classes, so the whole memory is swept
+// every 46 ms at 44,118 Hz and the result does not depend on the host's
+// blocks. A cell that small is 10^-16 of a 12-bit step of the room, so the
+// sound is unchanged until the tail is long gone.
+//
+// Memory: 41,200 bytes on a 64-bit desktop, 41,184 on 32-bit, of which
 // 32,768 are reverb words and 8,192 diffuser floats. Cost on an Apple M1 Max:
 // 1.6 us per 64-frame block, 1.8 us while a coefficient glides (Plate: 0.9).
 //
@@ -135,6 +147,7 @@ const float kInputLimit = 16.0f;              // the input guard, as mi_fx.cc
 const float kFlush = 1e-20f;                  // the wet below this is zero
 const float kLog2e = 1.44269504f;
 const uint32_t kChunk = 32;                   // frames handled at a time
+const uint32_t kSweep = 64;                   // frames between sweeps, and cells per sweep
 
 // clouds::Reverb is FxEngine<16384, FORMAT_12_BIT>: 16,384 uint16_t words.
 // clouds::Diffuser is FxEngine<2048, FORMAT_32_BIT>: 2,048 floats.
@@ -201,6 +214,8 @@ struct Instance {
   float native_over_host;
   float glide_frame, glide_grid;              // one-pole coefficients
   uint32_t grid_phase;                        // frames rendered, mod kGrid
+  uint32_t sweep_phase;                       // frames rendered, mod kSweep
+  uint32_t sweep_cell;                        // the diffuser cell the next sweep starts at
   bool running;                               // set by the first render
   bool gliding_mix, gliding_class;            // values off their targets
   alignas(16) uint16_t reverb_memory[kReverbWords];
@@ -222,6 +237,8 @@ struct Instance {
     }
     for (int s = 0; s < S_COUNT; ++s) value[s] = target[s];
     grid_phase = 0;
+    sweep_phase = 0;
+    sweep_cell = 0;
     gliding_mix = gliding_class = false;
     Apply();
   }
@@ -275,6 +292,16 @@ struct Instance {
     }
   }
 
+  // The next kSweep cells of the diffuser's memory: a value below the
+  // flush threshold (a subnormal, once the tail has gone) becomes 0.
+  void Sweep() {
+    for (uint32_t k = 0; k < kSweep; ++k) {
+      const float x = diffuser_memory[sweep_cell];
+      if (x > -kFlush && x < kFlush) diffuser_memory[sweep_cell] = 0.0f;
+      sweep_cell = (sweep_cell + 1) & (kDiffuserWords - 1);
+    }
+  }
+
   void Render(float *lr, uint32_t frames) {
     running = true;
     clouds::FloatFrame wet[kChunk];
@@ -289,10 +316,13 @@ struct Instance {
       }
       // The classes: in one call once settled; while their values glide, in
       // runs that end on the grid, a step at the start of each grid cell.
-      // The grid counts frames since create, so the runs fall on the same
-      // frames whatever the host's blocks.
+      // Runs also end every kSweep frames, where the diffuser's memory is
+      // swept. Both grids count frames since create, so the runs fall on
+      // the same frames whatever the host's blocks.
       for (uint32_t i = 0; i < n;) {
+        if (sweep_phase == 0) Sweep();
         uint32_t m = n - i;
+        if (m > kSweep - sweep_phase) m = kSweep - sweep_phase;
         if (gliding_class) {
           if (grid_phase == 0) {
             gliding_class = Glide(value, target, kFirstClassValue, S_COUNT, glide_grid);
@@ -304,6 +334,7 @@ struct Instance {
         diffuser.Process(&wet[i], m);
         reverb.Process(&wet[i], m);
         grid_phase = (grid_phase + m) % kGrid;
+        sweep_phase = (sweep_phase + m) % kSweep;
         i += m;
       }
       // Width and Mix, gliding every frame.
@@ -352,6 +383,22 @@ void Render(void *s, float *lr, uint32_t n) { static_cast<Instance *>(s)->Render
 
 }  // namespace room
 }  // namespace fm1
+
+#ifdef FM1_ROOM_PROBE
+// Test builds only (fm1-room-test, engines/mk/room.mk): how many of the
+// diffuser's cells hold a nonzero value below the flush threshold, so the
+// test can see the sweep keep subnormals out of a silent instance.
+extern "C" uint32_t fm1_room_probe_tiny(const void *instance);
+uint32_t fm1_room_probe_tiny(const void *instance) {
+  const fm1::room::Instance *self = static_cast<const fm1::room::Instance *>(instance);
+  uint32_t n = 0;
+  for (size_t i = 0; i < fm1::room::kDiffuserWords; ++i) {
+    const float x = self->diffuser_memory[i];
+    if (x != 0.0f && x > -fm1::room::kFlush && x < fm1::room::kFlush) ++n;
+  }
+  return n;
+}
+#endif
 
 extern "C" const fm1_engine_t fm1_engine_room = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_AUDIO_FX,

@@ -80,7 +80,10 @@ history.
   `build/fm1-ref-room` renders the upstream classes for 60 reference tests
   (within half an LSB at 32 kHz and at 44,118 Hz), and `build/fm1-room-test`
   checks the glide, recovery, host rates and the libm-free maths. A parity
-  scenario turns every knob while a chord rings through Room.
+  scenario turns every knob while a chord rings through Room. Once a tail
+  has gone, Room sweeps its diffuser's memory clean, so a silent Room does
+  no subnormal arithmetic (left alone, all 2,048 of the diffuser's cells
+  held a subnormal for good).
 - Recording and Capture on the virtual FM-1's panel, still behind the lab
   switch (`?lab`; docs/15 stage S5). What you play on the keys (outside
   SEQ mode) or at MIDI IN now reaches the sequencer as well as the sound.

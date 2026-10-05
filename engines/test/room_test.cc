@@ -18,6 +18,9 @@
 #include "../src/fx_room_math.h"
 
 extern "C" const fm1_engine_t fm1_engine_room;
+// The probe build of the effect (FM1_ROOM_PROBE, mk/room.mk): the diffuser's
+// cells holding a nonzero value below 1e-20.
+extern "C" uint32_t fm1_room_probe_tiny(const void *instance);
 
 namespace {
 
@@ -210,7 +213,9 @@ void Glide() {
 // 3. Silence after a burst: 0.5 s of full-scale noise, then silence, at
 // settings that cover the damping coefficient on both sides of 0.5 (below
 // it the vendored damping state can stop on a subnormal): seconds until the
-// output is exactly zero for good (checked over 2 s more).
+// output is exactly zero for good (checked over 2 s more), and how many of
+// the diffuser's cells then still hold a tiny nonzero value (without the
+// wrapper's sweep, all 2,048 hold a subnormal for good).
 void Silence() {
   struct Setting { float decay, damping, blur; };
   const Setting settings[] = {
@@ -247,11 +252,13 @@ void Silence() {
         zero_from = -1;
       }
     }
+    const uint32_t diffuser_tiny = fm1_room_probe_tiny(self);
     E.destroy(self);
     printf("%s{\"decay\":%g,\"damping\":%g,\"zero_after_s\":%.3f,\"held\":%s,"
-           "\"smallest\":%.9g}", k ? "," : "", settings[k].decay, settings[k].damping,
-           zero_from < 0 ? -1.0 : zero_from * 64 / kRate,
-           zero_from >= 0 && b - zero_from >= 1380 ? "true" : "false", tiny);
+           "\"smallest\":%.9g,\"diffuser_tiny\":%u}", k ? "," : "", settings[k].decay,
+           settings[k].damping, zero_from < 0 ? -1.0 : zero_from * 64 / kRate,
+           zero_from >= 0 && b - zero_from >= 1380 ? "true" : "false", tiny,
+           static_cast<unsigned>(diffuser_tiny));
   }
   printf("]");
 }

@@ -334,10 +334,13 @@ def test_tails_end_in_exact_zeros(tool):
     # coefficient 0.5 (Damping 1 at 44,118 Hz is 0.23, where the vendored
     # damping state can stop on a subnormal). Measured (2026-10-05): 0.9 to
     # 3.1 s. The smallest nonzero sample is the flush threshold's size, never
-    # a subnormal.
+    # a subnormal. Inside, the diffuser's float all-passes would hold a
+    # subnormal in each of their 2,048 cells for good (0.625 of the smallest
+    # subnormal rounds back to it); the wrapper's sweep leaves none.
     for s in tool["silence"]:
         assert s["held"] and 0.0 < s["zero_after_s"] < 6.0, s
         assert s["smallest"] >= 1e-20, s
+        assert s["diffuser_tiny"] == 0, s
 
 
 def test_host_rates(tool):

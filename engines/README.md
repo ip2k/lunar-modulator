@@ -962,8 +962,23 @@ to −60 dB (T30 after a noise burst, 44,118 Hz) [verified, 2026-10-05]:
   truncates towards zero, so with silent input the delay memory decays to
   zeros. The reverb's two damping states are private: below a coefficient
   of 0.5 one can stop on the smallest subnormal, which never reaches the
-  memory. The wrapper flushes the wet below 1e-20, so the output reaches
-  exact zeros, 0.9–3.1 s after full-scale noise stops [verified].
+  memory (it did at Damping 0.8 and 1 after a minute of silence, two
+  subnormal operations a sample [verified, 2026-10-05]). The wrapper
+  flushes the wet below 1e-20, so the output reaches exact zeros, 0.9–3.1 s
+  after full-scale noise stops [verified].
+- **The diffuser's memory is swept.** Its all-passes store floats, and an
+  all-pass holding the smallest subnormal writes back 0.625 of it, which
+  rounds to the same subnormal: left alone, all 2,048 cells held a
+  subnormal for good once a tail had gone, so every sample did subnormal
+  arithmetic (slow on x86 without flush-to-zero; unknown on pi32v2). The
+  memory is the wrapper's, so every 64 frames counted from `create`, between
+  two runs of the classes, it sets the next 64 cells below 1e-20 to zero: the
+  whole memory every 46 ms, the same at any block size, and no subnormal
+  left after the tail. Output moves by at most 6e-17 (−325 dB), and only in
+  tails whose diffuser cells have fallen below 1e-20; the glide hash, the
+  reference renders and the parity scenarios are unchanged [verified:
+  `diffuser_tiny` in `build/fm1-room-test` and a before/after comparison of
+  five 40 s renders, 2026-10-05, found in review].
 - **Reference renders.** `build/fm1-ref-room` (`test/ref_room.cc`) drives
   the two classes as Clouds' granular processor does (diffuser, then reverb,
   in place, in 32-frame blocks), with contraction off as in Room. Within
@@ -973,9 +988,10 @@ to −60 dB (T30 after a noise burst, 44,118 Hz) [verified, 2026-10-05]:
   functions), and after Plate's stereo output. A test constant typed in
   double precision instead of float moved one coefficient by one ulp and
   missed by 4.4 LSB, so these matches are exact up to the 16-bit rounding.
-- **Memory:** 41,200 bytes on a 64-bit desktop, 41,168 on 32-bit (clang
-  laying the struct out for i386) [verified]: 32,768 bytes of reverb words,
-  8,192 of diffuser floats, and the classes and the glide state. Rings
+- **Memory:** 41,200 bytes on a 64-bit desktop, 41,184 on 32-bit (clang
+  laying the struct out for i386; 41,168 before the sweep's two counters)
+  [verified]: 32,768 bytes of reverb words, 8,192 of diffuser floats, and
+  the classes and the glide state. Rings
   shares one buffer among its effects; a host that allows one reverb at a
   time could do the same.
 - **Cost, desktop only** (Apple M1 Max, noise in): 1.6 µs per 64-frame
