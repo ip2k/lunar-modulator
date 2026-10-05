@@ -18,7 +18,8 @@ from tests.engine_helpers import ENGINES, renderer  # noqa: F401
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "param-uids.json"
 SELFTEST = ENGINES / "build" / "fm1-schwung-selftest"
-FLAG_BITS = [(0x01, "latch"), (0x02, "smooth"), (0x04, "nolock"), (0x08, "mod"), (0x10, "input")]
+FLAG_BITS = [(0x01, "latch"), (0x02, "smooth"), (0x04, "nolock"), (0x08, "mod"), (0x10, "input"),
+             (0x20, "poly")]
 UNITS = ["none", "semi", "ms", "hz", "pct", "deg"]     # fm1_unit_t's order
 UID_MAX = 0x0FFF
 
@@ -108,8 +109,8 @@ def test_uids_are_unique_nonzero_12_bit_and_never_reused(built):
 def test_flags_follow_the_rules(built):
     """NOLOCK never with MOD; every FLOAT takes modulation unless it is NOLOCK
     and is SMOOTH unless the engine reads it at note-on (LATCH); LATCH and
-    SMOOTH never together; INPUT only on a FLOAT -1..1 with default 0; no
-    unknown bit."""
+    SMOOTH never together; INPUT only on a FLOAT -1..1 with default 0; POLY
+    only on a FLOAT that takes modulation, never an INPUT; no unknown bit."""
     for eid, params in built.items():
         for p in params:
             f = set(p["flags"])
@@ -120,6 +121,20 @@ def test_flags_follow_the_rules(built):
                 assert "mod" in f and ("smooth" in f or "latch" in f), (eid, p["name"])
             if "input" in f:
                 assert p["type"] == "float" and (p["min"], p["max"], p["def"]) == (-1, 1, 0)
+            if "poly" in f:
+                assert p["type"] == "float" and "mod" in f and "input" not in f, (eid, p["name"])
+
+
+def test_per_note_engines_match_the_fixture(renderer, built):
+    """set_param_note is there exactly on the engines the fixture names, and
+    only those have POLY parameters (every one of them has some)."""
+    pinned = json.loads(FIXTURE.read_text())["per_note"]
+    listed = json.loads(subprocess.run([str(renderer), "--list"], check=True,
+                                       capture_output=True, text=True).stdout)
+    assert sorted(e["id"] for e in listed if e["per_note"]) == sorted(pinned)
+    with_poly = {eid for eid, params in built.items()
+                 if any("poly" in p["flags"] for p in params)}
+    assert with_poly == set(pinned)
 
 
 def test_every_enum_has_its_decided_flags(built):

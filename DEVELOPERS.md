@@ -598,8 +598,10 @@ which lands with the plan PR; its stages S0–S7 are named below.
     ADSR envelopes after Peaks' `MultistageEnvelope` (MIT), a CHANCE source,
     and a 16-slot bus of 6-byte slots `{source, unit, destination uid,
     amount, flags}` that writes `set_param`.
-  - **C2** (stage S6): per-note sources through an API v2
-    `set_param_mod(index, key, offset)`, Macro first.
+  - **C2** (stage S6; docs/16 MG9): per-note sources. Their engine side is
+    built: API v2's `set_param_note(key, index, offset)` and the POLY flag
+    on Macro, Macro Heavy, Six-Op FM and Shapes, byte-identical without a
+    call [verified: engines/README.md, "Per-note offsets"].
   - Locks set the base and modulation adds an offset (rules M1–M7).
   - Plaits' own per-voice envelope can be exposed in Macro before C1 (stage
     S2).

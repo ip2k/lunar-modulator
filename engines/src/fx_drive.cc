@@ -591,6 +591,7 @@ const fm1_engine_t fm1_engine_drive = {
   DriveInstanceSize, DriveCreate, DriveDestroy,
   NULL, NULL, NULL,
   DriveSet, DriveRender,
+  NULL,                     // no notes, so no per-note offsets
 };
 
 #ifdef __cplusplus

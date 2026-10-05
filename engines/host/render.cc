@@ -6,7 +6,8 @@
 //
 // --list prints every engine and its parameters as JSON, with the names of
 // an enum parameter's values and each parameter's API v2 fields: uid, flags
-// (by name), unit and abbr.
+// (by name), unit and abbr, and whether the engine takes per-note offsets
+// (per_note: it has set_param_note).
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
@@ -14,7 +15,12 @@
 // clipped count, the same after the limiter, non-finite samples, instance
 // size in bytes and time per block. Note, bend (--bend) and parameter
 // (--param-at, and --fx-param-at T:K:NAME=VALUE for the K-th --fx, counted
-// from 1) events apply at block boundaries (1.45 ms). --fill sets the
+// from 1) events apply at block boundaries (1.45 ms). Per-note offsets
+// (--note-param-at T:KEY:NAME=OFFSET on a POLY parameter, or #INDEX=OFFSET
+// to send any index, as a test of what an engine ignores; --note-pitch-at
+// T:KEY:SEMITONES) apply at block boundaries too, after the note-ons there,
+// as a host sends a new note's offsets right after its note-on (set_param_note
+// in fm1_engine.h); they go to the --engine (sound unit 0). --fill sets the
 // byte instance memory holds before create (the API promises no zeroing);
 // --fault T:VALUE overwrites both channels with VALUE (nan, inf, 1e6...) at
 // time T, and --fault T0..T1:VALUE every frame from T0 up to T1, after the
@@ -123,6 +129,15 @@ struct Control {                     // --bend and --param-at: one call at a tim
   bool level;                        // --level-at: the unit's level, not a parameter
 };
 
+struct NoteControl {                 // --note-param-at and --note-pitch-at
+  double time;
+  uint8_t key;
+  std::string name;                  // "" for the pitch; "#N" sends index N as is
+  uint16_t index;
+  float offset;
+  bool done;
+};
+
 const int kSounds = 4;               // sound units, as the virtual FM-1's FM1_APP_SOUNDS
 
 struct FxControl {                   // --fx-param-at: an effect's set_param
@@ -138,7 +153,8 @@ void Usage() {
   fprintf(stderr,
       "usage: fm1-render --list\n"
       "       fm1-render [--engine ID [--param NAME=VALUE]... [--note T:KEY:VEL:DUR]...\n"
-      "                   [--bend T:SEMITONES]... [--param-at T:NAME=VALUE]...]\n"
+      "                   [--bend T:SEMITONES]... [--param-at T:NAME=VALUE]...\n"
+      "                   [--note-param-at T:KEY:NAME=OFFSET]... [--note-pitch-at T:KEY:SEMITONES]...]\n"
       "                  [--input silence|impulse|noise|sine]\n"
       "                  [--fx ID [--fx-param NAME=VALUE]...]... [--fx-param-at T:K:NAME=VALUE]...\n"
       "                  [--seconds S] [--rate HZ] [--frames N] [--out FILE.wav]\n"
@@ -466,7 +482,7 @@ const char *UnitName(uint8_t u) {
 void PrintFlags(uint8_t f) {
   static const struct { uint8_t bit; const char *name; } kFlags[] = {
     { FM1_PARAM_LATCH, "latch" }, { FM1_PARAM_SMOOTH, "smooth" }, { FM1_PARAM_NOLOCK, "nolock" },
-    { FM1_PARAM_MOD, "mod" }, { FM1_PARAM_INPUT, "input" },
+    { FM1_PARAM_MOD, "mod" }, { FM1_PARAM_INPUT, "input" }, { FM1_PARAM_POLY, "poly" },
   };
   uint8_t known = 0;
   bool first = true;
@@ -489,9 +505,9 @@ void List() {
     printf("\"id\":"); PrintJsonString(e->id);
     printf(",\"name\":"); PrintJsonString(e->name);
     printf(",\"credits\":"); PrintJsonString(e->credits);
-    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"params\":[",
+    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"params\":[",
            e->kind == FM1_KIND_SOUND ? "sound" : e->kind == FM1_KIND_AUDIO_FX ? "audio_fx" : "midi_fx",
-           e->max_voices);
+           e->max_voices, e->set_param_note ? "true" : "false");
     for (uint16_t p = 0; p < e->n_params; ++p) {
       const fm1_param_t &q = e->params[p];
       printf(p ? ",{" : "{");
@@ -553,6 +569,7 @@ int main(int argc, char **argv) {
   std::vector<Unit> fx;
   std::vector<Event> events;
   std::vector<Control> controls;
+  std::vector<NoteControl> note_controls;
   std::vector<FxControl> fx_controls;
   const char *cmd_path = NULL, *seq_path = NULL, *log_path = NULL;
   bool compat = false, seconds_given = false, rate_given = false, frames_given = false;
@@ -638,6 +655,24 @@ int main(int argc, char **argv) {
       std::vector<std::pair<std::string, float> > one;
       if (!colon || !ParseParam(colon + 1, &one)) { Usage(); return 2; }
       controls.push_back(Control{ atof(next), false, one[0].first, 0, one[0].second, false, 0, false });
+    } else if (a == "--note-param-at" || a == "--note-pitch-at") {
+      const bool pitch = a == "--note-pitch-at";
+      double t; int key, used = 0;
+      std::vector<std::pair<std::string, float> > one;
+      if (sscanf(next, "%lf:%d:%n", &t, &key, &used) != 2 || !used || key < 0 || key > 127 ||
+          (pitch ? !*(next + used) : !ParseParam(next + used, &one))) {
+        fprintf(stderr, "%s wants T:KEY:%s, KEY 0..127\n", a.c_str(),
+                pitch ? "SEMITONES" : "NAME=OFFSET");
+        return 2;
+      }
+      if (pitch) {
+        note_controls.push_back(NoteControl{ t, uint8_t(key), std::string(),
+                                             FM1_PARAM_NOTE_PITCH,
+                                             static_cast<float>(atof(next + used)), false });
+      } else {
+        note_controls.push_back(NoteControl{ t, uint8_t(key), one[0].first, 0, one[0].second,
+                                             false });
+      }
     } else if (a == "--sound" || a == "--sound-param" || a == "--insert" || a == "--insert-param" ||
                a == "--level" || a == "--sound-note" || a == "--sound-param-at" || a == "--level-at") {
       // K:REST, K the sound unit (0..3; --sound wants 1..3, unit 0 is --engine).
@@ -702,6 +737,10 @@ int main(int argc, char **argv) {
       fprintf(stderr, "--bend and --param-at need --engine\n");
       return 2;
     }
+  }
+  if (!note_controls.empty() && !engine_id) {
+    fprintf(stderr, "--note-param-at and --note-pitch-at need --engine\n");
+    return 2;
   }
   const bool use_seq = cmd_path || seq_path;
   Sequencer sq;
@@ -774,6 +813,27 @@ int main(int argc, char **argv) {
       if (strcasecmp(u.e->params[q].name, c.name.c_str()) == 0) { c.index = q; found = true; }
     }
     if (!found) { fprintf(stderr, "unknown parameter for %s: %s\n", id, c.name.c_str()); return 1; }
+  }
+  for (size_t k = 0; k < note_controls.size(); ++k) {
+    NoteControl &c = note_controls[k];
+    if (!sound.e->set_param_note) {
+      fprintf(stderr, "%s has no per-note offsets\n", engine_id);
+      return 1;
+    }
+    if (c.index == FM1_PARAM_NOTE_PITCH && c.name.empty()) continue;
+    if (c.name[0] == '#') {          // a raw index, sent whatever it is
+      c.index = static_cast<uint16_t>(strtoul(c.name.c_str() + 1, NULL, 0));
+      continue;
+    }
+    bool found = false;
+    for (uint16_t q = 0; q < sound.e->n_params && !found; ++q) {
+      if (strcasecmp(sound.e->params[q].name, c.name.c_str()) == 0) { c.index = q; found = true; }
+    }
+    if (!found) { fprintf(stderr, "unknown parameter for %s: %s\n", engine_id, c.name.c_str()); return 1; }
+    if (!fm1_param_poly(&sound.e->params[c.index])) {
+      fprintf(stderr, "%s's %s takes no per-note offset (not POLY)\n", engine_id, c.name.c_str());
+      return 1;
+    }
   }
   for (size_t k = 0; k < fx.size(); ++k) {
     if (!Instantiate(fx[k], fx_ids[k].c_str(), FM1_KIND_AUDIO_FX, host, fill)) return 1;
@@ -1064,6 +1124,12 @@ int main(int argc, char **argv) {
           done[k] = true;
         }
       }
+      for (size_t k = 0; k < note_controls.size(); ++k) {   // unit 0 (--engine), after the note-ons
+        NoteControl &c = note_controls[k];
+        if (c.done || c.time > now) continue;
+        sound.e->set_param_note(sound.self, c.key, c.index, c.offset);
+        c.done = true;
+      }
     } else if (sound.e) {
       for (size_t k = 0; k < controls.size(); ++k) {   // controls first, in the order given
         Control &c = controls[k];
@@ -1090,6 +1156,12 @@ int main(int argc, char **argv) {
           if (md.m) fm1_mod_live_note(md.m, events[k].key, events[k].velocity);
           done[k] = true;
         }
+      }
+      for (size_t k = 0; k < note_controls.size(); ++k) {   // after the note-ons, in the order given
+        NoteControl &c = note_controls[k];
+        if (c.done || c.time > now) continue;
+        sound.e->set_param_note(sound.self, c.key, c.index, c.offset);
+        c.done = true;
       }
     } else {
       for (uint32_t f = 0; f < n; ++f) {

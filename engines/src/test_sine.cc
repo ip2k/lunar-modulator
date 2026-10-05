@@ -119,4 +119,5 @@ extern "C" const fm1_engine_t fm1_engine_test_sine = {
   fm1::test_sine::InstanceSize, fm1::test_sine::Create, fm1::test_sine::Destroy,
   fm1::test_sine::NoteOn, fm1::test_sine::NoteOff, fm1::test_sine::Bend,
   fm1::test_sine::Set, fm1::test_sine::Render,
+  NULL,   // no per-note offsets: the host tests' engine without them
 };

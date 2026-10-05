@@ -92,4 +92,5 @@ extern "C" const fm1_engine_t fm1_engine_sw_psxverb = {
   fm1::sw_psxverb::Size, fm1::sw_psxverb::New, fm1::schwung::Destroy,
   NULL, NULL, NULL,
   fm1::schwung::SetParam, fm1::schwung::Render,
+  NULL,                     // no notes, so no per-note offsets
 };
