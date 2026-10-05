@@ -59,6 +59,11 @@ ENUM_FLAGS = {
     ("tilt", "Curve"): ["mod"],                 # glides between its two curves
     ("sat", "Shape"): ["mod"],                  # crossfades over 5 ms
     ("isolator", "Kill"): ["mod"],              # the band gains glide: a clean change
+    ("hall", "Freeze"): ["mod"],                # crossfades: the input fades as the decay holds
+    ("plate", "Freeze"): ["mod"],               # a 5 ms ramp: lockable, a route rounds it
+    ("gate", "Mode"): ["mod"],                  # crossfades Gate and Duck's gains over 5 ms
+    ("gate", "Listen"): ["mod"],                # crossfades the output and the key
+    ("gate", "Link"): ["mod"],                  # glides the detector's and Listen's weights
     ("test-ext", "Probe"): [],                   # a test effect's switches: lockable,
     ("test-ext", "Listen"): [],                  #   no route
 }
@@ -181,7 +186,8 @@ def test_abbreviations_and_units(built):
     assert {("comp", "Threshold"), ("comp", "Knee"), ("comp", "Makeup"), ("drive", "Drive"),
             ("drive", "Level"), ("limit", "Ceiling"), ("limit", "Drive")} <= db
     assert {("eq", "Low Gain"), ("eq", "Mid Gain"), ("eq", "High Gain"), ("eq", "Level"),
-            ("tilt", "Tilt"), ("tilt", "Level"), ("sat", "Drive"), ("sat", "Level")} <= db
+            ("tilt", "Tilt"), ("tilt", "Level"), ("sat", "Drive"), ("sat", "Level"),
+            ("gate", "Threshold"), ("gate", "Range"), ("gate", "Return")} <= db
     assert ("comp", "Ratio") not in units                 # a ratio, no unit
 
 

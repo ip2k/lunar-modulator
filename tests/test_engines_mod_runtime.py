@@ -42,7 +42,7 @@ FIXTURE = ROOT / "tests" / "fixtures" / "mod-uids.json"
 TICK = 32
 # fm1_mod_size(): 8,192 B of arena and 11,824 B of fixed state, the same in
 # 32- and 64-bit builds (no pointers; every 64-bit member 8-aligned).
-MOD_BYTES = 22368
+MOD_BYTES = 23200
 FLAG_BITS = ["latch", "smooth", "nolock", "mod", "input"]
 
 
@@ -516,7 +516,7 @@ def test_the_record_pool_holds_every_chain(renderer):
     engines = json.loads(subprocess.check_output([str(renderer), "--list"]))
     most = {k: max(min(len(e["params"]), d["unit_params"]) for e in engines if e["kind"] == k)
             for k in ("sound", "audio_fx")}
-    assert 4 * most["sound"] + 10 * most["audio_fx"] + 2 <= d["sink_params"] == 160
+    assert 4 * most["sound"] + 10 * most["audio_fx"] + 2 <= d["sink_params"] == 180
     assert [n for _, n in d["sinks"]] == ["snd", "fx1", "fx2", "host", "snd2", "snd3", "snd4",
                                           "snd1.fx1", "snd1.fx2", "snd2.fx1", "snd2.fx2",
                                           "snd3.fx1", "snd3.fx2", "snd4.fx1", "snd4.fx2"]

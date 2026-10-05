@@ -131,7 +131,7 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** five swappable sound engines and seventeen effects (Comb split
+- **The API:** five swappable sound engines and twenty effects (Comb split
   out of Filter since 2026-10-05), plus test engines, behind one C API, version 3
   ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
   [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
@@ -151,7 +151,8 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     - **Macro Heavy:** Plaits' other 13.
     - **Six-Op FM:** Plaits' DX7-style engine.
     - **Shapes:** Braids.
-    - **Plate:** Rings' reverb.
+    - **Plate:** Rings' reverb, with a Freeze after Elements'.
+    - **Room:** Clouds' reverb and diffuser.
     - **Ensemble and Diffuse:** Plaits' ensemble and diffuser.
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
     compatibility shim.
@@ -164,8 +165,10 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     to high-pass, exact bypass in between), Tilt (a tilt equaliser, exact
     bypass when flat), Master Sat (band-limited bus saturation with Glue,
     its curves' coefficients from Airwindows, Chris Johnson, MIT), Isolator
-    (a three-band kill EQ) and EQ (a three-band parametric equaliser) are
-    our own code
+    (a three-band kill EQ), EQ (a three-band parametric equaliser), Hall (a
+    reverb on an eight-line feedback delay network, with Freeze) and Gate (a
+    noise gate with a Duck mode, after the DS201 and DS301 manuals) are our
+    own code
     ([`engines/README.md`](engines/README.md#crush)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
@@ -623,14 +626,16 @@ which lands with the plan PR; its stages S0–S7 are named below.
   all [inferred].
 
 **More effects** · *Planned*
-- **Done so far (2026-10-05):** Crush, Fold, Drive, Echo, Filter, Comp and
-  Limiter, and the master-bus effects of the
+- **Done so far (2026-10-05):** Crush, Fold, Drive, Echo, Filter, Comp,
+  Limiter, Hall and Gate, and the master-bus effects of the
   [2026-10-02 effects note](notes/2026-10-02-delay-reverb-eq-gates-options.md)
-  (DJ Filter, Tilt, Master Sat, Isolator and EQ), our own code
+  (DJ Filter, Tilt, Master Sat, Isolator and EQ), our own code, and Room, a
+  port of Clouds' reverb
   ([`engines/README.md`](engines/README.md#crush)). Their switch-like
   controls (Filter's Type, Drive's Type and Auto, Comp's Character, Auto
   Rel and Auto Gain, the Limiter's Mode and Lookahead, DJ Filter's Slope,
-  Tilt's Curve, Master Sat's Shape and Isolator's Kill) change without a
+  Tilt's Curve, Master Sat's Shape, Isolator's Kill, Hall's and Plate's
+  Freeze, the Gate's Mode, Listen, Link and Lookahead) change without a
   click, so they can be locked and modulated: the rule is that a switch
   that changes cleanly is lockable and modulatable
   ([`engines/README.md`](engines/README.md#parameters-engine-api-v2-and-v3)).

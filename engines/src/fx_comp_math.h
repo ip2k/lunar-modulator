@@ -1,5 +1,5 @@
 /* fx_comp_math.h -- base-2 logarithm and exponential for Comp
- * (src/fx_comp.cc), DJ Filter and Tilt, without libm. MIT licence.
+ * (src/fx_comp.cc), DJ Filter, Tilt and the Gate, without libm. MIT licence.
  *
  * Since engine API v3 (2026-10-05) the code lives in include/fm1_math.h,
  * which the hosts share for the LOG parameter law (fm1_engine.h); these

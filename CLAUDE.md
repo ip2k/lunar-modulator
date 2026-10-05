@@ -78,7 +78,8 @@ FreeRTOS exception), and `uac_audio.h`/`uac_audio_v2.h` are GPL-2.0, so
 never include those headers. Felucca and SLOOP are GPL-3.0-only: take facts
 and ideas, with credit.
 
-**The GPL switch** (owner, 2026-10-05): GPL modules sit behind one build
+**The GPL switch** (owner, 2026-10-05: "gated with a switch but ON by
+default, everywhere while we test"): GPL modules sit behind one build
 switch, `FM1_GPL_MODS`, **on by default in every build while we test**.
 While it is on, no firmware image that links JieLi's libraries may be shared,
 and the public simulator's module is offered under GPL terms (licence named

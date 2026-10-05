@@ -69,7 +69,8 @@
       {"name": "Mix", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
       {"name": "Decay", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
       {"name": "Damping", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
-      {"name": "Diffusion", "type": "float", "uid": 4, "flags": ["smooth", "mod"]}
+      {"name": "Diffusion", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Freeze", "type": "enum", "uid": 5, "flags": ["mod"]}
     ],
     "ensemble": [
       {"name": "Mix", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
@@ -207,6 +208,41 @@
       {"name": "High Gain", "type": "float", "uid": 8, "flags": ["smooth", "mod"]},
       {"name": "High Q", "type": "float", "uid": 9, "flags": ["smooth", "mod"]},
       {"name": "Level", "type": "float", "uid": 10, "flags": ["smooth", "mod"]}
+    ],
+    "room": [
+      {"name": "Mix", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Decay", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Damping", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Diffusion", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Blur", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Width", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
+    ],
+    "hall": [
+      {"name": "Decay", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Size", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Damping", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Pre-delay", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Diffusion", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Mod", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Freeze", "type": "enum", "uid": 8, "flags": ["mod"]},
+      {"name": "Width", "type": "float", "uid": 9, "flags": ["smooth", "mod"]},
+      {"name": "Low Cut", "type": "float", "uid": 10, "flags": ["smooth", "mod"]}
+    ],
+    "gate": [
+      {"name": "Threshold", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Attack", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Hold", "type": "float", "uid": 3, "flags": ["smooth", "mod", "log"]},
+      {"name": "Decay", "type": "float", "uid": 4, "flags": ["smooth", "mod", "log"]},
+      {"name": "Range", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Return", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Mode", "type": "enum", "uid": 7, "flags": ["mod"]},
+      {"name": "Key HP", "type": "float", "uid": 8, "flags": ["smooth", "mod", "log"]},
+      {"name": "Key LP", "type": "float", "uid": 9, "flags": ["smooth", "mod", "log"]},
+      {"name": "Listen", "type": "enum", "uid": 10, "flags": ["mod"]},
+      {"name": "Lockout", "type": "float", "uid": 11, "flags": ["smooth", "mod"]},
+      {"name": "Lookahead", "type": "float", "uid": 12, "flags": ["smooth", "mod"]},
+      {"name": "Link", "type": "enum", "uid": 13, "flags": ["mod"]}
     ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}

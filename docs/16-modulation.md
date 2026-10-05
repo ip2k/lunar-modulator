@@ -312,9 +312,10 @@ A trigger is a GATE that falls after a fixed length, one tick by default
 **LOG destinations** (engine API v3, 2026-10-05; owner decisions 2 and 3
 of notes/2026-10-02-filters-dynamics-options.md). A parameter flagged LOG is
 pitch- or time-like: a FLOAT in Hz or ms with 0 < min < max (Filter and Comb
-Cutoff, Echo Time, the Releases, the EQ, Tilt, Master Sat and Isolator
-frequencies; engines/README.md, "The LOG law"). It is still stored, shown
-and saved in Hz or ms, but its routes add in the log domain:
+Cutoff, Echo Time, the Releases, Gate's Hold and Decay, the EQ, Tilt, Master
+Sat, Isolator and Gate key-filter frequencies; engines/README.md, "The LOG
+law"). It is still stored, shown and saved in Hz or ms, but its routes add
+in the log domain:
 
 - a route adds amount × signal × log2(max / min) **octaves**, the same share
   of the knob a linear parameter moves, and the value sent is base ×
@@ -1488,6 +1489,10 @@ marked]:
   runtime and its sixteen kinds (MG2's Peaks and Braids tables among
   them), the pages and the script reader with strtod [verified:
   `www/fm1.wasm.json`]. (MG3 alone, before MG2's kinds, had added 93 KB.)
+  Since Room, Hall and Gate the pool holds 180 records, not 160: Gate's
+  thirteen parameters in all ten effect places and Six-Op's twelve in all
+  four sound units need 180 with HOST's two, and `fm1_mod_size()` is 23,200 B (832 B
+  more).
 - **The dead-code audit is due** (§8, "Size and the dead-code audit"): the
   repository's own code files (dongle/, engines/ less third_party/, sim/,
   tests/, tools/; C, C++, Python, JavaScript, shell and make, less the
@@ -1511,7 +1516,7 @@ marked]:
   3. The note sources (VEL, NOTE, KEY, TRIG, RTRG) follow notes on every
      sound unit: should a cable be able to follow one sound's notes only
      (per-sound gates, or per-voice in MG9)?
-  4. The runtime's 22,368 B now count against the lab's RAM meter: is
+  4. The runtime's 23,200 B now count against the lab's RAM meter: is
      that the budget the firmware should plan for (the pool could shrink
      to what the loaded engines need)?
 

@@ -18,8 +18,8 @@ history.
   setting for setting (they share their parameter ids).
 - **Frequencies and times turn in ratios.** Filter's and Comb's Cutoff,
   Echo's Time, Comp's and the Limiter's Release, Tilt's Pivot, Master Sat's
-  Clean Lo and Clean Hi, the Isolator's crossovers, EQ's three frequencies
-  and Sophie's Ring Time now move by the same musical step wherever they
+  Clean Lo and Clean Hi, the Isolator's crossovers, EQ's three frequencies,
+  Gate's Hold, Decay, Key HP and Key LP and Sophie's Ring Time now move by the same musical step wherever they
   are: a click of the knob is about a semitone on a cutoff, their bars show
   the knob's position, their values show more decimals at the low end, and
   a sequencer lock steps through them evenly in ratio. Modulation moves them
@@ -30,7 +30,7 @@ history.
   `FM1_ENGINE_API_VERSION` is 3, so an engine built out of tree is
   rebuilt). Parameter flags widen to 16 bits with the new `FM1_PARAM_LOG`;
   `FM1_UNIT_DB` marks levels and gains in dB (Comp, Drive and the Limiter,
-  and EQ, Tilt and Master Sat). Effects get an optional extension,
+  and EQ, Tilt, Master Sat and Gate). Effects get an optional extension,
   `fm1_fx_ext_t` through `render_ext`: a key (side-chain) input, the tempo
   and beat position, and the sequencer's Start, Stop and beats at their
   exact frames, the same at any block size; both hosts pass it through
@@ -44,6 +44,88 @@ history.
   bars), tests/test_engines_comb.py (the split, pinned against main), and
   two parity scenarios for the browser module.
 
+- **Room, Hall, Gate and Plate's Freeze on the virtual FM-1:** the effect
+  slots now offer twenty effects (ALGORITHM steps through Plate, Ensemble,
+  Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp, Limiter,
+  DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate and Test
+  Gain), and Plate gains a second page with Freeze.
+  - Every new knob and switch is turned mid-note in the browser's parity
+    scenarios: Room's and Hall's scenarios now move their knobs, and
+    Hall's Freeze, while notes ring; a new scenario freezes Plate in front
+    of Room; and another flips Plate's and Hall's Freeze every 4.4 ms.
+  - A value on screen keeps one decimal when it is a small fraction of a
+    wide range, so the Gate's 0.5 ms Attack reads 0.5, not 0.
+  - 64 of 64 parity scenarios pass, identical to musl and to render.js
+    (six of them turn effects' switches every 4.4 ms); 2,325 screens pass
+    the layout check (136 new, ten of them the new effects' pages with a
+    modulation cable on each parameter). The browser module grew from
+    738 KB to 761 KB. The three new effects join the engine-SMOOTH
+    driver's split and repeated-write checks. The modulation runtime's
+    shared pool of parameter records grows from 160 to 180, so ten Gates
+    and four Six-Ops can all take cables (the runtime is 832 bytes larger,
+    23,200 in all). Chapter 6 of the manual has sections for Room and Gate and
+    Plate's Freeze; chapters 12 and 13 list their memory and credits.
+- **Gate**, a new effect: a noise gate that can also duck. Threshold,
+  Attack, Hold, Decay and Range (down to silence) set how it opens and
+  closes; Return keeps it from chattering on a sound that hovers at the
+  threshold; Duck turns it over, so a loud key pulls the signal down to
+  Range instead. Key HP and Key LP filter only what the gate listens to (so
+  a kick's spill does not open a snare's gate), and Listen lets you hear
+  that; Lockout stops a ringing drum re-opening it; Lookahead (0–5 ms)
+  opens it just before the transient arrives, so attacks come through
+  whole; Link picks how a stereo key is heard. Mode, Listen, Link and
+  Lookahead change without a click, so the sequencer may lock them and
+  modulation may move them. Range 0 and an open gate pass the sound bit
+  for bit. The controls follow Drawmer's DS201 and DS301 gate manuals (as
+  inspiration; our own code, MIT). For now it listens to its own input;
+  keying it from another sound or from the sequencer is the side-chain
+  stage still to come, and its hooks are in place. About 2 KB of memory at
+  44.1 kHz, no maths library, and the same output, bit for bit, from the
+  Mac, 32- and 64-bit Linux builds and WebAssembly. Documented in
+  engines/README.md ("Gate"). Two parity scenarios are added.
+- **Freeze** on the Plate reverb, a switch on its second page: it holds the
+  tail at the level it had and ignores new input, while Mix still blends in
+  what you play. It switches over 5 ms, so it does not click and can be
+  locked on a step or driven by modulation. Decay and Damping wait until you
+  release it. The hold is not endless: the highs fade over seconds and the
+  body over minutes, and a quiet tail runs out sooner (about 25 s at
+  −39 dBFS, nearly 3 minutes at −19 dBFS); engines/mi-fx.md says why and
+  what would fix it. With Freeze off, Plate sounds exactly as before.
+- **Hall**, a new effect: a stereo hall reverb written for this project, on
+  an eight-line feedback delay network. Decay sets the reverb time from
+  0.2 s to 20 s (2 s by default), Size the size of the hall, Damping how
+  much faster the highs die away, and Mix the balance with the dry sound.
+  A second page has Pre-delay (up to 150 ms), Diffusion (separate early
+  reflections or a smooth wash), Mod (a slow, chorus-like movement that
+  keeps long tails from ringing metallic) and Freeze, which holds the tail
+  for minutes (it fades by about a decibel a minute) and lets nothing new
+  in; a third has Width (stereo to mono)
+  and Low Cut (keeps the bass out of the reverb). Freeze switches without
+  a click, so it is ready for sequencer locks and modulation once those
+  reach the effects. It uses 49 KB of memory,
+  three quarters of Plate's, and about 2.6 times Plate's processing on a
+  desktop. Every setting is stable, the tail always dies away to true
+  silence when Freeze is off, and it sounds the same in the browser as on
+  the desktop. Parameters and design in `engines/README.md`, a section in
+  chapter 6 of the manual, tests in `tests/test_engines_hall.py` and
+  `engines/test/hall_selftest.cc`, and a parity scenario for the virtual
+  FM-1 that turns its knobs and Freeze while notes ring.
+- **Room**, a new reverb effect: the reverb of Mutable Instruments Clouds with
+  the diffuser Clouds runs before it, a smaller, denser room than Plate in
+  40 KB (Plate takes 64 KB). Mix, Decay, Damping and Diffusion on the first
+  page; Blur (smears the attack before it enters the room) and Width on the
+  second. Decay reaches from a short room (under a second) to tails of 15 s
+  and more. Every knob glides and can be modulated, Mix 0 passes the sound
+  through untouched, and the output is the same at any block size and,
+  with no libm and no fused multiply-adds, the same bits in the browser.
+  For developers: the four Clouds files are vendored unmodified,
+  `build/fm1-ref-room` renders the upstream classes for 60 reference tests
+  (within half an LSB at 32 kHz and at 44,118 Hz), and `build/fm1-room-test`
+  checks the glide, recovery, host rates and the libm-free maths. A parity
+  scenario turns every knob while a chord rings through Room. Once a tail
+  has gone, Room sweeps its diffuser's memory clean, so a silent Room does
+  no subnormal arithmetic (left alone, all 2,048 of the diffuser's cells
+  held a subnormal for good).
 - **Modulation on the virtual FM-1's panel (docs/16 MG3), behind the lab
   switch:** add `?lab` (or `#lab`) to the page's address. The public page is
   unchanged: there ENV, LFO and EDIT still say they are not in the
@@ -85,7 +167,7 @@ history.
     flags too: `snd2:`, `snd2.fx1:` and the like name the other sound units
     and their inserts (the runtime's unit codes, `fm1_mod.h`), and
     `fm1_seq_host_dispatch_slots_ticks` runs the modulation over several
-    sound units. The runtime is 22,368 bytes, and the lab's RAM meter counts
+    sound units. The runtime is 23,200 bytes, and the lab's RAM meter counts
     it. Four new parity scenarios check the browser module with modulation
     running, two of them over several sounds (58 of 58 pass with the
     master-bus effects' own), and the layout check now covers 2,189
