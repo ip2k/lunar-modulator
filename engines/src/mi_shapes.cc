@@ -100,7 +100,7 @@ struct Voice {
 inline float KnobSeconds(float knob) { return 0.001f * powf(4000.0f, knob); }
 
 // What RenderChunk computes from the parameters, engine-wide, or for one
-// voice from its own values when it has offsets: the same function, so a
+// voice from its own values when it has offsets: the same functions, so a
 // voice whose values equal the engine's gets the same numbers bit for bit.
 struct Controls {
   float attack, release;   // per-sample envelope coefficients at 96 kHz
@@ -108,15 +108,25 @@ struct Controls {
   int16_t timbre, color;
 };
 
+// A per-sample envelope coefficient (one-pole towards the target) for an
+// Attack or Release knob, at Braids' rate like everything else in the chunk.
+// A powf and an expf: a voice computes its own only for an offset there.
+inline float EnvelopeCoefficient(float knob) {
+  return 1.0f - expf(-1.0f / (KnobSeconds(knob) * kNativeRate));
+}
+
+// The cheap controls: the gain and the oscillator's two parameters.
+inline void SetLevels(const float *value, Controls *c) {
+  c->gain = value[P_VOLUME] * 0.25f / 32768.0f;
+  c->timbre = static_cast<int16_t>(value[P_TIMBRE] * 32767.0f);
+  c->color = static_cast<int16_t>(value[P_COLOR] * 32767.0f);
+}
+
 inline Controls MakeControls(const float *value) {
   Controls c;
-  // Per-sample envelope coefficients (one-pole towards the target), at
-  // Braids' rate like everything else in the chunk.
-  c.attack = 1.0f - expf(-1.0f / (KnobSeconds(value[P_ATTACK]) * kNativeRate));
-  c.release = 1.0f - expf(-1.0f / (KnobSeconds(value[P_RELEASE]) * kNativeRate));
-  c.gain = value[P_VOLUME] * 0.25f / 32768.0f;
-  c.timbre = static_cast<int16_t>(value[P_TIMBRE] * 32767.0f);
-  c.color = static_cast<int16_t>(value[P_COLOR] * 32767.0f);
+  c.attack = EnvelopeCoefficient(value[P_ATTACK]);
+  c.release = EnvelopeCoefficient(value[P_RELEASE]);
+  SetLevels(value, &c);
   return c;
 }
 
@@ -203,12 +213,19 @@ class Instance {
   }
 
  private:
-  // A voice's controls: the engine's, unless it has an offset.
+  // A voice's controls: the engine's, unless it has an offset. Then the
+  // levels come from its own values, and an envelope coefficient too where
+  // that parameter has an offset; elsewhere the engine's is the same number,
+  // so a Timbre or pitch offset costs no powf or expf.
   Controls VoiceControls(const Voice &v, const Controls &shared) const {
     if (!v.note.any()) return shared;
     float value[P_COUNT];
     for (int i = 0; i < P_COUNT; ++i) value[i] = v.note.Value(kParams, i, value_[i]);
-    return MakeControls(value);
+    Controls c = shared;
+    if (v.note.has(P_ATTACK)) c.attack = EnvelopeCoefficient(value[P_ATTACK]);
+    if (v.note.has(P_RELEASE)) c.release = EnvelopeCoefficient(value[P_RELEASE]);
+    SetLevels(value, &c);
+    return c;
   }
 
   void RenderChunk() {

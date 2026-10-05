@@ -153,6 +153,28 @@ def test_an_offset_on_a_lone_note_is_a_base_change(renderer, tmp_path, listing, 
         assert a == b, p["name"]
 
 
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_a_base_that_moves_keeps_the_offset_on_top(renderer, tmp_path, listing, engine):
+    """set_param under an offset moves the sum, clamped as set_param clamps:
+    for a lone note, the base at 30 % of the range with an offset of half
+    the range, then the base at 80 % (the sum past the maximum), is the base
+    set to those sums, byte for byte, and to the maximum once past it."""
+    base = TONE[engine]["params"]
+    note = ["0:60:100:0.45"]
+    for p in poly(listing, engine):
+        span = p["max"] - p["min"]
+        b0, b1, x = p["min"] + 0.3 * span, p["min"] + 0.8 * span, 0.5 * span
+        _, a, _ = run(renderer, tmp_path, "a", engine, base, note,
+                      ["--param-at", f"0:{at(p['name'], b0)}",
+                       "--note-param-at", f"0.1:60:{at(p['name'], x)}",
+                       "--param-at", f"0.25:{at(p['name'], b1)}"])
+        _, b, _ = run(renderer, tmp_path, "b", engine, base, note,
+                      ["--param-at", f"0:{at(p['name'], b0)}",
+                       "--param-at", f"0.1:{p['name']}={moved(b0, x)}",
+                       "--param-at", f"0.25:{at(p['name'], p['max'])}"])
+        assert a == b, p["name"]
+
+
 MODELS = {
     "macro": [f"Model={m}" for m in range(8)],
     "macro-heavy": [f"Model={m}" for m in range(13)],

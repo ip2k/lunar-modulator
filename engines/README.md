@@ -1068,7 +1068,10 @@ registered engines and effects.
 **Cost.** A voice without offsets tests one mask per internal block. A voice
 with offsets recomputes its controls each block: for Macro, two
 `SemitonesToRatio` and three attenuverter amounts per 12 samples
-[inferred; stage B measures pi32v2].
+[inferred; stage B measures pi32v2]. Shapes' Attack and Release cost a
+`powf` and an `expf` each, so a voice computes its own coefficient only for
+an offset on that parameter, and takes the engine's otherwise (the same
+number): a Timbre, Color, Volume or pitch offset costs no transcendental.
 
 **No sound changed without offsets** [verified 2026-10-05, before and
 after, clean builds, on Apple clang (arm64), gcc 12 x86-64 and gcc 12
@@ -1095,6 +1098,8 @@ engines]:
   for byte (each POLY parameter at the note-on, mid-note and through the
   release; all at once on every Macro and Macro Heavy model, a sample of
   shapes and patches), and a pitch offset is a pitch bend.
+- A base moved by `set_param` under an offset moves the sum, and a sum
+  past the range is clamped, byte for byte as the base set to it.
 - Two notes with offsets on one render as the two notes rendered apart,
   summed (to 3 LSB at 16 bits), while either offset alone moves its note
   by more than 300 LSB: the other note is untouched.
@@ -1338,6 +1343,13 @@ keeping decay within 3–4 %.
   vendored code stays unmodified, so any fix is in the wrapper (an audio
   change, its own stage) or an upstream candidate. The per-note extremes
   test keeps Shapes within MIDI 0..127 and leaves Comb and Wave Line out.
+- **Per-note offsets and SMOOTH:** an offset reaches its voice at the next
+  internal block, unramped. When docs/15 S7b's ramp for SMOOTH parameters
+  lands, a per-voice source stepping once per host block would step the
+  sum audibly unless the offsets ramp as `set_param` does, or MG9 sends
+  them smoothly [inferred]. Whichever is chosen, the tests that compare an
+  offset with the same move of the base mid-note
+  (`tests/test_engine_note_params.py`) follow it.
 - **Resampler cost on pi32v2:** the stronger second stage costs about 114
   multiply-adds per output; the cheaper half-band version (about 70, with
   18–22 kHz unprotected) is commit `f12448c`. The owner's decision
