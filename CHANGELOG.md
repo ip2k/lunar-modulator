@@ -9,6 +9,17 @@ history.
 ## [Unreleased]
 
 ### Added
+- Per-note sound changes, the groundwork for per-voice modulation: Macro,
+  Macro Heavy, Six-Op FM and Shapes can now move one playing note's sound
+  (its timbre, level, envelope times and the like, and its pitch) without
+  touching the other notes. A note's changes last through its release and
+  are cleared when the key is played again or its voice is reused. Nothing
+  sounds different until something uses it; the envelopes and LFOs that
+  will drive it come with the modulation work (docs/16, stage MG9). Sophie
+  and the effects do not take per-note changes. For developers: the engine
+  API's `set_param_note` and `POLY` flag, and `fm1-render
+  --note-param-at` / `--note-pitch-at` (engines/README.md, "Per-note
+  offsets").
 - **Modulation, second stage (docs/16 MG2): thirteen more modules** for the
   modulation rack, in the engine and `fm1-render`; not yet playable in the
   simulator or on the FM-1.

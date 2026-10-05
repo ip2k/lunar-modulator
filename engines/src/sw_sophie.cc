@@ -136,4 +136,8 @@ extern "C" const fm1_engine_t fm1_engine_sw_sophie = {
   fm1::sw_sophie::Size, fm1::sw_sophie::New, fm1::schwung::Destroy,
   fm1::schwung::NoteOn, fm1::schwung::NoteOff, NULL,
   fm1::schwung::SetParam, fm1::schwung::Render,
+  // No per-note offsets: the module's voices are its own (each copies its
+  // pad's patch at the trigger) and the shim reaches only its global
+  // parameters (engines/README.md, "Per-note offsets").
+  NULL,
 };

@@ -483,6 +483,7 @@ const fm1_engine_t fm1_engine_comp = {
   CompInstanceSize, CompCreate, CompDestroy,
   NULL, NULL, NULL,
   CompSet, CompRender,
+  NULL,                     // no notes, so no per-note offsets
 };
 
 #ifdef __cplusplus

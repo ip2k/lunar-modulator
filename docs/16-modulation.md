@@ -1051,16 +1051,43 @@ The options note's rules M1–M7 hold unchanged. Restated for modules:
 
 ### 6.3 Per-voice modulation later
 
-The options note's stage C2 still applies [inferred]:
+The owner decided on 2026-10-02 that per-voice modulation is essential:
+each note gets its own envelopes and LFOs, which move only that note. The
+options note's stage C2 still applies [inferred]:
 - kinds flagged POLY_OK (Envelope, LFO in trig mode, Curves one-shot,
   random on note) get one instance per voice from the arena;
 - VOICE-scoped slots run per active voice and reach engines through an API v2
-  `set_param_mod(index, key, offset)`;
+  per-note entry (as built below);
 - poly to mono cables are refused, as Surge's `canModulateMonophonicTarget`
   does [verified at `348cfb3`]; mono to poly is allowed;
 - per-voice sources never reach effects or engine-wide parameters.
 
 Cost: about 12 × the per-instance cost for each poly kind in use [inferred].
+
+**The engine side, as built (2026-10-05)** [verified:
+`engines/include/fm1_engine.h`, `tests/test_engine_note_params.py`;
+engines/README.md, "Per-note offsets", has the contract and the tests]:
+- `set_param_note(self, key, index, offset)`, an optional last member of
+  `fm1_engine_t` in API v2 (NULL without support), in place of the sketch's
+  `set_param_mod(index, key, offset)`. It sets, not adds, the offset the
+  voice sounding `key` adds to the parameter's base, in the parameter's own
+  units; the voice plays the sum clamped as `set_param` clamps. The index
+  `FM1_PARAM_NOTE_PITCH` (0xFFFF) is the note's pitch in semitones, cut to
+  ±48.
+- The flag `FM1_PARAM_POLY` marks the parameters that take one: a VOICE
+  slot's destination must be POLY or the pitch, and on an engine whose
+  entry is NULL it has none. Macro and Macro Heavy: every FLOAT (Speech
+  keeps Harmonics engine-wide); Six-Op FM: Brightness, Envelope, Volume;
+  Shapes: Timbre, Color, Attack, Release, Volume. Sophie, Test Sine and the
+  effects have no per-note offsets.
+- Lifetime, which MG9's per-voice instances follow: `note_on` starts the
+  key's voice at 0, so the host sends a new note's offsets after its
+  note-on at the same frame (its envelopes' first values); `note_off`
+  keeps them, so the release is modulated; a steal or the voice's end drops
+  them, and a call for a key no voice sounds is ignored.
+- Without a call every render is byte-identical to before (1,900 renders,
+  three compilers), and with calls at the same frames the output is the
+  same at host blocks of 1, 7 and 64.
 
 ### 6.4 The arpeggiator and MIDI effects
 
@@ -1154,7 +1181,7 @@ and a CHANGELOG entry. Every stage passes:
 | **MG6** | Locks on module parameters and slot amounts; SEQ sources; MACRO 1–4; Motion | docs/15 S8 (locks) and transport | a lock on `mod3:Level2` and on `mtx:12.amt` replays identically; Motion's loop is identical at any block size |
 | **MG7** | Second wave: Draw, Orbit, Swirl, Scenes, Tangle, Chaos, Bits, Walk, Quad, Slopes, Accent, Switch, Grooves (our maps) | MG3 | Orbit and Swirl against upstream renders at the grid; Chaos bit-exact native against wasm |
 | **MG8** | Heavy and audio: Dice, Follow, Duck, Vactrol; Numbers, Field, Life; TO NOTES and TAP sources; the `FM1_GPL_MODS` switch if the owner wants it | MG3 | Dice's patterns repeat per seed; follower taps identical at any block size; the flash total reported |
-| **MG9** | Per-voice (options note C2) | API v2 `set_param_mod` | zero-offset identity per voice; poly to mono refused |
+| **MG9** | Per-voice (options note C2) | API v2 `set_param_note`, built (§6.3) | zero-offset identity per voice; poly to mono refused |
 
 **MG1, as built** (engines/mod/README.md, "The runtime", has the detail
 and the tests) [verified 2026-10-02]:

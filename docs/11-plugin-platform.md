@@ -302,8 +302,11 @@ typedef struct fm1_engine {
   four assignable knobs. As built (`engines/include/fm1_engine.h`, API v2,
   docs/15 stage S7a), each also has a stable uid, which locks, modulation
   routes and presets store, and flags for what a lock or a route may do with
-  it (LATCH, SMOOTH, NOLOCK, MOD, INPUT), a unit and a short abbreviation
-  [verified: engines/README.md, "Parameters"].
+  it (LATCH, SMOOTH, NOLOCK, MOD, INPUT, POLY), a unit and a short
+  abbreviation [verified: engines/README.md, "Parameters"]. An engine may
+  also take per-note offsets on its POLY parameters and the note's pitch
+  (`set_param_note`, for per-voice modulation) [verified: engines/README.md,
+  "Per-note offsets"].
 - **A Schwung v2 shim** is one more `fm1_engine_t` that adapts a Schwung
   module's structs, strings and int16 buffers.
 - **CPU.** The host measures cycles per block for every instance, shows the

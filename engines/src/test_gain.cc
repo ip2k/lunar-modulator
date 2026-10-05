@@ -42,4 +42,5 @@ extern "C" const fm1_engine_t fm1_engine_test_gain = {
   fm1::test_gain::InstanceSize, fm1::test_gain::Create, fm1::test_gain::Destroy,
   NULL, NULL, NULL,
   fm1::test_gain::Set, fm1::test_gain::Render,
+  NULL,                     // no notes, so no per-note offsets
 };
