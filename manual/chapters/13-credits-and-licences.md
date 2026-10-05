@@ -45,6 +45,10 @@ terms it is used under.
   Johnson**, MIT licence ("Copyright (c) 2018 Chris Johnson"; the licence's
   notice is in the effect's source), and its Glue follows the idea of
   Airwindows Compresaturator, whose code is not used.
+- **EQ** is this project's own code. Each band is the state-variable filter
+  in the form **Andrew Simper** (Cytomic) published, whose maths is in the
+  public domain, and its curves are checked against **Robert
+  Bristow-Johnson**'s Audio EQ Cookbook. No code is taken from either.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and

@@ -26,8 +26,8 @@ pages, then the second slot's. The bottom bar shows where you are, such as
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
 *Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Echo, Tilt,
-Master Sat and Test Gain, and round again. In the simulator you can also use
-the **Effect 1** and **Effect 2** lists under the panel.
+Master Sat, EQ and Test Gain, and round again. In the simulator you can also
+use the **Effect 1** and **Effect 2** lists under the panel.
 
 **To empty a slot:** turn [[ALGORITHM]] to *Empty slot*, one step before
 Plate, or choose *(none)* in the list.
@@ -61,9 +61,9 @@ more than two.
     about 48,000 samples a second, so at the FM-1's 44,118 their delays come
     out about 9 % longer, a slightly larger room, and their slow modulation
     about 8 % slower. Their decay times are corrected, and stay within a few per
-    cent of the originals'. Crush, Fold, Echo, Tilt and Master Sat, written
-    for Lunar Modulator, work out their frequencies and times from the
-    output's rate, so they need no correction.
+    cent of the originals'. Crush, Fold, Echo, Tilt, Master Sat and EQ,
+    written for Lunar Modulator, work out their frequencies and times from
+    the output's rate, so they need no correction.
 
 ## Plate
 
@@ -356,6 +356,44 @@ settings; with Drive near the right, Clean Hi is what keeps them down.
     - Master Sat belongs last, or just before a reverb, in the second slot.
 
 {{engine-table sat}}
+
+## EQ
+
+{{status sim desktop planned}}
+
+A three-band equaliser, written for Lunar Modulator: a low shelf, a bell in
+the middle and a high shelf, one page each, then an output level. Use it to
+shape one sound, or in the second slot as a tone control for everything
+before it. The bands run one after the other, on both channels alike.
+
+- **Low Freq**, **Low Gain** and **Low Q** shape the bass. Low Gain raises or
+  lowers everything below Low Freq, by up to 15 dB either way; at Low Freq
+  itself the change is half as much. Low Q sets how sharply the shelf turns:
+  at 0.71, the default, as steeply as it can without overshooting; higher,
+  a bump and a dip appear either side of Low Freq; lower, the change spreads
+  over a wider range.
+- **Mid Freq**, **Mid Gain** and **Mid Q**, on page 2, boost or cut a band
+  around Mid Freq, anywhere from 20 Hz to 18 kHz. Mid Gain is the change at
+  Mid Freq itself. Mid Q sets the width, from wide at the left to narrow at
+  the right; a cut is as narrow as a boost.
+- **High Freq**, **High Gain** and **High Q**, on page 3, do for the treble,
+  above High Freq (1 to 18 kHz), what the Low knobs do for the bass.
+- **Level**, on page 3, raises or lowers the result by up to 15 dB, to make
+  up for boosts and cuts.
+
+With every Gain and Level at 0, the default, EQ leaves the sound exactly as it
+is. The knobs glide over a few milliseconds and the bands are built to be
+swept, so turning a knob does not click, even quickly. EQ has no tail beyond
+the ring of a narrow band.
+
+!!! tip "Starting points"
+    - **Warmth:** Low Freq about 120, Low Gain about +4.
+    - **Presence:** Mid Freq about 3,000, Mid Gain about +4, Mid Q about 1.
+    - **Air:** High Freq about 10,000, High Gain about +5.
+    - **Find a ring:** Mid Gain at +15 and Mid Q near 10, sweep Mid Freq until
+      the ring jumps out, then turn Mid Gain down to about −10.
+
+{{engine-table eq}}
 
 ## Test Gain
 
