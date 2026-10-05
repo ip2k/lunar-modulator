@@ -283,8 +283,12 @@ pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, with step entry since S4: 25 of 25 scenarios
 pass, identical to musl and to render.js, and it imports nothing; it is
-482,291 bytes, up from 466,635 before S4, 459,122 before S3 and 391 KB
-before the sequencer [verified, 2026-10-02, `www/fm1.wasm.json`].
+490,878 bytes, up from 482,391 before the engines' SMOOTH ramps (docs/15
+S7b), 466,635 before S4, 459,122 before S3 and 391 KB before the sequencer
+[verified, 2026-10-05, `www/fm1.wasm.json`]. With S7b only
+`seq-panel-play-stop` sounds different, since its knob turns now ramp; every
+other scenario's audio is unchanged and only the RAM figures grew, by
+12 bytes per SMOOTH parameter (engines/README.md, "SMOOTH").
 
 The sequencer's own cost in WebAssembly, measured with `fm1-render.js` under
 Node 24.19 in the emsdk container on aeon: tools/seq_bench.py's burst (8

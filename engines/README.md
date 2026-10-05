@@ -98,9 +98,9 @@ anything beyond ±16 is clamped, dry path included), and the hold clock never
 looks at the samples, so bad input cannot latch the effect: once the next
 hold is taken the output is the clean render's again [verified:
 tests/test_engines_crush.py]. The low-pass state is flushed to zero below
-10^-20 so a tail never goes subnormal on pi32v2. An instance is 96 bytes on
-a 64-bit desktop, all floats and one `uint32_t`, so the same on 32-bit
-[inferred]. On this desktop (Apple M1 Max) it took 400–500 ns per 64-frame block,
+10^-20 so a tail never goes subnormal on pi32v2. An instance is 176 bytes on
+a 64-bit desktop and on 32-bit, all floats, `uint32_t`s and one flag (96
+before the SMOOTH ramps) [verified: the 32-bit build, 2026-10-05]. On this desktop (Apple M1 Max) it took 400–500 ns per 64-frame block,
 about 0.03 % of the block, against Plate's 900 ns in the same run
 [verified: fm1-render's `ns_per_block`, 20 s of noise].
 
@@ -252,7 +252,7 @@ moves to the fixture's `retired` list, so its uid is never given out again.
 | Flag | Meaning | What a host does |
 | --- | --- | --- |
 | LATCH | The engine reads it at note-on: a change reaches the notes that start after it, never a sounding one | Nothing more: at one frame, locks come before note-ons (D2, engines/seq.md) |
-| SMOOTH | Continuous and read every block | The engine ramps a change, from docs/15 stage S7b; until then the flag is a hint |
+| SMOOTH | Continuous and read every block | Nothing: the engine ramps a change over 2.5 ms ([below](#smooth-the-ramp-inside-the-engines)) |
 | NOLOCK | A change is destructive: it rebuilds voices, clears a buffer or moves the edit focus | A lock on it is refused and counted (engines/seq.md, Host contract); never a modulation destination |
 | MOD | Accepts modulation (docs/16 §2.2). Every FLOAT has it by default; an ENUM only when it says so, and is then rounded. Never with NOLOCK | The modulation matrix, from docs/16 stage MG1 |
 | INPUT | A bare signal input: FLOAT, −1..1, default 0, hidden from the knob pages | Modulation modules only; no engine has one |
@@ -283,6 +283,113 @@ third page.
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
 | sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
+
+### SMOOTH: the ramp inside the engines
+
+Since docs/15 stage S7b, a change to a SMOOTH parameter while an engine
+sounds ramps inside the engine (the owner's choice, docs/13 §10). The shared
+code is `include/fm1_smooth.h`, plain C99:
+
+- **2.5 ms of the engine's own native samples,** in equal steps of its own
+  control block, landing exactly on the new value. A ramp turned mid-way
+  starts again from where it stands.
+- **Keyed to samples.** The control blocks sit at fixed native samples,
+  rendered as the resampler or the effect's own loop needs them, never at
+  render calls. The output is therefore the same at any host block size and
+  with any split of a block.
+- **At once when there is nothing to ramp:** while no voice is active, and
+  before an effect's first render. A lock on the trig of a note that starts
+  a silent engine plays that note at the locked value from its first sample,
+  and settings made at load apply from sample 0.
+- **A write equal to the target already set changes nothing.**
+- **Exact on every build** (docs/14): no libm, and nothing a compiler could
+  contract into a fused multiply-add. A step is `(target − value) / steps`,
+  added once per block and clamped so it never passes the target, and the
+  last block stores the target itself. A render with no change while
+  sounding is the render without the ramp, bit for bit (below).
+
+| Engine | Control block | Steps | Ramp | What ramps |
+| --- | --- | ---: | --- | --- |
+| Macro, Macro Heavy | 12 samples at 47,872.34 Hz | 10 | 2.51 ms | every FLOAT, read once per block as before |
+| Six-Op FM | 16 samples at 47,872.34 Hz | 8 | 2.67 ms | Brightness, Envelope, Volume |
+| Shapes | 24 samples at 96 kHz | 10 | 2.5 ms | Timbre, Color, Attack, Release, Volume |
+| Test Sine | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | Volume |
+| Plate, Ensemble, Diffuse, Crush, Test Gain | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | what each runs on; see below |
+| PSX Verb (through the Schwung shim) | the module's block, 64 frames on the FM-1 | 2 | 2.9 ms | Decay, Mix, Level, Input, sent as strings before each module call |
+| Fold, Echo | their own glides | – | 5 ms one-pole; Echo's Time 0.1 s | unchanged |
+
+- **Effects ramp what they run on, not the knob.** Plate's loop gain and
+  damping, Diffuse's loop gain and tone coefficient, and Crush's quantiser
+  step, hold interval and low-pass pole are derived from the knob once per
+  change, with libm as before, and the derived value ramps. No libm runs
+  in a render. During a Bits ramp Crush's inverse step is `1 / step`, and
+  exp2f's value again at the end. While a ramp runs, the vendored effects
+  render one frame at a time so that each frame gets its step.
+- **The rule for effects that already glide.** An effect that glides its
+  parameters itself, sample by sample, keyed to samples and snapping before
+  its first render, keeps its own glide: Fold (5 ms one-pole) and Echo
+  (5 ms gains, 0.1 s Time). That glide gives what SMOOTH promises. A new
+  effect may do the same; anything else uses `fm1_smooth.h`.
+- **The Schwung shim** ramps the first eight SMOOTH parameters of a module
+  (`kMaxRamps`), in the module's own blocks, from its first render on.
+  `tests/test_engine_params.py` checks that no module has more. Sophie's
+  parameters are LATCH, so only PSX Verb's ramp.
+- **A lock or a modulation write at frame f.**
+  - The ramp starts with the engine's first control block not yet rendered
+    at f, which is where an unramped change used to land.
+  - A D6 revert and a lock at one frame make one ramp, to the lock's value.
+  - A modulation route writes every tick (0.725 ms, docs/16 §2.6). Each
+    write restarts the ramp from where it stands, so the parameter follows
+    its source through a lag of about one ramp, and the steps are not heard.
+  - docs/12 §5.3 has the sequencer's view.
+- **What it does not do.** The value is the engine's, not the voice's.
+  While a tail still sounds, a note that starts with a lock begins on the
+  ramp. Per-voice values would need a voice-scoped call (docs/12 §5.3, §8).
+  A Harmonics ramp under Macro Heavy's Speech can pass through the word
+  banks between its ends, as a quick turn of the knob would.
+- **Cost.** 12 bytes per parameter plus a few per instance (Crush 96 → 176
+  bytes, Macro +128), and one test per parameter per control block while
+  nothing moves.
+
+**Tests** (tests/test_engine_smooth.py, `build/fm1-smooth-test`, which drives
+any engine or effect with changes at any frame where fm1-render cannot):
+- every engine and effect renders the same, bit for bit, with every
+  parameter changed mid-note and mid-ramp, and with NaN, infinity and
+  out-of-range values, at render calls cut at 64, 1, 7 or random frames;
+- a repeated write changes nothing;
+- Test Gain's ramp is 110 samples at 44,118 Hz (120 at 48 kHz, 55 at
+  22,050 Hz), monotonic, and exact at its end;
+- a Volume lock of 0 → 127 under a held A4 stays within the sine's slope
+  plus 1/110 of its amplitude per sample, where a jump would be a
+  full-scale click, and from its 110th sample the output equals Volume 127
+  throughout;
+- a lock on a silent engine's trig plays from the note's first sample.
+
+**What changed in sound** [verified 2026-10-05, Apple clang, main against
+this branch on one machine, with a third build that reports every ramp it
+starts]: 2,141 runs of `fm1-render` and the virtual FM-1's native harness,
+the same kinds as API v2's check below. They cover:
+- the 34 oracle scripts on all six sound engines in both modes, at both
+  block sizes;
+- 28 `movy1` sets;
+- every sound parameter as a lock lane, at blocks of 64 and 7, and locked
+  on the trigs of short notes;
+- 36 seeded lock scripts in both modes;
+- the host-block script at 1, 7 and 64 frames;
+- every parameter at its minimum, middle and maximum, set at the start,
+  turned mid-note, and turned while silent;
+- every effect parameter at the same values, at blocks of 64 and 7;
+- instance fills, 48 kHz, bends;
+- the 25 parity scenarios through both hosts.
+
+**The result:**
+- All 1,891 runs that start no ramp are byte-identical: every WAV, event
+  log, exit code, error and summary less its timing and its instance sizes.
+- Of the 250 that start one, 210 changed their audio. The rest started
+  ramps that made no difference in 16-bit output.
+- Of the parity scenarios, only `seq-panel-play-stop` changes its audio:
+  the panel turns knobs while Macro plays. The others change only their
+  RAM figures.
 
 **Units and abbreviations.** Echo's Time and Sophie's Ring Time are in ms,
 Sophie's Tune in semitones and its 0–100 knobs in %. Sophie's Decay is in
@@ -320,6 +427,7 @@ sound).
 | `mod/` | Modulation primitives: an LFO, a Peaks-style envelope, slew, S&H, a Turing register and a tick clock divider. Heap-free C99, not wired in yet ([mod/README.md](mod/README.md)) |
 | `include/fm1_seq.h`, `seq/` | The sequencer core: a heap-free C99 port of Movy's sequencer, with 4–8 routed tracks ([seq.md](seq.md), docs/13) |
 | `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`. Not wired into the renderer yet ([midi_fx/README.md](midi_fx/README.md)) |
+| `include/fm1_smooth.h` | The SMOOTH ramp every engine runs (above): C99, header-only, no libm |
 | `include/fm1_mix_limiter.h` | The host's mix-bus limiter and bus guard. Twelve voices started in phase can exceed full scale; the bus holds the output under 0.98, and non-finite samples become silence |
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
@@ -327,7 +435,7 @@ sound).
 | `src/fx_*.cc` | Effects written in this repository (Echo) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
-| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |
+| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, and `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -383,31 +491,30 @@ upstream candidate). Our own code gets none.
   Effects written for 48 kHz get their loop gains and damping rescaled; their
   delay lengths and LFOs run 8–9 % long and slow (mi-fx.md).
 - **Memory decides the voice caps.** Instance sizes, on the 64-bit desktop
-  and on a 32-bit (`-m32`) build like pi32v2's [verified: CI's 32-bit job on
-  PR #6]:
+  and on a 32-bit (`-m32`) build like pi32v2's [verified 2026-10-05: this
+  Mac, and GCC 12 `-m32` in a container on aeon]:
 
   | Engine | 64-bit bytes | 32-bit bytes | Why |
   | --- | --- | --- | --- |
-  | Shapes, 12 voices | 207,080 | 206,212 | each Braids oscillator carries ~17 KB of physical-model state |
-  | PSX Verb | 134,224 | 134,208 | a fixed 128 KB work area, as upstream |
-  | Sophie, 12 voices | 77,904 | 77,888 | ring delays per voice |
-  | Macro Heavy, 4 voices | 71,104 | 70,880 | ~17 KB per voice (Particle and String arenas) |
-  | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
+  | Shapes, 12 voices | 207,160 | 206,288 | each Braids oscillator carries ~17 KB of physical-model state |
+  | PSX Verb | 134,400 | 134,368 | a fixed 128 KB work area, as upstream |
+  | Sophie, 12 voices | 78,080 | 78,048 | ring delays per voice |
+  | Macro Heavy, 4 voices | 71,264 | 71,056 | ~17 KB per voice (Particle and String arenas) |
+  | Plate | 65,712 | 65,696 | 32,768 16-bit delay words, as Rings |
   | Echo | 65,728 | 65,728 | 16,384 stereo cells of 16-bit words |
-  | Macro, 12 voices | 31,744 | 18,864 | mostly pointer tables, which halve on 32-bit |
-  | Diffuse | 18,848 | 18,848 | |
-  | Six-Op FM, 8 voices | 12,528 | 10,796 | |
-  | Ensemble | 4,704 | 4,704 | |
+  | Macro, 12 voices | 31,872 | 19,200 | mostly pointer tables, which halve on 32-bit |
+  | Diffuse | 18,912 | 18,912 | |
+  | Six-Op FM, 8 voices | 12,584 | 10,848 | |
+  | Ensemble | 4,752 | 4,736 | |
 
-  The 32-bit figures include the native-rate resamplers (about 1.3 KB each)
-  [verified: CI's 32-bit job on PR #12]. Page 3 (2026-10-02) added 16 bytes
-  to Macro and to Macro Heavy on the 64-bit build [verified]; their 32-bit
-  figures predate it and grow by a similar few bytes [inferred].
+  The figures include the native-rate resamplers (about 1.3 KB each) and the
+  SMOOTH ramps (12 bytes per parameter; 176 bytes in each Schwung instance,
+  for eight ramps, Sophie's unused).
 
   The stock layout leaves a gap of 387,924 bytes, part of it stock's heap
   (docs/11 §2, [inferred]). Most engine-plus-two-effects chains fit in it;
   Shapes at 12 voices takes more than half on its own, and Shapes with PSX
-  Verb and Plate (404,672 bytes on 32-bit) does not fit. Shapes needs a lower cap on the
+  Verb and Plate (406,352 bytes on 32-bit) does not fit. Shapes needs a lower cap on the
   FM-1, or its physical-model shapes split into a smaller engine.
 - **Host contracts, now tested for every engine** (tests/test_engine_host.py):
   output does not depend on instance memory's prior contents; any
@@ -521,8 +628,7 @@ keeping decay within 3–4 %.
 - **Host features the streams asked for:** a random seed (`--seed`; stmlib's
   generator is a global in vendored code, so the host cannot seed it without
   depending on one library), an active-voice diagnostic so voice freeing can be tested
-  without timing, parameter smoothing (engine-side, the owner's choice: the
-  SMOOTH flag is set, the ramp is docs/15 stage S7b), and a reset call so
+  without timing, and a reset call so
   effects can drop their tails without re-creating a 64 KB instance. Also a
   per-file SHA-256 manifest from `vendor.py`, so a test can pin the whole
   vendored tree rather than the files one lane compiles.

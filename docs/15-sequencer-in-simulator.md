@@ -1457,6 +1457,48 @@ output stays identical at any host block size.
 
 **Size:** M–L.
 
+**As built (2026-10-05, branch `feature/2026-10-03@engine-smooth`).** The
+ramp time is 2.5 ms. Where the build differs from the plan above, or adds
+to it [verified: engines/README.md, "SMOOTH"; tests/test_engine_smooth.py]:
+- **The steps are the engines' own control blocks,** keyed to native
+  samples: 10 blocks of 12 at 47,872.34 Hz (Macro, Macro Heavy), 8 of 16
+  (Six-Op), 10 chunks of 24 at 96 kHz (Shapes), and every sample, 110 at
+  44,118 Hz (Test Sine and the effects). The ramp lands exactly on the new
+  value, never passes it, and uses no libm and no multiply-add a compiler
+  could contract.
+- **At once while nothing sounds,** and before an effect's first render.
+  A lock on the trig of a note that starts a silent engine plays that note
+  at the locked value from its first sample, so sequences of separate notes
+  sound as before; only changes under sounding notes ramp. A repeated write
+  changes nothing.
+- **Effects ramp what they run on**: Plate's and Diffuse's loop gains,
+  Plate's damping, Diffuse's tone coefficient, Crush's quantiser step, hold
+  interval and pole, derived once per change, so no libm runs in a render.
+  Fold and Echo keep their own sample-by-sample glides, which give the same
+  guarantees; that is the rule for effects that already glide. The Schwung
+  shim ramps PSX Verb's parameters in its 64-frame module blocks.
+- **A lock or a modulation write at frame f** starts the ramp with the
+  engine's first control block not yet rendered at f. A D6 revert and a
+  lock at one frame make one ramp; a modulation write every tick restarts
+  it from where it stands (docs/12 §5.3, docs/16 §2.6).
+- **Tests.** `build/fm1-smooth-test` drives every engine and effect with
+  changes at any frame, the output identical at render calls cut at 64, 1,
+  7 or random frames; the zipper test on Test Sine's Volume bounds the step
+  per sample and shows the output equal to Volume 127 from the 110th
+  sample; `test_audio_is_the_same_at_host_blocks_of_1_7_and_64` covers
+  Macro Heavy and Shapes too; `test_locks_set_the_parameter_their_lane_names`
+  now finds silence 110 samples after the lock of 0.
+- **Before and after:** 2,141 runs of `fm1-render` and the native harness,
+  main against this branch, with a third build that reports each ramp it
+  starts. All 1,891 runs that start none are byte-identical: the oracle
+  scripts on all six engines, the `movy1` sets, parameters set at the start
+  or while silent, every effect parameter. Of the parity scenarios, only
+  `seq-panel-play-stop` sounds different (its knob turns now ramp); the
+  others change only their RAM figures. On aeon the 25 scenarios pass, the
+  module identical to js and musl in all 25 and to glibc in 22, as before.
+- **Not done:** per-voice values, so a note that starts with a lock while
+  a tail sounds begins on the ramp.
+
 ### S8. Parameter locks from KNOB1–4 (7-bit)
 
 **Goal.** Hold a step and turn a knob to lock a parameter on that step. The

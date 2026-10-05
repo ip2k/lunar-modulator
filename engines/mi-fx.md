@@ -237,9 +237,13 @@ Makefile uses neither; the JieLi toolchain profile must not either.
 - Input is guarded: NaN becomes 0 and anything beyond ±16 is clamped, on
   the dry path too, so Mix 0 is a bit-exact bypass only for finite input
   within ±16 (+24 dBFS).
-- No parameter smoothing. Mix, Decay and the rest change at block
-  boundaries; a large jump in Mix can click. Upstream smooths at its control
-  rate outside these classes.
+- Parameters ramp (SMOOTH, docs/15 S7b): from the first render on, a change
+  moves what the effect runs on (Mix and Width as set, and Plate's loop
+  gain and damping, Diffuse's loop gain and tone coefficient as derived)
+  sample by sample over 2.5 ms, with the effect rendering one frame at a
+  time while it does (engines/README.md, "SMOOTH"). Before, every change
+  applied at the next call, and a large jump in Mix could click. Upstream
+  smooths at its control rate outside these classes.
 - Plate and Diffuse sum their input to mono; the input's stereo image
   survives only in the dry path.
 - Delay lengths and LFO rates are not rate-compensated (see above).

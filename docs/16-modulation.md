@@ -452,9 +452,12 @@ All rows but the first three are [inferred].
   chain adds nothing per hop when it has no loop.
 - **Sample-accurate triggers.** A module receives each edge's frame offset.
   An envelope triggered at offset 13 has run for G − 13 frames at t(k).
-- **Steps are hidden** by S7b's SMOOTH ramp (2–3 ms) inside the engines. PITCH
-  can additionally be ramped in 8-frame sub-splits if a test shows zipper
-  noise [inferred].
+- **Steps are hidden** by S7b's SMOOTH ramp inside the engines: 2.5 ms of
+  each engine's native samples, in its own control blocks [verified:
+  engines/README.md, "SMOOTH"]. A write every tick restarts the ramp from
+  where it stands, so a routed parameter follows its source through a lag
+  of about one ramp. PITCH can additionally be ramped in 8-frame
+  sub-splits if a test shows zipper noise [inferred].
 - **Renders are split only where needed.** The host splits a unit's render
   at a tick frame only when that tick writes to the unit [inferred]. A unit
   with no routed parameter renders in one call, as today.
