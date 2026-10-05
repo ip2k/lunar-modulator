@@ -390,7 +390,9 @@ the same kinds as API v2's check below. They cover:
 **The result:**
 - All 1,891 runs that start no ramp are byte-identical: every WAV, event
   log, exit code, error and summary less its timing and its instance sizes.
-- Of the 250 that start one, 210 changed their audio. The rest started
+  That includes the 52 that exit with the same error as before: the
+  Plaits-based engines refusing 48 kHz, and Sophie's lack of a pitch bend.
+- Of the 250 that start one, 209 changed their audio. The other 41 started
   ramps that made no difference in 16-bit output.
 - Of the parity scenarios, only `seq-panel-play-stop` changes its audio:
   the panel turns knobs while Macro plays. The others change only their
