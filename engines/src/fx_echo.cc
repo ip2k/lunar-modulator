@@ -312,4 +312,5 @@ extern "C" const fm1_engine_t fm1_engine_echo = {
   fm1::echo::InstanceSize, fm1::echo::Create, fm1::echo::Destroy,
   NULL, NULL, NULL,
   fm1::echo::Set, fm1::echo::Render,
+  NULL,                     // no notes, so no per-note offsets
 };

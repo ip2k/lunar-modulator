@@ -17,10 +17,11 @@
  * DAC, but only there.
  *
  * Threads: create and destroy run on one control task and never concurrently
- * with each other. note_on, note_off, pitch_bend, set_param and render for an
- * instance run on the audio task, and may run while another instance is
- * created or destroyed. An engine may therefore set up shared read-only
- * tables in its first create, but must not rewrite them in later ones.
+ * with each other. note_on, note_off, pitch_bend, set_param, set_param_note
+ * and render for an instance run on the audio task, and may run while
+ * another instance is created or destroyed. An engine may therefore set up
+ * shared read-only tables in its first create, but must not rewrite them in
+ * later ones.
  *
  * Parameters (API v2). Each has a uid, stable for its engine: what a
  * sequencer lock, a modulation route or a preset stores, so that reordering
@@ -28,6 +29,12 @@
  * may do with it, and abbr and unit are what a matrix row shows. A uid means
  * something only next to its engine's id. engines/README.md, "Parameters",
  * has the rules and every engine's table.
+ *
+ * Per-note offsets (API v2, optional). An engine with set_param_note
+ * keeps an offset per sounding voice for each POLY parameter and for the
+ * note's pitch, so a host can move one note without touching the others
+ * (docs/16 §6.3). Lifetime and rules: set_param_note below and
+ * engines/README.md, "Per-note offsets".
  *
  * Plain C99 so C and C++ engines (and a Schwung shim) can all implement it.
  * MIT licence, like the rest of this repository.
@@ -74,6 +81,9 @@ typedef enum {
 #define FM1_PARAM_INPUT  0x10u /* a bare signal input: FLOAT -1..1, default 0,
                                   hidden from the knob pages (modulation
                                   modules, docs/16) */
+#define FM1_PARAM_POLY   0x20u /* takes a per-note offset (set_param_note): the
+                                  engine keeps one per sounding voice. FLOAT
+                                  only, always with MOD */
 /* What a continuous parameter, read every block, takes. */
 #define FM1_PARAM_CONTINUOUS (FM1_PARAM_SMOOTH | FM1_PARAM_MOD)
 
@@ -125,6 +135,37 @@ static inline int fm1_param_modulatable(const fm1_param_t *p) {
   return (p->flags & (FM1_PARAM_MOD | FM1_PARAM_NOLOCK)) == FM1_PARAM_MOD;
 }
 
+/* Per-note offsets (API v2, set_param_note below). */
+
+/* set_param_note's index for the note's own pitch: an offset in semitones,
+ * added after the key and the pitch bend. No parameter has this index. */
+#define FM1_PARAM_NOTE_PITCH 0xFFFFu
+/* A per-note pitch offset is clamped to +/- this many semitones, the pitch
+ * bend's range. */
+#define FM1_NOTE_PITCH_MAX 48.0f
+
+/* Whether a per-note offset may reach p: POLY, and modulatable. */
+static inline int fm1_param_poly(const fm1_param_t *p) {
+  return (p->flags & FM1_PARAM_POLY) && fm1_param_modulatable(p);
+}
+
+/* A per-note offset as an engine keeps it. NaN is 0, no offset (as NaN is
+ * the default for set_param). Beyond the parameter's span, max - min, the
+ * sum is at an end whatever the base, so the offset is cut to the span:
+ * +/-inf then pin the parameter at max or min, as they do through
+ * set_param. p NULL: the note's pitch, cut to +/-FM1_NOTE_PITCH_MAX. */
+static inline float fm1_param_note_offset(const fm1_param_t *p, float offset) {
+  const float span = p ? p->max - p->min : FM1_NOTE_PITCH_MAX;
+  if (!(offset == offset)) return 0.0f;
+  return offset < -span ? -span : (offset > span ? span : offset);
+}
+
+/* The value a voice plays: its base (from set_param) plus its offset,
+ * clamped as set_param clamps. */
+static inline float fm1_param_note_value(const fm1_param_t *p, float base, float offset) {
+  return fm1_param_clamp(p, base + offset);
+}
+
 typedef struct fm1_host {
   uint32_t api_version;
   float sample_rate;           /* 44118 on the FM-1 */
@@ -156,6 +197,24 @@ typedef struct fm1_engine {
                                    * passes finite values within +/-48 */
   void (*set_param)(void *self, uint16_t index, float value);
   void (*render)(void *self, float *out_lr, uint32_t frames);
+
+  /* API v2, optional: NULL when the engine has no per-note offsets. Sets the
+   * offset, in the parameter's own units, that the voice sounding `key` adds
+   * to the base value set_param gave parameter `index` (a POLY parameter),
+   * or, with index FM1_PARAM_NOTE_PITCH, to the voice's pitch in semitones.
+   * A call replaces that voice's previous offset for the index; it does not
+   * add to it. The voice plays fm1_param_note_value(base, offset), and a
+   * base that moves keeps the offset on top. Offsets pass through
+   * fm1_param_note_offset (NaN is 0). A call takes effect where set_param's
+   * would, so output does not depend on the host's block size.
+   * Lifetime: the offsets belong to the voice. note_on starts the voice for
+   * its key at 0 (a host sends a new note's offsets after note_on, at the
+   * same frame); note_off keeps them, so the release is moved too; a voice
+   * that is stolen or ends drops them. A call for a key no voice sounds is
+   * ignored, not kept for a later note. Every voice sounding the key takes
+   * it (the engines here retrigger a key in its own voice, so one does).
+   * Any other index is ignored. Same thread as set_param. */
+  void (*set_param_note)(void *self, uint8_t key, uint16_t index, float offset);
 } fm1_engine_t;
 
 /* The index of e's parameter with this uid, or -1 (uid 0 included). */

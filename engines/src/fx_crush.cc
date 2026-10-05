@@ -196,4 +196,5 @@ extern "C" const fm1_engine_t fm1_engine_crush = {
   fm1::crush::InstanceSize, fm1::crush::Create, fm1::crush::Destroy,
   NULL, NULL, NULL,
   fm1::crush::Set, fm1::crush::Render,
+  NULL,                     // no notes, so no per-note offsets
 };

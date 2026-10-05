@@ -25,11 +25,18 @@
 // output (engines/reference-braids-fx.md). Note events land at the next
 // 24-sample boundary at 96 kHz (0.25 ms).
 //
+// Per-note offsets (set_param_note, engine API v2; note_offsets.h): Timbre,
+// Color, Attack, Release and Volume are POLY, since every voice already sets
+// its oscillator's parameters and runs its own envelope, and a pitch offset
+// joins the note after the bend. Shape stays engine-wide. A voice without an
+// offset plays the engine's values, byte for byte as before.
+//
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
+#include "note_offsets.h"
 
 #include <cmath>
 #include <cstring>
@@ -57,16 +64,21 @@ const char *const kShapeNames[kNumShapes] = {
 enum Param { P_SHAPE, P_TIMBRE, P_COLOR, P_ATTACK, P_RELEASE, P_VOLUME, P_COUNT };
 
 // Uids (API v2) are fixed: never renumber one. Shape sets every voice's
-// oscillator at once (NOLOCK).
+// oscillator at once (NOLOCK). The FLOATs are POLY: each voice's oscillator
+// takes its own Timbre and Color, and its envelope and gain are its own.
+const uint8_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
 const fm1_param_t kParams[P_COUNT] = {
   { "Shape",   FM1_PARAM_ENUM,  0, kNumShapes - 1, 0, kShapeNames, 0,
     1, FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Shape" },
-  { "Timbre",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Timbre" },
-  { "Color",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Color" },
-  { "Attack",  FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Atk" },
-  { "Release", FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Rel" },
-  { "Volume",  FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Vol" },
+  { "Timbre",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, kPoly, FM1_UNIT_NONE, "Timbre" },
+  { "Color",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, kPoly, FM1_UNIT_NONE, "Color" },
+  { "Attack",  FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 0, 4, kPoly, FM1_UNIT_NONE, "Atk" },
+  { "Release", FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 1, 5, kPoly, FM1_UNIT_NONE, "Rel" },
+  { "Volume",  FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 6, kPoly, FM1_UNIT_NONE, "Vol" },
 };
+
+// A voice's per-note offsets: Timbre .. Volume, and its pitch.
+typedef NoteOffsets<P_TIMBRE, P_COUNT - P_TIMBRE> Offsets;
 
 const int kNumVoices = 12;
 const size_t kChunk = 24;        // Braids' internal buffers are 24 samples
@@ -81,10 +93,32 @@ struct Voice {
   bool gate;
   bool active;
   uint32_t age;
+  Offsets note;   // per-note offsets (set_param_note)
 };
 
 // Envelope time for a 0..1 knob: 1 ms .. 4 s, exponential.
 inline float KnobSeconds(float knob) { return 0.001f * powf(4000.0f, knob); }
+
+// What RenderChunk computes from the parameters, engine-wide, or for one
+// voice from its own values when it has offsets: the same function, so a
+// voice whose values equal the engine's gets the same numbers bit for bit.
+struct Controls {
+  float attack, release;   // per-sample envelope coefficients at 96 kHz
+  float gain;
+  int16_t timbre, color;
+};
+
+inline Controls MakeControls(const float *value) {
+  Controls c;
+  // Per-sample envelope coefficients (one-pole towards the target), at
+  // Braids' rate like everything else in the chunk.
+  c.attack = 1.0f - expf(-1.0f / (KnobSeconds(value[P_ATTACK]) * kNativeRate));
+  c.release = 1.0f - expf(-1.0f / (KnobSeconds(value[P_RELEASE]) * kNativeRate));
+  c.gain = value[P_VOLUME] * 0.25f / 32768.0f;
+  c.timbre = static_cast<int16_t>(value[P_TIMBRE] * 32767.0f);
+  c.color = static_cast<int16_t>(value[P_COLOR] * 32767.0f);
+  return c;
+}
 
 class Instance {
  public:
@@ -103,6 +137,7 @@ class Instance {
       voice_[i].env = 0.0f;
       voice_[i].gate = voice_[i].active = false;
       voice_[i].age = 0;
+      voice_[i].note.Clear();
     }
     ApplyShape();
     return ok;
@@ -117,6 +152,7 @@ class Instance {
     v->age = ++clock_;
     if (!v->active) v->env = 0.0f;
     v->active = true;
+    v->note.Clear();   // a new note, a retrigger or a steal starts at no offset
     v->osc.Strike();
   }
 
@@ -133,6 +169,15 @@ class Instance {
     value = fm1_param_clamp(&kParams[index], value);
     value_[index] = value;
     if (index == P_SHAPE) ApplyShape();
+  }
+
+  // The voice sounding `key` (one at most: a key retriggers in its own
+  // voice), held or releasing, takes the offset.
+  void SetParamNote(uint8_t key, uint16_t index, float offset) {
+    if (!Offsets::Normalise(kParams, index, &offset)) return;
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active && voice_[i].key == key) voice_[i].note.Set(index, offset);
+    }
   }
 
   // Each output sample pulls the 96 kHz mix the resampler needs for it,
@@ -158,14 +203,16 @@ class Instance {
   }
 
  private:
+  // A voice's controls: the engine's, unless it has an offset.
+  Controls VoiceControls(const Voice &v, const Controls &shared) const {
+    if (!v.note.any()) return shared;
+    float value[P_COUNT];
+    for (int i = 0; i < P_COUNT; ++i) value[i] = v.note.Value(kParams, i, value_[i]);
+    return MakeControls(value);
+  }
+
   void RenderChunk() {
-    // Per-sample envelope coefficients (one-pole towards the target), at
-    // Braids' rate like everything else in the chunk.
-    const float attack = 1.0f - expf(-1.0f / (KnobSeconds(value_[P_ATTACK]) * kNativeRate));
-    const float release = 1.0f - expf(-1.0f / (KnobSeconds(value_[P_RELEASE]) * kNativeRate));
-    const float gain = value_[P_VOLUME] * 0.25f / 32768.0f;
-    const int16_t timbre = static_cast<int16_t>(value_[P_TIMBRE] * 32767.0f);
-    const int16_t color = static_cast<int16_t>(value_[P_COLOR] * 32767.0f);
+    const Controls shared = MakeControls(value_);
 
     // Mixed on the stack, then stored: accumulating straight into mix_ lets
     // the compiler assume it aliases v.env: 26-55 % more time on the desktop.
@@ -173,15 +220,18 @@ class Instance {
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
       if (!v.active) continue;
+      const Controls c = VoiceControls(v, shared);
       float note = v.key + bend_;
+      if (v.note.has_pitch()) note += v.note.pitch;
       int32_t pitch = static_cast<int32_t>(note * 128.0f);
       if (pitch < 0) pitch = 0;
       if (pitch > 32767) pitch = 32767;
       v.osc.set_pitch(static_cast<int16_t>(pitch));
-      v.osc.set_parameters(timbre, color);
+      v.osc.set_parameters(c.timbre, c.color);
       v.osc.Render(sync_, v.pcm, kChunk);
       const float target = v.gate ? v.velocity : 0.0f;
-      const float k = v.gate ? attack : release;
+      const float k = v.gate ? c.attack : c.release;
+      const float gain = c.gain;
       for (size_t s = 0; s < kChunk; ++s) {
         v.env += (target - v.env) * k;
         mix[s] += v.pcm[s] * v.env * gain;
@@ -243,6 +293,9 @@ void NoteOff(void *s, uint8_t k) { static_cast<Instance *>(s)->NoteOff(k); }
 void Bend(void *s, float st) { static_cast<Instance *>(s)->PitchBend(st); }
 void Set(void *s, uint16_t i, float v) { static_cast<Instance *>(s)->SetParam(i, v); }
 void Render(void *s, float *out, uint32_t n) { static_cast<Instance *>(s)->Render(out, n); }
+void SetNote(void *s, uint8_t k, uint16_t i, float o) {
+  static_cast<Instance *>(s)->SetParamNote(k, i, o);
+}
 
 }  // namespace shapes
 }  // namespace fm1
@@ -255,4 +308,5 @@ extern "C" const fm1_engine_t fm1_engine_shapes = {
   fm1::shapes::InstanceSize, fm1::shapes::Create, fm1::shapes::Destroy,
   fm1::shapes::NoteOn, fm1::shapes::NoteOff, fm1::shapes::Bend,
   fm1::shapes::Set, fm1::shapes::Render,
+  fm1::shapes::SetNote,
 };

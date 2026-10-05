@@ -1,0 +1,464 @@
+"""Per-note offsets (engine API v2, set_param_note in
+engines/include/fm1_engine.h; engines/README.md, "Per-note offsets"): a
+host moves one sounding note's POLY parameters and pitch without touching
+the other notes.
+
+The renderer scripts them with --note-param-at T:KEY:NAME=OFFSET and
+--note-pitch-at T:KEY:SEMITONES, applied after the note-ons of the block, as
+a host sends a new note's offsets right after its note-on.
+
+Most checks are exact: for a note sounding alone, an offset is the same as
+moving the parameter's base by that much (and a pitch offset the same as a
+pitch bend), byte for byte, because the voice computes its values with the
+engine's own code. Where two notes sound, the offset on one leaves the other
+as it was: the two-note render is the sum of the two notes rendered apart.
+"""
+import json
+import math
+import struct
+import subprocess
+import wave
+
+import pytest
+
+from tests.engine_helpers import RATE, cents, pitch_hz, render, renderer  # noqa: F401
+
+PER_NOTE = ["macro", "macro-heavy", "shapes", "sixop"]
+
+# A sustained, deterministic voice per engine (no shared random numbers, so
+# notes rendered apart are the notes rendered together), and a parameter
+# whose offset is loud.
+TONE = {
+    "macro": dict(params=["Model=0", "Decay=0.8"], loud="Timbre"),
+    "macro-heavy": dict(params=["Model=4", "Decay=0.8"], loud="Timbre"),
+    "shapes": dict(params=["Shape=0", "Release=0.7"], loud="Timbre"),
+    "sixop": dict(params=["Patch=40"], loud="Brightness"),
+}
+
+
+@pytest.fixture(scope="module")
+def listing(renderer):
+    out = subprocess.run([str(renderer), "--list"], check=True, capture_output=True, text=True)
+    return {e["id"]: e for e in json.loads(out.stdout)}
+
+
+def poly(listing, engine):
+    return [p for p in listing[engine]["params"] if "poly" in p["flags"]]
+
+
+def offset_for(p, share=0.3, base=None):
+    """An offset that moves p's base (its default unless given) by share of
+    its range, staying inside it."""
+    span = share * (p["max"] - p["min"])
+    base = p["def"] if base is None else base
+    return span if base + span <= p["max"] else -span
+
+
+def base_of(engine, p):
+    """p's base under TONE[engine]'s parameters."""
+    for kv in TONE[engine]["params"]:
+        name, value = kv.split("=")
+        if name == p["name"]:
+            return float(value)
+    return p["def"]
+
+
+def f32(x):
+    return struct.unpack("<f", struct.pack("<f", x))[0]
+
+
+def moved(base, offset):
+    """base + offset as the engine adds them, in float, both parsed as the
+    renderer parses them; printed so that it parses back to that float."""
+    return f"{f32(f32(float(f'{base:.6g}')) + f32(float(f'{offset:.6g}'))):.9g}"
+
+
+def run(renderer, tmp_path, name, engine, params=(), notes=(), extra=(), seconds=0.7):
+    """(summary, WAV bytes, left channel as int16)."""
+    s, _, wav = render(renderer, tmp_path, engine, params=list(params), notes=list(notes),
+                       seconds=seconds, name=name, extra=list(extra))
+    with wave.open(str(wav), "rb") as w:
+        raw = w.readframes(w.getnframes())
+    left = [int.from_bytes(raw[i:i + 2], "little", signed=True) for i in range(0, len(raw), 4)]
+    assert s["nonfinite"] == 0
+    return s, wav.read_bytes(), left
+
+
+def at(name, value):
+    return f"{name}={value:.6g}"
+
+
+def test_only_four_engines_take_per_note_offsets(listing):
+    """Sophie keeps its voices inside the module, out of the shim's reach;
+    effects have no notes; Test Sine stays the engine without them."""
+    assert sorted(e for e, v in listing.items() if v["per_note"]) == sorted(PER_NOTE)
+    assert [p["name"] for p in poly(listing, "sixop")] == ["Brightness", "Envelope", "Volume"]
+    assert [p["name"] for p in poly(listing, "shapes")] == \
+        ["Timbre", "Color", "Attack", "Release", "Volume"]
+    for e in ("macro", "macro-heavy"):   # every FLOAT
+        assert poly(listing, e) == [p for p in listing[e]["params"] if p["type"] == 0]
+
+
+def test_renderer_refuses_what_an_engine_cannot_take(renderer, tmp_path):
+    def rc(*args):
+        return subprocess.run([str(renderer), *args, "--seconds", "0.05",
+                               "--out", str(tmp_path / "x.wav")], capture_output=True,
+                              text=True)
+    r = rc("--engine", "sw-sophie", "--note-pitch-at", "0:60:2")
+    assert r.returncode == 1 and "no per-note offsets" in r.stderr
+    r = rc("--engine", "macro", "--note-param-at", "0:60:Model=1")
+    assert r.returncode == 1 and "not POLY" in r.stderr
+    r = rc("--engine", "macro", "--note-param-at", "0:128:Timbre=1")
+    assert r.returncode == 2
+    r = rc("--note-pitch-at", "0:60:2")
+    assert r.returncode == 2
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_zero_offsets_are_a_no_op(renderer, tmp_path, listing, engine):
+    """0 (and -0) on every POLY parameter and the pitch, on every note, at
+    the note-on and while the notes sound, renders what no call renders."""
+    notes = [f"{0.02 * i:.2f}:{48 + 3 * i}:{70 + 4 * i}:0.3" for i in range(6)]
+    extra = []
+    for i in range(6):
+        key = 48 + 3 * i
+        for t in (0.02 * i, 0.25):
+            for p in poly(listing, engine):
+                extra += ["--note-param-at", f"{t:.2f}:{key}:{p['name']}={'-0' if i % 2 else '0'}"]
+            extra += ["--note-pitch-at", f"{t:.2f}:{key}:0"]
+    _, plain, _ = run(renderer, tmp_path, "plain", engine, TONE[engine]["params"], notes)
+    _, zero, _ = run(renderer, tmp_path, "zero", engine, TONE[engine]["params"], notes, extra)
+    assert zero == plain
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_an_offset_on_a_lone_note_is_a_base_change(renderer, tmp_path, listing, engine):
+    """For a note sounding alone, each POLY parameter's offset is the base
+    moved by as much, byte for byte: at the note-on and mid-note, through
+    the release. A later offset replaces the first; 0 puts the base back."""
+    base = TONE[engine]["params"]
+    note = ["0:60:100:0.35"]
+    for p in poly(listing, engine):
+        b0 = base_of(engine, p)
+        x = offset_for(p, 0.3, b0)
+        y = offset_for(p, 0.15, b0)
+        _, a, _ = run(renderer, tmp_path, "a", engine, base, note,
+                      ["--note-param-at", f"0:60:{at(p['name'], x)}",
+                       "--note-param-at", f"0.2:60:{at(p['name'], y)}",
+                       "--note-param-at", f"0.5:60:{p['name']}=0"])
+        _, b, _ = run(renderer, tmp_path, "b", engine, base, note,
+                      ["--param-at", f"0:{p['name']}={moved(b0, x)}",
+                       "--param-at", f"0.2:{p['name']}={moved(b0, y)}",
+                       "--param-at", f"0.5:{at(p['name'], b0)}"])
+        assert a == b, p["name"]
+
+
+MODELS = {
+    "macro": [f"Model={m}" for m in range(8)],
+    "macro-heavy": [f"Model={m}" for m in range(13)],
+    "shapes": [f"Shape={s}" for s in range(0, 47, 3)],
+    "sixop": [f"Patch={p}" for p in (0, 11, 32, 49, 62, 77, 95)],
+}
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_every_offset_at_once_on_every_model(renderer, tmp_path, listing, engine):
+    """All POLY parameters moved at once on a lone note, on every model (a
+    sample of shapes and patches), against the same bases set engine-wide.
+    Speech keeps Harmonics engine-wide (it picks the shared word bank), so
+    there its offset is left out here."""
+    for model in MODELS[engine]:
+        speech = engine == "macro-heavy" and model == "Model=2"
+        a_args, b_params = [], [model]
+        for p in poly(listing, engine):
+            if speech and p["name"] == "Harmonics":
+                continue
+            x = offset_for(p, 0.4)
+            a_args += ["--note-param-at", f"0:57:{at(p['name'], x)}"]
+            b_params.append(f"{p['name']}={moved(p['def'], x)}")
+        _, a, _ = run(renderer, tmp_path, "a", engine, [model], ["0:57:110:0.3"], a_args,
+                      seconds=0.5)
+        _, b, _ = run(renderer, tmp_path, "b", engine, b_params, ["0:57:110:0.3"], seconds=0.5)
+        assert a == b, model
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_a_pitch_offset_on_a_lone_note_is_a_bend(renderer, tmp_path, engine):
+    base = TONE[engine]["params"]
+    for semis in (7, -12, 0.5):
+        _, a, _ = run(renderer, tmp_path, "a", engine, base, ["0:60:100:0.35"],
+                      ["--note-pitch-at", f"0:60:{semis}", "--note-pitch-at", "0.25:60:-3"])
+        _, b, _ = run(renderer, tmp_path, "b", engine, base, ["0:60:100:0.35"],
+                      ["--bend", f"0:{semis}", "--bend", "0.25:-3"])
+        assert a == b, semis
+
+
+# A steady tone per engine for pitch measurement (tests/test_engine_host.py's).
+PITCH_TONES = {
+    "macro": ["Model=6", "Timbre=0", "Morph=0.5", "Harmonics=0.5"],
+    "shapes": ["Shape=3", "Timbre=0", "Color=0"],
+    "macro-heavy": ["Model=4", "Harmonics=0", "Timbre=0"],
+    "sixop": ["Patch=40"],
+}
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_a_pitch_offset_moves_the_pitch(renderer, tmp_path, engine):
+    _, _, left = run(renderer, tmp_path, "p", engine, PITCH_TONES[engine], ["0:57:100:2.4"],
+                     ["--note-pitch-at", "0.8:57:7", "--note-pitch-at", "1.6:57:0"], seconds=2.4)
+    left = [x / 32767.0 for x in left]
+    before, moved, after = (pitch_hz(left, a, 0.5) for a in (0.2, 1.0, 1.8))
+    assert cents(moved, before) == pytest.approx(700, abs=1.0)
+    assert cents(after, before) == pytest.approx(0, abs=1.0)
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_an_offset_reaches_only_its_note(renderer, tmp_path, listing, engine):
+    """Two notes, an offset and a pitch offset on the first: the render is
+    the first note with its offsets plus the second as it was, rendered
+    apart (to rounding: at most 3 LSB at 16 bits), while either offset on
+    its own moves a note by far more than that."""
+    base = TONE[engine]["params"]
+    loud = next(p for p in poly(listing, engine) if p["name"] == TONE[engine]["loud"])
+    a, b = "0:57:100:0.5", "0:64:90:0.5"
+
+    def offsets(key):
+        return ["--note-param-at", f"0:{key}:{at(loud['name'], offset_for(loud, 0.45))}",
+                "--note-pitch-at", f"0.15:{key}:5"]
+    _, _, both = run(renderer, tmp_path, "both", engine, base, [a, b], offsets(57))
+    _, _, a_moved = run(renderer, tmp_path, "a1", engine, base, [a], offsets(57))
+    _, _, a_plain = run(renderer, tmp_path, "a0", engine, base, [a])
+    _, _, b_plain = run(renderer, tmp_path, "b0", engine, base, [b])
+    _, _, b_moved = run(renderer, tmp_path, "b1", engine, base, [b], offsets(64))
+    assert max(abs(x) for x in both) < 0.9 * 32767       # the bus limiter stays out
+    worst = max(abs(s - (p + q)) for s, p, q in zip(both, a_moved, b_plain))
+    assert worst <= 3, worst
+    assert max(abs(p - q) for p, q in zip(a_moved, a_plain)) > 300
+    assert max(abs(p - q) for p, q in zip(b_moved, b_plain)) > 300
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_offsets_move_the_release_and_survive_note_off(renderer, tmp_path, listing, engine):
+    """An offset set before note-off goes on through the release, and one
+    sent during the release moves it: both the same as the base changes for
+    a lone note, and the second audible (the voice was still sounding)."""
+    base = TONE[engine]["params"]
+    loud = next(p for p in poly(listing, engine) if p["name"] == TONE[engine]["loud"])
+    vol = next(p for p in poly(listing, engine) if p["name"] == "Volume")
+    x = offset_for(loud, 0.45)
+    note = ["0:60:100:0.15"]
+    first = ["--note-param-at", f"0:60:{at(loud['name'], x)}"]
+    _, a, _ = run(renderer, tmp_path, "a", engine, base, note,
+                  first + ["--note-param-at", "0.25:60:Volume=-0.35"])
+    _, b, _ = run(renderer, tmp_path, "b", engine, base, note,
+                  ["--param-at", f"0:{loud['name']}={moved(loud['def'], x)}",
+                   "--param-at", f"0.25:Volume={moved(vol['def'], -0.35)}"])
+    _, c, _ = run(renderer, tmp_path, "c", engine, base, note, first)
+    assert a == b
+    tail = 44 + 4 * int(0.26 * RATE)   # WAV header, then frames from 0.26 s on
+    assert a[tail:] != c[tail:]
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_a_new_note_on_starts_at_no_offset(renderer, tmp_path, listing, engine):
+    """A key played again starts at the base: the retrigger drops the
+    offsets its voice had (here the same voice, retriggered in place)."""
+    base = TONE[engine]["params"]
+    loud = next(p for p in poly(listing, engine) if p["name"] == TONE[engine]["loud"])
+    x = offset_for(loud, 0.45)
+    notes = ["0:60:100:0.6", "0.3:60:100:0.3"]
+    _, a, _ = run(renderer, tmp_path, "a", engine, base, notes,
+                  ["--note-param-at", f"0:60:{at(loud['name'], x)}",
+                   "--note-pitch-at", "0:60:3"])
+    _, b, _ = run(renderer, tmp_path, "b", engine, base, notes,
+                  ["--param-at", f"0:{loud['name']}={moved(loud['def'], x)}", "--bend", "0:3",
+                   "--param-at", f"0.3:{at(loud['name'], loud['def'])}", "--bend", "0.3:0"])
+    assert a == b
+
+
+# Voices that end quickly once released, so a later call finds no voice.
+SHORT = {
+    "macro": ["Model=0", "Decay=0.1"],
+    "macro-heavy": ["Model=4", "Decay=0.1"],
+    "shapes": ["Shape=0", "Release=0.1"],
+    "sixop": ["Patch=49", "Envelope=0.3"],
+}
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_an_ended_voice_drops_its_offsets(renderer, tmp_path, listing, engine):
+    """Calls for a key no voice sounds (one that has ended, one never
+    played) are ignored, not kept for a later note: the key played again
+    starts at the base."""
+    loud = next(p for p in poly(listing, engine) if p["name"] == TONE[engine]["loud"])
+    x = offset_for(loud, 0.45)
+    notes = ["0:60:100:0.1", "2.2:60:100:0.2"]
+    _, a, _ = run(renderer, tmp_path, "a", engine, SHORT[engine], notes,
+                  ["--note-param-at", f"0:60:{at(loud['name'], x)}",
+                   "--note-param-at", f"2.0:60:{at(loud['name'], -x)}",
+                   "--note-param-at", f"2.0:72:{at(loud['name'], -x)}",
+                   "--note-pitch-at", "2.0:60:5"], seconds=2.6)
+    _, b, _ = run(renderer, tmp_path, "b", engine, SHORT[engine], notes,
+                  ["--param-at", f"0:{loud['name']}={moved(loud['def'], x)}",
+                   "--param-at", f"1.9:{at(loud['name'], loud['def'])}"], seconds=2.6)
+    assert a == b
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_a_stolen_voice_drops_its_offsets(renderer, tmp_path, listing, engine):
+    """Every voice holds a note turned down to silence by a Volume offset;
+    one more note steals the oldest voice and sounds at the base volume,
+    while the others stay silent (were their offsets dropped too, the steal
+    would bring back every voice)."""
+    n = listing[engine]["max_voices"]
+    base = TONE[engine]["params"]
+    keys = [40 + 2 * i for i in range(n)]
+    held = [f"0:{k}:100:1.0" for k in keys]
+    mute = sum((["--note-param-at", f"0:{k}:Volume=-1"] for k in keys), [])
+    _, _, out = run(renderer, tmp_path, "steal", engine, base, held + ["0.3:79:100:0.7"], mute,
+                    seconds=0.8)
+    _, _, alone = run(renderer, tmp_path, "alone", engine, base, ["0.3:79:100:0.7"], seconds=0.8)
+    _, _, muted = run(renderer, tmp_path, "muted", engine, base, held + ["0.3:79:100:0.7"],
+                      mute + ["--note-param-at", "0.3:79:Volume=-1"], seconds=0.8)
+    steal = int(0.3 * RATE)
+    assert not any(out[:steal - 64]) and not any(muted)
+
+    def rms(x):
+        return math.sqrt(sum(v * v for v in x) / len(x))
+    after = rms(out[steal + 2000:])
+    assert after > 100
+    assert after == pytest.approx(rms(alone[steal + 2000:]), rel=0.5)
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_nan_and_infinite_offsets(renderer, tmp_path, listing, engine):
+    """NaN is no offset (set_param's NaN is the default); +/-inf pin the
+    parameter at its maximum or minimum, as set_param's do; a pitch offset
+    is cut to +/-48 semitones, the pitch bend's range."""
+    base = TONE[engine]["params"]
+    note = ["0:60:100:0.3"]
+    loud = TONE[engine]["loud"]
+    p = next(q for q in poly(listing, engine) if q["name"] == loud)
+    _, plain, _ = run(renderer, tmp_path, "plain", engine, base, note)
+    _, nan, _ = run(renderer, tmp_path, "nan", engine, base, note,
+                    ["--note-param-at", f"0:60:{loud}=nan", "--note-pitch-at", "0:60:nan"])
+    assert nan == plain
+    for value, end in (("inf", p["max"]), ("-inf", p["min"]), ("1e30", p["max"])):
+        _, a, _ = run(renderer, tmp_path, "a", engine, base, note,
+                      ["--note-param-at", f"0:60:{loud}={value}"])
+        _, b, _ = run(renderer, tmp_path, "b", engine, base + [f"{loud}={end}"], note)
+        assert a == b, value
+    for value, bend in (("inf", 48), ("-inf", -48), ("100", 48), ("-1e9", -48)):
+        _, a, _ = run(renderer, tmp_path, "a", engine, base, note,
+                      ["--note-pitch-at", f"0:60:{value}"])
+        _, b, _ = run(renderer, tmp_path, "b", engine, base, note, ["--bend", f"0:{bend}"])
+        assert a == b, value
+
+
+IGNORED = {   # indices that are not POLY: the ENUMs, past the table, and far past it
+    "macro": ["#0", "#10", "#11", "#999", "#65534"],
+    "macro-heavy": ["#0", "#11", "#12", "#999", "#65534"],
+    "shapes": ["#0", "#6", "#999", "#65534"],
+    "sixop": ["#0", "#4", "#999", "#65534"],
+}
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_other_indices_and_silent_keys_are_ignored(renderer, tmp_path, engine):
+    base = TONE[engine]["params"]
+    notes = ["0:60:100:0.3", "0.1:67:100:0.3"]
+    extra = []
+    for idx in IGNORED[engine]:
+        extra += ["--note-param-at", f"0:60:{idx}=0.7", "--note-param-at", f"0.2:67:{idx}=-1e9"]
+    extra += ["--note-param-at", f"0.1:99:{TONE[engine]['loud']}=0.4",
+              "--note-pitch-at", "0.1:99:12"]
+    _, plain, _ = run(renderer, tmp_path, "plain", engine, base, notes)
+    _, a, _ = run(renderer, tmp_path, "a", engine, base, notes, extra)
+    assert a == plain
+
+
+def test_speech_keeps_harmonics_engine_wide(renderer, tmp_path):
+    """On Speech, Harmonics picks the word bank all voices share, so its
+    per-note offset is ignored there; the other offsets apply."""
+    base = ["Model=2", "Harmonics=0.75", "Morph=0.3"]
+    note = ["0:57:100:0.6"]
+    _, plain, _ = run(renderer, tmp_path, "plain", "macro-heavy", base, note, seconds=0.8)
+    _, harm, _ = run(renderer, tmp_path, "harm", "macro-heavy", base, note,
+                     ["--note-param-at", "0:57:Harmonics=-0.6"], seconds=0.8)
+    _, timb, _ = run(renderer, tmp_path, "timb", "macro-heavy", base, note,
+                     ["--note-param-at", "0:57:Timbre=0.4"], seconds=0.8)
+    assert harm == plain and timb != plain
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_any_initial_memory_with_offsets(renderer, tmp_path, listing, engine):
+    """The offsets live in instance memory the engine initialises itself."""
+    extra = ["--note-pitch-at", "0.05:57:-2"]
+    for p in poly(listing, engine):
+        extra += ["--note-param-at", f"0:57:{at(p['name'], offset_for(p))}",
+                  "--note-param-at", f"0.1:64:{at(p['name'], -offset_for(p, 0.2))}"]
+    outs = []
+    for fill in ("0", "0xA5", "0xFF"):
+        _, w, _ = run(renderer, tmp_path, f"f{fill}", engine, TONE[engine]["params"],
+                      ["0:57:100:0.3", "0.1:64:90:0.3"], extra + ["--fill", fill], seconds=0.6)
+        outs.append(w)
+    assert outs[1] == outs[0] and outs[2] == outs[0]
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_offsets_do_not_depend_on_the_host_block(renderer, tmp_path, listing, engine):
+    """Calls at the same frames give the same output at host blocks of 1, 7
+    and 64: notes, offsets and pitch offsets at frames all three reach
+    (multiples of 448), a note-off and a retrigger among them."""
+    def t(frame):
+        return 0.0 if frame == 0 else (frame - 0.5) / RATE
+    f1, f2, f3, f4 = 4480, 8960, 13440, 17920
+    notes = [f"0:57:100:{t(f2):.9f}", f"{t(f1):.9f}:64:90:{t(f3) - t(f1):.9f}",
+             f"{t(f3):.9f}:57:80:{t(f4) - t(f3):.9f}"]
+    ps = poly(listing, engine)
+    extra = ["--note-pitch-at", "0:57:2", f"--note-pitch-at", f"{t(f1):.9f}:64:-5"]
+    for i, p in enumerate(ps):
+        extra += ["--note-param-at", f"0:57:{at(p['name'], offset_for(p))}",
+                  "--note-param-at", f"{t(f1):.9f}:64:{at(p['name'], offset_for(p, 0.2))}",
+                  "--note-param-at", f"{t(f2):.9f}:{57 if i % 2 else 64}:"
+                                     f"{at(p['name'], -offset_for(p, 0.1))}"]
+    outs = []
+    for frames in ("1", "7", "64"):
+        _, w, _ = run(renderer, tmp_path, f"b{frames}", engine, TONE[engine]["params"], notes,
+                      extra + ["--frames", frames], seconds=0.45)
+        outs.append(w)
+    assert outs[1] == outs[0] and outs[2] == outs[0]
+
+
+# Braids faults past MIDI 127 on several shapes and at two shapes' Timbre
+# ends without any per-note offset (engines/README.md, "Open questions"), so
+# Shapes keeps key + bend + offset within 0..127 here and leaves out Comb
+# (Timbre 0 on low keys) and Wave Line (Timbre 1).
+BRAIDS_EDGE_FAULTS = {15, 39}
+EXTREME_MODELS = {
+    "macro": [f"Model={m}" for m in range(8)],
+    "macro-heavy": [f"Model={m}" for m in range(13)],
+    "shapes": [f"Shape={s}" for s in range(47) if s not in BRAIDS_EDGE_FAULTS],
+    "sixop": [f"Patch={p}" for p in range(0, 96, 5)],
+}
+EXTREME_KEYS = {"shapes": {"inf": (0, 31), "-inf": (96, 127)}}
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+@pytest.mark.parametrize("sign", ["inf", "-inf"])
+def test_extreme_offsets_render_finite(renderer, tmp_path, listing, engine, sign):
+    """Every POLY parameter pinned at an end and the pitch offset at +/-48
+    on top of a +/-48 bend, on the lowest and highest keys, every model
+    (Six-Op: every fifth patch; Shapes: within MIDI 0..127, all shapes but
+    two, above). Finite output; under the sanitizer build, no undefined
+    behaviour or out-of-bounds read either."""
+    keys = EXTREME_KEYS.get(engine, {}).get(sign, (0, 127))
+    for model in EXTREME_MODELS[engine]:
+        extra = ["--bend", f"0:{'' if sign == 'inf' else '-'}48", "--frames", "7"]
+        for key in keys:
+            extra += ["--note-pitch-at", f"0:{key}:{sign}"]
+            for p in poly(listing, engine):
+                extra += ["--note-param-at", f"0:{key}:{p['name']}={sign}"]
+        s, _, _ = run(renderer, tmp_path, "x", engine, [model],
+                      [f"0:{key}:127:0.1" for key in keys], extra, seconds=0.2)
+        assert s["nonfinite"] == 0, model

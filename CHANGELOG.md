@@ -9,6 +9,17 @@ history.
 ## [Unreleased]
 
 ### Added
+- Per-note sound changes, the groundwork for per-voice modulation: Macro,
+  Macro Heavy, Six-Op FM and Shapes can now move one playing note's sound
+  (its timbre, level, envelope times and the like, and its pitch) without
+  touching the other notes. A note's changes last through its release and
+  are cleared when the key is played again or its voice is reused. Nothing
+  sounds different until something uses it; the envelopes and LFOs that
+  will drive it come with the modulation work (docs/16, stage MG9). Sophie
+  and the effects do not take per-note changes. For developers: the engine
+  API's `set_param_note` and `POLY` flag, and `fm1-render
+  --note-param-at` / `--note-pitch-at` (engines/README.md, "Per-note
+  offsets").
 - notes/2026-10-02-delay-reverb-eq-gates-options.md: research on delays,
   reverbs, EQ, a DJ filter and tilt for the master bus, bus saturation, and a
   Drawmer DS201-style gate. It also designs side-chaining: the gate and the

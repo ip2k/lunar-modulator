@@ -229,7 +229,7 @@ more fields after its name, type, range, default, enum names and page
 | Field | What it is |
 | --- | --- |
 | `uid` | 1–4,095, unique in its engine and never changed or reused. It is what a sequencer lock, a modulation route (docs/16) or a preset stores, so reordering or extending a table moves nothing. A uid means something only together with its engine's id |
-| `flags` | `FM1_PARAM_LATCH`, `SMOOTH`, `NOLOCK`, `MOD` and `INPUT`, below |
+| `flags` | `FM1_PARAM_LATCH`, `SMOOTH`, `NOLOCK`, `MOD`, `INPUT` and `POLY`, below |
 | `unit` | `FM1_UNIT_NONE`, `SEMI`, `MS`, `HZ`, `PCT` or `DEG`: the unit the value itself is in |
 | `abbr` | Up to 6 characters, for matrix rows (docs/16 §5.3). Distinct within an engine, and still distinct cut to 5, for rows that add a unit prefix |
 
@@ -256,13 +256,14 @@ moves to the fixture's `retired` list, so its uid is never given out again.
 | NOLOCK | A change is destructive: it rebuilds voices, clears a buffer or moves the edit focus | A lock on it is refused and counted (engines/seq.md, Host contract); never a modulation destination |
 | MOD | Accepts modulation (docs/16 §2.2). Every FLOAT has it by default; an ENUM only when it says so, and is then rounded. Never with NOLOCK | The modulation matrix, from docs/16 stage MG1 |
 | INPUT | A bare signal input: FLOAT, −1..1, default 0, hidden from the knob pages | Modulation modules only; no engine has one |
+| POLY | Takes a per-note offset: the engine keeps one per sounding voice ([below](#per-note-offsets)). FLOAT only, always with MOD | Per-voice modulation (docs/16 §6.3, stage MG9) sends it with `set_param_note` |
 
 Every FLOAT parameter here is SMOOTH and MOD (`FM1_PARAM_CONTINUOUS`),
 except Sophie's, which are LATCH and MOD: a triggered voice copies its pad's
 patch (`sophie.c`, `trigger_voice`), so Sophie reads all of them at note-on.
 `fm1_param_lockable`, `fm1_param_modulatable` and `fm1_param_index(engine,
 uid)` are the helpers. `fm1-render --list` prints each parameter's uid,
-flags (by name), unit and abbreviation. The four fields make `fm1_param_t`
+flags (by name), unit and abbreviation, and each engine's `per_note`. The four fields make `fm1_param_t`
 36 bytes on pi32v2 and i386 (28 before) and 48 on x86-64 (40) [verified:
 `tools/jieli/compile-check.sh`, 2026-10-02, 67 of 67 objects compiled in
 all four profiles]: 704 bytes more of read-only data for the 88 parameters
@@ -312,17 +313,133 @@ Heavy's Model and Shapes' Shape are refused, which changes their audio,
 and on Sophie's Pad, which changes only their counters (Pad alone makes no
 sound).
 
+### Per-note offsets
+
+The owner decided on 2026-10-02 that per-voice modulation is essential:
+each note gets its own envelopes and LFOs, which move only that note
+(docs/16 §6.3, stage MG9). This is the engine side of it: a host can move
+one sounding note's parameters and pitch without touching the other notes.
+The modulation that drives it is MG9's.
+
+**The entry.** `set_param_note(self, key, index, offset)` is the last member
+of `fm1_engine_t` (`include/fm1_engine.h`), optional within API v2: NULL
+means no per-note offsets, as `pitch_bend` may be NULL. The version stays 2,
+since no v2 engine has shipped outside this tree. It follows the contract
+below.
+
+| Question | Rule |
+| --- | --- |
+| What may be offset | A parameter flagged POLY (`fm1_param_poly`), or the note's pitch: index `FM1_PARAM_NOTE_PITCH` (0xFFFF), in semitones, added after the key and the bend. Any other index (a non-POLY parameter, an ENUM, one past the table) is ignored |
+| What the voice plays | `fm1_param_note_value`: base + offset, clamped as `set_param` clamps. The base is whatever `set_param` set; a base that moves keeps the offset on top |
+| What a call does | Replaces that voice's previous offset for that index; offsets do not add up. A host sends the sum of the note's routes |
+| NaN and infinities | `fm1_param_note_offset`: NaN is 0, no offset (as NaN is the default for `set_param`). An offset is cut to the parameter's span (max − min), past which the sum is at an end whatever the base, so ±inf pin the parameter at its maximum or minimum, as through `set_param`. A pitch offset is cut to ±48 semitones (`FM1_NOTE_PITCH_MAX`), the pitch bend's range |
+| Which voice | Every voice sounding the key, held or releasing. The four engines retrigger a key in its own voice, so there is one |
+| Lifetime | The offsets belong to the voice. `note_on` starts the key's voice at 0, so a host sends a new note's offsets after its note-on, at the same frame. `note_off` keeps them: the release is moved too. A voice that is stolen or ends drops them. A call for a key no voice sounds is ignored, not kept for a later note |
+| When | Where `set_param` would take effect: the next internal block (12 or 16 samples at 47,872 Hz, 24 at 96 kHz). So the output does not depend on the host's block size |
+| Thread | The audio task, like `set_param` |
+
+Two choices differ from docs/16 §6.3's sketch, `set_param_mod(index, key,
+offset)`. The name says what is offset, a note, not where it comes from,
+and the key comes first because it picks the voice, as in `note_on`. The
+pitch is a reserved index rather than an entry of its own, so a per-voice
+route's destination is always an index, and one function pointer covers
+both. The pitch has no uid: a route stores it as a system destination
+(MG9's to name).
+
+**The engines.**
+
+| Engine | POLY parameters | How |
+| --- | --- | --- |
+| `macro` | all nine FLOATs: Harmonics, Timbre, Morph, Decay, Colour, Volume, Env Pitch, Env Timbre, Env Morph | A voice with an offset computes its controls (Plaits' parameters, the decay envelope's and the gate's times, its gain, the attenuverter amounts, Chip's own envelope) from its own values, with the function that computes the engine's |
+| `macro-heavy` | all ten FLOATs (Macro's and Word Speed) | As Macro. On Speech, Harmonics stays engine-wide: it picks the word bank all voices share (one parse, not four), and the envelope's reach with it, so its offset is ignored there |
+| `sixop` | Brightness, Envelope, Volume | Each voice already passes the first two to its `fm::Voice`, and Volume is its gain. Patch stays a note-on choice (LATCH). A pitch offset at the note's first block is the note `fm::Voice` samples for keyboard and rate scaling, as a played note's would be |
+| `shapes` | Timbre, Color, Attack, Release, Volume | Each voice already sets its oscillator's parameters and runs its own envelope. Shape stays engine-wide (NOLOCK) |
+| `sw-sophie` | none (NULL) | The module keeps its voices to itself (each copies its pad's patch at the trigger, `sophie.c`), and the shim reaches only the module's global `set_param`. Per-note offsets would mean changing the vendored module, which stays byte-identical |
+| `test-sine` | none (NULL) | Kept without them: the engine a host's tests use for the NULL case |
+| effects | none (NULL) | No notes |
+
+**Memory.** Per voice, one float per POLY parameter, one for the pitch and a
+32-bit mask of which are not 0 (`src/note_offsets.h`), inside the instance;
+no heap. Instance sizes before and after [verified 2026-10-05: gcc 12
+x86-64 and `-m32` in a container, and JieLi's clang for pi32v2, which equals
+i386 for all four]:
+
+| Engine | Voices | 64-bit | 32-bit (i386, pi32v2) |
+| --- | ---: | --- | --- |
+| Macro | 12 | 31,744 → 32,320 (+576) | 19,072 → 19,456 (+384) |
+| Shapes | 12 | 207,080 → 207,368 (+288) | 206,212 → 206,548 (+336) |
+| Macro Heavy | 4 | 71,104 → 71,296 (+192) | 70,896 → 71,088 (+192) |
+| Six-Op FM | 8 | 12,528 → 12,720 (+192) | 10,796 → 10,956 (+160) |
+
+Voice alignment pads or absorbs some of it: Macro's offsets are 44 bytes a
+voice, and its 16-byte-aligned voice grows by 48 on x86-64 and 32 on i386.
+`fm1_engine_t` gains a pointer: 4 bytes on pi32v2 for each of the 14
+registered engines.
+
+**Cost.** A voice without offsets tests one mask per internal block. A voice
+with offsets recomputes its controls each block: for Macro, two
+`SemitonesToRatio` and three attenuverter amounts per 12 samples
+[inferred; stage B measures pi32v2].
+
+**No sound changed without offsets** [verified 2026-10-05, before and
+after, clean builds, on Apple clang (arm64), gcc 12 x86-64 and gcc 12
+`-m32`]: 1,783 runs of `fm1-render` on each. They cover the 24 Movy
+oracle scripts, the simulator's 7 sequencer scripts and the 30 panel-trace
+scripts on all six sound engines in both modes (the oracle's at 64-frame
+blocks too); the 28 `movy1` sets on three engines; a lock lane on every sound
+parameter at blocks of 64 and 7; a chord past every voice cap with bends
+at host blocks of 1, 7 and 64, fills 0xA5 and 0xFF and 48 kHz; every
+parameter at its minimum, middle and maximum and turned mid-note; every
+model, shape, patch and pad; 72 seeded scripts of notes and parameter
+moves; every effect at each parameter's minimum, middle and maximum; and
+the 23 parity scenarios of the simulator that `fm1-render` plays alone
+(not the two driven from the panel). Every WAV,
+event log, exit code and error is byte-identical, and so is every summary
+less its timing and `instance_bytes`. A voice computes the engine's values
+until it has an offset, so this holds by construction; the runs check it.
+
+**With offsets** [verified: `tests/test_engine_note_params.py`, all four
+engines]:
+- 0 and −0 on every POLY parameter and the pitch, on every note, render
+  what no call renders.
+- For a note sounding alone, an offset is the base moved by as much, byte
+  for byte (each POLY parameter at the note-on, mid-note and through the
+  release; all at once on every Macro and Macro Heavy model, a sample of
+  shapes and patches), and a pitch offset is a pitch bend.
+- Two notes with offsets on one render as the two notes rendered apart,
+  summed (to 3 LSB at 16 bits), while either offset alone moves its note
+  by more than 300 LSB: the other note is untouched.
+- An offset survives note-off and one sent during the release moves it; a
+  retrigger, a steal and a voice's end drop the offsets; calls for a silent
+  key or a non-POLY index change nothing.
+- NaN is no offset, ±inf pin a parameter at its ends, and a pitch offset
+  is cut to ±48.
+- Instance fills 0, 0xA5 and 0xFF and host blocks of 1, 7 and 64 give the
+  same bytes when the calls land on the same frames.
+- Every POLY parameter at an end with the pitch at ±48 over a ±48 bend, on
+  keys 0 and 127, on every model and every fifth patch, renders finite
+  output, also under ASan and UBSan. Shapes is held within MIDI 0..127 and
+  leaves out two shapes, since Braids faults past there and at those
+  shapes' Timbre ends without offsets too ([below](#open-questions-and-next-steps)).
+
+**In `fm1-render`**: `--note-param-at T:KEY:NAME=OFFSET` (a POLY parameter;
+`#INDEX=OFFSET` sends any index, to test what an engine ignores) and
+`--note-pitch-at T:KEY:SEMITONES`, applied at block boundaries after that
+block's note-ons. The renderer refuses them for an engine without
+`set_param_note` and NAME for a parameter that is not POLY.
+
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `include/fm1_engine.h` | The engine API, version 2. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, flags, a unit and an abbreviation ([above](#parameters-engine-api-v2)); `fm1_param_clamp` for NaN-safe ranges; the threading contract |
+| `include/fm1_engine.h` | The engine API, version 2. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, flags, a unit and an abbreviation ([above](#parameters-engine-api-v2)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the threading contract |
 | `mod/` | Modulation primitives: an LFO, a Peaks-style envelope, slew, S&H, a Turing register and a tick clock divider. Heap-free C99, not wired in yet ([mod/README.md](mod/README.md)) |
 | `include/fm1_seq.h`, `seq/` | The sequencer core: a heap-free C99 port of Movy's sequencer, with 4–8 routed tracks ([seq.md](seq.md), docs/13) |
 | `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`. Not wired into the renderer yet ([midi_fx/README.md](midi_fx/README.md)) |
 | `include/fm1_mix_limiter.h` | The host's mix-bus limiter and bus guard. Twelve voices started in phase can exceed full scale; the bus holds the output under 0.98, and non-finite samples become silence |
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
+| `src/note_offsets.h` | A voice's per-note offsets, shared by the four engines that take them |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
 | `src/fx_*.cc` | Effects written in this repository (Echo) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
@@ -342,6 +459,7 @@ sound).
 | `--frames N`, `--rate HZ` | Host block and rate (64 and 44,118 by default) |
 | `--bend T:SEMITONES` | A pitch-bend event (finite, within ±48), at a block boundary like notes |
 | `--param-at T:NAME=VALUE` | Turn a sound engine's parameter during the render |
+| `--note-param-at T:KEY:NAME=OFFSET`, `--note-pitch-at T:KEY:SEMITONES` | Per-note offsets for the voice sounding KEY, after that block's note-ons ([above](#per-note-offsets)); `#INDEX` in place of NAME sends any index |
 | `--fill BYTE` | What instance memory holds before `create`; every engine must render byte-identically from any fill |
 | `--fault T[..T1]:VALUE` | Overwrite the bus after the source with `nan`, `inf` or any value, for one frame or a span, to test recovery |
 
@@ -388,21 +506,21 @@ upstream candidate). Our own code gets none.
 
   | Engine | 64-bit bytes | 32-bit bytes | Why |
   | --- | --- | --- | --- |
-  | Shapes, 12 voices | 207,080 | 206,212 | each Braids oscillator carries ~17 KB of physical-model state |
+  | Shapes, 12 voices | 207,368 | 206,548 | each Braids oscillator carries ~17 KB of physical-model state |
   | PSX Verb | 134,224 | 134,208 | a fixed 128 KB work area, as upstream |
   | Sophie, 12 voices | 77,904 | 77,888 | ring delays per voice |
-  | Macro Heavy, 4 voices | 71,104 | 70,880 | ~17 KB per voice (Particle and String arenas) |
+  | Macro Heavy, 4 voices | 71,296 | 71,088 | ~17 KB per voice (Particle and String arenas) |
   | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
   | Echo | 65,728 | 65,728 | 16,384 stereo cells of 16-bit words |
-  | Macro, 12 voices | 31,744 | 18,864 | mostly pointer tables, which halve on 32-bit |
+  | Macro, 12 voices | 32,320 | 19,456 | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,848 | 18,848 | |
-  | Six-Op FM, 8 voices | 12,528 | 10,796 | |
+  | Six-Op FM, 8 voices | 12,720 | 10,956 | |
   | Ensemble | 4,704 | 4,704 | |
 
   The 32-bit figures include the native-rate resamplers (about 1.3 KB each)
-  [verified: CI's 32-bit job on PR #12]. Page 3 (2026-10-02) added 16 bytes
-  to Macro and to Macro Heavy on the 64-bit build [verified]; their 32-bit
-  figures predate it and grow by a similar few bytes [inferred].
+  [verified: CI's 32-bit job on PR #12]. The four engines with per-note
+  offsets show their sizes since those (2026-10-05, [verified: gcc 12
+  x86-64 and `-m32`], [above](#per-note-offsets)), which include page 3.
 
   The stock layout leaves a gap of 387,924 bytes, part of it stock's heap
   (docs/11 §2, [inferred]). Most engine-plus-two-effects chains fit in it;
@@ -504,6 +622,21 @@ keeping decay within 3–4 %.
   before anything commercial.
 - **Shapes' memory:** 207 KB for 12 voices. A voice cap for the FM-1 build,
   or a split of the physical-model shapes.
+- **Braids faults at some edges**, with or without per-note offsets
+  [verified 2026-10-05: the build before them, clang 18 ASan + UBSan]:
+  Comb (15) at Timbre 0 on keys 0–36 (a shift by −1 in
+  `DigitalOscillator::ComputeDelay`); Wave Line (39) at Timbre 1 on any key
+  (`wave_line[64]`, one past its table, `digital_oscillator.cc:1637`);
+  Flute (31) once key + bend passes MIDI 127 (a global buffer read past its
+  table); the four filter shapes (17–20) at Timbre 1 on key 127 bent up 48
+  (a shift by 32 in `ComputePhaseIncrement`). Ordinary knobs and keys
+  reach the first two; CI's tests never set those shapes there. The
+  wrapper clamps the pitch to 0..255.99 semitones; the module itself is
+  probably held lower (its CV and its own pitch clamp [inferred]), so a
+  clamp at MIDI 127 in the wrapper may be the fix for the high ones. The
+  vendored code stays unmodified, so any fix is in the wrapper (an audio
+  change, its own stage) or an upstream candidate. The per-note extremes
+  test keeps Shapes within MIDI 0..127 and leaves Comb and Wave Line out.
 - **Resampler cost on pi32v2:** the stronger second stage costs about 114
   multiply-adds per output; the cheaper half-band version (about 70, with
   18–22 kHz unprotected) is commit `f12448c`. The owner's decision
