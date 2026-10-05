@@ -131,7 +131,7 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** five swappable sound engines and seven effects behind one C
+- **The API:** five swappable sound engines and eight effects behind one C
   API ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
@@ -152,8 +152,9 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     compatibility shim.
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
-    antiderivative anti-aliasing) and Echo (a stereo ping-pong delay) are
-    our own code ([`engines/README.md`](engines/README.md#crush)).
+    antiderivative anti-aliasing), Echo (a stereo ping-pong delay) and Tilt
+    (a tilt equaliser, exact bypass when flat) are our own code
+    ([`engines/README.md`](engines/README.md#crush)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
   checked sample for sample against upstream `Voice`

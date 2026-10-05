@@ -33,6 +33,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
 | `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
 | `djfilter` | DJ Filter | effect | – | this repository, a trapezoidal SVF after Simper and Zavalishin | one knob: low-pass left of centre, high-pass right, the input bit for bit in between; [below](#dj-filter) |
+| `tilt` | Tilt | effect | – | this repository | a tilt equaliser, dark to bright about a pivot; [below](#tilt) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -329,6 +330,124 @@ Where it departs from the research note, and why:
 - **Range** is the share of the sweep's octaves the knob reaches, at both
   ends; the note named it without defining it.
 
+## Tilt
+
+A tilt equaliser written here (`src/fx_tilt.cc`, MIT), as designed in
+`notes/2026-10-02-delay-reverb-eq-gates-options.md` §4.2. One knob turns the
+whole spectrum about a pivot: to the right the highs rise and the lows fall
+by as much (brighter), to the left the reverse (darker), and the pivot stays
+at 0 dB. It is meant for the master bus; until there is a master chain it
+goes in the last effect slot. The ideas come from Airwindows' ToneSlant
+(MIT) and Faust's `fi.spectral_tilt` (STK-4.3), which approximates a
+constant slope with staggered first-order sections [reported, not read];
+no code is taken from either.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Tilt | −9 to +9 dB (0) | The gain at the top of the spectrum (the Nyquist frequency); the bottom (DC) gets the opposite. At 0 the input passes bit for bit |
+| 1 | Pivot | 200–5,000 Hz (1,000) | The frequency left at 0 dB. Held below 0.45 of the host's rate, which only matters below 11.1 kHz |
+| 1 | Curve | Shelf, Slope (Shelf) | Shelf: one section, steepest at the pivot, levelling into shelves within about two octaves. Slope: two sections 1.5 octaves either side of the pivot, half the tilt each: a gentler, straighter slope. A change glides, so it can be locked and modulated (a route is rounded) |
+| 1 | Level | −24 to +12 dB (0) | The output's gain |
+
+Tilt +9 dB about 1 kHz, in dB [verified: `build/fm1-tilt-test`, float]:
+
+| Curve | 20 Hz | 100 Hz | 200 Hz | 500 Hz | 1 kHz | 2 kHz | 5 kHz | 10 kHz | 20 kHz |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Shelf | −8.99 | −8.67 | −7.83 | −4.39 | 0.00 | +4.41 | +7.91 | +8.77 | +9.00 |
+| Slope | −8.97 | −8.23 | −6.63 | −2.80 | 0.00 | +2.81 | +6.76 | +8.45 | +8.99 |
+
+How it works [verified: tests/test_engines_tilt.py and
+`build/fm1-tilt-test`, 2026-10-05, unless marked]:
+
+- **The filter.** One section is H = T − (T − 1/T)·LP: 1/T at DC and T at
+  Nyquist, with T the gain at the top. In the analogue prototype LP has its
+  pole at T times the pivot, so H has a pole at T·w and a zero at w/T, and
+  its dB response is odd about the pivot, 0 dB there. LP here is the
+  trapezoidal (TPT) one-pole with g = T·tan(π·fp/fs): the bilinear transform
+  prewarped at the pivot, so the digital pivot is exactly 0 dB, and turning
+  Tilt needs no tan (g scales with T). Slope's two sections, each with
+  √T, take g = √T·g_p/2^1.5 and √T·g_p·2^1.5 under the same prewarp, and
+  their gains at the pivot cancel: exactly 0 dB again. The effect's
+  response, from its impulse response in float, matches a double-precision
+  model of these equations within 5e-6 dB at 38 settings and 18
+  frequencies each; pivot, DC and Nyquist are within 5e-6 dB of 0, −Tilt
+  and +Tilt.
+- **Slope against Shelf.** From 200 Hz to 5 kHz about 1 kHz at ±9 dB, Slope
+  stays within 0.12 dB of a straight line, 2.9 dB an octave; Shelf strays
+  by 1.1 dB, 3.85 dB an octave at its steepest. 1.5 octaves is the stagger
+  that keeps Slope straightest over that band (searched from 0.6 to 2
+  octaves; the test reruns the search on the model).
+- **Exact bypass.** At Tilt 0 both sections have T = 1, so T − 1/T = 0 and
+  each returns its input itself (not 1·x − 0·lp, which can turn −0 into +0),
+  and Level 0 dB is a gain of exactly 1. So the defaults, and Tilt 0 at any
+  Pivot and Curve, pass the input bit for bit: random floats, ±0,
+  subnormals and values near the guard, at random block sizes. After Tilt
+  and Level have moved and come back to 0, the output is the input again,
+  bit for bit, 35 ms later, when the glide lands. The low-passes run
+  underneath, so leaving 0 starts from a settled filter.
+- **Glide.** Every control, Curve included, glides sample by sample through
+  two one-poles in series (2.5 ms each, about 5 ms in all), so any block size
+  gives the same output; values set before the first render apply at once.
+  Curve glides the sections' gains and section A's pivot: the one-poles'
+  states are integrator charges, so new coefficients change the filter's
+  future, not its stored energy, and there is nothing to crossfade.
+  - *Two stages, not one.* A single one-pole starts at full speed. When
+    Tilt jumps end to end over a 100 Hz sine, that corner made the output's
+    second difference 47 times the steady sine's; with two stages it is 1.5
+    times. A hard switch between the two settings is about 1,400 times.
+  - *A snap of 1e-6, not 1e-4.* A glide lands on its target when within
+    1e-6 of it, or when its step falls under half an ulp, where a float
+    one-pole would stall. With Fold's 1e-4, Tilt swept end to end at 1 Hz
+    and set every 32 frames, as the modulation matrix will, snapped near the
+    sweep's turns: energy above 1 kHz at −92 dB against −120 dB here. The
+    third difference of that sweep is now that of Tilt set every frame (the
+    sine's own, −110.7 dB). Fold and the effects that copied its glide may
+    want the same change [inferred: not measured on them].
+- **Contracts:** the input guard of `mi_fx.cc` (NaN reads as 0, ±16 clamp),
+  `fm1_param_clamp`, and Curve rounded to the nearest value. Silence in is
+  exact silence out at any setting, while controls move too. Tails flush
+  below 1e-20, so no subnormals: the slowest (Tilt −9, Pivot 200, Slope) is
+  exact zeros 160 ms after the input stops. 20 s of random parameter
+  changes between blocks of 1–64 frames, NaN and infinities included, stay
+  finite, the output's peak at most 12.2 times the input's (+9 dB at the
+  top, +12 dB of Level and the filters' overshoot). Host rates 8–384 kHz.
+- **Determinism:** no libm. dB to gain is `CompExp2` from
+  `src/fx_comp_math.h`, the header of Comp's branch, copied byte for byte so
+  that the two merge cleanly (the research note's shared libm-free maths).
+  The pivot's tan is a ratio of sine and cosine Taylor polynomials, and
+  contraction is off for the file under clang (`#pragma STDC FP_CONTRACT
+  OFF`, as in Comp). `fm1-tilt-test`'s whole output is the same, bit for bit,
+  from Apple clang on arm64, GCC 12 on x86-64 and GCC 12 on i386 with CI's
+  `-msse2 -mfpmath=sse`. On i386's x87 only the last bits of the non-flat
+  outputs differ, and the bypass holds: the glide's snap tests magnitudes,
+  not whether a sum rounded back. JieLi's clang compiles it for pi32v2 at
+  `-O2 -ffp-contract=off` without a warning, and it needs nothing but
+  `memset` [verified: compile only, the toolchain of
+  `tools/jieli/compile-check.sh`].
+- **Memory:** 144 bytes on x86-64 and on i386 (no pointers); no delay lines.
+- **Cost:** about 25 operations per sample and channel, no divide: about
+  3,200 per 64-frame block, and up to about 6,000 and 256 divides while a
+  control glides [inferred]. Desktop (Apple M1 Max, noise in, 20 s): 0.61–0.65 µs
+  per block, 0.04 % of the 1.451 ms block, flat or tilted, against Fold's
+  1.9 µs and Plate's 1.0 µs in the same run (fm1-render's `ns_per_block`);
+  about 1.1 µs, 0.08 %, with Tilt moved every block so that it always
+  glides (a timing loop of our own, rougher). Stage B measures pi32v2.
+- **Decisions against the research note.** Tilt is ±9 dB (the note offered
+  ±6 or ±9), because Slope only differs much from Shelf past ±6. The note's
+  Sections (1 or 2, NOLOCK) became Curve (Shelf, Slope), lockable and MOD
+  under the owner's rule for switches (2026-10-02), which a glide allows.
+  Level is −24 to +12 dB, as Drive's. Tilt and Level are in dB with
+  `FM1_UNIT_NONE` until `fm1_unit_t` has a dB code (note §7.4).
+- **Not yet:** Drive's Tone, a tilt about 800 Hz on the effects branch, could
+  use these sections, as the note proposes; it cuts one side instead of
+  turning both.
+- fm1-render sets an effect's parameters only before the first block, and
+  writes 16-bit samples through the limiter, so `build/fm1-tilt-test`
+  (`test/tilt_test.cc`) drives Tilt directly: its response in float, the
+  bypass bit for bit, jumps of every control while a sine plays, Tilt swept
+  at the matrix's rate, every parameter changed mid-stream to any value,
+  silence and tails, and the host rates it accepts.
+
 ## Parameters (engine API v2)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -433,7 +552,8 @@ sound).
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Echo, DJ Filter) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, Echo, DJ Filter, Tilt) |
+| `src/fx_comp_math.h` | `CompExp2` and `CompLog2`: base-2 exponential and logarithm without libm, the same bits on every build (from Comp's branch, byte for byte; Tilt uses it) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
 | `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |

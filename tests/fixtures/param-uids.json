@@ -122,6 +122,12 @@
       {"name": "Dead Zone", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
       {"name": "Range", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
     ],
+    "tilt": [
+      {"name": "Tilt", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Pivot", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Curve", "type": "enum", "uid": 3, "flags": ["mod"]},
+      {"name": "Level", "type": "float", "uid": 4, "flags": ["smooth", "mod"]}
+    ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ]

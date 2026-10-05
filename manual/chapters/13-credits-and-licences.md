@@ -37,6 +37,9 @@ terms it is used under.
   one, after **Udo Zölzer**'s *DAFX*, and its 16-bit delay memory follows
   **Emilie Gillet**'s effects engine in Rings and Clouds; none of their code
   is used.
+- **Tilt** is this project's own code. A tilt built from first-order
+  sections follows **Airwindows**' ToneSlant (MIT licence) and the
+  spectral tilt of the **Faust** libraries; none of their code is used.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and
