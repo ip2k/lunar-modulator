@@ -31,11 +31,18 @@
 // joins the note after the bend. Shape stays engine-wide. A voice without an
 // offset plays the engine's values, byte for byte as before.
 //
+// SMOOTH parameters (every FLOAT here) ramp while a voice sounds: each
+// 24-sample chunk moves them a tenth of the way, so a change takes 2.5 ms at
+// 96 kHz (fm1_smooth.h). While no voice sounds a change applies at once. A
+// voice with an offset plays the ramped value plus its offset, so its
+// offset rides on the ramp.
+//
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
+#include "fm1_smooth.h"
 #include "note_offsets.h"
 
 #include <cmath>
@@ -139,6 +146,8 @@ class Instance {
     bend_ = 0.0f;
     clock_ = 0;
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
+    fm1_smooth_init(smooth_, value_, P_COUNT);
+    smooth_steps_ = fm1_smooth_steps(kNativeRate, kChunk);
     memset(sync_, 0, sizeof(sync_));
     memset(mix_, 0, sizeof(mix_));
     pending_ = 0;
@@ -177,7 +186,7 @@ class Instance {
   void SetParam(uint16_t index, float value) {
     if (index >= P_COUNT) return;
     value = fm1_param_clamp(&kParams[index], value);
-    value_[index] = value;
+    fm1_smooth_set(&smooth_[index], &value_[index], value, Steps(index));
     if (index == P_SHAPE) ApplyShape();
   }
 
@@ -213,6 +222,15 @@ class Instance {
   }
 
  private:
+  // A SMOOTH parameter ramps while a voice sounds; anything else, at once.
+  uint32_t Steps(uint16_t index) const {
+    if (!(kParams[index].flags & FM1_PARAM_SMOOTH)) return 0;
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active) return smooth_steps_;
+    }
+    return 0;
+  }
+
   // A voice's controls: the engine's, unless it has an offset. Then the
   // levels come from its own values, and an envelope coefficient too where
   // that parameter has an offset; elsewhere the engine's is the same number,
@@ -229,6 +247,7 @@ class Instance {
   }
 
   void RenderChunk() {
+    fm1_smooth_tick(smooth_, value_, P_COUNT);   // this chunk's step of any ramp
     const Controls shared = MakeControls(value_);
 
     // Mixed on the stack, then stored: accumulating straight into mix_ lets
@@ -288,7 +307,9 @@ class Instance {
   float mix_[kChunk];              // the current chunk at 96 kHz
   size_t pending_;                 // samples of mix_ not yet resampled
   fm1_resampler_t resampler_;      // 96 kHz mix -> host rate
-  float value_[P_COUNT];
+  float value_[P_COUNT];           // what the chunks read (SMOOTH: ramped)
+  fm1_smooth_t smooth_[P_COUNT];
+  uint32_t smooth_steps_;          // 24-sample chunks in a ramp
   float bend_;
   uint32_t clock_;
 };

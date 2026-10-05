@@ -306,7 +306,10 @@ typedef struct fm1_engine {
   abbreviation [verified: engines/README.md, "Parameters"]. An engine may
   also take per-note offsets on its POLY parameters and the note's pitch
   (`set_param_note`, for per-voice modulation) [verified: engines/README.md,
-  "Per-note offsets"].
+  "Per-note offsets"]. Since stage S7b a SMOOTH parameter ramps over 2.5 ms
+  inside its engine, keyed to the engine's own samples
+  (`include/fm1_smooth.h`), and a voice's offset rides on that ramp
+  [verified: engines/README.md, "SMOOTH"].
 - **A Schwung v2 shim** is one more `fm1_engine_t` that adapts a Schwung
   module's structs, strings and int16 buffers.
 - **CPU.** The host measures cycles per block for every instance, shows the

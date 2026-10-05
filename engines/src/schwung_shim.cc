@@ -4,6 +4,7 @@
 // host_api_v1_t and each module's small ModuleState. MIT licence.
 
 #include "schwung_shim.h"
+#include "fm1_smooth.h"
 
 #include <cstring>
 #include <new>
@@ -19,6 +20,19 @@ const size_t kAlign = 16;
 const float kFromPcm = 1.0f / 32768.0f;
 
 inline size_t AlignUp(size_t n) { return (n + (kAlign - 1)) & ~(kAlign - 1); }
+
+// SMOOTH parameters (fm1_smooth.h) ramp in the module's own blocks: from the
+// first render on, a change is sent in steps, one before each module call,
+// over 2.5 ms of samples rounded up to whole blocks (two of 64 frames at
+// 44,118 Hz). The first kMaxRamps SMOOTH parameters of a module have a ramp;
+// tests/test_engine_params.py checks that no module has more.
+const uint32_t kMaxRamps = 8;
+
+struct Ramp {
+  fm1_smooth_t s;
+  float value;                  // as last sent to the module
+  uint16_t index;               // the parameter's index in the module's table
+};
 
 struct Arena {
   unsigned char *base;
@@ -39,6 +53,10 @@ struct Instance {
                                 // fx: frames of the current block queued in `a`
   float to_pcm;                 // fx: bus -> int16 scale, 32768 / headroom
   float from_pcm;               // int16 -> bus scale
+  Ramp ramps[kMaxRamps];        // the SMOOTH parameters' ramps
+  uint32_t n_ramps;
+  uint32_t ramp_steps;          // module blocks in a ramp
+  bool started;                 // rendered at least once
   alignas(16) int16_t a[2 * kMaxBlock];  // sound: rendered block; fx: input
   alignas(16) int16_t b[2 * kMaxBlock];  // fx: the previous block, processed
 };
@@ -217,9 +235,41 @@ void SendMidi(Instance *self, uint8_t status, uint8_t d1, uint8_t d2) {
   self->sound->on_midi(self->inst, msg, 3, MOVE_MIDI_SOURCE_INTERNAL);
 }
 
+// A parameter value as the string the module's set_param reads.
+void SendParam(Instance *self, uint16_t index, float value) {
+  const ParamKey &k = self->module->keys[index];
+  char text[24];
+  if (k.format == VALUE_INDEX) {
+    FormatInt(text, RoundToInt(value) + k.offset);
+  } else {
+    FormatFloat(text, value);
+  }
+  void (*set)(void *, const char *, const char *) =
+      self->sound ? self->sound->set_param : self->fx->set_param;
+  if (set) set(self->inst, k.key, text);
+}
+
+// Before each module call: the next step of every ramp under way.
+void StepRamps(Instance *self) {
+  for (uint32_t k = 0; k < self->n_ramps; ++k) {
+    Ramp &r = self->ramps[k];
+    if (!r.s.left) continue;
+    fm1_smooth_tick(&r.s, &r.value, 1);
+    SendParam(self, r.index, r.value);
+  }
+}
+
+Ramp *FindRamp(Instance *self, uint16_t index) {
+  for (uint32_t k = 0; k < self->n_ramps; ++k) {
+    if (self->ramps[k].index == index) return &self->ramps[k];
+  }
+  return NULL;
+}
+
 void RenderSound(Instance *self, float *out, uint32_t frames) {
   while (frames) {
     if (!self->pos) {
+      StepRamps(self);
       memset(self->a, 0, sizeof(self->a));
       self->sound->render_block(self->inst, self->a, static_cast<int>(self->block));
       self->pos = self->block;
@@ -253,6 +303,7 @@ void ProcessFx(Instance *self, float *io, uint32_t frames) {
     frames -= take;
     self->pos += take;
     if (self->pos == self->block) {
+      StepRamps(self);
       self->fx->process_block(self->inst, self->a, static_cast<int>(self->block));
       memcpy(self->b, self->a, sizeof(int16_t) * 2 * self->block);
       self->pos = 0;
@@ -302,6 +353,18 @@ void *CreateWithArena(const Module &m, void *mem, const fm1_host_t *host,
       self->fx && m.fx_headroom > 1.0f && m.fx_headroom <= 256.0f ? m.fx_headroom : 1.0f;
   self->to_pcm = 32768.0f / headroom;
   self->from_pcm = headroom / 32768.0f;
+  // Ramps for the SMOOTH parameters, at rest on the defaults, which the
+  // adapters' tables give as the module's own.
+  self->n_ramps = 0;
+  for (uint16_t i = 0; i < m.n_defined && self->n_ramps < kMaxRamps; ++i) {
+    if (!(m.params[i].flags & FM1_PARAM_SMOOTH)) continue;
+    Ramp &r = self->ramps[self->n_ramps++];
+    r.index = i;
+    r.value = m.params[i].def;
+    fm1_smooth_init(&r.s, &r.value, 1);
+  }
+  self->ramp_steps = fm1_smooth_steps(static_cast<float>(g_host_api.sample_rate), self->block);
+  self->started = false;
   void *(*create)(const char *, const char *) =
       self->sound ? self->sound->create_instance : self->fx->create_instance;
 
@@ -373,21 +436,18 @@ void SetParam(void *s, uint16_t index, float value) {
   const fm1_param_t &p = m.params[index];
   if (!(value >= p.min)) value = p.min;            // NaN too
   if (value > p.max) value = p.max;
-  const ParamKey &k = m.keys[index];
-  char text[24];
-  if (k.format == VALUE_INDEX) {
-    FormatInt(text, RoundToInt(value) + k.offset);
-  } else {
-    FormatFloat(text, value);
+  Ramp *r = FindRamp(self, index);
+  if (r) {
+    fm1_smooth_set(&r->s, &r->value, value, self->started ? self->ramp_steps : 0);
+    if (r->s.left) return;      // a ramp: its steps go out with the module's blocks
   }
-  void (*set)(void *, const char *, const char *) =
-      self->sound ? self->sound->set_param : self->fx->set_param;
-  if (set) set(self->inst, k.key, text);
+  SendParam(self, index, value);
 }
 
 void Render(void *s, float *out_lr, uint32_t frames) {
   Instance *self = Self(s);
   if (!self) return;
+  self->started = true;
   if (self->sound) {
     RenderSound(self, out_lr, frames);
   } else {

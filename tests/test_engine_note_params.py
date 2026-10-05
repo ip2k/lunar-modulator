@@ -12,6 +12,13 @@ moving the parameter's base by that much (and a pitch offset the same as a
 pitch bend), byte for byte, because the voice computes its values with the
 engine's own code. Where two notes sound, the offset on one leaves the other
 as it was: the two-note render is the sum of the two notes rendered apart.
+
+SMOOTH (docs/15 S7b, engines/README.md "SMOOTH"): a base change while a
+voice sounds ramps over 2.5 ms, and a voice plays the ramped base plus its
+offset; an offset itself applies at the next internal block, unramped. So an
+offset is compared with a base change only where no ramp runs (a base set
+before the note), and mid-note with other offsets or with a base that ramps
+under the offset just as it ramps alone.
 """
 import json
 import math
@@ -71,6 +78,15 @@ def moved(base, offset):
     """base + offset as the engine adds them, in float, both parsed as the
     renderer parses them; printed so that it parses back to that float."""
     return f"{f32(f32(float(f'{base:.6g}')) + f32(float(f'{offset:.6g}'))):.9g}"
+
+
+def f32_add(a, b):
+    return f32(f32(a) + f32(b))
+
+
+def exact(x):
+    """x as text that parses back to the same float."""
+    return f"{f32(x):.9g}"
 
 
 def run(renderer, tmp_path, name, engine, params=(), notes=(), extra=(), seconds=0.7):
@@ -133,23 +149,31 @@ def test_zero_offsets_are_a_no_op(renderer, tmp_path, listing, engine):
 
 @pytest.mark.parametrize("engine", PER_NOTE)
 def test_an_offset_on_a_lone_note_is_a_base_change(renderer, tmp_path, listing, engine):
-    """For a note sounding alone, each POLY parameter's offset is the base
-    moved by as much, byte for byte: at the note-on and mid-note, through
-    the release. A later offset replaces the first; 0 puts the base back."""
+    """For a note sounding alone, each POLY parameter's offset from the
+    note-on is the base moved by as much, byte for byte (a base set before
+    the note applies at once). Mid-note an offset applies at the next
+    internal block, unramped, where a base change would ramp, so there it is
+    compared with offsets: a later offset replaces the first, and 0 puts the
+    base back, the same as those moves sent against a base that already
+    holds the first offset. Offsets of a quarter and an eighth of the range
+    keep every sum exact in float (checked)."""
     base = TONE[engine]["params"]
     note = ["0:60:100:0.35"]
     for p in poly(listing, engine):
         b0 = base_of(engine, p)
-        x = offset_for(p, 0.3, b0)
-        y = offset_for(p, 0.15, b0)
+        span = p["max"] - p["min"]
+        sign = 1 if b0 + span / 4 <= p["max"] else -1
+        x, y = sign * span / 4, sign * span / 8
+        assert f32_add(f32_add(b0, x), y - x) == f32_add(b0, y), p["name"]
+        assert f32_add(f32_add(b0, x), -x) == f32(b0), p["name"]
         _, a, _ = run(renderer, tmp_path, "a", engine, base, note,
-                      ["--note-param-at", f"0:60:{at(p['name'], x)}",
-                       "--note-param-at", f"0.2:60:{at(p['name'], y)}",
+                      ["--note-param-at", f"0:60:{p['name']}={exact(x)}",
+                       "--note-param-at", f"0.2:60:{p['name']}={exact(y)}",
                        "--note-param-at", f"0.5:60:{p['name']}=0"])
         _, b, _ = run(renderer, tmp_path, "b", engine, base, note,
                       ["--param-at", f"0:{p['name']}={moved(b0, x)}",
-                       "--param-at", f"0.2:{p['name']}={moved(b0, y)}",
-                       "--param-at", f"0.5:{at(p['name'], b0)}"])
+                       "--note-param-at", f"0.2:60:{p['name']}={exact(y - x)}",
+                       "--note-param-at", f"0.5:60:{p['name']}={exact(-x)}"])
         assert a == b, p["name"]
 
 
@@ -157,22 +181,56 @@ def test_an_offset_on_a_lone_note_is_a_base_change(renderer, tmp_path, listing, 
 def test_a_base_that_moves_keeps_the_offset_on_top(renderer, tmp_path, listing, engine):
     """set_param under an offset moves the sum, clamped as set_param clamps:
     for a lone note, the base at 30 % of the range with an offset of half
-    the range, then the base at 80 % (the sum past the maximum), is the base
-    set to those sums, byte for byte, and to the maximum once past it."""
+    the range is the base at their sum, byte for byte, and the base at 80 %
+    with the same offset (the sum past the maximum) is the base at the
+    maximum. The bases are set before the note, so no ramp runs; a base
+    that moves under a sounding offset is the next test."""
     base = TONE[engine]["params"]
     note = ["0:60:100:0.45"]
     for p in poly(listing, engine):
         span = p["max"] - p["min"]
-        b0, b1, x = p["min"] + 0.3 * span, p["min"] + 0.8 * span, 0.5 * span
+        x = 0.5 * span
+        for share, want in ((0.3, None), (0.8, p["max"])):
+            b0 = p["min"] + share * span
+            _, a, _ = run(renderer, tmp_path, "a", engine, base, note,
+                          ["--param-at", f"0:{at(p['name'], b0)}",
+                           "--note-param-at", f"0:60:{at(p['name'], x)}"])
+            target = moved(b0, x) if want is None else f"{want:.9g}"
+            _, b, _ = run(renderer, tmp_path, "b", engine, base, note,
+                          ["--param-at", f"0:{p['name']}={target}"])
+            assert a == b, (p["name"], share)
+
+
+@pytest.mark.parametrize("engine", PER_NOTE)
+def test_an_offset_rides_on_a_ramping_base(renderer, tmp_path, listing, engine):
+    """docs/15 S7b with per-note offsets: a base change while a voice with
+    an offset sounds ramps over 2.5 ms (the engine's SMOOTH ramp, shared by
+    all voices), and the voice plays the ramped base plus its offset at every
+    control block. For a lone note, the base moving from 1/8 to 3/4 of the
+    range under an offset of 1/8 is, byte for byte, the base moving from 1/4
+    to 7/8 with no offset, which ramps the same way; the values and the
+    ramp's steps (5/8 of the range over 10 or 8 blocks) are exact in float,
+    so both sides add the same numbers. The move is heard on the loud
+    parameter and Volume: the render differs from the one without it (some
+    others act only at a note's start or on another model)."""
+    base = TONE[engine]["params"]
+    note = ["0:60:100:0.45"]
+    for p in poly(listing, engine):
+        lo, span = p["min"], p["max"] - p["min"]
+        b0, b1, x = lo + span / 8, lo + 3 * span / 4, span / 8
         _, a, _ = run(renderer, tmp_path, "a", engine, base, note,
-                      ["--param-at", f"0:{at(p['name'], b0)}",
-                       "--note-param-at", f"0.1:60:{at(p['name'], x)}",
-                       "--param-at", f"0.25:{at(p['name'], b1)}"])
+                      ["--param-at", f"0:{p['name']}={exact(b0)}",
+                       "--note-param-at", f"0:60:{p['name']}={exact(x)}",
+                       "--param-at", f"0.2:{p['name']}={exact(b1)}"])
         _, b, _ = run(renderer, tmp_path, "b", engine, base, note,
-                      ["--param-at", f"0:{at(p['name'], b0)}",
-                       "--param-at", f"0.1:{p['name']}={moved(b0, x)}",
-                       "--param-at", f"0.25:{at(p['name'], p['max'])}"])
+                      ["--param-at", f"0:{p['name']}={exact(b0 + x)}",
+                       "--param-at", f"0.2:{p['name']}={exact(b1 + x)}"])
         assert a == b, p["name"]
+        if p["name"] in (TONE[engine]["loud"], "Volume"):
+            _, still, _ = run(renderer, tmp_path, "still", engine, base, note,
+                              ["--param-at", f"0:{p['name']}={exact(b0)}",
+                               "--note-param-at", f"0:60:{p['name']}={exact(x)}"])
+            assert a != still, p["name"]
 
 
 MODELS = {
@@ -261,9 +319,11 @@ def test_an_offset_reaches_only_its_note(renderer, tmp_path, listing, engine):
 
 @pytest.mark.parametrize("engine", PER_NOTE)
 def test_offsets_move_the_release_and_survive_note_off(renderer, tmp_path, listing, engine):
-    """An offset set before note-off goes on through the release, and one
-    sent during the release moves it: both the same as the base changes for
-    a lone note, and the second audible (the voice was still sounding)."""
+    """An offset set before note-off goes on through the release, the same
+    as the base moved by as much for a lone note, and one sent during the
+    release moves it: audibly (the voice was still sounding), and on top of
+    the first, as on a base that already holds the first. (A base change
+    there would ramp, SMOOTH; an offset does not.)"""
     base = TONE[engine]["params"]
     loud = next(p for p in poly(listing, engine) if p["name"] == TONE[engine]["loud"])
     vol = next(p for p in poly(listing, engine) if p["name"] == "Volume")
@@ -274,8 +334,9 @@ def test_offsets_move_the_release_and_survive_note_off(renderer, tmp_path, listi
                   first + ["--note-param-at", "0.25:60:Volume=-0.35"])
     _, b, _ = run(renderer, tmp_path, "b", engine, base, note,
                   ["--param-at", f"0:{loud['name']}={moved(loud['def'], x)}",
-                   "--param-at", f"0.25:Volume={moved(vol['def'], -0.35)}"])
+                   "--note-param-at", "0.25:60:Volume=-0.35"])
     _, c, _ = run(renderer, tmp_path, "c", engine, base, note, first)
+    assert vol["def"] - 0.35 >= vol["min"]
     assert a == b
     tail = 44 + 4 * int(0.26 * RATE)   # WAV header, then frames from 0.26 s on
     assert a[tail:] != c[tail:]
@@ -284,18 +345,25 @@ def test_offsets_move_the_release_and_survive_note_off(renderer, tmp_path, listi
 @pytest.mark.parametrize("engine", PER_NOTE)
 def test_a_new_note_on_starts_at_no_offset(renderer, tmp_path, listing, engine):
     """A key played again starts at the base: the retrigger drops the
-    offsets its voice had (here the same voice, retriggered in place)."""
+    offsets its voice had (here the same voice, retriggered in place), as
+    sending each of them back to 0 right after it does. (The base moved
+    back there instead would ramp, SMOOTH; dropped offsets do not.) The
+    offsets kept would be heard: the render without the retrigger's drop
+    differs."""
     base = TONE[engine]["params"]
     loud = next(p for p in poly(listing, engine) if p["name"] == TONE[engine]["loud"])
     x = offset_for(loud, 0.45)
     notes = ["0:60:100:0.6", "0.3:60:100:0.3"]
-    _, a, _ = run(renderer, tmp_path, "a", engine, base, notes,
-                  ["--note-param-at", f"0:60:{at(loud['name'], x)}",
-                   "--note-pitch-at", "0:60:3"])
+    first = ["--note-param-at", f"0:60:{at(loud['name'], x)}", "--note-pitch-at", "0:60:3"]
+    _, a, _ = run(renderer, tmp_path, "a", engine, base, notes, first)
     _, b, _ = run(renderer, tmp_path, "b", engine, base, notes,
-                  ["--param-at", f"0:{loud['name']}={moved(loud['def'], x)}", "--bend", "0:3",
-                   "--param-at", f"0.3:{at(loud['name'], loud['def'])}", "--bend", "0.3:0"])
+                  first + ["--note-param-at", f"0.3:60:{loud['name']}=0",
+                           "--note-pitch-at", "0.3:60:0"])
+    _, kept, _ = run(renderer, tmp_path, "kept", engine, base, notes,
+                     first + ["--note-param-at", f"0.3:60:{at(loud['name'], x)}",
+                              "--note-pitch-at", "0.3:60:3"])
     assert a == b
+    assert a != kept
 
 
 # Voices that end quickly once released, so a later call finds no voice.

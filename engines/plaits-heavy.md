@@ -250,9 +250,14 @@ block, and so did a chord struck after a bank change or a model change.
   shared quantizer. `UpdateWordBank()` runs that quantizer once per
   12-sample block, as upstream runs it, and loads the shared bank before any
   voice renders. So a bank change costs one parse, in the next block,
-  whether or not notes are sounding, and a note-on never parses. Harmonics
-  changes only between render calls, so at most one parse falls in a host
-  block. `plaits/dsp/engine/speech_engine.cc` is no longer built.
+  whether or not notes are sounding, and a note-on never parses. Since
+  docs/15 S7b Harmonics ramps over 2.5 ms (SMOOTH), and the quantizer reads
+  the value it ramps to, not the ramp, so a change of Harmonics still costs
+  at most one parse, however many banks the ramp passes [verified 2026-10-05,
+  an instrumented build: Harmonics 0.4 → 1 → 0.4 under a held note parsed
+  nine banks when it read the ramp, five of them within one 2.5 ms ramp,
+  and one when it read the target]. `plaits/dsp/engine/speech_engine.cc`
+  is no longer built.
 - **Output.** For constant parameters the output is byte-identical to the
   per-voice `SpeechEngine` [verified: 12 Harmonics values across the
   naive, SAM, phoneme and all word-bank ranges, 6 staggered notes each, plus

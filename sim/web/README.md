@@ -629,18 +629,25 @@ pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, with step entry since S4, record and Capture
 since S5, multi-sound, tracks, mute, the pages and the click since S6, and
-parameter locks since S8, and since docs/16 MG3 the modulation runtime,
-its kinds, its script reader (`host/mod_script.c`: snprintf and strtod,
-no files) and modulation's pages: 51 of 51 scenarios pass, identical to
-musl and to render.js (two of them turn the effects' switches every 4.4
-ms), and it imports nothing; it is 703,751 bytes, up from 560,033 before
-MG3 (the runtime, its sixteen kinds with MG2's Peaks and Braids tables,
-the pages and the script reader), 548,493 before S8 (526,111
+parameter locks since S8, the engines' SMOOTH ramps since S7b, and since
+docs/16 MG3 the modulation runtime, its kinds, its script reader
+(`host/mod_script.c`: snprintf and strtod, no files) and modulation's
+pages: 51 of 51 scenarios pass, identical to musl and to render.js (two
+of them turn the effects' switches every 4.4 ms), and it imports nothing;
+it is @@WASM_BYTES@@ bytes, up from 573,403 before MG3 (the runtime, its
+sixteen kinds with MG2's Peaks and Braids tables, the pages and the
+script reader), 560,033 before the engines' SMOOTH ramps (docs/15 S7b;
+559,930 before MG1's rebuild), 548,493 before S8 (526,111
 with S8 before the second effects pack), 524,659 before multi-sound and S6
 (514,688 with them before the second effects pack), 516,035 before S5,
 482,291 before the second effects pack (Drive, Filter, Comp, Limiter),
 466,635 before S4, 459,122 before S3 and 391 KB before the sequencer
-[verified, 2026-10-05, `www/fm1.wasm.json`].
+[verified, 2026-10-05, `www/fm1.wasm.json`]. With S7b nine scenarios sound
+different, each because a knob or a lock turns while something sounds:
+`seq-panel-play-stop`, `seq-panel-locks`, `multi-panel`,
+`multi-four-sounds-seq`, `drive-fuzz-gated` (its Plate Decay turn) and the
+four `fx-turns-*`; the others change only their RAM figures, by 12 bytes
+per SMOOTH parameter (engines/README.md, "SMOOTH").
 
 The sequencer's own cost in WebAssembly, measured with `fm1-render.js` under
 Node 24.19 in the emsdk container on aeon: tools/seq_bench.py's burst (8

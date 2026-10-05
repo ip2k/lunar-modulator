@@ -436,6 +436,16 @@ engines/test/seq_host_test.c, `fm1-sim-render --lock-check` over every
 registered parameter]. `fm1_seq_value7_step` is a knob detent on that
 grid: one v, or one entry of a list (owner decision O14).
 
+**A lock on a SMOOTH parameter ramps inside the engine** (docs/15 stage
+S7b; engines/README.md, "SMOOTH"). The bridge calls `set_param` at the
+lock's frame, as for any lock. The engine's ramp starts with its first
+control block not yet rendered at that frame and takes 2.5 ms of its native
+samples. While no voice sounds the lock applies at once, so a lock on the
+trig of a note that starts a silent engine plays that note at the locked
+value from its first sample. A D6 revert and a lock at one frame make one
+ramp. Nothing in the bridge changes, and the output is the same at any host
+block size.
+
 **Where locks resolve (engine API v2, docs/15 stage S7a).** A lock targets
 the parameter's uid (engines/README.md, "Parameters"), not its index, so a
 reordered parameter table cannot move it. Labels stay text in the core and
@@ -687,9 +697,9 @@ tools/movy-oracle on aeon, the C core on the Mac]:
 - **Engine API v2** (docs/13 §6): done in part (docs/15 stage S7a). Every
   parameter has a stable uid, flags (LATCH, SMOOTH, NOLOCK, MOD, INPUT), a
   unit and an abbreviation; lanes resolve to uids; Macro's Model is refused
-  as NOLOCK (M2's exit test). Still to come: SMOOTH's ramp inside the
-  engines (S7b), tempo and a beat position in `fm1_host_t`, and the virtual
-  FM-1 showing uids and flags in its catalogue.
+  as NOLOCK (M2's exit test). SMOOTH's ramp runs inside the engines since
+  S7b. Still to come: tempo and a beat position in `fm1_host_t`, and the
+  virtual FM-1 showing uids and flags in its catalogue.
 - `FM1_KIND_MIDI_FX` for per-track MIDI effects.
 - The command ring between the UI and audio tasks, and undo (binary
   per-clip snapshots in a byte budget, docs/13 §5) with the UI, stage M4;
