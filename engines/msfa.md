@@ -20,7 +20,7 @@ with or endorsed by Yamaha, and the engine's name is our own.
 | Tests | `tests/test_engines_dx7.py`; the generic engine tests list it like the others |
 | Oracle | `fm1-dx7-oracle` (`test/dx7_oracle.cc`, `test/dx7_felucca.c`) with Felucca's `fm6_core.c` (`third_party/felucca-fm6/`, Apache-2.0) |
 | Voices | 12 |
-| Instance | 14,356 bytes on 64-bit, 13,388 on 32-bit (below) |
+| Instance | 15,844 bytes on 64-bit, 32-bit and pi32v2 alike (below) |
 
 ## Playing it
 
@@ -85,7 +85,7 @@ them can be loaded into the user slots from a file the user has.
 
 The voices were designed by numbers, not by ear: each was rendered and its
 level, envelope and harmonic profile checked (single notes peak at −9 to
-−16 dBFS; the tests check every voice at three velocities for finite
+−17 dBFS; the tests check every voice at three velocities for finite
 output, no clipping before the limiter, and that every voice has ended 7 s
 after its release). They want a listening pass (open questions).
 
@@ -197,16 +197,23 @@ in its first create and never again; a later create at another rate is
 refused (create returns NULL), as the Schwung shim refuses one. One rate
 per process is what the FM-1, the simulator and `fm1-render` have.
 
-**No libm while rendering**, and the tables come out exact: `Sin::init`,
-`Exp2::init` and `Freqlut::init` make one libm call each (`cos` and `sin`
-of 2π/1024, `exp2` and `pow` of 2^(1/1024)), which the compilers here
-fold at compile time [verified: no such symbol in the objects], then
-integer steps or repeated multiplication. The test recomputes all three
-tables from correctly rounded values (Python's `Decimal`) and requires
-them equal. `osc_freq` calls `log` once per operator at each note-on for
-the fine frequency; the test checks its 100 values the same way. The
-browser's parity scenarios check the rest (sim/web/test/scenarios.json:
-`dx7-*`).
+**No libm while rendering**, and the tables come out exact:
+
+- `Sin::init`, `Exp2::init` and `Freqlut::init` make one libm call each
+  (`cos` and `sin` of 2π/1024, `exp2` and `pow` of 2^(1/1024)), which every
+  compiler here folds at compile time, Apple's clang, GCC, Emscripten's and
+  JieLi's [verified: no such symbol in the objects; JieLi's compile check,
+  2026-10-05], then integer steps or repeated multiplication (in software
+  doubles on pi32v2, once). The test recomputes all three tables from
+  correctly rounded values (Python's `Decimal`) and requires them equal.
+- `osc_freq` takes a `log` (a software double on pi32v2) for each
+  operator's fine frequency. The engine calls it for each voice of the bank
+  and each user slot when the instance is made or a dump is loaded, and
+  keeps the six results (the operator's pitch less the key's), so a note-on
+  adds integers. The test checks `osc_freq`'s 100 fine values against
+  correctly rounded ones.
+- The browser's parity scenarios (sim/web/test/scenarios.json, `dx7-*`)
+  render the same bytes in WebAssembly as with glibc and musl.
 
 ### Output level
 
@@ -226,9 +233,8 @@ Known, not exhaustive:
   Google's: a voice with L1 = L2 decays sooner than on a DX7 [reported:
   Dexed, via Felucca's port].
 - **LFO speeds** follow msfa's formula; Dexed replaced it with a table of
-  rates in hertz [reported: Felucca's table generator names msfa's
-  `lfo.cc` as its source]. Within a few per cent over most of the range
-  [inferred].
+  rates in hertz [reported: the table in Felucca's generator, which names
+  Dexed's `lfo.cc` as its source].
 - **Detune** is msfa's 12,606 per step at every key; Dexed scales it by key.
 - **Keyboard level scaling** groups keys as `offset / 3`; Dexed rounds the
   other way, `(offset + 1) / 3` (within 0.4 dB on the oracle's voices).
@@ -240,8 +246,9 @@ Known, not exhaustive:
 - **The stock FM-1** runs msfa with Google's algorithm table, rows 4 and 6
   included (`0x41`: the loop marked, not run by msfa's `FmCore`)
   [verified: the table; docs/02 §5 had called those rows a Dexed-family
-  change, which they are not: Dexed's tree has `0xC1` there, Felucca's port
-  too]. Whether stock adds AM or the loops in its own code is not known.
+  change, which they are not: Felucca's port of Dexed's msfa has `0xC1`
+  there; Dexed itself not checked]. Whether stock adds AM or the loops in
+  its own code is not known.
 
 ## Checks
 
@@ -308,25 +315,29 @@ on.
 
 ## Cost and memory
 
-**Instance:** 14,356 bytes on this 64-bit desktop, 13,388 on a 32-bit
-(i386) build [verified: `fm1-render`'s `instance_bytes`; GCC 12 `-m32` in a
-container on the build host, 2026-10-05]: twelve voices of msfa state
-(six envelopes, a pitch envelope, six operators' parameters and our
-clocks, 600 bytes each with the per-note offsets), the 32 user slots
-(4,992 bytes, unpacked), one unpacked built-in voice, msfa's two 64-sample
-buses and the output block. msfa's tables are shared: about 14 KB of RAM
-(`sintab` and `exp2tab`, 8 KB each... see below) filled at start-up.
+**Instance:** 15,844 bytes on this 64-bit desktop, on i386 and on pi32v2:
+it holds no pointers [verified: `fm1-render`'s `instance_bytes`; JieLi's
+compile check measured 14,308 on all three targets before the pitch cache
+below was added, 2026-10-05]. Twelve voices of msfa state (six envelopes, a
+pitch envelope, six operators' parameters, our clocks and per-note
+offsets: 664 bytes each), the 32 user voices (4,992 bytes, unpacked), the
+operators' pitches of all 64 slots (1,536 bytes, so that a note-on needs
+no `log`), one unpacked built-in voice, msfa's two 64-sample buses and the
+output block.
+
+msfa's tables are globals, shared by every instance, outside it:
 
 | Shared table | Bytes |
-| --- | --- |
-| `sintab` (1,024 points with deltas) | 8,192 |
+| --- | ---: |
+| `sintab` (1,024 points with their deltas) | 8,192 |
 | `exp2tab` (likewise) | 8,192 |
-| `tanhtab` (filled by nothing here, defined by `exp2.cc`) | 8,192 |
 | `lut` (`Freqlut`, 1,025 points) | 4,100 |
+| `tanhtab` (defined by `exp2.cc`, filled by nothing here) | 8,192 |
 
-On the FM-1 the three filled tables could be const data in flash, as
-Felucca does, instead of 20 KB of RAM; `tanhtab` is dead weight (open
-questions).
+On the FM-1 the three filled ones could be const data in flash, as
+Felucca's are, instead of 20 KB of RAM, and `tanhtab` is dead weight (open
+questions). Code: about 10 KB for the engine and 8 KB for msfa on pi32v2
+at `-O2` [verified: JieLi's compile check].
 
 **Time per 64-sample block on this desktop** (Apple M1 Max, twelve voices
 sounding, best of three 5-second renders; share of the 1.451 ms block)
@@ -343,10 +354,10 @@ sounding, best of three 5-second renders; share of the 1.451 ms block)
 | Six-Op FM, 8 voices | 14,648 | 1.01 % |
 
 FM6 with twelve voices costs about a third of Macro's twelve here. It is
-integer arithmetic with 64-bit products (two per operator sample); on
-pi32v2 those cost more than on this desktop, and stage B measures it. The
-stock FM-1 runs twelve msfa voices on its second core [verified: docs/01];
-the loop algorithms are the dearest case.
+integer arithmetic with 64-bit products (two per operator sample); pi32v2
+does those in several instructions, and stage B measures it. The stock
+FM-1 runs twelve msfa voices on its second core [inferred: docs/01]; the
+loop algorithms are the dearest case here.
 
 ## Open questions
 

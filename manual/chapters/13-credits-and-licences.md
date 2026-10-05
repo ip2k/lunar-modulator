@@ -19,6 +19,15 @@ terms it is used under.
   Their origin is not stated there. In public builds, the twenty-three
   patches whose stored names are trademarks or a person's name are shown
   under descriptive names of this project's own.
+- **msfa**, the FM synthesizer core of Google's Music Synthesizer for
+  Android, by **Raph Levien** for **Google**, Apache License 2.0: FM6's
+  envelopes, LFO, operators, algorithms and tables. Its code is included
+  unmodified; the voice built from it, its amplitude modulation, the
+  feedback loops of algorithms 4 and 6 and its controls are this project's
+  own. FM6 reads voices in the format of Yamaha's DX7 and is not affiliated
+  with or endorsed by Yamaha.
+- **FM6's built-in voices** are this project's own, written for it and
+  under the MIT licence.
 - **Sophie** by **Matt Estela**, MIT licence, included unmodified.
 - **PSX Verb** by **Charles Vestal**, MIT licence, included unmodified.
 - **Schwung**, Charles Vestal's host for modules on the Ableton Move, MIT
@@ -143,7 +152,11 @@ Lunar Modulator's own code, and this manual, are under the MIT licence. Code
 from other projects keeps its own licence, which the repository records
 beside it with a note of where it came from. Everything listed in this
 chapter that ships with the simulator or the desktop tools is under the MIT
-licence, or, for the fonts, the SIL Open Font License 1.1.
+licence, or, for msfa, the Apache License 2.0, or, for the fonts, the SIL
+Open Font License 1.1. The repository's tests also use **Felucca**'s
+`fm6_core.c` by **Leo Kuroshita** (Hügelton Instruments), an Apache-2.0 port
+of the same FM core, to check FM6 against; it is in no build of the
+firmware or the simulator.
 
 ## Trademarks
 
