@@ -105,7 +105,8 @@ with ASCII `0` added per byte; the decimal suffix is the firmware version. Save
 the raw reply.
 
 **Do not** send any other SysEx from the vendor families (`00 59` syscmd, the
-upgrade command `F0 22 24 35 7F F7`, the `F0 35 59` vendor magic) in this
+upgrade command `F0 22 24 35 7F F7`, the "soft key" `F0 22 24 35 7D F7`
+that reboots stock V15 into mask ROM, the `F0 35 59` vendor magic) in this
 session.
 
 ## 4. Optional: capture a stock update (this one writes the app bank)
