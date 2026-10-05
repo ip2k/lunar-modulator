@@ -33,10 +33,30 @@ terms it is used under.
   Plaits by **Emilie Gillet**; its anti-aliasing follows the method of
   **Parker, Zavalishin and Le Bivic** (DAFx-16). No code is taken from any
   of them.
+- **Drive** is this project's own code: its curves are written here, its
+  tape emphasis follows tape's record and replay equalisation, and its
+  anti-aliasing follows the method of **Parker, Zavalishin and Le Bivic**
+  (DAFx-16). No code is taken from anyone.
 - **Echo** is this project's own code. Its ping-pong layout is the textbook
   one, after **Udo Zölzer**'s *DAFX*, and its 16-bit delay memory follows
   **Emilie Gillet**'s effects engine in Rings and Clouds; none of their code
   is used.
+- **Filter** is this project's own code: zero-delay-feedback filters after
+  **Vadim Zavalishin**'s *The Art of VA Filter Design*, **Andrew Simper**'s
+  (Cytomic) state-variable filter, **Antti Huovilainen**'s ladder model
+  (DAFx-04), the diode-ladder circuit, and **Udo Zölzer**'s universal comb
+  (*DAFX*); its Sallen-Key type is after the Korg-35 filter of the later
+  MS-20, and its SK Mixed type after the Steiner-Parker Synthacon's filter
+  (their makers' names appear here only as credit); its non-linear solver
+  follows a method **Teemu Voipio** published, and its vowels are the
+  measurements of **Peterson and Barney** (1952). No code is taken from any
+  of them.
+- **Comp** is this project's own code, after the compressor design of
+  **Giannoulis, Massberg and Reiss** (*Journal of the Audio Engineering
+  Society*, 2012). No code is taken from anyone.
+- **Limiter** is this project's own code, after **Geraint Luff**'s
+  look-ahead limiter design (Signalsmith Audio, 2022). No code is taken from
+  the article or from Signalsmith's library.
 - **Tilt** is this project's own code. A tilt built from first-order
   sections follows **Airwindows**' ToneSlant (MIT licence) and the
   spectral tilt of the **Faust** libraries; none of their code is used.

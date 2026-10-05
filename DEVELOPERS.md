@@ -152,10 +152,15 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     compatibility shim.
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
-    antiderivative anti-aliasing), Echo (a stereo ping-pong delay), Tilt
-    (a tilt equaliser, exact bypass when flat) and Master Sat (band-limited
-    bus saturation with Glue, its curves' coefficients from Airwindows,
-    Chris Johnson, MIT) are our own code
+    antiderivative anti-aliasing), Drive (overdrive and saturation, five
+    anti-aliased curves), Echo (a stereo ping-pong delay), Filter (seven
+    zero-delay-feedback filter types), Comp (a feed-forward compressor),
+    Limiter (a look-ahead brickwall limiter), DJ Filter (one knob, low-pass
+    to high-pass, exact bypass in between), Tilt (a tilt equaliser, exact
+    bypass when flat), Master Sat (band-limited bus saturation with Glue,
+    its curves' coefficients from Airwindows, Chris Johnson, MIT), Isolator
+    (a three-band kill EQ) and EQ (a three-band parametric equaliser) are
+    our own code
     ([`engines/README.md`](engines/README.md#crush)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
@@ -215,11 +220,11 @@ nothing of ours in the path, and more than 400 tests compare the two.
   same bridge and plays scripts and sets exactly as the desktop renderer
   does, natively and in the browser module (stage S2 of
   [docs/15](docs/15-sequencer-in-simulator.md)). On the panel, PLAY/STOP,
-  SEQ mode's read-only Track view and a demo pattern work behind a lab
-  switch (`?lab` in the page's address; stage S3,
-  [`sim/web/README.md`](sim/web/README.md), "The lab switch"); the public
-  page keeps SEQ, PLAY/STOP and REC as "not in the simulator yet" until
-  step entry and recording work.
+  SEQ mode's Track view and a demo pattern (stage S3), step entry (S4) and
+  recording, step record and Capture (S5) work behind a lab switch (`?lab`
+  in the page's address; [`sim/web/README.md`](sim/web/README.md), "The
+  lab switch"); the public page keeps SEQ, PLAY/STOP and REC as "not in
+  the simulator yet" until the owner opens it.
 
 ### The arpeggiator core
 
@@ -572,8 +577,16 @@ which lands with the plan PR; its stages S0–S7 are named below.
   all [inferred].
 
 **More effects** · *Planned*
-- **Done so far (2026-10-02):** Crush, Fold and Echo, our own code
-  ([`engines/README.md`](engines/README.md#crush)). Crush adds jitter and
+- **Done so far (2026-10-02):** Crush, Fold, Drive, Echo, Filter, Comp and Limiter, our own code
+  ([`engines/README.md`](engines/README.md#crush)). Their switch-like
+  controls (Filter's Type, Drive's Type and Auto, Comp's Character, Auto
+  Rel and Auto Gain, the Limiter's Mode and Lookahead) change without a
+  click, so they can be locked and modulated: the rule is that a switch
+  that changes cleanly is lockable and modulatable
+  ([`engines/README.md`](engines/README.md#parameters-engine-api-v2)).
+  Filter's types are named for their circuits (Sallen-Key, SK Mixed),
+  never for a maker; Comp's Auto Gain is capped at 24 dB and never pushes
+  an input under full scale past it. Crush adds jitter and
   fractional bits, so it does not use Plaits' `SampleRateReducer`. Echo
   keeps its own fixed 64 KB per instance and slows its clock beyond 371 ms,
   like a bucket-brigade delay, rather than taking the shared arena; it has

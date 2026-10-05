@@ -366,7 +366,8 @@ function showStatus() {
   const ram = (b) => `${Math.ceil(b / 1024)} KB`;
   const q = sim.seq;
   const seq = LAB && q ? ` Sequencer: ${(q.bpm_x100 / 100).toFixed(2)} BPM, ` +
-    `${q.recording ? 'recording' : q.playing ? 'playing' : 'stopped'}${q.following ? ' (external clock)' : ''}.` : '';
+    `${q.recording ? 'recording' : q.counting_in ? 'counting in' : q.playing ? 'playing' : 'stopped'}` +
+    `${q.following ? ' (external clock)' : ''}.` : '';
   statusEl.textContent = `Running at ${rate.toLocaleString('en')} Hz${fellBack}, 64-frame blocks, ` +
     `${(latency * 1000).toFixed(0)} ms output latency. Chain RAM ${ram(st.ram)} of the ` +
     `${ram(387924)} the stock layout leaves free.${seq}${sim.notice ? ' ' + sim.notice : ''}`;

@@ -26,7 +26,12 @@ UID_MAX = 0x0FFF
 # checked against each engine's code in this stage). Six-Op's Patch and
 # Sophie's pad parameters are read at note-on (LATCH), so they take
 # modulation too; Macro's LPG is read every block and lockable, but a
-# rounded route could end a note held under Off, so it takes none.
+# rounded route could end a note held under Off, so it takes none. The
+# rule for the effects' switches (owner, 2026-10-02): a switch-like control
+# that changes cleanly (it crossfades, glides or hands over, so no change,
+# however fast, steps the output) is lockable and modulatable, rounded when
+# modulated; tests/test_engines_fx_switches.py turns each of them every
+# third block to check it.
 ENUM_FLAGS = {
     ("macro", "Model"): ["nolock"],             # rebuilds every voice
     ("macro", "LPG"): [],
@@ -38,6 +43,13 @@ ENUM_FLAGS = {
     ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
     ("sw-sophie", "Filter Type"): ["latch", "mod"],
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
+    ("filter", "Type"): ["mod"],                # warms the new type up, then crossfades
+    ("drive", "Type"): ["mod"],                 # crossfades over 5 ms
+    ("drive", "Auto"): ["mod"],                 # its gain glides
+    ("comp", "Character"): ["mod"],             # hands the smoothing over, the detector
+    ("comp", "Auto Rel"): ["mod"],              #   crossfades: no step in the reduction
+    ("comp", "Auto Gain"): ["mod"],             # its makeup and its bound glide in
+    ("limit", "Mode"): ["mod"],                 # glides the stage, frame by frame
     ("djfilter", "Slope"): ["mod"],             # crossfades over 5 ms: lockable, rounded
     ("tilt", "Curve"): ["mod"],                 # glides between its two curves
     ("sat", "Shape"): ["mod"],                  # crossfades over 5 ms
@@ -133,6 +145,7 @@ def test_abbreviations_and_units(built):
     units = {(eid, p["name"]): p["unit"] for eid, params in built.items() for p in params
              if p["unit"] != "none"}
     assert units[("echo", "Time")] == "ms" and units[("sw-sophie", "Tune")] == "semi"
+    assert units[("limit", "Release")] == units[("limit", "Lookahead")] == "ms"
     assert units[("sw-sophie", "Color")] == "pct"
     assert units[("sw-sophie", "Ring Time")] == "ms"     # hidden: from the contract
 
