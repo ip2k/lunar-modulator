@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "912fbfd14cd37ba982c9c9b38ea7fed7ba28803f34749c86f9ea7187d2361747",
-  "wasm_bytes": 761171,
+  "wasm_sha256": "b95d7b74a16171da7b5a2915549940740e4096567ad174e78844f58ecc9c2512",
+  "wasm_bytes": 782387,
   "sources_sha256": {
-    "engines": "416cfac8ac4ee1150cf45467168ce8fd01943585489b2bf9fa966cd385982624",
-    "sim": "fde1a1e0dc0fa4b60823ba4bac39fbdd53642d1b18ebd214b936405c4c88151c"
+    "engines": "f2e28ab69ec722ca0c3aeeea13fe79ebff3afa020a1a3ce19843284e05f880c5",
+    "sim": "e36bdfc0f5b2540c61e67f7fe0130cd0e24365609555d4d13f13789cd566d9ef"
   },
   "engines": "working tree",
-  "built": "2026-10-05T22:02:38Z",
+  "built": "2026-10-05T22:35:05Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 64,
+    "passed": 66,
     "failed": 0,
-    "identical_to_js": 64,
-    "identical_to_musl": 64,
-    "identical_to_glibc": 61,
+    "identical_to_js": 66,
+    "identical_to_musl": 66,
+    "identical_to_glibc": 63,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -243,6 +243,50 @@
       "ram_bytes": {
         "wasm32": 113192,
         "native64": 113224
+      }
+    },
+    {
+      "name": "drums-deep-groove",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 43000,
+        "native64": 43000
+      }
+    },
+    {
+      "name": "drums-punch-models",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 108520,
+        "native64": 108520
       }
     },
     {
