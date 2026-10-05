@@ -114,6 +114,14 @@
       {"name": "Wow", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
       {"name": "Level", "type": "float", "uid": 7, "flags": ["smooth", "mod"]}
     ],
+    "isolator": [
+      {"name": "Low", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Mid", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "High", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Kill", "type": "enum", "uid": 4, "flags": ["mod"]},
+      {"name": "Low Xover", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "High Xover", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
+    ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ]

@@ -9,6 +9,16 @@ history.
 ## [Unreleased]
 
 ### Added
+- Isolator, a three-band DJ kill EQ effect (engines/README.md, "Isolator").
+  Low, Mid and High knobs cut each band to nothing at 0, leave it alone at
+  three quarters of the way and boost it by 6 dB at the top; a Kill switch
+  silences any combination of bands at once, and returns them to their
+  knobs when released. The crossovers (80–400 Hz and 1.5–5 kHz, 250 Hz and
+  2.5 kHz by default) are steep Linkwitz-Riley ones, so a kill is deep (the
+  lows −64 dB at 40 Hz, the highs −80 dB at 15 kHz) and the bands add back
+  up flat. Every control, Kill included, can be locked and modulated, and
+  changes without clicks. At its defaults it passes the sound through
+  untouched, bit for bit.
 - notes/2026-10-02-delay-reverb-eq-gates-options.md: research on delays,
   reverbs, EQ, a DJ filter and tilt for the master bus, bus saturation, and a
   Drawmer DS201-style gate. It also designs side-chaining: the gate and the

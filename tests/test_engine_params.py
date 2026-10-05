@@ -38,6 +38,7 @@ ENUM_FLAGS = {
     ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
     ("sw-sophie", "Filter Type"): ["latch", "mod"],
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
+    ("isolator", "Kill"): ["mod"],              # the band gains glide: a clean change
 }
 
 
