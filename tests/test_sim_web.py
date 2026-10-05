@@ -70,6 +70,20 @@ def scenario_args(s):
             args += ["--fx-param", p]
     for p in s.get("fx_param_at", []):
         args += ["--fx-param-at", p]
+    # Multi-sound (docs/15 §3.16): the other sound units, every unit's
+    # inserts and levels, and notes on a given unit, as fm1-render takes them.
+    for k, sound_id, sound_params in s.get("sounds", []):
+        args += ["--sound", f"{k}:{sound_id}"]
+        for p in sound_params:
+            args += ["--sound-param", f"{k}:{p}"]
+    for k, insert_id, insert_params in s.get("inserts", []):
+        args += ["--insert", f"{k}:{insert_id}"]
+        for p in insert_params:
+            args += ["--insert-param", f"{k}:{p}"]
+    for lv in s.get("levels", []):
+        args += ["--level", lv]
+    for n in s.get("sound_notes", []):
+        args += ["--sound-note", n]
     return args
 
 
@@ -98,9 +112,11 @@ def test_app_renders_what_fm1_render_renders(tools, tmp_path, s):
         logs = [tmp_path / "ref.jsonl", tmp_path / "app.jsonl"]
     sim_args = scenario_args(s)
     ref_args = scenario_args(s)
+    if s.get("lab"):        # the lab switch: tracks play the sound unit their route names
+        sim_args += ["--lab"]
+        ref_args += ["--slots"]
     if "panel" in s:
-        sim_args += ["--lab"] * bool(s.get("lab")) + [
-            "--panel", str(SIM / "test" / s["panel"]), "--log-cmds", str(tmp_path / "c.verbs")]
+        sim_args += ["--panel", str(SIM / "test" / s["panel"]), "--log-cmds", str(tmp_path / "c.verbs")]
     summary = run(tools["sim"], sim_args + ["--out", str(app)]
                   + (["--log-events", str(logs[1])] if logs else []))
     if "panel" in s:
@@ -146,20 +162,28 @@ def sim_run(tools, tmp_path, script, *extra, engine="test-sine", name="s", tool=
 
 def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     """docs/15 §2.6: the 8-track instance (Capture included) fits the 32 KiB
-    arena, and with the 256-event buffer, the pending command record and the
-    UI state's bound it stays inside the sequencer's 36,864 B, half of
-    docs/13 §5's 72 KiB. fm1_app_t grew by about 36 KB."""
+    arena, and with the 272-event buffer (256 until stage S6), the pending
+    command record, the UI state's bound and the metronome's click voice it
+    stays inside the sequencer's 36,864 B, half of docs/13 §5's 72 KiB.
+    fm1_app_t grew by about 36 KB for the sequencer, and to 4.9 MB for
+    multi-sound's arenas."""
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
     print(f"sizeof(fm1_app_t) = {z['app_bytes']} B")
     assert z["seq_tracks"] == 8                                   # owner decision O3 (2026-10-02)
     assert (z["seq_bytes_8"], z["seq_bytes_4"]) == (31880, 18056)
     assert z["seq_bytes_8"] <= z["seq_arena"] == 32768
-    assert (z["seq_event_bytes"], z["seq_pending_bytes"]) == (3072, 240)
-    total = z["seq_bytes_8"] + z["seq_event_bytes"] + z["seq_pending_bytes"] + z["seq_ui_bytes"]
-    assert total == 36216 <= z["seq_budget"] == 36864
-    assert z["app_bytes"] <= 1_210_000
-    assert z["seq_need"] == 201 <= z["seq_events"] == 256
+    assert (z["seq_event_bytes"], z["seq_pending_bytes"], z["seq_click_bytes"]) == (3264, 240, 20)
+    total = (z["seq_bytes_8"] + z["seq_event_bytes"] + z["seq_pending_bytes"] + z["seq_ui_bytes"]
+             + z["seq_click_bytes"])
+    assert total == 36428 <= z["seq_budget"] == 36864
+    # Multi-sound (docs/15 §3.16): four 512 KiB sound arenas and ten 256 KiB
+    # effect arenas (two master slots, two inserts per sound), 4.5 MiB of the
+    # module's fixed 8 MiB; fm1_app_t is 4,881,424 B natively (clang, 64-bit).
+    assert (z["sounds"], z["inserts"], z["master_slots"], z["units"]) == (4, 2, 2, 14)
+    assert z["arena_bytes"] == 4 * 512 * 1024 + 10 * 256 * 1024
+    assert z["app_bytes"] <= 4_900_000
+    assert z["seq_need"] == 201 <= z["seq_events"] == 272
     assert z["seq_ui_size"] <= z["seq_ui_bytes"]
     script = f"#! rate={RATE} block=64 tracks=8 end=6400\n@0 tog 0 0 60 100\n@0 play\n"
     for tracks, size in ((8, 31880), (4, 18056)):
@@ -167,7 +191,7 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
         assert s["seq_bytes"] == size
         r, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}",
                           tool="render")
-        assert s["ram"] == r["instance_bytes"] + size + 3072, "the RAM figure counts the sequencer"
+        assert s["ram"] == r["instance_bytes"] + size + 3264, "the RAM figure counts the sequencer"
 
 
 def full_load(stop_at, tracks=8):
@@ -398,13 +422,27 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     a chord, a tie, SHIFT's hint and the head in every bar of a 16-bar
     clip, Capture's toasts, a stopped Capture's picker and fitted tempo,
     and both overlays at their extremes (one to three candidates from 20 to
-    300 BPM, tempos from 20 to 300 BPM), over SEQ mode and HOME."""
+    300 BPM, tempos from 20 to 300 BPM), over SEQ mode and HOME. Tracks
+    (S6): the status line's eight tracks, each focused and muted, the
+    focus and Capture toasts, the mute map, SHIFT's legend with its states
+    at both ends, the Set page at its extremes, the Clip page at every speed
+    and its other extremes, with no clip, the Track page routed to each
+    sound unit (the longest name), past them and to every MIDI channel,
+    and Track page 2 with eight tracks' lane labels, none to eight, the
+    longest cut to fit, bases 0 to 127.
+    Multi-sound (docs/15 §3.16): FX mode's five slots, every effect as an
+    insert at its extremes and on M2, the grab, the Mix page with one to
+    four sounds and their levels, every sound as Sound 2 in HOME, the Mix
+    page and SEQ mode, an empty current sound, the SHIFT + PRESETS and
+    PRESETS popups, the RAM meter low, high and past the budget, its
+    refusals from PRESETS and ALGORITHM, and the switch turned off again."""
     res = subprocess.run([str(tools["sim"]), "--screens", str(tmp_path)],
                          capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 1055  # 335 before S3, 815 before S4, 914 before fx pack 2, 1016 before S5
+    assert summary["screens"] >= 1266            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    #                                              1016 before S5, 1055 before multi-sound and S6
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

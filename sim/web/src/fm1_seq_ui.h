@@ -78,6 +78,35 @@
  *                  that no step takes is live input (fm1_app_seq_note_in),
  *                  for recording and Capture
  *
+ * S6 adds tracks, mute and the Set, Clip and Track pages (docs/15 §5 S6,
+ * owner decisions O3, O10-O12: 8 tracks, routed to the sound units, a
+ * metronome click, no solo):
+ *
+ *   SEQ + white key 1-8   focuses track 1-8 (`watch t`, which empties
+ *                  Capture: a toast says so when it held notes), from any
+ *                  mode: SEQ's press opens SEQ mode, and a focus made while
+ *                  it is held goes back to the mode it came from on release
+ *   C#5, D#5       the previous and next track (MONO, POLY printed)
+ *   F#4            MUTE (OP6): a tap mutes or unmutes the focused track
+ *                  (`mute t 0|1`); held, white keys 1-8 mute and unmute
+ *                  tracks 1-8, lit while they sound. SHIFT changes nothing
+ *                  (no solo, O12)
+ *   SHIFT + key    2: the Track page, 3: the Clip page, 5, 7, 9: the Set
+ *                  page, 6: the metronome (`metro`), 16: the focused clip's
+ *                  quantize on to the next of 0, the default, 100 (`cq`),
+ *                  as Movy's step-shortcuts.ts; their legend fills the grid
+ *                  while SHIFT is held
+ *   the pages      KNOB1-4 on the Set page: TEMPO (`bpm`, 1 BPM a detent,
+ *                  0.1 with SHIFT), SWING (50-80 %), DEF QUANT (`dq`, Movy's
+ *                  0-100 % list), METRO; on the Clip page: SPEED (`cscl`,
+ *                  1/8X to 4X), LENGTH (`clen`, 1-256 steps), TRANSPOSE
+ *                  (`ctr`, +-36), QUANT (`cq`); on the Track page: ROUTE
+ *                  (a sound unit or MIDI out), SOUND 1-4 or CHANNEL 1-16
+ *                  (`route`), MUTE; Track page 2 lists the lanes, read only.
+ *                  SELECT walks the sound's pages, then Set, Clip, Track
+ *                  1/2 and 2/2; SEQ goes back to the Track view, and so does
+ *                  a step or bar key
+ *
  * C99, no heap, no stdio. MIT licence, like the rest of this repository.
  */
 #ifndef FM1_SEQ_UI_H_
@@ -95,8 +124,13 @@ extern "C" {
 /* What the screen shows in SEQ mode. */
 enum {
   FM1_SEQ_VIEW_TRACK = 0,           /* the Track view: grid, knob strip, hint */
-  FM1_SEQ_VIEW_STEP = 1             /* the held steps' Step page (step_page) */
+  FM1_SEQ_VIEW_STEP = 1,            /* the held steps' Step page (step_page) */
+  FM1_SEQ_VIEW_SET = 2,             /* the Set page: tempo, swing, default quantize, metro */
+  FM1_SEQ_VIEW_CLIP = 3,            /* the Clip page: speed, length, transpose, quantize */
+  FM1_SEQ_VIEW_TRACKPG = 4          /* the Track page (track_page 0: route and mute;
+                                       1: the lanes) */
 };
+#define FM1_SEQ_UI_TRACK_PAGES 2
 
 /* What the Track view's hint line holds instead of the model line. */
 enum { FM1_SEQ_HINT_NONE = 0, FM1_SEQ_HINT_KNOB, FM1_SEQ_HINT_BAR };
@@ -105,7 +139,11 @@ enum { FM1_SEQ_HINT_NONE = 0, FM1_SEQ_HINT_KNOB, FM1_SEQ_HINT_BAR };
 enum {
   FM1_SEQ_TOAST_NONE = 0, FM1_SEQ_TOAST_FULL_VEL_ON, FM1_SEQ_TOAST_FULL_VEL_OFF,
   FM1_SEQ_TOAST_CAPTURED,           /* a Capture wrote its take */
-  FM1_SEQ_TOAST_NOTHING             /* SHIFT + REC with nothing buffered */
+  FM1_SEQ_TOAST_NOTHING,            /* SHIFT + REC with nothing buffered */
+  FM1_SEQ_TOAST_TRACK,              /* a track focused (toast_arg); */
+  FM1_SEQ_TOAST_TRACK_EMPTIED,      /* ...and Capture's notes went with the `watch` */
+  FM1_SEQ_TOAST_METRO_ON, FM1_SEQ_TOAST_METRO_OFF,
+  FM1_SEQ_TOAST_QUANT               /* SHIFT + 16: the clip's quantize, toast_arg % */
 };
 
 /* What REC's press did, for its release (fm1_seq_ui_t.rec_role). */
@@ -130,6 +168,24 @@ enum { FM1_SEQ_UI_CAPTURE_NONE = 0, FM1_SEQ_UI_CAPTURE_PICK = 1, FM1_SEQ_UI_CAPT
 #define FM1_SEQ_UI_KEY_BAR_BACK 1   /* F#3: the previous bar; nudge earlier */
 #define FM1_SEQ_UI_KEY_BAR_ON 5     /* A#3: the next bar; nudge later */
 #define FM1_SEQ_UI_FULL_VEL_KEY 9   /* SHIFT + white key 10: full velocity */
+#define FM1_SEQ_UI_KEY_MUTE 13      /* F#4 (OP6): MUTE */
+#define FM1_SEQ_UI_KEY_TRACK_PREV 20   /* C#5 (MONO): the previous track */
+#define FM1_SEQ_UI_KEY_TRACK_NEXT 22   /* D#5 (POLY): the next track */
+#define FM1_SEQ_UI_SOUNDS 4         /* sound units a track can play (the app's FM1_APP_SOUNDS) */
+
+/* The Clip page's SPEED, Movy's SCALE_RATIONALS (src/seq/clip-scale.ts at
+ * 9190e79), and the quantize list of the Set and Clip pages (quant.ts). */
+#define FM1_SEQ_UI_SPEEDS 8
+#define FM1_SEQ_UI_SPEED_1X 4
+#define FM1_SEQ_UI_QUANTS 11
+extern const uint8_t fm1_seq_ui_speeds[FM1_SEQ_UI_SPEEDS][2];
+extern const uint8_t fm1_seq_ui_quants[FM1_SEQ_UI_QUANTS];
+/* The speed list's index of num/den (1X off the list), the quantize list's
+ * nearest, and Movy's SHIFT + 16 cycle: the next of 0, the default and 100
+ * above `pct`, wrapping. */
+int fm1_seq_ui_speed_index(unsigned num, unsigned den);
+int fm1_seq_ui_quant_index(unsigned pct);
+unsigned fm1_seq_ui_next_quant(unsigned pct, unsigned def);
 
 /* Movy's Step page values (src/seq/step-page-vm.ts at 9190e79, MIT,
  * megadake): LEN in ticks (24 a step, 384 a bar), PROB in percent. */
@@ -258,6 +314,24 @@ typedef struct fm1_seq_ui {
   uint8_t cap_sent;                 /* a `cap` went: the next sync says what it did */
   uint16_t capture_cands[3];        /* candidate tempos, BPM, ascending */
   uint32_t capture_gen, cap_gen_sent;
+
+  /* Tracks, mute and the pages (S6). The set's and the focused track's
+   * settings are read once per block, and moved at once by the commands
+   * the pages send, so a second detent before the next block counts. */
+  uint8_t tracks;                   /* the instance's track count */
+  uint8_t track_page;               /* the Track page shown (page memory, O21) */
+  uint8_t seq_held, seq_gestured;   /* SEQ is down; a track was focused while it was */
+  uint8_t mute_held, mute_gestured; /* MUTE is down; the mute map was used */
+  uint8_t follow;                   /* the focused track or its route changed here:
+                                       the app makes its sound current */
+  uint8_t toast_arg;                /* the toast's number: a track, a quantize */
+  uint16_t muted;                   /* bit per track */
+  uint16_t swing;                   /* the set's swing, 50..80 % */
+  uint8_t dq, metro;                /* its default quantize and metronome */
+  uint8_t clip_num, clip_den;       /* the focused clip's speed, */
+  uint8_t clip_quant;               /* quantize */
+  int8_t clip_tr;                   /* and transpose */
+  uint8_t route_kind, route_index;  /* the focused track's route (FM1_SEQ_ROUTE_*) */
 } fm1_seq_ui_t;
 
 /* Track 1 focused, the Track view, bar 1, Step page 1, no hint, nothing
@@ -267,6 +341,11 @@ void fm1_seq_ui_init(fm1_seq_ui_t *u, float rate);
 /* SEQ pressed: the Track view (from S9 a press inside SEQ mode goes to
  * Session; in S4 it stays). */
 void fm1_seq_ui_enter(fm1_seq_ui_t *u);
+
+/* A page of SEQ mode (FM1_SEQ_VIEW_SET, _CLIP or _TRACKPG), as SELECT
+ * reaches it past the sound's last page; any other view is the Track view.
+ * Nothing is sent. */
+void fm1_seq_ui_open(fm1_seq_ui_t *u, int view);
 
 /* SEQ mode left (HOME, FX, GLO, the lab switch off): the held steps are let
  * go without toggling, and the Track view comes back next time. Keys still
@@ -290,7 +369,8 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
  * `mode` (fm1_app_mode_t). Returns 1 when the UI took it and the app must
  * not act on it as well: SEL as SHIFT, OCT with steps held, REC, and any
  * press while Capture's overlay is up (it closes the overlay); PLAY/STOP's
- * command is sent here, and the app only keeps its LED. */
+ * command is sent here, and the app only keeps its LED. SEQ's edges are
+ * noted (seq_held) and left to the app. */
 int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down, uint64_t frame,
                       int mode, const fm1_seq_ui_emit_t *out);
 
@@ -306,10 +386,10 @@ int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int v
 int fm1_seq_ui_has_key(const fm1_seq_ui_t *u, int key);
 
 /* An encoder turned (fm1_app_encoder_t): 1 when the UI took it (in SEQ
- * mode, SELECT and KNOB1..4 with steps held; in any mode while Capture's
- * overlay is up: SELECT and KNOB1 move the picker, and over the fitted
- * tempo do nothing, as Movy's jog; the others close it); 0 leaves it to
- * the app. */
+ * mode, SELECT and KNOB1..4 with steps held or on the Set, Clip and Track
+ * pages; in any mode while Capture's overlay is up: SELECT and KNOB1 move
+ * the picker, and over the fitted tempo do nothing, as Movy's jog; the
+ * others close it); 0 leaves it to the app. */
 int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int delta,
                        uint64_t frame, int mode, const fm1_seq_ui_emit_t *out);
 
@@ -344,7 +424,9 @@ void fm1_seq_ui_knob(fm1_seq_ui_t *u, int knob, uint64_t until);
 /* The keys' LEDs in SEQ mode at `frame`, bit per key index: white keys show
  * the bar's steps with a note inside the loop, the playhead inverted, held
  * keys lit and the steps under the held step's note blinking slowly; F#3
- * and A#3 are lit while their role is available. */
+ * and A#3, MUTE and the track keys are lit while their role is available.
+ * With MUTE held, white keys 1-8 are the mute map, lit while their track
+ * sounds; with SEQ held, the focused track's key is lit. */
 uint32_t fm1_seq_ui_key_leds(const fm1_seq_ui_t *u, uint64_t frame);
 
 /* The steps of the bar on the keys that are held (bit n for white key n). */

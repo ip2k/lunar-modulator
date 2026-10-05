@@ -20,6 +20,39 @@ history.
   stock SysEx command that this project must not send before the dump-and-
   restore gate). It lists about 30 corrections to our docs and ten owner
   decisions.
+- Tracks on the virtual FM-1's panel, still behind the lab switch (`?lab`;
+  docs/15 stage S6). There are eight tracks, all playing Sound 1 to begin
+  with.
+  - Hold SEQ and press white key 1 to 8 to work on that track, from any
+    mode (you are back where you were when you let go of SEQ). In SEQ
+    mode MONO and POLY (C#5, D#5) step to the previous and next track.
+    The screen names the track, and says so when choosing it emptied what
+    Capture held. The track's sound becomes the one the keys play.
+  - OP6 (F#4) mutes and unmutes the track; hold it and white keys 1 to 8
+    mute and unmute tracks 1 to 8, lit while they play. The tracks show
+    at the top of the screen, a muted one as an outline. There is no solo
+    (the owner's choice).
+  - Hold SHIFT to see its shortcuts. SHIFT and white key 2 open the Track
+    page (which sound the track plays, or MIDI out on a channel, its mute,
+    and its lanes on a second page; moving a playing track elsewhere lets
+    go of the note it holds, rather than leaving it sounding on the old
+    sound), 3 the Clip page (speed from 1/8X to
+    4X, length, transpose, quantize), 5, 7 or 9 the Set page (tempo,
+    swing, the quantize new clips get, metronome). SELECT also walks on
+    to these pages from the sound's.
+  - A metronome click: SHIFT and white key 6, or the Set page, turn it on
+    and off. SHIFT and white key 16 step the clip's quantize through 0,
+    the default and 100 %.
+  - For developers: the click is a new part of the shared sequencer
+    bridge, so `fm1-render` plays it too, the same to the bit
+    (`seq_clicks` in its summary). The app's event buffer grows from 256
+    to 272 events, which holds the worst burst measured; the public
+    page's RAM figure counts the 192 bytes, so a few chains read 1K more.
+    Ten new gesture traces replay through `fm1-render` byte for byte, two
+    new parity scenarios play tracks from the panel and the click (46 of
+    46 pass, with multi-sound's), and 1,266 screens pass the layout check
+    (69 new); the screens with the lab switch off are unchanged. With
+    multi-sound, the browser module grew from 525 KB to 548 KB.
 - Recording and Capture on the virtual FM-1's panel, still behind the lab
   switch (`?lab`; docs/15 stage S5). What you play on the keys (outside
   SEQ mode) or at MIDI IN now reaches the sequencer as well as the sound.
@@ -46,6 +79,34 @@ history.
     screens pass the layout check (39 new); the screens with the lab
     switch off are unchanged. The browser module grew from 516 KB to
     525 KB.
+- Several sounds at once on the virtual FM-1, behind the lab switch
+  (`?lab`; docs/15 §3.16, the owner's decision of 2026-10-02).
+  - Up to four sounds play together, each with its own two insert effects
+    and its own level into the mix; the two effect slots you had are now
+    the master effects, after the sounds are mixed. Each sequencer track
+    plays the sound its route names.
+  - Hold SEL (SHIFT) and turn PRESETS to choose which sound you play and
+    edit: the keys, MIDI IN, HOME, PRESETS and ALGORITHM then act on it,
+    and the title shows it (`S2 Shapes`). PRESETS on Sounds 2–4 also
+    offers Empty, to remove that sound. The page's Sound menu follows.
+  - FX mode shows the chain of the sound you are on: its two inserts, a
+    Mix page where KNOB1–4 set the four sounds' levels, then the two
+    master effects. SEL and SELECT swap the two inserts, as they swap the
+    master effects.
+  - A RAM meter in the bottom bar shows how much of the FM-1's free memory
+    the whole setup would take, and refuses any sound or effect that would
+    not fit, with a popup saying by how much, whether you choose it on the
+    panel or in the page's menus; turning PRESETS or ALGORITHM skips past
+    such choices. What plays in the simulator fits the device.
+  - Without the lab switch nothing changes: one sound and two effects,
+    sounding exactly as before.
+  - For developers: `fm1_app_unit_*` routes tracks to sound units (for
+    stage S6), the route going in as a logged, replayable command;
+    `fm1-render` takes `--sound`, `--insert`, `--level`, `--sound-note`,
+    `--sound-param-at`, `--level-at` and `--slots`; three
+    new parity scenarios play two and four sounds with inserts and the
+    panel gestures; 142 new screens pass the layout check (its insert
+    sweep runs every effect).
 - notes/2026-10-02-filters-dynamics-options.md: research on classic filter
   designs, compressors, limiters, overdrives and saturators, and how they fit
   the effect slots, the voices and the modulation matrix. Most of the filter
