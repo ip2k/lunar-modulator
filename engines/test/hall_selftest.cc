@@ -44,7 +44,7 @@ void Report(const char *check, bool ok, const std::string &detail = "") {
 }
 
 std::string Num(const char *key, double v) {
-  char b[64];
+  char b[160];   // room for any key: GCC 13 warned of truncation at 64
   snprintf(b, sizeof(b), "\"%s\":%.9g", key, v);
   return b;
 }
