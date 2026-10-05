@@ -504,6 +504,16 @@ def test_a_white_key_plays_the_pad_a_drum_note_plays(tools, tmp_path, white):
     assert a.read_bytes() == b.read_bytes()
 
 
+@pytest.mark.parametrize("engine,note,lit", [
+    ("drums", 38, 4),       # the snare at MIDI IN lights A3, the key that plays it
+    ("drums", 60, None),    # a note the kit ignores lights nothing (it lit C4)
+    ("macro", 60, 7),       # a pitched sound: C4, as before
+])
+def test_a_key_lights_while_the_note_it_plays_sounds(tools, engine, note, lit):
+    s = run(tools["sim"], ["--engine", engine, "--seconds", "0.3", "--note", f"0.1:{note}:100:0.5"])
+    assert [k for k in range(27) if s["leds"][k] == "1"] == ([] if lit is None else [lit])
+
+
 def test_a_pad_kits_black_keys_are_silent(tools):
     """All eleven black keys play nothing on a pad kit."""
     keys = [arg for i, k in enumerate(BLACK_KEYS)

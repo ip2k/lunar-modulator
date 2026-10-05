@@ -1707,9 +1707,10 @@ static int octave_led(const fm1_app_t *a, int magnitude) {
 
 static void update_leds(fm1_app_t *a) {
   uint8_t led[FM1_APP_LEDS];
-  int base = FM1_APP_FIRST_NOTE + 12 * a->octave + a->transpose;
   for (int k = 0; k < FM1_APP_KEYS; ++k) {
-    int note = base + k, sounding = 0;
+    /* A key lights while the note it plays sounds: with a pad kit as the
+     * sound, its pad's (a black key's -1: none). */
+    int note = key_note(a, k), sounding = 0;
     for (int s = 0; note >= 0 && note < 128 && s < FM1_APP_SOUNDS; ++s) sounding |= a->note_count[s][note];
     led[k] = (uint8_t)(a->key_down[k] || sounding);
   }
