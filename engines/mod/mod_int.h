@@ -12,7 +12,7 @@
 
 #define MOD_NONE 0xFFu
 #define MOD_NO_FRAME 0xFFFFFFFFFFFFFFFFull
-#define MOD_SYS_GATES 15u      /* KEY TRIG CLOCK BEAT BAR RUN START SEQ1-8 */
+#define MOD_SYS_GATES 16u      /* KEY TRIG CLOCK BEAT BAR RUN START RTRG SEQ1-8 */
 #define MOD_SINK_UNITS 4u      /* SOUND FX1 FX2 HOST */
 #define MOD_MAX_WRITES (3u * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS)
 
@@ -66,6 +66,7 @@ struct fm1_mod {
   uint64_t k;                  /* its index */
   uint64_t trig_fall[MOD_SYS_GATES];   /* a system trigger's pending fall */
   uint64_t cv_has[2];          /* pending CV changes, per window, by id */
+  uint64_t rtrg_at;            /* RTRG's last retrigger or rise, as an absolute frame */
   mod_slot_rt_t srt[FM1_MOD_SLOTS];
   fm1_mp_rng_t note_rng;       /* RAND */
   fm1_mod_stats_t stats;

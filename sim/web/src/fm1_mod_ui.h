@@ -200,9 +200,11 @@ int fm1_mod_ui_set_param(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned 
                          unsigned index, float value);
 int fm1_mod_ui_move(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned from, unsigned to);
 /* The default rack (LFO, LFO, Envelope, Envelope, Chance) and its two
- * cables, KEY into each Envelope's GATE at 100 %, so the envelopes follow
- * every note on the sound (keys, MIDI in and the sequencer). Not emitted:
- * a log starts with fm1_mod_ui_dump. */
+ * cables, RTRG into each Envelope's GATE at 100 %, so every note on any
+ * sound unit (keys, MIDI in and the sequencer) restarts the envelopes, a
+ * note played while another is held too (owner, 2026-10-05). They are
+ * ordinary slots 1 and 2: KEY in their place makes the envelopes legato.
+ * Not emitted: a log starts with fm1_mod_ui_dump. */
 void fm1_mod_ui_default(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u);
 
 /* ---- the pages ---------------------------------------------------------------- */

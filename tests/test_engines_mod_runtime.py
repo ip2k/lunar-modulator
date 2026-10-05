@@ -42,7 +42,7 @@ FIXTURE = ROOT / "tests" / "fixtures" / "mod-uids.json"
 TICK = 32
 # fm1_mod_size(): 8,192 B of arena and 11,824 B of fixed state, the same in
 # 32- and 64-bit builds (no pointers; every 64-bit member 8-aligned).
-MOD_BYTES = 20016
+MOD_BYTES = 20064
 FLAG_BITS = ["latch", "smooth", "nolock", "mod", "input"]
 
 
@@ -472,6 +472,37 @@ def test_fx_param_at_is_the_base_of_an_effect_parameter(renderer, tmp_path):
                         pytest.approx(min(1.0, 0.8 + amt * t["m"][0]["o"][0]), abs=1e-6)
                         for t in late)
     assert s["mod_other_writes"] > 100
+
+
+def test_rtrg_retriggers_on_every_note_on(renderer, tmp_path):
+    """RTRG (docs/16 MG3; the owner's decision of 2026-10-05: envelopes
+    trigger from every note): KEY, retriggered. Two overlapping notes, then
+    a two-note chord: KEY rises and falls once for each phrase, RTRG falls
+    and rises again at the second note's frame and rises once for the chord.
+    Into an envelope's GATE (the lab's default cables) the second note
+    restarts the attack; with KEY it would only sustain."""
+    notes = ["--note", "0.1:60:100:0.6", "--note", "0.3:64:100:0.2",
+             "--note", "0.9:67:100:0.1", "--note", "0.9:71:100:0.1"]
+    args = ["--engine", "test-sine", "--seconds", "1.2"] + notes
+    rack = "mod 1 env attack=0.3 decay=0.4 sustain=0.4\n"
+    at = lambda t: -(-int(t * RATE) // 64) * 64     # noqa: E731  (the block a --note applies at)
+
+    def edges(ticks, sid):
+        return [(t["t"] - 32 + f, high) for t in ticks for s_, f, high in t["g"] if s_ == sid]
+
+    _, _, rt = run(renderer, tmp_path, args, mod=rack + "slot 1 rtrg > env1:gate\n", name="rtrg")
+    _, _, kt = run(renderer, tmp_path, args, mod=rack + "slot 1 key > env1:gate\n", name="key")
+    on1, on2, off1, chord = at(0.1), at(0.3), at(0.7), at(0.9)
+    assert edges(rt, 16)[:3] == [(on1, 1), (off1, 0), (chord, 1)]
+    assert edges(rt, 23)[:5] == [(on1, 1), (on2, 0), (on2, 1), (off1, 0), (chord, 1)]
+    assert edges(rt, 16) == edges(kt, 16)
+    env = lambda ticks: {t["t"]: t["m"][0]["o"][0] for t in ticks}   # noqa: E731
+    er, ek = env(rt), env(kt)
+    before = max(t for t in er if t <= on2)
+    after = [t for t in sorted(er) if on2 < t < on2 + 0.1 * RATE]
+    assert er[before] == ek[before]                  # the same until the second note
+    assert er[after[-1]] > er[after[0]]              # RTRG: the attack again
+    assert ek[after[-1]] <= ek[after[0]]             # KEY: decaying toward sustain
 
 
 def test_mod_runs_over_sound_units(renderer, tmp_path):

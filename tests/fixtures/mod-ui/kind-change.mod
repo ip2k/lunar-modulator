@@ -9,8 +9,8 @@ mod 5 chance
 mod 6 none
 mod 7 none
 mod 8 none
-slot 1 key > mod3:Gate amt=100 ofs=0 pol=auto curve=lin
-slot 2 key > mod4:Gate amt=100 ofs=0 pol=auto curve=lin
+slot 1 rtrg > mod3:Gate amt=100 ofs=0 pol=auto curve=lin
+slot 2 rtrg > mod4:Gate amt=100 ofs=0 pol=auto curve=lin
 @52992 mod 4 chance
 @70592 mod 4 env
-@70592 slot 2 key > mod4:Gate amt=100 ofs=0 pol=auto curve=lin
+@70592 slot 2 rtrg > mod4:Gate amt=100 ofs=0 pol=auto curve=lin

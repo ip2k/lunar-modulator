@@ -358,9 +358,9 @@ final = fm1_param_clamp(p, base + sum of contrib over enabled slots, in ascendin
 - **CV:** velocity, note number, mod wheel, aftertouch, bend, CC A and CC B
   (MIDI-learned), MACRO 1–4 (lockable parameters of the host), random value
   per note, audio level (the previous block's peak), keys held.
-- **Gates:** key gate, note trigger, SEQ track 1–8 gate and velocity, CLOCK
-  (a step), BEAT, BAR, RUN and START, with exact frames from `fm1_seq`'s
-  events. The arp's step and gate join when the arpeggiator lands (§6.4).
+- **Gates:** key gate (and since MG3 its retriggered twin, RTRG), note
+  trigger, SEQ track 1–8 gate and velocity, CLOCK (a step), BEAT, BAR, RUN
+  and START, with exact frames from `fm1_seq`'s events. The arp's step and gate join when the arpeggiator lands (§6.4).
 
 **Module outputs** are ids 64–127. Their screen label is the kind's `abbr`,
 the rack position and, for a module with more than one output, the port:
@@ -1177,7 +1177,7 @@ and the tests) [verified 2026-10-02]:
   with the route the bridge gives it; `fm1_seq_host_dispatch_slots` runs
   no hook yet, and `fm1-render --mod` refuses the sound-unit flags, so
   modulating several sound units is MG3's.
-- Sources: VEL, NOTE, RAND, KEY, TRIG, the sequencer's CLOCK, BEAT, BAR,
+- Sources: VEL, NOTE, RAND, KEY, TRIG (and RTRG from MG3), the sequencer's CLOCK, BEAT, BAR,
   RUN, START and track gates and velocities. Sinks: SOUND, FX1, FX2 (in
   `fm1-render`), HOST PITCH and AMP. MIDI controllers and MACRO 1–4 wait
   for a host that has them.
@@ -1260,15 +1260,20 @@ marked]:
     on its page, ENV1 and LFO1 at first) to that knob's parameter follows
     the turn, 1 % a detent. No PATCH latch was built.
   - The default rack: LFO1, LFO2, ENV1, ENV2, Chance and three empty
-    positions, with two default cables, KEY into ENV1's and ENV2's GATE at
-    100 %, so the envelopes follow every note on the sound (the keys, MIDI
-    in and the sequencer's tracks routed to it). They are ordinary slots 1
-    and 2, re-patchable: a cable into GATE breaks its normal to KEY.
-    KEY is a legato gate: high while any note is held, so a note played
-    while another still sounds does not restart the envelopes [verified:
-    `mod_core.c`, `note_at` and `feed_level`]. Separate notes each open
-    them; restarting on every overlapping note too waits for per-voice
-    envelopes (MG9) or a retriggering KEY (an owner question).
+    positions, with two default cables, **RTRG** into ENV1's and ENV2's GATE
+    at 100 %, so every note restarts the envelopes (the owner's decision of
+    2026-10-05: envelopes trigger from every note), whether it comes from
+    the keys, MIDI in or the sequencer's tracks. RTRG is a new system
+    source, id 23: KEY retriggered, high while any note is held, with a
+    fall and a rise at the frame of each note-on that comes while it is
+    high, once a frame, so a chord's notes restart it once [verified:
+    `mod_core.c`, `note_at`; `test_rtrg_retriggers_on_every_note_on`]. KEY
+    stays the legato gate MG1 made (a note while another is held changes
+    nothing), and the Envelope's normal stays KEY, so MG1's and MG2's traces
+    are unchanged. The two cables are ordinary slots 1 and 2, re-patchable:
+    KEY in their place makes the envelopes legato, and a cable removed
+    leaves the Envelope on its normal, KEY (an owner question at the end
+    of this section: whether the normal should retrigger too).
   - Envelopes and LFOs are global in this stage; per-voice comes next.
 - **Names by kind.** Modules are named by kind and order, as the owner
   names them: the default rack reads LFO1, LFO2, ENV1, ENV2, CHN1, not §5.3's
@@ -1406,6 +1411,9 @@ due during this plan; check the mark at MG3.
    rack is LFO1, LFO2, ENV1, ENV2 and Chance with KEY cabled into both
    envelopes' GATE; envelopes and LFOs are global now and per-voice next
    (essential).** Built in MG3. SEL held + white keys waits for MG5.
+   **Amended (2026-10-05): envelopes trigger from every note**, so the
+   default cables take RTRG, KEY retriggered at each note-on (MG3, "As
+   built").
 9. **Arena.** 8 KB (recommended) or 16 KB? **Answered (2026-10-02): 8 KB.**
    Built in MG1.
 10. **Segments on the device.** The control-rate rewrite, checked against the

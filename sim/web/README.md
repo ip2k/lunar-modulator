@@ -141,7 +141,7 @@ renders without the switch go the same way as before (no hook, no split).
 | SEL outside FX mode | "SEL works in FX mode" | SHIFT (O2), its LED on while held; FX mode keeps the slot grab, RACK grabs the module, MATRIX opens CHAIN and CHAIN goes back (docs/16 §5.2) |
 | LFO, ENV | "not in the simulator yet" | a tap opens RACK at the LFOs or the Envelopes, a page per module; held while a knob turns on HOME, FX or RACK, a cable from the selected one to that knob's parameter (below) |
 | EDIT | "not in the simulator yet" | MATRIX, the 32 cables; SEL there opens CHAIN; EDIT again goes HOME |
-| Modulation | none | a runtime (`engines/mod`) on the sound, both effects and the host, from the default rack: LFO1, LFO2, ENV1, ENV2 and Chance, with KEY cabled into both envelopes' GATE so they follow every note |
+| Modulation | none | a runtime (`engines/mod`) on the sound, both effects and the host, from the default rack: LFO1, LFO2, ENV1, ENV2 and Chance, with RTRG (the note gate, retriggered by each note-on) cabled into both envelopes' GATE so every note restarts them |
 | PLAY/STOP | "not in the simulator yet" | `play` or `stop`, in every mode, as a typed command (`src/fm1_seq_ui.c`, then `fm1_app_seq_cmd` under the event-room rule) |
 | REC | "not in the simulator yet" | `rec` on the focused track: stopped, a bar's count-in; playing, a take from the next bar over an empty clip, an overdub at once over notes; again, off. In SEQ mode while stopped it acts on its release: a quick tap records, held it is step record. SHIFT + REC is Capture (S5, below) |
 | Keys outside SEQ mode, MIDI IN | play the sound | the same, and they are live input to the focused track (`non`/`nof`): recording and Capture hear them, unless a step took the note |

@@ -16,10 +16,10 @@
 #include <string.h>
 
 /* ---- system gates: compact indexes ---------------------------------------- */
-enum { G_KEY = 0, G_TRIG, G_CLOCK, G_BEAT, G_BAR, G_RUN, G_START, G_SEQ };
+enum { G_KEY = 0, G_TRIG, G_CLOCK, G_BEAT, G_BAR, G_RUN, G_START, G_RTRG, G_SEQ };
 
 static int gate_index(unsigned id) {
-  if (id >= FM1_MOD_SRC_KEY && id <= FM1_MOD_SRC_START) return (int)(id - FM1_MOD_SRC_KEY);
+  if (id >= FM1_MOD_SRC_KEY && id <= FM1_MOD_SRC_RTRG) return (int)(id - FM1_MOD_SRC_KEY);
   if (id >= FM1_MOD_SRC_SEQ_GATE && id < FM1_MOD_SRC_SEQ_GATE + 8u) {
     return G_SEQ + (int)(id - FM1_MOD_SRC_SEQ_GATE);
   }
@@ -66,6 +66,7 @@ fm1_mod_t *fm1_mod_create(void *mem, const fm1_host_t *host, uint32_t seed) {
   m->k = 1;
   m->next_tick = FM1_MOD_TICK;
   m->start_frame = MOD_NONE;
+  m->rtrg_at = MOD_NO_FRAME;
   for (i = 0; i < FM1_MOD_POSITIONS; ++i) m->kind[i] = MOD_NONE;
   for (i = 0; i < MOD_SYS_GATES; ++i) m->trig_fall[i] = MOD_NO_FRAME;
   for (i = 0; i < FM1_MOD_SLOTS; ++i) {
@@ -437,13 +438,21 @@ static void note_at(fm1_mod_t *m, uint64_t at, uint8_t key, uint8_t vel) {
   if (vel) {
     m->keys[key >> 5] |= 1u << (key & 31u);
     feed_level(m, G_KEY, at, 1);
+    /* RTRG: KEY, but a note-on while it is high falls and rises again at
+     * its frame, once a frame (a chord's notes share one onset). */
+    if (m->glvl_fed[G_RTRG] && m->rtrg_at != at) feed_edge(m, G_RTRG, at, 0);
+    if (m->rtrg_at != at || !m->glvl_fed[G_RTRG]) feed_edge(m, G_RTRG, at, 1);
+    m->rtrg_at = at;
     feed_trigger(m, G_TRIG, at);
     feed_cv(m, FM1_MOD_SRC_VEL, at, (float)(vel > 127 ? 127 : vel) * (1.0f / 127.0f));
     feed_cv(m, FM1_MOD_SRC_NOTE, at, (float)((int)key - 60) * (1.0f / 60.0f));
     feed_cv(m, FM1_MOD_SRC_RAND, at, fm1_mp_rng_bipolar(&m->note_rng));
   } else if (key_bit(m->keys, key)) {
     m->keys[key >> 5] &= ~(1u << (key & 31u));
-    if (!any_bit(m->keys)) feed_level(m, G_KEY, at, 0);
+    if (!any_bit(m->keys)) {
+      feed_level(m, G_KEY, at, 0);
+      feed_level(m, G_RTRG, at, 0);
+    }
   }
 }
 

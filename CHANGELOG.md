@@ -14,9 +14,11 @@ history.
   unchanged: there ENV, LFO and EDIT still say they are not in the
   simulator yet.
   - Two LFOs, two envelopes and a random source (Chance) are ready from the
-    start, and every note opens both envelopes, whether it comes from the
-    keys, MIDI in or the sequencer. Nothing moves the sound until you
-    connect something.
+    start, and every note starts both envelopes again, even one played
+    while another is held, whether it comes from the keys, MIDI in or the
+    sequencer (a new source, RTRG, the note gate retriggered at each new
+    note, feeds them; KEY in its place keeps them legato). Nothing moves the
+    sound until you connect something.
   - LFO or ENV shows those modules a page at a time: their settings on the
     four knobs, SELECT through every module and page, ALGORITHM to put
     another kind of module in a place, or empty it. Changing a module back

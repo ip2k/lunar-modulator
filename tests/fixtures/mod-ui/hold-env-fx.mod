@@ -9,7 +9,7 @@ mod 5 chance
 mod 6 none
 mod 7 none
 mod 8 none
-slot 1 key > mod3:Gate amt=100 ofs=0 pol=auto curve=lin
-slot 2 key > mod4:Gate amt=100 ofs=0 pol=auto curve=lin
+slot 1 rtrg > mod3:Gate amt=100 ofs=0 pol=auto curve=lin
+slot 2 rtrg > mod4:Gate amt=100 ofs=0 pol=auto curve=lin
 @13248 slot 3 mod3.1 > fx1:Mix amt=40.0024414062 ofs=0 pol=auto curve=lin
 @19904 slot 4 mod3.1 > fx1:Decay amt=-20.0012207031 ofs=0 pol=auto curve=lin

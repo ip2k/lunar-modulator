@@ -215,13 +215,19 @@ enum {
   FM1_MOD_SRC_VEL = 0,          /* CV_UNI: velocity / 127 of the last note-on on the sound */
   FM1_MOD_SRC_NOTE = 1,         /* CV_BI, SEMI: (last note - 60) / 60 */
   FM1_MOD_SRC_RAND = 2,         /* CV_BI: a seeded random value drawn at each note-on */
-  FM1_MOD_SRC_KEY = 16,         /* GATE: high while a note is held on the sound */
+  FM1_MOD_SRC_KEY = 16,         /* GATE: high while a note is held on the sound (legato:
+                                   a note while another is held changes nothing) */
   FM1_MOD_SRC_TRIG = 17,        /* GATE: a trigger at each note-on on the sound */
   FM1_MOD_SRC_CLOCK = 18,       /* GATE: a trigger each sequencer step (1/16) */
   FM1_MOD_SRC_BEAT = 19,        /* GATE: a trigger each beat */
   FM1_MOD_SRC_BAR = 20,         /* GATE: a trigger each bar */
   FM1_MOD_SRC_RUN = 21,         /* GATE: high while the transport runs */
   FM1_MOD_SRC_START = 22,       /* GATE: a trigger at Start */
+  FM1_MOD_SRC_RTRG = 23,        /* GATE: KEY retriggered: high while a note is held, and
+                                   a fall and a rise at the frame of each note-on that
+                                   comes while it is high (notes starting at one frame,
+                                   a chord, retrigger it once). The default rack's
+                                   envelopes take it (docs/16 MG3, owner, 2026-10-05) */
   FM1_MOD_SRC_SEQ_GATE = 24,    /* GATE, 24-31: high while track 1-8 sounds a note */
   FM1_MOD_SRC_SEQ_VEL = 32,     /* CV_UNI, 32-39: velocity / 127 of track 1-8's last note */
   FM1_MOD_SRC_SYSTEM = 64,      /* ids below are system sources */

@@ -13,7 +13,7 @@
  *   reset                          reset every module (as a preset load)
  *
  * SRC is a system source (vel, note, rand, key, trig, clock, beat, bar, run,
- * start, seq1-seq8, sqv1-sqv8) or a module output: the kind's id or
+ * start, rtrg, seq1-seq8, sqv1-sqv8) or a module output: the kind's id or
  * abbreviation, or "mod", with its position, and optionally a port by name
  * or number (lfo1, lfo1.wrap, env3.2, mod5.held). DST is snd:NAME,
  * fx1:NAME, fx2:NAME, host:pitch, host:amp, or a module's parameter or gate

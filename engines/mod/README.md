@@ -132,7 +132,8 @@ final = clamp(base + (c1 + c2 + ...)), an ENUM rounded
 | Ids | Sources (MG1) |
 | --- | --- |
 | 0 VEL, 1 NOTE, 2 RAND | velocity / 127 and (note − 60) / 60 (SEMI) of the last note on the sound; a seeded random value drawn at each note-on |
-| 16 KEY, 17 TRIG | high while a note is held on the sound; a trigger at each note-on |
+| 16 KEY, 17 TRIG | high while a note is held on the sound (legato); a trigger at each note-on |
+| 23 RTRG | KEY retriggered: high while a note is held, falling and rising again at each note-on that comes while it is high, once a frame (docs/16 MG3: the virtual FM-1's default envelope cables) |
 | 18 CLOCK, 19 BEAT, 20 BAR | triggers each sequencer step, beat and bar, from its 24-PPQN clock |
 | 21 RUN, 22 START | high while the transport runs; a trigger at Start |
 | 24–31 SEQ1–8, 32–39 SQV1–8 | high while sequencer track 1–8 sounds a note (any route); its last velocity / 127 |

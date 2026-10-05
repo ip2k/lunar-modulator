@@ -70,20 +70,21 @@ def test_with_the_lab_switch_off_env_lfo_and_edit_are_stubs(tools):
 
 def test_the_lab_starts_the_default_rack_and_its_cables(tools):
     """Owner, 2026-10-02: LFO1, LFO2, ENV1, ENV2, Chance and three empty
-    positions; KEY (every note on the sound: keys, MIDI in, the sequencer)
-    cabled into both envelopes' GATE at 100 %, re-patchable."""
+    positions; RTRG (every note on every sound: keys, MIDI in, the
+    sequencer; each note-on restarts it, owner 2026-10-05) cabled into both
+    envelopes' GATE at 100 %, re-patchable."""
     m = lab(tools)["mod"]
     assert m["rack"] == ["lfo", "lfo", "env", "env", "chance", "", "", ""]
     assert [(s["slot"], s["src"], s["unit"], s["dst"], s["amount"], s["flags"]) for s in m["slots"]] == [
-        (1, 16, 8 + 2, 0, Q14, ON | GATE_DST), (2, 16, 8 + 3, 0, Q14, ON | GATE_DST)]
-    assert [s["row"] for s in m["slots"]] == [" KEY   >E1Gate +100", " KEY   >E2Gate +100"]
+        (1, 23, 8 + 2, 0, Q14, ON | GATE_DST), (2, 23, 8 + 3, 0, Q14, ON | GATE_DST)]
+    assert [s["row"] for s in m["slots"]] == [" RTRG  >E1Gate +100", " RTRG  >E2Gate +100"]
     assert (m["sel_lfo"], m["sel_env"]) == (1, 3)
 
 
 def test_sizes(tools):
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
-    assert z["mod_bytes"] == 20016 <= z["mod_arena"] == 36864
+    assert z["mod_bytes"] == 20064 <= z["mod_arena"] == 36864
     assert z["mod_ui_bytes"] <= 256
 
 

@@ -731,7 +731,7 @@ void fm1_mod_ui_default(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u) {
     fm1_mod_slot_t s;
     if (e < 0) continue;
     memset(&s, 0, sizeof s);
-    s.src = FM1_MOD_SRC_KEY;
+    s.src = FM1_MOD_SRC_RTRG;            /* every note restarts it (owner, 2026-10-05) */
     s.via = FM1_MOD_NONE;
     s.dst_unit = (uint8_t)(FM1_MOD_MODULE + (unsigned)e);
     s.flags = FM1_MOD_SLOT_ON | FM1_MOD_SLOT_GATE_DST;
