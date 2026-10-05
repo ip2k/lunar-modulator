@@ -1963,9 +1963,10 @@ note). Both hosts refuse any other version, so a v2 engine built out of tree
 must be rebuilt; nothing a v2 engine does changes, and every engine and
 effect here renders byte for byte as before [verified: every parity
 scenario's fm1-render leg and every engine and effect at defaults against a
-build of main `d538f1e`, 70 of 70; the two scenarios that set the Filter to
-Comb or Formant moved with the types, and the one that kept Comb's settings
-renders the same bytes]. What v3 adds:
+build of main `d538f1e`: 70 of 72 identical; the other two set the Filter
+to Comb or Formant by Type number, and remapped, the one that keeps Comb's
+settings renders the same bytes again, while the one that switches types
+every few milliseconds now cycles through six]. What v3 adds:
 
 - **16-bit flags, LOG, dB** ([above](#parameters-engine-api-v2-and-v3),
   [the LOG law](#the-log-law)).
