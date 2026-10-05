@@ -21,10 +21,14 @@
 // note-off, are ignored: a hit rings out for its decay, as on the machines.
 // Twelve voices: a pad struck again while it sounds is struck again in its
 // own voice (re-excited, as the circuits are, not restarted), otherwise it
-// takes a free voice, else the one being choked, else the oldest. A hit on
-// one of the closed, pedal and open hi-hats cuts the others within 4 ms, as
-// on the machines, where they share one circuit (the voicings' choke group).
-// A voice ends once it has stayed under -80 dBFS for 10 ms.
+// takes a free voice, else the one furthest into a choke, else the quietest
+// (a steal cuts what it takes, so it takes what is least heard: an old crash
+// can still be loud where a newer rim shot has nearly gone). A hit on one of
+// the closed, pedal and open hi-hats cuts the others within 4 ms, as on the
+// machines, where they share one circuit (the voicings' choke group); the
+// cut is marked before the hit takes a voice, so with every voice busy a
+// closed hat takes the open hat's rather than cutting another pad. A voice
+// ends once it has stayed under -80 dBFS for 10 ms.
 //
 // The parameters. Pad chooses which pad the per-pad parameters edit, as on
 // Sophie; each of the 16 pads keeps its own Tune, Decay, Level, Tone, Snap,
@@ -268,6 +272,11 @@ const size_t kModelBytes = cmax(
 // Silence: a voice under this (-80 dBFS) for kQuietBlocks blocks (10 ms) ends.
 const float kSilence = 1e-4f;
 const uint32_t kQuietBlocks = 40;
+// A voice's level for stealing: its blocks' peaks, held and falling with a
+// 30 ms time constant, so a low kick between two of its peaks (a 12-sample
+// block near a zero crossing of a 55 Hz wave peaks at 4 % of the wave) still
+// counts as loud.
+const float kLevelFall = 1.0f - static_cast<float>(kBlockSize) / (0.03f * kCorrectedSampleRate);
 // A choked voice fades over this many blocks (4 ms) and ends.
 const uint32_t kChokeBlocks = 16;
 // The generic pitch sweep: 24 semitones at full, falling with a 20 ms time
@@ -298,6 +307,7 @@ struct Voice {
   float velocity;                 // 0..1
   float sweep_env;                // the generic sweep: 1 at the hit, falling
   float tone_lp;                  // the generic tone filter's state (Snap Snare)
+  float level;                    // its output's held peak (kLevelFall), for stealing
   uint32_t age;
   uint32_t quiet;                 // blocks under kSilence
   uint32_t choked;                // 0, else blocks of the choke's fade done + 1
@@ -356,6 +366,7 @@ class Instance {
       v.velocity = 0.0f;
       v.sweep_env = 0.0f;
       v.tone_lp = 0.0f;
+      v.level = 0.0f;
       v.age = v.quiet = v.choked = 0;
       v.note.Clear();
     }
@@ -375,10 +386,23 @@ class Instance {
     const Voicing *voicing = model == kit->model ? kit : &kModelVoicing[model];
     const int choke = kit->choke;
 
+    // The group's other pads fade out. Marked first, so that with every
+    // voice busy the hit takes the voice it cuts (Allocate prefers a choked
+    // one) instead of stealing a pad that would have rung on.
+    if (choke) {
+      for (int i = 0; i < kNumVoices; ++i) {
+        Voice &o = voice_[i];
+        if (o.active && o.choke == choke && o.pad != p && !o.choked) o.choked = 1;
+      }
+    }
+
     Voice *v = Allocate(p);
     // Struck again in its own voice with the same model, the pad's object
     // is excited again; anything else starts from a fresh one.
-    if (!(v->active && v->pad == p && v->model == model)) Build(v, model);
+    if (!(v->active && v->pad == p && v->model == model)) {
+      Build(v, model);
+      v->level = 0.0f;
+    }
     v->voicing = voicing;
     v->pad = static_cast<uint8_t>(p);
     v->key = key;
@@ -391,13 +415,6 @@ class Instance {
     v->quiet = 0;
     v->choked = 0;
     v->note.Clear();   // a new hit, a retrigger or a steal starts at no offset
-
-    if (choke) {   // the group's other pads fade out
-      for (int i = 0; i < kNumVoices; ++i) {
-        Voice &o = voice_[i];
-        if (&o != v && o.active && o.choke == choke && o.pad != p && !o.choked) o.choked = 1;
-      }
-    }
   }
 
   void NoteOff(uint8_t) { }   // a hit rings out for its decay
@@ -461,8 +478,11 @@ class Instance {
     return false;
   }
 
+  // A voice's level for stealing: a hit not rendered yet counts as loud.
+  static float StealLevel(const Voice &v) { return v.trigger ? 1e30f : v.level; }
+
   // The voice for pad p: its own if it sounds, else a free one, else the one
-  // furthest into a choke, else the oldest.
+  // furthest into a choke, else the quietest, else (equals) the oldest.
   Voice *Allocate(int p) {
     for (int i = 0; i < kNumVoices; ++i) {
       if (voice_[i].active && voice_[i].pad == p) return &voice_[i];
@@ -473,7 +493,12 @@ class Instance {
     Voice *best = &voice_[0];
     for (int i = 1; i < kNumVoices; ++i) {
       Voice *v = &voice_[i];
-      if (v->choked > best->choked || (v->choked == best->choked && v->age < best->age)) best = v;
+      if (v->choked != best->choked) {
+        if (v->choked > best->choked) best = v;
+        continue;
+      }
+      const float lv = StealLevel(*v), lb = StealLevel(*best);
+      if (lv < lb || (lv == lb && v->age < best->age)) best = v;
     }
     return best;
   }
@@ -531,6 +556,7 @@ class Instance {
     if (!native_sweep) {
       pitch += sweep * kSweepSemitones * v.sweep_env;
       v.sweep_env *= kSweepBlockDecay;
+      if (v.sweep_env < 1e-9f) v.sweep_env = 0.0f;   // no denormals on a long ring
     }
     const float f0 = NoteToFrequency(pitch);
     // Our own voices draw from the pad's generator directly: the state the
@@ -635,6 +661,7 @@ class Instance {
         const float a = s < 0.0f ? -s : s;
         if (a > peak) peak = a;
       }
+      v.level = peak > v.level * kLevelFall ? peak : v.level * kLevelFall;
       v.quiet = peak < kSilence ? v.quiet + 1 : 0;
       if (v.quiet >= kQuietBlocks || v.choked > kChokeBlocks) {
         v.active = false;

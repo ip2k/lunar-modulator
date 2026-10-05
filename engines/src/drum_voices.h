@@ -4,7 +4,11 @@
 //
 // Each voice follows the structure of a published analysis of the analogue
 // circuit it is after; the code, the constants and the simplifications are
-// ours, and none of it is copied from anywhere:
+// ours, except three small pieces taken from Plaits' hi_hat.h (Emilie Gillet,
+// MIT, credited below and in the engine's credits): the SwingVCA curve, the
+// six-oscillator bank's ratios, and the cymbal's clocked noise blended in
+// against the metal (Plaits' own addition to its 808 hat, "not at all part
+// of the 808 circuit" in its comment). Nothing else is copied from anywhere:
 //   - Cowbell: Werner, Abel and Smith, "More cowbell: a physically-informed,
 //     circuit-bendable, digital model of the TR-808 cowbell" (AES 137th
 //     Convention, paper 9207, 2014): two rectangular oscillators near 540
@@ -20,7 +24,9 @@
 //     [verified: the paper's text]. Here: two bands, two envelopes, one
 //     high-pass. The bank is the one Plaits' 808 hi-hat uses (its
 //     SquareNoise ratios), which is the paper's set with its four fixed
-//     oscillators an octave up, so the hats and cymbals share one metal.
+//     oscillators an octave up, so the hats and cymbals share one metal;
+//     Snap blends in clocked noise as Plaits' HiHat does (the same clock
+//     rate, 16 to 32 times f0, and the same squared amount).
 //   - Clap: the TR-808 hand clap as described by Baratatronix: white noise
 //     through a band-pass near 1 kHz, a sawtooth envelope of three short
 //     bursts and a longer fourth, and a separate decaying "reverb" envelope,
@@ -137,6 +143,7 @@ class Rim {
       click_ *= click_decay;
       out[i] = 2.0f * hp_.Process<stmlib::FILTER_MODE_HIGH_PASS>(body + n);
     }
+    if (click_ < 1e-20f) click_ = 0.0f;   // gone: no denormals while the body rings
   }
 
  private:
@@ -242,6 +249,7 @@ class Cowbell {
       out[i] = 2.7f * bp_[1].Process<stmlib::FILTER_MODE_BAND_PASS_NORMALIZED>(
           bp_[0].Process<stmlib::FILTER_MODE_BAND_PASS_NORMALIZED>(vca));
     }
+    if (fast_ < 1e-20f) fast_ = 0.0f;     // gone: no denormals while the slow stage rings
   }
 
  private:

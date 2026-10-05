@@ -27,8 +27,9 @@ When you play a note and no voice is free, the engine takes one over:
 - **Macro, Macro Heavy, Six-Op FM and Shapes** take a voice whose key has
   already been let go, choosing the one whose note started first. If every
   key is still held, they take the note that started first.
-- **Sophie** and **Drums** take the hit that started longest ago (Drums
-  first takes a hit that a hi-hat is cutting short).
+- **Sophie** takes the hit that started longest ago.
+- **Drums** takes the quietest hit, so an old cymbal that still rings loud
+  keeps going. It first takes a hit that a hi-hat is cutting short.
 - **Test Sine** ignores the new note until a voice is free.
 
 On Macro, Macro Heavy, Six-Op FM and Shapes, playing a key again while its

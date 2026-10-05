@@ -128,7 +128,7 @@ cowbell on a tom's pad is a cowbell.
 
 | | Deep | Punch |
 | --- | --- | --- |
-| Kick | Analog Drum, about 1.7 s to −40 dB, a slight pitch sigh | Punch Drum, a drop from about 88 Hz to 58 Hz in 50 ms, about 0.27 s to −40 dB, a little drive |
+| Kick | Analog Drum, about 1.7 s to −40 dB, a slight pitch sigh | Punch Drum, a drop from about 230 Hz at the attack to 58 Hz within 60 ms (one cycle's pitch: 125 Hz at 9 ms, 88 at 19, 68 at 32), about 0.27 s to −40 dB, a little drive |
 | Toms | Analog Drum, 0.45–0.6 s | Punch Drum, swept, 0.19 s |
 | Snares | Snare (808-style, two modes), Snap Snare | Snap Snare, Snare (with all five modes) |
 | Hi-hats | Hat: closed 0.09 s, pedal 0.23 s, open 0.65 s | Ring Hat: 0.075, 0.125 and 0.36 s |
@@ -179,9 +179,16 @@ values whichever pad is focused (Sophie's table can only show pad 1's).
 - **Voices.** Twelve. A pad struck while it sounds is struck again in its
   own voice: the Plaits classes are excited again, not restarted, as the
   circuits are. Otherwise it takes a free voice, else the one furthest into
-  a choke, else the oldest. Note-offs are ignored, and so are notes outside
-  36–51: a hit rings for its decay. A voice ends once it has stayed under
-  −80 dBFS for 10 ms; a choked one fades over 4 ms and ends.
+  a choke, else the quietest: each voice's block peaks, held with a 30 ms
+  fall so a low kick near a zero crossing still counts as loud; a hit not
+  yet rendered counts as loudest, and the oldest goes among equals. A steal
+  cuts what it takes, so it takes what is least heard (the oldest hit can
+  be a crash still ringing loud). A hi-hat marks its choke before it takes
+  a voice, so with all twelve busy a closed hat takes the open hat's voice
+  instead of stealing a pad that would have rung on. Note-offs are
+  ignored, and so are notes outside 36–51: a hit rings for its decay. A
+  voice ends once it has stayed under −80 dBFS for 10 ms; a choked one
+  fades over 4 ms and ends.
 - **Per-note offsets.** A hit's offsets ride on its pad's values (ramped)
   and on the kit's; the pitch offset moves it after Tune and the bend.
   Notes are pads, so `set_param_note` reaches the hit on that pad's note.
@@ -238,7 +245,9 @@ are short, middle and long; the cowbell rings at 800 Hz; the closed and
 pedal hats choke the open one within 5 ms, also when its pad plays another
 model, and nothing else is cut; velocity and Accent, Volume, Level, Decay,
 Tune and the bend act; twelve voices hold and a thirteenth pad
-steals the oldest; a pad struck 24 times takes one voice; voices end and
+steals the quietest, sparing an older, louder crash; with every voice
+busy a closed hat takes the open hat's voice; a pad struck 24 times takes
+one voice; voices end and
 the output returns to zero; the per-pad knobs edit only the focused pad;
 Kit and Model are read when a pad is struck; Drive saturates; the output is
 the same at host blocks of 1, 7 and 64 and from any instance fill; two pads

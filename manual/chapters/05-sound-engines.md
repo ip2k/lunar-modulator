@@ -375,7 +375,7 @@ project's own, after published studies of the analogue circuits
 - A hit rings for its pad's decay, whether or not you keep the key down. Up
   to twelve hits sound at once. A pad struck again while it rings is struck
   again, as a drum is, rather than starting a second sound; a thirteenth pad
-  takes over the hit that started longest ago.
+  takes over the quietest hit.
 - A closed or pedal hi-hat cuts the open hi-hat short, as on the machines.
 - **Pad** chooses which pad the pad's knobs edit: those on pages 1 and 2,
   and Model on page 3. [[ALGORITHM]] steps through the pads, and so does

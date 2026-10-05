@@ -4,9 +4,10 @@ a 16-pad kit on MIDI notes 36-51.
 Every pad of both kits and every model sounds cleanly; the kicks, toms and
 hats have the character their voicings promise (a long deep kick, a short
 swept punchy one, toms rising with their keys, short closed and long open
-hats); the hats choke one another; velocity, Accent and the kit's knobs act;
-twelve voices hold, a thirteenth pad steals; notes outside the pads and
-note-offs do nothing; the per-pad knobs edit only the focused pad, a pad
+hats); the hats choke one another; velocity, Accent and the kit's knobs
+act; twelve voices hold, a thirteenth pad steals the quietest, and a
+closed hat with every voice busy takes the open hat's; notes outside the
+pads and note-offs do nothing; the per-pad knobs edit only the focused pad, a pad
 given another model plays that model's own voicing, and Kit and Model are
 read when a pad is struck. Per-note offsets as the other engines take them
 (tests/test_engine_note_params.py), on the pads' notes. The output does not
@@ -266,27 +267,53 @@ def long_decays(keys):
     return sum(([f"Pad={k - 36}", "Decay=1"] for k in keys), [])
 
 
-def test_twelve_voices_then_a_steal(renderer, tmp_path):
-    """Twelve long pads hold together; a thirteenth steals the oldest (the
-    kick) and sounds; the bus limiter keeps the sum under full scale."""
-    pads = [KICK, SNARE, CLAP, SNARE2, LOW_TOM, FLOOR_TOM, MID_TOM, LOW_MID, HIGH_MID,
-            CRASH, HIGH_TOM, RIDE]
+def test_twelve_voices_then_the_quietest_is_stolen(renderer, tmp_path):
+    """Twelve long pads hold together; a thirteenth takes the voice of the
+    quietest hit (the clap's tail), not the oldest: the crash struck first,
+    four times louder, rings on, as do the ten others. The bus limiter keeps
+    the twelve under full scale."""
+    pads = [CRASH, KICK, SNARE, CLAP, SNARE2, LOW_TOM, FLOOR_TOM, MID_TOM, LOW_MID, HIGH_MID,
+            HIGH_TOM, RIDE]
     held = [f"{0.01 * i:.2f}:{k}:110:0.1" for i, k in enumerate(pads)]
     s, _, _ = run(renderer, tmp_path, "loud", long_decays(pads), held, seconds=1.0)
     assert s["peak"] <= 0.98 + 1e-6
     params = long_decays(pads) + ["Volume=0.1"]   # under the bus limiter: renders add up
+    t = int(0.5 * RATE)
+    solo = {k: run(renderer, tmp_path, f"solo{k}", params, [n], seconds=1.0)[2]
+            for k, n in zip(pads, held)}
+    level = {k: max(abs(v) for v in x[t - int(0.03 * RATE):t]) for k, x in solo.items()}
+    quietest = min(level, key=level.get)
+    assert quietest == CLAP and level[CRASH] > 4 * level[CLAP]
+    assert sorted(level.values())[1] > 3 * level[CLAP]          # no near tie
     _, _, full = run(renderer, tmp_path, "twelve", params, held, seconds=1.0)
     _, _, stolen = run(renderer, tmp_path, "steal", params, held + [f"0.5:{RIM}:127:0.1"],
                        seconds=1.0)
-    _, _, others = run(renderer, tmp_path, "others", params, held[1:], seconds=1.0)
-    t = int(0.5 * RATE)
+    _, _, rim = run(renderer, tmp_path, "rim", params, [f"0.5:{RIM}:127:0.1"], seconds=1.0)
     assert stolen[:t - 64] == full[:t - 64]
-    # What the steal leaves beside the eleven others: the kick before the
-    # rim's hit, the rim after it, then nothing: the kick is gone.
-    diff = [a - b for a, b in zip(stolen, others)]
-    assert window_rms(diff, 0.3, 0.45) > 100
-    assert window_rms(diff, 0.502, 0.53) > 20
-    assert window_rms(diff, 0.7, 0.9) < 2
+    # From 5 ms after the rim's hit: the eleven others and the rim, apart,
+    # summed; the clap is gone (12 renders' rounding: 8 LSB).
+    rest = [sum(v) for v in zip(*(x for k, x in solo.items() if k != CLAP), rim)]
+    u = t + int(0.005 * RATE) + 64
+    assert max(abs(a - b) for a, b in zip(stolen[u:], rest[u:])) <= 8
+    with_clap = [a + b for a, b in zip(rest, solo[CLAP])]
+    assert max(abs(a - b) for a, b in zip(stolen[u:], with_clap[u:])) > 50
+
+
+def test_with_every_voice_busy_a_closed_hat_takes_the_open_hats_voice(renderer, tmp_path):
+    """Eleven long pads and the open hat fill the twelve voices. A closed hat
+    then cuts the open hat and takes its voice, rather than stealing one of
+    the eleven and cutting the open hat as well: the render is the eleven and
+    the closed hat, apart, summed."""
+    pads = [KICK, SNARE, CLAP, SNARE2, LOW_TOM, FLOOR_TOM, MID_TOM, LOW_MID, HIGH_MID, CRASH,
+            RIDE]
+    held = [f"{0.01 * i:.2f}:{k}:110:0.1" for i, k in enumerate(pads)]
+    open_hat, closed = f"0.2:{OPEN_HH}:110:0.1", f"0.4:{CLOSED_HH}:100:0.1"
+    params = long_decays(pads + [OPEN_HH]) + ["Volume=0.1"]   # under the bus limiter
+    _, _, cut = run(renderer, tmp_path, "cut", params, held + [open_hat, closed], seconds=0.8)
+    _, _, eleven = run(renderer, tmp_path, "eleven", params, held, seconds=0.8)
+    _, _, hat = run(renderer, tmp_path, "hat", params, [closed], seconds=0.8)
+    u = int(0.4 * RATE) + int(0.005 * RATE) + 64
+    assert max(abs(a - (b + c)) for a, b, c in zip(cut[u:], eleven[u:], hat[u:])) <= 3
 
 
 def test_a_pad_struck_again_sounds_in_its_own_voice(renderer, tmp_path):
