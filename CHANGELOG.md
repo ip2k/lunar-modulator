@@ -9,6 +9,41 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Comb, an effect of its own.** The comb filter that was Filter's seventh
+  Type is now its own effect, with the same knobs (Cutoff, Resonance, Drive,
+  Mode, Morph, Mix, Level) and the same sound, sample for sample. Filter
+  keeps six types and no longer carries the comb's 18 KB delay lines: it
+  takes 656 bytes, so filters cost almost nothing on the RAM meter. Filter's
+  Formant moved from Type 6 to 5. A Filter set to Comb maps onto Comb
+  setting for setting (they share their parameter ids).
+- **Frequencies and times turn in ratios.** Filter's and Comb's Cutoff,
+  Echo's Time, Comp's and the Limiter's Release, Tilt's Pivot, Master Sat's
+  Clean Lo and Clean Hi, the Isolator's crossovers, EQ's three frequencies
+  and Sophie's Ring Time now move by the same musical step wherever they
+  are: a click of the knob is about a semitone on a cutoff, their bars show
+  the knob's position, their values show more decimals at the low end, and
+  a sequencer lock steps through them evenly in ratio. Modulation moves them
+  in octaves: a ±50 % LFO on Cutoff swings it about five octaves either way
+  instead of pinning it at the ends, and NOTE at +100 % into Cutoff makes
+  the filter follow the keyboard exactly, one octave per octave.
+- **Engine API v3, for developers** (engines/README.md, "Engine API v3";
+  `FM1_ENGINE_API_VERSION` is 3, so an engine built out of tree is
+  rebuilt). Parameter flags widen to 16 bits with the new `FM1_PARAM_LOG`;
+  `FM1_UNIT_DB` marks levels and gains in dB (Comp, Drive and the Limiter,
+  and EQ, Tilt and Master Sat). Effects get an optional extension,
+  `fm1_fx_ext_t` through `render_ext`: a key (side-chain) input, the tempo
+  and beat position, and the sequencer's Start, Stop and beats at their
+  exact frames, the same at any block size; both hosts pass it through
+  `fm1_fx_render` (`fm1_fx_host.h`), and the key stays empty until the
+  side-chain stage. Test Ext, a new test effect, marks what it hears with
+  clicks. `fm1-render --tempo BPM` sets the effects' tempo without a
+  sequencer; `--list` shows each engine's `fx_wants`. Every other engine and
+  effect renders byte for byte as before. New tests: fm1-fx-ext-test and
+  tests/test_engine_api_v3.py (the extension with a real sequencer at block
+  sizes 1, 7, 13 and 64, the LOG law, NOTE keytracking, the app's knobs and
+  bars), tests/test_engines_comb.py (the split, pinned against main), and
+  two parity scenarios for the browser module.
+
 - **Modulation on the virtual FM-1's panel (docs/16 MG3), behind the lab
   switch:** add `?lab` (or `#lab`) to the page's address. The public page is
   unchanged: there ENV, LFO and EDIT still say they are not in the
@@ -862,6 +897,11 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Licences: the GPL switch** (owner, 2026-10-05; CLAUDE.md, docs/12 §6).
+  GPL modules will sit behind one build switch, on by default everywhere
+  while we test; while it is on, no firmware image that links JieLi's
+  libraries may be shared, and the public simulator's module is offered
+  under GPL terms. No GPL code is in the tree yet.
 - **Knob turns and sequencer locks no longer click** (docs/15 stage S7b).
   When a continuous parameter changes while a sound plays, the engine now
   glides to the new value over 2.5 ms instead of jumping, so a lock under a

@@ -309,6 +309,31 @@ A trigger is a GATE that falls after a fixed length, one tick by default
   amount +100 % adds its semitones exactly, so a quantiser plays in tune
   (§2.4).
 
+**LOG destinations** (engine API v3, 2026-10-05; owner decisions 2 and 3
+of notes/2026-10-02-filters-dynamics-options.md). A parameter flagged LOG is
+pitch- or time-like: a FLOAT in Hz or ms with 0 < min < max (Filter and Comb
+Cutoff, Echo Time, the Releases, the EQ, Tilt, Master Sat and Isolator
+frequencies; engines/README.md, "The LOG law"). It is still stored, shown
+and saved in Hz or ms, but its routes add in the log domain:
+
+- a route adds amount × signal × log2(max / min) **octaves**, the same share
+  of the knob a linear parameter moves, and the value sent is base ×
+  2^(sum of the slots), clamped;
+- **the SEMI-to-LOG octave rule:** a SEMI source moves a LOG destination by
+  amount × signal × 60 semitones, as it moves a SEMI one, i.e. amount ×
+  signal × 5 octaves. So NOTE at +100 % into a cutoff keytracks one octave
+  per octave, exactly (a whole octave is a factor of 2 to the bit), and a
+  quantiser into Comb's Cutoff plays its scale [verified:
+  tests/test_engine_api_v3.py];
+- a LOG destination's knob, bar and bracket show its position on that
+  scale, and a 7-bit lock on it is a position too (§6.1).
+
+Before v3 a ±50 % LFO on Cutoff swung it ±8,990 Hz and pinned it at the
+ends; now it swings ±4.9 octaves round the base. The maths is fm1_math.h's
+libm-free log2 and exp2, so the module and fm1-render agree bit for bit. The
+modulation kinds have no LOG parameter yet: their rates and times are 0..1
+knobs with laws of their own, and Divide's Delay starts at 0 ms.
+
 **Conversions on a cable** [inferred]:
 
 | From → to | Rule |
@@ -343,6 +368,10 @@ s = s + offset
 if via:  s = s * read_uni(via)
 contrib = amount * s * (max - min)          (SEMI into SEMI: amount * s * 60 semitones)
 final = fm1_param_clamp(p, base + sum of contrib over enabled slots, in ascending slot order)
+
+LOG destination (engine API v3, §2.3):
+contrib = amount * s * log2(max / min)      octaves (from a SEMI source: amount * s * 60 / 12)
+final = fm1_param_clamp(p, base * 2^(sum of contrib))
 ```
 
 - **A destination with no enabled slot is never written**, so every existing
@@ -1043,7 +1072,9 @@ The options note's rules M1–M7 hold unchanged. Restated for modules:
 - **D6's revert at Stop restores bases** (M2). Modules keep their mode: a
   free LFO keeps running, a triggered one waits.
 - **The 8-lane cap and 7-bit values are unchanged.** A 7-bit lock maps
-  v to (v − 64) / 64 on a slot's amount.
+  v to (v − 64) / 64 on a slot's amount. On a LOG parameter (engine API v3)
+  v is a position on its log scale, min × (max / min)^(v / 127), so the
+  128 values are a geometric grid with min and max exactly at the ends.
 - **MACRO 1–4** are lockable host parameters read as sources, so any
   sequencer lane becomes a modulation source without new sequencer code (M3).
 - **Order at one frame** is M6 (§2.6).

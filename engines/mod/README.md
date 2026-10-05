@@ -105,7 +105,19 @@ c = amount x s x (max - min)          a parameter, as a share of its range
 c = amount x s                        an INPUT parameter: 100 % passes the signal
 c = amount x round(s x 61,440) / 1,024   SEMI into SEMI: semitones on a 1/1,024 grid
 final = clamp(base + (c1 + c2 + ...)), an ENUM rounded
+
+a LOG destination (engine API v3; docs/16 §2.3):
+c = amount x s x log2(max / min)              octaves, the same share of its knob
+c = amount x (round(s x 61,440) / 1,024) / 12  from a SEMI source: the octave rule
+final = clamp(base x 2^(c1 + c2 + ...))
 ```
+
+- **LOG destinations** (engine API v3, 2026-10-05) sum in octaves and scale
+  the base, so NOTE at 100 % into a cutoff keytracks exactly: twelve
+  semitones are one octave and 2^1 is 2 to the bit [verified:
+  tests/test_engine_api_v3.py]. A sum of 0 leaves the base's bits as they
+  are, so a route at zero amount still writes nothing. The 2^x is
+  `fm1_exp2f` (include/fm1_math.h), libm-free like the rest.
 
 - **Two deviations from docs/16 §2.4**, both deliberate:
   - An INPUT (a bare signal input, such as Chance's IN) takes amount × s,

@@ -379,19 +379,23 @@ How it works [verified: tests/test_engines_echo.py and
 
 ## Filter
 
-A multimode filter (`src/fx_filter.cc`, our own code, MIT) with seven
+A multimode filter (`src/fx_filter.cc`, our own code, MIT) with six
 types, every one of whose parameters is a modulation target. No code is
 taken from anywhere; the designs are credited below and in the source.
-Stereo in, stereo out.
+Stereo in, stereo out. Comb was its seventh type until 2026-10-05 and is an
+effect of its own now ([Comb](#comb)): its delay lines made every Filter
+18 KB. Formant moved from Type 6 to 5; nothing had been released, so
+nothing is migrated, and every other type renders byte for byte as before
+[verified: `tests/fixtures/comb-split.json`].
 
 | Page | Knob | Range (default) | What it does |
 | --- | --- | --- | --- |
-| 1 | Type | SVF, Ladder, Diode, Sallen-Key, SK Mixed, Comb, Formant (Ladder) | The filter. A change starts the new type from rest, unheard, with its input faded in over 5 ms, then crossfades into it over 5 ms more |
-| 1 | Cutoff | 20 Hz–18 kHz, log (2 kHz) | The corner, or the resonance: where each type self-oscillates. Never above 0.45 of the host rate (3.6 kHz at 8 kHz) |
-| 1 | Resonance | 0–1 (0.25) | Up to self-oscillation for SVF, Ladder, Diode, Sallen-Key and SK Mixed (from about 0.93–0.96); Comb's loop gain; Formant's bandwidth |
+| 1 | Type | SVF, Ladder, Diode, Sallen-Key, SK Mixed, Formant (Ladder) | The filter. A change starts the new type from rest, unheard, with its input faded in over 5 ms, then crossfades into it over 5 ms more |
+| 1 | Cutoff | 20 Hz–18 kHz, LOG (2 kHz) | The corner, or the resonance: where each type self-oscillates. Never above 0.45 of the host rate (3.6 kHz at 8 kHz). Moves in ratios: a detent is 1.2 semitones, and a route moves it in octaves ([LOG](#the-log-law)) |
+| 1 | Resonance | 0–1 (0.25) | Up to self-oscillation for SVF, Ladder, Diode, Sallen-Key and SK Mixed (from about 0.93–0.96); Formant's bandwidth |
 | 1 | Drive | 0–1 (0) | Input gain 1× to 16× into the filter's saturating curves, output down by its square root: quiet signals up to 12 dB louder, loud ones saturate |
 | 2 | Mode | 0–3, continuous (0) | Per type, below; between whole numbers the two neighbours are blended |
-| 2 | Morph | 0–1 (0) | Spread for the five analogue-style types (left channel up to an octave down, right up); polarity for Comb; the vowel for Formant |
+| 2 | Morph | 0–1 (0) | Spread for the five analogue-style types (left channel up to an octave down, right up); the vowel for Formant |
 | 2 | Mix | 0–1 (1) | Dry to wet. At 0 the input passes through unchanged |
 | 2 | Level | 0–2 (1) | The wet signal's gain |
 
@@ -402,7 +406,6 @@ Stereo in, stereo out.
 | Diode | a TB-303-style diode ladder: four coupled capacitors, written here from the node equations | as Ladder | The coupled stages make a tridiagonal system. Analysed here: it oscillates at k = 18.39 and 1.195× its integrators' frequency, and with no feedback it is already −3 dB at 0.119× [verified: tests and a numerical scan]. Its tuning follows a fitted curve between the two, so Cutoff is near −3 dB with no resonance and the pitch at full resonance |
 | Sallen-Key | a Sallen-Key low-pass with positive feedback through a one-pole high-pass, after the Korg-35 filter of the later Korg MS-20 (Zavalishin ch. 5; Will Pirkle's application note on the Korg35) | low-pass / band-pass / high-pass / notch | H = 1/(s² + (2 − k)s + 1); the feedback through the saturating curve. Self-oscillates from k = 2 |
 | SK Mixed | a mixed-input Sallen-Key: an equal-component Sallen-Key whose inputs, not outputs, are mixed, after the Steiner-Parker Synthacon filter | low-pass in / band-pass in / high-pass in / notch (L, −2B, H) | y (s² + (3 − K)s + 1) = L + sB + (s² + 2s)H, from its node equations (written here), so its high-pass input has a 6 dB/octave skirt below the corner. Both resistors are diodes, whose current saturates, and the feedback passes an asymmetric clip |
-| Comb | Zölzer's universal comb (*DAFX*, ch. 2) | feedback (peaks) … feedforward (notches) | One delay of fs / Cutoff samples, linear interpolation; Resonance is the loop gain, 0.25–0.98; Morph 0 positive (peaks at multiples of Cutoff), 0.5 none, 1 negative (odd multiples of Cutoff/2: an octave lower, hollow) |
 | Formant | three band-passes at the first three formants of A, E, I, O, U | voice: men 0, women 1.5, children 3 | Formant frequencies from Peterson and Barney (JASA 24, 1952, Table II, averages for the vowels of hod, head, heed, hawed and who'd) [reported]. Morph sweeps A–E–I–O–U; Cutoff shifts every formant by half its distance from 1 kHz, in octaves; Resonance narrows them |
 
 How it works:
@@ -442,9 +445,8 @@ How it works:
     8, 96 and 384 kHz: SVF within 0.01 cent of Cutoff, Ladder and Diode
     within 1, Sallen-Key within 2.5; SK Mixed a steady 19–23 cents flat
     (its diodes load the oscillation). None oscillates at Resonance 0.85.
-  - Comb: peaks 21 dB above its troughs at Resonance 0.8; feedforward
-    notches −34 dB at Resonance 1. Formant: at a vowel's formants the
-    gain is 8–33 dB above that at the other vowel's.
+  - Formant: at a vowel's formants the gain is 8–33 dB above that at the
+    other vowel's.
   - Drive 1 raises the 3rd harmonic of a 0.5 sine from −62 to −112 dB
     (Drive 0) to −10 to −27 dB. SK Mixed makes a 2nd harmonic (−64 dB at
     Drive 0) where Sallen-Key makes none, and a louder input darkens it
@@ -452,25 +454,25 @@ How it works:
 - **Type changes.** The new type starts from rest, runs unheard for 5 ms
   with its input faded in from silence, and only then is crossfaded in over
   5 ms, both types running throughout. A type started from rest rings up
-  (a resonance) or arrives late (a Comb's first echo, a delay after it
-  starts): faded straight in, as before 2026-10-02, that start was heard
+  (a resonance) or, as Comb did, arrives late (a first echo, a delay after
+  it starts): faded straight in, as before 2026-10-02, that start was heard
   and stepped the output by up to 24 times the crossfade's own allowance
   when Type was turned every few blocks (30 random settings, the method of
   tests/test_engines_fx_switches.py, on the old build); with its input
   faded in it swells instead, and is mostly over before it is heard (130
-  random settings within the allowance) [verified, 2026-10-02]. Across all 42 ordered
-  pairs, a 440 Hz sine's largest step between neighbouring samples at a
+  random settings within the allowance) [verified, 2026-10-02]. Across all 30 ordered
+  pairs (42 with Comb), a 440 Hz sine's largest step between neighbouring samples at a
   switch is at most 0.9 % above either type's own (4 % before) [verified:
   `fm1-filter-test`]. A change asked for meanwhile waits for the crossfade
   to end, so a change takes 10 ms to complete.
 - **Glide and control rate:** Cutoff, Resonance, Drive, Mode and Morph
   glide (5 ms) and the coefficients follow every 8 samples, counted from
-  `create`, so any block size gives the same output; Comb's delay moves
-  sample by sample between those steps, so it never jumps. Mix and Level
-  glide every sample. Values set before the first block apply from its
-  first sample.
+  `create`, so any block size gives the same output. Mix and Level glide
+  every sample. Values set before the first block apply from its first
+  sample.
 - **Determinism.** No libm anywhere in the effect: 2^x, log2 and tan are
-  polynomials in the file, beside fabsf, floorf and sqrtf, which IEEE 754
+  polynomials (tan in the file, 2^x and log2 in `src/fx_filter_dsp.h`,
+  which it shares with Comb), beside fabsf, floorf and sqrtf, which IEEE 754
   rounds exactly. 24 renders (every type with every parameter moved, at full
   resonance and drive from an impulse, at 96 kHz, two chains of two filters
   after Macro, host blocks of 7) are byte-identical from GCC with glibc,
@@ -491,14 +493,13 @@ How it works:
   bursts at the guard's limit stay finite at 8, 44.1, 96 and 384 kHz, and
   every type at Resonance 1, Drive 1 and Level 2 under that noise stays
   below 2.0 [verified].
-- **Memory:** 688 bytes of state plus Comb's two delay lines of fs/20 Hz + 4
-  floats: 18,368 bytes at 44,118 Hz (3,920 at 8 kHz, 154,320 at 384 kHz).
-  The same on i386, since the instance holds no pointers [verified: GCC
-  −m32 in a container]. The lines are never cleared: a type reset marks
-  them empty and reads beyond what was written since return 0.
+- **Memory:** 656 bytes at any rate, the same on i386, since the instance
+  holds no pointers [verified: `fm1-filter-test`, and GCC −m32 in a
+  container]. It was 18,368 at 44,118 Hz with Comb's two delay lines, 688
+  of them state.
 - **Cost** per 64-frame stereo block on the desktop (Apple M1 Max, best of
   seven, noise in), against Plate's 0.89 µs and Fold's 1.8 µs in the same
-  runs: Comb 0.8, Formant 0.9, SVF 1.4, Ladder 2.2, Diode 2.4, Sallen-Key
+  runs: Comb (then a type) 0.8, Formant 0.9, SVF 1.4, Ladder 2.2, Diode 2.4, Sallen-Key
   3.2 and SK Mixed 3.6–4.8 µs; with Cutoff and Resonance moved twice a
   block and Spread on, up to 4.9 µs (SK Mixed), 0.34 % of the block
   [verified: `fm1-filter-test --bench` and `fm1-render`]. A Type change
@@ -519,10 +520,55 @@ How it works:
   any type does [verified: tests/test_engines_fx_switches.py]. NOLOCK (a
   destructive change) and LATCH (read at note-on; an effect has none) would
   both misdescribe it (the ENUM table below).
-- `build/fm1-filter-test` (`test/filter_test.cc`) drives Filter where
-  fm1-render cannot: changes mid-stream, the crossfade, host rates, sine
-  sweeps and self-oscillation. `--gain` and `--osc` print one measurement;
-  `--bench` the cost.
+- `build/fm1-filter-test` (`test/filter_test.cc`) drives Filter, and Comb
+  as the type `comb`, where fm1-render cannot: changes mid-stream, the
+  crossfade, host rates, sine sweeps and self-oscillation. `--gain` and
+  `--osc` print one measurement; `--bench` the cost.
+
+## Comb
+
+A comb filter (`src/fx_comb.cc`, our own code, MIT): Zölzer's universal
+comb (*DAFX*, ch. 2), one delay line of fs / Cutoff samples read with linear
+interpolation, with feedback and feedforward, its loop through the Filter's
+saturating curve. It was the Filter's seventh type until 2026-10-05 (owner's
+decision; notes/2026-10-02-filters-dynamics-options.md, FD0), and keeps that
+type's code, parameters and memory: it renders what a Filter set to Comb
+from its first block rendered, sample for sample [verified:
+`tests/test_engines_comb.py` against renders pinned at main `d538f1e`,
+`tests/fixtures/comb-split.json`]. Stereo in, stereo out.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Cutoff | 20 Hz–18 kHz, LOG (2 kHz) | The comb's pitch: the delay is fs / Cutoff, at least 2.22 samples |
+| 1 | Resonance | 0–1 (0.25) | The loop gain, 0.25–0.98 |
+| 1 | Drive | 0–1 (0) | As the Filter's: input 1× to 16× into the loop's curve, output down by its square root |
+| 2 | Mode | 0–3, continuous (0) | Feedback (peaks) at 0 to feedforward (notches) at 3, blended between |
+| 2 | Morph | 0–1 (0) | The polarity: 0 positive (peaks at multiples of Cutoff), 0.5 none, 1 negative (odd multiples of Cutoff/2: an octave lower, hollow) |
+| 2 | Mix | 0–1 (1) | Dry to wet |
+| 2 | Level | 0–2 (1) | The wet signal's gain |
+
+- **Uids.** The Filter's, for the same parameters (Cutoff 2 … Level 8), so a
+  Filter that was set to Comb maps onto Comb uid for uid and value for value
+  (its Type, uid 1, dropped). Uid 1 is retired in Comb
+  (`tests/fixtures/param-uids.json`), so it can never mean anything else.
+  The names stay the Filter's for the same reason; Mode and Morph keep
+  their 0–3 and 0–1 ranges.
+- **Measured** [verified: tests/test_engines_filter.py, which drives it
+  through `fm1-filter-test`]: peaks 21 dB above its troughs at Resonance
+  0.8; feedforward notches −34 dB at Resonance 1; tails flush to exact
+  silence in 0.03 s; at Resonance 1, Drive 1 and Level 2 under noise at the
+  guard's limit it stays below 2.0.
+- **Glide, determinism, contracts:** the Filter's (above): the controls
+  glide every 8 samples counted from `create`, the delay moves sample by
+  sample between those steps, no libm (`src/fx_filter_dsp.h`), no fused
+  multiply-adds, the input guard, NaN-safe parameters, silence in gives
+  silence out.
+- **Memory:** 160 bytes of state plus two delay lines of fs/20 Hz + 4
+  floats: 17,840 bytes at 44,118 Hz (3,392 at 8 kHz, 153,792 at 384 kHz),
+  the same on i386. The lines are never cleared: `create` marks them empty,
+  and reads beyond what was written since return 0.
+- **Cost:** as the Filter's Comb type, 0.8 µs per 64-frame block on the
+  desktop [verified: `fm1-filter-test --bench`].
 
 ## Comp
 
@@ -1437,17 +1483,19 @@ How it works [verified: tests/test_engines_eq.py and `build/fm1-eq-test`,
   `FM1_UNIT_HZ` parameters belongs in the hosts, so a lock or a preset keeps
   storing Hz.
 
-## Parameters (engine API v2)
+## Parameters (engine API v2 and v3)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
 more fields after its name, type, range, default, enum names and page
-(`include/fm1_engine.h`):
+(`include/fm1_engine.h`). API v3 (2026-10-05, [below](#engine-api-v3))
+widened `flags` to 16 bits, keeping every v2 bit, and added LOG and the dB
+unit:
 
 | Field | What it is |
 | --- | --- |
 | `uid` | 1–4,095, unique in its engine and never changed or reused. It is what a sequencer lock, a modulation route (docs/16) or a preset stores, so reordering or extending a table moves nothing. A uid means something only together with its engine's id |
-| `flags` | `FM1_PARAM_LATCH`, `SMOOTH`, `NOLOCK`, `MOD`, `INPUT` and `POLY`, below |
-| `unit` | `FM1_UNIT_NONE`, `SEMI`, `MS`, `HZ`, `PCT` or `DEG`: the unit the value itself is in |
+| `flags` | 16 bits (8 in v2): `FM1_PARAM_LATCH`, `SMOOTH`, `NOLOCK`, `MOD`, `INPUT`, `POLY` and `LOG`, below; 0x80 is kept for KEYSRC (the side-chain stage) |
+| `unit` | `FM1_UNIT_NONE`, `SEMI`, `MS`, `HZ`, `PCT`, `DEG` or `DB` (v3): the unit the value itself is in |
 | `abbr` | Up to 6 characters, for matrix rows (docs/16 §5.3). Distinct within an engine, and still distinct cut to 5, for rows that add a unit prefix |
 
 **Uids.** Native engines and effects number their parameters from 1, in the
@@ -1474,6 +1522,7 @@ moves to the fixture's `retired` list, so its uid is never given out again.
 | MOD | Accepts modulation (docs/16 §2.2). Every FLOAT has it by default; an ENUM only when it says so, and is then rounded. Never with NOLOCK | The modulation matrix, from docs/16 stage MG1 |
 | INPUT | A bare signal input: FLOAT, −1..1, default 0, hidden from the knob pages | Modulation modules only; no engine has one |
 | POLY | Takes a per-note offset: the engine keeps one per sounding voice ([below](#per-note-offsets)). FLOAT only, always with MOD | Per-voice modulation (docs/16 §6.3, stage MG9) sends it with `set_param_note` |
+| LOG (v3) | Pitch- or time-like: a FLOAT in Hz or ms with 0 < min < max. Stored, shown and saved in its unit, but it moves on a log scale ([the LOG law](#the-log-law)) | Knob detents, bars, 7-bit locks and modulation work on its position, in ratios and octaves; the engine sees values in its unit as before |
 
 Every FLOAT parameter here is SMOOTH and MOD (`FM1_PARAM_CONTINUOUS`),
 except Sophie's, which are LATCH and MOD: a triggered voice copies its pad's
@@ -1504,9 +1553,14 @@ uid)` are the helpers. `fm1-render --list` prints each parameter's uid,
 flags (by name), unit and abbreviation, and each engine's `per_note`. The four fields make `fm1_param_t`
 36 bytes on pi32v2 and i386 (28 before) and 48 on x86-64 (40) [verified:
 `tools/jieli/compile-check.sh`, 2026-10-02, 67 of 67 objects compiled in
-all four profiles]: 8 bytes more of read-only data per parameter, 1,160
-bytes for the 145 the registry defines [counted with `fm1-render --list`,
-2026-10-05; 88 when the sizes were measured].
+all four profiles]: 8 bytes more of read-only data per parameter, 1,240
+bytes for the 155 the registry defines [counted with `fm1-render --list`,
+2026-10-05; 88 when the sizes were measured]. The 16-bit flags of v3 sit in
+what was padding after `uid`, so the sizes did not change, nor did the
+modulation runtime's 22,368 bytes, whose records widened the same way
+[verified: `tools/jieli/compile-check.sh`, 2026-10-05: 36 bytes on pi32v2
+and i386, 48 on x86-64; 114 of 114 objects compiled in all four
+profiles].
 
 **The ENUM parameters** [verified against each engine's code, 2026-10-02].
 docs/15's table had eight; Macro's and Macro Heavy's LPG came with their
@@ -1535,6 +1589,49 @@ the master-bus pack.
 | tilt | Curve | MOD | Glides from one curve's coefficients to the other's through two 2.5 ms stages (the rule above). The note's Sections switch was NOLOCK |
 | sat | Shape | MOD | Crossfades over 5 ms, so a lock or a rounded route is clean however fast (the owner's switch rule, 2026-10-02) |
 | isolator | Kill | MOD | The killed bands' gains glide over 5 ms, so a change is clean however fast: lockable, and a route is rounded |
+
+### The LOG law
+
+LOG (API v3; owner decisions 2 and 3 of
+notes/2026-10-02-filters-dynamics-options.md) is for pitch- and time-like
+parameters. The value stays what is stored, shown and saved (Hz, ms); what
+moves is the knob's position u = log2(v / min) / log2(max / min), 0..1
+(`fm1_param_pos`, `fm1_param_at` in `include/fm1_engine.h`; any other FLOAT's
+position is (v − min) / (max − min)):
+
+- **A knob detent** moves u by 1/100: a ratio of (max/min)^(1/100), 1.2
+  semitones on a 20 Hz–18 kHz cutoff, 7 % on a 1–1,000 ms release. The ends
+  are reached exactly. The panel's bars show u. Values show three significant
+  figures down to 1 (2143 Hz, 21.4 Hz, 1.07 ms).
+- **A 7-bit sequencer lock** is u = v7 / 127, so its 128 values are a
+  geometric grid, min exactly at 0 and max at 127, and every value comes back
+  to itself (`fm1_seq_lock_value`, `fm1_seq_value7`).
+- **A modulation route** adds amount × signal × log2(max/min) octaves (the
+  same share of the knob a linear parameter moves), and the value is base ×
+  2^(sum), clamped. **The octave rule:** a SEMI source (NOTE, a quantizer's
+  pitch) moves a LOG destination by amount × signal × 60 semitones, as it
+  moves a SEMI one, so NOTE at +100 % into a cutoff tracks the keys one
+  octave per octave, exactly (docs/16 §2.3). A ±50 % LFO on Cutoff now
+  swings ±4.9 octaves round the base instead of ±8,990 Hz pinned at the
+  ends.
+- **Per-note offsets** on a LOG parameter (none is POLY yet) will be sent
+  as the final value less the base, in the parameter's unit, so engines
+  need no knowledge of logs (per-voice modulation, MG9).
+- All of it is libm-free (`include/fm1_math.h`, the base-2 log and
+  exponential Comp used, now shared), so native and WebAssembly builds agree
+  bit for bit.
+
+The parameters with LOG [verified: tests/test_engine_params.py holds LOG to
+every FLOAT in Hz or ms whose range starts above 0, and only there]:
+Filter and Comb Cutoff, Echo Time, Comp Release, Limiter Release, Tilt
+Pivot, Master Sat's Clean Lo and Clean Hi, Isolator's Low and High Xover,
+EQ's three frequencies, and Sophie's Ring Time. Comp Attack and the
+Limiter's Lookahead start at 0 and stay linear, and the modulation kinds'
+times are 0..1 knobs with laws of their own. **dB** (`FM1_UNIT_DB`) marks
+Comp's Threshold, Knee and Makeup, Drive's Drive and Level and the
+Limiter's Ceiling and Drive (the owner's list), and EQ's gains and Level,
+Tilt's Tilt and Level and Master Sat's Drive and Level, whose sources said
+dB already. Units change nothing but what a screen may print.
 
 ### SMOOTH: the ramp inside the engines
 
@@ -1858,11 +1955,76 @@ engines]:
 block's note-ons. The renderer refuses them for an engine without
 `set_param_note` and NAME for a parameter that is not POLY.
 
+## Engine API v3
+
+`FM1_ENGINE_API_VERSION` is 3 since 2026-10-05 (owner decision 6 of
+notes/2026-10-02-delay-reverb-eq-gates-options.md, and FD1 of the filters
+note). Both hosts refuse any other version, so a v2 engine built out of tree
+must be rebuilt; nothing a v2 engine does changes, and every engine and
+effect here renders byte for byte as before [verified: every parity
+scenario's fm1-render leg and every engine and effect at defaults against a
+build of main `d538f1e`, 70 of 70; the two scenarios that set the Filter to
+Comb or Formant moved with the types, and the one that kept Comb's settings
+renders the same bytes]. What v3 adds:
+
+- **16-bit flags, LOG, dB** ([above](#parameters-engine-api-v2-and-v3),
+  [the LOG law](#the-log-law)).
+- **The effect extension**, `fm1_fx_ext_t`: what a host tells an effect
+  about the piece of a block it renders, besides the audio. An effect sets
+  `fx_wants` and provides `render_ext` (two fields appended to
+  `fm1_engine_t`, 0 and NULL for none); the host then calls `render_ext`
+  in place of `render`, with the extension filled for the piece:
+
+  | Field | What it is |
+  | --- | --- |
+  | `key_lr` | The key (side-chain) input: stereo, valid for exactly this call's frames, read-only, never aliasing the audio, never kept. NULL: the effect's own input is its key, and the output is then what a copy of the input as the key gives, bit for bit. Every host passes NULL until the side-chain stage gives an effect a key source (the delays note, §7.3) |
+  | `bpm` | The sequencer's tempo, running or not (the set tempo while stopped), or the host's own without one (fm1-render `--tempo`, default 120; the app's 120) |
+  | `beat`, `phase` | The sequencer's position at the piece's first frame: whole beats since Start, and how far into that beat, 0 ≤ phase < 1, exact from its integer clock. A beat starts where the sequencer services master tick 96 k, the frame its step-0 notes and its metronome sound on. 0 before the first tick and while stopped |
+  | `running` | 1 while the transport runs |
+  | `events` | At the piece's first frame: STOP, START, BEAT (in that order at one frame), and RESET (drop every tail; no host sends one yet) |
+
+  `fx_wants`: TEMPO splits the effect's render at the first frame of every
+  beat, marked BEAT; TRANSPORT at every Start and Stop, marked; KEY says
+  the effect reads `key_lr`. Every field is filled whatever the effect asked
+  for, but events only carry what it asked for, always at a piece's first
+  frame, so they land on the same frames at any block size. An effect that
+  acts at a beat uses BEAT, never a phase it runs forward itself, which
+  would round differently with the pieces. `render`, called directly,
+  behaves as `render_ext` with no key, no events and the transport stopped.
+- **The host side** (`include/fm1_fx_host.h`, `seq/fx_host.c`, in the
+  sequencer's objects): `fm1_fx_render` renders one piece of an effect's
+  block, calling a v2 effect's `render` once, exactly as before, and an
+  extended one in the pieces it asked for. fm1-render and the virtual FM-1
+  call it for every insert and master effect, inside their existing splits
+  at the modulation's writes, so both hosts give an effect the same pieces.
+  Beats come from the sequencer's clock as the block began (`fm1_seq_clock_t`,
+  `fm1_seq_get_clock`, which the bridge keeps in `fm1_seq_host_t.clock`):
+  integers, so a piece starting at a given frame gets the same bits at any
+  block size. Following an external MIDI clock, or in Movy's compat mode,
+  ticks are not on that grid: the position is the block's start, with no
+  beat splits.
+- **Test Ext** (`src/test_ext.cc`, id `test-ext`) is the smallest effect
+  that uses it, to prove the plumbing: it passes its input (or, with Listen
+  Key, its key) and marks Start (+Click), Stop (−Click) and each beat (+Click
+  on a downbeat, +Click/2 on the others) with one-sample clicks; Probe Tempo
+  adds bpm/1000 to every sample.
+
+Tests [verified, 2026-10-05]: `fm1-fx-ext-test` (`test/fx_ext_test.cc`,
+`tests/test_engine_api_v3.py`) drives a real sequencer at 120 and 87.5 BPM
+into Test Ext through `fm1_fx_render` in blocks of 64, 7, 13 and 1 frames:
+the same samples every time, the beats on exactly the frames the
+sequencer's clock events give, Start at 0 and Stop at its frame; the key
+rules; a v2 effect called once per piece; position monotonic and exact.
+fm1-render and the app render a Test Ext transport the same bytes, and the
+parity scenario `api-v3-test-ext-transport` checks the browser's module.
+
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `include/fm1_engine.h` | The engine API, version 2. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, flags, a unit and an abbreviation ([above](#parameters-engine-api-v2)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the threading contract |
+| `include/fm1_engine.h` | The engine API, version 3. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, 16-bit flags, a unit and an abbreviation ([above](#parameters-engine-api-v2-and-v3)); the LOG law ([above](#the-log-law)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the effect extension ([below](#engine-api-v3)); the threading contract |
+| `include/fm1_math.h` | `fm1_log2f`, `fm1_exp2f`: base-2 logarithm and exponential without libm, the same bits on every build (the LOG law's, and Comp's, DJ Filter's and Tilt's through `src/fx_comp_math.h`) |
+| `include/fm1_fx_host.h`, `seq/fx_host.c` | The effect extension on the host side: the tempo, beats and transport events from the sequencer's clock, and the split renders both hosts share ([below](#engine-api-v3)) |
 | `include/fm1_mod.h`, `include/fm1_mod_host.h`, `mod/` | Modulation (docs/16 stage MG1): a rack of up to 8 modules inside a 32-slot matrix, run every 32 frames on absolute time, with the module kinds LFO, Envelope and Chance, and the glue that runs it as the sequencer bridge's control-rate hook. Built on the primitives (an LFO, a Peaks-style envelope, slew, S&H, a Turing register, a tick clock divider). Heap-free C99, no libm; `fm1-render --mod` hosts it, the simulator does not yet ([mod/README.md](mod/README.md)) |
 | `include/fm1_seq.h`, `seq/` | The sequencer core: a heap-free C99 port of Movy's sequencer, with 4–8 routed tracks ([seq.md](seq.md), docs/13) |
 | `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`. Not wired into the renderer yet ([midi_fx/README.md](midi_fx/README.md)) |
@@ -1872,8 +2034,10 @@ block's note-ons. The renderer refuses them for an engine without
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/note_offsets.h` | A voice's per-note offsets, shared by the four engines that take them |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq)) |
-| `src/fx_comp_math.h` | `CompExp2` and `CompLog2`: base-2 exponential and logarithm without libm, the same bits on every build (Comp's; Tilt and DJ Filter use it too) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comb](#comb), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq)) |
+| `src/fx_filter_dsp.h` | The arithmetic Filter and Comb share (2^x, log2, the saturating curve, the guard, the glide) |
+| `src/fx_comp_math.h` | `CompExp2` and `CompLog2`, now `include/fm1_math.h`'s under the names Comp, Tilt and DJ Filter use |
+| `src/test_sine.cc`, `src/test_gain.cc`, `src/test_ext.cc` | Test engines: a sine voice, a gain stage, and Test Ext, the smallest effect with the API v3 extension ([below](#engine-api-v3)) |
 | `src/fx_eq_math.h` | EQ's libm-free maths ([above](#eq)) |
 | `include/fm1_comp.h` | Comp's gain-reduction accessor, for a later modulation source ([above](#comp)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
@@ -1899,6 +2063,7 @@ block's note-ons. The renderer refuses them for an engine without
 | `--fault T[..T1]:VALUE` | Overwrite the bus after the source with `nan`, `inf` or any value, for one frame or a span, to test recovery |
 | `--mod FILE`, `--log-mod FILE.jsonl` | Modulation: a rack and slots from a text file, and one JSON line per control tick ([mod/README.md](mod/README.md#hosting)) |
 | `--list-mod` | The modulation kinds with their parameters' uids and flags, their ports, the system sources and the host parameters, as JSON |
+| `--tempo BPM` | The tempo effects with the API v3 extension hear without a sequencer (20–300, default 120); with `--cmd` or `--seq` they hear the sequencer's ([above](#engine-api-v3)) |
 
 ## Build and checks
 
@@ -1963,10 +2128,11 @@ past the table. It found the Isolator's stalled crossover glide
   | Echo | 65,744 | 65,744 | 16,384 stereo cells of 16-bit words |
   | Macro, 12 voices | 32,448 | 19,584 | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,912 | 18,912 | |
-  | Filter | 18,368 | 18,368 | Comb's two delay lines, fs / 20 Hz each |
+  | Comb | 17,840 | 17,840 | two delay lines, fs / 20 Hz each (the Filter's until 2026-10-05, when it took 18,368) |
   | Six-Op FM, 8 voices | 12,776 | 11,008 | |
   | Limiter | 11,008 | 11,008 | 5 ms of lookahead at 44,118 Hz; 26,912 at 102 kHz and above |
   | Ensemble | 4,752 | 4,736 | |
+  | Filter | 656 | 656 | since Comb left it (2026-10-05) |
 
   The figures include the native-rate resamplers (about 1.3 KB each), the
   four engines' per-note offsets ([above](#per-note-offsets)) and the
@@ -2012,7 +2178,8 @@ past the table. It found the Isolator's stalled crossover glide
   | Each Mutable effect | 0.03–0.06 % |
   | Fold | 0.12 % |
   | Drive | 0.17–0.23 % |
-  | Filter | 0.05–0.26 % (Comb to SK Mixed) |
+  | Filter | 0.06–0.26 % (Formant to SK Mixed) |
+  | Comb | 0.05 % |
   | Comp | 0.11–0.15 % |
   | Limiter | 0.07–0.10 % |
   | DJ Filter | 0.004 % in the dead zone, 0.05–0.07 % filtering (12 to 24 dB) |
