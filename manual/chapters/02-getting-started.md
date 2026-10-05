@@ -240,6 +240,11 @@ engines/build/fm1-render --engine sixop --param Patch=32 \
 engines/build/fm1-render --engine macro --param Model=6 --note 0:45:100:3 \
     --param-at 1:Timbre=0.9 --param-at 2:Timbre=0.1 --seconds 4 --out fm.wav
 
+# A low note through Filter's diode ladder, its cutoff opened after half a second
+engines/build/fm1-render --engine macro --param Model=0 --note 0:36:110:2 \
+    --fx filter --fx-param Type=2 --fx-param Cutoff=300 --fx-param Resonance=0.8 \
+    --fx-param-at 0.5:1:Cutoff=1500 --seconds 2.5 --out acid.wav
+
 # Sophie's kick, closed hi-hat and snare, through PSX Verb's Room
 engines/build/fm1-render --engine sw-sophie \
     --note 0:36:110:0.5 --note 0.25:42:90:0.2 --note 0.5:38:100:0.2 \
@@ -256,8 +261,9 @@ engines/build/fm1-render --engine sw-sophie \
 | `--note T:KEY:VEL:LEN` | Plays a note (above) |
 | `--param-at T:NAME=VALUE` | Sets one of the engine's parameters at time *T*, in seconds |
 | `--bend T:SEMITONES` | Bends every note from time *T*, by up to 48 semitones either way. Sophie has no pitch bend and refuses it |
-| `--fx ID` | Adds an effect to the chain: `plate`, `ensemble`, `diffuse`, `sw-psxverb`, `crush`, `fold`, `echo` or `test-gain` |
+| `--fx ID` | Adds an effect to the chain: `plate`, `ensemble`, `diffuse`, `sw-psxverb`, `crush`, `fold`, `drive`, `echo`, `filter`, `comp`, `limit` or `test-gain` |
 | `--fx-param NAME=VALUE` | Sets a parameter of the effect before it |
+| `--fx-param-at T:K:NAME=VALUE` | Sets a parameter of the *K*-th effect (the first `--fx` is 1) at time *T*, in seconds |
 | `--seconds S` | The length of the file, 2 seconds unless you say otherwise |
 | `--rate HZ` | The sample rate, 44,118 unless you say otherwise. Macro, Macro Heavy and Six-Op FM refuse rates above 47,872; Shapes runs from 24,000 to 96,000 |
 | `--frames N` | The block size, 64 unless you say otherwise |

@@ -704,6 +704,15 @@ Streams' coefficient tables are for 31,089 Hz, so at 44,118 Hz its time
 constants and band splits move by 1.42×. That is acceptable for a follower;
 decimating the tap by 2 brings it close [inferred].
 
+The Comp effect (engines/README.md, "Comp") already computes a smoothed gain
+reduction in dB for its own audio, and `fm1_comp_reduction_db()`
+(`engines/include/fm1_comp.h`) reads it between renders, outside the engine
+API [verified: tests/test_engines_comp.py]. A source that reads it once per
+tick is a REDUCTION output with no audio tap and no follower code: a
+compressor in FX1 or FX2 that ducks other destinations. It only follows the
+audio passing through that Comp; a KEY from another unit still needs the tap
+above [inferred].
+
 ### 3.8 Not modules: left out, ideas only
 
 | Source | Licence | Use |

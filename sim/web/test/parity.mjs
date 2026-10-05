@@ -74,6 +74,7 @@ function cliArgs(s) {
     a.push('--fx', id);
     for (const p of ps) a.push('--fx-param', p);
   }
+  for (const p of s.fx_param_at ?? []) a.push('--fx-param-at', p);
   return a;
 }
 
@@ -227,7 +228,8 @@ async function renderApp(s) {
   const textBuf = script ? new Uint8Array(w.memory.buffer, ex.fm1w_text_buf(), ex.fm1w_text_cap()) : null;
 
   // Events as render.cc builds them: --bend and --param-at in argv order
-  // (cliArgs puts bends first), notes as on/off pairs.
+  // (cliArgs puts bends first), then --fx-param-at (T:K:NAME=V, K the
+  // effect's slot from 1), notes as on/off pairs.
   const controls = [
     ...(s.bends ?? []).map((b) => {
       const [t, st] = b.split(':');
@@ -237,6 +239,16 @@ async function renderApp(s) {
       const c = p.indexOf(':');
       const [n, v] = splitParam(p.slice(c + 1));
       return { t: parseFloat(p.slice(0, c)), bend: false, idx: paramOf(s.engine, n), v };
+    }),
+    ...(s.fx_param_at ?? []).map((p) => {
+      const [t, k] = p.split(':');
+      const [n, v] = splitParam(p.slice(t.length + k.length + 2));
+      const slot = parseInt(k, 10);
+      const fx = (s.fx ?? [])[slot - 1];
+      if (!fx) throw new Error(`${s.name}: --fx-param-at names effect ${k}`);
+      const idx = paramOf(fx[0], n);
+      if (idx < 0) throw new Error(`${s.name}: ${fx[0]} has no parameter ${n}`);
+      return { t: parseFloat(t), bend: false, unit: slot, idx, v };
     }),
   ];
   const events = [];
@@ -262,7 +274,7 @@ async function renderApp(s) {
       if (c.button !== undefined) ex.fm1w_button(c.button, c.down);
       else if (c.encoder !== undefined) ex.fm1w_encoder(c.encoder, c.delta);
       else if (c.bend) ex.fm1w_pitch_bend(c.v);
-      else ex.fm1w_set_param(0, c.idx, c.v);
+      else ex.fm1w_set_param(c.unit ?? 0, c.idx, c.v);
       c.done = true;
     }
     for (const on of [false, true]) {
