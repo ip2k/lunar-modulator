@@ -9,6 +9,15 @@ history.
 ## [Unreleased]
 
 ### Added
+- notes/2026-10-05-softkey-efuse.md: a desk-only investigation of the stock
+  "soft key" SysEx and of the JieLi SDK's key and eFuse checks. The soft key
+  only writes a marker to RAM and resets the chip into its ROM loader (no
+  flash write), and its code path in FM-1_092 is identical to stock V15. The
+  SDK's key check is present in every release and every stock image but does
+  nothing on the FM-1, and nothing on the device writes eFuses; it recommends
+  upgrading to SDK V1.2.13's libraries with safeguards. A separate draft,
+  notes/2026-10-05-softkey-readonly-test-plan.md, is a read-only dump plan
+  for the owner to review; nothing has been sent to any device.
 - **Modulation on the virtual FM-1's panel (docs/16 MG3), behind the lab
   switch:** add `?lab` (or `#lab`) to the page's address. The public page is
   unchanged: there ENV, LFO and EDIT still say they are not in the
