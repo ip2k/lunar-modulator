@@ -73,6 +73,9 @@ and is the one to trust if the two ever differ.
 | Master Sat | – | under 1 KB |
 | Isolator | – | under 1 KB |
 | EQ | – | under 1 KB |
+| Room | – | 40 KB |
+| Hall | – | 49 KB |
+| Gate | – | 2 KB |
 | Test Gain | – | under 1 KB |
 
 ### The sequencer
