@@ -4,7 +4,9 @@ The first `FM1_KIND_AUDIO_FX` engines (docs/11 §4, stage A): a plate reverb,
 a string ensemble and a diffuser, built from Emilie Gillet's MIT code in
 `third_party/mutable/` (unmodified; see its `UPSTREAM.md`). Source
 `src/mi_fx.cc`, build fragment `mk/mi-fx.mk`, tests
-`tests/test_engines_mi_fx.py` (45 tests).
+`tests/test_engines_mi_fx.py` (45 tests) and, for Plate's Freeze,
+`tests/test_engines_plate_freeze.py` with `build/fm1-plate-test`
+(`test/plate_test.cc`).
 
 ```bash
 make -C engines
@@ -35,7 +37,8 @@ chorus-type and a diffusion-type effect with a tail. A second chorus (Rings'
 
 ## Parameters
 
-All four-knob page 0, all 0..1.
+The knobs are on page 0, all 0..1. Plate's Freeze switch is on page 1
+(the second page): see [Freeze](#freeze).
 
 | Effect | Mix | 2nd | 3rd | 4th |
 | --- | --- | --- | --- | --- |
@@ -52,9 +55,12 @@ static, no heap.
 
 | Effect | 64-bit desktop | 32-bit | of which delay memory |
 | --- | --- | --- | --- |
-| Plate | 65,648 B | 65,632 B | 65,536 B |
+| Plate | 65,664 B | 65,664 B | 65,536 B |
 | Ensemble | 4,704 B | 4,704 B | 4,096 B (+ 524 B Width offset line) |
 | Diffuse | 18,848 B | 18,848 B | 16,384 B (+ 2,360 B decorrelator) |
+
+Freeze added 16 bytes on 64-bit and 32 on 32-bit (65,648 and 65,632 before)
+[verified, 2026-10-05, the same two ways].
 
 [verified] 64-bit from `fm1-render` (`fx_bytes`); 32-bit from clang laying
 the same structs out for `i386-apple-macos10.13` (`-fsyntax-only`, sizes read
@@ -252,7 +258,127 @@ Makefile uses neither; the JieLi toolchain profile must not either.
 - Float states (filters, all-passes, Ensemble's float delay line) decay into
   subnormals after the input stops. That costs time on x86 without
   flush-to-zero; what pi32v2's FPU does with subnormals is unknown.
-- No freeze, no tempo sync, no reset of the tail short of re-creating the
-  instance.
+- No tempo sync, no reset of the tail short of re-creating the instance.
+  Plate's Freeze holds a tail for minutes, not for ever (see
+  [Freeze](#freeze)).
 - The Plate does not fit the stock FX arena; on the FM-1 it needs its own
   64 KB.
+
+## Freeze
+
+Plate's fifth parameter, uid 5, an Off/On switch on page 1, appended so no
+uid or page-0 knob moved. It holds the reverb's tail while new input is
+ignored: Elements' recipe for the same reverb (`elements/dsp/part.cc`
+lines 236–250, MIT, `08460a6` [verified]), which sets the loop gain to 1,
+the damping coefficient to 1 (no low-pass) and the input gain to 0.
+Research: notes/2026-10-02-delay-reverb-eq-gates-options.md §3.2.
+
+**Flags: MOD, lockable.** A change is clean (below), so a sequencer lock may
+set it and a modulation route may drive it; the route is rounded (on at
+0.5 and above). It is not LATCH: it acts at once on what is sounding.
+
+**How it switches.** Elements switches all three settings at once, between
+blocks. Here they move together along a linear 5 ms ramp (221 samples at
+44,118 Hz), one sample per `Process` call: loop gain from Decay's value to 1,
+damping coefficient from Damping's to 1, input gain from 0.2 to 0. A toggle
+part way reverses the ramp from where it is. Off, the code path is the one
+that ran before Freeze existed; frozen, the loop runs on silence at
+`amount` 1, so its output is the wet exactly, and the wrapper mixes
+`dry × (1 − Mix) + wet × Mix` itself, which keeps Mix 0 a bit-exact bypass
+and lets no input through at Mix 1 [verified: `ignores_input`, every sample
+equal whether the input is silence or noise with NaN, infinities and 1e6].
+Set before the first render, Freeze snaps instead of ramping, as Echo's and
+Fold's glides do, so a Plate loaded frozen holds an empty loop
+rather than the first 5 ms of its input.
+
+The owner's test for a switch, toggling every third 64-frame block over a
+440 Hz sine at Mix 0.5 for 2 s, gave a largest output step of 0.0485,
+against the held renders' 0.0453 plus a 5 ms crossfade's 2P/220 = 0.0071:
+clean. Switching at once, as Elements does, gave 0.116 against 0.064 +
+0.0085, and fails [verified: `fm1-plate-test`, and a scratch build with a
+one-sample ramp].
+
+**The level holds on engaging; no make-up gain.** The loop gain multiplies
+the delayed signal before the wet is tapped, so a first version scaled the
+wet by (loop gain before) / (loop gain now) to stop it jumping by up to
++10 dB at Decay 0. Measured, the wet does not jump: it dropped by the loop
+gain instead (−10.6 dB at Decay 0). The loop's two all-passes per branch and
+its delay lines carry the louder recent past, so raising the gain only stops
+the fall [verified: a scratch probe; turning Decay from 0 to 1 at once does
+not raise the level either]. The make-up gain was removed. From 30 ms
+before to 30 ms after engaging, the wet changes −0.67, −0.51 and −0.13 dB at
+Decay 0, 0.5 and 1: the tail's own fall over that time [verified].
+
+**While frozen** Decay and Damping wait (a render that turns them while
+frozen is identical until release), and take over again on release, along
+the ramp. Mix and Diffusion stay live, as in Elements [verified: `waits`].
+Released with silence in, the tail decays as Decay says and the output is
+exact zeros 4.4 s later (Decay 0.5) [verified].
+
+**How long it holds** [verified: `fm1-plate-test`, a second of noise, then
+Freeze at 1.2 s in the falling tail, Mix 1]:
+
+| Decay | Below ~300 Hz, 10 s / 30 s / 60 s | Broadband, 10 s / 30 s / 60 s |
+| --- | --- | --- |
+| 0 | −0.8 / −2.6 / −6.2 dB | −5.7 / −9.3 / −14.1 dB |
+| 0.5 | −0.6 / −1.8 / −3.9 dB | −4.7 / −7.8 / −11.0 dB |
+| 1 | −0.4 / −1.2 / −2.2 dB | −3.6 / −6.0 / −8.2 dB |
+
+Unfrozen, Decay 0 falls 43 dB a second. By band (Goertzel, Decay 0.5):
+100–1,000 Hz within 1.2 dB at 10 s and 1–3 dB at 30 s; 4 kHz −9 dB at 10 s
+and −30 dB at 30 s; 8 kHz −31 dB at 10 s [verified, scratch probe]. At 8, 32,
+48 and 96 kHz the hold is alike (−0.9 to −2.6 dB over two seconds).
+
+**It does not hold for ever.** Two losses inside the vendored loop, which
+Freeze cannot reach:
+
+1. *The modulated reads.* Both loop delays are read with linear
+   interpolation at an offset the LFOs move (±50 and ±40 samples). Linear
+   interpolation is a low-pass whose depth depends on the fractional part,
+   so every pass dulls the highs a little; with loop gain 1 nothing makes it
+   up. That is the broadband fall above.
+2. *The 16-bit stores.* `Compress` truncates towards zero, so each of the
+   three stores per branch and pass loses up to one step, about half a step
+   on average, which is relatively more the quieter the tail. A frozen tail
+   therefore runs out: one held at −18.7 dBFS lasted 167 s to the last
+   non-zero sample, one at −38.9 dBFS 26 s [verified: `lifetime`].
+
+Elements has both, at 32 kHz. Scratch builds against modified copies of the
+vendored headers (not committed) show what each costs [verified,
+20-minute renders, noise bursts of 0.5 and 0.05, Decay 0.5]:
+
+| Loop | Burst of 0.5 (tail −17.5 dBFS at 2 s) | Burst of 0.05 (tail −37.5 dBFS at 2 s) |
+| --- | --- | --- |
+| As vendored | gone between 120 and 300 s | gone before 60 s |
+| Rounding stores | broadband −31 dBFS at 20 min (the highs fade); below 100 Hz within 2 dB | falls to −47 dBFS at 2 min, then rises to −36 dBFS at 20 min: the rounding noise random-walks in a lossless loop and builds up below 100 Hz (−55 to −36 dBFS) |
+| Rounding, reads unmodulated | flat, −16.5 to −17.0 dBFS for 20 min; below 100 Hz +2 dB | broadband −36.5 to −33.3 dBFS; below 100 Hz −54 to −36 dBFS (the same noise) |
+
+So a freeze that lasts needs a loop of our own when frozen: stores that
+round, reads that stop moving (a sub-sample glide to the nearest whole
+offset), and a gentle leak or a DC blocker for the rounding noise. That is a
+port of the loop rather than the vendored class (whose engine and write
+pointer are private), with Freeze-off renders kept byte-identical to the
+vendored code. It is left for the owner to decide; a float loop would need
+128 KB.
+
+**No sound changed with Freeze off** [verified, 2026-10-05, Apple clang on
+arm64]: 416 renders by the build before Freeze and by this one, compared
+byte for byte (WAV and summary less timing and instance size): Plate at seven
+settings (defaults, extremes both ways, NaN and infinite parameters), with
+Freeze unset and with `Freeze=0`; Ensemble and Diffuse at two settings
+each; impulse, noise, sine and Macro sources; blocks of 64, 7 and 1; 48 kHz;
+fill 0xA5; NaN faults; and two chains. All identical. The undefined symbols
+of `mi_fx.o` are unchanged too: Freeze adds no libm call.
+
+**Floating point.** The new code (the ramp and the frozen mix) is compiled
+with `#pragma STDC FP_CONTRACT OFF` under clang, scoped to its two
+functions, so it computes the same with or without fused multiply-adds. The
+vendored loop it calls, and Plate's existing parameter mapping, keep the
+build's default contraction, as before: changing that would have changed
+existing renders on arm64.
+
+**Cost** [verified, Apple M1 Max, `fm1-plate-test --bench`, best of five
+runs of 20,000 64-frame blocks of noise]: 936 ns per block off, 963 ns
+frozen, 1,277 ns while the ramp runs (toggled every third block, so it
+never lands: one `Process` call per sample). The ramp lasts 5 ms, about
+four blocks. Instance 65,664 bytes on both 64- and 32-bit.

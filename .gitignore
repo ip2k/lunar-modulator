@@ -15,3 +15,5 @@ __pycache__/
 dongle/firmware/build/
 engines/build*/
 _site/
+# Scratch output at the top of a checkout or worktree (renders, probes).
+/build/
