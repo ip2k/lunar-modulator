@@ -5,14 +5,16 @@
 #        SIM=<abs sim/web> BUILD=<abs dir> print-objs
 #
 # Everything a firmware would link: our engines and effects, the vendored
-# Mutable and Schwung code, the sequencer core and the simulator's app layer.
-# Left out: the desktop host (host/render.cc, seq_script.c, seq_tool.c), the
-# reference renderers and tests, which read files and have a main().
+# Mutable and Schwung code, the sequencer core, the modulation primitives
+# and runtime (MOD_OBJ, MODC_OBJ: mk/mod.mk) and the simulator's app layer.
+# Left out: the desktop host (host/render.cc, seq_script.c, seq_tool.c,
+# mod_script.c), the reference renderers and tests, which read files and
+# have a main().
 # fm1_web.c (the WebAssembly glue) is listed so its compile is checked too.
 # MIT licence, like the rest of this repository.
 
 JIELI_OBJ := $(filter-out $(BUILD)/our/host/render.o,$(OUR_OBJ)) $(TP_OBJ) $(SW_OBJ) \
-             $(SEQ_OBJ) $(SIM_APP_OBJ) $(BUILD)/sim/src/fm1_web.o
+             $(SEQ_OBJ) $(MOD_OBJ) $(MODC_OBJ) $(SIM_APP_OBJ) $(BUILD)/sim/src/fm1_web.o
 
 .PHONY: print-objs
 print-objs:

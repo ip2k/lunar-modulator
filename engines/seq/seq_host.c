@@ -3,8 +3,10 @@
  * hand engine-routed notes and locks to a sound engine at their own frame.
  * Extracted from fm1-render (engines/host/render.cc) without a change in
  * behaviour; lane labels resolve to parameter uids (engine API v2) when they
- * are set, and locks on NOLOCK parameters are refused. C99, no heap, no
- * stdio. MIT licence. */
+ * are set, and locks on NOLOCK parameters are refused. Dispatch can run a
+ * control-rate hook (the modulation tick, docs/16 MG1) at its own frames,
+ * splitting a render only where a tick writes. C99, no heap, no stdio. MIT
+ * licence. */
 #include "fm1_seq_host.h"
 
 #include <string.h>
@@ -245,27 +247,71 @@ static void dispatched(fm1_seq_host_t *h) {
   h->n = 0;
 }
 
+/* The hook's tick at frame tf: when it writes to the sink, the render up to
+ * tf first, then the writes. Returns the next tick's frame. */
+static uint32_t run_tick(fm1_seq_host_t *h, const fm1_seq_hook_t *hk, uint32_t tf, uint32_t *cur,
+                         float *block, const fm1_seq_sink_t *sink) {
+  const fm1_seq_hook_write_t *w = NULL;
+  uint32_t next = tf, i;
+  const uint32_t n = hk->tick(hk->ctx, tf, &w, &next);
+  if (n && w && sink) {
+    if (tf > *cur) {
+      sink->render(sink->ctx, block + 2u * *cur, tf - *cur);
+      if (*cur) ++h->splits;
+      *cur = tf;
+    }
+    for (i = 0; i < n; ++i) {
+      if (w[i].bend) {
+        if (sink->pitch_bend) sink->pitch_bend(sink->ctx, w[i].value);
+      } else if (sink->engine && w[i].index < sink->engine->n_params) {
+        sink->set_param(sink->ctx, w[i].index, w[i].value);
+      }
+    }
+  }
+  return next > tf ? next : tf + 1u;   /* always forward */
+}
+
 /* One sink's share of the block: the events of tracks routed to the engine
  * (any slot when `slot` is negative, else that slot only), with its render
- * split at their frames. Leaves the buffer as it is. */
+ * split at their frames, and the hook's ticks (when there is one) at
+ * theirs; the hook sees every event, whatever its route. A NULL sink
+ * renders nothing. Leaves the buffer as it is. */
 static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm1_seq_sink_t *sink,
-                      int slot) {
-  uint32_t k, cur = 0;
+                      int slot, const fm1_seq_hook_t *hk) {
+  uint32_t k, cur = 0, tf = frames;
+  if (hk) {
+    uint32_t bpm = 0;
+    int playing = 0;
+    if (h->seq) {
+      fm1_seq_info_t info;
+      fm1_seq_get_info(h->seq, &info);
+      bpm = info.bpm_x100;
+      playing = info.playing;
+    }
+    tf = hk->begin(hk->ctx, frames, sink ? sink->engine : NULL, bpm, playing);
+  }
   for (k = 0; k < h->n; ++k) {
     const fm1_seq_ev_t *e = &h->ev[k];
-    int param = -1;
-    uint32_t f;
-    uint8_t d;
-    if (e->kind != FM1_SEQ_EV_NOTE_ON && e->kind != FM1_SEQ_EV_NOTE_OFF &&
-        e->kind != FM1_SEQ_EV_LOCK) continue;
-    d = dest_of_event(h, k);
-    if (d & 0x80u) continue;                  /* MIDI, or no such track */
-    if (slot >= 0 && d != (unsigned)slot) continue;
+    const uint32_t f = e->frame < frames ? e->frame : frames;
+    int param = -1, to_engine = 0;
+    if (sink && (e->kind == FM1_SEQ_EV_NOTE_ON || e->kind == FM1_SEQ_EV_NOTE_OFF ||
+                 e->kind == FM1_SEQ_EV_LOCK)) {
+      const uint8_t d = dest_of_event(h, k);
+      to_engine = !(d & 0x80u) && (slot < 0 || d == (unsigned)slot);   /* not MIDI or nowhere */
+    }
+    if (hk) {
+      /* Ticks before this frame; at this frame, before a note-on but after
+       * note-offs and locks (M6). */
+      while (tf < frames && (tf < f || (tf == f && e->kind == FM1_SEQ_EV_NOTE_ON))) {
+        tf = run_tick(h, hk, tf, &cur, block, sink);
+      }
+      hk->event(hk->ctx, f, e, to_engine);
+    }
+    if (!to_engine) continue;
     if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
       param = lock_target(h, sink->engine, e);
       if (param < 0) continue;
     }
-    f = e->frame < frames ? e->frame : frames;
     if (f > cur) {
       sink->render(sink->ctx, block + 2u * cur, f - cur);
       if (cur) ++h->splits;
@@ -277,12 +323,16 @@ static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm
     } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
       sink->note_off(sink->ctx, e->a);
     } else {
-      sink->set_param(sink->ctx, (uint16_t)param,
-                      fm1_seq_lock_value(&sink->engine->params[param], e->b));
+      float v = fm1_seq_lock_value(&sink->engine->params[param], e->b);
+      if (hk) v = hk->lock(hk->ctx, (uint16_t)param, v);
+      sink->set_param(sink->ctx, (uint16_t)param, v);
       ++h->locks_to_engine;
     }
   }
-  if (cur < frames) {
+  if (hk) {
+    while (tf < frames) tf = run_tick(h, hk, tf, &cur, block, sink);
+  }
+  if (sink && cur < frames) {
     sink->render(sink->ctx, block + 2u * cur, frames - cur);
     if (cur) ++h->splits;
   }
@@ -290,10 +340,13 @@ static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm
 
 void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
                            const fm1_seq_sink_t *sink) {
-  if (sink) {
-    if (sink->engine != h->engine) fm1_seq_host_bind(h, sink->engine);
-    play_sink(h, frames, block, sink, -1);
-  }
+  fm1_seq_host_dispatch_ticks(h, frames, block, sink, NULL);
+}
+
+void fm1_seq_host_dispatch_ticks(fm1_seq_host_t *h, uint32_t frames, float *block,
+                                 const fm1_seq_sink_t *sink, const fm1_seq_hook_t *hk) {
+  if (sink && sink->engine != h->engine) fm1_seq_host_bind(h, sink->engine);
+  if (sink || hk) play_sink(h, frames, block, sink, -1, hk);
   dispatched(h);
 }
 
@@ -304,7 +357,7 @@ void fm1_seq_host_dispatch_slots(fm1_seq_host_t *h, uint32_t frames, const fm1_s
     fm1_seq_host_bind(h, slots[0].sink->engine);
   }
   for (k = 0; k < n && k <= 255u; ++k) {
-    if (slots[k].sink) play_sink(h, frames, slots[k].block, slots[k].sink, (int)k);
+    if (slots[k].sink) play_sink(h, frames, slots[k].block, slots[k].sink, (int)k, NULL);
   }
   dispatched(h);
 }

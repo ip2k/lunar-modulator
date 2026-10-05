@@ -13,7 +13,8 @@
  *   5. (a test harness logs ev[0..n) here);
  *   6. fm1_seq_host_dispatch(h, frames, block, &sink): renders the sound
  *      engine in pieces split at the frame of each event it receives, and
- *      empties the buffer;
+ *      empties the buffer (fm1_seq_host_dispatch_ticks also runs a
+ *      control-rate hook, the modulation tick, at its own frames);
  *   7. effects, which are the host's own; the metronome's click
  *      (fm1_seq_click_mix, from the block's events); then the host's limiter
  *      and output.
@@ -74,7 +75,43 @@ typedef struct fm1_seq_sink {
   void (*note_on)(void *ctx, uint8_t note, uint8_t velocity);
   void (*note_off)(void *ctx, uint8_t note);
   void (*set_param)(void *ctx, uint16_t index, float value);
+  void (*pitch_bend)(void *ctx, float semitones);   /* may be NULL; only a
+                                   control-rate hook's writes use it */
 } fm1_seq_sink_t;
+
+/* A control-rate hook (the modulation runtime's tick, docs/16 MG1;
+ * fm1_mod_host.h builds one). fm1_seq_host_dispatch_ticks runs it inside
+ * the block at its own frames:
+ *   begin   once, first: the block's length, the sink's engine (NULL with no
+ *           sink) and the sequencer's tempo and transport (0 without one);
+ *           returns the frame of the block's first tick (>= frames: none);
+ *   event   every event of the buffer, in order, whatever its kind, track or
+ *           route; to_engine says whether the sink receives it;
+ *   lock    a lock (or a D6 revert) is about to set the sink engine's
+ *           parameter `index` to `value`: the hook moves its base there and
+ *           returns what to send (rule M1);
+ *   tick    the tick at `frame`: its writes for the sink in *w (valid until
+ *           the next call), how many as the result, and the next tick's
+ *           frame in *next.
+ * At one frame the order is docs/16's M6: note-offs and locks, the tick and
+ * its writes, then note-ons. A tick with writes splits the render there; one
+ * without splits nothing, so with nothing routed every render is what plain
+ * dispatch gives. */
+typedef struct fm1_seq_hook_write {
+  uint16_t index;               /* the sink engine's parameter (not for a bend) */
+  uint8_t bend;                 /* 1: pitch_bend(value) instead */
+  uint8_t reserved;
+  float value;
+} fm1_seq_hook_write_t;
+
+typedef struct fm1_seq_hook {
+  void *ctx;
+  uint32_t (*begin)(void *ctx, uint32_t frames, const fm1_engine_t *engine, uint32_t bpm_x100,
+                    int playing);
+  void (*event)(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int to_engine);
+  float (*lock)(void *ctx, uint16_t index, float value);
+  uint32_t (*tick)(void *ctx, uint32_t frame, const fm1_seq_hook_write_t **w, uint32_t *next);
+} fm1_seq_hook_t;
 
 typedef struct fm1_seq_host {
   fm1_seq_t *seq;
@@ -162,6 +199,15 @@ uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames);
  * frame, note-offs, locks, note-ons. A NULL sink only empties the buffer. */
 void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
                            const fm1_seq_sink_t *sink);
+
+/* Dispatch with a control-rate hook (above), which runs even with a NULL
+ * sink (its writes then go nowhere). A NULL hook is plain dispatch. A host
+ * with no sequencer may run it on a bridge initialised with seq NULL and no
+ * buffer: no events, only the hook's ticks and the split renders. The hook
+ * serves one sink; fm1_seq_host_dispatch_slots below runs none (the
+ * multi-sound host's modulation is docs/16 MG3). */
+void fm1_seq_host_dispatch_ticks(fm1_seq_host_t *h, uint32_t frames, float *block,
+                                 const fm1_seq_sink_t *sink, const fm1_seq_hook_t *hook);
 
 /* Several sound units (the virtual FM-1's multi-sound, docs/15 §3.16):
  * one engine slot per sound unit, and a track routed to the engine plays the

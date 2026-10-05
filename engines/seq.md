@@ -371,6 +371,18 @@ it with the core's objects [verified: tests/test_seq_core.py].
    note-off from the block's commands or live input (steps 2–3): it closes
    a gate an earlier block opened, so it goes where the track's notes went
    at the last dispatch, which the bridge remembers per track (`dest`).
+   `fm1_seq_host_dispatch_ticks(h, n, block, &sink, &hook)` does the same
+   and also runs a control-rate hook, the modulation runtime's tick
+   (docs/16 stage MG1, `include/fm1_mod_host.h`): it hands the hook every
+   event at its frame, runs each tick at its own frame (at one frame:
+   note-offs and locks, the tick and its writes, then note-ons, docs/16's
+   rule M6), passes each lock's value through the hook (a lock moves a
+   routed parameter's base, rule M1), and splits the render only at a tick
+   that writes to the engine. With nothing routed a tick writes nothing, so
+   the audio is what plain dispatch gives [verified: engines/mod/README.md,
+   "No render changed"]. The sink's `pitch_bend`, new with it, carries the
+   host's PITCH and may be NULL. The hook serves one sink;
+   `fm1_seq_host_dispatch_slots` (below) runs none yet.
 7. Effects, which are the host's own; then the metronome's click,
    `fm1_seq_click_mix` over the block's events (the buffer still holds
    them after dispatch); then the limiter and the output.

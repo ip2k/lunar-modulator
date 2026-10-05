@@ -1,5 +1,6 @@
 /* tools/jieli/sizes.c -- the C side of tools/jieli/sizes.cc: ABI facts, the
- * sequencer's internal records and the simulator app layer's structs, as
+ * sequencer's internal records, the modulation runtime's state and records,
+ * and the simulator app layer's structs, as
  * constants in the object file (`fm1sz_<name>`), read back by
  * tools/jieli/analyze.py for pi32v2, i386 (-m32) and x86-64.
  *
@@ -7,7 +8,7 @@
  * is what lays out our records; i386, for one, aligns double and uint64_t to 4
  * there and to 8 on their own.
  *
- * Compiled from engines/ with -Iinclude -Iseq -I../sim/web/src. Compile-only:
+ * Compiled from engines/ with -Iinclude -Iseq -Imod -I../sim/web/src. Compile-only:
  * never linked. MIT licence. */
 
 #include <limits.h>
@@ -15,6 +16,7 @@
 #include <stdint.h>
 
 #include "seq_int.h"
+#include "mod_int.h"
 #include "fm1_app.h"
 #include "fm1_engine.h"
 #include "fm1_mix_limiter.h"
@@ -62,6 +64,20 @@ FM1SZ(seq_sq_props_t, sizeof(sq_props_t))
 FM1SZ(seq_fm1_seq_limits_t, sizeof(fm1_seq_limits_t))
 FM1SZ(seq_fm1_seq_ev_t, sizeof(fm1_seq_ev_t))
 FM1SZ(seq_fm1_seq_cmd_t, sizeof(fm1_seq_cmd_t))
+
+/* The modulation runtime (mod_int.h: no pointers, the same layout at 32
+ * and 64 bits; fm1_mod_size() rounds struct fm1_mod up to 16) */
+FM1SZ(mod_struct_fm1_mod, sizeof(struct fm1_mod))
+FM1SZ(mod_fm1_mod_size, (sizeof(struct fm1_mod) + 15u) & ~(size_t)15u)
+FM1SZ(mod_offsetof_now, offsetof(struct fm1_mod, now))
+FM1SZ(mod_offsetof_plan, offsetof(struct fm1_mod, plan))
+FM1SZ(mod_offsetof_slot, offsetof(struct fm1_mod, slot))
+FM1SZ(mod_fm1_mod_slot_t, sizeof(fm1_mod_slot_t))
+FM1SZ(mod_fm1_mod_gate_t, sizeof(fm1_mod_gate_t))
+FM1SZ(mod_fm1_mod_kind_t, sizeof(fm1_mod_kind_t))
+FM1SZ(mod_fm1_mod_io_t, sizeof(fm1_mod_io_t))
+FM1SZ(mod_fm1_mp_lfo_t, sizeof(fm1_mp_lfo_t))
+FM1SZ(mod_fm1_mp_env_t, sizeof(fm1_mp_env_t))
 
 /* The simulator's app layer */
 FM1SZ(app_fm1_app_t, sizeof(fm1_app_t))

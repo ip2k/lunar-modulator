@@ -13,6 +13,11 @@
  *   - The room figures, the realtime-line parser (length-bounded), lane
  *     labels, and every lock value on ranges other than 0..1 (where the
  *     expression's parenthesisation shows).
+ *   - A control-rate hook (dispatch_ticks, docs/16 MG1): ticks at their
+ *     frames, docs/16's M6 order at one frame (note-offs and locks, the
+ *     tick's writes, then note-ons), a lock's value from the hook, a render
+ *     split only where a tick writes, every event fed in order, ticks with
+ *     no sink, and a bridge with no sequencer.
  *   - Several sound units (dispatch_slots): each slot's sink gets only its
  *     own tracks' events, split only at their frames; a track routed to an
  *     empty slot or past the last reaches nothing and splits nothing; a
@@ -92,7 +97,7 @@ static int lanes_match(const fm1_seq_host_t *h, const fm1_engine_t *e) {
 }
 
 /* What the sink was asked to do, with the frame the block had reached. */
-enum { C_ON = 1, C_OFF, C_PARAM };
+enum { C_ON = 1, C_OFF, C_PARAM, C_BEND };
 typedef struct {
   uint8_t kind, a, b;
   uint16_t index;
@@ -130,6 +135,7 @@ static void t_call(trace_t *t, uint8_t kind, uint8_t a, uint8_t b, uint16_t inde
 static void t_on(void *ctx, uint8_t note, uint8_t vel) { t_call((trace_t *)ctx, C_ON, note, vel, 0, 0); }
 static void t_off(void *ctx, uint8_t note) { t_call((trace_t *)ctx, C_OFF, note, 0, 0, 0); }
 static void t_param(void *ctx, uint16_t index, float v) { t_call((trace_t *)ctx, C_PARAM, 0, 0, index, v); }
+static void t_bend(void *ctx, float v) { t_call((trace_t *)ctx, C_BEND, 0, 0, 0, v); }
 
 #define TRACKS 4
 #define BLOCK 64u
@@ -216,6 +222,7 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
   sink.note_on = t_on;
   sink.note_off = t_off;
   sink.set_param = t_param;
+  sink.pitch_bend = NULL;
   fm1_seq_set_route(a.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_set_route(b.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_host_bind(&b, &kEngine);   /* b never dispatches into a sink */
@@ -453,6 +460,7 @@ static void hand_made_block(void) {
   sink.note_on = t_on;
   sink.note_off = t_off;
   sink.set_param = t_param;
+  sink.pitch_bend = NULL;
   CHECK(fm1_seq_apply_text(s, setup, sizeof(setup) - 1u, scratch, 16) == 0);
   fm1_seq_set_route(s, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_host_init(&h, s, ev, 16);
@@ -509,6 +517,7 @@ static void uids_and_refusals(void) {
   sink.note_on = t_on;
   sink.note_off = t_off;
   sink.set_param = t_param;
+  sink.pitch_bend = NULL;
   fm1_seq_host_init(&h, make(mem_text), ev, 16);
   CHECK(h.engine == NULL && h.locks_refused == 0);
   fm1_seq_set_route(h.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
@@ -611,6 +620,139 @@ static void uids_and_refusals(void) {
   }
 }
 
+/* A pretend control-rate hook: ticks every 32 frames from frame 0, the
+ * tick at 32 writes Timbre 0.25 and a bend of 1.5 when `write` is set, a lock
+ * comes back raised by 0.5, and everything it sees is recorded. */
+typedef struct {
+  int write;
+  uint32_t ticks, begins, events, locks;
+  uint32_t ev_frame[32];
+  uint8_t ev_kind[32], ev_to_engine[32];
+  fm1_seq_hook_write_t w[2];
+  trace_t *trace;                      /* where tick calls are noted, if any */
+} fake_hook_t;
+
+static uint32_t h_begin(void *ctx, uint32_t frames, const fm1_engine_t *e, uint32_t bpm, int playing) {
+  fake_hook_t *f = (fake_hook_t *)ctx;
+  (void)frames;
+  (void)e;
+  (void)bpm;
+  (void)playing;
+  ++f->begins;
+  return 0;
+}
+static void h_event(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int to_engine) {
+  fake_hook_t *f = (fake_hook_t *)ctx;
+  if (f->events < 32) {
+    f->ev_frame[f->events] = frame;
+    f->ev_kind[f->events] = e->kind;
+    f->ev_to_engine[f->events] = (uint8_t)to_engine;
+  }
+  ++f->events;
+}
+static float h_lock(void *ctx, uint16_t index, float v) {
+  fake_hook_t *f = (fake_hook_t *)ctx;
+  (void)index;
+  ++f->locks;
+  return v + 0.5f;
+}
+static uint32_t h_tick(void *ctx, uint32_t frame, const fm1_seq_hook_write_t **w, uint32_t *next) {
+  fake_hook_t *f = (fake_hook_t *)ctx;
+  ++f->ticks;
+  *next = frame + 32u;
+  f->w[0].index = 0;
+  f->w[0].bend = 0;
+  f->w[0].value = 0.25f;
+  f->w[1].index = 0;
+  f->w[1].bend = 1;
+  f->w[1].value = 1.5f;
+  *w = f->w;
+  return f->write && frame == 32u ? 2u : 0u;
+}
+
+static void hooked_block(void) {
+  static trace_t tr;
+  static float block[2 * BLOCK];
+  static const char setup[] = "alabel 0 0 synth:Timbre;route 1 0 2";
+  fm1_seq_ev_t ev[16], scratch[16];
+  fm1_seq_host_t h, bare;
+  fm1_seq_sink_t sink;
+  fm1_seq_hook_t hook;
+  fake_hook_t fh;
+  fm1_seq_t *s = make(mem_text);
+  uint32_t n = 0, round;
+  sink.ctx = &tr;
+  sink.engine = &kEngine;
+  sink.render = t_render;
+  sink.note_on = t_on;
+  sink.note_off = t_off;
+  sink.set_param = t_param;
+  sink.pitch_bend = t_bend;
+  hook.ctx = &fh;
+  hook.begin = h_begin;
+  hook.event = h_event;
+  hook.lock = h_lock;
+  hook.tick = h_tick;
+  CHECK(fm1_seq_apply_text(s, setup, sizeof(setup) - 1u, scratch, 16) == 0);
+  fm1_seq_set_route(s, 0, FM1_SEQ_ROUTE_ENGINE, 0);
+  fm1_seq_host_init(&h, s, ev, 16);
+  for (round = 0; round < 3; ++round) {
+    n = 0;
+#define EV(fr, k, t, aa, bb)                                                  \
+  do {                                                                        \
+    ev[n].tick = 0; ev[n].frame = (fr); ev[n].kind = (k); ev[n].track = (t);  \
+    ev[n].a = (aa); ev[n].b = (bb); ++n;                                      \
+  } while (0)
+    EV(0, FM1_SEQ_EV_NOTE_OFF, 0, 60, 0);
+    EV(0, FM1_SEQ_EV_LOCK, 0, 0, 127);       /* Timbre 1, sent as 1.5 */
+    EV(0, FM1_SEQ_EV_NOTE_ON, 0, 62, 90);
+    EV(32, FM1_SEQ_EV_NOTE_OFF, 0, 62, 0);
+    EV(32, FM1_SEQ_EV_LOCK, 0, 0, 0);        /* Timbre 0, sent as 0.5 */
+    EV(32, FM1_SEQ_EV_NOTE_ON, 0, 64, 80);
+    EV(40, FM1_SEQ_EV_NOTE_ON, 1, 50, 100);  /* MIDI: fed, not played */
+    EV(40, FM1_SEQ_EV_CLOCK, FM1_SEQ_NONE, 0, 0);
+#undef EV
+    h.n = n;
+    memset(&tr, 0, sizeof(tr));
+    memset(&fh, 0, sizeof(fh));
+    tr.block = block;
+    fh.write = round == 0;
+    fm1_seq_host_dispatch_ticks(&h, BLOCK, block, round == 2 ? NULL : &sink, &hook);
+    CHECK(h.n == 0 && fh.begins == 1 && fh.ticks == 2 && fh.events == n);
+    CHECK(fh.ev_frame[6] == 40 && fh.ev_kind[7] == FM1_SEQ_EV_CLOCK && !fh.ev_to_engine[6]);
+    if (round == 2) {                       /* no sink: ticks and feeds only */
+      CHECK(tr.n == 0 && tr.pieces == 0 && fh.ev_to_engine[0] == 0 && fh.locks == 0);
+      continue;
+    }
+    CHECK(fh.ev_to_engine[0] && fh.ev_to_engine[1] && fh.locks == 2);
+    CHECK(tr.rendered == BLOCK && !tr.bad_piece && tr.pieces == 2u);
+    CHECK(tr.n == (round == 0 ? 8u : 6u));
+    if (tr.n == 8u) {    /* at 32: off, lock, the tick's writes, then on (M6) */
+      CHECK(tr.calls[0].kind == C_OFF && tr.calls[0].at == 0);
+      CHECK(tr.calls[1].kind == C_PARAM && tr.calls[1].value == 1.5f && tr.calls[1].at == 0);
+      CHECK(tr.calls[2].kind == C_ON && tr.calls[2].a == 62 && tr.calls[2].at == 0);
+      CHECK(tr.calls[3].kind == C_OFF && tr.calls[3].a == 62 && tr.calls[3].at == 32);
+      CHECK(tr.calls[4].kind == C_PARAM && tr.calls[4].value == 0.5f && tr.calls[4].at == 32);
+      CHECK(tr.calls[5].kind == C_PARAM && tr.calls[5].value == 0.25f && tr.calls[5].at == 32);
+      CHECK(tr.calls[6].kind == C_BEND && tr.calls[6].value == 1.5f && tr.calls[6].at == 32);
+      CHECK(tr.calls[7].kind == C_ON && tr.calls[7].a == 64 && tr.calls[7].at == 32);
+    }
+  }
+  /* A tick that writes splits a block no event splits; one that writes
+   * nothing does not. A bridge with no sequencer runs only the hook. */
+  fm1_seq_host_init(&bare, NULL, NULL, 0);
+  for (round = 0; round < 2; ++round) {
+    const uint64_t before = bare.splits;
+    memset(&tr, 0, sizeof(tr));
+    memset(&fh, 0, sizeof(fh));
+    tr.block = block;
+    fh.write = round == 0;
+    fm1_seq_host_dispatch_ticks(&bare, BLOCK, block, &sink, &hook);
+    CHECK(tr.rendered == BLOCK && !tr.bad_piece && fh.ticks == 2 && fh.events == 0);
+    CHECK(tr.pieces == (round == 0 ? 2u : 1u) && bare.splits - before == (round == 0 ? 1u : 0u));
+  }
+}
+
 /* Several sound units (fm1_seq_host_dispatch_slots): tracks 0..3 routed to
  * slots 0, 1, 2 (empty) and 7 (past the last of three). Slot 0 plays
  * kEngine and slot 1 kOther; track 1's Timbre lane, cached on kEngine's uid
@@ -625,6 +767,7 @@ static void slots(void) {
   fm1_seq_slot_t slot[3];
   fm1_seq_t *s = make(mem_text);
   uint32_t n = 0;
+  memset(&sa, 0, sizeof(sa));               /* pitch_bend NULL: no hook here */
   sa.ctx = &ta;
   sa.engine = &kEngine;
   sa.render = t_render;
@@ -709,6 +852,7 @@ int main(void) {
   inputs_and_dispatch(&events, &calls, &inside);
   hand_made_block();
   uids_and_refusals();
+  hooked_block();
   slots();
   no_buffer();
   printf("{\"ok\":%s,\"events\":%llu,\"sink_calls\":%llu,\"splits\":%llu}\n", failed ? "false" : "true",
