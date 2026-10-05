@@ -570,7 +570,7 @@ follows, and a stop just after the locks, which sends the lanes back to
 their bases). Three play several sound
 units with the lab switch (docs/15 §3.16): `multi-two-sounds-inserts`
 (Macro through a Crush insert at 80 % and Shapes through Diffuse and
-Ensemble at 60 %, notes on each, into the master Plate),
+Ensemble at 60 %, notes on each, into the master Comp),
 `multi-four-sounds-seq` (four tracks routed to Macro, Shapes, an empty
 slot and Six-Op, each with its inserts and level, and lock lanes that
 resolve on their own track's sound) and `multi-panel` (SHIFT + PRESETS, a

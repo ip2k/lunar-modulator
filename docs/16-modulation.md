@@ -1432,9 +1432,10 @@ marked]:
   the record pool's 2,304 B. `fm1_app_t` is 4,915,088 B (64-bit clang),
   33,664 B more than main's with multi-sound: the runtime's 24,576 B
   arena, a block's writes to ten effects and AMP (7,728 B) and the pages'
-  state (104 B). The lab's RAM meter counts the runtime, so
-  `multi-four-sounds-seq` (main's) takes Ensemble as its master rather
-  than Plate, which would now pass the budget. The browser module grew
+  state (104 B). The lab's RAM meter counts the runtime, so main's
+  `multi-four-sounds-seq` and `multi-two-sounds-inserts` take Ensemble and
+  Comp as their master rather than Plate, which would now pass the budget,
+  and the sweep's every-sound-as-Sound-2 pass frees an insert first. The browser module grew
   from 560,033 B (main with S8, which linked none of the runtime) to
   698,994 B, about 139 KB, against §4.5's 20–40 KB: the runtime and its
   sixteen kinds (MG2's Peaks and Braids tables among them), the pages and

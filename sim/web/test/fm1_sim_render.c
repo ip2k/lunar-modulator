@@ -1660,7 +1660,10 @@ static void multi_screens(const char *dir, float rate) {
   turn_now(FM1_ENC_PRESETS, -1);
   expect(g_app.unit[fm1_app_sound_unit(1)].e == NULL, "PRESETS does not reach Empty on Sound 2");
   check_screen("multi-popup-presets-empty", dir, 0);
-  /* Every sound as Sound 2: HOME's title "S2 <name>", the Mix page's row. */
+  /* Every sound as Sound 2: HOME's title "S2 <name>", the Mix page's row.
+   * Diffuse goes first, so Shapes fits beside the modulation runtime the
+   * lab's RAM meter counts (docs/16 MG3). */
+  fm1_app_unit_insert(&g_app, 0, 0, -1);
   for (size_t i = 0; i < fm1_engine_count; ++i) {
     if (fm1_engines[i]->kind != FM1_KIND_SOUND) continue;
     if (fm1_app_unit_select(&g_app, 1, (int)i) != 0) continue;
