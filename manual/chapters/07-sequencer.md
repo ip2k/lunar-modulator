@@ -140,6 +140,9 @@ past the clip's end, lengthens the clip to the end of that bar.
 You can also hold the step and play the pitch on a keyboard at [[MIDI IN]].
 A pitch added this way takes the length of the notes already on the step.
 
+With a drum kit as the sound (Sophie or Drums), a white key adds the pad it
+plays, as it does in step recording.
+
 ### The step page
 
 Hold a step for about 300 ms and the screen opens the step page, with the
@@ -536,7 +539,8 @@ to the event log.
 
 Hold [[REC]] while the sequencer is stopped to record step by step instead,
 without the clock running. Step recording is planned with the FM-1's
-interface.
+interface. In the simulator a white key enters the note it plays: its
+pitch, or with a drum kit as the sound (Sophie or Drums) its pad.
 
 ## Capture
 

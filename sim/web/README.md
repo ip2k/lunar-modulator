@@ -95,7 +95,7 @@ PIT, GLO, MONO, POLY) come from the manual's panel drawing [reported].
 
 | Control | On the FM-1 (manual) [reported] | In the simulator |
 | --- | --- | --- |
-| Keys | key position + 53 + 12 × octave + transpose: F3–G5 at rest | the same; with a pad kit as the current sound (Sophie, Drums: an engine with `pad_count`, engines/README.md "Pad kits"), the 16 white keys play its pads 1–16 at any octave and the black keys nothing |
+| Keys | key position + 53 + 12 × octave + transpose: F3–G5 at rest | the same; with a pad kit as the current sound (Sophie, Drums: an engine with `pad_count`, engines/README.md "Pad kits"), the 16 white keys play its pads 1–16 at any octave and the black keys nothing; step record and SHIFT's pitches on held steps enter the note the key plays (the pad), not 53 + key |
 | OCT− / OCT+ | octave −3..+3; both together reset octave and transpose; hold one and turn ALGORITHM to transpose ±12; LED off / slow / fast / solid for 0 / 1 / 2 / 3 | the same |
 | MASTER | volume (a potentiometer) | output gain after the limiter, popup "Volume N" |
 | SELECT | page within the mode; in FX mode, the effect slot | the same, for the engine's pages and the two slots |

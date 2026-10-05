@@ -1039,7 +1039,7 @@ void fm1_app_key(fm1_app_t *a, int key, int down, int velocity) {
        * sounds it (only on the sound: it is no live input). */
       const fm1_seq_ui_emit_t out = ui_out(a);
       const int took = fm1_seq_ui_key(&a->ui, a->seq, key, 1, velocity, a->frames, a->mode,
-                                       base_note(a), &out);
+                                       key_note(a, key), &out);
       if (took) {
         ui_after(a);
         if (took != FM1_SEQ_UI_KEY_SOUND) return;
@@ -1066,7 +1066,7 @@ void fm1_app_key(fm1_app_t *a, int key, int down, int velocity) {
   }
   if (fm1_seq_ui_has_key(&a->ui, key)) {   /* a step's or step record's release, in any mode */
     const fm1_seq_ui_emit_t out = ui_out(a);
-    fm1_seq_ui_key(&a->ui, a->seq, key, 0, 0, a->frames, a->mode, base_note(a), &out);
+    fm1_seq_ui_key(&a->ui, a->seq, key, 0, 0, a->frames, a->mode, key_note(a, key), &out);
     ui_after(a);
   }
 }

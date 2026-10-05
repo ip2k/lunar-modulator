@@ -578,6 +578,39 @@ def test_step_record_takes_a_midi_pitch_already_down_once(tools, tmp_path):
     assert s["rec"]["srec"] == 1 and s["rec"]["head"] == 1
 
 
+@pytest.mark.parametrize("engine,pitches", [
+    ("test-sine", (53, 55, 57)),        # F3, G3, A3 at octave 0
+    ("drums", (36, 37, 38)),            # a pad kit: the kick, the rim, the snare
+    ("sw-sophie", (36, 37, 38)),
+])
+def test_step_record_enters_the_note_the_key_plays(tools, tmp_path, engine, pitches):
+    """Step record enters the note a white key sounds: its pitch, or with a
+    pad kit as the sound (fm1_engine.h, pad_count) the pad it plays, not
+    53 + key, which the kit would leave silent on playback. OCT+ moves the
+    pitches, not the pads."""
+    panel = tmp_path / "p.panel"
+    lines = ["--button 0.03:OCT+", "--button 0.05:SEQ", "--button 0.10:REC:0.8"]
+    lines += [f"--key {0.2 + 0.1 * i:.2f}:{WHITE[i]}:100:0.05" for i in range(3)]
+    panel.write_text("\n".join(lines) + "\n")
+    s = run(tools["sim"], ["--lab", "--engine", engine, "--cmd", str(TRACES / "steps.verbs"),
+                           "--panel", str(panel), "--seconds", "1.2"])
+    up = 12 if engine == "test-sine" else 0
+    want = sum(([f"del 0 {i} {i} -1", f"addp 0 {i} {i} {p + up} 100"]
+                for i, p in enumerate(pitches)), [])
+    assert [t for _, t in s["seq_ui_cmds"]] == want
+
+
+@pytest.mark.parametrize("engine,pitches", [("test-sine", (69, 77)), ("drums", (38, 43))])
+def test_shift_adds_the_note_the_key_plays_to_held_steps(tools, tmp_path, engine, pitches):
+    """O22's SHIFT pitches (tests/fixtures/seq-ui/step-add-pitch.panel) with
+    a pad kit as the sound: white keys 3 and 8 add the snare (38) and the
+    floor tom (43), the pads they play, where a pitched sound gets A4 and F5."""
+    s = run(tools["sim"], ["--lab", "--engine", engine, "--cmd", str(TRACES / "input.verbs"),
+                           "--panel", str(TRACES / "step-add-pitch.panel")])
+    assert [t for _, t in s["seq_ui_cmds"]] == [f"addp 0 4 4 {pitches[0]} 90",
+                                                 f"addp 0 4 4 {pitches[1]} 100", "play"]
+
+
 def test_step_record_wraps_at_the_end_of_a_loop_on_a_later_bar(tools, tmp_path):
     """A loop on bar 2 (steps 17-32 of a 3-bar clip): the head starts on its
     first step and wraps at its end, the bar on the keys following it, and

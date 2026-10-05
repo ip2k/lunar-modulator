@@ -22,7 +22,8 @@ history.
     Accent (how much velocity matters) and Volume are the whole kit's.
   - A closed or pedal hi-hat cuts the open one short. Up to twelve hits
     ring at once, and a pad struck again while it rings is struck again,
-    as a drum is.
+    as a drum is; a thirteenth takes over the quietest hit, so a cymbal
+    still ringing loud keeps going.
   - The kicks, toms, snares and hi-hats are Plaits' drum models by Emilie
     Gillet; the rim shot, clap, cowbell and cymbals are new, after
     published studies of the analogue circuits.
@@ -31,8 +32,11 @@ history.
 - **The virtual FM-1's keys play any drum kit's pads:** with Sophie or
   Drums as the sound, the sixteen white keys play the sixteen pads at any
   octave. This now follows the sound you are playing (SHIFT + PRESETS), not
-  only Sound 1. For developers: an engine says it is a kit with two new
-  fields in the engine API, `pad_first_note` and `pad_count`.
+  only Sound 1. Step recording, and adding a pitch to a held step with
+  SHIFT, enter the pad a white key plays (they entered a pitch the kit
+  ignores, so the steps played nothing). For developers: an engine says it
+  is a kit with two new fields in the engine API, `pad_first_note` and
+  `pad_count`.
 - **Room, Hall, Gate and Plate's Freeze on the virtual FM-1:** the effect
   slots now offer twenty effects (ALGORITHM steps through Plate, Ensemble,
   Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp, Limiter,
