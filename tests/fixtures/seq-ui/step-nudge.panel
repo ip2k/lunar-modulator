@@ -1,0 +1,9 @@
+# With a step held, A#3 and F#3 nudge its notes 2 ticks later or earlier,
+# 1 with SHIFT (SEL); they page no bar.
+--button 0.05:SEQ
+--key 0.10:14:100:0.6
+--key 0.20:5:100:0.03
+--key 0.30:5:100:0.03
+--button 0.40:SEL:0.2
+--key 0.45:1:100:0.03
+--button 1.00:PLAY/STOP

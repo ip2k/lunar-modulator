@@ -8,9 +8,12 @@ Two layers, both heap-free C99 with no libm:
   inputs are destinations, so a chain A → B → C → D is three ordinary
   slots. `include/fm1_mod.h` is its API, `include/fm1_mod_host.h` puts it on
   the sequencer's host bridge, and `fm1-render --mod` plays it. The first
-  three module kinds are **LFO**, **Envelope** and **Chance**. The virtual
-  FM-1 hosts it behind its lab switch, with the RACK, MATRIX and CHAIN
-  pages (docs/16 MG3; sim/web/README.md, "The lab switch").
+  three module kinds are **LFO**, **Envelope** and **Chance**; stage MG2
+  adds thirteen more, documented in [kinds.md](kinds.md): Function, Bounce,
+  Register, Coin, Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix
+  and Filter. The virtual FM-1 hosts it behind its lab switch, with the
+  RACK, MATRIX and CHAIN pages (docs/16 MG3; sim/web/README.md, "The lab
+  switch").
 - **The primitives** (`fm1_mp.h`): an LFO, a multistage envelope, a slew
   limiter, sample-and-hold, a Turing-machine register and a clock
   divider/multiplier, after §3–§5 of the arpeggiator, modulation and effects
@@ -24,6 +27,7 @@ engines/build/fm1-render --engine macro --note 0:60:100:1.5 --seconds 2 --mod /t
     --log-mod /tmp/a.jsonl --out /tmp/a.wav     # one JSON line per tick in the log
 python -m pytest tests/test_engines_mod_runtime.py   # the runtime's tests
 python -m pytest tests/test_engines_mod.py       # the primitives' tests
+python -m pytest tests/test_engines_mod_kinds.py # the MG2 kinds' tests (kinds.md)
 python3 engines/mod/gen_curves.py                # regenerate mod_curves.c (--check: verify)
 python3 engines/mod/gen_tables.py                # regenerate mp_tables.c (--check: verify)
 ```
@@ -43,10 +47,14 @@ python3 engines/mod/gen_tables.py                # regenerate mp_tables.c (--che
 | `mod_curves.c`, `gen_curves.py` | The 8 slot curves as 33-point tables, and the script that writes them |
 | `mod_glue.c` | The bridge hook (`fm1_mod_host.h`) |
 | `kinds/mod_lfo.c`, `mod_env.c`, `mod_chance.c` | LFO, Envelope and Chance |
+| `kinds/mod_function.c` … `mod_filter.c`, `kinds/kinds_int.h` | MG2's thirteen kinds and the helpers they share ([kinds.md](kinds.md)) |
+| `mod_mi.c`, `.h`, `mod_mi_tables.c`, `gen_mi_tables.py` | C ports of Peaks' bouncing ball, pulse shaper and randomizer and Braids' quantizer, their tables, and the script that writes them from the vendored originals |
 | `../host/mod_script.c`, `.h` | `fm1-render`'s text format for racks and slots (desktop only) |
 | `../test/mod_core_test.c` | `fm1-mod-core-test`: the planner fuzz, chains, feedback, fills, NaN, M1–M4 |
+| `../test/mod_kinds_test.c`, `mod_mi_ref.cc` | `fm1-mod-kinds-test` (the MG2 kinds) and `fm1-mod-mi-ref` (the ports against the originals) |
 | `../../tests/test_engines_mod_runtime.py` | The runtime through `fm1-render` and the C test |
 | `../../tests/fixtures/mod-uids.json` | Every kind's uids and ports, the system source ids, pinned |
+| `../../tests/test_engines_mod_kinds.py`, `fixtures/mod-golden.json` | The MG2 kinds' tests and golden traces |
 
 ### Time
 
@@ -164,8 +172,10 @@ reach the sound engine: the sequencer's tracks routed to it and live notes.
   its level between ticks, and the module sees that as an edge at the
   tick's first frame, as a jack would give it; so an envelope held open
   is released when its gate goes, and a newly placed module whose input is
-  already high sees a rise [verified: `gate_continuity` in the C test,
-  `test_editing_or_repatching_a_gate_never_strands_it`].
+  already high sees a rise. Placing a module (a new kind, or the same one
+  again) restarts its outputs low and every gate cable from it with them,
+  so a module it held open sees a fall [verified: `gate_continuity` in the
+  C test, `test_editing_or_repatching_a_gate_never_strands_it`].
 - **Editing a cable keeps it.** An edit that keeps a slot's ends (source,
   VIA, unit, destination, GATE_DST), such as turning its amount, keeps the
   cable's state: a gate cable stays high or low and its probability stream
@@ -248,8 +258,13 @@ STEP (a trigger at each new value).
 
 **Instance sizes:** LFO 112 B, Envelope 124 B, Chance 160 B on 64-bit arm64,
 and 100, 124 and 152 B with `gcc -m32` [verified: `fm1-render --list-mod`];
-under 256 B everywhere [verified: test]. The default rack (LFO, LFO,
-Envelope, Envelope, Chance) takes 640 B of the 8 KB arena.
+under 256 B everywhere but MG2's Burst, 312 B, which ports Peaks' 32-pulse
+buffer whole [verified: test]. The default rack (LFO, LFO, Envelope,
+Envelope, Chance) takes 640 B of the 8 KB arena.
+
+**MG2's kinds** (Function, Bounce, Register, Coin, Divide, Burst, Slew,
+Quantize, Compare, Logic, Calc, Mix, Filter) have their own page:
+[kinds.md](kinds.md).
 
 ### Hosting
 
@@ -620,8 +635,10 @@ at `fm1_seq`'s 96 PPQN.
 
 ## Credits and licences
 
-All code here is this repository's, MIT. It is written from these MIT
-sources and published behaviours, and copies none of their code:
+All code here is this repository's, MIT. The primitives are written from
+these MIT sources and published behaviours, and copy none of their code
+(`mod_mi.c`, which ports Peaks and Braids code under its MIT notice, is
+described in [kinds.md](kinds.md)):
 
 - **Emilie Gillet**, Mutable Instruments Peaks: the envelope's structure,
   presets, curve formulas and time curve.

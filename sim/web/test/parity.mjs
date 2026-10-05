@@ -52,6 +52,13 @@
 // them. A panel scenario with the lab switch modulates from the panel: the
 // harness logs the runtime's state and every edit (.mod, named in the
 // sidecar), which the render legs replay.
+//
+// A scenario with `sounds`, `inserts`, `levels` or `sound_notes` (and `lab`)
+// plays several sound units (docs/15 §3.16): fm1-render gets --sound,
+// --insert, --level and --sound-note, and --slots for any lab scenario, so
+// its tracks play the unit their route names as the module's do; the module
+// loads the same units through fm1w_sound_unit and fm1w_insert_unit, in the
+// same order, and plays those notes with fm1w_unit_note_on.
 // MIT licence.
 
 import { execFileSync } from 'node:child_process';
@@ -85,6 +92,19 @@ function cliArgs(s) {
     a.push('--fx', id);
     for (const p of ps) a.push('--fx-param', p);
   }
+  for (const p of s.fx_param_at ?? []) a.push('--fx-param-at', p);
+  // Multi-sound (docs/15 §3.16): the other sound units, every unit's inserts
+  // and levels, and notes on a given unit.
+  for (const [k, id, ps] of s.sounds ?? []) {
+    a.push('--sound', `${k}:${id}`);
+    for (const p of ps) a.push('--sound-param', `${k}:${p}`);
+  }
+  for (const [k, id, ps] of s.inserts ?? []) {
+    a.push('--insert', `${k}:${id}`);
+    for (const p of ps) a.push('--insert-param', `${k}:${p}`);
+  }
+  for (const lv of s.levels ?? []) a.push('--level', lv);
+  for (const n of s.sound_notes ?? []) a.push('--sound-note', n);
   if (s.mod) a.push('--mod', modPath(s));
   return a;
 }
@@ -177,8 +197,9 @@ function loadScript(path) {
 }
 
 // A --panel file as fm1-sim-render reads it (read_panel, add_panel): one
-// --key, --button or --turn and its value per line, '#' comments; events in
-// file order, a button's or key's press then its release.
+// --key, --button, --turn or --note (MIDI IN) and its value per line, '#'
+// comments; events in file order, a button's, key's or note's press then
+// its release.
 const BUTTON_NAMES = ['OCT-', 'OCT+', 'FX', 'SEL', 'ENV', 'LFO', 'EDIT', 'GLO', 'HOME', 'SAVE', 'ARP',
   'SEQ', 'PLAY/STOP', 'REC'];
 const ENCODER_NAMES = ['SELECT', 'PRESETS', 'ALGORITHM', 'KNOB1', 'KNOB2', 'KNOB3', 'KNOB4'];
@@ -187,8 +208,8 @@ function loadPanel(path) {
   readFileSync(path, 'latin1').split('\n').forEach((raw, i) => {
     const p = raw.replace(/[\r \t]+$/, '').replace(/^[ \t]+/, '');
     if (!p || p[0] === '#') return;
-    const m = /^(--key|--button|--turn)[ \t]+(.*)$/.exec(p);
-    if (!m) throw new Error(`${path}:${i + 1}: want --key, --button or --turn`);
+    const m = /^(--key|--button|--turn|--note)[ \t]+(.*)$/.exec(p);
+    if (!m) throw new Error(`${path}:${i + 1}: want --key, --button, --turn or --note`);
     const parts = m[2].split(':');
     const t = parseFloat(parts[0]);
     if (m[1] === '--button') {
@@ -202,7 +223,8 @@ function loadPanel(path) {
       controls.push({ t, encoder: id, delta: parseInt(parts[2], 10) });
     } else {
       const [key, vel, dur] = parts.slice(1).map(Number);
-      keys.push({ t, on: true, key, vel }, { t: t + dur, on: false, key });
+      const midi = m[1] === '--note';
+      keys.push({ t, on: true, key, vel, midi }, { t: t + dur, on: false, key, midi });
     }
   });
   return { controls, keys };
@@ -246,6 +268,29 @@ async function renderApp(s) {
       ex.fm1w_set_param(1 + k, paramOf(id, n), v);
     }
   });
+  // Multi-sound, in the harness's and fm1-render's order: the other sound
+  // units, then each unit's inserts in order, then the levels.
+  for (const [k, id, ps] of s.sounds ?? []) {
+    const unit = ex.fm1w_sound_unit(k);
+    if (ex.fm1w_select(unit, indexOf(id)) !== 0) throw new Error(`cannot load ${id} as sound ${k}`);
+    for (const p of ps) {
+      const [n, v] = splitParam(p);
+      ex.fm1w_set_param(unit, paramOf(id, n), v);
+    }
+  }
+  const insertsOf = [0, 0, 0, 0];
+  for (const [k, id, ps] of s.inserts ?? []) {
+    const unit = ex.fm1w_insert_unit(k, insertsOf[k]++);
+    if (ex.fm1w_select(unit, indexOf(id)) !== 0) throw new Error(`cannot load ${id} as an insert of sound ${k}`);
+    for (const p of ps) {
+      const [n, v] = splitParam(p);
+      ex.fm1w_set_param(unit, paramOf(id, n), v);
+    }
+  }
+  for (const lv of s.levels ?? []) {
+    const [k, v] = lv.split(':');
+    ex.fm1w_unit_set_level(Number(k), Math.fround(parseFloat(v)));
+  }
   ex.fm1w_master(1, 0);
 
   // The sequencer, as fm1-sim-render sets it up for --cmd: an instance at the
@@ -277,7 +322,8 @@ async function renderApp(s) {
   }
 
   // Events as render.cc builds them: --bend and --param-at in argv order
-  // (cliArgs puts bends first), notes as on/off pairs.
+  // (cliArgs puts bends first), then --fx-param-at (T:K:NAME=V, K the
+  // effect's slot from 1), notes as on/off pairs.
   const controls = [
     ...(s.bends ?? []).map((b) => {
       const [t, st] = b.split(':');
@@ -288,11 +334,25 @@ async function renderApp(s) {
       const [n, v] = splitParam(p.slice(c + 1));
       return { t: parseFloat(p.slice(0, c)), bend: false, idx: paramOf(s.engine, n), v };
     }),
+    ...(s.fx_param_at ?? []).map((p) => {
+      const [t, k] = p.split(':');
+      const [n, v] = splitParam(p.slice(t.length + k.length + 2));
+      const slot = parseInt(k, 10);
+      const fx = (s.fx ?? [])[slot - 1];
+      if (!fx) throw new Error(`${s.name}: --fx-param-at names effect ${k}`);
+      const idx = paramOf(fx[0], n);
+      if (idx < 0) throw new Error(`${s.name}: ${fx[0]} has no parameter ${n}`);
+      return { t: parseFloat(t), bend: false, unit: slot, idx, v };
+    }),
   ];
   const events = [];
   for (const n of s.notes ?? []) {
     const [t, key, vel, dur] = n.split(':').map(Number);
     events.push({ t, on: true, key, vel }, { t: t + dur, on: false, key });
+  }
+  for (const n of s.sound_notes ?? []) {           // after --note, as cliArgs passes them
+    const [sound, t, key, vel, dur] = n.split(':').map(Number);
+    events.push({ t, on: true, key, vel, sound }, { t: t + dur, on: false, key, sound });
   }
   // The panel, after every other argument as parity passes it to the
   // harness: its buttons and encoders with the controls, its keys with the
@@ -300,7 +360,7 @@ async function renderApp(s) {
   if (s.panel) {
     const panel = loadPanel(panelPath(s));
     controls.push(...panel.controls);
-    events.push(...panel.keys.map((k) => ({ ...k, panel: true })));
+    events.push(...panel.keys.map((k) => ({ ...k, panel: !k.midi })));
   }
   const total = Math.trunc(s.seconds * rate);
   const out = new Int16Array(total * 2);
@@ -312,14 +372,17 @@ async function renderApp(s) {
       if (c.button !== undefined) ex.fm1w_button(c.button, c.down);
       else if (c.encoder !== undefined) ex.fm1w_encoder(c.encoder, c.delta);
       else if (c.bend) ex.fm1w_pitch_bend(c.v);
-      else ex.fm1w_set_param(0, c.idx, c.v);
+      else ex.fm1w_set_param(c.unit ?? 0, c.idx, c.v);
       c.done = true;
     }
     for (const on of [false, true]) {
       for (const e of events) {
         if (e.done || e.on !== on || e.t > now) continue;
         if (e.panel) ex.fm1w_key(e.key, on ? 1 : 0, e.vel | 0);
-        else if (on) ex.fm1w_note_on(e.key, e.vel);
+        else if (e.sound !== undefined) {
+          if (on) ex.fm1w_unit_note_on(e.sound, e.key, e.vel);
+          else ex.fm1w_unit_note_off(e.sound, e.key);
+        } else if (on) ex.fm1w_note_on(e.key, e.vel);
         else ex.fm1w_note_off(e.key);
         e.done = true;
       }
@@ -402,10 +465,12 @@ for (const s of scenarios) {
   if (s.lab) simArgs.push('--lab');
   if (s.panel) simArgs.push('--panel', panelPath(s));
   const native = JSON.parse(execFileSync(args.sim, simArgs, quiet).toString().trim().split('\n').pop());
+  // The lab switch routes tracks by slot (fm1-render --slots); a panel run's
+  // sidecar says so itself.
   const renderCli = s.panel
     ? ['--seconds', String(s.seconds), '--rate', String(s.rate ?? 44118), '--cmd', join(dir, 'cmds.verbs'),
       ...readFileSync(join(dir, 'cmds.args'), 'latin1').split('\n').filter((l) => l !== '')]
-    : cli;
+    : [...cli, ...(s.lab ? ['--slots'] : [])];
   execFileSync(args.native, [...renderCli, '--out', join(dir, 'glibc.wav')], quiet);
   execFileSync(process.execPath, [args['render-js'], ...renderCli, '--out', join(dir, 'js.wav')], quiet);
   if (args.musl) execFileSync(args.musl, [...renderCli, '--out', join(dir, 'musl.wav')], quiet);

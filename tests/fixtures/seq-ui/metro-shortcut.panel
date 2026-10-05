@@ -1,0 +1,8 @@
+# Playing: SHIFT (SEL) + white key 6 turns the metronome on, and again
+# off a second later.
+--button 0.05:SEQ
+--button 0.10:PLAY/STOP
+--button 0.40:SEL:0.05
+--key 0.42:9:100:0.01
+--button 1.40:SEL:0.05
+--key 1.42:9:100:0.01

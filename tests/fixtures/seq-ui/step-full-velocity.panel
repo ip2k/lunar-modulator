@@ -1,0 +1,11 @@
+# SHIFT (SEL) + white key 10 turns full velocity on: a tap enters velocity
+# 127. Again, off.
+--button 0.05:SEQ
+--button 0.10:SEL:0.1
+--key 0.15:16:100:0.02
+--key 0.30:7:100:0.05
+--key 0.40:9:100:0.05
+--button 0.50:SEL:0.1
+--key 0.55:16:100:0.02
+--key 0.70:11:100:0.05
+--button 0.80:PLAY/STOP

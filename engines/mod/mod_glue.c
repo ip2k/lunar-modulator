@@ -37,6 +37,12 @@ static float glue_lock(void *ctx, uint16_t index, float value) {
   return fm1_mod_set_base(g->mod, FM1_MOD_SOUND, index, value);
 }
 
+/* A lock on slot `slot` (fm1_seq_host_dispatch_slots_ticks): slot 0 is
+ * SOUND; the other sound units take no modulation yet. */
+static float glue_lock_slot(void *ctx, unsigned slot, uint16_t index, float value) {
+  return slot == 0 ? glue_lock(ctx, index, value) : value;
+}
+
 static uint32_t glue_tick(void *ctx, uint32_t frame, const fm1_seq_hook_write_t **w,
                           uint32_t *next) {
   fm1_mod_glue_t *g = (fm1_mod_glue_t *)ctx;
@@ -49,7 +55,7 @@ static uint32_t glue_tick(void *ctx, uint32_t frame, const fm1_seq_hook_write_t 
       if (k < sizeof(g->w) / sizeof(g->w[0])) {
         g->w[k].index = x->index;
         g->w[k].bend = (uint8_t)(x->unit == FM1_MOD_HOST);
-        g->w[k].reserved = 0;
+        g->w[k].slot = 0;
         g->w[k].value = x->value;
         ++k;
       }
@@ -74,4 +80,5 @@ void fm1_mod_glue_init(fm1_mod_glue_t *g, fm1_mod_t *m, const fm1_engine_t *soun
   g->hook.event = glue_event;
   g->hook.lock = glue_lock;
   g->hook.tick = glue_tick;
+  g->hook.lock_slot = glue_lock_slot;
 }

@@ -100,14 +100,16 @@ def test_the_core_checks_itself(renderer):
     assert out["failed"] == 0 and out["size"] == MOD_BYTES
     assert out["plans"] == 3000 and out["plans_with_loops"] > 500
     assert out["chain_ticks"] > 300 and out["feedback_ticks"] == 12 and out["nan_writes"] > 50
-    assert out["continuity"] == 5
+    assert out["continuity"] == 6
 
 
 def test_size_is_pinned_and_listed(renderer):
     d = json.loads(subprocess.check_output([str(renderer), "--list-mod"]))
     assert d["bytes"] == MOD_BYTES
     assert (d["tick"], d["positions"], d["slots"], d["arena"]) == (TICK, 8, 32, 8192)
-    assert all(k["instance_bytes"] <= 256 for k in d["kinds"])
+    # Under 256 B each, but Burst: it ports Peaks' 32-pulse buffer whole
+    # (docs/16 §4.2, engines/mod/README.md).
+    assert all(k["instance_bytes"] <= (320 if k["id"] == "burst" else 256) for k in d["kinds"])
 
 
 FORBIDDEN = {"malloc", "calloc", "realloc", "free", "_Znwm", "_Znwj", "_Znam", "_Znaj",
@@ -125,7 +127,8 @@ def test_no_heap_no_stdio_no_libm(renderer):
         pytest.skip("no nm")
     base = ENGINES / "build" / "mod" / "mod"
     objs = sorted(base.glob("mod_*.o")) + sorted((base / "kinds").glob("*.o"))
-    assert len(objs) == 8
+    kinds = json.loads(subprocess.check_output([str(renderer), "--list-mod"]))["kinds"]
+    assert len(objs) == 7 + len(kinds)    # core, plan, registry, curves, glue, mi, mi_tables
     objs.append(ENGINES / "build" / "c" / "seq" / "seq_host.o")
     for o in objs:
         out = subprocess.check_output([nm, "-u", str(o)], text=True)
@@ -260,6 +263,19 @@ def test_mod_flags_need_mod(renderer, tmp_path):
         res = subprocess.run([str(renderer), "--engine", "macro", "--seconds", "0.1",
                               "--mod", str(p)], capture_output=True, text=True)
         assert res.returncode == 2 and msg in res.stderr, (text, res.stderr)
+    # A bad @FRAME, and a bad line that only fails when its frame comes, with
+    # the sequencer's script loaded: each exits 2 with everything released
+    # (the sanitizer build's leak check runs these).
+    cmd = script(tmp_path, seq_text(64, end=448 * 4))
+    for text, msg, extra in [("@x mod 1 lfo", "bad @FRAME", []),
+                             ("mod 1 lfo\n@2000 frobnicate", "unknown line", ["--cmd", str(cmd)])]:
+        p.write_text(text + "\n")
+        res = subprocess.run([str(renderer), "--engine", "macro", "--seconds", "0.1",
+                              "--mod", str(p)] + extra, capture_output=True, text=True)
+        assert res.returncode == 2 and msg in res.stderr, (text, res.stderr)
+    res = subprocess.run([str(renderer), "--engine", "macro", "--seconds", "0.1", "--mod",
+                          str(tmp_path / "missing.mod")], capture_output=True, text=True)
+    assert res.returncode == 1 and "cannot read" in res.stderr
 
 
 # ---- block-size identity with routes ----------------------------------------------------------
@@ -439,6 +455,42 @@ def test_bend_is_the_base_of_pitch(renderer, tmp_path):
     assert all(t["s"][0]["v"] == pytest.approx(3.0 + amt * t["m"][0]["o"][0], abs=1e-4)
                for t in late)
     assert s["mod_sound_writes"] > 100
+
+
+def test_fx_param_at_is_the_base_of_an_effect_parameter(renderer, tmp_path):
+    """M1 on an effect: --fx-param-at moves the base of crush's Mix and the
+    LFO swings round the new value."""
+    s, _, ticks = run(renderer, tmp_path, ["--input", "noise", "--fx", "crush", "--fx-param",
+                                           "Mix=0.5", "--fx-param-at", "0.25:1:Mix=0.8",
+                                           "--seconds", "0.5"],
+                      mod="mod 1 lfo rate=0.8\nslot 1 lfo1 > fx1:Mix amt=10\n")
+    early = [t for t in ticks if t["t"] < 0.2 * RATE]
+    late = [t for t in ticks if t["t"] > 0.3 * RATE]
+    assert early and all(t["s"][0]["u"] == "fx1" and t["s"][0]["b"] == 0.5 for t in early)
+    amt = 1638 / 16384                      # 10 % in Q1.14 of Mix's 0..1
+    assert late and all(t["s"][0]["b"] == pytest.approx(0.8) and t["s"][0]["v"] ==
+                        pytest.approx(min(1.0, 0.8 + amt * t["m"][0]["o"][0]), abs=1e-6)
+                        for t in late)
+    assert s["mod_other_writes"] > 100
+
+
+def test_mod_runs_over_sound_units(renderer, tmp_path):
+    """With slots (docs/16 MG3) the runtime runs over every sound unit: a
+    cable into the sound moves sound unit 0 as without slots, a note on
+    another unit feeds KEY, and with nothing routed the render is the plain
+    slots render to the byte."""
+    base = ["--engine", "test-sine", "--sound", "1:test-sine", "--seconds", "0.5",
+            "--sound-note", "1:0.05:64:100:0.3"]
+    plain, raw_plain, _ = run(renderer, tmp_path, base, name="plain")
+    s, raw, _ = run(renderer, tmp_path, base, mod="rack default\n", name="idle")
+    assert raw == raw_plain and s["mod_writes"] == 0
+    s, _, ticks = run(renderer, tmp_path, base, mod="rack default\nslot 1 key > env3:gate\n", name="key")
+    assert any(sid == 16 and high == 1 for t in ticks for sid, _, high in t["g"])
+    one, raw_one, _ = run(renderer, tmp_path, ["--engine", "test-sine", "--seconds", "0.5", "--slots"],
+                          mod="mod 1 lfo rate=0.8\nslot 1 lfo1 > snd:Volume amt=-50\n", name="slots")
+    two, raw_two, _ = run(renderer, tmp_path, ["--engine", "test-sine", "--seconds", "0.5"],
+                          mod="mod 1 lfo rate=0.8\nslot 1 lfo1 > snd:Volume amt=-50\n", name="noslots")
+    assert raw_one == raw_two and one["mod_sound_writes"] == two["mod_sound_writes"] > 0
 
 
 def test_amp_makes_a_tremolo(renderer, tmp_path):

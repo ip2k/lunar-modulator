@@ -183,6 +183,7 @@ const statusEl = document.getElementById('status');
 const overlay = document.getElementById('power-overlay');
 const selects = [document.getElementById('sel-sound'), document.getElementById('sel-fx1'),
   document.getElementById('sel-fx2')];
+const soundLabel = document.querySelector('label[for="sel-sound"]');
 const image = new ImageData(240, 240);
 
 const sim = {
@@ -304,6 +305,10 @@ function onWorklet(m, node) {
     case 'state':
       sim.state = m;
       selects.forEach((s, u) => { s.value = String(m.units[u]); });
+      if (LAB) {                   // multi-sound: the current sound; Sound 1 is never empty
+        soundLabel.textContent = `Sound ${m.sound + 1} (PRESETS)`;
+        if (selects[0].options.length) selects[0].options[0].disabled = m.sound === 0;
+      }
       showStatus();
       break;
     case 'screen':
@@ -324,7 +329,8 @@ function onWorklet(m, node) {
       const why = m.code === -2 ? 'it is too large for its slot'
         : m.code === -3 ? `it does not run at ${Math.round(m.rate).toLocaleString('en')} Hz ` +
           `(Macro, Macro Heavy and Six-Op need ${PLAITS_RATE.toLocaleString('en')} Hz or less)`
-          : `error ${m.code}`;
+          : m.code === -4 ? 'the chain would no longer fit the FM-1\'s RAM (the meter on the screen)'
+            : `error ${m.code}`;
       sim.notice = `${name} was refused: ${why}.` +
         (m.start ? ' The first sound that runs was loaded instead.' : '');
       showStatus();
@@ -343,7 +349,9 @@ function fillSelects() {
   const fx = sim.catalog.filter((e) => e.kind === 'audio_fx');
   const opts = (list, none) => (none ? '<option value="-1">(none)</option>' : '') +
     list.map((e) => `<option value="${e.index}">${e.name}</option>`).join('');
-  selects[0].innerHTML = opts(sounds, false);
+  // With the lab switch, Sounds 2-4 can be empty (multi-sound): the list
+  // shows it, and choosing it for Sound 1 is refused.
+  selects[0].innerHTML = opts(sounds, LAB);
   selects[1].innerHTML = opts(fx, true);
   selects[2].innerHTML = opts(fx, true);
   for (const s of selects) s.disabled = false;
@@ -366,10 +374,11 @@ function showStatus() {
   const ram = (b) => `${Math.ceil(b / 1024)} KB`;
   const q = sim.seq;
   const seq = LAB && q ? ` Sequencer: ${(q.bpm_x100 / 100).toFixed(2)} BPM, ` +
-    `${q.recording ? 'recording' : q.playing ? 'playing' : 'stopped'}${q.following ? ' (external clock)' : ''}.` : '';
+    `${q.recording ? 'recording' : q.counting_in ? 'counting in' : q.playing ? 'playing' : 'stopped'}` +
+    `${q.following ? ' (external clock)' : ''}.` : '';
   statusEl.textContent = `Running at ${rate.toLocaleString('en')} Hz${fellBack}, 64-frame blocks, ` +
     `${(latency * 1000).toFixed(0)} ms output latency. Chain RAM ${ram(st.ram)} of the ` +
-    `${ram(387924)} the stock layout leaves free.${seq}${sim.notice ? ' ' + sim.notice : ''}`;
+    `${ram(st.budget || 387924)} the stock layout leaves free.${seq}${sim.notice ? ' ' + sim.notice : ''}`;
 }
 
 function drawScreen(px) {
@@ -526,6 +535,12 @@ function setMaster(pos) {
 // then.
 const heldKeys = new Map();   // event.code -> release function
 const OCT_KEYS = { KeyZ: 'OCT-', KeyX: 'OCT+' };
+// Lab, SEQ mode (the owner's decision O19 in docs/15): the 16 steps, white
+// keys 1-16, on keys the instrument does not use, and Shift as SEL (SHIFT).
+const STEP_KEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8',
+  'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM', 'Comma', 'Period', 'Slash'];
+const SEQ_MODE = 3;
+const inSeq = () => LAB && sim.state && sim.state.mode === SEQ_MODE;
 
 function releaseKeys() {
   const releases = [...heldKeys.values()];
@@ -582,6 +597,27 @@ function keydown(e) {
     const g = buttonEls[button];
     hold(e.code, () => { g.classList.add('down'); send({ type: 'button', button, down: true }); },
       () => { g.classList.remove('down'); send({ type: 'button', button, down: false }); });
+    return;
+  }
+  // Lab, SEQ mode: Shift holds SEL, which is SHIFT there; the step keys
+  // press white keys 1-16. Their releases go where the press went, whatever
+  // the mode is by then.
+  if (inSeq() && (e.code === 'ShiftLeft' || e.code === 'ShiftRight')) {
+    e.preventDefault();
+    if (e.repeat) return;
+    const button = BUTTONS.indexOf('SEL');
+    const g = buttonEls[button];
+    hold(e.code, () => { g.classList.add('down'); send({ type: 'button', button, down: true }); },
+      () => { g.classList.remove('down'); send({ type: 'button', button, down: false }); });
+    return;
+  }
+  const step = inSeq() ? STEP_KEYS.indexOf(e.code) : -1;
+  if (step >= 0) {
+    e.preventDefault();
+    if (e.repeat) return;
+    const key = WHITE_STEPS[step];
+    hold(e.code, () => send({ type: 'key', key, down: true, velocity: 100 }),
+      () => send({ type: 'key', key, down: false }));
     return;
   }
   const k = KEYMAP.indexOf(e.code);

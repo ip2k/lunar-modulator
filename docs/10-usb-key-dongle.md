@@ -25,6 +25,17 @@ Update 2026-10-01:
   works as the hand-over, and the ROM may listen only briefly after power-up.
 - **Sections updated to match:** §1 items 3 and 7, §3, §5, §6 and §8.
 
+Update 2026-10-05 (`notes/2026-10-05-community-repos.md`):
+- **A third report: FM-1-transporter** (kurogedelic, `a632d92`, MIT), the
+  recovery tool of the Felucca firmware, keys FM-1s on D+ and then acts as
+  USB host to `UBOOT1.00` itself (§1.1). It drives push-pull with no series
+  resistors, which E1 rules out for this project's unit.
+- **A running stock V15 can enter `UBOOT1.00` without a dongle**, on the
+  SysEx "soft key" `F0 22 24 35 7D F7` [reported: FM-1-transporter]. That is
+  no substitute for this dongle: the gate must prove the path that works
+  when no app runs, and the soft key is forbidden before it (CLAUDE.md
+  trap 9).
+
 ## 1. What the mask ROM does [reported: kagaimiq]
 
 Sources: `jielie/isp/usb/usb-key.md` and
@@ -69,13 +80,17 @@ Sources: `jielie/isp/usb/usb-key.md` and
    speaks JieLi's SCSI vendor protocol (v2 for WL82). It can only read/write
    RAM and jump; flash access needs the `wl82loader.bin` blob loaded to
    `0x1C02000` (jl-uboot-tool, "MengLi" memory cipher quirk). WL82 is listed
-   there as **"unknown"** (loader present, never exercised). A backup and a
-   write on an FM-1 have since been reported (§1.1).
+   there as **"unknown"**, but the WL82 has since been exercised on FM-1s: a
+   backup and a write (masanaohayashi), FM-1-transporter's dumps and sector
+   writes, and fm1-nes's 51-sector install, whose guard patch runs
+   jl-uboot-tool `adb3f18` with 256-byte I/O [reported; §1.1]. On FM-1s the
+   chip shows as `4C4A:8057` `WL80UBOOT1.00`, SCSI `WL82`/`UBOOT1.00`
+   [reported: FM-1-transporter, fm1-nes].
 
 The vendor's own "USB Updater" dongle is exactly this: a small JieLi MCU that
 bit-bangs the key and a USB switch that then passes the bus to the PC.
 
-### 1.1 Reports from FM-1 owners: czietz's Pico dongle (issue #2, 2026-09)
+### 1.1 Reports from FM-1 owners: czietz's Pico dongle (issue #2, 2026-09) and FM-1-transporter (2026-10)
 
 All three reports are in issue #2 on this repository, "Working UBOOT dongle
 (fyi)": https://github.com/ip2k/mvave-fm1-open-firmware/issues/2.
@@ -199,6 +214,34 @@ That gives a second, independent waveform to compare on a logic analyser (§6
 step 1), and a second implementation for the dev-kit rehearsal (docs/08
 Phase 2). It drives push-pull, so by E1 it is not for this project's FM-1,
 even though it has worked on others.
+
+**A third report: FM-1-transporter (kurogedelic, `a632d92`, MIT).** Felucca's
+recovery tool; read through the GitHub API, not run here
+(`notes/2026-10-05-community-repos.md` §2.3).
+- **What it is:** a Seeed XIAO RP2040 wired to the FM-1's D+, D− and GND,
+  never VBUS. It keys `USB_KEY` `0x16EF`, then acts as USB host to
+  `UBOOT1.00` through Pico-PIO-USB, and the Mac talks to the XIAO over CDC,
+  so no cable moves [verified: README].
+- **Drive:** the PIO program `usb_key_pp` sets both pins as driven outputs
+  (`set pindirs, 3`), push-pull like czietz's gist, and the README wires D6
+  and D7 straight to D+ and D−, with no series resistors [verified:
+  `pio/usb_key.pio` and README at `a632d92`]. By E1 it is not for this
+  project's unit as built.
+- **What it reports on FM-1s** [reported: `docs/PROTOCOL.md`,
+  `docs/DEVLOG.md`]: polarity A only (D+ clock), and polarity B never
+  worked; `4C4A:8057` `WL80UBOOT1.00`, SCSI `WL82`/`UBOOT1.00`, READ_KEY
+  `0x980F`, JEDEC `0x856014`; raw flash reads (the `.fwsc` flash entry
+  matched flash from offset 0); the ROM accepts the key after a watchdog
+  reset too, while a hung unit with no watchdog needs a power-on during
+  keying; if the host drops the device, the chip resets and boots flash.
+- **The soft key:** stock V15 obeys `F0 22 24 35 7D F7`, leaves the bus
+  21 ms later and returns as `UBOOT1.00` 1.0 s after that; it fails with
+  another full-speed device on the hub [reported]. Its `fm1t.py` sends it by
+  itself when it sees V15 [verified: README]. Never run that tool against
+  this project's unit before the gate.
+- **What it changes here:** item 1 (D+ is the clock) now has a third
+  report. Its PIO-USB host idea (MIT) could let our dongle run whole
+  sessions from the Mac (`dongle/`) [inferred]; we keep E1's open drain.
 
 ## 2. Requirements
 
@@ -460,11 +503,11 @@ and whether VBUS alone powers the SoC. Those are §6.
 | Pin polarity (which line is clock) | D+ (polarity A) on the FM-1 [reported: czietz's dongle on two FM-1s, §1.1]; `usb-key.md` and the diagram in `how-to-enter-uboot.md` agree, and only that page's prose says D− (§1 item 3). Not yet seen on this project's unit; both roles stay implemented |
 | Does the ROM listen continuously or only briefly at power-up? | perhaps briefly [inferred]: czietz's blind key/SOF loop hits about one power-on in two, which fits a window from milliseconds to a few hundred (§1.1 item 4). Keying from before power-up covers it; fixed polarity A avoids the alternate-mode miss |
 | Does the chip stay in `UBOOT1.00` while the cable moves from dongle to PC? | yes on two FM-1s [reported, §1.1]; presumably the battery holds the SoC up through the swap [inferred] |
-| Push-pull drive against the chip's acknowledge | survived on two FM-1s [inferred from the reported successes]; we stay open-drain (E1) |
+| Push-pull drive against the chip's acknowledge | survived on FM-1s with czietz's gist and FM-1-transporter, both push-pull with no series resistors [inferred from the reported successes; drive verified in their code]; we stay open-drain (E1) |
 | Does the WL82 UBOOT route reach the flash? | a backup and a write on an FM-1 are reported (masanaohayashi, §1.1), tool and commands not stated; read-only commands first here (§5) |
 | Does the FM-1 SoC start on VBUS with the switch off? | **No** [verified 2026-09-06]: with the switch off the unit is absent from USB (no device node, no MIDI port, no identity reply). Power-up is the switch; no VBUS load switch needed |
 | Series/ESD parts between the USB-C receptacle and the SoC | unknown; 2.2 kΩ pull-ups tolerate a few hundred ohms in series |
-| WL82 `UBOOT1.00` VID:PID and inquiry string | unknown; jl-uboot-tool marks WL82 "unknown" — read-only commands first |
+| WL82 `UBOOT1.00` VID:PID and inquiry string | `4C4A:8057` `WL80UBOOT1.00`, SCSI `WL82`/`UBOOT1.00`/`1.00` on FM-1s [reported: FM-1-transporter, fm1-nes]; jl-uboot-tool `adb3f18` works with 256-byte I/O [reported: fm1-nes]. Read-only commands first here |
 | MengLi cipher / loader block size for wl82 | from `usb-loaders.yaml` [reported] |
 | Battery keeps the SoC powered while "off" | No: the USB device disappears within seconds of switching off [verified 2026-09-06]. The key must be present when the switch is thrown; the dongle keys continuously |
 
@@ -477,6 +520,8 @@ kagaimiq — `jielie/isp/usb/usb-key.md`, `jielie/isp/index.md`,
 czietz and masanaohayashi — issue #2 on this repository, 2026-09-16 to
 2026-09-29; czietz — "Quick and very dirty JieLi UBOOT tool", an unlisted gist
 (`9a94cf3c3e68f2ceb45fab682e1cbbd5`, 2026-09-27) that its author linked in
-issue #2, with its wiring diagram (both read 2026-10-01); RP2040 datasheet (PIO, GPIO function table, pad electrical
+issue #2, with its wiring diagram (both read 2026-10-01); kurogedelic —
+FM-1-transporter at `a632d92` (README, `docs/PROTOCOL.md`, `docs/DEVLOG.md`,
+`pio/usb_key.pio`; read 2026-10-05); Keitark — fm1-nes at `870f305`; RP2040 datasheet (PIO, GPIO function table, pad electrical
 characteristics); USB 2.0 specification §7.1 (pull-up/pull-down values,
 full-speed signalling); USB Type-C specification (Rp in legacy A→C cables).

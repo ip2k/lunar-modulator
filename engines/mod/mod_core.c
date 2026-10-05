@@ -179,6 +179,13 @@ int fm1_mod_set_kind(fm1_mod_t *m, unsigned pos, int kind) {
       }
     }
   }
+  /* The outputs restart low, so every gate cable from this position does
+   * too: one left high would hold its destination's gate open until the
+   * new instance happened to rise and fall. */
+  for (i = 0; i < FM1_MOD_SLOTS; ++i) {
+    const unsigned lo = FM1_MOD_SRC_MODULE + 8u * pos;
+    if (m->slot[i].src >= lo && m->slot[i].src < lo + 8u) m->srt[i].level = 0;
+  }
   m->kind[pos] = MOD_NONE;
   m->inst_off[pos] = m->inst_bytes[pos] = m->handle[pos] = 0;
   m->gin_level[pos] = 0;

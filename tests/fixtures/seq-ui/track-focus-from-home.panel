@@ -1,0 +1,9 @@
+# Playing, in HOME: SEQ held and white key 3 focuses track 3 and goes back
+# to HOME on release. A key played there is live input to track 3, and
+# SHIFT (SEL) + REC captures it there.
+--button 0.05:PLAY/STOP
+--button 0.20:SEQ:0.2
+--key 0.25:4:100:0.03
+--key 0.60:12:100:0.2
+--button 1.00:SEL:0.1
+--button 1.05:REC

@@ -18,6 +18,7 @@ import subprocess
 import pytest
 
 from tests.engine_helpers import ROOT
+from tests.test_sim_multi import SEQ_LAB
 from tests.test_sim_web import left_channel, run, tools  # noqa: F401  (the native build)
 
 TRACES = ROOT / "tests" / "fixtures" / "mod-ui"
@@ -64,7 +65,7 @@ def test_with_the_lab_switch_off_env_lfo_and_edit_are_stubs(tools):
     on = lab(tools, seconds="0.1")
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
-    assert on["ram"] == plain["ram"] + z["mod_bytes"]
+    assert on["ram"] == plain["ram"] + SEQ_LAB + z["mod_bytes"]
 
 
 def test_the_lab_starts_the_default_rack_and_its_cables(tools):
@@ -82,7 +83,7 @@ def test_the_lab_starts_the_default_rack_and_its_cables(tools):
 def test_sizes(tools):
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
-    assert z["mod_bytes"] == 20016 <= z["mod_arena"] == 20480
+    assert z["mod_bytes"] == 20016 <= z["mod_arena"] == 36864
     assert z["mod_ui_bytes"] <= 256
 
 

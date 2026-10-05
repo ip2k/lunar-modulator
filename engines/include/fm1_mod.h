@@ -297,7 +297,8 @@ int fm1_mod_bind(fm1_mod_t *m, unsigned unit, const fm1_engine_t *e);
  * the kind does not fit the arena (the old module then stays), or if the
  * kind's create fails (the position is then empty). The new module's gate
  * inputs start low, so one whose input is high sees a rise at its first
- * tick. */
+ * tick; its outputs start low too, and so does every gate cable from it, so
+ * a module it reached sees a fall rather than a gate held open. */
 int fm1_mod_set_kind(fm1_mod_t *m, unsigned pos, int kind);
 int fm1_mod_kind_at(const fm1_mod_t *m, unsigned pos);   /* -1: empty */
 /* The default rack, which reproduces the options note's C1: LFO, LFO,

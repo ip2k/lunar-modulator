@@ -1,0 +1,14 @@
+# SELECT pages to Step page 2, where KNOB1 is INV (up on, down off) and
+# KNOB2 a read-out. The next hold opens on page 2 again (O21's page
+# memory), until SELECT goes back.
+--button 0.05:SEQ
+--key 0.10:7:100:0.6
+--turn 0.20:SELECT:1
+--turn 0.30:KNOB1:1
+--turn 0.40:KNOB1:-1
+--turn 0.50:KNOB1:1
+--turn 0.55:KNOB2:3
+--key 0.80:14:100:0.4
+--turn 0.90:KNOB1:2
+--turn 1.00:SELECT:-1
+--button 1.30:PLAY/STOP

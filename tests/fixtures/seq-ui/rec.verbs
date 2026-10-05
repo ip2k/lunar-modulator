@@ -1,0 +1,6 @@
+# The pattern the record and Capture traces (docs/15 S5) start from: one
+# bar on track 1 (index 0) with two notes, stopped, at 240 BPM, so a bar,
+# and a count-in, last a second. 4 s at 44,118 Hz. tests/test_seq_ui.py
+# plays it with Test Sine.
+#! rate=44118 block=64 tracks=8 end=176472
+@0 bpm 24000;tog 0 0 48 110;tog 0 8 60 100

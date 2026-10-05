@@ -17,7 +17,8 @@
 // pattern, and once per quantum the worklet reads the sequencer's transport
 // (fm1w_seq_info) and posts it only when it changed: a song's end, an
 // external clock's stop or a new tempo reach the status line without a
-// message per event.
+// message per event. Multi-sound is on with it too (docs/15 §3.16): the
+// page's Sound dropdown is then the current sound's, and follows the panel.
 // MIT licence, like the rest of this repository.
 
 import { instantiateFm1, BLOCK, SCREEN, KEYS, BUTTONS } from './fm1-wasm.mjs';
@@ -37,6 +38,7 @@ class FM1Processor extends AudioWorkletProcessor {
     this.views = null;
     this.free = [];              // screen buffers not with the page
     this.lab = false;
+    this.soundLast = 0;
     this.seqLast = new Uint32Array(SEQ_WATCHED);
     this.seqLast[1] = 0xffffffff;   // nothing posted yet
     this.port.onmessage = (e) => this.onMessage(e.data);
@@ -88,8 +90,13 @@ class FM1Processor extends AudioWorkletProcessor {
       case 'param': ex.fm1w_set_param(m.unit, m.index, m.value); break;
       case 'panic': ex.fm1w_all_notes_off(); break;
       case 'select': {
-        const r = ex.fm1w_select(m.unit, m.index);
-        if (r !== 0) this.port.postMessage({ type: 'refused', unit: m.unit, index: m.index, code: r, rate: sampleRate });
+        // With the lab switch the Sound dropdown is the current sound's
+        // (multi-sound, docs/15 §3.16); unit 0 otherwise.
+        const unit = m.unit === 0 && this.lab ? ex.fm1w_sound_unit(ex.fm1w_unit_current()) : m.unit;
+        const r = ex.fm1w_select(unit, m.index);
+        if (r !== 0) {
+          this.port.postMessage({ type: 'refused', unit: m.unit, index: m.index, code: r, rate: sampleRate });
+        }
         break;
       }
       default: break;
@@ -99,12 +106,18 @@ class FM1Processor extends AudioWorkletProcessor {
 
   sendState() {
     const ex = this.fm1.exports;
+    // The dropdowns: the sound (with the lab switch, the current one) and
+    // the two master slots.
+    const current = this.lab ? ex.fm1w_unit_current() : 0;
+    const units = [ex.fm1w_sound_unit(current), 1, 2];
     this.port.postMessage({
       type: 'state',
-      units: [0, 1, 2].map((u) => ex.fm1w_unit_index(u)),
-      bytes: [0, 1, 2].map((u) => ex.fm1w_unit_bytes(u)),
+      units: units.map((u) => ex.fm1w_unit_index(u)),
+      bytes: units.map((u) => ex.fm1w_unit_bytes(u)),
       ram: ex.fm1w_ram(),
+      budget: ex.fm1w_ram_budget(),
       mode: ex.fm1w_mode(),
+      sound: current,
     });
   }
 
@@ -160,7 +173,16 @@ class FM1Processor extends AudioWorkletProcessor {
         right[off + i] = lr[2 * i + 1];
       }
     }
-    if (this.lab) this.postSeq(v);
+    if (this.lab) {
+      this.postSeq(v);
+      // The panel changes the current sound (SHIFT + PRESETS) without a
+      // message from the page: the dropdown follows it.
+      const current = ex.fm1w_unit_current();
+      if (current !== this.soundLast) {
+        this.soundLast = current;
+        this.sendState();
+      }
+    }
     if (ex.fm1w_leds_changed()) {
       const leds = v.leds.slice();
       this.port.postMessage({ type: 'leds', leds }, [leds.buffer]);

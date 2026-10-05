@@ -7,6 +7,19 @@
 extern const fm1_mod_kind_t fm1_mod_kind_lfo;
 extern const fm1_mod_kind_t fm1_mod_kind_env;
 extern const fm1_mod_kind_t fm1_mod_kind_chance;
+extern const fm1_mod_kind_t fm1_mod_kind_function;
+extern const fm1_mod_kind_t fm1_mod_kind_bounce;
+extern const fm1_mod_kind_t fm1_mod_kind_register;
+extern const fm1_mod_kind_t fm1_mod_kind_coin;
+extern const fm1_mod_kind_t fm1_mod_kind_divide;
+extern const fm1_mod_kind_t fm1_mod_kind_burst;
+extern const fm1_mod_kind_t fm1_mod_kind_slew;
+extern const fm1_mod_kind_t fm1_mod_kind_quantize;
+extern const fm1_mod_kind_t fm1_mod_kind_compare;
+extern const fm1_mod_kind_t fm1_mod_kind_logic;
+extern const fm1_mod_kind_t fm1_mod_kind_calc;
+extern const fm1_mod_kind_t fm1_mod_kind_mix;
+extern const fm1_mod_kind_t fm1_mod_kind_filter;
 
 /* Registry order is not saved anywhere (presets store each kind's guid),
  * so new kinds may go anywhere; keep the first wave first. */
@@ -14,6 +27,20 @@ const fm1_mod_kind_t *const fm1_mod_kinds[] = {
   &fm1_mod_kind_lfo,
   &fm1_mod_kind_env,
   &fm1_mod_kind_chance,
+  /* MG2 (docs/16 §8): the glue kinds, in the catalogue's order, and Filter. */
+  &fm1_mod_kind_function,
+  &fm1_mod_kind_bounce,
+  &fm1_mod_kind_register,
+  &fm1_mod_kind_coin,
+  &fm1_mod_kind_divide,
+  &fm1_mod_kind_burst,
+  &fm1_mod_kind_slew,
+  &fm1_mod_kind_quantize,
+  &fm1_mod_kind_compare,
+  &fm1_mod_kind_logic,
+  &fm1_mod_kind_calc,
+  &fm1_mod_kind_mix,
+  &fm1_mod_kind_filter,
 };
 const size_t fm1_mod_kind_count = sizeof(fm1_mod_kinds) / sizeof(fm1_mod_kinds[0]);
 
