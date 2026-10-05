@@ -454,3 +454,87 @@ check it.
 | `tp/stmlib/utils/random.o` | 0 | 0 | 0 | 4 | 0 | 0 |
 
 </details>
+
+---
+
+## Addendum, 2026-10-05: re-run against SDK V1.2.13 libraries
+
+The owner's 2026-10-05 decision (`notes/2026-10-05-softkey-efuse.md`) moved the
+SDK pin from V1.1.9 to **V1.2.13** (Gitee `release/AC79NN_SDK_V1.2.0` at
+`e30b1ee`). `tools/jieli/compile-check.sh` and `tools/jieli/ac79-sdk-sparse.txt`
+were updated to fetch and use it, and the compile-only check was re-run on the
+build host (image `lunar-jieli-check:bookworm`, image id `eff89914…`,
+toolchain `jieli-linux-toolchains-20250805.1` as before, tree `4e15d13` with
+the four uncommitted files of this branch; ran 2026-10-05T22:44Z). The run used
+its own work dir (`~/mvave-fm1/sdk-v1213`), separate from the V1.1.9 tree.
+
+**Verdict: everything still compiles — 111 of 111 objects in every profile,
+0 failures [verified].** The object set grew from 63 to 111 since 2026-10-02
+(the modulation runtime, the master-bus effects, the sequencer host and the
+simulator's modulation and sequencer UI), so the numbers below are not
+comparable with the figures above; they are the current tree against V1.2.13.
+
+What changed in the method for V1.2.13 [verified]:
+- **No `math.h` shim.** V1.2.13's libc++ is version 12 and ships its own
+  `math.h`, so the one fix the V1.1.9 run needed is gone. `compile-check.sh`
+  asserts the SDK libc++ has `math.h` and no longer fetches a shim.
+- **The SDK include set is the firmware's, not a minimal one.** V1.2.13's
+  libc++ is configured for pthread (`_LIBCPP_HAS_THREAD_API_PTHREAD` is baked
+  into its `__config`, and setting `_LIBCPP_HAS_NO_THREADS` is a hard error),
+  so `<memory>` and friends pull `<__threading_support>` →
+  `simple_pthread_comm.h` → `FreeRTOS/FreeRTOS.h` → the wl82 port. The check
+  now passes the SDK's demo_hello include set (C++, driver and system headers
+  under `include_lib`), which a firmware build has anyway; the bt/btstack
+  includes are left out, as our code does not reach them. No macro conflicts
+  arose from the wider set.
+- **`-mfprev1` and `-femulated-tls`** are now plain driver flags (V1.2.13's
+  CFLAGS), replacing V1.1.9's `-Xclang -target-feature +fprev1`.
+
+Findings against V1.2.13 [verified unless noted]:
+- **Four profiles, 0 failures each:** ladder (`-O2 -ffp-contract=off`), fast
+  (`-ffp-contract=fast`), sdk (`-Oz`), pic (`-O2 -fPIC`).
+- **No fused multiply-add.** 1,199 code sections compared between
+  `-ffp-contract=off` and `=fast`; 0 differ. (Still true at V1.2.13.)
+- **External symbols resolve** in V1.2.13's newlib `libc`/`libm`,
+  `libcompiler_rt`, libc++ (`std::__sort` on floats, the one C++ runtime
+  symbol), and the seven closed libraries demo_hello links. libm is still
+  newlib's fdlibm (`expf`, `powf`, `sqrtf`, `sinf`, …).
+- **Three UNRESOLVED symbols, all host-only and expected:**
+  `fm1_mod_script_apply`, `fm1_mod_script_seed`, `fm1_mod_script_unit_name`,
+  referenced from the simulator app's command-logging path (`fm1_app.o`,
+  `fm1_mod_ui.o`). They live in the desktop host's `mod_script.c`, which the
+  firmware object set excludes (like `seq_script`); the firmware build does not
+  take the logging path [inferred].
+- **Size (before `--gc-sections` and the SDK base).** ladder: 404 KB code +
+  212 KB read-only data = 617 KB text; sdk `-Oz`: 288 KB code + 212 KB = 500 KB.
+  The 5.0 MB of bss is the simulator's arenas (`App layer`), not on the device.
+- **Warnings:** only `-Wframe-larger-than=2560`, in the simulator's UI
+  (`fm1_seq_ui_key`/`_encoder` ≈ 4.1–4.6 KB, `fm1_mod_ui_matrix_algorithm`
+  ≈ 4.1 KB) — not the audio path. These are desktop-UI functions; the on-device
+  UI is separate.
+- **`-fPIC`** still links position-independent relocations (GOT16 ×1211,
+  FUNCDESC ×401, GOTFUNCDESC16 ×36, EXTEND_CALL_32M2 ×2790); linking them is
+  still untested.
+
+**The key/eFuse link audit** (`tools/jieli/audit_link.py`, new) was run over
+the compiled objects: **PASS, 0 fail, 2 pending.** No forbidden key-check
+symbol is defined or referenced, no `0x0200012E` stub or `0x01C80108-0x0110`
+mailbox immediate appears, no SDK key-blob or `key_check_demo` hash bytes, no
+IRQ-123 vector and no eFuse-SFR access. The two pending checks (the
+`late_initcall` group is exactly `[sdk_meky_check]`, and `sdk_meky_check`'s
+scheduling) need the linked image and the vendor objdump; they run on the real
+link at I1/I2. `tests/test_audit_link.py` covers the audit on the desktop with
+synthetic objects.
+
+Still open (unchanged): linking, `--gc-sections` and the SDK base's size;
+cycles; newlib's libm against musl; the SDK's link-time `-inline-threshold=5`.
+
+Reproduce:
+
+```bash
+FM1_JIELI_HOST=user@host FM1_JIELI_DIR=.../sdk-v1213 tools/jieli/compile-check.sh
+```
+
+A harmless `error: invalid object … for '.vscode/c_cpp_properties.json'`
+appears during the sparse checkout when the mirror lacks that out-of-cone
+blob; it does not affect the headers, libraries or the build.

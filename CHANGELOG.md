@@ -9,6 +9,34 @@ history.
 ## [Unreleased]
 
 ### Added
+- **JieLi SDK upgraded to the V1.2.13 libraries, with safeguards** (owner's
+  decision, 2026-10-05; notes/2026-10-05-softkey-efuse.md §4). The pin is now
+  Gitee `release/AC79NN_SDK_V1.2.0` at `e30b1ee` (= tag V1.2.13), by commit.
+  The SDK's key check is left intact, not stubbed, because it is inert on the
+  FM-1 (nothing registers a licence blob, and the app never touches eFuse).
+  The safeguards instead:
+  - a post-link audit, `tools/jieli/audit_link.py` (modelled on fm1-nes's
+    `audit_boot.py`): it fails the build if any live key-check or eFuse code
+    survives — no `mkey_check`/`sdk_mkey_lock`/`sdk_mkey_lock_v2_cfun`/
+    `key_check_demo`/`sdk_chip_key_verify_v2`, no `0x0200012E` stub, no writes
+    to `0x01C80108-0x01C80110`, IRQ 123 reserved, no SDK key-blob bytes, no
+    eFuse-SFR access — while leaving the dormant `sdk_meky_check` in place.
+    It reads the objects itself (standard library only) and is covered by
+    `tests/test_audit_link.py`;
+  - the `boot_info` bridge, `firmware/boot/boot_compat.c`, which copies the
+    stock SPL's 6 hand-off words and zeroes words 6-22 so V1.2.1+'s wider
+    `boot_info_init` reads defined zero, not stale RAM. Tested on the desktop
+    (`tests/test_boot_compat.py`); it runs on-chip at I11;
+  - a hard rule, in CLAUDE.md trap 11 and packaging: never ship any V1.2.x
+    `uboot.boot`, `uboot_no_ota.boot`, `wl82loader.bin` or `ota.bin` — only
+    V1.1.9's SPL is the FM-1's — and assert the stock SPL hash `730e54f0…`
+    and byte-identical `isd_config.ini`/`ota.bin`/`cfg`.
+
+  `tools/jieli/compile-check.sh` and `tools/jieli/ac79-sdk-sparse.txt` now
+  fetch and use V1.2.13 from Gitee (retrying its flaky SSL); the compile-only
+  check was re-run against it on the build host. The V1.2.13 libc++ ships its
+  own `math.h`, so the V1.1.9 run's one fix is no longer needed. No user-facing
+  change. No vendor binary is in the repo.
 - notes/2026-10-05-softkey-efuse.md: a desk-only investigation of the stock
   "soft key" SysEx and of the JieLi SDK's key and eFuse checks. The soft key
   only writes a marker to RAM and resets the chip into its ROM loader (no

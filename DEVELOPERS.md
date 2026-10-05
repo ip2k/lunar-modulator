@@ -980,26 +980,56 @@ on the build host. 1–2 sessions.
   post-build tools `20260923.1` [verified: HTTP redirects, 2026-10-02 UTC;
   nothing downloaded]. Archive both privately with their SHA-256, and never
   commit them.
-- **SDK.** The AC79 SDK (Apache-2.0) at tag `AC79NN_SDK_V1.1.9_2023-08-01`
-  (`8eae664`), cited from Gitee by commit, not from the stale GitHub mirrors
-  (the sparse list is `tools/jieli/ac79-sdk-sparse.txt`). Its `uboot.boot`
-  is the same file as the head of M-VAVE's V15 package (git blob
-  `b6cb71ea…`). The V1.2.0 branch's is not (`1cc0f013…`, the V1.2.1/V1.2.2
-  era) [verified: gh api and `git hash-object`].
-  - **Why not newer.** Gitee is current to V1.2.13 (`e30b1ee`). From V1.2.7
-    `system.a` carries `sdk_meky_check`, and V1.2.13 adds
-    `sdk_chip_key_verify_v2`, which reads an eFuse key [verified: strings
-    per tag]; what they do on failure is unread. fm1-nes boots V1.2.13
-    libraries on a V14 unit with a 6→23-word `boot_info` bridge [reported]:
-    a fallback, not a reason to move.
-  - **Checks.** The build refuses a `system.a` containing `sdk_meky_check`
-    or `sdk_chip_key_verify_v2`, and records the V1.1.9 blob hashes
-    `37ad8997…` (`system.a`) and `f0f65e4b…` (`cpu.a`) [verified: `git
-    ls-tree` of tag V1.1.9, `8eae664`].
+- **SDK (libraries: V1.2.13).** The AC79 SDK (Apache-2.0) from Gitee
+  `release/AC79NN_SDK_V1.2.0` at `e30b1ee` — tag `AC79NN_SDK_V1.2.13_2026-04-20`
+  plus a README change — pinned by commit, not from the stale GitHub mirrors
+  (the sparse list is `tools/jieli/ac79-sdk-sparse.txt`; Gitee's SSL is flaky,
+  so `compile-check.sh` retries).
+  - **Why move from V1.1.9** (owner's decision, 2026-10-05;
+    `notes/2026-10-05-softkey-efuse.md`). The whole question of the SDK's key
+    and eFuse checks was settled by disassembly: `sdk_meky_check` (from V1.2.7)
+    and `sdk_chip_key_verify_v2` (V1.2.13) are present but **inert on the
+    FM-1** — nothing registers a licence blob, so `_mkey_check` returns at its
+    "nothing registered" branch, and the application never touches the eFuse
+    controller [verified: IR of every release from V1.1.9 to V1.2.13]. fm1-nes
+    runs the same V1.2.13 libraries on a V14 unit with no fault past the 8 s
+    timer [reported]. The upgrade adds no new key or eFuse risk over V1.1.9;
+    both carry the same dormant check.
+  - **Safeguards** (`notes/2026-10-05-softkey-efuse.md` §4). Do **not** stub
+    the check (it is inert, fm1-nes kept it, and patching LTO-internal vendor
+    code is riskier). Instead:
+    - **Never ship any V1.2.x `uboot.boot`, `uboot_no_ota.boot`,
+      `wl82loader.bin` or `ota.bin`.** Only V1.1.9's SPL is the FM-1's: its
+      `uboot.boot` is the head of M-VAVE's V15 package (SHA-256 `730e54f0…`,
+      git blob `b6cb71ea…`); the V1.2.0 branch's is `1cc0f013…`, the
+      V1.2.1/V1.2.2 era [verified]. Packaging asserts that SPL hash and that
+      `isd_config.ini`, `ota.bin` and `cfg` are byte-identical to stock.
+    - **The post-link audit** (`tools/jieli/audit_link.py`, modelled on
+      fm1-nes `audit_boot.py`): the build fails if the `late_initcall` group
+      is not exactly `[sdk_meky_check]`, if `sdk_meky_check` does more than
+      two `request_irq(123, isr_check_key)` and `sys_timeout_add(_mkey_check,
+      8000)`, if any of `mkey_check`/`sdk_mkey_lock`/`sdk_mkey_lock_v2_cfun`/
+      `key_check_demo`/`sdk_chip_key_verify_v2` survives LTO or is referenced,
+      if any code loads or calls `0x0200012E` or writes
+      `0x01C80108-0x01C80110`, if the image carries the SDK key-blob bytes or
+      the `key_check_demo` hash, if our code uses IRQ 123, or if anything
+      touches the eFuse SFRs. It reads the objects itself (standard library
+      only); the symbol, byte and eFuse checks run on the compile-only object
+      set now, and the two structural checks run on the real link later.
+    - **The `boot_info` bridge** (port fm1-nes's `boot_compat.c`): copy 6
+      words from the stock SPL hand-off and zero words 6-22, because V1.2.1+
+      `boot_info_init` reads out to +92 bytes while the stock SPL fills only 6
+      words plus a 32-byte header [verified]. Implemented and tested on the
+      desktop (`FM1_BOOT_COMPAT_TEST`); it runs on-chip at I11.
+    - **eFuse never burned by anything on the device.** The only
+      eFuse-programming code is JieLi's download loader, reached from PC tools:
+      never send loader `0xFC12` or the raw `0xA1` eFuse write, and never pass
+      `-key`/`-key1`/`-mkey` to `isd_download` for the FM-1 or the dev kit
+      (V1.2.12+ `isd_download` is a writer: dev kit only).
 - **Build.** A container image on the build host; build `demo_hello` for
   wl82.
-- *Done when:* two clean builds are byte-identical and the hashes are
-  recorded (docs/14 §5 step 2, done early).
+- *Done when:* two clean builds are byte-identical, the hashes are recorded,
+  and `audit_link.py` passes the linked image (docs/14 §5 step 2).
 
 **I2. Compile-only stage B and the ladder runner.** The pi32v2 half needs
 I1; the desktop half needs nothing. 3–5 sessions.
