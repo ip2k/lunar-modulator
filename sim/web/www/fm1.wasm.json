@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "875ff6357d11d385a2408ffc7b55298908c353600405b3426124a3d447884d49",
-  "wasm_bytes": 524659,
+  "wasm_sha256": "a0348424ca2b0a3bff0f19fa552192da0714ba757e4c954213565624010e4fcd",
+  "wasm_bytes": 550188,
   "sources_sha256": {
-    "engines": "92fc1592ab1e36cfaf411cc592615e43bfe9040351907631bcc91484853c8380",
-    "sim": "91b0d3b27b509ad0059ad88fa2e9ef40f243838bae0d4b3bdbea6246d2620146"
+    "engines": "ed66b8722faf00edecac0d497d805dffa3ccf993c36be20d33aba04a0f8f5515",
+    "sim": "71f532e6fe5a9912cbd450571a8c93a787beff5ff8ec33c110807ee90ff9c7b1"
   },
   "engines": "working tree",
-  "built": "2026-10-05T16:40:01Z",
+  "built": "2026-10-05T17:53:25Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 41,
+    "passed": 48,
     "failed": 0,
-    "identical_to_js": 41,
-    "identical_to_musl": 41,
-    "identical_to_glibc": 38,
+    "identical_to_js": 48,
+    "identical_to_musl": 48,
+    "identical_to_glibc": 45,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -966,6 +966,160 @@
       "ram_bytes": {
         "wasm32": 394224,
         "native64": 395104
+      }
+    },
+    {
+      "name": "djfilter-resonant-low-pass",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 119880,
+        "native64": 132568
+      }
+    },
+    {
+      "name": "tilt-dark-slope-into-echo",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 307040,
+        "native64": 307904
+      }
+    },
+    {
+      "name": "sat-bus-glue",
+      "samples": 114706,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 119992,
+        "native64": 132680
+      }
+    },
+    {
+      "name": "isolator-kill-low-boost-high",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 54264,
+        "native64": 66936
+      }
+    },
+    {
+      "name": "eq-three-bands",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 120024,
+        "native64": 132712
+      }
+    },
+    {
+      "name": "switches-djfilter-tilt-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 54392,
+        "native64": 67064
+      }
+    },
+    {
+      "name": "switches-sat-isolator-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 54600,
+        "native64": 67272
       }
     },
     {
