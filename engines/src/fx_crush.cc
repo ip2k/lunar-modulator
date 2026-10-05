@@ -250,4 +250,5 @@ extern "C" const fm1_engine_t fm1_engine_crush = {
   NULL, NULL, NULL,
   fm1::crush::Set, fm1::crush::Render,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
 };

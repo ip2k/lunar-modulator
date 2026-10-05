@@ -23,8 +23,9 @@
 typedef struct mod_meta {
   float min, max, def;
   uint16_t uid;
-  uint8_t type, flags, unit;
-  uint8_t reserved[3];
+  uint16_t flags;              /* FM1_PARAM_*: 16 bits since engine API v3 */
+  uint8_t type, unit;
+  uint8_t reserved[2];
 } mod_meta_t;
 
 /* A destination with enabled slots: the slots, in ascending order, sum
