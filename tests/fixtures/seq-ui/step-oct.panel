@@ -1,0 +1,9 @@
+# OCT with a step held transposes its notes a semitone, SHIFT (SEL) + OCT an
+# octave; with nothing held OCT is the octave again, as stock.
+--button 0.05:SEQ
+--key 0.10:0:100:0.6
+--button 0.20:OCT+
+--button 0.30:SEL:0.2
+--button 0.35:OCT-
+--button 0.90:OCT+
+--button 1.00:PLAY/STOP

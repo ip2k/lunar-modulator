@@ -1,0 +1,8 @@
+# A note at MIDI IN while a step is held adds its pitch to it (`addp`), as
+# a pad does in Movy; it sounds, and it is not remembered as the chord.
+--button 0.05:SEQ
+--key 0.10:0:100:0.5
+--note 0.20:66:100:0.1
+--note 0.30:70:80:0.1
+--key 0.80:2:100:0.05
+--button 0.90:PLAY/STOP

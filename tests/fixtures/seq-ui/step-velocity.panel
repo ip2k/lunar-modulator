@@ -1,0 +1,8 @@
+# Step page 1, KNOB1 (VEL): 4 per detent, relative, to its minimum and its
+# maximum, then 5 detents down.
+--button 0.05:SEQ
+--key 0.10:0:100:0.7
+--turn 0.20:KNOB1:-64
+--turn 0.40:KNOB1:64
+--turn 0.60:KNOB1:-5
+--button 0.90:PLAY/STOP

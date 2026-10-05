@@ -1,0 +1,27 @@
+# REC in HOME, stopped: a bar's count-in, then two keys recorded into the
+# take; REC again ends it before the next bar, and PLAY/STOP stops.
+--button 0.10:REC
+--key 1.30:7:100:0.15
+--key 1.55:11:90:0.15
+--button 2.05:REC
+--button 2.30:PLAY/STOP
+# SEQ, REC held: step record from step 1 (the clip has a bar, so the head
+# wraps): a key; a chord of two tied into the next step with A#3; a rest; a
+# note at MIDI IN. Then REC let go.
+--button 2.40:SEQ
+--button 2.50:REC:0.95
+--key 2.60:16:100:0.08
+--key 2.75:7:90:0.2
+--key 2.76:11:80:0.19
+--key 2.85:5:100:0.03
+--key 3.05:5:100:0.03
+--note 3.15:63:70:0.1
+# HOME, PLAY/STOP, and three keys while playing; SHIFT + REC captures them
+# where they were heard. Two more passes of the bar.
+--button 3.50:HOME
+--button 3.55:PLAY/STOP
+--key 3.70:9:100:0.1
+--key 3.90:12:90:0.1
+--key 4.10:14:80:0.1
+--button 4.30:SEL:0.1
+--button 4.35:REC

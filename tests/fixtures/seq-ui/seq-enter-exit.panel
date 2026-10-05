@@ -1,0 +1,10 @@
+# SEQ opens the Track view from HOME, FX and GLO; HOME, FX and GLO leave it.
+# No command reaches the sequencer.
+--button 0.10:SEQ
+--button 0.30:HOME
+--button 0.50:FX
+--button 0.70:SEQ
+--button 0.90:GLO
+--button 1.10:SEQ
+--button 1.30:FX
+--button 1.50:SEQ

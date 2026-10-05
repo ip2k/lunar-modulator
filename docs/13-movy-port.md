@@ -139,14 +139,15 @@ plays pitches, as stock does.
 | Hold one step and turn a knob: an immediate, quiet lock | Hold a white key and turn KNOB1–4 |
 | Step page VEL/LEN/PROB/COND/INV on knobs 1–5 | Page 1 VEL/LEN/PROB/COND, page 2 INV, switched with SELECT |
 | Hold step A and press B: length | Hold white A and press white B |
-| Hold a step and press a pad: that pitch toggles in the step | Hold the step and SHIFT: the keys are pitches while SHIFT is down. Or play the pitch at MIDI IN |
+| Hold a step and press a pad: that pitch toggles in the step | Pitches are only added (owner decision O22, 2026-10-02; docs/15 §3.5): hold the step and SHIFT, and each white key adds its pitch in the current octave (`addp`); a note at MIDI IN adds any pitch. A tap of SHIFT alone while the step is held clears its notes (`del`) |
 | A tap writes the held pads, else the remembered set, else the last pitch | The same order; keys played in KEYS mode, or MIDI IN notes, are the "pads" |
 | With steps held: the volume encoder sets velocity, ◀ ▶ nudge ±2 ticks (±1 with Shift), +/− transpose | The VEL knob; two accidentals as ◀ ▶ (which also page bars); two keys or buttons for −/+ |
 | Touch-tap a knob during a hold: clears that lock | Hold the step and SHIFT, and turn that knob |
 | Step held + Clear: clears its locks. Clear + step: clears notes and locks. Clear + touch a knob: clears the lane. A Clear tap deletes the clip | The same with CLEAR, where "touch" becomes one detent with CLEAR held |
 | Copy held: the source, then the destinations | The same with COPY |
 | Loop view: bars on the steps; two bars set a range; a double-tap sets 1 bar; Loop + jog resizes | LOOP: white keys are bars 1–16, and LOOP + SELECT resizes |
-| Rec tap: live, with a count-in. Rec held while stopped: step record | The same with REC |
+| Rec tap: live, with a count-in. Rec held while stopped: step record, the head moving on when the last pad comes up [verified: `step-rec.ts`] | The same with REC (owner decision O8, 2026-10-02; docs/15 S5): in step record the white keys are pitches, ▶ (A#3) leaves a rest or ties held keys, ◀ (F#3) steps back, and SHIFT + a white key moves the head |
+| Capture: keep what was just played; stopped, a tempo picker on the jog | SHIFT + REC (O7); SELECT or KNOB1 picks the tempo, any other press keeps it |
 | Shift + step shortcuts: 3 Clip, 5/7/9 Set, 6 metronome, 15 double, 16 quantise | SHIFT + the white key with the same number, labelled on the TFT |
 | Session + step selects one of 16 tracks; clip pads launch; Loop held + steps 1, 3, …, 15 launch scenes 1–8 | SESSION held + a white key selects a track. In SESSION, keys 1–8 launch the focused track's slots, and LOOP + the odd keys launch scenes |
 | Mute + step (a map of all 16 tracks); add Shift to solo | MUTE (+SHIFT) + a white key |

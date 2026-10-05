@@ -1,0 +1,7 @@
+# In SEQ mode, stopped, REC acts on its release (Movy's Rec): a quick
+# untouched tap records. The take is a note at MIDI IN.
+--button 0.05:SEQ
+--button 0.10:REC:0.1
+--note 1.40:64:100:0.2
+--button 2.60:REC
+--button 3.50:PLAY/STOP

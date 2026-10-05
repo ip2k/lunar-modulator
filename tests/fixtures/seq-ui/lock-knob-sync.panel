@@ -1,0 +1,15 @@
+# The knob and the lanes' bases agree to the bit (docs/15 S8, O14): Timbre
+# locked on step 5 at 84, then, playing, KNOB3 turned three detents down
+# with no step held. Timbre has a lane, so the knob moves on its 7-bit grid
+# (64 to 61, as lock_value(61)) and the lane's base follows at once
+# (`abaseq 0 0 61`); the lock plays at step 5, and the stop right after it
+# sends the base back (D6), so the engine last heard exactly the knob's
+# value. Macro, from steps.verbs.
+--button 0.05:SEQ
+--key 0.10:7:100:0.3
+--turn 0.20:SELECT:1
+--turn 0.25:SELECT:1
+--turn 0.30:KNOB3:20
+--button 0.50:PLAY/STOP
+--turn 0.55:KNOB3:-3
+--button 0.80:PLAY/STOP

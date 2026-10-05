@@ -1,0 +1,8 @@
+# Step page 1, KNOB3 (PROB): 100 % to 10 % in tens, to the lowest and the
+# highest, then two down: 80 %.
+--button 0.05:SEQ
+--key 0.10:7:100:0.7
+--turn 0.20:KNOB3:-64
+--turn 0.40:KNOB3:64
+--turn 0.60:KNOB3:-2
+--button 0.90:PLAY/STOP

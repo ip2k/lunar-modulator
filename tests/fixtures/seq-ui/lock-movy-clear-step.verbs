@@ -1,0 +1,7 @@
+#! rate=44118 block=64 tracks=8 end=88236
+@0 bpm 24000;tog 0 0 48 110;tog 0 4 55 90;tog 0 8 60 100;tog 0 12 63 90
+@13248 alabel 0 0 synth:Timbre
+@13248 abase 0 0 64
+@13248 aset 0 0 4 65 1
+@17664 aclrstep 0 4
+@44160 play

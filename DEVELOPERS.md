@@ -152,8 +152,11 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     compatibility shim.
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
-    antiderivative anti-aliasing) and Echo (a stereo ping-pong delay) are
-    our own code ([`engines/README.md`](engines/README.md#crush)).
+    antiderivative anti-aliasing), Drive (overdrive and saturation, five
+    anti-aliased curves), Echo (a stereo ping-pong delay), Filter (seven
+    zero-delay-feedback filter types), Comp (a feed-forward compressor) and
+    Limiter (a look-ahead brickwall limiter) are our own code
+    ([`engines/README.md`](engines/README.md#crush)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
   checked sample for sample against upstream `Voice`
@@ -208,11 +211,21 @@ nothing of ours in the path, and more than 400 tests compare the two.
 - **Checked against Movy:** Movy's own unmodified core, run in a container,
   drives 24 golden fixtures that ours matches event for event, undo aside
   ([`engines/seq.md`](engines/seq.md)).
-- **In the browser, headless:** the virtual FM-1's app layer hosts it
-  through the same bridge and plays scripts and sets exactly as the desktop
-  renderer does, natively and in the browser module (stage S2 of
-  [docs/15](docs/15-sequencer-in-simulator.md)). Nothing on the panel drives
-  it yet: SEQ, PLAY/STOP and REC still say "not in the simulator yet".
+- **In the browser:** the virtual FM-1's app layer hosts it through the
+  same bridge and plays scripts and sets exactly as the desktop renderer
+  does, natively and in the browser module (stage S2 of
+  [docs/15](docs/15-sequencer-in-simulator.md)). On the panel, PLAY/STOP,
+  SEQ mode's Track view and a demo pattern (stage S3), step entry (S4),
+  recording, step record and Capture (S5), eight tracks with mute, the
+  Set, Clip and Track pages and a metronome click (S6), and parameter
+  locks from the knobs (S8) work behind a lab switch (`?lab`
+  in the page's address; [`sim/web/README.md`](sim/web/README.md), "The
+  lab switch"); the public page keeps SEQ, PLAY/STOP and REC as "not in
+  the simulator yet" until the owner opens it. Behind the same switch, up
+  to four sound units play at once, each with two inserts and a level,
+  mixed into the two effect slots as the master bus; each track plays the
+  sound its route names, and a RAM meter refuses any choice that would not
+  fit the FM-1 (docs/15 §3.16).
 
 ### The arpeggiator core
 
@@ -490,8 +503,9 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Screen and controls refinement** · *In progress*
 - **Depends on:** the simulator (ongoing). On the device: the TFT strip
   driver, key matrix and encoders (I12), and one sized arena for the app
-  layer, whose `fm1_app_t` is 1,204,768 B today, the sequencer's arena
-  included, against 578 KB of SRAM
+  layer, whose `fm1_app_t` is 4,880,816 B today (4.5 MiB of it the fixed
+  arenas of multi-sound's four sound units and ten effect slots), the
+  sequencer's arena included, against 578 KB of SRAM
   [verified: sim/web/README.md] (I2).
 - **Where it is planned:** docs/13 M4;
   [docs/14](docs/14-verification-ladder.md) §4.3;
@@ -575,8 +589,16 @@ which lands with the plan PR; its stages S0–S7 are named below.
   all [inferred].
 
 **More effects** · *Planned*
-- **Done so far (2026-10-02):** Crush, Fold and Echo, our own code
-  ([`engines/README.md`](engines/README.md#crush)). Crush adds jitter and
+- **Done so far (2026-10-02):** Crush, Fold, Drive, Echo, Filter, Comp and Limiter, our own code
+  ([`engines/README.md`](engines/README.md#crush)). Their switch-like
+  controls (Filter's Type, Drive's Type and Auto, Comp's Character, Auto
+  Rel and Auto Gain, the Limiter's Mode and Lookahead) change without a
+  click, so they can be locked and modulated: the rule is that a switch
+  that changes cleanly is lockable and modulatable
+  ([`engines/README.md`](engines/README.md#parameters-engine-api-v2)).
+  Filter's types are named for their circuits (Sallen-Key, SK Mixed),
+  never for a maker; Comp's Auto Gain is capped at 24 dB and never pushes
+  an input under full scale past it. Crush adds jitter and
   fractional bits, so it does not use Plaits' `SampleRateReducer`. Echo
   keeps its own fixed 64 KB per instance and slows its clock beyond 371 ms,
   like a bucket-brigade delay, rather than taking the shared arena; it has
@@ -927,7 +949,7 @@ I1; the desktop half needs nothing. 3–5 sessions.
     `tools/jieli/compile-check.sh`, [docs/14](docs/14-verification-ladder.md)
     §5.2.
 - **Desktop half.**
-  - Replace `fm1_app_t`'s 1.17 MB of arenas with one sized arena and strip
+  - Replace `fm1_app_t`'s 4.5 MiB of arenas with one sized arena and strip
     rendering.
   - Write the ladder runner and the R0 manifest.
   - Write the `bsp_*` contract of docs/14 §4.3, with a desktop

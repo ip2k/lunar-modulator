@@ -1,0 +1,13 @@
+# F#3 and A#3 page the bar on the keys: the loop's bars and one empty bar
+# after them. A tap there grows the clip; then back to bar 1.
+--button 0.05:SEQ
+--key 0.10:1:100:0.03
+--key 0.15:5:100:0.03
+--key 0.20:5:100:0.03
+--key 0.25:0:100:0.03
+--key 0.35:5:100:0.03
+--key 0.40:2:100:0.03
+--key 0.50:1:100:0.03
+--key 0.55:1:100:0.03
+--key 0.60:4:100:0.03
+--button 0.70:PLAY/STOP

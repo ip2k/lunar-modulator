@@ -424,6 +424,20 @@ def test_d13_aclr_resets_base_and_carry(seq_tools, tmp_path):
 
 # ---- D4: a first take that ends before it grows ----------------------------------------------
 
+def test_capture_while_playing_grows_the_clip_as_movy(seq_tools, tmp_path):
+    """Capture committed while playing anchors a note played in the loop's
+    last half-step on the loop end and grows the clip by a bar, in both
+    modes, as Movy's capture_commit_playing does. docs/15 proposed a
+    deviation row clamping it as D4 clamps live record (O9); the owner kept
+    Movy's growth (2026-10-02), so the core has none."""
+    s = fm1().cmd("tog 0 0 60 100").play().run_ticks(TPB - 9)
+    s.cmd("non 0 62 100").run_ticks(2).cmd("nof 0 62").run_ticks(4).cmd("cap 0").blocks(2)
+    for compat in (True, False):
+        e = s.run(seq_tools, tmp_path, compat=compat, name=f"c{compat}").end
+        n = [n for n in notes(e, 0) if n["pitch"] == 62]
+        assert len(n) == 1 and (clip(e, 0)["len"], n[0]["step"]) == (32, 16)
+
+
 def test_d4_a_full_length_first_take_keeps_its_last_note(seq_tools, tmp_path):
     """A first take anchors a note in its last half-step on the loop end and
     grows the clip a bar to hold it (record_note). A 16-bar clip cannot grow:
@@ -1108,3 +1122,92 @@ def test_tracks_past_the_limit_are_ignored(seq_tools, tmp_path):
     ev, end = run_script(seq_tools, tmp_path, f"#! tracks=4\n{text}", extra=["--end", "20000"])
     assert [(e["track"], e["a"]) for e in ons(ev)] == [(0, 60)]
     assert len(end["tracks"]) == 4 and not end["recording"]
+
+
+# ---- The page getter and rec_track (docs/15 §2.5, stage S4) -----------------------------------
+
+def movy1_pages(text):
+    """What a `movy1` set holds per step, per (track, slot): the notes on each
+    anchor step, each lock by lane and the trig rows (whole-step and
+    per-pitch), as fm1_seq_get_page should report them."""
+    pages = {}
+
+    def step_of(key, st):
+        page = pages.setdefault(key, {})
+        return page.setdefault(st, {"notes": 0, "mask": 0, "trig": 0, "prob": 100, "a": 1, "b": 1,
+                                    "lock": [0] * 8})
+
+    for line in text.splitlines():
+        f = line.split(" ")
+        if f[0] == "cl" and len(f) > 5 and f[5]:
+            for n in f[5].split(";"):
+                st = step_of((int(f[1]), int(f[2])), int(n.split(":")[4]))
+                st["notes"] = min(255, st["notes"] + 1)
+        elif f[0] == "lk":
+            for item in f[3].split(";"):
+                lane, step, val = map(int, item.split(":"))
+                st = step_of((int(f[1]), int(f[2])), step)
+                st["mask"] |= 1 << lane
+                st["lock"][lane] = val
+        elif f[0] == "tg":
+            for item in f[3].split(";"):
+                step, lane, prob, a, b, inv = map(int, item.split(":"))
+                st = step_of((int(f[1]), int(f[2])), step)
+                if lane < 0:
+                    st["trig"] |= 1 | (4 if inv else 0)
+                    st["prob"], st["a"], st["b"] = prob, a, b
+                else:
+                    st["trig"] |= 2
+    return pages
+
+
+SETS = sorted(FIXTURES.glob("*.out.movy1"))
+
+
+def test_there_are_fixture_sets_for_the_page_getter():
+    assert len(SETS) >= 24
+
+
+@pytest.mark.parametrize("fixture", SETS, ids=lambda p: p.stem)
+def test_the_page_getter_agrees_with_the_movy1_export(seq_tools, tmp_path, fixture):
+    """fm1_seq_get_page, one pass over a clip's notes, locks and trig rows,
+    reports exactly what the set's own `movy1` export lists for every step of
+    every clip: note counts, locked lanes with their values, and the trig
+    rows' flags and whole-step values (docs/15 S4)."""
+    state = tmp_path / "s.json"
+    subprocess.run([str(seq_tools), "--compat", "--tracks", "16", "--seq", str(fixture),
+                    "--state", str(state)], check=True)
+    end = json.loads(state.read_text())["end"]
+    want = movy1_pages(end["movy1"])
+    got = {}
+    for t, tr in enumerate(end["tracks"]):
+        for slot, c in tr["clips"].items():
+            page = {p[0]: {"notes": p[1], "mask": p[2], "trig": p[3], "prob": p[4], "a": p[5],
+                           "b": p[6], "lock": p[7]} for p in c["page"]}
+            if page:
+                got[(t, int(slot))] = page
+    assert got == want
+    assert any(st["mask"] for pg in want.values() for st in pg.values()) or \
+        not re.search(r"^lk ", end["movy1"], re.M)
+
+
+def test_the_page_getter_in_the_default_mode(seq_tools, tmp_path):
+    """In the FM-1 default mode: a chord counted on its step, a lane locked on
+    a step with no note, a row for one pitch and an inverted whole-step row,
+    and nothing on any other step. (Windows that start part-way through a
+    clip are the Track view's, in tests/test_seq_ui.py.)"""
+    s = fm1(tracks=2).cmd("tog 0 3 60 100 64 90;tog 0 20 62 100;clen 0 32")
+    s.cmd("alabel 0 2 synth:x;aset 0 2 21 77 1;eprob 0 20 20 -1 40;econd 0 3 3 64 2 3")
+    s.cmd("einv 0 20 20 -1 1")
+    r = s.run(seq_tools, tmp_path, compat=False, end=0)
+    page = {p[0]: p[1:] for p in r.end["tracks"][0]["clips"]["0"]["page"]}
+    assert page[3][:6] == [2, 0, 2, 100, 1, 1], "two notes and a row for pitch 64 only"
+    assert page[20][:6] == [1, 0, 1 | 4, 40, 1, 1], "the whole-step row, inverted"
+    assert page[21][:2] == [0, 4] and page[21][6][2] == 77, "a lock on lane 2 with no note"
+    assert set(page) == {3, 20, 21}
+
+
+def test_info_names_the_track_rec_armed(seq_tools, tmp_path):
+    s = fm1(tracks=4).cmd("tog 2 0 60 100").cmd("rec 2").blocks(2)
+    r = s.run(seq_tools, tmp_path, compat=False)
+    assert r.end["rec_track"] == 2 and (r.end["counting_in"] or r.end["recording"])

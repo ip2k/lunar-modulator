@@ -11,6 +11,14 @@
 // after drawing. A screen waits (the firmware keeps it dirty) while both are
 // with the page. Posting a message still allocates its envelope, and an LED
 // change (a few a second) copies its 41 bytes.
+//
+// With the lab switch on (the page's ?lab or #lab; sim/web/README.md), the
+// module gets it before its start chain, which then loads the demo
+// pattern, and once per quantum the worklet reads the sequencer's transport
+// (fm1w_seq_info) and posts it only when it changed: a song's end, an
+// external clock's stop or a new tempo reach the status line without a
+// message per event. Multi-sound is on with it too (docs/15 §3.16): the
+// page's Sound dropdown is then the current sound's, and follows the panel.
 // MIT licence, like the rest of this repository.
 
 import { instantiateFm1, BLOCK, SCREEN, KEYS, BUTTONS } from './fm1-wasm.mjs';
@@ -19,6 +27,7 @@ const SCREEN_EVERY = 4;          // quanta between screen checks (~12 ms)
 const LIVE_FRAMES = 1470;        // a live scope redraws at most every ~33 ms
 const SCREEN_BUFFERS = 2;
 const LEDS = KEYS + BUTTONS.length;
+const SEQ_WATCHED = 6;           // fm1w_seq_info's words compared each quantum
 
 class FM1Processor extends AudioWorkletProcessor {
   constructor() {
@@ -28,6 +37,10 @@ class FM1Processor extends AudioWorkletProcessor {
     this.quanta = 0;
     this.views = null;
     this.free = [];              // screen buffers not with the page
+    this.lab = false;
+    this.soundLast = 0;
+    this.seqLast = new Uint32Array(SEQ_WATCHED);
+    this.seqLast[1] = 0xffffffff;   // nothing posted yet
     this.port.onmessage = (e) => this.onMessage(e.data);
   }
 
@@ -41,6 +54,8 @@ class FM1Processor extends AudioWorkletProcessor {
         const fm1 = await instantiateFm1(m.wasm);
         const ex = fm1.exports;
         ex.fm1w_init(sampleRate);
+        this.lab = !!m.lab;
+        if (this.lab) ex.fm1w_set_lab(1);
         const chain = ex.fm1w_default_chain();
         ex.fm1w_master(m.master, 0);
         this.fm1 = fm1;
@@ -75,8 +90,13 @@ class FM1Processor extends AudioWorkletProcessor {
       case 'param': ex.fm1w_set_param(m.unit, m.index, m.value); break;
       case 'panic': ex.fm1w_all_notes_off(); break;
       case 'select': {
-        const r = ex.fm1w_select(m.unit, m.index);
-        if (r !== 0) this.port.postMessage({ type: 'refused', unit: m.unit, index: m.index, code: r, rate: sampleRate });
+        // With the lab switch the Sound dropdown is the current sound's
+        // (multi-sound, docs/15 §3.16); unit 0 otherwise.
+        const unit = m.unit === 0 && this.lab ? ex.fm1w_sound_unit(ex.fm1w_unit_current()) : m.unit;
+        const r = ex.fm1w_select(unit, m.index);
+        if (r !== 0) {
+          this.port.postMessage({ type: 'refused', unit: m.unit, index: m.index, code: r, rate: sampleRate });
+        }
         break;
       }
       default: break;
@@ -86,12 +106,18 @@ class FM1Processor extends AudioWorkletProcessor {
 
   sendState() {
     const ex = this.fm1.exports;
+    // The dropdowns: the sound (with the lab switch, the current one) and
+    // the two master slots.
+    const current = this.lab ? ex.fm1w_unit_current() : 0;
+    const units = [ex.fm1w_sound_unit(current), 1, 2];
     this.port.postMessage({
       type: 'state',
-      units: [0, 1, 2].map((u) => ex.fm1w_unit_index(u)),
-      bytes: [0, 1, 2].map((u) => ex.fm1w_unit_bytes(u)),
+      units: units.map((u) => ex.fm1w_unit_index(u)),
+      bytes: units.map((u) => ex.fm1w_unit_bytes(u)),
       ram: ex.fm1w_ram(),
+      budget: ex.fm1w_ram_budget(),
       mode: ex.fm1w_mode(),
+      sound: current,
     });
   }
 
@@ -107,8 +133,24 @@ class FM1Processor extends AudioWorkletProcessor {
       out: new Float32Array(mem, outPtr, 2 * BLOCK),
       leds: new Uint8Array(mem, ex.fm1w_leds(), LEDS),
       screen: new Uint16Array(mem, ex.fm1w_screen(), SCREEN * SCREEN),
+      seq: new Uint32Array(mem, ex.fm1w_seq_info(), 8),
     };
     return this.views;
+  }
+
+  // The transport, posted only when it changed (lab only).
+  postSeq(v) {
+    this.fm1.exports.fm1w_seq_info();       // refreshes v.seq
+    const s = v.seq, last = this.seqLast;
+    let changed = false;
+    for (let i = 0; i < SEQ_WATCHED; ++i) {
+      if (s[i] !== last[i]) { last[i] = s[i]; changed = true; }
+    }
+    if (!changed) return;
+    this.port.postMessage({
+      type: 'seq', playing: s[0] !== 0, bpm_x100: s[1], recording: s[2] !== 0, watch_track: s[3],
+      counting_in: s[4] !== 0, following: s[5] !== 0, master_tick: s[6] + s[7] * 4294967296,
+    });
   }
 
   process(inputs, outputs) {
@@ -129,6 +171,16 @@ class FM1Processor extends AudioWorkletProcessor {
       for (let i = 0; i < n; ++i) {
         left[off + i] = lr[2 * i];
         right[off + i] = lr[2 * i + 1];
+      }
+    }
+    if (this.lab) {
+      this.postSeq(v);
+      // The panel changes the current sound (SHIFT + PRESETS) without a
+      // message from the page: the dropdown follows it.
+      const current = ex.fm1w_unit_current();
+      if (current !== this.soundLast) {
+        this.soundLast = current;
+        this.sendState();
       }
     }
     if (ex.fm1w_leds_changed()) {

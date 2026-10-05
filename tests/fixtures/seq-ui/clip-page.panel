@@ -1,0 +1,12 @@
+# SHIFT (SEL) + white key 3 opens the Clip page: KNOB1 down to 1/2X, and
+# while playing up to 2X; KNOB2 shortens the clip to 8 steps, KNOB3
+# transposes it a fifth, KNOB4 quantizes it at 50 %.
+--button 0.05:SEQ
+--button 0.10:SEL:0.05
+--key 0.12:4:100:0.01
+--turn 0.20:KNOB1:-2
+--button 0.30:PLAY/STOP
+--turn 1.30:KNOB1:4
+--turn 2.00:KNOB2:-8
+--turn 2.40:KNOB3:7
+--turn 2.60:KNOB4:5

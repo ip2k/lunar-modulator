@@ -1,0 +1,9 @@
+# A 6-step clip: a tap on steps 7 to 16 enters nothing (Movy's hidden rest
+# of the bar), one on step 3 does, and so does one on step 17, past the
+# bar, which grows the clip.
+--button 0.05:SEQ
+--key 0.10:14:100:0.03
+--key 0.20:4:100:0.03
+--key 0.30:5:100:0.03
+--key 0.40:0:100:0.03
+--button 0.50:PLAY/STOP

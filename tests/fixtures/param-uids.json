@@ -43,7 +43,7 @@
       {"name": "Volume", "type": "float", "uid": 4, "flags": ["smooth", "mod"]}
     ],
     "sw-sophie": [
-      {"name": "Pad", "type": "enum", "uid": 2935, "flags": ["nolock"]},
+      {"name": "Pad", "type": "enum", "uid": 2935, "flags": []},
       {"name": "Tune", "type": "float", "uid": 3346, "flags": ["latch", "mod"]},
       {"name": "Decay", "type": "float", "uid": 3245, "flags": ["latch", "mod"]},
       {"name": "Model", "type": "enum", "uid": 3572, "flags": ["latch", "mod"]},
@@ -105,6 +105,16 @@
       {"name": "Tone", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
       {"name": "Level", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
     ],
+    "drive": [
+      {"name": "Type", "type": "enum", "uid": 1, "flags": ["mod"]},
+      {"name": "Drive", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Tone", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Bias", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Gate", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Level", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Auto", "type": "enum", "uid": 8, "flags": ["mod"]}
+    ],
     "echo": [
       {"name": "Time", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
       {"name": "Feedback", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
@@ -113,6 +123,37 @@
       {"name": "Tone", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
       {"name": "Wow", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
       {"name": "Level", "type": "float", "uid": 7, "flags": ["smooth", "mod"]}
+    ],
+    "filter": [
+      {"name": "Type", "type": "enum", "uid": 1, "flags": ["mod"]},
+      {"name": "Cutoff", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Resonance", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Drive", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Mode", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Morph", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Level", "type": "float", "uid": 8, "flags": ["smooth", "mod"]}
+    ],
+    "comp": [
+      {"name": "Threshold", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Ratio", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Attack", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Release", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Knee", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Makeup", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Character", "type": "enum", "uid": 8, "flags": ["mod"]},
+      {"name": "Auto Rel", "type": "enum", "uid": 9, "flags": ["mod"]},
+      {"name": "Auto Gain", "type": "enum", "uid": 10, "flags": ["mod"]}
+    ],
+    "limit": [
+      {"name": "Ceiling", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Drive", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Release", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Lookahead", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Mode", "type": "enum", "uid": 5, "flags": ["mod"]},
+      {"name": "Link", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 7, "flags": ["smooth", "mod"]}
     ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
