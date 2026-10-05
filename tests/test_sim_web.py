@@ -599,10 +599,11 @@ def test_emptying_a_slot_returns_to_its_one_page(tools):
 def test_a_sound_that_refuses_the_rate_is_stepped_over(tools):
     """Above 47,872 Hz the Plaits-based sounds (Macro, Macro Heavy, Six-Op)
     refuse the host. PRESETS steps over them and says why; a refused load
-    puts the previous sound back with its values instead of leaving silence."""
+    puts the previous sound back with its values instead of leaving silence.
+    FM6, next in the list, runs at the host's rate."""
     up = run(tools["sim"], ["--engine", "shapes", "--rate", "48000", "--seconds", "0.1",
                             "--turn", "0:PRESETS:1"])
-    assert up["engine"] == "sw-sophie"
+    assert up["engine"] == "dx7"
     assert up["popup"] == ["Macro Heavy", "refuses 48000 Hz"]
     down = run(tools["sim"], ["--engine", "shapes", "--rate", "48000", "--seconds", "0.1",
                               "--turn", "0:PRESETS:-1"])

@@ -30,7 +30,7 @@ import pytest
 
 from tests.engine_helpers import RATE, cents, pitch_hz, render, renderer  # noqa: F401
 
-PER_NOTE = ["macro", "macro-heavy", "shapes", "sixop"]
+PER_NOTE = ["macro", "macro-heavy", "shapes", "sixop", "dx7"]
 
 # A sustained, deterministic voice per engine (no shared random numbers, so
 # notes rendered apart are the notes rendered together), and a parameter
@@ -40,6 +40,7 @@ TONE = {
     "macro-heavy": dict(params=["Model=4", "Decay=0.8"], loud="Timbre"),
     "shapes": dict(params=["Shape=0", "Release=0.7"], loud="Timbre"),
     "sixop": dict(params=["Patch=40"], loud="Brightness"),
+    "dx7": dict(params=["Patch=14"], loud="Brightness"),   # BRASS: held, no LFO depth
 }
 
 
@@ -109,6 +110,8 @@ def test_only_four_engines_take_per_note_offsets(listing):
     effects have no notes; Test Sine stays the engine without them."""
     assert sorted(e for e, v in listing.items() if v["per_note"]) == sorted(PER_NOTE)
     assert [p["name"] for p in poly(listing, "sixop")] == ["Brightness", "Envelope", "Volume"]
+    assert [p["name"] for p in poly(listing, "dx7")] == ["Brightness", "Env Time", "Feedback",
+                                                         "Volume"]
     assert [p["name"] for p in poly(listing, "shapes")] == \
         ["Timbre", "Color", "Attack", "Release", "Volume"]
     for e in ("macro", "macro-heavy"):   # every FLOAT
@@ -238,6 +241,7 @@ MODELS = {
     "macro-heavy": [f"Model={m}" for m in range(13)],
     "shapes": [f"Shape={s}" for s in range(0, 47, 3)],
     "sixop": [f"Patch={p}" for p in (0, 11, 32, 49, 62, 77, 95)],
+    "dx7": [f"Patch={p}" for p in (0, 6, 11, 14, 18, 21, 25, 28, 31, 32)],
 }
 
 
@@ -279,6 +283,7 @@ PITCH_TONES = {
     "shapes": ["Shape=3", "Timbre=0", "Color=0"],
     "macro-heavy": ["Model=4", "Harmonics=0", "Timbre=0"],
     "sixop": ["Patch=40"],
+    "dx7": ["Patch=31"],              # PURE SINE
 }
 
 
@@ -372,6 +377,7 @@ SHORT = {
     "macro-heavy": ["Model=4", "Decay=0.1"],
     "shapes": ["Shape=0", "Release=0.1"],
     "sixop": ["Patch=49", "Envelope=0.3"],
+    "dx7": ["Patch=5"],               # MARIMBA
 }
 
 
@@ -450,6 +456,7 @@ IGNORED = {   # indices that are not POLY: the ENUMs, past the table, and far pa
     "macro-heavy": ["#0", "#11", "#12", "#999", "#65534"],
     "shapes": ["#0", "#6", "#999", "#65534"],
     "sixop": ["#0", "#4", "#999", "#65534"],
+    "dx7": ["#0", "#5", "#999", "#65534"],
 }
 
 
@@ -530,6 +537,7 @@ EXTREME_MODELS = {
     "macro-heavy": [f"Model={m}" for m in range(13)],
     "shapes": [f"Shape={s}" for s in range(47) if s not in BRAIDS_EDGE_FAULTS],
     "sixop": [f"Patch={p}" for p in range(0, 96, 5)],
+    "dx7": [f"Patch={p}" for p in range(0, 33, 2)],
 }
 EXTREME_KEYS = {"shapes": {"inf": (0, 31), "-inf": (96, 127)}}
 

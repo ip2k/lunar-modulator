@@ -84,6 +84,7 @@ BEND_TONES = {
     "shapes": ["Shape=3", "Timbre=0", "Color=0"],
     "macro-heavy": ["Model=4", "Harmonics=0", "Timbre=0"],
     "sixop": ["Patch=40"],            # a patch that holds its level
+    "dx7": ["Patch=31"],              # PURE SINE
 }
 
 
