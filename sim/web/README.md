@@ -633,9 +633,11 @@ parameter locks since S8, the engines' SMOOTH ramps since S7b, the
 master-bus effects (DJ Filter, Tilt, Master Sat, Isolator, EQ), and since
 docs/16 MG3 the modulation runtime, its kinds, its script reader
 (`host/mod_script.c`: snprintf and strtod, no files) and modulation's
-pages: 58 of 58 scenarios pass, identical to musl and to render.js
-(four of them turn the effects' switches every 4.4 ms), and it imports
-nothing; it is 737,880 bytes, up from 598,994 before MG3 (the
+pages, and since engine API v3 (2026-10-05) Comb, Test Ext, the LOG law
+and the effects' extension (`fm1_fx_render`): 60 of 60 scenarios pass,
+identical to musl and to render.js (four of them turn the effects'
+switches every 4.4 ms), and it imports nothing; it is 746,432 bytes,
+737,880 before API v3, up from 598,994 before MG3 (the
 runtime, its sixteen kinds with MG2's Peaks and Braids tables, the pages
 and the script reader), 573,403 before the master-bus effects (550,252
 with them before multi-sound, S8 and S7b), 560,033 before the engines'
