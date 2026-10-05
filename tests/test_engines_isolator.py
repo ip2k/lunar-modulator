@@ -246,6 +246,16 @@ def test_glides_are_block_size_independent(tool):
     assert tool["glide"]["block_independent"]
 
 
+def test_crossover_glides_land_on_their_targets(tool):
+    # A crossover moved from one frequency to another ends on exactly the
+    # coefficient a fresh instance at the new frequency has: after the glide
+    # the two outputs agree bit for bit. Before the review of 2026-10-05 a
+    # float one-pole stalled an ulp-sized step short of the target on 20 of
+    # these 27 routes (nine at each of 44,118, 96,000 and 384,000 Hz).
+    s = tool["landing"]
+    assert s["routes"] == 27 and s["not_landed"] == 0
+
+
 @pytest.mark.parametrize("kind", ["kill", "xover", "unity"])
 def test_switching_does_not_click(tool, kind):
     # Kill through every mask, the crossovers between their extremes, and

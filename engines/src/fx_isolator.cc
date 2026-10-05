@@ -48,8 +48,10 @@
  * running, so leaving unity crossfades linearly from the input to the band
  * sum over 5 ms, and returning to unity crossfades back. The two differ only
  * in phase, so during a crossfade the sum dips briefly around the
- * crossovers (to -17 dB at f1 at the midpoint, for the defaults) [inferred:
- * the all-passes' phase]; it is over in 5 ms.
+ * crossovers: at the midpoint, for the defaults, -17 dB at f1 itself and a
+ * full null where the all-passes turn the phase by half a cycle, at 228 Hz
+ * and 2.73 kHz [verified 2026-10-05: the response with the crossfade held
+ * at 0.5]; it is over in 5 ms.
  *
  * Gains and crossovers glide (one pole, 5 ms) sample by sample, so a kill
  * does not click, any block size gives the same output, and values set
@@ -280,11 +282,20 @@ static inline float IsoGlideGain(float v, float t, float k) {
   return v + k * e;
 }
 
-/* The same for a g, relative to the target alone (g is 0.006-6). */
+/* The same for a g, relative to the target alone (g is 0.006-6 at
+ * 44,118 Hz). It also lands when its step is under about half an ulp of the
+ * value: there a float one-pole stalls short of the target for ever (the
+ * step rounds away), which a tolerance of 1e-5 alone let happen for 38 % of
+ * crossover changes at 44,118 Hz and for every one at 96 kHz and above,
+ * leaving the crossover off by up to 1e-4 and its coefficients recomputed
+ * every frame from then on [verified 2026-10-05, review of the master-bus
+ * pack]. The test is on magnitudes, as Tilt's (fx_tilt.cc), so it holds with
+ * excess precision too. */
 static inline float IsoGlideG(float v, float t, float k) {
   const float e = t - v;
-  if (IsoAbs(e) <= 1e-5f * t) return t;
-  return v + k * e;
+  const float step = k * e;
+  if (IsoAbs(e) <= 1e-5f * t || IsoAbs(step) <= 6e-8f * IsoAbs(v)) return t;
+  return v + step;
 }
 
 /* ---------------------------------------------------------------------- */

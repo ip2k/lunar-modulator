@@ -1285,14 +1285,22 @@ and 2,484 Hz [reported in the note: its constants]).
   crossfades linearly from the input to the band sum over 5 ms, and returning
   crossfades back; 5 ms later the output is the input again, bit for bit.
   During the crossfade the two signals' phase difference makes a brief dip
-  around the crossovers (about −17 dB at f1 halfway through, for the
-  defaults) [inferred: the all-passes' phase]. The alternative, always the
+  around the crossovers: halfway through, for the defaults, −17 dB at f1
+  itself and a full null where the all-passes have turned the phase by half
+  a cycle, at 228 Hz and 2.73 kHz [verified 2026-10-05: the response with
+  the crossfade held at its midpoint]. The alternative, always the
   band sum, is flat within float rounding but never the input itself.
 - **Glides:** the band gains and the crossovers glide (one pole, 5 ms)
   sample by sample, so a kill does not click and the output does not depend
   on block size; values set before the first block apply from its first
   sample. The crossovers glide in g = tan(πf/fs), the filters' own
-  coefficient. Turning Kill through every mask, the crossovers end to end or
+  coefficient, and land on it exactly: a glide also ends when its step is
+  under half an ulp of the value, as Tilt's does, since a float one-pole
+  stalls there for ever. Without that, 38 % of crossover changes at
+  44,118 Hz and all of them at 96 kHz and above stopped up to 10⁻⁴ short,
+  recomputing the coefficients every frame from then on [verified
+  2026-10-05, the pack's review; `fm1-isolator-test` "landing" and
+  `fm1-fx-hostile-test` now check it]. Turning Kill through every mask, the crossovers end to end or
   Low in and out of unity every third block, on a 100 Hz sine, steps the
   output by at most 1.31 times the sine's own largest step [verified]. Filter
   states below 10⁻²⁰ flush to zero, so tails never run in subnormals.

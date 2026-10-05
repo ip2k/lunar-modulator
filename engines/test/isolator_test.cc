@@ -364,6 +364,60 @@ void Rates() {
   printf("]");
 }
 
+// 7. Glides land: a crossover moved from one frequency to another ends on
+// exactly the coefficient an instance made at the new frequency has, so
+// after the glide and the filters' own decay the two outputs agree bit for
+// bit. A float one-pole can stall an ulp-sized step short of its target for
+// ever (the review of 2026-10-05 found 38 % of crossover changes stalled at
+// 44,118 Hz and all of them at 96 kHz and above, up to 1e-4 off). Noise in,
+// both knobs, at three host rates; prints how many routes did not land.
+void Landing() {
+  const float rates[] = { 44118.0f, 96000.0f, 384000.0f };
+  const struct { const char *name; float from, to; } routes[] = {
+    { "Low Xover", 80.0f, 400.0f },     { "Low Xover", 400.0f, 80.0f },
+    { "Low Xover", 81.6461f, 110.951f }, { "Low Xover", 284.649f, 97.2669f },
+    { "Low Xover", 310.347f, 366.123f }, { "High Xover", 1500.0f, 5000.0f },
+    { "High Xover", 5000.0f, 1500.0f },  { "High Xover", 2085.42f, 1690.08f },
+    { "High Xover", 3622.38f, 4268.6f },
+  };
+  int failed = 0, total = 0;
+  for (float rate : rates) {
+    const uint32_t change = static_cast<uint32_t>(0.05f * rate) / 64 * 64;
+    const uint32_t end = static_cast<uint32_t>(1.0f * rate) / 64 * 64;
+    for (const auto &r : routes) {
+      void *a = Make(rate, 0);
+      Set(a, r.name, r.from);
+      Set(a, "Mid", 0.3f);                       // away from unity: the band sum
+      Lcg rng = { 11u };
+      float buf[128];
+      for (uint32_t pos = 0; pos < change; pos += 64) {
+        for (int k = 0; k < 128; ++k) buf[k] = 0.5f * rng.Bipolar();
+        E.render(a, buf, 64);
+      }
+      Set(a, r.name, r.to);
+      // b is made at the new frequency and hears the same noise from here.
+      alignas(16) static unsigned char mem_b[4096];
+      fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, 64 };
+      void *b = E.create(mem_b, &host);
+      Set(b, r.name, r.to);
+      Set(b, "Mid", 0.3f);
+      int same_tail = 1;
+      for (uint32_t pos = change; pos < end; pos += 64) {
+        float other[128];
+        for (int k = 0; k < 128; ++k) other[k] = buf[k] = 0.5f * rng.Bipolar();
+        E.render(a, buf, 64);
+        E.render(b, other, 64);
+        if (pos >= end - end / 4) same_tail &= memcmp(buf, other, sizeof(buf)) == 0;
+      }
+      E.destroy(a);
+      E.destroy(b);
+      ++total;
+      failed += !same_tail;
+    }
+  }
+  printf("\"landing\":{\"routes\":%d,\"not_landed\":%d}", total, failed);
+}
+
 // --bench: nanoseconds per 64-frame stereo block of noise, the best of five
 // runs of 20,000 blocks, at three settings.
 void Bench() {
@@ -416,6 +470,7 @@ int main(int argc, char **argv) {
   Switching(); printf(",");
   Response(); printf(",");
   Defaults(); printf(",");
+  Landing(); printf(",");
   Rates();
   printf("}\n");
   return 0;
