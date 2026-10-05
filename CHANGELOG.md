@@ -9,6 +9,20 @@ history.
 ## [Unreleased]
 
 ### Added
+- Room, a new reverb effect: the reverb of Mutable Instruments Clouds with
+  the diffuser Clouds runs before it, a smaller, denser room than Plate in
+  41 KB (Plate takes 64 KB). Mix, Decay, Damping and Diffusion on the first
+  page; Blur (smears the attack before it enters the room) and Width on the
+  second. Decay reaches from a short room (under a second) to tails of 15 s
+  and more. Every knob glides and can be modulated, Mix 0 passes the sound
+  through untouched, and the output is the same at any block size and,
+  with no libm and no fused multiply-adds, the same bits in the browser.
+  For developers: the four Clouds files are vendored unmodified,
+  `build/fm1-ref-room` renders the upstream classes for 60 reference tests
+  (within half an LSB at 32 kHz and at 44,118 Hz), and `build/fm1-room-test`
+  checks the glide, recovery, host rates and the libm-free maths. A new
+  parity scenario plays a chord through Room; the browser module is not
+  rebuilt in this change.
 - Recording and Capture on the virtual FM-1's panel, still behind the lab
   switch (`?lab`; docs/15 stage S5). What you play on the keys (outside
   SEQ mode) or at MIDI IN now reaches the sequencer as well as the sound.
