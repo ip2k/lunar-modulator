@@ -37,6 +37,10 @@ terms it is used under.
   one, after **Udo Zölzer**'s *DAFX*, and its 16-bit delay memory follows
   **Emilie Gillet**'s effects engine in Rings and Clouds; none of their code
   is used.
+- **EQ** is this project's own code. Each band is the state-variable filter
+  in the form **Andrew Simper** (Cytomic) published, whose maths is in the
+  public domain, and its curves are checked against **Robert
+  Bristow-Johnson**'s Audio EQ Cookbook. No code is taken from either.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and

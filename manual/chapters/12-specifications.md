@@ -64,6 +64,7 @@ and is the one to trust if the two ever differ.
 | Crush | – | under 1 KB |
 | Fold | – | under 1 KB |
 | Echo | – | 64 KB |
+| EQ | – | under 1 KB |
 | Test Gain | – | under 1 KB |
 
 ### The sequencer

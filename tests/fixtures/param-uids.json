@@ -114,6 +114,18 @@
       {"name": "Wow", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
       {"name": "Level", "type": "float", "uid": 7, "flags": ["smooth", "mod"]}
     ],
+    "eq": [
+      {"name": "Low Freq", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Low Gain", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Low Q", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Mid Freq", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Mid Gain", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Mid Q", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "High Freq", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "High Gain", "type": "float", "uid": 8, "flags": ["smooth", "mod"]},
+      {"name": "High Q", "type": "float", "uid": 9, "flags": ["smooth", "mod"]},
+      {"name": "Level", "type": "float", "uid": 10, "flags": ["smooth", "mod"]}
+    ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ]

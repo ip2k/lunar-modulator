@@ -9,6 +9,16 @@ history.
 ## [Unreleased]
 
 ### Added
+- EQ, a three-band parametric equaliser effect: a low shelf, a bell and a
+  high shelf, each with its own frequency, gain (±15 dB) and Q on a page of
+  its own, and an output Level. Its curves are those of the classic studio
+  "cookbook" equaliser, measured to within 0.001 dB. At 0 dB a band does
+  nothing at all, and with every gain at 0 dB the sound passes through bit
+  for bit. Every knob is open to sequencer locks and modulation: frequency,
+  gain and Q glide over a few milliseconds and the filters are built to be
+  swept, so turning or modulating a band does not click. It computes the
+  same samples in the browser as in a native build (engines/README.md,
+  "EQ").
 - notes/2026-10-02-delay-reverb-eq-gates-options.md: research on delays,
   reverbs, EQ, a DJ filter and tilt for the master bus, bus saturation, and a
   Drawmer DS201-style gate. It also designs side-chaining: the gate and the

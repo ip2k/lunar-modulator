@@ -32,6 +32,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `crush` | Crush | effect | – | this repository, after DaisySP's Decimator and Bitcrush (Electro-Smith, MIT) | [below](#crush); a bitcrusher and sample-rate reducer |
 | `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
 | `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
+| `eq` | EQ | effect | – | this repository, on Andrew Simper's trapezoidal SVF (public domain maths) | a low shelf, a bell and a high shelf, exact at 0 dB; [below](#eq) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -220,6 +221,115 @@ How it works [verified: tests/test_engines_echo.py and
   reset call to drop the tail without re-creating the 64 KiB instance (the
   host feature listed below).
 
+## EQ
+
+A three-band parametric equaliser written here (`src/fx_eq.cc`, MIT): a low
+shelf, a bell and a high shelf in series, then Level. It follows
+notes/2026-10-02-delay-reverb-eq-gates-options.md §4.5. Each band is one
+linear trapezoidal state-variable filter in the form Andrew Simper (Cytomic)
+published, whose maths is public domain [reported: that note, §1 and §4.1],
+with the shelf and bell mixes from the same paper. No code is taken from
+anywhere. One page per band; Level fills the last.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Low Freq | 20–1,000 Hz (100) | The low shelf's corner: half its gain (in dB) is reached here |
+| 1 | Low Gain | −15 to +15 dB (0) | The gain far below the corner |
+| 1 | Low Q | 0.3–2 (0.7071) | The shelf's slope: 0.7071 is the steepest that does not overshoot; above it a bump and a dip appear either side of the corner, below it the slope widens |
+| 2 | Mid Freq | 20–18,000 Hz (1,000) | The bell's centre |
+| 2 | Mid Gain | −15 to +15 dB (0) | The gain at the centre, exactly |
+| 2 | Mid Q | 0.3–10 (1) | The bell's width; a cut is as narrow as a boost of the same Q |
+| 3 | High Freq | 1,000–18,000 Hz (8,000) | The high shelf's corner |
+| 3 | High Gain | −15 to +15 dB (0) | The gain far above the corner (at Nyquist, exactly) |
+| 3 | High Q | 0.3–2 (0.7071) | As Low Q |
+| 3 | Level | −15 to +15 dB (0) | Output gain, for make-up after boosts |
+
+No band is tuned above 0.45 of the host's rate. Gains and Level are in dB,
+for which `fm1_unit_t` has no code yet (as Comp's); the frequencies carry
+`FM1_UNIT_HZ`.
+
+How it works [verified: tests/test_engines_eq.py and `build/fm1-eq-test`,
+2026-10-05, unless marked]:
+
+- **The response is the cookbook's.** Transformed, Simper's bell and shelves
+  are exactly the RBJ Audio EQ Cookbook's peakingEQ, lowShelf and highShelf
+  (shelves with Q), prewarped at the band's frequency. The measured response
+  (the DFT of each impulse response, in float) agrees with the cookbook's
+  biquads in double precision within 0.001 dB from 20 Hz to 21 kHz in all
+  eleven measured settings, the three bands together included; the worst is
+  8e-4 dB, a 60 Hz bell at Q 10. A +9 dB bell measures 9.0000 dB at its
+  centre. The cookbook serves only as the reference: its direct-form biquads
+  hold a history that is wrong for new coefficients, so they are not the
+  structure to modulate.
+- **0 dB is exact.** At 0 dB a band's mixing coefficients are exactly 0 (A =
+  2^0 = 1 exactly), and the band then passes its input itself. With every
+  gain and Level at 0 dB the output is the guarded input bit for bit,
+  negative zero and subnormals included, at any frequency and Q and while
+  they glide. Turned up and back to 0 dB, a band is exact again about 60 ms
+  later: the glide lands on 0 rather than approaching it. Its integrators
+  keep running while it is flat, so turning it up starts from a settled
+  filter.
+- **Modulation.** Each band's frequency (as log2 Hz), gain (dB) and Q (as log2
+  Q) glide one step per 8 samples, counted from create (1 − e^(−8 / (5 ms ×
+  rate)) of the way per step, a 5 ms time constant), and the band's
+  coefficients are recomputed at each step. The integrators carry their charge across a change, so the filter's
+  future changes, not what it holds; the mixing coefficients ramp linearly
+  across the 8 samples, so a gain change never steps the output. Level
+  glides every sample. A 100 Hz sine through a band whose frequency, gain or
+  Q jumps between extremes every 50 ms (set at once by the host) bends the
+  waveform 52–280 times less, by its largest second difference, than
+  switching between the two settled filters would; what remains is the bend
+  of the 5 ms fade itself. The output does not depend on the block size (1,
+  7 or 64 frames, changes on and off the 8-sample grid).
+- **Determinism.** No libm at all: 2^x, log2 and tan are polynomials in
+  `src/fx_eq_math.h` (2^x to 8.7e-8 relative, log2 to 1.0e-6 absolute, tan
+  to 6.5e-7 relative up to 0.45π, against libm in double), and clang fuses no
+  multiply-add in these files. A hash of every output float of three renders
+  with bands moving is the same from Apple clang on arm64, GCC 14 on x86-64
+  and on i386 (`-msse2 -mfpmath=sse`, as CI's 32-bit job) and Emscripten
+  6.0.10's WebAssembly under Node [verified: containers on the LAN build
+  host], so the browser plays it sample for sample. JieLi's pi32v2 clang
+  compiles it without a warning with `tools/jieli/in-container.sh`'s flags
+  at -O2 and -Oz; its only external symbol is `memset`, and
+  `-ffp-contract=fast` gives the same object as `off` [verified: compiled,
+  not run].
+- **Contracts:** no heap; every field set in create; parameters through
+  `fm1_param_clamp`; the input guard of `mi_fx.cc` (NaN to 0, ±16 clamp), so
+  bad input cannot latch it: a second after a fault the output is the clean
+  render's within one LSB. Silence in gives exact silence out from any prior
+  memory and setting. A band's two integrator states flush to zero together
+  once both are below 1e-15: flushing them one at a time left a low band's
+  tail leaking away through its tiny a3 term at −115 dB for minutes. Now the
+  slowest tail (every band at its lowest frequency and highest Q, boosted 15
+  dB, after a second of noise; the 20 Hz bell's pole Q is 23.7) reaches
+  exact zeros after 12.3 s, the same settings cut after 2.0 s. Host rates
+  from 8 to 384 kHz; at each, a +9 dB bell at 1 kHz peaks at +9.00 dB.
+- **Memory:** 368 bytes on 64-bit, and on 32-bit [verified: GCC i386], no
+  tables and no delay lines.
+- **Cost:** about 60 floating-point operations per sample and channel, flat
+  or not, about 7,700 per 64-frame block; while bands glide, about 130 more
+  and 2 divides per band every 8 samples. Desktop (Apple M1 Max, noise in):
+  1.86 µs per block with the bands flat or set, 2.6 µs with all three
+  gliding all the time, against Plate's 0.93 µs in the same run: 0.13 % and
+  0.18 % of the 1.451 ms block. At one operation per cycle on pi32v2 that
+  is about 2.2 % of a 240 MHz core [inferred]; stage B measures it.
+- **Where it departs from the note:** the note proposed the vendored
+  `stmlib::Svf` and stmlib's `SemitonesToRatio` tables for 10^(dB/40). The
+  filter is written here instead, in the C subset like Fold, because the
+  flat bypass and the mixing ramps need its two outputs and states directly;
+  the maths is the same. The gains come from the 2^x polynomial, which is
+  exactly 1 at 0 dB by construction, needs no table memory and is accurate
+  to 1e-6 dB rather than 0.004 dB steps. The note's shared header for
+  Tilt, DJ Filter, Isolator and EQ (the bell and shelf mixes, the knob law)
+  is left to whoever joins those effects; `fx_eq_math.h` is a candidate.
+- **Knobs:** the hosts turn a parameter in even steps of its range (a
+  hundredth per detent in the virtual FM-1), so a frequency in Hz moves by
+  180 Hz a detent on Mid Freq and a modulation route sweeps it in Hz, not in
+  octaves; the multimode Filter's Cutoff (fx pack 2, not yet on main) has
+  the same issue [verified: its branch]. A logarithmic taper for
+  `FM1_UNIT_HZ` parameters belongs in the hosts, so a lock or a preset keeps
+  storing Hz.
+
 ## Parameters (engine API v2)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -324,7 +434,7 @@ sound).
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Echo) |
+| `src/fx_*.cc` | Effects written in this repository (Echo, EQ and its libm-free `fx_eq_math.h`) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
 | `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |
