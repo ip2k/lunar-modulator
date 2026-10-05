@@ -519,7 +519,7 @@ its panel UI and Track view, with step entry since S4, record and Capture
 since S5, multi-sound, tracks, mute, the pages and the click since S6, and
 parameter locks since S8: 47 of 47 scenarios pass, identical to musl and
 to render.js (two of them turn the effects' switches every 4.4 ms), and it
-imports nothing; it was 548,493 bytes before S8 (526,111
+imports nothing; it is 559,930 bytes, up from 548,493 before S8 (526,111
 with S8 before the second effects pack), 524,659 before multi-sound and S6
 (514,688 with them before the second effects pack), 516,035 before S5,
 482,291 before the second effects pack (Drive, Filter, Comp, Limiter),

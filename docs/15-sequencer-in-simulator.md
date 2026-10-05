@@ -1984,6 +1984,13 @@ tests/test_seq_ui.py, tests/test_seq_render.py, engines/test/seq_host_test.c,
   test_seq_ui, test_sim_multi) under ASan and UBSan, and the engine and
   sequencer tests against a sanitized engines build, report nothing
   [verified, clang, macOS].
+- **After merging main** (the second effects pack and PR #43's final
+  form), 2026-10-05 [verified: `www/fm1.wasm.json`,
+  `fm1-sim-render --screens`]: parity 47 of 47, identical to js and musl
+  in all 47 and to glibc in 44 (the same three); 1,321 screens, 0 faults
+  (main's 1,266 and S8's 55); the module is 559,930 B, up from 548,493 B
+  on main; imports none, and the headless Chromium checks pass with the
+  switch on and off.
 
 ### S9. Session, scenes and song, the Loop view, COPY and CLEAR
 
