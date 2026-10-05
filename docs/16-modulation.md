@@ -1449,8 +1449,8 @@ marked]:
   `multi-four-sounds-seq` and `multi-two-sounds-inserts` take Ensemble and
   Comp as their master rather than Plate, which would now pass the budget,
   and the sweep's every-sound-as-Sound-2 pass frees an insert first. The
-  browser module grew from 560,033 B (main with S8, which linked none of
-  the runtime) to 703,751 B, about 144 KB, against §4.5's 20–40 KB: the
+  browser module grew from 573,403 B (main with S7b, which linked none of
+  the runtime) to 712,389 B, about 139 KB, against §4.5's 20–40 KB: the
   runtime and its sixteen kinds (MG2's Peaks and Braids tables among
   them), the pages and the script reader with strtod [verified:
   `www/fm1.wasm.json`]. (MG3 alone, before MG2's kinds, had added 93 KB.)
