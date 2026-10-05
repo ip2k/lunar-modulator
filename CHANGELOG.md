@@ -34,7 +34,7 @@ history.
     space in a parameter's name as `_` (`synth:Env_Pitch`), since a label
     is one word. Ten new gesture traces replay through `fm1-render` byte
     for byte, six of them taken from Movy's own automation tests; a new
-    parity scenario plays locks from the panel; 1,164 screens pass the
+    parity scenario plays locks from the panel; 1,321 screens pass the
     layout check (55 new), and the screens with the lab switch off are
     unchanged.
 - Tracks on the virtual FM-1's panel, still behind the lab switch (`?lab`;
@@ -66,9 +66,10 @@ history.
     to 272 events, which holds the worst burst measured; the public
     page's RAM figure counts the 192 bytes, so a few chains read 1K more.
     Ten new gesture traces replay through `fm1-render` byte for byte, two
-    new parity scenarios play tracks from the panel and the click, and
-    1,109 screens pass the layout check (69 new); the screens with the
-    lab switch off are unchanged.
+    new parity scenarios play tracks from the panel and the click (46 of
+    46 pass, with multi-sound's), and 1,266 screens pass the layout check
+    (69 new); the screens with the lab switch off are unchanged. With
+    multi-sound, the browser module grew from 525 KB to 548 KB.
 - Recording and Capture on the virtual FM-1's panel, still behind the lab
   switch (`?lab`; docs/15 stage S5). What you play on the keys (outside
   SEQ mode) or at MIDI IN now reaches the sequencer as well as the sound.
@@ -91,10 +92,10 @@ history.
   - For developers: recorded and captured notes are logged as `non` and
     `nof` lines, so every gesture trace that plays keys or MIDI IN replays
     through `fm1-render` byte for byte (11 new traces). Two new parity
-    scenarios record and capture from the panel (27 of 27 pass). 953
+    scenarios record and capture from the panel (41 of 41 pass). 1,055
     screens pass the layout check (39 new); the screens with the lab
-    switch off are unchanged. The browser module grew from 482 KB to
-    491 KB.
+    switch off are unchanged. The browser module grew from 516 KB to
+    525 KB.
 - Several sounds at once on the virtual FM-1, behind the lab switch
   (`?lab`; docs/15 §3.16, the owner's decision of 2026-10-02).
   - Up to four sounds play together, each with its own two insert effects
@@ -121,8 +122,123 @@ history.
     `fm1-render` takes `--sound`, `--insert`, `--level`, `--sound-note`,
     `--sound-param-at`, `--level-at` and `--slots`; three
     new parity scenarios play two and four sounds with inserts and the
-    panel gestures (28 of 28 pass); 1,001 screens pass the layout check (87
-    new). The browser module grew from 482 KB to 496 KB.
+    panel gestures; 142 new screens pass the layout check (its insert
+    sweep runs every effect).
+- notes/2026-10-02-filters-dynamics-options.md: research on classic filter
+  designs, compressors, limiters, overdrives and saturators, and how they fit
+  the effect slots, the voices and the modulation matrix. Most of the filter
+  work already exists (effects pack 2), so it recommends integration first:
+  split Comb out of Filter (its delay lines cost 18 KB per instance), add a
+  logarithmic knob law so a Cutoff sweep or keytracking moves in octaves, then
+  per-voice filters inside Macro and Shapes. It also flags that FM-1 projects
+  elsewhere assume the chip has no floating-point unit while our compiler
+  emits FPU code, which the dev kit has to settle, and lists 16 owner
+  decisions.
+- **Drive, Filter, Comp and Limiter on the virtual FM-1:** the effect
+  slots now offer twelve effects (ALGORITHM steps through Plate,
+  Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp,
+  Limiter and Test Gain).
+  - Every effect's knobs are now checked turning mid-note in the browser,
+    not only at their starting values: each new effect's parity scenarios
+    turn its knobs and switches while notes play, and four new scenarios do
+    the same for the older effects.
+  - For developers: `fm1-render --fx-param-at T:K:NAME=VALUE` turns a
+    parameter of the K-th effect during a render, as `--param-at` does for
+    the sound; the app's native harness takes it too, and the scenarios'
+    `fx_param_at` drives the browser module the same way. A test keeps
+    every effect turned in some scenario.
+  - 39 of 39 parity scenarios pass, identical to musl and to render.js
+    (two of them turn every switch of the new effects every 4.4 ms);
+    1,016 screens pass the layout check (102 new). The browser module grew
+    from 482 KB to 516 KB.
+- **Filter**, a new effect: seven classic filter types in one, every knob a
+  modulation target. Type picks SVF (low-pass, band-pass, high-pass, notch),
+  Ladder (24, 18, 12 or 6 dB per octave), Diode (a 303-style diode ladder),
+  Sallen-Key (bright and aggressive, after the Korg-35 filter of the later
+  MS-20), SK Mixed (a gritty mixed-input Sallen-Key, after the
+  Steiner-Parker Synthacon's filter, with low-pass, band-pass and
+  high-pass inputs), Comb (tuned by Cutoff, positive or negative, peaks or
+  notches) or Formant (the vowels
+  A-E-I-O-U for men, women and children). Cutoff runs 20 Hz to 18 kHz;
+  Resonance goes up to self-oscillation, in tune with Cutoff, on all five
+  analogue-style types; Drive saturates. On the second page, Mode (the
+  response, slope, input or voice, blended between), Morph (stereo spread,
+  comb polarity or the vowel), Mix and Level. Changing Type starts the new
+  filter unheard and then crossfades to it, within 10 ms, so it never
+  clicks, even changed on every step: the sequencer may lock it and
+  modulation may step through the types. The types are named for their
+  circuits, never for a maker. Silence stays silent at any setting. Our
+  own code (MIT), after Zavalishin's *The Art of VA Filter Design*, Andrew
+  Simper's SVF, Huovilainen's ladder, the
+  Korg35, diode-ladder and Steiner-Parker circuits, Zölzer's universal comb
+  and Peterson and Barney's vowel measurements; documented in
+  engines/README.md ("Filter"). It uses about 18 KB of memory at 44.1 kHz
+  (Comb's delay line) and no maths library, so the browser plays it sample
+  for sample like the desktop build (checked against GCC with glibc and
+  musl). Four new parity scenarios cover its seven types, and a section in
+  chapter 6 of the manual describes it.
+- **Drive**, a new effect: overdrive and saturation, written for this
+  project. Type picks the curve: Soft (smooth, tanh-like), Tube (uneven,
+  with a second harmonic at every level), Diode (a harder knee), Fuzz (a
+  hard, lopsided clip with a built-in gate) or Tape (gentle, with loud highs
+  saturating first and coming out softened); changing it crossfades instead
+  of clicking. Drive (−12 to +36 dB), Tone (a tilt: darker to the left,
+  thinner to the right, flat in the middle) and Mix on the first page; Bias
+  (uneven clipping), Gate (quiet parts drop out, a sputtering fuzz), Level
+  and Auto on the second. With Auto on, the default, Drive changes the
+  character and not the loudness. Type and Auto can be locked and
+  modulated without clicks. Its anti-aliasing keeps the harsh tones a
+  plain digital clipper folds back below 5 kHz 21–29 dB lower. Silence stays
+  silent at any setting. Parameters and design in `engines/README.md`, and
+  a section in chapter 6 of the manual. Two new parity scenarios cover it.
+- **Comp**, a new effect: a compressor, written for this project. Threshold
+  (−60 to 0 dB), Ratio (1:1 to 20:1, and a limiter at the top of the
+  knob), Attack and Release on the first page; Knee (soft or hard), Makeup,
+  Mix (parallel compression) and Character on the second: Peak and RMS
+  choose how it listens, Glue holds a part together with a slower, rounder
+  response, Punch lets the front of each hit through. On a third page,
+  Auto Rel makes the release follow the music (quick after short peaks,
+  slow after long loud passages) and Auto Gain sets the makeup so that a
+  full-scale sound stays at full scale, up to 24 dB of it, and never
+  pushes anything past full scale, not even the start of a hit before the
+  attack has caught up (it rounds that peak off along the compressor's
+  curve instead). Both channels are compressed together. Silence stays
+  silent, knob turns glide, and Character, Auto Rel and Auto Gain switch
+  mid-note without a jump, so they can be locked and modulated. It
+  computes the same bits on the desktop and in the browser's WebAssembly.
+  Parameters and design in
+  `engines/README.md`, a section in chapter 6 of the manual; a new parity
+  scenario covers it. For developers,
+  `include/fm1_comp.h` reads its gain reduction, for a later modulation
+  source.
+- **Limiter**, a new effect: a look-ahead brickwall limiter for the master
+  or for one sound. Ceiling (−24 to 0 dB), Drive (−12 to +24 dB), Release
+  (1 ms to 1 s) and Lookahead (0 to 5 ms) on the first page; Mode
+  (Brickwall or Soft Clip), Link (how much the two channels share one gain)
+  and Mix (blending the dry sound back in) on the second. In Brickwall mode
+  nothing passes the ceiling, and anything under it comes through
+  untouched, only delayed by the lookahead. Lookahead 0 adds no delay and
+  catches peaks with a gentle soft clip instead; Soft Clip mode rounds
+  peaks off for a louder, warmer sound. Turning Lookahead or switching Mode
+  while it is limiting fades smoothly and never flattens a peak, even on
+  every step, so both can be locked and modulated (in review, a change
+  could briefly hard-clip peaks far over the ceiling, and a fast run of
+  Lookahead changes could click; both fixed before release). It uses about
+  11 KB of memory at 44.1 kHz. The firmware's own output limiter stays
+  after every effect. Written for this project (MIT), after Geraint Luff's
+  look-ahead limiter design; parameters and design in
+  `engines/README.md`, tested in `tests/test_engines_limit.py`, and a
+  section in chapter 6 of the manual. A new parity scenario plays it twice
+  in one chain.
+- notes/2026-10-02-delay-reverb-eq-gates-options.md: research on delays,
+  reverbs, EQ, a DJ filter and tilt for the master bus, bus saturation, and a
+  Drawmer DS201-style gate. It also designs side-chaining: the gate and the
+  compressor each get a key input patched separately from their audio
+  input, either audio (the sound itself, another sound or the master,
+  through key filters) or a trigger from the modulation matrix, with gain
+  reduction and gate state usable as modulation sources. Every pick is MIT,
+  public domain or our own code. It lays out stages B1–B8 and 17 owner
+  decisions.
 - Step entry on the virtual FM-1's panel, still behind the lab switch
   (`?lab`; docs/15 stage S4). In SEQ mode the white keys are the bar's 16
   steps and the black keys sequencer controls, so they no longer play the
@@ -719,6 +835,10 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- Sophie made no sound from the virtual FM-1's keys: it only plays MIDI
+  notes 36–51 (its 16 pads), below the keys' range at the default octave.
+  With Sophie as the sound, the 16 white keys now play pads 1–16 at any
+  octave, and the black keys play nothing. MIDI IN keeps the drum map.
 - Macro Heavy: a parameter set to NaN now falls back to its default, as
   the engine API says (`fm1_param_clamp`), instead of to its minimum.
 - **The second core is not idle.** The stock firmware renders its msfa

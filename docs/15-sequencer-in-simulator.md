@@ -1449,6 +1449,10 @@ plan above [verified: tests/test_seq_ui.py, tests/test_seq_core.py,
   played in HOME make REC blink, and Shift (SHIFT) + REC captures them and
   REC goes dark; with the switch off REC stays a stub. The module is
   490,916 B, up from 482,291.
+- **After merging main** (the second effects pack), 2026-10-05
+  [verified: `www/fm1.wasm.json`, `fm1-sim-render --screens`]: parity 41
+  of 41, identical to js and musl in 41 and to glibc in 38; 1,055 screens,
+  0 faults; the module is 524,659 B, up from 516,035 on main.
 
 ### S6. Tracks, mute, and the Set, Clip and Track pages
 
@@ -1626,6 +1630,21 @@ fit the 36,864 B, with about 100 B to spare [inferred: about 336 B at
 32 bits]. The module, rebuilt, is 514,688 B: parity 32 of 32, identical to
 js and musl in all 32 and to glibc in 29 as before, no imports, and the
 headless Chromium checks pass [verified: `www/fm1.wasm.json`, 2026-10-02].
+
+**After merging main** (the second effects pack and S5's final form),
+2026-10-05 [verified: `www/fm1.wasm.json`, `fm1-sim-render --screens`]:
+`fm1-render` and `fm1-sim-render` take `--fx-param-at` beside the
+multi-sound flags, turning a master effect. Parity 46 of 46, identical to
+js and musl in 46 and to glibc in 43 (the same three); 1,266 screens, 0
+faults (multi-sound's insert sweep runs all twelve effects: 142 screens,
+not 87); the module is 548,493 B, up from 524,659 B on main; imports
+none, and the headless Chromium checks pass. One of main's new parity
+chains, `fx-turns-diffuse-psxverb` (Shapes, Diffuse, PSX Verb), is over
+the FM-1's budget without the lab switch (394,416 B at 32 bits, 395,296 B
+natively, of 387,924), which the public page plays and the lab's meter
+refuses; the lab-equals-public test skips such a chain and checks the
+refusal instead (tests/test_sim_multi.py) (open: whether the public page
+should refuse it too).
 
 ### S7a. Engine API v2 (docs/13 M2): uid, flags, NOLOCK, with byte-identical audio
 
