@@ -1,0 +1,33 @@
+# Played with the lab switch on (docs/16 MG3), Macro as Sound 1, Shapes as
+# Sound 2 through an Ensemble insert, Plate as the master: PLAY/STOP;
+# SHIFT (SEL held) + PRESETS makes Sound 2 current; hold LFO and turn KNOB3,
+# Sound 2's Color: LFO1 into S2 Color. FX mode, SELECT back to In1 (its
+# Ensemble): hold ENV and turn KNOB1, its Mix; SELECT on to M1 (Plate):
+# hold ENV and turn KNOB2, its Decay. A key plays Sound 2. EDIT: an empty
+# slot's target picker opens at Sound 2 (its Timbre), two detents on to
+# its Color; KNOB3 commits it and sets the amount. HOME; SHIFT + PRESETS
+# back to Sound 1; hold LFO and turn KNOB3, Macro's Timbre; a MIDI note
+# plays it. It ends on HOME, whose screen the module and the harness compare.
+--button 0.05:PLAY/STOP
+--button 0.10:SEL:0.20
+--turn 0.15:PRESETS:1
+--button 0.30:LFO:0.30
+--turn 0.35:KNOB3:40
+--button 0.70:FX
+--turn 0.75:SELECT:-64
+--button 0.80:ENV:0.15
+--turn 0.85:KNOB1:50
+--turn 1.00:SELECT:3
+--button 1.05:ENV:0.30
+--turn 1.10:KNOB2:-35
+--key 1.20:7:100:0.40
+--button 1.40:EDIT
+--turn 1.45:SELECT:5
+--turn 1.50:KNOB2:2
+--turn 1.70:KNOB3:55
+--button 1.90:HOME
+--button 2.00:SEL:0.20
+--turn 2.05:PRESETS:-1
+--button 2.20:LFO:0.20
+--turn 2.25:KNOB3:-30
+--note 2.40:60:90:0.30

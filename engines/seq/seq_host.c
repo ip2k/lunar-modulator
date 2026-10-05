@@ -261,6 +261,7 @@ static uint32_t run_tick(fm1_seq_host_t *h, const fm1_seq_hook_t *hk, uint32_t t
       *cur = tf;
     }
     for (i = 0; i < n; ++i) {
+      if (w[i].slot) continue;            /* another sound unit's: none here */
       if (w[i].bend) {
         if (sink->pitch_bend) sink->pitch_bend(sink->ctx, w[i].value);
       } else if (sink->engine && w[i].index < sink->engine->n_params) {
@@ -352,12 +353,112 @@ void fm1_seq_host_dispatch_ticks(fm1_seq_host_t *h, uint32_t frames, float *bloc
 
 void fm1_seq_host_dispatch_slots(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_slot_t *slots,
                                  unsigned n) {
+  fm1_seq_host_dispatch_slots_ticks(h, frames, slots, n, NULL);
+}
+
+/* Slot s's render up to frame f, counting a piece that starts inside the
+ * block. */
+static void slot_upto(fm1_seq_host_t *h, const fm1_seq_slot_t *sl, uint32_t *cur, uint32_t f) {
+  if (f > *cur) {
+    sl->sink->render(sl->sink->ctx, sl->block + 2u * *cur, f - *cur);
+    if (*cur) ++h->splits;
+    *cur = f;
+  }
+}
+
+/* The hook's tick at frame tf over several slots: each write goes to the
+ * slot it names, whose render runs up to tf first. */
+static uint32_t run_tick_slots(fm1_seq_host_t *h, const fm1_seq_hook_t *hk, uint32_t tf,
+                               uint32_t *cur, const fm1_seq_slot_t *slots, unsigned n) {
+  const fm1_seq_hook_write_t *w = NULL;
+  uint32_t next = tf, i;
+  const uint32_t nw = hk->tick(hk->ctx, tf, &w, &next);
+  for (i = 0; w && i < nw; ++i) {
+    const unsigned s = w[i].slot;
+    const fm1_seq_sink_t *sink = s < n ? slots[s].sink : NULL;
+    if (!sink) continue;
+    slot_upto(h, &slots[s], &cur[s], tf);
+    if (w[i].bend) {
+      if (sink->pitch_bend) sink->pitch_bend(sink->ctx, w[i].value);
+    } else if (sink->engine && w[i].index < sink->engine->n_params) {
+      sink->set_param(sink->ctx, w[i].index, w[i].value);
+    }
+  }
+  return next > tf ? next : tf + 1u;   /* always forward */
+}
+
+/* Every slot's share of the block in one pass, with the hook's ticks at
+ * their frames: each slot sees its own events and the writes that name it
+ * in exactly the order play_sink gives one sink (docs/16's M6 at one
+ * frame), so its calls are the same; the slots' calls interleave, which no
+ * sink can tell, as each renders its own block. */
+static void play_slots_hook(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_slot_t *slots,
+                            unsigned n, const fm1_seq_hook_t *hk) {
+  uint32_t cur[FM1_SEQ_HOST_HOOK_SLOTS];
+  uint32_t k, tf, bpm = 0;
+  unsigned s;
+  int playing = 0;
+  if (n > FM1_SEQ_HOST_HOOK_SLOTS) n = FM1_SEQ_HOST_HOOK_SLOTS;
+  for (s = 0; s < FM1_SEQ_HOST_HOOK_SLOTS; ++s) cur[s] = 0;
+  if (h->seq) {
+    fm1_seq_info_t info;
+    fm1_seq_get_info(h->seq, &info);
+    bpm = info.bpm_x100;
+    playing = info.playing;
+  }
+  tf = hk->begin(hk->ctx, frames, n && slots[0].sink ? slots[0].sink->engine : NULL, bpm, playing);
+  for (k = 0; k < h->n; ++k) {
+    const fm1_seq_ev_t *e = &h->ev[k];
+    const uint32_t f = e->frame < frames ? e->frame : frames;
+    const fm1_seq_slot_t *sl = NULL;
+    int param = -1;
+    if (e->kind == FM1_SEQ_EV_NOTE_ON || e->kind == FM1_SEQ_EV_NOTE_OFF || e->kind == FM1_SEQ_EV_LOCK) {
+      const uint8_t d = dest_of_event(h, k);
+      if (!(d & 0x80u) && d < n && slots[d].sink) sl = &slots[d];
+    }
+    while (tf < frames && (tf < f || (tf == f && e->kind == FM1_SEQ_EV_NOTE_ON))) {
+      tf = run_tick_slots(h, hk, tf, cur, slots, n);
+    }
+    hk->event(hk->ctx, f, e, sl != NULL);
+    if (!sl) continue;
+    s = (unsigned)(sl - slots);
+    if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
+      param = lock_target(h, sl->sink->engine, e);
+      if (param < 0) continue;
+    }
+    slot_upto(h, sl, &cur[s], f);
+    if (e->kind == FM1_SEQ_EV_NOTE_ON) {
+      sl->sink->note_on(sl->sink->ctx, e->a, e->b);
+      ++h->notes_to_engine;
+    } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
+      sl->sink->note_off(sl->sink->ctx, e->a);
+    } else {
+      float v = fm1_seq_lock_value(&sl->sink->engine->params[param], e->b);
+      if (hk->lock_slot) v = hk->lock_slot(hk->ctx, s, (uint16_t)param, v);
+      else if (s == 0) v = hk->lock(hk->ctx, (uint16_t)param, v);
+      sl->sink->set_param(sl->sink->ctx, (uint16_t)param, v);
+      ++h->locks_to_engine;
+    }
+  }
+  while (tf < frames) tf = run_tick_slots(h, hk, tf, cur, slots, n);
+  for (s = 0; s < n; ++s) {
+    if (slots[s].sink) slot_upto(h, &slots[s], &cur[s], frames);
+  }
+}
+
+void fm1_seq_host_dispatch_slots_ticks(fm1_seq_host_t *h, uint32_t frames,
+                                       const fm1_seq_slot_t *slots, unsigned n,
+                                       const fm1_seq_hook_t *hook) {
   unsigned k;
   if (n && slots[0].sink && slots[0].sink->engine != h->engine) {
     fm1_seq_host_bind(h, slots[0].sink->engine);
   }
-  for (k = 0; k < n && k <= 255u; ++k) {
-    if (slots[k].sink) play_sink(h, frames, slots[k].block, slots[k].sink, (int)k, NULL);
+  if (hook) {
+    play_slots_hook(h, frames, slots, n, hook);
+  } else {
+    for (k = 0; k < n && k <= 255u; ++k) {
+      if (slots[k].sink) play_sink(h, frames, slots[k].block, slots[k].sink, (int)k, NULL);
+    }
   }
   dispatched(h);
 }

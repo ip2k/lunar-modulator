@@ -30,7 +30,7 @@ the "Power on" button, as browsers require a gesture.
 | --- | --- |
 | Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate, Test Gain. One sound and two effect slots, then the host's bus limiter, as `fm1-render` runs them; with the lab switch, up to four sounds with two inserts and a level each, mixed into those two slots as the master bus (below, "Multi-sound") |
 | Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy and Six-Op run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the three, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
-| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 1,584 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`]. They are every page of every engine and effect at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, SEL outside FX mode and an emptied slot (525 screens), and, with the lab switch on, the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 191 (every effect as an insert, now twenty), and parameter locks (S8) in 55 more; Room, Hall, Gate and Plate's Freeze added 126 |
+| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 2,325 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`]. They are every page of every engine and effect at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, SEL outside FX mode and an emptied slot (525 screens), and, with the lab switch on, the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 191 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 731, and Room, Hall, Gate and Plate's Freeze in 136 more |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
 | Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_app.c`); Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
@@ -105,18 +105,20 @@ PIT, GLO, MONO, POLY) come from the manual's panel drawing [reported].
 | FX, SEL | effect chain mode; SEL grabs a slot so SELECT reorders it | the same, with two slots |
 | GLO | global settings | the global page above |
 | HOME | home (oscilloscope) | home: the sound's page, with an oscilloscope strip |
-| ENV, LFO, EDIT, SAVE, ARP | | a popup: not in the simulator yet |
+| SAVE, ARP | | a popup: not in the simulator yet |
+| ENV, LFO, EDIT | envelope, LFO and edit pages | a popup: not in the simulator yet; with the lab switch, modulation (below) |
 | REC | recording | a popup: not in the simulator yet; with the lab switch, record, step record and Capture (below) |
 | SEQ, PLAY/STOP | the sequencer: its view and the transport | a popup: not in the simulator yet; with the lab switch, SEQ mode and the transport (below) |
 | SEL outside FX mode | (SHIFT, in the sequencer) | a popup: SEL works in FX mode; with the lab switch, SHIFT (below) |
 
 ## The lab switch
 
-The sequencer's panel controls arrive stage by stage (docs/15, S3 onward).
-Every merge to main publishes the page, so until step entry and recording
-work (stages S5 and S6) the public page hides them (the owner's decision
-O24, 2026-10-02). An address with a `lab` query parameter or hash turns
-them on, for development and review:
+The sequencer's panel controls arrive stage by stage (docs/15, S3 onward),
+and so does modulation (docs/16, MG3 onward). Every merge to main
+publishes the page, so until step entry and recording work (stages S5 and
+S6) the public page hides them (the owner's decision O24, 2026-10-02), and
+modulation with them. An address with a `lab` query parameter or hash
+turns them on, for development and review:
 
 ```
 http://localhost:8000/?lab        http://localhost:8000/#lab
@@ -126,12 +128,20 @@ http://localhost:8000/?lab        http://localhost:8000/#lab
 worklet, which calls `fm1w_set_lab(1)` before `fm1w_default_chain()`; in
 the app layer `fm1_app_set_lab` is the one switch, and `fm1_app_init`
 leaves it off. The harness takes `--lab`. Nothing else changes between the
-two: the engines, the sequencer and the module are the same.
+two: the engines, the sequencer and the module are the same. With the
+switch off no modulation runtime exists and the page is what it was before
+modulation came: every one of the 335 screens the layout sweep draws with
+the switch off is byte for byte what main's harness draws [verified
+2026-10-02, every screen written out by both builds], and the
+renders without the switch go the same way as before (no hook, no split).
 
 | | Off (the public page) | On |
 | --- | --- | --- |
 | SEQ | "not in the simulator yet" | SEQ mode, the Track view; HOME, FX and GLO leave it; SEQ inside it stays (Session comes in S9). There the white keys are steps and the black keys roles (owner decision O1), and play nothing (S4, below) |
-| SEL outside FX mode | "SEL works in FX mode" | SHIFT (O2), its LED on while held; FX mode keeps the slot grab |
+| SEL outside FX mode | "SEL works in FX mode" | SHIFT (O2), its LED on while held; FX mode keeps the slot grab, RACK grabs the module, MATRIX opens CHAIN and CHAIN goes back (docs/16 §5.2) |
+| LFO, ENV | "not in the simulator yet" | a tap opens RACK at the LFOs or the Envelopes, a page per module; held while a knob turns on HOME, FX or RACK, a cable from the selected one to that knob's parameter (below) |
+| EDIT | "not in the simulator yet" | MATRIX, the 32 cables; SEL there opens CHAIN; EDIT again goes HOME |
+| Modulation | none | a runtime (`engines/mod`) on the sound, both effects and the host, from the default rack: LFO1, LFO2, ENV3, ENV4 and CHN5 (Chance), with RTRG (the note gate, retriggered by each note-on) cabled into both envelopes' GATE so every note restarts them |
 | PLAY/STOP | "not in the simulator yet" | `play` or `stop`, in every mode, as a typed command (`src/fm1_seq_ui.c`, then `fm1_app_seq_cmd` under the event-room rule) |
 | REC | "not in the simulator yet" | `rec` on the focused track: stopped, a bar's count-in; playing, a take from the next bar over an empty clip, an overdub at once over notes; again, off. In SEQ mode while stopped it acts on its release: a quick tap records, held it is step record. SHIFT + REC is Capture (S5, below) |
 | Keys outside SEQ mode, MIDI IN | play the sound | the same, and they are live input to the focused track (`non`/`nof`): recording and Capture hear them, unless a step took the note |
@@ -141,11 +151,11 @@ two: the engines, the sequencer and the module are the same.
 | Tracks | — | 8 (O3): SEQ + white key 1–8 focuses one from any mode, C#5 and D#5 step through them, F#4 mutes; SHIFT + 2, 3 and 5/7/9 open the Track, Clip and Set pages, 6 the metronome, 16 the clip's quantize (S6, below) |
 | Metronome | — (a script's `metro 1` clicks) | the click, the shared bridge's (`fm1_seq_click_mix`, O11), on the Set page or SHIFT + 6 |
 | Locks | — (a script's lanes play; the knobs keep their 1/100 detent and send nothing) | a held step's lock pages, past Step 2/2, lock the focused track's sound's parameters; a knob on a parameter with a lane turns on the 7-bit grid and the lanes' bases follow; a live take while recording; SHIFT + knob, D#4 (CLEAR) with steps held or + knob clear (S8, below) |
-| LEDs | as before | SEQ in SEQ mode, PLAY/STOP while the transport runs, SEL while SHIFT is held; in SEQ mode the white keys show the bar's steps, lit for a note, the playhead's inverted, held keys lit and the steps under the held step's note blinking slowly, and F#3 and A#3 lit while they can page or nudge (in step record, the head's key blinking fast, A#3 lit, F#3 while it can step back); F#4 (MUTE) lit with no step held, C#5 and D#5 while there is a track before or after, D#4 (CLEAR) while the track has a lane; MUTE held, white keys 1–8 lit while their track sounds; SEQ held, the focused track's key. REC on while recording or step recording, fast during a count-in or a waiting take, slow while Capture holds notes (O7). Sequencer notes light no key outside SEQ mode (O6) |
-| Status line, help | as before | the tempo and the transport (posted by the worklet only when they change); a "Sequencer (lab)" entry in the help, "counting in" in the status line, and ENV, LFO, EDIT, SAVE and ARP in the stub list |
+| LEDs | as before | SEQ in SEQ mode, PLAY/STOP while the transport runs, SEL while SHIFT is held; in SEQ mode the white keys show the bar's steps, lit for a note, the playhead's inverted, held keys lit and the steps under the held step's note blinking slowly, and F#3 and A#3 lit while they can page or nudge (in step record, the head's key blinking fast, A#3 lit, F#3 while it can step back); F#4 (MUTE) lit with no step held, C#5 and D#5 while there is a track before or after, D#4 (CLEAR) while the track has a lane; MUTE held, white keys 1–8 lit while their track sounds; SEQ held, the focused track's key. REC on while recording or step recording, fast during a count-in or a waiting take, slow while Capture holds notes (O7). Sequencer notes light no key outside SEQ mode (O6). LFO or ENV while RACK shows one of theirs, EDIT in MATRIX and CHAIN, SEL in CHAIN and while RACK holds a module |
+| Status line, help | as before | the tempo and the transport (posted by the worklet only when they change); "Sequencer (lab)" and "Modulation (lab)" entries in the help, "counting in" in the status line, and SAVE and ARP in the stub list |
 | Full velocity | — | SHIFT + white key 10 in SEQ mode: every step entered, and the keys played outside SEQ mode, at 127 |
 | Sounds | one sound and two effect slots | up to four sounds, each with two inserts and a level, then the two slots as the master bus; SHIFT + PRESETS chooses the current sound (below, "Multi-sound") |
-| RAM | the figure in the bottom bar, red past the budget | a meter there, which refuses whatever would pass the budget |
+| RAM | the figure in the bottom bar, red past the budget | a meter there, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 23,200 B) |
 
 Tests and parity runs never load the demo pattern or route tracks 2–8:
 only the browser's start chain does (`fm1-sim-render --lab --start` plays
@@ -410,6 +420,80 @@ place of docs/15 O10's one shared sound). With the lab switch:
   page's output to the bit [verified: every note-script scenario with and
   without `--lab`, `tests/test_sim_multi.py`].
 
+**Modulation** (docs/16 §5, stage MG3; `src/fm1_mod_ui.c` has the pages'
+logic, `src/fm1_mod_view.c` draws them). The app hosts the runtime on the
+sequencer's bridge exactly as `fm1-render --mod` does: a knob, a lock or
+the bend moves a parameter's base, the runtime adds what its cables give,
+each effect renders split at its own writes, and HOST AMP is applied before
+the limiter. With several sounds it runs over every sound unit at once
+(`fm1_seq_host_dispatch_slots_ticks`), and a cable can reach any sound
+unit's parameters, its inserts', the master effects' and the host's. Every
+note on any sound restarts the default envelopes (RTRG). Modules are named by the kind's three-letter abbreviation and
+the rack position (LFO1, LFO2, ENV3, ENV4, CHN5: Chance, Calc, Compare and
+Coin are CHN, CLC, CMP and COI), so no two share a name.
+
+- **LFO, ENV** (a tap): RACK at the LFO or Envelope last shown (LFO1 and
+  ENV3 at first); another tap there steps to the next one of that kind.
+  RACK shows a module a page at a time:
+  - the rack: eight cells, each filled to its module's first output, the
+    one shown outlined, an empty position hollow;
+  - under it `ENV3 >2 <1 ~1`: the module, its cables out and in, and those
+    that run a tick late;
+  - four parameter rows on KNOB1–4, as HOME's (the Filter's Cutoff in Hz,
+    `4.53 Hz` at 0.5, while its knob stays 0–1 on its log scale); the
+    bottom bar `1/2 Mod3`.
+  SELECT walks every position and page; ALGORITHM opens the kind picker
+  (Empty, then all sixteen kinds: LFO, Envelope, Chance and MG2's Function
+  to Filter, `engines/mod/kinds.md`), which commits a second after its last
+  turn or at once when another control is used. Changing a kind switches
+  off the cables that touch the module and remembers them: changing it
+  back switches them on again, those whose other end is still there.
+  SEL grabs the module (SEL lit, the line starred) so SELECT moves it.
+- **Hold LFO or ENV and turn KNOB1–4** on HOME, FX or RACK: a cable from
+  the selected LFO or Envelope (its first output) to that knob's
+  parameter, its amount following the turn, 1 % a detent; turning again
+  adjusts the same cable. On HOME the parameter is the current sound's
+  (SHIFT + PRESETS chooses it); in FX mode, the effect's on the page shown
+  (the current sound's In1 or In2, or the master M1 or M2). The popup says
+  `LFO1 > S2Color` and the amount.
+  A parameter that takes no modulation (Macro's Model) says so. Released
+  without a turn, the button is a tap.
+- **EDIT**: MATRIX, seven of the 32 slots as rows of 19 characters, the
+  selected one inverted, and a hint line:
+  ```
+  LFO1  >S1Tmbre  +40     source, > (or ~ a tick late), target, amount
+  SEQ8  -M2PngPg -100     - off, ! refused, v per voice (not made yet)
+  ENV3  >S2I1Mix  +50     Sound 2's first insert (In1)
+  LFO2.2>ENV3Gte +100     a module target: its label and 3 characters
+  ```
+  SELECT moves the selection. Page A: KNOB1 the source (`--` first, which
+  empties the slot), KNOB2 the target through a picker (prev, current and
+  next in full, `S1 Timbre`, `S2 In1 Mix`, `M1 Mix`, `Host Amp`,
+  `ENV3 Attack`, `ENV3 Gate`, in groups S1, S1 In1, S1 In2, S2 ... S4 In2,
+  M1, M2, Host and each module, an empty unit left out; on an empty slot
+  it opens at the current sound; ALGORITHM jumps between groups while it
+  is open; it commits as the kind picker does), KNOB3 the amount, KNOB4
+  the offset, 1 % a
+  detent. ALGORITHM otherwise turns to page B: KNOB1 VIA, KNOB2 the curve,
+  KNOB3 the polarity, KNOB4 on or off. A new cable starts on, at 0 %, from
+  the selected LFO unless KNOB1 chose a source first. The hint line names
+  the field last turned for two seconds, else the slot's target.
+- **SEL in MATRIX**: CHAIN, the longest path through the selected cable,
+  node and cable lines alternating (`LFO2 Wrap  +1`, `+100 >ENV3 Gate`),
+  the selected cable in the accent colour, `+N` for a node's other cables
+  and `~` for one a tick late; a refused cable (`!`) is not followed. SELECT steps to the next cable; SEL goes
+  back to MATRIX.
+- **On every parameter page** (HOME, FX, RACK) a parameter that cables
+  reach shows its short label, a gold diamond after it, a gold bracket of
+  plus or minus the cables' depth round the base on its bar, and a red tick
+  at the value it has now. The rows keep the 4 px gaps.
+
+Destinations are a slot's unit code and a uid (`fm1_mod.h`): 0 Sound 1,
+17–19 Sounds 2–4, 20 + 4k + j Sound k + 1's insert j + 1, 1 and 2 the
+master slots, 3 the host, 8–15 a rack position; HOST PITCH bends Sound 1.
+Every cable here is global, while the slot record keeps the per-voice flag
+for the next stage (docs/16 MG3, "As built").
+
 **Gesture traces and two-step parity** (docs/15 §6.3). `fm1-sim-render
 --panel FILE` reads panel input, one `--key`, `--button` or `--turn` per
 line, and `--note` for a note at MIDI IN. `--log-cmds FILE.verbs` writes
@@ -431,14 +515,29 @@ either), a knob turn on another sound's page as `--sound-param-at`
 and a level on the Mix page as `--level-at`; an insert's change, a bend
 on another sound, or a MIDI note-off that another sound's note of the
 same pitch would make ambiguous is not replayable. The harness takes the
-same multi-sound flags as `fm1-render` (with `--lab`). `--format-check`
-writes and reads back every verb.
+same multi-sound flags as `fm1-render` (with `--lab`). A modulation edit
+no script line can say is not replayable either. `--format-check` writes
+and reads back every verb.
+
+With modulation running, `--log-cmds` also writes `FILE.mod`: the
+runtime's whole state before the first block (seed, rack, the bases that
+differ from their defaults, every cable) and every edit after it, as
+`@<block start>` lines of `fm1-render --mod` (`engines/host/mod_script.h`),
+and the sidecar ends with `--mod` and that file, so the replay modulates
+exactly as the panel did. `--mod FILE` plays a modulation script as
+`fm1-render --mod` does (a new runtime with the file's seed after the
+chain, untimed lines first, `@FRAME` lines at the first block starting
+there), with or without the lab switch. `--mod-format-check` writes 300
+random racks, bases and cable tables whole and applies random edits line
+by line (cables, kinds with their switch-off and restore, bases, moves),
+each read back by `mod_script.c` into a second runtime: the same state
+every time [verified: about 25,000 lines, 0 refused].
 
 ## Parity: does the browser sound like the native engines?
 
-`build-on-aeon.sh` renders 47 scenarios (`test/scenarios.json`) four ways
+`build-on-aeon.sh` renders 64 scenarios (`test/scenarios.json`) four ways
 and compares the 16-bit output sample by sample [verified:
-`www/fm1.wasm.json`, 2026-10-05]. Thirty-eight are note scripts: every engine
+`www/fm1.wasm.json`, 2026-10-05]. Forty-five are note scripts: every engine
 and effect, pitch bend, parameter changes mid-note on the sound and on
 every effect (`fx_param_at`: `fm1-render --fx-param-at T:K:NAME=VALUE`, K
 the effect's place in the chain; the module gets `fm1w_set_param` on that
@@ -471,18 +570,31 @@ follows, and a stop just after the locks, which sends the lanes back to
 their bases). Three play several sound
 units with the lab switch (docs/15 §3.16): `multi-two-sounds-inserts`
 (Macro through a Crush insert at 80 % and Shapes through Diffuse and
-Ensemble at 60 %, notes on each, into the master Plate),
+Ensemble at 60 %, notes on each, into the master Comp),
 `multi-four-sounds-seq` (four tracks routed to Macro, Shapes, an empty
 slot and Six-Op, each with its inserts and level, and lock lanes that
 resolve on their own track's sound) and `multi-panel` (SHIFT + PRESETS, a
 key, a MIDI IN note and a knob on Sound 2, the Mix page's levels, two
-tracks on two sounds, replayed through `fm1-render --slots`).
+tracks on two sounds, replayed through `fm1-render --slots`). Two modulate
+(`test/mod/`, docs/16 MG3): `mod-macro-routes` plays a `--mod` script with
+cables into the sound, both effects, HOST PITCH and AMP, a chain of
+modules, a gate cable at 70 % and timed edits (the module takes it through
+`fm1w_mod_reset` and `fm1w_mod_text`); `mod-panel-gestures` makes its
+cables on the panel with the lab switch (the gesture on HOME and FX, knobs
+in RACK, two cables from MATRIX), and its render legs replay the harness's
+`.mod` log with the rest of its sidecar. Two modulate several sound
+units: `mod-multi-routes` plays a script with cables into Sound 1, Sounds 2
+and 4, an insert on each of them and both of Sound 2's, the master Plate
+and HOST AMP, with notes on three sounds (`fm1-render --slots --mod`), and
+`mod-multi-panel` makes its cables on the panel with Sound 2 current (the
+gesture on HOME, its insert and the master, a MATRIX cable whose picker
+opens at Sound 2) and then on Sound 1, while tracks play both sounds.
 
 | Against | Result |
 | --- | --- |
-| `render.cc` compiled to WebAssembly (Node) | identical in all 47: the app layer adds nothing |
-| native `fm1-render`, GCC with musl (static, Alpine) | identical in all 47: the compiler adds nothing |
-| native `fm1-render`, GCC with glibc | identical in 44. Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB), and Fold within 1 LSB (19 samples of `fold-sine-asymmetric`) |
+| `render.cc` compiled to WebAssembly (Node) | identical in all 64: the app layer adds nothing |
+| native `fm1-render`, GCC with musl (static, Alpine) | identical in all 64: the compiler adds nothing |
+| native `fm1-render`, GCC with glibc | identical in 61. Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB), and Fold within 1 LSB (19 samples of `fold-sine-asymmetric`) |
 
 The sequencer scenarios add three rules. Every leg applies a script line at
 the first 64-frame block starting at or after its frame, after the notes;
@@ -517,16 +629,20 @@ pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, with step entry since S4, record and Capture
 since S5, multi-sound, tracks, mute, the pages and the click since S6, and
-parameter locks since S8, the master-bus effects (DJ Filter, Tilt, Master
-Sat, Isolator, EQ), and Room, Hall, Gate and Plate's Freeze: 60 of
-60 scenarios pass, identical to musl and to render.js (six of them
-turn the effects' switches every 4.4 ms), and it imports nothing; it is
-622,338 bytes, up from 598,994 before Room, Hall, Gate and Plate's Freeze
-(547,963 with them before the master-bus effects, multi-sound, S8 and
-S7b), 573,403 before the master-bus effects (550,252 with them before
-multi-sound, S8 and S7b),
-560,033 before the engines' SMOOTH ramps (docs/15 S7b; 559,930 before MG1's rebuild),
-548,493 before S8 (526,111
+parameter locks since S8, the engines' SMOOTH ramps since S7b, the
+master-bus effects (DJ Filter, Tilt, Master Sat, Isolator, EQ), since
+docs/16 MG3 the modulation runtime, its kinds, its script reader
+(`host/mod_script.c`: snprintf and strtod, no files) and modulation's
+pages, and Room, Hall, Gate and Plate's Freeze: 64 of 64 scenarios pass,
+identical to musl and to render.js (six of them turn the effects' switches
+every 4.4 ms), and it imports nothing; it is 761,171 bytes, up from
+737,880 before Room, Hall, Gate and Plate's Freeze (622,338 with them
+before MG3, 547,963 before the master-bus effects, multi-sound, S8 and
+S7b), 598,994 before MG3 (the runtime, its sixteen kinds with MG2's Peaks
+and Braids tables, the pages and the script reader), 573,403 before the
+master-bus effects (550,252 with them before multi-sound, S8 and S7b),
+560,033 before the engines' SMOOTH ramps (docs/15 S7b; 559,930 before
+MG1's rebuild), 548,493 before S8 (526,111
 with S8 before the second effects pack), 524,659 before multi-sound and S6
 (514,688 with them before the second effects pack), 516,035 before S5,
 482,291 before the second effects pack (Drive, Filter, Comp, Limiter),
@@ -566,19 +682,24 @@ www/fm1.wasm      src/fm1_web.c   flat exports (fm1w_*)
                   src/fm1_seq_ui.c    the sequencer's panel UI: edges in,
                                       typed commands out (lab switch)
                   src/fm1_seq_view.c  its screens: the Track view
+                  src/fm1_mod_ui.c    modulation's pages and gesture: edges
+                                      in, runtime edits and script lines
+                                      out (lab switch)
+                  src/fm1_mod_view.c  their screens and the routed marks
                   src/fm1_tft.c   240 x 240 RGB565 frame buffer, 5 x 9 font
                   engines/        every engine, effect and the bus limiter,
-                                  the sequencer core and its host bridge
+                                  the sequencer core and its host bridge,
+                                  the modulation runtime and its kinds
 ```
 
 `src/` is C99 with no heap: instance memory lives in fixed arenas inside
 `fm1_app_t`. Nothing in it is browser-specific, so the same app layer builds
 natively as `fm1-sim-render`, the test harness. Its panel logic and drawing
 code are meant to carry over to the firmware, but not `fm1_app_t` as it
-stands: it is 4,881,424 bytes (4.5 MiB of fixed arenas, four 512 KiB
+stands: it is 4,915,088 bytes (4.5 MiB of fixed arenas, four 512 KiB
 ones for the sound units and ten 256 KiB ones for the effect slots, a
 115,200-byte full frame buffer, and the sequencer's 32 KiB arena and 3 KiB
-event buffer; clang, 64-bit), against the FM-1's 578 KB of SRAM and
+event buffer, and modulation's runtime and a block's writes; clang, 64-bit), against the FM-1's 578 KB of SRAM and
 the ~379 KB the stock layout leaves free [verified: `sizeof`; SRAM from
 docs/01]. The firmware needs one arena sized to the chain it loads and
 strip rendering (ten 240 × 24 strips, 11.5 KB each, as stock does;
@@ -597,10 +718,11 @@ block lasts [reported: the 2026-10-01 review]; phones are not measured.
 `mk/sim.mk` is read after `engines/Makefile`, so it reuses that Makefile's
 source lists, flags and rules unchanged, and builds whatever engines the tree
 has. The module is standalone (`-sSTANDALONE_WASM`, no imports, 8 MB fixed
-memory) and about 450 KB. It links the sequencer core and bridge
-(`SEQ_OBJ`: C99, no heap, no stdio) but not the script reader
-(`host/seq_script.c`), which allocates and uses stdio; only the native
-harness links that.
+memory). It links the sequencer core and bridge (`SEQ_OBJ`: C99, no heap,
+no stdio) and the modulation runtime (`MODC_OBJ`, `MOD_OBJ`: no heap, no
+stdio, no libm) with its script reader (`MOD_SCRIPT_OBJ`), but not the
+verb script reader (`host/seq_script.c`), which allocates and uses stdio;
+only the native harness links that.
 
 The sequencer's text comes in through `fm1w_text_buf()`, a 64 KiB buffer
 (the largest `movy1` set an 8-track instance exports is 53,208 B), and
@@ -611,7 +733,10 @@ instance and applies the default route (track 0 plays the sound, as in
 `fm1w_set_lab(on)` is the lab switch, and `fm1w_seq_info()` returns eight
 32-bit words for the status line: playing, the tempo in hundredths of a
 BPM, recording, the watched track, counting in, following an external
-clock, and the master tick's two halves.
+clock, and the master tick's two halves. `fm1w_mod_reset(seed)` makes a new,
+empty modulation runtime and `fm1w_mod_text(len)` applies one line of
+`fm1-render --mod` from the text buffer (1, or 0 for a bad line); the
+parity test plays a scenario's modulation through them.
 
 `fm1_panel.h` holds the panel's buttons, encoders and modes, which the app
 and the sequencer's UI share; `fm1_look.h` the screen's palette, geometry
@@ -662,7 +787,7 @@ one gap, and 128 lane bases after a stop, which `fm1-render --events 256`
 drops and the app holds back), with nothing dropped or left sounding; routes
 (the default route, `--route`, `route` verbs and a set's own `rt` lines)
 as in `fm1-render`; no note left hanging after a reset, an import or a
-change of sound; the 1,584-screen layout sweep; the panel against the manual's formula (octave,
+change of sound; the 2,325-screen layout sweep; the panel against the manual's formula (octave,
 transpose, reset); buttons and encoders; with the lab switch, PLAY/STOP's
 LED while playing, SEQ mode, the white keys following the playhead in SEQ
 mode (eight points across two bars), HOME's key LEDs unchanged and the
@@ -674,9 +799,11 @@ mid-render in some scenario (`fx_param_at`), and `--fx-param-at` applies at
 its block in both hosts and refuses a slot or a name that is not there. The record carries two source hashes
 (`tools/source_hash.py`): engines/ (less Markdown) and sim/web's own inputs
 (`src/`, `mk/`, `build.sh`, the parity test, its scenarios and their
-sequencer scripts in `test/seq/`, the harness, the loader), which since
-the module links the sequencer include `engines/seq/` and
-`engines/include/fm1_seq*.h` too. When sim/web's inputs have changed since the last
+sequencer and modulation scripts in `test/seq/` and `test/mod/`, the
+harness, the loader), which since the module links the sequencer include
+`engines/seq/` and `engines/include/fm1_seq*.h` too, and since it links
+modulation `engines/mod/` (less its Markdown), `engines/include/fm1_mod*.h`
+and `engines/host/mod_script.*`. When sim/web's inputs have changed since the last
 build, the test fails in CI (`CI=true`) and warns locally; when only the
 engines have, it warns, so engine work elsewhere does not need aeon.
 Rebuild with `build-on-aeon.sh` before publishing the page or merging a
@@ -716,6 +843,19 @@ switch off changing nothing; a sound changed from the panel marked not
 replayable; and the UI state's size. `tests/test_seq_core.py` checks
 `fm1_seq_get_page` against every Movy fixture's `movy1` export.
 
+`tests/test_sim_mod.py` checks modulation on the panel (docs/16 MG3): the
+switch off keeping ENV, LFO and EDIT as stubs and nothing running; the
+default rack and its two cables; LFO, ENV, EDIT and SEL and their LEDs;
+the gesture on HOME, FX and RACK, and its refusal; rule M1 on a routed
+knob; every MATRIX field; a kind change switching cables off and back on,
+also after the other kind got cables of its own; a hold with any turn
+being no tap; a new MATRIX cable starting from the selected LFO; CHAIN
+not running on through a refused cable; the envelopes opening for notes
+from the sequencer, MIDI in and the keys, and the default cable
+re-patched; six golden gesture traces (`tests/fixtures/mod-ui/`, one of
+them knob turns on routed parameters) whose `.mod` logs replay through
+`fm1-render --mod` byte for byte; and `--mod-format-check`.
+
 CI also runs the four files in its 32-bit job (`-m32`, like pi32v2's
 pointers) and under ASan + UBSan, through the variables below.
 
@@ -739,7 +879,9 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
 - **Eight buttons** do nothing on the public page yet. With the lab switch
   SEQ, PLAY/STOP and REC work (docs/15 stages S3 to S5): steps are entered,
   recorded and captured on the panel; more tracks and the Set, Clip and
-  Track pages come in S6, locks in S8.
+  Track pages come in S6, locks in S8. ENV, LFO and EDIT open modulation's
+  pages (docs/16 MG3), whose envelopes and LFOs are global until the
+  per-voice stage.
   Compat mode (Movy's exact behaviour) stays on `fm1-seq` and
   `fm1-render`; the app runs the FM-1's default mode.
 - **MIDI in only**; the virtual FM-1 sends nothing.

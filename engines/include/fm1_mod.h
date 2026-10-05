@@ -63,15 +63,50 @@ extern "C" {
 #define FM1_MOD_Q14 16384               /* amount and offset 1.0 in Q1.14 */
 #define FM1_MOD_NONE 0xFFu              /* no source, no frame */
 
-/* ---- Units (a slot's dst_unit) ------------------------------------------ */
+/* ---- Units (a slot's dst_unit) ------------------------------------------
+ * A host with one sound binds SOUND, FX1 and FX2; the virtual FM-1's
+ * multi-sound (docs/15 §3.16) adds sound units 2-4 and every sound unit's
+ * inserts (docs/16 MG3). Codes 4-7, 36-39 (HOST per sound unit), inserts 3
+ * and 4 of each sound unit and 42 on are kept for later and name nothing:
+ * a slot that names them is refused. */
 enum {
-  FM1_MOD_SOUND = 0,                    /* the sound engine's parameters */
-  FM1_MOD_FX1 = 1,
+  FM1_MOD_SOUND = 0,                    /* sound unit 1's parameters (a host's one sound) */
+  FM1_MOD_FX1 = 1,                      /* the master effect slots, in order */
   FM1_MOD_FX2 = 2,
   FM1_MOD_HOST = 3,                     /* PITCH and AMP, below */
-  FM1_MOD_MODULE = 8                    /* 8 + position: a module's parameters
+  FM1_MOD_MODULE = 8,                   /* 8 + position: a module's parameters
                                            and, with GATE_DST, its gate inputs */
+  FM1_MOD_SOUND_UNIT = 16,              /* 16 + k: sound unit k + 1; 16 is SOUND */
+  FM1_MOD_INSERT = 20,                  /* 20 + 4k + j: sound unit k + 1's insert j + 1 */
+  FM1_MOD_MASTER = 40                   /* 40 + j: master slot j + 1, i.e. FX1 and FX2 */
 };
+#define FM1_MOD_SOUNDS 4u               /* sound units */
+#define FM1_MOD_INSERTS 2u              /* inserts per sound unit (codes for 4) */
+#define FM1_MOD_SINKS 15u               /* SOUND FX1 FX2 HOST, sound units 2-4, the 8 inserts */
+#define FM1_MOD_SINK_PARAMS 180u        /* parameter records the bound units share,
+                                           HOST's two included; fm1_mod_bind */
+
+/* Sound unit k's code (k < FM1_MOD_SOUNDS): SOUND for k = 0, so a host
+ * with one sound and the multi-sound host write the same slots. */
+static inline unsigned fm1_mod_sound_unit(unsigned k) {
+  return k ? FM1_MOD_SOUND_UNIT + k : (unsigned)FM1_MOD_SOUND;
+}
+/* Insert j of sound unit k (j < FM1_MOD_INSERTS). */
+static inline unsigned fm1_mod_insert_unit(unsigned k, unsigned j) {
+  return FM1_MOD_INSERT + 4u * k + j;
+}
+/* A unit code as slots keep it: 16 is 0 and 40 and 41 are 1 and 2 (a slot
+ * set with an alias reads back with the canonical code); any code that
+ * names a sink or a module is itself; FM1_MOD_NONE for the rest. */
+unsigned fm1_mod_unit_canonical(unsigned unit);
+/* The sound unit (0..3) a code names, or -1. */
+int fm1_mod_unit_sound(unsigned unit);
+/* The sinks in their fixed order (the order of a tick's writes and of
+ * fm1_mod_sink): SOUND, FX1, FX2, HOST, sound units 2-4, then each sound
+ * unit's inserts. fm1_mod_sink_unit gives sink i's code (FM1_MOD_NONE past
+ * the last), fm1_mod_sink_index a code's sink (aliases too), or -1. */
+unsigned fm1_mod_sink_unit(unsigned i);
+int fm1_mod_sink_index(unsigned unit);
 
 /* The host unit's parameters (fm1_mod_host_params). PITCH is semitones,
  * summed with MIDI bend into the sound engine's pitch_bend: its base is the
@@ -215,13 +250,19 @@ enum {
   FM1_MOD_SRC_VEL = 0,          /* CV_UNI: velocity / 127 of the last note-on on the sound */
   FM1_MOD_SRC_NOTE = 1,         /* CV_BI, SEMI: (last note - 60) / 60 */
   FM1_MOD_SRC_RAND = 2,         /* CV_BI: a seeded random value drawn at each note-on */
-  FM1_MOD_SRC_KEY = 16,         /* GATE: high while a note is held on the sound */
+  FM1_MOD_SRC_KEY = 16,         /* GATE: high while a note is held on the sound (legato:
+                                   a note while another is held changes nothing) */
   FM1_MOD_SRC_TRIG = 17,        /* GATE: a trigger at each note-on on the sound */
   FM1_MOD_SRC_CLOCK = 18,       /* GATE: a trigger each sequencer step (1/16) */
   FM1_MOD_SRC_BEAT = 19,        /* GATE: a trigger each beat */
   FM1_MOD_SRC_BAR = 20,         /* GATE: a trigger each bar */
   FM1_MOD_SRC_RUN = 21,         /* GATE: high while the transport runs */
   FM1_MOD_SRC_START = 22,       /* GATE: a trigger at Start */
+  FM1_MOD_SRC_RTRG = 23,        /* GATE: KEY retriggered: high while a note is held, and
+                                   a fall and a rise at the frame of each note-on that
+                                   comes while it is high (notes starting at one frame,
+                                   a chord, retrigger it once). The default rack's
+                                   envelopes take it (docs/16 MG3, owner, 2026-10-05) */
   FM1_MOD_SRC_SEQ_GATE = 24,    /* GATE, 24-31: high while track 1-8 sounds a note */
   FM1_MOD_SRC_SEQ_VEL = 32,     /* CV_UNI, 32-39: velocity / 127 of track 1-8's last note */
   FM1_MOD_SRC_SYSTEM = 64,      /* ids below are system sources */
@@ -282,11 +323,14 @@ fm1_mod_t *fm1_mod_create(void *mem, const fm1_host_t *host, uint32_t seed);
 /* Destroys the instances (the memory is the host's). */
 void fm1_mod_destroy(fm1_mod_t *m);
 
-/* Binds a sound or effect unit (FM1_MOD_SOUND, FX1, FX2) to an engine: its
- * first FM1_MOD_UNIT_PARAMS parameters can be destinations. Every base and
- * every value sent becomes the parameter's default, which is what a new
- * engine instance holds; a host then sets the bases it changes. NULL unbinds.
- * Returns the parameters taken, or -1 for a bad unit. */
+/* Binds a sound or effect unit (any sink but HOST, by code; aliases too) to
+ * an engine: its first FM1_MOD_UNIT_PARAMS parameters can be destinations.
+ * Every base and every value sent becomes the parameter's default, which is
+ * what a new engine instance holds; a host then sets the bases it changes.
+ * NULL unbinds. The bound units share FM1_MOD_SINK_PARAMS parameter records
+ * (HOST takes two): an engine that would need more than are left is not
+ * bound (its unit's cables are refused). Returns the parameters taken, or
+ * -1 for a bad unit or no room. */
 int fm1_mod_bind(fm1_mod_t *m, unsigned unit, const fm1_engine_t *e);
 
 /* Places a kind (a registry index, or -1 for none) at a position 0-7. The
@@ -325,7 +369,7 @@ int fm1_mod_get_slot(const fm1_mod_t *m, unsigned i, fm1_mod_slot_t *out);
 /* Q1.14 from a float in -1..1; NaN gives 0. */
 int16_t fm1_mod_q14(float x);
 
-/* Rule M1 for sinks (SOUND, FX1, FX2, HOST). A knob, a lock or a revert
+/* Rule M1 for sinks (any sink's code, aliases too). A knob, a lock or a revert
  * sets the base of the unit's parameter `index`; the return value is what
  * the host sends now: the value itself when nothing routes there, else
  * clamp(base + the last tick's offset). The host must send it. NaN is the
@@ -362,7 +406,7 @@ void fm1_mod_seq_run(fm1_mod_t *m, uint32_t frame, int running);   /* Start, Sto
 
 /* A value the tick writes: the host sends it at the tick's frame. */
 typedef struct fm1_mod_write {
-  uint8_t unit;                 /* FM1_MOD_SOUND .. FM1_MOD_HOST */
+  uint8_t unit;                 /* a sink's canonical code */
   uint8_t reserved;
   uint16_t index;               /* the unit's parameter index (HOST: PITCH, AMP) */
   float value;
@@ -409,9 +453,9 @@ typedef struct fm1_mod_stats {
 void fm1_mod_get_stats(const fm1_mod_t *m, fm1_mod_stats_t *out);
 
 /* The routed sinks, for logs and the UI: i-th parameter with an enabled
- * slot, over SOUND, FX1, FX2 and HOST in that order. 0 past the last. */
+ * slot, over the sinks in fm1_mod_sink_unit's order. 0 past the last. */
 typedef struct fm1_mod_sink_info {
-  uint8_t unit;
+  uint8_t unit;                 /* its canonical code */
   uint8_t reserved;
   uint16_t index;
   uint16_t uid;
@@ -422,6 +466,12 @@ typedef struct fm1_mod_sink_info {
 int fm1_mod_sink(fm1_mod_t *m, unsigned i, fm1_mod_sink_info_t *out);
 
 /* ---- Small helpers for hosts and kinds --------------------------------------- */
+
+/* The Filter kind's Cutoff (0..1, a log knob; NaN as its default) as the
+ * frequency it sets at `sample_rate`, in Hz, exactly as the kind computes
+ * it: 0.05 Hz x 2^(13 x Cutoff), held below 0.3 x the tick rate (a UI shows
+ * the knob in Hz this way; docs/16 MG3). */
+float fm1_mod_filter_hz(float cutoff, float sample_rate);
 
 /* A gain that moves to each new value over one tick, linearly, on absolute
  * frames, so the result is the same at any block size: the AMP sink. */

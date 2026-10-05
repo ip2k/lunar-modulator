@@ -20,10 +20,15 @@ history.
     of Room; and another flips Plate's and Hall's Freeze every 4.4 ms.
   - A value on screen keeps one decimal when it is a small fraction of a
     wide range, so the Gate's 0.5 ms Attack reads 0.5, not 0.
-  - 60 of 60 parity scenarios pass, identical to musl and to render.js
-    (six of them turn effects' switches every 4.4 ms); 1,584 screens pass
-    the layout check (126 new). The browser module grew from 599 KB to
-    622 KB. Chapter 6 of the manual has sections for Room and Gate and
+  - 64 of 64 parity scenarios pass, identical to musl and to render.js
+    (six of them turn effects' switches every 4.4 ms); 2,325 screens pass
+    the layout check (136 new, ten of them the new effects' pages with a
+    modulation cable on each parameter). The browser module grew from
+    738 KB to 761 KB. The three new effects join the engine-SMOOTH
+    driver's split and repeated-write checks. The modulation runtime's
+    shared pool of parameter records grows from 160 to 180, so ten Gates
+    and four Six-Ops can all take cables (the runtime is 832 bytes larger,
+    23,200 in all). Chapter 6 of the manual has sections for Room and Gate and
     Plate's Freeze; chapters 12 and 13 list their memory and credits.
 - **Gate**, a new effect: a noise gate that can also duck. Threshold,
   Attack, Hold, Decay and Range (down to silence) set how it opens and
@@ -86,6 +91,52 @@ history.
   has gone, Room sweeps its diffuser's memory clean, so a silent Room does
   no subnormal arithmetic (left alone, all 2,048 of the diffuser's cells
   held a subnormal for good).
+- **Modulation on the virtual FM-1's panel (docs/16 MG3), behind the lab
+  switch:** add `?lab` (or `#lab`) to the page's address. The public page is
+  unchanged: there ENV, LFO and EDIT still say they are not in the
+  simulator yet.
+  - Two LFOs, two envelopes and a random source (Chance) are ready from the
+    start, and every note starts both envelopes again, even one played
+    while another is held, whether it comes from the keys, MIDI in or the
+    sequencer (a new source, RTRG, the note gate retriggered at each new
+    note, feeds them; KEY in its place keeps them legato). Nothing moves the
+    sound until you connect something.
+  - LFO or ENV shows those modules a page at a time: their settings on the
+    four knobs, SELECT through every module and page, ALGORITHM to put
+    another of the sixteen kinds of module in a place (the second stage's
+    Function to Filter too), or empty it. Changing a module back brings its
+    connections back. SEL picks a module up so SELECT can move it.
+  - The Filter module's Cutoff reads in Hz on its page (4.53 Hz in the
+    middle of the knob, 0.05 Hz to 410 Hz), while the knob turns as before.
+  - Modules are named by their kind and their place in the rack: LFO1,
+    LFO2, ENV3, ENV4 and CHN5 to begin with. Chance, Calc, Compare and Coin
+    are CHN, CLC, CMP and COI, so no two names are alike.
+  - Hold LFO or ENV and turn a knob on the sound's page, an effect's page or
+    a module's page: the LFO or envelope you looked at last now moves that
+    setting, and the turn sets by how much. Turning again changes the same
+    connection. With several sounds this reaches the sound you are on
+    (SHIFT + PRESETS) and its two inserts, as well as the master effects.
+  - EDIT lists all 32 connections. KNOB1 picks what moves, KNOB2 what is
+    moved (from a list that starts at the sound you are on; ALGORITHM jumps
+    between each sound, its inserts, the master effects, the host and each
+    module), KNOB3 how much and KNOB4 an offset; ALGORITHM
+    turns to a second page with a second source that scales the first, a
+    curve, the polarity and on or off. SEL shows the chain a connection is
+    part of.
+  - A setting that something moves shows a gold diamond by its name, the
+    range it moves over in gold on its bar, and where it is now in red.
+  - For developers: `fm1-sim-render --lab --log-cmds` also logs the
+    modulation as `fm1-render --mod` lines, so a session on the panel
+    replays byte for byte; `--mod FILE` plays a modulation script, as
+    `fm1-render --mod` does. `fm1-render --mod` now runs with the sound-unit
+    flags too: `snd2:`, `snd2.fx1:` and the like name the other sound units
+    and their inserts (the runtime's unit codes, `fm1_mod.h`), and
+    `fm1_seq_host_dispatch_slots_ticks` runs the modulation over several
+    sound units. The runtime is 23,200 bytes, and the lab's RAM meter counts
+    it. Four new parity scenarios check the browser module with modulation
+    running, two of them over several sounds (58 of 58 pass with the
+    master-bus effects' own), and the layout check now covers 2,189
+    screens. The browser module grew from 599 KB to about 738 KB.
 - **DJ Filter, Tilt, Master Sat, Isolator and EQ on the virtual FM-1:**
   the master-bus effects of the 2026-10-02 effects note. The effect slots
   now offer seventeen effects (ALGORITHM steps through Plate, Ensemble,

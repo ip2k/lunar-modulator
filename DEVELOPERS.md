@@ -225,15 +225,15 @@ nothing of ours in the path, and more than 400 tests compare the two.
   [docs/15](docs/15-sequencer-in-simulator.md)). On the panel, PLAY/STOP,
   SEQ mode's Track view and a demo pattern (stage S3), step entry (S4),
   recording, step record and Capture (S5), eight tracks with mute, the
-  Set, Clip and Track pages and a metronome click (S6), and parameter
-  locks from the knobs (S8) work behind a lab switch (`?lab`
-  in the page's address; [`sim/web/README.md`](sim/web/README.md), "The
-  lab switch"); the public page keeps SEQ, PLAY/STOP and REC as "not in
-  the simulator yet" until the owner opens it. Behind the same switch, up
-  to four sound units play at once, each with two inserts and a level,
-  mixed into the two effect slots as the master bus; each track plays the
-  sound its route names, and a RAM meter refuses any choice that would not
-  fit the FM-1 (docs/15 §3.16).
+  Set, Clip and Track pages and a metronome click (S6), parameter locks
+  from the knobs (S8) and modulation (docs/16 MG3) work behind a lab
+  switch (`?lab` in the page's address; [`sim/web/README.md`](sim/web/README.md),
+  "The lab switch"); the public page keeps SEQ, PLAY/STOP, REC, ENV, LFO
+  and EDIT as "not in the simulator yet" until the owner opens it. Behind
+  the same switch, up to four sound units play at once, each with two
+  inserts and a level, mixed into the two effect slots as the master bus;
+  each track plays the sound its route names, and a RAM meter refuses any
+  choice that would not fit the FM-1 (docs/15 §3.16).
 
 ### The arpeggiator core
 
@@ -579,8 +579,14 @@ which lands with the plan PR; its stages S0–S7 are named below.
   Stage MG2 added thirteen modules: Function, Bounce, Register, Coin,
   Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix and a resonant
   Filter, the Peaks and Braids parts checked against the original code
-  ([`engines/mod/kinds.md`](engines/mod/kinds.md)). Next: the simulator's
-  RACK and MATRIX pages (MG3).
+  ([`engines/mod/kinds.md`](engines/mod/kinds.md)). Stage MG3 puts the
+  runtime in the virtual FM-1 behind the lab switch: the RACK, MATRIX and
+  CHAIN pages, the hold-and-turn routing gesture, cables into any of the
+  four sound units, their inserts and the master effects, routed
+  parameters marked on every page, and panel sessions that replay through
+  `fm1-render --mod` byte for byte ([`sim/web/README.md`](sim/web/README.md),
+  "The lab switch"). Next: per-voice envelopes and LFOs (MG9, which the
+  owner has made essential).
 - **Depends on:**
   - API v2 uids, SMOOTH and NOLOCK, plus a new MOD flag (docs/13 M2):
     built in docs/15 stage S7a, with INPUT, units and abbreviations for

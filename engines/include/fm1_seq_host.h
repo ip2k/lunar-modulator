@@ -100,7 +100,8 @@ typedef struct fm1_seq_sink {
 typedef struct fm1_seq_hook_write {
   uint16_t index;               /* the sink engine's parameter (not for a bend) */
   uint8_t bend;                 /* 1: pitch_bend(value) instead */
-  uint8_t reserved;
+  uint8_t slot;                 /* the slot it is for (dispatch_slots_ticks);
+                                   dispatch_ticks's one sink takes slot 0's */
   float value;
 } fm1_seq_hook_write_t;
 
@@ -111,7 +112,13 @@ typedef struct fm1_seq_hook {
   void (*event)(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int to_engine);
   float (*lock)(void *ctx, uint16_t index, float value);
   uint32_t (*tick)(void *ctx, uint32_t frame, const fm1_seq_hook_write_t **w, uint32_t *next);
+  /* dispatch_slots_ticks only: lock, for the engine of slot `slot`. NULL:
+   * slot 0's locks go to lock and the other slots' are sent as they are. */
+  float (*lock_slot)(void *ctx, unsigned slot, uint16_t index, float value);
 } fm1_seq_hook_t;
+
+/* The most slots dispatch_slots_ticks serves (the rest are ignored). */
+#define FM1_SEQ_HOST_HOOK_SLOTS 16u
 
 typedef struct fm1_seq_host {
   fm1_seq_t *seq;
@@ -204,8 +211,8 @@ void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
  * sink (its writes then go nowhere). A NULL hook is plain dispatch. A host
  * with no sequencer may run it on a bridge initialised with seq NULL and no
  * buffer: no events, only the hook's ticks and the split renders. The hook
- * serves one sink; fm1_seq_host_dispatch_slots below runs none (the
- * multi-sound host's modulation is docs/16 MG3). */
+ * serves one sink, which takes the writes for slot 0; several sound units
+ * take theirs through fm1_seq_host_dispatch_slots_ticks below. */
 void fm1_seq_host_dispatch_ticks(fm1_seq_host_t *h, uint32_t frames, float *block,
                                  const fm1_seq_sink_t *sink, const fm1_seq_hook_t *hook);
 
@@ -230,6 +237,20 @@ typedef struct fm1_seq_slot {
  * buffer. */
 void fm1_seq_host_dispatch_slots(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_slot_t *slots,
                                  unsigned n);
+
+/* dispatch_slots with a control-rate hook (docs/16 MG3: modulation over
+ * several sound units). One pass over the block: the hook's begin gets
+ * slot 0's engine, its event every event (to_engine: some slot's sink
+ * receives it), and its ticks run at their frames as in dispatch_ticks;
+ * each write goes to the slot it names (fm1_seq_hook_write_t.slot), whose
+ * render is split there, and a lock on slot s goes through lock_slot. Each
+ * slot's sink gets its calls in exactly the order dispatch_ticks would give
+ * it alone, so its output is the same; the calls of different slots
+ * interleave. At most FM1_SEQ_HOST_HOOK_SLOTS slots. A NULL hook is
+ * dispatch_slots, slot after slot. */
+void fm1_seq_host_dispatch_slots_ticks(fm1_seq_host_t *h, uint32_t frames,
+                                       const fm1_seq_slot_t *slots, unsigned n,
+                                       const fm1_seq_hook_t *hook);
 
 /* The metronome's click (owner decision O11, 2026-10-02; docs/15 S6), so
  * that every host sounds the core's CLICK events the same way. A voice of

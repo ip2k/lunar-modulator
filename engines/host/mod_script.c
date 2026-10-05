@@ -148,26 +148,61 @@ static int parse_src(const fm1_mod_t *m, const char *s, uint8_t *out, char *err,
   return 1;
 }
 
-static int parse_dst(const fm1_mod_t *m, const fm1_engine_t *const units[3], const char *s,
-                     fm1_mod_slot_t *slot, char *err, size_t cap) {
-  const char *sep = strpbrk(s, ":.");
-  unsigned pos;
+/* The sinks' names, by code: snd (sound unit 1), snd2-snd4, sndK.fxJ for
+ * the inserts, fx1 and fx2 for the master slots, host. */
+const char *fm1_mod_script_unit_name(unsigned unit) {
+  static const char *const kSounds[] = { "snd", "snd2", "snd3", "snd4" };
+  static const char *const kInserts[] = { "snd1.fx1", "snd1.fx2", "snd2.fx1", "snd2.fx2",
+                                          "snd3.fx1", "snd3.fx2", "snd4.fx1", "snd4.fx2" };
+  const int k = fm1_mod_unit_sound(unit);
+  unit = fm1_mod_unit_canonical(unit);
+  if (k >= 0) return kSounds[k];
+  if (unit == FM1_MOD_FX1) return "fx1";
+  if (unit == FM1_MOD_FX2) return "fx2";
+  if (unit == FM1_MOD_HOST) return "host";
+  if (unit >= FM1_MOD_INSERT && unit < FM1_MOD_INSERT + 4u * FM1_MOD_SOUNDS &&
+      (unit - FM1_MOD_INSERT) % 4u < FM1_MOD_INSERTS) {
+    return kInserts[(unit - FM1_MOD_INSERT) / 4u * FM1_MOD_INSERTS + (unit - FM1_MOD_INSERT) % 4u];
+  }
+  return NULL;
+}
+
+/* A sink's code from its name (len characters of s), FM1_MOD_NONE for none:
+ * the names above, and snd1 and snd.fxJ for sound unit 1. */
+static unsigned unit_of_name(const char *s, size_t len) {
+  char name[TOK_LEN];
+  unsigned i;
+  if (len >= sizeof(name)) return FM1_MOD_NONE;
+  memcpy(name, s, len);
+  name[len] = '\0';
+  if (same(name, "snd1")) return FM1_MOD_SOUND;
+  if (same(name, "snd.fx1") || same(name, "snd.fx2")) {
+    return fm1_mod_insert_unit(0, (unsigned)(name[6] - '1'));
+  }
+  for (i = 0; i < FM1_MOD_SINKS; ++i) {
+    const unsigned u = fm1_mod_sink_unit(i);
+    const char *n = fm1_mod_script_unit_name(u);
+    if (n && same(n, name)) return u;
+  }
+  return FM1_MOD_NONE;
+}
+
+static int parse_dst(const fm1_mod_t *m, const fm1_engine_t *const units[FM1_MOD_SINKS],
+                     const char *s, fm1_mod_slot_t *slot, char *err, size_t cap) {
+  const char *sep = strchr(s, ':') ? strchr(s, ':') : strchr(s, '.');
+  unsigned pos, unit;
   int i;
   if (!sep) return fail(err, cap, "destination %s wants UNIT:NAME", s);
-  {
-    static const char *const kUnits[] = { "snd", "fx1", "fx2" };
-    unsigned u;
-    for (u = 0; u < 3u; ++u) {
-      if ((size_t)(sep - s) == 3u && strncmp(s, kUnits[u], 3) == 0) {
-        const fm1_engine_t *e = units[u];
-        if (!e) return fail(err, cap, "%s has no engine", kUnits[u]);
-        i = find_param(e->params, e->n_params, sep + 1);
-        if (i < 0) return fail(err, cap, "%s has no parameter %s", e->id, sep + 1);
-        slot->dst_unit = (uint8_t)u;
-        slot->dst = e->params[i].uid;
-        return 1;
-      }
-    }
+  unit = unit_of_name(s, (size_t)(sep - s));
+  if (unit != FM1_MOD_NONE && unit != FM1_MOD_HOST) {
+    const fm1_engine_t *e = units[fm1_mod_sink_index(unit)];
+    const char *name = fm1_mod_script_unit_name(unit);
+    if (!e) return fail(err, cap, "%s has no engine", name);
+    i = find_param(e->params, e->n_params, sep + 1);
+    if (i < 0) return fail(err, cap, "%s has no parameter %s", e->id, sep + 1);
+    slot->dst_unit = (uint8_t)unit;
+    slot->dst = e->params[i].uid;
+    return 1;
   }
   if ((size_t)(sep - s) == 4u && strncmp(s, "host", 4) == 0) {
     i = find_param(fm1_mod_host_params, FM1_MOD_HOST_PARAMS, sep + 1);
@@ -222,8 +257,8 @@ static int set_params(fm1_mod_t *m, unsigned pos, char tok[MAX_TOK][TOK_LEN], in
   return 1;
 }
 
-static int slot_line(fm1_mod_t *m, const fm1_engine_t *const units[3], char tok[MAX_TOK][TOK_LEN],
-                     int n, char *err, size_t cap) {
+static int slot_line(fm1_mod_t *m, const fm1_engine_t *const units[FM1_MOD_SINKS],
+                     char tok[MAX_TOK][TOK_LEN], int n, char *err, size_t cap) {
   static const char *const kPol[] = { "auto", "uni", "bi", "inv" };
   static const char *const kCurve[] = { "lin", "square", "cube", "root", "cbrt", "exp", "log", "s" };
   fm1_mod_slot_t s;
@@ -302,6 +337,14 @@ int fm1_mod_script_seed(const char *line, uint32_t *seed) {
 
 int fm1_mod_script_line(fm1_mod_t *m, const char *line, const fm1_engine_t *const units[3],
                         char *err, size_t errcap) {
+  const fm1_engine_t *all[FM1_MOD_SINKS];
+  unsigned i;
+  for (i = 0; i < FM1_MOD_SINKS; ++i) all[i] = i < 3u ? units[i] : NULL;
+  return fm1_mod_script_apply(m, line, all, err, errcap);
+}
+
+int fm1_mod_script_apply(fm1_mod_t *m, const char *line,
+                         const fm1_engine_t *const units[FM1_MOD_SINKS], char *err, size_t errcap) {
   char tok[MAX_TOK][TOK_LEN];
   const int n = tokens(line, tok);
   unsigned a, b;

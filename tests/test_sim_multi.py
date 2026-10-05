@@ -19,7 +19,9 @@ from tests.test_sim_web import SCENARIOS, left_channel, run, scenario_args, tool
 
 BUDGET = 387924
 SEQ_FIXED = 31880 + 3264          # the sequencer's instance (8 tracks) and event buffer (272 events)
-LAB_FIXED = 240 + 1024 + 20       # with the lab switch: the pending record, the UI bound, the click
+SEQ_LAB = 240 + 1024 + 20         # with the lab switch: the pending record, the UI bound, the click,
+MOD_BYTES = 23200                 # and the modulation runtime (fm1_mod_size(), docs/16 MG3)
+LAB_FIXED = SEQ_LAB + MOD_BYTES
 MIX_BLOCK = 512
 
 
@@ -127,8 +129,9 @@ def test_sel_and_select_swap_the_inserts(tools):
 
 def test_the_meter_counts_the_chain_and_the_fixed_costs(tools):
     """With the lab switch the RAM figure is every instance, the sequencer's
-    instance and events, its pending record and UI bound, and a 512-byte
-    block for each sound past the first; without it, as before."""
+    instance and events, its pending record and UI bound, the modulation
+    runtime, and a 512-byte block for each sound past the first; without
+    it, as before."""
     s = lab(tools, "--engine", "macro", "--sound", "2:sixop", "--insert", "0:ensemble", "--fx", "plate",
             seconds=0.1)
     want = (instance_bytes(tools, "macro") + instance_bytes(tools, "sixop") +
