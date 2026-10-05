@@ -1,0 +1,13 @@
+# SHIFT (SEL) + white key 5 opens the Set page: KNOB1 3 BPM up, 0.2 more
+# with SHIFT, KNOB2 swing to 60 %, KNOB3 the default quantize to 70 %,
+# KNOB4 the metronome on; then PLAY/STOP, with the click.
+--button 0.05:SEQ
+--button 0.10:SEL:0.05
+--key 0.12:7:100:0.01
+--turn 0.20:KNOB1:3
+--button 0.25:SEL:0.1
+--turn 0.30:KNOB1:2
+--turn 0.40:KNOB2:10
+--turn 0.45:KNOB3:7
+--turn 0.50:KNOB4:1
+--button 0.60:PLAY/STOP

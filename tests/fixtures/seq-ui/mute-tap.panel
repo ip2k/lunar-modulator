@@ -1,0 +1,6 @@
+# Playing in SEQ mode: a MUTE (F#4) tap mutes track 1 and a second one
+# brings it back.
+--button 0.05:SEQ
+--button 0.10:PLAY/STOP
+--key 0.50:13:100:0.05
+--key 1.50:13:100:0.05
