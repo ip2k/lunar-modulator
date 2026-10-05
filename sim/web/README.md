@@ -535,14 +535,15 @@ every time [verified: about 25,000 lines, 0 refused].
 
 ## Parity: does the browser sound like the native engines?
 
-`build-on-aeon.sh` renders 66 scenarios (`test/scenarios.json`) four ways
+`build-on-aeon.sh` renders 67 scenarios (`test/scenarios.json`) four ways
 and compares the 16-bit output sample by sample [verified:
-`www/fm1.wasm.json`, 2026-10-05]. Forty-seven are note scripts: every engine
+`www/fm1.wasm.json`, 2026-10-05]. Forty-eight are note scripts: every engine
 and effect, pitch bend, parameter changes mid-note on the sound and on
 every effect (`fx_param_at`: `fm1-render --fx-param-at T:K:NAME=VALUE`, K
 the effect's place in the chain; the module gets `fm1w_set_param` on that
 slot), more notes than voices, 44,100 Hz, the low-pass gate, and Drums' two
-kits with a choke, a pad's Model and a Kit change. Six play sequencer verb scripts
+kits with a choke, a pad's Model and a Kit change, and all sixteen pads with
+every voice busy (steals by the level a voice holds). Six play sequencer verb scripts
 (`test/seq/`, `fm1-render --cmd`): Test Sine's Volume under float locks
 with a stop that sends the lanes back to their bases; two Six-Op tracks
 with swing and a clip at twice the speed; locks on Six-Op's Patch, a list;
@@ -634,10 +635,11 @@ parameter locks since S8, the engines' SMOOTH ramps since S7b, the
 master-bus effects (DJ Filter, Tilt, Master Sat, Isolator, EQ), since
 docs/16 MG3 the modulation runtime, its kinds, its script reader
 (`host/mod_script.c`: snprintf and strtod, no files) and modulation's
-pages, Room, Hall, Gate and Plate's Freeze, and Drums: 66 of 66 scenarios pass,
+pages, Room, Hall, Gate and Plate's Freeze, and Drums: 67 of 67 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
-every 4.4 ms), and it imports nothing; it is 782,113 bytes, up from
-761,171 before Drums, 737,880 before Room, Hall, Gate and Plate's Freeze (622,338 with them
+every 4.4 ms; the three Drums scenarios are identical to glibc too), and it
+imports nothing; it is 782,267 bytes after the Drums review's fixes
+(782,113 before them), up from 761,171 before Drums, 737,880 before Room, Hall, Gate and Plate's Freeze (622,338 with them
 before MG3, 547,963 before the master-bus effects, multi-sound, S8 and
 S7b), 598,994 before MG3 (the runtime, its sixteen kinds with MG2's Peaks
 and Braids tables, the pages and the script reader), 573,403 before the
