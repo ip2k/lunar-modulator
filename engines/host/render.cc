@@ -14,7 +14,8 @@
 // 16-bit stereo WAV, and prints one line of JSON: the engine's raw peak and
 // clipped count, the same after the limiter, non-finite samples, instance
 // size in bytes and time per block. Note, bend (--bend) and parameter
-// (--param-at) events apply at block boundaries (1.45 ms). Per-note offsets
+// (--param-at, and --fx-param-at T:K:NAME=VALUE for the K-th --fx, counted
+// from 1) events apply at block boundaries (1.45 ms). Per-note offsets
 // (--note-param-at T:KEY:NAME=OFFSET on a POLY parameter, or #INDEX=OFFSET
 // to send any index, as a test of what an engine ignores; --note-pitch-at
 // T:KEY:SEMITONES) apply at block boundaries too, after the note-ons there,
@@ -87,6 +88,15 @@ struct NoteControl {                 // --note-param-at and --note-pitch-at
   bool done;
 };
 
+struct FxControl {                   // --fx-param-at: an effect's set_param
+  double time;
+  size_t unit;                       // index into the chain (K - 1)
+  std::string name;
+  uint16_t index;
+  float value;
+  bool done;
+};
+
 void Usage() {
   fprintf(stderr,
       "usage: fm1-render --list\n"
@@ -94,7 +104,7 @@ void Usage() {
       "                   [--bend T:SEMITONES]... [--param-at T:NAME=VALUE]...\n"
       "                   [--note-param-at T:KEY:NAME=OFFSET]... [--note-pitch-at T:KEY:SEMITONES]...]\n"
       "                  [--input silence|impulse|noise|sine]\n"
-      "                  [--fx ID [--fx-param NAME=VALUE]...]...\n"
+      "                  [--fx ID [--fx-param NAME=VALUE]...]... [--fx-param-at T:K:NAME=VALUE]...\n"
       "                  [--seconds S] [--rate HZ] [--frames N] [--out FILE.wav]\n"
       "                  [--fill BYTE] [--fault T[..T1]:VALUE]...\n"
       "                  [--cmd FILE] [--seq FILE.movy1] [--log-events FILE.jsonl]\n"
@@ -312,6 +322,7 @@ int main(int argc, char **argv) {
   std::vector<Event> events;
   std::vector<Control> controls;
   std::vector<NoteControl> note_controls;
+  std::vector<FxControl> fx_controls;
   const char *cmd_path = NULL, *seq_path = NULL, *log_path = NULL;
   bool compat = false, seconds_given = false, rate_given = false, frames_given = false;
   int tracks = -1;
@@ -402,6 +413,19 @@ int main(int argc, char **argv) {
         note_controls.push_back(NoteControl{ t, uint8_t(key), one[0].first, 0, one[0].second,
                                              false });
       }
+    } else if (a == "--fx-param-at") {
+      // T:K:NAME=VALUE, K the effect's place in the chain (1 = the first --fx)
+      const char *c1 = strchr(next, ':');
+      const char *c2 = c1 ? strchr(c1 + 1, ':') : NULL;
+      std::vector<std::pair<std::string, float> > one;
+      char *end = NULL;
+      const long unit = c1 ? strtol(c1 + 1, &end, 10) : 0;
+      if (!c2 || end != c2 || unit < 1 || !ParseParam(c2 + 1, &one)) {
+        fprintf(stderr, "--fx-param-at wants T:K:NAME=VALUE, K from 1\n");
+        return 2;
+      }
+      fx_controls.push_back(FxControl{ atof(next), static_cast<size_t>(unit - 1), one[0].first, 0,
+                                       one[0].second, false });
     } else { Usage(); return 2; }
   }
   if ((!controls.empty() || !note_controls.empty()) && !engine_id) {
@@ -486,6 +510,19 @@ int main(int argc, char **argv) {
   for (size_t k = 0; k < fx.size(); ++k) {
     if (!Instantiate(fx[k], fx_ids[k].c_str(), FM1_KIND_AUDIO_FX, host, fill)) return 1;
   }
+  for (size_t k = 0; k < fx_controls.size(); ++k) {
+    FxControl &c = fx_controls[k];
+    if (c.unit >= fx.size()) {
+      fprintf(stderr, "--fx-param-at names effect %zu of %zu\n", c.unit + 1, fx.size());
+      return 2;
+    }
+    const fm1_engine_t *e = fx[c.unit].e;
+    bool found = false;
+    for (uint16_t q = 0; q < e->n_params && !found; ++q) {
+      if (strcasecmp(e->params[q].name, c.name.c_str()) == 0) { c.index = q; found = true; }
+    }
+    if (!found) { fprintf(stderr, "unknown parameter for %s: %s\n", e->id, c.name.c_str()); return 1; }
+  }
 
   if (use_seq) {
     fm1_seq_limits_t lim;
@@ -547,6 +584,12 @@ int main(int argc, char **argv) {
     const double now = pos / static_cast<double>(rate);
     const uint32_t n = total - pos < max_frames ? total - pos : max_frames;
     float *block = &out[static_cast<size_t>(pos) * 2];
+    for (size_t k = 0; k < fx_controls.size(); ++k) {  // the effects' turns, in the order given
+      FxControl &c = fx_controls[k];
+      if (c.done || c.time > now) continue;
+      fx[c.unit].e->set_param(fx[c.unit].self, c.index, c.value);
+      c.done = true;
+    }
     if (sound.e) {
       for (size_t k = 0; k < controls.size(); ++k) {   // controls first, in the order given
         Control &c = controls[k];

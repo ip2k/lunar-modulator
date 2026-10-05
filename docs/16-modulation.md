@@ -704,6 +704,15 @@ Streams' coefficient tables are for 31,089 Hz, so at 44,118 Hz its time
 constants and band splits move by 1.42×. That is acceptable for a follower;
 decimating the tap by 2 brings it close [inferred].
 
+The Comp effect (engines/README.md, "Comp") already computes a smoothed gain
+reduction in dB for its own audio, and `fm1_comp_reduction_db()`
+(`engines/include/fm1_comp.h`) reads it between renders, outside the engine
+API [verified: tests/test_engines_comp.py]. A source that reads it once per
+tick is a REDUCTION output with no audio tap and no follower code: a
+compressor in FX1 or FX2 that ducks other destinations. It only follows the
+audio passing through that Comp; a KEY from another unit still needs the tap
+above [inferred].
+
 ### 3.8 Not modules: left out, ideas only
 
 | Source | Licence | Use |
@@ -1060,7 +1069,7 @@ engines/README.md, "Per-note offsets", has the contract and the tests]:
   note-on at the same frame (its envelopes' first values); `note_off`
   keeps them, so the release is modulated; a steal or the voice's end drops
   them, and a call for a key no voice sounds is ignored.
-- Without a call every render is byte-identical to before (1,783 renders,
+- Without a call every render is byte-identical to before (1,900 renders,
   three compilers), and with calls at the same frames the output is the
   same at host blocks of 1, 7 and 64.
 
