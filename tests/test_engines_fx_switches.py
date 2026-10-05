@@ -1,6 +1,7 @@
-"""The switch-like controls of Filter, Drive, Comp and the Limiter, modulated
-fast (engines/README.md, "Parameters": switch-like controls that change
-cleanly are lockable and modulatable).
+"""The switch-like controls of Filter, Drive, Comp, the Limiter, DJ Filter,
+Tilt, Master Sat and Isolator, modulated fast (engines/README.md,
+"Parameters": switch-like controls that change cleanly are lockable and
+modulatable).
 
 Each of them is turned every third host block (192 frames, 4.4 ms: faster
 than the 5 ms crossfades and hand-overs, so changes also land while one is
@@ -103,6 +104,17 @@ CASES = [
     ("limit", "Lookahead", "lookahead", ["Drive=12", "Ceiling=-6"], "sine", 10 ** (-6 / 20)),
     ("limit", "Lookahead", "lookahead0", ["Drive=12", "Ceiling=-6", "Mode=1"], "sine",
      10 ** (-6 / 20)),
+    # The master-bus pack (2026-10-03): Slope crossfades over 5 ms, Curve
+    # glides its coefficients, Shape crossfades over 5 ms, Kill glides the
+    # band gains over 5 ms.
+    ("djfilter", "Slope", [0, 1], ["Sweep=-0.5", "Resonance=0.8", "Dead Zone=0"], "sine", None),
+    ("djfilter", "Slope", [0, 1], ["Sweep=0.45", "Resonance=1"], "notes", None),
+    ("tilt", "Curve", [0, 1], ["Tilt=9", "Pivot=600"], "sine", None),
+    ("tilt", "Curve", [0, 1], ["Tilt=-9", "Pivot=2000", "Level=-6"], "notes", None),
+    ("sat", "Shape", [0, 1], ["Mix=1", "Drive=18", "Glue=0.5", "Asymmetry=0.5"], "sine", None),
+    ("sat", "Shape", [0, 1], ["Mix=1", "Drive=12", "Clean Lo=20", "Clean Hi=20000"], "notes", None),
+    ("isolator", "Kill", list(range(8)), ["Low=0.9", "Mid=0.6", "High=1"], "sine", None),
+    ("isolator", "Kill", list(range(8)), [], "notes", None),
 ]
 
 
