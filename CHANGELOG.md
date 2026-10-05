@@ -20,6 +20,34 @@ history.
   API's `set_param_note` and `POLY` flag, and `fm1-render
   --note-param-at` / `--note-pitch-at` (engines/README.md, "Per-note
   offsets").
+- **Modulation, second stage (docs/16 MG2): thirteen more modules** for the
+  modulation rack, in the engine and `fm1-render`; not yet playable in the
+  simulator or on the FM-1.
+  - **Function**: a rise-and-fall function generator in the spirit of
+    Maths and Contour 1: one-shot, attack-release, cycling, gated cycling
+    and a shaped slew, with end-of-rise and end-of-cycle triggers, hold and
+    tempo sync.
+  - **Bounce**: Mutable Instruments Peaks' bouncing ball, exactly as Peaks
+    computes it, with a trigger at each bounce.
+  - **Burst**: Peaks' ratchets, trigger delays and random repeats, exactly
+    as Peaks makes them, plus accelerating ratchets and repeats that follow
+    a clock.
+  - **Register**: a looping random shift register after the Turing
+    Machine, with a gate that flips the next bit and a pitch output in
+    whole notes.
+  - **Coin** (a random gate switch after Branches), **Divide** (two clock
+    dividers, multipliers, Euclidean rhythms or chance gates, with swing
+    and delay), **Slew** (six outputs fanned out in time), **Quantize**
+    (Braids' 49 scales and ragas, exactly as Braids quantises), **Compare**
+    (threshold, window and trend gates, placed to the sample), **Logic**
+    (gates and flip-flops), **Calc** (arithmetic on two signals) and
+    **Mix** (four inputs with gains).
+  - **Filter**: a resonant low-, band- and high-pass filter for
+    modulation signals. Turned up, a note or any gate makes it ring, a
+    decaying wobble at its cutoff that can move any knob.
+  - Every module repeats exactly for a given seed, at any block size, and
+    the Peaks and Braids parts were checked output for output against the
+    original code. Documented in `engines/mod/kinds.md`.
 - **Modulation, first stage (docs/16 MG1):** the engine and `fm1-render` can
   now modulate sounds; not yet playable in the simulator or on the FM-1.
   - A rack of up to 8 modulation modules inside a matrix of 32 cables. Any
