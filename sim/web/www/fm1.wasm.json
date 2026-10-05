@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "875ff6357d11d385a2408ffc7b55298908c353600405b3426124a3d447884d49",
-  "wasm_bytes": 524659,
+  "wasm_sha256": "c71c9a9f3e040c32e98df4c34f76d2d53714ff4e2517ec8ac1cad25f39e0e11d",
+  "wasm_bytes": 547778,
   "sources_sha256": {
-    "engines": "92fc1592ab1e36cfaf411cc592615e43bfe9040351907631bcc91484853c8380",
-    "sim": "91b0d3b27b509ad0059ad88fa2e9ef40f243838bae0d4b3bdbea6246d2620146"
+    "engines": "3822389264a6b809baa9df57d2e2ba6e73a24f3c775add95bb2b422e80e49bfd",
+    "sim": "e7afe83369c98236c4580ee14bc6b49f1bbd806d07d922bd9abb866565b3141d"
   },
   "engines": "working tree",
-  "built": "2026-10-05T16:40:01Z",
+  "built": "2026-10-05T17:42:29Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 41,
+    "passed": 47,
     "failed": 0,
-    "identical_to_js": 41,
-    "identical_to_musl": 41,
-    "identical_to_glibc": 38,
+    "identical_to_js": 47,
+    "identical_to_musl": 47,
+    "identical_to_glibc": 44,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -43,8 +43,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 124360,
-        "native64": 137048
+        "wasm32": 124392,
+        "native64": 137064
       }
     },
     {
@@ -131,8 +131,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 306800,
-        "native64": 307680
+        "wasm32": 306832,
+        "native64": 307696
       }
     },
     {
@@ -285,8 +285,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 119656,
-        "native64": 132344
+        "wasm32": 119688,
+        "native64": 132360
       }
     },
     {
@@ -400,8 +400,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 95464,
-        "native64": 108152
+        "wasm32": 95496,
+        "native64": 108168
       },
       "cmd": "seq/capture-while-playing.verbs",
       "seq": {
@@ -462,8 +462,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 119656,
-        "native64": 132344
+        "wasm32": 119688,
+        "native64": 132360
       },
       "cmd": "seq/panel-play-stop.verbs",
       "seq": {
@@ -494,8 +494,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 119656,
-        "native64": 132344
+        "wasm32": 119688,
+        "native64": 132360
       },
       "cmd": "seq/panel-step-entry.verbs",
       "seq": {
@@ -526,8 +526,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 119656,
-        "native64": 132344
+        "wasm32": 119688,
+        "native64": 132360
       },
       "cmd": "seq/panel-record.verbs",
       "seq": {
@@ -634,8 +634,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 307040,
-        "native64": 307920
+        "wasm32": 307072,
+        "native64": 307936
       }
     },
     {
@@ -854,8 +854,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 119864,
-        "native64": 132552
+        "wasm32": 119896,
+        "native64": 132568
       }
     },
     {
@@ -878,6 +878,50 @@
       "ram_bytes": {
         "wasm32": 76040,
         "native64": 88712
+      }
+    },
+    {
+      "name": "gate-gated-plate",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 121832,
+        "native64": 134504
+      }
+    },
+    {
+      "name": "switches-gate-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 56168,
+        "native64": 68840
       }
     },
     {
@@ -942,8 +986,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 124360,
-        "native64": 137048
+        "wasm32": 124392,
+        "native64": 137064
       }
     },
     {
@@ -966,6 +1010,94 @@
       "ram_bytes": {
         "wasm32": 394224,
         "native64": 395104
+      }
+    },
+    {
+      "name": "room-chord-blurred",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 95192,
+        "native64": 107896
+      }
+    },
+    {
+      "name": "hall-chord-modulated",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 108616,
+        "native64": 121288
+      }
+    },
+    {
+      "name": "plate-freeze-into-room",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 348000,
+        "native64": 348896
+      }
+    },
+    {
+      "name": "switches-freeze-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 169576,
+        "native64": 182248
       }
     },
     {
@@ -1008,8 +1140,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 171480,
-        "native64": 171704
+        "wasm32": 171512,
+        "native64": 171720
       }
     }
   ]
