@@ -328,17 +328,19 @@ static int base_note(const fm1_app_t *a) {
   return FM1_APP_FIRST_NOTE + 12 * a->octave + a->transpose;
 }
 
-/* The note a key plays. Sophie is a 16-pad kit on MIDI notes 36-51 (the
- * General MIDI drum keys), below the keys' range at any useful octave
- * (53-79 at octave 0), so with Sophie as the sound the 16 white keys play
- * pads 1-16 whatever the octave, and the black keys play nothing (-1).
- * MIDI IN keeps the drum map. */
+/* The note a key plays. A pad kit (an engine that says so, pad_count in
+ * fm1_engine.h: Sophie and Drums, 16 pads on MIDI notes 36-51, the General
+ * MIDI drum keys) sits below the keys' range at any useful octave (53-79
+ * at octave 0), so with a kit as the current sound the 16 white keys play
+ * its pads 1-16 whatever the octave, and the black keys, and white keys
+ * past its last pad, play nothing (-1). MIDI IN keeps the drum map. */
 static int key_note(const fm1_app_t *a, int key) {
   /* White keys from F: F G A B C D E. */
   static const int8_t white_of[12] = {0, -1, 1, -1, 2, -1, 3, 4, -1, 5, -1, 6};
-  if (a->unit[0].e && strcmp(a->unit[0].e->id, "sw-sophie") == 0) {
+  const fm1_engine_t *e = sound_of_c(a, a->sound)->e;
+  if (e && e->pad_count) {
     const int w = white_of[key % 12];
-    return w < 0 ? -1 : 36 + 7 * (key / 12) + w;
+    return w < 0 ? -1 : fm1_engine_pad_note(e, 7 * (key / 12) + w);
   }
   return base_note(a) + key;
 }

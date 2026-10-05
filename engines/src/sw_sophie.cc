@@ -140,4 +140,6 @@ extern "C" const fm1_engine_t fm1_engine_sw_sophie = {
   // pad's patch at the trigger) and the shim reaches only its global
   // parameters (engines/README.md, "Per-note offsets").
   NULL,
+  // A pad kit: notes 36-51 play pads 1-16 (engines/README.md, "Pad kits").
+  36, 16,
 };

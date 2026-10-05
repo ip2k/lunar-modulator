@@ -62,6 +62,22 @@
       {"name": "Ring Mix", "type": "float", "uid": 2951, "flags": ["latch", "mod"]},
       {"name": "Ring Tone", "type": "float", "uid": 2235, "flags": ["latch", "mod"]}
     ],
+    "drums": [
+      {"name": "Pad", "type": "enum", "uid": 1, "flags": []},
+      {"name": "Tune", "type": "float", "uid": 2, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Decay", "type": "float", "uid": 3, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Level", "type": "float", "uid": 4, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Tone", "type": "float", "uid": 5, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Snap", "type": "float", "uid": 6, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Sweep", "type": "float", "uid": 7, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Drive", "type": "float", "uid": 8, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Model", "type": "enum", "uid": 9, "flags": ["latch", "mod"]},
+      {"name": "Choke", "type": "enum", "uid": 10, "flags": ["latch", "mod"]},
+      {"name": "Kit", "type": "enum", "uid": 11, "flags": ["latch", "mod"]},
+      {"name": "Accent", "type": "float", "uid": 12, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Kit Decay", "type": "float", "uid": 13, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Volume", "type": "float", "uid": 14, "flags": ["smooth", "mod", "poly"]}
+    ],
     "test-sine": [
       {"name": "Volume", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ],
@@ -205,5 +221,5 @@
   },
   "retired": {},
   "per_note_about": "The engines with set_param_note (engine API v2, per-note offsets: engines/README.md, \"Per-note offsets\"). Their POLY parameters are flagged \"poly\" above; no other engine may have one.",
-  "per_note": ["macro", "macro-heavy", "shapes", "sixop"]
+  "per_note": ["macro", "macro-heavy", "shapes", "sixop", "drums"]
 }

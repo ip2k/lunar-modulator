@@ -59,7 +59,7 @@ static const fm1_param_t kParams[] = {
 static const fm1_engine_t kEngine = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "fake", "Fake", "", kParams,
   (uint16_t)(sizeof(kParams) / sizeof(kParams[0])), 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-  NULL, NULL
+  NULL, NULL, 0, 0
 };
 enum { I_MODEL, I_TIMBRE, I_TUNE, I_PATCH, I_LPG };
 

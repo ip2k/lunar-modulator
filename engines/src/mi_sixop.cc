@@ -443,4 +443,5 @@ extern "C" const fm1_engine_t fm1_engine_sixop = {
   fm1::sixop::NoteOn, fm1::sixop::NoteOff, fm1::sixop::Bend,
   fm1::sixop::Set, fm1::sixop::Render,
   fm1::sixop::SetNote,
+  0, 0,                     // not a pad kit
 };

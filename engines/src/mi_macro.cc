@@ -500,4 +500,5 @@ extern "C" const fm1_engine_t fm1_engine_macro = {
   fm1::macro::NoteOn, fm1::macro::NoteOff, fm1::macro::Bend,
   fm1::macro::Set, fm1::macro::Render,
   fm1::macro::SetNote,
+  0, 0,                     // not a pad kit
 };

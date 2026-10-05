@@ -760,4 +760,5 @@ extern "C" const fm1_engine_t fm1_engine_limit = {
   NULL, NULL, NULL,
   fm1::limit::Set, fm1::limit::RenderEntry,
   NULL,                     // no notes, so no per-note offsets
+  0, 0,                     // not a pad kit
 };

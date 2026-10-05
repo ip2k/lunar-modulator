@@ -615,6 +615,7 @@ const fm1_engine_t fm1_engine_djfilter = {
   NULL, NULL, NULL,
   DjSet, DjRender,
   NULL,                     // no notes, so no per-note offsets
+  0, 0,                     // not a pad kit
 };
 
 #ifdef __cplusplus

@@ -843,4 +843,5 @@ extern "C" const fm1_engine_t fm1_engine_macro_heavy = {
   fm1::macro_heavy::NoteOn, fm1::macro_heavy::NoteOff, fm1::macro_heavy::Bend,
   fm1::macro_heavy::Set, fm1::macro_heavy::Render,
   fm1::macro_heavy::SetNote,
+  0, 0,                     // not a pad kit
 };

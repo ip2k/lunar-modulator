@@ -24,6 +24,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `macro-heavy` | Macro Heavy | sound | 4 | Plaits' other 13 engines (strings, modal, speech, particle, drums…) | [plaits-heavy.md](plaits-heavy.md) |
 | `sixop` | Six-Op FM | sound | 8 | Plaits' DX7-style engine and its 96 patches | [plaits-heavy.md](plaits-heavy.md) |
 | `sw-sophie` | Sophie | sound | 12 | a Schwung module (Matt Estela, MIT), through the shim | [schwung.md](schwung.md) |
+| `drums` | Drums | sound | 12 | Plaits' drum classes (Emilie Gillet, MIT), and a rim shot, clap, cowbell and cymbal of this repository's own | [below](#drums); a 16-pad kit on notes 36–51 with two sets of voicings, Deep and Punch |
 | `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
 | `plate` | Plate | effect | – | Rings' reverb | [mi-fx.md](mi-fx.md) |
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
@@ -81,6 +82,178 @@ on page 2 since stage A, set the envelope's and the gate's times.
   its DX7 envelopes are its own.
 - Changing the LPG mode while notes sound does not restart them. A note held
   under Off has no gate state to ping from, so it ends when switched to Ping.
+
+## Drums
+
+A 16-pad drum kit after the classic analogue drum machines, on MIDI notes
+36–51: General MIDI's drum keys, in the order and with the labels Sophie
+uses (`src/drums.cc`, `src/drum_voices.h`). The engine says so in the API
+(`pad_first_note` 36, `pad_count` 16, [Pad kits](#pad-kits)), so the virtual
+FM-1 plays its pads on the white keys.
+
+**Where the sounds come from.**
+
+| Model | Code | Used for (Deep / Punch) |
+| --- | --- | --- |
+| Analog Drum | Plaits `AnalogBassDrum` (its 808-style bridged-T model) | the kick and six toms / – |
+| Punch Drum | Plaits `SyntheticBassDrum` ("inadvertently 909-ish" upstream) | – / the kick and six toms |
+| Snare | Plaits `AnalogSnareDrum` | Snare / Snare 2 |
+| Snap Snare | Plaits `SyntheticSnareDrum`, with a one-pole Tone of ours after it | Snare 2 / Snare |
+| Hat | Plaits `HiHat<SquareNoise, SwingVCA, true, false>`: six square waves | the three hi-hats / – |
+| Ring Hat | Plaits `HiHat<RingModNoise, LinearVCA, false, true>`: ring-modulated pairs, two-stage envelope | – / the three hi-hats |
+| Cymbal | ours: six squares (the hat's bank), two bands, two swing VCAs, after Werner, Abel and Smith's TR-808 cymbal model (ICMC/SMC 2014) | crash and ride |
+| Clap | ours: band-passed noise, three short bursts and a longer fourth, and a decaying tail, after the 808 clap's circuit as Baratatronix describes it [reported] | clap |
+| Rim | ours: two band-passes (a mode 3.66 times the fundamental) pinged by a 0.1 ms pulse, clipped, after the 808 rim shot's two oscillators [reported] | rim |
+| Cowbell | ours: two squares at f and 1.4815 f, duty 0.4798, a two-stage envelope, a swing VCA and a fourth-order band-pass near 880 Hz, after Werner, Abel and Smith's TR-808 cowbell model (AES 137, paper 9207) | on any pad by its Model; none by default |
+
+The Plaits classes are header-only and vendored byte-identical, and called
+directly, one object per sounding voice: Macro Heavy's models 10–12 go
+through Plaits' `BassDrumEngine`, `SnareDrumEngine` and `HiHatEngine`,
+which render both of their classes every block for one output. Our four
+voices follow each analysis's structure; their constants are ours, and none
+of the papers' or the blog's text or figures is reproduced. The machines
+that inspired the kits are named only as credit.
+
+**The kit.** Each pad has a voicing per kit: a model, a pitch, the model's
+decay, tone, snap and sweep at the knobs' middle, a drive and a level
+(`kKits`). Toms take their pitch from their key, a fourth up (41 sounds as
+46, 116.5 Hz, up to 50 as 55); the kick is A1 (55 Hz) in Deep and A#1 in
+Punch; the hats and cymbals use the bank Plaits' 808 hat uses (414 Hz and
+up), and the clap's band-pass sits near 1 kHz. A pad given another model by
+its Model knob plays that model's own voicing (`kModelVoicing`), so a
+cowbell on a tom's pad is a cowbell.
+
+| | Deep | Punch |
+| --- | --- | --- |
+| Kick | Analog Drum, about 1.7 s to −40 dB, a slight pitch sigh | Punch Drum, a drop from about 88 Hz to 58 Hz in 50 ms, about 0.27 s to −40 dB, a little drive |
+| Toms | Analog Drum, 0.45–0.6 s | Punch Drum, swept, 0.19 s |
+| Snares | Snare (808-style, two modes), Snap Snare | Snap Snare, Snare (with all five modes) |
+| Hi-hats | Hat: closed 0.09 s, pedal 0.23 s, open 0.65 s | Ring Hat: 0.075, 0.125 and 0.36 s |
+| Snares, clap, rim | 0.26 and 0.35 s, 0.29 s, 0.04 s | 0.35 and 0.21 s, 0.28 s, 0.03 s |
+| Cymbals | crash 3.1 s, ride 2.3 s | the same lengths, brighter |
+
+Times are to −40 dB under the loudest 5 ms, struck at full velocity,
+measured with `fm1-render` [verified 2026-10-05]; nothing here has been
+judged by ear yet, and the voicings are a first set.
+
+**Parameters.** Pad chooses which pad the per-pad parameters edit, as on
+Sophie; every pad keeps its own set. The knobs are relative to the pad's
+voicing, so one default fits all sixteen pads and a fresh kit shows true
+values whichever pad is focused (Sophie's table can only show pad 1's).
+
+| Page | Parameter | Range, default | What it does |
+| --- | --- | --- | --- |
+| 1 | Pad | 1 Kick … 16 Ride | the pad the per-pad knobs edit (not a sound: lockable, no MOD, as Sophie's) |
+| 1 | Tune | ±24 semitones, 0 | the pad's pitch |
+| 1 | Decay | 0..1, 0.5 | the model's decay: 0.5 is the voicing's, 0 and 1 the model's ends |
+| 1 | Level | 0..1, 0.8 | the pad's level |
+| 2 | Tone | 0..1, 0.5 | brightness: the kicks' and snares' tone, the hats' band-pass, our voices' filters; Snap Snare, which has none, gets a one-pole low-pass |
+| 2 | Snap | 0..1, 0.5 | the attack: the kicks' click (Analog Drum's attack FM, Punch Drum's FM envelope depth), the snares' wires, the hats' noise against metal, the cymbal's noise wash, the clap's bursts (14 ms apart down to 6), the rim's click, the cowbell's first stage |
+| 2 | Sweep | 0..1, 0.5 | the pitch sweep: Analog Drum's self-FM, Punch Drum's FM envelope length, Snap Snare's FM; on the other models a pitch envelope of ours, up to 24 semitones from above (above the middle) or below (under it), falling back over about 20 ms |
+| 2 | Drive | 0..1, 0 | added to the voicing's drive: the signal itself at 0, then more of a soft clip of it pushed up to 8 times |
+| 3 | Model | Kit, Analog Drum … Cowbell | Kit: the voicing's model; otherwise that model with its own voicing |
+| 3 | Choke | Kit, Off, A, B | the pad's choke group: Kit puts the three hi-hats in A, as on the machines; a hit cuts the other pads of its group within 4 ms |
+| 4 | Kit | Deep, Punch | the set of voicings |
+| 4 | Accent | 0..1, 0.5 | velocity sensitivity: at 0 every hit plays as Plaits' unpatched accent (0.8) at full level; at 1 the class's accent is the velocity and the level its square |
+| 4 | Kit Decay | 0..1, 0.5 | added to every pad's Decay, less 0.5 |
+| 4 | Volume | 0..1, 0.7 | the kit's level |
+
+- **Flags.** Every FLOAT is SMOOTH, MOD and POLY. A per-pad knob's ramp
+  runs in the pad's own values, only while that pad sounds (a change to a
+  silent pad applies at once), and keeps going on its pad when Pad moves
+  on; the kit's knobs ramp while any voice sounds. Model, Choke and Kit are
+  read when a pad is struck (LATCH, and MOD: a route is rounded), so a
+  sounding hit keeps what it started with. Uids 1–14, in table order.
+- **Voices.** Twelve. A pad struck while it sounds is struck again in its
+  own voice: the Plaits classes are excited again, not restarted, as the
+  circuits are. Otherwise it takes a free voice, else the one furthest into
+  a choke, else the oldest. Note-offs are ignored, and so are notes outside
+  36–51: a hit rings for its decay. A voice ends once it has stayed under
+  −80 dBFS for 10 ms; a choked one fades over 4 ms and ends.
+- **Per-note offsets.** A hit's offsets ride on its pad's values (ramped)
+  and on the kit's; the pitch offset moves it after Tune and the bend.
+  Notes are pads, so `set_param_note` reaches the hit on that pad's note.
+- **Rate.** As Macro and Macro Heavy (the owner's rule for Mutable code,
+  2026-10-01): the classes run at Plaits' 47,872.34 Hz in its 12-sample
+  blocks, with Plaits' own time constants, and the mono mix goes through
+  one `fm1_resampler.h` to the host. Our voices run there too. Hosts above
+  47,872.34 Hz are refused, as for the other Plaits engines. (Running at
+  44,118 Hz would save the resampler and stretch the classes' times by
+  8.8 %: an open question below.)
+- **Noise.** The Plaits classes draw from stmlib's one global generator.
+  Each pad has a state of its own, swapped in around its voice's render and
+  the global one put back after, and our voices draw from the same state.
+  So a pad's noise depends only on its own hits: two pads struck together
+  are the two struck apart, summed, and no other engine moves our noise, or
+  we theirs.
+- **No libm in the render** [verified: `nm -u` on `drums.o`, a test]:
+  stmlib's tables (`SemitonesToRatio`, `lut_sine`), polynomial tangents,
+  `SoftClip`, and the synthetic snare's two `sqrtf` a block, which are
+  correctly rounded everywhere. The browser's module renders the same
+  samples (parity, `sim/web`).
+- **Velocity.** The class's accent shapes each hit (pulse height, attack,
+  brightness) and Accent scales the level.
+
+**Cost** [measured 2026-10-05: this Mac (Apple clang, `-O2`), `fm1-render`,
+best of five; desktop figures, which say nothing of pi32v2]:
+
+| Load, per 64-frame block (1,451 µs at 44,118 Hz) | Drums | Macro |
+| --- | --- | --- |
+| Instance, 64-bit and 32-bit (GCC 12 `-m32` in a container) | 7,648 and 7,648 B | 32,448 and 19,584 B |
+| Twelve voices sounding (twelve long pads struck at once, Kit Decay 1) | 24.9 µs Deep, 16.3 µs Punch | 25.3–26.5 µs (twelve held notes, VA Pair and VA+Filter) |
+| Twelve pads re-struck every 0.4 s | 22.9 µs Deep, 14.2 µs Punch | |
+| One pad re-struck, by model | 2.8 µs (Rim, mostly silent) to 4.9 µs (Analog Drum, Snare) | |
+| Silent | 2.6 µs, the resampler alone | 2.5 µs |
+
+So at twelve voices Drums costs about what Macro does with the Deep kit
+(0.94–0.98 of it) and about 0.6 of it with the Punch kit, in a quarter of
+Macro's memory on 64-bit and two fifths on 32-bit.
+
+On pi32v2 nothing is measured yet. This stream's research compiled the
+classes with JieLi's clang and counted their per-sample loops: about 200
+instructions a sample for Analog Drum, 270 for Punch Drum, 370 for Snare,
+210 for Snap Snare, 130 for Hat and 470 for Ring Hat, upper bounds that
+put a dense hit (kick, snare, hat, clap and a tom) at 18–35 % of the
+5,440 cycles a sample one 240 MHz core has, at 1 to 2 cycles an
+instruction [inferred]. The hats share a choke group, so at most one Ring
+Hat rings at a time, but for a choked one's 4 ms. Stage B measures it.
+
+**Tests** (`tests/test_engine_drums.py`): every pad of both kits and every
+model sounds cleanly; the deep kick holds 55 Hz and rings over a second,
+the punch kick sweeps and ends inside 0.5 s; Sweep moves the kick's drop;
+the toms rise with their keys within 35 cents; closed, pedal and open hats
+are short, middle and long; the cowbell rings at 800 Hz; the closed and
+pedal hats choke the open one within 5 ms, Choke Off lets it ring, two
+cymbals in group B choke each other; velocity and Accent, Volume, Level,
+Kit Decay, Tune and the bend act; twelve voices hold and a thirteenth pad
+steals the oldest; a pad struck 24 times takes one voice; voices end and
+the output returns to zero; the per-pad knobs edit only the focused pad;
+Kit and Model are read when a pad is struck; Drive saturates; the output is
+the same at host blocks of 1, 7 and 64 and from any instance fill; two pads
+together are the two apart; no transcendental libm call; and per-note
+offsets as the other engines take them (zero is a no-op, an offset on a
+lone hit is a base change, a pitch offset is a bend, an offset reaches only
+its hit, a new hit starts at none, NaN, infinities, ignored indices and
+silent keys, extremes finite on every model and kit). The engine also runs
+through `tests/test_engine_host.py`, `test_engine_params.py` and
+`test_engine_smooth.py` with every other engine, and its two parity
+scenarios through the virtual FM-1.
+
+**Open questions** (for the owner):
+1. Plaits' rate and a resampler (as now, the 2026-10-01 rule) or the
+   host's rate, with no resampler and the classes' times 8.8 % long?
+2. The cowbell has no pad in 36–51 (General MIDI puts it on 56). Keep
+   Sophie's map and leave it to Model, or swap a pad (the High-Mid tom?) in
+   one kit?
+3. The hats' and cymbals' bank: Plaits' (the paper's four fixed oscillators
+   an octave up), as now, or the schematic's own frequencies? A table swap,
+   best decided by ear.
+4. The Punch kit's hats and cymbals: the machine that inspired it played
+   samples there; these are synthetic. Keep them, or add a small sample set
+   of our own (or CC0)?
+5. A circuit-level model of the 808 kick (Werner, Abel and Smith, DAFx-14)
+   as a later model, or is Plaits' Analog Drum enough?
+6. The voicings were set by measurement, not by ear: worth a listening pass.
 
 ## Crush
 
@@ -1501,7 +1674,7 @@ Filter's new type now warms up unheard before its crossfade, and the
 Limiter's Lookahead crossfade got a gain path per tap.
 `fm1_param_lockable`, `fm1_param_modulatable` and `fm1_param_index(engine,
 uid)` are the helpers. `fm1-render --list` prints each parameter's uid,
-flags (by name), unit and abbreviation, and each engine's `per_note`. The four fields make `fm1_param_t`
+flags (by name), unit and abbreviation, and each engine's `per_note` and `pads`. The four fields make `fm1_param_t`
 36 bytes on pi32v2 and i386 (28 before) and 48 on x86-64 (40) [verified:
 `tools/jieli/compile-check.sh`, 2026-10-02, 67 of 67 objects compiled in
 all four profiles]: 8 bytes more of read-only data per parameter, 1,160
@@ -1520,6 +1693,9 @@ the master-bus pack.
 | macro | Model | NOLOCK | `set_param` rebuilds all 12 voices (`BuildEngines`), cutting every note |
 | macro | LPG | none | Read every block, and a change leaves notes sounding, so it can be locked. No MOD: a rounded route could end a note held under Off by switching to Ping |
 | macro-heavy | Model, LPG | as Macro's | the same code |
+| drums | Pad | none | The edit focus, as Sophie's: lockable, no MOD |
+| drums | Model, Choke | LATCH, MOD | Read when a pad is struck; a sounding hit keeps its model and group |
+| drums | Kit | LATCH, MOD | The voicings a hit starts with; a sounding hit keeps them |
 | shapes | Shape | NOLOCK | Sets every voice's oscillator at once |
 | sixop | Patch | LATCH, MOD | Read per voice at note-on, so a lock or a route picks the patch of the next notes |
 | sw-sophie | Pad | none | The module's edit focus, not a sound: it picks the pad the other parameters edit. NOLOCK in S7a, since a lock on it changes what the locks after it mean; lockable since docs/15 S8 (the owner's decision, 2026-10-02): a Pad lock moves the focus at its step, so the locks after it in lane order, there and later, edit the pad it names. A change leaves sounding voices intact. No MOD: a list that moves the focus is no modulation target |
@@ -1563,6 +1739,7 @@ code is `include/fm1_smooth.h`, plain C99:
 | Engine | Control block | Steps | Ramp | What ramps |
 | --- | --- | ---: | --- | --- |
 | Macro, Macro Heavy | 12 samples at 47,872.34 Hz | 10 | 2.51 ms | every FLOAT, read once per block as before |
+| Drums | 12 samples at 47,872.34 Hz | 10 | 2.51 ms | every FLOAT: a per-pad one in its pad's own values, only while that pad sounds; the kit's while any pad does |
 | Six-Op FM | 16 samples at 47,872.34 Hz | 8 | 2.67 ms | Brightness, Envelope, Volume |
 | Shapes | 24 samples at 96 kHz | 10 | 2.5 ms | Timbre, Color, Attack, Release, Volume |
 | Test Sine | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | Volume |
@@ -1753,7 +1930,7 @@ below.
 | What the voice plays | `fm1_param_note_value`: base + offset, clamped as `set_param` clamps. The base is the engine's value, ramped while a SMOOTH change runs ([SMOOTH](#smooth-the-ramp-inside-the-engines)); a base that moves, ramp and all, keeps the offset on top |
 | What a call does | Replaces that voice's previous offset for that index; offsets do not add up. A host sends the sum of the note's routes |
 | NaN and infinities | `fm1_param_note_offset`: NaN is 0, no offset (as NaN is the default for `set_param`). An offset is cut to the parameter's span (max − min), past which the sum is at an end whatever the base, so ±inf pin the parameter at its maximum or minimum, as through `set_param`. A pitch offset is cut to ±48 semitones (`FM1_NOTE_PITCH_MAX`), the pitch bend's range |
-| Which voice | Every voice sounding the key, held or releasing. The four engines retrigger a key in its own voice, so there is one |
+| Which voice | Every voice sounding the key, held or releasing. The engines retrigger a key in its own voice (Drums: a pad), so there is one |
 | Lifetime | The offsets belong to the voice. `note_on` starts the key's voice at 0, so a host sends a new note's offsets after its note-on, at the same frame. `note_off` keeps them: the release is moved too. A voice that is stolen or ends drops them. A call for a key no voice sounds is ignored, not kept for a later note |
 | When | Where `set_param` would take effect: the next internal block (12 or 16 samples at 47,872 Hz, 24 at 96 kHz), at once: an offset is not ramped, where a SMOOTH change of the base is. So the output does not depend on the host's block size |
 | Thread | The audio task, like `set_param` |
@@ -1774,6 +1951,7 @@ both. The pitch has no uid: a route stores it as a system destination
 | `macro-heavy` | all ten FLOATs (Macro's and Word Speed) | As Macro. On Speech, Harmonics stays engine-wide: it picks the word bank all voices share (one parse, not four), and the envelope's reach with it, so its offset is ignored there |
 | `sixop` | Brightness, Envelope, Volume | Each voice already passes the first two to its `fm::Voice`, and Volume is its gain. Patch stays a note-on choice (LATCH). A pitch offset at the note's first block is the note `fm::Voice` samples for keyboard and rate scaling, as a played note's would be |
 | `shapes` | Timbre, Color, Attack, Release, Volume | Each voice already sets its oscillator's parameters and runs its own envelope. Shape stays engine-wide (NOLOCK) |
+| `drums` | all ten FLOATs: the seven per-pad ones (Tune .. Drive) and Accent, Kit Decay, Volume | A hit computes its controls every block from its pad's values and the kit's, plus its offsets; notes are pads, so the offset reaches the hit on that pad's note. Model, Choke and Kit stay note-on choices (LATCH) |
 | `sw-sophie` | none (NULL) | The module keeps its voices to itself (each copies its pad's patch at the trigger, `sophie.c`), and the shim reaches only the module's global `set_param`. Per-note offsets would mean changing the vendored module, which stays byte-identical |
 | `test-sine` | none (NULL) | Kept without them: the engine a host's tests use for the NULL case |
 | effects | none (NULL) | No notes |
@@ -1858,11 +2036,39 @@ engines]:
 block's note-ons. The renderer refuses them for an engine without
 `set_param_note` and NAME for a parameter that is not POLY.
 
+### Pad kits
+
+A drum kit plays one sound per note on a run of keys, whatever their
+pitch: Sophie's and Drums' 16 pads on notes 36–51, General MIDI's drum
+keys, lie below the FM-1's keys (53–79 at octave 0). Until 2026-10-05 the
+virtual FM-1 knew Sophie by its id. Now an engine says so itself, in two
+fields at the end of `fm1_engine_t` (API v2, optional, additive):
+
+| Field | What it is |
+| --- | --- |
+| `pad_first_note` | The note pad 1 plays |
+| `pad_count` | How many pads, one note each from `pad_first_note`; 0 for any other engine, whose notes are pitches |
+
+- `fm1_engine_pad_note(e, pad)` gives the note pad `pad` (from 0) plays,
+  or −1. Notes outside the run play nothing on a kit.
+- **The host's side.** A host with a keyboard may lay the pads on its keys;
+  MIDI keeps the notes. The virtual FM-1 puts pads 1–16 on its 16 white
+  keys at any octave, and its black keys play nothing, for the current
+  sound (`key_note` in `sim/web/src/fm1_app.c`; before, Sound 1's only).
+  `fm1-render --list` prints `pads` (`first`, `count`, or null), and
+  `fm1-smooth-test` plays a kit's pads, its first among them, instead of
+  its pitched keys.
+- **Every initializer names the fields:** `0, 0` (not a kit) on every other
+  engine and effect, `36, 16` on Sophie and Drums, so a new engine that
+  leaves them out gets GCC's and clang's missing-initializer warning. The
+  struct grows by 4 bytes on pi32v2 (two bytes and padding after the last
+  pointer) and 8 on x86-64.
+
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `include/fm1_engine.h` | The engine API, version 2. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, flags, a unit and an abbreviation ([above](#parameters-engine-api-v2)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the threading contract |
+| `include/fm1_engine.h` | The engine API, version 2. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, flags, a unit and an abbreviation ([above](#parameters-engine-api-v2)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); pad kits ([above](#pad-kits)); the threading contract |
 | `include/fm1_mod.h`, `include/fm1_mod_host.h`, `mod/` | Modulation (docs/16 stage MG1): a rack of up to 8 modules inside a 32-slot matrix, run every 32 frames on absolute time, with the module kinds LFO, Envelope and Chance, and the glue that runs it as the sequencer bridge's control-rate hook. Built on the primitives (an LFO, a Peaks-style envelope, slew, S&H, a Turing register, a tick clock divider). Heap-free C99, no libm; `fm1-render --mod` hosts it, the simulator does not yet ([mod/README.md](mod/README.md)) |
 | `include/fm1_seq.h`, `seq/` | The sequencer core: a heap-free C99 port of Movy's sequencer, with 4–8 routed tracks ([seq.md](seq.md), docs/13) |
 | `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`. Not wired into the renderer yet ([midi_fx/README.md](midi_fx/README.md)) |
@@ -1870,7 +2076,8 @@ block's note-ons. The renderer refuses them for an engine without
 | `include/fm1_mix_limiter.h` | The host's mix-bus limiter and bus guard. Twelve voices started in phase can exceed full scale; the bus holds the output under 0.98, and non-finite samples become silence |
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
-| `src/note_offsets.h` | A voice's per-note offsets, shared by the four engines that take them |
+| `src/note_offsets.h` | A voice's per-note offsets, shared by the five engines that take them |
+| `src/drums.cc`, `src/drum_voices.h` | Drums: the kit around Plaits' drum classes, and the rim shot, clap, cowbell and cymbal of our own ([above](#drums)) |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
 | `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq)) |
 | `src/fx_comp_math.h` | `CompExp2` and `CompLog2`: base-2 exponential and logarithm without libm, the same bits on every build (Comp's; Tilt and DJ Filter use it too) |
@@ -1966,10 +2173,11 @@ past the table. It found the Isolator's stalled crossover glide
   | Filter | 18,368 | 18,368 | Comb's two delay lines, fs / 20 Hz each |
   | Six-Op FM, 8 voices | 12,776 | 11,008 | |
   | Limiter | 11,008 | 11,008 | 5 ms of lookahead at 44,118 Hz; 26,912 at 102 kHz and above |
+  | Drums, 12 voices | 7,648 | 7,648 | a 224-byte model object per voice (Ring Hat's), 16 pads' values and ramps, one resampler |
   | Ensemble | 4,752 | 4,736 | |
 
   The figures include the native-rate resamplers (about 1.3 KB each), the
-  four engines' per-note offsets ([above](#per-note-offsets)) and the
+  five engines' per-note offsets ([above](#per-note-offsets)) and the
   SMOOTH ramps (12 bytes per parameter; 176 bytes in each Schwung instance
   on 64-bit and 160 on 32-bit, for eight ramps, Sophie's unused),
   measured after S7b merged with main (32-bit: GCC 12.2 in Debian). The

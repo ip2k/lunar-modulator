@@ -347,4 +347,5 @@ extern "C" const fm1_engine_t fm1_engine_shapes = {
   fm1::shapes::NoteOn, fm1::shapes::NoteOff, fm1::shapes::Bend,
   fm1::shapes::Set, fm1::shapes::Render,
   fm1::shapes::SetNote,
+  0, 0,                     // not a pad kit
 };

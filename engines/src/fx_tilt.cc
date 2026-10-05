@@ -367,6 +367,7 @@ const fm1_engine_t fm1_engine_tilt = {
   NULL, NULL, NULL,
   TiltSet, TiltRender,
   NULL,                     // no notes, so no per-note offsets
+  0, 0,                     // not a pad kit
 };
 
 #ifdef __cplusplus

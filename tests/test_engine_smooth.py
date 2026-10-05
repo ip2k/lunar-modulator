@@ -45,7 +45,7 @@ def floats(raw):
     return struct.unpack(f"<{len(raw) // 4}f", raw)
 
 
-UNITS = ["test-sine", "macro", "macro-heavy", "shapes", "sixop", "sw-sophie", "plate",
+UNITS = ["test-sine", "macro", "macro-heavy", "shapes", "sixop", "sw-sophie", "drums", "plate",
          "ensemble", "diffuse", "crush", "fold", "echo", "test-gain", "sw-psxverb",
          "drive", "filter", "comp", "limit", "djfilter", "tilt", "sat", "isolator", "eq"]
 

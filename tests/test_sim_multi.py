@@ -70,6 +70,23 @@ def test_the_keys_play_the_current_sound(tools):
     assert loud["peak"] > 0.1 and loud["current"] == 0 and loud["sounding"] == 0
 
 
+def test_the_keys_follow_the_current_sounds_pads(tools):
+    """The white-key pad map follows the current sound, not Sound 1: with
+    Drums as Sound 2 and current, a black key is silent (no pad) and a white
+    key plays a pad; with Macro current over Drums as Sound 1, the same black
+    key plays its pitch."""
+    to_two = ["--button", "0.1:SEL:0.1", "--turn", "0.15:PRESETS:1"]
+    on_drums = lab(tools, "--engine", "macro", "--sound", "1:drums", "--level", "0:0", *to_two,
+                   "--key", "0.3:1:100:0.2", seconds=0.8)
+    assert on_drums["current"] == 1 and on_drums["peak"] == 0
+    white = lab(tools, "--engine", "macro", "--sound", "1:drums", "--level", "0:0", *to_two,
+                "--key", "0.3:0:100:0.2", seconds=0.8)
+    assert white["peak"] > 0.05
+    on_macro = lab(tools, "--engine", "drums", "--sound", "1:macro", "--level", "0:0", *to_two,
+                   "--key", "0.3:1:100:0.2", seconds=0.8)
+    assert on_macro["current"] == 1 and on_macro["peak"] > 0.01
+
+
 def test_a_midi_note_off_finds_the_sound_holding_it(tools, tmp_path):
     """A note at MIDI IN plays the current sound; if the current sound
     changes before its release, the release still reaches the sound that

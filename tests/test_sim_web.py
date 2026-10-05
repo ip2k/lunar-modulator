@@ -471,15 +471,30 @@ def test_font_header_is_current():
 
 
 
+@pytest.mark.parametrize("engine", ["sw-sophie", "drums"])
 @pytest.mark.parametrize("key,peak", [(0, True), (1, False), (2, True), (26, True)])
-def test_sophie_white_keys_play_its_pads_at_any_octave(tools, key, peak):
-    """Sophie only answers MIDI notes 36-51, below the keys' range (53-79 at
-    octave 0). With Sophie as the sound the 16 white keys play pads 1-16 and the
+def test_pad_kits_play_their_pads_on_the_white_keys_at_any_octave(tools, engine, key, peak):
+    """A pad kit (an engine with pad_count, fm1_engine.h: Sophie and Drums)
+    only answers MIDI notes 36-51, below the keys' range (53-79 at octave
+    0). With a kit as the sound the 16 white keys play pads 1-16 and the
     black keys play nothing, at any octave; other engines are unchanged."""
     for panel in ([], ["--button", "0.05:OCT+:0.02"], ["--button", "0.05:OCT-:0.02"]):
-        summary = run(tools["sim"], ["--engine", "sw-sophie", "--seconds", "0.7",
+        summary = run(tools["sim"], ["--engine", engine, "--seconds", "0.7",
                                      "--key", f"0.1:{key}:110:0.3", *panel])
         assert (summary["peak"] > 0.05) is peak
+
+
+@pytest.mark.parametrize("white,pad_note", [(0, 36), (2, 38), (5, 41), (9, 45), (15, 51)])
+def test_a_white_key_plays_the_pad_a_drum_note_plays(tools, tmp_path, white, pad_note):
+    """White key w (F3, G3, A3... from key 0) plays pad w + 1, byte for byte
+    what its MIDI note at MIDI IN plays."""
+    key = 12 * (white // 7) + [0, 2, 4, 5, 7, 9, 11][white % 7]
+    a, b = tmp_path / "key.wav", tmp_path / "midi.wav"
+    run(tools["sim"], ["--engine", "drums", "--seconds", "0.5", "--out", str(a),
+                       "--key", f"0.1:{key}:100:0.2"])
+    run(tools["sim"], ["--engine", "drums", "--seconds", "0.5", "--out", str(b),
+                       "--note", f"0.1:{pad_note}:100:0.2"])
+    assert a.read_bytes() == b.read_bytes()
 
 @pytest.mark.parametrize("panel,note", [
     ([], 53),                                             # key 0 is F3 (manual p.10)
