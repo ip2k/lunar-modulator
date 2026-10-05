@@ -101,7 +101,11 @@ FAKE_LIST = [
          {"name": "Shape", "type": 1, "min": 0, "max": 2, "def": 1, "page": 0,
           "names": ["Saw", "Square", "Sine"]},
          {"name": "Tone", "type": 0, "min": -1, "max": 1, "def": 0, "page": 0},
-         {"name": "Level", "type": 0, "min": 0, "max": 1, "def": 0.7, "page": 1}]},
+         {"name": "Level", "type": 0, "min": 0, "max": 1, "def": 0.7, "page": 1},
+         {"name": "Cutoff", "type": 0, "min": 20, "max": 18000, "def": 2000, "page": 1,
+          "flags": ["smooth", "mod", "log"], "unit": "hz"},
+         {"name": "Gain", "type": 0, "min": -12, "max": 12, "def": 0, "page": 1,
+          "flags": ["smooth", "mod"], "unit": "db"}]},
     {"id": "verb", "name": "Verb", "credits": "Tests (MIT)", "kind": "audio_fx", "max_voices": 0,
      "params": [{"name": "Mode", "type": 1, "min": 0, "max": 1, "def": 0, "page": 0}]},
 ]
@@ -115,6 +119,9 @@ def test_engine_table_shows_pages_knobs_ranges_and_values():
     assert "List, 3 values" in out and "1 <span class='vname'>Square</span>" in out
     assert "−1 – 1" in out                               # a real minus sign
     assert "<span class='vnum'>2</span> Sine" in out
+    # LOG (engine API v3) and the units fm1-render names
+    assert "Continuous, logarithmic</td><td class='num nowrap'>20 – 18000 Hz</td>" in out
+    assert "<td>Continuous</td><td class='num nowrap'>−12 – 12 dB</td><td class='num'>0 dB</td>" in out
     assert "6 voices" in out and "<code>demo</code>" in out
     assert reference.check_engine(demo) == []
     assert "appear here once" in reference.engine_table(verb)  # no names reported

@@ -129,7 +129,8 @@ def test_no_heap_no_stdio_no_libm(renderer):
     objs = sorted(base.glob("mod_*.o")) + sorted((base / "kinds").glob("*.o"))
     kinds = json.loads(subprocess.check_output([str(renderer), "--list-mod"]))["kinds"]
     assert len(objs) == 7 + len(kinds)    # core, plan, registry, curves, glue, mi, mi_tables
-    objs.append(ENGINES / "build" / "c" / "seq" / "seq_host.o")
+    objs.append(ENGINES / "build" / "c" / "seq" / "seq_host.o")   # 7-bit locks (the LOG law)
+    objs.append(ENGINES / "build" / "c" / "seq" / "fx_host.o")    # the effects' beats
     for o in objs:
         out = subprocess.check_output([nm, "-u", str(o)], text=True)
         names = {line.split()[-1] for line in out.splitlines() if line.strip()}

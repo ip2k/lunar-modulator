@@ -57,3 +57,7 @@ $(BUILD)/our/test/schwung_race.o: COMMON += -pthread
 
 $(BUILD)/fm1-schwung-race: $(SW_RACE_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -pthread -o $@ $^ -lm
+
+# Header dependencies (-MMD): a change to fm1_engine.h rebuilds the selftest
+# and the race test too, not only the objects the main Makefile lists.
+-include $(BUILD)/our/test/schwung_selftest.d $(BUILD)/our/test/schwung_race.d

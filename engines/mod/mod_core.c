@@ -447,6 +447,24 @@ static float meta_clamp(const mod_meta_t *q, float v) {
   return q->type == FM1_PARAM_ENUM ? mod_round(v) : v;
 }
 
+/* Whether a sink record moves on the LOG law (fm1_param_is_log, engine API
+ * v3): its routes sum in octaves. */
+static int meta_log(const mod_meta_t *q) {
+  return (q->flags & FM1_PARAM_LOG) && q->type == FM1_PARAM_FLOAT && q->min > 0.0f &&
+         q->max > q->min;
+}
+
+/* A base moved by its routes' sum: base + off, or for a LOG parameter base
+ * x 2^off, off in octaves; clamped as the engine holds it. A sum of 0
+ * leaves the base's bits as they are either way. */
+static float meta_apply(const mod_meta_t *q, float base, float off) {
+  if (meta_log(q)) {
+    const float g = fm1_exp2f(off);
+    return meta_clamp(q, base * g);
+  }
+  return meta_clamp(q, base + off);
+}
+
 float fm1_mod_set_base(fm1_mod_t *m, unsigned unit, unsigned index, float value) {
   const int si = fm1_mod_sink_index(unit);
   const int r = sink_rec(m, si, index);
@@ -455,7 +473,7 @@ float fm1_mod_set_base(fm1_mod_t *m, unsigned unit, unsigned index, float value)
   q = &m->meta[r];
   m->sink_base[r] = mod_clampf(value, q->min, q->max, q->def);
   if ((m->plan.sink_routed[si] >> index) & 1u) {
-    const float v = meta_clamp(q, m->sink_base[r] + m->sink_off[r]);
+    const float v = meta_apply(q, m->sink_base[r], m->sink_off[r]);
     m->sink_sent[r] = v;
     return v;
   }
@@ -654,19 +672,28 @@ static float amount_of(const fm1_mod_slot_t *s) {
 
 /* Slot i's contribution to a parameter of range [min, max] (rule: amount x
  * signal x range; an INPUT takes amount x signal; SEMI into SEMI is
- * amount x signal x 60 semitones). */
-static float contribution(fm1_mod_t *m, unsigned i, float min, float max, uint8_t flags,
-                          uint8_t unit) {
+ * amount x signal x 60 semitones). Into a LOG parameter (log set; engine
+ * API v3) it is in octaves: amount x signal x log2(max / min), the same
+ * share of its knob, and from a SEMI source the octave rule, amount x
+ * signal x 60 semitones / 12, so NOTE at +100 % keytracks exactly. */
+static float contribution(fm1_mod_t *m, unsigned i, float min, float max, uint16_t flags,
+                          uint8_t unit, int log) {
   uint8_t su;
   const float x = signal(m, i, &su);
   const float a = amount_of(&m->slot[i]);
   float c;
   if (flags & FM1_PARAM_INPUT) {
     c = a * x;
-  } else if (su == FM1_UNIT_SEMI && unit == FM1_UNIT_SEMI) {
+  } else if (su == FM1_UNIT_SEMI && (unit == FM1_UNIT_SEMI || log)) {
     /* Semitones, on a grid of 1/1024 (0.1 cent) so that whole notes stay
-     * whole: (67 - 60) / 60 x 60 is 7.0000005 in float, 7 here. */
-    c = a * (mod_round(x * 61440.0f) * (1.0f / 1024.0f));
+     * whole: (67 - 60) / 60 x 60 is 7.0000005 in float, 7 here; twelve of
+     * them are one octave exactly. */
+    c = mod_round(x * 61440.0f) * (1.0f / 1024.0f);
+    if (log) c = c / 12.0f;
+    c = a * c;
+  } else if (log) {
+    c = a * x;
+    c = c * fm1_log2f(max / min);
   } else {
     c = a * x * (max - min);
   }
@@ -677,12 +704,12 @@ static float contribution(fm1_mod_t *m, unsigned i, float min, float max, uint8_
   return c;
 }
 
-static float sum_slots(fm1_mod_t *m, uint32_t slots, float min, float max, uint8_t flags,
-                       uint8_t unit) {
+static float sum_slots(fm1_mod_t *m, uint32_t slots, float min, float max, uint16_t flags,
+                       uint8_t unit, int log) {
   float acc = 0.0f;
   unsigned i;
   for (i = 0; slots; ++i, slots >>= 1) {
-    if (slots & 1u) acc = acc + contribution(m, i, min, max, flags, unit);
+    if (slots & 1u) acc = acc + contribution(m, i, min, max, flags, unit, log);
   }
   return acc;
 }
@@ -797,8 +824,17 @@ static void run_module(fm1_mod_t *m, unsigned pos, const fm1_mod_transport_t *tp
   for (i = 0; i < kd->n_params; ++i) {
     const fm1_param_t *p = &kd->params[i];
     const uint8_t d = m->plan.pdest[pos][i];
+    const int log = fm1_param_is_log(p);
     float v = m->base[pos][i];
-    if (d != MOD_NONE) v = v + sum_slots(m, m->plan.dest[d].slots, p->min, p->max, p->flags, p->unit);
+    if (d != MOD_NONE) {
+      const float off = sum_slots(m, m->plan.dest[d].slots, p->min, p->max, p->flags, p->unit, log);
+      if (log) {
+        const float g = fm1_exp2f(off);
+        v = v * g;
+      } else {
+        v = v + off;
+      }
+    }
     v = fm1_param_clamp(p, v);
     m->peff[pos][i] = p->type == FM1_PARAM_ENUM ? mod_round(v) : v;
   }
@@ -909,9 +945,9 @@ static void write_sinks(fm1_mod_t *m) {
       q = &m->meta[r];
       d = m->plan.sdest[r];
       if (d != MOD_NONE && ((m->plan.sink_routed[u] >> i) & 1u)) {
-        off = sum_slots(m, m->plan.dest[d].slots, q->min, q->max, q->flags, q->unit);
+        off = sum_slots(m, m->plan.dest[d].slots, q->min, q->max, q->flags, q->unit, meta_log(q));
       }
-      v = meta_clamp(q, m->sink_base[r] + off);
+      v = meta_apply(q, m->sink_base[r], off);
       m->sink_off[r] = off;
       if (mod_bits(v) != mod_bits(m->sink_sent[r]) && m->n_wr < MOD_MAX_WRITES) {
         fm1_mod_write_t *w = &m->wr[m->n_wr++];

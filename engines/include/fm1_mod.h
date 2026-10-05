@@ -20,7 +20,9 @@
  *
  * Values. Rule M1 (docs/16 §6.1): a knob, a lock or a preset writes a
  * parameter's base; the runtime sends clamp(base + the sum of the enabled
- * slots' contributions, in ascending slot order). A destination with no
+ * slots' contributions, in ascending slot order), or for a LOG parameter
+ * (engine API v3) clamp(base x 2^(the sum)), the contributions in octaves
+ * (docs/16 §2.3, the octave rule). A destination with no
  * enabled slot is never written, so every render without routes is
  * byte-identical to one without this runtime.
  *

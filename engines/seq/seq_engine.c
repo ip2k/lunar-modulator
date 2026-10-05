@@ -1478,6 +1478,19 @@ void fm1_seq_get_info(const fm1_seq_t *s, fm1_seq_info_t *i) {
   i->rec_track = s->rec_track;
 }
 
+void fm1_seq_get_clock(const fm1_seq_t *s, fm1_seq_clock_t *o) {
+  memset(o, 0, sizeof(*o));
+  o->master_tick = s->master_tick;
+  o->accum = s->accum;
+  o->threshold = s->threshold;
+  /* advance's own increment; its ticks fall on this grid unless they follow
+   * an external clock or are Movy's, all at the block's start */
+  o->inc = follow_active(s) || s->lim.compat == FM1_SEQ_COMPAT_MOVY
+               ? 0u : (uint64_t)s->bpm_x100 * FM1_SEQ_PPQN;
+  o->bpm_x100 = s->bpm_x100;
+  o->playing = s->playing;
+}
+
 int fm1_seq_get_track(const fm1_seq_t *s, uint8_t t, fm1_seq_track_info_t *o) {
   const sq_track_t *tr;
   if (t >= s->n_tracks) return 0;

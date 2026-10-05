@@ -73,7 +73,7 @@ enum Param { P_SHAPE, P_TIMBRE, P_COLOR, P_ATTACK, P_RELEASE, P_VOLUME, P_COUNT 
 // Uids (API v2) are fixed: never renumber one. Shape sets every voice's
 // oscillator at once (NOLOCK). The FLOATs are POLY: each voice's oscillator
 // takes its own Timbre and Color, and its envelope and gain are its own.
-const uint8_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
+const uint16_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
 const fm1_param_t kParams[P_COUNT] = {
   { "Shape",   FM1_PARAM_ENUM,  0, kNumShapes - 1, 0, kShapeNames, 0,
     1, FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Shape" },
@@ -347,4 +347,5 @@ extern "C" const fm1_engine_t fm1_engine_shapes = {
   fm1::shapes::NoteOn, fm1::shapes::NoteOff, fm1::shapes::Bend,
   fm1::shapes::Set, fm1::shapes::Render,
   fm1::shapes::SetNote,
+  0, NULL,                  // API v3: no effect extension
 };
