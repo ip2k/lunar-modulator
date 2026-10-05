@@ -40,6 +40,11 @@ terms it is used under.
 - **Tilt** is this project's own code. A tilt built from first-order
   sections follows **Airwindows**' ToneSlant (MIT licence) and the
   spectral tilt of the **Faust** libraries; none of their code is used.
+- **Master Sat** is this project's own code. Its two curves use the
+  coefficients of **Airwindows** PurestSaturation and TapeHack2, by **Chris
+  Johnson**, MIT licence ("Copyright (c) 2018 Chris Johnson"; the licence's
+  notice is in the effect's source), and its Glue follows the idea of
+  Airwindows Compresaturator, whose code is not used.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and

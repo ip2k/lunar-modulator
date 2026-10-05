@@ -34,6 +34,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
 | `djfilter` | DJ Filter | effect | – | this repository, a trapezoidal SVF after Simper and Zavalishin | one knob: low-pass left of centre, high-pass right, the input bit for bit in between; [below](#dj-filter) |
 | `tilt` | Tilt | effect | – | this repository | a tilt equaliser, dark to bright about a pivot; [below](#tilt) |
+| `sat` | Master Sat | effect | – | this repository; curve coefficients from Airwindows (Chris Johnson, MIT) | gentle band-limited saturation for the master bus, with Glue; [below](#master-sat) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -448,6 +449,135 @@ How it works [verified: tests/test_engines_tilt.py and
   at the matrix's rate, every parameter changed mid-stream to any value,
   silence and tails, and the host rates it accepts.
 
+## Master Sat
+
+Gentle saturation for the master bus (`src/fx_sat.cc`, our own code, MIT),
+the design of §6 of
+[notes/2026-10-02-delay-reverb-eq-gates-options.md](../notes/2026-10-02-delay-reverb-eq-gates-options.md).
+Only the band between Clean Lo and Clean Hi goes through the curve, and
+only what the curve adds to it, the part that is not linear, is added to the
+dry signal:
+
+    band = low-pass(Clean Hi) of high-pass(Clean Lo) of x;  u = Drive x band
+    G = Glue's gain (below);  v = G u
+    wet = G x + DC blocker((h(v) - v) / Drive);   out = x + Mix (Level x wet - x)
+
+The dry signal is never split, so the filters' phase cannot comb with it,
+and a quiet signal passes unchanged: Drive's gain into the curve is divided
+out again. The Drive effect from the same research is the other kind, an
+insert that distorts on purpose; this one is meant to be left on the bus.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Drive | 0–18 dB (6) | Gain into the curve, divided out after it: where the bending starts, not how loud the result is |
+| 1 | Clean Lo | 20–300 Hz (100) | A 12 dB/octave high-pass before the curve: below it nothing is saturated (no intermodulation of the kick and the bass with the rest), and Glue does not hear it |
+| 1 | Glue | 0–1 (0.25) | Turns the drive into the curve and the level of the whole signal down by how hard the curve works, up to 6 dB: a bus compressor keyed by the saturation |
+| 1 | Mix | 0–1 (0) | Dry to wet. At 0, the default, the (guarded) input passes bit for bit, whatever else is set |
+| 2 | Shape | Smooth, Dense (Smooth) | The curve. Dense bends sooner and tops out lower. A change crossfades over 5 ms |
+| 2 | Asymmetry | −1 to +1 (0) | Offsets the curve's input by 0.5 × Asymmetry: one side bends first and even harmonics appear |
+| 2 | Clean Hi | 1–20 kHz (6,000) | A 12 dB/octave low-pass before the curve (at most 0.45 of the host's rate): above it nothing is saturated, and fewer harmonics are made to alias |
+| 2 | Level | −12 to +12 dB (0) | The wet signal's gain |
+
+- **The curves** are odd polynomials of the 11th degree with Airwindows'
+  coefficients (Chris Johnson, MIT; the notice is in the source): Smooth is
+  PurestSaturation's, x − x³/8 + x⁵/128 − x⁷/4,096 + x⁹/262,144 −
+  x¹¹/33,554,432, and Dense is TapeHack2's, x − x³/6 + x⁵/69 − x⁷/2,530.08
+  + x⁹/224,985.6 − x¹¹/9,979,200 [verified: both `*Proc.cpp` files and the
+  LICENSE at Airwindows commit `d22a25b`, 2026-10-05]. Airwindows clamps
+  them at 2.0326 and 2.3059; we clamp each where its slope reaches zero,
+  2.04501 and 1.95801, which makes both monotonic with a C1 plateau
+  (Airwindows' PurestSaturation still has a slope of 0.0065 at its clamp, and
+  TapeHack2 dips 0.4 % past its peak before its clamp) [verified: bisection
+  on the derivative]. Ceilings 1.2212 and 1.0821.
+- **Small signals:** the residual h(v) − v is evaluated as a polynomial in v
+  about Asymmetry's offset, b₂v² + … + b₁₁v¹¹ (a Taylor shift of the curve,
+  done when the offset moves), not as f(v + a) − f(a), which would lose a
+  quiet signal to the rounding of v + a and, through Glue's detector, read
+  near-silence as full squash. For a −60 dBFS sine at full Drive and Glue
+  the output differs from the input by at most −96 dB of its peak (−54 dB
+  with Asymmetry at 1, the second harmonic) [verified: fm1-sat-test]. With Asymmetry at 0 the even terms are
+  zero and an odd-only sum in v² does half the work.
+- **Glue** is the note's idea after Airwindows Compresaturator (MIT; no code
+  from it): the curve's own overspill turns its drive down. Here the
+  detector is the overspill as a share of the input, the squash
+  s = 1 − h(u)/u of the louder channel, through a peak envelope (2 ms
+  attack, 200 ms release; stereo-linked, feed-forward from the drive as
+  set), and G = 1 − Glue × s / 2. The note asked for the overspill
+  |u| − |h(u)| itself; divided by |u| the reduction is bounded (6 dB) and the
+  same at any Drive, and the release takes the same time whatever the level
+  falls to. Measured on a 440 Hz sine at Drive 12: −0.8 dB of level and
+  −3.6 dB of distortion at Glue 1; on a step from 0.05 to 0.5 the reduction
+  is half caught within 15 ms, and a second after the step back it is gone
+  [verified: tests/test_engines_sat.py]. The envelope is two lines; when the
+  shared libm-free maths header of the note's stage B1 lands, it moves there
+  with the Comp's smoothing.
+- **Asymmetry** subtracts f(a), renormalises the slope at the origin to 1
+  and leaves the DC that a lopsided curve makes to a 10 Hz blocker on the
+  residual: the second harmonic of a 440 Hz sine at Drive 6 is −27 dB at
+  Asymmetry 0.5 and −20 dB at ±1, with the output's mean under 10⁻⁶.
+- **Aliasing,** fm1-sat-test's count of every reflected harmonic against
+  the fundamental [verified, 2026-10-05]:
+
+  | Case | Master Sat | Plain tanh, same peak |
+  | --- | --- | --- |
+  | 3 kHz, curve peak about 1.5 (Drive 10), the note's case | −125.8 dB Smooth, −125.0 dB Dense | −66.2 dB |
+  | 3 kHz, Drive 18 (clamped), Clean Hi 6 kHz | −49 dB | |
+  | 3 kHz, Drive 18, Clean Hi open | −43 dB | |
+  | 440 Hz, Drive 18 | −85 dB | |
+
+  Below the clamp the polynomial makes nothing above its 11th harmonic; once
+  Drive pushes peaks onto the plateau, the corners make harmonics without
+  end. No oversampling and no antiderivative anti-aliasing (the note's
+  recommendation for a bus effect); Clean Hi is the guard.
+- **Contracts:** the input guard of `mi_fx.cc`; `fm1_param_clamp`; every
+  continuous knob glides over 5 ms sample by sample and Shape crossfades, so
+  the output is identical at host blocks of 1, 7 and 64, also with knobs
+  turned between blocks; values set before the first block apply from its
+  first sample. Silence in is exact silence out at any setting and while the
+  knobs move (the residual has no constant term). A filter's two states
+  flush to zero together once both are below 10⁻²⁰: flushing each alone, as
+  Fold does, cut their coupling and left the 20 Hz high-pass decaying with a
+  time constant of 5 s at 10⁻¹⁸ [verified]. After loud noise a tail ends in
+  exact zeros within 0.66 s.
+- **Determinism:** no libm at all (2^x, sine and cosine are polynomials
+  written here; `nm -u` lists no maths symbol) and no fused multiply-adds
+  (`#pragma STDC FP_CONTRACT OFF`, as in the Comp). fm1-sat-test prints a
+  digest of 3 s of output with every knob turned; Apple clang on arm64, GCC
+  13 on x86-64 and Emscripten's wasm32 printed the same one [verified,
+  2026-10-05, in containers on the LAN build host], and the test pins it.
+- **Memory:** 336 bytes, no delay lines and no pointers: the same on arm64,
+  x86-64 and wasm32 [verified].
+- **Cost:** per frame, two two-pole filters, the curve and a DC blocker per
+  channel and one divide: about 100 operations with Glue at 0, 130 with
+  Glue up (the curve runs again at the lowered drive) and 170 with
+  Asymmetry too (ten terms instead of five); both curves during a 5 ms Shape
+  crossfade. At one operation per cycle that is 2–5 % of a 240 MHz core
+  [inferred], more than the note's 1.5 %, which did not count the filters'
+  flush tests, Glue's second curve or the divide. Desktop (Apple M1 Max,
+  20 s of noise, the fastest of nine runs, 2026-10-05) [verified:
+  fm1-render's `ns_per_block`]: 1.64 µs per 64-frame block with Glue at 0
+  (0.11 % of the block), 2.32 µs with Glue at 1 (0.16 %), 3.41 µs with
+  Asymmetry as well (0.23 %), against 1.76 µs for Fold and 0.90 µs for
+  Plate in the same runs. Mix at 0 costs the same: the filters and Glue keep
+  running so that turning Mix up is clean.
+- **Where it departs from the note:** the knobs it called Bass and Clean
+  highs are Clean Lo and Clean Hi, because "Clean Highs 20000" does not fit
+  a row of the 240-pixel screen [verified: the simulator's layout check];
+  Glue's detector is normalised (above); the clamps sit where the slopes
+  reach zero (above); Mix defaults to 0, because the note's master-bus rule
+  (§5) gives every master effect an exact-bypass default and a saturator has
+  no neutral Drive; and Glue's envelope is not yet shared with the Comp's,
+  which is not on this branch. Not taken: a Tape mode (the note keeps tape
+  colour in the Drive effect) and the Console sum mode (deferred until
+  several units are summed).
+- `build/fm1-sat-test` (`test/sat_test.cc`) drives Master Sat directly:
+  every parameter changed mid-stream to any value, NaN and infinities
+  included, between blocks of 1–64 frames; the glide, the Shape crossfade,
+  Glue's envelope; float-exact bypass; the host rates it accepts
+  (8–384 kHz); the digest; and `fm1-sat-test tone HZ AMP [NAME=VALUE…]`,
+  a sine's harmonics, distortion and aliases at 1 Hz resolution, which the
+  tests use for what each knob does.
+
 ## Parameters (engine API v2)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -511,11 +641,13 @@ third page.
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
 | sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
+| sat | Shape | MOD | Crossfades over 5 ms, so a lock or a rounded route is clean however fast (the owner's switch rule, 2026-10-02) |
 
 **Units and abbreviations.** Echo's Time and Sophie's Ring Time are in ms,
-Sophie's Tune in semitones and its 0–100 knobs in %. Sophie's Decay is in
-seconds, for which there is no unit code yet, so it has none. Every other
-parameter is a bare number (the 0–1 knobs, gains, bits, indices).
+Sophie's Tune in semitones and its 0–100 knobs in %, Master Sat's Clean Lo
+and Clean Hi in Hz. Sophie's Decay is in seconds and Master Sat's Drive and
+Level in dB, for which there are no unit codes yet, so they have none. Every
+other parameter is a bare number (the 0–1 knobs, gains, bits, indices).
 
 **No sound changed** [verified 2026-10-02, Apple clang, before and after on
 one machine, clean builds]: 1,458 runs of `fm1-render` and the virtual
@@ -552,7 +684,7 @@ sound).
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Crush, Echo, DJ Filter, Tilt) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, Echo, DJ Filter, Tilt, [Master Sat](#master-sat)) |
 | `src/fx_comp_math.h` | `CompExp2` and `CompLog2`: base-2 exponential and logarithm without libm, the same bits on every build (from Comp's branch, byte for byte; Tilt uses it) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
@@ -666,6 +798,7 @@ upstream candidate). Our own code gets none.
   | Shapes (12) | 0.2–0.6 % |
   | Each Mutable effect | 0.03–0.06 % |
   | Fold | 0.12 % |
+  | Master Sat | 0.11–0.23 % |
 
   pi32v2 is a much narrower core and these figures do not transfer; stage B
   measures the real ones. They do rank the engines for the voice caps.

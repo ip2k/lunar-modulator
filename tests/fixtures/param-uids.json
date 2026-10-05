@@ -128,6 +128,16 @@
       {"name": "Curve", "type": "enum", "uid": 3, "flags": ["mod"]},
       {"name": "Level", "type": "float", "uid": 4, "flags": ["smooth", "mod"]}
     ],
+    "sat": [
+      {"name": "Drive", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Clean Lo", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Glue", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Shape", "type": "enum", "uid": 5, "flags": ["mod"]},
+      {"name": "Asymmetry", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Clean Hi", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Level", "type": "float", "uid": 8, "flags": ["smooth", "mod"]}
+    ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ]

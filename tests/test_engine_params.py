@@ -40,6 +40,7 @@ ENUM_FLAGS = {
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
     ("djfilter", "Slope"): ["mod"],             # crossfades over 5 ms: lockable, rounded
     ("tilt", "Curve"): ["mod"],                 # glides between its two curves
+    ("sat", "Shape"): ["mod"],                  # crossfades over 5 ms
 }
 
 

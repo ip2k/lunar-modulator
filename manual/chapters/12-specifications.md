@@ -65,6 +65,7 @@ and is the one to trust if the two ever differ.
 | Fold | – | under 1 KB |
 | Echo | – | 64 KB |
 | Tilt | – | under 1 KB |
+| Master Sat | – | under 1 KB |
 | Test Gain | – | under 1 KB |
 
 ### The sequencer

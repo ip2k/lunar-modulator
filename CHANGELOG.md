@@ -33,6 +33,20 @@ history.
   clicks or zipper noise. In the desktop tools now, and in the browser
   simulator from its next rebuild (engines/README.md, "Tilt"; manual
   chapter 6).
+- Master Sat, gentle saturation for the master bus (effect id `sat`, after
+  §6 of the 2026-10-02 effects note). Quiet passages pass unchanged; only
+  the band between **Clean Lo** (20–300 Hz) and **Clean Hi** (1–20 kHz) is
+  saturated, so the bass stays tight and the highs clear. **Drive** (0–18 dB)
+  sets where the curve starts to bend without making the sound louder;
+  **Glue** turns the mix down by up to 6 dB when the curve works hard, like a
+  bus compressor; **Shape** picks a Smooth or a Dense curve (it crossfades,
+  so it can be locked and modulated); **Asymmetry** adds even harmonics;
+  **Level** trims the result. **Mix** starts at 0, an exact bypass, as every
+  master effect does: turn it up to hear the effect. The curves use the
+  coefficients of Airwindows PurestSaturation and TapeHack2 (Chris Johnson,
+  MIT); the code is this project's own, with no maths library, and computes
+  the same bits on the desktop and in the browser. In the simulator once its
+  module is rebuilt.
 - notes/2026-10-02-delay-reverb-eq-gates-options.md: research on delays,
   reverbs, EQ, a DJ filter and tilt for the master bus, bus saturation, and a
   Drawmer DS201-style gate. It also designs side-chaining: the gate and the

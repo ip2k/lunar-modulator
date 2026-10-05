@@ -25,9 +25,9 @@ pages, then the second slot's. The bottom bar shows where you are, such as
 *1/2 FX2*: page 1 of 2, second slot.
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
-*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Echo, Tilt
-and Test Gain, and round again. In the simulator you can also use the **Effect 1** and **Effect 2**
-lists under the panel.
+*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Echo, Tilt,
+Master Sat and Test Gain, and round again. In the simulator you can also use
+the **Effect 1** and **Effect 2** lists under the panel.
 
 **To empty a slot:** turn [[ALGORITHM]] to *Empty slot*, one step before
 Plate, or choose *(none)* in the list.
@@ -61,9 +61,9 @@ more than two.
     about 48,000 samples a second, so at the FM-1's 44,118 their delays come
     out about 9 % longer, a slightly larger room, and their slow modulation
     about 8 % slower. Their decay times are corrected, and stay within a few per
-    cent of the originals'. Crush, Fold, Echo and Tilt, written for Lunar
-    Modulator, work out their frequencies and times from the output's rate,
-    so they need no correction.
+    cent of the originals'. Crush, Fold, Echo, Tilt and Master Sat, written
+    for Lunar Modulator, work out their frequencies and times from the
+    output's rate, so they need no correction.
 
 ## Plate
 
@@ -304,6 +304,58 @@ can be swept or modulated without clicks.
       3 kHz, Level down a few dB.
 
 {{engine-table tilt}}
+
+## Master Sat
+
+{{status sim desktop planned}}
+
+Gentle saturation for the whole mix, written for Lunar Modulator: the warmth
+and density of a signal pushed a little too hard through analogue gear,
+meant to be left on. Quiet passages pass through unchanged and only the loud
+parts are rounded off. The bass and the top end can be kept out of it, so
+the low end stays tight and the highs stay clear. It starts with **Mix** at
+the left, where it changes nothing at all: turn Mix up to hear it.
+
+- **Drive** sets how early the sound starts to bend, from barely, only the
+  loudest peaks, at the left to well into it at the right. It does not make
+  the sound louder: quiet notes keep their level.
+- **Clean Lo** keeps the bass below it out of the saturation, from 20 Hz to
+  300 Hz. Higher settings keep the kick and the bass line clean and stop them
+  from muddying everything else, and Glue does not react to them.
+- **Glue** turns the whole sound down a little when the saturation works
+  hard, up to about 6 dB, and lets it back up over a fraction of a second,
+  like a bus compressor. It holds a mix together and keeps loud passages from
+  turning harsh. At the left it does nothing.
+- **Mix** fades from the dry sound at the left, the default, to the
+  saturated sound alone at the right.
+- **Shape**, on page 2, chooses the curve: Smooth, the default, bends
+  gradually; Dense bends sooner and holds the peaks lower, for a thicker,
+  more compressed sound. Changing it fades from one to the other in a few
+  milliseconds, so it can be switched while playing.
+- **Asymmetry**, on page 2, makes one side of the wave bend before the
+  other, which adds a warmer, rounder colour of even harmonics. In the
+  middle, the default, both sides bend alike.
+- **Clean Hi**, on page 2, keeps the highs above it out of the saturation,
+  from 1 kHz to 20 kHz; the default is 6 kHz. Lower settings keep cymbals
+  and the top of the sound crisp; at the right almost everything is
+  saturated.
+- **Level**, on page 2, sets how loud the saturated sound is, from 12 dB
+  down to 12 dB up.
+
+Silence stays silent at any setting, and the knobs glide over a few
+milliseconds, so turning them does not click. Master Sat is built to keep
+the harsh, unrelated tones of digital distortion very low at moderate
+settings; with Drive near the right, Clean Hi is what keeps them down.
+
+!!! tip "Starting points"
+    - **Warmth:** Mix at the right, Drive about 6, Glue about 0.25.
+    - **Glue a mix together:** Drive about 9, Glue about 0.6, Clean Lo about
+      120, Clean Hi about 5,000.
+    - **Driven and dense:** Shape Dense, Drive about 14, Asymmetry about 0.4,
+      and Level up a little to make up for Glue.
+    - Master Sat belongs last, or just before a reverb, in the second slot.
+
+{{engine-table sat}}
 
 ## Test Gain
 
