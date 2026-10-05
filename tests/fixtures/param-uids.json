@@ -176,6 +176,21 @@
       {"name": "Width", "type": "float", "uid": 9, "flags": ["smooth", "mod"]},
       {"name": "Low Cut", "type": "float", "uid": 10, "flags": ["smooth", "mod"]}
     ],
+    "gate": [
+      {"name": "Threshold", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Attack", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Hold", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Decay", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Range", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Return", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Mode", "type": "enum", "uid": 7, "flags": ["mod"]},
+      {"name": "Key HP", "type": "float", "uid": 8, "flags": ["smooth", "mod"]},
+      {"name": "Key LP", "type": "float", "uid": 9, "flags": ["smooth", "mod"]},
+      {"name": "Listen", "type": "enum", "uid": 10, "flags": ["mod"]},
+      {"name": "Lockout", "type": "float", "uid": 11, "flags": ["smooth", "mod"]},
+      {"name": "Lookahead", "type": "float", "uid": 12, "flags": ["smooth", "mod"]},
+      {"name": "Link", "type": "enum", "uid": 13, "flags": ["mod"]}
+    ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ]

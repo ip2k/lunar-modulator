@@ -9,6 +9,25 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Gate**, a new effect: a noise gate that can also duck. Threshold,
+  Attack, Hold, Decay and Range (down to silence) set how it opens and
+  closes; Return keeps it from chattering on a sound that hovers at the
+  threshold; Duck turns it over, so a loud key pulls the signal down to
+  Range instead. Key HP and Key LP filter only what the gate listens to (so
+  a kick's spill does not open a snare's gate), and Listen lets you hear
+  that; Lockout stops a ringing drum re-opening it; Lookahead (0–5 ms)
+  opens it just before the transient arrives, so attacks come through
+  whole; Link picks how a stereo key is heard. Mode, Listen, Link and
+  Lookahead change without a click, so the sequencer may lock them and
+  modulation may move them. Range 0 and an open gate pass the sound bit
+  for bit. The controls follow Drawmer's DS201 and DS301 gate manuals (as
+  inspiration; our own code, MIT). For now it listens to its own input;
+  keying it from another sound or from the sequencer is the side-chain
+  stage still to come, and its hooks are in place. About 2 KB of memory at
+  44.1 kHz, no maths library, and the same output, bit for bit, from the
+  Mac, 32- and 64-bit Linux builds and WebAssembly. Documented in
+  engines/README.md ("Gate"). Two parity scenarios are added; the virtual
+  FM-1 offers it once its module is rebuilt.
 - **Freeze** on the Plate reverb, a switch on its second page: it holds the
   tail at the level it had and ignores new input, while Mix still blends in
   what you play. It switches over 5 ms, so it does not click and can be

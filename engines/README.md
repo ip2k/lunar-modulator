@@ -38,6 +38,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `limit` | Limiter | effect | – | this repository, after Geraint Luff's look-ahead limiter design | a look-ahead brickwall limiter, 0–5 ms; [below](#limiter) |
 | `room` | Room | effect | – | Clouds' reverb and diffuser | a small Dattorro room in 41 KB; [below](#room) |
 | `hall` | Hall | effect | – | this repository | a hall reverb on an eight-line feedback delay network, with Freeze; [below](#hall) |
+| `gate` | Gate | effect | – | this repository; controls after the Drawmer DS201 and DS301 manuals | a noise gate with a Duck mode, key filters, Listen, Lockout and 0–5 ms look-ahead; [below](#gate) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 
 The Mutable Instruments engines are credited to Emilie Gillet in each
@@ -1107,6 +1108,172 @@ How it works [verified: tests/test_engines_hall.py and
 - **Not yet:** a reset call to drop the tail without re-creating the
   instance, and a tempo-synced pre-delay; both wait on the host.
 
+## Gate
+
+A noise gate with a Duck mode (`src/fx_gate.cc`, our own code, MIT), for
+taming a sound's tail, gating a reverb, or pulling one sound down while a
+key plays. Its controls follow the operator manuals of Drawmer's DS201 and
+DS301 gates [reported: notes/2026-10-02-delay-reverb-eq-gates-options.md
+§7.1]: Threshold, Attack, Hold, Decay, Range, a Duck mode, key filters with
+Listen, and the DS301's retrigger inhibit (Lockout here). Drawmer is
+credited as the inspiration only: no circuit or code is taken, the
+algorithm is ours, and no control is named for a maker. Return
+(hysteresis) and Lookahead are additions neither manual has. Stereo-linked:
+one detector and one gain for both channels.
+
+    key (the input itself, or a key buffer) -> guard -> Key HP -> Key LP (per channel)
+        -> Link -> level (a peak: instant up, 4 ms down) -> Schmitt trigger
+        -> the gate (Lockout, Attack, Hold, Decay) -> attenuation in dB -> gain (Mode)
+    input -> guard -> look-ahead line -> x gain = gated;   out = gated, or the key (Listen)
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Threshold | −80 to 0 dB (−40) | The key level that opens the gate |
+| 1 | Attack | 0–1,000 ms (0.5) | How fast it opens: the attenuation falls 80 dB per Attack, linear in dB, so from Range −80 dB the gate is open after Attack. 0 is one frame (22.7 µs; two frames from Range −90). A started attack always completes |
+| 1 | Hold | 2–2,000 ms (50) | How long it stays open after the key has fallen below Threshold − Return. It reloads while the key stays above |
+| 1 | Decay | 2–4,000 ms (150) | How fast it closes: the attenuation rises 80 dB per Decay, so from Range −40 dB it closes in half the Decay |
+| 2 | Range | −90 to 0 dB (−80) | The closed level. −90 is off: silence. 0 leaves the signal untouched, bit for bit, in either Mode |
+| 2 | Return | 0–12 dB (4) | Hysteresis: the gate opens above Threshold and the key counts as gone only below Threshold − Return, so a key hovering at the threshold does not chatter |
+| 2 | Mode | Gate, Duck (Gate) | Duck turns the gain over: the key pulls the signal down to Range over Attack, and it comes back over Decay after Hold. A change crossfades the two gains over 5 ms |
+| 3 | Key HP | 20 Hz–10 kHz (20: out) | A 12 dB/octave high-pass on the key only, so low spill (a kick under a snare) does not open the gate. At 20 Hz it is out of the path |
+| 3 | Key LP | 200 Hz–20 kHz (20 k: out) | A 12 dB/octave low-pass on the key only (hi-hat spill). At 20 kHz it is out |
+| 3 | Listen | Off, Key (Off) | Key sends the filtered key to the output, to hear what the gate is listening to while setting the filters. Crossfades over 5 ms |
+| 4 | Lockout | 0–5,000 ms (0) | After the gate opens, a new rise of the key cannot re-open it for this long (rises while it is still open keep it open). Stops a ringing drum or a flam retriggering it |
+| 4 | Lookahead | 0–5 ms (0) | Delays the audio, not the key, so the gate opens before the transient that opens it arrives. It is also the effect's latency: 88 frames at 2 ms and 44,118 Hz. A change crossfades to the new delay over 5 ms, as the Limiter's does |
+| 4 | Link | Max, Sum, Left (Max) | What the detector hears of a stereo key: the louder channel (Max; anti-phase content still opens it, and Comp detects the same way), the mono sum 0.5 (L + R) (Sum), or the left only (Left, the DS201's link). Listen hears the same: the key in stereo, or the mono sum or left on both channels. Glides over 5 ms |
+
+How it works [verified: tests/test_engines_gate.py and `build/fm1-gate-test`,
+2026-10-05, unless marked]:
+
+- **Detection.** The key passes the input guard, then Key HP and Key LP:
+  Zavalishin's trapezoidal state-variable filter, Q = 1/√2 (Butterworth),
+  its cutoff prewarped so −3 dB falls on it exactly. Measured through
+  Listen at 91 points from 20 Hz to 16 kHz on seven settings, the pair is
+  within 4 × 10⁻⁵ dB of the bilinear Butterworth formula down to −70 dB, and
+  sample by sample within 1.6 × 10⁻⁷ of a float64 reference of the two
+  filters (the note's §7.10 test 4). The level is a peak follower, instant
+  up and falling with a 4 ms time constant, so a low note's waveform does
+  not read as gaps: a key that stops dead takes 4 ms × ln(level / (Threshold
+  − Return)) to count as gone, 771 frames (17.5 ms) for −6 dBFS at the
+  defaults.
+- **The key LP delays the trigger,** as the DS201's manual says: a key step
+  crossed a −6 dB threshold 3, 10 and 40 frames late through 4 kHz, 1 kHz
+  and 250 Hz, within a frame of the float64 reference and of the filter's
+  group delay at DC, √2 / (2π fc) (2.5, 9.9 and 39.7 frames).
+- **The gate's states:** closed (at Range), attack, open, decay. A rise of
+  the Schmitt trigger re-opens a closed or decaying gate, unless it comes
+  within Lockout of the last opening; then that whole key episode is
+  ignored (until the key falls and rises again). A rise while the gate is
+  open only keeps it open. Hold counts down from the moment the key falls
+  below Threshold − Return and reloads while it is above; the decay starts
+  when it runs out, and an attack under way completes first.
+- **Ramps in dB.** "Decay 4 s" is 80 dB in 4 s, from wherever the gain is,
+  as a gain cell's exponential response makes it; the gain is 10^(−a/20)
+  for the attenuation a, exactly 1 when open and exactly 0 at Range −90
+  when closed. A ramp is computed from where it started (start ± frames ×
+  rate), not by adding a step each frame, so a 4-second decay ends on its
+  frame. Measured: Attack 0.5, 2, 10 and 100 ms open in 23, 89, 442 and
+  4,412 frames (⌈Attack × fs⌉), −60 dB a quarter of the way and −40 dB half
+  way; Hold 2, 50 and 500 ms hold 88, 2,206 and 22,059 frames; Decay 100
+  and 400 ms close from −80 dB in 4,412 and 17,648 frames, and from −40 dB
+  in 8,824.
+- **Chattering.** A 200 Hz tone decaying at 50 dB per second through the
+  −40 dB threshold over noise peaking near it opened the gate 9 times with
+  Return 0 and Hold 2 ms; Return 4 dB, Hold 50 ms or Lockout 300 ms bring
+  that to 1, 1 and 2.
+- **Look-ahead** delays only the audio, in a line of 5 ms of frames, so the
+  gate's gain leads the audio by the delay: a burst after silence at Range
+  −90 and Attack 0.5 ms comes out whole, bit for bit, with Lookahead 2 ms,
+  and with its first half millisecond cut without. The latency is the
+  delay rounded to a frame, checked at 44.1, 48, 96 and 192 kHz (capped at
+  510 frames: 2.66 ms at 192 kHz), and `fm1_gate_state` reports it for the
+  panel. The gate's OPEN state and its KEY level run on the key's time,
+  the delay ahead of the audio.
+- **Bit-exact where it can be.** With Range 0 the output is the input, bit
+  for bit, whatever the key and Mode; an open gate's gain is exactly 1, so
+  the renderer's noise passes untouched once the 0.5 ms attack is over;
+  silence in is exact silence out at any setting.
+- **Guards.** The input and the key pass the Mutable effects' guard (NaN
+  reads as 0, ±16 clamps), so nothing non-finite reaches a state. 100
+  frames of NaN in the key never open the gate; infinities and 1e30 are
+  clamped to 16 and close it on the very frame a clean key of 16 does: no
+  latched hold or level. With the key filters out, half a second after a
+  fault in the renderer the output is the clean render's, bit for bit;
+  with them in, within one 16-bit step.
+- **Changes.** Threshold, Return, Range, the key filters' cutoffs (in
+  octaves) and their in/out, Mode, Listen and Link glide over 5 ms, sample
+  by sample; a glide lands on its target once within 10⁻⁶ of it, so its
+  landing is under −100 dB (Fold's and Comp's 10⁻⁴ would be −60 dB on
+  Range, which a route retargeting every tick would repeat as zipper
+  noise). Attack, Decay, Hold and Lockout are rates and counts that take a
+  new value at once (a ramp restarts from where it is, a running count is
+  cut to the new length), and Lookahead crossfades its delay. Any block
+  size gives the same output (64, 7 and 1 frames, with all 13 parameters
+  changed mid-stream), and Mode, Listen, Link and Lookahead turned every
+  third block step the output no more than holding them does, plus a 5 ms
+  crossfade's allowance (the owner's switch rule, through
+  tests/test_engines_fx_switches.py's harness).
+- **Determinism.** No libm: 2^x and log2 are `fx_comp_math.h`'s (Comp's
+  polynomials, the start of the shared libm-free maths the note asks for),
+  tan is a polynomial in the file (sin and cos by their series, within
+  6.1 × 10⁻⁷ of libm's on [0, 0.45π]), and `#pragma STDC FP_CONTRACT OFF`
+  keeps clang from fusing multiply-adds. The object calls nothing outside
+  itself but `memset` (`bzero` on macOS). Three 2-second renders with every parameter changed
+  mid-stream hash the same from Apple clang on arm64, GCC 12 on i686 (SSE)
+  and x86-64, and Emscripten 6.0.10's WebAssembly under Node [verified,
+  2026-10-05; pinned in tests/test_engines_gate.py].
+- **Memory:** a 368-byte struct with no pointers, then 5 ms of line (8
+  bytes a frame, at most 510 frames): 2,144 bytes at 44,118 Hz, 2,304 at
+  48 kHz, 4,224 at 96 kHz and 4,464 at 102 kHz and above, the same on i686
+  and x86-64 [verified: GCC 12 in a Linux container, 2026-10-05]. The note
+  estimated 2.2 KB.
+- **Cost, desktop only** (Apple M1 Max, `fm1-gate-test --cost`, noise
+  bursts so the gate opens and closes, best of three): 0.51 µs per 64-frame
+  block at the defaults, 0.99 µs with both key filters in and 2 ms of
+  look-ahead, 1.7 µs while Threshold glides every block (two exponentials
+  per frame): 0.04–0.12 % of the 1.451 ms block; Plate took 0.90 µs in the
+  same run [verified, 2026-10-05]. Steady, the gate computes no
+  exponential at all; while it ramps, one per frame (two while Mode
+  crossfades). For pi32v2, JieLi's clang compiles it without a warning to
+  5.9 KB of code at `-O2` (3.6 KB at `-Oz`) and 0.8 KB of constant data,
+  and emits the same code with contraction off and fast (nothing fused)
+  [verified: compile only, 2026-10-05].
+- `build/fm1-gate-test` (`test/gate_test.cc`) renders frame by frame and
+  reads the state, for the timing, Range, Return, Duck, Lockout, latency,
+  the onset, the filters, Link, the key LP's delay, chattering, bad keys
+  and an external key; plus a 20 s sweep of every parameter to any value
+  (NaN and infinities included) between random blocks, a quarter of them
+  keyed from a separate noise, and the host rates (8–384 kHz). It links
+  the effect built once more with `FM1_GATE_PROBE`, which adds an entry
+  point to its tan for the check against libm.
+
+**Hooks for the key and modulation stages** (note §7.3–§7.4; nothing in
+the hosts uses them yet). Today every host keys the Gate from its own
+input.
+
+- **An audio key:** `fm1_gate_render_key(instance, io_lr, key_lr, frames)`
+  (`include/fm1_gate.h`) renders with `key_lr` as the key: stereo,
+  read-only, valid for the call, never stored (the instance holds no
+  pointer, so 32- and 64-bit sizes stay equal). It has the signature the
+  note's `fm1_fx_ext_t.render_key` has, so that struct can point at it.
+  `key_lr` NULL keys from the input: `render_key(NULL)` is `render`, bit
+  for bit, and so is a key that is a copy of the input [verified: the
+  note's §7.10 test 1]. Listen hears the key given. A click track as the
+  key opens the gate on noise for each click and leaves it at Range (−60
+  dB here) between them.
+- **A matrix trigger:** the Schmitt trigger's output (`key_high` and its
+  rise) is where a gate input joins, in one place in `GateProcess`: Trig
+  "Gate" would replace it, "Either" OR into it, so Hold, Attack, Decay and
+  Lockout apply to a trigger as to the key (note §7.3). Trig and Key, the
+  note's other two controls, take uids 14 and 15 when a host can feed them
+  (Trig on page 2's free knob, Key on page 3).
+- **The state, for modulation sources and the panel:** `fm1_gate_state`
+  reads the gain the last frame got, the envelope (0 closed to 1 open,
+  linear in dB, in either Mode: the note's ENV), the detector's level
+  (0..1: KEY), the OPEN gate (from a trigger until Hold runs out), the
+  Schmitt trigger's state, and the latency in frames. Read on the audio
+  task between renders, after the last piece of a split block.
+
 ## Parameters (engine API v2)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -1158,15 +1325,17 @@ hands over every change so that no change, however fast, steps the output,
 is lockable and modulatable (MOD; an ENUM is rounded when modulated, docs/16
 §2.2). Only a destructive change is NOLOCK. The effects' switches follow it:
 Filter's Type, Drive's Type and Auto, Comp's Character, Auto Rel and Auto
-Gain, and the Limiter's Mode and Lookahead are all lockable and MOD, and
-`tests/test_engines_fx_switches.py` turns each of them every third block
-(faster than its crossfade) on a steady sine and on sharp onsets, checking
-that the output stays finite, keeps the effect's ceiling and steps no more
-than with the control held at any of its values, plus the bound a 5 ms
-crossfade allows (2P/220 for outputs of peak P). Where that check first
-failed, the effect was made clean rather than the control left NOLOCK: the
-Filter's new type now warms up unheard before its crossfade, and the
-Limiter's Lookahead crossfade got a gain path per tap.
+Gain, the Limiter's Mode and Lookahead, and the Gate's Mode, Listen, Link
+and Lookahead are all lockable and MOD, and
+`tests/test_engines_fx_switches.py` (the Gate's cases are in
+`tests/test_engines_gate.py`, through the same harness) turns each of them
+every third block (faster than its crossfade) on a steady sine and on sharp
+onsets, checking that the output stays finite, keeps the effect's ceiling
+and steps no more than with the control held at any of its values, plus the
+bound a 5 ms crossfade allows (2P/220 for outputs of peak P). Where that
+check first failed, the effect was made clean rather than the control left
+NOLOCK: the Filter's new type now warms up unheard before its crossfade,
+and the Limiter's Lookahead crossfade got a gain path per tap.
 `fm1_param_lockable`, `fm1_param_modulatable` and `fm1_param_index(engine,
 uid)` are the helpers. `fm1-render --list` prints each parameter's uid,
 flags (by name), unit and abbreviation. The four fields make `fm1_param_t`
@@ -1199,13 +1368,16 @@ Plate's Freeze came on 2026-10-05.
 | limit | Mode | MOD | A change glides the output stage over 5 ms, frame by frame as the line delivers them (each frame carries the Mode its gain was made for). NOLOCK until 2026-10-02 |
 | hall | Freeze | MOD | Crossfades over about 75 ms (the input fades out as the decay lengthens) and keeps the tail, so it can be locked, and a route rounds it |
 | plate | Freeze | MOD | Off/On, appended as uid 5 on Plate's second page (2026-10-05). It ramps the loop over 5 ms, so a lock or a rounded route switches it cleanly (the owner's policy for switches; mi-fx.md, "Freeze") |
+| gate | Mode, Listen, Link | MOD | Mode crossfades the Gate and Duck gains, Listen the gated audio and the filtered key, and Link the detector's and Listen's weights, each over 5 ms, so no change steps the output (the rule above) |
 
 **Units and abbreviations.** Echo's Time, Hall's Pre-delay, Comp's Attack
-and Release, Sophie's Ring Time and the Limiter's Release and Lookahead are
-in ms, Filter's Cutoff in Hz, Sophie's Tune in semitones and its 0–100 knobs
-in %. Sophie's Decay is in seconds, and Drive's Drive and Level, Comp's
-Threshold, Knee and Makeup and the Limiter's Ceiling and Drive in dB, for
-which there are no unit codes yet, so they have none. Every other parameter
+and Release, Sophie's Ring Time, the Limiter's Release and Lookahead and the
+Gate's Attack, Hold, Decay, Lockout and Lookahead are in ms, Filter's Cutoff
+and the Gate's Key HP and Key LP in Hz, Sophie's Tune in semitones and its
+0–100 knobs in %. Sophie's Decay is in seconds, and Drive's Drive and
+Level, Comp's Threshold, Knee and Makeup, the Limiter's Ceiling and Drive
+and the Gate's Threshold, Range and Return in dB, for which there are no
+unit codes yet, so they have none. Every other parameter
 is a bare number (the 0–1 knobs, gains, bits, indices).
 
 **No sound changed** [verified 2026-10-02, Apple clang, before and after on
@@ -1243,8 +1415,9 @@ sound).
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comp](#comp), [Limiter](#limiter), [Hall](#hall); [Room](#room) wraps Clouds' classes; `fx_comp_math.h` is Comp's log2 and exp2 without libm, `fx_room_math.h` Room's) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comp](#comp), [Limiter](#limiter), [Hall](#hall), [Gate](#gate); [Room](#room) wraps Clouds' classes; `fx_comp_math.h` is Comp's log2 and exp2 without libm, which the Gate uses too, `fx_room_math.h` Room's) |
 | `include/fm1_comp.h` | Comp's gain-reduction accessor, for a later modulation source ([above](#comp)) |
+| `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
 | `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness |
@@ -1458,6 +1631,11 @@ keeping decay within 3–4 %.
   effects can drop their tails without re-creating a 64 KB instance. Also a
   per-file SHA-256 manifest from `vendor.py`, so a test can pin the whole
   vendored tree rather than the files one lane compiles.
+- **Wide time ranges on linear knobs.** The Gate's Attack (0–1,000 ms),
+  Hold, Decay and Lockout span three decades or more, and the panel steps a
+  hundredth of a parameter's range (10 ms of Attack), as it does for every
+  parameter here; `fm1_param_t` has no taper field. Presets and locks reach
+  any value; a log taper for ms and Hz parameters is a panel decision.
 - **Stage B**, on the JL-AC79 dev board: the same sources under JieLi's
   clang, real cycle counts, and whether pi32v2's FPU traps on divide by zero
   or handles subnormals slowly (several upstream quirks rely on it not

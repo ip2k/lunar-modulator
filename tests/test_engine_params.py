@@ -52,6 +52,9 @@ ENUM_FLAGS = {
     ("limit", "Mode"): ["mod"],                 # glides the stage, frame by frame
     ("hall", "Freeze"): ["mod"],                # crossfades: the input fades as the decay holds
     ("plate", "Freeze"): ["mod"],               # a 5 ms ramp: lockable, a route rounds it
+    ("gate", "Mode"): ["mod"],                  # crossfades Gate and Duck's gains over 5 ms
+    ("gate", "Listen"): ["mod"],                # crossfades the output and the key
+    ("gate", "Link"): ["mod"],                  # glides the detector's and Listen's weights
 }
 
 

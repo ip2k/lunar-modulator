@@ -26,6 +26,7 @@ extern const fm1_engine_t fm1_engine_comp;
 extern const fm1_engine_t fm1_engine_limit;
 extern const fm1_engine_t fm1_engine_room;
 extern const fm1_engine_t fm1_engine_hall;
+extern const fm1_engine_t fm1_engine_gate;
 extern const fm1_engine_t fm1_engine_test_gain;
 
 const fm1_engine_t *const fm1_engines[] = {
@@ -50,6 +51,7 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_limit,
   &fm1_engine_room,
   &fm1_engine_hall,
+  &fm1_engine_gate,
   &fm1_engine_test_gain,
 };
 const size_t fm1_engine_count = sizeof(fm1_engines) / sizeof(fm1_engines[0]);
