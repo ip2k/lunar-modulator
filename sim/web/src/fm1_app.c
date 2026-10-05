@@ -400,6 +400,7 @@ static void mod_emit(void *ctx, const char *line) {
 
 static void mod_env(fm1_app_t *a, fm1_mod_ui_env_t *env) {
   env->m = a->mod;
+  env->rate = a->host.sample_rate;
   for (int u = 0; u < FM1_MOD_UI_SINKS; ++u) env->unit[u] = a->unit[u].e;
   env->emit = a->on_mod ? mod_emit : NULL;
   env->ctx = a;
@@ -2138,7 +2139,7 @@ static void draw_params(fm1_app_t *a, int unit, int page, int y0) {
     const int routes = a->mod && code >= 0 && idx[s] < (int)FM1_MOD_UNIT_PARAMS
                            ? fm1_mod_ui_routes(a->mod, (unsigned)code, p->uid, 0, &depth)
                            : 0;
-    fm1_mod_view_row(&a->tft, y, p, u->value[idx[s]], routes, depth,
+    fm1_mod_view_row(&a->tft, y, p, u->value[idx[s]], NULL, routes, depth,
                      routes ? fm1_mod_sent(a->mod, (unsigned)code, (unsigned)idx[s]) : 0.0f);
   }
 }

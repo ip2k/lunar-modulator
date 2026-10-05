@@ -101,6 +101,7 @@ typedef struct fm1_mod_dest {
  * each edit as one script line; emit may be NULL. */
 typedef struct fm1_mod_ui_env {
   fm1_mod_t *m;
+  float rate;                  /* the host's sample rate (0: unknown), for values in Hz */
   const fm1_engine_t *unit[FM1_MOD_UI_SINKS];
   void (*emit)(void *ctx, const char *line);
   void *ctx;
@@ -181,6 +182,11 @@ void fm1_mod_ui_row(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned
 /* The hint line: the field last turned while it shows, else the slot. */
 void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_t now,
                      char *buf, size_t cap);
+/* A module parameter's value as RACK shows it, when the knob's own number
+ * is not the clearest: the Filter's Cutoff in Hz (the knob stays 0..1 on
+ * its log scale). 0 when the app's usual formatting applies. */
+int fm1_mod_ui_value(const fm1_mod_ui_env_t *env, unsigned pos, unsigned index, float v, char *buf,
+                     size_t cap);
 /* How many switched-on cables reach a destination, and the sum of their
  * amounts' magnitudes (0..32) in *depth. */
 int fm1_mod_ui_routes(const fm1_mod_t *m, unsigned unit, uint16_t dst, int gate, float *depth);

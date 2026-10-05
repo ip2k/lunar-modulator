@@ -1835,9 +1835,13 @@ static void mod_sweep_module(const char *dir, const char *id) {
 }
 
 /* The pages' environment, as the app builds it for them. */
+/* The app's value text (fm1_look.h), for the summary's RACK values. */
+void fm1_look_value(const fm1_param_t *p, float v, char *buf, size_t size);
+
 static void harness_mod_env(fm1_mod_ui_env_t *env) {
   memset(env, 0, sizeof *env);
   env->m = g_app.mod;
+  env->rate = g_app.host.sample_rate;
   for (int k = 0; k < FM1_MOD_UI_SINKS; ++k) env->unit[k] = g_app.unit[k].e;
 }
 
@@ -2798,9 +2802,7 @@ static void print_mod(void) {
   fm1_mod_plan_info_t plan;
   const fm1_mod_ui_t *u = &g_app.mui;
   int first = 1;
-  memset(&env, 0, sizeof env);
-  env.m = g_app.mod;
-  for (int k = 0; k < FM1_MOD_UI_SINKS; ++k) env.unit[k] = g_app.unit[k].e;
+  harness_mod_env(&env);
   fm1_mod_get_stats(g_app.mod, &st);
   fm1_mod_get_plan(g_app.mod, &plan);
   printf(",\"mod\":{\"rack\":[");
@@ -2830,6 +2832,21 @@ static void print_mod(void) {
       printf(i ? ",%.9g" : "%.9g", (double)fm1_mod_param_base(g_app.mod, pos, i));
     }
     printf("]");
+  }
+  printf("],\"values\":[");             /* RACK's page as it shows the values */
+  {
+    int idx[4];
+    const int k = fm1_mod_kind_at(g_app.mod, u->pos);
+    const int n = fm1_mod_ui_rack_params(g_app.mod, u->pos, u->page, idx);
+    for (int r = 0; k >= 0 && r < n; ++r) {
+      const float v = fm1_mod_param_base(g_app.mod, u->pos, (unsigned)idx[r]);
+      char text[24];
+      if (!fm1_mod_ui_value(&env, u->pos, (unsigned)idx[r], v, text, sizeof text)) {
+        fm1_look_value(&fm1_mod_kinds[k]->params[idx[r]], v, text, sizeof text);
+      }
+      printf(r ? "," : "");
+      json_string(text);
+    }
   }
   printf("],\"pos\":%u,\"page\":%u,\"slot\":%u,\"mpage\":%u,\"picker\":%u,\"held\":%d,"
          "\"sel_lfo\":%d,\"sel_env\":%d,\"grab\":%u,\"active\":%u,\"refused\":%u,"

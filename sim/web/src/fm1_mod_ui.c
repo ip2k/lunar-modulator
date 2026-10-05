@@ -415,6 +415,21 @@ void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_
   else dest_fit(env, &d, 16, name, sizeof name), snprintf(buf, cap, "To %s", name);
 }
 
+int fm1_mod_ui_value(const fm1_mod_ui_env_t *env, unsigned pos, unsigned index, float v, char *buf,
+                     size_t cap) {
+  const fm1_mod_kind_t *kd = kind_at(env->m, pos);
+  float hz;
+  if (!kd || !(env->rate > 0.0f) || index >= kd->n_params || strcmp(kd->id, "filter") != 0 ||
+      strcmp(kd->params[index].name, "Cutoff") != 0) {
+    return 0;
+  }
+  hz = fm1_mod_filter_hz(v, env->rate);
+  if (hz < 9.995f) snprintf(buf, cap, "%.2f Hz", (double)hz);
+  else if (hz < 99.95f) snprintf(buf, cap, "%.1f Hz", (double)hz);
+  else snprintf(buf, cap, "%.0f Hz", (double)hz);
+  return 1;
+}
+
 int fm1_mod_ui_routes(const fm1_mod_t *m, unsigned unit, uint16_t dst, int gate, float *depth) {
   unsigned i;
   int n = 0;

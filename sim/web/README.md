@@ -436,7 +436,9 @@ Coin are CHN, CLC, CMP and COI), so no two share a name.
     one shown outlined, an empty position hollow;
   - under it `ENV3 >2 <1 ~1`: the module, its cables out and in, and those
     that run a tick late;
-  - four parameter rows on KNOB1–4, as HOME's; the bottom bar `1/2 Mod3`.
+  - four parameter rows on KNOB1–4, as HOME's (the Filter's Cutoff in Hz,
+    `4.53 Hz` at 0.5, while its knob stays 0–1 on its log scale); the
+    bottom bar `1/2 Mod3`.
   SELECT walks every position and page; ALGORITHM opens the kind picker
   (Empty, then all sixteen kinds: LFO, Envelope, Chance and MG2's Function
   to Filter, `engines/mod/kinds.md`), which commits a second after its last

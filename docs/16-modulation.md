@@ -1299,6 +1299,11 @@ marked]:
   curve and the polarity (`lin au`). KNOB1's list starts with `--`, which
   empties the slot. A new cable starts on, at 0 %, from the selected LFO
   unless KNOB1 chose a source first; ON needs a target.
+- **The Filter's Cutoff in Hz.** RACK draws MG2's Filter Cutoff as the
+  frequency it sets (`4.53 Hz` at 0.5, 0.05 to 410 Hz), from
+  `fm1_mod_filter_hz`, the kind's own formula; the knob, its base and a
+  cable's range stay 0–1 on the log scale, so a cable still moves it by
+  octaves [verified: `test_the_filters_cutoff_shows_in_hz`].
 - **Pickers.** The kind picker (Empty, then every kind) and the
   destination picker (the sound's, FX1's, FX2's and the host's parameters
   that take modulation, then each module's parameters and gate inputs)

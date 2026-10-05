@@ -324,6 +324,20 @@ def test_the_default_cable_is_repatchable(tools, tmp_path):
     assert levels["key"] > 1.5 * levels["seq2"]
 
 
+def test_the_filters_cutoff_shows_in_hz(tools, tmp_path):
+    """MG2's Filter on its RACK page: Cutoff shows the frequency it sets,
+    0.05 Hz x 2^(13 x Cutoff) at the tick rate (fm1_mod_filter_hz, the
+    kind's own formula), while the knob and its base stay 0..1 on the log
+    scale; the other parameters show their numbers."""
+    for cutoff, want in ((0, "0.05 Hz"), (0.3, "0.75 Hz"), (0.5, "4.53 Hz"), (0.7, "27.4 Hz"),
+                         (1, "410 Hz")):
+        p = tmp_path / "f.mod"
+        p.write_text(f"mod 1 filter cutoff={cutoff} res=0.25\n")
+        s = run(tools["sim"], ["--lab", "--engine", "macro", "--seconds", "0.1", "--mod", str(p)])
+        assert s["mod"]["values"][:2] == [want, "0.25"], cutoff
+        assert s["mod"]["bases"][0][0] == pytest.approx(cutoff)
+
+
 # ---- golden gesture traces and their replay -----------------------------------------------------
 
 def test_there_are_the_mg3_traces():

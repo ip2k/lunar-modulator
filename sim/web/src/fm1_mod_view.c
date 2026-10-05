@@ -38,11 +38,12 @@ static int bar_x(const fm1_param_t *p, float v, int x, int w) {
   return clampi(at, x, x + w - 1);
 }
 
-void fm1_mod_view_row(fm1_tft_t *t, int y, const fm1_param_t *p, float base, int routes,
-                      float depth, float live) {
+void fm1_mod_view_row(fm1_tft_t *t, int y, const fm1_param_t *p, float base, const char *text,
+                      int routes, float depth, float live) {
   char value[24];
   const int by = y + BAR_DY;
-  fm1_look_value(p, base, value, sizeof value);
+  if (text) snprintf(value, sizeof value, "%s", text);
+  else fm1_look_value(p, base, value, sizeof value);
   /* A cable to a parameter that takes none is refused (MATRIX shows it
    * with `!`): nothing moves here, so nothing is marked. */
   if (!fm1_param_modulatable(p) && !(p->flags & FM1_PARAM_INPUT)) routes = 0;
@@ -151,10 +152,13 @@ void fm1_mod_view_rack(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_
     int r;
     for (r = 0; r < n; ++r) {
       const fm1_param_t *q = &kd->params[idx[r]];
+      const float base = fm1_mod_param_base(m, u->pos, (unsigned)idx[r]);
       float depth = 0.0f;
+      char text[24];
       const int routes = fm1_mod_ui_routes(m, FM1_MOD_MODULE + u->pos, q->uid, 0, &depth);
-      fm1_mod_view_row(t, PARAMS_Y + r * ROW_PITCH, q, fm1_mod_param_base(m, u->pos, (unsigned)idx[r]),
-                       routes, depth, fm1_mod_param(m, u->pos, (unsigned)idx[r]));
+      const int own = fm1_mod_ui_value(env, u->pos, (unsigned)idx[r], base, text, sizeof text);
+      fm1_mod_view_row(t, PARAMS_Y + r * ROW_PITCH, q, base, own ? text : NULL, routes, depth,
+                       fm1_mod_param(m, u->pos, (unsigned)idx[r]));
     }
   }
 }

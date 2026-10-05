@@ -44,11 +44,11 @@ void fm1_mod_view_bottom(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, int
                          size_t size);
 
 /* A parameter row at y (label line, then its bar BAR_DY below), as HOME's
- * rows draw it; with routes > 0 it gets the marks: depth is the sum of the
- * cables' amounts (fm1_mod_ui_routes) and live the value the parameter has
- * now. */
-void fm1_mod_view_row(fm1_tft_t *t, int y, const fm1_param_t *p, float base, int routes,
-                      float depth, float live);
+ * rows draw it, the value as `text` says (NULL: fm1_look_value's); with
+ * routes > 0 it gets the marks: depth is the sum of the cables' amounts
+ * (fm1_mod_ui_routes) and live the value the parameter has now. */
+void fm1_mod_view_row(fm1_tft_t *t, int y, const fm1_param_t *p, float base, const char *text,
+                      int routes, float depth, float live);
 
 #ifdef __cplusplus
 }

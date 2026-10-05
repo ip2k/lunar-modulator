@@ -24,6 +24,8 @@ history.
     another of the sixteen kinds of module in a place (the second stage's
     Function to Filter too), or empty it. Changing a module back brings its
     connections back. SEL picks a module up so SELECT can move it.
+  - The Filter module's Cutoff reads in Hz on its page (4.53 Hz in the
+    middle of the knob, 0.05 Hz to 410 Hz), while the knob turns as before.
   - Modules are named by their kind and their place in the rack: LFO1,
     LFO2, ENV3, ENV4 and CHN5 to begin with. Chance, Calc, Compare and Coin
     are CHN, CLC, CMP and COI, so no two names are alike.

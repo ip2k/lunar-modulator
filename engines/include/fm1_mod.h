@@ -429,6 +429,12 @@ int fm1_mod_sink(fm1_mod_t *m, unsigned i, fm1_mod_sink_info_t *out);
 
 /* ---- Small helpers for hosts and kinds --------------------------------------- */
 
+/* The Filter kind's Cutoff (0..1, a log knob; NaN as its default) as the
+ * frequency it sets at `sample_rate`, in Hz, exactly as the kind computes
+ * it: 0.05 Hz x 2^(13 x Cutoff), held below 0.3 x the tick rate (a UI shows
+ * the knob in Hz this way; docs/16 MG3). */
+float fm1_mod_filter_hz(float cutoff, float sample_rate);
+
 /* A gain that moves to each new value over one tick, linearly, on absolute
  * frames, so the result is the same at any block size: the AMP sink. */
 typedef struct fm1_mod_ramp {
