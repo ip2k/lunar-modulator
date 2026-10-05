@@ -233,7 +233,17 @@ best of five; desktop figures, which say nothing of pi32v2]:
 
 So at twelve voices Drums costs about what Macro does with the Deep kit
 (0.94–1.01 of it) and about 0.6 of it with the Punch kit, in a quarter of
-Macro's memory on 64-bit and two fifths on 32-bit.
+Macro's memory on 64-bit and two fifths on 32-bit. Re-measured after the
+review's changes (the quietest-voice steal, the hats' voicings), best of
+seven, same Mac and method: 24.7 µs Deep and 16.0 µs Punch at twelve
+voices, 2.6 µs silent, 7,616 bytes (the steal's level fits in the voice's
+padding); Macro with twelve held notes 25.6 µs on VA Pair and 27.3 µs on
+VA+Filter, and from 19.5 µs (Chip) to 84 µs (2-op FM) over its eight
+models [measured 2026-10-05]. Neither figure includes the cost of
+denormals: Plaits' own drum classes (their pulse and filter states) run
+into them as a long hit rings, which Apple's cores handle at full speed
+and an FPU without flush-to-zero may not; stage B should measure with and
+without flush-to-zero on pi32v2 [inferred].
 
 On pi32v2 nothing is measured yet. This stream's research compiled the
 classes with JieLi's clang and counted their per-sample loops: about 200
