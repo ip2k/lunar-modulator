@@ -25,8 +25,8 @@ pages, then the second slot's. The bottom bar shows where you are, such as
 *1/2 FX2*: page 1 of 2, second slot.
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
-*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Echo and Test
-Gain, and round again. In the simulator you can also use the **Effect 1** and **Effect 2**
+*Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Echo, Tilt
+and Test Gain, and round again. In the simulator you can also use the **Effect 1** and **Effect 2**
 lists under the panel.
 
 **To empty a slot:** turn [[ALGORITHM]] to *Empty slot*, one step before
@@ -61,9 +61,9 @@ more than two.
     about 48,000 samples a second, so at the FM-1's 44,118 their delays come
     out about 9 % longer, a slightly larger room, and their slow modulation
     about 8 % slower. Their decay times are corrected, and stay within a few per
-    cent of the originals'. Crush, Fold and Echo, written for Lunar Modulator,
-    work out their frequencies and times from the output's rate, so they need
-    no correction.
+    cent of the originals'. Crush, Fold, Echo and Tilt, written for Lunar
+    Modulator, work out their frequencies and times from the output's rate,
+    so they need no correction.
 
 ## Plate
 
@@ -270,6 +270,40 @@ the time.
 Echo does not yet follow the sequencer's tempo; set Time by ear.
 
 {{engine-table echo}}
+
+## Tilt
+
+{{status desktop planned}}
+
+A tilt equaliser, written for Lunar Modulator: one knob turns the whole sound
+darker or brighter. Turned right, the highs rise and the lows fall by the
+same amount; turned left, the reverse. One frequency, the pivot, keeps its
+level, so the sound changes colour without getting much louder or quieter.
+It suits the end of the chain, the second slot, where it shapes everything
+before it.
+
+- **Tilt** sets how far, up to 9 dB either way. In the middle, the default,
+  the sound passes through untouched.
+- **Pivot** sets the frequency that stays put, from 200 Hz to 5 kHz; the
+  default is 1 kHz. Lower it to brighten or darken mostly the body of the
+  sound, raise it to work mostly on the air at the top.
+- **Curve** chooses the shape. *Shelf*, the default, turns quickly around
+  the pivot and then levels off, like the treble and bass controls of an
+  amplifier turned in opposite directions. *Slope* turns more gently and
+  evenly across the whole range, for a subtler change of colour.
+- **Level** sets the output level, from −24 dB to +12 dB, to make up for
+  what a strong tilt adds or takes away.
+
+Every control, Curve included, moves smoothly when you turn it, so Tilt
+can be swept or modulated without clicks.
+
+!!! tip "Starting points"
+    - **Warm up a bright mix:** Tilt about −3, Curve Slope.
+    - **Lift a dull pad:** Tilt about +4, Pivot about 2 kHz.
+    - **Telephone-thin, for a break:** Tilt at the right, Pivot about
+      3 kHz, Level down a few dB.
+
+{{engine-table tilt}}
 
 ## Test Gain
 

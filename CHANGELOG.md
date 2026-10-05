@@ -9,6 +9,16 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Tilt**, an effect that turns the whole sound darker or brighter with
+  one knob, up to 9 dB either way about a pivot frequency you choose
+  (200 Hz to 5 kHz). Two curves: *Shelf* turns quickly around the pivot,
+  *Slope* more gently and evenly. A Level control makes up the volume.
+  Flat, it passes the sound through untouched, bit for bit, so it can sit
+  on the last slot as a master tone control. Every control, the curve
+  included, glides when turned, locked or modulated, so sweeps have no
+  clicks or zipper noise. In the desktop tools now, and in the browser
+  simulator from its next rebuild (engines/README.md, "Tilt"; manual
+  chapter 6).
 - notes/2026-10-02-delay-reverb-eq-gates-options.md: research on delays,
   reverbs, EQ, a DJ filter and tilt for the master bus, bus saturation, and a
   Drawmer DS201-style gate. It also designs side-chaining: the gate and the
