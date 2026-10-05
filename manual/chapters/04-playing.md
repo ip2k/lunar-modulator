@@ -13,7 +13,7 @@ note, and each engine has a fixed number of them:
 
 | Engine | Voices |
 | --- | --- |
-| Macro, Shapes, Sophie, Test Sine | 12 |
+| Macro, FM6, Shapes, Sophie, Test Sine | 12 |
 | Six-Op FM | 8 |
 | Macro Heavy | 4 |
 
@@ -24,13 +24,13 @@ notes can use more voices than the keys you are holding.
 
 When you play a note and no voice is free, the engine takes one over:
 
-- **Macro, Macro Heavy, Six-Op FM and Shapes** take a voice whose key has
+- **Macro, Macro Heavy, Six-Op FM, FM6 and Shapes** take a voice whose key has
   already been let go, choosing the one whose note started first. If every
   key is still held, they take the note that started first.
 - **Sophie** takes the hit that started longest ago.
 - **Test Sine** ignores the new note until a voice is free.
 
-On Macro, Macro Heavy, Six-Op FM and Shapes, playing a key again while its
+On Macro, Macro Heavy, Six-Op FM, FM6 and Shapes, playing a key again while its
 note is still fading restarts that note in the same voice. On Sophie each hit
 gets a voice of its own.
 
@@ -57,7 +57,7 @@ What velocity changes depends on the engine:
 | Engine | What a harder note does |
 | --- | --- |
 | Macro, Macro Heavy | Louder and brighter: velocity opens the low-pass gate further. The range is gentle, so soft notes stay clearly audible. On the models that sound by themselves (String, Modal and the drums) it sets how hard the sound is struck, and on spoken words how loud they are |
-| Six-Op FM | Whatever the patch was programmed to do with velocity: depending on the patch, louder, brighter, both, or neither |
+| Six-Op FM, FM6 | Whatever the patch was programmed to do with velocity: depending on the patch, louder, brighter, both, or neither |
 | Shapes, Sophie, Test Sine | Louder |
 
 Whether the FM-1's own keys can sense how hard they are played has not been
@@ -115,6 +115,7 @@ When you let go of a key, each engine ends the note in its own way:
 | Macro Heavy, most models | As Macro | As Macro |
 | Macro Heavy, String, Modal, the drums and spoken words | The sound rings or speaks by itself, and may end before you let go | Any sound still ringing fades out, over a time set by Decay and Colour |
 | Six-Op FM | The patch's own envelopes, scaled by Envelope | The patch's release, scaled by Envelope |
+| FM6 | The voice's own envelopes, run faster or slower by Env Time | The voice's release, likewise. A voice whose release holds above silence (its last envelope level above 0) sounds until a new note takes its voice, as on the keyboards |
 | Shapes | The note rises over the Attack time and then holds. The struck shapes, such as Pluck, Bell and Drum, also die away by themselves | It fades over the Release time |
 | Sophie | Each hit rings for its pad's Decay | Letting go changes nothing |
 | Test Sine | The note holds | It fades in 5 ms |
