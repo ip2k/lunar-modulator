@@ -1,0 +1,16 @@
+#! rate=44118 block=64 tracks=4 end=105882
+# Multi-sound (docs/15 §3.16): four tracks, each routed to the sound unit
+# its route index names. Slot 2 holds no sound, so track 2's notes reach
+# nothing and split nothing. Lock lanes resolve on their own track's sound:
+# track 1's Color is a Shapes parameter (Macro's is Colour), track 3's
+# Brightness a Six-Op one, track 0's Timbre Macro's.
+@0 bpm 15000
+@0 route 0 1 0;route 1 1 1;route 2 1 2;route 3 1 3
+@0 tog 0 0 48 110;tog 0 4 55 100;tog 0 8 51 100;tog 0 12 58 90;slen 0 0 0 -1 60
+@0 tog 1 2 72 100;tog 1 6 75 90;tog 1 10 79 100;tog 1 14 77 80
+@0 tog 2 0 60 100;tog 2 8 64 100
+@0 tog 3 1 84 100 88 90;tog 3 5 86 100;tog 3 9 91 100;tog 3 13 89 100
+@0 alabel 0 0 synth:Timbre;abaseq 0 0 40;aset 0 0 8 110 1
+@0 alabel 1 0 synth:Color;abaseq 1 0 30;aset 1 0 6 100 1;aset 1 0 14 5 1
+@0 alabel 3 0 synth:Brightness;abaseq 3 0 90;aset 3 0 9 20 1
+@0 play

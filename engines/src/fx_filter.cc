@@ -1004,6 +1004,7 @@ const fm1_engine_t fm1_engine_filter = {
   FilterInstanceSize, FilterCreate, FilterDestroy,
   NULL, NULL, NULL,
   FilterSet, FilterRender,
+  NULL,                     // no notes, so no per-note offsets
 };
 
 #ifdef __cplusplus

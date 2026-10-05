@@ -36,6 +36,11 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `filter` | Filter | effect | – | this repository | seven filter types (SVF, ladder, diode ladder, Sallen-Key, mixed-input Sallen-Key, comb, formant), zero-delay feedback; [below](#filter) |
 | `comp` | Comp | effect | – | this repository, after Giannoulis, Massberg and Reiss (JAES 2012) | a feed-forward compressor: peak or RMS, soft knee, parallel mix; [below](#comp) |
 | `limit` | Limiter | effect | – | this repository, after Geraint Luff's look-ahead limiter design | a look-ahead brickwall limiter, 0–5 ms; [below](#limiter) |
+| `djfilter` | DJ Filter | effect | – | this repository, a trapezoidal SVF after Simper and Zavalishin | one knob: low-pass left of centre, high-pass right, the input bit for bit in between; [below](#dj-filter) |
+| `tilt` | Tilt | effect | – | this repository | a tilt equaliser, dark to bright about a pivot; [below](#tilt) |
+| `sat` | Master Sat | effect | – | this repository; curve coefficients from Airwindows (Chris Johnson, MIT) | gentle band-limited saturation for the master bus, with Glue; [below](#master-sat) |
+| `isolator` | Isolator | effect | – | this repository | a three-band kill EQ with Linkwitz-Riley crossovers; [below](#isolator) |
+| `eq` | EQ | effect | – | this repository, on Andrew Simper's trapezoidal SVF (public domain maths) | a low shelf, a bell and a high shelf, exact at 0 dB; [below](#eq) |
 | `room` | Room | effect | – | Clouds' reverb and diffuser | a small Dattorro room in 40 KB; [below](#room) |
 | `hall` | Hall | effect | – | this repository | a hall reverb on an eight-line feedback delay network, with Freeze; [below](#hall) |
 | `gate` | Gate | effect | – | this repository; controls after the Drawmer DS201 and DS301 manuals | a noise gate with a Duck mode, key filters, Listen, Lockout and 0–5 ms look-ahead; [below](#gate) |
@@ -105,9 +110,9 @@ anything beyond ±16 is clamped, dry path included), and the hold clock never
 looks at the samples, so bad input cannot latch the effect: once the next
 hold is taken the output is the clean render's again [verified:
 tests/test_engines_crush.py]. The low-pass state is flushed to zero below
-10^-20 so a tail never goes subnormal on pi32v2. An instance is 96 bytes on
-a 64-bit desktop, all floats and one `uint32_t`, so the same on 32-bit
-[inferred]. On this desktop (Apple M1 Max) it took 400–500 ns per 64-frame block,
+10^-20 so a tail never goes subnormal on pi32v2. An instance is 176 bytes on
+a 64-bit desktop and on 32-bit, all floats, `uint32_t`s and one flag (96
+before the SMOOTH ramps) [verified: the 32-bit build, 2026-10-05]. On this desktop (Apple M1 Max) it took 400–500 ns per 64-frame block,
 about 0.03 % of the block, against Plate's 900 ns in the same run
 [verified: fm1-render's `ns_per_block`, 20 s of noise].
 
@@ -336,10 +341,10 @@ Emilie Gillet's FxEngine in Rings and Clouds.
 How it works [verified: tests/test_engines_echo.py and
 `build/fm1-echo-selftest`, 2026-10-02, unless marked]:
 
-- **Memory:** 16,384 cells per side of 16-bit words (64 KiB), plus 192 bytes
-  of state: 65,728 bytes, whatever the host rate. The 32-bit figure equals
-  the 64-bit one because the instance holds no pointers [inferred; CI's
-  32-bit job reports it]. The words hold ±2.0, 6 dB of headroom over full
+- **Memory:** 16,384 cells per side of 16-bit words (64 KiB), plus 208 bytes
+  of state (192 before Tone's SMOOTH ramp): 65,744 bytes, whatever the host
+  rate. The 32-bit figure equals the 64-bit one because the instance holds
+  no pointers [inferred; CI's 32-bit job reports it]. The words hold ±2.0, 6 dB of headroom over full
   scale. A soft clip before the store is linear up to ±1 and bends towards
   ±2.
 - **Time beyond the line:** up to 16,380 cells (371 ms at 44,118 Hz) the line
@@ -883,6 +888,558 @@ How it works [verified: tests/test_engines_limit.py and
   of every parameter to any value (NaN and infinities included) with bad
   input mixed in, and the host rates it accepts (8–384 kHz).
 
+## DJ Filter
+
+One knob for the end of a chain: turned left of centre it low-passes, turned
+right it high-passes, and around the centre it leaves the sound untouched
+(`src/fx_djfilter.cc`, our own code, MIT). It is the first of the master-bus
+effects in notes/2026-10-02-delay-reverb-eq-gates-options.md (§4.3, §5).
+Until the host has a master chain, put it in the last effect slot (FX2),
+which is the master of a one-sound app; the note's order puts it after the
+Comp and before the limiters, so its sweeps do not pump the Comp's detector
+and its resonant peaks meet a limiter.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Sweep | −1 to +1 (0) | Left of the dead zone the low-pass, right of it the high-pass. With u the travel past the dead zone (0–1), the cutoff falls from 20 kHz to 60 Hz (low-pass) or rises from 20 Hz to 8 kHz (high-pass), equal octaves for equal travel, never above 0.45 of the host rate |
+| 1 | Resonance | 0–1 (0.2) | Q = 0.707 + Resonance × 7.29 × 4u(1 − u): Q 8 (+18 dB at the cutoff) at mid travel and Resonance 1, none at either end of the travel, so the open end never whistles and the far end never booms |
+| 1 | Slope | 12 dB, 24 dB (12 dB) | 24 dB adds a second filter of the same cutoff at Q 0.707 after the first, which alone resonates. A change crossfades the two over 5 ms, so it can be locked and modulated (rounded) |
+| 1 | Mix | 0–1 (1) | The filtered sound against the dry. 0 is a bypass |
+| 2 | Dead Zone | 0–0.2 (0.05) | How far either side of centre the knob passes the input untouched |
+| 2 | Range | 0.1–1 (1) | How much of the sweep the knob reaches, in octaves: at 0.5 the low-pass stops at 1.1 kHz and the high-pass at 400 Hz |
+
+Where the knob puts the cutoff at Range 1 and the default dead zone:
+
+| Sweep (±) | 0.1 | 0.25 | 0.5 | 0.75 | 1 |
+| --- | --- | --- | --- | --- | --- |
+| Low-pass | 14.7 kHz | 5.9 kHz | 1.28 kHz | 277 Hz | 60 Hz |
+| High-pass | 27 Hz | 71 Hz | 342 Hz | 1.65 kHz | 8 kHz |
+| Q at Resonance 0.2 / 1 | 1.0 / 2.2 | 1.7 / 5.6 | 2.2 / 8.0 | 1.8 / 6.4 | 0.71 / 0.71 |
+
+How it works [verified: tests/test_engines_djfilter.py and
+`build/fm1-djfilter-test`, 2026-10-03, unless marked]:
+
+- **The filter** is the trapezoidal state-variable filter of Andrew Simper
+  (Cytomic) and Vadim Zavalishin, the form of stmlib's `Svf`, written out
+  here because entering a side sets its states, which `stmlib::Svf` keeps
+  private. Its states are integrator charges, so new coefficients change the
+  filter's future, not its stored energy: it sweeps without the transients
+  of a direct-form biquad. At 24 points across the sweep, both slopes,
+  Range and Dead Zone, the response is the analytic one (the bilinear
+  transform of the analog filter) within 0.0001 dB.
+- **Exact bypass.** In the dead zone, and at Mix 0 anywhere, the filter does
+  not run and the output is the input bit for bit, negative zero and
+  subnormals included (the guard leaves anything within ±16 alone). Back at
+  the centre after a visit to either side, the output is the input again
+  21 ms (from the left) and 22 ms (from the right) after the knob moves.
+- **Entering and leaving a side.** The travel u in force starts at 0 (the
+  open end), with the states where they would be had the filter been
+  running there: the low-pass's low-pass integrator holds the input, the
+  high-pass's states are zero. The wet share fades in by a smoothstep over
+  the first 8 % of u, which u crosses in no less than 3 ms, and u covers the
+  rest no faster than 0 to 1 in 10 ms. Leaving, u returns to 0 the same way;
+  crossing to the other side goes through 0 and the bypass. On a 0.8 sine
+  at 60 Hz, each of 12 transitions (entering, leaving and crossing sides,
+  with and without a dead zone, the slope switching both ways, Mix from 0)
+  adds at most −72 dB above 4 kHz, on the fastest crossings (−85 dB or less
+  entering a side), and at the default Resonance none thumps: the output
+  stays within 10 % of the note's level.
+- **Smoothing.** Every 16 frames, on the instance's own frame count, a
+  control tick glides the knobs (Sweep through two 5 ms one-poles in series,
+  the rest through one), moves u and works out the coefficients; they ramp
+  linearly to them over the next 16 frames, with h and the wet share
+  recomputed every frame. A sweep written every 32 frames (as the modulation
+  matrix will) leaves −82 dB (low-pass) and −116 dB (high-pass) at the
+  places zipper noise would land, against −45 and −78 dB for the same filter
+  with its coefficients stepped at each write. Changes mid-stream give the
+  same output at host blocks of 64, 12, 7 and 1, from any instance fill.
+- **No libm.** 2^x is `CompExp2` (`src/fx_comp_math.h`, shared with Comp
+  and Tilt; until the pack's review the file kept an identical copy) and
+  tan(πx) a polynomial in the file, and
+  floating-point contraction is off for it, so the bits are the same from
+  Apple clang (arm64, −O0 and −O2), GCC (x86-64, also with FMA available,
+  and i386 with SSE) and Emscripten, with parameters moving at three host
+  rates; without the pragma Apple clang's differ. `nm -u` lists nothing.
+- **Contracts:** the input guard of `mi_fx.cc` (NaN reads as 0, ±16 clamp,
+  dry path included), `fm1_param_clamp`, host rates 8–384 kHz, states
+  flushed below 1e-20. Twenty seconds of every parameter jumping to any
+  value, NaN and infinities included, between blocks of 1–64 frames: finite,
+  peak 1.33 on noise of ±0.5, and back to the exact bypass at the defaults.
+  After full-scale noise into the most resonant settings, silence comes out
+  as exact zeros within 0.5 s.
+- **Memory and cost:** 224 bytes, no delay lines; no pointers in the
+  struct, and the same on 32-bit builds [verified: `instance_size` compiled
+  by clang for i386 and wasm32, 2026-10-05]. About 30 operations a
+  frame at 12 dB and 50 at 24 dB while filtering; a moving sweep adds a
+  divide per filter per frame and a control tick (2^x, tan, two divides)
+  every 16 frames; the dead zone costs the guard alone. Desktop (Apple M1
+  Max, 20 s of noise, best of three; fm1-render's `ns_per_block`): 62 ns
+  per 64-frame block in the dead zone, 742 ns at 12 dB, 1,011 ns at 24 dB,
+  against Plate's 1,088 ns and Fold's 2,707 ns in the same run; 1.3 µs at
+  24 dB with Sweep written every block (`fm1-djfilter-test --bench`). The
+  note's estimate for pi32v2 is 1–1.5 % of a core [inferred]; the dev kit
+  will measure it.
+
+Where it departs from the research note, and why:
+
+- **The cutoff law is exponential in frequency, not in g.** The note's
+  g = g_a·(g_b/g_a)^u spends a third of the low-pass side's travel between
+  20 kHz and 7 kHz, because tan() stretches the top octaves. Equal octaves
+  per travel cost one polynomial tan() per control tick.
+- **Slope is lockable and modulatable** (owner's policy of 2026-10-02:
+  switches that change cleanly), not NOLOCK as the note had it.
+- **The high-pass starts from zero states**, not the input's DC steady
+  state: measured on a bass note, that doubled what entering added above
+  4 kHz and overshot by 15 % when crossing with no dead zone. The low-pass
+  does start from the input; from zero it added 100 times more when 24 dB
+  starts.
+- **The fade is a smoothstep, evaluated every frame, with u rate-limited.**
+  A linear fade tied to u alone, evaluated per tick, left 25 times more
+  above 4 kHz on a fast crossing.
+- **Range** is the share of the sweep's octaves the knob reaches, at both
+  ends; the note named it without defining it.
+
+## Tilt
+
+A tilt equaliser written here (`src/fx_tilt.cc`, MIT), as designed in
+`notes/2026-10-02-delay-reverb-eq-gates-options.md` §4.2. One knob turns the
+whole spectrum about a pivot: to the right the highs rise and the lows fall
+by as much (brighter), to the left the reverse (darker), and the pivot stays
+at 0 dB. It is meant for the master bus; until there is a master chain it
+goes in the last effect slot. The ideas come from Airwindows' ToneSlant
+(MIT) and Faust's `fi.spectral_tilt` (STK-4.3), which approximates a
+constant slope with staggered first-order sections [reported, not read];
+no code is taken from either.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Tilt | −9 to +9 dB (0) | The gain at the top of the spectrum (the Nyquist frequency); the bottom (DC) gets the opposite. At 0 the input passes bit for bit |
+| 1 | Pivot | 200–5,000 Hz (1,000) | The frequency left at 0 dB. Held below 0.45 of the host's rate, which only matters below 11.1 kHz |
+| 1 | Curve | Shelf, Slope (Shelf) | Shelf: one section, steepest at the pivot, levelling into shelves within about two octaves. Slope: two sections 1.5 octaves either side of the pivot, half the tilt each: a gentler, straighter slope. A change glides, so it can be locked and modulated (a route is rounded) |
+| 1 | Level | −24 to +12 dB (0) | The output's gain |
+
+Tilt +9 dB about 1 kHz, in dB [verified: `build/fm1-tilt-test`, float]:
+
+| Curve | 20 Hz | 100 Hz | 200 Hz | 500 Hz | 1 kHz | 2 kHz | 5 kHz | 10 kHz | 20 kHz |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Shelf | −8.99 | −8.67 | −7.83 | −4.39 | 0.00 | +4.41 | +7.91 | +8.77 | +9.00 |
+| Slope | −8.97 | −8.23 | −6.63 | −2.80 | 0.00 | +2.81 | +6.76 | +8.45 | +8.99 |
+
+How it works [verified: tests/test_engines_tilt.py and
+`build/fm1-tilt-test`, 2026-10-05, unless marked]:
+
+- **The filter.** One section is H = T − (T − 1/T)·LP: 1/T at DC and T at
+  Nyquist, with T the gain at the top. In the analogue prototype LP has its
+  pole at T times the pivot, so H has a pole at T·w and a zero at w/T, and
+  its dB response is odd about the pivot, 0 dB there. LP here is the
+  trapezoidal (TPT) one-pole with g = T·tan(π·fp/fs): the bilinear transform
+  prewarped at the pivot, so the digital pivot is exactly 0 dB, and turning
+  Tilt needs no tan (g scales with T). Slope's two sections, each with
+  √T, take g = √T·g_p/2^1.5 and √T·g_p·2^1.5 under the same prewarp, and
+  their gains at the pivot cancel: exactly 0 dB again. The effect's
+  response, from its impulse response in float, matches a double-precision
+  model of these equations within 5e-6 dB at 38 settings and 18
+  frequencies each; pivot, DC and Nyquist are within 5e-6 dB of 0, −Tilt
+  and +Tilt.
+- **Slope against Shelf.** From 200 Hz to 5 kHz about 1 kHz at ±9 dB, Slope
+  stays within 0.12 dB of a straight line, 2.9 dB an octave; Shelf strays
+  by 1.1 dB, 3.85 dB an octave at its steepest. 1.5 octaves is the stagger
+  that keeps Slope straightest over that band (searched from 0.6 to 2
+  octaves; the test reruns the search on the model).
+- **Exact bypass.** At Tilt 0 both sections have T = 1, so T − 1/T = 0 and
+  each returns its input itself (not 1·x − 0·lp, which can turn −0 into +0),
+  and Level 0 dB is a gain of exactly 1. So the defaults, and Tilt 0 at any
+  Pivot and Curve, pass the input bit for bit: random floats, ±0,
+  subnormals and values near the guard, at random block sizes. After Tilt
+  and Level have moved and come back to 0, the output is the input again,
+  bit for bit, 35 ms later, when the glide lands. The low-passes run
+  underneath, so leaving 0 starts from a settled filter.
+- **Glide.** Every control, Curve included, glides sample by sample through
+  two one-poles in series (2.5 ms each, about 5 ms in all), so any block size
+  gives the same output; values set before the first render apply at once.
+  Curve glides the sections' gains and section A's pivot: the one-poles'
+  states are integrator charges, so new coefficients change the filter's
+  future, not its stored energy, and there is nothing to crossfade.
+  - *Two stages, not one.* A single one-pole starts at full speed. When
+    Tilt jumps end to end over a 100 Hz sine, that corner made the output's
+    second difference 47 times the steady sine's; with two stages it is 1.5
+    times. A hard switch between the two settings is about 1,400 times.
+  - *A snap of 1e-6, not 1e-4.* A glide lands on its target when within
+    1e-6 of it, or when its step falls under half an ulp, where a float
+    one-pole would stall. With Fold's 1e-4, Tilt swept end to end at 1 Hz
+    and set every 32 frames, as the modulation matrix will, snapped near the
+    sweep's turns: energy above 1 kHz at −92 dB against −120 dB here. The
+    third difference of that sweep is now that of Tilt set every frame (the
+    sine's own, −110.7 dB). Fold and the effects that copied its glide may
+    want the same change [inferred: not measured on them].
+- **Contracts:** the input guard of `mi_fx.cc` (NaN reads as 0, ±16 clamp),
+  `fm1_param_clamp`, and Curve rounded to the nearest value. Silence in is
+  exact silence out at any setting, while controls move too. Tails flush
+  below 1e-20, so no subnormals: the slowest (Tilt −9, Pivot 200, Slope) is
+  exact zeros 160 ms after the input stops. 20 s of random parameter
+  changes between blocks of 1–64 frames, NaN and infinities included, stay
+  finite, the output's peak at most 12.2 times the input's (+9 dB at the
+  top, +12 dB of Level and the filters' overshoot). Host rates 8–384 kHz.
+- **Determinism:** no libm. dB to gain is `CompExp2` from
+  `src/fx_comp_math.h`, the header of Comp's branch, copied byte for byte so
+  that the two merge cleanly (the research note's shared libm-free maths).
+  The pivot's tan is a ratio of sine and cosine Taylor polynomials, and
+  contraction is off for the file under clang (`#pragma STDC FP_CONTRACT
+  OFF`, as in Comp). `fm1-tilt-test`'s whole output is the same, bit for bit,
+  from Apple clang on arm64, GCC 12 on x86-64 and GCC 12 on i386 with CI's
+  `-msse2 -mfpmath=sse`. On i386's x87 only the last bits of the non-flat
+  outputs differ, and the bypass holds: the glide's snap tests magnitudes,
+  not whether a sum rounded back. JieLi's clang compiles it for pi32v2 at
+  `-O2 -ffp-contract=off` without a warning, and it needs nothing but
+  `memset` [verified: compile only, the toolchain of
+  `tools/jieli/compile-check.sh`].
+- **Memory:** 144 bytes on x86-64 and on i386 (no pointers); no delay lines.
+- **Cost:** about 25 operations per sample and channel, no divide: about
+  3,200 per 64-frame block, and up to about 6,000 and 256 divides while a
+  control glides [inferred]. Desktop (Apple M1 Max, noise in, 20 s): 0.61–0.65 µs
+  per block, 0.04 % of the 1.451 ms block, flat or tilted, against Fold's
+  1.9 µs and Plate's 1.0 µs in the same run (fm1-render's `ns_per_block`);
+  about 1.1 µs, 0.08 %, with Tilt moved every block so that it always
+  glides (a timing loop of our own, rougher). Stage B measures pi32v2.
+- **Decisions against the research note.** Tilt is ±9 dB (the note offered
+  ±6 or ±9), because Slope only differs much from Shelf past ±6. The note's
+  Sections (1 or 2, NOLOCK) became Curve (Shelf, Slope), lockable and MOD
+  under the owner's rule for switches (2026-10-02), which a glide allows.
+  Level is −24 to +12 dB, as Drive's. Tilt and Level are in dB with
+  `FM1_UNIT_NONE` until `fm1_unit_t` has a dB code (note §7.4).
+- **Not yet:** Drive's Tone, a tilt about 800 Hz, could use these
+  sections, as the note proposes; it cuts one side instead of turning both.
+- fm1-render writes 16-bit samples through the limiter, so
+  `build/fm1-tilt-test` (`test/tilt_test.cc`) drives Tilt directly: its response in float, the
+  bypass bit for bit, jumps of every control while a sine plays, Tilt swept
+  at the matrix's rate, every parameter changed mid-stream to any value,
+  silence and tails, and the host rates it accepts.
+
+## Master Sat
+
+Gentle saturation for the master bus (`src/fx_sat.cc`, our own code, MIT),
+the design of §6 of
+[notes/2026-10-02-delay-reverb-eq-gates-options.md](../notes/2026-10-02-delay-reverb-eq-gates-options.md).
+Only the band between Clean Lo and Clean Hi goes through the curve, and
+only what the curve adds to it, the part that is not linear, is added to the
+dry signal:
+
+    band = low-pass(Clean Hi) of high-pass(Clean Lo) of x;  u = Drive x band
+    G = Glue's gain (below);  v = G u
+    wet = G x + DC blocker((h(v) - v) / Drive);   out = x + Mix (Level x wet - x)
+
+The dry signal is never split, so the filters' phase cannot comb with it,
+and a quiet signal passes unchanged: Drive's gain into the curve is divided
+out again. The Drive effect from the same research is the other kind, an
+insert that distorts on purpose; this one is meant to be left on the bus.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Drive | 0–18 dB (6) | Gain into the curve, divided out after it: where the bending starts, not how loud the result is |
+| 1 | Clean Lo | 20–300 Hz (100) | A 12 dB/octave high-pass before the curve: below it nothing is saturated (no intermodulation of the kick and the bass with the rest), and Glue does not hear it |
+| 1 | Glue | 0–1 (0.25) | Turns the drive into the curve and the level of the whole signal down by how hard the curve works, up to 6 dB: a bus compressor keyed by the saturation |
+| 1 | Mix | 0–1 (0) | Dry to wet. At 0, the default, the (guarded) input passes bit for bit, whatever else is set |
+| 2 | Shape | Smooth, Dense (Smooth) | The curve. Dense bends sooner and tops out lower. A change crossfades over 5 ms |
+| 2 | Asymmetry | −1 to +1 (0) | Offsets the curve's input by 0.5 × Asymmetry: one side bends first and even harmonics appear |
+| 2 | Clean Hi | 1–20 kHz (6,000) | A 12 dB/octave low-pass before the curve (at most 0.45 of the host's rate): above it nothing is saturated, and fewer harmonics are made to alias |
+| 2 | Level | −12 to +12 dB (0) | The wet signal's gain |
+
+- **The curves** are odd polynomials of the 11th degree with Airwindows'
+  coefficients (Chris Johnson, MIT; the notice is in the source): Smooth is
+  PurestSaturation's, x − x³/8 + x⁵/128 − x⁷/4,096 + x⁹/262,144 −
+  x¹¹/33,554,432, and Dense is TapeHack2's, x − x³/6 + x⁵/69 − x⁷/2,530.08
+  + x⁹/224,985.6 − x¹¹/9,979,200 [verified: both `*Proc.cpp` files and the
+  LICENSE at Airwindows commit `d22a25b`, 2026-10-05]. Airwindows clamps
+  them at 2.0326 and 2.3059; we clamp each where its slope reaches zero,
+  2.04501 and 1.95801, which makes both monotonic with a C1 plateau
+  (Airwindows' PurestSaturation still has a slope of 0.0065 at its clamp, and
+  TapeHack2 dips 0.4 % past its peak before its clamp) [verified: bisection
+  on the derivative]. Ceilings 1.2212 and 1.0821.
+- **Small signals:** the residual h(v) − v is evaluated as a polynomial in v
+  about Asymmetry's offset, b₂v² + … + b₁₁v¹¹ (a Taylor shift of the curve,
+  done when the offset moves), not as f(v + a) − f(a), which would lose a
+  quiet signal to the rounding of v + a and, through Glue's detector, read
+  near-silence as full squash. For a −60 dBFS sine at full Drive and Glue
+  the output differs from the input by at most −96 dB of its peak (−54 dB
+  with Asymmetry at 1, the second harmonic) [verified: fm1-sat-test]. With Asymmetry at 0 the even terms are
+  zero and an odd-only sum in v² does half the work.
+- **Glue** is the note's idea after Airwindows Compresaturator (MIT; no code
+  from it): the curve's own overspill turns its drive down. Here the
+  detector is the overspill as a share of the input, the squash
+  s = 1 − h(u)/u of the louder channel, through a peak envelope (2 ms
+  attack, 200 ms release; stereo-linked, feed-forward from the drive as
+  set), and G = 1 − Glue × s / 2. The note asked for the overspill
+  |u| − |h(u)| itself; divided by |u| the reduction is bounded (6 dB) and the
+  same at any Drive, and the release takes the same time whatever the level
+  falls to. Measured on a 440 Hz sine at Drive 12: −0.8 dB of level and
+  −3.6 dB of distortion at Glue 1; on a step from 0.05 to 0.5 the reduction
+  is half caught within 15 ms, and a second after the step back it is gone
+  [verified: tests/test_engines_sat.py]. The envelope is two lines; when the
+  shared libm-free maths header of the note's stage B1 lands, it moves there
+  with the Comp's smoothing.
+- **Asymmetry** subtracts f(a), renormalises the slope at the origin to 1
+  and leaves the DC that a lopsided curve makes to a 10 Hz blocker on the
+  residual: the second harmonic of a 440 Hz sine at Drive 6 is −27 dB at
+  Asymmetry 0.5 and −20 dB at ±1, with the output's mean under 10⁻⁶.
+- **Aliasing,** fm1-sat-test's count of every reflected harmonic against
+  the fundamental [verified, 2026-10-05]:
+
+  | Case | Master Sat | Plain tanh, same peak |
+  | --- | --- | --- |
+  | 3 kHz, curve peak about 1.5 (Drive 10), the note's case | −125.8 dB Smooth, −125.0 dB Dense | −66.2 dB |
+  | 3 kHz, Drive 18 (clamped), Clean Hi 6 kHz | −49 dB | |
+  | 3 kHz, Drive 18, Clean Hi open | −43 dB | |
+  | 440 Hz, Drive 18 | −85 dB | |
+
+  Below the clamp the polynomial makes nothing above its 11th harmonic; once
+  Drive pushes peaks onto the plateau, the corners make harmonics without
+  end. No oversampling and no antiderivative anti-aliasing (the note's
+  recommendation for a bus effect); Clean Hi is the guard.
+- **Contracts:** the input guard of `mi_fx.cc`; `fm1_param_clamp`; every
+  continuous knob glides over 5 ms sample by sample and Shape crossfades, so
+  the output is identical at host blocks of 1, 7 and 64, also with knobs
+  turned between blocks; values set before the first block apply from its
+  first sample. Silence in is exact silence out at any setting and while the
+  knobs move (the residual has no constant term). A filter's two states
+  flush to zero together once both are below 10⁻²⁰: flushing each alone, as
+  Fold does, cut their coupling and left the 20 Hz high-pass decaying with a
+  time constant of 5 s at 10⁻¹⁸ [verified]. After loud noise a tail ends in
+  exact zeros within 0.66 s.
+- **Determinism:** no libm at all (2^x, sine and cosine are polynomials
+  written here; `nm -u` lists no maths symbol) and no fused multiply-adds
+  (`#pragma STDC FP_CONTRACT OFF`, as in the Comp). fm1-sat-test prints a
+  digest of 3 s of output with every knob turned; Apple clang on arm64, GCC
+  13 on x86-64 and Emscripten's wasm32 printed the same one [verified,
+  2026-10-05, in containers on the LAN build host], and the test pins it.
+- **Memory:** 336 bytes, no delay lines and no pointers: the same on arm64,
+  x86-64 and wasm32 [verified].
+- **Cost:** per frame, two two-pole filters, the curve and a DC blocker per
+  channel and one divide: about 100 operations with Glue at 0, 130 with
+  Glue up (the curve runs again at the lowered drive) and 170 with
+  Asymmetry too (ten terms instead of five); both curves during a 5 ms Shape
+  crossfade. At one operation per cycle that is 2–5 % of a 240 MHz core
+  [inferred], more than the note's 1.5 %, which did not count the filters'
+  flush tests, Glue's second curve or the divide. Desktop (Apple M1 Max,
+  20 s of noise, the fastest of nine runs, 2026-10-05) [verified:
+  fm1-render's `ns_per_block`]: 1.64 µs per 64-frame block with Glue at 0
+  (0.11 % of the block), 2.32 µs with Glue at 1 (0.16 %), 3.41 µs with
+  Asymmetry as well (0.23 %), against 1.76 µs for Fold and 0.90 µs for
+  Plate in the same runs. Mix at 0 costs the same: the filters and Glue keep
+  running so that turning Mix up is clean.
+- **Where it departs from the note:** the knobs it called Bass and Clean
+  highs are Clean Lo and Clean Hi, because "Clean Highs 20000" does not fit
+  a row of the 240-pixel screen [verified: the simulator's layout check];
+  Glue's detector is normalised (above); the clamps sit where the slopes
+  reach zero (above); Mix defaults to 0, because the note's master-bus rule
+  (§5) gives every master effect an exact-bypass default and a saturator has
+  no neutral Drive; and Glue's envelope is not yet shared with the Comp's,
+  which is not on this branch. Not taken: a Tape mode (the note keeps tape
+  colour in the Drive effect) and the Console sum mode (deferred until
+  several units are summed).
+- `build/fm1-sat-test` (`test/sat_test.cc`) drives Master Sat directly:
+  every parameter changed mid-stream to any value, NaN and infinities
+  included, between blocks of 1–64 frames; the glide, the Shape crossfade,
+  Glue's envelope; float-exact bypass; the host rates it accepts
+  (8–384 kHz); the digest; and `fm1-sat-test tone HZ AMP [NAME=VALUE…]`,
+  a sine's harmonics, distortion and aliases at 1 Hz resolution, which the
+  tests use for what each knob does.
+
+## Isolator
+
+A three-band DJ kill EQ written here (`src/fx_isolator.cc`, MIT), the design
+of notes/2026-10-02-delay-reverb-eq-gates-options.md §4.4. The band tree is
+Faust's `crossover3LR4` (filters.lib, STK-4.3, `9c42142`), followed for its
+structure only; no code is taken. Stereo in, stereo out, each channel
+filtered on its own.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Low | 0–1 (0.75) | The low band's gain: 0 is a true zero, 0.75 unity, 1 is +6 dB (×2). Below unity (k / 0.75)³, so the middle of the cut, 0.375, is −18 dB; above it 2^(4 (k − 0.75)) |
+| 1 | Mid | 0–1 (0.75) | The mid band's gain, the same law |
+| 1 | High | 0–1 (0.75) | The high band's gain, the same law |
+| 1 | Kill | None, Low, Mid, Low+Mid, High, Low+High, Mid+High, All (None) | Kills bands whatever their knobs say; un-killing returns them to the knobs' gains. Lockable, and modulated rounded |
+| 2 | Low Xover | 80–400 Hz (250) | The low/mid crossover |
+| 2 | High Xover | 1,500–5,000 Hz (2,500) | The mid/high crossover. Both crossovers stay under 0.45 of the host's rate |
+
+The defaults are the note's 250 Hz and 2.5 kHz (Mixxx starts its EQ at 246 Hz
+and 2,484 Hz [reported in the note: its constants]).
+
+- **The bands.** Fourth-order (24 dB/octave) Linkwitz-Riley crossovers, each
+  a pair of Butterworth sections: low = AP2(f2)(LR4-LP(f1)(x)), mid =
+  LR4-LP(f2)(LR4-HP(f1)(x)), high = LR4-HP(f2)(LR4-HP(f1)(x)). LR4-LP plus
+  LR4-HP at one frequency is a second-order all-pass, so the three bands at
+  unity sum to AP2(f1) · AP2(f2) · x: flat in magnitude. Each section is the
+  trapezoidal (TPT) state-variable filter in Cytomic's form; one update gives
+  low-, band- and high-pass, so a crossover's first section serves both of
+  its sides and the all-pass is x − 2k·bp: 7 updates per channel per sample.
+- **Measured** [verified: tests/test_engines_isolator.py through
+  `build/fm1-isolator-test`, float impulse responses, 2026-10-05], at the
+  defaults:
+  - the band sum is flat to within 2.7 × 10⁻⁵ dB from 20 Hz to 20 kHz
+    (float rounding);
+  - each band is −6.02 dB at its crossover, at both ends of both ranges;
+  - kill low: −63.7 dB at 40 Hz. Kill high: −80.4 dB at 15 kHz. Kill mid:
+    −29.8 dB at 600 Hz, −31.1 dB at 1 kHz, but only −19.0 dB at 1.5 kHz,
+    because the mid band is three octaves wide and the crossovers' skirts
+    overlap. These are the note's figures;
+  - Kill gives the same response as a knob at 0, sample for sample.
+- **Unity is bit-exact.** While all three bands ask for exactly unity and
+  nothing is killed (the defaults, whatever the crossovers), the output is
+  the guarded input, bit for bit, rather than the all-passed band sum, which
+  differs from it in phase. The filters keep running, so leaving unity
+  crossfades linearly from the input to the band sum over 5 ms, and returning
+  crossfades back; 5 ms later the output is the input again, bit for bit.
+  During the crossfade the two signals' phase difference makes a brief dip
+  around the crossovers: halfway through, for the defaults, −17 dB at f1
+  itself and a full null where the all-passes have turned the phase by half
+  a cycle, at 228 Hz and 2.73 kHz [verified 2026-10-05: the response with
+  the crossfade held at its midpoint]. The alternative, always the
+  band sum, is flat within float rounding but never the input itself.
+- **Glides:** the band gains and the crossovers glide (one pole, 5 ms)
+  sample by sample, so a kill does not click and the output does not depend
+  on block size; values set before the first block apply from its first
+  sample. The crossovers glide in g = tan(πf/fs), the filters' own
+  coefficient, and land on it exactly: a glide also ends when its step is
+  under half an ulp of the value, as Tilt's does, since a float one-pole
+  stalls there for ever. Without that, 38 % of crossover changes at
+  44,118 Hz and all of them at 96 kHz and above stopped up to 10⁻⁴ short,
+  recomputing the coefficients every frame from then on [verified
+  2026-10-05, the pack's review; `fm1-isolator-test` "landing" and
+  `fm1-fx-hostile-test` now check it]. Turning Kill through every mask, the crossovers end to end or
+  Low in and out of unity every third block, on a 100 Hz sine, steps the
+  output by at most 1.31 times the sine's own largest step [verified]. Filter
+  states below 10⁻²⁰ flush to zero, so tails never run in subnormals.
+- **No libm.** tan comes from sin and cos polynomials written here, 2^x from
+  a polynomial, the glide coefficient from a series; contraction is off for
+  the file, so the browser's module computes the same bits [verified:
+  `-ffp-contract=off` and Apple clang's default give identical output;
+  without the pragma they differ].
+- **Cost:** about 103 operations and 28 comparisons per channel and sample,
+  about 13,000 and 3,600 per 64-frame stereo block, no divide unless a
+  crossover is moving. At one operation per cycle on pi32v2 that is about
+  5 % of a 240 MHz core [inferred]. Desktop (Apple M1 Max): 1.8 µs per
+  block, 0.12 % of it, and 2.0 µs while the crossovers glide
+  (`build/fm1-isolator-test --bench`).
+- **Memory:** 240 bytes, no delay lines; the struct holds no pointers, and
+  it is the same on 32-bit builds [verified: `instance_size` compiled by
+  clang for i386 and wasm32, 2026-10-05].
+- `build/fm1-isolator-test` (`test/isolator_test.cc`) drives Isolator
+  directly, in float and at any block size: every parameter changed mid-stream to any value, NaN and
+  infinities included, between blocks of 1–64 frames; the glides at blocks
+  of 64, 7 and 1; the switching; the frequency response in float; and the
+  host rates it accepts (8–384 kHz).
+
+## EQ
+
+A three-band parametric equaliser written here (`src/fx_eq.cc`, MIT): a low
+shelf, a bell and a high shelf in series, then Level. It follows
+notes/2026-10-02-delay-reverb-eq-gates-options.md §4.5. Each band is one
+linear trapezoidal state-variable filter in the form Andrew Simper (Cytomic)
+published, whose maths is public domain [reported: that note, §1 and §4.1],
+with the shelf and bell mixes from the same paper. No code is taken from
+anywhere. One page per band; Level fills the last.
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Low Freq | 20–1,000 Hz (100) | The low shelf's corner: half its gain (in dB) is reached here |
+| 1 | Low Gain | −15 to +15 dB (0) | The gain far below the corner |
+| 1 | Low Q | 0.3–2 (0.7071) | The shelf's slope: 0.7071 is the steepest that does not overshoot; above it a bump and a dip appear either side of the corner, below it the slope widens |
+| 2 | Mid Freq | 20–18,000 Hz (1,000) | The bell's centre |
+| 2 | Mid Gain | −15 to +15 dB (0) | The gain at the centre, exactly |
+| 2 | Mid Q | 0.3–10 (1) | The bell's width; a cut is as narrow as a boost of the same Q |
+| 3 | High Freq | 1,000–18,000 Hz (8,000) | The high shelf's corner |
+| 3 | High Gain | −15 to +15 dB (0) | The gain far above the corner (at Nyquist, exactly) |
+| 3 | High Q | 0.3–2 (0.7071) | As Low Q |
+| 3 | Level | −15 to +15 dB (0) | Output gain, for make-up after boosts |
+
+No band is tuned above 0.45 of the host's rate. Gains and Level are in dB,
+for which `fm1_unit_t` has no code yet (as Comp's); the frequencies carry
+`FM1_UNIT_HZ`.
+
+How it works [verified: tests/test_engines_eq.py and `build/fm1-eq-test`,
+2026-10-05, unless marked]:
+
+- **The response is the cookbook's.** Transformed, Simper's bell and shelves
+  are exactly the RBJ Audio EQ Cookbook's peakingEQ, lowShelf and highShelf
+  (shelves with Q), prewarped at the band's frequency. The measured response
+  (the DFT of each impulse response, in float) agrees with the cookbook's
+  biquads in double precision within 0.001 dB from 20 Hz to 21 kHz in all
+  eleven measured settings, the three bands together included; the worst is
+  8e-4 dB, a 60 Hz bell at Q 10. A +9 dB bell measures 9.0000 dB at its
+  centre. The cookbook serves only as the reference: its direct-form biquads
+  hold a history that is wrong for new coefficients, so they are not the
+  structure to modulate.
+- **0 dB is exact.** At 0 dB a band's mixing coefficients are exactly 0 (A =
+  2^0 = 1 exactly), and the band then passes its input itself. With every
+  gain and Level at 0 dB the output is the guarded input bit for bit,
+  negative zero and subnormals included, at any frequency and Q and while
+  they glide. Turned up and back to 0 dB, a band is exact again about 60 ms
+  later: the glide lands on 0 rather than approaching it. Its integrators
+  keep running while it is flat, so turning it up starts from a settled
+  filter.
+- **Modulation.** Each band's frequency (as log2 Hz), gain (dB) and Q (as log2
+  Q) glide one step per 8 samples, counted from create (1 − e^(−8 / (5 ms ×
+  rate)) of the way per step, a 5 ms time constant), and the band's
+  coefficients are recomputed at each step. The integrators carry their charge across a change, so the filter's
+  future changes, not what it holds; the mixing coefficients ramp linearly
+  across the 8 samples, so a gain change never steps the output. Level
+  glides every sample. A 100 Hz sine through a band whose frequency, gain or
+  Q jumps between extremes every 50 ms (set at once by the host) bends the
+  waveform 52–280 times less, by its largest second difference, than
+  switching between the two settled filters would; what remains is the bend
+  of the 5 ms fade itself. The output does not depend on the block size (1,
+  7 or 64 frames, changes on and off the 8-sample grid).
+- **Determinism.** No libm at all: 2^x, log2 and tan are polynomials in
+  `src/fx_eq_math.h` (2^x to 8.7e-8 relative, log2 to 1.0e-6 absolute, tan
+  to 6.5e-7 relative up to 0.45π, against libm in double), and clang fuses no
+  multiply-add in these files. A hash of every output float of three renders
+  with bands moving is the same from Apple clang on arm64, GCC 14 on x86-64
+  and on i386 (`-msse2 -mfpmath=sse`, as CI's 32-bit job) and Emscripten
+  6.0.10's WebAssembly under Node [verified: containers on the LAN build
+  host], so the browser plays it sample for sample. JieLi's pi32v2 clang
+  compiles it without a warning with `tools/jieli/in-container.sh`'s flags
+  at -O2 and -Oz; its only external symbol is `memset`, and
+  `-ffp-contract=fast` gives the same object as `off` [verified: compiled,
+  not run].
+- **Contracts:** no heap; every field set in create; parameters through
+  `fm1_param_clamp`; the input guard of `mi_fx.cc` (NaN to 0, ±16 clamp), so
+  bad input cannot latch it: a second after a fault the output is the clean
+  render's within one LSB. Silence in gives exact silence out from any prior
+  memory and setting. A band's two integrator states flush to zero together
+  once both are below 1e-15: flushing them one at a time left a low band's
+  tail leaking away through its tiny a3 term at −115 dB for minutes. Now the
+  slowest tail (every band at its lowest frequency and highest Q, boosted 15
+  dB, after a second of noise; the 20 Hz bell's pole Q is 23.7) reaches
+  exact zeros after 12.3 s, the same settings cut after 2.0 s. Host rates
+  from 8 to 384 kHz; at each, a +9 dB bell at 1 kHz peaks at +9.00 dB.
+- **Memory:** 368 bytes on 64-bit, and on 32-bit [verified: GCC i386], no
+  tables and no delay lines.
+- **Cost:** about 60 floating-point operations per sample and channel, flat
+  or not, about 7,700 per 64-frame block; while bands glide, about 130 more
+  and 2 divides per band every 8 samples. Desktop (Apple M1 Max, noise in):
+  1.86 µs per block with the bands flat or set, 2.6 µs with all three
+  gliding all the time, against Plate's 0.93 µs in the same run: 0.13 % and
+  0.18 % of the 1.451 ms block. At one operation per cycle on pi32v2 that
+  is about 2.2 % of a 240 MHz core [inferred]; stage B measures it.
+- **Where it departs from the note:** the note proposed the vendored
+  `stmlib::Svf` and stmlib's `SemitonesToRatio` tables for 10^(dB/40). The
+  filter is written here instead, in the C subset like Fold, because the
+  flat bypass and the mixing ramps need its two outputs and states directly;
+  the maths is the same. The gains come from the 2^x polynomial, which is
+  exactly 1 at 0 dB by construction, needs no table memory and is accurate
+  to 1e-6 dB rather than 0.004 dB steps. The note's shared header for
+  Tilt, DJ Filter, Isolator and EQ (the bell and shelf mixes, the knob law)
+  is left to stage B1: the pack's integration (2026-10-05) kept each
+  effect's own maths, whose bits its tests pin; `fx_eq_math.h` is a
+  candidate.
+- **Knobs:** the hosts turn a parameter in even steps of its range (a
+  hundredth per detent in the virtual FM-1), so a frequency in Hz moves by
+  180 Hz a detent on Mid Freq and a modulation route sweeps it in Hz, not in
+  octaves; the multimode Filter's Cutoff has the same issue [verified:
+  its branch, before it merged]. A logarithmic taper for
+  `FM1_UNIT_HZ` parameters belongs in the hosts, so a lock or a preset keeps
+  storing Hz.
+
 ## Room
 
 The reverb of Mutable Instruments Clouds, fed by the stereo diffuser Clouds
@@ -1300,7 +1857,7 @@ more fields after its name, type, range, default, enum names and page
 | Field | What it is |
 | --- | --- |
 | `uid` | 1–4,095, unique in its engine and never changed or reused. It is what a sequencer lock, a modulation route (docs/16) or a preset stores, so reordering or extending a table moves nothing. A uid means something only together with its engine's id |
-| `flags` | `FM1_PARAM_LATCH`, `SMOOTH`, `NOLOCK`, `MOD` and `INPUT`, below |
+| `flags` | `FM1_PARAM_LATCH`, `SMOOTH`, `NOLOCK`, `MOD`, `INPUT` and `POLY`, below |
 | `unit` | `FM1_UNIT_NONE`, `SEMI`, `MS`, `HZ`, `PCT` or `DEG`: the unit the value itself is in |
 | `abbr` | Up to 6 characters, for matrix rows (docs/16 §5.3). Distinct within an engine, and still distinct cut to 5, for rows that add a unit prefix |
 
@@ -1323,10 +1880,11 @@ moves to the fixture's `retired` list, so its uid is never given out again.
 | Flag | Meaning | What a host does |
 | --- | --- | --- |
 | LATCH | The engine reads it at note-on: a change reaches the notes that start after it, never a sounding one | Nothing more: at one frame, locks come before note-ons (D2, engines/seq.md) |
-| SMOOTH | Continuous and read every block | The engine ramps a change, from docs/15 stage S7b; until then the flag is a hint |
+| SMOOTH | Continuous and read every block | Nothing: the engine ramps a change over 2.5 ms ([below](#smooth-the-ramp-inside-the-engines)) |
 | NOLOCK | A change is destructive: it rebuilds voices, clears a buffer or moves the edit focus | A lock on it is refused and counted (engines/seq.md, Host contract); never a modulation destination |
 | MOD | Accepts modulation (docs/16 §2.2). Every FLOAT has it by default; an ENUM only when it says so, and is then rounded. Never with NOLOCK | The modulation matrix, from docs/16 stage MG1 |
 | INPUT | A bare signal input: FLOAT, −1..1, default 0, hidden from the knob pages | Modulation modules only; no engine has one |
+| POLY | Takes a per-note offset: the engine keeps one per sounding voice ([below](#per-note-offsets)). FLOAT only, always with MOD | Per-voice modulation (docs/16 §6.3, stage MG9) sends it with `set_param_note` |
 
 Every FLOAT parameter here is SMOOTH and MOD (`FM1_PARAM_CONTINUOUS`),
 except Sophie's, which are LATCH and MOD: a triggered voice copies its pad's
@@ -1342,8 +1900,9 @@ hands over every change so that no change, however fast, steps the output,
 is lockable and modulatable (MOD; an ENUM is rounded when modulated, docs/16
 §2.2). Only a destructive change is NOLOCK. The effects' switches follow it:
 Filter's Type, Drive's Type and Auto, Comp's Character, Auto Rel and Auto
-Gain, the Limiter's Mode and Lookahead, and the Gate's Mode, Listen, Link
-and Lookahead are all lockable and MOD, and
+Gain, the Limiter's Mode and Lookahead, DJ Filter's Slope, Tilt's Curve,
+Master Sat's Shape, Isolator's Kill, and the Gate's Mode, Listen, Link and
+Lookahead are all lockable and MOD, and
 `tests/test_engines_fx_switches.py` (the Gate's cases are in
 `tests/test_engines_gate.py`, through the same harness) turns each of them
 every third block (faster than its crossfade) on a steady sine and on sharp
@@ -1355,17 +1914,19 @@ NOLOCK: the Filter's new type now warms up unheard before its crossfade,
 and the Limiter's Lookahead crossfade got a gain path per tap.
 `fm1_param_lockable`, `fm1_param_modulatable` and `fm1_param_index(engine,
 uid)` are the helpers. `fm1-render --list` prints each parameter's uid,
-flags (by name), unit and abbreviation. The four fields make `fm1_param_t`
+flags (by name), unit and abbreviation, and each engine's `per_note`. The four fields make `fm1_param_t`
 36 bytes on pi32v2 and i386 (28 before) and 48 on x86-64 (40) [verified:
 `tools/jieli/compile-check.sh`, 2026-10-02, 67 of 67 objects compiled in
-all four profiles]: 704 bytes more of read-only data for the 88 parameters
-the registry defines.
+all four profiles]: 8 bytes more of read-only data per parameter, 1,160
+bytes for the 145 the registry defines [counted with `fm1-render --list`,
+2026-10-05; 88 when the sizes were measured].
 
 **The ENUM parameters** [verified against each engine's code, 2026-10-02].
 docs/15's table had eight; Macro's and Macro Heavy's LPG came with their
 third page; Drive's Type and Auto, Comp's Character, Auto Rel and Auto
-Gain, Filter's Type and the Limiter's Mode with their effects. Hall's and
-Plate's Freeze came on 2026-10-05.
+Gain, Filter's Type and the Limiter's Mode with their effects, DJ
+Filter's Slope, Tilt's Curve, Master Sat's Shape and Isolator's Kill with
+the master-bus pack, and Hall's and Plate's Freeze on 2026-10-05.
 
 | Engine | Parameter | Flags | Why |
 | --- | --- | --- | --- |
@@ -1374,28 +1935,197 @@ Plate's Freeze came on 2026-10-05.
 | macro-heavy | Model, LPG | as Macro's | the same code |
 | shapes | Shape | NOLOCK | Sets every voice's oscillator at once |
 | sixop | Patch | LATCH, MOD | Read per voice at note-on, so a lock or a route picks the patch of the next notes |
-| sw-sophie | Pad | NOLOCK | The module's edit focus, not a sound: it picks the pad the other parameters edit, so a lock on it would change what every other lane's locks mean. A change does leave sounding voices intact, the condition docs/15's table gave for lockable; the focus decided it |
+| sw-sophie | Pad | none | The module's edit focus, not a sound: it picks the pad the other parameters edit. NOLOCK in S7a, since a lock on it changes what the locks after it mean; lockable since docs/15 S8 (the owner's decision, 2026-10-02): a Pad lock moves the focus at its step, so the locks after it in lane order, there and later, edit the pad it names. A change leaves sounding voices intact. No MOD: a list that moves the focus is no modulation target |
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
-| sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
+| sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect slots are not lockable yet anyway (docs/15 O14, answered 2026-10-02) |
 | filter | Type | MOD | A change warms the new type up from rest, unheard, then crossfades into it over 5 ms, so nothing is cut: lockable, and a rounded route steps through the types, however fast. Neither NOLOCK nor LATCH (an effect has no note-on) describes it |
 | drive | Type | MOD | A change crossfades the two curves over 5 ms (the rule above) |
 | drive | Auto | MOD | Its gain glides like any other (the rule above) |
 | comp | Character, Auto Rel, Auto Gain | MOD | Read every frame; Character and Auto Rel hand the smoothing over through an offset that decays in 5 ms and Character crossfades the detector, Auto Gain glides its makeup and its bound in, so no change steps (the rule above). Not effects of a note, so no LATCH. Until 2026-10-02 they took no MOD |
 | limit | Mode | MOD | A change glides the output stage over 5 ms, frame by frame as the line delivers them (each frame carries the Mode its gain was made for). NOLOCK until 2026-10-02 |
+| djfilter | Slope | MOD | Crossfades the 12 and 24 dB filters over 5 ms (the rule above). The research note had it NOLOCK |
+| tilt | Curve | MOD | Glides from one curve's coefficients to the other's through two 2.5 ms stages (the rule above). The note's Sections switch was NOLOCK |
+| sat | Shape | MOD | Crossfades over 5 ms, so a lock or a rounded route is clean however fast (the owner's switch rule, 2026-10-02) |
+| isolator | Kill | MOD | The killed bands' gains glide over 5 ms, so a change is clean however fast: lockable, and a route is rounded |
 | hall | Freeze | MOD | Crossfades over about 75 ms (the input fades out as the decay lengthens) and keeps the tail, so it can be locked, and a route rounds it |
 | plate | Freeze | MOD | Off/On, appended as uid 5 on Plate's second page (2026-10-05). It ramps the loop over 5 ms, so a lock or a rounded route switches it cleanly (the owner's policy for switches; mi-fx.md, "Freeze") |
 | gate | Mode, Listen, Link | MOD | Mode crossfades the Gate and Duck gains, Listen the gated audio and the filtered key, and Link the detector's and Listen's weights, each over 5 ms, so no change steps the output (the rule above) |
 
+### SMOOTH: the ramp inside the engines
+
+Since docs/15 stage S7b, a change to a SMOOTH parameter while an engine
+sounds ramps inside the engine (the owner's choice, docs/13 §10). The shared
+code is `include/fm1_smooth.h`, plain C99:
+
+- **2.5 ms of the engine's own native samples,** in equal steps of its own
+  control block, landing exactly on the new value. A ramp turned mid-way
+  starts again from where it stands.
+- **Keyed to samples.** The control blocks sit at fixed native samples,
+  rendered as the resampler or the effect's own loop needs them, never at
+  render calls. The output is therefore the same at any host block size and
+  with any split of a block.
+- **At once when there is nothing to ramp:** while no voice is active, and
+  before an effect's first render. A lock on the trig of a note that starts
+  a silent engine plays that note at the locked value from its first sample,
+  and settings made at load apply from sample 0.
+- **A write equal to the target already set changes nothing.**
+- **Exact on every build** (docs/14): no libm, and nothing a compiler could
+  contract into a fused multiply-add. A step is `(target − value) / steps`,
+  added once per block and clamped so it never passes the target, and the
+  last block stores the target itself. A render with no change while
+  sounding is the render without the ramp, bit for bit (below).
+
+| Engine | Control block | Steps | Ramp | What ramps |
+| --- | --- | ---: | --- | --- |
+| Macro, Macro Heavy | 12 samples at 47,872.34 Hz | 10 | 2.51 ms | every FLOAT, read once per block as before |
+| Six-Op FM | 16 samples at 47,872.34 Hz | 8 | 2.67 ms | Brightness, Envelope, Volume |
+| Shapes | 24 samples at 96 kHz | 10 | 2.5 ms | Timbre, Color, Attack, Release, Volume |
+| Test Sine | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | Volume |
+| Plate, Ensemble, Diffuse, Crush, Test Gain | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | what each runs on; see below |
+| PSX Verb (through the Schwung shim) | the module's block, 64 frames on the FM-1 | 2 | 2.9 ms | Decay, Mix, Level, Input, sent as strings before each module call |
+| Echo's Tone | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | the loop filter's coefficient, derived once per change |
+| Fold, Drive, Filter, Comp, Limiter, and Echo but its Tone | their own glides | – | 5 ms one-pole (Filter's controls in steps of 8 samples); Echo's Time and Wow 0.1 s | unchanged |
+
+- **Effects ramp what they run on, not the knob.** Plate's loop gain and
+  damping, Diffuse's loop gain and tone coefficient, and Crush's quantiser
+  step, hold interval and low-pass pole are derived from the knob once per
+  change, with libm as before, and the derived value ramps. No libm runs
+  in a render. During a Bits ramp Crush's inverse step is `1 / step`, and
+  exp2f's value again at the end. While a ramp runs, the vendored effects
+  render one frame at a time so that each frame gets its step.
+- **The rule for effects that already glide.** An effect that glides its
+  parameters itself, keyed to samples and snapping before its first render,
+  keeps its own glide: Fold (5 ms one-pole) and Echo (5 ms gains, 0.1 s
+  Time and Wow), and the second effects pack, which came with glides of its
+  own: Drive (5 ms, sample by sample), Filter (5 ms, its filter controls
+  in steps of 8 samples counted from create, Mix and Level per sample),
+  Comp (5 ms; Attack and Release are time constants) and the Limiter (5 ms,
+  and a crossfade for Lookahead). That glide gives what SMOOTH promises. A
+  new effect may do the same; anything else uses `fm1_smooth.h`, as Echo's
+  Tone does: its loop filter's coefficient had no glide and jumped, which
+  steps the repeats, so it takes the shared ramp. The master-bus pack (DJ
+  Filter, Tilt, Master Sat, Isolator, EQ) came with glides of its own too,
+  keyed to samples and applied at once before the first render (their
+  sections above), and keeps them; `tests/test_engine_smooth.py` drives
+  all five like every other unit [verified 2026-10-05, after merging S7b].
+- **The Schwung shim** ramps the first eight SMOOTH parameters of a module
+  (`kMaxRamps`), in the module's own blocks, from its first render on.
+  `tests/test_engine_params.py` checks that no module has more. Sophie's
+  parameters are LATCH, so only PSX Verb's ramp.
+- **A lock or a modulation write at frame f.**
+  - The ramp starts with the engine's first control block not yet rendered
+    at f, which is where an unramped change used to land.
+  - A D6 revert and a lock at one frame make one ramp, to the lock's value.
+  - A modulation route writes every tick (0.725 ms, docs/16 §2.6). Each
+    write restarts the ramp from where it stands, so the parameter follows
+    its source through a lag of about one ramp, and the steps are not heard.
+  - docs/12 §5.3 has the sequencer's view.
+- **Per-note offsets ride on the ramp** (answered when S7b merged with
+  them, 2026-10-05). The ramp is the engine's, one per parameter, shared by
+  every voice. A voice with a per-note offset
+  ([below](#per-note-offsets)) plays the ramped base plus its offset,
+  clamped, at every control block: the code that computes a voice's
+  controls reads the same ramped values as the engine-wide code. The
+  offset itself is not ramped: it applies at the next internal block, as
+  it did before S7b.
+  - Why: a ramp per voice would cost 12 bytes per POLY parameter and the
+    pitch in every voice (Macro 1,440 bytes, Shapes 864, Macro Heavy 528,
+    Six-Op 384), and a voice whose offset moved would recompute its
+    controls every block for the ramp's length. A knob, a lock or a route
+    on the base still ramps for every voice.
+  - So a per-voice source must be smooth itself. MG9's per-voice instances
+    write every control tick (0.725 ms, docs/16 §2.6, §6.3); a source that steps
+    by much in one tick (a square LFO, a fast envelope's attack on Volume)
+    steps the voice by as much. Whether that is heard, and whether MG9 then
+    slews its writes or the engines ramp offsets after all, is MG9's to
+    measure [inferred].
+  - Test: a base ramping under a sounding offset is, byte for byte, the
+    base ramping over the same sums with no offset
+    (`tests/test_engine_note_params.py`).
+- **What it does not do.** While a tail still sounds, a note that starts
+  with a lock begins on the ramp, since the ramp is the engine's. Under
+  Macro Heavy's Speech the word bank follows Harmonics' new value at
+  once, while the voices' Harmonics ramps, so a ramp across several banks
+  parses one bank, as before the ramps, not each one it passes
+  (plaits-heavy.md). Shapes still derives its envelope coefficients with
+  `expf` and `powf` once per chunk, as before, so an Attack or Release ramp
+  feeds libm values in between.
+- **Cost.** 12 bytes per parameter plus a few per instance (Crush 96 → 176
+  bytes, Macro +128), and one test per parameter per control block while
+  nothing moves. While a ramp runs, Plate, Ensemble and Diffuse call their
+  vendored class once per frame instead of once per 32; a parameter
+  modulated every tick would keep them there. Stage B measures what that
+  costs on pi32v2 [inferred: small beside the classes' per-sample work].
+
+**Tests** (tests/test_engine_smooth.py, `build/fm1-smooth-test`, which drives
+any engine or effect with changes at any frame where fm1-render cannot):
+- every engine and effect renders the same, bit for bit, with every
+  parameter changed mid-note and mid-ramp, and with NaN, infinity and
+  out-of-range values, at render calls cut at 64, 1, 7 or random frames;
+- a repeated write changes nothing;
+- Test Gain's ramp is 110 samples at 44,118 Hz (120 at 48 kHz, 55 at
+  22,050 Hz), monotonic, and exact at its end;
+- a Volume lock of 0 → 127 under a held A4 stays within the sine's slope
+  plus 1/110 of its amplitude per sample, where a jump would be a
+  full-scale click, and from its 110th sample the output equals Volume 127
+  throughout;
+- a lock on a silent engine's trig plays from the note's first sample;
+- a per-note offset rides on a ramping base (above).
+
+**What changed in sound** [verified 2026-10-05, Apple clang, main against
+this branch on one machine, with a third build that reports every ramp it
+starts]: 2,141 runs of `fm1-render` and the virtual FM-1's native harness,
+the same kinds as API v2's check below. They cover:
+- the 34 oracle scripts on all six sound engines in both modes, at both
+  block sizes;
+- 28 `movy1` sets;
+- every sound parameter as a lock lane, at blocks of 64 and 7, and locked
+  on the trigs of short notes;
+- 36 seeded lock scripts in both modes;
+- the host-block script at 1, 7 and 64 frames;
+- every parameter at its minimum, middle and maximum, set at the start,
+  turned mid-note, and turned while silent;
+- every effect parameter at the same values, at blocks of 64 and 7;
+- instance fills, 48 kHz, bends;
+- the 25 parity scenarios through both hosts.
+
+**The result:**
+- All 1,891 runs that start no ramp are byte-identical: every WAV, event
+  log, exit code, error and summary less its timing and its instance sizes.
+  That includes the 52 that exit with the same error as before: the
+  Plaits-based engines refusing 48 kHz, and Sophie's lack of a pitch bend.
+- Of the 250 that start one, 209 changed their audio. The other 41 started
+  ramps that made no difference in 16-bit output.
+- Of the parity scenarios, only `seq-panel-play-stop` changes its audio:
+  the panel turns knobs while Macro plays. The others change only their
+  RAM figures.
+
+**After merging main** (per-note offsets, the second effects pack,
+multi-sound and S5–S8) [verified 2026-10-05, Apple clang, main at
+`bd3d6da` against the merge, the same three builds]: 2,640 runs of the same
+kinds, the new effects and the 47 parity scenarios included.
+- All 2,376 that start no ramp are byte-identical, the 52 that exit with
+  the same error as before among them.
+- Of the 264 that start one, 223 changed their audio.
+- Nine parity scenarios sound different, each because a knob or a lock
+  turns while something sounds: `seq-panel-play-stop`, `seq-panel-locks`,
+  `multi-panel`, `multi-four-sounds-seq`, the four `fx-turns-*` and
+  `drive-fuzz-gated` (its Plate Decay turn; Drive keeps its own glide).
+  `macro-lpg-ping-env` starts a ramp that makes no difference in 16-bit
+  output. The others change only their RAM figures.
+
 **Units and abbreviations.** Echo's Time, Hall's Pre-delay, Comp's Attack
 and Release, Sophie's Ring Time, the Limiter's Release and Lookahead and the
-Gate's Attack, Hold, Decay, Lockout and Lookahead are in ms, Filter's Cutoff
-and the Gate's Key HP and Key LP in Hz, Sophie's Tune in semitones and its
-0–100 knobs in %. Sophie's Decay is in seconds, and Drive's Drive and
-Level, Comp's Threshold, Knee and Makeup, the Limiter's Ceiling and Drive
-and the Gate's Threshold, Range and Return in dB, for which there are no
-unit codes yet, so they have none. Every other parameter
-is a bare number (the 0–1 knobs, gains, bits, indices).
+Gate's Attack, Hold, Decay, Lockout and Lookahead are in ms, Filter's
+Cutoff, Tilt's Pivot, Master Sat's Clean Lo and Clean Hi, Isolator's
+crossovers, EQ's frequencies and the Gate's Key HP and Key LP in Hz,
+Sophie's Tune in semitones and its 0–100 knobs in %. Sophie's Decay is in
+seconds, and Drive's Drive and Level, Comp's Threshold, Knee and Makeup, the
+Limiter's Ceiling and Drive, Tilt's Tilt and Level, Master Sat's Drive and
+Level, EQ's gains and Level, and the Gate's Threshold, Range and Return in
+dB, for which there are no unit codes yet, so they have none. Every other
+parameter is a bare number (the 0–1 knobs, gains, bits, indices, EQ's Qs).
 
 **No sound changed** [verified 2026-10-02, Apple clang, before and after on
 one machine, clean builds]: 1,458 runs of `fm1-render` and the virtual
@@ -1420,24 +2150,154 @@ Heavy's Model and Shapes' Shape are refused, which changes their audio,
 and on Sophie's Pad, which changes only their counters (Pad alone makes no
 sound).
 
+### Per-note offsets
+
+The owner decided on 2026-10-02 that per-voice modulation is essential:
+each note gets its own envelopes and LFOs, which move only that note
+(docs/16 §6.3, stage MG9). This is the engine side of it: a host can move
+one sounding note's parameters and pitch without touching the other notes.
+The modulation that drives it is MG9's.
+
+**The entry.** `set_param_note(self, key, index, offset)` is the last member
+of `fm1_engine_t` (`include/fm1_engine.h`), optional within API v2: NULL
+means no per-note offsets, as `pitch_bend` may be NULL. The version stays 2,
+since no v2 engine has shipped outside this tree. It follows the contract
+below.
+
+| Question | Rule |
+| --- | --- |
+| What may be offset | A parameter flagged POLY (`fm1_param_poly`), or the note's pitch: index `FM1_PARAM_NOTE_PITCH` (0xFFFF), in semitones, added after the key and the bend. Any other index (a non-POLY parameter, an ENUM, one past the table) is ignored |
+| What the voice plays | `fm1_param_note_value`: base + offset, clamped as `set_param` clamps. The base is the engine's value, ramped while a SMOOTH change runs ([SMOOTH](#smooth-the-ramp-inside-the-engines)); a base that moves, ramp and all, keeps the offset on top |
+| What a call does | Replaces that voice's previous offset for that index; offsets do not add up. A host sends the sum of the note's routes |
+| NaN and infinities | `fm1_param_note_offset`: NaN is 0, no offset (as NaN is the default for `set_param`). An offset is cut to the parameter's span (max − min), past which the sum is at an end whatever the base, so ±inf pin the parameter at its maximum or minimum, as through `set_param`. A pitch offset is cut to ±48 semitones (`FM1_NOTE_PITCH_MAX`), the pitch bend's range |
+| Which voice | Every voice sounding the key, held or releasing. The four engines retrigger a key in its own voice, so there is one |
+| Lifetime | The offsets belong to the voice. `note_on` starts the key's voice at 0, so a host sends a new note's offsets after its note-on, at the same frame. `note_off` keeps them: the release is moved too. A voice that is stolen or ends drops them. A call for a key no voice sounds is ignored, not kept for a later note |
+| When | Where `set_param` would take effect: the next internal block (12 or 16 samples at 47,872 Hz, 24 at 96 kHz), at once: an offset is not ramped, where a SMOOTH change of the base is. So the output does not depend on the host's block size |
+| Thread | The audio task, like `set_param` |
+
+Two choices differ from docs/16 §6.3's sketch, `set_param_mod(index, key,
+offset)`. The name says what is offset, a note, not where it comes from,
+and the key comes first because it picks the voice, as in `note_on`. The
+pitch is a reserved index rather than an entry of its own, so a per-voice
+route's destination is always an index, and one function pointer covers
+both. The pitch has no uid: a route stores it as a system destination
+(MG9's to name).
+
+**The engines.**
+
+| Engine | POLY parameters | How |
+| --- | --- | --- |
+| `macro` | all nine FLOATs: Harmonics, Timbre, Morph, Decay, Colour, Volume, Env Pitch, Env Timbre, Env Morph | A voice with an offset computes its controls (Plaits' parameters, the decay envelope's and the gate's times, its gain, the attenuverter amounts, Chip's own envelope) from its own values, with the function that computes the engine's |
+| `macro-heavy` | all ten FLOATs (Macro's and Word Speed) | As Macro. On Speech, Harmonics stays engine-wide: it picks the word bank all voices share (one parse, not four), and the envelope's reach with it, so its offset is ignored there |
+| `sixop` | Brightness, Envelope, Volume | Each voice already passes the first two to its `fm::Voice`, and Volume is its gain. Patch stays a note-on choice (LATCH). A pitch offset at the note's first block is the note `fm::Voice` samples for keyboard and rate scaling, as a played note's would be |
+| `shapes` | Timbre, Color, Attack, Release, Volume | Each voice already sets its oscillator's parameters and runs its own envelope. Shape stays engine-wide (NOLOCK) |
+| `sw-sophie` | none (NULL) | The module keeps its voices to itself (each copies its pad's patch at the trigger, `sophie.c`), and the shim reaches only the module's global `set_param`. Per-note offsets would mean changing the vendored module, which stays byte-identical |
+| `test-sine` | none (NULL) | Kept without them: the engine a host's tests use for the NULL case |
+| effects | none (NULL) | No notes |
+
+**Memory.** Per voice, one float per POLY parameter, one for the pitch and a
+32-bit mask of which are not 0 (`src/note_offsets.h`), inside the instance;
+no heap. Instance sizes before and after [verified 2026-10-05: gcc 12
+x86-64 and `-m32` in a container, and JieLi's clang for pi32v2, which equals
+i386 for all four]:
+
+| Engine | Voices | 64-bit | 32-bit (i386, pi32v2) |
+| --- | ---: | --- | --- |
+| Macro | 12 | 31,744 → 32,320 (+576) | 19,072 → 19,456 (+384) |
+| Shapes | 12 | 207,080 → 207,368 (+288) | 206,212 → 206,548 (+336) |
+| Macro Heavy | 4 | 71,104 → 71,296 (+192) | 70,896 → 71,088 (+192) |
+| Six-Op FM | 8 | 12,528 → 12,720 (+192) | 10,796 → 10,956 (+160) |
+
+Voice alignment pads or absorbs some of it: Macro's offsets are 44 bytes a
+voice, and its 16-byte-aligned voice grows by 48 on x86-64 and 32 on i386.
+`fm1_engine_t` gains a pointer: 4 bytes on pi32v2 for each of the 18
+registered engines and effects.
+
+**Cost.** A voice without offsets tests one mask per internal block. A voice
+with offsets recomputes its controls each block: for Macro, two
+`SemitonesToRatio` and three attenuverter amounts per 12 samples
+[inferred; stage B measures pi32v2]. Shapes' Attack and Release cost a
+`powf` and an `expf` each, so a voice computes its own coefficient only for
+an offset on that parameter, and takes the engine's otherwise (the same
+number): a Timbre, Color, Volume or pitch offset costs no transcendental.
+
+**No sound changed without offsets** [verified 2026-10-05, before and
+after, clean builds, on Apple clang (arm64), gcc 12 x86-64 and gcc 12
+`-m32`]: 1,900 runs of `fm1-render` on each. They cover the 24 Movy
+oracle scripts, the simulator's 7 sequencer scripts and the 30 panel-trace
+scripts on all six sound engines in both modes (the oracle's at 64-frame
+blocks too); the 28 `movy1` sets on three engines; a lock lane on every sound
+parameter at blocks of 64 and 7; a chord past every voice cap with bends
+at host blocks of 1, 7 and 64, fills 0xA5 and 0xFF and 48 kHz; every
+parameter at its minimum, middle and maximum and turned mid-note; every
+model, shape, patch and pad; 72 seeded scripts of notes and parameter
+moves; every effect at each parameter's minimum, middle and maximum; and
+the 37 parity scenarios of the simulator that `fm1-render` plays alone
+(not the two driven from the panel). Every WAV,
+event log, exit code and error is byte-identical, and so is every summary
+less its timing and `instance_bytes`. A voice computes the engine's values
+until it has an offset, so this holds by construction; the runs check it.
+
+**With offsets** [verified: `tests/test_engine_note_params.py`, all four
+engines]:
+- 0 and −0 on every POLY parameter and the pitch, on every note, render
+  what no call renders.
+- For a note sounding alone, an offset from the note-on is the base moved
+  by as much, byte for byte, through the release (each POLY parameter; all
+  at once on every Macro and Macro Heavy model, a sample of shapes and
+  patches), and a pitch offset is a pitch bend. Mid-note, where a base
+  change would ramp and an offset does not, a later offset and an offset
+  back to 0 are compared with the same moves against a base that holds the
+  first offset.
+- A base set under an offset gives the sum, and a sum past the range is
+  clamped, byte for byte as the base set to it. A base that ramps under a
+  sounding offset is the base ramping over the same sums alone, byte for
+  byte: the offset rides on the ramp.
+- Two notes with offsets on one render as the two notes rendered apart,
+  summed (to 3 LSB at 16 bits), while either offset alone moves its note
+  by more than 300 LSB: the other note is untouched.
+- An offset survives note-off and one sent during the release moves it; a
+  retrigger, a steal and a voice's end drop the offsets; calls for a silent
+  key or a non-POLY index change nothing.
+- NaN is no offset, ±inf pin a parameter at its ends, and a pitch offset
+  is cut to ±48.
+- Instance fills 0, 0xA5 and 0xFF and host blocks of 1, 7 and 64 give the
+  same bytes when the calls land on the same frames.
+- Every POLY parameter at an end with the pitch at ±48 over a ±48 bend, on
+  keys 0 and 127, on every model and every fifth patch, renders finite
+  output, also under ASan and UBSan. Shapes is held within MIDI 0..127 and
+  leaves out two shapes, since Braids faults past there and at those
+  shapes' Timbre ends without offsets too ([below](#open-questions-and-next-steps)).
+
+**In `fm1-render`**: `--note-param-at T:KEY:NAME=OFFSET` (a POLY parameter;
+`#INDEX=OFFSET` sends any index, to test what an engine ignores) and
+`--note-pitch-at T:KEY:SEMITONES`, applied at block boundaries after that
+block's note-ons. The renderer refuses them for an engine without
+`set_param_note` and NAME for a parameter that is not POLY.
+
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `include/fm1_engine.h` | The engine API, version 2. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, flags, a unit and an abbreviation ([above](#parameters-engine-api-v2)); `fm1_param_clamp` for NaN-safe ranges; the threading contract |
-| `mod/` | Modulation primitives: an LFO, a Peaks-style envelope, slew, S&H, a Turing register and a tick clock divider. Heap-free C99, not wired in yet ([mod/README.md](mod/README.md)) |
+| `include/fm1_engine.h` | The engine API, version 2. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, flags, a unit and an abbreviation ([above](#parameters-engine-api-v2)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the threading contract |
+| `include/fm1_mod.h`, `include/fm1_mod_host.h`, `mod/` | Modulation (docs/16 stage MG1): a rack of up to 8 modules inside a 32-slot matrix, run every 32 frames on absolute time, with the module kinds LFO, Envelope and Chance, and the glue that runs it as the sequencer bridge's control-rate hook. Built on the primitives (an LFO, a Peaks-style envelope, slew, S&H, a Turing register, a tick clock divider). Heap-free C99, no libm; `fm1-render --mod` hosts it, the simulator does not yet ([mod/README.md](mod/README.md)) |
 | `include/fm1_seq.h`, `seq/` | The sequencer core: a heap-free C99 port of Movy's sequencer, with 4–8 routed tracks ([seq.md](seq.md), docs/13) |
 | `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`. Not wired into the renderer yet ([midi_fx/README.md](midi_fx/README.md)) |
+| `include/fm1_smooth.h` | The SMOOTH ramp every engine runs (above): C99, header-only, no libm |
 | `include/fm1_mix_limiter.h` | The host's mix-bus limiter and bus guard. Twelve voices started in phase can exceed full scale; the bus holds the output under 0.98, and non-finite samples become silence |
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
+| `src/note_offsets.h` | A voice's per-note offsets, shared by the four engines that take them |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comp](#comp), [Limiter](#limiter), [Hall](#hall), [Gate](#gate); [Room](#room) wraps Clouds' classes; `fx_comp_math.h` is Comp's log2 and exp2 without libm, which the Gate uses too, `fx_room_math.h` Room's) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq), [Hall](#hall), [Gate](#gate); [Room](#room) wraps Clouds' classes) |
+| `src/fx_comp_math.h` | `CompExp2` and `CompLog2`: base-2 exponential and logarithm without libm, the same bits on every build (Comp's; Tilt, DJ Filter and the Gate use it too) |
+| `src/fx_eq_math.h` | EQ's libm-free maths ([above](#eq)) |
+| `src/fx_room_math.h` | Room's libm-free maths ([above](#room)) |
 | `include/fm1_comp.h` | Comp's gain-reduction accessor, for a later modulation source ([above](#comp)) |
 | `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
-| `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON |
-| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, and `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py) |
+| `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON; with `--sound`, `--insert`, `--level` (and `--slots`) up to four sound units, each through its own inserts and level, mixed before the effect chain, as the virtual FM-1's multi-sound plays them (seq.md, Host contract) |
+| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, and `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -1452,9 +2312,12 @@ sound).
 | `--frames N`, `--rate HZ` | Host block and rate (64 and 44,118 by default) |
 | `--bend T:SEMITONES` | A pitch-bend event (finite, within ±48), at a block boundary like notes |
 | `--param-at T:NAME=VALUE` | Turn a sound engine's parameter during the render |
+| `--note-param-at T:KEY:NAME=OFFSET`, `--note-pitch-at T:KEY:SEMITONES` | Per-note offsets for the voice sounding KEY, after that block's note-ons ([above](#per-note-offsets)); `#INDEX` in place of NAME sends any index |
 | `--fx-param-at T:K:NAME=VALUE` | Turn a parameter of the K-th effect (the first `--fx` is 1) during the render, at a block boundary like `--param-at`; the parity scenarios' `fx_param_at` |
 | `--fill BYTE` | What instance memory holds before `create`; every engine must render byte-identically from any fill |
 | `--fault T[..T1]:VALUE` | Overwrite the bus after the source with `nan`, `inf` or any value, for one frame or a span, to test recovery |
+| `--mod FILE`, `--log-mod FILE.jsonl` | Modulation: a rack and slots from a text file, and one JSON line per control tick ([mod/README.md](mod/README.md#hosting)) |
+| `--list-mod` | The modulation kinds with their parameters' uids and flags, their ports, the system sources and the host parameters, as JSON |
 
 ## Build and checks
 
@@ -1487,6 +2350,18 @@ covers: Braids' and stmlib's wrapping integer arithmetic, Plaits' six-op
 `Pow2Fast` negative shift, and Plaits' LPC speech out-of-bounds read (an
 upstream candidate). Our own code gets none.
 
+`build/fm1-fx-hostile-test` (`test/fx_hostile_test.cc`, run by
+`tests/test_engines_fx_hostile.py`) puts the five master-bus effects (DJ
+Filter, Tilt, EQ, Isolator, Master Sat) through the same hostile checks of
+the host contracts: parameters changed at any frame in blocks of 1 to 4,096
+frames, instance memory filled with NaNs, infinities or random bytes,
+seconds of garbage parameters and input followed by one setting (the output
+must then be a fresh instance's), the pass-through settings on input with
+−0, subnormals and ±16, parameters thrown between their ends every frame,
+tails, host rates 8–384 kHz, every glide landing at four rates, and indices
+past the table. It found the Isolator's stalled crossover glide
+([above](#isolator)); a new effect for the master bus takes a line in it.
+
 ## What stage A has found
 
 - **Tuning survives the rate change.** The Mutable engines stay within
@@ -1494,33 +2369,38 @@ upstream candidate). Our own code gets none.
   Effects written for 48 kHz get their loop gains and damping rescaled; their
   delay lengths and LFOs run 8–9 % long and slow (mi-fx.md).
 - **Memory decides the voice caps.** Instance sizes, on the 64-bit desktop
-  and on a 32-bit (`-m32`) build like pi32v2's [verified: CI's 32-bit job on
-  PR #6]:
+  and on a 32-bit (`-m32`) build like pi32v2's [verified 2026-10-05: this
+  Mac, and GCC 12 `-m32` in a container on aeon]:
 
   | Engine | 64-bit bytes | 32-bit bytes | Why |
   | --- | --- | --- | --- |
-  | Shapes, 12 voices | 207,080 | 206,212 | each Braids oscillator carries ~17 KB of physical-model state |
-  | PSX Verb | 134,224 | 134,208 | a fixed 128 KB work area, as upstream |
-  | Sophie, 12 voices | 77,904 | 77,888 | ring delays per voice |
-  | Macro Heavy, 4 voices | 71,104 | 70,880 | ~17 KB per voice (Particle and String arenas) |
-  | Plate | 65,664 | 65,664 | 32,768 16-bit delay words, as Rings; Freeze added 16 and 32 bytes (2026-10-05) |
-  | Echo | 65,728 | 65,728 | 16,384 stereo cells of 16-bit words |
-  | Macro, 12 voices | 31,744 | 18,864 | mostly pointer tables, which halve on 32-bit |
-  | Diffuse | 18,848 | 18,848 | |
+  | Shapes, 12 voices | 207,448 | 206,624 | each Braids oscillator carries ~17 KB of physical-model state |
+  | PSX Verb | 134,400 | 134,368 | a fixed 128 KB work area, as upstream |
+  | Sophie, 12 voices | 78,080 | 78,048 | ring delays per voice |
+  | Macro Heavy, 4 voices | 71,456 | 71,248 | ~17 KB per voice (Particle and String arenas) |
+  | Plate | 65,728 | 65,728 | 32,768 16-bit delay words, as Rings; Freeze added 16 and 32 bytes (2026-10-05, measured with clang for x86-64 and i386 after merging main) |
+  | Echo | 65,744 | 65,744 | 16,384 stereo cells of 16-bit words |
+  | Macro, 12 voices | 32,448 | 19,584 | mostly pointer tables, which halve on 32-bit |
+  | Diffuse | 18,912 | 18,912 | |
   | Filter | 18,368 | 18,368 | Comb's two delay lines, fs / 20 Hz each |
-  | Six-Op FM, 8 voices | 12,528 | 10,796 | |
+  | Six-Op FM, 8 voices | 12,776 | 11,008 | |
   | Limiter | 11,008 | 11,008 | 5 ms of lookahead at 44,118 Hz; 26,912 at 102 kHz and above |
-  | Ensemble | 4,704 | 4,704 | |
+  | Ensemble | 4,752 | 4,736 | |
 
-  The 32-bit figures include the native-rate resamplers (about 1.3 KB each)
-  [verified: CI's 32-bit job on PR #12]. Page 3 (2026-10-02) added 16 bytes
-  to Macro and to Macro Heavy on the 64-bit build [verified]; their 32-bit
-  figures predate it and grow by a similar few bytes [inferred].
+  The figures include the native-rate resamplers (about 1.3 KB each), the
+  four engines' per-note offsets ([above](#per-note-offsets)) and the
+  SMOOTH ramps (12 bytes per parameter; 176 bytes in each Schwung instance
+  on 64-bit and 160 on 32-bit, for eight ramps, Sophie's unused),
+  measured after S7b merged with main (32-bit: GCC 12.2 in Debian). The
+  master-bus effects are small and hold no pointers: DJ Filter 224 bytes,
+  Tilt 144, Master Sat 336, Isolator 240 and EQ 368, on 64-bit and 32-bit
+  builds alike [verified: `fm1-render`'s `fx_bytes`, and `instance_size`
+  compiled by clang for i386 and wasm32, 2026-10-05].
 
   The stock layout leaves a gap of 387,924 bytes, part of it stock's heap
   (docs/11 §2, [inferred]). Most engine-plus-two-effects chains fit in it;
   Shapes at 12 voices takes more than half on its own, and Shapes with PSX
-  Verb and Plate (404,672 bytes on 32-bit) does not fit. Shapes needs a lower cap on the
+  Verb and Plate (406,720 bytes on 32-bit) does not fit. Shapes needs a lower cap on the
   FM-1, or its physical-model shapes split into a smaller engine.
 - **Host contracts, now tested for every engine** (tests/test_engine_host.py):
   output does not depend on instance memory's prior contents; any
@@ -1554,10 +2434,19 @@ upstream candidate). Our own code gets none.
   | Filter | 0.05–0.26 % (Comb to SK Mixed) |
   | Comp | 0.11–0.15 % |
   | Limiter | 0.07–0.10 % |
+  | DJ Filter | 0.004 % in the dead zone, 0.05–0.07 % filtering (12 to 24 dB) |
+  | Tilt | 0.04 % |
+  | Master Sat | 0.15–0.16 % |
+  | Isolator | 0.13 % |
+  | EQ | 0.13 % |
 
   The four effects of the second pack: noise in, best of five 20-second
   runs of `fm1-render`, Fold 0.13 % and Plate 0.06 % in the same run
-  [verified, 2026-10-02].
+  [verified, 2026-10-02]. The five of the master-bus pack the same way,
+  Fold 0.13 % and Plate 0.06 % again in the same run [verified,
+  2026-10-05]. Tilt, Master Sat and EQ cost as much at their bypass
+  settings (Tilt and EQ flat, Master Sat at Mix 0) as when working: their
+  filters keep running so a change fades in.
 
   pi32v2 is a much narrower core and these figures do not transfer; stage B
   measures the real ones. They do rank the engines for the voice caps.
@@ -1626,6 +2515,21 @@ keeping decay within 3–4 %.
   before anything commercial.
 - **Shapes' memory:** 207 KB for 12 voices. A voice cap for the FM-1 build,
   or a split of the physical-model shapes.
+- **Braids faults at some edges**, with or without per-note offsets
+  [verified 2026-10-05: the build before them, clang 18 ASan + UBSan]:
+  Comb (15) at Timbre 0 on keys 0–36 (a shift by −1 in
+  `DigitalOscillator::ComputeDelay`); Wave Line (39) at Timbre 1 on any key
+  (`wave_line[64]`, one past its table, `digital_oscillator.cc:1637`);
+  Flute (31) once key + bend passes MIDI 127 (a global buffer read past its
+  table); the four filter shapes (17–20) at Timbre 1 on key 127 bent up 48
+  (a shift by 32 in `ComputePhaseIncrement`). Ordinary knobs and keys
+  reach the first two; CI's tests never set those shapes there. The
+  wrapper clamps the pitch to 0..255.99 semitones; the module itself is
+  probably held lower (its CV and its own pitch clamp [inferred]), so a
+  clamp at MIDI 127 in the wrapper may be the fix for the high ones. The
+  vendored code stays unmodified, so any fix is in the wrapper (an audio
+  change, its own stage) or an upstream candidate. The per-note extremes
+  test keeps Shapes within MIDI 0..127 and leaves Comb and Wave Line out.
 - **Resampler cost on pi32v2:** the stronger second stage costs about 114
   multiply-adds per output; the cheaper half-band version (about 70, with
   18–22 kHz unprotected) is commit `f12448c`. The owner's decision
@@ -1643,8 +2547,7 @@ keeping decay within 3–4 %.
 - **Host features the streams asked for:** a random seed (`--seed`; stmlib's
   generator is a global in vendored code, so the host cannot seed it without
   depending on one library), an active-voice diagnostic so voice freeing can be tested
-  without timing, parameter smoothing (engine-side, the owner's choice: the
-  SMOOTH flag is set, the ramp is docs/15 stage S7b), and a reset call so
+  without timing, and a reset call so
   effects can drop their tails without re-creating a 64 KB instance. Also a
   per-file SHA-256 manifest from `vendor.py`, so a test can pin the whole
   vendored tree rather than the files one lane compiles.

@@ -1,0 +1,16 @@
+# Browsing sends nothing: SELECT past the sound's pages to Set, Clip and
+# Track 1/2 and 2/2 and back, SHIFT + 2, 3 and 9 open the pages, SEQ goes
+# back to the Track view. Then PLAY/STOP.
+--button 0.05:SEQ
+--turn 0.10:SELECT:4
+--turn 0.15:SELECT:1
+--turn 0.20:SELECT:1
+--turn 0.25:SELECT:1
+--turn 0.30:SELECT:-4
+--button 0.40:SEL:0.3
+--key 0.42:2:100:0.01
+--key 0.50:4:100:0.01
+--key 0.60:14:100:0.01
+--button 0.80:SEQ
+--turn 0.90:SELECT:3
+--button 1.00:PLAY/STOP

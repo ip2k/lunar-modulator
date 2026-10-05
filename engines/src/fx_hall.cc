@@ -605,4 +605,5 @@ extern "C" const fm1_engine_t fm1_engine_hall = {
   fm1::hall::InstanceSize, fm1::hall::Create, fm1::hall::Destroy,
   NULL, NULL, NULL,
   fm1::hall::Set, fm1::hall::Render,
+  NULL,                     // no notes, so no per-note offsets
 };

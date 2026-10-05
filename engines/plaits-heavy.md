@@ -7,8 +7,12 @@ are ours.
 
 | id | Name | Source | Voices | Instance, 64-bit host | Instance, 32-bit targets |
 | --- | --- | --- | --- | --- | --- |
-| `macro-heavy` | Macro Heavy | `src/mi_macro_heavy.cc` | 4 | 71,088 B | 70,880 B |
-| `sixop` | Six-Op FM | `src/mi_sixop.cc` | 8 | 12,528 B | 10,796 B |
+| `macro-heavy` | Macro Heavy | `src/mi_macro_heavy.cc` | 4 | 71,296 B | 71,088 B |
+| `sixop` | Six-Op FM | `src/mi_sixop.cc` | 8 | 12,720 B | 10,956 B |
+
+Per-note offsets (2026-10-05, engines/README.md, "Per-note offsets") added
+192 B to Macro Heavy on both and 192 / 160 B to Six-Op; before, they were
+71,104 / 70,896 B and 12,528 / 10,796 B [verified: gcc 12 x86-64 and `-m32`].
 
 Both run Plaits at its own 47,872.34 Hz and resample to the host's rate
 since 2026-10-01 (below, "Rate"). That added 2,576 B to Macro Heavy (two
@@ -246,9 +250,14 @@ block, and so did a chord struck after a bank change or a model change.
   shared quantizer. `UpdateWordBank()` runs that quantizer once per
   12-sample block, as upstream runs it, and loads the shared bank before any
   voice renders. So a bank change costs one parse, in the next block,
-  whether or not notes are sounding, and a note-on never parses. Harmonics
-  changes only between render calls, so at most one parse falls in a host
-  block. `plaits/dsp/engine/speech_engine.cc` is no longer built.
+  whether or not notes are sounding, and a note-on never parses. Since
+  docs/15 S7b Harmonics ramps over 2.5 ms (SMOOTH), and the quantizer reads
+  the value it ramps to, not the ramp, so a change of Harmonics still costs
+  at most one parse, however many banks the ramp passes [verified 2026-10-05,
+  an instrumented build: Harmonics 0.4 → 1 → 0.4 under a held note parsed
+  nine banks when it read the ramp, five of them within one 2.5 ms ramp,
+  and one when it read the target]. `plaits/dsp/engine/speech_engine.cc`
+  is no longer built.
 - **Output.** For constant parameters the output is byte-identical to the
   per-voice `SpeechEngine` [verified: 12 Harmonics values across the
   naive, SAM, phoneme and all word-bank ranges, 6 staggered notes each, plus

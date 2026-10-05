@@ -409,4 +409,5 @@ extern "C" const fm1_engine_t fm1_engine_room = {
   fm1::room::InstanceSize, fm1::room::Create, fm1::room::Destroy,
   NULL, NULL, NULL,
   fm1::room::Set, fm1::room::Render,
+  NULL,                     // no notes, so no per-note offsets
 };

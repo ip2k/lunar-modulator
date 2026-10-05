@@ -26,9 +26,9 @@ pages, then the second slot's. The bottom bar shows where you are, such as
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
 *Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo,
-Filter, Comp, Limiter, Room, Hall, Gate and Test Gain, and round again. In the
-simulator you can also use the **Effect 1** and **Effect 2** lists under the
-panel.
+Filter, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room,
+Hall, Gate and Test Gain, and round again. In the simulator you can also use
+the **Effect 1** and **Effect 2** lists under the panel.
 
 **To empty a slot:** turn [[ALGORITHM]] to *Empty slot*, one step before
 Plate, or choose *(none)* in the list.
@@ -66,9 +66,9 @@ more than two.
     room comes out about a quarter smaller and its slow modulation faster;
     its decay is corrected the same way, though its shortest settings ring
     a little shorter than on Clouds. Crush, Fold, Drive, Echo, Filter, Comp,
-    Limiter, Hall and Gate, written for Lunar Modulator, work out their
-    frequencies and times from the output's rate, so they need no
-    correction.
+    Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Hall and Gate,
+    written for Lunar Modulator, work out their frequencies and times from
+    the output's rate, so they need no correction.
 
 ## Plate
 
@@ -533,6 +533,208 @@ place. With Ceiling at −0.2 dB or lower and nothing louder after it, it has
 nothing left to do.
 
 {{engine-table limit}}
+
+## DJ Filter
+
+{{status sim desktop planned}}
+
+A one-knob filter of the kind on a DJ mixer, written for Lunar Modulator.
+Turned left of the middle it takes away the highs, turned right it takes
+away the lows, and around the middle it leaves the sound alone. It suits the
+second slot, where it works on everything before it, for build-ups and
+breakdowns.
+
+- **Sweep** moves the filter. From the middle to the left, a low-pass closes
+  from 20 kHz down to 60 Hz until only the bass is left; from the middle to
+  the right, a high-pass opens from 20 Hz up to 8 kHz until only the top is
+  left. Equal turns move it by equal musical steps. Around the middle the
+  sound passes through untouched.
+- **Resonance** adds a peak at the filter's frequency. It is strongest
+  halfway along each side and fades out towards both ends, so the open end
+  never whistles and the far end never booms.
+- **Slope** chooses how steeply the filter cuts: 12 dB per octave, the
+  default, or 24 dB for a deeper cut. Changing it fades from one to the
+  other in a few milliseconds, so it can be switched while playing.
+- **Mix** fades from the dry sound at the left to the filtered sound alone
+  at the right, the default.
+- **Dead Zone**, on page 2, sets how wide the untouched middle is, from none
+  to a fifth of the way to either end; the default is 0.05.
+- **Range**, on page 2, shortens the sweep for gentler moves. At 1, the
+  default, the knob reaches the whole sweep; at 0.5 the low-pass stops at
+  about 1.1 kHz and the high-pass at about 400 Hz.
+
+Sweeps are smooth whether you turn the knob, lock it in the sequencer or
+modulate it, and crossing from one side to the other neither clicks nor
+thumps.
+
+!!! tip "Starting points"
+    - **Breakdown:** turn Sweep slowly to about −0.7 with Resonance about
+      0.3, and back to the middle on the drop.
+    - **Thin build-up:** Slope 24 dB, Resonance about 0.5, and turn Sweep to
+      the right over a few bars.
+    - **Gentle moves:** Range about 0.5, so the whole knob covers only the
+      middle of the sweep.
+
+{{engine-table djfilter}}
+
+## Tilt
+
+{{status sim desktop planned}}
+
+A tilt equaliser, written for Lunar Modulator: one knob turns the whole sound
+darker or brighter. Turned right, the highs rise and the lows fall by the
+same amount; turned left, the reverse. One frequency, the pivot, keeps its
+level, so the sound changes colour without getting much louder or quieter.
+It suits the end of the chain, the second slot, where it shapes everything
+before it.
+
+- **Tilt** sets how far, up to 9 dB either way. In the middle, the default,
+  the sound passes through untouched.
+- **Pivot** sets the frequency that stays put, from 200 Hz to 5 kHz; the
+  default is 1 kHz. Lower it to brighten or darken mostly the body of the
+  sound, raise it to work mostly on the air at the top.
+- **Curve** chooses the shape. *Shelf*, the default, turns quickly around
+  the pivot and then levels off, like the treble and bass controls of an
+  amplifier turned in opposite directions. *Slope* turns more gently and
+  evenly across the whole range, for a subtler change of colour.
+- **Level** sets the output level, from −24 dB to +12 dB, to make up for
+  what a strong tilt adds or takes away.
+
+Every control, Curve included, moves smoothly when you turn it, so Tilt
+can be swept or modulated without clicks.
+
+!!! tip "Starting points"
+    - **Warm up a bright mix:** Tilt about −3, Curve Slope.
+    - **Lift a dull pad:** Tilt about +4, Pivot about 2 kHz.
+    - **Telephone-thin, for a break:** Tilt at the right, Pivot about
+      3 kHz, Level down a few dB.
+
+{{engine-table tilt}}
+
+## Master Sat
+
+{{status sim desktop planned}}
+
+Gentle saturation for the whole mix, written for Lunar Modulator: the warmth
+and density of a signal pushed a little too hard through analogue gear,
+meant to be left on. Quiet passages pass through unchanged and only the loud
+parts are rounded off. The bass and the top end can be kept out of it, so
+the low end stays tight and the highs stay clear. It starts with **Mix** at
+the left, where it changes nothing at all: turn Mix up to hear it.
+
+- **Drive** sets how early the sound starts to bend, from barely, only the
+  loudest peaks, at the left to well into it at the right. It does not make
+  the sound louder: quiet notes keep their level.
+- **Clean Lo** keeps the bass below it out of the saturation, from 20 Hz to
+  300 Hz. Higher settings keep the kick and the bass line clean and stop them
+  from muddying everything else, and Glue does not react to them.
+- **Glue** turns the whole sound down a little when the saturation works
+  hard, up to about 6 dB, and lets it back up over a fraction of a second,
+  like a bus compressor. It holds a mix together and keeps loud passages from
+  turning harsh. At the left it does nothing.
+- **Mix** fades from the dry sound at the left, the default, to the
+  saturated sound alone at the right.
+- **Shape**, on page 2, chooses the curve: Smooth, the default, bends
+  gradually; Dense bends sooner and holds the peaks lower, for a thicker,
+  more compressed sound. Changing it fades from one to the other in a few
+  milliseconds, so it can be switched while playing.
+- **Asymmetry**, on page 2, makes one side of the wave bend before the
+  other, which adds a warmer, rounder colour of even harmonics. In the
+  middle, the default, both sides bend alike.
+- **Clean Hi**, on page 2, keeps the highs above it out of the saturation,
+  from 1 kHz to 20 kHz; the default is 6 kHz. Lower settings keep cymbals
+  and the top of the sound crisp; at the right almost everything is
+  saturated.
+- **Level**, on page 2, sets how loud the saturated sound is, from 12 dB
+  down to 12 dB up.
+
+Silence stays silent at any setting, and the knobs glide over a few
+milliseconds, so turning them does not click. Master Sat is built to keep
+the harsh, unrelated tones of digital distortion very low at moderate
+settings; with Drive near the right, Clean Hi is what keeps them down.
+
+!!! tip "Starting points"
+    - **Warmth:** Mix at the right, Drive about 6, Glue about 0.25.
+    - **Glue a mix together:** Drive about 9, Glue about 0.6, Clean Lo about
+      120, Clean Hi about 5,000.
+    - **Driven and dense:** Shape Dense, Drive about 14, Asymmetry about 0.4,
+      and Level up a little to make up for Glue.
+    - Master Sat belongs last, or just before a reverb, in the second slot.
+
+{{engine-table sat}}
+
+## Isolator
+
+{{status sim desktop planned}}
+
+A three-band kill EQ, as on a DJ mixer, written for Lunar Modulator. It
+splits the sound into lows, mids and highs, each with its own knob, and can
+drop any of them out completely, for the classic bass-out, bass-back-in
+moves. At its defaults it passes the sound through untouched.
+
+- **Low**, **Mid** and **High** set each band's level. At the left the band
+  is gone altogether; at three quarters of the way, the default, it is left
+  as it is; at the right it is 6 dB louder. Halfway down, at 0.375, the band
+  is about 18 dB quieter.
+- **Kill** drops bands out at once, whatever their knobs say: None, the
+  default, Low, Mid, Low+Mid, High, Low+High, Mid+High or All. Back at None,
+  each band returns to its knob's level. A kill fades in a few milliseconds,
+  so it does not click, and it can be locked in the sequencer or modulated.
+- **Low Xover**, on page 2, sets where the lows end and the mids begin, from
+  80 to 400 Hz; the default is 250 Hz.
+- **High Xover**, on page 2, sets where the mids end and the highs begin,
+  from 1,500 to 5,000 Hz; the default is 2,500 Hz.
+
+The bands are split with steep filters, so a killed low or high band is
+really gone, and with all three knobs at their defaults the bands add back
+up to the sound you started with. The mid band is wide, so a killed mid
+still lets a little through near the two crossovers. Every knob glides, so
+turning them does not click.
+
+!!! tip "Starting points"
+    - **Bass out for the break:** Kill Low, then back to None on the drop.
+    - **Telephone:** Kill Low+High.
+    - **Kick and hats:** Kill Mid, with High a little above three quarters.
+
+{{engine-table isolator}}
+
+## EQ
+
+{{status sim desktop planned}}
+
+A three-band equaliser, written for Lunar Modulator: a low shelf, a bell in
+the middle and a high shelf, one page each, then an output level. Use it to
+shape one sound, or in the second slot as a tone control for everything
+before it. The bands run one after the other, on both channels alike.
+
+- **Low Freq**, **Low Gain** and **Low Q** shape the bass. Low Gain raises or
+  lowers everything below Low Freq, by up to 15 dB either way; at Low Freq
+  itself the change is half as much. Low Q sets how sharply the shelf turns:
+  at 0.71, the default, as steeply as it can without overshooting; higher,
+  a bump and a dip appear either side of Low Freq; lower, the change spreads
+  over a wider range.
+- **Mid Freq**, **Mid Gain** and **Mid Q**, on page 2, boost or cut a band
+  around Mid Freq, anywhere from 20 Hz to 18 kHz. Mid Gain is the change at
+  Mid Freq itself. Mid Q sets the width, from wide at the left to narrow at
+  the right; a cut is as narrow as a boost.
+- **High Freq**, **High Gain** and **High Q**, on page 3, do for the treble,
+  above High Freq (1 to 18 kHz), what the Low knobs do for the bass.
+- **Level**, on page 3, raises or lowers the result by up to 15 dB, to make
+  up for boosts and cuts.
+
+With every Gain and Level at 0, the default, EQ leaves the sound exactly as it
+is. The knobs glide over a few milliseconds and the bands are built to be
+swept, so turning a knob does not click, even quickly. EQ has no tail beyond
+the ring of a narrow band.
+
+!!! tip "Starting points"
+    - **Warmth:** Low Freq about 120, Low Gain about +4.
+    - **Presence:** Mid Freq about 3,000, Mid Gain about +4, Mid Q about 1.
+    - **Air:** High Freq about 10,000, High Gain about +5.
+    - **Find a ring:** Mid Gain at +15 and Mid Q near 10, sweep Mid Freq until
+      the ring jumps out, then turn Mid Gain down to about −10.
+
+{{engine-table eq}}
 
 ## Room
 

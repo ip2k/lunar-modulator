@@ -3,47 +3,47 @@
   "engines": {
     "macro": [
       {"name": "Model", "type": "enum", "uid": 1, "flags": ["nolock"]},
-      {"name": "Harmonics", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
-      {"name": "Timbre", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
-      {"name": "Morph", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
-      {"name": "Decay", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
-      {"name": "Colour", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
-      {"name": "Volume", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
-      {"name": "Env Pitch", "type": "float", "uid": 8, "flags": ["smooth", "mod"]},
-      {"name": "Env Timbre", "type": "float", "uid": 9, "flags": ["smooth", "mod"]},
-      {"name": "Env Morph", "type": "float", "uid": 10, "flags": ["smooth", "mod"]},
+      {"name": "Harmonics", "type": "float", "uid": 2, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Timbre", "type": "float", "uid": 3, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Morph", "type": "float", "uid": 4, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Decay", "type": "float", "uid": 5, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Colour", "type": "float", "uid": 6, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Volume", "type": "float", "uid": 7, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Env Pitch", "type": "float", "uid": 8, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Env Timbre", "type": "float", "uid": 9, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Env Morph", "type": "float", "uid": 10, "flags": ["smooth", "mod", "poly"]},
       {"name": "LPG", "type": "enum", "uid": 11, "flags": []}
     ],
     "shapes": [
       {"name": "Shape", "type": "enum", "uid": 1, "flags": ["nolock"]},
-      {"name": "Timbre", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
-      {"name": "Color", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
-      {"name": "Attack", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
-      {"name": "Release", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
-      {"name": "Volume", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
+      {"name": "Timbre", "type": "float", "uid": 2, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Color", "type": "float", "uid": 3, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Attack", "type": "float", "uid": 4, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Release", "type": "float", "uid": 5, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Volume", "type": "float", "uid": 6, "flags": ["smooth", "mod", "poly"]}
     ],
     "macro-heavy": [
       {"name": "Model", "type": "enum", "uid": 1, "flags": ["nolock"]},
-      {"name": "Harmonics", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
-      {"name": "Timbre", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
-      {"name": "Morph", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
-      {"name": "Decay", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
-      {"name": "Colour", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
-      {"name": "Volume", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
-      {"name": "Word Speed", "type": "float", "uid": 12, "flags": ["smooth", "mod"]},
-      {"name": "Env Pitch", "type": "float", "uid": 8, "flags": ["smooth", "mod"]},
-      {"name": "Env Timbre", "type": "float", "uid": 9, "flags": ["smooth", "mod"]},
-      {"name": "Env Morph", "type": "float", "uid": 10, "flags": ["smooth", "mod"]},
+      {"name": "Harmonics", "type": "float", "uid": 2, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Timbre", "type": "float", "uid": 3, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Morph", "type": "float", "uid": 4, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Decay", "type": "float", "uid": 5, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Colour", "type": "float", "uid": 6, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Volume", "type": "float", "uid": 7, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Word Speed", "type": "float", "uid": 12, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Env Pitch", "type": "float", "uid": 8, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Env Timbre", "type": "float", "uid": 9, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Env Morph", "type": "float", "uid": 10, "flags": ["smooth", "mod", "poly"]},
       {"name": "LPG", "type": "enum", "uid": 11, "flags": []}
     ],
     "sixop": [
       {"name": "Patch", "type": "enum", "uid": 1, "flags": ["latch", "mod"]},
-      {"name": "Brightness", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
-      {"name": "Envelope", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
-      {"name": "Volume", "type": "float", "uid": 4, "flags": ["smooth", "mod"]}
+      {"name": "Brightness", "type": "float", "uid": 2, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Envelope", "type": "float", "uid": 3, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Volume", "type": "float", "uid": 4, "flags": ["smooth", "mod", "poly"]}
     ],
     "sw-sophie": [
-      {"name": "Pad", "type": "enum", "uid": 2935, "flags": ["nolock"]},
+      {"name": "Pad", "type": "enum", "uid": 2935, "flags": []},
       {"name": "Tune", "type": "float", "uid": 3346, "flags": ["latch", "mod"]},
       {"name": "Decay", "type": "float", "uid": 3245, "flags": ["latch", "mod"]},
       {"name": "Model", "type": "enum", "uid": 3572, "flags": ["latch", "mod"]},
@@ -156,6 +156,50 @@
       {"name": "Link", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
       {"name": "Mix", "type": "float", "uid": 7, "flags": ["smooth", "mod"]}
     ],
+    "djfilter": [
+      {"name": "Sweep", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Resonance", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Slope", "type": "enum", "uid": 3, "flags": ["mod"]},
+      {"name": "Mix", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Dead Zone", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Range", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
+    ],
+    "tilt": [
+      {"name": "Tilt", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Pivot", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Curve", "type": "enum", "uid": 3, "flags": ["mod"]},
+      {"name": "Level", "type": "float", "uid": 4, "flags": ["smooth", "mod"]}
+    ],
+    "sat": [
+      {"name": "Drive", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Clean Lo", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Glue", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Shape", "type": "enum", "uid": 5, "flags": ["mod"]},
+      {"name": "Asymmetry", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Clean Hi", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Level", "type": "float", "uid": 8, "flags": ["smooth", "mod"]}
+    ],
+    "isolator": [
+      {"name": "Low", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Mid", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "High", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Kill", "type": "enum", "uid": 4, "flags": ["mod"]},
+      {"name": "Low Xover", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "High Xover", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
+    ],
+    "eq": [
+      {"name": "Low Freq", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Low Gain", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Low Q", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Mid Freq", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Mid Gain", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Mid Q", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "High Freq", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "High Gain", "type": "float", "uid": 8, "flags": ["smooth", "mod"]},
+      {"name": "High Q", "type": "float", "uid": 9, "flags": ["smooth", "mod"]},
+      {"name": "Level", "type": "float", "uid": 10, "flags": ["smooth", "mod"]}
+    ],
     "room": [
       {"name": "Mix", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
       {"name": "Decay", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
@@ -195,5 +239,7 @@
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ]
   },
-  "retired": {}
+  "retired": {},
+  "per_note_about": "The engines with set_param_note (engine API v2, per-note offsets: engines/README.md, \"Per-note offsets\"). Their POLY parameters are flagged \"poly\" above; no other engine may have one.",
+  "per_note": ["macro", "macro-heavy", "shapes", "sixop"]
 }

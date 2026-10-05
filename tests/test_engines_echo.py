@@ -96,8 +96,9 @@ def test_echo_is_registered(renderer):
 
 @pytest.mark.parametrize("rate", [22050, 44118, 48000])
 def test_instance_size_is_modest_and_fixed(renderer, tmp_path, rate):
-    # 16,384 stereo cells of 16-bit words (65,536 bytes) and 192 bytes of
-    # state: 65,728 on the desktop. No pointers, so the same on 32-bit.
+    # 16,384 stereo cells of 16-bit words (65,536 bytes) and 208 bytes of
+    # state (192 before Tone's SMOOTH ramp, docs/15 S7b): 65,744 on the
+    # desktop. No pointers, so the same on 32-bit.
     summary, _, _, _ = run(renderer, tmp_path, ["--input", "silence", "--seconds", "0.01",
                                                 "--rate", str(rate), *cli_fx([])])
     size = summary["fx_bytes"][0]

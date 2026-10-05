@@ -766,6 +766,7 @@ const fm1_engine_t fm1_engine_gate = {
   GateInstanceSize, GateCreate, GateDestroy,
   NULL, NULL, NULL,
   GateSet, GateRender,
+  NULL,                     // no notes, so no per-note offsets
 };
 
 #ifdef __cplusplus

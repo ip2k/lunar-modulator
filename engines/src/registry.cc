@@ -24,6 +24,11 @@ extern const fm1_engine_t fm1_engine_echo;
 extern const fm1_engine_t fm1_engine_filter;
 extern const fm1_engine_t fm1_engine_comp;
 extern const fm1_engine_t fm1_engine_limit;
+extern const fm1_engine_t fm1_engine_djfilter;
+extern const fm1_engine_t fm1_engine_tilt;
+extern const fm1_engine_t fm1_engine_sat;
+extern const fm1_engine_t fm1_engine_isolator;
+extern const fm1_engine_t fm1_engine_eq;
 extern const fm1_engine_t fm1_engine_room;
 extern const fm1_engine_t fm1_engine_hall;
 extern const fm1_engine_t fm1_engine_gate;
@@ -49,6 +54,11 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_filter,
   &fm1_engine_comp,
   &fm1_engine_limit,
+  &fm1_engine_djfilter,
+  &fm1_engine_tilt,
+  &fm1_engine_sat,
+  &fm1_engine_isolator,
+  &fm1_engine_eq,
   &fm1_engine_room,
   &fm1_engine_hall,
   &fm1_engine_gate,

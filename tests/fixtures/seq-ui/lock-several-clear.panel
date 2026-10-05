@@ -1,0 +1,19 @@
+# Two steps held on a lock page, then CLEAR (docs/15 S8, review): step 5
+# takes a Timbre lock first (a lane); steps 2 and 3, neither with a note, are
+# held together on the remembered lock page, where KNOB3 edits the sound
+# (the 7-bit grid, its lane's base following: `abaseq`) and makes no lock.
+# CLEAR pressed with them held clears nothing (neither has a lock); CLEAR
+# held + KNOB3 is CLEAR's gesture whatever is held, as Movy's router has it
+# (src/midi/router.ts at 9190e79: only its step page owns the knobs before
+# Clear), so it clears Timbre's lane (`aclr`) rather than turning the sound.
+--button 0.05:SEQ
+--key 0.10:7:100:0.3
+--turn 0.20:SELECT:1
+--turn 0.25:SELECT:1
+--turn 0.30:KNOB3:2
+--key 0.50:2:100:0.6
+--key 0.52:4:100:0.6
+--turn 0.58:KNOB3:1
+--key 0.62:10:100:0.3
+--turn 0.70:KNOB3:1
+--button 1.20:PLAY/STOP

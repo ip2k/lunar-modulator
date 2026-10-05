@@ -1,0 +1,7 @@
+#! rate=44118 block=64 tracks=2 end=110295
+# Two tracks on two sound units (docs/15 §3.16): track 0 on Sound 1, track 1
+# on Sound 2. The panel trace beside this file plays them from the panel.
+@0 bpm 14000
+@0 route 0 1 0;route 1 1 1
+@0 tog 0 0 45 110;tog 0 6 52 100;tog 0 8 48 100;tog 0 12 55 90
+@0 tog 1 3 76 100;tog 1 7 79 90;tog 1 11 83 100;tog 1 15 81 80

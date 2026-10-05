@@ -1,0 +1,8 @@
+#! rate=44118 block=64 tracks=8 end=176472
+@0 bpm 24000;tog 0 0 48 110;tog 0 8 60 100;tog 1 2 64 90;tog 1 10 67 90;tog 2 4 72 80;tog 3 6 55 100;tog 3 14 58 100;route 1 1 0;route 2 1 0;route 3 1 0
+@8832 cscl 0 1 2
+@13248 play
+@57408 cscl 0 2 1
+@88256 clen 0 8
+@105920 ctr 0 7
+@114752 cq 0 50

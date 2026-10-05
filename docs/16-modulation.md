@@ -132,7 +132,8 @@ own:
 - **Gates:** Coin (a Bernoulli gate after Branches), Divide (clock divider,
   probability, Euclid), Burst (ratchets after Peaks).
 - **Utilities that make chains useful:** Calc, Mix, Slew, Compare, Logic,
-  Quantize.
+  Quantize, and Filter (a resonant control-rate filter, the owner's
+  addition of 2026-10-02).
 
 Later waves add Orbit (Tides 2), Dice (Marbles), Swirl (Frames' poly LFO),
 Scenes, Motion, Chaos, Tangle, Bits, Grooves (a Grids-like groove generator
@@ -452,9 +453,12 @@ All rows but the first three are [inferred].
   chain adds nothing per hop when it has no loop.
 - **Sample-accurate triggers.** A module receives each edge's frame offset.
   An envelope triggered at offset 13 has run for G − 13 frames at t(k).
-- **Steps are hidden** by S7b's SMOOTH ramp (2–3 ms) inside the engines. PITCH
-  can additionally be ramped in 8-frame sub-splits if a test shows zipper
-  noise [inferred].
+- **Steps are hidden** by S7b's SMOOTH ramp inside the engines: 2.5 ms of
+  each engine's native samples, in its own control blocks [verified:
+  engines/README.md, "SMOOTH"]. A write every tick restarts the ramp from
+  where it stands, so a routed parameter follows its source through a lag
+  of about one ramp. PITCH can additionally be ramped in 8-frame
+  sub-splits if a test shows zipper noise [inferred].
 - **Renders are split only where needed.** The host splits a unit's render
   at a tick frame only when that tick writes to the unit [inferred]. A unit
   with no routed parameter renders in one call, as today.
@@ -680,6 +684,13 @@ Marbles' drum model in Dice already gives an MIT groove source.
 | **Calc** (CLC) | Mutable Kinks and Links (analog, no code); disting mk4 A-1 to A-5; Phazerville's Calculate; Workshop card 107 Scintillator | Own+ (MIT: Calculate, Justian; card 107, Matt Allison, MIT in `info.yaml` only). Logarithm and square root by table, no libm | A, B | OUT, INV | OP (sum, difference, product, min, max, mean, \|A\|, half-wave, −A, crossfade, log, root, square, slope), OFFSET (semitone-quantisable), AMOUNT | under 30 cycles; under 1 KB tables | 1 |
 | **Mix** (MIX) | Mutable Links and Shades (analog); disting EX Matrix Mixer; Phazerville's AttenuateOffset and Combin8 | Own | IN1–4 | SUM, AVG, INV | GAIN1–4 (±200 %), OFFSET | trivial | 1 |
 | **Switch** (SWI) | Phazerville's Switch and Xfader | Own+ (MIT: Justian, Michalek) | STEP, GATE; IN1–4 | OUT | MODE (sequential, gated, crossfade), RATE, SPRING | trivial | 2 |
+| **Filter** (FLT) | the owner's request of 2026-10-02; the trapezoidal state-variable filter as Andrew Simper (Cytomic) published it | Own | PING; IN | OUT (blend), LP, BP, HP | CUTOFF (0.05–409.6 Hz, log), RES (to undamped: rings for ever when struck), BLEND (LP–BP–HP), LEVEL, STRIKE | 40 B [verified]; about 30 operations per tick | 1 (built in MG2) |
+
+**Filter versus Slew.** Slew limits the rate of change or lags with one
+pole; it never overshoots and knows no frequency. Filter is
+frequency-selective: LP smooths at 12 dB per octave and can ring, BP and HP
+take out the slow part of a signal, and a gate into PING strikes it into a
+decaying sine at its cutoff, a resonant "wobble" source (engines/mod/kinds.md).
 
 Sample-and-hold lives in Chance (its IN input), so there is no separate S&H.
 **TO NOTES**, a sink that turns a pitch CV and a gate into notes on the sound
@@ -786,6 +797,14 @@ budget line of its own.
 | Pending system gate edges | 64 × 4 | 256 |
 | Instance table | 8 × 16 | 128 |
 | **Total** | | **4,480** |
+
+**Measured in MG1** [verified 2026-10-02: `fm1-render --list-mod`, at 32 and
+64 bits]: 11,824 B of fixed state, so `fm1_mod_size()` is 20,016 B with the
+8 KB arena, 5.2 % of the 387,924 B gap. The estimate left out copies that a
+state without pointers needs: each bound unit's parameter ranges (1,920 B),
+bases, sent values and offsets per sink parameter (1,536 B), effective
+module parameters (1,024 B) and a tick's write list (784 B).
+engines/mod/README.md, "Determinism and memory", has the breakdown.
 
 ### 4.2 Module arena
 
@@ -1035,16 +1054,51 @@ The options note's rules M1–M7 hold unchanged. Restated for modules:
 
 ### 6.3 Per-voice modulation later
 
-The options note's stage C2 still applies [inferred]:
+The owner decided on 2026-10-02 that per-voice modulation is essential:
+each note gets its own envelopes and LFOs, which move only that note. The
+options note's stage C2 still applies [inferred]:
 - kinds flagged POLY_OK (Envelope, LFO in trig mode, Curves one-shot,
   random on note) get one instance per voice from the arena;
 - VOICE-scoped slots run per active voice and reach engines through an API v2
-  `set_param_mod(index, key, offset)`;
+  per-note entry (as built below);
 - poly to mono cables are refused, as Surge's `canModulateMonophonicTarget`
   does [verified at `348cfb3`]; mono to poly is allowed;
 - per-voice sources never reach effects or engine-wide parameters.
 
 Cost: about 12 × the per-instance cost for each poly kind in use [inferred].
+
+**The engine side, as built (2026-10-05)** [verified:
+`engines/include/fm1_engine.h`, `tests/test_engine_note_params.py`;
+engines/README.md, "Per-note offsets", has the contract and the tests]:
+- `set_param_note(self, key, index, offset)`, an optional last member of
+  `fm1_engine_t` in API v2 (NULL without support), in place of the sketch's
+  `set_param_mod(index, key, offset)`. It sets, not adds, the offset the
+  voice sounding `key` adds to the parameter's base, in the parameter's own
+  units; the voice plays the sum clamped as `set_param` clamps. The index
+  `FM1_PARAM_NOTE_PITCH` (0xFFFF) is the note's pitch in semitones, cut to
+  ±48.
+- The flag `FM1_PARAM_POLY` marks the parameters that take one: a VOICE
+  slot's destination must be POLY or the pitch, and on an engine whose
+  entry is NULL it has none. Macro and Macro Heavy: every FLOAT (Speech
+  keeps Harmonics engine-wide); Six-Op FM: Brightness, Envelope, Volume;
+  Shapes: Timbre, Color, Attack, Release, Volume. Sophie, Test Sine and the
+  effects have no per-note offsets.
+- Lifetime, which MG9's per-voice instances follow: `note_on` starts the
+  key's voice at 0, so the host sends a new note's offsets after its
+  note-on at the same frame (its envelopes' first values); `note_off`
+  keeps them, so the release is modulated; a steal or the voice's end drops
+  them, and a call for a key no voice sounds is ignored.
+- Without a call every render is byte-identical to before (1,900 renders,
+  three compilers), and with calls at the same frames the output is the
+  same at host blocks of 1, 7 and 64.
+- SMOOTH (S7b, merged after this): a voice plays the engine's ramped base
+  plus its offset, so a knob, lock or mono route on the base still ramps
+  under the note's offset. The offset itself is not ramped; it applies at
+  the next internal block. A per-voice source that steps by much in one
+  tick steps its voice by as much, so MG9 measures whether that is heard
+  and then either slews its per-voice writes or asks the engines for
+  per-voice ramps, at 12 bytes per POLY parameter per voice
+  (engines/README.md, "SMOOTH") [inferred].
 
 ### 6.4 The arpeggiator and MIDI effects
 
@@ -1130,15 +1184,89 @@ and a CHANGELOG entry. Every stage passes:
 | Stage | Work | Depends on | Exit |
 | --- | --- | --- | --- |
 | **MG0** | This document; owner decisions (§9) recorded | — | answers recorded here |
-| **MG1** | `fm1_mod.h`, the core, the planner, the hook in docs/15's host bridge (`engines/seq/seq_host.c`). `fm1-render --mod FILE` (lines such as `mod 1 lfo rate=0.3`, `slot 1 lfo1.out > snd:Timbre amt=40`) and `--log-mod`. Kinds LFO, Envelope and Chance, so the default rack reproduces C1 | docs/15 S1 (the bridge, merged in PR #25) and S7a (uids, plus the MOD and INPUT flags, `abbr`, `unit`); tempo and a beat position in `fm1_host_t`, planned with API v2 in the options note but not in S7a's scope, which MG1 adds if nothing else has | all §2.7 core tests; M1–M7 host tests (a zero amount is a no-op, NOLOCK refused, a lock moves the base while the LFO swings round it, D6 with modulation running) |
-| **MG2** | The glue kinds: Calc, Mix, Slew, Compare, Logic, Coin, Divide, Burst, Bounce, Quantize, Register, Function | MG1 | golden traces per kind; the chain and feedback tests; Bounce and Burst against upstream Peaks |
+| **MG1** (built 2026-10-02) | `fm1_mod.h`, the core, the planner, the hook in docs/15's host bridge (`engines/seq/seq_host.c`). `fm1-render --mod FILE` (lines such as `mod 1 lfo rate=0.3`, `slot 1 lfo1.out > snd:Timbre amt=40`) and `--log-mod`. Kinds LFO, Envelope and Chance, so the default rack reproduces C1 | docs/15 S1 (the bridge, merged in PR #25) and S7a (uids, plus the MOD and INPUT flags, `abbr`, `unit`); tempo and a beat position in `fm1_host_t`, planned with API v2 in the options note but not in S7a's scope, which MG1 adds if nothing else has | all §2.7 core tests; M1–M7 host tests (a zero amount is a no-op, NOLOCK refused, a lock moves the base while the LFO swings round it, D6 with modulation running) |
+| **MG2** (built 2026-10-02) | The glue kinds: Calc, Mix, Slew, Compare, Logic, Coin, Divide, Burst, Bounce, Quantize, Register, Function; and Filter (the owner's addition) | MG1 | golden traces per kind; the chain and feedback tests; Bounce and Burst against upstream Peaks |
 | **MG3** | The simulator hosts `fm1_mod`: RACK, MATRIX, CHAIN, PATCH; routed markers on every page; manual chapter; README stub text | MG1–MG2; docs/15 S2 (the app hosts the bridge) | parity scenarios with routes; the layout sweep; panel traces replay through `fm1-render` byte for byte |
 | **MG4** | Segments: Stages vendored as the desktop oracle (stmlib and Tides 2 headers added), and the device kind; its view | MG3 | the device kind within a stated tolerance of the oracle over a scripted patch set; the clamp tests at secondary 1.0 and primary 2.0; the group-forming table from `chain_state.cc` reproduced |
 | **MG5** | Curves; the pattern-data API in presets; SEL held + white keys as stages | MG3 | pattern round trip; Curves' ENVELOPE, LFO, CLOCKED and ADDRESSED golden traces; layout of the curve view |
 | **MG6** | Locks on module parameters and slot amounts; SEQ sources; MACRO 1–4; Motion | docs/15 S8 (locks) and transport | a lock on `mod3:Level2` and on `mtx:12.amt` replays identically; Motion's loop is identical at any block size |
 | **MG7** | Second wave: Draw, Orbit, Swirl, Scenes, Tangle, Chaos, Bits, Walk, Quad, Slopes, Accent, Switch, Grooves (our maps) | MG3 | Orbit and Swirl against upstream renders at the grid; Chaos bit-exact native against wasm |
 | **MG8** | Heavy and audio: Dice, Follow, Duck, Vactrol; Numbers, Field, Life; TO NOTES and TAP sources; the `FM1_GPL_MODS` switch if the owner wants it | MG3 | Dice's patterns repeat per seed; follower taps identical at any block size; the flash total reported |
-| **MG9** | Per-voice (options note C2) | API v2 `set_param_mod` | zero-offset identity per voice; poly to mono refused |
+| **MG9** | Per-voice (options note C2) | API v2 `set_param_note`, built (§6.3) | zero-offset identity per voice; poly to mono refused |
+
+**MG1, as built** (engines/mod/README.md, "The runtime", has the detail
+and the tests) [verified 2026-10-02]:
+- `include/fm1_mod.h` (the kind contract, slots, the runtime) and
+  `include/fm1_mod_host.h` (the bridge glue); `engines/mod/mod_*.c` and
+  `kinds/` (LFO, Envelope, Chance on `fm1_mp`).
+- The bridge gained `fm1_seq_host_dispatch_ticks`, a control-rate hook with
+  the M6 order at one frame, and the sink a `pitch_bend`. Plain dispatch is
+  unchanged, so the virtual FM-1 is too until MG3: 816 renders before and
+  after are byte-identical. Merged with docs/15's multi-sound bridge
+  (2026-10-05), the hook runs in its one-sink path and sees every event
+  with the route the bridge gives it; `fm1_seq_host_dispatch_slots` runs
+  no hook yet, and `fm1-render --mod` refuses the sound-unit flags, so
+  modulating several sound units is MG3's.
+- Sources: VEL, NOTE, RAND, KEY, TRIG, the sequencer's CLOCK, BEAT, BAR,
+  RUN, START and track gates and velocities. Sinks: SOUND, FX1, FX2 (in
+  `fm1-render`), HOST PITCH and AMP. MIDI controllers and MACRO 1–4 wait
+  for a host that has them.
+- `fm1_host_t` is unchanged: tempo and Start reach the kinds through the
+  hook, which is all LFO's Sync needs; a beat position waits for Orbit.
+- `fm1_mod_size()` is 20,016 B (8,192 B arena and 11,824 B of state), the
+  same at 32 and 64 bits; §4.1's 4,480 B estimate left out copies the
+  pointer-free state needs (engine ranges, sent values, offsets).
+- Differences from §2.2–§2.4: an INPUT parameter takes amount × signal (100 %
+  passes the signal); SEMI into SEMI is rounded to 1/1,024 semitone so whole
+  notes stay whole; an edge a module makes sits at the boundary after the
+  sample that caused it; a gate input can be normalled to a system gate
+  (the Envelope's GATE to KEY, the LFO's RESET to TRIG), and a gate input
+  carries on from tick to tick, so a cable patched or pulled is an edge at
+  the tick's first frame; changing a kind switches its slots off, and
+  switching them on again after a change back is the UI's (MG3); in MG1 an
+  edit takes effect at the next tick on one task, without §2.5's double
+  buffer.
+
+**MG2, as built** (engines/mod/kinds.md has every kind's parameters and
+the tests) [verified 2026-10-02]:
+- Thirteen kinds in `engines/mod/kinds/`, on MG1's runtime unchanged: the
+  twelve above and **Filter**, which the owner asked for on 2026-10-02: a
+  resonant trapezoidal state-variable filter at the tick rate whose LP, BP
+  and HP are sources and which a gate strikes into ringing.
+- **Bounce, Burst and Quantize run ports**, not wrappers: `mod_mi.c` is C,
+  statement for statement Peaks' bouncing ball, pulse shaper and pulse
+  randomizer and Braids' quantizer, at Peaks' rates (48 kHz per sample for
+  the ball, 12 kHz per call for the pulse processors) through §2.6's
+  accumulator. `fm1-mod-mi-ref` compiles the vendored originals (added
+  through `vendor.py`) into a test tool and finds every output identical:
+  2.9 million ball samples, 4.5 million calls each of the shaper and the
+  randomizer, 1.2 million of the quantiser, and Bounce and Burst as kinds
+  over the same timeline as upstream.
+- **Differences from §3:** Burst adds ACCEL and a clocked spacing (both off
+  leave it Peaks'); Bounce adds HIT; Quantize drops its held note on a scale
+  change; Function's segments keep their time rather than their slope;
+  Divide's SWING and DELAY are per module, its outputs triggers; Slew has
+  six outputs and a THRU gate (the table's DEFEAT); Coin's IN and Burst's
+  and Bounce's TRIG are normalled to the note trigger, Divide's CLOCK and
+  Register's CLOCK to the sequencer's. Register has no OUT MODE or
+  DIRECTION (BIT is a gate, CLOCK AND the new bit; the register shifts one
+  way), its MODIFY is WRITE and its SCALE is SPAN, whole semitones.
+  Ports keep to five characters, so Function's RISING and FALLING are UP
+  and DOWN, Compare's INSIDE is MID and Quantize's CHANGED is CHG. Calc
+  adds SNAP and FADE. Filter's CUTOFF is a 0–1 log knob, not Hz: the
+  matrix adds amount × range in a straight line, so a cable then moves
+  it by octaves.
+- **Sizes:** 4 B (Mix) to 312 B (Burst, Peaks' 32-pulse buffer) on arm64,
+  the same or less with `gcc -m32`; all sixteen kinds add up to 1,412 B, so
+  any rack fits the 8 KB arena. `fm1_mod_size()` is unchanged.
+- **Tests:** a golden trace per kind (the same on clang arm64, gcc x86-64,
+  gcc `-m32`, the sanitizer build and Emscripten's `fm1-render.js`, whose
+  renders of three racks also match native gcc's byte for byte), block-size
+  identity at 1, 7 and 64 and any fill with three racks of the new kinds, a
+  chain of glue modules entered backwards arriving in the tick a direct
+  cable does, feedback exactly one tick late, the Filter's response and
+  ringing against its transfer function and poles, and every kind fuzzed
+  with random and extreme parameters.
 
 **Interleaving.** MG1 and MG2 are desktop-only and touch no UI, so they can
 proceed alongside docs/15's S3–S6 once S7a has merged. MG3 needs S2. MG6 needs
@@ -1159,21 +1287,36 @@ due during this plan; check the mark at MG3.
 
 1. **One system.** The rack inside the matrix, with module ports on both sides
    (recommended), or a separate rack whose inputs each pick a source, as
-   Phazerville does?
+   Phazerville does? **Answered (2026-10-02): one system, the rack inside
+   the matrix.** Module outputs are sources; module parameters, INPUT
+   parameters and gate inputs are destinations; chains are ordinary 1:1
+   slots. Built in MG1.
 2. **Tick length G.** 32 frames (recommended: half the cost and half the
-   render splits) or 16 (snappier modulation envelopes)?
+   render splits) or 16 (snappier modulation envelopes)? **Answered
+   (2026-10-02): G = 32 frames.** Built in MG1.
 3. **Sizes.** 8 rack positions and 32 slots (recommended), or 48 slots?
+   **Answered (2026-10-02): 8 positions and 32 slots of 12 bytes, with
+   16-bit amounts and offsets (Q1.14) as §2.4 says.** Built in MG1.
 4. **Loops.** Allowed, with the up-the-rack cable one tick late and marked `~`
-   (recommended), or refused?
+   (recommended), or refused? **Answered (2026-10-02): allowed; the cable
+   that runs up the rack inside a loop is exactly one tick late and marked
+   delayed.** Built in MG1.
 5. **Order.** Computed by the planner with rack order breaking ties
-   (recommended), or plain rack order?
+   (recommended), or plain rack order? **Answered (2026-10-02): computed by
+   the planner (Tarjan, then Kahn), rack order breaking ties.** Built in
+   MG1.
 6. **Inputs.** Module CV inputs as parameters, plus INPUT parameters and gate
-   ports (recommended)?
+   ports (recommended)? **Answered (2026-10-02): yes. A module's CV inputs
+   are its MOD parameters, base plus offset (the options note's rule M1).**
+   Built in MG1.
 7. **S7a additions.** Ask S7a now for the MOD and INPUT flags and the `abbr`
    and `unit` fields? **Answered (2026-10-02): yes; built in S7a.**
 8. **Buttons.** LFO = RACK, EDIT = MATRIX, ENV = PATCH, SEL held + white key
-   for stages in RACK?
-9. **Arena.** 8 KB (recommended) or 16 KB?
+   for stages in RACK? **Answered in part (2026-10-02): in the simulator
+   (MG3), LFO opens the rack at the LFOs and ENV at the envelopes.** EDIT,
+   PATCH and SEL are still open.
+9. **Arena.** 8 KB (recommended) or 16 KB? **Answered (2026-10-02): 8 KB.**
+   Built in MG1.
 10. **Segments on the device.** The control-rate rewrite, checked against the
     vendored oracle on the desktop (recommended), or the vendored code at
     31,250 Hz everywhere (exact to upstream, 2–8 % of a core)?
@@ -1181,11 +1324,16 @@ due during this plan; check the mark at MG3.
     its global parameters as destinations (recommended), or 8 stages as
     parameters that can each be locked and modulated?
 12. **Gate cables.** Use a gate cable's amount as a pass probability?
+    **Answered (2026-10-02): yes.** Below 100 % each rising edge passes with
+    that probability, from the slot's own seeded generator. Built in MG1.
 13. **Names.** Function, Quad, Envelope, Curves, Draw, Bounce, Vactrol, Accent,
     Slopes, LFO, Orbit, Swirl, Tangle, Scenes, Motion, Segments, Chance,
     Register, Dice, Bits, Walk, Chaos, Numbers, Coin, Divide, Burst, Grooves,
     Field, Life, Slew, Quantize, Compare, Logic, Calc, Mix, Switch, Follow,
-    Duck: are these right?
+    Duck, Filter: are these right? **Answered in part (2026-10-02): LFO,
+    Envelope and Chance**, the three kinds MG1 built. MG2 built thirteen
+    more under the names above; renaming one before MG3 shows it costs a
+    string, since presets store guids and uids.
 14. **First wave.** The 17 kinds of MG1, MG2, MG4 and MG5?
 15. **GPL kinds.** Allow `FM1_GPL_MODS` in personal builds (the Grids and
     Branches originals), never in the public simulator (recommended), or keep

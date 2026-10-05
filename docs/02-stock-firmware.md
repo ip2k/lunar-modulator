@@ -29,8 +29,8 @@ AL-255's `extract.sh` and probonopd's SMK-37 notes use).
 | --- | --- | --- |
 | `flash.bin` | 0x94000 | the flash image below the VM region |
 | `top/uboot.boot` | 14384 B | SPL, "UBOOT2.00", `sha256 730e54f0…d3ef`; byte-identical to `cpu/wl82/tools/uboot.boot` of SDK release `AC79NN_SDK_V1.1.9_2023-08-01` (AL-255) |
-| `top/isd_config.ini` | 699 B | packed `[SYS_CFG_PARAM]` entries: `SPI=4_1_0_0`, `OSC0 24MHz`, `UTBD=1000000`, `RESET=PB01_08_0`, `UPDATE_JUMP=0`, `SDRAM_SIZE=0`, no `UTTX`/`UTRX` pins, no double-bank keys |
-| `files/app.bin` | 583068 B (V13) | the application, SFC-encrypted in flash with chip key `0x980F`, XIP at `0x02000000`, entry `0x020000A0` |
+| `top/isd_config.ini` | 699 B | packed `[SYS_CFG_PARAM]` entries: `SPI=4_1_0_0`, `OSC0 24MHz`, `UTBD=1000000`, `RESET=PB01_08_0`, `UPDATE_JUMP=0`, `SDRAM_SIZE=0`, no `UTTX`/`UTRX` pins, no double-bank keys; V15's also carries `SYS_CLK`, `HSB_DIV` and `LSB_DIV` keys [verified 2026-10-05: key names in our V15 unpack; values not decoded], which set the clock a bare-metal app inherits from the SPL |
+| `files/app.bin` | 583068 B (V13) | the application, SFC-encrypted in flash with chip key `0x980F`, XIP at `0x02000000`, entry `0x02000120` [verified: `entry-point: 33554720` in our V15 and FM-1_092 `jlfw.yaml`]; its first word is `04 81 80 00` ("goto +4; rts") [verified: our V15 unpack; decoding reported: Felucca] |
 | `files/cfg_tool.bin` | 383 B | packaged configuration/calibration resource |
 | `files/cfg` | 0xB79 | JLFS daisy-chain with `eq_cfg_hw.bin` etc. |
 | `ota.bin` | 19969 B | nested bootable image `usb_hid_ota.bin`: the **USB-MIDI OTA loader**, six LZ4 blocks, 23324 B decompressed, load address `0x01C0A800` |
@@ -48,14 +48,19 @@ the package.
    to it. If the flash does not boot, or if the `USB_KEY` signal is present on
    D+/D−, it stays in ROM and exposes a USB mass-storage download mode (docs/07).
 2. **SPL `uboot.boot`** ("UBOOT2.00", generic AC79 SDK build) applies
-   `isd_config.ini`, maps the JLFS app area for XIP and jumps to `0x020000A0`.
+   `isd_config.ini`, maps the JLFS app area for XIP and jumps to the app's
+   first byte at `0x02000120` with `r0 = 0x01C7FE08` [entry verified: our
+   `jlfw.yaml`; `r0` reported: Felucca `crt0.S`]. This page said `0x020000A0`
+   until 2026-10-05; docs/01 §2 has the evidence.
    The debug build's strings show generic support for two directory heads and
    an `update from inside flash` / `usb_update_mode` path; the FM-1 config
    provisions only **one application bank**.
-3. **Application CRT** at `0x02000000`: set stacks, zero `.bss`, copy `.data`
-   from `0x02084820`, save boot parameters to `0x01C7FD50`, PLL to 240 MHz,
-   board init (keys, ADC, SPI display, audio server at ~44.1 kHz), create
-   `usr_app_task`, start the scheduler.
+3. **Application CRT** at `0x02000120`, the image's first byte (docs/01
+   §2): set stacks, zero `.bss`, copy `.data` from `0x02084820`, save boot
+   parameters to `0x01C7FD50`, PLL to 240 MHz, board init (keys, ADC, SPI
+   display, audio server at ~44.1 kHz), create `usr_app_task`, start the
+   scheduler. The audio leaves over ALNK0 (I2S) to an external codec, not
+   the internal DAC [reported: Felucca, fm1-nes; docs/01 §3.1].
 
 ## 4. What the application is made of
 
