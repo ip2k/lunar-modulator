@@ -404,7 +404,9 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 1055  # 335 before S3, 815 before S4, 914 before fx pack 2, 1016 before S5
+    # 335 before S3, 815 before S4, 914 before fx pack 2, 1016 before S5,
+    # 1055 before the master-bus pack
+    assert summary["screens"] >= 1143
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

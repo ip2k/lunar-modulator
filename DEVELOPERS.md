@@ -577,10 +577,14 @@ which lands with the plan PR; its stages S0–S7 are named below.
   all [inferred].
 
 **More effects** · *Planned*
-- **Done so far (2026-10-02):** Crush, Fold, Drive, Echo, Filter, Comp and Limiter, our own code
+- **Done so far (2026-10-05):** Crush, Fold, Drive, Echo, Filter, Comp and
+  Limiter, and the master-bus effects of the
+  [2026-10-02 effects note](notes/2026-10-02-delay-reverb-eq-gates-options.md)
+  (DJ Filter, Tilt, Master Sat, Isolator and EQ), our own code
   ([`engines/README.md`](engines/README.md#crush)). Their switch-like
   controls (Filter's Type, Drive's Type and Auto, Comp's Character, Auto
-  Rel and Auto Gain, the Limiter's Mode and Lookahead) change without a
+  Rel and Auto Gain, the Limiter's Mode and Lookahead, DJ Filter's Slope,
+  Tilt's Curve, Master Sat's Shape and Isolator's Kill) change without a
   click, so they can be locked and modulated: the rule is that a switch
   that changes cleanly is lockable and modulatable
   ([`engines/README.md`](engines/README.md#parameters-engine-api-v2)).
