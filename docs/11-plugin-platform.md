@@ -300,10 +300,14 @@ typedef struct fm1_engine {
 - **Parameters** are typed and indexed, not string-keyed. The generic UI
   lays them out four to a page on the TFT, as FM-1+VA already does with its
   four assignable knobs. As built (`engines/include/fm1_engine.h`, API v2,
-  docs/15 stage S7a), each also has a stable uid, which locks, modulation
-  routes and presets store, and flags for what a lock or a route may do with
-  it (LATCH, SMOOTH, NOLOCK, MOD, INPUT, POLY), a unit and a short
-  abbreviation [verified: engines/README.md, "Parameters"]. An engine may
+  docs/15 stage S7a; API v3 since 2026-10-05), each also has a stable uid,
+  which locks, modulation routes and presets store, and 16-bit flags for
+  what a lock or a route may do with it (LATCH, SMOOTH, NOLOCK, MOD, INPUT,
+  POLY, and LOG for pitch- and time-like knobs that move in ratios), a unit
+  (dB among them since v3) and a short abbreviation [verified:
+  engines/README.md, "Parameters"]. Since v3 an effect may also take a key
+  input, the tempo, its beats and the transport's events (`fm1_fx_ext_t`;
+  engines/README.md, "Engine API v3"). An engine may
   also take per-note offsets on its POLY parameters and the note's pitch
   (`set_param_note`, for per-voice modulation) [verified: engines/README.md,
   "Per-note offsets"]. Since stage S7b a SMOOTH parameter ramps over 2.5 ms

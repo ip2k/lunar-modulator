@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "fm1_fx_host.h"
 #include "fm1_look.h"
 #include "fm1_mod_view.h"
 #include "fm1_seq_view.h"
@@ -165,13 +166,20 @@ void fm1_look_value(const fm1_param_t *p, float v, char *buf, size_t size) {
   /* A wide range's small fraction keeps one decimal: the Gate's 0.5 ms
    * Attack would otherwise read "0". */
   if (decimals == 0 && fabsf(v) < 10.0f && fabsf(v - floorf(v + 0.5f)) >= 0.05f) decimals = 1;
+  if (fm1_param_is_log(p)) {
+    /* LOG (engine API v3): a detent is a ratio, so the digits follow the
+     * value, three significant ones or more down to 1 (1.07 ms, 21.4 Hz,
+     * 2143 Hz). */
+    decimals = v < 10.0f ? 2 : (v < 100.0f ? 1 : 0);
+  }
   float tiny = decimals == 2 ? 0.005f : (decimals == 1 ? 0.05f : 0.5f);
   if (fabsf(v) < tiny) v = 0.0f;   /* no "-0.00" */
   snprintf(buf, size, "%.*f", decimals, (double)v);
 }
 
-/* Detent size for a float parameter: a hundredth of its range, or whole
- * units for wide integer ranges such as 0..100. */
+/* Detent size for a linear float parameter: a hundredth of its range, or
+ * whole units for wide integer ranges such as 0..100. A LOG one steps in
+ * step_value. */
 static float step_of(const fm1_param_t *p) {
   if (p->type == FM1_PARAM_ENUM) return 1.0f;
   float range = p->max - p->min;
@@ -1306,11 +1314,27 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
   }
 }
 
+/* `delta` detents from v: step_of's step, a whole entry for a list, and for
+ * a LOG parameter (engine API v3) a hundredth of its octaves, so the knob
+ * moves by ratios (1.2 semitones a detent on a 20 Hz..18 kHz cutoff) and
+ * reaches min and max exactly. */
+static float step_value(const fm1_param_t *p, float v, int delta) {
+  if (fm1_param_is_log(p)) {
+    /* One rounding per statement, so no build fuses a multiply-add here and
+     * the browser's module steps to the same bits as fm1-sim-render. */
+    const float d = (float)delta * 0.01f;
+    float u = fm1_param_pos(p, v);
+    u = u + d;
+    return fm1_param_at(p, u);
+  }
+  v = v + (float)delta * step_of(p);
+  if (p->type == FM1_PARAM_ENUM) v = floorf(v + 0.5f);
+  return fm1_param_clamp(p, v);
+}
+
 static void turn_param(fm1_app_t *a, int unit, int index, int delta) {
   const fm1_param_t *p = &a->unit[unit].e->params[index];
-  float v = a->unit[unit].value[index] + (float)delta * step_of(p);
-  if (p->type == FM1_PARAM_ENUM) v = floorf(v + 0.5f);
-  fm1_app_set_param(a, unit, index, fm1_param_clamp(p, v));
+  fm1_app_set_param(a, unit, index, step_value(p, a->unit[unit].value[index], delta));
 }
 
 /* The lanes on parameter `index` of sound unit `sound`: every lane, of every
@@ -1719,22 +1743,30 @@ static void sink_bend(void *ctx, float semitones) {
 }
 
 /* An effect over the block, split at its own writes from the ticks, as
- * fm1-render's RenderFx does. */
+ * fm1-render's RenderFx does; each piece through fm1_fx_render, which
+ * gives an effect with engine API v3's extension the sequencer's tempo,
+ * beats, Start and Stop (fm1_fx_host.h; no key yet). */
 static void render_fx(fm1_app_t *a, int unit, float *out, uint32_t n) {
   const fm1_app_unit_t *u = &a->unit[unit];
   const int code = fm1_app_mod_unit(unit);
+  fm1_fx_block_t b;
   uint32_t cur = 0;
+  b.clock = a->seq ? &a->seq_host.clock : NULL;
+  b.ev = a->seq ? a->seq_ev : NULL;
+  b.n_ev = a->seq ? a->seq_last_n : 0u;
+  b.frames = n;
+  b.bpm = 120.0f;                       /* without a sequencer: its default */
   for (uint32_t k = 0; code >= 0 && k < a->mod_nwr; ++k) {
     const uint32_t f = a->mod_wr[k].frame;
     const fm1_mod_write_t *w = &a->mod_wr[k].w;
     if (w->unit != code) continue;
     if (f > cur) {
-      u->e->render(u->self, out + 2u * cur, f - cur);
+      fm1_fx_render(u->e, u->self, out, cur, f, &b);
       cur = f;
     }
     if (w->index < u->e->n_params) u->e->set_param(u->self, w->index, w->value);
   }
-  if (cur < n) u->e->render(u->self, out + 2u * cur, n - cur);
+  if (cur < n) fm1_fx_render(u->e, u->self, out, cur, n, &b);
 }
 
 /* HOST AMP's gain before the click and the limiter, ramped over each tick
@@ -2042,6 +2074,7 @@ void fm1_look_fill(fm1_tft_t *t, int x, int y, int w, int h, const fm1_param_t *
   }
   float range = p->max - p->min;
   float f = range > 0.0f ? (v - p->min) / range : 0.0f;
+  if (fm1_param_is_log(p)) f = fm1_param_pos(p, v);   /* its knob's position (API v3) */
   f = f < 0.0f ? 0.0f : (f > 1.0f ? 1.0f : f);
   int pos = x + (int)floorf(f * (float)w + 0.5f);
   if (p->min < 0.0f && p->max > 0.0f) {          /* bipolar: from the zero point */

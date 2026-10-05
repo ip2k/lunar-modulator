@@ -27,11 +27,13 @@ typedef char fm1_mod_view_lines_fit[CONTENT_Y + (TEXT_LINES - 1) * LINE_PITCH + 
 
 static int clampi(int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
-/* Where value v sits on a bar of width w from x (fm1_look_bar's rounding). */
+/* Where value v sits on a bar of width w from x (fm1_look_bar's rounding;
+ * a LOG parameter's knob position, engine API v3). */
 static int bar_x(const fm1_param_t *p, float v, int x, int w) {
   const float range = p->max - p->min;
   float f = range > 0.0f ? (v - p->min) / range : 0.0f;
   int at;
+  if (fm1_param_is_log(p)) f = fm1_param_pos(p, v);
   if (!(f == f)) f = 0.0f;
   f = f < 0.0f ? 0.0f : (f > 1.0f ? 1.0f : f);
   at = x + (int)(f * (float)w + 0.5f);
@@ -70,10 +72,14 @@ void fm1_mod_view_row(fm1_tft_t *t, int y, const fm1_param_t *p, float base, con
   }
   fm1_look_bar(t, MARGIN, by, BAR_W, BAR_H, p, base, C_ACCENT);
   {
-    /* The bracket: +-depth of the range round the base, clamped. */
+    /* The bracket: +-depth of the range round the base, clamped; for a LOG
+     * parameter +-depth of its knob round the base's position, the octaves
+     * its routes move it (engine API v3). */
     const float range = p->max - p->min;
-    const int lo = bar_x(p, base - depth * range, MARGIN, BAR_W);
-    const int hi = bar_x(p, base + depth * range, MARGIN, BAR_W);
+    const int log = fm1_param_is_log(p);
+    const float u = log ? fm1_param_pos(p, base) : 0.0f;
+    const int lo = bar_x(p, log ? fm1_param_at(p, u - depth) : base - depth * range, MARGIN, BAR_W);
+    const int hi = bar_x(p, log ? fm1_param_at(p, u + depth) : base + depth * range, MARGIN, BAR_W);
     const int lx = bar_x(p, live, MARGIN, BAR_W);
     fm1_tft_paint(t, lo, by, hi - lo + 1, 1, C_MODEL);
     fm1_tft_paint(t, lo, by + BAR_H - 1, hi - lo + 1, 1, C_MODEL);

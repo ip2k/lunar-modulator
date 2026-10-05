@@ -428,6 +428,26 @@ libraries (docs/11 §7) [inferred]. So:
 - **Desktop tools** (fm1-render, test oracles) link nothing closed, so GPL code
   there is fine; such a binary is GPL as a whole.
 
+**The GPL switch (owner, 2026-10-05).** GPL modules go behind one build
+switch, `FM1_GPL_MODS`, which is **on by default, in every build, while we
+test** (the owner: "gated with a switch but ON by default, everywhere while
+we test"). Consequences [inferred, not legal advice]:
+
+- **No shared firmware image while it is on.** An image that links JieLi's
+  closed libraries with GPL code in it is never released or sent to anyone;
+  one that leaves the owner's hands is built with the switch off.
+- **The public simulator is offered under the GPL's terms** while its
+  WebAssembly module carries GPL modules: the page names the licence, links
+  the complete corresponding source (this repository at the module's
+  commit) and keeps every licence notice. It links nothing closed, so the
+  GPL can be met there.
+- **Bare metal later.** A build without JieLi's libraries is to be explored
+  later; under the GPL as a whole, it could be shared.
+- **Nothing GPL is in the tree yet** [verified, 2026-10-05]. The switch and
+  the simulator's licence labelling land with the first GPL module (the
+  2026-10-05 build plan, step 4: Grids and Branches originals as optional
+  modules).
+
 **Usable as code in every build (docs/11 §7):**
 
 - **MCL: BSD-3.** The licence "applies to code, documentation or material in

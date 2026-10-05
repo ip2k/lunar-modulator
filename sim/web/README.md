@@ -28,9 +28,9 @@ the "Power on" button, as browsers require a gesture.
 
 | | |
 | --- | --- |
-| Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate, Test Gain. Up to four sounds with two inserts and a level each, mixed into two effect slots as the master bus, then the host's bus limiter, as `fm1-render --slots` runs them; one sound with no insert at full level renders as `fm1-render`'s one engine does, to the bit (below, "Multi-sound") |
+| Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate, Test Gain, Test Ext. Up to four sounds with two inserts and a level each, mixed into two effect slots as the master bus, then the host's bus limiter, as `fm1-render --slots` runs them; one sound with no insert at full level renders as `fm1-render`'s one engine does, to the bit (below, "Multi-sound") |
 | Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy and Six-Op run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the three, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
-| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 2,299 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-05]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE and ARP stubs and an emptied slot (600 screens), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, and modulation's pages and marks (below) in 741. Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens) |
+| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 2,338 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-05; 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE and ARP stubs and an emptied slot (600 screens), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, and modulation's pages and marks (below) in 741. Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
 | Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_app.c`); Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
@@ -202,7 +202,7 @@ place of docs/15 O10's one shared sound):
   (about 349 KB at 32 bits).
 - **Memory.** Each sound unit has a 512 KiB arena and each effect slot a
   256 KiB one: 4.5 MiB of the module's fixed 8 MiB. `fm1_app_t` is
-  4,915,088 B natively (clang, 64-bit) [verified: `fm1-sim-render --sizes`].
+  4,915,120 B natively (clang, 64-bit) [verified: `fm1-sim-render --sizes`].
 - **The API** stage S6 routes tracks with is `fm1_app_unit_*`
   (`src/fm1_app.h`): the current sound, a sound's engine, inserts and
   level, notes on a given sound, `fm1_app_unit_route(a, track, sound)` and
@@ -400,17 +400,19 @@ parameter locks since S8, the engines' SMOOTH ramps since S7b, the
 master-bus effects (DJ Filter, Tilt, Master Sat, Isolator, EQ), since
 docs/16 MG3 the modulation runtime, its kinds, its script reader
 (`host/mod_script.c`: snprintf and strtod, no files) and modulation's
-pages, and Room, Hall, Gate and Plate's Freeze: 64 of 64 scenarios pass,
-identical to musl and to render.js (six of them turn the effects' switches
-every 4.4 ms), and it imports nothing; it is 756,656 bytes since the lab
-switch went (761,171 with the switch's second code path), up from 737,880
-before Room, Hall, Gate and Plate's Freeze (622,338 with them before MG3,
-547,963 before the master-bus effects, multi-sound, S8 and S7b), 598,994
-before MG3 (the runtime, its sixteen kinds with MG2's Peaks and Braids
-tables, the pages and the script reader), 573,403 before the master-bus
-effects (550,252 with them before multi-sound, S8 and S7b), 560,033 before
-the engines' SMOOTH ramps (docs/15 S7b; 559,930 before MG1's rebuild),
-548,493 before S8 (526,111
+pages, Room, Hall, Gate and Plate's Freeze, and since engine API v3
+(2026-10-05) Comb, Test Ext, the LOG law and the effects' extension
+(`fm1_fx_render`): 66 of 66 scenarios pass, identical to musl and to
+render.js (six of them turn the effects' switches every 4.4 ms), and it
+imports nothing; it is 765,189 bytes since the lab switch went (769,693
+with the switch's second code path), 761,171 before API v3, up from
+737,880 before Room, Hall, Gate and Plate's Freeze (622,338 with them
+before MG3, 547,963 before the master-bus effects, multi-sound, S8 and
+S7b), 598,994 before MG3 (the runtime, its sixteen kinds with MG2's Peaks
+and Braids tables, the pages and the script reader), 573,403 before the
+master-bus effects (550,252 with them before multi-sound, S8 and S7b),
+560,033 before the engines' SMOOTH ramps (docs/15 S7b; 559,930 before
+MG1's rebuild), 548,493 before S8 (526,111
 with S8 before the second effects pack), 524,659 before multi-sound and S6
 (514,688 with them before the second effects pack), 516,035 before S5,
 482,291 before the second effects pack (Drive, Filter, Comp, Limiter),
@@ -464,7 +466,7 @@ www/fm1.wasm      src/fm1_web.c   flat exports (fm1w_*)
 `fm1_app_t`. Nothing in it is browser-specific, so the same app layer builds
 natively as `fm1-sim-render`, the test harness. Its panel logic and drawing
 code are meant to carry over to the firmware, but not `fm1_app_t` as it
-stands: it is 4,915,088 bytes (4.5 MiB of fixed arenas, four 512 KiB
+stands: it is 4,915,120 bytes (4.5 MiB of fixed arenas, four 512 KiB
 ones for the sound units and ten 256 KiB ones for the effect slots, a
 115,200-byte full frame buffer, and the sequencer's 32 KiB arena and 3 KiB
 event buffer, and modulation's runtime and a block's writes; clang, 64-bit), against the FM-1's 578 KB of SRAM and
@@ -555,7 +557,7 @@ one gap, and 128 lane bases after a stop, which `fm1-render --events 256`
 drops and the app holds back), with nothing dropped or left sounding; routes
 (the default route, `--route`, `route` verbs and a set's own `rt` lines)
 as in `fm1-render`; no note left hanging after a reset, an import or a
-change of sound; the 2,299-screen layout sweep; the panel against the manual's formula (octave,
+change of sound; the 2,338-screen layout sweep; the panel against the manual's formula (octave,
 transpose, reset); buttons and encoders; PLAY/STOP's
 LED while playing, SEQ mode, the white keys following the playhead in SEQ
 mode (eight points across two bars), HOME's key LEDs unchanged and the

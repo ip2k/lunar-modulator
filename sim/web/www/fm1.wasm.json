@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "716183415052479f12810b136c83ed6f0af27c9e8f0e580c29c13c30161bc875",
-  "wasm_bytes": 756656,
+  "wasm_sha256": "cdfa52a415521d58516ecfed135018bcb416766f0cbe4131b8b7822b37b0abac",
+  "wasm_bytes": 765189,
   "sources_sha256": {
-    "engines": "d4d9639ce6706a035f3a5fd6dadb7aa119eaed72b98c303188e84850626aedcb",
-    "sim": "b2db0b1f4206cdfb45bcd8101196ce238fe4c516019d58622ec0e59a695e0322"
+    "engines": "851fff46c65a2a7941263f3eed2529d659f7b32ec3a60f95600c1aeeebdb5816",
+    "sim": "16f487c10385572f526659c00320a00f61e70e2c1f8bb41da8f5bf4256c1cfbd"
   },
   "engines": "working tree",
-  "built": "2026-10-05T23:20:07Z",
+  "built": "2026-10-05T23:41:56Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 64,
+    "passed": 66,
     "failed": 0,
-    "identical_to_js": 64,
-    "identical_to_musl": 64,
-    "identical_to_glibc": 61,
+    "identical_to_js": 66,
+    "identical_to_musl": 66,
+    "identical_to_glibc": 63,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -443,6 +443,60 @@
         "dropped": 0,
         "native_dropped": 0
       }
+    },
+    {
+      "name": "api-v3-test-ext-transport",
+      "samples": 176472,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 53612,
+        "native64": 53612
+      },
+      "cmd": "seq/ext-transport.verbs",
+      "seq": {
+        "lines": 5,
+        "lines_match": true,
+        "ui_cmds": 2,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "mod-log-keytrack",
+      "samples": 132354,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 145612,
+        "native64": 158476
+      },
+      "mod": "mod/log-keytrack.mod"
     },
     {
       "name": "mod-macro-routes",
@@ -872,8 +926,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 115948,
-        "native64": 128812
+        "wasm32": 80524,
+        "native64": 93388
       }
     },
     {
@@ -894,8 +948,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 115948,
-        "native64": 128812
+        "wasm32": 97708,
+        "native64": 110572
       }
     },
     {
@@ -916,8 +970,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 302996,
-        "native64": 303812
+        "wasm32": 267572,
+        "native64": 268388
       }
     },
     {
@@ -938,8 +992,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 97580,
-        "native64": 110444
+        "wasm32": 79868,
+        "native64": 92732
       }
     },
     {
@@ -960,8 +1014,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 97820,
-        "native64": 110684
+        "wasm32": 80108,
+        "native64": 92972
       }
     },
     {

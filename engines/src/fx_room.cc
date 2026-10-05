@@ -410,4 +410,5 @@ extern "C" const fm1_engine_t fm1_engine_room = {
   NULL, NULL, NULL,
   fm1::room::Set, fm1::room::Render,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
 };

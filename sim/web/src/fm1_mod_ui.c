@@ -952,8 +952,17 @@ void fm1_mod_ui_rack_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int knob
   if (!kd || knob < 0 || knob >= n) return;
   p = &kd->params[idx[knob]];
   base = fm1_mod_param_base(env->m, u->pos, (unsigned)idx[knob]);
-  v = base + (float)delta * step_of(p);
-  if (p->type == FM1_PARAM_ENUM) v = (float)(int)(v + (v >= 0.0f ? 0.5f : -0.5f));
+  if (fm1_param_is_log(p)) {
+    /* A LOG parameter (engine API v3): a hundredth of its octaves, as the
+     * app's knobs (step_value in fm1_app.c). None of the kinds has one yet. */
+    const float d = (float)delta * 0.01f;   /* its own statement: nothing to fuse */
+    float u = fm1_param_pos(p, base);
+    u = u + d;
+    v = fm1_param_at(p, u);
+  } else {
+    v = base + (float)delta * step_of(p);
+    if (p->type == FM1_PARAM_ENUM) v = (float)(int)(v + (v >= 0.0f ? 0.5f : -0.5f));
+  }
   v = fm1_param_clamp(p, v);
   if (float_bits(v) != float_bits(base)) fm1_mod_ui_set_param(env, u, u->pos, (unsigned)idx[knob], v);
 }

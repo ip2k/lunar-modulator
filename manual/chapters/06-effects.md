@@ -38,9 +38,9 @@ that sound first ([chapter 5](05-sound-engines.md#four-sounds-at-once)).
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
 *Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo,
-Filter, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room,
-Hall, Gate and Test Gain, and round again, stepping over an effect that
-would not fit the memory (below). In the simulator you can also use the
+Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room,
+Hall, Gate, Test Gain and Test Ext, and round again, stepping over an effect
+that would not fit the memory (below). In the simulator you can also use the
 **Effect 1** and **Effect 2** lists under the panel for the two master
 slots.
 
@@ -55,6 +55,15 @@ their settings.
 
 - An effect you put in a slot starts with its default settings, and the old
   effect's tail stops at once.
+- **Knobs for frequencies and times turn in ratios.** A cutoff, a crossover,
+  a delay time or a release moves by the same musical step wherever it is:
+  each click of the knob multiplies it, so 20 to 40 Hz takes as many clicks
+  as 5 to 10 kHz, and a hundred clicks go from one end to the other. The
+  screen still shows hertz and milliseconds, with more decimals at the low
+  end, and the bar shows where the knob is. The sequencer's locks move them
+  the same way ([chapter 7](07-sequencer.md#values-and-list-parameters)),
+  and modulation moves them in octaves: a source that follows the note you
+  play, at full amount, makes a cutoff follow the keyboard exactly.
 - The same effect can sit in several slots, each with its own settings.
 - Changing a sound's engine keeps its inserts and the master effects, and
   their settings.
@@ -376,7 +385,7 @@ Echo does not yet follow the sequencer's tempo; set Time by ear.
 
 {{status sim desktop planned}}
 
-A filter with seven characters in one, written for Lunar Modulator. It takes
+A filter with six characters in one, written for Lunar Modulator. It takes
 away part of the sound's spectrum, the highs, the lows or a band, and as
 Resonance rises it rings at the cutoff, up to a whistle of its own. Each
 channel is filtered on its own, so Morph can pull them apart.
@@ -398,29 +407,25 @@ channel is filtered on its own, so Morph can pull them apart.
     - **SK Mixed:** a mixed-input Sallen-Key, after the Steiner-Parker
       Synthacon's filter: gritty and uneven. Mode picks which input the
       sound goes into: low-pass, band-pass, high-pass, or a notch.
-    - **Comb:** a short echo tuned by Cutoff, which makes metallic,
-      flanger-like peaks or notches at the multiples of that pitch. Mode
-      goes from peaks at the left to notches at the right; Morph sets their
-      polarity: at the left they sit on Cutoff's harmonics, at the right
-      the sound turns hollow and an octave lower.
     - **Formant:** the vowels A, E, I, O and U, as a voice shapes them.
       Morph sweeps through the vowels; Mode picks the voice, a man's at the
       left, a woman's in the middle, a child's at the right; Cutoff shifts
       the vowels up or down; Resonance makes them narrower and more vocal.
 - **Cutoff** sets where the filter works, from 20 Hz to 18 kHz; the default
-  is 2 kHz. When a filter rings on its own, it rings at this pitch.
+  is 2 kHz. When a filter rings on its own, it rings at this pitch. Each
+  click moves it about a semitone, the same at any height.
 - **Resonance** emphasises the sound around Cutoff. Near the right, from
   about 0.93, SVF, Ladder, Diode, Sallen-Key and SK Mixed whistle on their
-  own, in tune with Cutoff (SK Mixed a little flat). On Comb it sets how
-  long the echo rings; on Formant, how narrow the vowels are.
+  own, in tune with Cutoff (SK Mixed a little flat). On Formant it sets how
+  narrow the vowels are.
 - **Drive** pushes the sound into the filter's saturation: quiet sounds come
   up to 12 dB louder, loud ones thicken and grit.
 - **Mode**, on page 2, changes the response as each Type above describes.
   It turns smoothly: between two positions you hear a blend of both.
 - **Morph**, on page 2, spreads the two channels for SVF, Ladder, Diode,
   Sallen-Key and SK Mixed: at the right, the left channel's cutoff is up to
-  an octave lower and the right's an octave higher. On Comb and Formant it
-  does what their entries above say.
+  an octave lower and the right's an octave higher. On Formant it sweeps the
+  vowels.
 - **Mix**, on page 2, fades from the dry sound at the left to the filtered
   sound alone at the right, the default.
 - **Level**, on page 2, sets the filtered sound's level, up to twice
@@ -434,11 +439,49 @@ knobs glide over a few milliseconds, so turning them does not click.
       about 0.5, low notes, and turn Cutoff while they play.
     - **Talking pad:** Formant, Resonance about 0.6, and sweep Morph slowly.
     - **Screaming lead:** Sallen-Key, Resonance about 0.9, Drive about 0.3.
-    - **Metallic ring:** Comb, Cutoff on the note you play, Resonance about
-      0.8.
     - **Wide sweep:** Ladder, Morph about 0.3, and sweep Cutoff.
 
+The comb filter that was the seventh Type until October 2026 is an effect of
+its own now: [Comb](#comb).
+
 {{engine-table filter}}
+
+## Comb
+
+{{status sim desktop planned}}
+
+A comb filter, written for Lunar Modulator: a very short echo tuned by
+Cutoff, which makes metallic, flanger-like peaks or notches at the multiples
+of that pitch. It was one of Filter's types until October 2026; on its own,
+Filter no longer carries its memory.
+
+- **Cutoff** tunes the comb, from 20 Hz to 18 kHz; the default is 2 kHz. Set
+  it on the note you play and the sound rings at that pitch. Like Filter's,
+  each click moves it about a semitone.
+- **Resonance** sets how long the echo rings, from a short colour at the
+  left to a long, singing ring at the right.
+- **Drive** pushes the sound into the comb's saturation: quiet sounds come
+  up louder, loud ones thicken.
+- **Mode**, on page 2, goes from peaks at the left (the echo fed back) to
+  notches at the right (the echo added once), blending between.
+- **Morph**, on page 2, sets the polarity: at the left the peaks sit on
+  Cutoff's harmonics; in the middle the comb does nothing; at the right the
+  sound turns hollow and an octave lower.
+- **Mix**, on page 2, fades from the dry sound at the left to the comb alone
+  at the right, the default.
+- **Level**, on page 2, sets the comb's level, up to twice (6 dB).
+
+Silence stays silent at any setting, and the knobs glide, so turning them
+does not click.
+
+!!! tip "Starting points"
+    - **Metallic ring:** Cutoff on the note you play, Resonance about 0.8.
+    - **Hollow tube:** Morph at the right, Resonance about 0.6, Cutoff an
+      octave above the note.
+    - **Flanger:** Mode about 2, Mix about 0.5, and modulate Cutoff with a
+      slow LFO.
+
+{{engine-table comb}}
 
 ## Comp
 
@@ -921,6 +964,20 @@ unchanged at 1 to twice the level, 6 dB up, at 2. It exists to test the effect c
 the limiter.
 
 {{engine-table test-gain}}
+
+## Test Ext
+
+{{status sim desktop}}
+
+Test Ext passes the sound through and marks what the firmware tells an
+effect about the sequencer with single clicks: one when it starts, one on
+each beat (louder on every fourth) and a negative one when it stops.
+**Probe** set to Tempo adds a small offset that shows the tempo it hears;
+**Listen** set to Key plays the effect's key input in place of its sound
+(today that is its own sound). It exists to test that wiring, which delays
+and gates synced to the tempo will use.
+
+{{engine-table test-ext}}
 
 ## The limiter
 

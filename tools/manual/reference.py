@@ -51,6 +51,8 @@ class Param:
     default: float
     page: int
     names: list[str] | None = None
+    log: bool = False              # engine API v3's LOG flag: it moves in ratios
+    unit: str = "none"             # fm1-render's unit name: hz, ms, db, semi, pct...
 
     @property
     def is_list(self) -> bool:
@@ -83,7 +85,8 @@ def parse_list(data) -> list[Engine]:
     engines = []
     for e in data:
         params = [Param(p["name"], int(p["type"]), float(p["min"]), float(p["max"]),
-                        float(p["def"]), int(p["page"]), p.get("names"))
+                        float(p["def"]), int(p["page"]), p.get("names"),
+                        "log" in p.get("flags", []), p.get("unit", "none"))
                   for p in e.get("params", [])]
         engines.append(Engine(e["id"], e["name"], e.get("credits", ""), e["kind"],
                               int(e.get("max_voices", 0)), params))
@@ -121,6 +124,10 @@ def value_name(p: Param, v: float) -> str | None:
     return None
 
 
+# Units the tables print after a range and a default (fm1-render's names).
+UNIT_LABEL = {"hz": " Hz", "ms": " ms", "db": " dB"}
+
+
 def engine_table(e: Engine) -> str:
     """Knob map, parameter table and list values for one engine or effect."""
     kind = KIND_LABEL.get(e.kind, e.kind)
@@ -139,9 +146,12 @@ def engine_table(e: Engine) -> str:
                 dname = value_name(p, p.default)
                 dflt = f"{num(p.default)}" + (f" <span class='vname'>{esc(dname)}</span>" if dname else "")
             else:
-                kind_cell = "Continuous"
-                rng = f"{num(p.min)} – {num(p.max)}"
-                dflt = num(p.default)
+                # A LOG parameter (engine API v3) turns in ratios: each step of
+                # the knob multiplies the value, as an octave does a pitch.
+                kind_cell = "Continuous, logarithmic" if p.log else "Continuous"
+                label = UNIT_LABEL.get(p.unit, "")
+                rng = f"{num(p.min)} – {num(p.max)}{label}"
+                dflt = num(p.default) + label
             rows.append(
                 f"<tr><th scope='row'>{esc(p.name)}</th>"
                 f"<td class='nowrap'>Page {p.page + 1} · KNOB{knob + 1}</td>"

@@ -183,7 +183,7 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     assert total == 36428 <= z["seq_budget"] == 36864
     # Multi-sound (docs/15 §3.16): four 512 KiB sound arenas and ten 256 KiB
     # effect arenas (two master slots, two inserts per sound), 4.5 MiB of the
-    # module's fixed 8 MiB; fm1_app_t is 4,915,088 B natively (clang, 64-bit).
+    # module's fixed 8 MiB; fm1_app_t is 4,915,120 B natively (clang, 64-bit).
     assert (z["sounds"], z["inserts"], z["master_slots"], z["units"]) == (4, 2, 2, 14)
     assert z["arena_bytes"] == 4 * 512 * 1024 + 10 * 256 * 1024
     assert z["app_bytes"] <= 4_960_000
@@ -462,11 +462,12 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 2299            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["screens"] >= 2338            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
     #                                              1321 before the master-bus pack (1458), 2189 with modulation
     #                                              (docs/16 MG3) before Room, Hall, Gate and Plate's Freeze, 2325
-    #                                              with them and the lab switch's two sets of screens
+    #                                              with them and 2366 with Comb and Test Ext (engine API v3), in
+    #                                              the lab switch's two sets of screens
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

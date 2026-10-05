@@ -131,8 +131,13 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** five swappable sound engines and sixteen effects behind one C
-  API ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h)).
+- **The API:** five swappable sound engines and twenty effects (Comb split
+  out of Filter since 2026-10-05), plus test engines, behind one C API, version 3
+  ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
+  [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
+  16-bit parameter flags with the LOG law for pitch- and time-like knobs, a
+  dB unit, and an optional effect extension that hands an effect a key
+  input, the tempo and beat position, and the transport's events.
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
@@ -259,7 +264,7 @@ API v2 ([`engines/midi_fx/README.md`](engines/midi_fx/README.md)).
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 2,299 screens of the layout sweep, the sequencer's and
+  canvas. All 2,338 screens of the layout sweep, the sequencer's and
   modulation's included, pass a layout check, with no text cut short and
   nothing closer than 4 px [verified: `fm1-sim-render --screens`,
   2026-10-05].
@@ -530,7 +535,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Screen and controls refinement** · *In progress*
 - **Depends on:** the simulator (ongoing). On the device: the TFT strip
   driver, key matrix and encoders (I12), and one sized arena for the app
-  layer, whose `fm1_app_t` is 4,915,088 B today (4.5 MiB of it the fixed
+  layer, whose `fm1_app_t` is 4,915,120 B today (4.5 MiB of it the fixed
   arenas of multi-sound's four sound units and ten effect slots), the
   sequencer's arena included, against 578 KB of SRAM
   [verified: sim/web/README.md] (I2).
@@ -640,7 +645,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
   Freeze, the Gate's Mode, Listen, Link and Lookahead) change without a
   click, so they can be locked and modulated: the rule is that a switch
   that changes cleanly is lockable and modulatable
-  ([`engines/README.md`](engines/README.md#parameters-engine-api-v2)).
+  ([`engines/README.md`](engines/README.md#parameters-engine-api-v2-and-v3)).
   Filter's types are named for their circuits (Sallen-Key, SK Mixed),
   never for a maker; Comp's Auto Gain is capped at 24 dB and never pushes
   an input under full scale past it. Crush adds jitter and
@@ -804,12 +809,14 @@ modulation source, a MIDI effect, an audio effect, or another kind.
 - **Depends on:**
   - API v2 (docs/13 M2): parameter uids, the LATCH, SMOOTH and NOLOCK
     flags, and `FM1_KIND_MIDI_FX` with its `process()`. Since docs/15 stage
-    S7a, `FM1_ENGINE_API_VERSION` is 2 and every parameter has its uid and
-    flags; the MIDI-effect kind is still reserved [verified: `fm1_engine.h`
-    lines 45 and 53]. An SDK needs that contract settled and versioned
-    first [inferred];
-  - the modulation and effects lines' additions to `fm1_host_t` (tempo, a
-    beat position); the MOD flag is in since S7a;
+    S7a every parameter has its uid and flags, and since 2026-10-05
+    `FM1_ENGINE_API_VERSION` is 3 (16-bit flags, LOG, dB, the effect
+    extension); the MIDI-effect kind is still reserved [verified:
+    `fm1_engine.h`]. An SDK needs that contract settled and versioned first
+    [inferred];
+  - the effects' tempo and beat position: in since API v3, as the per-call
+    `fm1_fx_ext_t` rather than fields of `fm1_host_t`; the MOD flag is in
+    since S7a;
   - stage B numbers (I8), so a module can state its cost in cycles per
     block on pi32v2;
   - an answer to the toolchain problem: JieLi's compiler is closed and
