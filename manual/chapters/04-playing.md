@@ -13,7 +13,7 @@ note, and each engine has a fixed number of them:
 
 | Engine | Voices |
 | --- | --- |
-| Macro, Shapes, Sophie, Test Sine | 12 |
+| Macro, Shapes, Sophie, Drums, Test Sine | 12 |
 | Six-Op FM | 8 |
 | Macro Heavy | 4 |
 
@@ -27,12 +27,14 @@ When you play a note and no voice is free, the engine takes one over:
 - **Macro, Macro Heavy, Six-Op FM and Shapes** take a voice whose key has
   already been let go, choosing the one whose note started first. If every
   key is still held, they take the note that started first.
-- **Sophie** takes the hit that started longest ago.
+- **Sophie** and **Drums** take the hit that started longest ago (Drums
+  first takes a hit that a hi-hat is cutting short).
 - **Test Sine** ignores the new note until a voice is free.
 
 On Macro, Macro Heavy, Six-Op FM and Shapes, playing a key again while its
 note is still fading restarts that note in the same voice. On Sophie each hit
-gets a voice of its own.
+gets a voice of its own. On Drums a pad struck again while it rings is struck
+again in its own voice, as a drum is.
 
 !!! note "Many notes at once"
     Twelve voices playing loudly together can add up to more than the output
@@ -59,6 +61,7 @@ What velocity changes depends on the engine:
 | Macro, Macro Heavy | Louder and brighter: velocity opens the low-pass gate further. The range is gentle, so soft notes stay clearly audible. On the models that sound by themselves (String, Modal and the drums) it sets how hard the sound is struck, and on spoken words how loud they are |
 | Six-Op FM | Whatever the patch was programmed to do with velocity: depending on the patch, louder, brighter, both, or neither |
 | Shapes, Sophie, Test Sine | Louder |
+| Drums | Louder and harder: how much, Accent sets |
 
 Whether the FM-1's own keys can sense how hard they are played has not been
 measured yet.
@@ -117,6 +120,7 @@ When you let go of a key, each engine ends the note in its own way:
 | Six-Op FM | The patch's own envelopes, scaled by Envelope | The patch's release, scaled by Envelope |
 | Shapes | The note rises over the Attack time and then holds. The struck shapes, such as Pluck, Bell and Drum, also die away by themselves | It fades over the Release time |
 | Sophie | Each hit rings for its pad's Decay | Letting go changes nothing |
+| Drums | Each hit rings for its pad's decay; a closed or pedal hi-hat cuts the open one short | Letting go changes nothing |
 | Test Sine | The note holds | It fades in 5 ms |
 
 [Chapter 5](05-sound-engines.md) describes each of these controls.

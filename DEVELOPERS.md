@@ -131,7 +131,7 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** five swappable sound engines and sixteen effects behind one C
+- **The API:** six swappable sound engines and sixteen effects behind one C
   API ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
@@ -146,6 +146,10 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     - **Macro Heavy:** Plaits' other 13.
     - **Six-Op FM:** Plaits' DX7-style engine.
     - **Shapes:** Braids.
+    - **Drums:** Plaits' drum classes for its kicks, toms, snares and
+      hi-hats, in a 16-pad kit with a rim shot, clap, cowbell and cymbal of
+      our own, after Werner, Abel and Smith's TR-808 cowbell and cymbal
+      models ([`engines/README.md`](engines/README.md#drums)).
     - **Plate:** Rings' reverb.
     - **Ensemble and Diffuse:** Plaits' ensemble and diffuser.
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
@@ -167,8 +171,8 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   checked sample for sample against upstream `Voice`
   ([`engines/README.md`](engines/README.md#macro-and-macro-heavy-page-3-the-envelope-and-the-gate)).
 - **Sample rates:** the Mutable engines run at their modules' own rates and
-  are resampled to the FM-1's 44,118 Hz: Braids at 96 kHz, Plaits at
-  47,872 Hz ([`engines/resampler.md`](engines/resampler.md)).
+  are resampled to the FM-1's 44,118 Hz: Braids at 96 kHz, Plaits (and
+  Drums) at 47,872 Hz ([`engines/resampler.md`](engines/resampler.md)).
 - **The output:** a host limiter on the bus keeps twelve voices started in
   phase under full scale [verified: `tests/test_engine_host.py`].
 - **The desktop renderer:** `fm1-render` plays notes, parameter changes and

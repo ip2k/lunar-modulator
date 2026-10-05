@@ -40,8 +40,9 @@ from the panel's keys play together.
 
 !!! note "Notes the keys cannot reach"
     A MIDI keyboard can play any note from 0 to 127, beyond the 27 keys'
-    reach. Sophie answers only notes 36 to 51
-    ([chapter 5](05-sound-engines.md#sophie)).
+    reach. Sophie and Drums answer only notes 36 to 51
+    ([chapter 5](05-sound-engines.md#sophie)), which the simulator also
+    lays on the white keys.
 
 ## From the sequencer
 

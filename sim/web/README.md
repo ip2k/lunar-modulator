@@ -28,8 +28,8 @@ the "Power on" button, as browsers require a gesture.
 
 | | |
 | --- | --- |
-| Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Test Gain. One sound and two effect slots, then the host's bus limiter, as `fm1-render` runs them; with the lab switch, up to four sounds with two inserts and a level each, mixed into those two slots as the master bus (below, "Multi-sound") |
-| Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy and Six-Op run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the three, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
+| Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Test Gain. One sound and two effect slots, then the host's bus limiter, as `fm1-render` runs them; with the lab switch, up to four sounds with two inserts and a level each, mixed into those two slots as the master bus (below, "Multi-sound") |
+| Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy, Six-Op and Drums run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the four, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
 | Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 2,189 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`]. They are every page of every engine and effect at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, SEL outside FX mode and an emptied slot (525 screens), and, with the lab switch on, the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 191 (every effect as an insert, now seventeen), parameter locks (S8) in 55, and modulation's pages and marks (below) in 731 |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
@@ -95,7 +95,7 @@ PIT, GLO, MONO, POLY) come from the manual's panel drawing [reported].
 
 | Control | On the FM-1 (manual) [reported] | In the simulator |
 | --- | --- | --- |
-| Keys | key position + 53 + 12 × octave + transpose: F3–G5 at rest | the same |
+| Keys | key position + 53 + 12 × octave + transpose: F3–G5 at rest | the same; with a pad kit as the current sound (Sophie, Drums: an engine with `pad_count`, engines/README.md "Pad kits"), the 16 white keys play its pads 1–16 at any octave and the black keys nothing |
 | OCT− / OCT+ | octave −3..+3; both together reset octave and transpose; hold one and turn ALGORITHM to transpose ±12; LED off / slow / fast / solid for 0 / 1 / 2 / 3 | the same |
 | MASTER | volume (a potentiometer) | output gain after the limiter, popup "Volume N" |
 | SELECT | page within the mode; in FX mode, the effect slot | the same, for the engine's pages and the two slots |
@@ -535,13 +535,14 @@ every time [verified: about 25,000 lines, 0 refused].
 
 ## Parity: does the browser sound like the native engines?
 
-`build-on-aeon.sh` renders 51 scenarios (`test/scenarios.json`) four ways
+`build-on-aeon.sh` renders 60 scenarios (`test/scenarios.json`) four ways
 and compares the 16-bit output sample by sample [verified:
-`www/fm1.wasm.json`, 2026-10-05]. Thirty-two are note scripts: every engine
+`www/fm1.wasm.json`, 2026-10-05]. Forty-one are note scripts: every engine
 and effect, pitch bend, parameter changes mid-note on the sound and on
 every effect (`fx_param_at`: `fm1-render --fx-param-at T:K:NAME=VALUE`, K
 the effect's place in the chain; the module gets `fm1w_set_param` on that
-slot), more notes than voices, 44,100 Hz, the low-pass gate. Six play sequencer verb scripts
+slot), more notes than voices, 44,100 Hz, the low-pass gate, and Drums' two
+kits with a choke, a pad's Model and a Kit change. Six play sequencer verb scripts
 (`test/seq/`, `fm1-render --cmd`): Test Sine's Volume under float locks
 with a stop that sends the lanes back to their bases; two Six-Op tracks
 with swing and a clip at twice the speed; locks on Six-Op's Patch, a list;
@@ -592,9 +593,9 @@ opens at Sound 2) and then on Sound 1, while tracks play both sounds.
 
 | Against | Result |
 | --- | --- |
-| `render.cc` compiled to WebAssembly (Node) | identical in all 51: the app layer adds nothing |
-| native `fm1-render`, GCC with musl (static, Alpine) | identical in all 51: the compiler adds nothing |
-| native `fm1-render`, GCC with glibc | identical in 48. Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB), and Fold within 1 LSB (19 samples of `fold-sine-asymmetric`) |
+| `render.cc` compiled to WebAssembly (Node) | identical in all 60: the app layer adds nothing |
+| native `fm1-render`, GCC with musl (static, Alpine) | identical in all 60: the compiler adds nothing |
+| native `fm1-render`, GCC with glibc | identical in 57, Drums' two among them (no libm in it). Sophie differs (23,286 and 694 samples, up to 4,082 and 12,330 LSB), and Fold within 1 LSB (19 samples of `fold-sine-asymmetric`) |
 
 The sequencer scenarios add three rules. Every leg applies a script line at
 the first 64-frame block starting at or after its frame, after the notes;
@@ -633,9 +634,9 @@ parameter locks since S8, the engines' SMOOTH ramps since S7b, the
 master-bus effects (DJ Filter, Tilt, Master Sat, Isolator, EQ), and since
 docs/16 MG3 the modulation runtime, its kinds, its script reader
 (`host/mod_script.c`: snprintf and strtod, no files) and modulation's
-pages: 58 of 58 scenarios pass, identical to musl and to render.js
+pages, and Drums: 60 of 60 scenarios pass, identical to musl and to render.js
 (four of them turn the effects' switches every 4.4 ms), and it imports
-nothing; it is 737,880 bytes, up from 598,994 before MG3 (the
+nothing; it is 759,109 bytes, up from 737,880 before Drums, and 598,994 before MG3 (the
 runtime, its sixteen kinds with MG2's Peaks and Braids tables, the pages
 and the script reader), 573,403 before the master-bus effects (550,252
 with them before multi-sound, S8 and S7b), 560,033 before the engines'

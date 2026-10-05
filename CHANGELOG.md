@@ -9,6 +9,31 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Drums, a new sound engine:** a sixteen-pad drum kit after the classic
+  analogue drum machines, on MIDI notes 36 to 51 like Sophie.
+  - Two kits: Deep, with a deep kick that booms for over a second, round
+    toms and analogue-style hi-hats; and Punch, with a short kick that
+    sweeps down, a crisp snare and ring-modulated hi-hats. Both have two
+    snares, a clap, a rim shot, six toms, a crash and a ride, and any pad
+    can play a cowbell instead.
+  - Each pad has its own Tune, Decay, Level, Tone, Snap, Sweep, Drive,
+    sound (Model) and choke group; Pad chooses which pad the knobs edit, as
+    on Sophie. The knobs start in the middle, which is the pad as the kit
+    sets it up. The kit's own page has Kit, Accent (how much velocity
+    matters), Kit Decay and Volume.
+  - A closed or pedal hi-hat cuts the open one short. Up to twelve hits
+    ring at once, and a pad struck again while it rings is struck again,
+    as a drum is.
+  - The kicks, toms, snares and hi-hats are Plaits' drum models by Emilie
+    Gillet; the rim shot, clap, cowbell and cymbals are new, after
+    published studies of the analogue circuits.
+  - It plays the same, sample for sample, in the browser as on the
+    desktop, and fits in about 8 KB.
+- **The virtual FM-1's keys play any drum kit's pads:** with Sophie or
+  Drums as the sound, the sixteen white keys play the sixteen pads at any
+  octave. This now follows the sound you are playing (SHIFT + PRESETS), not
+  only Sound 1. For developers: an engine says it is a kit with two new
+  fields in the engine API, `pad_first_note` and `pad_count`.
 - **Modulation on the virtual FM-1's panel (docs/16 MG3), behind the lab
   switch:** add `?lab` (or `#lab`) to the page's address. The public page is
   unchanged: there ENV, LFO and EDIT still say they are not in the
