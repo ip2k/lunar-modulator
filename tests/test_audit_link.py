@@ -342,6 +342,16 @@ def test_linked_sdk_mailbox_store_in_mkey_dummy_func_passes(tmp_path):
     assert report["passed"] is True
 
 
+def test_linked_sdk_mailbox_store_inlined_into_boot_info_init_passes(tmp_path):
+    elf, _ = build_linked(DORMANT + [("boot_info_init", NOP + le(0x01C8010C))],
+                          init_ptrs=["sdk_meky_check"])
+    assert status(run_linked(elf, tmp_path), "keycheck_mailbox_unwritten") == "pass"
+    # ...but only that word: another mailbox word there is ours to explain.
+    elf, _ = build_linked(DORMANT + [("boot_info_init", NOP + le(0x01C80108))],
+                          init_ptrs=["sdk_meky_check"])
+    assert status(run_linked(elf, tmp_path), "keycheck_mailbox_unwritten") == "fail"
+
+
 def test_linked_mailbox_in_our_code_fails(tmp_path):
     elf, _ = build_linked(DORMANT + [("fm1_app_main", NOP + le(0x01C8010C))],
                           init_ptrs=["sdk_meky_check"])

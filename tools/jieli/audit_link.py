@@ -80,8 +80,9 @@ STUB_ADDR = 0x0200012E
 MAILBOX_LO, MAILBOX_HI = 0x01C80108, 0x01C80110  # inclusive, word-aligned
 # The one mailbox access a V1.2.8+ link always carries: boot_info_init passes
 # the chip key to mkey_dummy_func, which stores it here [verified: os_api.c IR,
-# notes/2026-10-05-softkey-efuse.md §3]. Allowed in that function only.
-EXPECTED_MAILBOX_STORES = {("mkey_dummy_func", 0x01C8010C)}
+# notes/2026-10-05-softkey-efuse.md §3]. Allowed in that function, or in
+# boot_info_init if LTO inlines the call there; nowhere else.
+EXPECTED_MAILBOX_STORES = {("mkey_dummy_func", 0x01C8010C), ("boot_info_init", 0x01C8010C)}
 # IRQ 123's vector-table slot (base 0x01C80000, slot 123).
 IRQ123_VECTOR = 0x01C80000 + 123 * 4  # 0x01C801EC
 
