@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "912fbfd14cd37ba982c9c9b38ea7fed7ba28803f34749c86f9ea7187d2361747",
-  "wasm_bytes": 761171,
+  "wasm_sha256": "6e0b8a96cea7f1e1c1d49747f24ad020d8cb200a42a2f23a7c48f682d56739cd",
+  "wasm_bytes": 787427,
   "sources_sha256": {
-    "engines": "416cfac8ac4ee1150cf45467168ce8fd01943585489b2bf9fa966cd385982624",
-    "sim": "fde1a1e0dc0fa4b60823ba4bac39fbdd53642d1b18ebd214b936405c4c88151c"
+    "engines": "cc2c8c802bbb2ed5cad2f7db02268d887da31fe9fc0d3c89f15f3375d8b5043f",
+    "sim": "7950ff7a90c191ac5e164a240eddb1e2009441786d05f7e0ad349a22cee0f845"
   },
   "engines": "working tree",
-  "built": "2026-10-05T22:02:38Z",
+  "built": "2026-10-05T23:01:08Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 64,
+    "passed": 67,
     "failed": 0,
-    "identical_to_js": 64,
-    "identical_to_musl": 64,
-    "identical_to_glibc": 61,
+    "identical_to_js": 67,
+    "identical_to_musl": 67,
+    "identical_to_glibc": 64,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -199,6 +199,72 @@
       "ram_bytes": {
         "wasm32": 50888,
         "native64": 52672
+      }
+    },
+    {
+      "name": "dx7-epiano-chord-bend",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 55724,
+        "native64": 55740
+      }
+    },
+    {
+      "name": "dx7-macros-patches-steal",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 50988,
+        "native64": 50988
+      }
+    },
+    {
+      "name": "dx7-loop-lfo-pitch-env",
+      "samples": 176472,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 116716,
+        "native64": 116716
       }
     },
     {
