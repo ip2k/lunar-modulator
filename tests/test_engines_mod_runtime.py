@@ -107,7 +107,9 @@ def test_size_is_pinned_and_listed(renderer):
     d = json.loads(subprocess.check_output([str(renderer), "--list-mod"]))
     assert d["bytes"] == MOD_BYTES
     assert (d["tick"], d["positions"], d["slots"], d["arena"]) == (TICK, 8, 32, 8192)
-    assert all(k["instance_bytes"] <= 256 for k in d["kinds"])
+    # Under 256 B each, but Burst: it ports Peaks' 32-pulse buffer whole
+    # (docs/16 §4.2, engines/mod/README.md).
+    assert all(k["instance_bytes"] <= (320 if k["id"] == "burst" else 256) for k in d["kinds"])
 
 
 FORBIDDEN = {"malloc", "calloc", "realloc", "free", "_Znwm", "_Znwj", "_Znam", "_Znaj",
@@ -125,7 +127,8 @@ def test_no_heap_no_stdio_no_libm(renderer):
         pytest.skip("no nm")
     base = ENGINES / "build" / "mod" / "mod"
     objs = sorted(base.glob("mod_*.o")) + sorted((base / "kinds").glob("*.o"))
-    assert len(objs) == 8
+    kinds = json.loads(subprocess.check_output([str(renderer), "--list-mod"]))["kinds"]
+    assert len(objs) == 7 + len(kinds)    # core, plan, registry, curves, glue, mi, mi_tables
     objs.append(ENGINES / "build" / "c" / "seq" / "seq_host.o")
     for o in objs:
         out = subprocess.check_output([nm, "-u", str(o)], text=True)

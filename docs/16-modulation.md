@@ -132,7 +132,8 @@ own:
 - **Gates:** Coin (a Bernoulli gate after Branches), Divide (clock divider,
   probability, Euclid), Burst (ratchets after Peaks).
 - **Utilities that make chains useful:** Calc, Mix, Slew, Compare, Logic,
-  Quantize.
+  Quantize, and Filter (a resonant control-rate filter, the owner's
+  addition of 2026-10-02).
 
 Later waves add Orbit (Tides 2), Dice (Marbles), Swirl (Frames' poly LFO),
 Scenes, Motion, Chaos, Tangle, Bits, Grooves (a Grids-like groove generator
@@ -680,6 +681,13 @@ Marbles' drum model in Dice already gives an MIT groove source.
 | **Calc** (CLC) | Mutable Kinks and Links (analog, no code); disting mk4 A-1 to A-5; Phazerville's Calculate; Workshop card 107 Scintillator | Own+ (MIT: Calculate, Justian; card 107, Matt Allison, MIT in `info.yaml` only). Logarithm and square root by table, no libm | A, B | OUT, INV | OP (sum, difference, product, min, max, mean, \|A\|, half-wave, −A, crossfade, log, root, square, slope), OFFSET (semitone-quantisable), AMOUNT | under 30 cycles; under 1 KB tables | 1 |
 | **Mix** (MIX) | Mutable Links and Shades (analog); disting EX Matrix Mixer; Phazerville's AttenuateOffset and Combin8 | Own | IN1–4 | SUM, AVG, INV | GAIN1–4 (±200 %), OFFSET | trivial | 1 |
 | **Switch** (SWI) | Phazerville's Switch and Xfader | Own+ (MIT: Justian, Michalek) | STEP, GATE; IN1–4 | OUT | MODE (sequential, gated, crossfade), RATE, SPRING | trivial | 2 |
+| **Filter** (FLT) | the owner's request of 2026-10-02; the trapezoidal state-variable filter as Andrew Simper (Cytomic) published it | Own | PING; IN | OUT (blend), LP, BP, HP | CUTOFF (0.05–409.6 Hz, log), RES (to undamped: rings for ever when struck), BLEND (LP–BP–HP), LEVEL, STRIKE | 40 B [verified]; about 30 operations per tick | 1 (built in MG2) |
+
+**Filter versus Slew.** Slew limits the rate of change or lags with one
+pole; it never overshoots and knows no frequency. Filter is
+frequency-selective: LP smooths at 12 dB per octave and can ring, BP and HP
+take out the slow part of a signal, and a gate into PING strikes it into a
+decaying sine at its cutoff, a resonant "wobble" source (engines/mod/kinds.md).
 
 Sample-and-hold lives in Chance (its IN input), so there is no separate S&H.
 **TO NOTES**, a sink that turns a pitch CV and a gate into notes on the sound
@@ -1139,7 +1147,7 @@ and a CHANGELOG entry. Every stage passes:
 | --- | --- | --- | --- |
 | **MG0** | This document; owner decisions (§9) recorded | — | answers recorded here |
 | **MG1** (built 2026-10-02) | `fm1_mod.h`, the core, the planner, the hook in docs/15's host bridge (`engines/seq/seq_host.c`). `fm1-render --mod FILE` (lines such as `mod 1 lfo rate=0.3`, `slot 1 lfo1.out > snd:Timbre amt=40`) and `--log-mod`. Kinds LFO, Envelope and Chance, so the default rack reproduces C1 | docs/15 S1 (the bridge, merged in PR #25) and S7a (uids, plus the MOD and INPUT flags, `abbr`, `unit`); tempo and a beat position in `fm1_host_t`, planned with API v2 in the options note but not in S7a's scope, which MG1 adds if nothing else has | all §2.7 core tests; M1–M7 host tests (a zero amount is a no-op, NOLOCK refused, a lock moves the base while the LFO swings round it, D6 with modulation running) |
-| **MG2** | The glue kinds: Calc, Mix, Slew, Compare, Logic, Coin, Divide, Burst, Bounce, Quantize, Register, Function | MG1 | golden traces per kind; the chain and feedback tests; Bounce and Burst against upstream Peaks |
+| **MG2** (built 2026-10-02) | The glue kinds: Calc, Mix, Slew, Compare, Logic, Coin, Divide, Burst, Bounce, Quantize, Register, Function; and Filter (the owner's addition) | MG1 | golden traces per kind; the chain and feedback tests; Bounce and Burst against upstream Peaks |
 | **MG3** | The simulator hosts `fm1_mod`: RACK, MATRIX, CHAIN, PATCH; routed markers on every page; manual chapter; README stub text | MG1–MG2; docs/15 S2 (the app hosts the bridge) | parity scenarios with routes; the layout sweep; panel traces replay through `fm1-render` byte for byte |
 | **MG4** | Segments: Stages vendored as the desktop oracle (stmlib and Tides 2 headers added), and the device kind; its view | MG3 | the device kind within a stated tolerance of the oracle over a scripted patch set; the clamp tests at secondary 1.0 and primary 2.0; the group-forming table from `chain_state.cc` reproduced |
 | **MG5** | Curves; the pattern-data API in presets; SEL held + white keys as stages | MG3 | pattern round trip; Curves' ENVELOPE, LFO, CLOCKED and ADDRESSED golden traces; layout of the curve view |
@@ -1180,6 +1188,47 @@ and the tests) [verified 2026-10-02]:
   switching them on again after a change back is the UI's (MG3); in MG1 an
   edit takes effect at the next tick on one task, without §2.5's double
   buffer.
+
+**MG2, as built** (engines/mod/kinds.md has every kind's parameters and
+the tests) [verified 2026-10-02]:
+- Thirteen kinds in `engines/mod/kinds/`, on MG1's runtime unchanged: the
+  twelve above and **Filter**, which the owner asked for on 2026-10-02: a
+  resonant trapezoidal state-variable filter at the tick rate whose LP, BP
+  and HP are sources and which a gate strikes into ringing.
+- **Bounce, Burst and Quantize run ports**, not wrappers: `mod_mi.c` is C,
+  statement for statement Peaks' bouncing ball, pulse shaper and pulse
+  randomizer and Braids' quantizer, at Peaks' rates (48 kHz per sample for
+  the ball, 12 kHz per call for the pulse processors) through §2.6's
+  accumulator. `fm1-mod-mi-ref` compiles the vendored originals (added
+  through `vendor.py`) into a test tool and finds every output identical:
+  2.9 million ball samples, 4.5 million calls each of the shaper and the
+  randomizer, 1.2 million of the quantiser, and Bounce and Burst as kinds
+  over the same timeline as upstream.
+- **Differences from §3:** Burst adds ACCEL and a clocked spacing (both off
+  leave it Peaks'); Bounce adds HIT; Quantize drops its held note on a scale
+  change; Function's segments keep their time rather than their slope;
+  Divide's SWING and DELAY are per module, its outputs triggers; Slew has
+  six outputs and a THRU gate (the table's DEFEAT); Coin's IN and Burst's
+  and Bounce's TRIG are normalled to the note trigger, Divide's CLOCK and
+  Register's CLOCK to the sequencer's. Register has no OUT MODE or
+  DIRECTION (BIT is a gate, CLOCK AND the new bit; the register shifts one
+  way), its MODIFY is WRITE and its SCALE is SPAN, whole semitones.
+  Ports keep to five characters, so Function's RISING and FALLING are UP
+  and DOWN, Compare's INSIDE is MID and Quantize's CHANGED is CHG. Calc
+  adds SNAP and FADE. Filter's CUTOFF is a 0–1 log knob, not Hz: the
+  matrix adds amount × range in a straight line, so a cable then moves
+  it by octaves.
+- **Sizes:** 4 B (Mix) to 312 B (Burst, Peaks' 32-pulse buffer) on arm64,
+  the same or less with `gcc -m32`; all sixteen kinds add up to 1,412 B, so
+  any rack fits the 8 KB arena. `fm1_mod_size()` is unchanged.
+- **Tests:** a golden trace per kind (the same on clang arm64, gcc x86-64,
+  gcc `-m32`, the sanitizer build and Emscripten's `fm1-render.js`, whose
+  renders of three racks also match native gcc's byte for byte), block-size
+  identity at 1, 7 and 64 and any fill with three racks of the new kinds, a
+  chain of glue modules entered backwards arriving in the tick a direct
+  cable does, feedback exactly one tick late, the Filter's response and
+  ringing against its transfer function and poles, and every kind fuzzed
+  with random and extreme parameters.
 
 **Interleaving.** MG1 and MG2 are desktop-only and touch no UI, so they can
 proceed alongside docs/15's S3–S6 once S7a has merged. MG3 needs S2. MG6 needs
@@ -1243,8 +1292,10 @@ due during this plan; check the mark at MG3.
     Slopes, LFO, Orbit, Swirl, Tangle, Scenes, Motion, Segments, Chance,
     Register, Dice, Bits, Walk, Chaos, Numbers, Coin, Divide, Burst, Grooves,
     Field, Life, Slew, Quantize, Compare, Logic, Calc, Mix, Switch, Follow,
-    Duck: are these right? **Answered in part (2026-10-02): LFO, Envelope
-    and Chance**, the three kinds MG1 built.
+    Duck, Filter: are these right? **Answered in part (2026-10-02): LFO,
+    Envelope and Chance**, the three kinds MG1 built. MG2 built thirteen
+    more under the names above; renaming one before MG3 shows it costs a
+    string, since presets store guids and uids.
 14. **First wave.** The 17 kinds of MG1, MG2, MG4 and MG5?
 15. **GPL kinds.** Allow `FM1_GPL_MODS` in personal builds (the Grids and
     Branches originals), never in the public simulator (recommended), or keep

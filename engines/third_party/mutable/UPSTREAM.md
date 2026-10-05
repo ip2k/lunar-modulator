@@ -95,3 +95,32 @@ What the effect wrappers work around:
 - **Sample rate.** As for the engines: delay lengths and LFO rates are fixed
   in samples. The Plate and Diffuse wrappers rescale their loop gain (and
   Plate its damping) so decay times in seconds match the native rate.
+
+## Modulation kinds (docs/16 stage MG2, 2026-10-02)
+
+Added to `ROOTS` in `vendor.py` as **test oracles**, not as code the
+firmware or `fm1-render` links. The Bounce, Burst and Quantize kinds run
+C ports of these files (`engines/mod/mod_mi.c`, with Emilie Gillet's MIT
+notice); `fm1-mod-mi-ref` (`engines/test/mod_mi_ref.cc`, built by
+`mk/mod.mk`) compiles the originals beside the ports and compares every
+output (engines/mod/kinds.md, "The ports of Mutable Instruments code"):
+
+| File | Why |
+| --- | --- |
+| `peaks/modulations/bouncing_ball.h` | Bounce: the ball, per sample at 48 kHz |
+| `peaks/pulse_processor/pulse_shaper.*` | Burst's Burst and Delay modes, per 4-sample call |
+| `peaks/pulse_processor/pulse_randomizer.*` | Burst's Random mode, on `stmlib::Random` seeded per test |
+| `peaks/resources.cc`, `.h` | `lut_delay_times` and `lut_gravity`; `engines/mod/gen_mi_tables.py` copies the two into `mod_mi_tables.c` |
+| `braids/quantizer.*`, `braids/quantizer_scales.h` | Quantize and its 49 scales (`gen_mi_tables.py` copies the scales) |
+| `peaks/gate_processor.h`, `stmlib/utils/ring_buffer.h` | pulled in by the above |
+
+Re-running `vendor.py` against the pinned checkouts added exactly these 12
+files and changed no existing one. All 158 vendored `.h`/`.cc` files carry
+the MIT permission notice and none mentions the GPL (checked with a script
+on 2026-10-02); `tests/test_engines_mod_kinds.py` pins the 12 by digest.
+Peaks' `resources.cc` also holds the 36,824-byte `wav_digits` and the other
+Peaks tables; only the test tool links it.
+
+**Under the sanitizers**, `set_initial_velocity` in `bouncing_ball.h` shifts
+a negative value left (`<< 4`), undefined in C++11 but what ARM GCC did;
+`engines/sanitizers/ubsan.supp` names it. The port multiplies by 16 instead.
