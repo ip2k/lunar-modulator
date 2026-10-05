@@ -9,6 +9,17 @@ history.
 ## [Unreleased]
 
 ### Added
+- notes/2026-10-05-community-repos.md: what Lunar learns from JieLi's current
+  AC79 SDK on Gitee and from three FM-1 projects, Felucca (with its recovery
+  tool FM-1-transporter), its fork SLOOP, and fm1-nes. Other open firmware
+  already runs on FM-1s, installed and rolled back through the stock update
+  path. Two independent code bases map the board: audio leaves over I2S to an
+  external codec rather than the internal DAC, the encoders are read through
+  the key matrix, and the display, matrix, MIDI and flash pins are named. A
+  running app can enter the chip's ROM loader without a dongle (including a
+  stock SysEx command that this project must not send before the dump-and-
+  restore gate). It lists about 30 corrections to our docs and ten owner
+  decisions.
 - **Drive, Filter, Comp and Limiter on the virtual FM-1:** the effect
   slots now offer twelve effects (ALGORITHM steps through Plate,
   Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp,
