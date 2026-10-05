@@ -563,17 +563,27 @@ which lands with the plan PR; its stages S0–S7 are named below.
 - **Rough effort:** about 14–17 days to the first six effects in the
   simulator; under 2 KB of RAM per track [inferred].
 
-**LFOs, envelopes, modulation matrix** · *Planned, design chosen*
+**LFOs, envelopes, modulation matrix** · *In progress*
+- **Done so far (2026-10-02):** docs/16 stage MG1, desktop only: the
+  runtime (a rack of up to 8 modules in a 32-slot matrix with chains and
+  feedback, a 32-frame tick), the modules LFO, Envelope and Chance, and
+  `fm1-render --mod` ([`engines/mod/README.md`](engines/mod/README.md#the-runtime)).
+  Next: the glue modules (MG2), then the simulator's RACK and MATRIX pages
+  (MG3).
 - **Depends on:**
   - API v2 uids, SMOOTH and NOLOCK, plus a new MOD flag (docs/13 M2):
     built in docs/15 stage S7a, with INPUT, units and abbreviations for
     docs/16 [verified: engines/README.md, "Parameters"];
-  - tempo and a beat position in `fm1_host_t`;
-  - a fixed control grid of 16 or 32 frames, so output stays identical at
-    any host block size (the owner's choice).
+  - tempo and a beat position: MG1 needed neither in `fm1_host_t`, since
+    tempo and Start reach the modules through the sequencer bridge; a beat
+    position waits for Orbit (docs/16 §3.2);
+  - a fixed control grid, so output stays identical at any host block size:
+    32 frames (the owner's choice, 2026-10-02).
   - `fm1_engine.h` has no modulation kind [verified: lines 48–54], and the
     matrix needs none: it runs in the host.
-- **Where it is planned:** options note §3–§4, option C in two stages.
+- **Where it is planned:** [docs/16](docs/16-modulation.md), stages
+  MG0–MG9, which replace the options note's C1 below with a rack of modules
+  inside the matrix; the options note §3–§4 had option C in two stages.
   - **C1** (stage S1), `fm1_mod`: 2 global LFOs (Elektron-style pages; free,
     trig, hold, one-shot and half modes; synced to `fm1_seq`'s tick), 2
     ADSR envelopes after Peaks' `MultistageEnvelope` (MIT), a CHANCE source,

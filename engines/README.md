@@ -1006,7 +1006,7 @@ sound).
 | Path | What |
 | --- | --- |
 | `include/fm1_engine.h` | The engine API, version 2. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, flags, a unit and an abbreviation ([above](#parameters-engine-api-v2)); `fm1_param_clamp` for NaN-safe ranges; the threading contract |
-| `mod/` | Modulation primitives: an LFO, a Peaks-style envelope, slew, S&H, a Turing register and a tick clock divider. Heap-free C99, not wired in yet ([mod/README.md](mod/README.md)) |
+| `include/fm1_mod.h`, `include/fm1_mod_host.h`, `mod/` | Modulation (docs/16 stage MG1): a rack of up to 8 modules inside a 32-slot matrix, run every 32 frames on absolute time, with the module kinds LFO, Envelope and Chance, and the glue that runs it as the sequencer bridge's control-rate hook. Built on the primitives (an LFO, a Peaks-style envelope, slew, S&H, a Turing register, a tick clock divider). Heap-free C99, no libm; `fm1-render --mod` hosts it, the simulator does not yet ([mod/README.md](mod/README.md)) |
 | `include/fm1_seq.h`, `seq/` | The sequencer core: a heap-free C99 port of Movy's sequencer, with 4–8 routed tracks ([seq.md](seq.md), docs/13) |
 | `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`. Not wired into the renderer yet ([midi_fx/README.md](midi_fx/README.md)) |
 | `include/fm1_mix_limiter.h` | The host's mix-bus limiter and bus guard. Twelve voices started in phase can exceed full scale; the bus holds the output under 0.98, and non-finite samples become silence |
@@ -1035,6 +1035,8 @@ sound).
 | `--fx-param-at T:K:NAME=VALUE` | Turn a parameter of the K-th effect (the first `--fx` is 1) during the render, at a block boundary like `--param-at`; the parity scenarios' `fx_param_at` |
 | `--fill BYTE` | What instance memory holds before `create`; every engine must render byte-identically from any fill |
 | `--fault T[..T1]:VALUE` | Overwrite the bus after the source with `nan`, `inf` or any value, for one frame or a span, to test recovery |
+| `--mod FILE`, `--log-mod FILE.jsonl` | Modulation: a rack and slots from a text file, and one JSON line per control tick ([mod/README.md](mod/README.md#hosting)) |
+| `--list-mod` | The modulation kinds with their parameters' uids and flags, their ports, the system sources and the host parameters, as JSON |
 
 ## Build and checks
 

@@ -104,7 +104,7 @@ echo "== instance and struct sizes: pi32v2, i386, x86-64"
 SZ=$OUT/sizes
 rm -rf "$SZ" && mkdir -p "$SZ"
 SZ_CXX="-std=c++11 -fno-exceptions -fno-rtti -DTEST -O2 -Iinclude -isystem third_party/mutable -isystem third_party/schwung"
-SZ_C="-std=c99 -O2 -Iinclude -Iseq -I$SRC/sim/web/src"
+SZ_C="-std=c99 -O2 -Iinclude -Iseq -Imod -I$SRC/sim/web/src"
 sz_compile() {  # sz_compile TARGET-NAME "CC" "EXTRA"
   local t=$1 cc=$2 extra=$3
   mkdir -p "$SZ/$t"

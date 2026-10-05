@@ -1,39 +1,387 @@
-# engines/mod — modulation primitives
+# engines/mod — modulation: the runtime and its primitives
 
-Small C99 building blocks for modulation: an LFO, a multistage envelope, a
-slew limiter, sample-and-hold, a Turing-machine register and a clock
-divider/multiplier. They follow §3–§5 of the arpeggiator, modulation and
-effects options note of 2026-10-01. The modulation runtime that docs/16 is
-designing will wrap them; this directory defines no module API, no
-parameter pages and no routing. Nothing here is wired into an engine, the
-renderer or the simulator yet.
+Two layers, both heap-free C99 with no libm:
+
+- **The runtime** (docs/16 stage MG1): a rack of up to 8 modulation
+  modules inside a 32-slot matrix of 1:1 cables, run once per control tick
+  of 32 frames. Module outputs are sources and module parameters and gate
+  inputs are destinations, so a chain A → B → C → D is three ordinary
+  slots. `include/fm1_mod.h` is its API, `include/fm1_mod_host.h` puts it on
+  the sequencer's host bridge, and `fm1-render --mod` plays it. The first
+  three module kinds are **LFO**, **Envelope** and **Chance**. Not in the
+  simulator yet (MG3).
+- **The primitives** (`fm1_mp.h`): an LFO, a multistage envelope, a slew
+  limiter, sample-and-hold, a Turing-machine register and a clock
+  divider/multiplier, after §3–§5 of the arpeggiator, modulation and effects
+  options note of 2026-10-01. The module kinds wrap them.
 
 ```bash
-make -C engines                              # builds build/fm1-mod with everything else
-engines/build/fm1-mod --sizes                # struct sizes (JSON)
-printf 'lfo a 1\nshape a sh\nhz a 30\nproc a 128\nstate a\n' | engines/build/fm1-mod -
-python -m pytest tests/test_engines_mod.py   # the tests
-python3 engines/mod/gen_tables.py            # regenerate mp_tables.c (--check: verify)
+make -C engines                                  # fm1-render, fm1-mod-core-test, fm1-mod
+engines/build/fm1-render --list-mod              # the kinds, system sources and host parameters (JSON)
+printf 'mod 1 lfo rate=0.6\nslot 1 lfo1 > snd:Timbre amt=20\n' > /tmp/a.mod
+engines/build/fm1-render --engine macro --note 0:60:100:1.5 --seconds 2 --mod /tmp/a.mod \
+    --log-mod /tmp/a.jsonl --out /tmp/a.wav     # one JSON line per tick in the log
+python -m pytest tests/test_engines_mod_runtime.py   # the runtime's tests
+python -m pytest tests/test_engines_mod.py       # the primitives' tests
+python3 engines/mod/gen_curves.py                # regenerate mod_curves.c (--check: verify)
+python3 engines/mod/gen_tables.py                # regenerate mp_tables.c (--check: verify)
 ```
 
-## Files
+## The runtime
+
+### Files
 
 | Path | What |
 | --- | --- |
-| `fm1_mp.h` | The API, prefix `fm1_mp_`, so it cannot clash with the module API |
-| `mp_rng.c` | The PRNG: xorshift64* seeded through splitmix64 |
-| `mp_lfo.c` | The LFO |
-| `mp_env.c` | The multistage envelope, after Peaks |
-| `mp_slew.c` | The slew limiter |
-| `mp_sah.c` | Sample-and-hold and track-and-hold |
-| `mp_turing.c` | The Turing-machine register |
-| `mp_clkdiv.c` | The clock divider and multiplier |
-| `mp_tables.c`, `gen_tables.py` | The envelope curves and Peaks' time curve as 257-point float tables, and the script that writes them |
-| `mp_int.h` | Shared internals: table lookup, NaN-safe clamps |
-| `mp_tool.c` | `fm1-mod`, the desktop test tool: a command script in, JSON Lines out |
-| `../mk/mod.mk` | The build fragment |
+| `../include/fm1_mod.h` | The API: the module kind contract, slots, the runtime, its clock and its state, prefix `fm1_mod_` |
+| `../include/fm1_mod_host.h` | The glue that makes a runtime the bridge's control-rate hook (`fm1_mod_glue_t`) |
+| `mod_int.h` | The state's layout and the helpers the core and the kinds share (not API) |
+| `mod_core.c` | Creation, the rack and its 8 KB arena, bases (rule M1), system sources, the tick |
+| `mod_plan.c` | The planner: which slots run, the module order, delayed cables |
+| `mod_registry.c` | The kinds, the system sources and the host unit's parameters |
+| `mod_curves.c`, `gen_curves.py` | The 8 slot curves as 33-point tables, and the script that writes them |
+| `mod_glue.c` | The bridge hook (`fm1_mod_host.h`) |
+| `kinds/mod_lfo.c`, `mod_env.c`, `mod_chance.c` | LFO, Envelope and Chance |
+| `../host/mod_script.c`, `.h` | `fm1-render`'s text format for racks and slots (desktop only) |
+| `../test/mod_core_test.c` | `fm1-mod-core-test`: the planner fuzz, chains, feedback, fills, NaN, M1–M4 |
+| `../../tests/test_engines_mod_runtime.py` | The runtime through `fm1-render` and the C test |
+| `../../tests/fixtures/mod-uids.json` | Every kind's uids and ports, the system source ids, pinned |
 
-## Rules every primitive keeps
+### Time
+
+- **Ticks.** Tick k (k ≥ 1) runs at absolute frame t(k) = 32k (1,378.7 Hz
+  at 44,118 Hz, 0.725 ms) and covers frames [t(k−1), t(k)). The first runs
+  at frame 32 [verified: `fm1-mod-core-test`].
+- **Edges keep their frame.** A gate edge carries its offset inside the
+  tick, so a module triggered at offset 13 has run 19 frames by t(k). An
+  edge a module produces (an LFO's wrap, an envelope's end) sits at the
+  boundary after the sample that caused it, so a period of P whole samples
+  wraps every P frames: a tempo-synced LFO at 1/4 and 120 BPM wraps every
+  22,059 frames exactly, starting at the sequencer's Start [verified:
+  `test_a_synced_lfo_wraps_on_the_beat`]. One that falls on the tick's own
+  end goes to frame 0 of the next tick.
+- **Events.** An event at frame f reaches the first tick after it, at
+  offset f − t(k−1). A note-off at a tick's own frame belongs to the next
+  tick even though the bridge hands it over before that tick runs (rule
+  M6); the runtime keeps two windows of pending events for that [verified:
+  `edge_frames` in the C test].
+- **Writes.** Each tick computes every routed destination and writes a
+  value only when its bits changed. The bridge splits a unit's render at a
+  tick only when that tick writes to it.
+- **Transport.** A kind flagged TRANSPORT reads the sequencer's tempo,
+  whether the transport ran at the tick's start (RUN's level there, set by
+  Start and Stop at their frames, not per block) and the frame of a Start
+  inside the tick.
+- **Block sizes.** All of this runs on absolute frames, so the WAV and the
+  tick log are byte-identical at host blocks of 1, 7 and 64 frames with
+  routes active on Macro, Test Sine and Six-Op, an effect, PITCH and AMP
+  [verified: `test_audio_and_ticks_are_the_same_at_host_blocks_of_1_7_and_64`].
+
+### Slots and the value a destination receives
+
+A slot is 12 bytes (`fm1_mod_slot_t`, docs/16 §2.4): source, VIA, unit,
+flags (ON, polarity, GATE_DST, curve), destination uid or gate index,
+amount and offset in Q1.14 (16,384 is 1.0), and a uid reserved for locks
+on the slot's own depth (MG6). For each enabled slot, in ascending slot
+order:
+
+```
+s = source value          CV, or a gate's level (0 or 1); non-finite reads as 0
+s = polarity(s)           AUTO keeps it; UNI maps -1..1 to 0..1; BI maps 0..1 to -1..1;
+                          INV is -s for a bipolar source and 1 - s otherwise
+s = curve(clamp(s, -1, 1))   LIN, SQUARE, CUBE, ROOT, CBRT, EXP, LOG or S, sign-preserving
+s = s + offset
+s = s x VIA               VIA read as 0..1 (a bipolar VIA is mapped), when set
+c = amount x s x (max - min)          a parameter, as a share of its range
+c = amount x s                        an INPUT parameter: 100 % passes the signal
+c = amount x round(s x 61,440) / 1,024   SEMI into SEMI: semitones on a 1/1,024 grid
+final = clamp(base + (c1 + c2 + ...)), an ENUM rounded
+```
+
+- **Two deviations from docs/16 §2.4**, both deliberate:
+  - An INPUT (a bare signal input, such as Chance's IN) takes amount × s,
+    not amount × s × 2: a chain link at 100 % passes its source unchanged.
+  - SEMI into SEMI is rounded to 1/1,024 semitone (0.1 cent), so whole
+    notes stay whole. NOTE at 100 % on a SEMI parameter adds exactly 7.0
+    semitones for a G above middle C; plain float gives 7.0000005
+    [verified: `rules` in the C test].
+- **Refused slots.** A slot that is on but whose source or destination does
+  not exist, or whose destination is NOLOCK, or an ENUM without MOD, is
+  refused: it writes nothing and splits nothing, and `fm1-render` counts it
+  (`mod_refused`) [verified: Macro's Model and LPG].
+- **Rule M1.** A knob, a lock, a revert or the MIDI bend sets a
+  destination's base through `fm1_mod_set_base`, which returns what the host
+  sends: the value itself when nothing routes there, else base plus the
+  last tick's offset. A destination that stops being routed goes back to
+  its base at the next tick. A zero amount writes nothing at all, even over
+  a base set out of range or to NaN, which the runtime holds clamped as the
+  engine does [verified: `test_a_zero_amount_writes_nothing`,
+  `gate_continuity` in the C test].
+
+### Sources and destinations
+
+| Ids | Sources (MG1) |
+| --- | --- |
+| 0 VEL, 1 NOTE, 2 RAND | velocity / 127 and (note − 60) / 60 (SEMI) of the last note on the sound; a seeded random value drawn at each note-on |
+| 16 KEY, 17 TRIG | high while a note is held on the sound; a trigger at each note-on |
+| 18 CLOCK, 19 BEAT, 20 BAR | triggers each sequencer step, beat and bar, from its 24-PPQN clock |
+| 21 RUN, 22 START | high while the transport runs; a trigger at Start |
+| 24–31 SEQ1–8, 32–39 SQV1–8 | high while sequencer track 1–8 sounds a note (any route); its last velocity / 127 |
+| 64 + 8 × position + port | module outputs |
+
+The gaps are reserved for the later sources (docs/16 §2.4): mod wheel,
+aftertouch, bend, CC A and B, MACRO 1–4, the previous block's level and
+keys held (3–15), and the arpeggiator's step and gate. They need MIDI input
+and the macros in a host, which MG1 has not. "The sound" means notes that
+reach the sound engine: the sequencer's tracks routed to it and live notes.
+
+| Unit | Destinations |
+| --- | --- |
+| 0 SOUND, 1 FX1, 2 FX2 | the first 32 parameters of the bound engine that take modulation |
+| 3 HOST | PITCH (uid 1, ±48 semitones; its base is the MIDI bend, sent through `pitch_bend`) and AMP (uid 2, a gain 0–2 before the limiter, ramped linearly over each tick) |
+| 8 + position | a module's MOD and INPUT parameters by uid, and with GATE_DST its gate inputs by index |
+
+### Gate cables
+
+- **Gate into gate.** Edges keep their frames. Below 100 % each rising
+  edge passes with probability = amount, drawn from the slot's own
+  generator (seeded by the runtime's seed and the slot number), and its
+  falling edge passes with it. One draw per rise at any amount, so turning
+  it never shifts the stream [verified:
+  `test_a_gate_cable_is_a_seeded_probability`].
+- **CV into gate.** A comparator rising at 0.5 and falling below 0.25,
+  seen at tick resolution: its edge sits at the tick's first frame.
+- **Several cables into one gate input** combine by OR; edges at one frame
+  go in slot order.
+- **Normalled inputs.** A gate input with no cable reads its kind's
+  `normal` source: the Envelope's GATE reads KEY and the LFO's RESET reads
+  TRIG, so with no cable the Envelope follows the keys, as the options
+  note's paraphonic C1 envelope did. `gate_connected` still says "no
+  cable", as a eurorack module senses a jack.
+- **A gate input never jumps.** Each tick it starts where the last one
+  ended. Patching a cable in, pulling one out or breaking a normal changes
+  its level between ticks, and the module sees that as an edge at the
+  tick's first frame, as a jack would give it; so an envelope held open
+  is released when its gate goes, and a newly placed module whose input is
+  already high sees a rise. Placing a module (a new kind, or the same one
+  again) restarts its outputs low and every gate cable from it with them,
+  so a module it held open sees a fall [verified: `gate_continuity` in the
+  C test, `test_editing_or_repatching_a_gate_never_strands_it`].
+- **Editing a cable keeps it.** An edit that keeps a slot's ends (source,
+  VIA, unit, destination, GATE_DST), such as turning its amount, keeps the
+  cable's state: a gate cable stays high or low and its probability stream
+  runs on, so an envelope it holds open still sees the key's release. New
+  ends make a new cable, low, with its stream from the seed.
+
+### The planner
+
+On any edit the next tick rebuilds the plan (`mod_plan.c`, docs/16 §2.5):
+Tarjan's strongly connected components over the module-to-module cables
+(rack order, slot order), Kahn over the components with the lowest first
+position winning a tie, rack order inside a component. A cable is delayed
+when both ends are in one component and its source sits at or below its
+destination: inside a loop, the cable that runs up the rack, and every
+self-cable. It reads the previous tick, exactly one tick late.
+
+- **Chains.** D ← C ← B ← A, entered with A at the bottom of the rack,
+  runs A, B, C, D and moves Timbre in the same tick as a direct cable from
+  A: the WAVs are identical [verified:
+  `test_a_chain_entered_backwards_arrives_in_one_tick`].
+- **Feedback.** Chance tracking its own HELD plus a 10 % offset climbs by
+  the offset each tick [verified]. Moving a loop's lower module to the top
+  of the rack moves the delay to the other cable [verified].
+- **Fuzzed.** Over 3,000 random racks and tables (1,838 with loops), a
+  rebuild gives the same plan, any permutation of the slot table runs the
+  same modules in the same order and delays the same cables, every cable
+  that is not delayed runs after its source, and every delayed one is
+  inside a loop running up the rack [verified: `fm1-mod-core-test`].
+
+### The kinds
+
+**LFO** (`lfo`, LFO). After the options note's LFO: shapes from Schwung's
+`lfo_common.h` (Charles Vestal, MIT) and Peaks (Emilie Gillet, MIT), modes
+after Elektron's; on `fm1_mp_lfo_t`.
+
+| Uid | Parameter | Range | What it does |
+| --- | --- | --- | --- |
+| 1 | Rate | 0–1 | 0.01–100 Hz on an exponential scale; 0.5 is 1 Hz |
+| 2 | Shape | Sine, Triangle, Saw Up, Saw Down, Square, Smooth, S&H, Walk | MOD: a cable picks the shape, rounded |
+| 3 | Depth | −1–1 | scales the output |
+| 4 | Mode | Free, Trig, Hold, One, Half | Free restarts only on a patched RESET; Trig on every RESET (unpatched: every note-on); Hold samples its output at RESET; One and Half run a cycle or half one from Phase after each RESET, and wait for the first |
+| 5 | Phase | 0–1 | where a restart starts |
+| 6 | Sync | Off, 4 Bars … 1/32, triplets, dotted | follows the sequencer's tempo instead of Rate; Start restarts the cycle |
+| 7 | Width | 0–1 | the square's pulse width |
+
+Gate input RESET (normal TRIG). Outputs OUT (−1..1) and WRAP (a trigger at
+each cycle start, a restart included).
+
+**Envelope** (`env`, ENV). After Peaks' multistage envelope (Emilie Gillet,
+MIT), on `fm1_mp_env_t`.
+
+| Uid | Parameter | Range | What it does |
+| --- | --- | --- | --- |
+| 1–4 | Attack, Decay, Sustain, Release | 0–1 | times on Peaks' knob curve, 0.5 ms–8 s; Sustain a level |
+| 5 | Curve | Linear, Expo, Quartic | Peaks' curves |
+| 6 | Loop | Off, AD, ADR | repeats while the gate is high |
+| 7 | Mode | Gate, Trigger | Gate: an ADSR on the gate; Trigger: Peaks' AD, each rise restarts it, the fall is ignored |
+| 8 | Level | 0–1 | scales the output |
+
+Gate input GATE (normal KEY). Outputs ENV (0..1), EOC (a trigger where the
+envelope ends or a loop pass completes) and ACT (high from a start until the
+end).
+
+**Chance** (`chance`, CHN). After DaisySP's SampleHold (Electrosmith, Paul
+Batchelor, MIT) and Music Thing Modular's Workshop System Computer card 106
+(Matt Allison, MIT); no code from either. On `fm1_mp_lfo_t`'s random shapes,
+`fm1_mp_slew_t` and the generator.
+
+| Uid | Parameter | Range | What it does |
+| --- | --- | --- | --- |
+| 1 | Mode | S&H, T&H, Smooth, Drift | S&H: a new value at each clock (IN if patched, else a random draw); T&H: follows IN (or one fresh draw a tick) while TRIG is high, unpatched counts as high; Smooth: glides to each new draw over a clock period; Drift: a random walk |
+| 2 | Rate | 0–1 | the internal clock when TRIG is unpatched, 0.01–100 Hz |
+| 3 | Slew | 0–1 | SMTH's glide: 0 off, else 0.5 ms–8 s for a full-scale move |
+| 4 | Level | −1–1 | scales HELD |
+| 5 | Walk | 0–1 | Drift's largest step |
+| 6 | In | INPUT | the signal to sample |
+
+Gate input TRIG (no normal). Outputs HELD, SMTH (HELD through the slew) and
+STEP (a trigger at each new value).
+
+**Instance sizes:** LFO 112 B, Envelope 124 B, Chance 160 B on 64-bit arm64,
+and 100, 124 and 152 B with `gcc -m32` [verified: `fm1-render --list-mod`];
+under 256 B everywhere [verified: test]. The default rack (LFO, LFO,
+Envelope, Envelope, Chance) takes 640 B of the 8 KB arena.
+
+### Hosting
+
+**The bridge.** `fm1_seq_host_dispatch_ticks(h, frames, block, sink, hook)`
+(`include/fm1_seq_host.h`) runs a control-rate hook inside the block:
+- it feeds every event (notes, clock, Start, Stop) at its frame;
+- at one frame it runs note-offs and locks, then the tick and its writes,
+  then note-ons (rule M6; checked against a pretend hook in
+  `fm1-seq-host-test`);
+- it splits the sound's render only at a tick that writes to it;
+- a lock's value goes through the hook (`fm1_mod_set_base`, rule M1).
+
+`fm1_mod_glue_t` (`include/fm1_mod_host.h`) is that hook for a runtime; it
+hands writes to the effects and AMP to the host, which renders each effect
+split at its own writes. Plain `fm1_seq_host_dispatch` is the hook-less
+case, so the virtual FM-1 is unchanged until MG3. A bridge initialised with
+no sequencer runs only ticks, which is how `fm1-render` modulates without
+`--cmd`.
+
+**`fm1-render --mod FILE`** (`host/mod_script.h`). One line each:
+
+```
+seed 77                                 # the runtime's seed
+rack default                            # LFO, LFO, Envelope, Envelope, Chance at 1-5
+mod 6 chance mode=smooth rate=0.7       # a kind at a position, with parameter bases
+set 1 rate=0.62 shape=triangle          # bases of the module at a position
+slot 1 lfo1 > snd:Timbre amt=30         # a cable; amt and ofs in percent
+slot 2 seq2 > env4.gate amt=70          # a gate cable at 70 %
+slot 3 lfo1 > lfo2.rate amt=20 via=vel pol=uni curve=square
+@44118 slot 1 off                       # @FRAME: at the first block starting there
+```
+
+Sources are system names (vel, note, rand, key, trig, clock, beat, bar,
+run, start, seq1–seq8, sqv1–sqv8) or a module's output (`lfo1`,
+`lfo1.wrap`, `env3.2`, `mod5.held`). Destinations are `snd:`, `fx1:`,
+`fx2:`, `host:pitch`, `host:amp`, or a module's parameter or gate input
+(`lfo2.rate`, `env3:gate`). `--param-at` and `--bend` go through the bases.
+
+**`--log-mod FILE.jsonl`**: one line per tick, with `k` (the tick), `t`
+(its absolute frame), `m` (each module's effective parameters `v`, outputs
+`o` and gate edges `e` as [port, frame, level]), `g` (system gate edges as
+[id, frame, level]), `s` (each routed sink's base `b` and value `v`) and
+`w` (the tick's writes).
+
+**`--list-mod`**: the kinds with every parameter's uid and flags, their
+ports, the system sources and the host parameters, as JSON.
+
+**The summary** adds `mod_bytes`, `mod_ticks`, `mod_writes` (and the sound's
+and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
+`mod_splits`, `mod_edges_dropped` and `mod_nonfinite`, only with `--mod`.
+
+### Determinism and memory
+
+- **No heap, no stdio, no libm** in the runtime's objects or the bridge
+  [verified: `nm -u` in the tests]. 2^x for the rate knobs is a 7th-order
+  Taylor series on the fraction and exponent bits; the curves are tables.
+- **`-ffp-contract=off`** on every file, from `mk/mod.mk`.
+- **Seeds.** One seed per runtime: each instance gets a mix of it and its
+  position, each slot one of it and its number, RAND its own.
+- **Any memory.** Built in memory filled with 0x00, 0xA5 or 0xFF, the
+  runtime writes the same values, bit for bit [verified: the C test and
+  `test_any_fill_renders_the_same_across_fills`].
+- **NaN and infinity** in sources, bases, amounts and offsets never reach
+  a write: sources read as 0, bases clamp (NaN to the default), Q1.14
+  amounts clamp to ±1 [verified: the C test].
+- **Zero routes, zero change.** A rack with no slot on, or only zero
+  amounts, renders byte for byte what the same render without `--mod`
+  gives, with the same splits, through the sequencer or not, effects
+  included [verified: `test_zero_route_identity`]. The bridge change
+  itself changed no render: see "No render changed" below.
+- **Size.** `fm1_mod_size()` is 20,016 B: the 8,192 B arena and 11,824 B of
+  fixed state, the same in 32- and 64-bit builds (no pointers, every 64-bit
+  member 8-aligned) [verified: pinned in the tests, which CI's `-m32` job
+  runs]. docs/16 §4.1 estimated 4,480 B of fixed state. The difference is
+  mostly copies: each effect and the sound's parameter ranges (1,920 B, so
+  the state needs no pointer to an engine), bases, sent values and offsets
+  per sink parameter (1,536 B), effective module parameters for the UI and
+  logs (1,024 B), the write list (784 B) and both tick buffers of gate
+  edges (1,536 B). It is 5.2 % of the 387,924 B gap, against the estimate's
+  3.3 %; the system-source arrays (768 B) and the per-parameter offsets
+  could shrink if the budget needs it [inferred].
+- **On pi32v2** [verified 2026-10-02: `tools/jieli/compile-check.sh`,
+  compile only, 83 of 83 objects in all four profiles, no warning from our
+  code]: `struct fm1_mod` lays out the same as on i386 and x86-64, and
+  `fm1_mod_size()` is 20,016 B on all three. The runtime and its three
+  kinds are 29,988 B of text at `-O2` (25,920 B of code) and 19,016 B at
+  the SDK's `-Oz`; the primitives add 9,224 B and 7,614 B. The deepest
+  stack frames are `fm1_mod_tick` (920 B, the gate merge's scratch),
+  `mod_plan_build` (812 B) and `fm1_mod_move` (736 B), inside the SDK's
+  2,560 B limit. Cycles per tick wait for the dev board (docs/14 stage B).
+
+### What MG1 leaves for later
+
+- **The simulator** (MG3): RACK, MATRIX, CHAIN, PATCH; the app hosting the
+  glue. Owner, 2026-10-02: the LFO button will open the rack at the LFOs
+  and ENV at the envelopes.
+- **Locks on module parameters and slot depths** (MG6). Locks on the
+  sound's parameters already move the base (rule M1).
+- **`fm1_host_t` is unchanged.** Tempo and the transport reach the kinds
+  through the bridge's hook (the sequencer's tempo and Start), which is
+  all LFO's Sync needs. A beat position joins when Orbit (Tides 2's
+  external ramp) needs one [inferred].
+- **The double-buffered plan** of docs/16 §2.5 step 5: in MG1 everything
+  runs on one task and an edit takes effect at the next tick. The firmware's
+  control task needs the two buffers.
+- **Changing a kind switches off the slots that touch it** (docs/16:
+  disabled, never deleted); restoring them on a change back is the UI's
+  (MG3).
+
+### No render changed
+
+[verified 2026-10-02, Apple clang, clean builds of the base commit's
+`fm1-render` and this one] The bridge now runs the hook inside dispatch and
+the sink gained `pitch_bend`; no existing render changed. Over 272
+command lines, each run by both renderers and once more by the new one with
+a zero-route `--mod` rack (816 runs):
+- the 34 Movy oracle scripts on Test Sine, Macro and Six-Op, in both modes;
+- the host-block script at 1, 7 and 64 frames on all six sound engines;
+- every sound engine with notes, `--param-at`, `--bend`, a 0xA5 fill and
+  7-frame blocks, and with two effects;
+- every effect on noise, an impulse and a sine, and after a NaN fault.
+
+Every WAV, event log, exit code and error is byte-identical between the two
+renderers, and so is every summary less its timing; the zero-route runs
+match too. 251 of the 272 render; the other 21 are refused the same way by
+both (Macro and Six-Op refuse the 48 kHz scripts, Sophie has no pitch bend).
+The virtual FM-1's own parity scenarios run in `sim/web/build-on-aeon.sh`.
+
+## The primitives
+
+### Rules every primitive keeps
 
 - **No heap, no stdio, no libm.** The caller owns each struct, and `init`
   sets every field, so prior memory contents never matter. The tests check
