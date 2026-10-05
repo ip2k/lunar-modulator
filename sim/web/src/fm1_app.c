@@ -169,6 +169,9 @@ void fm1_look_value(const fm1_param_t *p, float v, char *buf, size_t size) {
   }
   float range = p->max - p->min;
   int decimals = range <= 2.0f ? 2 : (range <= 20.0f ? 1 : 0);
+  /* A wide range's small fraction keeps one decimal: the Gate's 0.5 ms
+   * Attack would otherwise read "0". */
+  if (decimals == 0 && fabsf(v) < 10.0f && fabsf(v - floorf(v + 0.5f)) >= 0.05f) decimals = 1;
   float tiny = decimals == 2 ? 0.005f : (decimals == 1 ? 0.05f : 0.5f);
   if (fabsf(v) < tiny) v = 0.0f;   /* no "-0.00" */
   snprintf(buf, size, "%.*f", decimals, (double)v);

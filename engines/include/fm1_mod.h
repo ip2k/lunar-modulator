@@ -83,7 +83,7 @@ enum {
 #define FM1_MOD_SOUNDS 4u               /* sound units */
 #define FM1_MOD_INSERTS 2u              /* inserts per sound unit (codes for 4) */
 #define FM1_MOD_SINKS 15u               /* SOUND FX1 FX2 HOST, sound units 2-4, the 8 inserts */
-#define FM1_MOD_SINK_PARAMS 160u        /* parameter records the bound units share,
+#define FM1_MOD_SINK_PARAMS 180u        /* parameter records the bound units share,
                                            HOST's two included; fm1_mod_bind */
 
 /* Sound unit k's code (k < FM1_MOD_SOUNDS): SOUND for k = 0, so a host

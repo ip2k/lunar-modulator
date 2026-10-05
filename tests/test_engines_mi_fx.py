@@ -120,8 +120,11 @@ def test_effects_are_registered(renderer):
         assert "Emilie Gillet" in e["credits"] and "MIT" in e["credits"]
         names = [p["name"] for p in e["params"]]
         assert names[0] == "Mix"
-        assert all(p["page"] == 0 for p in e["params"]) and len(names) <= 4
+        knobs = [p for p in e["params"] if p["type"] == 0]          # the FLOATs
+        assert all(p["page"] == 0 for p in knobs) and len(knobs) <= 4
         assert all(p["min"] == 0 and p["max"] == 1 for p in e["params"])
+    # Plate's Freeze switch, appended on page 1 (tests/test_engines_plate_freeze.py).
+    assert [p["name"] for p in engines["plate"]["params"]][4:] == ["Freeze"]
 
 
 @pytest.mark.parametrize("fx,params,windows", [
