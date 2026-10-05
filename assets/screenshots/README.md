@@ -32,7 +32,7 @@ the pictures show: a fresh run differed from these only in the level meter
 and the oscilloscope, which follow the audio's timing [verified: pixel
 comparison of every picture].
 
-Retaken on 2026-10-05, when the lab switch went (`fm1.wasm` `733,364` B):
+Retaken on 2026-10-05, when the lab switch went (`fm1.wasm` 756,656 B):
 the seven `screen-*.png` files and `panel-params.png`, whose bottom bar now
 shows the RAM meter (a bar and a percentage) where the RAM figure in KB
 was, and whose FX screen shows the five-slot chain. `virtual-fm1.png` and

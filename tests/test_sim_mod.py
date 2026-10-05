@@ -85,7 +85,7 @@ def test_the_app_starts_with_the_default_rack_and_its_cables(tools):
 def test_sizes(tools):
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
-    assert z["mod_bytes"] == 22368 <= z["mod_arena"] == 24576
+    assert z["mod_bytes"] == 23200 <= z["mod_arena"] == 24576
     assert z["mod_ui_bytes"] <= 256
 
 
@@ -205,10 +205,12 @@ def test_the_gesture_reaches_the_current_sound(tools):
 
 def test_the_gesture_reaches_an_insert_and_the_master(tools):
     """FX mode on Sound 2: In1 (its Ensemble) takes ENV3's cable into Mix,
-    unit 24 (20 + 4 x 1 + 0); M1 (Plate) takes one too, unit FX1."""
+    unit 24 (20 + 4 x 1 + 0); M1 (Plate) takes one too, unit FX1. SELECT
+    walks back from the end over M2 and Plate's second page (Freeze) to
+    its first."""
     s = sim(tools, *TO_SOUND2, "--button", "0.2:FX", "--turn", "0.25:SELECT:-64",
             "--button", "0.3:ENV:0.2", "--turn", "0.35:KNOB1:40", "--turn", "0.6:SELECT:64",
-            "--turn", "0.65:SELECT:-1", "--button", "0.7:ENV:0.2", "--turn", "0.75:KNOB1:-20",
+            "--turn", "0.65:SELECT:-2", "--button", "0.7:ENV:0.2", "--turn", "0.75:KNOB1:-20",
             extra=SOUND2 + ["--fx", "plate"], seconds="1.0")
     sl = slots(s)
     assert (sl[3]["src"], sl[3]["unit"], sl[3]["dst"]) == (64 + 8 * 2, 24, 1)

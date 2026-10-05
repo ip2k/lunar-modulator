@@ -34,13 +34,13 @@ means the work of others who have studied the FM-1, credited in
 | Block | 64 samples, 1.45 ms at 44,118 |
 | Output | Stereo |
 | Engines' own rates | Macro, Macro Heavy and Six-Op FM run Plaits' code at 47,872 samples a second, and Shapes runs Braids' at 96,000, each converted to the output's rate, so that they sound and keep time as on the modules they come from. The three Plaits-based engines cannot run when the output is faster than 47,872 |
-| Sound engines | Six, one at a time ([chapter 5](05-sound-engines.md)) |
-| Effects | Seventeen, Test Gain included, in two slots in series ([chapter 6](06-effects.md)) |
+| Sound engines | Six; up to four sounds at once, each with its own engine ([chapter 5](05-sound-engines.md)) |
+| Effects | Twenty, Test Gain included: two inserts on each sound, then two master effects in series after the mix ([chapter 6](06-effects.md)) |
 | Limiter | Ceiling 0.98 of full scale (−0.18 dBFS), instant attack, about 100 ms release; samples that are not numbers become silence |
 | [[MASTER]] | After the limiter. Half way round is a quarter of full level, about −12 dB |
 | Pitch bend | Up to ±48 semitones in the engines; ±2 semitones from MIDI in the simulator |
-| Memory for sounds | About 379 KB (387,924 bytes) for the engine and both effects: the room M-VAVE's firmware leaves free on the FM-1. The real figure for Lunar Modulator on the device will be known once it runs there |
-| Sequencer | 4 to 8 tracks planned for the FM-1 ([chapter 7](07-sequencer.md)) |
+| Memory for sounds | About 379 KB (387,924 bytes) for the sounds, effects, sequencer and modulation: the room M-VAVE's firmware leaves free on the FM-1. The real figure for Lunar Modulator on the device will be known once it runs there |
+| Sequencer | 8 tracks in the simulator, as planned for the FM-1 ([chapter 7](07-sequencer.md)) |
 | Licence | MIT for Lunar Modulator's own code; code from other projects under its own licence ([chapter 14](14-credits-and-licences.md)) |
 
 ### Engines and effects in figures
@@ -73,6 +73,9 @@ and is the one to trust if the two ever differ.
 | Master Sat | – | under 1 KB |
 | Isolator | – | under 1 KB |
 | EQ | – | under 1 KB |
+| Room | – | 40 KB |
+| Hall | – | 49 KB |
+| Gate | – | 2 KB |
 | Test Gain | – | under 1 KB |
 
 ### The sequencer

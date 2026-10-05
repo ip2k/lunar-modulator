@@ -2414,7 +2414,7 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
   its off path (one sound, two effect slots, the plain render) became
   unreachable, and every one-sound parity scenario still checks the app's
   multi-sound render against `fm1-render`'s one engine. The layout sweep is
-  one set of 2,166 screens (2,189 in two sets before), the user text that
+  one set of 2,299 screens (2,325 in two sets before), the user text that
   waited in sim/web/README.md is in the manual (chapters 5 to 8, chapter 8
   new), and `manual.toml`'s roles lost SHIFT (SEL), CLEAR (OP5) and MUTE
   (OP6).

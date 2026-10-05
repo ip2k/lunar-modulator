@@ -168,8 +168,9 @@ parameter knobs and the buttons with the mouse. Start with the volume low.
    let go of the keys.
 6. Click [[FX]]. The screen shows the effect chain, with M1, the first
    master slot, chosen: Plate is there, and [[KNOB1]] is now Plate's Mix.
-7. Press <kbd>→</kbd> to move to M2, the second master slot, empty, then
-   <kbd>=</kbd> twice: Ensemble, a chorus, fills it.
+7. Press <kbd>→</kbd> twice, past Plate's second page (Freeze), to move to
+   M2, the second master slot, empty, then <kbd>=</kbd> twice: Ensemble, a
+   chorus, fills it.
 8. To put Ensemble before Plate, click [[SEL]], press <kbd>←</kbd>, and click
    [[SEL]] again.
 9. Click [[HOME]] to return to the sound, then press <kbd>↑</kbd> to turn
@@ -272,7 +273,7 @@ engines/build/fm1-render --engine sw-sophie \
 | `--note T:KEY:VEL:LEN` | Plays a note (above) |
 | `--param-at T:NAME=VALUE` | Sets one of the engine's parameters at time *T*, in seconds |
 | `--bend T:SEMITONES` | Bends every note from time *T*, by up to 48 semitones either way. Sophie has no pitch bend and refuses it |
-| `--fx ID` | Adds an effect to the chain: `plate`, `ensemble`, `diffuse`, `sw-psxverb`, `crush`, `fold`, `drive`, `echo`, `filter`, `comp`, `limit`, `djfilter`, `tilt`, `sat`, `isolator`, `eq` or `test-gain`. With the multi-sound options below, the first two are the master effects |
+| `--fx ID` | Adds an effect to the chain: `plate`, `ensemble`, `diffuse`, `sw-psxverb`, `crush`, `fold`, `drive`, `echo`, `filter`, `comp`, `limit`, `djfilter`, `tilt`, `sat`, `isolator`, `eq`, `room`, `hall`, `gate` or `test-gain`. With the multi-sound options below, the first two are the master effects |
 | `--fx-param NAME=VALUE` | Sets a parameter of the effect before it |
 | `--fx-param-at T:K:NAME=VALUE` | Sets a parameter of the *K*-th effect (the first `--fx` is 1) at time *T*, in seconds |
 | `--seconds S` | The length of the file, 2 seconds unless you say otherwise |
