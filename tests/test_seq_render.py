@@ -96,7 +96,8 @@ def test_a_note_sounds_from_its_own_frame(seq_tools, tmp_path, compat):
 def test_locks_set_the_parameter_their_lane_names(seq_tools, tmp_path):
     """Lane 0 is labelled synth:Volume, so its locks set test-sine's Volume
     (0..1 from 0..127). A lock of 0 on step 2 silences the held note from that
-    step's frame on; the latch holds it there until step 8's lock of 127."""
+    step's frame on, over Volume's 110-sample SMOOTH ramp (docs/15 S7b); the
+    latch holds it there until step 8's lock of 127."""
     script = (f"#! rate={RATE} block=64 tracks=1 end={2 * RATE}\n"
               "@0 tog 0 0 84 100;slen 0 0 0 -1 380\n"
               "@0 alabel 0 0 synth:Volume;abase 0 0 127;aset 0 0 2 0 1;aset 0 0 8 127 1\n@0 play\n")
@@ -108,7 +109,7 @@ def test_locks_set_the_parameter_their_lane_names(seq_tools, tmp_path):
     on_at = locks[3]["frame"]
     assert off_at == d1_frame(0, 47)
     assert rms(left[off_at - 600:off_at]) > 1000
-    assert max(abs(v) for v in left[off_at:on_at]) == 0
+    assert left[off_at] != 0 and max(abs(v) for v in left[off_at + 109:on_at]) == 0
     assert rms(left[on_at + 300:on_at + 900]) > 1000
     s, _, _, _ = render(tmp_path, script.replace("synth:Volume", "synth:Cutoff"), name="none")
     assert s["seq_locks_to_engine"] == 0, "a lane naming no parameter of this engine is ignored"
@@ -161,10 +162,12 @@ def test_a_lock_on_a_nolock_parameter_is_refused(seq_tools, tmp_path, engine, na
     assert s["seq_locks_to_engine"] == sent and s["seq_locks_refused"] == 0
 
 
-@pytest.mark.parametrize("engine", ["test-sine", "macro", "sixop"])
+@pytest.mark.parametrize("engine", ["test-sine", "macro", "sixop", "macro-heavy", "shapes"])
 def test_audio_is_the_same_at_host_blocks_of_1_7_and_64(seq_tools, tmp_path, engine):
     """docs/13 stage M2's exit: the same output at host blocks of 1, 7 and
-    64 frames. Commands sit on multiples of 448 frames (lcm of 7 and 64)."""
+    64 frames. Commands sit on multiples of 448 frames (lcm of 7 and 64).
+    The locks land under sounding notes, so Timbre's and Volume's SMOOTH
+    ramps (docs/15 S7b) run, keyed to the engines' samples, not to calls."""
     script = ("#! rate={rate} block={block} tracks=2 end={end}\n"
               "@0 tog 0 0 60 100 64 90;tog 0 3 67 100;tog 0 6 72 80;cscl 0 3 2;swing 62\n"
               "@0 tog 1 1 48 100;tog 1 5 55 70\n"

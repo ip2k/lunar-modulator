@@ -49,11 +49,17 @@
 // quarter of it are refused. Note events land on the next 12-sample block at
 // 47,872.34 Hz.
 //
+// SMOOTH parameters ramp while a voice sounds, as in Macro: a tenth of the
+// way per 12-sample block, 2.5 ms in all (fm1_smooth.h). A Harmonics ramp
+// under Speech can pass through the word banks between its ends, as a quick
+// turn of the knob would.
+//
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
+#include "fm1_smooth.h"
 #include "mi_plaits_env.h"
 
 #include <cstring>
@@ -371,6 +377,8 @@ class Instance {
     silent_while_held_ = static_cast<uint32_t>(kSilentWhileHeld * blocks_per_second);
     bend_ = 0.0f;
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
+    fm1_smooth_init(smooth_, value_, P_COUNT);
+    smooth_steps_ = fm1_smooth_steps(kCorrectedSampleRate, kBlockSize);
     model_ = MODEL_STRING_MACHINE;   // stereo: both resamplers run from here
     right_running_ = true;
     clock_ = 0;
@@ -412,7 +420,7 @@ class Instance {
   void SetParam(uint16_t index, float value) {
     if (index >= P_COUNT) return;
     value = fm1_param_clamp(&kParams[index], value);   // NaN: the default
-    value_[index] = value;
+    fm1_smooth_set(&smooth_[index], &value_[index], value, Steps(index));
     if (index == P_MODEL) {
       int m = static_cast<int>(value + 0.5f);
       if (m != model_) {
@@ -463,6 +471,15 @@ class Instance {
   }
 
  private:
+  // A SMOOTH parameter ramps while a voice sounds; anything else, at once.
+  uint32_t Steps(uint16_t index) const {
+    if (!(kParams[index].flags & FM1_PARAM_SMOOTH)) return 0;
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active) return smooth_steps_;
+    }
+    return 0;
+  }
+
   // Two resamplers in step (the same pushes and pops since one was copied
   // from the other) holding the same samples, bit for bit.
   static bool SameState(const fm1_resampler_t &a, const fm1_resampler_t &b) {
@@ -562,6 +579,7 @@ class Instance {
   }
 
   void RenderBlock() {
+    fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     float mix_l[kBlockSize] = { 0 };
     float mix_r[kBlockSize] = { 0 };
     const ModelInfo &info = kModelInfo[model_];
@@ -709,7 +727,9 @@ class Instance {
 
   Voice voice_[kNumVoices];
   SpeechShared speech_;
-  float value_[P_COUNT];
+  float value_[P_COUNT];           // what the blocks read (SMOOTH: ramped)
+  fm1_smooth_t smooth_[P_COUNT];
+  uint32_t smooth_steps_;          // 12-sample blocks in a ramp
   Model model_;
   bool right_running_;             // resampler_r_ is fed, and gives the right channel
   float bend_;

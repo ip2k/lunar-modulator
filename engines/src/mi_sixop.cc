@@ -43,11 +43,16 @@
 // in Init; running at upstream's rate makes its samples upstream's, as for
 // Macro and Macro Heavy, so all three compare with upstream the same way.)
 //
+// Brightness, Envelope and Volume are SMOOTH: while a voice sounds a change
+// ramps over eight 16-sample blocks, 2.67 ms (fm1_smooth.h: 2.5 ms rounded up
+// to whole blocks). While none does it applies at once.
+//
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
+#include "fm1_smooth.h"
 
 #include <algorithm>
 #include <cstring>
@@ -195,6 +200,8 @@ class Instance {
     const float blocks_per_second = kCorrectedSampleRate / kBlock;
     silent_after_release_ = static_cast<uint32_t>(kSilentAfterRelease * blocks_per_second);
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
+    fm1_smooth_init(smooth_, value_, P_COUNT);
+    smooth_steps_ = fm1_smooth_steps(kCorrectedSampleRate, kBlock);
     bend_ = 0.0f;
     lead_ = -1;
     clock_ = 0;
@@ -255,7 +262,7 @@ class Instance {
     const fm1_param_t &p = kParams[index];
     if (!(value >= p.min)) value = p.min;  // also catches NaN
     if (value > p.max) value = p.max;
-    value_[index] = value;
+    fm1_smooth_set(&smooth_[index], &value_[index], value, Steps(index));
   }
 
   // Each output sample pulls the 47,872.34 Hz mix the resampler needs for it,
@@ -279,6 +286,15 @@ class Instance {
   }
 
  private:
+  // A SMOOTH parameter ramps while a voice sounds; anything else, at once.
+  uint32_t Steps(uint16_t index) const {
+    if (!(kParams[index].flags & FM1_PARAM_SMOOTH)) return 0;
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active) return smooth_steps_;
+    }
+    return 0;
+  }
+
   Voice *Allocate(uint8_t key) {
     Voice *best = NULL;
     for (int i = 0; i < kNumVoices; ++i) {   // same key: retrigger in place
@@ -298,6 +314,7 @@ class Instance {
   }
 
   void RenderBlock() {
+    fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     float mix[kBlock] = { 0 };
     const float gain = value_[P_VOLUME] * 0.25f;
     Voice *lead = lead_ >= 0 ? &voice_[lead_] : NULL;
@@ -347,7 +364,9 @@ class Instance {
   fm::Algorithms<6> algorithms_;  // shared, read-only after Init
   Voice voice_[kNumVoices];
   float scratch_[3 * kBlock];
-  float value_[P_COUNT];
+  float value_[P_COUNT];          // what the blocks read (SMOOTH: ramped)
+  fm1_smooth_t smooth_[P_COUNT];
+  uint32_t smooth_steps_;         // 16-sample blocks in a ramp
   float bend_;
   int lead_;                      // most recently triggered voice, drives the LFO
   uint32_t silent_after_release_; // in 16-sample blocks at 47,872.34 Hz

@@ -87,7 +87,9 @@ def test_crush_is_registered(renderer):
 def test_instance_is_small_and_aligned(renderer, tmp_path):
     summary, _, _ = run(renderer, tmp_path, [], "size", seconds=0.01)
     (size,) = summary["fx_bytes"]
-    assert size % 16 == 0 and size <= 128
+    # 96 bytes before the SMOOTH ramps (docs/15 S7b): six of them, 12 bytes
+    # each, plus the inverse step's target, the ramp length and a flag.
+    assert size % 16 == 0 and size <= 192
 
 
 @pytest.mark.parametrize("params", [

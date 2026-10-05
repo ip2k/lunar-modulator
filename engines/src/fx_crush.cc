@@ -42,8 +42,17 @@
 // flushed to zero below 1e-20 so a decaying tail never goes subnormal.
 //
 // Renders sample by sample: any block size gives the same output.
+//
+// Every parameter is SMOOTH (fm1_smooth.h): from the first render on, a
+// change ramps sample by sample over 2.5 ms. What ramps is what the frame
+// loop runs on, derived once per change (with libm, as before): the
+// quantiser step (its inverse is 1 / step during a Bits ramp, and exp2f's
+// value again at the end), the hold interval, the jitter spread, the
+// low-pass pole, Mix and Level. Before the first render a change applies at
+// once.
 
 #include "fm1_engine.h"
+#include "fm1_smooth.h"
 
 #include <math.h>
 #include <new>
@@ -86,12 +95,16 @@ struct Instance {
   float host_over_min;     // host rate / kMinRateHz, at least 1
   float tone_k0;           // one-pole coefficient at Tone 0
 
-  // Derived from the parameters by Apply().
+  // Derived from the parameters (Target), each ramped by ramp[] (Field).
   float step, inv_step;    // quantiser step and its inverse
   float interval;          // mean hold interval in samples, >= 1
   float spread;            // kJitterDepth * Jitter
   float tone_pole;         // one-pole feedback, 1 - coefficient; 0 = no filter
   float level, mix;
+  float inv_target;        // inv_step once a Bits ramp ends
+  fm1_smooth_t ramp[P_COUNT];
+  uint32_t smooth_steps;
+  bool started;            // rendered at least once
 
   // State.
   float countdown;         // samples until the next capture
@@ -109,27 +122,58 @@ struct Instance {
     held[0] = held[1] = 0.0f;
     lp[0] = lp[1] = 0.0f;
     rng = kSeed;
-    interval = 1.0f;
-    Apply();
+    for (int i = 0; i < P_COUNT; ++i) {
+      *Field(i) = Target(i);
+      fm1_smooth_init(&ramp[i], Field(i), 1);
+    }
+    inv_step = inv_target = exp2f(value[P_BITS] - 1.0f);
+    smooth_steps = fm1_smooth_steps(rate, 1);
+    started = false;
   }
 
-  void Apply() {
-    step = exp2f(1.0f - value[P_BITS]);
-    inv_step = exp2f(value[P_BITS] - 1.0f);
-    interval = powf(host_over_min, 1.0f - value[P_RATE]);
-    if (!(interval >= 1.0f)) interval = 1.0f;
-    // A faster rate takes effect now rather than after the current hold.
-    if (countdown > interval) countdown = interval;
-    spread = kJitterDepth * value[P_JITTER];
-    tone_pole = 1.0f - powf(tone_k0, 1.0f - value[P_TONE]);
-    level = value[P_LEVEL];
-    mix = value[P_MIX];
+  // What parameter i sets, and where.
+  float Target(int i) const {
+    switch (i) {
+      case P_BITS: return exp2f(1.0f - value[P_BITS]);
+      case P_RATE: {
+        const float n = powf(host_over_min, 1.0f - value[P_RATE]);
+        return n >= 1.0f ? n : 1.0f;
+      }
+      case P_JITTER: return kJitterDepth * value[P_JITTER];
+      case P_MIX: return value[P_MIX];
+      case P_TONE: return 1.0f - powf(tone_k0, 1.0f - value[P_TONE]);
+      default: return value[P_LEVEL];
+    }
+  }
+
+  float *Field(int i) {
+    switch (i) {
+      case P_BITS: return &step;
+      case P_RATE: return &interval;
+      case P_JITTER: return &spread;
+      case P_MIX: return &mix;
+      case P_TONE: return &tone_pole;
+      default: return &level;
+    }
   }
 
   void Set(uint16_t index, float v) {
     if (index >= P_COUNT) return;
     value[index] = fm1_param_clamp(&kParams[index], v);
-    Apply();
+    fm1_smooth_set(&ramp[index], Field(index), Target(index), started ? smooth_steps : 0);
+    if (index == P_BITS) {
+      inv_target = exp2f(value[P_BITS] - 1.0f);
+      if (!ramp[P_BITS].left) inv_step = inv_target;
+    }
+    // A faster rate takes effect now rather than after the current hold.
+    if (countdown > interval) countdown = interval;
+  }
+
+  // One frame of every ramp.
+  void Tick() {
+    for (int i = 0; i < P_COUNT; ++i) fm1_smooth_tick(&ramp[i], Field(i), 1);
+    inv_step = ramp[P_BITS].left ? 1.0f / step : inv_target;
+    if (countdown > interval) countdown = interval;
   }
 
   float NextInterval() {
@@ -144,24 +188,33 @@ struct Instance {
 
   float Quantise(float x) const { return step * floorf(x * inv_step + 0.5f); }
 
-  void Render(float *lr, uint32_t frames) {
-    const float wet_gain = mix * level, dry_gain = 1.0f - mix;
-    for (uint32_t f = 0; f < frames; ++f) {
-      const float x0 = Guard(lr[2 * f]), x1 = Guard(lr[2 * f + 1]);
-      if (countdown <= 0.0f) {
-        held[0] = Quantise(x0);
-        held[1] = Quantise(x1);
-        countdown += NextInterval();   // the generator runs at every capture
-      }
-      countdown -= 1.0f;
-      // lp += k * (held - lp), written so that k = 1 gives held exactly.
-      lp[0] = held[0] + tone_pole * (lp[0] - held[0]);
-      lp[1] = held[1] + tone_pole * (lp[1] - held[1]);
-      if (!(fabsf(lp[0]) >= kFlush)) lp[0] = 0.0f;
-      if (!(fabsf(lp[1]) >= kFlush)) lp[1] = 0.0f;
-      lr[2 * f] = x0 * dry_gain + lp[0] * wet_gain;
-      lr[2 * f + 1] = x1 * dry_gain + lp[1] * wet_gain;
+  // One frame, in place.
+  void Frame(float *io, float wet_gain, float dry_gain) {
+    const float x0 = Guard(io[0]), x1 = Guard(io[1]);
+    if (countdown <= 0.0f) {
+      held[0] = Quantise(x0);
+      held[1] = Quantise(x1);
+      countdown += NextInterval();   // the generator runs at every capture
     }
+    countdown -= 1.0f;
+    // lp += k * (held - lp), written so that k = 1 gives held exactly.
+    lp[0] = held[0] + tone_pole * (lp[0] - held[0]);
+    lp[1] = held[1] + tone_pole * (lp[1] - held[1]);
+    if (!(fabsf(lp[0]) >= kFlush)) lp[0] = 0.0f;
+    if (!(fabsf(lp[1]) >= kFlush)) lp[1] = 0.0f;
+    io[0] = x0 * dry_gain + lp[0] * wet_gain;
+    io[1] = x1 * dry_gain + lp[1] * wet_gain;
+  }
+
+  void Render(float *lr, uint32_t frames) {
+    started = true;
+    uint32_t f = 0;
+    for (; f < frames && fm1_smooth_moving(ramp, P_COUNT); ++f) {   // a step per frame
+      Tick();
+      Frame(&lr[2 * f], mix * level, 1.0f - mix);
+    }
+    const float wet_gain = mix * level, dry_gain = 1.0f - mix;
+    for (; f < frames; ++f) Frame(&lr[2 * f], wet_gain, dry_gain);
   }
 };
 

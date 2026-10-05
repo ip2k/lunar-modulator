@@ -161,6 +161,15 @@ def test_schwung_uids_derive_from_the_module_keys(renderer, engine):
     assert [p["uid"] for p in c["params"]] == [fnv1a_uid(p["key"]) for p in c["params"]]
 
 
+def test_the_shim_has_a_ramp_for_every_smooth_parameter(built):
+    """The Schwung shim keeps eight SMOOTH ramps per instance (kMaxRamps in
+    src/schwung_shim.cc, docs/15 S7b); a module with more SMOOTH parameters,
+    hidden ones included, would leave the rest unramped."""
+    for eid, params in built.items():
+        if eid.startswith("sw-"):
+            assert sum("smooth" in p["flags"] for p in params) <= 8, eid
+
+
 def test_native_uids_stay_below_the_derived_range(built):
     for eid, params in built.items():
         if not eid.startswith("sw-"):

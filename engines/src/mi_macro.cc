@@ -34,11 +34,16 @@
 // does not depend on the host's block size. Note events land on the next
 // block rendered at 47,872.34 Hz (0.25 ms).
 //
+// SMOOTH parameters (every FLOAT here) ramp while a voice sounds: each
+// 12-sample block moves them a tenth of the way, so a change takes 2.5 ms at
+// 47,872.34 Hz (fm1_smooth.h). While no voice sounds a change applies at once.
+//
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
+#include "fm1_smooth.h"
 #include "mi_plaits_env.h"
 
 #include <cstring>
@@ -155,6 +160,8 @@ class Instance {
         fm1_resampler_init(&resampler_, kCorrectedSampleRate, host->sample_rate) != 0;
     bend_ = 0.0f;
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
+    fm1_smooth_init(smooth_, value_, P_COUNT);
+    smooth_steps_ = fm1_smooth_steps(kCorrectedSampleRate, kBlockSize);
     model_ = MODEL_VA_VCF;
     clock_ = 0;
     memset(mix_, 0, sizeof(mix_));
@@ -192,7 +199,7 @@ class Instance {
   void SetParam(uint16_t index, float value) {
     if (index >= P_COUNT) return;
     value = fm1_param_clamp(&kParams[index], value);
-    value_[index] = value;
+    fm1_smooth_set(&smooth_[index], &value_[index], value, Steps(index));
     if (index == P_MODEL) {
       int m = static_cast<int>(value + 0.5f);
       if (m != model_) {
@@ -223,6 +230,15 @@ class Instance {
   }
 
  private:
+  // A SMOOTH parameter ramps while a voice sounds; anything else, at once.
+  uint32_t Steps(uint16_t index) const {
+    if (!(kParams[index].flags & FM1_PARAM_SMOOTH)) return 0;
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active) return smooth_steps_;
+    }
+    return 0;
+  }
+
   void BuildEngines() {
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
@@ -272,6 +288,7 @@ class Instance {
   }
 
   void RenderBlock() {
+    fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     float mix[kBlockSize] = { 0 };
     const float decay = value_[P_DECAY];
     const float hf = value_[P_COLOUR];
@@ -375,7 +392,9 @@ class Instance {
   }
 
   Voice voice_[kNumVoices];
-  float value_[P_COUNT];
+  float value_[P_COUNT];           // what the blocks read (SMOOTH: ramped)
+  fm1_smooth_t smooth_[P_COUNT];
+  uint32_t smooth_steps_;          // 12-sample blocks in a ramp
   Model model_;
   float bend_;
   uint32_t clock_;
