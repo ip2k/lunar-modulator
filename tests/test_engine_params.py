@@ -50,6 +50,9 @@ ENUM_FLAGS = {
     ("comp", "Auto Rel"): ["mod"],              #   crossfades: no step in the reduction
     ("comp", "Auto Gain"): ["mod"],             # its makeup and its bound glide in
     ("limit", "Mode"): ["mod"],                 # glides the stage, frame by frame
+    ("gate", "Mode"): ["mod"],                  # crossfades Gate and Duck's gains over 5 ms
+    ("gate", "Listen"): ["mod"],                # crossfades the output and the key
+    ("gate", "Link"): ["mod"],                  # glides the detector's and Listen's weights
 }
 
 
