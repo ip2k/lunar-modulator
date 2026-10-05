@@ -35,6 +35,16 @@ history.
     screens pass the layout check (39 new); the screens with the lab
     switch off are unchanged. The browser module grew from 516 KB to
     525 KB.
+- notes/2026-10-02-filters-dynamics-options.md: research on classic filter
+  designs, compressors, limiters, overdrives and saturators, and how they fit
+  the effect slots, the voices and the modulation matrix. Most of the filter
+  work already exists (effects pack 2), so it recommends integration first:
+  split Comb out of Filter (its delay lines cost 18 KB per instance), add a
+  logarithmic knob law so a Cutoff sweep or keytracking moves in octaves, then
+  per-voice filters inside Macro and Shapes. It also flags that FM-1 projects
+  elsewhere assume the chip has no floating-point unit while our compiler
+  emits FPU code, which the dev kit has to settle, and lists 16 owner
+  decisions.
 - **Drive, Filter, Comp and Limiter on the virtual FM-1:** the effect
   slots now offer twelve effects (ALGORITHM steps through Plate,
   Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp,
