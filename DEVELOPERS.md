@@ -633,7 +633,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
   Tilt's Curve, Master Sat's Shape and Isolator's Kill) change without a
   click, so they can be locked and modulated: the rule is that a switch
   that changes cleanly is lockable and modulatable
-  ([`engines/README.md`](engines/README.md#parameters-engine-api-v2)).
+  ([`engines/README.md`](engines/README.md#parameters-engine-api-v2-and-v3)).
   Filter's types are named for their circuits (Sallen-Key, SK Mixed),
   never for a maker; Comp's Auto Gain is capped at 24 dB and never pushes
   an input under full scale past it. Crush adds jitter and
