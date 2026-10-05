@@ -63,8 +63,9 @@ typedef enum {
 #define FM1_PARAM_LATCH  0x01u /* read at note-on: a change reaches the notes that
                                   start after it, never a sounding one */
 #define FM1_PARAM_SMOOTH 0x02u /* continuous and read while notes sound: the
-                                  engine ramps a change (docs/15 S7b; until then
-                                  a hint) */
+                                  engine ramps a change over 2.5 ms of its own
+                                  samples while it sounds (fm1_smooth.h,
+                                  docs/15 S7b); the host only calls set_param */
 #define FM1_PARAM_NOLOCK 0x04u /* a change is destructive (it rebuilds voices,
                                   clears a buffer or moves the edit focus): never
                                   locked, never modulated */

@@ -56,13 +56,14 @@ typedef struct fm1_smooth {
  * native_rate (rounded to the nearest sample), divided by the engine's
  * control block (stride samples) and rounded up; at least 1. 120 samples,
  * 10 blocks of 12 at 47,872.34 Hz; 240 samples, 10 blocks of 24 at 96 kHz;
- * 110 samples at 44,118 Hz. Integer arithmetic after one rounding. */
+ * 110 samples at 44,118 Hz. 32-bit integer arithmetic after one rounding
+ * (rates up to 1 MHz, the most any host here accepts). */
 static inline uint32_t fm1_smooth_steps(float native_rate, uint32_t stride) {
   uint32_t hz, samples;
   if (!(native_rate >= 1.0f)) native_rate = 1.0f;   /* NaN too */
-  if (native_rate > 4.0e6f) native_rate = 4.0e6f;
+  if (native_rate > 1.0e6f) native_rate = 1.0e6f;
   hz = (uint32_t)(native_rate + 0.5f);
-  samples = (uint32_t)(((uint64_t)hz * FM1_SMOOTH_US + 500000u) / 1000000u);
+  samples = (hz * FM1_SMOOTH_US + 500000u) / 1000000u;
   if (!stride) stride = 1u;
   samples = (samples + stride - 1u) / stride;
   return samples ? samples : 1u;
@@ -78,10 +79,12 @@ static inline void fm1_smooth_init(fm1_smooth_t *s, const float *values, unsigne
   }
 }
 
-/* A new value for *value. steps = 0: at once, ending any ramp. Otherwise a
- * ramp of that many control blocks from where *value stands now (mid-ramp
- * included) to target. A target equal to the one already set changes
- * nothing, so a running ramp keeps its course and a repeated write is free. */
+/* A new value for *value: target is finite and within the parameter's
+ * range (the engine clamps it first). steps = 0: at once, ending any ramp.
+ * Otherwise a ramp of that many control blocks from where *value stands now
+ * (mid-ramp included) to target. A target equal to the one already set
+ * changes nothing, so a running ramp keeps its course and a repeated write
+ * is free. */
 static inline void fm1_smooth_set(fm1_smooth_t *s, float *value, float target, uint32_t steps) {
   if (!steps) {
     *value = target;

@@ -346,10 +346,15 @@ code is `include/fm1_smooth.h`, plain C99:
   While a tail still sounds, a note that starts with a lock begins on the
   ramp. Per-voice values would need a voice-scoped call (docs/12 §5.3, §8).
   A Harmonics ramp under Macro Heavy's Speech can pass through the word
-  banks between its ends, as a quick turn of the knob would.
+  banks between its ends, as a quick turn of the knob would. Shapes still
+  derives its envelope coefficients with `expf` and `powf` once per chunk,
+  as before, so an Attack or Release ramp feeds libm values in between.
 - **Cost.** 12 bytes per parameter plus a few per instance (Crush 96 → 176
   bytes, Macro +128), and one test per parameter per control block while
-  nothing moves.
+  nothing moves. While a ramp runs, Plate, Ensemble and Diffuse call their
+  vendored class once per frame instead of once per 32; a parameter
+  modulated every tick would keep them there. Stage B measures what that
+  costs on pi32v2 [inferred: small beside the classes' per-sample work].
 
 **Tests** (tests/test_engine_smooth.py, `build/fm1-smooth-test`, which drives
 any engine or effect with changes at any frame where fm1-render cannot):
