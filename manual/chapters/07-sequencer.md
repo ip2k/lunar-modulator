@@ -276,7 +276,9 @@ clear its last lock. A sound never stays at a value that no step asked for.
 ### Values and list parameters
 
 - A lock stores one of 128 values spread evenly across the parameter's
-  range.
+  range. On a frequency or a time (a cutoff, a delay, a release), they are
+  spread evenly in ratio, as the knob turns, so each step is the same
+  musical interval: from 20 Hz to 18 kHz, a little under a semitone a step.
 - On a list parameter, such as Model, Shape, Patch or Pad, the 128 values
   are divided evenly between the entries.
 - Parameters that disturb every sounding note when they change refuse

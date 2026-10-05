@@ -134,17 +134,17 @@ static const char *const kShapeNames[SH_COUNT] = { "Smooth", "Dense" };
 /* Uids (API v2) are fixed: never renumber one; a new parameter takes the next
  * free uid. The FLOATs are read every sample: SMOOTH and MOD. Shape
  * crossfades over 5 ms, so a lock or a (rounded) route on it is clean however
- * fast: MOD, lockable. Drive and Level are in dB, for which fm1_unit_t has no
- * code yet. */
+ * fast: MOD, lockable. Drive and Level are in dB (FM1_UNIT_DB, API v3); the
+ * Clean corners move on the LOG law (fm1_engine.h). */
 static const fm1_param_t kSatParams[P_COUNT] = {
-  { "Drive",       FM1_PARAM_FLOAT, 0, 18, 6.0f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Drive" },
-  { "Clean Lo",    FM1_PARAM_FLOAT, 20, 300, 100.0f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "ClnLo" },
+  { "Drive",       FM1_PARAM_FLOAT, 0, 18, 6.0f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Drive" },
+  { "Clean Lo",    FM1_PARAM_FLOAT, 20, 300, 100.0f, NULL, 0, 2, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "ClnLo" },
   { "Glue",        FM1_PARAM_FLOAT, 0, 1, 0.25f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Glue" },
   { "Mix",         FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
   { "Shape",       FM1_PARAM_ENUM, 0, SH_COUNT - 1, SH_SMOOTH, kShapeNames, 1, 5, FM1_PARAM_MOD, FM1_UNIT_NONE, "Shape" },
   { "Asymmetry",   FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Asym" },
-  { "Clean Hi",    FM1_PARAM_FLOAT, 1000, 20000, 6000.0f, NULL, 1, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "ClnHi" },
-  { "Level",       FM1_PARAM_FLOAT, -12, 12, 0.0f, NULL, 1, 8, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Level" },
+  { "Clean Hi",    FM1_PARAM_FLOAT, 1000, 20000, 6000.0f, NULL, 1, 7, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "ClnHi" },
+  { "Level",       FM1_PARAM_FLOAT, -12, 12, 0.0f, NULL, 1, 8, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Level" },
 };
 
 /* The gliding control values. */
@@ -626,6 +626,7 @@ const fm1_engine_t fm1_engine_sat = {
   NULL, NULL, NULL,
   SatSet, SatRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
 };
 
 #ifdef __cplusplus

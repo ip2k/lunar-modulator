@@ -247,7 +247,7 @@ enum Param {
 // modulation target. Every FLOAT is POLY, as in Macro; on Speech a
 // Harmonics offset is ignored, since Harmonics picks the word bank all
 // voices share (SetParamNote).
-const uint8_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
+const uint16_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
 const fm1_param_t kParams[P_COUNT] = {
   { "Model",      FM1_PARAM_ENUM,  0, MODEL_COUNT - 1, 0, kModelNames, 0,
     1, FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Model" },
@@ -843,4 +843,5 @@ extern "C" const fm1_engine_t fm1_engine_macro_heavy = {
   fm1::macro_heavy::NoteOn, fm1::macro_heavy::NoteOff, fm1::macro_heavy::Bend,
   fm1::macro_heavy::Set, fm1::macro_heavy::Render,
   fm1::macro_heavy::SetNote,
+  0, NULL,                  // API v3: no effect extension
 };

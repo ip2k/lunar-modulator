@@ -1,0 +1,11 @@
+#! rate=44118 block=64 tracks=1 end=88236
+# Engine API v3's effect extension (fm1_fx_ext_t, fm1_fx_host.h): Test Ext
+# marks the sequencer's Start, every beat and the Stop with clicks and shows
+# the tempo (Probe), and the app gives it what fm1-render gives it; a second
+# Start after the Stop restarts the beats. The commands sit on 64-frame
+# block starts.
+@0 bpm 13200
+@0 tog 0 0 69 100;tog 0 4 76 100;tog 0 8 72 100;tog 0 12 79 100
+@0 play
+@57344 stop
+@70016 play
