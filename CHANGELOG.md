@@ -30,8 +30,9 @@ history.
     probably the stock FM-1, plays without feedback; the voice's transpose
     is applied too.
   - The same output, bit for bit, from the Mac, 32- and 64-bit Linux and the
-    browser (three new parity scenarios, 67 of 67 pass); compiles for the
-    FM-1's processor with JieLi's toolchain. About 15 KB of memory, plus
+    browser (three new parity scenarios, 67 of 67 pass; the browser module
+    grew from 761 KB to 787 KB); compiles for the FM-1's processor with
+    JieLi's toolchain. About 15 KB of memory, plus
     29 KB of tables shared by every FM6 sound; twelve voices cost about a
     third of Macro's twelve on the desktop.
   - Checked against an independent port of the same core, Felucca's
