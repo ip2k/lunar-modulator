@@ -479,7 +479,7 @@ def test_rtrg_retriggers_on_every_note_on(renderer, tmp_path):
     trigger from every note): KEY, retriggered. Two overlapping notes, then
     a two-note chord: KEY rises and falls once for each phrase, RTRG falls
     and rises again at the second note's frame and rises once for the chord.
-    Into an envelope's GATE (the lab's default cables) the second note
+    Into an envelope's GATE (the virtual FM-1's default cables) the second note
     restarts the attack; with KEY it would only sustain."""
     notes = ["--note", "0.1:60:100:0.6", "--note", "0.3:64:100:0.2",
              "--note", "0.9:67:100:0.1", "--note", "0.9:71:100:0.1"]

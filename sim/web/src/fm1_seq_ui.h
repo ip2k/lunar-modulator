@@ -12,7 +12,7 @@
  * whenever the clip may have changed.
  *
  * Stage S3 put PLAY/STOP and a read-only Track view here; S4 adds step
- * entry (docs/15 §5 S4). In SEQ mode, with the lab switch on:
+ * entry (docs/15 §5 S4). In SEQ mode:
  *
  *   white keys     the 16 steps of the bar on the keys. A tap toggles the
  *                  step on release (`tog`, with the last chord played, each
@@ -420,7 +420,7 @@ void fm1_seq_ui_enter(fm1_seq_ui_t *u);
  * Nothing is sent. */
 void fm1_seq_ui_open(fm1_seq_ui_t *u, int view);
 
-/* SEQ mode left (HOME, FX, GLO, the lab switch off): the held steps are let
+/* SEQ mode left (HOME, FX, GLO, a modulation page): the held steps are let
  * go without toggling, and the Track view comes back next time. Keys still
  * down stay the UI's until released, so their releases do nothing. */
 void fm1_seq_ui_leave(fm1_seq_ui_t *u);

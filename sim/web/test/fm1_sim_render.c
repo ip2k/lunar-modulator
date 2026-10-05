@@ -24,11 +24,10 @@
  *                       ones to DIR as PPM
  *   --list              the catalogue JSON
  *   --sizes             the sequencer's memory figures and sizeof(fm1_app_t)
- *   --lab               the lab switch on (fm1_app_set_lab): SEQ mode and
- *                       PLAY/STOP drive the sequencer (docs/15 S3)
  *   --start             the browser's start chain (fm1_app_default_chain)
  *                       in place of --engine: Macro, Plate, the default
- *                       route and, with --lab, the demo pattern
+ *                       route, every other track on Sound 1 and the demo
+ *                       pattern
  *   --panel FILE        panel input from a file: one --key, --button,
  *                       --turn or --note (MIDI IN) flag and its value per
  *                       line ('#' comments)
@@ -60,16 +59,18 @@
  * the next block. With no --route the default-route rule applies, as in
  * fm1-render. --log-cmds FILE writes the lines as they were applied, every
  * typed command (the panel's, --seq-ui's) as fm1_seq_cmd_format writes it,
- * and every live note the app gave the sequencer (with --lab, a note no
- * step took, from a key outside SEQ mode or MIDI IN: docs/15 S5) as the
+ * and every live note the app gave the sequencer (a note no step took,
+ * from a key outside SEQ mode or MIDI IN: docs/15 S5) as the
  * `non` or `nof` op fm1-render applies the same way, each at the block it
  * led, as a verb script (header `#! rate
  * block=64 tracks end`, then `@<block start> <ops>`), and next to it a
  * sidecar, FILE less `.verbs` plus `.args`: the run's --engine, --param,
  * --fx, --fx-param, --note, --bend, --param-at, --fx-param-at, --seq and
- * --route arguments, one per line, then a --param-at for every sound parameter the
- * panel changed, at mid-block (docs/15 §6.3). With modulation running (the
- * lab switch, or --mod) it also writes FILE less `.verbs` plus `.mod`: the
+ * --route arguments, one per line, after `--slots` (the app routes tracks
+ * to its sound units by route index), then a --param-at for every sound
+ * parameter the panel changed, at mid-block (docs/15 §6.3). With
+ * modulation running (always, unless its runtime did not fit) it also
+ * writes FILE less `.verbs` plus `.mod`: the
  * runtime's whole state before the first block (fm1_app_mod_dump) and every
  * edit after it, the panel's and --mod's timed lines, as `@<block start>
  * <line>`; the sidecar then ends with `--mod` and that file (docs/16 MG3).
@@ -87,13 +88,13 @@
  * and makes the run not replayable. In SEQ mode the keys play nothing, and
  * what they did is in the script.
  *
- * Multi-sound (docs/15 §3.16), with --lab only, as fm1-render takes them:
- * --sound K:ID loads sound unit K (1..3), --sound-param K:NAME=V, --insert
- * K:ID (the next insert slot of unit K, 0..3) and --insert-param K:NAME=V,
- * --level K:PCT, and the timed --sound-note K:T:KEY:VEL:DUR, --sound-param-at
- * K:T:NAME=V and --level-at K:T:PCT; --slots is accepted and implied (the
- * sidecar always says it with --lab, since the app routes tracks by slot
- * then). Keys and MIDI IN play the current sound: a note on a sound unit
+ * Multi-sound (docs/15 §3.16), as fm1-render takes it: --sound K:ID loads
+ * sound unit K (1..3), --sound-param K:NAME=V, --insert K:ID (the next
+ * insert slot of unit K, 0..3) and --insert-param K:NAME=V, --level K:PCT,
+ * and the timed --sound-note K:T:KEY:VEL:DUR, --sound-param-at K:T:NAME=V
+ * and --level-at K:T:PCT; --slots is accepted and implied (the sidecar
+ * always says it, since the app routes tracks by slot). Keys and MIDI IN
+ * play the current sound: a note on a sound unit
  * other than 0 goes into the sidecar as --sound-note, a knob turn on its
  * page as --sound-param-at, a level on the Mix page as --level-at; a change
  * of an insert or of the sound units, a bend on another sound, or a note-off
@@ -145,7 +146,6 @@ typedef struct {
 static fm1_app_t g_app;
 static event_t g_ev[MAX_EVENTS];
 static int g_nev;
-static int g_lab;                    /* --lab */
 static int g_start;                  /* --start */
 static int g_replayable = 1;         /* fm1-render can replay --log-cmds */
 
@@ -161,12 +161,12 @@ static void usage(void) {
           "       [--cmd FILE] [--seq FILE.movy1] [--tracks N] [--route T:engine|T:midi:CH]...\n"
           "       [--events N] [--log-events FILE.jsonl] [--log-cmds FILE.verbs]\n"
           "       [--seq-reset T:N] [--seq-import T:FILE.movy1] [--seq-ui T:OP]\n"
-          "       [--lab] [--panel FILE] [--start] [--mod FILE]\n"
-          "       | --sizes | --format-check | --lock-check | --mod-format-check\n"
-          "       with --lab: [--sound K:ID [--sound-param K:NAME=V]...] [--insert K:ID\n"
+          "       [--panel FILE] [--start] [--mod FILE]\n"
+          "       [--sound K:ID [--sound-param K:NAME=V]...] [--insert K:ID\n"
           "       [--insert-param K:NAME=V]...] [--level K:PCT] [--slots]\n"
           "       [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=V] [--level-at K:T:PCT]\n"
-          "       [--unit-route T:TRACK:SOUND]\n");
+          "       [--unit-route T:TRACK:SOUND]\n"
+          "       | --sizes | --format-check | --lock-check | --mod-format-check\n");
 }
 
 static event_t *add_event(double t, ev_kind_t kind) {
@@ -521,7 +521,7 @@ static void sweep_unit(int unit, const char *dir) {
   }
 }
 
-/* ---- --screens, lab on: SEQ mode's Track view (docs/15 §4, S3) --------- */
+/* ---- --screens: SEQ mode's Track view (docs/15 §4, S3) ----------------- */
 
 static void press(int button) {
   fm1_app_button(&g_app, button, 1);
@@ -561,7 +561,6 @@ static void seq_screens(const char *dir, float rate) {
   char name[128];
   destroy_units();
   fm1_app_init(&g_app, rate);
-  fm1_app_set_lab(&g_app, 1);
   fm1_app_select(&g_app, 0, fm1_app_find("macro"));
   fm1_app_seq_default_route(&g_app);
   fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
@@ -696,7 +695,7 @@ static void seq_screens(const char *dir, float rate) {
       break;
     }
   }
-  /* HOME, FX and GLO leave SEQ mode; the lab switch off leaves it too. */
+  /* HOME, FX and GLO leave SEQ mode. */
   fm1_app_select(&g_app, 0, fm1_app_find("macro"));
   press(FM1_BTN_HOME);
   expect(g_app.mode == FM1_MODE_HOME, "HOME does not leave SEQ mode");
@@ -709,14 +708,10 @@ static void seq_screens(const char *dir, float rate) {
   press(FM1_BTN_SEQ);
   press(FM1_BTN_SEQ);
   expect(g_app.mode == FM1_MODE_SEQ, "SEQ inside SEQ mode leaves it");
-  fm1_app_set_lab(&g_app, 0);
-  expect(g_app.mode == FM1_MODE_HOME, "the lab switch off leaves SEQ mode");
-  press(FM1_BTN_SEQ);
-  expect(g_app.mode == FM1_MODE_HOME && g_app.popup_lines == 3, "SEQ with the lab switch off");
   destroy_units();
 }
 
-/* ---- --screens, lab on: step entry (docs/15 §4, S4) ------------------- */
+/* ---- --screens: step entry (docs/15 §4, S4) --------------------------- */
 
 static void blocks(int n) {
   for (int k = 0; k < n; ++k) fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
@@ -744,7 +739,6 @@ static void seq_step_screens(const char *dir, float rate) {
   const int hold = (int)((uint32_t)g_app.ui.hold_frames / FM1_APP_MAX_FRAMES + 2u);
   destroy_units();
   fm1_app_init(&g_app, rate);
-  fm1_app_set_lab(&g_app, 1);
   fm1_app_select(&g_app, 0, fm1_app_find("macro"));
   fm1_app_seq_default_route(&g_app);
   blocks(1);
@@ -895,7 +889,7 @@ static void seq_step_screens(const char *dir, float rate) {
   destroy_units();
 }
 
-/* ---- --screens, lab on: record and Capture (docs/15 §4, S5) ----------- */
+/* ---- --screens: record and Capture (docs/15 §4, S5) ------------------- */
 
 static void button_edge(int button, int down) {
   fm1_app_button(&g_app, button, down);
@@ -928,7 +922,6 @@ static void seq_rec_screens(const char *dir, float rate) {
   char name[128];
   destroy_units();
   fm1_app_init(&g_app, rate);
-  fm1_app_set_lab(&g_app, 1);
   fm1_app_select(&g_app, 0, fm1_app_find("macro"));
   fm1_app_seq_default_route(&g_app);
   blocks(1);
@@ -1092,7 +1085,7 @@ static void seq_rec_screens(const char *dir, float rate) {
   destroy_units();
 }
 
-/* ---- --screens, lab on: tracks, mute and the pages (docs/15 §4, S6) --- */
+/* ---- --screens: tracks, mute and the pages (docs/15 §4, S6) ----------- */
 
 /* SEQ held, white key n, SEQ let go: focus track n + 1. */
 static void seq_focus(int n) {
@@ -1114,7 +1107,6 @@ static void seq_track_screens(const char *dir, float rate) {
   char name[128];
   destroy_units();
   fm1_app_init(&g_app, rate);
-  fm1_app_set_lab(&g_app, 1);
   fm1_app_select(&g_app, 0, fm1_app_find("macro"));
   fm1_app_seq_default_route(&g_app);
   blocks(1);
@@ -1358,7 +1350,7 @@ static void seq_track_screens(const char *dir, float rate) {
   destroy_units();
 }
 
-/* ---- --screens, lab on: parameter locks (docs/15 §4, S8) -------------- */
+/* ---- --screens: parameter locks (docs/15 §4, S8) ---------------------- */
 
 /* Up to 8 lanes on track 1 for the lockable parameters of unit 0's engine,
  * in index order, each locked at `v` on step `step` (v < 0: no lock). */
@@ -1385,7 +1377,6 @@ static void seq_lock_screens(const char *dir, float rate) {
   const int hold = (int)((uint32_t)g_app.ui.hold_frames / FM1_APP_MAX_FRAMES + 2u);
   destroy_units();
   fm1_app_init(&g_app, rate);
-  fm1_app_set_lab(&g_app, 1);
   fm1_app_select(&g_app, 0, fm1_app_find("macro"));
   fm1_app_seq_default_route(&g_app);
   blocks(1);
@@ -1535,11 +1526,11 @@ static void seq_lock_screens(const char *dir, float rate) {
   destroy_units();
 }
 
-/* ---- --screens, lab on: multi-sound (docs/15 §3.16) ------------------- */
+/* ---- --screens: multi-sound (docs/15 §3.16) --------------------------- */
 
-/* Every page of a unit shown in FX mode's lab layout at FX slot `slot`, at
- * its defaults, extremes and list entries (as sweep_unit does for HOME). */
-static void sweep_fx_lab(int unit, int slot, const char *tag, const char *dir, int save) {
+/* Every page of a unit shown in FX mode at FX slot `slot` (In1 0 .. M2 4),
+ * at its defaults, extremes and list entries (as sweep_unit does for HOME). */
+static void sweep_fx(int unit, int slot, const char *tag, const char *dir, int save) {
   const fm1_engine_t *e = g_app.unit[unit].e;
   char name[160];
   int pages = 1;
@@ -1549,13 +1540,13 @@ static void sweep_fx_lab(int unit, int slot, const char *tag, const char *dir, i
   }
   for (int page = 0; page < pages; ++page) {
     g_app.fx_page = page;
-    snprintf(name, sizeof name, "multi-%s-%s-p%d", tag, e->id, page + 1);
+    snprintf(name, sizeof name, "fx-%s-%s-p%d", tag, e->id, page + 1);
     check_screen(name, dir, save && page == 0);
     for (int pass = 0; pass < 2; ++pass) {
       for (uint16_t i = 0; i < e->n_params; ++i) {
         fm1_app_set_param(&g_app, unit, i, pass ? e->params[i].max : e->params[i].min);
       }
-      snprintf(name, sizeof name, "multi-%s-%s-p%d-%s", tag, e->id, page + 1, pass ? "max" : "min");
+      snprintf(name, sizeof name, "fx-%s-%s-p%d-%s", tag, e->id, page + 1, pass ? "max" : "min");
       check_screen(name, dir, 0);
     }
     for (uint16_t i = 0; i < e->n_params; ++i) {
@@ -1563,7 +1554,7 @@ static void sweep_fx_lab(int unit, int slot, const char *tag, const char *dir, i
       if (q->type != FM1_PARAM_ENUM || q->page != page) continue;
       for (int v = (int)q->min; v <= (int)q->max; ++v) {
         fm1_app_set_param(&g_app, unit, i, (float)v);
-        snprintf(name, sizeof name, "multi-%s-%s-p%d-%s-%d", tag, e->id, page + 1, q->name, v);
+        snprintf(name, sizeof name, "fx-%s-%s-p%d-%s-%d", tag, e->id, page + 1, q->name, v);
         check_screen(name, dir, 0);
       }
     }
@@ -1585,13 +1576,12 @@ static void multi_screens(const char *dir, float rate) {
   char name[160];
   destroy_units();
   fm1_app_init(&g_app, rate);
-  fm1_app_set_lab(&g_app, 1);
   fm1_app_select(&g_app, 0, fm1_app_find("macro"));
   fm1_app_select(&g_app, 1, fm1_app_find("plate"));
   fm1_app_seq_default_route(&g_app);
   blocks(1);
-  /* One sound in the lab: the title as before, the RAM meter in the bottom
-   * bar, and FX mode's five slots, opening on M1 where the slot was. */
+  /* One sound: the title names it alone, the RAM meter in the bottom bar,
+   * and FX mode's five slots, opening on M1. */
   check_screen("multi-home-one-sound", dir, 1);
   press(FM1_BTN_FX);
   expect(g_app.mode == FM1_MODE_FX && g_app.fx_slot == 3, "FX mode does not open on M1 (Plate)");
@@ -1614,20 +1604,13 @@ static void multi_screens(const char *dir, float rate) {
   expect(g_app.level[0] == 100.0f, "KNOB1 on Mix does not bring the level back to 100");
   turn_now(FM1_ENC_ALGORITHM, 1);                         /* the Mix page has no effect */
   expect(g_app.popup_lines == 0, "ALGORITHM on the Mix page");
-  /* Every effect in an insert, every page at its extremes (In1), and every
-   * effect on M2 (its first page). */
+  /* Every effect in an insert, every page at its extremes (In1); the
+   * master slots had theirs in run_screens. */
   for (size_t i = 0; i < fm1_engine_count; ++i) {
     if (fm1_engines[i]->kind != FM1_KIND_AUDIO_FX) continue;
     if (fm1_app_unit_insert(&g_app, 0, 0, (int)i) == 0) {
       g_app.popup_lines = 0;
-      sweep_fx_lab(fm1_app_insert_unit(0, 0), 0, "in1", dir, fm1_engines[i] == fm1_engine_find("ensemble"));
-    }
-    if (fm1_app_select(&g_app, 2, (int)i) == 0) {
-      g_app.fx_slot = 4;
-      g_app.fx_page = 0;
-      g_app.popup_lines = 0;
-      snprintf(name, sizeof name, "multi-m2-%s", fm1_engines[i]->id);
-      check_screen(name, dir, 0);
+      sweep_fx(fm1_app_insert_unit(0, 0), 0, "in1", dir, fm1_engines[i] == fm1_engine_find("ensemble"));
     }
   }
   fm1_app_unit_insert(&g_app, 0, 0, fm1_app_find("ensemble"));
@@ -1662,7 +1645,7 @@ static void multi_screens(const char *dir, float rate) {
   check_screen("multi-popup-presets-empty", dir, 0);
   /* Every sound as Sound 2: HOME's title "S2 <name>", the Mix page's row.
    * Diffuse goes first, so Shapes fits beside the modulation runtime the
-   * lab's RAM meter counts (docs/16 MG3). */
+   * RAM meter counts (docs/16 MG3). */
   fm1_app_unit_insert(&g_app, 0, 0, -1);
   for (size_t i = 0; i < fm1_engine_count; ++i) {
     if (fm1_engines[i]->kind != FM1_KIND_SOUND) continue;
@@ -1736,8 +1719,7 @@ static void multi_screens(const char *dir, float rate) {
     check_screen("multi-popup-fx-ram-refused", dir, 1);
     g_app.popup_lines = 0;
   }
-  /* The meter's states: a quarter, nearly full, and past the budget (the
-   * switch turned on over a chain from the public page). */
+  /* The meter's states: a quarter, nearly full, and past the budget. */
   g_app.mode = FM1_MODE_HOME;
   for (int k = 1; k < FM1_APP_SOUNDS; ++k) fm1_app_unit_select(&g_app, k, -1);
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
@@ -1749,28 +1731,37 @@ static void multi_screens(const char *dir, float rate) {
   check_screen("multi-meter-high", dir, 1);
   g_app.mode = FM1_MODE_GLOBAL;
   check_screen("multi-global", dir, 1);
+  /* Past the budget: every unit filled with the largest engine or effect
+   * that fits beside a one-track sequencer, then the sequencer at eight
+   * tracks again (fm1_app_seq_reset asks no meter). Such a chain may shrink
+   * but not grow. */
   destroy_units();
   fm1_app_init(&g_app, rate);
-  fm1_app_select(&g_app, 0, fm1_app_find("shapes"));
-  fm1_app_select(&g_app, 1, fm1_app_find("sw-psxverb"));
-  fm1_app_select(&g_app, 2, fm1_app_find("plate"));
-  fm1_app_set_lab(&g_app, 1);
-  expect(fm1_app_ram(&g_app) > FM1_APP_RAM_BUDGET, "Shapes, PSX Verb and Plate fit the budget");
+  fm1_app_seq_reset(&g_app, 1);
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    int is_sound = 0, best = -1;
+    size_t most = 0;
+    for (int k = 0; k < FM1_APP_SOUNDS; ++k) is_sound |= fm1_app_sound_unit(k) == u;
+    for (size_t i = 0; i < fm1_engine_count; ++i) {
+      const size_t with = fm1_app_ram_with(&g_app, u, (int)i);
+      if ((fm1_engines[i]->kind == FM1_KIND_SOUND) != is_sound || with > FM1_APP_RAM_BUDGET) continue;
+      if (best < 0 || with > most) best = (int)i, most = with;
+    }
+    if (best >= 0) expect(fm1_app_select(&g_app, u, best) == 0, "a unit that fits did not load");
+  }
+  fm1_app_seq_reset(&g_app, FM1_APP_SEQ_TRACKS);
+  fm1_app_seq_default_route(&g_app);
+  expect(fm1_app_ram(&g_app) > FM1_APP_RAM_BUDGET, "the full chain fits the budget at eight tracks");
   check_screen("multi-meter-over", dir, 1);
-  expect(fm1_app_select(&g_app, 2, fm1_app_find("diffuse")) == 0, "a chain past the budget cannot shrink");
-  expect(fm1_app_select(&g_app, 2, fm1_app_find("plate")) == FM1_APP_SELECT_RAM, "a chain past the budget grew");
-  /* The switch off: one sound and the master bus again. */
-  fm1_app_unit_select(&g_app, 1, fm1_app_find("test-sine"));
-  fm1_app_unit_set_level(&g_app, 0, 40.0f);
-  fm1_app_set_lab(&g_app, 0);
-  expect(!g_app.unit[fm1_app_sound_unit(1)].e && g_app.sound == 0, "the switch off kept Sound 2");
-  expect(g_app.level[0] == FM1_APP_LEVEL_MAX, "the switch off kept Sound 1's level");
-  expect(fm1_app_unit_select(&g_app, 1, fm1_app_find("test-sine")) == FM1_APP_SELECT_BAD,
-         "Sound 2 loads with the switch off");
+  {
+    const int big = g_app.unit[1].index;
+    expect(fm1_app_select(&g_app, 1, fm1_app_find("test-gain")) == 0, "a chain past the budget cannot shrink");
+    expect(fm1_app_select(&g_app, 1, big) == FM1_APP_SELECT_RAM, "a chain past the budget grew");
+  }
   destroy_units();
 }
 
-/* ---- --screens, lab on: the modulation pages (docs/16 §5, stage MG3) ---- */
+/* ---- --screens: the modulation pages (docs/16 §5, stage MG3) ---------- */
 
 static void mod_line(const char *line) {
   char err[256];
@@ -2084,8 +2075,7 @@ static void mod_screens(const char *dir, float rate) {
   char name[128], line[160];
   destroy_units();
   fm1_app_init(&g_app, rate);
-  fm1_app_set_lab(&g_app, 1);
-  expect(g_app.mod != NULL, "the lab switch starts no modulation runtime");
+  expect(g_app.mod != NULL, "fm1_app_init starts no modulation runtime");
   if (!g_app.mod) return;
   fm1_app_select(&g_app, 0, fm1_app_find("macro"));
   fm1_app_select(&g_app, 1, fm1_app_find("plate"));
@@ -2195,9 +2185,10 @@ static void mod_screens(const char *dir, float rate) {
   }
   fm1_app_select(&g_app, 0, fm1_app_find("macro"));
   settle();
-  /* FX: every effect in slot 1 with a cable on each parameter. */
+  /* FX: every effect in M1 with a cable on each parameter (FX mode's slot
+   * 3 shows M1). */
   g_app.mode = FM1_MODE_FX;
-  g_app.fx_slot = 0;
+  g_app.fx_slot = 3;
   for (size_t i = 0; i < fm1_engine_count; ++i) {
     const fm1_engine_t *e = fm1_engines[i];
     int pages = 1;
@@ -2344,21 +2335,15 @@ static void mod_screens(const char *dir, float rate) {
   mod_multi_screens(dir);
   mod_names(dir);
   g_app.mode = FM1_MODE_MATRIX;
-  /* HOME, FX and GLO leave the pages; the switch off brings the stubs back. */
+  /* HOME, FX and GLO leave the pages. */
   press(FM1_BTN_HOME);
   expect(g_app.mode == FM1_MODE_HOME, "HOME does not leave MATRIX");
   press(FM1_BTN_LFO);
   press(FM1_BTN_GLO);
   expect(g_app.mode == FM1_MODE_GLOBAL, "GLO does not leave RACK");
   press(FM1_BTN_EDIT);
-  fm1_app_set_lab(&g_app, 0);
-  expect(g_app.mode == FM1_MODE_HOME && !g_app.mod, "the switch off keeps modulation");
-  for (int b = FM1_BTN_ENV; b <= FM1_BTN_EDIT; ++b) {
-    g_app.popup_lines = 0;
-    press(b);
-    expect(g_app.mode == FM1_MODE_HOME && g_app.popup_lines == 3,
-           "ENV, LFO or EDIT with the switch off is not the stub");
-  }
+  press(FM1_BTN_FX);
+  expect(g_app.mode == FM1_MODE_FX, "FX does not leave MATRIX");
   destroy_units();
 }
 
@@ -2376,18 +2361,20 @@ static int run_screens(const char *dir, float rate) {
   }
   fm1_app_select(&g_app, 0, fm1_app_find("macro"));
   g_app.mode = FM1_MODE_FX;
-  for (int slot = 0; slot < FM1_APP_FX_SLOTS; ++slot) {
-    g_app.fx_slot = slot;
+  for (int slot = 0; slot < FM1_APP_FX_SLOTS; ++slot) {   /* the master bus, M1 and M2 */
+    g_app.fx_slot = 3 + slot;
     g_app.fx_page = 0;
     fm1_app_select(&g_app, 1 + slot, -1);
-    check_screen(slot ? "fx-empty-slot2" : "fx-empty-slot1", dir, 1);
+    check_screen(slot ? "fx-empty-m2" : "fx-empty-m1", dir, 1);
     for (size_t i = 0; i < fm1_engine_count; ++i) {
       if (fm1_engines[i]->kind != FM1_KIND_AUDIO_FX) continue;
       if (fm1_app_select(&g_app, 1 + slot, (int)i) != 0) continue;
       g_app.fx_grab = slot;                       /* both markers get drawn */
-      sweep_unit(1 + slot, slot == 0 ? dir : NULL);
+      sweep_fx(1 + slot, 3 + slot, slot ? "m2" : "m1", dir, slot == 0);
     }
+    fm1_app_select(&g_app, 1 + slot, -1);         /* room for the rest of the sweep */
   }
+  g_app.fx_grab = 0;
   g_app.mode = FM1_MODE_GLOBAL;
   g_app.octave = -3;
   g_app.transpose = -12;
@@ -2412,20 +2399,17 @@ static int run_screens(const char *dir, float rate) {
   fm1_app_button(&g_app, FM1_BTN_OCT_DOWN, 0);
   fm1_app_master(&g_app, 0.8f, 1);
   check_screen("popup-volume", dir, 0);
-  for (int b = FM1_BTN_ENV; b < FM1_APP_BUTTONS; ++b) {
-    if (b == FM1_BTN_GLO || b == FM1_BTN_HOME) continue;
+  for (int b = FM1_BTN_SAVE; b <= FM1_BTN_ARP; ++b) {   /* the buttons still to come */
     char name[64];
     fm1_app_button(&g_app, b, 1);
     fm1_app_button(&g_app, b, 0);
     snprintf(name, sizeof name, "popup-button-%d", b);
-    check_screen(name, dir, b == FM1_BTN_PLAY);
+    expect(g_app.mode == FM1_MODE_HOME && g_app.popup_lines == 3, "SAVE or ARP is not the stub");
+    check_screen(name, dir, b == FM1_BTN_SAVE);
   }
-  fm1_app_button(&g_app, FM1_BTN_SEL, 1);              /* SEL outside FX mode */
-  fm1_app_button(&g_app, FM1_BTN_SEL, 0);
-  check_screen("popup-sel", dir, 0);
-  fm1_app_button(&g_app, FM1_BTN_FX, 1);               /* FX: slot 2 to empty */
+  fm1_app_button(&g_app, FM1_BTN_FX, 1);               /* FX: M2 to empty */
   fm1_app_button(&g_app, FM1_BTN_FX, 0);
-  g_app.fx_slot = 1;
+  g_app.fx_slot = 4;
   g_app.fx_page = 0;
   fm1_app_select(&g_app, 2, fm1_app_find("diffuse"));
   fm1_app_encoder(&g_app, FM1_ENC_ALGORITHM, -64);
@@ -2868,7 +2852,7 @@ static void random_slot(const fm1_mod_ui_env_t *env, fm1_mod_slot_t *s) {
 
 static int mod_format_check(void) {
   static unsigned char mem2[FM1_APP_MOD_BYTES] FM1_APP_ALIGN16;
-  /* Every unit loaded (the lab's multi-sound), so every kind of
+  /* Every unit loaded (multi-sound), so every kind of
    * destination is drawn: four sounds, each with two inserts, and the
    * master slots, inside the RAM meter's budget. */
   static const char *const kSounds[FM1_APP_SOUNDS] = { "macro", "sixop", "test-sine", "sw-sophie" };
@@ -2877,7 +2861,6 @@ static int mod_format_check(void) {
   fm1_mod_ui_env_t env;
   int rounds = 0, failures = 0;
   fm1_app_init(&g_app, 44118.0f);
-  fm1_app_set_lab(&g_app, 1);
   fm1_app_select(&g_app, 1, fm1_app_find("plate"));
   fm1_app_select(&g_app, 2, fm1_app_find("echo"));
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
@@ -3208,8 +3191,7 @@ int main(int argc, char **argv) {
     if (strcmp(a, "--format-check") == 0) return format_check();
     if (strcmp(a, "--lock-check") == 0) return lock_check();
     if (strcmp(a, "--mod-format-check") == 0) return mod_format_check();
-    if (strcmp(a, "--lab") == 0) { g_lab = 1; continue; }
-    if (strcmp(a, "--slots") == 0) continue;                 /* implied by --lab */
+    if (strcmp(a, "--slots") == 0) continue;                 /* implied: the app routes by slot */
     if (strcmp(a, "--start") == 0) { g_start = 1; continue; }
     if (i + 1 >= argc) { usage(); return 2; }
     const char *v = argv[++i];
@@ -3341,16 +3323,6 @@ int main(int argc, char **argv) {
 
   const int use_seq = cmd_path || seq_path;
   /* Before anything is loaded, so a refusal leaves nothing allocated. */
-  if (g_multi && !g_lab) {
-    fprintf(stderr, "--sound, --insert, --level and their timed forms need --lab\n");
-    return 2;
-  }
-  for (int k = 0; k < g_nev; ++k) {
-    if (g_ev[k].kind == EV_UNIT_ROUTE && !g_lab) {
-      fprintf(stderr, "--unit-route needs --lab\n");
-      return 2;
-    }
-  }
   if (g_start && (use_seq || engine || n_fx)) {
     fprintf(stderr, "--start is the whole chain: no --engine, --fx, --cmd or --seq with it\n");
     return 2;
@@ -3393,7 +3365,6 @@ int main(int argc, char **argv) {
   }
 
   fm1_app_init(&g_app, rate);
-  if (g_lab) fm1_app_set_lab(&g_app, 1);
   if (master != 1.0f) g_replayable = 0;      /* fm1-render has no MASTER */
   if (engine) {
     int r = fm1_app_select(&g_app, 0, fm1_app_find(engine));
@@ -3435,7 +3406,7 @@ int main(int argc, char **argv) {
     }
   } else if (g_start) {
     fm1_app_default_chain(&g_app);
-  } else if (g_lab) {
+  } else {
     fm1_app_seq_default_route(&g_app);   /* as the browser's start chain */
   }
   /* --mod: a new runtime with the file's seed and its untimed lines, after
@@ -3676,9 +3647,9 @@ int main(int argc, char **argv) {
     printf("]");
   }
   if (g_app.mui.unloggable) g_replayable = 0;    /* a modulation edit no line can say */
-  printf(",\"lab\":%d,\"replayable\":%d", g_lab, g_replayable);
+  printf(",\"replayable\":%d", g_replayable);
   if (g_app.mod) print_mod();
-  if (g_lab) {                       /* multi-sound: the units, the current one, levels, inserts */
+  {                                  /* multi-sound: the units, the current one, levels, inserts */
     printf(",\"current\":%d,\"sounds\":[", fm1_app_unit_current(&g_app));
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
       const fm1_engine_t *e = fm1_app_unit_engine(&g_app, k);
@@ -3697,7 +3668,7 @@ int main(int argc, char **argv) {
     }
     printf("],\"ram_budget\":%u,\"fx_unit_slot\":%d", FM1_APP_RAM_BUDGET, g_app.fx_slot);
   }
-  if (g_lab) {
+  {
     /* key_leds: bit n for white key n; role_leds: bit per black key, in
      * key order (F#3 first). */
     const uint32_t keys = fm1_seq_ui_key_leds(&g_app.ui, g_app.frames);
@@ -3827,7 +3798,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "cannot write %s\n", path);
         return 1;
       }
-      if (g_lab) fprintf(f, "--slots\n");   /* the app routes tracks by slot with the lab switch */
+      fprintf(f, "--slots\n");             /* the app routes tracks to its sound units by slot */
       for (int k = 0; k < g_nside; ++k) fprintf(f, "%s\n%s\n", g_side_flag[k], g_side_value[k]);
       if (log_mod_path[0]) fprintf(f, "--mod\n%s\n", log_mod_path);
       fclose(f);

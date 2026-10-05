@@ -33,12 +33,12 @@
 // pairs must equal the one the native harness logged (--log-cmds), and the
 // module must have dropped no sequencer event.
 //
-// A scenario with `panel` (and `lab`, the lab switch) plays the sequencer
-// from the panel (docs/15 S3, §6.3): the native harness runs first with
-// --panel and --log-cmds, and the glibc, js and musl legs replay what it
-// logged, the script lines and the panel's typed commands, with the
-// arguments of its sidecar (.args: the engine and effects, and a --param-at
-// for each knob turn), while the module presses the same buttons and turns
+// A scenario with `panel` plays the sequencer from the panel (docs/15 S3,
+// §6.3): the native harness runs first with --panel and --log-cmds, and the
+// glibc, js and musl legs replay what it logged, the script lines and the
+// panel's typed commands, with the arguments of its sidecar (.args: --slots,
+// the engine and effects, and a --param-at for each knob turn), while the
+// module presses the same buttons and turns
 // the same encoders (fm1w_button, fm1w_encoder). So the panel scenario is
 // two-step parity in WebAssembly, and the module's screen at the end (the
 // Track view) is compared with the harness's.
@@ -49,16 +49,20 @@
 // (fm1w_mod_reset) after the chain is set up and its lines through
 // fm1w_mod_text, the untimed ones first and each `@FRAME` line at the first
 // block starting there, after the script's lines, as fm1-render applies
-// them. A panel scenario with the lab switch modulates from the panel: the
-// harness logs the runtime's state and every edit (.mod, named in the
-// sidecar), which the render legs replay.
+// them. Every other scenario runs the module's own runtime, the default
+// rack fm1w_init builds, which writes to no unit; a panel scenario
+// modulates from the panel: the harness logs the runtime's state and every
+// edit (.mod, named in the sidecar), which the render legs replay.
 //
-// A scenario with `sounds`, `inserts`, `levels` or `sound_notes` (and `lab`)
-// plays several sound units (docs/15 §3.16): fm1-render gets --sound,
-// --insert, --level and --sound-note, and --slots for any lab scenario, so
-// its tracks play the unit their route names as the module's do; the module
-// loads the same units through fm1w_sound_unit and fm1w_insert_unit, in the
-// same order, and plays those notes with fm1w_unit_note_on.
+// The module always has four sound units. A scenario with `sounds`,
+// `inserts`, `levels` or `sound_notes` plays several (docs/15 §3.16):
+// fm1-render gets --sound, --insert, --level and --sound-note, which imply
+// --slots, so its tracks play the unit their route names as the module's
+// do; the module loads the same units through fm1w_sound_unit and
+// fm1w_insert_unit, in the same order, and plays those notes with
+// fm1w_unit_note_on. Any other scenario is one sound, which fm1-render
+// renders without --slots: the module's multi-sound path must equal its
+// plain one to the bit.
 // MIT licence.
 
 import { execFileSync } from 'node:child_process';
@@ -255,7 +259,6 @@ async function renderApp(s) {
   const paramOf = (id, name) => catalog[indexOf(id)].params
     .findIndex((p) => p.name.toLowerCase() === name.toLowerCase());
   ex.fm1w_init(rate);
-  if (s.lab) ex.fm1w_set_lab(1);                  // as fm1-sim-render --lab, after init
   if (ex.fm1w_select(0, indexOf(s.engine)) !== 0) throw new Error(`cannot load ${s.engine}`);
   for (const p of s.params ?? []) {
     const [n, v] = splitParam(p);
@@ -462,15 +465,13 @@ for (const s of scenarios) {
   // The native harness first: a panel scenario's render legs replay its log.
   const simArgs = [...cli, '--screen', join(dir, 'screen.ppm')];
   if (s.cmd) simArgs.push('--log-cmds', join(dir, 'cmds.verbs'));
-  if (s.lab) simArgs.push('--lab');
   if (s.panel) simArgs.push('--panel', panelPath(s));
   const native = JSON.parse(execFileSync(args.sim, simArgs, quiet).toString().trim().split('\n').pop());
-  // The lab switch routes tracks by slot (fm1-render --slots); a panel run's
-  // sidecar says so itself.
+  // A panel run's sidecar starts with --slots; the multi-sound flags imply it.
   const renderCli = s.panel
     ? ['--seconds', String(s.seconds), '--rate', String(s.rate ?? 44118), '--cmd', join(dir, 'cmds.verbs'),
       ...readFileSync(join(dir, 'cmds.args'), 'latin1').split('\n').filter((l) => l !== '')]
-    : [...cli, ...(s.lab ? ['--slots'] : [])];
+    : cli;
   execFileSync(args.native, [...renderCli, '--out', join(dir, 'glibc.wav')], quiet);
   execFileSync(process.execPath, [args['render-js'], ...renderCli, '--out', join(dir, 'js.wav')], quiet);
   if (args.musl) execFileSync(args.musl, [...renderCli, '--out', join(dir, 'musl.wav')], quiet);
@@ -514,7 +515,7 @@ for (const s of scenarios) {
     cmd: s.cmd ?? null,
     panel: s.panel ?? null,
     mod: s.mod ?? null,
-    mod_logged: s.panel && s.lab ? existsSync(join(dir, 'cmds.mod')) : null,
+    mod_logged: s.panel ? existsSync(join(dir, 'cmds.mod')) : null,
     seq,
   };
   r.pass = (!seq || (seq.lines_match && seq.dropped === 0 && seq.native_dropped === 0 &&
