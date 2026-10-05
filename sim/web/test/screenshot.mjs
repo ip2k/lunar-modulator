@@ -428,6 +428,38 @@ async function labChecks(browser) {
     seen.add(await whites());
   }
   r.step_lights_seen = seen.size;
+  // Record and Capture (S5), still playing: REC in SEQ mode overdubs at
+  // once and REC again stops; two keys played in HOME are buffered for
+  // Capture, so REC blinks slowly (1 s); SHIFT (Shift in SEQ mode) + REC
+  // captures them, and REC goes dark.
+  const recLit = () => lit(page, '[data-button="13"]');
+  const recStates = async (ms) => {
+    const states = new Set();
+    for (let t = 0; t < ms; t += 100) { states.add(await recLit()); await wait(page, 100); }
+    return [...states].sort();
+  };
+  await press(page, 13);
+  await wait(page, 300);
+  r.recording_after_rec = await page.evaluate(() => window.fm1.seq && window.fm1.seq.recording);
+  r.rec_led_recording = await recLit();
+  await press(page, 13);
+  await wait(page, 300);
+  r.recording_after_second_rec = await page.evaluate(() => window.fm1.seq && window.fm1.seq.recording);
+  await press(page, 8);                                         // HOME: the keys play notes
+  await wait(page, 150);
+  await pressKey(page, 9);
+  await wait(page, 150);
+  await pressKey(page, 12);
+  r.rec_led_buffered = await recStates(1300);
+  await press(page, 11);                                        // SEQ, then Shift + REC
+  await wait(page, 150);
+  await unfocus(page);
+  await page.keyboard.down('Shift');
+  await press(page, 13);
+  await page.keyboard.up('Shift');
+  await wait(page, 200);
+  r.rec_led_captured = await recStates(1300);
+  await tftPng(page, 'tft-09-seq-captured.png');
   await page.close();
 
   const hash = await browser.newPage();
@@ -435,7 +467,7 @@ async function labChecks(browser) {
   r.hash_lab = await hash.evaluate(() => window.fm1.lab);
   await hash.close();
 
-  // Without the switch: Space sends nothing; PLAY/STOP and SEQ stay stubs.
+  // Without the switch: Space sends nothing; PLAY/STOP, SEQ and REC stay stubs.
   const off = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
   off.on('pageerror', (e) => report.logs.push(`lab-off pageerror: ${e.message}`));
   await off.goto(url);
@@ -448,10 +480,12 @@ async function labChecks(browser) {
   r.off_space_messages = (await sent(off)).filter((m) => m.type === 'button').length;
   await press(off, 12);
   await press(off, 11);
+  await press(off, 13);
   const quiet = await loudest(off, 600, 1);
   r.off_rms = quiet.rms;
   r.off_mode = await off.evaluate(() => window.fm1.state.mode);
   r.off_play_led = await lit(off, '[data-button="12"]');
+  r.off_rec_led = await lit(off, '[data-button="13"]');
   r.off_seq_status = await off.evaluate(() => window.fm1.seq);
   r.off_help_hidden = await off.evaluate(() => document.querySelector('[data-lab]').hidden);
   await off.close();
@@ -462,7 +496,9 @@ async function labChecks(browser) {
     r.play_led_after_space === false && r.playing_after_space === false && r.playing_after_second_space === true &&
     r.mode_after_home === 0 && r.hash_lab === true &&
     r.step_keys === '1000100010001000' && r.steps_rms > 0.01 && r.step_lights_seen >= 3 &&
-    r.off_space_messages === 0 && r.off_rms < 0.001 && r.off_mode === 0 && r.off_play_led === false &&
+    r.recording_after_rec === true && r.rec_led_recording === true && r.recording_after_second_rec === false &&
+    r.rec_led_buffered.length === 2 && r.rec_led_captured.length === 1 && r.rec_led_captured[0] === false &&
+    r.off_space_messages === 0 && r.off_rms < 0.001 && r.off_mode === 0 && r.off_play_led === false && r.off_rec_led === false &&
     r.off_seq_status === null && r.off_help_hidden === true;
   return r;
 }

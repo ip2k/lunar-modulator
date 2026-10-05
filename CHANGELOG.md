@@ -20,6 +20,42 @@ history.
   stock SysEx command that this project must not send before the dump-and-
   restore gate). It lists about 30 corrections to our docs and ten owner
   decisions.
+- Recording and Capture on the virtual FM-1's panel, still behind the lab
+  switch (`?lab`; docs/15 stage S5). What you play on the keys (outside
+  SEQ mode) or at MIDI IN now reaches the sequencer as well as the sound.
+  - REC records on track 1: stopped, after a bar's count-in; playing, at
+    once over a pattern, or from the next bar on an empty track. Press it
+    again to stop. Its light is on while recording, blinks fast during the
+    count-in, and blinks slowly while there is something to capture.
+  - Step record: in SEQ mode, stopped, hold REC and play the white keys.
+    Each note goes onto the step under the red frame, which moves on when
+    you let go; keys held together make a chord. OP3 leaves a rest, or
+    ties held keys into the next step; OP1 steps back. SHIFT and a white
+    key move the frame there. An empty track grows to what you play.
+    Notes at MIDI IN go in too.
+  - Capture: SHIFT and REC keep what you just played. Playing, it lands
+    where you heard it. Stopped, it reads your tempo, starts playing and
+    shows the tempos it found: SELECT tries another, any other press keeps
+    it. Over a pattern it is fitted to the set's tempo. A note captured
+    just before the loop's end grows the pattern by a bar, as in Movy (the
+    owner's choice).
+  - For developers: recorded and captured notes are logged as `non` and
+    `nof` lines, so every gesture trace that plays keys or MIDI IN replays
+    through `fm1-render` byte for byte (11 new traces). Two new parity
+    scenarios record and capture from the panel (41 of 41 pass). 1,055
+    screens pass the layout check (39 new); the screens with the lab
+    switch off are unchanged. The browser module grew from 516 KB to
+    525 KB.
+- notes/2026-10-02-filters-dynamics-options.md: research on classic filter
+  designs, compressors, limiters, overdrives and saturators, and how they fit
+  the effect slots, the voices and the modulation matrix. Most of the filter
+  work already exists (effects pack 2), so it recommends integration first:
+  split Comb out of Filter (its delay lines cost 18 KB per instance), add a
+  logarithmic knob law so a Cutoff sweep or keytracking moves in octaves, then
+  per-voice filters inside Macro and Shapes. It also flags that FM-1 projects
+  elsewhere assume the chip has no floating-point unit while our compiler
+  emits FPU code, which the dev kit has to settle, and lists 16 owner
+  decisions.
 - **Drive, Filter, Comp and Limiter on the virtual FM-1:** the effect
   slots now offer twelve effects (ALGORITHM steps through Plate,
   Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp,

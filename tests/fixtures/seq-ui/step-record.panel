@@ -1,0 +1,16 @@
+# Step record over a one-bar clip (the head wraps): a key at the head; a
+# chord of two keys tied into the next step with A#3; a rest (A#3) and a
+# step back (F#3); SHIFT + white key 9 moves the head to step 9 and clears
+# it; a note at MIDI IN there. REC let go, then PLAY/STOP.
+--button 0.05:SEQ
+--button 0.10:REC:1.5
+--key 0.20:16:100:0.1
+--key 0.40:0:90:0.3
+--key 0.45:4:80:0.25
+--key 0.50:5:100:0.05
+--key 0.80:5:100:0.05
+--key 0.90:1:100:0.05
+--button 1.00:SEL:0.2
+--key 1.05:14:100:0.05
+--note 1.30:66:70:0.1
+--button 1.80:PLAY/STOP

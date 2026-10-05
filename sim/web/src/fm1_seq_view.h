@@ -1,19 +1,24 @@
 /* fm1_seq_view.h -- the sequencer's screens on the virtual FM-1 (docs/15 §4).
  *
  * The Track view (S3, marks in S4), between the app's title and bottom bars:
- *   status line   the tempo on the left; PLAY, STOP or REC on the right
+ *   status line   the tempo on the left; PLAY, STOP, REC (gold through a
+ *                 count-in or a take waiting for its bar) or STEP (step
+ *                 record) on the right
  *   grid          the focused track's four bars round the bar on the keys,
  *                 a row of 16 steps each, one logged graphic: filled for a
  *                 note, outlined outside the loop, the playhead inverted, a
  *                 tick under a step with a trig row (probability,
- *                 condition or invert), held steps framed, and a bracket
- *                 at both ends of the row on the keys
+ *                 condition or invert), held steps framed, step record's
+ *                 head framed red, and a bracket at both ends of the row
+ *                 on the keys
  *   knob strip    four bars, KNOB1..4 on the current sound page, no text
  *                 (owner decision O23, option b)
- *   hint line     the knob last turned, its full name and value as HOME's
- *                 rows show them, or the bar the keys moved to, for two
- *                 seconds; SHIFT's shortcuts while SEL is held; otherwise
- *                 the sound's model, as HOME's first line
+ *   hint line     in step record, the head's step (and a tied chord's
+ *                 span), or with SEL held that the keys move it; the knob
+ *                 last turned, its full name and value as HOME's rows show
+ *                 them, or the bar the keys moved to, for two seconds;
+ *                 SHIFT's shortcuts while SEL is held; otherwise the
+ *                 sound's model, as HOME's first line
  * The Step pages (S4), while steps are held: HOME's geometry, the held
  * step on the first line, four rows of label, value and bar (page 1:
  * Velocity, Length, Prob, Condition; page 2: Invert, and the Nudge and Note

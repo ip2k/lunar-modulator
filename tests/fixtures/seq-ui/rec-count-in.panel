@@ -1,0 +1,8 @@
+# REC tapped in HOME, stopped: `rec` at once, a bar's count-in, then a take
+# of two keys (live input, `non`/`nof`), REC again to stop recording, and
+# PLAY/STOP. The take plays back on the next passes.
+--button 0.10:REC
+--key 1.30:7:100:0.2
+--key 1.60:11:90:0.2
+--button 2.60:REC
+--button 3.50:PLAY/STOP

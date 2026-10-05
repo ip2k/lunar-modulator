@@ -1,0 +1,8 @@
+#! rate=44118 block=64 tracks=8 end=264708
+# The record scenario (docs/15 S5): two notes on track 1 at 240 BPM, a bar
+# a second, stopped; panel-record.panel then records on the panel with the
+# lab switch on: a take after a bar's count-in, step record, and Capture
+# while playing. The render legs replay what the native harness logged
+# (--log-cmds, with its .args sidecar: the keys' notes, and the live input
+# as `non`/`nof` ops), the module presses the same keys and buttons.
+@0 bpm 24000;tog 0 0 45 110;tog 0 8 52 90

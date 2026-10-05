@@ -1,0 +1,12 @@
+# Six keys at about 100 BPM, stopped.
+--key 0.10:7:100:0.2
+--key 0.70:11:100:0.2
+--key 1.30:14:100:0.2
+--key 1.90:11:100:0.2
+--key 2.50:7:100:0.2
+--key 3.10:4:100:0.2
+# SHIFT + REC: the picker; SELECT back a tempo; a key closes it.
+--button 3.40:SEL:0.1
+--button 3.45:REC
+--turn 3.60:SELECT:-1
+--key 3.90:0:100:0.1
