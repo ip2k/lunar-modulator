@@ -54,10 +54,19 @@ on the PC**, male side into the target; **no hubs, docks or USB 3.0 ports**;
 the target's MCU must power up while the dongle is attached (our finding that
 the FM-1 only starts when its switch is thrown fits: connect first, then
 switch on); red LED = power, blue LED = download state; V4 has a DIP switch
-(all off for chips with a crystal, which the FM-1 has) and an "update" button.
+and an "update" button; that manual says "all off for chips with a crystal".
+JieLi's own manual for updater 4.0 (SDK `doc/stuff/usb updater.pdf`)
+describes the modes [verified 2026-10-05]: all off, the button cuts target
+power for at least 250 ms and then keys; bit 1, periodic power cut plus key;
+**bit 3, continuous key with no power cut**; bit 5, D+/D− default to UART;
+bit 7, USB functions and a virtual serial port. The FM-1 runs on its battery,
+so a power cut from the dongle may not reset it: use bit 3 and the FM-1's
+slide switch as the power-up [inferred].
 The FM-1 needs a **USB-A-female-to-USB-C-male adapter** between the dongle's
-plug and the synth. The vendor software is Windows-only (`isd_download.exe`,
-a *writer*: never run it against the FM-1); for read-only dumps use
+plug and the synth. The vendor software was Windows-only until SDK V1.2.12
+added a Linux `isd_download` flow (`cpu/wl82/tools/download_linux.c`)
+[verified 2026-10-05]. Either is a *writer*: use it on the dev kit only,
+never against the FM-1. For read-only dumps use
 `jl-uboot-tool` on a Linux PC once the chip shows up as `UBOOT1.00`
 (docs/10 §5). The RP2040 design in docs/10 stays as the open, instrumented
 alternative (it logs which polarity worked and every timing step) and is not
@@ -77,15 +86,18 @@ data lines at power-up **[reported: kagaimiq `isp/usb/usb-key.md`,
   - `usb-key.md` and the ASCII diagram in `how-to-enter-uboot.md` put the
     clock on D+; only that page's prose says D−.
   - czietz's Pico dongle clocks on D+ and has reached UBOOT mode on two FM-1s
-    [reported: issue #2, docs/10 §1.1].
+    [reported: issue #2, docs/10 §1.1]; FM-1-transporter reports polarity A
+    (D+ clock) only, and polarity B never worked [reported].
   - Try D+ first; the dongle keeps both.
 - After the ACK the chip pulls D+ up and measures **SOF pulses** to calibrate
   its PLL, so the host bus must be quiet: use a dedicated USB 2.0 hub (an MTT
   hub such as Terminus FE2.1 isolates per port) or a separate host controller,
   and no other full/low-speed devices on it. Noise makes the ROM miscalculate
   the clock, time out on the watchdog and boot from flash instead.
-- Then the chip enumerates as a **USB mass-storage device** (`4C4A:xx42`
-  pattern on other families; the WL82 PID is unknown) and speaks JieLi's SCSI
+- Then the chip enumerates as a **USB mass-storage device**. On FM-1s the
+  WL82 shows as `4C4A:8057` `WL80UBOOT1.00`, SCSI inquiry
+  `WL82`/`UBOOT1.00`/`1.00` [reported: FM-1-transporter, fm1-nes] (other
+  families follow a `4C4A:xx42` pattern). It speaks JieLi's SCSI
   vendor protocol v2. `jl-uboot-tool` loads `wl82loader.bin` to
   `0x1C02000` (with the "MengLi" memory cipher quirk) and can then read, write
   and erase flash and run code (`jlrunner.py`). The vendor's `isd_download`
@@ -111,7 +123,10 @@ should, restore it, and dump again.
 ### 2.2 Failed-boot fallback
 
 The ROM enters USB download mode by itself if the flash does not boot
-**[reported: kagaimiq]**. This is a safety net only *after* we can write flash:
+**[reported: kagaimiq]**. A *hung* app is a different case: the ROM has
+already handed over, so it needs a watchdog reset (the ROM accepts
+`USB_KEY` after one) or a dongle at power-on [reported: FM-1-transporter].
+This is a safety net only *after* we can write flash:
 a custom firmware that deliberately invalidates its own header on a key combo,
 or a watchdog-backed failure counter that erases the app directory head, would
 guarantee a way back. It does not help a stock device.
@@ -120,10 +135,29 @@ guarantee a way back. It does not help a stock device.
 
 The SDK's `isd_config.ini` has `UPDATE_JUMP` (reset vs. jump to mask-ROM
 update) and the online config tool protocol has a "MaskROM-update entry"
-command; the SDK exposes functions to enter USB update mode. **Every custom
-firmware must include a robust, early, key-combo-triggered path into this
-mode plus a boot-failure counter** (AL-255's P0 "fail-open boot path"). The
-stock app has no reachable equivalent.
+command (0x26; trap 7 forbids it). **Every custom firmware must include a
+robust, early, key-combo-triggered path into this mode plus a boot-failure
+counter** (AL-255's P0 "fail-open boot path"). Three ways for a running app
+to enter `UBOOT1.00` are now known (`notes/2026-10-05-community-repos.md`
+§3.6):
+- **The stock "soft key"** `F0 22 24 35 7D F7`: stock V15 left the bus
+  21 ms later and came back as `UBOOT1.00` [reported: FM-1-transporter; it
+  fails with another full-speed device on the hub]. FM-1_092 is unchecked.
+  It is one byte from the upgrade command `F0 22 24 35 7F F7`, and it is
+  **forbidden before the gate** (rule 1, CLAUDE.md trap 9): the gate must
+  prove the path that works when no app runs. Before any later use, find
+  the `7D` handler in FM-1_092's `app.bin` at the desk.
+- **`go_mask_usb_updata()`** in the SDK (`apps/common/usb/device/msd_upgrade.c`,
+  identical at V1.1.9): from RAM, IRQs off, `nvram_set_boot_state(2)`, then a
+  core reset through `PWR_CON` bit 4 [verified: SDK source; reported
+  working: fm1-nes's CDC `UBOOT` command].
+- **The `usb_update_mode` mailbox** at `0x01C7FD80`, then a P33 reset
+  [verified: Felucca source; reported working]. SLOOP adds a `.noinit` boot
+  guard: two failed early boots lead to a USB rescue mode and then to UBOOT
+  [verified: SLOOP source].
+
+Read the fail-open keys before USB starts: Felucca's key combination works
+only once its main loop runs [verified: Felucca source].
 
 ### 2.4 `UART_KEY` / ISP / debug TAP over soldered wires
 
@@ -131,7 +165,10 @@ If `USB_KEY` fails: the LQFP48 leads are solderable. The SDK ini comments name
 UART update pins `PB00`, `PB05`, `PA05` and debug-TAP options `PA9/PA10`,
 `PB1/PB2`, `PB6/PB7` (or the USB pins). kagaimiq documents `UART_KEY` and the
 ISP key. Requires the pinout from the AC7911B datasheet in the SDK and steady
-hands; still far better than nothing.
+hands; still far better than nothing. On the FM-1, PA9/PA10 are LED lines,
+PB1 the battery, PB6 MASTER and PB7 a matrix row [reported: Felucca,
+fm1-nes; docs/01 §3.1], so those TAP options share pins with the board
+[inferred].
 
 ### 2.5 External flash programmer
 
@@ -147,8 +184,8 @@ programmer become the simplest recovery path of all; read it on the bench
 | Risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
 | Custom package bricks the only device | high if attempted before recovery | total loss of the unit | **do not flash non-stock before 2.1 is proven**; buy a second FM-1 or an AC791N dev board for first experiments. The board is **JL-AC79-DevKit V1.0**: base board, core board JL-AC79-WIFI V1.0 with an **AC7916** (same dual pi32v2 at up to 320 MHz, 578 KB SRAM), LCD board and cameras. eBay resellers list it for about US$126–144 delivered (2026-09-30). The AC7916 may carry in-package SDRAM the FM-1 lacks; keep benchmark state in internal SRAM. It is also where to rehearse `USB_KEY` and the JieLi USB updater before the FM-1 |
-| `USB_KEY` does not work on AC791N through the connector | low (reported working on two FM-1s through the USB-C port, docs/10 §1.1) | forces soldering (2.4) | D+ clock first, then the other polarity; quiet bus; dev-board rehearsal |
-| Wrong loader / wrong chip family in tooling | medium | corrupt flash | jl-uboot-tool marks WL82 "unknown": read-only operations first, compare dump with the stock package before any write |
+| `USB_KEY` does not work on AC791N through the connector | low (reported working on FM-1s through the USB-C port with czietz's dongle and with FM-1-transporter, docs/10 §1.1) | forces soldering (2.4) | D+ clock first, then the other polarity; quiet bus; dev-board rehearsal |
+| Wrong loader / wrong chip family in tooling | medium | corrupt flash | jl-uboot-tool marks WL82 "unknown", but `adb3f18`'s `wl82loader.bin` works on FM-1s with 256-byte I/O [reported: fm1-nes guard patch]. Read-only operations first, compare the dump with the stock package before any write, and finish dump, compare and write in one session: if the host drops the device, the chip boots flash [reported: FM-1-transporter] |
 | Interrupted write (power loss, USB drop) | medium | unbootable app | battery charged, no hubs during writes, dump before every write. Through the stock path, a loader left waiting after step 1 can be resumed [reported: Baud Girl] |
 | Package changes the flash head (`uboot.boot`, `isd_config.ini`) | low if rule 2 is kept | the OTA loader rewrites the second-stage bootloader [reported: Baud Girl FINDINGS 5.4]; a bad one bricks the unit | keep the head byte-identical to V15 and compare its SHA-256 (file bytes `[0x414, 0x4414)`) before anything is sent |
 | Verifier gate never explained | low (was medium) | none for development | largely explained: a same-version refusal, content not authenticated (docs/03 §5); bump the version |
@@ -180,8 +217,12 @@ evidence, but it is evidence about *transfers*. Rule 1 exists for the image
 that does not come back, and no FM-1 has yet been dumped and restored through
 mask ROM. Since 2026-10-01 a backup and a write through mask ROM are reported
 on another owner's FM-1 (issue #2, docs/10 §1.1), but not a byte-identical
-restore, and nothing here on this project's unit. The rules stand unchanged
-unless the owner decides otherwise.
+restore, and nothing here on this project's unit. Since then fm1-nes
+(Keitark) wrote 51 sectors through mask ROM on its maintainer's V14 unit,
+FM-1-transporter erased and rewrote one sector on a V15 unit, and Felucca
+and SLOOP install and roll back through the stock path [reported; docs/04].
+None of it was on this project's unit. The rules stand unchanged unless the
+owner decides otherwise.
 
 The owner has since installed FM-1+VA on the unit by their own decision (it
 identifies as `FM-1_092` on 2026-09-29). That leaves the rules as they are:

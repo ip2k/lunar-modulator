@@ -292,13 +292,14 @@ with confidence marks, are in [docs/01](docs/01-hardware.md),
 
 | | |
 | --- | --- |
-| SoC | JieLi AC791N (WL82), LQFP48, marking `C1xxxxx-11B8` (lot varies; owner's `C188612-11B8`); two pi32v2 cores, 240 MHz used of 320; 578 KB SRAM; 1 MB flash (probably in-package) |
-| Memory map | flash XIP `0x02000000`, RAM `0x01C00000`, SFRs `0x1xxxx…0x5xxxx`, mask ROM `0xFFC0xxxx` |
-| USB | normal `4C4A:C755` (USB-MIDI + UAC1, full-speed, product string `FM-1`), OTA loader `4D4A:4155` |
-| Display | 240×240 RGB565 TFT on SPI1 (`0x11D00`), ST7789-class commands |
-| Controls | 27 keys + ~14 LED buttons in a 41-input matrix; 8 knobs (stock reads 2 encoders + 2 ADC channels; split unresolved) |
-| Audio | internal DAC, 44.1 kHz, 64-sample blocks; 12 msfa voices, rendered on the second core [inferred] |
-| Update | USB-MIDI SysEx, CRC16 only; step 1 refuses only the running version, so rebuilt packages with a new version install; the OTA loader can rewrite `uboot.boot` |
+| SoC | JieLi AC791N (WL82), LQFP48, marking `C1xxxxx-11B8` (lot varies; owner's `C188612-11B8`); two pi32v2 cores, 240 MHz used of 320; 578 KB SRAM; 1 MB flash, JEDEC `0x856014` (Puya) [reported], probably in-package |
+| Memory map | flash XIP `0x02000000`, app entry `0x02000120` [verified: V15 `jlfw.yaml`], RAM `0x01C00000`, SFRs `0x1xxxx…0x5xxxx`, mask ROM `0xFFC0xxxx` |
+| USB | normal `4C4A:C755` (USB-MIDI + UAC1, full-speed, product string `FM-1`), OTA loader `4D4A:4155`, mask ROM `4C4A:8057` `UBOOT1.00` [reported] |
+| Display | 240×240 RGB565 ST7789V TFT on SPI1 (`0x11D00`), PC7–PC10, backlight PA2 [reported] |
+| Controls | 27 keys + 14 buttons in an 11×6 matrix behind two 74HC595s; all 7 encoders scanned in the matrix; MASTER is a pot on PB6 (ADC 4); ADC 3 is the battery on PB1 [reported: Felucca `727f272`, fm1-nes `870f305`; docs/01 §3.1] |
+| Audio | ALNK0 (I2S) to an external codec, not the internal DAC, IRQ 11 [reported: Felucca/SLOOP and fm1-nes]; 64-frame halves as in stock [reported: fm1-nes]; about 44,118 Hz (Felucca times 44,117.6 Hz; AL-255 reads stock's as 44,118) [reported]; stock renders 12 msfa voices on the second core [inferred; stock only, no open firmware does yet] |
+| MIDI jack | TRS, input only: UART1 RX on PH8 [reported: Felucca] |
+| Update | USB-MIDI SysEx, CRC16 only; step 1 refuses only the running version, so rebuilt packages with a new version install, and it accepts a non-M-VAVE `ota.bin` [reported: Felucca, SLOOP]; the OTA loader can rewrite `uboot.boot` |
 
 ### The two cores
 
@@ -313,14 +314,20 @@ both: JieLi's OS on cpu0, and the msfa voice render on cpu1, outside the OS
 - cpu0 runs the UI, MIDI, USB and BLE, and an audio task with the fade, the
   six FX slots and the output [reported: AL-255; the core inferred].
 - AL-255's docs read cpu1 as started but unused. Their addresses assume
-  `app.bin` runs from `0x02000000`; it appears to run from `0x02000120`
-  [inferred: docs/11 §2].
-- Whether a build on the public SDK can do the same is open: the SDK has no
-  task-to-core API [verified], and the single-core `system.a` that stock's
-  arrangement needs comes from JieLi on request only [reported: JieLi AC79
-  doc 7.40]. The second-core probe on the AC79 kit, whose AC7916 has the
-  same two cores, answers it ([docs/14](docs/14-verification-ladder.md)
-  §5.1; [docs/07](docs/07-recovery-and-risk.md) §3).
+  `app.bin` runs from `0x02000000`; it runs from `0x02000120` [verified:
+  our V15 `jlfw.yaml`; docs/01 §2].
+- Whether a build on the public SDK can do the same is open.
+  `os_task_create` has no core argument, but a `#C<n>` task-name prefix
+  exists: SDK demos and fm1-nes use `#C0` [verified: SDK `app_main.c` at
+  V1.1.9 and `e30b1ee`, `FreeRTOS.h`'s `cpu_id`, `system.a` DWARF], and
+  `#C1` is still to be probed [inferred]. The single-core `system.a` that
+  stock's arrangement needs comes from JieLi on request only [reported:
+  JieLi AC79 doc 7.40]. The second-core probe on the AC79 kit, whose AC7916
+  has the same two cores, answers it ([docs/14](docs/14-verification-ladder.md)
+  §5.1, C6a–C6f; [docs/07](docs/07-recovery-and-risk.md) §3).
+- Felucca and SLOOP run a full instrument on cpu0 alone, with integer
+  engines and voice shedding at 85 % of the block [reported]. That supports
+  the preview's single-core plan; it says nothing about our float engines.
 
 ### MIDI in and out
 
@@ -333,7 +340,10 @@ both: JieLi's OS on cpu0, and the msfa voice render on cpu1, outside the OS
   - On the owner's board the jacks are J3, beside the USB-C, and J7
     [verified: [`photos/2026-09-29/2-bottom.jpg`](photos/2026-09-29/2-bottom.jpg)].
     J3 is the MIDI input: the optocoupler PC1 sits at its pads [inferred,
-    strong]. docs/01 §3 says J7/J9, citing aroum's photo.
+    strong]. docs/01 §3 also gives aroum's reading, J7/J9.
+  - Felucca reads TRS MIDI on UART1 RX, pin PH8, and has no TRS out
+    [reported: Felucca `hal/fm1_uart.h`; docs/01 §3.1]. PH8 is the lead to
+    look for when following PC1's output (bench check 1 below).
   - A TRS MIDI input has both signal contacts, tip and ring, on the
     optocoupler's LED, which leaves none for a standard MIDI out (MIDI
     Association RP-054 [reported]) [inferred].
@@ -351,8 +361,11 @@ both: JieLi's OS on cpu0, and the msfa voice render on cpu1, outside the OS
     `0x4EA7F`–`0x4EA9A`]. CoreMIDI lists the FM-1 as input and output
     [verified on hardware: [`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md) §1].
   - The public AC79 SDK has no USB-MIDI device class, only CDC, HID, MSD,
-    UAC, UVC and printer [verified: V1.1.9 and V1.2.0 trees]. Lunar needs
-    its own, which is new work on the SDK's `usb_device` code.
+    UAC, UVC and printer [verified: V1.1.9, V1.2.0 and V1.2.13 trees]. Lunar
+    needs its own, which is new work on the SDK's `usb_device` code, on the
+    `custom_hid.c`/`cdc.c` pattern with `usb_add_desc_config()`. Write its
+    descriptors from the USB-MIDI 1.0 spec: the SDK's only MIDI constants
+    are in `uac_audio.h`, a GPL-2.0 header [verified].
 - **Logging.** docs/08 Phase 3 plans UART logs "on the MIDI TRS jack".
   First logs go out over the SDK's USB CDC class instead (`cdc.c` exists
   [verified]), or on the TFT.
@@ -629,7 +642,8 @@ which lands with the plan PR; its stages S0–S7 are named below.
     §4 rule 1);
   - Lunar running on the board;
   - Lunar's own update service and installer, which no doc planned before
-    2026-10-01 [inferred: install-path study].
+    2026-10-01 [inferred: install-path study]; Felucca and SLOOP have since
+    shown a worked design (I13) [reported].
 - **Where it is planned:**
   [The path to an installable build](#the-path-to-an-installable-build)
   below; [docs/14](docs/14-verification-ladder.md) §4–5;
@@ -650,7 +664,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **MIDI out over USB** · *Planned*
 - **Depends on:**
   - device: a USB-MIDI class on the SDK's `usb_device` code, which has none
-    [verified: V1.1.9 and V1.2.0 trees], mirroring stock's jacks and
+    [verified: V1.1.9, V1.2.0 and V1.2.13 trees], mirroring stock's jacks and
     endpoints;
   - simulator: an outbound event queue in `fm1_app`, a worklet drain and a
     Web MIDI port picker.
@@ -661,6 +675,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **MIDI out on the jack** · *To be investigated*
 - **Depends on:** an unpowered continuity map of J3 on an opened unit (the
   owner's decision); a static decode of V15's UART1 TX pin assignment.
+  Felucca maps no TX pin and sends no TRS MIDI [reported].
 - **Where it is planned:** [docs/01](docs/01-hardware.md) §3–4;
   [Bench checks that write nothing](#bench-checks-that-write-nothing).
 - **Rough effort:** 2–3 h unpowered, 1 h of passive capture, ½–2 days of
@@ -685,8 +700,10 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **The second core** · *To be tried on the development kit*
 - **Depends on:** the kit; the second-core probe
   ([docs/14](docs/14-verification-ladder.md) §5 step 5b and §5.1). The
-  public SDK has no task-to-core API [verified]. JieLi supplies the
-  single-core `system.a` only on request [reported: JieLi AC79 doc 7.40].
+  public SDK's `os_task_create` has no core argument, but a `#C<n>`
+  task-name prefix exists (`#C0` in SDK demos and fm1-nes) [verified];
+  `#C1` is to be probed (C6d) [inferred]. JieLi supplies the single-core
+  `system.a` only on request [reported: JieLi AC79 doc 7.40].
 - **Where it is planned:** docs/14 §5.1;
   [docs/11](docs/11-plugin-platform.md) §2 and §8 (unknown 3);
   [docs/08](docs/08-roadmap.md) Phase 7.
@@ -836,7 +853,10 @@ modulation source, a MIDI effect, an audio effect, or another kind.
 ### The path to an installable build
 
 This is the path from today to an installable preview and a release
-[inferred: install-path study, 2026-10-01, unless marked].
+[inferred: install-path study, 2026-10-01, unless marked]. The 2026-10-05
+study of the FM-1 community firmware and the current SDK
+([`notes/2026-10-05-community-repos.md`](notes/2026-10-05-community-repos.md))
+changed several steps; its §6 lists the owner decisions it raises.
 - Milestones are numbered I0–I15 so they do not clash with docs/13's M0–M4.
 - **[bench]** marks the owner's bench work.
 - Nothing is written to the owner's FM-1 before I9 passes
@@ -848,12 +868,17 @@ This is the path from today to an installable preview and a release
    installed app, which stages the loader [reported: AL-255].
    - The public AC79 SDK has the hand-off: `update_mode_api_v2` writes
      `UPDATA_PARM` [verified: `update.c` at V1.1.9].
-   - It has no USB-MIDI device class [verified: V1.1.9 and V1.2.0 trees],
-     and the FM-1's loader is M-VAVE's own: its 19,969-byte `usb_hid_ota`
-     `ota.bin` is not the SDK's 271,182-byte one [verified: sizes].
+   - It has no USB-MIDI device class [verified: V1.1.9, V1.2.0 and V1.2.13
+     trees]. The FM-1's 19,969-byte `usb_hid_ota` `ota.bin` is not the SDK's
+     271,182-byte one [verified: sizes]: it is very likely M-VAVE's build of
+     JieLi's `usb_hid_ota` template on the SDK's `AC791N_OTA_loader` branch
+     (`79eda0c`), with SysEx framing added [inferred; its strings and load
+     address `0x01C0A800` verified]. Stock step 1 also accepts a loader that
+     is not M-VAVE's [reported: Felucca and SLOOP installs].
    - So an app built on the SDK can be taken back to V15 by stock-path
      tools only if it answers that step itself (I13), with a fail-open path
-     that does not depend on its USB stack.
+     that does not depend on its USB stack. Felucca and SLOOP already do
+     this (I13).
 2. **Lunar needs its own installer.** Baud Girl's installer starts only from
    V15 or Baud Girl's own versions [reported], so it cannot take a unit
    running Lunar back. AL-255's client rejects identity blocks with a bad
@@ -897,13 +922,24 @@ decide:
 - After the gate, the first rollback test takes the unit back to M-VAVE's
   V15 through the stock path.
 - Which dongle opens the FM-1: JieLi's if the kit rehearsal works,
-  otherwise ours. czietz's Pico tool drives push-pull and is ruled out for
-  this unit (docs/10 §1.1).
+  otherwise ours. czietz's Pico tool and FM-1-transporter both drive
+  push-pull with no series resistors (FM-1-transporter's `usb_key_pp`
+  program sets both pins as outputs, `set pindirs, 3`, and its README wires
+  them straight to D+/D− [verified at `a632d92`]), so both are ruled out for
+  this unit (docs/10 §1.1, E1). FM-1-transporter's `fm1t.py` also sends the
+  soft key by itself (CLAUDE.md trap 9).
+- New since 2026-10-05 (the study's §6): an SDK app (L1) or bare metal (L2)
+  for the preview; M-VAVE's loader or our own for install and rollback;
+  whether the soft key may ever be sent to the owner's unit (not for the
+  gate); whether to vendor Felucca's Apache-2.0 `fm6_core.c` as an msfa
+  oracle; whether to read V1.1.9's `system.a` with a modern `llvm-dis` in a
+  container on aeon (output kept in scratch) to see how `#C<n>` is parsed.
 - If the kit is late, whether to run the gate first with our RP2040 dongle.
   docs/08 Phase 2 allows it; docs/14 prefers the kit first.
-- A version range clear of M-VAVE (up to FM-1_019) and Baud Girl (FM-1_020
-  and up) [reported: docs/03 §5], for example FM-1_500 and up; and whether
-  to tell Baud Girl and AL-255.
+- A version range clear of M-VAVE (up to FM-1_019), Baud Girl (FM-1_020
+  and up) and Felucca/SLOOP (FM-1_9xx) [reported: docs/03 §5], for example
+  FM-1_500 and up; and whether to tell Baud Girl, AL-255 and the Felucca,
+  SLOOP and fm1-nes authors.
 - The preview's scope (below).
 - *Done when:* the answers are recorded in CLAUDE.md or docs/08.
 
@@ -914,10 +950,22 @@ on the build host. 1–2 sessions.
   post-build tools `20260923.1` [verified: HTTP redirects, 2026-10-02 UTC;
   nothing downloaded]. Archive both privately with their SHA-256, and never
   commit them.
-- **SDK.** The AC79 SDK (Apache-2.0) at tag `AC79NN_SDK_V1.1.9_2023-08-01`.
-  Its `uboot.boot` is the same file as the head of M-VAVE's V15 package (git
-  blob `b6cb71ea…`). The V1.2.0 branch's is not (`1cc0f013…`) [verified: gh
-  api and `git hash-object`].
+- **SDK.** The AC79 SDK (Apache-2.0) at tag `AC79NN_SDK_V1.1.9_2023-08-01`
+  (`8eae664`), cited from Gitee by commit, not from the stale GitHub mirrors
+  (the sparse list is `tools/jieli/ac79-sdk-sparse.txt`). Its `uboot.boot`
+  is the same file as the head of M-VAVE's V15 package (git blob
+  `b6cb71ea…`). The V1.2.0 branch's is not (`1cc0f013…`, the V1.2.1/V1.2.2
+  era) [verified: gh api and `git hash-object`].
+  - **Why not newer.** Gitee is current to V1.2.13 (`e30b1ee`). From V1.2.7
+    `system.a` carries `sdk_meky_check`, and V1.2.13 adds
+    `sdk_chip_key_verify_v2`, which reads an eFuse key [verified: strings
+    per tag]; what they do on failure is unread. fm1-nes boots V1.2.13
+    libraries on a V14 unit with a 6→23-word `boot_info` bridge [reported]:
+    a fallback, not a reason to move.
+  - **Checks.** The build refuses a `system.a` containing `sdk_meky_check`
+    or `sdk_chip_key_verify_v2`, and records the V1.1.9 blob hashes
+    `37ad8997…` (`system.a`) and `f0f65e4b…` (`cpu.a`) [verified: `git
+    ls-tree` of tag V1.1.9, `8eae664`].
 - **Build.** A container image on the build host; build `demo_hello` for
   wl82.
 - *Done when:* two clean builds are byte-identical and the hashes are
@@ -963,12 +1011,27 @@ V15 and FM-1_092 packages are in `scratch/`. 2–4 sessions.
   It refuses unless the head, `ota.bin`, `cfg` and `isd_config.ini` are
   byte-identical to V15's.
 - **A raw 1 MB flash-image builder** for mask-ROM writes (kagaimiq's
-  jl-misctools, MIT).
+  jl-misctools, MIT), and a **sparse writer plan** modelled on fm1-nes's
+  `scripts/jl_formats.py` and FM-1-transporter's writer [reported]: write
+  only the changed app sectors plus the directory records, the directory
+  last; read each old sector first and read back each write; one final full
+  readback; layout tables for V15 and FM-1_092 (fm1-nes's planner accepts
+  only the 010/V14 layouts [verified]). Finish dump, compare and write in
+  one session: if the host drops the device, the chip boots flash
+  [reported: FM-1-transporter].
+- **Head refusal everywhere:** every tool refuses a package or image whose
+  head is not the device's. Felucca's and SLOOP's packages carry SDK
+  V1.2.1's `uboot.boot` and a synthetic `isd_config`, harmless with their
+  own loader but not with anything that writes `flash.bin` from offset 0
+  [inferred].
 - **Our own installer client**, built from AL-255's `fm1_ota.py`, with
   Echomatter's framing fix, the head check, resume from the loader, and an
   identity check after reboot.
 - **A device model** that speaks both update steps (docs/03), for offline
-  tests.
+  tests. Model step 2 on the OTA-loader branch's `update_main.c`: the loader
+  pulls `UPDATA_READ_OFFSIZE` in 512 B pieces, runs `ufw_head_check`,
+  `flash_update_process` and `flash_all_data_verify`, clears the loader
+  record and waits for the reboot command [verified: source at `79eda0c`].
 - *Done when:*
   - V15 and FM-1_092 rebuild byte-identical from their parts;
   - the client passes offline tests: the 481-byte final block, timeouts,
@@ -978,12 +1041,20 @@ V15 and FM-1_092 packages are in `scratch/`. 2–4 sessions.
 
 **I4. The FM-1's pin map, read from V15.** Needs I1's vendor `objdump`. 2–4
 sessions.
-- What to map:
-  - the key matrix ports and the 74HC595 pins;
-  - the encoders and ADC channels;
-  - the SPI1 TFT pins and GPIO 39–42;
-  - the DAC pin map and the amp enable;
-  - UART RX for MIDI in, and USB.
+- **Start from the hypotheses** in [docs/01](docs/01-hardware.md) §3.1, from
+  Felucca/SLOOP and fm1-nes [reported]: the TFT on SPI1 (PC7–PC10, PA2
+  backlight); the 595s on PA4/PA3/PA1, clocked on SPI2 `0x11E00` in stock,
+  with rows on PA0, PA5–PA8 and PB7; LED lines PA9, PA10, PH6 and PH9; the
+  encoders in the matrix with masks `0x2814`/`0x4182`; MASTER on PB6/ADC 4,
+  the battery on PB1/ADC 3; audio on ALNK0 `0x12E00`, channel 3, PORTC, IRQ
+  11; MIDI in on UART1 RX, PH8; flash CS# PD0. Verify each against V15, for
+  example by finding accesses to `0x12E00` against `0x12F00` (`JL_AUDIO`).
+- **Still open:** PC6's role (the two lineages disagree), the codec part
+  (`U5` or `U9`), the clock the SPL sets (decode V15's `isd_config`
+  `SYS_CLK`, `HSB_DIV` and `LSB_DIV` [keys verified present]), and the LED
+  drive scheme.
+- **Re-derive, do not copy:** fm1-nes's tables come from stock FM-1_010 and
+  Felucca's code is GPL-3.0-only; cite both beside our own V15 addresses.
 - *Done when:* a `board_fm1` pin table ties every entry to a V15 address
   with a mark, and conflicts are listed as bench checks.
 
@@ -1010,11 +1081,13 @@ sessions.
 
 **I7. Kit bring-up. [bench]** Needs I1 and I6. 2–3 sessions, 2–3 h.
 - docs/14 §5 steps 4–6:
-  - `demo_hello` through mask ROM, with the rehearsed restore as the safety
+  - `demo_hello` through mask ROM (the Linux `isd_download` flow in a
+    container on aeon, kit only), with the rehearsed restore as the safety
     net;
   - the UART console, and a toggled pin on a logic analyser;
   - the FPU probe image;
-  - Test Sine through the DAC, captured twice.
+  - Test Sine through the DAC, captured twice. That is the kit's path only:
+    the FM-1's audio is ALNK0 I2S to a codec (I12).
 - The second-core probe (docs/14 §5 step 5b) follows here. It is off the
   preview's critical path, because the preview runs on one core.
 
@@ -1028,7 +1101,8 @@ sessions.
 - *Done when:* there is a cycle table and FM-1 voice caps, and a preview
   chain is chosen. Its worst block must leave room for UI, USB and scanning
   (suggested: 70 % or less of 348,160 cycles at 240 MHz), and its SRAM total
-  must fit.
+  must fit. The 240 MHz assumes stock's CRT sets the PLL; a build that does
+  not inherits the SPL's clock from `isd_config` (I4) [inferred].
 
 #### On the owner's FM-1
 
@@ -1037,7 +1111,11 @@ I7 and I8. 1 session, 2–3 h.
 1. Run the identity query (FM-1_092 expected) and charge the battery.
 2. With the unit off, start the dongle keying, then switch on.
 3. Confirm `UBOOT1.00` on a Linux host's direct USB 2.0 port, with no hub,
-   and read the JEDEC ID.
+   and read the JEDEC ID. Expect `4C4A:8057` `WL80UBOOT1.00`, SCSI
+   `WL82`/`UBOOT1.00`/`1.00`, JEDEC `0x856014` and raw reads [reported:
+   FM-1-transporter, fm1-nes]; the dumps must still be ours. If the host
+   drops the device the chip boots flash, so keep each dump, compare and
+   restore in one session.
 4. Take dump 1. Power-cycle, re-enter, and take dump 2. Compare them.
 5. Compare the dumps with the FM-1_092 package where they map. Explain every
    difference (encryption, VM, USR, BTIF, key_mac) before writing anything.
@@ -1062,12 +1140,26 @@ the I0 decision. 1 session, 1–2 h.
   - USR is unchanged;
   - the dump diffs show where step 1 stages `ota.bin` and `UPDATA_PARM`.
     That decides Lunar's fail-open design.
+- Partly answered for custom apps: Felucca stages its loader at flash
+  `0xE0000` and writes `UPDATA_PARM` to flash `0xE4F00` and RAM
+  `0x01C7FD88` [verified: Felucca `firmware/src/ota.c`; reported working],
+  and the SPL scans 4K-boundary−256 slots in `[0x93000, 0xFC000)` for the
+  magic `0x5441` [reported: Felucca]. Where stock V15 itself stages `ota.bin` is still for the dumps
+  to show.
 
 **I11. First code on the FM-1. [bench]** Needs I9, I4, I7 and I3's image
 builder. 2–3 sessions, 2–4 h.
 - **RAM only first.** `jlrunner.py` loads a small image that drives the
   LEDs or the TFT. A power cycle brings the installed firmware back
   [reported mechanism: kagaimiq; untested on WL82].
+- **Build checks, after Felucca's `tools/build.py`** [verified: source]: the
+  entry stub `04 81 80 00` at `0x02000120`; no calls into mask ROM
+  (`0xFFC00000`–`0xFFD00000`); no calls from `.ram_text`; `csync` before
+  `rti` (clang does not emit it, so ISRs need assembly wrappers); calls from
+  XIP to RAM code through a function pointer, since a direct call is out of
+  range. Restated in our own tool, not copied (GPL-3.0).
+- **Power.** An SDK build sets stock's power values, not the demo's
+  (CLAUDE.md trap 12).
 - **Then a flash image.** `demo_hello` plus `board_fm1`, with the fail-open
   key combination and a watchdog boot counter. Restore the dump afterwards.
 - **Logs** go out over USB, through the SDK's CDC class, or on the TFT. The
@@ -1081,7 +1173,10 @@ and I4; overlaps I13. 6–10 sessions, and 6–10 h of owner time over 2–3
 weeks.
 - **Display:** the TFT strip flush on SPI1.
 - **Controls:** the 41-input matrix and its LEDs; the encoders and MASTER.
-- **Audio:** a DAC DMA ring at the measured rate, in 64-frame blocks.
+- **Audio:** an ALNK0 I2S DMA ping-pong (IRQ 11) at the measured rate
+  (Felucca: 44,117.6 Hz), in 64-frame halves, to the external codec
+  [reported: Felucca, fm1-nes]. The kit's board has no codec on its ALNK,
+  so this driver is first tried on the FM-1 [inferred].
 - **MIDI:** a USB-MIDI device class, which is new work because the SDK has
   none [verified]; MIDI in on UART RX.
 - **App:** the app layer in one sized arena, running I8's chain.
@@ -1106,9 +1201,31 @@ cuts]** Needs I11, I3 and I10. 3–5 sessions, 3–5 h.
   - the package pull and its CRCs;
   - staging the package's own stock `ota.bin`;
   - the hand-off and a reset into the stock loader.
+- **A worked design exists** in Felucca and SLOOP [reported: running;
+  source verified: Felucca `firmware/src/ota.c`, SLOOP `bootguard.h` and
+  `recovery.c`, SDK `msd_upgrade.c`]. Restated as ours (their code is
+  GPL-3.0-only):
+  - the app's update service accepts known loaders only: M-VAVE's,
+    recognised by its header and data CRCs (`0xEBAA`, `0x5881`) and length
+    `0x4DE1`, and only
+    with a package head equal to the device's;
+  - it stages the loader with its JLFS head written last, and writes
+    `UPDATA_PARM` (112 B) to flash `0xE4F00` and to RAM `0x01C7FD88`, then
+    resets through `PWR_CON` bit 4;
+  - data sectors keep their tails erased, so the SPL's scan for `0x5441`
+    records never finds a look-alike;
+  - the P33 watchdog is armed first.
 - **Fail-open.** A key combination read before USB and audio start goes
-  straight to update mode, without our USB-MIDI driver.
-- **Boot counter.** After N failed boots, the unit goes to update mode.
+  straight to update mode, without our USB-MIDI driver. Felucca's
+  combination works only once its main loop runs; ours reads the keys
+  first. The way into mask ROM is `go_mask_usb_updata()` [verified: SDK
+  source] or the `usb_update_mode` mailbox at `0x01C7FD80` plus a P33 reset
+  [verified: Felucca source].
+- **Boot counter.** After N failed boots, the unit goes to update mode. Keep
+  it in `.noinit` RAM, which survives resets (`0x01C7C000`–`0x01C7FD50`
+  [reported: Felucca]); SLOOP's guard clears it on power-on and after 30 s
+  healthy, and two early failures lead to a USB rescue mode and then to
+  UBOOT.
 - **Power cuts and unplugs** at every stage: on the kit first, then on the
   FM-1 (docs/07 rule 5).
 - The step-1 state machine can be written now and tested on the desktop
@@ -1128,6 +1245,9 @@ Needs I12 (a minimal feature set), I13, I3 and I10. 1–2 sessions, 1–2 h.
   - V15 → Lunar → V15 and FM-1_092 → Lunar → V15 both work through the
     stock path;
   - the head's SHA-256 never changes, and USR is byte-identical;
+  - the VM region is handled: Lunar keeps its data out of it, or erases it
+    back to blank on rollback. Felucca and SLOOP overwrite stock's VM
+    (`0x93000`+), so a later V15 starts with foreign data there [inferred];
   - power cuts during step 2 resume.
 
 **I15. A preview for other owners, then a release.** Needs I14. 2–4
@@ -1139,8 +1259,17 @@ sessions, 2–4 h, plus testers.
     connection is direct.
   - They explain how to go back.
 - **The build:** the shareable one only. That means MIT, BSD and Apache code
-  plus the SDK's libraries, no GPL, and Six-Op FM's patch data either
-  reviewed or left out (engines/README.md).
+  plus the SDK's libraries, no GPL code of ours or vendored, and Six-Op FM's
+  patch data either reviewed or left out (engines/README.md). The SDK is not
+  GPL-free itself: `system.a` holds a modified FreeRTOS V9 (GPLv2 with the
+  FreeRTOS exception), and `uac_audio.h`/`uac_audio_v2.h` are GPL-2.0, so
+  those headers are never included ([docs/12](docs/12-sequencer.md) §6).
+- **Identity and names:** `FM-1_5xx`, clear of M-VAVE, Baud Girl and
+  Felucca/SLOOP (`FM-1_9xx`). Keep stock's VID:PID and the product string
+  `FM-1`, so editors and installers find the port (Felucca #32: a port named
+  "Felucca" was missed), and never ship a pid.codes test ID.
+- **Hosts:** the installers detect a MIDI port held open by another app; both
+  failed rollbacks reported so far were that (Felucca #32, SLOOP #8).
 - **Rollout:** first to owners who already have a working `UBOOT` dongle and
   their own identical dumps (the two in issue #2), then public.
 - *Done when:*
@@ -1176,18 +1305,24 @@ their FM-1 through mask ROM.
 - 1–2 weeks more to the outside preview.
 
 **Still open before the preview:**
-- Where does step 1 stage `ota.bin` and `UPDATA_PARM`, and does the staged
-  loader survive step 2? (I10)
-- Can code on the WL82 enter mask-ROM `UBOOT1.00` itself? That would give
-  owners who have a dump a recovery path without a dongle.
-- Does jl-uboot-tool read raw or decrypted flash, given AL-255's per-chip
-  OTP seed? (I6)
-- Does M-UPGRADE accept an install onto a unit that reports FM-1_5xx?
-  Probably, since stock downgrades worked [inferred].
-- Does the WL82 have RAM that survives a watchdog reset, for the boot
-  counter?
+- Where does stock V15 stage `ota.bin` and `UPDATA_PARM`, and does the
+  staged loader survive step 2? (I10; custom apps stage at `0xE0000` and
+  `0xE4F00` [reported: Felucca].)
 - Distribution: does the installer fetch M-VAVE's V15 `.fwsc`, or ask the
   user for it?
+
+**Answered since 2026-10-01** (`notes/2026-10-05-community-repos.md`):
+- *Can code on the WL82 enter mask-ROM `UBOOT1.00` itself?* Yes:
+  `go_mask_usb_updata()` [verified: SDK source; reported working: fm1-nes],
+  and the `usb_update_mode` mailbox [verified: Felucca source; reported
+  working] (I13; docs/07 §2.3).
+- *Raw or decrypted reads?* Raw: the `.fwsc` flash entry matched flash from
+  offset 0 [reported: FM-1-transporter] (I9).
+- *RAM that survives a reset?* `.noinit` at `0x01C7C000`–`0x01C7FD50`
+  survives resets and UBOOT entry [reported: Felucca] (I13).
+- *An install onto a non-stock identity?* Stock step 1 installs over
+  `FM-1_9xx` and back to V15 [reported: Felucca, SLOOP]; FM-1_5xx itself is
+  untested [inferred: same path].
 
 ### Research to do
 
@@ -1281,6 +1416,10 @@ a byte-identical restore have been demonstrated on that unit.**
   `F0 00 32 45 00 00 00 40 7F F7` and passive captures.
 - Never send syscmd 33–36 or 48, or any `5A AA A5` online-tool frame: some
   copy memory or touch flash.
+- Never send the "soft key" `F0 22 24 35 7D F7`: stock V15 reboots into mask
+  ROM on it [reported: FM-1-transporter]. It is one byte from the upgrade
+  command `F0 22 24 35 7F F7`, and tools that send it by themselves, such
+  as FM-1-transporter's `fm1t.py`, stay away from an FM-1 before the gate.
 
 The full rules of engagement are in
 [docs/07](docs/07-recovery-and-risk.md) §4. They come from AL-255's safety
@@ -1311,6 +1450,11 @@ review.
   MIT/BSD-only build shareable.
 - GPL and LXR code cannot be combined in one shared work, and MIDIbox code
   needs its author's permission.
+- JieLi's SDK is not GPL-free: `system.a` holds a modified FreeRTOS V9
+  (GPLv2 with the FreeRTOS exception), and `uac_audio.h`/`uac_audio_v2.h`
+  are GPL-2.0 and never included.
+- Felucca and SLOOP are GPL-3.0-only: their facts and ideas are used with
+  credit, never their code (except Felucca's Apache-2.0 and MIT files).
 - Details are in [docs/12](docs/12-sequencer.md) §6 and
   [docs/11](docs/11-plugin-platform.md) §7.
 
@@ -1361,13 +1505,19 @@ The project in brief, the order of work, and where every document lives.
     installs from a browser, `FM-1_020` through `FM-1_092` so far.
   - The stock step-1 check turns out to be a same-version refusal, and
     content is not authenticated ([docs/03](docs/03-update-protocol.md) §5).
+  - Since early October, open firmware runs on FM-1s too: Felucca 1.0
+    (hugelton) and its fork SLOOP 2.2 (isod89), bare metal, install and roll
+    back through the stock path, and fm1-nes (Keitark) runs an AC79 SDK app
+    on one V14 unit, written through mask ROM [reported;
+    [docs/04](docs/04-prior-art.md)].
   - There is still **no proven recovery path** for a device whose
     application does not run: one flash bank, no debug pads, no recovery
     button, and JieLi's mask-ROM USB boot mode has not been demonstrated on
     this project's unit. Other owners now report reaching it with czietz's
     Pico dongle, and one reports backing up and writing firmware that way
     ([issue #2](https://github.com/ip2k/lunar-modulator/issues/2),
-    [docs/10](docs/10-usb-key-dongle.md) §1.1).
+    [docs/10](docs/10-usb-key-dongle.md) §1.1); FM-1-transporter and
+    fm1-nes report mask-ROM dumps and writes as well.
   - AL-255's standing verdict remains *NO-GO for non-stock flashing* until
     recovery exists; [docs/10](docs/10-usb-key-dongle.md) is the dongle that
     should provide it.
@@ -1420,7 +1570,9 @@ The project in brief, the order of work, and where every document lives.
    ([`engines/seq.md`](engines/seq.md)); the UI and the rest of the port
    follow.
 6. **Ship through the stock OTA path** (new version number, stock flash head),
-   as Baud Girl's releases already do, so users install without opening the case.
+   as Baud Girl's releases already do, so users install without opening the
+   case. Felucca and SLOOP use the same path with their own loader, which
+   never writes the head.
    That needs Lunar's own update service and installer
    ([The path to an installable build](#the-path-to-an-installable-build)).
 

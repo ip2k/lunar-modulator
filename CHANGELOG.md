@@ -9,6 +9,17 @@ history.
 ## [Unreleased]
 
 ### Added
+- notes/2026-10-05-community-repos.md: what Lunar learns from JieLi's current
+  AC79 SDK on Gitee and from three FM-1 projects, Felucca (with its recovery
+  tool FM-1-transporter), its fork SLOOP, and fm1-nes. Other open firmware
+  already runs on FM-1s, installed and rolled back through the stock update
+  path. Two independent code bases map the board: audio leaves over I2S to an
+  external codec rather than the internal DAC, the encoders are read through
+  the key matrix, and the display, matrix, MIDI and flash pins are named. A
+  running app can enter the chip's ROM loader without a dongle (including a
+  stock SysEx command that this project must not send before the dump-and-
+  restore gate). It lists about 30 corrections to our docs and ten owner
+  decisions.
 - Parameter locks on the virtual FM-1's panel, still behind the lab switch
   (`?lab`; docs/15 stage S8).
   - Hold a step and turn SELECT past its two Step pages: the next pages
@@ -660,6 +671,42 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **The docs now match what the FM-1 community firmware and JieLi's current
+  SDK show** (from `notes/2026-10-05-community-repos.md`, crediting Felucca
+  by hugelton, SLOOP by isod89, fm1-nes by Keitark, FM-1-transporter by
+  kurogedelic and JieLi's AC79 SDK). No user-facing change; nothing was sent
+  to any FM-1.
+  - **A new safety trap** in CLAUDE.md and AGENTS.md: the stock SysEx
+    `F0 22 24 35 7D F7` (the "soft key") reboots a running V15 into the
+    chip's ROM loader. It is not the identity query, is one byte from the
+    upgrade command, and must not be sent before the dump-and-restore gate;
+    FM-1-transporter sends it by itself, so it is not to be run against the
+    owner's unit. docs/03, docs/07, docs/09, docs/10 and DEVELOPERS.md's
+    one-rule section say the same. The one rule itself is unchanged.
+  - **The hardware tables** (CLAUDE.md, DEVELOPERS.md, docs/01, docs/05,
+    docs/08, docs/14): audio leaves over I2S (ALNK0) to an external codec, not the
+    internal DAC; the seven encoders are scanned in the key matrix, MASTER is
+    a pot on PB6 and ADC 3 is the battery; the flash reads as Puya
+    `0x856014`. docs/01 gains a pin map (§3.1) with each row's source and
+    how it compares with our own photos, the two 74HC595s become matrix
+    column drivers, and its open questions narrow.
+  - **The app starts at `0x02000120`**, now checked against our V15 and
+    FM-1_092 unpacks; docs/02's `0x020000A0` is corrected.
+  - **The install path** (DEVELOPERS.md I0–I15): Felucca and SLOOP already
+    install and roll back through the stock path with their own loader, so
+    I13 gains their update-service, boot-guard and fail-open design; I1
+    keeps the SDK at V1.1.9 because `system.a` gains key checks from
+    V1.2.7, with a refusal check and blob hashes; I3 gains a sparse
+    mask-ROM writer plan; I4 starts from the reported pin map; the "still
+    open" list loses four answered questions.
+  - **The second core:** the SDK has no core argument for tasks, but a
+    `#C<n>` task-name prefix exists; docs/14 adds probes C6d–C6f.
+  - **Status and sources:** docs/05's L1 and L2 rows, docs/04's entries for
+    the four projects and the Gitee SDK, docs/07's recovery paths (three
+    software entries into the ROM loader, the updater's DIP modes, the WL82
+    USB ID), docs/10's third dongle report, docs/12 §6's licence notes (the
+    SDK's FreeRTOS and GPL-2.0 headers), HANDOFF's facts and clone list,
+    and `tools/jieli/ac79-sdk-sparse.txt`, the SDK sparse-checkout list.
 - **Sophie's Pad can be locked** (the owner's decision). It picks which of
   Sophie's sixteen pads her other knobs edit, so a lock on it changes which
   pad the locks after it, on that step and later, edit. Nothing else about
