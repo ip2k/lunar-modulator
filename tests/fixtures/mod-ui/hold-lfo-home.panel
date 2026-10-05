@@ -1,0 +1,10 @@
+# HOME, page 1 (Model, Harmonics, Timbre, Morph). Hold LFO and turn KNOB2:
+# a cable from LFO1 to Harmonics, its amount following the turn; turned
+# back a little, the same cable. Then KNOB4 (Morph) the other way. LFO is
+# released after turns, so RACK stays shut; PLAY/STOP starts the pattern.
+--button 0.05:PLAY/STOP
+--button 0.10:LFO:0.5
+--turn 0.15:KNOB2:30
+--turn 0.25:KNOB2:-12
+--turn 0.40:KNOB4:-25
+--turn 0.90:KNOB3:10

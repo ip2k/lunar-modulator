@@ -108,15 +108,30 @@ typedef struct {
   uint16_t pad;
 } sq_rec_t;
 
-/* Capture input (capture.rs CapEvent). Frames are the low 32 bits of the
- * running frame count; every use is a difference. */
+/* Capture input (capture.rs CapEvent), packed into three 32-bit words; only
+ * seq_capture.c reads or writes them, through its cap_* accessors, which
+ * also give the widths their reasons:
+ *
+ *   w[0]  bits  0-24  frame, as an offset from fm1_seq.cap_base_frame
+ *         bits 25-31  pitch, 0..127
+ *   w[1]  bits  0-15  master tick: the tick itself, or (bit 16 set) an
+ *                     offset from fm1_seq.cap_base_tick
+ *         bit  16     the tick is an offset from the base
+ *         bits 17-30  the track's playhead (clip tick), 0..16,383
+ *         bit  31     scratch of a commit: this note-off already ends a note
+ *   w[2]  bits  0-19  the track's loop cycle, modulo 2^20
+ *         bit  20     the cycle is 2^20 or more
+ *         bits 21-24  track, 0..15
+ *         bits 25-31  velocity: 1..127 for a note-on, 0 for a note-off
+ *
+ * The checking build (SQ_CHECK_INDEX) also keeps every value unpacked and
+ * traps if one ever decodes, or compares, differently. */
 typedef struct {
-  uint32_t frame;
-  uint32_t abs_tick;
-  uint32_t cycle;
-  uint16_t clip_tick;
-  uint8_t track, on, pitch, vel;
-  uint16_t pad;
+  uint32_t w[3];
+#ifdef SQ_CHECK_INDEX
+  uint32_t chk_frame, chk_tick, chk_cycle;
+  uint16_t chk_clip_tick, chk_pad;
+#endif
 } sq_cap_t;
 
 struct fm1_seq {
@@ -136,7 +151,8 @@ struct fm1_seq {
   uint32_t off_gates, off_song, off_pend, off_tail, off_cap;
   uint32_t last_cmd_seq;
   float ext_interval;
-  uint32_t cap_last_frame, cap_take_first, capture_gen;
+  uint32_t cap_base_frame, cap_base_tick;  /* Capture's packed offsets count from these */
+  uint32_t capture_gen;
   int32_t cap_stretch_permille;
   int32_t held_track, held_step;
   fm1_seq_stats_t stats;        /* 4-byte aligned, 24 bytes */

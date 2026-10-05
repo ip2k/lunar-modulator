@@ -16,13 +16,27 @@
 //   are not). For those the low-pass gate is bypassed, as Voice does;
 // - the speech special cases: prosody amount and word speed (Voice takes them
 //   from the FM and MORPH attenuverters when TRIG is patched; here prosody is
-//   0, which keeps words on the played pitch, and speed is a parameter).
+//   Env Pitch, 0 by default, which keeps words on the played pitch, and speed
+//   is a parameter of its own);
+// - the decay envelope and the three attenuverters it reaches FREQ, TIMBRE
+//   and MORPH through (Env Pitch, Env Timbre, Env Morph on page 3, with
+//   Voice's scaling for speech), and the LPG mode (Gate, Ping, Off), as in
+//   Macro (mi_plaits_env.h). At their defaults the output is what it was
+//   before they existed, byte for byte.
 // What it adds: a release after note-off for the self-enveloped models, with
 // the same curve and the same Decay/Colour controls as the low-pass gate, so
-// a keyboard's note-off is honoured; Plaits has no note-off to honour.
+// a keyboard's note-off is honoured; Plaits has no note-off to honour. (With
+// the LPG on Ping they ring out as on the module; on Off the same release
+// gates the other models.)
 // What it changes: speech runs SpeechVoiceEngine (below), Plaits' SpeechEngine
 // with one LPC word bank shared by all voices, so a Harmonics move into
 // another word bank parses the bank once, not once per voice.
+//
+// Per-note offsets (set_param_note, engine API v2; note_offsets.h): every
+// FLOAT parameter is POLY, as in Macro, and a voice without an offset plays
+// the engine's controls, byte for byte as before. On Speech, Harmonics stays
+// engine-wide: it picks the word bank all voices share, so its per-note
+// offset is ignored there.
 //
 // Rate and blocks as in Macro: the engines run at Plaits' own 47,872.34 Hz
 // whatever the host's rate, in Plaits' 12-sample blocks, with no pitch
@@ -41,11 +55,20 @@
 // quarter of it are refused. Note events land on the next 12-sample block at
 // 47,872.34 Hz.
 //
+// SMOOTH parameters ramp while a voice sounds, as in Macro: a tenth of the
+// way per 12-sample block, 2.5 ms in all (fm1_smooth.h). Under Speech the
+// word bank follows Harmonics' new value at once (one parse), while the
+// voices' Harmonics ramps. A voice with a per-note offset plays the ramped
+// values plus its offsets, as in Macro.
+//
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
+#include "fm1_smooth.h"
+#include "mi_plaits_env.h"
+#include "note_offsets.h"
 
 #include <cstring>
 #include <new>
@@ -61,6 +84,7 @@ namespace fm1 {
 namespace macro_heavy {
 
 using namespace plaits;
+using namespace plaits_env;
 
 // The LPC word bank every speech voice reads. Instance::UpdateWordBank picks
 // the bank from Harmonics once per 12-sample block and parses it (up to
@@ -208,21 +232,41 @@ const ModelInfo kModelInfo[MODEL_COUNT] = {
   { true, 0.8f, 0.8f },     // hi-hat
 };
 
+// New parameters go at the end, so existing indices keep their meaning.
 enum Param {
   P_MODEL, P_HARMONICS, P_TIMBRE, P_MORPH,
   P_DECAY, P_COLOUR, P_VOLUME, P_WORD_SPEED,
+  P_ENV_PITCH, P_ENV_TIMBRE, P_ENV_MORPH, P_LPG,
   P_COUNT
 };
 
+// Uids (API v2) are fixed: never renumber one. The parameters Macro also has
+// keep Macro's uids, so a lock survives a swap between the two; Word Speed,
+// Macro Heavy's own, takes 12, the first uid Macro does not use. Flags as
+// Macro's: Model rebuilds every voice (NOLOCK), LPG is lockable but not a
+// modulation target. Every FLOAT is POLY, as in Macro; on Speech a
+// Harmonics offset is ignored, since Harmonics picks the word bank all
+// voices share (SetParamNote).
+const uint8_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
 const fm1_param_t kParams[P_COUNT] = {
-  { "Model",      FM1_PARAM_ENUM,  0, MODEL_COUNT - 1, 0, kModelNames, 0 },
-  { "Harmonics",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Timbre",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Morph",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Decay",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1 },
-  { "Colour",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1 },
-  { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1 },
-  { "Word Speed", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 1 },
+  { "Model",      FM1_PARAM_ENUM,  0, MODEL_COUNT - 1, 0, kModelNames, 0,
+    1, FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Model" },
+  { "Harmonics",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, kPoly, FM1_UNIT_NONE, "Harm" },
+  { "Timbre",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, kPoly, FM1_UNIT_NONE, "Timbre" },
+  { "Morph",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 4, kPoly, FM1_UNIT_NONE, "Morph" },
+  { "Decay",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 5, kPoly, FM1_UNIT_NONE, "Decay" },
+  { "Colour",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 6, kPoly, FM1_UNIT_NONE, "Colour" },
+  { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 7, kPoly, FM1_UNIT_NONE, "Vol" },
+  { "Word Speed", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 1,
+    12, kPoly, FM1_UNIT_NONE, "WrdSpd" },
+  { "Env Pitch",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2,   // FM attenuverter
+    8, kPoly, FM1_UNIT_NONE, "EnvPit" },
+  { "Env Timbre", FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2,   // TIMBRE attenuverter
+    9, kPoly, FM1_UNIT_NONE, "EnvTim" },
+  { "Env Morph",  FM1_PARAM_FLOAT, -1, 1, 0.0f, NULL, 2,   // MORPH attenuverter
+    10, kPoly, FM1_UNIT_NONE, "EnvMor" },
+  { "LPG",        FM1_PARAM_ENUM, 0, LPG_MODE_COUNT - 1, LPG_GATE, kLpgModeNames, 2,
+    11, 0, FM1_UNIT_NONE, "LPG" },
 };
 
 // Four voices. RAM sets the cap first: every voice carries a 16 KB arena (the
@@ -234,6 +278,9 @@ const fm1_param_t kParams[P_COUNT] = {
 // everything. On the desktop four voices cost about half of Macro's twelve
 // (plaits-heavy.md), so the cap can rise if the chip allows.
 const int kNumVoices = 4;
+
+// A voice's per-note offsets: Harmonics .. Env Morph, and its pitch.
+typedef NoteOffsets<P_HARMONICS, P_LPG - P_HARMONICS> Offsets;
 
 constexpr size_t cmax(size_t a, size_t b) { return a > b ? a : b; }
 
@@ -313,6 +360,7 @@ struct Voice {
   alignas(16) char arena[kArenaBytes];
   Engine *engine;           // NULL: the model failed its arena check, silent
   LPGEnvelope lpg;
+  DecayEnvelope decay;      // Voice's internal envelope, for the attenuverters
   ChannelPostProcessor post_out;
   ChannelPostProcessor post_aux;
   float out[kBlockSize];
@@ -327,6 +375,18 @@ struct Voice {
   bool active;
   bool rising;
   uint32_t age;
+  Offsets note;             // per-note offsets (set_param_note)
+};
+
+// What RenderBlock computes from the parameters, engine-wide, or for one
+// voice from its own values when it has offsets: the same function, so a
+// voice whose values equal the engine's gets the same numbers bit for bit.
+struct Controls {
+  float harmonics, timbre, morph;
+  float short_decay, decay_tail, hf;   // the decay envelope's and the LPG's times
+  float voice_gain;
+  float env_pitch, env_timbre, env_morph;   // attenuverter amounts
+  float prosody, word_speed;           // Speech
 };
 
 class Instance {
@@ -343,6 +403,8 @@ class Instance {
     silent_while_held_ = static_cast<uint32_t>(kSilentWhileHeld * blocks_per_second);
     bend_ = 0.0f;
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
+    fm1_smooth_init(smooth_, value_, P_COUNT);
+    smooth_steps_ = fm1_smooth_steps(kCorrectedSampleRate, kBlockSize);
     model_ = MODEL_STRING_MACHINE;   // stereo: both resamplers run from here
     right_running_ = true;
     clock_ = 0;
@@ -362,10 +424,12 @@ class Instance {
     v->rising = true;
     v->age = ++clock_;
     v->silent_blocks = 0;
+    v->note.Clear();   // a new note, a retrigger or a steal starts at no offset
     if (!v->active) {
       v->release = 1.0f;
       if (v->engine) v->engine->Reset();   // speech: nothing, the bank is shared
       v->lpg.Init();
+      v->decay.Init();
       v->post_out.Init();
       v->post_aux.Init();
       v->active = true;
@@ -382,10 +446,8 @@ class Instance {
 
   void SetParam(uint16_t index, float value) {
     if (index >= P_COUNT) return;
-    const fm1_param_t &p = kParams[index];
-    if (!(value >= p.min)) value = p.min;  // also catches NaN
-    if (value > p.max) value = p.max;
-    value_[index] = value;
+    value = fm1_param_clamp(&kParams[index], value);   // NaN: the default
+    fm1_smooth_set(&smooth_[index], &value_[index], value, Steps(index));
     if (index == P_MODEL) {
       int m = static_cast<int>(value + 0.5f);
       if (m != model_) {
@@ -399,6 +461,16 @@ class Instance {
         model_ = static_cast<Model>(m);
         BuildEngines();
       }
+    }
+  }
+
+  // The voice sounding `key` (one at most: a key retriggers in its own
+  // voice), gated or releasing, takes the offset. On Speech a Harmonics
+  // offset is kept but not played (VoiceControls).
+  void SetParamNote(uint8_t key, uint16_t index, float offset) {
+    if (!Offsets::Normalise(kParams, index, &offset)) return;
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active && voice_[i].key == key) voice_[i].note.Set(index, offset);
     }
   }
 
@@ -436,6 +508,15 @@ class Instance {
   }
 
  private:
+  // A SMOOTH parameter ramps while a voice sounds; anything else, at once.
+  uint32_t Steps(uint16_t index) const {
+    if (!(kParams[index].flags & FM1_PARAM_SMOOTH)) return 0;
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active) return smooth_steps_;
+    }
+    return 0;
+  }
+
   // Two resamplers in step (the same pushes and pops since one was copied
   // from the other) holding the same samples, bit for bit.
   static bool SameState(const fm1_resampler_t &a, const fm1_resampler_t &b) {
@@ -486,13 +567,47 @@ class Instance {
         v.engine->Reset();
       }
       v.lpg.Init();
+      v.decay.Init();
       v.post_out.Init();
       v.post_aux.Init();
       v.release = 1.0f;
       v.silent_blocks = 0;
       v.gate = v.active = v.rising = false;
       v.age = 0;
+      v.note.Clear();
     }
+  }
+
+  Controls MakeControls(const float *value) const {
+    Controls c;
+    c.harmonics = value[P_HARMONICS];
+    c.timbre = value[P_TIMBRE];
+    c.morph = value[P_MORPH];
+    const float decay = value[P_DECAY];
+    c.hf = value[P_COLOUR];
+    c.short_decay = (200.0f * kBlockSize) / kSampleRate *
+        stmlib::SemitonesToRatio(-96.0f * decay);
+    c.decay_tail = (20.0f * kBlockSize) / kSampleRate *
+        stmlib::SemitonesToRatio(-72.0f * decay + 12.0f * c.hf) - c.short_decay;
+    c.voice_gain = value[P_VOLUME] * 0.25f / 32768.0f;
+    // The attenuverters, as Voice::Render applies them with TRIG patched.
+    c.env_pitch = AttenuverterAmount(value[P_ENV_PITCH]);
+    c.env_timbre = AttenuverterAmount(value[P_ENV_TIMBRE]);
+    c.env_morph = AttenuverterAmount(value[P_ENV_MORPH]);
+    c.prosody = value[P_ENV_PITCH];   // Voice: the FM attenuverter
+    c.word_speed = value[P_WORD_SPEED];
+    return c;
+  }
+
+  // A voice's controls: the engine's, unless it has an offset. On Speech,
+  // Harmonics stays the engine's: it picks the word bank every voice reads
+  // (UpdateWordBank), and the envelope's reach (env_amplitude) with it.
+  Controls VoiceControls(const Voice &v, const Controls &shared) const {
+    if (!v.note.any()) return shared;
+    float value[P_COUNT];
+    for (int i = 0; i < P_COUNT; ++i) value[i] = v.note.Value(kParams, i, value_[i]);
+    if (model_ == MODEL_SPEECH) value[P_HARMONICS] = value_[P_HARMONICS];
+    return MakeControls(value);
   }
 
   Voice *Allocate(uint8_t key) {
@@ -516,12 +631,13 @@ class Instance {
   // Speech: the word bank for this block, as SpeechEngine::Render picks it
   // (the same quantizer, run only while Harmonics is in the LPC range), but
   // once for all voices, sounding or not. So a Harmonics move into another
-  // bank costs one parse in the next block, and a note-on never parses. The
-  // bank cannot change twice within a host block, as Harmonics only changes
-  // between render calls.
+  // bank costs one parse in the next block, and a note-on never parses. It
+  // reads where Harmonics is going, not its SMOOTH ramp (fm1_smooth.h): a
+  // ramp across several banks parses only the last, so the bank changes at
+  // most once per set_param, as before the ramps.
   void UpdateWordBank() {
     if (!voice_[0].engine) return;   // no bank storage
-    const float group = value_[P_HARMONICS] * 6.0f;
+    const float group = smooth_[P_HARMONICS].target * 6.0f;
     if (group <= 2.0f) return;
     speech_.word_bank = speech_.quantizer.Process((group - 2.0f) * 0.275f) - 1;
     if (speech_.word_bank >= 0 && speech_.bank.Load(speech_.word_bank)) {
@@ -534,34 +650,52 @@ class Instance {
   }
 
   void RenderBlock() {
+    fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     float mix_l[kBlockSize] = { 0 };
     float mix_r[kBlockSize] = { 0 };
     const ModelInfo &info = kModelInfo[model_];
     const bool stereo = model_ == MODEL_STRING_MACHINE;  // OUT/AUX are its L/R
-    const float decay = value_[P_DECAY];
-    const float hf = value_[P_COLOUR];
-    const float short_decay = (200.0f * kBlockSize) / kSampleRate *
-        stmlib::SemitonesToRatio(-96.0f * decay);
-    const float decay_tail = (20.0f * kBlockSize) / kSampleRate *
-        stmlib::SemitonesToRatio(-72.0f * decay + 12.0f * hf) - short_decay;
-    const float voice_gain = value_[P_VOLUME] * 0.25f / 32768.0f;
+    const Controls shared = MakeControls(value_);
     if (model_ == MODEL_SPEECH) UpdateWordBank();
+    const LpgMode lpg_mode = ToLpgMode(value_[P_LPG]);
+
+    // For speech (engine index 15 in Voice) the envelope's reach on the note
+    // and MORPH fades out as HARMONICS moves into the word banks.
+    float env_amplitude = 1.0f;
+    if (model_ == MODEL_SPEECH) {
+      env_amplitude = 2.0f - value_[P_HARMONICS] * 6.0f;
+      CONSTRAIN(env_amplitude, 0.0f, 1.0f);
+    }
 
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
       if (!v.active) continue;
       if (!v.engine) { v.active = false; continue; }
+      const Controls c = VoiceControls(v, shared);
+      const float short_decay = c.short_decay;
+      const float decay_tail = c.decay_tail;
+      const float hf = c.hf;
+      const float voice_gain = c.voice_gain;
 
       EngineParameters p;
       p.trigger = (v.rising ? TRIGGER_RISING_EDGE : TRIGGER_LOW) |
                   (v.gate ? TRIGGER_HIGH : TRIGGER_LOW);
+      const bool triggered = v.rising;
+      if (triggered) {
+        v.decay.Trigger();
+        if (lpg_mode == LPG_PING) v.lpg.Trigger();   // LEVEL unpatched: TRIG pings
+      }
       v.rising = false;
+      v.decay.Process(short_decay * 2.0f);
+      const float envelope = v.decay.value();
       float note = v.key + bend_;
+      if (v.note.has_pitch()) note += v.note.pitch;
+      note += c.env_pitch * (env_amplitude * envelope * envelope * 48.0f);
       CONSTRAIN(note, -119.0f, 120.0f);  // Voice's range for the note
       p.note = note;
-      p.harmonics = value_[P_HARMONICS];
-      p.timbre = value_[P_TIMBRE];
-      p.morph = value_[P_MORPH];
+      p.harmonics = c.harmonics;
+      p.timbre = Modulate(c.timbre, c.env_timbre, envelope, 0.0f, 1.0f);
+      p.morph = Modulate(c.morph, c.env_morph, env_amplitude * envelope, 0.0f, 1.0f);
       // Accent is the note's velocity for its whole life (drums, strings and
       // speech read it at the trigger or as the word's gain); the low-pass
       // gate's level drops to zero at note-off, as LEVEL does on the module.
@@ -571,18 +705,24 @@ class Instance {
 
       if (model_ == MODEL_SPEECH) {
         SpeechVoiceEngine *speech = static_cast<SpeechVoiceEngine *>(v.engine);
-        speech->set_prosody_amount(0.0f);
-        speech->set_speed(value_[P_WORD_SPEED]);
+        speech->set_prosody_amount(c.prosody);
+        speech->set_speed(c.word_speed);
       }
 
       bool already_enveloped = info.already_enveloped;
       v.engine->Render(p, v.out, v.aux, kBlockSize, &already_enveloped);
 
+      // The gate is bypassed for the self-enveloped models, as Voice does,
+      // and for every model with the LPG Off. Bypassed, a plain gain takes the
+      // key's note-off (with the LPG on Ping, the self-enveloped models ring
+      // out instead, as on the module).
+      const bool bypass = already_enveloped || lpg_mode == LPG_OFF;
       float gain_from = 1.0f, gain_to = 1.0f;
-      if (already_enveloped) {
+      bool ping_shut = false;
+      if (bypass) {
         v.lpg.Init();   // as Voice does while the gate is bypassed
         gain_from = v.release;
-        if (v.gate) {
+        if (v.gate || (already_enveloped && lpg_mode == LPG_PING)) {
           v.release = 1.0f;  // a retrigger mid-release ramps back over one block
         } else {
           // The low-pass gate's own release curve, on a plain gain.
@@ -590,22 +730,34 @@ class Instance {
           v.release -= v.release * (short_decay + (1.0f - r2 * r2) * decay_tail);
         }
         gain_to = v.release;
+      } else if (lpg_mode == LPG_PING) {
+        // Pinged, as in Macro: shut once closing and below 1e-4, never on the
+        // trigger's own block.
+        const float before = v.lpg.gain();
+        const float attack = NoteToFrequency(p.note) * float(kBlockSize) * 2.0f;
+        v.lpg.ProcessPing(attack, short_decay, decay_tail, hf);
+        ping_shut = !triggered && v.lpg.gain() < 1e-4f && v.lpg.gain() <= before;
       } else {
         v.lpg.ProcessLP(v.gate ? accent : 0.0f, short_decay, decay_tail, hf);
       }
-      v.post_out.Process(info.out_gain, already_enveloped, v.lpg.gain(),
+      v.post_out.Process(info.out_gain, bypass, v.lpg.gain(),
                          v.lpg.frequency(), v.lpg.hf_bleed(), v.out, v.pcm_out,
                          kBlockSize, 1);
       if (stereo) {
-        v.post_aux.Process(info.aux_gain, already_enveloped, v.lpg.gain(),
+        v.post_aux.Process(info.aux_gain, bypass, v.lpg.gain(),
                            v.lpg.frequency(), v.lpg.hf_bleed(), v.aux, v.pcm_aux,
                            kBlockSize, 1);
       }
 
+      // On Ping and Off the velocity's accent scales the models the gate
+      // would have shaped (1 at velocity 127); the self-enveloped ones have it
+      // as their accent already.
+      const float level = (lpg_mode != LPG_GATE && !already_enveloped) ? accent : 1.0f;
+      const float vg = voice_gain * level;
       const float step = (gain_to - gain_from) / kBlockSize;
       bool silent = true;
       for (size_t n = 0; n < kBlockSize; ++n) {
-        const float g = voice_gain * (gain_from + step * (n + 1));
+        const float g = vg * (gain_from + step * (n + 1));
         const int16_t l = v.pcm_out[n];
         const int16_t r = stereo ? v.pcm_aux[n] : l;
         mix_l[n] += l * g;
@@ -622,6 +774,15 @@ class Instance {
           v.active = false;
           v.gate = false;
         }
+      } else if (lpg_mode == LPG_OFF) {
+        v.silent_blocks = 0;
+        if (!v.gate && v.release < 1e-4f) v.active = false;
+      } else if (lpg_mode == LPG_PING) {
+        v.silent_blocks = 0;
+        if (ping_shut) {
+          v.active = false;
+          v.gate = false;
+        }
       } else {
         v.silent_blocks = 0;
         if (!v.gate && v.lpg.gain() < 1e-4f) v.active = false;
@@ -633,7 +794,9 @@ class Instance {
 
   Voice voice_[kNumVoices];
   SpeechShared speech_;
-  float value_[P_COUNT];
+  float value_[P_COUNT];           // what the blocks read (SMOOTH: ramped)
+  fm1_smooth_t smooth_[P_COUNT];
+  uint32_t smooth_steps_;          // 12-sample blocks in a ramp
   Model model_;
   bool right_running_;             // resampler_r_ is fed, and gives the right channel
   float bend_;
@@ -664,6 +827,9 @@ void NoteOff(void *s, uint8_t k) { static_cast<Instance *>(s)->NoteOff(k); }
 void Bend(void *s, float st) { static_cast<Instance *>(s)->PitchBend(st); }
 void Set(void *s, uint16_t i, float v) { static_cast<Instance *>(s)->SetParam(i, v); }
 void Render(void *s, float *out, uint32_t n) { static_cast<Instance *>(s)->Render(out, n); }
+void SetNote(void *s, uint8_t k, uint16_t i, float o) {
+  static_cast<Instance *>(s)->SetParamNote(k, i, o);
+}
 
 }  // namespace macro_heavy
 }  // namespace fm1
@@ -676,4 +842,5 @@ extern "C" const fm1_engine_t fm1_engine_macro_heavy = {
   fm1::macro_heavy::InstanceSize, fm1::macro_heavy::Create, fm1::macro_heavy::Destroy,
   fm1::macro_heavy::NoteOn, fm1::macro_heavy::NoteOff, fm1::macro_heavy::Bend,
   fm1::macro_heavy::Set, fm1::macro_heavy::Render,
+  fm1::macro_heavy::SetNote,
 };

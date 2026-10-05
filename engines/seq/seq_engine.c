@@ -60,7 +60,7 @@ void fm1_seq_limits_default(fm1_seq_limits_t *lim, uint8_t tracks) {
   lim->clip_notes = 512;
   lim->clip_locks = 1024;
   lim->clip_trigs = 1024;
-  lim->capture = 0;
+  lim->capture = 256;
 }
 
 size_t fm1_seq_size(const fm1_seq_limits_t *lim) {
@@ -1475,6 +1475,7 @@ void fm1_seq_get_info(const fm1_seq_t *s, fm1_seq_info_t *i) {
   i->capture_n = s->cap_n;
   i->capture_sel = s->cap_sel;
   memcpy(i->capture_cands, s->cap_cands, sizeof(i->capture_cands));
+  i->rec_track = s->rec_track;
 }
 
 int fm1_seq_get_track(const fm1_seq_t *s, uint8_t t, fm1_seq_track_info_t *o) {
@@ -1537,6 +1538,58 @@ int fm1_seq_get_note(const fm1_seq_t *s, uint8_t t, uint8_t slot, uint16_t i,
   o->vel = n->vel;
   o->suppress = (n->step & SQ_N_SUPPRESS) ? 1 : 0;
   o->fired = (n->step & SQ_N_FIRED) ? 1 : 0;
+  return 1;
+}
+
+/* One pass over each of the clip's three lists (docs/15 §2.5): notes counted
+ * on their anchor step, each lock on its lane's bit, each trig row on its
+ * step's flags, the whole-step row's values kept. Movy keeps at most one
+ * lock per (lane, step) and one row per (step, lane), as the core does. */
+int fm1_seq_get_page(const fm1_seq_t *s, uint8_t t, uint8_t slot, uint16_t first, uint16_t n,
+                     fm1_seq_step_info_t *out) {
+  const sq_clip_t *c;
+  unsigned i;
+  if (t >= s->n_tracks || slot >= FM1_SEQ_SLOTS) return 0;
+  c = sq_cclip(s, t, slot);
+  for (i = 0; i < n; ++i) {
+    memset(&out[i], 0, sizeof(out[i]));
+    out[i].prob = 100;
+    out[i].cond_a = 1;
+    out[i].cond_b = 1;
+  }
+  {
+    const sq_note_t *nt = &sq_cnotes(s)[c->seg[SQ_K_NOTES].off];
+    for (i = 0; i < c->seg[SQ_K_NOTES].len; ++i) {
+      const unsigned k = (unsigned)SQ_NSTEP(&nt[i]) - first;
+      if (SQ_NSTEP(&nt[i]) >= first && k < n && out[k].notes < 255u) ++out[k].notes;
+    }
+  }
+  {
+    const sq_lock_t *l = &sq_clocks(s)[c->seg[SQ_K_LOCKS].off];
+    for (i = 0; i < c->seg[SQ_K_LOCKS].len; ++i) {
+      const unsigned k = (unsigned)l[i].step - first;
+      if (l[i].step >= first && k < n && l[i].lane < FM1_SEQ_LANES) {
+        out[k].lock_mask = (uint8_t)(out[k].lock_mask | (1u << l[i].lane));
+        out[k].lock[l[i].lane] = l[i].val;
+      }
+    }
+  }
+  {
+    const sq_trig_t *g = &sq_ctrigs(s)[c->seg[SQ_K_TRIGS].off];
+    for (i = 0; i < c->seg[SQ_K_TRIGS].len; ++i) {
+      const unsigned k = (unsigned)g[i].step - first;
+      if (g[i].step < first || k >= n) continue;
+      if (g[i].lane == SQ_NONE) {
+        out[k].trig = (uint8_t)(out[k].trig | FM1_SEQ_TRIG_STEP |
+                                ((g[i].prob_inv & 0x80u) ? FM1_SEQ_TRIG_INV : 0u));
+        out[k].prob = (uint8_t)(g[i].prob_inv & 0x7Fu);
+        out[k].cond_a = g[i].a;
+        out[k].cond_b = g[i].b;
+      } else {
+        out[k].trig = (uint8_t)(out[k].trig | FM1_SEQ_TRIG_PITCH);
+      }
+    }
+  }
   return 1;
 }
 

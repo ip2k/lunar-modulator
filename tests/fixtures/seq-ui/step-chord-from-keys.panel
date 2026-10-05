@@ -1,0 +1,10 @@
+# The keys played in HOME (F3, A3, C4 at 90, 80 and 70, together) are the
+# chord a tap writes, each pitch with its velocity (O5); they sound, and the
+# replay has them as --note. A tap on step 9, which has a note, clears it.
+--key 0.10:0:90:0.3
+--key 0.15:4:80:0.25
+--key 0.20:7:70:0.2
+--button 0.60:SEQ
+--key 0.70:2:100:0.05
+--key 0.80:14:100:0.05
+--button 0.90:PLAY/STOP

@@ -55,9 +55,12 @@ Detailed commands in docs/09.
 
 - Install the JieLi Linux toolchain and post-build tools; build the SDK's
   `demo_hello` for AC791N (`make ac791n_demo_demo_hello`).
-- Create a `board_fm1.c` from AL-255's hardware map: SPI1 display pins, key
-  matrix ports, encoder/ADC pins, DAC, UART on the MIDI TRS jack for logging.
-- Flash via mask-ROM USB; confirm UART log; blink the key LEDs; draw on the TFT.
+- Create a `board_fm1.c` from the pin map in docs/01 §3.1 (Felucca and
+  fm1-nes [reported], checked against V15 in DEVELOPERS.md's I4): SPI1
+  display pins, key matrix ports, the matrix encoders and the MASTER ADC,
+  the ALNK0 I2S audio path. The TRS jack is UART RX only, so log over USB
+  CDC or on the TFT.
+- Flash via mask-ROM USB; confirm the log; blink the key LEDs; draw on the TFT.
 - Add the fail-open boot path (key combo held at power-up → USB update mode)
   and a watchdog failure counter. Test both.
 - **Exit:** "hello" firmware runs, logs, and can always be replaced.
@@ -67,8 +70,10 @@ Detailed commands in docs/09.
 - Port Synth_Dexed `EngineMsfa` (or msfa directly) to pi32v2 with the JieLi
   toolchain (C++11, no exceptions/RTTI; AL-255's branch already did the host
   build and shims).
-- DAC output through the SDK audio path or a direct DMA ring (AL-255 recovered
-  the DAC SFRs); 44.1 kHz, 64-sample blocks; measure voice count vs. CPU.
+- Audio output over ALNK0 (I2S) to the board's external codec, through the
+  SDK's `iis_open` or a direct DMA ping-pong (AL-255 read an internal DAC;
+  Felucca and fm1-nes use I2S [reported]); 44,117.6 Hz, 64-frame halves;
+  measure voice count vs. CPU.
 - USB-MIDI class device (SDK `usb.h`), UART MIDI, DX7 SysEx bulk/single/param
   messages; program change, CC map compatible with stock where sensible.
 - Preset storage in flash (32-voice VMEM banks), factory bank from any DX7
@@ -113,7 +118,10 @@ Detailed commands in docs/09.
 - Toolchain: document the pi32v2 ISA formally from the vendor objdump +
   ghidra-jieli; fix ghidra-jieli's `80 ff` long-call decoding; evaluate an LLVM
   backend as a separate project.
-- Second core: offload effects or the UI.
+- Second core: stock already renders its voices on cpu1, outside the OS
+  (docs/11 §2). Whether an SDK build can do the same is tested on the dev
+  kit (docs/14 §5.1). A blob-free firmware must also start cpu1 itself
+  (the mailbox and `C1_CON` writes, not yet understood).
 
 ## Research items (any time)
 

@@ -1,20 +1,30 @@
-"""The sequencer through fm1-render (docs/13 §7 and stage M2, the parts that
-need no engine API change): per-track routing to the sound engine or to
-USB-MIDI, notes and locks at their own frame through split renders, locks
-reaching the engine parameter their lane names, and the same audio at any
-host block size.
+"""The sequencer through fm1-render (docs/13 §7 and stage M2): per-track
+routing to the sound engine or to USB-MIDI, notes and locks at their own
+frame through split renders, locks reaching the engine parameter their lane
+names (resolved to its uid, engine API v2), locks on NOLOCK parameters
+refused and counted, and the same audio at any host block size. fm1-render
+hosts the core through the shared bridge (engines/include/fm1_seq_host.h),
+so these are its tests too: lane labels, locks that split a block only when
+the engine takes them, the event log of every oracle script, and a buffer
+the size the virtual FM-1 will use.
 """
 import json
 import math
+import re
+import struct
 import subprocess
 import wave
+from pathlib import Path
 
 import pytest
 
+from tests.engine_helpers import ROOT
 from tests.seq_helpers import RENDER, ons, seq_tools  # noqa: F401
 from tests.test_seq_core import d1_frame
 
 RATE = 44118
+FIX = Path(__file__).resolve().parent / "fixtures" / "movy"
+ORACLE = sorted(FIX.glob("*.verbs")) + sorted((FIX / "random").glob("*.verbs"))
 
 
 def render(tmp_path, script, extra=(), name="r", engine="test-sine", seconds=None):
@@ -49,7 +59,7 @@ def test_track_zero_plays_the_engine_by_default(seq_tools, tmp_path):
     s, left, ev, _ = render(tmp_path, TWO_TRACKS)
     assert s["seq_notes_to_engine"] == len(ons(ev, 0)) > 0
     assert len(ons(ev, 1)) > 0, "track 1 goes to USB-MIDI: logged, not played"
-    assert s["seq_bytes"] == 14984 and s["seq_refused"] == 0
+    assert s["seq_bytes"] == 18056 and s["seq_refused"] == 0 and s["seq_locks_refused"] == 0
     assert rms(left) > 100
 
 
@@ -87,7 +97,8 @@ def test_a_note_sounds_from_its_own_frame(seq_tools, tmp_path, compat):
 def test_locks_set_the_parameter_their_lane_names(seq_tools, tmp_path):
     """Lane 0 is labelled synth:Volume, so its locks set test-sine's Volume
     (0..1 from 0..127). A lock of 0 on step 2 silences the held note from that
-    step's frame on; the latch holds it there until step 8's lock of 127."""
+    step's frame on, over Volume's 110-sample SMOOTH ramp (docs/15 S7b); the
+    latch holds it there until step 8's lock of 127."""
     script = (f"#! rate={RATE} block=64 tracks=1 end={2 * RATE}\n"
               "@0 tog 0 0 84 100;slen 0 0 0 -1 380\n"
               "@0 alabel 0 0 synth:Volume;abase 0 0 127;aset 0 0 2 0 1;aset 0 0 8 127 1\n@0 play\n")
@@ -99,29 +110,99 @@ def test_locks_set_the_parameter_their_lane_names(seq_tools, tmp_path):
     on_at = locks[3]["frame"]
     assert off_at == d1_frame(0, 47)
     assert rms(left[off_at - 600:off_at]) > 1000
-    assert max(abs(v) for v in left[off_at:on_at]) == 0
+    assert left[off_at] != 0 and max(abs(v) for v in left[off_at + 109:on_at]) == 0
     assert rms(left[on_at + 300:on_at + 900]) > 1000
     s, _, _, _ = render(tmp_path, script.replace("synth:Volume", "synth:Cutoff"), name="none")
     assert s["seq_locks_to_engine"] == 0, "a lane naming no parameter of this engine is ignored"
 
 
 def test_an_enum_lock_selects_a_bin(seq_tools, tmp_path):
-    """A lock on Macro's Model (ENUM, eight models) picks bin floor(v*8/128):
-    0 and 15 are both model 0, 16 is model 1."""
+    """A lock on Six-Op's Patch (ENUM, 96 patches, LATCH: read at note-on)
+    picks bin floor(v*96/128): 0 and 1 are both patch 0, 2 is patch 1. The
+    lane's base goes out at Play before the first note-on (D2), so the first
+    note already plays it. (Macro's Model, which this test used before API
+    v2, is NOLOCK now.)"""
     script = (f"#! rate={RATE} block=64 tracks=1 end={RATE}\n"
               "@0 tog 0 0 57 100;slen 0 0 0 -1 300\n"
-              "@0 alabel 0 0 synth:Model;abaseq 0 0 {v};play\n")
+              "@0 alabel 0 0 synth:Patch;abaseq 0 0 {v};play\n")
     raw = {}
-    for v in (0, 15, 16):
-        s, _, _, raw[v] = render(tmp_path, script.format(v=v), engine="macro", name=f"m{v}")
-        assert s["seq_locks_to_engine"] == 1
-    assert raw[0] == raw[15] and raw[0] != raw[16]
+    for v in (0, 1, 2):
+        s, _, _, raw[v] = render(tmp_path, script.format(v=v), engine="sixop", name=f"m{v}")
+        assert s["seq_locks_to_engine"] == 1 and s["seq_locks_refused"] == 0
+    assert raw[0] == raw[1] and raw[0] != raw[2]
 
 
-@pytest.mark.parametrize("engine", ["test-sine", "macro", "sixop"])
+NOLOCK_LANE = (f"#! rate={RATE} block=64 tracks=1 end={RATE}\n"
+               "@0 tog 0 0 {notes};tog 0 4 {notes};tog 0 8 {notes};slen 0 0 0 -1 380\n"
+               "@0 alabel 0 0 synth:{name};abase 0 0 30;aset 0 0 2 90 1;aset 0 0 6 127 1\n"
+               "@0 play\n")
+
+
+@pytest.mark.parametrize("engine,name", [("macro", "Model"), ("macro-heavy", "Model"),
+                                         ("shapes", "Shape")])
+def test_a_lock_on_a_nolock_parameter_is_refused(seq_tools, tmp_path, engine, name):
+    """API v2: a NOLOCK parameter (Macro's Model rebuilds every voice) never
+    takes a lock. Every lock the lane sends is refused and counted, none
+    reaches the engine or splits a block, and the audio is that of the same
+    script without the lane. A lane on a lockable parameter of the same
+    engine does reach it."""
+    notes = "36 100 38 90" if engine == "sw-sophie" else "60 100 64 90"
+    script = NOLOCK_LANE.format(notes=notes, name=name)
+    s, _, ev, raw = render(tmp_path, script, engine=engine, name="lane")
+    lines = script.splitlines(keepends=True)
+    s0, _, _, raw0 = render(tmp_path, "".join(lines[:2] + lines[3:]), engine=engine,
+                            name="nolane")
+    sent = len([e for e in ev if e["kind"] == "cc"])
+    assert sent >= 3 and s["seq_locks_refused"] == sent
+    assert s["seq_locks_to_engine"] == 0 and s["seq_splits"] == s0["seq_splits"]
+    assert raw == raw0
+    other = {"macro": "Timbre", "macro-heavy": "Timbre", "shapes": "Timbre"}[engine]
+    s, _, _, _ = render(tmp_path, script.replace(f"synth:{name}", f"synth:{other}"),
+                        engine=engine, name="lockable")
+    assert s["seq_locks_to_engine"] == sent and s["seq_locks_refused"] == 0
+
+
+def test_a_lock_on_sophies_pad_moves_the_edit_focus(seq_tools, tmp_path):
+    """Sophie's Pad is lockable since docs/15 S8 (the owner's decision,
+    2026-10-02; NOLOCK before). Its locks reach the engine, and since Pad is
+    the edit focus, a Tune lock after it at the same step (lane order, D2)
+    tunes the pad it names: the snare (pad 3, bin 16..23) rather than the
+    kick the base leaves focused, so the snare at step 8 sounds otherwise.
+    Until then the two renders are the same: Tune is read at note-on."""
+    script = (f"#! rate={RATE} block=64 tracks=1 end={2 * RATE}\n"
+              "@0 tog 0 0 36 100;tog 0 8 38 100\n"
+              "@0 alabel 0 0 synth:Pad;abaseq 0 0 0;aset 0 0 4 16 1;"
+              "alabel 0 1 synth:Tune;abaseq 0 1 54;aset 0 1 4 127 1\n@0 play\n")
+    s, _, ev, raw = render(tmp_path, script, engine="sw-sophie", name="pad")
+    sent = [e for e in ev if e["kind"] == "cc"]
+    assert s["seq_locks_refused"] == 0 and s["seq_locks_to_engine"] == len(sent) >= 4
+    s0, _, _, raw0 = render(tmp_path, script.replace("aset 0 0 4 16 1;", ""), engine="sw-sophie",
+                            name="nopad")
+    step8 = 4 * (RATE - 64)                 # bytes before step 8's block (1 s at 120 BPM)
+    assert raw[:step8] == raw0[:step8] and raw != raw0, "the snare took the Tune lock"
+
+
+def test_a_label_names_a_parameter_with_a_space_by_an_underscore(seq_tools, tmp_path):
+    """A lane label is one token of a script or a set, so a parameter whose
+    name has a space (Macro's Env Pitch) is labelled with '_' in its place
+    (docs/15 S8, fm1_seq_lane_label_for), and resolves to it in any case."""
+    script = (f"#! rate={RATE} block=64 tracks=1 end={RATE // 2}\n"
+              "@0 tog 0 0 60 100;tog 0 4 64 100\n"
+              "@0 alabel 0 0 synth:{label};abaseq 0 0 64;aset 0 0 4 127 1\n@0 play\n")
+    raws = {}
+    for label in ("Env_Pitch", "env_pitch", "Env-Pitch", "EnvPitch"):
+        s, _, _, raws[label] = render(tmp_path, script.format(label=label), engine="macro",
+                                      name=label.replace("_", "u"))
+        assert s["seq_locks_to_engine"] == (2 if "_" in label else 0)
+    assert raws["Env_Pitch"] == raws["env_pitch"] != raws["EnvPitch"] == raws["Env-Pitch"]
+
+
+@pytest.mark.parametrize("engine", ["test-sine", "macro", "sixop", "macro-heavy", "shapes"])
 def test_audio_is_the_same_at_host_blocks_of_1_7_and_64(seq_tools, tmp_path, engine):
     """docs/13 stage M2's exit: the same output at host blocks of 1, 7 and
-    64 frames. Commands sit on multiples of 448 frames (lcm of 7 and 64)."""
+    64 frames. Commands sit on multiples of 448 frames (lcm of 7 and 64).
+    The locks land under sounding notes, so Timbre's and Volume's SMOOTH
+    ramps (docs/15 S7b) run, keyed to the engines' samples, not to calls."""
     script = ("#! rate={rate} block={block} tracks=2 end={end}\n"
               "@0 tog 0 0 60 100 64 90;tog 0 3 67 100;tog 0 6 72 80;cscl 0 3 2;swing 62\n"
               "@0 tog 1 1 48 100;tog 1 5 55 70\n"
@@ -171,3 +252,234 @@ def test_plain_renders_are_unchanged(seq_tools, tmp_path):
     bad = subprocess.run([str(RENDER), "--engine", "test-sine", "--route", "0:engine"],
                          capture_output=True, text=True)
     assert bad.returncode == 2
+    bad = subprocess.run([str(RENDER), "--engine", "test-sine", "--events", "256"],
+                         capture_output=True, text=True)
+    assert bad.returncode == 2 and "--events needs --cmd or --seq" in bad.stderr
+
+
+# ---- The host bridge (engines/include/fm1_seq_host.h) ---------------------------------------
+
+LANE = (f"#! rate={RATE} block=64 tracks=1 end={RATE}\n"
+        "@0 tog 0 0 60 100;slen 0 0 0 -1 380\n"
+        "@0 alabel 0 0 {label};abase 0 0 {base};aset 0 0 2 {a} 1;aset 0 0 6 {b} 1\n@0 play\n")
+
+
+@pytest.mark.parametrize("engine,name,values", [("macro", "Timbre", (0, 127, 20)),
+                                                ("test-sine", "Volume", (127, 0, 90))])
+def test_a_lane_label_names_the_parameter_after_its_last_colon(seq_tools, tmp_path, engine, name,
+                                                               values):
+    """The part after the last ':' names the parameter, without ASCII case:
+    three spellings lock the same parameter, and a label naming none of the
+    engine's is sent and skipped, which sounds different."""
+    base, a, b = values
+    locks, raws = [], []
+    for k, label in enumerate([f"synth:{name.upper()}", name.lower(), f"a:b:{name}"]):
+        s, _, _, raw = render(tmp_path, LANE.format(label=label, base=base, a=a, b=b), engine=engine,
+                              name=f"l{k}")
+        locks.append(s["seq_locks_to_engine"])
+        raws.append(raw)
+    assert locks[0] > 0 and locks[0] == locks[1] == locks[2]
+    assert raws[0] == raws[1] == raws[2]
+    s, _, ev, raw = render(tmp_path, LANE.format(label="synth:Nothing", base=base, a=a, b=b),
+                           engine=engine, name="none")
+    assert s["seq_locks_to_engine"] == 0 and len([e for e in ev if e["kind"] == "cc"]) >= 2
+    assert raw != raws[0], "the locks change the sound"
+
+
+@pytest.mark.parametrize("v", [127, 64, 1])
+def test_a_float_lock_sets_min_plus_range_times_v_over_127(seq_tools, tmp_path, v):
+    """fm1_seq_lock_value's float expression, which fm1-render always used: a
+    lock of v on test-sine's Volume (0..1), sent before the note, sounds
+    exactly like Volume set to the float v/127 at the start."""
+    want = struct.unpack("<f", struct.pack("<f", v / 127))[0]
+    plain = f"#! rate={RATE} block=64 tracks=1 end=8820\n@0 tog 0 0 69 100\n@0 play\n"
+    locked = plain.replace("@0 play", f"@0 alabel 0 0 synth:Volume;abase 0 0 {v};play")
+    s, _, _, raw = render(tmp_path, locked, name="locked")
+    _, _, _, ref = render(tmp_path, plain, extra=["--param", f"Volume={want:.17g}"], name="param")
+    assert s["seq_locks_to_engine"] > 0 and raw == ref
+
+
+def test_a_lock_the_engine_cannot_take_does_not_split_the_block(seq_tools, tmp_path):
+    """The engines render a block cut into pieces exactly as a whole one (the
+    same WAV at blocks of 1, 7 and 64, above), so the WAV cannot show a
+    split; seq_splits (render calls starting inside a block) can. A lane
+    naming no parameter adds no split; one naming Volume does."""
+    plain = (f"#! rate={RATE} block=64 tracks=1 end={RATE}\n"
+             "@0 tog 0 0 84 100;tog 0 4 86 100\n@0 play\n")
+    lane = plain.replace("@0 play", "@0 alabel 0 0 synth:Nothing;abase 0 0 0;aset 0 0 2 90 1;"
+                                    "aset 0 0 6 30 1\n@0 play")
+    s0, _, _, raw0 = render(tmp_path, plain, name="plain")
+    s1, _, ev1, raw1 = render(tmp_path, lane, name="lane")
+    s2, _, _, _ = render(tmp_path, lane.replace("synth:Nothing", "synth:Volume"), name="known")
+    assert len([e for e in ev1 if e["kind"] == "cc"]) >= 2 and s1["seq_locks_to_engine"] == 0
+    assert s1["seq_splits"] == s0["seq_splits"] > 0
+    assert raw1 == raw0
+    assert s2["seq_locks_to_engine"] > 0 and s2["seq_splits"] > s0["seq_splits"]
+
+
+def script_block(script):
+    return int(re.search(r"\bblock=(\d+)", script.read_text().splitlines()[0]).group(1))
+
+
+@pytest.mark.parametrize("script", ORACLE, ids=lambda p: p.stem)
+def test_every_oracle_script_logs_as_fm1_seq_and_drops_nothing(seq_tools, tmp_path, script):
+    """fm1-render, through the bridge, logs byte for byte what fm1-seq logs:
+    at 64-frame blocks and at the script's own, in both modes. Nothing is
+    dropped, and in the default mode a 64-frame block holds at most 7 events
+    (measured), far inside the 256 the virtual FM-1 is to have. Integer-only,
+    so it holds at 32 bits and under the sanitizers too."""
+    state = script.with_name(script.stem + ".in.movy1")
+    extra = ["--seq", str(state)] if state.exists() else []
+    rlog, slog = tmp_path / "r.jsonl", tmp_path / "s.jsonl"
+    for compat in (False, True):
+        mode = ["--compat"] if compat else []
+        for block in sorted({64, script_block(script)}):
+            res = subprocess.run([str(RENDER), "--cmd", str(script), *extra, *mode, "--engine",
+                                  "test-sine", "--frames", str(block), "--log-events", str(rlog)],
+                                 check=True, capture_output=True, text=True)
+            subprocess.run([str(seq_tools), "--cmd", str(script), *extra, *mode, "--block",
+                            str(block), "--log", str(slog)], check=True, capture_output=True)
+            assert rlog.read_bytes() == slog.read_bytes(), (compat, block)
+            s = json.loads(res.stdout)
+            assert s["seq_dropped"] == 0, (compat, block)
+            if not compat and block == 64:
+                assert 0 < s["seq_max_block_events"] <= 7
+
+
+def full_stop_script(tracks=8, stop_at=4096):
+    """Every track plays an 8-note chord with all 8 lanes locked away from
+    their base: 64 gates and 64 lanes, both full at 8 tracks."""
+    lines = [f"#! rate={RATE} block=64 tracks={tracks} end={stop_at + 640}"]
+    for t in range(tracks):
+        chord = " ".join(f"{48 + 3 * t + k} 100" for k in range(8))
+        lines.append(f"@0 tog {t} 0 {chord};slen {t} 0 0 -1 380")
+        lines.append("@0 " + ";".join(f"alabel {t} {lane} synth:L{lane};aset {t} {lane} 0 100 1"
+                                      for lane in range(8)))
+    lines += ["@0 play", f"@{stop_at} stop"]
+    return "\n".join(lines) + "\n"
+
+
+def test_an_app_sized_event_buffer_takes_a_full_stop(seq_tools, tmp_path):
+    """272 events per block, the size the virtual FM-1 uses (256 until stage
+    S6, docs/15): a stop at
+    full load sends 64 note-offs and 64 base reverts (D6) at once, and the
+    block's advance adds the transport's Stop: 129 events, which is
+    fm1_seq_cmd_max_events at 8 tracks and 64 gates. Nothing is dropped and
+    every note closes. A 100-event buffer does drop, and says so."""
+    script = full_stop_script()
+    s, _, ev, _ = render(tmp_path, script, extra=["--events", "272"], name="app")
+    assert s["seq_dropped"] == 0 and s["seq_refused"] == 0
+    stop = [e for e in ev if e["block"] == 4096 // 64]
+    assert len([e for e in stop if e["kind"] == "off"]) == 64
+    assert len([e for e in stop if e["kind"] == "cc" and e["b"] == 0]) == 64
+    assert [e["kind"] for e in stop][-1] == "stop" and len(stop) == 64 + 8 * 8 + 1
+    sounding = {}
+    for e in ev:
+        if e["kind"] in ("on", "off"):
+            k = (e["track"], e["a"])
+            sounding[k] = sounding.get(k, 0) + (1 if e["kind"] == "on" else -1)
+    assert len(sounding) == 64 and not any(sounding.values()), "a note left sounding"
+    assert s["seq_max_block_events"] >= len(stop)
+    s, _, _, _ = render(tmp_path, script, extra=["--events", "100"], name="small")
+    assert s["seq_dropped"] > 0
+
+
+def test_the_default_event_buffer_holds_more_than_an_app_sized_one(seq_tools, tmp_path):
+    """fm1-render's default stays 65,536 events: 16 tracks at full load put
+    more than 272 events in one block, which the default holds whole and an
+    app-sized buffer does not. --events takes a decimal count, nothing else."""
+    script = full_stop_script(tracks=16)
+    s, _, _, _ = render(tmp_path, script, name="default")
+    assert s["seq_dropped"] == 0 and s["seq_max_block_events"] > 272
+    s, _, _, _ = render(tmp_path, script, extra=["--events", "272"], name="app")
+    assert s["seq_dropped"] > 0 and s["seq_max_block_events"] <= 272
+    cmd_file = tmp_path / "default.txt"
+    for bad in ("0", "65537", "0x100", "256k", ""):
+        res = subprocess.run([str(RENDER), "--cmd", str(cmd_file), "--events", bad],
+                             capture_output=True, text=True)
+        assert res.returncode == 2 and "--events wants 1..65536" in res.stderr, bad
+
+
+MIDI_LANE = (f"#! rate={RATE} block=64 tracks=2 end={RATE}\n"
+             "@0 tog 0 0 84 100;slen 0 0 0 -1 380;tog 1 0 60 100;tog 1 4 64 100\n"
+             "@0 alabel 1 0 synth:Volume;abase 1 0 127;aset 1 0 2 0 1;aset 1 0 6 64 1\n"
+             "@0 play\n")
+
+
+def test_a_lane_on_a_midi_track_never_reaches_the_engine(seq_tools, tmp_path):
+    """Track 1 goes to USB-MIDI: its locks are logged (CC 102+lane) even
+    though the lane names the engine's Volume, but the engine never gets
+    them, so the sound is that of the same script without the lane. Routed
+    to the engine, the same locks reach it."""
+    s, _, ev, raw = render(tmp_path, MIDI_LANE, name="midi")
+    assert len([e for e in ev if e["kind"] == "cc" and e["track"] == 1]) >= 2
+    assert s["seq_locks_to_engine"] == 0 and s["seq_notes_to_engine"] > 0
+    lines = MIDI_LANE.splitlines(keepends=True)
+    _, _, _, ref = render(tmp_path, "".join(lines[:2] + lines[3:]), name="nolane")
+    assert raw == ref
+    s, _, _, _ = render(tmp_path, MIDI_LANE.replace("@0 play", "@0 route 1 1 0;play"), name="routed")
+    assert s["seq_locks_to_engine"] >= 2
+
+
+def test_with_no_engine_the_events_are_logged_and_the_input_passes(seq_tools, tmp_path):
+    """No --engine: the bridge gets no sink, so nothing is rendered or split
+    and the --input signal goes through untouched, while the log holds the
+    events an engine would have had."""
+    common = ["--input", "sine", "--rate", str(RATE), "--frames", "64", "--seconds", "0.75"]
+    s, _, ev, raw = render(tmp_path, TWO_TRACKS, extra=common, engine=None, name="none")
+    assert s["engine"] is None and s["seq_notes_to_engine"] == 0 and s["seq_splits"] == 0
+    assert s["seq_events"] == len(ev) > 0 and len(ons(ev, 0)) > 0
+    _, _, ev_engine, _ = render(tmp_path, TWO_TRACKS, extra=common[2:], name="engine")
+    assert ev == ev_engine
+    wav = tmp_path / "plain.wav"
+    subprocess.run([str(RENDER), *common, "--out", str(wav)], check=True, capture_output=True)
+    with wave.open(str(wav), "rb") as w:
+        assert w.readframes(w.getnframes()) == raw
+
+
+def test_the_bridge_checks_itself(seq_tools):
+    """engines/test/seq_host_test.c drives the bridge where fm1-render does
+    not: typed commands, realtime input and live notes against the same text
+    lines (same events every block, same set), every sink call at its
+    event's frame and in order, one sink per sound unit (dispatch_slots:
+    each slot its own tracks and splits, an empty slot nothing), the room
+    figures, the length-bounded `rt` parser, lane labels and lock values."""
+    res = subprocess.run([str(seq_tools.parent / "fm1-seq-host-test")], capture_output=True,
+                         text=True)
+    assert res.returncode == 0, res.stderr
+    out = json.loads(res.stdout)
+    assert out["ok"] and out["events"] > 100 and out["sink_calls"] > 20 and out["splits"] > 10
+
+
+def test_seq_benchs_burst_fits_the_apps_272_events_and_not_256(seq_tools, tmp_path):
+    """docs/15 S6 (the S2 open issue): tools/seq_bench.py's burst puts 193
+    events in a block beside the 64 gates' note-offs the core keeps room
+    for, 257 in all. The app's old 256 dropped 400 of its note-ons; its 272
+    hold it whole."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("seq_bench", ROOT / "tools" / "seq_bench.py")
+    bench = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bench)
+    script = bench.burst("255 1", seconds=2)
+    small, _, _, _ = render(tmp_path, script, extra=["--events", "256"], name="b256")
+    app, _, _, _ = render(tmp_path, script, extra=["--events", "272"], name="b272")
+    assert small["seq_dropped"] > 0
+    assert app["seq_dropped"] == 0 and app["seq_max_block_events"] == 193
+
+
+def test_the_click_is_the_same_at_host_blocks_of_1_7_and_64(seq_tools, tmp_path):
+    """O11: the metronome's click starts at its event's own frame and is
+    computed in integers, so it renders the same in any block size; none
+    sounds while `metro` is off."""
+    script = (f"#! rate={RATE} block={{block}} tracks=4 end={RATE * 3}\n"
+              "@0 tog 0 0 60 100\n@0 metro 1;play\n"
+              f"@{RATE} metro 0\n@{RATE * 3 // 2 + 37} metro 1\n")
+    out = {}
+    for block in (1, 7, 64):
+        s, _, _, raw = render(tmp_path, script.format(block=block), engine="test-sine", name=f"c{block}")
+        out[block] = raw
+        assert s["seq_clicks"] == 5
+    assert out[1] == out[64] and out[7] == out[64]
+    off, _, _, _ = render(tmp_path, script.format(block=64).replace("metro 1;", ""), engine="test-sine",
+                          name="off")
+    assert off["seq_clicks"] == 3, "only from the second metro 1 on"

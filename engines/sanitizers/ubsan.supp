@@ -15,3 +15,8 @@ signed-integer-overflow:third_party/mutable/stmlib/utils/dsp.h
 # the result is discarded or tiny (engines/plaits-heavy.md, quirk 4).
 shift-base:third_party/mutable/plaits/dsp/fm/dx_units.h
 shift-exponent:third_party/mutable/plaits/dsp/fm/dx_units.h
+# Peaks' bouncing ball shifts a negative initial velocity left by 4
+# (set_initial_velocity), as ARM GCC compiled it; only fm1-mod-mi-ref runs
+# the original, as the oracle for the Bounce kind's port, which multiplies
+# by 16 instead (engines/mod/kinds.md).
+shift-base:third_party/mutable/peaks/modulations/bouncing_ball.h

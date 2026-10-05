@@ -1,0 +1,5 @@
+# SHIFT (SEL, in HOME too) + PLAY/STOP while playing restarts: `play`.
+--button 0.10:PLAY/STOP
+--button 0.50:SEL:0.1
+--button 0.55:PLAY/STOP
+--button 1.00:PLAY/STOP

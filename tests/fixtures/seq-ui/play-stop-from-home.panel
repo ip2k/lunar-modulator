@@ -1,0 +1,3 @@
+# PLAY/STOP in HOME: play, then stop.
+--button 0.10:PLAY/STOP
+--button 1.30:PLAY/STOP

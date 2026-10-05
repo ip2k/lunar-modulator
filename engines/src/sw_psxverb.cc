@@ -29,12 +29,19 @@ const char *const kModelNames[6] = {
 
 enum Param { P_MODEL, P_DECAY, P_MIX, P_LEVEL, P_INPUT, P_COUNT };
 
+// Uids derive from the module's keys (schwung_shim.h, KeyUid). A new Model
+// clears the 128 KB work area (v2_apply_preset), cutting the tail: NOLOCK.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Model", FM1_PARAM_ENUM,  0, 5, 4, kModelNames, 0 },
-  { "Decay", FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 0 },
-  { "Mix",   FM1_PARAM_FLOAT, 0, 1, 0.35f, NULL, 0 },
-  { "Level", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },
-  { "Input", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1 },
+  { "Model", FM1_PARAM_ENUM,  0, 5, 4, kModelNames, 0,
+    KeyUid("model"), FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Model" },
+  { "Decay", FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 0,
+    KeyUid("decay"), FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Decay" },
+  { "Mix",   FM1_PARAM_FLOAT, 0, 1, 0.35f, NULL, 0,
+    KeyUid("mix"), FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
+  { "Level", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0,
+    KeyUid("reverb_level"), FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Level" },
+  { "Input", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1,
+    KeyUid("input_gain"), FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Input" },
 };
 
 const ParamKey kKeys[P_COUNT] = {
@@ -85,4 +92,5 @@ extern "C" const fm1_engine_t fm1_engine_sw_psxverb = {
   fm1::sw_psxverb::Size, fm1::sw_psxverb::New, fm1::schwung::Destroy,
   NULL, NULL, NULL,
   fm1::schwung::SetParam, fm1::schwung::Render,
+  NULL,                     // no notes, so no per-note offsets
 };

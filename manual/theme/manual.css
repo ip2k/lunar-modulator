@@ -1,0 +1,350 @@
+/* The Lunar Modulator user manual: screen styles.
+ *
+ * Colours: Rosé Pine Dawn (https://rosepinetheme.com/palette/, MIT,
+ * Copyright (c) mvllow). Values as published in rose-pine/rose-pine-palette
+ * palette.json and on the palette page, checked 2026-10-01. Dawn's text is
+ * #464261 there; earlier releases used #575279.
+ *
+ * Contrast on base (#faf4ed), WCAG 2.x: text 8.7:1 and pine 5.6:1 carry all
+ * text. subtle (4.0), love (3.8), iris (3.5), foam (3.1), rose (2.6), muted
+ * (2.7) and gold (2.1) are used only for rules, borders and shapes, never for
+ * words. tests/test_manual.py checks the tokens and these ratios.
+ *
+ * Type: Audiowide (SIL OFL 1.1) for display lines when the branding files are
+ * in the tree; IBM Plex Sans and Mono (SIL OFL 1.1) when installed, else the
+ * system's sans and mono.
+ */
+
+:root {
+  color-scheme: light;
+
+  --rp-base: #faf4ed;
+  --rp-surface: #fffaf3;
+  --rp-overlay: #f2e9e1;
+  --rp-muted: #9893a5;
+  --rp-subtle: #797593;
+  --rp-text: #464261;
+  --rp-love: #b4637a;
+  --rp-gold: #ea9d34;
+  --rp-rose: #d7827e;
+  --rp-pine: #286983;
+  --rp-foam: #56949f;
+  --rp-iris: #907aa9;
+  --rp-highlight-low: #f4ede8;
+  --rp-highlight-med: #dfdad9;
+  --rp-highlight-high: #cecacd;
+
+  --page: var(--rp-base);
+  --panel: var(--rp-surface);
+  --well: var(--rp-overlay);
+  --stripe: var(--rp-highlight-low);
+  --ink: var(--rp-text);
+  --link: var(--rp-pine);
+  --rule: var(--rp-highlight-med);
+  --rule-strong: var(--rp-highlight-high);
+  --frame: var(--rp-subtle);
+  --focus: var(--rp-pine);
+
+  --st-sim: var(--rp-foam);
+  --st-desktop: var(--rp-iris);
+  --st-planned: var(--rp-gold);
+
+  --note: var(--rp-pine);
+  --tip: var(--rp-foam);
+  --caution: var(--rp-gold);
+  --warning: var(--rp-love);
+  --outline: var(--rp-iris);
+
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Audiowide", "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --measure: 44rem;
+  --gutter: 16px;
+  --radius: 6px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-padding-top: 4.5rem; }
+/* The sticky masthead wraps onto two lines on a phone: keep a linked
+   heading clear of it. */
+@media (max-width: 40rem) { html { scroll-padding-top: 8rem; } }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 400 1.0625rem/1.62 var(--font-body);
+  font-kerning: normal;
+  font-variant-numeric: lining-nums;
+  overflow-wrap: break-word;
+}
+
+a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: .16em; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+
+.skip {
+  position: absolute; left: var(--gutter); top: -3rem; z-index: 10;
+  background: var(--panel); color: var(--link); padding: .5rem .8rem;
+  border: 1px solid var(--frame); border-radius: var(--radius);
+}
+.skip:focus { top: .5rem; }
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- masthead ---------------------------------------------------------- */
+
+.masthead {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: .7rem var(--gutter);
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+}
+.wordmark { display: flex; align-items: baseline; gap: .6rem; color: var(--ink); text-decoration: none; min-width: 0; }
+.wordmark .wm-name { font-family: var(--font-display); font-size: 1.15rem; letter-spacing: .02em; white-space: nowrap; }
+.wordmark .wm-doc { font-size: .9rem; font-weight: 600; white-space: nowrap; }
+.masthead nav { display: flex; gap: 1.1rem; flex-wrap: wrap; justify-content: flex-end; }
+.masthead nav a { font-weight: 600; font-size: .95rem; text-decoration: none; }
+.masthead nav a:hover { text-decoration: underline; }
+
+/* ---- layout -------------------------------------------------------------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 2.5rem;
+  max-width: 82rem;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.sidebar { padding-top: 1rem; order: 2; }   /* on a phone, after the text */
+.sidebar details { border: 1px solid var(--rule); border-radius: var(--radius); background: var(--panel); }
+.sidebar summary { cursor: pointer; padding: .6rem .8rem; font-weight: 600; }
+.sidebar ol { list-style: none; margin: 0; padding: 0 .4rem .6rem; }
+.sidebar li a {
+  display: grid; grid-template-columns: 2.1rem 1fr; gap: .2rem;
+  padding: .32rem .45rem; border-radius: 4px;
+  color: var(--ink); text-decoration: none; font-size: .95rem; line-height: 1.35;
+}
+.sidebar li a:hover { background: var(--well); }
+.sidebar li a[aria-current="page"] { background: var(--well); font-weight: 600; box-shadow: inset 3px 0 0 var(--rp-rose); }
+.sidebar .num { font-variant-numeric: tabular-nums; }
+
+main { min-width: 0; padding: 1.5rem 0 3rem; }
+.onpage { display: none; }
+
+@media (min-width: 960px) {
+  .layout { grid-template-columns: 15.5rem minmax(0, var(--measure)); }
+  .sidebar { order: 0; position: sticky; top: 3.6rem; align-self: start; max-height: calc(100vh - 3.6rem); overflow-y: auto; padding-bottom: 2rem; }
+  .sidebar details { border: 0; background: transparent; }
+  .sidebar summary { display: none; }
+}
+
+@media (min-width: 1280px) {
+  .layout { grid-template-columns: 15.5rem minmax(0, var(--measure)) 13rem; }
+  .onpage { display: block; position: sticky; top: 3.6rem; align-self: start; padding-top: 2.2rem; font-size: .9rem; }
+  .onpage p { margin: 0 0 .4rem; font-weight: 600; }
+  .onpage ol { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--rule); }
+  .onpage li a { display: block; padding: .2rem .7rem; color: var(--ink); text-decoration: none; line-height: 1.35; }
+  .onpage li a:hover { color: var(--link); text-decoration: underline; }
+}
+
+/* ---- text ----------------------------------------------------------------- */
+
+h1, h2, h3, h4 { line-height: 1.25; margin: 2.2rem 0 .8rem; font-weight: 600; text-wrap: balance; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.7rem, 4.5vw, 2.3rem); margin-top: .8rem; letter-spacing: .01em; }
+h2 { font-size: 1.45rem; padding-top: 1.1rem; border-top: 1px solid var(--rule); }
+h3 { font-size: 1.15rem; }
+h4 { font-size: 1rem; }
+.secno { color: var(--link); font-variant-numeric: tabular-nums; }
+h1 .secno { display: block; font-family: var(--font-body); font-size: .9rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink); margin-bottom: .35rem; }
+h1 .secno::before { content: "Chapter "; }
+.backmatter h1 .secno { display: none; }
+
+p, ul, ol, dl, table, figure, pre, .admonition { margin: 0 0 1.05rem; }
+ul, ol { padding-left: 1.4rem; }
+li { margin: .2rem 0; }
+li > p { margin: .2rem 0; }
+dt { font-weight: 600; margin-top: .7rem; }
+dd { margin: .15rem 0 0 1.2rem; }
+strong { font-weight: 600; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+
+code, kbd, pre { font-family: var(--font-mono); font-size: .88em; }
+:not(pre) > code { background: var(--well); border-radius: 4px; padding: .08em .32em; }
+pre { background: var(--well); border: 1px solid var(--rule); border-radius: var(--radius); padding: .9rem 1rem; overflow-x: auto; line-height: 1.5; }
+pre code { background: none; padding: 0; font-size: .86rem; }
+
+/* Panel controls as the panel prints them: [[SELECT]] in the sources. */
+kbd.ctl {
+  display: inline-block;
+  font: 600 .74em/1.25 var(--font-body);
+  letter-spacing: .05em;
+  padding: .12em .45em .1em;
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  background: var(--panel);
+  box-shadow: 0 1px 0 var(--rule-strong);
+  white-space: nowrap;
+  vertical-align: .08em;
+  /* Breathing room when chips wrap onto consecutive lines, as in a narrow
+     table column ("KNOB1 to / KNOB4"). */
+  margin: .14em 0;
+}
+kbd.ctl.role { border-style: dashed; box-shadow: none; background: transparent; }
+
+/* ---- status --------------------------------------------------------------- */
+
+.status-line { display: inline; }
+.status-lead { font-size: .78rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin-right: .45rem; }
+.status {
+  display: inline-block; margin: .15rem .4rem .15rem 0;
+  font-size: .84rem; font-weight: 600; line-height: 1.3;
+  padding: .18em .6em .18em .5em;
+  background: var(--well);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--rule-strong);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.status::before { font-size: .8em; line-height: 1; margin-right: .4em; }
+.status-sim { border-left-color: var(--st-sim); }
+.status-sim::before { content: "\25CF"; color: var(--st-sim); }
+.status-desktop { border-left-color: var(--st-desktop); }
+.status-desktop::before { content: "\25A0"; color: var(--st-desktop); }
+.status-planned { border-left-color: var(--st-planned); }
+.status-planned::before { content: "\25C6"; color: var(--st-planned); }
+
+.status-key { display: block; margin: 0 0 1.2rem; padding: .9rem 1rem; background: var(--panel); border: 1px solid var(--rule); border-radius: var(--radius); }
+.status-key p { margin: 0 0 .4rem; }
+.status-key p:last-child { margin-bottom: 0; }
+table.summary tbody th { white-space: nowrap; }
+
+/* ---- admonitions --------------------------------------------------------- */
+
+.admonition {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 5px solid var(--note);
+  border-radius: var(--radius);
+  padding: .8rem 1rem .2rem;
+}
+.admonition > .admonition-title { font-weight: 700; margin: 0 0 .35rem; display: flex; align-items: center; gap: .5rem; }
+.admonition > .admonition-title::before {
+  content: ""; width: .7rem; height: .7rem; flex: none; background: var(--note); border-radius: 50%;
+}
+.admonition.tip { border-left-color: var(--tip); }
+.admonition.tip > .admonition-title::before { background: var(--tip); border-radius: 2px; transform: rotate(45deg); }
+.admonition.caution { border-left-color: var(--caution); }
+.admonition.caution > .admonition-title::before { background: var(--caution); border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.admonition.warning { border-left-color: var(--warning); background: var(--rp-highlight-low); }
+.admonition.warning > .admonition-title::before { background: var(--warning); border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.admonition.outline { border: 1px dashed var(--outline); border-left: 5px solid var(--outline); background: transparent; }
+.admonition.outline > .admonition-title::after {
+  content: "Draft"; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+  border: 1px solid var(--outline); border-radius: 999px; padding: .05rem .5rem; margin-left: .2rem;
+}
+.admonition.outline > .admonition-title::before { background: var(--outline); border-radius: 2px; }
+
+/* ---- tables --------------------------------------------------------------- */
+
+.table-wrap { overflow-x: auto; margin: 0 0 1.2rem; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--panel); }
+.table-wrap > table { margin: 0; }
+table { width: 100%; border-collapse: collapse; font-size: .92rem; line-height: 1.45; }
+caption { caption-side: top; text-align: left; font-weight: 600; padding: .65rem .8rem .55rem; border-bottom: 1px solid var(--rule); }
+th, td { text-align: left; vertical-align: top; padding: .45rem .7rem; border-bottom: 1px solid var(--rule); }
+thead th { background: var(--well); font-weight: 600; font-size: .85rem; letter-spacing: .02em; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+tbody tr:last-child > * { border-bottom: 0; }
+tbody th { font-weight: 600; }
+td.num, th.num { font-variant-numeric: tabular-nums; }
+.nowrap { white-space: nowrap; }
+td.empty { color: var(--ink); text-align: center; }
+tr.group th { background: var(--well); text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; }
+.vname { font-weight: 600; }
+
+/* Generated reference */
+.reference { margin: 1rem 0 1.6rem; }
+.reference .table-wrap { margin-bottom: .9rem; }
+.knobmap td, .knobmap th { text-align: center; }
+.knobmap tbody th { text-align: left; white-space: nowrap; }
+.values { margin: 0 0 .9rem; padding: .7rem .9rem .3rem; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--panel); }
+.values-title { font-weight: 600; margin: 0 0 .4rem; }
+.values ol { list-style: none; padding: 0; margin: 0 0 .4rem; columns: 2 11rem; column-gap: 1.5rem; font-size: .9rem; }
+.values.long ol { columns: 3 9.5rem; }
+.values li { margin: 0 0 .15rem; break-inside: avoid; }
+.vnum { display: inline-block; min-width: 1.9em; text-align: right; margin-right: .45em; font-variant-numeric: tabular-nums; font-weight: 600; }
+.values-missing, .reference-meta { font-size: .9rem; }
+.reference-meta span { white-space: normal; }
+.generated-note { font-size: .88rem; margin-top: -.4rem; }
+
+/* ---- figures ---------------------------------------------------------- */
+
+figure { margin: 1.4rem 0 1.6rem; }
+figure > a { display: block; }
+figure .figure-svg { display: block; width: 100%; height: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: var(--radius); padding: .6rem; }
+figcaption { font-size: .92rem; margin-top: .55rem; }
+/* The firmware's own 240 x 240 screen, from the simulator (each pixel
+   doubled in the file, so it stays sharp at 1x and 2x). */
+figure.screen { max-width: 22rem; }
+figure.screen .screen-shot { display: block; width: 240px; max-width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--rule-strong); border-radius: var(--radius); }
+figcaption .fig-label { font-weight: 700; margin-right: .35em; }
+
+/* ---- pager and colophon -------------------------------------------- */
+
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); }
+.pager a { display: block; padding: .8rem 1rem; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--panel); text-decoration: none; }
+.pager a:hover { border-color: var(--link); }
+.pager .dir { display: block; font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+.pager .next { text-align: right; grid-column: 2; }
+
+.colophon { border-top: 1px solid var(--rule); background: var(--panel); padding: 1.2rem var(--gutter) 1.6rem; font-size: .88rem; }
+.colophon p { max-width: 82rem; margin: .25rem auto; }
+
+/* ---- the manual's front page ------------------------------------- */
+
+.cover-hero { max-width: 62rem; margin: 0 auto; padding: 1.5rem var(--gutter) 0; }
+.cover-hero img { display: block; width: 100%; height: auto; border-radius: var(--radius); box-shadow: 0 0 0 1px var(--rule); }
+.cover-body { max-width: 62rem; margin: 0 auto; padding: 2rem var(--gutter) 3rem; }
+.cover-title { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.2rem, 7vw, 3.6rem); line-height: 1.1; margin: 0; border: 0; padding: 0; }
+.cover-tagline { font-family: var(--font-display); letter-spacing: .14em; font-size: clamp(.8rem, 2.4vw, 1.05rem); margin: .5rem 0 1.2rem; }
+.cover-doc { font-size: 1.3rem; font-weight: 600; margin: 0; }
+.cover-descriptor { margin: .2rem 0 1.4rem; }
+.cover-actions { display: flex; flex-wrap: wrap; gap: .7rem; margin: 0 0 1.6rem; }
+.button {
+  display: inline-block; padding: .6rem 1.1rem; border-radius: var(--radius);
+  font-weight: 600; text-decoration: none; border: 1px solid var(--link);
+}
+.button.primary { background: var(--link); color: var(--rp-surface); }
+.button.primary:hover { background: var(--ink); border-color: var(--ink); }
+.edition { font-size: .92rem; }
+.contents-list { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: .7rem; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
+.contents-list a { display: grid; grid-template-columns: 2.4rem 1fr; align-content: start; gap: .1rem .6rem; height: 100%; padding: .85rem 1rem; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--panel); text-decoration: none; color: var(--ink); }
+.contents-list a:hover { border-color: var(--link); }
+.contents-list .num { grid-row: span 2; font-family: var(--font-display); font-size: 1.25rem; color: var(--link); }
+.contents-list .t { font-weight: 600; color: var(--link); }
+.contents-list .d { font-size: .9rem; }
+.draft-flag { display: inline-block; font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; border: 1px solid var(--outline); border-radius: 999px; padding: .1rem .6rem; margin-left: .4rem; vertical-align: .2em; }
+
+@media (max-width: 600px) {
+  body { font-size: 1rem; }
+  .masthead { flex-wrap: wrap; }
+  .wordmark .wm-doc { display: none; }
+  .pager { grid-template-columns: 1fr; }
+  .pager .next { grid-column: 1; }
+}
+
+@media print {
+  .masthead, .sidebar, .onpage, .pager, .skip { display: none; }
+  .layout { display: block; padding: 0; }
+  body { background: #fff; }
+}
+
+/* ---- index of controls ------------------------------------------------- */
+
+/* Each control's own section in the panel tour leads its entry. */
+.controls-index a.xref.home { font-weight: 600; }

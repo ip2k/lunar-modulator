@@ -7,8 +7,12 @@ are ours.
 
 | id | Name | Source | Voices | Instance, 64-bit host | Instance, 32-bit targets |
 | --- | --- | --- | --- | --- | --- |
-| `macro-heavy` | Macro Heavy | `src/mi_macro_heavy.cc` | 4 | 71,088 B | 70,880 B |
-| `sixop` | Six-Op FM | `src/mi_sixop.cc` | 8 | 12,528 B | 10,796 B |
+| `macro-heavy` | Macro Heavy | `src/mi_macro_heavy.cc` | 4 | 71,296 B | 71,088 B |
+| `sixop` | Six-Op FM | `src/mi_sixop.cc` | 8 | 12,720 B | 10,956 B |
+
+Per-note offsets (2026-10-05, engines/README.md, "Per-note offsets") added
+192 B to Macro Heavy on both and 192 / 160 B to Six-Op; before, they were
+71,104 / 70,896 B and 12,528 / 10,796 B [verified: gcc 12 x86-64 and `-m32`].
 
 Both run Plaits at its own 47,872.34 Hz and resample to the host's rate
 since 2026-10-01 (below, "Rate"). That added 2,576 B to Macro Heavy (two
@@ -212,15 +216,17 @@ LPG is re-initialised while bypassed.
 
 - **Prosody and speed.** With TRIG patched, Plaits takes the prosody amount
   from the FM attenuverter and the word speed from the MORPH attenuverter.
-  Here prosody is fixed at 0, which keeps words on the played pitch. Word
-  Speed (-1..1, Plaits' units) is a parameter; it changes the playback
-  length of a word by up to 4x either way.
+  Here prosody is Env Pitch (page 3, since 2026-10-02), 0 by default, which
+  keeps words on the played pitch. Word Speed (-1..1, Plaits' units) stays a
+  parameter of its own, apart from Env Morph; it changes the playback length
+  of a word by up to 4x either way.
 - **`already_enveloped`.** Speech reports it per block. It is true for word
   playback (HARMONICS above about 0.44, where a word bank is selected) and
   false for vowels and phonemes below that.
-- **Envelope scaling.** Plaits' `internal_envelope_amplitude` scaling is
-  moot here: like Macro, this wrapper applies no internal-envelope
-  modulation (all modulation amounts are 0).
+- **Envelope scaling.** Plaits' `internal_envelope_amplitude` scaling
+  applies to Env Pitch and Env Morph as in `Voice`: their reach fades out as
+  HARMONICS goes from 1/6 to 1/3, into the word banks [verified:
+  tests/test_engines_plaits_env.py, speech at all three reference points].
 
 **One word bank for all speech voices.** Plaits' `SpeechEngine` keeps its
 own LPC word bank and parses it (up to 4.8 KB of bitstream into 926
@@ -244,9 +250,14 @@ block, and so did a chord struck after a bank change or a model change.
   shared quantizer. `UpdateWordBank()` runs that quantizer once per
   12-sample block, as upstream runs it, and loads the shared bank before any
   voice renders. So a bank change costs one parse, in the next block,
-  whether or not notes are sounding, and a note-on never parses. Harmonics
-  changes only between render calls, so at most one parse falls in a host
-  block. `plaits/dsp/engine/speech_engine.cc` is no longer built.
+  whether or not notes are sounding, and a note-on never parses. Since
+  docs/15 S7b Harmonics ramps over 2.5 ms (SMOOTH), and the quantizer reads
+  the value it ramps to, not the ramp, so a change of Harmonics still costs
+  at most one parse, however many banks the ramp passes [verified 2026-10-05,
+  an instrumented build: Harmonics 0.4 → 1 → 0.4 under a held note parsed
+  nine banks when it read the ramp, five of them within one 2.5 ms ramp,
+  and one when it read the target]. `plaits/dsp/engine/speech_engine.cc`
+  is no longer built.
 - **Output.** For constant parameters the output is byte-identical to the
   per-voice `SpeechEngine` [verified: 12 Harmonics values across the
   naive, SAM, phoneme and all word-bank ranges, 6 staggered notes each, plus
@@ -416,8 +427,9 @@ What differs, deliberately:
 
 ### Voice cap: 8
 
-The FM-1's stock msfa plays 12 six-op voices plus effects on one pi32v2 core
-[reported: AL-255, docs/11 §2]. msfa is fixed point, with its hot loops
+The FM-1's stock msfa plays 12 six-op voices on one pi32v2 core, with its
+effects on the other (docs/11 §2: the render loop [verified], its core
+[inferred]). msfa is fixed point, with its hot loops
 copied to RAM.
 
 Plaits' float operators should cost the same order per voice [inferred].

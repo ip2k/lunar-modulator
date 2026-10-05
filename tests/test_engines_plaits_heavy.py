@@ -84,8 +84,9 @@ def test_registry_lists_heavy_engines(renderer):
         # docs/11 §7: no Mutable Instruments module names in ids or names.
         for banned in ("plaits", "braids", "rings", "clouds", "elements", "mutable"):
             assert banned not in e["id"].lower() and banned not in e["name"].lower()
-        assert all(p["page"] in (0, 1) for p in e["params"])
-        assert sum(p["page"] == 0 for p in e["params"]) <= 4
+        pages = [p["page"] for p in e["params"]]
+        assert all(pages.count(page) <= 4 for page in pages)   # four knobs a page
+        assert set(pages) == set(range(max(pages) + 1))        # no empty page
         assert all(len(p["name"]) <= 12 for p in e["params"])
     model = next(p for p in heavy["params"] if p["name"] == "Model")
     assert model["max"] == len(HEAVY_MODELS) - 1
@@ -492,10 +493,10 @@ def test_instance_sizes_are_bounded(renderer, tmp_path):
     # cannot tell). Each leaves less than one resampler of room.
     # Macro Heavy: four voices, each with a 16 KB arena (the particle engine's
     # diffuser alone takes all of it), and two resamplers (the string
-    # machine's L and R). 71,088 B on a 64-bit host, 70,880 B on 32-bit
+    # machine's L and R). 71,296 B on a 64-bit host, 71,088 B on 32-bit
     # targets (plaits-heavy.md); a resampler per voice would add 5,152 B.
     assert heavy["instance_bytes"] < 72_000
     # Six-Op FM: eight FMVoices, one shared algorithm table and one
-    # resampler. 12,528 B on a 64-bit host, 10,796 B on 32-bit targets; a
+    # resampler. 12,720 B on a 64-bit host, 10,956 B on 32-bit targets; a
     # resampler per voice would add 10,304 B.
     assert sixop["instance_bytes"] < 13_500

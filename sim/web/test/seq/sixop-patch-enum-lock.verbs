@@ -1,0 +1,7 @@
+#! rate=44118 block=64 tracks=1 end=52941
+# A lock lane on Six-Op's Patch, an ENUM: each lock picks the bin
+# floor(v * n / 128) of its n patches (fm1_seq_lock_value).
+@0 bpm 24000
+@0 tog 0 0 60 100;tog 0 4 64 100;tog 0 8 67 100;tog 0 12 72 100;slen 0 0 15 -1 60
+@0 alabel 0 0 synth:Patch;abaseq 0 0 20;aset 0 0 4 70 1;aset 0 0 8 127 1;aset 0 0 12 0 1
+@0 play

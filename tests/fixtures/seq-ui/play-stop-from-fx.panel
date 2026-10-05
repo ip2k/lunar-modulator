@@ -1,0 +1,4 @@
+# PLAY/STOP in FX mode, held for a while: play on the press, then stop.
+--button 0.05:FX
+--button 0.10:PLAY/STOP:0.25
+--button 1.30:PLAY/STOP

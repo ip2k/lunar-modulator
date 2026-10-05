@@ -1,0 +1,7 @@
+# A press of 13,248 frames (the first block at or past ceil(0.3 x 44,118) =
+# 13,236) is a hold: it opens the Step page and toggles nothing. One of
+# 13,184 frames is still a tap.
+--button 0.05:SEQ
+--key 0.10:6:100:0.3
+--key 0.60:6:100:0.298
+--button 1.00:PLAY/STOP

@@ -1,0 +1,12 @@
+# FX mode, Plate's page: hold ENV and turn KNOB1 (Mix) and KNOB2 (Decay):
+# ENV3, which every note opens through its default cable, swells the
+# reverb. Then SELECT to slot 2 (empty) and the same gesture finds nothing
+# to reach there.
+--button 0.05:PLAY/STOP
+--button 0.10:FX
+--button 0.20:ENV:0.6
+--turn 0.30:KNOB1:40
+--turn 0.45:KNOB2:-20
+--turn 0.60:SELECT:9
+--button 1.00:ENV:0.2
+--turn 1.05:KNOB1:5

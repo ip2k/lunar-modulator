@@ -10,6 +10,9 @@
 .DEFAULT_GOAL := all
 
 SEQ_SRC := seq/seq_clip.c seq/seq_engine.c seq/seq_cmd.c seq/seq_persist.c seq/seq_capture.c
+# The host bridge (include/fm1_seq_host.h): commands, advance and the split
+# renders every host shares. Core rules apply to it: C99, no heap, no stdio.
+SEQ_SRC += seq/seq_host.c
 SEQ_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Iinclude -Wall -Wextra -Wpedantic -MMD -MP
 SEQ_OBJ := $(patsubst %.c,$(BUILD)/c/%.o,$(SEQ_SRC))
 SEQ_CHECK_OBJ := $(patsubst %.c,$(BUILD)/c-check/%.o,$(SEQ_SRC))
@@ -24,12 +27,18 @@ $(BUILD)/c-check/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(SEQ_CFLAGS) -DSQ_CHECK_INDEX -c $< -o $@
 
-all: $(BUILD)/fm1-seq $(BUILD)/fm1-seq-check
+all: $(BUILD)/fm1-seq $(BUILD)/fm1-seq-check $(BUILD)/fm1-seq-host-test
 
 $(BUILD)/fm1-seq: $(SEQ_TOOL_OBJ) $(SEQ_HOST_OBJ) $(SEQ_OBJ)
 	$(CC) $(OPT) $(EXTRA) -o $@ $^ -lm
 
 $(BUILD)/fm1-seq-check: $(SEQ_TOOL_OBJ) $(SEQ_HOST_OBJ) $(SEQ_CHECK_OBJ)
+	$(CC) $(OPT) $(EXTRA) -o $@ $^ -lm
+
+# The host bridge's own checks, where fm1-render does not reach it
+# (test/seq_host_test.c; tests/test_seq_render.py runs it).
+SEQ_BRIDGE_TEST_OBJ := $(BUILD)/c/test/seq_host_test.o
+$(BUILD)/fm1-seq-host-test: $(SEQ_BRIDGE_TEST_OBJ) $(SEQ_OBJ)
 	$(CC) $(OPT) $(EXTRA) -o $@ $^ -lm
 
 # fm1-render plays sequences through the sound engine (--seq, --cmd). The
@@ -38,4 +47,5 @@ $(BUILD)/fm1-seq-check: $(SEQ_TOOL_OBJ) $(SEQ_HOST_OBJ) $(SEQ_CHECK_OBJ)
 # mk/plaits-heavy.mk) gets them too.
 RENDER_EXTRA_OBJ += $(SEQ_OBJ) $(SEQ_HOST_OBJ)
 
--include $(SEQ_OBJ:.o=.d) $(SEQ_CHECK_OBJ:.o=.d) $(SEQ_HOST_OBJ:.o=.d) $(SEQ_TOOL_OBJ:.o=.d)
+-include $(SEQ_OBJ:.o=.d) $(SEQ_CHECK_OBJ:.o=.d) $(SEQ_HOST_OBJ:.o=.d) $(SEQ_TOOL_OBJ:.o=.d) \
+  $(SEQ_BRIDGE_TEST_OBJ:.o=.d)

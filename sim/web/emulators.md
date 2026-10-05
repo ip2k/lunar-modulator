@@ -35,10 +35,11 @@ What it would have to model [inferred unless marked]:
   and an FPU. Sources: jielie's opcode tables, the SLEIGH modules, and JieLi's
   `objdump` as the decoding oracle (CLAUDE.md trap 4). Thousands of lines and
   a test corpus of decoded instructions.
-- **Speed.** The stock app clocks its one core at 240 MHz of a possible
-  320 (docs/01 §1, §5); nothing has measured how much of that it uses. An
-  emulator that keeps up in the worst case must therefore run up to 240
-  million guest cycles a second, fewer if it skips the idle loop, which a
+- **Speed.** The stock app clocks its two cores at 240 MHz of a possible
+  320, and renders its voices on the second (docs/01 §1, §5; docs/11 §2);
+  nothing has measured how much of that it uses. An emulator that keeps up
+  in the worst case must therefore run up to 240 million guest cycles a
+  second per core, fewer if it skips the idle loop, which a
   worst-case estimate cannot count on. An interpreter in WebAssembly manages
   perhaps 50–300 million guest instructions a second on a fast desktop, so
   dependable real time needs a dynamic recompiler to WebAssembly.
@@ -48,10 +49,12 @@ What it would have to model [inferred unless marked]:
   XIP cache (SPI0, `0x11C00`; SFC `0x40200`), the TFT on SPI1 (`0x11D00`; an
   ST7789 command decoder drawing to a canvas), DMA, the audio DAC's DMA ring,
   SARADC, the GPIO key matrix and the two 74HC595 LED registers, UART MIDI,
-  the USB device (USB-MIDI could bridge to Web MIDI), Bluetooth (stub), the
-  idle second core. [reported: docs/01 §2–4]
+  the USB device (USB-MIDI could bridge to Web MIDI), Bluetooth (stub), and
+  the second core, which runs stock's voice render (docs/11 §2). [reported:
+  docs/01 §2–4]
 - **Boot.** The mask ROM has not been dumped, so boot is high-level: load
-  `uboot.boot`'s state, map `app.bin` at `0x02000000` and jump.
+  `uboot.boot`'s state, map `app.bin` (it appears to run from `0x02000120`,
+  docs/01 §2) and jump.
 - **The firmware.** M-VAVE's `.fwsc`, unpacked. It cannot be redistributed,
   so a published page could only run images the user supplies.
 

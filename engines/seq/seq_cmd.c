@@ -572,7 +572,16 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
   case FM1_SEQ_V_ROUTE: {
     const int ht = next(&a, &t), hk = next(&a, &x), hi = next(&a, &y);
     if (ht && hk && hi && track_arg(s, t) && x >= 0 && x <= 1 && y >= 0 && y <= 16) {
-      if (!fm1_seq_set_route(s, (uint8_t)t, (uint8_t)x, (uint8_t)y)) ++s->stats.refused;
+      const sq_track_t *tr = &sq_tracks(s)[t];
+      const uint8_t kind0 = tr->route_kind, index0 = tr->route_index;
+      if (!fm1_seq_set_route(s, (uint8_t)t, (uint8_t)x, (uint8_t)y)) {
+        ++s->stats.refused;
+      } else if (tr->route_kind != kind0 || tr->route_index != index0) {
+        /* Routed elsewhere: the track lets go of what it sounds now, where
+         * it sounds it (the host sends these note-offs to the old route,
+         * fm1_seq_host.h), so no note is left hanging there. */
+        sq_flush_track_gates(s, (unsigned)t, o);
+      }
     }
     break;
   }

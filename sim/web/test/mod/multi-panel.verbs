@@ -1,0 +1,9 @@
+#! rate=44118 block=64 tracks=8 end=132352
+# A parity scenario played on the panel with the lab switch and several
+# sound units (docs/16 MG3): track 1 plays Sound 1, track 2 Sound 2, and
+# multi-panel.panel makes cables into Sound 2, its insert, the master and
+# Sound 1 while they play. The render legs replay what the native harness
+# logged: these lines, the panel's commands, its notes and its modulation
+# (the .mod log, --mod), with fm1-render --slots.
+@0 tog 0 0 45 110;tog 0 4 52 90;tog 0 8 45 110;tog 0 12 57 80;slen 0 0 0 -1 40
+@0 tog 1 2 69 100;tog 1 10 72 100;route 1 1 1

@@ -1,0 +1,9 @@
+#! rate=44118 block=64 tracks=4 end=176472
+# The metronome's click (owner decision O11, docs/15 S6): on while a bar
+# plays at 140 BPM, off, on again with swing, then a stop and a REC count-in
+# with the click, from the shared bridge (fm1_seq_click_mix) in every leg.
+@0 bpm 14000;tog 0 0 48 100;tog 0 4 55 90;tog 0 8 60 100;tog 0 12 63 90;metro 1;play
+@44118 metro 0
+@66177 metro 1;swing 66
+@99265 stop
+@110295 rec 0

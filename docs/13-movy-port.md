@@ -123,12 +123,15 @@ was sent (D9 can only drop what it sees queued).
 ## 4. Mapping to the FM-1 [inferred unless marked]
 
 **Inputs.** 27 keys, F3–G5: 16 naturals and 11 accidentals (docs/12 §5.6).
-About 14 LED buttons, whose printed functions are not recorded yet (docs/01:
-K30–K41), so PLAY, REC, SHIFT, CLEAR, COPY, LOOP, SESSION, MUTE and UNDO
-below are *roles* to assign. KNOB1–4 are encoders without touch; SELECT and
-ALGORITHM navigate, PRESETS picks presets and MASTER is volume [reported:
-docs/11 §2]. A 240×240 TFT. **GRID** mode makes the white keys steps (or
-bars, or slots); **KEYS** mode plays pitches, as stock does.
+About 14 LED buttons (docs/01: K30–K41). Their printed names come from the
+M-VAVE manual's panel drawing [reported; sim/web/README.md, The panel]: OCT−,
+OCT+, FX, SEL, ENV, LFO, EDIT, GLO, HOME, SAVE, ARP, SEQ, PLAY/STOP and REC.
+So PLAY and REC below are printed buttons (PLAY/STOP, REC); SHIFT, CLEAR,
+COPY, LOOP, SESSION, MUTE and UNDO have none and stay *roles* to assign.
+KNOB1–4 are encoders without touch; SELECT and ALGORITHM navigate, PRESETS
+picks presets and MASTER is volume [reported: docs/11 §2]. A 240×240 TFT.
+**GRID** mode makes the white keys steps (or bars, or slots); **KEYS** mode
+plays pitches, as stock does.
 
 | Movy gesture [verified in `src/seq/`] | FM-1 gesture |
 | --- | --- |
@@ -136,14 +139,15 @@ bars, or slots); **KEYS** mode plays pitches, as stock does.
 | Hold one step and turn a knob: an immediate, quiet lock | Hold a white key and turn KNOB1–4 |
 | Step page VEL/LEN/PROB/COND/INV on knobs 1–5 | Page 1 VEL/LEN/PROB/COND, page 2 INV, switched with SELECT |
 | Hold step A and press B: length | Hold white A and press white B |
-| Hold a step and press a pad: that pitch toggles in the step | Hold the step and SHIFT: the keys are pitches while SHIFT is down. Or play the pitch at MIDI IN |
+| Hold a step and press a pad: that pitch toggles in the step | Pitches are only added (owner decision O22, 2026-10-02; docs/15 §3.5): hold the step and SHIFT, and each white key adds its pitch in the current octave (`addp`); a note at MIDI IN adds any pitch. A tap of SHIFT alone while the step is held clears its notes (`del`) |
 | A tap writes the held pads, else the remembered set, else the last pitch | The same order; keys played in KEYS mode, or MIDI IN notes, are the "pads" |
 | With steps held: the volume encoder sets velocity, ◀ ▶ nudge ±2 ticks (±1 with Shift), +/− transpose | The VEL knob; two accidentals as ◀ ▶ (which also page bars); two keys or buttons for −/+ |
 | Touch-tap a knob during a hold: clears that lock | Hold the step and SHIFT, and turn that knob |
 | Step held + Clear: clears its locks. Clear + step: clears notes and locks. Clear + touch a knob: clears the lane. A Clear tap deletes the clip | The same with CLEAR, where "touch" becomes one detent with CLEAR held |
 | Copy held: the source, then the destinations | The same with COPY |
 | Loop view: bars on the steps; two bars set a range; a double-tap sets 1 bar; Loop + jog resizes | LOOP: white keys are bars 1–16, and LOOP + SELECT resizes |
-| Rec tap: live, with a count-in. Rec held while stopped: step record | The same with REC |
+| Rec tap: live, with a count-in. Rec held while stopped: step record, the head moving on when the last pad comes up [verified: `step-rec.ts`] | The same with REC (owner decision O8, 2026-10-02; docs/15 S5): in step record the white keys are pitches, ▶ (A#3) leaves a rest or ties held keys, ◀ (F#3) steps back, and SHIFT + a white key moves the head |
+| Capture: keep what was just played; stopped, a tempo picker on the jog | SHIFT + REC (O7); SELECT or KNOB1 picks the tempo, any other press keeps it |
 | Shift + step shortcuts: 3 Clip, 5/7/9 Set, 6 metronome, 15 double, 16 quantise | SHIFT + the white key with the same number, labelled on the TFT |
 | Session + step selects one of 16 tracks; clip pads launch; Loop held + steps 1, 3, …, 15 launch scenes 1–8 | SESSION held + a white key selects a track. In SESSION, keys 1–8 launch the focused track's slots, and LOOP + the odd keys launch scenes |
 | Mute + step (a map of all 16 tracks); add Shift to solo | MUTE (+SHIFT) + a white key |
@@ -192,7 +196,7 @@ global pools (D7):
 | Fire-tick index | — | 3,072 × u16, sorted per clip | 6,144 |
 | Gates, song, state | unbounded | 64 × 4 B; 64 entries; clock, RNG, record and external-clock state | 832 |
 | Undo | 64 × ≤ 512 KiB of text | a ring of binary per-clip snapshots | 12,288 |
-| Capture | 512 events | 256 × 12 B (optional) | 3,072 |
+| Capture | 512 events | 256 × 12 B (on by default, §10) | 3,072 |
 | **Total** | | | **73,320 B ≈ 71.6 KiB, 18.9 % of 387,924 B** |
 
 3,072 notes is, for example, 32 clips of 96 notes; a one-track build with
@@ -235,17 +239,25 @@ dev board and the FM-1. `limits.compat` selects Movy's exact behaviour
 (§3.3).
 
 ```c
-typedef struct { uint16_t frame; uint8_t kind, track, a, b; } fm1_seq_ev_t;
-  /* NOTE_ON(pitch,vel) NOTE_OFF(pitch) LOCK(lane,val) CLICK(accent) START STOP CLOCK */
+typedef struct { uint32_t tick; uint16_t frame; uint8_t kind, track, a, b; } fm1_seq_ev_t;
+  /* NOTE_ON(pitch,vel) NOTE_OFF(pitch) LOCK(lane,val) CLICK(accent) START STOP CLOCK;
+     tick: the master tick being serviced */
 size_t     fm1_seq_size(const fm1_seq_limits_t *lim);
 fm1_seq_t *fm1_seq_create(void *mem, const fm1_seq_limits_t *lim, uint32_t sample_rate);
 uint32_t   fm1_seq_advance(fm1_seq_t *s, uint32_t frames, fm1_seq_ev_t *out, uint32_t cap);
 uint32_t   fm1_seq_apply(fm1_seq_t *s, const fm1_seq_cmd_t *c, fm1_seq_ev_t *out, uint32_t cap);
-void       fm1_seq_note_in(fm1_seq_t *s, uint16_t frame, uint8_t pitch, uint8_t vel);
-void       fm1_seq_realtime_in(fm1_seq_t *s, uint16_t frame, uint8_t status); /* F8 FA FB FC */
+void       fm1_seq_note_in(fm1_seq_t *s, uint16_t frame, uint8_t track, uint8_t pitch, uint8_t vel);
+uint32_t   fm1_seq_realtime_in(fm1_seq_t *s, uint16_t frame, uint8_t status,   /* F8 FA FB FC */
+                               fm1_seq_ev_t *out, uint32_t cap);
 size_t     fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap);
 int        fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len);
 ```
+
+As built (`engines/include/fm1_seq.h`). The host's side of a block, from
+commands into the event buffer through the split renders below, is one
+shared bridge, `fm1_seq_host.h` (engines/seq.md, Host contract):
+`fm1-render` runs it now, and the virtual FM-1 and the firmware are to run
+the same code.
 
 - **Commands.** `fm1_seq_cmd_t` carries Movy's verbs as typed records (tog,
   ltog, aset with its quiet flag, econd, launch, song …). The UI task queues
@@ -272,6 +284,15 @@ locks use Movy's planned bins, `⌊v·n/128⌋` (plan D14 [reported]).
 `FM1_KIND_MIDI_FX` gets `process(self, in, n, out, cap, frames)` on event
 arrays, one slot per track, mirroring Schwung's MIDI FX → synth chain.
 Nothing else changes: sample offsets come from split renders.
+
+As built in docs/15 stage S7a [verified: engines/README.md, "Parameters";
+engines/seq.md, "Host contract"]: the uid and flags, plus MOD and INPUT for
+docs/16, a unit and an abbreviation. Lane labels stay `synth:<Name>` text
+and resolve to uids in the host bridge when a lane is labelled or a set
+imported; a lock on a NOLOCK parameter is refused and counted; no other
+render changed. SMOOTH's ramp came with S7b: a change ramps over 2.5 ms
+inside the engine, keyed to its native samples (engines/README.md,
+"SMOOTH"). `FM1_KIND_MIDI_FX` is still to come.
 
 **Persistence under the one rule.** Until docs/07's dump and restore, sets
 live only in desktop and dev-board builds. Then RAM, with `movy1` text export
@@ -353,12 +374,14 @@ about 90 KB [inferred], sent in chunks. Flash last: a binary image of about
 | --- | --- | --- | --- |
 | M0 — decisions | owner | §10, questions 1–5 | answers recorded here |
 | M1 — core | desktop, `engines/` | `fm1_seq`: clock, pools, `step_tick`, automation, conditions, RNG, swing, quantise, scale, gates, record, launch, scenes, song, `movy1` I/O, a verb parser for tests, `compat` | transcribed tests pass in compat; fixtures round-trip byte-identical (apart from the envelope); tick-identical at four block sizes; no heap; within budget |
-| M2 — render | desktop | `fm1-render` flags (§7), split renders, LOCK → `set_param` by uid, API v2, MIDI_FX | the §7 assertions; Macro Model refused as NOLOCK; output identical at host blocks of 1, 7 and 64 |
+| M2 — render | desktop | `fm1-render` flags (§7), split renders, LOCK → `set_param` by uid, API v2, MIDI_FX | the §7 assertions; Macro Model refused as NOLOCK; output identical at host blocks of 1, 7 and 64. Done in part: split renders (docs/15 S1), API v2's uids, flags and NOLOCK refusal (S7a), and SMOOTH's ramp (S7b). Open: MIDI_FX |
 | M3 — oracle | desktop, if approved | a `seq-core` driver and random scripts | no unexplained difference in 10,000 scripts |
 | M4 — UI | desktop | §4's gesture state machine in pure C; TFT views rendered to PNG | `automation.mjs` traces reproduced; no overlap in the PNGs |
 | B — bench | JieLi AC79 dev board | pi32v2 build, worst-case cycles per block, USB-MIDI clock in and out | the sequencer takes ≤ 2 % of any block; jitter figures |
 | C — FM-1 | after docs/07's dump and restore | GRID and KEYS modes, LEDs, TFT, RAM sets, SysEx | core gestures playable; export/import round trip |
 | D — FM-1 | after C | flash set partition | an A/B save survives a power cut mid-write |
+
+docs/15 plans M4 in the virtual FM-1 as stages S1–S10, with M2's engine API v2 landing before its lock UI.
 
 ## 10. Open questions
 
@@ -375,23 +398,29 @@ about 90 KB [inferred], sent in chunks. Flash last: a binary image of about
    asked for an FM-1 emulator, or a virtual FM-1 with its screen in a
    browser, if one exists or can be made.
 
-5. **Capture and lock width (the owner's decision, 2026-10-01):** lock values
-   are 7-bit, as in Movy, behind `fm1_seq_val_t`, and the engine-side SMOOTH
-   ramp prevents zipper noise. A per-parameter 14-bit "fine" option is added
-   only if a real parameter proves too coarse. Capture (record-after) is an
-   optional limit, off by default, until the owner picks a ring size from the
-   measured costs below. The earlier estimate of about 3 KB was low.
+5. **Capture and lock width (the owner's decisions, 2026-10-01):** lock
+   values are 7-bit, as in Movy, behind `fm1_seq_val_t`, and the engine-side
+   SMOOTH ramp prevents zipper noise. A per-parameter 14-bit "fine" option is
+   added only if a real parameter proves too coarse. Capture (record-after)
+   was first an optional limit, off by default, until the owner picked a ring
+   size from the measured costs below. **The owner's choice:** 256 packed
+   events of 12 bytes (3,072 B), on by default (`limits.capture = 256`),
+   adjustable later. The 8-track instance is 31,880 B, 86 % of the half
+   budget, and the 4-track one 18,056 B [verified: `fm1-seq --sizes`,
+   tests/test_seq_core.py]. The earlier estimate of about 3 KB was low for
+   the 20-byte events first built, and right for the packed ones.
 
-**Capture's cost** [verified: `fm1-seq --sizes`; 20 B per event as built,
-12 B planned in §5 [inferred]], against the half budget of 36,864 B:
+**Capture's cost** [verified: `fm1-seq --sizes`; 20 B per event as first
+built, 12 B packed since the owner's choice], against the half budget of
+36,864 B:
 
 | Option | Bytes | 4 tracks | 8 tracks |
 | --- | --- | --- | --- |
-| Off (the default) | 0 | 14,984 (41 %) | 28,808 (78 %) |
+| Off (`limits.capture = 0`) | 0 | 14,984 (41 %) | 28,808 (78 %) |
 | Movy's 512 events × 20 B | 10,240 | 25,224 (68 %) | 39,048 (106 %) |
 | 256 events × 20 B (about 128 notes, Movy's 8-bar window when sparse) | 5,120 | 20,104 (55 %) | 33,928 (92 %) |
 | 512 × 12 B, packed | 6,144 | 21,128 (57 %) | 34,952 (95 %) |
-| 256 × 12 B, packed | 3,072 | 18,056 (49 %) | 31,880 (86 %) |
+| **256 × 12 B, packed: the default** | 3,072 | 18,056 (49 %) | 31,880 (86 %) |
 | 128 × 12 B, packed (about 64 notes) | 1,536 | 16,520 (45 %) | 30,344 (82 %) |
 
 Besides the ring: about 1.55 KB of stack while a stopped capture searches
@@ -399,6 +428,18 @@ its tempo (211 tempos in float, run inside the `cap` command), and undo,
 still to come (§5 planned a 12 KiB ring), shares what is left. At 4 tracks
 Movy's full Capture fits; at 8 tracks only a smaller or packed ring does.
 Capture matched Movy in 2,300 oracle scripts, 237 of them stopped captures.
+Packed, it still does [verified 2026-10-01: 2,300 new capture scripts, 225
+of them stopped captures, through the oracle, from clang under ASan and
+UBSan and from GCC 12 at 64 and 32 bits; in review, those again and the
+9,500 earlier random scripts, 1,732 of them with Capture, through both the
+plain and the checking build, and a test at the edge of each field's range,
+each through the oracle too]. engines/seq.md gives each field's width and
+its reason: the frame and master tick are offsets from two bases, the
+velocity also tells a note-on from a note-off, and the cycle keeps 20 bits
+and a flag. Only above 349,525 Hz at the slowest tempos, or under an
+external clock averaging above about 426 BPM, would the ring drop its oldest
+events early, where Movy keeps them (and, with a one-step loop at compat's
+255X, keep a note Movy's stale rule drops).
 
 **Lock resolution** [verified: the core rebuilt with `fm1_seq_val_t` as
 `uint16_t` and a 14-bit maximum, no warnings]: 200 B per track (a lock grows

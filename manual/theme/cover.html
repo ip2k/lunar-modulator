@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>$manual_title $document</title>
+<meta name="description" content="The $document for $manual_title, $descriptor_lc: the browser simulator, the desktop tools and what is planned for the device.">
+<meta name="generator" content="tools/manual/build.py, commit $commit">
+$font_link<link rel="stylesheet" href="assets/manual.css">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+</head>
+<body class="cover-page">
+<a class="skip" href="#content">Skip to the contents</a>
+<header class="masthead">
+  <a class="wordmark" href="index.html"><span class="wm-name">$manual_title</span><span class="wm-doc">$document</span></a>
+  <nav aria-label="Manual">
+    <a href="#contents">Contents</a>
+    <a href="$pdf_name">PDF</a>
+    <a href="../">Simulator</a>
+  </nav>
+</header>
+$hero
+<main class="cover-body" id="content">
+  <h1 class="cover-title">$manual_title</h1>
+  <p class="cover-tagline">$tagline</p>
+  <p class="cover-doc">$document$draft_flag</p>
+  <p class="cover-descriptor">$descriptor</p>
+  <div class="admonition warning">
+    <p class="admonition-title">Nothing here runs on an FM-1 yet</p>
+    <p>$manual_title is being built and tested on computers first. You can play it today in the browser simulator, and the desktop tools render its sounds. Do not try to install it on an FM-1: no firmware exists for the device yet, and <a href="01-welcome-and-safety.html#the-one-rule">chapter 1</a> explains why nothing will be offered until the device can be restored safely.</p>
+  </div>
+  <div class="cover-actions">
+    <a class="button primary" href="$first_chapter">Start reading</a>
+    <a class="button" href="$pdf_name">Download the PDF</a>
+    <a class="button" href="../">Open the simulator</a>
+  </div>
+  <p class="edition">$edition</p>
+  <h2 id="contents">Contents</h2>
+  <ol class="contents-list">
+$contents
+  </ol>
+</main>
+<footer class="colophon">
+  <p>$manual_title is independent open firmware for the M-VAVE FM-1. It is not made, endorsed or supported by M-VAVE or Cuvave. Text and code are under the MIT licence; see <a href="13-credits-and-licences.html">Credits and licences</a>.</p>
+</footer>
+</body>
+</html>

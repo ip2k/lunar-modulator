@@ -31,6 +31,12 @@
 //   note-on, so a stolen or retriggered voice restarts its envelopes
 //   (fm::Voice only sees a note-on on a gate edge) and a new patch's setup
 //   happens then, not as a silent first block.
+// - Per-note offsets (set_param_note, engine API v2; note_offsets.h):
+//   Brightness, Envelope and Volume are POLY, since each voice already
+//   passes the first two to its fm::Voice and the third is its gain, and a
+//   pitch offset joins the note after the bend. Patch stays a note-on choice
+//   (LATCH). A voice without an offset plays the engine's values, byte for
+//   byte as before.
 //
 // Rate: FMVoice runs at Plaits' 47,872.34 Hz whatever the host's rate, as
 // upstream's SixOpEngine::Init sets it up, in this wrapper's 16-sample blocks
@@ -43,11 +49,19 @@
 // in Init; running at upstream's rate makes its samples upstream's, as for
 // Macro and Macro Heavy, so all three compare with upstream the same way.)
 //
+// Brightness, Envelope and Volume are SMOOTH: while a voice sounds a change
+// ramps over eight 16-sample blocks, 2.67 ms (fm1_smooth.h: 2.5 ms rounded up
+// to whole blocks). While none does it applies at once. A voice with an
+// offset plays the ramped value plus its offset, so its offset rides on the
+// ramp.
+//
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
+#include "fm1_smooth.h"
+#include "note_offsets.h"
 
 #include <algorithm>
 #include <cstring>
@@ -132,12 +146,24 @@ enum Param { P_PATCH, P_BRIGHTNESS, P_ENVELOPE, P_VOLUME, P_COUNT };
 // release rates by 2^(-|e - 0.3| * 8), so the default 0.5 plays attacks and
 // decays as programmed with releases about three times longer.
 
+// Uids (API v2) are fixed: never renumber one. Patch is read per voice at
+// note-on (LATCH), so a lock or a route picks the patch of the notes that
+// start after it and leaves sounding ones alone. The three FLOATs are POLY:
+// fm::Voice takes brightness and the envelope control in its parameters,
+// which each voice already has, and the volume is a voice's gain.
+const uint8_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
 const fm1_param_t kParams[P_COUNT] = {
-  { "Patch",      FM1_PARAM_ENUM,  0, kNumPatches - 1, 32, kPatchNames, 0 },  // E.PIANO 1
-  { "Brightness", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },  // Plaits' TIMBRE
-  { "Envelope",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0 },  // Plaits' MORPH
-  { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1 },
+  { "Patch",      FM1_PARAM_ENUM,  0, kNumPatches - 1, 32, kPatchNames, 0,  // E.PIANO 1
+    1, FM1_PARAM_LATCH | FM1_PARAM_MOD, FM1_UNIT_NONE, "Patch" },
+  { "Brightness", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0,  // Plaits' TIMBRE
+    2, kPoly, FM1_UNIT_NONE, "Bright" },
+  { "Envelope",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0,  // Plaits' MORPH
+    3, kPoly, FM1_UNIT_NONE, "Env" },
+  { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 4, kPoly, FM1_UNIT_NONE, "Vol" },
 };
+
+// A voice's per-note offsets: Brightness, Envelope and Volume, and its pitch.
+typedef NoteOffsets<P_BRIGHTNESS, P_COUNT - P_BRIGHTNESS> Offsets;
 
 // Eight voices. The FM-1's stock msfa plays 12 six-op voices plus effects on
 // one pi32v2 core, in fixed point with its hot loops in RAM; Plaits' float
@@ -167,6 +193,7 @@ struct Voice {
   bool gate;
   bool active;
   uint32_t age;
+  Offsets note;                   // per-note offsets (set_param_note)
 };
 
 class Instance {
@@ -185,10 +212,13 @@ class Instance {
       v.note_offset = 0.0f;
       v.gate = v.active = false;
       v.age = 0;
+      v.note.Clear();
     }
     const float blocks_per_second = kCorrectedSampleRate / kBlock;
     silent_after_release_ = static_cast<uint32_t>(kSilentAfterRelease * blocks_per_second);
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
+    fm1_smooth_init(smooth_, value_, P_COUNT);
+    smooth_steps_ = fm1_smooth_steps(kCorrectedSampleRate, kBlock);
     bend_ = 0.0f;
     lead_ = -1;
     clock_ = 0;
@@ -216,6 +246,7 @@ class Instance {
     v->age = ++clock_;
     v->silent_blocks = 0;
     v->active = true;
+    v->note.Clear();   // a new note, a retrigger or a steal starts at no offset
     lead_ = static_cast<int>(v - voice_);
 
     // Two one-sample renders with the gate low, output discarded. The first
@@ -249,7 +280,18 @@ class Instance {
     const fm1_param_t &p = kParams[index];
     if (!(value >= p.min)) value = p.min;  // also catches NaN
     if (value > p.max) value = p.max;
-    value_[index] = value;
+    fm1_smooth_set(&smooth_[index], &value_[index], value, Steps(index));
+  }
+
+  // The voice sounding `key` (one at most: a key retriggers in its own
+  // voice), held or releasing, takes the offset. A pitch offset there at the
+  // note's first block is the note fm::Voice samples for its keyboard and
+  // rate scaling, as a played note's would be.
+  void SetParamNote(uint8_t key, uint16_t index, float offset) {
+    if (!Offsets::Normalise(kParams, index, &offset)) return;
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active && voice_[i].key == key) voice_[i].note.Set(index, offset);
+    }
   }
 
   // Each output sample pulls the 47,872.34 Hz mix the resampler needs for it,
@@ -273,6 +315,15 @@ class Instance {
   }
 
  private:
+  // A SMOOTH parameter ramps while a voice sounds; anything else, at once.
+  uint32_t Steps(uint16_t index) const {
+    if (!(kParams[index].flags & FM1_PARAM_SMOOTH)) return 0;
+    for (int i = 0; i < kNumVoices; ++i) {
+      if (voice_[i].active) return smooth_steps_;
+    }
+    return 0;
+  }
+
   Voice *Allocate(uint8_t key) {
     Voice *best = NULL;
     for (int i = 0; i < kNumVoices; ++i) {   // same key: retrigger in place
@@ -292,6 +343,7 @@ class Instance {
   }
 
   void RenderBlock() {
+    fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     float mix[kBlock] = { 0 };
     const float gain = value_[P_VOLUME] * 0.25f;
     Voice *lead = lead_ >= 0 ? &voice_[lead_] : NULL;
@@ -310,10 +362,14 @@ class Instance {
       fm::Voice<6>::Parameters *p = v.fm.mutable_parameters();
       p->sustain = false;
       p->gate = v.gate;
-      p->note = v.key + v.note_offset + bend_;
+      float note = v.key + v.note_offset + bend_;
+      if (v.note.has_pitch()) note += v.note.pitch;
+      p->note = note;
       p->velocity = accent;
-      p->brightness = value_[P_BRIGHTNESS];
-      p->envelope_control = value_[P_ENVELOPE];
+      p->brightness = v.note.Value(kParams, P_BRIGHTNESS, value_[P_BRIGHTNESS]);
+      p->envelope_control = v.note.Value(kParams, P_ENVELOPE, value_[P_ENVELOPE]);
+      const float voice_gain = v.note.has(P_VOLUME)
+          ? v.note.Value(kParams, P_VOLUME, value_[P_VOLUME]) * 0.25f : gain;
       if (lead && &v != lead && v.patch_index != lead->patch_index) {
         v.fm.mutable_lfo()->Step(static_cast<float>(kBlock));
         v.fm.set_modulations(v.fm.lfo());
@@ -330,7 +386,7 @@ class Instance {
       for (size_t n = 0; n < kBlock; ++n) {
         const float s = stmlib::SoftClip(scratch_[n] * 0.25f);
         if (s > kSilence || s < -kSilence) silent = false;
-        mix[n] += s * gain;
+        mix[n] += s * voice_gain;
       }
       v.silent_blocks = (silent && !v.gate) ? v.silent_blocks + 1 : 0;
       if (v.silent_blocks > silent_after_release_) v.active = false;
@@ -341,7 +397,9 @@ class Instance {
   fm::Algorithms<6> algorithms_;  // shared, read-only after Init
   Voice voice_[kNumVoices];
   float scratch_[3 * kBlock];
-  float value_[P_COUNT];
+  float value_[P_COUNT];          // what the blocks read (SMOOTH: ramped)
+  fm1_smooth_t smooth_[P_COUNT];
+  uint32_t smooth_steps_;         // 16-sample blocks in a ramp
   float bend_;
   int lead_;                      // most recently triggered voice, drives the LFO
   uint32_t silent_after_release_; // in 16-sample blocks at 47,872.34 Hz
@@ -368,6 +426,9 @@ void NoteOff(void *s, uint8_t k) { static_cast<Instance *>(s)->NoteOff(k); }
 void Bend(void *s, float st) { static_cast<Instance *>(s)->PitchBend(st); }
 void Set(void *s, uint16_t i, float v) { static_cast<Instance *>(s)->SetParam(i, v); }
 void Render(void *s, float *out, uint32_t n) { static_cast<Instance *>(s)->Render(out, n); }
+void SetNote(void *s, uint8_t k, uint16_t i, float o) {
+  static_cast<Instance *>(s)->SetParamNote(k, i, o);
+}
 
 }  // namespace sixop
 }  // namespace fm1
@@ -381,4 +442,5 @@ extern "C" const fm1_engine_t fm1_engine_sixop = {
   fm1::sixop::InstanceSize, fm1::sixop::Create, fm1::sixop::Destroy,
   fm1::sixop::NoteOn, fm1::sixop::NoteOff, fm1::sixop::Bend,
   fm1::sixop::Set, fm1::sixop::Render,
+  fm1::sixop::SetNote,
 };

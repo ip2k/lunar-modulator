@@ -25,8 +25,9 @@ def test_registry_lists_engines(renderer):
             assert e["max_voices"] >= 1
         else:
             assert e["max_voices"] == 0
-        assert all(p["page"] in (0, 1) for p in e["params"])  # four knobs a page
-        assert sum(p["page"] == 0 for p in e["params"]) <= 4
+        pages = [p["page"] for p in e["params"]]
+        assert all(pages.count(page) <= 4 for page in pages)  # four knobs a page
+        assert not pages or set(pages) == set(range(max(pages) + 1))  # no empty page
         for p in e["params"]:   # an enum lists one name per value, nothing else does
             if p["type"] == 1:
                 assert len(p["names"]) == p["max"] - p["min"] + 1 and all(p["names"])

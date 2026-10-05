@@ -62,11 +62,27 @@ void fm1_script_free(fm1_script_t *s);
 char *fm1_read_file(const char *path, size_t *len);
 
 /* Applies one script line's ops (fm1_seq_apply_text) or its realtime input
- * ("rt FA"), writing the events to out. Returns how many. */
+ * ("rt FA"), writing the events to out. Returns how many. A wrapper over
+ * fm1_seq_apply_line (fm1_seq_host.h), which every host uses. */
 uint32_t fm1_script_apply(fm1_seq_t *s, const char *ops, fm1_seq_ev_t *out, uint32_t cap);
 
 /* One event-log line. `block_start` is the absolute frame of the block. */
 void fm1_script_log_event(FILE *f, uint64_t block, uint64_t block_start, const fm1_seq_ev_t *e);
+
+/* A typed command as one op of text that fm1_seq_parse reads back to the
+ * same record (docs/15 §6.3: hosts log the UI's commands this way, so that
+ * fm1-render can replay them): the verb's name, then each token, an integer
+ * when it parsed as one, the third token's kept text for `alabel`'s label
+ * (or when it spells the integer as the original did, "+5" or "007"), and
+ * "_" for any other token that did not parse. A record from fm1_seq_parse
+ * or fm1_seq_cmd_make round-trips exactly unless its third token was longer
+ * than the parser keeps. FM1_SEQ_V_UNKNOWN is written "?". Returns the
+ * text's length; it is written, NUL-terminated, only up to cap. The longest
+ * is under 600 bytes. */
+size_t fm1_seq_cmd_format(const fm1_seq_cmd_t *c, char *buf, size_t cap);
+
+/* The name of verb v (FM1_SEQ_V_*), or NULL. */
+const char *fm1_seq_verb_name(unsigned v);
 
 #ifdef __cplusplus
 }

@@ -1,0 +1,7 @@
+#! rate=44118 block=64 tracks=2 end=70588
+# Two tracks on Six-Op: track 0 by the default route, track 1 by a `route`
+# verb. Swing 62, and track 1's clip at twice the speed (cscl 2/1).
+@0 bpm 20000;swing 62
+@0 tog 0 0 60 100 64 90;tog 0 3 67 100;tog 0 6 72 80;tog 0 10 64 90
+@0 tog 1 1 48 100;tog 1 5 55 70;tog 1 9 43 110;cscl 1 2 1
+@0 route 1 1 0;play
