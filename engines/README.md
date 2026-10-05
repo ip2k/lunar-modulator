@@ -25,7 +25,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `sixop` | Six-Op FM | sound | 8 | Plaits' DX7-style engine and its 96 patches | [plaits-heavy.md](plaits-heavy.md) |
 | `sw-sophie` | Sophie | sound | 12 | a Schwung module (Matt Estela, MIT), through the shim | [schwung.md](schwung.md) |
 | `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
-| `plate` | Plate | effect | – | Rings' reverb | [mi-fx.md](mi-fx.md) |
+| `plate` | Plate | effect | – | Rings' reverb, with Elements' Freeze | [mi-fx.md](mi-fx.md) |
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
 | `diffuse` | Diffuse | effect | – | Plaits' diffuser | [mi-fx.md](mi-fx.md) |
 | `sw-psxverb` | PSX Verb | effect | – | a Schwung module (Charles Vestal, MIT), through the shim | [schwung.md](schwung.md) |
@@ -270,7 +270,7 @@ the registry defines.
 
 **The ENUM parameters** [verified against each engine's code, 2026-10-02].
 docs/15's table had eight; Macro's and Macro Heavy's LPG came with their
-third page.
+third page. Plate's Freeze came on 2026-10-05.
 
 | Engine | Parameter | Flags | Why |
 | --- | --- | --- | --- |
@@ -283,6 +283,7 @@ third page.
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
 | sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
+| plate | Freeze | MOD | Off/On, appended as uid 5 on page 1 (2026-10-05). It ramps the loop over 5 ms, so a lock or a rounded route switches it cleanly (the owner's policy for switches; mi-fx.md, "Freeze") |
 
 **Units and abbreviations.** Echo's Time and Sophie's Ring Time are in ms,
 Sophie's Tune in semitones and its 0–100 knobs in %. Sophie's Decay is in
@@ -392,7 +393,7 @@ upstream candidate). Our own code gets none.
   | PSX Verb | 134,224 | 134,208 | a fixed 128 KB work area, as upstream |
   | Sophie, 12 voices | 77,904 | 77,888 | ring delays per voice |
   | Macro Heavy, 4 voices | 71,104 | 70,880 | ~17 KB per voice (Particle and String arenas) |
-  | Plate | 65,648 | 65,632 | 32,768 16-bit delay words, as Rings |
+  | Plate | 65,664 | 65,664 | 32,768 16-bit delay words, as Rings; Freeze added 16 and 32 bytes (2026-10-05) |
   | Echo | 65,728 | 65,728 | 16,384 stereo cells of 16-bit words |
   | Macro, 12 voices | 31,744 | 18,864 | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,848 | 18,848 | |

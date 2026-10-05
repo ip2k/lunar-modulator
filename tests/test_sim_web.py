@@ -393,11 +393,12 @@ def test_panel_keys_follow_the_manual(tools, tmp_path, panel, note):
 
 def test_buttons_and_encoders(tools, tmp_path):
     """PRESETS steps the sound, FX mode and ALGORITHM pick the effect in the
-    selected slot, SELECT moves to slot 2, KNOB1 turns a parameter there."""
+    selected slot, SELECT walks slot 1's pages (Plate has two: its knobs and
+    Freeze) and then moves to slot 2, KNOB1 turns a parameter there."""
     s = run(tools["sim"], ["--engine", "macro", "--seconds", "0.2",
                            "--turn", "0:PRESETS:1",
                            "--button", "0:FX", "--turn", "0.01:ALGORITHM:1",
-                           "--turn", "0.02:SELECT:1", "--turn", "0.03:ALGORITHM:2",
+                           "--turn", "0.02:SELECT:2", "--turn", "0.03:ALGORITHM:2",
                            "--turn", "0.04:KNOB1:10"])
     assert s["engine"] == "shapes"
     assert s["mode"] == 1

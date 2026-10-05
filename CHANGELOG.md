@@ -9,6 +9,14 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Freeze** on the Plate reverb, a switch on its second page: it holds the
+  tail at the level it had and ignores new input, while Mix still blends in
+  what you play. It switches over 5 ms, so it does not click and can be
+  locked on a step or driven by modulation. Decay and Damping wait until you
+  release it. The hold is not endless: the highs fade over seconds and the
+  body over minutes, and a quiet tail runs out sooner (about 25 s at
+  −39 dBFS, nearly 3 minutes at −19 dBFS); engines/mi-fx.md says why and
+  what would fix it. With Freeze off, Plate sounds exactly as before.
 - notes/2026-10-02-delay-reverb-eq-gates-options.md: research on delays,
   reverbs, EQ, a DJ filter and tilt for the master bus, bus saturation, and a
   Drawmer DS201-style gate. It also designs side-chaining: the gate and the
