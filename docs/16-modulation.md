@@ -1428,7 +1428,8 @@ marked]:
   adds RTRG's edges, the record pool, and cables into sound unit 2 and its
   insert in `fm1-render` (zero amounts render the plain bytes). The layout
   sweep went from 815 to 1,084 screens with MG3, and from 1,321 (main
-  with S8) to 2,042 with the integration, 0 faults: RACK at
+  with S8) to 2,042 with the integration, and from main's 1,458 (with the
+  master-bus effects) to 2,189 at landing, 0 faults: RACK at
   every position and page, each of the sixteen kinds at its extremes,
   routed and not, the picker and a grab; every sound's and effect's pages
   with a cable on each parameter; MATRIX with 0, 1, 7 and 32 slots, both
@@ -1440,7 +1441,8 @@ marked]:
   cable, timed edits), `mod-panel-gestures` (the panel), `mod-multi-routes`
   (a script over four sound units, their inserts and the master) and
   `mod-multi-panel` (the panel across two sound units), pass native
-  against WebAssembly, identical to musl and to `render.js`: 51 of 51.
+  against WebAssembly, identical to musl and to `render.js`: 58 of 58
+  with main's master-bus scenarios.
 - **Sizes.** `fm1_mod_size()` is 22,368 B: MG1's 20,016 B, RTRG's 48 B and
   the record pool's 2,304 B. `fm1_app_t` is 4,915,088 B (64-bit clang),
   33,664 B more than main's with multi-sound: the runtime's 24,576 B

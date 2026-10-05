@@ -131,7 +131,7 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** five swappable sound engines and seven effects behind one C
+- **The API:** five swappable sound engines and sixteen effects behind one C
   API ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
@@ -154,8 +154,13 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
     antiderivative anti-aliasing), Drive (overdrive and saturation, five
     anti-aliased curves), Echo (a stereo ping-pong delay), Filter (seven
-    zero-delay-feedback filter types), Comp (a feed-forward compressor) and
-    Limiter (a look-ahead brickwall limiter) are our own code
+    zero-delay-feedback filter types), Comp (a feed-forward compressor),
+    Limiter (a look-ahead brickwall limiter), DJ Filter (one knob, low-pass
+    to high-pass, exact bypass in between), Tilt (a tilt equaliser, exact
+    bypass when flat), Master Sat (band-limited bus saturation with Glue,
+    its curves' coefficients from Airwindows, Chris Johnson, MIT), Isolator
+    (a three-band kill EQ) and EQ (a three-band parametric equaliser) are
+    our own code
     ([`engines/README.md`](engines/README.md#crush)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
@@ -613,10 +618,14 @@ which lands with the plan PR; its stages S0–S7 are named below.
   all [inferred].
 
 **More effects** · *Planned*
-- **Done so far (2026-10-02):** Crush, Fold, Drive, Echo, Filter, Comp and Limiter, our own code
+- **Done so far (2026-10-05):** Crush, Fold, Drive, Echo, Filter, Comp and
+  Limiter, and the master-bus effects of the
+  [2026-10-02 effects note](notes/2026-10-02-delay-reverb-eq-gates-options.md)
+  (DJ Filter, Tilt, Master Sat, Isolator and EQ), our own code
   ([`engines/README.md`](engines/README.md#crush)). Their switch-like
   controls (Filter's Type, Drive's Type and Auto, Comp's Character, Auto
-  Rel and Auto Gain, the Limiter's Mode and Lookahead) change without a
+  Rel and Auto Gain, the Limiter's Mode and Lookahead, DJ Filter's Slope,
+  Tilt's Curve, Master Sat's Shape and Isolator's Kill) change without a
   click, so they can be locked and modulated: the rule is that a switch
   that changes cleanly is lockable and modulatable
   ([`engines/README.md`](engines/README.md#parameters-engine-api-v2)).

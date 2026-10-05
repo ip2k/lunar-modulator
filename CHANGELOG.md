@@ -52,9 +52,84 @@ history.
     `fm1_seq_host_dispatch_slots_ticks` runs the modulation over several
     sound units. The runtime is 22,368 bytes, and the lab's RAM meter counts
     it. Four new parity scenarios check the browser module with modulation
-    running, two of them over several sounds (51 of 51
-    pass), and the layout check now covers 2,042 screens. The browser
-    module grew from 573 KB to about 712 KB.
+    running, two of them over several sounds (58 of 58 pass with the
+    master-bus effects' own), and the layout check now covers 2,189
+    screens. The browser module grew from 599 KB to about @@KB@@ KB.
+- **DJ Filter, Tilt, Master Sat, Isolator and EQ on the virtual FM-1:**
+  the master-bus effects of the 2026-10-02 effects note. The effect slots
+  now offer seventeen effects (ALGORITHM steps through Plate, Ensemble,
+  Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp, Limiter,
+  DJ Filter, Tilt, Master Sat, Isolator, EQ and Test Gain). Put them in
+  the second slot, the end of the chain; with multi-sound (behind `?lab`)
+  the two slots are the master bus of every sound.
+  - Each has a parity scenario that turns its knobs, and its switch where
+    it has one, while notes play; two more turn DJ Filter's Slope, Tilt's
+    Curve, Master Sat's Shape and Isolator's Kill every 4.4 ms.
+  - For developers: `tests/test_engines_fx_switches.py` turns those four
+    switches every third block on a sine and on sharp onsets. 54 of 54
+    parity scenarios pass, identical to musl and to render.js; 1,458
+    screens pass the layout check (137 new). The browser module grew from
+    573 KB to 599 KB. Each effect is under 400 bytes an instance, on
+    64-bit and 32-bit builds alike. `tests/test_engines_fx_hostile.py`
+    puts all five through the same hostile checks of the engine contracts
+    (any block size and memory fill, seconds of garbage parameters and
+    input, the pass-through settings bit for bit, every glide landing at
+    8–384 kHz); it found Isolator's crossover glide stopping short of its
+    target, fixed before release.
+- **DJ Filter**, a new effect for the end of the chain (or the master bus,
+  once there is one): one knob, Sweep, low-passes as it turns left of
+  centre, from 20 kHz down to 60 Hz, and high-passes as it turns right, from
+  20 Hz up to 8 kHz. Around the centre (Dead Zone, 0.05 by default) the
+  sound passes untouched, bit for bit, and the filter costs nothing.
+  Resonance peaks in the middle of the sweep and never at its ends; Slope
+  chooses 12 or 24 dB per octave and crossfades between them; Mix blends in
+  the dry sound; Range shortens the sweep for gentler moves. Sweeps are
+  smooth whether turned by hand, locked or modulated, and crossing from one
+  side to the other neither clicks nor thumps. Every parameter can be locked
+  and modulated. For developers: `src/fx_djfilter.cc`, a trapezoidal SVF
+  written here with libm-free maths (the same bits from Apple clang, GCC and
+  Emscripten), 224 bytes an instance, and `fm1-djfilter-test`.
+- **Tilt**, an effect that turns the whole sound darker or brighter with
+  one knob, up to 9 dB either way about a pivot frequency you choose
+  (200 Hz to 5 kHz). Two curves: *Shelf* turns quickly around the pivot,
+  *Slope* more gently and evenly. A Level control makes up the volume.
+  Flat, it passes the sound through untouched, bit for bit, so it can sit
+  on the last slot as a master tone control. Every control, the curve
+  included, glides when turned, locked or modulated, so sweeps have no
+  clicks or zipper noise (engines/README.md, "Tilt"; manual chapter 6).
+- **Master Sat**, gentle saturation for the master bus (effect id `sat`, after
+  §6 of the 2026-10-02 effects note). Quiet passages pass unchanged; only
+  the band between **Clean Lo** (20–300 Hz) and **Clean Hi** (1–20 kHz) is
+  saturated, so the bass stays tight and the highs clear. **Drive** (0–18 dB)
+  sets where the curve starts to bend without making the sound louder;
+  **Glue** turns the mix down by up to 6 dB when the curve works hard, like a
+  bus compressor; **Shape** picks a Smooth or a Dense curve (it crossfades,
+  so it can be locked and modulated); **Asymmetry** adds even harmonics;
+  **Level** trims the result. **Mix** starts at 0, an exact bypass, as every
+  master effect does: turn it up to hear the effect. The curves use the
+  coefficients of Airwindows PurestSaturation and TapeHack2 (Chris Johnson,
+  MIT); the code is this project's own, with no maths library, and computes
+  the same bits on the desktop and in the browser.
+- **Isolator**, a three-band DJ kill EQ effect (engines/README.md, "Isolator").
+  Low, Mid and High knobs cut each band to nothing at 0, leave it alone at
+  three quarters of the way and boost it by 6 dB at the top; a Kill switch
+  silences any combination of bands at once, and returns them to their
+  knobs when released. The crossovers (80–400 Hz and 1.5–5 kHz, 250 Hz and
+  2.5 kHz by default) are steep Linkwitz-Riley ones, so a kill is deep (the
+  lows −64 dB at 40 Hz, the highs −80 dB at 15 kHz) and the bands add back
+  up flat. Every control, Kill included, can be locked and modulated, and
+  changes without clicks. At its defaults it passes the sound through
+  untouched, bit for bit.
+- **EQ**, a three-band parametric equaliser effect: a low shelf, a bell and a
+  high shelf, each with its own frequency, gain (±15 dB) and Q on a page of
+  its own, and an output Level. Its curves are those of the classic studio
+  "cookbook" equaliser, measured to within 0.001 dB. At 0 dB a band does
+  nothing at all, and with every gain at 0 dB the sound passes through bit
+  for bit. Every knob is open to sequencer locks and modulation: frequency,
+  gain and Q glide over a few milliseconds and the filters are built to be
+  swept, so turning or modulating a band does not click. It computes the
+  same samples in the browser as in a native build (engines/README.md,
+  "EQ").
 - Per-note sound changes, the groundwork for per-voice modulation: Macro,
   Macro Heavy, Six-Op FM and Shapes can now move one playing note's sound
   (its timbre, level, envelope times and the like, and its pitch) without

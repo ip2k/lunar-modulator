@@ -53,6 +53,10 @@ ENUM_FLAGS = {
     ("comp", "Auto Rel"): ["mod"],              #   crossfades: no step in the reduction
     ("comp", "Auto Gain"): ["mod"],             # its makeup and its bound glide in
     ("limit", "Mode"): ["mod"],                 # glides the stage, frame by frame
+    ("djfilter", "Slope"): ["mod"],             # crossfades over 5 ms: lockable, rounded
+    ("tilt", "Curve"): ["mod"],                 # glides between its two curves
+    ("sat", "Shape"): ["mod"],                  # crossfades over 5 ms
+    ("isolator", "Kill"): ["mod"],              # the band gains glide: a clean change
 }
 
 
