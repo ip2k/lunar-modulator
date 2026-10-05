@@ -980,24 +980,24 @@ history.
 
 ### Changed
 - HANDOFF.md, the project's context summary, now describes `main` after
-  PRs #3–#20 instead of the research phase.
-  - Where things stand: the code runs on a desktop and in a browser, not on
-    a JieLi chip or an FM-1, and 1,441 of 1,443 tests pass (2 xfail, undo).
-  - What the repository holds: 14 docs, the engine platform, the sequencer
-    core and its Movy oracle, the virtual FM-1 and the dongle.
-  - Recovery: the reports in ip2k/lunar-modulator#2, which we have not
-    answered; our dongle's pull-up fix and its new D+ default; the dev kit
-    and JieLi's updater on order.
-  - Corrections:
-    - the one rule is stated in full again, traffic limit included;
-    - the FM-1 has four free parameter knobs, not eight;
-    - Movy is pinned at `9190e79`, not `5627d51`;
-    - `isd_download` is a writer and never a recovery tool for the FM-1;
-    - Phase 2 is in docs/08;
-    - the identity reply's checksum fails on `FM-1_092`.
-  - New: open and in-flight work, the dead-code audit now due, a list of
-    docs that still lag, and a current kick-off prompt. The 2026-09-06
-    prompt is kept, marked historical.
+  PRs #3–#57 (2026-10-05) instead of the 2026-09-06 research phase.
+  - Where things stand: the code runs on a desktop and in a browser
+    (the virtual FM-1 and the manual on GitHub Pages), compiles for pi32v2
+    but has not run on a JieLi chip, and this project has flashed nothing.
+  - What the repository holds, with DEVELOPERS.md as the technical home
+    and docs/01–16.
+  - Recovery: the reports from other owners (issue #2 here,
+    FM-1-transporter, fm1-nes), our dongle's fixes, the dev kit and JieLi's
+    updater on order, the soft key and its draft test plan (#54).
+  - Corrections to the old file: the one rule stated in full, traffic limit
+    included; four free parameter knobs, not eight; Movy at `9190e79`, not
+    `5627d51`; `isd_download` is a writer, never a recovery tool for the
+    FM-1; Phase 2 is in docs/08; the identity reply's checksum fails on
+    `FM-1_092`; two cores, not one.
+  - New: open PRs and the owner's open calls, the decisions since
+    2026-09-29, the lagging docs, the dead-code audit now far past due, the
+    community firmware in the reference table, and a current kick-off
+    prompt. The 2026-09-06 prompt is kept, marked historical.
 - The rename entry names the typeface, Audiowide, as CLAUDE.md's naming
   rules ask.
 - **Licences: the GPL switch** (owner, 2026-10-05; CLAUDE.md, docs/12 §6).
