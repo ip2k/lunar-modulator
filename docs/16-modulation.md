@@ -1156,7 +1156,11 @@ and the tests) [verified 2026-10-02]:
 - The bridge gained `fm1_seq_host_dispatch_ticks`, a control-rate hook with
   the M6 order at one frame, and the sink a `pitch_bend`. Plain dispatch is
   unchanged, so the virtual FM-1 is too until MG3: 816 renders before and
-  after are byte-identical.
+  after are byte-identical. Merged with docs/15's multi-sound bridge
+  (2026-10-05), the hook runs in its one-sink path and sees every event
+  with the route the bridge gives it; `fm1_seq_host_dispatch_slots` runs
+  no hook yet, and `fm1-render --mod` refuses the sound-unit flags, so
+  modulating several sound units is MG3's.
 - Sources: VEL, NOTE, RAND, KEY, TRIG, the sequencer's CLOCK, BEAT, BAR,
   RUN, START and track gates and velocities. Sinks: SOUND, FX1, FX2 (in
   `fm1-render`), HOST PITCH and AMP. MIDI controllers and MACRO 1–4 wait
