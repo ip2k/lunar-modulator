@@ -40,7 +40,7 @@ engines/build/fm1-render --engine macro-heavy --param Model=8 --param Harmonics=
     --note 0:57:100:1 --note 0:64:100:1 --seconds 3 --out string.wav
 engines/build/fm1-render --engine sixop --param Patch=32 \
     --note 0:57:100:1 --note 0:61:100:1 --note 0:64:100:1 --seconds 3 --out epiano.wav
-python -m pytest tests/test_engines_plaits_heavy.py      # 183 tests
+python -m pytest tests/test_engines_plaits_heavy.py      # 191 tests
 ```
 
 ## Rate: Plaits at its own rate, resampled

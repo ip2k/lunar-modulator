@@ -388,7 +388,9 @@ docs/15 plans M4 in the virtual FM-1 as stages S1–S10, with M2's engine API v2
 **The owner's answers (2026-10-01):**
 
 1. **Deviations:** fix everything we can. D1–D7 are the defaults; `compat`
-   exists only for tests against Movy.
+   exists only for tests against Movy. D8–D13, added later the same day
+   under this answer (§3.3), are defaults too, so D1–D13 are on by default
+   (engines/seq.md).
 2. **Tracks:** 4–8 tracks, each with configurable routing (an engine, or
    USB-MIDI on a channel) where possible.
 3. **Budget:** with fewer tracks it should be about half of §5's 72 KiB.

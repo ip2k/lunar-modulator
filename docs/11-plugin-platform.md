@@ -427,11 +427,13 @@ switch. docs/12 §6 has the full rules.
 | C — FM-1 | only after the dump-and-restore of docs/07 | Tier 0 in the open firmware, or in a hook build if the owner chooses that route | engines selectable per preset, CPU meter on screen |
 | D | FM-1 | Tier 1 RAM units over USB-MIDI; then flash-stored units and Berry scripts if wanted | a unit built outside the firmware tree loads, runs, and is refused cleanly when over budget |
 
-Stage A can start today and costs nothing. Stage B is the one purchase
-that turns every [inferred] CPU figure in this document into a measurement.
+Stage A needed no hardware and cost nothing; its exit test is met (below).
+Stage B is the one purchase that turns every [inferred] CPU figure in this
+document into a measurement; the dev kit for it is on order (docs/14).
 
-**Progress (2026-09-30).** Stage A is well under way in
-[`engines/`](../engines/) [verified: desktop builds and tests, CI]:
+**Progress (2026-09-30).** Stage A was well under way in
+[`engines/`](../engines/) [verified: desktop builds and tests, CI], and met
+its exit test later that day (below):
 
 - the C API, a static registry, and a desktop host that renders WAVs at
   44,118 Hz in 64-frame blocks through a bus limiter, with an effect chain;
@@ -445,7 +447,10 @@ that turns every [inferred] CPU figure in this document into a measurement.
   `schwung-braids`; Sophie was chosen instead because Braids is already here
   natively (engines/schwung.md, "Which modules, and why");
 - about 360 engine tests, run on Linux and macOS, on a 32-bit build, and
-  under ASan and UBSan in CI.
+  under ASan and UBSan in CI. On 2026-10-05 there are 2,377
+  (`tests/test_engine*.py`, with the effects and features added since;
+  engines/README.md), run the same ways [verified: `pytest --collect-only`,
+  `.github/workflows/ci.yml`].
 
 Findings so far:
 

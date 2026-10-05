@@ -9,9 +9,9 @@ the stock UI, and loads community modules (synths, effects, tools) as
 aarch64 Linux shared objects (`dlopen`, `create()`), installed over SSH by a
 desktop installer.
 
-**Movy** (DimaDake, MIT, v0.31.0) is a Schwung *tool module*: an
-Elektron-style knob UI plus a 16-track step sequencer modelled on Move's own.
-It is two artifacts:
+**Movy** (DimaDake, MIT; read at commit `5627d51`, §5a) is a Schwung *tool
+module*: an Elektron-style knob UI plus a 16-track step sequencer modelled on
+Move's own. It is two artifacts:
 
 | Part | Language | Size | Runs where |
 | --- | --- | --- | --- |
@@ -35,7 +35,7 @@ per-track LFOs, drum layouts, transport lock with Move.
 | Languages | anything with an aarch64 Linux target: Rust, C, JS in QuickJS | C/C++ via JieLi's closed Clang fork; **no Rust, no mainline LLVM/GCC, no JS runtime worth the RAM** |
 | Host framework | Schwung shim provides audio interception, module hosting, param API, display writer | none; a custom firmware *is* the whole system |
 | Display | monochrome OLED framebuffer written by the shim | 240×240 colour TFT over SPI |
-| Controls | 32 velocity/pressure pads, 8 endless encoders + jog, step buttons, transport | 27 silicone keys, **8 knobs** (encoder/pot mix TBD), ~14 LED buttons |
+| Controls | 32 velocity/pressure pads, 8 endless encoders + jog, step buttons, transport | 27 silicone keys, **8 knobs** (seven encoders and one pot, MASTER; docs/01 §3), ~14 LED buttons |
 | Audio | Move's instruments plus Schwung module chains | one msfa FM engine plus effects |
 | Install | copy files over SSH | re-flash the chip |
 
@@ -89,7 +89,10 @@ code is the stronger candidate for engines. See docs/11.
 
 ## 5a. Update 2026-10-01: Movy has parameter locks
 
-This document inspected Movy v0.31.0 (`5627d51`). Movy has since gained
+This document inspected Movy at `5627d51`, a `main` commit of 2026-09-05
+whose `module.json` says 0.31.0; the v0.31.0 tag is `675054f`, 38 commits
+earlier [verified 2026-10-05: GitHub API]. (This line used to call
+`5627d51` v0.31.0; docs/13 refuted that.) Movy has since gained
 Elektron-style per-step parameter locks: hold a step that has notes and turn
 a module knob, and the value is stored for that step only and plays when the
 step plays [verified at `9190e79`, `main` on 2026-10-01, 299 commits past
@@ -97,7 +100,8 @@ the v0.34.0 tag `7539028`: MANUAL.md, `clip.rs`]. It also
 has per-step velocity, length, probability and A:B conditions. It is still
 Rust and TypeScript on aarch64 Linux, so the conclusion below stands; its MIT
 licence makes it a usable spec and desktop test oracle for an FM-1 sequencer.
-See docs/12, and docs/13 for the plan to replicate its sequencer.
+See docs/12, and docs/13 for the plan to replicate its sequencer, which is
+pinned to `9190e79`.
 
 ## 6. Recommendation
 

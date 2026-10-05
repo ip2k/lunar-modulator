@@ -6,7 +6,8 @@ and how far it got. Check these before re-deriving anything.
 ## 1. FM-1 specific
 
 ### aroum/fm1-custom-fw — https://github.com/aroum/fm1-custom-fw
-*No license stated. Last commit 2026-08-21.*
+*No license stated. `main` last commit 2026-10-04 (`4e9d6d3`); checked
+2026-10-05.*
 
 - Identified the SoC as JieLi AC791N (WL82) and the JL_AC79_DevKit V1.0 as its
   reference board (Taobao).
@@ -28,9 +29,24 @@ and how far it got. Check these before re-deriving anything.
   correct.
 - Links: firmware V15 on Aliyun, r/synthdiy teardown thread, esp8266.ru JieLi
   thread, fm1-editor.com, openpatch.es.
+- **README links to this project (since 2026-09-13; commits `cb5796c`,
+  `d988b84`, `4e9d6d3`, read through the GitHub API 2026-10-05).** `cb5796c`
+  adds a mask-ROM recovery route to the hardware section and a reference to
+  this repository (under its old name): it describes the RP2040 design in
+  `dongle/` as forcing `UBOOT1.00` through the USB-C port, enabling flash
+  backup and unbricking. The later two add Baud Girl's FM-1+VA, Felucca and
+  Lunar Modulator (as research stage) under a new "Custom & Alternative
+  Firmwares" section. What is established: this project's dongle is
+  implemented and simulated, its UF2 built in CI, and has not been run against
+  an FM-1 (docs/10, `dongle/README.md`); a different, simpler Pico tool by
+  czietz reaches UBOOT mode on two other owners' FM-1s, and one of them
+  reports a firmware backup and a write with it [reported: issue #2, docs/10
+  §1.1]; no dongle has yet shown a dump and a byte-identical restore on this
+  project's unit (docs/07 §4).
 
 ### AL-255/FM-1-RE — https://github.com/AL-255/FM-1-RE
-*WTFPL. `main` last commit 2026-08-16, `with-custom-firmware` 2026-08-02.*
+*WTFPL. `main` last commit 2026-09-08 (`ec832f2`, the merge of PR #2),
+`with-custom-firmware` 2026-08-02 (`628fcaf`); checked 2026-10-05.*
 
 The deep one. `main` is analysis only; `with-custom-firmware` preserves the
 experimental firmware and package builders.
@@ -60,13 +76,13 @@ experimental firmware and package builders.
   quarantined `legacy-uboot` scripts. Built with the real JieLi Linux toolchain.
   **Not flash-ready**; last device test stopped at the `0xE0000000` signal with
   stock still installed.
-- **PR #2 by Echomatter (2026-09-05, open):** fixes the partial-block
-  response framing, adds the plain V15 identity parse, and documents a
-  hardware-verified rollback from a modified `FM-1_016` package to stock V15
-  over USB-MIDI (`docs/io/12-v15-reflash-proof.md`, redacted request record,
-  `tools/verify_reflash_record.py`, 27 tests). First non-stock package known to
-  have run on an FM-1. Our 2026-09-06 identity capture decodes correctly with
-  its parser and not with `main`'s.
+- **PR #2 by Echomatter (opened 2026-09-05, merged 2026-09-08):** fixes the
+  partial-block response framing, adds the plain V15 identity parse, and
+  documents a hardware-verified rollback from a modified `FM-1_016` package to
+  stock V15 over USB-MIDI (`docs/io/12-v15-reflash-proof.md`, redacted request
+  record, `tools/verify_reflash_record.py`, 27 tests). First non-stock package
+  known to have run on an FM-1. Our 2026-09-06 identity capture decodes
+  correctly with its parser and did not with `main`'s before the merge.
 - **Our engagement (2026-09-06):** hardware confirmation of the plain
   identity parse posted on PR #2 (comment with the byte-exact `FM-1_015`
   reply and a fixture); V15 analysis on issue #1; **PR #3**

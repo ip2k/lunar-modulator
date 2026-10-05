@@ -3,8 +3,9 @@
 Phases with exit criteria. Status on 2026-10-01:
 - Phase 0 is done.
 - Phase 1 has had one read-only bench session (`notes/2026-09-06-bench.md`).
-- Phase 2's dongle is built and simulated (docs/10), and an AC79 dev kit and
-  JieLi's USB updater are on order (docs/14).
+- Phase 2's dongle firmware is built (a UF2 from CI) and its logic simulated
+  against a ROM model (docs/10, `dongle/`); no dongle has been assembled or
+  tried. An AC79 dev kit and JieLi's USB updater are on order (docs/14).
 - Parts of Phase 4 and Phase 5 exist on the desktop and in a browser: the
   engine platform (`engines/`), the sequencer core (`engines/seq.md`) and the
   virtual FM-1 (`sim/web/`).
@@ -33,9 +34,12 @@ Detailed commands in docs/09.
 ## Phase 2 — Recovery
 
 - Build the RP2040 `USB_KEY` dongle from docs/10 (firmware in `dongle/`, UF2
-  from CI, logic tested against a ROM model); rehearse on an AC791N dev board
-  if one can be bought (JL_AC79_DevKit V1.0 on Taobao), otherwise proceed
-  carefully on the FM-1 following docs/10 §6.
+  from CI, logic tested against a ROM model). Rehearse the dump and restore
+  first on the AC79 dev kit, on order since 2026-10-01 (the JL-AC79-DevKit
+  V1.0 with an AC7916): docs/14 §5 step 3 enters download mode with the
+  kit's own keys and then JieLi's USB updater, with this dongle as the
+  fallback (docs/14 §6). Then proceed carefully on the FM-1 following
+  docs/10 §6.
   - czietz's MicroPython dongle, reported working on two FM-1s (issue #2),
     can also run on our dongle board as a second implementation for that
     rehearsal: SPI1 on GP14/GP15 instead of GP10/GP11, relay energised,

@@ -85,7 +85,7 @@ cause.
 
 | Set | Size | Source | What it checks |
 | --- | --- | --- | --- |
-| Engine reference renders | the fm1 side of about 350 tests | `tests/test_engines_reference_*.py` | every engine and effect at native rates through the resampler. R2 compares with R0's fm1 output, not with upstream |
+| Engine reference renders | the fm1 side of 487 tests (Shapes with Plate, Ensemble and Diffuse 226; Plaits' engines 201; Room 60) [verified 2026-10-05: `pytest --collect-only`] | `tests/test_engines_reference_*.py` | the Mutable-derived engines (Macro, Macro Heavy, Six-Op FM, Shapes) at their native rates and through the resampler at 44,118 Hz, and the Mutable-derived effects (Plate, Ensemble, Diffuse, Room) at upstream's rate and at 44,118 Hz with the rate rule. R2 compares with R0's fm1 output, not with upstream |
 | Virtual FM-1 scenarios | 12 | `sim/web/test/scenarios.json` | effect chains, bends, parameter changes, more notes than voices, 44,100 Hz |
 | Host contracts | per engine | `--fill 0/0xA5/0xFF`, NaN parameters, `--fault` | device memory is not zeroed either |
 | Movy fixtures | 24, six of them with D1 traces | `tests/fixtures/movy/` | compat mode, D1 frames, the exported sets |
