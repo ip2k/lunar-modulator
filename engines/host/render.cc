@@ -87,8 +87,16 @@
 // --param-at and --sound-param-at move the units' bases, --bend HOST
 // PITCH's, which bends sound unit 0.
 //
+// DX7 voice data (engines/include/fm1_dx7.h): --sysex FILE loads a .syx
+// file's voices into the FM6 engine's user slots (--engine dx7, sound unit
+// 0), before the first block: a 32-voice bank fills User 1..32, single
+// voices go to User 1, 2... in the order given, counted across files. Each
+// file's result is printed on stderr, one line: the file, the voices, the
+// first slot, bad checksums and skipped messages, and the names stored.
+//
 // MIT licence.
 
+#include "fm1_dx7.h"
 #include "fm1_engine.h"
 #include "fm1_mix_limiter.h"
 #include "fm1_mod.h"
@@ -166,6 +174,7 @@ void Usage() {
       "                   [--insert-param K:NAME=VALUE]...] [--level K:PCT] [--slots]\n"
       "                  [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=VALUE]\n"
       "                  [--level-at K:T:PCT] [--mod FILE] [--log-mod FILE.jsonl]\n"
+      "                  [--sysex FILE.syx]...\n"
       "       fm1-render --list-mod\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
@@ -451,6 +460,41 @@ void RenderFx(const Unit &u, unsigned unit, const Modulation *md, float *block, 
   if (cur < n) u.e->render(u.self, block + 2u * cur, n - cur);
 }
 
+// --sysex: each file's DX7 voices into the dx7 engine's user slots, in
+// order, single voices one slot after another across files.
+bool LoadSysex(const Unit &u, const char *id, const std::vector<std::string> &paths) {
+  if (!id || strcmp(id, "dx7") != 0) {
+    fprintf(stderr, "--sysex needs --engine dx7\n");
+    return false;
+  }
+  unsigned slot = 0;
+  for (size_t k = 0; k < paths.size(); ++k) {
+    FILE *f = fopen(paths[k].c_str(), "rb");
+    if (!f) { fprintf(stderr, "--sysex: cannot open %s\n", paths[k].c_str()); return false; }
+    std::vector<uint8_t> data;
+    uint8_t buf[4096];
+    size_t got;
+    while ((got = fread(buf, 1, sizeof(buf), f)) > 0) data.insert(data.end(), buf, buf + got);
+    fclose(f);
+    fm1_dx7_sysex_result_t r;
+    const int n = fm1_dx7_load_sysex(u.self, data.empty() ? NULL : &data[0], data.size(), slot, &r);
+    if (n <= 0) {
+      fprintf(stderr, "--sysex: no DX7 voice dump in %s\n", paths[k].c_str());
+      return false;
+    }
+    fprintf(stderr, "sysex %s: %d voices from User %u, %u bad checksums, %u skipped:",
+            paths[k].c_str(), n, r.first_slot + 1u, r.bad_checksums, r.skipped);
+    for (int i = 0; i < n && i < (int)FM1_DX7_USER_SLOTS; ++i) {
+      char name[FM1_DX7_NAME_BYTES + 1];
+      fm1_dx7_user_name(u.self, (r.first_slot + i) % FM1_DX7_USER_SLOTS, name);
+      fprintf(stderr, " \"%s\"", name);
+    }
+    fputc('\n', stderr);
+    slot = (r.first_slot + static_cast<unsigned>(n)) % FM1_DX7_USER_SLOTS;
+  }
+  return true;
+}
+
 bool ParseParam(const char *arg, std::vector<std::pair<std::string, float> > *out) {
   const char *eq = strchr(arg, '=');
   if (!eq) return false;
@@ -577,6 +621,7 @@ int main(int argc, char **argv) {
   long events_cap = -1;            // --events: the block's event buffer
   std::vector<Route> routes;
   const char *mod_path = NULL, *mod_log_path = NULL;
+  std::vector<std::string> sysex_paths;   // --sysex: DX7 voices for --engine dx7
   // Sound units 1..3 (--sound) and every unit's inserts and level; unit 0 is
   // `sound`. `slots` is set by any of their flags or --slots.
   Unit more[kSounds];
@@ -604,6 +649,7 @@ int main(int argc, char **argv) {
     else if (a == "--seq") seq_path = next;
     else if (a == "--log-events") log_path = next;
     else if (a == "--mod") mod_path = next;
+    else if (a == "--sysex") sysex_paths.push_back(next);
     else if (a == "--log-mod") mod_log_path = next;
     else if (a == "--tracks") tracks = atoi(next);
     else if (a == "--events") {      // a decimal count: base 0 would read 010 as 8
@@ -790,6 +836,7 @@ int main(int argc, char **argv) {
   }
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, max_frames };
   if (engine_id && !Instantiate(sound, engine_id, FM1_KIND_SOUND, host, fill)) return 1;
+  if (!sysex_paths.empty() && !LoadSysex(sound, engine_id, sysex_paths)) return 1;
   // Every sound unit, unit 0 being `sound` (created in this order: unit 0,
   // the --fx chain, units 1..3, then each unit's inserts, as the virtual
   // FM-1's harness creates them).
