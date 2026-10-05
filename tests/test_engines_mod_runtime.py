@@ -100,7 +100,7 @@ def test_the_core_checks_itself(renderer):
     assert out["failed"] == 0 and out["size"] == MOD_BYTES
     assert out["plans"] == 3000 and out["plans_with_loops"] > 500
     assert out["chain_ticks"] > 300 and out["feedback_ticks"] == 12 and out["nan_writes"] > 50
-    assert out["continuity"] == 5
+    assert out["continuity"] == 6
 
 
 def test_size_is_pinned_and_listed(renderer):
@@ -260,6 +260,19 @@ def test_mod_flags_need_mod(renderer, tmp_path):
         res = subprocess.run([str(renderer), "--engine", "macro", "--seconds", "0.1",
                               "--mod", str(p)], capture_output=True, text=True)
         assert res.returncode == 2 and msg in res.stderr, (text, res.stderr)
+    # A bad @FRAME, and a bad line that only fails when its frame comes, with
+    # the sequencer's script loaded: each exits 2 with everything released
+    # (the sanitizer build's leak check runs these).
+    cmd = script(tmp_path, seq_text(64, end=448 * 4))
+    for text, msg, extra in [("@x mod 1 lfo", "bad @FRAME", []),
+                             ("mod 1 lfo\n@2000 frobnicate", "unknown line", ["--cmd", str(cmd)])]:
+        p.write_text(text + "\n")
+        res = subprocess.run([str(renderer), "--engine", "macro", "--seconds", "0.1",
+                              "--mod", str(p)] + extra, capture_output=True, text=True)
+        assert res.returncode == 2 and msg in res.stderr, (text, res.stderr)
+    res = subprocess.run([str(renderer), "--engine", "macro", "--seconds", "0.1", "--mod",
+                          str(tmp_path / "missing.mod")], capture_output=True, text=True)
+    assert res.returncode == 1 and "cannot read" in res.stderr
 
 
 # ---- block-size identity with routes ----------------------------------------------------------

@@ -690,9 +690,26 @@ int main(int argc, char **argv) {
   Modulation md;
   fm1_seq_host_t bare;               // the bridge without a sequencer
   memset(&bare, 0, sizeof(bare));
+  // An error on the --mod path exits with everything released (the units,
+  // the runtime, the sequencer's script and both logs), so a sanitizer
+  // build's leak check passes the error tests (test_mod_flags_need_mod).
+  auto ModFail = [&](int code) {
+    if (md.log) fclose(md.log);
+    md.log = NULL;
+    fm1_mod_destroy(md.m);
+    md.m = NULL;
+    free(md.mem);
+    md.mem = NULL;
+    if (sq.log) fclose(sq.log);
+    sq.log = NULL;
+    fm1_script_free(&sq.script);
+    Release(sound);
+    for (size_t k = 0; k < fx.size(); ++k) Release(fx[k]);
+    return code;
+  };
   if (mod_path) {
     FILE *f = fopen(mod_path, "r");
-    if (!f) { fprintf(stderr, "cannot read %s\n", mod_path); return 1; }
+    if (!f) { fprintf(stderr, "cannot read %s\n", mod_path); return ModFail(1); }
     char buf[1024];
     uint32_t seed = 0;
     while (fgets(buf, sizeof(buf), f)) {
@@ -702,7 +719,11 @@ int main(int argc, char **argv) {
       if (*t == '@') {
         char *end = NULL;
         frame = strtoull(t + 1, &end, 10);
-        if (end == t + 1) { fprintf(stderr, "%s: bad @FRAME: %s", mod_path, buf); fclose(f); return 2; }
+        if (end == t + 1) {
+          fprintf(stderr, "%s: bad @FRAME: %s", mod_path, buf);
+          fclose(f);
+          return ModFail(2);
+        }
         t = end;
       }
       std::string text(t);
@@ -713,10 +734,13 @@ int main(int argc, char **argv) {
     fclose(f);
     std::stable_sort(md.lines.begin(), md.lines.end(),
                      [](const ModLine &x, const ModLine &y) { return x.frame < y.frame; });
-    if (posix_memalign(&md.mem, 16, fm1_mod_size()) != 0) return 1;
+    if (posix_memalign(&md.mem, 16, fm1_mod_size()) != 0) {
+      md.mem = NULL;
+      return ModFail(1);
+    }
     memset(md.mem, fill, fm1_mod_size());
     md.m = fm1_mod_create(md.mem, &host, seed);
-    if (!md.m) { fprintf(stderr, "modulation runtime refused its memory\n"); return 1; }
+    if (!md.m) { fprintf(stderr, "modulation runtime refused its memory\n"); return ModFail(1); }
     const fm1_engine_t *units[3] = { sound.e, fx.size() > 0 ? fx[0].e : NULL,
                                      fx.size() > 1 ? fx[1].e : NULL };
     for (unsigned u = 0; u < 3; ++u) {
@@ -737,7 +761,7 @@ int main(int argc, char **argv) {
     md.glue.ticked = ModTicked;
     if (mod_log_path && !(md.log = fopen(mod_log_path, "w"))) {
       fprintf(stderr, "cannot write %s\n", mod_log_path);
-      return 1;
+      return ModFail(1);
     }
     fm1_seq_host_init(&bare, NULL, NULL, 0);
     fm1_seq_host_bind(&bare, sound.e);
@@ -755,17 +779,7 @@ int main(int argc, char **argv) {
     }
     return true;
   };
-  // A bad script line exits with the units released, so a sanitizer
-  // build's leak check passes the error tests (test_mod_flags_need_mod).
-  auto ModFail = [&]() {
-    if (md.log) fclose(md.log);
-    fm1_mod_destroy(md.m);
-    free(md.mem);
-    Release(sound);
-    for (size_t k = 0; k < fx.size(); ++k) Release(fx[k]);
-    return 2;
-  };
-  if (md.m && !ModApplyLines(0)) return ModFail();
+  if (md.m && !ModApplyLines(0)) return ModFail(2);
 
   const uint32_t total = seq_end ? static_cast<uint32_t>(seq_end)
                                  : static_cast<uint32_t>(seconds * rate);
@@ -848,7 +862,7 @@ int main(int argc, char **argv) {
       sq.events += n_seq;
     }
     if (md.m) {
-      if (!ModApplyLines(pos)) return ModFail();
+      if (!ModApplyLines(pos)) return ModFail(2);
       md.writes.clear();
       md.pos = pos;
     }

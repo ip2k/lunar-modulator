@@ -671,6 +671,33 @@ static void gate_continuity(unsigned *checks) {
   for (b = 0; b < 20; ++b) CHECK(block(m, 64, w, 8) == 0);
   ++*checks;
   fm1_mod_destroy(m);
+
+  /* Replacing a module restarts its outputs low, so a gate cable it drove
+   * goes low too: the module it reached releases even though the new
+   * instance never rises (its own GATE now comes from SEQ1, silent). */
+  m = make(0, 0, 5);
+  fm1_mod_set_kind(m, 0, K_ENV);
+  fm1_mod_set_kind(m, 1, K_ENV);
+  for (b = 0; b < 2u; ++b) {
+    fm1_mod_set_param(m, b, 0, 0.0f);
+    fm1_mod_set_param(m, b, 1, 0.0f);
+    fm1_mod_set_param(m, b, 3, 0.0f);
+  }
+  s = cable(out_of(0, 2), FM1_MOD_MODULE + 1u, 0, 1.0f);   /* ENV1 ACT -> ENV2 GATE */
+  s.flags = (uint8_t)(s.flags | FM1_MOD_SLOT_GATE_DST);
+  fm1_mod_set_slot(m, 0, &s);
+  fm1_mod_live_note(m, 60, 100);
+  for (b = 0; b < 4; ++b) block(m, 64, w, 8);
+  CHECK(act_end(m, 1) == 1 && m->srt[0].level == 1);
+  fm1_mod_set_kind(m, 0, K_ENV);
+  s = cable(FM1_MOD_SRC_SEQ_GATE, FM1_MOD_MODULE + 0u, 0, 1.0f);
+  s.flags = (uint8_t)(s.flags | FM1_MOD_SLOT_GATE_DST);
+  fm1_mod_set_slot(m, 1, &s);
+  CHECK(m->srt[0].level == 0);
+  for (b = 0; b < 4; ++b) block(m, 64, w, 8);
+  CHECK(act_end(m, 0) == 0 && act_end(m, 1) == 0 && m->gin_level[1] == 0);
+  ++*checks;
+  fm1_mod_destroy(m);
 }
 
 int main(void) {
