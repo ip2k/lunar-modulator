@@ -152,8 +152,10 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     compatibility shim.
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
-    antiderivative anti-aliasing) and Echo (a stereo ping-pong delay) are
-    our own code ([`engines/README.md`](engines/README.md#crush)).
+    antiderivative anti-aliasing), Echo (a stereo ping-pong delay) and
+    Master Sat (band-limited bus saturation with Glue, its curves'
+    coefficients from Airwindows, Chris Johnson, MIT) are our own code
+    ([`engines/README.md`](engines/README.md#crush)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
   checked sample for sample against upstream `Voice`
