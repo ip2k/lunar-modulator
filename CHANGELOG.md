@@ -16,11 +16,10 @@ history.
     sweeps down, a crisp snare and ring-modulated hi-hats. Both have two
     snares, a clap, a rim shot, six toms, a crash and a ride, and any pad
     can play a cowbell instead.
-  - Each pad has its own Tune, Decay, Level, Tone, Snap, Sweep, Drive,
-    sound (Model) and choke group; Pad chooses which pad the knobs edit, as
-    on Sophie. The knobs start in the middle, which is the pad as the kit
-    sets it up. The kit's own page has Kit, Accent (how much velocity
-    matters), Kit Decay and Volume.
+  - Each pad has its own Tune, Decay, Level, Tone, Snap, Sweep, Drive and
+    sound (Model); Pad chooses which pad the knobs edit, as on Sophie. The
+    knobs start in the middle, which is the pad as the kit sets it up. Kit,
+    Accent (how much velocity matters) and Volume are the whole kit's.
   - A closed or pedal hi-hat cuts the open one short. Up to twelve hits
     ring at once, and a pad struck again while it rings is struck again,
     as a drum is.

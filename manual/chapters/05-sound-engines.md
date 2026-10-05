@@ -377,9 +377,9 @@ project's own, after published studies of the analogue circuits
   again, as a drum is, rather than starting a second sound; a thirteenth pad
   takes over the hit that started longest ago.
 - A closed or pedal hi-hat cuts the open hi-hat short, as on the machines.
-- **Pad** chooses which pad the knobs on pages 1 to 3 edit. [[ALGORITHM]]
-  steps through the pads, and so does [[KNOB1]] on page 1. Each pad keeps
-  its own settings.
+- **Pad** chooses which pad the pad's knobs edit: those on pages 1 and 2,
+  and Model on page 3. [[ALGORITHM]] steps through the pads, and so does
+  [[KNOB1]] on page 1. Each pad keeps its own settings.
 - The pad's knobs start in the middle, Tune at 0: that is the pad as the
   kit sets it up, and you turn from there. So until you change them the
   screen shows true values whichever pad you choose.
@@ -399,18 +399,16 @@ project's own, after published studies of the analogue circuits
     (a punchy, swept kick or tom), *Snare*, *Snap Snare*, *Hat*, *Ring Hat*,
     *Cymbal*, *Clap*, *Rim* and *Cowbell*. A pad given another sound plays
     that sound as Drums sets it up, so a cowbell on a tom's pad is a cowbell.
-  - **Choke** (page 3) sets which pads cut each other short: *Kit* puts the
-    three hi-hats together; *Off*, *A* and *B* choose for yourself.
-- Page 4 is the whole kit's:
+    The three hi-hat pads cut each other short whatever sound they play.
+- The rest of page 3 is the whole kit's:
   - **Kit** chooses *Deep*, the long, round kit, or *Punch*, harder and
     shorter, with a swept kick, a crisper snare and ring-modulated hi-hats.
   - **Accent** sets how much velocity matters: at 0 every hit plays the
     same, at the right a soft hit is quiet and dull and a hard one loud and
     bright.
-  - **Kit Decay** shortens or lengthens every pad at once.
   - **Volume** sets the kit's level.
-- Model, Choke and Kit reach the next hit; a hit that is ringing keeps the
-  sound it started with. The other knobs move a ringing hit too.
+- Model and Kit reach the next hit; a hit that is ringing keeps the sound it
+  started with. The other knobs move a ringing hit too.
 - Pitch bend bends every pad.
 
 !!! caution "The values shown after you change pads"

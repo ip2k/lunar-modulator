@@ -84,9 +84,15 @@ def test_drums_is_a_twelve_voice_pad_kit(listing):
     assert params["Pad"]["names"][0] == "1 Kick" and params["Pad"]["names"][15] == "16 Ride"
     assert params["Model"]["names"] == MODELS
     assert params["Kit"]["names"] == ["Deep", "Punch"]
-    assert params["Choke"]["names"] == ["Kit", "Off", "A", "B"]
-    assert [p["page"] for p in e["params"]] == [0] * 4 + [1] * 4 + [2] * 2 + [3] * 4
+    assert [p["page"] for p in e["params"]] == [0] * 4 + [1] * 4 + [2] * 4
     assert e["params"][-1]["name"] == "Volume"           # the last page ends with it, as elsewhere
+
+
+def test_twelve_parameters_fit_the_modulation_records(listing):
+    """Four sound units of the engine with the most parameters and ten of
+    the largest effects share the modulation runtime's 180 records
+    (tests/test_engines_mod_runtime.py): twelve, as many as Macro Heavy."""
+    assert len(listing["drums"]["params"]) == 12
 
 
 def test_only_the_kits_say_they_are_pad_kits(listing):
@@ -195,21 +201,24 @@ def test_closed_and_pedal_hats_choke_the_open_one(renderer, tmp_path, cutter):
     assert max(abs(a - b) for a, b in zip(cut[t:], alone[t:])) <= 2
 
 
-def test_choke_off_and_groups(renderer, tmp_path):
-    """Choke Off on the open hat lets it ring under a closed hat; two cymbals
-    put in group B choke each other; pads outside a group are never cut."""
+def test_only_the_hats_choke(renderer, tmp_path):
+    """The open hat's pad stays in the hats' group whatever model it plays
+    (a Hat by its Model in the Punch kit, whose own is the Ring Hat); a crash
+    under a closed hat, or a ride under the crash, is never cut: the render
+    is the two pads rendered apart, summed."""
     notes = [f"0:{OPEN_HH}:127:0.1", f"0.2:{CLOSED_HH}:100:0.1"]
-    _, _, off = run(renderer, tmp_path, "off", ["Pad=10", "Choke=1"], notes, seconds=1.0)
-    _, _, on = run(renderer, tmp_path, "on", notes=notes, seconds=1.0)
-    assert window_rms(off, 0.4, 0.6) > 30 * max(1.0, window_rms(on, 0.4, 0.6))
-    cymbals = [f"0:{CRASH}:127:0.1", f"0.3:{RIDE}:100:0.1"]
-    _, _, free = run(renderer, tmp_path, "free", notes=cymbals, seconds=1.0)
-    _, _, ride = run(renderer, tmp_path, "ride", notes=cymbals[1:], seconds=1.0)
-    _, _, grouped = run(renderer, tmp_path, "grp", ["Pad=13", "Choke=3", "Pad=15", "Choke=3"],
-                        cymbals, seconds=1.0)
-    t = int(0.31 * RATE)
-    assert max(abs(a - b) for a, b in zip(grouped[t:], ride[t:])) <= 2
-    assert max(abs(a - b) for a, b in zip(free[t:], ride[t:])) > 100
+    params = ["Kit=1", "Pad=10", "Model=5", "Volume=0.3"]
+    _, _, cut = run(renderer, tmp_path, "cut", params, notes, seconds=1.0)
+    _, _, alone = run(renderer, tmp_path, "alone", params, notes[1:], seconds=1.0)
+    t = int(0.2 * RATE) + int(0.005 * RATE) + 64
+    assert max(abs(a - b) for a, b in zip(cut[t:], alone[t:])) <= 2
+    for pair in ([f"0:{CRASH}:127:0.1", f"0.2:{CLOSED_HH}:100:0.1"],
+                 [f"0:{CRASH}:127:0.1", f"0.3:{RIDE}:100:0.1"]):
+        quiet = ["Volume=0.3"]
+        _, _, both = run(renderer, tmp_path, "both", quiet, pair, seconds=1.0)
+        _, _, a = run(renderer, tmp_path, "a", quiet, pair[:1], seconds=1.0)
+        _, _, b = run(renderer, tmp_path, "b", quiet, pair[1:], seconds=1.0)
+        assert max(abs(x - (y + z)) for x, y, z in zip(both, a, b)) <= 3
 
 
 # ---- velocity and the kit's knobs ---------------------------------------------------------
@@ -226,7 +235,7 @@ def test_velocity_and_accent(renderer, tmp_path):
     assert peak(40, 1) < 0.5 * peak(40, 0.5)
 
 
-def test_volume_level_and_kit_decay(renderer, tmp_path):
+def test_volume_level_and_decay(renderer, tmp_path):
     def kick(*params, seconds=2.0):
         return run(renderer, tmp_path, "-".join(params) or "plain", list(params),
                    [f"0:{KICK}:127:0.1"], seconds=seconds)
@@ -235,8 +244,8 @@ def test_volume_level_and_kit_decay(renderer, tmp_path):
     assert half["raw_peak"] == pytest.approx(base["raw_peak"] / 2, rel=0.01)
     lvl, _, _ = kick("Level=0.4")
     assert lvl["raw_peak"] == pytest.approx(base["raw_peak"] / 2, rel=0.01)
-    _, _, short = kick("Kit Decay=0")
-    _, _, long_ = kick("Kit Decay=1", seconds=4.0)
+    _, _, short = kick("Decay=0")
+    _, _, long_ = kick("Decay=1", seconds=4.0)
     assert decay_time(short, 40) < 0.5 * decay_time(x, 40) < decay_time(long_, 40)
 
 
@@ -252,15 +261,20 @@ def test_tune_and_bend_move_a_pad(renderer, tmp_path):
 
 # ---- voices --------------------------------------------------------------------------------
 
+def long_decays(keys):
+    """Each pad's Decay at 1 (Pad focuses it first), so its hits ring long."""
+    return sum(([f"Pad={k - 36}", "Decay=1"] for k in keys), [])
+
+
 def test_twelve_voices_then_a_steal(renderer, tmp_path):
     """Twelve long pads hold together; a thirteenth steals the oldest (the
     kick) and sounds; the bus limiter keeps the sum under full scale."""
     pads = [KICK, SNARE, CLAP, SNARE2, LOW_TOM, FLOOR_TOM, MID_TOM, LOW_MID, HIGH_MID,
             CRASH, HIGH_TOM, RIDE]
     held = [f"{0.01 * i:.2f}:{k}:110:0.1" for i, k in enumerate(pads)]
-    s, _, _ = run(renderer, tmp_path, "loud", ["Kit Decay=1"], held, seconds=1.0)
+    s, _, _ = run(renderer, tmp_path, "loud", long_decays(pads), held, seconds=1.0)
     assert s["peak"] <= 0.98 + 1e-6
-    params = ["Kit Decay=1", "Volume=0.1"]   # under the bus limiter, so renders add up
+    params = long_decays(pads) + ["Volume=0.1"]   # under the bus limiter: renders add up
     _, _, full = run(renderer, tmp_path, "twelve", params, held, seconds=1.0)
     _, _, stolen = run(renderer, tmp_path, "steal", params, held + [f"0.5:{RIM}:127:0.1"],
                        seconds=1.0)
@@ -283,7 +297,7 @@ def test_a_pad_struck_again_sounds_in_its_own_voice(renderer, tmp_path):
             HIGH_TOM, RIDE]
     held = [f"0:{k}:110:0.1" for k in pads]
     kicks = [f"{0.02 + 0.02 * i:.2f}:{KICK}:100:0.01" for i in range(24)]
-    params = ["Kit Decay=1", "Volume=0.1"]   # under the bus limiter, so renders add up
+    params = long_decays(pads + [KICK]) + ["Volume=0.1"]   # under the bus limiter: renders add up
     _, _, a = run(renderer, tmp_path, "a", params, held + kicks, seconds=0.8)
     _, _, b = run(renderer, tmp_path, "b", params, held, seconds=0.8)
     _, _, c = run(renderer, tmp_path, "c", params, kicks, seconds=0.8)
@@ -391,7 +405,7 @@ def test_two_pads_together_are_the_two_apart(renderer, tmp_path):
 
 def test_instance_size(renderer, tmp_path):
     s, _, _ = run(renderer, tmp_path, "size", seconds=0.01)
-    assert s["instance_bytes"] < 12_000      # 7,648 on 64-bit when written
+    assert s["instance_bytes"] < 12_000      # 7,616 on 64-bit and 32-bit when written
 
 
 def test_no_transcendental_libm_calls():
@@ -502,7 +516,7 @@ def test_nan_inf_offsets_and_ignored_indices(renderer, tmp_path):
         _, b, _ = run(renderer, tmp_path, "b", ["Pad=2", f"Tone={end}"], note)
         assert a == b, value
     ignored = []
-    for idx in ("#0", "#8", "#9", "#10", "#14", "#999", "#65534"):   # Pad, Model, Choke, Kit, past
+    for idx in ("#0", "#8", "#9", "#12", "#999", "#65534"):   # Pad, Model, Kit, past the table
         ignored += ["--note-param-at", f"0:{SNARE}:{idx}=0.7"]
     ignored += ["--note-param-at", f"0:60:Tone=0.4", "--note-pitch-at", f"0:{RIDE}:12"]
     _, a, _ = run(renderer, tmp_path, "ign", notes=note, extra=ignored)
@@ -513,7 +527,7 @@ def test_nan_inf_offsets_and_ignored_indices(renderer, tmp_path):
 def test_extreme_values_render_finite(renderer, tmp_path, listing, sign):
     """Every POLY parameter pinned at an end, the pitch at +/-48 over a +/-48
     bend, every model on its pad and both kits; also every parameter at its
-    ends set engine-wide (Drive 1, Tune +/-24 with Kit Decay 1)."""
+    ends set on the kick's pad and the kit, with all sixteen pads struck."""
     for kit in (0, 1):
         for model in range(len(MODELS)):
             extra = ["--bend", f"0:{'' if sign == 'inf' else '-'}48", "--frames", "7",

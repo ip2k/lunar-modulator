@@ -72,11 +72,9 @@
       {"name": "Sweep", "type": "float", "uid": 7, "flags": ["smooth", "mod", "poly"]},
       {"name": "Drive", "type": "float", "uid": 8, "flags": ["smooth", "mod", "poly"]},
       {"name": "Model", "type": "enum", "uid": 9, "flags": ["latch", "mod"]},
-      {"name": "Choke", "type": "enum", "uid": 10, "flags": ["latch", "mod"]},
-      {"name": "Kit", "type": "enum", "uid": 11, "flags": ["latch", "mod"]},
-      {"name": "Accent", "type": "float", "uid": 12, "flags": ["smooth", "mod", "poly"]},
-      {"name": "Kit Decay", "type": "float", "uid": 13, "flags": ["smooth", "mod", "poly"]},
-      {"name": "Volume", "type": "float", "uid": 14, "flags": ["smooth", "mod", "poly"]}
+      {"name": "Kit", "type": "enum", "uid": 10, "flags": ["latch", "mod"]},
+      {"name": "Accent", "type": "float", "uid": 11, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Volume", "type": "float", "uid": 12, "flags": ["smooth", "mod", "poly"]}
     ],
     "test-sine": [
       {"name": "Volume", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
