@@ -72,7 +72,8 @@ record = {
             for k in ("app_vs_js", "app_vs_musl", "app_vs_glibc")},
          "screen_px_differing": s["screen"]["differing"], "ram_bytes": s["ram"],
          **({"cmd": s["cmd"], "seq": s["seq"]} if s.get("cmd") else {}),
-         **({"panel": s["panel"]} if s.get("panel") else {})}
+         **({"panel": s["panel"]} if s.get("panel") else {}),
+         **({"mod": s["mod"]} if s.get("mod") else {})}
         for s in parity["scenarios"]
     ],
 }

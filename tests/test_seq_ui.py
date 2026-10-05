@@ -160,6 +160,8 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
         s, r, log, a, b = two_step(tools, tmp_path, sc["name"], seq / sc["panel"], seq / sc["cmd"],
                                    *args, lab=sc.get("lab", False))
         assert s["replayable"] == 1 and a == b and s["peak"] > 0.01
+        if sc["name"] != "seq-panel-play-stop":
+            continue                    # modulation's (tests/test_sim_mod.py)
         sidecar = (tmp_path / f"{sc['name']}.args").read_text()
         played = [t for _, t in s["seq_ui_cmds"]]
         if sc["name"] == "seq-panel-play-stop":

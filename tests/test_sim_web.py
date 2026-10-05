@@ -84,6 +84,8 @@ def scenario_args(s):
         args += ["--level", lv]
     for n in s.get("sound_notes", []):
         args += ["--sound-note", n]
+    if "mod" in s:
+        args += ["--mod", str(SIM / "test" / s["mod"])]
     return args
 
 
@@ -165,8 +167,9 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     arena, and with the 272-event buffer (256 until stage S6), the pending
     command record, the UI state's bound and the metronome's click voice it
     stays inside the sequencer's 36,864 B, half of docs/13 §5's 72 KiB.
-    fm1_app_t grew by about 36 KB for the sequencer, and to 4.9 MB for
-    multi-sound's arenas."""
+    fm1_app_t grew by about 36 KB for the sequencer, to 4.9 MB for
+    multi-sound's arenas, and by the modulation runtime's memory, a block's
+    writes to the effects and the pages' state (docs/16 MG3)."""
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
     print(f"sizeof(fm1_app_t) = {z['app_bytes']} B")
@@ -182,7 +185,8 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     # module's fixed 8 MiB; fm1_app_t is 4,881,424 B natively (clang, 64-bit).
     assert (z["sounds"], z["inserts"], z["master_slots"], z["units"]) == (4, 2, 2, 14)
     assert z["arena_bytes"] == 4 * 512 * 1024 + 10 * 256 * 1024
-    assert z["app_bytes"] <= 4_900_000
+    assert z["app_bytes"] <= 4_960_000
+    assert z["mod_bytes"] <= z["mod_arena"]
     assert z["seq_need"] == 201 <= z["seq_events"] == 272
     assert z["seq_ui_size"] <= z["seq_ui_bytes"]
     script = f"#! rate={RATE} block=64 tracks=8 end=6400\n@0 tog 0 0 60 100\n@0 play\n"
@@ -439,15 +443,26 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     four sounds and their levels, every sound as Sound 2 in HOME, the Mix
     page and SEQ mode, an empty current sound, the SHIFT + PRESETS and
     PRESETS popups, the RAM meter low, high and past the budget, its
-    refusals from PRESETS and ALGORITHM, and the switch turned off again."""
+    refusals from PRESETS and ALGORITHM, and the switch turned off again.
+    Then modulation's pages (docs/16 MG3): RACK at every position and page,
+    each kind at its extremes and list entries, routed and not, the kind
+    picker and a grab; every sound's and effect's pages with a cable on each
+    parameter (the marker, bracket and live tick); the gesture's popups;
+    MATRIX with 0, 1, 7 and 32 slots, both pages, a refused, an off, a
+    delayed and a per-voice row, every field's hint and the destination
+    picker; CHAIN through each slot; MATRIX over racks of all sixteen kinds
+    and over cables into every sound unit, insert and master slot, the
+    target picker from Sound 2, with every short name checked unique; and
+    the LEDs, the buttons that leave the pages and the stubs with the
+    switch off."""
     res = subprocess.run([str(tools["sim"]), "--screens", str(tmp_path)],
                          capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 1458            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["screens"] >= 2189            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
-    #                                              1321 before the master-bus pack
+    #                                              1321 before the master-bus pack (1458) and modulation (docs/16 MG3)
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 
@@ -659,9 +674,10 @@ def test_wasm_exports_match_the_web_layer():
 
 
 def test_the_staleness_gate_covers_what_the_module_links():
-    """fm1.wasm links the sequencer core and bridge, and the parity record
-    covers the sequencer scripts: a change to any of them makes the module
-    stale (a CI failure), not only a warning (docs/15 §6.5)."""
+    """fm1.wasm links the sequencer core and bridge and the modulation
+    runtime with its kinds and script reader, and the parity record covers
+    the sequencer and modulation scripts: a change to any of them makes the
+    module stale (a CI failure), not only a warning (docs/15 §6.5)."""
     sys.path.insert(0, str(SIM / "tools"))
     try:
         from source_hash import sim_files
@@ -669,12 +685,16 @@ def test_the_staleness_gate_covers_what_the_module_links():
         sys.path.pop(0)
     hashed = {p.relative_to(ROOT).as_posix() for p in sim_files(ROOT)}
     for s in SCENARIOS:
-        for key in ("cmd", "panel"):
+        for key in ("cmd", "panel", "mod"):
             if key in s:
                 assert f"sim/web/test/{s[key]}" in hashed, s["name"]
     want = [p.relative_to(ROOT).as_posix() for p in (ENGINES / "seq").glob("*.[ch]")]
     want += ["engines/include/fm1_seq.h", "engines/include/fm1_seq_host.h"]
+    want += [p.relative_to(ROOT).as_posix() for p in (ENGINES / "mod").rglob("*.[ch]")]
+    want += ["engines/include/fm1_mod.h", "engines/include/fm1_mod_host.h",
+             "engines/host/mod_script.c", "engines/host/mod_script.h"]
     assert want and not [w for w in want if w not in hashed]
+    assert "engines/mod/README.md" not in hashed, "documentation never makes the module stale"
 
 
 def test_committed_wasm_matches_its_build_record():

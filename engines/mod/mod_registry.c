@@ -85,6 +85,7 @@ static const fm1_mod_source_info_t kSources[FM1_MOD_SRC_SYSTEM] = {
   [FM1_MOD_SRC_BAR] = GATE("BAR"),
   [FM1_MOD_SRC_RUN] = GATE("RUN"),
   [FM1_MOD_SRC_START] = GATE("START"),
+  [FM1_MOD_SRC_RTRG] = GATE("RTRG"),
   [FM1_MOD_SRC_SEQ_GATE + 0] = GATE("SEQ1"),
   [FM1_MOD_SRC_SEQ_GATE + 1] = GATE("SEQ2"),
   [FM1_MOD_SRC_SEQ_GATE + 2] = GATE("SEQ3"),

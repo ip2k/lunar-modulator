@@ -25,7 +25,10 @@
 // tempo; multi-sound: SHIFT + PRESETS makes Sound 2 current, the Sound
 // dropdown follows and loads Shapes there, and a key plays it with Sound 1's
 // level at 0; with #lab the switch is on too; without either, Space sends nothing
-// and PLAY/STOP stays a stub. Step entry (docs/15 S4): in SEQ mode OP3 (A#3)
+// and PLAY/STOP stays a stub. Modulation with the switch (docs/16 MG3): LFO
+// opens RACK (its LED lit); LFO held with Enter while the wheel turns a knob
+// on HOME makes a cable and opens nothing; EDIT shows MATRIX; without the
+// switch LFO stays a stub. Step entry (docs/15 S4): in SEQ mode OP3 (A#3)
 // pages to bar 2, the computer's step keys enter four steps there, which
 // light those keys, and played, they sound and their lights move with the
 // playhead. MIT licence.
@@ -404,6 +407,34 @@ async function labChecks(browser) {
   await press(page, 8);                                         // HOME leaves SEQ mode
   await wait(page, 200);
   r.mode_after_home = await page.evaluate(() => window.fm1.state.mode);
+  // Modulation (docs/16 MG3): LFO opens RACK at LFO1 and lights.
+  await press(page, 5);
+  await wait(page, 300);
+  r.mod_rack_mode = await page.evaluate(() => window.fm1.state.mode);
+  r.mod_lfo_led = await lit(page, '[data-button="5"]');
+  await tftPng(page, 'tft-12-mod-rack.png');
+  // HOME, then the gesture as a mouse can make it: LFO focused and held with
+  // Enter while the wheel turns KNOB3 (Timbre). A turn while held makes a
+  // cable, so the release opens nothing: HOME stays.
+  await press(page, 8);
+  await wait(page, 200);
+  await page.focus('[data-button="5"]');
+  await page.keyboard.down('Enter');
+  await wheel(page, '[data-encoder="5"]', 20);
+  await wait(page, 100);
+  await tftPng(page, 'tft-13-mod-gesture.png');
+  await page.keyboard.up('Enter');
+  await wait(page, 300);
+  r.mod_mode_after_gesture = await page.evaluate(() => window.fm1.state.mode);
+  await tftPng(page, 'tft-14-mod-routed.png');
+  await press(page, 6);                                         // EDIT: MATRIX
+  await wait(page, 300);
+  r.mod_matrix_mode = await page.evaluate(() => window.fm1.state.mode);
+  r.mod_edit_led = await lit(page, '[data-button="6"]');
+  await tftPng(page, 'tft-15-mod-matrix.png');
+  await page.screenshot({ path: join(out, '09-lab-mod-matrix.png') });
+  await press(page, 8);                                         // HOME again
+  await wait(page, 200);
   // Step entry: SEQ, stop, A#3 (OP3) to bar 2, steps 1, 5, 9 and 13 there
   // from the computer's step keys (1, 5, C, M); stopped, exactly those
   // four white keys light. Played, the pattern sounds and the lights move.
@@ -530,6 +561,7 @@ async function labChecks(browser) {
   await press(off, 12);
   await press(off, 11);
   await press(off, 13);
+  await press(off, 5);                                          // LFO: a stub too
   const quiet = await loudest(off, 600, 1);
   r.off_rms = quiet.rms;
   r.off_mode = await off.evaluate(() => window.fm1.state.mode);
@@ -548,6 +580,8 @@ async function labChecks(browser) {
     r.recording_after_rec === true && r.rec_led_recording === true && r.recording_after_second_rec === false &&
     r.rec_led_buffered.length === 2 && r.rec_led_captured.length === 1 && r.rec_led_captured[0] === false &&
     r.focus_watch === 1 &&
+    r.mod_rack_mode === 4 && r.mod_lfo_led && r.mod_mode_after_gesture === 0 && r.mod_matrix_mode === 5 &&
+    r.mod_edit_led &&
     r.off_space_messages === 0 && r.off_rms < 0.001 && r.off_mode === 0 && r.off_play_led === false && r.off_rec_led === false &&
     r.off_seq_status === null && r.off_help_hidden === true &&
     r.multi_sound === 1 && r.multi_label === 'Sound 2 (PRESETS)' && r.multi_units[0] === r.multi_shapes &&

@@ -45,9 +45,15 @@ static int takes_mod(uint8_t type, uint8_t flags) {
   return (flags & (FM1_PARAM_MOD | FM1_PARAM_NOLOCK)) == FM1_PARAM_MOD;
 }
 
+/* A slot's destination is a module's (8 + position). */
+static int is_module(unsigned unit) {
+  return unit >= FM1_MOD_MODULE && unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS;
+}
+
 int mod_slot_dst_param(const fm1_mod_t *m, const fm1_mod_slot_t *s) {
   unsigned i;
-  if (s->dst_unit >= FM1_MOD_MODULE) {
+  int si;
+  if (is_module(s->dst_unit)) {
     const unsigned pos = (unsigned)s->dst_unit - FM1_MOD_MODULE;
     const fm1_mod_kind_t *kd = mod_kind_at(m, pos);
     if (!kd) return -1;
@@ -67,9 +73,10 @@ int mod_slot_dst_param(const fm1_mod_t *m, const fm1_mod_slot_t *s) {
     }
     return -1;
   }
-  if (s->dst_unit > FM1_MOD_FX2 || !s->dst) return -1;
-  for (i = 0; i < m->sink_n[s->dst_unit]; ++i) {
-    const mod_meta_t *q = &m->meta[s->dst_unit][i];
+  si = fm1_mod_sink_index(s->dst_unit);
+  if (si < 0 || !s->dst) return -1;
+  for (i = 0; i < m->sink_n[si]; ++i) {
+    const mod_meta_t *q = &m->meta[m->sink_first[si] + i];
     if (q->uid == s->dst) return takes_mod(q->type, q->flags) ? (int)i : -1;
   }
   return -1;
@@ -151,7 +158,7 @@ void mod_plan_build(fm1_mod_t *m) {
   for (i = 0; i < FM1_MOD_SLOTS; ++i) {
     const fm1_mod_slot_t *s = &m->slot[i];
     int a, b;
-    if (!((p->active >> i) & 1u) || s->dst_unit < FM1_MOD_MODULE) continue;
+    if (!((p->active >> i) & 1u) || !is_module(s->dst_unit)) continue;
     b = (int)s->dst_unit - FM1_MOD_MODULE;
     a = module_of(s->src);
     if (a >= 0) g.adj[a][g.nadj[a]++] = (uint8_t)b;
@@ -204,7 +211,7 @@ void mod_plan_build(fm1_mod_t *m) {
     const unsigned gate = (s->flags & FM1_MOD_SLOT_GATE_DST) ? 1u : 0u;
     unsigned d;
     if (!((p->active >> i) & 1u)) continue;
-    if (s->dst_unit >= FM1_MOD_MODULE) {
+    if (is_module(s->dst_unit)) {
       const int b = (int)s->dst_unit - FM1_MOD_MODULE;
       int a = module_of(s->src);
       if (a >= 0 && p->comp[a] == p->comp[b] && a >= b) p->delayed_src |= 1u << i;
@@ -223,7 +230,7 @@ void mod_plan_build(fm1_mod_t *m) {
       p->dest[d].index = (uint16_t)dparam[i];
       p->dest[d].slots = 0;
       ++p->n_dest;
-      if (s->dst_unit >= FM1_MOD_MODULE) {
+      if (is_module(s->dst_unit)) {
         const unsigned b = (unsigned)s->dst_unit - FM1_MOD_MODULE;
         if (gate) {
           p->gdest[b][dparam[i]] = (uint8_t)d;
@@ -233,8 +240,9 @@ void mod_plan_build(fm1_mod_t *m) {
           p->routed[b] |= 1u << dparam[i];
         }
       } else {
-        p->sdest[s->dst_unit][dparam[i]] = (uint8_t)d;
-        p->sink_routed[s->dst_unit] |= 1u << dparam[i];
+        const int si = fm1_mod_sink_index(s->dst_unit);   /* valid: the slot is active */
+        p->sdest[m->sink_first[si] + dparam[i]] = (uint8_t)d;
+        p->sink_routed[si] |= 1u << dparam[i];
       }
     }
     p->dest[d].slots |= 1u << i;
@@ -244,13 +252,9 @@ void mod_plan_build(fm1_mod_t *m) {
   /* A sink parameter no longer routed goes back to its base at the next
    * tick (if what was sent differs). */
   for (u = 0; u < MOD_SINK_UNITS; ++u) {
+    const uint32_t valid = m->sink_n[u] >= 32u ? 0xFFFFFFFFu : (1u << m->sink_n[u]) - 1u;
     m->restore[u] |= old_routed[u] & ~p->sink_routed[u];
-    if (u < 3u) {
-      const uint32_t valid = m->sink_n[u] >= 32u ? 0xFFFFFFFFu : (1u << m->sink_n[u]) - 1u;
-      m->restore[u] &= valid;
-    } else {
-      m->restore[u] &= (1u << FM1_MOD_HOST_PARAMS) - 1u;
-    }
+    m->restore[u] &= valid;
   }
   ++m->stats.plans;
   m->dirty = 0;

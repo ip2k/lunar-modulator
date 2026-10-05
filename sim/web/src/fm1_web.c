@@ -110,6 +110,22 @@ unsigned fm1w_seq_dropped(void) { return (unsigned)fm1_app_seq_dropped(&g_app); 
  * pattern. Off, the sequencer stays off the panel. */
 void fm1w_set_lab(int on) { fm1_app_set_lab(&g_app, on); }
 
+/* Modulation (docs/16 MG3). fm1w_mod_reset builds a new, empty runtime
+ * with `seed` (fm1_app_mod_reset), and fm1w_mod_text applies the first
+ * `len` bytes of the text buffer as one line of fm1-render's --mod format
+ * (engines/host/mod_script.h): 1, or 0 for a bad line or no runtime. The
+ * parity test plays a scenario's modulation through them; the lab switch
+ * builds the panel's own. */
+void fm1w_mod_reset(unsigned seed) { fm1_app_mod_reset(&g_app, seed); }
+
+int fm1w_mod_text(unsigned len) {
+  char line[1024];
+  if (len >= sizeof line) return 0;
+  for (unsigned i = 0; i < len; ++i) line[i] = g_text[i];
+  line[len] = '\0';
+  return fm1_app_mod_line(&g_app, line, NULL, 0);
+}
+
 /* A snapshot of the transport for the page's status line, refreshed by each
  * call: eight 32-bit words, [0] playing, [1] tempo in hundredths of a BPM,
  * [2] recording, [3] the watched track, [4] counting in, [5] following an

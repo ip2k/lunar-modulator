@@ -1,0 +1,20 @@
+# MATRIX: EDIT, SELECT to slot 3 (empty). KNOB1 picks a source (RAND),
+# KNOB2 opens the destination picker on the sound's Timbre and it commits
+# a second later; KNOB3 sets the amount, KNOB4 an offset. ALGORITHM turns
+# to page B: KNOB2 a curve, KNOB3 polarity, KNOB1 a VIA (VEL), KNOB4 off
+# and on again. SEL shows the chain, SEL comes back.
+--button 0.05:PLAY/STOP
+--button 0.10:EDIT
+--turn 0.15:SELECT:2
+--turn 0.20:KNOB1:3
+--turn 0.25:KNOB2:2
+--turn 1.40:KNOB3:45
+--turn 1.45:KNOB4:-10
+--turn 1.50:ALGORITHM:1
+--turn 1.55:KNOB2:2
+--turn 1.60:KNOB3:1
+--turn 1.65:KNOB1:1
+--turn 1.70:KNOB4:-1
+--turn 1.75:KNOB4:1
+--button 1.80:SEL
+--button 1.90:SEL

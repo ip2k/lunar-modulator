@@ -1,0 +1,29 @@
+# Played with the lab switch on (docs/16 MG3). PLAY/STOP; hold LFO and turn
+# Timbre (KNOB3) and Morph (KNOB4) on HOME: cables from LFO1. Hold ENV in FX
+# mode and turn Plate's Mix: ENV3 swells it. LFO opens RACK at LFO1, whose
+# Rate and Shape turn. EDIT: in slot 9, KNOB1 picks SEQ2, KNOB2's picker
+# goes to the last destination, ALGORITHM back a group to ENV4 and KNOB2
+# on to its GATE; KNOB3 commits it and sets 60 %, a gate cable that lets
+# 60 % of track 2's notes through. Slot 10: ENV4 into HOST AMP at -40 %.
+# It ends on MATRIX, whose screen the module and the harness compare.
+--button 0.05:PLAY/STOP
+--button 0.10:LFO:0.4
+--turn 0.15:KNOB3:35
+--turn 0.30:KNOB4:-20
+--button 0.60:FX
+--button 0.65:ENV:0.3
+--turn 0.70:KNOB1:30
+--button 1.00:LFO
+--turn 1.05:KNOB1:12
+--turn 1.10:KNOB2:1
+--button 1.20:EDIT
+--turn 1.25:SELECT:4
+--turn 1.30:KNOB1:12
+--turn 1.35:KNOB2:999
+--turn 1.40:ALGORITHM:-1
+--turn 1.45:KNOB2:5
+--turn 1.60:KNOB3:60
+--turn 1.70:SELECT:1
+--turn 1.75:KNOB1:34
+--turn 1.80:KNOB2:15
+--turn 1.90:KNOB3:-40

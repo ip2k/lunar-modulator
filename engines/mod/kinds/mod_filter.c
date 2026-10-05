@@ -107,12 +107,27 @@ static float tan_small(float x) {
   return s / c;
 }
 
+/* Cutoff (0..1) in Hz at a tick rate: 0.05 Hz x 2^(13 x Cutoff), held
+ * below 0.3 x the tick rate. */
+static float cutoff_hz(float cutoff, float tick_hz) {
+  const float fc = 0.05f * fm1_mod_exp2(13.0f * cutoff);
+  return fc > 0.3f * tick_hz ? 0.3f * tick_hz : fc;
+}
+
+float fm1_mod_filter_hz(float cutoff, float sample_rate) {
+  fm1_host_t host;
+  host.api_version = FM1_ENGINE_API_VERSION;
+  host.sample_rate = sample_rate;
+  host.max_frames = 64u;
+  return cutoff_hz(mod_clampf(cutoff, 0.0f, 1.0f, kParams[P_CUTOFF].def),
+                   1.0f / kind_tick_s(kind_rate(&host)));
+}
+
 static void configure(filter_t *s, const float *p) {
   const uint32_t kc = mod_bits(p[P_CUTOFF]), kr = mod_bits(p[P_RES]);
   float fc, g, r;
   if (s->configured && kc == s->key[0] && kr == s->key[1]) return;
-  fc = 0.05f * fm1_mod_exp2(13.0f * p[P_CUTOFF]);
-  if (fc > 0.3f * s->tick_hz) fc = 0.3f * s->tick_hz;
+  fc = cutoff_hz(p[P_CUTOFF], s->tick_hz);
   g = tan_small(PI * fc / s->tick_hz);
   r = 1.0f - p[P_RES];
   s->k = 2.0f * r * r;

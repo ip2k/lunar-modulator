@@ -42,7 +42,7 @@ FIXTURE = ROOT / "tests" / "fixtures" / "mod-uids.json"
 TICK = 32
 # fm1_mod_size(): 8,192 B of arena and 11,824 B of fixed state, the same in
 # 32- and 64-bit builds (no pointers; every 64-bit member 8-aligned).
-MOD_BYTES = 20016
+MOD_BYTES = 22368
 FLAG_BITS = ["latch", "smooth", "nolock", "mod", "input"]
 
 
@@ -474,13 +474,81 @@ def test_fx_param_at_is_the_base_of_an_effect_parameter(renderer, tmp_path):
     assert s["mod_other_writes"] > 100
 
 
-def test_mod_takes_one_sound_unit(renderer, tmp_path):
-    p = tmp_path / "m.mod"
-    p.write_text("rack default\n")
-    for extra in (["--slots"], ["--sound", "1:test-sine"]):
-        res = subprocess.run([str(renderer), "--engine", "macro", "--seconds", "0.1", "--mod",
-                              str(p)] + extra, capture_output=True, text=True)
-        assert res.returncode == 2 and "one sound unit" in res.stderr, res.stderr
+def test_rtrg_retriggers_on_every_note_on(renderer, tmp_path):
+    """RTRG (docs/16 MG3; the owner's decision of 2026-10-05: envelopes
+    trigger from every note): KEY, retriggered. Two overlapping notes, then
+    a two-note chord: KEY rises and falls once for each phrase, RTRG falls
+    and rises again at the second note's frame and rises once for the chord.
+    Into an envelope's GATE (the lab's default cables) the second note
+    restarts the attack; with KEY it would only sustain."""
+    notes = ["--note", "0.1:60:100:0.6", "--note", "0.3:64:100:0.2",
+             "--note", "0.9:67:100:0.1", "--note", "0.9:71:100:0.1"]
+    args = ["--engine", "test-sine", "--seconds", "1.2"] + notes
+    rack = "mod 1 env attack=0.3 decay=0.4 sustain=0.4\n"
+    at = lambda t: -(-int(t * RATE) // 64) * 64     # noqa: E731  (the block a --note applies at)
+
+    def edges(ticks, sid):
+        return [(t["t"] - 32 + f, high) for t in ticks for s_, f, high in t["g"] if s_ == sid]
+
+    _, _, rt = run(renderer, tmp_path, args, mod=rack + "slot 1 rtrg > env1:gate\n", name="rtrg")
+    _, _, kt = run(renderer, tmp_path, args, mod=rack + "slot 1 key > env1:gate\n", name="key")
+    on1, on2, off1, chord = at(0.1), at(0.3), at(0.7), at(0.9)
+    assert edges(rt, 16)[:3] == [(on1, 1), (off1, 0), (chord, 1)]
+    assert edges(rt, 23)[:5] == [(on1, 1), (on2, 0), (on2, 1), (off1, 0), (chord, 1)]
+    assert edges(rt, 16) == edges(kt, 16)
+    env = lambda ticks: {t["t"]: t["m"][0]["o"][0] for t in ticks}   # noqa: E731
+    er, ek = env(rt), env(kt)
+    before = max(t for t in er if t <= on2)
+    after = [t for t in sorted(er) if on2 < t < on2 + 0.1 * RATE]
+    assert er[before] == ek[before]                  # the same until the second note
+    assert er[after[-1]] > er[after[0]]              # RTRG: the attack again
+    assert ek[after[-1]] <= ek[after[0]]             # KEY: decaying toward sustain
+
+
+def test_the_record_pool_holds_every_chain(renderer):
+    """docs/16 MG3: the bound units share FM1_MOD_SINK_PARAMS parameter
+    records. The largest chain the virtual FM-1 can hold, four sound units
+    of the engine with the most parameters and ten effects (two inserts on
+    each, two master slots) of the effect with the most, fits with HOST's
+    two; the sinks are listed in their order with their script names."""
+    d = json.loads(subprocess.check_output([str(renderer), "--list-mod"]))
+    engines = json.loads(subprocess.check_output([str(renderer), "--list"]))
+    most = {k: max(min(len(e["params"]), d["unit_params"]) for e in engines if e["kind"] == k)
+            for k in ("sound", "audio_fx")}
+    assert 4 * most["sound"] + 10 * most["audio_fx"] + 2 <= d["sink_params"] == 160
+    assert [n for _, n in d["sinks"]] == ["snd", "fx1", "fx2", "host", "snd2", "snd3", "snd4",
+                                          "snd1.fx1", "snd1.fx2", "snd2.fx1", "snd2.fx2",
+                                          "snd3.fx1", "snd3.fx2", "snd4.fx1", "snd4.fx2"]
+    assert [u for u, _ in d["sinks"]] == [0, 1, 2, 3, 17, 18, 19, 20, 21, 24, 25, 28, 29, 32, 33]
+
+
+def test_mod_runs_over_sound_units(renderer, tmp_path):
+    """With slots (docs/16 MG3) the runtime runs over every sound unit: a
+    cable into the sound moves sound unit 0 as without slots, a note on
+    another unit feeds KEY, and with nothing routed the render is the plain
+    slots render to the byte."""
+    base = ["--engine", "test-sine", "--sound", "1:test-sine", "--seconds", "0.5",
+            "--sound-note", "1:0.05:64:100:0.3"]
+    plain, raw_plain, _ = run(renderer, tmp_path, base, name="plain")
+    s, raw, _ = run(renderer, tmp_path, base, mod="rack default\n", name="idle")
+    assert raw == raw_plain and s["mod_writes"] == 0
+    s, _, ticks = run(renderer, tmp_path, base, mod="rack default\nslot 1 key > env3:gate\n", name="key")
+    assert any(sid == 16 and high == 1 for t in ticks for sid, _, high in t["g"])
+    one, raw_one, _ = run(renderer, tmp_path, ["--engine", "test-sine", "--seconds", "0.5", "--slots"],
+                          mod="mod 1 lfo rate=0.8\nslot 1 lfo1 > snd:Volume amt=-50\n", name="slots")
+    two, raw_two, _ = run(renderer, tmp_path, ["--engine", "test-sine", "--seconds", "0.5"],
+                          mod="mod 1 lfo rate=0.8\nslot 1 lfo1 > snd:Volume amt=-50\n", name="noslots")
+    assert raw_one == raw_two and one["mod_sound_writes"] == two["mod_sound_writes"] > 0
+    # Cables into sound unit 2 and its insert: their writes, by name; at a
+    # zero amount, the plain render to the byte.
+    units = base + ["--insert", "1:test-gain"]
+    plain2, raw_plain2, _ = run(renderer, tmp_path, units, name="plain2")
+    cables = "rack default\nslot 1 lfo1 > snd2:Volume amt={a}\nslot 2 lfo2 > snd2.fx1:Gain amt={a}\n"
+    zero, raw_zero, _ = run(renderer, tmp_path, units, mod=cables.format(a=0), name="zero")
+    assert raw_zero == raw_plain2 and zero["mod_writes"] == 0
+    s, raw, ticks = run(renderer, tmp_path, units, mod=cables.format(a=-40), name="sound2")
+    assert {x["u"] for x in ticks[-1]["s"]} == {"snd2", "snd2.fx1"} and raw != raw_plain2
+    assert s["mod_sound_writes"] > 0 and s["mod_other_writes"] > 0 and s["mod_refused"] == 0
 
 
 def test_amp_makes_a_tremolo(renderer, tmp_path):

@@ -11,7 +11,9 @@
 #include <string.h>
 
 #include "fm1_look.h"
+#include "fm1_mod_view.h"
 #include "fm1_seq_view.h"
+#include "mod_script.h"
 
 /* Compile-time checks of the sequencer's fixed sizes (docs/15 §2.6; C99 has
  * no static_assert): the event buffer is 3,264 B, the pending record one
@@ -24,6 +26,10 @@ typedef char fm1_app_seq_click_is_20[sizeof(fm1_seq_click_t) == 20u ? 1 : -1];
 typedef char fm1_app_seq_ui_sounds[FM1_SEQ_UI_SOUNDS == FM1_APP_SOUNDS ? 1 : -1];
 typedef char fm1_app_seq_cmd_is_240[sizeof(fm1_seq_cmd_t) == 240u ? 1 : -1];
 typedef char fm1_app_seq_ui_fits[sizeof(fm1_seq_ui_t) <= FM1_APP_SEQ_UI_BYTES ? 1 : -1];
+/* Every app unit is one of the runtime's sinks (fm1_mod.h's codes): the
+ * sound units, their inserts and the master slots. */
+typedef char fm1_app_mod_units[FM1_MOD_SOUNDS == FM1_APP_SOUNDS && FM1_MOD_INSERTS == FM1_APP_INSERTS &&
+                               FM1_MOD_SINKS == FM1_APP_UNITS + 1 && FM1_APP_FX_SLOTS == 2 ? 1 : -1];
 
 /* ---- small helpers ---------------------------------------------------------- */
 
@@ -375,8 +381,167 @@ void fm1_app_init(fm1_app_t *a, float sample_rate) {
   a->tft.record = 0;
   fm1_seq_ui_init(&a->ui, sample_rate);
   fm1_seq_click_init(&a->click, (uint32_t)lrintf(sample_rate));
+  fm1_mod_ui_init(&a->mui);
   fm1_app_seq_reset(a, FM1_APP_SEQ_TRACKS);
 }
+
+/* ---- modulation: the runtime on the bridge (docs/16 MG3) ------------------------ */
+
+int fm1_app_mod_unit(int unit) {
+  if (unit >= 0 && unit <= FM1_APP_FX_SLOTS) return unit;          /* sound 0, M1, M2 */
+  if (unit_sound(unit) > 0) return (int)fm1_mod_sound_unit((unsigned)unit_sound(unit));
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    for (int j = 0; j < FM1_APP_INSERTS; ++j) {
+      if (fm1_app_insert_unit(k, j) == unit) return (int)fm1_mod_insert_unit((unsigned)k, (unsigned)j);
+    }
+  }
+  return -1;
+}
+
+/* The app unit a sink's code names (the inverse of fm1_app_mod_unit), or
+ * -1 (HOST, a module, nothing). */
+static int app_unit_of(unsigned code) {
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    if (fm1_app_mod_unit(u) == (int)fm1_mod_unit_canonical(code)) return u;
+  }
+  return -1;
+}
+
+/* Every sink's engine, by sink index (fm1_mod_sink_unit's order). */
+static void mod_units(const fm1_app_t *a, const fm1_engine_t **units) {
+  for (unsigned i = 0; i < FM1_MOD_SINKS; ++i) {
+    const int u = app_unit_of(fm1_mod_sink_unit(i));
+    units[i] = u >= 0 ? a->unit[u].e : NULL;
+  }
+}
+
+/* Each edit to the harness's log, with the frame of the block it leads. */
+static void mod_emit(void *ctx, const char *line) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  if (a->on_mod) a->on_mod(a->on_mod_ctx, a->frames, line);
+}
+
+static void mod_env(fm1_app_t *a, fm1_mod_ui_env_t *env) {
+  env->m = a->mod;
+  env->rate = a->host.sample_rate;
+  env->sound = (uint8_t)a->sound;
+  mod_units(a, env->unit);
+  env->emit = a->on_mod ? mod_emit : NULL;
+  env->ctx = a;
+}
+
+/* The glue's writes to the effects and AMP, rendered after the sounds. */
+static void mod_write(void *ctx, uint32_t frame, const fm1_mod_write_t *w) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  if (a->mod_nwr < FM1_APP_MOD_WRITES) {
+    a->mod_wr[a->mod_nwr].frame = frame;
+    a->mod_wr[a->mod_nwr].w = *w;
+    ++a->mod_nwr;
+  }
+}
+
+/* Binds a unit's engine (or none) as the runtime's sink for it, its knobs'
+ * values as bases: what the engine holds. */
+static void mod_bind(fm1_app_t *a, int unit) {
+  const fm1_app_unit_t *u = &a->unit[unit];
+  const int code = fm1_app_mod_unit(unit);
+  if (!a->mod || code < 0) return;
+  fm1_mod_bind(a->mod, (unsigned)code, u->e);
+  for (uint16_t i = 0; u->e && i < u->e->n_params; ++i) {
+    fm1_mod_set_base(a->mod, (unsigned)code, i, u->value[i]);
+  }
+  if (code == FM1_MOD_SOUND) a->mod_glue.sound = u->e;
+}
+
+/* The runtime goes; every parameter it moved goes back to its base, so a
+ * runtime that follows (or none) starts from what the knobs say. */
+static void mod_release(fm1_app_t *a) {
+  if (!a->mod) return;
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    const fm1_app_unit_t *x = &a->unit[u];
+    const int code = fm1_app_mod_unit(u);
+    for (uint16_t i = 0; code >= 0 && x->e && i < x->e->n_params && i < FM1_MOD_UNIT_PARAMS; ++i) {
+      if (fm1_mod_sent(a->mod, (unsigned)code, i) != x->value[i]) x->e->set_param(x->self, i, x->value[i]);
+    }
+  }
+  if (a->unit[0].e && a->unit[0].e->pitch_bend &&
+      fm1_mod_sent(a->mod, FM1_MOD_HOST, FM1_MOD_HOST_PITCH) != a->bend) {
+    a->unit[0].e->pitch_bend(a->unit[0].self, a->bend);
+  }
+  fm1_mod_destroy(a->mod);
+  a->mod = NULL;
+}
+
+/* A new runtime with `seed`, bound to the chain; with `deflt`, the default
+ * rack and its cables (the lab's start). */
+static void mod_start(fm1_app_t *a, uint32_t seed, int deflt) {
+  mod_release(a);                      /* a script's reset after the lab's runtime ran */
+  if (fm1_mod_size() > sizeof a->mod_mem) return;
+  a->mod = fm1_mod_create(a->mod_mem, &a->host, seed);
+  if (!a->mod) return;
+  a->mod_seed = seed;
+  fm1_mod_glue_init(&a->mod_glue, a->mod, a->unit[0].e);
+  a->mod_glue.ctx = a;
+  a->mod_glue.write = mod_write;
+  for (int u = 0; u < FM1_APP_UNITS; ++u) mod_bind(a, u);
+  fm1_mod_set_base(a->mod, FM1_MOD_HOST, FM1_MOD_HOST_PITCH, a->bend);
+  fm1_mod_ramp_init(&a->mod_amp, 1.0f);
+  a->mod_amp_used = 0;
+  a->mod_nwr = 0;
+  fm1_mod_ui_init(&a->mui);
+  if (deflt) {
+    fm1_mod_ui_env_t env;
+    mod_env(a, &env);
+    env.emit = NULL;                    /* a log starts from the dump */
+    fm1_mod_ui_default(&env, &a->mui);
+  }
+  a->dirty = 1;
+  a->leds_changed = 1;
+}
+
+static int is_mod_mode(int mode) {
+  return mode == FM1_MODE_RACK || mode == FM1_MODE_MATRIX || mode == FM1_MODE_CHAIN;
+}
+
+/* The runtime goes; every parameter it moved goes back to its base. */
+static void mod_stop(fm1_app_t *a) {
+  if (!a->mod) return;
+  mod_release(a);
+  fm1_mod_ui_init(&a->mui);
+  if (is_mod_mode(a->mode)) a->mode = FM1_MODE_HOME;
+  a->dirty = 1;
+  a->leds_changed = 1;
+}
+
+void fm1_app_mod_reset(fm1_app_t *a, uint32_t seed) { mod_start(a, seed, 0); }
+
+int fm1_app_mod_line(fm1_app_t *a, const char *line, char *err, size_t cap) {
+  const fm1_engine_t *units[FM1_MOD_SINKS];
+  uint32_t seed;
+  if (!a->mod) {
+    if (err && cap) snprintf(err, cap, "no modulation runtime");
+    return 0;
+  }
+  mod_units(a, units);
+  if (!fm1_mod_script_apply(a->mod, line, units, err, cap)) return 0;
+  if (!fm1_mod_script_seed(line, &seed)) {     /* a seed only counts at creation */
+    while (*line == ' ' || *line == '\t') ++line;
+    if (*line && *line != '#') mod_emit(a, line);
+  }
+  a->dirty = 1;
+  return 1;
+}
+
+int fm1_app_mod_dump(fm1_app_t *a, void (*emit)(void *ctx, const char *line), void *ctx) {
+  fm1_mod_ui_env_t env;
+  if (!a->mod) return 0;
+  mod_env(a, &env);
+  env.emit = emit;
+  env.ctx = ctx;
+  return fm1_mod_ui_dump(&env, a->mod_seed) && !a->mui.unloggable;
+}
+
+const fm1_mod_t *fm1_app_mod(const fm1_app_t *a) { return a->mod; }
 
 static void release(fm1_app_unit_t *u) {
   if (u->e && u->self) u->e->destroy(u->self);
@@ -422,6 +587,7 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   if (index == -1 && unit > 0) {
     if (snd >= 0) release_sound(a, snd);
     release(u);
+    mod_bind(a, unit);
     if (snd < 0 && fx_unit_at(a, a->fx_slot) == unit) a->fx_page = 0;   /* an empty slot has one page */
     if (snd == a->sound) {
       a->page = 0;
@@ -470,9 +636,11 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
         u->e->set_param(u->self, i, prev_value[i]);
       }
     }
+    mod_bind(a, unit);
     a->dirty = 1;
     return -3;
   }
+  mod_bind(a, unit);                      /* the runtime's sink follows the unit */
   if (snd == a->sound) {
     a->page = clampi(a->page, 0, page_count(e) - 1);
     forget_knob_hint(a);                 /* the Track view's hint named the last sound's knob */
@@ -525,7 +693,9 @@ void fm1_app_set_lab(fm1_app_t *a, int on) {
     /* FX mode's master slot keeps its place among the lab's five. */
     a->fx_slot = FX_M1 + clampi(a->fx_slot, 0, FM1_APP_FX_SLOTS - 1);
     a->fx_grab = 0;
+    mod_start(a, FM1_APP_MOD_SEED, 1);   /* modulation (docs/16 MG3) */
   }
+  if (!a->lab) mod_stop(a);             /* every parameter back at its base first */
   if (!a->lab && was) {
     /* Multi-sound goes: every sound unit but the first and every insert,
      * their notes first; sound 0 is the sound again, and every level is
@@ -547,7 +717,7 @@ void fm1_app_set_lab(fm1_app_t *a, int on) {
   if (!a->lab) {
     /* Nothing of the sequencer stays on the panel: no hold, no SHIFT, no
      * full velocity. */
-    if (a->mode == FM1_MODE_SEQ) a->mode = FM1_MODE_HOME;
+    if (a->mode == FM1_MODE_SEQ || is_mod_mode(a->mode)) a->mode = FM1_MODE_HOME;
     fm1_seq_ui_leave(&a->ui);
     a->ui.shift = 0;
     a->ui.full_vel = 0;
@@ -586,6 +756,11 @@ void fm1_app_set_param(fm1_app_t *a, int unit, int index, float value) {
   fm1_app_unit_t *u = &a->unit[unit];
   if (!u->e || index < 0 || index >= u->e->n_params) return;
   u->value[index] = fm1_param_clamp(&u->e->params[index], value);
+  /* With modulation, the knob moves the base (rule M1) and the engine gets
+   * the base plus what the cables add now. */
+  if (a->mod && fm1_app_mod_unit(unit) >= 0) {
+    value = fm1_mod_set_base(a->mod, (unsigned)fm1_app_mod_unit(unit), (unsigned)index, value);
+  }
   u->e->set_param(u->self, (uint16_t)index, value);   /* the engine clamps too */
   a->dirty = 1;
 }
@@ -612,6 +787,7 @@ static size_t ram_of(const fm1_app_t *a, int unit, size_t bytes, int loaded) {
     if (a->lab) total += sizeof a->seq_pend + FM1_APP_SEQ_UI_BYTES + sizeof a->click;
   }
   if (a->lab && sounds > 1) total += (size_t)(sounds - 1) * FM1_APP_MIX_BLOCK_BYTES;
+  if (a->mod) total += fm1_mod_size();
   return total;
 }
 
@@ -695,15 +871,20 @@ int fm1_app_unit_of_track(const fm1_app_t *a, int track) {
 /* ---- notes -------------------------------------------------------------------- */
 
 /* A note on sound unit `sound`, counted there so it can be released. */
+/* With modulation, a note on a sound unit with an engine feeds the
+ * runtime's note sources (VEL, KEY, TRIG...), as fm1-render feeds a --note
+ * or --sound-note on a loaded unit. */
 static void play_on(fm1_app_t *a, int sound, int note, int velocity) {
   fm1_app_unit_t *s = sound_of(a, sound);
   if (s->e && s->e->note_on) s->e->note_on(s->self, (uint8_t)note, (uint8_t)velocity);
+  if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)note, (uint8_t)velocity);
   if (a->note_count[sound][note] < 255) ++a->note_count[sound][note];
 }
 
 static void play_off(fm1_app_t *a, int sound, int note) {
   fm1_app_unit_t *s = sound_of(a, sound);
   if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)note);
+  if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)note, 0);
   if (a->note_count[sound][note]) --a->note_count[sound][note];
 }
 
@@ -773,6 +954,12 @@ void fm1_app_pitch_bend(fm1_app_t *a, float semitones) {
   if (semitones > 48.0f) semitones = 48.0f;
   if (semitones < -48.0f) semitones = -48.0f;
   fm1_app_unit_t *s = cur(a);
+  if (a->sound == 0) {
+    /* With modulation sound 0's bend is HOST PITCH's base (fm1_mod_host.h),
+     * as fm1-render's --bend is. */
+    a->bend = semitones;
+    if (a->mod) semitones = fm1_mod_set_base(a->mod, FM1_MOD_HOST, FM1_MOD_HOST_PITCH, semitones);
+  }
   if (s->e && s->e->pitch_bend) s->e->pitch_bend(s->self, semitones);
 }
 
@@ -784,6 +971,7 @@ static void seq_release_sound(fm1_app_t *a, int sound) {
   for (int n = 0; n < 128; ++n) {
     while (a->seq_note_count[sound][n]) {
       if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)n);
+      if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)n, 0);   /* no event will say it */
       --a->seq_note_count[sound][n];
     }
   }
@@ -799,6 +987,7 @@ static void notes_release_sound(fm1_app_t *a, int sound) {
   for (int n = 0; n < 128; ++n) {
     while (a->note_count[sound][n]) {
       if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)n);
+      if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)n, 0);
       --a->note_count[sound][n];
     }
   }
@@ -888,12 +1077,206 @@ static void stub_popup(fm1_app_t *a, int button) {
   popup(a, kButtonNames[button], "not in the", "simulator yet", -1);
 }
 
+/* ---- modulation on the panel (lab switch; fm1_mod_ui.h) ------------------------ */
+
+static void say(fm1_app_t *a, const fm1_mod_ui_say_t *s) {
+  if (s->n > 0) {
+    popup(a, s->line[0], s->n > 1 ? s->line[1] : NULL, s->n > 2 ? s->line[2] : NULL, s->mark);
+  }
+}
+
+/* Units ua and ub swapped places (SEL and SELECT in FX mode): their cables
+ * go with them (not replayable: fm1-render's effects do not move). */
+static void mod_swap_units(fm1_app_t *a, int ua, int ub) {
+  const int ca = fm1_app_mod_unit(ua), cb = fm1_app_mod_unit(ub);
+  if (!a->mod || ca < 0 || cb < 0) return;
+  for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
+    fm1_mod_slot_t s;
+    fm1_mod_get_slot(a->mod, i, &s);
+    if (s.dst_unit == ca || s.dst_unit == cb) {
+      s.dst_unit = (uint8_t)(s.dst_unit == ca ? cb : ca);
+      fm1_mod_set_slot(a->mod, i, &s);
+    }
+  }
+  mod_bind(a, ua);
+  mod_bind(a, ub);
+  a->mui.unloggable = 1;
+}
+
+/* A waiting picker's choice, now; its popup goes with it. */
+static void mod_commit(fm1_app_t *a) {
+  fm1_mod_ui_env_t env;
+  if (!a->mod || !a->mui.picker) return;
+  mod_env(a, &env);
+  fm1_mod_ui_commit(&env, &a->mui);
+  a->popup_lines = 0;
+  a->dirty = 1;
+}
+
+static int kind_of_button(int button) {
+  return fm1_mod_kind_find(button == FM1_BTN_LFO ? "lfo" : "env");
+}
+
+/* ENV and LFO: a tap opens RACK at that kind; held, the knobs make cables
+ * (mod_gesture). EDIT: MATRIX, or back to HOME. SEL: CHAIN from MATRIX and
+ * back; in RACK it grabs the module (docs/16 §5.2: SEL keeps its FX-style
+ * role on these pages; everywhere else but FX mode it is SHIFT, and the
+ * sequencer's UI never sees its press here). 1 when the edge was
+ * modulation's. */
+static int mod_button(fm1_app_t *a, int button, int down) {
+  fm1_mod_ui_t *u = &a->mui;
+  if (down) mod_commit(a);                /* any press settles a waiting picker */
+  if (down && u->held != FM1_MOD_UI_NONE && button != u->held) {
+    u->held_used = 1;                     /* a held ENV or LFO with another press is no tap */
+  }
+  switch (button) {
+    case FM1_BTN_ENV:
+    case FM1_BTN_LFO:
+      if (down) {
+        u->held = (uint8_t)button;
+        u->held_used = 0;
+      } else if (u->held == button) {
+        const int other = button == FM1_BTN_ENV ? FM1_BTN_LFO : FM1_BTN_ENV;
+        if (!u->held_used) {              /* a tap */
+          if (!fm1_mod_ui_open_rack(u, a->mod, kind_of_button(button), a->mode == FM1_MODE_RACK)) {
+            popup(a, button == FM1_BTN_LFO ? "No LFO" : "No envelope", "in the rack", NULL, -1);
+          }
+          set_mode(a, FM1_MODE_RACK);
+          a->fx_grab = 0;
+          a->dirty = 1;
+        }
+        /* The other one, still held, had a press during its hold: no tap. */
+        u->held = a->button_down[other] ? (uint8_t)other : (uint8_t)FM1_MOD_UI_NONE;
+        u->held_used = u->held != FM1_MOD_UI_NONE;
+      }
+      return 1;
+    case FM1_BTN_EDIT:
+      if (down) {
+        set_mode(a, a->mode == FM1_MODE_MATRIX || a->mode == FM1_MODE_CHAIN ? FM1_MODE_HOME
+                                                                            : FM1_MODE_MATRIX);
+        a->fx_grab = 0;
+        u->grab = 0;
+        a->dirty = 1;
+      }
+      return 1;
+    case FM1_BTN_SEL:
+      if (!down) return 0;
+      if (a->mode == FM1_MODE_MATRIX || a->mode == FM1_MODE_CHAIN) {
+        a->mode = a->mode == FM1_MODE_MATRIX ? FM1_MODE_CHAIN : FM1_MODE_MATRIX;
+      } else if (a->mode == FM1_MODE_RACK) {
+        u->grab = fm1_mod_kind_at(a->mod, u->pos) >= 0 ? !u->grab : 0;
+      } else {
+        return 0;
+      }
+      a->dirty = 1;
+      return 1;
+    case FM1_BTN_HOME:
+    case FM1_BTN_FX:
+    case FM1_BTN_GLO:
+    case FM1_BTN_SEQ:
+      if (down) u->grab = 0;              /* leaving RACK lets go */
+      return 0;
+    default:
+      return 0;
+  }
+}
+
+/* Hold ENV or LFO and turn KNOB1-4 on HOME, FX or RACK: a cable from the
+ * selected Envelope or LFO to that knob's parameter (docs/16's quick
+ * assign), its amount following the turn. On HOME the parameter is the
+ * current sound's; in FX mode, the slot's effect's. */
+static void mod_gesture(fm1_app_t *a, const fm1_mod_ui_env_t *env, int knob, int delta,
+                        fm1_mod_ui_say_t *out) {
+  fm1_mod_ui_t *u = &a->mui;
+  const int src = fm1_mod_ui_selected(u, a->mod, kind_of_button(u->held));
+  int idx[4], n;
+  fm1_mod_dest_t d;
+  memset(&d, 0, sizeof d);
+  if (a->mode == FM1_MODE_RACK) {
+    const int k = fm1_mod_kind_at(a->mod, u->pos);
+    n = fm1_mod_ui_rack_params(a->mod, u->pos, u->page, idx);
+    if (k < 0 || knob >= n) return;
+    d.unit = (uint8_t)(FM1_MOD_MODULE + u->pos);
+    d.dst = fm1_mod_kinds[k]->params[idx[knob]].uid;
+  } else {
+    const int unit = a->mode == FM1_MODE_FX ? fx_unit_at(a, a->fx_slot) : fm1_app_sound_unit(a->sound);
+    const int code = unit >= 0 ? fm1_app_mod_unit(unit) : -1;
+    const fm1_engine_t *e = unit >= 0 ? a->unit[unit].e : NULL;
+    n = page_params(e, a->mode == FM1_MODE_FX ? a->fx_page : a->page, idx);
+    if (!e || code < 0 || knob >= n || idx[knob] >= (int)FM1_MOD_UNIT_PARAMS) return;
+    d.unit = (uint8_t)code;
+    d.dst = e->params[idx[knob]].uid;
+  }
+  d.index = (int16_t)idx[knob];
+  if (src < 0) {
+    out->n = 2;
+    out->mark = -1;
+    snprintf(out->line[0], sizeof out->line[0], "%s", u->held == FM1_BTN_LFO ? "No LFO" : "No envelope");
+    snprintf(out->line[1], sizeof out->line[1], "in the rack");
+    return;
+  }
+  fm1_mod_ui_route(env, u, (unsigned)src, &d, delta, out);
+}
+
+/* The modulation pages' encoders, and the gesture. 1 when the turn was
+ * modulation's; PRESETS (with SHIFT, the current sound) and OCT +
+ * ALGORITHM stay what they are everywhere. */
+static int mod_encoder(fm1_app_t *a, int encoder, int delta) {
+  fm1_mod_ui_t *u = &a->mui;
+  fm1_mod_ui_env_t env;
+  fm1_mod_ui_say_t out;
+  const int knob = encoder >= FM1_ENC_KNOB1 ? encoder - FM1_ENC_KNOB1 : -1;
+  const int oct = a->button_down[FM1_BTN_OCT_DOWN] || a->button_down[FM1_BTN_OCT_UP];
+  const int algo = encoder == FM1_ENC_ALGORITHM && !oct;
+  out.n = 0;
+  out.mark = -1;
+  mod_env(a, &env);
+  /* A waiting picker goes on with its own control; anything else settles it. */
+  if (u->picker &&
+      !((u->picker == FM1_MOD_PICK_KIND && a->mode == FM1_MODE_RACK && algo) ||
+        (u->picker == FM1_MOD_PICK_DEST && a->mode == FM1_MODE_MATRIX &&
+         (algo || (knob == 1 && u->mpage == 0))))) {
+    mod_commit(a);
+  }
+  /* Any turn while ENV or LFO is held makes the hold no tap, so letting go
+   * does not open RACK (a knob in SEQ mode or MATRIX, SELECT, PRESETS). */
+  if (u->held != FM1_MOD_UI_NONE) u->held_used = 1;
+  if (knob >= 0 && u->held != FM1_MOD_UI_NONE &&
+      (a->mode == FM1_MODE_HOME || a->mode == FM1_MODE_FX || a->mode == FM1_MODE_RACK)) {
+    mod_gesture(a, &env, knob, delta, &out);
+  } else if (a->mode == FM1_MODE_RACK) {
+    if (encoder == FM1_ENC_SELECT) fm1_mod_ui_rack_select(&env, u, delta);
+    else if (algo) fm1_mod_ui_rack_algorithm(&env, u, delta, &out);
+    else if (knob >= 0) fm1_mod_ui_rack_knob(&env, u, knob, delta);
+    else return 0;
+  } else if (a->mode == FM1_MODE_MATRIX) {
+    if (encoder == FM1_ENC_SELECT) fm1_mod_ui_matrix_select(u, delta);
+    else if (algo) fm1_mod_ui_matrix_algorithm(&env, u, delta, &out);
+    else if (knob >= 0) {
+      fm1_mod_ui_matrix_knob(&env, u, knob, delta,
+                             a->frames + (uint64_t)(2.0f * a->host.sample_rate), &out);
+    } else {
+      return 0;
+    }
+  } else if (a->mode == FM1_MODE_CHAIN) {
+    if (encoder == FM1_ENC_SELECT) fm1_mod_ui_chain_select(&env, u, delta);
+    else if (!(knob >= 0 || algo)) return 0;     /* nothing to turn here */
+  } else {
+    return 0;
+  }
+  say(a, &out);
+  a->dirty = 1;
+  return 1;
+}
+
 void fm1_app_button(fm1_app_t *a, int button, int down) {
   if (button < 0 || button >= FM1_APP_BUTTONS) return;
   int was = a->button_down[button];
   a->button_down[button] = (uint8_t)(down != 0);
-  if (a->lab && a->seq && (down != 0) != (was != 0)) {
-    /* Every edge goes to the sequencer's UI first; what it sends goes in
+  const int mod_sel = button == FM1_BTN_SEL && down && a->mod && is_mod_mode(a->mode);
+  if (a->lab && a->seq && (down != 0) != (was != 0) && !mod_sel) {
+    /* Every edge goes to the sequencer's UI first (but SEL pressed on a
+     * modulation page, which keeps its FX-style role there: mod_button); what it sends goes in
      * as typed commands, under the event-room rule (a second command while
      * one is held is refused and counted in seq_busy). An edge it takes
      * (SEL as SHIFT, OCT on held steps) goes no further. An OCT press it
@@ -920,6 +1303,7 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
     a->leds_changed = 1;
     return;
   }
+  if (a->lab && a->mod && (down != 0) != (was != 0) && mod_button(a, button, down != 0)) return;
   if (!down || was) return;
   switch (button) {
     case FM1_BTN_OCT_DOWN:
@@ -1127,6 +1511,7 @@ static void fx_swap(fm1_app_t *a, int delta) {
     a->unit[ua] = t;
     a->fx_slot = to;
     a->fx_page = 0;
+    mod_swap_units(a, ua, ub);
   }
 }
 
@@ -1156,6 +1541,7 @@ static void fx_choose_lab(fm1_app_t *a, int unit, int delta) {
 void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
   if (encoder < 0 || encoder >= FM1_ENC_COUNT || delta == 0) return;
   delta = clampi(delta, -64, 64);
+  if (a->lab && a->mod && mod_encoder(a, encoder, delta)) return;
   if (a->lab && a->seq) {               /* with steps held: the Step and lock pages */
     const fm1_seq_ui_emit_t out = ui_out(a);
     fm1_seq_ui_sound_t snd;
@@ -1342,6 +1728,17 @@ static void update_leds(fm1_app_t *a) {
       const uint32_t keys = fm1_seq_ui_key_leds(&a->ui, a->frames);
       for (int k = 0; k < FM1_APP_KEYS; ++k) led[k] = (uint8_t)(a->key_down[k] || ((keys >> k) & 1u));
     }
+    if (a->mod) {
+      /* LFO or ENV while RACK shows one of theirs, EDIT in MATRIX and
+       * CHAIN, SEL in CHAIN and while RACK has a module grabbed. */
+      const int k = a->mode == FM1_MODE_RACK ? fm1_mod_kind_at(a->mod, a->mui.pos) : -1;
+      led[FM1_APP_KEYS + FM1_BTN_LFO] |= (uint8_t)(k >= 0 && k == kind_of_button(FM1_BTN_LFO));
+      led[FM1_APP_KEYS + FM1_BTN_ENV] |= (uint8_t)(k >= 0 && k == kind_of_button(FM1_BTN_ENV));
+      led[FM1_APP_KEYS + FM1_BTN_EDIT] |=
+          (uint8_t)(a->mode == FM1_MODE_MATRIX || a->mode == FM1_MODE_CHAIN);
+      led[FM1_APP_KEYS + FM1_BTN_SEL] |=
+          (uint8_t)(a->mode == FM1_MODE_CHAIN || (a->mode == FM1_MODE_RACK && a->mui.grab));
+    }
   }
   if (memcmp(led, a->led, sizeof led) != 0) {
     memcpy(a->led, led, sizeof led);
@@ -1390,6 +1787,49 @@ static void sink_set_param(void *ctx, uint16_t index, float value) {
   }
 }
 
+/* HOST PITCH's writes (modulation): the sound unit's bend. */
+static void sink_bend(void *ctx, float semitones) {
+  const fm1_app_sink_ctx_t *c = (const fm1_app_sink_ctx_t *)ctx;
+  const fm1_app_unit_t *u = sound_of(c->a, c->sound);
+  if (u->e->pitch_bend) u->e->pitch_bend(u->self, semitones);
+}
+
+/* An effect over the block, split at its own writes from the ticks, as
+ * fm1-render's RenderFx does. */
+static void render_fx(fm1_app_t *a, int unit, float *out, uint32_t n) {
+  const fm1_app_unit_t *u = &a->unit[unit];
+  const int code = fm1_app_mod_unit(unit);
+  uint32_t cur = 0;
+  for (uint32_t k = 0; code >= 0 && k < a->mod_nwr; ++k) {
+    const uint32_t f = a->mod_wr[k].frame;
+    const fm1_mod_write_t *w = &a->mod_wr[k].w;
+    if (w->unit != code) continue;
+    if (f > cur) {
+      u->e->render(u->self, out + 2u * cur, f - cur);
+      cur = f;
+    }
+    if (w->index < u->e->n_params) u->e->set_param(u->self, w->index, w->value);
+  }
+  if (cur < n) u->e->render(u->self, out + 2u * cur, n - cur);
+}
+
+/* HOST AMP's gain before the click and the limiter, ramped over each tick
+ * on absolute frames (fm1-render's order). */
+static void apply_amp(fm1_app_t *a, float *out, uint32_t n) {
+  const uint64_t pos = a->frames;
+  uint32_t cur = 0;
+  for (uint32_t k = 0; k < a->mod_nwr; ++k) {
+    const fm1_mod_write_t *w = &a->mod_wr[k].w;
+    const uint32_t f = a->mod_wr[k].frame;
+    if (w->unit != FM1_MOD_HOST || w->index != FM1_MOD_HOST_AMP) continue;
+    if (a->mod_amp_used && f > cur) fm1_mod_ramp_apply(&a->mod_amp, pos + cur, out + 2u * cur, f - cur);
+    fm1_mod_ramp_set(&a->mod_amp, pos + f, w->value);
+    a->mod_amp_used = 1;
+    cur = f;
+  }
+  if (a->mod_amp_used && cur < n) fm1_mod_ramp_apply(&a->mod_amp, pos + cur, out + 2u * cur, n - cur);
+}
+
 /* With the lab switch: every sound unit renders its own block, split at its
  * own tracks' events (fm1_seq_host_dispatch_slots), runs its inserts, is
  * scaled by its level (skipped at 100 %) and summed into `out` in unit
@@ -1408,14 +1848,17 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
     sink[k].note_on = sink_note_on;
     sink[k].note_off = sink_note_off;
     sink[k].set_param = sink_set_param;
-    sink[k].pitch_bend = NULL;             /* no modulation yet (MG3) */
+    sink[k].pitch_bend = sink_bend;
     slot[k].sink = u->e ? &sink[k] : NULL;
     slot[k].block = a->mix[k];
   }
   if (a->seq) {
+    /* With modulation the runtime's ticks run inside the block at their
+     * own frames, each sound unit split where a tick writes to it. */
     seq_flush(a);
     a->seq_last_n = fm1_seq_host_advance(&a->seq_host, n);
-    fm1_seq_host_dispatch_slots(&a->seq_host, n, slot, FM1_APP_SOUNDS);
+    fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS,
+                                      a->mod ? &a->mod_glue.hook : NULL);
   } else {
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
       if (slot[k].sink) sound_of(a, k)->e->render(sound_of(a, k)->self, a->mix[k], n);
@@ -1425,8 +1868,8 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
     float *b = a->mix[k];
     if (!slot[k].sink) continue;
     for (int j = 0; j < FM1_APP_INSERTS; ++j) {
-      const fm1_app_unit_t *f = &a->unit[fm1_app_insert_unit(k, j)];
-      if (f->e) f->e->render(f->self, b, n);
+      const int iu = fm1_app_insert_unit(k, j);
+      if (a->unit[iu].e) render_fx(a, iu, b, n);
     }
     if (a->level[k] != FM1_APP_LEVEL_MAX) {
       const float g = a->level[k] / 100.0f;
@@ -1445,19 +1888,23 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   uint32_t n = frames > FM1_APP_MAX_FRAMES ? FM1_APP_MAX_FRAMES : frames;
   float *out = a->out;
   const fm1_app_unit_t *s = &a->unit[0];
+  a->mod_nwr = 0;
   if (a->lab) {
     render_sounds(a, n, out);              /* several sound units, their inserts and levels */
   } else if (a->seq) {
     /* docs/15 §2.4, steps 2-6: what was held, the block's own events, then
-     * the sound split at each one it takes. */
+     * the sound split at each one it takes; with modulation (a script's,
+     * fm1_app_mod_reset), the runtime's ticks run inside the block at their
+     * own frames (fm1_mod_host.h). */
+    const fm1_seq_hook_t *hook = a->mod ? &a->mod_glue.hook : NULL;
     seq_flush(a);
     a->seq_last_n = fm1_seq_host_advance(&a->seq_host, n);
     if (s->e) {
       const fm1_seq_sink_t sink = { &a->sink_ctx[0], s->e, sink_render, sink_note_on, sink_note_off,
-                                    sink_set_param, NULL };   /* no modulation yet (MG3) */
-      fm1_seq_host_dispatch(&a->seq_host, n, out, &sink);
+                                    sink_set_param, sink_bend };
+      fm1_seq_host_dispatch_ticks(&a->seq_host, n, out, &sink, hook);
     } else {
-      fm1_seq_host_dispatch(&a->seq_host, n, out, NULL);
+      fm1_seq_host_dispatch_ticks(&a->seq_host, n, out, NULL, hook);
       for (uint32_t i = 0; i < 2 * n; ++i) out[i] = 0.0f;
     }
   } else if (s->e) {
@@ -1466,8 +1913,9 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
     for (uint32_t i = 0; i < 2 * n; ++i) out[i] = 0.0f;
   }
   for (int u = 1; u <= FM1_APP_FX_SLOTS; ++u) {   /* the master bus, after the mix */
-    if (a->unit[u].e) a->unit[u].e->render(a->unit[u].self, out, n);
+    if (a->unit[u].e) render_fx(a, u, out, n);
   }
+  if (a->mod) apply_amp(a, out, n);
   /* The metronome's click (O11), from the block's events, as fm1-render
    * adds it: after the effects, before the limiter. */
   if (a->seq) fm1_seq_click_mix(&a->click, a->seq, a->seq_ev, a->seq_last_n, n, out);
@@ -1484,8 +1932,15 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   }
   a->frames += n;
   if (a->popup_lines && a->frames >= a->popup_until) {
+    mod_commit(a);                       /* a picker commits a second after its last turn */
     a->popup_lines = 0;
     a->dirty = 1;
+  }
+  if (a->mod && n >= FM1_MOD_TICK) {
+    /* A block of a tick or more ran the plan the last edits asked for, so
+     * reading it now builds nothing (a build here could change what a knob
+     * sends before the next tick, which fm1-render would not). */
+    fm1_mod_get_plan(a->mod, &a->mui.plan);
   }
   if (a->lab && a->seq) {
     fm1_seq_ui_sound_t snd;
@@ -1699,14 +2154,17 @@ static void draw_params(fm1_app_t *a, int unit, int page, int y0) {
   const fm1_app_unit_t *u = &a->unit[unit];
   int idx[4];
   int n = page_params(u->e, page, idx);
+  const int code = fm1_app_mod_unit(unit);
   for (int s = 0; s < n; ++s) {
     const fm1_param_t *p = &u->e->params[idx[s]];
-    char value[24];
     int y = y0 + s * ROW_PITCH;
-    fm1_look_value(p, u->value[idx[s]], value, sizeof value);
-    fm1_look_row(&a->tft, y, p->name, value, C_TEXT);
-    fm1_look_bar(&a->tft, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H, p, u->value[idx[s]],
-                 C_ACCENT);
+    float depth = 0.0f;
+    /* With modulation, a parameter cables reach gets docs/16 §5.5's marks. */
+    const int routes = a->mod && code >= 0 && idx[s] < (int)FM1_MOD_UNIT_PARAMS
+                           ? fm1_mod_ui_routes(a->mod, (unsigned)code, p->uid, 0, &depth)
+                           : 0;
+    fm1_mod_view_row(&a->tft, y, p, u->value[idx[s]], NULL, routes, depth,
+                     routes ? fm1_mod_sent(a->mod, (unsigned)code, (unsigned)idx[s]) : 0.0f);
   }
 }
 
@@ -1908,11 +2366,17 @@ static void draw(fm1_app_t *a) {
   fm1_tft_t *t = &a->tft;
   const fm1_app_unit_t *s = cur(a);
   const int su = fm1_app_sound_unit(a->sound);
+  const int mod_page = a->mod && is_mod_mode(a->mode);
+  fm1_mod_ui_env_t env;
   char buf[48];
   fm1_tft_begin(t, C_BG);
 
   fm1_tft_fill(t, 0, 0, FM1_TFT_W, TITLE_H, C_TITLE_BG);
-  if (multi_in_use(a)) {                 /* "S2 Shapes": which of the sounds is current */
+  if (mod_page) {                        /* the module, MATRIX or CHAIN */
+    mod_env(a, &env);
+    fm1_mod_view_title(&env, &a->mui, a->mode, buf, sizeof buf);
+    fm1_tft_text(t, MARGIN, 3, buf, NAME_CHARS, SCALE, C_TEXT);
+  } else if (multi_in_use(a)) {          /* "S2 Shapes": which of the sounds is current */
     snprintf(buf, sizeof buf, "S%d %s", a->sound + 1, s->e ? s->e->name : "(empty)");
     fm1_tft_text(t, MARGIN, 3, buf, NAME_CHARS, SCALE, C_TEXT);
   } else {
@@ -1920,7 +2384,13 @@ static void draw(fm1_app_t *a) {
   }
   draw_meter(a);
 
-  if (a->mode == FM1_MODE_HOME) {
+  if (mod_page) {
+    if (a->mode == FM1_MODE_RACK) fm1_mod_view_rack(t, &env, &a->mui);
+    else if (a->mode == FM1_MODE_MATRIX) fm1_mod_view_matrix(t, &env, &a->mui, a->frames);
+    else fm1_mod_view_chain(t, &env, &a->mui);
+    fm1_mod_view_bottom(&env, &a->mui, a->mode, buf, sizeof buf);
+    draw_bottom(a, buf);
+  } else if (a->mode == FM1_MODE_HOME) {
     int m = model_param(s->e);
     if (m >= 0) {
       fm1_look_value(&s->e->params[m], s->value[m], buf, sizeof buf);
@@ -2001,7 +2471,9 @@ static void draw(fm1_app_t *a) {
 }
 
 int fm1_app_draw(fm1_app_t *a, uint32_t min_frames) {
-  int live = a->peak > 0.0f || a->meter > 0.0f;
+  /* With modulation the rack's cells, the live ticks and MATRIX's hint line
+   * move without input: redraw like the scope. */
+  int live = a->peak > 0.0f || a->meter > 0.0f || a->mod != NULL;
   if (!a->dirty && !(live && a->frames - a->last_draw >= min_frames)) return 0;
   a->meter = a->peak > a->meter * 0.6f ? a->peak : a->meter * 0.6f;
   if (a->meter < 1e-4f) a->meter = 0.0f;

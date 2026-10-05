@@ -313,7 +313,10 @@ wobble.
   is limited to ±8.
 - **Why Cutoff is not in Hz:** the matrix adds amount × range to a
   parameter, linear in its units. On a 0–1 log scale a cable moves the
-  cutoff by octaves, as LFO's Rate does.
+  cutoff by octaves, as LFO's Rate does. A UI shows it in Hz:
+  `fm1_mod_filter_hz` (`fm1_mod.h`) is the kind's own formula, and the
+  virtual FM-1's RACK page draws Cutoff with it (`4.53 Hz` at 0.5; docs/16
+  MG3).
 - **Strike:** the filter rings at its cutoff with an amplitude near Strike
   on every output (about 0.80 for 0.8 [verified: test]), decaying as Res sets;
   PING lands at the tick it falls in.

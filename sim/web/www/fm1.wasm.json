@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "602b1f498b8a22209f04532948d241980f09aeba5ee9cdbe107593ffea1e392d",
-  "wasm_bytes": 598994,
+  "wasm_sha256": "e0ec3578e40fe45021cae4c2d7066095e0068aec0720355f4a4b393585b9416c",
+  "wasm_bytes": 737880,
   "sources_sha256": {
-    "engines": "7fd547b285961b04ab018cca86c7018abd9ad405b69b1f0a97553b8d79867f0b",
-    "sim": "8840e7d4deb4db370fdf3ff16560c12757135fa79e01463c65eda9a57e5a5abd"
+    "engines": "3ba2b0bf6971c15d3bdb67e2493362733b3da6892baf8b4a8d02090a70cb5ba7",
+    "sim": "6d27ab97ad45ef7fb735b20277900f628556eb712e69555041349528fc6b52a5"
   },
   "engines": "working tree",
-  "built": "2026-10-05T20:24:55Z",
+  "built": "2026-10-05T21:26:38Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 54,
+    "passed": 58,
     "failed": 0,
-    "identical_to_js": 54,
-    "identical_to_musl": 54,
-    "identical_to_glibc": 51,
+    "identical_to_js": 58,
+    "identical_to_musl": 58,
+    "identical_to_glibc": 55,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -445,6 +445,61 @@
       }
     },
     {
+      "name": "mod-macro-routes",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 208536,
+        "native64": 221416
+      },
+      "mod": "mod/routes.mod"
+    },
+    {
+      "name": "mod-panel-gestures",
+      "samples": 211766,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 144076,
+        "native64": 156956
+      },
+      "cmd": "mod/panel-gestures.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 1,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "mod/panel-gestures.panel"
+    },
+    {
       "name": "seq-panel-play-stop",
       "samples": 194118,
       "libm_sensitive": false,
@@ -462,8 +517,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 121708,
-        "native64": 134588
+        "wasm32": 144076,
+        "native64": 156956
       },
       "cmd": "seq/panel-play-stop.verbs",
       "seq": {
@@ -494,8 +549,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 121708,
-        "native64": 134588
+        "wasm32": 144076,
+        "native64": 156956
       },
       "cmd": "seq/panel-step-entry.verbs",
       "seq": {
@@ -526,8 +581,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 121708,
-        "native64": 134588
+        "wasm32": 144076,
+        "native64": 156956
       },
       "cmd": "seq/panel-record.verbs",
       "seq": {
@@ -558,8 +613,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 243060,
-        "native64": 243876
+        "wasm32": 265428,
+        "native64": 266244
       },
       "cmd": "seq/panel-capture-stopped.verbs",
       "seq": {
@@ -621,8 +676,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 328852,
-        "native64": 342548
+        "wasm32": 351220,
+        "native64": 364916
       },
       "cmd": "seq/panel-tracks.verbs",
       "seq": {
@@ -653,8 +708,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 121708,
-        "native64": 134588
+        "wasm32": 144076,
+        "native64": 156956
       },
       "cmd": "seq/panel-locks.verbs",
       "seq": {
@@ -1262,6 +1317,61 @@
       }
     },
     {
+      "name": "mod-multi-routes",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 367988,
+        "native64": 383468
+      },
+      "mod": "mod/multi-routes.mod"
+    },
+    {
+      "name": "mod-multi-panel",
+      "samples": 264708,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 355956,
+        "native64": 369668
+      },
+      "cmd": "mod/multi-panel.verbs",
+      "seq": {
+        "lines": 2,
+        "lines_match": true,
+        "ui_cmds": 5,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "mod/multi-panel.panel"
+    },
+    {
       "name": "multi-two-sounds-inserts",
       "samples": 123530,
       "libm_sensitive": false,
@@ -1279,8 +1389,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 352676,
-        "native64": 366388
+        "wasm32": 309556,
+        "native64": 323252
       }
     },
     {
@@ -1301,8 +1411,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 350532,
-        "native64": 366012
+        "wasm32": 311940,
+        "native64": 327420
       },
       "cmd": "seq/multi-four-sounds.verbs",
       "seq": {
@@ -1332,8 +1442,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 312852,
-        "native64": 326564
+        "wasm32": 335220,
+        "native64": 348932
       },
       "cmd": "seq/panel-multi-sound.verbs",
       "seq": {

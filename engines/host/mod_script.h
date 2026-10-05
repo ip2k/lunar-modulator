@@ -13,11 +13,14 @@
  *   reset                          reset every module (as a preset load)
  *
  * SRC is a system source (vel, note, rand, key, trig, clock, beat, bar, run,
- * start, seq1-seq8, sqv1-sqv8) or a module output: the kind's id or
+ * start, rtrg, seq1-seq8, sqv1-sqv8) or a module output: the kind's id or
  * abbreviation, or "mod", with its position, and optionally a port by name
- * or number (lfo1, lfo1.wrap, env3.2, mod5.held). DST is snd:NAME,
- * fx1:NAME, fx2:NAME, host:pitch, host:amp, or a module's parameter or gate
- * input (lfo2.rate, env3:gate). Names are compared without ASCII case;
+ * or number (lfo1, lfo1.wrap, env3.2, mod5.held). DST is snd:NAME (sound
+ * unit 1, also snd1:NAME), snd2:NAME to snd4:NAME (the other sound units),
+ * sndK.fxJ:NAME (sound unit K's insert J, 1 or 2; snd.fxJ is sound unit
+ * 1's), fx1:NAME and fx2:NAME (the master slots), host:pitch, host:amp, or
+ * a module's parameter or gate input (lfo2.rate, env3:gate): a ':' when
+ * there is one, else the first '.', ends the unit. Names are compared without ASCII case;
  * parameters also go by abbreviation, and ENUM values by name. amt and ofs
  * are percent, -100..100, stored in Q1.14. A '#' starts a comment.
  *
@@ -34,11 +37,21 @@
 extern "C" {
 #endif
 
-/* Applies one line. units[0..2] are the engines bound to SOUND, FX1 and FX2
- * (NULL for none), for snd:/fx1:/fx2: names. Returns 1, or 0 with a
- * message in err. A `seed` line is accepted and does nothing here. */
+/* Applies one line. units[i] is the engine bound to sink i
+ * (fm1_mod_sink_unit's order; NULL for none, HOST's ignored), for the
+ * destinations' names. Returns 1, or 0 with a message in err. A `seed`
+ * line is accepted and does nothing here. */
+int fm1_mod_script_apply(fm1_mod_t *m, const char *line,
+                         const fm1_engine_t *const units[FM1_MOD_SINKS], char *err, size_t errcap);
+
+/* fm1_mod_script_apply for a host with one sound: units[0..2] are the
+ * engines bound to SOUND, FX1 and FX2. */
 int fm1_mod_script_line(fm1_mod_t *m, const char *line, const fm1_engine_t *const units[3],
                         char *err, size_t errcap);
+
+/* A sink's name as DST writes it before the ':' (snd, snd2, snd1.fx2,
+ * fx1, host), by code; NULL for a code that names none. */
+const char *fm1_mod_script_unit_name(unsigned unit);
 
 /* The seed a `seed N` line gives, if this is one. */
 int fm1_mod_script_seed(const char *line, uint32_t *seed);
