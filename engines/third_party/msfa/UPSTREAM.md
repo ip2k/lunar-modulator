@@ -64,9 +64,10 @@ python3 engines/third_party/msfa/vendor.py reference/msfa --check
   same values (`LG_N` 6, `N` 64, `min`, `max`, `hasNeon()` returning false,
   an empty `SynthMemoryBarrier`), and claims its include guard.
 - **Flags:** the vendored-code flags (`-w -fwrapv`), as for Mutable's code:
-  msfa's phase accumulators are `int32_t` and wrap by design.
-  `engines/sanitizers/ubsan.supp` exempts its known undefined-behaviour
-  reports, each with its reason.
+  msfa's phase accumulators are `int32_t` and wrap by design, and it shifts
+  negative values left (`pitchenv.cc`, `ScaleVelocity`). Under `-fwrapv`
+  UBSan reports neither, with Apple's clang or with clang 18 on Linux, so
+  `engines/sanitizers/` has no entry for msfa [verified, 2026-10-05].
 - **Not vendored:** `synth_unit.cc` (the Android synth: MIDI parsing, a
   ring buffer, its resonant filter), `ringbuffer`, `resofilter`, `fir`,
   `sawtooth`, `log2`, `module.h`, `wavout`, the NEON assembly and the test

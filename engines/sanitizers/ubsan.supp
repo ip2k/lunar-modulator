@@ -20,15 +20,3 @@ shift-exponent:third_party/mutable/plaits/dsp/fm/dx_units.h
 # the original, as the oracle for the Bounce kind's port, which multiplies
 # by 16 instead (engines/mod/kinds.md).
 shift-base:third_party/mutable/peaks/modulations/bouncing_ball.h
-# msfa (FM6, engines/msfa.md) keeps its operator phases in int32_t and lets
-# them wrap (fm_core.cc, fm_op_kernel.cc), and shifts negative values left
-# (pitchenv.cc's `pitchtab[...] << 19`, dx7note.cc's ScaleVelocity), as its
-# ARM and x86 builds did; built with -fwrapv. Felucca's fm6_core.c, the
-# FM6 oracle (desktop test tool only), adds a modulation input to an int32_t
-# phase and shifts a negative velocity term left the same way. Apple's clang
-# reported none of these with -fwrapv (2026-10-05); the entries keep a
-# toolchain that does report them from stopping on known quirks.
-signed-integer-overflow:third_party/msfa/*
-shift-base:third_party/msfa/*
-signed-integer-overflow:third_party/felucca-fm6/*
-shift-base:third_party/felucca-fm6/*

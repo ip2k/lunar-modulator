@@ -135,7 +135,8 @@ def test_vendored_msfa_files_are_upstreams(renderer):
     for ours, ref in ((MSFA, "msfa"), (FELUCCA, "Felucca")):
         # reference/ is git-ignored: in the repository, or two levels up
         # from a worktree under scratch/.
-        for clone in (ROOT / "reference" / ref, ROOT.parents[1] / "reference" / ref):
+        homes = [ROOT] + ([ROOT.parents[1]] if len(ROOT.parents) > 1 else [])
+        for clone in (home / "reference" / ref for home in homes):
             if (clone / ".git").exists():
                 subprocess.run([sys.executable, str(ours / "vendor.py"), str(clone), "--check"],
                                check=True, capture_output=True)

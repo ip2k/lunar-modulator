@@ -2388,9 +2388,11 @@ make -C engines clean
 
 Each exemption in `sanitizers/` names one vendored file and the quirk it
 covers: Braids' and stmlib's wrapping integer arithmetic, Plaits' six-op
-`Pow2Fast` negative shift, Plaits' LPC speech out-of-bounds read (an
-upstream candidate), and msfa's (and its oracle's) wrapping phases and
-left shifts of negative values. Our own code gets none.
+`Pow2Fast` negative shift, and Plaits' LPC speech out-of-bounds read (an
+upstream candidate). Our own code gets none. msfa needs none: its wrapping
+phases and left shifts of negative values are built with `-fwrapv`, under
+which neither Apple's clang nor clang 18 on Linux reports them [verified,
+2026-10-05: FM6's tests under ASan + UBSan, with no exemption].
 
 `build/fm1-fx-hostile-test` (`test/fx_hostile_test.cc`, run by
 `tests/test_engines_fx_hostile.py`) puts the five master-bus effects (DJ
