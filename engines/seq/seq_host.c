@@ -11,12 +11,16 @@
 
 static char lower(char c) { return c >= 'A' && c <= 'Z' ? (char)(c - 'A' + 'a') : c; }
 
-/* strcasecmp in the C locale, which is what fm1-render had. */
-static int same_name(const char *a, const char *b) {
-  for (; *a && *b; ++a, ++b) {
-    if (lower(*a) != lower(*b)) return 0;
+/* Whether a lane label's name (`label`, the text after its last ':') names
+ * the parameter called `name`: strcasecmp in the C locale, which is what
+ * fm1-render had, except that '_' in the label stands for a space in the
+ * name. A label is one token of a verb script or a `movy1` set, so it
+ * cannot hold a space: `synth:Env_Pitch` names Env Pitch (docs/15 S8). */
+static int same_name(const char *name, const char *label) {
+  for (; *name && *label; ++name, ++label) {
+    if (lower(*name) != lower(*label) && !(*name == ' ' && *label == '_')) return 0;
   }
-  return *a == *b;
+  return *name == *label;
 }
 
 /* What a lane label names: the part after its last ':' ("synth:Timbre"). */
@@ -396,6 +400,51 @@ float fm1_seq_lock_value(const fm1_param_t *p, unsigned v) {
     return p->min + (float)(v * n / (FM1_SEQ_VAL_MAX + 1u));
   }
   return p->min + (p->max - p->min) * (float)v / (float)FM1_SEQ_VAL_MAX;
+}
+
+/* floor(x + 0.5) for x in 0..127, without libm: the same on every build. */
+static unsigned round_7(float x) {
+  if (!(x > 0.0f)) return 0u;                   /* NaN and below the range too */
+  if (x >= (float)FM1_SEQ_VAL_MAX) return FM1_SEQ_VAL_MAX;
+  return (unsigned)(x + 0.5f);                  /* truncation of a positive value */
+}
+
+unsigned fm1_seq_value7(const fm1_param_t *p, float x) {
+  if (!(x == x)) x = p->def;
+  if (p->type == FM1_PARAM_ENUM) {
+    const unsigned n = (unsigned)(p->max - p->min) + 1u;
+    const unsigned e = round_7(x - p->min) < n ? round_7(x - p->min) : n - 1u;
+    /* The lowest v with floor(v * n / 128) == e: ceil(e * 128 / n). Every
+     * bin holds one at n <= 128; past that an empty bin gives the next. */
+    const unsigned v = (e * (FM1_SEQ_VAL_MAX + 1u) + n - 1u) / n;
+    return v < FM1_SEQ_VAL_MAX ? v : FM1_SEQ_VAL_MAX;
+  }
+  if (!(p->max > p->min)) return 0u;
+  return round_7((x - p->min) / (p->max - p->min) * (float)FM1_SEQ_VAL_MAX);
+}
+
+unsigned fm1_seq_value7_step(const fm1_param_t *p, unsigned v, int delta) {
+  int to;
+  if (v > FM1_SEQ_VAL_MAX) v = FM1_SEQ_VAL_MAX;
+  if (p->type == FM1_PARAM_ENUM) {          /* one entry, the bins' grid */
+    const int n = (int)(p->max - p->min) + 1;
+    const int e = (int)(fm1_seq_lock_value(p, v) - p->min);
+    to = e + delta;
+    to = to < 0 ? 0 : (to > n - 1 ? n - 1 : to);
+    return fm1_seq_value7(p, p->min + (float)to);
+  }
+  to = (int)v + delta;
+  return (unsigned)(to < 0 ? 0 : (to > (int)FM1_SEQ_VAL_MAX ? (int)FM1_SEQ_VAL_MAX : to));
+}
+
+size_t fm1_seq_lane_label_for(const fm1_param_t *p, char *buf, size_t size) {
+  static const char prefix[] = "synth:";
+  size_t n = 0, k;
+  if (!size) return 0;
+  for (k = 0; prefix[k] && n + 1u < size; ++k) buf[n++] = prefix[k];
+  for (k = 0; p->name[k] && n + 1u < size; ++k) buf[n++] = p->name[k] == ' ' ? '_' : p->name[k];
+  buf[n] = '\0';
+  return n;
 }
 
 int fm1_seq_routes_default(const fm1_seq_t *s) {

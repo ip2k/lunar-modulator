@@ -960,10 +960,10 @@ Gain, Filter's Type and the Limiter's Mode with their effects.
 | macro-heavy | Model, LPG | as Macro's | the same code |
 | shapes | Shape | NOLOCK | Sets every voice's oscillator at once |
 | sixop | Patch | LATCH, MOD | Read per voice at note-on, so a lock or a route picks the patch of the next notes |
-| sw-sophie | Pad | NOLOCK | The module's edit focus, not a sound: it picks the pad the other parameters edit, so a lock on it would change what every other lane's locks mean. A change does leave sounding voices intact, the condition docs/15's table gave for lockable; the focus decided it |
+| sw-sophie | Pad | none | The module's edit focus, not a sound: it picks the pad the other parameters edit. NOLOCK in S7a, since a lock on it changes what the locks after it mean; lockable since docs/15 S8 (the owner's decision, 2026-10-02): a Pad lock moves the focus at its step, so the locks after it in lane order, there and later, edit the pad it names. A change leaves sounding voices intact. No MOD: a list that moves the focus is no modulation target |
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
-| sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect locks wait for docs/15's O14 anyway |
+| sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect slots are not lockable yet anyway (docs/15 O14, answered 2026-10-02) |
 | filter | Type | MOD | A change warms the new type up from rest, unheard, then crossfades into it over 5 ms, so nothing is cut: lockable, and a rounded route steps through the types, however fast. Neither NOLOCK nor LATCH (an effect has no note-on) describes it |
 | drive | Type | MOD | A change crossfades the two curves over 5 ms (the rule above) |
 | drive | Auto | MOD | Its gain glides like any other (the rule above) |

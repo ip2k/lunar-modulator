@@ -75,6 +75,11 @@ void fm1_look_value(const fm1_param_t *p, float v, char *buf, size_t size);
 void fm1_look_bar(fm1_tft_t *t, int x, int y, int w, int h, const fm1_param_t *p, float v,
                   uint16_t fill);
 
+/* The bar's fill alone, painted over what is there and not logged: a second
+ * value inside a bar already drawn (a lock over its base, docs/15 S8). */
+void fm1_look_fill(fm1_tft_t *t, int x, int y, int w, int h, const fm1_param_t *p, float v,
+                   uint16_t fill);
+
 /* One line: a dim label of at most LABEL_CHARS on the left and its value,
  * right-aligned, in `color`, in what is left of the line. */
 void fm1_look_row(fm1_tft_t *t, int y, const char *label, const char *value, uint16_t color);

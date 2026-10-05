@@ -412,7 +412,17 @@ K:T:NAME=V` and `--level-at K:T:PCT`.
 A lane's label names a parameter by the part after its last `:`, compared
 without ASCII case (`fm1_seq_lane_param`), and a 7-bit value maps onto it
 by `fm1_seq_lock_value`: min + range·v/127 for FLOAT, the bins ⌊v·n/128⌋ for
-an ENUM of n values. Both are the expressions `fm1-render` had.
+an ENUM of n values. Both are the expressions `fm1-render` had. Since
+docs/15 stage S8, `_` in a label stands for a space in the name, since a
+label is one token of a script or a set: `synth:Env_Pitch` names Env Pitch
+(before, such a label named nothing). `fm1_seq_lane_label_for` writes the
+label a lock UI gives a parameter that way, and `fm1_seq_value7` is
+`fm1_seq_lock_value`'s inverse: rounded half up for FLOAT, so every v in
+0..127 comes back, and an ENUM entry's lowest v, so every entry of a list
+of up to 128 comes back (no registered list is longer) [verified:
+engines/test/seq_host_test.c, `fm1-sim-render --lock-check` over every
+registered parameter]. `fm1_seq_value7_step` is a knob detent on that
+grid: one v, or one entry of a list (owner decision O14).
 
 **Where locks resolve (engine API v2, docs/15 stage S7a).** A lock targets
 the parameter's uid (engines/README.md, "Parameters"), not its index, so a
@@ -449,8 +459,9 @@ At dispatch a lock goes to `fm1_param_index(engine, uid)`. A lock on a
 NOLOCK parameter is refused there: it is counted in `locks_refused`
 (`fm1-render`'s `seq_locks_refused`), never reaches the engine and splits
 nothing, so the audio is that of the same script without the lane
-[verified: tests/test_seq_render.py, Macro's and Macro Heavy's Model,
-Shapes' Shape and Sophie's Pad]. A lane on a NOLOCK parameter still resolves
+[verified: tests/test_seq_render.py, Macro's and Macro Heavy's Model and
+Shapes' Shape; Sophie's Pad until docs/15 stage S8, when the owner made it
+lockable]. A lane on a NOLOCK parameter still resolves
 to its uid, so a lock UI can say why its locks are refused. Resolution
 changes no output: of 1,458 renders before and after the change, only the
 38 that lock a NOLOCK parameter differ (engines/README.md, "Parameters").

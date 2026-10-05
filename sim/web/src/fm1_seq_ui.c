@@ -13,6 +13,8 @@
 
 #include <string.h>
 
+#include "fm1_seq_host.h"
+
 /* What a key's press did, so its release does the matching thing. */
 enum {
   ROLE_NONE = 0,
@@ -22,7 +24,8 @@ enum {
   ROLE_SHORTCUT,                    /* SHIFT + white key, nothing held */
   ROLE_BLACK,                       /* a black key's role, or none yet */
   ROLE_SREC,                        /* step record: a pitch at the head */
-  ROLE_MUTE                         /* MUTE: a tap mutes the focused track on release */
+  ROLE_MUTE,                        /* MUTE: a tap mutes the focused track on release */
+  ROLE_CLEAR                        /* CLEAR (S8): held, a knob detent clears a lane */
 };
 
 #define VEL_PER_DETENT 4            /* Movy's VEL_STEP */
@@ -120,6 +123,9 @@ void fm1_seq_ui_init(fm1_seq_ui_t *u, float rate) {
   u->rate = rate > 1.0f ? (uint32_t)(rate + 0.5f) : 1u;
   u->hold_frames = (u->rate * 3u + 9u) / 10u;      /* ceil(0.3 x rate): 13,236 at 44,118 Hz */
   u->tap_frames = (u->rate + 1u) / 2u;             /* ceil(0.5 x rate): 22,059 */
+  u->take_idle = (u->rate * 3u + 4u) / 5u;         /* ceil(0.6 x rate): 26,471 */
+  u->snap = -1;
+  u->take_param = -1;
 }
 
 void fm1_seq_ui_enter(fm1_seq_ui_t *u) { u->view = FM1_SEQ_VIEW_TRACK; }
@@ -276,6 +282,7 @@ void fm1_seq_ui_leave(fm1_seq_ui_t *u) {
   srec_end(u);
   u->hint = FM1_SEQ_HINT_NONE;
   u->mute_held = 0;                          /* MUTE's release then does nothing */
+  u->clear_held = 0;                         /* nor CLEAR's */
 }
 
 /* The head moves (Movy's setHead): a fresh step, and the bar on the keys
@@ -479,6 +486,7 @@ static void read_track(fm1_seq_ui_t *u, const fm1_seq_t *s) {
   if (tr.active < FM1_SEQ_SLOTS) fm1_seq_get_clip(s, u->track, tr.active, &c);
   u->route_kind = tr.route_kind;
   u->route_index = tr.route_index;
+  u->lanes = tr.lanes_assigned;
   u->clip_num = c.scale_num;
   u->clip_den = c.scale_den;
   u->clip_quant = c.quant;
@@ -515,6 +523,7 @@ static void focus(fm1_seq_ui_t *u, const fm1_seq_t *s, unsigned t, const fm1_seq
   u->hint = FM1_SEQ_HINT_NONE;
   u->knob = -1;
   u->follow = 1;
+  u->take_param = -1;
   if (s) read_track(u, s);
 }
 
@@ -526,12 +535,14 @@ static void read_grid(fm1_seq_ui_t *u, const fm1_seq_t *s) {
   fm1_seq_step_info_t p[16];
   u->notes = 0;
   u->trigs = 0;
+  u->locks = 0;
   if (u->slot >= FM1_SEQ_SLOTS) return;
   for (unsigned q = 0; q < FM1_SEQ_UI_GRID_STEPS; q += 16u) {
     if (!fm1_seq_get_page(s, u->track, u->slot, (uint16_t)(u->grid_first + q), 16, p)) return;
     for (unsigned k = 0; k < 16u; ++k) {
       if (p[k].notes) u->notes |= (uint64_t)1 << (q + k);
       if (p[k].trig) u->trigs |= (uint64_t)1 << (q + k);
+      if (p[k].lock_mask) u->locks |= (uint64_t)1 << (q + k);
     }
   }
 }
@@ -552,6 +563,8 @@ static void read_hold(fm1_seq_ui_t *u, const fm1_seq_t *s) {
     h->cond_a = p.cond_a;
     h->cond_b = p.cond_b;
     h->inv = (p.trig & FM1_SEQ_TRIG_INV) != 0;
+    h->lock_mask = p.lock_mask;
+    memcpy(h->lock, p.lock, sizeof h->lock);
   }
   for (uint16_t i = 0; slot >= 0 && i < c.notes; ++i) {
     fm1_seq_note_info_t n;
@@ -649,6 +662,11 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
     u->hint = FM1_SEQ_HINT_NONE;
     u->knob = -1;
   }
+  /* A live take ends with its knob's pause, or with the recording. */
+  if (u->take_param >= 0 &&
+      (frame - u->take_frame >= u->take_idle || !u->playing || !u->recording)) {
+    u->take_param = -1;
+  }
   {
     const int overlay = was.capture_mode != u->capture_mode ||
                         (u->capture_mode && (was.capture_n != u->capture_n ||
@@ -669,10 +687,216 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
                     was.dq != u->dq || was.metro != u->metro || was.clip_num != u->clip_num ||
                     was.clip_den != u->clip_den || was.clip_quant != u->clip_quant ||
                     was.clip_tr != u->clip_tr || was.route_kind != u->route_kind ||
-                    was.route_index != u->route_index ||
+                    was.route_index != u->route_index || was.locks != u->locks ||
+                    was.lanes != u->lanes || was.take_param != u->take_param ||
+                    was.take_v != u->take_v ||
                     memcmp(&was.hold, &u->hold, sizeof u->hold) != 0;
     return (seq ? FM1_SEQ_UI_SYNC_SEQ : 0) | (overlay ? FM1_SEQ_UI_SYNC_OVERLAY : 0);
   }
+}
+
+/* ---- locks (S8) ------------------------------------------------------------------ */
+
+int fm1_seq_ui_pages(const fm1_engine_t *e) {
+  int pages = 1;
+  for (uint16_t i = 0; e && i < e->n_params; ++i) {
+    if (e->params[i].page + 1 > pages) pages = e->params[i].page + 1;
+  }
+  return e ? pages : 0;
+}
+
+int fm1_seq_ui_page_params(const fm1_engine_t *e, int page, int out[4]) {
+  int n = 0;
+  for (uint16_t i = 0; e && i < e->n_params && n < 4; ++i) {
+    if (e->params[i].page == page) out[n++] = i;
+  }
+  return n;
+}
+
+int fm1_seq_ui_lane_of(const fm1_seq_t *s, unsigned track, const fm1_engine_t *e, int param) {
+  for (unsigned lane = 0; s && e && lane < FM1_SEQ_LANES; ++lane) {
+    const char *label = fm1_seq_lane_label(s, (uint8_t)track, (uint8_t)lane);
+    if (label[0] && fm1_seq_lane_param(e, label) == param) return (int)lane;
+  }
+  return -1;
+}
+
+void fm1_seq_ui_lock_pages(fm1_seq_ui_t *u, int pages) {
+  const int last = FM1_SEQ_UI_STEP_PAGES - 1 + (pages > 0 ? pages : 0);
+  u->lock_pages = (uint8_t)(pages > 0 ? (pages < 255 ? pages : 255) : 0);
+  if (u->step_page > last) u->step_page = (uint8_t)last;
+}
+
+static void toast(fm1_seq_ui_t *u, int what, int arg) {
+  u->toast = (uint8_t)what;
+  u->toast_arg = (uint8_t)arg;
+}
+
+/* `alabel t lane <label>`, as fm1_seq_parse reads it: two integers and the
+ * label as the third token's text. */
+static void emit_label(const fm1_seq_ui_emit_t *out, unsigned track, unsigned lane,
+                       const char *label) {
+  fm1_seq_cmd_t c;
+  size_t n = strlen(label);
+  memset(&c, 0, sizeof c);
+  c.verb = FM1_SEQ_V_ALABEL;
+  c.argc = 3;
+  c.valid = 3u;
+  c.arg[0] = track;
+  c.arg[1] = lane;
+  if (n > FM1_SEQ_LABEL_MAX - 1u) n = FM1_SEQ_LABEL_MAX - 1u;
+  memcpy(c.text, label, n);                  /* NUL-terminated by the memset */
+  if (out && out->cmd) out->cmd(out->ctx, &c);
+}
+
+/* The 7-bit base the core holds for a lane of the focused track. */
+static unsigned lane_base(const fm1_seq_ui_t *u, const fm1_seq_t *s, int lane) {
+  fm1_seq_track_info_t tr;
+  if (!s || lane < 0 || !fm1_seq_get_track(s, u->track, &tr)) return 0;
+  return tr.base[lane];
+}
+
+/* The held step's lock on a lane, read from the core now: 1 and its value,
+ * else 0. */
+static int step_lock(const fm1_seq_ui_t *u, const fm1_seq_t *s, uint16_t step, int lane,
+                     unsigned *v) {
+  fm1_seq_clip_info_t c;
+  fm1_seq_step_info_t p;
+  const int slot = clip_now(u, s, &c);
+  if (lane < 0 || slot < 0 || !fm1_seq_get_page(s, u->track, (uint8_t)slot, step, 1, &p) ||
+      !((p.lock_mask >> lane) & 1u)) {
+    return 0;
+  }
+  *v = p.lock[lane];
+  return 1;
+}
+
+/* A lane for parameter `param` of the lock sound on the focused track: its
+ * own, or the first free one, labelled (the bridge resolves the label to
+ * the parameter's uid) with the knob's value as its base, which the app then
+ * puts on the 7-bit grid (snap) so the base and the knob agree to the bit
+ * (Movy's assignLane: `alabel`, `abase`). -1, and the toast, when all 8 are
+ * in use. */
+static int lane_for(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_sound_t *snd,
+                    int param, const fm1_seq_ui_emit_t *out) {
+  fm1_seq_track_info_t tr;
+  const fm1_param_t *p = &snd->e->params[param];
+  char label[FM1_SEQ_LABEL_MAX];
+  int lane = fm1_seq_ui_lane_of(s, u->track, snd->e, param);
+  if (lane >= 0) return lane;
+  memset(&tr, 0, sizeof tr);
+  fm1_seq_get_track(s, u->track, &tr);
+  for (lane = 0; lane < (int)FM1_SEQ_LANES && ((tr.lanes_assigned >> lane) & 1u); ++lane) {}
+  if (lane >= (int)FM1_SEQ_LANES) {
+    toast(u, FM1_SEQ_TOAST_LANES_FULL, 0);
+    return -1;
+  }
+  fm1_seq_lane_label_for(p, label, sizeof label);
+  emit_label(out, u->track, (unsigned)lane, label);
+  {
+    const int64_t arg[3] = { u->track, lane, fm1_seq_value7(p, snd->value[param]) };
+    emit(out, FM1_SEQ_V_ABASE, 3, arg);
+  }
+  u->lanes = (uint8_t)(u->lanes | (1u << lane));
+  u->snap = (int8_t)param;
+  return lane;
+}
+
+/* CLEAR + a knob detent: the lane of that parameter goes (`aclr`; D13 frees
+ * it and D6 sends the parameter back to its base). Movy's clearLaneForKnob:
+ * the gesture is CLEAR's whether or not there was a lane. */
+static void clear_lane(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_sound_t *snd,
+                       int param, const fm1_seq_ui_emit_t *out) {
+  const int lane = snd && snd->e ? fm1_seq_ui_lane_of(s, u->track, snd->e, param) : -1;
+  if (lane >= 0) {
+    const int64_t arg[2] = { u->track, lane };
+    emit(out, FM1_SEQ_V_ACLR, 2, arg);
+    u->lanes = (uint8_t)(u->lanes & ~(1u << lane));
+    toast(u, FM1_SEQ_TOAST_LANE_CLEARED, param);
+    if (u->take_param == param) u->take_param = -1;
+  }
+}
+
+/* A knob on a lock page with one step held: KNOB n is the n-th parameter of
+ * the lock sound's page. A turn locks it on the step, quietly (Movy's
+ * held-step lock, `aset t lane s v 1`): v moves a 7-bit step (a list's
+ * entry) a detent from the step's lock, else the lane's base. SHIFT clears
+ * the step's lock instead (`aclrs`), CLEAR the whole lane. */
+static void lock_knob(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_sound_t *snd, int knob,
+                      int delta, const fm1_seq_ui_emit_t *out) {
+  const uint16_t step = u->held[0].step;
+  int idx[4], lane, param;
+  unsigned seed = 0;
+  gesture(u);
+  if (!snd || !snd->e ||
+      knob >= fm1_seq_ui_page_params(snd->e, u->step_page - FM1_SEQ_UI_STEP_PAGES, idx)) {
+    return;
+  }
+  param = idx[knob];
+  if (u->clear_held) {
+    clear_lane(u, s, snd, param, out);
+    return;
+  }
+  lane = fm1_seq_ui_lane_of(s, u->track, snd->e, param);
+  if (u->shift) {
+    if (step_lock(u, s, step, lane, &seed)) {
+      const int64_t arg[3] = { u->track, lane, step };
+      emit(out, FM1_SEQ_V_ACLRS, 3, arg);
+      toast(u, FM1_SEQ_TOAST_LOCK_CLEARED, param);
+      u->hold_valid = 0;
+    }
+    return;
+  }
+  if (!fm1_param_lockable(&snd->e->params[param])) {
+    toast(u, FM1_SEQ_TOAST_NOLOCK, param);
+    return;
+  }
+  if (lane < 0) {
+    lane = lane_for(u, s, snd, param, out);
+    if (lane < 0) return;
+    seed = fm1_seq_value7(&snd->e->params[param], snd->value[param]);
+  } else if (!step_lock(u, s, step, lane, &seed)) {
+    seed = lane_base(u, s, lane);
+  }
+  {
+    const int64_t arg[5] = { u->track, lane, step,
+                             fm1_seq_value7_step(&snd->e->params[param], seed, delta), 1 };
+    emit(out, FM1_SEQ_V_ASET, 5, arg);
+  }
+  u->hold_valid = 0;
+}
+
+int fm1_seq_ui_sound_knob(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_sound_t *snd,
+                          int param, int delta, uint64_t frame, const fm1_seq_ui_emit_t *out) {
+  const int lock_sound = snd && snd->e && snd->current && param >= 0 && param < snd->e->n_params;
+  u->shift_clean = 0;
+  if (u->clear_held) {                       /* CLEAR + knob is CLEAR's gesture (Movy) */
+    if (lock_sound) clear_lane(u, s, snd, param, out);
+    return 1;
+  }
+  if (lock_sound && u->playing && u->recording && u->rec_track == u->track && u->clip_playing &&
+      fm1_param_lockable(&snd->e->params[param])) {
+    /* A live take (Movy's live record): a lock at the playing step, heard,
+     * from the knob's value at the take's first detent on. */
+    const fm1_param_t *p = &snd->e->params[param];
+    const int lane = lane_for(u, s, snd, param, out);
+    unsigned seed;
+    if (lane < 0) return 1;
+    seed = u->take_param == param && (unsigned)lane == u->take_lane &&
+                   frame - u->take_frame < u->take_idle
+               ? u->take_v
+               : fm1_seq_value7(p, snd->value[param]);
+    u->take_param = (int8_t)param;
+    u->take_lane = (uint8_t)lane;
+    u->take_v = (uint8_t)fm1_seq_value7_step(p, seed, delta);
+    u->take_frame = frame;
+    {
+      const int64_t arg[4] = { u->track, lane, u->step, u->take_v };
+      emit(out, FM1_SEQ_V_ASET, 4, arg);
+    }
+    return 1;
+  }
+  return 0;
 }
 
 /* ---- buttons ------------------------------------------------------------------- */
@@ -815,9 +1039,35 @@ static void length_to(fm1_seq_ui_t *u, uint16_t b, const fm1_seq_ui_emit_t *out)
   u->hold_valid = 0;
 }
 
+/* CLEAR (S8) with steps held: their locks go (`aclrstep`, one per held step
+ * with a lock, in press order), their notes stay and their toggles are
+ * cancelled (Movy's deleteButton with steps held). */
+static void clear_held_steps(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_emit_t *out) {
+  int sent = 0;
+  fm1_seq_clip_info_t c;
+  const int slot = clip_now(u, s, &c);
+  for (int k = 0; k < u->held_n && slot >= 0; ++k) {
+    fm1_seq_step_info_t p;
+    if (fm1_seq_get_page(s, u->track, (uint8_t)slot, u->held[k].step, 1, &p) && p.lock_mask) {
+      const int64_t arg[2] = { u->track, u->held[k].step };
+      emit(out, FM1_SEQ_V_ACLRSTEP, 2, arg);
+      ++sent;
+    }
+  }
+  gesture(u);
+  u->hold_valid = 0;
+  if (sent) toast(u, FM1_SEQ_TOAST_LOCKS_CLEARED, 0);
+}
+
 static void black_down(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, uint64_t frame,
                        const fm1_seq_ui_emit_t *out) {
   const int dir = key == FM1_SEQ_UI_KEY_BAR_BACK ? -1 : (key == FM1_SEQ_UI_KEY_BAR_ON ? 1 : 0);
+  if (key == FM1_SEQ_UI_KEY_CLEAR) {         /* CLEAR: held steps' locks; held, + knob */
+    u->key_role[key] = ROLE_CLEAR;
+    u->clear_held = 1;
+    if (u->held_n) clear_held_steps(u, s, out);
+    return;
+  }
   if (key == FM1_SEQ_UI_KEY_MUTE) {          /* MUTE: held, the mute map; a tap, on release */
     if (!u->held_n) {
       u->mute_held = 1;
@@ -932,6 +1182,7 @@ int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int v
       u->mute_held = 0;
       if (!u->mute_gestured) set_mute(u, u->track, !track_muted(u, u->track), out);
     }
+    if (role == ROLE_CLEAR) u->clear_held = 0;   /* a tap: the clip's delete comes with S9 */
     if (role == ROLE_SREC) {
       u->srec_keys &= ~(1u << key);
       srec_maybe_advance(u, out);
@@ -956,6 +1207,10 @@ int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int v
         focus(u, s, (unsigned)n, out);
         u->seq_gestured = 1;
       }
+      return 1;
+    }
+    if (u->clear_held) {                     /* CLEAR + a key: S9's (del + aclrstep) */
+      u->key_role[key] = ROLE_NONE;
       return 1;
     }
     if (u->mute_held) {                      /* MUTE + white key 1-8: the mute map */
@@ -1171,9 +1426,11 @@ static void page_knob(fm1_seq_ui_t *u, int knob, int delta, const fm1_seq_ui_emi
 }
 
 int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int delta,
-                       uint64_t frame, int mode, const fm1_seq_ui_emit_t *out) {
+                       uint64_t frame, int mode, const fm1_seq_ui_sound_t *snd,
+                       const fm1_seq_ui_emit_t *out) {
   (void)frame;
   u->shift_clean = 0;
+  fm1_seq_ui_lock_pages(u, snd ? fm1_seq_ui_pages(snd->e) : 0);
   if (u->capture_mode && delta) {
     /* SELECT and KNOB1 are the overlay's own control, Movy's jog: in the
      * picker they take the next tempo, heard at once, and over the fitted
@@ -1204,13 +1461,24 @@ int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int del
     return 0;                                /* PRESETS and ALGORITHM: the sound */
   }
   if (!u->held_n) return 0;
-  if (encoder == FM1_ENC_SELECT) {
+  if (encoder == FM1_ENC_SELECT) {           /* Step 1/2, 2/2, then the lock pages (S8) */
     u->step_page = (uint8_t)clampi(u->step_page + (delta > 0 ? 1 : -1), 0,
-                                   FM1_SEQ_UI_STEP_PAGES - 1);
+                                   FM1_SEQ_UI_STEP_PAGES - 1 + u->lock_pages);
     gesture(u);
     return 1;
   }
   if (encoder >= FM1_ENC_KNOB1 && encoder <= FM1_ENC_KNOB4) {
+    if (u->step_page >= FM1_SEQ_UI_STEP_PAGES) {   /* a lock page */
+      /* One step held, or CLEAR held with any number: CLEAR + a knob is
+       * CLEAR's gesture whatever is held (Movy's router: only its step page
+       * owns the knobs before Clear does), so it clears the lane. */
+      if (u->held_n == 1 || u->clear_held) {
+        lock_knob(u, s, snd, encoder - FM1_ENC_KNOB1, delta, out);
+        return 1;
+      }
+      gesture(u);                            /* several held: the sound, with no lock */
+      return 0;
+    }
     /* Held step + SHIFT + a detent is `aclrs` on the lock pages (S8); the
      * Step pages have no lanes, so it does nothing here. */
     if (!u->shift) step_knob(u, s, encoder - FM1_ENC_KNOB1, delta, out);
@@ -1365,6 +1633,7 @@ uint32_t fm1_seq_ui_key_leds(const fm1_seq_ui_t *u, uint64_t frame) {
   }
   if (u->held_n || u->bar > u->bar_min) m |= 1u << FM1_SEQ_UI_KEY_BAR_BACK;
   if (u->held_n || u->bar < u->bar_max) m |= 1u << FM1_SEQ_UI_KEY_BAR_ON;
+  if (u->lanes || u->clear_held) m |= 1u << FM1_SEQ_UI_KEY_CLEAR;   /* S8: a lane to clear */
   if (!u->held_n) {                          /* MUTE and the track keys (S6) */
     m |= 1u << FM1_SEQ_UI_KEY_MUTE;
     if (u->track > 0) m |= 1u << FM1_SEQ_UI_KEY_TRACK_PREV;
