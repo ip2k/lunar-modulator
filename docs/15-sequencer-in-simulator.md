@@ -1628,6 +1628,15 @@ fit the 36,864 B, with about 100 B to spare [inferred: about 336 B at
 js and musl in all 32 and to glibc in 29 as before, no imports, and the
 headless Chromium checks pass [verified: `www/fm1.wasm.json`, 2026-10-02].
 
+**After merging main** (the second effects pack and S5's final form),
+2026-10-05 [verified: `www/fm1.wasm.json`, `fm1-sim-render --screens`]:
+`fm1-render` and `fm1-sim-render` take `--fx-param-at` beside the
+multi-sound flags, turning a master effect. Parity 46 of 46, identical to
+js and musl in 46 and to glibc in 43 (the same three); 1,266 screens, 0
+faults (multi-sound's insert sweep runs all twelve effects: 142 screens,
+not 87); the module is 548,493 B, up from 524,659 B on main; imports
+none, and the headless Chromium checks pass.
+
 ### S7a. Engine API v2 (docs/13 M2): uid, flags, NOLOCK, with byte-identical audio
 
 **Goal.** Fix what a lock targets and which parameters can be locked, before

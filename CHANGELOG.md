@@ -38,9 +38,10 @@ history.
     to 272 events, which holds the worst burst measured; the public
     page's RAM figure counts the 192 bytes, so a few chains read 1K more.
     Ten new gesture traces replay through `fm1-render` byte for byte, two
-    new parity scenarios play tracks from the panel and the click, and
-    1,109 screens pass the layout check (69 new); the screens with the
-    lab switch off are unchanged.
+    new parity scenarios play tracks from the panel and the click (46 of
+    46 pass, with multi-sound's), and 1,266 screens pass the layout check
+    (69 new); the screens with the lab switch off are unchanged. With
+    multi-sound, the browser module grew from 525 KB to 548 KB.
 - Recording and Capture on the virtual FM-1's panel, still behind the lab
   switch (`?lab`; docs/15 stage S5). What you play on the keys (outside
   SEQ mode) or at MIDI IN now reaches the sequencer as well as the sound.
@@ -93,8 +94,8 @@ history.
     `fm1-render` takes `--sound`, `--insert`, `--level`, `--sound-note`,
     `--sound-param-at`, `--level-at` and `--slots`; three
     new parity scenarios play two and four sounds with inserts and the
-    panel gestures (28 of 28 pass); 1,001 screens pass the layout check (87
-    new). The browser module grew from 482 KB to 496 KB.
+    panel gestures; 142 new screens pass the layout check (its insert
+    sweep runs every effect).
 - notes/2026-10-02-filters-dynamics-options.md: research on classic filter
   designs, compressors, limiters, overdrives and saturators, and how they fit
   the effect slots, the voices and the modulation matrix. Most of the filter

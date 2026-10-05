@@ -470,10 +470,13 @@ pixel, except the RAM figure in the bottom bar, which is the 32-bit one.
 The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, with step entry since S4, record and Capture
 since S5, multi-sound, and tracks, mute, the pages and the click since S6:
-32 of 32 scenarios pass, identical to musl and to render.js, and it imports
-nothing; it is 514,688 bytes (514,270 before S6's review), up from 490,916 with S5 and 496,050 with
-multi-sound (each alone), 466,635 before S4, 459,122 before S3 and 391 KB
-before the sequencer [verified, 2026-10-02, `www/fm1.wasm.json`].
+46 of 46 scenarios pass, identical to musl and to render.js (two of them
+turn the effects' switches every 4.4 ms), and it imports nothing; it is
+548,493 bytes, up from 524,659 before multi-sound and S6 (514,688 with
+them before the second effects pack), 516,035 before S5, 482,291 before
+the second effects pack (Drive, Filter, Comp, Limiter), 466,635 before S4,
+459,122 before S3 and 391 KB before the sequencer [verified, 2026-10-05,
+`www/fm1.wasm.json`].
 
 The sequencer's own cost in WebAssembly, measured with `fm1-render.js` under
 Node 24.19 in the emsdk container on aeon: tools/seq_bench.py's burst (8

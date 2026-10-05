@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "5f575bb72a5078435c8e9989119941de1da06ae8e13f5638cef0e34221829bc7",
-  "wasm_bytes": 514688,
+  "wasm_sha256": "0a075eee9fa285b1fe79875e4320dc1e5a5366d850c93e964794818305be6c26",
+  "wasm_bytes": 548493,
   "sources_sha256": {
-    "engines": "bb60b410bcc8879a595493306f2c4d57d477ced3430ee177f674b17567dd1ca0",
-    "sim": "9d88d923ea723ff986a0d8e4bf713ae4376c850ee44fa8ae26dcf239e2a08de1"
+    "engines": "84dc4cae71629713e1bd7f0344f1ff855026a057229711de6021845f01e13c9c",
+    "sim": "f57641fd557db302f1fb73f4fc5d390d1b85eef38b1dbb5d62b1a8ed7bbde457"
   },
   "engines": "working tree",
-  "built": "2026-10-02T23:03:59Z",
+  "built": "2026-10-05T17:30:53Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 32,
+    "passed": 46,
     "failed": 0,
-    "identical_to_js": 32,
-    "identical_to_musl": 32,
-    "identical_to_glibc": 29,
+    "identical_to_js": 46,
+    "identical_to_musl": 46,
+    "identical_to_glibc": 43,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -680,6 +680,50 @@
       }
     },
     {
+      "name": "drive-fuzz-gated",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 307232,
+        "native64": 308112
+      }
+    },
+    {
+      "name": "drive-tape-chord",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 54456,
+        "native64": 67128
+      }
+    },
+    {
       "name": "echo-pluck-pingpong",
       "samples": 141176,
       "libm_sensitive": false,
@@ -721,6 +765,270 @@
       "ram_bytes": {
         "wasm32": 120104,
         "native64": 132776
+      }
+    },
+    {
+      "name": "filter-diode-skmixed",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 90952,
+        "native64": 103624
+      }
+    },
+    {
+      "name": "filter-formant-comb",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 90952,
+        "native64": 103624
+      }
+    },
+    {
+      "name": "filter-sallenkey-svf",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 278096,
+        "native64": 278960
+      }
+    },
+    {
+      "name": "filter-ladder-spread",
+      "samples": 70588,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 72584,
+        "native64": 85256
+      }
+    },
+    {
+      "name": "switches-filter-drive-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 72824,
+        "native64": 85496
+      }
+    },
+    {
+      "name": "switches-comp-limit-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 65432,
+        "native64": 78104
+      }
+    },
+    {
+      "name": "comp-glue-parallel",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 120056,
+        "native64": 132744
+      }
+    },
+    {
+      "name": "limit-chord-then-soft-clip",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 76232,
+        "native64": 88904
+      }
+    },
+    {
+      "name": "fx-turns-crush-fold",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 241616,
+        "native64": 242480
+      }
+    },
+    {
+      "name": "fx-turns-echo-gain",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 307092,
+        "native64": 307956
+      }
+    },
+    {
+      "name": "fx-turns-ensemble-plate",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 124552,
+        "native64": 137240
+      }
+    },
+    {
+      "name": "fx-turns-diffuse-psxverb",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 394416,
+        "native64": 395296
       }
     },
     {
