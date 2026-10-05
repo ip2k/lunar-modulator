@@ -199,8 +199,13 @@ class Instance {
     env_rate_q24_ = static_cast<uint32_t>((static_cast<uint64_t>(44118u) << 24) / hz);
     silent_after_release_ =
         static_cast<uint32_t>(kSilentAfterRelease * static_cast<float>(hz) / kN) + 1u;
+    for (int k = 0; k < kBankSize; ++k) {
+      FromPacked(kBank[k], unpacked_voice_);
+      Pitches(unpacked_voice_, pitch_[k]);
+    }
     for (unsigned s = 0; s < FM1_DX7_USER_SLOTS; ++s) {
       for (int i = 0; i < kVoiceBytes; ++i) user_[s][i] = kInitVoice[i];
+      Pitches(kInitVoice, pitch_[kBankSize + s]);
     }
     for (int i = 0; i < kNumVoices; ++i) {
       voice_[i].active = voice_[i].gate = false;
@@ -232,7 +237,7 @@ class Instance {
       lfo_patch_ = index;
     }
     lfo_.keydown();
-    Start(v, p, key, velocity);
+    Start(v, p, pitch_[index], key, velocity);
   }
 
   void NoteOff(uint8_t key) {
@@ -292,6 +297,21 @@ class Instance {
   static void Store(void *ctx, unsigned slot, const uint8_t v[kVoiceBytes]) {
     Instance *self = static_cast<Instance *>(ctx);
     for (int i = 0; i < kVoiceBytes; ++i) self->user_[slot][i] = v[i];
+    Pitches(v, self->pitch_[kBankSize + slot]);
+  }
+
+  // Each operator's pitch less the key's (msfa's osc_freq at key 0, less
+  // the key's own log frequency in ratio mode), so a note-on only adds the
+  // key's: osc_freq is that sum in integers, so the result is osc_freq's to
+  // the bit. Computed when the instance is made and when a slot is loaded,
+  // since osc_freq takes a log in doubles (software on pi32v2) per operator.
+  static void Pitches(const uint8_t *v, int32_t out[6]) {
+    for (int op = 0; op < 6; ++op) {
+      const uint8_t *o = v + op * kOpBytes;
+      int32_t f = fm1_msfa::osc_freq(0, o[OP_MODE], o[OP_FC], o[OP_FF], o[OP_DET]);
+      if (!o[OP_MODE]) f -= fm1_msfa::midinote_to_logfreq(0);
+      out[op] = f;
+    }
   }
 
   // The voice data of Patch value `index`: a built-in voice, unpacked into
@@ -332,18 +352,18 @@ class Instance {
     return best;
   }
 
-  // A note-on, as msfa's Dx7Note::init sets one up, from voice data p. A
-  // voice that was silent starts from phase 0 with its feedback cleared; a
-  // retriggered or stolen one keeps its phases and its last gains, so its
-  // first block glides from where it was.
-  void Start(Voice *v, const uint8_t *p, uint8_t key, uint8_t velocity) {
+  // A note-on, as msfa's Dx7Note::init sets one up, from voice data p and
+  // its operators' pitches (Pitches). A voice that was silent starts from
+  // phase 0 with its feedback cleared; a retriggered or stolen one keeps its
+  // phases and its last gains, so its first block glides from where it was.
+  void Start(Voice *v, const uint8_t *p, const int32_t *pitch, uint8_t key, uint8_t velocity) {
     using fm1_msfa::ScaleLevel;
     using fm1_msfa::ScaleRate;
     using fm1_msfa::ScaleVelocity;
-    using fm1_msfa::osc_freq;
     const bool fresh = !v->active;
     int note = static_cast<int>(key) + static_cast<int>(p[V_TRNSP]) - 24;
     note = note < 0 ? 0 : (note > 127 ? 127 : note);
+    const int32_t key_pitch = fm1_msfa::midinote_to_logfreq(note);
     for (int op = 0; op < 6; ++op) {
       const uint8_t *o = p + op * kOpBytes;
       int rates[4], levels[4];
@@ -358,7 +378,7 @@ class Instance {
       outlevel += ScaleVelocity(velocity, o[OP_KVS]);
       outlevel = outlevel < 0 ? 0 : outlevel;
       v->env[op].init(rates, levels, outlevel, ScaleRate(note, o[OP_RS]));
-      v->basepitch[op] = osc_freq(note, o[OP_MODE], o[OP_FC], o[OP_FF], o[OP_DET]);
+      v->basepitch[op] = o[OP_MODE] ? pitch[op] : pitch[op] + key_pitch;   // osc_freq's
       v->ams[op] = o[OP_AMS];
       v->level[op] = 0;
       if (fresh) {
@@ -502,6 +522,7 @@ class Instance {
   Voice voice_[kNumVoices];
   uint8_t user_[FM1_DX7_USER_SLOTS][kVoiceBytes];
   uint8_t unpacked_voice_[kVoiceBytes];   // the built-in voice last unpacked
+  int32_t pitch_[kNumPatches][6];  // each slot's operator pitches less the key's (Pitches)
   int unpacked_;                  // its Patch value, -1 none
   int lfo_patch_;                 // the Patch value the LFO is set for, -1 none
   float value_[P_COUNT];          // what the blocks read (SMOOTH: ramped)
