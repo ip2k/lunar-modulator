@@ -12,7 +12,7 @@ README and DEVELOPERS.md (the parity figure). Taken on 2026-10-01 in headless Ch
 | `screen-macro-heavy.png` | Macro Heavy on Str Machine (its string machine model) |
 | `screen-sixop.png` | Six-Op FM on its default patch, E.PIANO 1 |
 | `screen-sophie.png` | Sophie's kick pad, 50 ms after MIDI note 36 |
-| `screen-fx.png` | FX mode: Plate in slot 1, PSX Verb in slot 2 and its first page |
+| `screen-fx.png` | FX mode: the chain S1 In1 In2 Mix M1 M2, Plate in M1, PSX Verb in M2 chosen, and its first page |
 | `screen-params.png` | Macro's first page after KNOB1–4 turned (2-op FM, 0.68, 0.28, 0.81) |
 | `panel-params.png` | The same on the panel, with the four knobs turned |
 | `parity.png` | The browser module's output against native `fm1-render`: 25 ms of Six-Op FM, and 0 of 105,882 samples different over the whole render |
@@ -31,6 +31,14 @@ tweak to text on surfaces, a message for insecure origins), which none of
 the pictures show: a fresh run differed from these only in the level meter
 and the oscilloscope, which follow the audio's timing [verified: pixel
 comparison of every picture].
+
+Retaken on 2026-10-05, when the lab switch went (`fm1.wasm` `733,364` B):
+the seven `screen-*.png` files and `panel-params.png`, whose bottom bar now
+shows the RAM meter (a bar and a percentage) where the RAM figure in KB
+was, and whose FX screen shows the five-slot chain. `virtual-fm1.png` and
+`phone.png` were kept: they show the same change at page scale, and in a
+fresh run of `virtual-fm1.png` REC blinks slowly, since the chord it holds
+is waiting for Capture. `parity.png` is unchanged in what it shows.
 
 ## Remaking them
 

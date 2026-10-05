@@ -3,8 +3,9 @@
 Thank you for trying Lunar Modulator. It is open firmware being written for
 the M-VAVE FM-1, the pocket six-operator FM synthesizer with 27 keys, eight
 knobs and a 240 × 240 colour screen. It is designed to give the FM-1 a choice
-of synthesis engines, two effect slots and a sequencer with parameter locks,
-and every line of its own code is open under the MIT licence.
+of synthesis engines, up to four sounds at once with effects of their own,
+a rack of modulation and a sequencer with parameter locks, and every line of
+its own code is open under the MIT licence.
 
 Lunar Modulator runs today in a web browser and on computers. It does not run
 on the FM-1 yet. This manual describes what it does, how to play it, and where
@@ -26,9 +27,10 @@ this manual carries a status that says where it works today:
   the project's website,
   [ip2k.github.io/lunar-modulator](https://ip2k.github.io/lunar-modulator/),
   and [chapter 2](02-getting-started.md) shows how to use it.
-- **The desktop tools** play the same engines, effects and sequencer into
-  audio files from the command line. They are how the firmware is tested, and
-  the only place the sequencer runs so far.
+- **The desktop tools** play the same engines, effects, modulation and
+  sequencer into audio files from the command line. They are how the
+  firmware is tested, and the only place a few of the sequencer's functions
+  (clips, scenes and songs) run so far.
 - **The FM-1 itself** runs none of it yet. Everything marked *Planned for the
   device* is designed and documented, and waits for the rule described below.
 
@@ -36,14 +38,16 @@ this manual carries a status that says where it works today:
 
 | Function | Where it works today | Chapter |
 | --- | --- | --- |
-| Six sound engines: Macro, Macro Heavy, Six-Op FM, Shapes, Sophie and Test Sine | Simulator, desktop | [5](05-sound-engines.md) |
-| Four effects in two slots, followed by a limiter | Simulator, desktop | [6](06-effects.md) |
-| The front panel: the knobs, the keys, the screen, and the [[OCT-]], [[OCT+]], [[FX]], [[SEL]], [[GLO]] and [[HOME]] buttons | Simulator | [3](03-panel-tour.md) |
+| Six sound engines: Macro, Macro Heavy, Six-Op FM, Shapes, Sophie and Test Sine, up to four sounds at once | Simulator, desktop | [5](05-sound-engines.md) |
+| Seventeen effects: two inserts on each sound and two on the master bus, followed by a limiter | Simulator, desktop | [6](06-effects.md) |
+| The front panel: the knobs, the keys, the screen and every button but [[SAVE]] and [[ARP]] | Simulator | [3](03-panel-tour.md) |
 | Octave, transpose, velocity and pitch bend | Simulator; velocity and bend also on the desktop | [4](04-playing.md) |
-| Notes from a MIDI keyboard | Simulator | [8](08-midi.md) |
-| Sequencer: steps, parameter locks, conditions, clips, scenes, recording and Capture | Desktop | [7](07-sequencer.md) |
-| Sequencer sets saved and loaded as text files | Desktop | [9](09-settings-and-storage.md) |
-| Any of the above on the FM-1 | Planned | [10](10-updating-and-recovery.md) |
+| Notes from a MIDI keyboard | Simulator | [9](09-midi.md) |
+| Sequencer: steps, parameter locks, conditions, recording, Capture, eight tracks | Simulator, desktop | [7](07-sequencer.md) |
+| Sequencer clips, scenes and songs | Desktop | [7](07-sequencer.md) |
+| Modulation: LFOs, envelopes and fourteen more modules, cabled to any parameter | Simulator, desktop | [8](08-modulation.md) |
+| Sequencer sets saved and loaded as text files | Desktop | [10](10-settings-and-storage.md) |
+| Any of the above on the FM-1 | Planned | [11](11-updating-and-recovery.md) |
 
 ## The one rule
 
@@ -68,7 +72,7 @@ question, a failed install could leave the instrument permanently unusable.
 
 The one rule also limits what this project sends to an FM-1 while the work
 goes on: a read-only query that asks the unit which version of its firmware
-it runs, and passive listening, nothing else. [Chapter 10](10-updating-and-recovery.md)
+it runs, and passive listening, nothing else. [Chapter 11](11-updating-and-recovery.md)
 describes the recovery work under way and what will change once it succeeds.
 
 ## Safety and care
@@ -88,7 +92,7 @@ follow M-VAVE's manual for them.
 
 !!! warning "Do not open the case"
     Nothing in this manual asks you to open your FM-1. The recovery dongle
-    described in chapter 10 is designed to plug into the USB socket from
+    described in chapter 11 is designed to plug into the USB socket from
     outside.
 
 !!! note "Your FM-1 is unchanged"
@@ -99,8 +103,8 @@ follow M-VAVE's manual for them.
 ## About this manual
 
 - **Controls** are written as the panel prints them: [[SELECT]], [[KNOB1]],
-  [[PLAY/STOP]]. Sequencer functions that are still to be given a button are
-  drawn with a dashed outline, such as [[role:SHIFT]].
+  [[PLAY/STOP]]. Sequencer functions that are still to be given a key are
+  drawn with a dashed outline, such as [[role:LOOP]].
 - **Statuses.** The status line under a heading says where the function
   described below it works today, using the three labels above.
 - **Notes** add detail and **tips** suggest a way of working. **Cautions**

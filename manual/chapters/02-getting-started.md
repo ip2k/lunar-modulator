@@ -40,11 +40,14 @@ website, and sends nothing anywhere.
    drawn on the top edge of the case does the same.
 3. Play the keys.
 
-The simulator starts with the Macro engine, the Plate reverb in the first
-effect slot, the second slot empty, and [[MASTER]] at three quarters. The
-status line under the controls reports the sample rate, the block size, the
-delay your computer adds to the output, and how much of the FM-1's memory the
-current engine and effects would take.
+The simulator starts with the Macro engine as Sound 1 (Sounds 2 to 4
+empty), the Plate reverb in the first master effect slot, the second slot
+empty, a one-bar demo pattern on sequencer track 1, the modulation rack's
+default modules, and [[MASTER]] at three quarters. Press [[PLAY/STOP]], or
+<kbd>Space</kbd>, to hear the pattern. The status line under the controls
+reports the sample rate, the block size, the delay your computer adds to
+the output, how much of the FM-1's memory the sounds and effects would
+take, and the sequencer's tempo and whether it plays.
 
 To stop, click **Power off** or the [[POWER]] switch. The simulator keeps
 nothing: it starts from the same settings every time.
@@ -88,6 +91,9 @@ the black keys. Notes from the computer keyboard play at velocity 100.
 | <kbd>←</kbd> <kbd>→</kbd> | Turn [[SELECT]]: the page, or in FX mode the effect slot and its pages |
 | <kbd>↑</kbd> <kbd>↓</kbd> | Turn [[PRESETS]]: the sound engine |
 | <kbd>-</kbd> <kbd>=</kbd> | Turn [[ALGORITHM]]: the engine's main list, or in FX mode the effect in the slot |
+| <kbd>Space</kbd> | [[PLAY/STOP]]: starts and stops the sequencer |
+| <kbd>1</kbd> to <kbd>8</kbd>, <kbd>C</kbd> <kbd>V</kbd> <kbd>B</kbd> <kbd>N</kbd> <kbd>M</kbd> <kbd>,</kbd> <kbd>.</kbd> <kbd>/</kbd> | In SEQ mode, white keys 1 to 16: the sequencer's steps ([chapter 7](07-sequencer.md)) |
+| <kbd>Shift</kbd> | In SEQ mode, holds [[SEL]], the sequencer's SHIFT |
 | <kbd>Tab</kbd> | Move between the knobs and buttons of the drawing. With a knob chosen, the arrow keys turn it; with a button chosen, <kbd>Enter</kbd> or <kbd>Space</kbd> presses it |
 | <kbd>Esc</kbd> | Release every note |
 
@@ -109,15 +115,15 @@ them with <kbd>Tab</kbd>, or use the mouse.
 The simulator listens on every MIDI channel. It plays notes with their
 velocity, bends sounding notes by up to two semitones either way, follows
 control change 7 as [[MASTER]] and control change 123 as *all notes off*, and
-ignores everything else. It sends no MIDI. [Chapter 8](08-midi.md) has the
+ignores everything else. It sends no MIDI. [Chapter 9](09-midi.md) has the
 full list.
 
 ### The controls under the panel
 
 | Control | What it does |
 | --- | --- |
-| **Sound (PRESETS)** | Chooses the sound engine directly, as turning [[PRESETS]] does |
-| **Effect 1**, **Effect 2** | Choose the effect in each slot, or *(none)* to empty it |
+| **Sound (PRESETS)** | Chooses the current sound's engine directly, as turning [[PRESETS]] does. The label names the current sound, such as *Sound 2 (PRESETS)*; Sounds 2 to 4 can be *(none)* |
+| **Effect 1**, **Effect 2** | Choose the effect in each master slot, or *(none)* to empty it |
 | **Connect MIDI input** | Asks the browser for your MIDI keyboards (above) |
 | **Screen ×2** | Shows a second, larger copy of the screen below the panel. On by default in a narrow window |
 | **Power off** | Stops the sound |
@@ -160,22 +166,27 @@ parameter knobs and the buttons with the mouse. Start with the volume low.
 5. Press <kbd>→</kbd>. [[SELECT]] turns to the second page: Decay, Colour and
    Volume. Drag [[KNOB1]] up to raise Decay, and the notes ring on after you
    let go of the keys.
-6. Click [[FX]]. The screen shows the two effect slots, with Plate in the
-   first, and [[KNOB1]] is now Plate's Mix.
-7. Press <kbd>→</kbd> to move to the second, empty slot, then <kbd>=</kbd>
-   twice: Ensemble, a chorus, fills it.
+6. Click [[FX]]. The screen shows the effect chain, with M1, the first
+   master slot, chosen: Plate is there, and [[KNOB1]] is now Plate's Mix.
+7. Press <kbd>→</kbd> to move to M2, the second master slot, empty, then
+   <kbd>=</kbd> twice: Ensemble, a chorus, fills it.
 8. To put Ensemble before Plate, click [[SEL]], press <kbd>←</kbd>, and click
    [[SEL]] again.
 9. Click [[HOME]] to return to the sound, then press <kbd>↑</kbd> to turn
    [[PRESETS]] to the next engine, Shapes.
+10. Press <kbd>Space</kbd>: the demo pattern plays on Shapes. Click [[SEQ]]
+    to see it: the white keys' lights follow the steps, and a tap on a white
+    key adds or removes a note. Press <kbd>Space</kbd> again to stop.
 
-[Chapter 3](03-panel-tour.md) describes every control, and chapters
-[5](05-sound-engines.md) and [6](06-effects.md) every engine and effect.
+[Chapter 3](03-panel-tour.md) describes every control, chapters
+[5](05-sound-engines.md) and [6](06-effects.md) every engine and effect,
+[chapter 7](07-sequencer.md) the sequencer and [chapter 8](08-modulation.md)
+modulation.
 
 !!! note "Changing the engine starts it afresh"
     Each time you choose a sound engine or an effect, it starts with its
     default settings. The simulator does not keep sounds yet; saving them is
-    planned ([chapter 9](09-settings-and-storage.md)).
+    planned ([chapter 10](10-settings-and-storage.md)).
 
 ## The desktop tools
 
@@ -261,13 +272,15 @@ engines/build/fm1-render --engine sw-sophie \
 | `--note T:KEY:VEL:LEN` | Plays a note (above) |
 | `--param-at T:NAME=VALUE` | Sets one of the engine's parameters at time *T*, in seconds |
 | `--bend T:SEMITONES` | Bends every note from time *T*, by up to 48 semitones either way. Sophie has no pitch bend and refuses it |
-| `--fx ID` | Adds an effect to the chain: `plate`, `ensemble`, `diffuse`, `sw-psxverb`, `crush`, `fold`, `drive`, `echo`, `filter`, `comp`, `limit` or `test-gain` |
+| `--fx ID` | Adds an effect to the chain: `plate`, `ensemble`, `diffuse`, `sw-psxverb`, `crush`, `fold`, `drive`, `echo`, `filter`, `comp`, `limit`, `djfilter`, `tilt`, `sat`, `isolator`, `eq` or `test-gain`. With the multi-sound options below, the first two are the master effects |
 | `--fx-param NAME=VALUE` | Sets a parameter of the effect before it |
 | `--fx-param-at T:K:NAME=VALUE` | Sets a parameter of the *K*-th effect (the first `--fx` is 1) at time *T*, in seconds |
 | `--seconds S` | The length of the file, 2 seconds unless you say otherwise |
 | `--rate HZ` | The sample rate, 44,118 unless you say otherwise. Macro, Macro Heavy and Six-Op FM refuse rates above 47,872; Shapes runs from 24,000 to 96,000 |
 | `--frames N` | The block size, 64 unless you say otherwise |
 | `--out FILE.wav` | Where to write the sound |
+| `--sound K:ID`, `--insert K:ID`, `--level K:PCT`, `--sound-note K:T:KEY:VEL:LEN`, `--slots` | Several sounds at once, as in the simulator: sound *K* (1 to 3; `--engine` is 0), an insert effect on sound *K*, its level into the mix, a note on it; `--slots` routes the sequencer's tracks to the sounds ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |
+| `--mod FILE` | Modulation from a file ([chapter 8](08-modulation.md#modulation-on-the-desktop)) |
 | `--cmd`, `--seq`, `--log-events`, `--route`, `--tracks` | Play the sequencer (chapter 7) |
 
 An unknown engine or parameter name, or a rate an engine cannot run at, stops
@@ -288,7 +301,7 @@ Nothing from this project. The FM-1 keeps whatever firmware it has: M-VAVE's
 own, or a third-party firmware you chose to install yourself.
 [Chapter 1](01-welcome-and-safety.md#the-one-rule) explains the rule that
 holds Lunar Modulator back from the device, and
-[chapter 10](10-updating-and-recovery.md) the recovery work that has to
+[chapter 11](11-updating-and-recovery.md) the recovery work that has to
 succeed first.
 
 ### The road to the device
@@ -313,6 +326,6 @@ Each step below has to succeed before the next one starts:
 
 When a device version exists, the plan is that installing it will need a
 computer and the FM-1's USB socket, and nothing inside the case
-([chapter 10](10-updating-and-recovery.md#how-it-will-be-installed)). Until
+([chapter 11](11-updating-and-recovery.md#how-it-will-be-installed)). Until
 then, keep playing your FM-1 with the firmware it has, and play Lunar
 Modulator in the simulator.

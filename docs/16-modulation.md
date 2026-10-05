@@ -1194,7 +1194,7 @@ and a CHANGELOG entry. Every stage passes:
 | **MG0** | This document; owner decisions (§9) recorded | — | answers recorded here |
 | **MG1** (built 2026-10-02) | `fm1_mod.h`, the core, the planner, the hook in docs/15's host bridge (`engines/seq/seq_host.c`). `fm1-render --mod FILE` (lines such as `mod 1 lfo rate=0.3`, `slot 1 lfo1.out > snd:Timbre amt=40`) and `--log-mod`. Kinds LFO, Envelope and Chance, so the default rack reproduces C1 | docs/15 S1 (the bridge, merged in PR #25) and S7a (uids, plus the MOD and INPUT flags, `abbr`, `unit`); tempo and a beat position in `fm1_host_t`, planned with API v2 in the options note but not in S7a's scope, which MG1 adds if nothing else has | all §2.7 core tests; M1–M7 host tests (a zero amount is a no-op, NOLOCK refused, a lock moves the base while the LFO swings round it, D6 with modulation running) |
 | **MG2** (built 2026-10-02) | The glue kinds: Calc, Mix, Slew, Compare, Logic, Coin, Divide, Burst, Bounce, Quantize, Register, Function; and Filter (the owner's addition) | MG1 | golden traces per kind; the chain and feedback tests; Bounce and Burst against upstream Peaks |
-| **MG3** (built 2026-10-02, behind the lab switch) | The simulator hosts `fm1_mod`: RACK, MATRIX, CHAIN and the routing gesture (in place of PATCH); routed markers on every page; user text in sim/web/README.md until the manual's chapter can be published | MG1–MG2; docs/15 S2 (the app hosts the bridge) | parity scenarios with routes; the layout sweep; panel traces replay through `fm1-render` byte for byte |
+| **MG3** (built 2026-10-02, behind the lab switch; public since 2026-10-05) | The simulator hosts `fm1_mod`: RACK, MATRIX, CHAIN and the routing gesture (in place of PATCH); routed markers on every page; user text in sim/web/README.md until the manual's chapter can be published | MG1–MG2; docs/15 S2 (the app hosts the bridge) | parity scenarios with routes; the layout sweep; panel traces replay through `fm1-render` byte for byte |
 | **MG4** | Segments: Stages vendored as the desktop oracle (stmlib and Tides 2 headers added), and the device kind; its view | MG3 | the device kind within a stated tolerance of the oracle over a scripted patch set; the clamp tests at secondary 1.0 and primary 2.0; the group-forming table from `chain_state.cc` reproduced |
 | **MG5** | Curves; the pattern-data API in presets; SEL held + white keys as stages | MG3 | pattern round trip; Curves' ENVELOPE, LFO, CLOCKED and ADDRESSED golden traces; layout of the curve view |
 | **MG6** | Locks on module parameters and slot amounts; SEQ sources; MACRO 1–4; Motion | docs/15 S8 (locks) and transport | a lock on `mod3:Level2` and on `mtx:12.amt` replays identically; Motion's loop is identical at any block size |
@@ -1275,7 +1275,7 @@ the tests) [verified 2026-10-02]:
   cable does, feedback exactly one tick late, the Filter's response and
   ringing against its transfer function and poles, and every kind fuzzed
   with random and extreme parameters.
-**MG3, as built** (sim/web/README.md, "The lab switch", has the pages for
+**MG3, as built** (sim/web/README.md, "The sequencer, multi-sound and modulation", has the pages for
 users; `sim/web/src/fm1_mod_ui.h` the rules) [verified 2026-10-02, and
 2026-10-05 for the integration with multi-sound, S5, S6, S8 and MG2, unless
 marked]:
@@ -1291,9 +1291,10 @@ marked]:
   alone [verified: `hooked_slots` in `fm1-seq-host-test`]. Notes on any
   sound unit with an engine feed the note sources, in the app and in
   `fm1-render --slots` alike.
-  Only with the lab switch: off, no runtime exists, and every screen the
-  layout sweep saves with the switch off is byte for byte main's [verified:
-  the PPMs against a build of main]. The browser module links the runtime, its kinds and
+  Until 2026-10-05 only with the lab switch: off, no runtime existed, and
+  every screen the layout sweep saved with the switch off was byte for
+  byte main's [verified: the PPMs against a build of main]. Since then
+  `fm1_app_init` builds the default rack on every chain. The browser module links the runtime, its kinds and
   `host/mod_script.c` (no imports: snprintf and strtod only), and plays a
   script through `fm1w_mod_reset` and `fm1w_mod_text`.
 - **The owner's decisions (2026-10-02), which replace §5.1's buttons:**
@@ -1466,9 +1467,8 @@ marked]:
   -l` over `git ls-files`; the mark may have counted fewer kinds of file].
 - **Left for later:** SEL held with the white keys (MG5), locks on module
   parameters and cable depths and MACRO 1–4 (MG6), per-voice instances
-  (MG9, now the next stage), HOST per sound unit (codes 36–39), and the
-  manual's chapter, which waits until the lab switch goes (user text is in
-  sim/web/README.md meanwhile).
+  (MG9, now the next stage) and HOST per sound unit (codes 36–39). The
+  manual's chapter came when the lab switch went (chapter 8, 2026-10-05).
 - **Questions for the owner** (2026-10-05):
   1. Should the Envelope's normal retrigger too? A GATE with no cable
      reads KEY, the legato gate, so removing a default cable makes that
@@ -1480,7 +1480,7 @@ marked]:
   3. The note sources (VEL, NOTE, KEY, TRIG, RTRG) follow notes on every
      sound unit: should a cable be able to follow one sound's notes only
      (per-sound gates, or per-voice in MG9)?
-  4. The runtime's 22,368 B now count against the lab's RAM meter: is
+  4. The runtime's 22,368 B now count against the RAM meter: is
      that the budget the firmware should plan for (the pool could shrink
      to what the loaded engines need)?
 
