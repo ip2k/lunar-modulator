@@ -84,8 +84,9 @@
  * times more above 4 kHz when 24 dB starts. A fade tied to u alone, with no
  * rate limit and evaluated per tick, left 25 times more on a fast crossing.
  *
- * Determinism: no libm. 2^x and tan(pi x) are polynomials written here, and
- * everything else is +, -, *, / and comparisons, with floating-point
+ * Determinism: no libm. 2^x (CompExp2, fx_comp_math.h) and tan(pi x) are
+ * polynomials written in this repository, and everything else is +, -, *, /
+ * and comparisons, with floating-point
  * contraction off for this file under clang (below), so a native build and
  * the browser's WebAssembly compute the same bits [verified 2026-10-03: the
  * same output bits, with parameters moving, at three host rates, from Apple
@@ -113,6 +114,7 @@
  */
 
 #include "fm1_engine.h"
+#include "fx_comp_math.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -208,36 +210,10 @@ typedef struct DjInstance {
 /* Maths without libm                                                      */
 /* ---------------------------------------------------------------------- */
 
-/* 2^x for x in (-126, 126]; 0 below, NaN gives 0. x = n + f with f in
- * [-1/2, 1/2): 2^f by the Taylor polynomial of e^(f ln 2) to degree 6
- * (truncation under 1.2e-7 relative), and 2^n set in the exponent. The
- * method of Comp's CompExp2 (fx_comp_math.h on the Comp branch); a shared
- * header is stage B1 of the research note. Each product is a statement of
- * its own. */
-static float DjExp2(float x) {
-  if (!(x > -126.0f)) return 0.0f;
-  if (x > 126.0f) x = 126.0f;
-  const float half = x + 0.5f;
-  int n = (int)half;                        /* truncates towards zero... */
-  if ((float)n > half) n = n - 1;           /* ...so step down below 0 */
-  const float u = (x - (float)n) * 0.693147181f;
-  float p = 0.00138888889f * u;             /* 1/720 */
-  p = p + 0.00833333333f;                   /* 1/120 */
-  p = p * u;
-  p = p + 0.0416666667f;                    /* 1/24 */
-  p = p * u;
-  p = p + 0.166666667f;                     /* 1/6 */
-  p = p * u;
-  p = p + 0.5f;
-  p = p * u;
-  p = p + 1.0f;
-  p = p * u;
-  p = p + 1.0f;
-  const uint32_t bits = (uint32_t)(n + 127) << 23;
-  float scale;
-  memcpy(&scale, &bits, sizeof scale);
-  return p * scale;
-}
+/* 2^x is CompExp2 (fx_comp_math.h, shared with Comp and Tilt): a Taylor
+ * polynomial and the exponent set directly, the same bits on every build.
+ * This file had a private copy of it, identical line for line, from before
+ * Comp reached main. */
 
 /* tan(pi x) for x in [0, 0.45]: sin and cos of y = pi x (or of pi (1/2 - x)
  * above 1/4, then cos / sin), each by its Taylor polynomial on [0, pi/4]
@@ -325,10 +301,10 @@ static void DjCoefficients(const DjInstance *self, int side, float u, float *g, 
   float ratio;
   if (side == SIDE_LP) {
     const float e = -kLpOctaves * octaves;
-    ratio = self->lp_open * DjExp2(e);
+    ratio = self->lp_open * CompExp2(e);
   } else {
     const float e = kHpOctaves * octaves;
-    ratio = self->hp_open * DjExp2(e);
+    ratio = self->hp_open * CompExp2(e);
   }
   if (ratio > kMaxRatio) ratio = kMaxRatio;
   *g = DjTanPi(ratio);
@@ -558,7 +534,7 @@ static size_t DjInstanceSize(const fm1_host_t *host) {
 static float DjTickStep(float seconds, float rate) {
   const float frames = (float)kTick;
   const float e = -kLog2e * frames / (seconds * rate);
-  return 1.0f - DjExp2(e);
+  return 1.0f - CompExp2(e);
 }
 
 static void *DjCreate(void *mem, const fm1_host_t *host) {

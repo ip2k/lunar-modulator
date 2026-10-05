@@ -950,7 +950,9 @@ How it works [verified: tests/test_engines_djfilter.py and
   places zipper noise would land, against −45 and −78 dB for the same filter
   with its coefficients stepped at each write. Changes mid-stream give the
   same output at host blocks of 64, 12, 7 and 1, from any instance fill.
-- **No libm.** 2^x and tan(πx) are polynomials in the file, and
+- **No libm.** 2^x is `CompExp2` (`src/fx_comp_math.h`, shared with Comp
+  and Tilt; until the pack's review the file kept an identical copy) and
+  tan(πx) a polynomial in the file, and
   floating-point contraction is off for it, so the bits are the same from
   Apple clang (arm64, −O0 and −O2), GCC (x86-64, also with FMA available,
   and i386 with SSE) and Emscripten, with parameters moving at three host
@@ -1580,7 +1582,7 @@ sound).
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
 | `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq)) |
-| `src/fx_comp_math.h` | `CompExp2` and `CompLog2`: base-2 exponential and logarithm without libm, the same bits on every build (Comp's; Tilt uses it too) |
+| `src/fx_comp_math.h` | `CompExp2` and `CompLog2`: base-2 exponential and logarithm without libm, the same bits on every build (Comp's; Tilt and DJ Filter use it too) |
 | `src/fx_eq_math.h` | EQ's libm-free maths ([above](#eq)) |
 | `include/fm1_comp.h` | Comp's gain-reduction accessor, for a later modulation source ([above](#comp)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
