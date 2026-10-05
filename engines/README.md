@@ -237,7 +237,10 @@ its hit, a new hit starts at none, NaN, infinities, ignored indices and
 silent keys, extremes finite on every model and kit). The engine also runs
 through `tests/test_engine_host.py`, `test_engine_params.py` and
 `test_engine_smooth.py` with every other engine, and its two parity
-scenarios through the virtual FM-1.
+scenarios through the virtual FM-1. Also run [verified 2026-10-05, in
+containers on the build host]: the Drums, host, smooth and per-note tests
+under ASan and UBSan (clang 19.1, no report) and in a 32-bit build (GCC
+12.2 `-m32`, no warning).
 
 **Open questions** (for the owner):
 1. Plaits' rate and a resampler (as now, the 2026-10-01 rule) or the
@@ -2132,6 +2135,12 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
     python -m pytest tests/test_engine*.py
 make -C engines clean
 ```
+
+Use a recent clang: on a kernel with 32 bits of mmap randomness, clang
+14's ASan runtime segfaults at random in Macro and Drums alike, with no
+report [verified 2026-10-05: the build host's Linux 7.0 kernel has
+`vm.mmap_rnd_bits` 32; Debian bookworm's clang 14.0.6 crashed in a
+container there, and trixie's 19.1.7 runs clean].
 
 Each exemption in `sanitizers/` names one vendored file and the quirk it
 covers: Braids' and stmlib's wrapping integer arithmetic, Plaits' six-op

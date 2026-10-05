@@ -95,7 +95,8 @@ inline float Hz(float hz, float semitones) {
 // The rim shot: two band-passes, a fundamental and a mode 3.66 times
 // higher (1,667 / 455 Hz), pinged by a 0.1 ms pulse, clipped as the
 // circuit's output transistor clips, with a short noise click (Snap) and a
-// high-pass. Tone balances the two modes, Decay sets their Q (5 to 60 ms).
+// high-pass. Tone balances the two modes, Decay sets their Q (a ring of
+// about 5 to 45 ms at 455 Hz).
 class Rim {
  public:
   void Init() {
@@ -205,7 +206,7 @@ class Clap {
 // The cowbell: two rectangular oscillators at f0 and 1.4815 f0 (540 and
 // 800 Hz at the voicing's pitch), duty 0.4798, through a swing VCA on a
 // two-stage envelope (a fast stage, its height set by Snap, over a slow one
-// set by Decay, 0.12 to 1.9 s), then two band-passes in series (fourth
+// set by Decay, 0.075 to 1.2 s), then two band-passes in series (fourth
 // order), centred by Tone an octave either side of 880 Hz.
 class Cowbell {
  public:
