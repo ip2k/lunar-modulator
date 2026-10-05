@@ -1637,6 +1637,18 @@ covers: Braids' and stmlib's wrapping integer arithmetic, Plaits' six-op
 `Pow2Fast` negative shift, and Plaits' LPC speech out-of-bounds read (an
 upstream candidate). Our own code gets none.
 
+`build/fm1-fx-hostile-test` (`test/fx_hostile_test.cc`, run by
+`tests/test_engines_fx_hostile.py`) puts the five master-bus effects (DJ
+Filter, Tilt, EQ, Isolator, Master Sat) through the same hostile checks of
+the host contracts: parameters changed at any frame in blocks of 1 to 4,096
+frames, instance memory filled with NaNs, infinities or random bytes,
+seconds of garbage parameters and input followed by one setting (the output
+must then be a fresh instance's), the pass-through settings on input with
+−0, subnormals and ±16, parameters thrown between their ends every frame,
+tails, host rates 8–384 kHz, every glide landing at four rates, and indices
+past the table. It found the Isolator's stalled crossover glide
+([above](#isolator)); a new effect for the master bus takes a line in it.
+
 ## What stage A has found
 
 - **Tuning survives the rate change.** The Mutable engines stay within

@@ -24,7 +24,12 @@ history.
     parity scenarios pass, identical to musl and to render.js; 1,143
     screens pass the layout check (88 new). The browser module grew from
     525 KB to 550 KB. Each effect is under 400 bytes an instance, on
-    64-bit and 32-bit builds alike.
+    64-bit and 32-bit builds alike. `tests/test_engines_fx_hostile.py`
+    puts all five through the same hostile checks of the engine contracts
+    (any block size and memory fill, seconds of garbage parameters and
+    input, the pass-through settings bit for bit, every glide landing at
+    8–384 kHz); it found Isolator's crossover glide stopping short of its
+    target, fixed before release.
 - **DJ Filter**, a new effect for the end of the chain (or the master bus,
   once there is one): one knob, Sweep, low-passes as it turns left of
   centre, from 20 kHz down to 60 Hz, and high-passes as it turns right, from
