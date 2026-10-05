@@ -68,8 +68,10 @@ and is the one to trust if the two ever differ.
 | Filter | – | 18 KB |
 | Comp | – | under 1 KB |
 | Limiter | – | 9 KB |
+| DJ Filter | – | under 1 KB |
 | Tilt | – | under 1 KB |
 | Master Sat | – | under 1 KB |
+| Isolator | – | under 1 KB |
 | EQ | – | under 1 KB |
 | Test Gain | – | under 1 KB |
 

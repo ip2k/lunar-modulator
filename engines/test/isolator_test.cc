@@ -1,9 +1,9 @@
 // isolator_test.cc -- fm1-isolator-test: drives the Isolator effect
 // (src/fx_isolator.cc) through its engine struct where fm1-render cannot:
-// parameters that change while audio runs (fm1-render sets an effect's
-// parameters only before the first block), block sizes that change from call
-// to call, host rates, and the frequency response measured in float rather
-// than through a 16-bit WAV. Prints one JSON object;
+// parameters that change at any frame (fm1-render turns them only between
+// its 64-frame blocks), block sizes that change from call to call, host
+// rates, and the frequency response measured in float rather than through
+// a 16-bit WAV. Prints one JSON object;
 // tests/test_engines_isolator.py reads it. `--bench` prints the cost of a
 // 64-frame block instead. MIT licence.
 

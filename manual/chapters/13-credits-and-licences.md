@@ -57,6 +57,9 @@ terms it is used under.
 - **Limiter** is this project's own code, after **Geraint Luff**'s
   look-ahead limiter design (Signalsmith Audio, 2022). No code is taken from
   the article or from Signalsmith's library.
+- **DJ Filter** is this project's own code: the state-variable filter of
+  **Andrew Simper** (Cytomic) and **Vadim Zavalishin**, in the form of
+  stmlib's by **Emilie Gillet** (MIT licence). No code is taken from anyone.
 - **Tilt** is this project's own code. A tilt built from first-order
   sections follows **Airwindows**' ToneSlant (MIT licence) and the
   spectral tilt of the **Faust** libraries; none of their code is used.
@@ -65,6 +68,10 @@ terms it is used under.
   Johnson**, MIT licence ("Copyright (c) 2018 Chris Johnson"; the licence's
   notice is in the effect's source), and its Glue follows the idea of
   Airwindows Compresaturator, whose code is not used.
+- **Isolator** is this project's own code. Its three bands are split as in
+  the **Faust** libraries' three-band Linkwitz-Riley crossover, with
+  **Andrew Simper**'s (Cytomic) and **Vadim Zavalishin**'s state-variable
+  filter; none of their code is used.
 - **EQ** is this project's own code. Each band is the state-variable filter
   in the form **Andrew Simper** (Cytomic) published, whose maths is in the
   public domain, and its curves are checked against **Robert

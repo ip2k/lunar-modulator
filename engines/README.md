@@ -1101,12 +1101,10 @@ How it works [verified: tests/test_engines_tilt.py and
   under the owner's rule for switches (2026-10-02), which a glide allows.
   Level is −24 to +12 dB, as Drive's. Tilt and Level are in dB with
   `FM1_UNIT_NONE` until `fm1_unit_t` has a dB code (note §7.4).
-- **Not yet:** Drive's Tone, a tilt about 800 Hz on the effects branch, could
-  use these sections, as the note proposes; it cuts one side instead of
-  turning both.
-- fm1-render sets an effect's parameters only before the first block, and
-  writes 16-bit samples through the limiter, so `build/fm1-tilt-test`
-  (`test/tilt_test.cc`) drives Tilt directly: its response in float, the
+- **Not yet:** Drive's Tone, a tilt about 800 Hz, could use these
+  sections, as the note proposes; it cuts one side instead of turning both.
+- fm1-render writes 16-bit samples through the limiter, so
+  `build/fm1-tilt-test` (`test/tilt_test.cc`) drives Tilt directly: its response in float, the
   bypass bit for bit, jumps of every control while a sine plays, Tilt swept
   at the matrix's rate, every parameter changed mid-stream to any value,
   silence and tails, and the host rates it accepts.
@@ -1310,9 +1308,8 @@ and 2,484 Hz [reported in the note: its constants]).
   (`build/fm1-isolator-test --bench`).
 - **Memory:** 240 bytes, no delay lines; the struct holds no pointers, so
   the same on a 32-bit build [inferred].
-- fm1-render sets an effect's parameters only before the first block, so
-  `build/fm1-isolator-test` (`test/isolator_test.cc`) drives Isolator
-  directly: every parameter changed mid-stream to any value, NaN and
+- `build/fm1-isolator-test` (`test/isolator_test.cc`) drives Isolator
+  directly, in float and at any block size: every parameter changed mid-stream to any value, NaN and
   infinities included, between blocks of 1–64 frames; the glides at blocks
   of 64, 7 and 1; the switching; the frequency response in float; and the
   host rates it accepts (8–384 kHz).
@@ -1417,12 +1414,14 @@ How it works [verified: tests/test_engines_eq.py and `build/fm1-eq-test`,
   exactly 1 at 0 dB by construction, needs no table memory and is accurate
   to 1e-6 dB rather than 0.004 dB steps. The note's shared header for
   Tilt, DJ Filter, Isolator and EQ (the bell and shelf mixes, the knob law)
-  is left to whoever joins those effects; `fx_eq_math.h` is a candidate.
+  is left to stage B1: the pack's integration (2026-10-05) kept each
+  effect's own maths, whose bits its tests pin; `fx_eq_math.h` is a
+  candidate.
 - **Knobs:** the hosts turn a parameter in even steps of its range (a
   hundredth per detent in the virtual FM-1), so a frequency in Hz moves by
   180 Hz a detent on Mid Freq and a modulation route sweeps it in Hz, not in
-  octaves; the multimode Filter's Cutoff (fx pack 2, not yet on main) has
-  the same issue [verified: its branch]. A logarithmic taper for
+  octaves; the multimode Filter's Cutoff has the same issue [verified:
+  its branch, before it merged]. A logarithmic taper for
   `FM1_UNIT_HZ` parameters belongs in the hosts, so a lock or a preset keeps
   storing Hz.
 
@@ -1477,7 +1476,8 @@ hands over every change so that no change, however fast, steps the output,
 is lockable and modulatable (MOD; an ENUM is rounded when modulated, docs/16
 §2.2). Only a destructive change is NOLOCK. The effects' switches follow it:
 Filter's Type, Drive's Type and Auto, Comp's Character, Auto Rel and Auto
-Gain, and the Limiter's Mode and Lookahead are all lockable and MOD, and
+Gain, the Limiter's Mode and Lookahead, DJ Filter's Slope, Tilt's Curve,
+Master Sat's Shape and Isolator's Kill are all lockable and MOD, and
 `tests/test_engines_fx_switches.py` turns each of them every third block
 (faster than its crossfade) on a steady sine and on sharp onsets, checking
 that the output stays finite, keeps the effect's ceiling and steps no more
@@ -1491,13 +1491,16 @@ uid)` are the helpers. `fm1-render --list` prints each parameter's uid,
 flags (by name), unit and abbreviation. The four fields make `fm1_param_t`
 36 bytes on pi32v2 and i386 (28 before) and 48 on x86-64 (40) [verified:
 `tools/jieli/compile-check.sh`, 2026-10-02, 67 of 67 objects compiled in
-all four profiles]: 704 bytes more of read-only data for the 88 parameters
-the registry defines.
+all four profiles]: 8 bytes more of read-only data per parameter, 1,160
+bytes for the 145 the registry defines [counted with `fm1-render --list`,
+2026-10-05; 88 when the sizes were measured].
 
 **The ENUM parameters** [verified against each engine's code, 2026-10-02].
 docs/15's table had eight; Macro's and Macro Heavy's LPG came with their
 third page; Drive's Type and Auto, Comp's Character, Auto Rel and Auto
-Gain, Filter's Type and the Limiter's Mode with their effects.
+Gain, Filter's Type and the Limiter's Mode with their effects, and DJ
+Filter's Slope, Tilt's Curve, Master Sat's Shape and Isolator's Kill with
+the master-bus pack.
 
 | Engine | Parameter | Flags | Why |
 | --- | --- | --- | --- |
@@ -1515,18 +1518,21 @@ Gain, Filter's Type and the Limiter's Mode with their effects.
 | drive | Auto | MOD | Its gain glides like any other (the rule above) |
 | comp | Character, Auto Rel, Auto Gain | MOD | Read every frame; Character and Auto Rel hand the smoothing over through an offset that decays in 5 ms and Character crossfades the detector, Auto Gain glides its makeup and its bound in, so no change steps (the rule above). Not effects of a note, so no LATCH. Until 2026-10-02 they took no MOD |
 | limit | Mode | MOD | A change glides the output stage over 5 ms, frame by frame as the line delivers them (each frame carries the Mode its gain was made for). NOLOCK until 2026-10-02 |
+| djfilter | Slope | MOD | Crossfades the 12 and 24 dB filters over 5 ms (the rule above). The research note had it NOLOCK |
+| tilt | Curve | MOD | Glides from one curve's coefficients to the other's through two 2.5 ms stages (the rule above). The note's Sections switch was NOLOCK |
 | sat | Shape | MOD | Crossfades over 5 ms, so a lock or a rounded route is clean however fast (the owner's switch rule, 2026-10-02) |
 | isolator | Kill | MOD | The killed bands' gains glide over 5 ms, so a change is clean however fast: lockable, and a route is rounded |
 
 **Units and abbreviations.** Echo's Time, Comp's Attack and Release,
 Sophie's Ring Time and the Limiter's Release and Lookahead are in ms,
-Filter's Cutoff, Master Sat's Clean Lo and Clean Hi, Isolator's crossovers
-and EQ's frequencies in Hz, Sophie's Tune in semitones and its 0–100 knobs
-in %. Sophie's Decay is in seconds, and Drive's Drive and Level, Comp's
-Threshold, Knee and Makeup, the Limiter's Ceiling and Drive, and Master
-Sat's Drive and Level in dB, for which there are no unit codes yet, so they
+Filter's Cutoff, Tilt's Pivot, Master Sat's Clean Lo and Clean Hi,
+Isolator's crossovers and EQ's frequencies in Hz, Sophie's Tune in
+semitones and its 0–100 knobs in %. Sophie's Decay is in seconds, and
+Drive's Drive and Level, Comp's Threshold, Knee and Makeup, the Limiter's
+Ceiling and Drive, Tilt's Tilt and Level, Master Sat's Drive and Level, and
+EQ's gains and Level in dB, for which there are no unit codes yet, so they
 have none. Every other parameter is a bare number (the 0–1 knobs, gains,
-bits, indices).
+bits, indices, EQ's Qs).
 
 **No sound changed** [verified 2026-10-02, Apple clang, before and after on
 one machine, clean builds]: 1,458 runs of `fm1-render` and the virtual
@@ -1686,12 +1692,19 @@ upstream candidate). Our own code gets none.
   | Filter | 0.05–0.26 % (Comb to SK Mixed) |
   | Comp | 0.11–0.15 % |
   | Limiter | 0.07–0.10 % |
-  | Master Sat | 0.11–0.23 % |
-  | Isolator | 0.12 % |
+  | DJ Filter | 0.004 % in the dead zone, 0.05–0.07 % filtering (12 to 24 dB) |
+  | Tilt | 0.04 % |
+  | Master Sat | 0.15–0.16 % |
+  | Isolator | 0.13 % |
+  | EQ | 0.13 % |
 
   The four effects of the second pack: noise in, best of five 20-second
   runs of `fm1-render`, Fold 0.13 % and Plate 0.06 % in the same run
-  [verified, 2026-10-02].
+  [verified, 2026-10-02]. The five of the master-bus pack the same way,
+  Fold 0.13 % and Plate 0.06 % again in the same run [verified,
+  2026-10-05]. Tilt, Master Sat and EQ cost as much at their bypass
+  settings (Tilt and EQ flat, Master Sat at Mix 0) as when working: their
+  filters keep running so a change fades in.
 
   pi32v2 is a much narrower core and these figures do not transfer; stage B
   measures the real ones. They do rank the engines for the voice caps.

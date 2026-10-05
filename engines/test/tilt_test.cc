@@ -1,9 +1,9 @@
 // tilt_test.cc -- fm1-tilt-test: drives the Tilt effect (src/fx_tilt.cc)
 // through its engine struct where fm1-render cannot: its frequency response
 // in float (fm1-render writes 16-bit WAVs through the limiter), the exact
-// bypass bit for bit, parameters that change while audio runs (fm1-render
-// sets an effect's parameters only before the first block), block sizes
-// that change from call to call, and host rates. Prints one JSON object;
+// bypass bit for bit, parameters that change at any frame (fm1-render
+// turns them only between its 64-frame blocks), block sizes that change
+// from call to call, and host rates. Prints one JSON object;
 // tests/test_engines_tilt.py reads it. MIT licence.
 
 #include "fm1_engine.h"

@@ -1,8 +1,7 @@
 // djfilter_test.cc -- fm1-djfilter-test: drives the DJ Filter effect
 // (src/fx_djfilter.cc) through its engine struct where fm1-render cannot:
-// parameters that change while audio runs (fm1-render sets an effect's
-// parameters only before the first block), block sizes that change from
-// call to call, exact bypass checked on floats rather than 16-bit WAVs, the
+// parameters that change at any frame (fm1-render turns them only between
+// its 64-frame blocks), block sizes that change from call to call, exact bypass checked on floats rather than 16-bit WAVs, the
 // frequency response, transitions, tails, host rates and the cost per block.
 // Prints one JSON object; tests/test_engines_djfilter.py reads it. With a
 // directory as its argument it also writes two swept renders there
