@@ -3,7 +3,7 @@
  *
  *   RACK    y 28-46 the rack: 8 cells, each filled to its module's first
  *           output, the shown one outlined (gold while grabbed), an empty
- *           position hollow; y 50 "3 ENV1 >2 <1 ~1" (position, module,
+ *           position hollow; y 50 "3 ENV3 >2 <1 ~1" (position, module,
  *           cables out, in and a tick late); from y 72 four parameter rows
  *           as HOME's, with the marks below
  *   MATRIX  seven slot rows of 19 characters at 22 px (fm1_mod_ui_row), the

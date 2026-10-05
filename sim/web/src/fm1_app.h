@@ -57,7 +57,7 @@
  *                 while Capture holds notes
  * and modulation (docs/16 stage MG3; fm1_mod_ui.h has the pages): the app
  * hosts a runtime (fm1_mod.h) on the same bridge, as fm1-render --mod does,
- * starting from the default rack (LFO1, LFO2, ENV1, ENV2, Chance) and two
+ * starting from the default rack (LFO1, LFO2, ENV3, ENV4, CHN5) and two
  * cables, RTRG (the note gate, retriggered by each note-on) into each
  * Envelope's GATE, so every note on every sound restarts the envelopes
  *   LFO, ENV      a tap opens RACK at the LFOs or the Envelopes; held while

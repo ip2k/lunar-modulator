@@ -1,5 +1,5 @@
 # FX mode, Plate's page: hold ENV and turn KNOB1 (Mix) and KNOB2 (Decay):
-# ENV1, which every note opens through its default cable, swells the
+# ENV3, which every note opens through its default cable, swells the
 # reverb. Then SELECT to slot 2 (empty) and the same gesture finds nothing
 # to reach there.
 --button 0.05:PLAY/STOP

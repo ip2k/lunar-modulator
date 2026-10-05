@@ -2093,7 +2093,7 @@ static void mod_screens(const char *dir, float rate) {
   fm1_app_seq_default_route(&g_app);
   fm1_app_note_on(&g_app, 57, 100);
   blocks(40);
-  /* LFO: RACK at LFO1, then LFO2; ENV at ENV1; the LEDs. */
+  /* LFO: RACK at LFO1, then LFO2; ENV at ENV3; the LEDs. */
   press(FM1_BTN_LFO);
   expect(g_app.mode == FM1_MODE_RACK && g_app.mui.pos == 0, "LFO does not open RACK at LFO1");
   blocks(1);
@@ -2102,10 +2102,10 @@ static void mod_screens(const char *dir, float rate) {
   press(FM1_BTN_LFO);
   expect(g_app.mui.pos == 1, "LFO again does not step to LFO2");
   press(FM1_BTN_ENV);
-  expect(g_app.mode == FM1_MODE_RACK && g_app.mui.pos == 2, "ENV does not open RACK at ENV1");
+  expect(g_app.mode == FM1_MODE_RACK && g_app.mui.pos == 2, "ENV does not open RACK at ENV3");
   blocks(1);
   expect(g_app.led[FM1_APP_KEYS + FM1_BTN_ENV] == 1 && g_app.led[FM1_APP_KEYS + FM1_BTN_LFO] == 0,
-         "ENV1's page lights ENV alone");
+         "ENV3's page lights ENV alone");
   check_screen("rack-env1", dir, 1);
   /* SELECT walks every position and page, there and back. */
   g_app.mui.pos = 0;
@@ -2321,7 +2321,7 @@ static void mod_screens(const char *dir, float rate) {
   check_screen("matrix-picker-last", dir, 0);
   settle();
   /* CHAIN: SEL on the loop's cable and on a chain through three modules. */
-  turn_now(FM1_ENC_SELECT, 2 - g_app.mui.slot);             /* slot 3: ENV1 EOC into CHN1 */
+  turn_now(FM1_ENC_SELECT, 2 - g_app.mui.slot);             /* slot 3: ENV3 EOC into CHN5 */
   press(FM1_BTN_SEL);
   expect(g_app.mode == FM1_MODE_CHAIN, "SEL does not open CHAIN from MATRIX");
   blocks(1);

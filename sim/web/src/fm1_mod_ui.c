@@ -130,28 +130,41 @@ static const char *name_at(const names_t *l, unsigned i) {
   return l->e->params[i].abbr ? l->e->params[i].abbr : l->e->params[i].name;
 }
 
+/* The most items a list has: a kind's parameters and gate inputs, or the
+ * parameters of a sink a cable can name. */
+#define SHORT_ITEMS (FM1_MOD_MAX_PARAMS + FM1_MOD_MAX_GATES)
+typedef char fm1_mod_ui_short_items[SHORT_ITEMS >= FM1_MOD_UNIT_PARAMS ? 1 : -1];
+
 /* Item i's form in w (1..7) characters, unique among the list's earlier
  * items: its name squeezed (vowels out, then the tail); or, when an earlier
  * item already has that form, the first character and the last w - 1
  * ("Accept" after "Accel", in 3: "Apt"); or the first w - 2 and the item's
- * number. */
+ * number. The forms are built in order, each against those before it, so
+ * a name costs O(item^2) comparisons (a form defined by recursion over the
+ * earlier ones costs 2^item: 4,096 calls for a 13-item kind, every row of
+ * every redraw). */
 static void short_of(const names_t *l, unsigned item, size_t w, char out[8]) {
-  char mine[3][8], other[8];
-  unsigned c, j;
-  const char *name = name_at(l, item);
-  const size_t len = strlen(name);
-  squeeze(name, w, mine[0], sizeof mine[0]);
-  snprintf(mine[1], sizeof mine[1], "%c%.6s", name[0], len > w ? name + len - (w - 1) : name + (len ? 1 : 0));
-  snprintf(mine[2], sizeof mine[2], "%.*s%02u", (int)(w > 2 ? w - 2 : 0), name, (item + 1u) % 100u);
-  for (c = 0; c < 3; ++c) {
-    int taken = 0;
-    for (j = 0; j < item && !taken; ++j) {
-      short_of(l, j, w, other);
-      taken = strcmp(other, mine[c]) == 0;
-    }
-    if (!taken) break;
+  char form[SHORT_ITEMS][8];
+  unsigned k, c, j;
+  if (item >= SHORT_ITEMS) {
+    snprintf(out, 8, "?");
+    return;
   }
-  snprintf(out, 8, "%s", mine[c < 3 ? c : 2]);
+  for (k = 0; k <= item; ++k) {
+    char mine[3][8];
+    const char *name = name_at(l, k);
+    const size_t len = strlen(name);
+    squeeze(name, w, mine[0], sizeof mine[0]);
+    snprintf(mine[1], sizeof mine[1], "%c%.6s", name[0], len > w ? name + len - (w - 1) : name + (len ? 1 : 0));
+    snprintf(mine[2], sizeof mine[2], "%.*s%02u", (int)(w > 2 ? w - 2 : 0), name, (k + 1u) % 100u);
+    for (c = 0; c < 3; ++c) {
+      int taken = 0;
+      for (j = 0; j < k && !taken; ++j) taken = strcmp(form[j], mine[c]) == 0;
+      if (!taken) break;
+    }
+    snprintf(form[k], sizeof form[k], "%s", mine[c < 3 ? c : 2]);
+  }
+  snprintf(out, 8, "%s", form[item]);
 }
 
 static void item_short(const fm1_mod_kind_t *kd, unsigned item, char out[8]) {

@@ -1,5 +1,5 @@
-# ENV twice: RACK at ENV2. ALGORITHM opens the kind picker on Chance; a
-# second later it commits, and the default cable KEY > ENV2 GATE switches
+# ENV twice: RACK at ENV4. ALGORITHM opens the kind picker on Chance; a
+# second later it commits, and the default cable RTRG > ENV4 GATE switches
 # off. ALGORITHM back to Envelope, and HOME commits that at once: the new
 # envelope gets its cable back.
 --button 0.05:PLAY/STOP

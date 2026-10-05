@@ -1,7 +1,7 @@
 # A parity scenario's modulation (docs/16 MG3; fm1-render --mod format,
 # engines/host/mod_script.h): cables into every kind of sink at once, the
-# sound, both effects, HOST PITCH and AMP; a chain of three modules (ENV2
-# into LFO2's rate, LFO2 into CHANCE's gate); a gate cable at 70 %; a VIA
+# sound, both effects, HOST PITCH and AMP; a chain of three modules (ENV4
+# into LFO2's rate, LFO2 into CHN5's gate); a gate cable at 70 %; a VIA
 # and a curve; then an edit at 0.5 s and a cable switched off at 0.8 s.
 seed 7
 rack default

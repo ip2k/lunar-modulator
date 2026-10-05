@@ -1401,14 +1401,16 @@ marked]:
   gone, has no line; it runs as nothing in both. `--mod-format-check`, with
   four sound units, eight inserts and two master slots loaded, reads back
   27,473 lines from 300 random rounds, 0 refused.
-- **Tests** (`tests/test_sim_mod.py`, 38): the switch; the default rack and
+- **Tests** (`tests/test_sim_mod.py`, 43): the switch; the default rack and
   cables; buttons, pages and LEDs; the gesture on HOME, FX and RACK, and on
   Sound 2, its insert and the master; a new cable's target at the current
   sound; rule M1 on a routed knob; every MATRIX field; a kind change and
   its restore, also after the other kind got cables of its own; a hold
   with any turn is no tap; a new MATRIX cable from the selected LFO; CHAIN
   past a refused cable; envelopes from the sequencer, MIDI in and the
-  keys, and the default cable re-patched; the Filter's Cutoff in Hz; six
+  keys through RTRG and through KEY, a note over a held one restarting
+  the attack through RTRG alone (from the keys and MIDI in), and the
+  default cable re-patched; the Filter's Cutoff in Hz; six
   golden traces (`tests/fixtures/mod-ui/`, one of them knob turns on
   routed parameters) and a session across sound units whose `.mod` logs
   replay through `fm1-render --mod` byte for byte. `tests/test_engines_mod_runtime.py`

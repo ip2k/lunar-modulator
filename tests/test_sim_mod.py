@@ -69,7 +69,7 @@ def test_with_the_lab_switch_off_env_lfo_and_edit_are_stubs(tools):
 
 
 def test_the_lab_starts_the_default_rack_and_its_cables(tools):
-    """Owner, 2026-10-02: LFO1, LFO2, ENV1, ENV2, Chance and three empty
+    """Owner, 2026-10-02: LFO1, LFO2, ENV3, ENV4, CHN5 (Chance) and three empty
     positions; RTRG (every note on every sound: keys, MIDI in, the
     sequencer; each note-on restarts it, owner 2026-10-05) cabled into both
     envelopes' GATE at 100 %, re-patchable."""
@@ -102,7 +102,7 @@ def test_lfo_and_env_open_the_rack_at_their_kind(tools):
         assert (s["mode"], s["mod"]["pos"]) == (MODES["RACK"], pos), panel
         assert lit(s) == {button}
     walk = lab(tools, "--button", "0.05:LFO", "--turn", "0.1:SELECT:5")
-    assert (walk["mod"]["pos"], walk["mod"]["page"]) == (3, 2)   # LFO1 1-2, LFO2 1-2, ENV1 1-2
+    assert (walk["mod"]["pos"], walk["mod"]["page"]) == (3, 2)   # LFO1 1-2, LFO2 1-2, ENV3 1-2
     assert walk["mod"]["sel_env"] == 3 and lit(walk) == {"ENV"}
 
 
@@ -128,7 +128,7 @@ def test_sel_grabs_a_module_and_select_moves_it(tools):
     m = s["mod"]
     assert m["grab"] == 1 and "SEL" in lit(s)
     assert m["rack"] == ["lfo", "lfo", "env", "chance", "env", "", "", ""] and m["pos"] == 5
-    assert [(x["unit"] - 8, x["dst"]) for x in m["slots"]] == [(4, 0), (2, 0)]   # ENV1 at 5 now
+    assert [(x["unit"] - 8, x["dst"]) for x in m["slots"]] == [(4, 0), (2, 0)]   # the first envelope, ENV5 now
 
 
 def test_a_tap_or_a_hold_of_env_and_lfo(tools):
@@ -290,9 +290,9 @@ def test_a_kind_change_switches_cables_off_and_back(tools):
 
 
 def test_a_kind_change_back_keeps_both_kinds_cables(tools):
-    """Review fix: ENV1 becomes Chance (KEY > its GATE goes off), the Chance
+    """Review fix: ENV3 becomes Chance (RTRG > its GATE goes off), the Chance
     gets a cable of its own (LFO1 into its Rate), and the change back to
-    Envelope brings KEY > GATE back and switches the Chance's cable off;
+    Envelope brings RTRG > GATE back and switches the Chance's cable off;
     changing to Chance again brings that one back. Before the fix the
     Chance's cable made the Envelope's forgotten."""
     to_chance = ["--button", "0.05:ENV", "--turn", "0.10:ALGORITHM:1", "--button", "1.3:LFO:0.2",
@@ -345,13 +345,15 @@ def rms(samples):
     return (sum(x * x for x in samples) / max(1, len(samples))) ** 0.5
 
 
+@pytest.mark.parametrize("cable", ["rtrg", "key"])
 @pytest.mark.parametrize("source", ["sequencer", "note", "key"])
-def test_envelopes_follow_every_note(tools, tmp_path, source):
-    """The default cable KEY > ENV1 GATE opens ENV1 for a note from the
-    sequencer, from MIDI in (--note) and from the keys. With ENV1 into HOST
-    AMP, Test Sine gets louder while the note holds."""
+def test_envelopes_follow_every_note(tools, tmp_path, source, cable):
+    """The lab's default cable RTRG > ENV3 GATE, or KEY in its place,
+    opens ENV3 for a note from the sequencer, from MIDI in (--note) and
+    from the keys. With ENV3 into HOST AMP, Test Sine gets louder while the
+    note holds."""
     script = tmp_path / "m.mod"
-    script.write_text("rack default\nslot 1 key > env3:gate amt=100\nslot 3 env3 > host:amp amt=50\n")
+    script.write_text(f"rack default\nslot 1 {cable} > env3:gate amt=100\nslot 3 env3 > host:amp amt=50\n")
     if source == "sequencer":
         cmd = tmp_path / "p.verbs"
         cmd.write_text("#! rate=44118 block=64 tracks=8 end=44118\n@0 tog 0 0 69 100;slen 0 0 0 -1 300;play\n")
@@ -367,6 +369,32 @@ def test_envelopes_follow_every_note(tools, tmp_path, source):
         out[name] = left_channel(wav.read_bytes())
     held = slice(int(0.4 * 44118), int(0.6 * 44118))
     assert rms(out["with"][held]) > 1.5 * rms(out["without"][held])
+
+
+@pytest.mark.parametrize("source", ["note", "key"])
+def test_a_note_over_a_held_one_restarts_the_envelope(tools, tmp_path, source):
+    """The owner's rule of 2026-10-05 through the app (play_on feeding the
+    runtime): a second note played while the first still holds restarts
+    ENV3's attack with RTRG, the lab's default cable, where KEY, the legato
+    gate, lets it decay on. Until the second note both sound the same."""
+    rate = 44118
+    if source == "note":
+        play = ["--note", "0:69:100:1.4", "--note", "0.7:72:100:0.7"]
+    else:
+        play = ["--key", "0:16:100:1.4", "--key", "0.7:19:100:0.7"]
+    out = {}
+    for cable in ("rtrg", "key"):
+        script = tmp_path / f"{cable}.mod"
+        script.write_text(f"rack default\nset 3 attack=0.55 decay=0.55 sustain=0\n"
+                          f"slot 1 {cable} > env3:gate amt=100\nslot 3 env3 > host:amp amt=50\n")
+        wav = tmp_path / f"{cable}.wav"
+        run(tools["sim"], ["--engine", "test-sine", *play, "--seconds", "1.5", "--mod", str(script),
+                           "--out", str(wav)])
+        out[cable] = left_channel(wav.read_bytes())
+    first = slice(int(0.1 * rate), int(0.65 * rate))
+    second = slice(int(0.85 * rate), int(1.05 * rate))
+    assert out["rtrg"][first] == out["key"][first]
+    assert rms(out["rtrg"][second]) > 1.4 * rms(out["key"][second])
 
 
 def test_the_default_cable_is_repatchable(tools, tmp_path):
