@@ -23,13 +23,15 @@ terms it is used under.
 - **Drums**: its kicks, toms, snares and hi-hats are Plaits' drum models by
   **Emilie Gillet** (Mutable Instruments, MIT licence), included unmodified,
   which model the circuits of Roland's TR-808 and, in their synthetic kick
-  and snare, borrow from the TR-909's. Its rim shot, clap, cowbell and cymbals are this
-  project's own code: the cowbell and cymbals follow the circuit models of
-  **Kurt James Werner, Jonathan Abel and Julius O. Smith** ("More cowbell",
-  AES 137th Convention, 2014; "The TR-808 cymbal", ICMC/SMC 2014, CC BY
-  3.0), and the clap and rim shot published descriptions of the TR-808's
-  circuits, among them **Baratatronix**'s. No code or text is taken from
-  any of them. The two kits are inspired by those drum machines; Roland's
+  and snare, borrow from the TR-909's. Its rim shot, clap, cowbell and
+  cymbals are this project's own code, with three small pieces of Plaits'
+  hi-hat in the cowbell and cymbals (its swing VCA curve, its oscillators'
+  ratios and its clocked noise): the cowbell and cymbals follow the circuit
+  models of **Kurt James Werner, Jonathan Abel and Julius O. Smith** ("More
+  cowbell", AES 137th Convention, 2014; "The TR-808 cymbal", ICMC/SMC
+  2014, CC BY 3.0), and the clap and rim shot published descriptions of the
+  TR-808's circuits, among them **Baratatronix**'s. No code or text is
+  taken from the papers or the descriptions. The two kits are inspired by those drum machines; Roland's
   names appear here only as credit.
 - **PSX Verb** by **Charles Vestal**, MIT licence, included unmodified.
 - **Schwung**, Charles Vestal's host for modules on the Ableton Move, MIT
