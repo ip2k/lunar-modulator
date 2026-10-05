@@ -1446,6 +1446,10 @@ plan above [verified: tests/test_seq_ui.py, tests/test_seq_core.py,
   played in HOME make REC blink, and Shift (SHIFT) + REC captures them and
   REC goes dark; with the switch off REC stays a stub. The module is
   490,916 B, up from 482,291.
+- **After merging main** (the second effects pack), 2026-10-05
+  [verified: `www/fm1.wasm.json`, `fm1-sim-render --screens`]: parity 41
+  of 41, identical to js and musl in 41 and to glibc in 38; 1,055 screens,
+  0 faults; the module is 524,659 B, up from 516,035 on main.
 
 ### S6. Tracks, mute, and the Set, Clip and Track pages
 
