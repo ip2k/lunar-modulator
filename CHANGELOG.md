@@ -1213,6 +1213,9 @@ history.
   current sound.
 - The layout check drew FX mode's routed-parameter screens on an empty
   insert instead of the effect under test; it now draws them on M1.
+- The simulator page's help credits every source of the modulation
+  modules, as the manual does: Braids and Music Thing Modular's Turing
+  Machine (Tom Whitwell) were missing.
 - Sophie made no sound from the virtual FM-1's keys: it only plays MIDI
   notes 36–51 (its 16 pads), below the keys' range at the default octave.
   With Sophie as the sound, the 16 white keys now play pads 1–16 at any
