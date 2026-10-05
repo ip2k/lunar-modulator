@@ -31,16 +31,17 @@
  * (lfo1 lfo2 env3 env4 chance5, or mod3).
  *
  * Destinations. A cable's destination is the slot's dst_unit code and a uid
- * (or a gate input's index). This stage has one sound and the two effect
- * slots, and the code space keeps room for what comes next (docs/16 MG3,
- * "Destination codes"):
- *   0 SOUND (sound unit 1)   1 FX1, 2 FX2 (the master slots)   3 HOST
- *   4-7 reserved             8-15 MODULE at rack position 0-7
- *   proposed, not built: 16-19 sound units 1-4 (16 the same as 0 while
- *   there is one), 20-35 their inserts (20 + 4 x unit + insert), 36-39
- *   HOST per sound unit, 40-41 the master slots (the same as 1 and 2).
- * The lists below walk a table of sink groups (kSinks in fm1_mod_ui.c), so
- * a new unit is a row there and a bound engine.
+ * (or a gate input's index), fm1_mod.h's codes (docs/16 MG3, "Destination
+ * codes"): 0 sound unit 1 (also 16), 17-19 sound units 2-4, 20 + 4k + j
+ * sound unit k + 1's insert j + 1, 1 and 2 the master slots (also 40, 41),
+ * 3 HOST, 8 + position a module. The lists walk a table of sink groups
+ * (kSinks in fm1_mod_ui.c), in the order S1, S1 In1, S1 In2, S2 ... S4 In2,
+ * M1, M2, Host, then the modules; a group whose unit is empty has no
+ * entries. Short names (a MATRIX row's seven characters) are the group's
+ * tag and the parameter, unique within its engine: S1Tmbre, S2Color,
+ * S1I1Bts, M1Mix, Pitch; full names S1 Timbre, S1 In1 Bits, M1 Mix, Host
+ * Pitch. A new cable's target picker opens at the current sound
+ * (env->sound), as the gesture on HOME makes cables to it.
  *
  * Scope. Every cable here is global. The slot record keeps
  * FM1_MOD_SLOT_VOICE for per-voice cables (one instance per note, the next
@@ -71,9 +72,9 @@ extern "C" {
 #define FM1_MOD_UI_ROWS 7            /* MATRIX: slot rows on the screen */
 #define FM1_MOD_UI_ROW_CHARS 19      /* a row, LINE_CHARS */
 #define FM1_MOD_UI_DST_CHARS 7       /* a destination's short form in a row */
-#define FM1_MOD_UI_SINKS 3           /* sink units with an engine: SOUND, FX1, FX2 */
+#define FM1_MOD_UI_SINKS FM1_MOD_SINKS   /* env->unit, by sink index (fm1_mod_sink_unit) */
 #define FM1_MOD_UI_MAX_DESTS \
-  (FM1_MOD_UI_SINKS * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS + \
+  ((FM1_MOD_SINKS - 1) * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS + \
    FM1_MOD_POSITIONS * (FM1_MOD_MAX_PARAMS + FM1_MOD_MAX_GATES))
 #define FM1_MOD_UI_MAX_SOURCES (FM1_MOD_SRC_SYSTEM + FM1_MOD_POSITIONS * FM1_MOD_MAX_OUTS)
 #define FM1_MOD_UI_CHAIN_LINES 18    /* 9 nodes and 9 cables at most */
@@ -97,11 +98,13 @@ typedef struct fm1_mod_dest {
 } fm1_mod_dest_t;
 
 /* Where edits go and what names they use: the runtime, the engines bound
- * to its sink units (by code: SOUND, FX1, FX2), and a callback that takes
- * each edit as one script line; emit may be NULL. */
+ * to its sinks (by sink index, fm1_mod_sink_unit's order; HOST's unused),
+ * the current sound, and a callback that takes each edit as one script
+ * line; emit may be NULL. */
 typedef struct fm1_mod_ui_env {
   fm1_mod_t *m;
   float rate;                  /* the host's sample rate (0: unknown), for values in Hz */
+  uint8_t sound;               /* the current sound unit, 0..FM1_MOD_SOUNDS - 1 */
   const fm1_engine_t *unit[FM1_MOD_UI_SINKS];
   void (*emit)(void *ctx, const char *line);
   void *ctx;
@@ -153,9 +156,9 @@ void fm1_mod_ui_source(const fm1_mod_t *m, unsigned src, int full, char *buf, si
 int fm1_mod_ui_slot_dest(const fm1_mod_ui_env_t *env, const fm1_mod_slot_t *s, fm1_mod_dest_t *d);
 /* Its parameter (NULL for a gate input or nothing). */
 const fm1_param_t *fm1_mod_ui_dest_param(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d);
-/* A destination: short (at most FM1_MOD_UI_DST_CHARS: "Timbre", "F1Mix",
- * "ENV3Atk", the module's label and three characters unique among the
- * kind's parameters and gate inputs) or full ("Snd Timbre", "FX1 Mix",
+/* A destination: short (at most FM1_MOD_UI_DST_CHARS: "S1Tmbre", "M1Mix",
+ * "ENV3Atk", a unit's tag or a module's label and the parameter, unique
+ * among its unit's or kind's) or full ("S1 Timbre", "M1 Mix", "S2 In1 Mix",
  * "ENV3 Attack"). */
 void fm1_mod_ui_dest_name(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, int full,
                           char *buf, size_t cap);
@@ -164,9 +167,9 @@ void fm1_mod_ui_dest_name(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, 
 
 /* Every source in order: the system sources, then each module's outputs. */
 int fm1_mod_ui_sources(const fm1_mod_t *m, uint8_t *out, int cap);
-/* Every destination that takes modulation, by group: the sound's, FX1's,
- * FX2's and the host's parameters, then each module's parameters and gate
- * inputs. */
+/* Every destination that takes modulation, by group: each sound unit's
+ * parameters and its inserts', the master slots', the host's, then each
+ * module's parameters and gate inputs. */
 int fm1_mod_ui_dests(const fm1_mod_ui_env_t *env, fm1_mod_dest_t *out, int cap);
 
 /* ---- slots ------------------------------------------------------------------- */

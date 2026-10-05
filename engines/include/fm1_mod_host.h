@@ -13,7 +13,11 @@
  *     for VEL, NOTE, KEY and TRIG; every track's notes for SEQ1-8; the
  *     clock, Start and Stop), runs each tick at its frame, and splits the
  *     sound's render only where a tick writes to it (set_param, or
- *     pitch_bend for HOST PITCH);
+ *     pitch_bend for HOST PITCH); a host with several sound units uses
+ *     fm1_seq_host_dispatch_slots_ticks, slot k being sound unit k
+ *     (fm1_mod_sound_unit), notes on any slot feeding the sources, each
+ *     slot's locks moving its own bases, HOST PITCH bending slot 0, and the
+ *     host binds every unit it has (fm1_mod_bind);
  *   - writes to the effects and to HOST AMP go to glue.write, with their
  *     frame in the block; the host renders each effect split at its own
  *     writes and applies AMP (fm1_mod_ramp_t) before the limiter.
@@ -42,7 +46,8 @@ typedef struct fm1_mod_glue {
   /* After each tick, at its frame (a log); may be NULL. */
   void (*ticked)(void *ctx, uint32_t frame, const fm1_mod_write_t *w, uint32_t n);
   fm1_seq_hook_t hook;          /* pass &glue.hook to dispatch_ticks */
-  fm1_seq_hook_write_t w[FM1_MOD_UNIT_PARAMS + 1u];   /* a tick's sound writes */
+  fm1_seq_hook_write_t w[FM1_MOD_SOUNDS * FM1_MOD_UNIT_PARAMS + 1u];   /* a tick's writes to
+                                   the sound units, and HOST PITCH */
   uint64_t sound_writes, other_writes;
 } fm1_mod_glue_t;
 

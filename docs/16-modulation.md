@@ -326,7 +326,7 @@ A trigger is a GATE that falls after a fixed length, one tick by default
 | --- | --- | --- |
 | `src` | u8 | 0–63 system sources; 64 + 8 × position + port for module outputs |
 | `via` | u8 | a source id, or 0xFF for none |
-| `dst_unit` | u8 | 0 SOUND, 1 FX1, 2 FX2, 3 HOST, 8 + position for a module |
+| `dst_unit` | u8 | 0 SOUND, 1 FX1, 2 FX2, 3 HOST, 8 + position for a module; since MG3 also 17–19 sound units 2–4 and 20 + 4k + j sound unit k + 1's insert j + 1 (MG3, "Destination codes") |
 | `flags` | u8 | ON; polarity (AUTO, UNI, BI, INV); CURVE (8 tables); GATE_DST; VOICE (later) |
 | `dst_uid` | u16 | the parameter's uid, or the gate input's index when GATE_DST |
 | `amount` | i16 | Q1.14, −1..+1 of the destination's range |
@@ -1238,12 +1238,21 @@ the tests) [verified 2026-10-02]:
   ringing against its transfer function and poles, and every kind fuzzed
   with random and extreme parameters.
 **MG3, as built** (sim/web/README.md, "The lab switch", has the pages for
-users; `sim/web/src/fm1_mod_ui.h` the rules) [verified 2026-10-02 unless
+users; `sim/web/src/fm1_mod_ui.h` the rules) [verified 2026-10-02, and
+2026-10-05 for the integration with multi-sound, S5, S6, S8 and MG2, unless
 marked]:
 - **The app hosts the runtime** on the sequencer's bridge exactly as
   `fm1-render --mod` does: a knob, a lock and the bend set bases through
   `fm1_mod_set_base`, live notes reach `fm1_mod_live_note`, each effect
-  renders split at its own writes, HOST AMP is ramped before the limiter.
+  renders split at its own writes, HOST AMP is ramped before the limiter
+  and the metronome's click. With multi-sound (docs/15 §3.16) every sound
+  unit renders through the bridge's slots, so the runtime runs as the hook
+  of `fm1_seq_host_dispatch_slots_ticks`: one pass, slot k being sound unit
+  k, a write splitting only its own slot, each slot's locks moving its own
+  bases, and each slot's calls in the order `dispatch_ticks` would give it
+  alone [verified: `hooked_slots` in `fm1-seq-host-test`]. Notes on any
+  sound unit with an engine feed the note sources, in the app and in
+  `fm1-render --slots` alike.
   Only with the lab switch: off, no runtime exists, and every screen the
   layout sweep saves with the switch off is byte for byte main's [verified:
   the PPMs against a build of main]. The browser module links the runtime, its kinds and
@@ -1304,12 +1313,14 @@ marked]:
   `fm1_mod_filter_hz`, the kind's own formula; the knob, its base and a
   cable's range stay 0–1 on the log scale, so a cable still moves it by
   octaves [verified: `test_the_filters_cutoff_shows_in_hz`].
-- **Pickers.** The kind picker (Empty, then every kind) and the
-  destination picker (the sound's, FX1's, FX2's and the host's parameters
-  that take modulation, then each module's parameters and gate inputs)
-  are 3-line popups; ALGORITHM jumps between the destination groups while
-  it is open. Each commits a second after its last turn, or at once when
-  another control is used.
+- **Pickers.** The kind picker (Empty, then all sixteen kinds) and the
+  destination picker (each sound unit's parameters that take modulation
+  and its inserts', the master slots', the host's, then each module's
+  parameters and gate inputs) are 3-line popups; ALGORITHM jumps between
+  the destination groups while it is open. A new cable's target picker
+  opens at the current sound's first parameter, as the gesture on HOME
+  makes cables to the current sound. Each commits a second after its last
+  turn, or at once when another control is used.
 - **Kind changes** switch off the cables that touch the module (MG1) and
   the UI remembers them: changing the position back to that kind switches
   on those whose other end still exists (an end gone stays off, so no
@@ -1323,14 +1334,34 @@ marked]:
   module and on up, then the deepest out of its target module and on down
   (a lower slot wins a tie, a loop is cut where it closes, a refused
   cable is not followed); 8 lines shown round the selected cable.
-- **Destination codes.** A slot names its target by `dst_unit` and a uid.
-  Built: 0 SOUND (sound unit 1), 1 FX1 and 2 FX2 (the two effect slots), 3
-  HOST, 4–7 reserved, 8–15 MODULE at positions 1–8. Kept free for the
-  multi-sound work (proposed, not built): 16–19 sound units 1–4 (16 the
-  same as 0 while there is one), 20–35 their inserts (20 + 4 × unit +
-  insert), 36–39 HOST per sound unit, 40–41 the master slots (the same as 1
-  and 2). The UI's lists walk a table of sink groups, so each new unit is a
-  row and a bound engine [inferred: the runtime's sink arrays grow with it].
+- **Destination codes** (`fm1_mod.h`), built for every unit multi-sound
+  has: a slot names its target by `dst_unit` and a uid; 0 SOUND (sound
+  unit 1), 1 FX1 and 2 FX2 (the master slots), 3 HOST, 8–15 MODULE at
+  positions 1–8, 17–19 sound units 2–4, 20 + 4k + j sound unit k + 1's
+  insert j + 1 (j 0 or 1). 16 and 40–41 are aliases of 0, 1 and 2, which a
+  slot keeps instead (`fm1_mod_unit_canonical`), so one sound's slots read
+  the same with one sound or four. Still free: 4–7, 36–39 (HOST per sound
+  unit), inserts 3 and 4 of each unit, and 42 on; a slot that names them is
+  refused. The runtime's fifteen sinks (`fm1_mod_sink_unit`: SOUND, FX1,
+  FX2, HOST, sound units 2–4, the eight inserts) share a pool of 160
+  parameter records, so binding all of them costs 2,304 B rather than about
+  12 KB; an engine that would need more records than are left is not bound
+  and its cables are refused, which no chain of today's engines reaches
+  (at most 150) [verified: `test_the_record_pool_holds_every_chain`].
+  HOST PITCH bends sound unit 1, whose bend is its base; a bend on another
+  sound passes it by. `fm1-render`'s script names the units `snd`
+  (`snd1`), `snd2`–`snd4`, `sndK.fxJ` (`snd.fxJ` for sound unit 1),
+  `fx1`, `fx2` and `host`; `--mod` takes the slots flags and binds every
+  unit it loads.
+- **Names of units.** MATRIX's seven characters are the unit's tag and the
+  parameter, unique within its engine (the vowels out, then the same
+  fallbacks as a module's): `S1Tmbre`, `S2Color`, `S1I1Bts` (Sound 1's
+  first insert), `M1Mix`, and the host's bare `Pitch` and `Amp`; full
+  names `S1 Timbre`, `S2 In1 Mix`, `M1 Mix`, `Host Pitch`, in the hint
+  line, the pickers and CHAIN. The tags follow FX mode's In1, In2, M1 and
+  M2 (MG3 before multi-sound wrote `Timbre`, `F1Mix`, `Snd Timbre` and `FX1
+  Mix`). The sweep checks every engine's names in every unit they can fill
+  [verified: `engine_names` in `fm1_sim_render.c`].
 - **Per voice, next.** The slot record keeps `FM1_MOD_SLOT_VOICE`; MATRIX
   shows such a slot `v`, the UI makes none, and its script line does not
   exist yet, so a log that meets one says it is incomplete.
@@ -1338,32 +1369,49 @@ marked]:
   handed to the harness as a line of `fm1-render --mod`;
   `fm1-sim-render --log-cmds` writes them (and the state at the start) to a
   `.mod` file named in its sidecar, and `fm1-render` replays a panel
-  session byte for byte. A slot without a target, or switched off with an
-  end gone, has no line; it runs as nothing in both. `--mod-format-check`
-  reads back about 25,000 lines from 300 random rounds, 0 refused.
-- **Tests** (`tests/test_sim_mod.py`, 33): the switch; the default rack and
-  cables; buttons, pages and LEDs; the gesture on HOME, FX and RACK; rule
-  M1 on a routed knob; every MATRIX field; a kind change and its restore,
-  also after the other kind got cables of its own; a hold with any turn is
-  no tap; a new MATRIX cable from the selected LFO; CHAIN past a refused
-  cable; envelopes from the sequencer, MIDI in and the keys, and the
-  default cable re-patched; six golden traces (`tests/fixtures/mod-ui/`,
-  one of them knob turns on routed parameters) whose `.mod` logs replay
-  through `fm1-render --mod` byte for byte. The layout sweep
-  went from 815 to 1,084 screens, 0 faults: RACK at every position and
-  page, each kind at its extremes, routed and not, the picker and a grab;
-  every sound's and effect's pages with a cable on each parameter; MATRIX
-  with 0, 1, 7 and 32 slots, both pages, `!`, `-`, `~` and `v` rows, every
-  hint and the picker; CHAIN through every slot. Two parity scenarios,
+  session byte for byte, with the sidecar's `--slots`, `--sound` and
+  `--insert` too. A slot without a target, or switched off with an end
+  gone, has no line; it runs as nothing in both. `--mod-format-check`, with
+  four sound units, eight inserts and two master slots loaded, reads back
+  27,473 lines from 300 random rounds, 0 refused.
+- **Tests** (`tests/test_sim_mod.py`, 38): the switch; the default rack and
+  cables; buttons, pages and LEDs; the gesture on HOME, FX and RACK, and on
+  Sound 2, its insert and the master; a new cable's target at the current
+  sound; rule M1 on a routed knob; every MATRIX field; a kind change and
+  its restore, also after the other kind got cables of its own; a hold
+  with any turn is no tap; a new MATRIX cable from the selected LFO; CHAIN
+  past a refused cable; envelopes from the sequencer, MIDI in and the
+  keys, and the default cable re-patched; the Filter's Cutoff in Hz; six
+  golden traces (`tests/fixtures/mod-ui/`, one of them knob turns on
+  routed parameters) and a session across sound units whose `.mod` logs
+  replay through `fm1-render --mod` byte for byte. `tests/test_engines_mod_runtime.py`
+  adds RTRG's edges, the record pool, and cables into sound unit 2 and its
+  insert in `fm1-render` (zero amounts render the plain bytes). The layout
+  sweep went from 815 to 1,084 screens with MG3, and from 1,321 (main
+  with S8) to TODO-NUM-SCREENS with the integration, 0 faults: RACK at
+  every position and page, each of the sixteen kinds at its extremes,
+  routed and not, the picker and a grab; every sound's and effect's pages
+  with a cable on each parameter; MATRIX with 0, 1, 7 and 32 slots, both
+  pages, `!`, `-`, `~` and `v` rows, every hint and the picker; MATRIX over
+  racks of every kind and over cables into every unit, the picker walking
+  every group from Sound 2; CHAIN through every slot and into an insert;
+  Sound 2's HOME page and its FX chain routed. Four parity scenarios,
   `mod-macro-routes` (a script: every kind of sink, a chain, a 70 % gate
-  cable, timed edits) and `mod-panel-gestures` (the panel), pass
-  native against WebAssembly, identical to musl and to `render.js`: 26 of
-  26.
-- **Sizes.** `fm1_app_t` grew by 23,568 B to 1,228,416 B (64-bit clang): the
-  runtime's 20,480 B, a block's writes (2,304 B) and the pages' state
-  (104 B). The browser module grew from 464,688 B to 557,362 B, more than
-  §4.5's 20–40 KB: the runtime and its kinds, the pages and the script
-  reader with strtod [verified: `www/fm1.wasm.json`].
+  cable, timed edits), `mod-panel-gestures` (the panel), `mod-multi-routes`
+  (a script over four sound units, their inserts and the master) and
+  `mod-multi-panel` (the panel across two sound units), pass native
+  against WebAssembly, identical to musl and to `render.js`: TODO-NUM-SCEN
+  of TODO-NUM-SCEN.
+- **Sizes.** `fm1_mod_size()` is 22,368 B: MG1's 20,016 B, RTRG's 48 B and
+  the record pool's 2,304 B. `fm1_app_t` is 4,915,088 B (64-bit clang),
+  33,664 B more than main's with multi-sound: the runtime's 24,576 B
+  arena, a block's writes to ten effects and AMP (7,728 B) and the pages'
+  state (104 B). The lab's RAM meter counts the runtime, so
+  `multi-four-sounds-seq` (main's) takes Ensemble as its master rather
+  than Plate, which would now pass the budget. The browser module grew
+  from 560,033 B (main with S8) to TODO-NUM-WASM B, about 93 KB more than
+  §4.5's 20–40 KB: the runtime and its sixteen kinds, the pages and the
+  script reader with strtod [verified: `www/fm1.wasm.json`].
 - **The dead-code audit is due** (§8, "Size and the dead-code audit"): the
   repository's own code files (dongle/, engines/ less third_party/, sim/,
   tests/, tools/; C, C++, Python, JavaScript, shell and make, less the
@@ -1372,9 +1420,23 @@ marked]:
   `git ls-files`; the mark may have counted fewer kinds of file].
 - **Left for later:** SEL held with the white keys (MG5), locks on module
   parameters and cable depths and MACRO 1–4 (MG6), per-voice instances
-  (MG9, now the next stage), the multi-sound destinations, and the
+  (MG9, now the next stage), HOST per sound unit (codes 36–39), and the
   manual's chapter, which waits until the lab switch goes (user text is in
   sim/web/README.md meanwhile).
+- **Questions for the owner** (2026-10-05):
+  1. Should the Envelope's normal retrigger too? A GATE with no cable
+     reads KEY, the legato gate, so removing a default cable makes that
+     envelope legato; RTRG as the normal would change MG1's and MG2's
+     traces.
+  2. HOST PITCH bends sound unit 1 only, the one fm1-render's `--bend`
+     reaches. Per-sound pitch (codes 36–39), or HOST PITCH bending every
+     sound unit?
+  3. The note sources (VEL, NOTE, KEY, TRIG, RTRG) follow notes on every
+     sound unit: should a cable be able to follow one sound's notes only
+     (per-sound gates, or per-voice in MG9)?
+  4. The runtime's 22,368 B now count against the lab's RAM meter: is
+     that the budget the firmware should plan for (the pool could shrink
+     to what the loaded engines need)?
 
 **Interleaving.** MG1 and MG2 are desktop-only and touch no UI, so they can
 proceed alongside docs/15's S3–S6 once S7a has merged. MG3 needs S2. MG6 needs

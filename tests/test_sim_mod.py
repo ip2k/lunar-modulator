@@ -84,7 +84,7 @@ def test_the_lab_starts_the_default_rack_and_its_cables(tools):
 def test_sizes(tools):
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
-    assert z["mod_bytes"] == 20064 <= z["mod_arena"] == 36864
+    assert z["mod_bytes"] == 22368 <= z["mod_arena"] == 24576
     assert z["mod_ui_bytes"] <= 256
 
 
@@ -152,13 +152,13 @@ def test_the_gesture_on_home_makes_and_adjusts_one_cable(tools):
     assert (sl[3]["src"], sl[3]["unit"], sl[3]["dst"], sl[3]["amount"]) == (64, 0, 2, q14(18))
     assert (sl[4]["src"], sl[4]["dst"], sl[4]["amount"]) == (64, 4, q14(-25))   # Morph, uid 4
     assert s["values0"][1] == pytest.approx(0.5)                 # Harmonics' base untouched
-    assert s["popup"] == ["LFO1 > Morph", "-25%"]
+    assert s["popup"] == ["LFO1 > S1Morph", "-25%"]
 
 
 def test_the_gesture_reaches_effects_and_modules(tools):
-    """FX mode: ENV1 into Plate's Mix (unit FX1). RACK: ENV1 into LFO2's
+    """FX mode: ENV3 into Plate's Mix (unit FX1). RACK: ENV3 into LFO2's
     Rate (a chain); the gesture's source is the module of its button's kind
-    last shown (here ENV1, then LFO2's own page does not change it)."""
+    last shown (here ENV3, then LFO2's own page does not change it)."""
     fx = lab(tools, "--button", "0.05:FX", "--button", "0.1:ENV:0.2", "--turn", "0.15:KNOB1:40",
              extra=["--fx", "plate"])
     assert (slots(fx)[3]["src"], slots(fx)[3]["unit"], slots(fx)[3]["dst"]) == (64 + 8 * 2, 1, 1)
@@ -185,6 +185,67 @@ def test_a_routed_parameter_moves_round_its_base(tools):
     assert s["mod"]["sent0"][2] != pytest.approx(base)          # an LFO offset on top
 
 
+# ---- several sound units (docs/15 §3.16) ------------------------------------------------------
+
+SOUND2 = ["--sound", "1:shapes", "--insert", "1:ensemble"]
+TO_SOUND2 = ["--button", "0.05:SEL:0.1", "--turn", "0.07:PRESETS:1"]   # SHIFT + PRESETS: Sound 2
+
+
+def test_the_gesture_reaches_the_current_sound(tools):
+    """With Sound 2 current (SHIFT + PRESETS), hold LFO and turn KNOB2 on
+    HOME: the cable goes to Sound 2's Timbre (Shapes, uid 2), unit 17, and
+    the popup names it S2."""
+    s = lab(tools, *TO_SOUND2, "--button", "0.2:LFO:0.2", "--turn", "0.25:KNOB2:30", extra=SOUND2)
+    assert s["current"] == 1
+    x = slots(s)[3]
+    assert (x["src"], x["unit"], x["dst"], x["amount"]) == (64, 17, 2, q14(30))
+    assert s["popup"] == ["LFO1 > S2Tmbre", "+30%"]
+
+
+def test_the_gesture_reaches_an_insert_and_the_master(tools):
+    """FX mode on Sound 2: In1 (its Ensemble) takes ENV3's cable into Mix,
+    unit 24 (20 + 4 x 1 + 0); M1 (Plate) takes one too, unit FX1."""
+    s = lab(tools, *TO_SOUND2, "--button", "0.2:FX", "--turn", "0.25:SELECT:-64",
+            "--button", "0.3:ENV:0.2", "--turn", "0.35:KNOB1:40", "--turn", "0.6:SELECT:64",
+            "--turn", "0.65:SELECT:-1", "--button", "0.7:ENV:0.2", "--turn", "0.75:KNOB1:-20",
+            extra=SOUND2 + ["--fx", "plate"], seconds="1.0")
+    sl = slots(s)
+    assert (sl[3]["src"], sl[3]["unit"], sl[3]["dst"]) == (64 + 8 * 2, 24, 1)
+    assert (sl[4]["src"], sl[4]["unit"], sl[4]["dst"]) == (64 + 8 * 2, 1, 1)
+    assert sl[3]["row"] == "ENV3  >S2I1Mix  +40" and sl[4]["row"] == "ENV3  >M1Mix    -20"
+
+
+def test_a_new_cables_target_starts_at_the_current_sound(tools):
+    """MATRIX: KNOB2 on an empty slot opens the target picker at the
+    current sound's first parameter (Sound 2's Timbre here, Macro's
+    Harmonics with Sound 1), and it commits a second later."""
+    for to2, unit, dst in ((True, 17, 2), (False, 0, 2)):
+        s = lab(tools, *(TO_SOUND2 if to2 else []), "--button", "0.2:EDIT", "--turn", "0.25:SELECT:2",
+                "--turn", "0.3:KNOB2:1", extra=SOUND2, seconds="1.6")
+        x = slots(s)[3]
+        assert (x["unit"], x["dst"], x["src"]) == (unit, dst, 64), to2
+
+
+def test_cables_on_several_sounds_replay_through_fm1_render(tools, tmp_path):
+    """Two-step parity across sound units: cables into Sound 2, its insert
+    and the master from the panel, notes on both sounds; the harness's
+    .mod log and sidecar (--slots, --sound, --insert) replay through
+    fm1-render to the same bytes, every cable counted there."""
+    log, a, b = tmp_path / "c.verbs", tmp_path / "panel.wav", tmp_path / "replay.wav"
+    s = run(tools["sim"], ["--lab", *CHAIN, *SOUND2, "--cmd", str(INPUT), *TO_SOUND2,
+                           "--button", "0.2:LFO:0.2", "--turn", "0.25:KNOB3:45",
+                           "--button", "0.5:FX", "--turn", "0.55:SELECT:-64", "--button", "0.6:ENV:0.2",
+                           "--turn", "0.65:KNOB2:-60", "--key", "0.8:12:100:0.6",
+                           "--note", "1.0:55:90:0.5", "--log-cmds", str(log), "--out", str(a),
+                           "--seconds", "2.0"])
+    assert s["replayable"] == 1 and {x["unit"] for x in slots(s).values()} >= {17, 24}
+    sidecar = (tmp_path / "c.args").read_text().splitlines()
+    assert "--slots" in sidecar and sidecar[-2:] == ["--mod", str(tmp_path / "c.mod")]
+    r = run(tools["render"], ["--cmd", str(log), "--frames", "64", *sidecar, "--out", str(b)])
+    assert a.read_bytes() == b.read_bytes(), "two-step parity: the replay differs"
+    assert r["mod_refused"] == 0 and r["mod_active"] == 4 and r["mod_sound_writes"] > 100
+
+
 # ---- MATRIX and CHAIN -------------------------------------------------------------------------
 
 def test_matrix_edits_every_field(tools):
@@ -202,7 +263,7 @@ def test_matrix_edits_every_field(tools):
     assert (x["src"], x["unit"], x["dst"], x["via"]) == (2, 0, 3, 0)    # RAND > Timbre, VIA VEL
     assert (x["amount"], x["offset"]) == (q14(45), q14(-10))
     assert x["flags"] == (2 << 4) | (1 << 1)                           # cube, uni, off
-    assert x["row"] == "RAND  -Timbre   +45" and s["mod"]["mpage"] == 1
+    assert x["row"] == "RAND  -S1Tmbre  +45" and s["mod"]["mpage"] == 1
 
 
 def test_matrix_clears_a_slot_with_knob1(tools):
@@ -274,7 +335,7 @@ def test_chain_does_not_run_on_through_a_refused_cable(tools, tmp_path):
                       "slot 3 lfo2 > snd:Timbre amt=30\n")
     s = lab(tools, "--mod", str(script), "--button", "0.05:EDIT", "--button", "0.1:SEL")
     assert s["mode"] == MODES["CHAIN"] and s["mod"]["refused"] == 1 << 1
-    assert s["mod"]["chain"] == ["LFO1 Out", " +20 >LFO2 Rate", "LFO2 Out", " +30 >Timbre"]
+    assert s["mod"]["chain"] == ["LFO1 Out", " +20 >LFO2 Rate", "LFO2 Out", " +30 >S1 Timbre"]
     assert s["mod"]["chain_hl"] == 1
 
 

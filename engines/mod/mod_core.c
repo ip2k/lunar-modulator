@@ -26,6 +26,52 @@ static int gate_index(unsigned id) {
   return -1;
 }
 
+/* ---- unit codes and sinks ------------------------------------------------------ */
+
+typedef char mod_recs_fit_u8[MOD_SINK_RECS <= 255u && MOD_SINK_RECS >= FM1_MOD_HOST_PARAMS ? 1 : -1];
+
+static const uint8_t kSinkUnit[MOD_SINK_UNITS] = {
+  FM1_MOD_SOUND, FM1_MOD_FX1, FM1_MOD_FX2, FM1_MOD_HOST,
+  FM1_MOD_SOUND_UNIT + 1, FM1_MOD_SOUND_UNIT + 2, FM1_MOD_SOUND_UNIT + 3,
+  FM1_MOD_INSERT + 0, FM1_MOD_INSERT + 1, FM1_MOD_INSERT + 4, FM1_MOD_INSERT + 5,
+  FM1_MOD_INSERT + 8, FM1_MOD_INSERT + 9, FM1_MOD_INSERT + 12, FM1_MOD_INSERT + 13,
+};
+typedef char mod_sink_table_size[sizeof(kSinkUnit) == MOD_SINK_UNITS &&
+                                 FM1_MOD_SOUNDS == 4u && FM1_MOD_INSERTS == 2u ? 1 : -1];
+
+unsigned fm1_mod_sink_unit(unsigned i) {
+  return i < MOD_SINK_UNITS ? kSinkUnit[i] : FM1_MOD_NONE;
+}
+
+int fm1_mod_sink_index(unsigned unit) {
+  unsigned i;
+  unit = fm1_mod_unit_canonical(unit);
+  for (i = 0; i < MOD_SINK_UNITS && unit != FM1_MOD_NONE; ++i) {
+    if (kSinkUnit[i] == unit) return (int)i;
+  }
+  return -1;
+}
+
+unsigned fm1_mod_unit_canonical(unsigned unit) {
+  unsigned i;
+  if (unit == FM1_MOD_SOUND_UNIT) return FM1_MOD_SOUND;
+  if (unit == FM1_MOD_MASTER || unit == FM1_MOD_MASTER + 1u) return FM1_MOD_FX1 + (unit - FM1_MOD_MASTER);
+  if (unit >= FM1_MOD_MODULE && unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS) return unit;
+  for (i = 0; i < MOD_SINK_UNITS; ++i) {
+    if (kSinkUnit[i] == unit) return unit;
+  }
+  return FM1_MOD_NONE;
+}
+
+int fm1_mod_unit_sound(unsigned unit) {
+  unit = fm1_mod_unit_canonical(unit);
+  if (unit == FM1_MOD_SOUND) return 0;
+  if (unit > FM1_MOD_SOUND_UNIT && unit < FM1_MOD_SOUND_UNIT + FM1_MOD_SOUNDS) {
+    return (int)(unit - FM1_MOD_SOUND_UNIT);
+  }
+  return -1;
+}
+
 /* ---- creation --------------------------------------------------------------- */
 
 size_t fm1_mod_size(void) {
@@ -74,8 +120,23 @@ fm1_mod_t *fm1_mod_create(void *mem, const fm1_host_t *host, uint32_t seed) {
     fm1_mp_rng_seed(&m->srt[i].rng, mod_mix(seed, 0x100u + i));
   }
   fm1_mp_rng_seed(&m->note_rng, mod_mix(seed, 0x300u));
-  m->sink_base[FM1_MOD_HOST][FM1_MOD_HOST_AMP] = 1.0f;
-  m->sink_sent[FM1_MOD_HOST][FM1_MOD_HOST_AMP] = 1.0f;
+  /* HOST's records come first and never move; every other sink starts
+   * unbound, with no records, packed after them. */
+  for (i = 0; i < FM1_MOD_HOST_PARAMS; ++i) {
+    const fm1_param_t *p = &fm1_mod_host_params[i];
+    mod_meta_t *q = &m->meta[i];
+    q->min = p->min;
+    q->max = p->max;
+    q->def = p->def;
+    q->uid = p->uid;
+    q->type = (uint8_t)p->type;
+    q->flags = p->flags;
+    q->unit = p->unit;
+    m->sink_base[i] = m->sink_sent[i] = p->def;
+  }
+  for (i = 0; i < MOD_SINK_UNITS; ++i) m->sink_first[i] = FM1_MOD_HOST_PARAMS;
+  m->sink_first[MOD_HOST_SINK] = 0;
+  m->sink_n[MOD_HOST_SINK] = FM1_MOD_HOST_PARAMS;
   m->dirty = 1;
   return m;
 }
@@ -92,29 +153,59 @@ void fm1_mod_destroy(fm1_mod_t *m) {
 
 /* ---- units ------------------------------------------------------------------ */
 
-int fm1_mod_bind(fm1_mod_t *m, unsigned unit, const fm1_engine_t *e) {
-  unsigned i, n;
-  if (unit > FM1_MOD_FX2) return -1;
-  n = e ? (e->n_params < FM1_MOD_UNIT_PARAMS ? e->n_params : FM1_MOD_UNIT_PARAMS) : 0u;
-  memset(m->meta[unit], 0, sizeof(m->meta[unit]));
-  for (i = 0; i < FM1_MOD_UNIT_PARAMS; ++i) {
-    mod_meta_t *q = &m->meta[unit][i];
-    if (i < n) {
-      const fm1_param_t *p = &e->params[i];
-      q->min = p->min;
-      q->max = p->max;
-      q->def = p->def;
-      q->uid = p->uid;
-      q->type = (uint8_t)p->type;
-      q->flags = p->flags;
-      q->unit = p->unit;
-    }
-    m->sink_base[unit][i] = m->sink_sent[unit][i] = q->def;
-    m->sink_off[unit][i] = 0.0f;
+/* The records the sinks hold now, HOST's included: the next free one. */
+static unsigned records_used(const fm1_mod_t *m) {
+  unsigned i, used = FM1_MOD_HOST_PARAMS;
+  for (i = 0; i < MOD_SINK_UNITS; ++i) {
+    const unsigned end = (unsigned)m->sink_first[i] + m->sink_n[i];
+    if (m->sink_n[i] && end > used) used = end;   /* an unbound sink's first means nothing */
   }
-  m->sink_n[unit] = (uint8_t)n;
-  m->restore[unit] = 0;
+  return used;
+}
+
+int fm1_mod_bind(fm1_mod_t *m, unsigned unit, const fm1_engine_t *e) {
+  const int si = fm1_mod_sink_index(unit);
+  unsigned i, n, first, old_n, used;
+  if (si < 0 || si == (int)MOD_HOST_SINK) return -1;
+  n = e ? (e->n_params < FM1_MOD_UNIT_PARAMS ? e->n_params : FM1_MOD_UNIT_PARAMS) : 0u;
+  /* Its old records go and the ones after them move down, so the pool
+   * stays packed in binding order; then the new ones go at the end. */
+  first = m->sink_first[si];
+  old_n = m->sink_n[si];
+  used = records_used(m);
+  if (old_n) {
+    const unsigned tail = used - (first + old_n);
+    memmove(&m->meta[first], &m->meta[first + old_n], tail * sizeof(m->meta[0]));
+    memmove(&m->sink_base[first], &m->sink_base[first + old_n], tail * sizeof(float));
+    memmove(&m->sink_sent[first], &m->sink_sent[first + old_n], tail * sizeof(float));
+    memmove(&m->sink_off[first], &m->sink_off[first + old_n], tail * sizeof(float));
+    for (i = 0; i < MOD_SINK_UNITS; ++i) {
+      if (i != (unsigned)si && m->sink_n[i] && m->sink_first[i] > first) {
+        m->sink_first[i] = (uint8_t)(m->sink_first[i] - old_n);
+      }
+    }
+    used -= old_n;
+  }
+  m->sink_n[si] = 0;
+  m->sink_first[si] = (uint8_t)used;
+  m->restore[si] = 0;
   m->dirty = 1;
+  if (used + n > MOD_SINK_RECS) return -1;   /* no room: unbound, its cables refused */
+  for (i = 0; i < n; ++i) {
+    const fm1_param_t *p = &e->params[i];
+    mod_meta_t *q = &m->meta[used + i];
+    memset(q, 0, sizeof(*q));
+    q->min = p->min;
+    q->max = p->max;
+    q->def = p->def;
+    q->uid = p->uid;
+    q->type = (uint8_t)p->type;
+    q->flags = p->flags;
+    q->unit = p->unit;
+    m->sink_base[used + i] = m->sink_sent[used + i] = q->def;
+    m->sink_off[used + i] = 0.0f;
+  }
+  m->sink_n[si] = (uint8_t)n;
   return (int)n;
 }
 
@@ -322,12 +413,18 @@ static int same_ends(const fm1_mod_slot_t *a, const fm1_mod_slot_t *b) {
 }
 
 int fm1_mod_set_slot(fm1_mod_t *m, unsigned i, const fm1_mod_slot_t *s) {
+  fm1_mod_slot_t c;
   if (i >= FM1_MOD_SLOTS || !s) return 0;
-  if (!same_ends(&m->slot[i], s)) {
+  c = *s;
+  {                                     /* an alias is kept as its canonical code */
+    const unsigned u = fm1_mod_unit_canonical(c.dst_unit);
+    if (u != FM1_MOD_NONE) c.dst_unit = (uint8_t)u;
+  }
+  if (!same_ends(&m->slot[i], &c)) {
     m->srt[i].level = 0;
     fm1_mp_rng_seed(&m->srt[i].rng, mod_mix(m->seed, 0x100u + i));
   }
-  m->slot[i] = *s;
+  m->slot[i] = c;
   m->dirty = 1;
   return 1;
 }
@@ -338,25 +435,11 @@ int fm1_mod_get_slot(const fm1_mod_t *m, unsigned i, fm1_mod_slot_t *out) {
   return 1;
 }
 
-/* A sink parameter's range (SOUND, FX1, FX2 from their binding; HOST from
- * its own table). 0 when the index is out of range. */
-static int sink_meta(const fm1_mod_t *m, unsigned unit, unsigned index, mod_meta_t *q) {
-  if (unit == FM1_MOD_HOST) {
-    const fm1_param_t *p;
-    if (index >= FM1_MOD_HOST_PARAMS) return 0;
-    p = &fm1_mod_host_params[index];
-    q->min = p->min;
-    q->max = p->max;
-    q->def = p->def;
-    q->uid = p->uid;
-    q->type = (uint8_t)p->type;
-    q->flags = p->flags;
-    q->unit = p->unit;
-    return 1;
-  }
-  if (unit > FM1_MOD_FX2 || index >= m->sink_n[unit]) return 0;
-  *q = m->meta[unit][index];
-  return 1;
+/* A sink parameter's record (sink index si, parameter index), or -1 when
+ * the index is out of range. */
+static int sink_rec(const fm1_mod_t *m, int si, unsigned index) {
+  if (si < 0 || si >= (int)MOD_SINK_UNITS || index >= m->sink_n[si]) return -1;
+  return (int)m->sink_first[si] + (int)index;
 }
 
 static float meta_clamp(const mod_meta_t *q, float v) {
@@ -365,24 +448,29 @@ static float meta_clamp(const mod_meta_t *q, float v) {
 }
 
 float fm1_mod_set_base(fm1_mod_t *m, unsigned unit, unsigned index, float value) {
-  mod_meta_t q;
-  if (!sink_meta(m, unit, index, &q)) return value;
-  m->sink_base[unit][index] = mod_clampf(value, q.min, q.max, q.def);
-  if ((m->plan.sink_routed[unit] >> index) & 1u) {
-    const float v = meta_clamp(&q, m->sink_base[unit][index] + m->sink_off[unit][index]);
-    m->sink_sent[unit][index] = v;
+  const int si = fm1_mod_sink_index(unit);
+  const int r = sink_rec(m, si, index);
+  const mod_meta_t *q;
+  if (r < 0) return value;
+  q = &m->meta[r];
+  m->sink_base[r] = mod_clampf(value, q->min, q->max, q->def);
+  if ((m->plan.sink_routed[si] >> index) & 1u) {
+    const float v = meta_clamp(q, m->sink_base[r] + m->sink_off[r]);
+    m->sink_sent[r] = v;
     return v;
   }
-  m->sink_sent[unit][index] = meta_clamp(&q, value);   /* what the engine holds */
+  m->sink_sent[r] = meta_clamp(q, value);   /* what the engine holds */
   return value;
 }
 
 float fm1_mod_base(const fm1_mod_t *m, unsigned unit, unsigned index) {
-  return unit < MOD_SINK_UNITS && index < FM1_MOD_UNIT_PARAMS ? m->sink_base[unit][index] : 0.0f;
+  const int r = sink_rec(m, fm1_mod_sink_index(unit), index);
+  return r >= 0 ? m->sink_base[r] : 0.0f;
 }
 
 float fm1_mod_sent(const fm1_mod_t *m, unsigned unit, unsigned index) {
-  return unit < MOD_SINK_UNITS && index < FM1_MOD_UNIT_PARAMS ? m->sink_sent[unit][index] : 0.0f;
+  const int r = sink_rec(m, fm1_mod_sink_index(unit), index);
+  return r >= 0 ? m->sink_sent[r] : 0.0f;
 }
 
 /* ---- system sources: feeding -------------------------------------------------- */
@@ -813,22 +901,25 @@ static void write_sinks(fm1_mod_t *m) {
     uint32_t mask = m->plan.sink_routed[u] | m->restore[u];
     unsigned i;
     for (i = 0; mask; ++i, mask >>= 1) {
-      mod_meta_t q;
+      const int r = sink_rec(m, (int)u, i);
+      const mod_meta_t *q;
       float v, off = 0.0f;
-      const uint8_t d = m->plan.sdest[u][i];
-      if (!(mask & 1u) || !sink_meta(m, u, i, &q)) continue;
+      uint8_t d;
+      if (!(mask & 1u) || r < 0) continue;
+      q = &m->meta[r];
+      d = m->plan.sdest[r];
       if (d != MOD_NONE && ((m->plan.sink_routed[u] >> i) & 1u)) {
-        off = sum_slots(m, m->plan.dest[d].slots, q.min, q.max, q.flags, q.unit);
+        off = sum_slots(m, m->plan.dest[d].slots, q->min, q->max, q->flags, q->unit);
       }
-      v = meta_clamp(&q, m->sink_base[u][i] + off);
-      m->sink_off[u][i] = off;
-      if (mod_bits(v) != mod_bits(m->sink_sent[u][i])) {
+      v = meta_clamp(q, m->sink_base[r] + off);
+      m->sink_off[r] = off;
+      if (mod_bits(v) != mod_bits(m->sink_sent[r]) && m->n_wr < MOD_MAX_WRITES) {
         fm1_mod_write_t *w = &m->wr[m->n_wr++];
-        w->unit = (uint8_t)u;
+        w->unit = kSinkUnit[u];
         w->reserved = 0;
         w->index = (uint16_t)i;
         w->value = v;
-        m->sink_sent[u][i] = v;
+        m->sink_sent[r] = v;
       }
     }
     m->restore[u] = 0;
@@ -912,20 +1003,19 @@ int fm1_mod_sink(fm1_mod_t *m, unsigned i, fm1_mod_sink_info_t *out) {
     uint32_t mask = m->plan.sink_routed[u];
     unsigned p;
     for (p = 0; mask; ++p, mask >>= 1) {
-      mod_meta_t q;
+      const int r = sink_rec(m, (int)u, p);
       uint32_t s;
       uint16_t n = 0;
-      if (!(mask & 1u)) continue;
+      if (!(mask & 1u) || r < 0) continue;
       if (i--) continue;
-      sink_meta(m, u, p, &q);
-      for (s = m->plan.dest[m->plan.sdest[u][p]].slots; s; s >>= 1) n = (uint16_t)(n + (s & 1u));
-      out->unit = (uint8_t)u;
+      for (s = m->plan.dest[m->plan.sdest[r]].slots; s; s >>= 1) n = (uint16_t)(n + (s & 1u));
+      out->unit = kSinkUnit[u];
       out->reserved = 0;
       out->index = (uint16_t)p;
-      out->uid = q.uid;
+      out->uid = m->meta[r].uid;
       out->slots = n;
-      out->base = m->sink_base[u][p];
-      out->value = m->sink_sent[u][p];
+      out->base = m->sink_base[r];
+      out->value = m->sink_sent[r];
       return 1;
     }
   }

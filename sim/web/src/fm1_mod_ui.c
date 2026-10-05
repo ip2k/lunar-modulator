@@ -7,23 +7,36 @@
 #include <string.h>
 
 #include "fm1_panel.h"
+#include "mod_script.h"
 
 #define NONE FM1_MOD_UI_NONE
 
 /* The sink groups, in list order: a destination code, the prefix a matrix
- * row puts before a parameter (none for the sound and the host), and the
- * group's name in full. Sound units 2-4, their inserts and the master slots
- * are rows to add here (fm1_mod_ui.h, "Destinations"). */
+ * row puts before a parameter (none for the host), and the group's name in
+ * full (fm1_mod_ui.h, "Destinations"). */
 static const struct {
   uint8_t unit;
   const char *tag;
   const char *name;
 } kSinks[] = {
-  { FM1_MOD_SOUND, "", "Snd" },
-  { FM1_MOD_FX1, "F1", "FX1" },
-  { FM1_MOD_FX2, "F2", "FX2" },
+  { FM1_MOD_SOUND, "S1", "S1" },
+  { FM1_MOD_INSERT + 0, "S1I1", "S1 In1" },
+  { FM1_MOD_INSERT + 1, "S1I2", "S1 In2" },
+  { FM1_MOD_SOUND_UNIT + 1, "S2", "S2" },
+  { FM1_MOD_INSERT + 4, "S2I1", "S2 In1" },
+  { FM1_MOD_INSERT + 5, "S2I2", "S2 In2" },
+  { FM1_MOD_SOUND_UNIT + 2, "S3", "S3" },
+  { FM1_MOD_INSERT + 8, "S3I1", "S3 In1" },
+  { FM1_MOD_INSERT + 9, "S3I2", "S3 In2" },
+  { FM1_MOD_SOUND_UNIT + 3, "S4", "S4" },
+  { FM1_MOD_INSERT + 12, "S4I1", "S4 In1" },
+  { FM1_MOD_INSERT + 13, "S4I2", "S4 In2" },
+  { FM1_MOD_FX1, "M1", "M1" },
+  { FM1_MOD_FX2, "M2", "M2" },
   { FM1_MOD_HOST, "", "Host" },
 };
+typedef char fm1_mod_ui_sinks_listed[sizeof kSinks / sizeof kSinks[0] == FM1_MOD_SINKS &&
+                                     FM1_MOD_SOUNDS == 4u && FM1_MOD_INSERTS == 2u ? 1 : -1];
 #define N_SINKS (sizeof kSinks / sizeof kSinks[0])
 
 /* mod_script.h's names for polarity and curves, and the rows' short ones. */
@@ -105,27 +118,48 @@ static const char *item_name(const fm1_mod_kind_t *kd, unsigned i) {
   return kd->gate_in[i - kd->n_params].name;
 }
 
-/* An item's three-character form: its name squeezed (vowels out, then the
- * tail), or, when an earlier item of the kind already has that form, the
- * first character and the last two ("Accept" after "Accel": "Apt"), or
- * the first and the item's number. */
-static void item_short(const fm1_mod_kind_t *kd, unsigned item, char out[4]) {
-  char mine[3][4], other[4];
+/* Names of a list (a kind's items, or an engine's parameters' abbreviations). */
+typedef struct names {
+  const fm1_mod_kind_t *kd;
+  const fm1_engine_t *e;
+  unsigned n;
+} names_t;
+
+static const char *name_at(const names_t *l, unsigned i) {
+  if (l->kd) return item_name(l->kd, i);
+  return l->e->params[i].abbr ? l->e->params[i].abbr : l->e->params[i].name;
+}
+
+/* Item i's form in w (1..7) characters, unique among the list's earlier
+ * items: its name squeezed (vowels out, then the tail); or, when an earlier
+ * item already has that form, the first character and the last w - 1
+ * ("Accept" after "Accel", in 3: "Apt"); or the first w - 2 and the item's
+ * number. */
+static void short_of(const names_t *l, unsigned item, size_t w, char out[8]) {
+  char mine[3][8], other[8];
   unsigned c, j;
-  const char *name = item_name(kd, item);
+  const char *name = name_at(l, item);
   const size_t len = strlen(name);
-  squeeze(name, 3, mine[0], sizeof mine[0]);
-  snprintf(mine[1], sizeof mine[1], "%c%s", name[0], len > 3 ? name + len - 2 : name + (len > 1 ? 1 : len));
-  snprintf(mine[2], sizeof mine[2], "%c%02u", name[0], (item + 1u) % 100u);
+  squeeze(name, w, mine[0], sizeof mine[0]);
+  snprintf(mine[1], sizeof mine[1], "%c%.6s", name[0], len > w ? name + len - (w - 1) : name + (len ? 1 : 0));
+  snprintf(mine[2], sizeof mine[2], "%.*s%02u", (int)(w > 2 ? w - 2 : 0), name, (item + 1u) % 100u);
   for (c = 0; c < 3; ++c) {
     int taken = 0;
     for (j = 0; j < item && !taken; ++j) {
-      item_short(kd, j, other);
+      short_of(l, j, w, other);
       taken = strcmp(other, mine[c]) == 0;
     }
     if (!taken) break;
   }
-  snprintf(out, 4, "%s", mine[c < 3 ? c : 2]);
+  snprintf(out, 8, "%s", mine[c < 3 ? c : 2]);
+}
+
+static void item_short(const fm1_mod_kind_t *kd, unsigned item, char out[8]) {
+  names_t l;
+  l.kd = kd;
+  l.e = NULL;
+  l.n = kd->n_params + kd->n_gate_in;
+  short_of(&l, item, 3, out);
 }
 
 void fm1_mod_ui_source(const fm1_mod_t *m, unsigned src, int full, char *buf, size_t cap) {
@@ -149,6 +183,12 @@ void fm1_mod_ui_source(const fm1_mod_t *m, unsigned src, int full, char *buf, si
   }
 }
 
+/* The engine bound to a sink's code, or NULL. */
+static const fm1_engine_t *unit_engine(const fm1_mod_ui_env_t *env, unsigned unit) {
+  const int si = unit == FM1_MOD_HOST ? -1 : fm1_mod_sink_index(unit);
+  return si >= 0 ? env->unit[si] : NULL;
+}
+
 /* The parameters of a destination unit, n of them (a sink's first
  * FM1_MOD_UNIT_PARAMS, as the runtime binds them). */
 static const fm1_param_t *unit_params(const fm1_mod_ui_env_t *env, unsigned unit, unsigned *n) {
@@ -157,8 +197,8 @@ static const fm1_param_t *unit_params(const fm1_mod_ui_env_t *env, unsigned unit
     *n = FM1_MOD_HOST_PARAMS;
     return fm1_mod_host_params;
   }
-  if (unit < FM1_MOD_UI_SINKS && env->unit[unit]) {
-    const fm1_engine_t *e = env->unit[unit];
+  if (unit_engine(env, unit)) {
+    const fm1_engine_t *e = unit_engine(env, unit);
     *n = e->n_params < FM1_MOD_UNIT_PARAMS ? e->n_params : FM1_MOD_UNIT_PARAMS;
     return e->params;
   }
@@ -188,8 +228,10 @@ int fm1_mod_ui_slot_dest(const fm1_mod_ui_env_t *env, const fm1_mod_slot_t *s, f
   d->dst = s->dst;
   d->index = -1;
   if (s->flags & FM1_MOD_SLOT_GATE_DST) {
-    const fm1_mod_kind_t *kd = s->dst_unit >= FM1_MOD_MODULE ? kind_at(env->m, s->dst_unit - FM1_MOD_MODULE)
-                                                             : NULL;
+    const fm1_mod_kind_t *kd =
+        s->dst_unit >= FM1_MOD_MODULE && s->dst_unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS
+            ? kind_at(env->m, s->dst_unit - FM1_MOD_MODULE)
+            : NULL;
     d->gate = 1;
     if (kd && s->dst < kd->n_gate_in) {
       d->index = (int16_t)s->dst;
@@ -234,7 +276,7 @@ void fm1_mod_ui_dest_name(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, 
     if (full) {
       snprintf(buf, cap, "%s %.12s", l, name);
     } else {                           /* "ENV3Atk", "CHN5Trg": the label, then 3 */
-      char it[4];
+      char it[8];
       item_short(kd, d->gate ? kd->n_params + (unsigned)d->index : (unsigned)d->index, it);
       snprintf(buf, cap, "%s%s", l, it);
     }
@@ -247,9 +289,15 @@ void fm1_mod_ui_dest_name(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, 
     }
     if (full) {
       snprintf(buf, cap, "%s %.12s", kSinks[g].name, p->name);
-    } else {
-      const size_t tag = strlen(kSinks[g].tag);
-      squeeze(p->abbr, FM1_MOD_UI_DST_CHARS - tag, sq, sizeof sq);
+    } else if (d->unit == FM1_MOD_HOST) {
+      squeeze(p->abbr, FM1_MOD_UI_DST_CHARS, sq, sizeof sq);
+      snprintf(buf, cap, "%s", sq);
+    } else {                           /* the tag, then the parameter, unique in its engine */
+      names_t l;
+      l.kd = NULL;
+      l.e = unit_engine(env, d->unit);
+      l.n = l.e->n_params;
+      short_of(&l, (unsigned)d->index, FM1_MOD_UI_DST_CHARS - strlen(kSinks[g].tag), sq);
       snprintf(buf, cap, "%s%s", kSinks[g].tag, sq);
     }
   }
@@ -531,10 +579,10 @@ static int dst_token(const fm1_mod_ui_env_t *env, const fm1_mod_slot_t *s, char 
     if (ps[i].uid == s->dst && s->dst) {
       /* mod_script.c looks a sink's name up among all of its engine's
        * parameters; the first FM1_MOD_UNIT_PARAMS are all a sink has. */
-      const unsigned all = s->dst_unit == FM1_MOD_HOST ? n : env->unit[s->dst_unit]->n_params;
-      static const char *const kUnits[] = { "snd", "fx1", "fx2", "host" };
-      if (s->dst_unit > FM1_MOD_HOST || !param_token(ps, all, i, t, sizeof t)) return 0;
-      snprintf(buf, cap, "%s:%s", kUnits[s->dst_unit], t);
+      const unsigned all = s->dst_unit == FM1_MOD_HOST ? n : unit_engine(env, s->dst_unit)->n_params;
+      const char *unit = fm1_mod_script_unit_name(s->dst_unit);
+      if (!unit || !param_token(ps, all, i, t, sizeof t)) return 0;
+      snprintf(buf, cap, "%s:%s", unit, t);
       return 1;
     }
   }
@@ -961,6 +1009,17 @@ static void say_dest(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *list, in
 
 static int group_of(const fm1_mod_dest_t *d) { return d->unit; }
 
+/* Where the current sound's parameters start in the list (0 if it has
+ * none: an empty sound). */
+static int current_sound_at(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *list, int n) {
+  const unsigned unit = fm1_mod_sound_unit(env->sound < FM1_MOD_SOUNDS ? env->sound : 0u);
+  int k;
+  for (k = 0; k < n; ++k) {
+    if (list[k].unit == unit && !list[k].gate) return k;
+  }
+  return 0;
+}
+
 /* The source a new cable starts from: the selected LFO's output, else VEL. */
 static uint8_t default_source(const fm1_mod_ui_t *u, const fm1_mod_t *m) {
   const int p = fm1_mod_ui_selected(u, m, lfo_kind());
@@ -984,7 +1043,10 @@ void fm1_mod_ui_matrix_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int kn
       u->picker = FM1_MOD_PICK_DEST;
       u->pick_at = (uint8_t)i;
       u->pick = (int16_t)dest_index(list, n, &s);
-      if (u->pick < 0) u->pick = (int16_t)(delta > 0 ? -1 : 0);
+      if (u->pick < 0) {                           /* a new cable: at the current sound */
+        const int at = current_sound_at(env, list, n);
+        u->pick = (int16_t)(delta > 0 ? at - 1 : at);
+      }
     }
     u->pick = (int16_t)clampi(u->pick + delta, 0, n - 1);
     say_dest(env, list, n, u->pick, say);
@@ -1237,15 +1299,13 @@ static void cable_text(chain_t *c, unsigned j, char *out) {
   char amt[16], dst[32] = "?";
   snprintf(amt, sizeof amt, "%+d", fm1_mod_ui_pct(s->amount));
   if (fm1_mod_ui_slot_dest(c->env, s, &d)) {
-    if (d.unit >= FM1_MOD_MODULE) {
+    if (d.unit >= FM1_MOD_MODULE && d.unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS) {
       const fm1_mod_kind_t *kd = kind_at(c->env->m, d.unit - FM1_MOD_MODULE);
       const fm1_param_t *p = fm1_mod_ui_dest_param(c->env, &d);
       char l[8];
       fm1_mod_ui_label(c->env->m, d.unit - FM1_MOD_MODULE, l, sizeof l);
       snprintf(dst, sizeof dst, "%s %.6s", l, d.gate ? kd->gate_in[d.index].name : p->abbr);
-    } else if (d.unit == FM1_MOD_SOUND || d.unit == FM1_MOD_HOST) {
-      fm1_mod_ui_dest_name(c->env, &d, 0, dst, sizeof dst);
-    } else {
+    } else {                           /* "S1 Timbre", "S2 In1 Mix", "M1 Mix", "Host Pitch" */
       const fm1_param_t *p = fm1_mod_ui_dest_param(c->env, &d);
       snprintf(dst, sizeof dst, "%s %.6s", kSinks[sink_group(d.unit)].name, p->abbr);
     }

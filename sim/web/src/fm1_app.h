@@ -66,9 +66,11 @@
  *   EDIT          MATRIX, the slot list; SEL there opens CHAIN, and in RACK
  *                 grabs the module (SEL is SHIFT in every other mode but FX)
  *   pages         a routed parameter shows its marker, bracket and live tick
- * A cable reaches sound unit 0 (SOUND), the master effects (FX1, FX2) and
+ * A cable reaches every sound unit, its inserts, the master effects and
  * the host (fm1_mod.h's unit codes; fm1_app_mod_unit maps the app's unit
- * ids onto them).
+ * ids onto them); on HOME the gesture takes the current sound's
+ * parameters, and the runtime runs over every sound unit's slot
+ * (fm1_seq_host_dispatch_slots_ticks).
  * With the switch off, SEQ, PLAY/STOP, REC, ENV, LFO and EDIT say they are
  * not in the simulator yet, SEL outside FX mode says where it works, and no
  * runtime runs: the public page is what it was.
@@ -201,7 +203,7 @@ enum {
  * block's writes to the effects and AMP (every effect parameter and AMP
  * twice: two ticks a 64-frame block). The runtime counts in the RAM figure
  * while it runs. */
-#define FM1_APP_MOD_BYTES 36864u
+#define FM1_APP_MOD_BYTES 24576u
 #define FM1_APP_MOD_WRITES \
   ((FM1_APP_MAX_FRAMES / FM1_MOD_TICK) * (FM1_APP_EFFECTS * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS))
 #define FM1_APP_MOD_SEED 1u           /* the lab's runtime; a log records it */

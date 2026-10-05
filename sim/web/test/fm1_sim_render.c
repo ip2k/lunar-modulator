@@ -1838,20 +1838,76 @@ static void mod_sweep_module(const char *dir, const char *id) {
 /* The app's value text (fm1_look.h), for the summary's RACK values. */
 void fm1_look_value(const fm1_param_t *p, float v, char *buf, size_t size);
 
+/* Every sink's engine by sink index (fm1_mod_sink_unit's order), as the
+ * app gives the pages and the script reader. */
+static void harness_units(const fm1_engine_t **units) {
+  for (unsigned i = 0; i < FM1_MOD_SINKS; ++i) {
+    units[i] = NULL;
+    for (int u = 0; u < FM1_APP_UNITS; ++u) {
+      if (fm1_app_mod_unit(u) == (int)fm1_mod_sink_unit(i)) units[i] = g_app.unit[u].e;
+    }
+  }
+}
+
 static void harness_mod_env(fm1_mod_ui_env_t *env) {
   memset(env, 0, sizeof *env);
   env->m = g_app.mod;
   env->rate = g_app.host.sample_rate;
-  for (int k = 0; k < FM1_MOD_UI_SINKS; ++k) env->unit[k] = g_app.unit[k].e;
+  env->sound = (uint8_t)g_app.sound;
+  harness_units(env->unit);
+}
+
+/* Every short form in a destination list distinct and at most
+ * FM1_MOD_UI_DST_CHARS long; `what` names the list for a fault. */
+static void unique_dests(const fm1_mod_ui_env_t *env, const char *what) {
+  static fm1_mod_dest_t list[FM1_MOD_UI_MAX_DESTS];
+  static char names[FM1_MOD_UI_MAX_DESTS][16];
+  const int n = fm1_mod_ui_dests(env, list, FM1_MOD_UI_MAX_DESTS);
+  for (int i = 0; i < n; ++i) {
+    fm1_mod_ui_dest_name(env, &list[i], 0, names[i], sizeof names[i]);
+    if (strlen(names[i]) > FM1_MOD_UI_DST_CHARS || strchr(names[i], '?')) {
+      fprintf(stderr, "screens: %s: a short name %s\n", what, names[i]);
+      ++g_faults;
+    }
+    for (int j = 0; j < i; ++j) {
+      if (strcmp(names[i], names[j]) == 0) {
+        fprintf(stderr, "screens: %s: two destinations are both %s\n", what, names[i]);
+        ++g_faults;
+      }
+    }
+  }
+}
+
+/* Every engine's parameters in every unit they can fill: each sound engine
+ * as all four sound units, beside effects as every insert and master slot
+ * (the names need only the engines, not instances). */
+static void engine_names(void) {
+  fm1_mod_ui_env_t env;
+  size_t fx = 0;
+  harness_mod_env(&env);
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    if (fm1_engines[i]->kind != FM1_KIND_SOUND) continue;
+    for (unsigned si = 0; si < FM1_MOD_SINKS; ++si) {
+      const unsigned code = fm1_mod_sink_unit(si);
+      if (code == FM1_MOD_HOST) continue;
+      if (fm1_mod_unit_sound(code) >= 0) {
+        env.unit[si] = fm1_engines[i];
+        continue;
+      }
+      do fx = (fx + 1) % fm1_engine_count; while (fm1_engines[fx]->kind != FM1_KIND_AUDIO_FX);
+      env.unit[si] = fm1_engines[fx];
+    }
+    unique_dests(&env, fm1_engines[i]->id);
+  }
 }
 
 /* MATRIX's names never collide (docs/16 MG3): racks holding every kind,
  * each destination's short form (FM1_MOD_UI_DST_CHARS at most) and each
- * source's (6 at most) distinct from every other in the lists, and MATRIX
- * with a cable into every kind's parameters and gate inputs, both pages. */
+ * source's (6 at most) distinct from every other in the lists, every
+ * engine's in every unit too, and MATRIX with a cable into every kind's
+ * parameters and gate inputs, both pages. */
 static void mod_names(const char *dir) {
   static fm1_mod_dest_t list[FM1_MOD_UI_MAX_DESTS];
-  static char names[FM1_MOD_UI_MAX_DESTS][16];
   uint8_t srcs[FM1_MOD_UI_MAX_SOURCES];
   char name[128], line[64], other[16];
   fm1_mod_ui_env_t env;
@@ -1862,17 +1918,9 @@ static void mod_names(const char *dir) {
       mod_line(line);
     }
     harness_mod_env(&env);
+    unique_dests(&env, "a rack of every kind");
+    engine_names();
     const int n = fm1_mod_ui_dests(&env, list, FM1_MOD_UI_MAX_DESTS);
-    for (int i = 0; i < n; ++i) {
-      fm1_mod_ui_dest_name(&env, &list[i], 0, names[i], sizeof names[i]);
-      expect(strlen(names[i]) <= FM1_MOD_UI_DST_CHARS, "a destination's short name is too long");
-      for (int j = 0; j < i; ++j) {
-        if (strcmp(names[i], names[j]) == 0) {
-          fprintf(stderr, "screens: two destinations are both %s\n", names[i]);
-          ++g_faults;
-        }
-      }
-    }
     const int ns = fm1_mod_ui_sources(g_app.mod, srcs, FM1_MOD_UI_MAX_SOURCES);
     for (int i = 0; i < ns; ++i) {
       fm1_mod_ui_source(g_app.mod, srcs[i], 0, name, sizeof name);
@@ -1891,7 +1939,7 @@ static void mod_names(const char *dir) {
       int k = 0;
       for (int i = 0; i < n && k < (int)FM1_MOD_SLOTS; ++i) {
         fm1_mod_slot_t sl;
-        if (list[i].unit < FM1_MOD_MODULE) continue;
+        if (list[i].unit < FM1_MOD_MODULE || list[i].unit >= FM1_MOD_MODULE + FM1_MOD_POSITIONS) continue;
         memset(&sl, 0, sizeof sl);
         sl.src = srcs[(ns - 1 - k) % ns];
         sl.via = FM1_MOD_NONE;
@@ -1921,6 +1969,112 @@ static void mod_names(const char *dir) {
   }
   g_app.mui.mpage = 0;
   g_app.mui.slot = g_app.mui.top = 0;
+}
+
+/* Several sound units (docs/16 MG3): Sounds 2-4 and an insert on each,
+ * a cable into every parameter of every unit, MATRIX over them, the target
+ * picker at each group, CHAIN into an insert, and the marks on Sound 2's
+ * HOME page, its insert's page and the master's. */
+static void mod_multi_screens(const char *dir) {
+  static const char *const kSounds[FM1_APP_SOUNDS] = { "", "sixop", "sw-sophie", "test-sine" };
+  static const char *const kInserts[FM1_APP_SOUNDS] = { "drive", "ensemble", "fold", "crush" };
+  static fm1_mod_dest_t list[FM1_MOD_UI_MAX_DESTS];
+  char name[96], line[64];
+  fm1_mod_ui_env_t env;
+  uint8_t srcs[FM1_MOD_UI_MAX_SOURCES];
+  int n, ns, slot = 2;
+  for (int k = 1; k < FM1_APP_SOUNDS; ++k) {
+    expect(fm1_app_unit_select(&g_app, k, fm1_app_find(kSounds[k])) == 0, "a sound unit did not load");
+  }
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    expect(fm1_app_unit_insert(&g_app, k, 0, fm1_app_find(kInserts[k])) == 0, "an insert did not load");
+  }
+  for (int i = 3; i <= 32; ++i) {
+    snprintf(line, sizeof line, "slot %d clear", i);
+    mod_line(line);
+  }
+  harness_mod_env(&env);
+  n = fm1_mod_ui_dests(&env, list, FM1_MOD_UI_MAX_DESTS);
+  ns = fm1_mod_ui_sources(g_app.mod, srcs, FM1_MOD_UI_MAX_SOURCES);
+  /* One cable into each unit's first two parameters, from module outputs. */
+  for (int i = 0; i < n && slot < (int)FM1_MOD_SLOTS; ++i) {
+    fm1_mod_slot_t sl;
+    if (list[i].unit >= FM1_MOD_MODULE && list[i].unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS) continue;
+    if (i > 1 && list[i - 2].unit == list[i].unit) continue;
+    memset(&sl, 0, sizeof sl);
+    sl.src = srcs[ns - 1 - slot % 8];
+    sl.via = FM1_MOD_NONE;
+    sl.dst_unit = list[i].unit;
+    sl.dst = list[i].dst;
+    sl.flags = FM1_MOD_SLOT_ON;
+    sl.amount = fm1_mod_q14(slot % 2 ? -0.7f : 0.45f);
+    fm1_mod_set_slot(g_app.mod, (unsigned)slot++, &sl);
+  }
+  blocks(3);
+  g_app.mode = FM1_MODE_MATRIX;
+  for (int top = 0; top < slot; top += FM1_MOD_UI_ROWS) {
+    g_app.mui.slot = (uint8_t)top;
+    g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
+    for (int pg = 0; pg < 2; ++pg) {
+      g_app.mui.mpage = (uint8_t)pg;
+      snprintf(name, sizeof name, "matrix-units-slot%d-%c", top + 1, pg ? 'b' : 'a');
+      check_screen(name, dir, pg == 0 && top <= 7);
+    }
+  }
+  g_app.mui.mpage = 0;
+  /* The target picker on an empty slot opens at the current sound; then
+   * ALGORITHM jumps group by group. */
+  expect(fm1_app_unit_set_current(&g_app, 1) == 0, "Sound 2 is not current");
+  if (slot < (int)FM1_MOD_SLOTS) {
+    turn_now(FM1_ENC_SELECT, slot - g_app.mui.slot);
+    turn_now(FM1_ENC_KNOB2, 1);
+    expect(g_app.mui.picker == FM1_MOD_PICK_DEST, "KNOB2 opens no picker");
+    harness_mod_env(&env);
+    n = fm1_mod_ui_dests(&env, list, FM1_MOD_UI_MAX_DESTS);
+    expect(g_app.mui.pick >= 0 && g_app.mui.pick < n && list[g_app.mui.pick].unit == fm1_mod_sound_unit(1),
+           "the picker does not open at the current sound");
+    check_screen("matrix-picker-sound2", dir, 1);
+    for (int g = 0; g < 16; ++g) {
+      turn_now(FM1_ENC_ALGORITHM, 1);
+      snprintf(name, sizeof name, "matrix-picker-unit-%02d", g);
+      check_screen(name, dir, 0);
+    }
+    g_app.popup_lines = 0;
+    g_app.mui.picker = FM1_MOD_PICK_NONE;
+  }
+  /* CHAIN through a cable into an insert. */
+  for (int i = 2; i < slot; ++i) {
+    fm1_mod_slot_t sl;
+    fm1_mod_get_slot(g_app.mod, (unsigned)i, &sl);
+    if (sl.dst_unit < FM1_MOD_INSERT) continue;
+    g_app.mui.slot = (uint8_t)i;
+    g_app.mode = FM1_MODE_CHAIN;
+    check_screen("chain-insert", dir, 1);
+    break;
+  }
+  /* The marks on Sound 2's HOME page, its insert's and the master's pages. */
+  g_app.mode = FM1_MODE_HOME;
+  g_app.page = 0;
+  blocks(2);
+  check_screen("home-routed-sound2", dir, 1);
+  g_app.mode = FM1_MODE_FX;
+  for (int fs = 0; fs < 5; ++fs) {
+    g_app.fx_slot = fs;
+    g_app.fx_page = 0;
+    snprintf(name, sizeof name, "fx-routed-sound2-slot%d", fs + 1);
+    check_screen(name, dir, fs == 0);
+  }
+  g_app.fx_slot = 3;
+  g_app.mode = FM1_MODE_HOME;
+  fm1_app_unit_set_current(&g_app, 0);
+  for (int i = 3; i <= 32; ++i) {
+    snprintf(line, sizeof line, "slot %d clear", i);
+    mod_line(line);
+  }
+  for (int k = FM1_APP_SOUNDS - 1; k >= 0; --k) {
+    fm1_app_unit_insert(&g_app, k, 0, -1);
+    if (k) fm1_app_unit_select(&g_app, k, -1);
+  }
 }
 
 static void mod_screens(const char *dir, float rate) {
@@ -2184,6 +2338,7 @@ static void mod_screens(const char *dir, float rate) {
   turn_now(FM1_ENC_PRESETS, 1);
   check_screen("matrix-popup", dir, 0);
   settle();
+  mod_multi_screens(dir);
   mod_names(dir);
   g_app.mode = FM1_MODE_MATRIX;
   /* HOME, FX and GLO leave the pages; the switch off brings the stubs back. */
@@ -2637,12 +2792,12 @@ static fm1_mod_t *g_mod2;            /* the replay's runtime */
 static int g_fmt_lines, g_fmt_bad;
 
 static void replay_line(void *ctx, const char *line) {
-  const fm1_engine_t *units[FM1_MOD_UI_SINKS];
+  const fm1_engine_t *units[FM1_MOD_SINKS];
   char err[256];
   (void)ctx;
-  for (int u = 0; u < FM1_MOD_UI_SINKS; ++u) units[u] = g_app.unit[u].e;
+  harness_units(units);
   ++g_fmt_lines;
-  if (!fm1_mod_script_line(g_mod2, line, units, err, sizeof err)) {
+  if (!fm1_mod_script_apply(g_mod2, line, units, err, sizeof err)) {
     if (g_fmt_bad < 10) fprintf(stderr, "mod format: \"%s\": %s\n", line, err);
     ++g_fmt_bad;
   }
@@ -2710,15 +2865,31 @@ static void random_slot(const fm1_mod_ui_env_t *env, fm1_mod_slot_t *s) {
 
 static int mod_format_check(void) {
   static unsigned char mem2[FM1_APP_MOD_BYTES] FM1_APP_ALIGN16;
-  const char *units[FM1_MOD_UI_SINKS] = { "macro", "plate", "echo" };
+  /* Every unit loaded (the lab's multi-sound), so every kind of
+   * destination is drawn: four sounds, each with two inserts, and the
+   * master slots, inside the RAM meter's budget. */
+  static const char *const kSounds[FM1_APP_SOUNDS] = { "macro", "sixop", "test-sine", "sw-sophie" };
+  static const char *const kInserts[FM1_APP_SOUNDS][FM1_APP_INSERTS] = {
+    { "crush", "drive" }, { "fold", "ensemble" }, { "test-gain", "comp" }, { "filter", "crush" } };
   fm1_mod_ui_env_t env;
   int rounds = 0, failures = 0;
   fm1_app_init(&g_app, 44118.0f);
   fm1_app_set_lab(&g_app, 1);
-  for (int u = 0; u < FM1_MOD_UI_SINKS; ++u) fm1_app_select(&g_app, u, fm1_app_find(units[u]));
-  memset(&env, 0, sizeof env);
-  env.m = g_app.mod;
-  for (int u = 0; u < FM1_MOD_UI_SINKS; ++u) env.unit[u] = g_app.unit[u].e;
+  fm1_app_select(&g_app, 1, fm1_app_find("plate"));
+  fm1_app_select(&g_app, 2, fm1_app_find("echo"));
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    if (fm1_app_unit_select(&g_app, k, fm1_app_find(kSounds[k])) != 0) {
+      fprintf(stderr, "mod format: cannot load %s\n", kSounds[k]);
+      return 1;
+    }
+    for (int j = 0; j < FM1_APP_INSERTS; ++j) {
+      if (fm1_app_unit_insert(&g_app, k, j, fm1_app_find(kInserts[k][j])) != 0) {
+        fprintf(stderr, "mod format: cannot load %s\n", kInserts[k][j]);
+        return 1;
+      }
+    }
+  }
+  harness_mod_env(&env);
   for (int round = 0; round < 300; ++round) {
     fm1_mod_ui_t ui;
     const uint32_t seed = rnd(1000000);

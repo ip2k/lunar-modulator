@@ -34,7 +34,7 @@ SIM_APP_OBJ := $(BUILD)/sim/src/fm1_app.o $(BUILD)/sim/src/fm1_tft.o \
 # The harness reads verb scripts (host/seq_script.h); the app reads
 # modulation lines (host/mod_script.h).
 $(BUILD)/sim/test/fm1_sim_render.o: SIM_CFLAGS += -Ihost
-$(BUILD)/sim/src/fm1_app.o: SIM_CFLAGS += -Ihost
+$(BUILD)/sim/src/fm1_app.o $(BUILD)/sim/src/fm1_mod_ui.o: SIM_CFLAGS += -Ihost
 
 $(BUILD)/sim/%.o: $(SIM)/%.c
 	@mkdir -p $(dir $@)

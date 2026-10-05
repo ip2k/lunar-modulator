@@ -37,10 +37,12 @@ static float glue_lock(void *ctx, uint16_t index, float value) {
   return fm1_mod_set_base(g->mod, FM1_MOD_SOUND, index, value);
 }
 
-/* A lock on slot `slot` (fm1_seq_host_dispatch_slots_ticks): slot 0 is
- * SOUND; the other sound units take no modulation yet. */
+/* A lock on slot `slot` (fm1_seq_host_dispatch_slots_ticks): the slot is
+ * the sound unit, slot 0 SOUND. */
 static float glue_lock_slot(void *ctx, unsigned slot, uint16_t index, float value) {
-  return slot == 0 ? glue_lock(ctx, index, value) : value;
+  fm1_mod_glue_t *g = (fm1_mod_glue_t *)ctx;
+  if (slot >= FM1_MOD_SOUNDS) return value;
+  return fm1_mod_set_base(g->mod, fm1_mod_sound_unit(slot), index, value);
 }
 
 static uint32_t glue_tick(void *ctx, uint32_t frame, const fm1_seq_hook_write_t **w,
@@ -51,11 +53,12 @@ static uint32_t glue_tick(void *ctx, uint32_t frame, const fm1_seq_hook_write_t 
   uint32_t i, k = 0;
   for (i = 0; i < n; ++i) {
     const fm1_mod_write_t *x = &wr[i];
-    if (x->unit == FM1_MOD_SOUND || (x->unit == FM1_MOD_HOST && x->index == FM1_MOD_HOST_PITCH)) {
+    const int snd = fm1_mod_unit_sound(x->unit);   /* a sound unit's: the bridge's slot */
+    if (snd >= 0 || (x->unit == FM1_MOD_HOST && x->index == FM1_MOD_HOST_PITCH)) {
       if (k < sizeof(g->w) / sizeof(g->w[0])) {
         g->w[k].index = x->index;
         g->w[k].bend = (uint8_t)(x->unit == FM1_MOD_HOST);
-        g->w[k].slot = 0;
+        g->w[k].slot = (uint8_t)(snd > 0 ? snd : 0);   /* HOST PITCH bends sound unit 1 */
         g->w[k].value = x->value;
         ++k;
       }

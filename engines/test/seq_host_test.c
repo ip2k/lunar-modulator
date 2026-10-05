@@ -22,6 +22,11 @@
  *     own tracks' events, split only at their frames; a track routed to an
  *     empty slot or past the last reaches nothing and splits nothing; a
  *     lock resolves on its slot's engine, and slot 0's engine is bound.
+ *   - The hook over several slots (dispatch_slots_ticks, docs/16 MG3): every
+ *     event fed once, to_engine for any slot's; a tick's writes go to the
+ *     slot they name, split there; a slot's locks go through lock_slot with
+ *     its number; at one frame each slot keeps M6's order; no hook is plain
+ *     dispatch_slots.
  *   - Engine API v2: every lane's uid equals a fresh resolution of its label
  *     after every block, through text and typed commands alike; a lock goes
  *     to its uid's parameter, whose index is not uid - 1; a NOLOCK
@@ -831,6 +836,146 @@ static void slots(void) {
   CHECK(h.notes_to_engine == 6u && ta.n == 7u && ta.pieces == 6u);
 }
 
+/* dispatch_slots_ticks: slot 0 kEngine, slot 1 kOther, slot 2 empty;
+ * tracks 0, 1 and 2 routed to them. The fake hook's tick at 32 writes
+ * slot 0's Timbre, a bend on slot 0 and slot 1's index 1. */
+typedef struct {
+  uint32_t ticks, events, to_engine, locks[3];
+  fm1_seq_hook_write_t w[3];
+} slots_hook_t;
+
+static uint32_t sh_begin(void *ctx, uint32_t frames, const fm1_engine_t *e, uint32_t bpm, int playing) {
+  (void)ctx;
+  (void)frames;
+  (void)bpm;
+  (void)playing;
+  CHECK(e == &kEngine);                    /* slot 0's engine */
+  return 0;
+}
+static void sh_event(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int to_engine) {
+  slots_hook_t *f = (slots_hook_t *)ctx;
+  (void)frame;
+  (void)e;
+  ++f->events;
+  f->to_engine += (uint32_t)(to_engine != 0);
+}
+static float sh_lock(void *ctx, uint16_t index, float v) {
+  (void)ctx;
+  (void)index;
+  CHECK(0);                                /* lock_slot is there: never this */
+  return v;
+}
+static float sh_lock_slot(void *ctx, unsigned slot, uint16_t index, float v) {
+  slots_hook_t *f = (slots_hook_t *)ctx;
+  (void)index;
+  if (slot < 3) ++f->locks[slot];
+  return v + 0.5f;
+}
+static uint32_t sh_tick(void *ctx, uint32_t frame, const fm1_seq_hook_write_t **w, uint32_t *next) {
+  slots_hook_t *f = (slots_hook_t *)ctx;
+  ++f->ticks;
+  *next = frame + 32u;
+  memset(f->w, 0, sizeof(f->w));
+  f->w[0].index = 0;                       /* slot 0: Timbre */
+  f->w[0].value = 0.25f;
+  f->w[1].bend = 1;                        /* slot 0: a bend */
+  f->w[1].value = 2.0f;
+  f->w[2].index = 1;                       /* slot 1: kOther's index 1 */
+  f->w[2].slot = 1;
+  f->w[2].value = 0.75f;
+  *w = f->w;
+  return frame == 32u ? 3u : 0u;
+}
+
+static void hooked_slots(void) {
+  static trace_t ta, tb;
+  static float block_a[2 * BLOCK], block_b[2 * BLOCK], block_c[2 * BLOCK];
+  static const char setup[] = "alabel 1 0 synth:Timbre";
+  fm1_seq_ev_t ev[16], scratch[16];
+  fm1_seq_host_t h;
+  fm1_seq_sink_t sa, sb;
+  fm1_seq_slot_t slot[3];
+  fm1_seq_hook_t hook;
+  slots_hook_t fh;
+  fm1_seq_t *s = make(mem_text);
+  uint32_t n = 0;
+  memset(&sa, 0, sizeof(sa));
+  sa.ctx = &ta;
+  sa.engine = &kEngine;
+  sa.render = t_render;
+  sa.note_on = t_on;
+  sa.note_off = t_off;
+  sa.set_param = t_param;
+  sa.pitch_bend = t_bend;
+  sb = sa;
+  sb.ctx = &tb;
+  sb.engine = &kOther;
+  slot[0].sink = &sa;
+  slot[0].block = block_a;
+  slot[1].sink = &sb;
+  slot[1].block = block_b;
+  slot[2].sink = NULL;
+  slot[2].block = block_c;
+  memset(&hook, 0, sizeof(hook));
+  hook.ctx = &fh;
+  hook.begin = sh_begin;
+  hook.event = sh_event;
+  hook.lock = sh_lock;
+  hook.tick = sh_tick;
+  hook.lock_slot = sh_lock_slot;
+  CHECK(fm1_seq_apply_text(s, setup, sizeof(setup) - 1u, scratch, 16) == 0);
+  fm1_seq_set_route(s, 0, FM1_SEQ_ROUTE_ENGINE, 0);
+  fm1_seq_set_route(s, 1, FM1_SEQ_ROUTE_ENGINE, 1);
+  fm1_seq_set_route(s, 2, FM1_SEQ_ROUTE_ENGINE, 2);
+  fm1_seq_host_init(&h, s, ev, 16);
+#define EV(fr, k, t, aa, bb)                                                  \
+  do {                                                                        \
+    ev[n].tick = 0; ev[n].frame = (fr); ev[n].kind = (k); ev[n].track = (t);  \
+    ev[n].a = (aa); ev[n].b = (bb); ++n;                                      \
+  } while (0)
+  EV(0, FM1_SEQ_EV_NOTE_ON, 0, 60, 100);   /* slot 0 */
+  EV(8, FM1_SEQ_EV_NOTE_ON, 1, 64, 90);    /* slot 1 */
+  EV(16, FM1_SEQ_EV_NOTE_ON, 2, 67, 80);   /* slot 2, empty: fed, not played */
+  EV(32, FM1_SEQ_EV_NOTE_OFF, 1, 64, 0);   /* slot 1, at the tick's frame: before it */
+  EV(32, FM1_SEQ_EV_LOCK, 1, 0, 127);      /* slot 1: kOther's Timbre (index 1), 1.0 + 0.5 */
+  EV(32, FM1_SEQ_EV_NOTE_ON, 0, 62, 90);   /* slot 0: after the tick (M6) */
+#undef EV
+  h.n = n;
+  memset(&ta, 0, sizeof(ta));
+  memset(&tb, 0, sizeof(tb));
+  memset(&fh, 0, sizeof(fh));
+  ta.block = block_a;
+  tb.block = block_b;
+  fm1_seq_host_dispatch_slots_ticks(&h, BLOCK, slot, 3, &hook);
+  CHECK(h.n == 0 && fh.ticks == 2 && fh.events == n && fh.to_engine == 5);
+  CHECK(fh.locks[1] == 1 && fh.locks[0] == 0);
+  CHECK(ta.rendered == BLOCK && tb.rendered == BLOCK && !ta.bad_piece && !tb.bad_piece);
+  CHECK(ta.n == 4u && tb.n == 4u && ta.pieces == 2u && tb.pieces == 3u);
+  if (ta.n == 4u) {                       /* on; at 32 the tick's two writes, then the on */
+    CHECK(ta.calls[0].kind == C_ON && ta.calls[0].a == 60 && ta.calls[0].at == 0);
+    CHECK(ta.calls[1].kind == C_PARAM && ta.calls[1].index == 0 && ta.calls[1].value == 0.25f &&
+          ta.calls[1].at == 32);
+    CHECK(ta.calls[2].kind == C_BEND && ta.calls[2].value == 2.0f && ta.calls[2].at == 32);
+    CHECK(ta.calls[3].kind == C_ON && ta.calls[3].a == 62 && ta.calls[3].at == 32);
+  }
+  if (tb.n == 4u) {                       /* on at 8; at 32 off, the lock, then the tick's write */
+    CHECK(tb.calls[0].kind == C_ON && tb.calls[0].a == 64 && tb.calls[0].at == 8);
+    CHECK(tb.calls[1].kind == C_OFF && tb.calls[1].at == 32);
+    CHECK(tb.calls[2].kind == C_PARAM && tb.calls[2].index == 1 && tb.calls[2].value == 1.5f &&
+          tb.calls[2].at == 32);
+    CHECK(tb.calls[3].kind == C_PARAM && tb.calls[3].index == 1 && tb.calls[3].value == 0.75f &&
+          tb.calls[3].at == 32);
+  }
+  /* No hook: dispatch_slots, slot after slot, with nothing of the hook. */
+  h.n = n;
+  memset(&ta, 0, sizeof(ta));
+  memset(&tb, 0, sizeof(tb));
+  ta.block = block_a;
+  tb.block = block_b;
+  fm1_seq_host_dispatch_slots_ticks(&h, BLOCK, slot, 3, NULL);
+  CHECK(ta.n == 2u && tb.n == 3u && ta.pieces == 2u && tb.pieces == 3u);
+}
+
 /* A buffer of none: every event counted as dropped, nothing written. */
 static void no_buffer(void) {
   fm1_seq_host_t h;
@@ -854,6 +999,7 @@ int main(void) {
   uids_and_refusals();
   hooked_block();
   slots();
+  hooked_slots();
   no_buffer();
   printf("{\"ok\":%s,\"events\":%llu,\"sink_calls\":%llu,\"splits\":%llu}\n", failed ? "false" : "true",
          (unsigned long long)events, (unsigned long long)calls, (unsigned long long)inside);

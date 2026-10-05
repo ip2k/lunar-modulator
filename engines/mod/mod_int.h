@@ -13,8 +13,10 @@
 #define MOD_NONE 0xFFu
 #define MOD_NO_FRAME 0xFFFFFFFFFFFFFFFFull
 #define MOD_SYS_GATES 16u      /* KEY TRIG CLOCK BEAT BAR RUN START RTRG SEQ1-8 */
-#define MOD_SINK_UNITS 4u      /* SOUND FX1 FX2 HOST */
-#define MOD_MAX_WRITES (3u * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS)
+#define MOD_SINK_UNITS FM1_MOD_SINKS   /* by sink index (fm1_mod_sink_unit) */
+#define MOD_HOST_SINK 3u       /* HOST's sink index; its records are 0 and 1 */
+#define MOD_SINK_RECS FM1_MOD_SINK_PARAMS
+#define MOD_MAX_WRITES MOD_SINK_RECS
 
 /* A sink parameter's description, copied from its engine at bind time so
  * that the state needs no pointer to it. */
@@ -30,18 +32,18 @@ typedef struct mod_meta {
 typedef struct mod_dest {
   uint32_t slots;
   uint16_t index;              /* parameter index, or gate input index */
-  uint8_t unit;                /* 0-3 sinks, 8 + position */
+  uint8_t unit;                /* a sink's canonical code, or 8 + position */
   uint8_t gate;                /* 1: a gate input */
 } mod_dest_t;
 
 typedef struct mod_plan {
   uint32_t active, refused, delayed_src, delayed_via;
   uint32_t routed[FM1_MOD_POSITIONS];          /* module parameters with slots */
-  uint32_t sink_routed[MOD_SINK_UNITS];        /* sink parameters with slots */
+  uint32_t sink_routed[MOD_SINK_UNITS];        /* sink parameters with slots, by index */
   mod_dest_t dest[FM1_MOD_SLOTS];
   uint8_t pdest[FM1_MOD_POSITIONS][FM1_MOD_MAX_PARAMS];   /* -> dest, or NONE */
   uint8_t gdest[FM1_MOD_POSITIONS][FM1_MOD_MAX_GATES];
-  uint8_t sdest[MOD_SINK_UNITS][FM1_MOD_UNIT_PARAMS];    /* sink parameter -> dest */
+  uint8_t sdest[MOD_SINK_RECS];                /* sink parameter record -> dest */
   uint8_t order[FM1_MOD_POSITIONS];
   uint8_t comp[FM1_MOD_POSITIONS];             /* by position */
   uint8_t gate_conn[FM1_MOD_POSITIONS];
@@ -83,10 +85,13 @@ struct fm1_mod {
   float out[2][FM1_MOD_POSITIONS][FM1_MOD_MAX_OUTS];
   float sys_cv[FM1_MOD_SRC_SYSTEM];
   float pend_cv[2][FM1_MOD_SRC_SYSTEM];
-  float sink_base[MOD_SINK_UNITS][FM1_MOD_UNIT_PARAMS];
-  float sink_sent[MOD_SINK_UNITS][FM1_MOD_UNIT_PARAMS];
-  float sink_off[MOD_SINK_UNITS][FM1_MOD_UNIT_PARAMS];   /* the last tick's offset */
-  mod_meta_t meta[3][FM1_MOD_UNIT_PARAMS];
+  /* The sinks' parameters, one record each, in a pool the bound units
+   * share: sink i holds records sink_first[i] .. + sink_n[i] (HOST 0 and 1,
+   * the others packed after it in binding order). */
+  float sink_base[MOD_SINK_RECS];
+  float sink_sent[MOD_SINK_RECS];
+  float sink_off[MOD_SINK_RECS];               /* the last tick's offset */
+  mod_meta_t meta[MOD_SINK_RECS];
   mod_plan_t plan;
   fm1_mod_write_t wr[MOD_MAX_WRITES];
   uint32_t n_wr;
@@ -101,7 +106,8 @@ struct fm1_mod {
   fm1_mod_gate_t pend_g[2][MOD_SYS_GATES];     /* pending: [0] the next tick, [1] after */
   uint8_t kind[FM1_MOD_POSITIONS];             /* registry index, or NONE */
   uint8_t glvl_fed[MOD_SYS_GATES];             /* level after every fed event */
-  uint8_t sink_n[3];
+  uint8_t sink_first[MOD_SINK_UNITS];
+  uint8_t sink_n[MOD_SINK_UNITS];
   uint8_t cur;                                 /* the output buffer this tick writes */
   uint8_t dirty;                               /* the plan needs a rebuild */
   uint8_t start_frame;                         /* this tick's Start, or NONE */

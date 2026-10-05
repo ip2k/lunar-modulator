@@ -26,10 +26,10 @@ typedef char fm1_app_seq_click_is_20[sizeof(fm1_seq_click_t) == 20u ? 1 : -1];
 typedef char fm1_app_seq_ui_sounds[FM1_SEQ_UI_SOUNDS == FM1_APP_SOUNDS ? 1 : -1];
 typedef char fm1_app_seq_cmd_is_240[sizeof(fm1_seq_cmd_t) == 240u ? 1 : -1];
 typedef char fm1_app_seq_ui_fits[sizeof(fm1_seq_ui_t) <= FM1_APP_SEQ_UI_BYTES ? 1 : -1];
-/* The modulation pages' sink table holds sound unit 0 and the master slots
- * (fm1_mod.h's SOUND, FX1 and FX2). */
-typedef char fm1_app_mod_sinks[FM1_MOD_SOUND == 0 && FM1_MOD_FX1 == 1 && FM1_MOD_FX2 == 2 &&
-                               FM1_MOD_UI_SINKS == 1 + FM1_APP_FX_SLOTS ? 1 : -1];
+/* Every app unit is one of the runtime's sinks (fm1_mod.h's codes): the
+ * sound units, their inserts and the master slots. */
+typedef char fm1_app_mod_units[FM1_MOD_SOUNDS == FM1_APP_SOUNDS && FM1_MOD_INSERTS == FM1_APP_INSERTS &&
+                               FM1_MOD_SINKS == FM1_APP_UNITS + 1 && FM1_APP_FX_SLOTS == 2 ? 1 : -1];
 
 /* ---- small helpers ---------------------------------------------------------- */
 
@@ -388,8 +388,31 @@ void fm1_app_init(fm1_app_t *a, float sample_rate) {
 /* ---- modulation: the runtime on the bridge (docs/16 MG3) ------------------------ */
 
 int fm1_app_mod_unit(int unit) {
-  /* Sound unit 0 and the master slots; the other units take no cable yet. */
-  return unit >= 0 && unit <= FM1_APP_FX_SLOTS ? unit : -1;
+  if (unit >= 0 && unit <= FM1_APP_FX_SLOTS) return unit;          /* sound 0, M1, M2 */
+  if (unit_sound(unit) > 0) return (int)fm1_mod_sound_unit((unsigned)unit_sound(unit));
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    for (int j = 0; j < FM1_APP_INSERTS; ++j) {
+      if (fm1_app_insert_unit(k, j) == unit) return (int)fm1_mod_insert_unit((unsigned)k, (unsigned)j);
+    }
+  }
+  return -1;
+}
+
+/* The app unit a sink's code names (the inverse of fm1_app_mod_unit), or
+ * -1 (HOST, a module, nothing). */
+static int app_unit_of(unsigned code) {
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    if (fm1_app_mod_unit(u) == (int)fm1_mod_unit_canonical(code)) return u;
+  }
+  return -1;
+}
+
+/* Every sink's engine, by sink index (fm1_mod_sink_unit's order). */
+static void mod_units(const fm1_app_t *a, const fm1_engine_t **units) {
+  for (unsigned i = 0; i < FM1_MOD_SINKS; ++i) {
+    const int u = app_unit_of(fm1_mod_sink_unit(i));
+    units[i] = u >= 0 ? a->unit[u].e : NULL;
+  }
 }
 
 /* Each edit to the harness's log, with the frame of the block it leads. */
@@ -401,7 +424,8 @@ static void mod_emit(void *ctx, const char *line) {
 static void mod_env(fm1_app_t *a, fm1_mod_ui_env_t *env) {
   env->m = a->mod;
   env->rate = a->host.sample_rate;
-  for (int u = 0; u < FM1_MOD_UI_SINKS; ++u) env->unit[u] = a->unit[u].e;
+  env->sound = (uint8_t)a->sound;
+  mod_units(a, env->unit);
   env->emit = a->on_mod ? mod_emit : NULL;
   env->ctx = a;
 }
@@ -492,14 +516,14 @@ static void mod_stop(fm1_app_t *a) {
 void fm1_app_mod_reset(fm1_app_t *a, uint32_t seed) { mod_start(a, seed, 0); }
 
 int fm1_app_mod_line(fm1_app_t *a, const char *line, char *err, size_t cap) {
-  const fm1_engine_t *units[FM1_MOD_UI_SINKS];
+  const fm1_engine_t *units[FM1_MOD_SINKS];
   uint32_t seed;
   if (!a->mod) {
     if (err && cap) snprintf(err, cap, "no modulation runtime");
     return 0;
   }
-  for (int u = 0; u < FM1_MOD_UI_SINKS; ++u) units[u] = a->unit[u].e;
-  if (!fm1_mod_script_line(a->mod, line, units, err, cap)) return 0;
+  mod_units(a, units);
+  if (!fm1_mod_script_apply(a->mod, line, units, err, cap)) return 0;
   if (!fm1_mod_script_seed(line, &seed)) {     /* a seed only counts at creation */
     while (*line == ' ' || *line == '\t') ++line;
     if (*line && *line != '#') mod_emit(a, line);

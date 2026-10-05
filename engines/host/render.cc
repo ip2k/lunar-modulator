@@ -75,8 +75,11 @@
 // byte-identical to one without --mod. The summary adds mod_* counters.
 // With slots (docs/16 MG3) the runtime runs over every sound unit
 // (fm1_seq_host_dispatch_slots_ticks): every note on a unit with an engine
-// feeds its sources, sound unit 0 is SOUND, and --bend and --param-at move
-// its bases as without slots.
+// feeds its sources, and every unit is a destination: sound unit K as snd
+// (K 0) or sndK+1, its first two inserts as sndK+1.fx1 and .fx2 (each
+// rendered split at its own writes), the first two --fx as fx1 and fx2;
+// --param-at and --sound-param-at move the units' bases, --bend HOST
+// PITCH's, which bends sound unit 0.
 //
 // MIT licence.
 
@@ -152,7 +155,8 @@ void Usage() {
       "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
       "engine from the sequencer. --sound and the flags after it add sound units\n"
       "1..3, each with its inserts and level, mixed before the --fx chain.\n"
-      "--mod modulates the sound, the first two effects and the host.\n");
+      "--mod modulates the sound units, their first two inserts, the first two\n"
+      "effects and the host.\n");
 }
 
 // The sequencer side of a render (--cmd, --seq).
@@ -275,8 +279,8 @@ void ModWrite(void *ctx, uint32_t frame, const fm1_mod_write_t *w) {
 }
 
 const char *ModUnitName(unsigned u) {
-  static const char *const kNames[] = { "snd", "fx1", "fx2", "host" };
-  return u < 4 ? kNames[u] : "?";
+  const char *n = fm1_mod_script_unit_name(u);   // snd, snd2, snd1.fx2, fx1, host
+  return n ? n : "?";
 }
 
 void ModTicked(void *ctx, uint32_t frame, const fm1_mod_write_t *w, uint32_t n) {
@@ -375,8 +379,12 @@ void PrintPorts(const fm1_port_t *ports, unsigned n) {
 }
 
 void ListMod() {
-  printf("{\"tick\":%u,\"positions\":%u,\"slots\":%u,\"arena\":%u,\"bytes\":%zu,\"kinds\":[",
-         FM1_MOD_TICK, FM1_MOD_POSITIONS, FM1_MOD_SLOTS, FM1_MOD_ARENA, fm1_mod_size());
+  printf("{\"tick\":%u,\"positions\":%u,\"slots\":%u,\"arena\":%u,\"bytes\":%zu,"
+         "\"sinks\":[", FM1_MOD_TICK, FM1_MOD_POSITIONS, FM1_MOD_SLOTS, FM1_MOD_ARENA, fm1_mod_size());
+  for (unsigned i = 0; i < FM1_MOD_SINKS; ++i) {   // each sink's code and script name
+    printf("%s[%u,\"%s\"]", i ? "," : "", fm1_mod_sink_unit(i), fm1_mod_script_unit_name(fm1_mod_sink_unit(i)));
+  }
+  printf("],\"sink_params\":%u,\"unit_params\":%u,\"kinds\":[", FM1_MOD_SINK_PARAMS, FM1_MOD_UNIT_PARAMS);
   fm1_host_t host = { FM1_ENGINE_API_VERSION, 44118.0f, 64 };
   for (size_t i = 0; i < fm1_mod_kind_count; ++i) {
     const fm1_mod_kind_t *k = fm1_mod_kinds[i];
@@ -878,6 +886,23 @@ int main(int argc, char **argv) {
   // to the sound and the first two effects, with the bases the command line
   // set, then the script's untimed lines.
   Modulation md;
+  // The Unit bound to the runtime's sink i (fm1_mod_sink_unit's order), or
+  // NULL: the sound units, the first two --fx as the master slots, and each
+  // sound unit's first FM1_MOD_INSERTS inserts.
+  auto ModUnitOf = [&](unsigned i) -> const Unit * {
+    const unsigned code = fm1_mod_sink_unit(i);
+    const int k = fm1_mod_unit_sound(code);
+    if (k >= 0) return units[k];
+    if (code == FM1_MOD_FX1 || code == FM1_MOD_FX2) {
+      const size_t f = code - FM1_MOD_FX1;
+      return f < fx.size() ? &fx[f] : NULL;
+    }
+    if (code >= FM1_MOD_INSERT && code < FM1_MOD_INSERT + 4u * FM1_MOD_SOUNDS) {
+      const unsigned s = (code - FM1_MOD_INSERT) / 4u, j = (code - FM1_MOD_INSERT) % 4u;
+      return j < inserts[s].size() ? &inserts[s][j] : NULL;
+    }
+    return NULL;
+  };
   fm1_seq_host_t bare;               // the bridge without a sequencer
   memset(&bare, 0, sizeof(bare));
   // An error on the --mod path exits with everything released (the units,
@@ -935,16 +960,18 @@ int main(int argc, char **argv) {
     memset(md.mem, fill, fm1_mod_size());
     md.m = fm1_mod_create(md.mem, &host, seed);
     if (!md.m) { fprintf(stderr, "modulation runtime refused its memory\n"); return ModFail(1); }
-    const fm1_engine_t *mod_units[3] = { sound.e, fx.size() > 0 ? fx[0].e : NULL,
-                                         fx.size() > 1 ? fx[1].e : NULL };
-    for (unsigned u = 0; u < 3; ++u) {
-      if (!mod_units[u]) continue;
-      fm1_mod_bind(md.m, u, mod_units[u]);
-      const Unit &un = u == 0 ? sound : fx[u - 1];
-      for (size_t p = 0; p < un.params.size(); ++p) {
-        for (uint16_t q = 0; q < un.e->n_params; ++q) {
-          if (strcasecmp(un.e->params[q].name, un.params[p].first.c_str()) == 0) {
-            fm1_mod_set_base(md.m, u, q, un.params[p].second);
+    // Every unit the run has, by the runtime's codes: the sound units and
+    // their first FM1_MOD_INSERTS inserts (with slots), the first two --fx
+    // as the master slots.
+    for (unsigned i = 0; i < FM1_MOD_SINKS; ++i) {
+      const Unit *un = ModUnitOf(i);
+      const unsigned code = fm1_mod_sink_unit(i);
+      if (!un || !un->e) continue;
+      fm1_mod_bind(md.m, code, un->e);
+      for (size_t p = 0; p < un->params.size(); ++p) {
+        for (uint16_t q = 0; q < un->e->n_params; ++q) {
+          if (strcasecmp(un->e->params[q].name, un->params[p].first.c_str()) == 0) {
+            fm1_mod_set_base(md.m, code, q, un->params[p].second);
           }
         }
       }
@@ -961,11 +988,11 @@ int main(int argc, char **argv) {
     fm1_seq_host_bind(&bare, sound.e);
   }
   auto ModApplyLines = [&](uint64_t upto) -> bool {
-    const fm1_engine_t *mod_units[3] = { sound.e, fx.size() > 0 ? fx[0].e : NULL,
-                                         fx.size() > 1 ? fx[1].e : NULL };
+    const fm1_engine_t *mod_units[FM1_MOD_SINKS];
+    for (unsigned i = 0; i < FM1_MOD_SINKS; ++i) mod_units[i] = ModUnitOf(i) ? ModUnitOf(i)->e : NULL;
     while (md.next_line < md.lines.size() && md.lines[md.next_line].frame <= upto) {
       char err[256];
-      if (!fm1_mod_script_line(md.m, md.lines[md.next_line].text.c_str(), mod_units, err, sizeof(err))) {
+      if (!fm1_mod_script_apply(md.m, md.lines[md.next_line].text.c_str(), mod_units, err, sizeof(err))) {
         fprintf(stderr, "%s: %s\n", mod_path, err);
         return false;
       }
@@ -1013,9 +1040,10 @@ int main(int argc, char **argv) {
           const float v = md.m && c.sound == 0
               ? fm1_mod_set_base(md.m, FM1_MOD_HOST, FM1_MOD_HOST_PITCH, c.value) : c.value;
           u.e->pitch_bend(u.self, v);
-        } else {
-          const float v = md.m && c.sound == 0
-              ? fm1_mod_set_base(md.m, FM1_MOD_SOUND, c.index, c.value) : c.value;
+        } else {                     // the sound unit's base (rule M1)
+          const float v = md.m
+              ? fm1_mod_set_base(md.m, fm1_mod_sound_unit(static_cast<unsigned>(c.sound)), c.index, c.value)
+              : c.value;
           u.e->set_param(u.self, c.index, v);
         }
         c.done = true;
@@ -1122,7 +1150,12 @@ int main(int argc, char **argv) {
       for (int k = 0; k < kSounds; ++k) {
         if (!units[k]->e) continue;
         float *b = unit_block[k].data();
-        for (size_t j = 0; j < inserts[k].size(); ++j) inserts[k][j].e->render(inserts[k][j].self, b, n);
+        for (size_t j = 0; j < inserts[k].size(); ++j) {   // split at their writes (MG3)
+          const unsigned code = j < FM1_MOD_INSERTS ? fm1_mod_insert_unit(static_cast<unsigned>(k),
+                                                                          static_cast<unsigned>(j))
+                                                    : FM1_MOD_NONE;
+          RenderFx(inserts[k][j], code, md.m ? &md : NULL, b, n);
+        }
         if (level[k] != 100.0f) {
           const float g = level[k] / 100.0f;
           for (uint32_t f = 0; f < 2 * n; ++f) b[f] *= g;

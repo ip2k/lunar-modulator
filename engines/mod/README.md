@@ -148,6 +148,7 @@ reach the sound engine: the sequencer's tracks routed to it and live notes.
 | Unit | Destinations |
 | --- | --- |
 | 0 SOUND, 1 FX1, 2 FX2 | the first 32 parameters of the bound engine that take modulation |
+| 17–19 sound units 2–4, 20 + 4k + j sound unit k + 1's insert j + 1 (j 0, 1) | the same, for the virtual FM-1's multi-sound (docs/16 MG3); 16 and 40–41 are aliases of 0, 1 and 2, kept as those; 4–7, 36–39, inserts 3 and 4 and 42 on name nothing yet |
 | 3 HOST | PITCH (uid 1, ±48 semitones; its base is the MIDI bend, sent through `pitch_bend`) and AMP (uid 2, a gain 0–2 before the limiter, ramped linearly over each tick) |
 | 8 + position | a module's MOD and INPUT parameters by uid, and with GATE_DST its gate inputs by index |
 
@@ -280,7 +281,13 @@ Quantize, Compare, Logic, Calc, Mix, Filter) have their own page:
 
 `fm1_mod_glue_t` (`include/fm1_mod_host.h`) is that hook for a runtime; it
 hands writes to the effects and AMP to the host, which renders each effect
-split at its own writes. Plain `fm1_seq_host_dispatch` is the hook-less
+split at its own writes. With several sound units,
+`fm1_seq_host_dispatch_slots_ticks` runs the same hook over every slot in
+one pass: slot k is sound unit k, a tick's write goes to the slot it names
+and splits only that slot's render, a lock on slot k moves sound unit k's
+base (`lock_slot`), and each slot's calls come in the order
+`dispatch_ticks` would give it alone [verified: `hooked_slots` in
+`fm1-seq-host-test`]. Plain `fm1_seq_host_dispatch` is the hook-less
 case, which the virtual FM-1 keeps with its lab switch off; with it on, the
 app runs this glue as `fm1-render` does (MG3). A bridge initialised with
 no sequencer runs only ticks, which is how `fm1-render` modulates without
@@ -300,10 +307,16 @@ slot 3 lfo1 > lfo2.rate amt=20 via=vel pol=uni curve=square
 ```
 
 Sources are system names (vel, note, rand, key, trig, clock, beat, bar,
-run, start, seq1–seq8, sqv1–sqv8) or a module's output (`lfo1`,
-`lfo1.wrap`, `env3.2`, `mod5.held`). Destinations are `snd:`, `fx1:`,
-`fx2:`, `host:pitch`, `host:amp`, or a module's parameter or gate input
-(`lfo2.rate`, `env3:gate`). `--param-at` and `--bend` go through the bases.
+run, start, rtrg, seq1–seq8, sqv1–sqv8) or a module's output (`lfo1`,
+`lfo1.wrap`, `env3.2`, `mod5.held`). Destinations are `snd:` (sound unit 1,
+also `snd1:`), `snd2:`–`snd4:`, `sndK.fxJ:` (sound unit K's insert J;
+`snd.fxJ:` for sound unit 1's), `fx1:` and `fx2:` (the master slots),
+`host:pitch`, `host:amp`, or a module's parameter or gate input
+(`lfo2.rate`, `env3:gate`); a `:` ends the unit when there is one, else the
+first `.`. The sound units and inserts need the slots flags (`--sound`,
+`--insert`): every unit loaded is bound, its first two inserts too.
+`--param-at`, `--sound-param-at`, `--fx-param-at` and `--bend` go through
+the bases.
 
 **`--log-mod FILE.jsonl`**: one line per tick, with `k` (the tick), `t`
 (its absolute frame), `m` (each module's effective parameters `v`, outputs
@@ -337,10 +350,16 @@ and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
   gives, with the same splits, through the sequencer or not, effects
   included [verified: `test_zero_route_identity`]. The bridge change
   itself changed no render: see "No render changed" below.
-- **Size.** `fm1_mod_size()` is 20,016 B: the 8,192 B arena and 11,824 B of
-  fixed state, the same in 32- and 64-bit builds (no pointers, every 64-bit
-  member 8-aligned) [verified: pinned in the tests, which CI's `-m32` job
-  runs]. docs/16 §4.1 estimated 4,480 B of fixed state. The difference is
+- **Size.** `fm1_mod_size()` is 22,368 B since MG3 (20,016 B in MG1): the
+  8,192 B arena and 14,176 B of fixed state, the same in 32- and 64-bit
+  builds (no pointers, every 64-bit member 8-aligned) [verified: pinned in
+  the tests, which CI's `-m32` job runs]. MG3's sound units and inserts
+  share a pool of 160 parameter records (HOST takes two) instead of 32 for
+  each of fifteen units, which would have cost about 12 KB more; binding
+  an engine that needs more records than are left fails (its cables are
+  refused), which today's engines never reach: four sound units and ten
+  effects need at most 150 [verified: `test_the_record_pool_holds_every_chain`].
+  RTRG added 48 B. The MG1 figures below are MG1's. docs/16 §4.1 estimated 4,480 B of fixed state. The difference is
   mostly copies: each effect and the sound's parameter ranges (1,920 B, so
   the state needs no pointer to an engine), bases, sent values and offsets
   per sink parameter (1,536 B), effective module parameters for the UI and

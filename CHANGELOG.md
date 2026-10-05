@@ -32,10 +32,12 @@ history.
   - Hold LFO or ENV and turn a knob on the sound's page, an effect's page or
     a module's page: the LFO or envelope you looked at last now moves that
     setting, and the turn sets by how much. Turning again changes the same
-    connection.
+    connection. With several sounds this reaches the sound you are on
+    (SHIFT + PRESETS) and its two inserts, as well as the master effects.
   - EDIT lists all 32 connections. KNOB1 picks what moves, KNOB2 what is
-    moved (from a list; ALGORITHM jumps between the sound, the effects, the
-    host and each module), KNOB3 how much and KNOB4 an offset; ALGORITHM
+    moved (from a list that starts at the sound you are on; ALGORITHM jumps
+    between each sound, its inserts, the master effects, the host and each
+    module), KNOB3 how much and KNOB4 an offset; ALGORITHM
     turns to a second page with a second source that scales the first, a
     curve, the polarity and on or off. SEL shows the chain a connection is
     part of.
@@ -44,10 +46,15 @@ history.
   - For developers: `fm1-sim-render --lab --log-cmds` also logs the
     modulation as `fm1-render --mod` lines, so a session on the panel
     replays byte for byte; `--mod FILE` plays a modulation script, as
-    `fm1-render --mod` does. Two new parity scenarios check the browser
-    module with modulation running (26 of 26 pass), and the layout check
-    now covers 1,084 screens. The browser module grew from 465 KB to about
-    557 KB.
+    `fm1-render --mod` does. `fm1-render --mod` now runs with the sound-unit
+    flags too: `snd2:`, `snd2.fx1:` and the like name the other sound units
+    and their inserts (the runtime's unit codes, `fm1_mod.h`), and
+    `fm1_seq_host_dispatch_slots_ticks` runs the modulation over several
+    sound units. The runtime is 22,368 bytes, and the lab's RAM meter counts
+    it. Four new parity scenarios check the browser module with modulation
+    running, two of them over several sounds (TODO-NUM-SCEN of
+    TODO-NUM-SCEN pass), and the layout check now covers TODO-NUM-SCREENS
+    screens. The browser module grew from 560 KB to about TODO-NUM-WASMK KB.
 - **Modulation, second stage (docs/16 MG2): thirteen more modules** for the
   modulation rack, in the engine and `fm1-render`; not yet playable in the
   simulator or on the FM-1.

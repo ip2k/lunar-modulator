@@ -425,7 +425,10 @@ logic, `src/fm1_mod_view.c` draws them). The app hosts the runtime on the
 sequencer's bridge exactly as `fm1-render --mod` does: a knob, a lock or
 the bend moves a parameter's base, the runtime adds what its cables give,
 each effect renders split at its own writes, and HOST AMP is applied before
-the limiter. Modules are named by the kind's three-letter abbreviation and
+the limiter. With several sounds it runs over every sound unit at once
+(`fm1_seq_host_dispatch_slots_ticks`), and a cable can reach any sound
+unit's parameters, its inserts', the master effects' and the host's. Every
+note on any sound restarts the default envelopes (RTRG). Modules are named by the kind's three-letter abbreviation and
 the rack position (LFO1, LFO2, ENV3, ENV4, CHN5: Chance, Calc, Compare and
 Coin are CHN, CLC, CMP and COI), so no two share a name.
 
@@ -449,21 +452,28 @@ Coin are CHN, CLC, CMP and COI), so no two share a name.
 - **Hold LFO or ENV and turn KNOB1–4** on HOME, FX or RACK: a cable from
   the selected LFO or Envelope (its first output) to that knob's
   parameter, its amount following the turn, 1 % a detent; turning again
-  adjusts the same cable. The popup says `LFO1 > Timbre` and the amount.
+  adjusts the same cable. On HOME the parameter is the current sound's
+  (SHIFT + PRESETS chooses it); in FX mode, the effect's on the page shown
+  (the current sound's In1 or In2, or the master M1 or M2). The popup says
+  `LFO1 > S2Color` and the amount.
   A parameter that takes no modulation (Macro's Model) says so. Released
   without a turn, the button is a tap.
 - **EDIT**: MATRIX, seven of the 32 slots as rows of 19 characters, the
   selected one inverted, and a hint line:
   ```
-  LFO1  >Timbre   +40     source, > (or ~ a tick late), target, amount
-  SEQ8  -F2PngPg -100     - off, ! refused, v per voice (not made yet)
+  LFO1  >S1Tmbre  +40     source, > (or ~ a tick late), target, amount
+  SEQ8  -M2PngPg -100     - off, ! refused, v per voice (not made yet)
+  ENV3  >S2I1Mix  +50     Sound 2's first insert (In1)
   LFO2.2>ENV3Gte +100     a module target: its label and 3 characters
   ```
   SELECT moves the selection. Page A: KNOB1 the source (`--` first, which
   empties the slot), KNOB2 the target through a picker (prev, current and
-  next in full, `Snd Timbre`, `FX1 Mix`, `Host Amp`, `ENV3 Attack`,
-  `ENV3 Gate`; ALGORITHM jumps between groups while it is open; it commits
-  as the kind picker does), KNOB3 the amount, KNOB4 the offset, 1 % a
+  next in full, `S1 Timbre`, `S2 In1 Mix`, `M1 Mix`, `Host Amp`,
+  `ENV3 Attack`, `ENV3 Gate`, in groups S1, S1 In1, S1 In2, S2 ... S4 In2,
+  M1, M2, Host and each module, an empty unit left out; on an empty slot
+  it opens at the current sound; ALGORITHM jumps between groups while it
+  is open; it commits as the kind picker does), KNOB3 the amount, KNOB4
+  the offset, 1 % a
   detent. ALGORITHM otherwise turns to page B: KNOB1 VIA, KNOB2 the curve,
   KNOB3 the polarity, KNOB4 on or off. A new cable starts on, at 0 %, from
   the selected LFO unless KNOB1 chose a source first. The hint line names
@@ -478,12 +488,11 @@ Coin are CHN, CLC, CMP and COI), so no two share a name.
   plus or minus the cables' depth round the base on its bar, and a red tick
   at the value it has now. The rows keep the 4 px gaps.
 
-Destinations are a slot's unit code and a uid: 0 the sound, 1 and 2 the
-effect slots, 3 the host, 8–15 a rack position. `fm1_mod_ui.h` keeps the
-code space for the sound units 1–4, their inserts and the master slots that
-come with several sounds, and every cable here is global, while the slot
-record keeps the per-voice flag for the next stage (docs/16 MG3, "As
-built").
+Destinations are a slot's unit code and a uid (`fm1_mod.h`): 0 Sound 1,
+17–19 Sounds 2–4, 20 + 4k + j Sound k + 1's insert j + 1, 1 and 2 the
+master slots, 3 the host, 8–15 a rack position; HOST PITCH bends Sound 1.
+Every cable here is global, while the slot record keeps the per-voice flag
+for the next stage (docs/16 MG3, "As built").
 
 **Gesture traces and two-step parity** (docs/15 §6.3). `fm1-sim-render
 --panel FILE` reads panel input, one `--key`, `--button` or `--turn` per

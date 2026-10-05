@@ -20,7 +20,7 @@ from tests.test_sim_web import SCENARIOS, left_channel, run, scenario_args, tool
 BUDGET = 387924
 SEQ_FIXED = 31880 + 3264          # the sequencer's instance (8 tracks) and event buffer (272 events)
 SEQ_LAB = 240 + 1024 + 20         # with the lab switch: the pending record, the UI bound, the click,
-MOD_BYTES = 20064                 # and the modulation runtime (fm1_mod_size(), docs/16 MG3)
+MOD_BYTES = 22368                 # and the modulation runtime (fm1_mod_size(), docs/16 MG3)
 LAB_FIXED = SEQ_LAB + MOD_BYTES
 MIX_BLOCK = 512
 

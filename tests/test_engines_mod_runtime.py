@@ -42,7 +42,7 @@ FIXTURE = ROOT / "tests" / "fixtures" / "mod-uids.json"
 TICK = 32
 # fm1_mod_size(): 8,192 B of arena and 11,824 B of fixed state, the same in
 # 32- and 64-bit builds (no pointers; every 64-bit member 8-aligned).
-MOD_BYTES = 20064
+MOD_BYTES = 22368
 FLAG_BITS = ["latch", "smooth", "nolock", "mod", "input"]
 
 
@@ -505,6 +505,23 @@ def test_rtrg_retriggers_on_every_note_on(renderer, tmp_path):
     assert ek[after[-1]] <= ek[after[0]]             # KEY: decaying toward sustain
 
 
+def test_the_record_pool_holds_every_chain(renderer):
+    """docs/16 MG3: the bound units share FM1_MOD_SINK_PARAMS parameter
+    records. The largest chain the virtual FM-1 can hold, four sound units
+    of the engine with the most parameters and ten effects (two inserts on
+    each, two master slots) of the effect with the most, fits with HOST's
+    two; the sinks are listed in their order with their script names."""
+    d = json.loads(subprocess.check_output([str(renderer), "--list-mod"]))
+    engines = json.loads(subprocess.check_output([str(renderer), "--list"]))
+    most = {k: max(min(len(e["params"]), d["unit_params"]) for e in engines if e["kind"] == k)
+            for k in ("sound", "audio_fx")}
+    assert 4 * most["sound"] + 10 * most["audio_fx"] + 2 <= d["sink_params"] == 160
+    assert [n for _, n in d["sinks"]] == ["snd", "fx1", "fx2", "host", "snd2", "snd3", "snd4",
+                                          "snd1.fx1", "snd1.fx2", "snd2.fx1", "snd2.fx2",
+                                          "snd3.fx1", "snd3.fx2", "snd4.fx1", "snd4.fx2"]
+    assert [u for u, _ in d["sinks"]] == [0, 1, 2, 3, 17, 18, 19, 20, 21, 24, 25, 28, 29, 32, 33]
+
+
 def test_mod_runs_over_sound_units(renderer, tmp_path):
     """With slots (docs/16 MG3) the runtime runs over every sound unit: a
     cable into the sound moves sound unit 0 as without slots, a note on
@@ -522,6 +539,16 @@ def test_mod_runs_over_sound_units(renderer, tmp_path):
     two, raw_two, _ = run(renderer, tmp_path, ["--engine", "test-sine", "--seconds", "0.5"],
                           mod="mod 1 lfo rate=0.8\nslot 1 lfo1 > snd:Volume amt=-50\n", name="noslots")
     assert raw_one == raw_two and one["mod_sound_writes"] == two["mod_sound_writes"] > 0
+    # Cables into sound unit 2 and its insert: their writes, by name; at a
+    # zero amount, the plain render to the byte.
+    units = base + ["--insert", "1:test-gain"]
+    plain2, raw_plain2, _ = run(renderer, tmp_path, units, name="plain2")
+    cables = "rack default\nslot 1 lfo1 > snd2:Volume amt={a}\nslot 2 lfo2 > snd2.fx1:Gain amt={a}\n"
+    zero, raw_zero, _ = run(renderer, tmp_path, units, mod=cables.format(a=0), name="zero")
+    assert raw_zero == raw_plain2 and zero["mod_writes"] == 0
+    s, raw, ticks = run(renderer, tmp_path, units, mod=cables.format(a=-40), name="sound2")
+    assert {x["u"] for x in ticks[-1]["s"]} == {"snd2", "snd2.fx1"} and raw != raw_plain2
+    assert s["mod_sound_writes"] > 0 and s["mod_other_writes"] > 0 and s["mod_refused"] == 0
 
 
 def test_amp_makes_a_tremolo(renderer, tmp_path):
