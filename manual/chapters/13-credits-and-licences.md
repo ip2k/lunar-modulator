@@ -7,8 +7,9 @@ terms it is used under.
 
 - **Mutable Instruments**, code by **Emilie Gillet**, MIT licence. Macro,
   Macro Heavy and Six-Op FM are built from the engines of Plaits; Shapes from
-  the macro-oscillator of Braids; Plate from the reverb of Rings; Ensemble and
-  Diffuse from Plaits' ensemble and diffuser. Their code is included
+  the macro-oscillator of Braids; Plate from the reverb of Rings, its Freeze
+  after the one in Elements; Room from the reverb and diffuser of Clouds;
+  Ensemble and Diffuse from Plaits' ensemble and diffuser. Their code is included
   unmodified; the wrappers that make it polyphonic and fit it to the FM-1
   are this project's own, and Macro Heavy's speech model adapts one of
   Plaits' classes. Lunar Modulator is not affiliated with or endorsed by
@@ -87,6 +88,16 @@ terms it is used under.
   in the form **Andrew Simper** (Cytomic) published, whose maths is in the
   public domain, and its curves are checked against **Robert
   Bristow-Johnson**'s Audio EQ Cookbook. No code is taken from either.
+- **Hall** is this project's own code. It is a feedback delay network after
+  **Jean-Marc Jot** and **Antoine Chaigne** (1991); its structure follows
+  schwung-work's Voidspace and **Geraint Luff**'s Signalsmith basics library
+  (both MIT), its input diffusion **Manfred Schroeder**'s all-passes with
+  **Jon Dattorro**'s coefficients, and its 16-bit delay memory **Emilie
+  Gillet**'s effects engine in Rings and Clouds; none of their code is used.
+- **Gate** is this project's own code. Its controls follow the operator
+  manuals of **Drawmer**'s DS201 and DS301 noise gates (the maker's name
+  appears here only as credit); its key filters are **Vadim Zavalishin**'s
+  state-variable filter. No circuit or code is taken from anyone.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and
