@@ -42,9 +42,9 @@ to an FM-1 (CLAUDE.md). Web MIDI stays input only unless the owner opts in
 | In what order? | **S1:** one shared, heap-free C99 host bridge, extracted from `fm1-render` with no change in behaviour. **S2:** the app hosts the sequencer with no UI and proves parity. **S3–S10:** the UI, one PR per stage. S7 (engine API v2) is split into a silent stage, S7a, which lands before the lock UI (S8), and an audio-changing one, S7b, best merged before S8 too. |
 | When is it playable? | In S3, PLAY/STOP plays a demo pattern and SEQ shows the grid. In S4, patterns can be made on the panel. |
 | How is it checked? | **Parity:** the module equals `fm1-render` built to JavaScript and against musl exactly, and against glibc within 1 LSB. **Oracle:** every oracle script played through the app equals `fm1-render`. **Gestures:** panel traces replay through `fm1-render` byte for byte. **Layout:** every new screen passes the layout check. **Staleness:** CI's gate covers the new inputs (§6). |
-| What does it cost in RAM? | At 8 tracks, at most 36,216 B of the 36,864 B half budget, leaving 648 B. At 4 tracks, at most 22,392 B (§2.6). |
+| What does it cost in RAM? | At 8 tracks, at most 36,428 B of the 36,864 B half budget since S6 (272 events and the click), leaving 436 B. At 4 tracks, at most 22,604 B (§2.6). |
 | What does the owner decide? | 24 decisions (§8). S1 needs none. S2 needs one constant. |
-| What is left out? | Compat mode in the app, undo (until M4/D14, or O16), MIDI out (O18), more than one sound unit (O10), and anything on an FM-1. |
+| What is left out? | Compat mode in the app, undo (until M4/D14, or O16), MIDI out (O18), and anything on an FM-1. Several sound units, first left out (O10), are in since 2026-10-02 (§3.16). |
 
 ## 2. Architecture
 
@@ -52,7 +52,7 @@ to an FM-1 (CLAUDE.md). Web MIDI stays input only unless the owner opts in
 
 | Layer | Files | Rules |
 | --- | --- | --- |
-| Core | `engines/seq/*.c`, `engines/include/fm1_seq.h` | Unchanged except for three additions. S4 adds a read-only page getter and `rec_track` in `fm1_seq_info_t`. S5 adds a D-row in `commit_playing`, if O9 approves it. |
+| Core | `engines/seq/*.c`, `engines/include/fm1_seq.h` | Unchanged except for two additions. S4 adds a read-only page getter and `rec_track` in `fm1_seq_info_t`. S5 adds nothing: O9 kept Movy's Capture growth, so the proposed D-row in `commit_playing` was not made. |
 | Host bridge, new in S1 | `engines/include/fm1_seq_host.h`, `engines/seq/seq_host.c` | C99 with `-Wpedantic`, no heap, no stdio. It goes in `SEQ_SRC`, so `test_the_core_never_allocates` covers it; that test's object count goes from 5 to 6 [verified: tests/test_seq_core.py 895–896]. It is linked into `fm1-seq`, `fm1-seq-check`, `fm1-render` and `fm1-render.js`, and from S2 into `fm1-sim-render` and `fm1.wasm`. |
 | Script host code | `engines/host/seq_script.[ch]` | It allocates and uses stdio, so only the native tools link it. `fm1.wasm` never does, because stdio and malloc would add WASI imports, and parity fails on any import. S3 adds `fm1_seq_cmd_format`. |
 | Reference host | `engines/host/render.cc` | It keeps its CLI and its 65,536-entry event buffer [verified: render.cc 419]. S1 adds `seq_dropped`, `seq_max_block_events`, `seq_splits` and `--events N`. |
@@ -101,7 +101,7 @@ typedef struct {
 | `fm1_seq_lane_param(e, label)` | `LaneParam`: the text after the last `:`, compared case-insensitively in ASCII. |
 | `fm1_seq_lock_value(p, v)` | `LockValue`, as the same float expression, parenthesised identically: FLOAT is linear over 0..127, ENUM is min + ⌊v·n/128⌋. |
 | Added in S7a | Label-to-uid resolution, and refusal of NOLOCK parameters, counted. |
-| Added in S8 | `fm1_seq_value7(p, x)`, the inverse of `lock_value`. |
+| Added in S8 | `fm1_seq_value7(p, x)`, the inverse of `lock_value`; as built also `fm1_seq_value7_step` (a knob detent on the 7-bit grid) and `fm1_seq_lane_label_for` (a lane's label, a space written `_`, which `fm1_seq_lane_param` reads back). |
 
 ### 2.3 Host policy
 
@@ -161,7 +161,8 @@ Both hosts run the same order. Parity always runs at 64-frame blocks.
 6. **Dispatch.** Unit 0's render is split at each engine-routed NOTE_ON,
    NOTE_OFF and LOCK frame, in emission order (offs, locks, ons). CLICK, CLOCK,
    START, STOP and MIDI-routed tracks are only logged.
-7. **The rest of the block.** Effects 1–2 run in place, then the limiter. The
+7. **The rest of the block.** Effects 1–2 run in place, then (from S6) the
+   metronome's click from the block's events (`fm1_seq_click_mix`), then the limiter. The
    app then takes the scope and peak, applies MASTER, advances `frames` and
    updates the LEDs.
 
@@ -236,11 +237,12 @@ half of docs/13 §5's 72 KiB, 36,864 B (docs/13 §10).
 | Item | 4 tracks | 8 tracks | Note |
 | --- | --- | --- | --- |
 | Sequencer instance, Capture 256 × 12 B included | 18,056 | 31,880 | [verified: `fm1-seq --sizes`; test_seq_render.py 52 asserts 18,056] |
-| Event buffer, 256 × 12 B | 3,072 | 3,072 | The minimum is 72 events (864 B). The measured worst is 193 events (2,316 B) in seq_bench's burst, and at most 7 per 64-frame block over the 34 oracle scripts [verified 2026-10-01] |
+| Event buffer, 272 × 12 B (256 until S6) | 3,264 | 3,264 | The minimum is 72 events (864 B). The measured worst is 193 events (2,316 B) in seq_bench's burst, and at most 7 per 64-frame block over the 34 oracle scripts [verified 2026-10-01]. Beside the 64 gates' note-offs the core keeps room for, that burst needs 257, one more than 256; S6 raised the buffer to 272, which holds it [verified 2026-10-02: `fm1-render --events`, tests/test_seq_render.py] |
 | Pending command record | 240 | 240 | One `fm1_seq_cmd_t` [verified 2026-10-01: sizeof]. It stands in for the FM-1's command ring, whose compact record is still to be designed |
-| UI state | ≤ 1,024 | ≤ 1,024 | asserted |
-| **Total** | **≤ 22,392 (60.7 %)** | **≤ 36,216 (98.2 %)** | |
-| Spare | 14,472 | 648 | docs/13 §5's 12,288 B undo ring fits only at 4 tracks |
+| UI state | ≤ 1,024 | ≤ 1,024 | asserted; 552 B at S6 |
+| Metronome click voice (S6, O11) | 20 | 20 | `fm1_seq_click_t`, asserted |
+| **Total** | **≤ 22,604 (61.3 %)** | **≤ 36,428 (98.8 %)** | |
+| Spare | 14,260 | 436 | docs/13 §5's 12,288 B undo ring fits only at 4 tracks |
 | Stack during a stopped Capture's tempo search | about 1.55 KB | about 1.55 KB | transient [verified: engines/seq.md 286] |
 
 Without Capture the instance is 14,984 B at 4 tracks and 28,808 B at 8
@@ -253,7 +255,10 @@ same in 32-bit and 64-bit builds.
   pending record + `sizeof(fm1_seq_ui_t)` ≤ 36,864.
 - **Text buffer:** 65,536 B of BSS in fm1_web.c (§2.7).
 - **`fm1_app_t`:** 1,168,288 B natively today [verified: sim/web/README.md
-  144]. It grows by about 37 KB [inferred].
+  144]. It grows by about 37 KB [inferred]. Multi-sound (§3.16) makes it
+  4,880,816 B (4,881,424 B with S6): four 512 KiB sound arenas and ten 256 KiB effect arenas
+  [verified 2026-10-02: `fm1-sim-render --sizes`, clang, 64-bit]; 4,880,384 B
+  at 32 bits [verified 2026-10-02: the same, gcc 12 `-m32`].
 - **`fm1.wasm`:** 391,277 B today. It grows by about 60–80 KB of code
   [inferred from the 5 seq objects' arm64 text, about 78 KB].
 - All of it fits the module's fixed 8 MiB of memory.
@@ -363,8 +368,8 @@ drawn as `<` and `>`, because the font has ASCII only [verified: fm1_tft.c 87].
 | G#3 | OP2 | LOOP. Held, the white keys are bars 1–16; LOOP + SELECT resizes (`loop`, `dbl`) | S9 |
 | A#3 | OP3 | ▶ bar page. With a step held: `enudge` + (SHIFT: one tick) | S4 |
 | C#4 | OP4 | COPY: `cpy` / `pst`, and `cpyclr` on release; `clipcopy` / `clippaste` in Session | S9 |
-| D#4 | OP5 | CLEAR. + step: `del` + `aclrstep` (S9). + one knob detent: `aclr` (S8). Tap: delete the clip, with a confirm until undo exists [O15] | S8, S9 |
-| F#4 | OP6 | MUTE. A tap mutes the focused track; held, white keys 1–8 are a mute map; SHIFT + MUTE solos [O12] | S6 |
+| D#4 | OP5 | CLEAR. Steps held, then CLEAR: `aclrstep` per held step with a lock (S8, as built). Held + one knob detent: `aclr` (S8). CLEAR, then a step: `del` + `aclrstep` (S9). Tap: delete the clip, with a confirm until undo exists [O15] | S8, S9 |
+| F#4 | OP6 | MUTE. A tap mutes the focused track; held, white keys 1–8 are a mute map; no solo (O12, answered: mute only) | S6 |
 | G#4 | PIT | UNDO, inert until undo exists (M4/D14) [O16] | — |
 | A#4 | GLO | spare | — |
 | C#5 | MONO | previous track | S6 |
@@ -447,8 +452,10 @@ playing restarts (S4); D12 makes that a Stop and a Start.
   - then Set, Clip and Track.
 
   In the Capture picker it chooses the candidate.
-- **PRESETS** chooses the sound in unit 0, which every engine-routed track
-  shares [O10].
+- **PRESETS** chooses the current sound's engine; SHIFT + PRESETS chooses
+  the current sound (§3.16). With the lab switch each engine-routed track
+  plays the sound its route names; without it, every one shares unit 0
+  [O10, answered 2026-10-02].
 - **ALGORITHM** turns the model, the engine's first ENUM parameter. It **never
   creates a lock**. Whether a parameter can be locked at all is its flag
   (NOLOCK, from S7a), not which encoder turns it. For Six-Op, ALGORITHM turns
@@ -462,7 +469,8 @@ playing restarts (S4); D12 makes that a Stop and a Start.
   parameter's 7-bit value v7 by ±1.
 - It sets `value[] = fm1_seq_lock_value(p, v7)`, the bridge's exact
   expression, and sends `abase t lane v7`, then `abaseq` after 600 ms idle (R8:
-  no snap-back to a stale base).
+  no snap-back to a stale base). As built (S8): `abaseq` at every detent,
+  and none after (§5 S8, as built).
 - The grid is v/127 for FLOAT and the ⌊v·n/128⌋ bins for ENUM. Today a detent
   is 1/100 of the range [verified: sim/web/README.md, Limits]. Without the
   snap, the engine would play a different value from the one the screen shows,
@@ -478,10 +486,12 @@ playing restarts (S4); D12 makes that a Stop and a Start.
 - **Step page 2:** INV, plus read-outs of nudge and transpose.
 - **Lock pages** (S8), on the first turn of a parameter without a lane:
   1. `alabel t lane synth:<Name>`;
-  2. `abaseq t lane value7(current)`, so the base equals what the knob shows;
+  2. `abaseq t lane value7(current)`, so the base equals what the knob shows
+     (as built: `abase`, Movy's, with the knob first put on the grid);
   3. `aset t lane step v 1`, which is quiet.
 
-  NOLOCK parameters are hidden. A ninth lane gives the toast `8 lanes used`.
+  NOLOCK parameters are hidden (as built: named `no lock`, and a turn says
+  `cannot be locked`). A ninth lane gives the toast `8 lanes used`.
 
 **Two or more steps held:** the Step pages edit every held step. The sound
 pages edit the sound, with no lock.
@@ -560,6 +570,86 @@ layouts, its LFO assign and its MIX page are dropped here, as in docs/13 §4.
     KeyY and KeyU, which play black keys 1, 3, 5, 8 and 10.
 - **The existing KEYMAP is unchanged.** In SEQ mode its black-key letters reach
   the role keys, as the panel does.
+
+### 3.16 Multi-sound [O10, answered 2026-10-02]
+
+The owner replaced O10's proposed default: up to **four sound units**
+(engine instances) play at once, each sequencer track routed to one of
+them; **each sound unit has two insert effect slots**; the two effect
+slots the panel had stay as the **master bus**, after the sounds are mixed,
+and each sound has its own level into that mix. A **RAM meter** against the
+FM-1's budget refuses any engine or effect that would not fit, so what
+plays in the simulator fits the device. It is all behind the lab switch
+(O24); with the switch off the panel has one sound and two effects, as
+before.
+
+**Why two inserts per sound, not one.** Every instance's RAM is metered,
+and an empty slot costs the FM-1 only its record [inferred: the firmware's
+one arena sized to the chain, §2.6], so the budget limits what is loaded,
+not how many slots there are; and two inserts let a sound carry a colour
+effect and a space effect of its own while the master bus is shared. The
+simulator's cost is its fixed arenas: eight more 256 KiB effect arenas, 2
+MiB of the module's 8 MiB. CPU per slot is not measured (stage B).
+
+**The signal path.** Each sound renders its own block, split at its own
+tracks' events, then its inserts in order, then its level (0–100 %, unity
+by default and skipped there); the sounds are summed in order; then the
+master slots, the bus limiter and MASTER. A track routed to the engine
+plays the sound its route index names (`route t 1 k`, Sound k + 1; the
+bridge's `fm1_seq_host_dispatch_slots`, engines/seq.md); a lock lane
+resolves on that sound's engine; a track routed to an empty sound plays
+nothing. `fm1-render --slots` (with `--sound`, `--insert`, `--level`)
+renders the same, so parity holds across sound units.
+
+**The RAM meter.** It replaces the RAM figure in the bottom bar (a bar and
+the percentage of 387,924 B, red past 100 %) and feeds GLO's RAM line:
+every instance at the build's word size (32-bit in the browser's module,
+as on pi32v2; the native harness's 64-bit figures are larger, Macro's by
+12,880 B [verified: engines/README.md's size table], so near the budget the
+native harness refuses sooner than the browser and a gesture trace there
+can play differently in the two),
+the sequencer's instance, events, pending record and UI bound (36,216 B at
+8 tracks), and a 512-byte mix block per sound past the first. A choice that
+would pass the budget is refused (`fm1_app_select` returns -4) with a
+popup naming it and by how much, whether the panel, the page's menus or
+the API asked (PRESETS and ALGORITHM, which step past it, give the first
+refused choice's figure); a chain already past the budget may shrink but
+not grow.
+
+**The gestures** (with the lab switch; O1 and O2 hold: SEL is SHIFT
+outside FX mode, and the black keys carry sequencer roles only in SEQ
+mode, so choosing a sound uses neither the keys nor a new button):
+
+| Input | HOME, GLO, SEQ mode | FX mode |
+| --- | --- | --- |
+| SHIFT + PRESETS | the current sound, Sound 1 to 4, no wrap; a popup `Sound 2 of 4` with its engine, or `Empty:` / `turn PRESETS` | — (SEL is the slot grab, as before; choose the sound outside FX mode) |
+| PRESETS | the current sound's engine, stepping past one this host refuses or that would not fit, with a popup naming the first one skipped; on Sounds 2–4 the list starts with Empty, which unloads the sound (Sound 1 always holds one) | the same |
+| ALGORITHM | the current sound's model | the selected slot's effect, stepping past one that would not fit; nothing on the Mix page |
+| SELECT | the current sound's pages | walks the current sound's In1 and In2, the Mix page, then M1 and M2 (the master bus), page by page; FX mode opens on the master slot that was selected |
+| SEL, then SELECT (FX mode) | — | swaps the selected insert with the other, or master slot with master slot; nothing on the Mix page |
+| KNOB1–4 | the current sound's page | the selected slot's page; on the Mix page, the levels of Sounds 1–4, a percent a detent |
+| Keys, MIDI IN | play the current sound; a release goes to the sound the note started on | the same |
+| Steps held in SEQ mode | unchanged (§3.5): the UI takes SELECT and KNOB1–4, PRESETS and SHIFT + PRESETS act as above | — |
+
+**The screens** (§4's rules; the layout sweep checks every state). The
+title names the current sound once a second one is in use (`S2 Shapes`;
+`S3 (empty)` for an empty one, whose HOME page reads `Empty sound:` /
+`turn PRESETS`). FX mode's first line is the chain, `S2 In1 In2 Mix M1
+M2`, the selected slot in the accent colour and an empty one dim; the
+second line the selected slot and its effect (`> In1 Ensemble`, `*` when
+grabbed); then the slot's page, or on the Mix page four rows, `S1` …
+`S4`, each with its engine and level (`Macro 100%`) over a level bar. The
+bottom bar reads `1/2 S2 In1`, `1/1 Mix` or `1/3 M1`, beside the meter.
+
+**For stage S6.** `fm1_app_unit_route(a, track, sound)` routes a track to
+a sound unit with a typed `route t 1 k`, sent as the panel's commands are
+(the event-room rule; the harness logs it, so a gesture that routes
+replays through `fm1-render`), `fm1_app_unit_of_track` reads it back, and
+`fm1_app_unit_set_current` makes a sound current (for example, to follow
+the focused track); the rest of `fm1_app_unit_*` (sim/web/src/fm1_app.h)
+loads sounds and inserts, sets levels and plays notes on a given sound.
+Which sound a new track starts on, and whether focusing a track makes its
+sound current, are S6's.
 
 ## 4. Screens
 
@@ -1247,6 +1337,123 @@ record), O9 (the D-row, which can also land alone in `engines/`).
 
 **Size:** M.
 
+**As built (2026-10-02, branch `feature/2026-10-02@seq-record`, on S4's
+branch).** Everything stays behind the lab switch (O24); the owner's
+answers to O7–O9 are in §8. Where the build differs from, or adds to, the
+plan above [verified: tests/test_seq_ui.py, tests/test_seq_core.py,
+`fm1-sim-render --screens`]:
+- **Live input.** A note played that no step takes is live input to the
+  focused track (`fm1_app_seq_note_in`, at frame 0 of the coming block):
+  the keys outside SEQ mode, and MIDI IN in every mode. A note that went
+  into the pattern as an edit (a held step's `addp`, step record) is not,
+  as Movy's router skips its capture path for a pad it consumed. A release
+  goes to the track its note went to, and a change of sound or a panic
+  releases every note given. With the switch off nothing is given.
+- **REC** sends `rec <focused>` in every mode. In SEQ mode with the
+  transport stopped it acts on its release, as Movy's Rec does
+  (`router.ts`, `step-rec.ts` at `9190e79`): let go untouched within
+  ⌈0.5 · rate⌉ frames (Movy's 500 ms tap; 22,059 at 44,118 Hz), it
+  records; held, it is step record. Elsewhere, or while playing, it acts
+  on the press.
+- **Step record (O8)** follows Movy's `step-rec.ts` and `step-rec-head.ts`
+  at `9190e79` [verified: read into the git-ignored `reference/`]:
+  - each white key enters its pitch, in the current octave, at the record
+    head and sounds (on the sound only: it is no live input): `del` on a
+    fresh step, then `addp`, and in a clip that was empty a `clen` that
+    grows it to what is played, rests included. MIDI IN notes enter the
+    same way, which is how sharps go in;
+  - keys held together are a chord on one step, and the head moves on when
+    the last is let go;
+  - A#3 (▶) leaves a rest, or with keys down ties the chord into the next
+    step (`slen` per pitch; the head rides to the tied note's end); F#3
+    (◀) steps back, or unties;
+  - SHIFT + white key moves the head to that step of the bar and clears it
+    (Movy's step buttons); past a clip's end only while the clip grows;
+  - a clip that had a length wraps at its loop's end;
+  - nothing latches: letting go of REC ends it, and so do PLAY/STOP,
+    leaving SEQ mode and the transport starting.
+  - **The head advances by itself on key release,** as the owner asked.
+    Movy at `9190e79` already does so: its head "advances only when the
+    LAST pad comes up" (`step-rec.ts`; MANUAL.md, "Step recording")
+    [verified]. So it is no deviation and needs no row, and since step
+    record is the UI's alone, compat mode is untouched. The plan's
+    premise came from a [reported] summary and was wrong.
+  - **Three differences from Movy:** the head starts on the loop's first
+    step (Movy parks it on step 1 whatever the loop); it wraps at the
+    loop's end, where Movy's `advanceHead` compares the head with the
+    loop's length, so for a loop that starts on a later bar Movy's head,
+    once in the loop, returns to its first step at every advance, and its
+    step buttons refuse every step past the length (`step-rec-head.ts`,
+    `step-rec.ts` at `9190e79`) [verified; the wrap here:
+    `test_step_record_wraps_at_the_end_of_a_loop_on_a_later_bar`]; and a
+    step back does not play the step's notes (Movy's preview), which
+    `fm1-render` could not replay. The first two agree with Movy for a
+    loop on bar 1. Movy's drum rule (pads only add) waits for drum tracks.
+  - **MIDI IN in step record** is ours (Movy steps on pads): a pitch
+    already down is one pad, so a second note-on of it enters nothing and
+    its first release closes the chord.
+- **Capture (O7).** SHIFT + REC sends `cap <focused>` outside FX mode, or,
+  with nothing buffered, shows `Nothing to capture` and sends nothing, as
+  Movy's `captureButton`. The next block says what it did: `Captured`
+  while playing, and for a stopped take whose tempo needed no choice;
+  otherwise the core's overlay.
+- **The overlay** is the core's `capture_mode`, read once per block and
+  drawn over every mode where popups go. The picker (mode 1) lists the
+  candidates, one a line, the one taken highlighted; SELECT or KNOB1 sends
+  `capsel`, heard at once. The fitted tempo (mode 2) reads `Captured` /
+  `at 117.50 BPM`; there SELECT and KNOB1 do nothing, as Movy's jog
+  (`captureJog` at `9190e79`) [verified]. **Both stay until a press, as Movy's overlay does,**
+  rather than mode 2 being a one-second toast as proposed: the core takes
+  no Capture input until `capdone`. Any press (a button, a key, another
+  encoder) sends `capdone` and does nothing else, as in Movy, where a key
+  that both closed it and wrote into the take would need undo; releases go
+  through, and MIDI IN notes are no presses.
+- **O9, as the owner changed it:** no D-row. Capture committed while
+  playing anchors a last-half-step note on the loop end and grows the clip
+  by a bar in both modes, as Movy does;
+  `test_capture_while_playing_grows_the_clip_as_movy` pins it (16 steps
+  become 32, the note on step 16).
+- **LEDs.** REC is on while recording or step recording, fast (0.25 s)
+  during the count-in or while a take waits for its bar, and slow (1 s)
+  while Capture holds notes and nothing records. In step record the head's
+  white key blinks fast, A#3 is lit, and F#3 while a step back or an untie
+  is possible.
+- **Screens.** The status line reads REC in gold through the count-in or a
+  waiting take, in red while the focused track records, and STEP in step
+  record; the grid frames the head in red; the hint line gives the head's
+  step (`Step rec 17`; a tie, `17-19`) or, with SEL held, `Keys move the
+  head`.
+- **Harness.** `--log-cmds` logs live input as `non` and `nof` ops at the
+  block they led (a second hook, `on_note_in`) and lists them with the
+  panel's commands, so traces that play keys or MIDI IN replay byte for
+  byte, which closes S3's open issue; three S4 traces gained those lines.
+- **Gesture traces:** 11 new golden traces in tests/fixtures/seq-ui/
+  (`rec-*`, `step-record*`, `capture-*`), each replayed by `fm1-render`
+  byte for byte.
+- **Screens:** 39 more, 953 in all, 0 faults. Of the PPMs the sweep
+  saves, the 36 with the lab switch off are byte-identical to S4's; of
+  the 35 lab-on ones S4 also saved, 24 are identical and 11 (the hint
+  line's and each sound's page) differ only because the sweep's REC now
+  counts in and the next block's read shows track 1's loop, where S4's
+  showed the stale mirror of track 8, which has no clip [verified:
+  `fm1-sim-render --screens` at S4's head and here, in review].
+- **The UI state** is 536 B of its 1,024; `fm1_app_t` is 1,205,920 B
+  [verified: `fm1-sim-render --sizes`].
+- **On aeon** [verified: `www/fm1.wasm.json` and the screenshot report,
+  2026-10-02]: parity 27 of 27, with `seq-panel-record` (a take after a
+  count-in, step record with a tie, a rest and a MIDI IN note, and Capture
+  while playing) and `seq-panel-capture-stopped` (the picker,
+  `libm_sensitive`); identical to js and musl in 27, to glibc in 24, the
+  stopped Capture included; imports none. In headless Chromium, REC in SEQ
+  mode while playing overdubs at once and REC again stops; two keys
+  played in HOME make REC blink, and Shift (SHIFT) + REC captures them and
+  REC goes dark; with the switch off REC stays a stub. The module is
+  490,916 B, up from 482,291.
+- **After merging main** (the second effects pack), 2026-10-05
+  [verified: `www/fm1.wasm.json`, `fm1-sim-render --screens`]: parity 41
+  of 41, identical to js and musl in 41 and to glibc in 38; 1,055 screens,
+  0 faults; the module is 524,659 B, up from 516,035 on main.
+
 ### S6. Tracks, mute, and the Set, Clip and Track pages
 
 **Goal.** 4–8 tracks to focus and mute, with tempo, swing, clip speed, length,
@@ -1261,7 +1468,10 @@ transpose and quantise on the four knobs.
   - `fm1-render` routes only track 0 to the engine by default; every other
     track starts on MIDI channel t mod 16 + 1 (§2.3).
   - Every engine-routed track shares the one sound unit, as in render.cc,
-    which ignores `route_index` [verified: render.cc 493–522].
+    which ignores `route_index` [verified: render.cc 493–522]. Since
+    2026-10-02 (O10, §3.16) the lab switch routes by slot instead: each
+    engine-routed track plays the sound unit its route index names, as
+    `fm1-render --slots` does, and S6 routes tracks with `fm1_app_unit_*`.
   - What tracks 1–7 do in the browser is O10. The proposal is that the
     browser's start chain routes them to the engine with `route` verbs, so
     they can be heard. That is browser policy only, like the demo pattern.
@@ -1307,6 +1517,134 @@ app. Today render.cc ignores CLICK events [verified: render.cc 493–522].
 sharing and default routes), O11 (the click), O12 (solo).
 
 **Size:** M–L.
+
+**As built (2026-10-02, branch `feature/2026-10-02@seq-tracks`, on S5's
+reviewed head with the multi-sound branch merged).** Everything stays
+behind the lab switch (O24); with it off the panel is unchanged. The
+owner's answers to O3 and O10–O12 are in §8. Where the build differs
+from, or adds to, the plan above [verified: tests/test_seq_ui.py,
+tests/test_sim_seq.py, tests/test_seq_render.py, `fm1-sim-render
+--screens`]:
+- **Tracks (O3: 8).** SEQ held with white key 1–8 focuses that track, in
+  every mode: SEQ's press opens SEQ mode as before, and a focus made while
+  it is held goes back to the mode SEQ was pressed in when it is let go
+  (so SEQ + 3 from HOME is a quick switch for playing into track 3). C#5
+  and D#5 (MONO, POLY printed) step to the previous and next track in SEQ
+  mode, stopping at the ends; both are inert with steps held or in step
+  record. A focus sends `watch t` and a toast, `Track 3`, with a second
+  line `Capture emptied` when Capture held notes; the focused track again
+  sends nothing, so it keeps them. The Track view resets to the track's
+  first bar.
+- **Routes (O10 as changed).** The Track page routes the focused track
+  to a sound unit, `route t 1 k` (Sound 1–4), or to MIDI out on a channel,
+  `route t 0 c` (logged only: the simulator has no MIDI out). The UI sends
+  the typed command itself (as `fm1_app_unit_route` would), so the harness
+  logs it and `fm1-render --slots` replays it. Focusing a track, or routing
+  the focused track to a sound, makes that sound current (§3.16 left it to
+  S6): the keys then play, and HOME edits, what the track plays; SHIFT +
+  PRESETS still chooses another after. **The browser's default:** on its
+  start chain, with the lab switch, track 1 plays Sound 1 by the
+  default-route rule and every other track still on its default MIDI route
+  is routed to Sound 1 too (`fm1_app_seq_start_routes`), until the user
+  routes it. That is browser policy, like the demo pattern: tests and
+  parity runs route with verbs.
+- **Mute (O12: no solo).** F#4 (OP6): a tap mutes or unmutes the focused
+  track on release (`mute t 0|1`, Movy's router-buttons.ts); held, white
+  keys 1–8 toggle tracks 1–8 (the mute map, router-steps.ts) and MUTE's
+  release then does nothing. SHIFT + MUTE is MUTE. Inert with steps held.
+- **SHIFT's shortcuts** (Movy's step-shortcuts.ts): 2 the Track page, 3
+  the Clip page, 5, 7 and 9 the Set page, 6 the metronome (`metro`, with a
+  toast), 10 full velocity, 16 the focused clip's quantize on to the next
+  of 0, the Set page's default and 100 (`cq`, Movy's
+  nextQuantCandidate, with a toast). Their legend replaces the grid while
+  SHIFT is held with no step held (the S4 hint-line legend is gone).
+- **The pages** (§3.10, HOME's rows). Set: TEMPO (`bpm`, 1 BPM a detent,
+  0.1 with SHIFT, 20–300), SWING (50–80 %), DEF QUANT (`dq`, Movy's 0–100 %
+  list), METRO. Clip: SPEED (`cscl`, Movy's eight speeds 1/8X–4X), LENGTH
+  (`clen`, a step a detent up to 256 less the loop start; with no clip,
+  only a turn up makes one), TRANSPOSE (`ctr`, ±36), QUANT (`cq`). Track:
+  ROUTE, SOUND 1–4 or CHANNEL 1–16, MUTE; page 2 lists the eight lanes
+  (each label's text after its last `:`, cut to 13 characters, and its
+  7-bit base), read only. Each knob sends one command a turn, from the
+  value last read or sent, so detents between blocks add up. SELECT walks
+  past the sound's last page to Set, Clip, Track 1/2 and 2/2 and back
+  (O21); SEQ returns to the Track view, and so does a step or bar key (a
+  SHIFT shortcut keeps the page). Browsing sends nothing.
+- **The metronome's click (O11: yes).** A voice in the shared bridge
+  (`fm1_seq_click_t`, `fm1_seq_click_mix` in engines/seq/seq_host.c):
+  each CLICK event starts a click at its own frame while `metro` is on; a
+  triangle tone of rate/2000 frames a half-period (about 1 kHz; rate/3200,
+  about 1.7 kHz and louder, on a downbeat) under a quadratic decay of
+  rate/50 frames, all in integers, added to both channels after the
+  effects and before the limiter. `fm1-render` and the app mix it the same
+  way, so two-step parity and the parity legs cover it; it renders the
+  same at blocks of 1, 7 and 64. The count-in's clicks sound only while
+  `metro` is on, as O11 reads; Movy clicks the count-in regardless
+  [inferred from the core, which emits them either way], which the owner
+  may want instead (open).
+- **Event buffer.** 272 events (3,264 B), up from 256: seq_bench's burst
+  needs 257 [verified: `fm1-render --events 256` drops 400 note-ons,
+  `--events 272` none]. With the click's 20 B the sequencer's share is
+  36,428 B of 36,864 at 8 tracks (§2.6). The public page's RAM figure
+  counts the bigger buffer too: 192 B more, which reads 1K more for 4 of
+  the 54 one-effect chains [verified: `fm1-sim-render`].
+- **Screens.** The status line holds the eight tracks (a cell each: gold
+  for the focused one, an outline for a muted one), a muted track's notes
+  dim, and the hint line names SEQ's and MUTE's key maps. 69 more screens,
+  1,109 in all, 0 faults; every lab-off screen the sweep saves is
+  byte-identical to the merge base's [verified: `fm1-sim-render --screens`
+  at both, compared]. The UI state is 552 B of its 1,024.
+- **Gesture traces:** 10 new golden traces in tests/fixtures/seq-ui/
+  (`track-*`, `mute-*`, `set-page`, `metro-shortcut`, `clip-*`,
+  `pages-browse`) from tracks.verbs, each replayed by `fm1-render` byte for
+  byte; the browsing ones assert no `clipsel` or `launch`, and `watch`
+  only from a focus gesture.
+- **Event logs.** Four engine-routed tracks with swing, clips at 1/2X and
+  2X, mutes on the fly and the click play through the app as through
+  `fm1-render`, event log and audio, with Test Sine and Macro
+  (tests/test_sim_seq.py).
+- **On aeon** [verified: `www/fm1.wasm.json` and the screenshot report,
+  2026-10-02]: parity 32 of 32 (the merge of S5 and multi-sound brought
+  30), with `seq-panel-tracks` (the panel trace above, across two sound
+  units) and `seq-metro-click` (the click on, off, on with swing, and a
+  count-in); identical to js and musl in all 32, to glibc in 29 (the two
+  Sophie scenarios and Fold's 1 LSB, as before); imports none. In
+  headless Chromium, SEQ held with white key 2 makes track 2 the watched
+  one and the screen says `Track 2`; the lab-off checks pass unchanged.
+  The module is 514,270 B.
+
+**Review (2026-10-02).** The review found one bug and fixed it: a track
+rerouted on its Track page while a note sounded left that note on for
+good on the old sound, since its note-off followed the new route
+[verified: `fm1-render`, a bar-long note rerouted from Sound 1 to MIDI out
+kept sounding to the end]. A `route` that moves a track now closes the
+track's gates at once (the core, `seq_cmd.c`), and the bridge sends a
+note-off from the block's commands where the track's notes went at the
+last dispatch (`fm1_seq_host_t.dest` and `cmd_n`), so both
+hosts let go of it there [verified: tests/test_sim_multi.py, to another
+sound and to MIDI out, with and without the lab switch, the app equal to
+`fm1-render`]. The bridge's own state, `fm1_seq_host_t`, is 352 B
+natively (328 B before; it holds the lanes' 256 B of uids since S7a) and
+is not in §2.6's sum or the on-screen RAM figure; counted, 8 tracks still
+fit the 36,864 B, with about 100 B to spare [inferred: about 336 B at
+32 bits]. The module, rebuilt, is 514,688 B: parity 32 of 32, identical to
+js and musl in all 32 and to glibc in 29 as before, no imports, and the
+headless Chromium checks pass [verified: `www/fm1.wasm.json`, 2026-10-02].
+
+**After merging main** (the second effects pack and S5's final form),
+2026-10-05 [verified: `www/fm1.wasm.json`, `fm1-sim-render --screens`]:
+`fm1-render` and `fm1-sim-render` take `--fx-param-at` beside the
+multi-sound flags, turning a master effect. Parity 46 of 46, identical to
+js and musl in 46 and to glibc in 43 (the same three); 1,266 screens, 0
+faults (multi-sound's insert sweep runs all twelve effects: 142 screens,
+not 87); the module is 548,493 B, up from 524,659 B on main; imports
+none, and the headless Chromium checks pass. One of main's new parity
+chains, `fx-turns-diffuse-psxverb` (Shapes, Diffuse, PSX Verb), is over
+the FM-1's budget without the lab switch (394,416 B at 32 bits, 395,296 B
+natively, of 387,924), which the public page plays and the lab's meter
+refuses; the lab-equals-public test skips such a chain and checks the
+refusal instead (tests/test_sim_multi.py) (open: whether the public page
+should refuse it too).
 
 ### S7a. Engine API v2 (docs/13 M2): uid, flags, NOLOCK, with byte-identical audio
 
@@ -1392,7 +1730,8 @@ engines/seq.md, "Host contract"]:
   Type leave sounding voices intact: LATCH and MOD, not NOLOCK. Pad stays
   NOLOCK for another reason: it is the module's edit focus, so a lock on it
   would change what the other lanes' locks mean. Sophie's FLOAT parameters
-  are LATCH rather than SMOOTH, for the same copy.
+  are LATCH rather than SMOOTH, for the same copy. (Until S8: the owner
+  then made Pad lockable, with no flag; S8's as-built notes.)
 - **Also added for docs/16:** the MOD and INPUT flags and the `unit` and
   `abbr` fields.
 - **The bridge** keeps one resolved uid per lane (256 bytes in
@@ -1565,6 +1904,141 @@ units, and whether effect-slot parameters can be locked).
 
 **Size:** M.
 
+**As built (2026-10-02, branch `feature/2026-10-02@seq-locks`, on S6's
+reviewed head; S7b has not merged, so the lock scenario is recorded
+without SMOOTH).** Everything stays behind the lab switch (O24); with it
+off the panel is unchanged, the knobs keep their 1/100 detent and send
+nothing even where a script made a lane [verified: tests/test_seq_ui.py].
+The owner's answers (O14, Sophie's Pad, the multi-sound target) are in §8.
+Where the build differs from, or adds to, the plan above [verified:
+tests/test_seq_ui.py, tests/test_seq_render.py, engines/test/seq_host_test.c,
+`fm1-sim-render --screens` and `--lock-check`]:
+- **The lock sound.** A lock targets the sound unit the focused track
+  routes to (§3.16), whichever sound is current: the lock pages show that
+  sound's pages, and the first line names it (`Lock step 5 S2`) when it is
+  not the title's. A track on MIDI out or an empty sound has no lock pages.
+- **The lock pages.** With one step held, SELECT walks Step 1/2, Step 2/2,
+  then the lock sound's pages (`1/3 Lock T1`; page memory as O21). The
+  first turn of a parameter without a lane sends `alabel t lane
+  synth:<Name>`, `abase t lane v7` and `aset t lane step v 1`. The base is
+  `abase`, not the plan's `abaseq`: Movy's assignLane sends `abase`
+  [verified: reference/movy `src/seq/automation.ts` at `9190e79`]; the
+  app first puts the knob on the 7-bit grid (`fm1_seq_lock_value(p,
+  fm1_seq_value7(p, value))`, at most half a step: Timbre's 0.5 becomes
+  0.5039, a bipolar 0 becomes 0.0079), so the base it sends is what the
+  knob shows and nothing jumps. Later turns move the step's lock (or, with
+  none, the lane's base) a 7-bit step a detent, one entry for a list
+  (O14). A NOLOCK parameter is not hidden but named with `no lock`, and a
+  turn says `Model` / `cannot be locked` and sends nothing, as Movy's
+  SP-35 (a held step that cannot lock a parameter says so rather than
+  edit the sound under the hand). A ninth lane says `8 lanes used`. With
+  several steps held the lock pages show and edit the sound, with no lock;
+  CLEAR held still makes a knob clear its lane (below).
+- **The knob grid and the bases with no step held.** A knob on a
+  parameter with a lane (any track's, on that sound) moves one 7-bit step
+  a detent, and every such lane takes the knob's value as its base at
+  once, quietly (`abaseq`, only where it differs), in HOME and in SEQ mode
+  alike, and for ALGORITHM's model. The plan's `abase` per detent and
+  `abaseq` after 600 ms idle became this: Movy syncs the base quietly on
+  the knob's touch release, which the FM-1's knobs lack, and a base sent
+  at once is never stale, so no note step snaps the parameter back (R8).
+  After a turn and after a stop's D6 revert the engine has heard exactly
+  `value[]` [verified: `lock-knob-sync`, `seq-panel-locks`, %.9g text].
+- **Live takes.** Recording while playing, a knob on the lock sound (the
+  current one) writes `aset t lane step v` at the playing step: four
+  arguments, no quiet flag, as Movy's live take (its test's
+  `/^aset 0 0 7 \d+$/`); the core reads a missing flag as 0, heard. A
+  missing lane is made first. Detents add up until 600 ms pass without
+  one (Movy's knob release), then the next starts from the knob's value
+  again; the knob itself never moves, and the hint line shows the take's
+  value in gold.
+- **Clearing.** Step + SHIFT + one detent on a lock page: `aclrs`, where
+  the step has a lock on that lane (`<Name>` / `lock cleared`); SHIFT's
+  release then clears no notes. Steps held + CLEAR (D#4): `aclrstep` for
+  each held step with a lock (`Locks cleared`); Movy sends it for every
+  held step, but every edit verb empties Capture, so the FM-1 spares the
+  steps with none. CLEAR held + a detent (on a lock page, however many
+  steps are held, or on the current sound's page when it is the lock
+  sound): `aclr` of that parameter's lane (`<Name>` / `lane cleared`), and
+  the hint line (on a lock page the first line, `Knob: clear lane`) says
+  so while CLEAR is held. As Movy's router has it, CLEAR + a knob is
+  CLEAR's gesture whatever is held; only the Step pages keep their knobs
+  (Movy's step page owns them first) [verified: reference/movy
+  `src/midi/router.ts` at `9190e79`; S8's review made several held steps
+  follow it, `lock-several-clear`]. CLEAR's tap and CLEAR + a step do
+  nothing until S9.
+  CLEAR is lit while the track has a lane.
+- **Labels.** A lane label is one token of a script or a set, so a
+  parameter name with a space is written with `_` (`synth:Env_Pitch`); the
+  bridge's name match takes `_` for a space, in any case
+  (`fm1_seq_lane_param`, `fm1_seq_lane_label_for`). Before, such a label
+  named nothing. Track page 2 shows it with the space.
+- **The display.** A locked parameter's value in its own units in gold,
+  as a narrow gold bar inside the dim bar of its base; a lane without a
+  lock on the step shows its base, dim; a parameter with no lane the
+  knob's value, dim. A dot after the bar marks a lane, filled where the
+  step has a lock. The grid and the Step pages' strip mark a step with a
+  lock with a gold dot in its corner (`fm1_seq_get_page`'s lock mask).
+  The sink still writes only `lock_shown`, never `value[]`.
+- **Effect slots** are not lockable (O14): FX mode's knobs are unchanged.
+- **The round trip** holds on all 78 parameters of the 14 registered
+  engines and effects: 20,242 checks, `fm1-sim-render --lock-check`
+  [verified]. No list has more than 128 entries (Six-Op's 96 patches are
+  the most), so every entry has a 7-bit value.
+- **Movy-derived traces.** Six golden traces (`lock-movy-*`, with Movy's
+  MIT notice) reproduce the assertions of Movy's
+  `browser-test/logic/automation.mjs` (and `automation.ts`, `edit-ops.ts`)
+  at `9190e79` for the same gestures: the lane's `alabel 0 0 synth:<param>`
+  and `abase 0 0 64`, the quiet `aset 0 0 4 N 1`, the release that toggles
+  nothing, the live take's `aset 0 0 7 N` with no `abase` after it, the
+  NOLOCK refusal, `aclrs 0 0 4`, `aclr` with no `clipdel`, and `aclrstep`.
+  With Movy under `reference/movy` the test also finds each assertion,
+  word for word, in its source; without it that part is skipped. Four
+  more (`lock-knob-sync`, `lock-eight-lanes`, `lock-several-held`,
+  `lock-several-clear`) cover the knob sync, the 8-lane cap, several steps
+  held, and CLEAR + a knob with several held. All ten replay through
+  `fm1-render` byte for byte.
+- **Sophie's Pad** is lockable (the owner, below), with no flag. A Pad
+  lock moves the edit focus at its step, so the locks after it in lane
+  order there, and later, edit the pad it names [verified:
+  tests/test_seq_render.py]. Of 708 renders by the merge base's and this
+  branch's `fm1-render` (the 34 oracle scripts and the repository's other
+  verb scripts on all six sound engines, and a lane on every parameter of
+  every sound engine), all are byte-identical but eight: the lanes on
+  Macro's and Macro Heavy's Env Pitch, Env Timbre and Env Morph, labelled
+  with `_`, and the new trace that labels them, which reach their
+  parameter now [verified 2026-10-02, a script over both builds]. A Pad
+  lane alone renders as before: Pad only moves the focus.
+- **Screens.** 55 new, 1,164 in all, 0 faults, at most 96 boxes; every
+  screen the sweep saved at the merge base is byte-identical here
+  [verified: `fm1-sim-render --screens` at both, compared]. They cover the
+  lock pages with no lane, one, and eight, every sound engine's pages
+  locked at both ends and laned without a lock, the toasts, SHIFT and
+  CLEAR on a lock page, CLEAR held in the Track view, several steps held,
+  another sound's lock pages,
+  a lock on every grid step, a live take's hint and a spaced label on
+  Track page 2. The UI state is 600 B of its 1,024 (552 at S6); `fm1_app_t`
+  is 4,881,488 B natively.
+- **On aeon** [verified: `www/fm1.wasm.json` and the screenshot report,
+  2026-10-02]: parity 33 of 33, adding `seq-panel-locks` (locks on two
+  steps from the lock pages, the base sync while playing, a stop's D6
+  revert, PLAY again); identical to js and musl in all 33, to glibc in 30
+  (the two Sophie scenarios and Fold's 1 LSB, as before); imports none.
+  The headless Chromium checks pass with the switch on and off, the
+  help's new "Locks (lab)" entry shown only with it. The module is
+  526,111 B (514,688 with S6).
+- **Sanitizers:** the simulator's tests (test_sim_web, test_sim_seq,
+  test_seq_ui, test_sim_multi) under ASan and UBSan, and the engine and
+  sequencer tests against a sanitized engines build, report nothing
+  [verified, clang, macOS].
+- **After merging main** (the second effects pack and PR #43's final
+  form), 2026-10-05 [verified: `www/fm1.wasm.json`,
+  `fm1-sim-render --screens`]: parity 47 of 47, identical to js and musl
+  in all 47 and to glibc in 44 (the same three); 1,321 screens, 0 faults
+  (main's 1,266 and S8's 55); the module is 559,930 B, up from 548,493 B
+  on main; imports none, and the headless Chromium checks pass with the
+  switch on and off.
+
 ### S9. Session, scenes and song, the Loop view, COPY and CLEAR
 
 **Goal.** The rest of Movy's surface: clips launched on the bar, scenes, the
@@ -1725,10 +2199,10 @@ a click adds one if O11 approves it.
 | S3 | 18 |
 | S4 | 19 |
 | S5 | 20 |
-| S6 | 21 |
+| S6 | 21 (built: 32, with the click's scenario, after S5 and multi-sound) |
 | S7a | 21, records unchanged |
 | S7b | 21, records re-baselined |
-| S8 | 22 |
+| S8 | 22 (built: 33, after S6's 32) |
 | S9 | 23 |
 | S10 | 24 |
 
@@ -1812,8 +2286,8 @@ Two gaps open once the module links the sequencer:
 1. **Parity inputs.** Scripts under `sim/web/test/seq/` are not hashed, so
    editing a `.verbs` file would leave a stale parity record.
 2. **Sequencer code.** From S2, `fm1.wasm` links `engines/seq`, so an
-   engines-only change (for example O9's D-row landed alone) would ship a
-   module that behaves differently, with only a warning.
+   engines-only change (for example a new deviation row landed alone) would
+   ship a module that behaves differently, with only a warning.
 
 **The fix, in S2:** add `sim/web/test/seq`, `engines/seq` and
 `engines/include/fm1_seq*.h` to `SIM_INPUTS`. More generally, any stage that
@@ -1864,7 +2338,7 @@ strict mode, for PRs that touch `engines/`, `sim/web/`, `manual/` or
 | **Memory at 8 tracks:** 648 B spare. Any core growth (an undo ring, new per-track fields) forces 4 tracks, a smaller Capture ring or a smaller event buffer | Tests pin the arena and the budget sum; O3 |
 | **Layout.** 96 boxes, the 4 px gap, 2× text and ASCII only. Grids drawn as one box per cell overflow. The knob strip and two toasts did not fit as first drawn | One graphic box per grid; O23; two-line toasts; the longest strings in the sweep |
 | **Capture empties by design.** `watch`, `clipsel`, `launch` and every edit verb clear it, so navigation that sends one as a side effect loses a take | The browsing gestures send none; S6 and S9 traces assert it |
-| **One shared sound unit.** Engine-routed tracks share 12 voices and one patch, so locks collide, and one track's note-off can end another's note of the same pitch. render.cc behaves the same | O10; changing it changes both hosts and memory |
+| **One shared sound unit.** Engine-routed tracks share 12 voices and one patch, so locks collide, and one track's note-off can end another's note of the same pitch. render.cc behaves the same | O10, answered: up to four sound units with the lab switch (§3.16), in both hosts; tracks on one sound still share it |
 | **No undo.** CLEAR taps, CLEAR + step and clip deletes cannot be undone until M4/D14, or O16 | The O15 confirm |
 | **Browser checks run only on aeon.** Changing HOME's key LEDs or FX behaviour breaks `lit_keys` and `fx_led` silently in CI | O6; each PR reports the aeon run |
 | **Unmeasured performance.** The sequencer's cost in WebAssembly inside the AudioWorklet, and on phones, is unknown. Native worst blocks are at most 87 µs on an M1 Max, against 1,451 µs per block [verified: engines/seq.md 260–265] | S2 records Node's `seq_ns_per_block`; the page getter keeps redraws linear |
@@ -1890,7 +2364,7 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
 | O7 | The Capture gesture, and the REC LED while Capture holds notes | SHIFT + REC (alternatives: a dedicated button, a REC double-tap); REC blinks slowly while `capture_pending` > 0 | S5 |
 | O8 | Step record | REC held while stopped, as in Movy, with ▶ moving the record head; it may be deferred without holding up S5. Open: whether the head should advance by itself on key release (a change from Movy), and whether the mode latches | S5 |
 | O9 | A new deviation row: Capture committed while playing clamps a last-half-step note, as D4 does, instead of growing the clip by a bar | Adopt it in default mode; compat keeps Movy's behaviour. It can land alone in `engines/`; after S2 that needs a rebuild of the module | S5 |
-| O10 | Several tracks on one sound, and the browser's default routes | (a) every engine-routed track shares unit 0, as render.cc does. The alternatives: (b) more sound units, each a 512 KiB arena in the simulator and FM-1 RAM; (c) MIDI-routed tracks only. In the browser, tracks 1–7 are routed to the engine by `route` verbs on the start chain; `fm1-render`'s default stays track 0 only | S6 |
+| O10 | Several tracks on one sound, and the browser's default routes | (a) every engine-routed track shares unit 0, as render.cc does. The alternatives: (b) more sound units, each a 512 KiB arena in the simulator and FM-1 RAM; (c) MIDI-routed tracks only. In the browser, tracks 1–7 are routed to the engine by `route` verbs on the start chain; `fm1-render`'s default stays track 0 only. **Answered 2026-10-02: (b), up to four sound units (§3.16)** | S6 |
 | O11 | A metronome click | A deterministic, libm-free click voice in the shared bridge, sounding only while `metro` is on, so both hosts have it. The alternative is no click audio | S6 |
 | O12 | Track solo | Muting the other tracks in the UI, rather than a new core verb | S6 |
 | O13 | Engine API v2 | Approve v2 now. **Flags:** the table in S7a, covering all eight ENUM parameters, with SMOOTH for continuous parameters. **Label format:** keep `synth:<Name>` in `movy1` and resolve it to a uid when a lane is labelled or imported. **SMOOTH:** a 2–3 ms ramp, engine-side, keyed to absolute native samples, with docs/12 §5.3 rewritten to match | S7a (the ramp time: S7b) |
@@ -1905,6 +2379,20 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
 | O22 | Pitches on a held step: how a pitch is added or removed, and how that coexists with SHIFT + N shortcuts and `aclrs` | With a step held, SHIFT turns the white keys into pitches in the current octave, each press sending `addp`. SHIFT + N shortcuts apply only with no step held. Step + SHIFT + one knob detent stays `aclrs`. The black keys keep their roles, so SHIFT + ◀ ▶ still nudges by one tick, and sharps come from MIDI IN or a chord played in KEYS mode first. Open: how a pitch is removed. docs/13 §4 is updated to match | S4 |
 | O23 | Text in the Track view's knob strip | (b): four bars only, with the turned knob's name and value on the hint line in 2× text. The alternatives are (a) 1× text with short names, or (c) a 2 × 2 layout | S3 |
 | O24 | Whether intermediate stages ship on the public page, now that every merge to main deploys | Ship each stage, with manual chapter 07 saying what works, rather than hiding SEQ mode behind a flag until S5 or S6. A flag would add a code path to test | S3 |
+
+**Answered by the owner, 2026-10-02** (multi-sound; recorded when it
+landed):
+- **O10, replaced:** (b), more sound units: up to 4 at once, each
+  sequencer track routed to one of them; each sound unit has its own
+  insert effect slots (2 per sound, §3.16 says why), and the existing two
+  effect slots stay as the master bus after the sounds are mixed, each
+  sound with its own level into the mix. A RAM meter against the FM-1's
+  budget (FM1_APP_RAM_BUDGET, 387,924 B, and the app's other fixed costs,
+  with per-instance sizes at 32 bits) refuses any engine or effect choice
+  that would not fit, with a clear popup, shown where the RAM figure was.
+  Multi-sound is behind the lab switch; with it off there is one sound and
+  today's behaviour. The panel UI follows §3's conventions and O1/O2:
+  §3.16 has its gesture table.
 
 **Answered by the owner, 2026-10-02** (for S3; recorded when S3 landed):
 - **O1, O2:** as proposed. In SEQ mode the black keys carry the
@@ -1941,3 +2429,44 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
   removes it: the two buttons dropping their popup, the stub-button sweep
   dropping SEQ and PLAY/STOP (its saved popup stays `popup-button-12`),
   chapter 07 and `manual.toml`'s roles.
+
+**Answered by the owner, 2026-10-02** (for S8; recorded when S8 was built):
+- **O14:** as proposed. A knob detent on a laned parameter moves one 7-bit
+  step (v/127 of the range for FLOAT, the bins for ENUM), snapped to that
+  grid; locked values are shown in the parameter's own units, not 0-127;
+  effect-slot parameters are not lockable yet.
+- **Lock flags:** Sophie's Pad is lockable: its NOLOCK flag goes (S7a had
+  kept it, as the edit focus); Sophie's Model and Filter Type stay LATCH
+  and MOD, and Macro's LPG as built. Nothing else changes
+  (tests/fixtures/param-uids.json differs in Pad's flags only).
+- **Multi-sound:** a lock targets the sound unit its track routes to.
+
+**Answered by the owner, 2026-10-02** (for S6; recorded when S6 was built):
+- **O3:** 8 tracks, final.
+- **O10, changed again:** tracks route to the up-to-four sound units of
+  multi-sound (`fm1_app_unit_*`), each track's route shown and set on its
+  Track page, or MIDI out on a channel as `fm1_seq` allows. The browser's
+  default: track 1 on Sound 1, and the others on Sound 1 too until the
+  user changes them (`fm1_app_seq_start_routes`, S6 as built).
+- **O11:** yes, the metronome's click: a deterministic, libm-free click
+  voice in the shared bridge, sounding only while `metro` is on, so both
+  hosts have it.
+- **O12:** no track solo for now: mute only.
+- **The S2 open issue:** the 256-event buffer was one short of seq_bench's
+  burst; raised to 272, which fits the 36,864 B budget at 8 tracks.
+
+**Answered by the owner, 2026-10-02** (for S5; recorded when S5 was built):
+- **O7:** as proposed. Capture is SHIFT + REC (SHIFT is SEL in SEQ mode),
+  and REC blinks slowly while played notes wait for Capture
+  (`capture_pending` > 0).
+- **O8:** step record is REC held while the sequencer is stopped, as in
+  Movy, with the right black-key role (▶, A#3) moving the record head; the
+  head advances by itself when the keys are let go, and the mode does not
+  latch (REC is held). The owner asked for the advance as a change from
+  Movy, documented as a deviation with compat keeping Movy's way; Movy's
+  `step-rec.ts` at `9190e79` turned out to advance on the last release
+  already [verified], so no deviation was needed (S5's as-built notes).
+- **O9, changed:** Capture committed while playing grows the clip by a bar
+  exactly as Movy does; the proposed clamp is not made.
+- **Also:** notes played on the keys are logged, so gesture traces that
+  press keys replay byte for byte (S3's open issue).

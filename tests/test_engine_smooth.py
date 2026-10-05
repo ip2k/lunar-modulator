@@ -46,7 +46,8 @@ def floats(raw):
 
 
 UNITS = ["test-sine", "macro", "macro-heavy", "shapes", "sixop", "sw-sophie", "plate",
-         "ensemble", "diffuse", "crush", "fold", "echo", "test-gain", "sw-psxverb"]
+         "ensemble", "diffuse", "crush", "fold", "echo", "test-gain", "sw-psxverb",
+         "drive", "filter", "comp", "limit"]
 
 
 def test_the_driver_covers_every_engine_and_effect(units):

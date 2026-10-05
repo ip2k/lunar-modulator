@@ -36,6 +36,17 @@ ROOTS = [
     "rings/dsp/fx/reverb.h",
     "plaits/dsp/fx/ensemble.h",
     "plaits/dsp/fx/diffuser.h",
+    # Modulation kinds (docs/16 MG2). Bounce, Burst and Quantize are C ports
+    # in engines/mod/mod_mi.c; these originals are the oracle that
+    # fm1-mod-mi-ref compares the ports with (desktop test tool only), and
+    # gen_mi_tables.py takes Peaks' delay and gravity tables and Braids'
+    # scales from them.
+    "peaks/modulations/bouncing_ball.h",
+    "peaks/pulse_processor/pulse_shaper.cc",
+    "peaks/pulse_processor/pulse_randomizer.cc",
+    "peaks/resources.cc",
+    "braids/quantizer.cc",
+    "braids/quantizer_scales.h",
 ]
 # Whole directories copied as-is (all Plaits engines, light and heavy).
 TREES = ["plaits/dsp"]

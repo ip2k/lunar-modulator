@@ -302,10 +302,14 @@ typedef struct fm1_engine {
   four assignable knobs. As built (`engines/include/fm1_engine.h`, API v2,
   docs/15 stage S7a), each also has a stable uid, which locks, modulation
   routes and presets store, and flags for what a lock or a route may do with
-  it (LATCH, SMOOTH, NOLOCK, MOD, INPUT), a unit and a short abbreviation
-  [verified: engines/README.md, "Parameters"]. Since stage S7b a SMOOTH
-  parameter ramps over 2.5 ms inside its engine, keyed to the engine's own
-  samples (`include/fm1_smooth.h`) [verified: engines/README.md, "SMOOTH"].
+  it (LATCH, SMOOTH, NOLOCK, MOD, INPUT, POLY), a unit and a short
+  abbreviation [verified: engines/README.md, "Parameters"]. An engine may
+  also take per-note offsets on its POLY parameters and the note's pitch
+  (`set_param_note`, for per-voice modulation) [verified: engines/README.md,
+  "Per-note offsets"]. Since stage S7b a SMOOTH parameter ramps over 2.5 ms
+  inside its engine, keyed to the engine's own samples
+  (`include/fm1_smooth.h`), and a voice's offset rides on that ramp
+  [verified: engines/README.md, "SMOOTH"].
 - **A Schwung v2 shim** is one more `fm1_engine_t` that adapts a Schwung
   module's structs, strings and int16 buffers.
 - **CPU.** The host measures cycles per block for every instance, shows the
@@ -402,9 +406,13 @@ switch. docs/12 §6 has the full rules.
 1. pi32v2 DSP throughput per clock compared with a Cortex-M4F or an ESP32.
 2. The stock msfa load.
 3. Whether an SDK build can put audio on the second core. Stock does (§2),
-   with a modified single-core `system.a` [verified: its build stamp]; the
-   public SDK has no task-to-core API [verified: 2026-10-01 second-core
-   study]. docs/14 §5.1 probes it.
+   with a modified single-core `system.a` [verified: its build stamp]. The
+   public SDK's `os_task_create` has no core argument, but a task-name
+   prefix `#C<n>` exists: SDK demos and fm1-nes name tasks `#C0…` to pin
+   them to core 0, and the TCB in `system.a` has a `cpu_id` member
+   [verified: SDK `app_main.c` at V1.1.9 and `e30b1ee`, `FreeRTOS.h`,
+   `system.a` DWARF]. Whether `#C1` pins a task to cpu1 is untested
+   [inferred]. docs/14 §5.1 probes it (C6d–C6f).
 4. How much SRAM an open firmware with BLE-MIDI leaves free.
 5. Whether JieLi's Clang produces PIC or usable relocations, and whether it
    defines anything like `__arm__` that trips `#ifdef`s.

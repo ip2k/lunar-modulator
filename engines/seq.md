@@ -31,11 +31,11 @@ python -m pytest tests/test_seq*.py               # the sequencer tests
 | `seq/seq_cmd.c` | The verb parser and dispatcher (command.rs) |
 | `seq/seq_persist.c` | `movy1` export and import (persist.rs) |
 | `seq/seq_capture.c` | Capture, the retroactive record (capture.rs and engine.rs's capture functions), in 12-byte events |
-| `include/fm1_seq_host.h`, `seq/seq_host.c` | The host bridge: the per-block code every host shares (commands into the event buffer, advance, split renders into a sound engine, lane labels resolved to parameter uids, NOLOCK refusals); C99, no heap, no stdio, like the core (below, Host contract) |
+| `include/fm1_seq_host.h`, `seq/seq_host.c` | The host bridge: the per-block code every host shares (commands into the event buffer, advance, split renders into a sound engine, lane labels resolved to parameter uids, NOLOCK refusals, the metronome's click); C99, no heap, no stdio, like the core (below, Host contract) |
 | `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input), the JSON Lines event log, and `fm1_seq_cmd_format`, a typed command as text that `fm1_seq_parse` reads back to the same record (the virtual FM-1's harness logs its panel's commands so, for `fm1-render` to replay) |
 | `host/seq_tool.c` | `fm1-seq`: runs the core alone and dumps state as JSON; `fm1-seq-check` is the same tool on a core built with `-DSQ_CHECK_INDEX` |
 | `test/seq_host_test.c` | `fm1-seq-host-test`: the host bridge's own checks, where `fm1-render` does not reach it (typed commands, realtime input and live notes against text lines; every sink call at its event's frame) |
-| `host/render.cc` | `fm1-render --cmd/--seq/--log-events/--compat/--tracks/--route/--events`, through the host bridge |
+| `host/render.cc` | `fm1-render --cmd/--seq/--log-events/--compat/--tracks/--route/--events`, through the host bridge; `--slots` and the multi-sound flags play one sound unit per slot (Host contract) |
 | `mk/seq.mk` | The build fragment |
 
 ## Design
@@ -300,7 +300,13 @@ Each track carries a route: an engine slot (0–7) or a USB-MIDI channel
 (1–16). The default is MIDI channel *track*+1. `route <t> <0|1> <ch|slot>`
 sets it, `fm1_seq_set_route` from C, and a `movy1` set stores it as
 `rt <t> <kind> <index>`. The events are the same either way: routing is the
-host's to act on.
+host's to act on. A `route` verb that moves a track elsewhere closes the
+track's gates at once, as `mute t 1` does: their note-offs are among that
+block's command events, and the host bridge sends them where the notes went
+(Host contract, step 6), so no note is left hanging on a sound the track
+no longer plays (docs/15 S6, found in its review) [verified: tests/test_sim_multi.py].
+`fm1_seq_set_route` closes nothing; hosts call it only while nothing
+sounds (set-up, an import).
 
 `fm1-render`, through the host bridge (below), sends a track routed to the
 engine to `note_on`/`note_off` at the event's own frame, by rendering the
@@ -361,13 +367,74 @@ it with the core's objects [verified: tests/test_seq_core.py].
    parameter, which is counted (below). Clicks, clock, Start, Stop and
    MIDI-routed tracks are the host's to send elsewhere; `fm1-render` only
    logs them. A NULL sink only empties the buffer (`fm1-render` with no
-   engine).
-7. Effects, the limiter and the output, which are the host's own.
+   engine). Each event follows its track's route at dispatch, except a
+   note-off from the block's commands or live input (steps 2–3): it closes
+   a gate an earlier block opened, so it goes where the track's notes went
+   at the last dispatch, which the bridge remembers per track (`dest`).
+   `fm1_seq_host_dispatch_ticks(h, n, block, &sink, &hook)` does the same
+   and also runs a control-rate hook, the modulation runtime's tick
+   (docs/16 stage MG1, `include/fm1_mod_host.h`): it hands the hook every
+   event at its frame, runs each tick at its own frame (at one frame:
+   note-offs and locks, the tick and its writes, then note-ons, docs/16's
+   rule M6), passes each lock's value through the hook (a lock moves a
+   routed parameter's base, rule M1), and splits the render only at a tick
+   that writes to the engine. With nothing routed a tick writes nothing, so
+   the audio is what plain dispatch gives [verified: engines/mod/README.md,
+   "No render changed"]. The sink's `pitch_bend`, new with it, carries the
+   host's PITCH and may be NULL. The hook serves one sink;
+   `fm1_seq_host_dispatch_slots` (below) runs none yet.
+7. Effects, which are the host's own; then the metronome's click,
+   `fm1_seq_click_mix` over the block's events (the buffer still holds
+   them after dispatch); then the limiter and the output.
+
+**The metronome's click** (owner decision O11, 2026-10-02; docs/15 S6).
+Every host sounds the core's CLICK events with the bridge's one voice,
+`fm1_seq_click_t`, so `fm1-render` and the virtual FM-1 agree to the bit:
+each CLICK starts a click at its own frame while `metro` is on (the
+count-in's clicks too, and only then); the click is a triangle tone of
+rate / 2000 frames a half-period (about 1 kHz at 44,118 Hz; rate / 3200,
+about 1.7 kHz and louder, on a downbeat, `a = 1`) under a quadratic decay
+over rate / 50 frames (20 ms), computed in integers and added to both
+channels, so no libm and no rounding of its own enter it; a new click
+restarts the voice. It renders the same at host blocks of 1, 7 and 64
+[verified: tests/test_seq_render.py]. `fm1-render`'s summary counts the
+clicks sounded (`seq_clicks`). The voice is 20 bytes.
+
+**Several sound units** (the virtual FM-1's multi-sound, docs/15 §3.16).
+Step 6 can instead be `fm1_seq_host_dispatch_slots(h, n, slots, count)`:
+one sink and one block per sound unit, and a track routed to the engine
+plays the slot its route index names (`route t 1 k`, `rt t 1 k`), where
+`fm1_seq_host_dispatch` plays every engine-routed track on its one sink
+whatever the index. Each slot's sink renders its own block split at its own
+tracks' events only, in emission order, slots in index order; a track routed
+to an empty slot (or past the last) reaches nothing and splits nothing; a
+lock resolves on its slot's engine, by the same rule as below with that
+engine in place of the bound one (slot 0's engine is the bound one). The
+host then runs each unit's inserts, scales it by its level and sums the
+units before its master effects. `fm1_seq_host_dispatch` is the one-sink
+case of the same loop, with no change in behaviour [verified 2026-10-02:
+every parity scenario, the 40 oracle runs of tests/test_sim_seq.py and the
+26 gesture traces render byte-identical WAVs and event logs before and after,
+natively, and the browser module's parity holds 28 of 28]. `fm1-render`
+plays it with `--slots` or any multi-sound flag: `--sound K:ID`,
+`--sound-param K:NAME=V`, `--insert K:ID`, `--insert-param K:NAME=V`,
+`--level K:PCT`, `--sound-note K:T:KEY:VEL:DUR`, `--sound-param-at
+K:T:NAME=V` and `--level-at K:T:PCT`.
 
 A lane's label names a parameter by the part after its last `:`, compared
 without ASCII case (`fm1_seq_lane_param`), and a 7-bit value maps onto it
 by `fm1_seq_lock_value`: min + range·v/127 for FLOAT, the bins ⌊v·n/128⌋ for
-an ENUM of n values. Both are the expressions `fm1-render` had.
+an ENUM of n values. Both are the expressions `fm1-render` had. Since
+docs/15 stage S8, `_` in a label stands for a space in the name, since a
+label is one token of a script or a set: `synth:Env_Pitch` names Env Pitch
+(before, such a label named nothing). `fm1_seq_lane_label_for` writes the
+label a lock UI gives a parameter that way, and `fm1_seq_value7` is
+`fm1_seq_lock_value`'s inverse: rounded half up for FLOAT, so every v in
+0..127 comes back, and an ENUM entry's lowest v, so every entry of a list
+of up to 128 comes back (no registered list is longer) [verified:
+engines/test/seq_host_test.c, `fm1-sim-render --lock-check` over every
+registered parameter]. `fm1_seq_value7_step` is a knob detent on that
+grid: one v, or one entry of a list (owner decision O14).
 
 **A lock on a SMOOTH parameter ramps inside the engine** (docs/15 stage
 S7b; engines/README.md, "SMOOTH"). The bridge calls `set_param` at the
@@ -414,8 +481,9 @@ At dispatch a lock goes to `fm1_param_index(engine, uid)`. A lock on a
 NOLOCK parameter is refused there: it is counted in `locks_refused`
 (`fm1-render`'s `seq_locks_refused`), never reaches the engine and splits
 nothing, so the audio is that of the same script without the lane
-[verified: tests/test_seq_render.py, Macro's and Macro Heavy's Model,
-Shapes' Shape and Sophie's Pad]. A lane on a NOLOCK parameter still resolves
+[verified: tests/test_seq_render.py, Macro's and Macro Heavy's Model and
+Shapes' Shape; Sophie's Pad until docs/15 stage S8, when the owner made it
+lockable]. A lane on a NOLOCK parameter still resolves
 to its uid, so a lock UI can say why its locks are refused. Resolution
 changes no output: of 1,458 renders before and after the change, only the
 38 that lock a NOLOCK parameter differ (engines/README.md, "Parameters").
@@ -465,8 +533,9 @@ other than that, so a host applies its default again after an import.
 **`fm1-render`'s summary** carries the bridge's counters:
 `seq_notes_to_engine`, `seq_locks_to_engine`, `seq_locks_refused` (locks on
 NOLOCK parameters), `seq_splits` (render calls that start inside a block),
-`seq_max_block_events` (the most events one block held) and `seq_dropped`
-(the core's `dropped_events`). The WAV alone cannot
+`seq_max_block_events` (the most events one block held), `seq_dropped`
+(the core's `dropped_events`) and `seq_clicks` (the metronome's clicks
+sounded). The WAV alone cannot
 show a split: an engine's output does not depend on how a block is cut into
 render calls [verified for Test Sine, Macro and Six-Op at 1, 7 and 64
 frames], so `seq_splits` is what shows that a skipped lock did not split

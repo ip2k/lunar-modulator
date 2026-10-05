@@ -466,6 +466,7 @@ void Render(void *s, float *lr, uint32_t n) { static_cast<Instance *>(s)->Render
     fm1::mi_fx::ns::InstanceSize, fm1::mi_fx::ns::Create,                      \
     fm1::mi_fx::ns::Destroy, NULL, NULL, NULL,                                 \
     fm1::mi_fx::ns::Set, fm1::mi_fx::ns::Render,                               \
+    NULL,                     /* no notes, so no per-note offsets */           \
   }
 
 FM1_MI_FX(fm1_engine_plate, plate, "plate", "Plate",

@@ -493,10 +493,10 @@ def test_instance_sizes_are_bounded(renderer, tmp_path):
     # cannot tell). Each leaves less than one resampler of room.
     # Macro Heavy: four voices, each with a 16 KB arena (the particle engine's
     # diffuser alone takes all of it), and two resamplers (the string
-    # machine's L and R). 71,088 B on a 64-bit host, 70,880 B on 32-bit
+    # machine's L and R). 71,296 B on a 64-bit host, 71,088 B on 32-bit
     # targets (plaits-heavy.md); a resampler per voice would add 5,152 B.
     assert heavy["instance_bytes"] < 72_000
     # Six-Op FM: eight FMVoices, one shared algorithm table and one
-    # resampler. 12,528 B on a 64-bit host, 10,796 B on 32-bit targets; a
+    # resampler. 12,720 B on a 64-bit host, 10,956 B on 32-bit targets; a
     # resampler per voice would add 10,304 B.
     assert sixop["instance_bytes"] < 13_500

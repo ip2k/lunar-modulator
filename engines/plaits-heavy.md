@@ -7,8 +7,12 @@ are ours.
 
 | id | Name | Source | Voices | Instance, 64-bit host | Instance, 32-bit targets |
 | --- | --- | --- | --- | --- | --- |
-| `macro-heavy` | Macro Heavy | `src/mi_macro_heavy.cc` | 4 | 71,088 B | 70,880 B |
-| `sixop` | Six-Op FM | `src/mi_sixop.cc` | 8 | 12,528 B | 10,796 B |
+| `macro-heavy` | Macro Heavy | `src/mi_macro_heavy.cc` | 4 | 71,296 B | 71,088 B |
+| `sixop` | Six-Op FM | `src/mi_sixop.cc` | 8 | 12,720 B | 10,956 B |
+
+Per-note offsets (2026-10-05, engines/README.md, "Per-note offsets") added
+192 B to Macro Heavy on both and 192 / 160 B to Six-Op; before, they were
+71,104 / 70,896 B and 12,528 / 10,796 B [verified: gcc 12 x86-64 and `-m32`].
 
 Both run Plaits at its own 47,872.34 Hz and resample to the host's rate
 since 2026-10-01 (below, "Rate"). That added 2,576 B to Macro Heavy (two
