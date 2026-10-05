@@ -329,7 +329,7 @@ The module links the sequencer core, its host bridge and, since stage S3,
 its panel UI and Track view, with step entry since S4 and record and
 Capture since S5: 47 of 47 scenarios pass, identical to musl and to
 render.js (four of them turn the effects' switches every 4.4 ms), and it
-imports nothing; it is 547,778 bytes, up from 524,659 before Room, Hall,
+imports nothing; it is 547,963 bytes, up from 524,659 before Room, Hall,
 Gate and Plate's Freeze, 516,035 before S5,
 482,291 before the second effects pack (Drive, Filter, Comp, Limiter),
 466,635 before S4, 459,122 before S3 and 391 KB before the
