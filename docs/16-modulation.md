@@ -453,9 +453,12 @@ All rows but the first three are [inferred].
   chain adds nothing per hop when it has no loop.
 - **Sample-accurate triggers.** A module receives each edge's frame offset.
   An envelope triggered at offset 13 has run for G − 13 frames at t(k).
-- **Steps are hidden** by S7b's SMOOTH ramp (2–3 ms) inside the engines. PITCH
-  can additionally be ramped in 8-frame sub-splits if a test shows zipper
-  noise [inferred].
+- **Steps are hidden** by S7b's SMOOTH ramp inside the engines: 2.5 ms of
+  each engine's native samples, in its own control blocks [verified:
+  engines/README.md, "SMOOTH"]. A write every tick restarts the ramp from
+  where it stands, so a routed parameter follows its source through a lag
+  of about one ramp. PITCH can additionally be ramped in 8-frame
+  sub-splits if a test shows zipper noise [inferred].
 - **Renders are split only where needed.** The host splits a unit's render
   at a tick frame only when that tick writes to the unit [inferred]. A unit
   with no routed parameter renders in one call, as today.
@@ -1088,6 +1091,14 @@ engines/README.md, "Per-note offsets", has the contract and the tests]:
 - Without a call every render is byte-identical to before (1,900 renders,
   three compilers), and with calls at the same frames the output is the
   same at host blocks of 1, 7 and 64.
+- SMOOTH (S7b, merged after this): a voice plays the engine's ramped base
+  plus its offset, so a knob, lock or mono route on the base still ramps
+  under the note's offset. The offset itself is not ramped; it applies at
+  the next internal block. A per-voice source that steps by much in one
+  tick steps its voice by as much, so MG9 measures whether that is heard
+  and then either slews its per-voice writes or asks the engines for
+  per-voice ramps, at 12 bytes per POLY parameter per voice
+  (engines/README.md, "SMOOTH") [inferred].
 
 ### 6.4 The arpeggiator and MIDI effects
 

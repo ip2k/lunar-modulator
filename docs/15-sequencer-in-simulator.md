@@ -1796,6 +1796,65 @@ output stays identical at any host block size.
 
 **Size:** M–L.
 
+**As built (2026-10-05, branch `feature/2026-10-03@engine-smooth`).** The
+ramp time is 2.5 ms. Where the build differs from the plan above, or adds
+to it [verified: engines/README.md, "SMOOTH"; tests/test_engine_smooth.py]:
+- **The steps are the engines' own control blocks,** keyed to native
+  samples: 10 blocks of 12 at 47,872.34 Hz (Macro, Macro Heavy), 8 of 16
+  (Six-Op), 10 chunks of 24 at 96 kHz (Shapes), and every sample, 110 at
+  44,118 Hz (Test Sine and the effects). The ramp lands exactly on the new
+  value, never passes it, and uses no libm and no multiply-add a compiler
+  could contract.
+- **At once while nothing sounds,** and before an effect's first render.
+  A lock on the trig of a note that starts a silent engine plays that note
+  at the locked value from its first sample, so sequences of separate notes
+  sound as before; only changes under sounding notes ramp. A repeated write
+  changes nothing.
+- **Effects ramp what they run on**: Plate's and Diffuse's loop gains,
+  Plate's damping, Diffuse's tone coefficient, Crush's quantiser step, hold
+  interval and pole, derived once per change, so no libm runs in a render.
+  Fold and Echo keep their own sample-by-sample glides, which give the same
+  guarantees; that is the rule for effects that already glide. Echo's Tone
+  had none, so its loop filter's coefficient takes the shared ramp. The
+  Schwung shim ramps PSX Verb's parameters in its 64-frame module blocks.
+- **Macro Heavy's Speech** picks its word bank from where Harmonics is
+  going, not from the ramp, so a ramp across several banks parses one, as
+  before, not each it passes (engines/plaits-heavy.md).
+- **A lock or a modulation write at frame f** starts the ramp with the
+  engine's first control block not yet rendered at f. A D6 revert and a
+  lock at one frame make one ramp; a modulation write every tick restarts
+  it from where it stands (docs/12 §5.3, docs/16 §2.6).
+- **Tests.** `build/fm1-smooth-test` drives every engine and effect with
+  changes at any frame, the output identical at render calls cut at 64, 1,
+  7 or random frames; the zipper test on Test Sine's Volume bounds the step
+  per sample and shows the output equal to Volume 127 from the 110th
+  sample; `test_audio_is_the_same_at_host_blocks_of_1_7_and_64` covers
+  Macro Heavy and Shapes too; `test_locks_set_the_parameter_their_lane_names`
+  now finds silence 110 samples after the lock of 0; a Tone change enters
+  Echo's loop gradually.
+- **Before and after:** 2,141 runs of `fm1-render` and the native harness,
+  main against this branch, with a third build that reports each ramp it
+  starts. All 1,891 runs that start none are byte-identical: the oracle
+  scripts on all six engines, the `movy1` sets, parameters set at the start
+  or while silent, every effect parameter. Of the parity scenarios, only
+  `seq-panel-play-stop` sounds different (its knob turns now ramp); the
+  others change only their RAM figures. On aeon the 25 scenarios pass, the
+  module identical to js and musl in all 25 and to glibc in 22, as before.
+- **Merged with main (2026-10-05)**, after per-note offsets, the second
+  effects pack, multi-sound and S5–S8 had landed. A voice with a per-note
+  offset plays the ramped base plus its offset, and the offset itself is
+  not ramped (engines/README.md, "SMOOTH", has why and what it leaves to
+  MG9). Drive, Filter, Comp and the Limiter keep their own 5 ms glides
+  under the rule for effects that already glide. Against main, 2,640 runs:
+  all 2,376 that start no ramp are byte-identical; nine of the 47 parity
+  scenarios sound different (knobs or locks turned while something sounds:
+  `seq-panel-play-stop`, `seq-panel-locks`, `multi-panel`,
+  `multi-four-sounds-seq`, `drive-fuzz-gated` and the four `fx-turns-*`).
+  On aeon the 47 pass, identical to js and musl in all 47 and to glibc in
+  44.
+- **Not done:** per-voice ramps, so a note that starts with a lock while a
+  tail sounds begins on the engine's ramp.
+
 ### S8. Parameter locks from KNOB1–4 (7-bit)
 
 **Goal.** Hold a step and turn a knob to lock a parameter on that step. The
@@ -1858,8 +1917,9 @@ units, and whether effect-slot parameters can be locked).
 **Size:** M.
 
 **As built (2026-10-02, branch `feature/2026-10-02@seq-locks`, on S6's
-reviewed head; S7b has not merged, so the lock scenario is recorded
-without SMOOTH).** Everything stays behind the lab switch (O24); with it
+reviewed head; S7b had not merged, so the lock scenario was recorded
+without SMOOTH; since S7b merged, 2026-10-05, its locks under notes
+ramp).** Everything stays behind the lab switch (O24); with it
 off the panel is unchanged, the knobs keep their 1/100 detent and send
 nothing even where a script made a lane [verified: tests/test_seq_ui.py].
 The owner's answers (O14, Sophie's Pad, the multi-sound target) are in §8.
@@ -2154,7 +2214,7 @@ a click adds one if O11 approves it.
 | S5 | 20 |
 | S6 | 21 (built: 32, with the click's scenario, after S5 and multi-sound) |
 | S7a | 21, records unchanged |
-| S7b | 21, records re-baselined |
+| S7b | 21, records re-baselined (built: 47, after S8 and MG1; nine sound different) |
 | S8 | 22 (built: 33, after S6's 32) |
 | S9 | 23 |
 | S10 | 24 |

@@ -503,7 +503,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
   - the core and Capture (built and tested [verified: CI]);
   - API v2 parameter uids and the LATCH, SMOOTH and NOLOCK flags (docs/13
     M2): built in docs/15 stage S7a, with locks on NOLOCK parameters
-    refused; SMOOTH's ramp inside the engines is stage S7b;
+    refused; SMOOTH's 2.5 ms ramp runs inside the engines since S7b;
   - the gesture state machine and screen views (M4);
   - the UI-to-audio command ring and undo.
 - **Where it is planned:** [docs/13](docs/13-movy-port.md) §4, §6 and §9 (M2

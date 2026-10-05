@@ -245,8 +245,42 @@ polyphonic track (FM-1+VA parity plus locks) and leave room for four.
     as Dexed's `dx7note` does [reported: FM-1 lane].
 - **Parameter flags (API v2):**
   - **LATCH:** read at note-on, so locks apply per note by construction.
-  - **SMOOTH:** the host ramps changes over 2–3 ms in 16-frame sub-blocks,
-    so a lock-only trig under a held note does not click.
+  - **SMOOTH:** the engine ramps a change, not the host (docs/15 S7b,
+    `engines/include/fm1_smooth.h`) [verified: tests/test_engine_smooth.py].
+    - **The ramp:** 2.5 ms of the engine's own native samples, in equal
+      steps of its own control block, landing exactly on the new value: 10
+      blocks of 12 samples at 47,872.34 Hz in Macro and Macro Heavy, 8 of
+      16 in Six-Op, 10 chunks of 24 at 96 kHz in Shapes, and every sample
+      (110 at 44,118 Hz) in Test Sine and the effects. The blocks sit at
+      fixed native samples, never at render calls, so the output is the
+      same at host blocks of 1, 7 and 64 and with any split.
+    - **A lock at frame f:** the bridge splits the render at f and calls
+      `set_param` there (§5.4). The ramp starts with the engine's first
+      control block not yet rendered at f, which is where an unsmoothed
+      change used to land, and ends 2.5 ms later. A lock-only trig under a
+      held note does not click: a Volume lock of 0 → 127 on Test Sine moves
+      the output by at most the sine's own slope plus 1/110 of its
+      amplitude per sample.
+    - **While nothing sounds** (no voice active), and before an effect's
+      first render, a change applies at once. A lock on the trig of a note
+      that starts a silent engine therefore plays that note at the locked
+      value from its first sample. While a tail still sounds, the new note
+      starts on the ramp, since the ramp is the engine's, not the voice's.
+      A voice with a per-note offset (`set_param_note`) plays the ramped
+      base plus its offset; the offset itself is not ramped
+      (engines/README.md, "SMOOTH").
+    - **Several writes at one frame** (a D6 revert, then a lock) make one
+      ramp, from where the value stands to the last one. A write equal to
+      the target already set changes nothing, so a resent base is free.
+    - **Modulation** (docs/16) writes every tick (0.725 ms at G = 32). Each
+      write restarts the ramp from where it stands, so a route follows its
+      source through a lag of about one ramp, and its steps are not heard.
+    - **Effects that already glide** keep their own glide: Fold (5 ms),
+      Echo (5 ms gains, 0.1 s Time and Wow), Drive, Filter, Comp and the
+      Limiter (5 ms each). A new effect may do the same if its glide is
+      keyed to samples;
+      anything else uses `fm1_smooth.h`, as Echo's Tone does, which had no
+      glide.
   - **NOLOCK:** destructive parameters such as Macro Model and Shapes Shape.
 - **Sound locks** pick a preset per trig on LATCH engines. Caching the
   presets in use costs 16 × 156 B ≈ 2.5 KB. On Macro and Shapes a sound lock
