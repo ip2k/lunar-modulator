@@ -54,7 +54,7 @@ history.
     it. Four new parity scenarios check the browser module with modulation
     running, two of them over several sounds (58 of 58 pass with the
     master-bus effects' own), and the layout check now covers 2,189
-    screens. The browser module grew from 599 KB to about @@KB@@ KB.
+    screens. The browser module grew from 599 KB to about 738 KB.
 - **DJ Filter, Tilt, Master Sat, Isolator and EQ on the virtual FM-1:**
   the master-bus effects of the 2026-10-02 effects note. The effect slots
   now offer seventeen effects (ALGORITHM steps through Plate, Ensemble,

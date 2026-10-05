@@ -635,7 +635,7 @@ docs/16 MG3 the modulation runtime, its kinds, its script reader
 (`host/mod_script.c`: snprintf and strtod, no files) and modulation's
 pages: 58 of 58 scenarios pass, identical to musl and to render.js
 (four of them turn the effects' switches every 4.4 ms), and it imports
-nothing; it is @@WASM_BYTES@@ bytes, up from 598,994 before MG3 (the
+nothing; it is 737,880 bytes, up from 598,994 before MG3 (the
 runtime, its sixteen kinds with MG2's Peaks and Braids tables, the pages
 and the script reader), 573,403 before the master-bus effects (550,252
 with them before multi-sound, S8 and S7b), 560,033 before the engines'
