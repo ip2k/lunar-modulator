@@ -234,14 +234,25 @@ def test_algorithm_steps_over_an_effect_that_would_not_fit(tools):
 def test_one_sound_in_the_lab_renders_what_the_public_page_renders(tools, tmp_path):
     """The lab's path (every sound unit to its own block, inserts, level,
     sum) with sound 0 alone, no insert and level 100 is the public page's
-    path to the bit: every note-script scenario, with and without --lab."""
+    path to the bit: every note-script scenario, with and without --lab.
+    A chain already over the FM-1's budget without the switch (the public
+    page plays it; fx-turns-diffuse-psxverb's Shapes, Diffuse and PSX Verb)
+    is refused by the lab's RAM meter instead."""
+    compared = 0
     for s in SCENARIOS:
         if s.get("lab") or "cmd" in s:
             continue
         a, b = tmp_path / "off.wav", tmp_path / "lab.wav"
-        run(tools["sim"], scenario_args(s) + ["--out", str(a)])
+        off = run(tools["sim"], scenario_args(s) + ["--out", str(a)])
+        if off["ram"] > BUDGET:
+            res = subprocess.run([str(tools["sim"]), *scenario_args(s), "--lab", "--out", str(b)],
+                                 capture_output=True, text=True)
+            assert res.returncode != 0 and "(-4)" in res.stderr, (s["name"], res.stderr)
+            continue
         run(tools["sim"], scenario_args(s) + ["--lab", "--out", str(b)])
         assert a.read_bytes() == b.read_bytes(), s["name"]
+        compared += 1
+    assert compared >= 30
 
 
 ROUTED = ("#! rate=44118 block=64 tracks=4 end=44118\n"

@@ -1635,7 +1635,13 @@ multi-sound flags, turning a master effect. Parity 46 of 46, identical to
 js and musl in 46 and to glibc in 43 (the same three); 1,266 screens, 0
 faults (multi-sound's insert sweep runs all twelve effects: 142 screens,
 not 87); the module is 548,493 B, up from 524,659 B on main; imports
-none, and the headless Chromium checks pass.
+none, and the headless Chromium checks pass. One of main's new parity
+chains, `fx-turns-diffuse-psxverb` (Shapes, Diffuse, PSX Verb), is over
+the FM-1's budget without the lab switch (394,416 B at 32 bits, 395,296 B
+natively, of 387,924), which the public page plays and the lab's meter
+refuses; the lab-equals-public test skips such a chain and checks the
+refusal instead (tests/test_sim_multi.py) (open: whether the public page
+should refuse it too).
 
 ### S7a. Engine API v2 (docs/13 M2): uid, flags, NOLOCK, with byte-identical audio
 
