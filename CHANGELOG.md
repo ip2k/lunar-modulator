@@ -9,6 +9,200 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The song list, edited on whole entries, in the sequencer core.** The
+  song can now be built and changed entry by entry: insert, delete, move,
+  change an entry's scene or repeat count, clear the list, play from any
+  entry, and give scenes names (Intro, Verse, Chorus…). At the end of the
+  song it can loop (as before), park with every track stopped, or stop the
+  transport, so a 4-minute song plays hands-free and ends by itself. A song
+  holds up to 64 scene presses; a longer one from Movy is cut to 64.
+  - Panel and simulator controls come with the Session view and the Song
+    page (a later stage): nothing on the virtual FM-1 changes yet.
+  - Changed from Movy, each kept as Movy has it in compat mode:
+    - a clip or scene launched by hand no longer deletes the song: it stops
+      following it and keeps the list, and Stop then Play follows it again;
+    - recording from stopped no longer spends the song's first bar on the
+      count-in, and makes no empty clip in a slot the song moves away from;
+    - a stopped Capture with a song plays the take you just captured;
+    - a clip launched by hand after Stop plays, rather than a scene the
+      song had queued;
+    - a loaded song plays the same each time (its random trig rolls start
+      afresh on every load).
+  - For contributors: the verbs `sgins`, `sgdel`, `sgset`, `sgmov`,
+    `sgclr`, `sgend`, `sgjump`, `scene`, `sgnew` and `sgname`, the `movy1`
+    lines `dq`, `se` and `sn` (written outside compat mode only, so a set
+    without FM-1 features stays byte-identical to Movy's), `fm1-seq
+    --import`, and `engines/seq.md`, "The song". The sequencer instance
+    grows by 64 B, to 31,944 B at 8 tracks.
+- **Sounds that can be saved whole** (groundwork for saving and loading;
+  nothing in the simulator saves yet). A drum kit's sixteen pads each keep
+  their own tuning, decay and the rest, and every one of them can now be
+  read back and restored exactly, for Drums and Sophie alike; a Register
+  module's locked or hand-edited loop is kept as the loop you made, not
+  re-rolled from its seed; and FM6's user voices can leave as a standard
+  32-voice `.syx` bank that DX7 editors read (`fm1-render --save-bank` on
+  the desktop for now). Everything else a sound holds was already what the
+  panel set, and a check now proves that replaying those values restores
+  the same sound.
+- **Parameter metadata for editors.** The desktop renderer exports, as one
+  JSON file, every sound engine's, effect's, arpeggiator's and modulation
+  module's parameters with their names, ranges, units, pages, list entries
+  and flags, FM6's voice fields and the file limits (`fm1-render --meta`),
+  so the coming browser editor and the guide's tools build their controls
+  from the build instead of copying names by hand. List entries are pinned
+  so a saved choice never changes meaning when a list grows.
+- **Saving and loading on the desktop.** Projects, sounds, effects
+  chains, mod racks, sets and clips now load into the desktop renderer and
+  sequencer and save back out, as the readable JSON files or as the compact
+  binary form the device will use (`fm1-render --load` and `--save`,
+  `fm1-seq --load` and `--save`, and the new `fm1-state`, which converts
+  between the two, checks a file and puts a hand-edited one back into
+  canonical form). A file that needs more memory than the FM-1 has, or an
+  engine this build lacks, is refused with the reason, as the device will
+  refuse it ("in the GPL build only" for an engine of the GPL build).
+  Saving, loading and saving again gives the same file, and a project saved
+  from a session (four sounds, a drum kit's pads, inserts, the
+  arpeggiator, master effects, modulation with a Register's loop, a set
+  with its song, FM6's own voices) reloads and plays exactly the same
+  audio. The simulator's Open, Save and "Launch in the simulator" links
+  come in later stages.
+  - For contributors: `engines/state/` holds one record model with a
+    streaming JSON reader small enough for the firmware, the canonical JSON
+    writer and the binary container (CRC-32 a chunk, deflate in a 4 KiB
+    window), all C99 without heap, stdio or libm; `tools/lunar_state.py`
+    reads and writes both encodings independently, and the tests hold the
+    two to the same records and bytes, golden files of format level 1.0 in
+    `tests/fixtures/state/`, and a fuzz target's invariants, run for eight
+    million mutations under ASan and UBSan and under libFuzzer.
+  - The sequencer core imports a set in pieces (`fm1_seq_import_begin`,
+    `_feed`, `_end`), so a set reaches it from a file without a line ever
+    held whole; the song's `dq`, `se` and `sn` lines are typed in the
+    binary form; P1 reads the build's metadata export; old parameter and
+    list-entry names resolve through `engines/aliases.json`;
+    `tests/test_state_whole.py` holds save-load-save and the same audio.
+  - Review fixes before merging: P1 no longer hangs on a number with a
+    huge exponent (`1e99999999999999999999`); the C reader refuses a file
+    rather than let a duplicate key through unchecked; each fuzz seed
+    runs its own stream; the metadata export lists all eight project-key
+    scales; Drums' new Choke is saved per pad; the GPL build's Comet and
+    Crater kits save every pad too; the metadata export names each
+    engine's licence.
+- **The saved-state file format, designed.** JSON Schemas (draft 2020-12)
+  for every kind of file the simulator and the guide will use (project,
+  sound, effects chain, mod rack, clip, settings) and for the export of
+  every parameter's names, ranges and units that a browser editor will
+  build its controls from, with an example of each, in `engines/state/`.
+- **Comet Kit, a drum kit after the TR-909** (GPL; in builds with the GPL
+  switch on, as the simulator is while we test). It is the 909 kit of
+  fm1-x0x, Charles Vestal's firmware for the FM-1, which ports 9W9 by
+  athousanddetails, itself grown out of ER-99 by Matthew Cieplak: the kick,
+  snare, toms, rim shot and clap modelled on the machine's circuits, and
+  ER-99's recordings of the hi-hats, crash and ride.
+  - Sixteen pads on notes 36–51, as Drums: the white keys play them. Besides
+    the machine's eleven sounds, a second snare, three more toms and a
+    pedal hi-hat are voicings of their own; the closed and pedal hi-hats
+    cut the open one short.
+  - Each pad has the machine's own knobs for its sound: Tune, Decay, Level,
+    Tone, Snap, Sweep (the kick's pitch depth), Drive and seven Drive Types
+    (Diode, Clip, Saturate, Fuzz, Crunch, Fold, Crush). Accent and Velocity
+    set how the kit answers velocity, and Kit chooses Classic or Big Beat,
+    fm1-x0x's own voicing with a harder kick.
+  - It plays exactly what fm1-x0x's own 909 plays for the same hits, sample
+    for sample, at any block size and at the instrument's rate. Its cymbal
+    recordings take 221 KB; the notes propose halving that for the FM-1.
+  - Drums stays the kit in every build.
+- **Crater Kit, a 16-pad kit after the TR-808** (GPL; in builds with the
+  GPL switch on, as the simulator is while we test). It is the 808 of
+  fm1-x0x, Charles Vestal's firmware for the FM-1, a port of 8W8 by
+  athousanddetails: circuit models of the machine's kick, snare, toms,
+  congas, clap, maracas, claves, cowbell, hi-hats and cymbal, and sc808's
+  rim shot. Drums stays as it is, beside it.
+  - All sixteen sounds on notes 36 to 51, the FM-1's sixteen white keys: a
+    conga shares its tom's channel and a closed hi-hat cuts the open one,
+    as on the machine. Velocity 88 is a normal hit and 127 the accent.
+  - Each pad keeps its own Tune, Decay, Level, Tone, Snap, Drive and one
+    of seven distortions; Accent, Choke and Volume are the kit's. The
+    manual gives four settings to start from.
+  - It plays exactly what fm1-x0x's own 808 plays for the same hits, sample
+    for sample, at any block size; it costs about 6 KB of memory and less
+    CPU than Drums.
+- **Acid Gen, acid basslines from a seed** (GPL; with the GPL switch on).
+  It is TB-3PO, the line generator of fm1-x0x, after the Phazerville
+  Hemisphere Suite's TB_3PO. In the simulator, turn ALGORITHM on the ARP
+  pages past the stock modes to put it in the arpeggiator's place.
+  - Hold a key and a 303-style line plays from that note, with accents and
+    slides that Acid Bass plays as a 303 would; let go and it stops, unless
+    latched. Or set Keys to Run and it plays with the sequencer.
+  - Density, Accent, Slide, Octaves, the key (or the project's), rate,
+    length and direction; the same Seed always plays the same line, and
+    Mutations changes it a little at a time.
+- **Acid Bass, a bass after the TB-303** (GPL; in builds with the GPL
+  switch on, as the simulator is while we test). It is the 303 of
+  fm1-x0x, Charles Vestal's firmware for the FM-1, a port of Robin
+  Schmidt's Open303 with the Devilfish's longer slides and accent decays
+  and a soft or RAT-style drive.
+  - Play a note with velocity 100 or more for an accent; play a key while
+    holding another to slide to it, and let go to slide back.
+  - Twelve controls on three pages: Cutoff, Resonance, Env Mod, Decay;
+    Accent, Wave (saw or square), Tune, Volume; Drive, Drive Type, Slide and
+    Acc Decay. The manual gives four settings to start from.
+  - It plays exactly what fm1-x0x's own 303 plays for the same notes, sample
+    for sample, at any block size; it costs about 1.2 KB of memory.
+- **Drawbar, Trio and Phase Bend: three engines from Felucca** (GPL; in
+  builds with the GPL switch on, as the simulator is while we test). They
+  are Felucca's own WHEEL, TRIO and PHASE engines, by Leo Kuroshita
+  (Hügelton Instruments), and play exactly what Felucca plays for the same
+  notes and settings, every one of its factory sounds included.
+  - **Drawbar**, a tonewheel organ: sixteen drawbar settings with Sub, Body
+    and Top, percussion, key click, drive and a rotary speaker that speeds
+    up and slows down.
+  - **Trio**, three oscillators in the style of 8-bit sound chips, with
+    ring modulation and hard sync, into a low-, band-, high-pass or notch
+    filter that gets gritty at high resonance.
+  - **Phase Bend**, phase distortion as on the Casio CZ, with three
+    resonant waves, a second wave on alternate cycles, a detuned or
+    ring-modulated second line, a sub, and glide's four controls (Glide,
+    Voice Mode, Glide Mode, Time Mode) on a page of their own.
+  - Eight voices each, Felucca's envelope, velocity accents; ALGORITHM steps
+    through each engine's main list. The manual gives Felucca's sixteen
+    factory sounds for them as settings.
+- **The GPL switch.** Engines and effects that port code published under
+  the GNU GPL can now come into Lunar Modulator, each in a folder of its
+  own, built in only while the switch is on. It is on in every build while
+  we test (owner, 2026-10-05); built with it off, the firmware contains no
+  GPL code and can be shared.
+  - The simulator's page names any GPL module in its build and offers the
+    simulator under the GNU GPL, version 3, with the licence's text and a
+    link to the source at the commit the page was built from: today Acid
+    Bass, Acid Gen, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend.
+    With no GPL module in it, the page says nothing new.
+  - `fm1-render --list` names every module's licence; `--build-info`
+    says which way a build was made. FM6 is listed as MIT and Apache-2.0
+    (msfa).
+  - CI now also builds and tests everything with the switch off, and a
+    new test fails if that build compiles, links or lists anything GPL.
+  - The switch itself changes nothing in how anything sounds; the seven
+    GPL modules above are the first behind it.
+- **A study of fm1-x0x, and of Felucca's other engines**, in
+  `notes/2026-10-06-fm1-x0x.md`. fm1-x0x is new open firmware for the FM-1
+  with drum kits after the TR-909 and TR-808, basses after the TB-303 and
+  the TB-3PO acid generator. Nothing is ported yet; the note proposes the
+  order:
+  - **Engines to bring in first, behind the GPL switch:** the 303-style
+    bass, TB-3PO as a MIDI effect, then the two kits as 16-pad kits beside
+    our own Drums.
+  - **Four of Felucca's engines after them:** a drawbar organ, a
+    three-oscillator chip voice, a slicer and phase distortion.
+  - **Engines, effects and assets kept out:** the breakbeat generator,
+    whose upstream has no licence (the note drafts a request to its
+    author, for the owner to send); the 909's send effects; and the
+    break recordings.
+  - **Proposed names** of our own (Comet Kit, Crater Kit, Acid Bass, Acid
+    Gen, Drawbar, Trio, Chop, Phase Bend) for the owner to choose from.
+  - **Hardware facts reported by fm1-x0x:** the FM-1 measured at 360 MHz;
+    its audio clock near 44,145 Hz; a float divide by zero can crash the
+    chip when its trap is on; a flash erase silences the audio.
+  - **Lessons for saved state, the song list, knob motion and undo.**
 - **Glide Mode and Time Mode on Macro, Macro Heavy, Six-Op FM, FM6 and
   Shapes.** Glide now has a page of its own on every pitched engine, with
   four knobs:

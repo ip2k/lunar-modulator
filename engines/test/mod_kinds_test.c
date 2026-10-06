@@ -690,6 +690,74 @@ static void register_(void) {
   fm1_mod_destroy(m);
 }
 
+/* Pattern data (fm1_mod_get_data / fm1_mod_set_data, notes/2026-10-06-
+ * state-files.md ST12): a loop locked and edited by hand, saved and given
+ * to a Register of another seed, plays on exactly where it was; bad data
+ * is refused and changes nothing; only kinds with data take any. */
+static void register_data(void) {
+  static float a[200], b[200], c2[200];
+  uint8_t data[FM1_MOD_DATA_MAX], again[FM1_MOD_DATA_MAX], bad[8];
+  uint8_t version = 0;
+  uint16_t n;
+  unsigned c, k;
+  fm1_mod_t *m = make(0, 0, 5), *r = make(1, 0xA5, 77), *q;
+  put(m, 0, "register");
+  set(m, 0, "Change", 1.0f);
+  set(m, 0, "Length", 9.0f);
+  reg_run(m, 60, a, 30);                       /* locked, and edited at clock 30 */
+  n = fm1_mod_get_data(m, 0, data, (uint16_t)sizeof(data), &version);
+  CHECK(n == 5 && version == 1 && data[4] == 9);
+  put(r, 0, "register");
+  set(r, 0, "Change", 1.0f);
+  set(r, 0, "Length", 9.0f);
+  CHECK(fm1_mod_set_data(r, 0, data, n, version) == 1);
+  CHECK(fm1_mod_get_data(r, 0, again, (uint16_t)sizeof(again), &version) == 5);
+  CHECK(memcmp(data, again, 5) == 0);
+  reg_run(m, 80, a, -1);                       /* both run on: the same loop */
+  reg_run(r, 80, b, -1);
+  for (c = 0; c < 80; ++c) CHECK(a[c] == b[c]);
+  /* Without the data, the other seed's loop. */
+  q = make(2, 0, 77);
+  put(q, 0, "register");
+  set(q, 0, "Change", 1.0f);
+  set(q, 0, "Length", 9.0f);
+  reg_run(q, 80, c2, -1);
+  for (c = 0, k = 0; c < 80; ++c) k += a[c] != c2[c];
+  CHECK(k > 10);
+  /* Refused, and nothing changes: another version, another size, a
+   * length out of 1-32; a short buffer reads nothing. */
+  memcpy(bad, data, 5);
+  CHECK(fm1_mod_set_data(r, 0, bad, 5, 2) == 0);
+  CHECK(fm1_mod_set_data(r, 0, bad, 4, 1) == 0);
+  bad[4] = 0;
+  CHECK(fm1_mod_set_data(r, 0, bad, 5, 1) == 0);
+  bad[4] = 33;
+  CHECK(fm1_mod_set_data(r, 0, bad, 5, 1) == 0);
+  CHECK(fm1_mod_get_data(r, 0, again, 4, &version) == 0);
+  CHECK(fm1_mod_get_data(r, 0, again, 5, &version) == 5);
+  CHECK(fm1_mod_get_data(m, 0, data, 5, &version) == 5 && memcmp(data, again, 5) == 0);
+  /* An empty position, and a kind without data. */
+  CHECK(fm1_mod_get_data(r, 3, again, 5, &version) == 0);
+  CHECK(fm1_mod_set_data(r, 3, data, 5, 1) == 0);
+  put(r, 1, "lfo");
+  CHECK(fm1_mod_get_data(r, 1, again, 5, &version) == 0);
+  CHECK(fm1_mod_set_data(r, 1, data, 5, 1) == 0);
+  /* The rules every kind keeps: data has both hooks, a version, a size
+   * within the cap and one instance; no data, no hooks. */
+  for (k = 0; k < fm1_mod_kind_count; ++k) {
+    const fm1_mod_kind_t *kd = fm1_mod_kinds[k];
+    if (kd->data_bytes) {
+      CHECK(kd->get_data && kd->set_data && kd->data_version >= 1);
+      CHECK(kd->data_bytes <= FM1_MOD_DATA_MAX && !(kd->flags & FM1_MOD_KIND_POLY_OK));
+    } else {
+      CHECK(!kd->get_data && !kd->set_data && kd->data_version == 0);
+    }
+  }
+  fm1_mod_destroy(m);
+  fm1_mod_destroy(r);
+  fm1_mod_destroy(q);
+}
+
 /* ---- Function ---------------------------------------------------------------------- */
 
 /* Absolute frame of the next rise on `port` of module 0 within `limit`
@@ -1251,6 +1319,7 @@ int main(void) {
   divide();
   quantize();
   register_();
+  register_data();
   function();
   bounce();
   burst();

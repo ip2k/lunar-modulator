@@ -9,7 +9,10 @@ which the last tests here read.
 
 Set FM1_SIM_EXTRA (and FM1_SIM_CC / FM1_SIM_CXX / FM1_SIM_OPT) to build the
 harness with other flags, e.g. the ASan + UBSan set from engines/README.md;
-that build goes to its own directory.
+that build goes to its own directory. So does the build with the GPL switch
+off (FM1_GPL_MODS=0, engines/Makefile): native-mit, which
+tests/test_gpl_switch.py also builds. A scenario marked "gpl" plays a GPL
+module and skips there.
 """
 import hashlib
 import json
@@ -23,7 +26,7 @@ from urllib.parse import unquote
 
 import pytest
 
-from tests.engine_helpers import ROOT, pitch_hz
+from tests.engine_helpers import GPL_MODS, ROOT, pitch_hz
 
 SIM = ROOT / "sim" / "web"
 ENGINES = ROOT / "engines"
@@ -43,10 +46,12 @@ def tools():
     }
     tag = hashlib.sha256(json.dumps(flags, sort_keys=True).encode()).hexdigest()[:8]
     build = SIM / "build" / ("native" if not extra and flags["OPT"] == "-O2" else f"native-{tag}")
+    if not GPL_MODS:                         # the MIT/BSD build has a directory of its own
+        build = build.with_name(build.name + "-mit")
     targets = [build / "fm1-render", build / "fm1-sim-render"]
     subprocess.run(
         ["make", "-C", str(ENGINES), "-f", "Makefile", "-f", str(SIM / "mk" / "sim.mk"),
-         f"SIM={SIM}", f"BUILD={build}", "-j4"]
+         f"SIM={SIM}", f"BUILD={build}", f"FM1_GPL_MODS={int(GPL_MODS)}", "-j4"]
         + [f"{k}={v}" for k, v in flags.items()] + [str(t) for t in targets],
         check=True, stdout=subprocess.DEVNULL)
     return {"render": targets[0], "sim": targets[1]}
@@ -123,7 +128,10 @@ def test_app_renders_what_fm1_render_renders(tools, tmp_path, s):
     played on the panel (`panel`) is replayed by fm1-render from what the
     harness logged (--log-cmds and its .args sidecar, which starts with
     --slots), as parity.mjs does; fm1-render's multi-sound flags imply
-    --slots."""
+    --slots. A scenario marked "gpl" plays a GPL module, which the build with
+    the GPL switch off leaves out: it skips there."""
+    if s.get("gpl") and not GPL_MODS:
+        pytest.skip("plays a GPL module; the GPL switch is off")
     ref, app = tmp_path / "ref.wav", tmp_path / "app.wav"
     logs = []
     if "cmd" in s:          # a sequencer script: the event logs must match too
@@ -196,12 +204,12 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
                                   text=True).stdout)
     print(f"sizeof(fm1_app_t) = {z['app_bytes']} B")
     assert z["seq_tracks"] == 8                                   # owner decision O3 (2026-10-02)
-    assert (z["seq_bytes_8"], z["seq_bytes_4"]) == (31880, 18056)
+    assert (z["seq_bytes_8"], z["seq_bytes_4"]) == (31944, 18120)
     assert z["seq_bytes_8"] <= z["seq_arena"] == 32768
     assert (z["seq_event_bytes"], z["seq_pending_bytes"], z["seq_click_bytes"]) == (3264, 240, 20)
     total = (z["seq_bytes_8"] + z["seq_event_bytes"] + z["seq_pending_bytes"] + z["seq_ui_bytes"]
              + z["seq_click_bytes"])
-    assert total == 36428 <= z["seq_budget"] == 36864
+    assert total == 36492 <= z["seq_budget"] == 36864
     # Multi-sound (docs/15 §3.16): four 512 KiB sound arenas and ten 256 KiB
     # effect arenas (two master slots, two inserts per sound), 4.5 MiB of the
     # module's fixed 8 MiB; fm1_app_t is 4,939,984 B natively (clang, 64-bit).
@@ -212,7 +220,7 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     assert z["seq_need"] == 201 <= z["seq_events"] == 272
     assert z["seq_ui_size"] <= z["seq_ui_bytes"]
     script = f"#! rate={RATE} block=64 tracks=8 end=6400\n@0 tog 0 0 60 100\n@0 play\n"
-    for tracks, size in ((8, 31880), (4, 18056)):
+    for tracks, size in ((8, 31944), (4, 18120)):
         s, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}")
         assert s["seq_bytes"] == size
         r, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}",
@@ -565,10 +573,11 @@ def test_shift_mono_on_a_sound_without_voice_mode(tools, tmp_path):
     assert wav.read_bytes() == plain.read_bytes()
 
 
-@pytest.mark.parametrize("engine", ["sw-sophie", "drums"])
+@pytest.mark.parametrize("engine", ["sw-sophie", "drums"] + (["comet", "crater"] if GPL_MODS else []))
 @pytest.mark.parametrize("key,peak", [(0, True), (1, False), (2, True), (26, True)])
 def test_pad_kits_play_their_pads_on_the_white_keys_at_any_octave(tools, engine, key, peak):
-    """A pad kit (an engine with pad_count, fm1_engine.h: Sophie and Drums)
+    """A pad kit (an engine with pad_count, fm1_engine.h: Sophie, Drums and,
+    with the GPL switch on, Comet Kit and Crater Kit)
     only answers MIDI notes 36-51, below the keys' range (53-79 at octave
     0). With a kit as the sound the 16 white keys play pads 1-16 and the
     black keys play nothing, at any octave; other engines are unchanged."""

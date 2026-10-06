@@ -18,6 +18,12 @@
  * whatever Change is, so a preset repeats exactly and turning Change never
  * shifts the stream.
  *
+ * Pattern data (notes/2026-10-06-state-files.md ST12): the loop a user
+ * locked or edited with WRITE is saved as the register's 32 bits and the
+ * length it was running at, 5 bytes in layout 1 (bits little-endian, then
+ * the length 1-32), so a load brings back that loop rather than the seed's.
+ * The random stream restarts from the seed, as with any load.
+ *
  * Our own code, MIT, on fm1_mp's register and slew. After the Turing
  * Machine (Tom Whitwell, Music Thing Modular), Workshop System Computer card
  * 20 (Chris Johnson, MIT) and Phazerville's util_turing.h (Patrick Dowling,
@@ -115,6 +121,27 @@ static void reg_process(void *self, const fm1_mod_io_t *io) {
   io->out[O_PITCH] = mod_round(v * p[P_SPAN]) * (1.0f / 60.0f);
 }
 
+#define REG_DATA_BYTES 5u
+
+static void reg_get_data(const void *self, uint8_t *buf) {
+  const reg_t *s = (const reg_t *)self;
+  const uint32_t bits = fm1_mp_turing_bits(&s->tm);
+  buf[0] = (uint8_t)bits;
+  buf[1] = (uint8_t)(bits >> 8);
+  buf[2] = (uint8_t)(bits >> 16);
+  buf[3] = (uint8_t)(bits >> 24);
+  buf[4] = s->tm.length;
+}
+
+static int reg_set_data(void *self, const uint8_t *buf, uint16_t n, uint8_t version) {
+  reg_t *s = (reg_t *)self;
+  if (version != 1u || n != REG_DATA_BYTES || buf[4] < 1u || buf[4] > 32u) return 0;
+  s->tm.reg = (uint32_t)buf[0] | (uint32_t)buf[1] << 8 | (uint32_t)buf[2] << 16 |
+              (uint32_t)buf[3] << 24;
+  fm1_mp_turing_set_length(&s->tm, buf[4]);
+  return 1;
+}
+
 static void reg_reset(void *self, uint32_t why) {
   reg_t *s = (reg_t *)self;
   if (why == FM1_MOD_RESET_PRESET) fm1_mp_slew_reset(&s->slew, 0.0f);
@@ -125,6 +152,7 @@ const fm1_mod_kind_t fm1_mod_kind_register = {
   "Our own, on fm1_mp's register. After Music Thing Modular's Turing Machine (Tom Whitwell), "
   "Workshop System Computer card 20 (Chris Johnson, MIT) and Phazerville's util_turing.h "
   "(Patrick Dowling, MIT); no code taken.",
-  kParams, P_COUNT, 2, 3, kGates, kOuts, 0, 0,
-  reg_size, reg_create, NULL, reg_reset, reg_process, NULL, NULL, NULL
+  kParams, P_COUNT, 2, 3, kGates, kOuts, 0, REG_DATA_BYTES,
+  reg_size, reg_create, NULL, reg_reset, reg_process, reg_get_data, reg_set_data, NULL,
+  1                         /* data layout 1: the bits and the length */
 };

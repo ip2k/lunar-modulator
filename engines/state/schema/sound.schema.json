@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ip2k.github.io/lunar-modulator/schema/1/sound.schema.json",
+  "title": "Lunar Modulator sound",
+  "description": "One sound: its engine and values, its inserts, MIDI effects and level, the FM6 voices it uses, and the modules and cables that touch only it (units snd, snd.fx1, snd.fx2, and host's Pitch). Loaded into a sound unit the user picks; positions, slots and FM6 slots are remapped (notes/2026-10-06-state-files.md §10.2). Suggested file name: deep-bass.sound.lunar.",
+  "type": "object",
+  "allOf": [{"$ref": "common.schema.json#/$defs/head"}],
+  "required": ["lunar", "kind", "sound"],
+  "properties": {
+    "kind": {"const": "sound"},
+    "sound": {"$ref": "common.schema.json#/$defs/sound"},
+    "dx7": {"$ref": "common.schema.json#/$defs/dx7Voices"},
+    "mod": {"$ref": "common.schema.json#/$defs/mod"},
+    "view": {"$ref": "common.schema.json#/$defs/view"}
+  },
+  "unevaluatedProperties": false
+}

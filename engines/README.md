@@ -26,6 +26,12 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `dx7` | FM6 | sound | 12 | msfa, the FM core of Google's music-synthesizer-for-android (Apache-2.0), the stock FM-1's core; 32 voices of our own and DX7 SysEx | [msfa.md](msfa.md); [below](#fm6) |
 | `sw-sophie` | Sophie | sound | 12 | a Schwung module (Matt Estela, MIT), through the shim | [schwung.md](schwung.md) |
 | `drums` | Drums | sound | 12 | Plaits' drum classes (Emilie Gillet, MIT), and a rim shot, clap, cowbell and cymbal of this repository's own | [below](#drums); a 16-pad kit on notes 36–51 with two sets of voicings, Deep and Punch, choke groups and a kit-wide decay |
+| `acid-bass` | Acid Bass | sound | 1 | fm1-x0x's 303 (Charles Vestal, **GPL-3.0-only**): Open303 (Robin Schmidt, MIT) with the Devilfish ranges and a RAT drive | [below](#acid-bass); a bass after the TB-303, built only with the GPL switch on |
+| `comet` | Comet Kit | sound | 11 | fm1-x0x's 909 (Charles Vestal, **GPL-3.0-only**): 9W9 (athousanddetails) after ER-99 (Matthew Cieplak), with ER-99's cymbal recordings | [below](#comet-kit); a 16-pad kit after the TR-909, built only with the GPL switch on |
+| `crater` | Crater Kit | sound | 13 | fm1-x0x's 808 (Charles Vestal, **GPL-3.0-only**), ported from 8W8 (athousanddetails, GPL-3.0): circuit models after the TR-808's service notes and Werner, Abel and Smith; sc808's rim shot (MIT) | [below](#crater-kit); a 16-pad kit after the TR-808 on notes 36–51, built only with the GPL switch on |
+| `drawbar` | Drawbar | sound | 8 | Felucca's WHEEL (Leo Kuroshita, Hügelton Instruments, **GPL-3.0-only**), unmodified | [below](#the-felucca-engines); a tonewheel-style organ, built only with the GPL switch on |
+| `trio` | Trio | sound | 8 | Felucca's TRIO (**GPL-3.0-only**), unmodified | [below](#the-felucca-engines); three chip-style oscillators with ring and sync into a gritty filter, GPL switch on |
+| `phase-bend` | Phase Bend | sound | 8 | Felucca's PHASE, CrispyZebra's phase-distortion oscillator (**GPL-3.0-only**), unmodified | [below](#the-felucca-engines); phase distortion with resonant waves, GPL switch on |
 | `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
 | `plate` | Plate | effect | – | Rings' reverb, with Elements' Freeze | [mi-fx.md](mi-fx.md) |
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
@@ -433,6 +439,499 @@ under ASan and UBSan (clang 19.1, no report) and in a 32-bit build (GCC
 (A sixth, whether to give Drums a per-pad choke group and a kit-wide decay
 in the room glide made in the modulation records, was answered on
 2026-10-06: yes, Choke and Kit Decay, above.)
+
+## Acid Bass
+
+A monophonic bass after the TB-303 (`src/acid_bass.cc`): fm1-x0x's 303
+bass by Charles Vestal, vendored in `third_party/fm1-x0x/` (GPL-3.0-only;
+`UPSTREAM.md` has the commit, the files, the two local changes and the
+credits). **GPL code: built only while the GPL switch is on**
+(`FM1_GPL_MODS`, [Build and checks](#build-and-checks)); the licence table
+lists it as `GPL-3.0-only AND MIT`.
+
+**What the vendored bass is** [reported: `third_party/fm1-x0x/dsp/bass303.h`;
+verified against Open303 by fm1-x0x's own tests, `notes/2026-10-06-fm1-x0x.md`
+§2.6]: Open303's `getSample()` path by Robin Schmidt (MIT), statement for
+statement (the pitch slew, the decay envelope and its two RC followers, the
+measured env-mod mapping, the TB_303-mode TeeBeeFilter with its feedback
+high-pass, the amp envelope and de-clicker, and the all-pass, high-pass and
+notch after the filter), with a polyBLEP saw and the 303's tanh-shaped
+square in place of Open303's wave tables, 2x oversampling through a
+polyphase half-band, controls every 4 samples, the Devilfish ranges for
+slide and accent decay after jc303 (midilab, GPL-3.0), and a Soft or RAT
+drive after schwung-303's (the RAT after dm-Rat, Dave Mollen, GPL-3.0). It
+idles 500 ms after it goes silent. Float, no libm (`fastmath.h`), no
+allocation.
+
+**What the wrapper adds.**
+- **Notes**, as Open303's MIDI handling plays them: a list of held keys,
+  newest last (16). A key with none held triggers; a key played over a held
+  one slides to it without restarting the envelopes; letting go of the
+  newest slides back to the newest still held; the last release releases.
+  Velocity 100 or more is an accent (schwung-303's rule, which TB-3PO's 118
+  and 72 meet), and velocity does nothing else.
+- **The rate** is the host's, 40–96 kHz; others are refused. The vendored
+  bass reads the instance's rate where upstream reads 44,100 Hz (local
+  change 1), and at 44.1 kHz computes upstream's samples [verified:
+  `tests/test_engine_acid_bass.py` builds `test/bass303_drive.c` against
+  fm1-x0x's own file and against ours, five settings, the same bytes].
+- **A 16-sample grid.** The bass's output depends on where its render calls
+  split (its control rate of 4, its per-call flushes), so the wrapper renders
+  whole 16-sample chunks counted from create and hands the host's frames out
+  of the last one. Every note, bend and parameter lands on the next chunk
+  (0.36 ms at 44,118 Hz), so the output is the same at any host block size.
+- **Parameters in their units**, as floats: each reaches the bass as a pot
+  position between the integers (local change 2), in X0X's mapping.
+- **Pitch and level outside the bass.** Tune, the bend and the per-note
+  pitch offset multiply the bass's target and slewed frequencies together,
+  so a bend moves at once and a slide in progress goes on; at 0 nothing is
+  multiplied. The bass keeps X0X's default level (its Volume pot 96,
+  −14.6 dB, where its drive was tuned), and Volume scales the output by
+  (Volume / 0.7)², so 0.7 is X0X's output exactly.
+
+| Page | Parameter | Range, default | Flags | What it does |
+| --- | --- | --- | --- | --- |
+| 1 | Cutoff | 314–2,394 Hz, 870 | SMOOTH, MOD, LOG, POLY | The filter's cutoff, exponential as X0X's pot |
+| 1 | Resonance | 0–100 %, 50 | SMOOTH, MOD, POLY | Open303's resonance curve |
+| 1 | Env Mod | 0–100 %, 50 | SMOOTH, MOD, POLY | How far the decay envelope opens the filter (Open303's measured mapping) |
+| 1 | Decay | 200–2,000 ms, 630 | LATCH, MOD, LOG | The filter envelope's decay for unaccented notes, read at each note-on, slides included |
+| 2 | Accent | 0–100 %, 50 | LATCH, MOD | How hard an accent hits (level and filter) |
+| 2 | Wave | Saw, Square | LATCH, MOD | Read at the next note that is not a slide, or at once while silent |
+| 2 | Tune | −12 to +12 semitones, 0 | SMOOTH, MOD | Pitch, beside the bend |
+| 2 | Volume | 0–1, 0.7 | SMOOTH, MOD, POLY | Output level, (Volume / 0.7)² |
+| 3 | Drive | 0–100 %, 0 | SMOOTH, MOD, POLY | The drive's amount; 0 bypasses it |
+| 3 | Drive Type | Off, Soft, RAT; Soft | LATCH, MOD | Waits for a note that is not a slide, as Wave |
+| 3 | Slide | 2–360 ms, 60 | SMOOTH, MOD, LOG | The slide's time (Devilfish range; the stock 303's 60 ms by default) |
+| 3 | Acc Decay | 30–3,000 ms, 200 | LATCH, MOD, LOG | The filter envelope's decay for accented notes (Devilfish range; stock 200 ms) |
+
+The pages and their order are X0X's. Defaults are schwung-303's knobs at
+their middles, rounded, and the stock 303's slide and accent decay, which
+X0X's 7-bit pots only come near (61 and 194 ms). POLY offsets (and the
+pitch offset) belong to the sounding key and restart at 0 whenever the
+voice moves to another key. While nothing sounds, every change applies at
+once.
+
+**Checks** (`tests/test_engine_acid_bass.py`) [verified 2026-10-06]:
+- `vendor.py --check`: the vendored files are fm1-x0x's at `80b7d40` (and
+  Open303's licence from schwung-303 at `ccc2f1f`) plus `local.patch`.
+- The patched bass gives upstream's samples at 44.1 kHz (above).
+- `build/fm1-acid-oracle --twin`: six lines (the defaults, a squelchy
+  setting, the square with long Devilfish slides, both drives, ties)
+  through the engine and through a copy of its unit driven as fm1-x0x's
+  sequencer drives it, on the same grid: the same samples, bit for bit, at
+  host blocks of 1, 7, 64 and 448 frames, at 44,100, 44,118 and 48,000 Hz;
+  no subnormal sample, none left in the decaying state after a render call.
+- `--fields`: each parameter reaches the bass as its unit says (cutoff in
+  Hz, the decay, accent-decay and slide coefficients, the resonance curve).
+- Accents from velocity 100, slides, slide time, slide back, release, Tune,
+  bend and pitch offset (a pitch offset is a bend, byte for byte), POLY
+  offsets on the sounding key only, LATCH and switch timing, the same output
+  at host blocks of 1, 7, 64 and 448 and from any instance memory, every
+  parameter at both ends and NaN or infinite rendering finite, the rates,
+  no libm, and the SMOOTH driver (`tests/test_engine_smooth.py`).
+
+**Costs** [verified 2026-10-06, Apple M1 Max, `fm1-render`, best of five]:
+1,248 bytes an instance (the bass is 756 of them; no pointers, so the same
+on 32 bits); a 64-frame block of a busy line (16ths at 130 BPM, slides and
+accents) 3.3 µs, 4.3 µs with either drive, 0.1 µs idle. On pi32v2
+[verified: `tools/jieli/compile-check.sh`, 2026-10-06, the switch on, 138
+of 138 objects in all four profiles]: 1,248 bytes an instance there too
+(the bass 756), and 19.5 KB of code and read-only data at `-O2` (the bass
+15.4 KB, the wrapper 4.1 KB; 10.7 KB at `-Oz`), against an app area of
+about 852 KB in FM-1+VA's layout. fm1-x0x's own figures put one 303 at
+about 16 % of the FM-1's CPU in its worst case [inferred: the study's
+§2.6]; nothing has run on a JieLi chip.
+
+## Comet Kit
+
+A 16-pad kit after the TR-909 (`src/comet_kit.cc`, `src/comet_kit.h`):
+fm1-x0x's 909 kit by Charles Vestal, vendored in `third_party/fm1-x0x/`
+(GPL-3.0-only; `UPSTREAM.md` has the commit, the files, the local changes
+and the credits). **GPL code: built only while the GPL switch is on**
+(`FM1_GPL_MODS`, [Build and checks](#build-and-checks)); the licence table
+lists it as `GPL-3.0-only AND MIT`. Drums stays the MIT kit, in every build.
+
+**What the vendored kit is** [reported: `third_party/fm1-x0x/dsp/drum909.h`,
+`drum909_dsp.h`; verified against 9W9 by fm1-x0x's own test,
+`notes/2026-10-06-fm1-x0x.md` §2.6]: a port, line for line, of **9W9** by
+**athousanddetails** (GPL-3.0), which grew out of **ER-99** by **Matthew
+Cieplak** (GPL-3.0). Eleven voices: the kick (a VCO near 49 Hz with the
+909's additive-exponential sweep, a 16 ms pitch hold, diode rounding and a
+beater click), the snare (two shells 1.585 apart and the noise channel),
+three toms (three VCOs at 1 : 1.50 : 2.75, the upper two attack-only), the
+rim shot (a pulse into two resonators) and the clap (four bursts 12 ms
+apart and a room tail), modelled on the machine's circuits; the closed and
+open hi-hat (one recording, choking each other), the crash and the ride
+played from ER-99's recordings, int16 at 44.1 kHz, as the machine played
+its cymbals from ROM. Every voice has a drive of seven types; the kit has
+an accent and a velocity depth. Web Audio's envelopes run as recursions
+re-anchored at each render call; phases are uint32, sample positions
+32.32, tanh a 1,025-point table. Float, no libm (`fastmath.h`), no
+allocation; an idle voice costs nothing. 9W9's and X0X's send reverb,
+delay and master stage (`dsp/fxbus*`, `dsp/master*`) are not taken: our
+inserts and master effects do that job.
+
+**What the wrapper adds.**
+- **Pads.** Notes 36–51 play pads 1–16 (`pad_first_note` 36, `pad_count`
+  16, [Pad kits](#pad-kits)), labelled as Drums labels them; other notes,
+  every note-off and the pitch bend do nothing. Eleven voices on sixteen
+  pads (`kPadVoice`):
+
+  | Pads (notes) | Voice | Voicing |
+  | --- | --- | --- |
+  | 1 Kick (36), 2 Rim (37), 3 Snare (38), 4 Clap (39), 6 Low Tom (41), 10 Mid Tom (45), 15 High Tom (50), 7 Closed HH (42), 11 Open HH (46), 14 Crash (49), 16 Ride (51) | BD, RS, SD, CP, LT, MT, HT, CH, OH, CR, RD | 9W9's panel at its defaults: fm1-x0x's General MIDI map |
+  | 5 Snare 2 (40) | SD | 2 semitones up (205 to 229 Hz), Tone 68 to 90 (the wires 1.2 to 1.9 s), Snappy 64 to 96 |
+  | 8 Floor Tom (43) | LT | 3 semitones up (68 to 81 Hz) |
+  | 12 Low-Mid (47) | MT | 2 up (102 to 114 Hz) |
+  | 13 High-Mid (48) | HT | 2 down (132 to 117 Hz) |
+  | 9 Pedal HH (44) | CH | Decay 84 to 100 (109 to 159 ms) |
+
+  So the six toms rise with their keys inside 9W9's three ranges, which
+  keep the toms from overlapping. A voice struck again restarts in place,
+  as on the machine, so two pads on one voice cut each other; the closed
+  and pedal hats choke the open one (the unit's 3 ms fade). The second
+  pads' voicings are ours, set by measurement, not yet by ear.
+- **The rate** is the host's, 40–96 kHz; others are refused. The vendored
+  kit reads the instance's rate where upstream reads 44,100 Hz, and reads
+  its 44.1 kHz cymbals at 44,100 / rate of a sample a sample, so they keep
+  their pitch (local change 3); at 44.1 kHz it computes upstream's samples
+  [verified: `tests/test_engine_comet_kit.py` builds
+  `test/drum909_drive.c` against fm1-x0x's own file and against ours: four
+  passes, 7 MB, the same bytes].
+- **A 16-sample grid.** The kit's envelopes re-anchor at each render call,
+  so the wrapper renders whole 16-sample chunks counted from create and
+  hands the host's frames out of the last one. A hit or a parameter lands
+  on the next chunk (0.36 ms at 44,118 Hz), so the output is the same at
+  any host block size.
+- **The knobs are 9W9's pots**, per pad, relative to the pad's voicing, so
+  one default fits all sixteen pads and a fresh kit shows true values on
+  every pad, as Drums' knobs do. Tune, Decay, Level, Tone and Snap at 0.5
+  are the voicing's pot, 0 and 1 the pot's ends, linearly on either side;
+  Sweep and Drive at 0 are the voicing's pot (both 9W9 defaults are at or
+  near the bottom), 1 the top. A pot between 9W9's integer positions is
+  read between them (local change 4), so a knob does not step in 1/127ths;
+  at the voicing it is 9W9's integer pot, so a fresh kit is fm1-x0x's kit
+  bit for bit. Which pot each knob moves:
+
+  | Knob | BD | SD | LT, MT, HT | RS | CP | CH, OH | CR, RD |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | Tune | Tune: the sweep ladder, 6–32 | 130–320 Hz | 50–90, 80–125, 110–170 Hz | 150–300 Hz | 650–1,400 Hz | ×0.25–4 | ×0.25–4 |
+  | Decay | 100–4,000 ms | – (pinned 340 ms) | 80–2,600, 70–2,200, 60–2,000 ms | – (pinned 200 ms) | Tail, 120–1,000 ms | 15–300, 20–1,200 ms | 100–3,000 ms |
+  | Level | 0–1.35 | 0–1.35 | 0–1.35 | 0–1.35 | 0–1.35 | 0–1.35 | 0–1.35 |
+  | Tone | Pitch, ×0.43–4.7 of 49 Hz (with Sweep) | the wires' decay, 300–4,000 ms | – | – | – | – | – |
+  | Snap | Attack (the click), 0–1 | Snappy, 0–1 | Attack (the stick), 0–1 | – | – | – | – |
+  | Sweep | P.Dpth, 0–1 | – | – | – | – | – | – |
+  | Drive | 0.85–12 | 0.85–12 | 0.85–12 | 0.85–12 | 0.85–12 | 0.85–12 | 0.85–12 |
+  | Drive Type | Diode, Clip, SAT, BFZ, PDIST, Fold, Crush (shown as Diode, Clip, Saturate, Fuzz, Crunch, Fold, Crush) | | | | | | |
+
+  Exponential pots are 9W9's tables (`gen/x0x_drum_tables.h`), linear
+  between neighbours [verified: `fm1-comet-oracle --fields`, every knob of
+  every pad of both kits at 0, 0.25, 0.5, 0.75 and 1].
+- **The kit's knobs.** Accent (1–4, 9W9's default 1.99) is the level a
+  full-velocity hit reaches; Velocity (0–100 %, 100) how far below it a
+  softer hit falls: a hit's gain is Accent × (1 − Velocity × (1 − vel /
+  127)), as 9W9's. Volume scales the output by 0.2 × (Volume / 0.7)², so
+  the default kick at full velocity peaks at −7.6 dBFS (Drums' at −8.1) and
+  a groove of every voice under the defaults stays under full scale [verified:
+  `fm1-render`, `fm1-comet-oracle --twin`, 2026-10-06]. Kit chooses the
+  voicings: **Classic**, 9W9's panel at its defaults (fm1-x0x's power-on
+  kit before its own mix), or **Big Beat**, fm1-x0x's factory voicing (the
+  kick's Level 61, Decay 80, Drive 30; the open hat's Level 60).
+
+| Page | Parameter | Range, default | Flags | What it does |
+| --- | --- | --- | --- | --- |
+| 1 | Pad | 1 Kick … 16 Ride | (none) | The pad the per-pad knobs edit, as Drums' and Sophie's |
+| 1 | Tune | 0–1, 0.5 | SMOOTH, MOD | The pad's Tune pot (table above) |
+| 1 | Decay | 0–1, 0.5 | SMOOTH, MOD | Its Decay or Tail pot |
+| 1 | Level | 0–1, 0.5 | SMOOTH, MOD | Its Level pot |
+| 2 | Tone | 0–1, 0.5 | SMOOTH, MOD | The snare's Tone, the kick's Pitch |
+| 2 | Snap | 0–1, 0.5 | SMOOTH, MOD | The snare's Snappy, the kick's and toms' Attack |
+| 2 | Sweep | 0–1, 0 | SMOOTH, MOD | The kick's P.Dpth |
+| 2 | Drive | 0–1, 0 | SMOOTH, MOD | Its Drive pot, from the voicing's up |
+| 3 | Drive Type | Diode … Crush | LATCH, MOD | Its distortion type, at the pad's next hit |
+| 3 | Accent | 1–4, 1.99 | LATCH, MOD | The level a full-velocity hit reaches, read at a hit |
+| 3 | Velocity | 0–100 %, 100 | LATCH, MOD | How far a soft hit falls below Accent, read at a hit |
+| 3 | Volume | 0–1, 0.7 | SMOOTH, MOD | The kit's level, (Volume / 0.7)² |
+| 4 | Kit | Classic, Big Beat | LATCH, MOD | The voicings, at each pad's next hit |
+
+Uids 1–13, in table order. A per-pad knob ramps in its pad's values over
+2.5 ms (7 chunks at 44,118 Hz) while the pad sounds, and reaches the voice
+while the pad is the one the voice last struck; otherwise the pad's next
+hit takes it. 9W9 reads the drives, the snare's wires, the kick's click,
+the rim's and clap's tune and level and the cymbals' pitch continuously,
+the rest at a hit, so those move a ringing hit and the others reach the
+next. No per-note offsets (`set_param_note` is NULL): the voices are one
+per drum, and per-pad values cannot be read back until engine API v4.
+
+**State and subnormals.** No subnormal sample, and no subnormal float in
+the unit's state after a render call [verified: `fm1-comet-oracle --twin`
+and `--state`]. Upstream's state holds one: the kick's sweep offset
+(`bd_df`) decays geometrically while the kick sounds and is subnormal
+after about 1.2 s. (The study's scratch bench reported up to 99 in X0X's
+state; the oracle scans the unit's float fields by name and finds only
+this one, so the two scans differ in what they count [inferred].) The wrapper sets it to 0
+under 1e-20 Hz, where adding it to the kick's base (21 Hz or more) no
+longer changes a bit, so the output is the unit's to the sample.
+
+**Checks** (`tests/test_engine_comet_kit.py`, 40 tests) [verified 2026-10-06]:
+- `vendor.py --check`; the generated headers are the vendored script's
+  output; the patched kit gives upstream's samples at 44.1 kHz (above).
+- `build/fm1-comet-oracle --twin`: six lines (every pad with accents, soft
+  hits and the hats choking; Big Beat; every drive type at full drive;
+  every knob at an end; Accent, Velocity and Volume; rolls inside a
+  chunk) through the engine and through a copy of its unit driven as
+  fm1-x0x drives it, with 9W9's integer pots set at each hit: the same
+  samples, bit for bit, at host blocks of 1, 7, 64 and 448 frames, at
+  44,100, 44,118 and 48,000 Hz.
+- `--fields`: every knob of every pad of both kits on 9W9's curves.
+- Every pad of both kits sounds under full scale; notes outside the pads
+  and note-offs do nothing; the six toms within 25 cents of their tunes
+  and rising; the closed and pedal hats choke the open one and nothing
+  else; velocity, Velocity, Accent, Volume; a knob edits only its pad, and
+  the second snare is its own; Kit and Drive Type wait for the next hit;
+  a SMOOTH knob reaches a ringing kick; the kick's Tone moves its pitch
+  once Sweep is up; the same output at host blocks of 1, 7, 64 and 448
+  and from any instance memory; rates (44.1, 48 and 96 kHz in, 32 and 192
+  kHz refused, a tom's pitch kept); every knob at its ends, NaN and the
+  infinities finite; back to zero after every tail; no libm.
+- The SMOOTH driver, the parameter tables, the switch-off build and the
+  virtual FM-1's two parity scenarios (`comet-kit-groove`,
+  `comet-kit-knobs-and-tails`) cover it with every other engine.
+- Under ASan and UBSan (Apple clang 21): the oracle's three modes and
+  every knob of every pad at its ends, NaN and the infinities, from memory
+  filled with 0xA5, at blocks of 7: no report beyond `fastmath.h`'s
+  suppressed shift.
+
+**Costs** [verified 2026-10-06; desktop: Apple M1 Max, Apple clang 21,
+`-O2`, `fm1-render`, best of five]:
+
+| | Comet Kit | Drums, for scale |
+| --- | --- | --- |
+| Instance, 64-bit / 32-bit and pi32v2 | 10,256 B / 10,240 B (the unit 7,264 / 7,244) | 7,616 / 7,424 B |
+| 64-frame block, 11 voices struck on every 16th at 125 BPM | 7.2 µs (0.50 % of the block) | 18.9 µs |
+| 64-frame block, one kick a beat at 125 BPM | 0.82 µs | |
+| 64-frame block, silent | 0.13 µs | 2.6 µs |
+| Code on pi32v2 (`tools/jieli/compile-check.sh`, the switch on), `-O2` | 23.9 KB (the kit) + 3.2 KB (the wrapper) | |
+| Code at `-Oz` | about 9.1 KB + 2.2 KB | |
+| Read-only data | 237.2 KB: the cymbals 221,098 B, the tanh and pot tables 13,832 B, constants; the wrapper 1.4 KB | |
+
+fm1-x0x's own unit, in 64-frame calls, costs 6.3 µs on the same pattern
+(the study, §2.6), so our 16-sample grid adds about 14 %. fm1-x0x's figures
+put a dense 909 at about 12 % of the FM-1's CPU [inferred: the study's
+§2.6]; nothing has run on a JieLi chip.
+
+**Flash, and a budget for the cymbals.** With the switch on, the JieLi
+check's objects total 1,066,648 B of text at `-O2` and 888,857 B at `-Oz`,
+of which Comet Kit is 265.6 KB and 249.9 KB [verified: the check's report,
+2026-10-06, at the merge with PRs #76-#78, 139 of 139 objects in all four
+profiles, link audit PASS]. That is more than the app area of about 852 KB
+in FM-1+VA's layout (docs/11) before JieLi's libraries are linked; without
+the kit it is 639 KB at `-Oz`. With every GPL module merged (Acid Bass,
+Acid Gen, both kits and the three Felucca engines) and PR #79, the objects
+total 1,131,246 B at `-O2` and 934,793 B at `-Oz`, of which the GPL modules
+and their wrappers are 307,475 B at `-Oz` (Comet Kit 249,915 of them), so
+about 627 KB without them [verified: the check's report, 2026-10-06, 143 of
+143 objects in all four profiles, link audit PASS]; after the merge with
+PR #80, 1,131,140 B and 934,855 B, the vendored GPL objects alone 285,744 B
+at `-Oz` [verified: the same check, at the landing review]. The cymbals are the
+one large cost, so this stream proposes:
+
+| Option | Flash for the cymbals | SNR against the int16 [verified 2026-10-06: µ-law and ADPCM by `tests/test_engine_comet_kit.py`, the linear rows by a scratch script] | |
+| --- | --- | --- | --- |
+| int16, as now | 221,098 B | – | fm1-x0x's, bit for bit; the simulator's |
+| **8-bit µ-law (proposed)** | **110,549 B** (+ a 512 B decode table) | **37.8–37.9 dB** (hi-hat, ride, crash) | about a 6-bit converter's full-scale 37.9 dB, and the machine's cymbals were 6-bit PCM [reported: 9W9's README] |
+| 8-bit linear | 110,549 B | 30.6–34.3 dB | |
+| 6-bit linear | 82,912 B | 19.6–22.4 dB | what the machine stored, but these recordings are already through its DAC and filters |
+| IMA ADPCM, 4-bit | 55,275 B | 16.5–18.3 dB | too lossy for noise-like cymbals |
+
+So the proposed budget is **128 KB for the 909's cymbals** (µ-law), about
+140 KB for the whole kit at `-Oz`, behind the GPL switch; int16 stays the
+reference until the owner decides (study X2) and the device's flash layout
+is known. A µ-law build would be a third local change, kept to the device
+build so the simulator stays fm1-x0x's to the bit.
+
+**Open questions** (for the owner):
+1. The name, Comet Kit (study X1), and the voicings' names, Classic and
+   Big Beat.
+2. The cymbals (study X2): ER-99's recordings as int16, 8-bit µ-law
+   (proposed above), synthesised metal instead, or ask ER-99's author
+   where they were recorded from first (their provenance is not stated,
+   R1).
+3. The second pads' voicings (Snare 2, the three extra toms, the pedal
+   hat) were set by measurement; a listening pass.
+4. Per-pad values cannot be read back until engine API v4, as for Drums
+   and Sophie.
+
+## Crater Kit
+
+A 16-pad kit after the TR-808 (`src/crater_kit.cc`, `src/crater_kit.h`):
+fm1-x0x's 808 kit by Charles Vestal, vendored in `third_party/fm1-x0x/`
+(GPL-3.0-only; `UPSTREAM.md` has the commit, the files, the two local
+changes to the kit and the credits). **GPL code: built only while the GPL
+switch is on** (`FM1_GPL_MODS`, [Build and checks](#build-and-checks);
+`mk/x0x-crater.mk`); the licence table lists it as `GPL-3.0-only AND MIT`.
+Drums stays the MIT kit, in every build; Crater Kit sits beside it as the
+faithful machine (`notes/2026-10-06-fm1-x0x.md` §4).
+
+**What the vendored kit is** [reported: `third_party/fm1-x0x/dsp/drum808.h`
+and 8W8's README; verified against 8W8 by fm1-x0x's own test, below]: a
+C99, float, libm-free port, statement for statement, of 8W8 by
+athousanddetails (GPL-3.0). Sixteen sounds on eleven tracks with the
+machine's own switches (tom or conga, rim shot or claves, clap or
+maracas); fifteen are circuit models built from the TR-808's service notes
+and Werner, Abel and Smith's analyses: the kick a bridged-T in an op-amp
+loop (so Decay is loop gain, and the pitch sighs), the snare two
+bridged-T shells and noise, the toms and congas a bridged-T at Q 10.8,
+the clap three bursts into a 330 ms tail, one bank of six Schmitt squares
+shared by the cowbell, both hats and the cymbal, and the cymbal Werner's
+three paths. The rim shot transcribes sc808 (Yoshinosuke Horiuchi, Sam
+Aaron; MIT). Delta-form resonators so float follows 8W8's double, 0.32
+fixed-point phases in the metal bank, 32-sample pieces of each call, idle
+circuits free; a circuit's tail ends once it has stayed 60 dB under its
+hit's peak for 20 ms (fm1-x0x's, which saves CPU over 8W8's −90 dBFS).
+
+**What the wrapper adds.**
+- **Pads.** Notes 36–51 (`pad_first_note` 36, `pad_count` 16, [Pad
+  kits](#pad-kits)); other notes and every note-off are ignored.
+
+  | Note | Pad | 8W8 sound (track, switch) | Note | Pad | 8W8 sound (track, switch) |
+  | --- | --- | --- | --- | --- | --- |
+  | 36 | 1 Kick | BD | 44 | 9 Maracas | MA (CP, maracas) |
+  | 37 | 2 Rim Shot | RS (RS, rim) | 45 | 10 Mid Tom | MT (MT, tom) |
+  | 38 | 3 Snare | SD | 46 | 11 Open HH | OH |
+  | 39 | 4 Clap | CP (CP, clap) | 47 | 12 Mid Conga | MC (MT, conga) |
+  | 40 | 5 Claves | CL (RS, claves) | 48 | 13 High Tom | HT (HT, tom) |
+  | 41 | 6 Low Tom | LT (LT, tom) | 49 | 14 Cymbal | CY |
+  | 42 | 7 Closed HH | CH | 50 | 15 Hi Conga | HC (HT, conga) |
+  | 43 | 8 Low Conga | LC (LT, conga) | 51 | 16 Cowbell | CB |
+
+  A pad sets its track's switch and strikes the track: a conga is its
+  tom's channel switched to conga, so the two never sound together, as on
+  the machine; the claves and the maracas have circuits of their own beside
+  the rim shot and the clap. The toms sit on General MIDI's tom keys (41,
+  45, 48) and the congas between them.
+- **Velocity**, as fm1-x0x plays MIDI: 88 is the 808's normal hit (a 4 V
+  trigger) and 127 its accent (7.3 V); below 88 a hit is quieter in
+  proportion; between 88 and 127 the trigger rises evenly (fm1-x0x jumps to
+  the accent at 127). Accent is 8W8's velocity depth: at 0 every hit plays
+  as the accent.
+- **The rate.** fm1-x0x's 808 is built for 44,100 Hz (its decay
+  multipliers, filters and the bank's increments are constants for it).
+  The engine runs it unchanged at a host rate of 44,000–44,200 Hz: the
+  FM-1's 44,118 Hz is 0.7 cents sharp and its times 0.04 % short, less than
+  fm1-x0x's own device, measured at about 44,145 Hz [reported: the
+  study, §1.1]. Other hosts are refused, as the Plaits engines refuse rates
+  above theirs (the study's X5; recomputing the constants per rate, as
+  Acid Bass's local change does for its one macro, would touch some forty
+  constants here).
+- **A 16-sample grid.** The kit's output depends on where its render calls
+  split (its 32-sample pieces, the tails and the metal bank stopping at
+  their ends), so the wrapper renders whole 16-sample chunks counted from
+  create and hands the host's frames out of the last one. Every hit, bend
+  and parameter lands on the next chunk (0.36 ms at 44,118 Hz), so the
+  output is the same at any host block size. A silent kit is not called
+  (it would write nothing).
+- **Parameters**, per pad (Pad chooses which, as on Drums) and for the kit.
+  Each pad knob reaches 8W8's own pot for its sound as a float between the
+  integers (local change 4). The relative knobs (Decay, Level, Tone, Snap)
+  put 8W8's default pot for the sound at 0.5 and its pot 0 and 127 at the
+  ends, linear on either side, so a fresh kit shows true values on every
+  pad.
+- **Output.** The kit's own level stays at 8W8's default (pot 100), and
+  Volume scales the dry bus by (Volume / 0.7)² × 0.7: at the default the
+  snare and the hats sit within 1 dB of Drums' (by RMS, at velocity 100),
+  with 8W8's balance between the sounds kept, so its kick is about 8 dB
+  under Drums' long Deep kick (Level raises a pad by up to 6 dB). The
+  loudest sound by peak, the cowbell accented, peaks near 0.75; a groove
+  of kick, snare and hats near 0.45; every pad on every 16th, accented on
+  the beats, near 1.9, for the host's bus limiter. 8W8's per-sound sends
+  stay at 0: our inserts and master effects do that job.
+
+| Page | Parameter | Range, default | Flags | What it does |
+| --- | --- | --- | --- | --- |
+| 1 | Pad | 1 Kick … 16 Cowbell | (lockable, no MOD) | Which pad the pad's knobs edit; ALGORITHM steps through it |
+| 1 | Tune | −12 to +12 semitones, 0 | LATCH, MOD | The pad's pitch about 8W8's default, read when it is struck. 8W8's own law (12 semitones a half-turn of the pot; the metal's oscillator ratio exponential), run on past the pot's ends on the toms and congas, whose pot spans 2 semitones either way. With the bend, at most 12 either way |
+| 1 | Decay | 0–1, 0.5 | LATCH, MOD | 8W8's Decay pot: the kick's loop gain, the snare's ring and noise, the other sounds' times |
+| 1 | Level | 0–1, 0.5 | SMOOTH, MOD | 8W8's Level pot (0 to 2 times, 1.008 at 0.5): moves a ringing hit |
+| 2 | Tone | 0–1, 0.5 | LATCH, MOD | The kick's tone (its low-pass, 300 Hz × 20^tone) and the snare's (the balance of its two shells); nothing on other pads |
+| 2 | Snap | 0–1, 0.5 | LATCH, MOD | The kick's attack (its click and the octave jump), the snare's snappy (the noise's level and length), the maracas' attack; nothing on other pads |
+| 2 | Drive | 0–1, 0 | SMOOTH, MOD | 8W8's per-sound drive, 0 to 10, clean (bypassed) at 0; moves a ringing hit |
+| 2 | Dist | Diode, Clip, Sat, Fuzz, Cubic, Fold, Crush; Diode | LATCH, MOD | 8W8's seven distortion characters for the drive; waits for the pad's next hit, or applies at once while the kit is silent |
+| 3 | Accent | 0–100 %, 100 | LATCH, MOD | 8W8's velocity depth: how far below an accent a softer hit sits |
+| 3 | Choke | Off, Closed>Open, Both; Closed>Open | LATCH, MOD | 8W8's hat choke: a closed hat cuts the open one, or each cuts the other (2 ms) |
+| 3 | Volume | 0–1, 0.7 | SMOOTH, MOD | The kit's output level, (Volume / 0.7)² |
+
+SMOOTH values ramp in 16-sample steps (7 at 44,118 Hz, 2.5 ms) while the
+kit sounds, in the pad's own values (a ramp goes on when Pad moves on), and
+apply at once while it is silent. No per-note offsets (8W8 tunes and voices
+a sound when it is struck); the bend reaches the hits struck while it is
+held. Eleven parameters, under the cap of fourteen.
+
+**Checks** (`tests/test_engine_crater_kit.py`) [verified 2026-10-06]:
+- `vendor.py --check`: the vendored files are fm1-x0x's at `80b7d40` plus
+  `local.patch`.
+- **The patched kit gives upstream's samples**: `test/drum808_drive.c`,
+  upstream's API only (integer pots, the switches, the sends, 256-frame
+  calls at 44.1 kHz, four settings covering every distortion and the
+  mutual choke), built against fm1-x0x's own `drum808.c` and against ours:
+  the same bytes, the dry bus and both sends.
+- **fm1-x0x's own test against 8W8 passes with our file**:
+  `tests/host/drum808_test.c` against 8W8's `sc808_engine.cpp` at
+  `94aa271`, built from its sources in double: 436 cases, none over 1e-3
+  of the reference's RMS, the worst 6.1e-4 (the kick's tune at 0), with
+  fm1-x0x's warning flags (`-Wdouble-promotion -Werror`).
+- `build/fm1-crater-oracle --twin`: five patterns (a groove; every pad from
+  soft to accented; the toms and congas on their channels with the rim,
+  claves, clap and maracas; settings on six pads with five distortions and
+  the mutual choke; every pad on every 16th) through the engine and through
+  a copy of its kit driven as fm1-x0x drives it, on the same grid: the
+  same samples, bit for bit, at host blocks of 1, 7, 64 and 448 frames, at
+  44,118 and 44,100 Hz. No sample is subnormal or non-finite.
+- `--fields`: each parameter reaches 8W8's pot and value by its law;
+  `--pads`: every pad sounds under full scale, louder at the accent, and
+  ends (the cymbal last, after 1.7 s).
+- How it plays: notes outside the pads and note-offs do nothing; a tom and
+  its conga share a channel while the rim and claves, and the clap and
+  maracas, sum; the hats choke as Choke says; Tune an octave either way on
+  a tom and the kick, measured; the velocity law (44 is half of 88) and
+  Accent 0; the bend on the next hits only; LATCH values and Dist wait for
+  the pad's next hit while Level and Drive move a ringing one; a change
+  while silent applies at once; the per-pad knobs edit only the focused
+  pad; Volume; the same output at host blocks of 1, 7, 64 and 448 and from
+  any instance memory; the rates; every parameter at both ends, NaN and
+  the infinities, bent 48 semitones, finite; no libm, no allocation, and
+  no writable global in the vendored object. Under ASan and UBSan too, with
+  upstream's exponent shift suppressed (`sanitizers/ubsan.supp`).
+- The SMOOTH driver (`tests/test_engine_smooth.py`), the parameter
+  fixture, the white keys in the virtual FM-1 and two parity scenarios,
+  `crater-kit-groove` and `crater-kit-every-pad-tuned`.
+
+**Subnormals in the running state** [verified 2026-10-06, `--twin`]: while
+tails ring out, up to 12 floats of the running circuits are subnormal
+(the toms' strike low-pass, the clap's tooth envelope, the hats' filter
+states); none reaches the output. Free on this desktop; unmeasured on
+pi32v2 (the study's R7): flush to zero on the device, or measure there.
+
+**Costs** [verified 2026-10-06, Apple M1 Max, `fm1-render`, best of five,
+a 64-frame block at 44,118 Hz]:
+
+| Case | Crater Kit | Drums |
+| --- | ---: | ---: |
+| Idle | 0.16 µs | 2.50 µs |
+| One kick ringing | 0.44 µs | 4.47 µs |
+| Kick, snare, hats and clap, 125 BPM | 4.0 µs | 7.2 µs |
+| The cymbal alone | 1.5 µs | 3.9 µs |
+| Eleven pads on every 16th | 15.1 µs | 19.1 µs |
+| All sixteen pads on every 16th | 16.1 µs | 24.0 µs |
+
+On pi32v2 [verified: `tools/jieli/compile-check.sh`, 2026-10-06, the
+switch on, 139 of 139 objects in all four profiles, link audit PASS]:
+5,984 bytes an instance (the vendored kit 3,928 of them, its float pots
+576; no pointers, so the same on 32 and 64 bits), and 34.3 KB of code and
+read-only data at `-O2` (the kit 30.6 KB, the wrapper 3.7 KB; 20.9 KB at
+`-Oz`), against an app area of about 852 KB in FM-1+VA's layout. No
+samples. fm1-x0x's own figures put a dense 808 at about 40 % of the
+FM-1's CPU [inferred: the study's §2.6]; nothing has run on a JieLi chip.
 
 ## Crush
 
@@ -2721,6 +3220,150 @@ used, and no code was taken from it or anywhere. Stereo-linked.
   log2 and a 2^x a frame), 0.09 % of the block; at the centre the log and
   the exponential are skipped [verified, 2026-10-05].
 
+## The Felucca engines
+
+Three engines of **Felucca**, open firmware for the FM-1 by Leo Kuroshita
+(@kurogedelic), Hügelton Instruments: **Drawbar** (its WHEEL, a
+tonewheel-style organ), **Trio** (TRIO, three oscillators and a filter in
+the style of 8-bit home-computer sound chips) and **Phase Bend** (PHASE,
+the phase-distortion oscillator of CrispyZebra, the same author's). Their
+files are vendored **unmodified** in `third_party/felucca/` (GPL-3.0-only;
+`UPSTREAM.md` has the commit, the hashes and the credits). **GPL code:
+built only while the GPL switch is on** (`FM1_GPL_MODS`, [Build and
+checks](#build-and-checks); `mk/felucca.mk`); the licence table lists each
+as `GPL-3.0-only AND MIT`. They came out of the fm1-x0x study's ranking of
+Felucca's engines (`notes/2026-10-06-fm1-x0x.md` §3.2: WHEEL, TRIO, SLICE,
+PHASE); SLICE is not ported yet (below).
+
+**How they run.** Felucca is one compilation unit of static functions, its
+engines C with designated initialisers, so `src/felucca_bridge.c` includes
+Felucca's `core.h`, its generated tables, `dsp.c` and the three engine
+files as Felucca's `felucca.c` does, and exports a narrow interface
+(`src/felucca_bridge.h`); `src/felucca_shim.cc` is the engine API above it.
+Two definitions around `core.h` let it compile off the FM-1 and give each
+instance its own part, changing nothing an engine computes (UPSTREAM.md).
+WHEEL keeps part state in static arrays of its own; each instance holds a
+copy, which the bridge lends to those arrays for every call (832 bytes each
+way, once a control block and once a note-on).
+
+**What the shim and bridge do, in our own code:**
+- **The control block**: Felucca's, 32 samples, counted from create. The
+  envelopes and the modulation an engine reads move once a block, and every
+  note, bend and parameter lands on the next block (0.73 ms), so the output
+  is the same at any host block size or split.
+- **The rate**: Felucca's tables are for 44,100 Hz, and on an FM-1 (about
+  44,118 Hz) Felucca plays them as they are, 0.7 cent sharp and its times
+  0.04 % short. These engines do the same, at the host's rate on Felucca's
+  tables, and refuse a host outside 44,100 Hz ± 0.25 % (44,000–44,200 pass,
+  48,000 and 22,050 are refused, as the Plaits engines refuse 48 kHz). No
+  resampling: at 44,118 Hz the samples are Felucca's on the device
+  [verified: the oracle below at 44,100 and 44,118 Hz; the pitch measured
+  at 0.71 cent over 440 Hz, `tests/test_engine_felucca.py`].
+- **Voices**: eight. A key struck while it sounds starts again in its own
+  voice; otherwise the next free voice in turn (Felucca's ROTATE, so tails
+  ring); with none free the oldest released, else the oldest held that is
+  not the lowest held key. A voice struck again or taken starts from its
+  level with its phases kept, as Felucca's do.
+- **The envelope and the modulation** (`vmod_t`) are Felucca's laws: a
+  linear attack, exponential decay to the sustain level and release, each
+  99 % of the way in its time, on Felucca's 128-step time curve; the
+  amplitude ramps across the block; velocity scales the level; above 110
+  it is an accent that opens the filter (Trio) and the bend (Phase Bend)
+  with the envelope.
+- **Parameters in units**, mapped onto Felucca's integer knobs: % to 0..127,
+  times (ms, LOG, 1–10,000) to the nearest step of the time curve (the LOG
+  law's 7-bit positions are exactly its steps), Trio's Cutoff (Hz, LOG,
+  30–16,000, Felucca's curve) and PW and Phase Bend's DCW in 1/256 of a
+  knob step through the modulation inputs Felucca's envelope and LFO use,
+  so they sweep without stepping. Defaults map to Felucca's own knobs
+  exactly (Cutoff 1,566.45 Hz is its 80, DCW 47.2441 % its 60).
+- **Flags**: lists that would click under a note (Trio's Wave and Mode,
+  Phase Bend's Wave, Wave 2 and Line) are read at note-on per voice: LATCH,
+  MOD. Drawbar's Drawbars, Perc and Rotor are read every block and change
+  cleanly (each partial's gain ramps over the block, the rotor eases): MOD,
+  as the effects' clean switches [verified: turned every 3 ms under a
+  chord, the output steps no more than at any held value,
+  `tests/test_engine_felucca.py`]. Every FLOAT is SMOOTH and MOD.
+- **Per-note offsets** on the FLOATs a voice reads itself: everywhere the
+  envelope and Volume; Trio's and Phase Bend's knobs too. Drawbar's bars,
+  click and drive are read once a block for the whole part, so they are not
+  POLY.
+- **Glide, Voice Mode, Glide Mode and Time Mode** (`glide.h`) on Phase
+  Bend only, on its fourth page, as on the pitched engines; it has the room
+  (its eighth EDIT knob is unused upstream). Glide Mode Off, the default,
+  leaves it Felucca's PHASE to the bit. Drawbar has 13 parameters and Trio
+  14 (the modulation runtime's records allow 16 since the glide modes).
+- **Output**: Felucca adds a full-scale voice at 24,000 and mixes a part at
+  its default level, −4 dB, into a limiter. Volume 0.7 is that level less
+  12 dB, the headroom our engines leave (a note about −26 dB RMS, as Macro's
+  and FM6's), and Volume scales it by (Volume / 0.7)²; below −180 dB it is
+  silence, so no sample is subnormal.
+
+**The oracle** (`test/felucca_oracle.c`, `fm1-felucca-oracle`, a desktop
+tool built only with the switch on): Felucca's own `voice.c`, vendored
+unmodified, drives the same engine files on one part, with what it reaches
+outside them (the modulation matrix, the DRUM engine, its LFO's generator)
+stubbed inert. Our engine plays the same sound through the API with its
+parameters in units the test computes from Felucca's own curves. Every
+factory sound of the three engines (16, read from the vendored sources) and
+the defaults give the same samples, bit for bit, through a phrase with a
+chord, accents, retriggers and ten keys at once (two steals), at host
+blocks of 1, 7, 32 and 64 and at 44,100 and 44,118 Hz [verified
+2026-10-06: `tests/test_engine_felucca.py`].
+
+| Engine | Page 1 | Page 2 | Page 3 | Page 4 |
+| --- | --- | --- | --- | --- |
+| Drawbar | Drawbars (16 registrations), Sub, Body, Top (−8..8 bars) | Perc (Off, 2nd, 3rd, Soft, Slow), Click %, Drive %, Rotor (Off, Slow, Fast) | Attack, Decay (ms), Sustain %, Release (ms) | Volume |
+| Trio | Wave (16 sets), Int 2, Int 3 (±24 semitones), Detune (0–50 cents) | Mode (LP, BP, HP, Notch), Cutoff (30–16,000 Hz), Resonance %, PW % | Env Amt (±100 %), Attack, Decay, Sustain | Release, Volume |
+| Phase Bend | Wave (8), Wave 2 (Same + 8), DCW %, Env % | Detune (0–127 cents), Line (Mix, Ring), Sub %, Attack | Decay, Sustain, Release, Volume | Glide, Voice Mode, Glide Mode, Time Mode |
+
+Uids 1–13 (Drawbar) and 1–14 (Trio, Phase Bend), in table order. The first
+list is ALGORITHM's: Drawbar's registrations, Trio's wave sets, Phase
+Bend's waves. **Felucca's factory sounds** (5, 5 and 6) are settings, not a
+list: the API has no way for an engine to move its other knobs (a getter
+is API v4's), so a Preset parameter would leave the host showing stale
+values. The manual (chapter 5) gives them as settings, and the oracle test
+plays each one.
+
+**Measured** [verified 2026-10-06; the instances again after the merge
+with PR #79, whose glide modes took the shim's table from 14 parameters to
+16: 96 B more each, `tools/jieli/compile-check.sh`]:
+
+| | Drawbar | Trio | Phase Bend |
+| --- | --- | --- | --- |
+| Instance, pi32v2 = i386 = x86-64 | 5,072 B | 4,240 B | 4,240 B |
+| of which Felucca's part (`track_t`), and WHEEL's state | 1,752 + 832 B | 1,752 B | 1,752 B |
+| Eight notes, a 64-frame block, Apple M1 Max | 1.6–5.9 µs (0.11–0.41 %) | 2.9–5.8 µs (0.20–0.40 %) | 2.4–4.8 µs (0.17–0.33 %) |
+| One note; idle | 0.46 µs; 0.23 µs | 0.76 µs; 0.14 µs | 0.42 µs; 0.14 µs |
+
+- **Flash** (the JieLi compile check, switch on, 143 of 143 objects in all
+  four profiles after the merge with the x0x kits and PR #79, link audit
+  PASS): the bridge, the three engines with Felucca's tables, 15,269 B at
+  −O2 (13,539 at −Oz), and the shim with the three parameter tables
+  9,911 B (7,773): 25.2 KB (21.3).
+- **Static RAM**: 3,344 B, WHEEL's arrays sized for Felucca's four parts
+  (part 0's lent to each call) and the bridge's pointer.
+- **CPU on the FM-1**: not measured here; Felucca plays these engines with
+  eight voices on the device [reported: its README and
+  `tests/cpu_baseline.txt`, 692–1,558 host instructions a sample with eight
+  notes held]. The range above is the factory sounds and the defaults with
+  eight notes held (`fm1-render`, best of five); our Drums takes 7.5 µs and
+  Macro 19.4 on the same chord.
+- **Faults**: no NaN, infinity or subnormal sample in any factory sound
+  (the oracle counts them); a four-note chord at the defaults peaks under
+  full scale; every list value at every other parameter's ends, keys 0 and
+  127, bends of ±48: finite. Under ASan and UBSan (Apple clang, the bridge
+  with `-fwrapv` as built) the engines' and the glide, SMOOTH and per-note
+  tests report nothing.
+
+**Not ported yet.** SLICE (third in the study's ranking): a slicer over
+SAMPLE's ADPCM and a built-in break, with onset detection and reverse
+windows. It needs `eng_sample.c`'s zone and decoder code, sample data
+generated by Felucca's `gen_samples.py` (the BREAK, 22 KB of ADPCM, made
+from Felucca's GPL drums) or a bar rendered by our MIT Drums, and its
+`slc_rbuf` windows (1 KB a part) lent per call as WHEEL's state is. Left
+for its own stage, with the owner's choice of material.
+
 ## Parameters (engine API v2 and v3)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -2732,7 +3375,7 @@ unit:
 | Field | What it is |
 | --- | --- |
 | `uid` | 1–4,095, unique in its engine and never changed or reused. It is what a sequencer lock, a modulation route (docs/16) or a preset stores, so reordering or extending a table moves nothing. A uid means something only together with its engine's id |
-| `flags` | 16 bits (8 in v2): `FM1_PARAM_LATCH`, `SMOOTH`, `NOLOCK`, `MOD`, `INPUT`, `POLY` and `LOG`, below; 0x80 is kept for KEYSRC (the side-chain stage) |
+| `flags` | 16 bits (8 in v2): `FM1_PARAM_LATCH`, `SMOOTH`, `NOLOCK`, `MOD`, `INPUT`, `POLY` and `LOG`, and since v4 `FOCUS` (0x0100) and `PER_FOCUS` (0x0200), below; 0x80 is kept for KEYSRC (the side-chain stage) |
 | `unit` | `FM1_UNIT_NONE`, `SEMI`, `MS`, `HZ`, `PCT`, `DEG` or `DB` (v3): the unit the value itself is in |
 | `abbr` | Up to 6 characters, for matrix rows (docs/16 §5.3). Distinct within an engine, and still distinct cut to 5, for rows that add a unit prefix |
 
@@ -2761,6 +3404,8 @@ moves to the fixture's `retired` list, so its uid is never given out again.
 | INPUT | A bare signal input: FLOAT, −1..1, default 0, hidden from the knob pages | Modulation modules only; no engine has one |
 | POLY | Takes a per-note offset: the engine keeps one per sounding voice ([below](#per-note-offsets)). FLOAT only, always with MOD | Per-voice modulation (docs/16 §6.3, stage MG9) sends it with `set_param_note` |
 | LOG (v3) | Pitch- or time-like: a FLOAT in Hz or ms with 0 < min < max. Stored, shown and saved in its unit, but it moves on a log scale ([the LOG law](#the-log-law)) | Knob detents, bars, 7-bit locks and modulation work on its position, in ratios and octaves; the engine sees values in its unit as before |
+| FOCUS (v4) | The edit focus: a list whose value chooses the entry (a pad) the PER_FOCUS parameters set. At most one in an engine; never MOD, never PER_FOCUS itself | A lock may move it (the locks after it edit the entry it names); a save reads every entry's values through `get_param` and restores the focus last ([Engine API v4](#engine-api-v4)) |
+| PER_FOCUS (v4) | Kept once per entry of the focus: `set_param` sets the focused entry's, `get_param` reads any entry's | Only with a FOCUS parameter in the engine; a file writes them per pad (`pads` in a sound) |
 
 Every FLOAT parameter here is SMOOTH and MOD (`FM1_PARAM_CONTINUOUS`),
 except Sophie's, which are LATCH and MOD: a triggered voice copies its pad's
@@ -2817,7 +3462,7 @@ Type with dynamics pack 3 (the Limiter's Mode gained Round then).
 | macro | Model | NOLOCK | `set_param` rebuilds all 12 voices (`BuildEngines`), cutting every note |
 | macro | LPG | none | Read every block, and a change leaves notes sounding, so it can be locked. No MOD: a rounded route could end a note held under Off by switching to Ping |
 | macro-heavy | Model, LPG | as Macro's | the same code |
-| drums | Pad | none | The edit focus, as Sophie's: lockable, no MOD |
+| drums | Pad | FOCUS | The edit focus, as Sophie's: lockable, no MOD; its per-pad parameters are PER_FOCUS (API v4) |
 | drums | Model | LATCH, MOD | Read when a pad is struck; a sounding hit keeps its model |
 | drums | Kit | LATCH, MOD | The voicings a hit starts with; a sounding hit keeps them |
 | drums | Choke | LATCH, MOD | The group a hit joins, read when its pad is struck; a sounding hit keeps it (2026-10-06) |
@@ -2825,7 +3470,7 @@ Type with dynamics pack 3 (the Limiter's Mode gained Round then).
 | shapes | Shape | NOLOCK | Sets every voice's oscillator at once |
 | sixop | Patch | LATCH, MOD | Read per voice at note-on, so a lock or a route picks the patch of the next notes |
 | dx7 | Patch | LATCH, MOD | As Six-Op's: a voice takes its data, built-in or from a user slot, at note-on |
-| sw-sophie | Pad | none | The module's edit focus, not a sound: it picks the pad the other parameters edit. NOLOCK in S7a, since a lock on it changes what the locks after it mean; lockable since docs/15 S8 (the owner's decision, 2026-10-02): a Pad lock moves the focus at its step, so the locks after it in lane order, there and later, edit the pad it names. A change leaves sounding voices intact. No MOD: a list that moves the focus is no modulation target |
+| sw-sophie | Pad | FOCUS | The module's edit focus, not a sound (FOCUS since API v4; every pad parameter is PER_FOCUS): it picks the pad the other parameters edit. NOLOCK in S7a, since a lock on it changes what the locks after it mean; lockable since docs/15 S8 (the owner's decision, 2026-10-02): a Pad lock moves the focus at its step, so the locks after it in lane order, there and later, edit the pad it names. A change leaves sounding voices intact. No MOD: a list that moves the focus is no modulation target |
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
 | sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect slots are not lockable yet anyway (docs/15 O14, answered 2026-10-02) |
@@ -2918,6 +3563,7 @@ code is `include/fm1_smooth.h`, plain C99:
 | --- | --- | ---: | --- | --- |
 | Macro, Macro Heavy | 12 samples at 47,872.34 Hz | 10 | 2.51 ms | every FLOAT, read once per block as before |
 | Drums | 12 samples at 47,872.34 Hz | 10 | 2.51 ms | every FLOAT: a per-pad one in its pad's own values, only while that pad sounds; the kit's while any pad does |
+| Crater Kit (GPL) | 16 samples at the host rate | 7 at 44,118 Hz | 2.54 ms | Level, Drive (per pad, in the pad's own values) and Volume, while the kit sounds |
 | Six-Op FM | 16 samples at 47,872.34 Hz | 8 | 2.67 ms | Brightness, Envelope, Volume, Glide |
 | FM6 | 64 samples at the host rate (msfa's block) | 2 at 44,118 Hz | 2.9 ms | Brightness, Env Time, Feedback, Volume, Glide; Volume also glides across each block, sample by sample |
 | Shapes | 24 samples at 96 kHz | 10 | 2.5 ms | Timbre, Color, Attack, Release, Volume, Glide |
@@ -3634,7 +4280,7 @@ parity scenarios `arp-*`.
 ### Pad kits
 
 A drum kit plays one sound per note on a run of keys, whatever their
-pitch: Sophie's and Drums' 16 pads on notes 36–51, General MIDI's drum
+pitch: Sophie's, Drums' and Crater Kit's 16 pads on notes 36–51, General MIDI's drum
 keys, lie below the FM-1's keys (53–79 at octave 0). Until 2026-10-05 the
 virtual FM-1 knew Sophie by its id. Now an engine says so itself, in two
 fields at the end of `fm1_engine_t`, after the effect extension's two (API
@@ -3655,17 +4301,167 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
   `fm1-smooth-test` plays a kit's pads, its first among them, instead of
   its pitched keys.
 - **Every initializer names the fields:** `0, 0` (not a kit) on every other
-  engine and effect, Comb and Test Ext included, `36, 16` on Sophie and
-  Drums, so a new engine that
+  engine and effect, Comb and Test Ext included, `36, 16` on Sophie,
+  Drums and Crater Kit, so a new engine that
   leaves them out gets GCC's and clang's missing-initializer warning. The
   struct grows by 4 bytes on pi32v2 (two bytes and padding after the last
   pointer) and 8 on x86-64.
+
+## Engine API v4
+
+`FM1_ENGINE_API_VERSION` is 4 since 2026-10-06 (owner decision ST7 of
+[notes/2026-10-06-state-files.md](../notes/2026-10-06-state-files.md)):
+every value a user can set must be readable back, so a saved sound restores
+exactly. A host keeps what it sent through `set_param`, which is what
+almost every engine holds; a pad kit is the exception: its knobs edit the
+focused pad, so a host knew only that pad's values, and a saved kit would
+have lost the other fifteen. Additive: nothing a v3 engine does changes,
+and every render here is byte for byte what it was [verified: the full
+suite, the parity scenarios' native legs].
+
+| Addition | What it is |
+| --- | --- |
+| `FM1_PARAM_FOCUS` (0x0100) | On the edit focus: a list whose value chooses the entry the PER_FOCUS parameters set. At most one in an engine, never MOD or PER_FOCUS itself; a lock may move it |
+| `FM1_PARAM_PER_FOCUS` (0x0200) | On each parameter an entry keeps its own of. Only with a FOCUS parameter |
+| `get_param(self, index, focus)` | Optional, last in `fm1_engine_t`. The value as `set_param` left it: the clamped value of a FLOAT (a SMOOTH one's target, never a ramp's step), an ENUM's entry as a whole number, the default for one never set. For a PER_FOCUS parameter, `focus` is the entry (0 is pad 1); `FM1_FOCUS_CURRENT` (0xFF), or any entry past the last, reads the one the focus names. It never moves the focus. Required with a FOCUS parameter; NULL elsewhere, where the host's own record is complete |
+| `fm1_engine_focus`, `fm1_engine_focus_count`, `fm1_param_per_focus` | The focus parameter's index, its entries, and whether a parameter is kept per entry |
+| `fm1_engine_copy_params(e, dst, src)` | The restore order, as a load follows it with a file's values: for each entry, the focus on it and that entry's PER_FOCUS values; then the other parameters in table order; the focus last |
+
+- **Drums** reads its per-pad ramps' targets and its Model and Choke per
+  pad; Pad is its FOCUS, Tune, Decay, Level, Tone, Snap, Sweep, Drive, Model
+  and Choke are PER_FOCUS; Kit Decay, like Accent and Volume, is the kit's.
+- **Comet Kit** and **Crater Kit** (GPL modules, with the switch on) work
+  the same way: Pad is the FOCUS; Comet's Tune .. Drive and Drive Type, and
+  Crater's Tune .. Drive and Dist, are PER_FOCUS; Comet's Accent, Velocity,
+  Volume and Kit and Crater's Accent, Choke and Volume are the kit's.
+- **Sophie** goes through the Schwung shim, which now keeps, for a module
+  whose table has a FOCUS parameter, what it set on each entry, starting
+  from the module's own pad patches, read once at create through the
+  adapter's `focus_key` (`p01_tune` … `p16_tune`). Values come back exactly
+  as set, not through the module's three-decimal text. The table is
+  1,232 B of Sophie's instance, and the shim's own record grew by 32 B for
+  every module: Sophie 79,344 B and PSX Verb, which has no focus and no
+  table, 134,432 B on a 64-bit host, from 78,080 B and 134,400 B [verified:
+  fm1-render's `instance_bytes`, 2026-10-06] ([schwung.md](schwung.md)).
+- **Every other engine, effect and MIDI effect** (the GPL ones included)
+  has `get_param` NULL: what
+  a host keeps is the whole state. `fm1-param-get-test` shows it: random
+  values set in a random order, several times each, render the same
+  samples (a MIDI effect, the same events) as each parameter's last value,
+  clamped as a host keeps it, replayed once in table order. So a load that
+  replays a file in uid order restores the sound.
+- The FM6 user bank and Register's locked loop are state no parameter
+  holds; they leave through their own calls: `fm1_dx7_get_user_voice` and
+  the VMEM writer ([msfa.md](msfa.md)), and the modulation kinds' pattern
+  data ([mod/README.md](mod/README.md)).
+- A save reads them back: `fm1-render --save` writes an engine with
+  `get_param` from its instance, every pad of a kit included, and any other
+  from the values it set (the rest at their defaults); the state readers
+  take a kit's focus and per-pad values from the flags alone
+  ([state/README.md](state/README.md)).
+- The GPL lane's pad kits (the 808 and 909 ports) need the same: a FOCUS
+  Pad, PER_FOCUS per-pad parameters and `get_param`. `tests/test_engine_params.py`
+  refuses a focused engine without `get_param`, and `fm1-param-get-test`
+  checks whatever the registry holds.
+
+Tests [verified, 2026-10-06]: `tests/test_engine_api_v4.py` runs
+`fm1-param-get-test` (six seeds) on every engine: with `get_param`, a fresh
+instance reads its defaults within range, random values on every pad
+(out-of-range ones among them) read back exactly as kept, through the pad
+and through `FM1_FOCUS_CURRENT`, and reading moves nothing;
+`fm1_engine_copy_params` into a fresh instance gives every value back and
+renders the same samples with every pad struck (a fresh Sophie included, so
+the starting patches are read exactly); without it, the replay above.
+Breaking Drums' getter or Sophie's starting-patch read fails it [verified:
+by hand]. `tests/test_engine_params.py` holds the flags' rules and the
+pinned flags.
+
+### The parameter metadata export
+
+`fm1-render --meta` writes, from the registries, the document
+[state/schema/metadata.schema.json](state/schema/metadata.schema.json)
+describes (`include/fm1_meta.h`, `state/fm1_meta.c`; the state note's §7.7):
+everything an editor builds its controls from, so it never hard-codes a
+name, a range or a uid.
+
+- Every engine, effect and MIDI effect: id, name, kind, credits, voices,
+  per-note offsets, pads, what an effect wants of API v3, its instance
+  bytes at 44,118 Hz (`ram`), and each parameter's uid, name, abbreviation,
+  type, range, default, unit, page and knob (or `hidden`), flags, list
+  entries, and the old names a file may still use (`aliases`,
+  `entry_aliases`, from `aliases.json`).
+- Every modulation kind with its guid, flags (`transport`, `poly_ok`),
+  instance bytes, pattern data (`{bytes, version}`), parameters and ports;
+  the system sources (with the sound a per-sound one follows), the units a
+  cable reaches by the name files use, the host's parameters, the
+  polarities and the curves.
+- FM6's VCED fields by name with their ranges (`fm1_dx7_op_fields`,
+  `fm1_dx7_voice_fields`); the project keys; the ids the build knows but
+  lacks, with the reason (`known-ids.json`; the GPL lane's proposed ids,
+  `gpl`); the reader's caps (`include/fm1_state_caps.h`); and the build: the
+  engine and modulation API versions, the rate, the RAM budget and the GPL
+  switch.
+
+It is written in the canonical layout of `tests/state_canon.py` as it goes,
+with no heap: members in the schema's order, floats as the shortest decimal
+that reads back to the float32, in ECMAScript's format, by the state
+files' own exact formatter (`state/fm1_num.h`, since the stage-E
+integration; the output did not change by a byte [verified: 2026-10-06]).
+It is for the desktop tools and the simulator (stage A1's `fm1w_meta`),
+never the firmware; `fm1-state meta` prints the same document. 174,232 B for today's registry
+[verified: 2026-10-06]. `engines/state/examples/metadata.json` is the
+export cut to Shapes, Drums, Filter, the arpeggiator, the LFO and the
+Envelope, byte for byte: the golden file
+(`tests/test_state_schema.py`; `tools/state_examples.py --write` rewrites
+it).
+
+- `tests/test_engine_metadata.py`: canonical and steady; equal to an
+  independent construction from `--list` and `--list-mod`
+  (`tests/state_meta.py`) wherever both can say; instance bytes as
+  fm1-render reports them; FM6's fields as the schema's ranges; versions,
+  budget (the simulator's `FM1_APP_RAM_BUDGET`) and caps as the headers;
+  the float writer equal to the reference on every exponent's edges, knob
+  values and 20,000 random float32s.
+- `tests/test_engine_names.py`: every list's entries pinned in
+  `tests/fixtures/enum-names.json` still name their indices (lists only
+  grow at their end; a rename keeps the old name as an entry alias); entry
+  names find one index without case; aliases name real things and shadow
+  nothing; known ids have a known reason, a planned one is not built; the
+  generated `state/fm1_known.c` is current.
+
+## Saved state
+
+Projects, sounds, effects chains, mod racks, clips, sets and settings save
+and load on the desktop, as canonical JSON or as the device's binary
+container ([state/README.md](state/README.md); the design and the owner's
+decisions are in
+[notes/2026-10-06-state-files.md](../notes/2026-10-06-state-files.md)).
+Built in stages E1 (the song core), E2 (saveable engines, the metadata
+export), E3 (the records and codecs) and P1 (the Python reader), and joined
+on 2026-10-06:
+
+- `fm1-render --load [sK:|tT.S:]FILE` sets up the render from a file
+  (refusing, as the device will, an engine the build lacks, with its
+  known-ids reason, or more instances than the FM-1's RAM holds at
+  44,118 Hz), and `--save KIND:FILE` writes the state the render starts
+  from: `project`, `sound[K]`, `fx`, `mods`, `set` or `clip:T.S`; a name
+  ending in `.lunarb` is binary.
+- `fm1-seq --load` and `--save clip:T.S:FILE`; a set's lines go straight
+  into the sequencer core's streaming import, piece by piece
+  (`fm1_seq_import_begin`, `_feed`, `_end`; [seq.md](seq.md)).
+- `fm1-state`: `canon`, `pack`, `unpack`, `from-movy1`, `records`, `check`,
+  `diff`, `meta`.
+- A project saved from a session reloads and renders the same WAV, byte
+  for byte, from JSON and from binary: four sound units, a kit's pads,
+  inserts, the arpeggiator, the master effects, a mod rack with pattern
+  data and cable locks, a set with its song, and FM6's user voices
+  [verified: tests/test_state_whole.py].
 
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `include/fm1_engine.h` | The engine API, version 3. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, 16-bit flags, a unit and an abbreviation ([above](#parameters-engine-api-v2-and-v3)); the LOG law ([above](#the-log-law)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the effect extension, MIDI effects and pad kits ([above](#engine-api-v3)); the threading contract |
+| `include/fm1_engine.h` | The engine API, version 4. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, 16-bit flags, a unit and an abbreviation ([above](#parameters-engine-api-v2-and-v3)); the LOG law ([above](#the-log-law)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the effect extension, MIDI effects and pad kits ([above](#engine-api-v3)); the focus and `get_param` ([above](#engine-api-v4)); the threading contract |
 | `include/fm1_math.h` | `fm1_log2f`, `fm1_exp2f`: base-2 logarithm and exponential without libm, the same bits on every build (the LOG law's, and Comp's, DJ Filter's and Tilt's through `src/fx_comp_math.h`) |
 | `include/fm1_fx_host.h`, `seq/fx_host.c` | The effect extension on the host side: the tempo, beats and transport events from the sequencer's clock, and the split renders both hosts share ([below](#engine-api-v3)) |
 | `include/fm1_mod.h`, `include/fm1_mod_host.h`, `mod/` | Modulation (docs/16 stage MG1): a rack of up to 8 modules inside a 32-slot matrix, run every 32 frames on absolute time, with the module kinds LFO, Envelope and Chance, and the glue that runs it as the sequencer bridge's control-rate hook. Built on the primitives (an LFO, a Peaks-style envelope, slew, S&H, a Turing register, a tick clock divider). Heap-free C99, no libm; `fm1-render --mod` hosts it, the simulator does not yet ([mod/README.md](mod/README.md)) |
@@ -3681,6 +4477,7 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `src/note_offsets.h` | A voice's per-note offsets, shared by the six engines that take them |
 | `src/glide.h` | Glide and the voice modes Poly, Mono and Legato, shared by the five pitched engines ([above](#glide-and-voice-modes)) |
 | `src/drums.cc`, `src/drum_voices.h` | Drums: the kit around Plaits' drum classes, and the rim shot, clap, cowbell and cymbal of our own ([above](#drums)) |
+| `src/crater_kit.cc`, `src/crater_kit.h` | Crater Kit, a GPL module: the pads, grid and parameters around fm1-x0x's 808 ([above](#crater-kit)) |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
 | `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comb](#comb), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq), [Hall](#hall), [Gate](#gate), [Transient](#transient); [Room](#room) wraps Clouds' classes; [Squash](#squash) ports Airwindows' loops) |
 | `src/fx_filter_dsp.h` | The arithmetic Filter and Comb share (2^x, log2, the saturating curve, the guard, the glide) |
@@ -3692,7 +4489,12 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON; with `--sound`, `--insert`, `--level` (and `--slots`) up to four sound units, each through its own inserts and level, mixed before the effect chain, as the virtual FM-1's multi-sound plays them (seq.md, Host contract) |
-| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`, `fm1-ref-room`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
+| `include/fm1_meta.h`, `state/fm1_meta.c` | The parameter metadata export, `fm1-render --meta` ([below](#the-parameter-metadata-export)) |
+| `include/fm1_known.h`, `state/fm1_known.c`, `known-ids.json`, `aliases.json` | The ids a build may lack, with the reason a load gives, and the old names of renamed parameters and list entries; the C file is written by `tools/gen_known.py` |
+| `include/fm1_state_caps.h` | The caps a state reader enforces on hostile input (the state note's §16) |
+| `state/` | The saved state: the record model, the streaming JSON reader, the canonical JSON writer, the binary container and its deflate, the modulation records' applier, the fuzz target, the JSON Schemas and examples ([state/README.md](state/README.md)), the metadata export and the known names |
+| `host/state_tool.c`, `host/render_state.*`, `host/state_clip.*` | `fm1-state`, and fm1-render's and fm1-seq's `--load` and `--save` ([above](#saved-state)) |
+| `test/` | `fm1-param-get-test`, engine API v4's read-back on every engine ([below](#engine-api-v4)); `fm1-meta-number-test`, the export's float writer; `fm1-state-alias-test`, the state readers' old names with a table of its own; the reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`, `fm1-ref-room`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -3714,8 +4516,13 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `--fill BYTE` | What instance memory holds before `create`; every engine must render byte-identically from any fill |
 | `--fault T[..T1]:VALUE` | Overwrite the bus after the source with `nan`, `inf` or any value, for one frame or a span, to test recovery |
 | `--mod FILE`, `--log-mod FILE.jsonl` | Modulation: a rack and slots from a text file, and one JSON line per control tick ([mod/README.md](mod/README.md#hosting)) |
-| `--list-mod` | The modulation kinds with their parameters' uids and flags, their ports, the system sources and the host parameters, as JSON |
+| `--list-mod` | The modulation kinds with their parameters' uids and flags, their ports, whether each runs per voice (`poly_ok`) and keeps pattern data (`data`), the system sources and the host parameters, as JSON |
+| `--meta` | The parameter metadata export ([below](#the-parameter-metadata-export)): canonical JSON of everything an editor builds its controls from |
 | `--sysex FILE.syx` | DX7 voices into FM6's user slots (`--engine dx7`), before the first block; repeatable ([msfa.md](msfa.md)) |
+| `--save-bank FILE.syx` | FM6's 32 user slots as one VMEM bank dump, after any `--sysex` ([msfa.md](msfa.md)) |
+| `--save-mod-data FILE` | The rack's pattern data as the render ends, one `data P VERSION HEX` line a module ([mod/README.md](mod/README.md)) |
+| `--load [sK:\|tT.S:]FILE`, `--without` | A state file, JSON or binary: a project, a sound (into sound unit K), an effects chain, a mod rack, a clip (into track T, slot S) or a set; `--without` leaves out what the build lacks ([above](#saved-state)) |
+| `--save KIND:FILE` | The state the render starts from: `project`, `sound[K]`, `fx`, `mods`, `set`, `clip:T.S`; `.lunarb` for binary ([above](#saved-state)) |
 | `--tempo BPM` | The tempo effects with the API v3 extension hear without a sequencer (20–300, default 120); with `--cmd` or `--seq` they hear the sequencer's ([above](#engine-api-v3)) |
 
 ## Build and checks
@@ -3726,12 +4533,34 @@ rely on wrapping signed arithmetic, as they did under ARM GCC on the modules,
 and `-fwrapv` makes that defined, so no optimiser can exploit it. Keep it in
 the JieLi build.
 
-CI runs three engine jobs:
+CI runs four engine jobs:
 
 - the full test suite on Linux and macOS;
+- the engine, sequencer and simulator tests again with the GPL switch off
+  (below);
 - a 32-bit (`-m32`) build that runs every engine test and prints every
   instance size, to catch pointer-size assumptions before pi32v2 does;
 - ASan + UBSan over every engine test, halting on the first report.
+
+**The GPL switch** (`FM1_GPL_MODS`; CLAUDE.md, "The GPL switch"; docs/12
+§6). `FM1_GPL_MODS ?= 1` at the top of the Makefile builds the GPL modules
+in; `FM1_GPL_MODS=0` leaves them out, the MIT/BSD build. Its value is
+written to `build/gen/fm1_gpl_mods.h`, rewritten only when it changes, and
+only the registries include it, so a turn rebuilds them and relinks.
+
+- A GPL module's fragment adds its sources under `ifeq ($(FM1_GPL_MODS),1)`
+  and its C objects to `GPL_OBJ`, which fm1-render, the simulator's builds
+  and the JieLi check all take.
+- Its registry entry and its row in the licence table (`fm1_licences` in
+  `src/registry.cc`; `fm1_engine_licence` in `include/fm1_engine.h`) go
+  under `#if FM1_GPL_MODS`.
+- `fm1-render --list` gives every module's `licence` (SPDX; MIT unless the
+  table says otherwise) and `source` (its vendored directory), and
+  `--build-info` the switch a build was made with.
+- `tests/test_gpl_switch.py` builds the switch-off fm1-render and simulator
+  harness in `sim/web/build/native-mit` and fails on any GPL file among
+  their objects' dependencies, any symbol a GPL object defines, or any GPL
+  module in their lists.
 
 The sanitizer run, locally (clang, because the ignorelist is a clang flag):
 
@@ -3752,8 +4581,10 @@ container there, and trixie's 19.1.7 runs clean].
 
 Each exemption in `sanitizers/` names one vendored file and the quirk it
 covers: Braids' and stmlib's wrapping integer arithmetic, Plaits' six-op
-`Pow2Fast` negative shift, and Plaits' LPC speech out-of-bounds read (an
-upstream candidate). Our own code gets none. msfa needs none: its wrapping
+`Pow2Fast` negative shift, Plaits' LPC speech out-of-bounds read (an
+upstream candidate), and fm1-x0x's `fastmath.h`, which builds 2^n from
+`n << 23` with n negative below 2^0 (a GPL module's header; Acid Bass's
+wrapper inlines it). Our own code gets none. msfa needs none: its wrapping
 phases and left shifts of negative values are built with `-fwrapv`, under
 which neither Apple's clang nor clang 18 on Linux reports them [verified,
 2026-10-05: FM6's tests under ASan + UBSan, with no exemption].
@@ -3795,6 +4626,7 @@ past the table. It found the Isolator's stalled crossover glide
   | Six-Op FM, 8 voices | 12,776 | 11,008 | |
   | Limiter | 11,008 | 11,008 | 5 ms of lookahead at 44,118 Hz; 26,912 at 102 kHz and above |
   | Drums, 12 voices | 7,616 | 7,424 | a 224-byte model object per voice (Ring Hat's), 16 pads' values and ramps, one resampler |
+  | Crater Kit (GPL) | 5,984 | 5,984 | fm1-x0x's 808 (3,928 with its float pots), 16 pads' values and ramps, a 16-sample chunk |
   | Ensemble | 4,752 | 4,736 | |
   | Filter | 656 | 656 | since Comb left it (2026-10-05) |
 

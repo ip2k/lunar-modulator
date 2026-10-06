@@ -151,5 +151,5 @@ const fm1_mod_kind_t fm1_mod_kind_slew = {
   "Our own. After the disting mk4's slew (Expert Sleepers; idea only), Phazerville's Slew "
   "(MIT) and Just Friends' STRATA (Mannequins; idea only); no code taken.",
   kParams, P_COUNT, 1, N_OUT, kGates, kOuts, 0, 0,
-  slew_size, slew_create, NULL, slew_reset, slew_process, NULL, NULL, NULL
+  slew_size, slew_create, NULL, slew_reset, slew_process, NULL, NULL, NULL, 0
 };

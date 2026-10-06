@@ -207,7 +207,7 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
    M3 are built: `fm1_seq` (engines/seq.md) matches Movy's own code in 23 of
    24 golden fixtures (undo is not ported) and in thousands of random
    scripts. Capture is on by default with 256 packed 12-byte events (the
-   owner's choice; 31,880 B at 8 tracks). Open: undo, the note-index
+   owner's choice; 31,944 B at 8 tracks since stage E1). Open: undo, the note-index
    rebuild cost on pi32v2 (stage B).
 
 ## 6. Reference material already gathered (clone these locally)
@@ -221,7 +221,8 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 | `kagaimiq/jl-uboot-tool` | `adb3f18` 2025-03-16 | UBOOT dumper/flasher, `wl82loader.bin` |
 | `kagaimiq/jl-misctools` | `0a5b12d` 2025-02-20 | `fwunpack_newfw.py` |
 | Gitee `Jieli-Tech/fw-AC79_AIoT_SDK` | `e30b1ee` 2026-06-09 (= V1.2.13 + README) is our pin for the libraries since 2026-10-05; tag V1.1.9 `8eae664` holds the FM-1's SPL; branch `AC791N_OTA_loader` `79eda0c` | vendor SDK: `WL82.h`, `cpu/wl82/tools`, datasheets, the OTA loaders. Gitee is reachable but its SSL is flaky: pin by commit, clone blobless and sparse with `tools/jieli/ac79-sdk-sparse.txt`, and avoid commands that fetch blobs lazily, which hung. The GitHub mirrors are stale (`amitv87` to 2024-07, `jeffreywugz` V1.0.3): do not cite them |
-| `hugelton/Felucca` | `727f272` 2026-10-05 (v1.0) | bare-metal FM-1 firmware; pin map, update-service design (GPL-3.0-only: facts only) |
+| `hugelton/Felucca` | `727f272` 2026-10-05 (v1.0); `b0dcd53` 2026-10-06 for the vendored engines | bare-metal FM-1 firmware; pin map, update-service design (GPL-3.0-only: facts only, but WHEEL, TRIO and PHASE, vendored behind the GPL switch in `engines/third_party/felucca/`) |
+| `charlesvestal/fm1-x0x` | `80b7d40` 2026-10-05 | open FM-1 firmware with a 303, 909 and 808 and TB-3PO; those four vendored behind the GPL switch in `engines/third_party/fm1-x0x/` (GPL-3.0-only; `notes/2026-10-06-fm1-x0x.md`) |
 | `isod89/sloop-fm1` | `f2b44c2` 2026-10-04 (v2.2) | Felucca fork; boot guard, loader checks (GPL-3.0-only: facts only) |
 | `Keitark/fm1-nes` | `870f305` 2026-10-03 | SDK app on an FM-1; board support, sparse mask-ROM planner (Apache-2.0 root) |
 | `kurogedelic/FM-1-transporter` | `a632d92` 2026-10-01 | RP2040 `USB_KEY` + USB host recovery tool (MIT); read through the API |

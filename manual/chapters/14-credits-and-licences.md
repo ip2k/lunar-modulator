@@ -47,6 +47,54 @@ terms it is used under.
   TR-808's circuits, among them **Baratatronix**'s. No code or text is
   taken from the papers or the descriptions. The two kits are inspired by those drum machines; Roland's
   names appear here only as credit.
+- **Acid Bass** is the 303 bass of **fm1-x0x**, open firmware for the FM-1
+  by **Charles Vestal**, GNU GPL version 3 (built in only with the GPL
+  switch on; see [Licences](#licences)). It ports **Open303** by **Robin
+  Schmidt** (MIT licence), with the Devilfish modifications' ranges after
+  **jc303** by **midilab** and a drive after **dm-Rat** by **Dave Mollen**
+  (both GNU GPL version 3), by way of Charles Vestal's **schwung-303**.
+  Two small changes of this project's let it run at the instrument's rate
+  and take smooth settings; the rest of its code is included unmodified.
+  It is after Roland's TB-303, whose name appears here only as credit.
+- **Acid Gen** is TB-3PO, the line generator of **fm1-x0x** by **Charles
+  Vestal**, GNU GPL version 3 (built in only with the GPL switch on), which
+  ports his **schwung-tb3po** and, through it, the **TB_3PO** applet of the
+  **Phazerville Hemisphere Suite** by **djphazer** and its contributors
+  (GNU GPL version 3). Its code is included unmodified; playing it as an
+  effect in front of a sound is this project's own.
+- **Comet Kit** is the 909 kit of **fm1-x0x** by **Charles Vestal**, GNU
+  GPL version 3 (built in only with the GPL switch on). It ports **9W9** by
+  **athousanddetails**, a drum machine for Schwung that models the TR-909's
+  circuits, which grew out of **ER-99** by **Matthew Cieplak** (both GNU
+  GPL version 3); its hi-hat, ride and crash are **ER-99's recordings**,
+  under the same licence. Two small changes of this project's let it run at
+  the instrument's rate and take smooth settings; the rest of its code, its
+  recordings and the script that turns them into data are included
+  unmodified. The pads, voicings of the second snare, toms and pedal hi-hat,
+  and playing it as a pad kit are this project's own. It is after Roland's
+  TR-909, whose name appears here only as credit.
+- **Crater Kit** is the 808 kit of **fm1-x0x** by **Charles Vestal**, GNU
+  GPL version 3 (built in only with the GPL switch on), which ports **8W8**
+  by **athousanddetails** (GNU GPL version 3). Fifteen of its sixteen
+  sounds are models of the machine's circuits, built from the TR-808's
+  service notes and the analyses of **Kurt James Werner, Jonathan Abel and
+  Julius O. Smith**; the rim shot is **sc808**'s, by **Yoshinosuke
+  Horiuchi**, adapted for Sonic Pi by **Sam Aaron** (MIT licence). Two
+  small changes of this project's let it take smooth settings and keep no
+  shared state; the rest of its code is included unmodified. It is after
+  Roland's TR-808, whose name appears here only as credit.
+- **Drawbar**, **Trio** and **Phase Bend** are the WHEEL, TRIO and PHASE
+  engines of **Felucca**, open firmware for the FM-1 by **Leo Kuroshita**
+  (@kurogedelic), **Hügelton Instruments**, GNU GPL version 3 (built in
+  only with the GPL switch on; see [Licences](#licences)). Felucca's code
+  for them, its shared DSP and its tables are included unmodified; PHASE is
+  a port of the oscillator of **CrispyZebra**, the same author's (GNU GPL
+  version 3). The code that plays them through Lunar Modulator's engine
+  interface is this project's own, and the test that holds them to
+  Felucca's own voice code uses that code too. The engines' names here are
+  this project's ("Trio" is Felucca's own, borrowed with thanks); Felucca's
+  factory sounds appear in [chapter 5](05-sound-engines.md#drawbar-trio-and-phase-bend)
+  as settings.
 - **PSX Verb** by **Charles Vestal**, MIT licence, included unmodified.
 - **Schwung**, Charles Vestal's host for modules on the Ableton Move, MIT
   licence. Lunar Modulator includes Schwung's plugin interface unmodified,
@@ -235,11 +283,33 @@ repository's tests also use **Felucca**'s `fm6_core.c` by **Leo Kuroshita**
 (Hügelton Instruments), an Apache-2.0 port of the same FM core, to check FM6
 against; it is in no build of the firmware or the simulator.
 
+**GPL code, and the GPL switch.** Some engines and effects port code that
+other projects publish under the GNU General Public License: today the
+sound engines [Acid Bass](05-sound-engines.md#acid-bass),
+[Comet Kit](05-sound-engines.md#comet-kit) and
+[Crater Kit](05-sound-engines.md#crater-kit) (chapter 5) and the MIDI
+effect [Acid Gen](04-playing.md#acid-gen) (chapter 4), all from fm1-x0x,
+and [Drawbar, Trio and Phase Bend](05-sound-engines.md#drawbar-trio-and-phase-bend),
+from Felucca. Each sits in a folder of its own in the repository, with its
+licence and a note of where it came from, and is built in only while the
+firmware's GPL switch is on.
+While we test, the switch is on in every build, the simulator included.
+- **In the simulator**, the page beside the panel then names each module
+  with GPL code in it, and offers the simulator's module under the GNU GPL,
+  version 3. It links the licence's text and the complete source: the
+  repository at the commit the page was built from. When no GPL module is
+  in it, the page says nothing.
+- **Firmware for the FM-1** built with the switch on is for the person who
+  builds it: it will not be released or passed on. A shared build is made
+  with the switch off and contains no GPL code.
+
 ## Trademarks
 
 M-VAVE, Cuvave and FM-1 are the marks of their owners. Lunar Modulator uses
 "FM-1" only to say which instrument it is written for, and is not made,
 endorsed or supported by M-VAVE or Cuvave. The names of Mutable Instruments'
 modules identify where code came from. Names such as Ableton Move and DX7
-describe origins and compatibility only, and Roland, TR-808 and TR-909 the
-machines that inspired Drums. All other trademarks belong to their owners.
+describe origins and compatibility only, and Roland, TR-808, TR-909 and
+TB-303 the machines that inspired Drums, Comet Kit, Crater Kit and Acid
+Bass. All other
+trademarks belong to their owners.

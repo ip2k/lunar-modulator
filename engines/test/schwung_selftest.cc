@@ -204,15 +204,15 @@ const ParamKey kProbeKeys[4] = {
 ModuleState g_probe_sound_state, g_probe_fx_state, g_probe_fx_headroom_state;
 const Module kProbeSound = {
   FM1_KIND_SOUND, "probe", ProbeSoundInit, NULL, kProbeParams, kProbeKeys, 4,
-  4096, 2.0f, 1.0f, &g_probe_sound_state,
+  4096, 2.0f, 1.0f, &g_probe_sound_state, NULL,
 };
 const Module kProbeFx = {
   FM1_KIND_AUDIO_FX, "probe-fx", NULL, ProbeFxInit, kProbeParams, kProbeKeys, 4,
-  4096, 0.0f, 1.0f, &g_probe_fx_state,
+  4096, 0.0f, 1.0f, &g_probe_fx_state, NULL,
 };
 const Module kProbeFxHeadroom = {
   FM1_KIND_AUDIO_FX, "probe-fx-headroom", NULL, ProbeFxHeadroomInit, kProbeParams,
-  kProbeKeys, 4, 4096, 0.0f, 2.0f, &g_probe_fx_headroom_state,
+  kProbeKeys, 4, 4096, 0.0f, 2.0f, &g_probe_fx_headroom_state, NULL,
 };
 
 // Chunk sizes that never line up with the 64-frame module block.
@@ -247,7 +247,7 @@ void CheckArena(const char *name, const fm1_engine_t &e, const Module &m,
 void CheckExhaustion(const fm1_engine_t &e, const Module &m, size_t used) {
   // One header short of what create_instance took: its last allocation fails.
   const size_t arena = used - 16;
-  Mem mem(InstanceBytes(arena));
+  Mem mem(InstanceBytes(m, arena));
   void *self = CreateWithArena(m, mem.p, &kHost, arena);
   const std::string why = LastError();
   Report("arena_exhaustion_refused", self == NULL && why.find("arena") != std::string::npos &&

@@ -25,7 +25,7 @@ import wave
 
 import pytest
 
-from tests.engine_helpers import (ENGINES, RATE, cents, render, renderer,  # noqa: F401
+from tests.engine_helpers import (ENGINES, GPL_MODS, RATE, cents, render, renderer,  # noqa: F401
                                   rms)
 
 KICK, RIM, SNARE, CLAP, SNARE2, LOW_TOM, CLOSED_HH, FLOOR_TOM, PEDAL_HH, MID_TOM, OPEN_HH, \
@@ -87,7 +87,7 @@ def test_drums_is_a_twelve_voice_pad_kit(listing):
     assert params["Model"]["names"] == MODELS
     assert params["Kit"]["names"] == ["Deep", "Punch"]
     assert params["Choke"]["names"] == ["Kit", "None", "Group 1", "Group 2", "Group 3", "Group 4"]
-    assert params["Choke"]["def"] == 0 and params["Choke"]["flags"] == ["latch", "mod"]
+    assert params["Choke"]["def"] == 0 and params["Choke"]["flags"] == ["latch", "mod", "per_focus"]
     kd = params["Kit Decay"]
     assert (kd["min"], kd["max"], kd["def"], kd["abbr"]) == (0, 1, 0.5, "KDecay")
     # The pad on pages 1 to 3 (Model and Choke on 3), the kit on 4.
@@ -110,9 +110,11 @@ def test_fourteen_parameters_fit_the_modulation_records(listing):
 
 def test_only_the_kits_say_they_are_pad_kits(listing):
     """The pad property (fm1_engine_t.pad_first_note, pad_count) is additive:
-    Sophie and Drums declare 16 pads from note 36, every other engine none."""
+    Sophie, Drums and, with the GPL switch on, Comet Kit and Crater Kit
+    declare 16 pads from note 36, every other engine none."""
     kits = {i: e["pads"] for i, e in listing.items() if e["pads"]}
-    assert kits == {"sw-sophie": {"first": 36, "count": 16}, "drums": {"first": 36, "count": 16}}
+    want = ["sw-sophie", "drums"] + (["comet", "crater"] if GPL_MODS else [])
+    assert kits == {k: {"first": 36, "count": 16} for k in want}
 
 
 @pytest.mark.parametrize("kit", [0, 1])

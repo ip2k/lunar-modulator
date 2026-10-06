@@ -157,6 +157,7 @@ struct fm1_seq {
   uint32_t cap_base_frame, cap_base_tick;  /* Capture's packed offsets count from these */
   uint32_t capture_gen;
   int32_t held_track, held_step;
+  uint32_t scene_land_bar;      /* the bar a `scene` launch lands on (sgnew) */
   fm1_seq_stats_t stats;        /* 4-byte aligned, 24 bytes */
 
   /* 2-byte fields */
@@ -182,7 +183,20 @@ struct fm1_seq {
   uint8_t cap_mode, cap_why, cap_track, cap_sel, cap_n, cap_best, cap_has_guess;
   uint8_t panicked;             /* compat: this op hit one of Movy's panics, so the
                                    rest of its batch is lost (movy-dsp's catch_unwind) */
+  /* The FM-1's song (engines/seq.md, "The song"). */
+  uint8_t song_end;             /* FM1_SEQ_SONG_* */
+  uint8_t song_follow;          /* 0: detached (D16): the list is kept, not followed */
+  uint8_t song_jump;            /* entry the next play starts at, or SQ_NONE */
+  uint8_t scene_land_slot;      /* the last `scene` launch, until another launch */
+  char scene_name[FM1_SEQ_SCENES][FM1_SEQ_SCENE_NAME_MAX + 1u];
 };
+
+/* song_armed_launch: the scene the arm launched, SQ_NONE for an arm that
+ * launched nothing (the same scene follows), or what the end mode does. */
+#define SQ_ARM_PARK 0xFEu
+#define SQ_ARM_STOP 0xFDu
+
+#define SQ_RNG_INIT 0x9E3779B97F4A7C15ull   /* the RNG at creation (and ST11's reseed) */
 
 /* Clip numbers: track t, slot k is t*8+k; then the step clipboard (copy_steps
  * notes and locks, relative to the copy start) and the clip clipboard. */
@@ -313,6 +327,7 @@ void sq_scale_limit(const fm1_seq_t *s, uint8_t *num, uint8_t *den);
 void sq_reseed_empty_clips(fm1_seq_t *s);
 void sq_set_bpm(fm1_seq_t *s, uint32_t bpm_x100);
 void sq_play(fm1_seq_t *s);
+void sq_play_selected(fm1_seq_t *s);   /* Play as with no song: each track's selected clip */
 void sq_stop(fm1_seq_t *s, sq_out_t *o);
 void sq_ensure_selected_playing(fm1_seq_t *s, unsigned t);
 void sq_launch_clip(fm1_seq_t *s, unsigned t, unsigned slot);
@@ -320,6 +335,19 @@ void sq_launch_scene(fm1_seq_t *s, unsigned slot);
 void sq_song_start(fm1_seq_t *s, unsigned slot);
 void sq_song_add(fm1_seq_t *s, unsigned slot);
 void sq_clear_song(fm1_seq_t *s);
+/* A hand launch's effect on the song: Movy clears it; the FM-1 default
+ * detaches it (D16), keeping the list. */
+void sq_song_hand_launch(fm1_seq_t *s);
+enum { SQ_SG_INS, SQ_SG_DEL, SQ_SG_SET, SQ_SG_MOV };
+/* The FM-1's entry edits; 1 if applied, 0 if ignored or refused (a refusal
+ * over limits.song is counted in stats.refused). */
+int sq_song_edit(fm1_seq_t *s, int op, unsigned entry, unsigned scene, unsigned presses,
+                 int32_t places);
+void sq_song_set_end(fm1_seq_t *s, unsigned mode);
+void sq_song_jump(fm1_seq_t *s, unsigned entry);
+void sq_scene_launch(fm1_seq_t *s, unsigned slot);   /* the `scene` verb */
+void sq_song_new(fm1_seq_t *s, unsigned slot);       /* the `sgnew` verb */
+void sq_scene_set_name(fm1_seq_t *s, unsigned slot, const char *name, size_t len);
 void sq_stop_track(fm1_seq_t *s, unsigned t);
 void sq_flush_track_gates(fm1_seq_t *s, unsigned t, sq_out_t *o);
 void sq_flush_silenced_pad_gates(fm1_seq_t *s, unsigned t, sq_out_t *o);

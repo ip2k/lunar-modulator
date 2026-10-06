@@ -22,7 +22,12 @@ import subprocess
 
 import pytest
 
+from tests.engine_helpers import GPL_MODS, gpl_only
 from tests.test_sim_web import RATE, SIM as ROOT_SIM, run, tools  # noqa: F401
+
+# ALGORITHM's list on the ARP pages: the stock FM-1's six modes, then each
+# other MIDI effect of the build (Acid Gen while the GPL switch is on).
+PRESETS = 6 + (1 if GPL_MODS else 0)
 
 ARP = 10                                   # FM1_BTN_ARP: the LED string's key count + 10
 KEYS = 27
@@ -126,7 +131,7 @@ def test_the_pages_knobs_and_presets(tools):
         p = sim(tools, "--engine", "macro", "--button", "0.05:ARP", "--turn", f"0.1:ALGORITHM:{k}",
                 seconds=0.3)
         listed = p["popup_list"]
-        assert listed["title"] == "Arp preset" and listed["total"] == 6
+        assert listed["title"] == "Arp preset" and listed["total"] == PRESETS
         presets.append((p["popup"][listed["mark"]], param(p, "Mode"), param(p, "Order"),
                         p["arp"]["preset"]))
     assert presets == [("Down", 1, 0, 1), ("Up/Down", 2, 0, 2), ("Down/Up", 3, 0, 3),
@@ -299,6 +304,42 @@ def test_random_gesture_sessions_replay_and_leave_nothing_hanging(tools, tmp_pat
     app_arp = (tmp_path / "app-arp.jsonl").read_bytes()
     assert app_arp == ((tmp_path / "ref-arp.jsonl").read_bytes() if arps else b"")
     assert ref["notes_hung"] == 0 and ref.get("mfx_dropped", 0) == 0
+
+
+# ---- Another MIDI effect in the slot ---------------------------------------------------------
+
+@gpl_only
+def test_algorithm_puts_acid_gen_in_the_slot_and_brings_the_arp_back(tools):
+    """Past the stock presets, ALGORITHM on the ARP pages puts Acid Gen (a GPL
+    MIDI effect) in the current sound's MIDI-FX slot, on: its pages are LINE,
+    KEY, PLAY and SEED, its knobs its parameters, and a held key plays its
+    line. Turned back, the arp returns at its defaults."""
+    s = sim(tools, "--engine", "acid-bass", "--button", "0.05:ARP", "--turn", "0.1:ALGORITHM:6",
+            "--key", "0.2:12:100:1.0", "--turn", "0.3:KNOB1:-10", "--turn", "0.4:SELECT:2",
+            seconds=1.5)
+    listed = s["popup_list"]
+    assert s["arp"]["effect"][0] == "acid-gen" and s["arp"]["on"][0] == 1
+    assert s["arp"]["preset"] == 6 and s["arp"]["page"] == 2
+    assert s["arp"]["values"][0][0] == 60                    # Density 70 - 10
+    assert s["arp"]["notes_out"] > 4 and s["peak"] > 0.05
+    if listed:
+        assert listed["total"] == PRESETS
+    back = sim(tools, "--engine", "acid-bass", "--button", "0.05:ARP", "--turn", "0.1:ALGORITHM:6",
+               "--turn", "0.2:ALGORITHM:-6", seconds=0.4)
+    assert back["arp"]["effect"][0] == "arp" and back["arp"]["preset"] == 0
+    assert back["arp"]["values"][0] == [p for p in sim(tools, "--engine", "acid-bass",
+                                                         seconds=0.1)["arp"]["values"][0]]
+
+
+@gpl_only
+def test_the_harness_puts_acid_gen_in_the_slot(tools):
+    """--mfx K:acid-gen, as fm1-render takes it: the effect in sound K's
+    slot, on, with its parameters by name."""
+    s = sim(tools, "--engine", "acid-bass", "--mfx", "0:acid-gen", "--mfx-param", "0:Density=100",
+            "--mfx-param", "0:Rate=2", "--note", "0:45:100:1.0", seconds=1.2)
+    assert s["arp"]["effect"][0] == "acid-gen" and s["arp"]["on"][0] == 1
+    assert s["arp"]["values"][0][0] == 100 and s["arp"]["values"][0][8] == 2
+    assert s["arp"]["notes_out"] > 10
 
 
 # ---- The follow-ups (owner, 2026-10-06) ------------------------------------------------------

@@ -142,4 +142,5 @@ extern "C" const fm1_engine_t fm1_engine_test_sine = {
   NULL,   // no per-note offsets: the host tests' engine without them
   0, NULL,                  // API v3: no effect extension
   0, 0,                     // not a pad kit
+  NULL,                     // API v4: no get_param, the host keeps its values
 };

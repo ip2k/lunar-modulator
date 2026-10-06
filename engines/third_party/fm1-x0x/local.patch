@@ -1,0 +1,672 @@
+--- a/dsp/bass303.c
++++ b/dsp/bass303.c
+@@ -1,4 +1,7 @@
+ /* SPDX-License-Identifier: GPL-3.0-only */
++/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
++ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
++ * local.patch there. */
+ /* X0X TB-303 bass engine - see bass303.h for what is ported and what is not.
+  *
+  * Reference: schwung-303 src/dsp/open303/rosic_Open303.{h,cpp} (getSample, triggerNote,
+@@ -9,6 +12,11 @@
+ #include "bass303.h"
+ #include "fastmath.h"
+ 
++/* Lunar Modulator: every function that reads the rate has the instance, b, in scope, so the
++ * rate is the instance's own (bass303_init_rate); at 44.1 kHz the arithmetic is upstream's */
++#undef BASS303_SR
++#define BASS303_SR (b->sr)
++
+ #define FSO (BASS303_SR * (float)BASS303_OS)    /* oversampled rate */
+ 
+ /* ---- parameters ------------------------------------------------------------------------ */
+@@ -151,15 +159,30 @@
+ 
+ void bass303_set(bass303_t *b, int i, int v)
+ {
+-    float n;
+     if (i < 0 || i >= BASS303_NPARAMS)
+         return;
+     if (v < 0)
+         v = 0;
+     if (v > params[i].max)
+         v = params[i].max;
++    bass303_set_value(b, i, (float)v);
++}
++
++/* Lunar Modulator: upstream's bass303_set with the pot as a float x; for an integer x every
++ * value it computes is bass303_set's */
++void bass303_set_value(bass303_t *b, int i, float x)
++{
++    float n;
++    int v;
++    if (i < 0 || i >= BASS303_NPARAMS)
++        return;
++    if (!(x >= 0.0f))
++        x = 0.0f;
++    if (x > (float)params[i].max)
++        x = (float)params[i].max;
++    v = (int)(x + 0.5f);
+     b->pot[i] = (uint8_t)v;
+-    n = (float)v * (1.0f / 127.0f);
++    n = x * (1.0f / 127.0f);
+     switch (i) {
+     case BASS303_CUTOFF:
+         b->cutoff = 314.0f * fm_exp2f(n * 2.930586688f);       /* log2(2394/314) */
+@@ -184,7 +207,7 @@
+         b->wave = v;
+         break;
+     case BASS303_TUNE:
+-        b->tuning = 440.0f + (float)(v - 64) * 0.625f;
++        b->tuning = 440.0f + (x - 64.0f) * 0.625f;
+         break;
+     case BASS303_VOLUME:
+         b->amp_scaler = fm_db2lin(-60.0f + 60.0f * n);
+@@ -237,7 +260,9 @@
+     b->amp_y = 0.0f;
+ }
+ 
+-void bass303_init(bass303_t *b)
++void bass303_init(bass303_t *b) { bass303_init_rate(b, 44100.0f); }
++
++void bass303_init_rate(bass303_t *b, float sr)
+ {
+     uint8_t *p = (uint8_t *)b;
+     unsigned k;
+@@ -246,6 +271,7 @@
+ 
+     for (k = 0; k < sizeof(*b); k++)
+         p[k] = 0;
++    b->sr = sr;                                      /* Lunar Modulator */
+ 
+     /* fixed (Open303 constructor + setSampleRate) */
+     b->rc1_c = rc_coeff(3.0f, BASS303_SR);           /* normalAttack */
+--- a/dsp/bass303.h
++++ b/dsp/bass303.h
+@@ -1,4 +1,7 @@
+ /* SPDX-License-Identifier: GPL-3.0-only */
++/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
++ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
++ * local.patch there. */
+ /* X0X TB-303 bass engine: a C99 / float / no-libm port of Open303 (Robin Schmidt, MIT) with
+  * the Devilfish ranges and the Soft / RAT drive of schwung-303 (GPL-3.0; the RAT model is
+  * from davemollen/dm-Rat, GPL-3.0).
+@@ -144,9 +147,16 @@
+     float r_b[4], r_a[4], r_z[3];        /* RAT op-amp, 3rd-order TDF-II */
+     float r_corr_b1, r_corr_z, r_tone_b1, r_tone_z;
+     float dcb_x1, dcb_y1;
++
++    /* Lunar Modulator: the sample rate this instance runs at (bass303_init_rate);
++     * bass303.c reads it wherever upstream reads BASS303_SR */
++    float sr;
+ } bass303_t;
+ 
+ void bass303_init(bass303_t *b);
++/* Lunar Modulator: bass303_init at a sample rate of the host's (bass303_init is this at
++ * BASS303_SR, 44.1 kHz, and gives upstream's samples) */
++void bass303_init_rate(bass303_t *b, float sr);
+ void bass303_note_on(bass303_t *b, int note, int accent, int slide);
+ void bass303_note_off(bass303_t *b);
+ void bass303_all_off(bass303_t *b);
+@@ -157,4 +167,7 @@
+ int bass303_nparams(void);
+ const x0x_param_t *bass303_param(int i);
+ void bass303_set(bass303_t *b, int i, int value);
++/* Lunar Modulator: bass303_set with a pot position between the integers (0 .. max, as a
++ * float), so a continuous control does not move in 1/127ths; bass303_set(v) is this at v */
++void bass303_set_value(bass303_t *b, int i, float value);
+ int bass303_get(const bass303_t *b, int i);
+--- a/dsp/drum808.c
++++ b/dsp/drum808.c
+@@ -1,4 +1,7 @@
+ /* SPDX-License-Identifier: GPL-3.0-only */
++/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
++ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
++ * local.patch there. */
+ /* X0X 808 drum part: a C99 / float / no-libm port of 8W8 (see drum808.h).
+  *
+  * Every voice below is the 8W8 circuit class of the same name (sc808_*_circuit.h,
+@@ -404,7 +407,9 @@
+ #ifndef D8_QUIET_INIT
+ #define D8_QUIET_INIT 3.2e-5f
+ #endif
+-float drum808_quiet = D8_QUIET_INIT;
++/* Lunar Modulator: a constant, so no two instances share a value one of them moves (no overload
++ * guard here moves it; one that does would keep it in the instance) */
++static const float drum808_quiet = D8_QUIET_INIT;
+ #define QUIET(v, o, n)                                                    \
+     do {                                                                  \
+         if ((o) > drum808_quiet || (o) < -drum808_quiet) (v)->quiet = 0;  \
+@@ -1229,23 +1234,53 @@
+ 
+ #define SC808_FULL_VELOCITY_GAIN 1.9921260f
+ 
+-static float pot_value(int s, int slot, int pot)
++/* Lunar Modulator: the pot as a float; for an integer pot the value upstream computes */
++static float pot_value(int s, int slot, float pot)
+ {
+     const d8_spec_t *p = &k_spec[s][slot];
+-    float t = (float)pot / 127.0f;
++    float t = pot / 127.0f;
+     if (p->exp && p->min > 0.0f)
+         return p->min * d8_pow(p->max / p->min, t);
+     return p->min + (p->max - p->min) * t;
+ }
+ 
+-static void set_pot(drum808_t *d, int s, int slot, int v)
++/* Lunar Modulator: set_pot with the pot a float x (potx keeps it; pot, the integer nearest it).
++ * For an integer x every value is set_pot's. Tune's x may lie past 0..127: its law extends. */
++static void set_potf(drum808_t *d, int s, int slot, float x)
+ {
++    int v = x <= 0.0f ? 0 : (x >= 127.0f ? 127 : (int)(x + 0.5f));
+     d->pot[s][slot] = (uint8_t)v;
+-    d->potv[s][slot] = slot == D8P_DIST ? (float)v : pot_value(s, slot, v);
++    d->potx[s][slot] = x;
++    d->potv[s][slot] = slot == D8P_DIST ? (float)v : pot_value(s, slot, x);
+     if (slot == D8P_DRIVE || slot == D8P_DIST)
+         shp_resolve(d, s);
+ }
+ 
++static void set_pot(drum808_t *d, int s, int slot, int v) { set_potf(d, s, slot, (float)v); }
++
++void drum808_set_value(drum808_t *d, int snd, int slot, float x)
++{
++    float lo = 0.0f, hi = slot == D8P_DIST ? 6.0f : 127.0f;
++    if (snd < 0 || snd >= D8S_NUM || slot < 0 || slot >= D8P_NUM)
++        return;
++    if (slot == D8P_TUNE) {
++        /* 12 semitones either way about pot 64: on the toms' and congas' 2-semitone law
++         * (TU2) far past the pot's ends, elsewhere half a pot past its top. Every tuned
++         * path clamps or stays in range there (the rim's filters below Nyquist, its 0.32
++         * pulse increment under 2^32) */
++        const int tom = snd >= D8S_LT && snd <= D8S_HC;
++        lo = tom ? -320.0f : 0.0f;
++        hi = tom ? 448.0f : 127.5f;
++    }
++    if (!(x >= lo))                               /* NaN too */
++        x = lo;
++    if (x > hi)
++        x = hi;
++    if (slot == D8P_DIST)
++        x = (float)(int)(x + 0.5f);
++    set_potf(d, snd, slot, x);
++}
++
+ /* a track's parameter list: which sound slot each knob edits */
+ enum { K_POT, K_FIXED, K_SWITCH, K_KIT };
+ typedef struct { uint8_t kind, slot, snd; } d8_pmap_t;
+@@ -1437,14 +1472,14 @@
+     int s, lane;
+     float vgain, volts, soft, tune, decay;
+     const float *pv;
+-    const uint8_t *pot;
++    const float *pot;                             /* Lunar Modulator: potx, the float pots */
+     if (track < 0 || track >= D8_NUM || !(vel > 0.0f))
+         return;                                   /* drums are one-shots: no note-off */
+     if (vel > 1.0f)
+         vel = 1.0f;
+     s = track_sound(d, track);
+     pv = d->potv[s];
+-    pot = d->pot[s];
++    pot = d->potx[s];
+     tune = pv[D8P_TUNE];
+     decay = pv[D8P_DECAY];
+ 
+@@ -1479,16 +1514,16 @@
+ 
+     switch (s) {
+     case D8S_BD:
+-        bd_trigger(&d->bd, lane_hz(s, tune), (float)pot[D8P_DECAY] / 127.0f, (float)pot[D8P_X1] / 127.0f,
+-                   (float)pot[D8P_X2] / 127.0f, volts);
++        bd_trigger(&d->bd, lane_hz(s, tune), pot[D8P_DECAY] / 127.0f, pot[D8P_X1] / 127.0f,
++                   pot[D8P_X2] / 127.0f, volts);
+         d->lane[lane].hit = soft;
+         break;
+     case D8S_SD: {
+         /* Tone: the 808 panel's (8W8 fixes it at the centre, 0.5 = pot 64) */
+-        int tp = pot[D8P_X2];
+-        float tone = tp <= 64 ? (float)tp * (1.0f / 128.0f) : 0.5f + (float)(tp - 64) * (0.5f / 63.0f);
+-        sd_trigger(&d->sd, d8_exp2_cr(tune / 12.0f), (float)pot[D8P_DECAY] / 127.0f, tone,
+-                   (float)pot[D8P_X1] / 127.0f, volts);
++        float tp = pot[D8P_X2];
++        float tone = tp <= 64.0f ? tp * (1.0f / 128.0f) : 0.5f + (tp - 64.0f) * (0.5f / 63.0f);
++        sd_trigger(&d->sd, d8_exp2_cr(tune / 12.0f), pot[D8P_DECAY] / 127.0f, tone,
++                   pot[D8P_X1] / 127.0f, volts);
+         d->lane[lane].hit = soft;
+         break;
+     }
+@@ -1500,11 +1535,11 @@
+         rs_trigger(&d->rs, lane_hz(s, tune), decay * 9.12f, d8_midicps(63.0f + tune), d8_midicps(118.0f + tune));
+         break;
+     case D8S_CL:
+-        cl_trigger(&d->cl, d8_exp2_cr(tune / 12.0f), (float)pot[D8P_DECAY] / 127.0f, volts);
++        cl_trigger(&d->cl, d8_exp2_cr(tune / 12.0f), pot[D8P_DECAY] / 127.0f, volts);
+         d->lane[lane].hit = soft;
+         break;
+     case D8S_MA:
+-        ma_trigger(&d->ma, d8_exp2_cr(tune / 12.0f), decay, (float)pot[D8P_X1] / 127.0f, volts);
++        ma_trigger(&d->ma, d8_exp2_cr(tune / 12.0f), decay, pot[D8P_X1] / 127.0f, volts);
+         d->lane[lane].hit = soft;
+         break;
+     case D8S_CP:
+--- a/dsp/drum808.h
++++ b/dsp/drum808.h
+@@ -1,4 +1,7 @@
+ /* SPDX-License-Identifier: GPL-3.0-only */
++/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
++ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
++ * local.patch there. */
+ /* X0X 808 drum part: the 8W8 TR-808 engine (Charles Vestal and contributors,
+  * GPL-3.0; the rim shot is Yoshinosuke Horiuchi's sc808, MIT) ported to the FM-1.
+  *
+@@ -189,6 +192,10 @@
+     d8_hat_t ch, oh;
+     d8_cy_t cy;
+     d8_lane_t lane[13];
++
++    /* Lunar Modulator: the pots as floats (drum808_set_value), which the trigger reads where
++     * upstream reads pot[]; for integer pots the same values */
++    float potx[D8S_NUM][D8P_NUM];
+ };
+ typedef struct drum808 drum808_t;
+ 
+@@ -200,6 +207,11 @@
+ const x0x_param_t *drum808_param(int track, int i);
+ void drum808_set(drum808_t *d, int track, int i, int value);
+ int drum808_get(const drum808_t *d, int track, int i);
++/* Lunar Modulator: sound snd's (D8S_*) pot `slot` (D8P_*) as a float x, 0..127 (Dist 0..6,
++ * rounded), whatever the track switches say; Tune's x reaches 12 semitones either way about
++ * pot 64, past the pot's ends where its law extends (far on the toms and congas). drum808_set's
++ * integer pots are this at x = value */
++void drum808_set_value(drum808_t *d, int snd, int slot, float x);
+ 
+ /* true while any voice is still sounding */
+ int drum808_active(const drum808_t *d);
+--- a/dsp/drum909.c
++++ b/dsp/drum909.c
+@@ -1,4 +1,7 @@
+ /* SPDX-License-Identifier: GPL-3.0-only */
++/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
++ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
++ * local.patch there. */
+ /* The 9W9 TR-909 voices on the FM-1. A port of 9W9's er99_engine.c,
+  * er99_circuit.h, er99_tom909.h and er99_perc909.h (GPL-3.0): the circuit models,
+  * the fitted constants, the defaults and the per-trigger pinning are 9W9's, line
+@@ -7,6 +10,18 @@
+ #include "drum909.h"
+ #include "x0x_drum_samples.h"
+ 
++/* Lunar Modulator: the rate is the instance's (drum909_init_rate). Every function below that
++ * reads it has rt, the instance's d9_rate_t, in scope; at 44.1 kHz rt holds upstream's
++ * constants, so the arithmetic is upstream's. The cymbals stay 44.1 kHz recordings
++ * (D9_SMP_SR), read at D9_SMP_SR / rt->sr of a sample a sample to keep their pitch. */
++#define D9_SMP_SR 44100.0f
++#undef D9_SR
++#undef D9_MS
++#define D9_SR (rt->sr)
++#define D9_MS (rt->ms)
++#define d9_biquad_set(f, type, freq, q) d9_biquad_set_sr(f, type, freq, q, rt->sr)
++#define d9_inc(hz) d9_inc_pph(hz, rt->pph)
++
+ #define D9_VCA_VT 0.0002f
+ #define D9_VCA_NORM (1.0f / (1.0f - D9_VCA_VT))
+ #define D9_SNAPPY_MIX 1.95f
+@@ -130,17 +145,17 @@
+ /* ===================================================================== */
+ /* Rim and clap filter setup (er99_rim909_retune, er99_clap909_retune)    */
+ /* ===================================================================== */
+-static void d9_rim_retune(d9_rim_t *v)
++static void d9_rim_retune(d9_rim_t *v, const d9_rate_t *rt)
+ {
+     d9_biquad_set(&v->bp1, D9_BP, v->tune, v->res);
+     d9_biquad_set(&v->bp2, D9_BP, v->tune2, v->res * 1.1f);
+ }
+ 
+-static void d9_clap_retune(d9_clap_t *v) { d9_biquad_set(&v->bp, D9_BP, v->tune, v->res); }
++static void d9_clap_retune(d9_clap_t *v, const d9_rate_t *rt) { d9_biquad_set(&v->bp, D9_BP, v->tune, v->res); }
+ 
+-static void d9_smp_rate(d9_smp_t *s)
++static void d9_smp_rate(d9_smp_t *s, const d9_rate_t *rt)
+ {
+-    const float p = s->pitch > 0.0f ? s->pitch : 1.0f;
++    const float p = (s->pitch > 0.0f ? s->pitch : 1.0f) * (D9_SMP_SR / rt->sr);   /* Lunar Modulator */
+     s->inc = (uint32_t)p;
+     s->incf = (uint32_t)((p - (float)s->inc) * 4294967296.0f);
+ }
+@@ -150,6 +165,7 @@
+ /* ===================================================================== */
+ static void d9_apply(drum909_t *d, int voice, int field, float v)
+ {
++    const d9_rate_t *rt = &d->rate;   /* Lunar Modulator */
+     if (field == F_REV || field == F_DLY) {
+         float *a = field == F_DLY ? d->send_dly : d->send_rev;
+         a[voice] = v < 0.0f ? 0.0f : (v > 1.0f ? 1.0f : v);
+@@ -181,7 +197,7 @@
+     if (voice == DR_RS) {
+         d9_rim_t *r = &d->rim;
+         switch (field) {
+-        case F_TUNE: r->tune = v; d9_rim_retune(r); break;
++        case F_TUNE: r->tune = v; d9_rim_retune(r, rt); break;
+         case F_LEVEL: r->level = v; break;
+         case F_DRIVE: r->drive = v; break;
+         case F_DIST: r->dist_type = (int32_t)v; break;
+@@ -193,7 +209,7 @@
+     if (voice == DR_CP) {
+         d9_clap_t *c = &d->clap;
+         switch (field) {
+-        case F_TUNE: c->tune = v; d9_clap_retune(c); break;
++        case F_TUNE: c->tune = v; d9_clap_retune(c, rt); break;
+         case F_TAIL: c->tail_decay = v; break;
+         case F_LEVEL: c->level = v; break;
+         case F_DRIVE: c->drive = v; break;
+@@ -205,7 +221,7 @@
+     }
+     d9_smp_t *s = &d->smp[voice - DR_CH];
+     switch (field) {
+-    case F_TUNE: s->pitch = v; d9_smp_rate(s); break;
++    case F_TUNE: s->pitch = v; d9_smp_rate(s, rt); break;
+     case F_DECAY: s->decay = v; break;
+     case F_LEVEL: s->volume = v; break;
+     case F_DRIVE: s->drive = v; break;
+@@ -224,12 +240,41 @@
+     if (value > s->ui.max) value = s->ui.max;
+     d->pots[voice][i] = (uint8_t)value;
+     d9_apply(d, voice, s->field, d9_pot_value(s, value));
++}
++
++/* Lunar Modulator: drum909_set with the pot a float x, so a control moves smoothly rather than
++ * in 1/127ths: a LIN pot is read at x / 127 of its range, an EXP pot linearly between its
++ * table's two neighbours, a switch at the nearest position. For an integer x it applies what
++ * drum909_set applies. */
++void drum909_set_value(drum909_t *d, int voice, int i, float x)
++{
++    if (voice < 0 || voice > DR_KIT || i < 0 || i >= d9_nspec[voice])
++        return;
++    const d9_pspec_t *s = &d9_specs[voice][i];
++    if (!(x >= 0.0f))
++        x = 0.0f;
++    if (x > (float)s->ui.max)
++        x = (float)s->ui.max;
++    float v;
++    if (s->curve == CV_SW) {
++        x = (float)(int)(x + 0.5f);
++        v = x;
++    } else if (s->curve == CV_EXP) {
++        const float *t = x0x_pot_exp[s->exp];
++        const int k = (int)x;
++        const float fr = x - (float)k;
++        v = fr > 0.0f ? t[k] + (t[k + 1] - t[k]) * fr : t[k];
++    } else {
++        v = s->lo + (s->hi - s->lo) * (x / 127.0f);
++    }
++    d->pots[voice][i] = (uint8_t)(x + 0.5f);
++    d9_apply(d, voice, s->field, v);
+ }
+ 
+ /* ===================================================================== */
+ /* Init (er99_engine_init)                                                */
+ /* ===================================================================== */
+-static void d9_bt_init(d9_bt_t *v)
++static void d9_bt_init(d9_bt_t *v, const d9_rate_t *rt)
+ {
+     d9_biquad_set(&v->dc_block, D9_HP, 20.0f, 0.7071f);
+     d9_env_set(&v->pitch, v->tune);
+@@ -244,11 +289,17 @@
+     d9_shape_prep(&v->shape, v->drive, v->dist_type);
+ }
+ 
+-void drum909_init(drum909_t *d)
++void drum909_init(drum909_t *d) { drum909_init_rate(d, 44100.0f); }
++
++void drum909_init_rate(drum909_t *d, float sr)
+ {
+     uint8_t *p = (uint8_t *)d;
+     for (unsigned i = 0; i < sizeof(*d); ++i)
+         p[i] = 0;
++    d->rate.sr = sr;                      /* Lunar Modulator */
++    d->rate.ms = 0.001f * sr;
++    d->rate.pph = 4294967296.0f / sr;
++    const d9_rate_t *rt = &d->rate;
+     d->noise = 0xC0FFEEu;
+     d->nz_pos = DR_NZ_HIST;
+ 
+@@ -282,7 +333,7 @@
+             b->decay = 1100.0f; b->attack = 0.18f; b->level = 0.55f;
+             break;
+         }
+-        d9_bt_init(b);
++        d9_bt_init(b, rt);
+     }
+     for (int i = 0; i < 3; ++i) {
+         d9_tom_t *t = &d->tom[i];
+@@ -328,7 +379,7 @@
+         s->drive = 0.2f;
+         s->dist_type = 0;
+         s->pitch = 1.0f;
+-        d9_smp_rate(s);
++        d9_smp_rate(s, rt);
+         d9_env_set(&s->out, 0.0f);
+         d9_shape_prep(&s->shape, s->drive, s->dist_type);
+         if (i == 2) { s->buf = x0x_smp_crash; s->len = X0X_SMP_CRASH_LEN; }
+@@ -347,7 +398,7 @@
+ /* ===================================================================== */
+ /* Triggers (er99_engine_trigger and the voices' *_trigger)                */
+ /* ===================================================================== */
+-static void d9_bt_trigger(d9_bt_t *v, int bd, float accent)
++static void d9_bt_trigger(d9_bt_t *v, int bd, float accent, const d9_rate_t *rt)
+ {
+     if (v->click_stale && v->mute > 0)
+         v->click_warm = 1;
+@@ -384,7 +435,7 @@
+     v->mute = d9_ceil((longest + 20.0f) * D9_MS);
+ }
+ 
+-static void d9_tom_trigger(d9_tom_t *t, const d9_bt_t *p, float accent)
++static void d9_tom_trigger(d9_tom_t *t, const d9_bt_t *p, float accent, const d9_rate_t *rt)
+ {
+     if (t->stick_stale && t->mute > 0)
+         t->stick_warm = 1;
+@@ -410,6 +461,7 @@
+ 
+ void drum909_trigger(drum909_t *d, int voice, float vel)
+ {
++    const d9_rate_t *rt = &d->rate;   /* Lunar Modulator */
+     if (voice < 0 || voice >= DR_NUM)
+         return;
+     if (!(vel >= 0.0f)) vel = 0.0f;
+@@ -422,7 +474,7 @@
+         b->tune2 = 0.0f; b->osc2_mix = 0.0f;
+         b->click_tone = 2500.0f;
+         b->amp_hold = 40.0f;
+-        d9_bt_trigger(b, 1, vgain);
++        d9_bt_trigger(b, 1, vgain, rt);
+         break;
+     }
+     case DR_SD: {
+@@ -437,18 +489,18 @@
+             b->noise_hp = 1000.0f;
+             d9_biquad_set(&b->noise_hpf, D9_HP, 1000.0f, 0.7071f);
+         }
+-        d9_bt_trigger(b, 0, vgain);
++        d9_bt_trigger(b, 0, vgain, rt);
+         break;
+     }
+     case DR_LT: case DR_MT: case DR_HT:
+-        d9_tom_trigger(&d->tom[voice - DR_LT], &d->bt[voice], vgain);
++        d9_tom_trigger(&d->tom[voice - DR_LT], &d->bt[voice], vgain, rt);
+         break;
+     case DR_RS: {
+         d9_rim_t *r = &d->rim;
+         const float t2 = r->tune * 2.286f, q = 10.0f;
+         if (r->tune2 != t2 || r->res != q) {
+             r->tune2 = t2; r->res = q;
+-            d9_rim_retune(r);
++            d9_rim_retune(r, rt);
+         }
+         r->noise_mix = 0.35f;
+         r->decay = 200.0f;
+@@ -516,7 +568,7 @@
+ }
+ 
+ /* Kick (er99_bt_render with the stock sweep, one shell) */
+-static void d9_render_bd(d9_bt_t *v, const float *nz, const d9_bus_t *bus, int n)
++static void d9_render_bd(d9_bt_t *v, const float *nz, const d9_bus_t *bus, int n, const d9_rate_t *rt)
+ {
+     const int m = n < v->mute ? n : v->mute;
+     v->mute -= m;
+@@ -563,7 +615,7 @@
+ 
+ /* Snare (er99_bt_render, two shells + ENV4 noise). Its click path is pinned
+  * off (attack 0 at every trigger), so it is not computed: 0 either way. */
+-static void d9_render_sd(d9_bt_t *v, const float *nz, const d9_bus_t *bus, int n)
++static void d9_render_sd(d9_bt_t *v, const float *nz, const d9_bus_t *bus, int n, const d9_rate_t *rt)
+ {
+     const int m = n < v->mute ? n : v->mute;
+     v->mute -= m;
+@@ -604,7 +656,8 @@
+ /* Toms (er99_tom909_render): three VCOs on their own envelopes + stick noise.
+  * The two upper partials and the stick are attack features (110 / 70 / 8 ms);
+  * once their envelopes have run out (-100 dB) they are skipped. */
+-static void d9_render_tom(d9_tom_t *t, const d9_bt_t *p, const float *nz, const d9_bus_t *bus, int n)
++static void d9_render_tom(d9_tom_t *t, const d9_bt_t *p, const float *nz, const d9_bus_t *bus, int n,
++                          const d9_rate_t *rt)
+ {
+     const int m = n < t->mute ? n : t->mute;
+     t->mute -= m;
+@@ -669,7 +722,7 @@
+ }
+ 
+ /* Hand clap (er99_clap909_render) */
+-static void d9_render_clap(d9_clap_t *v, const float *nz, const d9_bus_t *bus, int n)
++static void d9_render_clap(d9_clap_t *v, const float *nz, const d9_bus_t *bus, int n, const d9_rate_t *rt)
+ {
+     static const float amp[4] = { 1.22f, 1.35f, 1.68f, 1.0f };
+     const int m = n < v->mute ? n : v->mute;
+@@ -739,6 +792,7 @@
+ 
+ void drum909_render(drum909_t *d, float *dry, float *rev, float *dly, int n)
+ {
++    const d9_rate_t *rt = &d->rate;   /* Lunar Modulator */
+     d9_bus_t bus;
+     if (n > 256)
+         n = 256;
+@@ -758,16 +812,16 @@
+     /* 9W9's summing order: BD SD LT MT HT RS CP OH RD CR CH */
+     if (d->bt[DR_BD].mute > 0) {
+         d9_bus(&bus, d, DR_BD, dry, rev, dly);
+-        d9_render_bd(&d->bt[DR_BD], nz, &bus, n);
++        d9_render_bd(&d->bt[DR_BD], nz, &bus, n, rt);
+     }
+     if (d->bt[DR_SD].mute > 0) {
+         d9_bus(&bus, d, DR_SD, dry, rev, dly);
+-        d9_render_sd(&d->bt[DR_SD], nz, &bus, n);
++        d9_render_sd(&d->bt[DR_SD], nz, &bus, n, rt);
+     }
+     for (int t = 0; t < 3; ++t)
+         if (d->tom[t].mute > 0) {
+             d9_bus(&bus, d, DR_LT + t, dry, rev, dly);
+-            d9_render_tom(&d->tom[t], &d->bt[DR_LT + t], nz, &bus, n);
++            d9_render_tom(&d->tom[t], &d->bt[DR_LT + t], nz, &bus, n, rt);
+         }
+     if (d->rim.mute > 0) {
+         d9_bus(&bus, d, DR_RS, dry, rev, dly);
+@@ -775,7 +829,7 @@
+     }
+     if (d->clap.mute > 0) {
+         d9_bus(&bus, d, DR_CP, dry, rev, dly);
+-        d9_render_clap(&d->clap, nz, &bus, n);
++        d9_render_clap(&d->clap, nz, &bus, n, rt);
+     }
+     static const uint8_t order[4] = { DR_OH, DR_RD, DR_CR, DR_CH };
+     for (int k = 0; k < 4; ++k) {
+--- a/dsp/drum909.h
++++ b/dsp/drum909.h
+@@ -1,4 +1,7 @@
+ /* SPDX-License-Identifier: GPL-3.0-only */
++/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
++ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
++ * local.patch there. */
+ /* X0X drum part: the 9W9 TR-909 engine (Charles Vestal, GPL-3.0; itself grown out
+  * of ER-99 by Matthew Cieplak, GPL-3.0), ported to the FM-1.
+  *
+@@ -88,6 +91,13 @@
+     int32_t mute;
+ } d9_smp_t;
+ 
++/* Lunar Modulator: the instance's rate (drum909_init_rate): sr in Hz, ms = 0.001 sr samples a
++ * millisecond, pph = 2^32 / sr phase steps a hertz; upstream's D9_SR, D9_MS and
++ * D9_PHASE_PER_HZ at 44.1 kHz, to the bit */
++typedef struct {
++    float sr, ms, pph;
++} d9_rate_t;
++
+ struct drum909 {
+     d9_bt_t bt[5];                /* BD SD LT MT HT panels; BD and SD voices */
+     d9_tom_t tom[3];              /* LT MT HT voices */
+@@ -100,15 +110,20 @@
+     float nz_buf[DR_NZ_BUF];      /* noise, linear; the block plus >= DR_NZ_HIST before it */
+     int32_t nz_pos;               /* where the next block's noise starts */
+     uint8_t pots[DR_NUM + 1][DR_MAX_PARAMS];
++    d9_rate_t rate;               /* Lunar Modulator */
+ };
+ typedef struct drum909 drum909_t;
+ 
+ void drum909_init(drum909_t *d);
++/* Lunar Modulator: drum909_init at a rate of sr Hz (drum909_init is it at 44,100) */
++void drum909_init_rate(drum909_t *d, float sr);
+ void drum909_trigger(drum909_t *d, int voice, float vel);
+ void drum909_render(drum909_t *d, float *dry, float *rev, float *dly, int n);
+ int drum909_nparams(int voice);
+ const x0x_param_t *drum909_param(int voice, int i);
+ void drum909_set(drum909_t *d, int voice, int i, int value);
++/* Lunar Modulator: drum909_set with the pot a float, read between the integers */
++void drum909_set_value(drum909_t *d, int voice, int i, float pot);
+ int drum909_get(const drum909_t *d, int voice, int i);
+ 
+ /* true while any voice is still sounding (for a caller that wants to skip work) */
+--- a/dsp/drum909_dsp.h
++++ b/dsp/drum909_dsp.h
+@@ -1,4 +1,7 @@
+ /* SPDX-License-Identifier: GPL-3.0-only */
++/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
++ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
++ * local.patch there. */
+ /* Building blocks of the 909 drum engine and the FX bus, ported from 9W9
+  * (er99 webaudio.h / er99_circuit.h, GPL-3.0) to the FM-1: float only, no libm,
+  * no double. Shared by drum909.c and fxbus.c (all static inline).
+@@ -138,9 +141,10 @@
+     float x1, x2, y1, y2;
+ } d9_biquad_t;
+ 
+-static inline void d9_biquad_set(d9_biquad_t *f, int type, float freq, float q)
++/* Lunar Modulator: d9_biquad_set at a rate sr; d9_biquad_set (below) is it at D9_SR */
++static inline void d9_biquad_set_sr(d9_biquad_t *f, int type, float freq, float q, float sr)
+ {
+-    float fc = freq / (D9_SR * 0.5f);
++    float fc = freq / (sr * 0.5f);
+     if (fc >= 1.0f) fc = 0.9999f;
+     if (fc <= 0.0f) fc = 0.0001f;
+     const float w0 = FM_PI * fc;
+@@ -163,6 +167,11 @@
+     f->a1 = a1 * inv; f->a2 = a2 * inv;
+ }
+ 
++static inline void d9_biquad_set(d9_biquad_t *f, int type, float freq, float q)
++{
++    d9_biquad_set_sr(f, type, freq, q, D9_SR);
++}
++
+ static inline void d9_biquad_reset(d9_biquad_t *f) { f->x1 = f->x2 = f->y1 = f->y2 = 0.0f; }
+ 
+ static inline float d9_biquad_tick(d9_biquad_t *f, float in)
+@@ -176,7 +185,9 @@
+ /* ===================================================================== */
+ /* Oscillator: Web Audio triangle on a uint32 phase                       */
+ /* ===================================================================== */
+-static inline uint32_t d9_inc(float hz) { return (uint32_t)(hz * D9_PHASE_PER_HZ); }
++/* Lunar Modulator: d9_inc at pph phase steps per Hz (2^32 / the rate); d9_inc is it at D9_SR */
++static inline uint32_t d9_inc_pph(float hz, float pph) { return (uint32_t)(hz * pph); }
++static inline uint32_t d9_inc(float hz) { return d9_inc_pph(hz, D9_PHASE_PER_HZ); }
+ 
+ /* 4p - 1 rising over the first half, 3 - 4p falling over the second */
+ static inline float d9_tri(uint32_t ph)

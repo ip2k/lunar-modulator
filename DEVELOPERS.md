@@ -36,6 +36,7 @@ GitHub's documentation on renaming a repository].
   - [The engine platform](#the-engine-platform)
   - [Renders checked against the reference, sample by sample](#renders-checked-against-the-reference-sample-by-sample)
   - [The sequencer core](#the-sequencer-core)
+  - [Saved state](#saved-state)
   - [The virtual FM-1](#the-virtual-fm-1)
 - [The hardware](#the-hardware)
   - [The FM-1 at a glance](#the-fm-1-at-a-glance)
@@ -104,6 +105,8 @@ python3 reference/jl-misctools/firmware/fwunpack_newfw.py FM-1.fwsc     # unpack
 python tools/fm1_identify.py                                   # read-only identity query + decode, any OS (verified on hardware)
 python -m pytest                                               # tools, PIO emulation, dongle/ROM co-simulation and engine tests
 make -C engines && engines/build/fm1-render --list             # engine platform, desktop build (docs/11, engines/README.md)
+engines/build/fm1-state canon FILE                             # saved state: canonical JSON, pack/unpack binary, check (engines/state/README.md)
+FM1_GPL_MODS=0 make -C engines                                 # the same without the GPL modules: the MIT/BSD build (Licences, below)
 python3 -m http.server 8000 -d sim/web/www                     # the virtual FM-1 at http://localhost:8000/ (sim/web/README.md)
 FM1_SIM_HOST=user@host sim/web/build-on-aeon.sh                # rebuild and check its WebAssembly module in containers on a Docker host
 tools/fm1_identify.sh                                          # Linux, ALSA raw MIDI, read-only, untested
@@ -135,13 +138,19 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   Six-Op FM, FM6, Sophie and Drums: the registry's sound engines less Test
   Sine) and twenty-two effects (Comb split out of Filter, Squash and
   Transient added on 2026-10-05), plus test engines, behind one C API,
-  version 3
+  version 4
   ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
-  [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
+  [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3) and
+  ["Engine API v4"](engines/README.md#engine-api-v4)):
   16-bit parameter flags with the LOG law for pitch- and time-like knobs, a
   dB unit, an optional effect extension that hands an effect a key
-  input, the tempo and beat position, and the transport's events, and pad
-  kits ([engines/README.md, "Pad kits"](engines/README.md#pad-kits)).
+  input, the tempo and beat position, and the transport's events, pad
+  kits ([engines/README.md, "Pad kits"](engines/README.md#pad-kits)), and
+  since v4 (2026-10-06) a pad kit's focus and per-pad values read back
+  through `get_param`, so every value a user can set can be saved. `fm1-render
+  --meta` exports every engine's, effect's, MIDI effect's and modulation
+  kind's parameter metadata as JSON, for editors
+  ([engines/README.md, "The parameter metadata export"](engines/README.md#the-parameter-metadata-export)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
@@ -174,6 +183,43 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     (hugelton), whose Apache-2.0 port of the same core is the test oracle.
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
     compatibility shim.
+  - **GPL modules, built only with the GPL switch on** ([Licences](#licences)):
+    **Acid Bass**, a bass after the TB-303, is fm1-x0x's 303 by Charles
+    Vestal (Open303 with the Devilfish ranges and a RAT drive), with two
+    local changes (the host's rate, pots between the integers) and a wrapper
+    that plays it on a 16-sample grid; it is its vendored unit to the bit
+    [verified: `fm1-acid-oracle --twin`], and the patched unit is upstream's
+    at 44.1 kHz [verified: `tests/test_engine_acid_bass.py`]
+    ([`engines/third_party/fm1-x0x/UPSTREAM.md`](engines/third_party/fm1-x0x/UPSTREAM.md),
+    [`engines/README.md`](engines/README.md#acid-bass)). **Comet Kit**, a
+    16-pad kit after the TR-909, is fm1-x0x's 909 (a port of 9W9 by
+    athousanddetails, grown out of ER-99 by Matthew Cieplak, with ER-99's
+    cymbal recordings), with two more local changes (the host's rate, pots
+    between the integers), sixteen pads on its eleven voices and a 16-sample
+    grid; it is its vendored unit to the bit [verified: `fm1-comet-oracle
+    --twin`], and the patched kit is upstream's at 44.1 kHz [verified:
+    `tests/test_engine_comet_kit.py`]. Its cymbals are 221 KB of int16 in
+    flash ([`engines/README.md`](engines/README.md#comet-kit) proposes a
+    budget).
+    **Crater Kit**, a 16-pad kit after the TR-808, is fm1-x0x's 808 (8W8's
+    circuit models by athousanddetails, sc808's rim shot), with two local
+    changes (its silence threshold a constant, pots between the integers)
+    and a wrapper that lays its sixteen sounds on notes 36–51 and plays it
+    on a 16-sample grid at a host rate near 44.1 kHz; it is its vendored
+    kit to the bit [verified: `fm1-crater-oracle --twin`], the patched kit
+    is upstream's, and fm1-x0x's own test against 8W8 passes with it
+    [verified: `tests/test_engine_crater_kit.py`]
+    ([`engines/README.md`](engines/README.md#crater-kit)).
+    **Drawbar**, **Trio** and **Phase Bend** are Felucca's WHEEL, TRIO and
+    PHASE engines (Leo Kuroshita, Hügelton Instruments, GPL-3.0-only),
+    vendored unmodified and compiled as Felucca compiles them
+    (`engines/src/felucca_bridge.c`), under a shim of ours that plays them in
+    Felucca's 32-sample blocks with Felucca's envelope and voice rules. They
+    are Felucca's own voice code to the bit on every factory sound [verified:
+    `fm1-felucca-oracle`, `tests/test_engine_felucca.py`]; about 4–5 KB an
+    instance and 25 KB of flash for the three
+    ([`engines/third_party/felucca/UPSTREAM.md`](engines/third_party/felucca/UPSTREAM.md),
+    [`engines/README.md`](engines/README.md#the-felucca-engines)).
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
     antiderivative anti-aliasing), Drive (overdrive and saturation, five
@@ -251,7 +297,8 @@ nothing of ours in the path, and more than 400 tests compare the two.
   [docs/13](docs/13-movy-port.md) on by default and an exact-Movy mode for
   tests.
 - **Tracks:** 4–8, each routed to the engine or to USB-MIDI on its own
-  channel, in 14,984 bytes at 4 tracks and 28,808 at 8.
+  channel, in 15,048 bytes at 4 tracks and 28,872 at 8 without Capture
+  (18,120 and 31,944 with its default 256 events).
 - **On the desktop:** the desktop renderer plays Movy sets and timed scripts
   through it with sample-accurate notes and parameter locks.
 - **Checked against Movy:** Movy's own unmodified core, run in a container,
@@ -294,7 +341,38 @@ play the same notes, byte for byte, at any block size [verified:
 `tests/test_engine_midi_fx.py`, `tests/test_sim_arp.py`, the `arp-*` parity
 scenarios] ([`engines/midi_fx/README.md`](engines/midi_fx/README.md),
 [`sim/web/README.md`](sim/web/README.md), "The arpeggiator"; manual
-chapter 4, "Arpeggiator").
+chapter 4, "Arpeggiator"). The second MIDI effect, **Acid Gen** (GPL, with
+the switch on), plays fm1-x0x's TB-3PO lines on the same ticks, as
+fm1-x0x's sequencer plays a 303 part; in the virtual FM-1, ALGORITHM puts
+it in the arpeggiator's slot ([`engines/midi_fx/README.md`](engines/midi_fx/README.md#acid-gen-gpl)).
+
+### Saved state
+
+Projects, sounds, effects chains, mod racks, clips, sets and settings are
+one record model with two encodings: canonical JSON for people, links, git
+and the coming web editor, and a chunked binary container (CRC-32 a chunk,
+deflate in a 4 KiB window) for the device. `engines/state/` reads JSON in
+pieces of any size with 1.4 KB of state and no malloc, so the firmware can
+link it, writes canonical JSON, and converts losslessly both ways;
+`tools/lunar_state.py` does the same independently, names resolved against
+the build's metadata export, and the two agree byte for byte [verified:
+`tests/test_state_codec.py`]. A set reaches the sequencer core through its
+streaming import, in pieces, so no `movy1` line is ever held whole.
+`fm1-render` and `fm1-seq` load and save every kind (`--load`, `--save`),
+refusing what the device will (an engine the build lacks, with its reason,
+or more than the FM-1's RAM at 44,118 Hz). Save, load and save again gives
+the same bytes, in JSON and in binary, for every kind and for a guide-sized
+project; and a project saved from a session of four sounds (a drum kit's
+pads, inserts, the arpeggiator, master effects, a modulation rack with
+Register's pattern data, a set with its song) reloads and renders the same
+WAV byte for byte, from either encoding [verified:
+`tests/test_state_whole.py`, 2026-10-06]. The song list's editing, its end
+modes and scene names are in the sequencer core (stage E1, `engines/seq.md`,
+"The song"); their Session and Song pages come later. The simulator's Open,
+Save and launch links are the next stages
+([`engines/state/README.md`](engines/state/README.md); the design and its
+decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
+[`notes/2026-10-06-song-and-scenes.md`](notes/2026-10-06-song-and-scenes.md)).
 
 ### The virtual FM-1
 
@@ -307,11 +385,12 @@ chapter 4, "Arpeggiator").
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
   canvas, its text in three faces (the project's 5×9 at ×2, Spleen 8×16
-  and 6×12). All 3,645 screens of the layout sweep, the sequencer's,
-  modulation's and the arpeggiator's, the global page's Key page, FM6's
-  user bank, every list popup at every entry and the knobs' lists
-  included, pass a layout check, with no text cut short and nothing closer
-  than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06].
+  and 6×12). All 4,534 screens of the layout sweep (3,645 with the GPL
+  switch off), the sequencer's, modulation's and the arpeggiator's, the
+  global page's Key page, FM6's user bank, the GPL modules' pages, every
+  list popup at every entry and the knobs' lists included, pass a layout
+  check, with no text cut short and nothing closer than 4 px [verified:
+  `fm1-sim-render --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
   modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); only SAVE is still
@@ -901,7 +980,8 @@ modulation source, a MIDI effect, an audio effect, or another kind.
     S7a every parameter has its uid and flags, and since 2026-10-05
     `FM1_ENGINE_API_VERSION` is 3 (16-bit flags, LOG, dB, the effect
     extension), and since 2026-10-06 the MIDI-effect kind with its
-    `process()` [verified: `fm1_engine.h`]. An SDK needs those contracts
+    `process()`, and is 4 (the FOCUS and PER_FOCUS flags and `get_param`)
+    [verified: `fm1_engine.h`]. An SDK needs those contracts
     settled and versioned first [inferred];
   - the effects' tempo and beat position: in since API v3, as the per-call
     `fm1_fx_ext_t` rather than fields of `fm1_host_t`; the MOD flag is in
@@ -1633,6 +1713,36 @@ review.
   (released, or sent to anyone) if it contains GPL or LXR code. Personal
   builds may, so keep such code behind a build switch and keep the
   MIT/BSD-only build shareable.
+- **The GPL switch** is `FM1_GPL_MODS` (owner, 2026-10-05: on by default,
+  everywhere, while we test):
+
+  ```bash
+  make -C engines                         # the switch on: GPL modules built in
+  FM1_GPL_MODS=0 make -C engines          # the MIT/BSD build, shareable
+  engines/build/fm1-render --build-info   # which one a build is
+  engines/build/fm1-render --list         # every module's licence, as SPDX
+  python -m pytest tests/test_gpl_switch.py   # the switch-off build has nothing GPL in it
+  ```
+
+  - One variable in `engines/Makefile` turns fm1-render, the simulator's
+    native and WebAssembly builds and the JieLi compile check. A turn
+    rebuilds only what reads it.
+  - A GPL module comes in as:
+    - its own `engines/third_party/<name>/`, with its licence and an
+      `UPSTREAM.md`;
+    - a fragment `engines/mk/<name>.mk` that adds its sources under
+      `ifeq ($(FM1_GPL_MODS),1)` and its C objects to `GPL_OBJ`;
+    - its registry entry and its row in the licence table under `#if
+      FM1_GPL_MODS` (`engines/src/registry.cc`, `midi_fx/registry.c`);
+    - its uids in `tests/fixtures/param-uids.json`, its id in that file's
+      `gpl` list, `gpl_only` on its tests, and `"gpl": true` on its parity
+      scenarios, which skip with the switch off.
+  - While the switch is on, no firmware image that links JieLi's libraries
+    may be shared. The simulator's page then names the GPL modules, links
+    the GPL's text and the source at the site's commit, and offers the
+    module under the GPL ([docs/12](docs/12-sequencer.md) §6).
+  - CI runs everything with the switch on, and the engine, sequencer and
+    simulator tests again with it off.
 - GPL and LXR code cannot be combined in one shared work, and MIDIbox code
   needs its author's permission.
 - JieLi's SDK is not GPL-free: `system.a` holds a modified FreeRTOS V9

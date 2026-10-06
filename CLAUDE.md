@@ -76,7 +76,9 @@ its author's permission. Details: docs/12 §6, docs/11 §7. The SDK itself
 is not GPL-free: `system.a` holds a modified FreeRTOS V9 (GPLv2 with the
 FreeRTOS exception), and `uac_audio.h`/`uac_audio_v2.h` are GPL-2.0, so
 never include those headers. Felucca and SLOOP are GPL-3.0-only: take facts
-and ideas, with credit.
+and ideas, with credit; their code comes in only as a GPL module behind the
+GPL switch (docs/12 §6), as three of Felucca's engines have
+(`engines/third_party/felucca/`, 2026-10-06).
 
 **The GPL switch** (owner, 2026-10-05: "gated with a switch but ON by
 default, everywhere while we test"): GPL modules sit behind one build
@@ -84,8 +86,12 @@ switch, `FM1_GPL_MODS`, **on by default in every build while we test**.
 While it is on, no firmware image that links JieLi's libraries may be shared,
 and the public simulator's module is offered under GPL terms (licence named
 on the page, source linked). Bare-metal builds without JieLi's libraries are
-to be explored later. No GPL code is in the tree yet; the switch lands with
-the first GPL module. Details: docs/12 §6.
+to be explored later. The switch is built (2026-10-06): `FM1_GPL_MODS ?= 1`
+in `engines/Makefile`, read by fm1-render, the simulator's builds and the
+JieLi check; a GPL module's registry entry and licence row go under `#if
+FM1_GPL_MODS`, its sources in its own fragment; CI tests both settings, and
+`tests/test_gpl_switch.py` fails if the switch-off build compiles, links or
+lists anything GPL. Details: docs/12 §6.
 
 ## The one rule
 

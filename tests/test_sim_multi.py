@@ -16,10 +16,11 @@ import subprocess
 
 import pytest
 
+from tests.engine_helpers import GPL_MODS
 from tests.test_sim_web import SCENARIOS, left_channel, run, scenario_args, tools  # noqa: F401
 
 BUDGET = 387924
-SEQ_FIXED = 31880 + 3264          # the sequencer's instance (8 tracks) and event buffer (272 events),
+SEQ_FIXED = 31944 + 3264          # the sequencer's instance (8 tracks) and event buffer (272 events),
 SEQ_MORE = 240 + 1024 + 20        # its pending record, the UI bound and the click,
 MOD_BYTES = 26848                 # and the modulation runtime (fm1_mod_size(), docs/16 MG3; MG9 voices; glide; its modes)
 FIXED = SEQ_FIXED + SEQ_MORE + MOD_BYTES
@@ -284,7 +285,7 @@ def test_every_scenario_fits_the_meter(tools):
     and stays inside the budget. fx-turns-diffuse-psxverb ran Shapes, which
     with Diffuse and PSX Verb would pass it, until the lab switch went."""
     for s in SCENARIOS:
-        if "panel" in s:
+        if "panel" in s or (s.get("gpl") and not GPL_MODS):   # a GPL module: not in the build
             continue
         r = run(tools["sim"], scenario_args(s) + ["--seconds", "0.01"])
         assert r["ram"] <= BUDGET, s["name"]

@@ -90,5 +90,5 @@ const fm1_mod_kind_t fm1_mod_kind_coin = {
   "Our own, from the published behaviour of Mutable Instruments' Branches (GPL-3 firmware, "
   "not read). MIT references: Marbles' coin toss and Phazerville's Brancher.",
   kParams, P_COUNT, 1, 2, kGates, kOuts, 0, 0,
-  coin_size, coin_create, NULL, NULL, coin_process, NULL, NULL, NULL
+  coin_size, coin_create, NULL, NULL, coin_process, NULL, NULL, NULL, 0
 };

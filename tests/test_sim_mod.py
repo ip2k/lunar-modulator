@@ -61,7 +61,7 @@ def test_the_runtime_runs_from_the_start_and_counts_in_the_ram_figure(tools):
                                   text=True).stdout)
     plain = sim(tools, seconds="0.1")
     assert "mod" in plain and plain["ram"] == instance_bytes(tools, "macro") + FIXED
-    assert FIXED - z["mod_bytes"] == 31880 + 3264 + 240 + 1024 + 20
+    assert FIXED - z["mod_bytes"] == 31944 + 3264 + 240 + 1024 + 20
     for name, mode in (("ENV", 4), ("LFO", 4), ("EDIT", 5)):
         s = sim(tools, "--button", f"0.1:{name}", seconds="0.2")
         assert s["mode"] == mode and s["popup"] == [], name

@@ -125,7 +125,9 @@
         open) or off; hold ARP to latch, so the notes keep playing after you let go and the next chord
         replaces them. SHIFT and ARP shows the pages without switching. SELECT turns the pages (PLAY,
         RHYTHM, CHANCE, FEEL, MORE, KEYS, SEED), the knobs set the mode, rate, gate, octaves, rhythm
-        patterns and chance, and ALGORITHM picks the stock FM-1's arp modes as presets. The keys, MIDI
+        patterns and chance, and ALGORITHM picks the stock FM-1's arp modes as presets; past them it puts
+        another MIDI effect in the arpeggiator's place, when the build has one: Acid Gen, which plays seeded
+        acid lines from the key you hold (made for the Acid Bass sound). The keys, MIDI
         and the sequencer's notes for that sound all go through it, and it follows the sequencer's
         tempo, running or not; while the sequencer plays, its steps fall on the sequencer's beat. Stop
         takes back the sequencer's notes and leaves the ones you latched. Recording keeps the notes
@@ -150,12 +152,20 @@
       (Mutable Instruments, MIT) and the Schwung module authors; see the repository's
       <code>engines/README.md</code>. FM6 is msfa by Raph Levien for Google (Apache License 2.0), borrowed with
       thanks, as is its name, from Felucca's FM6 engine by hugelton; it reads the DX7's voice format (not
-      affiliated with Yamaha). Squash and the Limiter's Round mode
+      affiliated with Yamaha). Acid Bass, Acid Gen, Comet Kit and Crater Kit, in builds with the GPL switch on,
+      are the 303, the TB-3PO generator, the 909 kit and the 808 kit of fm1-x0x by Charles Vestal, after Open303 by
+      Robin Schmidt, the Phazerville Hemisphere Suite's TB_3PO, 9W9 by athousanddetails and ER-99 by Matthew
+      Cieplak, whose hi-hat, ride and crash recordings the 909 kit plays, and 8W8 by athousanddetails, whose rim
+      shot is Yoshinosuke Horiuchi's and Sam Aaron's sc808 (after the TB-303, the TR-909 and the TR-808, Roland
+      marks named only as credit). Drawbar, Trio and Phase Bend, likewise, are the WHEEL, TRIO and PHASE engines
+      of Felucca by Leo Kuroshita (H&uuml;gelton Instruments), PHASE after his CrispyZebra. Squash and the
+      Limiter's Round mode
       port Airwindows plug-ins by Chris Johnson (MIT). Colours: Ros&eacute; Pine Moon (MIT). Type: Audiowide by
       Astigmatic (SIL Open Font License 1.1, <a href="fonts/audiowide/OFL.txt">licence</a>); on the screen, beside
       the project's own 5&times;9, Spleen by Frederic Cambus (BSD 2-Clause, <a href="fonts/spleen/LICENSE">licence</a>).
       M-VAVE and FM-1 are their owners' names for their synthesizer; this project is not affiliated with them.</p>
   </section>
+  <p class="licence-note" id="licence-note" hidden></p>
 </main>
 
 <script type="module" src="app.js"></script>

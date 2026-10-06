@@ -4,12 +4,21 @@
 //   fm1-render --engine macro --param Model=6 --param Timbre=0
 //              --note 0:69:100:1.5 --seconds 2 --out a4.wav   (one command)
 //
+// --meta prints the parameter metadata export (include/fm1_meta.h): every
+// engine, effect, MIDI effect and modulation kind with its parameters, and
+// the rest an editor builds its controls from, as canonical JSON that
+// engines/state/schema/metadata.schema.json describes.
+//
 // --list prints every engine and MIDI effect and its parameters as JSON, with the names of
 // an enum parameter's values and each parameter's API v2 fields: uid, flags
 // (by name), unit and abbr, whether the engine takes per-note offsets
 // (per_note: it has set_param_note), what an effect asks of API v3's
-// extension (fx_wants: key, tempo, transport; render_ext: it has one), and
-// its pads when it is a pad kit (pads: first note and count, or null).
+// extension (fx_wants: key, tempo, transport; render_ext: it has one), its
+// pads when it is a pad kit (pads: first note and count, or null), whether
+// it reads its values back (get_param, API v4), and the licence of the code
+// it links (licence: an SPDX expression, MIT unless the licence table says
+// otherwise; source: where its vendored code is, or null). --build-info prints the build's engine API version and the GPL
+// switch it was built with (gpl_mods: FM1_GPL_MODS, engines/Makefile).
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
@@ -72,7 +81,9 @@
 // Modulation (docs/16, include/fm1_mod.h): --mod FILE sets up the rack of
 // modules and the matrix's slots from a text file (host/mod_script.h; a line
 // may start with @FRAME to apply at the first block that starts there),
-// --log-mod FILE.jsonl writes every tick, --list-mod prints the module kinds,
+// --log-mod FILE.jsonl writes every tick, --save-mod-data FILE the modules'
+// pattern data as the render ends, one `data P VERSION HEX` line each
+// (mod_script.h; Register's loop), --list-mod prints the module kinds,
 // the system sources and the host parameters as JSON. The runtime runs as
 // the bridge's control-rate hook, with or without the sequencer: notes,
 // locks and the clock feed its sources, each tick runs at its own frame,
@@ -95,6 +106,8 @@
 // voices go to User 1, 2... in the order given, counted across files. Each
 // file's result is printed on stderr, one line: the file, the voices, the
 // first slot, bad checksums and skipped messages, and the names stored.
+// --save-bank FILE writes the 32 user slots back out as one VMEM bank dump
+// (fm1_dx7_write_bank), after the --sysex files: the way a bank leaves.
 //
 // MIDI effects (engine API v3, FM1_KIND_MIDI_FX; include/fm1_mfx_host.h):
 // --mfx K:ID puts MIDI effect ID (the arpeggiator, `arp`) in front of sound
@@ -113,7 +126,9 @@
 // Start resets the effects, and Stop takes back the sequencer's notes from
 // them (STOP: what was played live plays on). --log-mfx FILE.jsonl writes
 // what the chains send their sounds, by frame and then unit (so the same at
-// any block size). The summary adds mfx_* counters and
+// any block size). --key ROOT:SCALE sets the project key the effects see
+// (fm1_midi_fx_ctx_t: ROOT 0 C .. 11 B, SCALE 0 major, 1 minor, 2
+// chromatic; C major without it). The summary adds mfx_* counters and
 // notes_hung, the engines' note-ons still without a note-off at the end.
 //
 // Effects with engine API v3's extension (fm1_engine.h, render_ext): every
@@ -124,6 +139,16 @@
 // without a sequencer; the key input is NULL (the effect's own input) until
 // the side-chain stage.
 //
+// Saved state (engines/state/, stage E3): --load [sK:|tT.S:]FILE reads a
+// project, sound (into sound unit K), effects chain (the --fx chain), mod
+// rack, set, clip (into track T, slot S) or settings file, JSON or binary,
+// in two passes: an engine or kind this build lacks refuses it (UNKNOWN)
+// unless --without leaves it out, and instances past the FM-1's budget at
+// 44,118 Hz always do (RAM). What it gives comes before the command line's
+// own flags, which adjust it. --save KIND:FILE (project, sound[1-4], fx,
+// mods, set, clip:T.S; FILE.lunarb for binary) writes the state the render
+// starts from (host/render_state.h).
+//
 // MIT licence.
 
 #include "fm1_dx7.h"
@@ -133,10 +158,14 @@
 #include "fm1_mix_limiter.h"
 #include "fm1_mod.h"
 #include "fm1_mod_host.h"
+#include "fm1_meta.h"
 #include "fm1_seq.h"
 #include "fm1_seq_host.h"
+#include "fm1_state_mod.h"
 #include "mod_script.h"
+#include "render_state.h"
 #include "seq_script.h"
+#include "state_clip.h"
 
 #include <algorithm>
 #include <chrono>
@@ -205,7 +234,7 @@ struct FxControl {                   // --fx-param-at: an effect's set_param
 
 void Usage() {
   fprintf(stderr,
-      "usage: fm1-render --list\n"
+      "usage: fm1-render --list | --build-info\n"
       "       fm1-render [--engine ID [--param NAME=VALUE]... [--note T:KEY:VEL:DUR]...\n"
       "                   [--bend T:SEMITONES]... [--param-at T:NAME=VALUE]...\n"
       "                   [--note-param-at T:KEY:NAME=OFFSET]... [--note-pitch-at T:KEY:SEMITONES]...]\n"
@@ -220,11 +249,14 @@ void Usage() {
       "                   [--insert-param K:NAME=VALUE]...] [--level K:PCT] [--slots]\n"
       "                  [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=VALUE]\n"
       "                  [--level-at K:T:PCT] [--mod FILE] [--log-mod FILE.jsonl]\n"
-      "                  [--sysex FILE.syx]... [--tempo BPM]\n"
+      "                  [--save-mod-data FILE]\n"
+      "                  [--sysex FILE.syx]... [--save-bank FILE.syx] [--tempo BPM]\n"
       "                  [--mfx K:ID[:off] [--mfx-param K:NAME=VALUE]...]\n"
       "                  [--mfx-param-at K[.J]:T:NAME=VALUE]... [--mfx-on-at K[.J]:T:0|1]...\n"
-      "                  [--log-mfx FILE.jsonl]\n"
+      "                  [--log-mfx FILE.jsonl] [--key ROOT:SCALE]\n"
+      "                  [--load [sK:|tT.S:]FILE]... [--without] [--save KIND:FILE]...\n"
       "       fm1-render --list-mod\n"
+      "       fm1-render --meta\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
       "engine from the sequencer. --sound and the flags after it add sound units\n"
@@ -559,8 +591,12 @@ void ListMod() {
     printf(",\"name\":"); PrintJsonString(k->name);
     printf(",\"abbr\":"); PrintJsonString(k->abbr);
     printf(",\"credits\":"); PrintJsonString(k->credits);
-    printf(",\"transport\":%s,\"instance_bytes\":%zu,\"params\":[",
-           (k->flags & FM1_MOD_KIND_TRANSPORT) ? "true" : "false", k->instance_size(&host));
+    printf(",\"transport\":%s,\"poly_ok\":%s,\"instance_bytes\":%zu,",
+           (k->flags & FM1_MOD_KIND_TRANSPORT) ? "true" : "false",
+           (k->flags & FM1_MOD_KIND_POLY_OK) ? "true" : "false", k->instance_size(&host));
+    if (k->data_bytes) printf("\"data\":{\"bytes\":%u,\"version\":%u},", k->data_bytes, k->data_version);
+    else printf("\"data\":null,");
+    printf("\"params\":[");
     PrintParams(k->params, k->n_params);
     printf("],\"gates\":[");
     PrintPorts(k->gate_in, k->n_gate_in);
@@ -645,6 +681,31 @@ bool LoadSysex(const Unit &u, const char *id, const std::vector<std::string> &pa
   return true;
 }
 
+// --save-bank: the dx7 engine's 32 user slots as one VMEM bank dump
+// (fm1_dx7_write_bank, MIDI channel 1), after any --sysex.
+bool SaveBank(const Unit &u, const char *id, const char *path) {
+  if (!id || strcmp(id, "dx7") != 0 || !u.self) {
+    fprintf(stderr, "--save-bank needs --engine dx7\n");
+    return false;
+  }
+  uint8_t voices[FM1_DX7_USER_SLOTS][FM1_DX7_VCED_BYTES];
+  const uint8_t *refs[FM1_DX7_USER_SLOTS];
+  for (unsigned k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
+    fm1_dx7_get_user_voice(u.self, k, voices[k]);
+    refs[k] = voices[k];
+  }
+  uint8_t out[FM1_DX7_BANK_SYSEX_BYTES];
+  const size_t n = fm1_dx7_write_bank(refs, 0, out);
+  FILE *f = fopen(path, "wb");
+  if (!f || fwrite(out, 1, n, f) != n) {
+    fprintf(stderr, "--save-bank: cannot write %s\n", path);
+    if (f) fclose(f);
+    return false;
+  }
+  fclose(f);
+  return true;
+}
+
 bool ParseParam(const char *arg, std::vector<std::pair<std::string, float> > *out) {
   const char *eq = strchr(arg, '=');
   if (!eq) return false;
@@ -678,7 +739,7 @@ void PrintFlags(uint16_t f) {
   static const struct { uint16_t bit; const char *name; } kFlags[] = {
     { FM1_PARAM_LATCH, "latch" }, { FM1_PARAM_SMOOTH, "smooth" }, { FM1_PARAM_NOLOCK, "nolock" },
     { FM1_PARAM_MOD, "mod" }, { FM1_PARAM_INPUT, "input" }, { FM1_PARAM_POLY, "poly" },
-    { FM1_PARAM_LOG, "log" },
+    { FM1_PARAM_LOG, "log" }, { FM1_PARAM_FOCUS, "focus" }, { FM1_PARAM_PER_FOCUS, "per_focus" },
   };
   uint16_t known = 0;
   bool first = true;
@@ -693,6 +754,15 @@ void PrintFlags(uint16_t f) {
   putchar(']');
 }
 
+// --meta: the parameter metadata export (fm1_meta.h), canonical JSON.
+void MetaPut(void *, const char *bytes, size_t n) { fwrite(bytes, 1, n, stdout); }
+
+void Meta() {
+  fm1_meta_build_t b;
+  fm1_meta_build_default(&b);
+  fm1_meta_write(&b, MetaPut, NULL);
+}
+
 void List() {
   printf("[");
   // The engines, then the MIDI effects (their own registry, kind midi_fx).
@@ -703,9 +773,18 @@ void List() {
     printf("\"id\":"); PrintJsonString(e->id);
     printf(",\"name\":"); PrintJsonString(e->name);
     printf(",\"credits\":"); PrintJsonString(e->credits);
-    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"render_ext\":%s,\"fx_wants\":[",
+    {
+      const fm1_licence_t *row = fm1_engine_licence_row(e);
+      printf(",\"licence\":"); PrintJsonString(fm1_engine_licence(e));
+      printf(",\"source\":");
+      if (row && row->source) PrintJsonString(row->source);
+      else printf("null");
+    }
+    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"render_ext\":%s,"
+           "\"get_param\":%s,\"fx_wants\":[",
            e->kind == FM1_KIND_SOUND ? "sound" : e->kind == FM1_KIND_AUDIO_FX ? "audio_fx" : "midi_fx",
-           e->max_voices, e->set_param_note ? "true" : "false", e->render_ext ? "true" : "false");
+           e->max_voices, e->set_param_note ? "true" : "false", e->render_ext ? "true" : "false",
+           e->get_param ? "true" : "false");
     {
       static const struct { uint32_t bit; const char *name; } kWants[] = {
         { FM1_FX_WANT_KEY, "key" }, { FM1_FX_WANT_TEMPO, "tempo" },
@@ -779,6 +858,7 @@ int main(int argc, char **argv) {
   double seconds = 2.0;
   float rate = 44118.0f;
   float tempo = 120.0f;             // --tempo: the effects' tempo without a sequencer
+  int key_root = 0, key_scale = FM1_KEY_MAJOR;   // --key: the project key the effects see
   uint32_t max_frames = 64;
   int fill = 0;
   std::vector<Fault> faults;
@@ -795,7 +875,9 @@ int main(int argc, char **argv) {
   long events_cap = -1;            // --events: the block's event buffer
   std::vector<Route> routes;
   const char *mod_path = NULL, *mod_log_path = NULL;
+  const char *mod_data_path = NULL;       // --save-mod-data: the modules' data lines
   std::vector<std::string> sysex_paths;   // --sysex: DX7 voices for --engine dx7
+  const char *save_bank = NULL;           // --save-bank: the user slots as a VMEM dump
   // Sound units 1..3 (--sound) and every unit's inserts and level; unit 0 is
   // `sound`. `slots` is set by any of their flags or --slots.
   Unit more[kSounds];
@@ -809,17 +891,33 @@ int main(int argc, char **argv) {
   std::vector<int> mfx_start_on[kSounds];   // --mfx K:ID:off starts it bypassed
   std::vector<MfxControl> mfx_controls;
   const char *mfx_log_path = NULL;
+  // Saved state (--load, --save): what files give, read once the flags are.
+  std::vector<std::string> load_specs, save_specs;
+  bool without = false, level_given[kSounds] = { false, false, false, false };
+  render_state::Loaded loaded;
+  std::string loaded_engine;
 
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
     const char *next = i + 1 < argc ? argv[i + 1] : NULL;
     if (a == "--list") { List(); return 0; }
+    if (a == "--build-info") {
+      size_t gpl = 0;
+      for (size_t k = 0; k < fm1_licence_count; ++k) gpl += fm1_licence_is_gpl(fm1_licences[k].spdx);
+      printf("{\"engine_api\":%u,\"gpl_mods\":%d,\"engines\":%zu,\"midi_fx\":%zu,\"gpl_modules\":%zu}\n",
+             FM1_ENGINE_API_VERSION, fm1_gpl_mods, fm1_engine_count, fm1_midi_fx_count, gpl);
+      return 0;
+    }
     if (a == "--list-mod") { ListMod(); return 0; }
+    if (a == "--meta") { Meta(); return 0; }
     if (a == "--compat") { compat = true; continue; }
+    if (a == "--without") { without = true; continue; }
     if (a == "--slots") { slots = true; continue; }
     if (!next) { Usage(); return 2; }
     ++i;
     if (a == "--engine") engine_id = next;
+    else if (a == "--load") load_specs.push_back(next);
+    else if (a == "--save") save_specs.push_back(next);
     else if (a == "--out") out_path = next;
     else if (a == "--input") input = next;
     else if (a == "--seconds") { seconds = atof(next); seconds_given = true; }
@@ -829,10 +927,18 @@ int main(int argc, char **argv) {
     else if (a == "--seq") seq_path = next;
     else if (a == "--log-events") log_path = next;
     else if (a == "--mod") mod_path = next;
+    else if (a == "--save-mod-data") mod_data_path = next;
     else if (a == "--sysex") sysex_paths.push_back(next);
+    else if (a == "--save-bank") save_bank = next;
     else if (a == "--log-mod") mod_log_path = next;
     else if (a == "--log-mfx") mfx_log_path = next;
-    else if (a == "--tempo") {
+    else if (a == "--key") {
+      if (sscanf(next, "%d:%d", &key_root, &key_scale) != 2 || key_root < 0 || key_root > 11 ||
+          key_scale < 0 || key_scale > FM1_KEY_CHROMATIC) {
+        fprintf(stderr, "--key wants ROOT:SCALE, ROOT 0..11, SCALE 0 major, 1 minor, 2 chromatic\n");
+        return 2;
+      }
+    } else if (a == "--tempo") {
       tempo = static_cast<float>(atof(next));
       if (!(tempo >= 20.0f && tempo <= 300.0f)) {
         fprintf(stderr, "--tempo wants 20..300 BPM\n");
@@ -931,6 +1037,7 @@ int main(int argc, char **argv) {
         const float v = static_cast<float>(atof(rest));
         if (!(v >= 0.0f && v <= 100.0f)) { fprintf(stderr, "--level wants 0..100\n"); return 2; }
         level[k] = v;
+        level_given[k] = true;
       } else if (a == "--sound-note") {
         double t, dur; int key, vel;
         if (sscanf(rest, "%lf:%d:%d:%lf", &t, &key, &vel, &dur) != 4) { Usage(); return 2; }
@@ -1029,6 +1136,57 @@ int main(int argc, char **argv) {
                                        one[0].second, false });
     } else { Usage(); return 2; }
   }
+  // --load: each file in order, then into the units, before their own flags.
+  for (size_t i = 0; i < load_specs.size(); ++i) {
+    std::string err;
+    if (!render_state::Load(load_specs[i], without, &loaded, &err)) {
+      fprintf(stderr, "%s\n", err.c_str());
+      return 1;
+    }
+  }
+  if (!load_specs.empty()) {
+    auto prepend = [](Unit *u, const render_state::Params &p) {
+      u->params.insert(u->params.begin(), p.begin(), p.end());
+    };
+    for (int k = 0; k < kSounds; ++k) {
+      const render_state::UnitIn &u = loaded.sound[k];
+      if (!loaded.has_sound[k] || u.id.empty()) continue;
+      if (k == 0) {
+        if (!engine_id) { loaded_engine = u.id; engine_id = loaded_engine.c_str(); }
+        if (u.id == engine_id) prepend(&sound, u.params);
+      } else {
+        if (more_ids[k].empty()) more_ids[k] = u.id;
+        if (more_ids[k] == u.id) prepend(&more[k], u.params);
+      }
+    }
+    for (int k = 0; k < kSounds; ++k) {
+      for (size_t j = loaded.inserts[k].size(); j-- > 0;) {
+        if (loaded.inserts[k][j].id.empty()) continue;
+        insert_ids[k].insert(insert_ids[k].begin(), loaded.inserts[k][j].id);
+        inserts[k].insert(inserts[k].begin(), Unit());
+        inserts[k][0].params = loaded.inserts[k][j].params;
+      }
+      for (size_t j = loaded.mfx[k].size(); j-- > 0;) {
+        if (loaded.mfx[k][j].id.empty()) continue;
+        mfx_ids[k].insert(mfx_ids[k].begin(), loaded.mfx[k][j].id);
+        mfx_units[k].insert(mfx_units[k].begin(), Unit());
+        mfx_units[k][0].params = loaded.mfx[k][j].params;
+        mfx_start_on[k].insert(mfx_start_on[k].begin(), loaded.mfx[k][j].on ? 1 : 0);
+        for (size_t c = 0; c < mfx_controls.size(); ++c) {
+          if (mfx_controls[c].sound == k) ++mfx_controls[c].slot;
+        }
+      }
+      if (loaded.has_level[k] && !level_given[k]) level[k] = loaded.level[k];
+    }
+    for (size_t j = loaded.master.size(); j-- > 0;) {
+      if (loaded.master[j].id.empty()) continue;
+      fx_ids.insert(fx_ids.begin(), loaded.master[j].id);
+      fx.insert(fx.begin(), Unit());
+      fx[0].params = loaded.master[j].params;
+      for (size_t c = 0; c < fx_controls.size(); ++c) ++fx_controls[c].unit;
+    }
+    if (loaded.any_slot) slots = true;
+  }
   for (size_t k = 0; k < controls.size(); ++k) {
     if (!controls[k].sound && !controls[k].level && !engine_id) {
       fprintf(stderr, "--bend and --param-at need --engine\n");
@@ -1039,7 +1197,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "--note-param-at and --note-pitch-at need --engine\n");
     return 2;
   }
-  const bool use_seq = cmd_path || seq_path;
+  const bool use_seq = cmd_path || seq_path || !loaded.set.empty() || loaded.clip_track >= 0;
   Sequencer sq;
   uint64_t seq_end = 0;            // a script's run length, in frames (exact)
   if (use_seq) {
@@ -1076,6 +1234,10 @@ int main(int argc, char **argv) {
     fprintf(stderr, "--log-mod needs --mod\n");
     return 2;
   }
+  if (mod_data_path && !mod_path && !loaded.has_mod) {
+    fprintf(stderr, "--save-mod-data needs --mod or a loaded rack\n");
+    return 2;
+  }
   // The MIDI effects' usage errors, before anything is allocated (an exit
   // after that leaks under LeakSanitizer, which turns the exit code to 1).
   bool any_mfx = false;
@@ -1104,6 +1266,7 @@ int main(int argc, char **argv) {
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, max_frames };
   if (engine_id && !Instantiate(sound, engine_id, FM1_KIND_SOUND, host, fill)) return 1;
   if (!sysex_paths.empty() && !LoadSysex(sound, engine_id, sysex_paths)) return 1;
+  if (save_bank && !SaveBank(sound, engine_id, save_bank)) return 1;
   // Every sound unit, unit 0 being `sound` (created in this order: unit 0,
   // the --fx chain, units 1..3, then each unit's inserts, as the virtual
   // FM-1's harness creates them).
@@ -1165,6 +1328,12 @@ int main(int argc, char **argv) {
     for (size_t j = 0; j < inserts[k].size(); ++j) {
       if (!Instantiate(inserts[k][j], insert_ids[k][j].c_str(), FM1_KIND_AUDIO_FX, host, fill)) return 1;
     }
+  }
+  // A loaded file's FM6 voices: the project's user bank, in every FM6 unit.
+  for (int k = 0; k < kSounds && !loaded.dx7.empty(); ++k) {
+    const Unit &u = *units[k];
+    if (!u.e || strcmp(u.e->id, "dx7") != 0) continue;
+    for (size_t i = 0; i < loaded.dx7.size(); ++i) fm1_dx7_set_user_voice(u.self, loaded.dx7[i].first, loaded.dx7[i].second.data());
   }
   for (size_t k = 0; k < controls.size(); ++k) {     // a later unit's --sound-param-at
     Control &c = controls[k];
@@ -1266,6 +1435,31 @@ int main(int argc, char **argv) {
         return 1;
       }
       free(txt);
+    } else if (!loaded.set.empty() && !fm1_seq_host_import(&sq.host, loaded.set.data(), loaded.set.size())) {
+      fprintf(stderr, "--load: the set is not movy1\n");
+      return 1;
+    }
+    if (loaded.clip_track >= 0) {        // a clip into its track and slot, lanes matched by label
+      const size_t n = fm1_seq_export_movy1(sq.seq, NULL, 0);
+      std::string set(n + 1, '\0');
+      fm1_seq_export_movy1(sq.seq, &set[0], set.size());
+      std::vector<const char *> lines;
+      for (size_t i = 0; i < loaded.clip.size(); ++i) lines.push_back(loaded.clip[i].c_str());
+      char err[160] = "";
+      char *text = fm1_state_clip_into(set.data(), n, lines.data(), lines.size(),
+                                       static_cast<unsigned>(loaded.clip_track),
+                                       static_cast<unsigned>(loaded.clip_slot), err, sizeof(err));
+      if (static_cast<unsigned>(loaded.clip_track) >= static_cast<unsigned>(tracks)) {
+        snprintf(err, sizeof(err), "the set has %d tracks", tracks);
+        free(text);
+        text = NULL;
+      }
+      if (!text || !fm1_seq_host_import(&sq.host, text, strlen(text))) {
+        fprintf(stderr, "--load: the clip does not fit: %s\n", err);
+        free(text);
+        return 1;
+      }
+      free(text);
     }
     for (size_t k = 0; k < routes.size(); ++k) {
       if (routes[k].track < 0 || routes[k].track >= tracks ||
@@ -1344,14 +1538,21 @@ int main(int argc, char **argv) {
     }
     return code;
   };
-  if (mod_path) {
-    FILE *f = fopen(mod_path, "r");
-    if (!f) { fprintf(stderr, "cannot read %s\n", mod_path); return ModFail(1); }
-    char buf[1024];
-    uint32_t seed = 0;
-    while (fgets(buf, sizeof(buf), f)) {
+  uint32_t mod_seed = loaded.has_seed ? loaded.seed : 0u;
+  if (mod_path || loaded.has_mod) {
+    FILE *f = mod_path ? fopen(mod_path, "r") : NULL;
+    if (mod_path && !f) { fprintf(stderr, "cannot read %s\n", mod_path); return ModFail(1); }
+    // Room for the longest line, a `data` line of FM1_MOD_DATA_MAX bytes.
+    static char buf[64 + 2 * FM1_MOD_DATA_MAX];
+    uint32_t &seed = mod_seed;
+    while (f && fgets(buf, sizeof(buf), f)) {
       const char *t = buf;
       uint64_t frame = 0;
+      if (!strchr(buf, '\n') && !feof(f)) {
+        fprintf(stderr, "%s: a line longer than %zu characters\n", mod_path, sizeof(buf) - 2);
+        fclose(f);
+        return ModFail(2);
+      }
       while (*t == ' ' || *t == '\t') ++t;
       if (*t == '@') {
         char *end = NULL;
@@ -1368,7 +1569,7 @@ int main(int argc, char **argv) {
       if (frame == 0) fm1_mod_script_seed(text.c_str(), &seed);
       md.lines.push_back(ModLine{ frame, text });
     }
-    fclose(f);
+    if (f) fclose(f);
     std::stable_sort(md.lines.begin(), md.lines.end(),
                      [](const ModLine &x, const ModLine &y) { return x.frame < y.frame; });
     if (posix_memalign(&md.mem, 16, fm1_mod_size()) != 0) {
@@ -1394,6 +1595,22 @@ int main(int argc, char **argv) {
         }
       }
     }
+    if (loaded.has_mod) {               // a loaded rack and matrix, before the script's lines
+      const fm1_engine_t *bound[FM1_MOD_SINKS];
+      for (unsigned i = 0; i < FM1_MOD_SINKS; ++i) bound[i] = ModUnitOf(i) ? ModUnitOf(i)->e : NULL;
+      fm1_state_names_t nm;
+      fm1_state_names_default(&nm);
+      fm1_state_report_t rep;
+      fm1_state_report_init(&rep);
+      fm1_state_mod_t apply;
+      fm1_state_mod_init(&apply, md.m, &nm, bound, &rep);
+      for (size_t i = 0; i < loaded.mod.size(); ++i) {
+        fm1_rec_t r = loaded.mod[i];
+        if (r.type == FM1_REC_DATA) r.u.data.b = reinterpret_cast<const uint8_t *>(loaded.mod_data[i].data());
+        fm1_state_mod_sink(&apply, &r);
+      }
+      if (rep.skipped) fprintf(stderr, "--load: %u of the modulation not applied: %s\n", rep.skipped, rep.first_skip);
+    }
     fm1_mod_glue_init(&md.glue, md.m, sound.e);
     md.glue.ctx = &md;
     md.glue.write = ModWrite;
@@ -1412,7 +1629,7 @@ int main(int argc, char **argv) {
     while (md.next_line < md.lines.size() && md.lines[md.next_line].frame <= upto) {
       char err[256];
       if (!fm1_mod_script_apply(md.m, md.lines[md.next_line].text.c_str(), mod_units, err, sizeof(err))) {
-        fprintf(stderr, "%s: %s\n", mod_path, err);
+        fprintf(stderr, "%s: %s\n", mod_path ? mod_path : "--load", err);
         return false;
       }
       ++md.next_line;
@@ -1431,6 +1648,7 @@ int main(int argc, char **argv) {
   if (use_mfx) {
     fm1_mfx_init(&mfx, static_cast<uint32_t>(lrintf(rate)));
     fm1_mfx_set_tempo(&mfx, static_cast<uint32_t>(lrintf(tempo * 100.0f)));
+    fm1_mfx_set_key(&mfx, static_cast<unsigned>(key_root), static_cast<unsigned>(key_scale));
     for (int k = 0; k < kSounds; ++k) {
       for (size_t j = 0; j < mfx_units[k].size(); ++j) {
         fm1_mfx_set(&mfx, unsigned(k), unsigned(j), fm1_midi_fx_of(mfx_units[k][j].e), mfx_units[k][j].self,
@@ -1446,6 +1664,51 @@ int main(int argc, char **argv) {
     if (mfx_log_path && !(mfx_log = fopen(mfx_log_path, "w"))) {
       fprintf(stderr, "cannot write %s\n", mfx_log_path);
       return 1;
+    }
+  }
+
+  // --save: the state the render starts from.
+  if (!save_specs.empty()) {
+    render_state::Have have;
+    for (int k = 0; k < kSounds; ++k) {
+      have.sound[k].e = units[k]->e;
+      have.sound[k].params = &units[k]->params;
+      have.sound[k].self = units[k]->self;
+      have.level[k] = level[k];
+      for (size_t j = 0; j < inserts[k].size(); ++j) {
+        render_state::UnitOut u;
+        u.e = inserts[k][j].e;
+        u.params = &inserts[k][j].params;
+        u.self = inserts[k][j].self;
+        have.inserts[k].push_back(u);
+      }
+      for (size_t j = 0; j < mfx_units[k].size(); ++j) {
+        render_state::UnitOut u;
+        u.e = mfx_units[k][j].e;
+        u.params = &mfx_units[k][j].params;
+        u.self = mfx_units[k][j].self;
+        u.on = mfx_start_on[k][j] != 0;
+        have.mfx[k].push_back(u);
+      }
+    }
+    for (size_t j = 0; j < fx.size(); ++j) {
+      render_state::UnitOut u;
+      u.e = fx[j].e;
+      u.params = &fx[j].params;
+      u.self = fx[j].self;
+      have.fx.push_back(u);
+    }
+    have.dx7 = loaded.dx7;
+    render_state::Sysex(sysex_paths, &have.dx7);
+    have.mod = md.m;
+    have.seed = mod_seed;
+    have.seq = use_seq ? sq.seq : NULL;
+    for (size_t i = 0; i < save_specs.size(); ++i) {
+      std::string err;
+      if (!render_state::Save(save_specs[i], have, &err)) {
+        fprintf(stderr, "--save %s: %s\n", save_specs[i].c_str(), err.c_str());
+        return 1;
+      }
     }
   }
 
@@ -1860,6 +2123,15 @@ int main(int argc, char **argv) {
            static_cast<unsigned>(st.voice_starts), static_cast<unsigned>(st.voice_steals),
            static_cast<unsigned>(st.voice_ends), static_cast<unsigned long long>(st.voice_writes));
     if (md.log) fclose(md.log);
+    if (mod_data_path) {             // the rack's pattern data as it ended, as `data` lines
+      FILE *df = fopen(mod_data_path, "w");
+      char line[16 + 2 * FM1_MOD_DATA_MAX];
+      for (unsigned p = 0; df && p < FM1_MOD_POSITIONS; ++p) {
+        if (fm1_mod_script_data_line(md.m, p, line, sizeof(line))) fprintf(df, "%s\n", line);
+      }
+      if (df) fclose(df);
+      else fprintf(stderr, "--save-mod-data: cannot write %s\n", mod_data_path);
+    }
     fm1_mod_destroy(md.m);
     free(md.mem);
   }

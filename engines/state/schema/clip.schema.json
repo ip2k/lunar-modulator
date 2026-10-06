@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ip2k.github.io/lunar-modulator/schema/1/clip.schema.json",
+  "title": "Lunar Modulator clip",
+  "description": "One clip as movy1 lines at track 0 and slot 0: the au lines of the lanes its locks use, then its cl, cp, lk and tg lines. Loaded into a track and slot the user picks; lanes match by label (notes/2026-10-06-state-files.md §10.2). Suggested file name: bass-a.clip.lunar.",
+  "type": "object",
+  "allOf": [{"$ref": "common.schema.json#/$defs/head"}],
+  "required": ["lunar", "kind", "clip"],
+  "properties": {
+    "kind": {"const": "clip"},
+    "clip": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 12,
+      "items": {
+        "allOf": [{"$ref": "common.schema.json#/$defs/movy1Line"}],
+        "pattern": "^(au 0 [0-7] |cl 0 0 |cp 0 0 |lk 0 0 |tg 0 0 )"
+      }
+    },
+    "view": {"$ref": "common.schema.json#/$defs/view"}
+  },
+  "unevaluatedProperties": false
+}
