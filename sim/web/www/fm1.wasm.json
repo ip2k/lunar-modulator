@@ -3,16 +3,17 @@
   "wasm_sha256": "a908a50aed55fcbdc159f71ca19b95ccbc47a6b08df0ca7c58ae51a2419fa6ae",
   "wasm_bytes": 816958,
   "sources_sha256": {
-    "engines": "16883af575ff551f643ae1578393048db423f1580f26ee0f0190f6f284f83ae2",
+    "engines": "e82e69052cb1d7947da85b564ce9c761d4a50b55413f34cf54f2d999b1f5fe02",
     "sim": "254cccdfc6e6199fbd72fc488dc26968f9515ee72509fe2d849ffd9ba0de560b"
   },
   "engines": "working tree",
-  "built": "2026-10-06T02:34:23Z",
+  "built": "2026-10-06T03:11:08Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
     "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
-    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
+    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
   ],
   "imports": [],
   "parity": {
