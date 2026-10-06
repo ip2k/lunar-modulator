@@ -138,7 +138,7 @@ printed under its table in chapters [5](05-sound-engines.md) and
   Thing Modular), **Chris Johnson**'s card 20 and **Phazerville**'s
   Turing code (**Patrick Dowling**). Divide, Burst, Compare, Logic, Calc,
   Slew and Mix follow Phazerville's applets (**Jason Justian** and
-  others), and Filter **Andrew Simper**'s (Cytomic) state-variable filter.
+  others), and the Resonator **Andrew Simper**'s (Cytomic) state-variable filter.
   No code is taken from any of them but the three ports above.
 - Some modules follow only the published behaviour of other instruments,
   whose makers' names appear here only as credit: Function after Make

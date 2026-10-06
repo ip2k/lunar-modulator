@@ -1437,18 +1437,20 @@ static int depth(chain_t *c, int dir, int pos) {
 
 static void cable_text(chain_t *c, unsigned j, char *out) {
   const fm1_mod_slot_t *s = &c->s[j];
+  fm1_mod_ui_env_t scratch;
+  const fm1_mod_ui_env_t *env = aimed_env(c->env, c->u, j, s, &scratch);   /* a gone target's name */
   fm1_mod_dest_t d;
   char amt[16], dst[32] = "?";
   snprintf(amt, sizeof amt, "%+d", fm1_mod_ui_pct(s->amount));
-  if (fm1_mod_ui_slot_dest(c->env, s, &d)) {
+  if (fm1_mod_ui_slot_dest(env, s, &d)) {
     if (d.unit >= FM1_MOD_MODULE && d.unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS) {
-      const fm1_mod_kind_t *kd = kind_at(c->env->m, d.unit - FM1_MOD_MODULE);
-      const fm1_param_t *p = fm1_mod_ui_dest_param(c->env, &d);
+      const fm1_mod_kind_t *kd = kind_at(env->m, d.unit - FM1_MOD_MODULE);
+      const fm1_param_t *p = fm1_mod_ui_dest_param(env, &d);
       char l[8];
-      fm1_mod_ui_label(c->env->m, d.unit - FM1_MOD_MODULE, l, sizeof l);
+      fm1_mod_ui_label(env->m, d.unit - FM1_MOD_MODULE, l, sizeof l);
       snprintf(dst, sizeof dst, "%s %.6s", l, d.gate ? kd->gate_in[d.index].name : p->abbr);
     } else {                           /* "S1 Timbre", "S2 In1 Mix", "M1 Mix", "Host Pitch" */
-      const fm1_param_t *p = fm1_mod_ui_dest_param(c->env, &d);
+      const fm1_param_t *p = fm1_mod_ui_dest_param(env, &d);
       snprintf(dst, sizeof dst, "%s %.6s", kSinks[sink_group(d.unit)].name, p->abbr);
     }
   }

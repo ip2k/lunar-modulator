@@ -456,18 +456,22 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     picker; CHAIN through each slot; MATRIX over racks of all sixteen kinds
     and over cables into every sound unit, insert and master slot, the
     target picker from Sound 2, with every short name checked unique; and
-    the LEDs and the buttons that leave the pages."""
+    the LEDs and the buttons that leave the pages. Per voice (MG9): RACK's
+    `vN` with a chord held, MATRIX's per-voice and refused rows and every
+    state's hint, one sound's note sources and the per-sound pitches, and
+    a cable an engine change switched off under its old name."""
     res = subprocess.run([str(tools["sim"]), "--screens", str(tmp_path)],
                          capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 2338            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["screens"] >= 2712            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
     #                                              1321 before the master-bus pack (1458), 2189 with modulation
     #                                              (docs/16 MG3) before Room, Hall, Gate and Plate's Freeze, 2325
     #                                              with them and 2366 with Comb and Test Ext (engine API v3), in
-    #                                              the lab switch's two sets of screens
+    #                                              the lab switch's two sets of screens; 2712 with per-voice
+    #                                              modulation (MG9) and every engine since
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 
