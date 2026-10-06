@@ -260,7 +260,6 @@ static int open_chunk(bin_writer_t *w, unsigned ch) {
 
 static int flush_line(bin_writer_t *w) {
   size_t n;
-  if (w->cn + 3u + w->line_n > kCap[w->cur]) return berr(w, FM1_STATE_TOO_BIG, "a set past its cap");
   n = fm1_movy1_encode(w->line, w->line_n, w->chunk + w->cn, sizeof(w->chunk) - w->cn);
   if (!n) return berr(w, FM1_STATE_TOO_BIG, "a set past its cap");
   w->cn += n;
@@ -846,6 +845,7 @@ static int read_unit(br_t *b, cs_t *c) {
   r.u.unit.id[h[4]] = '\0';
   if (!id_ok(r.u.unit.id, h[4])) return bbad(b, "not an engine id");
   if (b->kind == FM1_STATE_PROJECT && ix == 0 && h[4] == 0) return bbad(b, "Sound 1 is never empty");
+  if (b->kind == FM1_STATE_SOUND && ix == 0 && h[4] == 0) return bbad(b, "a sound file's sound is never empty");
   ++b->rep->units;
   if (!bemit(b, &r)) return 0;
   if (h[3] & 2u) {

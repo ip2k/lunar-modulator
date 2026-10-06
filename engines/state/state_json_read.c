@@ -651,7 +651,7 @@ static int param_value(fm1_state_json_reader_t *r, fm1_state_frame_t *f, const f
   rec.u.param.focus = f->ctx == C_PAD ? f->index : (uint8_t)FM1_FOCUS_NONE;
   if (!p) {
     float v;
-    if (ev->type != FM1_JSON_NUM) {
+    if (ev->type == FM1_JSON_STR) {
       skipped(r, "a value by name for a parameter this build cannot name");
       return 1;
     }
@@ -1643,9 +1643,8 @@ int fm1_state_json_end(fm1_state_json_reader_t *r) {
   if (r->stop) return 0;
   if (!fm1_json_end(&r->tok)) {
     if (r->stop) return 0;
-    if (r->top < 2 && r->tok.depth == 0 && !r->tok.done) {
-      return refuse(r, r->tok.offset ? FM1_STATE_BAD : FM1_STATE_NOT_LUNAR,
-                    r->tok.offset ? "the file ends early" : "an empty file");
+    if (r->top < 2 && r->tok.depth == 0 && !r->tok.done && r->frame[0].ctx == C_NONE) {
+      return refuse(r, FM1_STATE_NOT_LUNAR, "an empty file, or no JSON object");
     }
     return tok_fail(r);
   }

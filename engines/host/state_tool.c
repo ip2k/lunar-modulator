@@ -21,6 +21,8 @@
  *       the canonical JSON of both, line by line
  *   fm1-state json-check FILE
  *       the tokenizer alone (the JSONTestSuite run): exit 0 if it accepts
+ *   fm1-state names
+ *       the build's names, ranges and defaults, exact, for tools/lunar_state.py
  *   fm1-state num
  *       number tests, a line each on stdin: "f TEXT" (decimal to float32,
  *       fast and exact paths), "t BITS" (float32 to text), "q TEXT" (percent
@@ -529,6 +531,99 @@ static int num_tests(void) {
   return 0;
 }
 
+
+/* ---- names: the tables a JSON file resolves against, exact ------------------
+ * What tools/lunar_state.py (P1) reads to name and clamp values the way the
+ * C reader does: every engine, MIDI effect and modulation kind with each
+ * parameter's uid, name, abbreviation, range and default as canonical
+ * float32 text, its entries and its pad role. SEAM(E2): fm1-render --meta,
+ * the metadata export, replaces it for P1 once it lands. */
+static void names_params(const fm1_param_t *p, unsigned n, const fm1_engine_t *e) {
+  unsigned i;
+  int k;
+  char t[24];
+  printf("[");
+  for (i = 0; i < n; ++i) {
+    printf(i ? ",{" : "{");
+    printf("\"uid\":%u,\"name\":", p[i].uid);
+    json_text(stdout, p[i].name);
+    printf(",\"abbr\":");
+    json_text(stdout, p[i].abbr ? p[i].abbr : "");
+    printf(",\"type\":\"%s\"", p[i].type == FM1_PARAM_ENUM ? "enum" : "float");
+    fm1_num_f32_text(fm1_num_bits(p[i].min), t);
+    printf(",\"min\":\"%s\"", t);
+    fm1_num_f32_text(fm1_num_bits(p[i].max), t);
+    printf(",\"max\":\"%s\"", t);
+    fm1_num_f32_text(fm1_num_bits(p[i].def), t);
+    printf(",\"def\":\"%s\",\"focus\":%d", t, e ? fm1_state_param_focus(e, i) : 0);
+    if (p[i].type == FM1_PARAM_ENUM && p[i].enum_names) {
+      printf(",\"entries\":[");
+      for (k = 0; k <= (int)(p[i].max - p[i].min); ++k) {
+        if (k) printf(",");
+        json_text(stdout, p[i].enum_names[k]);
+      }
+      printf("]");
+    }
+    printf("}");
+  }
+  printf("]");
+}
+
+static void names_ports(const fm1_port_t *p, unsigned n) {
+  unsigned i;
+  printf("[");
+  for (i = 0; i < n; ++i) {
+    if (i) printf(",");
+    json_text(stdout, p[i].name);
+  }
+  printf("]");
+}
+
+static int names_dump(const fm1_state_names_t *nm) {
+  size_t i;
+  unsigned id;
+  int first = 1;
+  printf("{\"engines\":[");
+  for (i = 0; i < nm->n_engines + nm->n_mfx; ++i) {
+    const fm1_engine_t *e = i < nm->n_engines ? nm->engines[i] : &nm->mfx[i - nm->n_engines]->engine;
+    printf(i ? ",{" : "{");
+    printf("\"id\":");
+    json_text(stdout, e->id);
+    printf(",\"role\":\"%s\",\"pads\":%u,\"params\":",
+           e->kind == FM1_KIND_SOUND ? "sound" : (e->kind == FM1_KIND_AUDIO_FX ? "fx" : "mfx"), e->pad_count);
+    names_params(e->params, e->n_params, e);
+    printf("}");
+  }
+  printf("],\"kinds\":[");
+  for (i = 0; i < nm->n_kinds; ++i) {
+    const fm1_mod_kind_t *k = nm->kinds[i];
+    printf(i ? ",{" : "{");
+    printf("\"id\":");
+    json_text(stdout, k->id);
+    printf(",\"params\":");
+    names_params(k->params, k->n_params, NULL);
+    printf(",\"outs\":");
+    names_ports(k->out, k->n_out);
+    printf(",\"gates\":");
+    names_ports(k->gate_in, k->n_gate_in);
+    printf("}");
+  }
+  printf("],\"sources\":[");
+  for (id = 0; id < 64u; ++id) {
+    const fm1_mod_source_info_t *si = nm->source ? nm->source(id) : NULL;
+    if (!si) continue;
+    printf(first ? "{" : ",{");
+    first = 0;
+    printf("\"id\":%u,\"name\":", id);
+    json_text(stdout, si->name);
+    printf("}");
+  }
+  printf("],\"host\":");
+  names_params(nm->host, nm->n_host, NULL);
+  printf("}\n");
+  return 0;
+}
+
 static int nop_cb(void *ctx, const fm1_json_ev_t *ev) {
   (void)ctx;
   (void)ev;
@@ -545,6 +640,7 @@ static void usage(void) {
           "       fm1-state check FILE [--rate HZ]\n"
           "       fm1-state diff A B\n"
           "       fm1-state json-check FILE\n"
+          "       fm1-state names\n"
           "       fm1-state num < LINES\n");
 }
 
@@ -572,6 +668,10 @@ int main(int argc, char **argv) {
     else { usage(); return 2; }
   }
   if (strcmp(cmd, "num") == 0) return num_tests();
+  if (strcmp(cmd, "names") == 0) {
+    fm1_state_names_default(&nm);
+    return names_dump(&nm);
+  }
   if (!file) { usage(); return 2; }
   fm1_state_names_default(&nm);
   fm1_state_report_init(&rep);
