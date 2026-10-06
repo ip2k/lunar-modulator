@@ -8,7 +8,7 @@ This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
 state of `main` after the PRs merged up to #78 (2026-09-29 to 2026-10-06,
-`4f2e4d3`).
+`9eb4406`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -102,13 +102,13 @@ so it is always written in full.
   written through mask ROM [reported]. Their code maps the board (docs/01
   §3.1, [reported]): audio is ALNK0 (I2S) to an external codec, not the
   internal DAC, and the seven encoders are scanned in the key matrix.
-- **Tests:** 4,247 collected; 4,236 pass, 2 xfail (both undo, not ported
+- **Tests:** 4,294 collected; 4,283 pass, 2 xfail (both undo, not ported
   yet) and 9 skip where a local reference clone, an unpacked stock package
   or the manual's `markdown` module is missing [verified: `pytest` at
-  `4f2e4d3` with this file, 2026-10-06]. By group: 3,013 engine tests (496
+  `9eb4406` with this file, 2026-10-06]. By group: 3,054 engine tests (496
   of them comparing against upstream reference renders and their controls,
-  209 for the arpeggiator and the MIDI-effect host, 164 for modulation), 557
-  for the sequencer core, 532 for the virtual FM-1 and its sequencer UI, 79
+  250 for the arpeggiator and the MIDI-effect host, 164 for modulation), 558
+  for the sequencer core, 537 for the virtual FM-1 and its sequencer UI, 79
   for the tools, the dongle, the SDK link audit, the package guard and the
   boot bridge, and 66 for the manual and its diagrams. CI runs the suite on
   Linux and macOS, runs the engine, sequencer and simulator tests again as a
@@ -136,10 +136,6 @@ so it is always written in full.
   - The cloud session's stray branch `claude/mvave-fm1-open-firmware-ly2w6u`
     on `ip2k/busybar-dual-timer` was deleted on 2026-09-06.
 - **Open pull requests** at 2026-10-06:
-  - #76, arpeggiator follow-ups: on the beat, Stop by origin, the project
-    key.
-  - #77, the advanced editor's design: an inspector with a patch-bay map,
-    six mockups and the owner's decisions.
   - #79, engine follow-ups: glide modes, Drums' choke and Kit Decay, driven
     idle paths, Mu's partial makeup.
   - #58, the lagging docs that this refresh listed, fixed (§5 item 8);
@@ -154,7 +150,7 @@ so it is always written in full.
 | --- | --- | --- |
 | `DEVELOPERS.md` | The technical home: getting started, how the software works, the hardware, where development stands, the roadmap in detail, the path to an installable build (I0–I15), research to do, contributing | its contents list |
 | `docs/01`–`16` | Hardware, stock firmware, update protocol, prior art, feasibility, Movy and Schwung, recovery and risk, roadmap, first-session checklist, the `USB_KEY` dongle, the plugin platform, the sequencer, the Movy port plan, the verification ladder, the sequencer in the simulator (S1–S10, owner decisions O1–O24), modulation (MG0–MG9) | DEVELOPERS.md "Documents" |
-| `notes/` | Bench session 1 and the research log (2026-09-06), the desk review (09-08), FM-1+VA and the PCB photos (09-29), the CHOMPI, monome/O&C and arp/modulation/effects studies (10-01), the delay/reverb/EQ/gates and filters/dynamics options and the JieLi compile check (10-02), the community firmware and current SDK study and the soft-key/eFuse study with its draft test plan (10-05), the UI audit of the FM-1 screen with mockups in `assets/ui-audit/` (10-06), `upstream-candidates.md` | |
+| `notes/` | Bench session 1 and the research log (2026-09-06), the desk review (09-08), FM-1+VA and the PCB photos (09-29), the CHOMPI, monome/O&C and arp/modulation/effects studies (10-01), the delay/reverb/EQ/gates and filters/dynamics options and the JieLi compile check (10-02), the community firmware and current SDK study and the soft-key/eFuse study with its draft test plan (10-05), the UI audit of the FM-1 screen with mockups in `assets/ui-audit/` and the advanced editor's design with the owner's decisions and mockups in `assets/web-editor/` (10-06), `upstream-candidates.md` | |
 | `engines/` | The engine platform: a C API with no heap (v3 since #57), seven sound engines (Drums since #59, FM6 on msfa since #60) and 22 effects (Squash and Transient since #66) plus test entries, the Schwung shim, the desktop renderer `fm1-render`, reference renderers | `engines/README.md` |
 | `engines/seq/` | `fm1_seq`, the sequencer core (docs/13 M1), and the host bridge that `fm1-render` and the simulator share (#25): about 6,000 lines of C99 | `engines/seq.md` |
 | `engines/mod/`, `engines/midi_fx/` | The modulation runtime: a rack of modules inside a 32-slot matrix, 16 kinds, per-voice since MG9 (MG1–MG3, MG9); `fm1_arp`, the arpeggiator, the first MIDI effect: up to four run in front of each sound, and the ARP button opens it (#69) | `engines/mod/README.md`, docs/16; `engines/midi_fx/README.md` |
@@ -320,6 +316,8 @@ so it is always written in full.
     white keys with LOOP; sets in the browser and as `.movy1`; MIDI clock
     in; MIDI out opt-in); undo waits for the firmware's ring (M4); four
     MIDI-effect slots per track.
+  - The advanced editor's design and its decisions (2026-10-06) are in
+    `notes/2026-10-06-web-editor.md`.
 - Never commit vendor firmware or the JieLi toolchain. `.gitignore` blocks
   `.fwsc`, `.bin` and the vendor folders, but not a `uboot.boot` or a
   `.dmg`, so look before adding files.
@@ -390,12 +388,13 @@ and Master Sat (#70), the arpeggiator on the ARP button (#69) and Shapes
 held inside what Braids' code handles (#71), glide and the Poly, Mono and
 Legato voice modes (#72), the manual's diagrams (#73) and the screen on the
 UI audit's colour map with Spleen faces (#75) and its polish (#78), and the
-first dead-code audit (#74) (10-01 to 10-06). The CHANGELOG has the detail.
+first dead-code audit (#74), the arpeggiator's follow-ups (#76) and the
+advanced editor's design (#77) (10-01 to 10-06). The CHANGELOG has the
+detail.
 
 Now, roughly in order:
 
-1. **Open PRs** (§1): #58 (docs), #76 (arpeggiator follow-ups), #77 (the
-   advanced editor's design) and #79 (engine follow-ups) wait for the
+1. **Open PRs** (§1): #58 (docs) and #79 (engine follow-ups) wait for the
    owner; Echomatter's offer on #1 needs an answer.
 2. **ip2k/lunar-modulator#2**, if the owner chooses to answer it from the
    draft; and issue #53 (iOS Safari).
