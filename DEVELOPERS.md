@@ -36,6 +36,7 @@ GitHub's documentation on renaming a repository].
   - [The engine platform](#the-engine-platform)
   - [Renders checked against the reference, sample by sample](#renders-checked-against-the-reference-sample-by-sample)
   - [The sequencer core](#the-sequencer-core)
+  - [Saved state](#saved-state)
   - [The virtual FM-1](#the-virtual-fm-1)
 - [The hardware](#the-hardware)
   - [The FM-1 at a glance](#the-fm-1-at-a-glance)
@@ -104,6 +105,7 @@ python3 reference/jl-misctools/firmware/fwunpack_newfw.py FM-1.fwsc     # unpack
 python tools/fm1_identify.py                                   # read-only identity query + decode, any OS (verified on hardware)
 python -m pytest                                               # tools, PIO emulation, dongle/ROM co-simulation and engine tests
 make -C engines && engines/build/fm1-render --list             # engine platform, desktop build (docs/11, engines/README.md)
+engines/build/fm1-state canon FILE                             # saved state: canonical JSON, pack/unpack binary, check (engines/state/README.md)
 python3 -m http.server 8000 -d sim/web/www                     # the virtual FM-1 at http://localhost:8000/ (sim/web/README.md)
 FM1_SIM_HOST=user@host sim/web/build-on-aeon.sh                # rebuild and check its WebAssembly module in containers on a Docker host
 tools/fm1_identify.sh                                          # Linux, ALSA raw MIDI, read-only, untested
@@ -282,6 +284,23 @@ play the same notes, byte for byte, at any block size [verified:
 scenarios] ([`engines/midi_fx/README.md`](engines/midi_fx/README.md),
 [`sim/web/README.md`](sim/web/README.md), "The arpeggiator"; manual
 chapter 4, "Arpeggiator").
+
+### Saved state
+
+Projects, sounds, effects chains, mod racks, clips and settings are one
+record model with two encodings: canonical JSON for people, links, git and
+the coming web editor, and a chunked binary container (CRC-32 a chunk,
+deflate in a 4 KiB window) for the device. `engines/state/` reads JSON in
+pieces of any size with 1.4 KB of state and no malloc, so the firmware can
+link it, writes canonical JSON, and converts losslessly both ways;
+`tools/lunar_state.py` does the same independently, and the two agree byte
+for byte [verified: `tests/test_state_codec.py`]. `fm1-render` and `fm1-seq`
+load and save every kind (`--load`, `--save`), and a loaded file renders
+byte for byte as the same state given as flags does [verified:
+`tests/test_state_render.py`]. The simulator's Open, Save and launch links
+are the next stages ([`engines/state/README.md`](engines/state/README.md);
+the design and its decisions:
+[`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md)).
 
 ### The virtual FM-1
 

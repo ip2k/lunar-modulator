@@ -9,13 +9,29 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Saving and loading on the desktop.** Projects, sounds, effects
+  chains, mod racks, sets and clips now load into the desktop renderer and
+  sequencer and save back out, as the readable JSON files or as the compact
+  binary form the device will use (`fm1-render --load` and `--save`,
+  `fm1-seq --load` and `--save`, and the new `fm1-state`, which converts
+  between the two, checks a file and puts a hand-edited one back into
+  canonical form). A file that needs more memory than the FM-1 has, or an
+  engine this build lacks, is refused with the reason, as the device will
+  refuse it. The simulator's Open, Save and "Launch in the simulator" links
+  come in later stages.
+  - For contributors: `engines/state/` holds one record model with a
+    streaming JSON reader small enough for the firmware, the canonical JSON
+    writer and the binary container (CRC-32 a chunk, deflate in a 4 KiB
+    window), all C99 without heap, stdio or libm; `tools/lunar_state.py`
+    reads and writes both encodings independently, and the tests hold the
+    two to the same records and bytes, golden files of format level 1.0 in
+    `tests/fixtures/state/`, and a fuzz target's invariants, run for eight
+    million mutations under ASan and UBSan and under libFuzzer.
 - **The saved-state file format, designed.** JSON Schemas (draft 2020-12)
   for every kind of file the simulator and the guide will use (project,
   sound, effects chain, mod rack, clip, settings) and for the export of
   every parameter's names, ranges and units that a browser editor will
   build its controls from, with an example of each, in `engines/state/`.
-  Nothing reads or writes these files yet: Open, Save and "Launch in the
-  simulator" links come in later stages.
 - **Diagrams in the manual.** Eight drawings, in the manual's colours, where
   the text explains how things connect: where the arpeggiator sits in the
   note path (chapter 4); the whole signal flow from the keys, MIDI IN and
