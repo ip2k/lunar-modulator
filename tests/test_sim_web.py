@@ -1,6 +1,7 @@
 """The virtual FM-1 (sim/web): its app layer renders what fm1-render renders,
 sequencer scripts included, every screen passes the layout check, the panel
-follows the M-VAVE manual, and the page is self-contained.
+follows the M-VAVE manual, the page is self-contained, and FM6's user bank
+loads DX7 patches from .syx files, refusing what is not one.
 
 The WebAssembly side is built and compared on aeon by sim/web/build-on-aeon.sh
 (test/parity.mjs); its results are recorded in sim/web/www/fm1.wasm.json,
@@ -56,6 +57,8 @@ def scenario_args(s):
     args += ["--engine", s["engine"]]
     if "cmd" in s:
         args += ["--cmd", str(SIM / "test" / s["cmd"])]
+    if "sysex" in s:
+        args += ["--sysex", str(SIM / "test" / s["sysex"])]
     for p in s.get("params", []):
         args += ["--param", p]
     for n in s.get("notes", []):
@@ -642,6 +645,166 @@ def test_emptying_a_slot_returns_to_its_one_page(tools):
     assert (s["fx_slot"], s["fx_page"]) == (4, 0)
 
 
+# ------------------------------------------------- FM6's user bank (DX7) --
+#
+# The page's "Load DX7 patches" (app.js, worklet.js, fm1w_dx7_load) runs
+# fm1_app_dx7_load and fm1_app_dx7_play, which the harness runs natively
+# with --sysex and --sysex-play: the same C code, checked here on the Mac;
+# test/sysex.mjs checks the module's export itself on aeon, recorded in
+# fm1.wasm.json. The files are this repository's own (tools/dx7_bank.py
+# --test-bank), or edits of them.
+
+DX7 = SIM / "test" / "dx7"
+VCED = 163
+
+
+def test_dx7_test_files_are_what_the_tool_makes():
+    """The original test bank: 32 voices of our own, LUNAR 01 to 32, as one
+    bank dump and as 32 single-voice dumps; never Yamaha's."""
+    subprocess.run([sys.executable, str(ROOT / "tools" / "dx7_bank.py"), "--test-bank", "--check"], check=True)
+
+
+def dx7_run(tools, tmp_path, files, *extra, engine="dx7"):
+    args = ["--seconds", "0.2", "--out", str(tmp_path / "x.wav")]
+    if engine:
+        args += ["--engine", engine]
+    for k, data in enumerate(files):
+        flag = "--sysex"
+        if isinstance(data, tuple):
+            flag, data = data
+        path = tmp_path / f"f{k}.syx"
+        path.write_bytes(data)
+        args += [flag, str(path)]
+    return run(tools["sim"], args + list(extra))
+
+
+def lunar(k):
+    return f"LUNAR {k + 1:02d}"
+
+
+def bank():
+    return (DX7 / "lunar-test-bank.syx").read_bytes()
+
+
+def single(k):
+    return (DX7 / "lunar-test-voices.syx").read_bytes()[k * VCED:(k + 1) * VCED]
+
+
+def test_a_bank_fills_the_user_slots_with_their_names(tools, tmp_path):
+    s = dx7_run(tools, tmp_path, [bank()])
+    f = s["dx7"]["files"][0]
+    assert (f["result"], f["voices"], f["first_slot"], f["messages"], f["bad_checksums"], f["raw"]) == \
+        (32, 32, 0, 1, 0, 0)
+    assert s["dx7"]["names"] == [lunar(k) for k in range(32)]
+    assert s["popup"] == ["Loaded 32 voices", "User 1-32", "LUNAR 01"]
+
+
+def test_turning_algorithm_names_the_loaded_voice(tools, tmp_path):
+    """The Patch list shows the loaded voices' names: ALGORITHM from User 9
+    to User 10 puts up LUNAR 10."""
+    s = dx7_run(tools, tmp_path, [bank()], "--param", "Patch=40", "--turn", "0.05:ALGORITHM:1")
+    assert s["popup"] == ["Patch", "LUNAR 10"]
+    assert s["values0"][0] == 41
+
+
+@pytest.mark.parametrize("case", ["empty", "text", "foreign", "cut-short", "short-dump", "count",
+                                  "too-big"])
+def test_what_is_not_a_dx7_dump_loads_nothing_and_says_why(tools, tmp_path, case):
+    """Each refusal is counted where the page can name it, and the bank,
+    loaded before, stays as it was."""
+    files = {
+        "empty": b"",
+        "text": b"LUNAR MODULATOR, not a patch\n" * 4,
+        "foreign": bytes([0xF0, 0x7E, 0x7F, 0x06, 0x01, 0xF7]),
+        "cut-short": bank()[:3000],
+        "short-dump": single(0)[:100] + single(0)[101:],
+        "count": single(0)[:5] + bytes([0x1A]) + single(0)[6:],
+        "too-big": single(0) * 403,
+    }
+    s = dx7_run(tools, tmp_path, [bank(), files[case]])
+    f = s["dx7"]["files"][1]
+    want = {"empty": (0, 0, 0, 0, 0), "text": (0, 0, 0, 0, 116), "foreign": (0, 1, 0, 0, 0),
+            "cut-short": (0, 0, 1, 0, 0), "short-dump": (0, 0, 0, 1, 0), "count": (0, 0, 0, 1, 0),
+            "too-big": (-1, 0, 0, 0, 0)}[case]
+    assert (f["result"], f["foreign"], f["truncated"], f["wrong_size"], f["outside"]) == want
+    assert f["voices"] == 0
+    assert s["dx7"]["names"] == [lunar(k) for k in range(32)]
+    assert s["popup"] == ["No DX7 voices", "file too large" if case == "too-big" else "in that file"]
+
+
+def test_a_wrong_checksum_loads_and_is_counted(tools, tmp_path):
+    """As the keyboards' editors do (engines/msfa.md): stored all the same;
+    the page says the file may be damaged."""
+    v = bytearray(single(6))
+    v[161] ^= 1
+    s = dx7_run(tools, tmp_path, [bytes(v)])
+    f = s["dx7"]["files"][0]
+    assert (f["result"], f["bad_checksums"]) == (1, 1) and s["dx7"]["names"][0] == lunar(6)
+
+
+def test_single_voices_follow_each_other_and_a_bank_starts_again(tools, tmp_path):
+    s = dx7_run(tools, tmp_path, [single(4), single(9), bank(), single(2), bank()[6:6 + 4096]])
+    firsts = [f["first_slot"] for f in s["dx7"]["files"]]
+    assert firsts == [0, 1, 0, 0, 0]
+    assert s["dx7"]["files"][4]["raw"] == 1
+    s = dx7_run(tools, tmp_path, [single(4), single(9), bank(), single(2)])
+    assert s["dx7"]["names"][:3] == [lunar(2), lunar(1), lunar(2)]
+    assert s["dx7"]["next"] == 1
+
+
+def test_several_dumps_and_other_messages_in_one_file(tools, tmp_path):
+    data = single(3) + bytes([0xF0, 0x7E, 0x00, 0x06, 0x01, 0xF7]) + single(8) + b"xy" + single(5)[:50]
+    f = dx7_run(tools, tmp_path, [data])["dx7"]["files"][0]
+    assert (f["result"], f["messages"], f["foreign"], f["truncated"], f["outside"]) == (2, 2, 1, 1, 2)
+
+
+def test_the_app_plays_the_bank_as_fm1_render_does(tools, tmp_path):
+    """User 2, 7 and 32 of the test bank, through the app's bank and
+    through fm1-render --sysex: the same samples (also a parity scenario,
+    dx7-user-bank, against the browser's module)."""
+    args = ["--engine", "dx7", "--sysex", str(DX7 / "lunar-test-bank.syx"), "--param", "Patch=33",
+            "--param-at", "0.3:Patch=38", "--param-at", "0.6:Patch=63", "--note", "0:60:100:0.25",
+            "--note", "0.3:64:100:0.25", "--note", "0.6:67:110:0.3", "--seconds", "1.0"]
+    a, b = tmp_path / "app.wav", tmp_path / "render.wav"
+    s = run(tools["sim"], args + ["--out", str(a)])
+    subprocess.run([str(tools["render"]), *args, "--out", str(b)], check=True, capture_output=True)
+    assert a.read_bytes() == b.read_bytes() and s["peak"] > 0.01
+
+
+def test_load_and_play_makes_the_current_sound_fm6(tools, tmp_path):
+    """What the page does after a load (fm1_app_dx7_play): Macro gives way
+    to FM6 on the first voice loaded, and it sounds."""
+    s = dx7_run(tools, tmp_path, [single(0), ("--sysex-play", single(11) + single(12))],
+                "--note", "0.02:60:110:0.15", engine="macro")
+    assert s["engine"] == "dx7" and s["values0"][0] == 33 and s["peak"] > 0.01
+    assert s["dx7"]["files"][1]["played"] == 0 and s["dx7"]["names"][1] == lunar(11)
+
+
+def test_an_fm6_made_after_a_load_plays_the_bank(tools, tmp_path):
+    """The bank stands for voices kept in flash: a sound that becomes FM6
+    later gets them when it is created."""
+    path = DX7 / "lunar-test-bank.syx"
+    later = run(tools["sim"], ["--engine", "macro", "--sysex", str(path), "--select", "0:0:dx7",
+                               "--turn", "0.01:ALGORITHM:52", "--note", "0.05:60:100:0.2",
+                               "--seconds", "0.4", "--out", str(tmp_path / "a.wav")])
+    first = run(tools["sim"], ["--engine", "dx7", "--sysex", str(path), "--turn", "0.01:ALGORITHM:52",
+                               "--note", "0.05:60:100:0.2", "--seconds", "0.4", "--out", str(tmp_path / "b.wav")])
+    assert later["engine"] == "dx7" and later["values0"][0] == 52 and later["peak"] > 0.01
+    assert later["popup"] == ["Patch", "LUNAR 21"]
+    assert (tmp_path / "a.wav").read_bytes() == (tmp_path / "b.wav").read_bytes()
+    assert first["peak"] == later["peak"]
+
+
+def test_the_modules_sysex_export_passed_its_checks():
+    """build.sh runs test/sysex.mjs on the module it records: every case of
+    the export (loads, refusals and their reasons, play, the voices'
+    samples) passed."""
+    record = json.loads((SIM / "www" / "fm1.wasm.json").read_text(encoding="utf-8"))
+    sysex = record["dx7_sysex"]
+    assert sysex["failed"] == 0 and sysex["passed"] >= 18
+    assert all(c["pass"] for c in sysex["cases"])
+
+
 def test_a_sound_that_refuses_the_rate_is_stepped_over(tools):
     """Above 47,872 Hz the Plaits-based sounds (Macro, Macro Heavy, Six-Op)
     refuse the host. PRESETS steps over them and says why; a refused load
@@ -732,7 +895,7 @@ def test_the_staleness_gate_covers_what_the_module_links():
         sys.path.pop(0)
     hashed = {p.relative_to(ROOT).as_posix() for p in sim_files(ROOT)}
     for s in SCENARIOS:
-        for key in ("cmd", "panel", "mod"):
+        for key in ("cmd", "panel", "mod", "sysex"):
             if key in s:
                 assert f"sim/web/test/{s[key]}" in hashed, s["name"]
     want = [p.relative_to(ROOT).as_posix() for p in (ENGINES / "seq").glob("*.[ch]")]

@@ -6,6 +6,7 @@ here and written into engines/src/dx7_bank.h as a packed (VMEM) bank.
     python3 tools/dx7_bank.py --check         # exit 1 if the header is stale
     python3 tools/dx7_bank.py --syx FILE.syx  # the bank as a 32-voice SysEx dump
     python3 tools/dx7_bank.py --list          # number, name, algorithm
+    python3 tools/dx7_bank.py --test-bank     # rewrite the simulator's test files
 
 Every voice is written from scratch from textbook FM recipes (Chowning's
 brass and bells, 1:1 and 1:2 stacks, a 14:1 tine, drawbar ratios on
@@ -35,6 +36,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = ROOT / "engines" / "src" / "dx7_bank.h"
 USER_SLOTS = 32
+# The simulator's "Load DX7 patches" tests (sim/web/test/dx7/README.md): the
+# test bank as one 32-voice dump, and the same voices as 32 single-voice
+# dumps in one file.
+TEST_DIR = ROOT / "sim" / "web" / "test" / "dx7"
+TEST_BANK = TEST_DIR / "lunar-test-bank.syx"
+TEST_VOICES = TEST_DIR / "lunar-test-voices.syx"
 
 
 @dataclass
@@ -490,6 +497,21 @@ def bank() -> list[Voice]:
 
 # ---------------------------------------------------------------- output --
 
+def test_bank() -> list[Voice]:
+    """32 plain test voices of our own, LUNAR 01 to LUNAR 32: voice k on
+    algorithm k with feedback k mod 8, all six operators sounding at mixed
+    ratios and levels, a held envelope and a release, no LFO depth (so a
+    voice sounds the same whenever it starts). Only for tests: they are
+    meant to be told apart by name and algorithm, not played."""
+    ratios = (1.0, 2.0, 1.0, 3.0, 0.5, 1.0)
+    voices = []
+    for k in range(1, 33):
+        ops = [Op(level=88 - 3 * ((i + k) % 4), ratio=ratios[(i + k) % 6], detune=7 + (i + k) % 3 - 1,
+                  rates=(95, 50, 35, 60), levels=(99, 90, 80, 0)) for i in range(6)]
+        voices.append(Voice(f"LUNAR {k:02d}", k, ops, feedback=k % 8))
+    return voices
+
+
 def header(voices: list[Voice]) -> str:
     names = [x.name.rstrip() for x in voices]
     assert len(set(names)) == len(names), "names must be unique"
@@ -544,7 +566,20 @@ def main() -> int:
     ap.add_argument("--check", action="store_true", help="exit 1 if the header is stale")
     ap.add_argument("--syx", type=Path, help="write the bank as a VMEM SysEx dump")
     ap.add_argument("--list", action="store_true", help="list the voices")
+    ap.add_argument("--test-bank", action="store_true",
+                    help="write the simulator's test files (with --check: compare them)")
     a = ap.parse_args()
+    if a.test_bank:
+        files = {TEST_BANK: vmem_syx(test_bank()), TEST_VOICES: b"".join(vced_syx(v) for v in test_bank())}
+        for path, data in files.items():
+            if a.check:
+                if not path.exists() or path.read_bytes() != data:
+                    print(f"{path} is stale: run tools/dx7_bank.py --test-bank", file=sys.stderr)
+                    return 1
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+        return 0
     voices = bank()
     if len(voices) != 32:
         print(f"the bank has {len(voices)} voices, not 32", file=sys.stderr)

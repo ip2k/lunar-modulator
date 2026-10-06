@@ -44,8 +44,12 @@
 // PitchEnv are globals, set by the first create; a later create at another
 // rate is refused (as the Schwung shim refuses one).
 //
-// MIT licence (this file). Not affiliated with or endorsed by Yamaha; the
-// engine's name is our own (docs/11 §7).
+// The engine is Google's msfa and its name is Felucca's: FM6 is the FM
+// engine of hugelton's Felucca, whose Apache-2.0 fm6_core.c is this
+// engine's test oracle (third_party/felucca-fm6). Both borrowed, with
+// thanks (the owner kept the name, 2026-10-06: "since we're borrowing it").
+//
+// MIT licence (this file). Not affiliated with or endorsed by Yamaha.
 
 #include "fm1_engine.h"
 #include "fm1_dx7.h"
@@ -312,6 +316,16 @@ class Instance {
   void UserName(unsigned slot, char out[FM1_DX7_NAME_BYTES + 1]) const {
     if (slot >= FM1_DX7_USER_SLOTS) { out[0] = '\0'; return; }
     Name(user_[slot], out);
+  }
+
+  int SetUserVoice(unsigned slot, const uint8_t vced[FM1_DX7_VCED_BYTES]) {
+    if (slot >= FM1_DX7_USER_SLOTS || !vced) return 0;
+    uint8_t v[kVoiceBytes];
+    FromVced(vced, v);
+    Store(this, slot, v);
+    lfo_patch_ = -1;   // as LoadSysex: the LFO and the unpacked cache again
+    unpacked_ = -1;
+    return 1;
   }
 
  private:
@@ -640,8 +654,9 @@ extern "C" const fm1_engine_t fm1_engine_dx7 = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND,
   "dx7", "FM6",
   "Six-operator FM on msfa, the FM core of Google's music-synthesizer-for-"
-  "android (Google, Apache-2.0); reads DX7 voice data (a Yamaha trademark; "
-  "not affiliated); built-in voices our own",
+  "android (Google, Apache-2.0); named after Felucca's FM6 engine (hugelton), "
+  "both borrowed with thanks; reads DX7 voice data (a Yamaha trademark; not "
+  "affiliated); built-in voices our own",
   fm1::dx7::kParams, fm1::dx7::P_COUNT, fm1::dx7::kNumVoices,
   fm1::dx7::InstanceSize, fm1::dx7::Create, fm1::dx7::Destroy,
   fm1::dx7::NoteOn, fm1::dx7::NoteOff, fm1::dx7::Bend,
@@ -659,4 +674,9 @@ extern "C" int fm1_dx7_load_sysex(void *self, const uint8_t *data, size_t len, u
 extern "C" void fm1_dx7_user_name(const void *self, unsigned slot,
                                   char out[FM1_DX7_NAME_BYTES + 1]) {
   static_cast<const fm1::dx7::Instance *>(self)->UserName(slot, out);
+}
+
+extern "C" int fm1_dx7_set_user_voice(void *self, unsigned slot,
+                                      const uint8_t vced[FM1_DX7_VCED_BYTES]) {
+  return static_cast<fm1::dx7::Instance *>(self)->SetUserVoice(slot, vced);
 }

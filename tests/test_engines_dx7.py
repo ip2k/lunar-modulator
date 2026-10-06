@@ -147,6 +147,16 @@ def test_vendored_msfa_files_are_upstreams(renderer):
                 break
 
 
+def test_the_credits_name_msfa_and_felucca(renderer):
+    """The engine is Google's msfa and its name Felucca's (hugelton): both
+    borrowed, and both credited where the engine is listed."""
+    listing = json.loads(subprocess.run([str(renderer), "--list"], check=True, capture_output=True,
+                                        text=True).stdout)
+    credits = next(e for e in listing if e["id"] == "dx7")["credits"]
+    for word in ("msfa", "Google", "Apache-2.0", "Felucca", "hugelton", "FM6", "Yamaha"):
+        assert word in credits, word
+
+
 def test_felucca_oracle_file_is_apache_and_upstreams():
     src = (FELUCCA / "fm6_core.c").read_bytes()
     assert src.startswith(b"/* SPDX-License-Identifier: Apache-2.0")

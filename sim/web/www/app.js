@@ -175,7 +175,7 @@ const image = new ImageData(240, 240);
 
 const sim = {
   ctx: null, node: null, analyser: null, catalog: null, state: null, master: 0.75,
-  requestedRate: null, screens: 0, midi: null, notice: '', seq: null,
+  requestedRate: null, screens: 0, midi: null, notice: '', seq: null, dx7: null,
 };
 window.fm1 = sim;    // for the headless screenshot test and the console
 
@@ -258,6 +258,7 @@ async function start() {
     overlay.hidden = true;
     powerEl.classList.add('on');
     document.getElementById('power-off').disabled = false;
+    dx7Button.disabled = false;
   } catch (err) {
     if (ctx && ctx !== sim.ctx && ctx.state !== 'closed') await ctx.close();
     await powerOff();
@@ -272,6 +273,7 @@ async function powerOff() {
   overlay.hidden = false;
   powerEl.classList.remove('on');
   document.getElementById('power-off').disabled = true;
+  dx7Button.disabled = true;
   for (const s of selects) s.disabled = true;
   for (const g of [...keyEls, ...buttonEls]) g.classList.remove('lit');
   for (const c of [tft, mirror]) c.getContext('2d').clearRect(0, 0, 240, 240);
@@ -322,6 +324,11 @@ function onWorklet(m, node) {
       showStatus();
       break;
     }
+    case 'dx7-loaded':
+      sim.dx7 = m;
+      sim.notice = dx7Message(m);
+      showStatus();
+      break;
     case 'error':
       statusEl.textContent = `The firmware did not start: ${m.message}`;
       break;
@@ -380,6 +387,120 @@ function drawScreen(px) {
   if (!document.getElementById('mirror').hidden) mirror.getContext('2d').putImageData(image, 0, 0);
   ++sim.screens;
 }
+
+// ---- DX7 patches: .syx files into FM6's user slots ----------------------------------
+// Load DX7 patches... or files dropped on the page. Each file is read here,
+// in the browser, and its bytes go to the firmware in the AudioWorklet
+// (worklet.js, fm1w_dx7_load), which checks them (the dump's header, its
+// length, its checksum), stores the voices in FM6's user bank and makes the
+// current sound play the first; nothing is uploaded or fetched. The
+// firmware reads files up to its text buffer's 64 KiB.
+const DX7_MAX_BYTES = 65536;
+const dx7Button = document.getElementById('dx7-load');
+const dx7Input = document.getElementById('dx7-file');
+const dropHint = document.getElementById('drop-hint');
+const plural = (n, one, many) => `${n.toLocaleString('en')} ${n === 1 ? one : many}`;
+
+// What the firmware said about a file (worklet.js's dx7-loaded), in words.
+function dx7Message(m) {
+  const [status, voices, first, messages, bad, foreign, truncated, wrongSize, raw, outside, played, sound] = m.result;
+  const file = `"${m.file}"`;
+  if (status === -1) {
+    return `${file} was not loaded: at ${Math.ceil(m.size / 1024).toLocaleString('en')} KB it is larger than ` +
+      `the ${DX7_MAX_BYTES / 1024} KB the simulator reads. A bank of 32 voices is 4,104 bytes.`;
+  }
+  if (status === -2) return `${file} was not loaded: this build has no FM6.`;
+  if (status === 0) {
+    const formats = 'DX7 patches come as a single voice (163 bytes: F0 43 0n 00 01 1B, 155 data bytes, ' +
+      'a checksum, F7) or a bank of 32 (4,104 bytes: F0 43 0n 09 20 00, 4,096 data bytes, a checksum, F7).';
+    if (m.size === 0) return `${file} was not loaded: it is empty. ${formats}`;
+    if (wrongSize) {
+      return `${file} was not loaded: its DX7 ${plural(wrongSize, 'dump has', 'dumps have')} the wrong length. ${formats}`;
+    }
+    if (truncated) return `${file} was not loaded: it is cut short (a SysEx message without its closing F7). ${formats}`;
+    if (foreign) {
+      return `${file} was not loaded: it holds SysEx, but ${plural(foreign, 'message', 'messages')} of another kind ` +
+        `and no DX7 voice or bank. ${formats}`;
+    }
+    return `${file} was not loaded: it is not SysEx. ${formats}`;
+  }
+  const last = (first + voices - 1) % 32;
+  const where = voices >= 32 ? 'User 1 to 32' : voices === 1 ? `User ${first + 1}`
+    : last > first ? `User ${first + 1} to ${last + 1}` : `User ${first + 1} to 32 and 1 to ${last + 1}`;
+  let text = `Loaded ${plural(voices, 'voice', 'voices')} from ${file}${raw ? ' (bank data without SysEx framing)' : ''} ` +
+    `into FM6's ${where}.`;
+  if (played === 0) text += ` Sound ${sound + 1} plays ${m.names[first] || `User ${first + 1}`}; ALGORITHM steps through them.`;
+  else if (played < 0) text += ` Sound ${sound + 1} could not change to FM6 (the chain would not fit the FM-1's RAM).`;
+  if (bad) {
+    text += ` ${plural(bad, 'dump had', 'dumps had')} a wrong checksum and ${bad === 1 ? 'was' : 'were'} loaded ` +
+      'anyway, as DX7 editors do: the file may be damaged.';
+  }
+  if (messages > 1) text += ` The file held ${plural(messages, 'dump', 'dumps')}; a bank fills all 32 slots, so the last one counts.`;
+  const skipped = foreign + truncated + wrongSize;
+  if (skipped) text += ` ${plural(skipped, 'other or broken message was', 'other or broken messages were')} skipped.`;
+  if (outside && !raw) text += ` ${plural(outside, 'byte', 'bytes')} outside SysEx ${outside === 1 ? 'was' : 'were'} ignored.`;
+  return text;
+}
+
+async function loadDx7Files(files) {
+  if (!sim.node) {
+    sim.notice = '';
+    statusEl.textContent = 'Power on first, then load DX7 patches.';
+    return;
+  }
+  for (const file of files) {
+    if (file.size > DX7_MAX_BYTES) {
+      // Not read at all: refused here, as the firmware would refuse it.
+      sim.notice = dx7Message({ file: file.name, size: file.size, result: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0], names: [] });
+      showStatus();
+      continue;
+    }
+    let bytes;
+    try {
+      bytes = new Uint8Array(await file.arrayBuffer());
+    } catch (err) {
+      sim.notice = `"${file.name}" could not be read: ${err.message || err}`;
+      showStatus();
+      continue;
+    }
+    sim.node.port.postMessage({ type: 'dx7-load', file: file.name, bytes }, [bytes.buffer]);
+  }
+}
+
+dx7Button.addEventListener('click', () => dx7Input.click());
+dx7Input.addEventListener('change', () => {
+  const files = [...dx7Input.files];
+  dx7Input.value = '';                     // the same file can be chosen again
+  dx7Button.blur();                        // the keys play the instrument again
+  loadDx7Files(files);
+});
+
+// Dragging files over the page shows where to drop them; anything else
+// dragged (text, a link) is left to the browser.
+const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+let dragDepth = 0;
+window.addEventListener('dragenter', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  ++dragDepth;
+  dropHint.hidden = false;
+});
+window.addEventListener('dragover', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+});
+window.addEventListener('dragleave', (e) => {
+  if (!hasFiles(e)) return;
+  if (--dragDepth <= 0) { dragDepth = 0; dropHint.hidden = true; }
+});
+window.addEventListener('drop', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  dropHint.hidden = true;
+  loadDx7Files([...e.dataTransfer.files]);
+});
 
 // ---- pointer input ---------------------------------------------------------------
 const active = new Map();   // pointerId -> release function

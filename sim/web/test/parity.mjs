@@ -54,6 +54,12 @@
 // modulates from the panel: the harness logs the runtime's state and every
 // edit (.mod, named in the sidecar), which the render legs replay.
 //
+// A scenario with `sysex` loads DX7 voices into FM6's user bank first (a
+// .syx file under test/, e.g. dx7/lunar-test-bank.syx): fm1-render and the
+// harness get --sysex, and the module gets the file's bytes through its text
+// buffer and fm1w_dx7_load (without `play`), after the sound is loaded and
+// before its parameters, in the harness's order.
+//
 // The module always has four sound units. A scenario with `sounds`,
 // `inserts`, `levels` or `sound_notes` plays several (docs/15 §3.16):
 // fm1-render gets --sound, --insert, --level and --sound-note, which imply
@@ -84,10 +90,12 @@ const wasmModule = await WebAssembly.compile(readFileSync(args.wasm));
 const cmdPath = (s) => resolve(dirname(args.scenarios), s.cmd);
 const panelPath = (s) => resolve(dirname(args.scenarios), s.panel);
 const modPath = (s) => resolve(dirname(args.scenarios), s.mod);
+const sysexPath = (s) => resolve(dirname(args.scenarios), s.sysex);
 
 function cliArgs(s) {
   const a = ['--seconds', String(s.seconds), '--rate', String(s.rate ?? 44118), '--engine', s.engine];
   if (s.cmd) a.push('--cmd', cmdPath(s));
+  if (s.sysex) a.push('--sysex', sysexPath(s));
   for (const p of s.params ?? []) a.push('--param', p);
   for (const n of s.notes ?? []) a.push('--note', n);
   for (const b of s.bends ?? []) a.push('--bend', b);
@@ -260,6 +268,12 @@ async function renderApp(s) {
     .findIndex((p) => p.name.toLowerCase() === name.toLowerCase());
   ex.fm1w_init(rate);
   if (ex.fm1w_select(0, indexOf(s.engine)) !== 0) throw new Error(`cannot load ${s.engine}`);
+  if (s.sysex) {
+    const bytes = readFileSync(sysexPath(s));
+    if (bytes.length > ex.fm1w_text_cap()) throw new Error(`${s.sysex}: larger than the text buffer`);
+    new Uint8Array(w.memory.buffer, ex.fm1w_text_buf(), bytes.length).set(bytes);
+    if (ex.fm1w_dx7_load(bytes.length, 0) <= 0) throw new Error(`${s.sysex}: the module loaded no voices`);
+  }
   for (const p of s.params ?? []) {
     const [n, v] = splitParam(p);
     ex.fm1w_set_param(0, paramOf(s.engine, n), v);

@@ -269,6 +269,32 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
 .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .status { color: var(--muted); margin: 10px 0 0; min-height: 1.5em; font-variant-numeric: tabular-nums; }
 
+/* Files dragged over the page: where to drop them (DX7 patches). */
+.drop-hint {
+  position: fixed;
+  inset: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border: 2px dashed var(--accent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  pointer-events: none;
+}
+.drop-hint[hidden] { display: none; }
+.drop-hint p {
+  margin: 0;
+  max-width: 28rem;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font: 400 1.1rem/1.4 var(--display);
+  text-align: center;
+}
+
 .mirror { margin-top: 16px; }
 .mirror canvas {
   width: min(480px, 100%);
