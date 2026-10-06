@@ -191,6 +191,19 @@ def test_runs_cut_short_off_screen_and_in_several_colours(check, name):
     assert r["main_same"] == 1
 
 
+@pytest.mark.parametrize("name", list(METRICS))
+def test_a_runs_leads_are_narrow_gaps_inside_it(check, name):
+    """fm1_tft_span_text_lead: the same row with 4 px before the mark and 4
+    before the destination is still one box, 8 px wider, each character in
+    its span's colour where the leads put it; a lead before the first span,
+    a NULL one or one max_chars leaves out adds nothing."""
+    r = next(r for r in check["runs"] if r["font"] == name)
+    adv, _, ink_w, *_ = METRICS[name]
+    assert r["lead_w"] == r["lead_box_w"] == 18 * adv + ink_w + 8
+    assert (r["lead_boxes"], r["lead_colour_errors"], r["lead_painted"]) == (1, 0, 17)
+    assert r["lead_w4"] == 3 * adv + ink_w and r["lead_w6"] == 5 * adv + ink_w + 8
+
+
 def test_the_font_sheet_passes_the_layout_check(tools, tmp_path):  # noqa: F811
     """Both Spleen faces' characters and a few names on one screen."""
     out = tmp_path / "fonts.ppm"

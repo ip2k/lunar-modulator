@@ -205,6 +205,8 @@ ENV3  >S2 In1 Mix        +50     Sound 2's first insert
 LFO2.2>ENV3 Gate        +100     a module's input
 ```
 
+On the screen the mark stands a little apart from the source and from the
+destination, so a six-letter source such as *S2RTRG* never runs into it.
 A destination too long for its column keeps the parameter's full name
 after a shorter tag, such as *S1I2 High Xover*. A switched-off row is grey
 and a refused one red, whole. Page B names the VIA source, the curve and

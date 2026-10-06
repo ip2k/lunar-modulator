@@ -533,7 +533,7 @@ void fm1_mod_ui_row(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned
   else if ((u->plan.refused >> i) & 1u) mk[0] = '!';
   else if (s.flags & FM1_MOD_SLOT_VOICE) mk[0] = 'v';
   fm1_mod_ui_source(env->m, s.src, 0, src, sizeof src);
-  put_src(&b, s.src, src, 6);
+  put_src(&b, s.src, src, FM1_MOD_UI_ROW_SRC);
   if (page == 0) {
     fm1_mod_ui_env_t scratch;
     const fm1_mod_ui_env_t *ne = aimed_env(env, u, i, &s, &scratch);
@@ -549,8 +549,12 @@ void fm1_mod_ui_row(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned
     char via[16];
     if (!mk[0]) mk[0] = '*';
     put(&b, mk, FM1_MOD_UI_ROLE_MARK, 0);
-    if (s.via == FM1_MOD_NONE) put(&b, "--", FM1_MOD_UI_ROLE_PLAIN, 7);
-    else fm1_mod_ui_source(env->m, s.via, 0, via, sizeof via), put_src(&b, s.via, via, 7);
+    if (s.via == FM1_MOD_NONE) {
+      put(&b, "--", FM1_MOD_UI_ROLE_PLAIN, FM1_MOD_UI_ROW_SRC + 1);
+    } else {
+      fm1_mod_ui_source(env->m, s.via, 0, via, sizeof via);
+      put_src(&b, s.via, via, FM1_MOD_UI_ROW_SRC + 1);
+    }
     put(&b, kCurve[(s.flags & FM1_MOD_SLOT_CURVE_MASK) >> FM1_MOD_SLOT_CURVE_SHIFT],
         FM1_MOD_UI_ROLE_DST, 7);
     put(&b, kPol[(s.flags & FM1_MOD_SLOT_POL_MASK) >> FM1_MOD_SLOT_POL_SHIFT], FM1_MOD_UI_ROLE_DST, 0);
