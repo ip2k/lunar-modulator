@@ -33,7 +33,7 @@ and [chapter 14](14-credits-and-licences.md) credits each source.
 **To choose an engine:** turn [[PRESETS]]. The engines come in this order:
 Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Test Sine, and
 round again.
-While you turn, the screen lists the engines, six at a time, with the new one
+While you turn, the screen lists the engines, eight at a time, with the new one
 highlighted ([chapter 3](03-panel-tour.md#lists)). In the simulator you can also pick one from the
 **Sound (PRESETS)** list under the panel.
 

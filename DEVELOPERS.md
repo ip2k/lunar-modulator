@@ -284,10 +284,11 @@ API v2 ([`engines/midi_fx/README.md`](engines/midi_fx/README.md)).
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 3,144 screens of the layout sweep, the sequencer's and
-  modulation's and every list popup at every entry included, pass a layout
-  check, with no text cut short and nothing closer than 4 px [verified:
-  `fm1-sim-render --screens`, 2026-10-06].
+  canvas, its text in three faces (the project's 5×9 at ×2, Spleen 8×16
+  and 6×12). All 3,204 screens of the layout sweep, the sequencer's and
+  modulation's, every list popup at every entry and the knobs' lists
+  included, pass a layout check, with no text cut short and nothing closer
+  than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC) and
   modulation (LFO, ENV, EDIT); only SAVE and ARP are still stubs. The user

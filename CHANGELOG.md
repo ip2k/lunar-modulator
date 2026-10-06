@@ -9,6 +9,17 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Turning a knob on a list opens the list.** On HOME, in FX mode and in
+  SEQ mode, a knob on a parameter that is a list of five entries or more
+  (FM6's Patch, Shapes' Shape, the pads, Macro Heavy's Model, the Filter's
+  Type) shows the same list ALGORITHM does, for about a second; shorter
+  lists such as Off/On still change on their row. SHIFT + 16 shows the
+  clip's quantize values as a list too.
+- **Each sound in its own colour on the screen.** Sound 1 blue, Sound 2
+  orange, Sound 3 green, Sound 4 yellow-green, always beside its number:
+  in the top bar's *S2*, FX mode's chain and its filled inserts, the bottom
+  bar, the Mix page's names and bars, and the list of sounds (SHIFT +
+  PRESETS). An empty sound's Mix bar is no longer a full grey bar.
 - **A colour for each sound, ready for the screen.** The virtual FM-1's
   palette gains four colours of its own, one for each sound: nebula (blue)
   for Sound 1, nova (orange) for Sound 2, aurora (green) for Sound 3 and
@@ -1196,6 +1207,39 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Lists show more, and spell names out.** The long lists (PRESETS,
+  ALGORITHM on HOME and in FX mode, a knob's list) show eight entries at a
+  time in a smaller typeface instead of six, each with room for 27
+  characters, and say the full name where an engine only gives a short one:
+  *Phase Distortion*, *Triple Saw*, *Compressor*, *Master Saturation*,
+  *Studio Small*. Short lists (the four sounds, the quantize values,
+  Capture's tempos) stay in the large type, all of their entries at once.
+  List titles say what the list is: *Master 1 effect*, *S1 insert 1
+  effect*, *S2 engine*, *Current sound*.
+- **Short messages no longer hide the page.** A confirmation that fits one
+  line (*Volume 80*, *Octave +1*, *Metronome on*, a cable's amount) shows
+  as a band across the bottom of the screen for about a second; the page
+  stays in view. Messages that refuse something (*does not fit*, *cannot be
+  locked*, *takes no cable*, *Matrix full*, *No LFO in the rack*, *not in
+  the simulator yet*) still cover the middle of the screen, with the reason
+  in red.
+- **Clearer pages.** The line under the top bar on HOME names the model,
+  patch or pad in full, in rose, with its place in the list (*2/8*). In FX
+  mode the chosen slot is a highlighted tag (gold while SEL holds it) and
+  the line under the chain names its effect and says *insert*, *master* or
+  *mix*, instead of repeating the slot (*> M1 Plate*). The global page
+  calls the master slots *M1* and *M2* and gives their effects' names, not
+  their identifiers. On a sound page with fewer than four parameters the
+  oscilloscope grows into the empty rows.
+- For developers: `fm1_panel.h` gives each list face its rows and
+  characters (`fm1_list_rows`, `fm1_list_chars`, `FM1_LIST_FACE_KIND`,
+  `FM1_LIST_FACE_DEST`), `fm1_look.h` the context line
+  (`fm1_look_context`), full names (`fm1_look_full_name`) and the banner's
+  geometry; `fm1_app_banner` says whether a popup is a banner.
+  `fm1-sim-render --screens` draws 3,204 screens (the knobs' lists, the
+  banners, FX mode's chip) with 0 faults and counts text boxes by face; the
+  browser module is 896,616 bytes, parity 76 of 76. The audit note's new
+  "Built" section measures every list before and after.
 - **The modulation pages spell things out, in colour.** The matrix shows
   nine cables instead of seven, in a smaller, sharper typeface, with
   destinations by their full names (*S1 Timbre*, *M2 Ping-pong*, *ENV3
