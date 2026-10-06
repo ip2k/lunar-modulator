@@ -7,8 +7,8 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
-state of `main` after the PRs merged up to #67 (2026-09-29 to 2026-10-05,
-`b5d30ec`).
+state of `main` after the PRs merged up to #67 (2026-09-29 to 2026-10-06,
+`ebb9577`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -92,22 +92,22 @@ so it is always written in full.
     `scratch/drafts/2026-10-01-issue-2-reply.md` (git-ignored, unsent).
     Whether and when to post it is the owner's decision. Never post it
     ourselves.
-- **Other firmware on FM-1s** (docs/04, `notes/2026-10-05-community-repos.md`),
-  all through the stock update path with rollbacks to V15 [reported]: Echomatter's
-  `FM-1_016` (2026-09-04, AL-255/FM-1-RE PR #2); Baud Girl's FM-1+VA
-  (`FM-1_020` … `FM-1_092`, closed source); Felucca 1.0 (hugelton) and its
-  fork SLOOP 2.2 (isod89), bare metal and GPL-3.0-only. fm1-nes runs an
-  AC79 SDK app on one V14 unit, written through mask ROM [reported]. Their
-  code maps the board (docs/01 §3.1, [reported]): audio is ALNK0 (I2S) to an
-  external codec, not the internal DAC, and the seven encoders are scanned
-  in the key matrix.
-- **Tests:** 3,754 collected; 3,743 pass, 2 xfail (both undo, not ported
+- **Other firmware on FM-1s** (docs/04,
+  `notes/2026-10-05-community-repos.md`), all through the stock update path
+  with rollbacks to V15 [reported]: Echomatter's `FM-1_016` (2026-09-04,
+  AL-255/FM-1-RE PR #2); Baud Girl's FM-1+VA (`FM-1_020` … `FM-1_092`,
+  closed source); Felucca 1.0 (hugelton) and its fork SLOOP 2.2 (isod89),
+  bare metal and GPL-3.0-only. fm1-nes runs an AC79 SDK app on one V14 unit,
+  written through mask ROM [reported]. Their code maps the board (docs/01
+  §3.1, [reported]): audio is ALNK0 (I2S) to an external codec, not the
+  internal DAC, and the seven encoders are scanned in the key matrix.
+- **Tests:** 3,780 collected; 3,769 pass, 2 xfail (both undo, not ported
   yet) and 9 skip where a local reference clone, an unpacked stock package
   or the manual's `markdown` module is missing [verified: `pytest` at
-  `b5d30ec` with this file, 2026-10-06]. By group: 2,692 engine tests (487
+  `ebb9577` with this file, 2026-10-06]. By group: 2,700 engine tests (487
   of them comparing against upstream reference renders and their controls,
   157 for the arpeggiator, 147 for modulation), 557 for the sequencer core,
-  413 for the virtual FM-1 and its sequencer UI, 79 for the tools, the
+  431 for the virtual FM-1 and its sequencer UI, 79 for the tools, the
   dongle, the SDK link audit, the package guard and the boot bridge, and 13
   for the manual. CI runs the suite on Linux and macOS, runs the engine,
   sequencer and simulator tests again as a 32-bit build and under ASan +
@@ -121,10 +121,11 @@ so it is always written in full.
   project on 2026-10-01; GitHub redirects the old URLs). Work goes on
   short-lived branches and merges through pull requests; several sessions
   often work at once (`git worktree list` in the main checkout).
-  - In flight on 2026-10-05, local and unpushed: `chore/2026-10-05@dead-code-audit`
-    (no commits yet); `feature/2026-10-05@uboot-read-tool`, named for the
-    soft-key plan's read-only host tool, with no tool committed. Many other
-    worktrees under `scratch/` belong to branches that have merged.
+  - In flight on 2026-10-05, local and unpushed:
+    `chore/2026-10-05@dead-code-audit` (no commits yet);
+    `feature/2026-10-05@uboot-read-tool`, named for the soft-key plan's
+    read-only host tool, with no tool committed. Many other worktrees under
+    `scratch/` belong to branches that have merged.
   - The repository is public. Before a branch's first push, search its
     whole history (`git log -p origin/main..HEAD`) for LAN addresses, local
     usernames and the unit's USB serial. A LAN address and an SSH user
@@ -137,8 +138,9 @@ so it is always written in full.
 - **Open pull requests** at 2026-10-05:
   - #68, MG9: per-voice modulation and the MG3 follow-ups; waiting for the
     owner.
-  - #65, FM6: msfa's tables in flash, and DX7 patches loaded in the
-    simulator; waiting for the owner.
+  - #69, the arpeggiator as the first MIDI effect, on the ARP button; and
+    #70, idle paths for EQ, Isolator and Master Sat; both waiting for the
+    owner.
   - #58, the lagging docs that this refresh listed, fixed (§5 item 8);
     waiting for the owner.
   - Echomatter closed #1 on 2026-10-05 and offered to coordinate, saying
@@ -223,11 +225,12 @@ so it is always written in full.
    `ota.bin`: the key check those libraries carry is inert on the FM-1
    [verified: IR of every release, `notes/2026-10-05-softkey-efuse.md`], and
    every link and package passes `tools/jieli/audit_link.py` and
-   `tools/jieli/package_guard.py` (CLAUDE.md trap 11). Apache-2.0, but not GPL-free: `system.a`
-   holds FreeRTOS (GPLv2 with the exception) and `uac_audio*.h` are GPL-2.0,
-   never to be included (CLAUDE.md, docs/12 §6). It has `WL82.h`, linker
-   scripts, `demo_hello`, flashing tools, `wl82loader.bin` and datasheets,
-   and ~110 closed `.a` libraries per CPU; it has no USB-MIDI device class.
+   `tools/jieli/package_guard.py` (CLAUDE.md trap 11). Apache-2.0, but not
+   GPL-free: `system.a` holds FreeRTOS (GPLv2 with the exception) and
+   `uac_audio*.h` are GPL-2.0, never to be included (CLAUDE.md, docs/12 §6).
+   It has `WL82.h`, linker scripts, `demo_hello`, flashing tools,
+   `wl82loader.bin` and datasheets, and ~110 closed `.a` libraries per CPU;
+   it has no USB-MIDI device class.
 9. **schwung-movy cannot run on the FM-1** (TS + Rust on a quad-A72 Linux
    box), but its sequencer is the specification. `fm1_seq` is a C99,
    heap-free rewrite of Movy's `seq-core` at `9190e79`, with an exact-Movy
@@ -368,25 +371,25 @@ pot, and audio is I2S to a codec [reported: Felucca, fm1-nes; docs/01 §3.1].
 ## 5. Next actions
 
 Done, for the record: the research phase and bench session 1 (2026-09-06);
-FM-1+VA diffed against V15 and the board photographed (09-29); engine
-stages A and A2, the reference renders and native rates (09-30 to 10-01);
-the sequencer core and the Movy oracle (M1, M3); the rename, the virtual
-FM-1, docs/14, the ip2k/lunar-modulator#2 write-up and the dongle fixes
-(10-01); the
-README and DEVELOPERS.md split, the manual on Pages, stage B compile-only,
-the sequencer in the simulator S1–S8, engine API v2 and v3, the arpeggiator
-core, modulation MG1–MG3, four effect packs, the community study, the SDK
-move with its link and package gates, the sequencer, multi-sound and
-modulation made public (#55), Drums (#59), FM6 on msfa (#60), new
-screenshots (#61), the owner's new README opening and the rest of the
-README brought up to date (#62, #63), the simulator's list popups (#64),
-dynamics pack 3 (#66) and a UI audit of the screen (#67) (10-01 to 10-06). The CHANGELOG has the detail.
+FM-1+VA diffed against V15 and the board photographed (09-29); engine stages
+A and A2, the reference renders and native rates (09-30 to 10-01); the
+sequencer core and the Movy oracle (M1, M3); the rename, the virtual FM-1,
+docs/14, the ip2k/lunar-modulator#2 write-up and the dongle fixes (10-01);
+the README and DEVELOPERS.md split, the manual on Pages, stage B
+compile-only, the sequencer in the simulator S1–S8, engine API v2 and v3,
+the arpeggiator core, modulation MG1–MG3, four effect packs, the community
+study, the SDK move with its link and package gates, the sequencer,
+multi-sound and modulation made public (#55), Drums (#59), FM6 on msfa with
+its tables in flash and DX7 patch loading (#60, #65), new screenshots (#61),
+the owner's new README opening and the rest of the README brought up to date
+(#62, #63), the simulator's list popups (#64), dynamics pack 3 (#66) and a
+UI audit of the screen (#67) (10-01 to 10-06). The CHANGELOG has the detail.
 
 Now, roughly in order:
 
-1. **Open PRs** (§1): #58 (docs), #65 (FM6 in flash, DX7 patches in the
-   simulator) and #68 (MG9) wait for the owner; Echomatter's offer on #1
-   needs an answer.
+1. **Open PRs** (§1): #58 (docs), #68 (MG9), #69 (the arpeggiator) and #70
+   (idle paths) wait for the owner; Echomatter's offer on #1 needs an
+   answer.
 2. **ip2k/lunar-modulator#2**, if the owner chooses to answer it from the
    draft; and issue #53 (iOS Safari).
 3. **When the dev kit and JieLi's updater arrive**, docs/14 §5's first week:
@@ -400,14 +403,14 @@ Now, roughly in order:
    I9): after the kit rehearsal, enter UBOOT mode, dump the flash twice and
    compare, then restore byte for byte, twice. Only then does the one rule
    allow writing anything. A dump taken now captures FM-1+VA (§1).
-5. **The owner's 2026-10-05 build plan** (in the decisions file, §3; not
-   yet in DEVELOPERS.md). API v3 came first (#57). Then engine and effect
-   lanes in parallel: a third dynamics pack (done, #66), idle paths, the
+5. **The owner's 2026-10-05 build plan** (in the decisions file, §3; not yet
+   in DEVELOPERS.md). API v3 came first (#57). Then engine and effect lanes
+   in parallel: a third dynamics pack (done, #66), idle paths (#70), the
    Shapes wrapper clamp, a per-voice filter kernel, engine glide, tempo
    delays. Now that #55 has merged, one at a time because they share
    `fm1_app.c`: MG9 (per-voice modulation) and the MG3 follow-ups (#68,
-   open); the master chain; the side-chain; S9 and S10
-   (docs/15 §5); the arp and MIDI effects. Then the GPL switch with the
+   open); the master chain; the side-chain; S9 and S10 (docs/15 §5); the arp
+   and MIDI effects (the arp is in #69, open). Then the GPL switch with the
    first GPL modules (Grids and Branches originals, docs/12 §6); later a
    subtractive engine, Rings/Elements and more reverbs.
 6. **Sequencer leftovers:** undo and the command ring wait for M4 (the 2
