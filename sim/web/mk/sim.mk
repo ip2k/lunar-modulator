@@ -56,7 +56,8 @@ $(BUILD)/sim/%.o: $(SIM)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(SIM_CFLAGS) -c $< -o $@
 
-$(BUILD)/fm1-sim-render: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_sim_render.o $(SIM_ENGINE_OBJ) \
+$(BUILD)/fm1-sim-render: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_sim_render.o $(BUILD)/sim/test/fm1_edit_check.o \
+    $(SIM_ENGINE_OBJ) \
     $(SIM_META_OBJ) $(SEQ_HOST_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
@@ -93,4 +94,5 @@ $(BUILD)/fm1.wasm: $(SIM_APP_OBJ) $(BUILD)/sim/src/fm1_web.o $(SIM_ENGINE_OBJ) $
 $(BUILD)/fm1-render.js: $(RENDER_PRODUCT_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -sNODERAWFS=1 -sALLOW_MEMORY_GROWTH=1 -sEXIT_RUNTIME=1 -o $@ $^
 
--include $(SIM_APP_OBJ:.o=.d) $(BUILD)/sim/src/fm1_web.d $(BUILD)/sim/test/fm1_sim_render.d
+-include $(SIM_APP_OBJ:.o=.d) $(BUILD)/sim/src/fm1_web.d $(BUILD)/sim/test/fm1_sim_render.d \
+  $(BUILD)/sim/test/fm1_edit_check.d
