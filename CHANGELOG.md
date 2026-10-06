@@ -9,6 +9,51 @@ history.
 ## [Unreleased]
 
 ### Added
+- **JieLi SDK upgraded to the V1.2.13 libraries, with safeguards** (owner's
+  decision, 2026-10-05; notes/2026-10-05-softkey-efuse.md §4). The pin is now
+  Gitee `release/AC79NN_SDK_V1.2.0` at `e30b1ee` (= tag V1.2.13), by commit.
+  The SDK's key check is left intact, not stubbed, because it is inert on the
+  FM-1 (nothing registers a licence blob, and the app never touches eFuse).
+  The safeguards instead:
+  - a post-link audit, `tools/jieli/audit_link.py` (modelled on fm1-nes's
+    `audit_boot.py`): it fails the build if any live key-check or eFuse code
+    survives — no `mkey_check`/`sdk_mkey_lock`/`sdk_mkey_lock_v2_cfun`/
+    `key_check_demo`/`sdk_chip_key_verify_v2`, no `0x0200012E` stub, no writes
+    to `0x01C80108-0x01C80110`, IRQ 123 reserved, no SDK key-blob bytes, no
+    eFuse-SFR access, no `request_irq(123)` in our sources — while leaving
+    the dormant `sdk_meky_check` in place. On a linked image it attributes
+    each hit to its function, so the SDK's own `mkey_dummy_func` mailbox
+    store passes and anything of ours fails, and it checks that the
+    `late_initcall` group is exactly `[sdk_meky_check]`. It reads ELF itself
+    (standard library only) and is covered by `tests/test_audit_link.py`;
+  - a packaging gate, `tools/jieli/package_guard.py`: never ship any V1.2.x
+    `uboot.boot`, `uboot_no_ota.boot`, `wl82loader.bin` or `ota.bin` — only
+    V1.1.9's SPL is the FM-1's. It asserts the stock SPL hash `730e54f0…`
+    and byte-identical `isd_config.ini`/`ota.bin`/`cfg`, and refuses any
+    other SPL or loader in the tree (`tests/test_package_guard.py`);
+  - the `boot_info` bridge from fm1-nes (Apache-2.0, in
+    `firmware/third_party/fm1-nes/` with its licence and `UPSTREAM.md`),
+    which copies the stock SPL's 6 hand-off words and zeroes words 6-22 so
+    V1.2.1+'s wider `boot_info_init` reads defined zero, not stale RAM.
+    Tested on the desktop (`tests/test_boot_compat.py`) and compiled for
+    pi32v2, where it calls nothing but the SDK's own initializer; it has not
+    run on a chip.
+
+  `tools/jieli/compile-check.sh` and `tools/jieli/ac79-sdk-sparse.txt` now
+  fetch and use V1.2.13 from Gitee (retrying its flaky SSL); the compile-only
+  check was re-run against it on the build host (twice, the second time with
+  the bridge and our sources in the audit). The V1.2.13 libc++ ships its
+  own `math.h`, so the V1.1.9 run's one fix is no longer needed. No user-facing
+  change. No vendor binary is in the repo.
+- notes/2026-10-05-softkey-efuse.md: a desk-only investigation of the stock
+  "soft key" SysEx and of the JieLi SDK's key and eFuse checks. The soft key
+  only writes a marker to RAM and resets the chip into its ROM loader (no
+  flash write), and its code path in FM-1_092 is identical to stock V15. The
+  SDK's key check is present in every release and every stock image but does
+  nothing on the FM-1, and nothing on the device writes eFuses; it recommends
+  upgrading to SDK V1.2.13's libraries with safeguards. A separate draft,
+  notes/2026-10-05-softkey-readonly-test-plan.md, is a read-only dump plan
+  for the owner to review; nothing has been sent to any device.
 - **Comb, an effect of its own.** The comb filter that was Filter's seventh
   Type is now its own effect, with the same knobs (Cutoff, Resonance, Drive,
   Mode, Morph, Mix, Level) and the same sound, sample for sample. Filter

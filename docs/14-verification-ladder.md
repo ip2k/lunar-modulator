@@ -245,7 +245,7 @@ only runs whose hashes are equal.
 | # | Step | Exit criterion |
 | --- | --- | --- |
 | 1 | Unbox, and photograph both boards and the dongle: AC7916 marking, crystal, flash, USB-UART bridge, audio jack and amp, buttons, LEDs, LCD controller, TF slot, and the dongle's version and DIP switch. The SDK's schematics (core board `JL_AC79_WIFI V1.2`, DevKitBoard V1.2) already show an external 25Q64 flash, UPDATA (K1) and RESET (K2) keys, no USB-UART bridge (debug TX on PB03), earphone jack J12 on DACL/DACR and a TF slot [verified: SDK PDFs]; docs/07 lists the kit as V1.0, so check the bought revision | `notes/<date>-devkit.md` with a parts table; the "unknown" cells of §4.3 filled in |
-| 2 | Toolchain: JieLi's Linux toolchain and post-build tools in a container on aeon, with the AC79 SDK (Apache-2.0) at a pinned commit (V1.1.9, CLAUDE.md trap 11). Build the SDK's hello demo for the kit | the toolchain archive's SHA-256 recorded; two clean builds byte-identical |
+| 2 | Toolchain: JieLi's Linux toolchain and post-build tools in a container on aeon, with the AC79 SDK (Apache-2.0) at a pinned commit (V1.2.13 `e30b1ee`, CLAUDE.md trap 11). Build the SDK's hello demo for the kit, and run `tools/jieli/audit_link.py` on the linked image | the toolchain archive's SHA-256 recorded; two clean builds byte-identical; the link audit passes (no live key/eFuse code) |
 | 3 | The kit's own dump and restore. Rule 1 covers every device, and this also rehearses docs/10 §5 for the FM-1. Enter download mode with the kit's own UPDATA + RESET keys (hold UPDATA, press and release RESET [reported: JieLi doc 2.3]), then again through the vendor dongle in DIP bit 3 (continuous key, no power cut) with a power-up, as on the FM-1 (docs/07 §2.1); then run `jl-uboot-tool` read-only | JEDEC ID; two identical dumps, a restore, a third identical dump; VID:PID, inquiry string and every step recorded |
 | 4 | Blink and UART. Steps 4 and 6 flash the kit with the Linux `isd_download` flow (SDK V1.2.12+, linux-postbuild `20260923.1`) in a container on aeon, its SHA-256 archived; it is a writer, for the kit only | the build id on the console; a toggled pin's period, measured on a logic analyser, within crystal tolerance at 240 MHz |
 | 5 | A probe image covering: the cycle counter against a timer; `sizeof`/`alignof`; `char` signedness; float divide by zero; subnormal handling and cost; NaN and overflow in float → int; fused ops in `objdump` at `-O2`, with and without `-ffp-contract=off`; libm's float functions swept against musl | every [inferred] cell in §2.2 becomes [verified] or is corrected |
@@ -390,6 +390,13 @@ everything a firmware would link: the engines, the vendored Mutable and
 Schwung code, the sequencer core and the app layer. That is 63 objects, each
 in the ladder profile, with `-ffp-contract=fast`, at the SDK's `-Oz` and
 with `-fPIC`. Nothing was linked or run.
+
+The SDK pin has since moved to **V1.2.13** (`e30b1ee`; owner's decision,
+2026-10-05, CLAUDE.md trap 11) and the check was re-run against its
+libraries, flags and libc++ — whose own `math.h` removes the one fix the
+V1.1.9 run needed — and extended with the key/eFuse link audit
+(`tools/jieli/audit_link.py`). See the dated addendum in
+[`notes/2026-10-02-jieli-compile-check.md`](../notes/2026-10-02-jieli-compile-check.md).
 
 **What it showed** [verified]:
 

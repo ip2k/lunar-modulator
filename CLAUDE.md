@@ -137,6 +137,8 @@ vendor packages there.
   at the stage A2 merge, 2026-09-30; audit after about 10,000 more. `sim/`
   is in scope too: it arrived on 2026-10-01 with about 4,200 lines (less its
   built module, record and font data), which count toward the next audit.
+  `firmware/` (less `third_party/`) is in scope too: it arrived on
+  2026-10-05 with the `boot_info` bridge's test driver (a few dozen lines).
 - **Confidence marks in every technical claim:** `[verified]` (checked here
   against binaries, photos or SDK files), `[reported]` (named source, not
   re-checked), `[inferred]`. Never upgrade a claim without doing the check.
@@ -154,8 +156,8 @@ vendor packages there.
 - Read the device identity (`FM-1_0xx`) from the package or device; never infer
   a version from a filename (the "V13" package identifies as `FM-1_009`).
 - Future firmware code: C/C++11 for JieLi's clang (`-fno-exceptions -fno-rtti`),
-  built against the Apache-2.0 AC79 SDK at V1.1.9 (trap 11); msfa/Synth_Dexed
-  for the engine; keep
+  built against the Apache-2.0 AC79 SDK V1.2.13 libraries (trap 11, with its
+  safeguards); msfa/Synth_Dexed for the engine; keep
   `uboot.boot`, `ota.bin`, `cfg` and the partition layout byte-identical to
   stock in any experimental package until the verifier gate is understood.
 
@@ -198,13 +200,32 @@ vendor packages there.
 10. **Audio is ALNK0 (I2S, `0x12E00`) to an external codec, not the
     `JL_AUDIO` DAC (`0x12F00`)** [reported: Felucca, fm1-nes]. The SDK's
     audio demos and the dev kit's DAC path do not match the FM-1.
-11. **Keep the SDK at V1.1.9.** From V1.2.7, `system.a` carries
-    `sdk_meky_check`, and V1.2.13 adds `sdk_chip_key_verify_v2`, an eFuse key
-    check [verified: SDK strings]. Never put a newer SDK's `uboot.boot`,
-    `wl82loader.bin` or key-checking `system.a` into an FM-1 package, and
-    refuse any package head that is not the device's (Felucca's and SLOOP's
-    carry V1.2.1's `uboot.boot`). Cite Gitee by commit; the GitHub mirrors are
-    stale. JieLi's Linux `isd_download` (V1.2.12+) is a writer: dev kit only.
+11. **The SDK pin is V1.2.13 libraries, never its SPL or loader** (owner's
+    decision, 2026-10-05; `notes/2026-10-05-softkey-efuse.md`). Build against
+    Gitee `release/AC79NN_SDK_V1.2.0` at `e30b1ee` (= tag V1.2.13), pinned by
+    commit; the GitHub mirrors are stale. `system.a` carries `sdk_meky_check`
+    (from V1.2.7) and `sdk_chip_key_verify_v2` (V1.2.13), but the check is
+    **inert on the FM-1**: nothing registers a licence blob, so `_mkey_check`
+    returns at its "nothing registered" branch and the app never touches
+    eFuse [verified: IR of every release]. So do not stub it — leave the
+    vendor code intact and gate the link with `tools/jieli/audit_link.py`
+    (`late_initcall` exactly `[sdk_meky_check]`; no surviving `mkey_check`/
+    `sdk_mkey_lock`/`sdk_chip_key_verify_v2`/`key_check_demo`, no `0x0200012E`
+    stub, no writes to `0x01C80108-0x01C80110` but the SDK's own
+    `mkey_dummy_func` store, IRQ 123 reserved, no SDK key-blob bytes, no
+    eFuse SFR access). **Never ship any V1.2.x `uboot.boot`,
+    `uboot_no_ota.boot`, `wl82loader.bin` or `ota.bin`:** every package must
+    pass `tools/jieli/package_guard.py`, which asserts the stock SPL hash
+    `730e54f0…` and byte-identical `isd_config.ini`/`ota.bin`/`cfg`, and
+    refuses any other SPL or loader (only V1.1.9's SPL is the FM-1's;
+    Felucca's and SLOOP's carry V1.2.1's `uboot.boot`). Link fm1-nes's
+    `boot_info` bridge (`firmware/third_party/fm1-nes/`, Apache-2.0; 6 words
+    copied, words 6-22 zeroed) because V1.2.1+ `boot_info_init` reads to +92
+    while the stock SPL fills only 6 words plus a 32-byte header. The only
+    eFuse-burning code is JieLi's USB download loader `wl82loader.bin`,
+    reached from PC tools, not from anything on the device: never send loader command `0xFC12` or the raw `0xA1` eFuse
+    write, and never pass `-key`/`-key1`/`-mkey` to `isd_download` for the
+    FM-1 or the dev kit (V1.2.12+ `isd_download` is a writer: dev kit only).
 12. **SDK demo power settings are not the FM-1's.** Stock runs VDDIOM 3.2 V,
     VDC14 1.60 V with DCDC, SYSVDD 1.38 V and LVD 2.6 V [reported: fm1-nes
     `board_power.c`, from stock FM-1_010].

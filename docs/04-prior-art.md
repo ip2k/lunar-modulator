@@ -320,8 +320,10 @@ No V16 as of 2026-09-08.
   - **Update, 2026-10-05** (`notes/2026-10-05-community-repos.md` §2.1):
     Gitee is reachable, if flaky, and current to V1.2.13: branch
     `release/AC79NN_SDK_V1.2.0` at `e30b1ee` (2026-06-09) is tag
-    `AC79NN_SDK_V1.2.13_2026-04-20` plus a README change. Our pin stays tag
-    `AC79NN_SDK_V1.1.9_2023-08-01` (`8eae664`). The GitHub mirrors are stale
+    `AC79NN_SDK_V1.2.13_2026-04-20` plus a README change. Our pin stayed tag
+    `AC79NN_SDK_V1.1.9_2023-08-01` (`8eae664`) until the owner moved the
+    libraries to `e30b1ee` later that day (CLAUDE.md trap 11,
+    `notes/2026-10-05-softkey-efuse.md`); V1.1.9's SPL stays the FM-1's. The GitHub mirrors are stale
     (`amitv87` stops at 2024-07; `jeffreywugz` carries V1.0.3), so cite Gitee
     by commit. From V1.2.7, `system.a` carries `sdk_meky_check`, and V1.2.13
     adds `sdk_chip_key_verify_v2` [verified: strings per tag]. V1.2.12 added

@@ -2,11 +2,13 @@
 # tools/jieli/in-container.sh -- the compile check itself, run inside the
 # lunar-jieli-check image by tools/jieli/compile-check.sh. Expects:
 #
-#   /src         engines/, sim/web/ (sources and mk/) and tools/jieli/ of the tree
+#   /src         engines/, sim/web/ (sources and mk/), firmware/ and tools/jieli/
+#                of the tree
 #   /opt/jieli   JieLi's Linux toolchain (the archive's top directory), read-only
-#   /sdk         the AC79 SDK checkout (include_lib/c++ only is needed), read-only
-#   /cxxshim     libc++ 7.0.0's math.h (see compile-check.sh), read-only
-#   /out         results: per-profile objects and logs, sizes, report.json/.md
+#   /sdk         the AC79 SDK V1.2.13 checkout (headers + the libraries
+#                demo_hello links), read-only. Its libc++ ships math.h.
+#   /out         results: per-profile objects and logs, sizes, report.json/.md,
+#                and audit_link.json (tools/jieli/audit_link.py over the objects)
 #
 # Profiles (one full compile each, every object independently, so one
 # failure does not hide the others):
@@ -15,7 +17,7 @@
 #   sdk     -Oz                     the SDK Makefile's own optimisation level
 #   pic     -O2 -ffp-contract=off -fPIC   docs/11 §8 unknown 5
 # All take the target flags of the SDK's apps/demo/demo_hello/board/wl82/
-# Makefile at AC79NN_SDK_V1.1.9 except -flto (bitcode objects have no machine
+# Makefile at AC79NN_SDK_V1.2.13 except -flto (bitcode objects have no machine
 # code to measure), -g and -w. The SDK generates code at link time (LTO), with
 # options on its link line; the code-generation ones are passed here at
 # compile time instead (SDK_CODEGEN). Its link-time -inline-threshold=5, a
@@ -26,21 +28,36 @@ SRC=/src
 OUT=/out
 J=$(nproc 2>/dev/null || echo 4)
 TC=/opt/jieli
-JCC="$TC/common/bin/clang -target pi32v2 -mcpu=r3"
+# V1.2.13's CFLAGS carry -mfprev1 (the FPU revision) and -femulated-tls as
+# plain driver flags; both are in JCC so every profile gets them.
+JCC="$TC/common/bin/clang -target pi32v2 -mcpu=r3 -mfprev1 -femulated-tls"
 
-# The SDK Makefile's CFLAGS (less -flto, -g, -w, -Oz) and the defines and
-# include order its C++ code relies on: libc++ headers, then the C library.
+# The SDK Makefile's CFLAGS (less -flto, -g, -w, -Oz, and the flags now in JCC).
 SDK_FLAGS="-integrated-as -fno-common -fallow-pointer-null -fprefer-gnu-section \
- -Wno-shift-negative-value -Wframe-larger-than=2560 -mllvm -pi32v2-large-program=true \
+ -Wno-shift-negative-value -Wno-invalid-noreturn -Wframe-larger-than=2560 \
+ -mllvm -pi32v2-large-program=true \
  -fms-extensions -fno-unwind-tables -ffunction-sections -fdata-sections -fmessage-length=0 \
- -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -D_LIBCPP_HAS_NO_THREADS -D_LIBCPP_NO_EXCEPTIONS \
- -D_LIBCPP_HAS_NO_ALIGNED_ALLOCATION -D__ELF__ -D__GCC_PI32V2__ -DSUPPORT_MS_EXTENSIONS"
-# From the same Makefile's LFLAGS (--plugin-opt=...): the FPU revision, SIMD,
-# rep memops, it-blocks off and the global-merge window.
-SDK_CODEGEN="-Xclang -target-feature -Xclang +fprev1 -mllvm -pi32v2-enable-simd=true \
+ -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -D__ELF__ -D__GCC_PI32V2__ -DSUPPORT_MS_EXTENSIONS"
+# From the same Makefile's LFLAGS (--plugin-opt=...): SIMD, rep memops,
+# it-blocks off and the global-merge window. The FPU revision is now -mfprev1.
+SDK_CODEGEN="-mllvm -pi32v2-enable-simd=true \
  -mllvm -pi32v2-enable-rep-memop -mllvm -pi32v2-always-use-itblock=false \
  -mllvm -pi32v2-merge-max-offset=4096"
-SDK_INC="-I/sdk/include_lib/c++/include -I/cxxshim -I$TC/pi32v2/include"
+# V1.2.13 include set: the SDK's demo_hello INCLUDES (the C++, driver and
+# system headers a firmware build sees), in the SDK's order. V1.2.13's libc++
+# (version 12) is configured for pthread and ships its own math.h, so no shim
+# is needed; but <memory> and friends pull <__threading_support> ->
+# simple_pthread -> FreeRTOS/FreeRTOS.h -> the wl82 port, which needs the
+# driver and system headers below. The bt/btstack includes demo_hello also
+# lists are left out: our DSP and sim code does not reach them.
+SDK_INC="-I/sdk/include_lib/c++ -I/sdk/include_lib/c++/include \
+ -I/sdk/include_lib/c++/simple_pthread -I/sdk/include_lib/newlib/include \
+ -I/sdk/include_lib -I/sdk/include_lib/driver -I/sdk/include_lib/driver/device \
+ -I/sdk/include_lib/driver/cpu/wl82 -I/sdk/include_lib/system \
+ -I/sdk/include_lib/system/generic -I/sdk/include_lib/system/os \
+ -I/sdk/include_lib/update -I/sdk/include_lib/utils \
+ -I/sdk/include_lib/utils/syscfg -I/sdk/include_lib/utils/event \
+ -I/sdk/include_lib/media -I$TC/pi32v2/include"
 
 PROFILES=(
   "ladder|-O2|-ffp-contract=off"
@@ -128,12 +145,15 @@ for t in i386:-m32 x86_64:-m64; do
     || echo "   fm1-seq $name failed (see $SZ/fm1-seq-$name.log)"
 done
 
-echo "== library symbols: what demo_hello links (lib/r3, the SDK's libc++ and libraries)"
-# The SDK's own libraries are LLVM bitcode; nm reads them through the gold plugin.
+echo "== library symbols: what demo_hello links (V1.2.13 newlib, libc++ and closed libraries)"
+# The SDK's own libraries are LLVM bitcode; nm reads them through the gold
+# plugin. V1.2.13 links newlib and libc++ from the SDK tree, not lib/r3.
 LS=$OUT/libsyms
 rm -rf "$LS" && mkdir -p "$LS"
-for a in "$TC/pi32v2/lib/r3/libc.a" "$TC/pi32v2/lib/r3/libm.a" "$TC/pi32v2/lib/r3/libcompiler-rt.a" \
-         /sdk/include_lib/c++/libstdc++/libcxx.a /sdk/include_lib/c++/libstdc++/libcxxabi.a \
+for a in /sdk/include_lib/newlib/pi32v2-lib/libc.a /sdk/include_lib/newlib/pi32v2-lib/libm.a \
+         /sdk/include_lib/newlib/pi32v2-lib/libcompiler_rt.a \
+         /sdk/include_lib/c++/libstdc++/libc++.a /sdk/include_lib/c++/libstdc++/libc++abi.a \
+         /sdk/include_lib/c++/libstdc++/libemutls.a \
          /sdk/cpu/wl82/liba/{cpu,event,system,cfg_tool,fs,common_lib,update}.a; do
   [ -f "$a" ] || { echo "   missing $a"; continue; }
   "$TC/pi32v2/bin/nm" --plugin "$TC/common/bin/LLVMgold.so" -g --defined-only "$a" 2>/dev/null \
@@ -142,3 +162,36 @@ done
 
 echo "== analysis"
 python3 "$SRC/tools/jieli/analyze.py" "$OUT"
+
+echo "== boot_info bridge on pi32v2 (firmware/third_party/fm1-nes/boot_compat.c)"
+# It runs before RAM is initialised, so its object may call nothing but the
+# SDK's boot_info_init (no memcpy/memset the volatile copy should prevent).
+# Test mode (-DFM1_BOOT_COMPAT_TEST) skips the SDK app_config.h, which only a
+# real app has; the code is the same. Ladder and SDK optimisation levels.
+BB=$OUT/boot-bridge
+rm -rf "$BB" && mkdir -p "$BB"
+for o in O2 Oz; do
+  $JCC $SDK_FLAGS $SDK_CODEGEN $SDK_INC -$o -DFM1_BOOT_COMPAT_TEST -c \
+    "$SRC/firmware/third_party/fm1-nes/boot_compat.c" -o "$BB/boot_compat-$o.o" >"$BB/boot_compat-$o.log" 2>&1 \
+    || { echo "   boot bridge -$o failed to compile (see $BB/boot_compat-$o.log)"; FAIL_AUDIT=1; continue; }
+  "$TC/pi32v2/bin/objdump" -d -mcpu=r3 -mattr=+fprev1 "$BB/boot_compat-$o.o" >"$BB/boot_compat-$o.dis.log" 2>&1 || true
+  und=$("$TC/pi32v2/bin/nm" -u "$BB/boot_compat-$o.o" | awk '{print $NF}' | sort -u | tr '\n' ' ')
+  echo "$und" >"$BB/boot_compat-$o.undefined.log"
+  if [ "$und" = "__real_boot_info_init " ]; then
+    echo "   -$o: calls only __real_boot_info_init"
+  else
+    echo "   -$o: unexpected undefined symbols: $und"; FAIL_AUDIT=1
+  fi
+done
+
+echo "== link-audit (compile-only: over the ladder objects and the boot bridge)"
+# The compile-time half of the key-check safeguards (see audit_link.py): no
+# forbidden key-check symbol or reference, no eFuse-controller access, no SDK
+# key-blob bytes, no use of the 0x0200012E stub, the key-check mailbox or the
+# IRQ-123 vector in our own objects, and no request_irq(123) in our sources.
+# The link-time checks (the late_initcall group, attribution of SDK hits,
+# sdk_meky_check's exact scheduling) run on the real link later.
+python3 "$SRC/tools/jieli/audit_link.py" --objects "$OUT/ladder/obj" --objects "$BB" \
+  --sources "$SRC/engines" --sources "$SRC/sim/web/src" --sources "$SRC/firmware" \
+  --json "$OUT/audit_link.json" || { echo "   LINK AUDIT FAILED (see $OUT/audit_link.json)"; FAIL_AUDIT=1; }
+[ -z "${FAIL_AUDIT:-}" ] || exit 1
