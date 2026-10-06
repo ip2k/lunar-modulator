@@ -18,8 +18,11 @@ their bytes, in sorted path order:
            that the module links (engines/seq/, include/fm1_seq*.h,
            engines/mod/, include/fm1_mod*.h, host/mod_script.*,
            engines/midi_fx/, include/fm1_mfx_host.h, include/fm1_midi_ev.h),
-           so that an engines-only change to them cannot ship a module that
-           behaves differently with only a warning
+           and the metadata export's writer and tables it returns the id of
+           (state/fm1_meta.c, fm1_known.c, fm1_num.*, src/editor_meta.cc and
+           their headers; test/meta.mjs checks the id), so that an
+           engines-only change to them cannot ship a module that behaves
+           differently with only a warning
 
 build-on-aeon.sh records both in www/fm1.wasm.json; tests/test_sim_web.py
 warns when the tree has moved on since, and fails in CI when the sim's own
@@ -36,7 +39,12 @@ SIM_INPUTS = ("sim/web/src", "sim/web/mk", "sim/web/build.sh", "sim/web/test/par
               "sim/web/test/sysex.mjs", "sim/web/www/fm1-wasm.mjs",
               "engines/seq", "engines/include/fm1_seq*.h",
               "engines/mod", "engines/include/fm1_mod*.h", "engines/host/mod_script*",
-              "engines/midi_fx", "engines/include/fm1_mfx_host.h", "engines/include/fm1_midi_ev.h")
+              "engines/midi_fx", "engines/include/fm1_mfx_host.h", "engines/include/fm1_midi_ev.h",
+              "engines/state/fm1_meta.c", "engines/state/fm1_known.c", "engines/state/fm1_num.*",
+              "engines/include/fm1_meta.h", "engines/include/fm1_known.h",
+              "engines/src/editor_meta.cc", "engines/include/fm1_engine_meta.h",
+              "engines/include/fm1_refusal.h", "engines/include/fm1_tele.h",
+              "sim/web/test/meta.mjs")
 
 
 def _files(root, base):

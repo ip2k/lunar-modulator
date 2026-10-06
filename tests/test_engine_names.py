@@ -121,6 +121,9 @@ def test_known_ids(meta):
             assert r["id"] not in built, f"{r['id']} is built: it is no longer {r['reason']}"
         if r["reason"] == "gpl" and r["id"] in built:
             assert meta["build"]["gpl"], f"{r['id']} is GPL, built without the switch"
+        if r["reason"] == "gpl" and meta["build"]["gpl"] and meta["build"]["modules"] == "all":
+            # a `gpl` id is a module the switch-on build has; one no build has is `planned`
+            assert r["id"] in built, f"{r['id']} is `gpl` but no build has it: mark it `planned`"
     # The export lists exactly the ones the build lacks, in the file's order.
     assert [k["id"] for k in meta["known_ids"]] == [i for i in ids if i not in built]
 

@@ -15,10 +15,13 @@
 
 #include "fm1_dx7.h"
 #include "fm1_engine.h"
+#include "fm1_engine_meta.h"
 #include "fm1_known.h"
 #include "fm1_mod.h"
 #include "fm1_num.h"
+#include "fm1_refusal.h"
 #include "fm1_state_caps.h"
+#include "fm1_tele.h"
 #include "../host/mod_script.h"
 
 /* ---- A canonical JSON writer -----------------------------------------------
@@ -231,6 +234,8 @@ static void params(jw_t *w, const fm1_param_t *ps, unsigned n, int all_hidden, u
     jw_f32(w, p->max);
     jw_key(w, "def");
     jw_f32(w, p->def);
+    jw_key(w, "step");                               /* 1.1: the knob's detent */
+    jw_f32(w, fm1_param_is_log(p) ? FM1_PARAM_LOG_DETENT : fm1_param_detent(p));
     jw_key(w, "unit");
     jw_str(w, unit_name(p->unit));
     jw_key(w, "page");
@@ -301,6 +306,30 @@ static void ports(jw_t *w, const char *key, const fm1_port_t *ps, unsigned n, in
   jw_end(w);
 }
 
+/* 1.1: a module's knob pages, by name where the panel names them, else
+ * null (the panel shows the page's number). */
+static void page_names(jw_t *w, const char *id, const fm1_param_t *ps, unsigned n) {
+  const unsigned pages = fm1_param_pages(ps, n);
+  unsigned k;
+  jw_key(w, "page_names");
+  jw_arr(w);
+  for (k = 0; k < pages; ++k) {
+    const char *name = fm1_page_name(id, k);
+    if (name) jw_str(w, name); else jw_null(w);
+  }
+  jw_end(w);
+}
+
+/* 1.1: the licence of the code a module links (an SPDX expression) and
+ * whether it is a GNU licence, which the GPL switch keeps out of a shared
+ * build. */
+static void licence(jw_t *w, const char *spdx) {
+  jw_key(w, "licence");
+  jw_str(w, spdx);
+  jw_key(w, "gpl");
+  jw_bool(w, fm1_licence_is_gpl(spdx));
+}
+
 static void engine(jw_t *w, const fm1_engine_t *e, const fm1_host_t *host) {
   static const struct { uint32_t bit; const char *name; } kWants[] = {
     { FM1_FX_WANT_KEY, "key" }, { FM1_FX_WANT_TEMPO, "tempo" },
@@ -314,13 +343,17 @@ static void engine(jw_t *w, const fm1_engine_t *e, const fm1_host_t *host) {
   jw_str(w, e->name);
   jw_key(w, "kind");
   jw_str(w, e->kind == FM1_KIND_SOUND ? "sound" : e->kind == FM1_KIND_AUDIO_FX ? "audio_fx" : "midi_fx");
+  if (e->kind == FM1_KIND_AUDIO_FX) {                /* 1.1: the group the page lists it under */
+    const fm1_fx_group_t *g = fm1_fx_group_of(e->id);
+    jw_key(w, "group");
+    if (g) jw_str(w, g->id); else jw_null(w);
+  }
   jw_key(w, "credits");
   jw_str(w, e->credits);
   /* The code's licences (fm1_engine_licence, an SPDX expression: MIT unless
    * the licence table says otherwise), so an editor can show a GPL module's
-   * terms as the virtual FM-1's page does. */
-  jw_key(w, "licence");
-  jw_str(w, fm1_engine_licence(e));
+   * terms as the virtual FM-1's page does; from 1.1 with `gpl` beside it. */
+  licence(w, fm1_engine_licence(e));
   jw_key(w, "max_voices");
   jw_int(w, e->max_voices);
   jw_key(w, "per_note");
@@ -344,9 +377,20 @@ static void engine(jw_t *w, const fm1_engine_t *e, const fm1_host_t *host) {
   jw_end(w);
   jw_key(w, "ram");
   jw_int(w, (long long)e->instance_size(host));
+  page_names(w, e->id, e->params, e->n_params);
   jw_key(w, "params");
   params(w, e->params, e->n_params, 0, FM1_ALIAS_ENGINE, e->id);
   jw_end(w);
+}
+
+/* A modulation kind's licence: its row in the licence table (fm1_engine.h),
+ * else MIT, the repository's. */
+static const char *kind_licence(const char *id) {
+  size_t i;
+  for (i = 0; i < fm1_licence_count; ++i) {
+    if (strcmp(fm1_licences[i].id, id) == 0) return fm1_licences[i].spdx;
+  }
+  return "MIT";
 }
 
 static void mod_kind(jw_t *w, const fm1_mod_kind_t *k, const fm1_host_t *host) {
@@ -363,6 +407,7 @@ static void mod_kind(jw_t *w, const fm1_mod_kind_t *k, const fm1_host_t *host) {
   jw_str(w, k->abbr);
   jw_key(w, "credits");
   jw_str(w, k->credits);
+  licence(w, kind_licence(k->id));
   jw_key(w, "flags");
   jw_arr(w);
   if (k->flags & FM1_MOD_KIND_TRANSPORT) jw_str(w, "transport");
@@ -382,6 +427,7 @@ static void mod_kind(jw_t *w, const fm1_mod_kind_t *k, const fm1_host_t *host) {
   } else {
     jw_null(w);
   }
+  page_names(w, k->id, k->params, k->n_params);
   jw_key(w, "params");
   params(w, k->params, k->n_params, 0, FM1_ALIAS_MOD, k->id);
   ports(w, "gates", k->gate_in, k->n_gate_in, 1);
@@ -496,7 +542,148 @@ void fm1_meta_build_default(fm1_meta_build_t *b) {
   b->gpl = fm1_gpl_mods ? 1 : 0;
 }
 
-size_t fm1_meta_write(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx) {
+/* ---- 1.1: what the advanced editor reads besides the parameters ---------------------- */
+
+static void effect_groups(jw_t *w) {
+  size_t i;
+  jw_key(w, "effect_groups");
+  jw_arr(w);
+  for (i = 0; i < fm1_fx_group_count; ++i) {
+    jw_obj(w);
+    jw_key(w, "id");
+    jw_str(w, fm1_fx_groups[i].id);
+    jw_key(w, "name");
+    jw_str(w, fm1_fx_groups[i].name);
+    jw_end(w);
+  }
+  jw_end(w);
+}
+
+/* The {fills} a refusal's detail names, in order, each once. */
+static void fills(jw_t *w, const char *detail) {
+  const char *s = detail;
+  char seen[16][16];
+  unsigned n = 0, k;
+  jw_key(w, "fills");
+  jw_arr(w);
+  while (s && (s = strchr(s, '{')) != NULL) {
+    const char *e = strchr(s, '}');
+    char name[16];
+    size_t len;
+    if (!e) break;
+    len = (size_t)(e - s - 1);
+    if (len && len < sizeof(name)) {
+      memcpy(name, s + 1, len);
+      name[len] = 0;
+      for (k = 0; k < n && strcmp(seen[k], name); ++k) {}
+      if (k == n && n < 16u) {
+        memcpy(seen[n++], name, len + 1);
+        jw_str(w, name);
+      }
+    }
+    s = e + 1;
+  }
+  jw_end(w);
+}
+
+static void refusals(jw_t *w) {
+  static const char *const kReasons[] = { "gpl", "planned", "retired", "list" };
+  size_t i;
+  jw_key(w, "refusals");
+  jw_obj(w);
+  jw_key(w, "codes");
+  jw_arr(w);
+  for (i = 0; i < fm1_refusal_count; ++i) {
+    const fm1_refusal_t *r = &fm1_refusals[i];
+    const char *of = r->of;
+    jw_obj(w);
+    jw_key(w, "code");
+    jw_int(w, r->code);
+    jw_key(w, "name");
+    jw_str(w, r->name);
+    jw_key(w, "of");
+    jw_arr(w);
+    while (of && *of) {                            /* "load,unit" -> ["load", "unit"] */
+      const char *c = strchr(of, ',');
+      const size_t len = c ? (size_t)(c - of) : strlen(of);
+      char part[16];
+      if (len < sizeof(part)) {
+        memcpy(part, of, len);
+        part[len] = 0;
+        jw_str(w, part);
+      }
+      of = c ? c + 1 : NULL;
+    }
+    jw_end(w);
+    jw_key(w, "words");
+    jw_str(w, r->words);
+    jw_key(w, "detail");
+    if (r->detail) jw_str(w, r->detail); else jw_null(w);
+    fills(w, r->detail);
+    jw_end(w);
+  }
+  jw_end(w);
+  jw_key(w, "known");                              /* a known id's reason, in words */
+  jw_arr(w);
+  for (i = 0; i < sizeof(kReasons) / sizeof(kReasons[0]); ++i) {
+    jw_obj(w);
+    jw_key(w, "reason");
+    jw_str(w, kReasons[i]);
+    jw_key(w, "words");
+    jw_str(w, fm1_refusal_known_words(kReasons[i]));
+    jw_end(w);
+  }
+  jw_end(w);
+  jw_end(w);
+}
+
+static void names(jw_t *w, const char *key, unsigned s, unsigned n,
+                  const char *(*name)(unsigned, unsigned, char *, size_t)) {
+  unsigned k;
+  char buf[24];
+  jw_key(w, key);
+  jw_arr(w);
+  for (k = 0; k < n; ++k) jw_str(w, name(s, k, buf, sizeof(buf)));
+  jw_end(w);
+}
+
+static void telemetry(jw_t *w) {
+  unsigned k;
+  jw_key(w, "telemetry");
+  jw_obj(w);
+  jw_key(w, "version");
+  jw_int(w, FM1_TELE_VERSION);
+  jw_key(w, "hz");
+  jw_int(w, FM1_TELE_HZ);
+  jw_key(w, "floats");
+  jw_int(w, fm1_tele_floats());
+  jw_key(w, "mask_words");
+  jw_int(w, FM1_TELE_MASK_WORDS);
+  jw_key(w, "sections");
+  jw_arr(w);
+  for (k = 0; k < FM1_TELE_SECTIONS; ++k) {
+    const fm1_tele_section_t *sec = fm1_tele_section(k);
+    jw_obj(w);
+    jw_key(w, "name");
+    jw_str(w, sec->name);
+    jw_key(w, "unit");
+    jw_str(w, sec->unit);
+    jw_key(w, "offset");
+    jw_int(w, sec->offset);
+    jw_key(w, "mask");
+    jw_int(w, sec->mask);
+    names(w, "rows", k, sec->rows, fm1_tele_row_name);
+    names(w, "items", k, sec->items > 1 ? sec->items : 0u, fm1_tele_item_name);
+    names(w, "fields", k, sec->fields, fm1_tele_field_name);
+    jw_end(w);
+  }
+  jw_end(w);
+  jw_end(w);
+}
+
+/* The document; for_id leaves out `made` and `meta_id` (fm1_meta_id). */
+static size_t write_doc(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx, int for_id,
+                        uint32_t id) {
   static const char *const kRoots[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A",
                                           "A#", "B" };
   /* The project key's scales, by FM1_KEY_* (the church modes since
@@ -522,15 +709,17 @@ size_t fm1_meta_write(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx) 
   jw_str(&w, FM1_META_LUNAR);
   jw_key(&w, "kind");
   jw_str(&w, "metadata");
-  jw_key(&w, "made");
-  jw_open(&w, '{', '}', 1);
-  jw_key(&w, "by");
-  jw_str(&w, b->by);
-  jw_key(&w, "version");
-  jw_str(&w, b->version);
-  jw_key(&w, "commit");
-  jw_str(&w, b->commit);
-  jw_end(&w);
+  if (!for_id) {
+    jw_key(&w, "made");
+    jw_open(&w, '{', '}', 1);
+    jw_key(&w, "by");
+    jw_str(&w, b->by);
+    jw_key(&w, "version");
+    jw_str(&w, b->version);
+    jw_key(&w, "commit");
+    jw_str(&w, b->commit);
+    jw_end(&w);
+  }
 
   jw_key(&w, "build");
   jw_obj(&w);
@@ -544,6 +733,8 @@ size_t fm1_meta_write(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx) 
   jw_int(&w, b->ram_budget);
   jw_key(&w, "gpl");
   jw_bool(&w, b->gpl);
+  jw_key(&w, "modules");                         /* the module list's name (FM1_MODULES) */
+  jw_str(&w, fm1_modules_name);
   jw_end(&w);
 
   jw_key(&w, "engines");
@@ -585,9 +776,13 @@ size_t fm1_meta_write(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx) 
 
   jw_key(&w, "known_ids");
   jw_arr(&w);
-  for (i = 0; i < fm1_known_id_count; ++i) {
-    const fm1_known_id_t *k = &fm1_known_ids[i];
+  /* The modules the list leaves out (reason "list"), then known-ids.json's
+   * ids the build lacks for their own reason. */
+  for (i = 0; i < fm1_left_out_count + fm1_known_id_count; ++i) {
+    const fm1_known_id_t *k = i < fm1_left_out_count ? &fm1_left_out[i]
+                                                     : &fm1_known_ids[i - fm1_left_out_count];
     if (in_build(k->id)) continue;               /* the build has it: nothing to explain */
+    if (i >= fm1_left_out_count && fm1_absent_find(k->id) != k) continue;   /* said above */
     jw_obj(&w);
     jw_key(&w, "id");
     jw_str(&w, k->id);
@@ -638,7 +833,62 @@ size_t fm1_meta_write(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx) 
   jw_int(&w, FM1_STATE_CAP_ITEMS);
   jw_end(&w);
 
+  effect_groups(&w);
+  refusals(&w);
+  telemetry(&w);
+  if (!for_id) {
+    static const char kHex[] = "0123456789abcdef";
+    char hex[9];
+    int k;
+    for (k = 0; k < 8; ++k) hex[k] = kHex[(id >> (28 - 4 * k)) & 15u];
+    hex[8] = 0;
+    jw_key(&w, "meta_id");
+    jw_str(&w, hex);
+  }
+
   jw_end(&w);
   jw_raw(&w, "\n", 1);
   return w.bytes;
+}
+
+/* CRC-32, zlib's (reflected 0xEDB88320), a byte at a time from a table made
+ * at the first call: the whole id takes a few milliseconds, once. */
+static void crc_put(void *ctx, const char *bytes, size_t n) {
+  static uint32_t table[256];
+  static int made;
+  uint32_t c = ~*(uint32_t *)ctx;
+  size_t i;
+  if (!made) {
+    uint32_t k, b;
+    for (k = 0; k < 256u; ++k) {
+      uint32_t r = k;
+      for (b = 0; b < 8u; ++b) r = (r >> 1) ^ (0xEDB88320u & (0u - (r & 1u)));
+      table[k] = r;
+    }
+    made = 1;
+  }
+  for (i = 0; i < n; ++i) c = table[(c ^ (uint8_t)bytes[i]) & 0xFFu] ^ (c >> 8);
+  *(uint32_t *)ctx = ~c;
+}
+
+uint32_t fm1_meta_id_of(const fm1_meta_build_t *b) {
+  uint32_t crc = 0;
+  (void)write_doc(b, crc_put, &crc, 1, 0);
+  return crc;
+}
+
+uint32_t fm1_meta_id(void) {
+  static uint32_t id;
+  static int done;
+  if (!done) {
+    fm1_meta_build_t b;
+    fm1_meta_build_default(&b);
+    id = fm1_meta_id_of(&b);
+    done = 1;
+  }
+  return id;
+}
+
+size_t fm1_meta_write(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx) {
+  return write_doc(b, put, ctx, 0, fm1_meta_id_of(b));
 }

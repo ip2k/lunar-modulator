@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "fm1_engine_meta.h"
+#include "fm1_modules.h"     /* FM1_WITH_RESONATOR: the module list (engines/modules/catalogue.mk) */
 #include "fm1_panel.h"
 #include "mod_script.h"
 
@@ -619,7 +621,12 @@ int fm1_mod_ui_value(const fm1_mod_ui_env_t *env, unsigned pos, unsigned index, 
       strcmp(kd->params[index].name, "Cutoff") != 0) {
     return 0;
   }
+#if FM1_WITH_RESONATOR               /* a list without it links none of its code */
   hz = fm1_mod_resonator_hz(v, env->rate);
+#else
+  hz = 0.0f;                          /* not reached: the kind is not in the registry */
+  (void)v;
+#endif
   if (hz < 9.995f) snprintf(buf, cap, "%.2f Hz", (double)hz);
   else if (hz < 99.95f) snprintf(buf, cap, "%.1f Hz", (double)hz);
   else snprintf(buf, cap, "%.0f Hz", (double)hz);
@@ -1150,18 +1157,10 @@ void fm1_mod_ui_rack_select(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int de
   note_shown(u, env->m);
 }
 
-/* A detent: a hundredth of the range, whole units for a wide integer range
- * (the app's step_of), one entry for a list. */
-static float step_of(const fm1_param_t *p) {
-  float range;
-  if (p->type == FM1_PARAM_ENUM) return 1.0f;
-  range = p->max - p->min;
-  if (range >= 10.0f && p->min == (float)(int)p->min && p->max == (float)(int)p->max) {
-    const float s = (float)(int)(range / 100.0f + 0.5f);
-    return s < 1.0f ? 1.0f : s;
-  }
-  return range / 100.0f;
-}
+/* A detent: a hundredth of the range, whole units for a wide integer range,
+ * one entry for a list (fm1_param_detent, as the app's knobs and the
+ * metadata export). */
+static float step_of(const fm1_param_t *p) { return fm1_param_detent(p); }
 
 void fm1_mod_ui_rack_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int knob, int delta) {
   const fm1_mod_kind_t *kd = kind_at(env->m, u->pos);

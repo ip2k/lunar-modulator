@@ -77,11 +77,20 @@ typedef struct {
     int32_t pulse_index, mute;
 } d9_clap_t;
 
+/* Lunar Modulator: the cymbals are 8-bit mu-law codes, which drum909.c reads through
+ * x0x_mulaw_dec (gen/x0x_drum_samples.h); built with X0X_SMP_INT16 against the int16 header
+ * (tools/gen_drum_samples.py --int16) they are upstream's int16 samples */
+#ifdef X0X_SMP_INT16
+typedef int16_t d9_smp_code_t;
+#else
+typedef uint8_t d9_smp_code_t;
+#endif
+
 typedef struct {
     float decay, volume, pitch, drive;
     int32_t dist_type;
     d9_shape_t shape;
-    const int16_t *buf;
+    const d9_smp_code_t *buf;     /* Lunar Modulator: upstream's const int16_t * */
     uint32_t len;
     uint32_t pos, frac;           /* 32.32 read position */
     uint32_t inc, incf;           /* 32.32 playback rate */

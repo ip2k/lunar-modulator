@@ -562,8 +562,9 @@ three toms (three VCOs at 1 : 1.50 : 2.75, the upper two attack-only), the
 rim shot (a pulse into two resonators) and the clap (four bursts 12 ms
 apart and a room tail), modelled on the machine's circuits; the closed and
 open hi-hat (one recording, choking each other), the crash and the ride
-played from ER-99's recordings, int16 at 44.1 kHz, as the machine played
-its cymbals from ROM. Every voice has a drive of seven types; the kit has
+played from ER-99's recordings at 44.1 kHz, as the machine played its
+cymbals from ROM; here as 8-bit µ-law, half fm1-x0x's int16 (owner's
+decision, 2026-10-06; below, "Flash, and the cymbals"). Every voice has a drive of seven types; the kit has
 an accent and a velocity depth. Web Audio's envelopes run as recursions
 re-anchored at each render call; phases are uint32, sample positions
 32.32, tanh a 1,025-point table. Float, no libm (`fastmath.h`), no
@@ -711,52 +712,62 @@ longer changes a bit, so the output is the unit's to the sample.
 | 64-frame block, 11 voices struck on every 16th at 125 BPM | 7.2 µs (0.50 % of the block) | 18.9 µs |
 | 64-frame block, one kick a beat at 125 BPM | 0.82 µs | |
 | 64-frame block, silent | 0.13 µs | 2.6 µs |
-| Code on pi32v2 (`tools/jieli/compile-check.sh`, the switch on), `-O2` | 23.9 KB (the kit) + 3.2 KB (the wrapper) | |
-| Code at `-Oz` | about 9.1 KB + 2.2 KB | |
-| Read-only data | 237.2 KB: the cymbals 221,098 B, the tanh and pot tables 13,832 B, constants; the wrapper 1.4 KB | |
+| Code on pi32v2 (`tools/jieli/compile-check.sh`, the switch on), `-O2` | 23,872 B (the kit) + 3,298 B (the wrapper) | |
+| Code at `-Oz` | 9,116 B + 2,370 B | |
+| Read-only data | 127,147 B: the cymbals' µ-law codes 110,549 B and their decode table 512 B, the tanh and pot tables 13,832 B, constants; the wrapper 1,391 B (237.2 KB with int16 cymbals, before 2026-10-06) | |
 
 fm1-x0x's own unit, in 64-frame calls, costs 6.3 µs on the same pattern
 (the study, §2.6), so our 16-sample grid adds about 14 %. fm1-x0x's figures
 put a dense 909 at about 12 % of the FM-1's CPU [inferred: the study's
 §2.6]; nothing has run on a JieLi chip.
 
-**Flash, and a budget for the cymbals.** With the switch on, the JieLi
-check's objects total 1,066,648 B of text at `-O2` and 888,857 B at `-Oz`,
-of which Comet Kit is 265.6 KB and 249.9 KB [verified: the check's report,
-2026-10-06, at the merge with PRs #76-#78, 139 of 139 objects in all four
-profiles, link audit PASS]. That is more than the app area of about 852 KB
-in FM-1+VA's layout (docs/11) before JieLi's libraries are linked; without
-the kit it is 639 KB at `-Oz`. With every GPL module merged (Acid Bass,
-Acid Gen, both kits and the three Felucca engines) and PR #79, the objects
-total 1,131,246 B at `-O2` and 934,793 B at `-Oz`, of which the GPL modules
-and their wrappers are 307,475 B at `-Oz` (Comet Kit 249,915 of them), so
-about 627 KB without them [verified: the check's report, 2026-10-06, 143 of
-143 objects in all four profiles, link audit PASS]; after the merge with
-PR #80, 1,131,140 B and 934,855 B, the vendored GPL objects alone 285,744 B
-at `-Oz` [verified: the same check, at the landing review]. The cymbals are the
-one large cost, so this stream proposes:
+**Flash, and the cymbals.** With the cymbals int16, as fm1-x0x stores
+them, Comet Kit was 265.6 KB of text at `-O2` and 249.9 KB at `-Oz`, the one
+large cost among the GPL modules [verified: the check's report, 2026-10-06,
+PR #81]. The owner's decision (2026-10-06): the cymbals become **8-bit
+µ-law** (`third_party/fm1-x0x/UPSTREAM.md`, local change 7), in every build,
+so the simulator plays what a device would. Comet Kit is now 155,708 B at
+`-O2` and 140,024 B at `-Oz` (the kit 136,263 B, the wrapper 3,761 B)
+[verified: `tools/jieli/compile-check.sh`, 2026-10-06, every module, 148 of
+148 objects in all four profiles, link audit PASS]; it is still the largest
+module, and the FM-1's proposed module list leaves it out (DEVELOPERS.md,
+"Choosing the modules").
 
-| Option | Flash for the cymbals | SNR against the int16 [verified 2026-10-06: µ-law and ADPCM by `tests/test_engine_comet_kit.py`, the linear rows by a scratch script] | |
+What the µ-law costs the sound [verified: `tests/test_engine_comet_kit.py`,
+2026-10-06]:
+
+| Measured against fm1-x0x's int16 | Hi-hat | Ride | Crash |
 | --- | --- | --- | --- |
-| int16, as now | 221,098 B | – | fm1-x0x's, bit for bit; the simulator's |
-| **8-bit µ-law (proposed)** | **110,549 B** (+ a 512 B decode table) | **37.8–37.9 dB** (hi-hat, ride, crash) | about a 6-bit converter's full-scale 37.9 dB, and the machine's cymbals were 6-bit PCM [reported: 9W9's README] |
-| 8-bit linear | 110,549 B | 30.6–34.3 dB | |
-| 6-bit linear | 82,912 B | 19.6–22.4 dB | what the machine stored, but these recordings are already through its DAC and filters |
-| IMA ADPCM, 4-bit | 55,275 B | 16.5–18.3 dB | too lossy for noise-like cymbals |
+| The recording, SNR | 37.95 dB | 37.81 dB | 37.80 dB |
+| The recording, the largest error a sample | 583 of 32,768 | 525 | 559 |
 
-So the proposed budget is **128 KB for the 909's cymbals** (µ-law), about
-140 KB for the whole kit at `-Oz`, behind the GPL switch; int16 stays the
-reference until the owner decides (study X2) and the device's flash layout
-is known. A µ-law build would be a third local change, kept to the device
-build so the simulator stays fm1-x0x's to the bit.
+In the kit's own output (`engines/test/drum909_cymbals.c`: each of the four
+sampled voices struck alone on the panel's defaults, at Tune 0, 64 and 127
+and with Drive at 100, through the kit built both ways), the error is 38.5
+to 44.2 dB under each hit, at −54 to −80 dBFS: 39.1–41.5 dB on the closed
+hat, 39.3–42.2 dB on the open hat, 38.5–44.2 dB on the crash and 38.6–43.8
+dB on the ride. By octave, at the defaults, it is 35–47 dB under the
+signal in every octave from 250 Hz to 16 kHz, which holds nearly all of
+the cymbals' energy; it comes within 28–31 dB below 250 Hz (where the four
+voices have a four-hundredth of their energy or less) and within 22–31 dB
+above 16 kHz (a fortieth to a four-hundredth). µ-law's error follows the
+signal, so on noise-like cymbals it sits 35 dB or more under them where
+they sound,
+about what a 6-bit converter gives at full scale, and the machine's own
+cymbals were 6-bit PCM [reported: 9W9's README]. So it should not be
+clearly audible on the hi-hats [inferred: measured, not listened to; a
+listening pass is open below]. The options the study weighed, for the
+record: 8-bit linear 30.6–34.3 dB, 6-bit linear 19.6–22.4 dB, 4-bit IMA
+ADPCM 16.5–18.3 dB [verified 2026-10-06: the same test for ADPCM, a
+scratch script for the linear rows].
 
 **Open questions** (for the owner):
-1. The name, Comet Kit (study X1), and the voicings' names, Classic and
-   Big Beat.
-2. The cymbals (study X2): ER-99's recordings as int16, 8-bit µ-law
-   (proposed above), synthesised metal instead, or ask ER-99's author
-   where they were recorded from first (their provenance is not stated,
-   R1).
+1. The voicings' names, Classic and Big Beat (the module names were
+   approved on 2026-10-06).
+2. The cymbals' provenance (study X2, R1): neither ER-99 nor 9W9 says
+   what they were recorded from; asking ER-99's author is open. Their
+   storage is decided (8-bit µ-law, above); a listening pass on the hats
+   against the int16 is open.
 3. The second pads' voicings (Snare 2, the three extra toms, the pedal
    hat) were set by measurement; a listening pass.
 4. Per-pad values cannot be read back until engine API v4, as for Drums
@@ -4402,14 +4413,58 @@ name, a range or a uid.
   engine and modulation API versions, the rate, the RAM budget and the GPL
   switch.
 
+**Level 1.1** (stage ED0, 2026-10-06; notes/2026-10-06-web-editor.md §6,
+decisions ED4, ED11 and ED16) adds what the advanced editor reads besides
+the parameters. A 1.1 export has all of it; a 1.0 export still validates.
+
+- Per module: `licence` (an engine's since 1.0; a modulation kind's now,
+  MIT unless the licence table says otherwise) and `gpl` (the licence names
+  a GNU licence, so the module is in the build only with the switch on);
+  `page_names`, one entry per knob page as the panel pages it, the panel's
+  name where it names the page (the arpeggiator's PLAY ... SEED, Acid Gen's
+  LINE ... SEED) and null where it numbers it ("2/4 Sound", "1/2 M1"); an
+  audio effect's `group`, as the project page groups the effects.
+- Per parameter: `step`, one knob detent: a list's one entry; a linear
+  FLOAT's hundredth of its range, or whole units on a wide integer range; a
+  LOG one's 0.01 of its position. It is the panel's own rule
+  (`fm1_param_detent`, `include/fm1_engine_meta.h`), which the app's knobs
+  and the rack's now call.
+- At the top: `effect_groups` (Reverbs; Chorus, space and delay; Filters
+  and EQ; Grit and colour; Dynamics; Tests); `refusals`, every code with
+  the words a person reads and the `{fills}` its detail names (1-9 the
+  loader's `FM1_STATE_*`, 10 a unit's arena, 32-41 a cable's, from
+  `include/fm1_refusal.h`; memory only as a percentage of the budget, the
+  owner's rule of 2026-10-06) and a known id's reason in words;
+  `telemetry`, the layout of the live block stage ED1 will fill
+  (`include/fm1_tele.h`: meters per point, gain reduction, voices, module
+  outputs and their per-voice values, each matrix slot's effective value
+  and its per-voice values; 1,443 floats, a subscription bit per row);
+  `meta_id`, CRC-32 of the export less `made` and itself.
+- The page names, groups and refusal words live in `src/editor_meta.cc`
+  beside the registries (in `OUR_SRC` through `mk/editor_meta.mk`), so the
+  panel reads its page names from the same table. A new audio effect needs
+  a group there, or `tests/test_engine_editor_meta.py` fails.
+- `fm1_mod_slot_refusal` (`include/fm1_mod.h`, `mod/mod_plan.c`) says why
+  the planner refuses a slot (NO_SOURCE, NO_DEST, NOLOCK, ENUM_NO_MOD,
+  NO_MOD, VOICE_TO_MONO, VOICE_TO_EFFECT, UNIT_RESERVED, VOICE_FULL,
+  VOICE_ROOM): a question about the plan, which it leaves as it was, so
+  no render changes. VOICE_ROOM cannot happen with today's kinds, whose
+  per-voice copies are a few hundred bytes of the 8 KB arena
+  [verified: `fm1-mod-refusal-test`'s fuzz never reaches it].
+- The virtual FM-1 returns the id (`fm1w_meta_id`), and its build writes
+  the export beside the module as `sim/web/www/meta.json` and checks the
+  two agree (sim/web/README.md).
+
 It is written in the canonical layout of `tests/state_canon.py` as it goes,
 with no heap: members in the schema's order, floats as the shortest decimal
 that reads back to the float32, in ECMAScript's format, by the state
 files' own exact formatter (`state/fm1_num.h`, since the stage-E
 integration; the output did not change by a byte [verified: 2026-10-06]).
-It is for the desktop tools and the simulator (stage A1's `fm1w_meta`),
-never the firmware; `fm1-state meta` prints the same document. 174,232 B for today's registry
-[verified: 2026-10-06]. `engines/state/examples/metadata.json` is the
+It is for the desktop tools and the simulator (its id since stage ED0,
+`fm1w_meta_id`; the document itself in stage A1, `fm1w_meta`), never the
+firmware; `fm1-state meta` prints the same document. 246,238 B for today's
+registry with the GPL switch on, 204,417 B with it off, 19,537 B gzipped
+[verified: 2026-10-06, level 1.1]. `engines/state/examples/metadata.json` is the
 export cut to Shapes, Drums, Filter, the arpeggiator, the LFO and the
 Envelope, byte for byte: the golden file
 (`tests/test_state_schema.py`; `tools/state_examples.py --write` rewrites
@@ -4422,6 +4477,17 @@ it).
   budget (the simulator's `FM1_APP_RAM_BUDGET`) and caps as the headers;
   the float writer equal to the reference on every exponent's edges, knob
   values and 20,000 random float32s.
+- `tests/test_engine_editor_meta.py`: level 1.1's members on every module
+  and parameter; every module of the build present; page names one per
+  panel page; the effect groups the project page's, every audio effect in
+  one; the refusal codes the loader's and the planner's (it runs
+  `fm1-mod-refusal-test`: each reason from a slot built for it, and over
+  32,000 fuzzed slots a reason exactly when the plan refuses), with the
+  screen's words and no memory figure but a percentage; the telemetry
+  layout adds up; `meta_id` is the export's CRC-32; the codes, groups,
+  sections and page names pinned in `tests/fixtures/editor-meta.json`
+  stay put; licences as the licence table, and both builds of the GPL
+  switch (on: the GPL modules marked; off: none, each a `gpl` known id).
 - `tests/test_engine_names.py`: every list's entries pinned in
   `tests/fixtures/enum-names.json` still name their indices (lists only
   grow at their end; a rename keeps the old name as an entry alias); entry
@@ -4489,12 +4555,13 @@ on 2026-10-06:
 | `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON; with `--sound`, `--insert`, `--level` (and `--slots`) up to four sound units, each through its own inserts and level, mixed before the effect chain, as the virtual FM-1's multi-sound plays them (seq.md, Host contract) |
-| `include/fm1_meta.h`, `state/fm1_meta.c` | The parameter metadata export, `fm1-render --meta` ([below](#the-parameter-metadata-export)) |
+| `include/fm1_meta.h`, `state/fm1_meta.c` | The parameter metadata export, `fm1-render --meta`, and its id, `fm1_meta_id` ([below](#the-parameter-metadata-export)) |
+| `include/fm1_engine_meta.h`, `include/fm1_refusal.h`, `include/fm1_tele.h`, `src/editor_meta.cc`, `mk/editor_meta.mk` | What the advanced editor reads beside the registries: knob page names, effect groups and the knob detent (`fm1_param_detent`); the refusal codes and their words; the telemetry block's layout ([below](#the-parameter-metadata-export), level 1.1) |
 | `include/fm1_known.h`, `state/fm1_known.c`, `known-ids.json`, `aliases.json` | The ids a build may lack, with the reason a load gives, and the old names of renamed parameters and list entries; the C file is written by `tools/gen_known.py` |
 | `include/fm1_state_caps.h` | The caps a state reader enforces on hostile input (the state note's §16) |
 | `state/` | The saved state: the record model, the streaming JSON reader, the canonical JSON writer, the binary container and its deflate, the modulation records' applier, the fuzz target, the JSON Schemas and examples ([state/README.md](state/README.md)), the metadata export and the known names |
 | `host/state_tool.c`, `host/render_state.*`, `host/state_clip.*` | `fm1-state`, and fm1-render's and fm1-seq's `--load` and `--save` ([above](#saved-state)) |
-| `test/` | `fm1-param-get-test`, engine API v4's read-back on every engine ([below](#engine-api-v4)); `fm1-meta-number-test`, the export's float writer; `fm1-state-alias-test`, the state readers' old names with a table of its own; the reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
+| `test/` | `fm1-param-get-test`, engine API v4's read-back on every engine ([below](#engine-api-v4)); `fm1-meta-number-test`, the export's float writer; `fm1-mod-refusal-test`, the planner's per-slot reasons (`fm1_mod_slot_refusal`) against its plan; `fm1-state-alias-test`, the state readers' old names with a table of its own; the reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -4561,6 +4628,18 @@ only the registries include it, so a turn rebuilds them and relinks.
   harness in `sim/web/build/native-mit` and fails on any GPL file among
   their objects' dependencies, any symbol a GPL object defines, or any GPL
   module in their lists.
+
+**The module list** (`FM1_MODULES`; `modules/catalogue.mk`; DEVELOPERS.md,
+"Choosing the modules"). `FM1_MODULES ?= all` builds every module the GPL
+switch allows; `default` (`modules/default.list`), any other list file, or
+ids with commas build only those. The list is written to
+`build/gen/fm1_modules.h` (`FM1_WITH_<ID>`) the way the switch is, every
+registry entry and licence row is `FM1_IF(FM1_WITH_<ID>, ...)`, and the
+products (fm1-render, the simulator's builds, the JieLi check's objects)
+leave out the objects of the modules not chosen. `--build-info` and the
+metadata export name the list; the export gives each module left out the
+known-id reason `list`. `tests/test_module_list.py` checks the catalogue's
+objects against their symbols and a smaller build end to end.
 
 The sanitizer run, locally (clang, because the ignorelist is a clang flag):
 

@@ -13,6 +13,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "fm1_meta.h"
+
 static fm1_app_t g_app;
 
 /* Multi-sound (fm1_app.h's fm1_app_unit_*): sound units by
@@ -208,4 +210,43 @@ const uint32_t *fm1w_seq_info(void) {
   g_seq_info[6] = (uint32_t)i.master_tick;
   g_seq_info[7] = (uint32_t)(i.master_tick >> 32);
   return g_seq_info;
+}
+
+/* The metadata export (fm1_meta.h; stage ED0), as this module writes it:
+ * its instance bytes are the 32-bit module's, as its RAM meter counts them,
+ * so it is the module, not a desktop build, that writes the page's
+ * meta.json (build.sh, test/meta.mjs).
+ *
+ * fm1w_meta_id: its id, CRC-32 of the export less `made` and `meta_id`. The
+ * page's static meta.json carries the same id when it was made from this
+ * module, so an editor reads that file only after the two agree. Worked out
+ * at the first call (the whole export through a CRC, a few milliseconds: ask
+ * from a thread that is not playing, the editor's shadow Worker), then
+ * remembered.
+ *
+ * fm1w_meta_read(offset): bytes offset.. of the export (`made` by
+ * "simulator") copied to fm1w_text_buf, as many as fit; returns how many,
+ * 0 past the end. Each call writes the whole export again, so a reader
+ * takes it a buffer at a time, off the audio thread. Stage A1's fm1w_meta
+ * builds on it. */
+uint32_t fm1w_meta_id(void) { return fm1_meta_id(); }
+
+typedef struct meta_window {
+  uint32_t offset, at, n;       /* the window's start, bytes seen, bytes copied */
+} meta_window_t;
+
+static void meta_window_put(void *ctx, const char *bytes, size_t n) {
+  meta_window_t *w = (meta_window_t *)ctx;
+  for (size_t i = 0; i < n; ++i, ++w->at) {
+    if (w->at >= w->offset && w->n < sizeof g_text) g_text[w->n++] = bytes[i];
+  }
+}
+
+unsigned fm1w_meta_read(unsigned offset) {
+  fm1_meta_build_t b;
+  meta_window_t w = { offset, 0, 0 };
+  fm1_meta_build_default(&b);
+  b.by = "simulator";
+  fm1_meta_write(&b, meta_window_put, &w);
+  return w.n;
 }

@@ -19,10 +19,10 @@ Nothing else of either repository is taken.
 
 The 909's generated headers (gen/x0x_drum_samples.h, gen/x0x_drum_tables.h)
 are committed, so no build needs Python: the copy writes them by running the
-vendored script, and --check runs it again and compares (its output is the
-same on macOS, musl and glibc Pythons [verified 2026-10-06]).
+vendored, patched script (the cymbals as 8-bit mu-law, local.patch), and
+--check runs it again and compares.
 
-Seven files carry local changes, kept as local.patch (UPSTREAM.md says what and
+Eight files carry local changes, kept as local.patch (UPSTREAM.md says what and
 why): the copy applies it, and --check applies it to the pinned files and
 compares the result with what is here, byte for byte, so the patch is always
 the whole difference. Needs git and patch. MIT licence, like the rest of this
@@ -52,7 +52,7 @@ X0X_FILES = {
     "firmware/src/dsp/drum909.c": "dsp/drum909.c",         # SPDX: GPL-3.0-only (local.patch)
     "firmware/src/dsp/drum909.h": "dsp/drum909.h",         # SPDX: GPL-3.0-only (local.patch)
     "firmware/src/dsp/drum909_dsp.h": "dsp/drum909_dsp.h", # SPDX: GPL-3.0-only (local.patch)
-    "tools/gen_drum_samples.py": "tools/gen_drum_samples.py",  # SPDX: GPL-3.0-only
+    "tools/gen_drum_samples.py": "tools/gen_drum_samples.py",  # SPDX: GPL-3.0-only (local.patch)
     "assets/909/README.txt": "assets/909/README.txt",      # the recordings' provenance, as X0X states it
     "assets/909/hh.wav": "assets/909/hh.wav",              # ER-99's cymbals via 9W9, GPL-3.0
     "assets/909/ride.wav": "assets/909/ride.wav",

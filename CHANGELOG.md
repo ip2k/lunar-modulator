@@ -9,6 +9,50 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Choose which modules a build has** (the first step toward the browser
+  firmware builder). A firmware image, the desktop renderer or the
+  simulator can be built with only chosen sound engines, effects, MIDI
+  effects and modulation kinds; a proposed list for the FM-1 leaves out
+  Comet Kit, Macro Heavy and the test modules so the image fits its flash.
+  The public simulator still has every module.
+  - For contributors: `FM1_MODULES` (`all`, a list name such as `default`,
+    a list file, or ids with commas; `engines/modules/catalogue.mk`,
+    `engines/modules/default.list`; DEVELOPERS.md, "Choosing the
+    modules"). Registries, `--build-info`, the metadata export (its
+    `build.modules`, known ids with the new reason `list`, its `meta_id`),
+    the JieLi compile check's objects and its report (flash per module and
+    the list against the budget) follow it; CI builds the default list with
+    the GPL switch on and off.
+  - Measured at `-Oz` before `--gc-sections`: every module 845,716 B, the
+    default list 643,282 B (96 % of the 667,648 B left once 200 KiB of the
+    852 KiB app area is kept for JieLi's libraries), 585,349 B with the GPL
+    switch off.
+- **What the advanced editor will read, ready before the editor itself**
+  (stage ED0 of the editor's design). Nothing on the virtual FM-1's screen
+  changes, and it sounds exactly as before.
+  - Every engine, effect, MIDI effect and modulation module is described
+    for an editor: the names of its knob pages where the FM-1's screen
+    names them (the arpeggiator's PLAY to SEED, Acid Gen's LINE to SEED),
+    the group an effect is listed under (Reverbs; Chorus, space and delay;
+    Filters and EQ; Grit and colour; Dynamics), how far one knob click
+    moves each parameter, and its licence, with GPL modules marked.
+  - Every reason something can be refused, with the words the screen uses
+    ("Does not fit", "needs 112% of RAM"). Memory is only ever a percentage
+    of the FM-1's budget, never kilobytes.
+  - The simulator's page carries this as `meta.json` beside its module,
+    and the module can say whether the file belongs to it.
+  - For contributors: the metadata export is at level 1.1
+    (`engines/state/schema/metadata.schema.json`; 1.0 exports still
+    validate): `page_names`, `group`, `gpl`, `step`, a modulation kind's
+    `licence`, and at the top `effect_groups`, `refusals` (codes 1-10 and
+    the planner's 32-41), `telemetry` (the layout of the live block ED1
+    will send) and `meta_id` (CRC-32 of the export less `made`). New in C:
+    `fm1_engine_meta.h` (page names, effect groups, `fm1_param_detent`, the
+    panel's own knob step), `fm1_refusal.h`, `fm1_tele.h`,
+    `fm1_mod_slot_refusal` (why the planner refuses a slot), and the wasm
+    export `fm1w_meta_id`; `fm1-sim-render --meta` and `--page-labels`;
+    `sim/web/build.sh` writes `www/meta.json` and `test/meta.mjs` checks it
+    against the module.
 - **The song list, edited on whole entries, in the sequencer core.** The
   song can now be built and changed entry by entry: insert, delete, move,
   change an entry's scene or repeat count, clear the list, play from any
@@ -1520,6 +1564,24 @@ history.
     Arp, czietz's gist) in the reference table; a note for cloud sessions;
     and a current kick-off prompt. The 2026-09-06 prompt is kept, marked
     historical.
+- **Comet Kit's cymbals take half the flash.** The hi-hats, crash and ride
+  are stored as 8-bit µ-law instead of 16-bit (110 KB instead of 221 KB):
+  37.8 dB of signal to error against the 16-bit recordings, the error
+  following the sound, 35 dB or more under the cymbals where they sound.
+  The simulator plays the same samples. Everything else in the kit is as
+  it was.
+- **The simulator asks the browser for 44,100 Hz** rather than 44,118, and
+  when a browser refuses it, runs at the browser's own rate and says so;
+  Macro, Macro Heavy, Six-Op and Drums then refuse with a message that
+  says the browser would not run the page at 44,100 Hz. The memory meter
+  still counts as the FM-1 would, at 44,118 Hz.
+- **CHAIN's arrow keeps its distance from the destination**
+  ("-100 > ENV3 Sustain"), as MATRIX's mark does.
+- The manual's download size (about 1.3 MB) and sample-rate notes are
+  current; three README screenshots (Six-Op FM, Shapes, FM6) show their
+  engines' three pages.
+- `chop` (Felucca's SLICE) is listed as a planned sound, not a GPL one: no
+  build has it yet.
 - **Memory is shown only as a percentage of what the FM-1 has free.**
   Wherever you see how much memory the sounds, effects, sequencer and
   modulation take, it is now the same whole percentage as the meter in the
@@ -2099,6 +2161,8 @@ history.
     and the bugs it found on the way.
 
 ### Fixed
+- The JieLi compile check now compiles the MIDI effects and their registry
+  (the arpeggiator), which it had left out.
 - **A refused modulation cable no longer marks its destination.** A cable
   the matrix shows as refused (*!*), such as one per voice into an effect,
   carries nothing, but the parameter it aimed at still had its name in the

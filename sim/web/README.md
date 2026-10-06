@@ -29,7 +29,7 @@ the "Power on" button, as browsers require a gesture.
 | | |
 | --- | --- |
 | Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend (with the GPL switch on), Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate, Test Gain, Test Ext. Up to four sounds with two inserts and a level each, mixed into two effect slots as the master bus, then the host's bus limiter, as `fm1-render --slots` runs them; one sound with no insert at full level renders as `fm1-render`'s one engine does, to the bit (below, "Multi-sound") |
-| Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy, Six-Op and Drums run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the four, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
+| Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,100 Hz (owner, 2026-10-06; until then 44,118, then 44,100); if the browser refuses it (the constructor throws, or a context comes back faster than 47,872 Hz), the page takes the browser's own rate and the status line says "the browser refused 44,100 Hz". Headless Chromium runs at 44,100 Hz; with a context that refuses 44,100 and gives 48,000 the page starts on Shapes and says why Macro was refused [verified 2026-10-06: `test/screenshot.mjs`, both paths]. The RAM meter counts every instance at 44,118 Hz, the FM-1's rate, whatever the browser gives (`FM1_APP_RAM_RATE`). Macro, Macro Heavy, Six-Op and Drums run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the four, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
 | Licences | The module's catalogue carries each module's `licence` (SPDX) and `source` from the licence table beside the registry (engines/include/fm1_engine.h, "Licences"), and `build.sh` records the GPL switch the module was built with (`gpl_mods`; `FM1_GPL_MODS`, on unless `build-on-aeon.sh` is run with it 0) and every module whose code is not all MIT (`licences`) in `fm1.wasm.json`. While any of them is GPL, the page names them under the help, offers the module under the GNU GPL, version 3, and links `licences/GPL-3.0.txt` and the source: the repository at the commit the site was built from (`source.json`: the checkout's names the repository, and `tools/manual/build.py` writes the commit into the published copy), or the repository itself when served from a checkout. It reads the record before the power is on and the module's own catalogue after (docs/12 §6; `tests/test_gpl_switch.py`) |
 | Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. A list popup (PRESETS, ALGORITHM, a knob on a list parameter of five entries or more, SHIFT + PRESETS, SHIFT + 16's quantize, the kind and destination pickers, Capture's tempos, the ARP presets) shows the list's title in the context colour, the chosen entry's place (`34/96`) and as many entries as its face holds (`fm1_list_rows`, `src/fm1_panel.h`: MAIN 6 of 18 characters, MID 8 of 27, SMALL 9 of 36; the long lists are MID, the short ones MAIN, which shows them whole), by their full names (`fm1_look_full_name`), the chosen one on the selection bar, on the third row where it can be (`fm1_list_first`), and a triangle above or below the entries where the list goes on (three lines until 2026-10-06, then six in MAIN; the audit note's "Built" section has the table). A confirmation that fits one line is a banner over the page's bottom 28 px (MAIN up to 18 characters, MID up to 27); a refusal keeps the full popup, its reason in the refusal colour. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat) and starts under the page's last row. 4,534 screens pass a layout check, every text box in one of the three faces at its height: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06, 4,534 with the GPL switch on after the GPL modules were merged with PR #80, and 3,645 with it off, main's count; 4,531 with the switch on after they were merged with each other and with PR #79, and 3,642 with it off: every page, list and knob's list of Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend (whose fourth page is glide's four) and Acid Gen in the MIDI-FX slot; 3,794 with Comet Kit's four pages, its pads, drive types and kits before Crater Kit, the Felucca engines and PR #79; 3,538 with Acid Bass's pages and Acid Gen's in the MIDI-FX slot (its pages at their extremes and list entries, and its popups); 3,645 with the switch off, before the GPL modules, with GLO past the budget and M1's Mix under a refused per-voice cable (unmarked) and the same cable live (marked); 3,642 with glide's modes on their own page (Shapes, Six-Op FM and FM6 have a third page), Drums' fourth page with Choke and Kit Decay, the Voice Mode keys' popups and LEDs, and the global page's Key page; 3,543 with the first three before the Key page; 3,507 with the Key page (every root in every scale, F# Mixolydian the longest, and its two lists) before them; 3,408 with glide's pages and voice modes; 3,336 with the ARP pages (134 of them with their knobs' lists) and with RACK's line in SMALL; 3,204 before them, with the knobs' lists of every sound and effect, banners over HOME, FX, GLO and MATRIX and FX mode's chip on every slot; 3,165 with per-voice modulation; 40 of them FM6's user bank (every user slot with a 10-character name, the ALGORITHM popup, SEQ mode and the load popups); 3,104 without them, with Squash and Transient; 2,695 before every list popup at every entry (2,470 recorded here on 2026-10-05), 2,338 before Drums, 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE stub and an emptied slot (600 screens), every ARP page at its defaults, extremes and list entries with its popups and knobs' lists (134), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 741, and Drums' pages and its sound in the others' sweeps in 132 more; since 2026-10-06 every list popup at every entry, each window checked (345: ALGORITHM through every sound's list, Six-Op FM's 96 patches the longest, PRESETS through the engines, ALGORITHM in FX mode through the effects, and the destination picker through every destination; the kind picker's 17 were already there). Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
@@ -544,13 +544,14 @@ the voice modes (`engines/src/glide.h`), the UI audit's screens and their
 polish, and glide's modes, Drums' Choke and Kit Decay, the driven idle paths
 and Squash Mu's makeup, and, with the GPL switch on, the GPL modules
 (Acid Bass, Acid Gen, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend;
-2026-10-06): 102 of 102 scenarios pass,
+2026-10-06), and Comet Kit's cymbals in 8-bit µ-law: 102 of 102 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, two let EQ with Master Sat and Isolator rest past 2 s and
 wake them, and one keeps EQ awake under a zero cable; those three, the
 three Drums, the four FM6, the five glide and the eleven GPL scenarios are
 identical to glibc too, 99 of the 102 in all), and it imports nothing; it
-is 1,331,045 bytes with the GPL modules after the merge with PR #80's
+is 1,273,791 bytes with Comet Kit's cymbals in µ-law (2026-10-06), 1,383,314
+with them int16 after the editor metadata (PR #83), 1,331,045 bytes with the GPL modules after the merge with PR #80's
 memory percentages (1,330,985 at the integration of
 `feature/2026-10-06@gpl-x0x`, the x0x kits and Felucca's engines; Comet
 Kit's cymbals are 221 KB of it), 959,790 bytes before them with glide's
@@ -712,6 +713,21 @@ buffer into FM6's user bank (above); `fm1w_dx7_result()` returns thirteen
 words saying what the file held, and `fm1w_dx7_name(slot)` the name a user
 slot shows.
 
+**The editor's metadata** (stage ED0, 2026-10-06;
+notes/2026-10-06-web-editor.md §6, decision ED4). `fm1w_meta_id()` returns
+the id of the module's parameter metadata export (`engines/include/
+fm1_meta.h`: CRC-32 of the export less `made` and `meta_id`), and
+`fm1w_meta_read(offset)` copies the export from byte `offset` on into the
+text buffer, as much as fits, and returns how many bytes (0 past the end).
+Both write the whole export each time they work (a few milliseconds), so
+they are for a thread that is not playing: the build, and later the
+editor's shadow Worker; the id is then remembered. The build writes the
+export, as the module writes it, to `www/meta.json` beside the module: the
+static file the editor reads its controls from, about 240 KB (under 20 KB
+compressed), checked against `fm1w_meta_id()` before it is trusted. Its
+instance bytes (`ram`) are the 32-bit module's, as the page's RAM meter
+counts them; a 64-bit desktop build counts more.
+
 `fm1_panel.h` holds the panel's buttons, encoders and modes, which the app
 and the sequencer's UI share; `fm1_look.h` the screen's palette, geometry
 and the drawing helpers every mode uses.
@@ -728,9 +744,13 @@ tar and scp; nothing is installed on the host):
 2. `emscripten/emsdk:6.0.10` (`build.sh`): native `fm1-render` and
    `fm1-sim-render` with GCC 13, the screen sweep, `fm1.wasm` and
    `fm1-render.js` with Emscripten 6.0.10, `test/parity.mjs`,
-   `test/sysex.mjs` (the DX7 export, above); then, only if everything
-   passed, `www/fm1.wasm` and its record `www/fm1.wasm.json` (hashes of the
-   module and of the sources, the parity and SysEx results).
+   `test/sysex.mjs` (the DX7 export, above), `test/meta.mjs` (the module
+   writes its metadata export, with the id `fm1w_meta_id` returns, and it is
+   `fm1-sim-render --meta`'s in everything but the instance bytes; asking
+   calls no import and changes no sample); then, only if everything passed,
+   `www/fm1.wasm`, `www/meta.json` and the record `www/fm1.wasm.json`
+   (hashes of the module and of the sources, the parity, SysEx and
+   metadata results).
 3. `mcr.microsoft.com/playwright:v1.63.0-noble`: `test/screenshot.mjs` opens
    the page in headless Chromium, plays it and writes screenshots and a
    report to `build/screenshots/`; with `--readme-screenshots`,
@@ -854,6 +874,15 @@ the effects, SHIFT + PRESETS, the kind picker and the destination picker,
 each at the top of its list, in the middle and at the end, where the
 window (`popup_list` in the summary) must be `fm1_list_first`'s and its six
 entries the list's own; and that the messages stay messages.
+
+`tests/test_sim_editor_meta.py` checks the editor's metadata on the
+simulator's side: every module's pages as the panel's bottom bar names them
+(`fm1-sim-render --page-labels`) are the export's `page_names`, page for
+page (the arpeggiator's PLAY ... SEED, a number elsewhere); `www/meta.json`
+is canonical, validates as level 1.1, was written by the simulator and
+carries its own CRC-32 as its id; the record says the module's
+`fm1w_meta_id` was that id; and it is what these sources write but for the
+instance bytes (a warning when the engines have moved on since the build).
 
 CI also runs these files in its 32-bit job (`-m32`, like pi32v2's
 pointers) and under ASan + UBSan, through the variables below.

@@ -52,6 +52,12 @@ typedef char fm1_mod_view_bar_fits[CONTENT_Y - HL_ABOVE >= TITLE_H ? 1 : -1];
 typedef char fm1_mod_view_marks_fit[FM1_TFT_MID_W(FM1_MOD_UI_ROW_CHARS - 1) + 3 * MARK_GAP <= RIGHT - MARGIN &&
                                     NARROW_COL(1) < NARROW_COL(0) &&
                                     NARROW_COL(0) < FM1_MOD_UI_ROW_CHARS ? 1 : -1];
+/* CHAIN's cable line ("-100 >ENV3 Sustain", fm1_mod_ui.c's cable_text): its
+ * '>' (column CHAIN_MARK) keeps MARK_GAP px more from the destination, as
+ * MATRIX's mark does; a full line still ends by RIGHT. */
+#define CHAIN_MARK 5
+typedef char fm1_mod_view_chain_mark_fits[FM1_TFT_MID_W(FM1_MOD_UI_ROW_CHARS) + MARK_GAP <= RIGHT - MARGIN
+                                          ? 1 : -1];
 typedef char fm1_mod_view_popups_agree[FM1_MOD_UI_POPUP_CHARS == POPUP_CHARS &&
                                        FM1_MOD_UI_BANNER_CHARS == BANNER_CHARS_MID ? 1 : -1];
 
@@ -261,7 +267,8 @@ static uint16_t role_colour(uint8_t role) {
 
 /* One line in the dense face at (MARGIN, y): in `solid` when roles is
  * NULL, else in its roles' colours, as one run (one logged box). A MATRIX
- * row (page 0 or 1; -1 for CHAIN's lines) gets the mark's narrow gaps. */
+ * row (page 0 or 1; -1 for CHAIN's lines) gets the mark's narrow gaps; a
+ * CHAIN cable line, the gap after its '>'. */
 static void role_line(fm1_tft_t *t, int y, const char *s, const uint8_t *roles, uint16_t solid,
                       int page) {
   char seg[2 * (FM1_MOD_UI_ROW_CHARS + 1)];
@@ -269,6 +276,8 @@ static void role_line(fm1_tft_t *t, int y, const char *s, const uint8_t *roles, 
   uint8_t lead[FM1_MOD_UI_ROW_CHARS];
   const int n = (int)strlen(s) < FM1_MOD_UI_ROW_CHARS ? (int)strlen(s) : FM1_MOD_UI_ROW_CHARS;
   const int narrow = page < 0 ? -1 : NARROW_COL(page);
+  const int chain_mark = page < 0 && n > CHAIN_MARK + 1 && s[CHAIN_MARK - 1] == ' ' && s[CHAIN_MARK] == '>'
+                             ? CHAIN_MARK : -1;
   int k, ns = 0, at = 0, gap = 0;
   uint16_t cur = solid;
   for (k = 0; k < n; ++k) {
@@ -278,6 +287,7 @@ static void role_line(fm1_tft_t *t, int y, const char *s, const uint8_t *roles, 
       continue;
     }
     if (page >= 0 && (k == MARK_COL || k == MARK_COL + 1)) gap += MARK_GAP;
+    if (chain_mark >= 0 && k == chain_mark + 1) gap += MARK_GAP;   /* CHAIN: after its '>' */
     if (roles) c = roles[k] != FM1_MOD_UI_ROLE_PLAIN ? role_colour(roles[k]) : k ? cur : C_LABEL;
     if (ns == 0 || c != cur || gap) {
       if (ns) seg[at++] = '\0';

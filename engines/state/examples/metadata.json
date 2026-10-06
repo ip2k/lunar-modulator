@@ -1,5 +1,5 @@
 {
-  "lunar": "1.0",
+  "lunar": "1.1",
   "kind": "metadata",
   "made": {"by": "desktop", "version": "0.0.0", "commit": "0000000"},
   "build": {
@@ -7,7 +7,8 @@
     "mod_api": 2,
     "rate": 44118,
     "ram_budget": 387924,
-    "gpl": true
+    "gpl": true,
+    "modules": "all"
   },
   "engines": [
     {
@@ -16,11 +17,17 @@
       "kind": "sound",
       "credits": "Macro-oscillator from Mutable Instruments Braids by Emilie Gillet (MIT)",
       "licence": "MIT",
+      "gpl": false,
       "max_voices": 12,
       "per_note": true,
       "pads": null,
       "fx_wants": [],
       "ram": 207728,
+      "page_names": [
+        null,
+        null,
+        null
+      ],
       "params": [
         {
           "uid": 1,
@@ -30,6 +37,7 @@
           "min": 0,
           "max": 46,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 1,
           "knob": 1,
@@ -94,6 +102,7 @@
           "min": 0,
           "max": 1,
           "def": 0.5,
+          "step": 0.01,
           "unit": "none",
           "page": 1,
           "knob": 2,
@@ -111,6 +120,7 @@
           "min": 0,
           "max": 1,
           "def": 0.5,
+          "step": 0.01,
           "unit": "none",
           "page": 1,
           "knob": 3,
@@ -128,6 +138,7 @@
           "min": 0,
           "max": 1,
           "def": 0,
+          "step": 0.01,
           "unit": "none",
           "page": 1,
           "knob": 4,
@@ -145,6 +156,7 @@
           "min": 0,
           "max": 1,
           "def": 0.3,
+          "step": 0.01,
           "unit": "none",
           "page": 2,
           "knob": 1,
@@ -162,6 +174,7 @@
           "min": 0,
           "max": 1,
           "def": 0.7,
+          "step": 0.01,
           "unit": "none",
           "page": 2,
           "knob": 2,
@@ -179,6 +192,7 @@
           "min": 1,
           "max": 5000,
           "def": 100,
+          "step": 0.01,
           "unit": "ms",
           "page": 3,
           "knob": 1,
@@ -196,6 +210,7 @@
           "min": 0,
           "max": 2,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 3,
           "knob": 2,
@@ -217,6 +232,7 @@
           "min": 0,
           "max": 2,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 3,
           "knob": 3,
@@ -238,6 +254,7 @@
           "min": 0,
           "max": 1,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 3,
           "knob": 4,
@@ -258,6 +275,7 @@
       "kind": "sound",
       "credits": "Kick, tom, snare and hi-hat voices from Mutable Instruments Plaits by Emilie Gillet (MIT); rim, clap, cowbell and cymbal from this repository (MIT), after Werner, Abel and Smith's TR-808 cowbell and cymbal models",
       "licence": "MIT",
+      "gpl": false,
       "max_voices": 12,
       "per_note": true,
       "pads": {
@@ -266,6 +284,12 @@
       },
       "fx_wants": [],
       "ram": 7648,
+      "page_names": [
+        null,
+        null,
+        null,
+        null
+      ],
       "params": [
         {
           "uid": 1,
@@ -275,6 +299,7 @@
           "min": 0,
           "max": 15,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 1,
           "knob": 1,
@@ -308,6 +333,7 @@
           "min": -24,
           "max": 24,
           "def": 0,
+          "step": 1,
           "unit": "semi",
           "page": 1,
           "knob": 2,
@@ -326,6 +352,7 @@
           "min": 0,
           "max": 1,
           "def": 0.5,
+          "step": 0.01,
           "unit": "none",
           "page": 1,
           "knob": 3,
@@ -344,6 +371,7 @@
           "min": 0,
           "max": 1,
           "def": 0.8,
+          "step": 0.01,
           "unit": "none",
           "page": 1,
           "knob": 4,
@@ -362,6 +390,7 @@
           "min": 0,
           "max": 1,
           "def": 0.5,
+          "step": 0.01,
           "unit": "none",
           "page": 2,
           "knob": 1,
@@ -380,6 +409,7 @@
           "min": 0,
           "max": 1,
           "def": 0.5,
+          "step": 0.01,
           "unit": "none",
           "page": 2,
           "knob": 2,
@@ -398,6 +428,7 @@
           "min": 0,
           "max": 1,
           "def": 0.5,
+          "step": 0.01,
           "unit": "none",
           "page": 2,
           "knob": 3,
@@ -416,6 +447,7 @@
           "min": 0,
           "max": 1,
           "def": 0,
+          "step": 0.01,
           "unit": "none",
           "page": 2,
           "knob": 4,
@@ -434,6 +466,7 @@
           "min": 0,
           "max": 10,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 3,
           "knob": 1,
@@ -464,6 +497,7 @@
           "min": 0,
           "max": 1,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 4,
           "knob": 1,
@@ -484,6 +518,7 @@
           "min": 0,
           "max": 1,
           "def": 0.5,
+          "step": 0.01,
           "unit": "none",
           "page": 4,
           "knob": 2,
@@ -501,6 +536,7 @@
           "min": 0,
           "max": 1,
           "def": 0.7,
+          "step": 0.01,
           "unit": "none",
           "page": 4,
           "knob": 3,
@@ -518,6 +554,7 @@
           "min": 0,
           "max": 5,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 3,
           "knob": 2,
@@ -543,6 +580,7 @@
           "min": 0,
           "max": 1,
           "def": 0.5,
+          "step": 0.01,
           "unit": "none",
           "page": 4,
           "knob": 4,
@@ -558,13 +596,19 @@
       "id": "filter",
       "name": "Filter",
       "kind": "audio_fx",
+      "group": "filter",
       "credits": "This repository (MIT): zero-delay-feedback filters after Zavalishin's The Art of VA Filter Design, Simper's (Cytomic) SVF, Huovilainen's ladder, the Korg35, diode-ladder and Steiner-Parker circuits; vowels from Peterson and Barney (1952). No code taken",
       "licence": "MIT",
+      "gpl": false,
       "max_voices": 0,
       "per_note": false,
       "pads": null,
       "fx_wants": [],
       "ram": 656,
+      "page_names": [
+        null,
+        null
+      ],
       "params": [
         {
           "uid": 1,
@@ -574,6 +618,7 @@
           "min": 0,
           "max": 5,
           "def": 1,
+          "step": 1,
           "unit": "none",
           "page": 1,
           "knob": 1,
@@ -597,6 +642,7 @@
           "min": 20,
           "max": 18000,
           "def": 2000,
+          "step": 0.01,
           "unit": "hz",
           "page": 1,
           "knob": 2,
@@ -614,6 +660,7 @@
           "min": 0,
           "max": 1,
           "def": 0.25,
+          "step": 0.01,
           "unit": "none",
           "page": 1,
           "knob": 3,
@@ -630,6 +677,7 @@
           "min": 0,
           "max": 1,
           "def": 0,
+          "step": 0.01,
           "unit": "none",
           "page": 1,
           "knob": 4,
@@ -646,6 +694,7 @@
           "min": 0,
           "max": 3,
           "def": 0,
+          "step": 0.03,
           "unit": "none",
           "page": 2,
           "knob": 1,
@@ -662,6 +711,7 @@
           "min": 0,
           "max": 1,
           "def": 0,
+          "step": 0.01,
           "unit": "none",
           "page": 2,
           "knob": 2,
@@ -678,6 +728,7 @@
           "min": 0,
           "max": 1,
           "def": 1,
+          "step": 0.01,
           "unit": "none",
           "page": 2,
           "knob": 3,
@@ -694,6 +745,7 @@
           "min": 0,
           "max": 2,
           "def": 1,
+          "step": 0.02,
           "unit": "none",
           "page": 2,
           "knob": 4,
@@ -710,11 +762,21 @@
       "kind": "midi_fx",
       "credits": "Lunar Modulator's arpeggiator (MIT): after Yarns' arpeggiator by Emilie Gillet (MIT), MCL's note orders by Justin Mammarella (BSD-3) and Super Arp's modifiers by Handcrafted Media (MIT); reimplemented, engines/midi_fx/CREDITS.md",
       "licence": "MIT",
+      "gpl": false,
       "max_voices": 0,
       "per_note": false,
       "pads": null,
       "fx_wants": [],
       "ram": 736,
+      "page_names": [
+        "PLAY",
+        "RHYTHM",
+        "CHANCE",
+        "FEEL",
+        "MORE",
+        "KEYS",
+        "SEED"
+      ],
       "params": [
         {
           "uid": 1,
@@ -724,6 +786,7 @@
           "min": 0,
           "max": 21,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 1,
           "knob": 1,
@@ -763,6 +826,7 @@
           "min": 0,
           "max": 16,
           "def": 4,
+          "step": 1,
           "unit": "none",
           "page": 1,
           "knob": 2,
@@ -797,6 +861,7 @@
           "min": 1,
           "max": 200,
           "def": 50,
+          "step": 2,
           "unit": "pct",
           "page": 1,
           "knob": 3,
@@ -813,6 +878,7 @@
           "min": 0,
           "max": 3,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 1,
           "knob": 4,
@@ -834,6 +900,7 @@
           "min": 0,
           "max": 22,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 2,
           "knob": 1,
@@ -874,6 +941,7 @@
           "min": 0,
           "max": 32,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 2,
           "knob": 2,
@@ -890,6 +958,7 @@
           "min": 0,
           "max": 31,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 2,
           "knob": 3,
@@ -906,6 +975,7 @@
           "min": 0,
           "max": 32,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 2,
           "knob": 4,
@@ -922,6 +992,7 @@
           "min": 0,
           "max": 100,
           "def": 100,
+          "step": 1,
           "unit": "pct",
           "page": 3,
           "knob": 1,
@@ -938,6 +1009,7 @@
           "min": 0,
           "max": 3,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 3,
           "knob": 2,
@@ -959,6 +1031,7 @@
           "min": 0,
           "max": 127,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 3,
           "knob": 3,
@@ -975,6 +1048,7 @@
           "min": 0,
           "max": 64,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 3,
           "knob": 4,
@@ -991,6 +1065,7 @@
           "min": 0,
           "max": 4,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 4,
           "knob": 1,
@@ -1013,6 +1088,7 @@
           "min": 0,
           "max": 127,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 4,
           "knob": 2,
@@ -1029,6 +1105,7 @@
           "min": 50,
           "max": 80,
           "def": 50,
+          "step": 1,
           "unit": "pct",
           "page": 4,
           "knob": 3,
@@ -1045,6 +1122,7 @@
           "min": 0,
           "max": 1,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 4,
           "knob": 4,
@@ -1064,6 +1142,7 @@
           "min": 0,
           "max": 2,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 5,
           "knob": 1,
@@ -1084,6 +1163,7 @@
           "min": 0,
           "max": 7,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 5,
           "knob": 2,
@@ -1109,6 +1189,7 @@
           "min": 0,
           "max": 100,
           "def": 0,
+          "step": 1,
           "unit": "pct",
           "page": 5,
           "knob": 3,
@@ -1125,6 +1206,7 @@
           "min": 0,
           "max": 100,
           "def": 0,
+          "step": 1,
           "unit": "pct",
           "page": 5,
           "knob": 4,
@@ -1141,6 +1223,7 @@
           "min": 0,
           "max": 1,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 6,
           "knob": 1,
@@ -1160,6 +1243,7 @@
           "min": 0,
           "max": 1,
           "def": 1,
+          "step": 1,
           "unit": "none",
           "page": 6,
           "knob": 2,
@@ -1179,6 +1263,7 @@
           "min": 0,
           "max": 100,
           "def": 100,
+          "step": 1,
           "unit": "pct",
           "page": 6,
           "knob": 3,
@@ -1195,6 +1280,7 @@
           "min": 0,
           "max": 100,
           "def": 0,
+          "step": 1,
           "unit": "none",
           "page": 6,
           "knob": 4,
@@ -1211,6 +1297,7 @@
           "min": 0,
           "max": 65535,
           "def": 0,
+          "step": 655,
           "unit": "none",
           "page": 7,
           "knob": 1,
@@ -1233,12 +1320,18 @@
         "name": "LFO",
         "abbr": "LFO",
         "credits": "Our own, on fm1_mp's LFO. Shapes after Schwung's lfo_common.h (Charles Vestal, MIT) and Mutable Instruments' Peaks (Emilie Gillet, MIT); modes after Elektron's.",
+        "licence": "MIT",
+        "gpl": false,
         "flags": [
           "transport",
           "poly_ok"
         ],
         "ram": 112,
         "data": null,
+        "page_names": [
+          null,
+          null
+        ],
         "params": [
           {
             "uid": 1,
@@ -1248,6 +1341,7 @@
             "min": 0,
             "max": 1,
             "def": 0.5,
+            "step": 0.01,
             "unit": "none",
             "page": 1,
             "knob": 1,
@@ -1263,6 +1357,7 @@
             "min": 0,
             "max": 7,
             "def": 0,
+            "step": 1,
             "unit": "none",
             "page": 1,
             "knob": 2,
@@ -1288,6 +1383,7 @@
             "min": -1,
             "max": 1,
             "def": 1,
+            "step": 0.02,
             "unit": "none",
             "page": 1,
             "knob": 3,
@@ -1303,6 +1399,7 @@
             "min": 0,
             "max": 4,
             "def": 0,
+            "step": 1,
             "unit": "none",
             "page": 1,
             "knob": 4,
@@ -1323,6 +1420,7 @@
             "min": 0,
             "max": 1,
             "def": 0,
+            "step": 0.01,
             "unit": "none",
             "page": 2,
             "knob": 1,
@@ -1338,6 +1436,7 @@
             "min": 0,
             "max": 14,
             "def": 0,
+            "step": 1,
             "unit": "none",
             "page": 2,
             "knob": 2,
@@ -1368,6 +1467,7 @@
             "min": 0,
             "max": 1,
             "def": 0.5,
+            "step": 0.01,
             "unit": "none",
             "page": 2,
             "knob": 3,
@@ -1403,11 +1503,17 @@
         "name": "Envelope",
         "abbr": "ENV",
         "credits": "Our own, on fm1_mp's multistage envelope after Mutable Instruments' Peaks (Emilie Gillet, MIT): its segments, presets, curves and knob-to-time curve.",
+        "licence": "MIT",
+        "gpl": false,
         "flags": [
           "poly_ok"
         ],
         "ram": 124,
         "data": null,
+        "page_names": [
+          null,
+          null
+        ],
         "params": [
           {
             "uid": 1,
@@ -1417,6 +1523,7 @@
             "min": 0,
             "max": 1,
             "def": 0.1,
+            "step": 0.01,
             "unit": "none",
             "page": 1,
             "knob": 1,
@@ -1432,6 +1539,7 @@
             "min": 0,
             "max": 1,
             "def": 0.5,
+            "step": 0.01,
             "unit": "none",
             "page": 1,
             "knob": 2,
@@ -1447,6 +1555,7 @@
             "min": 0,
             "max": 1,
             "def": 0.7,
+            "step": 0.01,
             "unit": "none",
             "page": 1,
             "knob": 3,
@@ -1462,6 +1571,7 @@
             "min": 0,
             "max": 1,
             "def": 0.5,
+            "step": 0.01,
             "unit": "none",
             "page": 1,
             "knob": 4,
@@ -1477,6 +1587,7 @@
             "min": 0,
             "max": 2,
             "def": 1,
+            "step": 1,
             "unit": "none",
             "page": 2,
             "knob": 1,
@@ -1495,6 +1606,7 @@
             "min": 0,
             "max": 2,
             "def": 0,
+            "step": 1,
             "unit": "none",
             "page": 2,
             "knob": 2,
@@ -1513,6 +1625,7 @@
             "min": 0,
             "max": 1,
             "def": 0,
+            "step": 1,
             "unit": "none",
             "page": 2,
             "knob": 3,
@@ -1530,6 +1643,7 @@
             "min": 0,
             "max": 1,
             "def": 1,
+            "step": 0.01,
             "unit": "none",
             "page": 2,
             "knob": 4,
@@ -1940,6 +2054,7 @@
         "min": -48,
         "max": 48,
         "def": 0,
+        "step": 1,
         "unit": "semi",
         "page": 1,
         "hidden": true,
@@ -1956,6 +2071,7 @@
         "min": 0,
         "max": 2,
         "def": 1,
+        "step": 0.02,
         "unit": "none",
         "page": 1,
         "hidden": true,
@@ -1972,6 +2088,7 @@
         "min": -48,
         "max": 48,
         "def": 0,
+        "step": 1,
         "unit": "semi",
         "page": 1,
         "hidden": true,
@@ -1988,6 +2105,7 @@
         "min": -48,
         "max": 48,
         "def": 0,
+        "step": 1,
         "unit": "semi",
         "page": 1,
         "hidden": true,
@@ -2004,6 +2122,7 @@
         "min": -48,
         "max": 48,
         "def": 0,
+        "step": 1,
         "unit": "semi",
         "page": 1,
         "hidden": true,
@@ -2020,6 +2139,7 @@
         "min": -48,
         "max": 48,
         "def": 0,
+        "step": 1,
         "unit": "semi",
         "page": 1,
         "hidden": true,
@@ -2268,7 +2388,7 @@
     {
       "id": "chop",
       "what": "sound",
-      "reason": "gpl"
+      "reason": "planned"
     }
   ],
   "limits": {
@@ -2288,5 +2408,545 @@
     "number_chars": 32,
     "members": 64,
     "items": 8192
-  }
+  },
+  "effect_groups": [
+    {
+      "id": "reverb",
+      "name": "Reverbs"
+    },
+    {
+      "id": "space",
+      "name": "Chorus, space and delay"
+    },
+    {
+      "id": "filter",
+      "name": "Filters and EQ"
+    },
+    {
+      "id": "colour",
+      "name": "Grit and colour"
+    },
+    {
+      "id": "dynamics",
+      "name": "Dynamics"
+    },
+    {
+      "id": "test",
+      "name": "Tests"
+    }
+  ],
+  "refusals": {
+    "codes": [
+      {
+        "code": 1,
+        "name": "NOT_LUNAR",
+        "of": [
+          "load"
+        ],
+        "words": "Not a Lunar Modulator file",
+        "detail": null,
+        "fills": []
+      },
+      {
+        "code": 2,
+        "name": "TOO_NEW",
+        "of": [
+          "load"
+        ],
+        "words": "Made with a newer Lunar Modulator",
+        "detail": "format {level}; this one reads {reads}",
+        "fills": [
+          "level",
+          "reads"
+        ]
+      },
+      {
+        "code": 3,
+        "name": "UNKNOWN",
+        "of": [
+          "load"
+        ],
+        "words": "Not in this build",
+        "detail": "{name}: {why}",
+        "fills": [
+          "name",
+          "why"
+        ]
+      },
+      {
+        "code": 4,
+        "name": "RATE",
+        "of": [
+          "load",
+          "unit"
+        ],
+        "words": "Cannot run at this rate",
+        "detail": "refuses {rate} Hz",
+        "fills": [
+          "rate"
+        ]
+      },
+      {
+        "code": 5,
+        "name": "RAM",
+        "of": [
+          "load",
+          "unit"
+        ],
+        "words": "Does not fit",
+        "detail": "needs {pct}% of RAM",
+        "fills": [
+          "pct"
+        ]
+      },
+      {
+        "code": 6,
+        "name": "NO_ROOM",
+        "of": [
+          "load",
+          "rack",
+          "cable"
+        ],
+        "words": "No room",
+        "detail": "the {what} is full ({used} of {max})",
+        "fills": [
+          "what",
+          "used",
+          "max"
+        ]
+      },
+      {
+        "code": 7,
+        "name": "TOO_BIG",
+        "of": [
+          "load"
+        ],
+        "words": "Too big to read",
+        "detail": "over the limit for a {kind} file",
+        "fills": [
+          "kind"
+        ]
+      },
+      {
+        "code": 8,
+        "name": "BAD",
+        "of": [
+          "load"
+        ],
+        "words": "Cannot be read",
+        "detail": "line {line}, column {col}: {what}",
+        "fills": [
+          "line",
+          "col",
+          "what"
+        ]
+      },
+      {
+        "code": 9,
+        "name": "STOPPED",
+        "of": [
+          "load"
+        ],
+        "words": "Loading stopped",
+        "detail": null,
+        "fills": []
+      },
+      {
+        "code": 10,
+        "name": "ARENA",
+        "of": [
+          "unit"
+        ],
+        "words": "Does not fit",
+        "detail": "too large for its slot",
+        "fills": []
+      },
+      {
+        "code": 32,
+        "name": "NO_SOURCE",
+        "of": [
+          "cable"
+        ],
+        "words": "No source",
+        "detail": "nothing at {from}",
+        "fills": [
+          "from"
+        ]
+      },
+      {
+        "code": 33,
+        "name": "NO_DEST",
+        "of": [
+          "cable"
+        ],
+        "words": "No destination",
+        "detail": "nothing at {to}",
+        "fills": [
+          "to"
+        ]
+      },
+      {
+        "code": 34,
+        "name": "NOLOCK",
+        "of": [
+          "cable"
+        ],
+        "words": "Cannot be modulated",
+        "detail": "{param} rebuilds the voices",
+        "fills": [
+          "param"
+        ]
+      },
+      {
+        "code": 35,
+        "name": "ENUM_NO_MOD",
+        "of": [
+          "cable"
+        ],
+        "words": "A list it cannot move",
+        "detail": "{param} is a list that takes no cable",
+        "fills": [
+          "param"
+        ]
+      },
+      {
+        "code": 36,
+        "name": "NO_MOD",
+        "of": [
+          "cable"
+        ],
+        "words": "Takes no modulation",
+        "detail": "{param} takes no cable",
+        "fills": [
+          "param"
+        ]
+      },
+      {
+        "code": 37,
+        "name": "VOICE_TO_MONO",
+        "of": [
+          "cable"
+        ],
+        "words": "Per voice into one value",
+        "detail": "poly never reaches mono",
+        "fills": []
+      },
+      {
+        "code": 38,
+        "name": "VOICE_TO_EFFECT",
+        "of": [
+          "cable"
+        ],
+        "words": "Per voice into an effect",
+        "detail": "an effect plays every voice at once",
+        "fills": []
+      },
+      {
+        "code": 39,
+        "name": "UNIT_RESERVED",
+        "of": [
+          "cable"
+        ],
+        "words": "Not a destination yet",
+        "detail": "kept for a later version",
+        "fills": []
+      },
+      {
+        "code": 40,
+        "name": "VOICE_FULL",
+        "of": [
+          "cable"
+        ],
+        "words": "Too many per-voice cables",
+        "detail": "at most {max} parameters per voice",
+        "fills": [
+          "max"
+        ]
+      },
+      {
+        "code": 41,
+        "name": "VOICE_ROOM",
+        "of": [
+          "cable"
+        ],
+        "words": "No room for voices",
+        "detail": "the modules' voices do not fit",
+        "fills": []
+      }
+    ],
+    "known": [
+      {
+        "reason": "gpl",
+        "words": "in the GPL build only"
+      },
+      {
+        "reason": "planned",
+        "words": "not built yet"
+      },
+      {
+        "reason": "retired",
+        "words": "retired in {since}"
+      },
+      {
+        "reason": "list",
+        "words": "left out of this build"
+      }
+    ]
+  },
+  "telemetry": {
+    "version": 1,
+    "hz": 30,
+    "floats": 1443,
+    "mask_words": 4,
+    "sections": [
+      {
+        "name": "meters",
+        "unit": "none",
+        "offset": 0,
+        "mask": 0,
+        "rows": [
+          "snd1",
+          "snd1.fx1",
+          "snd1.fx2",
+          "snd2",
+          "snd2.fx1",
+          "snd2.fx2",
+          "snd3",
+          "snd3.fx1",
+          "snd3.fx2",
+          "snd4",
+          "snd4.fx1",
+          "snd4.fx2",
+          "mix",
+          "fx1",
+          "fx2",
+          "out"
+        ],
+        "items": [],
+        "fields": [
+          "peak",
+          "rms"
+        ]
+      },
+      {
+        "name": "reduction",
+        "unit": "db",
+        "offset": 32,
+        "mask": 16,
+        "rows": [
+          "snd1.fx1",
+          "snd1.fx2",
+          "snd2.fx1",
+          "snd2.fx2",
+          "snd3.fx1",
+          "snd3.fx2",
+          "snd4.fx1",
+          "snd4.fx2",
+          "fx1",
+          "fx2",
+          "limiter"
+        ],
+        "items": [],
+        "fields": [
+          "db"
+        ]
+      },
+      {
+        "name": "voices",
+        "unit": "none",
+        "offset": 43,
+        "mask": 27,
+        "rows": [
+          "v1",
+          "v2",
+          "v3",
+          "v4",
+          "v5",
+          "v6",
+          "v7",
+          "v8",
+          "v9",
+          "v10",
+          "v11",
+          "v12"
+        ],
+        "items": [],
+        "fields": [
+          "sound",
+          "note"
+        ]
+      },
+      {
+        "name": "outs",
+        "unit": "port",
+        "offset": 67,
+        "mask": 39,
+        "rows": [
+          "pos1",
+          "pos2",
+          "pos3",
+          "pos4",
+          "pos5",
+          "pos6",
+          "pos7",
+          "pos8"
+        ],
+        "items": [
+          "out1",
+          "out2",
+          "out3",
+          "out4",
+          "out5",
+          "out6",
+          "out7",
+          "out8"
+        ],
+        "fields": [
+          "value",
+          "min",
+          "max"
+        ]
+      },
+      {
+        "name": "voice_outs",
+        "unit": "port",
+        "offset": 259,
+        "mask": 47,
+        "rows": [
+          "pos1",
+          "pos2",
+          "pos3",
+          "pos4",
+          "pos5",
+          "pos6",
+          "pos7",
+          "pos8"
+        ],
+        "items": [
+          "out1",
+          "out2",
+          "out3",
+          "out4",
+          "out5",
+          "out6",
+          "out7",
+          "out8"
+        ],
+        "fields": [
+          "v1",
+          "v2",
+          "v3",
+          "v4",
+          "v5",
+          "v6",
+          "v7",
+          "v8",
+          "v9",
+          "v10",
+          "v11",
+          "v12"
+        ]
+      },
+      {
+        "name": "dests",
+        "unit": "param",
+        "offset": 1027,
+        "mask": 55,
+        "rows": [
+          "slot1",
+          "slot2",
+          "slot3",
+          "slot4",
+          "slot5",
+          "slot6",
+          "slot7",
+          "slot8",
+          "slot9",
+          "slot10",
+          "slot11",
+          "slot12",
+          "slot13",
+          "slot14",
+          "slot15",
+          "slot16",
+          "slot17",
+          "slot18",
+          "slot19",
+          "slot20",
+          "slot21",
+          "slot22",
+          "slot23",
+          "slot24",
+          "slot25",
+          "slot26",
+          "slot27",
+          "slot28",
+          "slot29",
+          "slot30",
+          "slot31",
+          "slot32"
+        ],
+        "items": [],
+        "fields": [
+          "value"
+        ]
+      },
+      {
+        "name": "voice_dests",
+        "unit": "param",
+        "offset": 1059,
+        "mask": 87,
+        "rows": [
+          "slot1",
+          "slot2",
+          "slot3",
+          "slot4",
+          "slot5",
+          "slot6",
+          "slot7",
+          "slot8",
+          "slot9",
+          "slot10",
+          "slot11",
+          "slot12",
+          "slot13",
+          "slot14",
+          "slot15",
+          "slot16",
+          "slot17",
+          "slot18",
+          "slot19",
+          "slot20",
+          "slot21",
+          "slot22",
+          "slot23",
+          "slot24",
+          "slot25",
+          "slot26",
+          "slot27",
+          "slot28",
+          "slot29",
+          "slot30",
+          "slot31",
+          "slot32"
+        ],
+        "items": [],
+        "fields": [
+          "v1",
+          "v2",
+          "v3",
+          "v4",
+          "v5",
+          "v6",
+          "v7",
+          "v8",
+          "v9",
+          "v10",
+          "v11",
+          "v12"
+        ]
+      }
+    ]
+  },
+  "meta_id": "eff5d1c0"
 }
