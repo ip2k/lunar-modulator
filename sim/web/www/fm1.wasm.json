@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "9d95a4580f579b282c77dae3a22b97fd3cc1e5a8a4ceba07e342af9dd1c5effc",
-  "wasm_bytes": 901950,
+  "wasm_sha256": "ff98599f60ff39fd7e2da54862440c7ffcd4a10aab0bddd35a318193e0896684",
+  "wasm_bytes": 938771,
   "sources_sha256": {
-    "engines": "e01f8a534cfefb2a742c0e6875d3ea52015dbbc1e6bfe08ccbbc1a854ef24278",
-    "sim": "279a61e782c0afaba213cc501ad6bdf887327a0bc176de553309a6b8bf50d127"
+    "engines": "5bf04c2ee739ad6d229d11b996e56a3cea50c5715b2d0fc9dec7b5dcc875a7f5",
+    "sim": "4ec2a7de8cf576e238b40ca47174617aefff20501c6f0dc658ea9fd2f48eda90"
   },
   "engines": "working tree",
-  "built": "2026-10-06T06:19:17Z",
+  "built": "2026-10-06T06:47:31Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 76,
+    "passed": 83,
     "failed": 0,
-    "identical_to_js": 76,
-    "identical_to_musl": 76,
-    "identical_to_glibc": 73,
+    "identical_to_js": 83,
+    "identical_to_musl": 83,
+    "identical_to_glibc": 80,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "dx7_sysex": {
@@ -1598,8 +1598,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 148268,
-        "native64": 161132
+        "wasm32": 148284,
+        "native64": 161148
       }
     },
     {
@@ -1620,8 +1620,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 82444,
-        "native64": 95308
+        "wasm32": 82460,
+        "native64": 95324
       }
     },
     {
@@ -1642,8 +1642,52 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 148300,
-        "native64": 161164
+        "wasm32": 148348,
+        "native64": 161212
+      }
+    },
+    {
+      "name": "idle-eq-sat-wake",
+      "samples": 300002,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 82972,
+        "native64": 95836
+      }
+    },
+    {
+      "name": "idle-isolator-kill-wake",
+      "samples": 282354,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 335236,
+        "native64": 336052
       }
     },
     {
@@ -1686,8 +1730,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 82780,
-        "native64": 95644
+        "wasm32": 82812,
+        "native64": 95676
       }
     },
     {
@@ -1940,6 +1984,144 @@
         "native_dropped": 0
       },
       "panel": "seq/panel-multi-sound.panel"
+    },
+    {
+      "name": "arp-macro-chord",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 147932,
+        "native64": 160796
+      }
+    },
+    {
+      "name": "arp-sequencer-latch",
+      "samples": 317648,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 73628,
+        "native64": 75396
+      },
+      "cmd": "arp/arp-sequencer.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 4,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "arp-multi-sound",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 297948,
+        "native64": 311820
+      }
+    },
+    {
+      "name": "arp-trg",
+      "samples": 317648,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 277852,
+        "native64": 278860
+      },
+      "cmd": "arp/arp-trg.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 2,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "arp-panel",
+      "samples": 414708,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 147932,
+        "native64": 160796
+      },
+      "cmd": "arp/panel-arp.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 24,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "arp/panel-arp.panel"
     }
   ]
 }

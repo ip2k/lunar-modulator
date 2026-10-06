@@ -139,6 +139,17 @@ printed under its table in chapters [5](05-sound-engines.md) and
   and its design follows Movy's. Movy's own core, run unmodified on a
   computer, is used to check Lunar Modulator's, event for event.
 
+## The arpeggiator
+
+- The arpeggiator is this project's own code, after published designs: its
+  loop, rhythms, Euclidean patterns and latch follow the arpeggiator of
+  **Mutable Instruments**' Yarns by **Emilie Gillet** (MIT licence); its
+  note orders and its TRG rate follow MCL's by **Justin Mammarella**
+  (BSD-3-Clause); its seeded, repeatable chances follow Super Arp by
+  **Handcrafted Media** (MIT licence). No code is taken from any of them.
+- The stock FM-1's arpeggio modes, whose names the presets keep, are as
+  **AL-255**'s disassembly reads them.
+
 ## Modulation
 
 - The rack's modules are this project's own code, after published designs,

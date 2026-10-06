@@ -21,8 +21,9 @@
  *                 patch); in FX mode, the effect in the selected slot
  *   KNOB1-4       the four parameters of the current page
  *   FX, SEL, GLO, HOME   FX mode (SEL grabs a slot so SELECT reorders it),
- *                 the global page, home. SAVE and ARP say they are not in
- *                 the simulator yet.
+ *                 the global page, home. SAVE says it is not in the
+ *                 simulator yet.
+ *   ARP           the arpeggiator on the current sound (below)
  *
  * It hosts the sequencer core (engines/include/fm1_seq.h) through the shared
  * host bridge (fm1_seq_host.h), as fm1-render does: script lines and typed
@@ -71,6 +72,28 @@
  * parameters, and the runtime runs over every sound unit's slot
  * (fm1_seq_host_dispatch_slots_ticks).
  *
+ * The arpeggiator (engine API v3's MIDI effects, fm1_mfx_host.h): every
+ * sound unit has one, "arp" (engines/midi_fx/), bypassed until switched on,
+ * in the first slot of the chain in front of it, on the bridge as
+ * fm1-render --mfx runs it. While it is on, the keys, MIDI IN and the
+ * sequencer's notes for that sound go through it; the sequencer still
+ * records the keys as they were played (owner, 2026-10-05), so a recorded
+ * part arpeggiates again on playback.
+ *   ARP tap       on or off for the current sound; switched on, the ARP
+ *                 pages open (FM1_MODE_ARP), switched off there, they close
+ *   ARP held      FM1_APP_ARP_HOLD_S: Latch on (and the arp on), or off while
+ *                 the arp is on and latched
+ *   SHIFT + ARP   the ARP pages, without switching
+ *   ARP pages     SELECT the page (PLAY, RHYTHM, CHANCE, FEEL, MORE, KEYS,
+ *                 SEED), KNOB1-4 its parameters, ALGORITHM the stock FM-1's
+ *                 arp modes as presets (Up, Down, Up/Down, Down/Up, Random,
+ *                 Played); the keys play
+ * Its LED is lit while the current sound's arp is on, and blinks while it
+ * latches. A change of the sound, a panic, a sequencer reset or import
+ * flush it; a bypass flushes it at once; every note-on it sent gets its
+ * note-off. Every change reaches on_mfx, so a native run replays through
+ * fm1-render --mfx.
+ *
  * Multi-sound (the owner's decision of 2026-10-02, replacing docs/15 O10's
  * default; §3.16 has the gestures): up to FM1_APP_SOUNDS sound units at
  * once, each an engine with its own
@@ -106,6 +129,7 @@
 
 #include "fm1_dx7.h"
 #include "fm1_engine.h"
+#include "fm1_mfx_host.h"
 #include "fm1_mix_limiter.h"
 #include "fm1_mod.h"
 #include "fm1_mod_host.h"
@@ -219,6 +243,16 @@ enum {
 #define FM1_APP_MOD_WRITES \
   ((FM1_APP_MAX_FRAMES / FM1_MOD_TICK) * (FM1_APP_EFFECTS * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS))
 #define FM1_APP_MOD_SEED 1u           /* fm1_app_init's runtime; a log records it */
+
+/* The arpeggiator (MIDI effects, engine API v3). One per sound unit, in the
+ * first of its chain's FM1_MFX_SLOTS slots: the owner's design has four
+ * MIDI-effect slots per track (2026-10-05), and the stage keeps room for
+ * them, but the arp is the only MIDI effect so far and the panel fills only
+ * the first. Each instance has its own arena; the RAM meter counts each
+ * arp that is on, and the stage while one is (fm1_app_ram). */
+#define FM1_APP_MFX_BYTES 768u        /* a MIDI effect's arena: the arp takes 736 B */
+#define FM1_APP_ARP_PARAMS 32         /* the arp's parameters, at most */
+#define FM1_APP_ARP_HOLD_S 0.5f       /* ARP held this long latches */
 
 /* What fm1_app_seq_cmd did with a command. */
 enum {
@@ -392,6 +426,19 @@ typedef struct fm1_app {
   float bend[FM1_APP_SOUNDS];     /* each sound unit's pitch bend: the base of
                                     its HOST pitch (PITCH, PITCH2-4; MG9) */
   fm1_mod_ui_t mui;              /* RACK, MATRIX, CHAIN and the gesture */
+
+  /* The arpeggiator: the MIDI effects' stage on the bridge, each sound's
+   * arp's parameters as set, and the ARP pages. */
+  fm1_mfx_t mfx;
+  float arp_value[FM1_APP_SOUNDS][FM1_APP_ARP_PARAMS];
+  int arp_page;
+  int arp_from_mode;             /* the mode the ARP pages were opened from */
+  uint64_t arp_down_at;          /* a->frames when ARP went down */
+  uint8_t arp_down, arp_used, arp_hold_done;
+  /* Native-harness hook: every change of an arp, with the frame of the
+   * block it leads: `param` -1 for on (value 1) or bypassed (0), else the
+   * parameter's index and its new value. NULL in the browser. */
+  void (*on_mfx)(void *ctx, uint64_t frame, int sound, int param, float value);
   /* Native-harness hook: every modulation edit as a line of fm1-render's
    * --mod format (engines/host/mod_script.h), with the frame of the block
    * it leads. NULL in the browser. */
@@ -406,6 +453,7 @@ typedef struct fm1_app {
   unsigned char seq_mem[FM1_APP_SEQ_BYTES] FM1_APP_ALIGN16;
   fm1_seq_ev_t seq_ev[FM1_APP_SEQ_EVENTS];
   unsigned char mod_mem[FM1_APP_MOD_BYTES] FM1_APP_ALIGN16;
+  unsigned char mfx_mem[FM1_APP_SOUNDS][FM1_APP_MFX_BYTES] FM1_APP_ALIGN16;
 } fm1_app_t;
 
 /* Set up at `sample_rate` with 64-frame blocks: no engine loaded, MASTER at
@@ -587,6 +635,36 @@ const fm1_mod_t *fm1_app_mod(const fm1_app_t *a);
 /* The runtime's unit code (fm1_mod.h) for an app unit id (FM1_APP_UNITS):
  * sound units, their inserts and the master slots; -1 out of range. */
 int fm1_app_mod_unit(int unit);
+
+/* ---- The arpeggiator (MIDI effects) ---------------------------------------
+ * `sound` is a sound unit, 0 .. FM1_APP_SOUNDS - 1; `index` an arp
+ * parameter (fm1_app_arp_engine's list, its knob order). */
+
+/* The arp's engine description (a MIDI effect), or NULL. */
+const fm1_engine_t *fm1_app_arp_engine(void);
+
+/* An arp parameter's index by name (case insensitive), or -1. */
+int fm1_app_arp_param_index(const char *name);
+
+/* Whether a sound's arp is on; switching it, 0 (or -1 out of range, or
+ * FM1_APP_SELECT_RAM when it would take the chain past the RAM budget,
+ * with a popup). Bypassing ends its notes at once. An arp takes RAM only
+ * while it is on (fm1_app_ram). */
+int fm1_app_arp_on(const fm1_app_t *a, int sound);
+int fm1_app_arp_set_on(fm1_app_t *a, int sound, int on);
+
+/* A sound's arp parameter: set (clamped, a list's entry rounded) and read. */
+void fm1_app_arp_set_param(fm1_app_t *a, int sound, int index, float value);
+float fm1_app_arp_get_param(const fm1_app_t *a, int sound, int index);
+
+/* The stock FM-1's arp modes as presets (Up, Down, Up/Down, Down/Up,
+ * Random, Played): each sets Mode and Order. The count, a preset's name,
+ * applying one to a sound (0, or -1), and the preset a sound's arp is on
+ * now (-1: none). */
+int fm1_app_arp_preset_count(void);
+const char *fm1_app_arp_preset_name(int preset);
+int fm1_app_arp_preset(fm1_app_t *a, int sound, int preset);
+int fm1_app_arp_preset_of(const fm1_app_t *a, int sound);
 
 /* Redraw the screen if anything on it changed (or the scope is live, at most
  * once per `min_frames` of audio). Returns 1 when a->tft.px was redrawn. */

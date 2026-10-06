@@ -82,11 +82,12 @@ static inline int fm1_list_first(int total, int sel, int rows) {
   return first < 0 ? 0 : first;
 }
 
-/* FM1_MODE_SEQ (from SEQ) and the modulation pages (docs/16 §5, stage MG3:
- * RACK from LFO or ENV, MATRIX from EDIT, CHAIN from SEL in MATRIX). */
+/* FM1_MODE_SEQ (from SEQ), the modulation pages (docs/16 §5, stage MG3:
+ * RACK from LFO or ENV, MATRIX from EDIT, CHAIN from SEL in MATRIX) and the
+ * ARP pages (from ARP). */
 typedef enum {
   FM1_MODE_HOME = 0, FM1_MODE_FX, FM1_MODE_GLOBAL, FM1_MODE_SEQ,
-  FM1_MODE_RACK, FM1_MODE_MATRIX, FM1_MODE_CHAIN
+  FM1_MODE_RACK, FM1_MODE_MATRIX, FM1_MODE_CHAIN, FM1_MODE_ARP
 } fm1_app_mode_t;
 
 #ifdef __cplusplus

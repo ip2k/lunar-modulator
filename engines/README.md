@@ -3160,6 +3160,66 @@ rules; a v2 effect called once per piece; position monotonic and exact.
 fm1-render and the app render a Test Ext transport the same bytes, and the
 parity scenario `api-v3-test-ext-transport` checks the browser's module.
 
+### MIDI effects
+
+`FM1_KIND_MIDI_FX`, reserved since API v1, is live since 2026-10-06, as an
+addition to v3: notes in, notes out, before a sound. Nothing in
+`fm1_engine_t` changed. A MIDI effect's descriptor is an `fm1_midi_fx_t`,
+an `fm1_engine_t` of that kind (its parameters, `create`, `destroy` and
+`set_param` as any engine's; `note_on`, `note_off`, `pitch_bend`, `render`
+and the v2 and v3 extras NULL) followed by `process()`; `fm1_midi_fx_of`
+casts to it. MIDI effects have their own registry (`midi_fx/registry.c`,
+`fm1_midi_fxs`), so the sound and effect lists, and every loop over them,
+stay as they were; `fm1-render --list` prints them after the engines, kind
+`midi_fx`.
+
+- **`process(self, in, n_in, ctx, out, cap)`**, once per effect per block:
+  `in` the block's events (`fm1_midi_ev_t`, `include/fm1_midi_ev.h`:
+  frame, kind, key, velocity), ascending by frame; `ctx` the block's tick
+  frames (96 to the quarter note), its length, the tempo, the transport and
+  the project key (`fm1_midi_fx_ctx_t`); `out` at least
+  `FM1_MIDI_FX_OUT_MIN` (64) events, ascending, note-offs before note-ons
+  at one frame.
+- **The rules:** every note-on sent gets exactly one note-off; a note-off
+  that does not fit is sent at the start of the next call, a note-on that
+  does not fit never; FLUSH ends every sounding note, PANIC also forgets
+  every key, RESET restarts the pattern; time is ticks, never samples, so
+  the output is the same at any block size; no heap, no libm.
+- **The arpeggiator**, `arp` (`midi_fx/arp_engine.c` on the core
+  `midi_fx/fm1_arp.c`), is the first: 25 parameters on seven pages,
+  [midi_fx/README.md](midi_fx/README.md).
+- **The host side** (`include/fm1_mfx_host.h`, `seq/mfx_host.c`, in the
+  sequencer's objects): a chain of up to four effects in front of each of
+  four sound units, on the bridge (`fm1_seq_host_t.mfx`). While a chain
+  has an effect on, the notes for its sound go through it: live notes
+  (`fm1_mfx_live_note`, at the next block's first frame) and the
+  sequencer's (dispatch takes them out of the block, at their frames); a
+  note-off follows its note-on. Dispatch merges the chains' output into the
+  block by frame, so a sound's render splits there and the modulation's
+  hook hears the notes. The ticks are the sequencer's clock as the block
+  began, which runs on at its tempo while stopped (or the stage's own,
+  `fm1_mfx_set_tempo`, without a sequencer); Start reaches the effects as
+  RESET and Stop as FLUSH, at their frames, and each frame where the
+  sequencer starts notes for the sound as one STEP after them (a trig, for
+  RATE TRG). A bypass, a removal or `fm1_mfx_flush` flushes at once, the
+  note-offs to the host's sink. Switching an effect on while others in its
+  chain are on keeps every note-off with its note-on: the effects before it
+  end their notes first, and when it becomes the chain's first effect on,
+  those after it hear every key the chain took let go.
+- **fm1-render:** `--mfx K:ID[:off]`, `--mfx-param K:NAME=VALUE`,
+  `--mfx-param-at K[.J]:T:NAME=VALUE`, `--mfx-on-at K[.J]:T:0|1`,
+  `--log-mfx FILE.jsonl` (what the chains sent, by frame and unit), and
+  `notes_hung` in the summary (engine note-ons still without a note-off at
+  the end). The virtual FM-1 runs the same stage (sim/web/README.md, "The
+  arpeggiator").
+
+Tests [verified, 2026-10-06]: `tests/test_engine_midi_fx.py` (blocks of 1,
+7, 64 and 448 frames, the sequencer's ticks, Start and Stop, a 24-seed fuzz
+with no hung note, note-offs following their note-ons, chains of two and
+switching either effect, a flood of 128 keys, TRG on the sequencer's trigs,
+the flags, no heap, stdio or libm in the stage and the wrapper) and
+`tests/test_sim_arp.py`; parity scenarios `arp-*`.
+
 ### Pad kits
 
 A drum kit plays one sound per note on a run of keys, whatever their
@@ -3194,12 +3254,13 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 
 | Path | What |
 | --- | --- |
-| `include/fm1_engine.h` | The engine API, version 3. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, 16-bit flags, a unit and an abbreviation ([above](#parameters-engine-api-v2-and-v3)); the LOG law ([above](#the-log-law)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the effect extension and pad kits ([above](#engine-api-v3)); the threading contract |
+| `include/fm1_engine.h` | The engine API, version 3. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, 16-bit flags, a unit and an abbreviation ([above](#parameters-engine-api-v2-and-v3)); the LOG law ([above](#the-log-law)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the effect extension, MIDI effects and pad kits ([above](#engine-api-v3)); the threading contract |
 | `include/fm1_math.h` | `fm1_log2f`, `fm1_exp2f`: base-2 logarithm and exponential without libm, the same bits on every build (the LOG law's, and Comp's, DJ Filter's and Tilt's through `src/fx_comp_math.h`) |
 | `include/fm1_fx_host.h`, `seq/fx_host.c` | The effect extension on the host side: the tempo, beats and transport events from the sequencer's clock, and the split renders both hosts share ([below](#engine-api-v3)) |
 | `include/fm1_mod.h`, `include/fm1_mod_host.h`, `mod/` | Modulation (docs/16 stage MG1): a rack of up to 8 modules inside a 32-slot matrix, run every 32 frames on absolute time, with the module kinds LFO, Envelope and Chance, and the glue that runs it as the sequencer bridge's control-rate hook. Built on the primitives (an LFO, a Peaks-style envelope, slew, S&H, a Turing register, a tick clock divider). Heap-free C99, no libm; `fm1-render --mod` hosts it, the simulator does not yet ([mod/README.md](mod/README.md)) |
 | `include/fm1_seq.h`, `seq/` | The sequencer core: a heap-free C99 port of Movy's sequencer, with 4–8 routed tracks ([seq.md](seq.md), docs/13) |
-| `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`. Not wired into the renderer yet ([midi_fx/README.md](midi_fx/README.md)) |
+| `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`; its MIDI effect `arp` (engine API v3) and the MIDI effects' registry ([midi_fx/README.md](midi_fx/README.md), [above](#midi-effects)) |
+| `include/fm1_mfx_host.h`, `seq/mfx_host.c` | MIDI effects on the host side: a chain in front of each sound, the ticks, live and sequencer notes, the merge into the block ([above](#midi-effects)) |
 | `include/fm1_smooth.h` | The SMOOTH ramp every engine runs (above): C99, header-only, no libm |
 | `include/fm1_fx_idle.h` | The idle path of EQ, Isolator and Master Sat: the rest and warm-up times and the decay bound they come from, and the `FM1_FX_IDLE` switch that builds the effects without it ([above](#idle-at-pass-through)) |
 | `include/fm1_mix_limiter.h` | The host's mix-bus limiter and bus guard. Twelve voices started in phase can exceed full scale; the bus holds the output under 0.98, and non-finite samples become silence |

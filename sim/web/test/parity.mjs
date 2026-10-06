@@ -54,6 +54,13 @@
 // modulates from the panel: the harness logs the runtime's state and every
 // edit (.mod, named in the sidecar), which the render legs replay.
 //
+// A scenario with `mfx` puts the arpeggiator (engine API v3's MIDI effect)
+// in front of a sound unit: [K, "arp", [NAME=VALUE...]] is fm1-render's
+// --mfx K:arp with its --mfx-param, and the module's own arp on that unit
+// switched on (fm1w_arp_set_on) with those parameters (fm1w_arp_set_param);
+// `mfx_param_at` (K:T:NAME=VALUE) and `mfx_on_at` (K:T:0|1) change it in
+// the run, first among a block's controls, as fm1-render applies them.
+//
 // A scenario with `sysex` loads DX7 voices into FM6's user bank first (a
 // .syx file under test/, e.g. dx7/lunar-test-bank.syx): fm1-render and the
 // harness get --sysex, and the module gets the file's bytes through its text
@@ -118,6 +125,12 @@ function cliArgs(s) {
   for (const lv of s.levels ?? []) a.push('--level', lv);
   for (const n of s.sound_notes ?? []) a.push('--sound-note', n);
   if (s.mod) a.push('--mod', modPath(s));
+  for (const [k, id, ps] of s.mfx ?? []) {
+    a.push('--mfx', `${k}:${id}`);
+    for (const p of ps) a.push('--mfx-param', `${k}:${p}`);
+  }
+  for (const p of s.mfx_param_at ?? []) a.push('--mfx-param-at', p);
+  for (const p of s.mfx_on_at ?? []) a.push('--mfx-on-at', p);
   return a;
 }
 
@@ -308,6 +321,20 @@ async function renderApp(s) {
     const [k, v] = lv.split(':');
     ex.fm1w_unit_set_level(Number(k), Math.fround(parseFloat(v)));
   }
+  // The arpeggiator: each sound's own, switched on, then its parameters.
+  const arpParam = (name) => {
+    const i = paramOf('arp', name);
+    if (i < 0) throw new Error(`${s.name}: the arp has no parameter ${name}`);
+    return i;
+  };
+  for (const [k, id, ps] of s.mfx ?? []) {
+    if (id !== 'arp') throw new Error(`${s.name}: the module has no MIDI effect ${id}`);
+    if (ex.fm1w_arp_set_on(k, 1) !== 0) throw new Error(`${s.name}: no arp on sound ${k}`);
+    for (const p of ps) {
+      const [n, v] = splitParam(p);
+      ex.fm1w_arp_set_param(k, arpParam(n), v);
+    }
+  }
   ex.fm1w_master(1, 0);
 
   // The sequencer, as fm1-sim-render sets it up for --cmd: an instance at the
@@ -342,6 +369,16 @@ async function renderApp(s) {
   // (cliArgs puts bends first), then --fx-param-at (T:K:NAME=V, K the
   // effect's slot from 1), notes as on/off pairs.
   const controls = [
+    // The arp's, first in a block, as fm1-render applies them.
+    ...(s.mfx_on_at ?? []).map((p) => {
+      const [k, t, v] = p.split(':');
+      return { t: parseFloat(t), arp: Number(k), on: Number(v) !== 0 };
+    }),
+    ...(s.mfx_param_at ?? []).map((p) => {
+      const [k, t] = p.split(':');
+      const [n, v] = splitParam(p.slice(k.length + t.length + 2));
+      return { t: parseFloat(t), arp: Number(k), idx: arpParam(n), v };
+    }),
     ...(s.bends ?? []).map((b) => {
       const [t, st] = b.split(':');
       return { t: parseFloat(t), bend: true, v: Math.fround(parseFloat(st)) };
@@ -386,7 +423,9 @@ async function renderApp(s) {
     const n = Math.min(BLOCK, total - pos);
     for (const c of controls) {
       if (c.done || c.t > now) continue;
-      if (c.button !== undefined) ex.fm1w_button(c.button, c.down);
+      if (c.arp !== undefined && c.on !== undefined) ex.fm1w_arp_set_on(c.arp, c.on ? 1 : 0);
+      else if (c.arp !== undefined) ex.fm1w_arp_set_param(c.arp, c.idx, c.v);
+      else if (c.button !== undefined) ex.fm1w_button(c.button, c.down);
       else if (c.encoder !== undefined) ex.fm1w_encoder(c.encoder, c.delta);
       else if (c.bend) ex.fm1w_pitch_bend(c.v);
       else ex.fm1w_set_param(c.unit ?? 0, c.idx, c.v);

@@ -270,9 +270,18 @@ compiles no upstream code. The host supplies clock ticks or steps; the core
 has no tempo, so its output is the same at any block size. Its note ledger
 gives every note-on exactly one note-off. With octaves walked as one list, it
 plays Yarns' notes and rests step for step, checked against a Python rewrite
-of Yarns' loop [verified: `tests/test_engine_arp.py`]. It is not wired into
-the renderer or the virtual FM-1 yet: that needs the MIDI-effect contract of
-API v2 ([`engines/midi_fx/README.md`](engines/midi_fx/README.md)).
+of Yarns' loop [verified: `tests/test_engine_arp.py`]. Since 2026-10-06 it
+is engine API v3's first MIDI effect, `arp`, which fm1-render (`--mfx`) and
+the virtual FM-1 (ARP: a tap switches it on the current sound and opens its
+seven pages, a hold latches, ALGORITHM steps the stock FM-1's arp modes as
+presets) run in front of a sound on the sequencer's bridge, so the keys,
+MIDI IN and the sequencer's notes go through it, on the sequencer's ticks;
+the sequencer records the keys as played (owner, 2026-10-05). The two hosts
+play the same notes, byte for byte, at any block size [verified:
+`tests/test_engine_midi_fx.py`, `tests/test_sim_arp.py`, the `arp-*` parity
+scenarios] ([`engines/midi_fx/README.md`](engines/midi_fx/README.md),
+[`sim/web/README.md`](sim/web/README.md), "The arpeggiator"; manual
+chapter 4, "Arpeggiator").
 
 ### The virtual FM-1
 
@@ -285,14 +294,15 @@ API v2 ([`engines/midi_fx/README.md`](engines/midi_fx/README.md)).
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
   canvas, its text in three faces (the project's 5×9 at ×2, Spleen 8×16
-  and 6×12). All 3,204 screens of the layout sweep, the sequencer's and
-  modulation's, every list popup at every entry and the knobs' lists
-  included, pass a layout check, with no text cut short and nothing closer
-  than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06].
+  and 6×12). All 3,336 screens of the layout sweep, the sequencer's,
+  modulation's and the arpeggiator's, FM6's user bank, every list popup at
+  every entry and the knobs' lists included, pass a layout check, with no
+  text cut short and nothing closer than 4 px [verified: `fm1-sim-render
+  --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
-  inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC) and
-  modulation (LFO, ENV, EDIT); only SAVE and ARP are still stubs. The user
-  manual describes every control.
+  inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
+  modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); only SAVE is still
+  a stub. The user manual describes every control.
 - **On a phone:** the panel keeps keys 31–35 px wide and no target under
   24 px, and scrolls sideways in its own box.
 - **Self-contained:** the page loads nothing from anywhere else and finds its
@@ -566,15 +576,16 @@ which lands with the plan PR; its stages S0–S7 are named below.
 - **Rough effort:** ongoing; the device drivers are part of I12 (6–10
   sessions).
 
-**Arpeggiator** · *Core built, not wired yet*
-- **Depends on:**
-  - the MIDI-effect slot (`FM1_KIND_MIDI_FX`, reserved [verified:
-    `fm1_engine.h` line 53]) with its API v2 contract: transport and tempo
-    in `fm1_host_t`, frame-stamped events, at least 32 outputs per call;
-  - the shared helpers and the tick clock (see MIDI effects);
-  - its own seeded xorshift generator, never the global `stmlib::Random`
-    that Macro's reference tests rely on [verified:
-    `stmlib/utils/random.h`; options note §2.3].
+**Arpeggiator** · *In the simulator (2026-10-06)*
+- **Done:** the MIDI-effect slot (`FM1_KIND_MIDI_FX` in engine API v3,
+  below) and its tick clock; the arp in fm1-render (`--mfx`) and the
+  virtual FM-1, with the ARP pages, latch, the stock presets and its LED;
+  its own seeded generator, never the global `stmlib::Random` that Macro's
+  reference tests rely on [verified: `stmlib/utils/random.h`; options note
+  §2.3].
+- **Still to do:** locks and routes on
+  its parameters; its step and random value as matrix sources; on the
+  device, the panel drivers and cycle counts (docs/14).
 - **Where it is planned:**
   - options note §2, stage S3: `fm1_arp`, our own C after Yarns'
     `ClockArpeggiator` (MIT: directions, 22 rhythm masks, Euclid, latch),
@@ -584,19 +595,30 @@ which lands with the plan PR; its stages S0–S7 are named below.
     effect, so ARP and SEQ run together);
   - [CHOMPI note](notes/2026-10-01-chompi-evaluation.md) step 3;
   - Deluge and Ansible (GPL) are design references only.
-- **Status:** the core is built and tested on the desktop, not wired
-  ([`engines/midi_fx/`](engines/midi_fx/README.md), 2026-10-02).
-- **Rough effort:** what is left is the slot, the clock feed and the ARP
-  pages [inferred].
+- **Status:** the core since 2026-10-02
+  ([`engines/midi_fx/`](engines/midi_fx/README.md)); in both hosts since
+  2026-10-06 ([`sim/web/README.md`](sim/web/README.md), "The
+  arpeggiator").
+- **Rough effort:** what is left is small: the locks and the sources
+  [inferred].
 
-**MIDI effects** · *Planned*
-- **Depends on:**
-  - the contract in API v2 (docs/13 M2): one `process()` per slot per block
-    on frame-stamped events, with a context holding the block's tick frames,
-    at least 64 outputs and note-offs never dropped;
-  - shared helpers: held-note stack, note ledger, scheduler, scale service,
-    seeded RNG;
-  - the block's tick frames from `fm1_seq`.
+**MIDI effects** · *In progress*
+- **Done (2026-10-06):** the contract in engine API v3, additive (docs/13
+  M2): an `fm1_midi_fx_t` around an `fm1_engine_t` of kind
+  `FM1_KIND_MIDI_FX`, one `process()` per slot per block on frame-stamped
+  events (`fm1_midi_ev_t`), with a context holding the block's tick frames
+  (from `fm1_seq`'s clock, playing or stopped, or the host's tempo), the
+  transport and the project key; at least 64 outputs; note-offs never
+  dropped; FLUSH at Stop, bypass and removal; a STEP at each of the
+  sequencer's trigs for the sound (RATE TRG). The host stage
+  (`engines/include/fm1_mfx_host.h`) keeps up to four slots in front of each
+  sound on the bridge both hosts share, a note-off following its note-on
+  [verified: engines/README.md, "MIDI effects"]. The arpeggiator is the
+  first; the virtual FM-1's panel fills the first slot.
+- **Depends on, for the rest:**
+  - shared helpers: held-note stack, note ledger, scheduler, scale service
+    (the project key is in the context already);
+  - a panel for the other three slots.
 - **Where it is planned:** [docs/12](docs/12-sequencer.md) §5.1;
   [docs/13](docs/13-movy-port.md) §6; the 2026-10-01 MIDI-effects study (to
   be written up in `notes/`).
@@ -847,9 +869,9 @@ modulation source, a MIDI effect, an audio effect, or another kind.
     flags, and `FM1_KIND_MIDI_FX` with its `process()`. Since docs/15 stage
     S7a every parameter has its uid and flags, and since 2026-10-05
     `FM1_ENGINE_API_VERSION` is 3 (16-bit flags, LOG, dB, the effect
-    extension); the MIDI-effect kind is still reserved [verified:
-    `fm1_engine.h`]. An SDK needs that contract settled and versioned first
-    [inferred];
+    extension), and since 2026-10-06 the MIDI-effect kind with its
+    `process()` [verified: `fm1_engine.h`]. An SDK needs those contracts
+    settled and versioned first [inferred];
   - the effects' tempo and beat position: in since API v3, as the per-call
     `fm1_fx_ext_t` rather than fields of `fm1_host_t`; the MOD flag is in
     since S7a;
