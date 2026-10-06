@@ -464,7 +464,7 @@ pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 tables as const data (2026-10-06): 73 of 73 scenarios pass, identical to
 musl and to render.js (six of them turn the effects' switches every 4.4 ms;
 the three Drums and the four FM6 scenarios are identical to glibc too), and
-it imports nothing; it is 837,308 bytes, 813,115 before the user bank and
+it imports nothing; it is 837,480 bytes, 813,115 before the user bank and
 the const tables, 786,256 before FM6,
 765,189 before Drums since the lab switch went (790,801
 with Drums and the switch's second code path, 769,693 with the switch

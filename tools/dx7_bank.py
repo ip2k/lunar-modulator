@@ -36,7 +36,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = ROOT / "engines" / "src" / "dx7_bank.h"
 USER_SLOTS = 32
-# The simulator's "Load DX7 patches" tests (sim/web/test/dx7/README.md): the
+# The simulator's "Load DX7 patches" tests (sim/web/README.md, "DX7 patches"): the
 # test bank as one 32-voice dump, and the same voices as 32 single-voice
 # dumps in one file.
 TEST_DIR = ROOT / "sim" / "web" / "test" / "dx7"
