@@ -249,8 +249,12 @@ static void draw_track(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_s
     }
   } else if (snd->e && snd->model >= 0) {
     char v[24];
+    /* The model, in the context colour, by its full name where the line
+     * holds it (D9: "Phase Distortion", as HOME's context line). */
+    const char *full;
     fm1_look_value(&snd->e->params[snd->model], snd->value[snd->model], v, sizeof v);
-    fm1_tft_text(t, MARGIN, HINT_Y, v, LINE_CHARS, SCALE, C_CONTEXT);   /* the model: context */
+    full = fm1_look_full_name(v);
+    fm1_tft_text(t, MARGIN, HINT_Y, strlen(full) <= LINE_CHARS ? full : v, LINE_CHARS, SCALE, C_CONTEXT);
   }
 }
 
