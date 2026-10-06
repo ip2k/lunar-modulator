@@ -1196,6 +1196,33 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **The modulation pages spell things out, in colour.** The matrix shows
+  nine cables instead of seven, in a smaller, sharper typeface, with
+  destinations by their full names (*S1 Timbre*, *M2 Ping-pong*, *ENV3
+  Gate* instead of *S1Tmbre*, *M2PngPg*, *ENV3Gte*): the source is in the
+  modulation colour (light blue-green), the mark grey, the destination and
+  amount white, and a sound's *S1* to *S4* in that sound's colour. Page B
+  names the curve and the polarity in full. The chain shows ten lines in
+  the same colours. The rack's cells show their modules' outputs in the
+  modulation colour, a bar under a cell marks the one shown, and the line
+  under them reads *LFO6  2 out  7 in* instead of *LFO6 >2 <7*. The
+  destination picker no longer cuts names short, and the gesture's popup
+  says *LFO1 > S1 Timbre*.
+- **A modulated parameter keeps its whole name.** Its name turns the
+  modulation colour instead of shrinking to make room for a gold diamond
+  (*Brightness*, not *Bright*), its range bracket is in that colour too,
+  and the tick at its value now is white instead of red (red means an
+  error or a recording).
+- **The sequencer's screens.** The tempo reads *120 BPM* (decimals only
+  when it has them). The eight tracks on the status line are larger and
+  take the colour of the sound each plays (grey for MIDI out); the focused
+  track's cell is taller and a muted track's hollow, which read without
+  colour too. Page headings (*Step 7*, *Lock step 6*, *Set: all tracks*)
+  and the model are rose, hints white, and gold is left to held steps,
+  locks, lanes and the count-in. While a knob turns, the other knobs' bars
+  dim. SHIFT's shortcuts and the lock lanes use the smaller typeface, the
+  shortcuts in words (*Metronome off*, *Full velocity off*, *Clip quantize
+  0%*) and the lanes with longer names.
 - **The simulator page's highlights follow the screen's colours.** The
   keyboard focus ring, links, the tagline and the help's headings are lilac
   (the colour the screen uses for what is selected); the focus ring used to
