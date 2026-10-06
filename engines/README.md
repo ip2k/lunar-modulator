@@ -277,7 +277,7 @@ lone hit is a base change, a pitch offset is a bend, an offset reaches only
 its hit, a new hit starts at none, NaN, infinities, ignored indices and
 silent keys, extremes finite on every model and kit). The engine also runs
 through `tests/test_engine_host.py`, `test_engine_params.py` and
-`test_engine_smooth.py` with every other engine, and its two parity
+`test_engine_smooth.py` with every other engine, and its three parity
 scenarios through the virtual FM-1. Also run [verified 2026-10-05, in
 containers on the build host]: the Drums, host, smooth and per-note tests
 under ASan and UBSan (clang 19.1, no report) and in a 32-bit build (GCC
