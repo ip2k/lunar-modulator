@@ -15,6 +15,15 @@
  *       ALGORITHM, KNOB1..KNOB4)
  *   --select T:UNIT:ID  load engine ID (or - to empty an effect slot) into
  *                       unit 0..2 at time T, as the page's dropdowns do
+ *   --sysex FILE        DX7 voices from a .syx file into FM6's user bank
+ *                       (fm1_app_dx7_load), after --engine is loaded and
+ *                       before its --param values, as fm1-render --sysex
+ *                       loads them; several in order
+ *   --sysex-play FILE   the same, then as the page does after a load: the
+ *                       current sound plays the first voice loaded
+ *                       (fm1_app_dx7_play; becomes FM6 if it is not). The
+ *                       summary gets "dx7": each file's result and the 32
+ *                       user slots' names as the Patch list shows them
  *   --screen FILE.ppm   the screen after the render, as a PPM image
  *   --screens DIR       draw every page of every engine and effect at its
  *                       defaults, minima, maxima and list values, plus the
@@ -156,7 +165,7 @@ static void usage(void) {
           "       [--note T:KEY:VEL:DUR] [--bend T:ST] [--param-at T:NAME=V]\n"
           "       [--fx-param-at T:K:NAME=V]\n"
           "       [--key T:KEY:VEL:DUR] [--button T:NAME[:DUR]] [--turn T:ENC:DELTA]\n"
-          "       [--select T:UNIT:ID|-]\n"
+          "       [--select T:UNIT:ID|-] [--sysex FILE.syx]... [--sysex-play FILE.syx]\n"
           "       [--master P] [--seconds S] [--rate HZ] [--out F.wav] [--screen F.ppm]\n"
           "       [--cmd FILE] [--seq FILE.movy1] [--tracks N] [--route T:engine|T:midi:CH]...\n"
           "       [--events N] [--log-events FILE.jsonl] [--log-cmds FILE.verbs]\n"
@@ -521,6 +530,104 @@ static void sweep_unit(int unit, const char *dir) {
   }
 }
 
+/* ---- --screens: FM6's user bank (the page's "Load DX7 patches") ------- */
+
+static void expect(int ok, const char *what);
+
+/* A single-voice dump (VCED, 163 bytes) of a plain voice: the first
+ * operator alone at ratio `coarse`, named `name` (padded to 10). */
+static size_t dx7_vced(uint8_t *m, const char *name, int coarse) {
+  uint8_t *d = m + 6;
+  unsigned sum = 0;
+  size_t n = strlen(name);
+  m[0] = 0xF0; m[1] = 0x43; m[2] = 0x00; m[3] = 0x00; m[4] = 0x01; m[5] = 0x1B;
+  memset(d, 0, FM1_DX7_VCED_BYTES);
+  for (int op = 0; op < 6; ++op) {          /* stored sixth first */
+    uint8_t *o = d + 21 * op;
+    for (int i = 0; i < 4; ++i) {
+      o[i] = 99;
+      o[4 + i] = i == 3 ? 0 : 99;
+    }
+    o[8] = 39;                              /* break point C3 */
+    o[16] = op == 5 ? 99 : 0;               /* output level: the first operator only */
+    o[18] = (uint8_t)coarse;
+    o[20] = 7;                              /* detune: none */
+  }
+  for (int i = 0; i < 4; ++i) { d[126 + i] = 99; d[130 + i] = 50; }   /* pitch EG: flat */
+  d[136] = 1; d[137] = 35; d[141] = 1; d[143] = 3; d[144] = 24;       /* LFO, transpose */
+  for (size_t i = 0; i < FM1_DX7_NAME_BYTES; ++i) d[145 + i] = (uint8_t)(i < n ? name[i] : ' ');
+  for (unsigned i = 0; i < FM1_DX7_VCED_BYTES; ++i) sum += d[i];
+  m[6 + FM1_DX7_VCED_BYTES] = (uint8_t)((0x80u - (sum & 0x7Fu)) & 0x7Fu);
+  m[7 + FM1_DX7_VCED_BYTES] = 0xF7;
+  return FM1_DX7_VCED_BYTES + 8u;
+}
+
+/* Every user slot loaded with a 10-character name (the longest a voice
+ * has) and shown: HOME's model line and Patch row at each, the ALGORITHM
+ * popup, SEQ mode's hint line; the load popups for one voice, 32, two runs
+ * that wrap past User 32, and both refusals. */
+static void dx7_screens(const char *dir) {
+  static uint8_t file[32 * (FM1_DX7_VCED_BYTES + 8u)];
+  char name[64], voice[16];
+  size_t len = 0;
+  int n;
+  fm1_app_select(&g_app, 0, fm1_app_find("dx7"));
+  g_app.mode = FM1_MODE_HOME;
+  g_app.page = 0;
+  g_app.dx7.next = 0;
+  for (int k = 0; k < 32; ++k) {
+    snprintf(voice, sizeof voice, "WIDE NAM%02d", k + 1);
+    len += dx7_vced(file + len, voice, 1 + k % 4);
+  }
+  n = fm1_app_dx7_load(&g_app, file, len, NULL);
+  expect(n == 32 && g_app.dx7.next == 0, "32 single voices did not fill User 1-32");
+  check_screen("dx7-popup-loaded-32", dir, 1);
+  g_app.popup_lines = 0;
+  for (int k = 0; k < 32; ++k) {
+    expect(strcmp(fm1_app_dx7_name(&g_app, (unsigned)k), "") != 0 &&
+           strlen(fm1_app_dx7_name(&g_app, (unsigned)k)) == 10, "a user slot's name");
+    fm1_app_set_param(&g_app, 0, g_app.dx7.patch, (float)(FM1_APP_DX7_PATCHES - 32 + k));
+    snprintf(name, sizeof name, "dx7-home-user-%d", k + 1);
+    check_screen(name, dir, k == 31);
+  }
+  fm1_app_encoder(&g_app, FM1_ENC_ALGORITHM, -1);          /* the popup names it */
+  check_screen("dx7-popup-algorithm-user", dir, 1);
+  expect(g_app.popup_total == FM1_APP_DX7_PATCHES && g_app.popup_mark >= 0 &&
+         strcmp(g_app.popup[g_app.popup_mark], fm1_app_dx7_name(&g_app, 30)) == 0,
+         "ALGORITHM's popup names User 31");
+  g_app.popup_lines = 0;
+  fm1_app_button(&g_app, FM1_BTN_SEQ, 1);                  /* SEQ mode's hint line */
+  fm1_app_button(&g_app, FM1_BTN_SEQ, 0);
+  check_screen("dx7-seq-user", dir, 0);
+  fm1_app_button(&g_app, FM1_BTN_HOME, 1);
+  fm1_app_button(&g_app, FM1_BTN_HOME, 0);
+  len = dx7_vced(file, "ONE VOICE", 2);
+  n = fm1_app_dx7_load(&g_app, file, len, NULL);
+  expect(n == 1 && g_app.dx7.next == 1, "a single voice did not go to User 1");
+  check_screen("dx7-popup-loaded-1", dir, 1);
+  g_app.dx7.next = 30;                                     /* four from User 31: they wrap */
+  len = 0;
+  for (int k = 0; k < 4; ++k) len += dx7_vced(file + len, "WRAPPED", 3);
+  n = fm1_app_dx7_load(&g_app, file, len, NULL);
+  expect(n == 4 && g_app.dx7.next == 2, "four voices from User 31 did not wrap");
+  check_screen("dx7-popup-loaded-wrap", dir, 1);
+  g_app.dx7.next = 31;                                     /* two from User 32: "User 32, 1" */
+  len = 0;
+  for (int k = 0; k < 2; ++k) len += dx7_vced(file + len, "WRAPPED", 3);
+  n = fm1_app_dx7_load(&g_app, file, len, NULL);
+  expect(n == 2 && g_app.dx7.next == 1 && strcmp(g_app.popup[1], "User 32, 1") == 0,
+         "two voices from User 32 did not wrap to User 1");
+  check_screen("dx7-popup-loaded-wrap-32", dir, 1);
+  memset(file, 0x41, 300);                                 /* no SysEx at all */
+  n = fm1_app_dx7_load(&g_app, file, 300, NULL);
+  expect(n == FM1_APP_DX7_NONE, "a file of text loaded voices");
+  check_screen("dx7-popup-none", dir, 1);
+  n = fm1_app_dx7_load(&g_app, file, FM1_APP_DX7_FILE_MAX + 1u, NULL);
+  expect(n == FM1_APP_DX7_TOO_BIG, "a file past the limit was read");
+  check_screen("dx7-popup-too-big", dir, 1);
+  g_app.popup_lines = 0;
+}
+
 /* ---- --screens: SEQ mode's Track view (docs/15 §4, S3) ----------------- */
 
 static void press(int button) {
@@ -540,6 +647,33 @@ static void expect(int ok, const char *what) {
     fprintf(stderr, "screens: %s\n", what);
     ++g_faults;
   }
+}
+
+/* The open popup is a list `title` (NULL: any) with entry `sel` of `total`
+ * chosen, in the window fm1_list_first gives: the choice on the third row
+ * where it can be, the window never past either end. */
+static void expect_window(const char *what, const char *title, int total, int sel) {
+  const int first = fm1_list_first(total, sel, FM1_LIST_ROWS);
+  const int rows = total - first < FM1_LIST_ROWS ? total - first : FM1_LIST_ROWS;
+  if (g_app.popup_total != total || g_app.popup_first != first || g_app.popup_lines != rows ||
+      g_app.popup_mark != sel - first || (title && strcmp(g_app.popup_title, title) != 0)) {
+    fprintf(stderr,
+            "screens: %s: list \"%s\" %d of %d from %d, %d lines (want \"%s\" %d of %d from %d, "
+            "%d lines)\n", what, g_app.popup_title, g_app.popup_first + g_app.popup_mark,
+            g_app.popup_total, g_app.popup_first, g_app.popup_lines, title ? title : "*", sel,
+            total, first, rows);
+    ++g_faults;
+  }
+}
+
+/* Saved as NAME-top, -middle and -end: the list's first, a middle and its
+ * last entry. */
+static void check_list_screen(const char *name, const char *dir, int k, int total, int save) {
+  char path[128];
+  const char *at = k == 0 ? "top" : (k == total / 2 ? "middle" : (k == total - 1 ? "end" : NULL));
+  if (at) snprintf(path, sizeof path, "%s-%s", name, at);
+  else snprintf(path, sizeof path, "%s-%d", name, k);
+  check_screen(path, dir, save && at != NULL);
 }
 
 /* Render until the focused clip's playhead reaches `step` (at most ~10 s). */
@@ -1632,7 +1766,8 @@ static void multi_screens(const char *dir, float rate) {
   press(FM1_BTN_HOME);
   /* SHIFT + PRESETS: Sound 2, empty; PRESETS walks Empty and the sounds. */
   shift_presets(1);
-  expect(g_app.sound == 1 && g_app.popup_lines == 3, "SHIFT + PRESETS does not choose Sound 2");
+  expect(g_app.sound == 1, "SHIFT + PRESETS does not choose Sound 2");
+  expect_window("SHIFT + PRESETS", "Sound", FM1_APP_SOUNDS, 1);
   check_screen("multi-popup-sound-2-empty", dir, 1);
   g_app.popup_lines = 0;
   check_screen("multi-home-empty-sound", dir, 1);
@@ -1759,6 +1894,76 @@ static void multi_screens(const char *dir, float rate) {
     expect(fm1_app_select(&g_app, 1, big) == FM1_APP_SELECT_RAM, "a chain past the budget grew");
   }
   destroy_units();
+}
+
+/* ---- --screens: list popups (PRESETS, ALGORITHM, the pickers) ---------- */
+
+/* Every list a turn opens, end to end: ALGORITHM through each sound
+ * engine's first list parameter (Six-Op FM's 96 patches the longest),
+ * PRESETS through the engines, and ALGORITHM in FX mode through the
+ * effects, each entry's window checked and drawn. */
+static void list_screens(const char *dir) {
+  char name[128];
+  g_app.mode = FM1_MODE_HOME;
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    const fm1_engine_t *e = fm1_engines[i];
+    int m = -1;
+    if (e->kind != FM1_KIND_SOUND || fm1_app_select(&g_app, 0, (int)i) != 0) continue;
+    for (uint16_t k = 0; k < e->n_params && m < 0; ++k) {
+      if (e->params[k].type == FM1_PARAM_ENUM) m = k;
+    }
+    if (m < 0) continue;
+    {
+      const fm1_param_t *p = &e->params[m];
+      const int n = (int)(p->max - p->min) + 1;
+      fm1_app_set_param(&g_app, 0, (uint16_t)m, p->min + 1.0f);
+      turn_now(FM1_ENC_ALGORITHM, -1);                 /* the top */
+      for (int k = 0; k < n; ++k) {
+        if (k) turn_now(FM1_ENC_ALGORITHM, 1);
+        snprintf(name, sizeof name, "list-%s", e->id);
+        expect_window(name, p->name, n, k);
+        check_list_screen(name, dir, k, n, strcmp(e->id, "sixop") == 0);
+      }
+      turn_now(FM1_ENC_ALGORITHM, 1);                  /* past the end: it stays there */
+      expect_window("ALGORITHM past the end", p->name, n, n - 1);
+    }
+  }
+  /* PRESETS: Sound 1's engines (no Empty), from the first to the last. */
+  {
+    int first = -1, n = 0, k = 0;
+    for (size_t i = 0; i < fm1_engine_count; ++i) {
+      if (fm1_engines[i]->kind != FM1_KIND_SOUND) continue;
+      if (first < 0) first = (int)i;
+      ++n;
+    }
+    fm1_app_select(&g_app, 0, first);
+    for (k = 0; k < n; ++k) {
+      turn_now(FM1_ENC_PRESETS, 1);
+      if (!k) turn_now(FM1_ENC_PRESETS, -1);           /* open it on the first */
+      expect_window("PRESETS", "Engine", n, k);
+      check_list_screen("list-presets", dir, k, n, 0);
+    }
+  }
+  /* ALGORITHM in FX mode, on M1 with a small sound: Empty, then every
+   * effect. */
+  fm1_app_select(&g_app, 0, fm1_app_find("test-sine"));
+  g_app.mode = FM1_MODE_FX;
+  g_app.fx_slot = 3;
+  g_app.fx_page = 0;
+  fm1_app_select(&g_app, 1, -1);
+  {
+    int n = 1;
+    for (size_t i = 0; i < fm1_engine_count; ++i) n += fm1_engines[i]->kind == FM1_KIND_AUDIO_FX;
+    for (int k = 0; k < n; ++k) {
+      turn_now(FM1_ENC_ALGORITHM, 1);
+      if (!k) turn_now(FM1_ENC_ALGORITHM, -1);         /* open it on Empty */
+      expect_window("ALGORITHM in FX mode", "M1 effect", n, k);
+      check_list_screen("list-fx", dir, k, n, 1);
+    }
+  }
+  fm1_app_select(&g_app, 1, -1);
+  g_app.mode = FM1_MODE_HOME;
+  g_app.popup_lines = 0;
 }
 
 /* ---- --screens: the modulation pages (docs/16 §5, stage MG3) ---------- */
@@ -2071,6 +2276,112 @@ static void mod_multi_screens(const char *dir) {
   }
 }
 
+/* Per voice (docs/16 MG9) and the MG3 follow-ups: an Envelope per voice
+ * into Timbre, VEL per voice into its attack, RAND per voice into the
+ * pitch, a chord held; RACK's line saying vN; MATRIX's `v` rows and a
+ * refused one (`!`: per voice into an effect), the state's hints; one
+ * sound's note sources and the per-sound and current-sound pitches; and a
+ * cable an engine change switched off, shown under the name it had, then
+ * re-aimed when an engine with that name comes back. */
+static void mod_voice_screens(const char *dir) {
+  static const char *const kLines[] = {
+    "slot 1 env3 > snd:Timbre amt=60 voice",
+    "slot 2 vel > env3:attack amt=-40 voice",
+    "slot 3 rand > host:pitch amt=2 voice",
+    "slot 4 env4 > fx1:Mix amt=50 voice",               /* poly into mono: refused */
+    "slot 5 s2rtrg > env4:gate amt=100",
+    "slot 6 lfo1 > host:pitchc amt=10",
+    "slot 7 s1note > lfo2.rate amt=30",
+    "slot 8 s4vel > host:pitch4 amt=-25",
+    "slot 9 lfo2 > snd:Model amt=40 voice",             /* engine-wide: refused */
+  };
+  char name[96], line[64];
+  for (int i = 1; i <= 32; ++i) {
+    snprintf(line, sizeof line, "slot %d clear", i);
+    mod_line(line);
+  }
+  for (size_t k = 0; k < sizeof kLines / sizeof kLines[0]; ++k) mod_line(kLines[k]);
+  fm1_app_note_on(&g_app, 48, 100);
+  fm1_app_note_on(&g_app, 55, 90);
+  fm1_app_note_on(&g_app, 64, 70);
+  blocks(24);
+  expect((g_app.mui.plan.poly >> 2) & 1u, "ENV3 does not run per voice");
+  expect(fm1_mod_voice_count(g_app.mod) >= 3, "a chord of three starts no three voices");
+  expect(((g_app.mui.plan.refused >> 3) & 1u) && ((g_app.mui.plan.refused >> 8) & 1u),
+         "per voice into an effect or an engine-wide parameter is not refused");
+  g_app.mode = FM1_MODE_RACK;
+  g_app.mui.pos = 2;
+  g_app.mui.page = 0;
+  check_screen("rack-voices", dir, 1);
+  g_app.mui.page = 1;
+  check_screen("rack-voices-p2", dir, 0);
+  g_app.mui.page = 0;
+  g_app.mode = FM1_MODE_MATRIX;
+  g_app.mui.slot = g_app.mui.top = 0;
+  for (int pg = 0; pg < 2; ++pg) {
+    g_app.mui.mpage = (uint8_t)pg;
+    snprintf(name, sizeof name, "matrix-voices-%c", pg ? 'b' : 'a');
+    check_screen(name, dir, 1);
+  }
+  g_app.mui.mpage = 1;
+  g_app.mui.field = FM1_MOD_F_ON;
+  g_app.mui.field_until = UINT64_MAX;
+  for (int sl = 0; sl < 9; ++sl) {                      /* every state's hint */
+    g_app.mui.slot = (uint8_t)sl;
+    snprintf(name, sizeof name, "matrix-voices-hint-slot%d", sl + 1);
+    check_screen(name, dir, sl == 0 || sl == 3);
+  }
+  g_app.mui.field = -1;
+  /* KNOB4 on page B: on, per voice, back to on and off. */
+  g_app.mui.slot = 4;
+  turn_now(FM1_ENC_KNOB4, 1);
+  {
+    fm1_mod_slot_t v;
+    fm1_mod_get_slot(g_app.mod, 4, &v);
+    expect((v.flags & (FM1_MOD_SLOT_ON | FM1_MOD_SLOT_VOICE)) == (FM1_MOD_SLOT_ON | FM1_MOD_SLOT_VOICE),
+           "KNOB4 does not make a cable per voice");
+    turn_now(FM1_ENC_KNOB4, -1);
+    fm1_mod_get_slot(g_app.mod, 4, &v);
+    expect((v.flags & (FM1_MOD_SLOT_ON | FM1_MOD_SLOT_VOICE)) == FM1_MOD_SLOT_ON,
+           "KNOB4 does not make a per-voice cable global again");
+  }
+  g_app.mui.mpage = 0;
+  fm1_app_all_notes_off(&g_app);
+  blocks(4);
+  /* An engine without Timbre: the cable goes off under its old name; one
+   * with it (Shapes) takes it back on. */
+  expect(fm1_app_select(&g_app, 0, fm1_app_find("sixop")) == 0, "Six-Op did not load");
+  blocks(2);
+  g_app.mui.slot = 0;
+  check_screen("matrix-aimed", dir, 1);
+  g_app.mui.mpage = 1;
+  g_app.mui.field = FM1_MOD_F_ON;
+  check_screen("matrix-aimed-hint", dir, 0);
+  g_app.mui.field = -1;
+  g_app.mui.mpage = 0;
+  g_app.mode = FM1_MODE_CHAIN;
+  check_screen("chain-aimed", dir, 0);
+  g_app.mode = FM1_MODE_MATRIX;
+  expect(fm1_app_select(&g_app, 0, fm1_app_find("macro-heavy")) == 0, "Macro Heavy did not load");
+  {
+    fm1_mod_slot_t v;
+    fm1_mod_get_slot(g_app.mod, 0, &v);
+    expect((v.flags & FM1_MOD_SLOT_ON) && !g_app.mui.aim[0],
+           "Macro Heavy's Timbre did not take the cable back");
+  }
+  blocks(2);
+  check_screen("matrix-reaimed", dir, 0);
+  expect(fm1_app_select(&g_app, 0, fm1_app_find("macro")) == 0, "Macro did not load");
+  for (int i = 1; i <= 32; ++i) {
+    snprintf(line, sizeof line, "slot %d clear", i);
+    mod_line(line);
+  }
+  mod_line("slot 1 rtrg > env3:gate amt=100");          /* the default cables again */
+  mod_line("slot 2 rtrg > env4:gate amt=100");
+  blocks(2);
+  g_app.mui.slot = g_app.mui.top = 0;
+}
+
 static void mod_screens(const char *dir, float rate) {
   char name[128], line[160];
   destroy_units();
@@ -2110,10 +2421,12 @@ static void mod_screens(const char *dir, float rate) {
   expect(g_app.mui.pos == 0 && g_app.mui.page == 0, "SELECT does not come back to the first");
   /* The kind picker on an empty position, and its commit after a second. */
   g_app.mui.pos = 6;
-  for (int k = 0; k < (int)fm1_mod_kind_count + 1; ++k) {
+  const int kinds = (int)fm1_mod_kind_count + 1;       /* Empty, then every kind */
+  for (int k = 0; k < kinds; ++k) {
     turn_now(FM1_ENC_ALGORITHM, 1);
     snprintf(name, sizeof name, "rack-picker-%d", k);
-    check_screen(name, dir, k == 0);
+    expect_window(name, "Mod7 kind", kinds, (k + 1) % kinds);       /* round to Empty at the end */
+    check_screen(name, dir, k == 0 || k == kinds / 2 - 1 || k == kinds - 2);
   }
   turn_now(FM1_ENC_ALGORITHM, 1);              /* round to the first kind again */
   settle();
@@ -2301,15 +2614,31 @@ static void mod_screens(const char *dir, float rate) {
   expect(g_app.mui.slot == 31 && g_app.mui.top == 25, "SELECT does not scroll to slot 32");
   check_screen("matrix-last", dir, 1);
   turn_now(FM1_ENC_SELECT, -64);
-  /* The destination picker: open, at both ends, a group jump. */
+  /* The destination picker: open, at both ends, a group jump, and every
+   * destination in turn, each one's window checked. */
   turn_now(FM1_ENC_KNOB2, 1);
   check_screen("matrix-picker", dir, 1);
   turn_now(FM1_ENC_KNOB2, -999);
-  check_screen("matrix-picker-first", dir, 0);
-  turn_now(FM1_ENC_ALGORITHM, 3);
-  check_screen("matrix-picker-group", dir, 1);
-  turn_now(FM1_ENC_KNOB2, 999);
-  check_screen("matrix-picker-last", dir, 0);
+  {
+    static fm1_mod_dest_t dl[FM1_MOD_UI_MAX_DESTS];
+    fm1_mod_ui_env_t denv;
+    int nd;
+    harness_mod_env(&denv);
+    nd = fm1_mod_ui_dests(&denv, dl, FM1_MOD_UI_MAX_DESTS);
+    expect_window("the destination picker's first", "Destination", nd, 0);
+    check_screen("matrix-picker-first", dir, 1);
+    turn_now(FM1_ENC_ALGORITHM, 3);
+    check_screen("matrix-picker-group", dir, 1);
+    turn_now(FM1_ENC_KNOB2, 999);
+    expect_window("the destination picker's last", "Destination", nd, nd - 1);
+    check_screen("matrix-picker-last", dir, 1);
+    turn_now(FM1_ENC_KNOB2, -999);
+    for (int k = 0; k < nd; ++k) {
+      if (k) turn_now(FM1_ENC_KNOB2, 1);
+      expect_window("the destination picker", "Destination", nd, k);
+      check_list_screen("matrix-picker-walk", dir, k, nd, 0);
+    }
+  }
   settle();
   /* CHAIN: SEL on the loop's cable and on a chain through three modules. */
   turn_now(FM1_ENC_SELECT, 2 - g_app.mui.slot);             /* slot 3: ENV3 EOC into CHN5 */
@@ -2332,6 +2661,7 @@ static void mod_screens(const char *dir, float rate) {
   turn_now(FM1_ENC_PRESETS, 1);
   check_screen("matrix-popup", dir, 0);
   settle();
+  mod_voice_screens(dir);
   mod_multi_screens(dir);
   mod_names(dir);
   g_app.mode = FM1_MODE_MATRIX;
@@ -2399,6 +2729,8 @@ static int run_screens(const char *dir, float rate) {
   fm1_app_button(&g_app, FM1_BTN_OCT_DOWN, 0);
   fm1_app_master(&g_app, 0.8f, 1);
   check_screen("popup-volume", dir, 0);
+  list_screens(dir);
+  fm1_app_select(&g_app, 0, fm1_app_find("sixop"));
   for (int b = FM1_BTN_SAVE; b <= FM1_BTN_ARP; ++b) {   /* the buttons still to come */
     char name[64];
     fm1_app_button(&g_app, b, 1);
@@ -2425,6 +2757,7 @@ static int run_screens(const char *dir, float rate) {
   }
   g_app.mode = FM1_MODE_HOME;
   g_app.popup_lines = 0;
+  dx7_screens(dir);
   /* Refusals: an arena too small, and a host rate the Plaits-based engines
    * refuse (last, at its own rate: the Schwung shim keeps its first rate). */
   g_app.unit[0].cap = 1024;
@@ -2798,6 +3131,11 @@ static int has_dst(const fm1_mod_slot_t *s) {
  * every slot with a destination (one without is the same as a cleared one
  * to the runtime: off, and never planned). */
 static int same_mod_state(const fm1_mod_t *a, const fm1_mod_t *b, const char *what) {
+  if (fm1_mod_current(a) != fm1_mod_current(b)) {
+    fprintf(stderr, "mod format (%s): the current sound is %u, not %u\n", what, fm1_mod_current(b) + 1,
+            fm1_mod_current(a) + 1);
+    return 0;
+  }
   for (unsigned pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
     const int k = fm1_mod_kind_at(a, pos);
     if (k != fm1_mod_kind_at(b, pos)) {
@@ -2847,7 +3185,8 @@ static void random_slot(const fm1_mod_ui_env_t *env, fm1_mod_slot_t *s) {
   s->offset = (int16_t)(rnd(4) ? (int)rnd(32769) - 16384 : 0);
   s->flags = (uint8_t)((rnd(4) ? FM1_MOD_SLOT_ON : 0) | (d->gate ? FM1_MOD_SLOT_GATE_DST : 0) |
                        (rnd(4) << FM1_MOD_SLOT_POL_SHIFT) |
-                       (rnd(FM1_MOD_CURVE_COUNT) << FM1_MOD_SLOT_CURVE_SHIFT));
+                       (rnd(FM1_MOD_CURVE_COUNT) << FM1_MOD_SLOT_CURVE_SHIFT) |
+                       (rnd(3) ? 0 : FM1_MOD_SLOT_VOICE));   /* per voice (MG9) */
 }
 
 static int mod_format_check(void) {
@@ -2900,6 +3239,7 @@ static int mod_format_check(void) {
       random_slot(&env, &s);
       fm1_mod_set_slot(g_app.mod, i, &s);
     }
+    fm1_mod_set_current(g_app.mod, rnd(FM1_APP_SOUNDS));   /* a `current K` line when not 1 */
     g_mod2 = fm1_mod_create(mem2, &g_app.host, seed);
     if (!fm1_app_mod_dump(&g_app, replay_line, NULL)) {
       fprintf(stderr, "mod format: round %d: the dump has a slot no line can say\n", round);
@@ -2928,6 +3268,12 @@ static int mod_format_check(void) {
         fm1_mod_ui_set_slot(&env, &ui, rnd(FM1_MOD_SLOTS), &s);
       } else if (what < 7) {
         fm1_mod_ui_set_kind(&env, &ui, pos, (int)rnd((uint32_t)fm1_mod_kind_count + 1u) - 1);
+      } else if (what < 9 && rnd(8) == 0) {             /* the current sound, as the app logs it */
+        char line[16];
+        const unsigned k = rnd(FM1_APP_SOUNDS);
+        fm1_mod_set_current(g_app.mod, k);
+        snprintf(line, sizeof line, "current %u", k + 1u);
+        replay_line(NULL, line);
       } else if (what < 9) {
         const int k = fm1_mod_kind_at(g_app.mod, pos);
         if (k >= 0) {
@@ -3191,6 +3537,8 @@ int main(int argc, char **argv) {
   long events_cap = -1;
   route_t routes[MAX_ROUTES];
   int side_note_pair_later = 0;
+  const char *sysex_path[8];
+  int sysex_play[8], n_sysex = 0;
 
   for (int i = 1; i < argc; ++i) {
     const char *a = argv[i];
@@ -3212,7 +3560,8 @@ int main(int argc, char **argv) {
     if (strcmp(a, "--engine") == 0 || strcmp(a, "--param") == 0 || strcmp(a, "--fx") == 0 ||
         strcmp(a, "--fx-param") == 0 || strcmp(a, "--note") == 0 || strcmp(a, "--bend") == 0 ||
         strcmp(a, "--param-at") == 0 || strcmp(a, "--fx-param-at") == 0 ||
-        strcmp(a, "--seq") == 0 || strcmp(a, "--route") == 0 || is_multi_flag(a)) {
+        strcmp(a, "--seq") == 0 || strcmp(a, "--route") == 0 || strcmp(a, "--sysex") == 0 ||
+        is_multi_flag(a)) {
       side(a, v);
       if (strcmp(a, "--sound-note") == 0) side_note_pair_later = 1;
     }
@@ -3223,6 +3572,12 @@ int main(int argc, char **argv) {
       side_note_pair_later = 0;
     }
     else if (strcmp(a, "--panel") == 0) { if (!read_panel(v)) return 2; }
+    else if (strcmp(a, "--sysex") == 0 || strcmp(a, "--sysex-play") == 0) {
+      if (n_sysex >= 8) { usage(); return 2; }
+      sysex_play[n_sysex] = strcmp(a, "--sysex-play") == 0;
+      sysex_path[n_sysex++] = v;
+      if (strcmp(a, "--sysex-play") == 0) g_replayable = 0;   /* fm1-render has no such step */
+    }
     else if (strcmp(a, "--engine") == 0) engine = v;
     else if (strcmp(a, "--out") == 0) out_path = v;
     else if (strcmp(a, "--screen") == 0) screen_path = v;
@@ -3382,6 +3737,22 @@ int main(int argc, char **argv) {
   if (engine) {
     int r = fm1_app_select(&g_app, 0, fm1_app_find(engine));
     if (r) { fprintf(stderr, "cannot load %s (%d)\n", engine, r); return 1; }
+  }
+  /* --sysex: after the sound is loaded, before its parameters (fm1-render
+   * --sysex's order). */
+  int sysex_n[8], sysex_played[8];
+  fm1_dx7_sysex_result_t sysex_r[8];
+  for (int k = 0; k < n_sysex; ++k) {
+    static uint8_t file[FM1_APP_DX7_FILE_MAX + 1];
+    FILE *f = fopen(sysex_path[k], "rb");
+    size_t len;
+    if (!f) { fprintf(stderr, "--sysex: cannot open %s\n", sysex_path[k]); return 1; }
+    len = fread(file, 1, sizeof file, f);   /* one byte past the limit: refused */
+    fclose(f);
+    sysex_n[k] = fm1_app_dx7_load(&g_app, file, len, &sysex_r[k]);
+    sysex_played[k] = sysex_play[k] && sysex_n[k] > 0 ? fm1_app_dx7_play(&g_app, sysex_r[k].first_slot) : 1;
+  }
+  if (engine) {
     for (int p = 0; p < np; ++p) {
       int idx = find_param(0, pname[p]);
       if (idx < 0) return 1;
@@ -3655,6 +4026,12 @@ int main(int argc, char **argv) {
     printf(i ? ",\"%s\"" : "\"%s\"", g_app.popup[i]);   /* popups hold plain names */
   }
   printf("]");
+  if (g_app.popup_lines && g_app.popup_total > 0) {   /* a list's window: popup[0] is entry first */
+    printf(",\"popup_list\":{\"title\":\"%s\",\"first\":%d,\"total\":%d,\"mark\":%d}",
+           g_app.popup_title, g_app.popup_first, g_app.popup_total, g_app.popup_mark);
+  } else {
+    printf(",\"popup_list\":null");
+  }
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
     printf(",\"values%d\":[", u);
     const fm1_engine_t *e = g_app.unit[u].e;
@@ -3663,6 +4040,23 @@ int main(int argc, char **argv) {
   }
   if (g_app.mui.unloggable) g_replayable = 0;    /* a modulation edit no line can say */
   printf(",\"replayable\":%d", g_replayable);
+  if (n_sysex) {
+    printf(",\"dx7\":{\"files\":[");
+    for (int k = 0; k < n_sysex; ++k) {
+      const fm1_dx7_sysex_result_t *r = &sysex_r[k];
+      printf("%s{\"result\":%d,\"played\":%d,\"voices\":%u,\"first_slot\":%u,\"messages\":%u,"
+             "\"bad_checksums\":%u,\"skipped\":%u,\"foreign\":%u,\"truncated\":%u,"
+             "\"wrong_size\":%u,\"raw\":%u,\"outside\":%u}", k ? "," : "", sysex_n[k], sysex_played[k],
+             r->voices, r->first_slot, r->messages, r->bad_checksums, r->skipped, r->foreign,
+             r->truncated, r->wrong_size, r->raw, (unsigned)r->outside);
+    }
+    printf("],\"names\":[");
+    for (unsigned k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
+      if (k) putchar(',');
+      json_string(fm1_app_dx7_name(&g_app, k));
+    }
+    printf("],\"next\":%u}", g_app.dx7.next);
+  }
   if (g_app.mod) print_mod();
   {                                  /* multi-sound: the units, the current one, levels, inserts */
     printf(",\"current\":%d,\"sounds\":[", fm1_app_unit_current(&g_app));

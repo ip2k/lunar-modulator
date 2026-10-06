@@ -86,7 +86,9 @@
  *
  * The screen is a 240 x 240 RGB565 frame buffer (fm1_tft.h) drawn with the
  * stock layout: a top bar with the sound's name, the mode's content, and a
- * bottom bar with page and mode, plus one-second popups.
+ * bottom bar with page and mode, plus one-second popups: a message, or a
+ * list (PRESETS, ALGORITHM, the modulation pickers) with its title, the
+ * chosen entry's place in it and as many entries as the middle holds.
  *
  * Instance memory lives in fixed arenas inside fm1_app_t (no heap), and the
  * screen shows how much of the stock layout's free RAM the chain would take.
@@ -102,6 +104,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "fm1_dx7.h"
 #include "fm1_engine.h"
 #include "fm1_mix_limiter.h"
 #include "fm1_mod.h"
@@ -151,7 +154,13 @@ extern "C" {
 #define FM1_APP_FX_BYTES (256u * 1024u)
 
 /* RAM the stock layout leaves free (docs/11 §2, engines/README.md; part of
- * it is stock's heap, so this is an upper bound [inferred]). */
+ * it is stock's heap, so this is an upper bound [inferred]). The meter
+ * counts what lives in RAM: instances (each engine's instance_size at the
+ * host's rate) and the costs below. Const tables an engine reads are
+ * flash on the FM-1 and are not counted, msfa's among them since
+ * 2026-10-06 (engines/msfa.md, "Tables in flash"); a table an engine keeps
+ * in RAM is in its instance and counted, as FM6's frequency table is at any
+ * rate but 44,118 Hz. */
 #define FM1_APP_RAM_BUDGET 387924u
 
 /* What else the RAM meter counts on the FM-1 besides the instances
@@ -198,7 +207,7 @@ enum {
  * block's writes to the effects and AMP (every effect parameter and AMP
  * twice: two ticks a 64-frame block). The runtime counts in the RAM figure
  * while it runs. */
-#define FM1_APP_MOD_BYTES 24576u
+#define FM1_APP_MOD_BYTES 26624u
 #define FM1_APP_MOD_WRITES \
   ((FM1_APP_MAX_FRAMES / FM1_MOD_TICK) * (FM1_APP_EFFECTS * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS))
 #define FM1_APP_MOD_SEED 1u           /* fm1_app_init's runtime; a log records it */
@@ -212,6 +221,38 @@ enum {
   FM1_APP_SEQ_HELD = 2        /* too little room this block: held, and applied
                                  at the start of the next block, before any
                                  other sequencer input */
+};
+
+/* FM6's user bank (engine id "dx7"; engines/msfa.md): the DX7 voices loaded
+ * from SysEx files, by the page's "Load DX7 patches" (fm1w_dx7_load) or the
+ * harness's --sysex. It stands for the voices the FM-1 would keep in flash:
+ * every FM6 sound gets them in its user slots when it is created and when a
+ * file is loaded, and FM6's Patch list shows their names in place of
+ * "User N" (a loaded voice with a blank name keeps "User N"). The bank is
+ * not counted in the RAM meter; each FM6 instance's copy of it is, in the
+ * instance. */
+#define FM1_APP_DX7_FILE_MAX 65536u   /* the largest file read: the page's text buffer */
+#define FM1_APP_DX7_PATCHES 64        /* FM6's Patch list: 32 built in, then User 1..32 */
+
+typedef struct fm1_app_dx7 {
+  int index;                     /* FM6's registry index, -1 if not in this build */
+  int patch;                     /* its Patch parameter's index */
+  uint8_t voice[FM1_DX7_USER_SLOTS][FM1_DX7_VCED_BYTES];   /* VCED data, clamped */
+  uint8_t loaded[FM1_DX7_USER_SLOTS];                      /* 1: from a file */
+  char name[FM1_DX7_USER_SLOTS][FM1_DX7_NAME_BYTES + 1];   /* trimmed */
+  const char *names[FM1_APP_DX7_PATCHES];   /* the Patch list as the screen shows it */
+  fm1_param_t params[FM1_APP_MAX_PARAMS];   /* FM6's, Patch naming these */
+  fm1_engine_t engine;           /* FM6 as the app shows it: the registry's entry
+                                    with these params; units holding FM6 point here */
+  unsigned next;                 /* the slot the next single voice goes to */
+  fm1_dx7_sysex_result_t last;   /* what the last file held */
+} fm1_app_dx7_t;
+
+/* fm1_app_dx7_load's refusals (nothing changes). */
+enum {
+  FM1_APP_DX7_NONE = 0,          /* no voice or bank dump in the file */
+  FM1_APP_DX7_TOO_BIG = -1,      /* past FM1_APP_DX7_FILE_MAX */
+  FM1_APP_DX7_NO_FM6 = -2        /* no FM6 in this build */
 };
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -274,8 +315,14 @@ typedef struct fm1_app {
   float mix[FM1_APP_SOUNDS][2 * FM1_APP_MAX_FRAMES];
   fm1_app_sink_ctx_t sink_ctx[FM1_APP_SOUNDS];
 
-  char popup[3][24];
+  /* The popup: up to three lines of a message, or a list's window (PRESETS,
+   * ALGORITHM, the pickers; fm1_panel.h): popup[0] is entry popup_first
+   * of popup_total under popup_title. popup_total is 0 for a message. */
+  char popup[FM1_LIST_ROWS][24];
   int popup_lines, popup_mark;   /* popup_mark: highlighted line, or -1 */
+  char popup_title[24];
+  int popup_first, popup_total;
+  uint32_t popup_dim;            /* a list's lines drawn dim (an Empty entry) */
   uint64_t popup_until;
 
   int dirty;                     /* screen content changed */
@@ -325,13 +372,16 @@ typedef struct fm1_app {
   uint32_t mod_nwr;              /* this block's writes to the effects and AMP */
   fm1_app_mod_write_t mod_wr[FM1_APP_MOD_WRITES];
   uint32_t mod_seed;             /* the runtime's seed, for a log */
-  float bend;                    /* sound 0's pitch bend: HOST PITCH's base */
+  float bend[FM1_APP_SOUNDS];     /* each sound unit's pitch bend: the base of
+                                    its HOST pitch (PITCH, PITCH2-4; MG9) */
   fm1_mod_ui_t mui;              /* RACK, MATRIX, CHAIN and the gesture */
   /* Native-harness hook: every modulation edit as a line of fm1-render's
    * --mod format (engines/host/mod_script.h), with the frame of the block
    * it leads. NULL in the browser. */
   void (*on_mod)(void *ctx, uint64_t frame, const char *line);
   void *on_mod_ctx;
+
+  fm1_app_dx7_t dx7;             /* FM6's user bank */
 
   fm1_tft_t tft;
   unsigned char sound_mem[FM1_APP_SOUNDS][FM1_APP_SOUND_BYTES] FM1_APP_ALIGN16;
@@ -352,6 +402,26 @@ void fm1_app_init(fm1_app_t *a, float sample_rate);
 
 /* The registry index of an engine id, or -1. */
 int fm1_app_find(const char *id);
+
+/* FM6's user bank (fm1_app_dx7_t). fm1_app_dx7_load reads the DX7 voices in
+ * a .syx file's bytes (fm1_dx7_read_sysex: single voices and 32-voice
+ * banks, several in a file, values clamped) into the bank, from the slot
+ * after the last single voice (User 1 first; a bank fills User 1..32 and
+ * the next single voice goes to User 1, as fm1-render --sysex orders them),
+ * gives every FM6 sound the bank and puts up a popup. It changes no engine
+ * and no parameter. Fills res when not NULL (also in a->dx7.last) and
+ * returns the voices stored, or FM1_APP_DX7_NONE (0), _TOO_BIG or _NO_FM6,
+ * which leave the bank as it was. */
+int fm1_app_dx7_load(fm1_app_t *a, const uint8_t *data, size_t len, fm1_dx7_sysex_result_t *res);
+
+/* What the page does after a load: the current sound becomes FM6, unless it
+ * is already (fm1_app_select's code if that is refused), and plays user slot
+ * `slot` (0..31: its Patch set to that slot). 0, or a negative code. */
+int fm1_app_dx7_play(fm1_app_t *a, unsigned slot);
+
+/* The name user slot `slot` shows: the loaded voice's, or "User N" (a slot
+ * not loaded, or a blank name); "" for a slot out of range. */
+const char *fm1_app_dx7_name(const fm1_app_t *a, unsigned slot);
 
 /* Load registry entry `index` into a unit (FM1_APP_UNITS: 0 = Sound 1,
  * 1..2 = the master effects, then the other sound units and the inserts;

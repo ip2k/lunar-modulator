@@ -30,14 +30,23 @@
 // nothing; EDIT shows MATRIX. Step entry (docs/15 S4): in SEQ mode OP3
 // (A#3) pages to bar 2, the computer's step keys enter four steps there,
 // which light those keys, and played, they sound and their lights move with
-// the playhead. An old ?lab address opens the same page. MIT licence.
+// the playhead. An old ?lab address opens the same page. DX7 patches: Load
+// DX7 patches... is off until power on, then its file chooser takes the
+// original test bank (test/dx7/), the status line says what loaded, Sound 1
+// becomes FM6 on LUNAR 01 and a key sounds it; a file dragged over the page
+// shows where to drop it, and a broken dump dropped there says it is cut
+// short and leaves the bank as it was; no request leaves the page while
+// files load. MIT licence.
 
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { serve } from './serve.mjs';
+
+const DX7_DIR = join(dirname(fileURLToPath(import.meta.url)), 'dx7');
 
 const require = createRequire(`${process.env.PLAYWRIGHT_DIR || '/pw'}/`);
 const { chromium } = require('playwright');
@@ -573,6 +582,68 @@ async function seqChecks(browser) {
   return r;
 }
 
+// DX7 patches (the page's Load DX7 patches...): the picker, the status
+// line, the sound it plays, a dropped file, and nothing sent anywhere.
+async function dx7Checks(browser) {
+  const r = {};
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  page.on('pageerror', (e) => report.logs.push(`dx7 pageerror: ${e.message}`));
+  await page.goto(url);
+  r.help_shown = await page.evaluate(() => [...document.querySelectorAll('.help dt')]
+    .some((d) => d.textContent.trim() === 'DX7 patches'));
+  r.disabled_powered_off = await page.evaluate(() => document.getElementById('dx7-load').disabled);
+  await page.click('#power-on');
+  await page.waitForFunction(() => window.fm1 && window.fm1.screens > 0 && window.fm1.catalog, null,
+    { timeout: 20000 });
+  await wait(page, 300);
+  const requests = [];
+  page.on('request', (req) => requests.push(`${req.method()} ${req.url()}`));
+  // The button opens the file chooser, as a person picks a file.
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('#dx7-load')]);
+  await chooser.setFiles(join(DX7_DIR, 'lunar-test-bank.syx'));
+  await page.waitForFunction(() => window.fm1.dx7 !== null, null, { timeout: 5000 });
+  await wait(page, 200);
+  r.loaded = await page.evaluate(() => ({ result: window.fm1.dx7.result.slice(0, 4), names: window.fm1.dx7.names }));
+  r.status = await page.textContent('#status');
+  r.dx7_index = await page.evaluate(() => window.fm1.catalog.find((e) => e.id === 'dx7').index);
+  r.sound = await page.evaluate(() => window.fm1.state.units[0]);
+  await tftPng(page, 'tft-16-dx7-loaded.png');
+  await wait(page, 1200);                                       // the popup goes
+  await page.keyboard.down('KeyG');
+  await wait(page, 400);
+  r.rms = await level(page);
+  await tftPng(page, 'tft-17-dx7-user-1.png');
+  await page.keyboard.up('KeyG');
+  // Dragging files shows the hint; a dump cut short, dropped, says so.
+  await page.evaluate(() => {
+    const dt = new DataTransfer();
+    dt.items.add(new File([new Uint8Array([0xF0, 0x43, 0x00, 0x00, 0x01, 0x1B, 1, 2, 3])], 'broken.syx'));
+    window.__dt = dt;
+    for (const type of ['dragenter', 'dragover']) {
+      window.dispatchEvent(new DragEvent(type, { dataTransfer: dt, bubbles: true, cancelable: true }));
+    }
+  });
+  r.drop_hint_shown = await page.evaluate(() => !document.getElementById('drop-hint').hidden);
+  await page.screenshot({ path: join(out, '10-dx7-drop.png') });
+  await page.evaluate(() => window.dispatchEvent(new DragEvent('drop', { dataTransfer: window.__dt, bubbles: true,
+    cancelable: true })));
+  await page.waitForFunction(() => /broken\.syx/.test(document.getElementById('status').textContent), null,
+    { timeout: 5000 });
+  r.drop_hint_after = await page.evaluate(() => !document.getElementById('drop-hint').hidden);
+  r.drop_status = await page.textContent('#status');
+  r.names_after_drop = await page.evaluate(() => window.fm1.dx7.names);
+  r.requests = requests;
+  await page.close();
+  const lunar = (n, k) => n === `LUNAR ${String(k + 1).padStart(2, '0')}`;
+  r.pass = r.help_shown && r.disabled_powered_off === true &&
+    r.loaded.result.join() === '32,32,0,1' && r.loaded.names.every(lunar) &&
+    /Loaded 32 voices from "lunar-test-bank\.syx" into FM6's User 1 to 32\. Sound 1 plays LUNAR 01/.test(r.status) &&
+    r.sound === r.dx7_index && r.rms > 0.005 &&
+    r.drop_hint_shown === true && r.drop_hint_after === false && /"broken\.syx" was not loaded: it is cut short/.test(r.drop_status) &&
+    r.names_after_drop.every(lunar) && r.requests.length === 0;
+  return r;
+}
+
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
   page.on('console', (m) => report.logs.push(`${m.type()}: ${m.text()}`));
@@ -636,6 +707,7 @@ try {
 
   report.checks.input = await inputChecks(browser);
   report.checks.seq = await seqChecks(browser);
+  report.checks.dx7 = await dx7Checks(browser);
 
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   phone.on('pageerror', (e) => report.logs.push(`phone pageerror: ${e.message}`));
@@ -679,7 +751,7 @@ report.pass = !report.error && theme.title === 'Lunar Modulator' && theme.displa
   theme.body_background === 'rgb(35, 33, 54)' && c.screens > 0 && c.chord_rms > 0.01 && c.lit_keys === 3 &&
   c.fx_led === true && c.phone_scroll_width <= 390 && bigEnough(c.phone, 24) && c.phone_pan_px > 100 &&
   c.landscape.page_scroll_width <= 844 && bigEnough(c.landscape, 24) && c.input && c.input.pass &&
-  c.seq && c.seq.pass &&
+  c.seq && c.seq.pass && c.dx7 && c.dx7.pass &&
   c.publishing && c.publishing.pass &&
   !report.logs.some((l) => l.startsWith('error') || l.includes('pageerror'));
 writeFileSync(join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n');

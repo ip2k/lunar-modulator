@@ -199,7 +199,33 @@ static void popup(fm1_app_t *a, const char *l0, const char *l1, const char *l2, 
     a->popup_lines = i + 1;
   }
   a->popup_mark = mark;
+  a->popup_title[0] = '\0';
+  a->popup_first = a->popup_total = 0;
+  a->popup_dim = 0;
   a->popup_until = a->frames + (uint64_t)a->host.sample_rate;   /* about a second */
+  a->dirty = 1;
+}
+
+/* Entry k of a list popup's list, into buf; 1 to draw it dim. */
+typedef int (*list_entry_fn)(const fm1_app_t *a, const void *ctx, int k, char *buf, size_t size);
+
+/* A list popup, for as long as a message's: `title`, entry `sel` of
+ * `total` chosen, and the window of entries around it that the screen
+ * shows (fm1_list_first), each named by `name`. */
+static void list_popup(fm1_app_t *a, const char *title, int total, int sel, list_entry_fn name,
+                       const void *ctx) {
+  const int first = fm1_list_first(total, sel, FM1_LIST_ROWS);
+  a->popup_lines = 0;
+  a->popup_dim = 0;
+  for (int r = 0; r < FM1_LIST_ROWS && first + r < total; ++r) {
+    if (name(a, ctx, first + r, a->popup[r], sizeof a->popup[r])) a->popup_dim |= 1u << r;
+    a->popup_lines = r + 1;
+  }
+  snprintf(a->popup_title, sizeof a->popup_title, "%s", title);
+  a->popup_first = first;
+  a->popup_total = total;
+  a->popup_mark = sel - first;
+  a->popup_until = a->frames + (uint64_t)a->host.sample_rate;
   a->dirty = 1;
 }
 
@@ -355,6 +381,56 @@ static void set_mode(fm1_app_t *a, int mode) {
   a->mode = mode;
 }
 
+/* ---- FM6's user bank (fm1_app_dx7_t) --------------------------------------------- */
+
+#define DX7_USER0 (FM1_APP_DX7_PATCHES - (int)FM1_DX7_USER_SLOTS)   /* User 1's Patch value */
+#define DX7_VCED_NAME 145                                         /* the name in VCED data */
+
+/* FM6's Patch list as the screen shows it: the built-in names, then each
+ * user slot's loaded name or the engine's own "User N". */
+static void dx7_names(fm1_app_t *a) {
+  fm1_app_dx7_t *d = &a->dx7;
+  const char *const *own = fm1_engines[d->index]->params[d->patch].enum_names;
+  for (int i = 0; i < FM1_APP_DX7_PATCHES; ++i) {
+    const int slot = i - DX7_USER0;
+    d->names[i] = slot >= 0 && d->loaded[slot] && d->name[slot][0] ? d->name[slot] : own[i];
+  }
+}
+
+/* The app's view of FM6: the registry's entry with its own parameter table,
+ * whose Patch names the bank's voices. Without an FM6 of the expected shape
+ * (a 64-entry Patch list), index stays -1 and FM6 shows its own names. */
+static void dx7_init(fm1_app_t *a) {
+  fm1_app_dx7_t *d = &a->dx7;
+  const fm1_engine_t *e;
+  memset(d, 0, sizeof *d);
+  d->patch = -1;
+  d->index = fm1_app_find("dx7");
+  if (d->index < 0) return;
+  e = fm1_engines[d->index];
+  for (uint16_t i = 0; i < e->n_params && i < FM1_APP_MAX_PARAMS; ++i) {
+    d->params[i] = e->params[i];
+    if (strcmp(e->params[i].name, "Patch") == 0) d->patch = i;
+  }
+  if (d->patch < 0 || e->n_params > FM1_APP_MAX_PARAMS || e->params[d->patch].type != FM1_PARAM_ENUM ||
+      !e->params[d->patch].enum_names ||
+      (int)(e->params[d->patch].max - e->params[d->patch].min) + 1 != FM1_APP_DX7_PATCHES) {
+    d->index = -1;
+    return;
+  }
+  dx7_names(a);
+  d->params[d->patch].enum_names = d->names;
+  d->engine = *e;
+  d->engine.params = d->params;
+}
+
+/* An FM6 instance gets every loaded voice of the bank. */
+static void dx7_give(const fm1_app_t *a, const fm1_app_unit_t *u) {
+  for (unsigned k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
+    if (a->dx7.loaded[k]) fm1_dx7_set_user_voice(u->self, k, a->dx7.voice[k]);
+  }
+}
+
 /* ---- set-up and units --------------------------------------------------------- */
 
 /* Everything fm1_app_init sets up but modulation, which needs the sinks
@@ -392,6 +468,7 @@ static void app_init(fm1_app_t *a, float sample_rate) {
   fm1_seq_click_init(&a->click, (uint32_t)lrintf(sample_rate));
   fm1_mod_ui_init(&a->mui);
   fm1_app_seq_reset(a, FM1_APP_SEQ_TRACKS);
+  dx7_init(a);
 }
 
 static void mod_start(fm1_app_t *a, uint32_t seed, int deflt);
@@ -480,9 +557,24 @@ static void mod_release(fm1_app_t *a) {
       if (fm1_mod_sent(a->mod, (unsigned)code, i) != x->value[i]) x->e->set_param(x->self, i, x->value[i]);
     }
   }
-  if (a->unit[0].e && a->unit[0].e->pitch_bend &&
-      fm1_mod_sent(a->mod, FM1_MOD_HOST, FM1_MOD_HOST_PITCH) != a->bend) {
-    a->unit[0].e->pitch_bend(a->unit[0].self, a->bend);
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    const fm1_app_unit_t *x = sound_of_c(a, k);
+    if (x->e && x->e->pitch_bend &&
+        fm1_mod_sent(a->mod, FM1_MOD_HOST, fm1_mod_host_pitch((unsigned)k)) != a->bend[k]) {
+      x->e->pitch_bend(x->self, a->bend[k]);
+    }
+  }
+  {
+    /* Every per-note offset back to 0 (MG9), on the engines that hold one. */
+    fm1_mod_write_t w[FM1_MOD_VOICES * (FM1_MOD_VDESTS + 1u)];
+    uint32_t n;
+    while ((n = fm1_mod_voice_clear(a->mod, w, sizeof w / sizeof w[0])) != 0) {
+      for (uint32_t i = 0; i < n; ++i) {
+        const int k = fm1_mod_unit_sound(w[i].unit);
+        const fm1_app_unit_t *x = k >= 0 ? sound_of_c(a, k) : NULL;
+        if (x && x->e && x->e->set_param_note) x->e->set_param_note(x->self, w[i].key, w[i].index, 0.0f);
+      }
+    }
   }
   fm1_mod_destroy(a->mod);
   a->mod = NULL;
@@ -500,7 +592,10 @@ static void mod_start(fm1_app_t *a, uint32_t seed, int deflt) {
   a->mod_glue.ctx = a;
   a->mod_glue.write = mod_write;
   for (int u = 0; u < FM1_APP_UNITS; ++u) mod_bind(a, u);
-  fm1_mod_set_base(a->mod, FM1_MOD_HOST, FM1_MOD_HOST_PITCH, a->bend);
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    fm1_mod_set_base(a->mod, FM1_MOD_HOST, fm1_mod_host_pitch((unsigned)k), a->bend[k]);
+  }
+  fm1_mod_set_current(a->mod, (unsigned)a->sound);
   fm1_mod_ramp_init(&a->mod_amp, 1.0f);
   a->mod_amp_used = 0;
   a->mod_nwr = 0;
@@ -530,6 +625,15 @@ int fm1_app_mod_line(fm1_app_t *a, const char *line, char *err, size_t cap) {
   }
   mod_units(a, units);
   if (!fm1_mod_script_apply(a->mod, line, units, err, cap)) return 0;
+  {
+    /* A slot a script line rewrote is no longer one an engine change
+     * switched off (fm1_mod_ui.h, "Engine changes"). */
+    unsigned n;
+    if (sscanf(line, " slot %u", &n) == 1 && n >= 1 && n <= FM1_MOD_SLOTS) {
+      a->mui.aim[n - 1] = 0;
+      a->mui.aim_on &= ~(1u << (n - 1));
+    }
+  }
   if (!fm1_mod_script_seed(line, &seed)) {     /* a seed only counts at creation */
     while (*line == ' ' || *line == '\t') ++line;
     if (*line && *line != '#') mod_emit(a, line);
@@ -544,7 +648,7 @@ int fm1_app_mod_dump(fm1_app_t *a, void (*emit)(void *ctx, const char *line), vo
   mod_env(a, &env);
   env.emit = emit;
   env.ctx = ctx;
-  return fm1_mod_ui_dump(&env, a->mod_seed) && !a->mui.unloggable;
+  return fm1_mod_ui_dump(&env, &a->mui, a->mod_seed) && !a->mui.unloggable;
 }
 
 const fm1_mod_t *fm1_app_mod(const fm1_app_t *a) { return a->mod; }
@@ -565,10 +669,12 @@ static int load(fm1_app_t *a, fm1_app_unit_t *u, int index, size_t bytes) {
   memset(u->mem, 0, bytes);
   u->self = e->create(u->mem, &a->host);
   if (!u->self) return 0;
-  u->e = e;
+  /* FM6 is shown with the user bank's names, and plays its voices. */
+  u->e = index == a->dx7.index ? &a->dx7.engine : e;
   u->index = index;
   u->bytes = bytes;
   for (uint16_t i = 0; i < e->n_params; ++i) u->value[i] = e->params[i].def;
+  if (index == a->dx7.index) dx7_give(a, u);
   return 1;
 }
 
@@ -583,16 +689,30 @@ static void fx_unit_changed(fm1_app_t *a, int unit) {
   if (fx_unit_at(a, a->fx_slot) == unit) a->fx_page = clampi(a->fx_page, 0, fx_pages(a, a->fx_slot) - 1);
 }
 
+/* A unit's engine changed from `from`: the runtime's sink follows it and
+ * every cable into it is re-aimed by name, or switched off until an engine
+ * with that parameter comes back (owner, 2026-10-05; fm1_mod_ui.h). */
+static void mod_rebind(fm1_app_t *a, int unit, const fm1_engine_t *from) {
+  const int code = fm1_app_mod_unit(unit);
+  mod_bind(a, unit);
+  if (a->mod && code >= 0 && from != a->unit[unit].e) {
+    fm1_mod_ui_env_t env;
+    mod_env(a, &env);
+    fm1_mod_ui_engine_changed(&env, &a->mui, (unsigned)code, from, a->unit[unit].e);
+  }
+}
+
 int fm1_app_select(fm1_app_t *a, int unit, int index) {
   if (unit < 0 || unit >= FM1_APP_UNITS) return FM1_APP_SELECT_BAD;
   fm1_app_unit_t *u = &a->unit[unit];
   const fm1_engine_t *e = entry(index);
+  const fm1_engine_t *from = u->e;
   const int snd = unit_sound(unit);
   fm1_kind_t want = snd >= 0 ? FM1_KIND_SOUND : FM1_KIND_AUDIO_FX;
   if (index == -1 && unit > 0) {
     if (snd >= 0) release_sound(a, snd);
     release(u);
-    mod_bind(a, unit);
+    mod_rebind(a, unit, from);
     if (snd < 0 && fx_unit_at(a, a->fx_slot) == unit) a->fx_page = 0;   /* an empty slot has one page */
     if (snd == a->sound) {
       a->page = 0;
@@ -636,11 +756,11 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
         u->e->set_param(u->self, i, prev_value[i]);
       }
     }
-    mod_bind(a, unit);
+    mod_rebind(a, unit, from);
     a->dirty = 1;
     return -3;
   }
-  mod_bind(a, unit);                      /* the runtime's sink follows the unit */
+  mod_rebind(a, unit, from);              /* the runtime's sink follows the unit */
   if (snd == a->sound) {
     a->page = clampi(a->page, 0, page_count(e) - 1);
     forget_knob_hint(a);                 /* the Track view's hint named the last sound's knob */
@@ -649,6 +769,74 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   }
   a->dirty = 1;
   return 0;
+}
+
+/* What fm1_dx7_read_sysex finds goes into the bank. */
+static void dx7_store(void *ctx, unsigned slot, const uint8_t vced[FM1_DX7_VCED_BYTES]) {
+  fm1_app_dx7_t *d = &((fm1_app_t *)ctx)->dx7;
+  unsigned n = FM1_DX7_NAME_BYTES;
+  if (slot >= FM1_DX7_USER_SLOTS) return;
+  memcpy(d->voice[slot], vced, FM1_DX7_VCED_BYTES);
+  d->loaded[slot] = 1;
+  memcpy(d->name[slot], vced + DX7_VCED_NAME, FM1_DX7_NAME_BYTES);
+  while (n > 0 && d->name[slot][n - 1] == ' ') --n;   /* fm1_dx7_user_name's trim */
+  d->name[slot][n] = '\0';
+}
+
+int fm1_app_dx7_load(fm1_app_t *a, const uint8_t *data, size_t len, fm1_dx7_sysex_result_t *res) {
+  fm1_app_dx7_t *d = &a->dx7;
+  fm1_dx7_sysex_result_t r;
+  char l0[24], l1[24];
+  int n;
+  memset(&r, 0, sizeof r);
+  if (d->index < 0) n = FM1_APP_DX7_NO_FM6;
+  else if (len > FM1_APP_DX7_FILE_MAX) n = FM1_APP_DX7_TOO_BIG;
+  else n = fm1_dx7_read_sysex(data, len, d->next, dx7_store, a, &r);
+  d->last = r;
+  if (res) *res = r;
+  if (n <= 0) {
+    popup(a, "No DX7 voices", n == FM1_APP_DX7_TOO_BIG ? "file too large" : "in that file", NULL, -1);
+    return n;
+  }
+  d->next = (r.first_slot + (unsigned)n) % FM1_DX7_USER_SLOTS;
+  dx7_names(a);
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    if (a->unit[u].e && a->unit[u].index == d->index) dx7_give(a, &a->unit[u]);
+  }
+  /* "Loaded 32 voices", "User 1-32", the first one's name. */
+  {
+    const unsigned first = r.first_slot + 1u;
+    const unsigned last = (r.first_slot + (unsigned)n - 1u) % FM1_DX7_USER_SLOTS + 1u;
+    if (n == 1) snprintf(l0, sizeof l0, "Loaded 1 voice");
+    else snprintf(l0, sizeof l0, "Loaded %d voices", n);
+    if (n == 1) snprintf(l1, sizeof l1, "User %u", first);
+    else if (n >= (int)FM1_DX7_USER_SLOTS) snprintf(l1, sizeof l1, "User 1-%u", FM1_DX7_USER_SLOTS);
+    else if (last > first) snprintf(l1, sizeof l1, "User %u-%u", first, last);
+    /* Past User 32 and round to User 1: "User 31-32, 1-3", "User 32, 1". */
+    else if (first == FM1_DX7_USER_SLOTS && last == 1u) snprintf(l1, sizeof l1, "User %u, 1", first);
+    else if (first == FM1_DX7_USER_SLOTS) snprintf(l1, sizeof l1, "User %u, 1-%u", first, last);
+    else if (last == 1u) snprintf(l1, sizeof l1, "User %u-%u, 1", first, FM1_DX7_USER_SLOTS);
+    else snprintf(l1, sizeof l1, "User %u-%u, 1-%u", first, FM1_DX7_USER_SLOTS, last);
+    popup(a, l0, l1, d->names[DX7_USER0 + (int)r.first_slot], -1);
+  }
+  return n;
+}
+
+int fm1_app_dx7_play(fm1_app_t *a, unsigned slot) {
+  const int unit = fm1_app_sound_unit(a->sound);
+  if (a->dx7.index < 0) return FM1_APP_DX7_NO_FM6;
+  if (slot >= FM1_DX7_USER_SLOTS || unit < 0) return FM1_APP_SELECT_BAD;
+  if (a->unit[unit].index != a->dx7.index) {
+    const int r = fm1_app_select(a, unit, a->dx7.index);
+    if (r) return r;
+  }
+  fm1_app_set_param(a, unit, a->dx7.patch, (float)(DX7_USER0 + (int)slot));
+  return 0;
+}
+
+const char *fm1_app_dx7_name(const fm1_app_t *a, unsigned slot) {
+  if (slot >= FM1_DX7_USER_SLOTS || a->dx7.index < 0) return "";
+  return a->dx7.names[DX7_USER0 + (int)slot];
 }
 
 int fm1_app_default_chain(fm1_app_t *a) {
@@ -768,6 +956,12 @@ int fm1_app_unit_set_current(fm1_app_t *a, int sound) {
   if (sound < 0 || sound >= FM1_APP_SOUNDS) return -1;
   if (sound != a->sound) {
     a->sound = sound;
+    if (a->mod) {                        /* PITCH_CUR's cables follow it (MG9) */
+      char line[16];
+      fm1_mod_set_current(a->mod, (unsigned)sound);
+      snprintf(line, sizeof line, "current %d", sound + 1);
+      mod_emit(a, line);
+    }
     a->page = clampi(a->page, 0, page_count(cur(a)->e) - 1);
     forget_knob_hint(a);                 /* the hint named the last sound's knob */
     if (a->fx_slot < FX_MIX) a->fx_page = clampi(a->fx_page, 0, fx_pages(a, a->fx_slot) - 1);
@@ -831,14 +1025,23 @@ int fm1_app_unit_of_track(const fm1_app_t *a, int track) {
 static void play_on(fm1_app_t *a, int sound, int note, int velocity) {
   fm1_app_unit_t *s = sound_of(a, sound);
   if (s->e && s->e->note_on) s->e->note_on(s->self, (uint8_t)note, (uint8_t)velocity);
-  if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)note, (uint8_t)velocity);
+  if (a->mod && s->e) {
+    /* Its voice's first per-note offsets right after the note-on (MG9). */
+    fm1_mod_write_t w[FM1_MOD_VDESTS + 1u];
+    uint32_t n;
+    fm1_mod_live_sound_note(a->mod, (unsigned)sound, (uint8_t)note, (uint8_t)velocity);
+    n = fm1_mod_voice_start(a->mod, (unsigned)sound, (uint8_t)note, w, FM1_MOD_VDESTS + 1u);
+    for (uint32_t i = 0; i < n && s->e->set_param_note; ++i) {
+      s->e->set_param_note(s->self, w[i].key, w[i].index, w[i].value);
+    }
+  }
   if (a->note_count[sound][note] < 255) ++a->note_count[sound][note];
 }
 
 static void play_off(fm1_app_t *a, int sound, int note) {
   fm1_app_unit_t *s = sound_of(a, sound);
   if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)note);
-  if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)note, 0);
+  if (a->mod && s->e) fm1_mod_live_sound_note(a->mod, (unsigned)sound, (uint8_t)note, 0);
   if (a->note_count[sound][note]) --a->note_count[sound][note];
 }
 
@@ -908,11 +1111,12 @@ void fm1_app_pitch_bend(fm1_app_t *a, float semitones) {
   if (semitones > 48.0f) semitones = 48.0f;
   if (semitones < -48.0f) semitones = -48.0f;
   fm1_app_unit_t *s = cur(a);
-  if (a->sound == 0) {
-    /* With modulation sound 0's bend is HOST PITCH's base (fm1_mod_host.h),
-     * as fm1-render's --bend is. */
-    a->bend = semitones;
-    if (a->mod) semitones = fm1_mod_set_base(a->mod, FM1_MOD_HOST, FM1_MOD_HOST_PITCH, semitones);
+  /* With modulation each sound unit's bend is the base of its HOST pitch
+   * (PITCH for sound 1, PITCH2-4; fm1_mod_host.h), as fm1-render's --bend
+   * and its slots' bends are. */
+  a->bend[a->sound] = semitones;
+  if (a->mod) {
+    semitones = fm1_mod_set_base(a->mod, FM1_MOD_HOST, fm1_mod_host_pitch((unsigned)a->sound), semitones);
   }
   if (s->e && s->e->pitch_bend) s->e->pitch_bend(s->self, semitones);
 }
@@ -925,7 +1129,7 @@ static void seq_release_sound(fm1_app_t *a, int sound) {
   for (int n = 0; n < 128; ++n) {
     while (a->seq_note_count[sound][n]) {
       if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)n);
-      if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)n, 0);   /* no event will say it */
+      if (a->mod && s->e) fm1_mod_live_sound_note(a->mod, (unsigned)sound, (uint8_t)n, 0);   /* no event will say it */
       --a->seq_note_count[sound][n];
     }
   }
@@ -941,7 +1145,7 @@ static void notes_release_sound(fm1_app_t *a, int sound) {
   for (int n = 0; n < 128; ++n) {
     while (a->note_count[sound][n]) {
       if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)n);
-      if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)n, 0);
+      if (a->mod && s->e) fm1_mod_live_sound_note(a->mod, (unsigned)sound, (uint8_t)n, 0);
       --a->note_count[sound][n];
     }
   }
@@ -1033,8 +1237,18 @@ static void stub_popup(fm1_app_t *a, int button) {
 
 /* ---- modulation on the panel (fm1_mod_ui.h) ------------------------------------ */
 
+static int say_entry(const fm1_app_t *a, const void *ctx, int k, char *buf, size_t size) {
+  const fm1_mod_ui_say_t *s = (const fm1_mod_ui_say_t *)ctx;
+  const int r = k - s->first;            /* the same window: fm1_list_first both times */
+  (void)a;
+  snprintf(buf, size, "%s", r >= 0 && r < s->n ? s->line[r] : "");
+  return r >= 0 && r < s->n && ((s->dim >> r) & 1u);
+}
+
 static void say(fm1_app_t *a, const fm1_mod_ui_say_t *s) {
-  if (s->n > 0) {
+  if (s->n > 0 && s->total > 0) {        /* a picker's list: the window it chose */
+    list_popup(a, s->title, s->total, s->first + s->mark, say_entry, s);
+  } else if (s->n > 0) {
     popup(a, s->line[0], s->n > 1 ? s->line[1] : NULL, s->n > 2 ? s->line[2] : NULL, s->mark);
   }
 }
@@ -1184,6 +1398,7 @@ static int mod_encoder(fm1_app_t *a, int encoder, int delta) {
   const int algo = encoder == FM1_ENC_ALGORITHM && !oct;
   out.n = 0;
   out.mark = -1;
+  out.total = 0;                         /* a message, unless a picker says a list */
   mod_env(a, &env);
   /* A waiting picker goes on with its own control; anything else settles it. */
   if (u->picker &&
@@ -1429,19 +1644,74 @@ static int next_preset(const fm1_app_t *a, int from, int dir) {
 
 static const char *entry_name(int index) { return index < 0 ? "Empty" : fm1_engines[index]->name; }
 
-static void preset_popup(fm1_app_t *a) {
-  int cur_index = cur(a)->index;
-  if (cur_index < 0 && !sound_empty_ok(a)) return;
-  popup(a, entry_name(next_preset(a, cur_index, -1)), entry_name(cur_index),
-        entry_name(next_preset(a, cur_index, +1)), 1);
+/* ALGORITHM's list: entry k of an ENUM parameter, by name. */
+static int enum_entry(const fm1_app_t *a, const void *ctx, int k, char *buf, size_t size) {
+  const fm1_param_t *p = (const fm1_param_t *)ctx;
+  (void)a;
+  fm1_look_value(p, p->min + (float)k, buf, size);
+  return 0;
 }
 
-/* SHIFT + PRESETS: the current sound, 1 to 4, and what it holds. */
+/* The list PRESETS (`kind` sound) or ALGORITHM in FX mode (an effect)
+ * turns through, in the order next_preset and next_fx step: Empty first
+ * when the unit may be empty, then every registry entry of that kind. */
+typedef struct kind_list {
+  fm1_kind_t kind;
+  int empty_ok;
+  const char *empty;                     /* Empty's name in the list */
+} kind_list_t;
+
+static int kind_list_count(const kind_list_t *l) {
+  int n = l->empty_ok;
+  for (size_t i = 0; i < fm1_engine_count; ++i) n += fm1_engines[i]->kind == l->kind;
+  return n;
+}
+
+/* The list's entry k: a registry index, or -1 for Empty. */
+static int kind_list_at(const kind_list_t *l, int k) {
+  if (l->empty_ok && k-- == 0) return -1;
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    if (fm1_engines[i]->kind == l->kind && k-- == 0) return (int)i;
+  }
+  return -1;
+}
+
+/* Where registry entry `index` (-1: Empty) is in the list. */
+static int kind_list_pos(const kind_list_t *l, int index) {
+  const int n = kind_list_count(l);
+  for (int k = 0; k < n; ++k) {
+    if (kind_list_at(l, k) == index) return k;
+  }
+  return 0;
+}
+
+static int kind_list_entry(const fm1_app_t *a, const void *ctx, int k, char *buf, size_t size) {
+  const kind_list_t *l = (const kind_list_t *)ctx;
+  const int index = kind_list_at(l, k);
+  (void)a;
+  snprintf(buf, size, "%s", index < 0 ? l->empty : entry_name(index));
+  return index < 0;                      /* Empty, dim */
+}
+
+/* PRESETS: the engines, the current sound's highlighted. */
+static void preset_popup(fm1_app_t *a) {
+  const kind_list_t l = { FM1_KIND_SOUND, sound_empty_ok(a), "Empty" };
+  if (cur(a)->index < 0 && !l.empty_ok) return;
+  list_popup(a, "Engine", kind_list_count(&l), kind_list_pos(&l, cur(a)->index), kind_list_entry,
+             &l);
+}
+
+static int sound_entry(const fm1_app_t *a, const void *ctx, int k, char *buf, size_t size) {
+  const fm1_engine_t *e = sound_of_c(a, k)->e;
+  (void)ctx;
+  snprintf(buf, size, "S%d %s", k + 1, e ? e->name : "Empty");
+  return e == NULL;
+}
+
+/* SHIFT + PRESETS: the four sounds and what each holds, the current one
+ * highlighted. */
 static void sound_popup(fm1_app_t *a) {
-  char line[24];
-  snprintf(line, sizeof line, "Sound %d of %d", a->sound + 1, FM1_APP_SOUNDS);
-  if (cur(a)->e) popup(a, line, cur(a)->e->name, NULL, -1);
-  else popup(a, line, "Empty:", "turn PRESETS", -1);
+  list_popup(a, "Sound", FM1_APP_SOUNDS, a->sound, sound_entry, NULL);
 }
 
 /* FX mode walks (slot, page) pairs: In1's pages, then In2's, Mix, M1's and
@@ -1496,9 +1766,15 @@ static void fx_choose(fm1_app_t *a, int unit, int delta) {
   }
   a->fx_page = 0;
   a->ram_over = over;                    /* the popup's figure is the first refusal's */
-  if (refused >= 0) refusal_popup(a, refused, code);
-  else if (to < 0) popup(a, "Empty slot", NULL, NULL, -1);
-  else popup(a, fm1_engines[to]->name, NULL, NULL, -1);
+  if (refused >= 0) {
+    refusal_popup(a, refused, code);
+  } else {                               /* the effects, the slot's highlighted */
+    const kind_list_t l = { FM1_KIND_AUDIO_FX, 1, "Empty slot" };
+    char title[24];
+    snprintf(title, sizeof title, "%s effect", kFxTags[a->fx_slot]);
+    list_popup(a, title, kind_list_count(&l), kind_list_pos(&l, a->unit[unit].index),
+               kind_list_entry, &l);
+  }
 }
 
 void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
@@ -1573,11 +1849,11 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
         if (unit >= 0) fx_choose(a, unit, delta);   /* the Mix page has no effect */
       } else if (cur(a)->e) {
         int m = model_param(cur(a)->e);
-        if (m >= 0) {
-          char buf[24];
+        if (m >= 0) {                    /* its list, the entry it is on highlighted */
+          const fm1_param_t *p = &cur(a)->e->params[m];
           turn_sound(a, a->sound, m, delta);   /* its lanes' bases follow (S8) */
-          fm1_look_value(&cur(a)->e->params[m], cur(a)->value[m], buf, sizeof buf);
-          popup(a, cur(a)->e->params[m].name, buf, NULL, -1);
+          list_popup(a, p->name, (int)(p->max - p->min) + 1, enum_index(p, cur(a)->value[m]),
+                     enum_entry, p);
         }
       }
       break;
@@ -1744,6 +2020,13 @@ static void sink_bend(void *ctx, float semitones) {
   if (u->e->pitch_bend) u->e->pitch_bend(u->self, semitones);
 }
 
+/* A voice's per-note offset (modulation per voice, docs/16 MG9). */
+static void sink_set_param_note(void *ctx, uint8_t key, uint16_t index, float offset) {
+  const fm1_app_sink_ctx_t *c = (const fm1_app_sink_ctx_t *)ctx;
+  const fm1_app_unit_t *u = sound_of(c->a, c->sound);
+  if (u->e->set_param_note) u->e->set_param_note(u->self, key, index, offset);
+}
+
 /* An effect over the block, split at its own writes from the ticks, as
  * fm1-render's RenderFx does; each piece through fm1_fx_render, which
  * gives an effect with engine API v3's extension the sequencer's tempo,
@@ -1806,6 +2089,7 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
     sink[k].note_off = sink_note_off;
     sink[k].set_param = sink_set_param;
     sink[k].pitch_bend = sink_bend;
+    sink[k].set_param_note = sink_set_param_note;
     slot[k].sink = u->e ? &sink[k] : NULL;
     slot[k].block = a->mix[k];
   }
@@ -2193,8 +2477,62 @@ static void draw_popup_lines(fm1_app_t *a, const char (*text)[24], int lines, in
   }
 }
 
+/* A triangle LIST_MARK_W wide and LIST_MARK_H tall, centred, pointing up
+ * (the list goes on above) or down (below), logged as one graphic. */
+static void draw_list_mark(fm1_app_t *a, int y, int up) {
+  const int cx = FM1_TFT_W / 2;
+  fm1_tft_graphic(&a->tft, cx - LIST_MARK_W / 2, y, LIST_MARK_W, LIST_MARK_H);
+  for (int r = 0; r < LIST_MARK_H; ++r) {
+    const int half = r * (LIST_MARK_W / 2) / (LIST_MARK_H - 1);
+    fm1_tft_paint(&a->tft, cx - half, up ? y + r : y + LIST_MARK_H - 1 - r, 2 * half + 1, 1,
+                  C_ACCENT);
+  }
+}
+
+/* A list popup over the centre area, as a message's: the list's title in
+ * gold and the chosen entry's place ("12/96") dim on the first line, then
+ * the window's entries from the left, the chosen one on the accent, an
+ * Empty entry dim; a triangle between the title and the entries when the
+ * list goes on above them, and one under them when it goes on below. */
+static void draw_list(fm1_app_t *a, const char *title, const char (*text)[24], int lines,
+                      int mark, int first, int total, uint32_t dim) {
+  const int top = TITLE_H, bottom = BOTTOM_Y;
+  char place[16];
+  fm1_tft_fill(&a->tft, 0, top, FM1_TFT_W, bottom - top, C_POPUP_BG);
+  fm1_tft_paint(&a->tft, 0, top, FM1_TFT_W, 2, C_ACCENT);
+  fm1_tft_paint(&a->tft, 0, bottom - 2, FM1_TFT_W, 2, C_ACCENT);
+  snprintf(place, sizeof place, "%d/%d", first + mark + 1, total);
+  {
+    const int pw = fm1_tft_text_width(place, 8, SCALE);
+    const int px = FM1_TFT_W - LIST_X - pw;
+    /* The title takes what is left before the place and the gap; a longer
+     * one is cut, and the layout check counts the cut. */
+    const int room = (px - FM1_APP_LAYOUT_GAP - LIST_X + SCALE) / FM1_TFT_ADVANCE(SCALE);
+    fm1_tft_text(&a->tft, LIST_X, LIST_TITLE_Y, title, room, SCALE, C_MODEL);
+    fm1_tft_text(&a->tft, px, LIST_TITLE_Y, place, 8, SCALE, C_DIM);
+  }
+  if (first > 0) draw_list_mark(a, LIST_MORE_Y, 1);
+  for (int i = 0; i < lines; ++i) {
+    const int ly = LIST_Y + i * LIST_PITCH;
+    uint16_t color = (dim >> i) & 1u ? C_DIM : C_TEXT;
+    if (i == mark) {
+      fm1_tft_paint(&a->tft, MARGIN, ly - 3, RIGHT - MARGIN, LIST_PITCH - 1, C_ACCENT);
+      color = C_BG;
+    }
+    fm1_tft_text(&a->tft, LIST_X, ly, text[i], POPUP_CHARS, SCALE, color);
+  }
+  if (first + lines < total) {
+    draw_list_mark(a, LIST_Y + (lines - 1) * LIST_PITCH + 18 + FM1_APP_LAYOUT_GAP, 0);
+  }
+}
+
 static void draw_popup(fm1_app_t *a) {
-  draw_popup_lines(a, (const char (*)[24])a->popup, a->popup_lines, a->popup_mark);
+  if (a->popup_total > 0) {
+    draw_list(a, a->popup_title, (const char (*)[24])a->popup, a->popup_lines, a->popup_mark,
+              a->popup_first, a->popup_total, a->popup_dim);
+  } else {
+    draw_popup_lines(a, (const char (*)[24])a->popup, a->popup_lines, a->popup_mark);
+  }
 }
 
 /* A tempo as "120 BPM", or "117.50 BPM" (the core's are 20.00 to 300.00). */
@@ -2211,19 +2549,20 @@ static void bpm_text(char *buf, size_t size, unsigned bpm_x100) {
 static void draw_capture(fm1_app_t *a) {
   const fm1_seq_ui_t *u = &a->ui;
   char text[3][24];
-  int lines = 0, mark = -1;
-  if (u->capture_mode == FM1_SEQ_UI_CAPTURE_PICK && u->capture_n) {
-    for (int k = 0; k < u->capture_n; ++k) {
+  char bpm[16];
+  int lines = 0;
+  if (u->capture_mode == FM1_SEQ_UI_CAPTURE_PICK && u->capture_n) {   /* a list, as PRESETS' */
+    for (int k = 0; k < u->capture_n && k < 3; ++k) {
       bpm_text(text[lines++], sizeof text[0], u->capture_cands[k] * 100u);
     }
-    mark = u->capture_sel < u->capture_n ? u->capture_sel : -1;
-  } else {
-    char bpm[16];
-    bpm_text(bpm, sizeof bpm, u->bpm_x100);
-    snprintf(text[lines++], sizeof text[0], "Captured");
-    snprintf(text[lines++], sizeof text[0], "at %s", bpm);
+    const int mark = u->capture_sel < lines ? u->capture_sel : 0;
+    draw_list(a, "Tempo", (const char (*)[24])text, lines, mark, 0, lines, 0);
+    return;
   }
-  draw_popup_lines(a, (const char (*)[24])text, lines, mark);
+  bpm_text(bpm, sizeof bpm, u->bpm_x100);
+  snprintf(text[lines++], sizeof text[0], "Captured");
+  snprintf(text[lines++], sizeof text[0], "at %s", bpm);
+  draw_popup_lines(a, (const char (*)[24])text, lines, -1);
 }
 
 void fm1_look_row(fm1_tft_t *t, int y, const char *label, const char *value, uint16_t color) {

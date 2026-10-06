@@ -14,6 +14,15 @@
 #error "compile with -DFM1_MSFA_UNIT='\"env.cc\"' (mk/msfa.mk)"
 #endif
 
+// FM1_MSFA_REF (the test oracle's build of sin.cc, exp2.cc and freqlut.cc,
+// mk/msfa.mk): msfa as upstream builds it, its tables plain arrays, in a
+// namespace of its own.
+#ifdef FM1_MSFA_REF
+namespace fm1_msfa_ref {
+#include FM1_MSFA_UNIT
+}  // namespace fm1_msfa_ref
+#else
 namespace fm1_msfa {
 #include FM1_MSFA_UNIT
 }  // namespace fm1_msfa
+#endif

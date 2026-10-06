@@ -21,7 +21,7 @@ from tests.test_sim_web import SCENARIOS, left_channel, run, scenario_args, tool
 BUDGET = 387924
 SEQ_FIXED = 31880 + 3264          # the sequencer's instance (8 tracks) and event buffer (272 events),
 SEQ_MORE = 240 + 1024 + 20        # its pending record, the UI bound and the click,
-MOD_BYTES = 23520                 # and the modulation runtime (fm1_mod_size(), docs/16 MG3)
+MOD_BYTES = 26512                 # and the modulation runtime (fm1_mod_size(), docs/16 MG3; MG9 voices; glide)
 FIXED = SEQ_FIXED + SEQ_MORE + MOD_BYTES
 MIX_BLOCK = 512
 
@@ -39,14 +39,18 @@ def instance_bytes(tools, engine_id, kind="sound"):
 
 def test_shift_presets_chooses_the_current_sound(tools):
     """SEL held (SHIFT, outside FX mode) and PRESETS turned: the current
-    sound, with a popup naming it and what it holds; SHIFT is let go after."""
+    sound, with a list of the four and what each holds, the current one
+    chosen (three lines, "Sound 2 of 4" and its engine, until 2026-10-06);
+    SHIFT is let go after."""
     s = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.1:SEL:0.2",
             "--turn", "0.15:PRESETS:1", seconds=0.5)
-    assert s["current"] == 1 and s["popup"] == ["Sound 2 of 4", "Shapes"]
+    assert s["current"] == 1 and s["popup"] == ["S1 Macro", "S2 Shapes", "S3 Empty", "S4 Empty"]
+    assert s["popup_list"] == {"title": "Sound", "first": 0, "total": 4, "mark": 1}
     assert s["seq_view"]["shift"] == 0 and s["engine"] == "macro"
     empty = sim(tools, "--engine", "macro", "--button", "0.1:SEL:0.2", "--turn", "0.15:PRESETS:3",
                 seconds=0.5)
-    assert empty["current"] == 3 and empty["popup"] == ["Sound 4 of 4", "Empty:", "turn PRESETS"]
+    assert empty["current"] == 3 and empty["popup"] == ["S1 Macro", "S2 Empty", "S3 Empty", "S4 Empty"]
+    assert empty["popup_list"]["mark"] == 3
     fx = sim(tools, "--engine", "macro", "--button", "0.05:FX", "--button", "0.1:SEL:0.2",
              "--turn", "0.15:PRESETS:1", seconds=0.5)
     assert fx["current"] == 0, "SEL is the slot grab in FX mode, not SHIFT"
@@ -120,11 +124,15 @@ def test_presets_on_another_sound_reaches_empty(tools):
     unloads the sound (Sound 1 always holds one, as before)."""
     on = sim(tools, "--engine", "macro", "--button", "0.1:SEL:0.1", "--turn", "0.15:PRESETS:1",
              "--turn", "0.3:PRESETS:1", seconds=0.5)
-    assert on["sounds"][1] == "macro" and on["popup"] == ["Empty", "Macro", "Shapes"]
+    assert on["sounds"][1] == "macro" and on["popup"][:3] == ["Empty", "Macro", "Shapes"]
+    catalog = json.loads(subprocess.run([str(tools["sim"]), "--list"], check=True,
+                                        capture_output=True, text=True).stdout)
+    engines = sum(e["kind"] == "sound" for e in catalog)
+    assert on["popup_list"] == {"title": "Engine", "first": 0, "total": 1 + engines, "mark": 1}
     off = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.1:SEL:0.1",
               "--turn", "0.15:PRESETS:1", "--turn", "0.3:PRESETS:-1", "--turn", "0.4:PRESETS:-1",
               seconds=0.5)
-    assert off["sounds"][1] == "" and off["popup"][1] == "Empty"
+    assert off["sounds"][1] == "" and off["popup"][0] == "Empty" and off["popup_list"]["mark"] == 0
 
 
 def test_fx_mode_walks_the_inserts_mix_and_master(tools):
@@ -184,12 +192,15 @@ def test_the_meter_refuses_what_would_not_fit(tools):
 def test_the_refusal_popup_gives_the_first_refusals_figure(tools):
     """PRESETS steps over two sounds that would not fit (Shapes, then Macro
     Heavy) to Six-Op; the popup names the first one skipped and by how much
-    that one would pass the budget, not the last one's figure."""
-    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "plate", "--fx", "diffuse"]
+    that one would pass the budget, not the last one's figure. (The second
+    master effect is Ensemble since glide: with Diffuse, Macro and Shapes no
+    longer fit together once both carried glide's state.)"""
+    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "plate", "--fx", "ensemble"]
     s = sim(tools, *chain, "--turn", "0.1:PRESETS:1", seconds=0.3)
     assert s["engine"] == "sixop" and s["popup"][:2] == ["Shapes", "does not fit"]
     rest = (instance_bytes(tools, "shapes") + instance_bytes(tools, "plate", "fx") +
-            instance_bytes(tools, "diffuse", "fx") + FIXED + MIX_BLOCK)
+            instance_bytes(tools, "ensemble", "fx") + FIXED + MIX_BLOCK)
+    assert rest + instance_bytes(tools, "macro") <= BUDGET, "the chain must fit to begin with"
     assert rest + instance_bytes(tools, "macro-heavy") > BUDGET, "Macro Heavy must be refused too"
     over = rest + instance_bytes(tools, "shapes") - BUDGET
     assert s["popup"][2] == f"{-(-over // 1024)}K over budget"

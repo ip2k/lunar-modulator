@@ -49,7 +49,7 @@ UNITS = ["test-sine", "macro", "macro-heavy", "shapes", "sixop", "dx7", "sw-soph
          "plate",
          "ensemble", "diffuse", "crush", "fold", "echo", "test-gain", "sw-psxverb",
          "drive", "filter", "comb", "comp", "limit", "djfilter", "tilt", "sat", "isolator", "eq",
-         "room", "hall", "gate", "test-ext"]
+         "room", "hall", "gate", "squash", "shaper", "test-ext"]
 
 
 def test_the_driver_covers_every_engine_and_effect(units):

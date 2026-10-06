@@ -115,14 +115,14 @@ void Ceiling() {
   const float releases[] = { 1.0f, 100.0f, 1000.0f };
   const float links[] = { 0.0f, 0.5f, 1.0f };
   Lcg pick = { 7u };
-  double worst[2][2] = { { 0, 0 }, { 0, 0 } };   // [mode][lookahead 0 or not]
+  double worst[3][2] = { { 0, 0 }, { 0, 0 }, { 0, 0 } };   // [mode][lookahead 0 or not]
   float envelope = 0.0f;   // BRICKWALL with a lookahead: |u x a| / c before the clamp
   float peak_at_0db = 0.0f;
   uint64_t over = 0, frames_checked = 0;
   int runs = 0;
   float buf[128];
   const uint32_t total = static_cast<uint32_t>(0.25f * kRate);
-  for (int mode = 0; mode < 2; ++mode) {
+  for (int mode = 0; mode < 3; ++mode) {
     for (int combo = 0; combo < 60; ++combo) {
       Setting s;
       s.ceiling = ceilings[pick.Next() % 5];
@@ -163,10 +163,10 @@ void Ceiling() {
   }
   printf("\"ceiling\":{\"runs\":%d,\"frames\":%llu,\"over\":%llu,\"peak_at_0db\":%.9g,"
          "\"brickwall\":%.9g,\"brickwall_zero\":%.9g,\"soft\":%.9g,\"soft_zero\":%.9g,"
-         "\"envelope\":%.9g}",
+         "\"round\":%.9g,\"round_zero\":%.9g,\"envelope\":%.9g}",
          runs, static_cast<unsigned long long>(frames_checked),
          static_cast<unsigned long long>(over), peak_at_0db, worst[0][0], worst[0][1],
-         worst[1][0], worst[1][1], envelope);
+         worst[1][0], worst[1][1], worst[2][0], worst[2][1], envelope);
 }
 
 // 2. Latency: an impulse under the ceiling comes out alone, unchanged, d
@@ -240,6 +240,9 @@ void Transparency() {
     { "brickwall-minus6", { -6.0f, 0.0f, 100.0f, 1.0f, 0.0f, 1.0f, 1.0f }, 0.5f },
     { "zero-lookahead", { 0.0f, 0.0f, 100.0f, 0.0f, 0.0f, 1.0f, 1.0f }, 0.89f },
     { "soft-clip", { 0.0f, 0.0f, 100.0f, 2.0f, 1.0f, 1.0f, 1.0f }, 0.5f },
+    { "round", { 0.0f, 0.0f, 100.0f, 2.0f, 2.0f, 1.0f, 1.0f }, 0.999f },
+    { "round-minus6", { -6.0f, 0.0f, 100.0f, 5.0f, 2.0f, 0.0f, 1.0f }, 0.5f },
+    { "round-zero", { 0.0f, 0.0f, 100.0f, 0.0f, 2.0f, 1.0f, 1.0f }, 0.999f },
   };
   printf("\"transparent\":{");
   for (size_t k = 0; k < sizeof(cases) / sizeof(cases[0]); ++k) {
@@ -453,6 +456,34 @@ void Smooth() {
            fmaxf(MaxStep(g_out, 11000, 12000), MaxStep(g_out, 33000, 34000)),
            [] { float m = 0; for (uint32_t i = 0; i < 2 * 44118; ++i) m = fmaxf(m, fabsf(g_out[i])); return m; }());
   }
+  // Mode BRICKWALL -> ROUND -> SOFT CLIP -> ROUND -> BRICKWALL on the same
+  // sine: each held for a quarter of a second, the steps measured over the
+  // 1,000 frames after each change against the steady ones before them.
+  {
+    void *self = Make(kRate, 0);
+    Set(self, "Ceiling", -3.0f);
+    for (uint32_t i = 0; i < total; ++i) {
+      g_out[2 * i] = g_out[2 * i + 1] = 2.0f * static_cast<float>(sin(2 * M_PI * 440.0 * i / kRate));
+    }
+    const uint32_t at[4] = { 8832, 17664, 26496, 35328 };
+    const float to[4] = { 2.0f, 1.0f, 2.0f, 0.0f };
+    for (uint32_t pos = 0; pos < total; pos += 64) {
+      for (int k = 0; k < 4; ++k) {
+        if (pos == at[k]) Set(self, "Mode", to[k]);
+      }
+      E.render(self, &g_out[2 * pos], 64 < total - pos ? 64 : total - pos);
+    }
+    E.destroy(self);
+    float steady = MaxStep(g_out, 4000, at[0]), moving = 0.0f;
+    for (int k = 0; k < 4; ++k) {
+      moving = fmaxf(moving, MaxStep(g_out, at[k], at[k] + 1000));
+      if (k < 3) steady = fmaxf(steady, MaxStep(g_out, at[k] + 2000, at[k + 1]));
+    }
+    float peak = 0.0f;
+    for (uint32_t i = 0; i < 2 * total; ++i) peak = fmaxf(peak, fabsf(g_out[i]));
+    printf(",\"round_move\":{\"steady_step\":%.6f,\"moving_step\":%.6f,\"peak\":%.6f}",
+           steady, moving, peak);
+  }
 }
 
 // 11. Lookahead and Mode modulated: changed every third block (4.4 ms, under
@@ -495,7 +526,8 @@ void ModInput(uint32_t seed) {
 // kind 0: Lookahead held at `value`, Mode at `mode`. 1: Lookahead 1-5 ms every
 // third block. 2: Lookahead 0-5 ms (0 one time in five). 3: Mode every third
 // block. 4: Mode every 64th block (93 ms: its glide completes). 5: Lookahead (0-5)
-// and Mode together, every second block.
+// and Mode together, every second block. 6, 7 and 8: as 3, 4 and 5 with
+// ROUND among the Modes (in turn, and at random in 8).
 float ModRun(int kind, float value, float mode, uint32_t seed, float *out_peak) {
   void *self = Make(kRate, 0x77);
   Set(self, "Ceiling", -6.0f);
@@ -516,6 +548,12 @@ float ModRun(int kind, float value, float mode, uint32_t seed, float *out_peak) 
       Set(self, "Lookahead", r.Next() % 5 == 0 ? 0.0f : 5.0f * r.Unit());
       Set(self, "Mode", static_cast<float>(r.Next() & 1));
     }
+    if (kind == 6 && block % 3 == 0) Set(self, "Mode", static_cast<float>((block / 3) % 3));
+    if (kind == 7 && block % 64 == 0) Set(self, "Mode", static_cast<float>((block / 64) % 3));
+    if (kind == 8 && block % 2 == 0) {
+      Set(self, "Lookahead", r.Next() % 5 == 0 ? 0.0f : 5.0f * r.Unit());
+      Set(self, "Mode", static_cast<float>(r.Next() % 3));
+    }
     E.render(self, &g_mod_out[2 * pos], 64);
   }
   E.destroy(self);
@@ -526,21 +564,22 @@ float ModRun(int kind, float value, float mode, uint32_t seed, float *out_peak) 
 }
 
 void Modulated() {
-  const char *names[] = { "", "lookahead", "lookahead0", "mode", "mode_slow", "both" };
+  const char *names[] = { "", "lookahead", "lookahead0", "mode", "mode_slow", "both",
+                          "mode3", "mode3_slow", "both3" };
   const float held_la[] = { 1.0f, 2.0f, 3.5f, 5.0f };
   const float held_la0[] = { 0.0f, 0.1f, 0.5f, 1.0f, 2.5f, 5.0f };
   const double c = pow(10.0, -6.0 / 20.0);
   printf("\"modulated\":{");
   fm1_limit_probe_worst = fm1_limit_probe_stage = 0.0f;
   float peak_all = 0.0f;
-  for (int kind = 1; kind <= 5; ++kind) {
+  for (int kind = 1; kind <= 8; ++kind) {
     float worst_ratio = 0.0f, moving_max = 0.0f, steady_max = 0.0f;
     for (uint32_t seed = 1; seed <= 6; ++seed) {
       ModInput(seed);
       float peak, steady = 0.0f;
-      const bool la = kind == 1, la0 = kind == 2 || kind == 5;
+      const bool la = kind == 1, la0 = kind == 2 || kind == 5 || kind == 8;
       const int n_la = la ? 4 : (la0 ? 6 : 1);
-      const int n_mode = kind >= 3 ? 2 : 1;
+      const int n_mode = kind >= 6 ? 3 : (kind >= 3 ? 2 : 1);
       for (int a = 0; a < n_la; ++a) {
         for (int m = 0; m < n_mode; ++m) {
           const float v = la ? held_la[a] : (la0 ? held_la0[a] : 2.0f);
@@ -559,6 +598,86 @@ void Modulated() {
   }
   printf(",\"peak\":%.9g,\"envelope\":%.9g,\"stage\":%.9g}", peak_all / c,
          fm1_limit_probe_worst, fm1_limit_probe_stage);
+}
+
+// 12. ROUND against ClipOnly2's recurrence, written out here in double from
+// its published code (Airwindows, MIT; engines/README.md, "Limiter"), with
+// the ceiling at 0 dB (c = 1 exactly) and Drive 0: a 440 Hz sine of 1.25
+// (+1.9 dB) with noise of 0.05 on it, both channels, so every peak is over
+// the ceiling and under ROUND's 3 dB of headroom, where the envelope does
+// nothing and the gain is exactly 1. With a lookahead the output is
+// ClipOnly2 of the input, delayed by the lookahead and by nothing more
+// (ClipOnly2's own one-sample delay is taken up by looking one frame ahead);
+// at Lookahead 0 it is the causal form, each frame its own replaced or
+// passed value. Reported: the largest difference from the recurrence, the
+// frames over the ceiling, whether every other frame came out bit for bit,
+// and the largest |output|.
+struct ClipRef {
+  double last;
+  bool pos, neg;
+  // Feeds x; returns the value for the frame before it (ClipOnly2's output).
+  double Step(double x) {
+    const double h = 0.7390851332, sft = 0.2609148668;
+    if (x > 4.0) x = 4.0;
+    if (x < -4.0) x = -4.0;
+    if (pos) last = x < last ? h + x * sft : sft + last * h;
+    pos = false;
+    if (x > 1.0) { pos = true; x = h + last * sft; }
+    if (neg) last = x > last ? -h + x * sft : -sft + last * h;
+    neg = false;
+    if (x < -1.0) { neg = true; x = -h + last * sft; }
+    const double out = last;
+    last = x;
+    return out;
+  }
+};
+
+void RoundCheck() {
+  const uint32_t total = 22050;
+  Lcg rng = { 41u };
+  for (uint32_t i = 0; i < total; ++i) {
+    const float x = 1.25f * static_cast<float>(sin(2 * M_PI * 440.0 * i / kRate)) + 0.05f * rng.Bipolar();
+    g_in[2 * i] = x;
+    g_in[2 * i + 1] = -x;
+  }
+  printf("\"round\":{");
+  const float looks[] = { 2.0f, 0.02f, 5.0f, 0.0f };
+  for (int k = 0; k < 4; ++k) {
+    void *self = Make(kRate, 0x33);
+    Set(self, "Ceiling", 0.0f);
+    Set(self, "Mode", 2.0f);
+    Set(self, "Lookahead", looks[k]);
+    memcpy(g_out, g_in, 2 * total * sizeof(float));
+    RenderAll(self, g_out, total, 29);
+    E.destroy(self);
+    const uint32_t d = Frames(looks[k], kRate);
+    ClipRef ref[2] = { { 0.0, false, false }, { 0.0, false, false } };
+    double diff = 0.0, peak = 0.0;
+    uint32_t over = 0;
+    bool others_exact = true;
+    for (uint32_t i = 0; i + 1 < total; ++i) {
+      for (int c = 0; c < 2; ++c) {
+        // The frame the effect gives out at step i + d: input frame i.
+        double want;
+        if (d > 0) {
+          if (i == 0) ref[c].Step(g_in[c]);                    // the first frame's look
+          want = ref[c].Step(g_in[2 * (i + 1) + c]);           // ...gives frame i out
+        } else {
+          ref[c].Step(g_in[2 * i + c]);
+          want = ref[c].last;                                  // the causal form
+        }
+        if (i + d >= total) continue;
+        const float got = g_out[2 * (i + d) + c];
+        diff = fmax(diff, fabs(got - want));
+        peak = fmax(peak, fabs(static_cast<double>(got)));
+        if (fabsf(g_in[2 * i + c]) > 1.0f) ++over;
+        else if (got != g_in[2 * i + c]) others_exact = false;
+      }
+    }
+    printf("%s\"%g\":{\"diff\":%.3g,\"over\":%u,\"others_exact\":%s,\"peak\":%.9g}",
+           k ? "," : "", looks[k], diff, over, others_exact ? "true" : "false", peak);
+  }
+  printf("}");
 }
 
 // 8. Every parameter, at every kind of value (min, max, default, random,
@@ -728,6 +847,7 @@ int main() {
   Changes(); printf(",");
   Smooth(); printf(",");
   Modulated(); printf(",");
+  RoundCheck(); printf(",");
   Silence(); printf(",");
   Sweep(); printf(",");
   Ceiling();

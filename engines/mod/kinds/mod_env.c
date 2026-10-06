@@ -4,8 +4,11 @@
  *
  * Attack, Decay and Release are Peaks' knob-to-time curve (0.5 ms to 8 s);
  * Sustain is a level. Curve is Peaks' linear, exponential or quartic. Mode
- * Gate is an ADSR that follows GATE (unpatched: the keys, so with no cable
- * it is the C1 envelope every note opens); Loop repeats A-D or A-D-R while
+ * Gate is an ADSR that follows GATE (unpatched: RTRG, the keys retriggered,
+ * so with no cable every note restarts it, a note over a held one too; the
+ * owner's decision of 2026-10-05; MG1 to MG3 normalled it to KEY, the
+ * legato gate). Run per voice (MG9), an unpatched GATE is the voice's own
+ * note, and each note has its envelope; Loop repeats A-D or A-D-R while
  * the gate is high. Mode Trigger is Peaks' AD: each rising edge starts it,
  * the fall is ignored, and Loop cycles it. A retrigger starts from the
  * current value, as on Peaks. Level scales the output.
@@ -39,7 +42,7 @@ static const fm1_param_t kParams[P_COUNT] = {
 };
 #undef MOD
 
-static const fm1_port_t kGates[] = { { "Gate", FM1_PORT_GATE, FM1_UNIT_NONE, FM1_MOD_SRC_KEY, 0 } };
+static const fm1_port_t kGates[] = { { "Gate", FM1_PORT_GATE, FM1_UNIT_NONE, FM1_MOD_SRC_RTRG, 0 } };
 static const fm1_port_t kOuts[] = { { "Env", FM1_PORT_CV_UNI, FM1_UNIT_NONE, MOD_NONE, 0 },
                                     { "EOC", FM1_PORT_GATE, FM1_UNIT_NONE, MOD_NONE, 0 },
                                     { "Act", FM1_PORT_GATE, FM1_UNIT_NONE, MOD_NONE, 0 } };
@@ -181,6 +184,6 @@ const fm1_mod_kind_t fm1_mod_kind_env = {
   FM1_MOD_MAGIC, FM1_MOD_API_VERSION, "env", 0x454E5620u /* "ENV " */, "Envelope", "ENV",
   "Our own, on fm1_mp's multistage envelope after Mutable Instruments' Peaks (Emilie Gillet, "
   "MIT): its segments, presets, curves and knob-to-time curve.",
-  kParams, P_COUNT, 1, 3, kGates, kOuts, 0, 0,
+  kParams, P_COUNT, 1, 3, kGates, kOuts, FM1_MOD_KIND_POLY_OK, 0,
   env_size, env_create, NULL, env_reset, env_process, NULL, NULL, NULL
 };

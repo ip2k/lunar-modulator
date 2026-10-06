@@ -131,8 +131,9 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** six swappable sound engines and twenty effects (Comb split
-  out of Filter since 2026-10-05), plus test engines, behind one C API, version 3
+- **The API:** six swappable sound engines and twenty-two effects (Comb
+  split out of Filter, Squash and Transient added on 2026-10-05), plus test
+  engines, behind one C API, version 3
   ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
   [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
   16-bit parameter flags with the LOG law for pitch- and time-like knobs, a
@@ -164,6 +165,10 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     [`engines/third_party/msfa/UPSTREAM.md`](engines/third_party/msfa/UPSTREAM.md)),
     with a voice, amplitude modulation, the loops of algorithms 4 and 6,
     32 voices and a DX7 SysEx import of our own ([`engines/msfa.md`](engines/msfa.md)).
+    Its tables are const data, flash on the FM-1, made ahead of time
+    (`tools/msfa_tables.py`); the simulator loads `.syx` files into its user
+    slots. The name is borrowed, with thanks, from Felucca's FM6 engine
+    (hugelton), whose Apache-2.0 port of the same core is the test oracle.
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
     compatibility shim.
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
@@ -176,10 +181,15 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     bypass when flat), Master Sat (band-limited bus saturation with Glue,
     its curves' coefficients from Airwindows, Chris Johnson, MIT), Isolator
     (a three-band kill EQ), EQ (a three-band parametric equaliser), Hall (a
-    reverb on an eight-line feedback delay network, with Freeze) and Gate (a
-    noise gate with a Duck mode, after the DS201 and DS301 manuals) are our
-    own code
-    ([`engines/README.md`](engines/README.md#crush)).
+    reverb on an eight-line feedback delay network, with Freeze), Gate (a
+    noise gate with a Duck mode, after the DS201 and DS301 manuals) and
+    Transient (a transient shaper) are our own code
+    ([`engines/README.md`](engines/README.md#crush)). Squash (three
+    compressors: Snap, Mu and Split) ports Airwindows Pop3, Pressure4 and
+    ButterComp2 (Chris Johnson, MIT) to single precision without libm, and
+    the Limiter's Round mode ports ClipOnly2, both checked against the
+    upstream loops run in a container
+    ([`engines/README.md`](engines/README.md#squash)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
   checked sample for sample against upstream `Voice`
@@ -274,10 +284,10 @@ API v2 ([`engines/midi_fx/README.md`](engines/midi_fx/README.md)).
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 2,470 screens of the layout sweep, the sequencer's and
-  modulation's included, pass a layout check, with no text cut short and
-  nothing closer than 4 px [verified: `fm1-sim-render --screens`,
-  2026-10-05].
+  canvas. All 3,144 screens of the layout sweep, the sequencer's and
+  modulation's and every list popup at every entry included, pass a layout
+  check, with no text cut short and nothing closer than 4 px [verified:
+  `fm1-sim-render --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC) and
   modulation (LFO, ENV, EDIT); only SAVE and ARP are still stubs. The user
@@ -599,16 +609,25 @@ which lands with the plan PR; its stages S0–S7 are named below.
   `fm1-render --mod` ([`engines/mod/README.md`](engines/mod/README.md#the-runtime)).
   Stage MG2 added thirteen modules: Function, Bounce, Register, Coin,
   Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix and a resonant
-  Filter, the Peaks and Braids parts checked against the original code
+  Filter (the Resonator since 2026-10-05), the Peaks and Braids parts
+  checked against the original code
   ([`engines/mod/kinds.md`](engines/mod/kinds.md)). Stage MG3 puts the
   runtime in the virtual FM-1, public since 2026-10-05: the RACK, MATRIX and
   CHAIN pages, the hold-and-turn routing gesture, cables into any of the
   four sound units, their inserts and the master effects, routed
   parameters marked on every page, and panel sessions that replay through
   `fm1-render --mod` byte for byte ([`sim/web/README.md`](sim/web/README.md),
-  "The sequencer, multi-sound and modulation"; manual chapter 8). Next:
-  per-voice envelopes and LFOs (MG9, which the
-  owner has made essential).
+  "The sequencer, multi-sound and modulation"; manual chapter 8). Stage
+  MG9 (2026-10-06) adds modulation per voice, which the owner made
+  essential: a cable flagged VOICE runs once for every note, with that
+  note's own VEL, NOTE, RAND and gate and one instance of each Envelope,
+  LFO or Chance it reads, and reaches only that note through the engines'
+  per-note offsets; poly into mono is refused. With it the owner's MG3
+  answers: an unpatched envelope retriggers on every note, a pitch per
+  sound and the current sound's, note sources per sound, cables re-aimed
+  by name when an engine changes, and the Resonator
+  ([docs/16](docs/16-modulation.md) §8, "MG9, as built";
+  [`engines/mod/README.md`](engines/mod/README.md), "Voices (MG9)").
 - **Depends on:**
   - API v2 uids, SMOOTH and NOLOCK, plus a new MOD flag (docs/13 M2):
     built in docs/15 stage S7a, with INPUT, units and abbreviations for
@@ -628,10 +647,11 @@ which lands with the plan PR; its stages S0–S7 are named below.
     ADSR envelopes after Peaks' `MultistageEnvelope` (MIT), a CHANCE source,
     and a 16-slot bus of 6-byte slots `{source, unit, destination uid,
     amount, flags}` that writes `set_param`.
-  - **C2** (stage S6; docs/16 MG9): per-note sources. Their engine side is
-    built: API v2's `set_param_note(key, index, offset)` and the POLY flag
-    on Macro, Macro Heavy, Six-Op FM and Shapes, byte-identical without a
-    call [verified: engines/README.md, "Per-note offsets"].
+  - **C2** (stage S6; docs/16 MG9, built 2026-10-06): per-note sources.
+    The engine side: API v2's `set_param_note(key, index, offset)` and the
+    POLY flag on Macro, Macro Heavy, Six-Op FM, Shapes, FM6 and Drums,
+    byte-identical without a call [verified: engines/README.md, "Per-note
+    offsets"]; the runtime's side is MG9's voices.
   - Locks set the base and modulation adds an offset (rules M1–M7).
   - Plaits' own per-voice envelope can be exposed in Macro before C1 (stage
     S2).
@@ -644,7 +664,9 @@ which lands with the plan PR; its stages S0–S7 are named below.
 
 **More effects** · *Planned*
 - **Done so far (2026-10-05):** Crush, Fold, Drive, Echo, Filter, Comp,
-  Limiter, Hall and Gate, and the master-bus effects of the
+  Limiter, Hall, Gate and dynamics pack 3 (Squash, Transient, the Limiter's
+  Round mode, Comp's Auto Gain touching only would-be overs), and the
+  master-bus effects of the
   [2026-10-02 effects note](notes/2026-10-02-delay-reverb-eq-gates-options.md)
   (DJ Filter, Tilt, Master Sat, Isolator and EQ), our own code, and Room, a
   port of Clouds' reverb
@@ -652,7 +674,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
   controls (Filter's Type, Drive's Type and Auto, Comp's Character, Auto
   Rel and Auto Gain, the Limiter's Mode and Lookahead, DJ Filter's Slope,
   Tilt's Curve, Master Sat's Shape, Isolator's Kill, Hall's and Plate's
-  Freeze, the Gate's Mode, Listen, Link and Lookahead) change without a
+  Freeze, the Gate's Mode, Listen, Link and Lookahead, Squash's Type) change without a
   click, so they can be locked and modulated: the rule is that a switch
   that changes cleanly is lockable and modulatable
   ([`engines/README.md`](engines/README.md#parameters-engine-api-v2-and-v3)).

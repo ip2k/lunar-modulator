@@ -34,6 +34,20 @@
  * -ffp-contract=off (docs/14's ladder profile), so native and WebAssembly
  * builds agree bit for bit.
  *
+ * Voices (docs/16 MG9). A slot flagged VOICE runs once for every voice: a
+ * note sounding on a sound unit. Its sources are read in the voice's
+ * context: VEL, NOTE, RAND, KEY, TRIG and RTRG are that note's own (and so
+ * are S1NOTE ... S4RTRG of the voice's own sound unit), and a
+ * module whose kind is POLY_OK (Envelope, LFO, Chance) runs one instance
+ * per voice, made in the arena at the note-on and gated by its note unless
+ * a VOICE cable patches its gate. A VOICE slot reaches a sound unit's POLY
+ * parameter or its pitch through the engine's per-note offsets
+ * (set_param_note, fm1_mod_voice_writes), or a per-voice module's input;
+ * one into anything else (an effect, a parameter the engine keeps for every
+ * note, HOST AMP, a module that does not run per voice) is refused: poly
+ * never reaches mono. A slot without VOICE stays global; into a module
+ * that runs per voice it moves every voice's instance alike (mono to poly).
+ *
  * Threads: in MG1 everything runs on one task (the audio task); edits take
  * effect at the next tick. engines/mod/README.md has the rules and the
  * formulas. MIT licence, like the rest of this repository.
@@ -64,6 +78,10 @@ extern "C" {
                                            that can be destinations */
 #define FM1_MOD_Q14 16384               /* amount and offset 1.0 in Q1.14 */
 #define FM1_MOD_NONE 0xFFu              /* no source, no frame */
+#define FM1_MOD_VOICES 12u              /* voices the runtime tracks (MG9): the
+                                           engines' own polyphony */
+#define FM1_MOD_VDESTS 8u               /* sound parameters (pitch included) that
+                                           VOICE slots may reach at once */
 
 /* ---- Units (a slot's dst_unit) ------------------------------------------
  * A host with one sound binds SOUND, FX1 and FX2; the virtual FM-1's
@@ -85,8 +103,8 @@ enum {
 #define FM1_MOD_SOUNDS 4u               /* sound units */
 #define FM1_MOD_INSERTS 2u              /* inserts per sound unit (codes for 4) */
 #define FM1_MOD_SINKS 15u               /* SOUND FX1 FX2 HOST, sound units 2-4, the 8 inserts */
-#define FM1_MOD_SINK_PARAMS 188u        /* parameter records the bound units share,
-                                           HOST's two included; fm1_mod_bind */
+#define FM1_MOD_SINK_PARAMS 192u        /* parameter records the bound units share,
+                                           HOST's six included; fm1_mod_bind */
 
 /* Sound unit k's code (k < FM1_MOD_SOUNDS): SOUND for k = 0, so a host
  * with one sound and the multi-sound host write the same slots. */
@@ -110,13 +128,35 @@ int fm1_mod_unit_sound(unsigned unit);
 unsigned fm1_mod_sink_unit(unsigned i);
 int fm1_mod_sink_index(unsigned unit);
 
-/* The host unit's parameters (fm1_mod_host_params). PITCH is semitones,
- * summed with MIDI bend into the sound engine's pitch_bend: its base is the
- * bend. AMP is a gain before the bus limiter: tremolo. */
-enum { FM1_MOD_HOST_PITCH = 0, FM1_MOD_HOST_AMP = 1, FM1_MOD_HOST_PARAMS = 2 };
+/* The host unit's parameters (fm1_mod_host_params). PITCH is sound unit
+ * 1's pitch in semitones, summed with MIDI bend into its engine's
+ * pitch_bend: its base is the bend. AMP is a gain before the bus limiter:
+ * tremolo. PITCH2-PITCH4 are sound units 2-4's pitches, each based on that
+ * sound's bend, and PITCH_CUR the current sound's (fm1_mod_set_current):
+ * its cables add to the pitch of whichever sound is current, and it is
+ * never written itself (owner, 2026-10-05: a PITCH destination per sound,
+ * plus the current sound). */
+enum {
+  FM1_MOD_HOST_PITCH = 0, FM1_MOD_HOST_AMP = 1, FM1_MOD_HOST_PITCH2 = 2, FM1_MOD_HOST_PITCH3 = 3,
+  FM1_MOD_HOST_PITCH4 = 4, FM1_MOD_HOST_PITCH_CUR = 5, FM1_MOD_HOST_PARAMS = 6
+};
 #define FM1_MOD_HOST_PITCH_UID 1u
 #define FM1_MOD_HOST_AMP_UID 2u
+#define FM1_MOD_HOST_PITCH2_UID 3u      /* 3, 4, 5: sound units 2-4 */
+#define FM1_MOD_HOST_PITCH_CUR_UID 6u
 extern const fm1_param_t fm1_mod_host_params[FM1_MOD_HOST_PARAMS];
+/* HOST's parameter index for sound unit k's pitch (k < FM1_MOD_SOUNDS). */
+static inline unsigned fm1_mod_host_pitch(unsigned k) {
+  return k ? FM1_MOD_HOST_PITCH2 + k - 1u : (unsigned)FM1_MOD_HOST_PITCH;
+}
+/* The sound unit a HOST pitch index bends (PITCH_CUR: -2), or -1 (AMP). */
+static inline int fm1_mod_host_pitch_sound(unsigned index) {
+  if (index == FM1_MOD_HOST_PITCH) return 0;
+  if (index >= FM1_MOD_HOST_PITCH2 && index <= FM1_MOD_HOST_PITCH4) {
+    return (int)(index - FM1_MOD_HOST_PITCH2) + 1;
+  }
+  return index == FM1_MOD_HOST_PITCH_CUR ? -2 : -1;
+}
 
 /* ---- Ports ---------------------------------------------------------------- */
 typedef enum {
@@ -205,7 +245,7 @@ typedef struct fm1_mod_io {
 } fm1_mod_io_t;
 
 #define FM1_MOD_KIND_TRANSPORT 0x01u    /* uses io->tp (tempo, Start) */
-#define FM1_MOD_KIND_POLY_OK 0x02u      /* later (MG9): one instance per voice */
+#define FM1_MOD_KIND_POLY_OK 0x02u      /* may run one instance per voice (MG9) */
 #define FM1_MOD_KIND_AUDIO_TAP 0x04u    /* later (MG8): reads the audio */
 
 enum { FM1_MOD_RESET_PRESET = 0, FM1_MOD_RESET_START = 1, FM1_MOD_RESET_STOP = 2 };
@@ -245,9 +285,15 @@ extern const size_t fm1_mod_kind_count;
 int fm1_mod_kind_find(const char *name);
 
 /* ---- System sources (ids 0-63) ---------------------------------------------
- * The ones MG1 provides. The gaps are reserved for the later ones (docs/16
- * §2.4): mod wheel, aftertouch, bend, CC A and B, MACRO 1-4, audio level,
- * keys held (3-15), the arpeggiator's step and gate (40-47). */
+ * The ones MG1 provides, and since MG9 the note sources of one sound unit
+ * (44-63; owner, 2026-10-05: note sources selectable per sound, all by
+ * default). The gaps are reserved for the later ones (docs/16 §2.4): mod
+ * wheel, aftertouch, bend, CC A and B, MACRO 1-4, audio level, keys held
+ * (3-15), the arpeggiator's step and gate (40-43). In a VOICE slot (MG9)
+ * VEL, NOTE, RAND, KEY, TRIG and RTRG are the voice's own note; KEY and
+ * RTRG there are its gate, which a re-struck key retriggers. One sound
+ * unit's (S1VEL ...) are the voice's own note in a voice of that sound unit
+ * and that sound unit's last note in any other. */
 enum {
   FM1_MOD_SRC_VEL = 0,          /* CV_UNI: velocity / 127 of the last note-on on the sound */
   FM1_MOD_SRC_NOTE = 1,         /* CV_BI, SEMI: (last note - 60) / 60 */
@@ -267,6 +313,11 @@ enum {
                                    envelopes take it (docs/16 MG3, owner, 2026-10-05) */
   FM1_MOD_SRC_SEQ_GATE = 24,    /* GATE, 24-31: high while track 1-8 sounds a note */
   FM1_MOD_SRC_SEQ_VEL = 32,     /* CV_UNI, 32-39: velocity / 127 of track 1-8's last note */
+  FM1_MOD_SRC_S_NOTE = 44,      /* 44-47: NOTE, VEL, KEY, TRIG and RTRG of sound unit */
+  FM1_MOD_SRC_S_VEL = 48,       /* 48-51:   1-4's notes only (S1NOTE, S2VEL, S3KEY...); */
+  FM1_MOD_SRC_S_KEY = 52,       /* 52-55:   the ids above follow every sound unit's */
+  FM1_MOD_SRC_S_TRIG = 56,      /* 56-59 */
+  FM1_MOD_SRC_S_RTRG = 60,      /* 60-63 */
   FM1_MOD_SRC_SYSTEM = 64,      /* ids below are system sources */
   FM1_MOD_SRC_MODULE = 64       /* 64 + 8 x position + port: module outputs */
 };
@@ -287,7 +338,7 @@ const fm1_mod_source_info_t *fm1_mod_system_source(unsigned id);
 #define FM1_MOD_SLOT_GATE_DST 0x08u     /* dst is a module's gate input index */
 #define FM1_MOD_SLOT_CURVE_MASK 0x70u   /* one of 8 curves, below */
 #define FM1_MOD_SLOT_CURVE_SHIFT 4u
-#define FM1_MOD_SLOT_VOICE 0x80u        /* reserved: per-voice slots (MG9) */
+#define FM1_MOD_SLOT_VOICE 0x80u        /* per voice (MG9, above) */
 
 enum { FM1_MOD_POL_AUTO = 0, FM1_MOD_POL_UNI = 1, FM1_MOD_POL_BI = 2, FM1_MOD_POL_INV = 3 };
 enum {
@@ -388,9 +439,14 @@ float fm1_mod_sent(const fm1_mod_t *m, unsigned unit, unsigned index);
  * the block's events and ticks in frame order (the bridge does this:
  * fm1_mod_host.h), then the next block. */
 
-/* A note on the sound unit from live input (keys, USB-MIDI), at the start
- * of the coming block; velocity 0 is a note-off. */
+/* A note on sound unit 1 from live input (keys, USB-MIDI), at the start
+ * of the coming block; velocity 0 is a note-off. fm1_mod_live_sound_note
+ * is the same on sound unit `sound` (0-3): the note sources of every sound
+ * and that sound's own (S1KEY...) hear it, and a voice starts for it when a
+ * VOICE slot reaches that sound (MG9; the host then sends
+ * fm1_mod_voice_start's offsets after the engine's note_on). */
 void fm1_mod_live_note(fm1_mod_t *m, uint8_t key, uint8_t velocity);
+void fm1_mod_live_sound_note(fm1_mod_t *m, unsigned sound, uint8_t key, uint8_t velocity);
 
 /* Starts a block of `frames`. bpm_x100 0 keeps the last tempo. Returns the
  * frame of the block's first tick, or a value >= frames for none. The
@@ -399,18 +455,23 @@ void fm1_mod_live_note(fm1_mod_t *m, uint8_t key, uint8_t velocity);
 uint32_t fm1_mod_begin(fm1_mod_t *m, uint32_t frames, uint32_t bpm_x100);
 
 /* Events of the current block, at their frame, in frame order. */
-void fm1_mod_note(fm1_mod_t *m, uint32_t frame, uint8_t key, uint8_t velocity);  /* on the sound */
+void fm1_mod_note(fm1_mod_t *m, uint32_t frame, uint8_t key, uint8_t velocity);  /* sound unit 1 */
+void fm1_mod_sound_note(fm1_mod_t *m, uint32_t frame, unsigned sound, uint8_t key,
+                        uint8_t velocity);
 void fm1_mod_seq_note(fm1_mod_t *m, uint32_t frame, uint8_t track, uint8_t key, uint8_t velocity);
 /* The sequencer's 24-PPQN clock at master tick `tick` (96 PPQN, 0 at Start):
  * CLOCK each 24, BEAT each 96, BAR each 384. */
 void fm1_mod_seq_clock(fm1_mod_t *m, uint32_t frame, uint32_t tick);
 void fm1_mod_seq_run(fm1_mod_t *m, uint32_t frame, int running);   /* Start, Stop */
 
-/* A value the tick writes: the host sends it at the tick's frame. */
+/* A value the tick writes: the host sends it at the tick's frame. A
+ * per-voice write (key below 128, MG9) is a per-note offset: the host calls
+ * the sound unit's set_param_note(key, index, value), index being a
+ * parameter's or FM1_PARAM_NOTE_PITCH. */
 typedef struct fm1_mod_write {
-  uint8_t unit;                 /* a sink's canonical code */
-  uint8_t reserved;
-  uint16_t index;               /* the unit's parameter index (HOST: PITCH, AMP) */
+  uint8_t unit;                 /* a sink's canonical code (a sound unit's for a voice) */
+  uint8_t key;                  /* FM1_MOD_NONE, or the note a per-voice write moves */
+  uint16_t index;               /* the unit's parameter index (HOST: PITCH, AMP...) */
   float value;
 } fm1_mod_write_t;
 
@@ -420,7 +481,32 @@ typedef struct fm1_mod_write {
  * how many. The next tick is at frame + FM1_MOD_TICK. */
 uint32_t fm1_mod_tick(fm1_mod_t *m, uint32_t frame, const fm1_mod_write_t **w);
 
-/* Calls every instance's reset(why) (a preset load, a Start). */
+/* The per-voice offsets the last tick changed (MG9), at most cap of them,
+ * in voice and destination order; each one once. A host with per-voice
+ * engines calls it after every tick and sends them at the tick's frame.
+ * Offsets a voice no longer gets (its cable gone, or the voice stopped
+ * because the arena holds fewer voices after a rack edit) come back as 0. */
+uint32_t fm1_mod_voice_writes(fm1_mod_t *m, fm1_mod_write_t *out, uint32_t cap);
+/* A voice's first offsets, right after the engine's note_on for it (which
+ * set them to 0): the note's own sources (VEL, NOTE, RAND) and every other
+ * source as it stands; its per-voice modules start at the next tick. 0 when
+ * no voice sounds that key on that sound. */
+uint32_t fm1_mod_voice_start(fm1_mod_t *m, unsigned sound, uint8_t key, fm1_mod_write_t *out,
+                             uint32_t cap);
+
+/* Every per-note offset a voice holds that is not 0, as a write of 0 (a
+ * host letting the runtime go puts its engines back as they were); the
+ * voices then hold none. More than cap of them: call again until it
+ * returns 0. */
+uint32_t fm1_mod_voice_clear(fm1_mod_t *m, fm1_mod_write_t *out, uint32_t cap);
+
+/* The current sound unit (0-3, the one the keys play): HOST PITCH_CUR's
+ * cables bend it. 0 at creation. */
+void fm1_mod_set_current(fm1_mod_t *m, unsigned sound);
+unsigned fm1_mod_current(const fm1_mod_t *m);
+
+/* Calls every instance's reset(why) (a preset load, a Start), per-voice
+ * ones included. */
 void fm1_mod_reset(fm1_mod_t *m, uint32_t why);
 
 /* ---- Reading state (logs, tests, the UI) ------------------------------------ */
@@ -433,13 +519,19 @@ const fm1_mod_gate_t *fm1_mod_system_gate(const fm1_mod_t *m, unsigned id);
 typedef struct fm1_mod_plan_info {
   uint32_t active;              /* slots that run */
   uint32_t refused;             /* slots on but invalid: a missing source or
-                                   destination, NOLOCK, an ENUM without MOD */
+                                   destination, NOLOCK, an ENUM without MOD, a
+                                   VOICE slot whose target is mono (MG9) */
   uint32_t delayed;             /* slots whose source (or VIA) reads a tick late */
   uint8_t order[FM1_MOD_POSITIONS];   /* positions in run order */
   uint8_t comp[FM1_MOD_POSITIONS];    /* order[i]'s component, numbered in run order */
   uint8_t n_order;
   uint8_t n_dest;
-  uint8_t reserved[2];
+  uint8_t poly;                 /* positions that run one instance per voice */
+  uint8_t voice_cap;            /* voices the arena holds them for */
+  uint32_t voice;               /* active VOICE slots */
+  uint8_t voice_sounds;         /* sound units whose notes start voices */
+  uint8_t n_vdest;              /* sound parameters VOICE slots reach */
+  uint16_t voice_bytes;         /* the arena one voice's instances take */
 } fm1_mod_plan_info_t;
 /* The plan the next tick uses (built now if an edit is pending). */
 void fm1_mod_get_plan(fm1_mod_t *m, fm1_mod_plan_info_t *out);
@@ -450,7 +542,10 @@ typedef struct fm1_mod_stats {
   uint32_t plans;               /* plan builds */
   uint32_t edges_dropped;       /* gate edges beyond FM1_MOD_EDGES per tick */
   uint32_t nonfinite;           /* non-finite values replaced (sources, outputs) */
-  uint32_t reserved;
+  uint32_t voice_starts;        /* voices started (MG9) */
+  uint64_t voice_writes;        /* per-note offsets handed out */
+  uint32_t voice_steals;        /* voices taken from a sounding note */
+  uint32_t voice_ends;          /* voices that ran out after their note-off */
 } fm1_mod_stats_t;
 void fm1_mod_get_stats(const fm1_mod_t *m, fm1_mod_stats_t *out);
 
@@ -467,13 +562,28 @@ typedef struct fm1_mod_sink_info {
 } fm1_mod_sink_info_t;
 int fm1_mod_sink(fm1_mod_t *m, unsigned i, fm1_mod_sink_info_t *out);
 
+/* The voices (MG9), for logs, tests and the UI: voice i's note, or 0 when
+ * it is free. state 1: its note is held; 2: released, still running. */
+typedef struct fm1_mod_voice_info {
+  uint8_t sound, key, state, velocity;
+  uint32_t age;                 /* the start or retrigger order */
+} fm1_mod_voice_info_t;
+int fm1_mod_voice(const fm1_mod_t *m, unsigned i, fm1_mod_voice_info_t *out);
+/* Voice i's instance at position pos: an output's value at the last tick
+ * (0 when the position does not run per voice or the voice is free). */
+float fm1_mod_voice_out(const fm1_mod_t *m, unsigned i, unsigned pos, unsigned port);
+/* How many voices sound now (held or still running). */
+unsigned fm1_mod_voice_count(const fm1_mod_t *m);
+
 /* ---- Small helpers for hosts and kinds --------------------------------------- */
 
-/* The Filter kind's Cutoff (0..1, a log knob; NaN as its default) as the
- * frequency it sets at `sample_rate`, in Hz, exactly as the kind computes
- * it: 0.05 Hz x 2^(13 x Cutoff), held below 0.3 x the tick rate (a UI shows
- * the knob in Hz this way; docs/16 MG3). */
-float fm1_mod_filter_hz(float cutoff, float sample_rate);
+/* The Resonator kind's Cutoff (0..1, a log knob; NaN as its default) as
+ * the frequency it sets at `sample_rate`, in Hz, exactly as the kind
+ * computes it: 0.05 Hz x 2^(13 x Cutoff), held below 0.3 x the tick rate (a
+ * UI shows the knob in Hz this way; docs/16 MG3). The kind was MG2's
+ * Filter until 2026-10-05 (owner: Resonator, so the audio effect alone is
+ * the Filter). */
+float fm1_mod_resonator_hz(float cutoff, float sample_rate);
 
 /* A gain that moves to each new value over one tick, linearly, on absolute
  * frames, so the result is the same at any block size: the AMP sink. */

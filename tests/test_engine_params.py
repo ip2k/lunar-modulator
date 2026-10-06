@@ -68,6 +68,8 @@ ENUM_FLAGS = {
     ("gate", "Mode"): ["mod"],                  # crossfades Gate and Duck's gains over 5 ms
     ("gate", "Listen"): ["mod"],                # crossfades the output and the key
     ("gate", "Link"): ["mod"],                  # glides the detector's and Listen's weights
+    ("squash", "Type"): ["mod"],                # the new Type starts from the gain in force
+                                                #   and crossfades over 5 ms
     ("test-ext", "Probe"): [],                   # a test effect's switches: lockable,
     ("test-ext", "Listen"): [],                  #   no route
 }
@@ -195,7 +197,9 @@ def test_abbreviations_and_units(built):
             ("drive", "Level"), ("limit", "Ceiling"), ("limit", "Drive")} <= db
     assert {("eq", "Low Gain"), ("eq", "Mid Gain"), ("eq", "High Gain"), ("eq", "Level"),
             ("tilt", "Tilt"), ("tilt", "Level"), ("sat", "Drive"), ("sat", "Level"),
-            ("gate", "Threshold"), ("gate", "Range"), ("gate", "Return")} <= db
+            ("gate", "Threshold"), ("gate", "Range"), ("gate", "Return"),
+            ("squash", "Output"), ("squash", "Gate"), ("shaper", "Output")} <= db
+    assert units[("shaper", "Attack")] == units[("shaper", "Sustain")] == "pct"
     assert ("comp", "Ratio") not in units                 # a ratio, no unit
 
 
