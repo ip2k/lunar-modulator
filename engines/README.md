@@ -3461,6 +3461,11 @@ suite, the parity scenarios' native legs].
   holds; they leave through their own calls: `fm1_dx7_get_user_voice` and
   the VMEM writer ([msfa.md](msfa.md)), and the modulation kinds' pattern
   data ([mod/README.md](mod/README.md)).
+- A save reads them back: `fm1-render --save` writes an engine with
+  `get_param` from its instance, every pad of a kit included, and any other
+  from the values it set (the rest at their defaults); the state readers
+  take a kit's focus and per-pad values from the flags alone
+  ([state/README.md](state/README.md)).
 - The GPL lane's pad kits (the 808 and 909 ports) need the same: a FOCUS
   Pad, PER_FOCUS per-pad parameters and `get_param`. `tests/test_engine_params.py`
   refuses a focused engine without `get_param`, and `fm1-param-get-test`
@@ -3506,9 +3511,11 @@ name, a range or a uid.
 
 It is written in the canonical layout of `tests/state_canon.py` as it goes,
 with no heap: members in the schema's order, floats as the shortest decimal
-that reads back to the float32, in ECMAScript's format. It uses `snprintf`
-and `strtof`, so it is for the desktop tools and the simulator (stage A1's
-`fm1w_meta`), never the firmware. 174,232 B for today's registry
+that reads back to the float32, in ECMAScript's format, by the state
+files' own exact formatter (`state/fm1_num.h`, since the stage-E
+integration; the output did not change by a byte [verified: 2026-10-06]).
+It is for the desktop tools and the simulator (stage A1's `fm1w_meta`),
+never the firmware; `fm1-state meta` prints the same document. 174,232 B for today's registry
 [verified: 2026-10-06]. `engines/state/examples/metadata.json` is the
 export cut to Shapes, Drums, Filter, the arpeggiator, the LFO and the
 Envelope, byte for byte: the golden file
@@ -3528,6 +3535,34 @@ it).
   names find one index without case; aliases name real things and shadow
   nothing; known ids have a known reason, a planned one is not built; the
   generated `state/fm1_known.c` is current.
+
+## Saved state
+
+Projects, sounds, effects chains, mod racks, clips, sets and settings save
+and load on the desktop, as canonical JSON or as the device's binary
+container ([state/README.md](state/README.md); the design and the owner's
+decisions are in
+[notes/2026-10-06-state-files.md](../notes/2026-10-06-state-files.md)).
+Built in stages E1 (the song core), E2 (saveable engines, the metadata
+export), E3 (the records and codecs) and P1 (the Python reader), and joined
+on 2026-10-06:
+
+- `fm1-render --load [sK:|tT.S:]FILE` sets up the render from a file
+  (refusing, as the device will, an engine the build lacks, with its
+  known-ids reason, or more instances than the FM-1's RAM holds at
+  44,118 Hz), and `--save KIND:FILE` writes the state the render starts
+  from: `project`, `sound[K]`, `fx`, `mods`, `set` or `clip:T.S`; a name
+  ending in `.lunarb` is binary.
+- `fm1-seq --load` and `--save clip:T.S:FILE`; a set's lines go straight
+  into the sequencer core's streaming import, piece by piece
+  (`fm1_seq_import_begin`, `_feed`, `_end`; [seq.md](seq.md)).
+- `fm1-state`: `canon`, `pack`, `unpack`, `from-movy1`, `records`, `check`,
+  `diff`, `meta`.
+- A project saved from a session reloads and renders the same WAV, byte
+  for byte, from JSON and from binary: four sound units, a kit's pads,
+  inserts, the arpeggiator, the master effects, a mod rack with pattern
+  data and cable locks, a set with its song, and FM6's user voices
+  [verified: tests/test_state_whole.py].
 
 ## Layout
 
@@ -3563,8 +3598,9 @@ it).
 | `include/fm1_meta.h`, `state/fm1_meta.c` | The parameter metadata export, `fm1-render --meta` ([below](#the-parameter-metadata-export)) |
 | `include/fm1_known.h`, `state/fm1_known.c`, `known-ids.json`, `aliases.json` | The ids a build may lack, with the reason a load gives, and the old names of renamed parameters and list entries; the C file is written by `tools/gen_known.py` |
 | `include/fm1_state_caps.h` | The caps a state reader enforces on hostile input (the state note's §16) |
-| `state/` | The saved-state format: its JSON Schemas and examples ([state/README.md](state/README.md)), the metadata export and the known names |
-| `test/` | `fm1-param-get-test`, engine API v4's read-back on every engine ([below](#engine-api-v4)); `fm1-meta-number-test`, the export's float writer; the reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
+| `state/` | The saved state: the record model, the streaming JSON reader, the canonical JSON writer, the binary container and its deflate, the modulation records' applier, the fuzz target, the JSON Schemas and examples ([state/README.md](state/README.md)), the metadata export and the known names |
+| `host/state_tool.c`, `host/render_state.*`, `host/state_clip.*` | `fm1-state`, and fm1-render's and fm1-seq's `--load` and `--save` ([above](#saved-state)) |
+| `test/` | `fm1-param-get-test`, engine API v4's read-back on every engine ([below](#engine-api-v4)); `fm1-meta-number-test`, the export's float writer; `fm1-state-alias-test`, the state readers' old names with a table of its own; the reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -3591,6 +3627,8 @@ it).
 | `--sysex FILE.syx` | DX7 voices into FM6's user slots (`--engine dx7`), before the first block; repeatable ([msfa.md](msfa.md)) |
 | `--save-bank FILE.syx` | FM6's 32 user slots as one VMEM bank dump, after any `--sysex` ([msfa.md](msfa.md)) |
 | `--save-mod-data FILE` | The rack's pattern data as the render ends, one `data P VERSION HEX` line a module ([mod/README.md](mod/README.md)) |
+| `--load [sK:\|tT.S:]FILE`, `--without` | A state file, JSON or binary: a project, a sound (into sound unit K), an effects chain, a mod rack, a clip (into track T, slot S) or a set; `--without` leaves out what the build lacks ([above](#saved-state)) |
+| `--save KIND:FILE` | The state the render starts from: `project`, `sound[K]`, `fx`, `mods`, `set`, `clip:T.S`; `.lunarb` for binary ([above](#saved-state)) |
 | `--tempo BPM` | The tempo effects with the API v3 extension hear without a sequencer (20–300, default 120); with `--cmd` or `--seq` they hear the sequencer's ([above](#engine-api-v3)) |
 
 ## Build and checks

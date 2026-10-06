@@ -59,7 +59,12 @@ history.
   between the two, checks a file and puts a hand-edited one back into
   canonical form). A file that needs more memory than the FM-1 has, or an
   engine this build lacks, is refused with the reason, as the device will
-  refuse it. The simulator's Open, Save and "Launch in the simulator" links
+  refuse it ("in the GPL build only" for an engine of the GPL build).
+  Saving, loading and saving again gives the same file, and a project saved
+  from a session (four sounds, a drum kit's pads, inserts, the
+  arpeggiator, master effects, modulation with a Register's loop, a set
+  with its song, FM6's own voices) reloads and plays exactly the same
+  audio. The simulator's Open, Save and "Launch in the simulator" links
   come in later stages.
   - For contributors: `engines/state/` holds one record model with a
     streaming JSON reader small enough for the firmware, the canonical JSON
@@ -69,6 +74,12 @@ history.
     two to the same records and bytes, golden files of format level 1.0 in
     `tests/fixtures/state/`, and a fuzz target's invariants, run for eight
     million mutations under ASan and UBSan and under libFuzzer.
+  - The sequencer core imports a set in pieces (`fm1_seq_import_begin`,
+    `_feed`, `_end`), so a set reaches it from a file without a line ever
+    held whole; the song's `dq`, `se` and `sn` lines are typed in the
+    binary form; P1 reads the build's metadata export; old parameter and
+    list-entry names resolve through `engines/aliases.json`;
+    `tests/test_state_whole.py` holds save-load-save and the same audio.
 - **The saved-state file format, designed.** JSON Schemas (draft 2020-12)
   for every kind of file the simulator and the guide will use (project,
   sound, effects chain, mod rack, clip, settings) and for the export of

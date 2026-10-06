@@ -246,7 +246,8 @@ nothing of ours in the path, and more than 400 tests compare the two.
   [docs/13](docs/13-movy-port.md) on by default and an exact-Movy mode for
   tests.
 - **Tracks:** 4–8, each routed to the engine or to USB-MIDI on its own
-  channel, in 14,984 bytes at 4 tracks and 28,808 at 8.
+  channel, in 15,048 bytes at 4 tracks and 28,872 at 8 without Capture
+  (18,120 and 31,944 with its default 256 events).
 - **On the desktop:** the desktop renderer plays Movy sets and timed scripts
   through it with sample-accurate notes and parameter locks.
 - **Checked against Movy:** Movy's own unmodified core, run in a container,
@@ -293,20 +294,31 @@ chapter 4, "Arpeggiator").
 
 ### Saved state
 
-Projects, sounds, effects chains, mod racks, clips and settings are one
-record model with two encodings: canonical JSON for people, links, git and
-the coming web editor, and a chunked binary container (CRC-32 a chunk,
+Projects, sounds, effects chains, mod racks, clips, sets and settings are
+one record model with two encodings: canonical JSON for people, links, git
+and the coming web editor, and a chunked binary container (CRC-32 a chunk,
 deflate in a 4 KiB window) for the device. `engines/state/` reads JSON in
 pieces of any size with 1.4 KB of state and no malloc, so the firmware can
 link it, writes canonical JSON, and converts losslessly both ways;
-`tools/lunar_state.py` does the same independently, and the two agree byte
-for byte [verified: `tests/test_state_codec.py`]. `fm1-render` and `fm1-seq`
-load and save every kind (`--load`, `--save`), and a loaded file renders
-byte for byte as the same state given as flags does [verified:
-`tests/test_state_render.py`]. The simulator's Open, Save and launch links
-are the next stages ([`engines/state/README.md`](engines/state/README.md);
-the design and its decisions:
-[`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md)).
+`tools/lunar_state.py` does the same independently, names resolved against
+the build's metadata export, and the two agree byte for byte [verified:
+`tests/test_state_codec.py`]. A set reaches the sequencer core through its
+streaming import, in pieces, so no `movy1` line is ever held whole.
+`fm1-render` and `fm1-seq` load and save every kind (`--load`, `--save`),
+refusing what the device will (an engine the build lacks, with its reason,
+or more than the FM-1's RAM at 44,118 Hz). Save, load and save again gives
+the same bytes, in JSON and in binary, for every kind and for a guide-sized
+project; and a project saved from a session of four sounds (a drum kit's
+pads, inserts, the arpeggiator, master effects, a modulation rack with
+Register's pattern data, a set with its song) reloads and renders the same
+WAV byte for byte, from either encoding [verified:
+`tests/test_state_whole.py`, 2026-10-06]. The song list's editing, its end
+modes and scene names are in the sequencer core (stage E1, `engines/seq.md`,
+"The song"); their Session and Song pages come later. The simulator's Open,
+Save and launch links are the next stages
+([`engines/state/README.md`](engines/state/README.md); the design and its
+decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
+[`notes/2026-10-06-song-and-scenes.md`](notes/2026-10-06-song-and-scenes.md)).
 
 ### The virtual FM-1
 

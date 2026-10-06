@@ -31,7 +31,7 @@ python -m pytest tests/test_seq*.py               # the sequencer tests
 | `seq/seq_clip.c` | The pools and Movy's `Clip` methods (clip.rs); the fire-tick index |
 | `seq/seq_engine.c` | Clock, transport, launches, scenes, song (Movy's, and the FM-1's entry edits and end modes), recording, `step_tick`, the lock latch, external clock (engine.rs, clock.rs, track.rs) |
 | `seq/seq_cmd.c` | The verb parser and dispatcher (command.rs) |
-| `seq/seq_persist.c` | `movy1` export and import (persist.rs) |
+| `seq/seq_persist.c` | `movy1` export and import (persist.rs); the import streams: `fm1_seq_import_begin`, `_feed` (text in pieces of any size) and `_end`, holding no line |
 | `seq/seq_capture.c` | Capture, the retroactive record (capture.rs and engine.rs's capture functions), in 12-byte events |
 | `include/fm1_seq_host.h`, `seq/seq_host.c` | The host bridge: the per-block code every host shares (commands into the event buffer, advance, split renders into a sound engine, lane labels resolved to parameter uids, NOLOCK refusals, the metronome's click); C99, no heap, no stdio, like the core (below, Host contract) |
 | `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input), the JSON Lines event log, and `fm1_seq_cmd_format`, a typed command as text that `fm1_seq_parse` reads back to the same record (the virtual FM-1's harness logs its panel's commands so, for `fm1-render` to replay) |
@@ -369,6 +369,18 @@ they were in both modes, but for D15–D18 in the default one.
   them, and keeps the default quantize across a load, as Movy does. So a set
   that uses no FM-1 feature is byte-identical to Movy's, and a guide set
   opens in Movy and plays, its song looping.
+- **Importing in pieces** (2026-10-06, the state files' integration).
+  `fm1_seq_import_movy1` is `fm1_seq_import_begin`, one `_feed` of the
+  whole text and `_end`; a loader feeds the text as it arrives (a file's set
+  lines record by record, a binary set's items decoded 64 bytes at a time),
+  and the import reads it a character at a time with Rust's integer rules,
+  so it holds no line, whatever its length, in a fixed
+  `fm1_seq_import_t`. The set is untouched until the first line has proved
+  to be the tag. Any split gives the set the whole text gives, and the
+  line-at-a-time importer it replaced gave the same exports and state on
+  130 sets and 20,000 mutations of them, in both modes [verified:
+  tests/test_state_codec.py's fuzz loop, `fm1-seq --pieces N`; the
+  differential run is in notes/2026-10-06-state-files.md §21].
 
 **Verified** [2026-10-06, Apple clang]: tests/test_seq_song.py (84), and
 1,834 scripts (the 24 curated oracle fixtures, the 10 random ones, and

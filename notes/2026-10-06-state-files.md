@@ -16,17 +16,20 @@ modulation and effect chains follows (§18), so the JSON is shaped for it,
 and the parameter metadata it builds its controls from is exported from C
 (§7.7).
 
-**Built so far:** the JSON Schemas of every file kind and of the metadata
-export, with example files that validate (`engines/state/schema/`,
-`engines/state/examples/`, held by `tests/test_state_schema.py`). Stage E2
-(2026-10-06) closed the engines' gaps of §5 (1, 2, 4, 5 and 6) and wrote
-the metadata export in C, `fm1-render --meta` (§7.7). Stage E3 with P1
-(§20) built the records, the streaming JSON reader, the canonical writer
-and the binary container in `engines/state/`, the Python reader and writer
-in `tools/lunar_state.py`, and the desktop tools' load and save
-(`fm1-state`, `fm1-render --load/--save`, `fm1-seq --load/--save`). The
-simulator reads nothing yet; the stages are in §18, and the owner works
-"ask per stage".
+**Built so far (2026-10-06):** stages E1, E2, E3 and P1, joined on
+`feature/2026-10-06@state-core` (§21). The JSON Schemas of every file kind
+and of the metadata export, with example files that validate
+(`engines/state/schema/`, `engines/state/examples/`); the engines'
+gaps of §5 closed (E2: engine API v4, pinned list entries, aliases and known
+ids, Register's pattern data, FM6's way out) and the metadata export
+written by C (`fm1-render --meta`, §7.7); the song core (E1, the song
+note); the records, the streaming JSON reader, the canonical writer and the
+binary container in `engines/state/`, the Python reader and writer in
+`tools/lunar_state.py`, and the desktop tools' load and save (`fm1-state`,
+`fm1-render --load/--save`, `fm1-seq --load/--save`) (E3 with P1, §20). A
+project saved from a desktop session reloads and renders the same audio
+byte for byte, from JSON and from binary (§21). The simulator reads nothing
+yet: A1 and W1 are next (§18), and the owner works "ask per stage".
 
 Two proposals were written first and judged here, dimension by dimension
 (§3):
@@ -73,6 +76,7 @@ to be checked when built.
 18. Build plan
 19. Owner decisions
 20. What stage E3 settled
+21. The stages joined (2026-10-06)
 
 ## 1. Short answer
 
@@ -1508,7 +1512,12 @@ manual's diagrams. The arpeggiator landed at `250bf53` (PR #69). The
 owner's app lanes run in sequence because they share `fm1_app.c`.
 
 **Now: `engines/` and `tools/` only, beside the UI stage** (owner,
-2026-10-06: E1, E2, E3 and P1 now).
+2026-10-06: E1, E2, E3 and P1 now). **Built, 2026-10-06:** all four, each on
+its own branch, then joined and their seams closed on
+`feature/2026-10-06@state-core` (§20, §21). P1 is
+`tools/lunar_state.py` with `check`, `canon`, `pack`, `unpack`, `records`
+and `url`; its `explode`, `qr`, `schema` and `diagram` commands and the
+`.gitattributes` are not built yet.
 
 | Stage | Contents | Touches |
 | --- | --- | --- |
@@ -1642,8 +1651,9 @@ claim here is [verified] by `tests/test_state_codec.py`,
   - a file with no records but its head has an empty `info` chunk.
 - **The set in binary** (`SEQS`, `CLIP`): each line is a typed item (8 B a
   note, 3 B a lock, design A's layout) when formatting the item back gives
-  the line byte for byte, and a raw item otherwise: E1's `dq`, `se` and
-  `sn`, a hand edit's double space, a number past an item's width.
+  the line byte for byte, and a raw item otherwise: a hand edit's double
+  space, a number past an item's width. (E1's `dq`, `se` and `sn` rode raw
+  until the integration typed them, §21.)
 - **Deflate:** greedy LZ77 over a 4 KiB window into one fixed-Huffman
   block, deterministic, so P1 writes the same bytes; zlib reads it, and
   the C inflater reads zlib's (with a 4 KiB window) and refuses a reach
@@ -1691,7 +1701,8 @@ claim here is [verified] by `tests/test_state_codec.py`,
   runs in 20 minutes until that finding, and after its fix about 21 million
   in 15 minutes from the 53,000-input corpus with nothing found.
 
-**Seams left for the stages that own them:**
+**Seams left for the stages that own them** (E1's and E2's are closed by
+the integration, §21; A1's remains):
 - **E2:** engine API v4's `FOCUS`, `PER_FOCUS` and `get_param` (until
   then `state_names.c` names Drums' and Sophie's per-pad parameters, and
   `fm1-render --save` writes a pad it never set with the parameter's
@@ -1705,3 +1716,116 @@ claim here is [verified] by `tests/test_state_codec.py`,
   runtime's half, and `host/render_state.cc` stands in for the rest on the
   desktop (it keeps no gap between a sound's inserts or in its chain: a
   `null` closes up and its cables follow).
+
+## 21. The stages joined (2026-10-06)
+
+`feature/2026-10-06@state-core` merges E1 (`feature/2026-10-06@song-core`),
+E2 (`feature/2026-10-06@saveable-engines`) and E3 with P1
+(`feature/2026-10-06@state-codecs`), each `--no-ff`, keeping both sides of
+every conflict (fm1-render's mod-script loop takes E2's data-line buffer
+and E3's loaded rack; the docs carry both stages' text), then closes the
+seams §20 left. Every claim here is [verified] by the tests named, on the
+branch, unless marked.
+
+**E2's seams, closed:**
+- A kit's focus and per-pad values come from engine API v4's flags alone;
+  the table of today's two kits in `state_names.c` is gone.
+- `fm1-render --save` reads an engine with `get_param` back from its
+  instance, every pad included. Sophie's pads start from the module's own
+  patches, so a pad the session never touched now keeps its own values
+  where the stand-in wrote the parameter's default
+  (`test_a_kits_every_pad_is_saved_as_its_engine_holds_it`).
+- Old names resolve through `fm1_known.h`'s aliases, a parameter's and a
+  list entry's, for engines and modulation kinds, in C and in P1. The
+  build's table is empty, so `fm1-state-alias-test` reads with a table of
+  its own and P1 with the same (`test_old_names_resolve_alike_in_c_and_p1`).
+- An engine or kind the build lacks is refused with `known-ids.json`'s
+  reason (the report's `known`; "in the GPL build only" for the X0X ids).
+  From binary too: the binary reader resolves no names, and E3's tools
+  counted nothing there, so `fm1-state check` passed a binary sound naming
+  an engine the build lacks and `fm1-render --load` failed on it with a
+  usage error, not UNKNOWN [verified: E3's branch build]. The tools now pass
+  a binary file's records through `fm1_state_note_unknown`, and P1 does the
+  same.
+- The caps are `fm1_state_caps.h`'s; pattern data reaches a kind's
+  `set_data` and leaves by `get_data` (`state_mod.c`); the metadata export
+  writes its floats with `fm1_num` (its output did not change by a byte);
+  P1 reads the export (`fm1-render --meta`, or `--meta FILE`), and
+  `fm1-state names` became `fm1-state meta`.
+- `fm1_meta.c` keeps its own streaming writer: E3's JSON writer holds a
+  document of records, the wrong shape for the export, which is written as
+  it goes with no heap. The two share the number formatter, which is what
+  must agree [inferred: the layout is held by the same canonical tests].
+
+**E1's seams, closed:**
+- The sequencer core imports in pieces: `fm1_seq_import_begin`, `_feed`
+  and `_end` (`fm1_seq_import_movy1` is the three). It reads a character at
+  a time, numbers with Rust's integer rules as they come and lists item by
+  item, holding no line, and leaves the set untouched until the first line
+  has proved to be the tag. Against the line-at-a-time importer it
+  replaces, run on 130 sets (the Movy fixtures' exports, sets made from
+  every verb script in the tree, the examples) and 20,000 mutations of
+  them, in default and compat mode: identical exports and state dumps; four
+  deliberate mutants of the new code were each caught by that run.
+- `fm1-seq --load` checks a file, then streams its set lines into the
+  import as their records come (pieces of at most 64 bytes from either
+  reader). This is the device's path; the app's (A1) adds the bridge's lane
+  resolution after `_end`, as `fm1_seq_host_import` does.
+- `dq`, `se` and `sn` are typed items in binary (`0x10`, `0x11`, `0x12`);
+  a raw one still reads, so a file written before reads to the same set.
+  The unreleased level-1.0 set golden was rewritten (258 B from 274; its
+  records unchanged).
+
+**Found by the proofs, and fixed:**
+- A saved Register lost its loop: `fm1-render --save` kept a module's DATA
+  record but not its bytes, so every file carried `"hex": ""`. Found by the
+  render-equality test below, before any file was released.
+- The fuzz target read at most 16 seed files and dropped the rest without
+  a word, so E3's runs never mutated the binary mod rack golden (the 17th).
+  With it, the loop broke "canonical text is a fixed point" in seconds: a
+  cable to a `#UID` its module's kind lacks was written by the canonical
+  writer and dropped by the JSON reader. A module's `#UID` destination is
+  now kept, as a unit's is, in C and in P1. The target takes 32 seeds.
+
+**The proofs** (`tests/test_state_whole.py`, 26 tests, and the runs named):
+- Save, load and save again, then again, give the same bytes in JSON and in
+  binary, through `fm1-render` for sounds, effects chains, mod racks, the
+  example project and the guide-like project (40 clips, 1,444 notes; both
+  kept inside the budget with Six-op for Shapes), clips and sets; through
+  the codecs for every golden kind, settings included; and P1 writes C's
+  bytes for all of them, the guide-like project included.
+- A session of four sound units (Drums with two pads edited, Shapes through
+  a Filter insert, Macro behind the arpeggiator), Hall and the limiter on
+  the master, a rack of an LFO and a Register with pattern data, a cable
+  with a lock, a per-voice cable and a velocity cable to the host's Amp,
+  and a set with its song (an end mode, two scene names, a default
+  quantize) saves a project that reloads, from JSON and from binary, and
+  renders the same 6-second WAV, byte for byte. So does FM6 playing a user
+  voice from a `.syx` bank, and a Sophie kit.
+- Every golden file, every file the tools wrote in those tests, the
+  guide-like project and the metadata export validate against the schemas.
+- Fuzzing under ASan and UBSan (Apple clang): 8 seeded loops of 1,000,000
+  mutations of 32 seeds (every golden, binary twin and set, and 14 Movy
+  fixture sets), holding the invariants above and the new ones: any input
+  as set text imports the same whole and in pieces, an imported set's
+  export imports back to itself, and a file's set lines streamed record by
+  record give the set their text gives. Clean after the `#UID` fix: 368,375
+  inputs accepted (117,774 of them binary), 3,582,058 imported as sets and
+  41,748 files' sets streamed.
+- The module (`fm1.wasm`) was rebuilt from the joined tree on aeon: parity
+  86 of 86 (identical to the JS reference and to musl on all, to glibc on
+  83, as before), and the headless page check passes.
+
+**Open, for the owner and the next stages:**
+- E1's D18 (a hand launch from stopped drops a stale queued launch) is a
+  fourth Movy fix the owner has not seen; compat mode keeps Movy's
+  behaviour (`engines/seq.md`).
+- `fm1-render` routes a set's unrouted tracks to the sound units when it
+  imports one (`rt` lines), so a set saved from it can differ from the set
+  it loaded by those lines; the app's own rule is A1's.
+- The example project (`first-orbit.lunar`) is still over the RAM budget
+  (§20); the guide's real files will be held to it by `check`.
+- The GPL lane's engines need API v4 where they are kits, and the export's
+  `licence` and `build.gpl` move to its licence table when it lands (E2's
+  note).
+

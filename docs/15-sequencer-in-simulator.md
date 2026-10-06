@@ -244,17 +244,17 @@ half of docs/13 §5's 72 KiB, 36,864 B (docs/13 §10).
 
 | Item | 4 tracks | 8 tracks | Note |
 | --- | --- | --- | --- |
-| Sequencer instance, Capture 256 × 12 B included | 18,056 | 31,880 | [verified: `fm1-seq --sizes`; test_seq_render.py 52 asserts 18,056] |
+| Sequencer instance, Capture 256 × 12 B included | 18,120 | 31,944 | [verified: `fm1-seq --sizes`, 2026-10-06; 18,056 and 31,880 before stage E1's song fields took 64 B] |
 | Event buffer, 272 × 12 B (256 until S6) | 3,264 | 3,264 | The minimum is 72 events (864 B). The measured worst is 193 events (2,316 B) in seq_bench's burst, and at most 7 per 64-frame block over the 34 oracle scripts [verified 2026-10-01]. Beside the 64 gates' note-offs the core keeps room for, that burst needs 257, one more than 256; S6 raised the buffer to 272, which holds it [verified 2026-10-02: `fm1-render --events`, tests/test_seq_render.py] |
 | Pending command record | 240 | 240 | One `fm1_seq_cmd_t` [verified 2026-10-01: sizeof]. It stands in for the FM-1's command ring, whose compact record is still to be designed |
 | UI state | ≤ 1,024 | ≤ 1,024 | asserted; 552 B at S6 |
 | Metronome click voice (S6, O11) | 20 | 20 | `fm1_seq_click_t`, asserted |
-| **Total** | **≤ 22,604 (61.3 %)** | **≤ 36,428 (98.8 %)** | |
-| Spare | 14,260 | 436 | docs/13 §5's 12,288 B undo ring fits only at 4 tracks |
+| **Total** | **≤ 22,668 (61.5 %)** | **≤ 36,492 (99.0 %)** | |
+| Spare | 14,196 | 372 | docs/13 §5's 12,288 B undo ring fits only at 4 tracks |
 | Stack during a stopped Capture's tempo search | about 1.55 KB | about 1.55 KB | transient [verified: engines/seq.md 286] |
 
-Without Capture the instance is 14,984 B at 4 tracks and 28,808 B at 8
-[verified: docs/13 §10]. The instance holds no pointers, so its size is the
+Without Capture the instance is 15,048 B at 4 tracks and 28,872 B at 8
+[verified: `fm1-seq --sizes`, 2026-10-06]. The instance holds no pointers, so its size is the
 same in 32-bit and 64-bit builds.
 
 **Simulator only, not FM-1 RAM:**
@@ -999,7 +999,7 @@ applied, verbatim, with its block; S3 adds UI commands to it. Its JSON gains
   to `fm1-render --frames 64`'s, and the `--log-events` files are identical.
   Peak > 0.01, except in MIDI-routed cases, and `seq_dropped == 0` on both.
 - **Exports:** the export list equals `WASM_EXPORTS`.
-- **Sizes:** `seq_bytes` is 31,880 at 8 tracks and 18,056 at 4 (via
+- **Sizes:** `seq_bytes` is 31,944 at 8 tracks and 18,120 at 4 (via
   `--tracks`). `sizeof(fm1_app_t)` is printed and asserted ≤ 1,210,000, and
   the two memory sums hold.
 - **Event room:** a burst of `stop`, `play` and a restart in one gap, at full

@@ -207,7 +207,7 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
    M3 are built: `fm1_seq` (engines/seq.md) matches Movy's own code in 23 of
    24 golden fixtures (undo is not ported) and in thousands of random
    scripts. Capture is on by default with 256 packed 12-byte events (the
-   owner's choice; 31,880 B at 8 tracks). Open: undo, the note-index
+   owner's choice; 31,944 B at 8 tracks since stage E1). Open: undo, the note-index
    rebuild cost on pi32v2 (stage B).
 
 ## 6. Reference material already gathered (clone these locally)
