@@ -702,6 +702,10 @@ try {
   await wait(page, 100);
   await page.screenshot({ path: join(out, '04-global-zoom.png'), fullPage: true });
   report.checks.status = await page.textContent('#status');
+  // Memory only as a percentage of the FM-1's budget (owner, 2026-10-06),
+  // the same figure the screen's meter shows.
+  report.checks.memory_percent = /The chain takes \d+% of the FM-1's memory\./.test(report.checks.status) &&
+    !/\d\s*(KB|KiB|kB|B)\b|kilobyte|bytes/.test(report.checks.status);
   report.checks.screens = await page.evaluate(() => window.fm1.screens);
   await page.close();
 
@@ -749,6 +753,7 @@ const c = report.checks;
 const theme = c.theme || {};
 report.pass = !report.error && theme.title === 'Lunar Modulator' && theme.display_font_loaded === true &&
   theme.body_background === 'rgb(35, 33, 54)' && c.screens > 0 && c.chord_rms > 0.01 && c.lit_keys === 3 &&
+  c.memory_percent === true &&
   c.fx_led === true && c.phone_scroll_width <= 390 && bigEnough(c.phone, 24) && c.phone_pan_px > 100 &&
   c.landscape.page_scroll_width <= 844 && bigEnough(c.landscape, 24) && c.input && c.input.pass &&
   c.seq && c.seq.pass && c.dx7 && c.dx7.pass &&

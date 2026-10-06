@@ -25,7 +25,7 @@ Key*, the project key. The bottom bar names the page.
 | --- | --- |
 | Rate | The sample rate the firmware runs at, such as 44118 Hz |
 | Block | How many samples the firmware computes at a time: 64 |
-| RAM | Two figures in kilobytes: the memory the sounds, effects, sequencer and modulation take (the sequencer about 36K of it and modulation about 23K, playing or not), then the 379K the FM-1 has free for them. The memory meter in the bottom bar shows the same as a share ([chapter 6](06-effects.md#memory)) |
+| RAM | The share of the FM-1's free memory the sounds, effects, sequencer and modulation take, in percent, the same figure as the memory meter in the bottom bar (of which the sequencer takes 10 % and modulation 7 %, playing or not). It is red past 100 % ([chapter 6](06-effects.md#memory)) |
 | Voices | How many notes the current sound's engine plays at once |
 | M1, M2 | The effect in each master slot by its name, such as *Plate*, spelled out where the line has room (*Compressor* for Comp), or `--` for an empty slot |
 | Octave | The keyboard's octave, from −3 to +3 ([chapter 4](04-playing.md#octave-and-transpose)) |
@@ -60,8 +60,8 @@ at C Major.
   script, such as `key 2 1` for D Minor ([chapter 7](07-sequencer.md)).
 
 !!! tip "Will it fit on the FM-1?"
-    The simulator refuses any sound or effect that would take the first
-    figure past the second, so whatever it plays would fit on the FM-1. To
+    The simulator refuses any sound or effect that would take the figure
+    past 100 %, so whatever it plays would fit on the FM-1. To
     make room, choose a smaller engine or effect, or empty a sound or a slot
     ([chapter 6](06-effects.md#memory)).
 

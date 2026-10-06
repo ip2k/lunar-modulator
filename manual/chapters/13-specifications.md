@@ -39,51 +39,53 @@ means the work of others who have studied the FM-1, credited in
 | Limiter | Ceiling 0.98 of full scale (−0.18 dBFS), instant attack, about 100 ms release; samples that are not numbers become silence |
 | [[MASTER]] | After the limiter. Half way round is a quarter of full level, about −12 dB |
 | Pitch bend | Up to ±48 semitones in the engines; ±2 semitones from MIDI in the simulator |
-| Memory for sounds | About 379 KB (387,924 bytes) for the sounds, effects, sequencer and modulation: the room M-VAVE's firmware leaves free on the FM-1. The real figure for Lunar Modulator on the device will be known once it runs there |
+| Memory for sounds | The room M-VAVE's firmware leaves free on the FM-1, for the sounds, effects, sequencer and modulation: 100 % on the memory meter, which shows memory only as a share of it. The real figure for Lunar Modulator on the device will be known once it runs there |
 | Sequencer | 8 tracks in the simulator, as planned for the FM-1 ([chapter 7](07-sequencer.md)) |
 | Licence | MIT for Lunar Modulator's own code; code from other projects under its own licence ([chapter 14](14-credits-and-licences.md)) |
 
 ### Engines and effects in figures
 
-Memory is given as a 32-bit build lays it out, as in the simulator and on the
-FM-1. The memory meter on the screen adds up these numbers for the chain in
-use, with the sequencer's and modulation's own, and is the one to trust if
-the two ever differ.
+Memory is given as the share of the FM-1's memory each engine or effect
+takes on its own (100 % is all the memory meter allows), as a 32-bit build
+lays it out at 44,118 samples a second, as in the simulator and on the FM-1,
+and rounded up as the meter rounds. The meter adds up the chain in use, with
+the sequencer's own (10 %) and modulation's (7 %), and is the one to trust
+if the two ever differ.
 
-| Engine or effect | Voices | Memory, about |
+| Engine or effect | Voices | Share of memory |
 | --- | --- | --- |
-| Macro | 12 | 19 KB |
-| Macro Heavy | 4 | 70 KB |
-| Six-Op FM | 8 | 11 KB |
-| FM6 | 12 | 15 KB, and 28 KB of tables shared by every FM6 sound |
-| Shapes | 12 | 202 KB |
-| Sophie | 12 | 76 KB |
-| Drums | 12 | 7 KB |
-| Test Sine | 12 | under 1 KB |
-| Plate | – | 64 KB |
-| Ensemble | – | 5 KB |
-| Diffuse | – | 18 KB |
-| PSX Verb | – | 131 KB |
-| Crush | – | under 1 KB |
-| Fold | – | under 1 KB |
-| Drive | – | under 1 KB |
-| Echo | – | 64 KB |
-| Filter | – | under 1 KB |
-| Comb | – | 17 KB |
-| Comp | – | under 1 KB |
-| Limiter | – | 12 KB |
-| DJ Filter | – | under 1 KB |
-| Tilt | – | under 1 KB |
-| Master Sat | – | under 1 KB |
-| Isolator | – | under 1 KB |
-| EQ | – | under 1 KB |
-| Room | – | 40 KB |
-| Hall | – | 49 KB |
-| Gate | – | 2 KB |
-| Squash | – | under 1 KB |
-| Transient | – | under 1 KB |
-| Test Gain | – | under 1 KB |
-| Test Ext | – | under 1 KB |
+| Macro | 12 | 6 % |
+| Macro Heavy | 4 | 19 % |
+| Six-Op FM | 8 | 3 % |
+| FM6 | 12 | 5 %; its tables stay in flash memory |
+| Shapes | 12 | 54 % |
+| Sophie | 12 | 21 % |
+| Drums | 12 | 2 % |
+| Test Sine | 12 | under 1 % |
+| Plate | – | 17 % |
+| Ensemble | – | 2 % |
+| Diffuse | – | 5 % |
+| PSX Verb | – | 35 % |
+| Crush | – | under 1 % |
+| Fold | – | under 1 % |
+| Drive | – | under 1 % |
+| Echo | – | 17 % |
+| Filter | – | under 1 % |
+| Comb | – | 5 % |
+| Comp | – | under 1 % |
+| Limiter | – | 4 % |
+| DJ Filter | – | under 1 % |
+| Tilt | – | under 1 % |
+| Master Sat | – | under 1 % |
+| Isolator | – | under 1 % |
+| EQ | – | under 1 % |
+| Room | – | 11 % |
+| Hall | – | 13 % |
+| Gate | – | under 1 % |
+| Squash | – | under 1 % |
+| Transient | – | under 1 % |
+| Test Gain | – | under 1 % |
+| Test Ext | – | under 1 % |
 
 ### The sequencer
 
@@ -100,7 +102,7 @@ the two ever differ.
 | Sounds | Up to four at once, each with its own engine and a level into the mix |
 | Effects | Two inserts on each sound, two master effects after the mix, then the limiter |
 | Modulation | A rack of eight positions for sixteen kinds of module, 32 cables, worked out every 32 samples |
-| Memory | Everything refused that would take the chain past about 379 KB |
+| Memory | Everything refused that would take the memory meter past 100 % |
 
 ## The simulator
 

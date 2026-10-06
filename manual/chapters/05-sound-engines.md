@@ -452,8 +452,8 @@ attack and release envelope.
     only if you let go before they have finished.
 
 !!! note "Memory"
-    Shapes is the largest engine: twelve voices take about 202 KB of the
-    roughly 379 KB the simulator allows for everything
+    Shapes is the largest engine: twelve voices take 54 % of the memory
+    the simulator allows for everything
     ([chapter 13](13-specifications.md)). With PSX Verb and Plate together
     as effects it does not fit, nor as two sounds at once, and the simulator
     refuses what would not ([chapter 6](06-effects.md#memory)). The FM-1

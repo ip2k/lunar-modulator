@@ -234,7 +234,8 @@ void fm1_mod_view_rack(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_
       const float base = fm1_mod_param_base(m, u->pos, (unsigned)idx[r]);
       float depth = 0.0f;
       char text[24];
-      const int routes = fm1_mod_ui_routes(m, FM1_MOD_MODULE + u->pos, q->uid, 0, &depth);
+      const int routes = fm1_mod_ui_routes(m, u->plan.refused, FM1_MOD_MODULE + u->pos, q->uid, 0,
+                                           &depth);
       const int own = fm1_mod_ui_value(env, u->pos, (unsigned)idx[r], base, text, sizeof text);
       fm1_mod_view_row(t, PARAMS_Y + r * ROW_PITCH, q, base, own ? text : NULL, routes, depth,
                        fm1_mod_param(m, u->pos, (unsigned)idx[r]));

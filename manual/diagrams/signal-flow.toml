@@ -3,7 +3,7 @@
 # fm1_app.h's budget).
 title = "Signal flow"
 caption = "Where notes go and how the sound comes out: the keys, MIDI IN and the sequencer’s eight tracks play the four sounds, through each sound’s arpeggiator while it is on; each sound runs through its two inserts and its level into the mix, then the two master effects, AMP, the limiter and MASTER."
-alt = "A block diagram, top to bottom. The keys and MIDI IN, and the sequencer with eight tracks, send notes to a routing stage: the keys and MIDI IN play the current sound, and each track plays the sound its route names, through that sound's arpeggiator while it is on. The keys and MIDI IN also feed the sequencer's focused track for recording and Capture. Four sound lanes follow, Sound 1 to Sound 4, each an engine with 4 to 12 voices, then Insert 1, Insert 2 and a level. The four levels meet in the mix, which feeds master effect M1, master effect M2, AMP (the level modulation can move) and the limiter. The metronome's click joins before the limiter. MASTER, the volume, comes last. A note says that everything in the chain counts against about 379 KB of RAM."
+alt = "A block diagram, top to bottom. The keys and MIDI IN, and the sequencer with eight tracks, send notes to a routing stage: the keys and MIDI IN play the current sound, and each track plays the sound its route names, through that sound's arpeggiator while it is on. The keys and MIDI IN also feed the sequencer's focused track for recording and Capture. Four sound lanes follow, Sound 1 to Sound 4, each an engine with 4 to 12 voices, then Insert 1, Insert 2 and a level. The four levels meet in the mix, which feeds master effect M1, master effect M2, AMP (the level modulation can move) and the limiter. The metronome's click joins before the limiter. MASTER, the volume, comes last. A note says that everything in the chain shares the FM-1’s memory, and that what would take it past 100 % is refused."
 equal_cols = true
 equal_gaps = true
 
@@ -189,7 +189,7 @@ row = 7
 id = "ram"
 shape = "note"
 label = "Memory"
-sub = ["Every engine and effect, the sequencer", "and the rack count against about 379 KB", "of RAM; what would not fit is refused."]
+sub = ["Every engine and effect, the sequencer", "and the rack share the FM-1’s memory;", "what would pass 100 % is refused."]
 col = 0
 row = 8
 cols = 2

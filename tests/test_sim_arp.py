@@ -146,7 +146,8 @@ def test_the_arp_on_another_sound(tools):
 
 def test_the_ram_meter_refuses_an_arp_that_would_not_fit(tools):
     """A chain at the budget's edge: the arp's tap is refused with a popup
-    that says by how much, and the arp stays off. (The second master
+    that says what the chain would need (a percentage past 100, never
+    bytes), and the arp stays off. (The second master
     effect is Limiter since glide: with Diffuse, Macro and Shapes no longer
     fit together once both carried glide's state.)"""
     chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "plate", "--fx", "limit"]
@@ -157,8 +158,8 @@ def test_the_ram_meter_refuses_an_arp_that_would_not_fit(tools):
     assert before["ram"] + need > z["ram_budget"] >= before["ram"], "the chain is not at the edge"
     s = sim(tools, *chain, "--button", "0.1:ARP", seconds=0.3)
     assert s["arp"]["on"][0] == 0 and s["mode"] == 0
-    over = before["ram"] + need - z["ram_budget"]
-    assert s["popup"] == ["Arp", "does not fit", f"{-(-over // 1024)}K over budget"]
+    pct = -(-(before["ram"] + need) * 100 // z["ram_budget"])
+    assert pct > 100 and s["popup"] == ["Arp", "does not fit", f"needs {pct}% of RAM"]
     held = sim(tools, *chain, "--button", "0.1:ARP:0.7", seconds=1.0)
     assert held["arp"]["on"][0] == 0 and held["popup"][:2] == ["Arp", "does not fit"]
 
