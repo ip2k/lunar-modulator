@@ -173,3 +173,73 @@ simulator receives.
 On the FM-1, Lunar Modulator is planned to receive MIDI over USB and at the
 3.5 mm [[MIDI IN]] jack. The FM-1 also has Bluetooth, which M-VAVE's firmware
 uses for MIDI; whether Lunar Modulator will use it is not decided yet.
+
+## Arpeggiator
+
+{{status sim desktop planned}}
+
+The arpeggiator plays the notes you hold one after another, in time with
+the sequencer's tempo. Each of the four sounds has its own; [[ARP]] works on
+the current sound.
+
+- **Tap [[ARP]]** to switch it on. Its pages open, and its light comes on.
+  Tap it again on its pages to switch it off; the pages close, and the notes
+  it was playing stop at once.
+- **Hold [[ARP]]** for half a second to latch: the notes keep playing after
+  you let go of the keys, and the next chord you play replaces them. Notes
+  added while you still hold keys join the chord. Hold [[ARP]] again to stop
+  latching. Holding it also switches the arpeggiator on. While it latches,
+  its light blinks once a second.
+- **[[SEL]] and [[ARP]]** opens its pages without switching it.
+
+Notes from the keys, from MIDI and from the sequencer's tracks that play this
+sound all go through the arpeggiator while it is on. A note you were holding
+before you switched it on goes on sounding until you let go.
+
+### The ARP pages
+
+Turn [[SELECT]] for the page. [[KNOB1]] to [[KNOB4]] set the four values on
+it, and [[ALGORITHM]] steps through the stock FM-1's arpeggio modes: Up,
+Down, Up/Down, Down/Up, Random and Played.
+
+| Page | [[KNOB1]] | [[KNOB2]] | [[KNOB3]] | [[KNOB4]] |
+| --- | --- | --- | --- | --- |
+| 1 PLAY | Mode: the order of the notes | Rate: how long a step is, 1/32 triplet to a whole note, or TRG | Gate: how long each note sounds, 1 to 200 % of the step | Octaves: 1 to 4 |
+| 2 RHYTHM | Pattern: every step, or one of 22 rhythms | Fill: the beats of a Euclidean rhythm | Rotate: where it starts | Length: the Euclidean rhythm's steps; 0 uses Pattern |
+| 3 CHANCE | Chance: how likely a step is to play | Ratchet: notes inside a step, 1 to 4 | Vel Spread: random velocity, up and down | Loop: after this many steps the chances repeat; 0 never |
+| 4 FEEL | Oct Mode: how the octaves combine with the mode | Velocity: as played, or fixed | Swing: 50 to 80 % | Join: keys added to a playing chord join now, or at the next pass |
+| 5 MORE | Order: notes sorted by pitch, as played, or reversed | Repeat: steps per note | Chord %: how likely a step is to play the whole chord | Oct Jump: how likely a note is an octave up |
+| 6 KEYS | Latch | Sync: the first key restarts the pattern, or the pattern runs on | Ratchet %: how likely a step is to ratchet | Gate Sprd: random gate length |
+| 7 SEED | Seed: which random choices the chances make | | | |
+
+The modes are Up, Down, Up-Down, Down-Up, Up&Down and Down&Up (which play the
+top and bottom notes twice), Converge and Diverge, Conv-Div, Thumb and Pinky
+(the lowest or highest note between the others), four modes that add octaves
+to some notes only, Crawl, Random, Shuffle (each note once per pass, in a new
+order), Walk (a random step to a neighbour) and Chord. The same Seed makes
+the same choices every time, so a random arpeggio repeats exactly.
+
+TRG, the slowest rate's neighbour at the left end of Rate, takes its steps
+from elsewhere; nothing sends them yet, so with TRG the arpeggiator holds.
+
+### With the sequencer
+
+The arpeggiator follows the sequencer's tempo whether the sequencer plays or
+not. [[PLAY/STOP]] restarts its pattern on the first beat; when the
+sequencer stops, the notes it was playing end, and it goes on with the keys
+you hold.
+
+The sequencer records the notes you play, not the arpeggio. A part recorded
+with the arpeggiator on plays back through it again, so you can change the
+arpeggio afterwards, or switch it off and hear the notes as you played them.
+
+The arpeggiator takes memory only while it is on. When the sounds and
+effects leave too little, [[ARP]] says *does not fit* and by how much.
+
+### In the desktop tools
+
+`--mfx K:arp` puts the arpeggiator in front of sound *K* (0 is `--engine`),
+and `--mfx-param K:NAME=VALUE` sets a value; a list's value is its position,
+from 0. `--mfx-on-at K:T:0` switches it off at time *T*, and `:1` on;
+`--mfx-param-at K:T:NAME=VALUE` changes a value then. `--log-mfx FILE`
+writes every note it plays ([chapter 2](02-getting-started.md#the-desktop-tools)).

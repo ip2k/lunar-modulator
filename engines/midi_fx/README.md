@@ -19,10 +19,11 @@ is its own seeded generator, never stmlib's global `Random`, so Macro's
 reference renders stay untouched. Sources, lines and notices are in
 [CREDITS.md](CREDITS.md).
 
-**Status.** It is built and tested on the desktop
-(`tests/test_engine_arp.py`) and is **not wired** into `fm1-render`, the
-simulator or the FM-1 app yet. That needs the MIDI-effect contract of API v2
-(docs/13 M2). The intended contract is described below.
+**Status.** Built and tested on the desktop (`tests/test_engine_arp.py`),
+and since 2026-10-06 a MIDI effect of engine API v3, `arp`
+(`arp_engine.c`), which fm1-render (`--mfx`) and the virtual FM-1 (its ARP
+button and pages) run in front of a sound ([In the hosts](#in-the-hosts)).
+Nothing runs on an FM-1 yet.
 
 ```bash
 make -C engines build/fm1-arp
@@ -40,6 +41,8 @@ python -m pytest tests/test_engine_arp.py
 | `fm1_arp.c` | The core: held keys, note orders, steps, chance, the note ledger |
 | `arp_rhythm.c` | Yarns' 22 rhythm masks (regenerated, with Yarns' MIT notice) and the Euclidean generator |
 | `arp_tool.c` | `fm1-arp`, the desktop test tool: a timed script in, JSON lines out |
+| `arp_engine.c` | The core as the MIDI effect `arp` (engine API v3, `FM1_KIND_MIDI_FX`): its parameters on the ARP pages, `process()` on the host's ticks |
+| `registry.c` | The MIDI effects' registry (`fm1_midi_fxs`, `fm1_midi_fx_find`) |
 | `CREDITS.md` | Design sources and their notices |
 | `../mk/midi_fx.mk` | The build fragment |
 
@@ -244,38 +247,71 @@ equal Yarns' generated tables [verified against `reference/mi-eurorack` at
   PPQN [inferred]). **Sync, free**: the grid runs on, and the key waits for
   the next step. `RESET` rejoins the grid on the host's Play or bar.
 
-## The intended host contract (not built yet)
+## In the hosts
 
-This is how the core is meant to sit in the host once API v2 exists (docs/13
-M2; options note §2.3; DEVELOPERS.md, "MIDI effects").
-- **Placement.** Panel keys, USB-MIDI in and `fm1_seq` NOTE events go into
-  the arp. The arp's output goes to the engine's `note_on` and `note_off`.
-  It is the first `FM1_KIND_MIDI_FX` (reserved in `fm1_engine.h`), so ARP
-  and SEQ can run together.
-- **Calls.** The slot gets one `process()` per block. It takes the block's
-  frame-stamped input events, the block's tick frames, and at least 64
-  output slots. Note-offs are never dropped.
+Since 2026-10-06 the core runs in fm1-render and the virtual FM-1 through
+engine API v3's MIDI-effect contract (`engines/include/fm1_engine.h`,
+"MIDI effects"; DEVELOPERS.md, "MIDI effects"; engines/README.md, "MIDI
+effects").
+- **The wrapper** (`arp_engine.c`) is an `fm1_midi_fx_t`: the core's 25
+  parameters as engine parameters, each with a uid (the core's id plus 1,
+  pinned in `tests/fixtures/param-uids.json`), in knob order on seven pages
+  (below), and `process()`, which hands the block's events and ticks to
+  `fm1_arp_process`. A list's value is its entry from 0, so Octaves,
+  Ratchet and Repeat read one less than the core's count; a number rounds
+  half up and NaN is its default. The events are one type
+  (`fm1_arp_ev_t` is `fm1_midi_ev_t`, `include/fm1_midi_ev.h`), with the
+  same codes. The instance is 736 bytes (the core's 728, to 16).
+- **Placement.** The host stage (`include/fm1_mfx_host.h`,
+  `seq/mfx_host.c`) keeps a chain of up to four MIDI effects in front of
+  each sound unit. While the arp is on, the keys, MIDI IN, fm1-render's
+  `--note` and the sequencer's notes for that sound go into it; its output
+  reaches the sound's `note_on` and `note_off` at its own frames, merged
+  into the block the bridge dispatches. So ARP and SEQ run together.
 - **The clock** is `fm1_seq`'s 96 PPQN master tick, each tick at its own
-  frame (D1). External MIDI clock comes in through `fm1_seq`. While the
-  transport is stopped, the host keeps ticking from its tempo accumulator,
-  so the arp free-runs.
-- **Transport.** The host sends `RESET` at Play, so the arp rejoins the
-  bar, and `FLUSH` at Stop and on bypass.
-- **Order at one frame:** note-offs, reverts, locks (parameter events), then
-  the arp's steps and note-ons (docs/12 line 281).
-- **Parameters** become API v2 typed parameters with uids. A sequencer lane
-  locks them per step through 7-bit values mapped onto each range.
-- **Recording** stores the keys before the arp, so the arp replays them;
-  "print arp" can come later. The arp's notes stay off MIDI out unless asked.
-- **Modulation** (stage S4): the step index and the step's random value
-  become matrix sources.
+  frame (D1), from the sequencer's integer clock as the block began. While
+  the transport is stopped the clock's sum runs on at the set tempo, so the
+  arp free-runs on the same grid; without a sequencer the stage runs its own
+  at fm1-render's `--tempo`. An external MIDI clock (off the grid) puts the
+  block's ticks at its first frame.
+- **Transport.** Start reaches the arp as `RESET` and Stop as `FLUSH`, at
+  their frames. A bypass sends `PANIC` at once, between blocks, and its
+  note-offs go straight to the sound; so do a new engine on the sound, a
+  panic, and a sequencer reset or import.
+- **Notes are never left hanging.** A note-off follows its note-on: into the
+  arp when the arp took the note-on, else straight to the sound.
+- **Recording** stores the keys before the arp (owner, 2026-10-05), so the
+  arp plays a recorded part again; "print arp" can come later. The arp's
+  notes stay off MIDI out.
+- **The pages** (the options note §2.4, and three more for the rest):
+
+  | Page | KNOB1 | KNOB2 | KNOB3 | KNOB4 |
+  | --- | --- | --- | --- | --- |
+  | PLAY | Mode | Rate | Gate | Octaves |
+  | RHYTHM | Pattern | Fill | Rotate | Length |
+  | CHANCE | Chance | Ratchet | Vel Spread | Loop |
+  | FEEL | Oct Mode | Velocity | Swing | Join |
+  | MORE | Order | Repeat | Chord % | Oct Jump |
+  | KEYS | Latch | Sync | Ratchet % | Gate Sprd |
+  | SEED | Seed | | | |
+
+  Fill, Rotate and Length are the Euclidean parameters, Chance is `prob`,
+  Vel Spread `vel_spread` and Gate Sprd `gate_spread`.
+- **Stock's presets.** The virtual FM-1's ALGORITHM steps the stock FM-1's
+  arp modes as presets of Mode and Order (owner, 2026-10-05): Up, Down,
+  Up/Down, Down/Up, Random and Played [reported: AL-255's FM-1-RE,
+  `docs/io/05-midi.md` §6.3; stock's Random shuffles the held notes once a
+  pattern, so it is Shuffle here; the seventh, off, is ARP].
 
 ## Not done yet
 
+- **RATE TRG** gets no `STEP` from either host yet, so the arp holds there.
+- Sequencer locks and modulation routes on the arp's parameters; the step
+  index and the step's random value as matrix sources (options note S4).
 - Super Arp's pattern strings, accent velocity patterns and progression
   presets.
 - The keyboard transposing a latched arp; Loom's JUMP and GRID modes.
-- Stock's seven arp modes as named presets (options note §8, question 7).
-- The ARP pages on the panel (options note §2.4) and the screen labels.
+- More MIDI effects in the other three slots of each chain (chord, scale,
+  repeat), and their panel.
 - Cycle counts on pi32v2: the arp is control-rate work, about 1 % of a core
   or less [inferred], unmeasured until the dev board (docs/14).

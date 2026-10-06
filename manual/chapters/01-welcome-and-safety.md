@@ -40,7 +40,7 @@ this manual carries a status that says where it works today:
 | --- | --- | --- |
 | Eight sound engines: Macro, Macro Heavy, Six-Op FM, FM6, Shapes, Sophie, Drums and Test Sine, up to four sounds at once | Simulator, desktop | [5](05-sound-engines.md) |
 | Twenty-two effects: two inserts on each sound and two on the master bus, followed by a limiter | Simulator, desktop | [6](06-effects.md) |
-| The front panel: the knobs, the keys, the screen and every button but [[SAVE]] and [[ARP]] | Simulator | [3](03-panel-tour.md) |
+| The front panel: the knobs, the keys, the screen and every button but [[SAVE]] | Simulator | [3](03-panel-tour.md) |
 | Octave, transpose, velocity and pitch bend | Simulator; velocity and bend also on the desktop | [4](04-playing.md) |
 | Notes from a MIDI keyboard | Simulator | [9](09-midi.md) |
 | Sequencer: steps, parameter locks, conditions, recording, Capture, eight tracks | Simulator, desktop | [7](07-sequencer.md) |
