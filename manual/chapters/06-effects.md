@@ -60,11 +60,18 @@ their settings.
   each click of the knob multiplies it, so 20 to 40 Hz takes as many clicks
   as 5 to 10 kHz, and a hundred clicks go from one end to the other. The
   screen still shows hertz and milliseconds, with more decimals at the low
-  end, and the bar shows where the knob is. The sequencer's locks move them
-  the same way ([chapter 7](07-sequencer.md#values-and-list-parameters)),
-  and modulation moves them in octaves: a source that follows the note you
+  end, and the bar shows where the knob is. The sequencer's locks will
+  store them the same way once they reach the effects
+  ([chapter 7](07-sequencer.md#values-and-list-parameters)), and
+  modulation moves them in octaves: a source that follows the note you
   play, at full amount, makes a cutoff follow the keyboard exactly.
 - The same effect can sit in several slots, each with its own settings.
+- **Modulation reaches the effects' parameters**, in the inserts and the
+  master slots ([chapter 8](08-modulation.md)). The sequencer's parameter
+  locks reach only the sounds' parameters so far; locks on the effects are
+  planned ([chapter 7](07-sequencer.md#parameter-locks)). Where this
+  chapter says an effect changes smoothly enough for the sequencer to
+  change it on every step, that waits for those locks.
 - Changing a sound's engine keeps its inserts and the master effects, and
   their settings.
 
@@ -105,8 +112,8 @@ whatever plays in the simulator would fit the FM-1.
     cent of the originals'. Room, from Clouds, was written for 32,000, so its
     room comes out about a quarter smaller and its slow modulation faster;
     its decay is corrected the same way, though its shortest settings ring
-    a little shorter than on Clouds. Crush, Fold, Drive, Echo, Filter, Comp,
-    Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Hall and Gate,
+    a little shorter than on Clouds. Crush, Fold, Drive, Echo, Filter, Comb,
+    Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Hall and Gate,
     written for Lunar Modulator, work out their frequencies and times from
     the output's rate, so they need no correction.
 
@@ -129,10 +136,10 @@ tail.
   nothing new in, as Mutable Instruments Elements does with this reverb:
   play over a frozen chord, and Mix still blends in what you play. Decay
   and Damping wait until you turn it off. It switches over 5 milliseconds,
-  so it does not click, and the sequencer and modulation can turn it on
-  and off in time. The hold is long but not endless: the highs fade over
-  seconds and the body over minutes, and a quiet tail runs out sooner
-  (about 25 seconds at −39 dBFS, nearly 3 minutes at −19 dBFS).
+  so it does not click, and modulation can turn it on and off in time. The
+  hold is long but not endless: the highs fade over seconds and the body
+  over minutes, and a quiet tail runs out sooner (about 25 seconds at
+  −39 dBFS, nearly 3 minutes at −19 dBFS).
 
 !!! tip "Starting points"
     - **A small room:** Decay low, Mix about 0.2.
@@ -874,8 +881,8 @@ frozen and held. It takes 49 KB of memory, three quarters of Plate's.
   a stiller, purer tail. It sounds the same every time you play.
 - **Freeze**, on page 2, holds the reverb as it is and lets nothing new
   in: play over a frozen chord. The hold lasts minutes, fading by about a
-  decibel a minute. Off lets it fade away. It switches without a click, so once the sequencer and modulation
-  reach the effects, they will be able to turn it on and off in time.
+  decibel a minute. Off lets it fade away. It switches without a click, so
+  modulation can turn it on and off in time.
 - **Width**, on page 3, narrows the reverb from wide stereo at the right to
   mono at the left.
 - **Low Cut**, on page 3, keeps the bass out of the reverb, so a bass line
