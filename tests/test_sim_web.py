@@ -492,7 +492,7 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 3165            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["screens"] >= 3493            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
     #                                              1321 before the master-bus pack (1458), 2189 with modulation
     #                                              (docs/16 MG3) before Room, Hall, Gate and Plate's Freeze, 2325
@@ -500,13 +500,54 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     #                                              the lab switch's two sets of screens; 2695 before every
     #                                              list popup's every entry, 3040 before FM6's user bank,
     #                                              Squash and Transient (all 2026-10-06), 3144 with them;
-    #                                              3165 with per-voice modulation (MG9) too
+    #                                              3165 with per-voice modulation (MG9) too; 3493
+    #                                              with glide's own page on Shapes, Six-Op FM and
+    #                                              FM6, Drums' fourth page and the Voice Mode keys
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 
 def test_font_header_is_current():
     subprocess.run(["python3", str(SIM / "tools" / "gen_font.py"), "--check"], check=True)
 
+
+
+@pytest.mark.parametrize("engine", ["macro", "macro-heavy", "shapes", "sixop", "dx7"])
+def test_shift_mono_and_poly_set_the_voice_mode(tools, tmp_path, engine):
+    """SHIFT (SEL held) with MONO (C#5, key 20) or POLY (D#5, key 22), their
+    printed labels, outside SEQ mode: the current sound's Voice Mode
+    (engines/src/glide.h; owner, 2026-10-06). MONO sets Mono, and pressed on
+    Mono, Legato; POLY sets Poly. Neither key then plays: two overlapping
+    notes afterwards play as with the Voice Mode set as a parameter, byte
+    for byte. Without SHIFT, MONO plays its note as before."""
+    later = ["--key", "1.0:0:100:0.6", "--key", "1.2:4:100:0.6"]
+
+    def go(name, panel, params=()):
+        wav = tmp_path / f"{name}.wav"
+        args = ["--engine", engine, "--seconds", "2.2", "--out", str(wav)] + later + list(panel)
+        for prm in params:
+            args += ["--param", prm]
+        summary = run(tools["sim"], args)
+        return summary, wav.read_bytes()
+
+    def shift(t, key):
+        return ["--button", f"{t}:SEL:0.3", "--key", f"{t + 0.1}:{key}:100:0.05"]
+    assert go("mono", shift(0.1, 20))[1] == go("mono-ref", [], ["Voice Mode=1"])[1]
+    assert go("legato", shift(0.1, 20) + shift(0.5, 20))[1] == go("legato-ref", [], ["Voice Mode=2"])[1]
+    poly = go("poly", shift(0.1, 20) + shift(0.5, 22))[1]
+    assert poly == go("poly-ref", [])[1] != go("mono-ref", [], ["Voice Mode=1"])[1]
+    played = go("played", ["--key", "0.1:20:100:0.3"])[1]
+    assert played != go("plain", [])[1]                     # no SHIFT: MONO is a key
+
+
+def test_shift_mono_on_a_sound_without_voice_mode(tools, tmp_path):
+    """Drums has no Voice Mode: SHIFT + MONO changes nothing and plays
+    nothing, and the screen says so."""
+    wav, plain = tmp_path / "d.wav", tmp_path / "p.wav"
+    hits = ["--key", "0.5:0:100:0.1", "--key", "0.6:2:100:0.1"]
+    run(tools["sim"], ["--engine", "drums", "--seconds", "1.0", "--out", str(wav),
+                       "--button", "0.1:SEL:0.3", "--key", "0.2:20:100:0.05"] + hits)
+    run(tools["sim"], ["--engine", "drums", "--seconds", "1.0", "--out", str(plain)] + hits)
+    assert wav.read_bytes() == plain.read_bytes()
 
 
 @pytest.mark.parametrize("engine", ["sw-sophie", "drums"])

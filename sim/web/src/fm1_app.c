@@ -1232,11 +1232,14 @@ static const char *const kButtonNames[FM1_APP_BUTTONS] = {
   "HOME", "SAVE", "ARP", "SEQ", "PLAY/STOP", "REC",
 };
 
+static int voice_mode_key(fm1_app_t *a, int key);
+
 void fm1_app_key(fm1_app_t *a, int key, int down, int velocity) {
   if (key < 0 || key >= FM1_APP_KEYS) return;
   if (down) {
     int sound_only = 0;
     if (a->key_down[key]) return;
+    if (voice_mode_key(a, key)) return;
     if (a->seq) {
       /* In SEQ mode the white keys are steps and the black keys roles
        * (owner decision O1): the UI takes them, and they play nothing,
@@ -1665,6 +1668,44 @@ static void turn_sound(fm1_app_t *a, int sound, int index, int delta) {
     turn_param(a, unit, index, delta);
   }
   sound_lanes(a, sound, index, 1);
+}
+
+/* SHIFT + MONO or POLY, the black keys C#5 and D#5 (their printed labels),
+ * outside SEQ mode, where they are the track keys: the current sound's
+ * Voice Mode (engines/src/glide.h; owner, 2026-10-06). POLY sets Poly;
+ * MONO sets Mono, and on Mono, Legato, and on Legato, Mono again. As a
+ * knob turn: the base under any cable, and the lanes' bases follow. A
+ * sound without Voice Mode (Drums, Sophie, Test Sine, none) says so. The
+ * key plays nothing; 1 when it was taken. */
+static int voice_mode_key(fm1_app_t *a, int key) {
+  int unit, index, m;
+  const fm1_param_t *p;
+  if (a->mode == FM1_MODE_SEQ || !a->ui.shift || a->ui.capture_mode ||
+      (key != FM1_SEQ_UI_KEY_TRACK_PREV && key != FM1_SEQ_UI_KEY_TRACK_NEXT)) {
+    return 0;
+  }
+  a->ui.shift_clean = 0;                /* SHIFT was a modifier, not a tap */
+  unit = fm1_app_sound_unit(a->sound);
+  index = fm1_app_param_index(a, unit, "Voice Mode");
+  if (index < 0) {
+    popup(a, "No Voice Mode", a->unit[unit].e ? a->unit[unit].e->name : "No sound", NULL, -1);
+    return 1;
+  }
+  p = &a->unit[unit].e->params[index];
+  m = (int)(a->unit[unit].value[index] + 0.5f);
+  m = key == FM1_SEQ_UI_KEY_TRACK_NEXT ? 0 : (m == 1 ? 2 : 1);
+  fm1_app_set_param(a, unit, index, (float)m);
+  sound_lanes(a, a->sound, index, 1);
+  popup(a, "Voice Mode", p->enum_names[m], NULL, -1);
+  a->leds_changed = 1;
+  return 1;
+}
+
+/* The current sound's Voice Mode, 0..2, or -1 when it has none. */
+static int voice_mode_of(const fm1_app_t *a) {
+  const int unit = fm1_app_sound_unit(a->sound);
+  const int index = fm1_app_param_index(a, unit, "Voice Mode");
+  return index < 0 ? -1 : (int)(a->unit[unit].value[index] + 0.5f);
 }
 
 /* The next sound (dir +1/-1) in registry order, wrapping. */
@@ -2283,6 +2324,12 @@ static void update_leds(fm1_app_t *a) {
   led[FM1_APP_KEYS + FM1_BTN_ARP] =
       (uint8_t)(a->button_down[FM1_BTN_ARP] ||
                 (fm1_app_arp_on(a, a->sound) && (!arp_latched(a, a->sound) || fmod(seconds(a), 1.0) < 0.5)));
+  if (a->mode != FM1_MODE_SEQ && a->ui.shift) {
+    /* SHIFT outside SEQ mode: MONO lit on Mono or Legato, POLY on Poly. */
+    const int vm = voice_mode_of(a);
+    led[FM1_SEQ_UI_KEY_TRACK_PREV] |= (uint8_t)(vm == 1 || vm == 2);
+    led[FM1_SEQ_UI_KEY_TRACK_NEXT] |= (uint8_t)(vm == 0);
+  }
   if (a->mode == FM1_MODE_SEQ) {
     const uint32_t keys = fm1_seq_ui_key_leds(&a->ui, a->frames);
     for (int k = 0; k < FM1_APP_KEYS; ++k) led[k] = (uint8_t)(a->key_down[k] || ((keys >> k) & 1u));
