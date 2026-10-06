@@ -690,12 +690,12 @@ put a dense 909 at about 12 % of the FM-1's CPU [inferred: the study's
 §2.6]; nothing has run on a JieLi chip.
 
 **Flash, and a budget for the cymbals.** With the switch on, the JieLi
-check's objects total 1,063,840 B of text at `-O2` and 886,738 B at `-Oz`,
+check's objects total 1,066,648 B of text at `-O2` and 888,857 B at `-Oz`,
 of which Comet Kit is 265.6 KB and 249.9 KB [verified: the check's report,
-2026-10-06, 139 of 139 objects in all four profiles, link audit PASS]. That
-is more than the app area of about 852 KB in FM-1+VA's layout (docs/11)
-before JieLi's libraries are linked; without the kit it is 637 KB at
-`-Oz`. The cymbals are the one large cost, so this stream proposes:
+2026-10-06, at the merge with PRs #76-#78, 139 of 139 objects in all four
+profiles, link audit PASS]. That is more than the app area of about 852 KB
+in FM-1+VA's layout (docs/11) before JieLi's libraries are linked; without
+the kit it is 639 KB at `-Oz`. The cymbals are the one large cost, so this stream proposes:
 
 | Option | Flash for the cymbals | SNR against the int16 [verified 2026-10-06: µ-law and ADPCM by `tests/test_engine_comet_kit.py`, the linear rows by a scratch script] | |
 | --- | --- | --- | --- |
