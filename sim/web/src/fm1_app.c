@@ -2453,8 +2453,8 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
       for (int k = 0; k < (delta > 0 ? delta : -delta); ++k) to = next_preset(a, to, dir);
       /* A sound this host cannot run (or one that would not fit the
        * RAM) is stepped over, so every other one stays
-       * reachable; the popup names the first one skipped, and by how much
-       * it would pass the budget (a later refusal's figure is another
+       * reachable; the popup names the first one skipped, and what the
+       * chain would need with it (a later refusal's figure is another
        * sound's). */
       for (int tries = 0; tries < (int)fm1_engine_count + empty_ok && to != cur(a)->index; ++tries) {
         int r = fm1_app_select(a, snd_unit, to);

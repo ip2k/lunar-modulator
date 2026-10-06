@@ -259,8 +259,8 @@ modulation pages, and [[ARP]] the arpeggiator's. Chapters
 
 ### The global page
 
-[[GLO]] shows the sample rate, the block size, the memory the sounds and
-effects take against the memory the FM-1 has free, the current sound's number
+[[GLO]] shows the sample rate, the block size, the share of the FM-1's free
+memory the sounds and effects take, in percent, the current sound's number
 of voices, the names of the two master effects (*M1* and *M2*), and the
 octave and transpose.
 The bottom bar reads *Globe*, the name M-VAVE's firmware gives this page.
@@ -314,7 +314,7 @@ red:
 | *Transpose -2* | You turn [[ALGORITHM]] with [[OCT-]] or [[OCT+]] held |
 | *Octave 0, Transpose 0* | You press [[OCT-]] and [[OCT+]] together |
 | An engine's name and *refuses 48000 Hz* | That engine cannot run at the sample rate the browser chose ([chapter 2](02-getting-started.md#the-browser-simulator)) |
-| An engine's or effect's name, *does not fit* and how far over | It would take the chain past the FM-1's memory ([chapter 6](06-effects.md#memory)) |
+| An engine's or effect's name, *does not fit* and what the chain would need, such as *needs 112% of RAM* | It would take the chain past the FM-1's memory ([chapter 6](06-effects.md#memory)) |
 | A track, *Captured*, *Metronome on* and the like | The sequencer did something you asked ([chapter 7](07-sequencer.md)) |
 | A cable and its amount, such as *LFO1 > S2 Color +12%* | You make a cable ([chapter 8](08-modulation.md)) |
 | A button's name and *not in the simulator yet* | You press [[SAVE]] |

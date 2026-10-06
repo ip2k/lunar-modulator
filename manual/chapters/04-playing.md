@@ -321,7 +321,8 @@ with the arpeggiator on plays back through it again, so you can change the
 arpeggio afterwards, or switch it off and hear the notes as you played them.
 
 The arpeggiator takes memory only while it is on. When the sounds and
-effects leave too little, [[ARP]] says *does not fit* and by how much.
+effects leave too little, [[ARP]] says *does not fit* and what the chain would
+need with it, such as *needs 101% of RAM*.
 
 ### In the desktop tools
 

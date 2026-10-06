@@ -176,6 +176,30 @@ def test_memory_reads_as_a_share_of_the_budget():
         assert reference.ram_budget(ROOT) > 0
 
 
+MEMORY_IN_BYTES = re.compile(
+    r"kilobyte|over budget|\d\s?K/\d|"
+    r"\b(?:takes?|keeps? to|needs?)\s+(?:about |under |roughly |only )?[\d,.]+\s?(?:KB|K|kB|bytes|B)\b|"
+    r"[\d,.]+\s?(?:KB|K|kB|bytes|B)\s+of\s+(?:the\s+)?(?:memory|RAM)\b(?! on the chip)",
+    re.I)
+
+
+def test_the_manual_never_gives_memory_in_bytes():
+    """Memory a reader sees is a share of the FM-1's budget only (owner,
+    2026-10-06): no chapter says an engine, effect or chain takes so many
+    kilobytes or bytes, and no refusal reads "K over budget". Sizes of
+    files and of the chip itself are not memory figures and may stay."""
+    hits = [f"{p.name}:{n}: {m.group(0)}"
+            for p in sorted((ROOT / "manual" / "chapters").glob("*.md"))
+            for n, line in enumerate(p.read_text().splitlines(), 1)
+            for m in MEMORY_IN_BYTES.finditer(line)]
+    assert not hits, hits
+    assert MEMORY_IN_BYTES.search("It takes under half a kilobyte.")
+    assert MEMORY_IN_BYTES.search("PSX Verb takes about 131 KB of memory")
+    assert MEMORY_IN_BYTES.search("the effect keeps to 64 KB of memory")
+    assert not MEMORY_IN_BYTES.search("Files of up to 64 KB are read.")
+    assert not MEMORY_IN_BYTES.search("578 KB of RAM on the chip")
+
+
 def test_verb_descriptions_cover_the_code():
     """Every verb the sequencer parses is described, and nothing else."""
     if not (ROOT / "engines" / "seq" / "seq_cmd.c").is_file():

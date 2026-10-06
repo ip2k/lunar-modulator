@@ -513,7 +513,7 @@ const char *fm1_app_dx7_name(const fm1_app_t *a, unsigned slot);
  * _RATE (-3: the engine refused this host, e.g. a Plaits-based one above
  * 47,872 Hz; the unit's previous engine is created again with its values)
  * or _RAM (-4: the chain would pass the FM-1's RAM budget and grow; the
- * unit keeps its engine, and a popup names it and by how much). */
+ * unit keeps its engine, and a popup names it and what the chain would need). */
 int fm1_app_select(fm1_app_t *a, int unit, int index);
 
 /* The browser's starting chain: Macro, then Plate. If Macro refuses the

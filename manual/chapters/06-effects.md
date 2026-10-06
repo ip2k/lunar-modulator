@@ -997,7 +997,7 @@ Modulator from Airwindows plug-ins by Chris Johnson
 ([chapter 14](14-credits-and-licences.md)). Where Comp is the precise,
 adjustable compressor, Squash is quick to set: choose a Type and turn
 **Squash** up until the sound sits where you want it, then win the level
-back with **Output**. It takes under half a kilobyte.
+back with **Output**. It takes under 1 % of the memory.
 
 - **Type** chooses the compressor:
     - **Snap** grabs peaks and lets go, with a gate built in that can cut

@@ -1282,15 +1282,17 @@ history.
     the FM-1's memory*;
   - the manual gives each engine's and effect's share (Shapes 54 %, PSX
     Verb 35 %, most effects under 1 %), the sequencer's by number of
-    tracks, and the signal-flow diagram's memory note in percent.
-  Sizes of files, such as a DX7 bank or the page's download, are still in
-  bytes or kilobytes, and so are the developer documents.
+    tracks, and the signal-flow diagram's memory note in percent;
+  - sizes of files, such as a DX7 bank or the page's download, are still in
+    bytes or kilobytes, and so are the developer documents.
   - For developers: `fm1_app_ram_percent()` (`sim/web/src/fm1_app.h`) is
     the one rounding the meter, GLO and the refusals use, and the page's
     `memoryPercent` matches it. The manual's sequencer table now puts the
     instance without its Capture buffer under *Without Capture*; it showed
     the size with it there, and a dash in the other column, since
-    `fm1-seq --sizes` changed its keys.
+    `fm1-seq --sizes` changed its keys. `tests/test_manual.py` fails on a
+    chapter that gives an engine's, an effect's or a chain's memory in
+    bytes or kilobytes, or a refusal "over budget".
 - **The arpeggiator keeps to the beat.** While the sequencer plays, the
   arpeggiator's steps fall on the sequencer's beat at their rate: a key
   you press between two steps, or an arpeggiator you switch on in the
