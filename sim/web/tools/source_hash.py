@@ -10,8 +10,9 @@ their bytes, in sorted path order:
            effect and the host the module links
   sim      sim/web's own inputs: src/, mk/ (the link flags and export list),
            build.sh, and the parity test, its scenarios and their sequencer
-           and modulation scripts (test/seq/, test/mod/), whose results the
-           record carries; and the sequencer core and host bridge, and the
+           and modulation scripts (test/seq/, test/mod/) and DX7 test files
+           (test/dx7/), and the module's SysEx checks (test/sysex.mjs), whose
+           results the record carries; and the sequencer core and host bridge, and the
            modulation runtime, its kinds and its script reader, that the
            module links (engines/seq/, include/fm1_seq*.h, engines/mod/,
            include/fm1_mod*.h, host/mod_script.*), so that an engines-only
@@ -29,7 +30,8 @@ from pathlib import Path
 
 SIM_INPUTS = ("sim/web/src", "sim/web/mk", "sim/web/build.sh", "sim/web/test/parity.mjs",
               "sim/web/test/scenarios.json", "sim/web/test/fm1_sim_render.c",
-              "sim/web/test/seq", "sim/web/test/mod", "sim/web/www/fm1-wasm.mjs",
+              "sim/web/test/seq", "sim/web/test/mod", "sim/web/test/dx7", "sim/web/test/sysex.mjs",
+              "sim/web/www/fm1-wasm.mjs",
               "engines/seq", "engines/include/fm1_seq*.h",
               "engines/mod", "engines/include/fm1_mod*.h", "engines/host/mod_script*")
 

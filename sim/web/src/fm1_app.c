@@ -381,6 +381,56 @@ static void set_mode(fm1_app_t *a, int mode) {
   a->mode = mode;
 }
 
+/* ---- FM6's user bank (fm1_app_dx7_t) --------------------------------------------- */
+
+#define DX7_USER0 (FM1_APP_DX7_PATCHES - (int)FM1_DX7_USER_SLOTS)   /* User 1's Patch value */
+#define DX7_VCED_NAME 145                                         /* the name in VCED data */
+
+/* FM6's Patch list as the screen shows it: the built-in names, then each
+ * user slot's loaded name or the engine's own "User N". */
+static void dx7_names(fm1_app_t *a) {
+  fm1_app_dx7_t *d = &a->dx7;
+  const char *const *own = fm1_engines[d->index]->params[d->patch].enum_names;
+  for (int i = 0; i < FM1_APP_DX7_PATCHES; ++i) {
+    const int slot = i - DX7_USER0;
+    d->names[i] = slot >= 0 && d->loaded[slot] && d->name[slot][0] ? d->name[slot] : own[i];
+  }
+}
+
+/* The app's view of FM6: the registry's entry with its own parameter table,
+ * whose Patch names the bank's voices. Without an FM6 of the expected shape
+ * (a 64-entry Patch list), index stays -1 and FM6 shows its own names. */
+static void dx7_init(fm1_app_t *a) {
+  fm1_app_dx7_t *d = &a->dx7;
+  const fm1_engine_t *e;
+  memset(d, 0, sizeof *d);
+  d->patch = -1;
+  d->index = fm1_app_find("dx7");
+  if (d->index < 0) return;
+  e = fm1_engines[d->index];
+  for (uint16_t i = 0; i < e->n_params && i < FM1_APP_MAX_PARAMS; ++i) {
+    d->params[i] = e->params[i];
+    if (strcmp(e->params[i].name, "Patch") == 0) d->patch = i;
+  }
+  if (d->patch < 0 || e->n_params > FM1_APP_MAX_PARAMS || e->params[d->patch].type != FM1_PARAM_ENUM ||
+      !e->params[d->patch].enum_names ||
+      (int)(e->params[d->patch].max - e->params[d->patch].min) + 1 != FM1_APP_DX7_PATCHES) {
+    d->index = -1;
+    return;
+  }
+  dx7_names(a);
+  d->params[d->patch].enum_names = d->names;
+  d->engine = *e;
+  d->engine.params = d->params;
+}
+
+/* An FM6 instance gets every loaded voice of the bank. */
+static void dx7_give(const fm1_app_t *a, const fm1_app_unit_t *u) {
+  for (unsigned k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
+    if (a->dx7.loaded[k]) fm1_dx7_set_user_voice(u->self, k, a->dx7.voice[k]);
+  }
+}
+
 /* ---- set-up and units --------------------------------------------------------- */
 
 /* Everything fm1_app_init sets up but modulation, which needs the sinks
@@ -418,6 +468,7 @@ static void app_init(fm1_app_t *a, float sample_rate) {
   fm1_seq_click_init(&a->click, (uint32_t)lrintf(sample_rate));
   fm1_mod_ui_init(&a->mui);
   fm1_app_seq_reset(a, FM1_APP_SEQ_TRACKS);
+  dx7_init(a);
 }
 
 static void mod_start(fm1_app_t *a, uint32_t seed, int deflt);
@@ -591,10 +642,12 @@ static int load(fm1_app_t *a, fm1_app_unit_t *u, int index, size_t bytes) {
   memset(u->mem, 0, bytes);
   u->self = e->create(u->mem, &a->host);
   if (!u->self) return 0;
-  u->e = e;
+  /* FM6 is shown with the user bank's names, and plays its voices. */
+  u->e = index == a->dx7.index ? &a->dx7.engine : e;
   u->index = index;
   u->bytes = bytes;
   for (uint16_t i = 0; i < e->n_params; ++i) u->value[i] = e->params[i].def;
+  if (index == a->dx7.index) dx7_give(a, u);
   return 1;
 }
 
@@ -675,6 +728,74 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   }
   a->dirty = 1;
   return 0;
+}
+
+/* What fm1_dx7_read_sysex finds goes into the bank. */
+static void dx7_store(void *ctx, unsigned slot, const uint8_t vced[FM1_DX7_VCED_BYTES]) {
+  fm1_app_dx7_t *d = &((fm1_app_t *)ctx)->dx7;
+  unsigned n = FM1_DX7_NAME_BYTES;
+  if (slot >= FM1_DX7_USER_SLOTS) return;
+  memcpy(d->voice[slot], vced, FM1_DX7_VCED_BYTES);
+  d->loaded[slot] = 1;
+  memcpy(d->name[slot], vced + DX7_VCED_NAME, FM1_DX7_NAME_BYTES);
+  while (n > 0 && d->name[slot][n - 1] == ' ') --n;   /* fm1_dx7_user_name's trim */
+  d->name[slot][n] = '\0';
+}
+
+int fm1_app_dx7_load(fm1_app_t *a, const uint8_t *data, size_t len, fm1_dx7_sysex_result_t *res) {
+  fm1_app_dx7_t *d = &a->dx7;
+  fm1_dx7_sysex_result_t r;
+  char l0[24], l1[24];
+  int n;
+  memset(&r, 0, sizeof r);
+  if (d->index < 0) n = FM1_APP_DX7_NO_FM6;
+  else if (len > FM1_APP_DX7_FILE_MAX) n = FM1_APP_DX7_TOO_BIG;
+  else n = fm1_dx7_read_sysex(data, len, d->next, dx7_store, a, &r);
+  d->last = r;
+  if (res) *res = r;
+  if (n <= 0) {
+    popup(a, "No DX7 voices", n == FM1_APP_DX7_TOO_BIG ? "file too large" : "in that file", NULL, -1);
+    return n;
+  }
+  d->next = (r.first_slot + (unsigned)n) % FM1_DX7_USER_SLOTS;
+  dx7_names(a);
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    if (a->unit[u].e && a->unit[u].index == d->index) dx7_give(a, &a->unit[u]);
+  }
+  /* "Loaded 32 voices", "User 1-32", the first one's name. */
+  {
+    const unsigned first = r.first_slot + 1u;
+    const unsigned last = (r.first_slot + (unsigned)n - 1u) % FM1_DX7_USER_SLOTS + 1u;
+    if (n == 1) snprintf(l0, sizeof l0, "Loaded 1 voice");
+    else snprintf(l0, sizeof l0, "Loaded %d voices", n);
+    if (n == 1) snprintf(l1, sizeof l1, "User %u", first);
+    else if (n >= (int)FM1_DX7_USER_SLOTS) snprintf(l1, sizeof l1, "User 1-%u", FM1_DX7_USER_SLOTS);
+    else if (last > first) snprintf(l1, sizeof l1, "User %u-%u", first, last);
+    /* Past User 32 and round to User 1: "User 31-32, 1-3", "User 32, 1". */
+    else if (first == FM1_DX7_USER_SLOTS && last == 1u) snprintf(l1, sizeof l1, "User %u, 1", first);
+    else if (first == FM1_DX7_USER_SLOTS) snprintf(l1, sizeof l1, "User %u, 1-%u", first, last);
+    else if (last == 1u) snprintf(l1, sizeof l1, "User %u-%u, 1", first, FM1_DX7_USER_SLOTS);
+    else snprintf(l1, sizeof l1, "User %u-%u, 1-%u", first, FM1_DX7_USER_SLOTS, last);
+    popup(a, l0, l1, d->names[DX7_USER0 + (int)r.first_slot], -1);
+  }
+  return n;
+}
+
+int fm1_app_dx7_play(fm1_app_t *a, unsigned slot) {
+  const int unit = fm1_app_sound_unit(a->sound);
+  if (a->dx7.index < 0) return FM1_APP_DX7_NO_FM6;
+  if (slot >= FM1_DX7_USER_SLOTS || unit < 0) return FM1_APP_SELECT_BAD;
+  if (a->unit[unit].index != a->dx7.index) {
+    const int r = fm1_app_select(a, unit, a->dx7.index);
+    if (r) return r;
+  }
+  fm1_app_set_param(a, unit, a->dx7.patch, (float)(DX7_USER0 + (int)slot));
+  return 0;
+}
+
+const char *fm1_app_dx7_name(const fm1_app_t *a, unsigned slot) {
+  if (slot >= FM1_DX7_USER_SLOTS || a->dx7.index < 0) return "";
+  return a->dx7.names[DX7_USER0 + (int)slot];
 }
 
 int fm1_app_default_chain(fm1_app_t *a) {

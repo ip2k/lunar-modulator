@@ -11,7 +11,10 @@
 #      build/musl/), scenario by scenario, sequencer scripts and panel
 #      traces (test/seq/) included, and the screens against the native
 #      harness;
-#   4. www/fm1.wasm and its build record www/fm1.wasm.json, only if all of
+#   4. test/sysex.mjs: the module's "Load DX7 patches" export on the
+#      original test files in test/dx7/ (what it loads, what it refuses and
+#      why, and how the loaded voices play);
+#   5. www/fm1.wasm and its build record www/fm1.wasm.json, only if all of
 #      that passed.
 #
 # Needs: gcc, make, python3, node and emcc (all in emscripten/emsdk:6.0.10).
@@ -41,14 +44,18 @@ node "$SIM/test/parity.mjs" --native "$OUT/native/fm1-render" --sim "$OUT/native
   --wasm "$OUT/wasm/fm1.wasm" --render-js "$OUT/wasm/fm1-render.js" "${MUSL[@]}" \
   --scenarios "$SIM/test/scenarios.json" --work "$OUT/parity" --summary "$OUT/parity.json"
 
+echo "== DX7 patches (the module's SysEx export)"
+node "$SIM/test/sysex.mjs" --wasm "$OUT/wasm/fm1.wasm" --dx7 "$SIM/test/dx7" --summary "$OUT/sysex.json"
+
 echo "== record"
 cp "$OUT/wasm/fm1.wasm" "$SIM/www/fm1.wasm"
 EMCC_VERSION=$(emcc --version | head -1) GCC_VERSION=$(gcc --version | head -1) \
 ENGINES_REF=${ENGINES_REF:-working tree} FM1_IMAGES=${FM1_IMAGES:-} \
-python3 - "$ROOT" "$OUT/parity.json" "$SIM/www" <<'EOF'
+python3 - "$ROOT" "$OUT/parity.json" "$SIM/www" "$OUT/sysex.json" <<'EOF'
 import hashlib, json, os, sys, datetime
 from pathlib import Path
 root, parity_path, www = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+sysex = json.loads(Path(sys.argv[4]).read_text())
 sys.path.insert(0, str(root / "sim" / "web" / "tools"))
 from source_hash import source_hashes
 parity = json.loads(parity_path.read_text())
@@ -66,6 +73,7 @@ record = {
     "images": [i for i in os.environ["FM1_IMAGES"].split(";") if i],
     "imports": parity["imports"],
     "parity": {k: v for k, v in parity.items() if k not in ("scenarios", "imports")},
+    "dx7_sysex": sysex,
     "scenarios": [
         {"name": s["name"], "samples": s["samples"], "libm_sensitive": s["libm_sensitive"],
          **{k: (None if s[k] is None else {"differing": s[k]["differing"], "max_lsb": s[k]["max"]})

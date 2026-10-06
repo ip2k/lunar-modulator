@@ -5,8 +5,11 @@ engines/msfa.md).
 What is checked:
   - the vendored msfa files are upstream's, byte for byte; the built-in bank
     header is what tools/dx7_bank.py makes; the engine's carrier table is
-    msfa's algorithm table; msfa's start-up tables come out exact (libm's
-    last bits do not move them);
+    msfa's algorithm table; msfa's tables, const data made ahead of time by
+    tools/msfa_tables.py, are exact (libm's last bits do not move them) and
+    equal msfa's own init word for word, the frequency table at every rate;
+    at 44,118 Hz an instance reads them all from const data, at any other
+    rate a frequency table in its own memory;
   - against an independent port of the same core, Felucca's fm6_core.c
     (fm1-dx7-oracle): all 32 algorithms with and without feedback, the
     pitch envelope, the LFO, velocity and scaling, fixed frequencies;
@@ -39,6 +42,7 @@ from tests.engine_helpers import ENGINES, RATE, cents, pitch_hz, render, rendere
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import dx7_bank as dx  # noqa: E402
+import msfa_tables  # noqa: E402
 
 ORACLE = ENGINES / "build" / "fm1-dx7-oracle"
 MSFA = ENGINES / "third_party" / "msfa"
@@ -143,6 +147,16 @@ def test_vendored_msfa_files_are_upstreams(renderer):
                 break
 
 
+def test_the_credits_name_msfa_and_felucca(renderer):
+    """The engine is Google's msfa and its name Felucca's (hugelton): both
+    borrowed, and both credited where the engine is listed."""
+    listing = json.loads(subprocess.run([str(renderer), "--list"], check=True, capture_output=True,
+                                        text=True).stdout)
+    credits = next(e for e in listing if e["id"] == "dx7")["credits"]
+    for word in ("msfa", "Google", "Apache-2.0", "Felucca", "hugelton", "FM6", "Yamaha"):
+        assert word in credits, word
+
+
 def test_felucca_oracle_file_is_apache_and_upstreams():
     src = (FELUCCA / "fm6_core.c").read_bytes()
     assert src.startswith(b"/* SPDX-License-Identifier: Apache-2.0")
@@ -169,73 +183,62 @@ def test_carrier_table_is_msfas_algorithm_table():
 
 def test_msfas_tables_are_exact(renderer):
     """msfa fills its sine, exp2 and frequency tables at start-up from one
-    libm call each (cos and sin of 2 pi / 1024, exp2 and pow of 2^(1/1024)),
-    then integer steps or repeated multiplication, and osc_freq takes a log
-    per fine step. Those are computed here from correctly rounded doubles
-    (Decimal), and the engine's tables must match them exactly: so a libm
-    whose last bit differs cannot make this desktop, glibc, musl and the
-    browser disagree without this failing."""
-    from decimal import Decimal, getcontext
-    getcontext().prec = 60
-    pi = Decimal("3.14159265358979323846264338327950288419716939937510582097494")
-
-    def dsin(x):
-        term, total, k = x, x, 1
-        while abs(term) > Decimal(10) ** -55:
-            term = -term * x * x / ((2 * k) * (2 * k + 1))
-            total += term
-            k += 1
-        return total
-
-    def dcos(x):
-        term, total, k = Decimal(1), Decimal(1), 1
-        while abs(term) > Decimal(10) ** -55:
-            term = -term * x * x / ((2 * k - 1) * (2 * k))
-            total += term
-            k += 1
-        return total
-
-    got = json.loads(subprocess.run([str(ORACLE), "--tables"], check=True, capture_output=True,
-                                    text=True).stdout)
-    # Sin::init
-    dphase = float(2 * pi / 1024)
-    c = math.floor(float(dcos(Decimal(dphase))) * (1 << 30) + 0.5)
-    s = math.floor(float(dsin(Decimal(dphase))) * (1 << 30) + 0.5)
-    u, v, R = 1 << 30, 0, 1 << 29
-    tab = [0] * 2048
-    for i in range(512):
-        tab[2 * i + 1] = (v + 32) >> 6
-        tab[2 * (i + 512) + 1] = -((v + 32) >> 6)
-        t = (u * s + v * c + R) >> 30
-        u = (u * c - v * s + R) >> 30
-        v = t
-    for i in range(1023):
-        tab[2 * i] = tab[2 * i + 3] - tab[2 * i + 1]
-    tab[2046] = -tab[2047]
-    assert got["sin_sum"] == sum(tab)
-    assert got["sin"] == [tab[1], tab[257], tab[2047]]
-    # Exp2::init
-    inc = float((Decimal(2).ln() / 1024).exp())
-    y, e = float(1 << 30), [0] * 2048
-    for i in range(1024):
-        e[2 * i + 1] = math.floor(y + 0.5)
-        y *= inc
-    for i in range(1023):
-        e[2 * i] = e[2 * i + 3] - e[2 * i + 1]
-    e[2046] = (1 << 31) - e[2047]
-    assert got["exp2_sum"] == sum(e) and got["exp2"] == [e[1], e[1023], e[2047]]
-    # Freqlut::init at 44,118 Hz
-    y, lut = float(1 << 44) / RATE, []
-    for i in range(1025):
-        lut.append(math.floor(y + 0.5))
-        y *= inc
-    assert got["freqlut_sum"] == sum(lut) and got["freqlut"] == [lut[0], lut[512], lut[1024]]
+    libm value each (cos and sin of 2 pi / 1024, 2^(1/1024)), then integer
+    steps or repeated multiplication, and osc_freq takes a log per fine step.
+    tools/msfa_tables.py runs those steps from correctly rounded values
+    (Decimal) and the engine reads its output, const data: so a libm whose
+    last bit differs cannot make this desktop, glibc, musl and the browser
+    disagree. At 44,118 Hz the frequency table is const data too; at any
+    other rate the instance fills its own, which must match as well."""
+    from decimal import Decimal
+    sin, exp2 = msfa_tables.sin_table(), msfa_tables.exp2_table()
+    for rate in (RATE, 22050):
+        got = json.loads(subprocess.run([str(ORACLE), "--tables", "--rate", str(rate)], check=True,
+                                        capture_output=True, text=True).stdout)
+        assert got["sin_sum"] == sum(sin) and got["sin"] == [sin[1], sin[257], sin[2047]]
+        assert got["exp2_sum"] == sum(exp2) and got["exp2"] == [exp2[1], exp2[1023], exp2[2047]]
+        lut = msfa_tables.freq_table(rate)
+        assert got["freqlut_sum"] == sum(lut) and got["freqlut"] == [lut[0], lut[512], lut[1024]]
+        assert got["freqlut_const"] == (rate == RATE)
     # osc_freq's fine term: floor(24204406.323123 * log(1 + 0.01 fine) + 0.5)
     k = 24204406.323123
     want = [math.floor(k * float((1 + Decimal(f) / 100).ln()) + 0.5) for f in range(100)]
     # osc_freq computes 1 + 0.01 * fine in double first; that sum is exact
     # enough here that its correctly rounded log is the same double.
     assert got["osc_fine"] == want
+
+
+def test_the_const_tables_are_what_the_tool_makes():
+    """src/msfa_rom.cc is tools/msfa_tables.py's output, unedited."""
+    subprocess.run([sys.executable, str(ROOT / "tools" / "msfa_tables.py"), "--check"], check=True)
+
+
+@pytest.mark.parametrize("rate", [RATE, 44100, 16385, 384000])
+def test_the_tables_equal_msfas_own_init(renderer, rate):
+    """fm1-dx7-oracle links upstream's sin.cc, exp2.cc and freqlut.cc as they
+    are and runs their init: the const sine and exp2 tables and the 44,118 Hz
+    frequency table equal what they fill, word for word; so does the
+    engine's own fill (FillFreqLut, no libm) at 381 rates from 16,385 to
+    384,000 Hz; and so does the table an instance reads at `rate`, const data
+    at 44,118 Hz only."""
+    r = subprocess.run([str(ORACLE), "--tables-vs-msfa", "--rate", str(rate)],
+                       capture_output=True, text=True)
+    got = json.loads(r.stdout)
+    assert r.returncode == 0, got
+    assert got["sin"] == [2048, 0] and got["exp2"] == [2048, 0] and got["freqlut_44118"] == [1025, 0]
+    assert got["fill"]["rates"] >= 381 and got["fill"]["bad"] == 0
+    assert got["engine"] == {"rate": rate, "const": rate == RATE, "words": 1025, "bad": 0}
+
+
+def test_the_table_macros_touch_only_the_tables():
+    """src/msfa_prelude.h turns msfa's table names into pointer reads
+    (`sintab` is `(*fm1_sintab)`...): in the vendored files those names must
+    stand for the tables and nothing else, and only where expected."""
+    where = {"sintab": {"sin.h", "sin.cc"}, "exp2tab": {"exp2.h", "exp2.cc"}, "lut": {"freqlut.cc"}}
+    for name, files in where.items():
+        found = {p.name for p in MSFA.iterdir() if p.suffix in (".h", ".cc")
+                 and re.search(rf"\b{name}\b", p.read_text())}
+        assert found == files, name
 
 
 # ---------------------------------------------------------------- oracle --
@@ -821,3 +824,17 @@ def test_instance_size_and_cost(renderer, tmp_path):
     m, _, _ = render(renderer, tmp_path, "macro", notes=chord, seconds=2.0, name="m")
     assert s["instance_bytes"] < 16384
     assert s["ns_per_block"] < m["ns_per_block"]
+
+
+def test_the_frequency_table_is_in_the_instance_off_the_fm1s_rate(renderer, tmp_path):
+    """At 44,118 Hz the instance reads msfa's frequency table from const
+    data (flash on the FM-1); at any other rate it holds its own, 1,025
+    words, and says so in its size, which is what the simulator's RAM meter
+    counts."""
+    sizes = {}
+    for rate in (RATE, 44100, 48000):
+        out = subprocess.run([str(renderer), "--engine", "dx7", "--rate", str(rate), "--seconds", "0.05",
+                              "--note", "0:60:100:0.04", "--out", str(tmp_path / f"{rate}.wav")],
+                             check=True, capture_output=True, text=True).stdout
+        sizes[rate] = json.loads(out.strip().splitlines()[-1])["instance_bytes"]
+    assert sizes[44100] == sizes[48000] == sizes[RATE] + 4 * 1025

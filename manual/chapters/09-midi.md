@@ -148,5 +148,5 @@ effects are different, so that map does not carry over:
 | Program change chooses one of 128 presets | Not received |
 | An effects channel, channel 2 by default, with control changes 0 to 23 for its filter, reverb, delay, distortion, chorus and phaser | Not received; Lunar Modulator's effects are those of [chapter 6](06-effects.md) |
 | Modulation, sustain and other control changes | Not received |
-| DX7-style system exclusive for voices and banks | Not received over MIDI. FM6 reads the same dumps from files on the desktop renderer ([chapter 5](05-sound-engines.md#loading-voices-from-sysex)) |
+| DX7-style system exclusive for voices and banks | Not received over MIDI. FM6 reads the same dumps from files: in the simulator (**Load DX7 patches…**) and on the desktop renderer ([chapter 5](05-sound-engines.md#loading-voices-from-sysex)) |
 | Channel aftertouch | Not received |
