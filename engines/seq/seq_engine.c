@@ -697,6 +697,13 @@ void sq_launch_clip(fm1_seq_t *s, unsigned t, unsigned slot) {
   tr->active = (uint8_t)slot;
   tr->pending_select = SQ_NONE;
   exists = sq_exists(sq_clip(s, t, slot));
+  if (!s->playing && !s->lim.compat) {
+    /* D18: nor may a launch queued for a bar the transport stopped before
+     * (a song's arm in its last bar, say): Movy keeps it, and it replaces
+     * the clip launched here on the first tick, so that clip never sounds. */
+    tr->queued = SQ_NONE;
+    tr->pending_stop = 0;
+  }
   if (s->playing) {
     if (exists) {
       tr->queued = (uint8_t)slot;
@@ -1154,9 +1161,11 @@ void sq_scene_launch(fm1_seq_t *s, unsigned slot) {
 
 /* `sgnew s` (D16's LOOP hold, second press): the song becomes [s] and is
  * followed from the scene the hold's first press launched, with no
- * relaunch. Still queued, the entry starts where it lands, as Movy's `song`
- * starts it; already playing, it counts from the bar it landed on, so the
- * presses that follow arm as Movy's `songadd` would. */
+ * relaunch. The song is then where Movy's would be had the first press
+ * sent `song s`: still queued, the entry starts where it lands; already
+ * playing, it is a one-entry song that has wrapped onto itself each pass
+ * since it landed, armed (to nothing) in each pass's last bar. So the
+ * presses that follow, `songadd`, arm exactly as Movy's do. */
 void sq_song_new(fm1_seq_t *s, unsigned slot) {
   if (slot >= FM1_SEQ_SCENES) return;
   sq_clear_song(s);
@@ -1167,9 +1176,12 @@ void sq_song_new(fm1_seq_t *s, unsigned slot) {
   sq_song(s)[s->song_len++] = (uint8_t)slot;
   if (s->playing && s->scene_land_slot == slot &&
       s->master_tick > (uint64_t)s->scene_land_bar * SQ_TPB) {
-    s->song_start_bar = s->scene_land_bar;
+    const uint64_t last = (s->master_tick - 1u) / SQ_TPB;   /* the last bar song_bar saw */
+    const uint64_t land = s->scene_land_bar;
+    const uint32_t sb = scene_bars(s, slot);
+    s->song_start_bar = scene_is_empty(s, slot) ? land : land + (last - land) / sb * sb;
     s->song_has_start = 1;
-    song_try_arm(s, s->master_tick / SQ_TPB);
+    song_try_arm(s, last);
   }
   s->scene_land_slot = SQ_NONE;
 }
