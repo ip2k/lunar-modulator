@@ -15,13 +15,13 @@
 #include <string.h>
 
 /* The core's event codes are the engine API's (fm1_midi_ev.h). */
-typedef char arp_codes_match[FM1_ARP_EV_NOTE_ON == FM1_MIDI_EV_NOTE_ON &&
-                             FM1_ARP_EV_NOTE_OFF == FM1_MIDI_EV_NOTE_OFF &&
-                             FM1_ARP_EV_SUSTAIN == FM1_MIDI_EV_SUSTAIN &&
-                             FM1_ARP_EV_STEP == FM1_MIDI_EV_STEP &&
-                             FM1_ARP_EV_RESET == FM1_MIDI_EV_RESET &&
-                             FM1_ARP_EV_FLUSH == FM1_MIDI_EV_FLUSH &&
-                             FM1_ARP_EV_PANIC == FM1_MIDI_EV_PANIC &&
+typedef char arp_codes_match[(int)FM1_ARP_EV_NOTE_ON == (int)FM1_MIDI_EV_NOTE_ON &&
+                             (int)FM1_ARP_EV_NOTE_OFF == (int)FM1_MIDI_EV_NOTE_OFF &&
+                             (int)FM1_ARP_EV_SUSTAIN == (int)FM1_MIDI_EV_SUSTAIN &&
+                             (int)FM1_ARP_EV_STEP == (int)FM1_MIDI_EV_STEP &&
+                             (int)FM1_ARP_EV_RESET == (int)FM1_MIDI_EV_RESET &&
+                             (int)FM1_ARP_EV_FLUSH == (int)FM1_MIDI_EV_FLUSH &&
+                             (int)FM1_ARP_EV_PANIC == (int)FM1_MIDI_EV_PANIC &&
                              FM1_ARP_OUT_MIN == FM1_MIDI_FX_OUT_MIN ? 1 : -1];
 
 /* The list names, in the core's order (tests/test_engine_midi_fx.py checks
