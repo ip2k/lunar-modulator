@@ -2060,9 +2060,13 @@ Mac); the first one, cold, about 5 ms.
   visit, so power off and on never loses work to the next autosave; the
   message offers *Start fresh* (the shadow's start chain, the old state to
   Recent).
-- **A link's project over saved work** puts the autosave in Recent as
-  "Before *title*" without loading it, then loads the link; a partial kind
-  restores the work first and loads into it.
+- **A link over saved work** restores the work first, then loads the
+  link over it, so the work goes to Recent as "Before *title*" only when
+  the link has loaded, and a refused link leaves the work playing
+  (changed at review: the first version put the autosave in Recent
+  unloaded, so a refused project link left the start chain playing). A
+  load adds "Before …" and its Undo only once the worklet has loaded the
+  file: a refused load leaves Recent as it was.
 - **The `view` hint** has no export of its own: the shadow writes the
   project, the page sets `view` on that JSON (C's output, so JSON.parse is
   safe there), the shadow packs it and the worklet reloads it quietly.
