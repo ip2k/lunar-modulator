@@ -33,8 +33,8 @@ and [chapter 14](14-credits-and-licences.md) credits each source.
 **To choose an engine:** turn [[PRESETS]]. The engines come in this order:
 Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Test Sine, and
 round again.
-While you turn, the screen shows the previous engine, the new one
-(highlighted) and the next. In the simulator you can also pick one from the
+While you turn, the screen lists the engines, six at a time, with the new one
+highlighted ([chapter 3](03-panel-tour.md#lists)). In the simulator you can also pick one from the
 **Sound (PRESETS)** list under the panel.
 
 When you choose an engine:
@@ -72,9 +72,9 @@ starts. The sequencer's tracks play whichever sound their route names
 the sound's page, [[PRESETS]], [[ALGORITHM]] and the knobs edit.
 
 - **To choose it:** hold [[SEL]] and turn [[PRESETS]]: Sound 1 to 4. The
-  screen shows *Sound 2 of 4* and the engine it holds, or *Empty: turn
-  PRESETS*. [[SEL]] has this job everywhere but in FX mode, where it picks up
-  effects.
+  screen lists the four sounds and the engine each holds, such as *S2
+  Shapes* or *S3 Empty*, with the current one highlighted. [[SEL]] has this
+  job everywhere but in FX mode, where it picks up effects.
 - **To give it an engine:** turn [[PRESETS]]. On Sounds 2 to 4 the list
   starts with *Empty*, which unloads that sound.
 - Once a second sound is in use, the top bar names the current one, such as
