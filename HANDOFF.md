@@ -97,9 +97,11 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 7. Toolchain = JieLi's closed **Clang/LLVM 4.0.1** fork (`pi32v2` backend),
    Linux build available from `pkgman.jieliapp.com`; AL-255 built C++11 with
    it. No Rust, no GCC/LLVM upstream, no JS runtime.
-8. Vendor SDK `fw-AC79_AIoT_SDK` (Gitee, current to V1.2.13; our pin is tag
-   V1.1.9 `8eae664`, because `system.a` gains key checks from V1.2.7,
-   CLAUDE.md trap 11) is Apache-2.0 (with GPL parts, docs/12 §6) with a
+8. Vendor SDK `fw-AC79_AIoT_SDK` (Gitee, current to V1.2.13; our pin is the
+   V1.2.13 libraries at `e30b1ee` since 2026-10-05, never its SPL or loader:
+   the key check it carries is inert on the FM-1, gated by
+   `tools/jieli/audit_link.py` and `tools/jieli/package_guard.py`, CLAUDE.md
+   trap 11) is Apache-2.0 (with GPL parts, docs/12 §6) with a
    public register map `WL82.h`, linker scripts, `demo_hello`, flashing tools,
    `wl82loader.bin`, a JTAG/debug-TAP folder, and datasheets; ~110 closed `.a`
    libraries per CPU. JieLi's `fw-Bootloader` (Apache-2.0) targets wl82.
@@ -218,7 +220,7 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 | `kagaimiq/jielie` | `1657d25` 2024-09-15 | JieLi docs: ISA, USB_KEY, formats |
 | `kagaimiq/jl-uboot-tool` | `adb3f18` 2025-03-16 | UBOOT dumper/flasher, `wl82loader.bin` |
 | `kagaimiq/jl-misctools` | `0a5b12d` 2025-02-20 | `fwunpack_newfw.py` |
-| Gitee `Jieli-Tech/fw-AC79_AIoT_SDK` | `e30b1ee` 2026-06-09 (= V1.2.13 + README); tag V1.1.9 `8eae664` is our pin; branch `AC791N_OTA_loader` `79eda0c` | vendor SDK: `WL82.h`, `cpu/wl82/tools`, datasheets, the OTA loaders. Gitee is reachable but its SSL is flaky: pin by commit, clone blobless and sparse with `tools/jieli/ac79-sdk-sparse.txt`, and avoid commands that fetch blobs lazily, which hung. The GitHub mirrors are stale (`amitv87` to 2024-07, `jeffreywugz` V1.0.3): do not cite them |
+| Gitee `Jieli-Tech/fw-AC79_AIoT_SDK` | `e30b1ee` 2026-06-09 (= V1.2.13 + README) is our pin for the libraries since 2026-10-05; tag V1.1.9 `8eae664` holds the FM-1's SPL; branch `AC791N_OTA_loader` `79eda0c` | vendor SDK: `WL82.h`, `cpu/wl82/tools`, datasheets, the OTA loaders. Gitee is reachable but its SSL is flaky: pin by commit, clone blobless and sparse with `tools/jieli/ac79-sdk-sparse.txt`, and avoid commands that fetch blobs lazily, which hung. The GitHub mirrors are stale (`amitv87` to 2024-07, `jeffreywugz` V1.0.3): do not cite them |
 | `hugelton/Felucca` | `727f272` 2026-10-05 (v1.0) | bare-metal FM-1 firmware; pin map, update-service design (GPL-3.0-only: facts only) |
 | `isod89/sloop-fm1` | `f2b44c2` 2026-10-04 (v2.2) | Felucca fork; boot guard, loader checks (GPL-3.0-only: facts only) |
 | `Keitark/fm1-nes` | `870f305` 2026-10-03 | SDK app on an FM-1; board support, sparse mask-ROM planner (Apache-2.0 root) |
