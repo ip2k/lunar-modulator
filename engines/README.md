@@ -2466,7 +2466,7 @@ parity scenario `api-v3-test-ext-transport` checks the browser's module.
 | `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON; with `--sound`, `--insert`, `--level` (and `--slots`) up to four sound units, each through its own inserts and level, mixed before the effect chain, as the virtual FM-1's multi-sound plays them (seq.md, Host contract) |
-| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, and `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py) |
+| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`, `fm1-ref-room`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, and `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -2626,12 +2626,14 @@ past the table. It found the Isolator's stalled crossover glide
 ## The exit test: renders against upstream
 
 Stage A's exit test (docs/11 §8) is that our engines render what upstream
-Mutable code renders, within a tolerance. Two reference renderers compile the
-vendored upstream code on its own and drive it as the modules' firmware does:
-`plaits::Voice` every 12 samples at 47,872 Hz, and `braids::MacroOscillator`
-every 24 samples at 96 kHz, with Rings' reverb and Plaits' ensemble and
-diffuser at their native rates. The tests render both sides and compare
-[verified: tests/test_engines_reference_*.py, 427 tests on 2026-10-01]:
+Mutable code renders, within a tolerance. Three reference renderers compile
+the vendored upstream code on its own and drive it as the modules' firmware
+does: `plaits::Voice` every 12 samples at 47,872 Hz, and
+`braids::MacroOscillator` every 24 samples at 96 kHz, with Rings' reverb and
+Plaits' ensemble and diffuser at their native rates, and (since 2026-10-05,
+`fm1-ref-room`) Clouds' diffuser and reverb for Room. The tests render both
+sides and compare [verified: tests/test_engines_reference_*.py, 487 tests on
+2026-10-05; 427 on 2026-10-01, before Room]:
 
 | Engine | At the upstream rate | Details |
 | --- | --- | --- |

@@ -139,7 +139,7 @@ carry effects in float.
 | Can it be fully open source? | The application, bootloader and (with work) drivers can be. The compiler and the Bluetooth stack cannot in any foreseeable timeframe without a dedicated compiler/BLE effort. |
 | Is it safe to start hacking on the one device we have? | **Not until recovery is proven.** First milestone is a full flash dump and a byte-identical restore. |
 | Is porting schwung-movy the way in? | No; reimplement its ideas in C (docs/06). |
-| Biggest unknowns | (1) whether `USB_KEY` works on the AC791N through the FM-1's USB-C port, (2) which encoders use the hardware decoders, and the display pinout. The verifier gate is largely explained (docs/03 §5). |
+| Biggest unknowns | (1) whether `USB_KEY` opens mask-ROM mode on this project's unit (reported working on two other FM-1s, docs/10 §1.1; not yet tried here), (2) the display's FPC pinout and the controller ID on this unit (docs/01 §6). The encoders are reported scanned in the key matrix, not the hardware decoder (docs/01 §3, [reported: Felucca, fm1-nes]), and the verifier gate is largely explained (docs/03 §5). |
 
 ## 6. Recommended strategy
 
@@ -160,5 +160,6 @@ carry effects in float.
 7. Replace `uboot.boot` with a build of JieLi's Apache-2.0 `fw-Bootloader`
    (L4); then start peeling `.a` files off (L2) starting with the ones the
    synth does not need.
-8. Coordinate with aroum and AL-255 rather than duplicating them; both were
-   active in August 2026.
+8. Coordinate with aroum and AL-255 rather than duplicating them (both asked
+   on 2026-09-06, no answer yet; docs/04, docs/08). AL-255's `main` last
+   moved on 2026-09-08, aroum's README on 2026-10-04.

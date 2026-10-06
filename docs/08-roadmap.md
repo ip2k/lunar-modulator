@@ -4,8 +4,9 @@ Phases with exit criteria. Status on 2026-10-01:
 - Phase 0 is done.
 - Phase 1 has had one read-only bench session (`notes/2026-09-06-bench.md`).
 - Phase 2's dongle firmware is built (a UF2 from CI) and its logic simulated
-  against a ROM model (docs/10, `dongle/`); no dongle has been assembled or
-  tried. An AC79 dev kit and JieLi's USB updater are on order (docs/14).
+  against a ROM model (docs/10, `dongle/`); no unit of it has been
+  assembled or tried. An AC79 dev kit and JieLi's USB updater are on order
+  (docs/14).
 - Parts of Phase 4 and Phase 5 exist on the desktop and in a browser: the
   engine platform (`engines/`), the sequencer core (`engines/seq.md`) and the
   virtual FM-1 (`sim/web/`).
@@ -107,9 +108,10 @@ Detailed commands in docs/09.
   over USB-MIDI. Echomatter showed (2026-09-04) that a package with a bumped
   version identity is accepted, and Baud Girl's browser installer (docs/04)
   has done it publicly since 2026-09-26. The remaining work is our own
-  client: start from AL-255's `fm1_ota.py` with PR #2's framing fix and
-  `build_fwsc.py`, plus a check that the flash head equals stock (the loader
-  can rewrite it) and resume from the loader. Alternatively publish the
+  client: start from AL-255's `fm1_ota.py` at `main` (`ec832f2`, which has
+  carried PR #2's framing fix since 2026-09-08) and `build_fwsc.py`, plus a
+  check that the flash head equals stock (the loader can rewrite it) and
+  resume from the loader. Alternatively publish the
   dongle design and a "one-time unlock".
 - Reversible: the tool must restore stock (users keep their `.fwsc`).
 - Release process, versioning, changelog; coordinate with aroum and AL-255.
@@ -130,9 +132,11 @@ Detailed commands in docs/09.
 ## Research items (any time)
 
 - **Engine platform, desk and bench stages (docs/11 §8).** Stage A (desktop
-  engine API, MI ports at 44.1 kHz / 64 frames, Schwung shim) needs no
-  hardware; stage B benchmarks pi32v2 DSP throughput and tests `-fPIC` on a
-  JieLi AC79 dev board.
+  engine API, the Mutable ports at their native rates resampled to 44,118 Hz
+  in 64-frame blocks, Schwung shim) is built and its exit test met
+  (`engines/README.md`). Stage B's compile-only step is done
+  (`notes/2026-10-02-jieli-compile-check.md`); its pi32v2 DSP benchmark and
+  `-fPIC` test wait for the AC79 dev kit, on order (docs/14).
 
 - Verify the algorithm 4/6 `0x41` variant against upstream Dexed's
   `Source/msfa/fm_core.cc`; check whether any GPL-only Dexed/Synth_Dexed code
@@ -142,5 +146,7 @@ Detailed commands in docs/09.
 - Confirm flash size and whether it is in-package (JEDEC ID from UBOOT mode).
 - Identify the AC791N variant and pinout; document the FM-1 pin assignment.
 - Understand how the syscmd callback table (`ENG+1336`/`ENG+1400`) is populated.
-- Ask aroum and AL-255 whether they want to pool efforts; both repos were
-  active in August 2026.
+- Pooling efforts with aroum and AL-255: both were asked on 2026-09-06
+  (AL-255 PR #3, comments on their PR #2 and issue #1; aroum issue #2;
+  docs/04), and neither has answered [verified 2026-10-05: GitHub API].
+  AL-255's `main` last moved on 2026-09-08, aroum's README on 2026-10-04.

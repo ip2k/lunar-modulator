@@ -1214,6 +1214,29 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- **Documentation that had fallen behind the facts**, the lines PR #22's
+  HANDOFF refresh listed and other copies of the same facts, each checked
+  against its source on 2026-10-05:
+  - The owner's FM-1 has run Baud Girl's FM-1+VA (`FM-1_092`) since
+    2026-09-29, not stock V15 (docs/02).
+  - AL-255's PR #2 was merged on 2026-09-08 (docs/03, 04, 05, 08). aroum's
+    README now links this project's dongle as a recovery route; docs/04
+    records that next to what is established: the dongle's firmware is
+    built and simulated, and no dongle has been assembled.
+  - Movy's `5627d51` is a `main` commit, not the v0.31.0 tag (`675054f`),
+    and the sequencer port is pinned to `9190e79` (docs/04, 06, 13). The
+    FM-1's eight knobs are seven encoders and a pot (docs/06).
+  - JieLi's updater and the AC79 dev kit are on order, no longer "to buy"
+    (docs/07, 08, 10, 11).
+  - Engine stage A has met its exit test and stage B's compile-only step
+    is done (docs/08, 11, DEVELOPERS.md); the sequencer's desk stage is
+    built (docs/12); D1–D13, not D1–D7, are the sequencer's defaults
+    (docs/13).
+  - Counts at `8ef2335`: 2,430 engine tests (docs/11), 487 reference tests
+    from three renderers, Room's included (docs/14, engines/README.md), 191
+    Macro Heavy tests (engines/plaits-heavy.md), 66 browser scenarios and
+    2,366 screens (docs/14), and 3,389 tests in DEVELOPERS.md's status.
+  - `dongle/README.md` names the CI job that builds the UF2 correctly.
 - Sophie made no sound from the virtual FM-1's keys: it only plays MIDI
   notes 36–51 (its 16 pads), below the keys' range at the default octave.
   With Sophie as the sound, the 16 white keys now play pads 1–16 at any

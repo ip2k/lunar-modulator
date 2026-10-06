@@ -210,7 +210,7 @@ the mask-ROM USB mode.
 
 | Tool | Author | Status |
 | --- | --- | --- |
-| `tools/fm1_ota.py` (`scan`, `flash`) + `alsalib.py`/`alsaseq.py` + `99-jieli-fm1.rules` | AL-255 | byte-exact reimplementation of the client, 14 offline tests; post-2026-08 timing changes **not yet exercised on hardware** |
+| `tools/fm1_ota.py` (`scan`, `flash`) + `alsalib.py`/`alsaseq.py` + `99-jieli-fm1.rules` | AL-255 | byte-exact reimplementation of the client; 22 offline tests at `ec832f2` (14 before Echomatter's PR #2, merged 2026-09-08). PR #2's framing and identity fixes ran on hardware through a Windows MIDI adapter; the ALSA transport and the post-2026-08 timing changes are **not yet exercised on hardware** [reported: AL-255 `docs/io/12-v15-reflash-proof.md`] |
 | `fm1_flasher.py`, `fm1_sysex_scanner.py` | aroum | derived from the macOS updater; **never tested on hardware** |
 | `M-UPGRADE-FM1` (macOS/Windows) | M-VAVE | the stock, proven path; embeds one firmware version |
 | `scripts/extract_ota_loader.py`, `tools/build_fwsc.py` (branch `with-custom-firmware`) | AL-255 | package inspection and (experimental) building |

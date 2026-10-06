@@ -35,8 +35,8 @@ docs/10 §1.1 covers:
 
 ## Build
 
-CI builds the UF2 on every push (workflow `dongle-firmware`, artifact
-`usb_key_dongle-uf2`). Locally:
+CI builds the UF2 on every push (the `dongle-firmware` job of the `ci`
+workflow, artifact `usb_key_dongle-uf2`). Locally:
 
 ```bash
 git clone --depth 1 --branch 2.1.1 https://github.com/raspberrypi/pico-sdk ~/pico-sdk

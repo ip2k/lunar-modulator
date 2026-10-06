@@ -427,7 +427,7 @@ switch. docs/12 §6 has the full rules.
 | Stage | Where | Work | Exit |
 | --- | --- | --- | --- |
 | A — desk | any computer, no hardware | `fm1_engine_t` API and a desktop host (the same source building for a simulator and for JACK/CoreAudio, as AL-255's branch does); port the Plaits light engines and Braids at 44.1 kHz and 64 frames; the Schwung v2 shim with `schwung-braids` and PSX Verb compiled through it; build with `-std=c++11 -fno-exceptions -fno-rtti` for a 32-bit target | renders match upstream MI (VCV or MI's own test harness) within tolerance; memory per voice measured |
-| B — bench | a JieLi AC79 dev board (docs/07 §3 already suggests one) with the Linux toolchain | build stage A for pi32v2; read the cycle counter per block for msfa, Plaits light and heavy engines, Braids, Rings and the MI reverb; try `-fPIC` and read the relocations | a cycles-per-block table, and a yes or no on Tier 2 |
+| B — bench | the JieLi AC79 dev kit (JL-AC79-DevKit V1.0, on order since 2026-10-01; docs/14, docs/07 §3) with the Linux toolchain | build stage A for pi32v2; read the cycle counter per block for msfa, Plaits light and heavy engines, Braids, Rings and the MI reverb; try `-fPIC` and read the relocations | a cycles-per-block table, and a yes or no on Tier 2 |
 | C — FM-1 | only after the dump-and-restore of docs/07 | Tier 0 in the open firmware, or in a hook build if the owner chooses that route | engines selectable per preset, CPU meter on screen |
 | D | FM-1 | Tier 1 RAM units over USB-MIDI; then flash-stored units and Berry scripts if wanted | a unit built outside the firmware tree loads, runs, and is refused cleanly when over budget |
 
@@ -451,10 +451,10 @@ its exit test later that day (below):
   `schwung-braids`; Sophie was chosen instead because Braids is already here
   natively (engines/schwung.md, "Which modules, and why");
 - about 360 engine tests, run on Linux and macOS, on a 32-bit build, and
-  under ASan and UBSan in CI. On 2026-10-05 there are 2,377
-  (`tests/test_engine*.py`, with the effects and features added since;
-  engines/README.md), run the same ways [verified: `pytest --collect-only`,
-  `.github/workflows/ci.yml`].
+  under ASan and UBSan in CI. With the effects and features added since
+  (engines/README.md) there are 2,430 at `8ef2335` (2026-10-05;
+  `tests/test_engine*.py`), run the same ways [verified: `pytest
+  --collect-only`, `.github/workflows/ci.yml`].
 
 Findings so far:
 

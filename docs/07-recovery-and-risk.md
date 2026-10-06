@@ -37,7 +37,7 @@ risk, ranked by how likely each path is to work and how invasive it is.
 The dongle for this is specified, implemented and simulated in docs/10 and
 `dongle/`; the bench procedure is docs/10 §6.
 
-**Buy first, build second [added 2026-09-06].** JieLi sells exactly this
+**Buy first, build second [added 2026-09-06; JieLi's updater on order since 2026-10-01, docs/14].** JieLi sells exactly this
 dongle: the "JL USB Updater" / "JL Forced Download Tool" (强制升级工具),
 versions 2.0–4.0, US$8–18 on AliExpress, Taobao and GoldSupplier (e.g.
 AliExpress item 1005007090348648 "Original JL USB Updater 4.0", GoldSupplier
@@ -183,7 +183,7 @@ programmer become the simplest recovery path of all; read it on the bench
 
 | Risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
-| Custom package bricks the only device | high if attempted before recovery | total loss of the unit | **do not flash non-stock before 2.1 is proven**; buy a second FM-1 or an AC791N dev board for first experiments. The board is **JL-AC79-DevKit V1.0**: base board, core board JL-AC79-WIFI V1.0 with an **AC7916** (same dual pi32v2 at up to 320 MHz, 578 KB SRAM), LCD board and cameras. eBay resellers list it for about US$126–144 delivered (2026-09-30). The AC7916 may carry in-package SDRAM the FM-1 lacks; keep benchmark state in internal SRAM. It is also where to rehearse `USB_KEY` and the JieLi USB updater before the FM-1 |
+| Custom package bricks the only device | high if attempted before recovery | total loss of the unit | **do not flash non-stock before 2.1 is proven**; first experiments go on the AC79 dev kit, on order since 2026-10-01 (docs/14), or a second FM-1. The kit is the **JL-AC79-DevKit V1.0**: base board, core board JL-AC79-WIFI V1.0 with an **AC7916** (same dual pi32v2 at up to 320 MHz, 578 KB SRAM), LCD board and cameras. eBay resellers listed it for about US$126–144 delivered (2026-09-30). The AC7916 may carry in-package SDRAM the FM-1 lacks; keep benchmark state in internal SRAM. It is also where to rehearse `USB_KEY` and the JieLi USB updater before the FM-1 |
 | `USB_KEY` does not work on AC791N through the connector | low (reported working on FM-1s through the USB-C port with czietz's dongle and with FM-1-transporter, docs/10 §1.1) | forces soldering (2.4) | D+ clock first, then the other polarity; quiet bus; dev-board rehearsal |
 | Wrong loader / wrong chip family in tooling | medium | corrupt flash | jl-uboot-tool marks WL82 "unknown", but `adb3f18`'s `wl82loader.bin` works on FM-1s with 256-byte I/O [reported: fm1-nes guard patch]. Read-only operations first, compare the dump with the stock package before any write, and finish dump, compare and write in one session: if the host drops the device, the chip boots flash [reported: FM-1-transporter] |
 | Interrupted write (power loss, USB drop) | medium | unbootable app | battery charged, no hubs during writes, dump before every write. Through the stock path, a loader left waiting after step 1 can be resumed [reported: Baud Girl] |

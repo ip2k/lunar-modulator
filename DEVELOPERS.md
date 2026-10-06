@@ -451,15 +451,20 @@ gets only the identity query and passive captures.
 The status first, then the roadmap line by line, the path to an installable
 build, and the research still to do.
 
-> **Status (2026-10-01): the code runs on a desktop and in a browser, not
+> **Status (2026-10-05): the code runs on a desktop and in a browser, not
 > yet on a JieLi chip or an FM-1. This project has flashed nothing.**
 >
 > - **Desktop and browser:** CI builds the engines, effects and sequencer
 >   core on Linux and macOS, and on Linux also as a 32-bit build and under
->   ASan + UBSan; more than 1,400 tests pass [verified: CI on `main`,
->   2026-10-01]. The virtual FM-1 is tested in Chromium only
+>   ASan + UBSan. Of 3,389 tests at `8ef2335`, 3,379 pass, 8 are skipped
+>   (clones in `reference/` that checkout lacked, and a manual check that
+>   needs the `markdown` module) and 2 are expected failures (Movy's undo,
+>   not ported) [verified: `pytest`, 2026-10-05]. The virtual FM-1 is tested in Chromium only
 >   ([What it does](README.md#what-it-does), [Try it in your browser](README.md#try-it-in-your-browser)).
-> - **On a JieLi chip:** nothing has been built with JieLi's compiler yet, so
+> - **On a JieLi chip:** every object compiles for pi32v2 with JieLi's
+>   toolchain (2026-10-02, compile-only:
+>   [`notes/2026-10-02-jieli-compile-check.md`](notes/2026-10-02-jieli-compile-check.md)),
+>   but nothing has been linked into a firmware or run on a JieLi chip, so
 >   speed and memory on pi32v2 are not measured. A JieLi AC79 dev kit and
 >   JieLi's USB updater dongle are on order, to run the code there first and
 >   to rehearse a flash dump and restore on the kit

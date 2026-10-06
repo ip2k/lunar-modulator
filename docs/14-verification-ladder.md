@@ -17,7 +17,7 @@ behaves when run stays [inferred] until §5's probes replace it.
 | Question | Answer |
 | --- | --- |
 | What does "1:1" mean? | **Bit-exact wherever both sides do the same arithmetic.** That covers sequencer events, screen frames, LED states and MIDI bytes. It covers the DSP too, once float contraction and libm are pinned. A tolerance is allowed only where a named cause differs (compiler, libm, FPU edge cases, the analog path). It is never found by loosening a bound until a test passes. |
-| Emulator ↔ dev board? | Expected to be bit-exact in a "ladder" build profile: `-ffp-contract=off` and one libm on every rung [inferred]. Today the browser module matches native `fm1-render` built against musl in 12 of 12 scenarios, and built against glibc in 10 of 12. The two Sophie scenarios differ because of libm [verified: sim/web/README.md, "Parity"]. |
+| Emulator ↔ dev board? | Expected to be bit-exact in a "ladder" build profile: `-ffp-contract=off` and one libm on every rung [inferred]. Today the browser module matches native `fm1-render` built against musl in 66 of 66 scenarios, and built against glibc in 63 of 66: the two Sophie scenarios differ because of libm, and one Fold scenario within 1 LSB [verified 2026-10-05: `sim/web/www/fm1.wasm.json`; sim/web/README.md, "Parity"]. |
 | Dev board ↔ FM-1? | Same ISA, FPU, toolchain and object code, so the output before the DAC should be bit-exact. The differences are confined to the board: analog stage, crystal tolerance, flash and cache timing, keys, LEDs, TFT [inferred]. **This rung opens only after the FM-1 has been dumped and restored byte for byte** (CLAUDE.md, the one rule). |
 | Stock firmware ↔ ours? | Never 1:1. Stock is msfa with its own effects, trims and UI. Before the gate it is a black box: the owner plays it by hand and we observe passively (§4.1). |
 | How? | One golden corpus, one heap-free C runner built for every rung, per-block hashes, one diff tool, and a results record per rung like `www/fm1.wasm.json` (§3). |
@@ -30,7 +30,7 @@ behaves when run stays [inferred] until §5's probes replace it.
 | Rung | What runs | Built by | Status |
 | --- | --- | --- | --- |
 | R0 desktop | `fm1-render`, `fm1-seq`, `fm1-sim-render`: 64-bit, `-m32`, ASan + UBSan | clang and GCC, CI | [verified] in CI |
-| R1 browser | `fm1.wasm`: the virtual FM-1's app layer and every engine | Emscripten 6.0.10 on aeon | [verified] 12/12 against musl R0 |
+| R1 browser | `fm1.wasm`: the virtual FM-1's app layer and every engine | Emscripten 6.0.10 on aeon | [verified] 66/66 against musl R0 (2026-10-05) |
 | R2 dev board | the same C sources on the AC7916, in two modes: *offline* (a render loop) and *live* (driven by the DAC interrupt) | JieLi Clang/LLVM 4.0.1 with newlib 2.2.0's libc and libm [verified: §5.2] | stage B: compile-only done (§5.2); nothing run |
 | R3 FM-1, ours | R2's portable code with the FM-1's board-support layer; RAM-only first, flash later | the same | gated by the one rule |
 | Rs FM-1, installed | `FM-1_092` (Baud Girl's FM-1+VA) today; stock V15 if the owner rolls back | — | black box only |
@@ -76,7 +76,7 @@ cause.
 | MIDI in and out | timed input in the scripts | USB-MIDI and UART: bytes as E, timing as T | USB-MIDI out; the TRS jack is input only [reported] | E, T |
 | CPU cycles per block | not transferable | cycle counter per block: min, mean, max | the same image | reported |
 | Memory | `instance_bytes`, `fm1_seq_size`, `-m32` and Wasm sizes | a `sizeof` table, and the linker map against the FM-1 budget (387,924 B gap; the app area) | the same map | E, or explained |
-| Screens | the 240 × 240 RGB565 frame buffer, 287 screens [verified] | the same buffer, hashed; the panel checked through an SPI decode | an SPI decode of the TFT stream; photos for layout only | E |
+| Screens | the 240 × 240 RGB565 frame buffer, 2,366 screens [verified 2026-10-05: sim/web/README.md] | the same buffer, hashed; the panel checked through an SPI decode | an SPI decode of the TFT stream; photos for layout only | E |
 | LEDs | the simulator's LED state | logged state | the decoded 74HC595 stream | E |
 
 ## 3. Harness
@@ -85,12 +85,12 @@ cause.
 
 | Set | Size | Source | What it checks |
 | --- | --- | --- | --- |
-| Engine reference renders | the fm1 side of 487 tests (Shapes with Plate, Ensemble and Diffuse 226; Plaits' engines 201; Room 60) [verified 2026-10-05: `pytest --collect-only`] | `tests/test_engines_reference_*.py` | the Mutable-derived engines (Macro, Macro Heavy, Six-Op FM, Shapes) at their native rates and through the resampler at 44,118 Hz, and the Mutable-derived effects (Plate, Ensemble, Diffuse, Room) at upstream's rate and at 44,118 Hz with the rate rule. R2 compares with R0's fm1 output, not with upstream |
-| Virtual FM-1 scenarios | 12 | `sim/web/test/scenarios.json` | effect chains, bends, parameter changes, more notes than voices, 44,100 Hz |
+| Engine reference renders | the fm1 side of 487 tests (Shapes with Plate, Ensemble and Diffuse 226; Plaits' engines 201; Room 60) [verified 2026-10-05: `pytest --collect-only`] | `tests/test_engines_reference_*.py` | the Mutable-derived engines at their native rates and through the resampler at 44,118 Hz (Macro, Macro Heavy and Six-Op FM; Shapes at 96 kHz, and at 44,118 Hz only its struck shapes' decay here, every shape resampled being in `tests/test_engines_resampler.py`), and the Mutable-derived effects (Plate, Ensemble, Diffuse, Room) at upstream's rate and at 44,118 Hz with the rate rule. R2 compares with R0's fm1 output, not with upstream |
+| Virtual FM-1 scenarios | 66 | `sim/web/test/scenarios.json` | effect chains, bends, parameter changes, more notes than voices, 44,100 Hz |
 | Host contracts | per engine | `--fill 0/0xA5/0xFF`, NaN parameters, `--fault` | device memory is not zeroed either |
 | Movy fixtures | 24, six of them with D1 traces | `tests/fixtures/movy/` | compat mode, D1 frames, the exported sets |
 | Random sequencer scripts | 9,500 match Movy at R0 [verified: seq.md] | `gen_scripts.py --no-undo`, seeded | a seeded few hundred per R2 run, and all of them overnight |
-| Screens | 287 | `fm1-sim-render --screens` | frame hashes |
+| Screens | 2,366 | `fm1-sim-render --screens` | frame hashes |
 | Worst cases | each engine at its voice cap; seq_bench's burst and edit scripts | `tools/seq_bench.py` | cycles |
 | FPU probes | about 20 | new | the unknowns in §2.2 |
 
@@ -251,7 +251,7 @@ only runs whose hashes are equal.
 | 5 | A probe image covering: the cycle counter against a timer; `sizeof`/`alignof`; `char` signedness; float divide by zero; subnormal handling and cost; NaN and overflow in float → int; fused ops in `objdump` at `-O2`, with and without `-ffp-contract=off`; libm's float functions swept against musl | every [inferred] cell in §2.2 becomes [verified] or is corrected |
 | 5b | The second-core probe (§5.1): how cpu1 starts; per-core counters; the FPU on each core; one core against two; cross-core ordering; the ways to keep audio on cpu1 (C6a–C6f); flash writes; power (optional) | `notes/<date>-devkit-cpu1.md` holds: a yes or no, with the method named, for "audio on cpu1 in an SDK build"; the dual-core factor for code in RAM and in flash; FPU results bit-identical across the cores; how long a flash write stalls cpu1 |
 | 6 | Audio out: Test Sine through the DAC path, captured twice | the measured sample rate and noise floor; the two captures set class A's floor |
-| 7 | R2 offline: the runner with the 12 scenarios, the Movy fixtures and the 287 screens compiled in | every case is E against R0, or each difference has a named cause; Sophie is E once libm is pinned |
+| 7 | R2 offline: the runner with the 66 scenarios, the Movy fixtures and the 2,366 screens compiled in | every case is E against R0, or each difference has a named cause; Sophie is E once libm is pinned |
 | 8 | Stage B: cycles per block for each engine at its voice cap, each effect, the resampler and seq_bench's worst cases; the linker map against the budget; `-fPIC` and its relocations | docs/11 §8's exit (a cycle table, and a yes or no on Tier 2) and docs/13's stage B exit (the sequencer takes ≤ 2 % of any block); the resampler and Shapes decisions in engines/README.md taken |
 | 9 | R2 live: the same chains driven from the DAC interrupt | pre-DAC hashes equal the offline ones for ten minutes, with no underrun and the worst block within budget |
 

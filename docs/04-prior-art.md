@@ -6,8 +6,8 @@ and how far it got. Check these before re-deriving anything.
 ## 1. FM-1 specific
 
 ### aroum/fm1-custom-fw — https://github.com/aroum/fm1-custom-fw
-*No license stated. `main` last commit 2026-10-04 (`4e9d6d3`); checked
-2026-10-05.*
+*No license stated. Read at `d08360f` (2026-08-21); `main` at `4e9d6d3`
+(2026-10-04) when checked on 2026-10-05, see the last bullet.*
 
 - Identified the SoC as JieLi AC791N (WL82) and the JL_AC79_DevKit V1.0 as its
   reference board (Taobao).
@@ -30,23 +30,25 @@ and how far it got. Check these before re-deriving anything.
 - Links: firmware V15 on Aliyun, r/synthdiy teardown thread, esp8266.ru JieLi
   thread, fm1-editor.com, openpatch.es.
 - **README links to this project (since 2026-09-13; commits `cb5796c`,
-  `d988b84`, `4e9d6d3`, read through the GitHub API 2026-10-05).** `cb5796c`
+  `d988b84`, `4e9d6d3`) [verified 2026-10-05: GitHub API].** `cb5796c`
   adds a mask-ROM recovery route to the hardware section and a reference to
   this repository (under its old name): it describes the RP2040 design in
   `dongle/` as forcing `UBOOT1.00` through the USB-C port, enabling flash
   backup and unbricking. The later two add Baud Girl's FM-1+VA, Felucca and
-  Lunar Modulator (as research stage) under a new "Custom & Alternative
-  Firmwares" section. What is established: this project's dongle is
-  implemented and simulated, its UF2 built in CI, and has not been run against
-  an FM-1 (docs/10, `dongle/README.md`); a different, simpler Pico tool by
-  czietz reaches UBOOT mode on two other owners' FM-1s, and one of them
-  reports a firmware backup and a write with it [reported: issue #2, docs/10
-  §1.1]; no dongle has yet shown a dump and a byte-identical restore on this
-  project's unit (docs/07 §4).
+  Lunar Modulator (as research and bench stage) under a new "Custom &
+  Alternative Firmwares" section. What is established: this project's dongle
+  is implemented and simulated and its UF2 is built in CI, but no unit of it
+  has been assembled or run against an FM-1 (docs/10, `dongle/README.md`); a
+  different, simpler Pico tool by czietz reaches UBOOT mode on two FM-1s,
+  czietz's own and masanaohayashi's, and masanaohayashi reports a firmware
+  backup and a write with it [reported: issue #2, docs/10 §1.1]; no dongle
+  has yet shown a dump and a byte-identical restore on this project's unit
+  (docs/07 §4).
 
 ### AL-255/FM-1-RE — https://github.com/AL-255/FM-1-RE
-*WTFPL. `main` last commit 2026-09-08 (`ec832f2`, the merge of PR #2),
-`with-custom-firmware` 2026-08-02 (`628fcaf`); checked 2026-10-05.*
+*WTFPL. Read at `main` `95eca84` (2026-08-16) and PR #2; `main` at
+`ec832f2` (2026-09-08, the merge of PR #2) and `with-custom-firmware` at
+`628fcaf` (2026-08-02) when checked on 2026-10-05.*
 
 The deep one. `main` is analysis only; `with-custom-firmware` preserves the
 experimental firmware and package builders.
@@ -62,7 +64,8 @@ experimental firmware and package builders.
   on-device OTA loader (`usb_hid_ota.bin`, 23324 bytes at `0x01C0A800`) and
   traced its finish gates; mapped it to the SDK's `updata_mode` framework.
 - `tools/fm1_ota.py`: Linux client (`scan`, `flash`) over the ALSA sequencer
-  with 14 offline tests; udev rule.
+  with 14 offline tests at `95eca84` (22 at `ec832f2`, after PR #2); udev
+  rule.
 - Safety analysis (`TODO_aug2.md`, `analysis/device/debug-surfaces.md`): no
   UART shell, no CDC, no factory mode, no recovery chord; PB01 is a reset, not
   recovery; single-bank layout; **verdict NO-GO for non-stock flashing**.
@@ -374,9 +377,11 @@ AL-255's `docs/03-dx7-core-identification.md` and this project's
 - charlesvestal/schwung — https://github.com/charlesvestal/schwung — MIT.
   "Shadow UI" injected into Move's process; modules are aarch64 `.so` plugins;
   installer over SSH; module catalog at schwung.dev.
-- DimaDake/schwung-movy — https://github.com/DimaDake/schwung-movy — MIT,
-  v0.31.0. TypeScript/JS UI (~26k lines) running in Schwung's QuickJS context
-  plus a Rust engine (`seq-core` ~9k lines, `movy-dsp` ~7k lines) built as
+- DimaDake/schwung-movy — https://github.com/DimaDake/schwung-movy — MIT;
+  read for this study at `5627d51` (2026-09-05, `module.json` 0.31.0; the
+  v0.31.0 tag is `675054f`), and the sequencer port is pinned to `9190e79`
+  (docs/13). TypeScript/JS UI (~26k lines) running in Schwung's QuickJS
+  context plus a Rust engine (`seq-core` ~9k lines, `movy-dsp` ~7k lines) built as
   `dsp.so`. See docs/06.
 - Ableton Move hardware: quad-core ARM Cortex-A72 at 1.5 GHz, 2 GB RAM, 64 GB
   storage, Linux (Ableton tech specs; teardown coverage).

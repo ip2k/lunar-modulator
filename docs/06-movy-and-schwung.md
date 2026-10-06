@@ -35,7 +35,7 @@ per-track LFOs, drum layouts, transport lock with Move.
 | Languages | anything with an aarch64 Linux target: Rust, C, JS in QuickJS | C/C++ via JieLi's closed Clang fork; **no Rust, no mainline LLVM/GCC, no JS runtime worth the RAM** |
 | Host framework | Schwung shim provides audio interception, module hosting, param API, display writer | none; a custom firmware *is* the whole system |
 | Display | monochrome OLED framebuffer written by the shim | 240×240 colour TFT over SPI |
-| Controls | 32 velocity/pressure pads, 8 endless encoders + jog, step buttons, transport | 27 silicone keys, **8 knobs** (seven encoders and one pot, MASTER; docs/01 §3), ~14 LED buttons |
+| Controls | 32 velocity/pressure pads, 8 endless encoders + jog, step buttons, transport | 27 silicone keys, **8 knobs** (seven encoders and one pot, `RW1`, taken to be MASTER; docs/01 §3), ~14 LED buttons |
 | Audio | Move's instruments plus Schwung module chains | one msfa FM engine plus effects |
 | Install | copy files over SSH | re-flash the chip |
 
@@ -91,8 +91,7 @@ code is the stronger candidate for engines. See docs/11.
 
 This document inspected Movy at `5627d51`, a `main` commit of 2026-09-05
 whose `module.json` says 0.31.0; the v0.31.0 tag is `675054f`, 38 commits
-earlier [verified 2026-10-05: GitHub API]. (This line used to call
-`5627d51` v0.31.0; docs/13 refuted that.) Movy has since gained
+earlier [verified 2026-10-05: GitHub API]. Movy has since gained
 Elektron-style per-step parameter locks: hold a step that has notes and turn
 a module knob, and the value is stored for that step only and plays when the
 step plays [verified at `9190e79`, `main` on 2026-10-01, 299 commits past
