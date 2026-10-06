@@ -5,7 +5,7 @@
  *           [--block N] [--end FRAMES] [--log FILE.jsonl] [--state FILE.json]
  *           [--snap FRAME]... [--peek FRAME]... [--export FILE.movy1] [--fill BYTE] [--seed N]
  *           [--notes N] [--locks N] [--trigs N] [--gates N] [--capture N]
- *           [--song N] [--rec N] [--events N]
+ *           [--song N] [--rec N] [--events N] [--import FRAME:FILE.movy1]...
  *
  * Plays a verb script (seq_script.h) through fm1_seq in blocks, writes the
  * event log, and dumps state as JSON at each --snap frame (the first block
@@ -13,6 +13,10 @@
  * --peek frame (the same boundary, before its commands) and at the end.
  * --events N gives each block (its commands and its advance together) an
  * event buffer of N, as a device's would be; the default is 65536.
+ * --import FRAME:FILE imports a set mid-run, at the first block boundary at
+ * or after FRAME, before that boundary's commands (an import emits no
+ * event: the core releases nothing, as a host's import path must; tests of
+ * what an import resets and reseeds use it).
  * --compat runs Movy's behaviour exactly; --compat-frames does too, but logs
  * each tick at its own frame (D1), as the Movy oracle's --frames tick does.
  * Without --cmd, nothing runs: --seq FILE --export OUT round-trips
@@ -38,7 +42,8 @@ static void usage(void) {
         "               [--snap FRAME]... [--peek FRAME]... [--export FILE.movy1]\n"
         "               [--fill BYTE] [--seed N]\n"
         "               [--notes N] [--locks N] [--trigs N] [--gates N] [--capture N]\n"
-        "               [--song N] [--rec N] [--events N]\n", stderr);
+        "               [--song N] [--rec N] [--events N] [--import FRAME:FILE.movy1]...\n",
+        stderr);
 }
 
 static void json_str(FILE *f, const char *s, size_t n) {
@@ -224,6 +229,8 @@ int main(int argc, char **argv) {
   long long end = -1, seed = -1;
   uint64_t *snaps = NULL, *peeks = NULL;
   size_t n_snaps = 0, next_snap = 0, n_peeks = 0, next_peek = 0, k;
+  const char **imports = NULL;           /* "FRAME:FILE", in frame order as given */
+  size_t n_imports = 0, next_import = 0;
   fm1_script_t script;
   fm1_seq_limits_t lim;
   fm1_seq_t *s;
@@ -266,7 +273,12 @@ int main(int argc, char **argv) {
     else if (strcmp(a, "--song") == 0) song = strtol(v, NULL, 0);
     else if (strcmp(a, "--rec") == 0) rec = strtol(v, NULL, 0);
     else if (strcmp(a, "--events") == 0) events = strtol(v, NULL, 0);
-    else if (strcmp(a, "--snap") == 0 || strcmp(a, "--peek") == 0) {
+    else if (strcmp(a, "--import") == 0) {
+      const char **grown = (const char **)realloc((void *)imports, (n_imports + 1u) * sizeof(*imports));
+      if (!grown || !strchr(v, ':')) { usage(); return 2; }
+      imports = grown;
+      imports[n_imports++] = v;
+    } else if (strcmp(a, "--snap") == 0 || strcmp(a, "--peek") == 0) {
       const int peek = a[2] == 'p';
       uint64_t **list = peek ? &peeks : &snaps;
       size_t *count = peek ? &n_peeks : &n_snaps;
@@ -352,6 +364,17 @@ int main(int argc, char **argv) {
       dump_state(state, s, "peek", "", peeks[next_peek], frame, blockno);
       first_snap = 0;
       ++next_peek;
+    }
+    while (next_import < n_imports && strtoull(imports[next_import], NULL, 0) <= frame) {
+      const char *path = strchr(imports[next_import], ':') + 1;
+      size_t len;
+      char *txt = fm1_read_file(path, &len);
+      if (!txt || !fm1_seq_import_movy1(s, txt, len)) {
+        fprintf(stderr, "%s: not a movy1 set\n", path);
+        return 1;
+      }
+      free(txt);
+      ++next_import;
     }
     t0 = now_ns();
     while (next_cmd < script.n && script.cmds[next_cmd].frame <= frame) {
