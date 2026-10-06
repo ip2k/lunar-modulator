@@ -1608,6 +1608,11 @@ history.
     Macro Heavy tests (engines/plaits-heavy.md), 66 browser scenarios and
     2,366 screens (docs/14), and 3,439 tests in DEVELOPERS.md's status.
   - `dongle/README.md` names the CI job that builds the UF2 correctly.
+  - `AGENTS.md` (the project instructions for Codex) gains `CLAUDE.md`'s
+    "GPL switch" paragraph, which #57 added to `CLAUDE.md` only.
+  - The manual's recovery chapter no longer calls the open dongle design
+    "complete": its firmware builds and is simulated, but nobody has built
+    the board.
 - **Shapes stays inside what Braids' code handles.** At a few edges Braids
   read past the end of a table or did arithmetic C++ leaves undefined, so
   the same settings could sound different from one build to the next (the
