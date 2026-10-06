@@ -118,13 +118,14 @@ int ParseSysex(const uint8_t *data, size_t len, unsigned slot, StoreFn store, vo
   bool framed = false;
   size_t i = 0;
   while (data && i < len) {
-    if (data[i] != 0xF0) { ++i; continue; }
+    if (data[i] != 0xF0) { ++i; ++r.outside; continue; }
     framed = true;
     // The message runs to the next status byte; a well-formed one ends at F7.
     size_t end = i + 1;
     while (end < len && data[end] < 0x80) ++end;
     if (end >= len || data[end] != 0xF7) {   // truncated, or another status byte
       ++r.skipped;
+      ++r.truncated;
       i = end;
       continue;
     }
@@ -137,7 +138,10 @@ int ParseSysex(const uint8_t *data, size_t len, unsigned slot, StoreFn store, vo
     const bool vmem = yamaha && m[3] == 0x09 && count == FM1_DX7_VMEM_BYTES &&
                       n == FM1_DX7_VMEM_BYTES + 8;
     if (!vced && !vmem) {
+      // A voice or bank dump's header (format 0 or 9) with another byte
+      // count or length is a broken dump; anything else is not ours.
       ++r.skipped;
+      if (yamaha && (m[3] == 0x00 || m[3] == 0x09)) ++r.wrong_size; else ++r.foreign;
       i = end + 1;
       continue;
     }
@@ -171,6 +175,8 @@ int ParseSysex(const uint8_t *data, size_t len, unsigned slot, StoreFn store, vo
     }
     r.first_slot = 0;
     r.voices = FM1_DX7_USER_SLOTS;
+    r.raw = 1;
+    r.outside = 0;
   }
   if (res) *res = r;
   return r.voices;
@@ -178,3 +184,29 @@ int ParseSysex(const uint8_t *data, size_t len, unsigned slot, StoreFn store, vo
 
 }  // namespace dx7
 }  // namespace fm1
+
+namespace {
+
+// fm1_dx7_read_sysex's store, from ParseSysex's: msfa's voice is the VCED
+// data in its order with the operator byte after it.
+struct ReadCtx {
+  fm1_dx7_store_fn store;
+  void *ctx;
+};
+
+void ReadStore(void *ctx, unsigned slot, const uint8_t v[fm1::dx7::kVoiceBytes]) {
+  const ReadCtx *c = static_cast<const ReadCtx *>(ctx);
+  c->store(c->ctx, slot, v);
+}
+
+}  // namespace
+
+extern "C" int fm1_dx7_read_sysex(const uint8_t *data, size_t len, unsigned slot,
+                                  fm1_dx7_store_fn store, void *ctx, fm1_dx7_sysex_result_t *res) {
+  if (!store) {
+    if (res) memset(res, 0, sizeof(*res));
+    return 0;
+  }
+  ReadCtx c = { store, ctx };
+  return fm1::dx7::ParseSysex(data, len, slot, ReadStore, &c, res);
+}

@@ -273,6 +273,7 @@ try {
     { id: 'shapes', file: 'screen-shapes.png', param: [0, 28], after: 120 },
     { id: 'macro-heavy', file: 'screen-macro-heavy.png', param: [0, 0] },
     { id: 'sixop', file: 'screen-sixop.png', param: [0, 32] },
+    { id: 'dx7', file: 'screen-fm6.png', param: [0, 0] },   // FM6 on TINE EP (2026-10-06)
     // A kick wants a low note, as the sophie-kit scenario plays it (MIDI 36).
     { id: 'sw-sophie', file: 'screen-sophie.png', param: [0, 0], midi: [36], after: 50 },
     { id: 'drums', file: 'screen-drums.png', param: [0, 0], midi: [36], after: 50 },
@@ -398,7 +399,7 @@ try {
   server.close();
 }
 
-report.pass = !report.error && report.shots.length === 14 && report.parity && report.parity.faults.length === 0 &&
+report.pass = !report.error && report.shots.length === 15 && report.parity && report.parity.faults.length === 0 &&
   report.phone_scroll_width <= 390 && !Object.values(report.rec_lit || {}).some(Boolean) &&
   !report.logs.some((l) => l.startsWith('error') || l.includes('pageerror'));
 writeFileSync(join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n');

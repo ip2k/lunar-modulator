@@ -17,7 +17,10 @@
 // (fm1w_seq_info) and posts it only when it changed: a song's end, an
 // external clock's stop or a new tempo reach the status line without a
 // message per event. The page's Sound dropdown is the current sound's
-// (multi-sound, docs/15 §3.16), and follows the panel.
+// (multi-sound, docs/15 §3.16), and follows the panel. A .syx file the page
+// read (Load DX7 patches) arrives as its bytes and goes to the firmware
+// through the module's text buffer (fm1w_dx7_load); what it held goes back
+// for the page's message.
 // MIT licence, like the rest of this repository.
 
 import { instantiateFm1, BLOCK, SCREEN, KEYS, BUTTONS } from './fm1-wasm.mjs';
@@ -85,6 +88,7 @@ class FM1Processor extends AudioWorkletProcessor {
       case 'bend': ex.fm1w_pitch_bend(m.semitones); break;
       case 'param': ex.fm1w_set_param(m.unit, m.index, m.value); break;
       case 'panic': ex.fm1w_all_notes_off(); break;
+      case 'dx7-load': this.loadDx7(m); break;
       case 'select': {
         // The Sound dropdown is the current sound's (multi-sound, docs/15
         // §3.16); the others are the master slots, units 1 and 2.
@@ -98,6 +102,22 @@ class FM1Processor extends AudioWorkletProcessor {
       default: break;
     }
     this.sendState();
+  }
+
+  // A .syx file's bytes into FM6's user bank; the current sound then plays
+  // the first voice (fm1w_dx7_load with play). The page refuses larger files
+  // before sending; a length past the buffer would be refused here too.
+  loadDx7(m) {
+    const ex = this.fm1.exports;
+    const cap = ex.fm1w_text_cap();
+    const bytes = m.bytes instanceof Uint8Array ? m.bytes : new Uint8Array(0);
+    const len = bytes.length > cap ? cap + 1 : bytes.length;
+    if (len <= cap) new Uint8Array(this.fm1.memory.buffer, ex.fm1w_text_buf(), cap).set(bytes);
+    ex.fm1w_dx7_load(len, 1);
+    const result = Array.from(new Int32Array(this.fm1.memory.buffer, ex.fm1w_dx7_result(), 13));
+    const names = [];
+    for (let k = 0; k < 32; ++k) names.push(this.fm1.string(ex.fm1w_dx7_name(k)));
+    this.port.postMessage({ type: 'dx7-loaded', file: m.file, size: bytes.length, result, names });
   }
 
   sendState() {

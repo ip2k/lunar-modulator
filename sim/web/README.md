@@ -30,7 +30,7 @@ the "Power on" button, as browsers require a gesture.
 | --- | --- |
 | Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate, Test Gain, Test Ext. Up to four sounds with two inserts and a level each, mixed into two effect slots as the master bus, then the host's bus limiter, as `fm1-render --slots` runs them; one sound with no insert at full level renders as `fm1-render`'s one engine does, to the bit (below, "Multi-sound") |
 | Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy, Six-Op and Drums run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the four, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
-| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. A list popup (PRESETS, ALGORITHM, SHIFT + PRESETS, the kind and destination pickers, Capture's tempos) shows the list's title in gold, the chosen entry's place (`34/96`) and six entries with the chosen one on the accent, on the third row where it can be (`fm1_list_first`, `src/fm1_panel.h`), and a triangle above or below the entries where the list goes on (three lines, the previous, chosen and next entry, until 2026-10-06). HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 3,040 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06; 2,695 before every list popup at every entry (2,470 recorded here on 2026-10-05), 2,338 before Drums, 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE and ARP stubs and an emptied slot (600 screens), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 741, and Drums' pages and its sound in the others' sweeps in 132 more; since 2026-10-06 every list popup at every entry, each window checked (345: ALGORITHM through every sound's list, Six-Op FM's 96 patches the longest, PRESETS through the engines, ALGORITHM in FX mode through the effects, and the destination picker through every destination; the kind picker's 17 were already there). Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
+| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. A list popup (PRESETS, ALGORITHM, SHIFT + PRESETS, the kind and destination pickers, Capture's tempos) shows the list's title in gold, the chosen entry's place (`34/96`) and six entries with the chosen one on the accent, on the third row where it can be (`fm1_list_first`, `src/fm1_panel.h`), and a triangle above or below the entries where the list goes on (three lines, the previous, chosen and next entry, until 2026-10-06). HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 3,144 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06, 40 of them FM6's user bank (every user slot with a 10-character name, the ALGORITHM popup, SEQ mode and the load popups); 3,104 without them, with Squash and Transient; 2,695 before every list popup at every entry (2,470 recorded here on 2026-10-05), 2,338 before Drums, 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE and ARP stubs and an emptied slot (600 screens), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 741, and Drums' pages and its sound in the others' sweeps in 132 more; since 2026-10-06 every list popup at every entry, each window checked (345: ALGORITHM through every sound's list, Six-Op FM's 96 patches the longest, PRESETS through the engines, ALGORITHM in FX mode through the effects, and the destination picker through every destination; the kind picker's 17 were already there). Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
 | Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_app.c`); Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
@@ -111,6 +111,62 @@ PIT, GLO, MONO, POLY) come from the manual's panel drawing [reported].
 | REC | recording | record, step record and Capture (below) |
 | SEQ, PLAY/STOP | the sequencer: its view and the transport | SEQ mode and the transport (below) |
 | SEL outside FX mode | (SHIFT, in the sequencer) | SHIFT, and with PRESETS the current sound (below) |
+
+## DX7 patches: FM6's user bank
+
+FM6 (engines/msfa.md) plays 32 built-in voices and 32 user slots. The page
+loads DX7 voices into those slots from `.syx` files (the owner's request,
+2026-10-06):
+
+- **How:** **Load DX7 patches…** under the panel (a file chooser, several
+  files at once), or files dropped anywhere on the page, which shows where
+  to drop while files are dragged over it. The button waits for power on.
+- **Nothing leaves the browser.** `app.js` reads the file
+  (`File.arrayBuffer`) and posts its bytes to the AudioWorklet, which
+  copies them into the module's 64 KiB text buffer and calls
+  `fm1w_dx7_load(len, 1)`; no request is made [verified: the page check
+  records none while files load]. Files past 64 KiB are refused in the
+  page and by the module.
+- **What is loaded:** single voices (VCED) and 32-voice banks (VMEM),
+  several in one file, or a bank's 4,096 data bytes alone, through the
+  engine's own reader (`fm1_dx7_read_sysex`, `include/fm1_dx7.h`): a bank
+  fills User 1–32, single voices go to the slot after the last one loaded
+  (User 1 first, and again after a bank), as `fm1-render --sysex` orders
+  them. Every value is clamped to its range.
+- **Checked, and said:** the result counts dumps found, wrong checksums,
+  foreign messages, messages cut short, dumps of the wrong length, bytes
+  outside SysEx and raw bank data (`fm1w_dx7_result`), and the status line
+  turns them into words: a file that loads nothing is called empty, not
+  SysEx, SysEx of another kind, cut short or the wrong length, with the two
+  formats' sizes and headers; a wrong checksum loads all the same, as DX7
+  editors do, and is flagged as possible damage.
+- **The bank** lives in the app (`fm1_app_dx7_t`, `fm1_app.h`): it stands
+  for the voices the FM-1 would keep in flash. Every FM6 sound gets it in
+  its user slots when it is created and whenever a file loads
+  (`fm1_dx7_set_user_voice`), and FM6's Patch list shows the voices' names
+  in place of "User N" everywhere the screen names a Patch value (HOME, the
+  ALGORITHM popup, SEQ mode, the lock pages, modulation's rows): the app
+  points FM6's units at a copy of its engine entry whose Patch names are
+  the bank's. A popup says what loaded (*Loaded 32 voices*, *User 1-32*,
+  the first name) or *No DX7 voices*. Then the current sound plays the
+  first voice loaded (`fm1_app_dx7_play`): it becomes FM6 if it was not,
+  unless the RAM meter refuses it. The bank is not in the RAM meter; each
+  FM6 instance's copy of it is, in its instance. It lasts until power off.
+- **Tested:** an original test bank (`test/dx7/`, written by
+  `tools/dx7_bank.py --test-bank`: LUNAR 01–32, voice k on algorithm k,
+  never Yamaha's voices), as one bank and as 32 single voices.
+  `tests/test_sim_web.py` runs the app's loader natively
+  (`fm1-sim-render --sysex` and `--sysex-play`): every refusal and its
+  reason, slot order, names on the screen, play, an FM6 made after a load,
+  and the bank played as `fm1-render --sysex` plays it, byte for byte.
+  `test/sysex.mjs` checks the module's export itself (18 cases, in
+  `build.sh`, recorded in `fm1.wasm.json`), including each of four voices
+  rendering the same samples from the bank as from its single dump; the
+  parity scenario `dx7-user-bank` plays three user voices against
+  `fm1-render`, glibc, musl and render.js; `test/screenshot.mjs` loads the
+  bank through the page's file chooser, plays it, and drops a broken file;
+  the layout sweep shows every user slot with a 10-character name and the
+  load popups.
 
 ## The sequencer, multi-sound and modulation
 
@@ -421,13 +477,17 @@ docs/16 MG3 the modulation runtime, its kinds, its script reader
 (`host/mod_script.c`: snprintf and strtod, no files) and modulation's
 pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (2026-10-05) Comb, Test Ext, the LOG law and the effects' extension
-(`fm1_fx_render`), Drums, FM6 (msfa), the list popups, dynamics pack 3
-(Squash, Transient, the Limiter's Round) and per-voice modulation (MG9,
-2026-10-06): 75 of 75 scenarios pass,
+(`fm1_fx_render`), Drums, FM6 (msfa), the list popups, FM6's user bank
+with msfa's tables as const data, Squash, Transient and the Limiter's
+Round mode, and per-voice modulation (MG9) (2026-10-06): 76 of 76
+scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
-every 4.4 ms; the three Drums and the three FM6 scenarios are identical to
-glibc too), and it imports nothing; it is 862,648 bytes, 826,339 before per-voice
-modulation, 815,821 before dynamics pack 3 too, 813,115 before the list popups, 786,256 before FM6,
+every 4.4 ms; the three Drums and the four FM6 scenarios are identical to
+glibc too), and it imports nothing; it is 887,038 bytes, 850,731 before
+per-voice modulation (826,339 without the user bank, 840,216 without
+Squash, Transient and Round), 837,480 with
+the user bank before the list popups, 815,821 with the list popups before the
+user bank, 813,115 before both, 786,256 before FM6,
 765,189 before Drums since the lab switch went (790,801
 with Drums and the switch's second code path, 769,693 with the switch
 alone), 761,171 before both API v3 and Drums, up from
@@ -532,6 +592,10 @@ clock, and the master tick's two halves. `fm1w_mod_reset(seed)` makes a new,
 empty modulation runtime and `fm1w_mod_text(len)` applies one line of
 `fm1-render --mod` from the text buffer (1, or 0 for a bad line); the
 parity test plays a scenario's modulation through them.
+`fm1w_dx7_load(len, play)` reads a `.syx` file's bytes from the same
+buffer into FM6's user bank (above); `fm1w_dx7_result()` returns thirteen
+words saying what the file held, and `fm1w_dx7_name(slot)` the name a user
+slot shows.
 
 `fm1_panel.h` holds the panel's buttons, encoders and modes, which the app
 and the sequencer's UI share; `fm1_look.h` the screen's palette, geometry
@@ -548,9 +612,10 @@ tar and scp; nothing is installed on the host):
 1. `alpine:3.22`: a static musl `fm1-render`.
 2. `emscripten/emsdk:6.0.10` (`build.sh`): native `fm1-render` and
    `fm1-sim-render` with GCC 13, the screen sweep, `fm1.wasm` and
-   `fm1-render.js` with Emscripten 6.0.10, `test/parity.mjs`; then, only if
-   everything passed, `www/fm1.wasm` and its record `www/fm1.wasm.json`
-   (hashes of the module and of the sources, the parity results).
+   `fm1-render.js` with Emscripten 6.0.10, `test/parity.mjs`,
+   `test/sysex.mjs` (the DX7 export, above); then, only if everything
+   passed, `www/fm1.wasm` and its record `www/fm1.wasm.json` (hashes of the
+   module and of the sources, the parity and SysEx results).
 3. `mcr.microsoft.com/playwright:v1.63.0-noble`: `test/screenshot.mjs` opens
    the page in headless Chromium, plays it and writes screenshots and a
    report to `build/screenshots/`; with `--readme-screenshots`,
@@ -582,7 +647,7 @@ one gap, and 128 lane bases after a stop, which `fm1-render --events 256`
 drops and the app holds back), with nothing dropped or left sounding; routes
 (the default route, `--route`, `route` verbs and a set's own `rt` lines)
 as in `fm1-render`; no note left hanging after a reset, an import or a
-change of sound; the 3,040-screen layout sweep, every list popup's window at every entry
+change of sound; the 3,144-screen layout sweep, every list popup's window at every entry
 among them; the panel against the manual's formula (octave,
 transpose, reset); buttons and encoders; PLAY/STOP's
 LED while playing, SEQ mode, the white keys following the playhead in SEQ
@@ -595,8 +660,8 @@ mid-render in some scenario (`fx_param_at`), and `--fx-param-at` applies at
 its block in both hosts and refuses a slot or a name that is not there. The record carries two source hashes
 (`tools/source_hash.py`): engines/ (less Markdown) and sim/web's own inputs
 (`src/`, `mk/`, `build.sh`, the parity test, its scenarios and their
-sequencer and modulation scripts in `test/seq/` and `test/mod/`, the
-harness, the loader), which since the module links the sequencer include
+sequencer and modulation scripts in `test/seq/` and `test/mod/`, the DX7
+test files in `test/dx7/` and `test/sysex.mjs`, the harness, the loader), which since the module links the sequencer include
 `engines/seq/` and `engines/include/fm1_seq*.h` too, and since it links
 modulation `engines/mod/` (less its Markdown), `engines/include/fm1_mod*.h`
 and `engines/host/mod_script.*`. When sim/web's inputs have changed since the last

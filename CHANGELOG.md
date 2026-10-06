@@ -32,8 +32,8 @@ history.
     to 26 KB, in the RAM meter.
   - Cables at 0 % change nothing, bit for bit; the output is the same at
     any audio block size, and the browser plays it as the desktop does (a
-    new parity scenario, 75 of 75 pass; the browser module grew from
-    826 KB to 863 KB).
+    new parity scenario, 76 of 76 pass; the browser module grew from
+    851 KB to 887 KB).
 - **A pitch destination per sound.** The host's group in the destination
   picker lists *Pitch* (Sound 1), *Pitch2* to *Pitch4* (Sounds 2–4), each
   on top of that sound's pitch bend, and *PitchC*, which bends whichever
@@ -42,6 +42,19 @@ history.
   S1NOTE–S4NOTE, S1VEL–S4VEL, S1KEY–S4KEY, S1TRIG–S4TRIG and
   S1RTRG–S4RTRG: the same as NOTE, VEL, KEY, TRIG and RTRG, but for one
   sound's notes alone, so an envelope can follow only the bass, say.
+- **Load DX7 patches in the simulator.** A new button under the panel,
+  *Load DX7 patches…*, takes `.syx` files, and so does dropping files
+  anywhere on the page. A bank fills FM6's User 1 to 32, single voices go
+  to the next user slots, the screen and the status line say what loaded,
+  and the current sound plays the first voice (it becomes FM6 if it was
+  not). ALGORITHM then steps through the voices by their own names, and
+  every sound you set to FM6 later has them too. The file is read in your
+  browser and nothing is uploaded. A file that is not a DX7 patch file
+  (empty, not SysEx, another instrument's SysEx, cut short, the wrong
+  length) loads nothing and the status line says which; a wrong checksum
+  loads with a warning, as DX7 editors do. Files of up to 64 KB; the voices
+  last until power off. Documented in chapter 5 of the manual and in
+  chapter 12's troubleshooting.
 - **Squash, a new effect: three small compressors with characters of their
   own**, rewritten for the FM-1 from Airwindows plug-ins by Chris Johnson
   (MIT). Choose a Type, turn Squash up, win the level back with Output.
@@ -93,8 +106,8 @@ history.
     marimba, vibes, bells, organs, brass, flute, clarinet, strings, pads,
     basses, leads and a small drum kit, written for this project.
   - **Your own DX7 voices:** single voices and 32-voice banks load from
-    SysEx files into 32 user slots (on the desktop for now:
-    `fm1-render --engine dx7 --sysex bank.syx`). Bad checksums, out-of-range
+    SysEx files into 32 user slots (in the simulator, below, and on the
+    desktop: `fm1-render --engine dx7 --sysex bank.syx`). Bad checksums, out-of-range
     values and other SysEx in the file are handled, not trusted.
   - **Four macros** shape any voice while it plays: Brightness (how hard
     the modulators drive, ±24 dB), Env Time (every envelope up to 8 times
@@ -107,9 +120,9 @@ history.
   - The same output, bit for bit, from the Mac, 32- and 64-bit Linux and the
     browser (three new parity scenarios, 72 of 72 pass; the browser module
     grew from 786 KB to 813 KB); compiles for the FM-1's processor with
-    JieLi's toolchain. About 15 KB of memory, plus
-    29 KB of tables shared by every FM6 sound; twelve voices cost about a
-    third of Macro's twelve on the desktop.
+    JieLi's toolchain. About 15 KB of memory a sound, its tables kept in
+    flash (below); twelve voices cost about a third of Macro's twelve on
+    the desktop.
   - Checked against an independent port of the same core, Felucca's
     `fm6_core.c` (Apache-2.0; a test tool here, in no build): every
     algorithm within 0.3 dB. Documented in engines/msfa.md and chapter 5 of
@@ -1166,6 +1179,23 @@ history.
   same holds for effects.
 - **The rack's Filter module is now the Resonator (RES)**, so that Filter
   names the audio effect alone. Older scripts that say `filter` still load.
+- **FM6 needs 28.7 KB less memory on the FM-1.** msfa's sine, exponential
+  and frequency tables, which it used to compute into RAM at start-up, are
+  now built ahead of time as constant data, which the FM-1 keeps in flash;
+  a fourth table that nothing used is gone. Every sound comes out the same,
+  sample for sample. The simulator's memory meter is right about it now: it
+  never counted those tables. At a sample rate other than the FM-1's
+  44,118 Hz an FM6 sound carries its own 4 KB frequency table, which the
+  meter counts.
+- **FM6 keeps its name, and says where it comes from:** the engine is
+  Google's msfa and the name is that of the FM engine in hugelton's
+  Felucca, whose port of the same core checks FM6 in the tests; both
+  borrowed, with thanks (the credits, the manual and the simulator page).
+- **Drums: the cowbell stays an option.** It plays on any pad through the
+  pad's sound (Model), with no pad of its own; the voicings get a listening
+  pass from the owner.
+- **New README screenshots,** with FM6 among the engines' screens; the
+  others are retaken from the same build with their names unchanged.
 - **Comp's Auto Gain only touches what would clip** (owner's request): it
   holds a sample at full scale only where its makeup would push it past,
   such as the start of a loud hit; everything else, steady notes included,

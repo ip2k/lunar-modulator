@@ -10,17 +10,24 @@ stock `app.bin` [verified: docs/02 §5], and it equals Google's table row for
 row, rows 4 and 6 included [verified: `tools/check_msfa_table.py`'s V13
 and V14 finds against `third_party/msfa/fm_core.cc`, below].
 
+**Borrowed, with thanks.** The engine is Google's msfa, and its name is
+Felucca's: FM6 is the FM engine of hugelton's Felucca, whose Apache-2.0
+`fm6_core.c` (Leo Kuroshita's port of msfa as Dexed carries it) is this
+engine's test oracle (below). The owner kept the name on 2026-10-06, "since
+we're borrowing it"; the engine id `dx7` is internal.
+
 DX7 is a Yamaha trademark. FM6 reads the voice format; it is not affiliated
-with or endorsed by Yamaha, and the engine's name is our own.
+with or endorsed by Yamaha.
 
 | | |
 | --- | --- |
-| Source | `src/msfa_dx7.cc` (the engine), `src/dx7_voice.cc` (voice data, SysEx), `src/dx7_loop.cc` (algorithms 4 and 6), `src/msfa_prelude.h`, `src/msfa.h`, `src/msfa_unit.cc` (how msfa is compiled), `src/dx7_bank.h` (the built-in voices, made by `tools/dx7_bank.py`), `include/fm1_dx7.h` (the SysEx import) |
+| Source | `src/msfa_dx7.cc` (the engine), `src/dx7_voice.cc` (voice data, SysEx), `src/dx7_loop.cc` (algorithms 4 and 6), `src/msfa_prelude.h`, `src/msfa.h`, `src/msfa_unit.cc` (how msfa is compiled), `src/msfa_tables.cc` and `src/msfa_rom.cc` (msfa's tables as const data, the second made by `tools/msfa_tables.py`), `src/dx7_bank.h` (the built-in voices, made by `tools/dx7_bank.py`), `include/fm1_dx7.h` (the SysEx import) |
 | Build | `mk/msfa.mk` |
 | Tests | `tests/test_engines_dx7.py`; the generic engine tests list it like the others |
-| Oracle | `fm1-dx7-oracle` (`test/dx7_oracle.cc`, `test/dx7_felucca.c`) with Felucca's `fm6_core.c` (`third_party/felucca-fm6/`, Apache-2.0) |
+| Oracle | `fm1-dx7-oracle` (`test/dx7_oracle.cc`, `test/dx7_felucca.c`) with Felucca's `fm6_core.c` (`third_party/felucca-fm6/`, Apache-2.0); and msfa's own table init (`test/msfa_ref.cc`) |
 | Voices | 12 |
-| Instance | 15,844 bytes on 64-bit, 32-bit and pi32v2 alike (below) |
+| Instance | 15,848 bytes at 44,118 Hz, on 64-bit, 32-bit and pi32v2 alike; 19,948 at any other rate (below) |
+| Shared RAM | none but a few words: msfa's tables are const data, flash on the FM-1 (below) |
 
 ## Playing it
 
@@ -99,7 +106,9 @@ after its release). They want a listening pass (open questions).
 ### From SysEx: the user slots
 
 `include/fm1_dx7.h` is the engine-side import. A host hands
-`fm1_dx7_load_sysex` the bytes of a `.syx` file:
+`fm1_dx7_load_sysex` the bytes of a `.syx` file (or reads one without an
+instance with `fm1_dx7_read_sysex`, and gives an instance a voice with
+`fm1_dx7_set_user_voice`, as the simulator does):
 
 - **A single voice (VCED):** `F0 43 0n 00 01 1B`, 155 data bytes, a
   checksum, `F7` (163 bytes). It goes to the slot asked for, the next one
@@ -114,6 +123,10 @@ after its release). They want a listening pass (open questions).
   value is clamped to its range and names to printable ASCII, so any bytes
   are safe to load; a message cut short or broken by another status byte
   is skipped.
+- The result says what was skipped and why, for a host's message: other
+  SysEx (another maker's, another format), messages cut short, voice or
+  bank dumps of the wrong length (a header with another byte count or
+  length), bytes outside any message, and raw bank data.
 - Sounding notes keep the voice they started with.
 
 On the desktop, `fm1-render --engine dx7 --sysex FILE.syx` loads files
@@ -126,14 +139,26 @@ engines/build/fm1-render --engine dx7 --sysex mybank.syx --param Patch=40 \
 # stderr: sysex mybank.syx: 32 voices from User 1, 0 bad checksums, 0 skipped: "..." ...
 ```
 
-The browser simulator has no way to load a file yet (open questions).
+In the browser simulator, **Load DX7 patches…** (or a file dropped on the
+page) reads a `.syx` file in the browser and hands its bytes to the
+firmware (`fm1w_dx7_load`, sim/web/README.md); nothing is uploaded. The
+app keeps FM6's user bank, the voices the FM-1 would keep in flash: every
+FM6 sound gets them when it is created and when a file loads, FM6's Patch
+list shows their names in place of "User N", and the current sound then
+plays the first voice loaded (it becomes FM6 if it was not). The page
+names what was wrong with a file that loaded nothing, and flags wrong
+checksums. Files up to 64 KiB [verified: tests/test_sim_web.py natively,
+test/sysex.mjs on the module, the page in headless Chromium,
+2026-10-06].
 
 ## What is msfa's and what is ours
 
 **msfa's, unmodified:** the envelope generator (`Env`), pitch envelope
 (`PitchEnv`), LFO (`Lfo`), the 32 algorithms and single-operator feedback
 (`FmCore`, `FmOpKernel`, integer kernels), the sine, exponential and
-frequency tables (`Sin`, `Exp2`, `Freqlut`), the note set-up in
+frequency lookups (`Sin`, `Exp2`, `Freqlut`) and their tables' values, made
+ahead of time as msfa's init makes them ("Tables in flash" below), the
+note set-up in
 `dx7note.cc` (`ScaleLevel`, `ScaleRate`, `ScaleVelocity`, `osc_freq`) and
 `UnpackPatch`. msfa's `Dx7Note` class is compiled but not used: the engine
 builds each voice from the same parts, in the order `Dx7Note::init` and
@@ -207,20 +232,26 @@ below, so the pitches in each octave's last few percent come out wrong (a
 tests/test_engines_dx7.py; until 2026-10-05's review the floor was
 8,000 Hz].
 
-msfa keeps its tables and its rate units in globals. The engine fills them
-in its first create and never again; a later create at another rate is
-refused (create returns NULL), as the Schwung shim refuses one. One rate
-per process is what the FM-1, the simulator and `fm1-render` have.
+msfa keeps its rate units (`Lfo`'s and `PitchEnv`'s) in globals. The
+engine sets them in its first create and never again; a later create at
+another rate is refused (create returns NULL), as the Schwung shim refuses
+one. One rate per process is what the FM-1, the simulator and `fm1-render`
+have. Its tables are const data, and at a rate other than 44,118 Hz the
+frequency table is the instance's own (below).
 
 **No libm while rendering**, and the tables come out exact:
 
-- `Sin::init`, `Exp2::init` and `Freqlut::init` make one libm call each
-  (`cos` and `sin` of 2π/1024, `exp2` and `pow` of 2^(1/1024)), which every
-  compiler here folds at compile time, Apple's clang, GCC, Emscripten's and
-  JieLi's [verified: no such symbol in the objects; JieLi's compile check,
-  2026-10-05], then integer steps or repeated multiplication (in software
-  doubles on pi32v2, once). The test recomputes all three tables from
-  correctly rounded values (Python's `Decimal`) and requires them equal.
+- msfa's `Sin::init`, `Exp2::init` and `Freqlut::init` take one libm value
+  each (`cos` and `sin` of 2π/1024, `exp2` and `pow` of 2^(1/1024)), which
+  every compiler here folds at compile time, then integer steps or
+  repeated multiplication in doubles. Since 2026-10-06 none of them runs:
+  `tools/msfa_tables.py` takes the same steps from correctly rounded values
+  (Python's `Decimal`) and writes the tables as const data
+  (`src/msfa_rom.cc`), and the oracle compares them with msfa's own init,
+  word for word (below). At another rate than 44,118 Hz the instance fills
+  its frequency table with `FillFreqLut` (`src/msfa_tables.cc`):
+  `Freqlut::init`'s doubles and steps, with a truncation where it called
+  `floor`, so no libm at all.
 - `osc_freq` takes a `log` (a software double on pi32v2) for each
   operator's fine frequency. The engine calls it for each voice of the bank
   and each user slot when the instance is made or a dump is loaded, and
@@ -313,7 +344,10 @@ on.
   git, when `reference/msfa` is there); `fm6_core.c` the same; the bank
   header against `tools/dx7_bank.py`; the engine's carrier table against
   msfa's algorithm table.
-- msfa's tables against correctly rounded values (above).
+- msfa's tables, made by `tools/msfa_tables.py` from correctly rounded
+  values, against the file the engine builds and against msfa's own init
+  (above, "Tables in flash"); an instance's own frequency table at 44,100
+  and 48,000 Hz, and its 4,100 bytes in the instance's size.
 - Tuning at four keys within 0.5 cent; transpose; a fixed frequency on any
   key; the six carriers of algorithm 32 at 6 dB steps (8 output-level
   steps each, within 0.15 dB).
@@ -337,29 +371,101 @@ on.
 
 ## Cost and memory
 
-**Instance:** 15,844 bytes on this 64-bit desktop, on i386 and on pi32v2:
-it holds no pointers [verified: `fm1-render`'s `instance_bytes`; JieLi's
-compile check measured 14,308 on all three targets before the pitch cache
-below was added, 2026-10-05]. Twelve voices of msfa state (six envelopes, a
-pitch envelope, six operators' parameters, our clocks and per-note
-offsets: 664 bytes each), the 32 user voices (4,992 bytes, unpacked), the
-operators' pitches of all 64 slots (1,536 bytes, so that a note-on needs
-no `log`), one unpacked built-in voice, msfa's two 64-sample buses and the
-output block.
+**Instance:** 15,848 bytes at 44,118 Hz on this 64-bit desktop, on
+pi32v2, i386 and x86-64 alike: it holds no pointers [verified:
+`fm1-render`'s `instance_bytes`; JieLi's compile check, 2026-10-06; 15,844
+before the flag below]. Twelve voices of msfa
+state (six envelopes, a pitch envelope, six operators' parameters, our
+clocks and per-note offsets: 664 bytes each), the 32 user voices (4,992
+bytes, unpacked), the operators' pitches of all 64 slots (1,536 bytes, so
+that a note-on needs no `log`), one unpacked built-in voice, msfa's two
+64-sample buses, the output block and a flag saying whether a frequency
+table follows. At any other rate one does: 4,100 bytes more, 19,948 in all
+[verified: tests/test_engines_dx7.py at 44,100 and 48,000 Hz].
 
-msfa's tables are globals, shared by every instance, outside it:
+### Tables in flash
 
-| Shared table | Bytes |
-| --- | ---: |
-| `sintab` (1,024 points with their deltas) | 8,192 |
-| `exp2tab` (likewise) | 8,192 |
-| `lut` (`Freqlut`, 1,025 points) | 4,100 |
-| `tanhtab` (defined by `exp2.cc`, filled by nothing here) | 8,192 |
+msfa fills three tables in RAM at start-up, and `exp2.cc` defines a fourth
+that nothing here reads. Until 2026-10-06 they were globals, 28,688 bytes
+of the FM-1's RAM outside every instance [verified: JieLi's compile check,
+`.bss` of `tp/msfa/*.o`, 2026-10-05], which the simulator's RAM meter did
+not count. Since then (the owner's decision, 2026-10-06):
 
-On the FM-1 the three filled ones could be const data in flash, as
-Felucca's are, instead of 20 KB of RAM, and `tanhtab` is dead weight (open
-questions). Code: about 10 KB for the engine and 8 KB for msfa on pi32v2
-at `-O2` [verified: JieLi's compile check].
+| msfa's table | Bytes | Now |
+| --- | ---: | --- |
+| `sintab` (1,024 points with their deltas) | 8,192 | const data: `kSinTab` |
+| `exp2tab` (likewise) | 8,192 | const data: `kExp2Tab` |
+| `lut` (`Freqlut`, 1,025 points) | 4,100 | const data at 44,118 Hz (`kFreqLut44118`); at another rate, in the instance |
+| `tanhtab` (defined by `exp2.cc`, filled by nothing here) | 8,192 | gone: `exp2.cc` is not compiled |
+
+So at the FM-1's rate FM6 keeps 28,688 bytes less in RAM, and 20,484 more
+bytes of const data sit in flash. What is left in RAM besides the
+instances is 24 bytes on pi32v2: msfa's `.bss` is 12 (`fm1_freqlut` and
+the rate units of `Lfo` and `PitchEnv`), `msfa_tables.o`'s `.data` 8 (the
+two table pointers, constant initialised: no start-up code) and the
+engine's own rate 4 [verified: JieLi's compile check, 2026-10-06, all four
+profiles; `msfa_rom.o` is 20,484 bytes of read-only data and nothing else,
+and no msfa table is among the largest static RAM symbols any more].
+
+How, with msfa's files unmodified (`src/msfa_prelude.h`):
+
+- msfa declares `extern int32_t sintab[2048]` (and `exp2tab`) in its
+  headers and reads them in its inline `Sin::lookup` and `Exp2::lookup`;
+  `freqlut.cc` defines `int32_t lut[1025]` and reads it in
+  `Freqlut::lookup`. The prelude makes each name a macro for a pointer's
+  target, `#define sintab (*fm1_sintab)`, before msfa's code is read: the
+  headers then declare a pointer to the table, the lookups read through it,
+  and the rest of msfa's code is as it was. A const declaration would have
+  needed msfa's headers edited; defining const tables against msfa's
+  non-const declarations is a type mismatch C++ does not allow across
+  files, though linkers accept it.
+- `src/msfa_tables.cc` points `fm1_sintab` and `fm1_exp2tab` at the const
+  tables, as constant initialisation (no start-up code; the `const_cast`
+  only matches msfa's declared type, and nothing writes through them).
+- `freqlut.cc` is still compiled, for `Freqlut::lookup`; its `lut` becomes
+  the pointer `fm1_freqlut`, which the engine sets before each block to the
+  const 44,118 Hz table or to its instance's own. An instance's own table
+  lives after it in the host's memory (`InstanceSize` adds it at any rate
+  but 44,118 Hz), so the RAM meter counts it, and it is filled at create
+  with `FillFreqLut`. It is set per block, not once, because the pointer is
+  global and an instance can be destroyed (on the control task) while
+  another plays; all instances share one rate, so their tables are equal.
+- `sin.cc` and `exp2.cc` are not compiled into the engine: they only
+  define and fill the tables (`Sin::compute` and `compute10` are used by
+  nothing but `#if 0` code in `fm_op_kernel.cc`). The oracle builds them,
+  as upstream does, to compare.
+
+Checks [verified, 2026-10-06]:
+
+- `fm1-dx7-oracle --tables-vs-msfa` links upstream's `sin.cc`, `exp2.cc`
+  and `freqlut.cc` as they are (in their own namespace, the macros off) and
+  runs their init: the const sine and exp2 tables and the 44,118 Hz
+  frequency table equal msfa's, word for word, and `FillFreqLut` equals
+  `Freqlut::init` at 381 rates from 16,385 to 384,000 Hz (390,525 words), as
+  does the table an instance reads at 44,118, 44,100, 16,385 and 384,000 Hz
+  (tests/test_engines_dx7.py).
+- The output is unchanged: 268 renders with the build before and after,
+  byte for byte the same: the three `dx7-*` parity scenarios at 44,118,
+  44,100, 48,000 and 22,050 Hz, and every Patch value (the 32 built-in
+  voices, and the built-in bank loaded into the 32 user slots) with Env
+  Time, Brightness, Feedback and a bend moved, a chord and a high note, at
+  44,118, 16,385, 44,100 and 96,000 Hz.
+- No measurable cost: twelve voices of PURE SINE, ORGAN 1, TINE EP, BRASS,
+  STRINGS and SAW LEAD took between 7 % less and 0.1 % more time than
+  before (best of five 5-second renders, this desktop), which is noise:
+  the pointer's load is hoisted out of the operator loop.
+- The table could live in RAM again without touching msfa: a firmware that
+  finds the sine table too slow in flash (docs/11 §2 reports stock copying
+  msfa's hot code to SRAM) can copy it there and repoint `fm1_sintab`.
+
+Code and const data on pi32v2 at `-O2` (`.text` and `.rodata`): about
+14 KB for the engine, its 32 built-in voices 5.5 KB of it, 5.6 KB for
+msfa, and the tables' 20 KB [verified: JieLi's compile check, 2026-10-06;
+msfa was 8 KB with `sin.cc` and `exp2.cc`]. `FillFreqLut` uses software
+doubles and no libm; the libm calls left are `log` in `osc_freq` (at
+create and when voices load) and `floor` in `Freqlut::init` and
+`Dx7Note::init`, which nothing calls [verified: the same check's symbol
+list].
 
 **Time per 64-sample block on this desktop** (Apple M1 Max, twelve voices
 sounding, best of three 5-second renders; share of the 1.451 ms block)
@@ -383,20 +489,15 @@ loop algorithms are the dearest case here.
 
 ## Open questions
 
-- **The name.** "FM6" is generic (six-operator FM) and is also the name of
-  Felucca's FM engine; the engine id `dx7` is internal. The owner may want
-  another.
 - **A listening pass over the 32 built-in voices** (designed by numbers).
 - **Envelope holds** (`ACCURATE_ENVELOPE`): adding them means an envelope
   of our own instead of msfa's `Env`, or a check of whether the stock FM-1
   has them first.
 - **AM depths** are a design (above), not a measurement of a DX7.
-- **The simulator's SysEx import:** a file picker or drag-and-drop on the
-  page calling `fm1_dx7_load_sysex`, and the user slots' names on the
-  screen (the Patch list's names are the static "User 1"...;
-  `fm1_dx7_user_name` returns the stored ones).
-- **msfa's tables in flash** for the FM-1 (20 KB of RAM otherwise), and
-  `tanhtab`, which nothing uses.
+- **The user bank on the FM-1:** the simulator's bank lasts until power
+  off. On the FM-1 it would live in a flash partition, which waits for the
+  dump-and-restore gate (CLAUDE.md, the one rule) and a SysEx path over
+  USB-MIDI.
 - **Controllers:** the mod wheel and aftertouch routings, sustain and
   portamento need the engine API to carry controllers first.
 - **Felucca's AM quirk:** a candidate upstream report (above).

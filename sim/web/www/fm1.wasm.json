@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "cbd9d1f15c26db81de9ac9a425fa4a33771a63ee20871fd9524ead5784f85212",
-  "wasm_bytes": 862648,
+  "wasm_sha256": "f4249dfe69412430c5bbbfe9d320591ab5dd0f5c9a9a029a5e94ca8387b2f564",
+  "wasm_bytes": 887038,
   "sources_sha256": {
-    "engines": "b565b219e0a082ec84ff2e159f730c70200f0312d5553bfde02a7ade1b070219",
-    "sim": "6f8bee721957a14519250bdb3934f32a06d41d3f19ad3d47d2fae2b155cb9f91"
+    "engines": "e01f8a534cfefb2a742c0e6875d3ea52015dbbc1e6bfe08ccbbc1a854ef24278",
+    "sim": "ca3a215fff96b8d3accb4348dd6f5ece04b3a83dbf15b9305f228283cfdbdfad"
   },
   "engines": "working tree",
-  "built": "2026-10-06T04:23:49Z",
+  "built": "2026-10-06T04:47:11Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,12 +17,90 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 75,
+    "passed": 76,
     "failed": 0,
-    "identical_to_js": 75,
-    "identical_to_musl": 75,
-    "identical_to_glibc": 72,
+    "identical_to_js": 76,
+    "identical_to_musl": 76,
+    "identical_to_glibc": 73,
     "max_lsb_vs_glibc_exact_scenarios": 1
+  },
+  "dx7_sysex": {
+    "passed": 18,
+    "failed": 0,
+    "cases": [
+      {
+        "name": "a 32-voice bank fills User 1-32 with its names",
+        "pass": true
+      },
+      {
+        "name": "32 single-voice dumps in one file fill User 1-32",
+        "pass": true
+      },
+      {
+        "name": "single voices go to the slot after the last; a bank resets to User 1",
+        "pass": true
+      },
+      {
+        "name": "a bank's data without SysEx framing loads",
+        "pass": true
+      },
+      {
+        "name": "a wrong checksum loads and is counted",
+        "pass": true
+      },
+      {
+        "name": "a bank with a wrong checksum loads and is counted",
+        "pass": true
+      },
+      {
+        "name": "an empty file loads nothing",
+        "pass": true
+      },
+      {
+        "name": "text loads nothing, every byte outside SysEx",
+        "pass": true
+      },
+      {
+        "name": "another maker's SysEx loads nothing and is named foreign",
+        "pass": true
+      },
+      {
+        "name": "a bank cut short loads nothing and is named truncated",
+        "pass": true
+      },
+      {
+        "name": "a voice dump one byte short loads nothing and is named the wrong size",
+        "pass": true
+      },
+      {
+        "name": "a dump whose byte count disagrees with its header is the wrong size",
+        "pass": true
+      },
+      {
+        "name": "several dumps and other messages: the dumps load, the rest is counted",
+        "pass": true
+      },
+      {
+        "name": "a file past the 64 KiB buffer is refused, and a refusal keeps the bank",
+        "pass": true
+      },
+      {
+        "name": "64 KiB of single voices is read whole",
+        "pass": true
+      },
+      {
+        "name": "with play, the current sound becomes FM6 on the first voice loaded",
+        "pass": true
+      },
+      {
+        "name": "an FM6 sound made after a load plays the bank",
+        "pass": true
+      },
+      {
+        "name": "each voice sounds the same from the bank as from its single dump",
+        "pass": true
+      }
+    ]
   },
   "scenarios": [
     {
@@ -219,8 +297,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 83200,
-        "native64": 83216
+        "wasm32": 83204,
+        "native64": 83220
       }
     },
     {
@@ -241,8 +319,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 78464,
-        "native64": 78464
+        "wasm32": 78468,
+        "native64": 78468
       }
     },
     {
@@ -263,8 +341,30 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 144192,
-        "native64": 144192
+        "wasm32": 144196,
+        "native64": 144196
+      }
+    },
+    {
+      "name": "dx7-user-bank",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 78468,
+        "native64": 78468
       }
     },
     {

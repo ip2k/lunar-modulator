@@ -1674,8 +1674,9 @@ the tests; the manual's chapter 8, "Per voice", the user's view) [verified
      were; they now go back to 0.
 
   The module rebuilt with the fixes is 849,435 B: parity 73 of 73,
-  identical to `render.js` and to musl, no imports (862,648 B once merged
-  with the list popups and dynamics pack 3; parity 75 of 75). ASan and UBSan over
+  identical to `render.js` and to musl, no imports (887,038 B once merged
+  with the list popups, dynamics pack 3 and FM6's user bank; parity 76
+  of 76). ASan and UBSan over
   the runtime's, kinds', voices', sequencer's and simulator's tests found
   nothing more.
 
