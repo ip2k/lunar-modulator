@@ -99,6 +99,7 @@ const cmdPath = (s) => resolve(dirname(args.scenarios), s.cmd);
 const panelPath = (s) => resolve(dirname(args.scenarios), s.panel);
 const modPath = (s) => resolve(dirname(args.scenarios), s.mod);
 const sysexPath = (s) => resolve(dirname(args.scenarios), s.sysex);
+const loadPath = (s) => resolve(dirname(args.scenarios), s.load);
 
 function cliArgs(s) {
   const a = ['--seconds', String(s.seconds), '--rate', String(s.rate ?? 44118), '--engine', s.engine];
@@ -132,6 +133,7 @@ function cliArgs(s) {
   }
   for (const p of s.mfx_param_at ?? []) a.push('--mfx-param-at', p);
   for (const p of s.mfx_on_at ?? []) a.push('--mfx-on-at', p);
+  if (s.load) a.push('--load', loadPath(s));
   return a;
 }
 
@@ -370,6 +372,17 @@ async function renderApp(s) {
   if (mod) {
     ex.fm1w_mod_reset(mod.seed);
     modUpTo(0);
+  }
+
+  // A state file (stage A1), after the setup, as fm1-sim-render --load
+  // applies it: through the text buffer and fm1w_state_load.
+  if (s.load) {
+    const bytes = readFileSync(loadPath(s));
+    if (bytes.length > ex.fm1w_text_cap()) throw new Error(`${s.load}: larger than the text buffer`);
+    textBuf.set(bytes);
+    if (ex.fm1w_state_load(0, -1, 0, 0, bytes.length) !== 1) {
+      throw new Error(`${s.load}: refused: ${w.string(ex.fm1w_state_report())}`);
+    }
   }
 
   // Events as render.cc builds them: --bend and --param-at in argv order

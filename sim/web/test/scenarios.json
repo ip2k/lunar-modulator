@@ -761,6 +761,10 @@
      "bends": ["0.6:2", "0.75:0", "1.4:-2"],
      "param_at": ["0.30:DCW=80", "0.85:Voice Mode=0", "0.90:Line=1", "0.92:Detune=12", "0.94:Sub=40",
                   "1.10:DCW=30", "1.20:Env=90", "1.25:Wave=2", "1.50:Sustain=40"],
-     "fx": [["echo", ["Mix=0.2"]]], "seconds": 2.2}
+     "fx": [["echo", ["Mix=0.2"]]], "seconds": 2.2},
+    {"name": "project-load-play", "engine": "drums",
+     "why": "Stage A1: the example project loaded (fm1_app_state_load, fm1w_state_load; fm1-render --load), then its song played: four sounds (Drums with every pad, Macro through a filter and a drive, Macro behind the arp, FM6 on a user voice), the master's hall and limiter, a rack of five modules with a per-voice cable, a set with a song and a key.",
+     "load": "../../../engines/state/examples/first-orbit.lunar", "cmd": "state/play.verbs", "fx": [],
+     "seconds": 4.0}
   ]
 }
