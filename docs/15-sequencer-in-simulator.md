@@ -438,7 +438,8 @@ playing restarts (S4); D12 makes that a Stop and a Start.
 **REC held while stopped** is step record [O8].
 
 **SHIFT + REC** is Capture, `cap <focused>` [O7].
-- **capture_mode 1, the tempo picker:** a held popup lists the candidates.
+- **capture_mode 1, the tempo picker:** a held popup lists the candidates
+  (a list popup titled `Tempo` since 2026-10-06, as PRESETS').
   SELECT or KNOB1 sends `capsel i`, heard at once. Any other press sends
   `capdone`.
 - **capture_mode 2:** a two-line toast, `Captured` / `at 120 BPM`.
@@ -631,7 +632,7 @@ mode, so choosing a sound uses neither the keys nor a new button):
 
 | Input | HOME, GLO, SEQ mode | FX mode |
 | --- | --- | --- |
-| SHIFT + PRESETS | the current sound, Sound 1 to 4, no wrap; a popup `Sound 2 of 4` with its engine, or `Empty:` / `turn PRESETS` | — (SEL is the slot grab, as before; choose the sound outside FX mode) |
+| SHIFT + PRESETS | the current sound, Sound 1 to 4, no wrap; a list popup `Sound` of the four (`S1 Macro`, `S2 Empty`, …), the current one highlighted (until 2026-10-06 a popup `Sound 2 of 4` with its engine, or `Empty:` / `turn PRESETS`) | — (SEL is the slot grab, as before; choose the sound outside FX mode) |
 | PRESETS | the current sound's engine, stepping past one this host refuses or that would not fit, with a popup naming the first one skipped; on Sounds 2–4 the list starts with Empty, which unloads the sound (Sound 1 always holds one) | the same |
 | ALGORITHM | the current sound's model | the selected slot's effect, stepping past one that would not fit; nothing on the Mix page |
 | SELECT | the current sound's pages | walks the current sound's In1 and In2, the Mix page, then M1 and M2 (the master bus), page by page; FX mode opens on the master slot that was selected |
