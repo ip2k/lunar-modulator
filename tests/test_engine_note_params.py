@@ -530,19 +530,16 @@ def test_offsets_do_not_depend_on_the_host_block(renderer, tmp_path, listing, en
     assert outs[1] == outs[0] and outs[2] == outs[0]
 
 
-# Braids faults past MIDI 127 on several shapes and at two shapes' Timbre
-# ends without any per-note offset (engines/README.md, "Open questions"), so
-# Shapes keeps key + bend + offset within 0..127 here and leaves out Comb
-# (Timbre 0 on low keys) and Wave Line (Timbre 1).
-BRAIDS_EDGE_FAULTS = {15, 39}
+# Shapes holds Braids inside the range its code handles (MIDI 0..127.99, and
+# Comb's and Wave Line's Timbre ends; engines/README.md, "Shapes: where
+# Braids is held"), so every shape takes the full extremes here too.
 EXTREME_MODELS = {
     "macro": [f"Model={m}" for m in range(8)],
     "macro-heavy": [f"Model={m}" for m in range(13)],
-    "shapes": [f"Shape={s}" for s in range(47) if s not in BRAIDS_EDGE_FAULTS],
+    "shapes": [f"Shape={s}" for s in range(47)],
     "sixop": [f"Patch={p}" for p in range(0, 96, 5)],
     "dx7": [f"Patch={p}" for p in range(0, 33, 2)],
 }
-EXTREME_KEYS = {"shapes": {"inf": (0, 31), "-inf": (96, 127)}}
 
 
 @pytest.mark.parametrize("engine", PER_NOTE)
@@ -550,10 +547,9 @@ EXTREME_KEYS = {"shapes": {"inf": (0, 31), "-inf": (96, 127)}}
 def test_extreme_offsets_render_finite(renderer, tmp_path, listing, engine, sign):
     """Every POLY parameter pinned at an end and the pitch offset at +/-48
     on top of a +/-48 bend, on the lowest and highest keys, every model
-    (Six-Op: every fifth patch; Shapes: within MIDI 0..127, all shapes but
-    two, above). Finite output; under the sanitizer build, no undefined
-    behaviour or out-of-bounds read either."""
-    keys = EXTREME_KEYS.get(engine, {}).get(sign, (0, 127))
+    (Six-Op: every fifth patch). Finite output; under the sanitizer build,
+    no undefined behaviour or out-of-bounds read either."""
+    keys = (0, 127)
     for model in EXTREME_MODELS[engine]:
         extra = ["--bend", f"0:{'' if sign == 'inf' else '-'}48", "--frames", "7"]
         for key in keys:
