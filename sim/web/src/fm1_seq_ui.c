@@ -304,6 +304,7 @@ void fm1_seq_ui_leave(fm1_seq_ui_t *u) {
   u->clear_gestured = 1;
   u->loop_held = 0;                          /* LOOP's */
   u->copy_held = 0;                          /* or COPY's */
+  u->confirm = FM1_SEQ_CONFIRM_NONE;         /* a question only SEQ mode shows */
 }
 
 /* The head moves (Movy's setHead): a fresh step, and the bar on the keys

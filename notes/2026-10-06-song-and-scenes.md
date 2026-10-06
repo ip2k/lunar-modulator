@@ -15,7 +15,8 @@ with the state stages on `feature/2026-10-06@state-core`): the verbs of
 §5.5, the `fm1_seq_info_t` fields, the `se`, `sn` and `dq` lines, D15-D17,
 ST11's reseed, and a fourth fix found in testing, D18, which awaits the
 owner's word (`engines/seq.md`, "The song"; `tests/test_seq_song.py`). The
-Session view and the Song page (S9+) are not built. The companion note
+Session view and the Song page (S9+) are built too
+(`feature/2026-10-06@session-song`, 2026-10-06; manual chapter 7). The companion note
 [2026-10-06-state-files.md](2026-10-06-state-files.md) covers files and
 launch links; this one says what the song puts in them (§5.6).
 

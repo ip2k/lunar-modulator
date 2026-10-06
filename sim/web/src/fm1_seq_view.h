@@ -48,6 +48,14 @@
  * take's value while its knob turns, and with CLEAR held says a knob clears
  * its lane (on a lock page, the first line does). Track page 2 writes a
  * label's '_' as the space it stands for.
+ * S9+: Session (the status line, the scene header in SMALL with the
+ * playing scene on a C_LIVE tile, a row of eight slots a track in its
+ * sound's colour, the tracks' numbers left of it, and the song band in MID
+ * above the bottom bar) and the Song page (the context line, seven MID rows
+ * of entry, scene and name, repeats or pass, bars and start time, `+ add`,
+ * and the knob legend in SMALL). The status line's transport word is SONG
+ * while a song is followed and END once parked, and the Track view's hint
+ * line says what is Next in the playing entry's last bar (SG11).
  * Every text run keeps the app's 4 px gap and 2x text; the layout sweep
  * (fm1-sim-render --screens) checks each state.
  *

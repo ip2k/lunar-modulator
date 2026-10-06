@@ -9,6 +9,23 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Session and the song on the simulator's panel** (stage S9+;
+  notes/2026-10-06-song-and-scenes.md, every decision adopted). Press SEQ
+  in SEQ mode for the session view: every track's eight slots, white keys
+  1–8 launch the focused track's clips on the bar and 9–16 focus tracks.
+  Hold LOOP (G#3) and press keys 1–8 to launch scenes: one press launches
+  a scene alone and keeps the song, two or more build a new song. COPY
+  (C#4) held copies and pastes clips. SHIFT + LOOP opens the new song page:
+  each entry's scene, name, repeats, bars and start time; keys 1–8 add
+  scenes, 9–16 set repeats, the knobs set the scene, repeats, the scene's
+  name and what the song does at its end (Loop, Park or Stop), SHIFT + the
+  arrows move an entry, CLEAR deletes one, and SHIFT + PLAY plays from it.
+  The song can be edited while it plays. A song band along the bottom of
+  the session view, SONG and END on the status line and a *Next* hint in
+  the last bar show where it is. Deleting a clip (a CLEAR tap in the track
+  view, CLEAR + a slot in the session view) or the whole song asks first,
+  until the next press. A saved project remembers the session view and the
+  song page. Manual chapter 7 describes all of it.
 - **Files on the simulator's page** (stage W1). *Open…*, or files dropped
   on the page, loads projects, sounds, effects, mod racks and clips
   (`.lunar`), a Movy set (`.movy1`) or DX7 patches (`.syx`); a sound,

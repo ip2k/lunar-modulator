@@ -135,6 +135,33 @@
  *                  lane step v`, heard (Movy's live take, no quiet flag),
  *                  at the playing step; detents add up until 600 ms pass
  *                  without one, Movy's knob release
+ * S9+ adds Session and the Song page (notes/2026-10-06-song-and-scenes.md,
+ * every decision adopted: SG1-SG13, D15-D18 in the default mode; the core's
+ * compat mode keeps Movy's `song`):
+ *
+ *   SEQ tap        inside SEQ mode, released with no track focused: the
+ *                  Track view and Session swap; any other view goes to the
+ *                  Track view
+ *   Session        white keys 1-8 the focused track's slots (`launch t s`,
+ *                  an empty slot stops it), 9-16 focus tracks 1-8; G#3
+ *                  (LOOP) held: keys 1-8 are scenes (D16: one press
+ *                  `scene s`; a second `sgnew` of the first and `songadd`,
+ *                  later ones `songadd`; compat: `song`, then `songadd`);
+ *                  C#4 (COPY) held: a slot with a clip `clipcopy`, then
+ *                  `clippaste`; D#4 (CLEAR) held + a slot: the confirm
+ *   SHIFT + LOOP   the Song page, from the Track view or Session; again,
+ *                  back. Its cursor walks the entries and `+ add` (SELECT,
+ *                  F#3, A#3; SHIFT + the arrows `sgmov`); white keys 1-8
+ *                  insert a scene after it (`sgins`, or `sgset` for a
+ *                  repeat of its own scene), 9-16 set its repeats; KNOB1-4
+ *                  its scene, repeats, the scene's name (`sgname`) and the
+ *                  end (`sgend`); CLEAR `sgdel`, SHIFT + CLEAR the confirm
+ *                  for `sgclr`; SHIFT + PLAY `sgjump` (and `play`, stopped)
+ *   the confirm    a CLEAR tap in the Track view (`clipdel`), CLEAR + a
+ *                  slot (`clipdelat`), SHIFT + CLEAR on the Song page
+ *                  (`sgclr`): CLEAR again sends it; any other press only
+ *                  closes it, and knob turns are swallowed (O15, SG9)
+ *
  * The knob grid and the lanes' bases with no step held are the app's
  * (fm1_app.c): a laned parameter turns on the 7-bit grid and every lane on
  * it, of every track that plays that sound, follows at once (`abaseq`).
