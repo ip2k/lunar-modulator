@@ -7,8 +7,8 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
-state of `main` after the PRs merged up to #78 (2026-09-29 to 2026-10-06,
-`9eb4406`).
+state of `main` after the PRs merged up to #79 (2026-09-29 to 2026-10-06,
+`0db700f`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -102,13 +102,13 @@ so it is always written in full.
   written through mask ROM [reported]. Their code maps the board (docs/01
   §3.1, [reported]): audio is ALNK0 (I2S) to an external codec, not the
   internal DAC, and the seven encoders are scanned in the key matrix.
-- **Tests:** 4,294 collected; 4,283 pass, 2 xfail (both undo, not ported
+- **Tests:** 4,373 collected; 4,362 pass, 2 xfail (both undo, not ported
   yet) and 9 skip where a local reference clone, an unpacked stock package
   or the manual's `markdown` module is missing [verified: `pytest` at
-  `9eb4406` with this file, 2026-10-06]. By group: 3,054 engine tests (496
+  `0db700f` with this file, 2026-10-06]. By group: 3,124 engine tests (496
   of them comparing against upstream reference renders and their controls,
   250 for the arpeggiator and the MIDI-effect host, 164 for modulation), 558
-  for the sequencer core, 537 for the virtual FM-1 and its sequencer UI, 79
+  for the sequencer core, 546 for the virtual FM-1 and its sequencer UI, 79
   for the tools, the dongle, the SDK link audit, the package guard and the
   boot bridge, and 66 for the manual and its diagrams. CI runs the suite on
   Linux and macOS, runs the engine, sequencer and simulator tests again as a
@@ -136,8 +136,8 @@ so it is always written in full.
   - The cloud session's stray branch `claude/mvave-fm1-open-firmware-ly2w6u`
     on `ip2k/busybar-dual-timer` was deleted on 2026-09-06.
 - **Open pull requests** at 2026-10-06:
-  - #79, engine follow-ups: glide modes, Drums' choke and Kit Decay, driven
-    idle paths, Mu's partial makeup.
+  - #80, memory shown only as a percentage of the FM-1's budget, and a
+    refused cable marks nothing.
   - #58, the lagging docs that this refresh listed, fixed (§5 item 8);
     waiting for the owner.
   - Echomatter closed #1 on 2026-10-05 and offered to coordinate, saying
@@ -388,13 +388,14 @@ and Master Sat (#70), the arpeggiator on the ARP button (#69) and Shapes
 held inside what Braids' code handles (#71), glide and the Poly, Mono and
 Legato voice modes (#72), the manual's diagrams (#73) and the screen on the
 UI audit's colour map with Spleen faces (#75) and its polish (#78), and the
-first dead-code audit (#74), the arpeggiator's follow-ups (#76) and the
-advanced editor's design (#77) (10-01 to 10-06). The CHANGELOG has the
+first dead-code audit (#74), the arpeggiator's follow-ups (#76), the
+advanced editor's design (#77) and the engines' follow-ups (glide modes,
+Drums' choke and Kit Decay, #79) (10-01 to 10-06). The CHANGELOG has the
 detail.
 
 Now, roughly in order:
 
-1. **Open PRs** (§1): #58 (docs) and #79 (engine follow-ups) wait for the
+1. **Open PRs** (§1): #58 (docs) and #80 (the memory display) wait for the
    owner; Echomatter's offer on #1 needs an answer.
 2. **ip2k/lunar-modulator#2**, if the owner chooses to answer it from the
    draft; and issue #53 (iOS Safari).
