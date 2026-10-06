@@ -1807,9 +1807,10 @@ as a busy one. Now they idle there (owner's decision, 2026-10-05;
   at Q 0.71, a bell below about 380 Hz at Q 10) never idle: EQ runs there
   as it always has, and tuning a band there while EQ is idle wakes it. That
   wake holds the bands for at most 0.1 s, not for their full warm-up (the
-  bound gives 1.9 s for a bell at 20 Hz and Q 10), so that a gain turned soon after
-  is not kept waiting; a gain turned then starts from a filter that began
-  at the wake instead of one carried over from the old tuning. Both are
+  bound gives 1.9 s for a bell at 20 Hz and Q 10), so that a gain turned
+  soon after is not kept waiting; a gain turned then starts from a filter
+  that began at the wake instead of one carried over from the old tuning.
+  Both are
   still settling into the new tuning, so the output differs from the old
   build's as two transients do, not by a click: −23 dB of the peak for a
   30 Hz bell at Q 10 on a 30 Hz sine with the gain 0.12 s after the
