@@ -86,8 +86,12 @@ switch, `FM1_GPL_MODS`, **on by default in every build while we test**.
 While it is on, no firmware image that links JieLi's libraries may be shared,
 and the public simulator's module is offered under GPL terms (licence named
 on the page, source linked). Bare-metal builds without JieLi's libraries are
-to be explored later. No GPL code is in the tree yet; the switch lands with
-the first GPL module. Details: docs/12 §6.
+to be explored later. The switch is built (2026-10-06): `FM1_GPL_MODS ?= 1`
+in `engines/Makefile`, read by fm1-render, the simulator's builds and the
+JieLi check; a GPL module's registry entry and licence row go under `#if
+FM1_GPL_MODS`, its sources in its own fragment; CI tests both settings, and
+`tests/test_gpl_switch.py` fails if the switch-off build compiles, links or
+lists anything GPL. Details: docs/12 §6.
 
 ## The one rule
 
