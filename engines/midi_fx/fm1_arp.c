@@ -277,14 +277,17 @@ static void held_remove(fm1_arp_t *a, unsigned i) {
   a->dirty = 1;
 }
 
-/* The released keys lose the origins in `from` (H_LIVE, H_SEQ or both);
- * one left with none goes. */
+/* The keys an origin in `from` (H_LIVE, H_SEQ or both) has let go lose
+ * that origin; one left with none goes. Each origin by its own key: a key
+ * the sequencer still holds down loses the hand's latch on it all the same,
+ * so Stop does not keep a key a later chord of the hand's replaced. */
 static void drop_released(fm1_arp_t *a, uint8_t from) {
   unsigned i = 0;
   while (i < a->n_held) {
     held_t *h = &a->held[i];
-    if (!(h->flags & H_DOWN_ANY)) h->flags &= (uint8_t)~from;
-    if (h->flags & (H_DOWN_ANY | H_FROM)) ++i;
+    if (!(h->flags & H_DOWN)) h->flags &= (uint8_t)~(from & H_LIVE);
+    if (!(h->flags & H_DOWN_SEQ)) h->flags &= (uint8_t)~(from & H_SEQ);
+    if (h->flags & H_FROM) ++i;    /* a key down is its origin's too */
     else held_remove(a, i);
   }
 }

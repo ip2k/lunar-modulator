@@ -416,8 +416,8 @@ typedef struct fm1_engine {
  *     bypasses or removes the effect); PANIC also forgets every key it
  *     holds; RESET restarts its pattern on the next tick (Play); STOP
  *     (Stop) forgets the keys the sequencer gave it and ends the notes
- *     they started, and leaves what was played; a host that stops its
- *     ticks with the transport (an external clock) sends FLUSH after it;
+ *     they started, and leaves what was played; a host whose ticks stop
+ *     with the transport (fm1_seq's compat mode) sends FLUSH after it;
  *   - a note's origin rides in its velocity's high byte (fm1_midi_ev.h,
  *     FM1_MIDI_SRC_*): the host marks the sequencer's, and an effect marks
  *     its notes after the notes that caused them;

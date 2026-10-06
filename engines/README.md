@@ -3209,8 +3209,9 @@ stay as they were; `fm1-render --list` prints them after the engines, kind
   `fm1_mfx_set_tempo`, without a sequencer); while it plays, `tick_pos`
   says which of its ticks the block's first is, so the arp's steps fall on
   its grid. Start reaches the effects as RESET and Stop as STOP (and
-  FLUSH after it when the ticks stop with the transport: an external
-  clock, compat mode), at their frames, and each frame where the
+  FLUSH after it in compat mode, whose clock gives no tick while stopped;
+  after an external clock's Stop the clock runs on at the tempo), at their
+  frames, and each frame where the
   sequencer starts notes for the sound as one STEP after them (a trig, for
   RATE TRG). The project key is the set's (the sequencer's `key`), read
   each block; `fm1_mfx_set_key` sets it without a sequencer. A bypass, a removal or `fm1_mfx_flush` flushes at once, the

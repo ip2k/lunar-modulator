@@ -289,7 +289,10 @@ Start (tick 0, its first downbeat).
   three).
 - **A key between steps waits** for the grid's next step, Sync or not; so
   does an arp switched on mid-bar. Its pattern's own count (note order,
-  rhythm, Loop) is as Sync leaves it.
+  rhythm, Loop) is as Sync leaves it: at free it counts the steps it
+  played, so its rhythm keeps to the bar when the arp has been on since
+  Play; one switched on later (or off and on again) counts on from where it
+  stood, and the next Play puts it back on the bar.
 - **A rate change** takes the new rate's grid at once: its next step.
 - **Stopped**, the steps run on from the last one, as before; a first key
   with Sync at key starts at the next tick.
@@ -329,8 +332,9 @@ effects").
   at fm1-render's `--tempo`. An external MIDI clock (off the grid) puts the
   block's ticks at its first frame.
 - **Transport.** Start reaches the arp as `RESET` and Stop as `STOP`, at
-  their frames (with `FLUSH` after it when the ticks stop with the
-  transport, following an external clock). While the sequencer plays the
+  their frames (with `FLUSH` after it in the sequencer's compat mode,
+  whose clock gives no tick while stopped; after an external clock's Stop
+  the clock runs on at the tempo). While the sequencer plays the
   stage gives the arp its tick position, so the steps lock to the beat. A
   bypass sends `PANIC` at once, between blocks, and its note-offs go
   straight to the sound; so do a new engine on the sound, a panic, and a

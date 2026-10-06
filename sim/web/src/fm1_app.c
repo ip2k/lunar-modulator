@@ -3094,7 +3094,7 @@ static void draw_key(fm1_app_t *a) {
   /* What it is for, and where it is kept, under the rows. */
   fm1_tft_text(&a->tft, MARGIN, CONTENT_Y + LINE_PITCH + 2 * ROW_PITCH, "For MIDI effects", LINE_CHARS,
                SCALE, C_DIM);
-  fm1_tft_text(&a->tft, MARGIN, CONTENT_Y + 2 * LINE_PITCH + 2 * ROW_PITCH, "Saved with the set",
+  fm1_tft_text(&a->tft, MARGIN, CONTENT_Y + 2 * LINE_PITCH + 2 * ROW_PITCH, "Part of the set",
                LINE_CHARS, SCALE, C_DIM);
 }
 

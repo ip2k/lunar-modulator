@@ -255,7 +255,7 @@ chances are. Either way the new chord's notes start from the first.
 | Sync | While the sequencer plays | While it is stopped |
 | --- | --- | --- |
 | Key | The pattern starts again at the next step on the beat | The pattern starts again at once |
-| Free | The pattern runs on from [[PLAY/STOP]], and the key joins it at the next step on the beat, so a rhythm such as a Euclidean pattern stays on the bar | The pattern runs on from its own last step, and the key waits for the next of them |
+| Free | The pattern runs on from [[PLAY/STOP]], and the key joins it at the next step on the beat, so a rhythm such as a Euclidean pattern stays on the bar. An arpeggiator switched on after [[PLAY/STOP]] keeps its own count of the pattern, which need not match the bar, until the next [[PLAY/STOP]] | The pattern runs on from its own last step, and the key waits for the next of them |
 
 The arpeggiator does not use the project key, which the global page sets
 ([chapter 10](10-settings-and-storage.md#the-project-key)); it is there for

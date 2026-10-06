@@ -760,6 +760,30 @@ def test_a_key_held_by_both_origins_stays_until_both_let_go(arp_tool):
     assert_balanced(ev, summ)
 
 
+@pytest.mark.parametrize("block", [1, 7, 64])
+def test_a_new_chord_of_the_hands_drops_its_latch_on_a_key_the_track_holds(arp_tool, block):
+    """Latched: the hand and a track hold one pitch, the hand lets go, then
+    plays a new chord. That chord replaces the hand's latch on the pitch
+    even though the track still holds it down, so the pitch is the track's
+    alone from then on (its notes carry the sequencer's mark), and STOP
+    takes it away; the hand's new chord plays on."""
+    lines = ["@0 set latch 1", *chord(0, [60]), *seq_chord(0, [60]), *release(100, [60]),
+             *chord(2 * STEP, [64]), *release(2 * STEP + 100, [64]),
+             *seq_release(3 * STEP, [60]), f"@{4 * STEP + STEP // 4} stop", f"@{8 * STEP} set latch 0"]
+    ev, summ = run(arp_tool, script(*lines, ticks=24 * 10), block=block)
+    played = steps_of(ev)
+    stop = 4 * STEP + STEP // 4
+
+    def keys_between(a, b):
+        return {k for f, ks in played if a <= f < b for k in ks}
+    assert keys_between(0, 2 * STEP) == {60}
+    assert keys_between(2 * STEP, stop) == {60, 64}
+    assert keys_between(stop, 8 * STEP) == {64}, "Stop kept a key the hand's new chord replaced"
+    assert all(e.get("seq") == 1 for e in ev if e["key"] == 60 and e["frame"] >= 2 * STEP)
+    assert summ["held"] == 0 and summ["held_seq"] == 0
+    assert_balanced(ev, summ)
+
+
 # ---- The sequencer's grid (owner, 2026-10-06) -------------------------------------------------
 
 @pytest.mark.parametrize("block", [1, 7, 64])

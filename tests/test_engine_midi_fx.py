@@ -275,6 +275,32 @@ def test_the_arp_locks_to_the_beat_while_the_sequencer_plays(renderer, tmp_path)
     assert out[0] == out[1] == out[2]
 
 
+@pytest.mark.parametrize("rate, step", [(4, 24), (5, 32)])
+def test_the_beat_holds_through_tempo_changes(renderer, tmp_path, rate, step):
+    """The tempo changes twice while the sequencer plays (slower, then
+    faster, off any round tick): the arp's steps stay on the grid of ticks
+    counted from Start, one on every step of the rate and none skipped or
+    doubled across a change. The same at blocks of 1, 7 and 64 frames."""
+    play, key = BOUND * 10, BOUND * 41
+    runs = []
+    for block in (1, 7, 64):
+        script = (f"#! rate={RATE} block={block} tracks=8 end={BOUND * 400}\n@{play} play\n"
+                  f"@{BOUND * 77} bpm 9137\n@{BOUND * 181} bpm 17311\n")
+        log = tmp_path / f"seq-t{rate}-{block}.jsonl"
+        s, wav, ev = mfx_run(renderer, tmp_path, [
+            "--engine", "test-sine", "--frames", str(block), "--mfx", "0:arp",
+            "--mfx-param", f"0:Rate={rate}", *note(key, 60, 100, BOUND * 340),
+            "--mfx-on-at", f"0:{at(BOUND * 390)}:0", "--log-events", str(log)],
+            f"t{rate}-{block}", script=script)
+        ticks = seq_ticks(log)
+        played = [t for t, _ in ons(ev) if t >= play]
+        grid = sorted(f for t, f in ticks.items() if t % step == 0 and played[0] <= f <= played[-1])
+        assert len(played) > 20 and played == grid, f"block {block}: off the grid, or a step lost"
+        assert s["notes_hung"] == 0
+        runs.append((wav, ev))
+    assert runs[0] == runs[1] == runs[2]
+
+
 @pytest.mark.parametrize("sync, first", [("Key", 48), ("Free", 96)])
 def test_sync_key_and_free_on_the_beat(renderer, tmp_path, sync, first):
     """A Euclidean rhythm of one in four steps (Length 4, Fill 1), the

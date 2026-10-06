@@ -39,8 +39,9 @@
  * clock, or Movy's compat mode) puts the block's ticks at its first frame.
  * A bridge without a sequencer runs the stage's own sum at
  * fm1_mfx_set_tempo's tempo. The sequencer's Start reaches every effect as
- * RESET, its Stop as STOP (FLUSH after it when the ticks stop with the
- * transport, off the grid), each at its frame. So the ticks, and with them
+ * RESET, its Stop as STOP (FLUSH after it when no tick follows a Stop:
+ * Movy's compat mode, whose clock is off the grid; an external clock's
+ * Stop leaves the clock running on at the tempo), each at its frame. So the ticks, and with them
  * every effect's output, are the same at any block size.
  *
  * The key. With a sequencer the context's project key is the set's (its

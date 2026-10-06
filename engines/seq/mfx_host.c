@@ -311,8 +311,10 @@ static int transport_kind(uint8_t kind) {
 }
 
 /* A transport event into buf at frame f. A Stop is STOP, and FLUSH after it
- * when the ticks stop with the transport (off the grid: an external clock,
- * or Movy's compat mode): no tick would end a note sounding then. */
+ * when the clock is off the grid as the block begins stopped (Movy's compat
+ * mode: no tick comes while stopped, so none would end a note sounding).
+ * An external clock's Stop is not that: once stopped the sequencer no
+ * longer follows, and its clock runs on at the tempo. */
 static void put_transport(const fm1_seq_host_t *h, fm1_midi_ev_t *buf, uint32_t *n, uint16_t f,
                           int kind) {
   if (*n < FM1_MFX_IN) put(buf, n, f, (uint8_t)kind, 0, 0);
