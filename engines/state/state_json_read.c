@@ -1072,8 +1072,14 @@ static int target_value(fm1_state_json_reader_t *r, const fm1_json_ev_t *ev) {
     case M_PARAM:
       if (ev->type != FM1_JSON_STR) return bad(r, "a parameter's name was expected");
       if (!gather(r, ev)) return 1;
-      if (r->sbuf_over || r->sbuf_n >= sizeof(r->tgt_param) || r->sbuf_n > 24u) {
-        return bad(r, "a parameter's name has at most 24 characters");
+      if (r->sbuf_over || r->sbuf_n >= sizeof(r->tgt_param) || r->sbuf_n > 24u || r->sbuf_n < 1u) {
+        return bad(r, "a parameter's name has 1-24 printable ASCII characters");
+      }
+      {
+        unsigned k;
+        for (k = 0; k < r->sbuf_n; ++k) {
+          if (r->sbuf[k] < 0x20 || r->sbuf[k] > 0x7E) return bad(r, "a parameter's name has 1-24 printable ASCII characters");
+        }
       }
       memcpy(r->tgt_param, r->sbuf, r->sbuf_n + 1u);
       r->tgt_has |= 4u;

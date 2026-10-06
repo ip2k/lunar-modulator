@@ -372,6 +372,9 @@ HOSTILE = [
                                    ' "AB"}}]}')).encode(), "BAD"),
     ("hex before version", (SND % ("", ', "mod": {"rack": [{"pos": 1, "kind": "lfo", "data": {"hex": "ab",'
                                        ' "version": 1}}]}')).encode(), "BAD"),
+    ("a control character in a cable's parameter", (b'{"lunar": "1.0", "kind": "mods", "mod": {"seed": 1, "rack": [],'
+                                                   b' "cables": [{"slot": 1, "from": {"source": "VEL"}, "to": {"unit":'
+                                                   b' "snd1.fx1", "param": "Cut\x7fff"}, "amount": 10}]}}'), "BAD"),
     ("too much pattern data", (SND % ("", ', "mod": {"rack": [{"pos": 1, "kind": "lfo", "data": {"version": 1,'
                                           ' "hex": "' + "ab" * 4097 + '"}}]}')).encode(), "TOO_BIG"),
 ]

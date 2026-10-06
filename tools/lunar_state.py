@@ -960,8 +960,8 @@ class JsonReader:
             elif k == "param":
                 if not isinstance(v, str) or isinstance(v, Num):
                     self.bad("a parameter's name was expected")
-                if len(_utf8(v)) > 24:
-                    self.bad("a parameter's name has at most 24 characters")
+                if not re.fullmatch(r"[ -~]{1,24}", v):
+                    self.bad("a parameter's name has 1-24 printable ASCII characters")
                 param = v
             else:
                 if isinstance(v, Num):

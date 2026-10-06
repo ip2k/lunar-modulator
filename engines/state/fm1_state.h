@@ -33,8 +33,8 @@
  * Memory. Readers and the record types allocate nothing and recurse
  * nowhere; the JSON reader's state is a fixed struct (fm1_state_json_reader_t,
  * its tokenizer under 256 B), so it fits the firmware. Only the desktop tools
- * and the simulator carry the JSON writer, which holds a document (about
- * 400 KB, the caller's memory). The binary writer holds its file (96 KiB
+ * and the simulator carry the JSON writer, which holds a document (477 KB
+ * of the caller's memory). The binary writer holds its file (96 KiB
  * at most) in the caller's memory too.
  *
  * Seams (code against the spec's interfaces until the stage lands):
