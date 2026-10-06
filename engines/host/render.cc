@@ -285,7 +285,6 @@ struct Modulation {
   bool amp_used = false;
   FILE *log = NULL;
   uint64_t pos = 0;                  // the block's first frame, for the log
-  uint64_t bridge_splits = 0;
   Modulation() { memset(&glue, 0, sizeof(glue)); fm1_mod_ramp_init(&amp, 1.0f); }
 };
 

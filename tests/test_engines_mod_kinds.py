@@ -23,7 +23,6 @@ Mix and Filter), through fm1-render --mod and the two C tools:
 import hashlib
 import json
 import os
-import re
 import struct
 import subprocess
 import sys

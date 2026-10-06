@@ -61,10 +61,6 @@ void fm1_tft_graphic(fm1_tft_t *t, int x, int y, int w, int h) {
   log_box(t, x, y, w, h, FM1_BOX_GRAPHIC);
 }
 
-void fm1_tft_pixel(fm1_tft_t *t, int x, int y, uint16_t color) {
-  if (x >= 0 && x < FM1_TFT_W && y >= 0 && y < FM1_TFT_H) t->px[y * FM1_TFT_W + x] = color;
-}
-
 static int text_len(const char *s, int max_chars) {
   int n = 0;
   while (s[n] && n < max_chars) ++n;

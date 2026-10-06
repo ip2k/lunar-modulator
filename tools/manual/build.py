@@ -285,7 +285,7 @@ def build_info(b: Build) -> str:
 # ---- conversion -------------------------------------------------------------------------------
 
 def convert(b: Build, ctx: ManualContext, ch: Chapter) -> None:
-    ch.state = ChapterState(ch.slug, ch.number, ch.features)
+    ch.state = ChapterState(ch.slug, ch.number)
     ctx.chapter = ch.state
     md = markdown.Markdown(
         extensions=["extra", "admonition", "sane_lists", "smarty", "toc", ManualExtension(ctx)],
@@ -740,7 +740,6 @@ def main(argv=None) -> int:
     for ch in b.chapters:
         convert(b, ctx, ch)
     b.errors.extend(ctx.errors)
-    b.warnings.extend(ctx.warnings)
     index_html = controls_index(b, vocab, controls.get("roles", []))
     for ch in b.chapters:
         ch.html = ch.html.replace(f"<p>{CONTROLS_INDEX_TOKEN}</p>", index_html).replace(CONTROLS_INDEX_TOKEN, index_html)

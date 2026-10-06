@@ -510,9 +510,6 @@ int fm1_app_mod_line(fm1_app_t *a, const char *line, char *err, size_t cap);
  * when every line could be written. */
 int fm1_app_mod_dump(fm1_app_t *a, void (*emit)(void *ctx, const char *line), void *ctx);
 
-/* The runtime (NULL while none runs). */
-const fm1_mod_t *fm1_app_mod(const fm1_app_t *a);
-
 /* The runtime's unit code (fm1_mod.h) for an app unit id (FM1_APP_UNITS):
  * sound units, their inserts and the master slots; -1 out of range. */
 int fm1_app_mod_unit(int unit);

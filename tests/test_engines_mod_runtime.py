@@ -43,7 +43,6 @@ TICK = 32
 # fm1_mod_size(): 8,192 B of arena and 11,824 B of fixed state, the same in
 # 32- and 64-bit builds (no pointers; every 64-bit member 8-aligned).
 MOD_BYTES = 23200
-FLAG_BITS = ["latch", "smooth", "nolock", "mod", "input"]
 
 
 def run(renderer, tmp_path, args, mod=None, name="r", log=True):

@@ -237,7 +237,7 @@ struct Channel {
 
 // The geometry of one set of boxes.
 struct BoxSet {
-  uint32_t d, b1, b1_shift, b2;   // (b1 - 1) + (b2 - 1) = d
+  uint32_t b1, b1_shift, b2;      // (b1 - 1) + (b2 - 1) = the set's lookahead
   uint32_t full2;                 // box 2's sum at unity gain
   float inv2;                     // 1 / full2
 };
@@ -255,7 +255,6 @@ struct Instance {
   uint32_t n;                // line length, dmax + 1 frames
   uint32_t dq_cap, b1cap, b2cap;
   uint32_t off_x, off_ctl, off_dqv, off_b1, off_b2, off_dqt;
-  uint32_t bytes;
 
   float param[P_COUNT];
   float k_glide, k_attack0, k_release, fade_step;
@@ -333,7 +332,6 @@ Arrays ArraysOf(Instance *s) {
 // they span d and the hold d + 1 frames.
 void SetBoxes(Instance *s, uint32_t set, uint32_t d) {
   BoxSet &g = s->set[set];
-  g.d = d;
   uint32_t b1 = 1, shift = 0;
   while (2u * b1 <= d / 2u + 1u) { b1 *= 2u; ++shift; }
   g.b1 = b1;
@@ -714,7 +712,6 @@ void *Create(void *mem, const fm1_host_t *host) {
   s->off_b1 = l.off_b1;
   s->off_b2 = l.off_b2;
   s->off_dqt = l.off_dqt;
-  s->bytes = l.bytes;
   s->k_glide = OnePole(kGlideS * rate);
   s->k_attack0 = OnePole(kZeroAttackS * rate);
   uint32_t fade = static_cast<uint32_t>(kFadeS * rate + 0.5f);

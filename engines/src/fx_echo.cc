@@ -59,7 +59,6 @@
 #include "fm1_smooth.h"
 
 #include <cmath>
-#include <cstring>
 #include <new>
 
 namespace fm1 {

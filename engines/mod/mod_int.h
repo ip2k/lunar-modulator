@@ -51,12 +51,11 @@ typedef struct mod_plan {
 } mod_plan_t;
 
 /* A slot's own running state: its probability generator and, for a cable
- * into a gate input, its output level and whether the current pulse passed. */
+ * into a gate input, its output level. */
 typedef struct mod_slot_rt {
   fm1_mp_rng_t rng;
   uint8_t level;
-  uint8_t pass;
-  uint8_t reserved[6];
+  uint8_t reserved[7];
 } mod_slot_rt_t;
 
 struct fm1_mod {
@@ -257,7 +256,7 @@ static inline uint32_t mod_lfo_to_wrap(const fm1_mp_lfo_t *l, uint32_t m) {
 /* Planner (mod_plan.c). */
 void mod_plan_build(fm1_mod_t *m);
 int mod_slot_dst_param(const fm1_mod_t *m, const fm1_mod_slot_t *s);   /* index or -1 */
-int mod_source_kind(const fm1_mod_t *m, unsigned src, uint8_t *unit);  /* port kind, or -1 */
+int mod_source_kind(const fm1_mod_t *m, unsigned src);  /* port kind, or -1 */
 const fm1_mod_kind_t *mod_kind_at(const fm1_mod_t *m, unsigned pos);
 
 #endif /* FM1_MOD_INT_H */

@@ -25,7 +25,7 @@ import subprocess
 
 import pytest
 
-from tests.engine_helpers import RATE, cents, pitch_hz, render, renderer, rms  # noqa: F401
+from tests.engine_helpers import cents, pitch_hz, render, renderer, rms  # noqa: F401
 from tests.test_engines_reference_plaits import (BY_INDEX, FM1_HZ, FM1_RATE, GATE, NATIVE,
                                                  NATIVE_HZ, NOTES, POINTS, REF, RENDER, fm1_cmd,
                                                  fm1_params, gate_for,

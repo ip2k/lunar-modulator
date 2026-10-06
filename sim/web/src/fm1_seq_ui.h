@@ -331,7 +331,6 @@ typedef struct fm1_seq_ui {
   uint8_t playing, recording, counting_in, following;
   uint8_t rec_track;
   uint32_t bpm_x100;
-  uint64_t master_tick;
   uint8_t slot;                     /* the focused track's active clip slot */
   uint8_t clip_playing;             /* that clip is the one playing */
   uint16_t step;                    /* its playhead, while clip_playing */

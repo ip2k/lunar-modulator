@@ -335,14 +335,6 @@ int fm1_mod_script_seed(const char *line, uint32_t *seed) {
   return 1;
 }
 
-int fm1_mod_script_line(fm1_mod_t *m, const char *line, const fm1_engine_t *const units[3],
-                        char *err, size_t errcap) {
-  const fm1_engine_t *all[FM1_MOD_SINKS];
-  unsigned i;
-  for (i = 0; i < FM1_MOD_SINKS; ++i) all[i] = i < 3u ? units[i] : NULL;
-  return fm1_mod_script_apply(m, line, all, err, errcap);
-}
-
 int fm1_mod_script_apply(fm1_mod_t *m, const char *line,
                          const fm1_engine_t *const units[FM1_MOD_SINKS], char *err, size_t errcap) {
   char tok[MAX_TOK][TOK_LEN];
@@ -385,19 +377,4 @@ int fm1_mod_script_apply(fm1_mod_t *m, const char *line,
     return 1;
   }
   return fail(err, errcap, "unknown line: %s", tok[0]);
-}
-
-void fm1_mod_script_source_name(const fm1_mod_t *m, unsigned src, char *buf, size_t cap) {
-  const fm1_mod_source_info_t *si = fm1_mod_system_source(src);
-  if (si) {
-    size_t k;
-    for (k = 0; si->name[k] && k + 1 < cap; ++k) buf[k] = (char)tolower((unsigned char)si->name[k]);
-    if (cap) buf[k < cap ? k : cap - 1] = '\0';
-  } else if (src >= FM1_MOD_SRC_MODULE && src < FM1_MOD_SRC_MODULE + 8u * FM1_MOD_POSITIONS) {
-    const unsigned pos = (src - FM1_MOD_SRC_MODULE) / 8u, port = (src - FM1_MOD_SRC_MODULE) % 8u;
-    const int k = fm1_mod_kind_at(m, pos);
-    snprintf(buf, cap, "%s%u.%u", k >= 0 ? fm1_mod_kinds[k]->id : "mod", pos + 1u, port + 1u);
-  } else {
-    snprintf(buf, cap, "?%u", src);
-  }
 }

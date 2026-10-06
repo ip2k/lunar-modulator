@@ -4,7 +4,6 @@
 #include "fm1_mod_view.h"
 
 #include <stdio.h>
-#include <string.h>
 
 #include "fm1_look.h"
 #include "fm1_panel.h"

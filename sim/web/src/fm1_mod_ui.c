@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "fm1_panel.h"
 #include "mod_script.h"
 
 #define NONE FM1_MOD_UI_NONE
@@ -122,7 +121,6 @@ static const char *item_name(const fm1_mod_kind_t *kd, unsigned i) {
 typedef struct names {
   const fm1_mod_kind_t *kd;
   const fm1_engine_t *e;
-  unsigned n;
 } names_t;
 
 static const char *name_at(const names_t *l, unsigned i) {
@@ -171,7 +169,6 @@ static void item_short(const fm1_mod_kind_t *kd, unsigned item, char out[8]) {
   names_t l;
   l.kd = kd;
   l.e = NULL;
-  l.n = kd->n_params + kd->n_gate_in;
   short_of(&l, item, 3, out);
 }
 
@@ -309,7 +306,6 @@ void fm1_mod_ui_dest_name(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, 
       names_t l;
       l.kd = NULL;
       l.e = unit_engine(env, d->unit);
-      l.n = l.e->n_params;
       short_of(&l, (unsigned)d->index, FM1_MOD_UI_DST_CHARS - strlen(kSinks[g].tag), sq);
       snprintf(buf, cap, "%s%s", kSinks[g].tag, sq);
     }

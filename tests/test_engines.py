@@ -9,8 +9,8 @@ import subprocess
 
 import pytest
 
-from tests.engine_helpers import (ENGINES, RATE, cents, pitch_hz,  # noqa: F401
-                                  render, renderer, rms)
+from tests.engine_helpers import (cents, pitch_hz, render, renderer,  # noqa: F401
+                                  rms)
 
 
 def test_registry_lists_engines(renderer):

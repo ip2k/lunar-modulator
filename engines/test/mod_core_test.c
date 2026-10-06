@@ -32,7 +32,6 @@
 
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 static int failed;
@@ -204,7 +203,7 @@ static void planner_fuzz(unsigned *n_plans, unsigned *n_loops) {
     fm1_mod_t *m = make(0, 0, trial);
     fm1_mod_t *q = make(1, 0, trial);
     fm1_mod_plan_info_t a, b, c;
-    fm1_mod_slot_t table[FM1_MOD_SLOTS], s;
+    fm1_mod_slot_t table[FM1_MOD_SLOTS];
     unsigned perm[FM1_MOD_SLOTS], i, n = 1u + rnd() % FM1_MOD_SLOTS, pos;
     uint32_t want_delayed = 0, got_delayed = 0;
     random_rack(m);
@@ -238,7 +237,6 @@ static void planner_fuzz(unsigned *n_plans, unsigned *n_loops) {
       if ((a.active >> i) & 1u) CHECK((b.active >> perm[i]) & 1u);
     }
     for (i = 0; i < FM1_MOD_SLOTS; ++i) {
-      fm1_mod_get_slot(q, i, &s);
       if ((b.delayed >> i) & 1u) got_delayed |= 1u << i;
     }
     CHECK(want_delayed == got_delayed);

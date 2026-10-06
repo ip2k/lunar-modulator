@@ -483,8 +483,6 @@ void fm1_mod_ramp_init(fm1_mod_ramp_t *r, float value);
 void fm1_mod_ramp_set(fm1_mod_ramp_t *r, uint64_t frame, float value);
 /* Multiplies n stereo frames starting at absolute frame `frame`. */
 void fm1_mod_ramp_apply(const fm1_mod_ramp_t *r, uint64_t frame, float *lr, uint32_t n);
-/* 1 when the ramp sits at exactly `value` from `frame` on. */
-int fm1_mod_ramp_settled(const fm1_mod_ramp_t *r, uint64_t frame, float value);
 
 #ifdef __cplusplus
 }

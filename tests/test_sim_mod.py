@@ -29,7 +29,7 @@ BUTTONS = ["OCT-", "OCT+", "FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SA
            "PLAY/STOP", "REC"]
 MODES = {"HOME": 0, "FX": 1, "GLOBAL": 2, "SEQ": 3, "RACK": 4, "MATRIX": 5, "CHAIN": 6}
 Q14 = 16384
-ON, GATE_DST, VOICE = 0x01, 0x08, 0x80
+ON, GATE_DST = 0x01, 0x08
 
 
 def lit(summary):

@@ -325,7 +325,6 @@ typedef struct DriveInstance {
   float param[P_COUNT];     /* knob values, clamped */
   float target[S_COUNT];    /* control values the knobs ask for */
   float value[S_COUNT];     /* control values in use (gliding to target) */
-  float sample_rate;
   float glide;              /* one-pole coefficient of the glide */
   float dc_r;               /* DC blocker pole */
   float g_emph, g_tilt;     /* one-pole G of the emphasis and the tilt */
@@ -475,7 +474,6 @@ static void *DriveCreate(void *mem, const fm1_host_t *host) {
   if (!(fs >= 8000.0f && fs <= 384000.0f)) return NULL;
   DriveInstance *self = (DriveInstance *)mem;
   memset(self, 0, sizeof(*self));
-  self->sample_rate = fs;
   self->glide = 1.0f - DriveExp2(-kLog2e / (kSmoothSeconds * fs));
   self->dc_r = DriveExp2(-2.0f * kPi * kDcHz * kLog2e / fs);
   self->g_emph = DriveOnePoleG(kEmphHz, fs);

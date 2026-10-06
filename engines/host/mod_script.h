@@ -44,20 +44,12 @@ extern "C" {
 int fm1_mod_script_apply(fm1_mod_t *m, const char *line,
                          const fm1_engine_t *const units[FM1_MOD_SINKS], char *err, size_t errcap);
 
-/* fm1_mod_script_apply for a host with one sound: units[0..2] are the
- * engines bound to SOUND, FX1 and FX2. */
-int fm1_mod_script_line(fm1_mod_t *m, const char *line, const fm1_engine_t *const units[3],
-                        char *err, size_t errcap);
-
 /* A sink's name as DST writes it before the ':' (snd, snd2, snd1.fx2,
  * fx1, host), by code; NULL for a code that names none. */
 const char *fm1_mod_script_unit_name(unsigned unit);
 
 /* The seed a `seed N` line gives, if this is one. */
 int fm1_mod_script_seed(const char *line, uint32_t *seed);
-
-/* A source's name as the format writes it (vel, seq3, lfo1.wrap); for logs. */
-void fm1_mod_script_source_name(const fm1_mod_t *m, unsigned src, char *buf, size_t cap);
 
 #ifdef __cplusplus
 }
