@@ -25,8 +25,9 @@
  *
  * Threads. One owner: everything runs on the audio task.
  *
- * Not wired into the host or the simulator yet: that needs the MIDI-effect
- * contract of API v2 (docs/13 M2). The README describes the intended one.
+ * In the hosts it is the MIDI effect "arp" (arp_engine.c, FM1_KIND_MIDI_FX of
+ * engine API v3), which fm1-render and the virtual FM-1 run in front of a
+ * sound (engines/include/fm1_mfx_host.h; the README's "In the hosts").
  *
  * MIT licence, like the rest of this repository.
  */
@@ -35,6 +36,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
+
+#include "fm1_midi_ev.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,12 +63,9 @@ enum {
   FM1_ARP_EV_PARAM = 8      /* in: a = FM1_ARP_P_*, b = value */
 };
 
-typedef struct fm1_arp_ev {
-  uint16_t frame;
-  uint8_t kind;
-  uint8_t a;
-  uint16_t b;
-} fm1_arp_ev_t;
+/* The engine API's MIDI event (engines/include/fm1_midi_ev.h): {frame,
+ * kind, a, b}. The kinds above are its FM1_MIDI_EV_* codes, plus PARAM. */
+typedef fm1_midi_ev_t fm1_arp_ev_t;
 
 /* Parameters. Values are integers in each one's own range
  * (fm1_arp_param_info); a host maps its 7-bit locks onto them. */

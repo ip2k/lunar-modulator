@@ -9,6 +9,34 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The arpeggiator, in the simulator.** [ARP] now works: tap it to switch
+  the current sound's arpeggiator on (its pages open) or off; hold it to
+  latch, so the notes play on after you let go and the next chord replaces
+  them; SHIFT and [ARP] shows the pages without switching. Its light is on
+  while it plays and blinks while it latches.
+  - **Seven pages** on the four knobs: PLAY (mode, rate, gate, octaves),
+    RHYTHM (22 rhythm patterns or a Euclidean rhythm), CHANCE (chance,
+    ratchets, velocity spread, loop), FEEL (octave mode, fixed velocity,
+    swing, join), MORE, KEYS (latch, sync) and SEED. 22 note orders, from
+    up and down to converge, thumb, pinky, crawl, shuffle and walk.
+  - **The stock FM-1's modes as presets** on ALGORITHM: Up, Down, Up/Down,
+    Down/Up, Random and Played.
+  - **With the sequencer:** the keys, MIDI and the sequencer's notes for the
+    sound all go through it, on the sequencer's tempo whether it plays or
+    not; PLAY restarts the pattern and STOP ends its notes. At rate TRG it
+    takes one step each time the sequencer plays notes on the sound. The
+    sequencer records what you played, not the arpeggio, so a recorded part
+    plays back through the arpeggiator again, or plainly once it is off.
+  - Each of the four sounds has its own; it takes memory only while on.
+  - On the desktop: `fm1-render --mfx K:arp` and its `--mfx-param`,
+    `--mfx-param-at`, `--mfx-on-at` and `--log-mfx` flags. The browser, the
+    native app and fm1-render play the same notes, byte for byte, at any
+    block size (five new parity scenarios, one of them a recorded panel
+    session).
+- **MIDI effects in the engine API (v3, additive):** a new kind of module
+  that takes notes and gives notes, run in a chain of up to four in front of
+  each sound, with the sequencer's ticks, the transport and one project key.
+  The arpeggiator is the first; chord, scale and echo effects can follow.
 - **Modulation per voice.** A modulation cable can now run once for every
   note: each note of a chord gets its own envelope, LFO or random source,
   which moves that note alone. In the matrix, turn KNOB4 on page B past
@@ -1581,6 +1609,24 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- **Shapes stays inside what Braids' code handles.** At a few edges Braids
+  read past the end of a table or did arithmetic C++ leaves undefined, so
+  the same settings could sound different from one build to the next (the
+  desktop, the browser, the FM-1). Shapes now holds those settings at the
+  nearest one Braids handles; everything inside sounds byte for byte as
+  before.
+  - Wave Line: the last 1.6 % of Timbre plays the line's last wave, where
+    it had played a stray one.
+  - Comb: on keys 0–47 Timbre stops where the comb reaches its lowest
+    pitch. The sound is the same; only the comb's short glide up from the
+    bottom starts nearer.
+  - A note bent or offset above MIDI 127.99 plays as at 127.99, on every
+    shape. Flute, the four filter shapes and the two Sync shapes faulted up
+    there; the others had already stopped rising in pitch.
+  - Checked under the address and undefined-behaviour sanitizers over every
+    shape, key, Timbre and Color end and bend, and with knobs, bends,
+    per-note offsets and the shape changing while notes sound; and against
+    Braids itself at the held values.
 - docs/02 §5 and `tools/check_msfa_table.py` had rows 4 and 6 of msfa's
   algorithm table the wrong way round: `0x41`, which the FM-1 carries, is
   Google's original (there since its first commit, 2012), and `0xC1`, which

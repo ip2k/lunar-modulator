@@ -333,6 +333,11 @@ none of it moves.
   sync buffer.
 - Voices start from their state when the note arrives (a fresh voice from
   `Init`), where Braids' one oscillator runs continuously between triggers.
+- Braids' edges (README.md, "Shapes: where Braids is held"): the wrapper
+  holds the pitch at MIDI 0..127.99, Comb's Timbre where the comb's pitch
+  reaches MIDI −16 and Wave Line's at 32,255, where Braids would read past a
+  table or shift by an undefined count. `test_shapes_at_braids_edges_*`
+  matches Shapes there against this tool given the held values.
 
 ## Plate
 

@@ -131,6 +131,64 @@ on page 2 since stage A, set the envelope's and the gate's times.
 - Changing the LPG mode while notes sound does not restart them. A note held
   under Off has no gate state to ping from, so it ends when switched to Ping.
 
+### Shapes: where Braids is held
+
+Braids' code (vendored unmodified, `third_party/mutable/braids/`) shifts by
+a negative count or by 32, or reads past a table, at some edges of pitch and
+Timbre. ASan and UBSan found them; on a given build each gave some output,
+but not one any C++ compiler promises, and Wave Line's depended on what the
+linker put after its table. The wrapper (`src/mi_shapes.cc`) holds every
+voice inside what the code handles, in Braids' own units (1/128 semitone;
+Timbre as the int16 0..32,767 the knob becomes):
+
+| Edge | What Braids does past it | Held at | What changes |
+| --- | --- | --- | --- |
+| The pitch, key + bend + pitch offset, above MIDI 127.99 | Flute (31) reads its 128-entry body filter table past the end (`digital_oscillator.cc:1404`). The filter shapes (17–20) at a high Timbre wrap their int16 shifted pitch from MIDI 136 and shift by 32 in `ComputePhaseIncrement`. Sqr Sync and Saw Sync (7, 8) wrap the synced oscillator's pitch from MIDI 192 at Timbre 1 (`analog_oscillator.cc:64`), reachable only with a pitch offset on a bend | 0..16,383 (MIDI 0..127.99), where `braids.cc` holds its own pitch before `set_pitch` at the default octave; it was 0..32,767 | A note above MIDI 127.99 plays as at 127.99, on every shape. Braids' oscillators already stopped rising at MIDI 128 (both phase-increment tables end there), but what follows the pitch (3x's intervals, the filter shapes' cutoff, Bell's and Drum's partials, Digital's data rate) kept moving |
+| Comb (15): the comb's own pitch, key + (Timbre − 0.5) × 64 semitones, below MIDI −16 (Timbre 0 on keys 0–47; below 0.375 on key 0) | `ComputeDelay` shifts by a negative count (`digital_oscillator.cc:90`) | Timbre at 16,384 + 2 × (−2,048 − pitch) or above, so the comb stays at MIDI −16 or above | Nothing steady: the comb's delay is at its longest (8,192 samples, 11.7 Hz at 96 kHz) from MIDI 6.2 down, which the build's shift had mostly landed on too (within 1 LSB in the renders compared). Only the comb's own glide out of that region (a one-pole over 16 Braids blocks, about 4 ms) starts nearer |
+| Wave Line (39): Timbre above 32,255 (0.9844) | The scan reads `wave_line[64]`, one past the line's 64 waves (`digital_oscillator.cc:1637`) | Timbre at 32,255 at most | The last 1.6 % of Timbre plays the line's last wave; this build had played a stray one there, up to 42,000 LSB away |
+
+- **Inside those ranges nothing changed** [verified 2026-10-05: 2,162
+  renders byte for byte against the build before: all 47 shapes, keys 0–127
+  with bends to 127.99, Timbre 0–0.98 and Color 0–1, and Timbre and Color
+  turned while notes held, as fm1-render's 16-bit WAVs; and in the
+  engine's float output, a reviewer's 282 random scripts of 300 events
+  inside the ranges (six a shape; notes, knobs, bends, pitch and
+  Timbre/Color offsets turning), rendered at blocks of 64 and 7 from memory
+  filled 0x00 and 0xA5, gave the same bits from both builds]. The reference
+  suite's points are all inside and pass unchanged.
+- **No report under ASan and UBSan** [verified 2026-10-05, Apple clang 21:
+  `tests/test_engines_shapes_edges.py`, one render per shape over every key
+  at Timbre and Color 0, ½ and 1 with the note from MIDI −96 to 223, and a
+  sweep of 8,460 renders, every shape, key, Timbre and Color at 0, 0.001,
+  0.37, 0.5, 0.985 and 1, and bends from −48 to +48]. The build before the
+  clamps fails the test on shapes 7, 8, 15, 17–20, 31 and 39, and the
+  per-note extremes test ([below](#per-note-offsets)) now takes every shape
+  on keys 0 and 127.
+- **At an edge Shapes plays upstream at the value it holds** [verified:
+  `tests/test_engines_reference_braids_fx.py`, Comb on keys 0 and 30 at
+  Timbre 0, Wave Line at Timbre 1, Flute and the filter shapes on key 127
+  bent up 48, within 0.55 LSB of upstream's oscillator at the clamped pitch
+  or Timbre].
+- **The clamps hold under turning knobs, bends and per-note offsets, and
+  between the knob ends** [verified 2026-10-05: `fm1-shapes-hostile`
+  (`test/shapes_hostile.cc`, run by `tests/test_engines_shapes_hostile.py`).
+  On every shape, a random script within the engine API (knobs anywhere,
+  NaN and infinities included, bends and pitch offsets anywhere in ±48,
+  per-note Timbre and Color offsets, Shape switched while notes sound)
+  gives the same bits at blocks of 64, 1, 7 and random sizes and from any
+  memory fill, and no report under ASan and UBSan. Every voice above MIDI
+  127.99 plays the bits of the same script held at 127.9921875; Comb with
+  Timbre turning below the clamp, and Wave Line above it, play the bits of
+  Timbre held at the clamp. The build before the clamps fails the last
+  three on 23 shapes, Comb and Wave Line, and halts under the sanitizers.
+  A reviewer's own sweep of 60 such seeds (all 47 shapes, 47,000
+  scripted events each) gave no report either].
+- The cost is a few integer compares a voice per 24-sample block; no
+  table, no libm.
+- The module reaches these edges too [inferred: `braids.cc` adds the octave
+  setting, up to +2 octaves, after its own clamp, and the LFO range takes
+  the pitch below 0]: an upstream candidate, as Plaits' speech read is.
+
 ## Drums
 
 A 16-pad drum kit after the classic analogue drum machines, on MIDI notes
@@ -3028,10 +3086,9 @@ engines]:
 - Instance fills 0, 0xA5 and 0xFF and host blocks of 1, 7 and 64 give the
   same bytes when the calls land on the same frames.
 - Every POLY parameter at an end with the pitch at ±48 over a ±48 bend, on
-  keys 0 and 127, on every model and every fifth patch, renders finite
-  output, also under ASan and UBSan. Shapes is held within MIDI 0..127 and
-  leaves out two shapes, since Braids faults past there and at those
-  shapes' Timbre ends without offsets too ([below](#open-questions-and-next-steps)).
+  keys 0 and 127, on every model and every fifth patch, every shape
+  included, renders finite output, also under ASan and UBSan (Shapes holds
+  Braids at its edges: [above](#shapes-where-braids-is-held)).
 
 **In `fm1-render`**: `--note-param-at T:KEY:NAME=OFFSET` (a POLY parameter;
 `#INDEX=OFFSET` sends any index, to test what an engine ignores) and
@@ -3103,6 +3160,66 @@ rules; a v2 effect called once per piece; position monotonic and exact.
 fm1-render and the app render a Test Ext transport the same bytes, and the
 parity scenario `api-v3-test-ext-transport` checks the browser's module.
 
+### MIDI effects
+
+`FM1_KIND_MIDI_FX`, reserved since API v1, is live since 2026-10-06, as an
+addition to v3: notes in, notes out, before a sound. Nothing in
+`fm1_engine_t` changed. A MIDI effect's descriptor is an `fm1_midi_fx_t`,
+an `fm1_engine_t` of that kind (its parameters, `create`, `destroy` and
+`set_param` as any engine's; `note_on`, `note_off`, `pitch_bend`, `render`
+and the v2 and v3 extras NULL) followed by `process()`; `fm1_midi_fx_of`
+casts to it. MIDI effects have their own registry (`midi_fx/registry.c`,
+`fm1_midi_fxs`), so the sound and effect lists, and every loop over them,
+stay as they were; `fm1-render --list` prints them after the engines, kind
+`midi_fx`.
+
+- **`process(self, in, n_in, ctx, out, cap)`**, once per effect per block:
+  `in` the block's events (`fm1_midi_ev_t`, `include/fm1_midi_ev.h`:
+  frame, kind, key, velocity), ascending by frame; `ctx` the block's tick
+  frames (96 to the quarter note), its length, the tempo, the transport and
+  the project key (`fm1_midi_fx_ctx_t`); `out` at least
+  `FM1_MIDI_FX_OUT_MIN` (64) events, ascending, note-offs before note-ons
+  at one frame.
+- **The rules:** every note-on sent gets exactly one note-off; a note-off
+  that does not fit is sent at the start of the next call, a note-on that
+  does not fit never; FLUSH ends every sounding note, PANIC also forgets
+  every key, RESET restarts the pattern; time is ticks, never samples, so
+  the output is the same at any block size; no heap, no libm.
+- **The arpeggiator**, `arp` (`midi_fx/arp_engine.c` on the core
+  `midi_fx/fm1_arp.c`), is the first: 25 parameters on seven pages,
+  [midi_fx/README.md](midi_fx/README.md).
+- **The host side** (`include/fm1_mfx_host.h`, `seq/mfx_host.c`, in the
+  sequencer's objects): a chain of up to four effects in front of each of
+  four sound units, on the bridge (`fm1_seq_host_t.mfx`). While a chain
+  has an effect on, the notes for its sound go through it: live notes
+  (`fm1_mfx_live_note`, at the next block's first frame) and the
+  sequencer's (dispatch takes them out of the block, at their frames); a
+  note-off follows its note-on. Dispatch merges the chains' output into the
+  block by frame, so a sound's render splits there and the modulation's
+  hook hears the notes. The ticks are the sequencer's clock as the block
+  began, which runs on at its tempo while stopped (or the stage's own,
+  `fm1_mfx_set_tempo`, without a sequencer); Start reaches the effects as
+  RESET and Stop as FLUSH, at their frames, and each frame where the
+  sequencer starts notes for the sound as one STEP after them (a trig, for
+  RATE TRG). A bypass, a removal or `fm1_mfx_flush` flushes at once, the
+  note-offs to the host's sink. Switching an effect on while others in its
+  chain are on keeps every note-off with its note-on: the effects before it
+  end their notes first, and when it becomes the chain's first effect on,
+  those after it hear every key the chain took let go.
+- **fm1-render:** `--mfx K:ID[:off]`, `--mfx-param K:NAME=VALUE`,
+  `--mfx-param-at K[.J]:T:NAME=VALUE`, `--mfx-on-at K[.J]:T:0|1`,
+  `--log-mfx FILE.jsonl` (what the chains sent, by frame and unit), and
+  `notes_hung` in the summary (engine note-ons still without a note-off at
+  the end). The virtual FM-1 runs the same stage (sim/web/README.md, "The
+  arpeggiator").
+
+Tests [verified, 2026-10-06]: `tests/test_engine_midi_fx.py` (blocks of 1,
+7, 64 and 448 frames, the sequencer's ticks, Start and Stop, a 24-seed fuzz
+with no hung note, note-offs following their note-ons, chains of two and
+switching either effect, a flood of 128 keys, TRG on the sequencer's trigs,
+the flags, no heap, stdio or libm in the stage and the wrapper) and
+`tests/test_sim_arp.py`; parity scenarios `arp-*`.
+
 ### Pad kits
 
 A drum kit plays one sound per note on a run of keys, whatever their
@@ -3137,12 +3254,13 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 
 | Path | What |
 | --- | --- |
-| `include/fm1_engine.h` | The engine API, version 3. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, 16-bit flags, a unit and an abbreviation ([above](#parameters-engine-api-v2-and-v3)); the LOG law ([above](#the-log-law)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the effect extension and pad kits ([above](#engine-api-v3)); the threading contract |
+| `include/fm1_engine.h` | The engine API, version 3. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, 16-bit flags, a unit and an abbreviation ([above](#parameters-engine-api-v2-and-v3)); the LOG law ([above](#the-log-law)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the effect extension, MIDI effects and pad kits ([above](#engine-api-v3)); the threading contract |
 | `include/fm1_math.h` | `fm1_log2f`, `fm1_exp2f`: base-2 logarithm and exponential without libm, the same bits on every build (the LOG law's, and Comp's, DJ Filter's and Tilt's through `src/fx_comp_math.h`) |
 | `include/fm1_fx_host.h`, `seq/fx_host.c` | The effect extension on the host side: the tempo, beats and transport events from the sequencer's clock, and the split renders both hosts share ([below](#engine-api-v3)) |
 | `include/fm1_mod.h`, `include/fm1_mod_host.h`, `mod/` | Modulation (docs/16 stage MG1): a rack of up to 8 modules inside a 32-slot matrix, run every 32 frames on absolute time, with the module kinds LFO, Envelope and Chance, and the glue that runs it as the sequencer bridge's control-rate hook. Built on the primitives (an LFO, a Peaks-style envelope, slew, S&H, a Turing register, a tick clock divider). Heap-free C99, no libm; `fm1-render --mod` hosts it, the simulator does not yet ([mod/README.md](mod/README.md)) |
 | `include/fm1_seq.h`, `seq/` | The sequencer core: a heap-free C99 port of Movy's sequencer, with 4–8 routed tracks ([seq.md](seq.md), docs/13) |
-| `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`. Not wired into the renderer yet ([midi_fx/README.md](midi_fx/README.md)) |
+| `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`; its MIDI effect `arp` (engine API v3) and the MIDI effects' registry ([midi_fx/README.md](midi_fx/README.md), [above](#midi-effects)) |
+| `include/fm1_mfx_host.h`, `seq/mfx_host.c` | MIDI effects on the host side: a chain in front of each sound, the ticks, live and sequencer notes, the merge into the block ([above](#midi-effects)) |
 | `include/fm1_smooth.h` | The SMOOTH ramp every engine runs (above): C99, header-only, no libm |
 | `include/fm1_fx_idle.h` | The idle path of EQ, Isolator and Master Sat: the rest and warm-up times and the decay bound they come from, and the `FM1_FX_IDLE` switch that builds the effects without it ([above](#idle-at-pass-through)) |
 | `include/fm1_mix_limiter.h` | The host's mix-bus limiter and bus guard. Twelve voices started in phase can exceed full scale; the bus holds the output under 0.98, and non-finite samples become silence |
@@ -3162,7 +3280,7 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON; with `--sound`, `--insert`, `--level` (and `--slots`) up to four sound units, each through its own inserts and level, mixed before the effect chain, as the virtual FM-1's multi-sound plays them (seq.md, Host contract) |
-| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), and `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py) |
+| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -3406,21 +3524,6 @@ keeping decay within 3–4 %.
   before anything commercial.
 - **Shapes' memory:** 207 KB for 12 voices. A voice cap for the FM-1 build,
   or a split of the physical-model shapes.
-- **Braids faults at some edges**, with or without per-note offsets
-  [verified 2026-10-05: the build before them, clang 18 ASan + UBSan]:
-  Comb (15) at Timbre 0 on keys 0–36 (a shift by −1 in
-  `DigitalOscillator::ComputeDelay`); Wave Line (39) at Timbre 1 on any key
-  (`wave_line[64]`, one past its table, `digital_oscillator.cc:1637`);
-  Flute (31) once key + bend passes MIDI 127 (a global buffer read past its
-  table); the four filter shapes (17–20) at Timbre 1 on key 127 bent up 48
-  (a shift by 32 in `ComputePhaseIncrement`). Ordinary knobs and keys
-  reach the first two; CI's tests never set those shapes there. The
-  wrapper clamps the pitch to 0..255.99 semitones; the module itself is
-  probably held lower (its CV and its own pitch clamp [inferred]), so a
-  clamp at MIDI 127 in the wrapper may be the fix for the high ones. The
-  vendored code stays unmodified, so any fix is in the wrapper (an audio
-  change, its own stage) or an upstream candidate. The per-note extremes
-  test keeps Shapes within MIDI 0..127 and leaves Comb and Wave Line out.
 - **Resampler cost on pi32v2:** the stronger second stage costs about 114
   multiply-adds per output; the cheaper half-band version (about 70, with
   18–22 kHz unprotected) is commit `f12448c`. The owner's decision
