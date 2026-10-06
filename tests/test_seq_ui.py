@@ -147,7 +147,8 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
     panels = [x for x in scen if "panel" in x]
     assert {x["name"] for x in panels} >= {"seq-panel-play-stop", "seq-panel-step-entry",
                                            "seq-panel-record", "seq-panel-capture-stopped",
-                                           "multi-panel", "seq-panel-tracks", "seq-panel-locks"}
+                                           "multi-panel", "seq-panel-tracks", "seq-panel-locks",
+                                           "seq-panel-session-song"}
     for sc in panels:
         seq = ROOT / "sim" / "web" / "test"
         args = ["--engine", sc["engine"], "--seconds", str(sc["seconds"])]
@@ -189,6 +190,10 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
                               "cscl 1 1 2", "cscl 1 2 1", "metro 1", "metro 0", "mute 1 1"]
             assert sidecar.startswith("--slots\n") and s["current"] == 1, "Sound 2 follows track 2"
             assert s["seq_clicks"] == r["seq_clicks"] == 2
+        if sc["name"] == "seq-panel-session-song":          # S9+: scenes, the Song page
+            assert played == ["scene 0", "sgnew 0", "songadd 1", "songadd 2", "sgend 2", "sgset 0 0 2",
+                              "sgjump 0"]
+            assert s["seq_view"]["playing"] == 0, "the song's Stop end stopped the transport"
         if sc["name"] == "seq-panel-locks":
             assert played == ["alabel 0 0 synth:Timbre", "abase 0 0 64", "aset 0 0 4 94 1",
                               "alabel 0 1 synth:Morph", "abase 0 1 64", "aset 0 1 4 44 1",
