@@ -10,8 +10,14 @@ stock `app.bin` [verified: docs/02 §5], and it equals Google's table row for
 row, rows 4 and 6 included [verified: `tools/check_msfa_table.py`'s V13
 and V14 finds against `third_party/msfa/fm_core.cc`, below].
 
+**Borrowed, with thanks.** The engine is Google's msfa, and its name is
+Felucca's: FM6 is the FM engine of hugelton's Felucca, whose Apache-2.0
+`fm6_core.c` (Leo Kuroshita's port of msfa as Dexed carries it) is this
+engine's test oracle (below). The owner kept the name on 2026-10-06, "since
+we're borrowing it"; the engine id `dx7` is internal.
+
 DX7 is a Yamaha trademark. FM6 reads the voice format; it is not affiliated
-with or endorsed by Yamaha, and the engine's name is our own.
+with or endorsed by Yamaha.
 
 | | |
 | --- | --- |
@@ -100,7 +106,9 @@ after its release). They want a listening pass (open questions).
 ### From SysEx: the user slots
 
 `include/fm1_dx7.h` is the engine-side import. A host hands
-`fm1_dx7_load_sysex` the bytes of a `.syx` file:
+`fm1_dx7_load_sysex` the bytes of a `.syx` file (or reads one without an
+instance with `fm1_dx7_read_sysex`, and gives an instance a voice with
+`fm1_dx7_set_user_voice`, as the simulator does):
 
 - **A single voice (VCED):** `F0 43 0n 00 01 1B`, 155 data bytes, a
   checksum, `F7` (163 bytes). It goes to the slot asked for, the next one
@@ -115,6 +123,10 @@ after its release). They want a listening pass (open questions).
   value is clamped to its range and names to printable ASCII, so any bytes
   are safe to load; a message cut short or broken by another status byte
   is skipped.
+- The result says what was skipped and why, for a host's message: other
+  SysEx (another maker's, another format), messages cut short, voice or
+  bank dumps of the wrong length (a header with another byte count or
+  length), bytes outside any message, and raw bank data.
 - Sounding notes keep the voice they started with.
 
 On the desktop, `fm1-render --engine dx7 --sysex FILE.syx` loads files
@@ -127,7 +139,17 @@ engines/build/fm1-render --engine dx7 --sysex mybank.syx --param Patch=40 \
 # stderr: sysex mybank.syx: 32 voices from User 1, 0 bad checksums, 0 skipped: "..." ...
 ```
 
-The browser simulator has no way to load a file yet (open questions).
+In the browser simulator, **Load DX7 patches…** (or a file dropped on the
+page) reads a `.syx` file in the browser and hands its bytes to the
+firmware (`fm1w_dx7_load`, sim/web/README.md); nothing is uploaded. The
+app keeps FM6's user bank, the voices the FM-1 would keep in flash: every
+FM6 sound gets them when it is created and when a file loads, FM6's Patch
+list shows their names in place of "User N", and the current sound then
+plays the first voice loaded (it becomes FM6 if it was not). The page
+names what was wrong with a file that loaded nothing, and flags wrong
+checksums. Files up to 64 KiB [verified: tests/test_sim_web.py natively,
+test/sysex.mjs on the module, the page in headless Chromium,
+2026-10-06].
 
 ## What is msfa's and what is ours
 
@@ -349,10 +371,10 @@ on.
 
 ## Cost and memory
 
-**Instance:** 15,848 bytes at 44,118 Hz on this 64-bit desktop: it holds
-no pointers, so the size is the same at 32 bits [verified: `fm1-render`'s
-`instance_bytes`; JieLi's compile check measured 15,844 on pi32v2, i386 and
-x86-64 before the flag below was added, 2026-10-05]. Twelve voices of msfa
+**Instance:** 15,848 bytes at 44,118 Hz on this 64-bit desktop, on
+pi32v2, i386 and x86-64 alike: it holds no pointers [verified:
+`fm1-render`'s `instance_bytes`; JieLi's compile check, 2026-10-06; 15,844
+before the flag below]. Twelve voices of msfa
 state (six envelopes, a pitch envelope, six operators' parameters, our
 clocks and per-note offsets: 664 bytes each), the 32 user voices (4,992
 bytes, unpacked), the operators' pitches of all 64 slots (1,536 bytes, so
@@ -378,9 +400,12 @@ not count. Since then (the owner's decision, 2026-10-06):
 
 So at the FM-1's rate FM6 keeps 28,688 bytes less in RAM, and 20,484 more
 bytes of const data sit in flash. What is left in RAM besides the
-instances is msfa's rate units and three pointers, 24 bytes on pi32v2
-[inferred: their declarations; the compile check reports the objects'
-`.data` and `.bss`].
+instances is 24 bytes on pi32v2: msfa's `.bss` is 12 (`fm1_freqlut` and
+the rate units of `Lfo` and `PitchEnv`), `msfa_tables.o`'s `.data` 8 (the
+two table pointers, constant initialised: no start-up code) and the
+engine's own rate 4 [verified: JieLi's compile check, 2026-10-06, all four
+profiles; `msfa_rom.o` is 20,484 bytes of read-only data and nothing else,
+and no msfa table is among the largest static RAM symbols any more].
 
 How, with msfa's files unmodified (`src/msfa_prelude.h`):
 
@@ -433,8 +458,14 @@ Checks [verified, 2026-10-06]:
   finds the sine table too slow in flash (docs/11 §2 reports stock copying
   msfa's hot code to SRAM) can copy it there and repoint `fm1_sintab`.
 
-Code: about 10 KB for the engine and 8 KB for msfa on pi32v2 at `-O2`
-[verified: JieLi's compile check, 2026-10-05].
+Code and const data on pi32v2 at `-O2` (`.text` and `.rodata`): about
+14 KB for the engine, its 32 built-in voices 5.5 KB of it, 5.6 KB for
+msfa, and the tables' 20 KB [verified: JieLi's compile check, 2026-10-06;
+msfa was 8 KB with `sin.cc` and `exp2.cc`]. `FillFreqLut` uses software
+doubles and no libm; the libm calls left are `log` in `osc_freq` (at
+create and when voices load) and `floor` in `Freqlut::init` and
+`Dx7Note::init`, which nothing calls [verified: the same check's symbol
+list].
 
 **Time per 64-sample block on this desktop** (Apple M1 Max, twelve voices
 sounding, best of three 5-second renders; share of the 1.451 ms block)
@@ -458,18 +489,15 @@ loop algorithms are the dearest case here.
 
 ## Open questions
 
-- **The name.** "FM6" is generic (six-operator FM) and is also the name of
-  Felucca's FM engine; the engine id `dx7` is internal. The owner may want
-  another.
 - **A listening pass over the 32 built-in voices** (designed by numbers).
 - **Envelope holds** (`ACCURATE_ENVELOPE`): adding them means an envelope
   of our own instead of msfa's `Env`, or a check of whether the stock FM-1
   has them first.
 - **AM depths** are a design (above), not a measurement of a DX7.
-- **The simulator's SysEx import:** a file picker or drag-and-drop on the
-  page calling `fm1_dx7_load_sysex`, and the user slots' names on the
-  screen (the Patch list's names are the static "User 1"...;
-  `fm1_dx7_user_name` returns the stored ones).
+- **The user bank on the FM-1:** the simulator's bank lasts until power
+  off. On the FM-1 it would live in a flash partition, which waits for the
+  dump-and-restore gate (CLAUDE.md, the one rule) and a SysEx path over
+  USB-MIDI.
 - **Controllers:** the mod wheel and aftertouch routings, sustain and
   portamento need the engine API to carry controllers first.
 - **Felucca's AM quirk:** a candidate upstream report (above).

@@ -22,10 +22,15 @@ terms it is used under.
 - **msfa**, the FM synthesizer core of Google's Music Synthesizer for
   Android, by **Raph Levien** for **Google**, Apache License 2.0: FM6's
   envelopes, LFO, operators, algorithms and tables. Its code is included
-  unmodified; the voice built from it, its amplitude modulation, the
-  feedback loops of algorithms 4 and 6 and its controls are this project's
-  own. FM6 reads voices in the format of Yamaha's DX7 and is not affiliated
+  unmodified, its tables computed ahead of time as its own code computes
+  them; the voice built from it, its amplitude modulation, the feedback
+  loops of algorithms 4 and 6 and its controls are this project's own.
+  FM6 reads voices in the format of Yamaha's DX7 and is not affiliated
   with or endorsed by Yamaha.
+- **FM6's name** is borrowed, with thanks, from the FM engine of
+  **Felucca** by **hugelton** (Hügelton Instruments), open firmware for the
+  FM-1; Felucca's Apache-2.0 port of the same core checks FM6 in the tests
+  (below).
 - **FM6's built-in voices** are this project's own, written for it and
   under the MIT licence.
 - **Sophie** by **Matt Estela**, MIT licence, included unmodified.

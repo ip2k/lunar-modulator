@@ -75,7 +75,11 @@ whole account. In short:
   SMOOTH, MOD and POLY.
 - **Voices:** the built-in ones are ours (`tools/dx7_bank.py`, MIT); the user
   slots take single-voice and 32-voice SysEx dumps through
-  `include/fm1_dx7.h` (`fm1-render --sysex FILE`), every value clamped.
+  `include/fm1_dx7.h` (`fm1-render --sysex FILE`, and the simulator's Load
+  DX7 patches), every value clamped.
+- **Name:** borrowed, with thanks, from Felucca's FM6 engine (hugelton),
+  whose Apache-2.0 `fm6_core.c` is the test oracle; the engine itself is
+  Google's msfa.
 - **Rate:** msfa runs at the host's rate in 64-sample blocks, its envelope
   clocked by 44,118 / rate (one step a block at the FM-1's rate); its rate
   units are set by the first create, and another rate is refused, as is
@@ -84,8 +88,8 @@ whole account. In short:
   (`third_party/felucca-fm6/`, `fm1-dx7-oracle`), test only: all 32
   algorithms within 0.3 dB of envelope and 28–40 dB SNR, and the rest in
   tests/test_engines_dx7.py.
-- **Cost:** 15,848 bytes an instance at 44,118 Hz on 64-bit and 32-bit
-  alike (no pointers); at another rate 4,100 more, its own frequency table.
+- **Cost:** 15,848 bytes an instance at 44,118 Hz on 64-bit, 32-bit and
+  pi32v2 alike (no pointers); at another rate 4,100 more, its own frequency table.
   msfa's tables are 20 KB of const data (flash on the FM-1), no longer
   28.7 KB of shared RAM (msfa.md, "Tables in flash"). Twelve voices take
   0.36–0.64 % of a block on this desktop, about a third of Macro's twelve.
@@ -163,7 +167,9 @@ decay, tone, snap and sweep at the knobs' middle, a drive and a level
 Punch; the hats and cymbals use the bank Plaits' 808 hat uses (414 Hz and
 up), and the clap's band-pass sits near 1 kHz. A pad given another model by
 its Model knob plays that model's own voicing (`kModelVoicing`), so a
-cowbell on a tom's pad is a cowbell.
+cowbell on a tom's pad is a cowbell. The cowbell stays an option of Model,
+with no pad of its own (the owner's decision, 2026-10-06: no pad swap;
+General MIDI puts it on 56, outside the kit's 36–51).
 
 | | Deep | Punch |
 | --- | --- | --- |
@@ -323,19 +329,17 @@ under ASan and UBSan (clang 19.1, no report) and in a 32-bit build (GCC
 **Open questions** (for the owner):
 1. Plaits' rate and a resampler (as now, the 2026-10-01 rule) or the
    host's rate, with no resampler and the classes' times 8.8 % long?
-2. The cowbell has no pad in 36–51 (General MIDI puts it on 56). Keep
-   Sophie's map and leave it to Model, or swap a pad (the High-Mid tom?) in
-   one kit?
-3. The hats' and cymbals' bank: Plaits' (the paper's four fixed oscillators
+2. The hats' and cymbals' bank: Plaits' (the paper's four fixed oscillators
    an octave up), as now, or the schematic's own frequencies? A table swap,
    best decided by ear.
-4. The Punch kit's hats and cymbals: the machine that inspired it played
+3. The Punch kit's hats and cymbals: the machine that inspired it played
    samples there; these are synthetic. Keep them, or add a small sample set
    of our own (or CC0)?
-5. A circuit-level model of the 808 kick (Werner, Abel and Smith, DAFx-14)
+4. A circuit-level model of the 808 kick (Werner, Abel and Smith, DAFx-14)
    as a later model, or is Plaits' Analog Drum enough?
-6. The voicings were set by measurement, not by ear: worth a listening pass.
-7. Grow the modulation records (180 to 188) to give Drums back a per-pad
+5. The voicings were set by measurement, not by ear: the owner is giving
+   them a listening pass (2026-10-06).
+6. Grow the modulation records (180 to 188) to give Drums back a per-pad
    choke group and a kit-wide decay, or keep sound engines at twelve
    parameters?
 
@@ -2988,9 +2992,12 @@ keeping decay within 3–4 %.
 
 ## Open questions and next steps
 
-- **FM6** has its own list ([msfa.md](msfa.md), "Open questions"): its name, a
+- **FM6** has its own list ([msfa.md](msfa.md), "Open questions"): a
   listening pass over its 32 voices, the DX7's envelope holds, AM depths
-  measured on a DX7, the simulator's SysEx import, msfa's tables in flash.
+  measured on a DX7, the user bank in flash on the FM-1. Answered
+  2026-10-06: the name stays (borrowed from Felucca's FM6, with msfa
+  itself), msfa's tables are const data (flash), and the simulator loads
+  `.syx` files.
 - **Six-Op FM's patch data** has no stated origin upstream. The 23 patch
   names that are trademarks or a person's name are shown under names of our
   own; `-DFM1_SIXOP_ORIGINAL_NAMES` shows the stored ones in a personal build
