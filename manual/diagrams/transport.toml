@@ -5,7 +5,7 @@
 # fm1_seq_ui_button, srec_begin and srec_end, close_overlay).
 title = "The transport"
 caption = "What PLAY/STOP and REC do. Every state inside the frame is the sequencer running; PLAY/STOP stops it from any of them but Capture’s tempo, which any press only closes. When Capture finds a single tempo for an empty clip it plays at once, without the tempo on the screen."
-alt = "A state diagram. Stopped is where it starts. PLAY/STOP goes to Playing, and from any running state PLAY/STOP goes back to Stopped. Held in SEQ mode, REC enters Step record, and letting go returns to Stopped; PLAY/STOP there starts Playing. REC while stopped starts a one-bar Count-in, which turns into Recording a bar later, or into Playing if REC is pressed again. From Playing, REC records at once into a clip with notes, or into an empty clip waits for the next bar and then records; REC during the wait, or while recording, goes back to Playing. SHIFT with PLAY/STOP restarts, and SHIFT with REC captures into the loop. SHIFT with REC while stopped captures the phrase and starts playing with the tempo shown; SELECT tries another tempo, and any press, PLAY/STOP included, only closes it, back to Playing. PLAY/STOP in Step record leaves it and starts Playing."
+alt = "A state diagram. Stopped is where it starts. PLAY/STOP goes to Playing, and from any running state PLAY/STOP goes back to Stopped. Held in SEQ mode, REC enters Step record, and letting go returns to Stopped; PLAY/STOP there starts Playing. REC while stopped starts a one-bar Count-in, with REC blinking fast, which turns into Recording, REC lit, a bar later, or into Playing if REC is pressed again. From Playing, REC records at once into a clip with notes, or into an empty clip waits for the next bar, REC blinking fast, and then records; REC during the wait, or while recording, goes back to Playing. SHIFT with PLAY/STOP restarts, and SHIFT with REC captures into the loop. SHIFT with REC while stopped captures the phrase and starts playing with the tempo shown; SELECT tries another tempo, and any press, PLAY/STOP included, only closes it, back to Playing. PLAY/STOP in Step record leaves it and starts Playing."
 legend = ["press", "event"]
 
 [[node]]
@@ -34,7 +34,7 @@ role = "refuse"
 id = "count"
 shape = "state"
 label = "Count-in"
-sub = "one bar"
+sub = ["one bar;", "REC blinks fast"]
 col = 0
 row = 2
 role = "held"
@@ -60,6 +60,7 @@ role = "select"
 id = "rec"
 shape = "state"
 label = "Recording"
+sub = "REC lit"
 col = 1
 row = 3
 role = "refuse"
@@ -68,7 +69,7 @@ role = "refuse"
 id = "wait"
 shape = "state"
 label = "Waiting"
-sub = "for the bar"
+sub = ["for the bar;", "REC blinks fast"]
 col = 2
 row = 3
 role = "held"
@@ -152,12 +153,16 @@ label = "REC"
 from = "playing"
 to = "wait"
 kind = "press"
+exit = "right"
+enter = "left"
 label = ["REC,", "empty clip"]
 
 [[edge]]
 from = "wait"
 to = "playing"
 kind = "press"
+exit = "left"
+enter = "right"
 label = "REC"
 
 [[edge]]

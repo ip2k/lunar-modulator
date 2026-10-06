@@ -75,6 +75,7 @@ LPAD = 4.0                 # a label's box from anything else
 MARGIN = 8.0               # around the whole drawing
 ARROW = (7.5, 3.6)         # length, half width
 ARROW_AUDIO = (9.0, 4.6)
+CROSS = 4.0                # half the size of a refused cable's cross
 MAX_ROUNDS = 60
 
 SIDES = ("L", "R", "T", "B")
@@ -1072,7 +1073,7 @@ def arrow_points(d: Diagram, e: Edge, pts):
         return "arrow", tri, (x1 - ux * (al - 1.0), y1 - uy * (al - 1.0))
     if e.marker == "refused":
         c = (x1 - ux * 9.0, y1 - uy * 9.0)
-        s = 4.0
+        s = CROSS
         return "cross", [((c[0] - s, c[1] - s), (c[0] + s, c[1] + s)),
                          ((c[0] - s, c[1] + s), (c[0] + s, c[1] - s))], c
     return "none", [], (x1, y1)
@@ -1272,9 +1273,18 @@ def render(lay: Layout) -> str:
                 k = theme.kinds[key]
                 colour = theme.roles[k.role].stroke
                 dash = f" stroke-dasharray='{k.dash}'" if k.dash else ""
-                body.append(f"<path data-kind='legend' d='M{_f(x)} {_f(mid)} L{_f(x + sample)} {_f(mid)}' "
+                # a refused cable's sample ends in its cross, as the cables do, so
+                # the legend tells it from a cable by shape as well as colour
+                cross = key == "refused"
+                end = x + sample - CROSS if cross else x + sample
+                body.append(f"<path data-kind='legend' d='M{_f(x)} {_f(mid)} L{_f(end)} {_f(mid)}' "
                             f"stroke='{colour}' stroke-width='{_f(k.width)}'{dash} "
                             f"stroke-linecap='{k.cap}' fill='none'/>")
+                if cross:
+                    for dy in (-CROSS, CROSS):
+                        body.append(f"<path data-kind='legend' d='M{_f(end - CROSS)} {_f(mid - dy)} "
+                                    f"L{_f(end + CROSS)} {_f(mid + dy)}' stroke='{colour}' "
+                                    f"stroke-width='1.8' stroke-linecap='round'/>")
             else:
                 role = theme.roles[key]
                 body.append(f"<rect data-kind='swatch' x='{_f(x)}' y='{_f(mid - 5)}' width='14' height='10' "
