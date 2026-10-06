@@ -240,6 +240,27 @@ The bottom bar reads *Globe*, the name M-VAVE's firmware gives this page. The
 knobs and [[SELECT]] do nothing here. [Chapter 10](10-settings-and-storage.md)
 describes the page.
 
+### Lists
+
+When you turn through a list, the list appears over the middle of the screen
+until about a second after your last turn: its name in gold at the top left,
+the chosen entry's place at the top right (such as *34/96*), and six of its
+entries, the chosen one highlighted. The chosen entry sits on the third row,
+with the two before it above and the three after it below; at either end of
+the list the rows stop moving and the highlight goes to the first or last
+row. A small triangle above the entries means the list goes on above them,
+one below them that it goes on below. *Empty* and *Empty slot* are dim.
+
+| List | When |
+| --- | --- |
+| *Engine*: the sound engines, after *Empty* on Sounds 2 to 4 | You turn [[PRESETS]] |
+| The engine's main list, such as *Model* or *Patch* | You turn [[ALGORITHM]] |
+| *M1 effect* and the like: *Empty slot*, then every effect | You turn [[ALGORITHM]] in FX mode |
+| *Sound*: the four sounds and what each holds | You turn [[PRESETS]] with [[SEL]] held |
+| *Mod3 kind* and the like: *Empty*, then the sixteen kinds | You turn [[ALGORITHM]] in the rack ([chapter 8](08-modulation.md)) |
+| *Destination*: every parameter a cable can reach | You turn [[KNOB2]] in the matrix ([chapter 8](08-modulation.md)) |
+| *Tempo*: the tempos a phrase fits | You capture while the sequencer is stopped ([chapter 7](07-sequencer.md#choosing-a-tempo)) |
+
 ### Messages
 
 Short messages appear over the middle of the screen for about a second:
@@ -247,15 +268,11 @@ Short messages appear over the middle of the screen for about a second:
 | Message | When |
 | --- | --- |
 | *Volume 75* | You turn [[MASTER]] |
-| Three engine names, the middle one highlighted | You turn [[PRESETS]]: the previous engine, the new one and the next |
-| A parameter and its value, such as *Model, VA Pair* | You turn [[ALGORITHM]] |
-| The effect's name, or *Empty slot* | You turn [[ALGORITHM]] in FX mode |
 | *Octave +1* | You press [[OCT-]] or [[OCT+]] |
 | *Transpose -2* | You turn [[ALGORITHM]] with [[OCT-]] or [[OCT+]] held |
 | *Octave 0, Transpose 0* | You press [[OCT-]] and [[OCT+]] together |
 | An engine's name and *refuses 48000 Hz* | That engine cannot run at the sample rate the browser chose ([chapter 2](02-getting-started.md#the-browser-simulator)) |
 | An engine's or effect's name, *does not fit* and how far over | It would take the chain past the FM-1's memory ([chapter 6](06-effects.md#memory)) |
-| *Sound 2 of 4* and what it holds | You turn [[PRESETS]] with [[SEL]] held |
 | A track, *Captured*, *Metronome on* and the like | The sequencer did something you asked ([chapter 7](07-sequencer.md)) |
 | A cable, such as *LFO1 > S2Color*, and its amount | You make a cable ([chapter 8](08-modulation.md)) |
 | A button's name and *not in the simulator yet* | You press [[SAVE]] or [[ARP]] |

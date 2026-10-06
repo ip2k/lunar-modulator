@@ -1085,6 +1085,18 @@ void fm1_mod_ui_rack_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int knob
   if (float_bits(v) != float_bits(base)) fm1_mod_ui_set_param(env, u, u->pos, (unsigned)idx[knob], v);
 }
 
+/* A picker's popup: `title`, and the window of `total` entries around
+ * `sel` that the screen shows (fm1_panel.h); the caller names its lines. */
+static void say_list(fm1_mod_ui_say_t *say, const char *title, int total, int sel) {
+  const int first = fm1_list_first(total, sel, FM1_LIST_ROWS);
+  snprintf(say->title, sizeof say->title, "%s", title);
+  say->first = (int16_t)first;
+  say->total = (int16_t)total;
+  say->n = (int8_t)(total - first < FM1_LIST_ROWS ? total - first : FM1_LIST_ROWS);
+  say->mark = (int8_t)(sel - first);
+  say->dim = 0;
+}
+
 static const char *kind_entry(int e) {
   return e <= 0 || (size_t)e > fm1_mod_kind_count ? "Empty" : fm1_mod_kinds[e - 1]->name;
 }
@@ -1099,11 +1111,16 @@ void fm1_mod_ui_rack_algorithm(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int
     u->pick = (int16_t)(fm1_mod_kind_at(env->m, u->pos) + 1);
   }
   u->pick = (int16_t)wrapi(u->pick + delta, count);
-  say->n = 3;
-  say->mark = 1;
-  snprintf(say->line[0], sizeof say->line[0], "%s", kind_entry(wrapi(u->pick - 1, count)));
-  snprintf(say->line[1], sizeof say->line[1], "%s", kind_entry(u->pick));
-  snprintf(say->line[2], sizeof say->line[2], "%s", kind_entry(wrapi(u->pick + 1, count)));
+  {
+    char title[24];
+    int r;
+    snprintf(title, sizeof title, "Mod%u kind", u->pos + 1u);
+    say_list(say, title, count, u->pick);
+    for (r = 0; r < say->n; ++r) {
+      snprintf(say->line[r], sizeof say->line[r], "%s", kind_entry(say->first + r));
+      if (say->first + r == 0) say->dim |= (uint8_t)(1u << r);   /* Empty */
+    }
+  }
 }
 
 void fm1_mod_ui_matrix_select(fm1_mod_ui_t *u, int delta) {
@@ -1134,16 +1151,11 @@ static int dest_index(const fm1_mod_dest_t *list, int n, const fm1_mod_slot_t *s
 static void say_dest(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *list, int n, int k,
                      fm1_mod_ui_say_t *say) {
   int r;
-  say->n = 3;
-  say->mark = 1;
-  for (r = 0; r < 3; ++r) {
-    const int at = k - 1 + r;
-    say->line[r][0] = '\0';
-    if (at >= 0 && at < n) {
-      char name[32];
-      fm1_mod_ui_dest_name(env, &list[at], 1, name, sizeof name);
-      snprintf(say->line[r], sizeof say->line[r], "%.18s", name);
-    }
+  say_list(say, "Destination", n, k);
+  for (r = 0; r < say->n; ++r) {
+    char name[32];
+    fm1_mod_ui_dest_name(env, &list[say->first + r], 1, name, sizeof name);
+    snprintf(say->line[r], sizeof say->line[r], "%.18s", name);
   }
 }
 
@@ -1340,6 +1352,7 @@ int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_
   int i, found = -1, pct;
   say->n = 0;
   say->mark = -1;
+  say->total = 0;
   if (!p || !takes(p)) {
     say->n = 2;
     snprintf(say->line[0], sizeof say->line[0], "%.18s", p ? p->name : "Nothing here");

@@ -76,6 +76,7 @@
 
 #include "fm1_engine.h"
 #include "fm1_mod.h"
+#include "fm1_panel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -123,11 +124,17 @@ typedef struct fm1_mod_ui_env {
   void *ctx;
 } fm1_mod_ui_env_t;
 
-/* A popup a gesture asks the app to show: up to three lines, `mark` the
- * highlighted one or -1; n 0 for none. */
+/* A popup a gesture asks the app to show: up to three lines of a message,
+ * or a picker's list (total > 0): its title and the window of it the
+ * screen shows (fm1_list_first), line[0] being entry `first` of `total`,
+ * with `mark` the chosen line and `dim` the lines to draw dim (Empty).
+ * n 0 for none; mark -1 for no line marked. */
 typedef struct fm1_mod_ui_say {
-  char line[3][24];
+  char line[FM1_LIST_ROWS][24];
+  char title[24];
+  int16_t first, total;
   int8_t n, mark;
+  uint8_t dim;
 } fm1_mod_ui_say_t;
 
 typedef struct fm1_mod_ui {

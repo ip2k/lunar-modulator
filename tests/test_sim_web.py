@@ -410,7 +410,10 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     """Every page of every engine (HOME) and effect (on both master slots),
     at defaults, minima, maxima and each list entry, the global page and
     every popup (the refusals, the SAVE and ARP stubs and an emptied slot
-    included): no text off screen or cut short, and no two labels, or a
+    included), and every list popup at every entry (ALGORITHM through each
+    sound's list, Six-Op FM's 96 patches the longest, PRESETS through the
+    engines, ALGORITHM in FX mode through the effects, the kind picker and
+    the destination picker), each one's window checked: no text off screen or cut short, and no two labels, or a
     label and a bar, closer than 4 px (FM1_APP_LAYOUT_GAP). SEQ mode's Track view:
     empty, the demo pattern, the playhead on its first and last step, 20 and
     300 BPM playing and stopped, a four-bar clip, a loop inside it, a track
@@ -465,13 +468,14 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 2712            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["screens"] >= 3061            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
     #                                              1321 before the master-bus pack (1458), 2189 with modulation
     #                                              (docs/16 MG3) before Room, Hall, Gate and Plate's Freeze, 2325
     #                                              with them and 2366 with Comb and Test Ext (engine API v3), in
-    #                                              the lab switch's two sets of screens; 2712 with per-voice
-    #                                              modulation (MG9) and every engine since
+    #                                              the lab switch's two sets of screens; 2695 before every
+    #                                              list popup's every entry (2026-10-06), 3040 with them;
+    #                                              3061 with per-voice modulation (MG9) too
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

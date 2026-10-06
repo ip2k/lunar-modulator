@@ -438,7 +438,9 @@ def test_the_kind_picker_names_the_resonator(tools):
     an empty position walks Empty, then every kind: the Resonator last."""
     s = sim(tools, "--button", "0.05:LFO", "--turn", "0.1:SELECT:64", "--turn", "0.15:ALGORITHM:-1",
             seconds="0.3")
-    assert s["popup"][1] == "Resonator" and s["mod"]["pos"] == 8
+    w = s["popup_list"]                                  # the list popup (test_sim_lists.py)
+    assert s["popup"][w["mark"]] == "Resonator" and w["first"] + w["mark"] == w["total"] - 1
+    assert s["mod"]["pos"] == 8
     s = sim(tools, "--button", "0.05:LFO", "--turn", "0.1:SELECT:64", "--turn", "0.15:ALGORITHM:-1",
             seconds="1.5")
     assert s["mod"]["rack"][7] == "resonator" and s["mod"]["slots"][0]["row"].startswith("RTRG")
