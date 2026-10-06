@@ -129,4 +129,4 @@ def test_a_message_is_no_list(tools):
     stub = sim(tools, "--button", "0.1:SAVE", seconds="0.2")
     assert stub["popup"] == ["SAVE", "not in the", "simulator yet"] and stub["popup_list"] is None
     cable = sim(tools, "--button", "0.1:LFO:0.2", "--turn", "0.15:KNOB3:25", seconds="0.4")
-    assert cable["popup"] == ["LFO1 > S1Tmbre", "+25%"] and cable["popup_list"] is None
+    assert cable["popup"] == ["LFO1 > S1 Timbre", "+25%"] and cable["popup_list"] is None

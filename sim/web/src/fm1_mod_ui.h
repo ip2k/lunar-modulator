@@ -11,10 +11,13 @@
  *           the 8 positions; ALGORITHM opens the kind picker, which commits
  *           after a second without a turn; SEL grabs the module so SELECT
  *           moves it in the rack.
- *   MATRIX  EDIT opens it: 7 of the 32 slots as rows of 19 characters and a
- *           hint line. A row is the source (6 characters), a mark for the
- *           slot's state, then page A's destination (7) and amount (4)
- *           or page B's VIA (5), curve and polarity. Page A: KNOB1 source, KNOB2 destination (a picker,
+ *   MATRIX  EDIT opens it: 9 of the 32 slots as rows of 28 characters (the
+ *           MID face; audit D7) and a hint line. A row is the source (6
+ *           characters), a mark for the slot's state, then page A's
+ *           destination (16, by its full name where it fits) and amount
+ *           (4), or page B's VIA (6), curve and polarity by name; the screen
+ *           sets the fields apart by colour (audit L2, the rows' roles).
+ *           Page A: KNOB1 source, KNOB2 destination (a picker,
  *           ALGORITHM jumps between groups while it is open, commit after a
  *           second), KNOB3 amount, KNOB4 offset. ALGORITHM otherwise flips
  *           to page B: KNOB1 VIA, KNOB2 curve, KNOB3 polarity, KNOB4 the
@@ -39,17 +42,20 @@
  * 3 HOST, 8 + position a module. The lists walk a table of sink groups
  * (kSinks in fm1_mod_ui.c), in the order S1, S1 In1, S1 In2, S2 ... S4 In2,
  * M1, M2, Host, then the modules; a group whose unit is empty has no
- * entries. Short names (a MATRIX row's seven characters) are the group's
- * tag and the parameter, unique within its engine: S1Tmbre, S2Color,
- * S1I1Bts, M1Mix, Pitch; full names S1 Timbre, S1 In1 Bits, M1 Mix, Host
- * Pitch. A new cable's target picker opens at the current sound
- * (env->sound), as the gesture on HOME makes cables to it.
+ * entries. Full names are the group's name and the parameter's: S1 Timbre,
+ * S1 In1 Bits, M1 Mix, Host Pitch; MATRIX's rows, CHAIN and the gesture's
+ * popup use them wherever they fit (fm1_mod_ui_dest_fit), else the group's
+ * tag and the parameter's full name (S1I1 Brightness), else the short
+ * form: the tag and the parameter in seven characters, unique within its
+ * engine (S1Tmbre, S1I1Bts, M1Mix, Pitch). A new cable's target picker
+ * opens at the current sound (env->sound), as the gesture on HOME makes
+ * cables to it.
  *
  * Scope (docs/16 MG9). A cable is global, or per voice (FM1_MOD_SLOT_VOICE,
  * MATRIX page B's KNOB4): it then runs once for every note, its note
  * sources being that note's and an Envelope, LFO or Chance it reads one
  * instance per note; its script line ends in `voice`. RACK's line under
- * the rack says `vN` for a module that runs per voice, N its voices now.
+ * the rack says "N voices" for a module that runs per voice, N its voices now.
  * The note sources of one sound unit (S1VEL ... S4RTRG) follow the plain
  * ones in KNOB1's list, and the host's group lists a pitch per sound unit
  * and the current sound's (Pitch, Pitch2-4, PitchC); a change of the
@@ -83,9 +89,12 @@ extern "C" {
 #endif
 
 #define FM1_MOD_UI_NONE 0xFFu
-#define FM1_MOD_UI_ROWS 7            /* MATRIX: slot rows on the screen */
-#define FM1_MOD_UI_ROW_CHARS 19      /* a row, LINE_CHARS */
-#define FM1_MOD_UI_DST_CHARS 7       /* a destination's short form in a row */
+#define FM1_MOD_UI_ROWS 9            /* MATRIX: slot rows on the screen (MID face) */
+#define FM1_MOD_UI_ROW_CHARS 28      /* a row or CHAIN line: MID_LINE_CHARS */
+#define FM1_MOD_UI_ROW_DST 16        /* a destination's room in a page A row */
+#define FM1_MOD_UI_HINT_CHARS 28     /* the hint line under MATRIX's rows, MID too */
+#define FM1_MOD_UI_POPUP_CHARS 18    /* a message popup's line (fm1_look.h POPUP_CHARS) */
+#define FM1_MOD_UI_DST_CHARS 7       /* a destination's short form */
 #define FM1_MOD_UI_SINKS FM1_MOD_SINKS   /* env->unit, by sink index (fm1_mod_sink_unit) */
 #define FM1_MOD_UI_MAX_DESTS \
   ((FM1_MOD_SINKS - 1) * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS + \
@@ -186,6 +195,13 @@ const fm1_param_t *fm1_mod_ui_dest_param(const fm1_mod_ui_env_t *env, const fm1_
  * "ENV3 Attack"). */
 void fm1_mod_ui_dest_name(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, int full,
                           char *buf, size_t cap);
+/* A destination in at most `room` characters, as full as fits: the full
+ * name; else the unit's tag and the parameter's full name ("S1I1 Brightness",
+ * the host's parameter alone); else the tag and the parameter squeezed,
+ * unique in its unit as the short form is. Returns the sound (0..3) whose
+ * "S<n>" starts the name, or -1. */
+int fm1_mod_ui_dest_fit(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, size_t room,
+                        char *buf, size_t cap);
 
 /* ---- lists ----------------------------------------------------------------- */
 
@@ -203,9 +219,23 @@ int fm1_mod_ui_has_dst(const fm1_mod_slot_t *s);
 int fm1_mod_ui_empty(const fm1_mod_ui_t *u, const fm1_mod_t *m, unsigned i);
 /* Q1.14 as a whole percentage, rounded half away from zero. */
 int fm1_mod_ui_pct(int16_t q14);
-/* MATRIX row i on page A (0) or B (1): 19 characters and a NUL. */
+/* What each character of a MATRIX row or a CHAIN line is, for the screen
+ * to set the fields apart by colour (audit L2). */
+enum {
+  FM1_MOD_UI_ROLE_PLAIN = 0,         /* padding, "--" */
+  FM1_MOD_UI_ROLE_SRC = 1,           /* a source or VIA; CHAIN's modules */
+  FM1_MOD_UI_ROLE_MARK = 2,          /* the state mark, CHAIN's '>', '~' and "+N" */
+  FM1_MOD_UI_ROLE_DST = 3,           /* a destination; page B's curve and polarity */
+  FM1_MOD_UI_ROLE_AMT = 4,           /* an amount */
+  FM1_MOD_UI_ROLE_SOUND = 8          /* + k: the "S<k+1>" of a destination on sound k */
+};
+/* MATRIX row i on page A (0) or B (1), at most FM1_MOD_UI_ROW_CHARS and a
+ * NUL. Page A: the source in 6, the mark, the destination in
+ * FM1_MOD_UI_ROW_DST, the amount right-aligned in 4 ("LFO1  >S1 Timbre
+ * +40"); page B: the source, the mark, VIA in 6, the curve and the polarity
+ * by name. roles (NULL for none) gets FM1_MOD_UI_ROLE_* for each character. */
 void fm1_mod_ui_row(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned i, int page,
-                    char out[FM1_MOD_UI_ROW_CHARS + 1]);
+                    char out[FM1_MOD_UI_ROW_CHARS + 1], uint8_t *roles);
 /* The hint line: the field last turned while it shows, else the slot. */
 void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_t now,
                      char *buf, size_t cap);
@@ -291,11 +321,12 @@ int fm1_mod_ui_commit(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u);
 int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_pos,
                      const fm1_mod_dest_t *d, int delta, fm1_mod_ui_say_t *say);
 
-/* CHAIN's lines (each at most 19 characters): the longest path through
- * slot i, nodes and cables alternating; *hl the selected cable's line.
- * Returns the count. */
+/* CHAIN's lines (each at most FM1_MOD_UI_ROW_CHARS): the longest path
+ * through slot i, nodes and cables alternating; *hl the selected cable's
+ * line. roles (NULL for none) as fm1_mod_ui_row's. Returns the count. */
 int fm1_mod_ui_chain(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned i,
-                     char lines[FM1_MOD_UI_CHAIN_LINES][FM1_MOD_UI_ROW_CHARS + 1], int *hl);
+                     char lines[FM1_MOD_UI_CHAIN_LINES][FM1_MOD_UI_ROW_CHARS + 1],
+                     uint8_t roles[FM1_MOD_UI_CHAIN_LINES][FM1_MOD_UI_ROW_CHARS], int *hl);
 
 #ifdef __cplusplus
 }
