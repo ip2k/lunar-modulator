@@ -103,7 +103,7 @@ enum {
 #define FM1_MOD_SOUNDS 4u               /* sound units */
 #define FM1_MOD_INSERTS 2u              /* inserts per sound unit (codes for 4) */
 #define FM1_MOD_SINKS 15u               /* SOUND FX1 FX2 HOST, sound units 2-4, the 8 inserts */
-#define FM1_MOD_SINK_PARAMS 184u        /* parameter records the bound units share,
+#define FM1_MOD_SINK_PARAMS 192u        /* parameter records the bound units share,
                                            HOST's six included; fm1_mod_bind */
 
 /* Sound unit k's code (k < FM1_MOD_SOUNDS): SOUND for k = 0, so a host
@@ -595,8 +595,6 @@ void fm1_mod_ramp_init(fm1_mod_ramp_t *r, float value);
 void fm1_mod_ramp_set(fm1_mod_ramp_t *r, uint64_t frame, float value);
 /* Multiplies n stereo frames starting at absolute frame `frame`. */
 void fm1_mod_ramp_apply(const fm1_mod_ramp_t *r, uint64_t frame, float *lr, uint32_t n);
-/* 1 when the ramp sits at exactly `value` from `frame` on. */
-int fm1_mod_ramp_settled(const fm1_mod_ramp_t *r, uint64_t frame, float value);
 
 #ifdef __cplusplus
 }

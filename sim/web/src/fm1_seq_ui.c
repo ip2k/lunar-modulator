@@ -606,7 +606,6 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
   u->following = i.following;
   u->rec_track = i.rec_track;
   u->bpm_x100 = i.bpm_x100;
-  u->master_tick = i.master_tick;
   u->capture_pending = i.capture_pending;
   u->capture_mode = i.capture_mode;
   u->capture_n = i.capture_n < 3 ? i.capture_n : 3;

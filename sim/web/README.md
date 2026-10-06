@@ -30,10 +30,10 @@ the "Power on" button, as browsers require a gesture.
 | --- | --- |
 | Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate, Test Gain, Test Ext. Up to four sounds with two inserts and a level each, mixed into two effect slots as the master bus, then the host's bus limiter, as `fm1-render --slots` runs them; one sound with no insert at full level renders as `fm1-render`'s one engine does, to the bit (below, "Multi-sound") |
 | Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy, Six-Op and Drums run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the four, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
-| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. A list popup (PRESETS, ALGORITHM, SHIFT + PRESETS, the kind and destination pickers, Capture's tempos) shows the list's title in gold, the chosen entry's place (`34/96`) and six entries with the chosen one on the accent, on the third row where it can be (`fm1_list_first`, `src/fm1_panel.h`), and a triangle above or below the entries where the list goes on (three lines, the previous, chosen and next entry, until 2026-10-06). HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 3,288 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06, 124 of them the ARP pages and 40 FM6's user bank (every user slot with a 10-character name, the ALGORITHM popup, SEQ mode and the load popups); 3,144 before the ARP pages and per-voice modulation's, 3,104 before FM6's user bank, with Squash and Transient; 2,695 before every list popup at every entry (2,470 recorded here on 2026-10-05), 2,338 before Drums, 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE stub and an emptied slot (600 screens), every ARP page at its defaults, extremes and list entries with its popups (124), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 741, and Drums' pages and its sound in the others' sweeps in 132 more; since 2026-10-06 every list popup at every entry, each window checked (345: ALGORITHM through every sound's list, Six-Op FM's 96 patches the longest, PRESETS through the engines, ALGORITHM in FX mode through the effects, and the destination picker through every destination; the kind picker's 17 were already there). Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
+| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. A list popup (PRESETS, ALGORITHM, a knob on a list parameter of five entries or more, SHIFT + PRESETS, SHIFT + 16's quantize, the kind and destination pickers, Capture's tempos, the ARP presets) shows the list's title in the context colour, the chosen entry's place (`34/96`) and as many entries as its face holds (`fm1_list_rows`, `src/fm1_panel.h`: MAIN 6 of 18 characters, MID 8 of 27, SMALL 9 of 36; the long lists are MID, the short ones MAIN, which shows them whole), by their full names (`fm1_look_full_name`), the chosen one on the selection bar, on the third row where it can be (`fm1_list_first`), and a triangle above or below the entries where the list goes on (three lines until 2026-10-06, then six in MAIN; the audit note's "Built" section has the table). A confirmation that fits one line is a banner over the page's bottom 28 px (MAIN up to 18 characters, MID up to 27); a refusal keeps the full popup, its reason in the refusal colour. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat) and starts under the page's last row. 3,408 screens pass a layout check, every text box in one of the three faces at its height: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06, 3,408 with glide's pages and voice modes; 3,336 with the ARP pages (134 of them with their knobs' lists) and with RACK's line in SMALL; 3,204 before them, with the knobs' lists of every sound and effect, banners over HOME, FX, GLO and MATRIX and FX mode's chip on every slot; 3,165 with per-voice modulation; 40 of them FM6's user bank (every user slot with a 10-character name, the ALGORITHM popup, SEQ mode and the load popups); 3,104 without them, with Squash and Transient; 2,695 before every list popup at every entry (2,470 recorded here on 2026-10-05), 2,338 before Drums, 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE stub and an emptied slot (600 screens), every ARP page at its defaults, extremes and list entries with its popups and knobs' lists (134), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 741, and Drums' pages and its sound in the others' sweeps in 132 more; since 2026-10-06 every list popup at every entry, each window checked (345: ALGORITHM through every sound's list, Six-Op FM's 96 patches the longest, PRESETS through the engines, ALGORITHM in FX mode through the effects, and the destination picker through every destination; the kind picker's 17 were already there). Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
-| Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_app.c`); Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
+| Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) and, since 2026-10-06, four hues of the project's own for the sounds (nebula, nova, aurora and comet, derived in OKLCH at Moon's accent lightness and chroma), as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_look.h`), with one meaning per colour on both: [PALETTE.md](PALETTE.md) has the semantic colour map, the derivation and the figures, and `tools/palette.py` checks the two files against it [verified: `tests/test_sim_palette.py`]; Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. On the screen, the project's own 5×9 at ×2 and, for dense screens, Spleen 8×16 and 6×12 by Frederic Cambus (BSD 2-Clause; [third_party/spleen/](third_party/spleen/UPSTREAM.md), its licence served as `fonts/spleen/LICENSE`; below, "Text faces"). Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
 | Info | GLO shows the sample rate, block size, the chain's RAM against the 379 KB the stock layout leaves free (docs/11 §2), voices, octave and transpose. WebAssembly has 4-byte pointers like pi32v2, so these are the 32-bit instance sizes. The RAM figure includes the sequencer: its instance (31,880 B at 8 tracks, the same at 32 and 64 bits) and its 3,264-byte event buffer (3,072 B, 256 events, until stage S6, so a chain's figure can read 1K more than before: 4 of the 54 one-effect chains do). It is the RAM meter's figure (below), which also counts the sequencer's pending record, UI bound and click voice and the modulation runtime |
 | Sequencer | The app hosts the sequencer core (engines/seq.md) through the shared host bridge (`engines/include/fm1_seq_host.h`), exactly as `fm1-render` does: script lines and commands at block starts, each block's events, and the sound's render split at every note and lock of a track routed to it. 8 tracks (owner decision O3, 2026-10-02), a 272-event buffer (256 until stage S6), one pending command record, and the event-room rule: an op goes in only while 201 events of room are free, otherwise it waits a block, so no note-off is ever lost. The harness and the parity test play verb scripts and `movy1` sets through it; every one of the 34 Movy oracle scripts plays through the app byte for byte as through `fm1-render` at 64-frame blocks [verified: `tests/test_sim_seq.py`]. On the panel (below): PLAY/STOP, SEQ mode's Track view and a demo pattern (docs/15 stage S3), step entry: the white keys as steps, the Step pages, SHIFT and bar paging (S4), record, step record and Capture (S5), tracks, mute, the Set, Clip and Track pages and the metronome's click (S6), and parameter locks from KNOB1–4 (S8) |
 
@@ -64,7 +64,8 @@ Power on says the page needs https or localhost and opens no
 AudioContext. The sequencer, multi-sound and modulation [verified: the
 same report, 2026-10-05]: the help lists them, PLAY/STOP plays the demo
 pattern (RMS 0.025, 52 ms after the press) and lights its LED, the status
-line reads "Sequencer: 120.00 BPM, playing.", SEQ shows the Track view
+line reads "Sequencer: 120 BPM, playing." (the screen's tempo format since
+2026-10-06; "120.00 BPM" before), SEQ shows the Track view
 with the SEQ LED on and the white keys' lights moving with the playhead,
 Space stops and starts the transport, HOME leaves SEQ mode; REC in SEQ mode
 while playing overdubs at once (`recording` true, its LED lit) and REC
@@ -204,7 +205,7 @@ chain). This section is how they are built.
 | LEDs | SEQ in SEQ mode, PLAY/STOP while the transport runs, SEL while SHIFT is held; in SEQ mode the white keys show the bar's steps (fm1_seq_ui.h has the rules); REC on while recording or step recording, fast during a count-in or a waiting take, slow while Capture holds notes (O7). Sequencer notes light no key outside SEQ mode (O6). LFO or ENV while RACK shows one of theirs, EDIT in MATRIX and CHAIN, SEL in CHAIN and while RACK holds a module |
 | Status line, help | the tempo and the transport (posted by the worklet only when they change); the help's Sequencer, Tracks, Locks, Sounds, Effects, Arpeggiator and Modulation entries; SAVE in the stub list |
 | Sounds | up to four sounds, each with two inserts and a level, then the two slots as the master bus; SHIFT + PRESETS chooses the current sound (below, "Multi-sound") |
-| RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 26,192 B since per-voice modulation, docs/16 MG9), and each arp that is on (736 B) with the MIDI effects' stage while one is (`fm1_mfx_t`, 7,344 B natively, less with 32-bit pointers) |
+| RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 26,512 B since glide, 26,192 B since per-voice modulation, docs/16 MG9), and each arp that is on (736 B) with the MIDI effects' stage while one is (`fm1_mfx_t`, 7,344 B natively, less with 32-bit pointers) |
 | ARP | the arpeggiator, below |
 
 Tests and parity runs never load the demo pattern or route tracks 2–8:
@@ -260,7 +261,7 @@ place of docs/15 O10's one shared sound):
   (about 349 KB at 32 bits).
 - **Memory.** Each sound unit has a 512 KiB arena and each effect slot a
   256 KiB one: 4.5 MiB of the module's fixed 8 MiB. `fm1_app_t` is
-  4,915,120 B natively (clang, 64-bit) [verified: `fm1-sim-render --sizes`].
+  4,939,616 B natively (clang, 64-bit) [verified: `fm1-sim-render --sizes`].
 - **The API** stage S6 routes tracks with is `fm1_app_unit_*`
   (`src/fm1_app.h`): the current sound, a sound's engine, inserts and
   level, notes on a given sound, `fm1_app_unit_route(a, track, sound)` and
@@ -383,7 +384,7 @@ built.
 | ARP tap | the current sound's arp on (and the ARP pages, `FM1_MODE_ARP`, open; its popup "Arp on") or off (the pages close back to the mode they came from; "Arp off"). A press with another button or a turn before its release is no tap |
 | ARP held | `FM1_APP_ARP_HOLD_S` (0.5 s, measured in the app's blocks): Latch on, and the arp with it, or, while the arp is on and latched, Latch off; an arp that is off always comes on latched; the release does nothing more |
 | SHIFT + ARP | the ARP pages, nothing switched |
-| The ARP pages | SELECT: PLAY, RHYTHM, CHANCE, FEEL, MORE, KEYS, SEED (the options note's §2.4 and three pages for the rest); KNOB1–4 the page's parameters; ALGORITHM the stock FM-1's arp modes as presets of Mode and Order, in a list popup as a model's (titled "Arp preset") (Up, Down, Up/Down, Down/Up, Random as Shuffle, Played; AL-255's FM-1-RE `docs/io/05-midi.md` §6.3 [reported]; owner, 2026-10-05: as presets); OCT held + ALGORITHM still transposes; PRESETS still the sound. The first line says On, On latched or Off and the preset, if the mode and order make one; the scope runs under the rows |
+| The ARP pages | SELECT: PLAY, RHYTHM, CHANCE, FEEL, MORE, KEYS, SEED (the options note's §2.4 and three pages for the rest); KNOB1–4 the page's parameters; ALGORITHM the stock FM-1's arp modes as presets of Mode and Order, in a list popup as a model's (titled "Arp preset") (Up, Down, Up/Down, Down/Up, Random as Shuffle, Played; AL-255's FM-1-RE `docs/io/05-midi.md` §6.3 [reported]; owner, 2026-10-05: as presets); OCT held + ALGORITHM still transposes; PRESETS still the sound; a knob on a list of five or more (Mode, Rate, Pattern, Oct Mode, Repeat) opens its list in MID (audit D1). The context line says "Arp on" (rose), "Arp latched" (gold: held) or "Arp off" (subtle) and, on its right, the preset, if the mode and order make one; the rows start under it, and the scope runs under the last row (L4) |
 | LED | ARP lit while the current sound's arp is on, half of each second while it latches, and while held |
 | Notes | keys and MIDI IN on the current sound go to its arp while it is on (`fm1_mfx_live_note`; at the next block's first frame), and so do the sequencer's notes of tracks routed to that sound (the bridge takes them out of the block); a note-off follows its note-on, so an arp switched on or off while keys are down leaves no note hanging. The arp's notes reach the sound through the bridge's sink (counted with the sequencer's) and feed modulation's note sources as notes on the sound |
 | Recording | the keys go to the sequencer as live input before the arp (owner, 2026-10-05: record what was played), so a recorded part plays through the arp again; switched off, it plays as played |
@@ -522,15 +523,21 @@ pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (`fm1_fx_render`), Drums, FM6 (msfa), the list popups, FM6's user bank
 with msfa's tables as const data, Squash, Transient and the Limiter's
 Round mode, per-voice modulation (MG9) (2026-10-06), the idle paths of
-EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"), and
-the arpeggiator with the MIDI effects' stage (engine API v3's MIDI effects):
-83 of 83 scenarios pass,
+EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"),
+the arpeggiator with the MIDI effects' stage (engine API v3's MIDI effects),
+glide and the voice modes (`engines/src/glide.h`) and the UI audit's
+screens: 86 of 86 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
-wake them; those two, the three Drums and the four FM6 scenarios are
-identical to glibc too), and it imports nothing; it is 922,439 bytes,
-890,975 before the arpeggiator (890,874 before Shapes' clamps), 887,038
-before the idle paths, 850,731 before
+wake them; those two, the three Drums, the four FM6 and the three glide
+scenarios are identical to glibc too), and it imports nothing; it is
+955,241 bytes with the track strip's sound numbers and MATRIX's narrow
+gaps (2026-10-06), 955,464 before them (955,543 before the dead-code
+audit's removals) with the UI audit's screens (the palette, the two Spleen
+faces and the screens that use them), 938,723 before them with glide
+(939,251 with them before glide), 922,439 before both, 907,256 with glide
+before the arpeggiator, 890,975 before both (890,874 before Shapes'
+clamps), 887,038 before the idle paths, 850,731 before
 per-voice modulation (826,339 without the user bank, 840,216 without
 Squash, Transient and Round), 837,480 with
 the user bank before the list popups, 815,821 with the list popups before the
@@ -588,7 +595,7 @@ www/fm1.wasm      src/fm1_web.c   flat exports (fm1w_*)
                                       in, runtime edits and script lines
                                       out
                   src/fm1_mod_view.c  their screens and the routed marks
-                  src/fm1_tft.c   240 x 240 RGB565 frame buffer, 5 x 9 font
+                  src/fm1_tft.c   240 x 240 RGB565 frame buffer, three text faces
                   engines/        every engine, effect and the bus limiter,
                                   the sequencer core and its host bridge,
                                   the modulation runtime and its kinds
@@ -598,15 +605,50 @@ www/fm1.wasm      src/fm1_web.c   flat exports (fm1w_*)
 `fm1_app_t`. Nothing in it is browser-specific, so the same app layer builds
 natively as `fm1-sim-render`, the test harness. Its panel logic and drawing
 code are meant to carry over to the firmware, but not `fm1_app_t` as it
-stands: it is 4,915,120 bytes (4.5 MiB of fixed arenas, four 512 KiB
+stands: it is 4,939,616 bytes (4.5 MiB of fixed arenas, four 512 KiB
 ones for the sound units and ten 256 KiB ones for the effect slots, a
 115,200-byte full frame buffer, and the sequencer's 32 KiB arena and 3 KiB
 event buffer, and modulation's runtime and a block's writes; clang, 64-bit), against the FM-1's 578 KB of SRAM and
 the ~379 KB the stock layout leaves free [verified: `sizeof`; SRAM from
 docs/01]. The firmware needs one arena sized to the chain it loads and
 strip rendering (ten 240 × 24 strips, 11.5 KB each, as stock does;
-`src/fm1_tft.h`) [inferred]. The font is drawn for this repository
+`src/fm1_tft.h`) [inferred]. The main font is drawn for this repository
 (`tools/font5x9.txt`; `tools/gen_font.py` writes `src/fm1_font.h`).
+
+**Text faces** (`src/fm1_tft.h`, the audit's decision D7, 2026-10-06). Three
+faces, each a table of one byte a glyph row in flash, printable ASCII only
+[verified: `fm1-sim-render --font-check`, `tests/test_sim_fonts.py`]:
+
+| Face | Glyphs | Advance | Box height | Capitals | Characters a line | Line pitch | Flash |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| MAIN | the 5×9 at ×2 | 12 px | 18 px | 14 px | 19 | 22 px | 855 B |
+| MID | Spleen 8×16 at ×1 | 8 px | 14 px | 10 px | 28 | 18 px | 1,330 B |
+| SMALL | Spleen 6×12 at ×1 | 6 px | 12 px | 8 px | 38 | 16 px | 1,140 B |
+
+- A run's logged box is what its face's characters can paint, whatever the
+  run holds: the 5×9's descenders are in it and its spacing column is not;
+  Spleen 8×16's top and bottom rows, which no ASCII glyph paints, are not
+  in its table at all, so a run's y is the top of its box in every face.
+- `tools/gen_font.py` writes the Spleen tables from the BDF files
+  (`third_party/spleen/`, Spleen 2.2.0, unmodified;
+  [UPSTREAM.md](third_party/spleen/UPSTREAM.md) has the licence notice a
+  binary must carry), and `--check` keeps all three headers current.
+- `fm1_tft_font_text`, `fm1_tft_font_width` and `fm1_tft_font_fit` draw and
+  measure in a face; `fm1_tft_text` stays MAIN at any scale.
+  `fm1_tft_span_text` draws a run of several colours (MATRIX's columns,
+  audit L2) and logs it as one box; `fm1_tft_span_text_lead` does the same
+  with a few pixels before chosen spans, a narrow gap inside the one run
+  where a space would cost a whole character (MATRIX's state mark, 4 px
+  from its source and from its destination, paid for by drawing the blank
+  before the amount, or page B's curve, 4 px narrow; the track strip's
+  sound numbers, one to a tile). The layout check's rule is the same for
+  every face: 4 px between boxes.
+- `fm1-sim-render --font-sheet FILE.ppm` draws both Spleen faces on one
+  screen, layout-checked
+  ([the sheet at ×3](../../assets/ui-audit/fonts-spleen.png)).
+- Until a screen uses MID or SMALL, every screen draws as before, pixel for
+  pixel [verified: the 3,144 screens of `--screens`, byte for byte, before
+  and after the faces arrived].
 
 The worklet allocates as little as it can on the audio thread: the module's
 memory never grows, so its views on the output, LEDs and screen are made
@@ -716,6 +758,22 @@ build, the test fails in CI (`CI=true`) and warns locally; when only the
 engines have, it warns, so engine work elsewhere does not need aeon.
 Rebuild with `build-on-aeon.sh` before publishing the page or merging a
 change to the simulator.
+
+`tests/test_sim_palette.py` runs `tools/palette.py`: the screen's and the
+page's tokens and roles agree, contrast after the RGB565 round trip,
+CIEDE2000 between colours with different meanings, the sound colours under
+simulated colour-vision deficiencies, one meaning per colour in
+`style.css`, and PALETTE.md's figures equal to the checker's report; and the
+colour science against the audit's figures and Sharma's CIEDE2000 data. It
+also fails if a token named by the project's initials comes back anywhere
+in `sim/web/`: the project's own hues are `LUNAR_*` and `--lunar-*`.
+
+`tests/test_sim_screen_cues.py` reads the screen sweep's frames: every
+track on the Track view's strip shows the number of the sound it plays
+(*M* for MIDI out) in Spleen 6×12's own glyph, knocked out of its tile,
+or alone in the sound's colour when muted, with 2 px of tile round it; and
+MATRIX's state mark keeps at least 4 px of blank from its source's ink and
+from the next field's, the rows ending by the right margin.
 
 `tests/test_sim_multi.py` checks multi-sound: SHIFT + PRESETS and its
 popups, the keys and a MIDI note-off on the sound that started them,

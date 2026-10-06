@@ -292,10 +292,13 @@ Known, not exhaustive:
 - **Keyboard level scaling** groups keys as `offset / 3`; Dexed rounds the
   other way, `(offset + 1) / 3` (within 0.4 dB on the oracle's voices).
 - **Not there:** the mod wheel, breath, foot and aftertouch routings to
-  pitch and amplitude modulation and to EG bias; portamento; mono mode;
-  operator on/off; the sustain pedal (the engine API has no controllers
-  yet). The function data (bend range and these routings) is not voice
-  data and is not read.
+  pitch and amplitude modulation and to EG bias; operator on/off; the
+  sustain pedal (the engine API has no controllers yet). The function data
+  (bend range, portamento, mono mode and these routings) is not voice data
+  and is not read. Portamento and a mono mode are FM6's own since
+  2026-10-06, the Glide and Voice Mode the other pitched engines share
+  (fingered portamento in constant time; README.md, "Glide and voice
+  modes"), not the DX7's function settings.
 - **The stock FM-1** runs msfa with Google's algorithm table, rows 4 and 6
   included (`0x41`: the loop marked, not run by msfa's `FmCore`)
   [verified: the table; docs/02 §5 had called those rows a Dexed-family
@@ -498,6 +501,7 @@ loop algorithms are the dearest case here.
   off. On the FM-1 it would live in a flash partition, which waits for the
   dump-and-restore gate (CLAUDE.md, the one rule) and a SysEx path over
   USB-MIDI.
-- **Controllers:** the mod wheel and aftertouch routings, sustain and
-  portamento need the engine API to carry controllers first.
+- **Controllers:** the mod wheel and aftertouch routings and sustain need
+  the engine API to carry controllers first (portamento is a parameter
+  since 2026-10-06: Glide).
 - **Felucca's AM quirk:** a candidate upstream report (above).

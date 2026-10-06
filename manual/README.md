@@ -28,6 +28,7 @@ otherwise a small front page linking to the manual; the manual in
 | `manual.toml` | Title, tagline, page size, chapter order with one-line summaries, the control vocabulary |
 | `chapters/*.md` | One Markdown file per chapter, plus the glossary and the index of controls |
 | `data/seq-verbs.toml` | What each sequencer script verb does; the list of verbs itself comes from the code |
+| `diagrams/*.toml`, `diagrams/*.svg` | The block and state diagrams: one source each, and the drawing made from it ([diagrams/README.md](diagrams/README.md)) |
 | `theme/manual.css` | Screen styles: the Rosé Pine Dawn tokens, layout, tables, badges, admonitions |
 | `theme/print.css` | The printed book: page size, running heads, page numbers, contents with page numbers |
 | `theme/*.html` | Templates: a chapter page, the manual's front page, the book (`print.html`, the PDF's source), the site's front page when there is no simulator |
@@ -36,6 +37,7 @@ otherwise a small front page linking to the manual; the manual in
 | `../tools/manual/mdext.py` | The Markdown additions below |
 | `../tools/manual/reference.py` | The generated tables |
 | `../tools/manual/figures.py` | The panel drawings, as SVG, from the simulator's measurements |
+| `../tools/manual/diagrams.py` | Lays out and draws the diagrams; `diagram_theme.py` their colours, `diagram_metrics.py` the type's widths, `diagram_check.py` the collision check |
 | `../tools/manual/policy.py` | The words the published manual must not contain |
 | `../tools/manual/build-in-docker.sh` | The CI build in Ubuntu 24.04, for machines without Pango |
 | `../.github/workflows/pages.yml` | Builds on pull requests, deploys from main |
@@ -62,6 +64,7 @@ Additions:
 | `{{seq-glance}}`, `{{seq-memory}}`, `{{seq-verbs}}` | The sequencer's figures (`fm1_seq.h`), its memory by track count (`fm1-seq --sizes`) and its script verbs (`seq_cmd.c` with `data/seq-verbs.toml`) |
 | `{{requires seq}}` | A note when this build lacks the sequencer's code |
 | `{{figure panel}}`, `{{figure edge}}` | A numbered figure from `figures.py` |
+| `{{diagram signal-flow}}` | A numbered block or state diagram from `diagrams/signal-flow.toml`, with the caption and the long description written there ([diagrams/README.md](diagrams/README.md)) |
 | `{{screen params Caption text.}}` | A numbered figure of the firmware's screen, from the simulator's `assets/screenshots/screen-params.png` (left out, with a warning, when the file is missing). The caption is plain text: write the typographic apostrophe (’) yourself |
 | `{{status-key}}`, `{{build-info}}`, `{{controls-index}}` | The status legend, the edition table, the generated index of controls |
 
@@ -118,7 +121,10 @@ undescribed verbs, engines without a section, no branding fonts) are printed,
 as GitHub annotations in Actions, and do not fail the build.
 `tests/test_manual.py` checks the palette and its contrast, the generated
 tables, the sequencer parsing, the figures against the simulator's
-measurements, and runs the strict build.
+measurements, and runs the strict build. A diagram that cannot be laid out,
+or whose drawing lets a word touch a word, a box, a line or the edge, stops
+the build too; `tests/test_manual_diagrams.py` checks the same, the
+diagrams' colours, and that the committed SVGs match their sources.
 
 ## The look
 

@@ -40,12 +40,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CORE_TEST = ENGINES / "build" / "fm1-mod-core-test"
 FIXTURE = ROOT / "tests" / "fixtures" / "mod-uids.json"
 TICK = 32
-# fm1_mod_size(): 8,192 B of arena and 18,000 B of fixed state, the same in
+# fm1_mod_size(): 8,192 B of arena and 18,320 B of fixed state, the same in
 # 32- and 64-bit builds (no pointers; every 64-bit member 8-aligned): MG3's
-# 23,200 B and MG9's 2,992 B (twelve voices of 168 B, each sound unit's
-# note gates, the per-voice plan, four more HOST records).
-MOD_BYTES = 26192
-FLAG_BITS = ["latch", "smooth", "nolock", "mod", "input"]
+# 23,200 B, MG9's 2,992 B (twelve voices of 168 B, each sound unit's
+# note gates, the per-voice plan, four more HOST records) and glide's
+# 320 B (eight more records for Macro Heavy's fourteen parameters).
+MOD_BYTES = 26512
 
 
 def run(renderer, tmp_path, args, mod=None, name="r", log=True):
@@ -519,7 +519,7 @@ def test_the_record_pool_holds_every_chain(renderer):
     engines = json.loads(subprocess.check_output([str(renderer), "--list"]))
     most = {k: max(min(len(e["params"]), d["unit_params"]) for e in engines if e["kind"] == k)
             for k in ("sound", "audio_fx")}
-    assert 4 * most["sound"] + 10 * most["audio_fx"] + 6 <= d["sink_params"] == 184
+    assert 4 * most["sound"] + 10 * most["audio_fx"] + 6 <= d["sink_params"] == 192
     assert [n for _, n in d["sinks"]] == ["snd", "fx1", "fx2", "host", "snd2", "snd3", "snd4",
                                           "snd1.fx1", "snd1.fx2", "snd2.fx1", "snd2.fx2",
                                           "snd3.fx1", "snd3.fx2", "snd4.fx1", "snd4.fx2"]

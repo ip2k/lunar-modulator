@@ -560,7 +560,6 @@ static int commit_stopped(fm1_seq_t *s, unsigned t) {
     s->cap_sel = 0;
     grid = existing;
   }
-  s->cap_stretch_permille = (int32_t)((int64_t)existing * 1000 / (grid ? grid : 1u)) - 1000;
   s->cap_mode = free_tempo && s->cap_n > 1 ? CAP_SELECT : (!free_tempo ? CAP_FIXED : CAP_NONE);
   wrote = write_take(s, grid, free_tempo, clip_has_notes);
   if (wrote) {

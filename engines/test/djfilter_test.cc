@@ -57,7 +57,7 @@ const uint32_t kMax = 2 * 44118;
 float g_in[2 * kMax], g_a[2 * kMax], g_b[2 * kMax];
 
 // An input: both channels, deterministic.
-enum Input { IN_NOISE, IN_MIX, IN_SINE60, IN_SPECIAL };
+enum Input { IN_MIX, IN_SINE60, IN_SPECIAL };
 
 void Fill(Input kind, float *buf, uint32_t total) {
   Lcg rng = { 7u };
@@ -65,10 +65,6 @@ void Fill(Input kind, float *buf, uint32_t total) {
     const double t = i / static_cast<double>(kRate);
     float l, r;
     switch (kind) {
-      case IN_NOISE:
-        l = 0.5f * rng.Bipolar();
-        r = 0.5f * rng.Bipolar();
-        break;
       case IN_MIX:   // a bass line, a mid tone and noise: every band busy
         l = static_cast<float>(0.4 * sin(2 * M_PI * 55.0 * t) + 0.2 * sin(2 * M_PI * 1250.0 * t)) +
             0.1f * rng.Bipolar();

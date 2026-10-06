@@ -367,6 +367,10 @@ typedef struct fm1_engine {
    * that is stolen or ends drops them. A call for a key no voice sounds is
    * ignored, not kept for a later note. Every voice sounding the key takes
    * it (the engines here retrigger a key in its own voice, so one does).
+   * An engine with a mono mode (engines/README.md, "Glide and voice
+   * modes") moves its voice to another key at a note_on or a note_off: the
+   * voice then sounds the new key, and its offsets restart at 0 as for a
+   * new note.
    * Any other index is ignored. Same thread as set_param. */
   void (*set_param_note)(void *self, uint8_t key, uint16_t index, float offset);
 

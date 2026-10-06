@@ -9,6 +9,48 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Diagrams in the manual.** Eight drawings, in the manual's colours, where
+  the text explains how things connect: where the arpeggiator sits in the
+  note path (chapter 4); the whole signal flow from the keys, MIDI IN and
+  the sequencer's eight tracks through the arpeggiators, the four sounds,
+  their inserts and the mix to the master effects, the limiter and MASTER
+  (chapter 5); one sound's effect chain and the master bus, with what an
+  empty slot does (chapter 6); the transport as a state diagram, with every
+  press of PLAY/STOP and REC, the count-in, the wait for the bar, step
+  recording and Capture's tempo, and what a clip launch does to a track
+  (chapter 7); and the modulation system, modulation per voice with what is
+  refused, and four patches that chain modules, including a loop (chapter
+  8, with a new *Recipes* section). Line styles and labels carry every
+  meaning, so the colours are never the only cue.
+  - For contributors: each diagram is a small source in `manual/diagrams/`,
+    laid out by `tools/manual/diagrams.py` (no coordinates in the source,
+    no external tool), and `tests/test_manual_diagrams.py` checks that
+    nothing in a drawing touches anything else and that the committed SVGs
+    are current.
+- **Glide and mono playing on Macro, Macro Heavy, Six-Op FM, FM6 and
+  Shapes.** Two new parameters on each:
+  - **Glide** (1 ms to 5 s): a note you play while holding another slides
+    from the held note's pitch to its own, in the same time whatever the
+    interval. At 1 ms, the default, glide is off and every engine sounds
+    exactly as before. Chords struck together do not slide into each other,
+    and a note played with no key held starts on its own pitch.
+  - **Voice Mode**: Poly (as before), Mono (one voice; each new key starts
+    the sound again, and letting go returns to a key still held) or Legato
+    (one voice; playing over a held key carries the note on at the new
+    pitch without starting it again).
+  - Both can be locked in the sequencer and modulated; turning Glide during
+    a slide changes its speed. Macro and Macro Heavy show them on a fourth
+    page, the others after Volume on page 2. Not on Sophie and Drums, whose
+    keys play pads.
+  - The same output, bit for bit, at any block size and on the Mac, 32- and
+    64-bit Linux and the browser (three new parity scenarios, 86 of 86 pass;
+    the browser module grew from 922 KB to 939 KB); the modulation runtime
+    holds 8 more parameter records (320 bytes) for Macro Heavy's fourteen
+    parameters. Glide's state adds 112 to 300 bytes to each of the five
+    engines, so a chain that filled the RAM budget to its last few hundred
+    bytes may now be refused (one parity scenario swapped an Ensemble
+    insert for Drive to fit). Documented in engines/README.md ("Glide
+    and voice modes") and chapter 4 of the manual.
 - **The arpeggiator, in the simulator.** [ARP] now works: tap it to switch
   the current sound's arpeggiator on (its pages open) or off; hold it to
   latch, so the notes play on after you let go and the next chord replaces
@@ -55,7 +97,7 @@ history.
     control it is refused (`!`), so a per-note signal never moves
     everything.
   - Up to twelve notes at once across the sounds, the engines' own
-    polyphony; the rack's line shows how many (`v3`). Per-voice modules
+    polyphony; the rack's line shows how many (*3 voices*). Per-voice modules
     live in the rack's 8 KB memory; the modulation runtime grows by 3 KB,
     to 26 KB, in the RAM meter.
   - Cables at 0 % change nothing, bit for bit; the output is the same at
@@ -1197,6 +1239,114 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Every track on the sequencer's strip shows its sound's number.** The
+  eight small tiles beside the tempo now carry the number of the sound each
+  track plays (*1* to *4*) on the sound's colour, and *M* on grey for MIDI
+  out, so you can tell the tracks apart without telling the colours apart.
+  The focused track's tile is still the taller one. A muted track's tile
+  goes dark and leaves its number in the sound's colour; when it is the
+  focused track, a bar above and below the number marks it.
+- **The matrix's rows read as three fields.** The mark between a cable's
+  source and its destination (*>*, *~*, *v*, *!*, *-*, or page B's *\**)
+  now stands a few pixels apart from both, so a six-letter source no longer
+  runs into it (*S2RTRG > ENV4 Gate*, not *S2RTRG>ENV4 Gate*). Every
+  destination keeps its room, and the amounts now end at the screen's
+  right margin, as other values do.
+  - For developers: `fm1_tft_span_text_lead` and `fm1_tft_span_width_lead`
+    (a run with a few pixels before chosen spans, still one logged box);
+    `FM1_MOD_UI_ROW_SRC`; the palette's own tokens are renamed `LUNAR_NEBULA`
+    … `LUNAR_COMET` in `fm1_look.h` and `--lunar-nebula` … `--lunar-comet`
+    in `style.css` (they were named by the project's initials; its short
+    form is "Lunar"), and `tests/test_sim_palette.py` keeps the old names
+    out of `sim/web/`. `tests/test_sim_screen_cues.py` reads the numbers off the
+    strip and measures the marks' gaps in the screen sweep's frames. The
+    sweep still draws 3,408 screens with 0 faults.
+- **The screen, reworked from the UI audit: one meaning per colour, two
+  smaller typefaces, fuller lists and whole names**
+  (`notes/2026-10-06-ui-audit.md`, every proposal adopted by the owner).
+  - **Lists show more and spell names out.** The long lists (PRESETS,
+    ALGORITHM on HOME and in FX mode, a knob's list, the rack's kinds, the
+    matrix's destinations) show eight entries at a time instead
+    of six, in a smaller typeface with room for 27 characters, by their full
+    names: *Phase Distortion*, *Triple Saw*, *Compressor*, *Master
+    Saturation*, *Studio Small*, *7 Closed Hi-Hat*, *Converge-Diverge*, *S1
+    In2 High Xover*. Short lists (the four sounds, the quantize values,
+    Capture's tempos, the six arp presets, and a list of six or fewer such
+    as the Filter's types) show every entry in the large type. Titles say what the list is: *Master 1
+    effect*, *S1 insert 1 effect*, *S2 engine*, *Current sound*.
+  - **Turning a knob on a list opens the list.** On HOME, in FX mode, in SEQ
+    mode and on the ARP pages, a knob on a list of five entries or more
+    (FM6's Patch, Shapes' Shape, the pads, the arp's Mode, the Filter's
+    Type) shows the list ALGORITHM shows; Off/On and other short lists
+    still change on their row. SHIFT + 16 shows the clip's quantize values
+    as a list.
+  - **Each colour means one thing.** Lilac is what is chosen and the value
+    you edit; gold is held or locked (held steps, locks and lanes, a picked
+    up module or effect, the count-in, a latched arp); light blue-green is
+    a live signal and modulation; rose says where you are (the line under
+    the top bar, a list's title); red is refused, recording or over the
+    limit. The manual's chapter 3 has the table.
+  - **Each sound has its own colour** wherever it is named, always beside
+    its number: Sound 1 blue, Sound 2 orange, Sound 3 green, Sound 4
+    yellow-green, in the top bar, FX mode's chain and its filled inserts,
+    the Mix page's names and bars, the list of sounds, the sequencer's
+    track cells and Track page, and the modulation pages' sources,
+    destinations, hints and messages. The four colours are Lunar
+    Modulator's own (nebula, nova, aurora and comet), chosen to stay
+    readable and apart, also for people with each common kind of colour
+    blindness. An empty sound's Mix bar is no longer a full grey bar.
+  - **Short confirmations no longer hide the page.** *Volume 80*, *Octave
+    +1*, *Metronome on* or a cable's amount show as a band across the bottom
+    of the screen; refusals (*does not fit*, *cannot be locked*, *takes no
+    cable*, *Matrix full*) still cover the middle, their reason in red.
+  - **Pages that say more.** The line under the top bar names the model,
+    patch or pad in full with its place (*Phase Distortion 2/8*), and the
+    sequencer's headings (*Step 7*, *Lock step 6*, *Lanes: track 1*) sit
+    there too; the ARP pages say *Arp on*, *Arp latched* or *Arp off* with
+    the stock mode on the right. FX mode marks the chosen slot as a tag and
+    names its effect and role (*insert*, *master*, *mix*); the global page
+    calls the master slots *M1* and *M2* by their effects' names. On a page
+    with fewer than four parameters the oscilloscope grows into the space.
+  - **Modulation reads in full.** A modulated parameter keeps its whole name
+    (*Brightness*, not *Bright*) in the modulation colour, with a bracket of
+    that colour. The matrix shows nine cables instead of seven with whole
+    destinations (*S1 Timbre*, not *S1Tmbre*) and its fields in colour; page
+    B spells out the curve and polarity; the chain shows ten lines; the
+    rack's line reads *LFO6  2 out  7 in*; the gesture says *LFO1 > S1
+    Timbre +12%*.
+  - **The sequencer.** The tempo reads *120 BPM* (decimals only when it has
+    them, *117.5 BPM* in Capture too), which leaves room for larger track
+    cells in each track's sound colour; the focused track's is taller and a
+    muted track's hollow. SHIFT's shortcuts and the lanes use whole words
+    (*Full velocity off*, *Clip quantize 0%*).
+  - **The page's own highlights follow the same colours:** the keyboard
+    focus ring, links and the tagline are lilac (the focus ring was gold),
+    gold is left to a lit LED, and code in the help is plain text. The
+    page's status line writes the tempo as the screen does (*120 BPM*).
+  - **Typefaces.** Besides its own 5×9 font at double size, the screen sets
+    text in Spleen by Frederic Cambus (BSD 2-Clause) at 8×16 (most of the
+    new lists and lines) and 6×12 (only where a line would not fit
+    otherwise). The page's credits and the manual's chapter 14 name it, and
+    the page serves its licence.
+  - No sound changes: the audio is the same, byte for byte.
+  - For developers: the palette and its checker (`sim/web/PALETTE.md`,
+    `sim/web/tools/palette.py`, `tests/test_sim_palette.py`: contrast after
+    the RGB565 round trip, CIEDE2000 distances, the sounds under simulated
+    colour-vision deficiencies) and role macros in `fm1_look.h`
+    (`C_SELECT`, `C_HELD`, `C_LIVE`, `C_MOD`, `C_REFUSE`, `C_CONTEXT`,
+    `C_HINT`, `C_LABEL`, `fm1_sound_colour`; the old accent names are gone).
+    The faces: `fm1_tft_font_text`, `fm1_tft_span_text` (one run in several
+    colours, logged as one box), each face's metrics in `fm1_tft.h`, Spleen
+    2.2.0's BDF files vendored unmodified in `sim/web/third_party/spleen/`
+    (2,470 bytes of flash for both tables), `fm1-sim-render --font-check`,
+    `--font-sheet` and `tests/test_sim_fonts.py`. Lists: per-face rows and
+    characters in `fm1_panel.h` (`fm1_list_rows`, `fm1_list_chars`),
+    `fm1_look_full_name`, `fm1_look_context`, `fm1_look_sound_text`;
+    MATRIX's and CHAIN's character roles (`fm1_mod_ui_row`,
+    `fm1_mod_ui_chain`). `fm1-sim-render --screens` draws 3,408 screens
+    with 0 faults and counts text boxes by face; the browser module is
+    955,543 bytes with glide, parity 86 of 86. The audit note's "Built" section
+    measures every list and dense screen before and after.
 - **EQ, Isolator and Master Sat rest when they change nothing.** Left at
   their pass-through settings for two seconds (every EQ gain and Level at
   0; Isolator's bands at their defaults with nothing killed; Master Sat's
@@ -1584,6 +1734,31 @@ history.
   `isd_config.ini`), so any package must keep that region byte-identical to
   V15 (docs/07).
 
+### Removed
+- **Code nothing used, found by the first dead-code audit** (#74;
+  CLAUDE.md, Conventions). No user-facing change: every sound, the
+  virtual FM-1 and the manual are as before.
+  - Eight readers went through every line of the repository's own source
+    as it stood at PR #52 (91,901 lines in `dongle/`, `engines/` less
+    `third_party/`, `sim/`, `tests/` and `tools/`), and a ninth re-checked
+    every proposal against the whole tree. 55 removals went in: functions,
+    struct fields and parameters nothing read; two vendored Mutable files
+    linked into programs that use nothing from them (stmlib's atan table
+    in `fm1-render` and the simulator, its pitch tables in
+    `fm1-ref-braids-fx`); MG1's one-sound wrapper of the modulation script
+    reader, with no caller left; and unused helpers, constants and imports
+    in the tests and tools. Four more were kept after merging main: a
+    test constant MG9 now uses, a Limiter field whose removal would now
+    move the Limiter's pinned instance size, and two includes the
+    modulation screens now use.
+  - Six panel scenarios in `tests/test_seq_ui.py` (step entry, record,
+    Capture, tracks, locks, multi-sound) had their assertions skipped since
+    the MG3 merge by a leftover `continue`; they run again, and pass.
+  - 49 further candidates need the owner's decision, mostly because a
+    pinned size or figure would move or they are documented API or tool
+    options. They are listed in PR #74 with the 8 the re-check rejected
+    and the bugs it found on the way.
+
 ### Fixed
 - **Documentation that had fallen behind the facts**, the lines PR #22's
   HANDOFF refresh listed and other copies of the same facts, each checked
@@ -1613,6 +1788,15 @@ history.
   - The manual's recovery chapter no longer calls the open dongle design
     "complete": its firmware builds and is simulated, but nobody has built
     the board.
+- **The virtual FM-1 builds without compiler warnings under GCC 11 to 16.**
+  No change in what it does. For developers: four warnings in
+  `sim/web/src/fm1_app.c` (`-Wformat-truncation` on the DX7 load's
+  message and a list's place, `-Warray-bounds` on pitch bend and on the
+  parameter rows) are fixed at their causes: both buffers hold any `int`;
+  pitch bend checks the current sound before it indexes the bends; and the
+  parameter rows no longer test whether the modulation runtime binds a
+  row's parameter, which it always does (now a compile-time check), so no
+  path reads past a unit's values.
 - **Shapes stays inside what Braids' code handles.** At a few edges Braids
   read past the end of a table or did arithmetic C++ leaves undefined, so
   the same settings could sound different from one build to the next (the

@@ -26,8 +26,10 @@
  * scope, the held steps and the steps under the first one's note marked.
  * With SHIFT held there, the first line and the strip say what SHIFT does.
  *
- * S6: the status line's middle holds the tracks, one cell each (the
- * focused one gold, a muted one an outline); a muted focused track's notes
+ * S6: the status line's middle holds the tracks, one tile each in the
+ * colour of the sound it plays with that sound's number on it ('M' for MIDI
+ * out; the focused one the line's full height, a muted one unlit: its
+ * number alone); a muted focused track's notes
  * are dim; with SHIFT held (no step held) the shortcuts' legend takes the
  * grid's place, and with MUTE or SEQ held the hint line says what the
  * white keys do. The Set, Clip and Track pages use HOME's rows, the page's
@@ -90,6 +92,10 @@ void fm1_seq_view_draw(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_s
  * characters, so it keeps its gap from the RAM meter. */
 void fm1_seq_view_bottom(const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd, char *buf,
                          size_t size);
+
+/* A tempo as the screen writes it: "120 BPM" when whole, else with the
+ * decimals it has ("120.5 BPM", "117.65 BPM"). */
+void fm1_seq_view_bpm(uint32_t bpm_x100, char *buf, size_t size);
 
 /* A MIDI note as the Step page names it: "C4" for 60, "F#-1" for 6. */
 void fm1_seq_view_note_name(int note, char *buf, size_t size);

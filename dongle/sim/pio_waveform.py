@@ -32,17 +32,6 @@ def assemble(name):
     return list(prog.assembled), prog.pio_kwargs
 
 
-def _timeline(gen, limit_cycles, done):
-    """Run the emulator generator, returning [(cycle, pin_directions)] for every
-    executed instruction plus the final clock."""
-    events = []
-    for before, after in gen:
-        events.append((before.clock, before.pin_directions, after.clock, after.pin_directions))
-        if done(after) or after.clock > limit_cycles:
-            break
-    return events
-
-
 def key_packet_waveform(key=0x16EF):
     """Emulate one packet. Returns a list of (clock_low, data_low) per PIO cycle."""
     opcodes, kw = assemble("usb_key")

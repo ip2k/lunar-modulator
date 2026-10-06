@@ -28,6 +28,8 @@ three are ports of Peaks' and Braids' code, under the MIT licence
 
 {{status sim desktop planned}}
 
+{{diagram modulation}}
+
 ### The rack
 
 The rack has eight positions. Each holds a module or nothing. A module is
@@ -137,7 +139,8 @@ The quickest way to modulate a parameter:
 3. Turn the parameter's knob, [[KNOB1]] to [[KNOB4]]. A cable now runs from
    the LFO (or envelope) the rack last showed, LFO1 or ENV3 at first, to
    that parameter, and its amount follows the turn, 1 % a click. The screen
-   names the cable, such as *LFO1 > S2Color*, and its amount.
+   names the cable and its amount in a band at the bottom, such as
+   *LFO1 > S2 Color +12%*.
 4. Let go of [[LFO]].
 
 Turn the knob again while you hold [[LFO]] to change the same cable's
@@ -161,11 +164,13 @@ that kind. The button lights while the rack shows one of its modules.
 
 The screen shows:
 
-- **The rack:** eight cells, each filled to its module's first output, the
-  one shown outlined, an empty position hollow.
-- **The module's line,** such as *ENV3 >2 <1 ~1*: the module, its cables
-  out and in, and those that run a step late; *v3* at the end says the
-  module runs per voice, three voices now ([Per voice](#per-voice)).
+- **The rack:** eight cells, each filled to its module's first output, an
+  empty position hollow; a bar under a cell marks the one shown (gold while
+  you move it).
+- **The module's line,** such as *ENV3  2 out  1 in  1 late*: the module,
+  its cables out and in, and those that run a step late; *3 voices* at the
+  end says the module runs per voice, three voices now
+  ([Per voice](#per-voice)).
 - **Four rows** for the module's parameters on [[KNOB1]] to [[KNOB4]], as on
   the sound's page.
 - **The bottom bar,** such as *1/2 Mod3*: the page and the position.
@@ -174,7 +179,7 @@ The screen shows:
 | --- | --- |
 | [[SELECT]] | Walks every page of every position |
 | [[KNOB1]] to [[KNOB4]] | Change the module's parameters |
-| [[ALGORITHM]] | Opens the kind picker, such as *Mod3 kind*: *Empty*, then the sixteen kinds, the Resonator last, six at a time ([chapter 3](03-panel-tour.md#lists)). The choice takes effect a second after your last turn, or at once when you use another control |
+| [[ALGORITHM]] | Opens the kind picker, such as *Mod3 kind*: *Empty*, then the sixteen kinds, the Resonator last, eight at a time ([chapter 3](03-panel-tour.md#lists)). The choice takes effect a second after your last turn, or at once when you use another control |
 | [[SEL]] | Picks up the module (the light and an asterisk show it), so that [[SELECT]] moves it along the rack; press again to put it down |
 
 Changing a module's kind switches off the cables that touch it, and
@@ -185,21 +190,31 @@ end is still there.
 
 {{status sim planned}}
 
-Press [[EDIT]] to show the matrix (MATRIX on the screen), the list of the 32 cables, seven at a
+Press [[EDIT]] to show the matrix (MATRIX on the screen), the list of the 32 cables, nine at a
 time; press it again to go back to the sound's page. [[EDIT]] is lit there.
 
-Each row reads like this:
+Each row reads like this, the source in the modulation colour, the mark
+grey, the destination and the amount white, and a sound's *S1* to *S4* in
+that sound's colour, in a source such as *S2RTRG* too:
 
 ```text
-LFO1  >S1Tmbre  +40     the source, > (or ~ a step late), the destination, the amount
-SEQ8  -M2PngPg -100     - a cable switched off, ! one refused
-ENV3  vS1Tmbre  +60     v a cable per voice
-ENV3  >S2I1Mix  +50     Sound 2's first insert
-LFO2.2>ENV3Gte +100     a module's input: its name and three letters
+LFO1  >S1 Timbre         +40     the source, > (or ~ a step late), the destination, the amount
+SEQ8  -M2 Ping-pong     -100     - a cable switched off, ! one refused
+ENV3  vS1 Timbre         +60     v a cable per voice
+ENV3  >S2 In1 Mix        +50     Sound 2's first insert
+LFO2.2>ENV3 Gate        +100     a module's input
 ```
 
+On the screen the mark stands a little apart from the source and from the
+destination, so a six-letter source such as *S2RTRG* never runs into it.
+A destination too long for its column keeps the parameter's full name
+after a shorter tag, such as *S1I2 High Xover*. A switched-off row is grey
+and a refused one red, whole. Page B names the VIA source, the curve and
+the polarity in full (*square*, *auto*).
+
 [[SELECT]] chooses the row. The hint line names the field you turned last,
-for two seconds, and otherwise the row's destination in full.
+for two seconds, and otherwise the row's destination in full; it is red
+while the chosen cable is refused.
 
 {{screen matrix The matrix: the default rack’s two cables, and a third from LFO1 to Sound 1’s Timbre at +40 %, chosen.}}
 
@@ -215,7 +230,8 @@ click.
   you chose a source with [[KNOB1]] first.
 - **The destination picker.** [[KNOB2]] opens a list, *Destination*, of
   the destinations in full, such as *S1 Timbre*, *S2 In1 Mix*, *M1 Mix*,
-  *Host Amp* or *ENV3 Gate*, six at a time with the chosen one highlighted
+  *Host Amp* or *ENV3 Gate*, eight at a time with the chosen one highlighted
+  and each sound's *S1* to *S4* in that sound's colour
   ([chapter 3](03-panel-tour.md#lists)). Destinations come in
   groups: each sound, its two inserts, the master effects, the host, and
   each module; a unit that is empty is left out. While the list is open,
@@ -249,6 +265,8 @@ switched **on per voice** ([[KNOB4]] on page B of the matrix, turned past
 - it moves that note alone: a parameter the sound keeps for each note
   (its Timbre or Color, say), or the note's own pitch through *Pitch* to
   *Pitch4* and *PitchC*.
+
+{{diagram per-voice}}
 
 The row shows *v*. A cable per voice into something that is not kept for
 each note, such as an effect, the host's AMP, a parameter that every note
@@ -288,10 +306,37 @@ cable.
 In the matrix, press [[SEL]] to see the chain (CHAIN) through the chosen cable:
 the longest path of modules and cables it belongs to, one line for each
 module and one for each cable, such as *LFO2 Wrap +1* and *+100 >ENV3
-Gate*. The chosen cable is in the accent colour, *+N* counts a module's
-other cables and *~* marks a cable that runs a step late; a refused cable
-is not followed. [[SELECT]] steps along the chain, and [[SEL]] goes back to
+Gate*, in the matrix's colours. The chosen cable is highlighted, *+N*
+counts a module's other cables and *~* marks a cable that runs a step
+late; a refused cable is not followed. [[SELECT]] steps along the chain, and [[SEL]] goes back to
 the matrix. [[SEL]] and [[EDIT]] are lit in the chain.
+
+## Recipes
+
+{{status sim desktop planned}}
+
+Each patch below is a few ordinary cables in the matrix
+([The matrix](#the-matrix)): the source on [[KNOB1]], the destination on
+[[KNOB2]], the amount on [[KNOB3]]. A module's parameters take cables like a
+sound's, so modules can drive each other.
+
+{{diagram recipes}}
+
+- **A vibrato that wanders.** Cable LFO1 into *Host Pitch* at +1 % (Pitch
+  spans 96 semitones, so 1 % is about a semitone; LFO1's Depth narrows it),
+  then LFO2 into *LFO1 Rate* at +20 %: LFO2 now speeds LFO1 up and slows it
+  down.
+- **A vibrato that fades in.** Turn LFO1's Depth to 0. Cable ENV3 into
+  *LFO1 Depth* at +50 % and LFO1 into *Host Pitch* at +1 %. Every note
+  restarts ENV3, whose attack opens the vibrato.
+- **Each FM6 note starts bright.** With FM6 on Sound 2, cable ENV3 into
+  *S2 Brightness* at +50 % and turn [[KNOB4]] on page B to *On per voice*
+  ([Per voice](#per-voice)): each note gets an envelope of its own, so a
+  new note starts bright while the older ones have already darkened.
+- **A loop.** Cable LFO1 into *LFO2 Rate* and LFO2 into *LFO1 Rate*, each at
+  +30 %, and LFO1 into *S1 Timbre*: the two LFOs speed each other up and
+  slow each other down. LFO2 sits further down the rack, so its cable back
+  to LFO1 reads LFO2 a tick late and shows *~* ([Loops](#loops)).
 
 ## What the pages show
 
@@ -300,9 +345,11 @@ the matrix. [[SEL]] and [[EDIT]] are lit in the chain.
 On every parameter page (the sound's, an effect's in FX mode, and a
 module's in the rack) a parameter that cables reach shows:
 
-- its short name and a gold diamond after it;
-- a gold bracket on its bar, the base plus and minus the cables' depth;
-- a red tick at the value it has now, which moves as you listen.
+- its name in the modulation colour (the light blue-green of the
+  oscilloscope);
+- a bracket in that colour on its bar, the base plus and minus the cables'
+  depth;
+- a white tick at the value it has now, which moves as you listen.
 
 ## The modules
 

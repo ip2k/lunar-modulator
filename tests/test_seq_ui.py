@@ -160,8 +160,6 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
         s, r, log, a, b = two_step(tools, tmp_path, sc["name"], seq / sc["panel"], seq / sc["cmd"],
                                    *args)
         assert s["replayable"] == 1 and a == b and s["peak"] > 0.01
-        if sc["name"] != "seq-panel-play-stop":
-            continue                    # modulation's (tests/test_sim_mod.py)
         sidecar = (tmp_path / f"{sc['name']}.args").read_text()
         played = [t for _, t in s["seq_ui_cmds"]]
         if sc["name"] == "seq-panel-play-stop":
@@ -422,13 +420,13 @@ def test_the_ui_state_holds_its_s4_fields_in_its_bound(tools):
 REC_LED = 27 + 13
 
 
-def rec_run(tools, tmp_path, panel_lines, seconds, script="rec.verbs", *extra):
+def rec_run(tools, tmp_path, panel_lines, seconds, script="rec.verbs"):
     """A panel run from tests/fixtures/seq-ui/`script`, Test Sine, ended at
     `seconds` (whatever is held then stays held)."""
     panel = tmp_path / "p.panel"
     panel.write_text("\n".join(panel_lines) + "\n")
     return run(tools["sim"], ["--engine", "test-sine", "--cmd", str(TRACES / script),
-                              "--panel", str(panel), "--seconds", str(seconds), *extra])
+                              "--panel", str(panel), "--seconds", str(seconds)])
 
 
 @pytest.mark.parametrize("seconds,lit,state", [
@@ -923,7 +921,7 @@ def test_a_nolock_parameter_says_so_on_a_lock_page(tools, tmp_path):
              if l and not l.startswith("#")]
     s = lock_run(tools, tmp_path, lines, seconds=0.5)
     assert s["popup"] == ["Model", "cannot be locked"] and cmds(s) == []
-    assert s["seq_view"]["step_page"] == 2 and s["locks"]["lock_pages"] == 3
+    assert s["seq_view"]["step_page"] == 2 and s["locks"]["lock_pages"] == 4   # Macro's 4 pages
 
 
 def test_the_knob_and_the_base_agree_to_the_bit_after_a_stop(tools, tmp_path):

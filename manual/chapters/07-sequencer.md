@@ -107,22 +107,28 @@ page has the focus.
 
 In SEQ mode the screen shows the focused track:
 
-- **The status line:** the tempo, the eight tracks (one cell each, the
-  focused one in gold, a muted one as an outline) and PLAY, STOP, REC (gold
+- **The status line:** the tempo (*120 BPM*; decimals only when it has
+  them, such as *120.5 BPM*), the eight tracks and PLAY, STOP, REC (gold
   during a count-in, or while a take waits for its bar) or STEP (step
-  recording).
+  recording). Each track is a small tile with the number of the sound it
+  plays (*1* to *4*), in that sound's colour; *M* on grey is MIDI out. The
+  focused track's tile is taller than the others. A muted track's tile goes
+  dark and leaves its number in the sound's colour (the focused one keeps a
+  bar above and below it).
 - **The grid:** four bars around the bar on the keys, 16 steps a row. A step
   with notes is filled, a step outside the loop is outlined (its notes as a
   dim bar), the playhead is inverted, a step with a condition, probability or
   invert has a tick under it, a step with a lock a gold dot in its corner,
-  and held steps are framed. A mark at both ends shows the bar on the keys.
+  and held steps are framed in gold. A mark at both ends shows the bar on
+  the keys.
   A muted track's notes are dim. With SHIFT held, the shortcuts take the
   grid's place.
 - **The knob strip:** four bars for [[KNOB1]] to [[KNOB4]] on the sound's
-  current page; the knob you turn is brighter.
+  current page; while you turn a knob, the other three dim.
 - **The hint line:** the knob you turned, its name and value, for two
   seconds; the bar the keys moved to; in step recording, the step under the
-  record head; otherwise the sound's model, in gold.
+  record head; otherwise the sound's model, in rose like every page's
+  heading.
 - **The bottom bar:** the page, the mode and the track, such as *1/3 Seq
   T1*, and the memory meter ([chapter 6](06-effects.md#memory)).
 
@@ -501,6 +507,8 @@ In the session view, keys 1 to 8 launch slots 1 to 8 of the focused track
 - Launching an empty slot stops the track at the next bar.
 - Launching a clip by hand ends a song that is playing.
 
+{{diagram launch}}
+
 ### Double Loop
 
 {{status desktop planned}}
@@ -579,6 +587,11 @@ A song plays a list of scenes, one after the other.
 ## Recording
 
 {{status sim desktop planned}}
+
+[[PLAY/STOP]] and [[REC]] move the sequencer between the states below; the
+rest of this section and the next, [Capture](#capture), go through each.
+
+{{diagram transport}}
 
 ### To record
 
@@ -743,7 +756,8 @@ holds, and the screen says that too.
 - Hold [[OP6]] and press white keys 1 to 8 to mute and unmute tracks 1 to 8;
   their lights show which are playing.
 
-The track cells at the top of the screen show muted tracks as outlines.
+The track tiles at the top of the screen show a muted track as its number
+alone, without its tile.
 Muting a track ends its sounding notes at once. Its parameter locks keep
 running ([Parameter locks](#parameter-locks)). Solo is planned for later.
 
@@ -858,7 +872,7 @@ Track pages. [[SEQ]] goes back to the steps.
 
 Track page 2 (turn [[SELECT]]) lists the focused track's eight lock lanes:
 each parameter's name and its base value from 0 to 127, an unused lane as
-*--*.
+*--*. On Track page 1 the sound is in its colour, as on the status line.
 
 ## Memory
 

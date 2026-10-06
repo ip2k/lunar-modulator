@@ -1413,11 +1413,15 @@ marked]:
 - **§5.5's marks**: the label from `abbr`, a gold diamond after it with
   4 px either side, a gold bracket of ± the cables' summed depth round the
   base on the bar, and a red 1 px tick at the value sent now. A cable into
-  a parameter that takes none is not marked (MATRIX shows it `!`).
+  a parameter that takes none is not marked (MATRIX shows it `!`). Since
+  the UI audit (2026-10-06, Q3): the label at full length in the
+  modulation colour (foam), no diamond, the bracket foam and the tick in
+  the text colour.
 - **CHAIN**: the selected cable, then the deepest cable into its source
   module and on up, then the deepest out of its target module and on down
   (a lower slot wins a tie, a loop is cut where it closes, a refused
-  cable is not followed); 8 lines shown round the selected cable.
+  cable is not followed); 8 lines shown round the selected cable (10 in
+  the MID face since the UI audit, 2026-10-06).
 - **Destination codes** (`fm1_mod.h`), built for every unit multi-sound
   has: a slot names its target by `dst_unit` and a uid; 0 SOUND (sound
   unit 1), 1 FX1 and 2 FX2 (the master slots), 3 HOST, 8–15 MODULE at
@@ -1445,7 +1449,13 @@ marked]:
   line, the pickers and CHAIN. The tags follow FX mode's In1, In2, M1 and
   M2 (MG3 before multi-sound wrote `Timbre`, `F1Mix`, `Snd Timbre` and `FX1
   Mix`). The sweep checks every engine's names in every unit they can fill
-  [verified: `engine_names` in `fm1_sim_render.c`].
+  [verified: `engine_names` in `fm1_sim_render.c`]. Since the UI audit
+  (2026-10-06, L2 and D7): MATRIX shows nine rows of 28 characters in the
+  MID face, the destination in 16 by its full name where it fits, else
+  the tag and the parameter's full name (`S1I2 High Xover`), else the
+  seven-character form; 598 of the 603 names the sweep's racks and engines
+  produce fit in full, and the sweep checks the fitted names for length
+  and uniqueness too [verified: `unique_dests`].
 - **Per voice, next.** The slot record keeps `FM1_MOD_SLOT_VOICE`; MATRIX
   shows such a slot `v`, the UI makes none, and its script line does not
   exist yet, so a log that meets one says it is incomplete. (Built in MG9:
@@ -1505,9 +1515,11 @@ marked]:
   them), the pages and the script reader with strtod [verified:
   `www/fm1.wasm.json`]. (MG3 alone, before MG2's kinds, had added 93 KB.)
   Since Room, Hall and Gate the pool holds 180 records, not 160: Gate's
-  thirteen parameters in all ten effect places and Six-Op's twelve in all
+  thirteen parameters in all ten effect places and Macro Heavy's twelve in all
   four sound units need 180 with HOST's two, and `fm1_mod_size()` is 23,200 B (832 B
-  more).
+  more). Since glide (2026-10-06, engines/README.md "Glide and voice
+  modes") Macro Heavy has fourteen parameters: with HOST's six since MG9,
+  192 records, and 26,512 B (320 B more than MG9's 26,192 B).
 - **The dead-code audit is due** (§8, "Size and the dead-code audit"): the
   repository's own code files (dongle/, engines/ less third_party/, sim/,
   tests/, tools/; C, C++, Python, JavaScript, shell and make, less the
@@ -1594,8 +1606,8 @@ the tests; the manual's chapter 8, "Per voice", the user's view) [verified
   again; an edit that keeps them (an amount) keeps them running. The
   voices' fixed records are 168 B each. `fm1_mod_size()` is 26,192 B, 2,992
   B more than MG3's 23,200 (12 voice records, each sound unit's note
-  gates, four HOST records, the per-voice plan); the simulator's runtime
-  memory is 26,624 B. The first try, sixteen voices and per-voice
+  gates, four HOST records, the per-voice plan), and 26,512 B since
+  glide's eight records; the simulator's runtime memory is 26,624 B. The first try, sixteen voices and per-voice
   destination tables, cost 3,984 B and pushed two of the parity
   scenarios' chains past the RAM budget; twelve voices and a short search
   in place of the tables brought it under.

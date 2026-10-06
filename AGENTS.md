@@ -132,13 +132,17 @@ vendor packages there.
 
 ## Conventions
 
-- **Dead-code audit:** not done yet. The mark is 7,463 lines of the repo's
-  own source (`dongle/`, `engines/` less `third_party/`, `tests/`, `tools/`)
-  at the stage A2 merge, 2026-09-30; audit after about 10,000 more. `sim/`
-  is in scope too: it arrived on 2026-10-01 with about 4,200 lines (less its
-  built module, record and font data), which count toward the next audit.
-  `firmware/` (less `third_party/`) is in scope too: it arrived on
-  2026-10-05 with the `boot_info` bridge's test driver (a few dozen lines).
+- **Dead-code audit:** first done 2026-10-05 (PR #74) over the tree at
+  `d781f07` (PR #52): 91,901 lines of the repo's own source, 91,732 after its
+  removals (`db24f89`). Scope: `dongle/`, `engines/` and `firmware/` less
+  `third_party/`, `sim/`, `tests/` and `tools/`. The count is `wc -l` over the
+  tracked files less Markdown, data (JSON, verb, panel and mod scripts, fonts,
+  the built module) and `tests/fixtures/`; by the same count the stage A2 mark
+  of 2026-09-30 was 7,440. The candidates left for the owner's decision are in
+  PR #74. The ~28,300 lines that merged after `d781f07` (19 PRs, #55 to #75;
+  120,007 in all at the merge with #75, `401e83c`) were not read, so the next
+  audit is due already: start from `git diff d781f07`, then audit again after
+  about every 10,000 lines.
 - **Confidence marks in every technical claim:** `[verified]` (checked here
   against binaries, photos or SDK files), `[reported]` (named source, not
   re-checked), `[inferred]`. Never upgrade a claim without doing the check.
