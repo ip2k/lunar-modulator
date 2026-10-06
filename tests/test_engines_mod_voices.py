@@ -234,6 +234,9 @@ def test_a_pitch_per_sound_and_the_current_sound(renderer, tmp_path):
     assert [v for t, _, i, v in after if i == 0] == [0.0]              # sound unit 1 back to its base
     assert all(i in (2, 3) for _, _, i, _ in after[1:])
     assert s["mod_refused"] == 0
+    # The routed sinks list the current sound's pitch, which PITCHC's cable
+    # alone routes (no destination of its own: a review fix under UBSan).
+    assert {(x["u"], x["i"]) for x in ticks[-1]["s"]} == {("host", 2), ("host", 3), ("host", 5)}
 
 
 def test_note_sources_of_one_sound(renderer, tmp_path):

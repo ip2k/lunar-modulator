@@ -1613,9 +1613,17 @@ int fm1_mod_sink(fm1_mod_t *m, unsigned i, fm1_mod_sink_info_t *out) {
       const int r = sink_rec(m, (int)u, p);
       uint32_t s;
       uint16_t n = 0;
+      uint8_t d;
       if (!(mask & 1u) || r < 0) continue;
       if (i--) continue;
-      for (s = m->plan.dest[m->plan.sdest[r]].slots; s; s >>= 1) n = (uint16_t)(n + (s & 1u));
+      /* Its own slots, and for the current sound's pitch PITCH_CUR's (a
+       * pitch routed by those alone has no destination of its own). */
+      d = m->plan.sdest[r];
+      for (s = d != MOD_NONE ? m->plan.dest[d].slots : 0u; s; s >>= 1) n = (uint16_t)(n + (s & 1u));
+      if (u == MOD_HOST_SINK && p == fm1_mod_host_pitch(m->cur_sound)) {
+        d = m->plan.sdest[m->sink_first[MOD_HOST_SINK] + FM1_MOD_HOST_PITCH_CUR];
+        for (s = d != MOD_NONE ? m->plan.dest[d].slots : 0u; s; s >>= 1) n = (uint16_t)(n + (s & 1u));
+      }
       out->unit = kSinkUnit[u];
       out->reserved = 0;
       out->index = (uint16_t)p;
