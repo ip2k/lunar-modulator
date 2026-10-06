@@ -317,10 +317,16 @@ def test_fm6_user_voices_render_the_same(tmp_path):
 
 # ---- Names: known ids, aliases ------------------------------------------------------------------------
 def test_a_known_absent_engine_is_refused_with_its_reason(tmp_path, names):
-    doc = b'{"lunar": "1.0", "kind": "sound", "sound": {"engine": "acid-bass", "params": {"#3": 0.5}}}'
+    # A sound id known-ids.json gives as GPL that this build lacks: Acid Bass
+    # with the GPL switch off; with it on (PR #81), one not built yet.
+    built = {e["id"] for e in json.loads(run(R, "--list").stdout)}
+    gid = next(r["id"] for r in json.loads((ENGINES / "known-ids.json").read_text())["ids"]
+               if r["reason"] == "gpl" and r["what"] == "sound" and r["id"] not in built)
+    doc = (b'{"lunar": "1.0", "kind": "sound", "sound": {"engine": "acid-bass", "params": {"#3": 0.5}}}'
+           .replace(b"acid-bass", gid.encode()))
     r = run(TOOL, "canon", "-", data=doc, check=False)
     rep = json.loads(r.stderr.decode().splitlines()[-1])
-    assert r.returncode == 1 and rep["code"] == "UNKNOWN" and rep["name"] == "acid-bass"
+    assert r.returncode == 1 and rep["code"] == "UNKNOWN" and rep["name"] == gid
     assert rep["known"] == "gpl" and "in the GPL build only" in rep["what"]
     binary = tool("pack", "-", "--without", data=doc)
     r = run(TOOL, "check", "-", data=binary, check=False)
@@ -329,11 +335,11 @@ def test_a_known_absent_engine_is_refused_with_its_reason(tmp_path, names):
     for f, data in (("a.sound.lunar", doc), ("a.sound.lunarb", binary)):
         (tmp_path / f).write_bytes(data)
         r = run(R, "--load", tmp_path / f, "--seconds", "0.01", "--out", tmp_path / "x.wav", check=False)
-        assert r.returncode == 1 and "acid-bass" in r.stderr.decode() and "in the GPL build only" in r.stderr.decode()
+        assert r.returncode == 1 and gid in r.stderr.decode() and "in the GPL build only" in r.stderr.decode()
         _, rep = ls.read_any(data, names)
-        assert rep.unknown == 1 and rep.name == "acid-bass" and rep.known == "gpl"
+        assert rep.unknown == 1 and rep.name == gid and rep.known == "gpl"
     # An id nobody lists is refused without a reason.
-    r = run(TOOL, "canon", "-", data=doc.replace(b"acid-bass", b"kazoo"), check=False)
+    r = run(TOOL, "canon", "-", data=doc.replace(gid.encode(), b"kazoo"), check=False)
     assert json.loads(r.stderr.decode().splitlines()[-1])["known"] == ""
 
 
