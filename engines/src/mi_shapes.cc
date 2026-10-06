@@ -450,4 +450,5 @@ extern "C" const fm1_engine_t fm1_engine_shapes = {
   fm1::shapes::SetNote,
   0, NULL,                  // API v3: no effect extension
   0, 0,                     // not a pad kit
+  NULL,                     // API v4: no get_param, the host keeps its values
 };

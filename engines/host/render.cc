@@ -8,8 +8,9 @@
 // an enum parameter's values and each parameter's API v2 fields: uid, flags
 // (by name), unit and abbr, whether the engine takes per-note offsets
 // (per_note: it has set_param_note), what an effect asks of API v3's
-// extension (fx_wants: key, tempo, transport; render_ext: it has one), and
-// its pads when it is a pad kit (pads: first note and count, or null).
+// extension (fx_wants: key, tempo, transport; render_ext: it has one), its
+// pads when it is a pad kit (pads: first note and count, or null), and
+// whether it reads its values back (get_param, API v4).
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
@@ -669,7 +670,7 @@ void PrintFlags(uint16_t f) {
   static const struct { uint16_t bit; const char *name; } kFlags[] = {
     { FM1_PARAM_LATCH, "latch" }, { FM1_PARAM_SMOOTH, "smooth" }, { FM1_PARAM_NOLOCK, "nolock" },
     { FM1_PARAM_MOD, "mod" }, { FM1_PARAM_INPUT, "input" }, { FM1_PARAM_POLY, "poly" },
-    { FM1_PARAM_LOG, "log" },
+    { FM1_PARAM_LOG, "log" }, { FM1_PARAM_FOCUS, "focus" }, { FM1_PARAM_PER_FOCUS, "per_focus" },
   };
   uint16_t known = 0;
   bool first = true;
@@ -694,9 +695,11 @@ void List() {
     printf("\"id\":"); PrintJsonString(e->id);
     printf(",\"name\":"); PrintJsonString(e->name);
     printf(",\"credits\":"); PrintJsonString(e->credits);
-    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"render_ext\":%s,\"fx_wants\":[",
+    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"render_ext\":%s,"
+           "\"get_param\":%s,\"fx_wants\":[",
            e->kind == FM1_KIND_SOUND ? "sound" : e->kind == FM1_KIND_AUDIO_FX ? "audio_fx" : "midi_fx",
-           e->max_voices, e->set_param_note ? "true" : "false", e->render_ext ? "true" : "false");
+           e->max_voices, e->set_param_note ? "true" : "false", e->render_ext ? "true" : "false",
+           e->get_param ? "true" : "false");
     {
       static const struct { uint32_t bit; const char *name; } kWants[] = {
         { FM1_FX_WANT_KEY, "key" }, { FM1_FX_WANT_TEMPO, "tempo" },

@@ -107,4 +107,5 @@ extern "C" const fm1_engine_t fm1_engine_test_ext = {
   FM1_FX_WANT_KEY | FM1_FX_WANT_TEMPO | FM1_FX_WANT_TRANSPORT,
   fm1::test_ext::RenderExt,
   0, 0,                     // not a pad kit
+  NULL,                     // API v4: no get_param, the host keeps its values
 };

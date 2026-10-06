@@ -49,6 +49,13 @@
  * so a host can lay those notes on its own keys whatever their pitch
  * (engines/README.md, "Pad kits").
  *
+ * API v4 (2026-10-06, notes/2026-10-06-state-files.md ST7) adds, without
+ * changing what a v3 engine does: the FOCUS and PER_FOCUS flags, for an
+ * engine whose knobs edit one of several entries (a pad kit's pads), and an
+ * optional get_param, so a host can read back every value it can set,
+ * every pad's included, without moving the focus: what a saved file needs
+ * (engines/README.md, "Engine API v4").
+ *
  * Plain C99 so C and C++ engines (and a Schwung shim) can all implement it.
  * MIT licence, like the rest of this repository.
  */
@@ -65,7 +72,7 @@
 extern "C" {
 #endif
 
-#define FM1_ENGINE_API_VERSION 3u
+#define FM1_ENGINE_API_VERSION 4u
 #define FM1_ENGINE_MAGIC 0x464D3145u /* "FM1E" */
 
 typedef enum {
@@ -109,7 +116,17 @@ typedef enum {
                                   unit, but it moves on a log scale, in octaves
                                   and ratios (the LOG law below) */
 /* 0x80 is kept for KEYSRC (the side-chain stage: a key source the host
- * owns). Bits 0x0100-0x8000 are free. */
+ * owns). */
+#define FM1_PARAM_FOCUS  0x0100u /* API v4: the edit focus, an ENUM whose value
+                                    chooses the entry (a pad) the PER_FOCUS
+                                    parameters set: at most one in an engine,
+                                    never MOD (a list that moves the focus is
+                                    no modulation target); a lock may move it */
+#define FM1_PARAM_PER_FOCUS 0x0200u /* API v4: kept once per entry of the
+                                    focus: set_param sets the focused entry's,
+                                    get_param reads any entry's. Only in an
+                                    engine with a FOCUS parameter */
+/* Bits 0x0400-0x8000 are free. */
 /* What a continuous parameter, read every block, takes. */
 #define FM1_PARAM_CONTINUOUS (FM1_PARAM_SMOOTH | FM1_PARAM_MOD)
 /* ...and a continuous pitch- or time-like one (a cutoff, a release). */
@@ -393,7 +410,32 @@ typedef struct fm1_engine {
    * MIDI keeps the notes. 0 and 0: not a kit, every note is a pitch. */
   uint8_t pad_first_note;
   uint8_t pad_count;
+
+  /* API v4, optional: NULL when a host can keep every value itself (what
+   * it sent through set_param, clamped by fm1_param_clamp, is what the
+   * engine holds). Required for an engine with a FOCUS parameter, whose
+   * PER_FOCUS values a host cannot see. Returns the value parameter
+   * `index` holds, exactly as set_param left it: the clamped value for a
+   * FLOAT (a SMOOTH one's target, never a ramp's step), the entry as a
+   * whole number for an ENUM, the default for one never set. So
+   * set_param(index, get_param(index, f)) changes nothing, and a host
+   * that saves get_param's values restores the instance exactly. For a
+   * PER_FOCUS parameter, `focus` is the entry to read, 0 .. the FOCUS
+   * parameter's max - min (pad 1 is 0), and FM1_FOCUS_CURRENT, or any
+   * entry past the last, reads the one the focus names now; for any other
+   * parameter `focus` is ignored. It never moves the focus or changes
+   * anything else. 0 for an index past n_params. Restoring a focused
+   * engine: for each entry k, set_param(FOCUS, k) and that entry's
+   * PER_FOCUS values; then the other parameters; the saved focus last
+   * (fm1_engine_copy_params below does it between two instances). Same
+   * thread as set_param, or while the audio task is stopped. */
+  float (*get_param)(const void *self, uint16_t index, uint8_t focus);
 } fm1_engine_t;
+
+/* get_param's focus for "the entry the focus names now". */
+#define FM1_FOCUS_CURRENT 0xFFu
+/* The most entries a focus may have (a file's pads are 1-32). */
+#define FM1_FOCUS_MAX 32u
 
 /* ---- MIDI effects (API v3, FM1_KIND_MIDI_FX) ------------------------------
  * Notes in, notes out: the arpeggiator first (engines/midi_fx/), chord,
@@ -463,6 +505,62 @@ static inline const fm1_midi_fx_t *fm1_midi_fx_of(const fm1_engine_t *e) {
 static inline int fm1_engine_pad_note(const fm1_engine_t *e, int pad) {
   if (!e || pad < 0 || pad >= e->pad_count) return -1;
   return e->pad_first_note + pad <= 127 ? e->pad_first_note + pad : -1;
+}
+
+/* The index of e's FOCUS parameter (API v4), or -1 when it has none. */
+static inline int fm1_engine_focus(const fm1_engine_t *e) {
+  uint16_t i;
+  if (!e) return -1;
+  for (i = 0; i < e->n_params; ++i) {
+    if (e->params[i].flags & FM1_PARAM_FOCUS) return (int)i;
+  }
+  return -1;
+}
+
+/* How many entries e's focus chooses between (its ENUM's max - min + 1), 0
+ * without a focus. */
+static inline unsigned fm1_engine_focus_count(const fm1_engine_t *e) {
+  const int f = fm1_engine_focus(e);
+  if (f < 0) return 0u;
+  return (unsigned)(e->params[f].max - e->params[f].min + 0.5f) + 1u;
+}
+
+/* Whether parameter p is kept once per focus entry (API v4). */
+static inline int fm1_param_per_focus(const fm1_param_t *p) {
+  return (p->flags & FM1_PARAM_PER_FOCUS) != 0;
+}
+
+/* Copies every value instance src of e holds into instance dst of e (API
+ * v4), through get_param and set_param in the restore order: for each
+ * focus entry, the focus on it and that entry's PER_FOCUS values; then
+ * every other parameter in table order; src's focus last. What a host
+ * loading a saved sound does with the file's values in place of src's.
+ * Returns the set_param calls made; 0 when e has no get_param. */
+static inline unsigned fm1_engine_copy_params(const fm1_engine_t *e, void *dst, const void *src) {
+  const int f = fm1_engine_focus(e);
+  const unsigned entries = fm1_engine_focus_count(e);
+  unsigned k, calls = 0u;
+  uint16_t i;
+  if (!e || !e->get_param || !dst || !src) return 0u;
+  for (k = 0; f >= 0 && k < entries && k < FM1_FOCUS_MAX; ++k) {
+    e->set_param(dst, (uint16_t)f, e->params[f].min + (float)k);
+    ++calls;
+    for (i = 0; i < e->n_params; ++i) {
+      if (!fm1_param_per_focus(&e->params[i])) continue;
+      e->set_param(dst, i, e->get_param(src, i, (uint8_t)k));
+      ++calls;
+    }
+  }
+  for (i = 0; i < e->n_params; ++i) {
+    if ((int)i == f || fm1_param_per_focus(&e->params[i])) continue;
+    e->set_param(dst, i, e->get_param(src, i, FM1_FOCUS_CURRENT));
+    ++calls;
+  }
+  if (f >= 0) {
+    e->set_param(dst, (uint16_t)f, e->get_param(src, (uint16_t)f, FM1_FOCUS_CURRENT));
+    ++calls;
+  }
+  return calls;
 }
 
 /* The index of e's parameter with this uid, or -1 (uid 0 included). */

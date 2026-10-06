@@ -21,6 +21,8 @@
 
 #include "schwung_shim.h"
 
+#include <cstring>
+
 extern "C" plugin_api_v2_t *fm1_sw_sophie_init(const host_api_v1_t *host);
 
 namespace fm1 {
@@ -54,16 +56,19 @@ const uint16_t kExposed = P_CRUSH;   // pages 0 and 1
 // sound: it chooses which pad the other knobs edit. It is lockable (the
 // owner's decision, 2026-10-02, docs/15 S8): a lock on it moves the focus
 // at its step, so the locks after it at that frame, and later ones until
-// it moves again, edit the pad it names. No flag: it is read at set_param,
-// not at note-on, and a list that moves the focus takes no modulation.
+// it moves again, edit the pad it names. It is read at set_param, not at
+// note-on, and a list that moves the focus takes no modulation: FOCUS in
+// engine API v4, its only flag, and every pad parameter is PER_FOCUS, so
+// get_param reads any pad's value without moving the focus (the shim keeps
+// them, schwung_shim.h).
 // Units are the module's own (chain_params): Tune in semitones, Ring Time in
 // ms, the 0..100 knobs in %; Decay is in seconds, which has no unit code.
 // Ring Time, the resonator's delay (0.5..30 ms, a pitch), moves on the LOG law
 // (fm1_engine.h, API v3).
-const uint16_t kPadFlags = FM1_PARAM_LATCH | FM1_PARAM_MOD;
+const uint16_t kPadFlags = FM1_PARAM_LATCH | FM1_PARAM_MOD | FM1_PARAM_PER_FOCUS;
 const fm1_param_t kParams[P_COUNT] = {
   { "Pad",       FM1_PARAM_ENUM,  0, 15, 0, kPadNames, 0,
-    KeyUid("focused_pad"), 0, FM1_UNIT_NONE, "Pad" },
+    KeyUid("focused_pad"), FM1_PARAM_FOCUS, FM1_UNIT_NONE, "Pad" },
   { "Tune",      FM1_PARAM_FLOAT, -24, 24, -5, NULL, 0, KeyUid("tune"), kPadFlags, FM1_UNIT_SEMI, "Tune" },
   { "Decay",     FM1_PARAM_FLOAT, 0.03f, 4, 0.28f, NULL, 0, KeyUid("decay"), kPadFlags, FM1_UNIT_NONE, "Decay" },
   { "Model",     FM1_PARAM_ENUM,  0, 3, 0, kModelNames, 0, KeyUid("model"), kPadFlags, FM1_UNIT_NONE, "Model" },
@@ -113,12 +118,26 @@ const size_t kArenaBytes = 75 * 1024;
 
 ModuleState g_state;
 
+// Pad `entry`'s own key for a pad parameter: the module's "p01_tune" ...
+// "p16_tune" (its child_key_template, "p{index}_{key}" with two digits).
+int PadKey(char *out, size_t cap, unsigned entry, const char *key) {
+  const size_t n = strlen(key);
+  if (entry >= 16 || n + 5 > cap) return 0;
+  out[0] = 'p';
+  out[1] = static_cast<char>('0' + (entry + 1) / 10);
+  out[2] = static_cast<char>('0' + (entry + 1) % 10);
+  out[3] = '_';
+  memcpy(out + 4, key, n + 1);
+  return static_cast<int>(n + 4);
+}
+
 const Module kModule = {
   FM1_KIND_SOUND, "sophie", fm1_sw_sophie_init, NULL,
   kParams, kKeys, kExposed, P_COUNT, kArenaBytes,
   0.0f,                                   // Sophie ignores pitch bend
   1.0f,                                   // no headroom: not an effect
   &g_state,
+  PadKey,                                 // API v4: each pad's starting patch
 };
 
 size_t Size(const fm1_host_t *host) { return InstanceSize(kModule, host); }
@@ -145,4 +164,5 @@ extern "C" const fm1_engine_t fm1_engine_sw_sophie = {
   0, NULL,                  // API v3: no effect extension
   // A pad kit: notes 36-51 play pads 1-16 (engines/README.md, "Pad kits").
   36, 16,
+  fm1::schwung::GetParamValue,   // API v4: every pad's values read back
 };

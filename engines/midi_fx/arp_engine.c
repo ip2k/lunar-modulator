@@ -168,6 +168,7 @@ const fm1_midi_fx_t fm1_midi_fx_arp = {
     NULL,                     /* no per-note offsets */
     0, NULL,                  /* no effect extension */
     0, 0,                     /* not a pad kit */
+    NULL,                     /* API v4: no get_param, the host keeps its values */
   },
   arp_process,
 };

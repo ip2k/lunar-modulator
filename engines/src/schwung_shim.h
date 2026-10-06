@@ -111,10 +111,22 @@ struct Module {
   // bit of the module's 16 per doubling. Ignored for sound generators.
   float fx_headroom;
   ModuleState *state;           // this module's once-only state
+  // Engine API v4: a module whose table has a FOCUS parameter (Sophie's
+  // Pad) keeps its PER_FOCUS parameters once per focus entry. focus_key
+  // writes the module's own key for parameter `key` of entry `entry` (0 is
+  // the first), so the shim can read each entry's starting values at
+  // create; NULL for a module without a focus.
+  int (*focus_key)(char *out, size_t cap, unsigned entry, const char *key);
 };
 
 // The fm1_engine_t callbacks. Render overwrites out_lr for a sound generator
-// and processes it in place for an effect.
+// and processes it in place for an effect. GetParamValue is engine API v4's
+// get_param: the shim keeps what it last set for every defined parameter
+// (a SMOOTH one's target; an index as the whole number sent) and, for a
+// module with a FOCUS parameter, each focus entry's PER_FOCUS values,
+// starting from the module's own (read through focus_key at create), so a
+// value reads back exactly as it was set, with no rounding through the
+// module's text.
 size_t InstanceSize(const Module &m, const fm1_host_t *host);
 void *Create(const Module &m, void *mem, const fm1_host_t *host);
 void Destroy(void *self);
@@ -122,10 +134,11 @@ void NoteOn(void *self, uint8_t key, uint8_t velocity);
 void NoteOff(void *self, uint8_t key);
 void PitchBend(void *self, float semitones);
 void SetParam(void *self, uint16_t index, float value);
+float GetParamValue(const void *self, uint16_t index, uint8_t focus);
 void Render(void *self, float *out_lr, uint32_t frames);
 
 // Beyond the fm1 API: for tools, tests and a later UI.
-size_t InstanceBytes(size_t arena_bytes);   // InstanceSize for a given arena
+size_t InstanceBytes(const Module &m, size_t arena_bytes);   // InstanceSize for a given arena
 void *CreateWithArena(const Module &m, void *mem, const fm1_host_t *host,
                       size_t arena_bytes);
 int GetParam(void *self, const char *key, char *buf, int buf_len);
