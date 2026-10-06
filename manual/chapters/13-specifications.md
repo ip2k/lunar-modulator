@@ -71,7 +71,7 @@ the two ever differ.
 | Filter | – | under 1 KB |
 | Comb | – | 17 KB |
 | Comp | – | under 1 KB |
-| Limiter | – | 11 KB |
+| Limiter | – | 12 KB |
 | DJ Filter | – | under 1 KB |
 | Tilt | – | under 1 KB |
 | Master Sat | – | under 1 KB |
@@ -80,6 +80,8 @@ the two ever differ.
 | Room | – | 40 KB |
 | Hall | – | 49 KB |
 | Gate | – | 2 KB |
+| Squash | – | under 1 KB |
+| Transient | – | under 1 KB |
 | Test Gain | – | under 1 KB |
 | Test Ext | – | under 1 KB |
 

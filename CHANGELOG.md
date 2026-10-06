@@ -9,6 +9,32 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Squash, a new effect: three small compressors with characters of their
+  own**, rewritten for the FM-1 from Airwindows plug-ins by Chris Johnson
+  (MIT). Choose a Type, turn Squash up, win the level back with Output.
+  - **Snap** (after Pop3) grabs peaks and lets go, with a gate that can cut
+    each note's tail (Gate, Gate Depth, Hold, Gate Rel).
+  - **Mu** (after Pressure4) is a smooth valve-style leveller that recovers
+    more slowly after loud passages; Shape bends its response.
+  - **Split** (after ButterComp2) works on the top and the bottom of the
+    wave separately and has no timing knobs: glue for a mix.
+  - Changing Type while the sound plays starts the new one where the old
+    one was and fades between them, so modulation can change it on every
+    step. Silence stays silent; under half a kilobyte of memory.
+  - Checked against the original plug-ins' code, run in a container: Mu and
+    Split within −100 dB, Snap within −60 dB (and −29 dB in one setting
+    where the original's stereo link holds the gain for a length of time
+    that depends on its last bits).
+- **Transient, a new effect: a transient shaper.** Attack lifts or softens
+  the start of each note or hit (up to ±12 dB), Sustain lifts or cuts what
+  follows; Window and Tail set how long each lasts. It reacts to how the
+  sound changes, not to its level, and at its centre passes the sound
+  exactly untouched. Our own design, on the classic two-follower principle.
+- **The Limiter has a third Mode, Round:** a gentle final clip after
+  Airwindows ClipOnly2. Peaks up to 3 dB over the ceiling are rounded off
+  between their neighbours and the ceiling, only what goes further is
+  turned down, and everything under the ceiling passes untouched. It adds
+  no delay beyond the Lookahead.
 - **FM6, a new sound engine: six-operator FM that plays DX7 voices.** It
   runs msfa, the FM core Google published for Android and the core the
   FM-1's own firmware runs, and plays all 32 algorithms with six operators,
@@ -1081,6 +1107,12 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Comp's Auto Gain only touches what would clip** (owner's request): it
+  holds a sample at full scale only where its makeup would push it past,
+  such as the start of a loud hit; everything else, steady notes included,
+  now sounds exactly as with the same makeup set by hand. Before, it also
+  rounded the peaks of steady tones a little. It still never pushes a
+  sound past full scale.
 - **New pictures of the virtual FM-1, and a manual brought up to date with
   it.**
   - The README's picture and the phone picture show the page as it is now:

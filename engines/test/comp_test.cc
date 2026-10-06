@@ -690,6 +690,114 @@ void AutoGain() {
          runs, grid, tight, random, toggled, AgSteadyDb(-60.0f, 21.0f), AgSteadyDb(-20.0f, 4.0f));
 }
 
+// 11b. Auto Gain touches only would-be overs (owner, 2026-10-05). Each case
+// renders twice from fresh instances: Auto Gain on, and Auto Gain off with
+// Makeup set by hand to exactly the lift Auto Gain computes (settings whose
+// curve at 0 dBFS is exact in float: 13.5, 12, 30 capped to 24, and 14 dB),
+// so the two differ only by the bound. Every frame the hand-set render
+// keeps under 0.99998 on both channels (the bound's 1e-4 dB margin, less
+// the polynomials' rounding) must come out the same bits with Auto Gain on;
+// the others may be touched, and no output passes 1. Steady sines at levels whose hand-set render
+// stays under full scale once settled are the same bits from 100 ms on
+// (the onset, before Attack catches it, may be touched); then the hostile
+// signals of section 11, full scale and bursting, through the same check.
+struct LooseSetting { float threshold, ratio, makeup_db; };
+
+const LooseSetting kLoose[] = { { -18.0f, 4.0f, 13.5f }, { -24.0f, 2.0f, 12.0f },
+                                { -40.0f, 4.0f, 30.0f }, { -16.0f, 8.0f, 14.0f } };
+
+// Renders `frames` frames of a signal through Comp with Auto Gain on (y_on)
+// and with the same makeup by hand (y_off). k < 0: a sine of `level` at
+// `hz`; else AgSignal k.
+void LooseRun(const LooseSetting &g, float character, float attack, int k, float level, float hz,
+              uint32_t frames, float *y_on, float *y_off) {
+  for (int pass = 0; pass < 2; ++pass) {
+    void *self = Make(kRate, 0x5A);
+    const float makeup = g.makeup_db < 24.0f ? g.makeup_db : 24.0f;   // Auto Gain's cap
+    const Kv kv[] = { { "Threshold", g.threshold }, { "Ratio", g.ratio },
+                      { "Character", character }, { "Attack", attack },
+                      { "Auto Gain", pass == 0 ? 1.0f : 0.0f },
+                      { "Makeup", pass == 0 ? 0.0f : makeup } };
+    SetAll(self, kv, 6);
+    Lcg rng = { 77u + static_cast<uint32_t>(k + 1) };
+    float *y = pass == 0 ? y_on : y_off;
+    float buf[128];
+    for (uint32_t i = 0; i < frames; i += 64) {
+      for (uint32_t f = 0; f < 64; ++f) {
+        float l, r;
+        if (k < 0) {
+          l = r = level * static_cast<float>(sin(2.0 * M_PI * hz * (i + f) / kRate));
+        } else {
+          l = AgSignal(k, i + f, rng, &r);
+          if (r < -1.5f) r = l;
+        }
+        buf[2 * f] = l;
+        buf[2 * f + 1] = r;
+      }
+      E.render(self, buf, 64);
+      memcpy(y + 2 * i, buf, sizeof(buf));
+    }
+    E.destroy(self);
+  }
+}
+
+void Loose() {
+  const uint32_t frames = 22016;                 // 0.5 s, whole blocks
+  static float on[2 * 22016], off[2 * 22016];
+  const uint32_t settle = 4416;                  // 100 ms
+  int steady_cases = 0, steady_same = 0, cases = 0;
+  long untouched_mismatch = 0, touched = 0;
+  double worst = 0.0;
+  const float levels[] = { -40.0f, -30.0f, -20.0f, -12.0f, -9.0f, -6.0f };
+  const float hzs[] = { 60.0f, 440.0f, 3000.0f };
+  for (const LooseSetting &g : kLoose) {
+    for (int character = 0; character < 4; ++character) {
+      for (float level_db : levels) {
+        for (float hz : hzs) {
+          LooseRun(g, static_cast<float>(character), 10.0f, -1,
+                   static_cast<float>(pow(10.0, level_db / 20.0)), hz, frames, on, off);
+          ++cases;
+          float settled = 0.0f;
+          bool same = true;
+          for (uint32_t i = 0; i < 2 * frames; ++i) {
+            const float a = fmaxf(fabsf(off[i & ~1u]), fabsf(off[i | 1u]));   // the frame's
+            worst = fmax(worst, fabs(static_cast<double>(on[i])));
+            if (on[i] != off[i]) {
+              ++touched;
+              if (a < 0.99998f) ++untouched_mismatch;
+            }
+            if (i >= 2 * settle) {
+              settled = fmaxf(settled, a);
+              if (on[i] != off[i]) same = false;
+            }
+          }
+          if (settled < 0.99998f) {
+            ++steady_cases;
+            if (same) ++steady_same;
+          }
+        }
+      }
+    }
+    for (int character = 0; character < 4; ++character) {
+      for (int k = 0; k < kAgSignals; ++k) {
+        LooseRun(g, static_cast<float>(character), 50.0f, k, 0.0f, 0.0f, frames, on, off);
+        ++cases;
+        for (uint32_t i = 0; i < 2 * frames; ++i) {
+          const float a = fmaxf(fabsf(off[i & ~1u]), fabsf(off[i | 1u]));     // the frame's
+          worst = fmax(worst, fabs(static_cast<double>(on[i])));
+          if (on[i] != off[i]) {
+            ++touched;
+            if (a < 0.99998f) ++untouched_mismatch;
+          }
+        }
+      }
+    }
+  }
+  printf("\"loose\":{\"cases\":%d,\"steady_cases\":%d,\"steady_same\":%d,"
+         "\"untouched_mismatch\":%ld,\"touched\":%ld,\"peak\":%.9g}",
+         cases, steady_cases, steady_same, untouched_mismatch, touched, worst);
+}
+
 // 12. Cost: ns per 64-frame stereo block of noise, 0.5 s warm-up then 20 s.
 double Cost(const Kv *kv, int n, bool gliding) {
   void *self = Make(kRate, 0);
@@ -750,6 +858,7 @@ int main(int argc, char **argv) {
     Rates(); printf(",");
     Approx(); printf(",");
     AutoGain(); printf(",");
+    Loose(); printf(",");
     Hash();
   }
   printf("}\n");

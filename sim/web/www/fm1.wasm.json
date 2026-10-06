@@ -1,27 +1,26 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "0a7a592e9ce45518b4e1a319b3853aa78da5d723e306e603aafd82628efefcc7",
-  "wasm_bytes": 813115,
+  "wasm_sha256": "9083706d31abd70ceefb704c77db13fcbee4f79312ab3bccb96ded3e576c218a",
+  "wasm_bytes": 823677,
   "sources_sha256": {
-    "engines": "c93262a82927ec5dcadc7c741825cc2f4996c10f8f22fda6f893e2b6d8652b06",
-    "sim": "a696e0d8be17b62393e8daef09749b98e92c6ff9fe180529ed8cb04b8bf0fa40"
+    "engines": "3cd1ea07c97566e0ed4bacb0f9dfb1e30e2aae3d97942cfa05577405dc7da9c0",
+    "sim": "e3c698e331f1b944c1e05cf0706559ee64efc292159bc1961f4133fbef273bbe"
   },
   "engines": "working tree",
-  "built": "2026-10-06T00:56:07Z",
+  "built": "2026-10-06T02:49:01Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
     "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
-    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
-    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
   ],
   "imports": [],
   "parity": {
-    "passed": 72,
+    "passed": 74,
     "failed": 0,
-    "identical_to_js": 72,
-    "identical_to_musl": 72,
-    "identical_to_glibc": 69,
+    "identical_to_js": 74,
+    "identical_to_musl": 74,
+    "identical_to_glibc": 71,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -1168,8 +1167,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 90428,
-        "native64": 103292
+        "wasm32": 91372,
+        "native64": 104236
       }
     },
     {
@@ -1212,8 +1211,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 101228,
-        "native64": 114092
+        "wasm32": 103116,
+        "native64": 115980
       }
     },
     {
@@ -1740,6 +1739,50 @@
         "replayable": true,
         "dropped": 0,
         "native_dropped": 0
+      }
+    },
+    {
+      "name": "dyn3-squash-transient",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 79756,
+        "native64": 92620
+      }
+    },
+    {
+      "name": "dyn3-round-autogain",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 91372,
+        "native64": 104236
       }
     },
     {
