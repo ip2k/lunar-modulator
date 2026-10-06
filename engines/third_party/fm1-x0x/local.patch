@@ -100,3 +100,151 @@
 + * float), so a continuous control does not move in 1/127ths; bass303_set(v) is this at v */
 +void bass303_set_value(bass303_t *b, int i, float value);
  int bass303_get(const bass303_t *b, int i);
+--- a/dsp/drum808.c
++++ b/dsp/drum808.c
+@@ -404,7 +404,9 @@
+ #ifndef D8_QUIET_INIT
+ #define D8_QUIET_INIT 3.2e-5f
+ #endif
+-float drum808_quiet = D8_QUIET_INIT;
++/* Lunar Modulator: a constant, so no two instances share a value one of them moves (no overload
++ * guard here moves it; one that does would keep it in the instance) */
++static const float drum808_quiet = D8_QUIET_INIT;
+ #define QUIET(v, o, n)                                                    \
+     do {                                                                  \
+         if ((o) > drum808_quiet || (o) < -drum808_quiet) (v)->quiet = 0;  \
+@@ -1229,21 +1231,51 @@
+ 
+ #define SC808_FULL_VELOCITY_GAIN 1.9921260f
+ 
+-static float pot_value(int s, int slot, int pot)
++/* Lunar Modulator: the pot as a float; for an integer pot the value upstream computes */
++static float pot_value(int s, int slot, float pot)
+ {
+     const d8_spec_t *p = &k_spec[s][slot];
+-    float t = (float)pot / 127.0f;
++    float t = pot / 127.0f;
+     if (p->exp && p->min > 0.0f)
+         return p->min * d8_pow(p->max / p->min, t);
+     return p->min + (p->max - p->min) * t;
+ }
+ 
+-static void set_pot(drum808_t *d, int s, int slot, int v)
++/* Lunar Modulator: set_pot with the pot a float x (potx keeps it; pot, the integer nearest it).
++ * For an integer x every value is set_pot's. Tune's x may lie past 0..127: its law extends. */
++static void set_potf(drum808_t *d, int s, int slot, float x)
+ {
++    int v = x <= 0.0f ? 0 : (x >= 127.0f ? 127 : (int)(x + 0.5f));
+     d->pot[s][slot] = (uint8_t)v;
+-    d->potv[s][slot] = slot == D8P_DIST ? (float)v : pot_value(s, slot, v);
++    d->potx[s][slot] = x;
++    d->potv[s][slot] = slot == D8P_DIST ? (float)v : pot_value(s, slot, x);
+     if (slot == D8P_DRIVE || slot == D8P_DIST)
+         shp_resolve(d, s);
++}
++
++static void set_pot(drum808_t *d, int s, int slot, int v) { set_potf(d, s, slot, (float)v); }
++
++void drum808_set_value(drum808_t *d, int snd, int slot, float x)
++{
++    float lo = 0.0f, hi = slot == D8P_DIST ? 6.0f : 127.0f;
++    if (snd < 0 || snd >= D8S_NUM || slot < 0 || slot >= D8P_NUM)
++        return;
++    if (slot == D8P_TUNE) {
++        /* 12 semitones either way about pot 64: on the toms' and congas' 2-semitone law
++         * (TU2) far past the pot's ends, elsewhere half a pot past its top. Every tuned
++         * path clamps or stays in range there (the rim's filters below Nyquist, its 0.32
++         * pulse increment under 2^32) */
++        const int tom = snd >= D8S_LT && snd <= D8S_HC;
++        lo = tom ? -320.0f : 0.0f;
++        hi = tom ? 448.0f : 127.5f;
++    }
++    if (!(x >= lo))                               /* NaN too */
++        x = lo;
++    if (x > hi)
++        x = hi;
++    if (slot == D8P_DIST)
++        x = (float)(int)(x + 0.5f);
++    set_potf(d, snd, slot, x);
+ }
+ 
+ /* a track's parameter list: which sound slot each knob edits */
+@@ -1437,14 +1469,14 @@
+     int s, lane;
+     float vgain, volts, soft, tune, decay;
+     const float *pv;
+-    const uint8_t *pot;
++    const float *pot;                             /* Lunar Modulator: potx, the float pots */
+     if (track < 0 || track >= D8_NUM || !(vel > 0.0f))
+         return;                                   /* drums are one-shots: no note-off */
+     if (vel > 1.0f)
+         vel = 1.0f;
+     s = track_sound(d, track);
+     pv = d->potv[s];
+-    pot = d->pot[s];
++    pot = d->potx[s];
+     tune = pv[D8P_TUNE];
+     decay = pv[D8P_DECAY];
+ 
+@@ -1479,16 +1511,16 @@
+ 
+     switch (s) {
+     case D8S_BD:
+-        bd_trigger(&d->bd, lane_hz(s, tune), (float)pot[D8P_DECAY] / 127.0f, (float)pot[D8P_X1] / 127.0f,
+-                   (float)pot[D8P_X2] / 127.0f, volts);
++        bd_trigger(&d->bd, lane_hz(s, tune), pot[D8P_DECAY] / 127.0f, pot[D8P_X1] / 127.0f,
++                   pot[D8P_X2] / 127.0f, volts);
+         d->lane[lane].hit = soft;
+         break;
+     case D8S_SD: {
+         /* Tone: the 808 panel's (8W8 fixes it at the centre, 0.5 = pot 64) */
+-        int tp = pot[D8P_X2];
+-        float tone = tp <= 64 ? (float)tp * (1.0f / 128.0f) : 0.5f + (float)(tp - 64) * (0.5f / 63.0f);
+-        sd_trigger(&d->sd, d8_exp2_cr(tune / 12.0f), (float)pot[D8P_DECAY] / 127.0f, tone,
+-                   (float)pot[D8P_X1] / 127.0f, volts);
++        float tp = pot[D8P_X2];
++        float tone = tp <= 64.0f ? tp * (1.0f / 128.0f) : 0.5f + (tp - 64.0f) * (0.5f / 63.0f);
++        sd_trigger(&d->sd, d8_exp2_cr(tune / 12.0f), pot[D8P_DECAY] / 127.0f, tone,
++                   pot[D8P_X1] / 127.0f, volts);
+         d->lane[lane].hit = soft;
+         break;
+     }
+@@ -1500,11 +1532,11 @@
+         rs_trigger(&d->rs, lane_hz(s, tune), decay * 9.12f, d8_midicps(63.0f + tune), d8_midicps(118.0f + tune));
+         break;
+     case D8S_CL:
+-        cl_trigger(&d->cl, d8_exp2_cr(tune / 12.0f), (float)pot[D8P_DECAY] / 127.0f, volts);
++        cl_trigger(&d->cl, d8_exp2_cr(tune / 12.0f), pot[D8P_DECAY] / 127.0f, volts);
+         d->lane[lane].hit = soft;
+         break;
+     case D8S_MA:
+-        ma_trigger(&d->ma, d8_exp2_cr(tune / 12.0f), decay, (float)pot[D8P_X1] / 127.0f, volts);
++        ma_trigger(&d->ma, d8_exp2_cr(tune / 12.0f), decay, pot[D8P_X1] / 127.0f, volts);
+         d->lane[lane].hit = soft;
+         break;
+     case D8S_CP:
+--- a/dsp/drum808.h
++++ b/dsp/drum808.h
+@@ -189,6 +189,10 @@
+     d8_hat_t ch, oh;
+     d8_cy_t cy;
+     d8_lane_t lane[13];
++
++    /* Lunar Modulator: the pots as floats (drum808_set_value), which the trigger reads where
++     * upstream reads pot[]; for integer pots the same values */
++    float potx[D8S_NUM][D8P_NUM];
+ };
+ typedef struct drum808 drum808_t;
+ 
+@@ -200,6 +204,11 @@
+ const x0x_param_t *drum808_param(int track, int i);
+ void drum808_set(drum808_t *d, int track, int i, int value);
+ int drum808_get(const drum808_t *d, int track, int i);
++/* Lunar Modulator: sound snd's (D8S_*) pot `slot` (D8P_*) as a float x, 0..127 (Dist 0..6,
++ * rounded), whatever the track switches say; Tune's x reaches 12 semitones either way about
++ * pot 64, past the pot's ends where its law extends (far on the toms and congas). drum808_set's
++ * integer pots are this at x = value */
++void drum808_set_value(drum808_t *d, int snd, int slot, float x);
+ 
+ /* true while any voice is still sounding */
+ int drum808_active(const drum808_t *d);

@@ -62,6 +62,16 @@ terms it is used under.
   **Phazerville Hemisphere Suite** by **djphazer** and its contributors
   (GNU GPL version 3). Its code is included unmodified; playing it as an
   effect in front of a sound is this project's own.
+- **Crater Kit** is the 808 kit of **fm1-x0x** by **Charles Vestal**, GNU
+  GPL version 3 (built in only with the GPL switch on), which ports **8W8**
+  by **athousanddetails** (GNU GPL version 3). Fifteen of its sixteen
+  sounds are models of the machine's circuits, built from the TR-808's
+  service notes and the analyses of **Kurt James Werner, Jonathan Abel and
+  Julius O. Smith**; the rim shot is **sc808**'s, by **Yoshinosuke
+  Horiuchi**, adapted for Sonic Pi by **Sam Aaron** (MIT licence). Two
+  small changes of this project's let it take smooth settings and keep no
+  shared state; the rest of its code is included unmodified. It is after
+  Roland's TR-808, whose name appears here only as credit.
 - **PSX Verb** by **Charles Vestal**, MIT licence, included unmodified.
 - **Schwung**, Charles Vestal's host for modules on the Ableton Move, MIT
   licence. Lunar Modulator includes Schwung's plugin interface unmodified,
@@ -252,7 +262,8 @@ against; it is in no build of the firmware or the simulator.
 
 **GPL code, and the GPL switch.** Some engines and effects port code that
 other projects publish under the GNU General Public License: today Acid
-Bass ([chapter 5](05-sound-engines.md#acid-bass)) and Acid Gen
+Bass ([chapter 5](05-sound-engines.md#acid-bass)), Crater Kit
+([chapter 5](05-sound-engines.md#crater-kit)) and Acid Gen
 ([chapter 4](04-playing.md#acid-gen)). Each sits in a folder of
 its own in the repository, with its licence and a note of where it came
 from, and is built in only while the firmware's GPL switch is on.

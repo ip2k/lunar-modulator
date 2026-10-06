@@ -56,6 +56,10 @@ FM1SZ_TYPE(diffuse, fm1::mi_fx::diffuse::Instance);
 #include "../../engines/src/acid_bass.cc"
 FM1SZ_TYPE(acid_bass, fm1::acid_bass::Instance);
 FM1SZ_TYPE(bass303, bass303_t);
+#elif defined(SZ_CRATER)          /* a GPL module: compiled only with FM1_GPL_MODS=1 */
+#include "../../engines/src/crater_kit.cc"
+FM1SZ_TYPE(crater, fm1::crater::Instance);
+FM1SZ_TYPE(drum808, drum808_t);
 #elif defined(SZ_SCHWUNG)
 #include "../../engines/src/schwung_shim.cc"
 #include "../../engines/src/sw_sophie.cc"

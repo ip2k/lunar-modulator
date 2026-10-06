@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Copy fm1-x0x's 303 bass and TB-3PO generator into this folder, or check them.
+"""Copy fm1-x0x's 303 bass, TB-3PO generator and 808 kit into this folder, or check them.
 
 Usage:
     python3 engines/third_party/fm1-x0x/vendor.py X0X_CHECKOUT SCHWUNG303_CHECKOUT          # copy
@@ -10,11 +10,12 @@ SCHWUNG303_CHECKOUT one of https://github.com/charlesvestal/schwung-303 (any
 commit: the files are read from the commits pinned below with `git show`).
 From fm1-x0x come the 303 bass (dsp/bass303.*, with the maths and parameter
 headers it includes), TB-3PO (seq/tb3po.*, with the pattern header it
-includes), the GPL-3.0 text and X0X's LICENSING.md; from schwung-303 comes
+includes), the 808 kit (dsp/drum808.*), the GPL-3.0 text and X0X's
+LICENSING.md; from schwung-303 comes
 Open303's MIT licence, which X0X's bass carries code of. Nothing else of
 either repository is taken.
 
-Two files carry local changes, kept as local.patch (UPSTREAM.md says what and
+Four files carry local changes, kept as local.patch (UPSTREAM.md says what and
 why): the copy applies it, and --check applies it to the pinned files and
 compares the result with what is here, byte for byte, so the patch is always
 the whole difference. Needs git and patch. MIT licence, like the rest of this
@@ -36,6 +37,8 @@ X0X_FILES = {
     "firmware/src/dsp/bass303.h": "dsp/bass303.h",         # SPDX: GPL-3.0-only (local.patch)
     "firmware/src/dsp/fastmath.h": "dsp/fastmath.h",       # SPDX: GPL-3.0-only
     "firmware/src/dsp/x0x_param.h": "dsp/x0x_param.h",     # SPDX: GPL-3.0-only
+    "firmware/src/dsp/drum808.c": "dsp/drum808.c",         # SPDX: GPL-3.0-only (local.patch)
+    "firmware/src/dsp/drum808.h": "dsp/drum808.h",         # SPDX: GPL-3.0-only (local.patch)
     "firmware/src/seq/tb3po.c": "seq/tb3po.c",             # SPDX: GPL-3.0-only
     "firmware/src/seq/tb3po.h": "seq/tb3po.h",             # SPDX: GPL-3.0-only
     "firmware/src/seq/pattern.h": "seq/pattern.h",         # SPDX: GPL-3.0-only

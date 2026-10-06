@@ -473,8 +473,9 @@ we test"). Consequences [inferred, not legal advice]:
     a GPL module.
 - **GPL code in the tree** [verified, 2026-10-06]:
   `engines/third_party/fm1-x0x/` (fm1-x0x by Charles Vestal,
-  GPL-3.0-only, with Open303's MIT code): the sound engine Acid Bass and
-  the MIDI effect Acid Gen (`notes/2026-10-06-fm1-x0x.md` §6).
+  GPL-3.0-only, with Open303's and sc808's MIT code): the sound engines
+  Acid Bass and Crater Kit and the MIDI effect Acid Gen
+  (`notes/2026-10-06-fm1-x0x.md` §6).
 
 **Usable as code in every build (docs/11 §7):**
 

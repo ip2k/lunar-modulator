@@ -120,8 +120,14 @@ play its parameters, four to a page (SELECT turns the page).
   Devilfish's longer slides and accent decays, and a soft or RAT-style
   drive. It is fm1-x0x's 303 and its code is GPL, so it is in builds with
   the GPL switch on, as the simulator is while we test.
+- **Crater Kit:** a 16-pad kit after the TR-808, every sound of the
+  machine modelled from its circuits: the booming kick, snare, toms and
+  congas, clap and maracas, rim shot and claves, cowbell, hi-hats and
+  cymbal, each with its own tuning, decay, drive and distortion. It is
+  fm1-x0x's 808 and its code is GPL, so it is in builds with the GPL switch
+  on, as Acid Bass is.
 
-Sophie and Drums play their pads from the 16 white keys, at any octave.
+Sophie, Drums and Crater Kit play their pads from the 16 white keys, at any octave.
 
 <table>
 <tr>
@@ -471,7 +477,11 @@ This is a synthesis of other people's work. The details are in
   **jc303** by **midilab** and a RAT drive after **dm-Rat** by **Dave
   Mollen** (both GPL-3.0), by way of schwung-303; Acid Gen is its TB-3PO,
   after schwung-tb3po and the Phazerville Hemisphere Suite's TB_3PO by
-  **djphazer** and contributors (GPL-3.0).
+  **djphazer** and contributors (GPL-3.0); Crater Kit is its 808, a port of
+  **8W8** by **athousanddetails** (GPL-3.0), built from the TR-808's service
+  notes and the analyses of **Kurt James Werner, Jonathan Abel and Julius
+  O. Smith**, with the rim shot of **sc808** by **Yoshinosuke Horiuchi** and
+  **Sam Aaron** (MIT).
 - Sequencer design and logic after Movy by **megadake** (MIT),
   [github.com/DimaDake/schwung-movy](https://github.com/DimaDake/schwung-movy).
 - The arpeggiator, our own code, follows Yarns' arpeggiator by **Emilie

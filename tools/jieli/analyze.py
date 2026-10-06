@@ -412,7 +412,7 @@ def main(out):
         for e in ("macro", "shapes", "macro_heavy", "sixop", "dx7", "test_sine", "test_gain"):
             if e in c:
                 v[e] = c[e]
-        for e in ("plate", "ensemble", "diffuse", "acid_bass"):
+        for e in ("plate", "ensemble", "diffuse", "acid_bass", "crater"):
             if e in c:
                 v[e] = r16(c[e])
         if "schwung_instance" in c and "schwung_align" in c:

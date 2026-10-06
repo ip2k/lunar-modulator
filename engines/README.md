@@ -27,6 +27,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `sw-sophie` | Sophie | sound | 12 | a Schwung module (Matt Estela, MIT), through the shim | [schwung.md](schwung.md) |
 | `drums` | Drums | sound | 12 | Plaits' drum classes (Emilie Gillet, MIT), and a rim shot, clap, cowbell and cymbal of this repository's own | [below](#drums); a 16-pad kit on notes 36–51 with two sets of voicings, Deep and Punch |
 | `acid-bass` | Acid Bass | sound | 1 | fm1-x0x's 303 (Charles Vestal, **GPL-3.0-only**): Open303 (Robin Schmidt, MIT) with the Devilfish ranges and a RAT drive | [below](#acid-bass); a bass after the TB-303, built only with the GPL switch on |
+| `crater` | Crater Kit | sound | 13 | fm1-x0x's 808 (Charles Vestal, **GPL-3.0-only**), ported from 8W8 (athousanddetails, GPL-3.0): circuit models after the TR-808's service notes and Werner, Abel and Smith; sc808's rim shot (MIT) | [below](#crater-kit); a 16-pad kit after the TR-808 on notes 36–51, built only with the GPL switch on |
 | `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
 | `plate` | Plate | effect | – | Rings' reverb, with Elements' Freeze | [mi-fx.md](mi-fx.md) |
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
@@ -509,6 +510,177 @@ of 138 objects in all four profiles]: 1,248 bytes an instance there too
 about 852 KB in FM-1+VA's layout. fm1-x0x's own figures put one 303 at
 about 16 % of the FM-1's CPU in its worst case [inferred: the study's
 §2.6]; nothing has run on a JieLi chip.
+
+## Crater Kit
+
+A 16-pad kit after the TR-808 (`src/crater_kit.cc`, `src/crater_kit.h`):
+fm1-x0x's 808 kit by Charles Vestal, vendored in `third_party/fm1-x0x/`
+(GPL-3.0-only; `UPSTREAM.md` has the commit, the files, the two local
+changes to the kit and the credits). **GPL code: built only while the GPL
+switch is on** (`FM1_GPL_MODS`, [Build and checks](#build-and-checks);
+`mk/x0x-crater.mk`); the licence table lists it as `GPL-3.0-only AND MIT`.
+Drums stays the MIT kit, in every build; Crater Kit sits beside it as the
+faithful machine (`notes/2026-10-06-fm1-x0x.md` §4).
+
+**What the vendored kit is** [reported: `third_party/fm1-x0x/dsp/drum808.h`
+and 8W8's README; verified against 8W8 by fm1-x0x's own test, below]: a
+C99, float, libm-free port, statement for statement, of 8W8 by
+athousanddetails (GPL-3.0). Sixteen sounds on eleven tracks with the
+machine's own switches (tom or conga, rim shot or claves, clap or
+maracas); fifteen are circuit models built from the TR-808's service notes
+and Werner, Abel and Smith's analyses: the kick a bridged-T in an op-amp
+loop (so Decay is loop gain, and the pitch sighs), the snare two
+bridged-T shells and noise, the toms and congas a bridged-T at Q 10.8,
+the clap three bursts into a 330 ms tail, one bank of six Schmitt squares
+shared by the cowbell, both hats and the cymbal, and the cymbal Werner's
+three paths. The rim shot transcribes sc808 (Yoshinosuke Horiuchi, Sam
+Aaron; MIT). Delta-form resonators so float follows 8W8's double, 0.32
+fixed-point phases in the metal bank, 32-sample pieces of each call, idle
+circuits free; a circuit's tail ends once it has stayed 60 dB under its
+hit's peak for 20 ms (fm1-x0x's, which saves CPU over 8W8's −90 dBFS).
+
+**What the wrapper adds.**
+- **Pads.** Notes 36–51 (`pad_first_note` 36, `pad_count` 16, [Pad
+  kits](#pad-kits)); other notes and every note-off are ignored.
+
+  | Note | Pad | 8W8 sound (track, switch) | Note | Pad | 8W8 sound (track, switch) |
+  | --- | --- | --- | --- | --- | --- |
+  | 36 | 1 Kick | BD | 44 | 9 Maracas | MA (CP, maracas) |
+  | 37 | 2 Rim Shot | RS (RS, rim) | 45 | 10 Mid Tom | MT (MT, tom) |
+  | 38 | 3 Snare | SD | 46 | 11 Open HH | OH |
+  | 39 | 4 Clap | CP (CP, clap) | 47 | 12 Mid Conga | MC (MT, conga) |
+  | 40 | 5 Claves | CL (RS, claves) | 48 | 13 High Tom | HT (HT, tom) |
+  | 41 | 6 Low Tom | LT (LT, tom) | 49 | 14 Cymbal | CY |
+  | 42 | 7 Closed HH | CH | 50 | 15 Hi Conga | HC (HT, conga) |
+  | 43 | 8 Low Conga | LC (LT, conga) | 51 | 16 Cowbell | CB |
+
+  A pad sets its track's switch and strikes the track: a conga is its
+  tom's channel switched to conga, so the two never sound together, as on
+  the machine; the claves and the maracas have circuits of their own beside
+  the rim shot and the clap. The toms sit on General MIDI's tom keys (41,
+  45, 48) and the congas between them.
+- **Velocity**, as fm1-x0x plays MIDI: 88 is the 808's normal hit (a 4 V
+  trigger) and 127 its accent (7.3 V); below 88 a hit is quieter in
+  proportion; between 88 and 127 the trigger rises evenly (fm1-x0x jumps to
+  the accent at 127). Accent is 8W8's velocity depth: at 0 every hit plays
+  as the accent.
+- **The rate.** fm1-x0x's 808 is built for 44,100 Hz (its decay
+  multipliers, filters and the bank's increments are constants for it).
+  The engine runs it unchanged at a host rate of 44,000–44,200 Hz: the
+  FM-1's 44,118 Hz is 0.7 cents sharp and its times 0.04 % short, less than
+  fm1-x0x's own device, measured at about 44,145 Hz [reported: the
+  study, §1.1]. Other hosts are refused, as the Plaits engines refuse rates
+  above theirs (the study's X5; recomputing the constants per rate, as
+  Acid Bass's local change does for its one macro, would touch some forty
+  constants here).
+- **A 16-sample grid.** The kit's output depends on where its render calls
+  split (its 32-sample pieces, the tails and the metal bank stopping at
+  their ends), so the wrapper renders whole 16-sample chunks counted from
+  create and hands the host's frames out of the last one. Every hit, bend
+  and parameter lands on the next chunk (0.36 ms at 44,118 Hz), so the
+  output is the same at any host block size. A silent kit is not called
+  (it would write nothing).
+- **Parameters**, per pad (Pad chooses which, as on Drums) and for the kit.
+  Each pad knob reaches 8W8's own pot for its sound as a float between the
+  integers (local change 4). The relative knobs (Decay, Level, Tone, Snap)
+  put 8W8's default pot for the sound at 0.5 and its pot 0 and 127 at the
+  ends, linear on either side, so a fresh kit shows true values on every
+  pad.
+- **Output.** The kit's own level stays at 8W8's default (pot 100), and
+  Volume scales the dry bus by (Volume / 0.7)² × 0.7: at the default the
+  snare and the hats sit within 1 dB of Drums' (by RMS, at velocity 100),
+  with 8W8's balance between the sounds kept, so its kick is about 8 dB
+  under Drums' long Deep kick (Level raises a pad by up to 6 dB). The
+  loudest sound by peak, the cowbell accented, peaks near 0.75; a groove
+  of kick, snare and hats near 0.45; every pad on every 16th, accented on
+  the beats, near 1.9, for the host's bus limiter. 8W8's per-sound sends
+  stay at 0: our inserts and master effects do that job.
+
+| Page | Parameter | Range, default | Flags | What it does |
+| --- | --- | --- | --- | --- |
+| 1 | Pad | 1 Kick … 16 Cowbell | (lockable, no MOD) | Which pad the pad's knobs edit; ALGORITHM steps through it |
+| 1 | Tune | −12 to +12 semitones, 0 | LATCH, MOD | The pad's pitch about 8W8's default, read when it is struck. 8W8's own law (12 semitones a half-turn of the pot; the metal's oscillator ratio exponential), run on past the pot's ends on the toms and congas, whose pot spans 2 semitones either way. With the bend, at most 12 either way |
+| 1 | Decay | 0–1, 0.5 | LATCH, MOD | 8W8's Decay pot: the kick's loop gain, the snare's ring and noise, the other sounds' times |
+| 1 | Level | 0–1, 0.5 | SMOOTH, MOD | 8W8's Level pot (0 to 2 times, 1.008 at 0.5): moves a ringing hit |
+| 2 | Tone | 0–1, 0.5 | LATCH, MOD | The kick's tone (its low-pass, 300 Hz × 20^tone) and the snare's (the balance of its two shells); nothing on other pads |
+| 2 | Snap | 0–1, 0.5 | LATCH, MOD | The kick's attack (its click and the octave jump), the snare's snappy (the noise's level and length), the maracas' attack; nothing on other pads |
+| 2 | Drive | 0–1, 0 | SMOOTH, MOD | 8W8's per-sound drive, 0 to 10, clean (bypassed) at 0; moves a ringing hit |
+| 2 | Dist | Diode, Clip, Sat, Fuzz, Cubic, Fold, Crush; Diode | LATCH, MOD | 8W8's seven distortion characters for the drive; waits for the pad's next hit, or applies at once while the kit is silent |
+| 3 | Accent | 0–100 %, 100 | LATCH, MOD | 8W8's velocity depth: how far below an accent a softer hit sits |
+| 3 | Choke | Off, Closed>Open, Both; Closed>Open | LATCH, MOD | 8W8's hat choke: a closed hat cuts the open one, or each cuts the other (2 ms) |
+| 3 | Volume | 0–1, 0.7 | SMOOTH, MOD | The kit's output level, (Volume / 0.7)² |
+
+SMOOTH values ramp in 16-sample steps (7 at 44,118 Hz, 2.5 ms) while the
+kit sounds, in the pad's own values (a ramp goes on when Pad moves on), and
+apply at once while it is silent. No per-note offsets (8W8 tunes and voices
+a sound when it is struck); the bend reaches the hits struck while it is
+held. Eleven parameters, under the cap of fourteen.
+
+**Checks** (`tests/test_engine_crater_kit.py`) [verified 2026-10-06]:
+- `vendor.py --check`: the vendored files are fm1-x0x's at `80b7d40` plus
+  `local.patch`.
+- **The patched kit gives upstream's samples**: `test/drum808_drive.c`,
+  upstream's API only (integer pots, the switches, the sends, 256-frame
+  calls at 44.1 kHz, four settings covering every distortion and the
+  mutual choke), built against fm1-x0x's own `drum808.c` and against ours:
+  the same bytes, the dry bus and both sends.
+- **fm1-x0x's own test against 8W8 passes with our file**:
+  `tests/host/drum808_test.c` against 8W8's `sc808_engine.cpp` at
+  `94aa271`, built from its sources in double: 436 cases, none over 1e-3
+  of the reference's RMS, the worst 6.1e-4 (the kick's tune at 0), with
+  fm1-x0x's warning flags (`-Wdouble-promotion -Werror`).
+- `build/fm1-crater-oracle --twin`: five patterns (a groove; every pad from
+  soft to accented; the toms and congas on their channels with the rim,
+  claves, clap and maracas; settings on six pads with five distortions and
+  the mutual choke; every pad on every 16th) through the engine and through
+  a copy of its kit driven as fm1-x0x drives it, on the same grid: the
+  same samples, bit for bit, at host blocks of 1, 7, 64 and 448 frames, at
+  44,118 and 44,100 Hz. No sample is subnormal or non-finite.
+- `--fields`: each parameter reaches 8W8's pot and value by its law;
+  `--pads`: every pad sounds under full scale, louder at the accent, and
+  ends (the cymbal last, after 1.7 s).
+- How it plays: notes outside the pads and note-offs do nothing; a tom and
+  its conga share a channel while the rim and claves, and the clap and
+  maracas, sum; the hats choke as Choke says; Tune an octave either way on
+  a tom and the kick, measured; the velocity law (44 is half of 88) and
+  Accent 0; the bend on the next hits only; LATCH values and Dist wait for
+  the pad's next hit while Level and Drive move a ringing one; a change
+  while silent applies at once; the per-pad knobs edit only the focused
+  pad; Volume; the same output at host blocks of 1, 7, 64 and 448 and from
+  any instance memory; the rates; every parameter at both ends, NaN and
+  the infinities, bent 48 semitones, finite; no libm, no allocation, and
+  no writable global in the vendored object. Under ASan and UBSan too, with
+  upstream's exponent shift suppressed (`sanitizers/ubsan.supp`).
+- The SMOOTH driver (`tests/test_engine_smooth.py`), the parameter
+  fixture, the white keys in the virtual FM-1 and two parity scenarios,
+  `crater-kit-groove` and `crater-kit-every-pad-tuned`.
+
+**Subnormals in the running state** [verified 2026-10-06, `--twin`]: while
+tails ring out, up to 12 floats of the running circuits are subnormal
+(the toms' strike low-pass, the clap's tooth envelope, the hats' filter
+states); none reaches the output. Free on this desktop; unmeasured on
+pi32v2 (the study's R7): flush to zero on the device, or measure there.
+
+**Costs** [verified 2026-10-06, Apple M1 Max, `fm1-render`, best of five,
+a 64-frame block at 44,118 Hz]:
+
+| Case | Crater Kit | Drums |
+| --- | ---: | ---: |
+| Idle | 0.16 µs | 2.50 µs |
+| One kick ringing | 0.44 µs | 4.47 µs |
+| Kick, snare, hats and clap, 125 BPM | 4.0 µs | 7.2 µs |
+| The cymbal alone | 1.5 µs | 3.9 µs |
+| Eleven pads on every 16th | 15.1 µs | 19.1 µs |
+| All sixteen pads on every 16th | 16.1 µs | 24.0 µs |
+
+On pi32v2 [verified: `tools/jieli/compile-check.sh`, 2026-10-06, the
+switch on, 139 of 139 objects in all four profiles, link audit PASS]:
+5,984 bytes an instance (the vendored kit 3,928 of them, its float pots
+576; no pointers, so the same on 32 and 64 bits), and 34.3 KB of code and
+read-only data at `-O2` (the kit 30.6 KB, the wrapper 3.7 KB; 20.9 KB at
+`-Oz`), against an app area of about 852 KB in FM-1+VA's layout. No
+samples. fm1-x0x's own figures put a dense 808 at about 40 % of the
+FM-1's CPU [inferred: the study's §2.6]; nothing has run on a JieLi chip.
 
 ## Crush
 
@@ -2904,6 +3076,7 @@ code is `include/fm1_smooth.h`, plain C99:
 | --- | --- | ---: | --- | --- |
 | Macro, Macro Heavy | 12 samples at 47,872.34 Hz | 10 | 2.51 ms | every FLOAT, read once per block as before |
 | Drums | 12 samples at 47,872.34 Hz | 10 | 2.51 ms | every FLOAT: a per-pad one in its pad's own values, only while that pad sounds; the kit's while any pad does |
+| Crater Kit (GPL) | 16 samples at the host rate | 7 at 44,118 Hz | 2.54 ms | Level, Drive (per pad, in the pad's own values) and Volume, while the kit sounds |
 | Six-Op FM | 16 samples at 47,872.34 Hz | 8 | 2.67 ms | Brightness, Envelope, Volume, Glide |
 | FM6 | 64 samples at the host rate (msfa's block) | 2 at 44,118 Hz | 2.9 ms | Brightness, Env Time, Feedback, Volume, Glide; Volume also glides across each block, sample by sample |
 | Shapes | 24 samples at 96 kHz | 10 | 2.5 ms | Timbre, Color, Attack, Release, Volume, Glide |
@@ -3493,7 +3666,7 @@ the flags, no heap, stdio or libm in the stage and the wrapper) and
 ### Pad kits
 
 A drum kit plays one sound per note on a run of keys, whatever their
-pitch: Sophie's and Drums' 16 pads on notes 36–51, General MIDI's drum
+pitch: Sophie's, Drums' and Crater Kit's 16 pads on notes 36–51, General MIDI's drum
 keys, lie below the FM-1's keys (53–79 at octave 0). Until 2026-10-05 the
 virtual FM-1 knew Sophie by its id. Now an engine says so itself, in two
 fields at the end of `fm1_engine_t`, after the effect extension's two (API
@@ -3514,8 +3687,8 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
   `fm1-smooth-test` plays a kit's pads, its first among them, instead of
   its pitched keys.
 - **Every initializer names the fields:** `0, 0` (not a kit) on every other
-  engine and effect, Comb and Test Ext included, `36, 16` on Sophie and
-  Drums, so a new engine that
+  engine and effect, Comb and Test Ext included, `36, 16` on Sophie,
+  Drums and Crater Kit, so a new engine that
   leaves them out gets GCC's and clang's missing-initializer warning. The
   struct grows by 4 bytes on pi32v2 (two bytes and padding after the last
   pointer) and 8 on x86-64.
@@ -3540,6 +3713,7 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `src/note_offsets.h` | A voice's per-note offsets, shared by the six engines that take them |
 | `src/glide.h` | Glide and the voice modes Poly, Mono and Legato, shared by the five pitched engines ([above](#glide-and-voice-modes)) |
 | `src/drums.cc`, `src/drum_voices.h` | Drums: the kit around Plaits' drum classes, and the rim shot, clap, cowbell and cymbal of our own ([above](#drums)) |
+| `src/crater_kit.cc`, `src/crater_kit.h` | Crater Kit, a GPL module: the pads, grid and parameters around fm1-x0x's 808 ([above](#crater-kit)) |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
 | `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comb](#comb), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq), [Hall](#hall), [Gate](#gate), [Transient](#transient); [Room](#room) wraps Clouds' classes; [Squash](#squash) ports Airwindows' loops) |
 | `src/fx_filter_dsp.h` | The arithmetic Filter and Comb share (2^x, log2, the saturating curve, the guard, the glide) |
@@ -3678,6 +3852,7 @@ past the table. It found the Isolator's stalled crossover glide
   | Six-Op FM, 8 voices | 12,776 | 11,008 | |
   | Limiter | 11,008 | 11,008 | 5 ms of lookahead at 44,118 Hz; 26,912 at 102 kHz and above |
   | Drums, 12 voices | 7,616 | 7,424 | a 224-byte model object per voice (Ring Hat's), 16 pads' values and ramps, one resampler |
+  | Crater Kit (GPL) | 5,984 | 5,984 | fm1-x0x's 808 (3,928 with its float pots), 16 pads' values and ramps, a 16-sample chunk |
   | Ensemble | 4,752 | 4,736 | |
   | Filter | 656 | 656 | since Comb left it (2026-10-05) |
 
