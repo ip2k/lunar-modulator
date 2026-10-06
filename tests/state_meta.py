@@ -1,9 +1,10 @@
 """The parameter metadata export's layout (engines/state/schema/
-metadata.schema.json; notes/2026-10-06-state-files.md §7.7), built from
-today's `fm1-render --list` and `--list-mod`: what the C export (stage E2)
-must write, less what the build cannot say yet (licences, instance bytes
-per engine, aliases, known ids). Used by tests/test_state_schema.py and
-tools/state_examples.py.
+metadata.schema.json; notes/2026-10-06-state-files.md §7.7), built in Python
+from `fm1-render --list` and `--list-mod`: an independent construction that
+tests/test_engine_metadata.py holds the C export (`fm1-render --meta`,
+engines/state/fm1_meta.c) to, less what only C can say (instance bytes per
+engine, aliases, known ids). `subset` cuts an export down to a few engines
+and kinds, as engines/state/examples/metadata.json is.
 """
 import re
 from pathlib import Path
@@ -103,3 +104,11 @@ def metadata_from_build(listed, mod, engines=None, kinds=None):
     doc["known_ids"] = []
     doc["limits"] = LIMITS
     return doc
+
+
+def subset(doc, engines, kinds):
+    """doc with only the engines and modulation kinds named, in its order."""
+    out = dict(doc)
+    out["engines"] = [e for e in doc["engines"] if e["id"] in engines]
+    out["mod"] = dict(doc["mod"], kinds=[k for k in doc["mod"]["kinds"] if k["id"] in kinds])
+    return out

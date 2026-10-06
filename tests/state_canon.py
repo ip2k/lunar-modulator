@@ -32,9 +32,17 @@ import struct
 INLINE = frozenset({"made", "key", "data", "from", "via", "to", "view"})
 
 
+FLT_MAX = 3.4028234663852886e38
+
+
 def f32(x):
-    """x rounded to the nearest float32, as a Python float."""
-    return struct.unpack("<f", struct.pack("<f", x))[0]
+    """x rounded to the nearest float32, as a Python float. Past FLT_MAX by
+    less than half its ulp (2^103) that is FLT_MAX, as strtof gives, where
+    struct refuses ("3.4028235e+38" is FLT_MAX's shortest decimal)."""
+    try:
+        return struct.unpack("<f", struct.pack("<f", x))[0]
+    except OverflowError:
+        return math.copysign(FLT_MAX if abs(x) < FLT_MAX + 2.0 ** 103 else math.inf, x)
 
 
 def _js_digits(x):

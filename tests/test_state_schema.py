@@ -16,7 +16,7 @@ import subprocess
 import pytest
 
 from tests import state_canon as canon
-from tests.state_meta import metadata_from_build
+from tests.state_meta import subset
 from tests.engine_helpers import ENGINES, renderer  # noqa: F401
 
 jsonschema = pytest.importorskip("jsonschema")
@@ -53,6 +53,13 @@ def build(renderer):
     mod = json.loads(subprocess.run([str(renderer), "--list-mod"], check=True,
                                     capture_output=True, text=True).stdout)
     return listed, mod
+
+
+@pytest.fixture(scope="module")
+def meta(renderer):
+    """The build's metadata export, as C writes it (fm1-render --meta)."""
+    return canon.loads(subprocess.run([str(renderer), "--meta"], check=True,
+                                      capture_output=True, text=True).stdout)
 
 
 # ---- member order --------------------------------------------------------------------
@@ -295,11 +302,11 @@ def test_example_sets_and_clips_are_the_cores_own_export(renderer, tmp_path):
     assert out == head + clip
 
 
-def test_the_builds_metadata_fits_the_schema(build):
+def test_the_builds_metadata_fits_the_schema(meta):
     """Today's every engine, effect, MIDI effect and modulation kind, in the
-    export's layout, validates: a new one whose names, abbreviations or
-    ranges the format cannot carry fails here."""
-    doc = metadata_from_build(*build)
+    build's export (fm1-render --meta), validates: a new one whose names,
+    abbreviations or ranges the format cannot carry fails here."""
+    doc = meta
     errors = list(validator("metadata").iter_errors(doc))
     assert not errors, "\n".join(f"{list(e.path)}: {e.message}" for e in errors[:5])
     for e in doc["engines"] + doc["mod"]["kinds"]:
@@ -312,12 +319,13 @@ def test_the_builds_metadata_fits_the_schema(build):
                 assert 1 <= p["knob"] <= 4, (e["id"], p["name"])
 
 
-def test_the_metadata_example_is_the_builds(build):
-    """engines/state/examples/metadata.json is the build's export for a few
-    engines and kinds, so an editor can be written against it now."""
+def test_the_metadata_example_is_the_builds(meta):
+    """engines/state/examples/metadata.json is the build's export (fm1-render
+    --meta) cut down to a few engines and kinds, byte for byte: the golden
+    file an editor can be written against."""
     ex = canon.loads((EXAMPLES / "metadata.json").read_text())
-    want = metadata_from_build(*build, engines={e["id"] for e in ex["engines"]},
-                               kinds={k["id"] for k in ex["mod"]["kinds"]})
+    want = subset(meta, engines={e["id"] for e in ex["engines"]},
+                  kinds={k["id"] for k in ex["mod"]["kinds"]})
     assert canon.dumps(ex) == canon.dumps(want)
 
 

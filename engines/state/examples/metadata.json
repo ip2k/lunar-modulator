@@ -19,6 +19,7 @@
       "per_note": true,
       "pads": null,
       "fx_wants": [],
+      "ram": 207696,
       "params": [
         {
           "uid": 1,
@@ -221,6 +222,7 @@
         "count": 16
       },
       "fx_wants": [],
+      "ram": 7616,
       "params": [
         {
           "uid": 1,
@@ -476,6 +478,7 @@
       "per_note": false,
       "pads": null,
       "fx_wants": [],
+      "ram": 656,
       "params": [
         {
           "uid": 1,
@@ -624,6 +627,7 @@
       "per_note": false,
       "pads": null,
       "fx_wants": [],
+      "ram": 736,
       "params": [
         {
           "uid": 1,
@@ -2153,7 +2157,48 @@
       }
     ]
   },
-  "known_ids": [],
+  "known_ids": [
+    {
+      "id": "comet",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "crater",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "acid-bass",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "acid-gen",
+      "what": "midi_fx",
+      "reason": "gpl"
+    },
+    {
+      "id": "drawbar",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "trio",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "chop",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "phase-bend",
+      "what": "sound",
+      "reason": "gpl"
+    }
+  ],
   "limits": {
     "bytes": {
       "project": 262144,

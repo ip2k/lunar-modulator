@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from tests import state_canon as canon  # noqa: E402
-from tests.state_meta import metadata_from_build  # noqa: E402
+from tests.state_meta import subset  # noqa: E402
 
 BUILD = ROOT / "engines" / "build"
 OUT = ROOT / "engines" / "state" / "examples"
@@ -83,6 +83,9 @@ class Registry:
         render = BUILD / "fm1-render"
         self.listed = json.loads(subprocess.check_output([str(render), "--list"]))
         self.mod = json.loads(subprocess.check_output([str(render), "--list-mod"]))
+        # The metadata export, as C writes it (fm1-render --meta).
+        self.meta_text = subprocess.check_output([str(render), "--meta"]).decode()
+        self.meta = canon.loads(self.meta_text)
         self.eng = {e["id"]: e for e in self.listed}
         self.kinds = {k["id"]: k for k in self.mod["kinds"]}
 
@@ -294,8 +297,7 @@ class Examples:
 
     def all(self):
         small = core_export(SMALL_SET)
-        meta = metadata_from_build(self.r.listed, self.r.mod,
-                                   engines={"shapes", "drums", "filter", "arp"}, kinds={"lfo", "env"})
+        meta = subset(self.r.meta, engines={"shapes", "drums", "filter", "arp"}, kinds={"lfo", "env"})
         return {"first-orbit.lunar": self.project(small),
                 "deep-bass.sound.lunar": self.sound_file(),
                 "space-verbs.fx.lunar": self.fx_file(),
@@ -414,7 +416,7 @@ def measure(reg, ex):
         text = canon.dumps(d).encode()
         print(f"  {name:24} {len(text):7,} B, compact {len(canon.compact(d).encode()):7,} B, "
               f"link {link(canon.compact(d).encode()):6,} characters")
-    full = canon.dumps(metadata_from_build(reg.listed, reg.mod)).encode()
+    full = reg.meta_text.encode()
     print(f"full metadata export {len(full):,} B, deflated {len(zlib.compress(full, 9)):,} B")
 
 

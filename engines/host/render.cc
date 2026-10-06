@@ -4,6 +4,11 @@
 //   fm1-render --engine macro --param Model=6 --param Timbre=0
 //              --note 0:69:100:1.5 --seconds 2 --out a4.wav   (one command)
 //
+// --meta prints the parameter metadata export (include/fm1_meta.h): every
+// engine, effect, MIDI effect and modulation kind with its parameters, and
+// the rest an editor builds its controls from, as canonical JSON that
+// engines/state/schema/metadata.schema.json describes.
+//
 // --list prints every engine and MIDI effect and its parameters as JSON, with the names of
 // an enum parameter's values and each parameter's API v2 fields: uid, flags
 // (by name), unit and abbr, whether the engine takes per-note offsets
@@ -137,6 +142,7 @@
 #include "fm1_mix_limiter.h"
 #include "fm1_mod.h"
 #include "fm1_mod_host.h"
+#include "fm1_meta.h"
 #include "fm1_seq.h"
 #include "fm1_seq_host.h"
 #include "mod_script.h"
@@ -230,6 +236,7 @@ void Usage() {
       "                  [--mfx-param-at K[.J]:T:NAME=VALUE]... [--mfx-on-at K[.J]:T:0|1]...\n"
       "                  [--log-mfx FILE.jsonl]\n"
       "       fm1-render --list-mod\n"
+      "       fm1-render --meta\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
       "engine from the sequencer. --sound and the flags after it add sound units\n"
@@ -719,6 +726,15 @@ void PrintFlags(uint16_t f) {
   putchar(']');
 }
 
+// --meta: the parameter metadata export (fm1_meta.h), canonical JSON.
+void MetaPut(void *, const char *bytes, size_t n) { fwrite(bytes, 1, n, stdout); }
+
+void Meta() {
+  fm1_meta_build_t b;
+  fm1_meta_build_default(&b);
+  fm1_meta_write(&b, MetaPut, NULL);
+}
+
 void List() {
   printf("[");
   // The engines, then the MIDI effects (their own registry, kind midi_fx).
@@ -845,6 +861,7 @@ int main(int argc, char **argv) {
     const char *next = i + 1 < argc ? argv[i + 1] : NULL;
     if (a == "--list") { List(); return 0; }
     if (a == "--list-mod") { ListMod(); return 0; }
+    if (a == "--meta") { Meta(); return 0; }
     if (a == "--compat") { compat = true; continue; }
     if (a == "--slots") { slots = true; continue; }
     if (!next) { Usage(); return 2; }
