@@ -9,6 +9,12 @@ The parity scenarios arp-* (sim/web/test/scenarios.json) check the app
 against fm1-render --mfx natively (tests/test_sim_web.py, with the arp's
 own log) and in WebAssembly (parity.mjs); arp-panel is a gesture trace that
 replays through fm1-render from the harness's log and sidecar.
+
+The owner's follow-ups of 2026-10-06: the global page's Key page sets the
+project key (a typed `key` command, kept with the set and replayed); Stop
+takes back what the sequencer gave a latched arp while the keys latched by
+hand play on; and while the sequencer plays the arp's steps fall on its
+grid (arp-panel-stop, arp-latch-stop).
 """
 import json
 import random
@@ -16,7 +22,7 @@ import subprocess
 
 import pytest
 
-from tests.test_sim_web import RATE, run, tools  # noqa: F401
+from tests.test_sim_web import RATE, SIM as ROOT_SIM, run, tools  # noqa: F401
 
 ARP = 10                                   # FM1_BTN_ARP: the LED string's key count + 10
 KEYS = 27
@@ -255,8 +261,8 @@ def gesture_session(seed, secs=6.0):
                                        ("Ratchet", 0, 3), ("Octaves", 0, 3), ("Join", 0, 1),
                                        ("Sync", 0, 1), ("Repeat", 0, 7), ("Chord %", 0, 100)])
             args += ["--mfx-param-at", f"{rnd.randint(0, 1)}:{t:.3f}:{name}={rnd.randint(lo, hi)}"]
-        else:
-            args += ["--button", f"{t:.3f}:HOME"]
+        else:                               # HOME, or GLO, whose knobs set the project key
+            args += ["--button", f"{t:.3f}:{rnd.choice(['HOME', 'GLO'])}"]
         t += rnd.uniform(0.03, 0.35)
     end = secs - 1.0
     args += ["--mfx-on-at", f"0:{end:.3f}:0", "--mfx-on-at", f"1:{end:.3f}:0"]
@@ -290,3 +296,91 @@ def test_random_gesture_sessions_replay_and_leave_nothing_hanging(tools, tmp_pat
     app_arp = (tmp_path / "app-arp.jsonl").read_bytes()
     assert app_arp == ((tmp_path / "ref-arp.jsonl").read_bytes() if arps else b"")
     assert ref["notes_hung"] == 0 and ref.get("mfx_dropped", 0) == 0
+
+
+# ---- The follow-ups (owner, 2026-10-06) ------------------------------------------------------
+
+SET = f"#! rate={RATE} block=64 tracks=8 end={RATE}\n@0 bpm 12000\n"
+
+
+def test_the_global_page_sets_the_project_key(tools, tmp_path):
+    """GLO, then SELECT: the Key page (2/2). KNOB1 steps the root and KNOB2
+    the scale in the panel's order (Major, Minor, Dorian, ... Chromatic),
+    each detent a typed `key` command; turned on Globe, a knob shows the Key
+    page. The summary's key is the set's, and fm1-render, replaying the
+    harness's log, ends in the same key with the same samples."""
+    (tmp_path / "in.verbs").write_text(SET)
+    s = run(tools["sim"], ["--engine", "macro", "--cmd", str(tmp_path / "in.verbs"),
+                           "--button", "0.05:GLO", "--turn", "0.10:SELECT:1",
+                           "--turn", "0.15:KNOB1:3", "--turn", "0.20:KNOB2:2", "--turn", "0.25:KNOB2:-1",
+                           "--turn", "0.30:SELECT:-1", "--turn", "0.35:KNOB1:-1",
+                           "--out", str(tmp_path / "app.wav"), "--log-cmds", str(tmp_path / "c.verbs")])
+    assert s["mode"] == 2 and s["glo_page"] == 1, "a knob on Globe turns to the Key page"
+    assert s["seq_key"] == [2, 1], "D minor"
+    # one command a turn: +2 places from Major is Dorian (3), then back to Minor (1)
+    assert [c for _, c in s["seq_ui_cmds"]] == ["key 3 0", "key 3 3", "key 3 1", "key 2 1"]
+    assert s["replayable"] == 1
+    ref = run(tools["render"], ["--seconds", "1.0", "--rate", str(RATE), "--cmd", str(tmp_path / "c.verbs"),
+                                *(tmp_path / "c.args").read_text().splitlines(),
+                                "--out", str(tmp_path / "ref.wav")])
+    assert ref["seq_key"] == [2, 1]
+    assert (tmp_path / "app.wav").read_bytes() == (tmp_path / "ref.wav").read_bytes()
+    # SELECT turns back to Globe; the bottom bar says which page
+    g = sim(tools, "--engine", "macro", "--button", "0.05:GLO", "--turn", "0.1:SELECT:1",
+            "--turn", "0.2:SELECT:-1", seconds=0.3)
+    assert g["glo_page"] == 0 and g["key"] == [0, 0]
+
+
+def test_an_import_brings_the_sets_key(tools, tmp_path):
+    """The key is the set's: an import without a `key` line puts C major
+    back, one with `key 9 1` gives A minor."""
+    (tmp_path / "plain.movy1").write_text("movy1\nbpm 12000\nswing 50\nlink 0\n")
+    (tmp_path / "keyed.movy1").write_text("movy1\nbpm 12000\nswing 50\nlink 0\nkey 9 1\n")
+    (tmp_path / "in.verbs").write_text(SET)
+    for name, want in (("plain", [0, 0]), ("keyed", [9, 1])):
+        s = sim(tools, "--engine", "macro", "--cmd", str(tmp_path / "in.verbs"), "--seq-ui", "0.05:key 3 5",
+                "--seq-import", f"0.2:{tmp_path / (name + '.movy1')}", seconds=0.3)
+        assert s["seq_key"] == want, name
+    s = sim(tools, "--engine", "macro", "--cmd", str(tmp_path / "in.verbs"), "--seq-ui", "0.05:key 3 5",
+            seconds=0.2)
+    assert s["seq_key"] == [3, 5]
+
+
+def test_stop_takes_back_the_sequencers_notes_and_the_arp_finds_the_beat(tools, tmp_path):
+    """The panel session arp-panel-stop (sim/web/test/arp/): a chord latched
+    by hand plays alone before Play; track 1's notes join it while the
+    sequencer plays; Stop takes them back and the hand's chord plays on;
+    ARP's tap ends it all. In a second run ARP's tap mid-bar and a key: the
+    key's first note waits for the grid's next 1/16; at Stop the hand's
+    latched key plays on, the track's note does not. It replays through
+    fm1-render byte for byte, the arp's notes included, and nothing hangs."""
+    test = ROOT_SIM / "test" / "arp"
+    common = ["--seconds", "6.6", "--rate", str(RATE)]
+    s = run(tools["sim"], [*common, "--engine", "macro", "--param", "Model=4", "--fx", "plate",
+                           "--fx-param", "Mix=0.2", "--cmd", str(test / "panel-arp-stop.verbs"),
+                           "--panel", str(test / "panel-arp-stop.panel"),
+                           "--log-mfx", str(tmp_path / "app-arp.jsonl"),
+                           "--log-events", str(tmp_path / "ev.jsonl"),
+                           "--log-cmds", str(tmp_path / "c.verbs"), "--out", str(tmp_path / "app.wav")])
+    assert s["replayable"] == 1 and s["seq_key"] == [2, 1]
+    ev = [json.loads(x) for x in (tmp_path / "app-arp.jsonl").read_text().splitlines()]
+
+    def keys(a, b):
+        return sorted({e["key"] for e in ev if e["k"] == "on" and a * RATE <= e["t"] < b * RATE})
+    assert keys(1.1, 1.5) == [60, 64]
+    assert keys(1.5, 3.6) == [43, 50, 60, 64]
+    assert keys(3.62, 4.2) == [60, 64], "Stop: the hand's chord alone"
+    assert keys(4.22, 4.93) == []
+    assert 67 in keys(4.93, 5.9) and keys(5.92, 6.2) == [67]
+    seq = [json.loads(x) for x in (tmp_path / "ev.jsonl").read_text().splitlines()]
+    grid = sorted(e["frame"] for e in seq if e["kind"] == "clock" and e["tick"] % 24 == 0)
+    first = min(e["t"] for e in ev if e["k"] == "on" and e["key"] == 67)
+    pressed = next(f for f, c in s["seq_ui_cmds"] if c == "non 0 67 100")
+    assert first == min(g for g in grid if g >= pressed) and first - pressed > 400, \
+        "the key's first note is not on the grid's next step"
+    ref = run(tools["render"], [*common, "--cmd", str(tmp_path / "c.verbs"),
+                                *(tmp_path / "c.args").read_text().splitlines(),
+                                "--log-mfx", str(tmp_path / "ref-arp.jsonl"), "--out", str(tmp_path / "ref.wav")])
+    assert (tmp_path / "app.wav").read_bytes() == (tmp_path / "ref.wav").read_bytes()
+    assert (tmp_path / "app-arp.jsonl").read_bytes() == (tmp_path / "ref-arp.jsonl").read_bytes()
+    assert ref["notes_hung"] == 0 and ref["mfx_dropped"] == 0 and ref["seq_key"] == [2, 1]

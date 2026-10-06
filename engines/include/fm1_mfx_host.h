@@ -13,7 +13,9 @@
  *     sounds there;
  *   - the sequencer's notes for the sound: the bridge's dispatch takes them
  *     out of the block (they still reach a control-rate hook, as notes that
- *     reach no engine) and feeds them to the chain at their frames.
+ *     reach no engine) and feeds them to the chain at their frames, marked
+ *     as the sequencer's (FM1_MIDI_SRC_SEQ in the velocity's high byte,
+ *     fm1_midi_ev.h), so an effect knows what the sequencer gave it.
  * The chain's output reaches the sound at its own frames, merged into the
  * block's events as the sequencer's notes are (a sound's render splits
  * there; a hook sees them as notes on the sound, track FM1_MFX_TRACK + the
@@ -30,17 +32,29 @@
  * sequencer's integer clock as the block began (fm1_seq_host_t.clock): its
  * running sum crosses its threshold at the frame where it services a tick
  * while it plays, and keeps running at the set tempo while it is stopped,
- * so a chain free-runs on the same grid. A clock off that grid (following
- * an external MIDI clock, or Movy's compat mode) puts the block's ticks at
- * its first frame. A bridge without a sequencer runs the stage's own sum at
+ * so a chain free-runs on the same grid. While it plays, the context also
+ * says which of its ticks the block's first is, counted from Start
+ * (fm1_midi_fx_ctx_t.tick_pos), so an effect can lock its steps to the
+ * beat, as the arp does. A clock off that grid (following an external MIDI
+ * clock, or Movy's compat mode) puts the block's ticks at its first frame.
+ * A bridge without a sequencer runs the stage's own sum at
  * fm1_mfx_set_tempo's tempo. The sequencer's Start reaches every effect as
- * RESET, its Stop as FLUSH, each at its frame. So the ticks, and with them
+ * RESET, its Stop as STOP (FLUSH after it when the ticks stop with the
+ * transport, off the grid), each at its frame. So the ticks, and with them
  * every effect's output, are the same at any block size.
+ *
+ * The key. With a sequencer the context's project key is the set's (its
+ * `key` verb, fm1_seq.h), read at every block; fm1_mfx_set_key sets it for
+ * a bridge without one.
  *
  * Steps. A sequencer note-on that a chain takes is a trig: at its frame,
  * after that frame's notes, every effect of the chain gets one STEP (an
  * arp at RATE TRG plays a step on it; the others ignore it). Live notes
  * make no trig.
+ *
+ * Stop and the keys. STOP takes back what the sequencer gave: the arp lets
+ * go of the sequencer's keys, held or latched, and ends their notes, and
+ * the keys played live play on (owner, 2026-10-06).
  *
  * Bypass and removal flush at once: the effect gets FLUSH and PANIC between
  * blocks, and the note-offs that come out (through the effects after it)
@@ -176,7 +190,8 @@ void fm1_mfx_flush(fm1_mfx_t *m, unsigned c, int panic, const fm1_mfx_sink_t *si
 /* The clock's tempo without a sequencer (20.00..300.00 BPM, clamped). */
 void fm1_mfx_set_tempo(fm1_mfx_t *m, uint32_t bpm_x100);
 
-/* The project key: root 0..11 (C..B), scale FM1_KEY_*. */
+/* The project key without a sequencer: root 0..11 (C..B), scale FM1_KEY_*.
+ * With one on the bridge, each block takes the set's key instead. */
 void fm1_mfx_set_key(fm1_mfx_t *m, unsigned root, unsigned scale);
 
 /* The bridge's side (seq_host.c's dispatch calls it once a block, before

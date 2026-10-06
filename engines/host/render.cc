@@ -1819,6 +1819,11 @@ int main(int argc, char **argv) {
            static_cast<unsigned long>(sq.host.max_n),
            static_cast<unsigned long long>(sq.host.splits), static_cast<unsigned long>(click.clicks),
            blocks ? seq_ns / blocks : 0.0);
+    {
+      uint8_t root, scale;   // the project key at the end (the `key` verb's)
+      fm1_seq_get_key(sq.seq, &root, &scale);
+      printf(",\"seq_key\":[%u,%u]", root, scale);
+    }
     if (sq.log) fclose(sq.log);
     fm1_script_free(&sq.script);
   }

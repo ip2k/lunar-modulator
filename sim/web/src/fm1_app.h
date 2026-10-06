@@ -23,6 +23,11 @@
  *   FX, SEL, GLO, HOME   FX mode (SEL grabs a slot so SELECT reorders it),
  *                 the global page, home. SAVE says it is not in the
  *                 simulator yet.
+ *   GLO pages     SELECT the page: 1 Globe (what the instrument runs: rate,
+ *                 block, RAM, voices, the master slots, octave and
+ *                 transpose) and 2 Key, the project key (below); KNOB1
+ *                 its root and KNOB2 its scale, on either page, which
+ *                 turns to Key
  *   ARP           the arpeggiator on the current sound (below)
  *
  * It hosts the sequencer core (engines/include/fm1_seq.h) through the shared
@@ -92,7 +97,16 @@
  * latches. A change of the sound, a panic, a sequencer reset or import
  * flush it; a bypass flushes it at once; every note-on it sent gets its
  * note-off. Every change reaches on_mfx, so a native run replays through
- * fm1-render --mfx.
+ * fm1-render --mfx. While the sequencer plays, the arp's steps fall on its
+ * grid; its Stop lets go of the notes it gave the arp, latched or not, and
+ * the keys latched by hand play on (owner, 2026-10-06).
+ *
+ * The project key (owner, 2026-10-06: one key for the project): a root and
+ * a scale (engine API v3's FM1_KEY_*), which every MIDI effect gets in its
+ * context; the arp reads none of it yet. It is the set's, kept with the
+ * tempo (the sequencer's `key` verb and the set's `key` line), so the
+ * global page's KNOB1 and KNOB2 send `key` as a typed command, which a
+ * native run logs and fm1-render replays.
  *
  * Multi-sound (the owner's decision of 2026-10-02, replacing docs/15 O10's
  * default; §3.16 has the gestures): up to FM1_APP_SOUNDS sound units at
@@ -330,6 +344,7 @@ typedef struct fm1_app {
 
   int mode;                      /* fm1_app_mode_t */
   int page;                      /* sound page in HOME */
+  int glo_page;                  /* the global page shown: 0 Globe, 1 Key */
   int fx_slot, fx_page;          /* FX mode selection: In1, In2, Mix, M1, M2 (0..4) */
   int fx_grab;                   /* SEL pressed: SELECT moves the slot */
   int octave, transpose;
@@ -648,6 +663,22 @@ int fm1_app_arp_preset_count(void);
 const char *fm1_app_arp_preset_name(int preset);
 int fm1_app_arp_preset(fm1_app_t *a, int sound, int preset);
 int fm1_app_arp_preset_of(const fm1_app_t *a, int sound);
+
+/* ---- The project key (owner, 2026-10-06) ---------------------------------
+ * One key for the project: `root` 0 C .. 11 B and `scale` FM1_KEY_*
+ * (fm1_engine.h). With the sequencer, the set's (fm1_seq_get_key); without
+ * one, the MIDI effects' stage's. Setting it sends `key root scale` as a
+ * typed command (fm1_app_seq_cmd): 0 when applied or held for the next
+ * block, -1 refused (out of range, or the sequencer busy: send it again
+ * after the next render). The names are the global page's. The panel steps
+ * the scales in FM1_APP_KEY_ORDER: Major, Minor, the church modes in their
+ * order, then Chromatic. */
+#define FM1_APP_GLO_PAGES 2
+int fm1_app_project_key(const fm1_app_t *a, int *scale);   /* the root; *scale the scale */
+int fm1_app_set_project_key(fm1_app_t *a, int root, int scale);
+const char *fm1_app_key_root_name(int root);        /* "C" .. "B" ("C#", sharps) */
+const char *fm1_app_key_scale_name(int scale);      /* "Major", "Minor", ...; NULL out of range */
+int fm1_app_key_scale_at(int place);                /* the scale at the panel's place, or -1 */
 
 /* Redraw the screen if anything on it changed (or the scope is live, at most
  * once per `min_frames` of audio). Returns 1 when a->tft.px was redrawn. */

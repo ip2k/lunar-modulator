@@ -1834,6 +1834,73 @@ static void fx_choose(fm1_app_t *a, int unit, int delta) {
   }
 }
 
+/* ---- the project key (owner, 2026-10-06) ---------------------------------------- */
+
+static const char *const kKeyRoots[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+static const char *const kKeyScales[FM1_KEY_SCALES] = {
+  [FM1_KEY_MAJOR] = "Major", [FM1_KEY_MINOR] = "Minor", [FM1_KEY_CHROMATIC] = "Chromatic",
+  [FM1_KEY_DORIAN] = "Dorian", [FM1_KEY_PHRYGIAN] = "Phrygian", [FM1_KEY_LYDIAN] = "Lydian",
+  [FM1_KEY_MIXOLYDIAN] = "Mixolydian", [FM1_KEY_LOCRIAN] = "Locrian",
+};
+/* The panel's order: Major and Minor, the other church modes in theirs, and
+ * Chromatic last (API v3 numbered the first three before the modes came). */
+static const uint8_t kKeyOrder[FM1_KEY_SCALES] = {
+  FM1_KEY_MAJOR, FM1_KEY_MINOR, FM1_KEY_DORIAN, FM1_KEY_PHRYGIAN, FM1_KEY_LYDIAN,
+  FM1_KEY_MIXOLYDIAN, FM1_KEY_LOCRIAN, FM1_KEY_CHROMATIC,
+};
+
+const char *fm1_app_key_root_name(int root) { return root >= 0 && root < 12 ? kKeyRoots[root] : NULL; }
+
+const char *fm1_app_key_scale_name(int scale) {
+  return scale >= 0 && scale < FM1_KEY_SCALES ? kKeyScales[scale] : NULL;
+}
+
+int fm1_app_key_scale_at(int place) { return place >= 0 && place < FM1_KEY_SCALES ? kKeyOrder[place] : -1; }
+
+static int key_scale_place(int scale) {
+  for (int k = 0; k < FM1_KEY_SCALES; ++k) {
+    if (kKeyOrder[k] == scale) return k;
+  }
+  return 0;
+}
+
+int fm1_app_project_key(const fm1_app_t *a, int *scale) {
+  uint8_t r = a->mfx.key_root, s = a->mfx.key_scale;
+  if (a->seq) fm1_seq_get_key(a->seq, &r, &s);
+  if (scale) *scale = s;
+  return r;
+}
+
+int fm1_app_set_project_key(fm1_app_t *a, int root, int scale) {
+  int now_scale;
+  const int now = fm1_app_project_key(a, &now_scale);
+  if (root < 0 || root > 11 || scale < 0 || scale >= FM1_KEY_SCALES) return -1;
+  if (root == now && scale == now_scale) return 0;
+  a->dirty = 1;
+  if (a->seq) {                        /* the set's: a typed `key`, logged and replayed */
+    const int64_t arg[2] = { root, scale };
+    fm1_seq_cmd_t c;
+    int r;
+    fm1_seq_cmd_make(&c, FM1_SEQ_V_KEY, 2, arg);
+    r = fm1_app_seq_cmd(a, &c);
+    return r == FM1_APP_SEQ_APPLIED || r == FM1_APP_SEQ_HELD ? 0 : -1;
+  }
+  fm1_mfx_set_key(&a->mfx, (unsigned)root, (unsigned)scale);
+  return 0;
+}
+
+/* The global page's knobs: KNOB1 the key's root, KNOB2 its scale, in the
+ * panel's order, each clamped; either turns the page to Key, to show it. */
+static void glo_knob(fm1_app_t *a, int knob, int delta) {
+  int scale;
+  const int root = fm1_app_project_key(a, &scale);
+  if (knob > 1) return;
+  a->glo_page = 1;
+  a->dirty = 1;
+  if (knob == 0) fm1_app_set_project_key(a, clampi(root + delta, 0, 11), scale);
+  else fm1_app_set_project_key(a, root, kKeyOrder[clampi(key_scale_place(scale) + delta, 0, FM1_KEY_SCALES - 1)]);
+}
+
 /* ---- the arpeggiator (engine API v3's MIDI effects) ------------------------------ */
 
 /* The ARP pages, as the arp's parameters are paged (engines/midi_fx/
@@ -2134,6 +2201,8 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
         fx_swap(a, delta);
       } else if (a->mode == FM1_MODE_FX) {
         fx_step(a, delta);
+      } else if (a->mode == FM1_MODE_GLOBAL) {
+        a->glo_page = clampi(a->glo_page + delta, 0, FM1_APP_GLO_PAGES - 1);
       }
       a->dirty = 1;
       break;
@@ -2191,7 +2260,10 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
       int several = 0;
       int idx[4];
       fm1_seq_ui_sound_t snd;
-      if (a->mode == FM1_MODE_GLOBAL) break;
+      if (a->mode == FM1_MODE_GLOBAL) {     /* the project key */
+        glo_knob(a, knob, delta);
+        break;
+      }
       if (a->mode == FM1_MODE_FX && unit < 0) {   /* the Mix page: KNOBn is sound n's level */
         fm1_app_unit_set_level(a, knob, a->level[knob] + (float)delta);
         break;
@@ -3001,6 +3073,31 @@ static void draw_arp(fm1_app_t *a, char *bottom, size_t size) {
   snprintf(bottom, size, "%d/%d %s", a->arp_page + 1, pages, kArpPages[a->arp_page]);
 }
 
+/* The global page's Key page: the project key in words in the model
+ * colour, then its root and scale as KNOB1's and KNOB2's rows, as HOME
+ * shows a sound's parameters, and two dim lines on what it is. */
+static void draw_key(fm1_app_t *a) {
+  static const char *const kScaleNames[FM1_KEY_SCALES] = {   /* kKeyOrder's */
+    "Major", "Minor", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Locrian", "Chromatic",
+  };
+  static const fm1_param_t kRoot = { "Key", FM1_PARAM_ENUM, 0.0f, 11.0f, 0.0f, kKeyRoots, 0, 0, 0, 0, "" };
+  static const fm1_param_t kScale = { "Scale", FM1_PARAM_ENUM, 0.0f, (float)(FM1_KEY_SCALES - 1), 0.0f,
+                                      kScaleNames, 0, 0, 0, 0, "" };
+  char line[24];
+  int scale;
+  const int root = fm1_app_project_key(a, &scale);
+  snprintf(line, sizeof line, "%s %s", kKeyRoots[root], kKeyScales[scale]);
+  fm1_tft_text(&a->tft, MARGIN, CONTENT_Y, line, LINE_CHARS, SCALE, C_MODEL);
+  fm1_mod_view_row(&a->tft, CONTENT_Y + LINE_PITCH, &kRoot, (float)root, NULL, 0, 0.0f, 0.0f);
+  fm1_mod_view_row(&a->tft, CONTENT_Y + LINE_PITCH + ROW_PITCH, &kScale, (float)key_scale_place(scale),
+                   NULL, 0, 0.0f, 0.0f);
+  /* What it is for, and where it is kept, under the rows. */
+  fm1_tft_text(&a->tft, MARGIN, CONTENT_Y + LINE_PITCH + 2 * ROW_PITCH, "For MIDI effects", LINE_CHARS,
+               SCALE, C_DIM);
+  fm1_tft_text(&a->tft, MARGIN, CONTENT_Y + 2 * LINE_PITCH + 2 * ROW_PITCH, "Saved with the set",
+               LINE_CHARS, SCALE, C_DIM);
+}
+
 static void draw(fm1_app_t *a) {
   fm1_tft_t *t = &a->tft;
   const fm1_app_unit_t *s = cur(a);
@@ -3068,6 +3165,9 @@ static void draw(fm1_app_t *a) {
     fm1_seq_view_draw(t, &a->ui, &snd);
     fm1_seq_view_bottom(&a->ui, &snd, buf, sizeof buf);
     draw_bottom(a, buf);
+  } else if (a->glo_page == 1) {         /* the global page's Key page */
+    draw_key(a);
+    draw_bottom(a, "2/2 Key");
   } else {
     /* Eight lines at a 23 px pitch (the sound's name is in the title bar). */
     const int pitch = 23;
@@ -3088,7 +3188,7 @@ static void draw(fm1_app_t *a) {
     draw_line(a, y, "Octave", a->octave ? v : "0"); y += pitch;
     snprintf(v, sizeof v, "%+d", a->transpose);
     draw_line(a, y, "Transpose", a->transpose ? v : "0");
-    draw_bottom(a, "1/1 Globe");
+    draw_bottom(a, "1/2 Globe");
   }
   if (a->popup_lines) draw_popup(a);
   else if (a->ui.capture_mode) draw_capture(a);

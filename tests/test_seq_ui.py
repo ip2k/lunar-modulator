@@ -217,8 +217,8 @@ def test_every_verb_round_trips_through_its_text(tools):
     names = re.findall(r'\{ "(\w+)", FM1_SEQ_V_\w+ \}',
                        (ROOT / "engines" / "seq" / "seq_cmd.c").read_text(encoding="utf-8"))
     assert out["failures"] == 0
-    assert out["verbs"] == len(names) == 67
-    assert out["records"] >= 67 * 30
+    assert out["verbs"] == len(names) == 68           # 67 before `key` (2026-10-06)
+    assert out["records"] >= 68 * 30
 
 
 def test_the_demo_pattern_plays_on_the_browsers_start_only(tools):
