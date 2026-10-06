@@ -232,8 +232,22 @@ says *Empty sound: turn PRESETS*.
 
 Each of the four sounds has a colour of its own wherever it is named: Sound
 1 blue, Sound 2 orange, Sound 3 green and Sound 4 yellow-green, in the top
-bar's *S2*, the chain, the Mix page and the list of sounds. The number
-always goes with the colour.
+bar's *S2*, the chain, the Mix page, the list of sounds, the sequencer's
+tracks and the modulation pages. The number always goes with the colour.
+
+### What the colours mean
+
+Each colour on the screen means one thing, wherever it appears:
+
+| Colour | Means | Where you see it |
+| --- | --- | --- |
+| Lilac | What is chosen, and the value you edit | Value bars, notes in the sequencer's grid, the highlighted row of a list or the matrix, the chosen slot in FX mode |
+| Gold | Held or locked | Steps you hold, parameter locks and lanes, a module or effect picked up with [[SEL]], REC during a count-in |
+| Blue-green | A live signal, or modulation | The oscilloscope, the meters, PLAY, a modulated parameter's name and bracket, the matrix's sources |
+| Rose | Where you are | The line under the top bar (the model, *Step 7*, *Lock step 6*) and a list's title |
+| Red | Refused, recording, or over the limit | A message that refuses something, REC and STEP, a refused cable, the meters at their limit |
+| Grey | Labels and things at rest | Parameter names, a list's place, *Empty*, STOP |
+| Blue, orange, green, yellow-green | Sounds 1 to 4 | Beside the sound's number (above) |
 
 ### The sequencer and modulation pages
 
@@ -258,8 +272,7 @@ until about a second after your last turn: its name in rose at the top left,
 the chosen entry's place at the top right (such as *34/96*), and its
 entries, the chosen one highlighted. A long list shows eight entries at a
 time in a smaller type; the four sounds, the quantize values and Capture's
-tempos show all of theirs in the main type (the rack's kinds and the
-matrix's destinations show six). The chosen entry sits on the third row,
+tempos show all of theirs in the main type. The chosen entry sits on the third row,
 with the two before it above and the rest after it below; at either end of
 the list the rows stop moving and the highlight goes to the first or last
 row. A small triangle above the entries means the list goes on above them,
@@ -297,7 +310,7 @@ red:
 | An engine's name and *refuses 48000 Hz* | That engine cannot run at the sample rate the browser chose ([chapter 2](02-getting-started.md#the-browser-simulator)) |
 | An engine's or effect's name, *does not fit* and how far over | It would take the chain past the FM-1's memory ([chapter 6](06-effects.md#memory)) |
 | A track, *Captured*, *Metronome on* and the like | The sequencer did something you asked ([chapter 7](07-sequencer.md)) |
-| A cable, such as *LFO1 > S2Color*, and its amount | You make a cable ([chapter 8](08-modulation.md)) |
+| A cable and its amount, such as *LFO1 > S2 Color +12%* | You make a cable ([chapter 8](08-modulation.md)) |
 | A button's name and *not in the simulator yet* | You press [[SAVE]] or [[ARP]] |
 
 !!! tip "A larger screen"

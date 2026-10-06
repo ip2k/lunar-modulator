@@ -71,22 +71,18 @@ static inline uint16_t fm1_sound_colour(int sound) {
   }
 }
 
-/* The names the screen code has used so far; they stay until each screen
- * moves to the roles above. */
+/* The grounds and the plain text, which carry no accent's meaning. (The
+ * old accent names, C_ACCENT, C_MODEL, C_WARN, C_SCOPE, C_METER and C_PLAY,
+ * went when every screen had moved to the roles above, so no screen can
+ * reach gold, love or foam but through its role.) */
 #define C_BG RP_BASE
 #define C_TEXT RP_TEXT
 #define C_DIM RP_SUBTLE
-#define C_ACCENT RP_IRIS
-#define C_MODEL RP_GOLD
 #define C_BAR_BG RP_HIGHLIGHT_MED
 #define C_TITLE_BG RP_OVERLAY
 #define C_BOTTOM_BG RP_SURFACE
-#define C_WARN RP_LOVE
 #define C_SCOPE_BG RP_SURFACE
-#define C_SCOPE RP_FOAM
 #define C_POPUP_BG RP_SURFACE
-#define C_METER RP_FOAM
-#define C_PLAY RP_FOAM
 
 /* Screen geometry: 2x text is 12 px a character and 18 px tall, so a line
  * holds 19 characters between the 6 px margins. Every label, value and bar
@@ -194,6 +190,14 @@ static inline int fm1_look_fit(int x, fm1_tft_font_t font) { return fm1_tft_font
  * and its place, "VA+Filter 1/8"), FX mode (the slot's effect and its
  * role); the sequencer's headings can take it too. */
 void fm1_look_context(fm1_tft_t *t, int y, const char *text, const char *place);
+
+/* s as one text run (one logged box) in `color`, every sound's tag in it
+ * ("S1" to "S4" at a word's start: "LFO1 > S1 Timbre +25%", "To S2
+ * Patch") in that sound's colour (audit L3: a sound is named in its colour
+ * everywhere); on the selection bar (`color` C_BG) all of it in C_BG.
+ * Returns the width drawn, as fm1_tft_font_text. */
+int fm1_look_sound_text(fm1_tft_t *t, int x, int y, const char *s, int max_chars, fm1_tft_font_t font,
+                        uint16_t color);
 
 /* An entry's full name (audit D9): where an engine, effect or list entry
  * only offers a short form ("PhaseDist", "Comp", "Studio S"), the name it

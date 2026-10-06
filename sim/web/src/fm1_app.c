@@ -2665,7 +2665,11 @@ static void draw_popup_lines(fm1_app_t *a, const char (*text)[FM1_LIST_ENTRY], i
       fm1_tft_paint(&a->tft, 12, ly - 3, FM1_TFT_W - 24, 24, C_SELECT);
       color = C_BG;
     }
-    fm1_tft_text(&a->tft, 120 - w / 2, ly, text[i], POPUP_CHARS, SCALE, color);
+    if (color == C_TEXT) {           /* a refusal stays one colour, whole */
+      fm1_look_sound_text(&a->tft, 120 - w / 2, ly, text[i], POPUP_CHARS, FM1_TFT_MAIN, color);
+    } else {
+      fm1_tft_text(&a->tft, 120 - w / 2, ly, text[i], POPUP_CHARS, SCALE, color);
+    }
   }
 }
 
@@ -2824,8 +2828,8 @@ static void draw_banner(fm1_app_t *a, const char *text, fm1_tft_font_t face) {
   fm1_tft_paint(t, 0, BOTTOM_Y - BANNER_RULE, FM1_TFT_W, BANNER_RULE, C_SELECT);
   {
     const int chars = face == FM1_TFT_MID ? BANNER_CHARS_MID : BANNER_CHARS;
-    fm1_tft_font_text(t, (FM1_TFT_W - fm1_tft_font_width(text, chars, face)) / 2,
-                      face == FM1_TFT_MID ? BANNER_TEXT_Y_MID : BANNER_TEXT_Y, text, chars, face, C_TEXT);
+    fm1_look_sound_text(t, (FM1_TFT_W - fm1_tft_font_width(text, chars, face)) / 2,
+                        face == FM1_TFT_MID ? BANNER_TEXT_Y_MID : BANNER_TEXT_Y, text, chars, face, C_TEXT);
   }
 }
 
@@ -2844,11 +2848,10 @@ static void draw_popup(fm1_app_t *a) {
   }
 }
 
-/* A tempo as "120 BPM", or "117.50 BPM" (the core's are 20.00 to 300.00). */
+/* A tempo as the Track view's status line writes it: "120 BPM", decimals
+ * only when there are some ("117.5 BPM", "117.65 BPM"). */
 static void bpm_text(char *buf, size_t size, unsigned bpm_x100) {
-  const unsigned v = bpm_x100 % 1000000u;
-  if (v % 100u) snprintf(buf, size, "%u.%02u BPM", v / 100u, v % 100u);
-  else snprintf(buf, size, "%u BPM", v / 100u);
+  fm1_seq_view_bpm((uint32_t)bpm_x100, buf, size);
 }
 
 /* Capture's overlay after a stopped Capture (O7), over every mode until a
@@ -2907,6 +2910,45 @@ void fm1_look_context(fm1_tft_t *t, int y, const char *text, const char *place) 
     fm1_tft_font_text(t, RIGHT - pw, y, place, MID_LINE_CHARS, FM1_TFT_MID, C_LABEL);
   }
   fm1_tft_font_text(t, MARGIN, y, text, context_room(place), FM1_TFT_MID, C_CONTEXT);
+}
+
+/* Is s[k] the start of a sound's tag: "S1" to "S4" at a word's start, not
+ * followed by another digit ("S2 engine", "S1I2 High Xover", "S1NOTE")? */
+static int sound_tag_at(const char *s, int k) {
+  return s[k] == 'S' && s[k + 1] >= '1' && s[k + 1] <= '4' && (s[k + 2] < '0' || s[k + 2] > '9') &&
+         (k == 0 || s[k - 1] == ' ' || s[k - 1] == '>' || s[k - 1] == '(');
+}
+
+int fm1_look_sound_text(fm1_tft_t *t, int x, int y, const char *s, int max_chars, fm1_tft_font_t font,
+                        uint16_t color) {
+  char seg[2 * (FM1_LIST_ENTRY + 8)];
+  fm1_tft_span_t sp[16];
+  int k, at = 0, ns = 0;
+  const int n = (int)strlen(s);
+  if (color == C_BG || n >= FM1_LIST_ENTRY + 8) return fm1_tft_font_text(t, x, y, s, max_chars, font, color);
+  for (k = 0; k < n && ns < 15;) {
+    const int tag = sound_tag_at(s, k);
+    const int len = tag ? 2 : 1;
+    const uint16_t c = tag ? fm1_sound_colour(s[k + 1] - '1') : color;
+    if (ns == 0 || c != sp[ns - 1].color || tag) {
+      if (ns) seg[at++] = '\0';
+      sp[ns].s = &seg[at];
+      sp[ns].color = c;
+      ++ns;
+    }
+    seg[at++] = s[k];
+    if (len == 2) seg[at++] = s[k + 1];
+    k += len;
+    if (tag && k < n) {               /* the rest starts a span of its own */
+      seg[at++] = '\0';
+      sp[ns].s = &seg[at];
+      sp[ns].color = color;
+      ++ns;
+    }
+  }
+  if (k < n) return fm1_tft_font_text(t, x, y, s, max_chars, font, color);
+  seg[at] = '\0';
+  return fm1_tft_span_text(t, x, y, sp, ns, max_chars, font);
 }
 
 /* An empty slot's (or sound's) two hint lines at y0. */

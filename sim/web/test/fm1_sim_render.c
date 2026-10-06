@@ -2525,6 +2525,17 @@ static void mod_voice_screens(const char *dir) {
   g_app.mui.page = 1;
   check_screen("rack-voices-p2", dir, 0);
   g_app.mui.page = 0;
+  /* RACK's line past MID's 28 characters ("ENV3  2 out  1 in  1 late  3
+   * voices"): in SMALL, the one place the sweep draws that face. */
+  mod_line("slot 10 env3 > lfo1.rate amt=10");
+  mod_line("slot 11 lfo1 > env3:decay amt=10");        /* a loop: one of the two is late */
+  blocks(2);
+  expect((g_app.mui.plan.delayed >> 9 | g_app.mui.plan.delayed >> 10) & 1u,
+         "the loop through ENV3 and LFO1 has no cable a tick late");
+  check_screen("rack-voices-small", dir, 1);
+  mod_line("slot 10 clear");
+  mod_line("slot 11 clear");
+  blocks(2);
   g_app.mode = FM1_MODE_MATRIX;
   g_app.mui.slot = g_app.mui.top = 0;
   for (int pg = 0; pg < 2; ++pg) {

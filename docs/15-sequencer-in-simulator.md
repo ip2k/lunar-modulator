@@ -1411,7 +1411,7 @@ plan above [verified: tests/test_seq_ui.py, tests/test_seq_core.py,
   drawn over every mode where popups go. The picker (mode 1) lists the
   candidates, one a line, the one taken highlighted; SELECT or KNOB1 sends
   `capsel`, heard at once. The fitted tempo (mode 2) reads `Captured` /
-  `at 117.50 BPM`; there SELECT and KNOB1 do nothing, as Movy's jog
+  `at 117.5 BPM` (a whole tempo without decimals, as the status line writes it); there SELECT and KNOB1 do nothing, as Movy's jog
   (`captureJog` at `9190e79`) [verified]. **Both stay until a press, as Movy's overlay does,**
   rather than mode 2 being a one-second toast as proposed: the core takes
   no Capture input until `capdone`. Any press (a button, a key, another

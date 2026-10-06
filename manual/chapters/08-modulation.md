@@ -137,7 +137,8 @@ The quickest way to modulate a parameter:
 3. Turn the parameter's knob, [[KNOB1]] to [[KNOB4]]. A cable now runs from
    the LFO (or envelope) the rack last showed, LFO1 or ENV3 at first, to
    that parameter, and its amount follows the turn, 1 % a click. The screen
-   names the cable, such as *LFO1 > S2Color*, and its amount.
+   names the cable and its amount in a band at the bottom, such as
+   *LFO1 > S2 Color +12%*.
 4. Let go of [[LFO]].
 
 Turn the knob again while you hold [[LFO]] to change the same cable's
@@ -192,7 +193,7 @@ time; press it again to go back to the sound's page. [[EDIT]] is lit there.
 
 Each row reads like this, the source in the modulation colour, the mark
 grey, the destination and the amount white, and a sound's *S1* to *S4* in
-that sound's colour:
+that sound's colour, in a source such as *S2RTRG* too:
 
 ```text
 LFO1  >S1 Timbre         +40     the source, > (or ~ a step late), the destination, the amount
@@ -208,7 +209,8 @@ and a refused one red, whole. Page B names the VIA source, the curve and
 the polarity in full (*square*, *auto*).
 
 [[SELECT]] chooses the row. The hint line names the field you turned last,
-for two seconds, and otherwise the row's destination in full.
+for two seconds, and otherwise the row's destination in full; it is red
+while the chosen cable is refused.
 
 {{screen matrix The matrix: the default rack’s two cables, and a third from LFO1 to Sound 1’s Timbre at +40 %, chosen.}}
 

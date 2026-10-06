@@ -506,6 +506,18 @@ static void put_dest(line_b *b, const char *name, int sound, int width) {
   }
 }
 
+/* A source's name in the source role; a sound unit's own source (S1NOTE
+ * ... S4RTRG) has its "S<n>" in that sound's role, as a destination's. */
+static void put_src(line_b *b, unsigned src, const char *name, int width) {
+  const int at = b->n;
+  put(b, name, FM1_MOD_UI_ROLE_SRC, width);
+  if (b->roles && src >= FM1_MOD_SRC_S_NOTE && src < FM1_MOD_SRC_SYSTEM && name[0] == 'S' &&
+      b->n >= at + 2) {
+    b->roles[at] = b->roles[at + 1] =
+        (uint8_t)(FM1_MOD_UI_ROLE_SOUND + (src - FM1_MOD_SRC_S_NOTE) % FM1_MOD_SOUNDS);
+  }
+}
+
 void fm1_mod_ui_row(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned i, int page,
                     char out[FM1_MOD_UI_ROW_CHARS + 1], uint8_t *roles) {
   fm1_mod_slot_t s;
@@ -526,7 +538,7 @@ void fm1_mod_ui_row(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned
   else if ((u->plan.refused >> i) & 1u) mk[0] = '!';
   else if (s.flags & FM1_MOD_SLOT_VOICE) mk[0] = 'v';
   fm1_mod_ui_source(env->m, s.src, 0, src, sizeof src);
-  put(&b, src, FM1_MOD_UI_ROLE_SRC, 6);
+  put_src(&b, s.src, src, 6);
   if (page == 0) {
     fm1_mod_ui_env_t scratch;
     const fm1_mod_ui_env_t *ne = aimed_env(env, u, i, &s, &scratch);
@@ -543,7 +555,7 @@ void fm1_mod_ui_row(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned
     if (!mk[0]) mk[0] = '*';
     put(&b, mk, FM1_MOD_UI_ROLE_MARK, 0);
     if (s.via == FM1_MOD_NONE) put(&b, "--", FM1_MOD_UI_ROLE_PLAIN, 7);
-    else fm1_mod_ui_source(env->m, s.via, 0, via, sizeof via), put(&b, via, FM1_MOD_UI_ROLE_SRC, 7);
+    else fm1_mod_ui_source(env->m, s.via, 0, via, sizeof via), put_src(&b, s.via, via, 7);
     put(&b, kCurve[(s.flags & FM1_MOD_SLOT_CURVE_MASK) >> FM1_MOD_SLOT_CURVE_SHIFT],
         FM1_MOD_UI_ROLE_DST, 7);
     put(&b, kPol[(s.flags & FM1_MOD_SLOT_POL_MASK) >> FM1_MOD_SLOT_POL_SHIFT], FM1_MOD_UI_ROLE_DST, 0);
@@ -1587,11 +1599,11 @@ static void node_text(chain_t *c, unsigned src, const uint32_t on_path, char *ou
     }
   }
   if (!more) {
-    put(&b, name, FM1_MOD_UI_ROLE_SRC, 0);
+    put_src(&b, src, name, 0);
     return;
   }
   snprintf(more_s, sizeof more_s, "+%d", more > 99 ? 99 : more);
-  put(&b, name, FM1_MOD_UI_ROLE_SRC, FM1_MOD_UI_ROW_CHARS - 4);
+  put_src(&b, src, name, FM1_MOD_UI_ROW_CHARS - 4);
   put(&b, more_s, FM1_MOD_UI_ROLE_MARK, -4);
 }
 

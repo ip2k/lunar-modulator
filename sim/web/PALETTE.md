@@ -21,9 +21,10 @@ says so, [inferred] our reasoning.
 - **Roles in the header.** Screen code can name what a colour means rather
   than its hue: `C_SELECT`, `C_HELD`, `C_LIVE`, `C_MOD`, `C_REFUSE`,
   `C_CONTEXT`, `C_HINT`, `C_LABEL`, `C_SOUND_1`–`C_SOUND_4` and
-  `fm1_sound_colour(n)`. The old names (`C_MODEL`, `C_ACCENT`, `C_WARN`, …)
-  still work and still draw what they drew, so **no screen has changed
-  yet**: each moves to the roles in its own change.
+  `fm1_sound_colour(n)`. Every screen now draws its accents through these
+  roles; the old accent names (`C_MODEL`, `C_ACCENT`, `C_WARN`, `C_SCOPE`,
+  `C_METER`, `C_PLAY`) are gone, and only the grounds and plain text keep
+  their old names (`C_BG`, `C_TEXT`, `C_DIM`, `C_BAR_BG`, …).
 - **The page follows the map** (D8): the focus ring, links, the tagline and
   the help's terms are the selection colour (iris; the focus ring was gold);
   gold is left to a lit LED, a key or button held or latched; the Power

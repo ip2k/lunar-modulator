@@ -298,7 +298,13 @@ void fm1_mod_view_matrix(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mo
   }
   fm1_mod_ui_hint(env, u, now, hint, sizeof hint);
   hint[FM1_MOD_UI_HINT_CHARS] = '\0';
-  fm1_tft_font_text(t, MARGIN, MATRIX_HINT_Y, hint, FM1_MOD_UI_HINT_CHARS, DENSE, C_HINT);
+  /* The hint names a sound in its colour; under a refused slot it is in
+   * the refusal colour, whole, as the slot's row is when not selected. */
+  if ((u->plan.refused >> u->slot) & 1u) {
+    fm1_tft_font_text(t, MARGIN, MATRIX_HINT_Y, hint, FM1_MOD_UI_HINT_CHARS, DENSE, C_REFUSE);
+  } else {
+    fm1_look_sound_text(t, MARGIN, MATRIX_HINT_Y, hint, FM1_MOD_UI_HINT_CHARS, DENSE, C_HINT);
+  }
 }
 
 /* ---- CHAIN --------------------------------------------------------------------- */
