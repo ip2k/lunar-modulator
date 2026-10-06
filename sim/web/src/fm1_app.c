@@ -1006,6 +1006,7 @@ int fm1_app_dx7_load(fm1_app_t *a, const uint8_t *data, size_t len, fm1_dx7_syse
 }
 
 int fm1_app_dx7_put(fm1_app_t *a, unsigned slot, const uint8_t vced[FM1_DX7_VCED_BYTES]) {
+#if FM1_WITH_DX7
   if (a->dx7.index < 0 || slot >= FM1_DX7_USER_SLOTS) return -1;
   dx7_store(a, slot, vced);
   dx7_names(a);
@@ -1013,6 +1014,12 @@ int fm1_app_dx7_put(fm1_app_t *a, unsigned slot, const uint8_t vced[FM1_DX7_VCED
     if (a->unit[u].e && a->unit[u].index == a->dx7.index) fm1_dx7_set_user_voice(a->unit[u].self, slot, a->dx7.voice[slot]);
   }
   return 0;
+#else                              /* a list without FM6: no bank to put a voice in */
+  (void)a;
+  (void)slot;
+  (void)vced;
+  return -1;
+#endif
 }
 
 void fm1_app_say(fm1_app_t *a, int tone, const char *l0, const char *l1, const char *l2) {
