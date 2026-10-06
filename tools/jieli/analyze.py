@@ -160,6 +160,8 @@ def group_of(rel):
         return "msfa (vendored, Apache-2.0)"
     if rel.startswith("sw/"):
         return "Schwung modules (vendored, MIT)"
+    if rel.startswith("gpl/"):                  # GPL_OBJ: built only with FM1_GPL_MODS=1
+        return "GPL modules (vendored, GPL switch)"
     if rel.startswith("c/seq/"):
         return "Sequencer core"
     if rel.startswith("sim/"):
@@ -410,7 +412,7 @@ def main(out):
         for e in ("macro", "shapes", "macro_heavy", "sixop", "dx7", "test_sine", "test_gain"):
             if e in c:
                 v[e] = c[e]
-        for e in ("plate", "ensemble", "diffuse"):
+        for e in ("plate", "ensemble", "diffuse", "acid_bass", "comet_kit", "crater"):
             if e in c:
                 v[e] = r16(c[e])
         if "schwung_instance" in c and "schwung_align" in c:
@@ -421,6 +423,9 @@ def main(out):
 
             v["sw_sophie"] = up(c["schwung_instance"]) + up(c["sophie_arena"])
             v["sw_psxverb"] = up(c["schwung_instance"]) + up(c["psxverb_arena"])
+        if "felucca_instance" in c and "felucca_world" in c:     # GPL modules (felucca_shim.cc)
+            v["drawbar"] = r16(c["felucca_instance"]) + r16(c["felucca_world_wheel"])
+            v["trio"] = v["phase_bend"] = r16(c["felucca_instance"]) + r16(c["felucca_world"])
         inst[t] = v
     report["sizes"]["instance_size"] = inst
     for t in ("i386", "x86_64"):

@@ -5,14 +5,16 @@
 # (engines/midi_fx/README.md).
 #
 # None of it allocates or prints: tests/test_engine_arp.py checks the
-# objects' symbols for malloc, free and stdio. The tool may.
+# objects' symbols for malloc, free and stdio. The tool may. The registry
+# reads the GPL switch (FM1_GPL_MODS, engines/Makefile): a GPL MIDI effect is
+# listed only when it is on, and its sources come from its own fragment.
 
 # This fragment adds prerequisites to targets before the main Makefile's first
 # rule; keep `all` the default goal.
 .DEFAULT_GOAL := all
 
 ARP_SRC := midi_fx/fm1_arp.c midi_fx/arp_rhythm.c midi_fx/arp_engine.c midi_fx/registry.c
-ARP_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Imidi_fx -Iinclude -Wall -Wextra -Wpedantic -Wshadow -MMD -MP
+ARP_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Imidi_fx -Iinclude -I$(GPL_GEN) -Wall -Wextra -Wpedantic -Wshadow -MMD -MP
 ARP_OBJ := $(patsubst midi_fx/%.c,$(BUILD)/midi_fx/%.o,$(ARP_SRC))
 ARP_TOOL_OBJ := $(BUILD)/midi_fx/arp_tool.o
 
@@ -22,8 +24,10 @@ $(BUILD)/midi_fx/%.o: midi_fx/%.c
 
 all: $(BUILD)/fm1-arp
 
-$(BUILD)/fm1-arp: $(ARP_TOOL_OBJ) $(ARP_OBJ)
-	$(CC) $(OPT) $(EXTRA) -o $@ $^
+# The registry lists the GPL MIDI effects while the switch is on, so the tool
+# links their objects (GPL_OBJ, C) then too.
+$(BUILD)/fm1-arp: $(ARP_TOOL_OBJ) $(ARP_OBJ) $(GPL_OBJ)
+	$(CC) $(OPT) $(EXTRA) -o $@ $^ -lm
 
 # fm1-render runs MIDI effects in front of its sounds (--mfx); every renderer
 # variant that links RENDER_OBJ gets them.

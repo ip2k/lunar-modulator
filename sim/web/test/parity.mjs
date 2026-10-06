@@ -54,10 +54,11 @@
 // modulates from the panel: the harness logs the runtime's state and every
 // edit (.mod, named in the sidecar), which the render legs replay.
 //
-// A scenario with `mfx` puts the arpeggiator (engine API v3's MIDI effect)
-// in front of a sound unit: [K, "arp", [NAME=VALUE...]] is fm1-render's
-// --mfx K:arp with its --mfx-param, and the module's own arp on that unit
-// switched on (fm1w_arp_set_on) with those parameters (fm1w_arp_set_param);
+// A scenario with `mfx` puts a MIDI effect (engine API v3) in front of a
+// sound unit: [K, ID, [NAME=VALUE...]] is fm1-render's --mfx K:ID with its
+// --mfx-param, and in the module that unit's MIDI-FX slot given that effect
+// (fm1w_mfx_select, for one that is not the arp), switched on
+// (fm1w_arp_set_on) with those parameters (fm1w_arp_set_param);
 // `mfx_param_at` (K:T:NAME=VALUE) and `mfx_on_at` (K:T:0|1) change it in
 // the run, first among a block's controls, as fm1-render applies them.
 //
@@ -321,18 +322,24 @@ async function renderApp(s) {
     const [k, v] = lv.split(':');
     ex.fm1w_unit_set_level(Number(k), Math.fround(parseFloat(v)));
   }
-  // The arpeggiator: each sound's own, switched on, then its parameters.
-  const arpParam = (name) => {
-    const i = paramOf('arp', name);
-    if (i < 0) throw new Error(`${s.name}: the arp has no parameter ${name}`);
+  // The MIDI effects: each sound's slot given its effect, switched on, then
+  // its parameters.
+  const mfxOf = {};
+  for (const [k, id] of s.mfx ?? []) mfxOf[k] = id;
+  const arpParam = (name, k) => {
+    const id = mfxOf[k] ?? 'arp';
+    const i = paramOf(id, name);
+    if (i < 0) throw new Error(`${s.name}: ${id} has no parameter ${name}`);
     return i;
   };
   for (const [k, id, ps] of s.mfx ?? []) {
-    if (id !== 'arp') throw new Error(`${s.name}: the module has no MIDI effect ${id}`);
-    if (ex.fm1w_arp_set_on(k, 1) !== 0) throw new Error(`${s.name}: no arp on sound ${k}`);
+    const i = indexOf(id);
+    if (i < 0 || catalog[i].kind !== 'midi_fx') throw new Error(`${s.name}: the module has no MIDI effect ${id}`);
+    if (id !== 'arp' && ex.fm1w_mfx_select(k, i) !== 0) throw new Error(`${s.name}: cannot put ${id} on sound ${k}`);
+    if (ex.fm1w_arp_set_on(k, 1) !== 0) throw new Error(`${s.name}: no MIDI effect on sound ${k}`);
     for (const p of ps) {
       const [n, v] = splitParam(p);
-      ex.fm1w_arp_set_param(k, arpParam(n), v);
+      ex.fm1w_arp_set_param(k, arpParam(n, k), v);
     }
   }
   ex.fm1w_master(1, 0);
@@ -377,7 +384,7 @@ async function renderApp(s) {
     ...(s.mfx_param_at ?? []).map((p) => {
       const [k, t] = p.split(':');
       const [n, v] = splitParam(p.slice(k.length + t.length + 2));
-      return { t: parseFloat(t), arp: Number(k), idx: arpParam(n), v };
+      return { t: parseFloat(t), arp: Number(k), idx: arpParam(n, Number(k)), v };
     }),
     ...(s.bends ?? []).map((b) => {
       const [t, st] = b.split(':');

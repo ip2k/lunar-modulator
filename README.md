@@ -96,7 +96,7 @@ its screen. None of it runs on an FM-1 yet.
 
 ### Sound engines
 
-Seven sound engines, plus Test Sine for testing. PRESETS picks one,
+Thirteen sound engines, plus Test Sine for testing. PRESETS picks one,
 ALGORITHM steps through its models, shapes, patches or pads, and KNOB1–4
 play its parameters, four to a page (SELECT turns the page).
 - **Macro:** eight synths in one, 12 voices: virtual analogue with a filter,
@@ -117,8 +117,30 @@ play its parameters, four to a page (SELECT turns the page).
   three hi-hats, six toms, a crash and a ride, and any pad can play a
   cowbell instead. The hi-hats cut each other off, any pads can share a
   choke group, and one knob sets the whole kit's decay.
+- **Acid Bass:** a bass after the TB-303, with accents, slides, the
+  Devilfish's longer slides and accent decays, and a soft or RAT-style
+  drive. It is fm1-x0x's 303 and its code is GPL, so it is in builds with
+  the GPL switch on, as the simulator is while we test.
+- **Comet Kit:** a 16-pad kit after the TR-909: its kick, snare, toms, rim
+  shot and clap modelled on the machine's circuits, its hi-hats, crash and
+  ride from recordings, a drive of seven kinds on every pad, and two kits,
+  Classic and Big Beat. It is fm1-x0x's 909 (GPL), so it is in builds with
+  the GPL switch on, like Acid Bass.
+- **Crater Kit:** a 16-pad kit after the TR-808, every sound of the
+  machine modelled from its circuits: the booming kick, snare, toms and
+  congas, clap and maracas, rim shot and claves, cowbell, hi-hats and
+  cymbal, each with its own tuning, decay, drive and distortion. It is
+  fm1-x0x's 808 and its code is GPL, so it is in builds with the GPL switch
+  on, as Acid Bass is.
+- **Drawbar, Trio and Phase Bend**, three engines of Felucca, Leo
+  Kuroshita's firmware for the FM-1, 8 voices each: a tonewheel organ with
+  percussion, key click and a rotary speaker; three chip-style oscillators
+  with ring modulation and sync into a gritty filter; and phase distortion
+  with resonant waves. Their code is GPL, so they are in builds with the
+  GPL switch on, as the simulator is while we test.
 
-Sophie and Drums play their pads from the 16 white keys, at any octave.
+Sophie, Drums, Comet Kit and Crater Kit play their pads from the 16 white
+keys, at any octave.
 
 <table>
 <tr>
@@ -251,7 +273,8 @@ for the first installable build
 ([Installing on your FM-1](#installing-on-your-fm-1)).
 
 **Done, in the simulator**
-- Seven sound engines, four sounds at once, two inserts each, two master
+- Seven sound engines (thirteen with the GPL switch on), four sounds at
+  once, two inserts each, two master
   effects and the memory meter.
 - Twenty-two effects, among them the new dynamics: Squash, Transient and
   the Limiter's Round mode.
@@ -470,6 +493,23 @@ This is a synthesis of other people's work. The details are in
   lineage are also the engine of the stock firmware.
 - **Charles Vestal** for Schwung and its PSX Verb module, and **Matt Estela**
   for the Sophie drum module (MIT).
+- **fm1-x0x** by **Charles Vestal** (GPL-3.0): Acid Bass is its 303, a port
+  of **Open303** by **Robin Schmidt** (MIT) with the Devilfish ranges after
+  **jc303** by **midilab** and a RAT drive after **dm-Rat** by **Dave
+  Mollen** (both GPL-3.0), by way of schwung-303; Acid Gen is its TB-3PO,
+  after schwung-tb3po and the Phazerville Hemisphere Suite's TB_3PO by
+  **djphazer** and contributors (GPL-3.0); Comet Kit is its 909, a port of
+  **9W9** by **athousanddetails**, which grew out of **ER-99** by **Matthew
+  Cieplak**, whose hi-hat, ride and crash recordings it plays (all
+  GPL-3.0); Crater Kit is its 808, a port of **8W8** by
+  **athousanddetails** (GPL-3.0), built from the TR-808's service notes and
+  the analyses of **Kurt James Werner, Jonathan Abel and Julius O. Smith**,
+  with the rim shot of **sc808** by **Yoshinosuke Horiuchi** and **Sam
+  Aaron** (MIT).
+- **Felucca** by **Leo Kuroshita** (@kurogedelic), Hügelton Instruments
+  (GPL-3.0): Drawbar, Trio and Phase Bend are its WHEEL, TRIO and PHASE
+  engines, unmodified; PHASE is a port of CrispyZebra's oscillator, by the
+  same author. FM6's name is borrowed from Felucca's.
 - Sequencer design and logic after Movy by **megadake** (MIT),
   [github.com/DimaDake/schwung-movy](https://github.com/DimaDake/schwung-movy).
 - The arpeggiator, our own code, follows Yarns' arpeggiator by **Emilie
@@ -506,8 +546,13 @@ keeps its own licence, recorded beside it with an `UPSTREAM.md`:
   only the tests use);
 - the SIL Open Font License 1.1 for the fonts.
 
-No GPL code is in the tree; if any comes, it will sit behind a build switch
-([`DEVELOPERS.md`](DEVELOPERS.md#licences)).
+GPL code sits behind a build switch, on in every build while we test
+([`DEVELOPERS.md`](DEVELOPERS.md#licences)): fm1-x0x's 303, TB-3PO, 909
+and 808 (GPL-3.0-only, with Open303's and sc808's MIT code), in
+`engines/third_party/fm1-x0x`, and three of Felucca's engines
+(GPL-3.0-only), in `engines/third_party/felucca`. The simulator is then
+offered under the GPL; a build with the switch off has no GPL code and is
+MIT/BSD.
 
 ## Repository map
 

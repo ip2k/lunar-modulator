@@ -89,6 +89,7 @@ export -f mk build_one
 export SRC OUT JCC
 
 echo "== toolchain: $($TC/common/bin/clang --version | head -1)"
+echo "== GPL switch: FM1_GPL_MODS=${FM1_GPL_MODS:-1} (engines/Makefile)"
 for p in "${PROFILES[@]}"; do
   IFS='|' read -r name opt add <<<"$p"
   build=$OUT/$name/obj
@@ -129,8 +130,23 @@ sz_compile() {  # sz_compile TARGET-NAME "CC" "EXTRA"
     $cc $SZ_CXX $extra -DSZ_$e -c "$SRC/tools/jieli/sizes.cc" -o "$SZ/$t/sizes_$e.o" \
       >"$SZ/$t/sizes_$e.log" 2>&1 || echo "   $t SZ_$e failed (see $SZ/$t/sizes_$e.log)"
   done
+  if [ "${FM1_GPL_MODS:-1}" != 0 ]; then     # the GPL modules, while the switch is on
+    for e in ACID_BASS COMET_KIT CRATER; do
+      $cc $SZ_CXX $extra -I"$SRC/engines/third_party/fm1-x0x" -I"$SRC/engines/third_party/fm1-x0x/gen" \
+        -I"$OUT/ladder/obj/gen" -DSZ_$e -c "$SRC/tools/jieli/sizes.cc" -o "$SZ/$t/sizes_$e.o" \
+        >"$SZ/$t/sizes_$e.log" 2>&1 || echo "   $t SZ_$e failed (see $SZ/$t/sizes_$e.log)"
+    done
+  fi
   $cc $SZ_C $extra -c "$SRC/tools/jieli/sizes.c" -o "$SZ/$t/sizes_c.o" \
     >"$SZ/$t/sizes_c.log" 2>&1 || echo "   $t sizes.c failed (see $SZ/$t/sizes_c.log)"
+  if [ "${FM1_GPL_MODS:-1}" != 0 ]; then     # Felucca's engines (GPL), while the switch is on
+    $cc $SZ_CXX $extra -I"$OUT/ladder/obj/gen" -DSZ_FELUCCA -c "$SRC/tools/jieli/sizes.cc" \
+      -o "$SZ/$t/sizes_FELUCCA.o" >"$SZ/$t/sizes_FELUCCA.log" 2>&1 \
+      || echo "   $t SZ_FELUCCA failed (see $SZ/$t/sizes_FELUCCA.log)"
+    $cc -std=gnu11 -fwrapv -O2 -w $extra -Iinclude -I"$OUT/ladder/obj/gen" -Isrc -Ithird_party/felucca/src \
+      -Ithird_party/felucca/gen -c "$SRC/tools/jieli/sizes_felucca.c" -o "$SZ/$t/sizes_felucca_c.o" \
+      >"$SZ/$t/sizes_felucca_c.log" 2>&1 || echo "   $t sizes_felucca.c failed (see $SZ/$t/sizes_felucca_c.log)"
+  fi
 }
 sz_compile pi32v2 "$JCC" "$SDK_FLAGS $SDK_CODEGEN $SDK_INC"
 sz_compile i386 "gcc -m32" "-w"

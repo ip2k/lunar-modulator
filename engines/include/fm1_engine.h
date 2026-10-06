@@ -49,6 +49,14 @@
  * so a host can lay those notes on its own keys whatever their pitch
  * (engines/README.md, "Pad kits").
  *
+ * Licences (2026-10-06, additive). fm1_engine_licence names, as an SPDX
+ * expression, the licences of the code a module links, from a table beside
+ * the registry; a module not in the table is MIT, the repository's licence.
+ * GPL modules are built in only with the GPL switch on (FM1_GPL_MODS,
+ * engines/Makefile; CLAUDE.md, "The GPL switch"), so the registry and the
+ * table list them only then, and a host names them (fm1-render --list, the
+ * virtual FM-1's page) from the table.
+ *
  * Plain C99 so C and C++ engines (and a Schwung shim) can all implement it.
  * MIT licence, like the rest of this repository.
  */
@@ -526,6 +534,41 @@ const fm1_engine_t *fm1_engine_find(const char *id);
 extern const fm1_midi_fx_t *const fm1_midi_fxs[];
 extern const size_t fm1_midi_fx_count;
 const fm1_midi_fx_t *fm1_midi_fx_find(const char *id);
+
+/* ---- Licences (2026-10-06) --------------------------------------------------
+ * The code each module links, by licence: one row per engine, effect or
+ * MIDI effect whose code is not all MIT, in src/registry.cc. A GPL module's
+ * row sits under #if FM1_GPL_MODS with its registry entry, so a build with
+ * the switch off has neither. */
+typedef struct fm1_licence {
+  const char *id;              /* the module's id (an engine's or a MIDI effect's) */
+  const char *spdx;            /* SPDX expression of everything it links, e.g.
+                                  "GPL-3.0-only AND MIT" */
+  const char *source;          /* where its vendored code is, from the repository's
+                                  root, e.g. "engines/third_party/fm1-x0x" */
+} fm1_licence_t;
+
+extern const fm1_licence_t fm1_licences[];
+extern const size_t fm1_licence_count;
+
+/* The GPL switch the registry was built with: FM1_GPL_MODS, 0 or 1. */
+extern const int fm1_gpl_mods;
+
+/* e's row in the licence table, or NULL: then it is MIT, as the repository. */
+const fm1_licence_t *fm1_engine_licence_row(const fm1_engine_t *e);
+
+/* The SPDX expression of e's code: its row's, else "MIT". Never NULL. */
+const char *fm1_engine_licence(const fm1_engine_t *e);
+
+/* Whether an SPDX expression names a GNU licence (GPL, LGPL, AGPL): what
+ * the switch keeps out of a shared build and the page must declare. */
+static inline int fm1_licence_is_gpl(const char *spdx) {
+  const char *s;
+  for (s = spdx; s && s[0] && s[1] && s[2]; ++s) {
+    if (s[0] == 'G' && s[1] == 'P' && s[2] == 'L') return 1;
+  }
+  return 0;
+}
 
 #ifdef __cplusplus
 }

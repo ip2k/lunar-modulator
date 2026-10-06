@@ -22,6 +22,34 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest -v
 
+  engines-mit:
+    # The GPL switch off (FM1_GPL_MODS=0, engines/Makefile; CLAUDE.md, "The GPL
+    # switch"): the MIT/BSD build, the only one a firmware image that links
+    # JieLi's libraries may be shared as. It must build and pass every engine,
+    # sequencer and simulator test without the GPL modules, whose own tests and
+    # parity scenarios skip. Every other job runs with the switch on, its
+    # default. tests/test_gpl_switch.py (here and in every full run) builds
+    # both and checks that the switch-off build compiles, links and lists
+    # nothing GPL.
+    name: engines (MIT/BSD build, GPL switch off)
+    runs-on: ubuntu-latest
+    env:
+      FM1_GPL_MODS: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - name: Build with the GPL switch off
+        run: |
+          make -C engines -j4
+          engines/build/fm1-render --build-info
+      - name: Engine, sequencer and simulator tests, and the switch's own
+        run: >-
+          python -m pytest -v tests/test_engine*.py tests/test_seq*.py tests/test_movy*.py
+          tests/test_sim*.py tests/test_gpl_switch.py
+
   engines-32bit:
     # pi32v2 has 4-byte pointers; build the engines 32-bit and run their tests
     # against that binary to catch pointer-size assumptions (docs/11, engines/).
