@@ -165,8 +165,8 @@ def test_the_mit_build_links_no_gpl_symbol(on, off):
         if obj.is_file() and any(s is not None and is_gpl_file(s) for s in srcs):
             gpl_objs.append(obj)
     symbols = defined_symbols(gpl_objs)
-    if GPL_MODS and gpl_dirs():
-        assert symbols, "GPL directories exist, but no object of the switch-on build is from one"
+    if any(is_gpl(e["licence"]) for e in listing(on).values()):
+        assert symbols, "GPL modules are listed, but no object of the switch-on build is GPL code"
     leaked = symbols & defined_symbols([off["render"], off["sim"]])
     assert not leaked, sorted(leaked)[:20]
 

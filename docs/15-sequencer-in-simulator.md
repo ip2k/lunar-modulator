@@ -1411,7 +1411,7 @@ plan above [verified: tests/test_seq_ui.py, tests/test_seq_core.py,
   drawn over every mode where popups go. The picker (mode 1) lists the
   candidates, one a line, the one taken highlighted; SELECT or KNOB1 sends
   `capsel`, heard at once. The fitted tempo (mode 2) reads `Captured` /
-  `at 117.50 BPM`; there SELECT and KNOB1 do nothing, as Movy's jog
+  `at 117.5 BPM` (a whole tempo without decimals, as the status line writes it); there SELECT and KNOB1 do nothing, as Movy's jog
   (`captureJog` at `9190e79`) [verified]. **Both stay until a press, as Movy's overlay does,**
   rather than mode 2 being a one-second toast as proposed: the core takes
   no Capture input until `capdone`. Any press (a button, a key, another
@@ -1599,7 +1599,9 @@ tests/test_sim_seq.py, tests/test_seq_render.py, `fm1-sim-render
   counts the bigger buffer too: 192 B more, which reads 1K more for 4 of
   the 54 one-effect chains [verified: `fm1-sim-render`].
 - **Screens.** The status line holds the eight tracks (a cell each: gold
-  for the focused one, an outline for a muted one), a muted track's notes
+  for the focused one, an outline for a muted one; since the UI audit,
+  2026-10-06, each in the colour of the sound it plays, the focused one
+  the line's full height, the tempo "120 BPM" when whole), a muted track's notes
   dim, and the hint line names SEQ's and MUTE's key maps. 69 more screens,
   1,109 in all, 0 faults; every lab-off screen the sweep saves is
   byte-identical to the merge base's [verified: `fm1-sim-render --screens`

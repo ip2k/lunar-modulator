@@ -18,12 +18,6 @@ static inline uint32_t kind_rate(const fm1_host_t *host) {
   return r >= 1000.0f && r <= 384000.0f ? (uint32_t)(r + 0.5f) : 44118u;
 }
 
-/* A rising edge on gate input g of this tick at frame f (an edge list in
- * frame order; the runtime guarantees it). */
-static inline int kind_rose(const fm1_mod_gate_t *g, unsigned e) {
-  return g->ev[e].high != 0;
-}
-
 /* ---- a level gate output ----------------------------------------------------
  * Like mod_trig_t for triggers: edges at their frame; one that falls on the
  * tick's own end (frame >= FM1_MOD_TICK, the boundary after the tick's last

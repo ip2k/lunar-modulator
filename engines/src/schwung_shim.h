@@ -100,8 +100,7 @@ struct Module {
   FxInitFn fx_init;             // move_audio_fx_init_v2, renamed at build time
   const fm1_param_t *params;    // shared with the module's fm1_engine_t
   const ParamKey *keys;         // one per params entry
-  uint16_t n_params;            // entries the fm1_engine_t exposes
-  uint16_t n_defined;           // entries in params/keys (>= n_params)
+  uint16_t n_defined;           // entries in params/keys
   size_t arena_bytes;           // what create_instance may allocate, in total
   float bend_range;             // semitones at full MIDI bend; 0 = none sent
   // Effects: the float bus is divided by this on its way into int16 and

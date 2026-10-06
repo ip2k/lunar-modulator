@@ -87,7 +87,10 @@
  *   ARP pages     SELECT the page (PLAY, RHYTHM, CHANCE, FEEL, MORE, KEYS,
  *                 SEED), KNOB1-4 its parameters, ALGORITHM the stock FM-1's
  *                 arp modes as presets (Up, Down, Up/Down, Down/Up, Random,
- *                 Played); the keys play
+ *                 Played) and, after them, every other MIDI effect in the
+ *                 build, which then takes the slot (Acid Gen while the GPL
+ *                 switch is on: its pages LINE, KEY, PLAY and SEED); the
+ *                 keys play
  * Its LED is lit while the current sound's arp is on, and blinks while it
  * latches. A change of the sound, a panic, a sequencer reset or import
  * flush it; a bypass flushes it at once; every note-on it sent gets its
@@ -165,6 +168,14 @@ extern "C" {
  * (fm1_tft_check_layout's gap in the tests). */
 #define FM1_APP_LAYOUT_GAP 4
 
+/* A message popup's tone (audit Q2): a confirmation, or a refusal, whose
+ * rules and reason lines are C_REFUSE: with REFUSE the first line names
+ * what was refused and stays text ("Shapes" / "does not fit"), with
+ * REFUSE_ALL every line is the reason ("No LFO" / "in the rack"). */
+#define FM1_APP_TONE_SAY 0
+#define FM1_APP_TONE_REFUSE 1
+#define FM1_APP_TONE_REFUSE_ALL 2
+
 /* Arena sizes. The largest instances today are Shapes at 12 voices
  * (~206 KB) and PSX Verb (~134 KB); the arenas leave room for growth and
  * the screen reports the real total against the FM-1's budget below.
@@ -239,11 +250,12 @@ enum {
 /* The arpeggiator (MIDI effects, engine API v3). One per sound unit, in the
  * first of its chain's FM1_MFX_SLOTS slots: the owner's design has four
  * MIDI-effect slots per track (2026-10-05), and the stage keeps room for
- * them, but the arp is the only MIDI effect so far and the panel fills only
- * the first. Each instance has its own arena; the RAM meter counts each
- * arp that is on, and the stage while one is (fm1_app_ram). */
+ * them, but the panel fills only the first, the MIDI-FX slot, with the arp
+ * or another MIDI effect (fm1_app_mfx_select). Each instance has its own
+ * arena; the RAM meter counts each effect that is on, and the stage while
+ * one is (fm1_app_ram). */
 #define FM1_APP_MFX_BYTES 768u        /* a MIDI effect's arena: the arp takes 736 B */
-#define FM1_APP_ARP_PARAMS 32         /* the arp's parameters, at most */
+#define FM1_APP_ARP_PARAMS 32         /* a MIDI effect's parameters, at most */
 #define FM1_APP_ARP_HOLD_S 0.5f       /* ARP held this long latches */
 
 /* What fm1_app_seq_cmd did with a command. */
@@ -351,12 +363,21 @@ typedef struct fm1_app {
 
   /* The popup: up to three lines of a message, or a list's window (PRESETS,
    * ALGORITHM, the pickers; fm1_panel.h): popup[0] is entry popup_first
-   * of popup_total under popup_title. popup_total is 0 for a message. */
-  char popup[FM1_LIST_ROWS][24];
+   * of popup_total under popup_title, in face popup_face. popup_total is
+   * 0 for a message. A refusal (popup_tone) draws its reason in C_REFUSE;
+   * a confirmation that fits one line of BANNER_CHARS is a banner over the
+   * page's bottom (audit L1, fm1_app_banner). A list entry, or the title,
+   * may start with a sound's tag ("S2"), drawn in that sound's colour:
+   * popup_tag holds each line's sound + 1 (bit 4k), 0 for none. */
+  char popup[FM1_LIST_MAX_ROWS][FM1_LIST_ENTRY];
   int popup_lines, popup_mark;   /* popup_mark: highlighted line, or -1 */
-  char popup_title[24];
+  char popup_title[FM1_LIST_ENTRY];
   int popup_first, popup_total;
+  int popup_face;                /* a list's: FM1_LIST_MAIN, _MID or _SMALL */
+  int popup_tone;                /* FM1_APP_TONE_* */
+  int popup_title_tag;           /* the title's sound + 1, or 0 */
   uint32_t popup_dim;            /* a list's lines drawn dim (an Empty entry) */
+  uint64_t popup_tag;            /* each line's sound + 1, four bits a line */
   uint64_t popup_until;
 
   int dirty;                     /* screen content changed */
@@ -418,8 +439,9 @@ typedef struct fm1_app {
   int arp_from_mode;             /* the mode the ARP pages were opened from */
   uint64_t arp_down_at;          /* a->frames when ARP went down */
   uint8_t arp_down, arp_used, arp_hold_done;
-  /* Native-harness hook: every change of an arp, with the frame of the
-   * block it leads: `param` -1 for on (value 1) or bypassed (0), else the
+  /* Native-harness hook: every change of a MIDI-FX slot, with the frame of
+   * the block it leads: `param` -1 for on (value 1) or bypassed (0), -2 for
+   * another effect put in it (value: its index in fm1_midi_fxs), else the
    * parameter's index and its new value. NULL in the browser. */
   void (*on_mfx)(void *ctx, uint64_t frame, int sound, int param, float value);
   /* Native-harness hook: every modulation edit as a line of fm1-render's
@@ -612,9 +634,6 @@ int fm1_app_mod_line(fm1_app_t *a, const char *line, char *err, size_t cap);
  * when every line could be written. */
 int fm1_app_mod_dump(fm1_app_t *a, void (*emit)(void *ctx, const char *line), void *ctx);
 
-/* The runtime (NULL while none runs). */
-const fm1_mod_t *fm1_app_mod(const fm1_app_t *a);
-
 /* The runtime's unit code (fm1_mod.h) for an app unit id (FM1_APP_UNITS):
  * sound units, their inserts and the master slots; -1 out of range. */
 int fm1_app_mod_unit(int unit);
@@ -640,10 +659,28 @@ int fm1_app_arp_set_on(fm1_app_t *a, int sound, int on);
 void fm1_app_arp_set_param(fm1_app_t *a, int sound, int index, float value);
 float fm1_app_arp_get_param(const fm1_app_t *a, int sound, int index);
 
+/* The MIDI effect in a sound's MIDI-FX slot, the ARP slot: the arp, unless
+ * ALGORITHM (or fm1_app_mfx_select) put another there. Its parameters are
+ * what fm1_app_arp_set_param and fm1_app_arp_get_param reach. */
+const fm1_engine_t *fm1_app_mfx_engine(const fm1_app_t *a, int sound);
+
+/* That effect's parameter index by name (case insensitive), or -1. */
+int fm1_app_mfx_param_index(const fm1_app_t *a, int sound, const char *name);
+
+/* Puts the registry's MIDI effect `id` in a sound's MIDI-FX slot, a fresh
+ * instance at its defaults, on if the slot's effect was on; the one it
+ * replaces ends its notes. 0; -1 for an unknown id or sound; or
+ * FM1_APP_SELECT_RAM, with a popup, when it would take the chain past the
+ * RAM budget. */
+int fm1_app_mfx_select(fm1_app_t *a, int sound, const char *id);
+
 /* The stock FM-1's arp modes as presets (Up, Down, Up/Down, Down/Up,
- * Random, Played): each sets Mode and Order. The count, a preset's name,
- * applying one to a sound (0, or -1), and the preset a sound's arp is on
- * now (-1: none). */
+ * Random, Played): each sets Mode and Order, putting the arp back in the
+ * slot if another effect is there; then one entry for each other MIDI
+ * effect of the registry, which puts that effect in the slot. The count, a
+ * preset's name, applying one to a sound (0, or -1, or
+ * FM1_APP_SELECT_RAM), and the preset a sound's slot is on now (-1:
+ * none). */
 int fm1_app_arp_preset_count(void);
 const char *fm1_app_arp_preset_name(int preset);
 int fm1_app_arp_preset(fm1_app_t *a, int sound, int preset);
@@ -655,6 +692,12 @@ int fm1_app_draw(fm1_app_t *a, uint32_t min_frames);
 
 /* Redraw now, logging boxes for fm1_tft_check_layout. */
 void fm1_app_draw_checked(fm1_app_t *a);
+
+/* Whether the open popup draws as a banner (audit L1: a confirmation, no
+ * list, no refusal, its lines joined by spaces one line): 1 + FM1_TFT_MAIN
+ * for at most 18 characters, 1 + FM1_TFT_MID for at most 27 (fm1_look.h's
+ * BANNER_CHARS, _MID), that line in buf; else 0. */
+int fm1_app_banner(const fm1_app_t *a, char *buf, size_t size);
 
 /* Bytes of FM-1 RAM the current chain would use, the RAM meter's figure:
  * the engines' instances, the sequencer's (fm1_seq_size), its event

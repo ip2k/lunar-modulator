@@ -20,3 +20,9 @@ shift-exponent:third_party/mutable/plaits/dsp/fm/dx_units.h
 # the original, as the oracle for the Bounce kind's port, which multiplies
 # by 16 instead (engines/mod/kinds.md).
 shift-base:third_party/mutable/peaks/modulations/bouncing_ball.h
+# fm1-x0x's fastmath.h (GPL, built only with FM1_GPL_MODS=1) makes 2^n by
+# adding n << 23 to a float's bits (fm_exp2_nf), a left shift of a negative
+# n for every exponent below 0: the two's-complement shift GCC documents for
+# signed '<<' and clang computes, giving the intended exponent bits.
+# Acid Bass's wrapper inlines the header, so the report lands here either way.
+shift-base:third_party/fm1-x0x/dsp/fastmath.h

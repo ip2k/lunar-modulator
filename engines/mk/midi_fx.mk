@@ -24,8 +24,10 @@ $(BUILD)/midi_fx/%.o: midi_fx/%.c
 
 all: $(BUILD)/fm1-arp
 
-$(BUILD)/fm1-arp: $(ARP_TOOL_OBJ) $(ARP_OBJ)
-	$(CC) $(OPT) $(EXTRA) -o $@ $^
+# The registry lists the GPL MIDI effects while the switch is on, so the tool
+# links their objects (GPL_OBJ, C) then too.
+$(BUILD)/fm1-arp: $(ARP_TOOL_OBJ) $(ARP_OBJ) $(GPL_OBJ)
+	$(CC) $(OPT) $(EXTRA) -o $@ $^ -lm
 
 # fm1-render runs MIDI effects in front of its sounds (--mfx); every renderer
 # variant that links RENDER_OBJ gets them.

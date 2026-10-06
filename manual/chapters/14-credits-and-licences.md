@@ -47,6 +47,21 @@ terms it is used under.
   TR-808's circuits, among them **Baratatronix**'s. No code or text is
   taken from the papers or the descriptions. The two kits are inspired by those drum machines; Roland's
   names appear here only as credit.
+- **Acid Bass** is the 303 bass of **fm1-x0x**, open firmware for the FM-1
+  by **Charles Vestal**, GNU GPL version 3 (built in only with the GPL
+  switch on; see [Licences](#licences)). It ports **Open303** by **Robin
+  Schmidt** (MIT licence), with the Devilfish modifications' ranges after
+  **jc303** by **midilab** and a drive after **dm-Rat** by **Dave Mollen**
+  (both GNU GPL version 3), by way of Charles Vestal's **schwung-303**.
+  Two small changes of this project's let it run at the instrument's rate
+  and take smooth settings; the rest of its code is included unmodified.
+  It is after Roland's TB-303, whose name appears here only as credit.
+- **Acid Gen** is TB-3PO, the line generator of **fm1-x0x** by **Charles
+  Vestal**, GNU GPL version 3 (built in only with the GPL switch on), which
+  ports his **schwung-tb3po** and, through it, the **TB_3PO** applet of the
+  **Phazerville Hemisphere Suite** by **djphazer** and its contributors
+  (GNU GPL version 3). Its code is included unmodified; playing it as an
+  effect in front of a sound is this project's own.
 - **PSX Verb** by **Charles Vestal**, MIT licence, included unmodified.
 - **Schwung**, Charles Vestal's host for modules on the Ableton Move, MIT
   licence. Lunar Modulator includes Schwung's plugin interface unmodified,
@@ -214,9 +229,12 @@ The project's research notes credit each source in detail.
   typeface otherwise.
 - **Rosé Pine**, by mvllow and the Rosé Pine contributors, MIT licence: this
   manual is in the Dawn palette, and the simulator and the art in Moon.
-- The simulator's screen font, the panel drawings, the banner and the boot
-  screen are this project's own. The panel drawings follow M-VAVE's published
-  dimensions and measurements of a unit.
+- **Spleen** by Frederic Cambus, BSD 2-Clause licence: the screen's two
+  smaller typefaces, 8×16 and 6×12. The simulator's page carries its licence,
+  and so must any firmware built with them.
+- The simulator's main screen font, the panel drawings, the banner and the
+  boot screen are this project's own. The panel drawings follow M-VAVE's
+  published dimensions and measurements of a unit.
 - The manual is built with **Python-Markdown** and **WeasyPrint**, both under
   the BSD licence.
 
@@ -227,15 +245,17 @@ from other projects keeps its own licence, which the repository records
 beside it with a note of where it came from. Everything listed in this
 chapter that ships with the simulator or the desktop tools is under the MIT
 licence, or, for msfa, the Apache License 2.0, or, for the fonts, the SIL
-Open Font License 1.1. The repository's tests also use **Felucca**'s
-`fm6_core.c` by **Leo Kuroshita** (Hügelton Instruments), an Apache-2.0 port
-of the same FM core, to check FM6 against; it is in no build of the
-firmware or the simulator.
+Open Font License 1.1, or, for Spleen, the BSD 2-Clause licence. The
+repository's tests also use **Felucca**'s `fm6_core.c` by **Leo Kuroshita**
+(Hügelton Instruments), an Apache-2.0 port of the same FM core, to check FM6
+against; it is in no build of the firmware or the simulator.
 
 **GPL code, and the GPL switch.** Some engines and effects port code that
-other projects publish under the GNU General Public License. Each sits in
-a folder of its own in the repository, with its licence and a note of where
-it came from, and is built in only while the firmware's GPL switch is on.
+other projects publish under the GNU General Public License: today Acid
+Bass ([chapter 5](05-sound-engines.md#acid-bass)) and Acid Gen
+([chapter 4](04-playing.md#acid-gen)). Each sits in a folder of
+its own in the repository, with its licence and a note of where it came
+from, and is built in only while the firmware's GPL switch is on.
 While we test, the switch is on in every build, the simulator included.
 - **In the simulator**, the page beside the panel then names each module
   with GPL code in it, and offers the simulator's module under the GNU GPL,

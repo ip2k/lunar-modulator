@@ -28,12 +28,15 @@ import wave
 
 import pytest
 
-from tests.engine_helpers import RATE, cents, pitch_hz, render, renderer  # noqa: F401
+from tests.engine_helpers import GPL_MODS, RATE, cents, pitch_hz, render, renderer  # noqa: F401
 
 PER_NOTE = ["macro", "macro-heavy", "shapes", "sixop", "dx7"]
 # Drums takes per-note offsets too, on its pads' notes only (36-51), which
 # the pitched scripts here do not play: tests/test_engine_drums.py checks it.
 PER_NOTE_KITS = ["drums"]
+# Acid Bass (a GPL module) takes them on its one voice, which moves from key
+# to key: tests/test_engine_acid_bass.py checks it.
+PER_NOTE_MONO = ["acid-bass"] if GPL_MODS else []
 
 # A sustained, deterministic voice per engine (no shared random numbers, so
 # notes rendered apart are the notes rendered together), and a parameter
@@ -111,7 +114,8 @@ def at(name, value):
 def test_which_engines_take_per_note_offsets(listing):
     """Sophie keeps its voices inside the module, out of the shim's reach;
     effects have no notes; Test Sine stays the engine without them."""
-    assert sorted(e for e, v in listing.items() if v["per_note"]) == sorted(PER_NOTE + PER_NOTE_KITS)
+    assert sorted(e for e, v in listing.items() if v["per_note"]) == \
+        sorted(PER_NOTE + PER_NOTE_KITS + PER_NOTE_MONO)
     assert [p["name"] for p in poly(listing, "sixop")] == ["Brightness", "Envelope", "Volume"]
     assert [p["name"] for p in poly(listing, "dx7")] == ["Brightness", "Env Time", "Feedback",
                                                          "Volume"]

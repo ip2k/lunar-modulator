@@ -18,13 +18,14 @@
 
 extern const fm1_midi_fx_t fm1_midi_fx_arp;
 #if FM1_GPL_MODS
-/* GPL MIDI effects: none yet. */
+/* GPL MIDI effects (built by their own fragments). */
+extern const fm1_midi_fx_t fm1_midi_fx_acid_gen;   /* fm1-x0x's TB-3PO (mk/fm1-x0x.mk) */
 #endif
 
 const fm1_midi_fx_t *const fm1_midi_fxs[] = {
   &fm1_midi_fx_arp,
 #if FM1_GPL_MODS
-  /* GPL MIDI effects: none yet. */
+  &fm1_midi_fx_acid_gen,
 #endif
 };
 const size_t fm1_midi_fx_count = sizeof(fm1_midi_fxs) / sizeof(fm1_midi_fxs[0]);

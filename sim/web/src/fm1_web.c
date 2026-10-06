@@ -31,7 +31,14 @@ int fm1w_unit_route(int track, int sound) { return fm1_app_unit_route(&g_app, tr
 unsigned fm1w_ram_budget(void) { return FM1_APP_RAM_BUDGET; }
 
 /* The arpeggiator (engine API v3's MIDI effects): a sound's arp on or off,
- * and its parameters by index (the catalogue lists it, kind "midi_fx"). */
+ * and its parameters by index (the catalogue lists it, kind "midi_fx").
+ * fm1w_mfx_select puts another MIDI effect, by its catalogue index, in the
+ * sound's MIDI-FX slot; fm1w_arp_* then reach that one. */
+int fm1w_mfx_select(int sound, int index) {
+  const int k = index - (int)fm1_engine_count;
+  if (k < 0 || k >= (int)fm1_midi_fx_count) return -1;
+  return fm1_app_mfx_select(&g_app, sound, fm1_midi_fxs[k]->engine.id);
+}
 int fm1w_arp_on(int sound) { return fm1_app_arp_on(&g_app, sound); }
 int fm1w_arp_set_on(int sound, int on) { return fm1_app_arp_set_on(&g_app, sound, on); }
 void fm1w_arp_set_param(int sound, int index, float value) {

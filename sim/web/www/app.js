@@ -312,9 +312,10 @@ function showLicence() {
   add('); the rest of Lunar Modulator is MIT. ');
   const repo = licence.repository;
   if (repo) {
-    const tree = licence.commit ? `${repo}/tree/${licence.commit}` : repo;
+    const tree = `${repo}/tree/${licence.commit || 'main'}`;
     add('The complete corresponding source is ');
-    add(licence.commit ? `the repository at ${licence.commit.slice(0, 7)}` : 'the repository', tree);
+    add(licence.commit ? `the repository at ${licence.commit.slice(0, 7)}` : 'the repository',
+      licence.commit ? tree : repo);
     const dirs = [...new Set(gpl.map((m) => m.source).filter(Boolean))];
     if (dirs.length) {
       add(', where ');
@@ -431,6 +432,15 @@ selects.forEach((s, unit) => s.addEventListener('change', () => {
   s.blur();
 }));
 
+// A tempo as the screen writes it (fm1_seq_view_bpm): "120 BPM", decimals
+// only when there are some ("117.5 BPM", "117.65 BPM").
+function bpmText(bpmX100) {
+  const whole = Math.floor(bpmX100 / 100), frac = bpmX100 % 100;
+  if (!frac) return `${whole} BPM`;
+  if (frac % 10 === 0) return `${whole}.${frac / 10} BPM`;
+  return `${whole}.${String(frac).padStart(2, '0')} BPM`;
+}
+
 function showStatus() {
   const st = sim.state;
   if (!sim.ctx || !st) return;
@@ -439,7 +449,7 @@ function showStatus() {
   const latency = sim.ctx.outputLatency || sim.ctx.baseLatency || 0;
   const ram = (b) => `${Math.ceil(b / 1024)} KB`;
   const q = sim.seq;
-  const seq = q ? ` Sequencer: ${(q.bpm_x100 / 100).toFixed(2)} BPM, ` +
+  const seq = q ? ` Sequencer: ${bpmText(q.bpm_x100)}, ` +
     `${q.recording ? 'recording' : q.counting_in ? 'counting in' : q.playing ? 'playing' : 'stopped'}` +
     `${q.following ? ' (external clock)' : ''}.` : '';
   statusEl.textContent = `Running at ${rate.toLocaleString('en')} Hz${fellBack}, 64-frame blocks, ` +

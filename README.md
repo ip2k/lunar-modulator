@@ -96,7 +96,7 @@ its screen. None of it runs on an FM-1 yet.
 
 ### Sound engines
 
-Seven sound engines, plus Test Sine for testing. PRESETS picks one,
+Eight sound engines, plus Test Sine for testing. PRESETS picks one,
 ALGORITHM steps through its models, shapes, patches or pads, and KNOB1–4
 play its parameters, four to a page (SELECT turns the page).
 - **Macro:** eight synths in one, 12 voices: virtual analogue with a filter,
@@ -116,6 +116,10 @@ play its parameters, four to a page (SELECT turns the page).
   with two kits, Deep and Punch: a kick, two snares, a clap, a rim shot,
   three hi-hats, six toms, a crash and a ride, and any pad can play a
   cowbell instead.
+- **Acid Bass:** a bass after the TB-303, with accents, slides, the
+  Devilfish's longer slides and accent decays, and a soft or RAT-style
+  drive. It is fm1-x0x's 303 and its code is GPL, so it is in builds with
+  the GPL switch on, as the simulator is while we test.
 
 Sophie and Drums play their pads from the 16 white keys, at any octave.
 
@@ -189,7 +193,7 @@ A step sequencer whose design follows Movy by megadake
 It starts with a one-bar demo pattern: press PLAY/STOP, or Space. Clips,
 scenes and songs run in the desktop tools so far.
 
-<img src="assets/screenshots/screen-seq.png" width="240" alt="SEQ mode while the demo pattern plays: 120.00 BPM, the eight tracks and PLAY on the status line, the bar's 16 steps with the playhead, the knob strip, and the sound's model, VA Pair">
+<img src="assets/screenshots/screen-seq.png" width="240" alt="SEQ mode while the demo pattern plays: 120 BPM, the eight tracks and PLAY on the status line, the bar's 16 steps with the playhead, the knob strip, and the sound's model, VA Pair">
 
 ### Arpeggiator
 
@@ -462,6 +466,12 @@ This is a synthesis of other people's work. The details are in
   lineage are also the engine of the stock firmware.
 - **Charles Vestal** for Schwung and its PSX Verb module, and **Matt Estela**
   for the Sophie drum module (MIT).
+- **fm1-x0x** by **Charles Vestal** (GPL-3.0): Acid Bass is its 303, a port
+  of **Open303** by **Robin Schmidt** (MIT) with the Devilfish ranges after
+  **jc303** by **midilab** and a RAT drive after **dm-Rat** by **Dave
+  Mollen** (both GPL-3.0), by way of schwung-303; Acid Gen is its TB-3PO,
+  after schwung-tb3po and the Phazerville Hemisphere Suite's TB_3PO by
+  **djphazer** and contributors (GPL-3.0).
 - Sequencer design and logic after Movy by **megadake** (MIT),
   [github.com/DimaDake/schwung-movy](https://github.com/DimaDake/schwung-movy).
 - The arpeggiator, our own code, follows Yarns' arpeggiator by **Emilie
@@ -498,8 +508,11 @@ keeps its own licence, recorded beside it with an `UPSTREAM.md`:
   only the tests use);
 - the SIL Open Font License 1.1 for the fonts.
 
-No GPL code is in the tree; if any comes, it will sit behind a build switch
-([`DEVELOPERS.md`](DEVELOPERS.md#licences)).
+GPL code sits behind a build switch, on in every build while we test
+([`DEVELOPERS.md`](DEVELOPERS.md#licences)): fm1-x0x's 303 (GPL-3.0-only,
+with Open303's MIT code), in `engines/third_party/fm1-x0x`. The simulator
+is then offered under the GPL; a build with the switch off has no GPL code
+and is MIT/BSD.
 
 ## Repository map
 

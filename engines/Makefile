@@ -78,7 +78,6 @@ TP_SRC := \
   braids/digital_oscillator.cc \
   braids/resources.cc \
   stmlib/dsp/units.cc \
-  stmlib/dsp/atan.cc \
   stmlib/utils/random.cc
 
 # Engines added in their own fragment (mk/<name>.mk) append to OUR_SRC and
