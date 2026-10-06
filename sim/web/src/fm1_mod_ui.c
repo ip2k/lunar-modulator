@@ -1563,7 +1563,7 @@ static void cable_text(chain_t *c, unsigned j, char *out, uint8_t *roles) {
 /* A node's line: the source by its full name, and "+N" for the cables
  * from its module that the path does not take. */
 static void node_text(chain_t *c, unsigned src, const uint32_t on_path, char *out, uint8_t *roles) {
-  char name[32], more_s[8];
+  char name[32], more_s[16];
   int more = 0;
   line_b b;
   line_init(&b, out, roles, FM1_MOD_UI_ROW_CHARS);

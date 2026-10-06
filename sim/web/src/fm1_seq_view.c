@@ -416,7 +416,7 @@ static void lock_row(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sou
 }
 
 static void draw_lock(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd) {
-  char line[32], tag[8] = "";
+  char line[32], tag[16] = "";
   int idx[4], n;
   uint16_t color = C_CONTEXT;
   const int page = u->step_page - FM1_SEQ_UI_STEP_PAGES;
