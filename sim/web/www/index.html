@@ -122,7 +122,9 @@
         open) or off; hold ARP to latch, so the notes keep playing after you let go and the next chord
         replaces them. SHIFT and ARP shows the pages without switching. SELECT turns the pages (PLAY,
         RHYTHM, CHANCE, FEEL, MORE, KEYS, SEED), the knobs set the mode, rate, gate, octaves, rhythm
-        patterns and chance, and ALGORITHM picks the stock FM-1's arp modes as presets. The keys, MIDI
+        patterns and chance, and ALGORITHM picks the stock FM-1's arp modes as presets; past them it puts
+        another MIDI effect in the arpeggiator's place, when the build has one: Acid Gen, which plays seeded
+        acid lines from the key you hold (made for the Acid Bass sound). The keys, MIDI
         and the sequencer's notes for that sound all go through it, and it follows the sequencer's
         tempo, running or not. Recording keeps the notes you played, so the arpeggio comes back on
         playback. Its LED is lit while it is on and blinks while it latches. The arpeggiator follows
@@ -133,7 +135,8 @@
         effect's or a module's page to send it there, the turn setting how much (with a mouse, <kbd>Tab</kbd> to the button and
         hold <kbd>Enter</kbd> while you scroll the knob). EDIT lists every connection: KNOB1 picks the
         source, KNOB2 the destination, KNOB3 the amount, ALGORITHM the second page; SEL shows its
-        chain. A parameter that is moved shows a diamond, its range in gold and where it is now in red.
+        chain. A parameter that is moved shows its name in light blue-green, its range as a bracket of
+        that colour and where it is now as a white tick.
         The modules follow Mutable Instruments' Peaks and Braids (Emilie Gillet), Schwung's LFO (Charles
         Vestal), DaisySP's sample and hold (Electrosmith) and Music Thing Modular's Turing Machine and
         Workshop System card 106 (Tom Whitwell, Matt Allison), all MIT; the code is this project's
@@ -145,9 +148,12 @@
       (Mutable Instruments, MIT) and the Schwung module authors; see the repository's
       <code>engines/README.md</code>. FM6 is msfa by Raph Levien for Google (Apache License 2.0), borrowed with
       thanks, as is its name, from Felucca's FM6 engine by hugelton; it reads the DX7's voice format (not
-      affiliated with Yamaha). Squash and the Limiter's Round mode
+      affiliated with Yamaha). Acid Bass and Acid Gen, in builds with the GPL switch on, are the 303 and the
+      TB-3PO generator of fm1-x0x by Charles Vestal, after Open303 by Robin Schmidt and the Phazerville
+      Hemisphere Suite's TB_3PO (after the TB-303, a Roland mark named only as credit). Squash and the Limiter's Round mode
       port Airwindows plug-ins by Chris Johnson (MIT). Colours: Ros&eacute; Pine Moon (MIT). Type: Audiowide by
-      Astigmatic (SIL Open Font License 1.1, <a href="fonts/audiowide/OFL.txt">licence</a>).
+      Astigmatic (SIL Open Font License 1.1, <a href="fonts/audiowide/OFL.txt">licence</a>); on the screen, beside
+      the project's own 5&times;9, Spleen by Frederic Cambus (BSD 2-Clause, <a href="fonts/spleen/LICENSE">licence</a>).
       M-VAVE and FM-1 are their owners' names for their synthesizer; this project is not affiliated with them.</p>
   </section>
   <p class="licence-note" id="licence-note" hidden></p>

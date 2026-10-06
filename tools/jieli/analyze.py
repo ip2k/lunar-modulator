@@ -126,13 +126,6 @@ class Elf:
                     out[target].add(sym["name"])
         return {k: sorted(v) for k, v in out.items()}
 
-    def constant(self, name):
-        for s in self.symbols:
-            if s["name"] == name and s["shndx"] not in (0, 0xFFF1, 0xFFF2):
-                sec = self.sections[s["shndx"]]
-                return struct.unpack_from("<I", self.data, sec["offset"] + s["value"])[0]
-        return None
-
     def constants(self, prefix="fm1sz_"):
         out = {}
         for s in self.symbols:
@@ -419,7 +412,7 @@ def main(out):
         for e in ("macro", "shapes", "macro_heavy", "sixop", "dx7", "test_sine", "test_gain"):
             if e in c:
                 v[e] = c[e]
-        for e in ("plate", "ensemble", "diffuse"):
+        for e in ("plate", "ensemble", "diffuse", "acid_bass"):
             if e in c:
                 v[e] = r16(c[e])
         if "schwung_instance" in c and "schwung_align" in c:

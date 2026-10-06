@@ -160,8 +160,6 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
         s, r, log, a, b = two_step(tools, tmp_path, sc["name"], seq / sc["panel"], seq / sc["cmd"],
                                    *args)
         assert s["replayable"] == 1 and a == b and s["peak"] > 0.01
-        if sc["name"] != "seq-panel-play-stop":
-            continue                    # modulation's (tests/test_sim_mod.py)
         sidecar = (tmp_path / f"{sc['name']}.args").read_text()
         played = [t for _, t in s["seq_ui_cmds"]]
         if sc["name"] == "seq-panel-play-stop":
@@ -422,13 +420,13 @@ def test_the_ui_state_holds_its_s4_fields_in_its_bound(tools):
 REC_LED = 27 + 13
 
 
-def rec_run(tools, tmp_path, panel_lines, seconds, script="rec.verbs", *extra):
+def rec_run(tools, tmp_path, panel_lines, seconds, script="rec.verbs"):
     """A panel run from tests/fixtures/seq-ui/`script`, Test Sine, ended at
     `seconds` (whatever is held then stays held)."""
     panel = tmp_path / "p.panel"
     panel.write_text("\n".join(panel_lines) + "\n")
     return run(tools["sim"], ["--engine", "test-sine", "--cmd", str(TRACES / script),
-                              "--panel", str(panel), "--seconds", str(seconds), *extra])
+                              "--panel", str(panel), "--seconds", str(seconds)])
 
 
 @pytest.mark.parametrize("seconds,lit,state", [

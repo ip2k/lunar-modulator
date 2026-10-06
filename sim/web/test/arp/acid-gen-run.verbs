@@ -1,0 +1,8 @@
+#! rate=44118 block=64 tracks=8 end=176472
+# Acid Gen (a GPL MIDI effect, engines/midi_fx/acid_gen.c) with Keys = Run:
+# its line plays while the sequencer's transport runs, from step 1 at Start,
+# and Stop ends its note. Track 1 holds a note on step 1 for two bars, which
+# the chain takes as a held key: it transposes the line while it sounds.
+@0 bpm 13600;tog 0 0 52 100;slen 0 0 0 -1 192
+@17664 play
+@154368 stop

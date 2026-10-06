@@ -16,6 +16,7 @@ import subprocess
 
 import pytest
 
+from tests.engine_helpers import GPL_MODS
 from tests.test_sim_web import SCENARIOS, left_channel, run, scenario_args, tools  # noqa: F401
 
 BUDGET = 387924
@@ -45,7 +46,7 @@ def test_shift_presets_chooses_the_current_sound(tools):
     s = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.1:SEL:0.2",
             "--turn", "0.15:PRESETS:1", seconds=0.5)
     assert s["current"] == 1 and s["popup"] == ["S1 Macro", "S2 Shapes", "S3 Empty", "S4 Empty"]
-    assert s["popup_list"] == {"title": "Sound", "first": 0, "total": 4, "mark": 1}
+    assert s["popup_list"] == {"title": "Current sound", "first": 0, "total": 4, "mark": 1}
     assert s["seq_view"]["shift"] == 0 and s["engine"] == "macro"
     empty = sim(tools, "--engine", "macro", "--button", "0.1:SEL:0.2", "--turn", "0.15:PRESETS:3",
                 seconds=0.5)
@@ -128,7 +129,8 @@ def test_presets_on_another_sound_reaches_empty(tools):
     catalog = json.loads(subprocess.run([str(tools["sim"]), "--list"], check=True,
                                         capture_output=True, text=True).stdout)
     engines = sum(e["kind"] == "sound" for e in catalog)
-    assert on["popup_list"] == {"title": "Engine", "first": 0, "total": 1 + engines, "mark": 1}
+    # With more than one sound in use the title says whose list it is.
+    assert on["popup_list"] == {"title": "S2 engine", "first": 0, "total": 1 + engines, "mark": 1}
     off = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.1:SEL:0.1",
               "--turn", "0.15:PRESETS:1", "--turn", "0.3:PRESETS:-1", "--turn", "0.4:PRESETS:-1",
               seconds=0.5)
@@ -275,7 +277,7 @@ def test_every_scenario_fits_the_meter(tools):
     and stays inside the budget. fx-turns-diffuse-psxverb ran Shapes, which
     with Diffuse and PSX Verb would pass it, until the lab switch went."""
     for s in SCENARIOS:
-        if "panel" in s:
+        if "panel" in s or (s.get("gpl") and not GPL_MODS):   # a GPL module: not in the build
             continue
         r = run(tools["sim"], scenario_args(s) + ["--seconds", "0.01"])
         assert r["ram"] <= BUDGET, s["name"]

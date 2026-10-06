@@ -1,0 +1,72 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='508.57' height='948.83' viewBox='-6 -6 339.05 632.55' role='img'><title>The effect chain</title><desc>A chain from top to bottom. Sound 1, here Macro, feeds its first insert, here Echo, then its second insert, which is empty and passes the sound on, then its level on the Mix page. The mix also takes Sounds 2 to 4, each through its own two inserts and level. The mix feeds master slot M1, here Plate, then M2, empty, then AMP, the level modulation can move. The metronome&#x27;s click joins before the limiter, which keeps the sum below 0.98 of full scale. MASTER, the volume, comes last. Notes beside the chain say that SEL and SELECT swap the two inserts, or the two master effects, with their settings, and that the master effects work on every sound together.</desc><rect data-kind='bg' x='-6' y='-6' width='339.05' height='632.55' fill='#fffaf3'/>
+<rect data-kind='group' data-id='s1' x='4' y='4' width='123.86' height='225.7' rx='8' fill='#f6f9ff' stroke='#3069b2' stroke-width='1.3'/>
+<text x='12' y='18.39' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='11' font-weight='600' text-anchor='start' data-owner='s1'>Sound 1</text>
+<path data-kind='edge' data-id='e0' data-from='snd' data-to='in1' d='M65.93 55.9 L65.93 75.9' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e1' data-from='in1' data-to='in2' d='M65.93 111.5 L65.93 131.5' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e2' data-from='in2' data-to='lvl' d='M65.93 167.1 L65.93 187.1' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e3' data-from='lvl' data-to='mix' d='M65.93 222.7 L65.93 249.52' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e4' data-from='others' data-to='mix' d='M148.86 271.32 L94.38 271.32' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e5' data-from='mix' data-to='m1' d='M65.93 285.12 L65.93 311.95' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e6' data-from='m1' data-to='m2' d='M65.93 347.55 L65.93 367.55' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e7' data-from='m2' data-to='amp' d='M65.93 403.15 L65.93 423.15' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e8' data-from='amp' data-to='lim' d='M65.93 472.4 L65.93 492.4' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e9' data-from='click' data-to='lim' d='M195.86 472.4 L195.86 521.02 L112.09 521.02' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e10' data-from='lim' data-to='master' d='M65.93 541.65 L65.93 564.48' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='arrow' data-id='e0' d='M65.93 83.9 L61.33 74.9 L70.53 74.9 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e1' d='M65.93 139.5 L61.33 130.5 L70.53 130.5 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e2' d='M65.93 195.1 L61.33 186.1 L70.53 186.1 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e3' d='M65.93 257.52 L61.33 248.52 L70.53 248.52 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e4' d='M86.38 271.32 L95.38 266.72 L95.38 275.93 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e5' d='M65.93 319.95 L61.33 310.95 L70.53 310.95 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e6' d='M65.93 375.55 L61.33 366.55 L70.53 366.55 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e7' d='M65.93 431.15 L61.33 422.15 L70.53 422.15 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e8' d='M65.93 500.4 L61.33 491.4 L70.53 491.4 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e9' d='M104.09 521.02 L113.09 516.42 L113.09 525.62 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e10' d='M65.93 572.48 L61.33 563.48 L70.53 563.48 Z' fill='#464261'/>
+<rect data-kind='node' data-id='snd' data-group='s1' x='13.79' y='28.3' width='104.28' height='27.6' rx='4' fill='#edf4fe' stroke='#3069b2' stroke-width='1.3'/>
+<text x='65.93' y='45.64' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='snd'>Engine: Macro</text>
+<rect data-kind='node' data-id='in1' data-group='s1' x='27.67' y='83.9' width='76.51' height='27.6' rx='4' fill='#edf4fe' stroke='#3069b2' stroke-width='1.3'/>
+<text x='65.93' y='101.24' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='in1'>In1: Echo</text>
+<rect data-kind='node' data-id='in2' data-group='s1' x='24.32' y='139.5' width='83.22' height='27.6' rx='4' fill='#edf4fe' stroke='#3069b2' stroke-width='1.3' stroke-dasharray='4 3'/>
+<text x='65.93' y='156.84' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='in2'>In2: empty</text>
+<rect data-kind='node' data-id='lvl' data-group='s1' x='11' y='195.1' width='109.86' height='27.6' rx='4' fill='#edf4fe' stroke='#3069b2' stroke-width='1.3'/>
+<text x='65.93' y='212.44' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='lvl'>Level: 0–100 %</text>
+<rect data-kind='node' data-id='mix' x='45.48' y='257.53' width='40.9' height='27.6' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='65.93' y='274.87' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='mix'>Mix</text>
+<rect data-kind='node' data-id='m1' x='28.32' y='319.95' width='75.22' height='27.6' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='65.93' y='337.29' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='m1'>M1: Plate</text>
+<rect data-kind='node' data-id='m2' x='25.08' y='375.55' width='81.69' height='27.6' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3' stroke-dasharray='4 3'/>
+<text x='65.93' y='392.89' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='m2'>M2: empty</text>
+<rect data-kind='node' data-id='amp' x='11.86' y='431.15' width='108.14' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='65.93' y='448.49' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='amp'>AMP</text>
+<text x='65.93' y='462.67' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='amp'>modulation’s level</text>
+<rect data-kind='node' data-id='lim' x='27.77' y='500.4' width='76.32' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='65.93' y='517.74' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='lim'>Limiter</text>
+<text x='65.93' y='531.92' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='lim'>ceiling 0.98</text>
+<rect data-kind='node' data-id='master' x='29.16' y='572.48' width='73.53' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='65.93' y='589.82' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='master'>MASTER</text>
+<text x='65.93' y='604' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='master'>the volume</text>
+<rect data-kind='node' data-id='others' x='148.86' y='250.7' width='174.19' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='235.95' y='268.04' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='others'>Sounds 2–4</text>
+<text x='235.95' y='282.22' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='others'>each with its own In1, In2, level</text>
+<rect data-kind='node' data-id='click' x='148.86' y='431.15' width='94' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='195.86' y='448.49' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='click'>Click</text>
+<text x='195.86' y='462.67' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='click'>the metronome</text>
+<rect data-kind='node' data-id='n_swap' x='148.86' y='95.22' width='160.03' height='60.55' fill='none' stroke='none'/>
+<path data-kind='rule' data-id='n_swap' d='M149.86 96.22 L149.86 154.78' stroke='#797593' stroke-width='2'/>
+<text x='160.86' y='108.56' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='start' data-owner='n_swap'>In1, then In2</text>
+<text x='160.86' y='122.75' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='n_swap'>Each effect works on all</text>
+<text x='160.86' y='136.4' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='n_swap'>before it. SEL and SELECT</text>
+<text x='160.86' y='150.05' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='n_swap'>swap the two, settings and all.</text>
+<rect data-kind='node' data-id='n_empty' x='148.86' y='331.28' width='139.11' height='60.55' fill='none' stroke='none'/>
+<path data-kind='rule' data-id='n_empty' d='M149.86 332.28 L149.86 390.83' stroke='#797593' stroke-width='2'/>
+<text x='160.86' y='344.62' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='start' data-owner='n_empty'>M1, then M2</text>
+<text x='160.86' y='358.8' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='n_empty'>They work on every sound</text>
+<text x='160.86' y='372.45' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='n_empty'>together. An empty slot</text>
+<text x='160.86' y='386.1' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='n_empty'>passes the sound on.</text>
+<rect data-kind='node' data-id='n_master' x='148.86' y='569.65' width='124.1' height='46.9' fill='none' stroke='none'/>
+<path data-kind='rule' data-id='n_master' d='M149.86 570.65 L149.86 615.55' stroke='#797593' stroke-width='2'/>
+<text x='160.86' y='582.99' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='start' data-owner='n_master'>MASTER</text>
+<text x='160.86' y='597.17' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='n_master'>After the limiter: it only</text>
+<text x='160.86' y='610.82' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='n_master'>turns the result down.</text>
+</svg>

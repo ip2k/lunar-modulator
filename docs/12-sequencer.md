@@ -471,9 +471,10 @@ we test"). Consequences [inferred, not legal advice]:
     `tests/test_gpl_switch.py` builds the switch-off programs and fails if
     any compiles a GPL file, links a symbol a GPL object defines, or lists
     a GPL module.
-- **GPL code in the tree** [verified, 2026-10-06]: none yet. The first GPL
-  modules are fm1-x0x's 303 bass and its TB-3PO generator
-  (`notes/2026-10-06-fm1-x0x.md` §6).
+- **GPL code in the tree** [verified, 2026-10-06]:
+  `engines/third_party/fm1-x0x/` (fm1-x0x by Charles Vestal,
+  GPL-3.0-only, with Open303's MIT code): the sound engine Acid Bass and
+  the MIDI effect Acid Gen (`notes/2026-10-06-fm1-x0x.md` §6).
 
 **Usable as code in every build (docs/11 §7):**
 

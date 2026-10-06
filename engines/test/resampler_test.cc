@@ -145,11 +145,6 @@ struct SineSource {
   float operator()() { return static_cast<float>(sin(w * n++)); }
 };
 
-struct NoiseSource {
-  uint32_t state;
-  float operator()() { return Noise(&state); }
-};
-
 int Sweep(double in_rate, double out_rate, double from, double to, double step) {
   const size_t kSettle = 128, kN = 16384;
   const std::vector<double> win = KaiserWindow(kN, 20.0);

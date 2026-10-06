@@ -172,6 +172,15 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     (hugelton), whose Apache-2.0 port of the same core is the test oracle.
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
     compatibility shim.
+  - **GPL modules, built only with the GPL switch on** ([Licences](#licences)):
+    **Acid Bass**, a bass after the TB-303, is fm1-x0x's 303 by Charles
+    Vestal (Open303 with the Devilfish ranges and a RAT drive), with two
+    local changes (the host's rate, pots between the integers) and a wrapper
+    that plays it on a 16-sample grid; it is its vendored unit to the bit
+    [verified: `fm1-acid-oracle --twin`], and the patched unit is upstream's
+    at 44.1 kHz [verified: `tests/test_engine_acid_bass.py`]
+    ([`engines/third_party/fm1-x0x/UPSTREAM.md`](engines/third_party/fm1-x0x/UPSTREAM.md),
+    [`engines/README.md`](engines/README.md#acid-bass)).
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
     antiderivative anti-aliasing), Drive (overdrive and saturation, five
@@ -282,7 +291,10 @@ play the same notes, byte for byte, at any block size [verified:
 `tests/test_engine_midi_fx.py`, `tests/test_sim_arp.py`, the `arp-*` parity
 scenarios] ([`engines/midi_fx/README.md`](engines/midi_fx/README.md),
 [`sim/web/README.md`](sim/web/README.md), "The arpeggiator"; manual
-chapter 4, "Arpeggiator").
+chapter 4, "Arpeggiator"). The second MIDI effect, **Acid Gen** (GPL, with
+the switch on), plays fm1-x0x's TB-3PO lines on the same ticks, as
+fm1-x0x's sequencer plays a 303 part; in the virtual FM-1, ALGORITHM puts
+it in the arpeggiator's slot ([`engines/midi_fx/README.md`](engines/midi_fx/README.md#acid-gen-gpl)).
 
 ### The virtual FM-1
 
@@ -294,11 +306,12 @@ chapter 4, "Arpeggiator").
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 3,288 screens of the layout sweep, the sequencer's,
-  modulation's and the arpeggiator's, FM6's user bank and every list popup
-  at every entry included, pass a layout check, with no text cut short and
-  nothing closer than 4 px [verified: `fm1-sim-render --screens`,
-  2026-10-06].
+  canvas, its text in three faces (the project's 5×9 at ×2, Spleen 8×16
+  and 6×12). All 3,408 screens of the layout sweep, the sequencer's,
+  modulation's and the arpeggiator's, FM6's user bank, every list popup at
+  every entry and the knobs' lists included, pass a layout check, with no
+  text cut short and nothing closer than 4 px [verified: `fm1-sim-render
+  --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
   modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); only SAVE is still
@@ -566,7 +579,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Screen and controls refinement** · *In progress*
 - **Depends on:** the simulator (ongoing). On the device: the TFT strip
   driver, key matrix and encoders (I12), and one sized arena for the app
-  layer, whose `fm1_app_t` is 4,915,120 B today (4.5 MiB of it the fixed
+  layer, whose `fm1_app_t` is 4,939,616 B today (4.5 MiB of it the fixed
   arenas of multi-sound's four sound units and ten effect slots), the
   sequencer's arena included, against 578 KB of SRAM
   [verified: sim/web/README.md] (I2).

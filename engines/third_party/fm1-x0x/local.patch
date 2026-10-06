@@ -1,0 +1,102 @@
+--- a/dsp/bass303.c
++++ b/dsp/bass303.c
+@@ -9,6 +9,11 @@
+ #include "bass303.h"
+ #include "fastmath.h"
+ 
++/* Lunar Modulator: every function that reads the rate has the instance, b, in scope, so the
++ * rate is the instance's own (bass303_init_rate); at 44.1 kHz the arithmetic is upstream's */
++#undef BASS303_SR
++#define BASS303_SR (b->sr)
++
+ #define FSO (BASS303_SR * (float)BASS303_OS)    /* oversampled rate */
+ 
+ /* ---- parameters ------------------------------------------------------------------------ */
+@@ -151,15 +156,30 @@
+ 
+ void bass303_set(bass303_t *b, int i, int v)
+ {
+-    float n;
+     if (i < 0 || i >= BASS303_NPARAMS)
+         return;
+     if (v < 0)
+         v = 0;
+     if (v > params[i].max)
+         v = params[i].max;
++    bass303_set_value(b, i, (float)v);
++}
++
++/* Lunar Modulator: upstream's bass303_set with the pot as a float x; for an integer x every
++ * value it computes is bass303_set's */
++void bass303_set_value(bass303_t *b, int i, float x)
++{
++    float n;
++    int v;
++    if (i < 0 || i >= BASS303_NPARAMS)
++        return;
++    if (!(x >= 0.0f))
++        x = 0.0f;
++    if (x > (float)params[i].max)
++        x = (float)params[i].max;
++    v = (int)(x + 0.5f);
+     b->pot[i] = (uint8_t)v;
+-    n = (float)v * (1.0f / 127.0f);
++    n = x * (1.0f / 127.0f);
+     switch (i) {
+     case BASS303_CUTOFF:
+         b->cutoff = 314.0f * fm_exp2f(n * 2.930586688f);       /* log2(2394/314) */
+@@ -184,7 +204,7 @@
+         b->wave = v;
+         break;
+     case BASS303_TUNE:
+-        b->tuning = 440.0f + (float)(v - 64) * 0.625f;
++        b->tuning = 440.0f + (x - 64.0f) * 0.625f;
+         break;
+     case BASS303_VOLUME:
+         b->amp_scaler = fm_db2lin(-60.0f + 60.0f * n);
+@@ -237,7 +257,9 @@
+     b->amp_y = 0.0f;
+ }
+ 
+-void bass303_init(bass303_t *b)
++void bass303_init(bass303_t *b) { bass303_init_rate(b, 44100.0f); }
++
++void bass303_init_rate(bass303_t *b, float sr)
+ {
+     uint8_t *p = (uint8_t *)b;
+     unsigned k;
+@@ -246,6 +268,7 @@
+ 
+     for (k = 0; k < sizeof(*b); k++)
+         p[k] = 0;
++    b->sr = sr;                                      /* Lunar Modulator */
+ 
+     /* fixed (Open303 constructor + setSampleRate) */
+     b->rc1_c = rc_coeff(3.0f, BASS303_SR);           /* normalAttack */
+--- a/dsp/bass303.h
++++ b/dsp/bass303.h
+@@ -144,9 +144,16 @@
+     float r_b[4], r_a[4], r_z[3];        /* RAT op-amp, 3rd-order TDF-II */
+     float r_corr_b1, r_corr_z, r_tone_b1, r_tone_z;
+     float dcb_x1, dcb_y1;
++
++    /* Lunar Modulator: the sample rate this instance runs at (bass303_init_rate);
++     * bass303.c reads it wherever upstream reads BASS303_SR */
++    float sr;
+ } bass303_t;
+ 
+ void bass303_init(bass303_t *b);
++/* Lunar Modulator: bass303_init at a sample rate of the host's (bass303_init is this at
++ * BASS303_SR, 44.1 kHz, and gives upstream's samples) */
++void bass303_init_rate(bass303_t *b, float sr);
+ void bass303_note_on(bass303_t *b, int note, int accent, int slide);
+ void bass303_note_off(bass303_t *b);
+ void bass303_all_off(bass303_t *b);
+@@ -157,4 +164,7 @@
+ int bass303_nparams(void);
+ const x0x_param_t *bass303_param(int i);
+ void bass303_set(bass303_t *b, int i, int value);
++/* Lunar Modulator: bass303_set with a pot position between the integers (0 .. max, as a
++ * float), so a continuous control does not move in 1/127ths; bass303_set(v) is this at v */
++void bass303_set_value(bass303_t *b, int i, float value);
+ int bass303_get(const bass303_t *b, int i);

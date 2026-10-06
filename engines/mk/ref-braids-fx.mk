@@ -19,7 +19,6 @@ REF_BFX_TP := \
   braids/digital_oscillator.cc \
   braids/resources.cc \
   plaits/resources.cc \
-  stmlib/dsp/units.cc \
   stmlib/utils/random.cc
 
 TP_SRC += $(filter-out $(TP_SRC),$(REF_BFX_TP))
