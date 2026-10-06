@@ -9,6 +9,24 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Diagrams in the manual.** Eight drawings, in the manual's colours, where
+  the text explains how things connect: where the arpeggiator sits in the
+  note path (chapter 4); the whole signal flow from the keys, MIDI IN and
+  the sequencer's eight tracks through the arpeggiators, the four sounds,
+  their inserts and the mix to the master effects, the limiter and MASTER
+  (chapter 5); one sound's effect chain and the master bus, with what an
+  empty slot does (chapter 6); the transport as a state diagram, with every
+  press of PLAY/STOP and REC, the count-in, the wait for the bar, step
+  recording and Capture's tempo, and what a clip launch does to a track
+  (chapter 7); and the modulation system, modulation per voice with what is
+  refused, and four patches that chain modules, including a loop (chapter
+  8, with a new *Recipes* section). Line styles and labels carry every
+  meaning, so the colours are never the only cue.
+  - For contributors: each diagram is a small source in `manual/diagrams/`,
+    laid out by `tools/manual/diagrams.py` (no coordinates in the source,
+    no external tool), and `tests/test_manual_diagrams.py` checks that
+    nothing in a drawing touches anything else and that the committed SVGs
+    are current.
 - **Glide and mono playing on Macro, Macro Heavy, Six-Op FM, FM6 and
   Shapes.** Two new parameters on each:
   - **Glide** (1 ms to 5 s): a note you play while holding another slides

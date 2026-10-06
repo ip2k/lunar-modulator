@@ -1,0 +1,156 @@
+# Four patches, each made of ordinary matrix cables (engines/include/fm1_mod.h):
+# LFO into an LFO's Rate, an envelope into an LFO's Depth, ENV3 per voice into
+# FM6's Brightness (a POLY parameter, engines/build/fm1-render --list), and a
+# loop between LFO1 and LFO2, whose cable from position 2 to position 1 reads
+# a tick late (checked with fm1-render --log-mod: mod_delayed 1).
+title = "Modulation recipes"
+caption = "Four patches made of cables. A module’s parameters take cables like any other: an LFO can speed another up, an envelope can open an LFO’s depth (its knob at 0), an envelope per voice can shape each FM6 note, and two LFOs can drive each other in a loop."
+alt = "Four small patches. First, LFO2 into LFO1's Rate, and LFO1 into Sound 1's pitch: a vibrato whose speed wanders. Second, ENV3 into LFO1's Depth, and LFO1 into Sound 1's pitch: a vibrato that fades in with each note. Third, ENV3 per voice into the Brightness of FM6 on Sound 2: each note starts bright and darkens on its own. Fourth, a loop: LFO1 into LFO2's Rate and LFO2 into LFO1's Rate, with LFO1 also into Sound 1's Timbre; the cable from LFO2 back up the rack to LFO1 reads its value a tick late."
+legend = []
+
+[[node]]
+id = "a_src"
+label = "LFO2"
+col = 0
+row = 0
+role = "mod"
+
+[[node]]
+id = "a_lfo"
+label = "LFO1"
+col = 1
+row = 0
+role = "mod"
+
+[[node]]
+id = "a_dst"
+label = "Pitch"
+sub = "Sound 1"
+col = 2
+row = 0
+
+[[node]]
+id = "b_src"
+label = "ENV3"
+col = 0
+row = 1
+role = "mod"
+
+[[node]]
+id = "b_lfo"
+label = "LFO1"
+col = 1
+row = 1
+role = "mod"
+
+[[node]]
+id = "b_dst"
+label = "Pitch"
+sub = "Sound 1"
+col = 2
+row = 1
+
+[[node]]
+id = "c_src"
+label = "ENV3"
+sub = "per voice"
+col = 0
+row = 2
+role = "mod"
+
+[[node]]
+id = "c_dst"
+label = "FM6"
+sub = "Sound 2"
+col = 2
+row = 2
+
+[[node]]
+id = "d_two"
+label = "LFO2"
+col = 0
+row = 3
+role = "mod"
+
+[[node]]
+id = "d_one"
+label = "LFO1"
+col = 1
+row = 3
+role = "mod"
+
+[[node]]
+id = "d_dst"
+label = "Timbre"
+sub = "Sound 1"
+col = 2
+row = 3
+
+[[group]]
+id = "a"
+label = "An LFO into an LFO’s rate: a vibrato that wanders"
+members = ["a_src", "a_lfo", "a_dst"]
+
+[[group]]
+id = "b"
+label = "An envelope into an LFO’s depth: a vibrato that fades in"
+members = ["b_src", "b_lfo", "b_dst"]
+
+[[group]]
+id = "c"
+label = "An envelope per voice into FM6: each note starts bright"
+members = ["c_src", "c_dst"]
+
+[[group]]
+id = "d"
+label = "A loop: the cable that runs up the rack is a tick late"
+members = ["d_two", "d_one", "d_dst"]
+
+[[edge]]
+from = "a_src"
+to = "a_lfo"
+kind = "mod"
+label = "Rate"
+
+[[edge]]
+from = "a_lfo"
+to = "a_dst"
+kind = "mod"
+
+[[edge]]
+from = "b_src"
+to = "b_lfo"
+kind = "mod"
+label = "Depth"
+
+[[edge]]
+from = "b_lfo"
+to = "b_dst"
+kind = "mod"
+
+[[edge]]
+from = "c_src"
+to = "c_dst"
+kind = "mod"
+label = "Brightness, per voice (v)"
+
+[[edge]]
+from = "d_one"
+to = "d_two"
+kind = "mod"
+label = "Rate"
+exit = "left"
+enter = "right"
+
+[[edge]]
+from = "d_two"
+to = "d_one"
+kind = "mod"
+label = "Rate, a tick late (~)"
+exit = "right"
+enter = "left"
+
+[[edge]]
+from = "d_one"
+to = "d_dst"
+kind = "mod"

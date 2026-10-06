@@ -28,6 +28,8 @@ three are ports of Peaks' and Braids' code, under the MIT licence
 
 {{status sim desktop planned}}
 
+{{diagram modulation}}
+
 ### The rack
 
 The rack has eight positions. Each holds a module or nothing. A module is
@@ -262,6 +264,8 @@ switched **on per voice** ([[KNOB4]] on page B of the matrix, turned past
   (its Timbre or Color, say), or the note's own pitch through *Pitch* to
   *Pitch4* and *PitchC*.
 
+{{diagram per-voice}}
+
 The row shows *v*. A cable per voice into something that is not kept for
 each note, such as an effect, the host's AMP, a parameter that every note
 shares (Macro's LPG) or a module that cannot run per voice, is refused and
@@ -304,6 +308,33 @@ Gate*, in the matrix's colours. The chosen cable is highlighted, *+N*
 counts a module's other cables and *~* marks a cable that runs a step
 late; a refused cable is not followed. [[SELECT]] steps along the chain, and [[SEL]] goes back to
 the matrix. [[SEL]] and [[EDIT]] are lit in the chain.
+
+## Recipes
+
+{{status sim desktop planned}}
+
+Each patch below is a few ordinary cables in the matrix
+([The matrix](#the-matrix)): the source on [[KNOB1]], the destination on
+[[KNOB2]], the amount on [[KNOB3]]. A module's parameters take cables like a
+sound's, so modules can drive each other.
+
+{{diagram recipes}}
+
+- **A vibrato that wanders.** Cable LFO1 into *Host Pitch* at +1 % (Pitch
+  spans 96 semitones, so 1 % is about a semitone; LFO1's Depth narrows it),
+  then LFO2 into *LFO1 Rate* at +20 %: LFO2 now speeds LFO1 up and slows it
+  down.
+- **A vibrato that fades in.** Turn LFO1's Depth to 0. Cable ENV3 into
+  *LFO1 Depth* at +50 % and LFO1 into *Host Pitch* at +1 %. Every note
+  restarts ENV3, whose attack opens the vibrato.
+- **Each FM6 note starts bright.** With FM6 on Sound 2, cable ENV3 into
+  *S2 Brightness* at +50 % and turn [[KNOB4]] on page B to *On per voice*
+  ([Per voice](#per-voice)): each note gets an envelope of its own, so a
+  new note starts bright while the older ones have already darkened.
+- **A loop.** Cable LFO1 into *LFO2 Rate* and LFO2 into *LFO1 Rate*, each at
+  +30 %, and LFO1 into *S1 Timbre*: the two LFOs speed each other up and
+  slow each other down. LFO2 sits further down the rack, so its cable back
+  to LFO1 reads LFO2 a tick late and shows *~* ([Loops](#loops)).
 
 ## What the pages show
 

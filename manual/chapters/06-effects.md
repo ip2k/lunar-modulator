@@ -12,12 +12,7 @@ effects are where the sound gains its stereo width.
 
 {{status sim desktop planned}}
 
-```text
-Sound 1 → In1 → In2 → level ┐
-Sound 2 → In1 → In2 → level ├→ mix → M1 → M2 → limiter → MASTER
-Sound 3 → In1 → In2 → level │
-Sound 4 → In1 → In2 → level ┘
-```
+{{diagram effect-chain}}
 
 The simulator starts with Plate in M1, the first master slot, and every
 other slot empty. An effect processes everything before it: a sound's

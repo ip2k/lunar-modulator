@@ -70,6 +70,8 @@ an engine; Sounds 2 to 4 can be empty, as they are when the simulator
 starts. The sequencer's tracks play whichever sound their route names
 ([chapter 7](07-sequencer.md#routing)).
 
+{{diagram signal-flow}}
+
 **The current sound** is the one the keys and [[MIDI IN]] play, and the one
 the sound's page, [[PRESETS]], [[ALGORITHM]] and the knobs edit.
 
