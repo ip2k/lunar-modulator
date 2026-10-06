@@ -15,9 +15,11 @@ history.
   *On* to *On per voice* (the row shows `v`).
   - Inside such a cable VEL, NOTE and RAND are that note's own velocity,
     pitch and random value, and KEY, TRIG and RTRG its own gate and
-    trigger. An Envelope, LFO or Chance module it reads runs one copy per
-    note, starting with that note; an envelope's gate with no cable is the
-    note's own.
+    trigger; so are the note's own sound's sources (S1VEL on Sound 1, say).
+    An Envelope, LFO or Chance module it reads runs one copy per note,
+    starting with that note; an envelope's gate with no cable is the note's
+    own. Notes already held when a cable goes per voice join it at their
+    next note-on.
   - It reaches the parameters a sound keeps for each note (Timbre, Color,
     Brightness, Volume and others) and each note's own pitch, on Macro,
     Macro Heavy, Shapes, Six-Op FM, FM6 and Drums. Into an effect, the

@@ -314,7 +314,10 @@ int fm1_mod_set_kind(fm1_mod_t *m, unsigned pos, int kind) {
    * new instance happened to rise and fall. */
   for (i = 0; i < FM1_MOD_SLOTS; ++i) {
     const unsigned lo = FM1_MOD_SRC_MODULE + 8u * pos;
-    if (m->slot[i].src >= lo && m->slot[i].src < lo + 8u) m->srt[i].level = 0;
+    if (m->slot[i].src >= lo && m->slot[i].src < lo + 8u) {
+      m->srt[i].level = 0;
+      mod_voices_level_clear(m, 1u << i);
+    }
   }
   m->kind[pos] = MOD_NONE;
   m->inst_off[pos] = m->inst_bytes[pos] = m->handle[pos] = 0;
@@ -459,10 +462,13 @@ int fm1_mod_set_slot(fm1_mod_t *m, unsigned i, const fm1_mod_slot_t *s) {
     const unsigned u = fm1_mod_unit_canonical(c.dst_unit);
     if (u != FM1_MOD_NONE) c.dst_unit = (uint8_t)u;
   }
-  if (!same_ends(&m->slot[i], &c)) {
+  if (!same_ends(&m->slot[i], &c) || ((m->slot[i].flags ^ c.flags) & FM1_MOD_SLOT_VOICE)) {
+    /* Rewired, or moved between global and per voice: it starts low,
+     * globally and in every voice (MG9). */
     m->srt[i].level = 0;
-    fm1_mp_rng_seed(&m->srt[i].rng, mod_mix(m->seed, 0x100u + i));
+    mod_voices_level_clear(m, 1u << i);
   }
+  if (!same_ends(&m->slot[i], &c)) fm1_mp_rng_seed(&m->srt[i].rng, mod_mix(m->seed, 0x100u + i));
   m->slot[i] = c;
   m->dirty = 1;
   return 1;
@@ -624,8 +630,21 @@ static void voice_drop_with(fm1_mod_t *m, unsigned v, uint16_t vbase, uint16_t v
   vc->ready = 0;
 }
 
+uint32_t mod_slots_from(const fm1_mod_t *m, uint32_t poly) {
+  uint32_t mask = 0;
+  unsigned i;
+  for (i = 0; i < FM1_MOD_SLOTS; ++i) {
+    const uint8_t src = m->slot[i].src;
+    if (src != MOD_NONE && src >= FM1_MOD_SRC_MODULE && ((poly >> ((src - FM1_MOD_SRC_MODULE) / 8u)) & 1u)) {
+      mask |= 1u << i;
+    }
+  }
+  return mask;
+}
+
 void mod_voices_drop(fm1_mod_t *m) {
   unsigned v;
+  mod_voices_level_clear(m, mod_slots_from(m, m->plan.poly));
   for (v = 0; v < FM1_MOD_VOICES; ++v) {
     voice_drop_with(m, v, m->plan.vbase, m->plan.vsize, m->plan.voff);
   }
@@ -667,7 +686,11 @@ static void voice_on(fm1_mod_t *m, uint64_t at, unsigned sound, uint8_t key, uin
   if (!((m->plan.vsounds >> sound) & 1u)) return;
   v = find_voice(m, sound, key);
   if (v < 0 || (unsigned)v >= m->plan.vcap) {
-    if (v >= 0) m->voice[v].state = MOD_V_FREE;   /* past the arena's room now */
+    if (v >= 0) {                       /* past the arena's room now: its key's new */
+      m->voice[v].state = MOD_V_FREE;   /* note_on put its offsets back to 0 already */
+      m->voice[v].changed = 0;
+      m->voice[v].restore = 0;
+    }
     v = voice_alloc(m);
     if (v < 0) return;
     vc = &m->voice[v];
@@ -839,10 +862,27 @@ static fm1_mod_gate_t *voice_gouts(fm1_mod_t *m, unsigned v, unsigned pos, const
   return o ? (fm1_mod_gate_t *)(o + kd->n_out) : NULL;
 }
 
-/* A note source read in a voice (VEL, NOTE, RAND, KEY, TRIG, RTRG): its
- * value there in *v; 0 when src is none of them. */
+/* A note source as a voice reads it: one sound unit's (S1NOTE ... S4RTRG)
+ * in a voice of that sound unit is its note's, as the plain one is; another
+ * sound unit's stays that sound's (its last note). */
+static unsigned voice_note_id(const mod_voice_t *vc, unsigned src) {
+  static const uint8_t kPlain[5] = { FM1_MOD_SRC_NOTE, FM1_MOD_SRC_VEL, FM1_MOD_SRC_KEY,
+                                     FM1_MOD_SRC_TRIG, FM1_MOD_SRC_RTRG };
+  if (src >= FM1_MOD_SRC_S_NOTE && src < FM1_MOD_SRC_S_RTRG + FM1_MOD_SOUNDS &&
+      (src - FM1_MOD_SRC_S_NOTE) % FM1_MOD_SOUNDS == vc->sound) {
+    return kPlain[(src - FM1_MOD_SRC_S_NOTE) / FM1_MOD_SOUNDS];
+  }
+  return src;
+}
+typedef char mod_s_sources_fit[FM1_MOD_SRC_S_VEL == FM1_MOD_SRC_S_NOTE + FM1_MOD_SOUNDS &&
+                               FM1_MOD_SRC_S_KEY == FM1_MOD_SRC_S_VEL + FM1_MOD_SOUNDS &&
+                               FM1_MOD_SRC_S_TRIG == FM1_MOD_SRC_S_KEY + FM1_MOD_SOUNDS &&
+                               FM1_MOD_SRC_S_RTRG == FM1_MOD_SRC_S_TRIG + FM1_MOD_SOUNDS ? 1 : -1];
+
+/* A note source read in a voice (VEL, NOTE, RAND, KEY, TRIG, RTRG, and its
+ * own sound unit's): its value there in *v; 0 when src is none of them. */
 static int voice_note_source(const mod_voice_t *vc, unsigned src, float *v) {
-  switch (src) {
+  switch (voice_note_id(vc, src)) {
     case FM1_MOD_SRC_VEL: *v = vc->vel; return 1;
     case FM1_MOD_SRC_NOTE: *v = vc->note; return 1;
     case FM1_MOD_SRC_RAND: *v = vc->rand; return 1;
@@ -853,8 +893,10 @@ static int voice_note_source(const mod_voice_t *vc, unsigned src, float *v) {
   }
 }
 
-/* A note gate in a voice: its gate for KEY and RTRG, its trigger for TRIG. */
+/* A note gate in a voice: its gate for KEY and RTRG, its trigger for TRIG
+ * (and its own sound unit's S1KEY ... as those). */
 static const fm1_mod_gate_t *voice_note_gate(const mod_voice_t *vc, unsigned src) {
+  src = voice_note_id(vc, src);
   if (src == FM1_MOD_SRC_KEY || src == FM1_MOD_SRC_RTRG) return &vc->gate[MOD_VG_GATE];
   if (src == FM1_MOD_SRC_TRIG) return &vc->gate[MOD_VG_TRIG];
   return NULL;
@@ -1392,6 +1434,17 @@ static void voice_sinks(fm1_mod_t *m, unsigned v) {
   }
 }
 
+/* Every offset voice vc holds that is not 0 goes back to 0, marked to be
+ * sent (voice_out). */
+static void voice_zero(fm1_mod_t *m, mod_voice_t *vc) {
+  unsigned j;
+  for (j = 0; j < m->plan.n_vd; ++j) {
+    if (m->plan.vd[j].sound != vc->sound || !mod_bits(vc->sent[j])) continue;
+    vc->sent[j] = 0.0f;
+    vc->changed = (uint8_t)(vc->changed | (1u << j));
+  }
+}
+
 /* Every voice, after the global modules and sinks (MG9): its gate and
  * trigger, its instances in plan order, its offsets; a released voice whose
  * gate is down and whose instances stopped moving ends. */
@@ -1403,7 +1456,11 @@ static void run_voices(fm1_mod_t *m, const fm1_mod_transport_t *tp) {
     if (vc->state == MOD_V_FREE) continue;
     take_voice(m, vc);
     if (v >= m->plan.vcap) {               /* the arena holds fewer voices now */
+      /* Its note sounds on, no longer moved per voice: every offset it
+       * holds goes back to 0 (the next fm1_mod_voice_writes), so none stays
+       * where it was left. */
       voice_drop_with(m, v, m->plan.vbase, m->plan.vsize, m->plan.voff);
+      voice_zero(m, vc);
       vc->state = MOD_V_FREE;
       continue;
     }
@@ -1500,15 +1557,11 @@ uint32_t fm1_mod_voice_start(fm1_mod_t *m, unsigned sound, uint8_t key, fm1_mod_
 
 uint32_t fm1_mod_voice_clear(fm1_mod_t *m, fm1_mod_write_t *out, uint32_t cap) {
   uint32_t n = 0;
-  unsigned v, j;
+  unsigned v;
   for (v = 0; v < FM1_MOD_VOICES; ++v) {
     mod_voice_t *vc = &m->voice[v];
-    if (vc->state == MOD_V_FREE) continue;
-    for (j = 0; j < m->plan.n_vd; ++j) {
-      if (m->plan.vd[j].sound != vc->sound || !mod_bits(vc->sent[j])) continue;
-      vc->sent[j] = 0.0f;
-      vc->changed = (uint8_t)(vc->changed | (1u << j));
-    }
+    if (vc->state == MOD_V_FREE && !vc->changed && !vc->restore) continue;
+    voice_zero(m, vc);                  /* a pending offset of a voice just ended too */
     n = voice_out(m, v, out, n, cap);
   }
   return n;

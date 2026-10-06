@@ -167,6 +167,10 @@ static void vdest_key(const fm1_mod_t *m, const fm1_mod_slot_t *s, int dparam, u
   }
 }
 
+/* A per-voice block's head holds 16 bytes an output: its value and its gate. */
+typedef char mod_vblk_out_fit[sizeof(float) + sizeof(fm1_mod_gate_t) <= 16u &&
+                              sizeof(mod_vblk_t) == MOD_VBLK_HEAD ? 1 : -1];
+
 /* The per-voice blocks' layout for the positions in `poly` (step 6). */
 static void layout(fm1_mod_t *m, mod_plan_t *p) {
   const fm1_host_t h = { FM1_ENGINE_API_VERSION, m->rate, m->max_frames };
@@ -397,7 +401,10 @@ void mod_plan_build(fm1_mod_t *m) {
       }
     }
     p->dest[d].slots |= 1u << i;
-    if (!((old_active >> i) & 1u)) m->srt[i].level = 0;
+    if (!((old_active >> i) & 1u)) {
+      m->srt[i].level = 0;
+      mod_voices_level_clear(m, 1u << i);
+    }
   }
   /* PITCH_CUR's cables bend the current sound: its pitch is routed too. */
   if ((p->sink_routed[MOD_HOST_SINK] >> FM1_MOD_HOST_PITCH_CUR) & 1u) {
@@ -447,6 +454,8 @@ void mod_plan_build(fm1_mod_t *m) {
   /* 6. A layout that moved makes every per-voice instance again. */
   if (p->vbase != old_vbase || p->vsize != old_vsize || p->poly != old_poly || p->vcap != old_vcap ||
       memcmp(p->voff, old_voff, sizeof(old_voff)) != 0) {
+    /* Their outputs restart low: so do the voices' gate cables from them. */
+    mod_voices_level_clear(m, mod_slots_from(m, old_poly));
     for (i = 0; i < FM1_MOD_VOICES; ++i) {
       mod_voice_t *vc = &m->voice[i];
       unsigned q;

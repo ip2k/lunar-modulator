@@ -36,7 +36,8 @@
  *
  * Voices (docs/16 MG9). A slot flagged VOICE runs once for every voice: a
  * note sounding on a sound unit. Its sources are read in the voice's
- * context: VEL, NOTE, RAND, KEY, TRIG and RTRG are that note's own, and a
+ * context: VEL, NOTE, RAND, KEY, TRIG and RTRG are that note's own (and so
+ * are S1NOTE ... S4RTRG of the voice's own sound unit), and a
  * module whose kind is POLY_OK (Envelope, LFO, Chance) runs one instance
  * per voice, made in the arena at the note-on and gated by its note unless
  * a VOICE cable patches its gate. A VOICE slot reaches a sound unit's POLY
@@ -290,7 +291,9 @@ int fm1_mod_kind_find(const char *name);
  * wheel, aftertouch, bend, CC A and B, MACRO 1-4, audio level, keys held
  * (3-15), the arpeggiator's step and gate (40-43). In a VOICE slot (MG9)
  * VEL, NOTE, RAND, KEY, TRIG and RTRG are the voice's own note; KEY and
- * RTRG there are its gate, which a re-struck key retriggers. */
+ * RTRG there are its gate, which a re-struck key retriggers. One sound
+ * unit's (S1VEL ...) are the voice's own note in a voice of that sound unit
+ * and that sound unit's last note in any other. */
 enum {
   FM1_MOD_SRC_VEL = 0,          /* CV_UNI: velocity / 127 of the last note-on on the sound */
   FM1_MOD_SRC_NOTE = 1,         /* CV_BI, SEMI: (last note - 60) / 60 */
@@ -481,7 +484,8 @@ uint32_t fm1_mod_tick(fm1_mod_t *m, uint32_t frame, const fm1_mod_write_t **w);
 /* The per-voice offsets the last tick changed (MG9), at most cap of them,
  * in voice and destination order; each one once. A host with per-voice
  * engines calls it after every tick and sends them at the tick's frame.
- * Offsets a voice no longer gets (its cable gone) come back as 0. */
+ * Offsets a voice no longer gets (its cable gone, or the voice stopped
+ * because the arena holds fewer voices after a rack edit) come back as 0. */
 uint32_t fm1_mod_voice_writes(fm1_mod_t *m, fm1_mod_write_t *out, uint32_t cap);
 /* A voice's first offsets, right after the engine's note_on for it (which
  * set them to 0): the note's own sources (VEL, NOTE, RAND) and every other
@@ -492,7 +496,8 @@ uint32_t fm1_mod_voice_start(fm1_mod_t *m, unsigned sound, uint8_t key, fm1_mod_
 
 /* Every per-note offset a voice holds that is not 0, as a write of 0 (a
  * host letting the runtime go puts its engines back as they were); the
- * voices then hold none. */
+ * voices then hold none. More than cap of them: call again until it
+ * returns 0. */
 uint32_t fm1_mod_voice_clear(fm1_mod_t *m, fm1_mod_write_t *out, uint32_t cap);
 
 /* The current sound unit (0-3, the one the keys play): HOST PITCH_CUR's

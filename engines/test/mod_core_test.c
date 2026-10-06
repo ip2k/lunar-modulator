@@ -547,6 +547,403 @@ static void voices(unsigned *checked) {
   }
 }
 
+/* ---- voices, hostile (the MG9 review) --------------------------------------------- */
+
+/* A note event at an absolute frame on a sound unit (velocity 0: off). */
+typedef struct hev {
+  uint32_t frame;
+  uint8_t sound, key, vel, reserved;
+} hev_t;
+/* A write with the absolute frame it went out at. */
+typedef struct fwr {
+  uint32_t frame;
+  fm1_mod_write_t w;
+} fwr_t;
+
+static void push_w(fwr_t *out, uint32_t *n, uint32_t cap, uint32_t frame, const fm1_mod_write_t *w,
+                   uint32_t k) {
+  uint32_t i;
+  for (i = 0; i < k && *n < cap; ++i) {
+    out[*n].frame = frame;
+    out[*n].w = w[i];
+    ++*n;
+  }
+}
+
+/* The bridge's order (fm1_seq_host.h, docs/16 M6) at any block size: at
+ * one frame note-offs before the tick, the tick and its per-voice offsets,
+ * then note-ons, each followed by fm1_mod_voice_start. edit(m, frame) runs
+ * before the block that starts at `frame` (edits come at frames every block
+ * size starts a block at). */
+static uint32_t bridge_run(fm1_mod_t *m, uint32_t bs, uint32_t total, const hev_t *ev, unsigned nev,
+                           void (*edit)(fm1_mod_t *, uint32_t), fwr_t *out, uint32_t cap) {
+  uint32_t blk, n = 0;
+  unsigned e = 0;
+  for (blk = 0; blk < total; blk += bs) {
+    uint32_t tf;
+    if (edit) edit(m, blk);
+    tf = fm1_mod_begin(m, bs, 0);
+    for (;;) {
+      const int has = e < nev && ev[e].frame < blk + bs;
+      const uint32_t f = has ? ev[e].frame - blk : bs;
+      while (tf < bs && (tf < f || (has && tf == f && ev[e].vel))) {
+        const fm1_mod_write_t *x;
+        fm1_mod_write_t vw[FM1_MOD_VOICES * FM1_MOD_VDESTS];
+        const uint32_t k = fm1_mod_tick(m, tf, &x);
+        push_w(out, &n, cap, blk + tf, x, k);
+        push_w(out, &n, cap, blk + tf, vw, fm1_mod_voice_writes(m, vw, FM1_MOD_VOICES * FM1_MOD_VDESTS));
+        tf += G;
+      }
+      if (!has) break;
+      fm1_mod_sound_note(m, f, ev[e].sound, ev[e].key, ev[e].vel);
+      if (ev[e].vel) {
+        fm1_mod_write_t vw[FM1_MOD_VDESTS + 1u];
+        push_w(out, &n, cap, blk + f, vw,
+               fm1_mod_voice_start(m, ev[e].sound, ev[e].key, vw, FM1_MOD_VDESTS + 1u));
+      }
+      ++e;
+    }
+  }
+  return n;
+}
+
+#define HB 448u                         /* a block start at blocks of 1, 7 and 64 */
+
+static fm1_mod_slot_t gate_voice_cable(unsigned src, unsigned pos, unsigned gate, float amount) {
+  fm1_mod_slot_t s = cable(src, FM1_MOD_MODULE + pos, gate, amount);
+  s.flags = (uint8_t)(s.flags | FM1_MOD_SLOT_GATE_DST | FM1_MOD_SLOT_VOICE);
+  return s;
+}
+
+/* Edits while notes sound: an amount, the current sound, a kind changed
+ * elsewhere, a per-voice cable removed, three more modules per voice (the
+ * arena holds fewer voices), a move, and a sound unit whose engine takes
+ * no per-note offsets. */
+static void hostile_edit(fm1_mod_t *m, uint32_t at) {
+  fm1_mod_slot_t s;
+  unsigned pos;
+  switch (at / HB) {
+    case 15:
+      if (at % HB) break;
+      fm1_mod_get_slot(m, 0, &s);
+      s.amount = fm1_mod_q14(0.8f);
+      fm1_mod_set_slot(m, 0, &s);
+      break;
+    case 30:
+      if (!(at % HB)) fm1_mod_set_current(m, 1);
+      break;
+    case 45:
+      if (!(at % HB)) fm1_mod_set_kind(m, 6, K_LFO);
+      break;
+    case 60:
+      if (at % HB) break;
+      memset(&s, 0, sizeof(s));
+      s.via = FM1_MOD_NONE;
+      fm1_mod_set_slot(m, 1, &s);
+      break;
+    case 75:
+      if (at % HB) break;
+      for (pos = 5; pos < 8; ++pos) {
+        fm1_mod_set_kind(m, pos, K_CHN);
+        s = voice_cable(out_of(pos, 0), FM1_MOD_SOUND, 3, 0.02f);
+        fm1_mod_set_slot(m, 20 + pos, &s);
+      }
+      break;
+    case 90:
+      if (!(at % HB)) fm1_mod_move(m, 2, 6);
+      break;
+    case 100:
+      if (!(at % HB)) fm1_mod_bind(m, fm1_mod_sound_unit(1), &kEngine);
+      break;
+    default: break;
+  }
+}
+
+static uint32_t lcg(uint32_t *s) {
+  *s = *s * 1664525u + 1013904223u;
+  return *s >> 8;
+}
+
+/* Notes on three sound units, more at once than there are voices (steals,
+ * one sound's voices taken by another's notes), re-struck keys, notes at
+ * tick frames and an off and an on of one key at one frame; ordered by
+ * frame, ties in the order made. */
+static unsigned hostile_notes(hev_t *ev, unsigned cap, uint32_t total) {
+  unsigned n = 0, i, j;
+  uint32_t r = 77u;
+  while (n + 2u <= cap) {
+    const uint32_t len = 64u + lcg(&r) % 9000u;
+    uint32_t on = lcg(&r) % (total - 64u);
+    hev_t a;
+    if (lcg(&r) % 4u == 0) on -= on % G;                     /* at a tick's frame */
+    a.frame = on;
+    a.sound = (uint8_t)(lcg(&r) % 3u);
+    a.key = (uint8_t)(40u + lcg(&r) % 24u);
+    a.vel = (uint8_t)(1u + lcg(&r) % 127u);
+    a.reserved = 0;
+    ev[n++] = a;
+    a.frame = on + len < total ? on + len : total - 1u;
+    a.vel = 0;
+    ev[n++] = a;
+  }
+  /* The same key off and on at one frame, twice. */
+  ev[n - 4].frame = ev[n - 2].frame = 20u * HB + 5u * G;
+  ev[n - 4].sound = ev[n - 2].sound = 0;
+  ev[n - 4].key = ev[n - 2].key = 50;
+  ev[n - 4].vel = 0;
+  ev[n - 2].vel = 99;
+  for (i = 1; i < n; ++i) {                                  /* stable: insertion */
+    const hev_t x = ev[i];
+    for (j = i; j > 0 && ev[j - 1].frame > x.frame; --j) ev[j] = ev[j - 1];
+    ev[j] = x;
+  }
+  return n;
+}
+
+static void hostile_setup(fm1_mod_t *m) {
+  fm1_mod_slot_t s;
+  unsigned k;
+  for (k = 0; k < 3u; ++k) fm1_mod_bind(m, fm1_mod_sound_unit(k), &kPolyEngine);
+  fm1_mod_default_rack(m);
+  fm1_mod_set_param(m, 2, 3, 0.05f);                          /* a short release */
+  s = voice_cable(out_of(2, 0), FM1_MOD_SOUND, 3, 0.6f);
+  fm1_mod_set_slot(m, 0, &s);
+  s = voice_cable(FM1_MOD_SRC_RAND, FM1_MOD_HOST, FM1_MOD_HOST_PITCH_UID, 0.1f);
+  fm1_mod_set_slot(m, 1, &s);
+  s = voice_cable(FM1_MOD_SRC_VEL, FM1_MOD_MODULE + 2u, 1, -0.3f);
+  fm1_mod_set_slot(m, 2, &s);
+  s = voice_cable(out_of(0, 0), fm1_mod_sound_unit(1), 3, 0.4f);
+  fm1_mod_set_slot(m, 3, &s);
+  s = voice_cable(out_of(4, 0), FM1_MOD_HOST, FM1_MOD_HOST_PITCH_CUR_UID, 0.05f);
+  fm1_mod_set_slot(m, 4, &s);
+  s = cable(out_of(1, 0), FM1_MOD_HOST, FM1_MOD_HOST_PITCH2_UID, 0.3f);
+  fm1_mod_set_slot(m, 5, &s);
+  s = gate_voice_cable(FM1_MOD_SRC_TRIG, 0, 0, 0.7f);       /* a probability per note */
+  fm1_mod_set_slot(m, 6, &s);
+  s = voice_cable(FM1_MOD_SRC_S_VEL + 0u, FM1_MOD_SOUND, 3, 0.2f);
+  fm1_mod_set_slot(m, 7, &s);
+  s = voice_cable(FM1_MOD_SRC_S_KEY + 1u, fm1_mod_sound_unit(1), 3, 0.1f);
+  fm1_mod_set_slot(m, 8, &s);
+}
+
+static void voices_hostile(unsigned *checked) {
+  enum { NEV = 420, CAP = 200000 };
+  static hev_t ev[NEV];
+  static fwr_t w[4][CAP];
+  const uint32_t total = 110u * HB;
+  const uint32_t bs[4] = { 64, 1, 7, 64 };
+  const int fills[4] = { 0x00, 0xA5, 0xFF, 0x5A };
+  uint32_t n[4], i;
+  unsigned nev, r;
+  fm1_mod_stats_t st;
+  nev = hostile_notes(ev, NEV, total);
+  for (r = 0; r < 4u; ++r) {
+    fm1_mod_t *m = make(r % 2u, fills[r], 31);
+    hostile_setup(m);
+    n[r] = bridge_run(m, bs[r], total, ev, nev, hostile_edit, w[r], CAP);
+    fm1_mod_get_stats(m, &st);
+    CHECK(n[r] < CAP && st.voice_steals > 5 && st.voice_starts > 100 && st.nonfinite == 0);
+    CHECK(fm1_mod_voice_count(m) <= FM1_MOD_VOICES);
+    fm1_mod_destroy(m);
+  }
+  /* The same writes at the same frames whatever the block and the memory. */
+  for (r = 1; r < 4u; ++r) {
+    CHECK(n[r] == n[0]);
+    CHECK(n[r] == n[0] && !memcmp(w[r], w[0], n[0] * sizeof(w[0][0])));
+  }
+  for (i = 0; i < n[0]; ++i) {
+    const fm1_mod_write_t *x = &w[0][i].w;
+    if (x->key == FM1_MOD_NONE) continue;
+    CHECK(x->key < 128u && fm1_mod_unit_sound(x->unit) >= 0 && fm1_mod_unit_sound(x->unit) < 3);
+    CHECK(x->index == 0u || x->index == FM1_PARAM_NOTE_PITCH);   /* Timbre or the pitch: nothing mono */
+    CHECK(mod_finite(x->value));
+    ++*checked;
+  }
+}
+
+/* The arena holds fewer voices than are sounding (a rack edit while twelve
+ * notes are held): the voices past it stop, and every offset their notes
+ * hold goes back to 0, so no note keeps a value nothing moves any more. */
+static void voices_shrink(unsigned *checked) {
+  fm1_mod_t *m = make(0, 0, 3);
+  fm1_mod_write_t x[512];
+  fm1_mod_plan_info_t p;
+  fm1_mod_slot_t s;
+  float last[128];
+  int dropped[128];
+  unsigned k, b, pos, ndrop = 0;
+  uint32_t i, nx;
+  fm1_mod_bind(m, FM1_MOD_SOUND, &kPolyEngine);
+  fm1_mod_default_rack(m);
+  s = voice_cable(out_of(2, 0), FM1_MOD_SOUND, 3, 0.6f);
+  fm1_mod_set_slot(m, 0, &s);
+  for (k = 0; k < 128u; ++k) last[k] = 0.0f, dropped[k] = 0;
+  for (k = 0; k < FM1_MOD_VOICES; ++k) {
+    fm1_mod_live_note(m, (uint8_t)(60 + k), 100);
+    nx = fm1_mod_voice_start(m, 0, (uint8_t)(60 + k), x, 16);
+    nx += block_v(m, 64, x + nx, 512 - nx);
+    for (i = 0; i < nx; ++i) if (x[i].key < 128u) last[x[i].key] = x[i].value;
+  }
+  for (b = 0; b < 30; ++b) {
+    nx = block_v(m, 64, x, 512);
+    for (i = 0; i < nx; ++i) if (x[i].key < 128u) last[x[i].key] = x[i].value;
+  }
+  CHECK(fm1_mod_voice_count(m) == FM1_MOD_VOICES);
+  for (k = 0; k < FM1_MOD_VOICES; ++k) CHECK(last[60 + k] > 0.1f);
+  /* Every other position per voice too: fewer voices fit. */
+  for (pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
+    if (pos != 2u) {
+      if (pos >= 5u) fm1_mod_set_kind(m, pos, K_CHN);
+      s = voice_cable(out_of(pos, 0), FM1_MOD_SOUND, 3, 0.01f);
+      fm1_mod_set_slot(m, 10 + pos, &s);
+    }
+  }
+  fm1_mod_get_plan(m, &p);
+  CHECK(p.voice_cap >= 1u && p.voice_cap < FM1_MOD_VOICES);
+  for (b = 0; b < 4; ++b) {
+    nx = block_v(m, 64, x, 512);
+    for (i = 0; i < nx; ++i) {
+      if (x[i].key >= 128u) continue;
+      last[x[i].key] = x[i].value;
+    }
+  }
+  CHECK(fm1_mod_voice_count(m) == p.voice_cap);
+  for (k = 0; k < FM1_MOD_VOICES; ++k) {
+    fm1_mod_voice_info_t vi;
+    unsigned v, kept = 0;
+    for (v = 0; v < FM1_MOD_VOICES; ++v) kept |= fm1_mod_voice(m, v, &vi) && vi.key == 60 + k;
+    if (!kept) dropped[60 + k] = 1, ++ndrop;
+  }
+  CHECK(ndrop == FM1_MOD_VOICES - p.voice_cap);
+  for (k = 0; k < 128u; ++k) {
+    if (!dropped[k]) continue;
+    CHECK(last[k] == 0.0f);                                  /* back to 0, not held where it was */
+    ++*checked;
+  }
+  fm1_mod_destroy(m);
+}
+
+/* One sound's note sources in a voice of that sound are its note's own:
+ * S1VEL per voice gives each note of a chord on sound unit 1 its own
+ * velocity, as VEL does; another sound's (S2VEL) is that sound's last note. */
+static void voices_sound_sources(unsigned *checked) {
+  fm1_mod_t *m = make(0, 0, 4);
+  fm1_mod_write_t x[256];
+  fm1_mod_slot_t s;
+  float got[128];
+  const uint8_t vel[3] = { 30, 80, 125 };
+  unsigned k, b;
+  uint32_t i, nx;
+  fm1_mod_bind(m, FM1_MOD_SOUND, &kPolyEngine);
+  fm1_mod_bind(m, fm1_mod_sound_unit(1), &kPolyEngine);
+  fm1_mod_default_rack(m);
+  s = voice_cable(FM1_MOD_SRC_S_VEL + 0u, FM1_MOD_SOUND, 3, 1.0f);
+  fm1_mod_set_slot(m, 0, &s);
+  s = voice_cable(FM1_MOD_SRC_S_VEL + 0u, fm1_mod_sound_unit(1), 3, 1.0f);
+  fm1_mod_set_slot(m, 1, &s);
+  for (k = 0; k < 128u; ++k) got[k] = -1.0f;
+  for (k = 0; k < 3u; ++k) {
+    fm1_mod_live_note(m, (uint8_t)(60 + k), vel[k]);
+    nx = fm1_mod_voice_start(m, 0, (uint8_t)(60 + k), x, 16);
+    for (i = 0; i < nx; ++i) if (x[i].unit == FM1_MOD_SOUND) got[x[i].key] = x[i].value;
+    nx = block_v(m, 64, x, 256);
+    for (i = 0; i < nx; ++i) if (x[i].unit == FM1_MOD_SOUND && x[i].key < 128u) got[x[i].key] = x[i].value;
+  }
+  fm1_mod_live_sound_note(m, 1, 40, 50);                     /* sound unit 2: S1VEL is sound 1's last */
+  nx = fm1_mod_voice_start(m, 1, 40, x, 16);
+  for (b = 0; b < 4; ++b) nx += block_v(m, 64, x + nx, 256 - nx);
+  for (i = 0; i < nx; ++i) {
+    if (x[i].key == 40 && x[i].unit == fm1_mod_sound_unit(1)) got[40] = x[i].value;
+    else if (x[i].unit == FM1_MOD_SOUND && x[i].key < 128u) got[x[i].key] = x[i].value;
+  }
+  for (k = 0; k < 3u; ++k) {
+    CHECK(fabsf(got[60 + k] - (float)vel[k] / 127.0f) < 1e-6f);
+    ++*checked;
+  }
+  CHECK(fabsf(got[40] - 125.0f / 127.0f) < 1e-6f);
+  fm1_mod_destroy(m);
+}
+
+/* PITCH_CUR per voice follows the current sound: its voices' pitches go
+ * back to 0 when another sound becomes current, and that sound's notes
+ * take it from then on. */
+static void voices_current(unsigned *checked) {
+  fm1_mod_t *m = make(0, 0, 6);
+  fm1_mod_write_t x[256];
+  fm1_mod_slot_t s;
+  float p60 = 0.0f, p64 = 0.0f;
+  int saw64 = 0;
+  unsigned b;
+  uint32_t i, nx = 0;
+  fm1_mod_bind(m, FM1_MOD_SOUND, &kPolyEngine);
+  fm1_mod_bind(m, fm1_mod_sound_unit(1), &kPolyEngine);
+  fm1_mod_default_rack(m);
+  s = voice_cable(FM1_MOD_SRC_RAND, FM1_MOD_HOST, FM1_MOD_HOST_PITCH_CUR_UID, 0.2f);
+  fm1_mod_set_slot(m, 0, &s);
+  fm1_mod_live_sound_note(m, 0, 60, 100);
+  nx = fm1_mod_voice_start(m, 0, 60, x, 16);
+  for (b = 0; b < 4; ++b) nx += block_v(m, 64, x + nx, 256 - nx);
+  for (i = 0; i < nx; ++i) if (x[i].key == 60 && x[i].index == FM1_PARAM_NOTE_PITCH) p60 = x[i].value;
+  CHECK(p60 != 0.0f);
+  fm1_mod_set_current(m, 1);
+  fm1_mod_live_sound_note(m, 1, 64, 100);
+  nx = fm1_mod_voice_start(m, 1, 64, x, 16);
+  for (b = 0; b < 4; ++b) nx += block_v(m, 64, x + nx, 256 - nx);
+  for (i = 0; i < nx; ++i) {
+    if (x[i].index != FM1_PARAM_NOTE_PITCH) continue;
+    if (x[i].key == 60) {
+      CHECK(x[i].unit == FM1_MOD_SOUND);
+      p60 = x[i].value;
+    }
+    if (x[i].key == 64) {
+      CHECK(x[i].unit == fm1_mod_sound_unit(1));
+      p64 = x[i].value;
+      saw64 = 1;
+    }
+  }
+  CHECK(p60 == 0.0f && saw64 && p64 != 0.0f);
+  *checked += 2;
+  fm1_mod_destroy(m);
+}
+
+/* A per-voice gate cable rewired starts low in every voice, as a global
+ * one does (fm1_mod_set_slot): a voice's envelope it held open closes. Its
+ * source is KEY, then ENV4's ACT per voice. */
+static void voices_gate_rewire(unsigned *checked) {
+  fm1_mod_write_t x[256];
+  fm1_mod_slot_t s;
+  unsigned b, v, round;
+  for (round = 0; round < 2u; ++round) {
+    fm1_mod_t *m = make(0, 0, 8);
+    float held = 0.0f, after = 1.0f;
+    fm1_mod_voice_info_t vi;
+    fm1_mod_bind(m, FM1_MOD_SOUND, &kPolyEngine);
+    fm1_mod_default_rack(m);
+    fm1_mod_set_param(m, 2, 3, 0.0f);                       /* the shortest release */
+    s = gate_voice_cable(round == 0 ? FM1_MOD_SRC_KEY : out_of(3, 2), 2, 0, 1.0f);
+    fm1_mod_set_slot(m, 0, &s);
+    s = voice_cable(out_of(2, 0), FM1_MOD_SOUND, 3, 1.0f);
+    fm1_mod_set_slot(m, 1, &s);
+    s = voice_cable(out_of(3, 0), FM1_MOD_SOUND, 3, 0.01f);  /* ENV4 per voice too */
+    fm1_mod_set_slot(m, 2, &s);
+    fm1_mod_live_note(m, 60, 100);
+    for (b = 0; b < 40; ++b) block_v(m, 64, x, 256);
+    for (v = 0; v < FM1_MOD_VOICES; ++v) {
+      if (fm1_mod_voice(m, v, &vi) && vi.key == 60) held = fm1_mod_voice_out(m, v, 2, 0);
+    }
+    CHECK(held > 0.3f);
+    s = gate_voice_cable(FM1_MOD_SRC_S_KEY + 1u, 2, 0, 1.0f);   /* a source that stays low */
+    fm1_mod_set_slot(m, 0, &s);
+    for (b = 0; b < 40; ++b) block_v(m, 64, x, 256);
+    for (v = 0; v < FM1_MOD_VOICES; ++v) {
+      if (fm1_mod_voice(m, v, &vi) && vi.key == 60) after = fm1_mod_voice_out(m, v, 2, 0);
+    }
+    CHECK(after < 0.01f);                                   /* released: the cable fell */
+    ++*checked;
+    fm1_mod_destroy(m);
+  }
+}
+
 static void nan_survived(unsigned *checked) {
   fm1_mod_t *m = make(0, 0, 5);
   fm1_mod_slot_t s;
@@ -884,6 +1281,11 @@ int main(void) {
   edge_frames();
   gate_continuity(&continuity);
   voices(&voice_writes);
+  voices_hostile(&voice_writes);
+  voices_shrink(&voice_writes);
+  voices_sound_sources(&voice_writes);
+  voices_current(&voice_writes);
+  voices_gate_rewire(&voice_writes);
   printf("{\"size\":%zu,\"plans\":%u,\"plans_with_loops\":%u,\"chain_ticks\":%u,"
          "\"feedback_ticks\":%u,\"fill_writes\":%u,\"nan_writes\":%u,\"gate_ticks\":%u,"
          "\"continuity\":%u,\"voice_writes\":%u,"

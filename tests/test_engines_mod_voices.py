@@ -254,3 +254,52 @@ def test_note_sources_of_one_sound(renderer, tmp_path):
     last = {x["u"]: x["v"] - x["b"] for x in ticks[-1]["s"]}
     assert set(last) == {"snd", "snd2"}
     assert abs(last["snd"] - 0.1 * 50 / 127) < 1e-5 and abs(last["snd2"] - 0.1 * 7 / 60) < 1e-5
+
+
+# ---- hostile (the MG9 review) -------------------------------------------------------------------
+
+def test_one_sounds_note_sources_are_the_notes_own_in_a_voice(renderer, tmp_path):
+    """In a voice of sound unit 1, S1VEL is that note's velocity, as VEL is
+    (not sound unit 1's last note's): each key of a chord struck apart keeps
+    its own offset from its first write on, whatever is struck after it."""
+    mod = "rack default\nslot 1 s1vel > snd:Timbre amt=100 voice\n"
+    vels = {48: 30, 55: 80, 62: 125}
+    notes = []
+    for t, (k, v) in zip((0.05, 0.1, 0.15), vels.items()):
+        notes += ["--note", f"{t}:{k}:{v}:0.4"]
+    s, _, ticks = run(renderer, tmp_path, ["--engine", "macro", "--seconds", "0.6"] + notes, mod=mod)
+    off = offsets(ticks)
+    for k, v in vels.items():
+        trace = off[("snd", k, 2)]
+        assert trace[0][0] == at({48: 0.05, 55: 0.1, 62: 0.15}[k])       # at its note-on
+        assert all(abs(x - v / 127) < 1e-6 for _, x in trace), k        # its own, and only that
+    assert s["mod_refused"] == 0
+
+
+def test_two_sounds_share_the_voices_at_any_block(renderer, tmp_path):
+    """Per-voice cables on two sound units, whose chords (fourteen notes at
+    once) take more voices than there are: one sound's voices are stolen by
+    the other's notes, and the WAV, the tick log and every per-note offset
+    are the same at host blocks of 1, 7 and 64, through a change of the
+    current sound."""
+    seq = ("#! rate={rate} block={block} tracks=2 end=26880\n"
+           "@0 tog 0 0 60 100 64 90 67 80 71 70 74 60 77 50 81 40;tog 0 4 62 90;tog 0 8 65 100 69 80\n"
+           "@0 tog 1 0 48 100 52 90 55 80 59 70 62 60 65 50 69 40;tog 1 6 50 70\n"
+           "@0 route 0 1 0;route 1 1 1;play\n")
+    mod = ("rack default\nset 1 mode=trig rate=0.6\nset 3 attack=0.2 decay=0.3 sustain=0.3 release=0.3\n"
+           "slot 1 env3 > snd:Timbre amt=60 voice\nslot 2 lfo1 > snd2:Color amt=-40 voice\n"
+           "slot 3 rand > host:pitch2 amt=0.3 voice\nslot 4 s1vel > env3:decay amt=30 voice\n"
+           "slot 5 vel > snd2:Timbre amt=20 voice\nslot 6 lfo2 > host:pitchc amt=0.5 voice\n"
+           "@13440 current 2\n")
+    out = {}
+    for block in (1, 7, 64):
+        cmd = script(tmp_path, seq.format(rate=RATE, block=block), name=f"two{block}")
+        args = ["--engine", "macro", "--sound", "1:shapes", "--slots", "--frames", str(block), "--cmd", str(cmd)]
+        s, raw, ticks = run(renderer, tmp_path, args, mod=mod, name=f"two{block}")
+        out[block] = (raw, ticks, s)
+        assert s["mod_refused"] == 0 and s["mod_nonfinite"] == 0
+        assert s["mod_voice_steals"] >= 2 and s["mod_voice_starts"] >= 14
+    assert out[1][0] == out[64][0] and out[7][0] == out[64][0]
+    assert out[1][1] == out[64][1] and out[7][1] == out[64][1]
+    units = {u for (u, _, _) in offsets(out[64][1])}
+    assert units == {"snd", "snd2"}

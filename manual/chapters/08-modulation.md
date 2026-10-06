@@ -238,7 +238,9 @@ switched **on per voice** ([[KNOB4]] on page B of the matrix, turned past
 
 - its note sources are that note's own: VEL its velocity, NOTE its pitch,
   RAND a random value of its own, KEY and RTRG its gate (high from its
-  note-on to its note-off), TRIG a pulse at its note-on;
+  note-on to its note-off), TRIG a pulse at its note-on, and the same for
+  the note's own sound's sources (*S1VEL* on Sound 1's notes, say; another
+  sound's, such as *S2VEL* there, is that sound's last note);
 - an Envelope, an LFO or a Chance module it reads runs once for every
   voice, starting at that note: each note of a chord has its own envelope,
   in its own attack, decay or release. Its gate, with no cable, is the
@@ -261,10 +263,15 @@ into a module that runs per voice moves every voice's copy alike.
 | FM6 | Brightness, Env Time, Feedback, Volume |
 | Drums | Tune, Decay, Level, Tone, Snap, Sweep, Drive, Accent, Volume |
 
-The rack follows up to twelve voices at once, the sounds' own polyphony; a
-thirteenth note takes the voice that was released longest ago, or else the
-oldest. A voice runs on after its note-off, through its envelope's release,
-and stops when its modules stop moving.
+The rack follows up to twelve voices at once, the sounds' own polyphony,
+shared by every sound that has a cable per voice; a thirteenth note takes
+the voice that was released longest ago, or else the oldest, and the note
+it came from keeps its last values. A voice runs on after its note-off,
+through its envelope's release, and stops when its modules stop moving.
+Notes already held when you make a cable per voice join it at their next
+note-on. With many modules per voice the rack's memory holds fewer voices;
+a note that loses its voice that way goes back to the values without the
+cable.
 
 !!! tip "An envelope for each note"
     Hold [[ENV]] and turn [[KNOB3]] on Macro's first page: a cable from ENV3

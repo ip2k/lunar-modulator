@@ -722,13 +722,14 @@ Marbles' drum model in Dice already gives an MIT groove source.
 | **Calc** (CLC) | Mutable Kinks and Links (analog, no code); disting mk4 A-1 to A-5; Phazerville's Calculate; Workshop card 107 Scintillator | Own+ (MIT: Calculate, Justian; card 107, Matt Allison, MIT in `info.yaml` only). Logarithm and square root by table, no libm | A, B | OUT, INV | OP (sum, difference, product, min, max, mean, \|A\|, half-wave, −A, crossfade, log, root, square, slope), OFFSET (semitone-quantisable), AMOUNT | under 30 cycles; under 1 KB tables | 1 |
 | **Mix** (MIX) | Mutable Links and Shades (analog); disting EX Matrix Mixer; Phazerville's AttenuateOffset and Combin8 | Own | IN1–4 | SUM, AVG, INV | GAIN1–4 (±200 %), OFFSET | trivial | 1 |
 | **Switch** (SWI) | Phazerville's Switch and Xfader | Own+ (MIT: Justian, Michalek) | STEP, GATE; IN1–4 | OUT | MODE (sequential, gated, crossfade), RATE, SPRING | trivial | 2 |
-| **Filter** (FLT) | the owner's request of 2026-10-02; the trapezoidal state-variable filter as Andrew Simper (Cytomic) published it | Own | PING; IN | OUT (blend), LP, BP, HP | CUTOFF (0.05–409.6 Hz, log), RES (to undamped: rings for ever when struck), BLEND (LP–BP–HP), LEVEL, STRIKE | 40 B [verified]; about 30 operations per tick | 1 (built in MG2) |
+| **Resonator** (RES; built in MG2 as Filter, FLT, renamed by the owner on 2026-10-05) | the owner's request of 2026-10-02; the trapezoidal state-variable filter as Andrew Simper (Cytomic) published it | Own | PING; IN | OUT (blend), LP, BP, HP | CUTOFF (0.05–409.6 Hz, log), RES (to undamped: rings for ever when struck), BLEND (LP–BP–HP), LEVEL, STRIKE | 40 B [verified]; about 30 operations per tick | 1 (built in MG2) |
 
-**Filter versus Slew.** Slew limits the rate of change or lags with one
-pole; it never overshoots and knows no frequency. Filter is
-frequency-selective: LP smooths at 12 dB per octave and can ring, BP and HP
-take out the slow part of a signal, and a gate into PING strikes it into a
-decaying sine at its cutoff, a resonant "wobble" source (engines/mod/kinds.md).
+**Resonator (MG2's Filter) versus Slew.** Slew limits the rate of change
+or lags with one pole; it never overshoots and knows no frequency. The
+Resonator is frequency-selective: LP smooths at 12 dB per octave and can
+ring, BP and HP take out the slow part of a signal, and a gate into PING
+strikes it into a decaying sine at its cutoff, a resonant "wobble" source
+(engines/mod/kinds.md).
 
 Sample-and-hold lives in Chance (its IN input), so there is no separate S&H.
 **TO NOTES**, a sink that turns a pitch CV and a gate into notes on the sound
@@ -1648,6 +1649,25 @@ the tests; the manual's chapter 8, "Per voice", the user's view) [verified
   the voices', the kinds' and the app's tests (one fault found and fixed:
   the routed-sink listing read past the destinations for a pitch PITCH_CUR
   alone routes). The browser module grew from 813,115 B to 848,381 B.
+- **Review (2026-10-06)**, with hostile tests in `fm1-mod-core-test`
+  (`voices_hostile`: three sound units' notes through the bridge's order at
+  blocks of 1, 7 and 64 and from four fills of memory, with steals, notes
+  at tick frames, a key off and on at one frame, and edits while notes
+  sound: an amount, the current sound, a kind, a cable removed, the arena
+  shrunk, a move and a rebind; the same writes at the same frames every
+  time) and `tests/test_engines_mod_voices.py` (two sound units sharing the
+  voices through fm1-render at blocks of 1, 7 and 64). Three faults found
+  and fixed:
+  1. A per-voice gate cable's level was kept per voice across a rewire,
+     so a cable rewired to a low source held a voice's envelope open
+     forever; it now starts low in every voice, as a global one does, and
+     so does one whose source module's per-voice instances are made again.
+  2. One sound unit's note sources (S1VEL …) read the sound's last note in
+     a voice of that sound, so every note of a chord got the last-struck
+     velocity; there they are now the voice's own note, as VEL is.
+  3. A rack edit leaving room for fewer voices than were sounding stopped
+     the voices past the cap but left their notes' offsets where they
+     were; they now go back to 0.
 
 **Interleaving.** MG1 and MG2 are desktop-only and touch no UI, so they can
 proceed alongside docs/15's S3–S6 once S7a has merged. MG3 needs S2. MG6 needs

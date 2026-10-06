@@ -305,9 +305,14 @@ each note gets its own envelopes and LFOs, which move only that note.
   NOTE and RAND are the note's own (RAND drawn per voice from a stream of
   its own, so the global RAND is unchanged), KEY and RTRG its gate (rising
   at its note-on, falling and rising again when the same key is struck
-  again, falling at its note-off) and TRIG a trigger at its note-on; a
-  POLY_OK module's output is that voice's instance's; anything else is
-  read globally (mono to poly).
+  again, falling at its note-off) and TRIG a trigger at its note-on, and
+  so are the voice's own sound unit's (S1VEL … S4RTRG; another sound
+  unit's are read globally: its last note); a POLY_OK module's output is
+  that voice's instance's; anything else is read globally (mono to poly).
+  A VOICE cable into a gate input keeps its level per voice; rewired, or
+  moved between global and per voice, it starts low in every voice, as a
+  global one does, and so does one from a module whose per-voice
+  instances are made again (review, 2026-10-06).
 - **Which modules run per voice.** A POLY_OK module that a live VOICE slot
   reads (source or VIA). A VOICE slot into a sound is live; one into a
   module is live when that module runs per voice (a fixed point, so a
@@ -342,7 +347,8 @@ each note gets its own envelopes and LFOs, which move only that note.
   position. A note-off releases it: it runs on through its release and
   ends when its gate is down and none of its per-voice modules' outputs
   moved for a tick (a looping LFO never ends; it is stolen). Voices start
-  only for sound units a live VOICE slot reaches.
+  only for sound units a live VOICE slot reaches, so a note already held
+  when a cable is made per voice is reached from its next note-on.
 - **Twelve voices** (`FM1_MOD_VOICES`, the engines' own polyphony), shared
   by the sound units. A thirteenth note takes the voice released longest
   ago, else the oldest held; the note it was taken from keeps its last
@@ -355,9 +361,13 @@ each note gets its own envelopes and LFOs, which move only that note.
   rack (640 B) and ENV3 per voice the arena holds all twelve voices
   (2,304 B); with ENV3 and LFO1 per voice 4,224 B. When the arena cannot
   hold twelve, fewer voices run (the plan's `voice_cap`), and when it
-  cannot hold one no VOICE slot runs. A change of the rack (a kind, a move)
-  or of which modules run per voice makes every instance again; an edit
-  that keeps them (an amount, a new global cable) keeps them running. The
+  cannot hold one no VOICE slot runs. A rack edit that leaves room for
+  fewer voices than are sounding stops the voices past the cap, and their
+  notes' offsets go back to 0 at that tick (`fm1_mod_voice_writes`), so no
+  note keeps a value nothing moves any more (review, 2026-10-06). A
+  change of the rack (a kind, a move) or of which modules run per voice
+  makes every instance again; an edit that keeps them (an amount, a new
+  global cable) keeps them running. The
   voices' own state is fixed: twelve records of 168 B (their gates, CVs and
   the eight offsets the engines hold) [verified: `fm1-render --list-mod`,
   `fm1-mod-core-test`].

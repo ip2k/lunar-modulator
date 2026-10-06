@@ -490,11 +490,13 @@ static void mod_release(fm1_app_t *a) {
   {
     /* Every per-note offset back to 0 (MG9), on the engines that hold one. */
     fm1_mod_write_t w[FM1_MOD_VOICES * (FM1_MOD_VDESTS + 1u)];
-    const uint32_t n = fm1_mod_voice_clear(a->mod, w, sizeof w / sizeof w[0]);
-    for (uint32_t i = 0; i < n; ++i) {
-      const int k = fm1_mod_unit_sound(w[i].unit);
-      const fm1_app_unit_t *x = k >= 0 ? sound_of_c(a, k) : NULL;
-      if (x && x->e && x->e->set_param_note) x->e->set_param_note(x->self, w[i].key, w[i].index, 0.0f);
+    uint32_t n;
+    while ((n = fm1_mod_voice_clear(a->mod, w, sizeof w / sizeof w[0])) != 0) {
+      for (uint32_t i = 0; i < n; ++i) {
+        const int k = fm1_mod_unit_sound(w[i].unit);
+        const fm1_app_unit_t *x = k >= 0 ? sound_of_c(a, k) : NULL;
+        if (x && x->e && x->e->set_param_note) x->e->set_param_note(x->self, w[i].key, w[i].index, 0.0f);
+      }
     }
   }
   fm1_mod_destroy(a->mod);

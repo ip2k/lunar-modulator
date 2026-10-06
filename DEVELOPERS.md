@@ -599,7 +599,8 @@ which lands with the plan PR; its stages S0–S7 are named below.
   `fm1-render --mod` ([`engines/mod/README.md`](engines/mod/README.md#the-runtime)).
   Stage MG2 added thirteen modules: Function, Bounce, Register, Coin,
   Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix and a resonant
-  Filter (the Resonator since 2026-10-05), the Peaks and Braids parts checked against the original code
+  Filter (the Resonator since 2026-10-05), the Peaks and Braids parts
+  checked against the original code
   ([`engines/mod/kinds.md`](engines/mod/kinds.md)). Stage MG3 puts the
   runtime in the virtual FM-1, public since 2026-10-05: the RACK, MATRIX and
   CHAIN pages, the hold-and-turn routing gesture, cables into any of the

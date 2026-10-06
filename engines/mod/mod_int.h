@@ -329,8 +329,18 @@ static inline uint32_t mod_lfo_to_wrap(const fm1_mp_lfo_t *l, uint32_t m) {
 }
 
 /* A position's per-voice instances go (their kinds' destroy; MG9): the
- * rack or the plan's layout changed under them. */
+ * rack or the plan's layout changed under them. Their outputs restart low,
+ * so every voice's gate cables from them do too. */
 void mod_voices_drop(fm1_mod_t *m);
+/* The slots in `mask` restart low in every voice (vc->glevel), as a
+ * slot's own level does (srt.level): a cable rewired, newly planned, or
+ * whose source restarts. */
+static inline void mod_voices_level_clear(fm1_mod_t *m, uint32_t mask) {
+  unsigned v;
+  for (v = 0; v < FM1_MOD_VOICES; ++v) m->voice[v].glevel &= ~mask;
+}
+/* The slots whose source is an output of a position in `poly`. */
+uint32_t mod_slots_from(const fm1_mod_t *m, uint32_t poly);
 /* The per-voice block of voice v at position pos. */
 static inline uint8_t *mod_vblock(fm1_mod_t *m, unsigned v, unsigned pos) {
   return m->arena + m->plan.vbase + (uint32_t)v * m->plan.vsize + m->plan.voff[pos];
