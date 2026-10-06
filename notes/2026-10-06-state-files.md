@@ -40,8 +40,8 @@ passes on the unit in question.
 
 **Marks.** `[verified]` was checked for this note on `origin/main` at
 `250bf53` (after PR #69, the arpeggiator), by reading the code or by
-running a desktop build of it; the JSON measurements (§3.4) ran on that
-build's registry. `[reported]` names its source; "design A" and "design B"
+running a desktop build of it; the JSON measurements (§3.4) and the
+examples ran on the registry at `9f96194`, after PR #72 (Glide). `[reported]` names its source; "design A" and "design B"
 are the two proposals, measured on `ebb9577`. `[inferred]` is reasoning,
 to be checked when built.
 
