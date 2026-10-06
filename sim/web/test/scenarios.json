@@ -616,14 +616,24 @@
      "levels": ["0:70"],
      "fx": [], "seconds": 1.6},
     {"name": "arp-trg", "engine": "shapes", "params": ["Shape=20"],
-     "why": "The arpeggiator at RATE TRG: one step at each of the sequencer's trigs for the sound (the stage's STEP, after the trig's notes), uneven steps, two ratchets that split the measured step, a key that joins the chord without stepping it, and Stop flushing it.",
+     "why": "The arpeggiator at RATE TRG: one step at each of the sequencer's trigs for the sound (the stage's STEP, after the trig's notes), uneven steps, two ratchets that split the measured step, a key that joins the chord without stepping it, and Stop ending its notes (no trig comes while stopped).",
      "cmd": "arp/arp-trg.verbs",
      "notes": ["0.5:72:100:2.0"],
      "mfx": [[0, "arp", ["Rate=0", "Mode=2", "Octaves=1", "Ratchet=1", "Ratchet %=60", "Gate=90"]]],
      "fx": [], "seconds": 3.6},
     {"name": "arp-panel", "engine": "macro", "params": ["Model=4"],
-     "why": "The arpeggiator from the panel: ARP's tap (on, and its pages), a chord, the ARP pages' knobs and a stock preset on ALGORITHM, PLAY/STOP with the sequencer's note going through it, REC recording two keys as they were played (they come back through the arp on the next pass), ARP held to latch, a chord replacing the latched one, Stop flushing it, and ARP's tap switching it off. The render legs replay the harness's log and sidecar (--mfx 0:arp:off, --mfx-on-at, --mfx-param-at), so this is two-step parity for the arp's gestures.",
+     "why": "The arpeggiator from the panel: ARP's tap (on, and its pages), a chord, the ARP pages' knobs and a stock preset on ALGORITHM, PLAY/STOP with the sequencer's note going through it, REC recording two keys as they were played (they come back through the arp on the next pass), ARP held to latch, a chord replacing the latched one, Stop taking back the track's notes while the latched chord plays on, and ARP's tap switching it off. The render legs replay the harness's log and sidecar (--mfx 0:arp:off, --mfx-on-at, --mfx-param-at), so this is two-step parity for the arp's gestures.",
      "cmd": "arp/panel-arp.verbs", "panel": "arp/panel-arp.panel",
-     "fx": [["plate", ["Mix=0.25"]]], "seconds": 4.7}
+     "fx": [["plate", ["Mix=0.25"]]], "seconds": 4.7},
+    {"name": "arp-latch-stop", "engine": "macro", "params": ["Model=6"],
+     "why": "The arp's follow-ups (owner, 2026-10-06): keys latched by hand before Play, track 1's chords joining them while the sequencer plays, Stop taking back only the sequencer's notes (latched or not) while the hand's play on, and a key pressed mid-bar during the second run waiting for the grid's next 1/16, the arp's odd steps swung on that grid. A bypass ends it.",
+     "cmd": "arp/arp-latch-stop.verbs",
+     "notes": ["0.1:60:100:0.15", "0.12:67:90:0.13", "3.43:72:100:0.6"],
+     "mfx": [[0, "arp", ["Latch=1", "Mode=2", "Gate=120", "Swing=58"]]],
+     "mfx_on_at": ["0:5.7:0"], "fx": [], "seconds": 6.0},
+    {"name": "arp-panel-stop", "engine": "macro", "params": ["Model=4"],
+     "why": "The arp's follow-ups from the panel: GLO's Key page sets the project key (the `key` command, replayed), ARP held latches a chord played by hand, PLAY/STOP brings track 1's notes into the latched arp on the grid and Stop takes them back while the hand's chord plays on, ARP's tap mid-bar during a second run waits for the grid's next step, and ARP's taps switch it off. The render legs replay the harness's log and sidecar.",
+     "cmd": "arp/panel-arp-stop.verbs", "panel": "arp/panel-arp-stop.panel",
+     "fx": [["plate", ["Mix=0.2"]]], "seconds": 6.6}
   ]
 }
