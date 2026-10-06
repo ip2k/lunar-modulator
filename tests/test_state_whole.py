@@ -365,3 +365,22 @@ def test_old_names_resolve_alike_in_c_and_p1(renderer):    # noqa: F811
     # Without the aliases the build skips them, in both.
     r = run(TOOL, "records", "-", data=data, check=True)
     assert len([ln for ln in r.stdout.decode().splitlines() if '"param"' in ln]) < len(params)
+
+
+def test_a_cable_to_a_parameter_its_kind_lacks_passes_through(names):
+    """A cable to a module's `#UID` the kind does not have (a newer build's
+    parameter) is kept by uid, as a unit's is, so canonical text stays a
+    fixed point (the fuzz loop found the binary reader passing one that the
+    JSON reader then dropped)."""
+    doc = {"lunar": "1.0", "kind": "mods",
+           "mod": {"seed": 7, "rack": [{"pos": 1, "kind": "lfo"}],
+                   "cables": [{"slot": 2, "on": True, "from": {"source": "VEL"}, "via": None,
+                               "to": {"module": 1, "param": "#256"}, "amount": 30, "offset": 0,
+                               "polarity": "bi", "curve": "lin", "voice": False, "lock": 0}]}}
+    j = tool("canon", "-", data=json.dumps(doc).encode())
+    assert canon.loads(j.decode())["mod"]["cables"][0]["to"] == {"module": 1, "param": "#256"}
+    assert tool("canon", "-", data=j) == j
+    b = tool("pack", "-", data=j)
+    assert tool("unpack", "-", data=b) == j
+    recs, rep = ls.read_json(j, names)
+    assert rep.skipped == 0 and ls.write_json(recs, names)[0].encode() == j and ls.write_bin(recs) == b

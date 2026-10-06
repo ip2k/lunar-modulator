@@ -1502,6 +1502,14 @@ static int target_end(fm1_state_json_reader_t *r) {
     i = k ? fm1_state_param_find(r->nm, FM1_ALIAS_MOD, k->id, k->params, k->n_params, pn, pl) : -1;
     if (i >= 0) {
       s->dst = k->params[i].uid;
+    } else if (pl >= 2 && pn[0] == '#' && pn[1] != '0' && pl <= 5) {
+      /* "#UID" a kind this build has lacks (a newer build's parameter), or
+       * of a kind it lacks: kept by uid, as a unit's is, for the applier. */
+      unsigned uid = 0;
+      size_t q;
+      for (q = 1; q < pl && pn[q] >= '0' && pn[q] <= '9'; ++q) uid = uid * 10u + (unsigned)(pn[q] - '0');
+      if (q != pl || !uid || uid > FM1_PARAM_UID_MAX) return bad(r, "not a #UID");
+      s->dst = (uint16_t)uid;
     } else if (k) {
       skipped(r, "not a parameter of that module");
       r->cable_bad = 1;

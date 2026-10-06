@@ -114,7 +114,8 @@ def test_save_writes_back_what_load_read(names, tmp_path, name, kind, extra):
         assert want["chain"][1] is None
         want["chain"] = [u for u in want["chain"] if u]
         want["mod"]["cables"] = [dict(want["mod"]["cables"][0], to={"unit": "fx2", "param": "Resonance"})]
-        # SEAM(E2): no kind takes pattern data yet, so the runtime keeps none.
+        # An LFO keeps no pattern data, so the runtime refuses the file's
+        # (counted) and keeps none.
         for x in want["mod"]["rack"]:
             x.pop("data", None)
     assert got == want

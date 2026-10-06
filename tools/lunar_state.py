@@ -1050,6 +1050,11 @@ class JsonReader:
             i = find_param(k.params, param) if k else None
             if i is not None:
                 rec["dst"] = k.params[i].uid
+            elif len(param) >= 2 and param[0] == "#" and param[1] != "0" and len(param) <= 5:
+                # A #UID the kind lacks, or of a kind the build lacks: kept, as a unit's is.
+                if not (param[1:].isdigit() and param[1:].isascii() and 1 <= int(param[1:]) <= 4095):
+                    self.bad("not a #UID")
+                rec["dst"] = int(param[1:])
             elif k:
                 self.skip("not a parameter of that module")
                 self.cable_bad = True
