@@ -22,6 +22,19 @@ history.
   loads with a warning, as DX7 editors do. Files of up to 64 KB; the voices
   last until power off. Documented in chapter 5 of the manual and in
   chapter 12's troubleshooting.
+- **A UI audit of the FM-1's screen**, in `notes/2026-10-06-ui-audit.md`.
+  It covers every screen family, how each uses the 240 × 240 px, and the
+  contrast of every colour after the screen's RGB565 rounding.
+  - **Proposals, in priority order.** They give each Rosé Pine Moon
+    colour one meaning (gold for locks, foam for modulation, love for
+    refusals), name the master slots as FX mode does, and put to use the
+    space that short pages and one-line messages leave empty. The list fix
+    the owner asked for (six entries and your place in the list) landed
+    on its own, under Changed; the audit records it and what is left.
+  - **Before/after mockups** for each proposal, in `assets/ui-audit/`.
+    Every mockup passes the screen layout check.
+  - **Decisions for the owner.**
+  - No change to the simulator yet: the owner picks first.
 - **FM6, a new sound engine: six-operator FM that plays DX7 voices.** It
   runs msfa, the FM core Google published for Android and the core the
   FM-1's own firmware runs, and plays all 32 algorithms with six operators,
