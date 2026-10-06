@@ -78,7 +78,7 @@ def test_the_app_starts_with_the_default_rack_and_its_cables(tools):
     assert m["rack"] == ["lfo", "lfo", "env", "env", "chance", "", "", ""]
     assert [(s["slot"], s["src"], s["unit"], s["dst"], s["amount"], s["flags"]) for s in m["slots"]] == [
         (1, 23, 8 + 2, 0, Q14, ON | GATE_DST), (2, 23, 8 + 3, 0, Q14, ON | GATE_DST)]
-    assert [s["row"] for s in m["slots"]] == ["RTRG  >ENV3Gte +100", "RTRG  >ENV4Gte +100"]
+    assert [s["row"] for s in m["slots"]] == ["RTRG  >ENV3 Gate        +100", "RTRG  >ENV4 Gate        +100"]
     assert (m["sel_lfo"], m["sel_env"]) == (1, 3)
 
 
@@ -153,7 +153,7 @@ def test_the_gesture_on_home_makes_and_adjusts_one_cable(tools):
     assert (sl[3]["src"], sl[3]["unit"], sl[3]["dst"], sl[3]["amount"]) == (64, 0, 2, q14(18))
     assert (sl[4]["src"], sl[4]["dst"], sl[4]["amount"]) == (64, 4, q14(-25))   # Morph, uid 4
     assert s["values0"][1] == pytest.approx(0.5)                 # Harmonics' base untouched
-    assert s["popup"] == ["LFO1 > S1Morph", "-25%"]
+    assert s["popup"] == ["LFO1 > S1 Morph", "-25%"]
 
 
 def test_the_gesture_reaches_effects_and_modules(tools):
@@ -200,7 +200,7 @@ def test_the_gesture_reaches_the_current_sound(tools):
     assert s["current"] == 1
     x = slots(s)[3]
     assert (x["src"], x["unit"], x["dst"], x["amount"]) == (64, 17, 2, q14(30))
-    assert s["popup"] == ["LFO1 > S2Tmbre", "+30%"]
+    assert s["popup"] == ["LFO1 > S2 Timbre", "+30%"]
 
 
 def test_the_gesture_reaches_an_insert_and_the_master(tools):
@@ -215,7 +215,7 @@ def test_the_gesture_reaches_an_insert_and_the_master(tools):
     sl = slots(s)
     assert (sl[3]["src"], sl[3]["unit"], sl[3]["dst"]) == (64 + 8 * 2, 24, 1)
     assert (sl[4]["src"], sl[4]["unit"], sl[4]["dst"]) == (64 + 8 * 2, 1, 1)
-    assert sl[3]["row"] == "ENV3  >S2I1Mix  +40" and sl[4]["row"] == "ENV3  >M1Mix    -20"
+    assert sl[3]["row"] == "ENV3  >S2 In1 Mix        +40" and sl[4]["row"] == "ENV3  >M1 Mix            -20"
 
 
 def test_a_new_cables_target_starts_at_the_current_sound(tools):
@@ -266,7 +266,7 @@ def test_matrix_edits_every_field(tools):
     assert (x["src"], x["unit"], x["dst"], x["via"]) == (2, 0, 3, 0)    # RAND > Timbre, VIA VEL
     assert (x["amount"], x["offset"]) == (q14(45), q14(-10))
     assert x["flags"] == (2 << 4) | (1 << 1)                           # cube, uni, off
-    assert x["row"] == "RAND  -S1Tmbre  +45" and s["mod"]["mpage"] == 1
+    assert x["row"] == "RAND  -S1 Timbre         +45" and s["mod"]["mpage"] == 1
 
 
 def test_matrix_clears_a_slot_with_knob1(tools):
@@ -460,7 +460,7 @@ def test_knob4_makes_a_cable_per_voice_and_a_chord_replays(tools, tmp_path):
                            "--log-cmds", str(log), "--out", str(a), "--seconds", "1.6"])
     cable = slots(s)[3]
     assert cable["flags"] & VOICE and cable["flags"] & ON and cable["src"] == 64 + 8 * 2
-    assert cable["row"] == "ENV3  vS1Tmbre  +50" and s["mod"]["mpage"] == 1
+    assert cable["row"] == "ENV3  vS1 Timbre         +50" and s["mod"]["mpage"] == 1
     assert "slot 3 mod3.1 > snd:Timbre amt=50 ofs=0 pol=auto curve=lin voice" in (tmp_path / "c.mod").read_text()
     sidecar = (tmp_path / "c.args").read_text().splitlines()
     r = run(tools["render"], ["--cmd", str(log), "--frames", "64", *sidecar, "--out", str(b)])
@@ -517,7 +517,7 @@ def test_an_engine_change_re_aims_cables_by_name(tools):
         s = sim(tools, *gesture, *turns, seconds=str(0.4 + 0.1 * step))
         cable = slots(s)[3]
         assert (cable["dst"], cable["flags"] & ON) == (uid, flags), step
-        assert cable["row"] == f"LFO1  {mark}S1Tmbre  +40", step
+        assert cable["row"] == f"LFO1  {mark}S1 Timbre         +40", step
 
 
 # ---- golden gesture traces and their replay -----------------------------------------------------
