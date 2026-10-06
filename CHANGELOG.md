@@ -9,6 +9,25 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Glide and mono playing on Macro, Macro Heavy, Six-Op FM, FM6 and
+  Shapes.** Two new parameters on each:
+  - **Glide** (1 ms to 5 s): a note you play while holding another slides
+    from the held note's pitch to its own, in the same time whatever the
+    interval. At 1 ms, the default, glide is off and every engine sounds
+    exactly as before. Chords struck together do not slide into each other,
+    and a note played with no key held starts on its own pitch.
+  - **Voice Mode**: Poly (as before), Mono (one voice; each new key starts
+    the sound again, and letting go returns to a key still held) or Legato
+    (one voice; playing over a held key carries the note on at the new
+    pitch without starting it again).
+  - Both can be locked in the sequencer and modulated; turning Glide during
+    a slide changes its speed. Macro and Macro Heavy show them on a fourth
+    page, the others after Volume on page 2. Not on Sophie and Drums, whose
+    keys play pads.
+  - The same output, bit for bit, at any block size and on every build; the
+    modulation runtime holds 8 more parameter records (320 bytes) for Macro
+    Heavy's fourteen parameters. Documented in engines/README.md ("Glide
+    and voice modes") and chapter 4 of the manual.
 - **FM6, a new sound engine: six-operator FM that plays DX7 voices.** It
   runs msfa, the FM core Google published for Android and the core the
   FM-1's own firmware runs, and plays all 32 algorithms with six operators,

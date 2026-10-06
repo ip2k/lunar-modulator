@@ -55,6 +55,10 @@
 // quarter of it are refused. Note events land on the next 12-sample block at
 // 47,872.34 Hz.
 //
+// Glide and Voice Mode (glide.h, page 4) as in Macro. A Legato move keeps a
+// self-enveloped model ringing (a string is not plucked again, a word goes
+// on), where Mono strikes it again.
+//
 // SMOOTH parameters ramp while a voice sounds, as in Macro: a tenth of the
 // way per 12-sample block, 2.5 ms in all (fm1_smooth.h). Under Speech the
 // word bank follows Harmonics' new value at once (one parse), while the
@@ -67,6 +71,7 @@
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
 #include "fm1_smooth.h"
+#include "glide.h"
 #include "mi_plaits_env.h"
 #include "note_offsets.h"
 
@@ -237,6 +242,7 @@ enum Param {
   P_MODEL, P_HARMONICS, P_TIMBRE, P_MORPH,
   P_DECAY, P_COLOUR, P_VOLUME, P_WORD_SPEED,
   P_ENV_PITCH, P_ENV_TIMBRE, P_ENV_MORPH, P_LPG,
+  P_GLIDE, P_VOICE_MODE,
   P_COUNT
 };
 
@@ -267,6 +273,11 @@ const fm1_param_t kParams[P_COUNT] = {
     10, kPoly, FM1_UNIT_NONE, "EnvMor" },
   { "LPG",        FM1_PARAM_ENUM, 0, LPG_MODE_COUNT - 1, LPG_GATE, kLpgModeNames, 2,
     11, 0, FM1_UNIT_NONE, "LPG" },
+  // Page 4: glide and the voice modes (glide.h), with Macro's uids.
+  { "Glide",      FM1_PARAM_FLOAT, glide::kOffMs, glide::kMaxMs, glide::kOffMs, NULL, 3,
+    13, glide::kGlideFlags, FM1_UNIT_MS, "Glide" },
+  { "Voice Mode", FM1_PARAM_ENUM, 0, glide::MODE_COUNT - 1, glide::MODE_POLY,
+    glide::kModeNames, 3, 14, glide::kModeFlags, FM1_UNIT_NONE, "VMode" },
 };
 
 // Four voices. RAM sets the cap first: every voice carries a 16 KB arena (the
@@ -376,6 +387,7 @@ struct Voice {
   bool rising;
   uint32_t age;
   Offsets note;             // per-note offsets (set_param_note)
+  glide::Slew glide;        // its glide (glide.h)
 };
 
 // What RenderBlock computes from the parameters, engine-wide, or for one
@@ -408,6 +420,8 @@ class Instance {
     model_ = MODEL_STRING_MACHINE;   // stereo: both resamplers run from here
     right_running_ = true;
     clock_ = 0;
+    held_.Clear();
+    glide_block_ms_ = glide::BlockMs(kCorrectedSampleRate, kBlockSize);
     memset(mix_l_, 0, sizeof(mix_l_));
     memset(mix_r_, 0, sizeof(mix_r_));
     pending_ = 0;
@@ -417,7 +431,15 @@ class Instance {
 
   void NoteOn(uint8_t key, uint8_t velocity) {
     if (velocity == 0) { NoteOff(key); return; }
-    Voice *v = Allocate(key);
+    held_.Push(key);
+    const glide::Plan<Voice> plan = glide::PlanNoteOn(
+        voice_, kNumVoices, glide::ToMode(value_[P_VOICE_MODE]), value_[P_GLIDE]);
+    if (plan.legato) {         // Legato over a held note: a new key, nothing restarts
+      Retune(plan.mono, key);
+      glide::StartFor(plan.mono, plan, key);
+      return;
+    }
+    Voice *v = plan.mono ? plan.mono : Allocate(key);
     v->key = key;
     v->velocity = velocity / 127.0f;
     v->gate = true;
@@ -434,9 +456,13 @@ class Instance {
       v->post_aux.Init();
       v->active = true;
     }
+    v->glide.Begin();
+    glide::StartFor(v, plan, key);
   }
 
   void NoteOff(uint8_t key) {
+    held_.Remove(key);
+    if (glide::ToMode(value_[P_VOICE_MODE]) != glide::MODE_POLY) ReturnToHeld(key);
     for (int i = 0; i < kNumVoices; ++i) {
       if (voice_[i].gate && voice_[i].key == key) voice_[i].gate = false;
     }
@@ -508,6 +534,28 @@ class Instance {
   }
 
  private:
+  // Mono and Legato: letting go of the key the voice plays while older keys
+  // are held moves it back to the newest of them, gliding, never restarting.
+  void ReturnToHeld(uint8_t key) {
+    Voice *m = glide::Newest(voice_, kNumVoices);
+    uint8_t top;
+    if (!m || !m->gate || m->key != key || !held_.Top(&top)) return;
+    glide::Plan<Voice> plan;
+    plan.mono = m;
+    plan.legato = true;
+    plan.glides = glide::On(value_[P_GLIDE]) && m->glide.HasPitch();
+    plan.from = plan.glides ? glide::Pitch(*m) : 0.0f;
+    Retune(m, top);
+    glide::StartFor(m, plan, top);
+  }
+
+  // A voice takes another key without restarting: a new note for its
+  // per-note offsets, the same velocity. A word being spoken goes on.
+  void Retune(Voice *v, uint8_t key) {
+    v->key = key;
+    v->note.Clear();
+  }
+
   // A SMOOTH parameter ramps while a voice sounds; anything else, at once.
   uint32_t Steps(uint16_t index) const {
     if (!(kParams[index].flags & FM1_PARAM_SMOOTH)) return 0;
@@ -575,6 +623,7 @@ class Instance {
       v.gate = v.active = v.rising = false;
       v.age = 0;
       v.note.Clear();
+      v.glide.Clear();
     }
   }
 
@@ -658,6 +707,7 @@ class Instance {
     const Controls shared = MakeControls(value_);
     if (model_ == MODEL_SPEECH) UpdateWordBank();
     const LpgMode lpg_mode = ToLpgMode(value_[P_LPG]);
+    const float glide_inc = glide::Increment(glide_block_ms_, value_[P_GLIDE]);
 
     // For speech (engine index 15 in Voice) the envelope's reach on the note
     // and MORPH fades out as HARMONICS moves into the word banks.
@@ -690,6 +740,8 @@ class Instance {
       const float envelope = v.decay.value();
       float note = v.key + bend_;
       if (v.note.has_pitch()) note += v.note.pitch;
+      if (v.glide.active) note += v.glide.offset;
+      v.glide.Next(glide_inc);
       note += c.env_pitch * (env_amplitude * envelope * envelope * 48.0f);
       CONSTRAIN(note, -119.0f, 120.0f);  // Voice's range for the note
       p.note = note;
@@ -803,6 +855,8 @@ class Instance {
   uint32_t silent_after_release_;  // in 12-sample blocks at 47,872.34 Hz
   uint32_t silent_while_held_;
   uint32_t clock_;
+  glide::Held held_;               // keys down, for Mono and Legato
+  float glide_block_ms_;           // a 12-sample block at 47,872.34 Hz, in ms
   float mix_l_[kBlockSize];        // the current block at 47,872.34 Hz, OUT
   float mix_r_[kBlockSize];        // AUX in the string machine, else = mix_l_
   size_t pending_;                 // samples of the block not yet resampled

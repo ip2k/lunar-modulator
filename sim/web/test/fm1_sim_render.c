@@ -1389,8 +1389,8 @@ static void seq_lock_screens(const char *dir, float rate) {
   blocks(hold);
   turn(FM1_ENC_SELECT, 1);
   turn(FM1_ENC_SELECT, 1);
-  expect(g_app.ui.step_page == FM1_SEQ_UI_STEP_PAGES && g_app.ui.lock_pages == 3,
-         "SELECT past Step 2/2 is not Macro's first lock page");
+  expect(g_app.ui.step_page == FM1_SEQ_UI_STEP_PAGES && g_app.ui.lock_pages == 4,
+         "SELECT past Step 2/2 is not Macro's first lock page");   /* 4: Glide's */
   step_check("seq-lock-no-lanes", dir, 1);
   turn(FM1_ENC_KNOB1, 1);                            /* Model: NOLOCK */
   expect(g_app.popup_lines == 2 && strcmp(g_app.popup[1], "cannot be locked") == 0,

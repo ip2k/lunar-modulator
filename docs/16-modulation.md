@@ -1491,9 +1491,11 @@ marked]:
   them), the pages and the script reader with strtod [verified:
   `www/fm1.wasm.json`]. (MG3 alone, before MG2's kinds, had added 93 KB.)
   Since Room, Hall and Gate the pool holds 180 records, not 160: Gate's
-  thirteen parameters in all ten effect places and Six-Op's twelve in all
+  thirteen parameters in all ten effect places and Macro Heavy's twelve in all
   four sound units need 180 with HOST's two, and `fm1_mod_size()` is 23,200 B (832 B
-  more).
+  more). Since glide (2026-10-06, engines/README.md "Glide and voice
+  modes") Macro Heavy has fourteen parameters: 188 records, and 23,520 B
+  (320 B more).
 - **The dead-code audit is due** (§8, "Size and the dead-code audit"): the
   repository's own code files (dongle/, engines/ less third_party/, sim/,
   tests/, tools/; C, C++, Python, JavaScript, shell and make, less the

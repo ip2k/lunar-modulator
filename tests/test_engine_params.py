@@ -71,6 +71,10 @@ ENUM_FLAGS = {
     ("test-ext", "Probe"): [],                   # a test effect's switches: lockable,
     ("test-ext", "Listen"): [],                  #   no route
 }
+# Voice Mode (glide, engines/src/glide.h) is read at note-on and note-off
+# and never cuts a sounding voice: LATCH, and a route rounds it.
+for _engine in ("macro", "macro-heavy", "shapes", "sixop", "dx7"):
+    ENUM_FLAGS[(_engine, "Voice Mode")] = ["latch", "mod"]
 
 
 def catalog(renderer):
@@ -240,11 +244,14 @@ def test_native_uids_stay_below_the_derived_range(built):
 
 def test_macro_heavy_shares_macros_uids(built):
     """The parameters both engines have keep one uid, so a lock survives a
-    swap between them; Macro Heavy's own Word Speed takes the next one."""
+    swap between them; Macro Heavy's own Word Speed took the next one, 12,
+    and Glide and Voice Mode, which both have, take 13 and 14 in both (so
+    Macro has no 12)."""
     macro = {p["name"]: p["uid"] for p in built["macro"]}
     heavy = {p["name"]: p["uid"] for p in built["macro-heavy"]}
     assert {n: heavy[n] for n in macro} == macro
-    assert heavy["Word Speed"] == max(macro.values()) + 1
+    assert heavy["Word Speed"] == 12 and 12 not in macro.values()
+    assert (macro["Glide"], macro["Voice Mode"]) == (13, 14)
     names = [p["name"] for p in built["macro-heavy"]]
     assert [heavy[n] for n in names] != list(range(1, len(names) + 1)), \
         "uid is not index + 1 here: the case that catches a host using one for the other"

@@ -362,16 +362,17 @@ and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
   gives, with the same splits, through the sequencer or not, effects
   included [verified: `test_zero_route_identity`]. The bridge change
   itself changed no render: see "No render changed" below.
-- **Size.** `fm1_mod_size()` is 23,200 B since Gate (22,368 B in MG3,
-  20,016 B in MG1): the 8,192 B arena and 15,008 B of fixed state, the same in 32- and 64-bit
+- **Size.** `fm1_mod_size()` is 23,520 B since glide (23,200 B since Gate,
+  22,368 B in MG3, 20,016 B in MG1): the 8,192 B arena and 15,328 B of fixed state, the same in 32- and 64-bit
   builds (no pointers, every 64-bit member 8-aligned) [verified: pinned in
   the tests, which CI's `-m32` job runs]. MG3's sound units and inserts
-  share a pool of 180 parameter records (HOST takes two; 160 in MG3, until
-  Gate's thirteen parameters) instead of 32 for
+  share a pool of 188 parameter records (HOST takes two; 160 in MG3, 180
+  from Gate's thirteen parameters, 188 from Macro Heavy's fourteen with
+  glide) instead of 32 for
   each of fifteen units, which would have cost about 12 KB more; binding
   an engine that needs more records than are left fails (its cables are
   refused), which today's engines never reach: four sound units and ten
-  effects need at most 180 with HOST's two [verified: `test_the_record_pool_holds_every_chain`].
+  effects need at most 188 with HOST's two [verified: `test_the_record_pool_holds_every_chain`].
   RTRG added 48 B. The MG1 figures below are MG1's. docs/16 §4.1 estimated 4,480 B of fixed state. The difference is
   mostly copies: each effect and the sound's parameter ranges (1,920 B, so
   the state needs no pointer to an engine), bases, sent values and offsets

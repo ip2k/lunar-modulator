@@ -40,9 +40,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CORE_TEST = ENGINES / "build" / "fm1-mod-core-test"
 FIXTURE = ROOT / "tests" / "fixtures" / "mod-uids.json"
 TICK = 32
-# fm1_mod_size(): 8,192 B of arena and 11,824 B of fixed state, the same in
-# 32- and 64-bit builds (no pointers; every 64-bit member 8-aligned).
-MOD_BYTES = 23200
+# fm1_mod_size(): 8,192 B of arena and 15,328 B of fixed state, the same in
+# 32- and 64-bit builds (no pointers; every 64-bit member 8-aligned). 23,200 B
+# until glide's two parameters on Macro Heavy took eight more records.
+MOD_BYTES = 23520
 FLAG_BITS = ["latch", "smooth", "nolock", "mod", "input"]
 
 
@@ -516,7 +517,7 @@ def test_the_record_pool_holds_every_chain(renderer):
     engines = json.loads(subprocess.check_output([str(renderer), "--list"]))
     most = {k: max(min(len(e["params"]), d["unit_params"]) for e in engines if e["kind"] == k)
             for k in ("sound", "audio_fx")}
-    assert 4 * most["sound"] + 10 * most["audio_fx"] + 2 <= d["sink_params"] == 180
+    assert 4 * most["sound"] + 10 * most["audio_fx"] + 2 <= d["sink_params"] == 188
     assert [n for _, n in d["sinks"]] == ["snd", "fx1", "fx2", "host", "snd2", "snd3", "snd4",
                                           "snd1.fx1", "snd1.fx2", "snd2.fx1", "snd2.fx2",
                                           "snd3.fx1", "snd3.fx2", "snd4.fx1", "snd4.fx2"]
