@@ -156,7 +156,12 @@ def test_a_project_round_trips(names, tmp_path):
 
 
 def test_refusals(tmp_path):
-    r = run(R, "--load", EXAMPLES / "first-orbit.lunar", "--seconds", "0.01", "--out", tmp_path / "x.wav",
+    # The example fits since stage A1 (Macro for the bass); with Shapes it does not.
+    heavy = json.loads((EXAMPLES / "first-orbit.lunar").read_text())
+    heavy["sounds"][1]["engine"] = "shapes"
+    heavy["sounds"][1]["params"] = {}
+    (tmp_path / "heavy.lunar").write_text(json.dumps(heavy))
+    r = run(R, "--load", tmp_path / "heavy.lunar", "--seconds", "0.01", "--out", tmp_path / "x.wav",
             check=False)
     assert r.returncode == 1 and "RAM: needs" in r.stderr
     rings = tmp_path / "rings.sound.lunar"

@@ -154,6 +154,7 @@
  * Prints one line of JSON. Test code: C99 with stdio. MIT licence.
  */
 #include "fm1_app.h"
+#include "fm1_app_state.h"
 #include "fm1_look.h"
 #include "fm1_meta.h"
 #include "mod_script.h"
@@ -192,9 +193,140 @@ static int g_nev;
 static int g_start;                  /* --start */
 static int g_replayable = 1;         /* fm1-render can replay --log-cmds */
 
+/* ---- Saved state (stage A1): --load, --save, --save-end ----------------------- */
+
+static fm1_app_state_report_t g_load_rep;
+static int g_load_done = -1;          /* -1 no --load; 0 refused; 1 loaded */
+
+static int read_file(const char *path, uint8_t **buf, uint32_t *n) {
+  FILE *f = fopen(path, "rb");
+  long len;
+  if (!f) return 0;
+  fseek(f, 0, SEEK_END);
+  len = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  *buf = (uint8_t *)malloc(len > 0 ? (size_t)len : 1u);
+  *n = len > 0 ? (uint32_t)fread(*buf, 1, (size_t)len, f) : 0u;
+  fclose(f);
+  return 1;
+}
+
+/* --load [sK:|fxK:|fxM:|tT.S:]FILE (K, T and S 1-based): a project, sound,
+ * effects chain, mod rack, clip, settings file or .movy1 set, JSON or
+ * binary, through fm1_app_state_load. */
+static int state_load(const char *spec, unsigned flags) {
+  fm1_app_load_opts_t o;
+  fm1_app_state_mem_t m;
+  uint8_t *buf = NULL;
+  const char *path = spec;
+  int k = 0, t = 0, sl = 0, n = 0;
+  fm1_app_load_opts_init(&o);
+  o.flags = flags;
+  if (sscanf(spec, "s%d:%n", &k, &n) == 1 && n > 0 && k >= 1 && k <= 4) {
+    o.into = k - 1;
+    path = spec + n;
+  } else if (strncmp(spec, "fxM:", 4) == 0) {
+    o.into = -1;
+    path = spec + 4;
+  } else if (sscanf(spec, "fx%d:%n", &k, &n) == 1 && n > 0 && k >= 1 && k <= 4) {
+    o.into = k - 1;
+    path = spec + n;
+  } else if (sscanf(spec, "t%d.%d:%n", &t, &sl, &n) == 2 && n > 0) {
+    o.into = t - 1;
+    o.slot = sl - 1;
+    path = spec + n;
+  } else {
+    o.into = -1;                      /* an effects file goes to the master */
+  }
+  if (!read_file(path, &buf, &m.n)) {
+    fprintf(stderr, "--load: cannot read %s\n", path);
+    return 0;
+  }
+  m.b = buf;
+  if (o.into < 0) {
+    /* A sound without a target goes to Sound 1. */
+    fm1_app_state_report_t r;
+    if (fm1_app_state_check(&g_app, fm1_app_state_mem_read, &m, m.n, &o, &r) == 0 &&
+        r.r.kind == FM1_STATE_SOUND) {
+      o.into = 0;
+    }
+  }
+  g_load_done = fm1_app_state_load(&g_app, fm1_app_state_mem_read, &m, m.n, &o, &g_load_rep);
+  free(buf);
+  if (!g_load_done) {
+    fprintf(stderr, "--load %s: %s: %s\n", path, fm1_state_code_name(g_load_rep.r.code), g_load_rep.message);
+  }
+  return 1;
+}
+
+static void file_put(void *ctx, const char *b, size_t n) { fwrite(b, 1, n, (FILE *)ctx); }
+
+/* --save KIND:FILE: project, soundK, fx (the master), fxK (sound K's
+ * inserts), mods, settings, set or clip:T.S; a FILE ending in .lunarb is
+ * written binary, a set's .movy1 as its text, any other canonical JSON. */
+static int state_save(const char *spec) {
+  static const struct { const char *name; unsigned kind; } kKinds[] = {
+    { "project", FM1_STATE_PROJECT }, { "mods", FM1_STATE_MODS }, { "settings", FM1_STATE_SETTINGS },
+    { "set", FM1_STATE_SET },
+  };
+  const char *colon = strchr(spec, ':'), *path;
+  unsigned kind = 0;
+  int arg = 0, k = 0, t = 0, sl = 0, n = 0, binary, ok;
+  fm1_state_report_t rep;
+  FILE *f;
+  size_t len;
+  if (!colon) return 0;
+  path = colon + 1;
+  for (size_t i = 0; i < sizeof kKinds / sizeof kKinds[0]; ++i) {
+    if ((size_t)(colon - spec) == strlen(kKinds[i].name) && strncmp(spec, kKinds[i].name, strlen(kKinds[i].name)) == 0) {
+      kind = kKinds[i].kind;
+    }
+  }
+  if (!kind && sscanf(spec, "sound%d:", &k) == 1 && k >= 1 && k <= 4) {
+    kind = FM1_STATE_SOUND;
+    arg = k - 1;
+  } else if (!kind && strncmp(spec, "fx:", 3) == 0) {
+    kind = FM1_STATE_FX;
+    arg = -1;
+  } else if (!kind && sscanf(spec, "fx%d:", &k) == 1 && k >= 1 && k <= 4) {
+    kind = FM1_STATE_FX;
+    arg = k - 1;
+  } else if (!kind && sscanf(spec, "clip:%d.%d:%n", &t, &sl, &n) == 2 && n > 0 && t >= 1 && sl >= 1 && sl <= 8) {
+    kind = FM1_STATE_CLIP;
+    arg = (t - 1) * 8 + (sl - 1);
+    path = spec + n;
+  }
+  if (!kind) {
+    fprintf(stderr, "--save wants project, soundK, fx, fxK, mods, settings, set or clip:T.S, then :FILE\n");
+    return 0;
+  }
+  len = strlen(path);
+  binary = len > 7 && strcmp(path + len - 7, ".lunarb") == 0;
+  if (!(f = fopen(path, "wb"))) {
+    fprintf(stderr, "--save: cannot write %s\n", path);
+    return 0;
+  }
+  ok = fm1_app_state_save(&g_app, kind, arg, binary, file_put, f, &rep);
+  fclose(f);
+  if (!ok) fprintf(stderr, "--save %s: %s: %s\n", spec, fm1_state_code_name(rep.code), rep.what);
+  return ok;
+}
+
+static void json_text(const char *s) {
+  putchar('"');
+  for (; *s; ++s) {
+    if (*s == '"' || *s == '\\') printf("\\%c", *s);
+    else if ((unsigned char)*s < 0x20) printf("\\u%04x", (unsigned char)*s);
+    else putchar(*s);
+  }
+  putchar('"');
+}
+
 static void usage(void) {
   fprintf(stderr,
           "usage: fm1-sim-render --list | --screens DIR |\n"
+          "       [--load [sK:|fxK:|fxM:|tT.S:]FILE [--without] [--replace]]\n"
+          "       [--save KIND:FILE]... [--save-end KIND:FILE]...\n"
           "       [--engine ID [--param NAME=V]...] [--fx ID [--fx-param NAME=V]...]...\n"
           "       [--note T:KEY:VEL:DUR] [--bend T:ST] [--param-at T:NAME=V]\n"
           "       [--fx-param-at T:K:NAME=V]\n"
@@ -3443,6 +3575,34 @@ static int run_screens(const char *dir, float rate) {
     expect(g_app.mode == FM1_MODE_HOME && g_app.popup_lines == 3, "SAVE is not the stub");
     check_screen(name, dir, 1);
   }
+  /* Stage A1: SAVE with a store, its answers, and a load's banner and
+   * refusals (fm1_app_state.c's lines). */
+  g_app.store_ready = 1;
+  g_app.popup_lines = 0;
+  press(FM1_BTN_SAVE);
+  expect(g_app.popup_lines == 0 && g_app.save_gen > 0, "SAVE with a store says something before it answers");
+  snprintf(g_app.info.name, sizeof g_app.info.name, "FIRST ORBIT");
+  fm1_app_saved(&g_app, 1, NULL);
+  check_screen("saved-banner", dir, 1);
+  fm1_app_saved(&g_app, 0, "storage blocked");
+  check_screen("saved-refused", dir, 1);
+  g_app.store_ready = 0;
+  g_app.info.name[0] = '\0';
+  fm1_app_say(&g_app, FM1_APP_TONE_SAY, "LOADED", "FIRST ORBIT", "RAM 76%");
+  check_screen("loaded-banner", dir, 1);
+  fm1_app_say(&g_app, FM1_APP_TONE_SAY, "LOADED", "effects chain", "RAM 100%");
+  check_screen("loaded-banner-long", dir, 1);
+  {
+    static const char *const kWhy[] = { "Needs 121% RAM", "Uses acid-bass", "Rack is full", "Not a Lunar file",
+                                        "Newer format 1.7", "Macro at 96 kHz", "Slot holds a clip", "File too big" };
+    for (size_t i = 0; i < sizeof kWhy / sizeof kWhy[0]; ++i) {
+      char name[40];
+      fm1_app_say(&g_app, FM1_APP_TONE_REFUSE, "NOT LOADED", kWhy[i], NULL);
+      snprintf(name, sizeof name, "load-refused-%u", (unsigned)i);
+      check_screen(name, dir, i == 0);
+    }
+  }
+  g_app.popup_lines = 0;
   fm1_app_button(&g_app, FM1_BTN_FX, 1);               /* FX: M2 to empty */
   fm1_app_button(&g_app, FM1_BTN_FX, 0);
   g_app.fx_slot = 4;
@@ -4655,6 +4815,10 @@ static void log_mfx(FILE *f, uint32_t pos) {
 }
 
 int main(int argc, char **argv) {
+  const char *load_spec[4], *save_spec[8];
+  int n_loads = 0;
+  unsigned load_flags = 0;
+  int n_saves = 0, save_end[8];
   const char *engine = NULL, *out_path = NULL, *screen_path = NULL;
   const char *fx_id[FM1_APP_FX_SLOTS] = { NULL, NULL };
   char fx_pname[FM1_APP_FX_SLOTS][16][32];
@@ -4692,8 +4856,22 @@ int main(int argc, char **argv) {
     if (strcmp(a, "--page-labels") == 0) return page_labels(rate);
     if (strcmp(a, "--slots") == 0) continue;                 /* implied: the app routes by slot */
     if (strcmp(a, "--start") == 0) { g_start = 1; continue; }
+    if (strcmp(a, "--without") == 0) { load_flags |= FM1_APP_LOAD_WITHOUT; continue; }
+    if (strcmp(a, "--replace") == 0) { load_flags |= FM1_APP_LOAD_REPLACE; continue; }
     if (i + 1 >= argc) { usage(); return 2; }
     const char *v = argv[++i];
+    if (strcmp(a, "--load") == 0) {          /* up to four, in order */
+      if (n_loads >= 4) { usage(); return 2; }
+      load_spec[n_loads++] = v;
+      g_replayable = 0;
+      continue;
+    }
+    if (strcmp(a, "--save") == 0 || strcmp(a, "--save-end") == 0) {
+      if (n_saves >= 8) { usage(); return 2; }
+      save_spec[n_saves] = v;
+      save_end[n_saves++] = a[6] == '-';
+      continue;
+    }
     /* What fm1-render needs to replay a --log-cmds file (its sidecar). */
     if (strcmp(a, "--engine") == 0 || strcmp(a, "--param") == 0 || strcmp(a, "--fx") == 0 ||
         strcmp(a, "--fx-param") == 0 || strcmp(a, "--note") == 0 || strcmp(a, "--bend") == 0 ||
@@ -4984,6 +5162,13 @@ int main(int argc, char **argv) {
     }
   }
 
+  /* --load, then --save: the state the render starts from. */
+  for (int k = 0; k < n_loads; ++k) {
+    if (!state_load(load_spec[k], load_flags)) return 1;
+  }
+  for (int k = 0; k < n_saves; ++k) {
+    if (!save_end[k] && !state_save(save_spec[k])) return 1;
+  }
   uint32_t total = seq_end ? (uint32_t)seq_end : (uint32_t)(secs * rate);
   float *out = calloc((size_t)total * 2 + 2, sizeof(float));
   if (!out) return 1;
@@ -5161,6 +5346,9 @@ int main(int argc, char **argv) {
     }
   }
   if (log_mfx_file) fclose(log_mfx_file);
+  for (int k = 0; k < n_saves; ++k) {
+    if (save_end[k] && !state_save(save_spec[k])) return 1;
+  }
   if (out_path && !write_wav(out_path, out, total, (uint32_t)lrintf(rate))) {
     fprintf(stderr, "cannot write %s\n", out_path);
     return 1;
@@ -5244,6 +5432,21 @@ int main(int argc, char **argv) {
   }
   if (g_app.mui.unloggable) g_replayable = 0;    /* a modulation edit no line can say */
   printf(",\"replayable\":%d", g_replayable);
+  if (g_load_done >= 0) {
+    const fm1_app_state_report_t *r = &g_load_rep;
+    printf(",\"load\":{\"ok\":%d,\"code\":\"%s\",\"kind\":\"%s\",\"percent\":%u,\"ram\":%u,"
+           "\"sounds\":%u,\"effects\":%u,\"modules\":%u,\"cables\":%u,\"voices\":%u,\"tracks\":%u,"
+           "\"clips\":%u,\"song\":%u,\"left_out\":%u,\"skipped\":%u,\"message\":",
+           g_load_done, fm1_state_code_name(r->r.code),
+           fm1_state_kind_name(r->r.kind) ? fm1_state_kind_name(r->r.kind) : "", r->percent, r->ram, r->sounds,
+           r->effects, r->modules, r->cables, r->voices, r->tracks, r->clips, r->song, r->left_out, r->r.skipped);
+    json_text(r->message);
+    printf(",\"screen\":[");
+    json_text(r->screen[0]);
+    putchar(',');
+    json_text(r->screen[1]);
+    printf("]}");
+  }
   if (n_sysex) {
     printf(",\"dx7\":{\"files\":[");
     for (int k = 0; k < n_sysex; ++k) {

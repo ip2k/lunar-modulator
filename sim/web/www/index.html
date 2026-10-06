@@ -28,8 +28,15 @@
     </div>
     <div class="power-overlay" id="power-overlay">
       <div class="power-card">
+        <div class="arrival" id="arrival" hidden>
+          <p class="arrival-kind" id="arrival-kind"></p>
+          <h2 class="arrival-title" id="arrival-title"></h2>
+          <p class="arrival-about" id="arrival-about"></p>
+          <p class="arrival-replace" id="arrival-replace" hidden></p>
+        </div>
         <button type="button" id="power-on" class="power-button">Power on</button>
-        <p>Starts the audio. Then play the keys, your computer keyboard or a MIDI keyboard.</p>
+        <p id="power-hint">Starts the audio. Then play the keys, your computer keyboard or a MIDI keyboard.</p>
+        <button type="button" id="arrival-cancel" class="quiet-button" hidden>Not now</button>
       </div>
     </div>
   </div>
@@ -53,10 +60,48 @@
       <button type="button" id="power-off" disabled>Power off</button>
     </div>
   </section>
-  <div class="drop-hint" id="drop-hint" hidden aria-hidden="true">
-    <p>Drop <code>.syx</code> files to load DX7 patches into FM6</p>
+  <section class="files" aria-label="Files">
+    <div class="buttons">
+      <button type="button" id="open"
+        title="Open .lunar files (projects, sounds, effects, mod racks, clips), a .movy1 set or .syx DX7 patches. Read in this browser; nothing is uploaded.">Open&hellip;</button>
+      <input type="file" id="open-file" accept=".lunar,.movy1,.syx,.json,application/json" multiple hidden>
+    </div>
+    <div class="save-group">
+      <label for="save-kind" class="visually-hidden">What to save</label>
+      <select id="save-kind" disabled></select>
+      <button type="button" id="save" disabled>Save&hellip;</button>
+    </div>
+    <div class="buttons">
+      <button type="button" id="copy-link" disabled
+        title="A link that holds this project, for anyone to open in their own browser">Copy link</button>
+    </div>
+  </section>
+  <div class="target-card" id="target-card" hidden role="dialog" aria-labelledby="target-title">
+    <p id="target-title"></p>
+    <div class="target-row">
+      <label for="target-into" class="visually-hidden">Where</label>
+      <select id="target-into"></select>
+      <span id="target-slot-field" hidden>
+        <label for="target-slot" class="visually-hidden">Slot</label>
+        <select id="target-slot">
+          <option value="0">Slot 1</option><option value="1">Slot 2</option><option value="2">Slot 3</option>
+          <option value="3">Slot 4</option><option value="4">Slot 5</option><option value="5">Slot 6</option>
+          <option value="6">Slot 7</option><option value="7">Slot 8</option>
+        </select>
+      </span>
+      <button type="button" id="target-ok" class="primary">Load</button>
+      <button type="button" id="target-cancel">Cancel</button>
+    </div>
   </div>
+  <div class="drop-hint" id="drop-hint" hidden aria-hidden="true">
+    <p>Drop <code>.lunar</code>, <code>.movy1</code> or <code>.syx</code> files to load them</p>
+  </div>
+  <div class="file-notice" id="file-notice" role="status" hidden></div>
   <p class="status" id="status" role="status">Powered off.</p>
+  <details class="library" id="library">
+    <summary>Saved in this browser, Recent and examples</summary>
+    <div class="library-lists" id="library-lists"></div>
+  </details>
 
   <section class="help" aria-label="How to play">
     <h2>Playing it</h2>
@@ -114,6 +159,15 @@
         plays the first voice loaded (it becomes FM6 if it was not), and ALGORITHM steps through the
         voices by name. The file is checked (header, length, checksum) and read in this browser; nothing
         is uploaded, and the voices last until you power off. Load only files you are entitled to use.</dd></div>
+      <div><dt>Files</dt><dd>SAVE on the panel keeps the whole project in this browser, and the page keeps
+        it too as you work (autosave), so the next visit starts where you left off. <em>Save&hellip;</em>
+        downloads the project, the current sound, its effects, the master effects or the mod rack as a
+        <code>.lunar</code> file, or the sequencer's set as a <code>.movy1</code> file for Movy;
+        <em>Open&hellip;</em>, or files dropped on the page, loads them. A project replaces everything; a
+        sound, effects or a clip loads where you choose. A file that would not fit the FM-1 is refused,
+        with what it would need, and nothing changes; what a load replaced stays in Recent, with Undo
+        load. <em>Copy link</em> makes a link that holds the project. Files are read and written in this
+        browser; nothing is uploaded, and nothing is sent to a device.</dd></div>
       <div><dt>Sounds</dt><dd>Up to four sounds play at once. Hold SEL and turn
         PRESETS to choose the one the keys play and the knobs edit; PRESETS then picks its engine (Sounds
         2&ndash;4 can be empty). The meter in the screen's bottom bar shows how much of the FM-1's memory
@@ -147,8 +201,8 @@
         own.</dd></div>
     </dl>
     <p class="fine">Panel to scale from the M-VAVE manual's dimensions (161.5 &times; 96.5&nbsp;mm) and the
-      owner's board photo; the encoders' printed names and the 14 buttons are the manual's. SAVE is
-      not in the simulator yet. Engines credit Emilie Gillet
+      owner's board photo; the encoders' printed names and the 14 buttons are the manual's. The example
+      files are MIT, like the repository. Engines credit Emilie Gillet
       (Mutable Instruments, MIT) and the Schwung module authors; see the repository's
       <code>engines/README.md</code>. FM6 is msfa by Raph Levien for Google (Apache License 2.0), borrowed with
       thanks, as is its name, from Felucca's FM6 engine by hugelton; it reads the DX7's voice format (not

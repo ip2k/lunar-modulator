@@ -11,8 +11,10 @@
 #include "fm1_app.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
+#include "fm1_app_state.h"
 #include "fm1_meta.h"
 
 static fm1_app_t g_app;
@@ -48,12 +50,12 @@ void fm1w_arp_set_param(int sound, int index, float value) {
 }
 float fm1w_arp_get_param(int sound, int index) { return fm1_app_arp_get_param(&g_app, sound, index); }
 
-/* Text in: JavaScript writes a script line (later, a whole `movy1` set)
- * here and passes its length. 64 KiB holds the largest set an 8-track
- * instance exports, 53,208 B with every pool full and 256-step clips
- * (docs/15 §2.7); EXPORTED_FUNCTIONS cannot export data, so the address and
- * size come from functions. */
-static char g_text[65536];
+/* Text in and out: JavaScript writes a script line, a set or a state file
+ * here and passes its length, and reads a saved file back. 256 KiB, the
+ * largest file kind's cap (a project, fm1_state_caps.h; a set an 8-track
+ * instance exports is 53,208 B at most, docs/15 §2.7); EXPORTED_FUNCTIONS
+ * cannot export data, so the address and size come from functions. */
+static char g_text[FM1_STATE_CAP_PROJECT];
 
 void fm1w_init(float sample_rate) { fm1_app_init(&g_app, sample_rate); }
 int fm1w_default_chain(void) { return fm1_app_default_chain(&g_app); }
@@ -249,4 +251,159 @@ unsigned fm1w_meta_read(unsigned offset) {
   b.by = "simulator";
   fm1_meta_write(&b, meta_window_put, &w);
   return w.n;
+}
+
+/* ---- Saved state (stage A1, fm1_app_state.h) ------------------------------------
+ * For the page (stage W1) and the editor's shadow Worker (ED13). Kinds are
+ * fm1_state.h's codes: 1 project, 2 sound, 3 effects, 4 mod rack, 5 clip,
+ * 6 settings, 7 set.
+ *
+ * fm1w_state_save(kind, arg, binary): the file in the text buffer, its
+ *   length returned; -1 refused (fm1w_state_report says why), -2 larger than
+ *   the buffer. arg: a sound's unit 0-3; effects -1 the master, 0-3 that
+ *   sound's inserts; a clip track * 8 + slot.
+ * fm1w_state_check(kind, into, slot, flags, len): pass 1 over the buffer's
+ *   first len bytes (JSON, binary or a .movy1 set): 1 when the load would go
+ *   ahead, 0 refused; nothing changes. kind 0 takes the file's. into and
+ *   slot: a sound's target, an effects chain's (-1 the master), a clip's
+ *   track and slot. flags: 1 load without what is unknown or does not fit,
+ *   2 replace a clip, 4 no banner on the device screen.
+ * fm1w_state_load(...): the same, then pass 2: 1 loaded, 0 refused (nothing
+ *   changed). Send binary from a page that parsed JSON elsewhere
+ *   (fm1w_state_pack), so the audio thread never reads JSON (ED13).
+ * fm1w_state_pack(len): JSON in the buffer to the binary container, in the
+ *   buffer; its length, or -1 (the report says why).
+ * fm1w_state_report(): the last report as JSON text: code, kind, message
+ *   (the page's words), screen (two lines), percent, ram, budget, counts,
+ *   where (line, col, path, near) and skips.
+ * fm1w_save_gen(): SAVE presses so far; fm1w_store_ready(on) says a store
+ *   answers them; fm1w_saved(ok) shows its result on the screen (the reason
+ *   for a refusal in the buffer, NUL-terminated). Nothing reaches a device. */
+static fm1_app_state_report_t g_state_rep;
+static char g_state_json[1536];
+static uint32_t g_out_n;
+static int g_out_over;
+
+static void out_put(void *ctx, const char *b, size_t n) {
+  (void)ctx;
+  if (g_out_n + n > sizeof g_text) {
+    g_out_over = 1;
+    return;
+  }
+  memcpy(g_text + g_out_n, b, n);
+  g_out_n += (uint32_t)n;
+}
+
+static void opts_of(fm1_app_load_opts_t *o, int kind, int into, int slot, unsigned flags) {
+  fm1_app_load_opts_init(o);
+  o->kind = kind > 0 ? (unsigned)kind : 0u;
+  o->into = into;
+  o->slot = slot;
+  o->flags = flags;
+}
+
+int fm1w_state_save(int kind, int arg, int binary) {
+  memset(&g_state_rep, 0, sizeof g_state_rep);
+  g_out_n = 0;
+  g_out_over = 0;
+  if (!fm1_app_state_save(&g_app, (unsigned)kind, arg, binary, out_put, NULL, &g_state_rep.r)) return -1;
+  return g_out_over ? -2 : (int)g_out_n;
+}
+
+int fm1w_state_check(int kind, int into, int slot, unsigned flags, unsigned len) {
+  fm1_app_load_opts_t o;
+  fm1_app_state_mem_t m = { (const uint8_t *)g_text, len };
+  if (len > sizeof g_text) return 0;
+  opts_of(&o, kind, into, slot, flags);
+  return fm1_app_state_check(&g_app, fm1_app_state_mem_read, &m, len, &o, &g_state_rep);
+}
+
+int fm1w_state_load(int kind, int into, int slot, unsigned flags, unsigned len) {
+  fm1_app_load_opts_t o;
+  fm1_app_state_mem_t m = { (const uint8_t *)g_text, len };
+  if (len > sizeof g_text) return 0;
+  opts_of(&o, kind, into, slot, flags);
+  return fm1_app_state_load(&g_app, fm1_app_state_mem_read, &m, len, &o, &g_state_rep);
+}
+
+int fm1w_state_pack(unsigned len) {
+  /* The file is read whole before a byte of the result is put. */
+  fm1_app_state_mem_t m = { (const uint8_t *)g_text, len };
+  if (len > sizeof g_text) return -1;
+  memset(&g_state_rep, 0, sizeof g_state_rep);
+  g_out_n = 0;
+  g_out_over = 0;
+  if (!fm1_app_state_pack(fm1_app_state_mem_read, &m, out_put, NULL, &g_state_rep.r)) return -1;
+  return g_out_over ? -1 : (int)g_out_n;
+}
+
+/* A JSON string of s into the report. */
+static size_t jstr(char *o, size_t at, size_t cap, const char *s) {
+  if (at + 2 >= cap) return at;
+  o[at++] = '"';
+  for (; *s && at + 8 < cap; ++s) {
+    const unsigned char c = (unsigned char)*s;
+    if (c == '"' || c == '\\') {
+      o[at++] = '\\';
+      o[at++] = (char)c;
+    } else if (c < 0x20) {
+      at += (size_t)snprintf(o + at, cap - at, "\\u%04x", c);
+    } else {
+      o[at++] = (char)c;
+    }
+  }
+  o[at++] = '"';
+  o[at] = '\0';
+  return at;
+}
+
+const char *fm1w_state_report(void) {
+  const fm1_app_state_report_t *r = &g_state_rep;
+  char *o = g_state_json;
+  const size_t cap = sizeof g_state_json;
+  size_t at = 0;
+#define KEY(k) (at += (size_t)snprintf(o + at, cap - at, "%s\"" k "\":", at > 1 ? "," : ""))
+  at += (size_t)snprintf(o + at, cap - at, "{");
+  KEY("code");
+  at = jstr(o, at, cap, fm1_state_code_name(r->r.code));
+  KEY("kind");
+  at = jstr(o, at, cap, fm1_state_kind_name(r->r.kind) ? fm1_state_kind_name(r->r.kind) : "");
+  KEY("message");
+  at = jstr(o, at, cap, r->message);
+  KEY("screen");
+  at += (size_t)snprintf(o + at, cap - at, "[");
+  at = jstr(o, at, cap, r->screen[0]);
+  at += (size_t)snprintf(o + at, cap - at, ",");
+  at = jstr(o, at, cap, r->screen[1]);
+  at += (size_t)snprintf(o + at, cap - at, "]");
+  at += (size_t)snprintf(o + at, cap - at,
+                         ",\"percent\":%u,\"ram\":%u,\"budget\":%u,\"sounds\":%u,\"effects\":%u,\"mfx_on\":%u,"
+                         "\"modules\":%u,\"cables\":%u,\"voices\":%u,\"tracks\":%u,\"clips\":%u,\"song\":%u,"
+                         "\"set\":%u,\"left_out\":%u,\"skipped\":%u,\"repaired\":%u,\"line\":%u,\"col\":%u",
+                         r->percent, r->ram, r->budget, r->sounds, r->effects, r->mfx_on, r->modules, r->cables,
+                         r->voices, r->tracks, r->clips, r->song, r->set, r->left_out, r->r.skipped,
+                         r->r.repaired, r->r.line, r->r.col);
+  KEY("path");
+  at = jstr(o, at, cap, r->r.path);
+  KEY("near");
+  at = jstr(o, at, cap, r->r.near);
+  KEY("name");
+  at = jstr(o, at, cap, r->r.name);
+  KEY("what");
+  at = jstr(o, at, cap, r->r.what);
+  KEY("first_skip");
+  at = jstr(o, at, cap, r->r.first_skip);
+  if (at + 2 < cap) {
+    o[at++] = '}';
+    o[at] = '\0';
+  }
+#undef KEY
+  return g_state_json;
+}
+
+unsigned fm1w_save_gen(void) { return g_app.save_gen; }
+void fm1w_store_ready(int on) { g_app.store_ready = on != 0; }
+void fm1w_saved(int ok) {
+  g_text[sizeof g_text - 1] = '\0';
+  fm1_app_saved(&g_app, ok, ok ? NULL : g_text);
 }
