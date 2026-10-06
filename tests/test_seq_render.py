@@ -146,7 +146,7 @@ def test_a_lock_on_a_nolock_parameter_is_refused(seq_tools, tmp_path, engine, na
     reaches the engine or splits a block, and the audio is that of the same
     script without the lane. A lane on a lockable parameter of the same
     engine does reach it."""
-    notes = "36 100 38 90" if engine == "sw-sophie" else "60 100 64 90"
+    notes = "60 100 64 90"
     script = NOLOCK_LANE.format(notes=notes, name=name)
     s, _, ev, raw = render(tmp_path, script, engine=engine, name="lane")
     lines = script.splitlines(keepends=True)

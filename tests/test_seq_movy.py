@@ -11,11 +11,10 @@ used and the docstring says so. Movy's tests run 16 tracks at 44.1 kHz in
 status-string tests and undo (not in this stage).
 """
 import json
-import math
 
 import pytest
 
-from tests.seq_helpers import (TPB, TPS, Script, ccs, clip, frames_for_ticks, kinds, notes,
+from tests.seq_helpers import (TPB, TPS, Script, ccs, clip, kinds, notes,
                                offs, ons, run_script, seq_tools, track)  # noqa: F401
 
 
@@ -1236,13 +1235,6 @@ def roundtrip(tool, tmp_path, text, tracks=16, name="set"):
     subprocess.run([str(tool), "--compat", "--tracks", str(tracks), "--seq", str(src),
                     "--export", str(out)], check=True, capture_output=True)
     return out.read_text()
-
-
-def movy1(*lines, tracks=16):
-    """A set as Movy's serializer writes it: header, then a tk line per track
-    unless the caller's lines carry them."""
-    body = list(lines)
-    return "movy1\n" + "\n".join(body) + "\n"
 
 
 def full_set(tracks=16, extra=None, head=("bpm 12000", "swing 50", "link 0")):

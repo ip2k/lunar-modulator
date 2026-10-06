@@ -261,7 +261,7 @@ place of docs/15 O10's one shared sound):
   (about 349 KB at 32 bits).
 - **Memory.** Each sound unit has a 512 KiB arena and each effect slot a
   256 KiB one: 4.5 MiB of the module's fixed 8 MiB. `fm1_app_t` is
-  4,915,120 B natively (clang, 64-bit) [verified: `fm1-sim-render --sizes`].
+  4,939,616 B natively (clang, 64-bit) [verified: `fm1-sim-render --sizes`].
 - **The API** stage S6 routes tracks with is `fm1_app_unit_*`
   (`src/fm1_app.h`): the current sound, a sound's engine, inserts and
   level, notes on a given sound, `fm1_app_unit_route(a, track, sound)` and
@@ -531,10 +531,10 @@ identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
 wake them; those two, the three Drums, the four FM6 and the three glide
 scenarios are identical to glibc too), and it imports nothing; it is
-955,320 bytes with the track strip's sound numbers and MATRIX's narrow
-gaps (2026-10-06), 955,543 with the UI audit's screens before them (the
-palette, the two Spleen faces and the screens that use them), 938,723
-before them with glide
+955,241 bytes with the track strip's sound numbers and MATRIX's narrow
+gaps (2026-10-06), 955,464 before them (955,543 before the dead-code
+audit's removals) with the UI audit's screens (the palette, the two Spleen
+faces and the screens that use them), 938,723 before them with glide
 (939,251 with them before glide), 922,439 before both, 907,256 with glide
 before the arpeggiator, 890,975 before both (890,874 before Shapes'
 clamps), 887,038 before the idle paths, 850,731 before
@@ -605,7 +605,7 @@ www/fm1.wasm      src/fm1_web.c   flat exports (fm1w_*)
 `fm1_app_t`. Nothing in it is browser-specific, so the same app layer builds
 natively as `fm1-sim-render`, the test harness. Its panel logic and drawing
 code are meant to carry over to the firmware, but not `fm1_app_t` as it
-stands: it is 4,915,120 bytes (4.5 MiB of fixed arenas, four 512 KiB
+stands: it is 4,939,616 bytes (4.5 MiB of fixed arenas, four 512 KiB
 ones for the sound units and ten 256 KiB ones for the effect slots, a
 115,200-byte full frame buffer, and the sequencer's 32 KiB arena and 3 KiB
 event buffer, and modulation's runtime and a block's writes; clang, 64-bit), against the FM-1's 578 KB of SRAM and

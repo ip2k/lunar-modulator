@@ -128,12 +128,11 @@ void fm1_tft_fill(fm1_tft_t *t, int x, int y, int w, int h, uint16_t color);
 void fm1_tft_frame(fm1_tft_t *t, int x, int y, int w, int h, uint16_t color);
 
 /* A graphic (bar, meter, trace) inside the given box: logged, then drawn by
- * the fill or pixel calls that follow. */
+ * the fill calls that follow. */
 void fm1_tft_graphic(fm1_tft_t *t, int x, int y, int w, int h);
 
 /* Fill without logging, for drawing inside a box already logged. */
 void fm1_tft_paint(fm1_tft_t *t, int x, int y, int w, int h, uint16_t color);
-void fm1_tft_pixel(fm1_tft_t *t, int x, int y, uint16_t color);
 
 /* Width in pixels of the first max_chars characters of s at `scale`
  * (without the trailing spacing column). */

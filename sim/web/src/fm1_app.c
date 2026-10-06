@@ -809,8 +809,6 @@ int fm1_app_mod_dump(fm1_app_t *a, void (*emit)(void *ctx, const char *line), vo
   return fm1_mod_ui_dump(&env, &a->mui, a->mod_seed) && !a->mui.unloggable;
 }
 
-const fm1_mod_t *fm1_app_mod(const fm1_app_t *a) { return a->mod; }
-
 static void release(fm1_app_unit_t *u) {
   if (u->e && u->self) u->e->destroy(u->self);
   u->e = NULL;
