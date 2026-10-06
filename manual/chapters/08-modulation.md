@@ -161,7 +161,7 @@ The screen shows:
 | --- | --- |
 | [[SELECT]] | Walks every page of every position |
 | [[KNOB1]] to [[KNOB4]] | Change the module's parameters |
-| [[ALGORITHM]] | Opens the kind picker: *Empty*, then the sixteen kinds. The choice takes effect a second after your last turn, or at once when you use another control |
+| [[ALGORITHM]] | Opens the kind picker, such as *Mod3 kind*: *Empty*, then the sixteen kinds, six at a time ([chapter 3](03-panel-tour.md#lists)). The choice takes effect a second after your last turn, or at once when you use another control |
 | [[SEL]] | Picks up the module (the light and an asterisk show it), so that [[SELECT]] moves it along the rack; press again to put it down |
 
 Changing a module's kind switches off the cables that touch it, and
@@ -199,9 +199,10 @@ click.
 
 - **A new cable** starts on, at 0 %, from the LFO the rack shows, unless
   you chose a source with [[KNOB1]] first.
-- **The destination picker.** [[KNOB2]] opens a list that shows the
-  previous, current and next destination in full, such as *S1 Timbre*,
-  *S2 In1 Mix*, *M1 Mix*, *Host Amp* or *ENV3 Gate*. Destinations come in
+- **The destination picker.** [[KNOB2]] opens a list, *Destination*, of
+  the destinations in full, such as *S1 Timbre*, *S2 In1 Mix*, *M1 Mix*,
+  *Host Amp* or *ENV3 Gate*, six at a time with the chosen one highlighted
+  ([chapter 3](03-panel-tour.md#lists)). Destinations come in
   groups: each sound, its two inserts, the master effects, the host, and
   each module; a unit that is empty is left out. While the list is open,
   [[ALGORITHM]] jumps from group to group. On an empty cable the list opens

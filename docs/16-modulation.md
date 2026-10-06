@@ -977,7 +977,7 @@ gaps]:
 | Control | Action |
 | --- | --- |
 | SELECT | walks (module, page) pairs |
-| ALGORITHM | opens the kind picker for this position (a 3-line popup, as PRESETS uses); it commits after 1 s idle |
+| ALGORITHM | opens the kind picker for this position (a list popup, as PRESETS uses: 3 lines until 2026-10-06, then six of the 17 entries); it commits after 1 s idle |
 | KNOB1–4 | the page's parameters |
 | SEL (tap) | grab, then SELECT reorders; this matters only inside loops |
 | SEL (held) + white key | on Curves, Draw and Scenes: select stage, bin or scene N. The key does not sound |
@@ -1020,7 +1020,8 @@ These are the §1 chain's slots, plus two more.
 - The hint line shows the selected slot in full, or the field being turned.
 - SELECT moves the row.
 - **Page A:** K1 source, K2 destination, K3 amount, K4 offset. K2 opens the
-  destination picker (3 lines, as PRESETS); while it is open, ALGORITHM jumps
+  destination picker (a list popup, as PRESETS: 3 lines until 2026-10-06, then
+  six); while it is open, ALGORITHM jumps
   between groups (SND, FX1, FX2, HOST, MOD1–MOD8). It commits after 1 s idle.
 - **Page B** (ALGORITHM with the picker closed): K1 VIA, K2 CURVE, K3
   POLARITY, K4 ON.
@@ -1387,7 +1388,9 @@ marked]:
 - **Pickers.** The kind picker (Empty, then all sixteen kinds) and the
   destination picker (each sound unit's parameters that take modulation
   and its inserts', the master slots', the host's, then each module's
-  parameters and gate inputs) are 3-line popups; ALGORITHM jumps between
+  parameters and gate inputs) are list popups (3 lines until 2026-10-06,
+  then the list's title, the chosen entry's place and six entries,
+  `fm1_list_first` in `sim/web/src/fm1_panel.h`); ALGORITHM jumps between
   the destination groups while it is open. A new cable's target picker
   opens at the current sound's first parameter, as the gesture on HOME
   makes cables to the current sound. Each commits a second after its last

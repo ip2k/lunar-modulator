@@ -35,6 +35,8 @@ extern const fm1_engine_t fm1_engine_eq;
 extern const fm1_engine_t fm1_engine_room;
 extern const fm1_engine_t fm1_engine_hall;
 extern const fm1_engine_t fm1_engine_gate;
+extern const fm1_engine_t fm1_engine_squash;
+extern const fm1_engine_t fm1_engine_shaper;
 extern const fm1_engine_t fm1_engine_test_gain;
 extern const fm1_engine_t fm1_engine_test_ext;
 
@@ -69,6 +71,8 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_room,
   &fm1_engine_hall,
   &fm1_engine_gate,
+  &fm1_engine_squash,
+  &fm1_engine_shaper,
   &fm1_engine_test_gain,
   &fm1_engine_test_ext,
 };

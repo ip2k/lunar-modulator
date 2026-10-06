@@ -9,6 +9,48 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Squash, a new effect: three small compressors with characters of their
+  own**, rewritten for the FM-1 from Airwindows plug-ins by Chris Johnson
+  (MIT). Choose a Type, turn Squash up, win the level back with Output.
+  - **Snap** (after Pop3) grabs peaks and lets go, with a gate that can cut
+    each note's tail (Gate, Gate Depth, Hold, Gate Rel).
+  - **Mu** (after Pressure4) is a smooth valve-style leveller that recovers
+    more slowly after loud passages; Shape bends its response.
+  - **Split** (after ButterComp2) works on the top and the bottom of the
+    wave separately and has no timing knobs: glue for a mix. At Squash 0 it
+    passes the sound untouched, whatever it was doing before (the original
+    freezes there, holding whatever it had turned down).
+  - Changing Type while the sound plays starts the new one where the old
+    one was and fades between them, so modulation can change it on every
+    step. Silence stays silent; under half a kilobyte of memory.
+  - Checked against the original plug-ins' code, run in a container: Mu and
+    Split within −100 dB, Snap within −60 dB (and −29 dB in one setting
+    where the original's stereo link holds the gain for a length of time
+    that depends on its last bits).
+- **Transient, a new effect: a transient shaper.** Attack lifts or softens
+  the start of each note or hit (up to ±12 dB), Sustain lifts or cuts what
+  follows; Window and Tail set how long each lasts. It reacts to how the
+  sound changes, not to its level: a steady note moves by under half a
+  decibel at any setting, and at its centre the sound passes exactly
+  untouched. Our own design, on the classic two-follower principle.
+- **The Limiter has a third Mode, Round:** a gentle final clip after
+  Airwindows ClipOnly2. Peaks up to 3 dB over the ceiling are rounded off
+  between their neighbours and the ceiling, only what goes further is
+  turned down, and everything under the ceiling passes untouched. It adds
+  no delay beyond the Lookahead.
+- **A UI audit of the FM-1's screen**, in `notes/2026-10-06-ui-audit.md`.
+  It covers every screen family, how each uses the 240 × 240 px, and the
+  contrast of every colour after the screen's RGB565 rounding.
+  - **Proposals, in priority order.** They give each Rosé Pine Moon
+    colour one meaning (gold for locks, foam for modulation, love for
+    refusals), name the master slots as FX mode does, and put to use the
+    space that short pages and one-line messages leave empty. The list fix
+    the owner asked for (six entries and your place in the list) landed
+    on its own, under Changed; the audit records it and what is left.
+  - **Before/after mockups** for each proposal, in `assets/ui-audit/`.
+    Every mockup passes the screen layout check.
+  - **Decisions for the owner.**
+  - No change to the simulator yet: the owner picks first.
 - **FM6, a new sound engine: six-operator FM that plays DX7 voices.** It
   runs msfa, the FM core Google published for Android and the core the
   FM-1's own firmware runs, and plays all 32 algorithms with six operators,
@@ -1100,8 +1142,62 @@ history.
     within the warm-up is not heard at all: for example a Master Sat Mix
     lock on a single 16th step at 120 BPM.
   - The virtual FM-1 rests them too: its rebuilt module plays two new
-    scenarios that rest and wake them exactly as the desktop does (74 of 74
+    scenarios that rest and wake them exactly as the desktop does (76 of 76
     pass).
+- **Comp's Auto Gain only touches what would clip** (owner's request): it
+  holds a sample at full scale only where its makeup would push it past,
+  such as the start of a loud hit; everything else, steady notes included,
+  now sounds exactly as with the same makeup set by hand, also with Makeup
+  turned down. Before, it also rounded the peaks of steady tones a little. It still never pushes a
+  sound past full scale.
+- **Lists on the screen show six entries instead of one to three.** Turning
+  PRESETS, ALGORITHM (the engine's model, shape, patch or pad, or the effect
+  in FX mode), PRESETS with SEL held, the rack's kind picker or the
+  matrix's destination picker now fills the middle of the screen with the
+  list: its name in gold, where the chosen entry sits in it (such as
+  *34/96*), and six entries with the chosen one highlighted on the third
+  row, so you see two before it and three after it. At either end of a list
+  the rows stop and the highlight moves to the first or last one. A small
+  triangle above or below the entries says the list goes on that way, and
+  *Empty* and *Empty slot* are dim. PRESETS with SEL held lists all four
+  sounds and what each holds, and Capture's tempo choice uses the same
+  look. Choices still take effect as before: at once for PRESETS and
+  ALGORITHM, a second after the last turn for the two pickers. Until now
+  PRESETS and the two pickers showed three entries, and ALGORITHM only the
+  entry it chose.
+- README: the owner's new opening — project goals (including the Orbital Dock
+  community module marketplace and firmware builder), current status, and
+  why it cannot be flashed yet.
+- **The rest of the README brought up to date** with what landed on
+  2026-10-05 and 2026-10-06, below the owner's opening (left as it is):
+  - What it does: seven sound engines (FM6 and Drums are new) plus Test
+    Sine, four sounds with two inserts each, the Mix page, two master
+    effects and the memory meter, all twenty effects by kind, knobs that
+    turn in ratios, the sequencer and modulation as they are on the public
+    page, with the Drums, sequencer and matrix pictures.
+  - The controls table: every button but SAVE and ARP works, SEL is SHIFT
+    and chooses the sound, the sequencer's keys (Space, the step keys,
+    Shift), and the drum kits' pads on the white keys.
+  - The roadmap in four parts: done, in progress (FM6's file picker and
+    smaller memory, Squash and the other new dynamics, glide, per-voice
+    modulation, idle paths, the Shapes fix), next (from the 2026-10-05
+    build plan: the master chain and shared sends, side-chain, tempo
+    delays, per-voice filters, sets in the browser and Web MIDI, the
+    arpeggiator and MIDI effects) and the Orbital Dock.
+  - Installing: it compiles for the FM-1's processor but has not run on a
+    JieLi chip; the dev kit and the backup-and-restore gate still come
+    first.
+  - Documentation lists the manual's chapters; Credits add msfa (Google),
+    Felucca, SLOOP, fm1-nes, FM-1-transporter, benny-sparra, Airwindows,
+    Plaits' drum models and the modulation sources, keeping every earlier
+    credit; the licence names the Apache-2.0 code; the repository map adds
+    docs/15 and 16, `firmware/`, `tools/jieli/` and the new notes.
+  - Alt text matches the pictures; the FX picture's names the chain's
+    slots, S1 In1 In2 Mix M1 M2.
+  - The pictures stay as PR #61 took them: a fresh run on main after FM6
+    (`build-on-aeon.sh --readme-screenshots`, 72 of 72 parity scenarios)
+    differs from them only in what moves with the sound, the oscilloscope
+    strip, the level meter, LFO1's tick on Timbre and the playhead.
 - **New pictures of the virtual FM-1, and a manual brought up to date with
   it.**
   - The README's picture and the phone picture show the page as it is now:
