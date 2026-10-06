@@ -31,12 +31,25 @@ history.
   - On the desktop: `fm1-render --mfx K:arp` and its `--mfx-param`,
     `--mfx-param-at`, `--mfx-on-at` and `--log-mfx` flags. The browser, the
     native app and fm1-render play the same notes, byte for byte, at any
-    block size (four new parity scenarios, one of them a recorded panel
+    block size (five new parity scenarios, one of them a recorded panel
     session).
 - **MIDI effects in the engine API (v3, additive):** a new kind of module
   that takes notes and gives notes, run in a chain of up to four in front of
   each sound, with the sequencer's ticks, the transport and one project key.
   The arpeggiator is the first; chord, scale and echo effects can follow.
+- **A UI audit of the FM-1's screen**, in `notes/2026-10-06-ui-audit.md`.
+  It covers every screen family, how each uses the 240 × 240 px, and the
+  contrast of every colour after the screen's RGB565 rounding.
+  - **Proposals, in priority order.** They give each Rosé Pine Moon
+    colour one meaning (gold for locks, foam for modulation, love for
+    refusals), name the master slots as FX mode does, and put to use the
+    space that short pages and one-line messages leave empty. The list fix
+    the owner asked for (six entries and your place in the list) landed
+    on its own, under Changed; the audit records it and what is left.
+  - **Before/after mockups** for each proposal, in `assets/ui-audit/`.
+    Every mockup passes the screen layout check.
+  - **Decisions for the owner.**
+  - No change to the simulator yet: the owner picks first.
 - **FM6, a new sound engine: six-operator FM that plays DX7 voices.** It
   runs msfa, the FM core Google published for Android and the core the
   FM-1's own firmware runs, and plays all 32 algorithms with six operators,
