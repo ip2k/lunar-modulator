@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced editor: modulation</title>
+<link rel="stylesheet" href="editor.css">
+<style>
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) 372px; gap: 12px; align-items: start; }
+  .mx-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .mx-tools .filterbox { margin-left: auto; height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 7px; border: 1px solid var(--border-hi); background: var(--bg); color: var(--label); white-space: nowrap; min-width: 150px; }
+  .dst { display: inline-flex; align-items: center; gap: 6px; }
+  td .trace { width: 64px; height: 18px; }
+  .rsn { display: flex; gap: 10px; align-items: center; font-size: 11.5px; padding-left: 34px; }
+  .rsn .act { color: var(--text); border-bottom: 1px solid var(--select); white-space: nowrap; }
+  .legend2 { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 11.5px; color: var(--label-s); margin-top: 8px; }
+  .legend2 span { display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+  .lane-note { color: var(--label-s); font-size: 11.5px; }
+  @media (max-width: 1180px) { .split { grid-template-columns: minmax(0, 1fr); } .col-live, .col-pol { display: none; } }
+</style>
+</head>
+<body data-layout="editor" data-page="mod" data-screen="screen-matrix-slot5.png"
+      data-screen-alt="The FM-1 screen: MATRIX page A, slot 5 of 32 chosen: ENV3, per voice, into S2 Morph, +60"
+      data-screen-cap="MATRIX · slot 5/32, following the editor: the same rows, marks and colours"
+      data-status="slot 9 reads FUN6 a tick late · <b>1 refused</b> cable writes nothing">
+<main class="main">
+  <div class="head">
+    <span class="title">Modulation</span>
+    <span class="meta">Rack <b>6 of 8</b> · matrix <b>10 of 32</b> · a tick is 32 frames, 0.7 ms at 44,118 Hz · ENV3 runs per voice, 3 voices now</span>
+    <div class="tools"><span class="viewsw" role="radiogroup" aria-label="View"><span class="on">Table</span><span>Map</span></span><span class="btn">Export mod rack…</span></div>
+  </div>
+
+  <div class="rack" aria-label="The rack, in rack order">
+    <div class="mc"><div class="ch"><span class="nm">LFO1</span></div><span class="k">LFO · 112 B</span><span class="s">Triangle · 1/4</span><svg class="scope" data-wave="tri" data-cycles="2.5"></svg><span class="o">Out <b>›2</b> · Wrap <b>›1</b></span></div>
+    <div class="mc"><div class="ch"><span class="nm">LFO2</span></div><span class="k">LFO · 112 B</span><span class="s">Sine · free</span><svg class="scope" data-wave="sine" data-cycles="1.5" data-ph="0.2"></svg><span class="o">Out <b>›1</b></span></div>
+    <div class="mc cur"><div class="ch"><span class="nm">ENV3</span><span class="poly">per voice</span></div><span class="k">Envelope · 124 B</span><span class="s">3 voices now</span><svg class="scope" data-wave="voices"></svg><span class="o">Env <b>›2</b> · one refused</span></div>
+    <div class="mc"><div class="ch"><span class="nm">ENV4</span></div><span class="k">Envelope · 124 B</span><span class="s">idle</span><svg class="scope" data-wave="idle"></svg><span class="o">Env ›0</span></div>
+    <div class="mc"><div class="ch"><span class="nm">CHN5</span></div><span class="k">Chance · 160 B</span><span class="s">S&amp;H</span><svg class="scope" data-wave="rand" data-cycles="1"></svg><span class="o">Smth <b>›1</b></span></div>
+    <div class="mc"><div class="ch"><span class="nm">FUN6</span></div><span class="k">Function · 64 B</span><span class="s">Cycle · Rise 0.40</span><svg class="scope" data-wave="func" data-cycles="2"></svg><span class="o">Out <b>›1</b> · read late</span></div>
+    <div class="mc empty"><div class="ch"><span class="nm">7</span></div><span class="k">Empty</span><span class="s">Enter adds one</span><span class="k">16 kinds</span></div>
+    <div class="mc empty"><div class="ch"><span class="nm">8</span></div><span class="k">Empty</span></div>
+  </div>
+
+  <div class="split">
+    <section class="panel" aria-label="The matrix">
+      <h3>Matrix <span class="aside">in slot order, the order the runtime adds them</span></h3>
+      <div class="mx-tools">
+        <div class="filters"><span class="fchip on">All 10</span><span class="fchip">Into S2 · 2</span><span class="fchip">Per voice · 2</span><span class="fchip r">Refused · 1</span><span class="fchip">Late · 1</span><span class="fchip">Off · 0</span></div>
+        <span class="filterbox">⌕ <span>&gt;morph, lfo1&gt;, s2</span></span>
+      </div>
+      <table class="grid" aria-label="Modulation slots">
+        <thead><tr><th class="num">#</th><th></th><th>From</th><th>Via</th><th>To</th><th>Amount</th><th>Curve</th><th class="col-pol">Pol.</th><th>Scope</th><th class="col-live">Live</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td><span class="mk on">&gt;</span></td><td class="srcn">RTRG</td><td>–</td><td><span class="dst"><span class="tag ghost">RK</span>ENV3 › Gate</span></td><td class="small">gate</td><td>–</td><td class="col-pol">–</td><td>On</td><td class="col-live"><svg class="trace" data-wave="gate" data-n="6"></svg></td></tr>
+          <tr><td class="num">2</td><td><span class="mk on">&gt;</span></td><td class="srcn">RTRG</td><td>–</td><td><span class="dst"><span class="tag ghost">RK</span>ENV4 › Gate</span></td><td class="small">gate</td><td>–</td><td class="col-pol">–</td><td>On</td><td class="col-live"><svg class="trace" data-wave="gate" data-n="6"></svg></td></tr>
+          <tr><td class="num">3</td><td><span class="mk on">&gt;</span></td><td class="srcn">LFO1</td><td>–</td><td><span class="dst"><span class="tag s3">S3</span>In1 Filter › Cutoff</span></td><td><span class="amt"><span class="b"><i style="left:35px; width:12px"></i></span><span class="n">+35 %</span></span></td><td><svg class="curve" data-curve="lin"></svg></td><td class="col-pol">Auto</td><td>On</td><td class="col-live"><svg class="trace" data-wave="tri" data-cycles="2.5"></svg></td></tr>
+          <tr><td class="num">4</td><td><span class="mk on">&gt;</span></td><td class="srcn">LFO2</td><td class="srcn">S2VEL</td><td><span class="dst"><span class="tag s2">S2</span>Macro › Timbre</span></td><td><span class="amt"><span class="b"><i style="left:35px; width:7px"></i></span><span class="n">+20 %</span></span></td><td><svg class="curve" data-curve="lin"></svg></td><td class="col-pol">Auto</td><td>On</td><td class="col-live"><svg class="trace" data-wave="sine" data-cycles="1.5" data-ph="0.2"></svg></td></tr>
+          <tr class="sel"><td class="num">5</td><td><span class="mk v">v</span></td><td class="srcn">ENV3</td><td>–</td><td><span class="dst"><span class="tag s2">S2</span>Macro › Morph</span></td><td><span class="amt"><span class="b"><i style="left:35px; width:21px"></i></span><span class="n">+60 %</span></span></td><td><svg class="curve" data-curve="lin"></svg></td><td class="col-pol">Auto</td><td>Per voice</td><td class="col-live"><svg class="trace" data-wave="voices"></svg></td></tr>
+          <tr class="has-reason"><td class="num">6</td><td><span class="mk r">!</span></td><td class="srcn">ENV3</td><td>–</td><td><span class="dst"><span class="tag m">M1</span>Master Sat › Drive</span></td><td><span class="amt"><span class="b"><i style="left:35px; width:10px"></i></span><span class="n">+30 %</span></span></td><td><svg class="curve" data-curve="lin" data-c="--refuse"></svg></td><td class="col-pol">Auto</td><td>Per voice</td><td class="col-live small ref">writes nothing</td></tr>
+          <tr class="reason"><td colspan="10"><div class="rsn"><span class="ref">Refused: a per-voice cable cannot reach an effect; an effect takes one value, not one a note.</span><span class="act">Make it global</span></div></td></tr>
+          <tr><td class="num">7</td><td><span class="mk on">&gt;</span></td><td class="srcn">CHN5 Smth</td><td>–</td><td><span class="dst"><span class="tag s4">S4</span>FM6 › Brightness</span></td><td><span class="amt"><span class="b"><i style="left:35px; width:9px"></i></span><span class="n">+25 %</span></span></td><td><svg class="curve" data-curve="lin"></svg></td><td class="col-pol">Auto</td><td>On</td><td class="col-live"><svg class="trace" data-wave="rand" data-cycles="1"></svg></td></tr>
+          <tr><td class="num">8</td><td><span class="mk on">&gt;</span></td><td class="srcn">LFO1 Wrap</td><td>–</td><td><span class="dst"><span class="tag ghost">RK</span>FUN6 › Trig</span></td><td class="small">gate</td><td>–</td><td class="col-pol">–</td><td>On</td><td class="col-live"><svg class="trace" data-wave="gate" data-n="3"></svg></td></tr>
+          <tr class="has-reason"><td class="num">9</td><td><span class="mk late">~</span></td><td class="srcn">FUN6</td><td>–</td><td><span class="dst"><span class="tag ghost">RK</span>LFO1 › Rate</span></td><td><span class="amt"><span class="b"><i style="left:35px; width:10px"></i></span><span class="n">+30 %</span></span></td><td><svg class="curve" data-curve="lin"></svg></td><td class="col-pol">Auto</td><td>On</td><td class="col-live"><svg class="trace" data-wave="func" data-cycles="2"></svg></td></tr>
+          <tr class="reason"><td colspan="10"><div class="rsn"><span class="small">Runs up the rack: LFO1 and FUN6 feed each other, so this slot reads FUN6 one tick late (32 frames, 0.7 ms).</span></div></td></tr>
+          <tr><td class="num">10</td><td><span class="mk on">&gt;</span></td><td class="srcn">BEAT</td><td>–</td><td><span class="dst"><span class="tag ghost">RK</span>CHN5 › Trig</span></td><td class="small">gate</td><td>–</td><td class="col-pol">–</td><td>On</td><td class="col-live"><svg class="trace" data-wave="gate" data-n="4"></svg></td></tr>
+          <tr class="off"><td class="num">11–32</td><td></td><td colspan="8">22 empty slots · <kbd>N</kbd> adds a cable from the source in focus</td></tr>
+        </tbody>
+      </table>
+      <div class="legend2"><span><span class="mk on">&gt;</span>on</span><span><span class="mk v">v</span>per voice</span><span><span class="mk late">~</span>a tick late</span><span><span class="mk r">!</span>refused, writes nothing</span><span><span class="mk off">–</span>off</span><span><span class="lane"></span>a lane locks it</span><span>the screen's MATRIX marks, with words</span></div>
+    </section>
+
+    <section class="panel" aria-label="Slot 5">
+      <h3>Cable 5 <span class="aside">of 32 · MATRIX pages A and B</span></h3>
+      <div class="ins">
+        <span class="l">From</span><span><b class="mod">ENV3</b> · Env</span>
+        <span class="l">To</span><span class="dst"><span class="tag s2">S2</span>Macro › Morph</span>
+      </div>
+      <div style="margin-top:6px" data-e="cable" data-p="Amount" data-v="60" data-label="Amount"></div>
+      <div data-e="cable" data-p="Offset" data-v="0" data-label="Offset"></div>
+      <div data-e="cable" data-p="Via" data-v="none" data-label="Via" data-list></div>
+      <div class="row wide"><div class="lab"><span class="nm">Curve</span></div><div class="curves" role="radiogroup" aria-label="Curve"><span class="on"><svg data-curve="lin"></svg></span><span><svg data-curve="expo"></svg></span><span><svg data-curve="log"></svg></span><span><svg data-curve="s"></svg></span><span><svg data-curve="sq"></svg></span><span><svg data-curve="sqrt"></svg></span><span><svg data-curve="step"></svg></span><span><svg data-curve="inv"></svg></span></div></div>
+      <div data-e="cable" data-p="Polarity" data-v="Auto"></div>
+      <div data-e="cable" data-p="Scope" data-v="Per voice"></div>
+      <div class="ins" style="margin-top:4px"><span class="l">Now</span><span>C3 <b>0.92</b> · E3 <b>0.71</b> · G3 <b>0.55</b></span><span class="l">Lock</span><span class="lane-note">none · a sequencer lane can lock the amount</span></div>
+      <div class="sub-h"><span class="t">ENV3 · Envelope</span><span class="n">124 B a voice</span></div>
+      <div data-k="env" data-p="Attack" data-v="0.05"></div>
+      <div data-k="env" data-p="Decay" data-v="0.45"></div>
+      <div data-k="env" data-p="Sustain" data-v="0.40"></div>
+      <div data-k="env" data-p="Release" data-v="0.50"></div>
+      <div class="ins" style="margin-top:4px"><span class="l">Gate in</span><span>RTRG, slot 1 <span class="small">(its normal)</span></span><span class="l">Env out</span><span>slot 5 · <span class="ref">slot 6, refused</span></span></div>
+    </section>
+  </div>
+</main>
+<script src="meta.js"></script>
+<script>
+  window.META.engines.cable = { name: 'Cable', params: [
+    { n: 'Amount', t: 'float', min: -100, max: 100, d: 0, unit: 'pct', pg: 1, f: [] },
+    { n: 'Offset', t: 'float', min: -100, max: 100, d: 0, unit: 'pct', pg: 1, f: [] },
+    { n: 'Via', t: 'enum', min: 0, max: 46, d: 0, unit: 'none', pg: 2, f: [], e: ['none'] },
+    { n: 'Polarity', t: 'enum', min: 0, max: 3, d: 0, unit: 'none', pg: 2, f: [], e: ['Auto', 'Uni', 'Bi', 'Inv'] },
+    { n: 'Scope', t: 'enum', min: 0, max: 2, d: 1, unit: 'none', pg: 2, f: [], e: ['Off', 'On', 'Per voice'] }] };
+</script>
+<script src="shell.js"></script>
+<script src="editor.js"></script>
+<script>document.querySelectorAll('svg.trace').forEach((s) => s.classList.add('scope'));</script>
+</body>
+</html>
