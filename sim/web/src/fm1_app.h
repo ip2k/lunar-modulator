@@ -207,7 +207,7 @@ enum {
  * block's writes to the effects and AMP (every effect parameter and AMP
  * twice: two ticks a 64-frame block). The runtime counts in the RAM figure
  * while it runs. */
-#define FM1_APP_MOD_BYTES 24576u
+#define FM1_APP_MOD_BYTES 26624u
 #define FM1_APP_MOD_WRITES \
   ((FM1_APP_MAX_FRAMES / FM1_MOD_TICK) * (FM1_APP_EFFECTS * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS))
 #define FM1_APP_MOD_SEED 1u           /* fm1_app_init's runtime; a log records it */
@@ -372,7 +372,8 @@ typedef struct fm1_app {
   uint32_t mod_nwr;              /* this block's writes to the effects and AMP */
   fm1_app_mod_write_t mod_wr[FM1_APP_MOD_WRITES];
   uint32_t mod_seed;             /* the runtime's seed, for a log */
-  float bend;                    /* sound 0's pitch bend: HOST PITCH's base */
+  float bend[FM1_APP_SOUNDS];     /* each sound unit's pitch bend: the base of
+                                    its HOST pitch (PITCH, PITCH2-4; MG9) */
   fm1_mod_ui_t mui;              /* RACK, MATRIX, CHAIN and the gesture */
   /* Native-harness hook: every modulation edit as a line of fm1-render's
    * --mod format (engines/host/mod_script.h), with the frame of the block

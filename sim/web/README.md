@@ -203,7 +203,7 @@ chain). This section is how they are built.
 | LEDs | SEQ in SEQ mode, PLAY/STOP while the transport runs, SEL while SHIFT is held; in SEQ mode the white keys show the bar's steps (fm1_seq_ui.h has the rules); REC on while recording or step recording, fast during a count-in or a waiting take, slow while Capture holds notes (O7). Sequencer notes light no key outside SEQ mode (O6). LFO or ENV while RACK shows one of theirs, EDIT in MATRIX and CHAIN, SEL in CHAIN and while RACK holds a module |
 | Status line, help | the tempo and the transport (posted by the worklet only when they change); the help's Sequencer, Tracks, Locks, Sounds, Effects and Modulation entries; SAVE and ARP in the stub list |
 | Sounds | up to four sounds, each with two inserts and a level, then the two slots as the master bus; SHIFT + PRESETS chooses the current sound (below, "Multi-sound") |
-| RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 23,200 B) |
+| RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 26,192 B since per-voice modulation, docs/16 MG9) |
 
 Tests and parity runs never load the demo pattern or route tracks 2–8:
 only the browser's start chain does (`fm1-sim-render --start` plays that
@@ -299,13 +299,30 @@ kind's three-letter abbreviation and the rack position (LFO1, LFO2, ENV3,
 ENV4, CHN5: Chance, Calc, Compare and Coin are CHN, CLC, CMP and COI), so
 no two share a name. A kind change switches off the cables that touch the
 module and remembers them; the pickers commit a second after their last
-turn or at once when another control is used.
+turn or at once when another control is used. An Envelope with no cable
+into its GATE restarts at every note too (RTRG is its normal since MG9).
 
 Destinations are a slot's unit code and a uid (`fm1_mod.h`): 0 Sound 1,
 17–19 Sounds 2–4, 20 + 4k + j Sound k + 1's insert j + 1, 1 and 2 the
-master slots, 3 the host, 8–15 a rack position; HOST PITCH bends Sound 1.
-Every cable here is global, while the slot record keeps the per-voice flag
-for the next stage (docs/16 MG3, "As built").
+master slots, 3 the host, 8–15 a rack position. HOST PITCH bends Sound 1,
+PITCH2–4 (`Pitch2`–`Pitch4` in MATRIX) Sounds 2–4, and PITCH_CUR
+(`PitchC`) the current sound; SHIFT + PRESETS logs a `current K` line for
+it. One sound's note sources, S1NOTE … S4RTRG, follow SQV8 in KNOB1's list.
+
+**Per voice** (docs/16 MG9). MATRIX page B's KNOB4 is a cable's state:
+off, on, on per voice (`v` in its row, `!` when refused). A per-voice
+cable runs once for every note on a sound whose engine takes per-note
+offsets (Macro, Macro Heavy, Shapes, Six-Op FM, FM6, Drums): its note
+sources are the note's own, an Envelope, LFO or Chance it reads runs one
+instance per note, and it reaches only that note, through the engine's
+`set_param_note`; the app sends a key's first offsets right after its
+note-on, as the bridge does for the sequencer's notes. Into an effect, AMP
+or a parameter every note shares it is refused. RACK's line says `vN` for
+a module that runs per voice, N its voices now. When a unit's engine
+changes, each cable into it re-aims at the new engine's parameter of the
+same name or switches off under its old name until an engine with it comes
+back (the owner's rule, 2026-10-05). MG2's Filter module is the Resonator
+(RES) since then.
 
 **Gesture traces and two-step parity** (docs/15 §6.3). `fm1-sim-render
 --panel FILE` reads panel input, one `--key`, `--button` or `--turn` per
@@ -462,14 +479,16 @@ pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (2026-10-05) Comb, Test Ext, the LOG law and the effects' extension
 (`fm1_fx_render`), Drums, FM6 (msfa), the list popups, FM6's user bank
 with msfa's tables as const data, Squash, Transient and the Limiter's
-Round mode (2026-10-06), and the idle paths of EQ, Isolator and Master Sat
-(engines/README.md, "Idle at pass-through"): 77 of 77 scenarios pass,
+Round mode, per-voice modulation (MG9) (2026-10-06), and the idle paths of
+EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"):
+78 of 78 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
 wake them; those two, the three Drums and the four FM6 scenarios are
-identical to glibc too), and it imports nothing; it is 854,567 bytes
-(850,731 before the idle paths, 826,339 without the user bank, 840,216
-without Squash, Transient and Round), 837,480 with
+identical to glibc too), and it imports nothing; it is 890,874 bytes,
+887,038 before the idle paths, 850,731 before
+per-voice modulation (826,339 without the user bank, 840,216 without
+Squash, Transient and Round), 837,480 with
 the user bank before the list popups, 815,821 with the list popups before the
 user bank, 813,115 before both, 786,256 before FM6,
 765,189 before Drums since the lab switch went (790,801
@@ -731,8 +750,8 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
 - **SAVE and ARP** do nothing yet but say so. On the panel the sequencer
   has no Session, scenes, song, Loop view, COPY or a CLEAR tap (docs/15
   S9), and no sets in the browser or MIDI clock in (S10); the desktop tools
-  have them. Modulation's envelopes and LFOs are global until the per-voice
-  stage (docs/16).
+  have them. Per-voice modulation reaches only the engines with per-note
+  offsets; Sophie and Test Sine refuse it (docs/16 MG9).
   Compat mode (Movy's exact behaviour) stays on `fm1-seq` and
   `fm1-render`; the app runs the FM-1's default mode.
 - **MIDI in only**; the virtual FM-1 sends nothing.
