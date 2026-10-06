@@ -121,12 +121,13 @@ await check('single voices go to the slot after the last; a bank resets to User 
   const m = await fm1();
   const a = m.load(single(4));
   const b = m.load(single(9));
+  const twoSingles = [m.name(0), m.name(1)];
   const c = m.load(BANK);
   const d = m.load(single(2));
   return {
-    pass: a.n === 1 && a.first === 0 && b.first === 1 && m.name(1) === NAME(9) && c.first === 0 &&
-      d.first === 0 && m.name(0) === NAME(2) && m.name(1) === NAME(1),
-    firsts: [a.first, b.first, c.first, d.first],
+    pass: a.n === 1 && a.first === 0 && b.first === 1 && twoSingles.join() === [NAME(4), NAME(9)].join() &&
+      c.first === 0 && d.first === 0 && m.name(0) === NAME(2) && m.name(1) === NAME(1),
+    firsts: [a.first, b.first, c.first, d.first], twoSingles,
   };
 });
 
