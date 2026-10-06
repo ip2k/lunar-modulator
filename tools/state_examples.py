@@ -32,8 +32,6 @@ from tests.state_meta import metadata_from_build  # noqa: E402
 
 BUILD = ROOT / "engines" / "build"
 OUT = ROOT / "engines" / "state" / "examples"
-# Drums' per-pad parameters (API v4's PER_FOCUS will say so, stage E2).
-PER_PAD = {"drums": ["Tune", "Decay", "Level", "Tone", "Snap", "Sweep", "Drive", "Model"]}
 
 # Our own FM6 voice: 21 values per operator in VCED order, OP6 first
 # (R1-R4 L1-L4 BP LD RD LC RC RS AMS KVS OL M FC FF DET), then PR1-PR4 PL1-PL4
@@ -166,8 +164,12 @@ class Examples:
     def unit(self, eid, over=None):
         return {"engine": eid, "params": params(self.r.eng[eid]["params"], over)}
 
+    def per_pad(self, eid):
+        """A pad kit's per-pad parameters: its PER_FOCUS ones (engine API v4)."""
+        return [p["name"] for p in self.r.eng[eid]["params"] if "per_focus" in p["flags"]]
+
     def sound(self, eid, over=None, level=100, inserts=(None, None), mfx=(), pads=None):
-        pp = PER_PAD.get(eid)
+        pp = self.per_pad(eid)
         s = {"engine": eid, "params": params(self.r.eng[eid]["params"], over, skip=pp or ())}
         if pp:
             s["pads"] = pads
@@ -181,7 +183,7 @@ class Examples:
             over = {"Tune": [0, -2, 3, 0, 5, -5, 7, -7, 0, -3, 2, 0, 2, 0, 4, 0][k],
                     "Decay": round(rnd.uniform(0.2, 0.8), 2), "Level": [0.9, 0.6, 0.8, 0.7][k % 4],
                     "Tone": round(rnd.uniform(0.3, 0.7), 2)}
-            out.append(params(self.r.eng["drums"]["params"], over, only=PER_PAD["drums"]))
+            out.append(params(self.r.eng["drums"]["params"], over, only=self.per_pad("drums")))
         return out
 
     def arp(self, on, over=None):

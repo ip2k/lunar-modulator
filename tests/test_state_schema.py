@@ -203,11 +203,6 @@ def _resolve(table, params, where, pads=False):
     return set(params)
 
 
-# The per-pad parameters of today's pad kits (the PER_FOCUS flag of engine
-# API v4 will say so, stage E2).
-PER_PAD = {"drums": {"Tune", "Decay", "Level", "Tone", "Snap", "Sweep", "Drive", "Model"}}
-
-
 def test_example_names_resolve_in_the_build(build):
     listed, mod = build
     eng = {e["id"]: e for e in listed}
@@ -221,7 +216,8 @@ def test_example_names_resolve_in_the_build(build):
             e = eng[u["engine"]]
             assert e["kind"] == kind, (where, u["engine"])
             names = {p["name"] for p in e["params"]}
-            per_pad = PER_PAD.get(u["engine"], set())
+            # A pad kit's per-pad values are its PER_FOCUS ones (engine API v4).
+            per_pad = {p["name"] for p in e["params"] if "per_focus" in p["flags"]}
             got = _resolve(e["params"], u["params"], where)
             if e["pads"]:
                 assert len(u["pads"]) == e["pads"]["count"], where

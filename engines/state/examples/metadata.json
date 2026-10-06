@@ -3,7 +3,7 @@
   "kind": "metadata",
   "made": {"by": "desktop", "version": "0.0.0", "commit": "0000000"},
   "build": {
-    "engine_api": 3,
+    "engine_api": 4,
     "mod_api": 1,
     "rate": 44118,
     "ram_budget": 387924,
@@ -233,7 +233,9 @@
           "unit": "none",
           "page": 1,
           "knob": 1,
-          "flags": [],
+          "flags": [
+            "focus"
+          ],
           "entries": [
             "1 Kick",
             "2 Rim",
@@ -267,7 +269,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -284,7 +287,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -301,7 +305,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -318,7 +323,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -335,7 +341,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -352,7 +359,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -369,7 +377,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -385,7 +394,8 @@
           "knob": 1,
           "flags": [
             "latch",
-            "mod"
+            "mod",
+            "per_focus"
           ],
           "entries": [
             "Kit",
