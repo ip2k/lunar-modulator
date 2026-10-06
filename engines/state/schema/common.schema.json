@@ -1,0 +1,387 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ip2k.github.io/lunar-modulator/schema/1/common.schema.json",
+  "title": "Lunar Modulator files: shared definitions",
+  "description": "The pieces every Lunar Modulator JSON file kind is built from (format level 1.x). A reader accepts any member order except that `lunar` and `kind` come first in a file (after an optional `$schema`), `engine` comes before `params` and `pads` in a unit, and `kind` before `params` and `data` in a module, so a streaming reader knows what it reads. Canonical files write members in the order these schemas list them, every value of every unit, parameters by uid order, and numbers and layout as notes/2026-10-06-state-files.md §7.2 says. Numbering for people is 1-based (sounds, positions, slots, pads, pages); uids are uids.",
+  "$defs": {
+    "level": {
+      "description": "The format level the file needs, MAJOR.MINOR: the lowest level that holds every member whose loss would change the sound or the song. A reader refuses another major, or a higher minor than its own.",
+      "type": "string",
+      "pattern": "^1\\.(0|[1-9][0-9]{0,2})$"
+    },
+    "head": {
+      "description": "Members every file kind has.",
+      "type": "object",
+      "required": ["lunar", "kind"],
+      "properties": {
+        "$schema": {"description": "Allowed and ignored; writers leave it out.", "type": "string", "maxLength": 256},
+        "lunar": {"$ref": "#/$defs/level"},
+        "kind": {"enum": ["project", "sound", "fx", "mods", "clip", "settings", "metadata"]},
+        "made": {"$ref": "#/$defs/made"},
+        "name": {"$ref": "#/$defs/screenName"},
+        "title": {"$ref": "#/$defs/text80"},
+        "about": {"$ref": "#/$defs/text240"},
+        "author": {"description": "Never filled in automatically.", "allOf": [{"$ref": "#/$defs/text"}], "maxLength": 64},
+        "licence": {"description": "An SPDX licence identifier; the guide's files are MIT.", "type": "string", "pattern": "^[A-Za-z0-9.+-]{1,32}$"}
+      }
+    },
+    "made": {
+      "description": "What wrote the file. Information only; no time and no user name. Written on one line.",
+      "type": "object",
+      "properties": {
+        "by": {"enum": ["simulator", "firmware", "desktop", "editor", "hand"]},
+        "version": {"type": "string", "pattern": "^[0-9]{1,4}\\.[0-9]{1,4}\\.[0-9]{1,4}([-+][0-9A-Za-z.-]{1,20})?$"},
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{7,40}$"}
+      },
+      "additionalProperties": false
+    },
+    "text": {
+      "description": "UTF-8 text with no control characters and no bidi overrides (a reader strips both). Lengths count characters (code points), in the C reader too.",
+      "type": "string",
+      "pattern": "^[^\\u0000-\\u001f\\u007f\\u202a-\\u202e\\u2066-\\u2069]*$"
+    },
+    "text80": {"allOf": [{"$ref": "#/$defs/text"}], "maxLength": 80},
+    "text240": {"allOf": [{"$ref": "#/$defs/text"}], "maxLength": 240},
+    "screenName": {
+      "description": "A name for the 240 x 240 screen: 1-16 printable ASCII characters.",
+      "type": "string",
+      "pattern": "^[ -~]{1,16}$"
+    },
+    "id": {
+      "description": "An engine, effect, MIDI effect or modulation kind id: stable for ever (a retired id stays reserved).",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,14}$"
+    },
+    "paramKey": {
+      "description": "A parameter by name as the registry spells it (a reader also takes it without ASCII case, by abbreviation or by an alias), or `#UID` (1-4095) for one the writer's build cannot name.",
+      "type": "string",
+      "anyOf": [
+        {"pattern": "^#[1-9][0-9]{0,3}$"},
+        {"pattern": "^(?!#)[ -~]{1,24}$"}
+      ]
+    },
+    "paramValue": {
+      "description": "A FLOAT parameter's value in its own unit (Hz, ms, dB...), a float32 written as the shortest decimal that reads back to the same bits; an ENUM's entry by name, or by index (0-based) when the list has no stable names or the writer cannot name it.",
+      "oneOf": [
+        {"type": "number"},
+        {"type": "string", "pattern": "^[ -~]{1,32}$"}
+      ]
+    },
+    "params": {
+      "description": "Parameter values by name, in uid order. A reader gives a missing value its default and counts it; canonical files write every value.",
+      "type": "object",
+      "maxProperties": 48,
+      "propertyNames": {"$ref": "#/$defs/paramKey"},
+      "additionalProperties": {"$ref": "#/$defs/paramValue"}
+    },
+    "effect": {
+      "description": "An audio effect in an insert, a master slot or an effects chain.",
+      "type": "object",
+      "required": ["engine"],
+      "properties": {
+        "engine": {"$ref": "#/$defs/id"},
+        "params": {"$ref": "#/$defs/params"}
+      },
+      "additionalProperties": false
+    },
+    "midiEffect": {
+      "description": "A MIDI effect in front of a sound (the arpeggiator is `arp`). Its values are kept while it is off.",
+      "type": "object",
+      "required": ["engine"],
+      "properties": {
+        "engine": {"$ref": "#/$defs/id"},
+        "on": {"type": "boolean", "default": false},
+        "params": {"$ref": "#/$defs/params"}
+      },
+      "additionalProperties": false
+    },
+    "effectOrNone": {"anyOf": [{"$ref": "#/$defs/effect"}, {"type": "null"}]},
+    "sound": {
+      "description": "A sound unit: its engine and values, a pad kit's per-pad values, its level into the mix, its two inserts and its MIDI effects chain.",
+      "type": "object",
+      "required": ["engine"],
+      "properties": {
+        "engine": {"$ref": "#/$defs/id"},
+        "params": {
+          "description": "Every parameter that is not per pad. On a pad kit the focus parameter (Pad) holds the saved focus, applied last.",
+          "$ref": "#/$defs/params"
+        },
+        "pads": {
+          "description": "Pad kits only: pad 1, 2, ... in order, each with its per-pad (PER_FOCUS) values.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {"$ref": "#/$defs/params"}
+        },
+        "level": {"description": "Level into the mix, percent.", "type": "number", "minimum": 0, "maximum": 100, "default": 100},
+        "inserts": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"$ref": "#/$defs/effectOrNone"},
+          "default": [null, null]
+        },
+        "midi_fx": {
+          "description": "The MIDI effects chain in front of the sound, in order (mfx1 first).",
+          "type": "array",
+          "maxItems": 4,
+          "items": {"anyOf": [{"$ref": "#/$defs/midiEffect"}, {"type": "null"}]},
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "dx7Voice": {
+      "description": "An FM6 user voice: the 155 VCED bytes, as the name, six operators (OP6 first, 21 values each in VCED order) and the 19 voice values before the name. metadata.schema.json's `dx7` names every field.",
+      "type": "object",
+      "required": ["slot", "ops", "globals"],
+      "properties": {
+        "slot": {"description": "User slot 1-32 (Patch's `User N`).", "type": "integer", "minimum": 1, "maximum": 32},
+        "name": {"description": "Up to 10 printable ASCII characters; written without trailing spaces, padded with spaces on read.", "type": "string", "pattern": "^[ -~]{0,10}$"},
+        "ops": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {"$ref": "#/$defs/dx7Op"}
+        },
+        "globals": {
+          "description": "PR1-PR4, PL1-PL4, ALG, FB, OKS, LFS, LFD, LPMD, LAMD, LKS, LFW, LPMS, TRNSP.",
+          "type": "array",
+          "prefixItems": [
+            {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"},
+            {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"},
+            {"type": "integer", "minimum": 0, "maximum": 31},
+            {"type": "integer", "minimum": 0, "maximum": 7},
+            {"type": "integer", "minimum": 0, "maximum": 1},
+            {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"},
+            {"type": "integer", "minimum": 0, "maximum": 1},
+            {"type": "integer", "minimum": 0, "maximum": 5},
+            {"type": "integer", "minimum": 0, "maximum": 7},
+            {"type": "integer", "minimum": 0, "maximum": 48}
+          ],
+          "minItems": 19,
+          "maxItems": 19,
+          "items": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "u99": {"type": "integer", "minimum": 0, "maximum": 99},
+    "dx7Op": {
+      "description": "R1-R4, L1-L4, BP, LD, RD, LC, RC, RS, AMS, KVS, OL, M, FC, FF, DET.",
+      "type": "array",
+      "prefixItems": [
+        {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"},
+        {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"},
+        {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"}, {"$ref": "#/$defs/u99"},
+        {"type": "integer", "minimum": 0, "maximum": 3},
+        {"type": "integer", "minimum": 0, "maximum": 3},
+        {"type": "integer", "minimum": 0, "maximum": 7},
+        {"type": "integer", "minimum": 0, "maximum": 3},
+        {"type": "integer", "minimum": 0, "maximum": 7},
+        {"$ref": "#/$defs/u99"},
+        {"type": "integer", "minimum": 0, "maximum": 1},
+        {"type": "integer", "minimum": 0, "maximum": 31},
+        {"$ref": "#/$defs/u99"},
+        {"type": "integer", "minimum": 0, "maximum": 14}
+      ],
+      "minItems": 21,
+      "maxItems": 21,
+      "items": false
+    },
+    "dx7Voices": {
+      "description": "FM6 user voices, slots ascending and unique.",
+      "type": "array",
+      "maxItems": 32,
+      "items": {"$ref": "#/$defs/dx7Voice"}
+    },
+    "session": {
+      "description": "The panel session of a project.",
+      "type": "object",
+      "properties": {
+        "current": {"description": "The current sound, 1-4.", "type": "integer", "minimum": 1, "maximum": 4, "default": 1},
+        "octave": {"type": "integer", "minimum": -3, "maximum": 3, "default": 0},
+        "transpose": {"type": "integer", "minimum": -12, "maximum": 12, "default": 0},
+        "key": {"$ref": "#/$defs/key"}
+      },
+      "additionalProperties": false
+    },
+    "key": {
+      "description": "The project key (one per project). Written on one line.",
+      "type": "object",
+      "required": ["root", "scale"],
+      "properties": {
+        "root": {"enum": ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]},
+        "scale": {"description": "A scale id from the metadata export (FM1_KEY_*: major, minor, chromatic so far).", "type": "string", "pattern": "^[a-z][a-z0-9-]{0,23}$"}
+      },
+      "additionalProperties": false
+    },
+    "view": {
+      "description": "Where the panel opens: a hint, applied last; a link's `view=` overrides it. Written on one line.",
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["home", "fx", "glo", "seq", "session", "song", "rack", "matrix", "chain"]},
+        "sound": {"type": "integer", "minimum": 1, "maximum": 4},
+        "page": {"type": "integer", "minimum": 1, "maximum": 16},
+        "unit": {"$ref": "#/$defs/projectUnit"},
+        "track": {"type": "integer", "minimum": 1, "maximum": 16},
+        "bar": {"type": "integer", "minimum": 1, "maximum": 64},
+        "panel": {"description": "A SEQ page.", "enum": ["track", "set", "clip", "step"]},
+        "pos": {"type": "integer", "minimum": 1, "maximum": 8},
+        "slot": {"type": "integer", "minimum": 1, "maximum": 32},
+        "entry": {"description": "A song entry on the Song page.", "type": "integer", "minimum": 1, "maximum": 64}
+      },
+      "additionalProperties": false
+    },
+    "projectUnit": {
+      "description": "A unit of a project: a sound, a sound's insert, a master slot, or the host (pitch and amp).",
+      "type": "string",
+      "pattern": "^(snd[1-4](\\.fx[12])?|fx[12]|host)$"
+    },
+    "soundUnit": {
+      "description": "A unit of a sound file: `snd` is the target sound, `snd.fxJ` its inserts; `host` reaches only `Pitch`, which is the target sound's.",
+      "type": "string",
+      "pattern": "^(snd(\\.fx[12])?|host)$"
+    },
+    "chainUnit": {
+      "description": "A unit of an effects file: its chain positions.",
+      "type": "string",
+      "pattern": "^fx[1-4]$"
+    },
+    "source": {
+      "description": "A system source by the registry's name (VEL, NOTE, RAND, KEY, TRIG, CLOCK, BEAT, BAR, RUN, START, RTRG, SEQ1-SEQ8, SQV1-SQV8, S1NOTE ... S4RTRG). In a sound file S1... means the target sound's.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]{1,7}$"
+    },
+    "ref": {
+      "description": "A cable's source or VIA: a system source, or a module's output by position and port (name, or 1-based index). Written on one line.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["source"],
+          "properties": {"source": {"$ref": "#/$defs/source"}},
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["module"],
+          "properties": {
+            "module": {"type": "integer", "minimum": 1, "maximum": 8},
+            "port": {"$ref": "#/$defs/portRef", "default": 1}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "portRef": {
+      "oneOf": [
+        {"type": "string", "pattern": "^[A-Za-z0-9]{1,8}$"},
+        {"type": "integer", "minimum": 1, "maximum": 8}
+      ]
+    },
+    "target": {
+      "description": "A cable's destination: a unit's parameter, a module's parameter, or a module's gate input. Written on one line.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["unit", "param"],
+          "properties": {
+            "unit": {"type": "string", "pattern": "^(snd[1-4]?(\\.fx[12])?|fx[1-4]|host)$"},
+            "param": {"$ref": "#/$defs/paramKey"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["module", "param"],
+          "properties": {
+            "module": {"type": "integer", "minimum": 1, "maximum": 8},
+            "param": {"$ref": "#/$defs/paramKey"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["module", "gate"],
+          "properties": {
+            "module": {"type": "integer", "minimum": 1, "maximum": 8},
+            "gate": {"$ref": "#/$defs/portRef"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "percent": {
+      "description": "Percent, -100..100, at most 3 decimals: the shortest decimal that maps back to the same Q1.14 (q = round(percent x 16384 / 100), ties away from zero, in exact arithmetic).",
+      "type": "number",
+      "minimum": -100,
+      "maximum": 100
+    },
+    "cable": {
+      "description": "A matrix slot.",
+      "type": "object",
+      "required": ["slot", "from", "to", "amount"],
+      "properties": {
+        "slot": {"type": "integer", "minimum": 1, "maximum": 32},
+        "on": {"type": "boolean", "default": true},
+        "from": {"$ref": "#/$defs/ref"},
+        "via": {"anyOf": [{"$ref": "#/$defs/ref"}, {"type": "null"}], "default": null},
+        "to": {"$ref": "#/$defs/target"},
+        "amount": {"$ref": "#/$defs/percent"},
+        "offset": {"$ref": "#/$defs/percent", "default": 0},
+        "polarity": {"enum": ["auto", "uni", "bi", "inv"], "default": "auto"},
+        "curve": {"enum": ["lin", "square", "cube", "root", "cbrt", "exp", "log", "s"], "default": "lin"},
+        "voice": {"description": "Runs once for every voice (docs/16 MG9).", "type": "boolean", "default": false},
+        "lock": {"description": "The base uid of the slot's own AMT and OFS for sequencer locks (MG6); 0 for none.", "type": "integer", "minimum": 0, "maximum": 4095, "default": 0}
+      },
+      "additionalProperties": false
+    },
+    "patternData": {
+      "description": "A module's pattern data (get_data / set_data): the kind's data version and the bytes in lower-case hex. Written on one line.",
+      "type": "object",
+      "required": ["version", "hex"],
+      "properties": {
+        "version": {"type": "integer", "minimum": 0, "maximum": 255},
+        "hex": {"type": "string", "pattern": "^([0-9a-f]{2})*$", "maxLength": 16384}
+      },
+      "additionalProperties": false
+    },
+    "module": {
+      "description": "A rack position. In a sound or effects file the position is the file's own and is remapped on load.",
+      "type": "object",
+      "required": ["pos", "kind"],
+      "properties": {
+        "pos": {"type": "integer", "minimum": 1, "maximum": 8},
+        "kind": {"$ref": "#/$defs/id"},
+        "params": {"$ref": "#/$defs/params"},
+        "data": {"$ref": "#/$defs/patternData"}
+      },
+      "additionalProperties": false
+    },
+    "mod": {
+      "description": "The modulation runtime: its seed, the rack (positions ascending) and the matrix (slots ascending).",
+      "type": "object",
+      "properties": {
+        "seed": {"description": "Seeds every random stream, so a project replays exactly. Sound and effects files leave it out (the project's stays).", "type": "integer", "minimum": 0, "maximum": 4294967295},
+        "rack": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/module"}, "default": []},
+        "cables": {"type": "array", "maxItems": 32, "items": {"$ref": "#/$defs/cable"}, "default": []}
+      },
+      "additionalProperties": false
+    },
+    "movy1Line": {
+      "description": "One line of a `.movy1` set, verbatim (trailing spaces included), without its line end.",
+      "type": "string",
+      "maxLength": 16384,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+    },
+    "movy1": {
+      "description": "A set as the lines of its `.movy1` file: joined with LF and ended with one, they are that file, byte for byte, as the sequencer core exports it (Movy's format, with the FM-1 lines rt, dq, se and sn outside compat mode).",
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 8192,
+      "prefixItems": [{"const": "movy1"}],
+      "items": {"$ref": "#/$defs/movy1Line"}
+    }
+  }
+}

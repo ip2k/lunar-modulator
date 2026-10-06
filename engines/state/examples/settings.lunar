@@ -1,0 +1,11 @@
+{
+  "lunar": "1.0",
+  "kind": "settings",
+  "made": {"by": "hand"},
+  "settings": {
+    "metronome": false,
+    "count_in_click": true,
+    "full_velocity": false,
+    "midi_in_channel": 0
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ip2k.github.io/lunar-modulator/schema/1/project.schema.json",
+  "title": "Lunar Modulator project",
+  "description": "Everything a user makes, but device settings and MASTER: the session, four sounds with their inserts and MIDI effects, the master slots, the FM6 user voices in use, the modulation rack and matrix, the set, and where the panel opens. A load replaces everything, from init. Suggested file name: first-orbit.lunar.",
+  "type": "object",
+  "allOf": [{"$ref": "common.schema.json#/$defs/head"}],
+  "required": ["lunar", "kind", "sounds"],
+  "properties": {
+    "kind": {"const": "project"},
+    "session": {"$ref": "common.schema.json#/$defs/session"},
+    "sounds": {
+      "description": "Sound units 1-4; Sound 1 is never empty.",
+      "type": "array",
+      "prefixItems": [
+        {"$ref": "common.schema.json#/$defs/sound"},
+        {"anyOf": [{"$ref": "common.schema.json#/$defs/sound"}, {"type": "null"}]},
+        {"anyOf": [{"$ref": "common.schema.json#/$defs/sound"}, {"type": "null"}]},
+        {"anyOf": [{"$ref": "common.schema.json#/$defs/sound"}, {"type": "null"}]}
+      ],
+      "minItems": 4,
+      "maxItems": 4,
+      "items": false
+    },
+    "master": {
+      "description": "The master slots fx1 and fx2, in order (the master chain stage widens this to four and adds sends, at a new format level).",
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {"$ref": "common.schema.json#/$defs/effectOrNone"},
+      "default": [null, null]
+    },
+    "dx7": {"$ref": "common.schema.json#/$defs/dx7Voices"},
+    "mod": {
+      "allOf": [{"$ref": "common.schema.json#/$defs/mod"}],
+      "required": ["seed"]
+    },
+    "set": {"$ref": "common.schema.json#/$defs/movy1"},
+    "view": {"$ref": "common.schema.json#/$defs/view"}
+  },
+  "unevaluatedProperties": false
+}

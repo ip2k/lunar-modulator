@@ -5,3 +5,4 @@ python-rtmidi
 pytest
 rp2040-pio-emulator
 adafruit-circuitpython-pioasm
+jsonschema

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ip2k.github.io/lunar-modulator/schema/1/settings.schema.json",
+  "title": "Lunar Modulator settings",
+  "description": "Device preferences (stage A1 settles the full list), kept in browser storage or the device's settings, never in a project or a link. Nothing here can enable MIDI out, pick a port or reach a device: MIDI out stays the user's opt-in on the page.",
+  "type": "object",
+  "allOf": [{"$ref": "common.schema.json#/$defs/head"}],
+  "required": ["lunar", "kind", "settings"],
+  "properties": {
+    "kind": {"const": "settings"},
+    "settings": {
+      "type": "object",
+      "properties": {
+        "metronome": {"type": "boolean", "default": false},
+        "count_in_click": {"description": "Whether the count-in clicks (planned).", "type": "boolean"},
+        "full_velocity": {"type": "boolean", "default": false},
+        "midi_in_channel": {"description": "0 is every channel (omni).", "type": "integer", "minimum": 0, "maximum": 16, "default": 0}
+      },
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

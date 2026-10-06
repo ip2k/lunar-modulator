@@ -8,8 +8,9 @@ track plays hands-free". Earlier answers: S9's CLEAR asks to confirm
 (O15), and scenes are white keys 1–8 with LOOP held (O20).
 
 **What this is.** The design of S9's Session view and scenes, a new Song
-page, the core verbs they need, and the decisions (§12). **Nothing is
-built.** The companion note
+page, the core verbs they need, and the owner's decisions (§12; 2026-10-06:
+every recommendation adopted, each Movy deviation with compat mode keeping
+Movy's behaviour). **Nothing is built.** The companion note
 [2026-10-06-state-files.md](2026-10-06-state-files.md) covers files and
 launch links; this one says what the song puts in them (§5.6).
 
@@ -62,9 +63,13 @@ FM-1.
   - a stopped Capture plays the song, so the take is never heard;
   - REC records into the song's scene and leaves an empty clip in the slot
     you chose.
-- **One proposed change of Movy's design, not a bug.** A clip or scene
-  launched by hand stops the song following but keeps its list (D16).
-  The live mission and the hands-free song can then share one project.
+
+  The fixes, D15 and D17, are adopted (SG2, SG12); compat mode keeps
+  Movy's behaviour.
+- **One change of Movy's design, not a bug, adopted (SG1).** A clip or
+  scene launched by hand stops the song following but keeps its list
+  (D16). The live mission and the hands-free song can then share one
+  project. Compat mode keeps Movy's rule.
 - **State diagrams** of the transport and the song, in Mermaid and DOT
   (§8), are ready for the diagram lane.
 - **Build.** The core verbs and fixes are `engines/` only, so they can be
@@ -164,8 +169,9 @@ So scene 1 plays a C (60), scene 2 a G (67), and the song is `[0,1]`.
 | C | slot 3 chosen, `@3000 rec 0`, one note at 100,000, `@150000 rec 0` | **REC records into the song's scene.** The note lands in slot 2 (`cl 0 1 16 0 …;38:43:72:100:2`), and an empty clip is left in slot 3 (`cl 0 2 16 0`). An empty clip "exists", so that column no longer counts as an empty END scene [inferred: `scene_is_empty`] |
 
 The owner's standing rule is to fix apparent Movy bugs in the port, with
-compat mode kept for tests. The fixes are D15 and D17 (§5.5). D14 stays
-reserved for undo [verified: `engines/seq.md`].
+compat mode kept for tests. The fixes are D15 and D17 (§5.5), adopted
+(SG2, SG12; owner, 2026-10-06). D14 stays reserved for undo [verified:
+`engines/seq.md`].
 
 ## 4. Requirements
 
@@ -201,10 +207,10 @@ track's slots; the grid shows every track.
 
 | Input | Session view |
 | --- | --- |
-| White 1–8 | The focused track's slot 1–8: `launch t s`, on the bar. An empty slot stops the track. A song: cleared (Movy), or detached (D16, SG1) |
+| White 1–8 | The focused track's slot 1–8: `launch t s`, on the bar. An empty slot stops the track. A song is detached (D16, SG1), or cleared in compat mode (Movy) |
 | White 9–16 | Focus track 1–8 (`watch t`) |
 | **LOOP held** | The scene row. The band appears at once, even with no song (Movy) |
-| LOOP + white 1–8 | Scene 1–8. Movy: the first press of a hold sends `song s`, later ones `songadd s`. D16: the first press sends `scene s`; a second press in the same hold sends `sgnew s1` (s1 = the hold's first scene), then `songadd s2`, and later ones `songadd s`. Each key consumes its own release |
+| LOOP + white 1–8 | Scene 1–8. Default (D16): the first press sends `scene s`; a second press in the same hold sends `sgnew s1` (s1 = the hold's first scene), then `songadd s2`, and later ones `songadd s`. Compat (Movy): the first press of a hold sends `song s`, later ones `songadd s`. Each key consumes its own release |
 | LOOP + white 9–16 | Inert, LEDs off (Movy's in-between keys are dark) |
 | COPY + slot | `clipcopy` / `clippaste` |
 | CLEAR + slot | The confirm (§5.2), then `clipdelat t s` |
@@ -348,9 +354,13 @@ page reads them once a block, as the Track view reads its grid.
 | D16 (SG1) | A clip launched by hand clears the song; a scene press replaces it | Either detaches the song: it stops following and **keeps its list**. STOP then PLAY, or SHIFT + PLAY on the Song page, follows it again. A LOOP hold with **two or more** scene presses builds a new song; one press only launches |
 | D17 | A stopped Capture with a song starts the song (§3.2 B). REC from stopped with a song leaves an empty clip in the chosen slot (§3.2 C) | A stopped Capture acts as a clip launched by hand on its track: the take plays, and the song is cleared (Movy's rule) or detached (D16). REC creates no clip in a slot the song moves it away from |
 
-D16 departs from a stated intent of Movy's, not a bug. It is proposed
-because the guide needs a live mission and a hands-free song in one
+D16 departs from a stated intent of Movy's, not a bug. It is adopted
+(SG1) because the guide needs a live mission and a hands-free song in one
 project.
+
+**ST11** (the state note) is the fourth deviation: a set import reseeds
+the sequencer's RNG to its init constant, so a loaded song plays the same
+each time; in compat mode the RNG runs on, as Movy's does.
 
 **Memory** [inferred]: the end mode, jump target and follow flag take 3 B,
 and scene names 8 × 7 = 56 B. That is about 60 B on the 8-track instance's
@@ -376,11 +386,12 @@ integers, which suits the M4 command ring (`engines/seq.md`).
 - **A Movy set with more than 64 presses** keeps the first 64 and shows the
   toast `Song cut to 64`.
 
-**In a project**, the set is that `movy1` text, verbatim, so the song
-travels with it (state note §7).
+**In a project**, the set is that `movy1` text as the JSON array of its
+lines, verbatim (state note §7.3), so the song travels with it.
 
 **Launching** (state note §12.4):
-- `view song` in the file, or `&view=song` in a link, opens the Song page.
+- `"view": {"mode": "song"}` in the file, or `&view=song` in a link,
+  opens the Song page.
 - `&play=1` starts the song after the user powers on.
 - `&entry=3` sends `sgjump 2`, then `play`.
 
@@ -391,7 +402,8 @@ panel could not. Nothing goes to a device.
 - the mission launches scenes with LOOP + keys;
 - STOP then PLAY brings the arranged song back.
 
-Without D16, the mission ends with "reload the project".
+In compat mode, without D16, the mission would end with "reload the
+project".
 
 ## 6. Screen layouts (240 × 240)
 
@@ -756,6 +768,8 @@ arrangement for free.
   - edits while armed, including the stale-arm cancel;
   - the playing entry deleted or cut short;
   - after every edit, an export equal to the model's.
+- **ST11:** after a set import, a song with probability trigs plays the
+  same notes each time; in compat mode the RNG runs on.
 - **D16:**
   - a hand launch keeps the list, and STOP then PLAY follows it;
   - a one-press LOOP hold keeps the list;
@@ -782,12 +796,14 @@ arrangement for free.
 
 ## 11. Build
 
-- **E1, now, `engines/` only** (state note §18). It can run beside the UI
-  colour and fonts stage, because it does not touch `sim/web/src`:
+- **E1, now, `engines/` only** (state note §18; owner, 2026-10-06). It can
+  run beside the UI colour and fonts stage, because it does not touch
+  `sim/web/src`:
   - the verbs of §5.5;
   - the `fm1_seq_info_t` fields;
   - the `se`, `sn` and `dq` lines;
-  - D15, D17, and D16 if SG1 says so;
+  - D15, D16 and D17, each with compat mode keeping Movy's behaviour;
+  - ST11: a set import reseeds the RNG (compat: it runs on);
   - the tests of §10 that need no screen.
   - It rebuilds `fm1.wasm` in its own PR, because `engines/seq` is linked
     into the module (docs/15 §6.5).
@@ -795,28 +811,30 @@ arrangement for free.
   `sim/web/src` (`fm1_seq_ui.c`, `fm1_seq_view.c`, `fm1_app.c`): S9's
   Session view, Loop view, COPY and CLEAR (docs/15 S9), plus the Song page
   and the readouts of §5.4, with its screens and traces.
-  - Proposed in the state note (ST20): it comes right after the state
-    stages A1 and W1, ahead of the master chain and side-chain stages.
+  - It comes right after the state stages A1 and W1, ahead of the master
+    chain and side-chain stages (ST20, adopted).
 
 ## 12. Owner decisions
 
-Each has a recommendation.
+Decided by the owner on 2026-10-06: **every recommendation adopted.** The
+three changes of Movy's behaviour (SG1, SG2, SG12), and the state note's
+ST11, each keep Movy's behaviour in compat mode.
 
-| # | Question | Recommendation |
+| # | Question | Decision (owner, 2026-10-06) |
 | --- | --- | --- |
-| SG1 | A clip or a single scene launched by hand while a song exists | **D16**: the song detaches and keeps its list; STOP then PLAY, or SHIFT + PLAY on the Song page, follows it again; a LOOP hold builds a new song only from its second press. This departs from Movy's stated intent, so compat keeps Movy |
-| SG2 | D15: a count-in should not use up the song's first bar | Adopt |
-| SG3 | Song length | Keep 64 presses (the owner's "64-entry song list"). The 4-minute song needs 20, and two-digit entry numbers fit the Song page row. Longer Movy songs are cut, with a toast |
-| SG4 | The end of the song | Loop, Park or Stop, saved on an `se` line; default Loop; the guide's song uses Stop |
-| SG5 | Play from an entry | SHIFT + PLAY on the Song page, relaunching that entry's scene from its start. Plain PLAY stays "from the top" everywhere |
-| SG6 | Scene names | Up to 6 characters: picked on the panel from a list (Intro, Verse, Pre, Chorus, Drop, Break, Build, Bridge, Fill, Outro), free text from files; `sn` lines |
-| SG7 | Scene labels | Numbers 1–8, matching the keys; "S" stays the sounds' prefix |
-| SG8 | How the Song page opens, and keys 9–16 on it | SHIFT + LOOP only; keys 9–16 set repeats ×1–×8 |
-| SG9 | The confirm popup | Stays until a press, like Capture's; no timeout |
-| SG10 | Editing while the song plays | Allowed, under §5.3's rules, tested against a model |
-| SG11 | Song readout outside Session and the Song page | The `SONG`/`END` transport word, and a `Next` hint in the last bar |
-| SG12 | D17: a stopped Capture or REC with a song | Adopt |
-| SG13 | When to build | The core (E1) now, `engines/` only; the Session view and Song page (S9+) as soon as the UI colour and fonts stage lands |
+| SG1 | A clip or a single scene launched by hand while a song exists | **Adopted: D16.** The song detaches and keeps its list; STOP then PLAY, or SHIFT + PLAY on the Song page, follows it again; a LOOP hold builds a new song only from its second press. This departs from Movy's stated intent, so compat keeps Movy |
+| SG2 | D15: a count-in should not use up the song's first bar | **Adopted**; compat keeps Movy |
+| SG3 | Song length | **Adopted.** 64 presses (the owner's "64-entry song list"). The 4-minute song needs 20, and two-digit entry numbers fit the Song page row. Longer Movy songs are cut, with a toast |
+| SG4 | The end of the song | **Adopted.** Loop, Park or Stop, saved on an `se` line; default Loop; the guide's song uses Stop |
+| SG5 | Play from an entry | **Adopted.** SHIFT + PLAY on the Song page, relaunching that entry's scene from its start. Plain PLAY stays "from the top" everywhere |
+| SG6 | Scene names | **Adopted.** Up to 6 characters: picked on the panel from a list (Intro, Verse, Pre, Chorus, Drop, Break, Build, Bridge, Fill, Outro), free text from files; `sn` lines |
+| SG7 | Scene labels | **Adopted.** Numbers 1–8, matching the keys; "S" stays the sounds' prefix |
+| SG8 | How the Song page opens, and keys 9–16 on it | **Adopted.** SHIFT + LOOP only; keys 9–16 set repeats ×1–×8 |
+| SG9 | The confirm popup | **Adopted.** Stays until a press, like Capture's; no timeout |
+| SG10 | Editing while the song plays | **Adopted.** Allowed, under §5.3's rules, tested against a model |
+| SG11 | Song readout outside Session and the Song page | **Adopted.** The `SONG`/`END` transport word, and a `Next` hint in the last bar |
+| SG12 | D17: a stopped Capture or REC with a song | **Adopted**; compat keeps Movy |
+| SG13 | When to build | **Adopted.** The core (E1) now, `engines/` only; the Session view and Song page (S9+) as soon as the UI colour and fonts stage lands, after A1 and W1 |
 
 **Not proposed now, for later:**
 - per-entry track mutes: an entry would be a scene less some tracks, which

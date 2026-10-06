@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ip2k.github.io/lunar-modulator/schema/1/metadata.schema.json",
+  "title": "Lunar Modulator parameter metadata",
+  "description": "What a build can make, exported from C (fm1-render --meta on the desktop, a wasm call in the simulator; stage E2), so an editor generates its controls and never hard-codes a name, range or uid: every engine, audio effect, MIDI effect and modulation kind with its parameters (names, abbreviations, units, ranges, defaults, LOG law, ENUM entries, pages and knobs, flags, uids, aliases), the modulation sources, units and ports, the FM6 voice fields, the project keys, the ids a build knows but lacks, and the file caps. Versioned by `lunar`: a minor level adds members, never moves one. Not a loadable file kind: a state loader refuses it.",
+  "type": "object",
+  "allOf": [{"$ref": "common.schema.json#/$defs/head"}],
+  "required": ["lunar", "kind", "build", "engines", "mod", "dx7", "keys", "known_ids", "limits"],
+  "properties": {
+    "kind": {"const": "metadata"},
+    "build": {
+      "type": "object",
+      "required": ["engine_api", "mod_api", "rate", "ram_budget", "gpl"],
+      "properties": {
+        "engine_api": {"description": "FM1_ENGINE_API_VERSION.", "type": "integer", "minimum": 1},
+        "mod_api": {"description": "FM1_MOD_API_VERSION.", "type": "integer", "minimum": 1},
+        "rate": {"description": "The rate files are checked at (the FM-1's), Hz.", "type": "integer", "minimum": 8000},
+        "ram_budget": {"description": "Bytes the engines, effects and modulation may take (FM1_APP_RAM_BUDGET).", "type": "integer", "minimum": 0},
+        "gpl": {"description": "Whether FM1_GPL_MODS was on: GPL modules are in this build.", "type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "engines": {
+      "description": "Sound engines, audio effects and MIDI effects, in registry order.",
+      "type": "array",
+      "items": {"$ref": "#/$defs/engine"}
+    },
+    "mod": {
+      "type": "object",
+      "required": ["positions", "slots", "tick", "kinds", "sources", "units", "host", "polarities", "curves"],
+      "properties": {
+        "positions": {"type": "integer", "minimum": 1},
+        "slots": {"type": "integer", "minimum": 1},
+        "tick": {"description": "Frames per control tick.", "type": "integer", "minimum": 1},
+        "kinds": {"type": "array", "items": {"$ref": "#/$defs/modKind"}},
+        "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}},
+        "units": {
+          "description": "The units a cable can reach, by the name files use.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "code"],
+            "properties": {
+              "name": {"type": "string", "pattern": "^(snd[1-4](\\.fx[1-4])?|fx[1-4]|send[12]|host)$"},
+              "code": {"description": "fm1_mod.h's unit code.", "type": "integer", "minimum": 0, "maximum": 255}
+            },
+            "additionalProperties": false
+          }
+        },
+        "host": {
+          "description": "The host unit's parameters (pitch per sound and amp).",
+          "type": "array",
+          "items": {"$ref": "#/$defs/param"}
+        },
+        "polarities": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "curves": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+      },
+      "additionalProperties": false
+    },
+    "dx7": {
+      "description": "FM6's user voices: the VCED fields a file's `ops` and `globals` hold, in order.",
+      "type": "object",
+      "required": ["user_slots", "name_chars", "op_fields", "voice_fields"],
+      "properties": {
+        "user_slots": {"type": "integer", "minimum": 1},
+        "name_chars": {"type": "integer", "minimum": 1},
+        "op_fields": {"type": "array", "minItems": 21, "maxItems": 21, "items": {"$ref": "#/$defs/byteField"}},
+        "voice_fields": {"type": "array", "minItems": 19, "maxItems": 19, "items": {"$ref": "#/$defs/byteField"}}
+      },
+      "additionalProperties": false
+    },
+    "keys": {
+      "type": "object",
+      "required": ["roots", "scales"],
+      "properties": {
+        "roots": {"type": "array", "minItems": 12, "maxItems": 12, "items": {"type": "string"}},
+        "scales": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,23}$"},
+              "name": {"type": "string", "pattern": "^[ -~]{1,24}$"}
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "known_ids": {
+      "description": "Ids this build knows but does not have, with the reason a refusal gives (engines/known-ids.json).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "reason"],
+        "properties": {
+          "id": {"$ref": "common.schema.json#/$defs/id"},
+          "what": {"enum": ["sound", "audio_fx", "midi_fx", "mod"]},
+          "reason": {"enum": ["planned", "gpl", "retired"]},
+          "since": {"description": "For a retired id: the version that retired it.", "type": "string", "maxLength": 16}
+        },
+        "additionalProperties": false
+      }
+    },
+    "limits": {
+      "description": "The reader's caps (notes/2026-10-06-state-files.md §16), so an editor refuses what a load would.",
+      "type": "object",
+      "required": ["bytes", "depth", "string_bytes", "key_bytes", "number_chars", "members", "items"],
+      "properties": {
+        "bytes": {
+          "description": "File bytes after inflating, by kind.",
+          "type": "object",
+          "propertyNames": {"enum": ["project", "sound", "fx", "mods", "clip", "settings", "movy1", "syx"]},
+          "additionalProperties": {"type": "integer", "minimum": 1}
+        },
+        "depth": {"type": "integer", "minimum": 1},
+        "string_bytes": {"type": "integer", "minimum": 1},
+        "key_bytes": {"type": "integer", "minimum": 1},
+        "number_chars": {"type": "integer", "minimum": 1},
+        "members": {"type": "integer", "minimum": 1},
+        "items": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false,
+  "$defs": {
+    "unit": {"enum": ["none", "semi", "ms", "hz", "pct", "deg", "db"]},
+    "flag": {
+      "description": "FM1_PARAM_* by name: latch 0x01, smooth 0x02, nolock 0x04, mod 0x08, input 0x10, poly 0x20, log 0x40 (API v3), keysrc 0x80 (kept for the side-chain stage), focus 0x0100 and per_focus 0x0200 (API v4).",
+      "enum": ["latch", "smooth", "nolock", "mod", "input", "poly", "log", "keysrc", "focus", "per_focus"]
+    },
+    "param": {
+      "description": "One parameter, in its table's order. A FLOAT moves between min and max, on the LOG law when its flags say log (position u = log2(v / min) / log2(max / min)); an ENUM's value is an index into entries.",
+      "type": "object",
+      "required": ["uid", "name", "abbr", "type", "min", "max", "def", "unit", "page", "flags"],
+      "if": {"not": {"required": ["hidden"]}},
+      "then": {"required": ["knob"]},
+      "properties": {
+        "uid": {"type": "integer", "minimum": 1, "maximum": 4095},
+        "name": {"type": "string", "pattern": "^(?!#)[ -~]{1,24}$"},
+        "abbr": {"description": "1-6 characters, for matrix rows.", "type": "string", "pattern": "^[ -~]{1,6}$"},
+        "type": {"enum": ["float", "enum"]},
+        "min": {"type": "number"},
+        "max": {"type": "number"},
+        "def": {"type": "number"},
+        "unit": {"$ref": "#/$defs/unit"},
+        "page": {"description": "The knob page, 1-based.", "type": "integer", "minimum": 1},
+        "knob": {"description": "The knob on that page, 1-4; absent when hidden.", "type": "integer", "minimum": 1, "maximum": 4},
+        "hidden": {"description": "Not on a knob page: an INPUT, a Schwung module's hidden parameter, the host's.", "const": true},
+        "flags": {"type": "array", "items": {"$ref": "#/$defs/flag"}, "uniqueItems": true},
+        "entries": {
+          "description": "ENUM only: entry names by index; append-only.",
+          "type": "array",
+          "items": {"type": "string", "pattern": "^[ -~]{1,32}$"}
+        },
+        "aliases": {
+          "description": "Names this parameter had before; a reader takes them.",
+          "type": "array",
+          "items": {"type": "string", "pattern": "^(?!#)[ -~]{1,24}$"}
+        },
+        "entry_aliases": {
+          "description": "ENUM only: old entry names and the index each now names.",
+          "type": "object",
+          "propertyNames": {"pattern": "^[ -~]{1,32}$"},
+          "additionalProperties": {"type": "integer", "minimum": 0}
+        }
+      },
+      "additionalProperties": false
+    },
+    "engine": {
+      "type": "object",
+      "required": ["id", "name", "kind", "credits", "params"],
+      "properties": {
+        "id": {"$ref": "common.schema.json#/$defs/id"},
+        "name": {"type": "string", "pattern": "^[ -~]{1,24}$"},
+        "kind": {"enum": ["sound", "audio_fx", "midi_fx"]},
+        "credits": {"type": "string", "maxLength": 512},
+        "licence": {"description": "SPDX expression of the code it is built from.", "type": "string", "maxLength": 64},
+        "max_voices": {"type": "integer", "minimum": 0},
+        "per_note": {"description": "Has set_param_note (POLY parameters).", "type": "boolean"},
+        "pads": {
+          "description": "A pad kit's notes, or null.",
+          "anyOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "required": ["first", "count"],
+              "properties": {
+                "first": {"type": "integer", "minimum": 0, "maximum": 127},
+                "count": {"type": "integer", "minimum": 1, "maximum": 128}
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "fx_wants": {"type": "array", "items": {"enum": ["key", "tempo", "transport"]}, "uniqueItems": true},
+        "ram": {"description": "Instance bytes at build.rate.", "type": "integer", "minimum": 0},
+        "params": {"type": "array", "items": {"$ref": "#/$defs/param"}}
+      },
+      "additionalProperties": false
+    },
+    "port": {
+      "type": "object",
+      "required": ["name", "kind", "unit"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[A-Za-z0-9]{1,8}$"},
+        "kind": {"enum": ["cv_bi", "cv_uni", "gate"]},
+        "unit": {"$ref": "#/$defs/unit"},
+        "normal": {"description": "Gate inputs: the system source read while no cable reaches it, or null.", "anyOf": [{"type": "string"}, {"type": "null"}]}
+      },
+      "additionalProperties": false
+    },
+    "modKind": {
+      "type": "object",
+      "required": ["id", "guid", "name", "abbr", "credits", "flags", "params", "gates", "outs"],
+      "properties": {
+        "id": {"$ref": "common.schema.json#/$defs/id"},
+        "guid": {"description": "4 characters, saved in the binary container.", "type": "string", "pattern": "^[ -~]{4}$"},
+        "name": {"type": "string", "pattern": "^[ -~]{1,24}$"},
+        "abbr": {"type": "string", "pattern": "^[ -~]{1,3}$"},
+        "credits": {"type": "string", "maxLength": 512},
+        "licence": {"type": "string", "maxLength": 64},
+        "flags": {"type": "array", "items": {"enum": ["transport", "poly_ok", "audio_tap"]}, "uniqueItems": true},
+        "ram": {"description": "Instance bytes in the arena.", "type": "integer", "minimum": 0},
+        "data": {
+          "description": "Pattern data saved with it, or null.",
+          "anyOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "required": ["bytes", "version"],
+              "properties": {
+                "bytes": {"type": "integer", "minimum": 1},
+                "version": {"type": "integer", "minimum": 0, "maximum": 255}
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "params": {"type": "array", "items": {"$ref": "#/$defs/param"}},
+        "gates": {"type": "array", "items": {"$ref": "#/$defs/port"}},
+        "outs": {"type": "array", "items": {"$ref": "#/$defs/port"}}
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "required": ["id", "name", "kind", "unit"],
+      "properties": {
+        "id": {"description": "fm1_mod.h's source id (0-63).", "type": "integer", "minimum": 0, "maximum": 63},
+        "name": {"type": "string", "pattern": "^[A-Z][A-Z0-9]{1,7}$"},
+        "kind": {"enum": ["cv_bi", "cv_uni", "gate"]},
+        "unit": {"$ref": "#/$defs/unit"},
+        "sound": {"description": "The sound unit (1-4) a per-sound source follows.", "type": "integer", "minimum": 1, "maximum": 4}
+      },
+      "additionalProperties": false
+    },
+    "byteField": {
+      "type": "object",
+      "required": ["name", "max"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[A-Z0-9]{1,6}$"},
+        "max": {"type": "integer", "minimum": 1, "maximum": 127}
+      },
+      "additionalProperties": false
+    }
+  }
+}

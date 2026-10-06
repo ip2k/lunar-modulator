@@ -1,0 +1,71 @@
+{
+  "lunar": "1.0",
+  "kind": "sound",
+  "made": {"by": "hand"},
+  "name": "DEEP BASS",
+  "title": "Deep space bass",
+  "about": "Mission 2.3: open the filter with KNOB2 until the bass growls.",
+  "licence": "MIT",
+  "sound": {
+    "engine": "shapes",
+    "params": {
+      "Shape": "Saw Sub",
+      "Timbre": 0.41,
+      "Color": 0.5,
+      "Attack": 0,
+      "Release": 0.2,
+      "Volume": 0.7
+    },
+    "level": 80,
+    "inserts": [
+      {
+        "engine": "filter",
+        "params": {
+          "Type": "Ladder",
+          "Cutoff": 420,
+          "Resonance": 0.3,
+          "Drive": 0,
+          "Mode": 0,
+          "Morph": 0,
+          "Mix": 1,
+          "Level": 1
+        }
+      },
+      null
+    ],
+    "midi_fx": []
+  },
+  "mod": {
+    "rack": [
+      {
+        "pos": 1,
+        "kind": "lfo",
+        "params": {
+          "Rate": 0.25,
+          "Shape": "Triangle",
+          "Depth": 1,
+          "Mode": "Free",
+          "Phase": 0,
+          "Sync": "Off",
+          "Width": 0.5
+        }
+      }
+    ],
+    "cables": [
+      {
+        "slot": 1,
+        "on": true,
+        "from": {"module": 1, "port": "Out"},
+        "via": null,
+        "to": {"unit": "snd.fx1", "param": "Cutoff"},
+        "amount": 35,
+        "offset": 0,
+        "polarity": "auto",
+        "curve": "lin",
+        "voice": false,
+        "lock": 0
+      }
+    ]
+  },
+  "view": {"mode": "home", "sound": 1, "page": 1}
+}

@@ -9,6 +9,13 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The saved-state file format, designed.** JSON Schemas (draft 2020-12)
+  for every kind of file the simulator and the guide will use (project,
+  sound, effects chain, mod rack, clip, settings) and for the export of
+  every parameter's names, ranges and units that a browser editor will
+  build its controls from, with an example of each, in `engines/state/`.
+  Nothing reads or writes these files yet: Open, Save and "Launch in the
+  simulator" links come in later stages.
 - **The arpeggiator, in the simulator.** [ARP] now works: tap it to switch
   the current sound's arpeggiator on (its pages open) or off; hold it to
   latch, so the notes play on after you let go and the next chord replaces
