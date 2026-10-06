@@ -131,6 +131,64 @@ on page 2 since stage A, set the envelope's and the gate's times.
 - Changing the LPG mode while notes sound does not restart them. A note held
   under Off has no gate state to ping from, so it ends when switched to Ping.
 
+### Shapes: where Braids is held
+
+Braids' code (vendored unmodified, `third_party/mutable/braids/`) shifts by
+a negative count or by 32, or reads past a table, at some edges of pitch and
+Timbre. ASan and UBSan found them; on a given build each gave some output,
+but not one any C++ compiler promises, and Wave Line's depended on what the
+linker put after its table. The wrapper (`src/mi_shapes.cc`) holds every
+voice inside what the code handles, in Braids' own units (1/128 semitone;
+Timbre as the int16 0..32,767 the knob becomes):
+
+| Edge | What Braids does past it | Held at | What changes |
+| --- | --- | --- | --- |
+| The pitch, key + bend + pitch offset, above MIDI 127.99 | Flute (31) reads its 128-entry body filter table past the end (`digital_oscillator.cc:1404`). The filter shapes (17–20) at a high Timbre wrap their int16 shifted pitch from MIDI 136 and shift by 32 in `ComputePhaseIncrement`. Sqr Sync and Saw Sync (7, 8) wrap the synced oscillator's pitch from MIDI 192 at Timbre 1 (`analog_oscillator.cc:64`), reachable only with a pitch offset on a bend | 0..16,383 (MIDI 0..127.99), where `braids.cc` holds its own pitch before `set_pitch` at the default octave; it was 0..32,767 | A note above MIDI 127.99 plays as at 127.99, on every shape. Braids' oscillators already stopped rising at MIDI 128 (both phase-increment tables end there), but what follows the pitch (3x's intervals, the filter shapes' cutoff, Bell's and Drum's partials, Digital's data rate) kept moving |
+| Comb (15): the comb's own pitch, key + (Timbre − 0.5) × 64 semitones, below MIDI −16 (Timbre 0 on keys 0–47; below 0.375 on key 0) | `ComputeDelay` shifts by a negative count (`digital_oscillator.cc:90`) | Timbre at 16,384 + 2 × (−2,048 − pitch) or above, so the comb stays at MIDI −16 or above | Nothing steady: the comb's delay is at its longest (8,192 samples, 11.7 Hz at 96 kHz) from MIDI 6.2 down, which the build's shift had mostly landed on too (within 1 LSB in the renders compared). Only the comb's own glide out of that region (a one-pole over 16 Braids blocks, about 4 ms) starts nearer |
+| Wave Line (39): Timbre above 32,255 (0.9844) | The scan reads `wave_line[64]`, one past the line's 64 waves (`digital_oscillator.cc:1637`) | Timbre at 32,255 at most | The last 1.6 % of Timbre plays the line's last wave; this build had played a stray one there, up to 42,000 LSB away |
+
+- **Inside those ranges nothing changed** [verified 2026-10-05: 2,162
+  renders byte for byte against the build before: all 47 shapes, keys 0–127
+  with bends to 127.99, Timbre 0–0.98 and Color 0–1, and Timbre and Color
+  turned while notes held, as fm1-render's 16-bit WAVs; and in the
+  engine's float output, a reviewer's 282 random scripts of 300 events
+  inside the ranges (six a shape; notes, knobs, bends, pitch and
+  Timbre/Color offsets turning), rendered at blocks of 64 and 7 from memory
+  filled 0x00 and 0xA5, gave the same bits from both builds]. The reference
+  suite's points are all inside and pass unchanged.
+- **No report under ASan and UBSan** [verified 2026-10-05, Apple clang 21:
+  `tests/test_engines_shapes_edges.py`, one render per shape over every key
+  at Timbre and Color 0, ½ and 1 with the note from MIDI −96 to 223, and a
+  sweep of 8,460 renders, every shape, key, Timbre and Color at 0, 0.001,
+  0.37, 0.5, 0.985 and 1, and bends from −48 to +48]. The build before the
+  clamps fails the test on shapes 7, 8, 15, 17–20, 31 and 39, and the
+  per-note extremes test ([below](#per-note-offsets)) now takes every shape
+  on keys 0 and 127.
+- **At an edge Shapes plays upstream at the value it holds** [verified:
+  `tests/test_engines_reference_braids_fx.py`, Comb on keys 0 and 30 at
+  Timbre 0, Wave Line at Timbre 1, Flute and the filter shapes on key 127
+  bent up 48, within 0.55 LSB of upstream's oscillator at the clamped pitch
+  or Timbre].
+- **The clamps hold under turning knobs, bends and per-note offsets, and
+  between the knob ends** [verified 2026-10-05: `fm1-shapes-hostile`
+  (`test/shapes_hostile.cc`, run by `tests/test_engines_shapes_hostile.py`).
+  On every shape, a random script within the engine API (knobs anywhere,
+  NaN and infinities included, bends and pitch offsets anywhere in ±48,
+  per-note Timbre and Color offsets, Shape switched while notes sound)
+  gives the same bits at blocks of 64, 1, 7 and random sizes and from any
+  memory fill, and no report under ASan and UBSan. Every voice above MIDI
+  127.99 plays the bits of the same script held at 127.9921875; Comb with
+  Timbre turning below the clamp, and Wave Line above it, play the bits of
+  Timbre held at the clamp. The build before the clamps fails the last
+  three on 23 shapes, Comb and Wave Line, and halts under the sanitizers.
+  A reviewer's own sweep of 60 such seeds (all 47 shapes, 47,000
+  scripted events each) gave no report either].
+- The cost is a few integer compares a voice per 24-sample block; no
+  table, no libm.
+- The module reaches these edges too [inferred: `braids.cc` adds the octave
+  setting, up to +2 octaves, after its own clamp, and the LFO range takes
+  the pitch below 0]: an upstream candidate, as Plaits' speech read is.
+
 ## Drums
 
 A 16-pad drum kit after the classic analogue drum machines, on MIDI notes
@@ -3028,10 +3086,9 @@ engines]:
 - Instance fills 0, 0xA5 and 0xFF and host blocks of 1, 7 and 64 give the
   same bytes when the calls land on the same frames.
 - Every POLY parameter at an end with the pitch at ±48 over a ±48 bend, on
-  keys 0 and 127, on every model and every fifth patch, renders finite
-  output, also under ASan and UBSan. Shapes is held within MIDI 0..127 and
-  leaves out two shapes, since Braids faults past there and at those
-  shapes' Timbre ends without offsets too ([below](#open-questions-and-next-steps)).
+  keys 0 and 127, on every model and every fifth patch, every shape
+  included, renders finite output, also under ASan and UBSan (Shapes holds
+  Braids at its edges: [above](#shapes-where-braids-is-held)).
 
 **In `fm1-render`**: `--note-param-at T:KEY:NAME=OFFSET` (a POLY parameter;
 `#INDEX=OFFSET` sends any index, to test what an engine ignores) and
@@ -3162,7 +3219,7 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON; with `--sound`, `--insert`, `--level` (and `--slots`) up to four sound units, each through its own inserts and level, mixed before the effect chain, as the virtual FM-1's multi-sound plays them (seq.md, Host contract) |
-| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), and `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py) |
+| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -3406,21 +3463,6 @@ keeping decay within 3–4 %.
   before anything commercial.
 - **Shapes' memory:** 207 KB for 12 voices. A voice cap for the FM-1 build,
   or a split of the physical-model shapes.
-- **Braids faults at some edges**, with or without per-note offsets
-  [verified 2026-10-05: the build before them, clang 18 ASan + UBSan]:
-  Comb (15) at Timbre 0 on keys 0–36 (a shift by −1 in
-  `DigitalOscillator::ComputeDelay`); Wave Line (39) at Timbre 1 on any key
-  (`wave_line[64]`, one past its table, `digital_oscillator.cc:1637`);
-  Flute (31) once key + bend passes MIDI 127 (a global buffer read past its
-  table); the four filter shapes (17–20) at Timbre 1 on key 127 bent up 48
-  (a shift by 32 in `ComputePhaseIncrement`). Ordinary knobs and keys
-  reach the first two; CI's tests never set those shapes there. The
-  wrapper clamps the pitch to 0..255.99 semitones; the module itself is
-  probably held lower (its CV and its own pitch clamp [inferred]), so a
-  clamp at MIDI 127 in the wrapper may be the fix for the high ones. The
-  vendored code stays unmodified, so any fix is in the wrapper (an audio
-  change, its own stage) or an upstream candidate. The per-note extremes
-  test keeps Shapes within MIDI 0..127 and leaves Comb and Wave Line out.
 - **Resampler cost on pi32v2:** the stronger second stage costs about 114
   multiply-adds per output; the cheaper half-band version (about 70, with
   18–22 kHz unprotected) is commit `f12448c`. The owner's decision
