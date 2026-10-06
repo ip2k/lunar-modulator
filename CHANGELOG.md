@@ -1084,6 +1084,36 @@ history.
 - README: the owner's new opening — project goals (including the Orbital Dock
   community module marketplace and firmware builder), current status, and
   why it cannot be flashed yet.
+- **The rest of the README brought up to date** with what landed on
+  2026-10-05 and 2026-10-06, below the owner's opening (left as it is):
+  - What it does: seven sound engines (FM6 and Drums are new) plus Test
+    Sine, four sounds with two inserts each, the Mix page, two master
+    effects and the memory meter, all twenty effects by kind, knobs that
+    turn in ratios, the sequencer and modulation as they are on the public
+    page, with the Drums, sequencer and matrix pictures.
+  - The controls table: every button but SAVE and ARP works, SEL is SHIFT
+    and chooses the sound, the sequencer's keys (Space, the step keys,
+    Shift), and the drum kits' pads on the white keys.
+  - The roadmap in four parts: done, in progress (FM6's file picker and
+    smaller memory, Squash and the other new dynamics, glide, per-voice
+    modulation, idle paths, the Shapes fix), next (from the 2026-10-05
+    build plan: the master chain and shared sends, side-chain, tempo
+    delays, per-voice filters, sets in the browser and Web MIDI, the
+    arpeggiator and MIDI effects) and the Orbital Dock.
+  - Installing: it compiles for the FM-1's processor but has not run on a
+    JieLi chip; the dev kit and the backup-and-restore gate still come
+    first.
+  - Documentation lists the manual's chapters; Credits add msfa (Google),
+    Felucca, SLOOP, fm1-nes, FM-1-transporter, benny-sparra, Airwindows,
+    Plaits' drum models and the modulation sources, keeping every earlier
+    credit; the licence names the Apache-2.0 code; the repository map adds
+    docs/15 and 16, `firmware/`, `tools/jieli/` and the new notes.
+  - Alt text matches the pictures; the FX picture's names the chain's
+    slots, S1 In1 In2 Mix M1 M2.
+  - The pictures stay as PR #61 took them: a fresh run on main after FM6
+    (`build-on-aeon.sh --readme-screenshots`, 72 of 72 parity scenarios)
+    differs from them only in what moves with the sound, the oscilloscope
+    strip, the level meter, LFO1's tick on Timbre and the playhead.
 - **New pictures of the virtual FM-1, and a manual brought up to date with
   it.**
   - The README's picture and the phone picture show the page as it is now:
