@@ -9,6 +9,9 @@ the same output at any block size; every note-on balanced by one note-off
 (a seeded fuzz with mid-note setting changes and tiny output buffers);
 latch, hold pedal, gate, swing, ratchets, repeats, TRG steps, LOOP, JOIN and
 SYNC; no heap; output independent of the instance memory's prior contents.
+Since 2026-10-06: each key's origin (played, or the sequencer's), which
+latches apart and which STOP lets go; and the steps locked to the host
+sequencer's grid while it runs (fm1_arp_process_at, the tool's `run`).
 """
 import json
 import os
@@ -681,6 +684,142 @@ def test_sync_key_and_free(arp_tool):
     assert on_frames(ev)[0] == late + 50, "reset rejoins at the next tick"
 
 
+# ---- Origins and Stop (owner, 2026-10-06) ----------------------------------------------------
+
+def seq_chord(frame, keys, vel=90):
+    return [f"@{frame} on {k} {vel} seq" for k in keys]
+
+
+def seq_release(frame, keys):
+    return [f"@{frame} off {k} seq" for k in keys]
+
+
+def test_stop_lets_go_of_the_sequencers_keys_and_keeps_the_played_ones(arp_tool):
+    """Latched: a chord played by hand, then the sequencer's notes, which join
+    it (each origin latches against its own later keys only), then STOP: the
+    sequencer's keys go and their sounding note ends at once; the hand's
+    latched chord plays on. The notes the sequencer's keys made carry its
+    mark out ("seq": 1)."""
+    s = 4 * STEP
+    lines = ["@0 set latch 1", *chord(0, [60, 64]), *release(100, [60, 64]),
+             *seq_chord(s, [72]), *seq_release(s + 100, [72]),
+             # the sequencer's next chord replaces its own latched one, not the hand's
+             *seq_chord(2 * s, [74]), *seq_release(2 * s + 100, [74]),
+             f"@{3 * s + STEP // 4} stop", f"@{5 * s} set latch 0"]
+    ev, summ = run(arp_tool, script(*lines, ticks=24 * 22))
+    played = steps_of(ev)
+
+    def keys_between(a, b):
+        return {k for f, ks in played if a <= f < b for k in ks}
+    assert keys_between(0, s) == {60, 64}
+    assert keys_between(s + STEP, 2 * s) == {60, 64, 72}
+    assert keys_between(2 * s + STEP, 3 * s) == {60, 64, 74}
+    assert keys_between(3 * s + STEP, 5 * s) == {60, 64}, "Stop kept a key of the sequencer's"
+    assert all(e.get("seq") == 1 for e in ev if e["key"] in (72, 74))
+    assert not any(e.get("seq") for e in ev if e["key"] in (60, 64))
+    stop = 3 * s + STEP // 4
+    at_stop = [(e["kind"], e["key"]) for e in ev if e["frame"] == stop]
+    assert at_stop in ([], [("off", 74)]), at_stop
+    assert summ["held_seq"] == 0
+    assert_balanced(ev, summ)
+
+
+def test_stop_ends_only_the_sequencers_notes(arp_tool):
+    """Gate 200 %: at STOP a note of the hand's and one of the sequencer's
+    sound together; only the sequencer's ends there. A key both played and
+    given by the sequencer is the hand's too, and stays."""
+    lines = ["@0 set gate 200", "@0 set mode chord", *chord(0, [60, 67]), *seq_chord(0, [67, 72]),
+             f"@{STEP + 600} stop", *release(4 * STEP, [60, 67]), f"@{6 * STEP} flush"]
+    ev, summ = run(arp_tool, script(*lines, ticks=24 * 8))
+    at_stop = sorted(e["key"] for e in ev if e["frame"] == STEP + 600)
+    assert at_stop == [72]
+    after = {e["key"] for e in ev if e["kind"] == "on" and e["frame"] > STEP + 600}
+    assert after == {60, 67}
+    assert_balanced(ev, summ)
+
+
+def test_stop_ends_a_trg_note_waiting_for_a_step(arp_tool):
+    """RATE TRG: a key's first note waits for the next STEP, which no
+    stopped sequencer sends: STOP ends it."""
+    ev, summ = run(arp_tool, script("@0 set rate trg", *chord(0, [60]), "@0 step", "@900 stop", ticks=20))
+    assert [(e["frame"], e["kind"]) for e in ev] == [(0, "on"), (900, "off")]
+    assert summ["held"] == 1 and summ["held_seq"] == 0
+    ev, summ = run(arp_tool, script("@0 set rate trg", *chord(0, [60]), "@0 step", "@900 flush",
+                                    "@1000 stop", ticks=20))
+    assert_balanced(ev, summ)
+
+
+def test_a_key_held_by_both_origins_stays_until_both_let_go(arp_tool):
+    """Unlatched: the hand and a track hold one pitch; the track's release
+    leaves it to the hand, the hand's ends it."""
+    lines = [*chord(0, [60]), *seq_chord(0, [60]), *seq_release(STEP + 100, [60]),
+             *release(4 * STEP + 100, [60])]
+    ev, summ = run(arp_tool, script(*lines, ticks=24 * 8))
+    assert on_frames(ev) == [0, STEP, 2 * STEP, 3 * STEP, 4 * STEP]
+    assert_balanced(ev, summ)
+
+
+@pytest.mark.parametrize("block", [1, 7, 64])
+def test_a_new_chord_of_the_hands_drops_its_latch_on_a_key_the_track_holds(arp_tool, block):
+    """Latched: the hand and a track hold one pitch, the hand lets go, then
+    plays a new chord. That chord replaces the hand's latch on the pitch
+    even though the track still holds it down, so the pitch is the track's
+    alone from then on (its notes carry the sequencer's mark), and STOP
+    takes it away; the hand's new chord plays on."""
+    lines = ["@0 set latch 1", *chord(0, [60]), *seq_chord(0, [60]), *release(100, [60]),
+             *chord(2 * STEP, [64]), *release(2 * STEP + 100, [64]),
+             *seq_release(3 * STEP, [60]), f"@{4 * STEP + STEP // 4} stop", f"@{8 * STEP} set latch 0"]
+    ev, summ = run(arp_tool, script(*lines, ticks=24 * 10), block=block)
+    played = steps_of(ev)
+    stop = 4 * STEP + STEP // 4
+
+    def keys_between(a, b):
+        return {k for f, ks in played if a <= f < b for k in ks}
+    assert keys_between(0, 2 * STEP) == {60}
+    assert keys_between(2 * STEP, stop) == {60, 64}
+    assert keys_between(stop, 8 * STEP) == {64}, "Stop kept a key the hand's new chord replaced"
+    assert all(e.get("seq") == 1 for e in ev if e["key"] == 60 and e["frame"] >= 2 * STEP)
+    assert summ["held"] == 0 and summ["held_seq"] == 0
+    assert_balanced(ev, summ)
+
+
+# ---- The sequencer's grid (owner, 2026-10-06) -------------------------------------------------
+
+@pytest.mark.parametrize("block", [1, 7, 64])
+def test_steps_lock_to_the_sequencers_grid_while_it_runs(arp_tool, block):
+    """`run POS`: the first tick is the sequencer's tick POS. A key between
+    grid steps waits for the next one (Sync Key or Free), not the next tick;
+    swing delays the odd steps as the grid's; `halt` lets it run on from the
+    last step, as when stopped."""
+    lines = ["@0 run 10", *chord(550, [60])]        # tick 10 at frame 0: the next 1/16 is tick 24
+    ev, _ = run(arp_tool, script(*lines, ticks=24 * 5), block=block)
+    assert on_frames(ev)[:3] == [14 * T, 38 * T, 62 * T]
+    ev, _ = run(arp_tool, script("@0 set sync 0", *lines, ticks=24 * 5), block=block)
+    assert on_frames(ev)[:2] == [14 * T, 38 * T]
+    ev, _ = run(arp_tool, script(*chord(550, [60]), ticks=24 * 3), block=block)
+    assert on_frames(ev)[:2] == [6 * T, 30 * T], "stopped: at the next tick, as before"
+    # 1/8 triplets (32 ticks) from tick 70: the next is tick 96, then 128
+    ev, _ = run(arp_tool, script("@0 set rate 1/8t", "@0 run 70", *chord(0, [60]), ticks=24 * 4),
+                block=block)
+    assert on_frames(ev)[:2] == [26 * T, 58 * T]
+    # swing 60 on 1/16: even steps on multiples of 24, odd ones 4 ticks late
+    ev, _ = run(arp_tool, script("@0 set swing 60", "@0 run 0", *chord(0, [60]), ticks=24 * 5),
+                block=block)
+    assert on_frames(ev)[:4] == [0, 28 * T, 48 * T, 76 * T]
+    # running, then halted: the steps run on from the last grid step
+    ev, _ = run(arp_tool, script("@0 run 5", *chord(0, [60]), f"@{30 * T} halt", ticks=24 * 4),
+                block=block)
+    assert on_frames(ev)[:3] == [19 * T, 43 * T, 67 * T]
+
+
+def test_the_grid_is_kept_through_rate_changes(arp_tool):
+    """A rate turned while the sequencer runs takes the new rate's grid at
+    once: its next step, never in between."""
+    lines = ["@0 run 0", *chord(0, [60]), f"@{30 * T} set rate 1/8"]
+    ev, _ = run(arp_tool, script(*lines, ticks=24 * 8))
+    assert on_frames(ev)[:4] == [0, 24 * T, 48 * T, 96 * T]
+
+
 # ---- TRG -------------------------------------------------------------------------------------
 
 def test_trg_steps(arp_tool):
@@ -729,7 +868,9 @@ PARAM_FUZZ = [("mode", 0, 21), ("order", 0, 2), ("octaves", 1, 4), ("oct_mode", 
               ("vel_spread", 0, 127), ("gate_spread", 0, 100), ("loop", 0, 64), ("seed", 0, 65535)]
 
 
-def fuzz_script(seed):
+def fuzz_script(seed, origins=False):
+    """A seeded script. With `origins`, half the notes are the sequencer's,
+    STOP lands anywhere, and the sequencer runs and halts (its grid)."""
     rng = random.Random(seed)
     frames = sorted(rng.randrange(0, 60000) for _ in range(rng.randint(40, 160)))
     lines = []
@@ -738,19 +879,23 @@ def fuzz_script(seed):
         r = rng.random()
         if r < 0.30:
             k = rng.choice([24, 48, 60, 62, 64, 67, 71, 72, 96, 120, 127])
-            lines.append(f"@{f} on {k} {rng.randint(0, 127)}")
-            down.add(k)
+            src = " seq" if origins and rng.random() < 0.5 else ""
+            lines.append(f"@{f} on {k} {rng.randint(0, 127)}{src}")
+            down.add((k, src))
         elif r < 0.50 and down:
-            k = rng.choice(sorted(down))
-            lines.append(f"@{f} off {k}")
-            down.discard(k)
+            k, src = rng.choice(sorted(down))
+            lines.append(f"@{f} off {k}{src}")
+            down.discard((k, src))
         elif r < 0.85:
             name, lo, hi = rng.choice(PARAM_FUZZ)
             lines.append(f"@{f} set {name} {rng.randint(lo, hi)}")
+        elif origins and r < 0.92:
+            lines.append(f"@{f} " + rng.choice(["stop", "run 0", f"run {rng.randrange(0, 1 << 40)}",
+                                                 "halt"]))
         else:
             lines.append(f"@{f} " + rng.choice(["step", "step", "reset", "flush", "panic",
                                                  "sus 1", "sus 0"]))
-    lines += release(60000, sorted(down)) + ["@60001 flush"]
+    lines += [f"@60000 off {k}{src}" for k, src in sorted(down)] + ["@60001 flush"]
     period = rng.choice([7, 50, 100, 333])
     return f"clock 0 {period} 1 {60001 // period + 1}\n" + "\n".join(lines) + "\n"
 
@@ -770,6 +915,24 @@ def test_every_note_on_gets_one_note_off(arp_tool, seed):
     for cap in (1, 2, 64):
         ev, summ = run(arp_tool, text, block=[3, 64][seed % 2], cap=cap)
         assert_balanced(ev, summ)
+
+
+@pytest.mark.parametrize("seed", range(24))
+def test_every_note_on_gets_one_note_off_with_origins_and_the_grid(arp_tool, seed):
+    """The same, with the sequencer's notes beside the hand's, STOP, and the
+    grid's runs and halts at any position: balanced, the same at any block
+    size, nothing left of the sequencer's after a final STOP."""
+    text = fuzz_script(1000 + seed, origins=True)
+    base, summ = run(arp_tool, text, block=64, cap=4096)
+    assert_balanced(base, summ)
+    assert summ["dropped_ons"] == 0 and summ["deferred_offs"] == 0
+    ev, _ = run(arp_tool, text, block=[1, 7, 500][seed % 3], cap=4096)
+    assert ev == base
+    for cap in (1, 64):
+        ev, summ = run(arp_tool, text, block=[3, 64][seed % 2], cap=cap)
+        assert_balanced(ev, summ)
+    _, summ = run(arp_tool, text.replace("@60001 flush", "@60001 stop\n@60002 flush"), cap=4096)
+    assert summ["held_seq"] == 0
 
 
 def test_ledger_steals_the_oldest(arp_tool):

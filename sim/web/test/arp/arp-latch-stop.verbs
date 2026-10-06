@@ -1,0 +1,11 @@
+#! rate=44118 block=64 tracks=8 end=264708
+# The arp latched with the sequencer (owner, 2026-10-06): keys latched by
+# hand before Play, track 1's chords joining them on the grid while it
+# plays, Stop taking the track's notes back while the hand's play on, and a
+# key pressed mid-bar during the second run waiting for the grid's next
+# step (the scenario's arp swings its odd steps on that grid).
+@0 bpm 12500;tog 0 0 48 100 55 100;slen 0 0 0 -1 120;tog 0 8 51 90;slen 0 8 8 -1 120
+@26470 play
+@114705 stop
+@141176 play
+@220590 stop

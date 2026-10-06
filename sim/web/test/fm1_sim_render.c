@@ -139,6 +139,11 @@
  * (fm1_app_seq_cmd), and sends it again after each render while the app
  * answers BUSY.
  *
+ * The project key (owner, 2026-10-06): the summary's "key" is the app's
+ * (the set's, fm1_app_project_key) and "glo_page" the global page shown;
+ * with a sequencer script "seq_key" says it again beside fm1-render's own
+ * "seq_key", which a replay of the panel's typed `key` commands must match.
+ *
  * Prints one line of JSON. Test code: C99 with stdio. MIT licence.
  */
 #include "fm1_app.h"
@@ -3162,6 +3167,49 @@ static int run_screens(const char *dir, float rate) {
   check_screen("global", dir, 1);
   g_app.octave = 0;
   g_app.transpose = 0;
+  /* The Key page: SELECT turns to it; every root and every scale, the
+   * longest name with the longest root (F# Mixolydian), KNOB1 and KNOB2. */
+  fm1_app_encoder(&g_app, FM1_ENC_SELECT, 1);
+  expect(g_app.glo_page == 1, "SELECT does not turn the global page to Key");
+  check_screen("global-key", dir, 1);
+  for (int root = 0; root < 12; ++root) {
+    for (int place = 0; place < FM1_KEY_SCALES; ++place) {
+      char name[64];
+      int scale;
+      expect(fm1_app_set_project_key(&g_app, root, fm1_app_key_scale_at(place)) == 0, "the key was refused");
+      expect(fm1_app_project_key(&g_app, &scale) == root && scale == fm1_app_key_scale_at(place),
+             "the key did not change");
+      snprintf(name, sizeof name, "global-key-%d-%d", root, place);
+      check_screen(name, dir, root == 6 && fm1_app_key_scale_at(place) == FM1_KEY_MIXOLYDIAN);
+    }
+  }
+  fm1_app_set_project_key(&g_app, 0, FM1_KEY_MAJOR);
+  fm1_app_encoder(&g_app, FM1_ENC_SELECT, -1);
+  fm1_app_encoder(&g_app, FM1_ENC_KNOB1, 2);          /* a knob on Globe: D, and the Key page */
+  expect(g_app.glo_page == 1 && fm1_app_project_key(&g_app, NULL) == 2, "KNOB1 on the global page");
+  /* ...with the root's list open on D, as a list parameter's knob opens
+   * its list on HOME (audit D1) */
+  expect(g_app.popup_lines > 0 && g_app.popup_total == 12 && g_app.popup_mark >= 0 &&
+         strcmp(g_app.popup[g_app.popup_mark], "D") == 0, "KNOB1 does not open the root's list on D");
+  check_screen("global-key-list-root", dir, 1);
+  fm1_app_encoder(&g_app, FM1_ENC_KNOB2, 1);          /* Minor, the second */
+  fm1_app_encoder(&g_app, FM1_ENC_KNOB2, 1);          /* Dorian, the third */
+  {
+    int scale;
+    expect(fm1_app_project_key(&g_app, &scale) == 2 && scale == FM1_KEY_DORIAN, "KNOB2 on the Key page");
+  }
+  expect(g_app.popup_lines > 0 && g_app.popup_total == FM1_KEY_SCALES && g_app.popup_mark >= 0 &&
+         strcmp(g_app.popup[g_app.popup_mark], "Dorian") == 0, "KNOB2 does not open the scale's list on Dorian");
+  check_screen("global-key-list-scale", dir, 1);
+  fm1_app_encoder(&g_app, FM1_ENC_KNOB2, 64);         /* clamped at Chromatic */
+  fm1_app_encoder(&g_app, FM1_ENC_KNOB1, -64);        /* ...and at C */
+  {
+    int scale;
+    expect(fm1_app_project_key(&g_app, &scale) == 0 && scale == FM1_KEY_CHROMATIC, "the key's knobs clamp");
+  }
+  fm1_app_set_project_key(&g_app, 0, FM1_KEY_MAJOR);
+  g_app.popup_lines = 0;
+  g_app.glo_page = 0;
 
   /* Popups, over HOME. */
   g_app.mode = FM1_MODE_HOME;
@@ -3996,6 +4044,32 @@ static int font_check(void) {
     const int w6 = fm1_tft_span_text(&g_ft, x0, y0, spans, 4, 6, font);
     g_ft.record = 0;
     const int cut6 = g_ft.truncated;
+    /* With leads (MATRIX's mark, the track strip's numbers): 4 px before
+     * the '>' and 4 before the destination; none before the first span or
+     * the NULL one, whatever their leads say, and none before a span that
+     * max_chars leaves out. Still one box, as wide as the leads make it. */
+    const uint8_t lead[4] = { 7, 4, 9, 4 };
+    fm1_tft_begin(&g_ft, RP_BASE);
+    g_ft.record = 1;
+    const int wl = fm1_tft_span_text_lead(&g_ft, x0, y0, spans, lead, 4, 40, font);
+    g_ft.record = 0;
+    const int lead_boxes = g_ft.n_boxes, lead_box_w = g_ft.n_boxes ? g_ft.boxes[0].w : 0;
+    int lead_colour_errors = 0, lead_painted = 0;
+    for (int i = 0; i < 19; ++i) {
+      const int cx = x0 + i * m->advance + (i >= 4 ? 4 : 0) + (i >= 5 ? 4 : 0);
+      int any = 0;
+      for (int y = y0; y < y0 + m->height; ++y) {
+        for (int x = cx; x < cx + m->advance && x < FM1_TFT_W; ++x) {
+          const uint16_t p = g_ft.px[y * FM1_TFT_W + x];
+          if (p == RP_BASE) continue;
+          any = 1;
+          if (p != colour_of[i]) ++lead_colour_errors;
+        }
+      }
+      lead_painted += any;
+    }
+    const int lead_w4 = fm1_tft_span_width_lead(spans, lead, 4, 4, font);
+    const int lead_w6 = fm1_tft_span_width_lead(spans, lead, 4, 6, font);
     /* MAIN in a face is fm1_tft_text at x2, pixel for pixel and box for box. */
     int main_same = 1;
     if (font == FM1_TFT_MAIN) {
@@ -4015,11 +4089,18 @@ static int font_check(void) {
               w != want || colour_errors || painted != 17 || cut6 != 1 ||
               w6 != FM1_TFT_RUN_W(m->advance, m->ink_w, 6) || !main_same ||
               fm1_tft_span_width(spans, 4, 40, font) != want;
+    errors += wl != want + 8 || lead_boxes != 1 || lead_box_w != wl || lead_colour_errors ||
+              lead_painted != 17 || fm1_tft_span_width_lead(spans, lead, 4, 40, font) != wl ||
+              lead_w4 != FM1_TFT_RUN_W(m->advance, m->ink_w, 4) ||
+              lead_w6 != FM1_TFT_RUN_W(m->advance, m->ink_w, 6) + 8;
     printf("%s{\"font\":\"%s\",\"cut_faults\":%d,\"edge_faults\":[%d,%d],\"span_boxes\":%d,"
            "\"span_faults\":%d,\"span_w\":%d,\"span_want_w\":%d,\"colour_errors\":%d,"
-           "\"painted\":%d,\"cut6\":%d,\"w6\":%d,\"main_same\":%d}",
+           "\"painted\":%d,\"cut6\":%d,\"w6\":%d,\"main_same\":%d,\"lead_w\":%d,"
+           "\"lead_boxes\":%d,\"lead_box_w\":%d,\"lead_colour_errors\":%d,\"lead_painted\":%d,"
+           "\"lead_w4\":%d,\"lead_w6\":%d}",
            f ? "," : "", kFontNames[f], cut, edge[0], edge[1], span_boxes, span_faults, w, want,
-           colour_errors, painted, cut6, w6, main_same);
+           colour_errors, painted, cut6, w6, main_same, wl, lead_boxes, lead_box_w,
+           lead_colour_errors, lead_painted, lead_w4, lead_w6);
   }
   printf("],\"errors\":%d}\n", errors);
   return errors ? 1 : 0;
@@ -4880,17 +4961,20 @@ int main(int argc, char **argv) {
     fm1_app_draw(&g_app, 0);
     if (!write_ppm(screen_path, &g_app.tft)) return 1;
   }
-  int sounding = 0;
+  int sounding = 0, key_scale = 0;
   for (int u = 0; u < FM1_APP_SOUNDS; ++u) {
     for (int n = 0; n < 128; ++n) sounding += g_app.note_count[u][n];
   }
+  fm1_app_project_key(&g_app, &key_scale);   /* the project key, the set's (or the stage's) */
   printf("{\"engine\":\"%s\",\"rate\":%g,\"frames\":%u,\"peak\":%.6f,\"rms\":%.6f,"
          "\"ram\":%u,\"mode\":%d,\"octave\":%d,\"transpose\":%d,\"sounding\":%d,"
-         "\"fx\":[\"%s\",\"%s\"],\"fx_slot\":%d,\"fx_page\":%d,\"leds\":\"",
+         "\"fx\":[\"%s\",\"%s\"],\"fx_slot\":%d,\"fx_page\":%d,\"glo_page\":%d,"
+         "\"key\":[%d,%d],\"leds\":\"",
          g_app.unit[0].e ? g_app.unit[0].e->id : "", (double)rate, total, (double)peak,
          total ? sqrt(sum2 / (2.0 * total)) : 0.0, (unsigned)fm1_app_ram(&g_app), g_app.mode,
          g_app.octave, g_app.transpose, sounding, g_app.unit[1].e ? g_app.unit[1].e->id : "",
-         g_app.unit[2].e ? g_app.unit[2].e->id : "", g_app.fx_slot, g_app.fx_page);
+         g_app.unit[2].e ? g_app.unit[2].e->id : "", g_app.fx_slot, g_app.fx_page, g_app.glo_page,
+         fm1_app_project_key(&g_app, NULL), key_scale);
   for (int i = 0; i < FM1_APP_LEDS; ++i) putchar(g_app.led[i] ? '1' : '0');
   printf("\",\"popup\":[");
   for (int i = 0; i < g_app.popup_lines; ++i) {
@@ -5105,6 +5189,11 @@ int main(int argc, char **argv) {
       free(g_ui_log_text[k]);
     }
     printf("]");
+    {
+      int scale;
+      const int root = fm1_app_project_key(&g_app, &scale);   /* the set's key, as fm1-render's */
+      printf(",\"seq_key\":[%d,%d]", root, scale);
+    }
     if (log) fclose(log);
     if (g_log_cmds) fclose(g_log_cmds);
     if (g_log_mod) fclose(g_log_mod);

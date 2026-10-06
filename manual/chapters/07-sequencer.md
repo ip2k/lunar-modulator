@@ -110,9 +110,11 @@ In SEQ mode the screen shows the focused track:
 - **The status line:** the tempo (*120 BPM*; decimals only when it has
   them, such as *120.5 BPM*), the eight tracks and PLAY, STOP, REC (gold
   during a count-in, or while a take waits for its bar) or STEP (step
-  recording). Each track's cell is in the colour of the sound it plays
-  (grey for MIDI out); the focused track's cell is taller than the others,
-  and a muted track's is hollow.
+  recording). Each track is a small tile with the number of the sound it
+  plays (*1* to *4*), in that sound's colour; *M* on grey is MIDI out. The
+  focused track's tile is taller than the others. A muted track's tile goes
+  dark and leaves its number in the sound's colour (the focused one keeps a
+  bar above and below it).
 - **The grid:** four bars around the bar on the keys, 16 steps a row. A step
   with notes is filled, a step outside the loop is outlined (its notes as a
   dim bar), the playhead is inverted, a step with a condition, probability or
@@ -754,7 +756,8 @@ holds, and the screen says that too.
 - Hold [[OP6]] and press white keys 1 to 8 to mute and unmute tracks 1 to 8;
   their lights show which are playing.
 
-The track cells at the top of the screen show muted tracks as outlines.
+The track tiles at the top of the screen show a muted track as its number
+alone, without its tile.
 Muting a track ends its sounding notes at once. Its parameter locks keep
 running ([Parameter locks](#parameter-locks)). Solo is planned for later.
 

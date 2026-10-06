@@ -26,8 +26,10 @@
  * scope, the held steps and the steps under the first one's note marked.
  * With SHIFT held there, the first line and the strip say what SHIFT does.
  *
- * S6: the status line's middle holds the tracks, one cell each (the
- * focused one gold, a muted one an outline); a muted focused track's notes
+ * S6: the status line's middle holds the tracks, one tile each in the
+ * colour of the sound it plays with that sound's number on it ('M' for MIDI
+ * out; the focused one the line's full height, a muted one unlit: its
+ * number alone); a muted focused track's notes
  * are dim; with SHIFT held (no step held) the shortcuts' legend takes the
  * grid's place, and with MUTE or SEQ held the hint line says what the
  * white keys do. The Set, Clip and Track pages use HOME's rows, the page's

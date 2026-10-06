@@ -42,11 +42,11 @@
   --rp-highlight-med: #44415a;
   --rp-highlight-high: #56526e;
 
-  /* Lunar Modulator's own hues, the sounds' colours (fm1_look.h's LM_*) */
-  --lm-nebula: #63a6ff;
-  --lm-nova: #ef8a4a;
-  --lm-aurora: #52d2a5;
-  --lm-comet: #c5df7b;
+  /* Lunar Modulator's own hues, the sounds' colours (fm1_look.h's LUNAR_*) */
+  --lunar-nebula: #63a6ff;
+  --lunar-nova: #ef8a4a;
+  --lunar-aurora: #52d2a5;
+  --lunar-comet: #c5df7b;
 
   /* One meaning per colour, as on the screen (PALETTE.md). Only these name
    * an accent; every rule below names the role. */
@@ -55,10 +55,10 @@
   --live: var(--rp-foam);       /* live signal: the power lever on */
   --refuse: var(--rp-love);     /* refusal, recording, over the limit */
   --context: var(--rp-rose);    /* context */
-  --sound-1: var(--lm-nebula);
-  --sound-2: var(--lm-nova);
-  --sound-3: var(--lm-aurora);
-  --sound-4: var(--lm-comet);
+  --sound-1: var(--lunar-nebula);
+  --sound-2: var(--lunar-nova);
+  --sound-3: var(--lunar-aurora);
+  --sound-4: var(--lunar-comet);
 
   /* the page */
   --bg: var(--rp-base);

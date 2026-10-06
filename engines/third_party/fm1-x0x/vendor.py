@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Copy fm1-x0x's 303 bass and TB-3PO generator into this folder, or check them.
+"""Copy fm1-x0x's 303 bass, TB-3PO generator and 909 kit into this folder, or check them.
 
 Usage:
     python3 engines/third_party/fm1-x0x/vendor.py X0X_CHECKOUT SCHWUNG303_CHECKOUT          # copy
@@ -10,9 +10,16 @@ SCHWUNG303_CHECKOUT one of https://github.com/charlesvestal/schwung-303 (any
 commit: the files are read from the commits pinned below with `git show`).
 From fm1-x0x come the 303 bass (dsp/bass303.*, with the maths and parameter
 headers it includes), TB-3PO (seq/tb3po.*, with the pattern header it
-includes), the GPL-3.0 text and X0X's LICENSING.md; from schwung-303 comes
-Open303's MIT licence, which X0X's bass carries code of. Nothing else of
-either repository is taken.
+includes), the 909 kit (dsp/drum909*, with its cymbal recordings,
+assets/909/, and the script that turns them and its tables into C,
+tools/gen_drum_samples.py), the GPL-3.0 text and X0X's LICENSING.md; from
+schwung-303 comes Open303's MIT licence, which X0X's bass carries code of.
+Nothing else of either repository is taken.
+
+The 909's generated headers (gen/x0x_drum_samples.h, gen/x0x_drum_tables.h)
+are committed, so no build needs Python: the copy writes them by running the
+vendored script, and --check runs it again and compares (its output is the
+same on macOS, musl and glibc Pythons [verified 2026-10-06]).
 
 Two files carry local changes, kept as local.patch (UPSTREAM.md says what and
 why): the copy applies it, and --check applies it to the pinned files and
@@ -39,10 +46,20 @@ X0X_FILES = {
     "firmware/src/seq/tb3po.c": "seq/tb3po.c",             # SPDX: GPL-3.0-only
     "firmware/src/seq/tb3po.h": "seq/tb3po.h",             # SPDX: GPL-3.0-only
     "firmware/src/seq/pattern.h": "seq/pattern.h",         # SPDX: GPL-3.0-only
+    "firmware/src/dsp/drum909.c": "dsp/drum909.c",         # SPDX: GPL-3.0-only (local.patch)
+    "firmware/src/dsp/drum909.h": "dsp/drum909.h",         # SPDX: GPL-3.0-only (local.patch)
+    "firmware/src/dsp/drum909_dsp.h": "dsp/drum909_dsp.h", # SPDX: GPL-3.0-only (local.patch)
+    "tools/gen_drum_samples.py": "tools/gen_drum_samples.py",  # SPDX: GPL-3.0-only
+    "assets/909/README.txt": "assets/909/README.txt",      # the recordings' provenance, as X0X states it
+    "assets/909/hh.wav": "assets/909/hh.wav",              # ER-99's cymbals via 9W9, GPL-3.0
+    "assets/909/ride.wav": "assets/909/ride.wav",
+    "assets/909/crash.wav": "assets/909/crash.wav",
 }
 S303_FILES = {
     "src/dsp/open303/LICENSE": "LICENSE-Open303",          # MIT, Robin Schmidt
 }
+# Written by the vendored tools/gen_drum_samples.py from the files above.
+GENERATED = ["gen/x0x_drum_samples.h", "gen/x0x_drum_tables.h"]
 PATCH = HERE / "local.patch"
 
 
@@ -59,6 +76,8 @@ def assemble(x0x, s303, out):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(show(checkout, commit, src))
     subprocess.run(["patch", "-s", "-p1", "-d", str(out), "-i", str(PATCH)], check=True)
+    subprocess.run([sys.executable, str(out / "tools" / "gen_drum_samples.py"),
+                    str(out / GENERATED[0])], check=True, capture_output=True)
 
 
 def main() -> int:
@@ -70,7 +89,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp)
         assemble(x0x, s303, out)
-        names = sorted(list(X0X_FILES.values()) + list(S303_FILES.values()))
+        names = sorted(list(X0X_FILES.values()) + list(S303_FILES.values()) + GENERATED)
         if "--check" not in sys.argv[1:]:
             for name in names:
                 (HERE / name).parent.mkdir(parents=True, exist_ok=True)

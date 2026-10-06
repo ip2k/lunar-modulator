@@ -424,9 +424,15 @@ typedef struct fm1_engine {
  *   - every note-on sent gets exactly one note-off. A note-off is never
  *     dropped: one that does not fit is sent at the start of the next
  *     call. A note-on that does not fit is never sent;
- *   - FLUSH ends every note the effect sounds (the host sends it at Stop
- *     and when it bypasses or removes the effect); PANIC also forgets every
- *     key it holds; RESET restarts its pattern on the next tick (Play);
+ *   - FLUSH ends every note the effect sounds (the host sends it when it
+ *     bypasses or removes the effect); PANIC also forgets every key it
+ *     holds; RESET restarts its pattern on the next tick (Play); STOP
+ *     (Stop) forgets the keys the sequencer gave it and ends the notes
+ *     they started, and leaves what was played; a host whose ticks stop
+ *     with the transport (fm1_seq's compat mode) sends FLUSH after it;
+ *   - a note's origin rides in its velocity's high byte (fm1_midi_ev.h,
+ *     FM1_MIDI_SRC_*): the host marks the sequencer's, and an effect marks
+ *     its notes after the notes that caused them;
  *   - time is ticks, never samples: every output carries the frame of the
  *     input or tick that caused it, so the output is the same whatever the
  *     host's block size;
@@ -438,8 +444,20 @@ typedef struct fm1_engine {
 #define FM1_MIDI_FX_OUT_MIN 64u       /* output room a host gives every call */
 
 /* The project key (owner, 2026-10-05: one for the project), for the scale
- * effects to come; the arpeggiator reads none of it. */
-enum { FM1_KEY_MAJOR = 0, FM1_KEY_MINOR = 1, FM1_KEY_CHROMATIC = 2 };
+ * effects to come; the arpeggiator reads none of it. It is the set's: the
+ * sequencer keeps it beside the tempo (its `key` verb and the set's `key`
+ * line, engines/seq.md), and the virtual FM-1 sets it on the global page.
+ * The scales, as semitones above the root: Major 0 2 4 5 7 9 11, Minor
+ * (natural, Aeolian) 0 2 3 5 7 8 10, Chromatic every one, then the other
+ * church modes: Dorian 0 2 3 5 7 9 10, Phrygian 0 1 3 5 7 8 10, Lydian
+ * 0 2 4 6 7 9 11, Mixolydian 0 2 4 5 7 9 10, Locrian 0 1 3 5 6 8 10. The
+ * first three are API v3's from the start; the modes came on 2026-10-06. */
+enum {
+  FM1_KEY_MAJOR = 0, FM1_KEY_MINOR = 1, FM1_KEY_CHROMATIC = 2,
+  FM1_KEY_DORIAN = 3, FM1_KEY_PHRYGIAN = 4, FM1_KEY_LYDIAN = 5, FM1_KEY_MIXOLYDIAN = 6,
+  FM1_KEY_LOCRIAN = 7,
+  FM1_KEY_SCALES = 8
+};
 
 typedef struct fm1_midi_fx_ctx {
   const uint16_t *ticks;       /* frames of the block's clock ticks, ascending,
@@ -447,10 +465,20 @@ typedef struct fm1_midi_fx_ctx {
   uint32_t n_ticks;
   uint32_t frames;             /* the block's length */
   uint32_t bpm_x100;           /* the tempo the ticks follow */
-  uint8_t running;             /* 1 while the sequencer's transport runs */
+  uint8_t running;             /* 1 while the sequencer's transport runs: the
+                                  ticks are then its grid, from tick_pos */
   uint8_t key_root;            /* the project key: 0 C .. 11 B */
   uint8_t key_scale;           /* FM1_KEY_* */
   uint8_t reserved;            /* 0 */
+  uint64_t tick_pos;           /* while running: the sequencer's tick that ticks[0]
+                                  is, counted from its Start (tick 0, the first
+                                  downbeat; FM1_MIDI_FX_PPQN to the quarter note,
+                                  four quarters to the bar), so ticks[k] is tick
+                                  tick_pos + k. An effect that steps on the beat
+                                  puts its steps where tick_pos + k is a multiple
+                                  of its step (the arp locks to the beat so). 0
+                                  while stopped, when the ticks run on at the
+                                  tempo with no position */
 } fm1_midi_fx_ctx_t;
 
 typedef struct fm1_midi_fx {

@@ -62,6 +62,17 @@ terms it is used under.
   **Phazerville Hemisphere Suite** by **djphazer** and its contributors
   (GNU GPL version 3). Its code is included unmodified; playing it as an
   effect in front of a sound is this project's own.
+- **Comet Kit** is the 909 kit of **fm1-x0x** by **Charles Vestal**, GNU
+  GPL version 3 (built in only with the GPL switch on). It ports **9W9** by
+  **athousanddetails**, a drum machine for Schwung that models the TR-909's
+  circuits, which grew out of **ER-99** by **Matthew Cieplak** (both GNU
+  GPL version 3); its hi-hat, ride and crash are **ER-99's recordings**,
+  under the same licence. Two small changes of this project's let it run at
+  the instrument's rate and take smooth settings; the rest of its code, its
+  recordings and the script that turns them into data are included
+  unmodified. The pads, voicings of the second snare, toms and pedal hi-hat,
+  and playing it as a pad kit are this project's own. It is after Roland's
+  TR-909, whose name appears here only as credit.
 - **PSX Verb** by **Charles Vestal**, MIT licence, included unmodified.
 - **Schwung**, Charles Vestal's host for modules on the Ableton Move, MIT
   licence. Lunar Modulator includes Schwung's plugin interface unmodified,
@@ -252,8 +263,8 @@ against; it is in no build of the firmware or the simulator.
 
 **GPL code, and the GPL switch.** Some engines and effects port code that
 other projects publish under the GNU General Public License: today Acid
-Bass ([chapter 5](05-sound-engines.md#acid-bass)) and Acid Gen
-([chapter 4](04-playing.md#acid-gen)). Each sits in a folder of
+Bass and Comet Kit ([chapter 5](05-sound-engines.md#acid-bass)) and Acid
+Gen ([chapter 4](04-playing.md#acid-gen)). Each sits in a folder of
 its own in the repository, with its licence and a note of where it came
 from, and is built in only while the firmware's GPL switch is on.
 While we test, the switch is on in every build, the simulator included.
@@ -272,5 +283,6 @@ M-VAVE, Cuvave and FM-1 are the marks of their owners. Lunar Modulator uses
 "FM-1" only to say which instrument it is written for, and is not made,
 endorsed or supported by M-VAVE or Cuvave. The names of Mutable Instruments'
 modules identify where code came from. Names such as Ableton Move and DX7
-describe origins and compatibility only, and Roland, TR-808 and TR-909 the
-machines that inspired Drums. All other trademarks belong to their owners.
+describe origins and compatibility only, and Roland, TR-808, TR-909 and
+TB-303 the machines that inspired Drums, Comet Kit and Acid Bass. All other
+trademarks belong to their owners.

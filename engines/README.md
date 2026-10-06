@@ -27,6 +27,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `sw-sophie` | Sophie | sound | 12 | a Schwung module (Matt Estela, MIT), through the shim | [schwung.md](schwung.md) |
 | `drums` | Drums | sound | 12 | Plaits' drum classes (Emilie Gillet, MIT), and a rim shot, clap, cowbell and cymbal of this repository's own | [below](#drums); a 16-pad kit on notes 36–51 with two sets of voicings, Deep and Punch |
 | `acid-bass` | Acid Bass | sound | 1 | fm1-x0x's 303 (Charles Vestal, **GPL-3.0-only**): Open303 (Robin Schmidt, MIT) with the Devilfish ranges and a RAT drive | [below](#acid-bass); a bass after the TB-303, built only with the GPL switch on |
+| `comet` | Comet Kit | sound | 11 | fm1-x0x's 909 (Charles Vestal, **GPL-3.0-only**): 9W9 (athousanddetails) after ER-99 (Matthew Cieplak), with ER-99's cymbal recordings | [below](#comet-kit); a 16-pad kit after the TR-909, built only with the GPL switch on |
 | `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
 | `plate` | Plate | effect | – | Rings' reverb, with Elements' Freeze | [mi-fx.md](mi-fx.md) |
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
@@ -509,6 +510,218 @@ of 138 objects in all four profiles]: 1,248 bytes an instance there too
 about 852 KB in FM-1+VA's layout. fm1-x0x's own figures put one 303 at
 about 16 % of the FM-1's CPU in its worst case [inferred: the study's
 §2.6]; nothing has run on a JieLi chip.
+
+## Comet Kit
+
+A 16-pad kit after the TR-909 (`src/comet_kit.cc`, `src/comet_kit.h`):
+fm1-x0x's 909 kit by Charles Vestal, vendored in `third_party/fm1-x0x/`
+(GPL-3.0-only; `UPSTREAM.md` has the commit, the files, the local changes
+and the credits). **GPL code: built only while the GPL switch is on**
+(`FM1_GPL_MODS`, [Build and checks](#build-and-checks)); the licence table
+lists it as `GPL-3.0-only AND MIT`. Drums stays the MIT kit, in every build.
+
+**What the vendored kit is** [reported: `third_party/fm1-x0x/dsp/drum909.h`,
+`drum909_dsp.h`; verified against 9W9 by fm1-x0x's own test,
+`notes/2026-10-06-fm1-x0x.md` §2.6]: a port, line for line, of **9W9** by
+**athousanddetails** (GPL-3.0), which grew out of **ER-99** by **Matthew
+Cieplak** (GPL-3.0). Eleven voices: the kick (a VCO near 49 Hz with the
+909's additive-exponential sweep, a 16 ms pitch hold, diode rounding and a
+beater click), the snare (two shells 1.585 apart and the noise channel),
+three toms (three VCOs at 1 : 1.50 : 2.75, the upper two attack-only), the
+rim shot (a pulse into two resonators) and the clap (four bursts 12 ms
+apart and a room tail), modelled on the machine's circuits; the closed and
+open hi-hat (one recording, choking each other), the crash and the ride
+played from ER-99's recordings, int16 at 44.1 kHz, as the machine played
+its cymbals from ROM. Every voice has a drive of seven types; the kit has
+an accent and a velocity depth. Web Audio's envelopes run as recursions
+re-anchored at each render call; phases are uint32, sample positions
+32.32, tanh a 1,025-point table. Float, no libm (`fastmath.h`), no
+allocation; an idle voice costs nothing. 9W9's and X0X's send reverb,
+delay and master stage (`dsp/fxbus*`, `dsp/master*`) are not taken: our
+inserts and master effects do that job.
+
+**What the wrapper adds.**
+- **Pads.** Notes 36–51 play pads 1–16 (`pad_first_note` 36, `pad_count`
+  16, [Pad kits](#pad-kits)), labelled as Drums labels them; other notes,
+  every note-off and the pitch bend do nothing. Eleven voices on sixteen
+  pads (`kPadVoice`):
+
+  | Pads (notes) | Voice | Voicing |
+  | --- | --- | --- |
+  | 1 Kick (36), 2 Rim (37), 3 Snare (38), 4 Clap (39), 6 Low Tom (41), 10 Mid Tom (45), 15 High Tom (50), 7 Closed HH (42), 11 Open HH (46), 14 Crash (49), 16 Ride (51) | BD, RS, SD, CP, LT, MT, HT, CH, OH, CR, RD | 9W9's panel at its defaults: fm1-x0x's General MIDI map |
+  | 5 Snare 2 (40) | SD | 2 semitones up (205 to 229 Hz), Tone 68 to 90 (the wires 1.2 to 1.9 s), Snappy 64 to 96 |
+  | 8 Floor Tom (43) | LT | 3 semitones up (68 to 81 Hz) |
+  | 12 Low-Mid (47) | MT | 2 up (102 to 114 Hz) |
+  | 13 High-Mid (48) | HT | 2 down (132 to 117 Hz) |
+  | 9 Pedal HH (44) | CH | Decay 84 to 100 (109 to 159 ms) |
+
+  So the six toms rise with their keys inside 9W9's three ranges, which
+  keep the toms from overlapping. A voice struck again restarts in place,
+  as on the machine, so two pads on one voice cut each other; the closed
+  and pedal hats choke the open one (the unit's 3 ms fade). The second
+  pads' voicings are ours, set by measurement, not yet by ear.
+- **The rate** is the host's, 40–96 kHz; others are refused. The vendored
+  kit reads the instance's rate where upstream reads 44,100 Hz, and reads
+  its 44.1 kHz cymbals at 44,100 / rate of a sample a sample, so they keep
+  their pitch (local change 3); at 44.1 kHz it computes upstream's samples
+  [verified: `tests/test_engine_comet_kit.py` builds
+  `test/drum909_drive.c` against fm1-x0x's own file and against ours: four
+  passes, 7 MB, the same bytes].
+- **A 16-sample grid.** The kit's envelopes re-anchor at each render call,
+  so the wrapper renders whole 16-sample chunks counted from create and
+  hands the host's frames out of the last one. A hit or a parameter lands
+  on the next chunk (0.36 ms at 44,118 Hz), so the output is the same at
+  any host block size.
+- **The knobs are 9W9's pots**, per pad, relative to the pad's voicing, so
+  one default fits all sixteen pads and a fresh kit shows true values on
+  every pad, as Drums' knobs do. Tune, Decay, Level, Tone and Snap at 0.5
+  are the voicing's pot, 0 and 1 the pot's ends, linearly on either side;
+  Sweep and Drive at 0 are the voicing's pot (both 9W9 defaults are at or
+  near the bottom), 1 the top. A pot between 9W9's integer positions is
+  read between them (local change 4), so a knob does not step in 1/127ths;
+  at the voicing it is 9W9's integer pot, so a fresh kit is fm1-x0x's kit
+  bit for bit. Which pot each knob moves:
+
+  | Knob | BD | SD | LT, MT, HT | RS | CP | CH, OH | CR, RD |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | Tune | Tune: the sweep ladder, 6–32 | 130–320 Hz | 50–90, 80–125, 110–170 Hz | 150–300 Hz | 650–1,400 Hz | ×0.25–4 | ×0.25–4 |
+  | Decay | 100–4,000 ms | – (pinned 340 ms) | 80–2,600, 70–2,200, 60–2,000 ms | – (pinned 200 ms) | Tail, 120–1,000 ms | 15–300, 20–1,200 ms | 100–3,000 ms |
+  | Level | 0–1.35 | 0–1.35 | 0–1.35 | 0–1.35 | 0–1.35 | 0–1.35 | 0–1.35 |
+  | Tone | Pitch, ×0.43–4.7 of 49 Hz (with Sweep) | the wires' decay, 300–4,000 ms | – | – | – | – | – |
+  | Snap | Attack (the click), 0–1 | Snappy, 0–1 | Attack (the stick), 0–1 | – | – | – | – |
+  | Sweep | P.Dpth, 0–1 | – | – | – | – | – | – |
+  | Drive | 0.85–12 | 0.85–12 | 0.85–12 | 0.85–12 | 0.85–12 | 0.85–12 | 0.85–12 |
+  | Drive Type | Diode, Clip, SAT, BFZ, PDIST, Fold, Crush (shown as Diode, Clip, Saturate, Fuzz, Crunch, Fold, Crush) | | | | | | |
+
+  Exponential pots are 9W9's tables (`gen/x0x_drum_tables.h`), linear
+  between neighbours [verified: `fm1-comet-oracle --fields`, every knob of
+  every pad of both kits at 0, 0.25, 0.5, 0.75 and 1].
+- **The kit's knobs.** Accent (1–4, 9W9's default 1.99) is the level a
+  full-velocity hit reaches; Velocity (0–100 %, 100) how far below it a
+  softer hit falls: a hit's gain is Accent × (1 − Velocity × (1 − vel /
+  127)), as 9W9's. Volume scales the output by 0.2 × (Volume / 0.7)², so
+  the default kick at full velocity peaks at −7.6 dBFS (Drums' at −8.1) and
+  a groove of every voice under the defaults stays under full scale [verified:
+  `fm1-render`, `fm1-comet-oracle --twin`, 2026-10-06]. Kit chooses the
+  voicings: **Classic**, 9W9's panel at its defaults (fm1-x0x's power-on
+  kit before its own mix), or **Big Beat**, fm1-x0x's factory voicing (the
+  kick's Level 61, Decay 80, Drive 30; the open hat's Level 60).
+
+| Page | Parameter | Range, default | Flags | What it does |
+| --- | --- | --- | --- | --- |
+| 1 | Pad | 1 Kick … 16 Ride | (none) | The pad the per-pad knobs edit, as Drums' and Sophie's |
+| 1 | Tune | 0–1, 0.5 | SMOOTH, MOD | The pad's Tune pot (table above) |
+| 1 | Decay | 0–1, 0.5 | SMOOTH, MOD | Its Decay or Tail pot |
+| 1 | Level | 0–1, 0.5 | SMOOTH, MOD | Its Level pot |
+| 2 | Tone | 0–1, 0.5 | SMOOTH, MOD | The snare's Tone, the kick's Pitch |
+| 2 | Snap | 0–1, 0.5 | SMOOTH, MOD | The snare's Snappy, the kick's and toms' Attack |
+| 2 | Sweep | 0–1, 0 | SMOOTH, MOD | The kick's P.Dpth |
+| 2 | Drive | 0–1, 0 | SMOOTH, MOD | Its Drive pot, from the voicing's up |
+| 3 | Drive Type | Diode … Crush | LATCH, MOD | Its distortion type, at the pad's next hit |
+| 3 | Accent | 1–4, 1.99 | LATCH, MOD | The level a full-velocity hit reaches, read at a hit |
+| 3 | Velocity | 0–100 %, 100 | LATCH, MOD | How far a soft hit falls below Accent, read at a hit |
+| 3 | Volume | 0–1, 0.7 | SMOOTH, MOD | The kit's level, (Volume / 0.7)² |
+| 4 | Kit | Classic, Big Beat | LATCH, MOD | The voicings, at each pad's next hit |
+
+Uids 1–13, in table order. A per-pad knob ramps in its pad's values over
+2.5 ms (7 chunks at 44,118 Hz) while the pad sounds, and reaches the voice
+while the pad is the one the voice last struck; otherwise the pad's next
+hit takes it. 9W9 reads the drives, the snare's wires, the kick's click,
+the rim's and clap's tune and level and the cymbals' pitch continuously,
+the rest at a hit, so those move a ringing hit and the others reach the
+next. No per-note offsets (`set_param_note` is NULL): the voices are one
+per drum, and per-pad values cannot be read back until engine API v4.
+
+**State and subnormals.** No subnormal sample, and no subnormal float in
+the unit's state after a render call [verified: `fm1-comet-oracle --twin`
+and `--state`]. Upstream's state holds one: the kick's sweep offset
+(`bd_df`) decays geometrically while the kick sounds and is subnormal
+after about 1.2 s. (The study's scratch bench reported up to 99 in X0X's
+state; the oracle scans the unit's float fields by name and finds only
+this one, so the two scans differ in what they count [inferred].) The wrapper sets it to 0
+under 1e-20 Hz, where adding it to the kick's base (21 Hz or more) no
+longer changes a bit, so the output is the unit's to the sample.
+
+**Checks** (`tests/test_engine_comet_kit.py`, 40 tests) [verified 2026-10-06]:
+- `vendor.py --check`; the generated headers are the vendored script's
+  output; the patched kit gives upstream's samples at 44.1 kHz (above).
+- `build/fm1-comet-oracle --twin`: six lines (every pad with accents, soft
+  hits and the hats choking; Big Beat; every drive type at full drive;
+  every knob at an end; Accent, Velocity and Volume; rolls inside a
+  chunk) through the engine and through a copy of its unit driven as
+  fm1-x0x drives it, with 9W9's integer pots set at each hit: the same
+  samples, bit for bit, at host blocks of 1, 7, 64 and 448 frames, at
+  44,100, 44,118 and 48,000 Hz.
+- `--fields`: every knob of every pad of both kits on 9W9's curves.
+- Every pad of both kits sounds under full scale; notes outside the pads
+  and note-offs do nothing; the six toms within 25 cents of their tunes
+  and rising; the closed and pedal hats choke the open one and nothing
+  else; velocity, Velocity, Accent, Volume; a knob edits only its pad, and
+  the second snare is its own; Kit and Drive Type wait for the next hit;
+  a SMOOTH knob reaches a ringing kick; the kick's Tone moves its pitch
+  once Sweep is up; the same output at host blocks of 1, 7, 64 and 448
+  and from any instance memory; rates (44.1, 48 and 96 kHz in, 32 and 192
+  kHz refused, a tom's pitch kept); every knob at its ends, NaN and the
+  infinities finite; back to zero after every tail; no libm.
+- The SMOOTH driver, the parameter tables, the switch-off build and the
+  virtual FM-1's two parity scenarios (`comet-kit-groove`,
+  `comet-kit-knobs-and-tails`) cover it with every other engine.
+- Under ASan and UBSan (Apple clang 21): the oracle's three modes and
+  every knob of every pad at its ends, NaN and the infinities, from memory
+  filled with 0xA5, at blocks of 7: no report beyond `fastmath.h`'s
+  suppressed shift.
+
+**Costs** [verified 2026-10-06; desktop: Apple M1 Max, Apple clang 21,
+`-O2`, `fm1-render`, best of five]:
+
+| | Comet Kit | Drums, for scale |
+| --- | --- | --- |
+| Instance, 64-bit / 32-bit and pi32v2 | 10,256 B / 10,240 B (the unit 7,264 / 7,244) | 7,616 / 7,424 B |
+| 64-frame block, 11 voices struck on every 16th at 125 BPM | 7.2 µs (0.50 % of the block) | 18.9 µs |
+| 64-frame block, one kick a beat at 125 BPM | 0.82 µs | |
+| 64-frame block, silent | 0.13 µs | 2.6 µs |
+| Code on pi32v2 (`tools/jieli/compile-check.sh`, the switch on), `-O2` | 23.9 KB (the kit) + 3.2 KB (the wrapper) | |
+| Code at `-Oz` | about 9.1 KB + 2.2 KB | |
+| Read-only data | 237.2 KB: the cymbals 221,098 B, the tanh and pot tables 13,832 B, constants; the wrapper 1.4 KB | |
+
+fm1-x0x's own unit, in 64-frame calls, costs 6.3 µs on the same pattern
+(the study, §2.6), so our 16-sample grid adds about 14 %. fm1-x0x's figures
+put a dense 909 at about 12 % of the FM-1's CPU [inferred: the study's
+§2.6]; nothing has run on a JieLi chip.
+
+**Flash, and a budget for the cymbals.** With the switch on, the JieLi
+check's objects total 1,066,648 B of text at `-O2` and 888,857 B at `-Oz`,
+of which Comet Kit is 265.6 KB and 249.9 KB [verified: the check's report,
+2026-10-06, at the merge with PRs #76-#78, 139 of 139 objects in all four
+profiles, link audit PASS]. That is more than the app area of about 852 KB
+in FM-1+VA's layout (docs/11) before JieLi's libraries are linked; without
+the kit it is 639 KB at `-Oz`. The cymbals are the one large cost, so this stream proposes:
+
+| Option | Flash for the cymbals | SNR against the int16 [verified 2026-10-06: µ-law and ADPCM by `tests/test_engine_comet_kit.py`, the linear rows by a scratch script] | |
+| --- | --- | --- | --- |
+| int16, as now | 221,098 B | – | fm1-x0x's, bit for bit; the simulator's |
+| **8-bit µ-law (proposed)** | **110,549 B** (+ a 512 B decode table) | **37.8–37.9 dB** (hi-hat, ride, crash) | about a 6-bit converter's full-scale 37.9 dB, and the machine's cymbals were 6-bit PCM [reported: 9W9's README] |
+| 8-bit linear | 110,549 B | 30.6–34.3 dB | |
+| 6-bit linear | 82,912 B | 19.6–22.4 dB | what the machine stored, but these recordings are already through its DAC and filters |
+| IMA ADPCM, 4-bit | 55,275 B | 16.5–18.3 dB | too lossy for noise-like cymbals |
+
+So the proposed budget is **128 KB for the 909's cymbals** (µ-law), about
+140 KB for the whole kit at `-Oz`, behind the GPL switch; int16 stays the
+reference until the owner decides (study X2) and the device's flash layout
+is known. A µ-law build would be a third local change, kept to the device
+build so the simulator stays fm1-x0x's to the bit.
+
+**Open questions** (for the owner):
+1. The name, Comet Kit (study X1), and the voicings' names, Classic and
+   Big Beat.
+2. The cymbals (study X2): ER-99's recordings as int16, 8-bit µ-law
+   (proposed above), synthesised metal instead, or ask ER-99's author
+   where they were recorded from first (their provenance is not stated,
+   R1).
+3. The second pads' voicings (Snare 2, the three extra toms, the pedal
+   hat) were set by measurement; a listening pass.
+4. Per-pad values cannot be read back until engine API v4, as for Drums
+   and Sophie.
 
 ## Crush
 
@@ -3446,15 +3659,23 @@ stay as they were; `fm1-render --list` prints them after the engines, kind
 - **`process(self, in, n_in, ctx, out, cap)`**, once per effect per block:
   `in` the block's events (`fm1_midi_ev_t`, `include/fm1_midi_ev.h`:
   frame, kind, key, velocity), ascending by frame; `ctx` the block's tick
-  frames (96 to the quarter note), its length, the tempo, the transport and
-  the project key (`fm1_midi_fx_ctx_t`); `out` at least
-  `FM1_MIDI_FX_OUT_MIN` (64) events, ascending, note-offs before note-ons
-  at one frame.
+  frames (96 to the quarter note), its length, the tempo, the transport,
+  while the sequencer plays the tick the first of them is from its Start
+  (`tick_pos`, since 2026-10-06), and the project key
+  (`fm1_midi_fx_ctx_t`); `out` at least `FM1_MIDI_FX_OUT_MIN` (64) events,
+  ascending, note-offs before note-ons at one frame.
+- **Origins** (2026-10-06): a note's velocity carries where it came from
+  in its high byte, `FM1_MIDI_SRC_LIVE` (0: the keys, MIDI, `--note`) or
+  `FM1_MIDI_SRC_SEQ` (a sequencer track). The host marks the sequencer's;
+  an effect marks its notes after the notes that made them. The stage
+  hands the sounds the bare velocity.
 - **The rules:** every note-on sent gets exactly one note-off; a note-off
   that does not fit is sent at the start of the next call, a note-on that
   does not fit never; FLUSH ends every sounding note, PANIC also forgets
-  every key, RESET restarts the pattern; time is ticks, never samples, so
-  the output is the same at any block size; no heap, no libm.
+  every key, RESET restarts the pattern, STOP (the sequencer's Stop) lets
+  go of what the sequencer gave and ends the notes it made, leaving what
+  was played; time is ticks, never samples, so the output is the same at
+  any block size; no heap, no libm.
 - **The arpeggiator**, `arp` (`midi_fx/arp_engine.c` on the core
   `midi_fx/fm1_arp.c`), is the first: 25 parameters on seven pages,
   [midi_fx/README.md](midi_fx/README.md).
@@ -3468,10 +3689,15 @@ stay as they were; `fm1-render --list` prints them after the engines, kind
   block by frame, so a sound's render splits there and the modulation's
   hook hears the notes. The ticks are the sequencer's clock as the block
   began, which runs on at its tempo while stopped (or the stage's own,
-  `fm1_mfx_set_tempo`, without a sequencer); Start reaches the effects as
-  RESET and Stop as FLUSH, at their frames, and each frame where the
+  `fm1_mfx_set_tempo`, without a sequencer); while it plays, `tick_pos`
+  says which of its ticks the block's first is, so the arp's steps fall on
+  its grid. Start reaches the effects as RESET and Stop as STOP (and
+  FLUSH after it in compat mode, whose clock gives no tick while stopped;
+  after an external clock's Stop the clock runs on at the tempo), at their
+  frames, and each frame where the
   sequencer starts notes for the sound as one STEP after them (a trig, for
-  RATE TRG). A bypass, a removal or `fm1_mfx_flush` flushes at once, the
+  RATE TRG). The project key is the set's (the sequencer's `key`), read
+  each block; `fm1_mfx_set_key` sets it without a sequencer. A bypass, a removal or `fm1_mfx_flush` flushes at once, the
   note-offs to the host's sink. Switching an effect on while others in its
   chain are on keeps every note-off with its note-on: the effects before it
   end their notes first, and when it becomes the chain's first effect on,
@@ -3487,8 +3713,11 @@ Tests [verified, 2026-10-06]: `tests/test_engine_midi_fx.py` (blocks of 1,
 7, 64 and 448 frames, the sequencer's ticks, Start and Stop, a 24-seed fuzz
 with no hung note, note-offs following their note-ons, chains of two and
 switching either effect, a flood of 128 keys, TRG on the sequencer's trigs,
-the flags, no heap, stdio or libm in the stage and the wrapper) and
-`tests/test_sim_arp.py`; parity scenarios `arp-*`.
+the flags, no heap, stdio or libm in the stage and the wrapper; since the
+owner's follow-ups the steps on the sequencer's grid at 1/16, 1/8T and
+swung, Sync Key and Free on the beat, and Stop taking back a latched arp's
+sequencer notes, each at blocks of 1, 7 and 64) and `tests/test_sim_arp.py`;
+parity scenarios `arp-*`.
 
 ### Pad kits
 

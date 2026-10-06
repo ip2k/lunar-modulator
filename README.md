@@ -76,7 +76,7 @@ Drag a knob up or down, or scroll over it. Click or touch a button or a key.
 | SEL | SHIFT for the sequencer and for choosing a sound; in FX mode it picks up an effect | `Shift`, in SEQ mode |
 | SEQ, PLAY/STOP, REC | The sequencer's steps; start and stop; record, and with SEL, Capture | `Space` is PLAY/STOP |
 | LFO, ENV, EDIT | The modulation rack and the matrix. Hold LFO or ENV and turn a knob to run a cable to that knob's parameter | |
-| GLO, HOME | The global page (rate, memory, voices, octave); back to the sound | |
+| GLO, HOME | The global page (rate, memory, voices, octave) and, on its second page, the project key; back to the sound | |
 | ARP | The arpeggiator on the current sound: tap to switch it on (its pages open) or off, hold to latch; with SEL, its pages | |
 | SAVE | Not in the simulator yet | |
 | Everything | | `Esc` releases every note |
@@ -96,7 +96,7 @@ its screen. None of it runs on an FM-1 yet.
 
 ### Sound engines
 
-Eight sound engines, plus Test Sine for testing. PRESETS picks one,
+Nine sound engines, plus Test Sine for testing. PRESETS picks one,
 ALGORITHM steps through its models, shapes, patches or pads, and KNOB1–4
 play its parameters, four to a page (SELECT turns the page).
 - **Macro:** eight synths in one, 12 voices: virtual analogue with a filter,
@@ -120,8 +120,14 @@ play its parameters, four to a page (SELECT turns the page).
   Devilfish's longer slides and accent decays, and a soft or RAT-style
   drive. It is fm1-x0x's 303 and its code is GPL, so it is in builds with
   the GPL switch on, as the simulator is while we test.
+- **Comet Kit:** a 16-pad kit after the TR-909: its kick, snare, toms, rim
+  shot and clap modelled on the machine's circuits, its hi-hats, crash and
+  ride from recordings, a drive of seven kinds on every pad, and two kits,
+  Classic and Big Beat. It is fm1-x0x's 909 (GPL), so it is in builds with
+  the GPL switch on, like Acid Bass.
 
-Sophie and Drums play their pads from the 16 white keys, at any octave.
+Sophie, Drums and Comet Kit play their pads from the 16 white keys, at any
+octave.
 
 <table>
 <tr>
@@ -209,9 +215,11 @@ MCL (MegaCommand Live) and the repeatable chances of Super Arp
 - **The stock FM-1's modes** (Up, Down, Up/Down, Down/Up, Random, Played) as
   presets on ALGORITHM.
 - It plays the keys, MIDI and the sequencer's notes, in time with the
-  sequencer, and the sequencer records what you played, so a recorded part
-  arpeggiates again on playback. The stock firmware runs either its
-  arpeggiator or its sequencer, not both [reported].
+  sequencer and on its beat while it plays, and the sequencer records what
+  you played, so a recorded part arpeggiates again on playback. Stop takes
+  back the sequencer's notes and leaves the ones you latched by hand
+  playing. The stock firmware runs either its arpeggiator or its sequencer,
+  not both [reported].
 
 ### Modulation
 
@@ -471,7 +479,10 @@ This is a synthesis of other people's work. The details are in
   **jc303** by **midilab** and a RAT drive after **dm-Rat** by **Dave
   Mollen** (both GPL-3.0), by way of schwung-303; Acid Gen is its TB-3PO,
   after schwung-tb3po and the Phazerville Hemisphere Suite's TB_3PO by
-  **djphazer** and contributors (GPL-3.0).
+  **djphazer** and contributors (GPL-3.0); Comet Kit is its 909, a port of
+  **9W9** by **athousanddetails**, which grew out of **ER-99** by **Matthew
+  Cieplak**, whose hi-hat, ride and crash recordings it plays (all
+  GPL-3.0).
 - Sequencer design and logic after Movy by **megadake** (MIT),
   [github.com/DimaDake/schwung-movy](https://github.com/DimaDake/schwung-movy).
 - The arpeggiator, our own code, follows Yarns' arpeggiator by **Emilie

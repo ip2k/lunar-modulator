@@ -10,7 +10,10 @@ it is stopped, or at --tempo without one); Start restarts it and Stop
 flushes it; every note-on an engine gets has its note-off, whatever is
 switched, latched or stopped in between (a seeded fuzz); a note-off follows
 its note-on into or past the chain; chains of two; bad flags are refused;
-the host stage and the wrapper never allocate, print or call libm.
+the host stage and the wrapper never allocate, print or call libm. Since
+2026-10-06 (owner): while the sequencer plays the arp's steps fall on its
+grid, Sync Key and Free coherent with it, and Stop lets go of what the
+sequencer gave a latched arp while the keys latched by hand play on.
 """
 import json
 import random
@@ -187,10 +190,12 @@ def test_it_free_runs_at_the_tempo(renderer, tmp_path, bpm):
     assert len(frames) >= 10 and gaps <= {int(step), int(step) + 1}
 
 
-def test_start_restarts_and_stop_flushes(renderer, tmp_path):
+def test_start_restarts_and_stop_leaves_the_keys(renderer, tmp_path):
     """A key held while stopped plays on the free-running clock; Play resets
-    the arp, whose next step is the sequencer's first tick; Stop ends the
-    sounding note at its frame and the arp plays on from the clock."""
+    the arp, whose next step is the sequencer's first tick; Stop lets go of
+    what the sequencer gave the arp, and nothing else (owner, 2026-10-06):
+    the keys' note sounding then plays to its gate, and the arp plays on
+    from the clock."""
     play, stop = BOUND * 41, BOUND * 160
     script = (f"#! rate={RATE} block=64 tracks=8 end={BOUND * 240}\n"
               f"@{play} play\n@{stop} stop\n")
@@ -208,9 +213,151 @@ def test_start_restarts_and_stop_flushes(renderer, tmp_path):
     assert before and after[0] == first_tick, "Play does not restart the arp on the first tick"
     assert ons(ev)[len(before)][1] == 60, "the restart does not begin the order again"
     offs_at_stop = [e for e in ev if e["k"] == "off" and e["t"] == stop]
-    assert offs_at_stop, "Stop does not flush the sounding note at once"
+    assert offs_at_stop == [], "Stop cut a note the keys made"
     assert [t for t, _ in ons(ev) if t > stop], "the arp stops with the sequencer"
     assert s["notes_hung"] == 0
+
+
+# ---- Locked to the beat (owner, 2026-10-06) ---------------------------------------------------
+
+TICK = RATE * 6000 / (12000 * 96)      # frames a tick at 120 BPM
+
+
+def free_tick(k):
+    """The frame of the k-th tick of the sequencer's clock while it is
+    stopped (its sum runs from frame 0 at 120 BPM)."""
+    return -(-k * RATE * 6000 // (12000 * 96)) - 1
+
+
+def seq_ticks(log):
+    """{tick: frame} of the sequencer's clock events (every fourth tick)."""
+    return {e["tick"]: e["frame"] for e in (json.loads(x) for x in log.read_text().splitlines())
+            if e["kind"] == "clock"}
+
+
+def grid_runs(renderer, tmp_path, block):
+    play, key = BOUND * 10, BOUND * 41      # the key: about tick 60, the next 1/16 is tick 72
+    script = f"#! rate={RATE} block={block} tracks=8 end={BOUND * 160}\n@{play} play\n"
+    runs = {}
+    for name, extra, step, swing in (
+            ("1/16", [], 24, 0),
+            ("on-mid-bar", ["--mfx-on-at", f"0:{at(BOUND * 38)}:1"], 24, 0),
+            ("1/8t", ["--mfx-param", "0:Rate=5"], 32, 0),
+            ("swing", ["--mfx-param", "0:Swing=60"], 24, 4)):
+        log = tmp_path / f"{name.replace('/', '')}-{block}.jsonl"
+        mfx = ["--mfx", "0:arp:off" if name == "on-mid-bar" else "0:arp"]
+        s, wav, ev = mfx_run(renderer, tmp_path, [
+            "--engine", "test-sine", "--frames", str(block), *mfx, *extra,
+            *note(BOUND, 48, 100, BOUND * 3), *note(key, 60, 100, BOUND * 100),
+            "--mfx-on-at", f"0:{at(BOUND * 150)}:0", "--log-events", str(log)],
+            name.replace("/", "") + str(block), script=script)
+        ticks = seq_ticks(log)
+        grid = {f for t, f in ticks.items() if t % (2 * step) in (0, step + swing)}
+        played = [t for t, _ in ons(ev) if t >= play]
+        if name != "on-mid-bar":                      # stopped: the next tick
+            assert ons(ev)[0] == (min(free_tick(k) for k in range(1, 50) if free_tick(k) >= BOUND), 48)
+        assert played[0] == min(f for f in grid if f >= key), name
+        assert played[0] - key > 2 * TICK, f"{name}: the key started at the next tick"
+        assert len(played) > 5 and set(played) <= grid, name
+        assert s["notes_hung"] == 0
+        runs[name] = (wav, ev)
+    return runs
+
+
+def test_the_arp_locks_to_the_beat_while_the_sequencer_plays(renderer, tmp_path):
+    """While the sequencer plays, the arp's steps fall on its grid: a key
+    pressed between steps waits for the next one of the rate (ticks counted
+    from Start), not for the next tick; so does an arp switched on mid-bar;
+    swing delays the odd steps as the grid's; 1/8 triplets fall on their
+    own grid. Stopped, a key starts at the next tick, as before. The same at
+    blocks of 1, 7 and 64 frames."""
+    out = [grid_runs(renderer, tmp_path, b) for b in (1, 7, 64)]
+    assert out[0] == out[1] == out[2]
+
+
+@pytest.mark.parametrize("rate, step", [(4, 24), (5, 32)])
+def test_the_beat_holds_through_tempo_changes(renderer, tmp_path, rate, step):
+    """The tempo changes twice while the sequencer plays (slower, then
+    faster, off any round tick): the arp's steps stay on the grid of ticks
+    counted from Start, one on every step of the rate and none skipped or
+    doubled across a change. The same at blocks of 1, 7 and 64 frames."""
+    play, key = BOUND * 10, BOUND * 41
+    runs = []
+    for block in (1, 7, 64):
+        script = (f"#! rate={RATE} block={block} tracks=8 end={BOUND * 400}\n@{play} play\n"
+                  f"@{BOUND * 77} bpm 9137\n@{BOUND * 181} bpm 17311\n")
+        log = tmp_path / f"seq-t{rate}-{block}.jsonl"
+        s, wav, ev = mfx_run(renderer, tmp_path, [
+            "--engine", "test-sine", "--frames", str(block), "--mfx", "0:arp",
+            "--mfx-param", f"0:Rate={rate}", *note(key, 60, 100, BOUND * 340),
+            "--mfx-on-at", f"0:{at(BOUND * 390)}:0", "--log-events", str(log)],
+            f"t{rate}-{block}", script=script)
+        ticks = seq_ticks(log)
+        played = [t for t, _ in ons(ev) if t >= play]
+        grid = sorted(f for t, f in ticks.items() if t % step == 0 and played[0] <= f <= played[-1])
+        assert len(played) > 20 and played == grid, f"block {block}: off the grid, or a step lost"
+        assert s["notes_hung"] == 0
+        runs.append((wav, ev))
+    assert runs[0] == runs[1] == runs[2]
+
+
+@pytest.mark.parametrize("sync, first", [("Key", 48), ("Free", 96)])
+def test_sync_key_and_free_on_the_beat(renderer, tmp_path, sync, first):
+    """A Euclidean rhythm of one in four steps (Length 4, Fill 1), the
+    sequencer playing, a key after tick 30. Sync at Key restarts the
+    pattern at the next 1/16 of the grid (tick 48); at Free the pattern has
+    run on from Start, so the key's first note waits for the rhythm's next
+    onset, on the beat (tick 96). Both on the grid."""
+    play = BOUND * 10
+    key = play + int(33 * TICK)
+    script = f"#! rate={RATE} block=64 tracks=8 end={BOUND * 200}\n@{play} play\n"
+    log = tmp_path / "ev.jsonl"
+    _, _, ev = mfx_run(renderer, tmp_path, [
+        "--engine", "test-sine", "--mfx", "0:arp", "--mfx-param", f"0:Sync={0 if sync == 'Free' else 1}",
+        "--mfx-param", "0:Length=4", "--mfx-param", "0:Fill=1", *note(key, 60, 100, BOUND * 150),
+        "--log-events", str(log)], script=script)
+    ticks = seq_ticks(log)
+    assert ons(ev)[0][0] == ticks[first]
+    assert [t for t, _ in ons(ev)][:3] == [ticks[first], ticks[first + 96], ticks[first + 192]]
+
+
+# ---- Stop lets go of what the sequencer gave (owner, 2026-10-06) -----------------------------
+
+def latch_stop_run(renderer, tmp_path, block):
+    play, stop = BOUND * 20, BOUND * 200
+    script = (f"#! rate={RATE} block={block} tracks=8 end={BOUND * 300}\n"
+              "@0 tog 0 0 48 100;tog 0 8 55 100;slen 0 0 0 -1 60;slen 0 8 8 -1 60\n"
+              f"@{play} play\n@{stop} stop\n")
+    s, wav, ev = mfx_run(renderer, tmp_path, [
+        "--engine", "test-sine", "--frames", str(block), "--mfx", "0:arp",
+        "--mfx-param", "0:Latch=1", "--mfx-param", "0:Gate=150",
+        *note(BOUND * 5, 60, 100, BOUND * 2), *note(BOUND * 5, 64, 100, BOUND * 2),
+        "--mfx-on-at", f"0:{at(BOUND * 290)}:0"], f"s{block}", script=script)
+    before = {k for t, k in ons(ev) if play <= t < stop}
+    after = {k for t, k in ons(ev) if t >= stop}
+    assert {48, 55} & before and {60, 64} <= before, before
+    assert not ({48, 55} & before) - {48, 55}
+    assert after == {60, 64}, "Stop kept the sequencer's notes, or dropped the hand's"
+    sounding = set()
+    for e in ev:                                 # what sounds just after Stop
+        if e["t"] > stop:
+            break
+        (sounding.add if e["k"] == "on" else sounding.discard)(e["key"])
+    assert not sounding & {48, 55}, sounding
+    assert s["notes_hung"] == 0 and s["mfx_dropped"] == 0
+    return wav, ev
+
+
+def test_stop_releases_what_the_sequencer_fed_a_latched_arp(renderer, tmp_path):
+    """A latched arp: a chord played by hand before Play, then track 1's
+    notes, which join it while the sequencer plays (each origin latches
+    against its own later notes, so the track's next note replaces its last
+    and leaves the hand's chord). At Stop the track's notes leave the arp at
+    once, latched or not, and their sounding note ends there; the hand's
+    chord plays on. The same at blocks of 1, 7 and 64 frames; nothing hangs
+    once the arp is bypassed."""
+    runs = [latch_stop_run(renderer, tmp_path, b) for b in (1, 7, 64)]
+    assert runs[0] == runs[1] == runs[2]
 
 
 # ---- Notes are never left hanging ------------------------------------------------------------
@@ -307,8 +454,9 @@ def test_a_key_and_a_track_on_one_pitch_keep_their_own_note_offs(renderer, tmp_p
         *note(BOUND * 4, 60, 100, BOUND * 80)], script=script)   # held past the track's off
     assert s["notes_hung"] == 0
     # the track's note-off at about frame 20,900 is the sound's: the arp
-    # plays the key on until its own release at 37,632
-    assert max(t for t, k in ons(ev) if k == 60) > BOUND * 75
+    # plays the key on until its own release at 37,632, its last step on the
+    # sequencer's grid at 33,318 (tick 144)
+    assert max(t for t, k in ons(ev) if k == 60) > BOUND * 70
 
 
 def test_a_chain_of_two(renderer, tmp_path):

@@ -134,6 +134,9 @@ sz_compile() {  # sz_compile TARGET-NAME "CC" "EXTRA"
     $cc $SZ_CXX $extra -I"$SRC/engines/third_party/fm1-x0x" -I"$OUT/ladder/obj/gen" -DSZ_ACID_BASS \
       -c "$SRC/tools/jieli/sizes.cc" -o "$SZ/$t/sizes_ACID_BASS.o" >"$SZ/$t/sizes_ACID_BASS.log" 2>&1 \
       || echo "   $t SZ_ACID_BASS failed (see $SZ/$t/sizes_ACID_BASS.log)"
+    $cc $SZ_CXX $extra -I"$SRC/engines/third_party/fm1-x0x" -I"$SRC/engines/third_party/fm1-x0x/gen" \
+      -I"$OUT/ladder/obj/gen" -DSZ_COMET_KIT -c "$SRC/tools/jieli/sizes.cc" -o "$SZ/$t/sizes_COMET_KIT.o" \
+      >"$SZ/$t/sizes_COMET_KIT.log" 2>&1 || echo "   $t SZ_COMET_KIT failed (see $SZ/$t/sizes_COMET_KIT.log)"
   fi
   $cc $SZ_C $extra -c "$SRC/tools/jieli/sizes.c" -o "$SZ/$t/sizes_c.o" \
     >"$SZ/$t/sizes_c.log" 2>&1 || echo "   $t sizes.c failed (see $SZ/$t/sizes_c.log)"

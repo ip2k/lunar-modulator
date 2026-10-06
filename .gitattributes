@@ -1,0 +1,4 @@
+# Generated C tables of vendored data (engines/third_party/fm1-x0x/UPSTREAM.md):
+# written by the vendored script from the recordings beside them, and checked
+# by tests/test_engine_comet_kit.py. Not reviewed as text.
+engines/third_party/fm1-x0x/gen/*.h linguist-generated=true -diff

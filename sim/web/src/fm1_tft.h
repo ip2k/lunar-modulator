@@ -173,6 +173,15 @@ int fm1_tft_span_text(fm1_tft_t *t, int x, int y, const fm1_tft_span_t *spans, i
                       int max_chars, fm1_tft_font_t font);
 int fm1_tft_span_width(const fm1_tft_span_t *spans, int n_spans, int max_chars,
                        fm1_tft_font_t font);
+/* The same run with lead[k] more pixels before span k (lead NULL for
+ * none): a narrow gap inside one run where a space would cost a whole
+ * character, as MATRIX's state mark keeps from the source and the
+ * destination. A lead counts only before a span that draws a character
+ * and is not the run's first; the box and the width include the leads. */
+int fm1_tft_span_text_lead(fm1_tft_t *t, int x, int y, const fm1_tft_span_t *spans,
+                           const uint8_t *lead, int n_spans, int max_chars, fm1_tft_font_t font);
+int fm1_tft_span_width_lead(const fm1_tft_span_t *spans, const uint8_t *lead, int n_spans,
+                            int max_chars, fm1_tft_font_t font);
 
 /* Count layout faults among visible boxes: a box not wholly on screen, two
  * text boxes, or a text box and a graphic, closer than `gap` pixels (or
