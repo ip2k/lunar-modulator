@@ -1,8 +1,9 @@
 # The whole signal flow of the virtual FM-1, as sim/web/src/fm1_app.c runs it
-# (fm1_app_render, render_sounds, play_on, feed_on; fm1_app.h's budget).
+# (fm1_app_render, render_sounds, play_on and its arpeggiator, feed_on;
+# fm1_app.h's budget).
 title = "Signal flow"
-caption = "Where notes go and how the sound comes out: the keys, MIDI IN and the sequencer’s eight tracks play the four sounds; each sound runs through its two inserts and its level into the mix, then the two master effects, AMP, the limiter and MASTER."
-alt = "A block diagram, top to bottom. The keys and MIDI IN, and the sequencer with eight tracks, send notes to a routing stage: the keys and MIDI IN play the current sound, and each track plays the sound its route names. The keys and MIDI IN also feed the sequencer's focused track for recording and Capture. Four sound lanes follow, Sound 1 to Sound 4, each an engine with 4 to 12 voices, then Insert 1, Insert 2 and a level. The four levels meet in the mix, which feeds master effect M1, master effect M2, AMP (the level modulation can move) and the limiter. The metronome's click joins before the limiter. MASTER, the volume, comes last and feeds OUT. A note says that everything in the chain counts against about 379 KB of RAM."
+caption = "Where notes go and how the sound comes out: the keys, MIDI IN and the sequencer’s eight tracks play the four sounds, through each sound’s arpeggiator while it is on; each sound runs through its two inserts and its level into the mix, then the two master effects, AMP, the limiter and MASTER."
+alt = "A block diagram, top to bottom. The keys and MIDI IN, and the sequencer with eight tracks, send notes to a routing stage: the keys and MIDI IN play the current sound, and each track plays the sound its route names, through that sound's arpeggiator while it is on. The keys and MIDI IN also feed the sequencer's focused track for recording and Capture. Four sound lanes follow, Sound 1 to Sound 4, each an engine with 4 to 12 voices, then Insert 1, Insert 2 and a level. The four levels meet in the mix, which feeds master effect M1, master effect M2, AMP (the level modulation can move) and the limiter. The metronome's click joins before the limiter. MASTER, the volume, comes last and feeds OUT. A note says that everything in the chain counts against about 379 KB of RAM."
 equal_cols = true
 equal_gaps = true
 
@@ -25,7 +26,7 @@ cols = 2
 [[node]]
 id = "route"
 label = "Notes to the sounds"
-sub = "the keys: the current sound · a track: the sound its route names"
+sub = ["the keys: the current sound · a track: the sound its route names", "through the sound’s arpeggiator while it is on"]
 col = 0
 row = 1
 cols = 4

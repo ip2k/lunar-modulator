@@ -77,7 +77,8 @@ or an `exit`/`enter` usually solves it.
 | `gate` | dotted, modulation's colour | a gate cable |
 | `refused` | dashed, refusal's colour | a cable that is refused |
 | `press` | thin, solid | a state change on a button press |
-| `event` | thin, dashed | a state change that happens by itself |
+| `event` | thin, short dashes | a state change that happens by itself |
+| `clock` | thin, dash and dot, grey | the tempo's ticks, Start and Stop |
 | `link` | hairline | a state diagram's start |
 
 **Roles** follow the screen's colour map (notes/2026-10-06-ui-audit.md §5):

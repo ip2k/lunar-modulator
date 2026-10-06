@@ -9,10 +9,11 @@ history.
 ## [Unreleased]
 
 ### Added
-- **Diagrams in the manual.** Seven drawings, in the manual's colours, where
-  the text explains how things connect: the whole signal flow from the keys,
-  MIDI IN and the sequencer's eight tracks through the four sounds, their
-  inserts and the mix to the master effects, the limiter and MASTER
+- **Diagrams in the manual.** Eight drawings, in the manual's colours, where
+  the text explains how things connect: where the arpeggiator sits in the
+  note path (chapter 4); the whole signal flow from the keys, MIDI IN and
+  the sequencer's eight tracks through the arpeggiators, the four sounds,
+  their inserts and the mix to the master effects, the limiter and MASTER
   (chapter 5); one sound's effect chain and the master bus, with what an
   empty slot does (chapter 6); the transport as a state diagram, with every
   press of PLAY/STOP and REC, the count-in, the wait for the bar, step

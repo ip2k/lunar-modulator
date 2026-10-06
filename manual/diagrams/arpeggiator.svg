@@ -1,0 +1,47 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='628.98' height='453.49' viewBox='-23.6 -20.68 419.32 302.32' role='img'><title>The arpeggiator in the note path</title><desc>A block diagram. The keys and MIDI IN send notes to the current sound&#x27;s arpeggiator, and also to the sequencer, which records them as they were played. The sequencer sends the notes of the tracks routed to the sound to the arpeggiator, each note-on a trig, and its clock: the tempo&#x27;s ticks, Start and Stop. The arpeggiator plays the arpeggio on the sound&#x27;s engine. While the arpeggiator is off, the notes go straight to the engine. A note says that modulation&#x27;s note sources hear the notes the engine plays, the arpeggio included, and that each of the four sounds has an arpeggiator of its own.</desc><rect data-kind='bg' x='-23.6' y='-20.68' width='419.32' height='302.32' fill='#fffaf3'/>
+<rect data-kind='group' data-id='sound' x='30' y='71.25' width='173.88' height='174.75' rx='8' fill='#faf4ed' stroke='#797593' stroke-width='1.3'/>
+<text x='38' y='238.1' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='11' font-weight='600' text-anchor='start' data-owner='sound'>One sound (each has its own)</text>
+<path data-kind='edge' data-id='e0' data-from='keys' data-to='seq' d='M179.14 20.62 L257.67 20.62' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e1' data-from='keys' data-to='arp' d='M116.94 34.42 L116.94 71.75' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e2' data-from='seq' data-to='arp' d='M305.3 41.25 L305.3 105.7 L179.78 105.7' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e3' data-from='seq' data-to='arp' d='M316.3 41.25 L316.3 54.25 L166.28 54.25 L166.28 71.75' fill='none' stroke='#797593' stroke-width='1.3' stroke-dasharray='7 3 1.5 3' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e4' data-from='arp' data-to='eng' d='M116.94 133.15 L116.94 171.12' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e5' data-from='keys' data-to='eng' d='M54.75 27.43 L13 27.43 L13 184.62 L80.33 184.62' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='arrow' data-id='e0' d='M264.17 20.62 L256.67 24.23 L256.67 17.02 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e1' d='M116.94 78.25 L113.34 70.75 L120.54 70.75 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e2' d='M173.28 105.7 L180.78 102.1 L180.78 109.3 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e3' d='M166.28 78.25 L162.68 70.75 L169.88 70.75 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e4' d='M116.94 177.62 L113.34 170.12 L120.54 170.12 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e5' d='M86.83 184.62 L79.33 188.22 L79.33 181.03 Z' fill='#797593'/>
+<rect data-kind='node' data-id='keys' x='54.75' y='6.82' width='124.39' height='27.6' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='116.94' y='24.16' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='keys'>Keys and MIDI IN</text>
+<rect data-kind='node' data-id='seq' x='264.17' y='0' width='82.27' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='305.3' y='17.34' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='seq'>Sequencer</text>
+<text x='305.3' y='31.52' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='seq'>8 tracks</text>
+<rect data-kind='node' data-id='arp' data-group='sound' x='60.6' y='78.25' width='112.68' height='54.9' rx='4' fill='#e4f8fc' stroke='#3a7983' stroke-width='1.3'/>
+<text x='116.94' y='95.59' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='arp'>Arpeggiator</text>
+<text x='116.94' y='109.77' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='arp'>the notes held, one</text>
+<text x='116.94' y='123.42' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='arp'>after another</text>
+<rect data-kind='node' data-id='eng' data-group='sound' x='86.83' y='177.62' width='60.22' height='27.6' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='116.94' y='194.97' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='eng'>Engine</text>
+<rect data-kind='node' data-id='note' x='224.88' y='161.15' width='160.84' height='60.55' fill='none' stroke='none'/>
+<path data-kind='rule' data-id='note' d='M225.88 162.15 L225.88 220.7' stroke='#797593' stroke-width='2'/>
+<text x='236.88' y='174.49' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='start' data-owner='note'>Modulation</text>
+<text x='236.88' y='188.67' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='note'>Its note sources (VEL, KEY,</text>
+<text x='236.88' y='202.32' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='note'>TRIG …) hear what the engine</text>
+<text x='236.88' y='215.97' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='note'>plays: the arpeggio.</text>
+<text x='221.65' y='-0.75' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e0'>recorded as</text>
+<text x='221.65' y='12.9' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e0'>played</text>
+<text x='69.15' y='59.43' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e1'>the current sound</text>
+<text x='265.7' y='119.62' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e2'>its tracks’ notes,</text>
+<text x='265.7' y='133.27' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e2'>each a trig</text>
+<text x='241.29' y='68.17' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e3'>tempo,</text>
+<text x='241.29' y='81.82' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e3'>Start, Stop</text>
+<text x='152.39' y='158.48' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e4'>the arpeggio</text>
+<text x='-2.8' y='102.3' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e5'>ARP</text>
+<text x='-2.8' y='115.95' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e5'>off</text>
+<path data-kind='legend' d='M-15.6 266.82 L14.4 266.82' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' fill='none'/>
+<text x='20.4' y='269.92' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='legend'>notes</text>
+<path data-kind='legend' d='M63.18 266.82 L93.18 266.82' stroke='#797593' stroke-width='1.3' stroke-dasharray='7 3 1.5 3' stroke-linecap='butt' fill='none'/>
+<text x='99.18' y='269.92' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='legend'>clock</text>
+</svg>

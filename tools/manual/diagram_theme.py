@@ -179,6 +179,7 @@ KINDS = {
     "gate": Kind(1.6, "0.1 3.6", "round", "mod", "gate cable"),
     "press": Kind(1.3, "", "butt", "ink", "button press"),
     "event": Kind(1.3, "1.5 3", "butt", "ink", "by itself"),
+    "clock": Kind(1.3, "7 3 1.5 3", "butt", "neutral", "clock"),
     "refused": Kind(1.6, "6 3.5", "butt", "refuse", "refused"),
     "link": Kind(1.0, "", "butt", "neutral", ""),
 }

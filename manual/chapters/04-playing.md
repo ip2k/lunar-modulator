@@ -198,6 +198,8 @@ Notes from the keys, from MIDI and from the sequencer's tracks that play this
 sound all go through the arpeggiator while it is on. A note you were holding
 before you switched it on goes on sounding until you let go.
 
+{{diagram arpeggiator}}
+
 ### The ARP pages
 
 Turn [[SELECT]] for the page. [[KNOB1]] to [[KNOB4]] set the four values on

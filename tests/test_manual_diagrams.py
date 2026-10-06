@@ -25,7 +25,7 @@ SOURCES = diagrams.sources()
 
 def test_there_are_diagrams():
     assert {s.stem for s in SOURCES} >= {"signal-flow", "modulation", "per-voice", "recipes",
-                                         "effect-chain", "transport", "launch"}
+                                         "effect-chain", "transport", "launch", "arpeggiator"}
 
 
 @pytest.mark.parametrize("src", SOURCES, ids=lambda p: p.stem)
