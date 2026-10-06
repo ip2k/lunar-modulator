@@ -22,8 +22,9 @@
 --key 1.42:12:100:0.38
 --button 2.10:REC
 # ARP held: Latch (the notes play on after the keys go up); another chord
-# replaces the latched one; PLAY/STOP stops (and flushes the arp); the
-# arp keeps playing the latched chord from the sequencer's tempo.
+# replaces the latched one; PLAY/STOP stops (the track's notes leave the
+# arp, the latched chord played by hand stays); the arp keeps playing the
+# latched chord from the sequencer's tempo.
 --button 2.30:ARP:0.70
 --key 2.85:5:100:0.10
 --key 2.87:9:100:0.10

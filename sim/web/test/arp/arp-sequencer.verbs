@@ -2,7 +2,8 @@
 # The arpeggiator with the sequencer (engine API v3's MIDI effects): track 1
 # holds a two-note chord on steps 1 and 9, which the arp in front of the
 # sound plays with the keys' notes. It runs on the sequencer's clock,
-# stopped (from its tempo) and playing (Start restarts it); Stop flushes it.
+# stopped (from its tempo) and playing (Start restarts it); Stop takes the
+# track's notes back (STOP).
 @0 bpm 13000;tog 0 0 48 100 55 100;slen 0 0 0 -1 160;tog 0 8 50 90 57 90;slen 0 8 8 -1 160
 @22080 play
 @132352 stop

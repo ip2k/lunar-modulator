@@ -1,0 +1,41 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='626.26' height='421.59' viewBox='-6 -6 417.51 281.06' role='img'><title>Launching a clip</title><desc>A state diagram for one track while the sequencer runs. A silent track that is given a clip waits for the bar, then plays it. A track playing a clip that is given another clip also waits for the bar, then plays the new one. Launching an empty slot makes the track wait for the bar and then go silent. A note says that while the sequencer is stopped a launch starts it and the clip plays at once, and that a scene launches the same slot on every track: a track with a clip there waits for the bar, a track without one waits to stop.</desc><rect data-kind='bg' x='-6' y='-6' width='417.51' height='281.06' fill='#fffaf3'/>
+<rect data-kind='group' data-id='track' x='4' y='4' width='397.51' height='164.86' rx='8' fill='#faf4ed' stroke='#797593' stroke-width='1.3'/>
+<text x='12' y='18.39' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='11' font-weight='600' text-anchor='start' data-owner='track'>One track, while the sequencer runs</text>
+<path data-kind='edge' data-id='e0' data-from='silent' data-to='queued' d='M129.66 48.92 L248.93 48.92' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e1' data-from='queued' data-to='playing' d='M305.63 69.55 L305.63 120.94' fill='none' stroke='#464261' stroke-width='1.3' stroke-dasharray='1.5 3' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e2' data-from='playing' data-to='queued' d='M316.63 127.44 L316.63 76.05' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e3' data-from='playing' data-to='stop' d='M259.42 141.24 L156.58 141.24' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e4' data-from='stop' data-to='silent' d='M99.88 120.61 L99.88 69.22' fill='none' stroke='#464261' stroke-width='1.3' stroke-dasharray='1.5 3' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='arrow' data-id='e0' d='M255.43 48.92 L247.93 52.52 L247.93 45.32 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e1' d='M305.63 127.44 L302.03 119.94 L309.23 119.94 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e2' d='M316.63 69.55 L320.23 77.05 L313.03 77.05 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e3' d='M150.08 141.24 L157.58 137.64 L157.58 144.84 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e4' d='M99.88 62.73 L103.48 70.22 L96.28 70.22 Z' fill='#464261'/>
+<rect data-kind='node' data-id='silent' data-group='track' x='70.09' y='35.12' width='59.58' height='27.6' rx='11' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='99.88' y='52.47' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='silent'>Silent</text>
+<rect data-kind='node' data-id='queued' data-group='track' x='255.43' y='28.3' width='100.4' height='41.25' rx='11' fill='#fef1e4' stroke='#9d6200' stroke-width='1.3'/>
+<text x='305.63' y='45.64' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='queued'>A clip waits</text>
+<text x='305.63' y='59.82' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='queued'>for the next bar</text>
+<rect data-kind='node' data-id='stop' data-group='track' x='49.68' y='120.61' width='100.4' height='41.25' rx='11' fill='#fef1e4' stroke='#9d6200' stroke-width='1.3'/>
+<text x='99.88' y='137.95' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='stop'>A stop waits</text>
+<text x='99.88' y='152.13' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='stop'>for the next bar</text>
+<rect data-kind='node' data-id='playing' data-group='track' x='259.41' y='127.44' width='92.43' height='27.6' rx='11' fill='#e4f8fc' stroke='#3a7983' stroke-width='1.3'/>
+<text x='305.63' y='144.78' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='playing'>Plays a clip</text>
+<rect data-kind='node' data-id='note' x='11' y='178.86' width='381.51' height='60.55' fill='none' stroke='none'/>
+<path data-kind='rule' data-id='note' d='M12 179.86 L12 238.41' stroke='#797593' stroke-width='2'/>
+<text x='23' y='192.2' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='start' data-owner='note'>Stopped, and scenes</text>
+<text x='23' y='206.38' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='note'>While the sequencer is stopped, a launch starts it and the clip plays at once.</text>
+<text x='23' y='220.03' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='note'>A scene launches one slot on every track: a track with a clip there waits</text>
+<text x='23' y='233.69' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='note'>for the bar, a track without one waits to stop.</text>
+<text x='192.55' y='41.2' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e0'>launch a clip</text>
+<text x='280.74' y='101.59' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e1'>next bar</text>
+<text x='340.23' y='94.77' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e2'>launch</text>
+<text x='340.23' y='108.42' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e2'>another</text>
+<text x='204.75' y='119.86' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e3'>launch an</text>
+<text x='204.75' y='133.51' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e3'>empty slot</text>
+<text x='124.77' y='94.77' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e4'>next bar</text>
+<path data-kind='legend' d='M2 260.24 L32 260.24' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' fill='none'/>
+<text x='38' y='263.34' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='legend'>a launch</text>
+<path data-kind='legend' d='M95 260.24 L125 260.24' stroke='#464261' stroke-width='1.3' stroke-dasharray='1.5 3' stroke-linecap='butt' fill='none'/>
+<text x='131' y='263.34' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='legend'>by itself</text>
+</svg>

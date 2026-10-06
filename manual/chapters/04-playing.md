@@ -1,8 +1,9 @@
 # Playing
 
 This chapter covers playing notes: the keys and how many notes sound at once,
-how hard you play, the octave and transpose controls, how notes end, pitch
-bend, and notes that arrive from a MIDI keyboard.
+gliding between notes and playing one voice at a time, how hard you play,
+the octave and transpose controls, how notes end, pitch bend, and notes that
+arrive from a MIDI keyboard.
 
 ## Keys and voices
 
@@ -12,7 +13,9 @@ Each key plays one note on the current sound for as long as you hold it
 ([chapter 5](05-sound-engines.md#four-sounds-at-once)); a note you hold keeps
 playing on its sound even if you choose another. Outside SEQ mode the notes
 also go to the sequencer's focused track, for recording and Capture
-([chapter 7](07-sequencer.md#recording)). A *voice* is one sounding note,
+([chapter 7](07-sequencer.md#recording)); chapter 5 draws the whole path
+from the keys to the output ([Four sounds at once](05-sound-engines.md#four-sounds-at-once)).
+A *voice* is one sounding note,
 and each engine has a fixed number of them, for each sound it plays:
 
 | Engine | Voices |
@@ -45,6 +48,48 @@ again in its own voice, as a drum is.
     Twelve voices playing loudly together can add up to more than the output
     can carry. The limiter after the effects turns the sum down so that it
     never clips ([chapter 6](06-effects.md#the-limiter)).
+
+## Glide and voice modes
+
+{{status sim desktop planned}}
+
+Macro, Macro Heavy, Six-Op FM, FM6 and Shapes can slide from one note to
+the next, and can play one voice at a time, like a monophonic synthesizer.
+Two parameters do it, on page 4 of Macro and Macro Heavy and after Volume on
+page 2 of the others.
+
+**Glide** sets how long the slide takes, from 1 ms to 5 seconds. At its
+lowest setting, 1 ms, glide is off, which is the default. Otherwise, a note
+you play while you hold another key starts at the pitch of the note you are
+holding and slides to its own. The slide always takes the Glide time,
+whether the notes are a semitone or two octaves apart, and moves evenly
+through the semitones. A note you play with no key held starts on its own
+pitch, and so do the notes of a chord you strike together: they slide only
+from a key you were already holding. Turning Glide during a slide changes
+its speed for the rest of the way.
+
+**Voice Mode** chooses how notes take voices:
+
+| Voice Mode | A key you play while holding another | When you let go of the key that sounds while others are held |
+| --- | --- | --- |
+| **Poly** (the default) | Plays as a note of its own, as usual; with Glide on, it slides from the key you were holding | That note ends as usual |
+| **Mono** | Takes over the one voice, which plays the new key and starts its sound again from the beginning | The voice goes back to the last key you are still holding, without starting again |
+| **Legato** | Takes over the one voice without starting anything again: the note carries on at the new pitch, at the first note's loudness | As Mono |
+
+With Glide on, every change of key in Mono and Legato slides, back to a
+held key included. Changing Voice Mode never ends a note that is sounding;
+the new mode applies from the next key you play or let go.
+
+!!! tip "A classic mono lead"
+    Choose Legato and a Glide of about 100 ms, and play with overlapping
+    notes: each overlap slides, and a detached note starts afresh.
+
+The sequencer and modulation can change both: a lock on Glide or Voice
+Mode applies from its step, and a modulation route can sweep Glide's time
+([chapter 7](07-sequencer.md#parameter-locks),
+[chapter 8](08-modulation.md#how-modulation-works)). Sophie and
+Drums have neither: their keys play pads, each a sound of its own, rather
+than pitches.
 
 ## Velocity
 
@@ -195,6 +240,8 @@ the current sound.
 Notes from the keys, from MIDI and from the sequencer's tracks that play this
 sound all go through the arpeggiator while it is on. A note you were holding
 before you switched it on goes on sounding until you let go.
+
+{{diagram arpeggiator}}
 
 The arpeggiator remembers where each note came from: your hands (the keys
 and MIDI) or the sequencer. While it latches, the two latch apart. A new

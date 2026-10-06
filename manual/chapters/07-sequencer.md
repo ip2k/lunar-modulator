@@ -501,6 +501,8 @@ In the session view, keys 1 to 8 launch slots 1 to 8 of the focused track
 - Launching an empty slot stops the track at the next bar.
 - Launching a clip by hand ends a song that is playing.
 
+{{diagram launch}}
+
 ### Double Loop
 
 {{status desktop planned}}
@@ -579,6 +581,11 @@ A song plays a list of scenes, one after the other.
 ## Recording
 
 {{status sim desktop planned}}
+
+[[PLAY/STOP]] and [[REC]] move the sequencer between the states below; the
+rest of this section and the next, [Capture](#capture), go through each.
+
+{{diagram transport}}
 
 ### To record
 

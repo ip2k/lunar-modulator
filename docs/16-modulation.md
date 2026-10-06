@@ -1505,9 +1505,11 @@ marked]:
   them), the pages and the script reader with strtod [verified:
   `www/fm1.wasm.json`]. (MG3 alone, before MG2's kinds, had added 93 KB.)
   Since Room, Hall and Gate the pool holds 180 records, not 160: Gate's
-  thirteen parameters in all ten effect places and Six-Op's twelve in all
+  thirteen parameters in all ten effect places and Macro Heavy's twelve in all
   four sound units need 180 with HOST's two, and `fm1_mod_size()` is 23,200 B (832 B
-  more).
+  more). Since glide (2026-10-06, engines/README.md "Glide and voice
+  modes") Macro Heavy has fourteen parameters: with HOST's six since MG9,
+  192 records, and 26,512 B (320 B more than MG9's 26,192 B).
 - **The dead-code audit is due** (§8, "Size and the dead-code audit"): the
   repository's own code files (dongle/, engines/ less third_party/, sim/,
   tests/, tools/; C, C++, Python, JavaScript, shell and make, less the
@@ -1594,8 +1596,8 @@ the tests; the manual's chapter 8, "Per voice", the user's view) [verified
   again; an edit that keeps them (an amount) keeps them running. The
   voices' fixed records are 168 B each. `fm1_mod_size()` is 26,192 B, 2,992
   B more than MG3's 23,200 (12 voice records, each sound unit's note
-  gates, four HOST records, the per-voice plan); the simulator's runtime
-  memory is 26,624 B. The first try, sixteen voices and per-voice
+  gates, four HOST records, the per-voice plan), and 26,512 B since
+  glide's eight records; the simulator's runtime memory is 26,624 B. The first try, sixteen voices and per-voice
   destination tables, cost 3,984 B and pushed two of the parity
   scenarios' chains past the RAM budget; twelve voices and a short search
   in place of the tables brought it under.

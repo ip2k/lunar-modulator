@@ -19,6 +19,48 @@ history.
   and chord effects planned next will. On the desktop the sequencer's new
   `key` command sets it.
 
+- **Diagrams in the manual.** Eight drawings, in the manual's colours, where
+  the text explains how things connect: where the arpeggiator sits in the
+  note path (chapter 4); the whole signal flow from the keys, MIDI IN and
+  the sequencer's eight tracks through the arpeggiators, the four sounds,
+  their inserts and the mix to the master effects, the limiter and MASTER
+  (chapter 5); one sound's effect chain and the master bus, with what an
+  empty slot does (chapter 6); the transport as a state diagram, with every
+  press of PLAY/STOP and REC, the count-in, the wait for the bar, step
+  recording and Capture's tempo, and what a clip launch does to a track
+  (chapter 7); and the modulation system, modulation per voice with what is
+  refused, and four patches that chain modules, including a loop (chapter
+  8, with a new *Recipes* section). Line styles and labels carry every
+  meaning, so the colours are never the only cue.
+  - For contributors: each diagram is a small source in `manual/diagrams/`,
+    laid out by `tools/manual/diagrams.py` (no coordinates in the source,
+    no external tool), and `tests/test_manual_diagrams.py` checks that
+    nothing in a drawing touches anything else and that the committed SVGs
+    are current.
+- **Glide and mono playing on Macro, Macro Heavy, Six-Op FM, FM6 and
+  Shapes.** Two new parameters on each:
+  - **Glide** (1 ms to 5 s): a note you play while holding another slides
+    from the held note's pitch to its own, in the same time whatever the
+    interval. At 1 ms, the default, glide is off and every engine sounds
+    exactly as before. Chords struck together do not slide into each other,
+    and a note played with no key held starts on its own pitch.
+  - **Voice Mode**: Poly (as before), Mono (one voice; each new key starts
+    the sound again, and letting go returns to a key still held) or Legato
+    (one voice; playing over a held key carries the note on at the new
+    pitch without starting it again).
+  - Both can be locked in the sequencer and modulated; turning Glide during
+    a slide changes its speed. Macro and Macro Heavy show them on a fourth
+    page, the others after Volume on page 2. Not on Sophie and Drums, whose
+    keys play pads.
+  - The same output, bit for bit, at any block size and on the Mac, 32- and
+    64-bit Linux and the browser (three new parity scenarios, 86 of 86 pass;
+    the browser module grew from 922 KB to 939 KB); the modulation runtime
+    holds 8 more parameter records (320 bytes) for Macro Heavy's fourteen
+    parameters. Glide's state adds 112 to 300 bytes to each of the five
+    engines, so a chain that filled the RAM budget to its last few hundred
+    bytes may now be refused (one parity scenario swapped an Ensemble
+    insert for Drive to fit). Documented in engines/README.md ("Glide
+    and voice modes") and chapter 4 of the manual.
 - **The arpeggiator, in the simulator.** [ARP] now works: tap it to switch
   the current sound's arpeggiator on (its pages open) or off; hold it to
   latch, so the notes play on after you let go and the next chord replaces

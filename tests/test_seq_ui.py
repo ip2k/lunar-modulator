@@ -923,7 +923,7 @@ def test_a_nolock_parameter_says_so_on_a_lock_page(tools, tmp_path):
              if l and not l.startswith("#")]
     s = lock_run(tools, tmp_path, lines, seconds=0.5)
     assert s["popup"] == ["Model", "cannot be locked"] and cmds(s) == []
-    assert s["seq_view"]["step_page"] == 2 and s["locks"]["lock_pages"] == 3
+    assert s["seq_view"]["step_page"] == 2 and s["locks"]["lock_pages"] == 4   # Macro's 4 pages
 
 
 def test_the_knob_and_the_base_agree_to_the_bit_after_a_stop(tools, tmp_path):

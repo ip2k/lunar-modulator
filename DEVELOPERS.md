@@ -293,7 +293,7 @@ chapter 4, "Arpeggiator").
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 3,385 screens of the layout sweep, the sequencer's,
+  canvas. All 3,457 screens of the layout sweep, the sequencer's,
   modulation's and the arpeggiator's, the global page's Key page, FM6's
   user bank and every list popup at every entry included, pass a layout
   check, with no text cut short and
