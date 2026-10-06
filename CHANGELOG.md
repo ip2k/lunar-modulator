@@ -27,7 +27,7 @@ history.
     four can be locked and modulated; a slide under way finishes as it
     began when a mode changes.
   - The modulation runtime holds 8 more parameter records (336 bytes) for
-    Macro Heavy's sixteen parameters; each engine grows by 32 to 40 bytes.
+    Macro Heavy's sixteen parameters; each engine grows by 32 to 44 bytes.
 - **SHIFT with MONO or POLY sets the Voice Mode** in the simulator, outside
   SEQ mode: hold SEL and press the black key MONO (C#5) for Mono, again for
   Legato, or POLY (D#5) for Poly. The screen names the mode, and with SEL

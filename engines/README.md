@@ -287,6 +287,11 @@ Volume moved there from page 3 when Choke and Kit Decay came, 2026-10-06).
   200 ([below](#glide-and-voice-modes)), so the owner gave Drums the two
   back (2026-10-06, the open question this section had): Choke and Kit
   Decay, uids 13 and 14.
+- **Defaults keep the kit** [verified 2026-10-06, Apple clang arm64,
+  against a build of main `275628b`]: with Choke on Kit and Kit Decay at
+  0.5 the kit renders what it did, byte for byte: 24 renders, both kits,
+  forty random hits with turns of Pad, Decay, Model, Accent and Volume,
+  host blocks of 64, 7 and 1, fills 0 and 0xA5.
 - **Choke.** A pad's group is read when it is struck (LATCH, and MOD: a
   route is rounded), so a sounding hit keeps the group it was struck in.
   On Kit (the default) it is the group the kit's voicing gives the pad,
@@ -348,7 +353,7 @@ best of five; desktop figures, which say nothing of pi32v2]:
 
 | Load, per 64-frame block (1,451 µs at 44,118 Hz) | Drums | Macro |
 | --- | --- | --- |
-| Instance, 64-bit and 32-bit (GCC 12 `-m32` in a container) | 7,616 and 7,424 B (7,648 on 64-bit since Choke and Kit Decay) | 32,448 and 19,584 B |
+| Instance, 64-bit and 32-bit (GCC 12 `-m32` in a container) | 7,616 and 7,424 B (7,648 and 7,648 since Choke and Kit Decay: on 32-bit each voice's two more offsets show) | 32,448 and 19,584 B |
 | Twelve voices sounding (twelve pads at Decay 1 struck at once) | 25.0 µs Deep, 15.7 µs Punch | 24.7–26.7 µs (twelve held notes, VA Pair and VA+Filter) |
 | Twelve pads re-struck every 0.4 s | 22.8 µs Deep, 14.1 µs Punch | |
 | One pad re-struck, by model | 2.8 µs (Rim, mostly silent) to 4.8 µs (Analog Drum, Snare) | |
@@ -3272,7 +3277,11 @@ themselves, and page 2 is again what it was before glide.
   64, 7 and 1, at the defaults, at Glide 200 ms, with Glide turned from 35
   to 300 ms mid-render, and Glide Mode Off against main's Off). A host or
   script that set Glide alone to glide must now set Glide Mode Legato too:
-  the parity scenarios and the glide tests do.
+  the parity scenarios and the glide tests do. Across the registry, every
+  engine and effect at its defaults and at each of its parameters' ends
+  (492 renders against the same build of main) differs only where main's
+  Glide at 5,000 ms glided by itself: the five pitched engines' Glide=5000
+  without a Glide Mode, by design.
 
 **What glides.** Under **Legato**, fingered portamento: a note struck while
 another key is held starts at the pitch the held note sounds, glide
@@ -3376,7 +3385,9 @@ Glide Mode and Time Mode (2026-10-06) add no per-voice state (`rate` and
 values and ramps per instance: 32 bytes on 64-bit (Apple clang, arm64)
 on Macro (32,736), Macro Heavy (71,600), Six-Op FM (12,992) and Shapes
 (207,728), and 40 on FM6 (16,188, its block's step kept between calls)
-[verified 2026-10-06: `fm1-render`]. CPU at Glide Mode Off: per voice a
+[verified 2026-10-06: `fm1-render`]; on 32-bit (gcc 12 `-m32` in a
+container, as CI's job) 19,872, 71,392, 11,224, 206,904 and 16,188
+[verified 2026-10-06]. CPU at Glide Mode Off: per voice a
 test, and no division (it was one a block). Macro Heavy has 16 parameters
 now, so the modulation runtime's shared records grew from 192 to 200 (4 ×
 16 + 10 × 13 + 6, `FM1_MOD_SINK_PARAMS`) and `fm1_mod_size()` from 26,512 to
@@ -3463,6 +3474,11 @@ render.js and musl [verified 2026-10-06: `sim/web/www/fm1.wasm.json`].
 Six-Op FM's `set_param` took NaN to the minimum, where the API says the
 default (Glide's default and minimum were both 1 ms until now, which hid
 it); it uses `fm1_param_clamp` since, the same for every other value.
+Also run [verified 2026-10-06, in containers on the build host, as CI's
+jobs]: the engine, sequencer and Movy tests at 32 bits (gcc 12 `-m32`,
+3,772 passed, and the app layer's 464, no build warning at 32 or 64 bits),
+and the same suites under ASan and UBSan (clang 18, halting on any report:
+none).
 
 ## Engine API v3
 
