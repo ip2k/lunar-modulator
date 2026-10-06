@@ -17,7 +17,9 @@
  *           or page B's VIA (5), curve and polarity. Page A: KNOB1 source, KNOB2 destination (a picker,
  *           ALGORITHM jumps between groups while it is open, commit after a
  *           second), KNOB3 amount, KNOB4 offset. ALGORITHM otherwise flips
- *           to page B: KNOB1 VIA, KNOB2 curve, KNOB3 polarity, KNOB4 on.
+ *           to page B: KNOB1 VIA, KNOB2 curve, KNOB3 polarity, KNOB4 the
+ *           cable's state: off, on (global), or on per voice (docs/16 MG9;
+ *           the row's mark `v`, and `!` while the runtime refuses it).
  *   CHAIN   SEL in MATRIX: the longest path through the selected slot.
  *   Gesture Hold ENV or LFO and turn KNOB1-4 on HOME, FX or RACK: a cable
  *           from the selected Envelope or LFO (the last one shown on its
@@ -43,10 +45,21 @@
  * Pitch. A new cable's target picker opens at the current sound
  * (env->sound), as the gesture on HOME makes cables to it.
  *
- * Scope. Every cable here is global. The slot record keeps
- * FM1_MOD_SLOT_VOICE for per-voice cables (one instance per note, the next
- * stage); a MATRIX row shows such a slot with `v` and the script line for
- * it does not exist yet, so a log that meets one says it is incomplete.
+ * Scope (docs/16 MG9). A cable is global, or per voice (FM1_MOD_SLOT_VOICE,
+ * MATRIX page B's KNOB4): it then runs once for every note, its note
+ * sources being that note's and an Envelope, LFO or Chance it reads one
+ * instance per note; its script line ends in `voice`. RACK's line under
+ * the rack says `vN` for a module that runs per voice, N its voices now.
+ * The note sources of one sound unit (S1VEL ... S4RTRG) follow the plain
+ * ones in KNOB1's list, and the host's group lists a pitch per sound unit
+ * and the current sound's (Pitch, Pitch2-4, PitchC); a change of the
+ * current sound is a `current K` line.
+ *
+ * Engine changes (owner, 2026-10-05). When a sound's (or an effect's)
+ * engine changes, fm1_mod_ui_engine_changed re-aims each cable into it to
+ * the new engine's parameter of the same name, or switches it off and
+ * remembers the parameter it named (aim), shown under that name, until an
+ * engine that has it comes back.
  *
  * Edits go through fm1_mod_ui_set_* below, which apply them to the runtime
  * and hand each one to env->emit as a line of fm1-render's --mod format
@@ -63,6 +76,7 @@
 
 #include "fm1_engine.h"
 #include "fm1_mod.h"
+#include "fm1_panel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -110,11 +124,17 @@ typedef struct fm1_mod_ui_env {
   void *ctx;
 } fm1_mod_ui_env_t;
 
-/* A popup a gesture asks the app to show: up to three lines, `mark` the
- * highlighted one or -1; n 0 for none. */
+/* A popup a gesture asks the app to show: up to three lines of a message,
+ * or a picker's list (total > 0): its title and the window of it the
+ * screen shows (fm1_list_first), line[0] being entry `first` of `total`,
+ * with `mark` the chosen line and `dim` the lines to draw dim (Empty).
+ * n 0 for none; mark -1 for no line marked. */
 typedef struct fm1_mod_ui_say {
-  char line[3][24];
+  char line[FM1_LIST_ROWS][24];
+  char title[24];
+  int16_t first, total;
   int8_t n, mark;
+  uint8_t dim;
 } fm1_mod_ui_say_t;
 
 typedef struct fm1_mod_ui {
@@ -138,6 +158,10 @@ typedef struct fm1_mod_ui {
                                             the kind comes back (docs/16 §2.4) */
   fm1_mod_plan_info_t plan;    /* the plan as the last block ran it (delayed,
                                   refused); the app refreshes it after a tick */
+  uint8_t aim[FM1_MOD_SLOTS];  /* registry index + 1 of the engine whose parameter a
+                                  cable an engine change switched off still names,
+                                  or 0 (engine changes, above) */
+  uint32_t aim_on;             /* those cables that were on */
 } fm1_mod_ui_t;
 
 void fm1_mod_ui_init(fm1_mod_ui_t *u);
@@ -199,10 +223,12 @@ int fm1_mod_ui_routes(const fm1_mod_t *m, unsigned unit, uint16_t dst, int gate,
 /* Slot i as one line ("slot 5 mod1.1 > snd:Timbre amt=40 ..."); 0 when it
  * has no destination (nothing to write) or no line can say it. */
 int fm1_mod_ui_slot_line(const fm1_mod_ui_env_t *env, unsigned i, char *buf, size_t cap);
-/* The whole state as lines, through env->emit: the seed, every position,
- * every base that is not its default, every slot with a destination. 1 if
- * every line could be written. */
-int fm1_mod_ui_dump(const fm1_mod_ui_env_t *env, uint32_t seed);
+/* The whole state as lines, through env->emit: the seed, the current
+ * sound (when not the first), every position, every base that is not its
+ * default, every slot with a destination (but those an engine change
+ * switched off, u->aim: they run as nothing; u may be NULL). 1 if every
+ * line could be written. */
+int fm1_mod_ui_dump(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint32_t seed);
 
 /* ---- edits: applied to the runtime, then emitted --------------------------------- */
 
@@ -219,9 +245,17 @@ int fm1_mod_ui_move(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned from,
  * cables, RTRG into each Envelope's GATE at 100 %, so every note on any
  * sound unit (keys, MIDI in and the sequencer) restarts the envelopes, a
  * note played while another is held too (owner, 2026-10-05). They are
- * ordinary slots 1 and 2: KEY in their place makes the envelopes legato.
- * Not emitted: a log starts with fm1_mod_ui_dump. */
+ * ordinary slots 1 and 2: KEY in their place makes the envelopes legato,
+ * and with no cable an Envelope's GATE reads RTRG too (its normal since
+ * MG9). Not emitted: a log starts with fm1_mod_ui_dump. */
 void fm1_mod_ui_default(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u);
+
+/* Unit `code`'s engine changed from `from` to `to` (either NULL): every
+ * cable into it is re-aimed by its parameter's name, or switched off and
+ * remembered (Engine changes, above); emitted as slot lines. Returns how
+ * many cables it re-aimed or switched. */
+int fm1_mod_ui_engine_changed(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned code,
+                              const fm1_engine_t *from, const fm1_engine_t *to);
 
 /* ---- the pages ---------------------------------------------------------------- */
 

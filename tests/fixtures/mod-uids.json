@@ -201,8 +201,8 @@
       "gates": [],
       "outs": ["Sum", "Avg", "Inv"]
     },
-    "filter": {
-      "guid": "FLT ", "abbr": "FLT",
+    "resonator": {
+      "guid": "FLT ", "abbr": "RES",
       "params": [
         {"name": "Cutoff", "type": "float", "uid": 1, "flags": ["mod"]},
         {"name": "Res", "type": "float", "uid": 2, "flags": ["mod"]},
@@ -220,8 +220,13 @@
     "19": "BEAT", "20": "BAR", "21": "RUN", "22": "START", "23": "RTRG", "24": "SEQ1", "25": "SEQ2",
     "26": "SEQ3", "27": "SEQ4", "28": "SEQ5", "29": "SEQ6", "30": "SEQ7", "31": "SEQ8",
     "32": "SQV1", "33": "SQV2", "34": "SQV3", "35": "SQV4", "36": "SQV5", "37": "SQV6",
-    "38": "SQV7", "39": "SQV8"
+    "38": "SQV7", "39": "SQV8",
+    "44": "S1NOTE", "45": "S2NOTE", "46": "S3NOTE", "47": "S4NOTE", "48": "S1VEL", "49": "S2VEL",
+    "50": "S3VEL", "51": "S4VEL", "52": "S1KEY", "53": "S2KEY", "54": "S3KEY", "55": "S4KEY",
+    "56": "S1TRIG", "57": "S2TRIG", "58": "S3TRIG", "59": "S4TRIG", "60": "S1RTRG", "61": "S2RTRG",
+    "62": "S3RTRG", "63": "S4RTRG"
   },
-  "host": [{"name": "Pitch", "uid": 1}, {"name": "Amp", "uid": 2}],
+  "host": [{"name": "Pitch", "uid": 1}, {"name": "Amp", "uid": 2}, {"name": "Pitch 2", "uid": 3},
+           {"name": "Pitch 3", "uid": 4}, {"name": "Pitch 4", "uid": 5}, {"name": "Pitch Cur", "uid": 6}],
   "retired": {}
 }

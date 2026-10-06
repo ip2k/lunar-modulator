@@ -46,10 +46,16 @@
     <div class="field"><label for="sel-fx2">Effect 2</label><select id="sel-fx2" disabled></select></div>
     <div class="buttons">
       <button type="button" id="midi">Connect MIDI input</button>
+      <button type="button" id="dx7-load" disabled
+        title="Load .syx files of DX7 voices into FM6's user slots. The file is read in this browser; nothing is uploaded.">Load DX7 patches&hellip;</button>
+      <input type="file" id="dx7-file" accept=".syx" multiple hidden>
       <button type="button" id="zoom" aria-pressed="false">Screen &times;2</button>
       <button type="button" id="power-off" disabled>Power off</button>
     </div>
   </section>
+  <div class="drop-hint" id="drop-hint" hidden aria-hidden="true">
+    <p>Drop <code>.syx</code> files to load DX7 patches into FM6</p>
+  </div>
   <p class="status" id="status" role="status">Powered off.</p>
 
   <section class="help" aria-label="How to play">
@@ -99,6 +105,12 @@
         steps held clears their locks, and held, a knob clears that parameter's lane on the track.
         Recording while playing, a knob writes its moves into the step that plays. A knob on a locked
         parameter turns in its 128 steps, and the lane follows it.</dd></div>
+      <div><dt>DX7 patches</dt><dd>FM6 plays voices in the DX7's format: its 32 built-in voices, then User 1
+        to User 32. <em>Load DX7 patches&hellip;</em>, or a <code>.syx</code> file dropped on the page, fills the
+        user slots: a bank of 32 fills all of them, a single voice the next one. The current sound then
+        plays the first voice loaded (it becomes FM6 if it was not), and ALGORITHM steps through the
+        voices by name. The file is checked (header, length, checksum) and read in this browser; nothing
+        is uploaded, and the voices last until you power off. Load only files you are entitled to use.</dd></div>
       <div><dt>Sounds</dt><dd>Up to four sounds play at once. Hold SEL and turn
         PRESETS to choose the one the keys play and the knobs edit; PRESETS then picks its engine (Sounds
         2&ndash;4 can be empty). The meter in the screen's bottom bar is the FM-1's memory: whatever would
@@ -121,8 +133,10 @@
       owner's board photo; the encoders' printed names and the 14 buttons are the manual's. SAVE and
       ARP are not in the simulator yet. Engines credit Emilie Gillet
       (Mutable Instruments, MIT) and the Schwung module authors; see the repository's
-      <code>engines/README.md</code>. FM6 runs msfa by Raph Levien for Google (Apache License 2.0) and
-      reads the DX7's voice format (not affiliated with Yamaha). Colours: Ros&eacute; Pine Moon (MIT). Type: Audiowide by
+      <code>engines/README.md</code>. FM6 is msfa by Raph Levien for Google (Apache License 2.0), borrowed with
+      thanks, as is its name, from Felucca's FM6 engine by hugelton; it reads the DX7's voice format (not
+      affiliated with Yamaha). Squash and the Limiter's Round mode
+      port Airwindows plug-ins by Chris Johnson (MIT). Colours: Ros&eacute; Pine Moon (MIT). Type: Audiowide by
       Astigmatic (SIL Open Font License 1.1, <a href="fonts/audiowide/OFL.txt">licence</a>).
       M-VAVE and FM-1 are their owners' names for their synthesizer; this project is not affiliated with them.</p>
   </section>

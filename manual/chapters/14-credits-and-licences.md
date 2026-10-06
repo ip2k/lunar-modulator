@@ -22,10 +22,15 @@ terms it is used under.
 - **msfa**, the FM synthesizer core of Google's Music Synthesizer for
   Android, by **Raph Levien** for **Google**, Apache License 2.0: FM6's
   envelopes, LFO, operators, algorithms and tables. Its code is included
-  unmodified; the voice built from it, its amplitude modulation, the
-  feedback loops of algorithms 4 and 6 and its controls are this project's
-  own. FM6 reads voices in the format of Yamaha's DX7 and is not affiliated
+  unmodified, its tables computed ahead of time as its own code computes
+  them; the voice built from it, its amplitude modulation, the feedback
+  loops of algorithms 4 and 6 and its controls are this project's own.
+  FM6 reads voices in the format of Yamaha's DX7 and is not affiliated
   with or endorsed by Yamaha.
+- **FM6's name** is borrowed, with thanks, from the FM engine of
+  **Felucca** by **hugelton** (Hügelton Instruments), open firmware for the
+  FM-1; Felucca's Apache-2.0 port of the same core checks FM6 in the tests
+  (below).
 - **FM6's built-in voices** are this project's own, written for it and
   under the MIT licence.
 - **Sophie** by **Matt Estela**, MIT licence, included unmodified.
@@ -81,7 +86,10 @@ terms it is used under.
   Society*, 2012). No code is taken from anyone.
 - **Limiter** is this project's own code, after **Geraint Luff**'s
   look-ahead limiter design (Signalsmith Audio, 2022). No code is taken from
-  the article or from Signalsmith's library.
+  the article or from Signalsmith's library. Its Round mode ports the loop of
+  **Airwindows** ClipOnly2, by **Chris Johnson**, MIT licence ("Copyright
+  (c) 2016 airwindows, Airwindows uses the MIT license"; the licence is in
+  the source tree with the effect).
 - **DJ Filter** is this project's own code: the state-variable filter of
   **Andrew Simper** (Cytomic) and **Vadim Zavalishin**, in the form of
   stmlib's by **Emilie Gillet** (MIT licence). No code is taken from anyone.
@@ -111,6 +119,14 @@ terms it is used under.
   manuals of **Drawmer**'s DS201 and DS301 noise gates (the maker's name
   appears here only as credit); its key filters are **Vadim Zavalishin**'s
   state-variable filter. No circuit or code is taken from anyone.
+- **Squash** ports three **Airwindows** plug-ins by **Chris Johnson**, MIT
+  licence ("Copyright (c) 2016 airwindows, Airwindows uses the MIT
+  license"): its Snap type is Pop3, Mu is Pressure4 and Split is
+  ButterComp2, rewritten in single precision for the FM-1, with their noise
+  taken out and the few changes the effect's notes list.
+- **Transient** is this project's own code, on the classic two-follower
+  principle of transient designers, as noted from **legsmechanical**'s Bus
+  Driver (MIT licence). No code or measurement is taken from it.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and
@@ -138,7 +154,7 @@ printed under its table in chapters [5](05-sound-engines.md) and
   Thing Modular), **Chris Johnson**'s card 20 and **Phazerville**'s
   Turing code (**Patrick Dowling**). Divide, Burst, Compare, Logic, Calc,
   Slew and Mix follow Phazerville's applets (**Jason Justian** and
-  others), and Filter **Andrew Simper**'s (Cytomic) state-variable filter.
+  others), and the Resonator **Andrew Simper**'s (Cytomic) state-variable filter.
   No code is taken from any of them but the three ports above.
 - Some modules follow only the published behaviour of other instruments,
   whose makers' names appear here only as credit: Function after Make

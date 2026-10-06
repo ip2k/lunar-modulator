@@ -83,8 +83,9 @@ def test_instance_is_small_and_pointer_free(renderer, tmp_path, tool):  # noqa: 
     s, _, _ = render(renderer, tmp_path, input="silence", seconds=0.05, fx=fx())
     assert s["fx_bytes"][0] % 16 == 0 and s["fx_bytes"][0] <= 512
     # No pointers in the struct: the same on 64-bit and 32-bit builds
-    # (336 bytes on arm64, x86-64 and wasm32, 2026-10-05).
-    assert s["fx_bytes"][0] == tool["instance_bytes"] == 336
+    # (336 bytes on arm64, x86-64 and wasm32, 2026-10-05; 352 with the idle
+    # path's counters, 2026-10-06).
+    assert s["fx_bytes"][0] == tool["instance_bytes"] == 352
 
 
 # --- host contracts ---------------------------------------------------------

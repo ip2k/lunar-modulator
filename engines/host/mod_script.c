@@ -295,6 +295,10 @@ static int slot_line(fm1_mod_t *m, const fm1_engine_t *const units[FM1_MOD_SINKS
       s.flags = (uint8_t)(s.flags & ~FM1_MOD_SLOT_ON);
       continue;
     }
+    if (same(tok[t], "voice")) {
+      s.flags = (uint8_t)(s.flags | FM1_MOD_SLOT_VOICE);
+      continue;
+    }
     if (!eq) return fail(err, cap, "unknown slot option %s", tok[t]);
     *eq = '\0';
     if (same(tok[t], "amt") || same(tok[t], "ofs")) {
@@ -377,6 +381,14 @@ int fm1_mod_script_apply(fm1_mod_t *m, const char *line,
     return set_params(m, a, tok, 2, n, err, errcap);
   }
   if (same(tok[0], "slot")) return slot_line(m, units, tok, n, err, errcap);
+  if (same(tok[0], "current")) {
+    double v;
+    if (n != 2 || !number(tok[1], &v) || v < 1 || v > FM1_MOD_SOUNDS || v != (double)(unsigned)v) {
+      return fail(err, errcap, "current wants a sound unit 1-%u", FM1_MOD_SOUNDS);
+    }
+    fm1_mod_set_current(m, (unsigned)v - 1u);
+    return 1;
+  }
   if (same(tok[0], "move")) {
     if (n != 3 || !position(tok[1], &a) || !position(tok[2], &b)) {
       return fail(err, errcap, "move wants A B (1-8)");

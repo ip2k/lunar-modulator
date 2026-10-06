@@ -47,6 +47,8 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `room` | Room | effect | – | Clouds' reverb and diffuser | a small Dattorro room in 40 KB; [below](#room) |
 | `hall` | Hall | effect | – | this repository | a hall reverb on an eight-line feedback delay network, with Freeze; [below](#hall) |
 | `gate` | Gate | effect | – | this repository; controls after the Drawmer DS201 and DS301 manuals | a noise gate with a Duck mode, key filters, Listen, Lockout and 0–5 ms look-ahead; [below](#gate) |
+| `squash` | Squash | effect | – | Airwindows Pop3, Pressure4 and ButterComp2 (Chris Johnson, MIT), ported by this repository | three compressors: Snap (with a gate), Mu (variable-mu) and Split (half-wave glue); [below](#squash) |
+| `shaper` | Transient | effect | – | this repository | a transient shaper: attack and sustain up or down; [below](#transient) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
 | `test-ext` | Test Ext | effect | – | this repository | marks the tempo, beats and transport events engine API v3 hands an effect, for tests; [below](#engine-api-v3) |
 
@@ -61,9 +63,10 @@ vendored byte-identical in `third_party/msfa/`; [msfa.md](msfa.md) has the
 whole account. In short:
 
 - **msfa's parts, our voice:** msfa's envelopes, pitch envelope, LFO,
-  algorithms, kernels, tables and note set-up, compiled unmodified inside
-  `namespace fm1_msfa` with its NEON switch (`synth.h`) replaced, so every
-  build runs the integer kernels. Ours: the LFO's amplitude modulation
+  algorithms, kernels, table lookups and note set-up, compiled unmodified
+  inside `namespace fm1_msfa` with its NEON switch (`synth.h`) replaced, so
+  every build runs the integer kernels, and its tables made ahead of time as
+  const data (flash on the FM-1; `tools/msfa_tables.py`). Ours: the LFO's amplitude modulation
   (msfa reads neither AMD nor AMS), the feedback loops of algorithms 4 and
   6 (marked in msfa's table, not run by its `FmCore`; `src/dx7_loop.cc`,
   msfa's own kernels to the bit), the voice's transpose, twelve voices,
@@ -74,19 +77,24 @@ whole account. In short:
   SMOOTH, MOD and POLY.
 - **Voices:** the built-in ones are ours (`tools/dx7_bank.py`, MIT); the user
   slots take single-voice and 32-voice SysEx dumps through
-  `include/fm1_dx7.h` (`fm1-render --sysex FILE`), every value clamped.
+  `include/fm1_dx7.h` (`fm1-render --sysex FILE`, and the simulator's Load
+  DX7 patches), every value clamped.
+- **Name:** borrowed, with thanks, from Felucca's FM6 engine (hugelton),
+  whose Apache-2.0 `fm6_core.c` is the test oracle; the engine itself is
+  Google's msfa.
 - **Rate:** msfa runs at the host's rate in 64-sample blocks, its envelope
-  clocked by 44,118 / rate (one step a block at the FM-1's rate); its
-  tables are filled by the first create, and another rate is refused, as
-  is any below 16,385 Hz, where msfa's frequency table overflows.
+  clocked by 44,118 / rate (one step a block at the FM-1's rate); its rate
+  units are set by the first create, and another rate is refused, as is
+  any below 16,385 Hz, where msfa's frequency table overflows.
 - **Checked** against Felucca's Apache-2.0 port of the same core
   (`third_party/felucca-fm6/`, `fm1-dx7-oracle`), test only: all 32
   algorithms within 0.3 dB of envelope and 28–40 dB SNR, and the rest in
   tests/test_engines_dx7.py.
-- **Cost:** 15,844 bytes an instance on 64-bit, 32-bit and pi32v2 alike
-  (no pointers), plus 28.7 KB of msfa tables shared by all instances; twelve
-  voices take 0.36–0.64 % of a block on this desktop, about a third of
-  Macro's twelve.
+- **Cost:** 15,848 bytes an instance at 44,118 Hz on 64-bit, 32-bit and
+  pi32v2 alike (no pointers); at another rate 4,100 more, its own frequency table.
+  msfa's tables are 20 KB of const data (flash on the FM-1), no longer
+  28.7 KB of shared RAM (msfa.md, "Tables in flash"). Twelve voices take
+  0.36–0.64 % of a block on this desktop, about a third of Macro's twelve.
 
 ### Macro and Macro Heavy, page 3: the envelope and the gate
 
@@ -219,7 +227,9 @@ decay, tone, snap and sweep at the knobs' middle, a drive and a level
 Punch; the hats and cymbals use the bank Plaits' 808 hat uses (414 Hz and
 up), and the clap's band-pass sits near 1 kHz. A pad given another model by
 its Model knob plays that model's own voicing (`kModelVoicing`), so a
-cowbell on a tom's pad is a cowbell.
+cowbell on a tom's pad is a cowbell. The cowbell stays an option of Model,
+with no pad of its own (the owner's decision, 2026-10-06: no pad swap;
+General MIDI puts it on 56, outside the kit's 36–51).
 
 | | Deep | Punch |
 | --- | --- | --- |
@@ -379,19 +389,17 @@ under ASan and UBSan (clang 19.1, no report) and in a 32-bit build (GCC
 **Open questions** (for the owner):
 1. Plaits' rate and a resampler (as now, the 2026-10-01 rule) or the
    host's rate, with no resampler and the classes' times 8.8 % long?
-2. The cowbell has no pad in 36–51 (General MIDI puts it on 56). Keep
-   Sophie's map and leave it to Model, or swap a pad (the High-Mid tom?) in
-   one kit?
-3. The hats' and cymbals' bank: Plaits' (the paper's four fixed oscillators
+2. The hats' and cymbals' bank: Plaits' (the paper's four fixed oscillators
    an octave up), as now, or the schematic's own frequencies? A table swap,
    best decided by ear.
-4. The Punch kit's hats and cymbals: the machine that inspired it played
+3. The Punch kit's hats and cymbals: the machine that inspired it played
    samples there; these are synthetic. Keep them, or add a small sample set
    of our own (or CC0)?
-5. A circuit-level model of the 808 kick (Werner, Abel and Smith, DAFx-14)
+4. A circuit-level model of the 808 kick (Werner, Abel and Smith, DAFx-14)
    as a later model, or is Plaits' Analog Drum enough?
-6. The voicings were set by measurement, not by ear: worth a listening pass.
-7. Grow the modulation records (180 to 188) to give Drums back a per-pad
+5. The voicings were set by measurement, not by ear: the owner is giving
+   them a listening pass (2026-10-06).
+6. Grow the modulation records (180 to 188) to give Drums back a per-pad
    choke group and a kit-wide decay, or keep sound engines at twelve
    parameters?
 
@@ -895,7 +903,7 @@ Airwindows compressors (MIT) were not used. Stereo-linked: one detector
 reads the louder channel at each frame, and both channels get one gain.
 
     guard -> level (peak or RMS, the louder channel) -> dB -> curve -> smoothing in dB
-          -> [Auto Gain: at least the curve's reduction at this frame's peak]
+          -> [Auto Gain: a frame its lift would take over 0 dBFS gives back what it must]
           -> gain = Makeup (+ Auto Gain's) - reduction;   out = dry x (1 - Mix) + dry x gain x Mix
 
 | Page | Knob | Range (default) | What it does |
@@ -909,7 +917,7 @@ reads the louder channel at each frame, and both channels get one gain.
 | 2 | Mix | 0–1 (1) | Parallel compression: dry × (1 − Mix) + compressed × Mix. 0 is the input bit for bit, 1 the compressed signal exactly |
 | 2 | Character | Peak, RMS, Glue, Punch (Peak) | Presets of detector and curve (below) |
 | 3 | Auto Rel | Off, On (Off) | Programme-dependent release (below) |
-| 3 | Auto Gain | Off, On (Off) | Adds the curve's reduction at 0 dBFS to Makeup, at most 24 dB, so a steady full-scale signal stays at full scale (22.5 dB at −30 dB and 4:1), and keeps every input at or under 0 dBFS at or under 0 dBFS, onsets included (below) |
+| 3 | Auto Gain | Off, On (Off) | Adds the curve's reduction at 0 dBFS to Makeup, at most 24 dB, so a steady full-scale signal stays at full scale (22.5 dB at −30 dB and 4:1), and keeps every input at or under 0 dBFS at or under 0 dBFS, onsets included, touching only the samples it would otherwise take over (below) |
 
 | Character | Detector | Smoothing | Curve |
 | --- | --- | --- | --- |
@@ -940,35 +948,38 @@ reads the louder channel at each frame, and both channels get one gain.
     (−0.06 dBFS at −20 dB and 4:1: RMS's ripple and the margin below), and
     24 dB under the curve's reduction when it asks for more (−36.08 dBFS at
     −60 dB and 21:1) [verified: `fm1-comp-test`].
-  - *The bound.* With Auto Gain on, the reduction applied to a frame is at
-    least the curve's for that frame's own peak (the louder channel's
-    |sample|), so the gain never exceeds the static curve's gain for the
-    sample it multiplies, even while Attack still lags behind an onset.
-    The curve's slope is at most 1, so x − curve(x) only grows with x, and
-    with A ≤ curve(0) an input at or under 0 dBFS comes out at or under
-    0 dBFS: the output in dB is x + A − applied ≤ x + A − curve(x) ≤
-    A − curve(0) ≤ 0 (with Makeup at or under 0 dB; a positive Makeup
-    lifts that by itself). A margin of 10⁻⁴ dB on the bound covers float
-    rounding. Before, the makeup was added whatever the reduction was
-    doing, so an onset met the full makeup before the reduction caught up:
-    the renderer's sine at Threshold −24 dB, 21:1 and Attack 100 ms came
-    out at +18 dBFS; now at 0 dBFS at most [verified:
+  - *The bound* (loosened 2026-10-05, owner: "touch only would-be
+    overs"). With the lift L in force (A, or A x Auto Gain's share while it
+    glides), a frame comes out at xp + L + M − r dB, xp being its peak
+    (the louder channel's |sample|), r the smoothed reduction and M the
+    Makeup knob, counted only while it cuts (a boost is the player's own
+    lift, below; a cut keeps samples under full scale, so it counts:
+    review 2026-10-06, when it did not, Makeup −6 dB made the bound clip a
+    steady −3 dBFS sine's peaks at −6 dBFS). Only if that would pass 0 dBFS
+    (less a margin of 10⁻⁴ dB for float rounding) does the bound act, and then on that frame
+    alone: the reduction applied rises by just enough to bring it to the
+    margin under 0 dBFS, by at most L (and the margin). So an input at or
+    under 0 dBFS comes out at or under 0 dBFS (with Makeup at or under
+    0 dB; a positive Makeup lifts that by itself), and a louder input no
+    louder than with Auto Gain off. Before the bound (until 2026-10-02) an
+    onset met the full makeup before the reduction caught up: the
+    renderer's sine at Threshold −24 dB, 21:1 and Attack 100 ms came out at
+    +18 dBFS; now at 0 dBFS at most [verified:
     tests/test_engines_comp.py].
-  - *What the bound does to the sound.* Below it, Attack, Release and
-    Character shape the gain as ever. Where it acts it follows the
-    waveform within a cycle, so it is a waveshaper along the static curve
-    (a soft clip, a hard one at 21:1 with no knee): at an onset, for about
-    the Attack time, the low parts of the waveform get the full makeup and
-    its peaks the curve's gain; and where the smoothed reduction sits below
-    the curve at the peaks in steady playing, it rounds those peaks. On a
-    steady sine with RMS or Glue it never acts (the same 16-bit output as
-    the same makeup set by hand); with Peak and Punch, which settle
-    about 1 dB under the curve, it rounds each peak, 24–28 dB down on the
-    signal; on noise, whose peaks every detector reads late, 19–25 dB down
-    (−30 dB, 4:1, Attack 10 ms) [verified: renders against Auto Gain off
-    with Makeup set by hand to the same 22.5 dB, 2026-10-02]. For clean
-    onsets with Auto Gain, use a short Attack; for a clean ceiling with
-    lookahead, the Limiter.
+  - *What the bound does to the sound.* Everything that stays under full
+    scale is untouched: a frame the same makeup set by hand keeps under
+    0.99998 comes out with Auto Gain on in the same bits, steady tones
+    included [verified: `fm1-comp-test`'s `loose`, 744 renders at six
+    settings, two with Makeup cut, every Character: 504 steady sines from
+    −40 to −3 dBFS, 60 Hz–3 kHz, and the ten hostile signals; no untouched
+    frame differs, and the 492 sines whose settled peak stays under full
+    scale are the same bits from 100 ms on, 2026-10-06]. Where it acts it clips those frames at the
+    margin: the overs of an onset, for about the Attack time, and the tips
+    of a loud tone the detectors read under its peaks. From 2026-10-02 to
+    2026-10-05 it held every frame to the curve's gain at its own peak,
+    which rounded the peaks of steady tones too (24–28 dB down on a sine
+    with Peak and Punch); that is gone. For clean onsets with Auto Gain,
+    use a short Attack; for a clean ceiling with lookahead, the Limiter.
   - *Mix and Character keep it.* Every Character's reduction passes the
     bound, including while it hands over. Parallel Mix adds the dry signal,
     which is within 0 dBFS when the input is, and has the same sign as the
@@ -983,17 +994,16 @@ reads the louder channel at each frame, and both channels get one gain.
     full-scale squares (50 Hz, 1 kHz, Nyquist), impulses on silence and on
     a quiet bed, burst onsets, full-scale noise, DC steps, one channel loud
     and one quiet, and a swell through the knee, nothing passes it; the
-    tight corner reaches 0.9999966 of full scale [verified: `fm1-comp-test`'s
-    `autogain`].
-  - *Switching it* glides A and the bound in and out together over 5 ms.
-    Part-way, with a share w of each, the applied reduction is at least
-    w curve(x) ≥ w (x + A) ≥ x + w A for x ≤ 0 dB, so the bound holds
-    while it glides.
+    tight corner reaches 0.999989 of full scale, the margin [verified:
+    `fm1-comp-test`'s `autogain`, 2026-10-05].
+  - *Switching it* glides its share w, and with it L and the bound, in and
+    out together over 5 ms. The bound only ever takes back the part of the
+    lift in force, so it holds part-way, and at w = 0 it is not computed.
   - *Auto Gain off is unchanged:* the static curve, the time constants and
     every output bit (108 renders of three inputs at 36 settings, with and
     without changes mid-stream, byte-identical before and after
     [verified, 2026-10-02]; the two Auto-Gain-off hashes below did not
-    move).
+    move, then or when the bound was loosened on 2026-10-05).
 - **No libm.** The logarithm and the exponential are polynomials written
   here (`src/fx_comp_math.h`): log2 within 2.1 ulp of its result (1.9e-7
   on [1/16, 16]: under 1e-6 dB near 0 dBFS), exp2 within 2.4e-7 relative.
@@ -1008,7 +1018,9 @@ reads the louder channel at each frame, and both channels get one gain.
   (`fm1-comp-test`'s `hash`, pinned in tests/test_engines_comp.py, so CI's
   Linux, macOS and 32-bit jobs check it too). The first of the three runs
   with Auto Gain on and was pinned again for its redesign, after the same
-  check on all four builds [verified, 2026-10-02]. `-ffp-contract=fast` differs,
+  check on all four builds [verified, 2026-10-02], and again when its bound
+  was loosened (2026-10-05; the browser's parity scenario
+  `dyn3-round-autogain` checks the WebAssembly build). `-ffp-contract=fast` differs,
   as it must. With JieLi's clang for pi32v2
   the file compiles without a warning in four profiles (`-O2` with
   contraction off, on and fast, and `-Oz`), and `fast` emits the same code
@@ -1055,7 +1067,8 @@ reads the louder channel at each frame, and both channels get one gain.
   [inferred: by count]. Desktop (Apple M1 Max, `fm1-comp-test --cost`,
   noise): 1.5 µs per 64-frame block with Peak, 2.0 µs with Glue, Auto Rel
   and Auto Gain (1.6 before the bound), 2.2 µs while a parameter glides:
-  0.10–0.15 % of the 1.451 ms block, about Fold's [verified, 2026-10-02].
+  0.10–0.15 % of the 1.451 ms block, about Fold's [verified, 2026-10-02;
+  the same with the loosened bound, 2026-10-05].
 - **Gain reduction for modulation:** `fm1_comp_reduction_db(instance)`
   (`include/fm1_comp.h`) returns the smoothed reduction of the last frame,
   in dB (0 or more, finite, makeup not included). It is smoothed by Attack
@@ -1085,7 +1098,8 @@ averages whose lengths add up to the minimum's window, ahead of a delay of
 the same length. No code is taken from the article or from Signalsmith's
 library. Mutable's stmlib has a `Limiter`, a peak follower with no
 lookahead [verified: `third_party/mutable/stmlib/dsp/limiter.h`]; it is
-not used.
+not used. Mode Round (2026-10-05) ports the loop of Airwindows ClipOnly2
+(Chris Johnson, MIT; `third_party/airwindows/`).
 
 | Page | Knob | Range (default) | What it does |
 | --- | --- | --- | --- |
@@ -1093,7 +1107,7 @@ not used.
 | 1 | Drive | −12 to +24 dB (0) | Gain before the limiter: push a sound into it for loudness, or turn it down |
 | 1 | Release | 1–1,000 ms (100) | How fast the gain comes back: the time constant of its recovery, after a hold as long as the lookahead |
 | 1 | Lookahead | 0–5 ms (2) | How far ahead the gain sees peaks coming. It is also the effect's latency: 88 frames at 2 ms and 44,118 Hz. At 0 there is no delay, and a soft clip catches what the attack misses (below). A change crossfades to the new delay over 5 ms, each delay with its own gain, so it can be locked and modulated |
-| 2 | Mode | Brickwall, Soft Clip (Brickwall) | Brickwall: nothing above the ceiling, nothing changed below it. Soft Clip: peaks up to +12 dB over the ceiling are rounded off by a curve from 6 dB below it. A change glides the stage over 5 ms, frame by frame as the audio leaves the line (below), so it can be locked and modulated (rounded) |
+| 2 | Mode | Brickwall, Soft Clip, Round (Brickwall) | Brickwall: nothing above the ceiling, nothing changed below it. Soft Clip: peaks up to +12 dB over the ceiling are rounded off by a curve from 6 dB below it. Round: peaks up to +3 dB over the ceiling are replaced by ClipOnly2's interpolated values; everything under the ceiling passes untouched (below). A change glides the stage over 5 ms, frame by frame as the audio leaves the line (below), so it can be locked and modulated (rounded) |
 | 2 | Link | 0–1 (1) | Stereo link. Each channel's detector takes the larger of its own peak and Link × the other's: at 1 one gain moves both channels, so the stereo image holds; at 0 each channel is limited on its own |
 | 2 | Mix | 0–1 (1) | Blends the delayed dry input back in (parallel limiting). Below 1 the output can pass the ceiling, by design |
 
@@ -1145,6 +1159,32 @@ How it works [verified: tests/test_engines_limit.py and
   harmonics: the renderer's 440 Hz sine at +6 dB into a −3 dB ceiling
   comes out with its third harmonic at −16 dB, against −124 dB through
   Brickwall, whose gain barely moves within a cycle.
+- **Round** (2026-10-05, owner: "a gentle final rounding clip"), after
+  Airwindows ClipOnly2 at `e718c9b` (MIT): the envelope lets peaks reach
+  3 dB over the ceiling c, and the stage, ClipOnly2's loop scaled to c,
+  leaves every frame within ±c as it came, bit for bit, and replaces each
+  over by c h + (the frame before) s, h = 0.7390851 (the root of x =
+  cos x) and s = 1 − h, so an over lands between its neighbour and the
+  ceiling; the last frame of an over is then put right once the frame
+  after is known (towards it if lower, else on towards c). ClipOnly2 gives
+  each frame out a sample late for that look ahead; here the stage reads
+  the next frame from the line (its input times this frame's gain), so
+  Round adds no delay and Lookahead is the latency in every Mode. With the
+  gain still, the output is ClipOnly2's recurrence to float rounding: a
+  +1.9 dB sine with noise into a 0 dB ceiling matches it, written out in
+  double in the test, within 7 × 10⁻⁸ at Lookahead 2, 0.02 and 5 ms, every
+  frame under the ceiling bit for bit; and against Airwindows' own loop run
+  in a container, −140 dB of residual [verified: `fm1-limit-test`'s
+  `round`; tests/test_engines_squash.py with
+  tests/fixtures/squash-oracle.json]. At Lookahead 0 there is no next
+  frame: each over is rounded on the way in and given out at once.
+  Against Brickwall on the renderer's sine at +2 and +12 dB of Drive into
+  −6 dB, it adds odd harmonics (over ten times Brickwall's third) and is
+  louder by over 1 dB, keeping the body of the wave where Brickwall turns
+  all of it down. The line stores Round's share beside Soft Clip's, and the
+  envelope's aim moves to +3 dB only once Mode has reached Round. Not
+  taken: ClipOnly2's spacing above 88.2 kHz (it looks 2–16 samples ahead
+  there); Round looks one frame ahead at any rate.
 - **Changes:** Ceiling, Drive, Link and Mix glide over 5 ms, sample by
   sample, so any block size gives the same output (checked at 64, 7 and 1
   frames with every parameter moving, Lookahead and Mode included). The
@@ -1192,6 +1232,10 @@ How it works [verified: tests/test_engines_limit.py and
   third block, the output's bits are the same from Apple clang arm64, GCC
   12 x86-64 and i686 (SSE) and Emscripten 6.0.10 under Node [verified: a
   hash of the four new effects with their switches turned, 2026-10-02].
+  With Round among the Modes (in turn, every 64th block, and at random
+  with Lookahead), no step beyond the allowance either, and the ceiling
+  held [verified: `fm1-limit-test`'s `modulated` and `round_move`,
+  2026-10-05].
 - **The host's bus limiter stays.** `include/fm1_mix_limiter.h` runs after
   every chain: a peak follower with an instant attack, a 100 ms release and
   a fixed 0.98 ceiling, and the guard that turns non-finite samples into
@@ -1209,12 +1253,13 @@ How it works [verified: tests/test_engines_limit.py and
   about 100 multiply-adds per stereo frame) and add the interpolator's
   delay to the latency [inferred].
 - **Memory:** grows with the host rate, fixed at `create`: 5 ms of frames,
-  at most 510. Per frame of lookahead: 20 bytes of line (the input and the
-  three controls), 12 for the two hold deques and about 16 for the two
-  sets of box filters. 11,008 bytes at 44,118 Hz, 11,920 at 48 kHz, 23,440
-  at 96 kHz and 26,912 at 102 kHz and above, where the cap makes the
+  at most 510. Per frame of lookahead: 24 bytes of line (the input and the
+  four controls), 12 for the two hold deques and about 16 for the two
+  sets of box filters. 11,952 bytes at 44,118 Hz, 12,928 at 48 kHz, 25,408
+  at 96 kHz and 29,008 at 102 kHz and above, where the cap makes the
   longest lookahead shorter than 5 ms (2.66 ms at 192 kHz) [verified:
-  `fm1-limit-test`]. The instance holds no pointers, so a 32-bit build has
+  `fm1-limit-test`, 2026-10-05; Round's share in the line added 4 bytes a
+  frame: 11,008 and 26,912 before]. The instance holds no pointers, so a 32-bit build has
   the same sizes [verified: GCC 12 i686 in a Linux container,
   2026-10-02].
 - **Cost, desktop only:** 1.0 µs per 64-frame block on an Apple M1 Max
@@ -1567,8 +1612,8 @@ insert that distorts on purpose; this one is meant to be left on the bus.
   digest of 3 s of output with every knob turned; Apple clang on arm64, GCC
   13 on x86-64 and Emscripten's wasm32 printed the same one [verified,
   2026-10-05, in containers on the LAN build host], and the test pins it.
-- **Memory:** 336 bytes, no delay lines and no pointers: the same on arm64,
-  x86-64 and wasm32 [verified].
+- **Memory:** 352 bytes (336 before the idle path's counters), no delay
+  lines and no pointers: the same on arm64, x86-64 and wasm32 [verified].
 - **Cost:** per frame, two two-pole filters, the curve and a DC blocker per
   channel and one divide: about 100 operations with Glue at 0, 130 with
   Glue up (the curve runs again at the lowered drive) and 170 with
@@ -1580,8 +1625,10 @@ insert that distorts on purpose; this one is meant to be left on the bus.
   fm1-render's `ns_per_block`]: 1.64 µs per 64-frame block with Glue at 0
   (0.11 % of the block), 2.32 µs with Glue at 1 (0.16 %), 3.41 µs with
   Asymmetry as well (0.23 %), against 1.76 µs for Fold and 0.90 µs for
-  Plate in the same runs. Mix at 0 costs the same: the filters and Glue keep
-  running so that turning Mix up is clean.
+  Plate in the same runs. Mix at 0 cost the same until the idle path: after
+  2 s there Master Sat now idles at about 2 % of that, and turning Mix up
+  waits 0.19 s while everything warms up from rest
+  ([Idle at pass-through](#idle-at-pass-through)).
 - **Where it departs from the note:** the knobs it called Bass and Clean
   highs are Clean Lo and Clean Hi, because "Clean Highs 20000" does not fit
   a row of the 240-pixel screen [verified: the simulator's layout check];
@@ -1645,6 +1692,8 @@ and 2,484 Hz [reported in the note: its constants]).
   differs from it in phase. The filters keep running, so leaving unity
   crossfades linearly from the input to the band sum over 5 ms, and returning
   crossfades back; 5 ms later the output is the input again, bit for bit.
+  Two seconds after that the filters stop until unity is left again
+  ([Idle at pass-through](#idle-at-pass-through)).
   During the crossfade the two signals' phase difference makes a brief dip
   around the crossovers: halfway through, for the defaults, −17 dB at f1
   itself and a full null where the all-passes have turned the phase by half
@@ -1675,10 +1724,12 @@ and 2,484 Hz [reported in the note: its constants]).
   crossover is moving. At one operation per cycle on pi32v2 that is about
   5 % of a 240 MHz core [inferred]. Desktop (Apple M1 Max): 1.8 µs per
   block, 0.12 % of it, and 2.0 µs while the crossovers glide
-  (`build/fm1-isolator-test --bench`).
-- **Memory:** 240 bytes, no delay lines; the struct holds no pointers, and
-  it is the same on 32-bit builds [verified: `instance_size` compiled by
-  clang for i386 and wasm32, 2026-10-05].
+  (`build/fm1-isolator-test --bench`). After 2 s at unity it idles, at
+  about 2 % of that ([Idle at pass-through](#idle-at-pass-through)).
+- **Memory:** 256 bytes (240 before the idle path's counters), no delay
+  lines; the struct holds no pointers, and it is the same on 32-bit builds
+  [verified: `instance_size` compiled by clang for i386 and wasm32,
+  2026-10-05].
 - `build/fm1-isolator-test` (`test/isolator_test.cc`) drives Isolator
   directly, in float and at any block size: every parameter changed mid-stream to any value, NaN and
   infinities included, between blocks of 1–64 frames; the glides at blocks
@@ -1732,7 +1783,8 @@ How it works [verified: tests/test_engines_eq.py and `build/fm1-eq-test`,
   they glide. Turned up and back to 0 dB, a band is exact again about 60 ms
   later: the glide lands on 0 rather than approaching it. Its integrators
   keep running while it is flat, so turning it up starts from a settled
-  filter.
+  filter; once every gain and Level have sat at 0 dB for 2 s, EQ stops
+  them and idles ([Idle at pass-through](#idle-at-pass-through)).
 - **Modulation.** Each band's frequency (as log2 Hz), gain (dB) and Q (as log2
   Q) glide one step per 8 samples, counted from create (1 − e^(−8 / (5 ms ×
   rate)) of the way per step, a 5 ms time constant), and the band's
@@ -1768,15 +1820,17 @@ How it works [verified: tests/test_engines_eq.py and `build/fm1-eq-test`,
   dB, after a second of noise; the 20 Hz bell's pole Q is 23.7) reaches
   exact zeros after 12.3 s, the same settings cut after 2.0 s. Host rates
   from 8 to 384 kHz; at each, a +9 dB bell at 1 kHz peaks at +9.00 dB.
-- **Memory:** 368 bytes on 64-bit, and on 32-bit [verified: GCC i386], no
-  tables and no delay lines.
+- **Memory:** 416 bytes on 64-bit and on 32-bit (368 before the idle
+  path's counters) [verified: `instance_size`, Apple clang arm64 and GCC
+  i386], no tables and no delay lines.
 - **Cost:** about 60 floating-point operations per sample and channel, flat
   or not, about 7,700 per 64-frame block; while bands glide, about 130 more
   and 2 divides per band every 8 samples. Desktop (Apple M1 Max, noise in):
   1.86 µs per block with the bands flat or set, 2.6 µs with all three
   gliding all the time, against Plate's 0.93 µs in the same run: 0.13 % and
   0.18 % of the 1.451 ms block. At one operation per cycle on pi32v2 that
-  is about 2.2 % of a 240 MHz core [inferred]; stage B measures it.
+  is about 2.2 % of a 240 MHz core [inferred]; stage B measures it. Idle at
+  pass-through, about 2 % of that ([Idle at pass-through](#idle-at-pass-through)).
 - **Where it departs from the note:** the note proposed the vendored
   `stmlib::Svf` and stmlib's `SemitonesToRatio` tables for 10^(dB/40). The
   filter is written here instead, in the C subset like Fold, because the
@@ -1795,6 +1849,149 @@ How it works [verified: tests/test_engines_eq.py and `build/fm1-eq-test`,
   its branch, before it merged]. A logarithmic taper for
   `FM1_UNIT_HZ` parameters belongs in the hosts, so a lock or a preset keeps
   storing Hz.
+
+## Idle at pass-through
+
+EQ, Isolator and Master Sat each have settings at which their output is
+their guarded input, bit for bit: EQ with every gain and Level at 0 dB (at
+any frequency and Q), Isolator with Low, Mid and High at unity and nothing
+killed (at any crossover), and Master Sat with Mix at 0 (whatever else is
+set). Until 2026-10-06 their filters kept running there, so that leaving
+the setting started from settled filters, and a parked effect cost as much
+as a busy one. Now they idle there (owner's decision, 2026-10-05;
+`include/fm1_fx_idle.h`):
+
+- **Rest.** Once the effect has sat at its pass-through settings for 2 s,
+  with every glide and crossfade landed, it idles: its filter states are
+  cleared and a block is only the input guard (NaN to 0, ±16 clamped), whose
+  output is the one it gave before, bit for bit. The two seconds keep
+  rhythmic moves, a kill and back within a bar or a lock every few steps,
+  from ever waiting for a wake. After a longer rest a move waits for the
+  warm-up below, and a lock that leaves pass-through and comes back within
+  the warm-up is not heard at all: a Master Sat Mix lock on one 16th step
+  at 120 BPM (125 ms, under its 191 ms), an Isolator kill shorter than
+  11 ms, an EQ Low Gain lock shorter than its 27 ms [verified:
+  `fm1-idle-test` "short_lock", 2026-10-06]. The old build plays each.
+- **Wake.** A setting that leaves pass-through wakes it at the next render,
+  where every `set_param` change arrives. The filters start from rest and
+  run on the input while the knobs that left pass-through are held where
+  they were, so the output is still the input, bit for bit, for the
+  warm-up: the time the slowest mode of the filters at the new settings
+  takes to decay by e^−12 (−104 dB). Knobs turned while it was idle
+  (frequencies, Qs, crossovers, Drive, Shape and the rest) land where they
+  were set without a glide: nothing played them.
+- **Fade.** Then the held knobs are released and glide or crossfade exactly
+  as they always have, from filter states within that residue of the ones
+  they would have held had they never stopped. The knob answers a warm-up
+  later; there is no click and no jump.
+
+| Effect | Held during the warm-up | The warm-up | At the defaults |
+| --- | --- | --- | --- |
+| EQ | each band's gain at 0 dB, each band for its own warm-up; Level glides at once (it needs no filter) | the band's section at 0 dB, at its frequency and Q | 27.2 ms for the low shelf (100 Hz), 3.9 ms for the bell (1 kHz), 0.5 ms for the high shelf (8 kHz); 77 ms for a shelf at 35 Hz |
+| Isolator | the gains at unity and the crossfade at the input | the slower crossover's Butterworth sections | 10.8 ms (250 Hz); 33.8 ms with Low Xover at 80 Hz |
+| Master Sat | Mix at 0 | the 10 Hz DC blocker on the residual; it also lets Glue's envelope catch up | 191 ms, at any setting and rate |
+
+- **The warm-up's length** comes from a lower bound on the decay of a
+  trapezoidal state-variable section's slowest mode (g = tan(πf/fs), k =
+  1/Q; the bilinear transform's poles): g·k/(1 + g²) nepers per sample for
+  k < 2, and 2·min(g/k, k/2g, g·k/2, 1/g·k) above. Over g from 10⁻⁴ to 10
+  and k from 0.05 to 4 it never exceeds the exact decay and is within a
+  factor of 3.3 of it [verified: `fm1-idle-test` "bound"], so a warm-up is
+  never too short and at most about three times longer than it needs to
+  be. The lengths are integers computed with single-precision +, −, × and
+  ÷ only, so every build agrees on them, sample for sample.
+- **Master Sat waits longer** because a shorter warm-up, the band filters'
+  own 27 ms, left the residual's DC (Asymmetry) and Glue's envelope on bass,
+  which ratchets up over several cycles, still settling as Mix rose: −30 dB
+  of the input at Glue 1, Drive 18 dB and Asymmetry 1, against −74 dB after
+  the DC blocker's 191 ms [verified 2026-10-06]. A Mix knob turned after a
+  rest of seconds is not a performance gesture.
+- **EQ settings that would need more than 0.1 s** (a band below about 27 Hz
+  at Q 0.71, a bell below about 380 Hz at Q 10) never idle: EQ runs there
+  as it always has, and tuning a band there while EQ is idle wakes it. That
+  wake holds the bands for at most 0.1 s, not for their full warm-up (the
+  bound gives 1.9 s for a bell at 20 Hz and Q 10), so that a gain turned
+  soon after is not kept waiting; a gain turned then starts from a filter
+  that began at the wake instead of one carried over from the old tuning.
+  Both are
+  still settling into the new tuning, so the output differs from the old
+  build's as two transients do, not by a click: −23 dB of the peak for a
+  30 Hz bell at Q 10 on a 30 Hz sine with the gain 0.12 s after the
+  retune, −38 dB for a 20 Hz shelf at Q 0.3 on DC, with the output's
+  largest second difference no larger than the old build's [verified:
+  `fm1-idle-test` "hostile", 2026-10-06].
+- **Away from pass-through nothing changes:** the same operations in the
+  same order. `FM1_FX_IDLE=0` builds the effects without the idle path,
+  which is the code as it was (checked against the sources before it, 40
+  random 6 s streams per effect, rests included, bit for bit).
+
+Measured [verified: `build/fm1-idle-test` and tests/test_engines_idle.py,
+2026-10-06], against the same effects built with `FM1_FX_IDLE=0`:
+
+- away from pass-through, 12 random 6 s streams per effect: the same output,
+  bit for bit;
+- 10 s at pass-through, idle from 2 s, on input with −0, subnormals,
+  FLT_MIN, ±16, 1e30, NaN and infinities, every other knob turned to its
+  ends while idle: the guarded input, bit for bit;
+- wakes, 22 cases after 3 s at pass-through: until the release the input
+  bit for bit; then the old output with the knob turned at the release,
+  within −92.5 dB of the input's peak at worst (a +15 dB bell at 500 Hz,
+  Q 10, on a 500 Hz sine; the others −109 to −156 dB), and bit for bit the
+  same again within 1.2 s (15 of the 22 within 0.1 s). Master Sat's Glue envelope
+  starts from rest: it attacks in 2 ms, but the 200 ms release of a peak
+  older than the wake is missing, −96.6 dB at the defaults and −73.8 dB at
+  Glue 1, Drive 18 dB and Asymmetry 1 on steady input. After a loud
+  passage that ends just before the wake it is more: a 220 Hz burst at 0.9
+  ending 5 ms before it, then the tone at 0.05, gives −43.0 dB of the
+  burst's peak (about −18 dB of the quiet tone), a level difference that
+  fades with the 200 ms release, not a click;
+- hostile wakes (review, 2026-10-06): a band retuned lower and narrower
+  64 frames into its own warm-up (−92.2 dB at worst, a 100 Hz bell at
+  Q 10 on a 100 Hz sine), DC at 0.9 and full-scale sines at the slowest
+  settings that still idle (−95.4 dB at worst, a 400 Hz bell at Q 10), and
+  the cases above: in every one the output's largest second difference
+  around the release is the old build's within 1 %, so no click; every
+  knob re-sent every block at pass-through, and EQ's Mid Freq swept at
+  Q 10 in and out of the settings that never idle, leave the input bit for
+  bit; rests and wakes at 8, 96 and 384 kHz give the same bits at any
+  block size and fill, and exact silence on silence;
+- the same move after 1 s at pass-through, before the effect idles: the old
+  output bit for bit, at once;
+- rests and wakes at blocks of 1, 7, 64 and 4,096 frames and from any memory
+  fill: the same bits; silence stays exact silence;
+- a hash of each effect through rests, wakes and busy settings: the same
+  from Apple clang (arm64), GCC 12 and 13 (x86-64), GCC 14 (i386, SSE) and
+  Emscripten 6.0.10 (wasm32, Node) [verified, the last four in containers
+  on the LAN build host], and clean under ASan and UBSan.
+
+**The CPU saved,** per 64-frame stereo block of noise (`fm1-idle-test
+--cost`, the best of ten 20 s runs, 2026-10-06, on a machine busy with
+other work), at the defaults before and idle, and at a busy setting before
+and after:
+
+| Effect | At pass-through, before | Idle | Saved | Busy, before / after |
+| --- | --- | --- | --- | --- |
+| EQ | 1.89 µs | 0.031 µs | 98 % | 1.90 / 1.90 µs |
+| Isolator | 1.95 µs | 0.031 µs | 98 % | 1.94 / 1.81 µs |
+| Master Sat | 2.12 µs | 0.030 µs | 99 % | 2.30 / 2.30 µs |
+
+That is Apple M1 Max with Apple clang; aeon (Ryzen 9 7940HS, GCC 12, in a
+container) gave 0.62, 1.92 and 2.12 µs before and 0.07 µs idle. Busy, the
+idle path's bookkeeping (a counter and a flag per frame, or per 8 frames in
+EQ) is within the noise. On pi32v2 the guard is two comparisons and a store
+per sample, about 400 operations per block, against about 7,700 for EQ,
+13,000 and 3,600 comparisons for Isolator and 8,300 for Master Sat at its
+defaults: about 2 %, 5 % and 2 % of a 240 MHz core freed while they sit at
+pass-through [inferred]. A chain's budget still counts them busy, since a
+knob can wake them at any time.
+
+- **Memory:** the counters add 48 bytes to EQ (416), 16 to Isolator (256)
+  and 16 to Master Sat (352), the same on 32-bit builds.
+- **Not done:** EQ idles as a whole, not band by band: a flat band among
+  busy ones keeps running, so the output away from pass-through stays the
+  old one bit for bit. Tilt at 0 and Comp at Mix 0 keep their filters and
+  detectors running too and are candidates for the same path (DJ Filter
+  already skips its filter in the dead zone); not measured.
 
 ## Room
 
@@ -2204,6 +2401,208 @@ input.
   Schmitt trigger's state, and the latency in frames. Read on the audio
   task between renders, after the last piece of a split block.
 
+## Squash
+
+Three small compressors in one effect (`src/fx_squash.cc`), ports of Chris
+Johnson's Airwindows plug-ins Pop3, Pressure4 and ButterComp2 (MIT,
+`third_party/airwindows/`, pinned at `e718c9b`) into single precision with
+no libm (owner decisions, 2026-10-05; notes/2026-10-02-filters-dynamics-options.md
+§3 and decision 9). Comp's Threshold, Ratio, Attack and Release do not fit
+Pressure4 or ButterComp2, which have no timing knobs, so they are Types of
+a separate effect rather than Characters of Comp. The Types are named for
+what they do, after the 2026-10-02 naming rule: **Snap** (after Pop3),
+**Mu** (after Pressure4) and **Split** (after ButterComp2). Each knob is the
+plug-in's own, as a time or a level where the plug-in's 0..1 knob maps onto
+one, with the same arithmetic underneath; Output and Mix are ours, for every
+Type.
+
+    guard -> the Type's gain per channel (Snap, Mu or Split; two while a Type fades)
+          -> out = dry x (1 - Mix) + dry x gain x Output x Mix
+
+| Page | Knob | Range (default) | Snap | Mu | Split |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Type | Snap, Mu, Split (Snap) | | | |
+| 1 | Squash | 0–1 (0.5) | threshold (1 − Squash)⁴: −24 dB at 0.5 (Pop3's A = 1 − Squash) | threshold t = 1 − 0.95 Squash (Pressure) | lift into the detector 14 × Squash dB (Compress) |
+| 1 | Attack | 1–200 ms (25.5) | towards T/\|x\| over this time (C Atk: 11.3–125 ms) | – | – |
+| 1 | Release | 1–3,000 ms (46.8) | back towards 1 over this time (C Rls: 11.3–1,145 ms) | the release when quiet: Speed, release = this × rate samples (B = 0.2 is 1,092 ms) | – |
+| 2 | Ratio | 0–1 (0.5) | how far the gain follows the state: R = 1 − (1 − Ratio)² (C Ratio) | – | – |
+| 2 | Shape | −1 to 1 (1) | – | Mewiness: the gain c² blended with c above 0, √c below | – |
+| 2 | Output | −24 to +24 dB (0) | after the compressor | (Output Gain) | (Output, which reached +6 dB) |
+| 2 | Mix | 0–1 (1) | dry and compressed | | (Dry/Wet) |
+| 3 | Gate | −80 to 0 dB (−80: off) | a sample over it opens the gate (Thresld E: E⁴) | – | – |
+| 3 | Gate Depth | 0–1 (0.5) | how far it closes: Q = 1 − (1 − Depth)² (G Ratio) | – | – |
+| 3 | Hold | 0–1 (0.5) | the gate's state starts at π/2 (Hold + 1)⁴ and closes under π/2, so Hold and Gate Rel set how long it stays open (G Sust) | – | – |
+| 3 | Gate Rel | 10–12,000 ms (365.6) | how fast that state falls (G Rls: 11.3 ms–11.4 s) | – | – |
+
+- **Snap** (Pop3): per channel, a state p moves towards T/|x| by the
+  attack while |x| is over the threshold T, and towards 1 by the release
+  otherwise; the gain is (1 − R) + p R. A stereo link pulls the higher state
+  down by the attack (Pop3's order: the left first, then the right if it is
+  now the higher). A gate shared by both channels: any sample over Gate sets
+  its state to the sustain, which then decays by Gate Rel; under π/2 the gain
+  is multiplied by (1 − Q) + sin(state) Q, a quarter-sine close. It can only
+  turn the sound down.
+  - *The link in float.* With the left state just above the right (within
+    one pull), Pop3 pulls both on every frame: the gap shrinks by
+    (1 − attack) a frame, and the release balances the pull at
+    p = rel / (atk + rel), so the gain holds there (−6 dB at a fast
+    attack and release) until the two states are equal. In double that takes
+    as long as the gap needs to reach the last bits of p (then it can stall
+    on a double's rounding). Kept as two floats it never ended: each state
+    stalled on a fixed point of its own float rounding, a few ulps apart, and
+    the gain stayed at the hold for good [verified: a float32 emulation
+    against double, 2026-10-05]. So Snap keeps the lower state m and the gap
+    d ≥ 0, which keeps its precision when tiny, and a gap under 10⁻¹⁴ m is
+    equality: the hold ends about where a double's would.
+- **Mu** (Pressure4): one gain for both channels. sense = max(|L|, |R|) / t
+  is compared with t; above it the state c moves towards max(t / sense, t)
+  by a one-pole of √speed samples, under it towards 1 by one of speed²
+  samples; speed follows sense × release + √release, so after a loud passage
+  Mu recovers slowly (Pressure4's programme-dependent "bloom"). The gain is
+  Shape's curve of c. Pressure4 lifts the input by 1/t before its detector
+  and leaves it lifted, then saturates the result with a sine; Mu detects the
+  same way but divides the lift out again and has no sine (the note's
+  verdict: the lift raised quiet passages and the noise floor by up to
+  26 dB, and the sine was its guard against the overs that made). So, like
+  Snap, Mu only turns down, and turns down a lot at high Squash: a −6 dBFS
+  sine loses 6.8 dB at Squash 0.5, 17.9 at 0.75 and 49 at 1 (Shape 1 is
+  Pressure4's Mewiness 1, the gain c²); Output brings it back.
+  Pressure4's steps, (c (n − 1) + target) / n, are written c + (target −
+  c) / n: the same in exact arithmetic, and in float they keep the target's
+  share where n (speed², up to 10¹⁵) would swallow it.
+- **Split** (ButterComp2): per channel, the input lifted by 10^(14 Squash /
+  20) feeds two one-pole targets, the mean of (1 + x)² for the positive side
+  and (1 − x)² for the negative, and two gains that follow 1 / target² by the
+  same pole, each only while the input is on its side, in two sets used on
+  alternate samples (ButterComp2's "flip"). The gain applied blends the
+  positive and negative gains of the set in turn by where the sample sits
+  between −1 and 1, and is divided by 1 + (lift − 1) / 1.5. The pole is
+  0.012 Squash / 135 / (1 + |last output|) per 44.1 kHz sample: no timing
+  knobs, and slower while the output is loud. It lifts a little at low
+  settings (+0.4 dB at 0.25 on a −6 dBFS sine, at most +2.7 dB on bursts).
+  Its targets are held at 0.25 or more (gains of 16 or less): under a
+  negative offset beyond −1 the positive target runs towards 0 and its gain
+  to infinity in ButterComp2; ordinary audio never reaches the floor.
+  - *Squash 0 is a bypass* (ours, review 2026-10-06). The pole is
+    proportional to Squash, so at 0 ButterComp2 freezes its gains wherever
+    they are: Split turned from Squash 1 to 0 stayed 5 dB down for good,
+    and a lock of Type Split with Squash 0 while Mu held a sine 32 dB down
+    kept it there for good (Split starts from the gain in force, below).
+    Under Squash 0.05 the gain applied is blended towards 1 by Squash / 0.05
+    and the states are pulled to rest over 20 ms × 0.05 / (0.05 − Squash):
+    Squash 0 passes the input bit for bit whatever came before, from the end
+    of the knob's ramp and the Type's fade, and turned up again Split starts
+    afresh (−0.002 dB against a new instance) [verified: `fm1-squash-test`'s
+    `split_low`]. From 0.05 up this does not run.
+- **Taken out** (the porting rules of the note, §3): the plug-ins' denormal
+  dither on every sample and ButterComp2's "live air" residue, whose state is
+  function-static (shared by every instance). So silence in gives exact
+  silence out; the states flush to 0 under 10⁻²⁰. sin, pow and sqrt are a
+  Taylor polynomial (within 6 × 10⁻⁸ on 0..π/2), multiplications, and a
+  square root from the float's bits with three Newton steps and one more on
+  the root.
+- **Against the upstream loops** [verified, 2026-10-05]: the four plug-ins'
+  loops, copied into `third_party/airwindows/oracle/airwindows_oracle.cc` in
+  double with only the noise removed (and Mu's two changes above), run in
+  the gcc:12 container on aeon (`run-on-aeon.sh`; nothing of theirs runs on
+  a developer's machine), give tests/fixtures/squash-oracle.json: every
+  61st frame of 1.5 s of drums, a stepped sine and a hot two-tone mix at
+  44,100 Hz. tests/test_engines_squash.py holds ours to them. The residual
+  (RMS of the difference over the RMS of theirs): Mu −102.5 and −117.3 dB,
+  Split −104.1 and −116.2 dB (float against double), Snap −62.9 and
+  −78.2 dB, and −29.2 dB for a third Snap case with a fast attack and
+  release, where Pop3's link holds (above) end at different times in
+  double and here; the Limiter's Round mode −140 dB against ClipOnly2.
+- **Type changes.** A new Type starts from the gain the old one was
+  applying (its state set to give that gain: Snap's p and an open gate, Mu's
+  c through Shape's curve with its speed at rest, Split's four gains and two
+  targets), the two run together, and the output crossfades from the old to
+  the new over 5 ms; a change asked for meanwhile waits for the fade's end.
+  So Type is lockable and modulated (rounded) without a step: changed every
+  1,984 frames on a loud sine and on bursts, no step between samples larger
+  than with any Type held (0.44 against 2.13), and turned every third block
+  by tests/test_engines_fx_switches.py.
+- **Contracts:** the input guard of `mi_fx.cc` (NaN to 0, clamp to ±16);
+  parameters through `fm1_param_clamp`; every FLOAT SMOOTH through
+  `fm1_smooth.h` (a 2.5 ms ramp, a step a frame), so any block size gives
+  the same output; values set before the first render apply at once.
+  Silence in is exact silence out at every Type, through Type changes.
+  Hostile input (NaN, infinities, 10³⁰, +32 dBFS noise) stays finite and
+  bounded. Renders with every parameter and the Type changing at fixed
+  frames give the same bits in blocks of 64, 1, 7 and random sizes and from
+  memory filled four ways [verified: `fm1-squash-test`; the browser's parity
+  scenario `dyn3-squash-transient` runs the WebAssembly build, identical to
+  the native ones].
+- **Memory:** 400 bytes (no pointers, so the same on 32-bit builds
+  [inferred]). **Cost** (Apple M1 Max, noise, `fm1-squash-test --cost`):
+  1.4 µs per 64-frame block for Snap with its gate, 1.1 µs for Mu, 2.0 µs
+  for Split; 0.08–0.14 % of the block [verified, 2026-10-05]. Per frame,
+  Snap divides twice when over its threshold, Mu three times and takes one
+  or two square roots, Split divides six times; two Types run for the 5 ms
+  of a fade. Stage B measures pi32v2.
+
+## Transient
+
+A transient shaper of our own (`src/fx_shaper.cc`, MIT), on the
+differential-envelope principle: two followers of the level that disagree
+only where it changes (owner decisions, 2026-10-05; the note's FD3). The
+law, two followers, is the one the note took from legsmechanical's Bus
+Driver (MIT, `36b6788`); its measured tables of a commercial unit were not
+used, and no code was taken from it or anywhere. Stereo-linked.
+
+    guard -> x = max(|L|, |R|) -> fast follower F of x (at once up, 40 ms down)
+                               -> slow follower S of F (Window up, Tail down)
+          -> D = 20 log10(F / S), clamped to +/-12 dB
+          -> gain dB = Attack x D where D > 0, Sustain x (-D) where D < 0, + Output
+          -> out = dry x (1 + Mix (gain - 1))
+
+| Page | Knob | Range (default) | What it does |
+| --- | --- | --- | --- |
+| 1 | Attack | −100 to +100 % (0) | How much the onsets are lifted (+) or softened (−) |
+| 1 | Sustain | −100 to +100 % (0) | How much the decays are lifted (+) or cut (−) |
+| 1 | Window | 5–100 ms (20) | The slow follower's rise: how long an onset counts as the attack |
+| 1 | Tail | 50–2,000 ms (400) | The slow follower's fall: how long a decay counts as the sustain |
+| 2 | Output | −24 to +12 dB (0) | Gain after the shaper |
+| 2 | Mix | 0–1 (1) | Parallel: 1 + Mix (gain − 1) |
+
+- **The law, in dB.** At an onset F runs ahead of S; in a decay F falls
+  under it; on a steady sound they agree. At +100 % Attack an onset comes out
+  at x + (F − S), so it rises twice as steeply against the slow envelope; at
+  −100 % at about S, as slowly as Window lets the slow follower rise. At
+  +100 % Sustain a decay comes out at about S, falling as slowly as Tail; at
+  −100 % about twice as fast. The clamp keeps either share within 12 dB
+  (an onset out of silence would ask for 100).
+- **S follows F, not x** (review, 2026-10-06). On a steady tone x swings
+  from 0 to the peak every half cycle, and a follower of x settles where
+  its rise and fall balance, which depends on its own two times: with S on
+  x, Window 100 ms and Tail 50 ms sat 4.8 dB under F, so Attack +100 %
+  lifted every steady tone by 4.8 dB (2 dB at Window 20, Tail 50). F is
+  already near the peaks, so S on F settles on F whatever Window and Tail
+  are, and only F's ripple is left. F rises at once (it rose over 1 ms):
+  after a held tail, with S still high, Sustain's lift then ends as soon as
+  a new note passes S, rather than lifting the note's first millisecond by
+  up to 12 dB, over its own peak.
+- **Measured** [verified: `fm1-squash-test`'s `shaper`, 2026-10-06]: on a
+  60 Hz hit with a 1 ms rise and a 150 ms decay at −6 dBFS, Attack +100 %
+  lifts the first 10 ms by 7.6 dB and −100 % softens them by 7.3 dB,
+  leaving the tail (100–300 ms) alone; Sustain +100 % lifts the tail by
+  6.8 dB and −100 % cuts it by 5.6 dB, leaving the onset alone. A steady
+  sine at both knobs +100 % moves by 0.02 dB at 1 kHz and 0.14 dB at
+  100 Hz; anywhere on Window and Tail (both ends), at 40 Hz to 1 kHz with
+  either knob at either end, by 0.31 dB at most, at 40 Hz (F's ripple).
+- **The centre is a bypass.** Attack and Sustain at 0 and Output at 0 dB
+  give a gain of 2^0, exactly 1, and 1 + Mix × 0: the input bit for bit at
+  any Window, Tail and Mix, and again once turned knobs have come back. The
+  followers keep running, so a turned knob starts from where the music is.
+- **Contracts and determinism** as Squash's: the guard, every parameter
+  SMOOTH (`fm1_smooth.h`), any block size and memory fill the same bits,
+  silence to silence, finite on hostile input; log2 and 2^x from
+  `include/fm1_math.h`, contraction off, no libm.
+- **Memory and cost:** 144 bytes; 1.3 µs per 64-frame block on an Apple M1
+  Max with both knobs away from the centre (two follower steps, a divide, a
+  log2 and a 2^x a frame), 0.09 % of the block; at the centre the log and
+  the exponential are skipped [verified, 2026-10-05].
+
 ## Parameters (engine API v2 and v3)
 
 Since API v2 (docs/15 stage S7a, docs/13 M2), `fm1_param_t` carries four
@@ -2260,8 +2659,8 @@ is lockable and modulatable (MOD; an ENUM is rounded when modulated, docs/16
 §2.2). Only a destructive change is NOLOCK. The effects' switches follow it:
 Filter's Type, Drive's Type and Auto, Comp's Character, Auto Rel and Auto
 Gain, the Limiter's Mode and Lookahead, DJ Filter's Slope, Tilt's Curve,
-Master Sat's Shape, Isolator's Kill, and the Gate's Mode, Listen, Link and
-Lookahead are all lockable and MOD, and
+Master Sat's Shape, Isolator's Kill, the Gate's Mode, Listen, Link and
+Lookahead, and Squash's Type are all lockable and MOD, and
 `tests/test_engines_fx_switches.py` (the Gate's cases are in
 `tests/test_engines_gate.py`, through the same harness) turns each of them
 every third block (faster than its crossfade) on a steady sine and on sharp
@@ -2276,9 +2675,9 @@ uid)` are the helpers. `fm1-render --list` prints each parameter's uid,
 flags (by name), unit and abbreviation, and each engine's `per_note` and `pads`. The four fields make `fm1_param_t`
 36 bytes on pi32v2 and i386 (28 before) and 48 on x86-64 (40) [verified:
 `tools/jieli/compile-check.sh`, 2026-10-02, 67 of 67 objects compiled in
-all four profiles]: 8 bytes more of read-only data per parameter, 1,240
-bytes for the 155 the registry defines [counted with `fm1-render --list`,
-2026-10-05; 88 when the sizes were measured]. The 16-bit flags of v3 sit in
+all four profiles]: 8 bytes more of read-only data per parameter, 1,760
+bytes for the 220 the registry defines [counted with `fm1-render --list`,
+2026-10-05, with dynamics pack 3; 88 when the sizes were measured]. The 16-bit flags of v3 sit in
 what was padding after `uid`, so the sizes did not change, nor did the
 modulation runtime's 22,368 bytes, whose records widened the same way
 [verified: `tools/jieli/compile-check.sh`, 2026-10-05: 36 bytes on pi32v2
@@ -2290,7 +2689,8 @@ docs/15's table had eight; Macro's and Macro Heavy's LPG came with their
 third page; Drive's Type and Auto, Comp's Character, Auto Rel and Auto
 Gain, Filter's Type and the Limiter's Mode with their effects, DJ
 Filter's Slope, Tilt's Curve, Master Sat's Shape and Isolator's Kill with
-the master-bus pack, and Hall's and Plate's Freeze on 2026-10-05.
+the master-bus pack, Hall's and Plate's Freeze on 2026-10-05, and Squash's
+Type with dynamics pack 3 (the Limiter's Mode gained Round then).
 
 | Engine | Parameter | Flags | Why |
 | --- | --- | --- | --- |
@@ -2311,7 +2711,7 @@ the master-bus pack, and Hall's and Plate's Freeze on 2026-10-05.
 | drive | Type | MOD | A change crossfades the two curves over 5 ms (the rule above) |
 | drive | Auto | MOD | Its gain glides like any other (the rule above) |
 | comp | Character, Auto Rel, Auto Gain | MOD | Read every frame; Character and Auto Rel hand the smoothing over through an offset that decays in 5 ms and Character crossfades the detector, Auto Gain glides its makeup and its bound in, so no change steps (the rule above). Not effects of a note, so no LATCH. Until 2026-10-02 they took no MOD |
-| limit | Mode | MOD | A change glides the output stage over 5 ms, frame by frame as the line delivers them (each frame carries the Mode its gain was made for). NOLOCK until 2026-10-02 |
+| limit | Mode | MOD | A change glides the output stage over 5 ms, frame by frame as the line delivers them (each frame carries the Mode its gain was made for), Round's share beside Soft Clip's since 2026-10-05. NOLOCK until 2026-10-02 |
 | djfilter | Slope | MOD | Crossfades the 12 and 24 dB filters over 5 ms (the rule above). The research note had it NOLOCK |
 | tilt | Curve | MOD | Glides from one curve's coefficients to the other's through two 2.5 ms stages (the rule above). The note's Sections switch was NOLOCK |
 | sat | Shape | MOD | Crossfades over 5 ms, so a lock or a rounded route is clean however fast (the owner's switch rule, 2026-10-02) |
@@ -2319,6 +2719,7 @@ the master-bus pack, and Hall's and Plate's Freeze on 2026-10-05.
 | hall | Freeze | MOD | Crossfades over about 75 ms (the input fades out as the decay lengthens) and keeps the tail, so it can be locked, and a route rounds it |
 | plate | Freeze | MOD | Off/On, appended as uid 5 on Plate's second page (2026-10-05). It ramps the loop over 5 ms, so a lock or a rounded route switches it cleanly (the owner's policy for switches; mi-fx.md, "Freeze") |
 | gate | Mode, Listen, Link | MOD | Mode crossfades the Gate and Duck gains, Listen the gated audio and the filtered key, and Link the detector's and Listen's weights, each over 5 ms, so no change steps the output (the rule above) |
+| squash | Type | MOD | The new Type starts from the gain the old one applies and the two crossfade over 5 ms, so no change steps the output (the rule above) |
 
 ### The LOG law
 
@@ -2355,14 +2756,16 @@ The parameters with LOG [verified: tests/test_engine_params.py holds LOG to
 every FLOAT in Hz or ms whose range starts above 0, and only there]:
 Filter and Comb Cutoff, Echo Time, Comp Release, Limiter Release, Tilt
 Pivot, Master Sat's Clean Lo and Clean Hi, Isolator's Low and High Xover,
-EQ's three frequencies, Gate's Hold, Decay, Key HP and Key LP, and Sophie's
+EQ's three frequencies, Gate's Hold, Decay, Key HP and Key LP, Squash's
+Attack, Release and Gate Rel, Transient's Window and Tail, and Sophie's
 Ring Time. Comp Attack, the Limiter's Lookahead, Gate's Attack, Lockout and
 Lookahead and Room's and Hall's Pre-delay start at 0 and stay linear, and the modulation kinds'
 times are 0..1 knobs with laws of their own. **dB** (`FM1_UNIT_DB`) marks
 Comp's Threshold, Knee and Makeup, Drive's Drive and Level and the
 Limiter's Ceiling and Drive (the owner's list), and EQ's gains and Level,
 Tilt's Tilt and Level, Master Sat's Drive and Level and Gate's Threshold,
-Range and Return, whose sources said dB already. Units change nothing but what a screen may print.
+Range and Return, whose sources said dB already, and Squash's Output and
+Gate and Transient's Output (2026-10-05). Units change nothing but what a screen may print.
 
 ### SMOOTH: the ramp inside the engines
 
@@ -2531,14 +2934,16 @@ kinds, the new effects and the 47 parity scenarios included.
 
 **Units and abbreviations.** Echo's Time, Hall's Pre-delay, Comp's Attack
 and Release, Sophie's Ring Time, the Limiter's Release and Lookahead and the
-Gate's Attack, Hold, Decay, Lockout and Lookahead are in ms, Filter's and
+Gate's Attack, Hold, Decay, Lockout and Lookahead, Squash's Attack,
+Release and Gate Rel and Transient's Window and Tail are in ms, Filter's and
 Comb's Cutoff, Tilt's Pivot, Master Sat's Clean Lo and Clean Hi, Isolator's
 crossovers, EQ's frequencies and the Gate's Key HP and Key LP in Hz,
 Sophie's Tune in semitones and its 0–100 knobs in %. Sophie's Decay is in
 seconds, and Drive's Drive and Level, Comp's Threshold, Knee and Makeup, the
 Limiter's Ceiling and Drive, Tilt's Tilt and Level, Master Sat's Drive and
-Level, EQ's gains and Level, and the Gate's Threshold, Range and Return in
-dB, which had no unit code until engine API v3 added `FM1_UNIT_DB`
+Level, EQ's gains and Level, the Gate's Threshold, Range and Return,
+Squash's Output and Gate and Transient's Output in dB (Transient's Attack
+and Sustain are in %), which had no unit code until engine API v3 added `FM1_UNIT_DB`
 (2026-10-05; [The LOG law](#the-log-law) lists them). Every other
 parameter is a bare number (the 0–1 knobs, gains, bits, indices, EQ's Qs).
 
@@ -2796,6 +3201,7 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `include/fm1_seq.h`, `seq/` | The sequencer core: a heap-free C99 port of Movy's sequencer, with 4–8 routed tracks ([seq.md](seq.md), docs/13) |
 | `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`. Not wired into the renderer yet ([midi_fx/README.md](midi_fx/README.md)) |
 | `include/fm1_smooth.h` | The SMOOTH ramp every engine runs (above): C99, header-only, no libm |
+| `include/fm1_fx_idle.h` | The idle path of EQ, Isolator and Master Sat: the rest and warm-up times and the decay bound they come from, and the `FM1_FX_IDLE` switch that builds the effects without it ([above](#idle-at-pass-through)) |
 | `include/fm1_mix_limiter.h` | The host's mix-bus limiter and bus guard. Twelve voices started in phase can exceed full scale; the bus holds the output under 0.98, and non-finite samples become silence |
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
@@ -2803,7 +3209,7 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `src/note_offsets.h` | A voice's per-note offsets, shared by the six engines that take them |
 | `src/drums.cc`, `src/drum_voices.h` | Drums: the kit around Plaits' drum classes, and the rim shot, clap, cowbell and cymbal of our own ([above](#drums)) |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comb](#comb), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq), [Hall](#hall), [Gate](#gate); [Room](#room) wraps Clouds' classes) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comb](#comb), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq), [Hall](#hall), [Gate](#gate), [Transient](#transient); [Room](#room) wraps Clouds' classes; [Squash](#squash) ports Airwindows' loops) |
 | `src/fx_filter_dsp.h` | The arithmetic Filter and Comb share (2^x, log2, the saturating curve, the guard, the glide) |
 | `src/fx_comp_math.h` | `CompExp2` and `CompLog2`, now `include/fm1_math.h`'s base-2 exponential and logarithm without libm (the same bits on every build) under the names Comp, Tilt, DJ Filter and the Gate use |
 | `src/test_sine.cc`, `src/test_gain.cc`, `src/test_ext.cc` | Test engines: a sine voice, a gain stage, and Test Ext, the smallest effect with the API v3 extension ([below](#engine-api-v3)) |
@@ -2813,7 +3219,7 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON; with `--sound`, `--insert`, `--level` (and `--slots`) up to four sound units, each through its own inserts and level, mixed before the effect chain, as the virtual FM-1's multi-sound plays them (seq.md, Host contract) |
-| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
+| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -2912,7 +3318,7 @@ past the table. It found the Isolator's stalled crossover glide
   | Macro, 12 voices | 32,448 | 19,584 | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,912 | 18,912 | |
   | Comb | 17,840 | 17,840 | two delay lines, fs / 20 Hz each (the Filter's until 2026-10-05, when it took 18,368) |
-  | FM6, 12 voices | 15,844 | 15,844 | msfa's state, 32 user voices, no pointers; msfa's tables (28.7 KB) are shared, outside the instance ([msfa.md](msfa.md)) |
+  | FM6, 12 voices | 15,848 | 15,848 | msfa's state, 32 user voices, no pointers; at 44,118 Hz (4,100 more at other rates, the frequency table); msfa's tables are const data, flash on the FM-1 ([msfa.md](msfa.md), "Tables in flash") |
   | Six-Op FM, 8 voices | 12,776 | 11,008 | |
   | Limiter | 11,008 | 11,008 | 5 ms of lookahead at 44,118 Hz; 26,912 at 102 kHz and above |
   | Drums, 12 voices | 7,616 | 7,424 | a 224-byte model object per voice (Ring Hat's), 16 pads' values and ramps, one resampler |
@@ -2927,7 +3333,8 @@ past the table. It found the Isolator's stalled crossover glide
   master-bus effects are small and hold no pointers: DJ Filter 224 bytes,
   Tilt 144, Master Sat 336, Isolator 240 and EQ 368, on 64-bit and 32-bit
   builds alike [verified: `fm1-render`'s `fx_bytes`, and `instance_size`
-  compiled by clang for i386 and wasm32, 2026-10-05].
+  compiled by clang for i386 and wasm32, 2026-10-05]; the idle path
+  (2026-10-06) took Master Sat to 352, Isolator to 256 and EQ to 416.
 
   The stock layout leaves a gap of 387,924 bytes, part of it stock's heap
   (docs/11 §2, [inferred]). Most engine-plus-two-effects chains fit in it;
@@ -3043,9 +3450,12 @@ keeping decay within 3–4 %.
 
 ## Open questions and next steps
 
-- **FM6** has its own list ([msfa.md](msfa.md), "Open questions"): its name, a
+- **FM6** has its own list ([msfa.md](msfa.md), "Open questions"): a
   listening pass over its 32 voices, the DX7's envelope holds, AM depths
-  measured on a DX7, the simulator's SysEx import, msfa's tables in flash.
+  measured on a DX7, the user bank in flash on the FM-1. Answered
+  2026-10-06: the name stays (borrowed from Felucca's FM6, with msfa
+  itself), msfa's tables are const data (flash), and the simulator loads
+  `.syx` files.
 - **Six-Op FM's patch data** has no stated origin upstream. The 23 patch
   names that are trademarks or a person's name are shown under names of our
   own; `-DFM1_SIXOP_ORIGINAL_NAMES` shows the stored ones in a personal build
