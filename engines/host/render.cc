@@ -50,7 +50,7 @@
 // seq_locks_refused (locks on NOLOCK parameters) and seq_clicks (clicks
 // sounded).
 //
-// Several sound units, as the virtual FM-1 runs them with its lab switch
+// Several sound units, as the virtual FM-1 runs them
 // (docs/15 §3.16): --sound K:ID loads sound unit K (1..3; --engine is unit
 // 0), --sound-param K:NAME=VALUE sets one of its parameters, --insert K:ID
 // adds an insert effect to unit K's chain (in order) and --insert-param

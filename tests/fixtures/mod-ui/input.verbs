@@ -1,6 +1,6 @@
 # The pattern every modulation trace here starts from (docs/16 MG3): track 1
 # plays four notes a bar on the sound, track 2 two notes on USB-MIDI (its
 # gate is the source SEQ2), stopped until PLAY/STOP. tests/test_sim_mod.py
-# plays it with Macro and Plate, the lab switch on. 2 s at 44,118 Hz.
+# plays it with Macro and Plate. 2 s at 44,118 Hz.
 #! rate=44118 block=64 tracks=8 end=88236
 @0 tog 0 0 48 110;tog 0 4 55 90;tog 0 8 60 100;tog 0 12 63 90;tog 1 0 72 100;tog 1 8 74 100
