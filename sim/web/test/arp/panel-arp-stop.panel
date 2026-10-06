@@ -1,0 +1,24 @@
+# The arpeggiator's follow-ups on the panel (owner, 2026-10-06):
+# GLO's Key page sets the project key (D, then D minor) and GLO leaves.
+--button 0.05:GLO
+--turn 0.10:KNOB1:2
+--turn 0.15:KNOB2:1
+--button 0.25:GLO
+# ARP held: Latch, and the arp on. A chord played by hand latches.
+--button 0.30:ARP:0.70
+--key 1.10:7:100:0.10
+--key 1.12:11:90:0.08
+# PLAY/STOP: track 1's notes join the hand's latched chord on the
+# sequencer's grid; Stop takes them back, and the hand's chord plays on.
+--button 1.50:PLAY/STOP
+--button 3.60:PLAY/STOP
+# ARP's tap: off, its notes end at once. Play again; ARP's tap mid-bar
+# switches it on (its pages open), and a key's first note waits for the
+# grid's next 1/16; Stop leaves the hand's latched key playing, and ARP's
+# tap on its pages switches it off.
+--button 4.20:ARP
+--button 4.40:PLAY/STOP
+--button 4.93:ARP
+--key 5.01:14:100:0.60
+--button 5.90:PLAY/STOP
+--button 6.20:ARP

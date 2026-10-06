@@ -500,7 +500,7 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
     assert summary["text_boxes"]["MID"] > 0              # the lists, context lines and banners
-    assert summary["screens"] >= 3202            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["screens"] >= 3507            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
     #                                              1321 before the master-bus pack (1458), 2189 with modulation
     #                                              (docs/16 MG3) before Room, Hall, Gate and Plate's Freeze, 2325
@@ -513,7 +513,9 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     #                                              3202 with MATRIX's nine rows (its 32
     #                                              slots take one window fewer a sweep: 6 screens
     #                                              fewer) and the strip by sound and tempos with
-    #                                              decimals (4 more)
+    #                                              decimals (4 more), 3408 with glide's pages;
+    #                                              3507 with the global Key page (97 screens) and
+    #                                              its two lists
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

@@ -1476,6 +1476,8 @@ void fm1_seq_get_info(const fm1_seq_t *s, fm1_seq_info_t *i) {
   i->capture_sel = s->cap_sel;
   memcpy(i->capture_cands, s->cap_cands, sizeof(i->capture_cands));
   i->rec_track = s->rec_track;
+  i->key_root = s->key_root;
+  i->key_scale = s->key_scale;
 }
 
 void fm1_seq_get_clock(const fm1_seq_t *s, fm1_seq_clock_t *o) {
@@ -1617,6 +1619,18 @@ int fm1_seq_effective_at(const fm1_seq_t *s, uint8_t t, uint8_t slot, uint8_t la
                          fm1_seq_val_t base) {
   if (t >= s->n_tracks || slot >= FM1_SEQ_SLOTS || lane >= FM1_SEQ_LANES) return base;
   return sq_effective_at(s, sq_clip_no(t, slot), lane, step, base);
+}
+
+void fm1_seq_get_key(const fm1_seq_t *s, uint8_t *root, uint8_t *scale) {
+  if (root) *root = s->key_root;
+  if (scale) *scale = s->key_scale;
+}
+
+int fm1_seq_set_key(fm1_seq_t *s, unsigned root, unsigned scale) {
+  if (root > 11u || scale >= FM1_SEQ_KEY_SCALES) return 0;
+  s->key_root = (uint8_t)root;
+  s->key_scale = (uint8_t)scale;
+  return 1;
 }
 
 int fm1_seq_set_route(fm1_seq_t *s, uint8_t t, uint8_t kind, uint8_t index) {

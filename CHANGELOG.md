@@ -9,6 +9,35 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The project key.** The global page has a second page: press [GLO],
+  turn [SELECT] to *Key*, and set the project's key with [KNOB1] (C to B)
+  and its scale with [KNOB2] (Major, Minor, Dorian, Phrygian, Lydian,
+  Mixolydian, Locrian or Chromatic); each knob shows its list as you turn
+  it. The line under the top bar says the key in words, such as *D Minor*.
+  It is kept in the sequencer's set beside the tempo, so loading a set
+  brings its key (a set without one is in C Major). Every MIDI effect is
+  told the key; the arpeggiator does not use it, the scale and chord
+  effects planned next will. On the desktop the sequencer's new `key`
+  command sets it.
+
+- **A design for the Advanced editor**, in `notes/2026-10-06-web-editor.md`:
+  a larger, better laid-out editor for sounds, effect chains and modulation
+  that lives on the virtual FM-1's page and changes the same firmware the
+  panel plays, so a knob turned on either side shows on the other.
+  - **What it would be.** A signal-flow view of the four sounds into the
+    mix and the master chain, where effects are dragged to move or swap; a
+    sound's every parameter on one screen as sliders with typed values,
+    grouped the way the FM-1's pages and knobs group them; the modulation
+    matrix as a table with reasons for anything refused, and as a map of
+    cables; A/B compare, a memory page, files dropped where they go, and
+    one undo for the editor and the panel.
+  - **Six mockups** at desktop and tablet widths, in `assets/web-editor/`,
+    drawn from the engines' own parameter lists and the simulator's real
+    screens. Every one passes a layout check for overlapping, crowded or
+    clipped labels.
+  - **Decisions for the owner**, and a build plan that follows the saved
+    state and file work. Nothing is built yet, and the editor never talks
+    to a device.
 - **Diagrams in the manual.** Eight drawings, in the manual's colours, where
   the text explains how things connect: where the arpeggiator sits in the
   note path (chapter 4); the whole signal flow from the keys, MIDI IN and
@@ -1264,6 +1293,25 @@ history.
     Arp, czietz's gist) in the reference table; a note for cloud sessions;
     and a current kick-off prompt. The 2026-09-06 prompt is kept, marked
     historical.
+- **The arpeggiator keeps to the beat.** While the sequencer plays, the
+  arpeggiator's steps fall on the sequencer's beat at their rate: a key
+  you press between two steps, or an arpeggiator you switch on in the
+  middle of a bar, waits for the next step instead of starting at the next
+  tick. Triplets fall on the triplets of the beat, and Swing swings every
+  second step of that grid. Stopped, it starts at once, as before.
+  - **Sync** now reads: *Key* starts the pattern again at the first key
+    (on the next step of the beat while the sequencer plays); *Free* keeps
+    the pattern running from PLAY, so a Euclidean rhythm stays on the bar.
+- **Stop takes back what the sequencer gave the arpeggiator.** When the
+  sequencer stops, its notes leave the arpeggiator, latched or not, and
+  the notes they were playing stop at once; the notes you play, or latched
+  by hand, go on playing. While latched, your chords and the sequencer's
+  notes latch apart: a new chord of yours replaces yours, a new note of the
+  sequencer's replaces its own, and the arpeggiator plays both. (Before,
+  Stop cut whatever was sounding, and a sequencer note dropped your latched
+  chord.)
+- Two new parity scenarios, one of them a recorded panel session, check
+  all three in the browser, the native app and fm1-render, byte for byte.
 - **Every track on the sequencer's strip shows its sound's number.** The
   eight small tiles beside the tempo now carry the number of the sound each
   track plays (*1* to *4*) on the sound's colour, and *M* on grey for MIDI

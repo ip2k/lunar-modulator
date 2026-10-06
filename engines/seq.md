@@ -222,8 +222,9 @@ build, the default skips them.
   the FM-1's 64-frame blocks that is the tick the note was played on or the
   one before [inferred]. Placing it exactly would mean applying input between
   ticks inside `fm1_seq_advance`; that belongs with the UI's input path (M4).
-- FM-1 additions Movy ignores: the verb `route` and the `movy1` line `rt`
-  (written only outside compat mode, only for non-default routes).
+- FM-1 additions Movy ignores: the verbs `route` and `key`, and the `movy1`
+  lines `rt` (written only outside compat mode, only for non-default
+  routes) and `key` (below, "The project key").
 
 ## Memory [verified: `fm1-seq --sizes`, tests/test_seq_core.py]
 
@@ -307,6 +308,31 @@ block's command events, and the host bridge sends them where the notes went
 no longer plays (docs/15 S6, found in its review) [verified: tests/test_sim_multi.py].
 `fm1_seq_set_route` closes nothing; hosts call it only while nothing
 sounds (set-up, an import).
+
+## The project key (owner, 2026-10-05 and 2026-10-06)
+
+One key for the project, kept with the set's tempo and swing: a root, 0 (C)
+to 11 (B), and a scale, engine API v3's `FM1_KEY_*` (0 major, 1 minor, 2
+chromatic, 3 Dorian, 4 Phrygian, 5 Lydian, 6 Mixolydian, 7 Locrian;
+`FM1_SEQ_KEY_SCALES`). The sequencer plays the same in any key; it keeps
+the key for the MIDI effects, whose stage reads it every block
+(`fm1_seq_get_key`; engines/README.md, "MIDI effects").
+- `key <root> <scale>` sets it (`fm1_seq_set_key` from C); missing or
+  out-of-range arguments change nothing. The virtual FM-1's global page
+  sends it as a typed command, which its harness logs for `fm1-render`.
+- A `movy1` set writes `key <root> <scale>` after `link`, only outside
+  compat mode and only when the key is not C major; reading a set puts the
+  key back to C major unless the set has the line, so a set saved in C
+  major reads back as one. Movy ignores the line.
+- `fm1_seq_info_t` reports it (`key_root`, `key_scale`); `fm1-seq --state`
+  as `"key"` and `fm1-render`'s summary as `"seq_key"`.
+- Memory: the two bytes sit in what was the upper half of the swing's
+  32-bit field (now 16 bits: 50 to 80), so the instance's size is unchanged
+  [verified: `fm1-seq --sizes`, 31,880 B at 8 tracks].
+- Tests: `tests/test_seq_core.py` (the verb, the refusals, the line, the
+  round trip, compat, the same events in any key), `tests/test_seq_ui.py`
+  (the verb's text round trip), `tests/test_sim_arp.py` (the panel and an
+  import).
 
 `fm1-render`, through the host bridge (below), sends a track routed to the
 engine to `note_on`/`note_off` at the event's own frame, by rendering the

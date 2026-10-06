@@ -1,26 +1,27 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "526601c31481dabf73abf222745961491e88346c8c914576c904212cde99c632",
-  "wasm_bytes": 955241,
+  "wasm_sha256": "3acedf19556763c017cde97e8ec04b36886589b36e46feaf8ddb9ed7b75d5df5",
+  "wasm_bytes": 958819,
   "sources_sha256": {
-    "engines": "7623c51f6fea61b9f7bb18fd82e230b7dd6b59812d2ccd6f143b6a8a6a29584a",
-    "sim": "f3cb69b4bd956d3f8bc3d1ab55f6f4bc5cb319f3c079ec69e3479cbbff3adfd8"
+    "engines": "48614b9577583c12784165eb23225f11d494c1f82f2524648859b5543cec47b7",
+    "sim": "4bfb4813976951d7aa7ddb778b12b97fdf8995c7e18ff324d4b22a0b89b92096"
   },
   "engines": "working tree",
-  "built": "2026-10-06T08:41:44Z",
+  "built": "2026-10-06T09:09:13Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
     "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
-    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
+    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
   ],
   "imports": [],
   "parity": {
-    "passed": 86,
+    "passed": 88,
     "failed": 0,
-    "identical_to_js": 86,
-    "identical_to_musl": 86,
-    "identical_to_glibc": 83,
+    "identical_to_js": 88,
+    "identical_to_musl": 88,
+    "identical_to_glibc": 85,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "dx7_sysex": {
@@ -2187,6 +2188,69 @@
         "native_dropped": 0
       },
       "panel": "arp/panel-arp.panel"
+    },
+    {
+      "name": "arp-latch-stop",
+      "samples": 529416,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 82780,
+        "native64": 95644
+      },
+      "cmd": "arp/arp-latch-stop.verbs",
+      "seq": {
+        "lines": 5,
+        "lines_match": true,
+        "ui_cmds": 6,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "arp-panel-stop",
+      "samples": 582356,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 148508,
+        "native64": 161372
+      },
+      "cmd": "arp/panel-arp-stop.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 12,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "arp/panel-arp-stop.panel"
     }
   ]
 }

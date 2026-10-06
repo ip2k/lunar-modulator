@@ -1,0 +1,5 @@
+#! rate=44118 block=64 tracks=8 end=291178
+# The arpeggiator's follow-ups on the panel (panel-arp-stop.panel): track 1
+# plays two notes a bar to Sound 1, which go through the latched arp while
+# the sequencer runs and leave it at Stop.
+@0 bpm 12000;tog 0 0 43 100;tog 0 8 50 100;slen 0 0 0 -1 60;slen 0 8 8 -1 60
