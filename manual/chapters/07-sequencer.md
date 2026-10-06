@@ -107,22 +107,26 @@ page has the focus.
 
 In SEQ mode the screen shows the focused track:
 
-- **The status line:** the tempo, the eight tracks (one cell each, the
-  focused one in gold, a muted one as an outline) and PLAY, STOP, REC (gold
+- **The status line:** the tempo (*120 BPM*; decimals only when it has
+  them, such as *120.5 BPM*), the eight tracks and PLAY, STOP, REC (gold
   during a count-in, or while a take waits for its bar) or STEP (step
-  recording).
+  recording). Each track's cell is in the colour of the sound it plays
+  (grey for MIDI out); the focused track's cell is taller than the others,
+  and a muted track's is hollow.
 - **The grid:** four bars around the bar on the keys, 16 steps a row. A step
   with notes is filled, a step outside the loop is outlined (its notes as a
   dim bar), the playhead is inverted, a step with a condition, probability or
   invert has a tick under it, a step with a lock a gold dot in its corner,
-  and held steps are framed. A mark at both ends shows the bar on the keys.
+  and held steps are framed in gold. A mark at both ends shows the bar on
+  the keys.
   A muted track's notes are dim. With SHIFT held, the shortcuts take the
   grid's place.
 - **The knob strip:** four bars for [[KNOB1]] to [[KNOB4]] on the sound's
-  current page; the knob you turn is brighter.
+  current page; while you turn a knob, the other three dim.
 - **The hint line:** the knob you turned, its name and value, for two
   seconds; the bar the keys moved to; in step recording, the step under the
-  record head; otherwise the sound's model, in gold.
+  record head; otherwise the sound's model, in rose like every page's
+  heading.
 - **The bottom bar:** the page, the mode and the track, such as *1/3 Seq
   T1*, and the memory meter ([chapter 6](06-effects.md#memory)).
 
@@ -865,7 +869,7 @@ Track pages. [[SEQ]] goes back to the steps.
 
 Track page 2 (turn [[SELECT]]) lists the focused track's eight lock lanes:
 each parameter's name and its base value from 0 to 127, an unused lane as
-*--*.
+*--*. On Track page 1 the sound is in its colour, as on the status line.
 
 ## Memory
 

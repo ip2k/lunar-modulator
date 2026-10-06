@@ -567,7 +567,7 @@ async function seqChecks(browser) {
   await old.close();
 
   r.pass = r.help_shown && r.demo_rms > 0.01 && r.demo_ms <= 1100 && r.play_led &&
-    r.seq_status && r.seq_status.playing && r.seq_status.bpm_x100 === 12000 && /120\.00 BPM, playing/.test(r.status) &&
+    r.seq_status && r.seq_status.playing && r.seq_status.bpm_x100 === 12000 && / 120 BPM, playing/.test(r.status) &&
     r.mode === 3 && r.seq_led && r.white_keys[0] !== r.white_keys[1] && r.white_keys.every((k) => k.includes('1')) &&
     r.play_led_after_space === false && r.playing_after_space === false && r.playing_after_second_space === true &&
     r.mode_after_home === 0 && r.old_address_rms > 0.01 && r.old_address_lab_key === false &&
