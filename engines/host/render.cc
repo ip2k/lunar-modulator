@@ -1401,11 +1401,17 @@ int main(int argc, char **argv) {
   if (mod_path) {
     FILE *f = fopen(mod_path, "r");
     if (!f) { fprintf(stderr, "cannot read %s\n", mod_path); return ModFail(1); }
-    char buf[1024];
+    // Room for the longest line, a `data` line of FM1_MOD_DATA_MAX bytes.
+    static char buf[64 + 2 * FM1_MOD_DATA_MAX];
     uint32_t seed = 0;
     while (fgets(buf, sizeof(buf), f)) {
       const char *t = buf;
       uint64_t frame = 0;
+      if (!strchr(buf, '\n') && !feof(f)) {
+        fprintf(stderr, "%s: a line longer than %zu characters\n", mod_path, sizeof(buf) - 2);
+        fclose(f);
+        return ModFail(2);
+      }
       while (*t == ' ' || *t == '\t') ++t;
       if (*t == '@') {
         char *end = NULL;
