@@ -113,20 +113,31 @@ concrete, hard-to-fake artifact: the 32×6 byte `FmCore::algorithms` table from
 msfa's `fm_core.cc`.
 
 `tools/check_msfa_table.py` finds it at **offset `0x8C46C` of V13 `app.bin`**
-and at the corresponding place in V14 **[verified]**. All 32 rows match msfa,
-except rows 4 and 6, whose first operator flag is `0x41` instead of `0xC1`:
+and at the corresponding place in V14 **[verified]**. All 32 rows match Google's
+msfa exactly, rows 4 and 6 included, where the sixth operator's flag is `0x41`:
 
 ```
-alg 4: 41 11 94 01 11 14      msfa original: c1 11 94 01 11 14
-alg 6: 41 94 01 14 01 14      msfa original: c1 94 01 14 01 14
+         FM-1               Google msfa        Dexed (Felucca's port of it)
+alg 4:   41 11 94 01 11 14  41 11 94 01 11 14  c1 11 94 01 11 14
+alg 6:   41 94 01 14 01 14  41 94 01 14 01 14  c1 94 01 14 01 14
 ```
 
-`0xC1` = `FB_OUT|FB_IN|OUT_BUS_ONE` (self-feedback on op 6); `0x41` drops
-`FB_OUT` while the `0x94` operator (`FB_OUT|IN_BUS_ONE|OUT_BUS_ADD`) provides
-it. That is the multi-operator feedback topology the real DX7 uses for
-algorithms 4 and 6, and it matches the fix carried in the Dexed family rather
-than Google's original tree **[inferred; verify against upstream Dexed
-`Source/msfa/fm_core.cc`]**. Either way the engine is msfa-lineage code.
+`0x41` = `FB_IN|OUT_BUS_ONE` is the receiving end of the DX7's feedback loop,
+whose sending end is the `0x94` operator (`FB_OUT|IN_BUS_ONE|OUT_BUS_ADD`): the
+multi-operator topology the real DX7 uses for algorithms 4 and 6. msfa's
+`FmCore` marks that loop but runs only an operator fed back to itself ("todo:
+more than one op in a feedback loop"), so with this table those two algorithms
+play without feedback. `0xC1` (`FB_OUT|FB_IN|OUT_BUS_ONE`) feeds the sixth
+operator back to itself instead, an approximation. Google's repository has had
+`0x41` since its first commit (`a99ac7a`, 2012-03-04) **[verified: `git log -S`
+on google/music-synthesizer-for-android; `engines/third_party/msfa/`]**, and
+Felucca's port of Dexed's msfa has `0xC1` **[verified:
+`engines/third_party/felucca-fm6/fm6_core.c`; Dexed itself not checked]**, so
+the FM-1's table is Google's original, or an msfa-family copy from before such
+a change **[inferred]**. Until 2026-10-05 this section had it the other way
+round (`0xC1` as msfa's original, `0x41` as a Dexed-family fix). Either way the
+engine is msfa-lineage code. The FM6 engine (`engines/msfa.md`) runs Google's
+table and closes the two loops in its own code.
 
 Other supporting evidence: the DX7 parameter names (`Algorithm`, `Feedback`,
 `Osc Sync`, `Lfo Sync`, `BreakPoint`, `L Depth`, `R Depth`, `RateScale`,

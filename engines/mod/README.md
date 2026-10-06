@@ -11,9 +11,12 @@ Two layers, both heap-free C99 with no libm:
   three module kinds are **LFO**, **Envelope** and **Chance**; stage MG2
   adds thirteen more, documented in [kinds.md](kinds.md): Function, Bounce,
   Register, Coin, Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix
-  and Filter. The virtual FM-1 hosts it behind its lab switch, with the
-  RACK, MATRIX and CHAIN pages (docs/16 MG3; sim/web/README.md, "The lab
-  switch").
+  and Resonator (MG2's Filter, renamed 2026-10-05). The virtual FM-1 hosts
+  it, with the RACK, MATRIX and CHAIN pages (docs/16 MG3; sim/web/README.md,
+  "Modulation"), and the user manual's chapter 8 describes them. Since
+  stage MG9 a slot can run **per voice**: one instance of an Envelope, LFO
+  or Chance for each note, and offsets for that note alone through the
+  engines' `set_param_note` ([Voices](#voices-mg9)).
 - **The primitives** (`fm1_mp.h`): an LFO, a multistage envelope, a slew
   limiter, sample-and-hold, a Turing-machine register and a clock
   divider/multiplier, after §3–§5 of the arpeggiator, modulation and effects
@@ -26,6 +29,7 @@ printf 'mod 1 lfo rate=0.6\nslot 1 lfo1 > snd:Timbre amt=20\n' > /tmp/a.mod
 engines/build/fm1-render --engine macro --note 0:60:100:1.5 --seconds 2 --mod /tmp/a.mod \
     --log-mod /tmp/a.jsonl --out /tmp/a.wav     # one JSON line per tick in the log
 python -m pytest tests/test_engines_mod_runtime.py   # the runtime's tests
+python -m pytest tests/test_engines_mod_voices.py    # per voice (MG9) and the MG3 follow-ups
 python -m pytest tests/test_engines_mod.py       # the primitives' tests
 python -m pytest tests/test_engines_mod_kinds.py # the MG2 kinds' tests (kinds.md)
 python3 engines/mod/gen_curves.py                # regenerate mod_curves.c (--check: verify)
@@ -47,12 +51,13 @@ python3 engines/mod/gen_tables.py                # regenerate mp_tables.c (--che
 | `mod_curves.c`, `gen_curves.py` | The 8 slot curves as 33-point tables, and the script that writes them |
 | `mod_glue.c` | The bridge hook (`fm1_mod_host.h`) |
 | `kinds/mod_lfo.c`, `mod_env.c`, `mod_chance.c` | LFO, Envelope and Chance |
-| `kinds/mod_function.c` … `mod_filter.c`, `kinds/kinds_int.h` | MG2's thirteen kinds and the helpers they share ([kinds.md](kinds.md)) |
+| `kinds/mod_function.c` … `mod_resonator.c`, `kinds/kinds_int.h` | MG2's thirteen kinds and the helpers they share ([kinds.md](kinds.md)) |
 | `mod_mi.c`, `.h`, `mod_mi_tables.c`, `gen_mi_tables.py` | C ports of Peaks' bouncing ball, pulse shaper and randomizer and Braids' quantizer, their tables, and the script that writes them from the vendored originals |
 | `../host/mod_script.c`, `.h` | `fm1-render`'s text format for racks and slots (desktop only) |
 | `../test/mod_core_test.c` | `fm1-mod-core-test`: the planner fuzz, chains, feedback, fills, NaN, M1–M4 |
 | `../test/mod_kinds_test.c`, `mod_mi_ref.cc` | `fm1-mod-kinds-test` (the MG2 kinds) and `fm1-mod-mi-ref` (the ports against the originals) |
 | `../../tests/test_engines_mod_runtime.py` | The runtime through `fm1-render` and the C test |
+| `../../tests/test_engines_mod_voices.py` | Per voice (MG9), the Envelope's RTRG normal, the per-sound pitches and note sources |
 | `../../tests/fixtures/mod-uids.json` | Every kind's uids and ports, the system source ids, pinned |
 | `../../tests/test_engines_mod_kinds.py`, `fixtures/mod-golden.json` | The MG2 kinds' tests and golden traces |
 
@@ -149,19 +154,23 @@ final = clamp(base x 2^(c1 + c2 + ...))
 | 18 CLOCK, 19 BEAT, 20 BAR | triggers each sequencer step, beat and bar, from its 24-PPQN clock |
 | 21 RUN, 22 START | high while the transport runs; a trigger at Start |
 | 24–31 SEQ1–8, 32–39 SQV1–8 | high while sequencer track 1–8 sounds a note (any route); its last velocity / 127 |
+| 44–47 S1NOTE–S4NOTE, 48–51 S1VEL–S4VEL, 52–55 S1KEY–S4KEY, 56–59 S1TRIG–S4TRIG, 60–63 S1RTRG–S4RTRG | NOTE, VEL, KEY, TRIG and RTRG of one sound unit's notes (MG9; owner, 2026-10-05: note sources selectable per sound, every sound's by default) |
 | 64 + 8 × position + port | module outputs |
 
 The gaps are reserved for the later sources (docs/16 §2.4): mod wheel,
 aftertouch, bend, CC A and B, MACRO 1–4, the previous block's level and
-keys held (3–15), and the arpeggiator's step and gate. They need MIDI input
-and the macros in a host, which MG1 has not. "The sound" means notes that
-reach the sound engine: the sequencer's tracks routed to it and live notes.
+keys held (3–15), and the arpeggiator's step and gate (40–43). They need
+MIDI input and the macros in a host, which MG1 has not. "The sound" means
+notes that reach a sound engine: the sequencer's tracks routed to it and
+live notes; the plain note sources follow every sound unit's (KEY is high
+while any unit holds a note), the S-numbered ones one unit's. In a VOICE
+slot VEL, NOTE, RAND, KEY, TRIG and RTRG are the voice's own (below).
 
 | Unit | Destinations |
 | --- | --- |
 | 0 SOUND, 1 FX1, 2 FX2 | the first 32 parameters of the bound engine that take modulation |
 | 17–19 sound units 2–4, 20 + 4k + j sound unit k + 1's insert j + 1 (j 0, 1) | the same, for the virtual FM-1's multi-sound (docs/16 MG3); 16 and 40–41 are aliases of 0, 1 and 2, kept as those; 4–7, 36–39, inserts 3 and 4 and 42 on name nothing yet |
-| 3 HOST | PITCH (uid 1, ±48 semitones; its base is the MIDI bend, sent through `pitch_bend`) and AMP (uid 2, a gain 0–2 before the limiter, ramped linearly over each tick) |
+| 3 HOST | PITCH (uid 1, ±48 semitones; its base is the MIDI bend, sent through `pitch_bend`) and AMP (uid 2, a gain 0–2 before the limiter, ramped linearly over each tick); since MG9 PITCH2–PITCH4 (uids 3–5), sound units 2–4's pitches on their own bends, and PITCH_CUR (uid 6), whose cables add to the current sound's pitch (`fm1_mod_set_current`) and which is never written itself |
 | 8 + position | a module's MOD and INPUT parameters by uid, and with GATE_DST its gate inputs by index |
 
 ### Gate cables
@@ -177,10 +186,12 @@ reach the sound engine: the sequencer's tracks routed to it and live notes.
 - **Several cables into one gate input** combine by OR; edges at one frame
   go in slot order.
 - **Normalled inputs.** A gate input with no cable reads its kind's
-  `normal` source: the Envelope's GATE reads KEY and the LFO's RESET reads
-  TRIG, so with no cable the Envelope follows the keys, as the options
-  note's paraphonic C1 envelope did. `gate_connected` still says "no
-  cable", as a eurorack module senses a jack.
+  `normal` source: the Envelope's GATE reads RTRG (KEY until MG9: the
+  owner's decision of 2026-10-05, an unpatched envelope retriggers on every
+  note) and the LFO's RESET reads TRIG, so with no cable the Envelope
+  follows the keys and restarts at each note, a note over a held one too.
+  `gate_connected` still says "no cable", as a eurorack module senses a
+  jack. Run per voice, a note normal (KEY, RTRG, TRIG) is the voice's own.
 - **A gate input never jumps.** Each tick it starts where the last one
   ended. Patching a cable in, pulling one out or breaking a normal changes
   its level between ticks, and the module sees that as an edge at the
@@ -277,8 +288,98 @@ buffer whole [verified: test]. The default rack (LFO, LFO, Envelope,
 Envelope, Chance) takes 640 B of the 8 KB arena.
 
 **MG2's kinds** (Function, Bounce, Register, Coin, Divide, Burst, Slew,
-Quantize, Compare, Logic, Calc, Mix, Filter) have their own page:
+Quantize, Compare, Logic, Calc, Mix, Resonator) have their own page:
 [kinds.md](kinds.md).
+
+**POLY_OK.** LFO, Envelope and Chance carry `FM1_MOD_KIND_POLY_OK`: they
+may run one instance per voice (MG9, below). The other kinds run once.
+
+### Voices (MG9)
+
+The owner made per-voice modulation essential (docs/16 §6.3, 2026-10-02):
+each note gets its own envelopes and LFOs, which move only that note.
+
+- **A VOICE slot** (`FM1_MOD_SLOT_VOICE`, the script's `voice`) runs once
+  for every voice, a note sounding on a sound unit, after the global
+  modules and sinks of the tick. Its sources are read in the voice: VEL,
+  NOTE and RAND are the note's own (RAND drawn per voice from a stream of
+  its own, so the global RAND is unchanged), KEY and RTRG its gate (rising
+  at its note-on, falling and rising again when the same key is struck
+  again, falling at its note-off) and TRIG a trigger at its note-on, and
+  so are the voice's own sound unit's (S1VEL … S4RTRG; another sound
+  unit's are read globally: its last note); a POLY_OK module's output is
+  that voice's instance's; anything else is read globally (mono to poly).
+  A VOICE cable into a gate input keeps its level per voice; rewired, or
+  moved between global and per voice, it starts low in every voice, as a
+  global one does, and so does one from a module whose per-voice
+  instances are made again (review, 2026-10-06).
+- **Which modules run per voice.** A POLY_OK module that a live VOICE slot
+  reads (source or VIA). A VOICE slot into a sound is live; one into a
+  module is live when that module runs per voice (a fixed point, so a
+  chain ENV → LFO → Timbre runs both per voice). A module that runs per
+  voice keeps its global instance too, which the slots without VOICE read
+  and feed as before; its per-voice instances take every global cable into
+  their parameters (read globally: mono to poly) and the VOICE ones (read
+  in the voice). Their gate inputs take only VOICE cables, and with none a
+  note normal (the Envelope's GATE, the LFO's RESET) is the voice's own.
+- **Refused: poly into mono.** A VOICE slot into an effect, a master slot,
+  HOST AMP, a sound parameter that is not POLY, a sound whose engine has
+  no `set_param_note`, a module whose kind is not POLY_OK, or a POLY_OK
+  module that no live VOICE slot reads, is refused (Surge's
+  `canModulateMonophonicTarget` [verified at `348cfb3`, docs/16]). So is
+  a ninth distinct sound parameter (`FM1_MOD_VDESTS`, 8, pitches
+  included).
+- **Into the engines.** A voice's offset for a POLY parameter is the
+  VOICE slots' sum (amount × signal × range, as for any parameter); for a
+  LOG parameter the octaves become the offset that takes the value the
+  engine holds to it × 2^octaves. Into HOST PITCH, PITCH2–4 or PITCH_CUR it
+  is the note's pitch in semitones (`FM1_PARAM_NOTE_PITCH`); PITCH_CUR's
+  reach the current sound's voices. A tick writes an offset only when its
+  bits changed (`fm1_mod_voice_writes`); an offset whose cable goes comes
+  back as 0. `fm1_mod_voice_start` gives a new note's first offsets right
+  after the engine's `note_on` (which set them to 0), at the note's own
+  frame: its VEL, NOTE and RAND are known there, its modules start at the
+  next tick.
+- **Lifetime.** A note-on starts a voice for its (sound unit, key), or
+  retriggers the one that key holds (the engines retrigger a key in its own
+  voice); its instances are made from their kinds' defaults at the first
+  tick, seeded by the runtime's seed, the voice's start count and the
+  position. A note-off releases it: it runs on through its release and
+  ends when its gate is down and none of its per-voice modules' outputs
+  moved for a tick (a looping LFO never ends; it is stolen). Voices start
+  only for sound units a live VOICE slot reaches, so a note already held
+  when a cable is made per voice is reached from its next note-on.
+- **Twelve voices** (`FM1_MOD_VOICES`, the engines' own polyphony), shared
+  by the sound units. A thirteenth note takes the voice released longest
+  ago, else the oldest held; the note it was taken from keeps its last
+  offsets in its engine.
+- **Memory: within the arena.** The per-voice instances live in the 8 KB
+  arena after the highest global instance: per voice one block of every
+  per-voice position, each its outputs (4 + 12 bytes an output, one buffer:
+  a delayed cable reads a module before it runs again) and the instance.
+  Envelope's block is 192 B, LFO's 160 B, Chance's 224 B. With the default
+  rack (640 B) and ENV3 per voice the arena holds all twelve voices
+  (2,304 B); with ENV3 and LFO1 per voice 4,224 B. When the arena cannot
+  hold twelve, fewer voices run (the plan's `voice_cap`), and when it
+  cannot hold one no VOICE slot runs. A rack edit that leaves room for
+  fewer voices than are sounding stops the voices past the cap, and their
+  notes' offsets go back to 0 at that tick (`fm1_mod_voice_writes`), so no
+  note keeps a value nothing moves any more (review, 2026-10-06). A
+  change of the rack (a kind, a move) or of which modules run per voice
+  makes every instance again; an edit that keeps them (an amount, a new
+  global cable) keeps them running. The
+  voices' own state is fixed: twelve records of 168 B (their gates, CVs and
+  the eight offsets the engines hold) [verified: `fm1-render --list-mod`,
+  `fm1-mod-core-test`].
+- **Determinism.** Voices are run in index order and their writes come in
+  voice and destination order. Notes from the sequencer (through the
+  bridge) start voices at their frames, so a render is the same at host
+  blocks of 1, 7 and 64 [verified: `test_voices_are_the_same_at_host_blocks_of_1_7_and_64`];
+  live notes start at the coming block, as their global sources do.
+- **Zero offsets are an identity.** VOICE cables at 0 % send nothing, and
+  every engine with per-note offsets renders byte for byte what it renders
+  without them [verified: `test_zero_offsets_per_voice_are_an_identity`, on
+  Macro, Macro Heavy, Shapes, Six-Op FM, FM6 (`dx7`) and Drums].
 
 ### Hosting
 
@@ -289,7 +390,11 @@ Quantize, Compare, Logic, Calc, Mix, Filter) have their own page:
   then note-ons (rule M6; checked against a pretend hook in
   `fm1-seq-host-test`);
 - it splits the sound's render only at a tick that writes to it;
-- a lock's value goes through the hook (`fm1_mod_set_base`, rule M1).
+- a lock's value goes through the hook (`fm1_mod_set_base`, rule M1);
+- (MG9) a tick's per-voice writes go to the sink's `set_param_note`, and
+  right after a note-on the hook's `note_on` gives that note's first
+  offsets, sent before anything renders; the hook's `event` gets 1 + the
+  slot an event plays, so the runtime knows each note's sound unit.
 
 `fm1_mod_glue_t` (`include/fm1_mod_host.h`) is that hook for a runtime; it
 hands writes to the effects and AMP to the host, which renders each effect
@@ -300,8 +405,8 @@ and splits only that slot's render, a lock on slot k moves sound unit k's
 base (`lock_slot`), and each slot's calls come in the order
 `dispatch_ticks` would give it alone [verified: `hooked_slots` in
 `fm1-seq-host-test`]. Plain `fm1_seq_host_dispatch` is the hook-less
-case, which the virtual FM-1 keeps with its lab switch off; with it on, the
-app runs this glue as `fm1-render` does (MG3). A bridge initialised with
+case; the virtual FM-1 runs this glue as `fm1-render` does (MG3), on every
+chain since its lab switch went (2026-10-05). A bridge initialised with
 no sequencer runs only ticks, which is how `fm1-render` modulates without
 `--cmd`.
 
@@ -315,15 +420,19 @@ set 1 rate=0.62 shape=triangle          # bases of the module at a position
 slot 1 lfo1 > snd:Timbre amt=30         # a cable; amt and ofs in percent
 slot 2 seq2 > env4.gate amt=70          # a gate cable at 70 %
 slot 3 lfo1 > lfo2.rate amt=20 via=vel pol=uni curve=square
+slot 4 env3 > snd:Morph amt=50 voice    # per voice (MG9)
+current 2                               # the current sound unit, for host:pitchc
 @44118 slot 1 off                       # @FRAME: at the first block starting there
 ```
 
 Sources are system names (vel, note, rand, key, trig, clock, beat, bar,
-run, start, rtrg, seq1–seq8, sqv1–sqv8) or a module's output (`lfo1`,
+run, start, rtrg, seq1–seq8, sqv1–sqv8, s1note–s4note, s1vel, s1key,
+s1trig, s1rtrg … s4rtrg) or a module's output (`lfo1`,
 `lfo1.wrap`, `env3.2`, `mod5.held`). Destinations are `snd:` (sound unit 1,
 also `snd1:`), `snd2:`–`snd4:`, `sndK.fxJ:` (sound unit K's insert J;
 `snd.fxJ:` for sound unit 1's), `fx1:` and `fx2:` (the master slots),
-`host:pitch`, `host:amp`, or a module's parameter or gate input
+`host:pitch`, `host:pitch2`–`host:pitch4`, `host:pitchc`, `host:amp`, or a
+module's parameter or gate input
 (`lfo2.rate`, `env3:gate`); a `:` ends the unit when there is one, else the
 first `.`. The sound units and inserts need the slots flags (`--sound`,
 `--insert`): every unit loaded is bound, its first two inserts too.
@@ -333,15 +442,21 @@ the bases.
 **`--log-mod FILE.jsonl`**: one line per tick, with `k` (the tick), `t`
 (its absolute frame), `m` (each module's effective parameters `v`, outputs
 `o` and gate edges `e` as [port, frame, level]), `g` (system gate edges as
-[id, frame, level]), `s` (each routed sink's base `b` and value `v`) and
-`w` (the tick's writes).
+[id, frame, level]), `s` (each routed sink's base `b` and value `v`), `w`
+(the tick's writes), `vo` (each voice sounding: [voice, sound unit, key,
+state, [[position, outputs…]…]]) and `vw` (the per-note offsets sent since
+the last tick, a new note's included: [frame, unit, key, index, offset],
+index 65535 the note's pitch).
 
 **`--list-mod`**: the kinds with every parameter's uid and flags, their
 ports, the system sources and the host parameters, as JSON.
 
 **The summary** adds `mod_bytes`, `mod_ticks`, `mod_writes` (and the sound's
 and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
-`mod_splits`, `mod_edges_dropped` and `mod_nonfinite`, only with `--mod`.
+`mod_splits`, `mod_edges_dropped` and `mod_nonfinite`, and for voices
+`mod_refused_bits`, `mod_voice_slots`, `mod_poly`, `mod_voice_cap`,
+`mod_voice_bytes`, `mod_voice_starts`, `mod_voice_steals`, `mod_voice_ends`
+and `mod_voice_writes`, only with `--mod`.
 
 ### Determinism and memory
 
@@ -362,8 +477,9 @@ and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
   gives, with the same splits, through the sequencer or not, effects
   included [verified: `test_zero_route_identity`]. The bridge change
   itself changed no render: see "No render changed" below.
-- **Size.** `fm1_mod_size()` is 23,200 B since Gate (22,368 B in MG3,
-  20,016 B in MG1): the 8,192 B arena and 15,008 B of fixed state, the same in 32- and 64-bit
+- **Size.** `fm1_mod_size()` is 26,192 B since MG9 (23,200 B since Gate,
+  22,368 B in MG3, 20,016 B in MG1): the 8,192 B arena and 18,000 B of
+  fixed state, the same in 32- and 64-bit
   builds (no pointers, every 64-bit member 8-aligned) [verified: pinned in
   the tests, which CI's `-m32` job runs]. MG3's sound units and inserts
   share a pool of 180 parameter records (HOST takes two; 160 in MG3, until
@@ -372,7 +488,12 @@ and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
   an engine that needs more records than are left fails (its cables are
   refused), which today's engines never reach: four sound units and ten
   effects need at most 180 with HOST's two [verified: `test_the_record_pool_holds_every_chain`].
-  RTRG added 48 B. The MG1 figures below are MG1's. docs/16 §4.1 estimated 4,480 B of fixed state. The difference is
+  RTRG added 48 B. MG9 added 2,992 B: twelve voice records of 168 B and
+  their counters and generator (2,032 B), each sound unit's KEY, TRIG and
+  RTRG with their windows and key sets (620 B), HOST's four new records
+  with their write room (164 B) and the per-voice plan (about 150 B)
+  [inferred from `mod_int.h`; the total verified]. The MG1 figures below
+  are MG1's. docs/16 §4.1 estimated 4,480 B of fixed state. The difference is
   mostly copies: each effect and the sound's parameter ranges (1,920 B, so
   the state needs no pointer to an engine), bases, sent values and offsets
   per sink parameter (1,536 B), effective module parameters for the UI and
@@ -392,7 +513,8 @@ and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
 
 ### What MG1 leaves for later
 
-- **The simulator** (MG3, built 2026-10-02 behind the lab switch): RACK,
+- **The simulator** (MG3, built 2026-10-02 behind a lab switch, public
+  since 2026-10-05): RACK,
   MATRIX, CHAIN and the routing gesture; the app hosts the glue
   (docs/16 §8, "MG3, as built").
 - **Locks on module parameters and slot depths** (MG6). Locks on the

@@ -444,4 +444,5 @@ extern "C" const fm1_engine_t fm1_engine_sixop = {
   fm1::sixop::Set, fm1::sixop::Render,
   fm1::sixop::SetNote,
   0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };

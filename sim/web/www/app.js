@@ -6,19 +6,6 @@
 
 import { BUTTONS, ENCODERS, KEYS } from './fm1-wasm.mjs';
 
-// The lab switch (sim/web/README.md, "The lab switch"): an address with a
-// `lab` query parameter or hash (?lab, #lab) turns on sequencer features
-// that are still being built; the public page hides them until step entry
-// and recording work (the owner's decision O24 in docs/15).
-const LAB = (() => {
-  try {
-    const u = new URL(window.location.href);
-    return u.searchParams.has('lab') || u.hash.replace(/^#/, '').split(/[&,;]/).includes('lab');
-  } catch (err) {
-    return false;
-  }
-})();
-
 // ---- panel geometry, millimetres --------------------------------------------
 // Case 161.5 x 96.5 mm (M-VAVE manual, specifications). Control centres
 // measured on the owner's board photo (photos/2026-09-29/3-top.jpg) at
@@ -188,7 +175,7 @@ const image = new ImageData(240, 240);
 
 const sim = {
   ctx: null, node: null, analyser: null, catalog: null, state: null, master: 0.75,
-  requestedRate: null, screens: 0, midi: null, notice: '', lab: LAB, seq: null,
+  requestedRate: null, screens: 0, midi: null, notice: '', seq: null, dx7: null,
 };
 window.fm1 = sim;    // for the headless screenshot test and the console
 
@@ -266,11 +253,12 @@ async function start() {
     node.connect(ctx.destination);
     node.connect(analyser);
     Object.assign(sim, { ctx, node, analyser, notice: '' });
-    node.port.postMessage({ type: 'init', wasm, master: sim.master, lab: LAB }, [wasm]);
+    node.port.postMessage({ type: 'init', wasm, master: sim.master }, [wasm]);
     await ctx.resume();
     overlay.hidden = true;
     powerEl.classList.add('on');
     document.getElementById('power-off').disabled = false;
+    dx7Button.disabled = false;
   } catch (err) {
     if (ctx && ctx !== sim.ctx && ctx.state !== 'closed') await ctx.close();
     await powerOff();
@@ -285,6 +273,7 @@ async function powerOff() {
   overlay.hidden = false;
   powerEl.classList.remove('on');
   document.getElementById('power-off').disabled = true;
+  dx7Button.disabled = true;
   for (const s of selects) s.disabled = true;
   for (const g of [...keyEls, ...buttonEls]) g.classList.remove('lit');
   for (const c of [tft, mirror]) c.getContext('2d').clearRect(0, 0, 240, 240);
@@ -305,10 +294,9 @@ function onWorklet(m, node) {
     case 'state':
       sim.state = m;
       selects.forEach((s, u) => { s.value = String(m.units[u]); });
-      if (LAB) {                   // multi-sound: the current sound; Sound 1 is never empty
-        soundLabel.textContent = `Sound ${m.sound + 1} (PRESETS)`;
-        if (selects[0].options.length) selects[0].options[0].disabled = m.sound === 0;
-      }
+      // Multi-sound: the menu is the current sound's; Sound 1 is never empty.
+      soundLabel.textContent = `Sound ${m.sound + 1} (PRESETS)`;
+      if (selects[0].options.length) selects[0].options[0].disabled = m.sound === 0;
       showStatus();
       break;
     case 'screen':
@@ -336,6 +324,11 @@ function onWorklet(m, node) {
       showStatus();
       break;
     }
+    case 'dx7-loaded':
+      sim.dx7 = m;
+      sim.notice = dx7Message(m);
+      showStatus();
+      break;
     case 'error':
       statusEl.textContent = `The firmware did not start: ${m.message}`;
       break;
@@ -349,9 +342,9 @@ function fillSelects() {
   const fx = sim.catalog.filter((e) => e.kind === 'audio_fx');
   const opts = (list, none) => (none ? '<option value="-1">(none)</option>' : '') +
     list.map((e) => `<option value="${e.index}">${e.name}</option>`).join('');
-  // With the lab switch, Sounds 2-4 can be empty (multi-sound): the list
-  // shows it, and choosing it for Sound 1 is refused.
-  selects[0].innerHTML = opts(sounds, LAB);
+  // Sounds 2-4 can be empty (multi-sound): the list shows it, and choosing
+  // it for Sound 1 is refused.
+  selects[0].innerHTML = opts(sounds, true);
   selects[1].innerHTML = opts(fx, true);
   selects[2].innerHTML = opts(fx, true);
   for (const s of selects) s.disabled = false;
@@ -373,7 +366,7 @@ function showStatus() {
   const latency = sim.ctx.outputLatency || sim.ctx.baseLatency || 0;
   const ram = (b) => `${Math.ceil(b / 1024)} KB`;
   const q = sim.seq;
-  const seq = LAB && q ? ` Sequencer: ${(q.bpm_x100 / 100).toFixed(2)} BPM, ` +
+  const seq = q ? ` Sequencer: ${(q.bpm_x100 / 100).toFixed(2)} BPM, ` +
     `${q.recording ? 'recording' : q.counting_in ? 'counting in' : q.playing ? 'playing' : 'stopped'}` +
     `${q.following ? ' (external clock)' : ''}.` : '';
   statusEl.textContent = `Running at ${rate.toLocaleString('en')} Hz${fellBack}, 64-frame blocks, ` +
@@ -394,6 +387,131 @@ function drawScreen(px) {
   if (!document.getElementById('mirror').hidden) mirror.getContext('2d').putImageData(image, 0, 0);
   ++sim.screens;
 }
+
+// ---- DX7 patches: .syx files into FM6's user slots ----------------------------------
+// Load DX7 patches... or files dropped on the page. Each file is read here,
+// in the browser, and its bytes go to the firmware in the AudioWorklet
+// (worklet.js, fm1w_dx7_load), which checks them (the dump's header, its
+// length, its checksum), stores the voices in FM6's user bank and makes the
+// current sound play the first; nothing is uploaded or fetched. The
+// firmware reads files up to its text buffer's 64 KiB.
+const DX7_MAX_BYTES = 65536;
+const dx7Button = document.getElementById('dx7-load');
+const dx7Input = document.getElementById('dx7-file');
+const dropHint = document.getElementById('drop-hint');
+const plural = (n, one, many) => `${n.toLocaleString('en')} ${n === 1 ? one : many}`;
+
+// What the firmware said about a file (worklet.js's dx7-loaded), in words.
+function dx7Message(m) {
+  const [status, voices, first, messages, bad, foreign, truncated, wrongSize, raw, outside, played, sound] = m.result;
+  const file = `"${m.file}"`;
+  if (status === -1) {
+    return `${file} was not loaded: at ${Math.ceil(m.size / 1024).toLocaleString('en')} KB it is larger than ` +
+      `the ${DX7_MAX_BYTES / 1024} KB the simulator reads. A bank of 32 voices is 4,104 bytes.`;
+  }
+  if (status === -2) return `${file} was not loaded: this build has no FM6.`;
+  if (status === 0) {
+    const formats = 'DX7 patches come as a single voice (163 bytes: F0 43 0n 00 01 1B, 155 data bytes, ' +
+      'a checksum, F7) or a bank of 32 (4,104 bytes: F0 43 0n 09 20 00, 4,096 data bytes, a checksum, F7).';
+    if (m.size === 0) return `${file} was not loaded: it is empty. ${formats}`;
+    if (wrongSize) {
+      return `${file} was not loaded: its DX7 ${plural(wrongSize, 'dump has', 'dumps have')} the wrong length. ${formats}`;
+    }
+    if (truncated) return `${file} was not loaded: it is cut short (a SysEx message without its closing F7). ${formats}`;
+    if (foreign) {
+      return `${file} was not loaded: it holds SysEx, but ${plural(foreign, 'message', 'messages')} of another kind ` +
+        `and no DX7 voice or bank. ${formats}`;
+    }
+    return `${file} was not loaded: it is not SysEx. ${formats}`;
+  }
+  const last = (first + voices - 1) % 32;
+  // Past User 32 and round to User 1: "User 31 to 32 and 1 to 3", "User 32 and 1".
+  const span = (a, b) => (a === b ? `${a}` : `${a} to ${b}`);
+  const where = voices >= 32 ? 'User 1 to 32' : voices === 1 ? `User ${first + 1}`
+    : last > first ? `User ${span(first + 1, last + 1)}` : `User ${span(first + 1, 32)} and ${span(1, last + 1)}`;
+  let text = `Loaded ${plural(voices, 'voice', 'voices')} from ${file}${raw ? ' (bank data without SysEx framing)' : ''} ` +
+    `into FM6's ${where}.`;
+  if (played === 0) text += ` Sound ${sound + 1} plays ${m.names[first] || `User ${first + 1}`}; ALGORITHM steps through them.`;
+  else if (played < 0) text += ` Sound ${sound + 1} could not change to FM6 (the chain would not fit the FM-1's RAM).`;
+  if (bad) {
+    text += ` ${plural(bad, 'dump had', 'dumps had')} a wrong checksum and ${bad === 1 ? 'was' : 'were'} loaded ` +
+      'anyway, as DX7 editors do: the file may be damaged.';
+  }
+  // Each dump is one voice or a bank of 32: voices = singles + 32 banks and
+  // messages = singles + banks (raw bank data is one bank and no message).
+  // More than 32 voices means some replaced others.
+  const banks = raw ? 1 : (voices - messages) / 31;
+  if (banks > 1) {
+    text += ` The file held ${plural(banks, 'bank', 'banks')}; each fills all 32 slots, so the last one counts.`;
+  } else if (voices > 32) {
+    text += ` The file held ${plural(voices, 'voice', 'voices')}, more than the 32 slots, so the later ones ` +
+      'replaced the earlier ones.';
+  }
+  const skipped = foreign + truncated + wrongSize;
+  if (skipped) text += ` ${plural(skipped, 'other or broken message was', 'other or broken messages were')} skipped.`;
+  if (outside && !raw) text += ` ${plural(outside, 'byte', 'bytes')} outside SysEx ${outside === 1 ? 'was' : 'were'} ignored.`;
+  return text;
+}
+
+async function loadDx7Files(files) {
+  if (!sim.node) {
+    sim.notice = '';
+    statusEl.textContent = 'Power on first, then load DX7 patches.';
+    return;
+  }
+  for (const file of files) {
+    if (file.size > DX7_MAX_BYTES) {
+      // Not read at all: refused here, as the firmware would refuse it.
+      sim.notice = dx7Message({ file: file.name, size: file.size, result: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0], names: [] });
+      showStatus();
+      continue;
+    }
+    let bytes;
+    try {
+      bytes = new Uint8Array(await file.arrayBuffer());
+    } catch (err) {
+      sim.notice = `"${file.name}" could not be read: ${err.message || err}`;
+      showStatus();
+      continue;
+    }
+    sim.node.port.postMessage({ type: 'dx7-load', file: file.name, bytes }, [bytes.buffer]);
+  }
+}
+
+dx7Button.addEventListener('click', () => dx7Input.click());
+dx7Input.addEventListener('change', () => {
+  const files = [...dx7Input.files];
+  dx7Input.value = '';                     // the same file can be chosen again
+  dx7Button.blur();                        // the keys play the instrument again
+  loadDx7Files(files);
+});
+
+// Dragging files over the page shows where to drop them; anything else
+// dragged (text, a link) is left to the browser.
+const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+let dragDepth = 0;
+window.addEventListener('dragenter', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  ++dragDepth;
+  dropHint.hidden = false;
+});
+window.addEventListener('dragover', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+});
+window.addEventListener('dragleave', (e) => {
+  if (!hasFiles(e)) return;
+  if (--dragDepth <= 0) { dragDepth = 0; dropHint.hidden = true; }
+});
+window.addEventListener('drop', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  dropHint.hidden = true;
+  loadDx7Files([...e.dataTransfer.files]);
+});
 
 // ---- pointer input ---------------------------------------------------------------
 const active = new Map();   // pointerId -> release function
@@ -535,12 +653,12 @@ function setMaster(pos) {
 // then.
 const heldKeys = new Map();   // event.code -> release function
 const OCT_KEYS = { KeyZ: 'OCT-', KeyX: 'OCT+' };
-// Lab, SEQ mode (the owner's decision O19 in docs/15): the 16 steps, white
-// keys 1-16, on keys the instrument does not use, and Shift as SEL (SHIFT).
+// SEQ mode (the owner's decision O19 in docs/15): the 16 steps, white keys
+// 1-16, on keys the instrument does not use, and Shift as SEL (SHIFT).
 const STEP_KEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8',
   'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM', 'Comma', 'Period', 'Slash'];
 const SEQ_MODE = 3;
-const inSeq = () => LAB && sim.state && sim.state.mode === SEQ_MODE;
+const inSeq = () => sim.state && sim.state.mode === SEQ_MODE;
 
 function releaseKeys() {
   const releases = [...heldKeys.values()];
@@ -587,9 +705,9 @@ function keydown(e) {
       () => { g.classList.remove('down'); send({ type: 'button', button, down: false }); });
     return;
   }
-  // Lab: Space is PLAY/STOP, unless a button (the panel's, handled above,
+  // Space is PLAY/STOP (O19), unless a button (the panel's, handled above,
   // the page's or the power switch) has focus and Space presses that.
-  if (LAB && e.code === 'Space' && !(focused && (focused.tagName === 'BUTTON' ||
+  if (e.code === 'Space' && !(focused && (focused.tagName === 'BUTTON' ||
       (focused.classList && focused.classList.contains('power'))))) {
     e.preventDefault();
     if (e.repeat) return;
@@ -599,7 +717,7 @@ function keydown(e) {
       () => { g.classList.remove('down'); send({ type: 'button', button, down: false }); });
     return;
   }
-  // Lab, SEQ mode: Shift holds SEL, which is SHIFT there; the step keys
+  // SEQ mode: Shift holds SEL, which is SHIFT there; the step keys
   // press white keys 1-16. Their releases go where the press went, whatever
   // the mode is by then.
   if (inSeq() && (e.code === 'ShiftLeft' || e.code === 'ShiftRight')) {
@@ -712,10 +830,6 @@ function revealScreen() {
 }
 
 // ---- wiring --------------------------------------------------------------------------
-if (LAB) {
-  for (const e of document.querySelectorAll('[data-lab]')) e.hidden = false;
-  for (const e of document.querySelectorAll('[data-lab-off]')) e.hidden = true;
-}
 drawPanel();
 setAngle(masterEl, -150 + 300 * sim.master);
 revealScreen();

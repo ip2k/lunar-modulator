@@ -30,7 +30,10 @@ import pytest
 
 from tests.engine_helpers import RATE, cents, pitch_hz, render, renderer  # noqa: F401
 
-PER_NOTE = ["macro", "macro-heavy", "shapes", "sixop"]
+PER_NOTE = ["macro", "macro-heavy", "shapes", "sixop", "dx7"]
+# Drums takes per-note offsets too, on its pads' notes only (36-51), which
+# the pitched scripts here do not play: tests/test_engine_drums.py checks it.
+PER_NOTE_KITS = ["drums"]
 
 # A sustained, deterministic voice per engine (no shared random numbers, so
 # notes rendered apart are the notes rendered together), and a parameter
@@ -40,6 +43,7 @@ TONE = {
     "macro-heavy": dict(params=["Model=4", "Decay=0.8"], loud="Timbre"),
     "shapes": dict(params=["Shape=0", "Release=0.7"], loud="Timbre"),
     "sixop": dict(params=["Patch=40"], loud="Brightness"),
+    "dx7": dict(params=["Patch=14"], loud="Brightness"),   # BRASS: held, no LFO depth
 }
 
 
@@ -104,11 +108,13 @@ def at(name, value):
     return f"{name}={value:.6g}"
 
 
-def test_only_four_engines_take_per_note_offsets(listing):
+def test_which_engines_take_per_note_offsets(listing):
     """Sophie keeps its voices inside the module, out of the shim's reach;
     effects have no notes; Test Sine stays the engine without them."""
-    assert sorted(e for e, v in listing.items() if v["per_note"]) == sorted(PER_NOTE)
+    assert sorted(e for e, v in listing.items() if v["per_note"]) == sorted(PER_NOTE + PER_NOTE_KITS)
     assert [p["name"] for p in poly(listing, "sixop")] == ["Brightness", "Envelope", "Volume"]
+    assert [p["name"] for p in poly(listing, "dx7")] == ["Brightness", "Env Time", "Feedback",
+                                                         "Volume"]
     assert [p["name"] for p in poly(listing, "shapes")] == \
         ["Timbre", "Color", "Attack", "Release", "Volume"]
     for e in ("macro", "macro-heavy"):   # every FLOAT
@@ -238,6 +244,7 @@ MODELS = {
     "macro-heavy": [f"Model={m}" for m in range(13)],
     "shapes": [f"Shape={s}" for s in range(0, 47, 3)],
     "sixop": [f"Patch={p}" for p in (0, 11, 32, 49, 62, 77, 95)],
+    "dx7": [f"Patch={p}" for p in (0, 6, 11, 14, 18, 21, 25, 28, 31, 32)],
 }
 
 
@@ -279,6 +286,7 @@ PITCH_TONES = {
     "shapes": ["Shape=3", "Timbre=0", "Color=0"],
     "macro-heavy": ["Model=4", "Harmonics=0", "Timbre=0"],
     "sixop": ["Patch=40"],
+    "dx7": ["Patch=31"],              # PURE SINE
 }
 
 
@@ -372,6 +380,7 @@ SHORT = {
     "macro-heavy": ["Model=4", "Decay=0.1"],
     "shapes": ["Shape=0", "Release=0.1"],
     "sixop": ["Patch=49", "Envelope=0.3"],
+    "dx7": ["Patch=5"],               # MARIMBA
 }
 
 
@@ -450,6 +459,7 @@ IGNORED = {   # indices that are not POLY: the ENUMs, past the table, and far pa
     "macro-heavy": ["#0", "#11", "#12", "#999", "#65534"],
     "shapes": ["#0", "#6", "#999", "#65534"],
     "sixop": ["#0", "#4", "#999", "#65534"],
+    "dx7": ["#0", "#5", "#999", "#65534"],
 }
 
 
@@ -520,18 +530,16 @@ def test_offsets_do_not_depend_on_the_host_block(renderer, tmp_path, listing, en
     assert outs[1] == outs[0] and outs[2] == outs[0]
 
 
-# Braids faults past MIDI 127 on several shapes and at two shapes' Timbre
-# ends without any per-note offset (engines/README.md, "Open questions"), so
-# Shapes keeps key + bend + offset within 0..127 here and leaves out Comb
-# (Timbre 0 on low keys) and Wave Line (Timbre 1).
-BRAIDS_EDGE_FAULTS = {15, 39}
+# Shapes holds Braids inside the range its code handles (MIDI 0..127.99, and
+# Comb's and Wave Line's Timbre ends; engines/README.md, "Shapes: where
+# Braids is held"), so every shape takes the full extremes here too.
 EXTREME_MODELS = {
     "macro": [f"Model={m}" for m in range(8)],
     "macro-heavy": [f"Model={m}" for m in range(13)],
-    "shapes": [f"Shape={s}" for s in range(47) if s not in BRAIDS_EDGE_FAULTS],
+    "shapes": [f"Shape={s}" for s in range(47)],
     "sixop": [f"Patch={p}" for p in range(0, 96, 5)],
+    "dx7": [f"Patch={p}" for p in range(0, 33, 2)],
 }
-EXTREME_KEYS = {"shapes": {"inf": (0, 31), "-inf": (96, 127)}}
 
 
 @pytest.mark.parametrize("engine", PER_NOTE)
@@ -539,10 +547,9 @@ EXTREME_KEYS = {"shapes": {"inf": (0, 31), "-inf": (96, 127)}}
 def test_extreme_offsets_render_finite(renderer, tmp_path, listing, engine, sign):
     """Every POLY parameter pinned at an end and the pitch offset at +/-48
     on top of a +/-48 bend, on the lowest and highest keys, every model
-    (Six-Op: every fifth patch; Shapes: within MIDI 0..127, all shapes but
-    two, above). Finite output; under the sanitizer build, no undefined
-    behaviour or out-of-bounds read either."""
-    keys = EXTREME_KEYS.get(engine, {}).get(sign, (0, 127))
+    (Six-Op: every fifth patch). Finite output; under the sanitizer build,
+    no undefined behaviour or out-of-bounds read either."""
+    keys = (0, 127)
     for model in EXTREME_MODELS[engine]:
         extra = ["--bend", f"0:{'' if sign == 'inf' else '-'}48", "--frames", "7"]
         for key in keys:

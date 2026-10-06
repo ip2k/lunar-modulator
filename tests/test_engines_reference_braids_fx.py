@@ -14,7 +14,9 @@ from the reference scaled the way the wrapper scales it.
   FM-1's 64-frame host blocks; plus host-block independence (odd sizes
   included), note-on timing, a retrigger's strike, the wrapper's velocity and
   release, and the shapes that draw random numbers, exactly against the same
-  random stream and statistically against Braids' firmware, chords included.
+  random stream and statistically against Braids' firmware, chords included;
+  and Braids' edges, where Shapes holds the pitch or Timbre and plays
+  upstream at the value it holds them to (test_engines_shapes_edges.py).
   At 44,118 Hz, where Shapes runs Braids at 96 kHz and resamples, the struck
   shapes decay as upstream's; every shape at that rate is matched against
   upstream resampled in test_engines_resampler.py.
@@ -135,11 +137,13 @@ def envelope(n, rate=BRAIDS_RATE, segments=None):
 
 
 def braids_ref(tmp_path, shape, key, point, samples, seed=None, strikes=None, jitter=False,
-               name=""):
+               name="", pitch=None, timbre=None):
+    """Upstream's oscillator at the key's pitch and the point's knobs, or at
+    a Braids pitch and Timbre int16 given outright."""
     wav = tmp_path / f"braids_{shape}_{key}_{seed}_{jitter}_{name}.wav"
-    cmd = [REF, "braids", "--shape", shape, "--pitch", key * 128,
-           "--timbre", knob16(point[0]), "--color", knob16(point[1]),
-           "--samples", samples, "--out", wav]
+    cmd = [REF, "braids", "--shape", shape, "--pitch", key * 128 if pitch is None else pitch,
+           "--timbre", knob16(point[0]) if timbre is None else timbre,
+           "--color", knob16(point[1]), "--samples", samples, "--out", wav]
     for b in strikes or ():
         cmd += ["--strike-block", b]
     if jitter:
@@ -153,7 +157,7 @@ def braids_ref(tmp_path, shape, key, point, samples, seed=None, strikes=None, ji
 
 
 def shapes_fm1(render, tmp_path, shape, key, point, seconds, frames=64, at=0.0, notes=None,
-               params=(), rate=BRAIDS_RATE):
+               params=(), rate=BRAIDS_RATE, extra=()):
     wav = tmp_path / f"shapes_{shape}_{key}_{frames}_{len(notes or ())}.wav"
     cmd = [render, "--engine", "shapes", "--param", f"Shape={shape}",
            "--param", f"Timbre={point[0]}", "--param", f"Color={point[1]}",
@@ -163,6 +167,7 @@ def shapes_fm1(render, tmp_path, shape, key, point, seconds, frames=64, at=0.0, 
     for n in notes or [f"{at}:{key}:127:100"]:
         cmd += ["--note", n]
     cmd += ["--rate", rate, "--frames", frames, "--seconds", seconds, "--out", wav]
+    cmd += list(extra)
     summary = run_json(cmd)
     assert summary["raw_peak"] < 0.98            # the bus limiter stays out
     wav_rate, (left, right) = read_wav(wav)
@@ -204,6 +209,36 @@ def test_shape_matches_braids(tools, tmp_path, shape, point):
         assert ref_summary["peak"] > 100, "a silent reference proves nothing"
         worst, rms_err = oscillator_error(ref, got)
         assert worst <= WORST_LSB and rms_err <= RMS_LSB, (key, worst, rms_err)
+
+
+# Where Braids faults, Shapes holds it at the nearest value it handles
+# (engines/src/mi_shapes.cc; engines/README.md, "Shapes: where Braids is
+# held"), and plays what upstream's oscillator plays there: (shape, key,
+# bend, knobs, Braids pitch, Timbre int16). Comb's Timbre stops where the
+# comb's pitch reaches MIDI -16 (16384 + 2 x (-2048 - pitch)); Wave Line's
+# at 32,255; Flute and the filter shapes' pitch at MIDI 127.99, 16,383.
+EDGES = [
+    (15, 0, 0, (0.0, 0.75), 0, 12288),
+    (15, 30, 0, (0.0, 0.25), 3840, 4608),
+    (39, 45, 0, (1.0, 0.75), 5760, 32255),
+    (39, 93, 0, (1.0, 0.25), 11904, 32255),
+    (31, 127, 48, (0.5, 0.5), 16383, None),
+    (17, 127, 48, (1.0, 0.25), 16383, None),
+    (18, 127, 48, (1.0, 0.25), 16383, None),
+    (19, 127, 48, (1.0, 0.75), 16383, None),
+    (20, 127, 48, (1.0, 0.75), 16383, None),
+]
+
+
+@pytest.mark.parametrize("shape,key,bend,point,pitch,timbre", EDGES)
+def test_shapes_at_braids_edges_matches_braids_at_the_clamp(tools, tmp_path, shape, key, bend,
+                                                            point, pitch, timbre):
+    render, _ = tools
+    ref_summary, ref = braids_ref(tmp_path, shape, key, point, 9600, pitch=pitch, timbre=timbre)
+    got, _ = shapes_fm1(render, tmp_path, shape, key, point, 0.1, extra=["--bend", f"0:{bend}"])
+    assert ref_summary["peak"] > 100, "a silent reference proves nothing"
+    worst, rms_err = oscillator_error(ref, got)
+    assert worst <= WORST_LSB and rms_err <= RMS_LSB, (worst, rms_err)
 
 
 # Shapes that step once per Braids block (struck envelopes, phase-increment

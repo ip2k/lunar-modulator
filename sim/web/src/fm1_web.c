@@ -3,19 +3,19 @@
  * (test/parity.mjs) call. No Emscripten runtime is used; the module is built
  * standalone and these names are exported as they are.
  *
- * Unit numbers (fm1_app.h, FM1_APP_UNITS): 0 is the sound, 1 and 2 the
- * effect slots in order (the master bus); with the lab switch, 3..5 are
- * sound units 1..3 and 6..13 the inserts (fm1w_sound_unit, fm1w_insert_unit
- * give them).
+ * Unit numbers (fm1_app.h, FM1_APP_UNITS): 0 is Sound 1, 1 and 2 the
+ * effect slots in order (the master bus), 3..5 sound units 1..3 and 6..13
+ * the inserts (fm1w_sound_unit, fm1w_insert_unit give them).
  * C99. MIT licence, like the rest of this repository.
  */
 #include "fm1_app.h"
 
 #include <stdint.h>
+#include <string.h>
 
 static fm1_app_t g_app;
 
-/* Multi-sound (lab switch; fm1_app.h's fm1_app_unit_*): sound units by
+/* Multi-sound (fm1_app.h's fm1_app_unit_*): sound units by
  * number 0..3, the user's Sounds 1..4. */
 int fm1w_sound_unit(int sound) { return fm1_app_sound_unit(sound); }
 int fm1w_insert_unit(int sound, int slot) { return fm1_app_insert_unit(sound, slot); }
@@ -29,6 +29,15 @@ void fm1w_unit_note_on(int sound, int note, int velocity) {
 void fm1w_unit_note_off(int sound, int note) { fm1_app_unit_note_off(&g_app, sound, note); }
 int fm1w_unit_route(int track, int sound) { return fm1_app_unit_route(&g_app, track, sound); }
 unsigned fm1w_ram_budget(void) { return FM1_APP_RAM_BUDGET; }
+
+/* The arpeggiator (engine API v3's MIDI effects): a sound's arp on or off,
+ * and its parameters by index (the catalogue lists it, kind "midi_fx"). */
+int fm1w_arp_on(int sound) { return fm1_app_arp_on(&g_app, sound); }
+int fm1w_arp_set_on(int sound, int on) { return fm1_app_arp_set_on(&g_app, sound, on); }
+void fm1w_arp_set_param(int sound, int index, float value) {
+  fm1_app_arp_set_param(&g_app, sound, index, value);
+}
+float fm1w_arp_get_param(int sound, int index) { return fm1_app_arp_get_param(&g_app, sound, index); }
 
 /* Text in: JavaScript writes a script line (later, a whole `movy1` set)
  * here and passes its length. 64 KiB holds the largest set an 8-track
@@ -105,17 +114,60 @@ int fm1w_seq_reset(int tracks) {
 /* Events dropped since init (0 unless a note may have hung). */
 unsigned fm1w_seq_dropped(void) { return (unsigned)fm1_app_seq_dropped(&g_app); }
 
-/* The lab switch (fm1_app_set_lab): the page turns it on for an address
- * with ?lab or #lab, before fm1w_default_chain, which then loads the demo
- * pattern. Off, the sequencer stays off the panel. */
-void fm1w_set_lab(int on) { fm1_app_set_lab(&g_app, on); }
+/* FM6's user bank (fm1_app.h, fm1_app_dx7_*): the page's "Load DX7
+ * patches" (www/app.js). JavaScript writes a .syx file's bytes into the text
+ * buffer, so a file of up to its 64 KiB (FM1_APP_DX7_FILE_MAX), and passes
+ * their count; with `play`, the current sound then plays the first voice
+ * loaded (fm1_app_dx7_play: it becomes FM6 if it is not). Nothing leaves the
+ * module. Returns the voices stored, 0 when the file held none, or -1 for a
+ * length past the buffer, -2 without FM6. fm1w_dx7_result's words say what
+ * the file held (fm1_dx7_sysex_result_t), for the page's message:
+ *   [0] the return value   [1] voices          [2] first slot (0-based)
+ *   [3] dumps found        [4] bad checksums   [5] foreign messages
+ *   [6] messages cut short [7] dumps of the wrong size
+ *   [8] 1 for a raw bank   [9] bytes outside SysEx messages
+ *   [10] fm1_app_dx7_play's result (1 when not asked)
+ *   [11] the current sound  [12] the length read
+ * and fm1w_dx7_name(slot) the name user slot `slot` shows (fm1_app_dx7_name). */
+static uint32_t g_dx7_result[13];
+
+int fm1w_dx7_load(unsigned len, int play) {
+  fm1_dx7_sysex_result_t r;
+  int n, played = 1;
+  if (len > sizeof g_text) {
+    n = -1;
+    memset(&r, 0, sizeof r);
+  } else {
+    n = fm1_app_dx7_load(&g_app, (const uint8_t *)g_text, len, &r);
+    if (n == FM1_APP_DX7_TOO_BIG) n = -1;
+    else if (n == FM1_APP_DX7_NO_FM6) n = -2;
+    if (n > 0 && play) played = fm1_app_dx7_play(&g_app, r.first_slot);
+  }
+  g_dx7_result[0] = (uint32_t)n;
+  g_dx7_result[1] = r.voices;
+  g_dx7_result[2] = r.first_slot;
+  g_dx7_result[3] = r.messages;
+  g_dx7_result[4] = r.bad_checksums;
+  g_dx7_result[5] = r.foreign;
+  g_dx7_result[6] = r.truncated;
+  g_dx7_result[7] = r.wrong_size;
+  g_dx7_result[8] = r.raw;
+  g_dx7_result[9] = r.outside;
+  g_dx7_result[10] = (uint32_t)played;
+  g_dx7_result[11] = (uint32_t)fm1_app_unit_current(&g_app);
+  g_dx7_result[12] = len;
+  return n;
+}
+
+const uint32_t *fm1w_dx7_result(void) { return g_dx7_result; }
+const char *fm1w_dx7_name(int slot) { return fm1_app_dx7_name(&g_app, slot < 0 ? 999u : (unsigned)slot); }
 
 /* Modulation (docs/16 MG3). fm1w_mod_reset builds a new, empty runtime
  * with `seed` (fm1_app_mod_reset), and fm1w_mod_text applies the first
  * `len` bytes of the text buffer as one line of fm1-render's --mod format
  * (engines/host/mod_script.h): 1, or 0 for a bad line or no runtime. The
- * parity test plays a scenario's modulation through them; the lab switch
- * builds the panel's own. */
+ * parity test plays a scenario's modulation through them; fm1w_init builds
+ * the panel's own, from the default rack. */
 void fm1w_mod_reset(unsigned seed) { fm1_app_mod_reset(&g_app, seed); }
 
 int fm1w_mod_text(unsigned len) {

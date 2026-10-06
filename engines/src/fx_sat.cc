@@ -91,12 +91,21 @@
  * render take effect at once. States below 1e-20 flush to zero (a filter's
  * two states together, below), so a tail ends in exact zeros.
  *
+ * Idle (fm1_fx_idle.h). After 2 s with Mix at 0 (asked for and landed),
+ * Master Sat idles: the filters, the DC blocker and Glue's envelope are
+ * cleared and a block is only the input guard, the same bits as Mix 0 gave.
+ * Mix away from 0 wakes it at the next render: every other value lands
+ * where it was set, and Mix stays at 0, the output the input, while
+ * everything runs from rest for the warm-up (SatWake); then Mix glides as
+ * above. Away from Mix 0 the code below does what it did before, in the
+ * same order: the same bits.
+ *
  * Cost, per frame (stereo): two two-pole filters, the curve and the DC
  * blocker per channel and one divide for Glue, about 100 operations; with
  * Glue above 0 the curve runs twice per channel (about 130), with Asymmetry
  * away from 0 it has ten terms instead of five (about 170 with Glue), and
- * during a Shape crossfade both curves run. Desktop timings are in
- * engines/README.md.
+ * during a Shape crossfade both curves run. Idle, only the input guard: two
+ * comparisons per sample. Desktop timings are in engines/README.md.
  *
  * Written in the C subset of C++11 so it would build as C99 unchanged apart
  * from the extern "C" linkage below. MIT licence, like the rest of this
@@ -104,6 +113,7 @@
  */
 
 #include "fm1_engine.h"
+#include "fm1_fx_idle.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -378,6 +388,11 @@ typedef struct SatInstance {
   SatFilter hp, lp;
   int shape_target, shape_from, shape_to;
   int primed;               /* 0 until the first render */
+  /* The idle path (fm1_fx_idle.h). */
+  uint32_t rest;            /* frames with Mix asked for and landed at 0 */
+  uint32_t rest_frames;     /* FM1_IDLE_REST_SECONDS in frames */
+  uint32_t warm;            /* frames of warm-up left: Mix held at 0 */
+  int idle;                 /* everything is stopped; the output is the input */
   SatChannel ch[2];
 } SatInstance;
 
@@ -493,6 +508,10 @@ static void *SatCreate(void *mem, const fm1_host_t *host) {
   }
   SatSnap(self);
   self->primed = 0;
+  self->rest = 0;
+  self->rest_frames = fm1_idle_frames_of(FM1_IDLE_REST_SECONDS, fs);
+  self->warm = 0;
+  self->idle = 0;
   return self;
 }
 
@@ -504,6 +523,42 @@ static void SatSet(void *s, uint16_t index, float v) {
   self->param[index] = fm1_param_clamp(&kSatParams[index], v);
   SatSetTarget(self, index);
 }
+
+#if FM1_FX_IDLE
+/* What an idle Master Sat outputs: the guarded input, as Mix 0 gives. */
+static void SatPass(float *lr, uint32_t frames) {
+  for (uint32_t i = 0; i < 2u * frames; ++i) lr[i] = SatGuard(lr[i]);
+}
+
+/* Leave idle: every value but Mix lands where it was set while nothing ran
+ * (nothing played it), Shape without a crossfade, the filters, the DC
+ * blocker and Glue's envelope start from rest (they were cleared), and Mix
+ * stays at 0, the output the input, for the warm-up: the longest of the
+ * band's two Butterworth filters' and the DC blocker's decay by
+ * FM1_IDLE_SETTLE_NEPERS. The blocker, at 10 Hz, sets it: 0.19 s at any
+ * rate. Shorter, the residual's DC (Asymmetry) and Glue's envelope on bass
+ * (which ratchets up over several cycles) would still be settling when Mix
+ * rises: -30 dB at a warm-up of 27 ms, the band filters' own, against
+ * -74 dB [verified: fm1-idle-test's cases, 2026-10-06]. Glue's envelope
+ * attacks in 2 ms; what a wake cannot give it back is the 200 ms release of
+ * a peak older than the wake (engines/README.md). */
+static void SatWake(SatInstance *self) {
+  self->idle = 0;
+  self->rest = 0;
+  for (int k = 0; k < S_COUNT; ++k) {
+    if (k != S_MIX) self->value[k] = self->target[k];
+  }
+  self->shape_from = self->shape_to = self->shape_target;
+  self->fade = 0.0f;
+  SatUpdateDerived(self);
+  float d = fm1_idle_svf_decay(self->hp.g, kSqrt2);
+  const float d_lp = fm1_idle_svf_decay(self->lp.g, kSqrt2);
+  const float d_dc = 2.0f * kPi * kDcHz / self->sample_rate;   /* -ln(dc_r) */
+  if (d_lp < d) d = d_lp;
+  if (d_dc < d) d = d_dc;
+  self->warm = fm1_idle_settle_frames(FM1_IDLE_SETTLE_NEPERS, d, 0x7FFFFFFFu);
+}
+#endif
 
 /* One channel's two filters: the band the curve sees. */
 SAT_INLINE float SatBand(SatChannel *h, const SatFilter *hp, const SatFilter *lp, float x) {
@@ -526,6 +581,15 @@ static void SatRender(void *s, float *lr, uint32_t frames) {
     SatSnap(self);
     self->primed = 1;
   }
+#if FM1_FX_IDLE
+  if (self->idle) {
+    if (self->target[S_MIX] == 0.0f) {   /* still pass-through */
+      SatPass(lr, frames);
+      return;
+    }
+    SatWake(self);
+  }
+#endif
   /* The per-channel state lives in locals for the block: lr may alias any
    * float, so working through self would reload it after every store. */
   SatChannel ch[2] = { self->ch[0], self->ch[1] };
@@ -534,8 +598,15 @@ static void SatRender(void *s, float *lr, uint32_t frames) {
   float squash = self->squash;
   for (uint32_t f = 0; f < frames; ++f) {
     int moving = 0;
+    int hold = 0;             /* warming up: Mix held at 0 */
+#if FM1_FX_IDLE
+    if (self->warm != 0u) {
+      --self->warm;
+      hold = 1;
+    }
+#endif
     for (int k = 0; k < S_COUNT; ++k) {
-      if (self->value[k] != self->target[k]) {
+      if (self->value[k] != self->target[k] && !(hold && k == S_MIX)) {
         self->value[k] = SatGlide(self->value[k], self->target[k], glide);
         moving = 1;
       }
@@ -604,6 +675,21 @@ static void SatRender(void *s, float *lr, uint32_t frames) {
       const float wet = g * x[c] + y;
       lr[2 * f + c] = mix != 0.0f ? x[c] + mix * (level * wet - x[c]) : x[c];
     }
+#if FM1_FX_IDLE
+    /* At rest: Mix asked for and landed at 0. */
+    if (mix == 0.0f && self->target[S_MIX] == 0.0f) {
+      if (++self->rest >= self->rest_frames) {
+        /* Idle from the next frame; a wake starts everything from rest. */
+        memset(ch, 0, sizeof(ch));
+        squash = 0.0f;
+        self->idle = 1;
+        SatPass(lr + 2u * (f + 1u), frames - f - 1u);
+        break;
+      }
+    } else {
+      self->rest = 0;
+    }
+#endif
   }
   self->squash = squash;
   self->ch[0] = ch[0];
@@ -627,6 +713,7 @@ const fm1_engine_t fm1_engine_sat = {
   SatSet, SatRender,
   NULL,                     // no notes, so no per-note offsets
   0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };
 
 #ifdef __cplusplus

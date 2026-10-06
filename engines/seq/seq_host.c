@@ -5,11 +5,14 @@
  * behaviour; lane labels resolve to parameter uids (engine API v2) when they
  * are set, and locks on NOLOCK parameters are refused. Dispatch can run a
  * control-rate hook (the modulation tick, docs/16 MG1) at its own frames,
- * splitting a render only where a tick writes. C99, no heap, no stdio. MIT
- * licence. */
+ * splitting a render only where a tick writes, and MIDI effects in front of
+ * the sounds (fm1_mfx_host.h), whose output joins the block's events. C99,
+ * no heap, no stdio. MIT licence. */
 #include "fm1_seq_host.h"
 
 #include <string.h>
+
+#include "fm1_mfx_host.h"
 
 static char lower(char c) { return c >= 'A' && c <= 'Z' ? (char)(c - 'A' + 'a') : c; }
 
@@ -50,6 +53,7 @@ void fm1_seq_host_init(fm1_seq_host_t *h, fm1_seq_t *seq, fm1_seq_ev_t *ev, uint
   h->cmd_n = 0;
   memset(h->dest, FM1_SEQ_HOST_NO_DEST, sizeof(h->dest));
   memset(&h->clock, 0, sizeof(h->clock));
+  h->mfx = NULL;
 }
 
 /* Every lane of track t, from the core's labels, against the bound engine.
@@ -237,9 +241,113 @@ static uint8_t dest_of_event(const fm1_seq_host_t *h, uint32_t k) {
   return dest_of(&ti);
 }
 
+uint8_t fm1_seq_host_dest(const fm1_seq_host_t *h, uint32_t k) {
+  return h->seq && k < h->n ? dest_of_event(h, k) : FM1_SEQ_HOST_NO_DEST;
+}
+
+/* ---- the block's events in dispatch order ----------------------------------
+ * The buffer's, and with MIDI effects each chain's output, merged by frame:
+ * at one frame, the buffer's events but its note-ons (offs, locks, the
+ * transport...), the chains' note-offs, the buffer's note-ons, the chains'
+ * note-ons; chains in order. Each source keeps its own order. */
+typedef struct {
+  const fm1_seq_ev_t *e;        /* the event, its kind without FM1_MFX_TAKEN */
+  int32_t k;                    /* its index in the buffer, or -1 for a chain's */
+  uint8_t dest;                 /* a chain's: the chain, as a slot */
+  uint8_t taken;                /* a buffer note a chain took: no engine gets it */
+} walk_ev_t;
+
+typedef struct {
+  const fm1_seq_host_t *h;
+  uint32_t frames;
+  uint32_t k;                   /* the buffer's next event */
+  uint32_t j[FM1_MFX_CHAINS];   /* each chain's next output */
+  fm1_seq_ev_t tmp;             /* the event handed out last */
+} walk_t;
+
+static void walk_init(walk_t *w, const fm1_seq_host_t *h, uint32_t frames) {
+  memset(w, 0, sizeof(*w));
+  w->h = h;
+  w->frames = frames;
+}
+
+static uint32_t clamp_frame(uint32_t f, uint32_t frames) { return f < frames ? f : frames; }
+
+/* A rank at one frame: 0 a buffer event but a note-on, 1 a chain's note-off,
+ * 2 a buffer note-on, 3 a chain's note-on. */
+static int walk_next(walk_t *w, walk_ev_t *out) {
+  const fm1_seq_host_t *h = w->h;
+  const fm1_mfx_t *m = h->mfx;
+  uint32_t bf = 0xFFFFFFFFu;
+  int br = 4, best = -1, bestr = 4;
+  uint32_t bestf = 0xFFFFFFFFu;
+  unsigned c;
+  if (w->k < h->n) {
+    const fm1_seq_ev_t *e = &h->ev[w->k];
+    bf = clamp_frame(e->frame, w->frames);
+    br = (e->kind & ~FM1_MFX_TAKEN) == FM1_SEQ_EV_NOTE_ON ? 2 : 0;
+  }
+  for (c = 0; m && c < FM1_MFX_CHAINS; ++c) {
+    const fm1_mfx_chain_t *ch = &m->chain[c];
+    if (w->j[c] < ch->n_out) {
+      const fm1_midi_ev_t *x = &ch->out[w->j[c]];
+      const uint32_t f = clamp_frame(x->frame, w->frames);
+      const int r = x->kind == FM1_MIDI_EV_NOTE_ON ? 3 : 1;
+      if (f < bestf || (f == bestf && r < bestr)) {
+        best = (int)c;
+        bestf = f;
+        bestr = r;
+      }
+    }
+  }
+  if (best < 0 && w->k >= h->n) return 0;
+  if (best < 0 || bf < bestf || (bf == bestf && br < bestr)) {
+    const fm1_seq_ev_t *e = &h->ev[w->k];
+    out->k = (int32_t)w->k++;
+    out->taken = (e->kind & FM1_MFX_TAKEN) != 0;
+    out->dest = 0;
+    if (out->taken) {
+      w->tmp = *e;
+      w->tmp.kind = (uint8_t)(e->kind & ~FM1_MFX_TAKEN);
+      out->e = &w->tmp;
+    } else {
+      out->e = e;
+    }
+    return 1;
+  }
+  {
+    const fm1_midi_ev_t *x = &m->chain[best].out[w->j[best]++];
+    w->tmp.tick = 0;
+    w->tmp.frame = x->frame;
+    w->tmp.kind = x->kind == FM1_MIDI_EV_NOTE_ON && x->b ? FM1_SEQ_EV_NOTE_ON : FM1_SEQ_EV_NOTE_OFF;
+    w->tmp.track = (uint8_t)(FM1_MFX_TRACK + (unsigned)best);
+    w->tmp.a = x->a;
+    w->tmp.b = (fm1_seq_val_t)(w->tmp.kind == FM1_SEQ_EV_NOTE_ON ? x->b : 0u);
+    out->e = &w->tmp;
+    out->k = -1;
+    out->dest = (uint8_t)best;
+    out->taken = 0;
+  }
+  return 1;
+}
+
+/* Where a walked event goes: a chain's to its slot, a buffer event as
+ * dest_of_event says; 0xFF for a note a chain took. */
+static uint8_t walk_dest(const fm1_seq_host_t *h, const walk_ev_t *x) {
+  if (x->taken) return FM1_SEQ_HOST_NO_DEST;
+  return x->k < 0 ? x->dest : dest_of_event(h, (uint32_t)x->k);
+}
+
+/* The MIDI effects' share of a dispatch, before any render. */
+static void mfx_begin(fm1_seq_host_t *h, uint32_t frames, int single) {
+  if (h->mfx) fm1_mfx_block(h->mfx, h, frames, single);
+}
+
 /* After a dispatch: each track's route, for the next block's note-offs. */
 static void dispatched(fm1_seq_host_t *h) {
   unsigned t;
+  uint32_t k;
+  for (k = 0; h->mfx && k < h->n; ++k) h->ev[k].kind &= (uint8_t)~FM1_MFX_TAKEN;
   for (t = 0; t < FM1_SEQ_MAX_TRACKS; ++t) {
     fm1_seq_track_info_t ti;
     h->dest[t] = h->seq && fm1_seq_get_track(h->seq, (uint8_t)t, &ti) ? dest_of(&ti)
@@ -247,6 +355,17 @@ static void dispatched(fm1_seq_host_t *h) {
   }
   h->cmd_n = 0;
   h->n = 0;
+}
+
+/* One hook write into a sink: a bend, a per-voice offset or a parameter. */
+static void apply_write(const fm1_seq_sink_t *sink, const fm1_seq_hook_write_t *w) {
+  if (w->note) {
+    if (sink->set_param_note) sink->set_param_note(sink->ctx, w->key, w->index, w->value);
+  } else if (w->bend) {
+    if (sink->pitch_bend) sink->pitch_bend(sink->ctx, w->value);
+  } else if (sink->engine && w->index < sink->engine->n_params) {
+    sink->set_param(sink->ctx, w->index, w->value);
+  }
 }
 
 /* The hook's tick at frame tf: when it writes to the sink, the render up to
@@ -264,14 +383,23 @@ static uint32_t run_tick(fm1_seq_host_t *h, const fm1_seq_hook_t *hk, uint32_t t
     }
     for (i = 0; i < n; ++i) {
       if (w[i].slot) continue;            /* another sound unit's: none here */
-      if (w[i].bend) {
-        if (sink->pitch_bend) sink->pitch_bend(sink->ctx, w[i].value);
-      } else if (sink->engine && w[i].index < sink->engine->n_params) {
-        sink->set_param(sink->ctx, w[i].index, w[i].value);
-      }
+      apply_write(sink, &w[i]);
     }
   }
   return next > tf ? next : tf + 1u;   /* always forward */
+}
+
+/* After a note-on reached slot s's sink at its frame: the hook's writes for
+ * that note (docs/16 MG9), at the same frame, so nothing renders between. */
+static void note_on_writes(const fm1_seq_hook_t *hk, uint32_t f, unsigned s, uint8_t key,
+                           const fm1_seq_sink_t *sink) {
+  const fm1_seq_hook_write_t *w = NULL;
+  uint32_t i, n;
+  if (!hk || !hk->note_on) return;
+  n = hk->note_on(hk->ctx, f, s, key, &w);
+  for (i = 0; w && i < n; ++i) {
+    if (w[i].slot == s) apply_write(sink, &w[i]);
+  }
 }
 
 /* One sink's share of the block: the events of tracks routed to the engine
@@ -281,7 +409,7 @@ static uint32_t run_tick(fm1_seq_host_t *h, const fm1_seq_hook_t *hk, uint32_t t
  * renders nothing. Leaves the buffer as it is. */
 static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm1_seq_sink_t *sink,
                       int slot, const fm1_seq_hook_t *hk) {
-  uint32_t k, cur = 0, tf = frames;
+  uint32_t cur = 0, tf = frames;
   if (hk) {
     uint32_t bpm = 0;
     int playing = 0;
@@ -293,13 +421,16 @@ static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm
     }
     tf = hk->begin(hk->ctx, frames, sink ? sink->engine : NULL, bpm, playing);
   }
-  for (k = 0; k < h->n; ++k) {
-    const fm1_seq_ev_t *e = &h->ev[k];
+  walk_t w;
+  walk_ev_t x;
+  walk_init(&w, h, frames);
+  while (walk_next(&w, &x)) {
+    const fm1_seq_ev_t *e = x.e;
     const uint32_t f = e->frame < frames ? e->frame : frames;
     int param = -1, to_engine = 0;
     if (sink && (e->kind == FM1_SEQ_EV_NOTE_ON || e->kind == FM1_SEQ_EV_NOTE_OFF ||
                  e->kind == FM1_SEQ_EV_LOCK)) {
-      const uint8_t d = dest_of_event(h, k);
+      const uint8_t d = walk_dest(h, &x);
       to_engine = !(d & 0x80u) && (slot < 0 || d == (unsigned)slot);   /* not MIDI or nowhere */
     }
     if (hk) {
@@ -308,7 +439,8 @@ static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm
       while (tf < frames && (tf < f || (tf == f && e->kind == FM1_SEQ_EV_NOTE_ON))) {
         tf = run_tick(h, hk, tf, &cur, block, sink);
       }
-      hk->event(hk->ctx, f, e, to_engine);
+      /* to_engine: 1 plus the slot the event plays (the one sink is 0). */
+      hk->event(hk->ctx, f, e, to_engine ? 1 + (slot < 0 ? 0 : slot) : 0);
     }
     if (!to_engine) continue;
     if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
@@ -323,6 +455,7 @@ static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm
     if (e->kind == FM1_SEQ_EV_NOTE_ON) {
       sink->note_on(sink->ctx, e->a, e->b);
       ++h->notes_to_engine;
+      note_on_writes(hk, f, slot < 0 ? 0u : (unsigned)slot, e->a, sink);
     } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
       sink->note_off(sink->ctx, e->a);
     } else {
@@ -349,6 +482,7 @@ void fm1_seq_host_dispatch(fm1_seq_host_t *h, uint32_t frames, float *block,
 void fm1_seq_host_dispatch_ticks(fm1_seq_host_t *h, uint32_t frames, float *block,
                                  const fm1_seq_sink_t *sink, const fm1_seq_hook_t *hk) {
   if (sink && sink->engine != h->engine) fm1_seq_host_bind(h, sink->engine);
+  mfx_begin(h, frames, 1);
   if (sink || hk) play_sink(h, frames, block, sink, -1, hk);
   dispatched(h);
 }
@@ -380,11 +514,7 @@ static uint32_t run_tick_slots(fm1_seq_host_t *h, const fm1_seq_hook_t *hk, uint
     const fm1_seq_sink_t *sink = s < n ? slots[s].sink : NULL;
     if (!sink) continue;
     slot_upto(h, &slots[s], &cur[s], tf);
-    if (w[i].bend) {
-      if (sink->pitch_bend) sink->pitch_bend(sink->ctx, w[i].value);
-    } else if (sink->engine && w[i].index < sink->engine->n_params) {
-      sink->set_param(sink->ctx, w[i].index, w[i].value);
-    }
+    apply_write(sink, &w[i]);
   }
   return next > tf ? next : tf + 1u;   /* always forward */
 }
@@ -397,9 +527,11 @@ static uint32_t run_tick_slots(fm1_seq_host_t *h, const fm1_seq_hook_t *hk, uint
 static void play_slots_hook(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_slot_t *slots,
                             unsigned n, const fm1_seq_hook_t *hk) {
   uint32_t cur[FM1_SEQ_HOST_HOOK_SLOTS];
-  uint32_t k, tf, bpm = 0;
+  uint32_t tf, bpm = 0;
   unsigned s;
   int playing = 0;
+  walk_t w;
+  walk_ev_t x;
   if (n > FM1_SEQ_HOST_HOOK_SLOTS) n = FM1_SEQ_HOST_HOOK_SLOTS;
   for (s = 0; s < FM1_SEQ_HOST_HOOK_SLOTS; ++s) cur[s] = 0;
   if (h->seq) {
@@ -409,19 +541,20 @@ static void play_slots_hook(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_sl
     playing = info.playing;
   }
   tf = hk->begin(hk->ctx, frames, n && slots[0].sink ? slots[0].sink->engine : NULL, bpm, playing);
-  for (k = 0; k < h->n; ++k) {
-    const fm1_seq_ev_t *e = &h->ev[k];
+  walk_init(&w, h, frames);
+  while (walk_next(&w, &x)) {
+    const fm1_seq_ev_t *e = x.e;
     const uint32_t f = e->frame < frames ? e->frame : frames;
     const fm1_seq_slot_t *sl = NULL;
     int param = -1;
     if (e->kind == FM1_SEQ_EV_NOTE_ON || e->kind == FM1_SEQ_EV_NOTE_OFF || e->kind == FM1_SEQ_EV_LOCK) {
-      const uint8_t d = dest_of_event(h, k);
+      const uint8_t d = walk_dest(h, &x);
       if (!(d & 0x80u) && d < n && slots[d].sink) sl = &slots[d];
     }
     while (tf < frames && (tf < f || (tf == f && e->kind == FM1_SEQ_EV_NOTE_ON))) {
       tf = run_tick_slots(h, hk, tf, cur, slots, n);
     }
-    hk->event(hk->ctx, f, e, sl != NULL);
+    hk->event(hk->ctx, f, e, sl ? 1 + (int)(sl - slots) : 0);
     if (!sl) continue;
     s = (unsigned)(sl - slots);
     if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
@@ -432,6 +565,7 @@ static void play_slots_hook(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_sl
     if (e->kind == FM1_SEQ_EV_NOTE_ON) {
       sl->sink->note_on(sl->sink->ctx, e->a, e->b);
       ++h->notes_to_engine;
+      note_on_writes(hk, f, s, e->a, sl->sink);
     } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
       sl->sink->note_off(sl->sink->ctx, e->a);
     } else {
@@ -455,6 +589,7 @@ void fm1_seq_host_dispatch_slots_ticks(fm1_seq_host_t *h, uint32_t frames,
   if (n && slots[0].sink && slots[0].sink->engine != h->engine) {
     fm1_seq_host_bind(h, slots[0].sink->engine);
   }
+  mfx_begin(h, frames, 0);
   if (hook) {
     play_slots_hook(h, frames, slots, n, hook);
   } else {

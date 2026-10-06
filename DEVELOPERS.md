@@ -131,13 +131,15 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** five swappable sound engines and twenty effects (Comb split
-  out of Filter since 2026-10-05), plus test engines, behind one C API, version 3
+- **The API:** six swappable sound engines and twenty-two effects (Comb
+  split out of Filter, Squash and Transient added on 2026-10-05), plus test
+  engines, behind one C API, version 3
   ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
   [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
   16-bit parameter flags with the LOG law for pitch- and time-like knobs, a
-  dB unit, and an optional effect extension that hands an effect a key
-  input, the tempo and beat position, and the transport's events.
+  dB unit, an optional effect extension that hands an effect a key
+  input, the tempo and beat position, and the transport's events, and pad
+  kits ([engines/README.md, "Pad kits"](engines/README.md#pad-kits)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
@@ -151,9 +153,22 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     - **Macro Heavy:** Plaits' other 13.
     - **Six-Op FM:** Plaits' DX7-style engine.
     - **Shapes:** Braids.
+    - **Drums:** Plaits' drum classes for its kicks, toms, snares and
+      hi-hats, in a 16-pad kit with a rim shot, clap, cowbell and cymbal of
+      our own, after Werner, Abel and Smith's TR-808 cowbell and cymbal
+      models ([`engines/README.md`](engines/README.md#drums)).
     - **Plate:** Rings' reverb, with a Freeze after Elements'.
     - **Room:** Clouds' reverb and diffuser.
     - **Ensemble and Diffuse:** Plaits' ensemble and diffuser.
+  - **FM6** is msfa, Google's FM core and the stock FM-1's (Apache-2.0,
+    vendored unmodified:
+    [`engines/third_party/msfa/UPSTREAM.md`](engines/third_party/msfa/UPSTREAM.md)),
+    with a voice, amplitude modulation, the loops of algorithms 4 and 6,
+    32 voices and a DX7 SysEx import of our own ([`engines/msfa.md`](engines/msfa.md)).
+    Its tables are const data, flash on the FM-1, made ahead of time
+    (`tools/msfa_tables.py`); the simulator loads `.syx` files into its user
+    slots. The name is borrowed, with thanks, from Felucca's FM6 engine
+    (hugelton), whose Apache-2.0 port of the same core is the test oracle.
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
     compatibility shim.
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
@@ -166,17 +181,22 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     bypass when flat), Master Sat (band-limited bus saturation with Glue,
     its curves' coefficients from Airwindows, Chris Johnson, MIT), Isolator
     (a three-band kill EQ), EQ (a three-band parametric equaliser), Hall (a
-    reverb on an eight-line feedback delay network, with Freeze) and Gate (a
-    noise gate with a Duck mode, after the DS201 and DS301 manuals) are our
-    own code
-    ([`engines/README.md`](engines/README.md#crush)).
+    reverb on an eight-line feedback delay network, with Freeze), Gate (a
+    noise gate with a Duck mode, after the DS201 and DS301 manuals) and
+    Transient (a transient shaper) are our own code
+    ([`engines/README.md`](engines/README.md#crush)). Squash (three
+    compressors: Snap, Mu and Split) ports Airwindows Pop3, Pressure4 and
+    ButterComp2 (Chris Johnson, MIT) to single precision without libm, and
+    the Limiter's Round mode ports ClipOnly2, both checked against the
+    upstream loops run in a container
+    ([`engines/README.md`](engines/README.md#squash)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
   checked sample for sample against upstream `Voice`
   ([`engines/README.md`](engines/README.md#macro-and-macro-heavy-page-3-the-envelope-and-the-gate)).
 - **Sample rates:** the Mutable engines run at their modules' own rates and
-  are resampled to the FM-1's 44,118 Hz: Braids at 96 kHz, Plaits at
-  47,872 Hz ([`engines/resampler.md`](engines/resampler.md)).
+  are resampled to the FM-1's 44,118 Hz: Braids at 96 kHz, Plaits (and
+  Drums) at 47,872 Hz ([`engines/resampler.md`](engines/resampler.md)).
 - **The output:** a host limiter on the bus keeps twelve voices started in
   phase under full scale [verified: `tests/test_engine_host.py`].
 - **The desktop renderer:** `fm1-render` plays notes, parameter changes and
@@ -231,11 +251,11 @@ nothing of ours in the path, and more than 400 tests compare the two.
   SEQ mode's Track view and a demo pattern (stage S3), step entry (S4),
   recording, step record and Capture (S5), eight tracks with mute, the
   Set, Clip and Track pages and a metronome click (S6), parameter locks
-  from the knobs (S8) and modulation (docs/16 MG3) work behind a lab
-  switch (`?lab` in the page's address; [`sim/web/README.md`](sim/web/README.md),
-  "The lab switch"); the public page keeps SEQ, PLAY/STOP, REC, ENV, LFO
-  and EDIT as "not in the simulator yet" until the owner opens it. Behind
-  the same switch, up to four sound units play at once, each with two
+  from the knobs (S8) and modulation (docs/16 MG3) work on the public page
+  ([`sim/web/README.md`](sim/web/README.md), "The sequencer, multi-sound
+  and modulation"; the user manual's chapters 7 and 8). They were behind a
+  lab switch (`?lab`) until 2026-10-05, when the owner opened them once
+  MG3 had landed. Up to four sound units play at once, each with two
   inserts and a level, mixed into the two effect slots as the master bus;
   each track plays the sound its route names, and a RAM meter refuses any
   choice that would not fit the FM-1 (docs/15 §3.16).
@@ -250,9 +270,18 @@ compiles no upstream code. The host supplies clock ticks or steps; the core
 has no tempo, so its output is the same at any block size. Its note ledger
 gives every note-on exactly one note-off. With octaves walked as one list, it
 plays Yarns' notes and rests step for step, checked against a Python rewrite
-of Yarns' loop [verified: `tests/test_engine_arp.py`]. It is not wired into
-the renderer or the virtual FM-1 yet: that needs the MIDI-effect contract of
-API v2 ([`engines/midi_fx/README.md`](engines/midi_fx/README.md)).
+of Yarns' loop [verified: `tests/test_engine_arp.py`]. Since 2026-10-06 it
+is engine API v3's first MIDI effect, `arp`, which fm1-render (`--mfx`) and
+the virtual FM-1 (ARP: a tap switches it on the current sound and opens its
+seven pages, a hold latches, ALGORITHM steps the stock FM-1's arp modes as
+presets) run in front of a sound on the sequencer's bridge, so the keys,
+MIDI IN and the sequencer's notes go through it, on the sequencer's ticks;
+the sequencer records the keys as played (owner, 2026-10-05). The two hosts
+play the same notes, byte for byte, at any block size [verified:
+`tests/test_engine_midi_fx.py`, `tests/test_sim_arp.py`, the `arp-*` parity
+scenarios] ([`engines/midi_fx/README.md`](engines/midi_fx/README.md),
+[`sim/web/README.md`](sim/web/README.md), "The arpeggiator"; manual
+chapter 4, "Arpeggiator").
 
 ### The virtual FM-1
 
@@ -264,8 +293,15 @@ API v2 ([`engines/midi_fx/README.md`](engines/midi_fx/README.md)).
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 287 of its screens pass a layout check, with no text cut short
-  and nothing closer than 4 px.
+  canvas. All 3,288 screens of the layout sweep, the sequencer's,
+  modulation's and the arpeggiator's, FM6's user bank and every list popup
+  at every entry included, pass a layout check, with no text cut short and
+  nothing closer than 4 px [verified: `fm1-sim-render --screens`,
+  2026-10-06].
+- **What the panel does:** every engine and effect, four sounds with their
+  inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
+  modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); only SAVE is still
+  a stub. The user manual describes every control.
 - **On a phone:** the panel keeps keys 31–35 px wide and no target under
   24 px, and scrolls sideways in its own box.
 - **Self-contained:** the page loads nothing from anywhere else and finds its
@@ -536,7 +572,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Screen and controls refinement** · *In progress*
 - **Depends on:** the simulator (ongoing). On the device: the TFT strip
   driver, key matrix and encoders (I12), and one sized arena for the app
-  layer, whose `fm1_app_t` is 4,880,816 B today (4.5 MiB of it the fixed
+  layer, whose `fm1_app_t` is 4,915,120 B today (4.5 MiB of it the fixed
   arenas of multi-sound's four sound units and ten effect slots), the
   sequencer's arena included, against 578 KB of SRAM
   [verified: sim/web/README.md] (I2).
@@ -546,15 +582,16 @@ which lands with the plan PR; its stages S0–S7 are named below.
 - **Rough effort:** ongoing; the device drivers are part of I12 (6–10
   sessions).
 
-**Arpeggiator** · *Core built, not wired yet*
-- **Depends on:**
-  - the MIDI-effect slot (`FM1_KIND_MIDI_FX`, reserved [verified:
-    `fm1_engine.h` line 53]) with its API v2 contract: transport and tempo
-    in `fm1_host_t`, frame-stamped events, at least 32 outputs per call;
-  - the shared helpers and the tick clock (see MIDI effects);
-  - its own seeded xorshift generator, never the global `stmlib::Random`
-    that Macro's reference tests rely on [verified:
-    `stmlib/utils/random.h`; options note §2.3].
+**Arpeggiator** · *In the simulator (2026-10-06)*
+- **Done:** the MIDI-effect slot (`FM1_KIND_MIDI_FX` in engine API v3,
+  below) and its tick clock; the arp in fm1-render (`--mfx`) and the
+  virtual FM-1, with the ARP pages, latch, the stock presets and its LED;
+  its own seeded generator, never the global `stmlib::Random` that Macro's
+  reference tests rely on [verified: `stmlib/utils/random.h`; options note
+  §2.3].
+- **Still to do:** locks and routes on
+  its parameters; its step and random value as matrix sources; on the
+  device, the panel drivers and cycle counts (docs/14).
 - **Where it is planned:**
   - options note §2, stage S3: `fm1_arp`, our own C after Yarns'
     `ClockArpeggiator` (MIT: directions, 22 rhythm masks, Euclid, latch),
@@ -564,19 +601,30 @@ which lands with the plan PR; its stages S0–S7 are named below.
     effect, so ARP and SEQ run together);
   - [CHOMPI note](notes/2026-10-01-chompi-evaluation.md) step 3;
   - Deluge and Ansible (GPL) are design references only.
-- **Status:** the core is built and tested on the desktop, not wired
-  ([`engines/midi_fx/`](engines/midi_fx/README.md), 2026-10-02).
-- **Rough effort:** what is left is the slot, the clock feed and the ARP
-  pages [inferred].
+- **Status:** the core since 2026-10-02
+  ([`engines/midi_fx/`](engines/midi_fx/README.md)); in both hosts since
+  2026-10-06 ([`sim/web/README.md`](sim/web/README.md), "The
+  arpeggiator").
+- **Rough effort:** what is left is small: the locks and the sources
+  [inferred].
 
-**MIDI effects** · *Planned*
-- **Depends on:**
-  - the contract in API v2 (docs/13 M2): one `process()` per slot per block
-    on frame-stamped events, with a context holding the block's tick frames,
-    at least 64 outputs and note-offs never dropped;
-  - shared helpers: held-note stack, note ledger, scheduler, scale service,
-    seeded RNG;
-  - the block's tick frames from `fm1_seq`.
+**MIDI effects** · *In progress*
+- **Done (2026-10-06):** the contract in engine API v3, additive (docs/13
+  M2): an `fm1_midi_fx_t` around an `fm1_engine_t` of kind
+  `FM1_KIND_MIDI_FX`, one `process()` per slot per block on frame-stamped
+  events (`fm1_midi_ev_t`), with a context holding the block's tick frames
+  (from `fm1_seq`'s clock, playing or stopped, or the host's tempo), the
+  transport and the project key; at least 64 outputs; note-offs never
+  dropped; FLUSH at Stop, bypass and removal; a STEP at each of the
+  sequencer's trigs for the sound (RATE TRG). The host stage
+  (`engines/include/fm1_mfx_host.h`) keeps up to four slots in front of each
+  sound on the bridge both hosts share, a note-off following its note-on
+  [verified: engines/README.md, "MIDI effects"]. The arpeggiator is the
+  first; the virtual FM-1's panel fills the first slot.
+- **Depends on, for the rest:**
+  - shared helpers: held-note stack, note ledger, scheduler, scale service
+    (the project key is in the context already);
+  - a panel for the other three slots.
 - **Where it is planned:** [docs/12](docs/12-sequencer.md) §5.1;
   [docs/13](docs/13-movy-port.md) §6; the 2026-10-01 MIDI-effects study (to
   be written up in `notes/`).
@@ -590,15 +638,25 @@ which lands with the plan PR; its stages S0–S7 are named below.
   `fm1-render --mod` ([`engines/mod/README.md`](engines/mod/README.md#the-runtime)).
   Stage MG2 added thirteen modules: Function, Bounce, Register, Coin,
   Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix and a resonant
-  Filter, the Peaks and Braids parts checked against the original code
+  Filter (the Resonator since 2026-10-05), the Peaks and Braids parts
+  checked against the original code
   ([`engines/mod/kinds.md`](engines/mod/kinds.md)). Stage MG3 puts the
-  runtime in the virtual FM-1 behind the lab switch: the RACK, MATRIX and
+  runtime in the virtual FM-1, public since 2026-10-05: the RACK, MATRIX and
   CHAIN pages, the hold-and-turn routing gesture, cables into any of the
   four sound units, their inserts and the master effects, routed
   parameters marked on every page, and panel sessions that replay through
   `fm1-render --mod` byte for byte ([`sim/web/README.md`](sim/web/README.md),
-  "The lab switch"). Next: per-voice envelopes and LFOs (MG9, which the
-  owner has made essential).
+  "The sequencer, multi-sound and modulation"; manual chapter 8). Stage
+  MG9 (2026-10-06) adds modulation per voice, which the owner made
+  essential: a cable flagged VOICE runs once for every note, with that
+  note's own VEL, NOTE, RAND and gate and one instance of each Envelope,
+  LFO or Chance it reads, and reaches only that note through the engines'
+  per-note offsets; poly into mono is refused. With it the owner's MG3
+  answers: an unpatched envelope retriggers on every note, a pitch per
+  sound and the current sound's, note sources per sound, cables re-aimed
+  by name when an engine changes, and the Resonator
+  ([docs/16](docs/16-modulation.md) §8, "MG9, as built";
+  [`engines/mod/README.md`](engines/mod/README.md), "Voices (MG9)").
 - **Depends on:**
   - API v2 uids, SMOOTH and NOLOCK, plus a new MOD flag (docs/13 M2):
     built in docs/15 stage S7a, with INPUT, units and abbreviations for
@@ -618,10 +676,11 @@ which lands with the plan PR; its stages S0–S7 are named below.
     ADSR envelopes after Peaks' `MultistageEnvelope` (MIT), a CHANCE source,
     and a 16-slot bus of 6-byte slots `{source, unit, destination uid,
     amount, flags}` that writes `set_param`.
-  - **C2** (stage S6; docs/16 MG9): per-note sources. Their engine side is
-    built: API v2's `set_param_note(key, index, offset)` and the POLY flag
-    on Macro, Macro Heavy, Six-Op FM and Shapes, byte-identical without a
-    call [verified: engines/README.md, "Per-note offsets"].
+  - **C2** (stage S6; docs/16 MG9, built 2026-10-06): per-note sources.
+    The engine side: API v2's `set_param_note(key, index, offset)` and the
+    POLY flag on Macro, Macro Heavy, Six-Op FM, Shapes, FM6 and Drums,
+    byte-identical without a call [verified: engines/README.md, "Per-note
+    offsets"]; the runtime's side is MG9's voices.
   - Locks set the base and modulation adds an offset (rules M1–M7).
   - Plaits' own per-voice envelope can be exposed in Macro before C1 (stage
     S2).
@@ -634,7 +693,9 @@ which lands with the plan PR; its stages S0–S7 are named below.
 
 **More effects** · *Planned*
 - **Done so far (2026-10-05):** Crush, Fold, Drive, Echo, Filter, Comp,
-  Limiter, Hall and Gate, and the master-bus effects of the
+  Limiter, Hall, Gate and dynamics pack 3 (Squash, Transient, the Limiter's
+  Round mode, Comp's Auto Gain touching only would-be overs), and the
+  master-bus effects of the
   [2026-10-02 effects note](notes/2026-10-02-delay-reverb-eq-gates-options.md)
   (DJ Filter, Tilt, Master Sat, Isolator and EQ), our own code, and Room, a
   port of Clouds' reverb
@@ -642,7 +703,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
   controls (Filter's Type, Drive's Type and Auto, Comp's Character, Auto
   Rel and Auto Gain, the Limiter's Mode and Lookahead, DJ Filter's Slope,
   Tilt's Curve, Master Sat's Shape, Isolator's Kill, Hall's and Plate's
-  Freeze, the Gate's Mode, Listen, Link and Lookahead) change without a
+  Freeze, the Gate's Mode, Listen, Link and Lookahead, Squash's Type) change without a
   click, so they can be locked and modulated: the rule is that a switch
   that changes cleanly is lockable and modulatable
   ([`engines/README.md`](engines/README.md#parameters-engine-api-v2-and-v3)).
@@ -702,8 +763,11 @@ which lands with the plan PR; its stages S0–S7 are named below.
 
 **DX7 patches and SysEx, presets on the synth** · *Planned*
 - **Depends on:** the device firmware's USB-MIDI class and flash storage
-  (after the gate); an msfa engine: Six-Op FM is Plaits' DX7-style engine,
-  and `engines/` has no msfa [verified].
+  (after the gate). The engine side is there since 2026-10-05: FM6 runs
+  msfa, plays DX7 voices and reads single-voice and 32-voice dumps
+  (`engines/include/fm1_dx7.h`; `fm1-render --sysex` on the desktop)
+  [verified: tests/test_engines_dx7.py]; the simulator's import and the
+  device's SysEx over USB-MIDI are still to do.
 - **Where it is planned:** [docs/08](docs/08-roadmap.md) Phase 4; docs/13
   stage D.
 - **Rough effort:** not estimated.
@@ -811,9 +875,9 @@ modulation source, a MIDI effect, an audio effect, or another kind.
     flags, and `FM1_KIND_MIDI_FX` with its `process()`. Since docs/15 stage
     S7a every parameter has its uid and flags, and since 2026-10-05
     `FM1_ENGINE_API_VERSION` is 3 (16-bit flags, LOG, dB, the effect
-    extension); the MIDI-effect kind is still reserved [verified:
-    `fm1_engine.h`]. An SDK needs that contract settled and versioned first
-    [inferred];
+    extension), and since 2026-10-06 the MIDI-effect kind with its
+    `process()` [verified: `fm1_engine.h`]. An SDK needs those contracts
+    settled and versioned first [inferred];
   - the effects' tempo and beat position: in since API v3, as the per-call
     `fm1_fx_ext_t` rather than fields of `fm1_host_t`; the MOD flag is in
     since S7a;
@@ -981,7 +1045,8 @@ decide:
   for the preview; M-VAVE's loader or our own for install and rollback;
   whether the soft key may ever be sent to the owner's unit (not for the
   gate); whether to vendor Felucca's Apache-2.0 `fm6_core.c` as an msfa
-  oracle; whether to read V1.1.9's `system.a` with a modern `llvm-dis` in a
+  oracle (answered: yes, as FM6's test oracle only, 2026-10-05,
+  `engines/third_party/felucca-fm6/`); whether to read V1.1.9's `system.a` with a modern `llvm-dis` in a
   container on aeon (output kept in scratch) to see how `#C<n>` is parsed.
 - If the kit is late, whether to run the gate first with our RP2040 dongle.
   docs/08 Phase 2 allows it; docs/14 prefers the kit first.
@@ -1581,9 +1646,11 @@ The project in brief, the order of work, and where every document lives.
   - The board is silkscreened `DX7 MB V07`.
 - **The stock synth engine is Google's msfa, the Dexed core.** Verified in
   this repo: the 32-entry FM algorithm table from `fm_core.cc` sits
-  byte-for-byte at offset `0x8C46C` of the V13 application image (with the
-  Dexed-family fix for algorithms 4 and 6). The factory bank is reportedly
-  the DX7 ROM1A cartridge.
+  byte-for-byte at offset `0x8C46C` of the V13 application image, all 32
+  rows as Google's, algorithms 4 and 6 included (until 2026-10-05 those two
+  rows were described here as a Dexed-family fix; docs/02 §5). The factory
+  bank is reportedly the DX7 ROM1A cartridge. FM6 runs the same core
+  ([`engines/msfa.md`](engines/msfa.md)).
 - **Updates are plain USB-MIDI SysEx with CRC16 and no signature.** Two prior
   projects, [aroum/fm1-custom-fw](https://github.com/aroum/fm1-custom-fw) and
   [AL-255/FM-1-RE](https://github.com/AL-255/FM-1-RE), have reverse-engineered

@@ -71,7 +71,7 @@ static const fm1_param_t kParams[] = {
 #define N_PARAMS (sizeof(kParams) / sizeof(kParams[0]))
 static const fm1_engine_t kEngine = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "fake", "Fake", "", kParams,
-  (uint16_t)N_PARAMS, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL
+  (uint16_t)N_PARAMS, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, 0
 };
 /* A second engine that names Timbre and Bank too, at other uids and with
  * Bank lockable: a lane follows the engine it plays. */
@@ -81,7 +81,7 @@ static const fm1_param_t kOtherParams[] = {
 };
 static const fm1_engine_t kOther = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "other", "Other", "", kOtherParams,
-  2, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL
+  2, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, 0
 };
 #undef CONT
 
@@ -228,6 +228,7 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
   sink.note_off = t_off;
   sink.set_param = t_param;
   sink.pitch_bend = NULL;
+  sink.set_param_note = NULL;
   fm1_seq_set_route(a.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_set_route(b.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_host_bind(&b, &kEngine);   /* b never dispatches into a sink */
@@ -377,7 +378,7 @@ static const fm1_param_t kSpaced[] = {
 static const fm1_engine_t kSpacedEngine = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "spaced", "Spaced", "", kSpaced,
   (uint16_t)(sizeof(kSpaced) / sizeof(kSpaced[0])), 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-  NULL, NULL, 0, NULL
+  NULL, NULL, 0, NULL, 0, 0
 };
 
 static void value7_and_labels(void) {
@@ -466,6 +467,7 @@ static void hand_made_block(void) {
   sink.note_off = t_off;
   sink.set_param = t_param;
   sink.pitch_bend = NULL;
+  sink.set_param_note = NULL;
   CHECK(fm1_seq_apply_text(s, setup, sizeof(setup) - 1u, scratch, 16) == 0);
   fm1_seq_set_route(s, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_host_init(&h, s, ev, 16);
@@ -523,6 +525,7 @@ static void uids_and_refusals(void) {
   sink.note_off = t_off;
   sink.set_param = t_param;
   sink.pitch_bend = NULL;
+  sink.set_param_note = NULL;
   fm1_seq_host_init(&h, make(mem_text), ev, 16);
   CHECK(h.engine == NULL && h.locks_refused == 0);
   fm1_seq_set_route(h.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
@@ -693,11 +696,14 @@ static void hooked_block(void) {
   sink.note_off = t_off;
   sink.set_param = t_param;
   sink.pitch_bend = t_bend;
+  sink.set_param_note = NULL;
   hook.ctx = &fh;
   hook.begin = h_begin;
   hook.event = h_event;
   hook.lock = h_lock;
   hook.tick = h_tick;
+  hook.lock_slot = NULL;
+  hook.note_on = NULL;
   CHECK(fm1_seq_apply_text(s, setup, sizeof(setup) - 1u, scratch, 16) == 0);
   fm1_seq_set_route(s, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_host_init(&h, s, ev, 16);

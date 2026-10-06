@@ -2,16 +2,16 @@
 
 Thirteen module kinds join MG1's LFO, Envelope and Chance
 ([README.md](README.md#the-kinds)): the twelve of docs/16 §8's MG2 and a
-**Filter** the owner asked for on 2026-10-02. They run on the MG1 runtime
+**Filter** the owner asked for on 2026-10-02 (the **Resonator** since 2026-10-05, below). They run on the MG1 runtime
 unchanged, desktop only: `fm1-render --mod` plays them, and nothing in the
 simulator shows them yet (MG3).
 
 ```bash
 make -C engines                                   # fm1-render, fm1-mod-kinds-test, fm1-mod-mi-ref
 engines/build/fm1-render --list-mod               # every kind's parameters, uids, ports, sizes
-printf 'mod 1 filter cutoff=0.5 res=0.8\nslot 1 trig > flt1.ping\nslot 2 flt1.bp > snd:Timbre amt=40\n' > /tmp/w.mod
+printf 'mod 1 resonator cutoff=0.5 res=0.8\nslot 1 trig > res1.ping\nslot 2 res1.bp > snd:Timbre amt=40\n' > /tmp/w.mod
 engines/build/fm1-render --engine macro --note 0.1:60:100:1.5 --seconds 1.6 --mod /tmp/w.mod --out /tmp/w.wav
-engines/build/fm1-mod-kinds-test                  # behaviours, the Filter's response, fills, fuzz
+engines/build/fm1-mod-kinds-test                  # behaviours, the Resonator's response, fills, fuzz
 engines/build/fm1-mod-mi-ref                      # the Peaks and Braids ports against the originals
 python -m pytest tests/test_engines_mod_kinds.py  # all of it, golden traces, block sizes, chains
 python3 engines/mod/gen_mi_tables.py --check      # mod_mi_tables.c is current
@@ -31,7 +31,7 @@ python3 engines/mod/gen_mi_tables.py --check      # mod_mi_tables.c is current
 | Logic (`logic`, LOG) | own | A, B | OUT, NOT | 12 |
 | Calc (`calc`, CLC) | own | —; A, B | OUT, INV | 12 |
 | Mix (`mix`, MIX) | own | —; IN1–IN4 | SUM, AVG, INV | 4 |
-| Filter (`filter`, FLT) | own | PING; IN | OUT, LP, BP, HP | 40 |
+| Resonator (`resonator`, RES; MG2's Filter) | own | PING; IN | OUT, LP, BP, HP | 40 |
 
 - **Sizes** are `fm1-render --list-mod` on arm64 macOS [verified]; a
   `gcc -m32` build gives the same or less (its `uint64_t` aligns to 4)
@@ -289,7 +289,12 @@ SUM = clamp(Σ Gain_i × IN_i + Offset); AVG divides the sum by the inputs
 with a cable; INV = −SUM. Gain1–4 (uids 1–4) run −2..2; Offset is uid 5;
 IN1–4 (uids 6–9) are INPUTs.
 
-### Filter (FLT)
+### Resonator (RES; MG2's Filter)
+
+Renamed by the owner on 2026-10-05, so that Filter names the audio effect
+alone: its id is `resonator` and its abbreviation RES; its guid stays
+`FLT `, its uids are unchanged, and a script may still say `filter` and
+`flt1` (`fm1_mod_kind_find`'s aliases).
 
 The owner's request (2026-10-02): a filter for control signals whose
 outputs are matrix sources, which a gate can strike into a resonant
@@ -314,7 +319,7 @@ wobble.
 - **Why Cutoff is not in Hz:** the matrix adds amount × range to a
   parameter, linear in its units. On a 0–1 log scale a cable moves the
   cutoff by octaves, as LFO's Rate does. A UI shows it in Hz:
-  `fm1_mod_filter_hz` (`fm1_mod.h`) is the kind's own formula, and the
+  `fm1_mod_resonator_hz` (`fm1_mod.h`; `fm1_mod_filter_hz` until the rename) is the kind's own formula, and the
   virtual FM-1's RACK page draws Cutoff with it (`4.53 Hz` at 0.5; docs/16
   MG3).
 - **Strike:** the filter rings at its cutoff with an amplitude near Strike
@@ -322,7 +327,7 @@ wobble.
   PING lands at the tick it falls in.
 - **How it differs from Slew.** Slew limits the rate of change, or lags
   with one pole: it never overshoots and has no notion of frequency.
-  Filter is frequency-selective: LP smooths at 12 dB per octave and can
+  The Resonator is frequency-selective: LP smooths at 12 dB per octave and can
   overshoot and ring; BP and HP take out the slow part, so they centre a
   drifting signal and keep only its movement; a strike makes it an
   oscillator.
@@ -410,7 +415,7 @@ Linux x86-64 gcc, gcc `-m32` and clang ASan + UBSan in containers]:
 - **feedback:** Mix's SUM into its own IN1 plus 0.01 adds 0.01 a tick, in
   float, exactly; Slew → Compare → NOT → Slew is a relaxation oscillator
   whose period repeats to the frame;
-- the owner's case: a note strikes a resonant Filter whose BP moves Timbre
+- the owner's case: a note strikes a Resonator whose BP moves Timbre
   at 4.5 Hz and dies away;
 - `fm1-mod-kinds-test` also builds every kind from fills of 0x00, 0xA5 and
   0xFF (identical ticks), and runs each for 5,000 ticks with random and with
@@ -426,4 +431,4 @@ Linux x86-64 gcc, gcc `-m32` and clang ASan + UBSan in containers]:
   built (question 14).
 - **A Function with Maths' constant slope** (a retrigger that keeps the
   slope rather than the time) would be another Mode.
-- **A sub-tick strike.** Filter takes a PING at its tick, not its frame.
+- **A sub-tick strike.** The Resonator takes a PING at its tick, not its frame.

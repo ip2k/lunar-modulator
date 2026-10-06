@@ -37,6 +37,29 @@
 // voice with an offset plays the ramped value plus its offset, so its
 // offset rides on the ramp.
 //
+// Braids' edges (engines/README.md, "Shapes: where Braids is held"). The
+// vendored code stays as upstream wrote it, so the wrapper keeps every voice
+// inside what that code handles; ASan and UBSan found each edge, and
+// tests/test_engines_shapes_edges.py sweeps every shape, key, Timbre and
+// Color end and bend under them. Inside these ranges the output is what it
+// was before the clamps, byte for byte.
+// - The pitch stays within MIDI 0..127.99, as braids.cc clamps its own
+//   before set_pitch. Past it Flute reads its 128-entry body filter table
+//   beyond its end, and the four filter shapes' shifted pitch (from MIDI
+//   136 at high Timbre) and the Sync shapes' synced pitch (from MIDI 192)
+//   wrap their int16 and shift by 32 in ComputePhaseIncrement. Braids'
+//   oscillators stop rising at MIDI 128 anyway: both ComputePhaseIncrements
+//   saturate there.
+// - Comb's Timbre keeps the comb's own pitch, key + (Timbre - 0.5) x 64
+//   semitones, at MIDI -16 or above: below it ComputeDelay shifts by a
+//   negative count (keys 0..47 at Timbre 0). The comb's delay is already at
+//   its longest (8,192 samples, 11.7 Hz) from MIDI 6.2 down, so this
+//   changes no steady sound; only the comb's 4 ms glide out of that region
+//   starts nearer.
+// - Wave Line's Timbre stays at or below 32,255 of 32,767 (0.9844): above
+//   it the scan reads wave_line[64], one past the line's 64 waves. 32,255
+//   plays the line's last wave.
+//
 // MIT licence (this file). Not affiliated with or endorsed by Mutable
 // Instruments; engine names here are our own (docs/11 §7).
 
@@ -90,6 +113,29 @@ typedef NoteOffsets<P_TIMBRE, P_COUNT - P_TIMBRE> Offsets;
 const int kNumVoices = 12;
 const size_t kChunk = 24;        // Braids' internal buffers are 24 samples
 const float kNativeRate = 96000.0f;
+
+// Braids' edges, in its own units (1/128 semitone; Timbre 0..32,767); see
+// the top of this file.
+const int32_t kHighestPitch = 16383;          // MIDI 127.99, as braids.cc
+const int32_t kCombLowestPitch = -2048;       // MIDI -16: ComputeDelay's shift reaches 0
+const int16_t kWaveLineHighestTimbre = 32255; // scan >> 10 stays below 63
+
+// The Timbre a voice gives its oscillator at Braids pitch `pitch` (already
+// within 0..kHighestPitch): the knob's, unless that shape faults there.
+inline int16_t SafeTimbre(int shape, int16_t timbre, int32_t pitch) {
+  if (shape == MACRO_OSC_SHAPE_SAW_COMB) {
+    // RenderComb's pitch is pitch + ((timbre - 16384) >> 1), which is at
+    // least kCombLowestPitch exactly when timbre reaches this; 12,288 at
+    // key 0, and 0 or less from key 48 up.
+    const int32_t lowest = 16384 + 2 * (kCombLowestPitch - pitch);
+    if (timbre < lowest) return static_cast<int16_t>(lowest);
+  } else if (shape == MACRO_OSC_SHAPE_WAVE_LINE) {
+    // RenderWaveLine reads wave_line[(scan >> 10) + 1], and its scan never
+    // passes twice the highest timbre it has been given.
+    if (timbre > kWaveLineHighestTimbre) return kWaveLineHighestTimbre;
+  }
+  return timbre;
+}
 
 struct Voice {
   MacroOscillator osc;
@@ -249,6 +295,7 @@ class Instance {
   void RenderChunk() {
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this chunk's step of any ramp
     const Controls shared = MakeControls(value_);
+    const int shape = CurrentShape();
 
     // Mixed on the stack, then stored: accumulating straight into mix_ lets
     // the compiler assume it aliases v.env: 26-55 % more time on the desktop.
@@ -261,9 +308,9 @@ class Instance {
       if (v.note.has_pitch()) note += v.note.pitch;
       int32_t pitch = static_cast<int32_t>(note * 128.0f);
       if (pitch < 0) pitch = 0;
-      if (pitch > 32767) pitch = 32767;
+      if (pitch > kHighestPitch) pitch = kHighestPitch;
       v.osc.set_pitch(static_cast<int16_t>(pitch));
-      v.osc.set_parameters(c.timbre, c.color);
+      v.osc.set_parameters(SafeTimbre(shape, c.timbre, pitch), c.color);
       v.osc.Render(sync_, v.pcm, kChunk);
       const float target = v.gate ? v.velocity : 0.0f;
       const float k = v.gate ? c.attack : c.release;
@@ -277,8 +324,11 @@ class Instance {
     memcpy(mix_, mix, sizeof(mix_));
   }
 
+  // The Shape every oscillator plays (set at once: Shape is not SMOOTH).
+  int CurrentShape() const { return static_cast<int>(value_[P_SHAPE] + 0.5f); }
+
   void ApplyShape() {
-    int s = static_cast<int>(value_[P_SHAPE] + 0.5f);
+    const int s = CurrentShape();
     for (int i = 0; i < kNumVoices; ++i) {
       voice_[i].osc.set_shape(static_cast<MacroOscillatorShape>(s));
     }
@@ -348,4 +398,5 @@ extern "C" const fm1_engine_t fm1_engine_shapes = {
   fm1::shapes::Set, fm1::shapes::Render,
   fm1::shapes::SetNote,
   0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };

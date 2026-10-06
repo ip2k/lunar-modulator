@@ -143,9 +143,18 @@ void fm1_mod_view_rack(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_
     }
   }
   fm1_mod_ui_label(m, u->pos, label, sizeof label);   /* the position is in the label */
-  if (!kd) snprintf(buf, sizeof buf, "%s%u empty", u->grab ? "*" : "", u->pos + 1u);
-  else if (late) snprintf(buf, sizeof buf, "%s%s >%d <%d ~%d", u->grab ? "*" : "", label, outs, ins, late);
-  else snprintf(buf, sizeof buf, "%s%s >%d <%d", u->grab ? "*" : "", label, outs, ins);
+  if (!kd) {
+    snprintf(buf, sizeof buf, "%s%u empty", u->grab ? "*" : "", u->pos + 1u);
+  } else {
+    /* ...and `vN` when it runs per voice (MG9), N its voices now. */
+    char voices[16] = "";
+    if ((u->plan.poly >> u->pos) & 1u) snprintf(voices, sizeof voices, " v%u", fm1_mod_voice_count(m));
+    if (late) {
+      snprintf(buf, sizeof buf, "%s%s >%d <%d ~%d%s", u->grab ? "*" : "", label, outs, ins, late, voices);
+    } else {
+      snprintf(buf, sizeof buf, "%s%s >%d <%d%s", u->grab ? "*" : "", label, outs, ins, voices);
+    }
+  }
   fm1_tft_text(t, MARGIN, INFO_Y, buf, LINE_CHARS, SCALE, u->grab ? C_MODEL : C_TEXT);
   if (!kd) {
     fm1_tft_text(t, MARGIN, PARAMS_Y + 4, "Empty position:", LINE_CHARS, SCALE, C_DIM);
@@ -225,8 +234,8 @@ void fm1_mod_view_bottom(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, int
     snprintf(buf, size, "%d/%d Mod%u", u->page + 1, fm1_mod_ui_rack_pages(env->m, u->pos),
              u->pos + 1u);
   } else {
-    /* "Slot", not "Matrix": with two digits it would reach the lab's RAM
-     * meter on the right. */
+    /* "Slot", not "Matrix": with two digits it would reach the RAM meter
+     * on the right. */
     snprintf(buf, size, "%u/%u %s", u->slot + 1u, FM1_MOD_SLOTS,
              mode == FM1_MODE_MATRIX ? "Slot" : "Chain");
   }

@@ -292,7 +292,13 @@ and resolve to uids in the host bridge when a lane is labelled or a set
 imported; a lock on a NOLOCK parameter is refused and counted; no other
 render changed. SMOOTH's ramp came with S7b: a change ramps over 2.5 ms
 inside the engine, keyed to its native samples (engines/README.md,
-"SMOOTH"). `FM1_KIND_MIDI_FX` is still to come.
+"SMOOTH"). `FM1_KIND_MIDI_FX` came on 2026-10-06, in engine API v3: a
+`fm1_midi_fx_t` around an `fm1_engine_t` with `process(self, in, n_in, ctx,
+out, cap)`, the context holding the block's tick frames, the tempo, the
+transport and the project key; a chain of up to four in front of each sound
+unit (the owner's four per track), on the host bridge, which both hosts
+share; the arpeggiator the first [verified: engines/README.md, "MIDI
+effects"; `tests/test_engine_midi_fx.py`].
 
 **Persistence under the one rule.** Until docs/07's dump and restore, sets
 live only in desktop and dev-board builds. Then RAM, with `movy1` text export
@@ -374,7 +380,7 @@ about 90 KB [inferred], sent in chunks. Flash last: a binary image of about
 | --- | --- | --- | --- |
 | M0 — decisions | owner | §10, questions 1–5 | answers recorded here |
 | M1 — core | desktop, `engines/` | `fm1_seq`: clock, pools, `step_tick`, automation, conditions, RNG, swing, quantise, scale, gates, record, launch, scenes, song, `movy1` I/O, a verb parser for tests, `compat` | transcribed tests pass in compat; fixtures round-trip byte-identical (apart from the envelope); tick-identical at four block sizes; no heap; within budget |
-| M2 — render | desktop | `fm1-render` flags (§7), split renders, LOCK → `set_param` by uid, API v2, MIDI_FX | the §7 assertions; Macro Model refused as NOLOCK; output identical at host blocks of 1, 7 and 64. Done in part: split renders (docs/15 S1), API v2's uids, flags and NOLOCK refusal (S7a), and SMOOTH's ramp (S7b). Open: MIDI_FX |
+| M2 — render | desktop | `fm1-render` flags (§7), split renders, LOCK → `set_param` by uid, API v2, MIDI_FX | the §7 assertions; Macro Model refused as NOLOCK; output identical at host blocks of 1, 7 and 64. Done: split renders (docs/15 S1), API v2's uids, flags and NOLOCK refusal (S7a), SMOOTH's ramp (S7b), and MIDI_FX (2026-10-06, engine API v3: the arpeggiator in fm1-render `--mfx` and the virtual FM-1, the same at blocks of 1, 7, 64 and 448) |
 | M3 — oracle | desktop, if approved | a `seq-core` driver and random scripts | no unexplained difference in 10,000 scripts |
 | M4 — UI | desktop | §4's gesture state machine in pure C; TFT views rendered to PNG | `automation.mjs` traces reproduced; no overlap in the PNGs |
 | B — bench | JieLi AC79 dev board | pi32v2 build, worst-case cycles per block, USB-MIDI clock in and out | the sequencer takes ≤ 2 % of any block; jitter figures |

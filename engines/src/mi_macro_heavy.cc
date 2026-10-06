@@ -844,4 +844,5 @@ extern "C" const fm1_engine_t fm1_engine_macro_heavy = {
   fm1::macro_heavy::Set, fm1::macro_heavy::Render,
   fm1::macro_heavy::SetNote,
   0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };

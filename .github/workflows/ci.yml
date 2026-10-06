@@ -45,11 +45,16 @@ jobs:
           import json, subprocess
           R = "engines/build/fm1-render"
           for e in json.loads(subprocess.check_output([R, "--list"])):
-              sound = e["kind"] == "sound"
-              args = ["--engine", e["id"]] if sound else ["--input", "noise", "--fx", e["id"]]
+              kind = e["kind"]
+              if kind == "sound":
+                  args, key = ["--engine", e["id"]], "instance_bytes"
+              elif kind == "midi_fx":   # in front of a sound; the stage's bytes included
+                  args, key = ["--engine", "test-sine", "--mfx", "0:" + e["id"]], "mfx_bytes"
+              else:
+                  args, key = ["--input", "noise", "--fx", e["id"]], "fx_bytes"
               s = json.loads(subprocess.check_output([R, *args, "--seconds", "0.1"]))
-              size = s["instance_bytes"] if sound else s["fx_bytes"][0]
-              print(f'{e["id"]:12} {e["kind"]:9} {size:>8} B')
+              size = s[key][0] if isinstance(s[key], list) else s[key]
+              print(f'{e["id"]:12} {kind:9} {size:>8} B')
           EOF
       - run: pip install pytest
       - run: python -m pytest -v tests/test_engine*.py tests/test_seq*.py tests/test_movy*.py
@@ -58,7 +63,7 @@ jobs:
           FM1_SIM_CC: gcc
           FM1_SIM_CXX: g++
           FM1_SIM_EXTRA: -m32 -msse2 -mfpmath=sse
-        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py
+        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py tests/test_sim_lists.py
 
   engines-sanitizers:
     # ASan + UBSan over every engine test. Vendored files with documented
@@ -88,7 +93,7 @@ jobs:
           FM1_SIM_OPT: -O1
           FM1_SIM_EXTRA: -fsanitize=address,undefined -fno-omit-frame-pointer -g -fsanitize-ignorelist=sanitizers/ignorelist.txt
           UBSAN_OPTIONS: suppressions=${{ github.workspace }}/engines/sanitizers/ubsan.supp:halt_on_error=1:print_stacktrace=1
-        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py
+        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py tests/test_sim_lists.py
 
   dongle-firmware:
     name: dongle firmware (RP2040 UF2)

@@ -1,17 +1,21 @@
 # Sound engines
 
 A sound engine is the part of the firmware that makes the notes. Lunar
-Modulator has several, each a different kind of synthesis, and one plays at a
-time. You choose it with [[PRESETS]]. The knobs then play that engine's
+Modulator has several, each a different kind of synthesis, and up to four
+sounds, each with an engine of its own, play at once
+([Four sounds at once](#four-sounds-at-once)). You choose the current
+sound's engine with [[PRESETS]]. The knobs then play that engine's
 parameters, four to a page: [[SELECT]] turns the page and [[ALGORITHM]] steps
 through the engine's main list.
 
 {{engine-summary sound}}
 
 Four of the engines are built from the code of Mutable Instruments' modules,
-written by Emilie Gillet and published under the MIT licence; Sophie comes
-from the Schwung community. Their names here are this project's own, and
-[chapter 13](13-credits-and-licences.md) credits each source.
+written by Emilie Gillet and published under the MIT licence, and Drums
+takes its kicks, toms, snares and hi-hats from it; FM6 comes from msfa,
+the FM synthesizer core Google published under the Apache licence; Sophie
+comes from the Schwung community. Their names here are this project's own,
+and [chapter 14](14-credits-and-licences.md) credits each source.
 
 !!! note "How to read the tables"
     The tables in this chapter are generated from the firmware's code. *Where*
@@ -27,14 +31,15 @@ from the Schwung community. Their names here are this project's own, and
 {{status sim planned}}
 
 **To choose an engine:** turn [[PRESETS]]. The engines come in this order:
-Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Test Sine, and round again.
-While you turn, the screen shows the previous engine, the new one
-(highlighted) and the next. In the simulator you can also pick one from the
+Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Test Sine, and
+round again.
+While you turn, the screen lists the engines, six at a time, with the new one
+highlighted ([chapter 3](03-panel-tour.md#lists)). In the simulator you can also pick one from the
 **Sound (PRESETS)** list under the panel.
 
 When you choose an engine:
 
-- every note that was sounding ends;
+- every note that was sounding on that sound ends; the other sounds play on;
 - the new engine starts with its default settings, so changes you made to
   the previous engine are not kept;
 - the effects keep their settings;
@@ -46,11 +51,50 @@ its last page. It is separate from [[MASTER]], which sets the level of
 everything.
 
 !!! note "Engines that need the FM-1's sample rate"
-    Macro, Macro Heavy and Six-Op FM run Plaits' code at its own rate, 47,872
-    samples a second, and convert the result to the output's rate. They
-    cannot run when the output is faster than that. If your browser runs the
-    simulator at 48,000 samples a second, [[PRESETS]] steps over those three
-    and the screen names the one it skipped ([chapter 2](02-getting-started.md#the-browser-simulator)).
+    Macro, Macro Heavy, Six-Op FM and Drums run Plaits' code at its own
+    rate, 47,872 samples a second, and convert the result to the output's
+    rate. They cannot run when the output is faster than that. If your
+    browser runs the simulator at 48,000 samples a second, [[PRESETS]] steps
+    over those four and the screen names the one it skipped ([chapter 2](02-getting-started.md#the-browser-simulator)).
+
+## Four sounds at once
+
+{{status sim desktop planned}}
+
+Up to four sounds play at once, each an engine of its own with two insert
+effects and a level into the mix; the mix then goes through the two master
+effects ([chapter 6](06-effects.md#the-effect-chain)). Sound 1 always holds
+an engine; Sounds 2 to 4 can be empty, as they are when the simulator
+starts. The sequencer's tracks play whichever sound their route names
+([chapter 7](07-sequencer.md#routing)).
+
+**The current sound** is the one the keys and [[MIDI IN]] play, and the one
+the sound's page, [[PRESETS]], [[ALGORITHM]] and the knobs edit.
+
+- **To choose it:** hold [[SEL]] and turn [[PRESETS]]: Sound 1 to 4. The
+  screen lists the four sounds and the engine each holds, such as *S2
+  Shapes* or *S3 Empty*, with the current one highlighted. [[SEL]] has this
+  job everywhere but in FX mode, where it picks up effects.
+- **To give it an engine:** turn [[PRESETS]]. On Sounds 2 to 4 the list
+  starts with *Empty*, which unloads that sound.
+- Once a second sound is in use, the top bar names the current one, such as
+  *S2 Shapes*.
+- Focusing a sequencer track makes the sound it plays the current one
+  ([chapter 7](07-sequencer.md#tracks-and-routing)); you can choose another
+  afterwards.
+- A key you hold, or a note at [[MIDI IN]], is released on the sound it
+  started on, even after you choose another.
+- In the simulator, the **Sound (PRESETS)** list under the panel is the
+  current sound's, and its label names it.
+
+Each sound's level, from 0 to 100 %, is on the Mix page in FX mode
+([chapter 6](06-effects.md#the-mix-page)). Every sound counts against the
+FM-1's memory, and a sound that would not fit is refused
+([chapter 6](06-effects.md#memory)): Shapes twice, for one, does not fit.
+
+In the desktop tools, `--sound K:ID` loads sound *K*, `--sound-note` plays a
+note on it and `--level K:PCT` sets its level
+([chapter 2](02-getting-started.md#options)).
 
 ## Macro
 
@@ -221,6 +265,101 @@ The banks:
 
 {{engine-table sixop}}
 
+## FM6
+
+{{status sim desktop planned}}
+
+FM6 is a six-operator FM synthesizer that plays voices in the format of
+the classic 1980s FM keyboards, the DX7's: 155 parameters for six operators
+with their own envelopes, 32 algorithms, feedback, an LFO and a pitch
+envelope. Its synthesis is msfa, the FM core Google published for Android,
+the same core the FM-1's own firmware runs. It comes with 32 voices of this
+project's own, and plays voices you load from SysEx files (below).
+[[ALGORITHM]] steps through the voices, and the knobs shape the one you
+have chosen.
+
+Both the engine and its name are borrowed, with thanks: the engine is
+Google's msfa, and the name is that of the FM engine in hugelton's Felucca,
+open firmware for the FM-1, whose port of the same core checks FM6's sound
+in this project's tests.
+
+{{screen fm6 FM6 on its first voice, TINE EP, while a chord sounds.}}
+
+- **Patch** chooses a voice: the 32 built-in ones, then User 1 to User 32,
+  which show the names of the voices you have loaded. A new voice applies
+  to the next note you play; notes already sounding keep theirs.
+- **Brightness** moves the level of every modulating operator, up to 24 dB
+  down at the left and up at the right. In the middle the voice plays as
+  programmed. The carriers, and so the loudness, do not change.
+- **Env Time** runs all the voice's envelopes faster or slower, the pitch
+  envelope's too: up to 8 times faster at the left, 8 times slower at the
+  right, as programmed in the middle. It acts on notes that are sounding.
+- **Feedback** adds to the voice's own feedback, from 0 to 7 in whole steps.
+- **Volume**, on page 2, is the engine's output level.
+- Twelve notes play at once.
+
+The built-in voices:
+
+| Patch numbers | What they are |
+| --- | --- |
+| 0 – 4 | Keys: two electric pianos, a clavinet-like pluck, a harpsichord, a koto |
+| 5 – 10 | Mallets and bells: marimba, vibraphone (with tremolo), tubular bell, glass bell, chimes, steel drum |
+| 11 – 13 | Organs: drawbars, drawbars with a percussive click, a gritty rock organ |
+| 14 – 17 | Brass and winds: brass, soft brass, flute, clarinet |
+| 18 – 21 | Strings and pads: strings, warm pad, glass pad, a slow sweep |
+| 22 – 24 | Basses: FM bass, plucked bass, saw bass |
+| 25 – 27 | Leads: saw, square, a sync-like sweep |
+| 28 – 30 | Drums: kick (play it low), snare, hi-hat |
+| 31 | A pure sine, for tuning and tests |
+| 32 – 63 | User 1 to User 32, named after the voices loaded into them |
+
+### Loading voices from SysEx
+
+{{status sim desktop}}
+
+The user slots take voices from SysEx files (`.syx`), the format the DX7 and
+its editors save: a single voice, or a bank of 32. A bank fills User 1 to
+User 32; single voices go to the user slots one after another, starting
+after the last one loaded. A file may hold several dumps. Values out of
+range are brought into range, and anything that is not a voice dump is
+skipped.
+
+In the simulator ([chapter 2](02-getting-started.md#the-browser-simulator)):
+
+1. Power on.
+2. Choose **Load DX7 patches…** under the panel and pick one or more `.syx`
+   files, or drop the files anywhere on the page.
+3. The screen shows *Loaded 32 voices* (or how many there were), which user
+   slots they went to and the first voice's name, and the status line under
+   the panel says the same. The current sound now plays the first voice
+   loaded: if it was another engine, it becomes FM6.
+4. Turn [[ALGORITHM]] to step through the voices by name. Every sound you
+   set to FM6 later has them too.
+
+The file is read in your browser; nothing is uploaded. The simulator checks
+it first: a file that is empty, is not SysEx, holds SysEx of another kind,
+is cut short, or holds a voice dump of the wrong length loads nothing, and
+the status line says which. A dump whose checksum is wrong is loaded all the
+same, as DX7 editors load one, and the status line says the file may be
+damaged. Files of up to 64 KB are read. The voices stay until you power
+off.
+
+On the desktop, `fm1-render --sysex FILE.syx` loads files before the first
+note ([chapter 2](02-getting-started.md#rendering-a-sound)), and prints the
+names it found.
+
+!!! note "Voices from elsewhere"
+    Files of DX7 voices circulate widely, Yamaha's own factory voices among
+    them. They are not part of Lunar Modulator, and nothing here comes with
+    them: load only files you are entitled to use.
+
+!!! tip "Two algorithms with a loop"
+    Algorithms 4 and 6 feed a whole stack of operators back on itself, as
+    the DX7 does; FM6 runs that loop, where msfa itself plays those two
+    algorithms without feedback. The built-in SAW BASS uses it.
+
+{{engine-table dx7}}
+
 ## Shapes
 
 {{status sim desktop planned}}
@@ -289,12 +428,20 @@ attack and release envelope.
     only if you let go before they have finished.
 
 !!! note "Memory"
-    Shapes is the largest engine: twelve voices take about 201 KB of the
-    roughly 379 KB the simulator allows for the engine and both effects
-    ([chapter 12](12-specifications.md)). With
-    PSX Verb and Plate together in the effect slots it does not fit, and the
-    memory figure on the screen turns red. The FM-1 build may play fewer
-    Shapes notes at once.
+    Shapes is the largest engine: twelve voices take about 202 KB of the
+    roughly 379 KB the simulator allows for everything
+    ([chapter 13](13-specifications.md)). With PSX Verb and Plate together
+    as effects it does not fit, nor as two sounds at once, and the simulator
+    refuses what would not ([chapter 6](06-effects.md#memory)). The FM-1
+    build may play fewer Shapes notes at once.
+
+!!! note "At the edges"
+    Shapes keeps Braids within the range its code was written for. A note
+    bent or offset above MIDI 127 sounds as the top of that range, on every
+    shape. Comb's Timbre stops where the comb reaches its lowest pitch, which
+    only the lowest four octaves of keys get to, and sounds the same there.
+    The last sliver of Wave Line's Timbre (above about 98 %) plays the
+    line's last wave.
 
 {{engine-table shapes}}
 
@@ -332,11 +479,15 @@ for its pad's Decay, whether or not you keep the key down.
 
 {{screen sophie Sophie on pad 1, the kick, just after it was struck.}}
 
-**To play Sophie from the FM-1's keys:** press [[OCT-]] twice. The pads then
-run from the eighth key, a C, upwards: kick, rim, snare, clap and so on, up
-the white and black keys. On the computer keyboard, after pressing
-<kbd>Z</kbd> twice, <kbd>G</kbd> is the kick, <kbd>H</kbd> the snare,
-<kbd>O</kbd> the closed hi-hat and <kbd>[</kbd> the open hi-hat.
+**To play Sophie from the FM-1's keys:** play the white keys. With a drum
+kit as the sound (Sophie or Drums), the sixteen white keys play the sixteen
+pads at any octave, from the kick on the lowest F up to the ride on the
+highest white key, and the black keys play nothing. On the computer
+keyboard, <kbd>A</kbd> is the kick, <kbd>S</kbd> the rim, <kbd>D</kbd> the
+snare, <kbd>F</kbd> the clap, <kbd>J</kbd> the closed hi-hat, <kbd>L</kbd>
+the pedal hi-hat and <kbd>&#39;</kbd> the open hi-hat. A MIDI keyboard
+plays the pads on notes 36 to 51, as a drum part from another instrument
+expects.
 
 !!! caution "The values shown after you change pads"
     The screen cannot read a pad's settings back from Sophie. When you choose
@@ -348,6 +499,72 @@ filter and a ring resonator, which this build does not show on the screen
 yet.
 
 {{engine-table sw-sophie}}
+
+## Drums
+
+{{status sim desktop planned}}
+
+Drums is a sixteen-pad drum kit after the classic analogue drum machines: a
+deep kick with a long boom, a short punchy one, two snares, a clap, closed,
+pedal and open hi-hats, six toms, a rim shot, a crash and a ride, and a
+cowbell you can put on any pad. Its kicks, toms, snares and hi-hats are
+Plaits' drum models; the rim shot, clap, cowbell and cymbals are this
+project's own, after published studies of the analogue circuits
+([chapter 14](14-credits-and-licences.md)).
+
+- Drums plays MIDI notes 36 to 51, one pad each, in the same order as
+  Sophie, and ignores other notes: 36 is the kick, 38 the snare, 42 the
+  closed hi-hat, 46 the open one, 49 the crash and 51 the ride. On the
+  FM-1's keys the sixteen white keys play the pads ([Sophie](#sophie) shows
+  which key is which).
+- A hit rings for its pad's decay, whether or not you keep the key down. Up
+  to twelve hits sound at once. A pad struck again while it rings is struck
+  again, as a drum is, rather than starting a second sound; a thirteenth pad
+  takes over the quietest hit.
+- A closed or pedal hi-hat cuts the open hi-hat short, as on the machines.
+- **Pad** chooses which pad the pad's knobs edit: those on pages 1 and 2,
+  and Model on page 3. [[ALGORITHM]] steps through the pads, and so does
+  [[KNOB1]] on page 1. Each pad keeps its own settings.
+- The pad's knobs start in the middle, Tune at 0: that is the pad as the
+  kit sets it up, and you turn from there. So until you change them the
+  screen shows true values whichever pad you choose.
+  - **Tune** sets the pad's pitch, up to two octaves either way.
+  - **Decay** sets how long it rings.
+  - **Level** sets its level in the kit.
+  - **Tone** (page 2) makes it brighter to the right.
+  - **Snap** sets the attack: the kick's click, the snare's wires, the
+    hi-hats' noise against their metal, the clap's bursts, the rim's click,
+    the cymbals' wash, the cowbell's first clank.
+  - **Sweep** sets the fall in pitch at the start of a hit, the kick's and
+    the toms' especially. On the other sounds, above the middle the hit falls
+    in pitch, and below it rises.
+  - **Drive** saturates the pad, clean at 0.
+  - **Model** (page 3) chooses the pad's sound. *Kit* is the kit's own
+    choice; the others are *Analog Drum* (a deep kick or tom), *Punch Drum*
+    (a punchy, swept kick or tom), *Snare*, *Snap Snare*, *Hat*, *Ring Hat*,
+    *Cymbal*, *Clap*, *Rim* and *Cowbell*. A pad given another sound plays
+    that sound as Drums sets it up, so a cowbell on a tom's pad is a cowbell.
+    The three hi-hat pads cut each other short whatever sound they play.
+- The rest of page 3 is the whole kit's:
+  - **Kit** chooses *Deep*, the long, round kit, or *Punch*, harder and
+    shorter, with a swept kick, a crisper snare and ring-modulated hi-hats.
+  - **Accent** sets how much velocity matters: at 0 every hit plays the
+    same, at the right a soft hit is quiet and dull and a hard one loud and
+    bright.
+  - **Volume** sets the kit's level.
+- Model and Kit reach the next hit; a hit that is ringing keeps the sound it
+  started with. The other knobs move a ringing hit too.
+- Pitch bend bends every pad.
+
+{{screen drums Drums on pad 1, the kick of the Deep kit, just after it was struck.}}
+
+!!! caution "The values shown after you change pads"
+    As on Sophie, the screen cannot read a pad's settings back. When you
+    choose another pad, the screen keeps showing the values you last set,
+    and the first turn of a knob gives the new pad the value shown, plus
+    that turn.
+
+{{engine-table drums}}
 
 ## Test Sine
 

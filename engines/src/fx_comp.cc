@@ -41,25 +41,37 @@
  *   Makeup    dB added after the reduction; Makeup then trims Auto Gain's.
  *   Auto Gain adds A = the curve's reduction at 0 dBFS, at most 24 dB (the
  *             manual Makeup's top), so a full-scale steady signal stays at
- *             full scale (under it, where the cap bites). It is clip-safe:
- *             the reduction applied is at least the curve's for this
- *             frame's own peak (both channels' louder), so the gain never
- *             exceeds the static curve's for the sample it multiplies, even
- *             while the smoothing still lags behind an onset. Since the
- *             curve's slope is at most 1, x - curve(x) only grows with x,
- *             and A <= curve(0) then keeps every input at or under 0 dBFS
+ *             full scale (under it, where the cap bites). It is clip-safe,
+ *             and touches only what would clip (owner, 2026-10-05; until
+ *             then it held every sample to the curve at its own peak, which
+ *             rounded the peaks of steady tones too). With the lift L = w A
+ *             in force (w its share, below) and xp this frame's peak in dB
+ *             (both channels' louder), a sample comes out at xp + L + M - r
+ *             for the smoothed reduction r and Makeup M, M counted only
+ *             while under 0 (a cut in Makeup keeps samples under full scale;
+ *             a boost is the player's own, below). If that is under 0 dBFS
+ *             (less a margin of 1e-4 dB, for rounding) nothing changes: a
+ *             steady tone, or anything else that stays under full scale, has
+ *             exactly the gain it would have with the same makeup set by
+ *             hand (review, 2026-10-06: until then a negative Makeup was
+ *             left out, so with Makeup -6 dB the bound clipped the peaks of
+ *             a steady -3 dBFS sine at -6 dBFS). If it would pass, the reduction
+ *             applied for that sample alone rises by just enough to bring
+ *             it to the margin under 0 dBFS, but by no more than L and the
+ *             margin: Auto Gain gives up as much of its lift as the sample
+ *             needs, never more than all of it. So an input at or under 0 dBFS comes out
  *             at or under 0 dBFS (with Makeup at or under 0; Makeup above 0
- *             lifts that bound by itself). Below the bound Attack, Release
- *             and Character shape the gain as ever; where the bound acts it
- *             follows the waveform within a cycle, a soft clip along the
- *             curve (a hard one at 21:1 with no knee): at an onset, and with
- *             the RMS detectors, which read below a signal's peaks, on the
- *             peaks themselves. Mix keeps the bound: dry and compressed are
- *             each within it and have the same sign. Turning Auto Gain on or
- *             off glides both A and the bound in or out together (5 ms), and
- *             the bound holds part-way too: with a share w of each, the
- *             applied reduction is at least w curve(x) >= w (x + A) >=
- *             x + w A for x <= 0 dB. A margin of 1e-4 dB covers rounding.
+ *             lifts that bound by itself), even while the smoothing still
+ *             lags behind an onset; louder input comes out no louder than
+ *             it would with Auto Gain off. The touch is per sample, so
+ *             where it acts (at an onset the smoothing has not caught yet,
+ *             or on the tips of a tone the RMS detectors read under its
+ *             peaks) it clips those samples at the margin under full scale;
+ *             r and the smoothing never see it. Mix keeps the bound: dry and
+ *             compressed are each within it and have the same sign. Turning
+ *             Auto Gain on or off glides w, so L and the bound move in or
+ *             out together (5 ms), and the bound holds part-way: it only
+ *             ever takes back the part of the lift that is in force.
  *
  * Gain reduction, for a modulation source: fm1_comp_reduction_db()
  * (include/fm1_comp.h) returns the last frame's smoothed reduction in dB.
@@ -429,23 +441,27 @@ static void CompRender(void *s, float *lr, uint32_t frames) {
       if (CompAbs(offset) < kReductionFlush) offset = 0.0f;
     }
 
-    /* Auto Gain, in by its share w: its makeup, and the bound (the curve's
-     * reduction at this frame's peak, which Peak and Punch already have as
-     * c). Off (w = 0), none of it is computed. */
+    /* Auto Gain, in by its share w: its lift, and the bound, which touches
+     * only a sample the lift would take over 0 dBFS (before Makeup), and
+     * takes back at most the lift (above). xp is this frame's peak in dB,
+     * which Peak and Punch already have as x. Off (w = 0), none of it is
+     * computed. */
     float makeup = self->value[S_MAKEUP], applied = reduction;
     const float w = self->value[S_AUTO];
     if (w != 0.0f) {
-      makeup = makeup + w * self->auto_db;
-      float cp = c;
+      const float lift = w * self->auto_db;
+      makeup = makeup + lift;
+      float xp = x;
       if (m != 0.0f) {
         const float pp = p2 > kPowerFloor ? p2 : kPowerFloor;
-        cp = CompCurve(kDbPerLog2Power * CompLog2(pp), self->value[S_THRESHOLD],
-                       self->value[S_SLOPE], self->value[S_KNEE], self->kq);
+        xp = kDbPerLog2Power * CompLog2(pp);
       }
-      if (cp > 0.0f) {
-        cp = cp + kBoundMargin;
-        if (cp > applied) applied = applied + w * (cp - applied);
-      }
+      /* A cut in Makeup counts towards the output (a sample it keeps under
+       * full scale is not an over); a boost is the player's own (above). */
+      const float reach = makeup < lift ? makeup : lift;
+      const float over = xp + reach - reduction + kBoundMargin;
+      const float most = lift + kBoundMargin;
+      if (over > 0.0f) applied = reduction + (over < most ? over : most);
     }
 
     /* dry x (1 - Mix) + dry x gain x Mix: at Mix 1 the output is exactly
@@ -487,6 +503,7 @@ const fm1_engine_t fm1_engine_comp = {
   CompSet, CompRender,
   NULL,                     // no notes, so no per-note offsets
   0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };
 
 #ifdef __cplusplus

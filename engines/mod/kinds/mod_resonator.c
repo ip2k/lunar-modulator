@@ -1,6 +1,9 @@
-/* kinds/mod_filter.c -- the Filter module kind (docs/16 §3.6; the owner's
- * request of 2026-10-02): a resonant filter for control signals, whose
- * outputs are matrix sources.
+/* kinds/mod_resonator.c -- the Resonator module kind (docs/16 §3.6; the
+ * owner's request of 2026-10-02): a resonant filter for control signals,
+ * whose outputs are matrix sources. MG2 built it as Filter; the owner
+ * renamed it Resonator (RES) on 2026-10-05, so that Filter names the audio
+ * effect alone. Its guid stays "FLT ", and scripts may still call it
+ * filter or flt.
  *
  * IN (a bare signal input) runs through a two-pole state-variable filter,
  * one sample per tick (1,378.7 Hz at the FM-1's rate), with low-pass,
@@ -114,7 +117,7 @@ static float cutoff_hz(float cutoff, float tick_hz) {
   return fc > 0.3f * tick_hz ? 0.3f * tick_hz : fc;
 }
 
-float fm1_mod_filter_hz(float cutoff, float sample_rate) {
+float fm1_mod_resonator_hz(float cutoff, float sample_rate) {
   fm1_host_t host;
   host.api_version = FM1_ENGINE_API_VERSION;
   host.sample_rate = sample_rate;
@@ -174,8 +177,8 @@ static void filter_reset(void *self, uint32_t why) {
   if (why == FM1_MOD_RESET_PRESET) s->ic1 = s->ic2 = 0.0f;
 }
 
-const fm1_mod_kind_t fm1_mod_kind_filter = {
-  FM1_MOD_MAGIC, FM1_MOD_API_VERSION, "filter", 0x464C5420u /* "FLT " */, "Filter", "FLT",
+const fm1_mod_kind_t fm1_mod_kind_resonator = {
+  FM1_MOD_MAGIC, FM1_MOD_API_VERSION, "resonator", 0x464C5420u /* "FLT " */, "Resonator", "RES",
   "Our own: the trapezoidal state-variable filter after Andrew Simper's (Cytomic) published "
   "derivation, at the control rate.",
   kParams, P_COUNT, 1, 4, kGates, kOuts, 0, 0,

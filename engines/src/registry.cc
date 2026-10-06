@@ -11,7 +11,9 @@ extern const fm1_engine_t fm1_engine_macro;
 extern const fm1_engine_t fm1_engine_shapes;
 extern const fm1_engine_t fm1_engine_macro_heavy;
 extern const fm1_engine_t fm1_engine_sixop;
+extern const fm1_engine_t fm1_engine_dx7;
 extern const fm1_engine_t fm1_engine_sw_sophie;
+extern const fm1_engine_t fm1_engine_drums;
 extern const fm1_engine_t fm1_engine_test_sine;
 extern const fm1_engine_t fm1_engine_plate;
 extern const fm1_engine_t fm1_engine_ensemble;
@@ -33,6 +35,8 @@ extern const fm1_engine_t fm1_engine_eq;
 extern const fm1_engine_t fm1_engine_room;
 extern const fm1_engine_t fm1_engine_hall;
 extern const fm1_engine_t fm1_engine_gate;
+extern const fm1_engine_t fm1_engine_squash;
+extern const fm1_engine_t fm1_engine_shaper;
 extern const fm1_engine_t fm1_engine_test_gain;
 extern const fm1_engine_t fm1_engine_test_ext;
 
@@ -42,7 +46,9 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_shapes,
   &fm1_engine_macro_heavy,
   &fm1_engine_sixop,
+  &fm1_engine_dx7,
   &fm1_engine_sw_sophie,
+  &fm1_engine_drums,
   &fm1_engine_test_sine,
   // audio effects
   &fm1_engine_plate,
@@ -65,6 +71,8 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_room,
   &fm1_engine_hall,
   &fm1_engine_gate,
+  &fm1_engine_squash,
+  &fm1_engine_shaper,
   &fm1_engine_test_gain,
   &fm1_engine_test_ext,
 };

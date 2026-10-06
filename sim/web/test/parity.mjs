@@ -33,12 +33,12 @@
 // pairs must equal the one the native harness logged (--log-cmds), and the
 // module must have dropped no sequencer event.
 //
-// A scenario with `panel` (and `lab`, the lab switch) plays the sequencer
-// from the panel (docs/15 S3, §6.3): the native harness runs first with
-// --panel and --log-cmds, and the glibc, js and musl legs replay what it
-// logged, the script lines and the panel's typed commands, with the
-// arguments of its sidecar (.args: the engine and effects, and a --param-at
-// for each knob turn), while the module presses the same buttons and turns
+// A scenario with `panel` plays the sequencer from the panel (docs/15 S3,
+// §6.3): the native harness runs first with --panel and --log-cmds, and the
+// glibc, js and musl legs replay what it logged, the script lines and the
+// panel's typed commands, with the arguments of its sidecar (.args: --slots,
+// the engine and effects, and a --param-at for each knob turn), while the
+// module presses the same buttons and turns
 // the same encoders (fm1w_button, fm1w_encoder). So the panel scenario is
 // two-step parity in WebAssembly, and the module's screen at the end (the
 // Track view) is compared with the harness's.
@@ -49,16 +49,33 @@
 // (fm1w_mod_reset) after the chain is set up and its lines through
 // fm1w_mod_text, the untimed ones first and each `@FRAME` line at the first
 // block starting there, after the script's lines, as fm1-render applies
-// them. A panel scenario with the lab switch modulates from the panel: the
-// harness logs the runtime's state and every edit (.mod, named in the
-// sidecar), which the render legs replay.
+// them. Every other scenario runs the module's own runtime, the default
+// rack fm1w_init builds, which writes to no unit; a panel scenario
+// modulates from the panel: the harness logs the runtime's state and every
+// edit (.mod, named in the sidecar), which the render legs replay.
 //
-// A scenario with `sounds`, `inserts`, `levels` or `sound_notes` (and `lab`)
-// plays several sound units (docs/15 §3.16): fm1-render gets --sound,
-// --insert, --level and --sound-note, and --slots for any lab scenario, so
-// its tracks play the unit their route names as the module's do; the module
-// loads the same units through fm1w_sound_unit and fm1w_insert_unit, in the
-// same order, and plays those notes with fm1w_unit_note_on.
+// A scenario with `mfx` puts the arpeggiator (engine API v3's MIDI effect)
+// in front of a sound unit: [K, "arp", [NAME=VALUE...]] is fm1-render's
+// --mfx K:arp with its --mfx-param, and the module's own arp on that unit
+// switched on (fm1w_arp_set_on) with those parameters (fm1w_arp_set_param);
+// `mfx_param_at` (K:T:NAME=VALUE) and `mfx_on_at` (K:T:0|1) change it in
+// the run, first among a block's controls, as fm1-render applies them.
+//
+// A scenario with `sysex` loads DX7 voices into FM6's user bank first (a
+// .syx file under test/, e.g. dx7/lunar-test-bank.syx): fm1-render and the
+// harness get --sysex, and the module gets the file's bytes through its text
+// buffer and fm1w_dx7_load (without `play`), after the sound is loaded and
+// before its parameters, in the harness's order.
+//
+// The module always has four sound units. A scenario with `sounds`,
+// `inserts`, `levels` or `sound_notes` plays several (docs/15 §3.16):
+// fm1-render gets --sound, --insert, --level and --sound-note, which imply
+// --slots, so its tracks play the unit their route names as the module's
+// do; the module loads the same units through fm1w_sound_unit and
+// fm1w_insert_unit, in the same order, and plays those notes with
+// fm1w_unit_note_on. Any other scenario is one sound, which fm1-render
+// renders without --slots: the module's multi-sound path must equal its
+// plain one to the bit.
 // MIT licence.
 
 import { execFileSync } from 'node:child_process';
@@ -80,10 +97,12 @@ const wasmModule = await WebAssembly.compile(readFileSync(args.wasm));
 const cmdPath = (s) => resolve(dirname(args.scenarios), s.cmd);
 const panelPath = (s) => resolve(dirname(args.scenarios), s.panel);
 const modPath = (s) => resolve(dirname(args.scenarios), s.mod);
+const sysexPath = (s) => resolve(dirname(args.scenarios), s.sysex);
 
 function cliArgs(s) {
   const a = ['--seconds', String(s.seconds), '--rate', String(s.rate ?? 44118), '--engine', s.engine];
   if (s.cmd) a.push('--cmd', cmdPath(s));
+  if (s.sysex) a.push('--sysex', sysexPath(s));
   for (const p of s.params ?? []) a.push('--param', p);
   for (const n of s.notes ?? []) a.push('--note', n);
   for (const b of s.bends ?? []) a.push('--bend', b);
@@ -106,6 +125,12 @@ function cliArgs(s) {
   for (const lv of s.levels ?? []) a.push('--level', lv);
   for (const n of s.sound_notes ?? []) a.push('--sound-note', n);
   if (s.mod) a.push('--mod', modPath(s));
+  for (const [k, id, ps] of s.mfx ?? []) {
+    a.push('--mfx', `${k}:${id}`);
+    for (const p of ps) a.push('--mfx-param', `${k}:${p}`);
+  }
+  for (const p of s.mfx_param_at ?? []) a.push('--mfx-param-at', p);
+  for (const p of s.mfx_on_at ?? []) a.push('--mfx-on-at', p);
   return a;
 }
 
@@ -255,8 +280,13 @@ async function renderApp(s) {
   const paramOf = (id, name) => catalog[indexOf(id)].params
     .findIndex((p) => p.name.toLowerCase() === name.toLowerCase());
   ex.fm1w_init(rate);
-  if (s.lab) ex.fm1w_set_lab(1);                  // as fm1-sim-render --lab, after init
   if (ex.fm1w_select(0, indexOf(s.engine)) !== 0) throw new Error(`cannot load ${s.engine}`);
+  if (s.sysex) {
+    const bytes = readFileSync(sysexPath(s));
+    if (bytes.length > ex.fm1w_text_cap()) throw new Error(`${s.sysex}: larger than the text buffer`);
+    new Uint8Array(w.memory.buffer, ex.fm1w_text_buf(), bytes.length).set(bytes);
+    if (ex.fm1w_dx7_load(bytes.length, 0) <= 0) throw new Error(`${s.sysex}: the module loaded no voices`);
+  }
   for (const p of s.params ?? []) {
     const [n, v] = splitParam(p);
     ex.fm1w_set_param(0, paramOf(s.engine, n), v);
@@ -290,6 +320,20 @@ async function renderApp(s) {
   for (const lv of s.levels ?? []) {
     const [k, v] = lv.split(':');
     ex.fm1w_unit_set_level(Number(k), Math.fround(parseFloat(v)));
+  }
+  // The arpeggiator: each sound's own, switched on, then its parameters.
+  const arpParam = (name) => {
+    const i = paramOf('arp', name);
+    if (i < 0) throw new Error(`${s.name}: the arp has no parameter ${name}`);
+    return i;
+  };
+  for (const [k, id, ps] of s.mfx ?? []) {
+    if (id !== 'arp') throw new Error(`${s.name}: the module has no MIDI effect ${id}`);
+    if (ex.fm1w_arp_set_on(k, 1) !== 0) throw new Error(`${s.name}: no arp on sound ${k}`);
+    for (const p of ps) {
+      const [n, v] = splitParam(p);
+      ex.fm1w_arp_set_param(k, arpParam(n), v);
+    }
   }
   ex.fm1w_master(1, 0);
 
@@ -325,6 +369,16 @@ async function renderApp(s) {
   // (cliArgs puts bends first), then --fx-param-at (T:K:NAME=V, K the
   // effect's slot from 1), notes as on/off pairs.
   const controls = [
+    // The arp's, first in a block, as fm1-render applies them.
+    ...(s.mfx_on_at ?? []).map((p) => {
+      const [k, t, v] = p.split(':');
+      return { t: parseFloat(t), arp: Number(k), on: Number(v) !== 0 };
+    }),
+    ...(s.mfx_param_at ?? []).map((p) => {
+      const [k, t] = p.split(':');
+      const [n, v] = splitParam(p.slice(k.length + t.length + 2));
+      return { t: parseFloat(t), arp: Number(k), idx: arpParam(n), v };
+    }),
     ...(s.bends ?? []).map((b) => {
       const [t, st] = b.split(':');
       return { t: parseFloat(t), bend: true, v: Math.fround(parseFloat(st)) };
@@ -369,7 +423,9 @@ async function renderApp(s) {
     const n = Math.min(BLOCK, total - pos);
     for (const c of controls) {
       if (c.done || c.t > now) continue;
-      if (c.button !== undefined) ex.fm1w_button(c.button, c.down);
+      if (c.arp !== undefined && c.on !== undefined) ex.fm1w_arp_set_on(c.arp, c.on ? 1 : 0);
+      else if (c.arp !== undefined) ex.fm1w_arp_set_param(c.arp, c.idx, c.v);
+      else if (c.button !== undefined) ex.fm1w_button(c.button, c.down);
       else if (c.encoder !== undefined) ex.fm1w_encoder(c.encoder, c.delta);
       else if (c.bend) ex.fm1w_pitch_bend(c.v);
       else ex.fm1w_set_param(c.unit ?? 0, c.idx, c.v);
@@ -462,15 +518,13 @@ for (const s of scenarios) {
   // The native harness first: a panel scenario's render legs replay its log.
   const simArgs = [...cli, '--screen', join(dir, 'screen.ppm')];
   if (s.cmd) simArgs.push('--log-cmds', join(dir, 'cmds.verbs'));
-  if (s.lab) simArgs.push('--lab');
   if (s.panel) simArgs.push('--panel', panelPath(s));
   const native = JSON.parse(execFileSync(args.sim, simArgs, quiet).toString().trim().split('\n').pop());
-  // The lab switch routes tracks by slot (fm1-render --slots); a panel run's
-  // sidecar says so itself.
+  // A panel run's sidecar starts with --slots; the multi-sound flags imply it.
   const renderCli = s.panel
     ? ['--seconds', String(s.seconds), '--rate', String(s.rate ?? 44118), '--cmd', join(dir, 'cmds.verbs'),
       ...readFileSync(join(dir, 'cmds.args'), 'latin1').split('\n').filter((l) => l !== '')]
-    : [...cli, ...(s.lab ? ['--slots'] : [])];
+    : cli;
   execFileSync(args.native, [...renderCli, '--out', join(dir, 'glibc.wav')], quiet);
   execFileSync(process.execPath, [args['render-js'], ...renderCli, '--out', join(dir, 'js.wav')], quiet);
   if (args.musl) execFileSync(args.musl, [...renderCli, '--out', join(dir, 'musl.wav')], quiet);
@@ -514,7 +568,7 @@ for (const s of scenarios) {
     cmd: s.cmd ?? null,
     panel: s.panel ?? null,
     mod: s.mod ?? null,
-    mod_logged: s.panel && s.lab ? existsSync(join(dir, 'cmds.mod')) : null,
+    mod_logged: s.panel ? existsSync(join(dir, 'cmds.mod')) : null,
     seq,
   };
   r.pass = (!seq || (seq.lines_match && seq.dropped === 0 && seq.native_dropped === 0 &&
