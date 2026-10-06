@@ -17,7 +17,7 @@ for the device.
 | 6 | [[SELECT]] | Turns the page. In FX mode it moves between the effect slots and their pages |
 | 7 | Screen | The 240 × 240 colour display |
 | 8 | [[KNOB1]] to [[KNOB4]] | Change the four parameters shown on the screen |
-| 9 | Function buttons | Twelve buttons in two rows. All but [[SAVE]] and [[ARP]] work today |
+| 9 | Function buttons | Twelve buttons in two rows. All but [[SAVE]] work today |
 
 ## Knobs
 
@@ -96,7 +96,7 @@ two rows of six under [[KNOB1]] to [[KNOB4]]: [[FX]], [[SEL]], [[ENV]],
 | [[PLAY/STOP]] | Starts and stops the sequencer, in any mode | The same |
 | [[REC]] | Records into the focused track; held in SEQ mode while stopped, step recording; with [[SEL]], Capture ([chapter 7](07-sequencer.md#recording)) | The same |
 | [[SAVE]] | Shows a message that it is not in the simulator yet | Saving patterns, and later sounds ([chapter 10](10-settings-and-storage.md)) |
-| [[ARP]] | The same message | An arpeggiator is planned; how it will work is not designed yet |
+| [[ARP]] | A tap switches the current sound's arpeggiator on, and opens its pages, or off; held, it latches; with [[SEL]], it opens the pages ([chapter 4](04-playing.md#arpeggiator)) | The same |
 
 ### Button lights
 
@@ -111,6 +111,7 @@ two rows of six under [[KNOB1]] to [[KNOB4]]: [[FX]], [[SEL]], [[ENV]],
 | [[REC]] | On while recording; a fast blink during a count-in or while a first take waits for its bar; a slow blink while Capture holds notes you could keep |
 | [[LFO]], [[ENV]] | On while the rack shows one of their modules |
 | [[EDIT]] | On in the matrix and the chain |
+| [[ARP]] | On while the current sound's arpeggiator is on; a blink once a second while it latches |
 | Any other button | On while you hold it |
 
 ### Functions still to be given a key
@@ -224,11 +225,12 @@ says *Empty sound: turn PRESETS*.
 
 {{screen fx FX mode: Plate in M1 and PSX Verb in M2, chosen, with its first page on the knobs.}}
 
-### The sequencer and modulation pages
+### The sequencer, modulation and arpeggiator pages
 
-[[SEQ]] shows the sequencer's steps, and [[LFO]], [[ENV]] and [[EDIT]] the
-modulation pages. Chapters [7](07-sequencer.md#what-the-screen-shows) and
-[8](08-modulation.md) describe them.
+[[SEQ]] shows the sequencer's steps, [[LFO]], [[ENV]] and [[EDIT]] the
+modulation pages, and [[ARP]] the arpeggiator's. Chapters
+[7](07-sequencer.md#what-the-screen-shows), [8](08-modulation.md) and
+[4](04-playing.md#the-arp-pages) describe them.
 
 ### The global page
 
@@ -275,7 +277,7 @@ Short messages appear over the middle of the screen for about a second:
 | An engine's or effect's name, *does not fit* and how far over | It would take the chain past the FM-1's memory ([chapter 6](06-effects.md#memory)) |
 | A track, *Captured*, *Metronome on* and the like | The sequencer did something you asked ([chapter 7](07-sequencer.md)) |
 | A cable, such as *LFO1 > S2Color*, and its amount | You make a cable ([chapter 8](08-modulation.md)) |
-| A button's name and *not in the simulator yet* | You press [[SAVE]] or [[ARP]] |
+| A button's name and *not in the simulator yet* | You press [[SAVE]] |
 
 !!! tip "A larger screen"
     Under the panel, **Screen ×2** shows a second copy of the screen at twice

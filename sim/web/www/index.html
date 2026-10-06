@@ -118,6 +118,16 @@
       <div><dt>Effects</dt><dd>In FX mode SELECT walks the current sound's two insert effects, a Mix page
         with the four sounds' levels on the knobs, and the two master effects every sound goes through;
         ALGORITHM picks the effect, and SEL then SELECT swaps it with its neighbour.</dd></div>
+      <div><dt>Arpeggiator</dt><dd>Tap ARP to switch the current sound's arpeggiator on (its pages
+        open) or off; hold ARP to latch, so the notes keep playing after you let go and the next chord
+        replaces them. SHIFT and ARP shows the pages without switching. SELECT turns the pages (PLAY,
+        RHYTHM, CHANCE, FEEL, MORE, KEYS, SEED), the knobs set the mode, rate, gate, octaves, rhythm
+        patterns and chance, and ALGORITHM picks the stock FM-1's arp modes as presets. The keys, MIDI
+        and the sequencer's notes for that sound all go through it, and it follows the sequencer's
+        tempo, running or not. Recording keeps the notes you played, so the arpeggio comes back on
+        playback. Its LED is lit while it is on and blinks while it latches. The arpeggiator follows
+        Yarns' (Emilie Gillet) with note orders after MCL's (Justin Mammarella) and chance after Super
+        Arp's (Handcrafted Media); the code is this project's own.</dd></div>
       <div><dt>Modulation</dt><dd>Two LFOs, two envelopes that every note restarts, and a random source. LFO or ENV shows them a page at a time on
         the knobs; ALGORITHM changes a module. Hold LFO or ENV and turn a knob on the sound's, an
         effect's or a module's page to send it there, the turn setting how much (with a mouse, <kbd>Tab</kbd> to the button and
@@ -130,8 +140,8 @@
         own.</dd></div>
     </dl>
     <p class="fine">Panel to scale from the M-VAVE manual's dimensions (161.5 &times; 96.5&nbsp;mm) and the
-      owner's board photo; the encoders' printed names and the 14 buttons are the manual's. SAVE and
-      ARP are not in the simulator yet. Engines credit Emilie Gillet
+      owner's board photo; the encoders' printed names and the 14 buttons are the manual's. SAVE is
+      not in the simulator yet. Engines credit Emilie Gillet
       (Mutable Instruments, MIT) and the Schwung module authors; see the repository's
       <code>engines/README.md</code>. FM6 is msfa by Raph Levien for Google (Apache License 2.0), borrowed with
       thanks, as is its name, from Felucca's FM6 engine by hugelton; it reads the DX7's voice format (not

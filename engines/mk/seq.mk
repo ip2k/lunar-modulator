@@ -12,9 +12,10 @@
 SEQ_SRC := seq/seq_clip.c seq/seq_engine.c seq/seq_cmd.c seq/seq_persist.c seq/seq_capture.c
 # The host bridge (include/fm1_seq_host.h): commands, advance and the split
 # renders every host shares; and the effects' side of it (engine API v3's
-# extension: tempo, beats and transport events, include/fm1_fx_host.h).
+# extension: tempo, beats and transport events, include/fm1_fx_host.h), and
+# the MIDI effects in front of the sounds (include/fm1_mfx_host.h).
 # Core rules apply to both: C99, no heap, no stdio.
-SEQ_SRC += seq/seq_host.c seq/fx_host.c
+SEQ_SRC += seq/seq_host.c seq/fx_host.c seq/mfx_host.c
 SEQ_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Iinclude -Wall -Wextra -Wpedantic -MMD -MP
 SEQ_OBJ := $(patsubst %.c,$(BUILD)/c/%.o,$(SEQ_SRC))
 SEQ_CHECK_OBJ := $(patsubst %.c,$(BUILD)/c-check/%.o,$(SEQ_SRC))
