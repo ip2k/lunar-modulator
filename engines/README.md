@@ -3393,8 +3393,9 @@ now, so the modulation runtime's shared records grew from 192 to 200 (4 ×
 16 + 10 × 13 + 6, `FM1_MOD_SINK_PARAMS`) and `fm1_mod_size()` from 26,512 to
 26,848 bytes (eight 40-byte records and 16 bytes of alignment), the virtual
 FM-1's arena for it from 26,624 to 26,880. The browser module grew from
-955,241 to 956,217 bytes (both with the dead-code audit's removals and the
-UI polish of PR #78) with everything of 2026-10-06's follow-ups (glide's modes, Drums' two, the Voice
+958,819 to 959,790 bytes (both with the dead-code audit's removals, the UI
+polish of PR #78 and the arpeggiator's follow-ups of PR #76) with
+everything of 2026-10-06's follow-ups (glide's modes, Drums' two, the Voice
 Mode keys, the driven idle paths, Mu's makeup and the shim's NaN fix).
 
 **No sound changed at Glide Off and Poly** [verified 2026-10-06, Apple clang

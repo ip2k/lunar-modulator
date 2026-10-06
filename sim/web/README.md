@@ -535,12 +535,12 @@ the arpeggiator with the MIDI effects' stage (engine API v3's MIDI effects)
 and its follow-ups (the grid, Stop, the project key; 2026-10-06), glide and
 the voice modes (`engines/src/glide.h`), the UI audit's screens and their
 polish, and glide's modes, Drums' Choke and Kit Decay, the driven idle paths
-and Squash Mu's makeup (2026-10-06): @@N@@ of @@N@@ scenarios pass,
+and Squash Mu's makeup (2026-10-06): 91 of 91 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, two let EQ with Master Sat and Isolator rest past 2 s and
 wake them, and one keeps EQ awake under a zero cable; those three, the
 three Drums, the four FM6 and the five glide scenarios are identical to
-glibc too), and it imports nothing; it is @@SIZE@@ bytes with glide's
+glibc too), and it imports nothing; it is 959,790 bytes with glide's
 modes, Drums' two, the driven idle paths and Mu's makeup (956,217 with them
 before the arpeggiator's follow-ups), 958,819 before them,
 955,241 before the arpeggiator's follow-ups with the
