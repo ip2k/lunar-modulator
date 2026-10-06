@@ -513,3 +513,69 @@ def test_the_cymbals_are_er99s_recordings_at_44_1_khz():
     assert 2 * sum(lens.values()) == 221_098
     assert "Mono, 44.1 kHz, int16" in text
     assert Path(VENDOR / "assets" / "909" / "README.txt").read_text().startswith("909 cymbal samples")
+
+
+# ---- The cymbals' flash budget (engines/README.md, "Comet Kit") -------------------------------
+
+def cymbals():
+    import re
+    text = (VENDOR / "gen" / "x0x_drum_samples.h").read_text()
+    return {m.group(1): [int(v) for v in m.group(3).replace("\n", " ").split(",") if v.strip()]
+            for m in re.finditer(r"static const int16_t (\w+)\[(\d+)\] = \{(.*?)\};", text, re.S)}
+
+
+def snr_db(x, y):
+    s = sum(v * v for v in x)
+    e = sum((a - b) ** 2 for a, b in zip(x, y))
+    return 10 * math.log10(s / e)
+
+
+def mu_law_8bit(x):
+    """Each sample through 8-bit mu-law (mu 255: a sign and 7 bits of the
+    companded magnitude) and back."""
+    k = math.log1p(255.0)
+    out = []
+    for v in x:
+        c = math.log1p(255.0 * abs(v) / 32768.0) / k
+        q = round(c * 127) / 127
+        out.append(round(math.copysign(math.expm1(q * k) / 255.0, v) * 32768.0))
+    return out
+
+
+IMA_STEPS = [7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 19, 21, 23, 25, 28, 31, 34, 37, 41, 45, 50, 55, 60,
+             66, 73, 80, 88, 97, 107, 118, 130, 143, 157, 173, 190, 209, 230, 253, 279, 307, 337, 371,
+             408, 449, 494, 544, 598, 658, 724, 796, 876, 963, 1060, 1166, 1282, 1411, 1552, 1707,
+             1878, 2066, 2272, 2499, 2749, 3024, 3327, 3660, 4026, 4428, 4871, 5358, 5894, 6484,
+             7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899, 15289, 16818, 18500, 20350, 22385,
+             24623, 27086, 29794, 32767]
+IMA_INDEX = [-1, -1, -1, -1, 2, 4, 6, 8]
+
+
+def ima_adpcm(x):
+    """Each sample through 4-bit IMA ADPCM and back (the encoder's own
+    reconstruction)."""
+    pred, idx, out = 0, 0, []
+    for v in x:
+        step, diff, code = IMA_STEPS[idx], v - pred, 0
+        if diff < 0:
+            code, diff = 8, -diff
+        d = step >> 3
+        for bit in (4, 2, 1):
+            if diff >= step:
+                code |= bit
+                diff -= step
+                d += step
+            step >>= 1
+        pred = max(-32768, min(32767, pred - d if code & 8 else pred + d))
+        idx = max(0, min(88, idx + IMA_INDEX[code & 7]))
+        out.append(pred)
+    return out
+
+
+def test_the_cymbal_budget_options_measure_as_documented():
+    """The proposed 8-bit mu-law halves the cymbals' 221 KB and keeps 37.8 dB
+    or more of SNR against the int16 on each recording; 4-bit IMA ADPCM
+    would quarter them but keeps under 19 dB, too lossy for cymbals."""
+    for name, x in cymbals().items():
+        assert snr_db(x, mu_law_8bit(x)) > 37.7, name
+        assert snr_db(x, ima_adpcm(x)) < 19.0, name

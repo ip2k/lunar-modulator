@@ -24,7 +24,7 @@ import wave
 
 import pytest
 
-from tests.engine_helpers import (ENGINES, RATE, cents, render, renderer,  # noqa: F401
+from tests.engine_helpers import (ENGINES, GPL_MODS, RATE, cents, render, renderer,  # noqa: F401
                                   rms)
 
 KICK, RIM, SNARE, CLAP, SNARE2, LOW_TOM, CLOSED_HH, FLOOR_TOM, PEDAL_HH, MID_TOM, OPEN_HH, \
@@ -99,9 +99,11 @@ def test_twelve_parameters_fit_the_modulation_records(listing):
 
 def test_only_the_kits_say_they_are_pad_kits(listing):
     """The pad property (fm1_engine_t.pad_first_note, pad_count) is additive:
-    Sophie and Drums declare 16 pads from note 36, every other engine none."""
+    Sophie, Drums and, with the GPL switch on, Comet Kit declare 16 pads from
+    note 36, every other engine none."""
     kits = {i: e["pads"] for i, e in listing.items() if e["pads"]}
-    assert kits == {"sw-sophie": {"first": 36, "count": 16}, "drums": {"first": 36, "count": 16}}
+    want = ["sw-sophie", "drums"] + (["comet"] if GPL_MODS else [])
+    assert kits == {k: {"first": 36, "count": 16} for k in want}
 
 
 @pytest.mark.parametrize("kit", [0, 1])

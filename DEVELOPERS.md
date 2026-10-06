@@ -180,7 +180,16 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     [verified: `fm1-acid-oracle --twin`], and the patched unit is upstream's
     at 44.1 kHz [verified: `tests/test_engine_acid_bass.py`]
     ([`engines/third_party/fm1-x0x/UPSTREAM.md`](engines/third_party/fm1-x0x/UPSTREAM.md),
-    [`engines/README.md`](engines/README.md#acid-bass)).
+    [`engines/README.md`](engines/README.md#acid-bass)). **Comet Kit**, a
+    16-pad kit after the TR-909, is fm1-x0x's 909 (a port of 9W9 by
+    athousanddetails, grown out of ER-99 by Matthew Cieplak, with ER-99's
+    cymbal recordings), with two more local changes (the host's rate, pots
+    between the integers), sixteen pads on its eleven voices and a 16-sample
+    grid; it is its vendored unit to the bit [verified: `fm1-comet-oracle
+    --twin`], and the patched kit is upstream's at 44.1 kHz [verified:
+    `tests/test_engine_comet_kit.py`]. Its cymbals are 221 KB of int16 in
+    flash ([`engines/README.md`](engines/README.md#comet-kit) proposes a
+    budget).
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
     antiderivative anti-aliasing), Drive (overdrive and saturation, five

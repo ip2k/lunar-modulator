@@ -9,6 +9,25 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Comet Kit, a drum kit after the TR-909** (GPL; in builds with the GPL
+  switch on, as the simulator is while we test). It is the 909 kit of
+  fm1-x0x, Charles Vestal's firmware for the FM-1, which ports 9W9 by
+  athousanddetails, itself grown out of ER-99 by Matthew Cieplak: the kick,
+  snare, toms, rim shot and clap modelled on the machine's circuits, and
+  ER-99's recordings of the hi-hats, crash and ride.
+  - Sixteen pads on notes 36–51, as Drums: the white keys play them. Besides
+    the machine's eleven sounds, a second snare, three more toms and a
+    pedal hi-hat are voicings of their own; the closed and pedal hi-hats
+    cut the open one short.
+  - Each pad has the machine's own knobs for its sound: Tune, Decay, Level,
+    Tone, Snap, Sweep (the kick's pitch depth), Drive and seven Drive Types
+    (Diode, Clip, Saturate, Fuzz, Crunch, Fold, Crush). Accent and Velocity
+    set how the kit answers velocity, and Kit chooses Classic or Big Beat,
+    fm1-x0x's own voicing with a harder kick.
+  - It plays exactly what fm1-x0x's own 909 plays for the same hits, sample
+    for sample, at any block size and at the instrument's rate. Its cymbal
+    recordings take 221 KB; the notes propose halving that for the FM-1.
+  - Drums stays the kit in every build.
 - **Acid Gen, acid basslines from a seed** (GPL; with the GPL switch on).
   It is TB-3PO, the line generator of fm1-x0x, after the Phazerville
   Hemisphere Suite's TB_3PO. In the simulator, turn ALGORITHM on the ARP

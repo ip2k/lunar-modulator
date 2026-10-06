@@ -31,9 +31,10 @@ and [chapter 14](14-credits-and-licences.md) credits each source.
 {{status sim planned}}
 
 **To choose an engine:** turn [[PRESETS]]. The engines come in this order:
-Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Acid Bass, Test
-Sine, and round again. Acid Bass is there only in builds with the GPL
-switch on, as the simulator is while we test ([Acid Bass](#acid-bass)).
+Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Acid Bass, Comet
+Kit, Test Sine, and round again. Acid Bass and Comet Kit are there only in
+builds with the GPL switch on, as the simulator is while we test
+([Acid Bass](#acid-bass)).
 While you turn, the screen lists the engines, eight at a time, with the new one
 highlighted ([chapter 3](03-panel-tour.md#lists)). In the simulator you can also pick one from the
 **Sound (PRESETS)** list under the panel.
@@ -48,7 +49,7 @@ When you choose an engine:
   and goes to its last page otherwise.
 
 Every engine but Sophie has a **Volume** parameter, its own output level, on
-its second page (on Drums, its third). It is separate from [[MASTER]], which sets the level of
+its second page (on Drums and Comet Kit, its third). It is separate from [[MASTER]], which sets the level of
 everything. Macro, Macro Heavy, Six-Op FM, FM6 and Shapes also have
 **Glide** and **Voice Mode**, for sliding between notes and playing one
 voice at a time ([chapter 4](04-playing.md#glide-and-voice-modes)).
@@ -499,7 +500,7 @@ for its pad's Decay, whether or not you keep the key down.
 {{screen sophie Sophie on pad 1, the kick, just after it was struck.}}
 
 **To play Sophie from the FM-1's keys:** play the white keys. With a drum
-kit as the sound (Sophie or Drums), the sixteen white keys play the sixteen
+kit as the sound (Sophie, Drums or Comet Kit), the sixteen white keys play the sixteen
 pads at any octave, from the kick on the lowest F up to the ride on the
 highest white key, and the black keys play nothing. On the computer
 keyboard, <kbd>A</kbd> is the kick, <kbd>S</kbd> the rim, <kbd>D</kbd> the
@@ -644,6 +645,90 @@ Some settings to start from:
 | Distorted acid | 700 Hz | 80 % | 100 % | 400 ms | 80 % | 75 %, RAT |
 
 {{engine-table acid-bass gpl}}
+
+## Comet Kit
+
+{{status sim desktop planned}}
+
+Comet Kit is a sixteen-pad drum kit after the TR-909: a kick with a punchy
+sweep and a beater click, a snare with its rattle of wires, three toms, a
+rim shot and a hand clap, all modelled on the machine's circuits, and
+hi-hats, a crash and a ride played from recordings, as the machine played
+its cymbals. It is the 909 kit of fm1-x0x, Charles Vestal's firmware for the
+FM-1, which ports 9W9 by athousanddetails, itself grown out of ER-99 by
+Matthew Cieplak; the cymbal recordings are ER-99's
+([chapter 14](14-credits-and-licences.md)).
+
+!!! note "In builds with the GPL switch on"
+    fm1-x0x's code and ER-99's recordings are published under the GNU
+    General Public License, so Comet Kit is built in only while the
+    firmware's GPL switch is on, as Acid Bass is ([Acid Bass](#acid-bass)).
+    Drums stays the kit every build has.
+
+- Comet Kit plays MIDI notes 36 to 51, one pad each, in the same order as
+  Drums and Sophie; on the FM-1's keys the sixteen white keys play them
+  ([Sophie](#sophie) shows which key is which).
+
+  | Note | Pad | Sound |
+  | --- | --- | --- |
+  | 36 | 1 Kick | the kick |
+  | 37 | 2 Rim | the rim shot |
+  | 38 | 3 Snare | the snare |
+  | 39 | 4 Clap | the hand clap |
+  | 40 | 5 Snare 2 | the snare, a little higher, with more of its wires |
+  | 41, 43 | 6 Low Tom, 8 Floor Tom | the low tom, and the low tom tuned up |
+  | 45, 47 | 10 Mid Tom, 12 Low-Mid | the mid tom, and the mid tom tuned up |
+  | 48, 50 | 13 High-Mid, 15 High Tom | the high tom tuned down, and the high tom |
+  | 42, 44 | 7 Closed HH, 9 Pedal HH | the closed hi-hat, and a longer one |
+  | 46 | 11 Open HH | the open hi-hat |
+  | 49 | 14 Crash | the crash |
+  | 51 | 16 Ride | the ride |
+
+- A hit rings for its sound's decay, whether or not you keep the key down.
+  The kit has one voice for each of its eleven sounds, as the machine has:
+  a sound struck again starts again, and the two pads that share a sound
+  (the two snares, two of the toms, the closed and pedal hi-hats) cut each
+  other. A closed or pedal hi-hat cuts the open hi-hat short.
+- **Velocity** (page 3) sets how much a soft hit drops: at 100 % a hit at
+  half velocity is half as loud; at 0 every hit plays at the Accent level.
+  **Accent** sets the level a full-velocity hit reaches, the machine's accent.
+- **Pad** chooses which pad the pad's knobs edit, those on pages 1 and 2 and
+  Drive Type on page 3. [[ALGORITHM]] steps through the pads, and so does
+  [[KNOB1]] on page 1. Each pad keeps its own settings.
+- The pad's knobs are the machine's own knobs for that sound. They start
+  where the kit sets the pad up: Tune, Decay, Level, Tone and Snap in the
+  middle, Sweep and Drive at 0. Turned fully left or right, a knob is at the
+  end of that sound's range on the machine, so a tom cannot be tuned onto
+  another, as on the machine.
+  - **Tune** sets the pitch; on the kick, how far its pitch sweeps down at
+    the start of a hit.
+  - **Decay** sets how long it rings; on the clap, its room tail. The snare
+    and the rim shot have none: their length is fixed, as on the machine.
+  - **Level** sets its level in the kit.
+  - **Tone** (page 2) sets the length of the snare's wires; on the kick, the
+    pitch Sweep pulls it to.
+  - **Snap** sets the snare's wires against its body, and the click of the
+    kick and of the toms.
+  - **Sweep** works on the kick only: at 0 the kick is the machine's; turned
+    up, its pitch moves towards the one Tone sets, and its sweep deepens.
+  - **Drive** saturates the pad.
+  - **Drive Type** (page 3) chooses how: *Diode*, the machine's own soft
+    rounding, *Clip*, *Saturate*, *Fuzz*, *Crunch*, *Fold* (a wavefolder)
+    or *Crush* (fewer bits and a lower sample rate).
+- **Kit** (page 4) chooses *Classic*, the kit as 9W9 sets it up, or *Big
+  Beat*, fm1-x0x's own: a shorter, harder kick and a quieter open hi-hat.
+- Drive Type and Kit reach the pad's next hit; a hit that is ringing keeps
+  the sound it started with. The other pad knobs move a ringing hit when its
+  sound reads them, and otherwise reach the next hit.
+- Comet Kit ignores pitch bend.
+
+!!! caution "The values shown after you change pads"
+    As on Drums, the screen cannot read a pad's settings back. When you
+    choose another pad, the screen keeps showing the values you last set,
+    and the first turn of a knob gives the new pad the value shown, plus
+    that turn.
+
+{{engine-table comet gpl}}
 
 ## Test Sine
 
