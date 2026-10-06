@@ -292,7 +292,6 @@
             "Oct Mode": "Span",
             "Rate": "1/16",
             "Gate": 50,
-            "Swing": 50,
             "Pattern": "All",
             "Length": 0,
             "Fill": 0,

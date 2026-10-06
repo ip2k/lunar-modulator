@@ -446,7 +446,7 @@ FM-1's budget only. A project save costs the audio thread about 1.5 ms
 | **Open…**, drop | `.lunar` (JSON or binary), `.movy1`, `.syx`, several at once; sniffed by content (§11). `.syx` goes to FM6's bank as before. A sound, effects or clip asks for its target (sound 1-4; master or a sound's inserts; track and slot). Before POWER, a file waits on the power card |
 | **Save…** | Project, current sound, its effects, master effects, mod rack (`application/json`, `first-orbit-s2.sound.lunar`: the kind as a middle word, a project as `first-orbit.lunar`), the set as `.movy1` (`text/plain`) |
 | SAVE | The project into IndexedDB `files`; the screen shows the store's answer (`fm1w_saved`) |
-| Autosave | The whole project, as binary, into `autosave`: 5 s after the last change, at most 15 s after the first unsaved one, never more often than every 5 s, and on `visibilitychange`, `pagehide` and Power off; skipped when the bytes are the same. POWER restores it unless a link loads something; *Start fresh* loads the start chain (the shadow's own) |
+| Autosave | The whole project, as binary with no chunk deflated (the worklet's `state-save` with `plain`, `fm1w_state_save`'s binary 2; owner, 2026-10-06, to save the audio thread the deflate; files, SAVE, Recent and links stay compressed). Measured in Node on this Mac, 350 saves each after 50 to warm up: the example project 0.52 ms deflated, 0.47 ms plain (3,140 and 4,624 bytes); with all 8 tracks' clips full, 0.84 and 0.76 ms (5,504 and 12,568 bytes). Deflate is about a tenth of a save; the rest is the JSON writer and reader the save goes through for the canonical order, into `autosave`: 5 s after the last change, at most 15 s after the first unsaved one, never more often than every 5 s, and on `visibilitychange`, `pagehide` and Power off; skipped when the bytes are the same. POWER restores it unless a link loads something; *Start fresh* loads the start chain (the shadow's own) |
 | Recent | The last five states a load replaced, as "Before *title*"; Undo load restores the last |
 | **Copy link** | `#lunar=`: the project's JSON, compact, deflate-raw, base64url; refused over 32 KiB with its size |
 | Notice | Over the status line: "Loaded “First orbit”: 4 sounds, … It takes 69% of the FM-1's RAM." with Undo load, or the refusal in `--refuse`, with *Load without …* or *Replace the clip* when the module allows it |
@@ -471,13 +471,24 @@ shadow packs, the worklet reloads it quietly), `hl=KNOB2,FX` (rings on the
 panel drawing: buttons, encoders, MASTER, POWER, PLAY, KEY1-27), `play=1`,
 `entry=3` (`sgjump 2` then `play`, the panel's own verbs). The card names
 the file, its about, and what it replaces; after the load the address
-loses the link. `www/examples/` holds the guide's five examples (MIT), the
+loses the link. On a page served from `localhost`, `127.0.0.1` or
+`[::1]` (the localhost exception, owner, 2026-10-06), `?load=` also takes a
+full `http(s)://` URL on any of those hosts and any port, so a guide on
+another local dev server can hand the page a file: its path matches the
+same pattern (no prefix needed), with no query, fragment or credentials,
+and the URL must come out of the parser unchanged; that server must allow
+the fetch (CORS). The public site takes none of these. `www/examples/` holds the guide's five examples (MIT), the
 same bytes as `engines/state/examples/` (`tests/test_sim_files.py`).
 
 **`?embed=1`.** Only inside a frame. Messages are taken only when
 `event.source === window.parent` and `event.origin === location.origin`;
-replies and events go to `location.origin`, never `'*'`. One operation at a
-time; text up to 256 KiB.
+replies and events go to `location.origin`, never `'*'`. The localhost
+exception: on a page served from `localhost`, `127.0.0.1` or `[::1]`, a
+parent on any of those hosts and any port is taken too, and replies and
+events go to its origin (before it has sent anything, the one
+`location.ancestorOrigins` or the referrer names, so `ready` reaches it;
+else from its first message on). The public site is unchanged. One
+operation at a time; text up to 256 KiB.
 
 | Request `{lunar: 1, id, op, …}` | Reply `{lunar: 1, re: id, ok, …}` |
 | --- | --- |
@@ -500,9 +511,13 @@ JSON refused there, SAVE into IndexedDB, the autosave's timer and its
 restore, Undo load byte for byte, fourteen refused `?load=` paths with no
 request made, the arrival card and the hints, the `#lunar=` round trip, the
 32 KiB cap and a 4 MiB inflation bomb, the embed API from a same-origin
-parent and silence to another origin, and the page at 1,440 and 390 px
+parent and silence to another origin, the localhost exception (a parent on
+another local port answered and a `?load=` from another local origin
+loaded, while the page served as `lunar.test` answers the one and refuses
+the other with no request), and the page at 1,440 and 390 px
 [verified 2026-10-06: all pass, Chromium 153]. `tests/test_sim_files.py`
-checks the static half.
+checks the static half; `test/origins.mjs` (Node, through
+`tests/test_sim_origins.py`) the exception's rules.
 
 ## Parity: does the browser sound like the native engines?
 

@@ -440,6 +440,9 @@ set for the whole set, on the Set page, from 50 % (straight) to 80 %:
 | 70 % | 8 ticks, 1/3 of a step |
 | 80 % | 12 ticks, half a step |
 
+The arpeggiator swings with the set too: it has no swing of its own
+([chapter 4](04-playing.md#arpeggiator)).
+
 Swing follows the tempo, not the clip. In a clip playing at 2X it delays the
 steps that land on the tempo's off-beat sixteenths, steps 3, 7, 11 and 15 of
 each bar of the clip, so that the clip swings with the others. A clip at

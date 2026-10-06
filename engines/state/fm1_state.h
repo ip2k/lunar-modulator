@@ -308,6 +308,11 @@ const fm1_mod_kind_t *fm1_state_kind(const fm1_state_names_t *nm, const char *id
  * index, or -1. */
 int fm1_state_param_find(const fm1_state_names_t *nm, unsigned owner_kind, const char *owner,
                          const fm1_param_t *p, unsigned n, const char *key, size_t len);
+/* A removed parameter's last name (fm1_known.h's FM1_ALIAS_RETIRED rows of
+ * the owner, without ASCII case): its retired uid, which a reader passes on
+ * as it would "#UID"; 0 for none. */
+uint16_t fm1_state_param_retired(const fm1_state_names_t *nm, unsigned owner_kind, const char *owner,
+                                 const char *key, size_t len);
 /* An entry of an ENUM by name (exactly, then without ASCII case), then by
  * an old name of one (the owner's entry aliases), or -1. */
 int fm1_state_entry_find(const fm1_state_names_t *nm, unsigned owner_kind, const char *owner,

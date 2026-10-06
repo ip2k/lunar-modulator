@@ -59,6 +59,9 @@ def generate():
     for a in aliases["entries"]:
         owner = "FM1_ALIAS_ENGINE" if "engine" in a else "FM1_ALIAS_MOD"
         rows.append((owner, a.get("engine", a.get("kind")), a["uid"], a["index"], a["alias"]))
+    for a in aliases.get("retired", []):
+        owner = "FM1_ALIAS_ENGINE" if "engine" in a else "FM1_ALIAS_MOD"
+        rows.append((owner, a.get("engine", a.get("kind")), a["uid"], -2, a["name"]))
     for owner, oid, uid, entry, name in rows:
         lines.append(f"  {{ {owner}, {c_string(oid)}, {uid}u, {entry}, {c_string(name)} }},")
     lines += ["  { 0, NULL, 0u, 0, NULL }", "};", f"const size_t fm1_alias_count = {len(rows)}u;", "",

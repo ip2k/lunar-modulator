@@ -290,7 +290,13 @@
         "fx_wants": {"type": "array", "items": {"enum": ["key", "tempo", "transport"]}, "uniqueItems": true},
         "ram": {"description": "Instance bytes at build.rate.", "type": "integer", "minimum": 0},
         "page_names": {"$ref": "#/$defs/pageNames"},
-        "params": {"type": "array", "items": {"$ref": "#/$defs/param"}}
+        "params": {"type": "array", "items": {"$ref": "#/$defs/param"}},
+        "retired": {
+          "description": "Removed parameters' last names and their retired uids; a reader passes such a value on by uid, as #UID.",
+          "type": "object",
+          "propertyNames": {"pattern": "^(?!#)[ -~]{1,24}$"},
+          "additionalProperties": {"type": "integer", "minimum": 1, "maximum": 65535}
+        }
       },
       "additionalProperties": false
     },

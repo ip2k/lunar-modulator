@@ -290,7 +290,7 @@ Rate, Pattern, Oct Mode or Repeat shows that value's list
 | 1 PLAY | Mode: the order of the notes | Rate: how long a step is, 1/32 triplet to a whole note, or TRG | Gate: how long each note sounds, 1 to 200 % of the step | Octaves: 1 to 4 |
 | 2 RHYTHM | Pattern: every step, or one of 22 rhythms | Fill: the beats of a Euclidean rhythm | Rotate: where it starts | Length: the Euclidean rhythm's steps; 0 uses Pattern |
 | 3 CHANCE | Chance: how likely a step is to play | Ratchet: notes inside a step, 1 to 4 | Vel Spread: random velocity, up and down | Loop: after this many steps the chances repeat; 0 never |
-| 4 FEEL | Oct Mode: how the octaves combine with the mode | Velocity: as played, or fixed | Swing: 50 to 80 % | Join: keys added to a playing chord join now, or at the next pass |
+| 4 FEEL | Oct Mode: how the octaves combine with the mode | Velocity: as played, or fixed | Join: keys added to a playing chord join now, or at the next pass | |
 | 5 MORE | Order: notes sorted by pitch, as played, or reversed | Repeat: steps per note | Chord %: how likely a step is to play the whole chord | Oct Jump: how likely a note is an octave up |
 | 6 KEYS | Latch | Sync: the first key restarts the pattern, or the pattern runs on | Ratchet %: how likely a step is to ratchet | Gate Sprd: random gate length |
 | 7 SEED | Seed: which random choices the chances make | | | |
@@ -317,11 +317,16 @@ not.
   the sequencer's beat: at 1/16, on every sixteenth note of the bar, counted
   from [[PLAY/STOP]]. A key you press between two steps waits for the next
   one, and so does an arpeggiator you switch on in the middle of a bar.
-  Triplet steps fall on the triplets of the beat, and Swing delays every
-  second step on the same grid. A dotted rate, such as 1/16D, finds the bar
+  Triplet steps fall on the triplets of the beat, and the set's swing
+  delays every second step on the same grid. A dotted rate, such as 1/16D, finds the bar
   line again after a few bars (1/16D after three).
 - **Stopped.** While the sequencer is stopped, the arpeggiator runs from its
   own steps at the sequencer's tempo, and a first key starts it at once.
+- **Swing.** The arpeggiator has no swing of its own: it swings with the
+  set, by the Swing on the sequencer's Set page
+  ([chapter 7](07-sequencer.md#swing)), playing or stopped. A file saved
+  before it followed the set loads as before; its old arpeggiator Swing
+  value is kept in the file's data but no longer does anything.
 - **[[PLAY/STOP]]** restarts the pattern on the first beat.
 - **When the sequencer stops**, it takes back what it gave the arpeggiator:
   its notes leave the chord, latched or not, and a note they were playing

@@ -263,7 +263,9 @@ static void file_put(void *ctx, const char *b, size_t n) { fwrite(b, 1, n, (FILE
 
 /* --save KIND:FILE: project, soundK, fx (the master), fxK (sound K's
  * inserts), mods, settings, set or clip:T.S; a FILE ending in .lunarb is
- * written binary, a set's .movy1 as its text, any other canonical JSON. */
+ * written binary (.plain.lunarb with nothing deflated, as the page's
+ * autosave writes it), a set's .movy1 as its text, any other canonical
+ * JSON. */
 static int state_save(const char *spec) {
   static const struct { const char *name; unsigned kind; } kKinds[] = {
     { "project", FM1_STATE_PROJECT }, { "mods", FM1_STATE_MODS }, { "settings", FM1_STATE_SETTINGS },
@@ -302,6 +304,7 @@ static int state_save(const char *spec) {
   }
   len = strlen(path);
   binary = len > 7 && strcmp(path + len - 7, ".lunarb") == 0;
+  if (binary && len > 13 && strcmp(path + len - 13, ".plain.lunarb") == 0) binary = 2;
   if (!(f = fopen(path, "wb"))) {
     fprintf(stderr, "--save: cannot write %s\n", path);
     return 0;

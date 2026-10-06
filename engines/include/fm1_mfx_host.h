@@ -46,7 +46,8 @@
  *
  * The key. With a sequencer the context's project key is the set's (its
  * `key` verb, fm1_seq.h), read at every block; fm1_mfx_set_key sets it for
- * a bridge without one.
+ * a bridge without one. The swing likewise: the set's (its `swing` verb),
+ * read at every block, or fm1_mfx_set_swing's; the arp swings by it.
  *
  * Steps. A sequencer note-on that a chain takes is a trig: at its frame,
  * after that frame's notes, every effect of the chain gets one STEP (an
@@ -139,7 +140,7 @@ typedef struct fm1_mfx {
   uint64_t accum;              /* its running sum, below rate x 6000 */
   uint8_t key_root, key_scale; /* the project key (fm1_midi_fx_ctx_t) */
   uint8_t running;             /* the transport as the last block began */
-  uint8_t reserved;
+  uint8_t swing;               /* the set's swing, 50..80 % (fm1_midi_fx_ctx_t) */
   uint16_t ticks[FM1_MFX_TICKS];   /* the last block's tick frames */
   uint32_t n_ticks;
   uint16_t steps[FM1_MFX_TICKS];   /* the chain being run: its trigs' frames */
@@ -194,6 +195,10 @@ void fm1_mfx_set_tempo(fm1_mfx_t *m, uint32_t bpm_x100);
 /* The project key without a sequencer: root 0..11 (C..B), scale FM1_KEY_*.
  * With one on the bridge, each block takes the set's key instead. */
 void fm1_mfx_set_key(fm1_mfx_t *m, unsigned root, unsigned scale);
+
+/* The set's swing without a sequencer, 50..80 % (clamped; 50 straight, the
+ * default). With one on the bridge, each block takes the set's swing. */
+void fm1_mfx_set_swing(fm1_mfx_t *m, unsigned pct);
 
 /* The bridge's side (seq_host.c's dispatch calls it once a block, before
  * any render; `single` when it serves one sink, which takes chain 0): the

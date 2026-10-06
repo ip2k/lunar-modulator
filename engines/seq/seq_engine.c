@@ -2129,6 +2129,8 @@ void fm1_seq_get_key(const fm1_seq_t *s, uint8_t *root, uint8_t *scale) {
   if (scale) *scale = s->key_scale;
 }
 
+unsigned fm1_seq_get_swing(const fm1_seq_t *s) { return s->swing_pct; }
+
 int fm1_seq_set_key(fm1_seq_t *s, unsigned root, unsigned scale) {
   if (root > 11u || scale >= FM1_SEQ_KEY_SCALES) return 0;
   s->key_root = (uint8_t)root;

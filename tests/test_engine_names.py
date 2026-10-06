@@ -132,3 +132,22 @@ def test_the_c_tables_are_what_the_tool_writes():
     res = subprocess.run([sys.executable, str(ROOT / "tools" / "gen_known.py"), "--check"],
                          capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
+
+
+def test_retired_names_point_at_retired_uids(meta):
+    """engines/aliases.json's `retired` rows (a removed parameter's last
+    name, so old files read as before): each uid is retired in
+    tests/fixtures/param-uids.json and in no table, the name shadows no
+    current parameter, and the export carries the rows as the engine's
+    `retired`."""
+    data = json.loads(ALIASES.read_text())
+    pinned = json.loads((ROOT / "tests" / "fixtures" / "param-uids.json").read_text())
+    engines = {e["id"]: e for e in meta["engines"]}
+    assert data["retired"], "the arp's Swing (2026-10-06) is the first"
+    for row in data["retired"]:
+        e = engines[row["engine"]]
+        assert row["uid"] in pinned["retired"][row["engine"]], row
+        assert row["uid"] not in [p["uid"] for p in e["params"]], row
+        assert row["name"].lower() not in [p["name"].lower() for p in e["params"]], row
+        assert e["retired"][row["name"]] == row["uid"], row
+

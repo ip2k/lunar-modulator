@@ -170,6 +170,12 @@ the saving and loading:
   replaces before you press **Power on and load**; your work goes to Recent
   first. Only files on the simulator's own site, under its `examples/`,
   `guide/` and `manual/` folders, load this way.
+- **On your own computer.** When you run the simulator yourself, from
+  `localhost` or `127.0.0.1`, a link may also name a `.lunar`, `.movy1` or
+  `.syx` file on another local server, such as
+  `?load=http://localhost:5173/missions/first.lunar`, and a page on another
+  local server may embed the simulator and drive it, as the guide does. The
+  public simulator takes neither.
 - **The examples** under *Saved in this browser, Recent and examples* are
   the guide's files (MIT): a project, a sound, effects, a mod rack and a
   clip.

@@ -26,6 +26,12 @@ history.
   view, CLEAR + a slot in the session view) or the whole song asks first,
   until the next press. A saved project remembers the session view and the
   song page. Manual chapter 7 describes all of it.
+- **Run the simulator yourself and drive it from another local page.**
+  Served from `localhost`, `127.0.0.1` or `[::1]`, the simulator now
+  answers a page on any local port that embeds it (as the guide does), and
+  a link may load a `.lunar`, `.movy1` or `.syx` file from another local
+  server (`?load=http://localhost:5173/missions/first.lunar`; that server
+  must allow it). The public simulator is unchanged: its own site only.
 - **Files on the simulator's page** (stage W1). *Open…*, or files dropped
   on the page, loads projects, sounds, effects, mod racks and clips
   (`.lunar`), a Movy set (`.movy1`) or DX7 patches (`.syx`); a sound,
@@ -1611,6 +1617,22 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **The arpeggiator swings with the set** (owner, 2026-10-06). Its own
+  Swing knob is gone from the FEEL page; the Swing on the sequencer's Set
+  page now swings the arpeggiator too, playing or stopped. A file saved
+  before this loads as before; its old Swing value no longer does
+  anything. `fm1-render` takes `--swing 50..80` for runs without a
+  sequencer. For editors: a removed parameter's last name now stays
+  readable (`engines/aliases.json`'s `retired`, an engine's `retired` in
+  the metadata export), passed on by its retired uid as `#UID` is.
+- **The manual's specifications give sizes beside the shares**, as
+  "6 % (19 KB)": every engine and effect, the memory meter's 100 % (379 KB),
+  the sequencer's and modulation's own. The screens, and the rest of the
+  manual, still show the share only.
+- **The simulator's autosave skips compression**, which the audio thread
+  paid for; files, links, SAVE and Recent stay compressed. The saving is
+  small: about 0.05 ms of a 0.5 ms save for the example project, 0.08 ms
+  of 0.84 ms with all eight tracks full.
 - **Comet Kit's cymbals take half the flash.** The hi-hats, crash and ride
   are stored as 8-bit µ-law instead of 16-bit (110 KB instead of 221 KB):
   37.8 dB of signal to error against the 16-bit recordings, the error
