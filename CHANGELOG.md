@@ -9,6 +9,51 @@ history.
 ## [Unreleased]
 
 ### Added
+- **JieLi SDK upgraded to the V1.2.13 libraries, with safeguards** (owner's
+  decision, 2026-10-05; notes/2026-10-05-softkey-efuse.md §4). The pin is now
+  Gitee `release/AC79NN_SDK_V1.2.0` at `e30b1ee` (= tag V1.2.13), by commit.
+  The SDK's key check is left intact, not stubbed, because it is inert on the
+  FM-1 (nothing registers a licence blob, and the app never touches eFuse).
+  The safeguards instead:
+  - a post-link audit, `tools/jieli/audit_link.py` (modelled on fm1-nes's
+    `audit_boot.py`): it fails the build if any live key-check or eFuse code
+    survives — no `mkey_check`/`sdk_mkey_lock`/`sdk_mkey_lock_v2_cfun`/
+    `key_check_demo`/`sdk_chip_key_verify_v2`, no `0x0200012E` stub, no writes
+    to `0x01C80108-0x01C80110`, IRQ 123 reserved, no SDK key-blob bytes, no
+    eFuse-SFR access, no `request_irq(123)` in our sources — while leaving
+    the dormant `sdk_meky_check` in place. On a linked image it attributes
+    each hit to its function, so the SDK's own `mkey_dummy_func` mailbox
+    store passes and anything of ours fails, and it checks that the
+    `late_initcall` group is exactly `[sdk_meky_check]`. It reads ELF itself
+    (standard library only) and is covered by `tests/test_audit_link.py`;
+  - a packaging gate, `tools/jieli/package_guard.py`: never ship any V1.2.x
+    `uboot.boot`, `uboot_no_ota.boot`, `wl82loader.bin` or `ota.bin` — only
+    V1.1.9's SPL is the FM-1's. It asserts the stock SPL hash `730e54f0…`
+    and byte-identical `isd_config.ini`/`ota.bin`/`cfg`, and refuses any
+    other SPL or loader in the tree (`tests/test_package_guard.py`);
+  - the `boot_info` bridge from fm1-nes (Apache-2.0, in
+    `firmware/third_party/fm1-nes/` with its licence and `UPSTREAM.md`),
+    which copies the stock SPL's 6 hand-off words and zeroes words 6-22 so
+    V1.2.1+'s wider `boot_info_init` reads defined zero, not stale RAM.
+    Tested on the desktop (`tests/test_boot_compat.py`) and compiled for
+    pi32v2, where it calls nothing but the SDK's own initializer; it has not
+    run on a chip.
+
+  `tools/jieli/compile-check.sh` and `tools/jieli/ac79-sdk-sparse.txt` now
+  fetch and use V1.2.13 from Gitee (retrying its flaky SSL); the compile-only
+  check was re-run against it on the build host (twice, the second time with
+  the bridge and our sources in the audit). The V1.2.13 libc++ ships its
+  own `math.h`, so the V1.1.9 run's one fix is no longer needed. No user-facing
+  change. No vendor binary is in the repo.
+- notes/2026-10-05-softkey-efuse.md: a desk-only investigation of the stock
+  "soft key" SysEx and of the JieLi SDK's key and eFuse checks. The soft key
+  only writes a marker to RAM and resets the chip into its ROM loader (no
+  flash write), and its code path in FM-1_092 is identical to stock V15. The
+  SDK's key check is present in every release and every stock image but does
+  nothing on the FM-1, and nothing on the device writes eFuses; it recommends
+  upgrading to SDK V1.2.13's libraries with safeguards. A separate draft,
+  notes/2026-10-05-softkey-readonly-test-plan.md, is a read-only dump plan
+  for the owner to review; nothing has been sent to any device.
 - **Comb, an effect of its own.** The comb filter that was Filter's seventh
   Type is now its own effect, with the same knobs (Cutoff, Resonance, Drive,
   Mode, Morph, Mix, Level) and the same sound, sample for sample. Filter
@@ -979,27 +1024,30 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
-- HANDOFF.md, the project's context summary, now describes `main` after
-  PRs #3–#57 (2026-10-05) instead of the 2026-09-06 research phase.
-  - Where things stand: the code runs on a desktop and in a browser
-    (the virtual FM-1 and the manual on GitHub Pages), compiles for pi32v2
-    but has not run on a JieLi chip, and this project has flashed nothing.
+- HANDOFF.md, the project's context summary, is rewritten for `main` after
+  PRs #3–#57 (2026-10-05); it had been patched piecemeal since the
+  2026-09-06 research phase.
+  - Where things stand: the code runs on a desktop and in a browser (the
+    virtual FM-1 and the manual on GitHub Pages), compiles for pi32v2 but
+    has not run on a JieLi chip, and this project has flashed nothing.
   - What the repository holds, with DEVELOPERS.md as the technical home
     and docs/01–16.
   - Recovery: the reports from other owners (issue #2 here,
     FM-1-transporter, fm1-nes), our dongle's fixes, the dev kit and JieLi's
-    updater on order, the soft key and its draft test plan (#54).
+    updater on order, the soft key and its draft read-only test plan.
   - Corrections to the old file: the one rule stated in full, traffic limit
     included; four free parameter knobs, not eight; Movy at `9190e79`, not
     `5627d51`; `isd_download` is a writer, never a recovery tool for the
     FM-1; Phase 2 is in docs/08; the identity reply's checksum fails on
-    `FM-1_092`; two cores, not one.
-  - New: open PRs and the owner's open calls, the decisions since
-    2026-09-29, the lagging docs, the dead-code audit now far past due, the
-    community firmware in the reference table, and a current kick-off
-    prompt. The 2026-09-06 prompt is kept, marked historical.
-- The rename entry names the typeface, Audiowide, as CLAUDE.md's naming
-  rules ask.
+    `FM-1_092`.
+  - New: the open PRs and the owner's open calls; a summary of the owner's
+    2026-10-05 decisions and build plan, which so far live only in a
+    git-ignored file; the decisions since 2026-09-29; the work in flight;
+    the docs still lagging after #58; the dead-code audit, far past due;
+    the vendored and design-source pins (Mutable, Schwung, Movy, MCL, Super
+    Arp, czietz's gist) in the reference table; a note for cloud sessions;
+    and a current kick-off prompt. The 2026-09-06 prompt is kept, marked
+    historical.
 - **Licences: the GPL switch** (owner, 2026-10-05; CLAUDE.md, docs/12 §6).
   GPL modules will sit behind one build switch, on by default everywhere
   while we test; while it is on, no firmware image that links JieLi's
