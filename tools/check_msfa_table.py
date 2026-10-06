@@ -17,8 +17,14 @@ Usage:
 
 Tested against the FM-1 V13 (FM-1_009) and V14 (FM-1_014) images unpacked by
 AL-255/FM-1-RE: the table is found at 0x8C46C and 0x8CBCC respectively, and all
-rows match msfa except algorithms 4 and 6, where the first operator carries
-0x41 instead of 0xC1 (the Dexed-family feedback fix for those algorithms).
+32 rows match Google's msfa, algorithms 4 and 6 included: there the sixth
+operator carries 0x41 (FB_IN), the receiving end of the DX7's loop through the
+fourth or fifth operator, which msfa's FmCore marks but does not run. Dexed's
+tree, as Felucca's port of it shows, carries 0xC1 there instead (the sixth
+operator fed back to itself); a table with that change reports 30/32 rows. (Until
+2026-10-05 this tool listed 0xC1 as Google's, and called the FM-1's 0x41 a
+Dexed-family change; Google's repository has had 0x41 since its first commit,
+a99ac7a, 2012-03-04: engines/third_party/msfa/UPSTREAM.md.)
 
 Vendor firmware is not included in this repository; obtain ``app.bin`` by
 unpacking an official ``FM-1.fwsc`` with kagaimiq's jl-misctools.
@@ -26,14 +32,15 @@ unpacking an official ``FM-1.fwsc`` with kagaimiq's jl-misctools.
 
 import sys
 
-# Table as in Google's msfa fm_core.cc (Apache-2.0), rows = algorithms 1..32.
+# Table as in Google's msfa fm_core.cc (Apache-2.0; engines/third_party/msfa),
+# rows = algorithms 1..32.
 MSFA_ALGORITHMS = [
     (0xC1, 0x11, 0x11, 0x14, 0x01, 0x14),  # 1
     (0x01, 0x11, 0x11, 0x14, 0xC1, 0x14),  # 2
     (0xC1, 0x11, 0x14, 0x01, 0x11, 0x14),  # 3
-    (0xC1, 0x11, 0x94, 0x01, 0x11, 0x14),  # 4
+    (0x41, 0x11, 0x94, 0x01, 0x11, 0x14),  # 4
     (0xC1, 0x14, 0x01, 0x14, 0x01, 0x14),  # 5
-    (0xC1, 0x94, 0x01, 0x14, 0x01, 0x14),  # 6
+    (0x41, 0x94, 0x01, 0x14, 0x01, 0x14),  # 6
     (0xC1, 0x11, 0x05, 0x14, 0x01, 0x14),  # 7
     (0x01, 0x11, 0xC5, 0x14, 0x01, 0x14),  # 8
     (0x01, 0x11, 0x05, 0x14, 0xC1, 0x14),  # 9

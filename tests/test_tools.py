@@ -96,20 +96,35 @@ class TestExtractFwsc:
 class TestMsfaTable:
     mod = load("check_msfa_table")
 
-    def image(self, variant=True):
+    def image(self, variant=False):
         rows = [list(r) for r in self.mod.MSFA_ALGORITHMS]
-        if variant:                                   # the Dexed-family fix seen in FM-1 images
-            rows[3][0] = 0x41
-            rows[5][0] = 0x41
+        if variant:                                   # Dexed's rows 4 and 6 (0xC1)
+            rows[3][0] = 0xC1
+            rows[5][0] = 0xC1
         table = bytes(b for r in rows for b in r)
         return b"\x11" * 1000 + table + b"\x22" * 500
 
-    def test_finds_variant_table(self, tmp_path, capsys):
+    def test_the_table_is_googles(self):
+        """The reference is the vendored msfa fm_core.cc's table, row for row."""
+        import re
+        src = (ROOT / "engines" / "third_party" / "msfa" / "fm_core.cc").read_text()
+        rows = re.findall(r"\{ \{ ((?:0x[0-9a-f]{2}, ){5}0x[0-9a-f]{2}) \} \}", src)
+        assert [tuple(int(x, 16) for x in r.split(", ")) for r in rows] == \
+            list(self.mod.MSFA_ALGORITHMS)
+
+    def test_finds_the_fm1_table(self, tmp_path, capsys):
+        """The FM-1's images carry Google's table, rows 4 and 6 included."""
         path = tmp_path / "app.bin"
         path.write_bytes(self.image())
         assert self.mod.main(["check", str(path)]) == 0
         out = capsys.readouterr().out
-        assert "file offset 0x3E8" in out and "30/32 rows identical" in out
+        assert "file offset 0x3E8" in out and "32/32 rows identical" in out
+
+    def test_finds_the_dexed_variant(self, tmp_path, capsys):
+        path = tmp_path / "app.bin"
+        path.write_bytes(self.image(variant=True))
+        assert self.mod.main(["check", str(path)]) == 0
+        assert "30/32 rows identical" in capsys.readouterr().out
 
     def test_reports_missing_table(self, tmp_path, capsys):
         path = tmp_path / "app.bin"

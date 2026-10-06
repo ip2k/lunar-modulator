@@ -412,7 +412,7 @@ def main(out):
     inst = {}
     for t, c in sizes.items():
         v = {}
-        for e in ("macro", "shapes", "macro_heavy", "sixop", "test_sine", "test_gain"):
+        for e in ("macro", "shapes", "macro_heavy", "sixop", "dx7", "test_sine", "test_gain"):
             if e in c:
                 v[e] = c[e]
         for e in ("plate", "ensemble", "diffuse"):

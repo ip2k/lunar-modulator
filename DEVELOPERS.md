@@ -159,6 +159,11 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     - **Plate:** Rings' reverb, with a Freeze after Elements'.
     - **Room:** Clouds' reverb and diffuser.
     - **Ensemble and Diffuse:** Plaits' ensemble and diffuser.
+  - **FM6** is msfa, Google's FM core and the stock FM-1's (Apache-2.0,
+    vendored unmodified:
+    [`engines/third_party/msfa/UPSTREAM.md`](engines/third_party/msfa/UPSTREAM.md)),
+    with a voice, amplitude modulation, the loops of algorithms 4 and 6,
+    32 voices and a DX7 SysEx import of our own ([`engines/msfa.md`](engines/msfa.md)).
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
     compatibility shim.
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
@@ -707,8 +712,11 @@ which lands with the plan PR; its stages S0–S7 are named below.
 
 **DX7 patches and SysEx, presets on the synth** · *Planned*
 - **Depends on:** the device firmware's USB-MIDI class and flash storage
-  (after the gate); an msfa engine: Six-Op FM is Plaits' DX7-style engine,
-  and `engines/` has no msfa [verified].
+  (after the gate). The engine side is there since 2026-10-05: FM6 runs
+  msfa, plays DX7 voices and reads single-voice and 32-voice dumps
+  (`engines/include/fm1_dx7.h`; `fm1-render --sysex` on the desktop)
+  [verified: tests/test_engines_dx7.py]; the simulator's import and the
+  device's SysEx over USB-MIDI are still to do.
 - **Where it is planned:** [docs/08](docs/08-roadmap.md) Phase 4; docs/13
   stage D.
 - **Rough effort:** not estimated.
@@ -986,7 +994,8 @@ decide:
   for the preview; M-VAVE's loader or our own for install and rollback;
   whether the soft key may ever be sent to the owner's unit (not for the
   gate); whether to vendor Felucca's Apache-2.0 `fm6_core.c` as an msfa
-  oracle; whether to read V1.1.9's `system.a` with a modern `llvm-dis` in a
+  oracle (answered: yes, as FM6's test oracle only, 2026-10-05,
+  `engines/third_party/felucca-fm6/`); whether to read V1.1.9's `system.a` with a modern `llvm-dis` in a
   container on aeon (output kept in scratch) to see how `#C<n>` is parsed.
 - If the kit is late, whether to run the gate first with our RP2040 dongle.
   docs/08 Phase 2 allows it; docs/14 prefers the kit first.
@@ -1586,9 +1595,11 @@ The project in brief, the order of work, and where every document lives.
   - The board is silkscreened `DX7 MB V07`.
 - **The stock synth engine is Google's msfa, the Dexed core.** Verified in
   this repo: the 32-entry FM algorithm table from `fm_core.cc` sits
-  byte-for-byte at offset `0x8C46C` of the V13 application image (with the
-  Dexed-family fix for algorithms 4 and 6). The factory bank is reportedly
-  the DX7 ROM1A cartridge.
+  byte-for-byte at offset `0x8C46C` of the V13 application image, all 32
+  rows as Google's, algorithms 4 and 6 included (until 2026-10-05 those two
+  rows were described here as a Dexed-family fix; docs/02 §5). The factory
+  bank is reportedly the DX7 ROM1A cartridge. FM6 runs the same core
+  ([`engines/msfa.md`](engines/msfa.md)).
 - **Updates are plain USB-MIDI SysEx with CRC16 and no signature.** Two prior
   projects, [aroum/fm1-custom-fw](https://github.com/aroum/fm1-custom-fw) and
   [AL-255/FM-1-RE](https://github.com/AL-255/FM-1-RE), have reverse-engineered

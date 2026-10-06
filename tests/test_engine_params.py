@@ -44,6 +44,7 @@ ENUM_FLAGS = {
     ("macro-heavy", "LPG"): [],
     ("shapes", "Shape"): ["nolock"],            # every voice's oscillator at once
     ("sixop", "Patch"): ["latch", "mod"],       # read per voice at note-on
+    ("dx7", "Patch"): ["latch", "mod"],         # as Six-Op's: a voice's data at note-on
     ("sw-sophie", "Pad"): [],                   # the edit focus: lockable (owner, docs/15 S8)
     ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
     ("sw-sophie", "Filter Type"): ["latch", "mod"],

@@ -14,7 +14,8 @@ SIM ?= $(abspath ../sim/web)
 
 SIM_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Wall -Wextra -Iinclude -I$(SIM)/src -MMD -MP
 
-# Every engine object fm1-render links, without its main(), the sequencer
+# Every engine object fm1-render links, without its main() (msfa's units,
+# MSFA_OBJ, mk/msfa.mk, among them), the sequencer
 # core with its host bridge (SEQ_OBJ, mk/seq.mk: C99, no heap, no stdio),
 # and the modulation runtime with its kinds and primitives (MODC_OBJ,
 # MOD_OBJ, mk/mod.mk: no heap, no stdio, no libm) and its script reader
@@ -22,7 +23,7 @@ SIM_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Wall -Wextra -Iinclude -I$(SIM)/src -MMD
 # takes lines through. The verb script reader (SEQ_HOST_OBJ) allocates and
 # uses stdio, so only the native harness links it; in fm1.wasm it would add
 # WASI imports.
-SIM_ENGINE_OBJ := $(filter-out $(BUILD)/our/host/render.o,$(OUR_OBJ)) $(TP_OBJ) $(SW_OBJ) $(SEQ_OBJ) \
+SIM_ENGINE_OBJ := $(filter-out $(BUILD)/our/host/render.o,$(OUR_OBJ)) $(TP_OBJ) $(SW_OBJ) $(MSFA_OBJ) $(SEQ_OBJ) \
   $(MODC_OBJ) $(MOD_OBJ) $(MOD_SCRIPT_OBJ)
 # The app layer: the panel, the chain and the screen, the sequencer's panel
 # UI and screens (fm1_seq_ui, fm1_seq_view), and modulation's (fm1_mod_ui,

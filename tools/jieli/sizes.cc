@@ -3,7 +3,7 @@
 //
 // Compiled once per engine with -DSZ_<NAME>, from engines/ with the engines'
 // own include flags (-Iinclude -isystem third_party/mutable -isystem
-// third_party/schwung -DTEST). Each build includes that engine's source, so
+// third_party/schwung -isystem third_party/msfa -DTEST). Each build includes that engine's source, so
 // its Instance type (often in an unnamed namespace) is in scope, and emits
 // `fm1sz_<name>` = sizeof, which tools/jieli/analyze.py reads back from the
 // symbol table and section data. The same file is compiled for pi32v2, i386
@@ -38,6 +38,9 @@ FM1SZ_TYPE(macro_heavy, fm1::macro_heavy::Instance);
 #elif defined(SZ_SIXOP)
 #include "../../engines/src/mi_sixop.cc"
 FM1SZ_TYPE(sixop, fm1::sixop::Instance);
+#elif defined(SZ_DX7)
+#include "../../engines/src/msfa_dx7.cc"
+FM1SZ_TYPE(dx7, fm1::dx7::Instance);
 #elif defined(SZ_TEST_SINE)
 #include "../../engines/src/test_sine.cc"
 FM1SZ_TYPE(test_sine, fm1::test_sine::Instance);
