@@ -9,6 +9,33 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Drums, a new sound engine:** a sixteen-pad drum kit after the classic
+  analogue drum machines, on MIDI notes 36 to 51 like Sophie.
+  - Two kits: Deep, with a deep kick that booms for over a second, round
+    toms and analogue-style hi-hats; and Punch, with a short kick that
+    sweeps down, a crisp snare and ring-modulated hi-hats. Both have two
+    snares, a clap, a rim shot, six toms, a crash and a ride, and any pad
+    can play a cowbell instead.
+  - Each pad has its own Tune, Decay, Level, Tone, Snap, Sweep, Drive and
+    sound (Model); Pad chooses which pad the knobs edit, as on Sophie. The
+    knobs start in the middle, which is the pad as the kit sets it up. Kit,
+    Accent (how much velocity matters) and Volume are the whole kit's.
+  - A closed or pedal hi-hat cuts the open one short. Up to twelve hits
+    ring at once, and a pad struck again while it rings is struck again,
+    as a drum is; a thirteenth takes over the quietest hit, so a cymbal
+    still ringing loud keeps going.
+  - The kicks, toms, snares and hi-hats are Plaits' drum models by Emilie
+    Gillet; the rim shot, clap, cowbell and cymbals are new, after
+    published studies of the analogue circuits.
+  - It plays the same, sample for sample, in the browser as on the
+    desktop, and fits in about 7 KB.
+- **The virtual FM-1's keys play any drum kit's pads:** with Sophie or
+  Drums as the current sound, the sixteen white keys play the sixteen pads
+  at any octave. Step recording, and adding a pitch to a held step with
+  SHIFT, enter the pad a white key plays (they entered a pitch the kit
+  ignores, so the steps played nothing). For developers: an engine says it
+  is a kit with two new fields in the engine API, `pad_first_note` and
+  `pad_count`.
 - **JieLi SDK upgraded to the V1.2.13 libraries, with safeguards** (owner's
   decision, 2026-10-05; notes/2026-10-05-softkey-efuse.md §4). The pin is now
   Gitee `release/AC79NN_SDK_V1.2.0` at `e30b1ee` (= tag V1.2.13), by commit.
@@ -1048,6 +1075,24 @@ history.
     Arp, czietz's gist) in the reference table; a note for cloud sessions;
     and a current kick-off prompt. The 2026-09-06 prompt is kept, marked
     historical.
+- **New pictures of the virtual FM-1, and a manual brought up to date with
+  it.**
+  - The README's picture and the phone picture show the page as it is now:
+    a chord over the demo pattern, with an LFO cabled to Timbre and the
+    memory meter on the screen. They no longer show the old memory figure
+    in KB, and REC no longer blinks in them for notes waiting for Capture.
+    The rest of the screen pictures are retaken from the same build, and
+    there are new ones of Drums, the sequencer's Track view and the
+    modulation matrix.
+  - The manual shows those three screens. It names Drums and the four
+    Plaits-based engines wherever the rate rule applies, and lists Comb and
+    Test Ext and the new `--tempo` option among the desktop tools' options.
+    It explains that frequency and time knobs turn in ratios and that
+    modulation moves them in octaves, and that the sequencer's locks reach
+    only the sounds so far. Its memory table matches the build: Filter is
+    under 1 KB, Comb 17 KB, the Limiter 11 KB. It credits the modulation
+    modules and Comb, and the open FM-1 firmware projects whose reports it
+    now uses.
 - **The sequencer, four sounds at once and modulation are on the virtual
   FM-1's public page.** The lab switch is gone: the page no longer needs
   `?lab` in its address (an old `?lab` link opens the same page), and

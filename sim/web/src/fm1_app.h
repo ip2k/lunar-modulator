@@ -8,10 +8,12 @@
  * (fm1_mix_limiter.h), and turns the panel's inputs into engine calls:
  *
  *   27 keys       F3..G5: note = key + 53 + 12 * octave + transpose
- *                 (with Sophie, a 16-pad kit on notes 36-51, the 16 white
- *                 keys play its pads at any octave; black keys are silent)
  *                 (the M-VAVE manual's formula), with OCT-/OCT+ and
- *                 ALGORITHM-while-OCT-held transpose as stock does it
+ *                 ALGORITHM-while-OCT-held transpose as stock does it;
+ *                 with a pad kit as the current sound (an engine with
+ *                 pad_count, fm1_engine.h: Sophie, Drums), the 16 white
+ *                 keys play its first 16 pads at any octave and the black
+ *                 keys are silent
  *   MASTER        output volume (a gain after the limiter)
  *   SELECT        page within the current mode; in FX mode, the effect slot
  *   PRESETS       the sound engine

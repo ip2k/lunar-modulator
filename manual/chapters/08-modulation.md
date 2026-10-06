@@ -7,12 +7,13 @@ the instrument's pitch and level, or another module. Every note can restart
 an envelope; an LFO can sweep a filter in time with the sequencer; a random
 source can vary each note a little.
 
-The rack works like a small modular synthesizer. Its modules follow
-Mutable Instruments' Peaks and Braids (Emilie Gillet), Schwung's LFO
-(Charles Vestal), DaisySP's sample and hold (Electrosmith) and Music Thing
-Modular's Turing Machine and Workshop System card 106 (Tom Whitwell, Matt
-Allison), all under the MIT licence; the code is Lunar Modulator's own
-([chapter 14](14-credits-and-licences.md)).
+The rack works like a small modular synthesizer. Most of its modules are
+Lunar Modulator's own code after published designs, chiefly Mutable
+Instruments' Peaks and Braids (Emilie Gillet), Schwung's LFO (Charles
+Vestal), DaisySP's sample and hold (Electrosmith) and Music Thing Modular's
+Turing Machine and Workshop System cards (Tom Whitwell, Matt Allison);
+three are ports of Peaks' and Braids' code, under the MIT licence
+([chapter 14](14-credits-and-licences.md#modulation)).
 
 !!! note "In the simulator"
     The rack, the cables and their pages run in the browser simulator and in
@@ -77,6 +78,12 @@ its cables give to the base, and the sum stays inside the parameter's range.
 Turning the knob moves the base; the cables keep moving around it.
 
 - A list parameter, such as an LFO's Shape, moves from entry to entry.
+- A frequency or a time on an effect, such as a cutoff or a delay, moves in
+  octaves, as its knob turns in ratios
+  ([chapter 6](06-effects.md#the-effect-chain)): a cable at 100 % can take
+  it across its whole range, and NOTE at +100 % into a cutoff makes it
+  follow the keyboard exactly, twice the frequency for a note an octave
+  higher.
 - Parameters that cannot take modulation say so: those that cut or restart
   every sounding note when they change, such as Macro's Model.
 - A parameter with no cable is never touched, so a sound with no cables
@@ -179,6 +186,8 @@ LFO2.2>ENV3Gte +100     a module's input: its name and three letters
 
 [[SELECT]] chooses the row. The hint line names the field you turned last,
 for two seconds, and otherwise the row's destination in full.
+
+{{screen matrix The matrix: the default rack’s two cables, and a third from LFO1 to Sound 1’s Timbre at +40 %, chosen.}}
 
 | Page | [[KNOB1]] | [[KNOB2]] | [[KNOB3]] | [[KNOB4]] |
 | --- | --- | --- | --- | --- |

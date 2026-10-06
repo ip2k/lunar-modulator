@@ -31,6 +31,9 @@ import pytest
 from tests.engine_helpers import RATE, cents, pitch_hz, render, renderer  # noqa: F401
 
 PER_NOTE = ["macro", "macro-heavy", "shapes", "sixop"]
+# Drums takes per-note offsets too, on its pads' notes only (36-51), which
+# the pitched scripts here do not play: tests/test_engine_drums.py checks it.
+PER_NOTE_KITS = ["drums"]
 
 # A sustained, deterministic voice per engine (no shared random numbers, so
 # notes rendered apart are the notes rendered together), and a parameter
@@ -104,10 +107,10 @@ def at(name, value):
     return f"{name}={value:.6g}"
 
 
-def test_only_four_engines_take_per_note_offsets(listing):
+def test_which_engines_take_per_note_offsets(listing):
     """Sophie keeps its voices inside the module, out of the shim's reach;
     effects have no notes; Test Sine stays the engine without them."""
-    assert sorted(e for e, v in listing.items() if v["per_note"]) == sorted(PER_NOTE)
+    assert sorted(e for e, v in listing.items() if v["per_note"]) == sorted(PER_NOTE + PER_NOTE_KITS)
     assert [p["name"] for p in poly(listing, "sixop")] == ["Brightness", "Envelope", "Volume"]
     assert [p["name"] for p in poly(listing, "shapes")] == \
         ["Timbre", "Color", "Attack", "Release", "Volume"]

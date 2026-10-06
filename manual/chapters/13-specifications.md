@@ -33,8 +33,8 @@ means the work of others who have studied the FM-1, credited in
 | Sample rate | 44,118 samples a second, the rate reported for the FM-1's audio output. The simulator uses 44,100 or the computer's own rate when the browser cannot give it 44,118 |
 | Block | 64 samples, 1.45 ms at 44,118 |
 | Output | Stereo |
-| Engines' own rates | Macro, Macro Heavy and Six-Op FM run Plaits' code at 47,872 samples a second, and Shapes runs Braids' at 96,000, each converted to the output's rate, so that they sound and keep time as on the modules they come from. The three Plaits-based engines cannot run when the output is faster than 47,872 |
-| Sound engines | Six; up to four sounds at once, each with its own engine ([chapter 5](05-sound-engines.md)) |
+| Engines' own rates | Macro, Macro Heavy, Six-Op FM and Drums run Plaits' code at 47,872 samples a second, and Shapes runs Braids' at 96,000, each converted to the output's rate, so that they sound and keep time as on the modules they come from. The four Plaits-based engines cannot run when the output is faster than 47,872 |
+| Sound engines | Seven; up to four sounds at once, each with its own engine ([chapter 5](05-sound-engines.md)) |
 | Effects | Twenty-two, Test Gain and Test Ext included: two inserts on each sound, then two master effects in series after the mix ([chapter 6](06-effects.md)) |
 | Limiter | Ceiling 0.98 of full scale (−0.18 dBFS), instant attack, about 100 ms release; samples that are not numbers become silence |
 | [[MASTER]] | After the limiter. Half way round is a quarter of full level, about −12 dB |
@@ -46,16 +46,18 @@ means the work of others who have studied the FM-1, credited in
 ### Engines and effects in figures
 
 Memory is given as a 32-bit build lays it out, as in the simulator and on the
-FM-1. The screen's memory figure adds up these numbers for the chain in use,
-and is the one to trust if the two ever differ.
+FM-1. The memory meter on the screen adds up these numbers for the chain in
+use, with the sequencer's and modulation's own, and is the one to trust if
+the two ever differ.
 
 | Engine or effect | Voices | Memory, about |
 | --- | --- | --- |
-| Macro | 12 | 18 KB |
-| Macro Heavy | 4 | 69 KB |
+| Macro | 12 | 19 KB |
+| Macro Heavy | 4 | 70 KB |
 | Six-Op FM | 8 | 11 KB |
-| Shapes | 12 | 201 KB |
+| Shapes | 12 | 202 KB |
 | Sophie | 12 | 76 KB |
+| Drums | 12 | 7 KB |
 | Test Sine | 12 | under 1 KB |
 | Plate | – | 64 KB |
 | Ensemble | – | 5 KB |
@@ -65,9 +67,10 @@ and is the one to trust if the two ever differ.
 | Fold | – | under 1 KB |
 | Drive | – | under 1 KB |
 | Echo | – | 64 KB |
-| Filter | – | 18 KB |
+| Filter | – | under 1 KB |
+| Comb | – | 17 KB |
 | Comp | – | under 1 KB |
-| Limiter | – | 9 KB |
+| Limiter | – | 11 KB |
 | DJ Filter | – | under 1 KB |
 | Tilt | – | under 1 KB |
 | Master Sat | – | under 1 KB |
@@ -77,6 +80,7 @@ and is the one to trust if the two ever differ.
 | Hall | – | 49 KB |
 | Gate | – | 2 KB |
 | Test Gain | – | under 1 KB |
+| Test Ext | – | under 1 KB |
 
 ### The sequencer
 
@@ -108,7 +112,7 @@ and is the one to trust if the two ever differ.
 | Output | Audio only. It sends no MIDI |
 | Screen | The firmware's 240 × 240 screen, redrawn up to about 30 times a second while sound plays |
 | Panel | To scale, 161.5 × 96.5 mm. On narrow screens it keeps a width of 800 pixels and scrolls sideways |
-| Download | About 730 KB for the firmware, plus the page; nothing is loaded from other websites |
+| Download | About 770 KB for the firmware, plus the page; nothing is loaded from other websites |
 
 ## The desktop tools
 

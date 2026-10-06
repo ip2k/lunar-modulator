@@ -31,8 +31,8 @@ turn without end, in steps you can feel.
 | --- | --- |
 | [[MASTER]] | The output volume, from silent to full. While you turn it the screen shows *Volume* and its position from 0 to 100 |
 | [[SELECT]] | On the sound's page, turns the page. In FX mode, moves through the slots of the chain and their pages. In SEQ mode and on the modulation pages it does more (chapters [7](07-sequencer.md) and [8](08-modulation.md)). On the global page it does nothing |
-| [[PRESETS]] | Chooses the current sound's engine, in this order: Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Test Sine, and round again; Sounds 2 to 4 start the list with *Empty*. With [[SEL]] held, chooses the current sound, 1 to 4 ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |
-| [[ALGORITHM]] | Steps through the engine's main list: Model for Macro and Macro Heavy, Shape for Shapes, Patch for Six-Op FM, Pad for Sophie. Test Sine has none. In FX mode it chooses the effect in the chosen slot. With [[OCT-]] or [[OCT+]] held, it transposes ([chapter 4](04-playing.md)) |
+| [[PRESETS]] | Chooses the current sound's engine, in this order: Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Test Sine, and round again; Sounds 2 to 4 start the list with *Empty*. With [[SEL]] held, chooses the current sound, 1 to 4 ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |
+| [[ALGORITHM]] | Steps through the engine's main list: Model for Macro and Macro Heavy, Shape for Shapes, Patch for Six-Op FM, Pad for Sophie and Drums. Test Sine has none. In FX mode it chooses the effect in the chosen slot. With [[OCT-]] or [[OCT+]] held, it transposes ([chapter 4](04-playing.md)) |
 | [[KNOB1]] to [[KNOB4]] | Change the four parameters of the current page, in the order the screen lists them. With [[LFO]] or [[ENV]] held, they make a modulation cable ([chapter 8](08-modulation.md#the-gesture-making-a-cable-with-a-knob)) |
 
 ### How far one step goes
@@ -43,6 +43,11 @@ turn without end, in steps you can feel.
   steps take it from one end to the other. Parameters whose range runs
   between whole numbers ten or more apart move in whole units instead:
   Sophie's Tune moves a semitone per step, and its Sweep two units.
+- **A frequency or a time** on an effect (a cutoff, a crossover, a delay
+  or a release) also takes 100 steps from end to end, but each step
+  multiplies it by the same ratio, so every step is the same musical
+  interval, at the low end as at the high: on a cutoff from 20 Hz to
+  18 kHz, about a semitone ([chapter 6](06-effects.md#the-effect-chain)).
 - **[[PRESETS]]**, and [[ALGORITHM]] in FX mode, go round: after the last
   choice comes the first.
 - **Speed makes no difference.** Every step is the same size however fast you
@@ -62,9 +67,11 @@ arrow keys ([chapter 2](02-getting-started.md)).
 
 ### On the FM-1
 
-The FM-1's knobs are planned to work as they do in the simulator. Which of the
-seven encoders the FM-1's processor reads directly, and which through its key
-scanning, is still to be measured; it does not change what the knobs do.
+The FM-1's knobs are planned to work as they do in the simulator. Other
+open firmware for the FM-1 reports that its processor reads all seven
+encoders through its key scanning, and [[MASTER]] as an analogue input; this
+project has still to check that on a unit. It does not change what the
+knobs do.
 
 ## Buttons
 
@@ -128,10 +135,11 @@ them held moves it by semitones ([chapter 4](04-playing.md)).
   FM-1's own keys can sense how hard they are played has not been measured
   yet.
 - **Key lights.** A key's light is on while its note is held, whether you
-  hold the key or a MIDI keyboard plays that note.
-- **Sophie's pads.** With Sophie as the current sound, the 16 white keys
-  play her 16 pads at any octave, and the black keys play nothing
-  ([chapter 5](05-sound-engines.md#sophie)).
+  hold the key or a MIDI keyboard plays that note. With a drum kit as the
+  sound, a white key lights while its pad's note is held.
+- **Drum kits' pads.** With Sophie or Drums as the current sound, the 16
+  white keys play the kit's 16 pads at any octave, and the black keys play
+  nothing ([chapter 5](05-sound-engines.md#sophie)).
 
 The FM-1 prints labels under its black keys for M-VAVE's own firmware: from
 the lowest black key upwards, [[OP1]] to [[OP6]], [[PIT]], [[GLO]], [[MONO]]
@@ -185,7 +193,11 @@ The simulator starts on this page, and [[HOME]] returns to it.
 - **Bars.** A bar fills from the left for most parameters. For a parameter
   that runs from negative to positive, such as Sophie's Tune, it fills from a
   centre mark. For a list parameter, a short marker shows where the value
-  sits in the list.
+  sits in the list. For a frequency or a time, the bar shows where the knob
+  is, which is not the same share of the value's range.
+- **Modulation.** A parameter that a modulation cable reaches has a gold
+  diamond after its name and a gold bracket on its bar
+  ([chapter 8](08-modulation.md#what-the-pages-show)).
 - **Oscilloscope.** A strip at the bottom shows the waveform of the output.
   It is scaled to fill the strip, so quiet sounds show up too.
 

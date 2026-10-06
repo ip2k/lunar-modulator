@@ -60,11 +60,16 @@ their settings.
   each click of the knob multiplies it, so 20 to 40 Hz takes as many clicks
   as 5 to 10 kHz, and a hundred clicks go from one end to the other. The
   screen still shows hertz and milliseconds, with more decimals at the low
-  end, and the bar shows where the knob is. The sequencer's locks move them
-  the same way ([chapter 7](07-sequencer.md#values-and-list-parameters)),
-  and modulation moves them in octaves: a source that follows the note you
+  end, and the bar shows where the knob is. The sequencer's locks will
+  store them the same way once they reach the effects
+  ([chapter 7](07-sequencer.md#values-and-list-parameters)), and
+  modulation moves them in octaves: a source that follows the note you
   play, at full amount, makes a cutoff follow the keyboard exactly.
 - The same effect can sit in several slots, each with its own settings.
+- **Modulation reaches the effects' parameters**, in the inserts and the
+  master slots ([chapter 8](08-modulation.md)). The sequencer's parameter
+  locks reach only the sounds' parameters so far; locks on the effects are
+  planned ([chapter 7](07-sequencer.md#parameter-locks)).
 - Changing a sound's engine keeps its inserts and the master effects, and
   their settings.
 
@@ -105,8 +110,8 @@ whatever plays in the simulator would fit the FM-1.
     cent of the originals'. Room, from Clouds, was written for 32,000, so its
     room comes out about a quarter smaller and its slow modulation faster;
     its decay is corrected the same way, though its shortest settings ring
-    a little shorter than on Clouds. Crush, Fold, Drive, Echo, Filter, Comp,
-    Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Hall and Gate,
+    a little shorter than on Clouds. Crush, Fold, Drive, Echo, Filter, Comb,
+    Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Hall and Gate,
     written for Lunar Modulator, work out their frequencies and times from
     the output's rate, so they need no correction.
 
@@ -129,10 +134,10 @@ tail.
   nothing new in, as Mutable Instruments Elements does with this reverb:
   play over a frozen chord, and Mix still blends in what you play. Decay
   and Damping wait until you turn it off. It switches over 5 milliseconds,
-  so it does not click, and the sequencer and modulation can turn it on
-  and off in time. The hold is long but not endless: the highs fade over
-  seconds and the body over minutes, and a quiet tail runs out sooner
-  (about 25 seconds at −39 dBFS, nearly 3 minutes at −19 dBFS).
+  so it does not click, and modulation can turn it on and off in time. The
+  hold is long but not endless: the highs fade over seconds and the body
+  over minutes, and a quiet tail runs out sooner (about 25 seconds at
+  −39 dBFS, nearly 3 minutes at −19 dBFS).
 
 !!! tip "Starting points"
     - **A small room:** Decay low, Mix about 0.2.
@@ -295,8 +300,8 @@ up into a curve that flattens its peaks, from a gentle warmth to a buzzing
 fuzz. Each channel is shaped on its own.
 
 - **Type** chooses the curve. Changing it fades from one to the next in a
-  few milliseconds, so it does not click, even when the sequencer or a
-  modulation source changes it on every step.
+  few milliseconds, so it does not click, even when modulation changes it
+  on every step.
     - **Soft:** smooth, rounded saturation, the most even-tempered.
     - **Tube:** lopsided, so it adds a warm second harmonic even when barely
       driven, and squashes one side of the wave before the other.
@@ -392,8 +397,7 @@ channel is filtered on its own, so Morph can pull them apart.
 
 - **Type** chooses the filter. Changing it starts the new one quietly in
   the background, then fades over to it, all within about 10 milliseconds,
-  so it does not click, even when the sequencer or a modulation source
-  changes it on every step.
+  so it does not click, even when modulation changes it on every step.
     - **SVF:** a clean state-variable filter. Mode picks low-pass, band-pass,
       high-pass or notch.
     - **Ladder:** the classic four-stage ladder, the default: round and
@@ -542,8 +546,8 @@ does not move.
 
 Silence stays silent at any setting, and the knobs glide over a few
 milliseconds, so turning them does not click; changing Character, Auto Rel
-or Auto Gain while Comp is working does not jump either, so the sequencer
-and modulation sources can change them on every step.
+or Auto Gain while Comp is working does not jump either, so modulation can
+change them on every step.
 
 !!! tip "Starting points"
     - **Tighter drums:** Peak, Threshold about −20, Ratio 4, Attack about
@@ -592,8 +596,8 @@ so nothing passes its ceiling, and it leaves anything quieter untouched.
   limiting). Below the right end, the output can pass the ceiling.
 
 Turning Lookahead fades from the old delay to the new, and switching Mode
-fades too, so neither clicks, even when the sequencer or a modulation
-source changes them on every step; the ceiling holds throughout. The other
+fades too, so neither clicks, even when modulation changes them on every
+step; the ceiling holds throughout. The other
 knobs glide over a few milliseconds.
 
 !!! tip "Starting points"
@@ -637,9 +641,8 @@ build-ups and breakdowns.
   default, the knob reaches the whole sweep; at 0.5 the low-pass stops at
   about 1.1 kHz and the high-pass at about 400 Hz.
 
-Sweeps are smooth whether you turn the knob, lock it in the sequencer or
-modulate it, and crossing from one side to the other neither clicks nor
-thumps.
+Sweeps are smooth whether you turn the knob or modulate it, and crossing
+from one side to the other neither clicks nor thumps.
 
 !!! tip "Starting points"
     - **Breakdown:** turn Sweep slowly to about −0.7 with Resonance about
@@ -752,7 +755,7 @@ moves. At its defaults it passes the sound through untouched.
 - **Kill** drops bands out at once, whatever their knobs say: None, the
   default, Low, Mid, Low+Mid, High, Low+High, Mid+High or All. Back at None,
   each band returns to its knob's level. A kill fades in a few milliseconds,
-  so it does not click, and it can be locked in the sequencer or modulated.
+  so it does not click, and modulation can switch it in time.
 - **Low Xover**, on page 2, sets where the lows end and the mids begin, from
   80 to 400 Hz; the default is 250 Hz.
 - **High Xover**, on page 2, sets where the mids end and the highs begin,
@@ -874,8 +877,8 @@ frozen and held. It takes 49 KB of memory, three quarters of Plate's.
   a stiller, purer tail. It sounds the same every time you play.
 - **Freeze**, on page 2, holds the reverb as it is and lets nothing new
   in: play over a frozen chord. The hold lasts minutes, fading by about a
-  decibel a minute. Off lets it fade away. It switches without a click, so once the sequencer and modulation
-  reach the effects, they will be able to turn it on and off in time.
+  decibel a minute. Off lets it fade away. It switches without a click, so
+  modulation can turn it on and off in time.
 - **Width**, on page 3, narrows the reverb from wide stereo at the right to
   mono at the left.
 - **Low Cut**, on page 3, keeps the bass out of the reverb, so a bass line
@@ -938,8 +941,8 @@ together. It takes about 2 KB of memory.
   **Max**, the louder channel, the default; **Sum**, both together; or
   **Left**, the left channel only.
 
-Mode, Listen, Link and Lookahead change without a click, so the sequencer
-and modulation can change them on every step. The other knobs glide or
+Mode, Listen, Link and Lookahead change without a click, so modulation can
+change them on every step. The other knobs glide or
 take effect at once. With Range at 0 dB, the sound passes untouched.
 
 !!! tip "Starting points"

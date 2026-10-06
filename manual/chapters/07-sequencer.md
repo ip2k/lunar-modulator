@@ -126,6 +126,8 @@ In SEQ mode the screen shows the focused track:
 - **The bottom bar:** the page, the mode and the track, such as *1/3 Seq
   T1*, and the memory meter ([chapter 6](06-effects.md#memory)).
 
+{{screen seq SEQ mode while the demo pattern plays: the status line, the grid with the playhead (the light step), the knob strip and the hint line.}}
+
 ### The key lights
 
 | Key light in SEQ mode | Meaning |
@@ -180,6 +182,9 @@ that bar.
 A note at [[MIDI IN]] adds its pitch to the held steps too; that is how
 sharps go in. A pitch added this way takes the length of the notes already
 on the step. To remove pitches, clear the step and enter it again.
+
+With a drum kit as the sound (Sophie or Drums), a white key adds the pad it
+plays, as it does in step recording.
 
 ### The step pages
 
@@ -343,9 +348,10 @@ clear its last lock. A sound never stays at a value that no step asked for.
 
 - A lock stores one of 128 values spread evenly across the parameter's
   range, and the screen shows it in the parameter's own units. On a
-  frequency or a time (a cutoff, a delay, a release), they are spread
-  evenly in ratio, as the knob turns, so each step is the same musical
-  interval: from 20 Hz to 18 kHz, a little under a semitone a step.
+  frequency or a time (a cutoff, a delay, a release: the effects have them,
+  and locks on the effects are planned), they are spread evenly in ratio,
+  as the knob turns, so each step is the same musical interval: from 20 Hz
+  to 18 kHz, a little under a semitone a step.
 - On a list parameter, such as Model, Shape, Patch or Pad, the 128 values
   are divided evenly between the entries.
 - Parameters that disturb every sounding note when they change refuse
@@ -633,6 +639,8 @@ Step recording enters notes one step at a time, without the clock running.
 3. Play white keys: each one sounds and goes onto the step under the head,
    and the head moves on when you let go. Keys held together make a chord.
    Notes at [[MIDI IN]] go in too; that is how sharps go in.
+   With a drum kit as the sound (Sophie or Drums), a white key enters the
+   pad it plays.
 4. Let go of [[REC]] when you are done.
 
 While you hold [[REC]]:
