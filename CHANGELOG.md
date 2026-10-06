@@ -26,7 +26,7 @@ history.
     keys play pads.
   - The same output, bit for bit, at any block size and on the Mac, 32- and
     64-bit Linux and the browser (three new parity scenarios, 75 of 75 pass;
-    the browser module grew from 813 KB to 828 KB); the modulation runtime
+    the browser module grew from 813 KB to 829 KB); the modulation runtime
     holds 8 more parameter records (320 bytes) for Macro Heavy's fourteen
     parameters. Documented in engines/README.md ("Glide
     and voice modes") and chapter 4 of the manual.

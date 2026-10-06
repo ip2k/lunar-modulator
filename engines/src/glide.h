@@ -226,13 +226,19 @@ Plan<V> PlanNoteOn(V *voice, int n, Mode mode, float glide_ms) {
 // plays that key with its gate up and other keys are held (`held`, with
 // `key` already removed), it moves back to the newest of them, *to,
 // without restarting, gliding from where it is. p.mono is that voice, or
-// NULL when nothing moves.
+// NULL when nothing moves. Nor does it move when another held voice
+// already sounds *to (keys held in Poly, then a switch to Mono): it
+// releases instead, so no key ever sounds twice.
 template <class V>
 Plan<V> PlanNoteOff(V *voice, int n, const Held &held, uint8_t key, float glide_ms,
                     uint8_t *to) {
   Plan<V> p;
   p.mono = Newest(voice, n);
   if (!p.mono || !p.mono->gate || p.mono->key != key || !held.Top(to)) p.mono = NULL;
+  for (int i = 0; p.mono && i < n; ++i) {
+    const V &v = voice[i];
+    if (&v != p.mono && v.active && v.gate && v.key == *to) p.mono = NULL;
+  }
   p.legato = p.mono != NULL;
   p.glides = p.mono != NULL && On(glide_ms) && p.mono->glide.HasPitch();
   p.from = p.glides ? Pitch(*p.mono) : 0.0f;

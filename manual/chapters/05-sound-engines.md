@@ -47,7 +47,7 @@ When you choose an engine:
   and goes to its last page otherwise.
 
 Every engine but Sophie has a **Volume** parameter, its own output level, on
-its second page. It is separate from [[MASTER]], which sets the level of
+its second page (on Drums, its third). It is separate from [[MASTER]], which sets the level of
 everything. Macro, Macro Heavy, Six-Op FM, FM6 and Shapes also have
 **Glide** and **Voice Mode**, for sliding between notes and playing one
 voice at a time ([chapter 4](04-playing.md#glide-and-voice-modes)).

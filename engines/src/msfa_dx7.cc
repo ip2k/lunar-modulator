@@ -280,6 +280,7 @@ class Instance {
   }
 
   void NoteOff(uint8_t key) {
+    if (key > 127) key = 127;  // as NoteOn clamps it, or the voice and held_ keep it
     held_.Remove(key);
     if (glide::ToMode(value_[P_VOICE_MODE]) != glide::MODE_POLY) ReturnToHeld(key);
     for (int i = 0; i < kNumVoices; ++i) {

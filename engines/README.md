@@ -2695,7 +2695,9 @@ the same bits.
   voice in place, as a retriggered key does in Poly, or takes a free one.
 - The keys held are kept in every mode (16 at most, the oldest dropped), so
   a switch of mode finds them as they are; a switch leaves every sounding
-  voice alone.
+  voice alone. A return never moves a voice onto a key another held voice
+  already sounds (a chord held in Poly, then a switch to Mono): that voice
+  releases instead, so no key sounds twice.
 - A voice that moves to another key is a new note for its per-note offsets:
   they restart at 0 (`fm1_engine.h`, `set_param_note`).
 - **Macro Heavy:** a Legato move leaves a self-enveloped model ringing (a
@@ -2725,13 +2727,13 @@ one, held or not; the stock firmware lists "Fingered" and "Full Time"
 and per-voice glide memory in Poly (each voice from its own last pitch).
 Each would be one more Voice Mode value or a third parameter.
 
-**Cost.** Per voice, 20 bytes (`glide::Slew`), and per instance the held
+**Cost.** Per voice, 16 bytes (`glide::Slew`), and per instance the held
 keys (17 bytes) and two floats; no heap. Instance sizes on 64-bit (Apple
 clang, arm64) before and after [verified 2026-10-06]: Macro 32,448 →
 32,704, Macro Heavy 71,456 → 71,568, Six-Op FM 12,776 → 12,960, FM6
 15,844 → 16,144, Shapes 207,448 → 207,696; on 32-bit, after (gcc 12
 `-m32` in a container, as CI's job): 19,840, 71,360, 11,192, 16,144 and
-206,872. The browser module grew from 813,115 to 828,062 bytes. Macro Heavy now has 14
+206,872. The browser module grew from 813,115 to 829,405 bytes. Macro Heavy now has 14
 parameters, so the modulation runtime's shared records grew from 180 to
 188 to hold four of it beside ten of the largest effect (4 × 14 + 10 × 13 +
 2 = 188, `FM1_MOD_SINK_PARAMS`; [Drums](#drums)), and `fm1_mod_size()`
@@ -2769,7 +2771,18 @@ within half a cent of the key's pitch; host blocks of 1, 7 and 64 and fills
 switches and turns mid-glide; NaN and ±inf clamp as `set_param` clamps;
 and, measured at 44,118 Hz on Macro's sine, a 200 ms octave passes its
 middle at 101.6 ms and arrives at 202.3 ms (the output follows the key by
-about 1.5 ms: the next block and the resampler). Three parity scenarios
+about 1.5 ms: the next block and the resampler). A review added (exact
+unless said): a stack of three keys in Mono and Legato, the middle one let
+go first; a glide cut short by a third key, which starts from where the
+glide had reached, under a moving bend; Glide just above Off (1.01 ms);
+a chord held in Poly, then a switch to Mono or Legato, which ends every
+note as Poly does (it had moved the newest voice onto a key already
+sounding); twenty keys held in Mono, past the sixteen the list keeps; a
+velocity-0 note-on as the note-off; Legato's second note-on for the key
+already down; a Poly glide through Macro Heavy's voice steal; FM6 keys
+above 127, which its note-off now clamps as its note-on does (the voice
+and the held keys had kept a key no note-off ended); and, measured, a
+5,000 ms octave on time within 5 ms. Three parity scenarios
 (`macro-glide-legato-mono`, `macro-heavy-glide-poly-mono`,
 `dx7-glide-legato`) hold the browser's module to the same bytes: 75 of 75
 pass, the three identical to musl, render.js and glibc [verified

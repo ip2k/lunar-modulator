@@ -408,7 +408,7 @@ pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (`engines/src/glide.h`): 75 of 75 scenarios pass, identical to musl and to
 render.js (six of them turn the effects' switches every 4.4 ms; the three
 Drums, the three FM6 and the three glide scenarios are identical to glibc
-too), and it imports nothing; it is 828,062 bytes, 813,115 before glide,
+too), and it imports nothing; it is 829,405 bytes, 813,115 before glide,
 786,256 before FM6,
 765,189 before Drums since the lab switch went (790,801
 with Drums and the switch's second code path, 769,693 with the switch

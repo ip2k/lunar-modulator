@@ -431,3 +431,210 @@ def test_a_glide_arrives_on_time_at_the_fm1_rate(renderer, tmp_path):
     assert abs(semi_at(51.5) - 72.0) < 0.15 and abs(semi_at(151.5) - 78.0) < 0.15
     assert all(abs(s - 81) * 100 < 3 for tm, s in track if 0.203 <= tm <= 0.45)
     assert all(abs(s - 81) * 100 > 3 for tm, s in track if 0.19 <= tm <= 0.199)
+
+
+# Review (2026-10-06): the cases a player or a host reaches that the tests
+# above do not, each exact unless said.
+
+VOICES = {"macro": 12, "macro-heavy": 4, "sixop": 8, "shapes": 12, "dx7": 12}
+
+
+@pytest.mark.parametrize("engine", SAME_PATH)
+def test_a_stack_of_three_keys(renderer, tmp_path, engine):
+    """Mono and Legato, Glide Off: A3 held, C4 over it, E4 over both; C4 let
+    go while E4 sounds moves nothing, and letting go of E4 then returns to
+    A3, the newest key still held, not to C4. Mono restarts on C4 and E4
+    (A3's voice retriggered with the interval as its pitch offset); Legato
+    restarts nothing."""
+    notes = [(0, 57, 100, 900), (200, 60, 80, 500), (400, 64, 70, 700)]
+    moves = ["--note-pitch-at", f"{t(engine, 200)}:57:3", "--note-pitch-at", f"{t(engine, 400)}:57:7",
+             "--note-pitch-at", f"{t(engine, 700)}:57:0"]
+    _, mono = native_render(renderer, tmp_path, engine, "mono", notes, ["--param", "Voice Mode=1"],
+                            blocks=1000)
+    _, mono_ref = native_render(renderer, tmp_path, engine, "mono-ref",
+                                [(0, 57, 100, 900), (200, 57, 80, 900), (400, 57, 70, 900)], moves,
+                                blocks=1000)
+    assert mono == mono_ref
+    _, leg = native_render(renderer, tmp_path, engine, "leg", notes, ["--param", "Voice Mode=2"],
+                           blocks=1000)
+    _, leg_ref = native_render(renderer, tmp_path, engine, "leg-ref", [(0, 57, 100, 900)],
+                               ["--param", "Voice Mode=2"] + moves, blocks=1000)
+    assert leg == leg_ref
+
+
+@pytest.mark.parametrize("engine", GLIDE)
+@pytest.mark.parametrize("mode", ["1", "2"])
+def test_a_glide_cut_short_by_another_key_under_bends(renderer, tmp_path, engine, mode):
+    """Mono and Legato, Glide 60 ms, the bend moving: A3 held, C4 over it,
+    and E4 a third of the way into C4's glide, which starts from where that
+    glide had reached (not from C4); C4 let go, then E4, which returns to
+    A3 from E4. Byte for byte the glides' offsets on the pitch path."""
+    n = len(glide_offsets(engine, 60.0, 57 - 60)) - 1
+    m = n // 3
+    kb, kc, kbu, kcu = 200, 200 + m, 200 + m + 2 * n, 200 + m + 4 * n
+    end = kcu + 2 * n
+    notes = [(0, 57, 100, end), (kb, 60, 80, kbu), (kc, 64, 70, kcu)]
+    off_b = glide_offsets(engine, 60.0, 57 - 60)
+    off_c = glide_offsets(engine, 60.0, f32(f32(60 + off_b[m]) - 64))
+    off_a = glide_offsets(engine, 60.0, 64 - 57)
+    assert 0.0 < 60 + off_b[m] - 57 < 3.0          # E4 starts between A3 and C4
+    bends = ["--bend", f"{t(engine, kb + 5)}:0.37", "--bend", f"{t(engine, kcu + 3)}:-1.25"]
+    _, glide = native_render(renderer, tmp_path, engine, "glide", notes,
+                             ["--param", "Glide=60", "--param", f"Voice Mode={mode}"] + bends,
+                             blocks=end + 50)
+    calls = (pitch_calls(engine, 60, off_b[:m], kb) + pitch_calls(engine, 64, off_c, kc)
+             + pitch_calls(engine, 57, off_a, kcu))
+    _, ref = native_render(renderer, tmp_path, engine, "ref", notes,
+                           ["--param", f"Voice Mode={mode}"] + bends + calls, blocks=end + 50)
+    assert glide == ref
+
+
+@pytest.mark.parametrize("engine", GLIDE)
+def test_a_glide_just_above_off(renderer, tmp_path, engine):
+    """Glide 1.01 ms, just above Off, glides: a control block or a few play
+    the held note's pitch (FM6's 1.45 ms block: one), then the note's own,
+    as glide.h computes, byte for byte. Off itself (1 ms) never glides."""
+    notes = [(0, 57, 100, 500), (200, 69, 90, 500)]
+    offs = glide_offsets(engine, 1.01, 57 - 69)
+    assert offs[0] == -12.0 and offs[-1] == 0.0 and len(offs) <= 6
+    _, glide = native_render(renderer, tmp_path, engine, "glide", notes, ["--param", "Glide=1.01"],
+                             blocks=500)
+    _, ref = native_render(renderer, tmp_path, engine, "ref", notes, pitch_calls(engine, 69, offs, 200),
+                           blocks=500)
+    _, off = native_render(renderer, tmp_path, engine, "off", notes, ["--param", "Glide=1"], blocks=500)
+    _, plain = native_render(renderer, tmp_path, engine, "plain", notes, blocks=500)
+    assert glide == ref and off == plain and glide != plain
+
+
+@pytest.mark.parametrize("engine", GLIDE)
+def test_a_switch_to_mono_never_doubles_a_key(renderer, tmp_path, engine):
+    """A chord held in Poly, then Voice Mode switched to Mono (and to
+    Legato): letting go of its newest note must not move that voice onto a
+    key another voice already sounds (two voices on one key); every note
+    ends as in Poly, byte for byte."""
+    chord = [(0, 60, 100, 700), (0, 64, 100, 500), (0, 67, 100, 300)]
+    _, poly = native_render(renderer, tmp_path, engine, "poly", chord)
+    for mode in ("1", "2"):
+        _, switched = native_render(renderer, tmp_path, engine, f"m{mode}", chord,
+                                    ["--param", "Glide=30",
+                                     "--param-at", f"{t(engine, 200)}:Voice Mode={mode}"])
+        assert switched == poly, mode
+
+
+@pytest.mark.parametrize("engine", SAME_PATH)
+def test_more_keys_held_than_the_list_keeps(renderer, tmp_path, engine):
+    """Mono, Glide Off, twenty keys pressed one after another and let go
+    newest first: each release returns the voice to the key before it,
+    down to the oldest of the sixteen the list keeps, whose release ends the
+    note although four older keys are still down (glide.h: the oldest are
+    dropped); letting go of those four changes nothing, and nothing sticks.
+    Byte for byte the first key retriggered with each interval as its
+    pitch offset, every one of its notes ending at that release."""
+    keys = list(range(40, 60))
+    on = {k: 10 + 10 * i for i, k in enumerate(keys)}
+    off = {k: 300 + 10 * (59 - k) for k in keys}          # 59 first, at 300
+    notes = [(on[k], k, 100, off[k]) for k in keys]
+    _, mono = native_render(renderer, tmp_path, engine, "mono", notes, ["--param", "Voice Mode=1"],
+                            blocks=1400)
+    end = off[44]                                          # the sixteenth newest key
+    ref_notes = [(on[k], 40, 100, end) for k in keys]
+    moves = []
+    for k in keys[1:]:
+        moves += ["--note-pitch-at", f"{t(engine, on[k])}:40:{k - 40}"]
+    for k in range(59, 44, -1):                            # back to k - 1
+        moves += ["--note-pitch-at", f"{t(engine, off[k])}:40:{k - 1 - 40}"]
+    _, ref = native_render(renderer, tmp_path, engine, "ref", ref_notes, moves, blocks=1400)
+    assert mono == ref                 # every reference note ends at the sixteenth's release
+
+
+@pytest.mark.parametrize("engine", GLIDE)
+def test_a_velocity_zero_note_on_is_the_note_off(renderer, tmp_path, engine):
+    """Mono with Glide 25 ms: a note-on at velocity 0 for the sounding key
+    (MIDI's running-status note-off) returns the voice to the held key,
+    gliding, as the note-off does; the later note-off of a key no longer
+    down changes nothing."""
+    k1, k2 = 200, 500
+    _, zero = native_render(renderer, tmp_path, engine, "zero",
+                            [(0, 57, 100, 900), (k1, 69, 90, 800), (k2, 69, 0, 600)],
+                            ["--param", "Glide=25", "--param", "Voice Mode=1"])
+    _, real = native_render(renderer, tmp_path, engine, "real",
+                            [(0, 57, 100, 900), (k1, 69, 90, k2)],
+                            ["--param", "Glide=25", "--param", "Voice Mode=1"])
+    assert zero == real
+
+
+@pytest.mark.parametrize("engine", SAME_PATH + ["dx7"])
+def test_legato_on_the_key_already_sounding(renderer, tmp_path, engine):
+    """Legato: a second note-on for the key already down (a host that sends
+    two) restarts nothing, and the first note-off of that key ends the note:
+    the same bytes as the key played once until then."""
+    _, twice = native_render(renderer, tmp_path, engine, "twice",
+                             [(0, 57, 100, 800), (200, 57, 60, 500)],
+                             ["--param", "Glide=40", "--param", "Voice Mode=2"])
+    _, once = native_render(renderer, tmp_path, engine, "once", [(0, 57, 100, 500)],
+                            ["--param", "Glide=40", "--param", "Voice Mode=2"])
+    assert twice == once
+
+
+def test_poly_glide_survives_a_steal(renderer, tmp_path):
+    """Macro Heavy has four voices: in Poly with Glide 20 ms, five keys held
+    one after another each glide from the one before, and the fifth takes
+    the first key's voice: byte for byte the glides' offsets on the pitch
+    path, steal and all."""
+    e = "macro-heavy"
+    keys = [48, 52, 55, 59, 62]
+    notes = [(100 + 150 * i, k, 100, 1100) for i, k in enumerate(keys)]
+    calls = []
+    for i in range(1, 5):
+        calls += pitch_calls(e, keys[i], glide_offsets(e, 20.0, keys[i - 1] - keys[i]),
+                             100 + 150 * i)
+    _, glide = native_render(renderer, tmp_path, e, "glide", notes, ["--param", "Glide=20"],
+                             blocks=1200)
+    _, ref = native_render(renderer, tmp_path, e, "ref", notes, calls, blocks=1200)
+    assert glide == ref and VOICES[e] < len(keys)
+
+
+@pytest.mark.parametrize("mode", ["0", "1", "2"])
+def test_fm6_keys_above_127_end(renderer, tmp_path, mode):
+    """FM6 clamps a key above 127 at note-on: its note-off must clamp too,
+    or the voice (and in Mono and Legato the held keys, to which a later
+    release returns) keep a key no note-off can end. Key 200 plays and ends
+    as key 127, alone and over a held key."""
+    for name, notes in (("alone", [(0, 200, 100, 300)]),
+                        ("over", [(0, 60, 100, 600), (100, 200, 100, 300)])):
+        _, high = native_render(renderer, tmp_path, "dx7", f"{name}-high", notes,
+                                ["--param", f"Voice Mode={mode}"], blocks=1500)
+        _, top = native_render(renderer, tmp_path, "dx7", f"{name}-127",
+                               [(b0, min(k, 127), v, b1) for b0, k, v, b1 in notes],
+                               ["--param", f"Voice Mode={mode}"], blocks=1500)
+        assert high == top, name
+        assert not any(high[-100 * 64:]), name
+
+
+def test_a_five_second_glide_arrives_on_time(renderer, tmp_path):
+    """The longest glide, 5,000 ms, is 19,949 control blocks of Macro's
+    12-sample block in single precision, each taking 1/19,949th or so off
+    the share still to go: measured on Macro's sine at 44,118 Hz (Mono, A4
+    to A5), the middle of the octave comes 2,500 ms after the key and A5 at
+    5,000 ms, each within 5 ms, and the path is a straight line in
+    semitones (within 0.05 semitone at a quarter and three quarters)."""
+    on = 0.2
+    _, x, _ = render(renderer, tmp_path, "macro",
+                     params=["Model=6", "Timbre=0", "Glide=5000", "Voice Mode=1"],
+                     notes=["0:69:100:5.6", f"{on}:81:100:5.3"], seconds=5.5, name="g5")
+    rate = RATE
+    c = []
+    for i in range(int(0.15 * rate), int(5.45 * rate)):
+        if x[i - 1] < 0.0 <= x[i]:
+            c.append(i - 1 + -x[i - 1] / (x[i] - x[i - 1]))
+    track = [((a + b) / 2 / rate - on, 12 * math.log2(rate / (b - a) / 440.0) + 69)
+             for a, b in zip(c, c[1:])]
+
+    def semi_at(ms):
+        near = [s for tm, s in track if abs(tm * 1000 - ms) < 5]
+        return sum(near) / len(near)
+    mid = next(tm for tm, s in track if tm > 0 and s >= 75.0) * 1000
+    assert abs(mid - 2501.5) <= 5.0, mid
+    assert abs(semi_at(1251.5) - 72.0) < 0.05 and abs(semi_at(3751.5) - 78.0) < 0.05
+    arrive = next(tm for tm, s in track if tm > 0 and abs(s - 81) * 100 < 1) * 1000
+    assert abs(arrive - 5001.5) <= 5.0, arrive
