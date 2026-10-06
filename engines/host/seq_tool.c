@@ -28,7 +28,11 @@
  * or a binary set (it replaces the set), --load tT.S:FILE a clip into track
  * T, slot S (1-based; lanes matched by label, its old lines replaced),
  * after --seq; --save clip:T.S:FILE writes that slot's clip at the end, as
- * JSON or, for FILE.lunarb, binary. MIT licence.
+ * JSON or, for FILE.lunarb, binary. A set loads as the device's will: the
+ * file is read once to check it, then again with its lines' pieces going
+ * straight into the core's streaming import (fm1_seq_import_feed), so no
+ * line is held. --pieces N feeds --seq and --import sets to the import N
+ * bytes at a time (tests: any split gives the same set). MIT licence.
  */
 #define _POSIX_C_SOURCE 200112L   /* clock_gettime */
 
@@ -51,7 +55,7 @@ static void usage(void) {
         "               [--fill BYTE] [--seed N]\n"
         "               [--notes N] [--locks N] [--trigs N] [--gates N] [--capture N]\n"
         "               [--song N] [--rec N] [--events N] [--import FRAME:FILE.movy1]...\n"
-        "               [--load [tT.S:]FILE]... [--save clip:T.S:FILE]...\n", stderr);
+        "               [--load [tT.S:]FILE]... [--save clip:T.S:FILE]... [--pieces N]\n", stderr);
 }
 
 static void json_str(FILE *f, const char *s, size_t n) {
@@ -224,8 +228,7 @@ static int cmp_u64(const void *a, const void *b) {
 
 /* ---- Saved state: a file's movy1 lines, and a clip out ---------------------- */
 typedef struct {
-  char *set;                 /* the set's lines, joined */
-  size_t set_n, set_cap;
+  int has_set;               /* the file holds a set (pass 2 streams it in) */
   char **clip;               /* the clip's lines */
   size_t clip_n;
   int open;                  /* a line is being joined (pieces) */
@@ -246,8 +249,7 @@ static int lines_sink(void *ctx, const fm1_rec_t *r) {
   lines_t *l = (lines_t *)ctx;
   if (r->type != FM1_REC_LINE) return 1;
   if (r->u.line.which == FM1_LINES_SET) {
-    lines_add(&l->set, &l->set_n, &l->set_cap, r->u.line.s, r->u.line.n);
-    if (r->piece & FM1_REC_LAST) lines_add(&l->set, &l->set_n, &l->set_cap, "\n", 1);
+    l->has_set = 1;
   } else {
     if (r->piece & FM1_REC_FIRST) {
       size_t z = 0, zc = 0;
@@ -285,6 +287,37 @@ static void out_put(void *ctx, const char *s, size_t n) {
   lines_add(&o->b, &o->n, &o->cap, s, n);
 }
 
+/* --pieces: the bytes a set's text goes to the import at a time (0: all). */
+static size_t g_pieces;
+
+static int import_text(fm1_seq_t *s, const char *txt, size_t len) {
+  fm1_seq_import_t im;
+  size_t off = 0;
+  if (!g_pieces) return fm1_seq_import_movy1(s, txt, len);
+  fm1_seq_import_begin(&im, s);
+  while (off < len) {
+    const size_t m = len - off < g_pieces ? len - off : g_pieces;
+    fm1_seq_import_feed(&im, txt + off, m);
+    off += m;
+  }
+  return fm1_seq_import_end(&im);
+}
+
+/* A file's set lines, piece by piece, into the core's streaming import. */
+typedef struct {
+  fm1_seq_import_t im;
+  int any;
+} set_stream_t;
+
+static int set_stream_sink(void *ctx, const fm1_rec_t *r) {
+  set_stream_t *k = (set_stream_t *)ctx;
+  if (r->type != FM1_REC_LINE || r->u.line.which != FM1_LINES_SET) return 1;
+  k->any = 1;
+  fm1_seq_import_feed(&k->im, r->u.line.s, r->u.line.n);
+  if (r->piece & FM1_REC_LAST) fm1_seq_import_feed(&k->im, "\n", 1);
+  return 1;
+}
+
 /* --load [tT.S:]FILE into the core. */
 static int state_load(fm1_seq_t *s, const char *spec) {
   int t = 0, sl = 0, at = 0;
@@ -306,13 +339,24 @@ static int state_load(fm1_seq_t *s, const char *spec) {
   ok = fm1_state_sniff((const uint8_t *)txt, len) == 1
            ? fm1_state_bin_read(buf_read, sized, (uint32_t)len, lines_sink, &l, &rep, 0)
            : fm1_state_json_read(NULL, buf_read, sized, lines_sink, &l, &rep);
+  if (ok && l.has_set) {
+    /* Pass 2: the set's lines straight into the import, piece by piece. */
+    set_stream_t k;
+    fm1_state_report_t rep2;
+    memset(&k, 0, sizeof(k));
+    fm1_seq_import_begin(&k.im, s);
+    fm1_state_report_init(&rep2);
+    ok = fm1_state_sniff((const uint8_t *)txt, len) == 1
+             ? fm1_state_bin_read(buf_read, sized, (uint32_t)len, set_stream_sink, &k, &rep2, 0)
+             : fm1_state_json_read(NULL, buf_read, sized, set_stream_sink, &k, &rep2);
+    if (ok && !fm1_seq_import_end(&k.im)) ok = 0;
+  }
   free(sized);
   free(txt);
   if (!ok) {
     fprintf(stderr, "%s: %s: %s %s\n", path, fm1_state_code_name(rep.code), rep.what, rep.path);
     return 0;
   }
-  if (l.set && !fm1_seq_import_movy1(s, l.set, l.set_n)) ok = 0;
   if (ok && l.clip_n) {
     const size_t need = fm1_seq_export_movy1(s, NULL, 0);
     char *set = (char *)malloc(need + 1), *text;
@@ -333,7 +377,6 @@ static int state_load(fm1_seq_t *s, const char *spec) {
       free(text);
     }
   }
-  free(l.set);
   for (i = 0; i < l.clip_n; ++i) free(l.clip[i]);
   free(l.clip);
   return ok;
@@ -478,6 +521,7 @@ int main(int argc, char **argv) {
     else if (strcmp(a, "--song") == 0) song = strtol(v, NULL, 0);
     else if (strcmp(a, "--rec") == 0) rec = strtol(v, NULL, 0);
     else if (strcmp(a, "--events") == 0) events = strtol(v, NULL, 0);
+    else if (strcmp(a, "--pieces") == 0) g_pieces = (size_t)strtoul(v, NULL, 0);
     else if (strcmp(a, "--import") == 0) {
       const char **grown = (const char **)realloc((void *)imports, (n_imports + 1u) * sizeof(*imports));
       if (!grown || !strchr(v, ':')) { usage(); return 2; }
@@ -547,7 +591,7 @@ int main(int argc, char **argv) {
     size_t len;
     char *txt = fm1_read_file(seq_path, &len);
     if (!txt) { fprintf(stderr, "cannot read %s\n", seq_path); return 1; }
-    if (!fm1_seq_import_movy1(s, txt, len)) { fprintf(stderr, "%s: not a movy1 set\n", seq_path); return 1; }
+    if (!import_text(s, txt, len)) { fprintf(stderr, "%s: not a movy1 set\n", seq_path); return 1; }
     free(txt);
   }
   for (i = 0; i < n_loads; ++i) {
@@ -577,7 +621,7 @@ int main(int argc, char **argv) {
       const char *path = strchr(imports[next_import], ':') + 1;
       size_t len;
       char *txt = fm1_read_file(path, &len);
-      if (!txt || !fm1_seq_import_movy1(s, txt, len)) {
+      if (!txt || !import_text(s, txt, len)) {
         fprintf(stderr, "%s: not a movy1 set\n", path);
         return 1;
       }

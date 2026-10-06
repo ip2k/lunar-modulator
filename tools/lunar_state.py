@@ -1695,6 +1695,13 @@ def _typed(line):
             return bytes([0x0A] + [u8(x) for x in t[1:4]] + [len(label)]) + label
         if k == "rt" and len(t) == 4 and None not in [u8(x) for x in t[1:]]:
             return bytes([0x0B] + [u8(x) for x in t[1:]])
+        if k in ("dq", "se") and len(t) == 2 and u8(t[1]) is not None:
+            return bytes([0x10 if k == "dq" else 0x11, u8(t[1])])
+        if k == "sn" and len(t) == 3 and u8(t[1]) is not None:
+            name = t[2].encode("utf-8")
+            if not 1 <= len(name) <= 255:
+                return None
+            return bytes([0x12, u8(t[1]), len(name)]) + name
         if k == "cp" and len(t) == 7:
             a = [u8(x) for x in t[1:5]] + [_snum(t[5], -128, 127), u8(t[6])]
             if None in a:
@@ -1785,6 +1792,14 @@ def _item_text(b, i):
         return "au %d %d %d " % (a, ln, base) + s.decode("utf-8"), i + n
     if tag == 0x0B:
         return "rt %d %d %d" % (u8(), u8(), u8()), i
+    if tag in (0x10, 0x11):
+        return ("dq " if tag == 0x10 else "se ") + str(u8()), i
+    if tag == 0x12:
+        scene, n = u8(), u8()
+        s = b[i:i + n]
+        if len(s) != n:
+            raise IndexError
+        return "sn %d " % scene + s.decode("utf-8"), i + n
     if tag == 0x0C:
         t, s, ln, ls, n = u8(), u8(), u16(), u16(), u16()
         notes = []

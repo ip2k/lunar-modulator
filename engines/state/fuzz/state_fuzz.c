@@ -11,7 +11,12 @@
  *   - whatever a reader accepts, the canonical JSON writer writes; that text
  *     reads back to the same records and writes back to itself; the binary
  *     writer packs it, and the binary reads back to the same canonical text
- *     (lossless both ways).
+ *     (lossless both ways);
+ *   - the sequencer core's movy1 import (any input, as set text): fed in
+ *     pieces it gives the same verdict and the same set as fed whole, and
+ *     an imported set's export imports back to itself; and a state file's
+ *     set lines streamed record by record into the import give the set
+ *     their joined text gives.
  * A broken invariant aborts, so libFuzzer and the sanitizers report it.
  *
  * Built two ways (mk/state.mk):
@@ -20,6 +25,7 @@
  *   with -DFM1_LIBFUZZER        LLVMFuzzerTestOneInput, for clang's
  *                               -fsanitize=fuzzer (run on a Linux host)
  * The names are the build's registries. Host code. MIT licence. */
+#include "fm1_seq.h"
 #include "fm1_state.h"
 
 #include <stdio.h>
@@ -56,7 +62,7 @@ static uint32_t mread(void *ctx, uint32_t off, uint8_t *out, uint32_t n) {
 }
 
 static fm1_state_names_t g_names;
-static long g_accepted, g_binary;
+static long g_accepted, g_binary, g_movy1, g_streamed;
 static void *g_jw, *g_bw;
 
 static const uint8_t *g_cur;
@@ -105,6 +111,111 @@ static int canon(const buf_t *in, int binary, buf_t *out) {
 
 static int same(const buf_t *a, const buf_t *b) { return a->n == b->n && (!a->n || !memcmp(a->b, b->b, a->n)); }
 
+/* ---- The sequencer core's import ------------------------------------------- */
+static void *g_seq_mem[3];
+static size_t g_seq_bytes;
+
+static fm1_seq_t *seq_fresh(int k, int compat) {
+  fm1_seq_limits_t lim;
+  fm1_seq_limits_default(&lim, 8);
+  lim.compat = (uint8_t)(compat != 0);
+  if (!g_seq_mem[k]) {
+    g_seq_bytes = fm1_seq_size(&lim);
+    g_seq_mem[k] = calloc(1, g_seq_bytes + 16u);
+    if (!g_seq_mem[k]) abort();
+  }
+  return fm1_seq_create(g_seq_mem[k], &lim, 44118u);
+}
+
+static void seq_export(const fm1_seq_t *s, buf_t *out) {
+  const size_t need = fm1_seq_export_movy1(s, NULL, 0);
+  char *t = (char *)malloc(need + 1u);
+  if (!t) abort();
+  fm1_seq_export_movy1(s, t, need + 1u);
+  out->n = 0;
+  bput(out, t, need);
+  free(t);
+}
+
+/* Any input as set text: whole against pieces, and export as a fixed point. */
+static void movy1_import(const uint8_t *d, size_t n, uint32_t seed) {
+  const int compat = (int)(seed >> 1 & 1u);
+  fm1_seq_t *a = seq_fresh(0, compat), *b = seq_fresh(1, compat);
+  fm1_seq_import_t im;
+  buf_t ea = { NULL, 0, 0 }, eb = { NULL, 0, 0 }, ec = { NULL, 0, 0 };
+  size_t off = 0, piece = 1u + seed % 61u;
+  int ra, rb;
+  if (!a || !b) abort();
+  ra = fm1_seq_import_movy1(a, (const char *)d, n);
+  fm1_seq_import_begin(&im, b);
+  while (off < n) {
+    const size_t m = n - off < piece ? n - off : piece;
+    fm1_seq_import_feed(&im, (const char *)d + off, m);
+    off += m;
+    piece = 1u + (piece * 7u + 3u) % 61u;
+  }
+  rb = fm1_seq_import_end(&im);
+  if (ra != rb) fail("pieces change the import's verdict");
+  if (ra) {
+    fm1_seq_t *c = seq_fresh(2, compat);
+    ++g_movy1;
+    seq_export(a, &ea);
+    seq_export(b, &eb);
+    if (!same(&ea, &eb)) fail("pieces change the imported set");
+    if (!c || !fm1_seq_import_movy1(c, (const char *)ea.b, ea.n)) fail("an export does not import");
+    seq_export(c, &ec);
+    if (!same(&ea, &ec)) fail("an imported set's export is not a fixed point");
+  }
+  free(ea.b); free(eb.b); free(ec.b);
+}
+
+/* A state file's set lines: streamed into the import as their records come,
+ * and joined. */
+typedef struct {
+  fm1_seq_import_t im;
+  buf_t text;
+  int any;
+} set_lines_t;
+
+static int set_lines_sink(void *ctx, const fm1_rec_t *r) {
+  set_lines_t *k = (set_lines_t *)ctx;
+  if (r->type != FM1_REC_LINE || r->u.line.which != FM1_LINES_SET) return 1;
+  k->any = 1;
+  fm1_seq_import_feed(&k->im, r->u.line.s, r->u.line.n);
+  bput(&k->text, r->u.line.s, r->u.line.n);
+  if (r->piece & FM1_REC_LAST) {
+    fm1_seq_import_feed(&k->im, "\n", 1);
+    bput(&k->text, "\n", 1);
+  }
+  return 1;
+}
+
+static void set_records(const buf_t *in, int binary) {
+  set_lines_t k;
+  fm1_state_report_t rep;
+  buf_t ea = { NULL, 0, 0 }, eb = { NULL, 0, 0 };
+  fm1_seq_t *a = seq_fresh(0, 0), *b = seq_fresh(1, 0);
+  int ok, ra, rb;
+  if (!a || !b) abort();
+  memset(&k, 0, sizeof(k));
+  fm1_seq_import_begin(&k.im, b);
+  fm1_state_report_init(&rep);
+  ok = binary ? fm1_state_bin_read(mread, (void *)in, (uint32_t)in->n, set_lines_sink, &k, &rep, 0)
+              : fm1_state_json_read(&g_names, mread, (void *)in, set_lines_sink, &k, &rep);
+  if (ok && k.any) {
+    rb = fm1_seq_import_end(&k.im);
+    ra = fm1_seq_import_movy1(a, k.text.b ? (const char *)k.text.b : "", k.text.n);
+    if (ra != rb) fail("streamed set lines change the import's verdict");
+    if (ra) {
+      ++g_streamed;
+      seq_export(a, &ea);
+      seq_export(b, &eb);
+      if (!same(&ea, &eb)) fail("streamed set lines give another set");
+    }
+  }
+  free(k.text.b); free(ea.b); free(eb.b);
+}
+
 static void one(const uint8_t *data, size_t size) {
   buf_t in = { NULL, 0, 0 }, whole = { NULL, 0, 0 }, cut = { NULL, 0, 0 }, c1 = { NULL, 0, 0 },
         c2 = { NULL, 0, 0 }, bin = { NULL, 0, 0 }, c3 = { NULL, 0, 0 }, sink = { NULL, 0, 0 };
@@ -129,9 +240,11 @@ static void one(const uint8_t *data, size_t size) {
     if (ok1 && !same(&whole, &cut)) fail("pieces change the records");
     ok1 = ok1 && canon(&in, 0, &c1);
   }
+  movy1_import(data, size, seed);
   if (ok1) {
     ++g_accepted;
     g_binary += binary;
+    set_records(&in, binary);
     /* The canonical text reads back and writes back to itself. */
     if (!canon(&c1, 0, &c2)) fail("the canonical text does not read back");
     if (!same(&c1, &c2)) fail("canonical text is not a fixed point");
@@ -240,13 +353,13 @@ static size_t mutate(uint8_t *d, size_t n, size_t cap) {
 int main(int argc, char **argv) {
   long iters = 2000;
   int i, files = 0;
-  static uint8_t seeds[16][MAXIN];
-  static size_t seed_n[16];
+  static uint8_t seeds[32][MAXIN];
+  static size_t seed_n[32];
   static uint8_t work[MAXIN];
   for (i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "-n") == 0 && i + 1 < argc) iters = atol(argv[++i]);
     else if (strcmp(argv[i], "-s") == 0 && i + 1 < argc) g_rng = (uint32_t)strtoul(argv[++i], NULL, 0) | 1u;
-    else if (files < 16) {
+    else if (files < 32) {
       FILE *f = fopen(argv[i], "rb");
       if (!f) { fprintf(stderr, "cannot open %s\n", argv[i]); return 2; }
       seed_n[files] = fread(seeds[files], 1, MAXIN / 2, f);
@@ -268,10 +381,12 @@ int main(int argc, char **argv) {
     if (rnd() & 1u) fix_crcs(work, n);
     one(work, n);
   }
-  printf("{\"iterations\":%ld,\"seeds\":%d,\"accepted\":%ld,\"accepted_binary\":%ld}\n", iters, files,
-         g_accepted, g_binary);
+  printf("{\"iterations\":%ld,\"seeds\":%d,\"accepted\":%ld,\"accepted_binary\":%ld,"
+         "\"movy1_imported\":%ld,\"sets_streamed\":%ld}\n", iters, files, g_accepted, g_binary, g_movy1,
+         g_streamed);
   free(g_jw);
   free(g_bw);
+  for (i = 0; i < 3; ++i) free(g_seq_mem[i]);
   return 0;
 }
 #endif

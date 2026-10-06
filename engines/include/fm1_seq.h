@@ -230,8 +230,41 @@ size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap);
 /* Replaces the set from `movy1` text, as Movy's persist::load. Returns 1 if
  * the format tag matched, 0 otherwise (nothing changed). Outside compat
  * mode it also reads the FM-1 lines dq, se and sn and reseeds the RNG
- * (ST11); seq_persist.c has the format. */
+ * (ST11); seq_persist.c has the format. It is fm1_seq_import_begin, one
+ * _feed and _end. */
 int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len);
+
+/* The same import in pieces (the state files' item stream: a set inside a
+ * JSON project, a binary set decoded 64 bytes at a time, a SysEx page, a
+ * flash read): begin, feed the text in pieces of any size, end. The result
+ * is the same set as one fm1_seq_import_movy1 of the whole text, and no line
+ * is held: the import keeps sizeof(fm1_seq_import_t) bytes, whatever the
+ * line's length. The set is left untouched until the first line has proved
+ * to be the tag; _feed returns 0 once it has not (feeding more is then
+ * harmless), _end returns 1 if the set was replaced. Its members are the
+ * reader's own. */
+typedef struct fm1_seq_num {
+  uint64_t v;
+  uint32_t n;
+  uint8_t sign, digits, bad, over;
+} fm1_seq_num_t;
+
+typedef struct fm1_seq_import {
+  fm1_seq_t *s;
+  fm1_seq_num_t num;          /* the word or list field being read */
+  uint64_t lv[6];             /* the line's values */
+  uint64_t fv[6];             /* a list item's fields */
+  uint8_t fok[6];
+  uint8_t state, tag, in_word, key, dead, ok_list;
+  uint8_t words, wi, keylen, nf, n_tk, text_n;
+  uint16_t clip;
+  char keybuf[8];
+  char text[8];               /* a scene name's first characters */
+} fm1_seq_import_t;
+
+void fm1_seq_import_begin(fm1_seq_import_t *im, fm1_seq_t *s);
+int fm1_seq_import_feed(fm1_seq_import_t *im, const char *txt, size_t len);
+int fm1_seq_import_end(fm1_seq_import_t *im);
 
 /* ---- Reading state (the UI, tests) ------------------------------------- */
 

@@ -156,9 +156,10 @@ def test_golden_files_load_for_ever(tool, names, path):
     assert ls.write_bin(recs) == twin.read_bytes()
 
 
-def test_golden_set_twin(tool, names):
-    """A set as a binary file: lines the core writes become typed items, the
-    others (E1's dq, se and sn; a hand edit's double space) ride raw, and
+def test_golden_set_twin(tool, names, monkeypatch):
+    """A set as a binary file: lines the core writes become typed items
+    (the song's dq, se and sn among them), the others (a hand edit's double
+    space, an empty clip's line without its trailing space) ride raw, and
     the set comes back byte for byte."""
     movy, twin = GOLD / "orbit.set.movy1", GOLD / "orbit.set.lunarb"
     assert run(tool, "from-movy1", movy, check=True).stdout == twin.read_bytes()
@@ -170,10 +171,21 @@ def test_golden_set_twin(tool, names):
     for line in lines:
         item = ls.encode_line(line)
         assert ls._item_text(item, 0) == (line, len(item))
+    typed = {line.split(" ")[0]: ls.encode_line(line)[0] for line in lines}
+    assert (typed["dq"], typed["se"], typed["sn"]) == (0x10, 0x11, 0x12)
     raw = [line for line in lines if ls.encode_line(line)[0] == 1]
     # The core writes an empty clip's line with a space after its loop start;
     # this one has none, so it rides raw like the lines no core writes.
-    assert raw == ["dq 25", "se 2", "sn 0 Intro", "cl 0 1 16 0", "tk 1  2 0"]
+    assert raw == ["cl 0 1 16 0", "tk 1  2 0"]
+    # A raw item is always read, so a file whose writer kept the song's lines
+    # raw (stage E3, before they had items) reads to the same set.
+    real = ls._typed
+    monkeypatch.setattr(ls, "_typed", lambda line: None if line[:3] in ("dq ", "se ", "sn ") else real(line))
+    recs = [json.loads(line) for line in records.splitlines()]
+    old = ls.write_bin(recs)
+    assert old != twin.read_bytes()
+    assert run(tool, "unpack", "-", data=old, check=True).stdout == movy.read_bytes()
+    assert c_records(tool, old)[1] == records
 
 
 def test_movy1_items_are_byte_identical_on_a_core_export(tool):
@@ -569,14 +581,22 @@ def test_jsontestsuite(tool):
 def test_seeded_fuzz_loop_keeps_its_invariants(tool):
     """Mutations of every golden file through every reader: pieces never
     change the records, canonical text is a fixed point, JSON -> binary ->
-    JSON is lossless, nothing crashes. A longer run under the sanitizers
-    is engines/state/README.md's "Fuzzing"."""
-    files = sorted(GOLD.glob("*.lunar")) + sorted(GOLD.glob("*.lunarb"))
+    JSON is lossless, nothing crashes; and every input as set text through
+    the sequencer core's streaming import (pieces give the set the whole
+    text gives, an export imports back to itself), and a file's set lines
+    streamed record by record into it give the set their text gives. A
+    longer run under the sanitizers is engines/state/README.md's
+    "Fuzzing"."""
+    files = sorted(GOLD.glob("*.lunar")) + sorted(GOLD.glob("*.lunarb")) + sorted(GOLD.glob("*.movy1")) + \
+        sorted((ROOT / "tests" / "fixtures" / "movy").glob("0[1-9]*.out.movy1"))[:6]
+    assert len(files) <= 32
     r = subprocess.run([str(FUZZ), "-s", "7", "-n", "20000", *map(str, files)], capture_output=True,
                        text=True, cwd=str(ROOT / "engines" / "build"))
     assert r.returncode == 0, r.stderr[-400:]
     out = json.loads(r.stdout)
-    assert out["iterations"] == 20000 and out["accepted"] > 1000 and out["accepted_binary"] > 100
+    assert out["iterations"] == 20000 and out["seeds"] == len(files)
+    assert out["accepted"] > 1000 and out["accepted_binary"] > 100
+    assert out["movy1_imported"] > 1000 and out["sets_streamed"] > 50
 
 
 def test_launch_links_round_trip(names):

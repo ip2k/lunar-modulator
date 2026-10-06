@@ -3,11 +3,14 @@
  *
  * A line the sequencer core writes (seq_persist.c's export) becomes a typed
  * item: its fields in fixed widths, 8 bytes a note and 3 a lock, as design A
- * laid them out. Any other line (a hand edit's extra space, a number past an
- * item's width, a line kind this build does not type: E1's dq, se and sn
- * among them until they get items) rides as a raw item, its bytes as they
- * are. The encoder formats every typed item back and compares it with the
- * line, so movy1 -> items -> movy1 is byte-identical by construction.
+ * laid them out; the song's FM-1 lines (dq, se, sn: stage E1) included. Any
+ * other line (a hand edit's extra space, a number past an item's width, a
+ * line kind this build does not type) rides as a raw item, its bytes as
+ * they are. The encoder formats every typed item back and compares it with
+ * the line, so movy1 -> items -> movy1 is byte-identical by construction.
+ * Decoded, an item's text goes out in pieces of at most 64 bytes, which the
+ * sequencer core's streaming import (fm1_seq_import_feed) takes as they
+ * come, so a set reaches the core with no line held whole.
  *
  * Item layout: u8 tag, then
  *   0x01 raw     u16 n, n bytes
@@ -24,6 +27,8 @@
  *   0x0E lk      u8 track, u8 slot, u16 n, n x { u8 lane, u8 step, u8 value }
  *   0x0F tg      u8 track, u8 slot, u16 n, n x { u8 step, i8 lane, u8 prob,
  *                u8 a, u8 b, u8 inv }
+ *   0x10 dq      u8 percent    0x11 se  u8 end mode
+ *   0x12 sn      u8 scene, u8 n, n bytes of name
  * Little-endian. C99, no heap, no stdio. MIT licence. */
 #include "state_movy1.h"
 
@@ -169,6 +174,16 @@ static int typed(const char *s, size_t n, out_t *o) {
   }
   if (is(t[0], "rt") && k == 4 && num(t[1], 255, &a) && num(t[2], 255, &b) && num(t[3], 255, &c)) {
     ob(o, 0x0B); ob(o, a); ob(o, b); ob(o, c);
+    return 1;
+  }
+  if ((is(t[0], "dq") || is(t[0], "se")) && k == 2 && num(t[1], 255, &a)) {
+    ob(o, t[0].p[0] == 'd' ? 0x10 : 0x11); ob(o, a);
+    return 1;
+  }
+  if (is(t[0], "sn") && k == 3 && num(t[1], 255, &a) && t[2].n && t[2].n <= 255u) {
+    size_t i;
+    ob(o, 0x12); ob(o, a); ob(o, (unsigned)t[2].n);
+    for (i = 0; i < t[2].n; ++i) ob(o, (unsigned char)t[2].p[i]);
     return 1;
   }
   if (is(t[0], "cp") && k == 7 && num(t[1], 255, &a) && num(t[2], 255, &b) && num(t[3], 255, &c) &&
@@ -333,6 +348,13 @@ static int item_text(in_t *in, txt_t *t) {
       for (i = 0; i < n && !in->bad; ++i) tc(t, (char)ib(in));
       break;
     case 0x0B: ts(t, "rt "); a = ib(in); b = ib(in); c = ib(in); tu(t, a); tc(t, ' '); tu(t, b); tc(t, ' '); tu(t, c); break;
+    case 0x10: ts(t, "dq "); tu(t, ib(in)); break;
+    case 0x11: ts(t, "se "); tu(t, ib(in)); break;
+    case 0x12:
+      ts(t, "sn "); a = ib(in); n = ib(in);
+      tu(t, a); tc(t, ' ');
+      for (i = 0; i < n && !in->bad; ++i) tc(t, (char)ib(in));
+      break;
     case 0x0C: {
       unsigned len, ls;
       ts(t, "cl "); a = ib(in); b = ib(in); len = i16(in); ls = i16(in); n = i16(in);
