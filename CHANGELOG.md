@@ -39,7 +39,7 @@ history.
     control it is refused (`!`), so a per-note signal never moves
     everything.
   - Up to twelve notes at once across the sounds, the engines' own
-    polyphony; the rack's line shows how many (`v3`). Per-voice modules
+    polyphony; the rack's line shows how many (*3 voices*). Per-voice modules
     live in the rack's 8 KB memory; the modulation runtime grows by 3 KB,
     to 26 KB, in the RAM meter.
   - Cables at 0 % change nothing, bit for bit; the output is the same at
