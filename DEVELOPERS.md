@@ -401,8 +401,9 @@ decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
   `fm1-sim-render --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
-  modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); SAVE asks the
-  page's store, which comes with stage W1. The user manual describes every
+  modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); SAVE keeps the
+  project in the page's IndexedDB store (stage W1: Open, Save…, autosave,
+  Recent, links and the embed API, `sim/web/README.md`, "Files"). The user manual describes every
   control.
 - **Saved state:** the module saves and loads its whole state as the state
   core's files (projects, sounds, effects, mod racks, clips, sets and

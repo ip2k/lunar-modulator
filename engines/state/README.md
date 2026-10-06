@@ -23,7 +23,7 @@ made the engines saveable and wrote the **metadata export in C**:
 "The parameter metadata export"), with the known ids and aliases it carries
 (`fm1_known.c`, written by `tools/gen_known.py` from `engines/known-ids.json`
 and `engines/aliases.json`). Nothing in the virtual FM-1 calls them yet: its
-Open, Save and launch links are stages A1 and W1.
+Open, Save and launch links are stages A1 and W1 (built: `sim/web/www/files.js`).
 
 ```bash
 make -C engines                                          # fm1-state, fm1-state-fuzz; fm1-render and fm1-seq take files
