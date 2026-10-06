@@ -101,7 +101,11 @@ def test_the_default_list_names_catalogue_modules():
     text = (ENGINES / "modules" / "default.list").read_text()
     ids = re.sub(r"#.*", "", text).split()
     full, _ = modules()
-    assert ids and len(set(ids)) == len(ids) and set(ids) <= set(full)
+    # With the GPL switch off the catalogue offers no GPL module, but the
+    # list still names them (the switch drops them; CI's modules-default job).
+    gpl = set(re.search(r"^FM1_GPL_IDS :=(.*)$", (ENGINES / "modules" / "catalogue.mk").read_text(),
+                        re.M).group(1).split())
+    assert gpl and ids and len(set(ids)) == len(ids) and set(ids) <= set(full) | gpl
     mods, name = modules("FM1_MODULES=default")
     assert name == "default"
     chosen = {m for m, (_, c, _) in mods.items() if c}
@@ -229,5 +233,10 @@ def test_a_reduced_build_links_none_of_a_left_out_modules_code(small, graph):
     syms = set()
     for o in dropped:
         syms |= nm_symbols(o)[0]
+    # A header's inline function (Plaits' Ensemble::Process, say) is a weak
+    # definition in every object that uses it, a kept one too: only what no
+    # kept object defines must be gone.
+    for o in graph["objs"] - dropped:
+        syms -= nm_symbols(o)[0]
     have = nm_symbols(small["render"])[0] | nm_symbols(small["sim"])[0]
     assert not syms & have, sorted(syms & have)[:20]
