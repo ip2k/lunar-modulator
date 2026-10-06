@@ -4230,8 +4230,9 @@ stay as they were; `fm1-render --list` prints them after the engines, kind
   frame, kind, key, velocity), ascending by frame; `ctx` the block's tick
   frames (96 to the quarter note), its length, the tempo, the transport,
   while the sequencer plays the tick the first of them is from its Start
-  (`tick_pos`, since 2026-10-06), and the project key
-  (`fm1_midi_fx_ctx_t`); `out` at least `FM1_MIDI_FX_OUT_MIN` (64) events,
+  (`tick_pos`, since 2026-10-06), the project key, and the set's swing
+  (`swing`, 50..80, in what was a reserved byte, since 2026-10-06; 0 from
+  an older host means straight) (`fm1_midi_fx_ctx_t`); `out` at least `FM1_MIDI_FX_OUT_MIN` (64) events,
   ascending, note-offs before note-ons at one frame.
 - **Origins** (2026-10-06): a note's velocity carries where it came from
   in its high byte, `FM1_MIDI_SRC_LIVE` (0: the keys, MIDI, `--note`) or
@@ -4246,7 +4247,8 @@ stay as they were; `fm1-render --list` prints them after the engines, kind
   was played; time is ticks, never samples, so the output is the same at
   any block size; no heap, no libm.
 - **The arpeggiator**, `arp` (`midi_fx/arp_engine.c` on the core
-  `midi_fx/fm1_arp.c`), is the first: 25 parameters on seven pages,
+  `midi_fx/fm1_arp.c`), is the first: 24 parameters on seven pages (its
+  swing is the set's, from the context, since 2026-10-06),
   [midi_fx/README.md](midi_fx/README.md).
 - **The host side** (`include/fm1_mfx_host.h`, `seq/mfx_host.c`, in the
   sequencer's objects): a chain of up to four effects in front of each of

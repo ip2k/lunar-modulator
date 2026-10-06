@@ -154,7 +154,7 @@ keys, at any octave.
 <td align="center">Six-Op FM</td>
 </tr>
 <tr>
-<td><img src="assets/screenshots/screen-shapes.png" width="200" alt="Shapes on Pluck: Shape, Timbre, Color and Attack, and the memory meter at 86 %"></td>
+<td><img src="assets/screenshots/screen-shapes.png" width="200" alt="Shapes on Pluck: Shape, Timbre, Color and Attack, and the memory meter at 87 %"></td>
 <td><img src="assets/screenshots/screen-sophie.png" width="200" alt="Sophie's kick pad: Pad, Tune, Decay and Model"></td>
 <td><img src="assets/screenshots/screen-drums.png" width="200" alt="Drums' kick pad in the Deep kit: Pad, Tune, Decay and Level"></td>
 </tr>

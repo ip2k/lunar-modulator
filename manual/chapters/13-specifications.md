@@ -39,53 +39,54 @@ means the work of others who have studied the FM-1, credited in
 | Limiter | Ceiling 0.98 of full scale (−0.18 dBFS), instant attack, about 100 ms release; samples that are not numbers become silence |
 | [[MASTER]] | After the limiter. Half way round is a quarter of full level, about −12 dB |
 | Pitch bend | Up to ±48 semitones in the engines; ±2 semitones from MIDI in the simulator |
-| Memory for sounds | The room M-VAVE's firmware leaves free on the FM-1, for the sounds, effects, sequencer and modulation: 100 % on the memory meter, which shows memory only as a share of it. The real figure for Lunar Modulator on the device will be known once it runs there |
+| Memory for sounds | The room M-VAVE's firmware leaves free on the FM-1, for the sounds, effects, sequencer and modulation: 100 % (379 KB) on the memory meter, which on the screen shows memory only as a share of it. The real figure for Lunar Modulator on the device will be known once it runs there |
 | Sequencer | 8 tracks in the simulator, as planned for the FM-1 ([chapter 7](07-sequencer.md)) |
 | Licence | MIT for Lunar Modulator's own code; code from other projects under its own licence ([chapter 14](14-credits-and-licences.md)) |
 
 ### Engines and effects in figures
 
 Memory is given as the share of the FM-1's memory each engine or effect
-takes on its own (100 % is all the memory meter allows), as a 32-bit build
-lays it out at 44,118 samples a second, as in the simulator and on the FM-1,
-and rounded up as the meter rounds. The meter adds up the chain in use, with
-the sequencer's own (10 %) and modulation's (7 %), and is the one to trust
-if the two ever differ.
+takes on its own (100 % is all the memory meter allows, 379 KB), as a 32-bit
+build lays it out at 44,118 samples a second, as in the simulator and on the
+FM-1, rounded up as the meter rounds, with the size itself in brackets
+(1 KB is 1,024 bytes). The screen shows the share only. The meter adds up
+the chain in use, with the sequencer's own, 10 % (36 KB), and modulation's,
+7 % (26 KB), and is the one to trust if the two ever differ.
 
-| Engine or effect | Voices | Share of memory |
+| Engine or effect | Voices | Share of memory (size) |
 | --- | --- | --- |
-| Macro | 12 | 6 % |
-| Macro Heavy | 4 | 19 % |
-| Six-Op FM | 8 | 3 % |
-| FM6 | 12 | 5 %; its tables stay in flash memory |
-| Shapes | 12 | 54 % |
-| Sophie | 12 | 21 % |
-| Drums | 12 | 2 % |
-| Test Sine | 12 | under 1 % |
-| Plate | – | 17 % |
-| Ensemble | – | 2 % |
-| Diffuse | – | 5 % |
-| PSX Verb | – | 35 % |
-| Crush | – | under 1 % |
-| Fold | – | under 1 % |
-| Drive | – | under 1 % |
-| Echo | – | 17 % |
-| Filter | – | under 1 % |
-| Comb | – | 5 % |
-| Comp | – | under 1 % |
-| Limiter | – | 4 % |
-| DJ Filter | – | under 1 % |
-| Tilt | – | under 1 % |
-| Master Sat | – | under 1 % |
-| Isolator | – | under 1 % |
-| EQ | – | under 1 % |
-| Room | – | 11 % |
-| Hall | – | 13 % |
-| Gate | – | under 1 % |
-| Squash | – | under 1 % |
-| Transient | – | under 1 % |
-| Test Gain | – | under 1 % |
-| Test Ext | – | under 1 % |
+| Macro | 12 | 6 % (19 KB) |
+| Macro Heavy | 4 | 19 % (70 KB) |
+| Six-Op FM | 8 | 3 % (11 KB) |
+| FM6 | 12 | 5 % (16 KB); its tables stay in flash memory |
+| Shapes | 12 | 54 % (202 KB) |
+| Sophie | 12 | 21 % (77 KB) |
+| Drums | 12 | 2 % (7.5 KB) |
+| Test Sine | 12 | under 1 % (320 bytes) |
+| Plate | – | 17 % (64 KB) |
+| Ensemble | – | 2 % (4.6 KB) |
+| Diffuse | – | 5 % (18 KB) |
+| PSX Verb | – | 35 % (131 KB) |
+| Crush | – | under 1 % (176 bytes) |
+| Fold | – | under 1 % (160 bytes) |
+| Drive | – | under 1 % (240 bytes) |
+| Echo | – | 17 % (64 KB) |
+| Filter | – | under 1 % (656 bytes) |
+| Comb | – | 5 % (17 KB) |
+| Comp | – | under 1 % (208 bytes) |
+| Limiter | – | 4 % (12 KB) |
+| DJ Filter | – | under 1 % (224 bytes) |
+| Tilt | – | under 1 % (144 bytes) |
+| Master Sat | – | under 1 % (352 bytes) |
+| Isolator | – | under 1 % (256 bytes) |
+| EQ | – | under 1 % (416 bytes) |
+| Room | – | 11 % (40 KB) |
+| Hall | – | 13 % (49 KB) |
+| Gate | – | under 1 % (2.1 KB) |
+| Squash | – | under 1 % (416 bytes) |
+| Transient | – | under 1 % (144 bytes) |
+| Test Gain | – | under 1 % (24 bytes) |
+| Test Ext | – | under 1 % (16 bytes) |
 
 ### The sequencer
 
@@ -102,7 +103,7 @@ if the two ever differ.
 | Sounds | Up to four at once, each with its own engine and a level into the mix |
 | Effects | Two inserts on each sound, two master effects after the mix, then the limiter |
 | Modulation | A rack of eight positions for sixteen kinds of module, 32 cables, worked out every 32 samples |
-| Memory | Everything refused that would take the memory meter past 100 % |
+| Memory | Everything refused that would take the memory meter past 100 % (379 KB) |
 
 ## The simulator
 

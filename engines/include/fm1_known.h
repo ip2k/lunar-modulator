@@ -48,14 +48,19 @@ extern const char *const fm1_modules_name;     /* the list's name: "all", "defau
 const fm1_known_id_t *fm1_absent_find(const char *id);
 
 enum { FM1_ALIAS_ENGINE = 1, FM1_ALIAS_MOD = 2 };
+#define FM1_ALIAS_RETIRED (-2)
 
 typedef struct fm1_alias {
   uint8_t owner;                /* FM1_ALIAS_ENGINE (an engine, effect or MIDI
                                    effect) or FM1_ALIAS_MOD (a modulation kind) */
   const char *id;               /* its id */
   uint16_t uid;                 /* the parameter's uid */
-  int16_t entry;                /* -1: `name` is the parameter's old name; else
-                                   the index of the list entry it is an old name of */
+  int16_t entry;                /* -1: `name` is the parameter's old name;
+                                   FM1_ALIAS_RETIRED (-2): a removed parameter's
+                                   last name, `uid` its retired uid, which no
+                                   table has (a file that names it reads by
+                                   uid, as #UID); else the index of the list
+                                   entry it is an old name of */
   const char *name;             /* the old name */
 } fm1_alias_t;
 

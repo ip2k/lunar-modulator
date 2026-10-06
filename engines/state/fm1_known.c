@@ -18,9 +18,10 @@ const fm1_known_id_t fm1_known_ids[] = {
 const size_t fm1_known_id_count = 8u;
 
 const fm1_alias_t fm1_aliases[] = {
+  { FM1_ALIAS_ENGINE, "arp", 7u, -2, "Swing" },
   { 0, NULL, 0u, 0, NULL }
 };
-const size_t fm1_alias_count = 0u;
+const size_t fm1_alias_count = 1u;
 
 const fm1_known_id_t *fm1_known_id_find(const char *id) {
   size_t i;

@@ -592,6 +592,7 @@ int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put
   static const uint8_t version[3] = { 0, 1, 0 };
   const char *why = "";
   fm1_state_report_t own;
+  const unsigned bflags = binary == 2 ? 0u : FM1_STATE_BIN_DEFLATE;   /* 2: no deflate */
   if (!rep) rep = &own;
   fm1_state_report_init(rep);
   rep->kind = (uint8_t)kind;
@@ -606,7 +607,7 @@ int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put
   g_bin_n = 0;
   g_bin_over = 0;
   if (kind == FM1_STATE_SET) {         /* binary only: straight to the container */
-    fm1_state_writer_t *b = fm1_state_bin_writer(g_bw, FM1_STATE_BIN_DEFLATE, FM1_STATE_WRITER_SIM, version,
+    fm1_state_writer_t *b = fm1_state_bin_writer(g_bw, bflags, FM1_STATE_WRITER_SIM, version,
                                                  bin_put, NULL, rep);
     if (!b || !collect(a, kind, arg, fm1_state_bin_write, b, &why)) {
       if (rep->code == FM1_STATE_OK) refuse_rep(rep, FM1_STATE_BAD, why);
@@ -629,7 +630,7 @@ int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put
     {
       /* The binary writer wants the canonical order, which the canonical
        * JSON's reader gives. */
-      fm1_state_writer_t *b = fm1_state_bin_writer(g_bw, FM1_STATE_BIN_DEFLATE, FM1_STATE_WRITER_SIM, version,
+      fm1_state_writer_t *b = fm1_state_bin_writer(g_bw, bflags, FM1_STATE_WRITER_SIM, version,
                                                    bin_put, NULL, rep);
       if (!b || !fm1_state_json_read(names(), json_src, NULL, fm1_state_bin_write, b, rep)) return 0;
     }

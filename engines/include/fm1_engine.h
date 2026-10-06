@@ -524,7 +524,11 @@ typedef struct fm1_midi_fx_ctx {
                                   ticks are then its grid, from tick_pos */
   uint8_t key_root;            /* the project key: 0 C .. 11 B */
   uint8_t key_scale;           /* FM1_KEY_* */
-  uint8_t reserved;            /* 0 */
+  uint8_t swing;               /* the set's swing, 50..80 % (the sequencer's
+                                  `swing`, docs/13 R6): an odd step starts
+                                  (swing-50)/60 of a step late; the arp swings
+                                  by it (owner, 2026-10-06). 0, from a host
+                                  that predates it, is straight, as 50 is */
   uint64_t tick_pos;           /* while running: the sequencer's tick that ticks[0]
                                   is, counted from its Start (tick 0, the first
                                   downbeat; FM1_MIDI_FX_PPQN to the quarter note,

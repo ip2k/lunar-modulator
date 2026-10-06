@@ -71,10 +71,15 @@ def test_links_and_embed_keep_to_the_rules():
     assert "const LOAD_PREFIXES = ['guide/', 'manual/', 'examples/'];" in files
     assert "credentials: 'omit', redirect: 'error'" in files
     assert "const LINK_CAP = 32768;" in files
-    # Replies and events go to this origin only, never '*'; messages are
-    # taken from the parent on this origin only.
-    assert "window.parent.postMessage({ lunar: 1, ...m }, location.origin)" in files
-    assert "e.source !== window.parent || e.origin !== location.origin" in files
+    # Replies and events go to the parent's origin, never '*'; messages are
+    # taken from the parent on this origin only, or, on a page served from
+    # localhost, on any local origin (the localhost exception, owner,
+    # 2026-10-06; its rules under Node in tests/test_sim_origins.py).
+    assert "window.parent.postMessage({ lunar: 1, ...m }, parentOrigin)" in files
+    assert "parentOrigin = location.origin" in files
+    assert "e.source !== window.parent || !trustedOrigin(e.origin)" in files
+    assert "return origin === self || (isLocalOrigin(self) && isLocalOrigin(origin));" in files
+    assert "const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];" in files
     assert "postMessage(" in files and "'*'" not in files
     # Preferences only in localStorage.
     assert files.count("localStorage.") == 2

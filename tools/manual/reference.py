@@ -247,6 +247,22 @@ def memory_share(size: int, budget: int) -> str:
     if size * 100 < budget:
         return "under 1\u00a0%"
     return f"{-(-size * 100 // budget)}\u00a0%"
+def memory_size(size: int) -> str:
+    """`size` bytes as the specifications chapter gives them beside a share
+    (owner, 2026-10-06: "3 % (10 KB)"; the screens stay percent only): KB of
+    1,024 bytes, whole from 10 KB, to one decimal below, and bytes under
+    1 KB."""
+    if size < 1024:
+        return f"{size}\u00a0bytes"
+    kb = size / 1024
+    return f"{kb:.0f}\u00a0KB" if kb >= 9.95 else f"{kb:.1f}\u00a0KB"
+
+
+def memory_share_and_size(size: int, budget: int) -> str:
+    """A share of the budget with the size in brackets: "6 % (19 KB)"."""
+    return f"{memory_share(size, budget)} ({memory_size(size)})"
+
+
 VERB_RE = re.compile(r'\{\s*"([a-z0-9]+)"\s*,\s*FM1_SEQ_V_[A-Z0-9_]+\s*\}')
 
 
