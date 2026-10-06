@@ -104,21 +104,50 @@ static inline uint16_t fm1_sound_colour(int sound) {
 #define BAR_H 7
 #define LINE_PITCH 22                  /* plain text lines: 18 px and a 4 px gap */
 #define POPUP_PITCH 26
-/* A list popup (fm1_panel.h's FM1_LIST_ROWS window): the list's title and
- * the chosen entry's place on the first line, then the entries LIST_PITCH
- * apart from LIST_Y, the chosen one on the accent. A LIST_MARK triangle
- * between the title and the entries says the list goes on above them, one
- * under the entries that it goes on below. */
+/* A list popup (fm1_panel.h's window, fm1_list_rows of its face): the
+ * list's title in the context colour and the chosen entry's place in MID on
+ * the first line, then the entries from LIST_Y, the chosen one on the
+ * selection bar. A LIST_MARK triangle between the title and the entries
+ * says the list goes on above them, one under the entries that it goes on
+ * below. Per face (audit D9), the entries' pitch and the bar round the
+ * chosen one (above its box, and its height): MAIN 24 px, 3 above, 23 tall;
+ * MID 18 px, 2 above, 17 tall; SMALL 16 px, 2 above, 15 tall. Each keeps
+ * 4 px between entries' boxes, 3 px of bar above a capital, and the last
+ * entry and its triangle above the bottom rule (LIST_BOTTOM). */
 #define LIST_X 12                      /* title and entries: 6 px inside the highlight */
 #define LIST_TITLE_Y (TITLE_H + 6)
 #define LIST_MARK_W 11
 #define LIST_MARK_H 6
-#define LIST_MORE_Y (LIST_TITLE_Y + 18 + 4)
+#define LIST_MORE_Y (LIST_TITLE_Y + MID_LINE_H + 4)
 #define LIST_Y (LIST_MORE_Y + LIST_MARK_H + 4)
-#define LIST_PITCH 24                  /* 18 px text, the highlight 3 px above and 2 below */
+#define LIST_BOTTOM (BOTTOM_Y - 2 - 4 - LIST_MARK_H - 4)   /* the last entry's box ends by here */
+#define LIST_PITCH 24                  /* MAIN: 18 px text, the highlight 3 px above and 2 below */
+#define LIST_PITCH_MID 18
+#define LIST_PITCH_SMALL 16
+/* Characters MAIN gives a label, a title-bar name and a popup line (the
+ * MID and SMALL versions: fm1_look_fit). */
 #define LABEL_CHARS 10
 #define NAME_CHARS 16
 #define POPUP_CHARS 18
+
+/* L1's banner: a one-line confirmation of at most BANNER_CHARS in MAIN,
+ * or of at most BANNER_CHARS_MID in MID (audit D9), over the page's bottom
+ * BANNER_H px, between selection rules; the text 3 px inside them (MAIN)
+ * or centred between them (MID). */
+#define BANNER_H 28
+#define BANNER_Y (BOTTOM_Y - BANNER_H)
+#define BANNER_RULE 2
+#define BANNER_TEXT_Y (BANNER_Y + BANNER_RULE + 3)
+#define BANNER_TEXT_Y_MID (BANNER_Y + BANNER_RULE + (BANNER_H - 2 * BANNER_RULE - MID_LINE_H) / 2)
+#define BANNER_CHARS POPUP_CHARS
+#define BANNER_CHARS_MID 27
+
+/* The context line under the title bar (audit Q4): what the page is about
+ * (the model, the slot's effect, "Step 7") in C_CONTEXT, on the left, and
+ * where it is ("1/8") or its role ("insert") in C_LABEL on the right, in
+ * MID, so a page's rows start CONTEXT_NEXT_Y. */
+#define CONTEXT_Y CONTENT_Y
+#define CONTEXT_NEXT_Y (CONTEXT_Y + MID_LINE_H + 4)
 
 /* The three faces (fm1_tft.h; audit D7), each line keeping the same 4 px
  * from the next: MAIN, the 5 x 9 at x2 above (18 px, 19 characters a line);
@@ -155,6 +184,22 @@ void fm1_look_fill(fm1_tft_t *t, int x, int y, int w, int h, const fm1_param_t *
 /* One line: a dim label of at most LABEL_CHARS on the left and its value,
  * right-aligned, in `color`, in what is left of the line. */
 void fm1_look_row(fm1_tft_t *t, int y, const char *label, const char *value, uint16_t color);
+
+/* How many characters of `font` fit between x and the right margin. */
+static inline int fm1_look_fit(int x, fm1_tft_font_t font) { return fm1_tft_font_fit(RIGHT - x, font); }
+
+/* The context line at y (audit Q4): `text` in C_CONTEXT on the left, in
+ * MID, and `place` (NULL for none) in C_LABEL right-aligned, the text
+ * taking what the place and the 4 px gap leave. Used by HOME (the model
+ * and its place, "VA+Filter 1/8"), FX mode (the slot's effect and its
+ * role); the sequencer's headings can take it too. */
+void fm1_look_context(fm1_tft_t *t, int y, const char *text, const char *place);
+
+/* An entry's full name (audit D9): where an engine, effect or list entry
+ * only offers a short form ("PhaseDist", "Comp", "Studio S"), the name it
+ * stands for, from the engine's own source; else `name` itself. For lists
+ * and the context line, where a face has the room. */
+const char *fm1_look_full_name(const char *name);
 
 #ifdef __cplusplus
 }
