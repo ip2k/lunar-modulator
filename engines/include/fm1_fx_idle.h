@@ -13,7 +13,9 @@
  *          its filter states are cleared, and each block costs only the
  *          input guard, whose output is the one it gave before, bit for bit.
  *          Rhythmic moves (a kill and back within a bar, a lock every few
- *          steps) come back sooner than that and never wait for a wake;
+ *          steps) come back sooner than that and never wait for a wake.
+ *          After a longer rest a move waits for the warm-up, and a lock
+ *          that comes back within the warm-up is not heard at all;
  *   wake   a setting that leaves pass-through wakes it, at the start of the
  *          render after set_param (where every change arrives). Its filters
  *          start from rest and run on the input while the knobs that leave
@@ -83,7 +85,11 @@ extern "C" {
 
 /* The longest warm-up a setting may need and still idle. Only EQ reaches it:
  * a low shelf below about 27 Hz at Q 0.71, or a bell below about 380 Hz at
- * Q 10, needs longer, and EQ keeps running there instead. */
+ * Q 10, needs longer, and EQ keeps running there instead. Tuned there while
+ * idle, EQ wakes and holds its bands for at most this long, not their full
+ * warm-up, so a gain turned soon after is not kept waiting: it starts from a
+ * filter still settling into the new tuning, as the old code's would have
+ * been after the retune (engines/README.md). */
 #define FM1_IDLE_MAX_WARM_SECONDS 0.1f
 
 /* Seconds to whole frames at rate fs, rounded up; at least 1. */

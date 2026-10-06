@@ -55,7 +55,8 @@
  * the frames its section at 0 dB takes to settle from rest (EqSettle); then
  * it glides as above. Level needs no filter and glides at once. Settings
  * where a band needs more than FM1_IDLE_MAX_WARM_SECONDS (a band low and
- * narrow) never idle: EQ runs there as it always has. Away from
+ * narrow) never idle: EQ runs there as it always has; tuned there while
+ * idle, it wakes and holds the bands for at most that long. Away from
  * pass-through the code below does what it did before, in the same order:
  * the same bits.
  *

@@ -1763,7 +1763,12 @@ as a busy one. Now they idle there (owner's decision, 2026-10-05;
   cleared and a block is only the input guard (NaN to 0, ±16 clamped), whose
   output is the one it gave before, bit for bit. The two seconds keep
   rhythmic moves, a kill and back within a bar or a lock every few steps,
-  from ever waiting for a wake.
+  from ever waiting for a wake. After a longer rest a move waits for the
+  warm-up below, and a lock that leaves pass-through and comes back within
+  the warm-up is not heard at all: a Master Sat Mix lock on one 16th step
+  at 120 BPM (125 ms, under its 191 ms), an Isolator kill shorter than
+  11 ms, an EQ Low Gain lock shorter than its 27 ms [verified:
+  `fm1-idle-test` "short_lock", 2026-10-06]. The old build plays each.
 - **Wake.** A setting that leaves pass-through wakes it at the next render,
   where every `set_param` change arrives. The filters start from rest and
   run on the input while the knobs that left pass-through are held where
@@ -1800,7 +1805,17 @@ as a busy one. Now they idle there (owner's decision, 2026-10-05;
   rest of seconds is not a performance gesture.
 - **EQ settings that would need more than 0.1 s** (a band below about 27 Hz
   at Q 0.71, a bell below about 380 Hz at Q 10) never idle: EQ runs there
-  as it always has, and tuning a band there while EQ is idle wakes it.
+  as it always has, and tuning a band there while EQ is idle wakes it. That
+  wake holds the bands for at most 0.1 s, not for their full warm-up (the
+  bound gives 1.9 s for a bell at 20 Hz and Q 10), so that a gain turned soon after
+  is not kept waiting; a gain turned then starts from a filter that began
+  at the wake instead of one carried over from the old tuning. Both are
+  still settling into the new tuning, so the output differs from the old
+  build's as two transients do, not by a click: −23 dB of the peak for a
+  30 Hz bell at Q 10 on a 30 Hz sine with the gain 0.12 s after the
+  retune, −38 dB for a 20 Hz shelf at Q 0.3 on DC, with the output's
+  largest second difference no larger than the old build's [verified:
+  `fm1-idle-test` "hostile", 2026-10-06].
 - **Away from pass-through nothing changes:** the same operations in the
   same order. `FM1_FX_IDLE=0` builds the effects without the idle path,
   which is the code as it was (checked against the sources before it, 40
@@ -1821,7 +1836,21 @@ Measured [verified: `build/fm1-idle-test` and tests/test_engines_idle.py,
   same again within 1.2 s (15 of the 22 within 0.1 s). Master Sat's Glue envelope
   starts from rest: it attacks in 2 ms, but the 200 ms release of a peak
   older than the wake is missing, −96.6 dB at the defaults and −73.8 dB at
-  Glue 1, Drive 18 dB and Asymmetry 1;
+  Glue 1, Drive 18 dB and Asymmetry 1 on steady input. After a loud
+  passage that ends just before the wake it is more: a 220 Hz burst at 0.9
+  ending 5 ms before it, then the tone at 0.05, gives −43.0 dB of the
+  burst's peak (about −18 dB of the quiet tone), a level difference that
+  fades with the 200 ms release, not a click;
+- hostile wakes (review, 2026-10-06): a band retuned lower and narrower
+  64 frames into its own warm-up (−92.2 dB at worst, a 100 Hz bell at
+  Q 10 on a 100 Hz sine), DC at 0.9 and full-scale sines at the slowest
+  settings that still idle (−95.4 dB at worst, a 400 Hz bell at Q 10), and
+  the cases above: in every one the output's largest second difference
+  around the release is the old build's within 1 %, so no click; every
+  knob re-sent every block at pass-through, and EQ's Mid Freq swept at
+  Q 10 in and out of the settings that never idle, leave the input bit for
+  bit; rests and wakes at 8, 96 and 384 kHz give the same bits at any
+  block size and fill, and exact silence on silence;
 - the same move after 1 s at pass-through, before the effect idles: the old
   output bit for bit, at once;
 - rests and wakes at blocks of 1, 7, 64 and 4,096 frames and from any memory

@@ -122,6 +122,82 @@ def test_silence_stays_silent_through_rests_and_wakes(report):
     assert report["wake_silence_nonzero"] == 0
 
 
+def test_hostile_wakes_never_click(report):
+    # Review, 2026-10-06: a band retuned in its own warm-up, a band tuned
+    # from idle where EQ never idles with its gain raised 0.12 s later, DC
+    # and loud low sines at the slowest settings that still idle, Glue after
+    # a loud burst that ends 5 ms before the wake. In every case the output's
+    # largest second difference, from 10 ms before the release to 200 ms
+    # after it, is the old build's (to within 1 %): no click and no jump.
+    h = report["hostile"]
+    assert len(h) == 11
+    for label, c in h.items():
+        assert c["bend_ratio"] < 1.01, (label, c)
+
+
+def test_hostile_wakes_stay_within_the_residue(report):
+    # Where the settings were steady before the rest, or a band is retuned
+    # after the wake, the output follows the old build's within -90 dB of the
+    # input's peak, DC and full-scale low sines included (worst measured
+    # -92.2 dB: a 100 Hz bell at Q 10 retuned 64 frames into its warm-up).
+    h = report["hostile"]
+    for label in ("eq/retune_400_q10_in_warm_up", "eq/retune_100_q10_in_warm_up",
+                  "eq/low_shelf_dc", "eq/low_shelf_35_dc", "eq/bell_400_q10_on_400",
+                  "isolator/kill_high_80_dc", "isolator/low_up_80_on_80", "sat/asym_drive_dc"):
+        assert h[label]["resid_db"] < -90, (label, h[label])
+
+
+def test_what_a_wake_cannot_restore(report):
+    # Documented limits (engines/README.md, "Idle at pass-through"), pinned
+    # so that a change to them is deliberate:
+    # - EQ tuned from idle to where it never idles warms for at most 0.1 s;
+    #   a gain raised after that answers at once, from a filter that started
+    #   at the wake rather than one carried over from the old tuning: a
+    #   different transient (-23 dB of the peak for a 30 Hz bell at Q 10 on a
+    #   30 Hz sine, -38 dB for a 20 Hz shelf on DC), no click (above);
+    # - Master Sat's Glue starts from rest: after a burst that ended 5 ms
+    #   before the wake the old build's Glue is still releasing, -43 dB of
+    #   the burst's peak (about -18 dB of the quiet tone after it), a level
+    #   difference that fades with the 200 ms release, no click.
+    h = report["hostile"]
+    for label in ("eq/never_idles_bell_30_q10_gain_after",
+                  "eq/never_idles_low_20_q03_gain_after_dc"):
+        assert h[label]["release_ms"] == pytest.approx(120.0, abs=0.2), label
+        assert h[label]["resid_db"] < -20, label
+    assert -46 < h["sat/glue_after_burst"]["resid_db"] < -40
+
+
+def test_a_lock_shorter_than_the_warm_up_after_a_rest_is_not_heard(report):
+    # The trade-off of a clean wake: after more than 2 s at pass-through, a
+    # lock that leaves it and comes back within the warm-up is not heard at
+    # all (Master Sat's Mix for 0.1 s, under its 191 ms; Isolator's Kill
+    # for 5 ms; EQ's Low Gain for 20 ms, under the 27 ms of a 100 Hz shelf).
+    # The old build plays each, and so does the idle build within 2 s of the
+    # last change.
+    for label, c in report["short_lock"].items():
+        assert c["lost_after_rest"] and c["heard_by_ref"] and c["early_same"], label
+
+
+def test_resent_knobs_and_a_swept_frequency_leave_the_input_alone(report):
+    # Every knob sent again every block at pass-through, and EQ's Mid Freq
+    # swept at Q 10 through 200-400 Hz, in and out of the settings where it
+    # never idles (so it wakes and idles again): the guarded input, bit for
+    # bit, for 6 s.
+    assert report["resend"] == {fx: True for fx in EFFECTS}
+
+
+@pytest.mark.parametrize("rate", [8000, 96000, 384000])
+def test_rests_and_wakes_at_other_rates(report, rate):
+    # The busy setting after 2.5 s at pass-through: the same bits at blocks
+    # of 64, 1, 7 and 4,096 frames and from other fills, exact silence on
+    # silence, finite output, and Master Sat's 191 ms warm-up at any rate.
+    for fx in EFFECTS:
+        c = report["rates"][f"{fx}@{rate}"]
+        assert c["block_mismatch"] == 0 and c["silence_peak"] == 0 and c["nonfinite"] == 0, (fx, c)
+        assert c["release_ms"] < 200, (fx, c)
+    assert report["rates"][f"sat@{rate}"]["release_ms"] == pytest.approx(191.0, abs=0.1)
+
+
 def test_the_decay_bound_is_a_lower_bound(report):
     # fm1_idle_svf_decay against the exact decay per sample of the slowest
     # pole of the bilinear-transformed section, over g in 1e-4..10 and

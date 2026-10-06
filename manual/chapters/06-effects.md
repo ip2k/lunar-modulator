@@ -733,6 +733,8 @@ Left with Mix at the left for two seconds, Master Sat rests: it stops
 working and costs the FM-1 almost nothing. Turn Mix up after a rest and the
 sound starts to change about a fifth of a second later, while it warms up
 without a click; within two seconds of the last change it answers at once.
+A Mix lock shorter than that fifth of a second, after a rest, is not heard:
+for a single short lock, park Mix a little above the left instead.
 
 !!! tip "Starting points"
     - **Warmth:** Mix at the right, Drive about 6, Glue about 0.25.
@@ -775,8 +777,9 @@ turning them does not click.
 Left at its defaults for two seconds (the crossovers can be anywhere),
 Isolator rests: it stops working and costs the FM-1 almost nothing. The
 first move after a rest comes in about 10 ms late, 35 ms with Low Xover at
-the left, while its filters warm up without a click; a kill and back within
-two seconds is never delayed.
+the left, while its filters warm up without a click (a kill shorter than
+that, after a rest, is not heard); a kill and back within two seconds is
+never delayed.
 
 !!! tip "Starting points"
     - **Bass out for the break:** Kill Low, then back to None on the drop.

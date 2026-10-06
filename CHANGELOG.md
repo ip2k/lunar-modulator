@@ -1096,6 +1096,9 @@ history.
   - Within two seconds of the last change nothing waits, so a kill and back
     within a bar is never delayed. At any other setting the three sound
     exactly as before, sample for sample.
+  - After a rest, a lock that leaves the pass-through setting and comes back
+    within the warm-up is not heard at all: for example a Master Sat Mix
+    lock on a single 16th step at 120 BPM.
   - The virtual FM-1 rests them too: its rebuilt module plays two new
     scenarios that rest and wake them exactly as the desktop does (74 of 74
     pass).

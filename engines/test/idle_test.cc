@@ -20,6 +20,15 @@
 //             move after 1 s of rest (before the effect idles) gives the
 //             reference's output bit for bit, at once;
 //   silence   the wake cases on silence: exact zeros throughout;
+//   hostile   (review) a band retuned in its own warm-up, a band tuned from
+//             idle where EQ never idles with its gain raised 0.12 s later,
+//             DC and loud low sines, Glue after a burst that ends just
+//             before the wake: the residue, and the output's largest second
+//             difference against the reference's (a click would show
+//             there); a lock shorter than the warm-up after a rest, which is
+//             not heard; every knob re-sent every block at pass-through and
+//             EQ's Mid Freq swept across the settings that never idle (the
+//             input throughout); and rests and wakes at 8, 96 and 384 kHz;
 //   bound     fm1_idle_svf_decay against the exact decay of the slowest
 //             mode of a TPT state-variable section, over g and k;
 //   --hash    for cross-build checks: each effect through rests, wakes and
@@ -80,10 +89,11 @@ int Index(const fm1_engine_t &e, const char *name) {
 // Renders `in` through a fresh instance, applying the events (sorted by
 // frame) before the frame they name, in blocks of `block` frames split at
 // the events.
-Buf Run(const fm1_engine_t &e, const Buf &in, Events ev, uint32_t block, int fill = 0) {
+Buf Run(const fm1_engine_t &e, const Buf &in, Events ev, uint32_t block, int fill = 0,
+        float rate = kRate) {
   alignas(16) static unsigned char mem[4096];
   std::stable_sort(ev.begin(), ev.end(), [](const Ev &a, const Ev &b) { return a.at < b.at; });
-  fm1_host_t host = { FM1_ENGINE_API_VERSION, kRate, block };
+  fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, block };
   if (e.instance_size(&host) > sizeof(mem)) return Buf();
   memset(mem, fill, sizeof(mem));
   void *self = e.create(mem, &host);
@@ -385,6 +395,206 @@ void Wake() {
          silence_peak_nonzero);
 }
 
+// 7. Hostile wakes (review, 2026-10-06). Each case's events are applied as
+// given to the idle build; the reference applies the `held` ones at the
+// release found in the idle build's output (as Wake() does) and the others
+// where they are. Printed: the release (ms after `wake`), the residue (dB of
+// the input's peak) and the largest second difference of the output from
+// 10 ms before the release to 200 ms after it, against the reference's: a
+// click or a jump would show there, a different transient would not.
+const uint32_t kAtStart = 0xFFFFFFFFu;   // at frame 0, before the rest
+
+struct HEv {
+  uint32_t at;          // frames after `wake`, or kAtStart
+  const char *name;
+  float value;
+  bool held;
+};
+
+struct HCase {
+  const char *fx;
+  const char *label;
+  int signal;           // 0 music, 1 sine, 2 DC 0.9 + a quiet 1 kHz, 3 burst
+  double hz;
+  std::vector<HEv> ev;
+};
+
+Buf Signal(int kind, uint32_t frames, uint32_t wake, double hz) {
+  if (kind == 0) return Music(frames, 0.8f, 7);
+  Buf v(2 * frames);
+  for (uint32_t i = 0; i < frames; ++i) {
+    float x;
+    if (kind == 1) {
+      x = 0.95f * static_cast<float>(sin(2.0 * M_PI * hz * i / kRate));
+    } else if (kind == 2) {
+      x = 0.9f + 0.05f * static_cast<float>(sin(2.0 * M_PI * 1000.0 * i / kRate));
+    } else {
+      // A loud 220 Hz burst for the 0.5 s before the wake, ending 5 ms
+      // before it, then the same tone at 0.05.
+      const bool loud = i + kSecond / 2 > wake && i + kSecond / 200 < wake;
+      x = (loud ? 0.9f : 0.05f) * static_cast<float>(sin(2.0 * M_PI * 220.0 * i / kRate));
+    }
+    v[2 * i] = x;
+    v[2 * i + 1] = -x;
+  }
+  return v;
+}
+
+float MaxBend(const Buf &v, uint32_t from, uint32_t to) {
+  float m = 0.0f;
+  for (uint32_t k = 2 * from + 4; k < 2 * to && k < v.size(); ++k) {
+    m = fmaxf(m, fabsf(v[k] - 2.0f * v[k - 2] + v[k - 4]));
+  }
+  return m;
+}
+
+void Hostile() {
+  const uint32_t ms64 = 64, s012 = kSecond * 12 / 100;
+  const HCase cases[] = {
+    // A band retuned lower and narrower 64 frames into its own warm-up.
+    { "eq", "retune_400_q10_in_warm_up", 1, 400.0,
+      { { 0, "Mid Gain", 15, true }, { ms64, "Mid Freq", 400, false }, { ms64, "Mid Q", 10, false } } },
+    { "eq", "retune_100_q10_in_warm_up", 1, 100.0,
+      { { 0, "Mid Gain", 15, true }, { ms64, "Mid Freq", 100, false }, { ms64, "Mid Q", 10, false } } },
+    // Tuned from idle where EQ never idles: it wakes, warms for at most
+    // 0.1 s, and the gain raised 0.12 s later answers at once.
+    { "eq", "never_idles_bell_30_q10_gain_after", 1, 30.0,
+      { { 0, "Mid Freq", 30, false }, { 0, "Mid Q", 10, false }, { s012, "Mid Gain", 15, true } } },
+    { "eq", "never_idles_low_20_q03_gain_after_dc", 2, 0.0,
+      { { 0, "Low Freq", 20, false }, { 0, "Low Q", 0.3f, false }, { s012, "Low Gain", 15, true } } },
+    // DC and a loud sine at the slowest settings that still idle, set
+    // before the rest.
+    { "eq", "low_shelf_dc", 2, 0.0, { { 0, "Low Gain", 15, true } } },
+    { "eq", "low_shelf_35_dc", 2, 0.0,
+      { { kAtStart, "Low Freq", 35, false }, { 0, "Low Gain", 15, true } } },
+    { "eq", "bell_400_q10_on_400", 1, 400.0,
+      { { kAtStart, "Mid Freq", 400, false }, { kAtStart, "Mid Q", 10, false },
+        { 0, "Mid Gain", 15, true } } },
+    { "isolator", "kill_high_80_dc", 2, 0.0,
+      { { kAtStart, "Low Xover", 80, false }, { 0, "Kill", 4, true } } },
+    { "isolator", "low_up_80_on_80", 1, 80.0,
+      { { kAtStart, "Low Xover", 80, false }, { 0, "Low", 1, true } } },
+    { "sat", "asym_drive_dc", 2, 0.0,
+      { { kAtStart, "Asymmetry", 1, false }, { kAtStart, "Drive", 18, false },
+        { kAtStart, "Glue", 0, false }, { 0, "Mix", 1, true } } },
+    // Glue's envelope after a loud burst that ends 5 ms before the wake: the
+    // old build's would still be releasing (200 ms), the idle one's starts
+    // from rest.
+    { "sat", "glue_after_burst", 3, 0.0,
+      { { kAtStart, "Glue", 1, false }, { kAtStart, "Drive", 18, false }, { 0, "Mix", 1, true } } },
+  };
+  const uint32_t wake = 3 * kSecond, n = 5 * kSecond;
+  printf("\"hostile\":{");
+  for (size_t c = 0; c < sizeof(cases) / sizeof(cases[0]); ++c) {
+    const HCase &hc = cases[c];
+    const Fx &fx = FxOf(hc.fx);
+    const Buf in = Signal(hc.signal, n, wake, hc.hz);
+    Events ev;
+    for (const HEv &h : hc.ev) ev.push_back({ h.at == kAtStart ? 0 : wake + h.at, h.name, h.value });
+    const Buf out = Run(*fx.idle, in, ev, 64);
+    const uint32_t release = Release(in, out, wake);
+    Events ref_ev;
+    for (const HEv &h : hc.ev) {
+      ref_ev.push_back({ h.held ? release : (h.at == kAtStart ? 0 : wake + h.at), h.name, h.value });
+    }
+    const Buf ref = Run(*fx.ref, in, ref_ev, 64);
+    float resid = 0.0f;
+    for (uint32_t k = 2 * release; k < 2 * n; ++k) resid = fmaxf(resid, fabsf(out[k] - ref[k]));
+    const uint32_t from = release - kSecond / 100, to = release + kSecond / 5;
+    const float bend = MaxBend(out, from, to), bend_ref = MaxBend(ref, from, to);
+    printf("%s\"%s/%s\":{\"release_ms\":%.2f,\"resid_db\":%.1f,\"bend_ratio\":%.6f}", c ? "," : "",
+           hc.fx, hc.label, (release - wake) * 1000.0 / kRate,
+           resid > 0.0f ? 20.0 * log10(resid / Peak(in)) : -999.0,
+           bend_ref > 0.0f ? bend / bend_ref : (bend > 0.0f ? 1e9 : 1.0));
+  }
+  printf("}");
+
+  // A lock that leaves pass-through after a rest and comes back within the
+  // warm-up is not heard at all (the trade-off of a clean wake): Master Sat's
+  // Mix for 0.1 s, Isolator's Kill for 5 ms. The same lock 1 s into the rest
+  // is heard, as before.
+  struct Lock { const char *fx, *label, *name; float value; uint32_t len; };
+  const Lock locks[] = {
+    { "sat", "mix_100ms", "Mix", 1.0f, kSecond / 10 },
+    { "isolator", "kill_low_5ms", "Kill", 1.0f, kSecond / 200 },
+    { "eq", "low_gain_20ms", "Low Gain", 12.0f, kSecond / 50 },
+  };
+  printf(",\"short_lock\":{");
+  for (size_t c = 0; c < sizeof(locks) / sizeof(locks[0]); ++c) {
+    const Lock &l = locks[c];
+    const Fx &fx = FxOf(l.fx);
+    const Buf in = Music(n, 0.8f, 11);
+    const float def = fx.idle->params[Index(*fx.idle, l.name)].def;
+    const Events late = { { wake, l.name, l.value }, { wake + l.len, l.name, def } };
+    const Events early = { { kSecond, l.name, l.value }, { kSecond + l.len, l.name, def } };
+    Buf guarded(in);
+    for (float &x : guarded) x = Guard(x);
+    const Buf out_late = Run(*fx.idle, in, late, 64), ref_late = Run(*fx.ref, in, late, 64);
+    printf("%s\"%s/%s\":{\"lost_after_rest\":%s,\"heard_by_ref\":%s,\"early_same\":%s}",
+           c ? "," : "", l.fx, l.label, SameBits(out_late, guarded) ? "true" : "false",
+           SameBits(ref_late, guarded) ? "false" : "true",
+           SameBits(Run(*fx.idle, in, early, 64), Run(*fx.ref, in, early, 64)) ? "true" : "false");
+  }
+  printf("}");
+
+  // At pass-through with every knob sent again every block (a host that
+  // re-sends values), and with EQ's Mid Freq swept at Q 10 across the
+  // settings where it never idles (it wakes and idles again): the guarded
+  // input, bit for bit, throughout.
+  printf(",\"resend\":{");
+  for (int i = 0; i < kFxCount; ++i) {
+    const Fx &fx = kFx[i];
+    const uint32_t m = 6 * kSecond;
+    const Buf in = Music(m, 0.8f, 13);
+    Events ev;
+    for (uint32_t at = 0; at < m; at += 64) {
+      for (uint16_t p = 0; p < fx.idle->n_params; ++p) {
+        ev.push_back({ at, fx.idle->params[p].name, fx.idle->params[p].def });
+      }
+    }
+    if (strcmp(fx.id, "eq") == 0) {
+      ev.push_back({ 0, "Mid Q", 10 });
+      for (uint32_t at = 0; at < m; at += 64) {
+        const float sweep = static_cast<float>(at % (2 * kSecond)) / (2 * kSecond);  // 0..1
+        ev.push_back({ at, "Mid Freq", 200.0f + 400.0f * (sweep < 0.5f ? sweep : 1.0f - sweep) });
+      }
+    }
+    Buf guarded(in);
+    for (float &x : guarded) x = Guard(x);
+    printf("%s\"%s\":%s", i ? "," : "", fx.id, SameBits(Run(*fx.idle, in, ev, 64), guarded) ? "true" : "false");
+  }
+  printf("}");
+
+  // Other host rates: a rest, then a wake, at blocks of 64, 1, 7 and 4,096
+  // frames and from other fills (the same bits), silence (exact zeros), and
+  // the release.
+  printf(",\"rates\":{");
+  const float rates[3] = { 8000.0f, 96000.0f, 384000.0f };
+  int first = 1;
+  for (float fs : rates) {
+    const uint32_t s = static_cast<uint32_t>(fs), m = 3 * s, at = 2 * s + s / 2;
+    const Buf in = Music(m, 0.7f, 5);
+    for (int i = 0; i < kFxCount; ++i) {
+      const Fx &fx = kFx[i];
+      Events ev;
+      for (const Ev &b : fx.busy) ev.push_back({ at, b.name, b.value });
+      const Buf out = Run(*fx.idle, in, ev, 64, 0, fs);
+      const int blocks = !SameBits(out, Run(*fx.idle, in, ev, 1, 0, fs)) +
+                         !SameBits(out, Run(*fx.idle, in, ev, 7, 0xFF, fs)) +
+                         !SameBits(out, Run(*fx.idle, in, ev, 4096, 0x7F, fs));
+      int nonfinite = 0;
+      for (float x : out) nonfinite += !(x == x && x - x == 0.0f);
+      const Buf zeros(2 * m, 0.0f);
+      printf("%s\"%s@%.0f\":{\"block_mismatch\":%d,\"silence_peak\":%g,\"nonfinite\":%d,"
+             "\"release_ms\":%.2f}", first ? "" : ",", fx.id, fs, blocks,
+             Peak(Run(*fx.idle, zeros, ev, 64, 0, fs)), nonfinite,
+             (Release(in, out, at) - at) * 1000.0 / fs);
+      first = 0;
+    }
+  }
+  printf("}");
+}
+
 // 6. fm1_idle_svf_decay is a lower bound on the slowest mode's decay, from
 // the poles of the bilinear transform in double precision.
 double ExactDecay(double g, double k) {
@@ -513,6 +723,7 @@ int main(int argc, char **argv) {
   Same(); printf(",");
   Neutral(); printf(",");
   Wake(); printf(",");
+  Hostile(); printf(",");
   Bound();
   printf("}\n");
   return 0;
