@@ -1642,7 +1642,12 @@ the tests; the manual's chapter 8, "Per voice", the user's view) [verified
   (RACK's `vN`, MATRIX's per-voice and refused rows and every state's
   hint, a re-aimed and a switched-off cable); `--mod-format-check` with
   VOICE cables and `current` lines (27,999 lines, 0 refused); a parity
-  scenario, `mod-voice-routes`.
+  scenario, `mod-voice-routes` (Macro and Shapes per voice, a re-struck
+  key, `current 2`), native against WebAssembly 73 of 73 with the others,
+  identical to `render.js` and to musl; ASan and UBSan over the runtime's,
+  the voices', the kinds' and the app's tests (one fault found and fixed:
+  the routed-sink listing read past the destinations for a pitch PITCH_CUR
+  alone routes). The browser module grew from 813,115 B to 848,381 B.
 
 **Interleaving.** MG1 and MG2 are desktop-only and touch no UI, so they can
 proceed alongside docs/15's S3–S6 once S7a has merged. MG3 needs S2. MG6 needs
