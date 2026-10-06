@@ -229,6 +229,19 @@ self-cable. It reads the previous tick, exactly one tick late.
   same modules in the same order and delays the same cables, every cable
   that is not delayed runs after its source, and every delayed one is
   inside a loop running up the rack [verified: `fm1-mod-core-test`].
+- **Why a slot is refused** (stage ED0, 2026-10-06). The plan keeps one
+  bit per refused slot; `fm1_mod_slot_refusal(m, i)` names the reason, as
+  an `FM1_REFUSE_*` code of `include/fm1_refusal.h` with the words an
+  editor shows: NO_SOURCE (the source or VIA names nothing), NO_DEST,
+  NOLOCK, ENUM_NO_MOD, NO_MOD (a parameter without MOD, Macro's LPG),
+  VOICE_TO_MONO, VOICE_TO_EFFECT, UNIT_RESERVED, VOICE_FULL (past
+  `FM1_MOD_VDESTS`) and VOICE_ROOM (no voice fits the arena). It asks the
+  plan the same questions step 1 asks, in order, and changes nothing, so
+  the plan, the ticks and every render stay as they were. Over 32,000
+  fuzzed slots a slot has a reason exactly when the plan refuses it, and
+  each reason but VOICE_ROOM comes from a slot built for it [verified:
+  `fm1-mod-refusal-test`]; VOICE_ROOM needs per-voice copies larger than
+  today's kinds make (a few hundred bytes of the 8 KB arena).
 
 ### The kinds
 

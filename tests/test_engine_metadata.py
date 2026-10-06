@@ -22,7 +22,7 @@ import subprocess
 import pytest
 
 from tests import state_canon as canon
-from tests.state_meta import LIMITS, metadata_from_build
+from tests.state_meta import LIMITS, metadata_from_build, without_editor
 from tests.engine_helpers import ENGINES, GPL_MODS, renderer  # noqa: F401
 
 ROOT = ENGINES.parent
@@ -59,16 +59,20 @@ def test_the_export_is_canonical_and_steady(renderer, text, meta):
 
 def test_it_agrees_with_the_list_tools(renderer, meta):
     """Everything --list and --list-mod say, the export says the same way;
-    only the instance bytes per engine and the known ids are its own."""
+    only the instance bytes per engine, the known ids and level 1.1's
+    editor members (tests/test_engine_editor_meta.py) are its own."""
     ref = metadata_from_build(_run(renderer, "--list"), _run(renderer, "--list-mod"))
-    mine = json.loads(json.dumps(meta))
+    mine = without_editor(json.loads(json.dumps(meta)))
     for e in mine["engines"]:
         e.pop("ram")
         # --list prints numbers with %g, six digits; the export writes each
         # float32 exactly (Comet's Accent default is 1.992126, listed 1.99213).
         for p in e["params"]:
-            for k in ("min", "max", "def"):
+            for k in ("min", "max", "def", "step"):
                 p[k] = json.loads("%g" % p[k]) if isinstance(p[k], float) else p[k]
+    for e in ref["engines"]:          # the detent, worked out from --list's six digits
+        for p in e["params"]:
+            p["step"] = json.loads("%g" % p["step"]) if isinstance(p["step"], float) else p["step"]
     mine.pop("known_ids"), ref.pop("known_ids")
     assert mine == ref
 

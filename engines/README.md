@@ -4402,14 +4402,58 @@ name, a range or a uid.
   engine and modulation API versions, the rate, the RAM budget and the GPL
   switch.
 
+**Level 1.1** (stage ED0, 2026-10-06; notes/2026-10-06-web-editor.md §6,
+decisions ED4, ED11 and ED16) adds what the advanced editor reads besides
+the parameters. A 1.1 export has all of it; a 1.0 export still validates.
+
+- Per module: `licence` (an engine's since 1.0; a modulation kind's now,
+  MIT unless the licence table says otherwise) and `gpl` (the licence names
+  a GNU licence, so the module is in the build only with the switch on);
+  `page_names`, one entry per knob page as the panel pages it, the panel's
+  name where it names the page (the arpeggiator's PLAY ... SEED, Acid Gen's
+  LINE ... SEED) and null where it numbers it ("2/4 Sound", "1/2 M1"); an
+  audio effect's `group`, as the project page groups the effects.
+- Per parameter: `step`, one knob detent: a list's one entry; a linear
+  FLOAT's hundredth of its range, or whole units on a wide integer range; a
+  LOG one's 0.01 of its position. It is the panel's own rule
+  (`fm1_param_detent`, `include/fm1_engine_meta.h`), which the app's knobs
+  and the rack's now call.
+- At the top: `effect_groups` (Reverbs; Chorus, space and delay; Filters
+  and EQ; Grit and colour; Dynamics; Tests); `refusals`, every code with
+  the words a person reads and the `{fills}` its detail names (1-9 the
+  loader's `FM1_STATE_*`, 10 a unit's arena, 32-41 a cable's, from
+  `include/fm1_refusal.h`; memory only as a percentage of the budget, the
+  owner's rule of 2026-10-06) and a known id's reason in words;
+  `telemetry`, the layout of the live block stage ED1 will fill
+  (`include/fm1_tele.h`: meters per point, gain reduction, voices, module
+  outputs and their per-voice values, each matrix slot's effective value
+  and its per-voice values; 1,443 floats, a subscription bit per row);
+  `meta_id`, CRC-32 of the export less `made` and itself.
+- The page names, groups and refusal words live in `src/editor_meta.cc`
+  beside the registries (in `OUR_SRC` through `mk/editor_meta.mk`), so the
+  panel reads its page names from the same table. A new audio effect needs
+  a group there, or `tests/test_engine_editor_meta.py` fails.
+- `fm1_mod_slot_refusal` (`include/fm1_mod.h`, `mod/mod_plan.c`) says why
+  the planner refuses a slot (NO_SOURCE, NO_DEST, NOLOCK, ENUM_NO_MOD,
+  NO_MOD, VOICE_TO_MONO, VOICE_TO_EFFECT, UNIT_RESERVED, VOICE_FULL,
+  VOICE_ROOM): a question about the plan, which it leaves as it was, so
+  no render changes. VOICE_ROOM cannot happen with today's kinds, whose
+  per-voice copies are a few hundred bytes of the 8 KB arena
+  [verified: `fm1-mod-refusal-test`'s fuzz never reaches it].
+- The virtual FM-1 returns the id (`fm1w_meta_id`), and its build writes
+  the export beside the module as `sim/web/www/meta.json` and checks the
+  two agree (sim/web/README.md).
+
 It is written in the canonical layout of `tests/state_canon.py` as it goes,
 with no heap: members in the schema's order, floats as the shortest decimal
 that reads back to the float32, in ECMAScript's format, by the state
 files' own exact formatter (`state/fm1_num.h`, since the stage-E
 integration; the output did not change by a byte [verified: 2026-10-06]).
-It is for the desktop tools and the simulator (stage A1's `fm1w_meta`),
-never the firmware; `fm1-state meta` prints the same document. 174,232 B for today's registry
-[verified: 2026-10-06]. `engines/state/examples/metadata.json` is the
+It is for the desktop tools and the simulator (its id since stage ED0,
+`fm1w_meta_id`; the document itself in stage A1, `fm1w_meta`), never the
+firmware; `fm1-state meta` prints the same document. 246,238 B for today's
+registry with the GPL switch on, 204,417 B with it off, 19,537 B gzipped
+[verified: 2026-10-06, level 1.1]. `engines/state/examples/metadata.json` is the
 export cut to Shapes, Drums, Filter, the arpeggiator, the LFO and the
 Envelope, byte for byte: the golden file
 (`tests/test_state_schema.py`; `tools/state_examples.py --write` rewrites
@@ -4422,6 +4466,17 @@ it).
   budget (the simulator's `FM1_APP_RAM_BUDGET`) and caps as the headers;
   the float writer equal to the reference on every exponent's edges, knob
   values and 20,000 random float32s.
+- `tests/test_engine_editor_meta.py`: level 1.1's members on every module
+  and parameter; every module of the build present; page names one per
+  panel page; the effect groups the project page's, every audio effect in
+  one; the refusal codes the loader's and the planner's (it runs
+  `fm1-mod-refusal-test`: each reason from a slot built for it, and over
+  32,000 fuzzed slots a reason exactly when the plan refuses), with the
+  screen's words and no memory figure but a percentage; the telemetry
+  layout adds up; `meta_id` is the export's CRC-32; the codes, groups,
+  sections and page names pinned in `tests/fixtures/editor-meta.json`
+  stay put; licences as the licence table, and both builds of the GPL
+  switch (on: the GPL modules marked; off: none, each a `gpl` known id).
 - `tests/test_engine_names.py`: every list's entries pinned in
   `tests/fixtures/enum-names.json` still name their indices (lists only
   grow at their end; a rename keeps the old name as an entry alias); entry
@@ -4489,12 +4544,13 @@ on 2026-10-06:
 | `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON; with `--sound`, `--insert`, `--level` (and `--slots`) up to four sound units, each through its own inserts and level, mixed before the effect chain, as the virtual FM-1's multi-sound plays them (seq.md, Host contract) |
-| `include/fm1_meta.h`, `state/fm1_meta.c` | The parameter metadata export, `fm1-render --meta` ([below](#the-parameter-metadata-export)) |
+| `include/fm1_meta.h`, `state/fm1_meta.c` | The parameter metadata export, `fm1-render --meta`, and its id, `fm1_meta_id` ([below](#the-parameter-metadata-export)) |
+| `include/fm1_engine_meta.h`, `include/fm1_refusal.h`, `include/fm1_tele.h`, `src/editor_meta.cc`, `mk/editor_meta.mk` | What the advanced editor reads beside the registries: knob page names, effect groups and the knob detent (`fm1_param_detent`); the refusal codes and their words; the telemetry block's layout ([below](#the-parameter-metadata-export), level 1.1) |
 | `include/fm1_known.h`, `state/fm1_known.c`, `known-ids.json`, `aliases.json` | The ids a build may lack, with the reason a load gives, and the old names of renamed parameters and list entries; the C file is written by `tools/gen_known.py` |
 | `include/fm1_state_caps.h` | The caps a state reader enforces on hostile input (the state note's §16) |
 | `state/` | The saved state: the record model, the streaming JSON reader, the canonical JSON writer, the binary container and its deflate, the modulation records' applier, the fuzz target, the JSON Schemas and examples ([state/README.md](state/README.md)), the metadata export and the known names |
 | `host/state_tool.c`, `host/render_state.*`, `host/state_clip.*` | `fm1-state`, and fm1-render's and fm1-seq's `--load` and `--save` ([above](#saved-state)) |
-| `test/` | `fm1-param-get-test`, engine API v4's read-back on every engine ([below](#engine-api-v4)); `fm1-meta-number-test`, the export's float writer; `fm1-state-alias-test`, the state readers' old names with a table of its own; the reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`, `fm1-ref-room`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
+| `test/` | `fm1-param-get-test`, engine API v4's read-back on every engine ([below](#engine-api-v4)); `fm1-meta-number-test`, the export's float writer; `fm1-mod-refusal-test`, the planner's per-slot reasons (`fm1_mod_slot_refusal`) against its plan; `fm1-state-alias-test`, the state readers' old names with a table of its own; the reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`, `fm1-ref-room`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |

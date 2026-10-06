@@ -564,6 +564,12 @@ typedef struct fm1_mod_plan_info {
 } fm1_mod_plan_info_t;
 /* The plan the next tick uses (built now if an edit is pending). */
 void fm1_mod_get_plan(fm1_mod_t *m, fm1_mod_plan_info_t *out);
+/* Why slot i is refused, as an FM1_REFUSE_* code of fm1_refusal.h
+ * (NO_SOURCE, NO_DEST, NOLOCK, ENUM_NO_MOD, NO_MOD, VOICE_TO_MONO,
+ * VOICE_TO_EFFECT, UNIT_RESERVED, VOICE_FULL, VOICE_ROOM), or 0 when the
+ * plan does not refuse it (off, or running). A question about the plan:
+ * it builds the plan if an edit is pending and changes nothing else. */
+unsigned fm1_mod_slot_refusal(fm1_mod_t *m, unsigned i);
 
 typedef struct fm1_mod_stats {
   uint64_t ticks;

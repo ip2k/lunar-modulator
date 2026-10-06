@@ -26,6 +26,12 @@ SIM_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Wall -Wextra -Iinclude -I$(SIM)/src -MMD
 # WASI imports.
 SIM_ENGINE_OBJ := $(filter-out $(BUILD)/our/host/render.o,$(OUR_OBJ)) $(TP_OBJ) $(SW_OBJ) $(MSFA_OBJ) $(SEQ_OBJ) \
   $(MODC_OBJ) $(MOD_OBJ) $(MOD_SCRIPT_OBJ) $(ARP_OBJ) $(GPL_OBJ)
+# The metadata export (META_OBJ, mk/meta.mk: fm1_meta.c and the known ids,
+# with the state files' number formatter it writes floats with): the module
+# returns its id (fm1w_meta_id) and the export a buffer at a time
+# (fm1w_meta_read), from which build.sh writes the page's meta.json; the
+# harness writes it too (--meta), with its own instance bytes.
+SIM_META_OBJ = $(META_OBJ) $(BUILD)/state/state/fm1_num.o
 # The app layer: the panel, the chain and the screen, the sequencer's panel
 # UI and screens (fm1_seq_ui, fm1_seq_view), and modulation's (fm1_mod_ui,
 # fm1_mod_view; docs/16 MG3).
@@ -43,7 +49,7 @@ $(BUILD)/sim/%.o: $(SIM)/%.c
 	$(CC) $(SIM_CFLAGS) -c $< -o $@
 
 $(BUILD)/fm1-sim-render: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_sim_render.o $(SIM_ENGINE_OBJ) \
-    $(SEQ_HOST_OBJ)
+    $(SIM_META_OBJ) $(SEQ_HOST_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
 # The WebAssembly module: standalone (no Emscripten JavaScript runtime), a
@@ -59,7 +65,7 @@ WASM_EXPORTS := fm1w_init fm1w_default_chain fm1w_catalog fm1w_select fm1w_unit_
   fm1w_unit_set_current fm1w_unit_level fm1w_unit_set_level fm1w_unit_note_on \
   fm1w_unit_note_off fm1w_unit_route fm1w_ram_budget fm1w_mod_reset fm1w_mod_text \
   fm1w_arp_on fm1w_arp_set_on fm1w_arp_set_param fm1w_arp_get_param fm1w_mfx_select \
-  fm1w_dx7_load fm1w_dx7_result fm1w_dx7_name
+  fm1w_dx7_load fm1w_dx7_result fm1w_dx7_name fm1w_meta_id fm1w_meta_read
 comma := ,
 empty :=
 space := $(empty) $(empty)
@@ -67,7 +73,7 @@ WASM_LDFLAGS := --no-entry -sSTANDALONE_WASM=1 -sFILESYSTEM=0 -sALLOW_MEMORY_GRO
   -sINITIAL_MEMORY=8388608 -sSTACK_SIZE=262144 \
   -sEXPORTED_FUNCTIONS=$(subst $(space),$(comma),$(addprefix _,$(WASM_EXPORTS)))
 
-$(BUILD)/fm1.wasm: $(SIM_APP_OBJ) $(BUILD)/sim/src/fm1_web.o $(SIM_ENGINE_OBJ)
+$(BUILD)/fm1.wasm: $(SIM_APP_OBJ) $(BUILD)/sim/src/fm1_web.o $(SIM_ENGINE_OBJ) $(SIM_META_OBJ)
 	$(CXX) $(OPT) $(EXTRA) $(WASM_LDFLAGS) -o $@ $^
 
 # The reference host itself compiled to WebAssembly and run by Node, so the

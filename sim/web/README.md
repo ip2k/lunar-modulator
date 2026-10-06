@@ -712,6 +712,21 @@ buffer into FM6's user bank (above); `fm1w_dx7_result()` returns thirteen
 words saying what the file held, and `fm1w_dx7_name(slot)` the name a user
 slot shows.
 
+**The editor's metadata** (stage ED0, 2026-10-06;
+notes/2026-10-06-web-editor.md §6, decision ED4). `fm1w_meta_id()` returns
+the id of the module's parameter metadata export (`engines/include/
+fm1_meta.h`: CRC-32 of the export less `made` and `meta_id`), and
+`fm1w_meta_read(offset)` copies the export from byte `offset` on into the
+text buffer, as much as fits, and returns how many bytes (0 past the end).
+Both write the whole export each time they work (a few milliseconds), so
+they are for a thread that is not playing: the build, and later the
+editor's shadow Worker; the id is then remembered. The build writes the
+export, as the module writes it, to `www/meta.json` beside the module: the
+static file the editor reads its controls from, about 240 KB (under 20 KB
+compressed), checked against `fm1w_meta_id()` before it is trusted. Its
+instance bytes (`ram`) are the 32-bit module's, as the page's RAM meter
+counts them; a 64-bit desktop build counts more.
+
 `fm1_panel.h` holds the panel's buttons, encoders and modes, which the app
 and the sequencer's UI share; `fm1_look.h` the screen's palette, geometry
 and the drawing helpers every mode uses.
@@ -728,9 +743,13 @@ tar and scp; nothing is installed on the host):
 2. `emscripten/emsdk:6.0.10` (`build.sh`): native `fm1-render` and
    `fm1-sim-render` with GCC 13, the screen sweep, `fm1.wasm` and
    `fm1-render.js` with Emscripten 6.0.10, `test/parity.mjs`,
-   `test/sysex.mjs` (the DX7 export, above); then, only if everything
-   passed, `www/fm1.wasm` and its record `www/fm1.wasm.json` (hashes of the
-   module and of the sources, the parity and SysEx results).
+   `test/sysex.mjs` (the DX7 export, above), `test/meta.mjs` (the module
+   writes its metadata export, with the id `fm1w_meta_id` returns, and it is
+   `fm1-sim-render --meta`'s in everything but the instance bytes; asking
+   calls no import and changes no sample); then, only if everything passed,
+   `www/fm1.wasm`, `www/meta.json` and the record `www/fm1.wasm.json`
+   (hashes of the module and of the sources, the parity, SysEx and
+   metadata results).
 3. `mcr.microsoft.com/playwright:v1.63.0-noble`: `test/screenshot.mjs` opens
    the page in headless Chromium, plays it and writes screenshots and a
    report to `build/screenshots/`; with `--readme-screenshots`,
@@ -854,6 +873,15 @@ the effects, SHIFT + PRESETS, the kind picker and the destination picker,
 each at the top of its list, in the middle and at the end, where the
 window (`popup_list` in the summary) must be `fm1_list_first`'s and its six
 entries the list's own; and that the messages stay messages.
+
+`tests/test_sim_editor_meta.py` checks the editor's metadata on the
+simulator's side: every module's pages as the panel's bottom bar names them
+(`fm1-sim-render --page-labels`) are the export's `page_names`, page for
+page (the arpeggiator's PLAY ... SEED, a number elsewhere); `www/meta.json`
+is canonical, validates as level 1.1, was written by the simulator and
+carries its own CRC-32 as its id; the record says the module's
+`fm1w_meta_id` was that id; and it is what these sources write but for the
+instance bytes (a warning when the engines have moved on since the build).
 
 CI also runs these files in its 32-bit job (`-m32`, like pi32v2's
 pointers) and under ASan + UBSan, through the variables below.

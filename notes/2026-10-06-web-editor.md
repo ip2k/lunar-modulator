@@ -29,7 +29,8 @@ recommended (§19), with two answers on top:
   §20.2; the mockups predate it (§3).
 
 The build order is decided too: ED0 after the state core (E1–E3) lands, ED1
-after A1, ED2–ED5 after W1 (§18).
+after A1, ED2–ED5 after W1 (§18). **ED0 is built** (2026-10-06): what it
+holds, and where it differs from §6 and §18, is §21.
 
 **Read with.**
 - `notes/2026-10-06-state-files.md` and `notes/2026-10-06-song-and-scenes.md`
@@ -77,6 +78,7 @@ never sends") stands.
 18. Build plan
 19. Owner decisions
 20. Found on the way
+21. Stage ED0, as built
 
 ## 1. Short answer
 
@@ -766,3 +768,53 @@ still show KB today are listed in §20.2.
    second instance on the main thread (§10.1 there); a Worker keeps a
    30 KB file from stalling the page, and the same instance serves the
    editor (ED13).
+
+## 21. Stage ED0, as built (2026-10-06)
+
+Marks here were checked on the ED0 branch, cut from main at `5047233`
+(PR #82, the state core, after PR #81, the GPL switch).
+
+**The metadata export is at level 1.1** (`FM1_META_LUNAR`,
+`engines/state/schema/metadata.schema.json`; a 1.0 export still
+validates, and a 1.1 one must carry every top-level addition). §6's table,
+as built [verified: `tests/test_engine_editor_meta.py`]:
+
+| Member | As built |
+| --- | --- |
+| `page_names` | On every engine, effect, MIDI effect and kind: one entry per knob page as the panel pages it (`fm1_param_pages`), the panel's name or null. Only the MIDI effects' ARP pages have names: the arpeggiator's PLAY ... SEED and Acid Gen's LINE ... SEED; every other page the panel shows by number ("2/4 Sound", "1/2 M1", "1/2 Mod1"), and so will the editor ("Page 2 · KNOB1–3"). The names moved from `fm1_app.c` to `engines/src/editor_meta.cc` (`fm1_page_name`), which the panel now reads, so the two cannot differ; `fm1-sim-render --page-labels` and `tests/test_sim_editor_meta.py` hold every module's bottom bar to the export, page for page [verified] |
+| `step` | Per parameter: the panel's detent, `fm1_param_detent` in `include/fm1_engine_meta.h` (one entry; a hundredth of a linear range, or whole units on a wide integer range); 0.01 of the position for a LOG one. The app's and the rack's knobs call the same function now; the screens and the 102 parity scenarios are byte-identical to main's [verified: the native sweep, 4,534 screens, and every scenario's WAV and screen] |
+| `group` | Per audio effect: the project page's groups (README, "The effects"): `reverb`, `space`, `filter`, `colour`, `dynamics`, and `test` for Test Gain and Test Ext; the names in `effect_groups` |
+| `refusals` | `codes`: 1-9 the loader's (`FM1_STATE_*`, same numbers), 10 ARENA (a unit's own arena), 32-41 a cable's; each with `of`, `words`, `detail` and its `{fills}`; `known`: a known id's reason in words. The words are the screen's where it has them ("Does not fit", "needs {pct}% of RAM", "refuses {rate} Hz") and memory is only a percentage (§19). C: `include/fm1_refusal.h` |
+| `telemetry` | ED11's block, version 1 (`include/fm1_tele.h`): `meters` (16 points: each sound's engine and inserts, the Mix, M1, M2, the output; peak and RMS), `reduction` (8 inserts, 2 master slots, the limiter; dB), `voices` (12: sound, note), `outs` (8 positions × 8 outputs: value, min, max), `voice_outs` (8 × 8 × 12 voices), `dests` (32 slots), `voice_dests` (32 × 12): 1,443 floats, 119 subscription bits in 4 words, at most 30 blocks a second. ED1 fills it |
+| `licence`, `gpl` | An engine's `licence` came with the GPL switch (PR #81); 1.1 adds `gpl` and gives modulation kinds both (MIT, from the same licence table). Both builds of the switch are checked: on, the seven GPL modules are marked; off, none is, and each is a `gpl` known id [verified] |
+| `meta_id` | CRC-32 of the export less `made` and itself. The export is 246,240 B as the module writes it (19.5 KB gzipped) [verified] |
+
+**Differences from the plan.**
+- **meta.json is written by the module**, not by the desktop build:
+  `fm1w_meta_read(offset)` hands the export out a 64 KiB buffer at a time.
+  Instance bytes (`ram`) depend on pointer size, and 9 of the 56 modules'
+  differ between the 32-bit module and a 64-bit native build, so a
+  desktop-written file could never match `fm1w_meta_id()` [verified:
+  `test/meta.mjs`, ids `68179ac3` (module) and `a5c579fc` (native
+  harness)]. `test/meta.mjs` holds the module's export to the native
+  harness's in everything but `ram`. A1's `fm1w_meta` can build on
+  `fm1w_meta_read`.
+- **Asking for the id costs a whole export** (a few milliseconds, once),
+  so it belongs off the audio thread: the shadow Worker of ED1, as §6
+  already has it for `fm1w_meta()`.
+- **Per-slot reasons are a question, not a field.** `fm1_mod_slot_refusal`
+  re-asks step 1's questions for one slot and leaves the plan alone, so the
+  runtime's size, the RAM meter and every render are unchanged; a field in
+  the plan's info would have grown the arena-counted runtime. The planner
+  test fuzzes 32,000 slots: a reason exactly when the plan refuses
+  [verified: `fm1-mod-refusal-test`].
+- **Three codes more than §6 named:** NO_MOD (a float without MOD, Macro's
+  LPG), VOICE_FULL (past `FM1_MOD_VDESTS`) and VOICE_ROOM (the arena holds
+  no voice). VOICE_ROOM cannot happen with today's kinds, whose per-voice
+  copies are a few hundred bytes of the 8 KB arena; a VIA that names
+  nothing is NO_SOURCE.
+- **Not in this stage:** `fm1_param_parse` and its round trip, and the
+  loop each late slot closes (§18's ED0 row). Neither is metadata; both go
+  with ED1, which is the first to need them.
+- The module grew by 39,711 B, to 1,383,314 B (the export's writer, its
+  tables and the known ids) [verified: `fm1.wasm.json`].
