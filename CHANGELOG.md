@@ -12,10 +12,12 @@ history.
 - **A UI audit of the FM-1's screen**, in `notes/2026-10-06-ui-audit.md`.
   It covers every screen family, how each uses the 240 × 240 px, and the
   contrast of every colour after the screen's RGB565 rounding.
-  - **Proposals, in priority order.** The first is the one the owner
-    asked for: value lists that show seven entries and your place in the
-    list, not three. Others give each Rosé Pine Moon colour one meaning
-    (gold for locks, foam for modulation, love for refusals).
+  - **Proposals, in priority order.** They give each Rosé Pine Moon
+    colour one meaning (gold for locks, foam for modulation, love for
+    refusals), name the master slots as FX mode does, and put to use the
+    space that short pages and one-line messages leave empty. The list fix
+    the owner asked for (six entries and your place in the list) landed
+    on its own, under Changed; the audit records it and what is left.
   - **Before/after mockups** for each proposal, in `assets/ui-audit/`.
     Every mockup passes the screen layout check.
   - **Decisions for the owner.**
