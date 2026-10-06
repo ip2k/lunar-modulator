@@ -18,7 +18,8 @@ check that order separately.
   escaped.
 - Numbers: an int is written in plain digits. A float is a float32: the
   writer finds the shortest decimal (at most 9 significant digits) that
-  reads back to the same float32, and writes it as ECMAScript's
+  reads back to the same float32 (read exactly, as every reader reads it:
+  f32_of), and writes it as ECMAScript's
   Number::toString writes that decimal's double (so a JavaScript writer is
   String(Number(Math.fround(v).toPrecision(p))) for the smallest p that
   round-trips). -0 is written 0. NaN and infinities are never written.
@@ -64,6 +65,32 @@ def _js_digits(x):
     return out + mant + "e" + ("+" if e > 0 else "-") + str(abs(e))
 
 
+def f32_of(dec):
+    """The float32 nearest to decimal text `dec` in exact arithmetic (ties to
+    even), as a Python float; None beyond FLT_MAX. This is what every
+    reader does (the C reader's fm1_num_f32 is held to it), so a writer's
+    shortest decimal is chosen against it, not against double rounding."""
+    fr = Fraction(dec)
+    if fr == 0:
+        return 0.0
+    a = abs(fr)
+    e = a.numerator.bit_length() - a.denominator.bit_length() - 24
+    while a >= Fraction(2) ** (e + 24):
+        e += 1
+    while e > -149 and a < Fraction(2) ** (e + 23):
+        e -= 1
+    e = max(e, -149)
+    q = a / Fraction(2) ** e
+    m = q.numerator // q.denominator
+    r = q - m
+    if r > Fraction(1, 2) or (r == Fraction(1, 2) and m % 2):
+        m += 1
+    if m * Fraction(2) ** e > (2 ** 24 - 1) * Fraction(2) ** 104:
+        return None
+    x = float(m * Fraction(2) ** e)
+    return -x if fr < 0 else x
+
+
 def number(v):
     """A number's canonical text: ints as they are, floats as float32."""
     if isinstance(v, bool):
@@ -77,7 +104,7 @@ def number(v):
         return "0"
     for p in range(1, 10):
         s = "%.*g" % (p, v)
-        if f32(float(s)) == v:
+        if f32_of(s) == v:
             return _js_digits(float(s))
     raise AssertionError("9 digits always round-trip a float32")
 

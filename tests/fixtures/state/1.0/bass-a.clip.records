@@ -1,0 +1,11 @@
+{"rec":"head","kind":"clip","major":1,"minor":0}
+{"rec":"info","key":"by","text":"hand"}
+{"rec":"info","key":"name","text":"BASS A"}
+{"rec":"info","key":"title","text":"Bass riff A"}
+{"rec":"info","key":"about","text":"The bass riff of the first song, with its Timbre locks."}
+{"rec":"info","key":"licence","text":"MIT"}
+{"rec":"line","which":"clip","text":"au 0 0 40 synth:Timbre"}
+{"rec":"line","which":"clip","text":"cl 0 0 16 0 0:40:36:100:0;48:40:36:100:2;96:40:43:100:4;144:40:36:100:6;192:40:39:100:8;240:40:36:100:10;288:40:43:100:12;336:40:46:100:14"}
+{"rec":"line","which":"clip","text":"cp 0 0 1 1 0 0"}
+{"rec":"line","which":"clip","text":"lk 0 0 0:0:40;0:4:64;0:8:90;0:12:64"}
+{"rec":"end"}
