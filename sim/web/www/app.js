@@ -962,7 +962,7 @@ function controlEl(name) {
   if (name === 'POWER') return powerEl;
   const id = name === 'PLAY' || name === 'STOP' ? 'PLAY/STOP' : name;
   if (BUTTONS.includes(id)) return buttonEls[BUTTONS.indexOf(id)];
-  if (encoderEls[id]) return encoderEls[id];
+  if (Object.hasOwn(encoderEls, id)) return encoderEls[id];
   const m = /^KEY([1-9]|1\d|2[0-7])$/.exec(id);
   return m ? keyEls[Number(m[1]) - 1] : null;
 }

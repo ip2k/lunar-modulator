@@ -727,7 +727,7 @@ export function initFiles(env) {
       const p = f.pending.shift();
       const target = p.hints.into && p.d.kind ? parseInto(p.hints.into, p.d.kind) : null;
       const r = await openBytes(p.bytes, p.name, { target, d: p.d, ask: p.reply ? false : undefined });
-      if (r && r.ok) await applyHints(p.hints);
+      if (r && r.ok) await applyHints(p.hints).catch((err) => notice('refused', `The link's hints were not applied: ${err.message || err}.`));
       if (p.reply) p.reply({ ok: !!(r && r.ok), report: r && r.report });
     }
     showArrival();
