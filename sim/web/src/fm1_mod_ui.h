@@ -254,9 +254,12 @@ void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_
  * its log scale). 0 when the app's usual formatting applies. */
 int fm1_mod_ui_value(const fm1_mod_ui_env_t *env, unsigned pos, unsigned index, float v, char *buf,
                      size_t cap);
-/* How many switched-on cables reach a destination, and the sum of their
- * amounts' magnitudes (0..32) in *depth. */
-int fm1_mod_ui_routes(const fm1_mod_t *m, unsigned unit, uint16_t dst, int gate, float *depth);
+/* How many live cables reach a destination, and the sum of their amounts'
+ * magnitudes (0..32) in *depth: switched on and not in `refused` (the
+ * plan's refused slots, fm1_mod_ui_t's plan.refused: MATRIX's `!`). A
+ * refused cable carries nothing, so it marks nothing either. */
+int fm1_mod_ui_routes(const fm1_mod_t *m, uint32_t refused, unsigned unit, uint16_t dst, int gate,
+                      float *depth);
 
 /* ---- script lines (engines/host/mod_script.h) ----------------------------- */
 

@@ -699,6 +699,17 @@ static void expect(int ok, const char *what) {
   }
 }
 
+/* Pixels in the modulation colour (C_MOD: a modulated row's label and
+ * bracket) from row y0 down to the bottom bar, whose RAM meter shares the
+ * colour (C_LIVE), of the frame check_screen drew last. */
+static int mod_ink(int y0) {
+  int n = 0;
+  for (int y = y0; y < BOTTOM_Y; ++y) {
+    for (int x = 0; x < FM1_TFT_W; ++x) n += g_app.tft.px[y * FM1_TFT_W + x] == C_MOD;
+  }
+  return n;
+}
+
 /* The rows the open list's window holds: its face's (fm1_panel.h); a
  * modulation picker's window, which fm1_mod_ui fills, is sized for the face
  * the app draws it in (FM1_LIST_FACE_KIND, FM1_LIST_FACE_DEST). */
@@ -2160,17 +2171,23 @@ static void multi_screens(const char *dir, float rate) {
   g_app.fx_slot = 0;
   check_screen("multi-fx-s2-in1-empty", dir, 0);
   /* The RAM meter refuses: Shapes on Sound 1 with Shapes already on Sound 2
-   * passes the budget; the popup says by how much. */
+   * passes the budget; the popup says what the chain would need, as a
+   * percentage of the budget past 100 (never bytes, owner 2026-10-06). */
   fm1_app_unit_set_current(&g_app, 0);
   fm1_app_unit_select(&g_app, 1, fm1_app_find("shapes"));
   g_app.mode = FM1_MODE_HOME;
   {
     const size_t before = fm1_app_ram(&g_app);
+    const size_t with = fm1_app_ram_with(&g_app, 0, fm1_app_find("shapes"));
     const int r = fm1_app_unit_select(&g_app, 0, fm1_app_find("shapes"));
+    char need[24];
+    snprintf(need, sizeof need, "needs %u%% of RAM", fm1_app_ram_percent(with));
     expect(r == FM1_APP_SELECT_RAM && fm1_app_ram(&g_app) == before, "the meter let Shapes twice in");
+    expect(fm1_app_ram_percent(with) > 100 && (int)strlen(need) <= POPUP_CHARS,
+           "a RAM refusal's figure reads 100 % or does not fit its line");
     /* Refused from the page's menu or the API, the popup says so too. */
     expect(g_app.popup_lines == 3 && strcmp(g_app.popup[0], "Shapes") == 0 &&
-               strcmp(g_app.popup[1], "does not fit") == 0 && strstr(g_app.popup[2], "K over budget"),
+               strcmp(g_app.popup[1], "does not fit") == 0 && strcmp(g_app.popup[2], need) == 0,
            "no popup for a refusal from the menu");
     g_app.popup_lines = 0;
   }
@@ -2233,6 +2250,16 @@ static void multi_screens(const char *dir, float rate) {
   fm1_app_seq_default_route(&g_app);
   expect(fm1_app_ram(&g_app) > FM1_APP_RAM_BUDGET, "the full chain fits the budget at eight tracks");
   check_screen("multi-meter-over", dir, 1);
+  {                                     /* GLO's RAM line: the meter's figure, red past 100 % */
+    const int mode = g_app.mode;
+    char want[8];
+    g_app.mode = FM1_MODE_GLOBAL;
+    check_screen("multi-global-over", dir, 1);
+    snprintf(want, sizeof want, "%u%%", fm1_app_ram_percent(fm1_app_ram(&g_app)));
+    expect(fm1_app_ram_percent(fm1_app_ram(&g_app)) > 100 && strlen(want) == 4,
+           "the chain past the budget reads 100 % or less on GLO");
+    g_app.mode = mode;
+  }
   {
     const int big = g_app.unit[1].index;
     expect(fm1_app_select(&g_app, 1, fm1_app_find("test-gain")) == 0, "a chain past the budget cannot shrink");
@@ -2839,6 +2866,35 @@ static void mod_voice_screens(const char *dir) {
            "KNOB4 does not make a per-voice cable global again");
   }
   g_app.mui.mpage = 0;
+  /* A refused cable carries nothing, so it marks nothing: M1's Mix, which
+   * slot 4 reaches per voice (refused: an effect is mono), is drawn as any
+   * other row, and the same cable made global marks it. */
+  {
+    const int mix = g_app.unit[1].e ? fm1_app_param_index(&g_app, 1, "Mix") : -1;
+    const int mode = g_app.mode, fx_slot = g_app.fx_slot, fx_page = g_app.fx_page;
+    fm1_mod_slot_t v;
+    expect(mix >= 0, "M1 has no Mix for the refused per-voice cable");
+    if (mix >= 0) {
+      g_app.mode = FM1_MODE_FX;
+      g_app.fx_slot = 3;                                  /* M1 */
+      g_app.fx_page = g_app.unit[1].e->params[mix].page;
+      check_screen("fx-voice-refused-m1", dir, 1);
+      expect(mod_ink(CONTENT_Y + 40) == 0, "a refused cable marks M1's Mix as modulated");
+      fm1_mod_get_slot(g_app.mod, 3, &v);
+      v.flags &= (uint8_t)~FM1_MOD_SLOT_VOICE;
+      fm1_mod_set_slot(g_app.mod, 3, &v);
+      blocks(2);
+      expect(!((g_app.mui.plan.refused >> 3) & 1u), "slot 4 made global is still refused");
+      check_screen("fx-voice-global-m1", dir, 1);
+      expect(mod_ink(CONTENT_Y + 40) > 0, "a live cable into M1's Mix does not mark it");
+      v.flags |= FM1_MOD_SLOT_VOICE;
+      fm1_mod_set_slot(g_app.mod, 3, &v);
+      blocks(2);
+    }
+    g_app.mode = mode;
+    g_app.fx_slot = fx_slot;
+    g_app.fx_page = fx_page;
+  }
   fm1_app_all_notes_off(&g_app);
   blocks(4);
   /* An engine without Timbre: the cable goes off under its old name; one

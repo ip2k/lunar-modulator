@@ -32,7 +32,7 @@ those messages so you can search for them.
 | The keys play the wrong octave | The octave or transpose is not at zero | Press [[OCT-]] and [[OCT+]] together to reset both |
 | Only part of the panel shows on a phone | The panel keeps its size so the keys stay playable | Drag the case sideways, or turn the phone to landscape |
 | [[SAVE]] says *not in the simulator yet* | Saving is planned, not built | See [chapter 3](03-panel-tour.md#buttons) for the buttons that work |
-| [[PRESETS]] skips a sound, and the screen says *does not fit* | It would take the chain past the FM-1's memory | Empty a sound, an insert or a master effect first ([chapter 6](06-effects.md#memory)) |
+| [[PRESETS]] skips a sound, and the screen says *does not fit* | It would take the chain past the FM-1's memory: past 100 %, as the screen's *needs …% of RAM* says | Empty a sound, an insert or a master effect first ([chapter 6](06-effects.md#memory)) |
 | The keys play nothing, and the white keys' lights follow a pattern | SEQ mode is on: there the white keys are steps | Press [[HOME]] to play notes again ([chapter 7](07-sequencer.md#seq-mode-and-the-keys)) |
 | A key plays a different sound from the one on screen, or nothing | Another sound is current, or it is empty | Hold [[SEL]] and turn [[PRESETS]] to choose the sound ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |
 | [[REC]] blinks slowly | Capture holds notes you played | [[SEL]] and [[REC]] keep them as a clip; otherwise ignore it ([chapter 7](07-sequencer.md#capture)) |
