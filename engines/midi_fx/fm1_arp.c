@@ -28,12 +28,25 @@
 
 #include <string.h>
 
-#define H_DOWN 1u       /* the key is physically down */
+#define H_DOWN 1u       /* the key is down at the keys (played live) */
 #define H_PENDING 2u    /* JOIN 1: waits for the next pass */
+#define H_DOWN_SEQ 4u   /* ...and down at the sequencer */
+#define H_LIVE 8u       /* origins: played live, until a live key or Stop drops it */
+#define H_SEQ 16u       /* ...given by the sequencer */
+#define H_DOWN_ANY (H_DOWN | H_DOWN_SEQ)
+#define H_FROM (H_LIVE | H_SEQ)
 
 #define S_OWED 1u       /* the note-off did not fit; it goes out next */
 #define S_NEW 2u        /* started between ticks: the next tick does not count */
 #define S_UNTIL_STEP 4u /* TRG with no measured step: ends at the next step */
+#define S_SEQ 8u        /* made by a key only the sequencer gave: Stop ends it */
+
+#define R_SEQ 0x80u     /* rat_vel's mark of the same (velocities are 1..127) */
+
+/* The rates' common period in ticks: a multiple of every rate's pair of
+ * steps (swing alternates them) at 24, 48 and 96 PPQN, so a grid position
+ * reduced by it keeps every rate's phase: 2^9 x 9. */
+#define GRID_PERIOD 4608u
 
 #define ALL_KEYS 0xFFu  /* a cycle entry that plays the whole chord */
 
@@ -157,12 +170,14 @@ static int spread(const fm1_arp_t *a, unsigned amount, uint32_t mstep, uint32_t 
 
 /* ---- The ledger: every note-on sent has one note-off to come ------------------ */
 
-static void put(out_t *o, uint16_t frame, uint8_t kind, uint8_t key, uint8_t vel) {
+/* A note out; `flags` its ledger flags, whose S_SEQ marks it the
+ * sequencer's (fm1_midi_ev.h's origin, in b's high byte). */
+static void put(out_t *o, uint16_t frame, uint8_t kind, uint8_t key, uint8_t vel, uint8_t flags) {
   fm1_arp_ev_t *e = &o->ev[o->n++];
   e->frame = frame;
   e->kind = kind;
   e->a = key;
-  e->b = vel;
+  e->b = FM1_MIDI_EV_B(vel, (flags & S_SEQ) ? FM1_MIDI_SRC_SEQ : FM1_MIDI_SRC_LIVE);
 }
 
 static void snd_remove(fm1_arp_t *a, unsigned i) {
@@ -173,7 +188,7 @@ static void snd_remove(fm1_arp_t *a, unsigned i) {
 /* 1: the note-off went out and the entry is gone; 0: it is owed. */
 static int end_note(fm1_arp_t *a, unsigned i, uint16_t frame, out_t *o) {
   if (o->n < o->cap) {
-    put(o, frame, FM1_ARP_EV_NOTE_OFF, a->snd[i].key, 0);
+    put(o, frame, FM1_ARP_EV_NOTE_OFF, a->snd[i].key, 0, a->snd[i].flags);
     snd_remove(a, i);
     return 1;
   }
@@ -223,7 +238,7 @@ static void start_note(fm1_arp_t *a, uint8_t key, uint8_t vel, uint16_t left, ui
     ++a->stats.dropped_ons;
     return;
   }
-  put(o, frame, FM1_ARP_EV_NOTE_ON, key, vel);
+  put(o, frame, FM1_ARP_EV_NOTE_ON, key, vel, flags);
   a->snd[a->n_snd].key = key;
   a->snd[a->n_snd].flags = flags;
   a->snd[a->n_snd].left = left;
@@ -262,10 +277,17 @@ static void held_remove(fm1_arp_t *a, unsigned i) {
   a->dirty = 1;
 }
 
-static void drop_released(fm1_arp_t *a) {
+/* The keys an origin in `from` (H_LIVE, H_SEQ or both) has let go lose
+ * that origin; one left with none goes. Each origin by its own key: a key
+ * the sequencer still holds down loses the hand's latch on it all the same,
+ * so Stop does not keep a key a later chord of the hand's replaced. */
+static void drop_released(fm1_arp_t *a, uint8_t from) {
   unsigned i = 0;
   while (i < a->n_held) {
-    if (a->held[i].flags & H_DOWN) ++i;
+    held_t *h = &a->held[i];
+    if (!(h->flags & H_DOWN)) h->flags &= (uint8_t)~(from & H_LIVE);
+    if (!(h->flags & H_DOWN_SEQ)) h->flags &= (uint8_t)~(from & H_SEQ);
+    if (h->flags & H_FROM) ++i;    /* a key down is its origin's too */
     else held_remove(a, i);
   }
 }
@@ -308,12 +330,18 @@ static void restart_clock(fm1_arp_t *a) {
   restart_position(a);
 }
 
-static void key_on(fm1_arp_t *a, uint8_t key, uint8_t vel) {
+/* A key down from the keys (seq 0) or the sequencer (seq 1). */
+static void key_on(fm1_arp_t *a, uint8_t key, uint8_t vel, unsigned seq) {
+  const uint8_t down = seq ? H_DOWN_SEQ : H_DOWN, from = seq ? H_SEQ : H_LIVE;
+  uint8_t keep = 0;
   unsigned i, empty;
-  if (a->p[FM1_ARP_P_LATCH] && !a->sustain) drop_released(a);  /* Yarns: a new key drops the latched */
+  /* Yarns: a new key drops the latched ones; here those of its own origin,
+   * so the sequencer's chords and the keys' latch apart and sound together. */
+  if (a->p[FM1_ARP_P_LATCH] && !a->sustain) drop_released(a, from);
   empty = !n_active(a);
   for (i = 0; i < a->n_held; ++i) {
     if (a->held[i].key == key) {
+      keep = (uint8_t)(a->held[i].flags & (seq ? (H_DOWN | H_LIVE) : (H_DOWN_SEQ | H_SEQ)));
       held_remove(a, i);
       break;
     }
@@ -323,9 +351,10 @@ static void key_on(fm1_arp_t *a, uint8_t key, uint8_t vel) {
   a->held[a->n_held].key = key;
   a->held[a->n_held].vel = vel;
   /* JOIN 1: a key waits for the next pass once the chord is playing; keys
-   * that arrive before its first step (one chord, pressed together) join. */
+   * that arrive before its first step (one chord, pressed together) join.
+   * The other origin's hold on the key, if any, stays. */
   a->held[a->n_held].flags =
-      (uint8_t)(H_DOWN | (a->p[FM1_ARP_P_JOIN] && !empty && a->heard ? H_PENDING : 0u));
+      (uint8_t)(down | from | keep | (a->p[FM1_ARP_P_JOIN] && !empty && a->heard ? H_PENDING : 0u));
   a->held[a->n_held].pad = 0;
   ++a->n_held;
   a->dirty = 1;
@@ -335,12 +364,14 @@ static void key_on(fm1_arp_t *a, uint8_t key, uint8_t vel) {
   }
 }
 
-static void key_off(fm1_arp_t *a, uint8_t key) {
+/* A key up at the keys (seq 0) or the sequencer (seq 1): it stays while
+ * the other still holds it down, or latched, or under the pedal. */
+static void key_off(fm1_arp_t *a, uint8_t key, unsigned seq) {
   unsigned i;
   for (i = 0; i < a->n_held; ++i) {
     if (a->held[i].key != key) continue;
-    if (a->p[FM1_ARP_P_LATCH] || a->sustain) a->held[i].flags &= (uint8_t)~H_DOWN;
-    else held_remove(a, i);
+    a->held[i].flags &= (uint8_t)~(seq ? H_DOWN_SEQ : H_DOWN);
+    if (!(a->held[i].flags & H_DOWN_ANY) && !a->p[FM1_ARP_P_LATCH] && !a->sustain) held_remove(a, i);
     break;
   }
   settle(a);
@@ -349,9 +380,35 @@ static void key_off(fm1_arp_t *a, uint8_t key) {
 static void set_sustain(fm1_arp_t *a, unsigned on) {
   a->sustain = (uint8_t)(on != 0);
   if (!on && !a->p[FM1_ARP_P_LATCH]) {
-    drop_released(a);
+    drop_released(a, H_FROM);
     settle(a);
   }
+}
+
+/* The sequencer stopped (FM1_ARP_EV_STOP): the keys it gave go, held or
+ * latched, unless they were played live too; the notes only its keys made
+ * end, and with them what is left of the step's ratchets from those keys;
+ * a note waiting for a STEP ends too, since no trig comes while stopped.
+ * The keys played live, held or latched, play on. */
+static void stop_seq(fm1_arp_t *a, uint16_t frame, out_t *o) {
+  const unsigned keep_released = a->p[FM1_ARP_P_LATCH] || a->sustain;
+  unsigned i = 0, k = 0;
+  while (i < a->n_held) {
+    held_t *h = &a->held[i];
+    h->flags &= (uint8_t)~(H_SEQ | H_DOWN_SEQ);
+    if ((h->flags & H_FROM) && ((h->flags & H_DOWN_ANY) || keep_released)) ++i;
+    else held_remove(a, i);
+  }
+  for (i = 0; i < a->rat_count; ++i) {
+    if (a->rat_vel[i] & R_SEQ) continue;
+    a->rat_key[k] = a->rat_key[i];
+    a->rat_vel[k] = a->rat_vel[i];
+    ++k;
+  }
+  a->rat_count = (uint8_t)k;
+  if (!k) a->rat_n = 0;
+  settle(a);
+  end_all(a, frame, o, S_SEQ | S_UNTIL_STEP);
 }
 
 /* ---- One pass of the note order --------------------------------------------- */
@@ -577,7 +634,10 @@ static void play_sub(fm1_arp_t *a, unsigned k, uint16_t frame, out_t *o, unsigne
   } else {
     flags |= S_UNTIL_STEP;
   }
-  for (i = 0; i < a->rat_count; ++i) start_note(a, a->rat_key[i], a->rat_vel[i], left, flags, frame, o);
+  for (i = 0; i < a->rat_count; ++i) {
+    start_note(a, a->rat_key[i], (uint8_t)(a->rat_vel[i] & ~R_SEQ), left,
+               (uint8_t)(flags | ((a->rat_vel[i] & R_SEQ) ? S_SEQ : 0u)), frame, o);
+  }
 }
 
 static void add_key(fm1_arp_t *a, const held_t *h, unsigned oct, int vel_off) {
@@ -588,7 +648,7 @@ static void add_key(fm1_arp_t *a, const held_t *h, unsigned oct, int vel_off) {
   if (vel < 1) vel = 1;
   if (vel > 127) vel = 127;
   a->rat_key[a->rat_count] = (uint8_t)key;
-  a->rat_vel[a->rat_count] = (uint8_t)vel;
+  a->rat_vel[a->rat_count] = (uint8_t)(vel | ((h->flags & H_LIVE) ? 0u : R_SEQ));
   ++a->rat_count;
 }
 
@@ -634,8 +694,35 @@ static unsigned rhythm_hit(fm1_arp_t *a) {
   return (mask >> bit) & 1u;
 }
 
-/* A step starts: at a tick (rate mode, in_tick 1) or at a STEP event (TRG). */
-static void begin_step(fm1_arp_t *a, uint16_t frame, out_t *o, unsigned in_tick) {
+/* A rate's step in ticks, and how much later swing starts an odd one. */
+static unsigned rate_base(const fm1_arp_t *a) {
+  return (unsigned)kRateTicks96[a->p[FM1_ARP_P_RATE]] * a->ppqn / 96u;
+}
+static unsigned swing_delay(const fm1_arp_t *a, unsigned base) {
+  return (a->p[FM1_ARP_P_SWING] - 50u) * base / 60u;   /* docs/13 R6 */
+}
+
+/* Locked to the sequencer's grid: whether its tick `pos` (from its Start,
+ * reduced by GRID_PERIOD) starts a step of the rate, and the step's length:
+ * even steps start on the rate's multiples, odd ones the swing later, as
+ * fm1_seq swings its own steps. */
+static int grid_step(const fm1_arp_t *a, uint32_t pos, uint16_t *len) {
+  const unsigned base = rate_base(a), d = swing_delay(a, base);
+  const uint32_t r = pos % (2u * base);
+  if (r == 0u) {
+    *len = (uint16_t)(base + d);
+    return 1;
+  }
+  if (r == base + d) {
+    *len = (uint16_t)(base - d);
+    return 1;
+  }
+  return 0;
+}
+
+/* A step starts: at a tick (rate mode, in_tick 1) or at a STEP event (TRG).
+ * grid_len: the step's length on the sequencer's grid (locked), or 0. */
+static void begin_step(fm1_arp_t *a, uint16_t frame, out_t *o, unsigned in_tick, uint16_t grid_len) {
   const unsigned loop = a->p[FM1_ARP_P_LOOP];
   uint32_t mstep;
   uint16_t len;
@@ -645,9 +732,8 @@ static void begin_step(fm1_arp_t *a, uint16_t frame, out_t *o, unsigned in_tick)
     a->trg_seen = 1;
     len = a->trg_len;
   } else {
-    const unsigned base = (unsigned)kRateTicks96[a->p[FM1_ARP_P_RATE]] * a->ppqn / 96u;
-    const unsigned d = (a->p[FM1_ARP_P_SWING] - 50u) * base / 60u;   /* docs/13 R6 */
-    len = (uint16_t)((a->step_count & 1u) ? base - d : base + d);
+    const unsigned base = rate_base(a), d = swing_delay(a, base);
+    len = grid_len ? grid_len : (uint16_t)((a->step_count & 1u) ? base - d : base + d);
     a->step_len = len;
     a->need_start = 0;
   }
@@ -678,12 +764,17 @@ static void ratchet_due(fm1_arp_t *a, uint16_t frame, out_t *o) {
   }
 }
 
-/* A tick; `gated`: its gates already ran, for a STEP at its frame. */
-static void on_tick(fm1_arp_t *a, uint16_t frame, out_t *o, unsigned gated) {
+/* A tick; `gated`: its gates already ran, for a STEP at its frame.
+ * `locked`: the sequencer runs, and this is its tick `pos` (from its Start,
+ * reduced by GRID_PERIOD): a rate's step starts only on its grid. Else a
+ * step starts when the last one is over, or at once after a restart. */
+static void on_tick(fm1_arp_t *a, uint16_t frame, out_t *o, unsigned gated, int locked, uint32_t pos) {
+  uint16_t len = 0;
   flush_owed(a, frame, o);
   if (!gated) tick_gates(a, frame, o);
-  if (a->p[FM1_ARP_P_RATE] != FM1_ARP_RATE_TRG && (a->need_start || a->st >= a->step_len)) {
-    begin_step(a, frame, o, 1);
+  if (a->p[FM1_ARP_P_RATE] != FM1_ARP_RATE_TRG &&
+      (locked ? grid_step(a, pos, &len) : (a->need_start || a->st >= a->step_len))) {
+    begin_step(a, frame, o, 1, len);
   } else {
     ratchet_due(a, frame, o);
   }
@@ -717,7 +808,7 @@ void fm1_arp_set_param(fm1_arp_t *a, unsigned id, int value) {
       break;
     case FM1_ARP_P_LATCH:
       if (!v && !a->sustain) {
-        drop_released(a);
+        drop_released(a, H_FROM);
         settle(a);
       }
       break;
@@ -754,19 +845,22 @@ fm1_arp_t *fm1_arp_create(void *mem, uint16_t ppqn) {
 static void handle(fm1_arp_t *a, const fm1_arp_ev_t *e, out_t *o, unsigned gated) {
   flush_owed(a, e->frame, o);
   switch (e->kind) {
-    case FM1_ARP_EV_NOTE_ON:
+    case FM1_ARP_EV_NOTE_ON: {
+      const unsigned vel = FM1_MIDI_EV_VEL(e->b);
+      const unsigned seq = FM1_MIDI_EV_SRC(e->b) == FM1_MIDI_SRC_SEQ;
       if (e->a > 127u) break;
-      if (e->b == 0u) key_off(a, e->a);
-      else key_on(a, e->a, (uint8_t)(e->b > 127u ? 127u : e->b));
+      if (vel == 0u) key_off(a, e->a, seq);
+      else key_on(a, e->a, (uint8_t)(vel > 127u ? 127u : vel), seq);
       break;
+    }
     case FM1_ARP_EV_NOTE_OFF:
-      key_off(a, e->a);
+      key_off(a, e->a, FM1_MIDI_EV_SRC(e->b) == FM1_MIDI_SRC_SEQ);
       break;
     case FM1_ARP_EV_SUSTAIN:
       set_sustain(a, e->b);
       break;
     case FM1_ARP_EV_STEP:
-      if (a->p[FM1_ARP_P_RATE] == FM1_ARP_RATE_TRG) begin_step(a, e->frame, o, gated);
+      if (a->p[FM1_ARP_P_RATE] == FM1_ARP_RATE_TRG) begin_step(a, e->frame, o, gated, 0);
       break;
     case FM1_ARP_EV_RESET:
       restart_clock(a);
@@ -787,6 +881,9 @@ static void handle(fm1_arp_t *a, const fm1_arp_ev_t *e, out_t *o, unsigned gated
     case FM1_ARP_EV_PARAM:
       fm1_arp_set_param(a, e->a, e->b);
       break;
+    case FM1_ARP_EV_STOP:
+      stop_seq(a, e->frame, o);
+      break;
     default:
       break;
   }
@@ -795,9 +892,17 @@ static void handle(fm1_arp_t *a, const fm1_arp_ev_t *e, out_t *o, unsigned gated
 uint32_t fm1_arp_process(fm1_arp_t *a, const fm1_arp_ev_t *in, uint32_t n_in,
                          const uint16_t *ticks, uint32_t n_ticks,
                          fm1_arp_ev_t *out, uint32_t cap) {
+  return fm1_arp_process_at(a, in, n_in, ticks, n_ticks, 0, 0, out, cap);
+}
+
+uint32_t fm1_arp_process_at(fm1_arp_t *a, const fm1_arp_ev_t *in, uint32_t n_in,
+                            const uint16_t *ticks, uint32_t n_ticks, int running,
+                            uint64_t first_tick, fm1_arp_ev_t *out, uint32_t cap) {
   out_t o;
   uint32_t i = 0, j = 0;
   unsigned gated = 0;   /* the next tick's gates have run */
+  /* One 64-bit reduction a call; the ticks' positions are then 32-bit. */
+  const uint32_t pos0 = running ? (uint32_t)(first_tick % GRID_PERIOD) : 0u;
   if (!a) return 0;
   if (!in) n_in = 0;
   if (!ticks) n_ticks = 0;
@@ -817,7 +922,8 @@ uint32_t fm1_arp_process(fm1_arp_t *a, const fm1_arp_ev_t *in, uint32_t n_in,
       }
       handle(a, &in[i++], &o, gated);
     } else {
-      on_tick(a, ticks[j++], &o, gated);
+      on_tick(a, ticks[j], &o, gated, running, pos0 + j);
+      ++j;
       gated = 0;
     }
   }
@@ -826,6 +932,12 @@ uint32_t fm1_arp_process(fm1_arp_t *a, const fm1_arp_ev_t *in, uint32_t n_in,
 
 unsigned fm1_arp_sounding(const fm1_arp_t *a) { return a ? a->n_snd : 0u; }
 unsigned fm1_arp_held(const fm1_arp_t *a) { return a ? a->n_held : 0u; }
+
+unsigned fm1_arp_held_seq(const fm1_arp_t *a) {
+  unsigned i, n = 0;
+  for (i = 0; a && i < a->n_held; ++i) n += (a->held[i].flags & H_SEQ) != 0;
+  return n;
+}
 
 void fm1_arp_get_stats(const fm1_arp_t *a, fm1_arp_stats_t *st) {
   if (a && st) *st = a->stats;

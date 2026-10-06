@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced editor: files, compare, memory, history</title>
+<link rel="stylesheet" href="editor.css">
+<style>
+  .pcols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr) minmax(0, 0.9fr); gap: 12px; align-items: start; }
+  .colstack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .mini-strip { display: grid; grid-template-columns: 30px repeat(3, minmax(0, 1fr)); gap: 8px; align-items: center; padding: 8px; border: 1.5px solid color-mix(in srgb, var(--snd) 55%, var(--rp-base)); background: color-mix(in srgb, var(--snd) 5%, var(--rp-base)); border-radius: 10px; }
+  .mini-strip .blk { height: 46px; padding: 4px 8px; }
+  .card { border: 1px solid var(--border-hi); border-radius: 9px; padding: 9px 11px; display: flex; flex-direction: column; gap: 6px; background: var(--bg); }
+  .card.ref { border-color: var(--refuse); }
+  .card .h { font-weight: 700; }
+  .card.ref .h { color: var(--refuse); }
+  .card .sub { color: var(--label-s); font-size: 11.5px; }
+  .card .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .kvt { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 3px 10px; font-size: 12px; }
+  .kvt .l { color: var(--label-s); }
+  .menu { display: flex; flex-direction: column; gap: 1px; }
+  .menu span { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 4px 8px; border-radius: 6px; font-size: 12.5px; }
+  .menu span i { font-style: normal; color: var(--label-s); font-size: 11px; white-space: nowrap; }
+  .menu span.cur { background: var(--rp-highlight-med); }
+  .abhead { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+  .abchip { height: 24px; padding: 0 9px; border-radius: 12px; border: 1px solid var(--border-hi); display: inline-flex; align-items: center; font-size: 12px; white-space: nowrap; }
+  .abchip.b { background: var(--select); color: var(--rp-base); border-color: var(--select); font-weight: 700; }
+  .memtop { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .membar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--bg); outline: 1px solid var(--border-hi); margin-bottom: 8px; }
+  .membar span { height: 100%; }
+  @media (max-width: 1180px) { .pcols { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pcols > .colstack:last-child { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body data-layout="editor" data-page="project" data-screen="screen-fx-s3-in1.png"
+      data-screen-alt="The FM-1 screen: FX mode, Sound 3, insert 1, Filter, page 1 of 2"
+      data-screen-cap="FX · S3 In1 · page 1/2: the last place the editor and the panel met"
+      data-status="hearing <b>B</b> of Sound 3 · <kbd>\</kbd> hears A · nothing has changed in the project">
+<main class="main">
+  <div class="head">
+    <span class="title">Files and history</span>
+    <span class="meta">Every load and save goes through the firmware's own reader and writer; files are canonical JSON, <b>.lunar</b></span>
+    <div class="tools"><span class="btn">Open…</span><span class="btn">Save project…</span></div>
+  </div>
+
+  <div class="pcols">
+    <div class="colstack">
+      <section class="panel" aria-label="Bring something in">
+        <h3>Bring something in <span class="aside">drop it where it goes</span></h3>
+        <div class="mini-strip s2" style="border-style:dashed; border-color:var(--select)"><span class="tag s2">S2</span>
+          <div class="blk"><div class="role">Engine</div><div class="nm">Macro</div></div>
+          <div class="blk"><div class="role">In1</div><div class="nm">Echo</div></div>
+          <div class="blk empty"><div class="role">In2</div><div class="nm">+ Add</div></div></div>
+        <p class="small" style="margin:6px 0 10px">An effects file dropped on S2's inserts loads there: the drop target is the file's <b>into</b>. Dropped anywhere else, the page asks where, as Open does.</p>
+        <div class="card">
+          <span class="h">Load the effects "Space verbs" into S2's inserts?</span>
+          <span class="sub">An echo into a hall, with the hall's size breathing.</span>
+          <div class="kvt"><span class="l">Replaces</span><span>In1 Echo · In2 is empty</span><span class="l">With</span><span>In1 Echo 375 ms · In2 Hall</span><span class="l">Brings</span><span>1 module (LFO) to rack place 7 · 1 cable to slot 11, aimed at S2 In2 Size</span><span class="l">RAM after</span><span><b>342.5 KB</b> of 378.8 · 91 %</span></div>
+          <div class="acts"><span class="btn primary small">Load into S2</span><span class="btn small">Load without its modulation</span><span class="btn small">Cancel</span></div>
+        </div>
+        <div class="card ref" style="margin-top:8px">
+          <span class="h">Not loaded: "Deep bass" into S3</span>
+          <span class="sub">It plays Shapes (202.3 KB at 44,118 Hz). The project would need 464.3 KB of 378.8: 85.5 KB over. Nothing was changed.</span>
+          <div class="acts"><span class="btn small">Show memory</span><span class="btn small">OK</span></div>
+        </div>
+      </section>
+      <section class="panel" aria-label="Take things out">
+        <h3>Take things out <span class="aside">from any block's menu</span></h3>
+        <div class="menu">
+          <span class="cur">Export Sound 3… <i>sound file</i></span>
+          <span>Export S3's effects… <i>effects file</i></span>
+          <span>Copy a link to Sound 3 <i>#lunar=, about 0.7 KB</i></span>
+          <span>Save to my library <i>this browser</i></span>
+          <span>Or drag the strip to the desktop <i>Chromium</i></span>
+        </div>
+      </section>
+    </div>
+
+    <div class="colstack">
+      <section class="panel" aria-label="Compare A and B">
+        <h3>Compare <span class="tag s3">S3</span><span class="aside">5 of 55 values differ</span></h3>
+        <div class="abhead"><span class="abchip">A · as loaded</span><span class="abchip b">B · now</span><span class="toggle on" style="margin-left:auto"><span class="sw"></span>Hearing B <kbd>\</kbd></span></div>
+        <table class="grid">
+          <thead><tr><th>Where</th><th>Value</th><th>Keep</th><th class="num">A</th><th class="num">B</th></tr></thead>
+          <tbody>
+            <tr><td class="small">In1 Filter</td><td>Type</td><td><span class="ab"><span>A</span><span class="on">B</span></span></td><td class="num">SVF</td><td class="num"><b>Ladder</b></td></tr>
+            <tr class="sel"><td class="small">In1 Filter</td><td>Cutoff</td><td><span class="ab"><span>A</span><span class="on">B</span></span></td><td class="num">1.20 kHz</td><td class="num"><b>420 Hz</b></td></tr>
+            <tr><td class="small">In1 Filter</td><td>Resonance</td><td><span class="ab"><span class="on">A</span><span>B</span></span></td><td class="num">0.25</td><td class="num"><b>0.30</b></td></tr>
+            <tr><td class="small">In2 Drive</td><td>Drive</td><td><span class="ab"><span>A</span><span class="on">B</span></span></td><td class="num">+6.0 dB</td><td class="num"><b>+12.0 dB</b></td></tr>
+            <tr><td class="small">Cable 3</td><td>LFO1 → Cutoff</td><td><span class="ab"><span>A</span><span class="on">B</span></span></td><td class="num">+20 %</td><td class="num"><b>+35 %</b></td></tr>
+          </tbody>
+        </table>
+        <div class="acts" style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap"><span class="btn small">Keep A</span><span class="btn small">Keep B</span><span class="btn primary small">Make B from the picks</span><span class="small" style="align-self:center">one edit, one undo step</span></div>
+      </section>
+      <section class="panel" aria-label="Memory">
+        <h3>Memory <span class="aside">counted at 44,118 Hz in any browser</span></h3>
+        <div class="memtop"><span class="big-n">78 %</span><span class="small"><b>293.6 KB</b> of 378.8 KB · <b>85.2 KB</b> free · C's rounding, as the screen</span></div>
+        <div class="membar"><span class="sg-fixed" style="width:16.8%"></span><span class="sg-gap"></span><span class="sg-s1" style="width:2.6%"></span><span class="sg-gap"></span><span class="sg-s2" style="width:25.4%"></span><span class="sg-gap"></span><span class="sg-s3" style="width:8.6%"></span><span class="sg-gap"></span><span class="sg-s4" style="width:21%"></span><span class="sg-gap"></span><span class="sg-m" style="width:3.2%"></span></div>
+        <table class="grid">
+          <tbody>
+            <tr><td><span class="tag ghost">–</span></td><td>Fixed <span class="small">sequencer, mod runtime, mixer</span></td><td class="num">63.6 KB</td></tr>
+            <tr><td><span class="tag s1">S1</span></td><td>Drums, Comp, Gate</td><td class="num">9.8 KB</td></tr>
+            <tr><td><span class="tag s2">S2</span></td><td>Macro, Echo, Arp</td><td class="num">96.3 KB</td></tr>
+            <tr><td><span class="tag s3">S3</span></td><td>Macro, Filter, Drive</td><td class="num">32.4 KB</td></tr>
+            <tr><td><span class="tag s4">S4</span></td><td>FM6, Plate</td><td class="num">79.4 KB</td></tr>
+            <tr><td><span class="tag m">M</span></td><td>Master Sat, Limiter</td><td class="num">12.1 KB</td></tr>
+          </tbody>
+        </table>
+        <div class="sub-h"><span class="t">What would fit</span><span class="n">checked by the shadow module</span></div>
+        <table class="grid"><tbody>
+          <tr><td>Hall in S2 In2</td><td class="num">+48.7 KB</td></tr>
+          <tr><td>Sophie for Drums in S1</td><td class="num">+68.8 KB</td></tr>
+          <tr><td>Shapes for Macro in S3</td><td class="num ref"><b>85.7 KB over</b></td></tr>
+          <tr><td>PSX Verb in S4 In2</td><td class="num ref"><b>46.0 KB over</b></td></tr>
+        </tbody></table>
+      </section>
+    </div>
+
+    <div class="colstack">
+      <section class="panel" aria-label="History">
+        <h3>History <span class="aside">editor and panel, one list</span></h3>
+        <div class="hist">
+          <div class="e redo"><span class="w">S3 In1 Type: Diode</span><span class="o">undone · redo</span></div>
+          <div class="e cur"><span class="w">S3 In1 Cutoff 1.20 kHz → 420 Hz</span><span class="o"><span class="mod">panel</span> · now</span><span class="d">KNOB2 on the FM-1</span></div>
+          <div class="e"><span class="w">S3 In1 Resonance 0.25 → 0.30</span><span class="o">editor · 9 s</span><span class="d">typed</span></div>
+          <div class="e"><span class="w">Cable 5: per voice</span><span class="o">editor · 1 min</span></div>
+          <div class="e"><span class="w">S1 In1 ⇄ In2: Comp, Gate</span><span class="o">editor · 1 min</span><span class="d">one drag</span></div>
+          <div class="e"><span class="w">Opened "First orbit"</span><span class="o">file · 3 min</span><span class="d">Undo load puts the old project back</span></div>
+        </div>
+        <p class="small" style="margin:8px 4px 0"><kbd>⌘Z</kbd> and <kbd>⇧⌘Z</kbd>, or click a line. Notes, steps and locks keep the sequencer's own undo.</p>
+      </section>
+      <section class="panel" aria-label="My library">
+        <h3>My library <span class="aside">in this browser only</span></h3>
+        <div class="lib">
+          <span class="g">Projects</span>
+          <span class="i"><span>First orbit</span><span class="m">autosaved 4 s ago</span></span>
+          <span class="i"><span>Before Mission 3.2</span><span class="m">recent</span></span>
+          <span class="g">Sounds</span>
+          <span class="i"><span>Deep bass</span><span class="m">Shapes · 1.5 KB</span></span>
+          <span class="i"><span>Glass lead</span><span class="m">FM6 · 1.1 KB</span></span>
+          <span class="g">Effects and racks</span>
+          <span class="i"><span>Space verbs</span><span class="m">effects · 1.3 KB</span></span>
+          <span class="i"><span>Wobble</span><span class="m">mod rack · 1.7 KB</span></span>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<script src="meta.js"></script>
+<script src="shell.js"></script>
+<script src="editor.js"></script>
+</body>
+</html>

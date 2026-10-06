@@ -7,6 +7,11 @@ it, its filters warm up from rest while the output stays the input, and then
 the knob glides as it always has. fm1-idle-test (engines/test/idle_test.cc)
 checks this against the same effects built without the idle paths
 (-DFM1_FX_IDLE=0: the code as it was before them).
+
+An effect that sequencer locks or modulation cables reach never idles (the
+owner's decision of 2026-10-06): the host says so with set_param's
+FM1_PARAM_DRIVEN (engines/include/fm1_engine.h), and the effect then plays
+as the old build does, bit for bit.
 """
 import json
 import subprocess
@@ -176,6 +181,81 @@ def test_a_lock_shorter_than_the_warm_up_after_a_rest_is_not_heard(report):
     # last change.
     for label, c in report["short_lock"].items():
         assert c["lost_after_rest"] and c["heard_by_ref"] and c["early_same"], label
+
+
+def test_a_driven_effect_never_idles(report):
+    # FM1_PARAM_DRIVEN at 1 from the start: the short locks above, after the
+    # same long rest, are heard, bit for bit as the old build plays them,
+    # and pass-through is still the guarded input. Set inside a rest, it
+    # wakes the effect at once, so a lock 0.5 s later is heard. Back at 0,
+    # the effect idles after its rest and loses the short lock as before.
+    # The same bits at blocks of 64, 7 and 1 and from another fill.
+    for label, c in report["driven"].items():
+        assert c == {"heard_as_ref": True, "pass_input": True, "woken_heard": True,
+                     "undriven_lost": True, "block_mismatch": 0}, label
+    assert set(report["driven"]) == set(report["short_lock"])
+
+
+MOVES = {
+    "eq": (["Low Gain=12"], ["Low Gain=0"], "LoGain", 0.02),
+    "isolator": (["Kill=1"], ["Kill=0"], "Low", 0.005),
+    "sat": (["Mix=1"], ["Mix=0"], "Mix", 0.1),
+}
+
+
+@pytest.mark.parametrize("fx", EFFECTS)
+def test_a_cable_keeps_an_effect_awake_in_the_renderer(renderer, tmp_path, fx):  # noqa: F811
+    # Through fm1-render: after 3 s at pass-through a move shorter than the
+    # warm-up is lost (the output is the input), unless a cable reaches the
+    # effect, at any amount, zero included: then it never idles and the
+    # move is heard. A cable into the other master slot changes nothing.
+    on, off, dest, length = MOVES[fx]
+    move = []
+    for p in on:
+        move += ["--fx-param-at", f"3.0:1:{p}"]
+    for p in off:
+        move += ["--fx-param-at", f"{3.0 + length:.3f}:1:{p}"]
+    params = ["Drive=12"] if fx == "sat" else []
+
+    def go(name, mod=None):
+        extra = list(move)
+        if mod is not None:
+            path = tmp_path / f"{name}.mod"
+            path.write_text("rack default\n" + mod + "\n")
+            extra += ["--mod", str(path)]
+        _, _, wav = render(renderer, tmp_path, input="noise", seconds=3.3,
+                           fx=[(fx, params), ("test-gain", ["Gain=1"])], name=name, extra=extra)
+        return wav.read_bytes()
+    _, _, ref = render(renderer, tmp_path, input="noise", seconds=3.3,
+                       fx=[("test-gain", ["Gain=1"]), ("test-gain", ["Gain=1"])], name="ref")
+    assert go("none") == ref.read_bytes()
+    assert go("other", "slot 1 lfo1 > fx2:Gain amt=0") == ref.read_bytes()
+    assert go("cable", f"slot 1 lfo1 > fx1:{dest} amt=0") != ref.read_bytes()
+
+
+def test_every_effect_takes_the_word_harmlessly(renderer, tmp_path):  # noqa: F811
+    # FM1_PARAM_DRIVEN reaches whatever effect a cable reaches: a zero cable
+    # into each effect's first modulatable parameter (so the host sends 1)
+    # leaves 0.6 s of noise through it as it was, byte for byte: the other
+    # effects ignore the index as any past their tables, and the three with
+    # idle paths have not rested long enough to idle.
+    listed = json.loads(subprocess.run([str(renderer), "--list"], check=True,
+                                       capture_output=True, text=True).stdout)
+    for e in listed:
+        if e["kind"] != "audio_fx":
+            continue
+        target = next((p for p in e["params"] if "mod" in p["flags"] and "nolock" not in p["flags"]),
+                      None)
+        if target is None:
+            continue
+        path = tmp_path / "zero.mod"
+        path.write_text(f"rack default\nslot 1 lfo1 > fx1:{target['abbr']} amt=0\n")
+        _, _, a = render(renderer, tmp_path, input="noise", seconds=0.6, fx=[(e["id"], [])],
+                         name="plain")
+        a = a.read_bytes()
+        _, _, b = render(renderer, tmp_path, input="noise", seconds=0.6, fx=[(e["id"], [])],
+                         name="cable", extra=["--mod", str(path)])
+        assert a == b.read_bytes(), e["id"]
 
 
 def test_resent_knobs_and_a_swept_frequency_leave_the_input_alone(report):

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced editor: the workbench</title>
+<link rel="stylesheet" href="editor.css">
+<style>
+  .top { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+  .fm1card .follow { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .fm1card .follow .small { flex: 1 1 200px; }
+  .insp .ctxline { display: flex; gap: 10px; align-items: center; margin: -2px 0 8px; flex-wrap: wrap; }
+  .flowhead { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .flowhead h3 { margin: 0; font: 400 13px/1.2 var(--display); letter-spacing: 0.05em; text-transform: uppercase; }
+  .flowhead .tools { margin-left: auto; display: flex; gap: 8px; }
+  @media (max-width: 1180px) { .top { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body data-layout="workbench" data-page="flow" data-keys="PLAY" data-sound="3">
+<main class="main">
+  <div class="top">
+    <section class="panel fm1card" aria-label="The virtual FM-1">
+      <h3>Virtual FM-1 <span class="aside">the to-scale panel; its screen is the firmware's own</span></h3>
+      <div class="fm1">
+        <img class="case" src="img/virtual-fm1.png" alt="">
+        <img class="tft" src="img/screen-fx-s3-in1.png" alt="The FM-1 screen: FX mode, Sound 3, insert 1, Filter, page 1 of 2: Type Ladder, Cutoff 420, Resonance 0.30, Drive 0.00">
+        <span class="ring" style="left:64.95%; top:15.2%; width:5.6%; aspect-ratio:1"></span>
+      </div>
+      <div class="follow">
+        <span class="toggle on"><span class="sw"></span>Follow the editor</span>
+        <span class="small">Selecting S3 In1 in the editor opened its page here: FX, In1, page 1 of 2.</span>
+      </div>
+      <p class="small" style="margin:8px 0 0">The computer's keys play the FM-1 while the panel has the focus (<b class="mod">PLAY</b>); a click in the editor, or <kbd>⌘E</kbd>, gives them to the editor (<b class="mod">EDIT</b>), and <kbd>Esc</kbd> gives them back. The ring marks the knob that just turned.</p>
+    </section>
+
+    <section class="panel insp" aria-label="S3 In1, Filter">
+      <h3><span class="tag s3">S3</span> In1 <span class="what">Filter</span> <span class="aside">0.6 KB · 1 cable in</span></h3>
+      <div class="credit">This repository (MIT): zero-delay-feedback filters after Zavalishin</div>
+      <div class="ctxline"><span class="small ctx">On the panel now: FX · S3 In1 · page 1 of 2</span><span class="toggle on" style="margin-left:auto"><span class="sw"></span>Follow the panel</span></div>
+      <div class="sub-h first"><span class="t">Page 1</span><span class="n">KNOB1–4 turn these now</span></div>
+      <div data-e="filter" data-p="Type" data-v="Ladder" data-knob="K1" data-cols="3"></div>
+      <div class="flash" data-e="filter" data-p="Cutoff" data-v="420" data-knob="K2" data-pill="1" data-mod="39,4540" data-live="1180"></div>
+      <div data-e="filter" data-p="Resonance" data-v="0.30" data-knob="K3"></div>
+      <div data-e="filter" data-p="Drive" data-v="0" data-knob="K4"></div>
+      <div class="sub-h"><span class="t">Page 2</span><span class="n">KNOB1–4 after PAGE</span></div>
+      <div data-e="filter" data-p="Mode" data-v="0"></div>
+      <div data-e="filter" data-p="Morph" data-v="0"></div>
+      <div data-e="filter" data-p="Mix" data-v="1"></div>
+      <div data-e="filter" data-p="Level" data-v="1"></div>
+      <div class="from" style="margin-top:10px"><span class="src">From the panel: KNOB2</span><span><b>Cutoff</b> 1.20 kHz → <b>420 Hz</b></span><span style="margin-left:auto"><kbd>⌘Z</kbd> undoes it here</span></div>
+      <div class="sub-h"><span class="t">Changes, both ways</span><span class="n">as they land</span></div>
+      <div class="log">
+        <span class="o p">panel</span><span class="c">KNOB2</span><span>S3 In1 Cutoff 1.20 kHz → 420 Hz</span><span class="t">now</span>
+        <span class="o">editor</span><span class="c">typed</span><span>S3 In1 Resonance 0.25 → 0.30</span><span class="t">9 s</span>
+        <span class="o">editor</span><span class="c">drag</span><span>S1 In1 ⇄ In2: Comp, Gate</span><span class="t">1 min</span>
+        <span class="o">file</span><span class="c">open</span><span>Project "First orbit"</span><span class="t">3 min</span>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel" aria-label="Signal flow">
+    <div class="flowhead">
+      <h3>Flow</h3>
+      <div class="legend">
+        <span><svg viewBox="0 0 32 10"><line x1="0" y1="5" x2="32" y2="5" stroke="var(--label)" stroke-width="2.2"/></svg>audio</span>
+        <span><svg viewBox="0 0 32 10"><rect x="1" y="1" width="30" height="8" rx="3" fill="none" stroke="var(--border-hi)" stroke-width="1.5" stroke-dasharray="4 3"/></svg>empty slot</span>
+        <span class="mod">● cables in</span><span class="ref">! refused</span>
+      </div>
+      <div class="tools"><span class="btn small">Drag a block to move or swap it</span></div>
+    </div>
+    <div class="flow" id="flow">
+      <div class="strips">
+        <div class="strip s1" id="st1">
+          <span class="tag s1">S1</span>
+          <div class="blk arp"><div class="role">Arp</div><div class="nm"><span class="led"></span>Off</div></div>
+          <div class="blk"><div class="role">Engine</div><div class="nm">Drums</div><div class="kv">Kit <b>Punch</b> · 16 pads</div><span class="mm"><i style="height:62%"></i></span></div>
+          <div class="blk"><div class="role">In1</div><div class="nm">Comp</div><div class="kv"><b>Punch</b> · −18 dB</div><span class="mm"><i style="height:55%"></i></span></div>
+          <div class="blk"><div class="role">In2</div><div class="nm">Gate</div><div class="kv">−40 dB</div><span class="mm"><i style="height:48%"></i></span></div>
+          <div class="lvl"><div class="fd"><i style="height:85%"></i></div><div class="v">85 %</div></div>
+        </div>
+        <div class="strip s2" id="st2">
+          <span class="tag s2">S2</span>
+          <div class="blk arp on"><div class="role">Arp</div><div class="nm"><span class="led"></span>Up</div><div class="kv">1/16</div></div>
+          <div class="blk"><div class="role">Engine<span class="b">● 2</span></div><div class="nm">Macro</div><div class="kv"><b>Wavetable</b></div><span class="mm"><i style="height:70%"></i></span></div>
+          <div class="blk"><div class="role">In1</div><div class="nm">Echo</div><div class="kv"><b>300</b> ms · Mix <b>0.35</b></div><span class="mm"><i style="height:64%"></i></span></div>
+          <div class="blk empty"><div class="role">In2</div><div class="nm">+ Add</div></div>
+          <div class="lvl"><div class="fd"><i style="height:70%"></i></div><div class="v">70 %</div></div>
+        </div>
+        <div class="strip s3" id="st3">
+          <span class="tag s3">S3</span>
+          <div class="blk arp"><div class="role">Arp</div><div class="nm"><span class="led"></span>Off</div></div>
+          <div class="blk"><div class="role">Engine</div><div class="nm">Macro</div><div class="kv"><b>VA+Filter</b></div><span class="mm"><i style="height:74%"></i></span></div>
+          <div class="blk sel"><div class="role">In1<span class="b">● 1</span></div><div class="nm">Filter</div><div class="kv"><b>Ladder</b> · 420 Hz</div><span class="mm"><i style="height:68%"></i></span></div>
+          <div class="blk"><div class="role">In2</div><div class="nm">Drive</div><div class="kv"><b>Tube</b> · +12.0 dB</div><span class="mm"><i style="height:72%"></i></span></div>
+          <div class="lvl"><div class="fd"><i style="height:80%"></i></div><div class="v">80 %</div></div>
+        </div>
+        <div class="strip s4" id="st4">
+          <span class="tag s4">S4</span>
+          <div class="blk arp"><div class="role">Arp</div><div class="nm"><span class="led"></span>Off</div></div>
+          <div class="blk"><div class="role">Engine<span class="b">● 1</span></div><div class="nm">FM6</div><div class="kv"><b>TINE EP</b></div><span class="mm"><i style="height:58%"></i></span></div>
+          <div class="blk"><div class="role">In1</div><div class="nm">Plate</div><div class="kv">Mix <b>0.30</b></div><span class="mm"><i style="height:52%"></i></span></div>
+          <div class="blk empty"><div class="role">In2</div><div class="nm">+ Add</div></div>
+          <div class="lvl"><div class="fd"><i style="height:60%"></i></div><div class="v">60 %</div></div>
+        </div>
+      </div>
+      <div class="mixbus" id="mix"><span class="nm">Mix</span><span class="kv">4 sounds</span></div>
+      <div class="master">
+        <div class="blk" id="m1"><div class="role">M1<span class="b r">! 1</span></div><div class="nm">Master Sat</div></div>
+        <div class="blk" id="m2"><div class="role">M2</div><div class="nm">Limiter</div></div>
+        <div class="blk fixed" id="m3"><div class="role">Bus</div><div class="nm">Limiter</div></div>
+        <div class="blk fixed" id="m4"><div class="role">Pot</div><div class="nm">MASTER</div></div>
+        <div class="blk fixed" id="m5"><div class="role">Out</div><div class="nm">Line, USB</div></div>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="meta.js"></script>
+<script src="shell.js"></script>
+<script src="editor.js"></script>
+<script>
+  window.CABLES = () => {
+    const down = (x0, y0, x3, y3) => `M${x0} ${y0 + 1} L${x3} ${y3 - 2}`;
+    const S = [1, 2, 3, 4].map((k) => ({ from: `#st${k}`, to: '#mix', kind: 'audio', ty: 'same', color: `--sound-${k}` }));
+    return { '#flow': [...S,
+      { from: '#mix', to: '#m1', kind: 'audio', bend: 14 },
+      { from: '#m1', to: '#m2', kind: 'audio', fs: 'b', ts: 't', route: down },
+      { from: '#m2', to: '#m3', kind: 'audio', fs: 'b', ts: 't', route: down },
+      { from: '#m3', to: '#m4', kind: 'audio', fs: 'b', ts: 't', route: down },
+      { from: '#m4', to: '#m5', kind: 'audio', fs: 'b', ts: 't', route: down }] };
+  };
+</script>
+</body>
+</html>

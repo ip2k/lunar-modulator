@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced editor: effect chains</title>
+<link rel="stylesheet" href="editor.css">
+<style>
+  .flowhead { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .flowhead h3 { margin: 0; font: 400 13px/1.2 var(--display); letter-spacing: 0.05em; text-transform: uppercase; }
+  .flowhead .tools { margin-left: auto; display: flex; gap: 8px; }
+  .lower { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+  .picker { text-transform: none; letter-spacing: 0; font-family: var(--ui); display: inline-flex; align-items: center; gap: 8px; height: 26px; padding: 0 9px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-hi); font-weight: 700; font-size: 13px; }
+  .picker::after { content: "\25be"; color: var(--label); font-size: 10px; }
+  @media (max-width: 1180px) { .lower { grid-template-columns: repeat(2, minmax(0, 1fr)); } .lower .drag { grid-column: 1 / -1; } }
+</style>
+</head>
+<body data-layout="editor" data-page="flow" data-screen="screen-fx-m2.png"
+      data-screen-alt="The FM-1 screen: FX mode, master slot 2, Limiter, page 1 of 2"
+      data-screen-cap="FX · M2 · page 1/2. On the FM-1 the same swap is SEL, then SELECT."
+      data-status="dragging <b>S1 In2 Gate</b> onto In1: drop to swap · <kbd>Esc</kbd> cancels">
+<main class="main">
+  <div class="head">
+    <span class="title">Flow and effects</span>
+    <span class="meta">4 sounds · 8 inserts · 2 master slots · <b>143.5 KB</b> of effects at 44,118 Hz</span>
+    <div class="tools"><span class="btn">Export effects…</span></div>
+  </div>
+
+  <section class="panel" aria-label="Signal flow">
+    <div class="flowhead">
+      <h3>Flow</h3>
+      <div class="legend">
+        <span><svg viewBox="0 0 32 10"><line x1="0" y1="5" x2="32" y2="5" stroke="var(--label)" stroke-width="2.2"/></svg>audio</span>
+        <span><svg viewBox="0 0 32 10"><rect x="1" y="1" width="30" height="8" rx="3" fill="none" stroke="var(--border-hi)" stroke-width="1.5" stroke-dasharray="4 3"/></svg>empty slot</span>
+        <span class="mod">● cables in</span><span class="ref">! refused</span>
+      </div>
+    </div>
+    <div class="flow" id="flow">
+      <div class="strips">
+        <div class="strip s1" id="st1">
+          <span class="tag s1">S1</span>
+          <div class="blk arp"><div class="role">Arp</div><div class="nm"><span class="led"></span>Off</div></div>
+          <div class="blk"><div class="role">Engine</div><div class="nm">Drums</div><div class="kv">Kit <b>Punch</b> · 16 pads</div><span class="mm"><i style="height:62%"></i></span></div>
+          <div class="blk drop" id="tgt"><div class="role">In1 · swap</div><div class="nm">Comp</div><div class="kv"><b>Punch</b> · −18 dB</div></div>
+          <div class="blk ghost"><div class="role">In2</div><div class="nm">Gate, moving</div></div>
+          <div class="lvl"><div class="fd"><i style="height:85%"></i></div><div class="v">85 %</div></div>
+        </div>
+        <div class="strip s2" id="st2">
+          <span class="tag s2">S2</span>
+          <div class="blk arp on"><div class="role">Arp</div><div class="nm"><span class="led"></span>Up</div><div class="kv">1/16</div></div>
+          <div class="blk"><div class="role">Engine<span class="b">● 2</span></div><div class="nm">Macro</div><div class="kv"><b>Wavetable</b></div><span class="mm"><i style="height:70%"></i></span></div>
+          <div class="blk"><div class="role">In1</div><div class="nm">Echo</div><div class="kv"><b>300</b> ms · Mix <b>0.35</b></div><span class="mm"><i style="height:64%"></i></span></div>
+          <div class="blk empty"><div class="role">In2</div><div class="nm">+ Add</div></div>
+          <div class="lvl"><div class="fd"><i style="height:70%"></i></div><div class="v">70 %</div></div>
+        </div>
+        <div class="strip s3" id="st3">
+          <span class="tag s3">S3</span>
+          <div class="blk arp"><div class="role">Arp</div><div class="nm"><span class="led"></span>Off</div></div>
+          <div class="blk"><div class="role">Engine</div><div class="nm">Macro</div><div class="kv"><b>VA+Filter</b></div><span class="mm"><i style="height:74%"></i></span></div>
+          <div class="blk"><div class="role">In1<span class="b">● 1</span></div><div class="nm">Filter</div><div class="kv"><b>Ladder</b> · 420 Hz</div><span class="mm"><i style="height:68%"></i></span></div>
+          <div class="blk"><div class="role">In2</div><div class="nm">Drive</div><div class="kv"><b>Tube</b> · +12.0 dB</div><span class="mm"><i style="height:72%"></i></span></div>
+          <div class="lvl"><div class="fd"><i style="height:80%"></i></div><div class="v">80 %</div></div>
+        </div>
+        <div class="strip s4" id="st4">
+          <span class="tag s4">S4</span>
+          <div class="blk arp"><div class="role">Arp</div><div class="nm"><span class="led"></span>Off</div></div>
+          <div class="blk"><div class="role">Engine<span class="b">● 1</span></div><div class="nm">FM6</div><div class="kv"><b>TINE EP</b></div><span class="mm"><i style="height:58%"></i></span></div>
+          <div class="blk"><div class="role">In1</div><div class="nm">Plate</div><div class="kv">Mix <b>0.30</b></div><span class="mm"><i style="height:52%"></i></span></div>
+          <div class="blk empty"><div class="role">In2</div><div class="nm">+ Add</div></div>
+          <div class="lvl"><div class="fd"><i style="height:60%"></i></div><div class="v">60 %</div></div>
+        </div>
+      </div>
+      <div class="mixbus" id="mix"><span class="nm">Mix</span><span class="kv">4 sounds</span></div>
+      <div class="master">
+        <div class="blk" id="m1"><div class="role">M1<span class="b r">! 1</span></div><div class="nm">Master Sat</div></div>
+        <div class="blk sel" id="m2"><div class="role">M2</div><div class="nm">Limiter</div></div>
+        <div class="blk fixed" id="m3"><div class="role">Bus</div><div class="nm">Limiter</div></div>
+        <div class="blk fixed" id="m4"><div class="role">Pot</div><div class="nm">MASTER</div></div>
+        <div class="blk fixed" id="m5"><div class="role">Out</div><div class="nm">Line, USB</div></div>
+      </div>
+      <div class="intent" id="hand" aria-hidden="true"><div class="blk hand"><div class="role">In2 → In1</div><div class="nm">Gate</div></div></div>
+    </div>
+  </section>
+
+  <div class="lower">
+    <section class="panel" aria-label="The Mix">
+      <h3>Mix <span class="aside">into the master chain</span></h3>
+      <div class="snd s1" data-e="mix" data-p="Level" data-v="85" data-label="S1 Drums"></div>
+      <div class="snd s2" data-e="mix" data-p="Level" data-v="70" data-label="S2 Macro"></div>
+      <div class="snd s3" data-e="mix" data-p="Level" data-v="80" data-label="S3 Macro"></div>
+      <div class="snd s4" data-e="mix" data-p="Level" data-v="60" data-label="S4 FM6"></div>
+      <div class="sub-h"><span class="t">Master chain</span><span class="n">2 slots; 4 and 2 sends later</span></div>
+      <p class="small" style="margin:4px 0 0">M1 Master Sat has one refused cable: slot 6, ENV3 per voice. A per-voice cable cannot reach an effect; the matrix offers "Make it global".</p>
+    </section>
+
+    <section class="panel" aria-label="M2, the Limiter">
+      <h3><span class="tag m">M2</span> <span class="picker">Limiter</span><span class="aside">11.7 KB · master slot 2 of 2</span></h3>
+      <div class="credit">This repository (MIT): a look-ahead limiter after Geraint Luff</div>
+      <div class="sub-h first"><span class="t">Page 1</span><span class="n">KNOB1–4</span></div>
+      <div data-e="limit" data-p="Ceiling" data-v="-1"></div>
+      <div data-e="limit" data-p="Drive" data-v="0"></div>
+      <div data-e="limit" data-p="Release" data-v="100"></div>
+      <div data-e="limit" data-p="Lookahead" data-v="2"></div>
+      <div class="sub-h"><span class="t">Page 2</span><span class="n">KNOB1–3</span></div>
+      <div data-e="limit" data-p="Mode" data-v="Brickwall"></div>
+      <div data-e="limit" data-p="Link" data-v="1"></div>
+      <div data-e="limit" data-p="Mix" data-v="1"></div>
+      <div class="sub-h"><span class="t">Live</span><span class="n">meters the screen cannot show</span></div>
+      <div class="meterh"><span class="l">In</span><span class="m"><i style="left:0; width:92%"></i></span><span class="v">−0.4 dB</span></div>
+      <div class="meterh"><span class="l">Reduction</span><span class="m"><i style="right:0; width:14%"></i></span><span class="v">−3.2 dB</span></div>
+      <div class="meterh"><span class="l">Out</span><span class="m"><i style="left:0; width:88%"></i></span><span class="v">−1.0 dB</span></div>
+    </section>
+
+    <section class="panel drag" aria-label="While you drag">
+      <h3>While you drag <span class="aside">decided before the drop</span></h3>
+      <div class="dstate"><span class="sw swap"></span><span><b>Swap.</b> Onto a filled slot: the two change places, with their settings and their cables. One edit, one undo step.</span></div>
+      <div class="dstate"><span class="sw move"></span><span><b>Move.</b> Into an empty slot; the one it left is empty.</span></div>
+      <div class="dstate"><span class="sw note"></span><span><b>Allowed, with a note.</b> A Limiter on an insert: its look-ahead delays that sound by 2 ms against the others.</span></div>
+      <div class="dstate"><span class="sw no"></span><span><b class="r">Refused.</b> PSX Verb on S4 In2 needs 131.3 KB; 85.2 KB is free. Nothing changes.</span></div>
+      <div class="sub-h"><span class="t">Without a mouse</span></div>
+      <p class="small" style="margin:2px 0 0"><kbd>Space</kbd> picks a block up, the arrows move it, <kbd>Space</kbd> drops it, <kbd>Esc</kbd> cancels; <kbd>⌥↑</kbd> <kbd>⌥↓</kbd> swap with the neighbour. Every block also has "Move to…" in its menu.</p>
+    </section>
+  </div>
+</main>
+<script src="meta.js"></script>
+<script>window.META.engines.mix = { name: 'Mix', params: [{ n: 'Level', t: 'float', min: 0, max: 100, d: 80, unit: 'pct', pg: 1, f: [] }] };</script>
+<script src="shell.js"></script>
+<script src="editor.js"></script>
+<script>
+  window.AFTER = () => {
+    const flow = document.querySelector('#flow'), t = document.querySelector('#tgt'), h = document.querySelector('#hand');
+    const a = flow.getBoundingClientRect(), b = t.getBoundingClientRect();
+    h.style.left = (b.left - a.left + 22) + 'px'; h.style.top = (b.top - a.top + 24) + 'px';
+  };
+  window.CABLES = () => {
+    const down = (x0, y0, x3, y3) => `M${x0} ${y0 + 1} L${x3} ${y3 - 2}`;
+    const S = [1, 2, 3, 4].map((k) => ({ from: `#st${k}`, to: '#mix', kind: 'audio', ty: 'same', color: `--sound-${k}` }));
+    return { '#flow': [...S,
+      { from: '#mix', to: '#m1', kind: 'audio', bend: 14 },
+      { from: '#m1', to: '#m2', kind: 'audio', fs: 'b', ts: 't', route: down },
+      { from: '#m2', to: '#m3', kind: 'audio', fs: 'b', ts: 't', route: down },
+      { from: '#m3', to: '#m4', kind: 'audio', fs: 'b', ts: 't', route: down },
+      { from: '#m4', to: '#m5', kind: 'audio', fs: 'b', ts: 't', route: down }] };
+  };
+</script>
+</body>
+</html>

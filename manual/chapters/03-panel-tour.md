@@ -30,10 +30,10 @@ turn without end, in steps you can feel.
 | Knob | What it does |
 | --- | --- |
 | [[MASTER]] | The output volume, from silent to full. While you turn it the screen shows *Volume* and its position from 0 to 100 |
-| [[SELECT]] | On the sound's page, turns the page. In FX mode, moves through the slots of the chain and their pages. In SEQ mode and on the modulation pages it does more (chapters [7](07-sequencer.md) and [8](08-modulation.md)). On the global page it does nothing |
+| [[SELECT]] | On the sound's page, turns the page. In FX mode, moves through the slots of the chain and their pages. In SEQ mode and on the modulation pages it does more (chapters [7](07-sequencer.md) and [8](08-modulation.md)). On the global page it turns between *Globe* and *Key* |
 | [[PRESETS]] | Chooses the current sound's engine, in this order: Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Test Sine, and round again; Sounds 2 to 4 start the list with *Empty*. With [[SEL]] held, chooses the current sound, 1 to 4 ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |
 | [[ALGORITHM]] | Steps through the engine's main list: Model for Macro and Macro Heavy, Shape for Shapes, Patch for Six-Op FM and FM6, Pad for Sophie and Drums. Test Sine has none. In FX mode it chooses the effect in the chosen slot. With [[OCT-]] or [[OCT+]] held, it transposes ([chapter 4](04-playing.md)) |
-| [[KNOB1]] to [[KNOB4]] | Change the four parameters of the current page, in the order the screen lists them. With [[LFO]] or [[ENV]] held, they make a modulation cable ([chapter 8](08-modulation.md#the-gesture-making-a-cable-with-a-knob)) |
+| [[KNOB1]] to [[KNOB4]] | Change the four parameters of the current page, in the order the screen lists them. With [[LFO]] or [[ENV]] held, they make a modulation cable ([chapter 8](08-modulation.md#the-gesture-making-a-cable-with-a-knob)). On the global page [[KNOB1]] and [[KNOB2]] set the project key ([chapter 10](10-settings-and-storage.md#the-project-key)) |
 
 ### How far one step goes
 
@@ -90,7 +90,7 @@ two rows of six under [[KNOB1]] to [[KNOB4]]: [[FX]], [[SEL]], [[ENV]],
 | [[SEL]] | In FX mode, picks up the chosen effect so that [[SELECT]] swaps it with its neighbour; press [[SEL]] again to put it down. Everywhere else it is SHIFT, the sequencer's second function key: held, it changes what the keys, knobs and buttons do ([chapter 7](07-sequencer.md)); with [[PRESETS]] it chooses the current sound. In the modulation pages it picks up a module, or opens a cable's chain ([chapter 8](08-modulation.md)) | The same |
 | [[ENV]], [[LFO]] | A tap shows the modulation rack at an envelope or an LFO; held while you turn a knob, they make a cable to that knob's parameter ([chapter 8](08-modulation.md)) | The same |
 | [[EDIT]] | Shows the modulation matrix, the list of cables; press it again to leave ([chapter 8](08-modulation.md)) | The same |
-| [[GLO]] | Shows the global page; press it again to leave | The global page, with settings ([chapter 10](10-settings-and-storage.md)) |
+| [[GLO]] | Shows the global page, with the project key on its second page; press it again to leave | The global page, with settings ([chapter 10](10-settings-and-storage.md)) |
 | [[HOME]] | Returns to the sound's page from any mode | The same |
 | [[SEQ]] | Shows the sequencer's steps, SEQ mode, from any mode; held with a white key 1 to 8, focuses that track ([chapter 7](07-sequencer.md)) | The same |
 | [[PLAY/STOP]] | Starts and stops the sequencer, in any mode | The same |
@@ -145,7 +145,9 @@ them held moves it by semitones ([chapter 4](04-playing.md)).
 The FM-1 prints labels under its black keys for M-VAVE's own firmware: from
 the lowest black key upwards, [[OP1]] to [[OP6]], [[PIT]], [[GLO]], [[MONO]]
 and [[POLY]]; the highest black key has none. This manual uses them to name
-the black keys.
+the black keys. Outside SEQ mode, [[SEL]] held with [[MONO]] or [[POLY]]
+sets the current sound's Voice Mode
+([chapter 4](04-playing.md#glide-and-voice-modes)).
 
 !!! note "The keys and the sequencer"
     The keys have two jobs. Outside SEQ mode they play notes, as usual. In
@@ -173,7 +175,7 @@ simulator's does.
   the limiter is holding it down ([chapter 6](06-effects.md#the-limiter)).
 - **Bottom bar, left.** The page you are on and how many there are, such as
   *1/2*, and the mode: *Sound*, an effect slot such as *M1* or *S1 In2*,
-  *Mix*, *Seq*, *Globe* on the global page, or a modulation page.
+  *Mix*, *Seq*, *Globe* or *Key* on the global page, or a modulation page.
 - **Bottom bar, right.** The memory meter: a bar and the share, in percent,
   of the FM-1's memory the sounds, effects, sequencer and modulation would
   take, against about 379 KB, the room M-VAVE's firmware leaves free on the
@@ -263,9 +265,11 @@ modulation pages, and [[ARP]] the arpeggiator's. Chapters
 effects take against the memory the FM-1 has free, the current sound's number
 of voices, the names of the two master effects (*M1* and *M2*), and the
 octave and transpose.
-The bottom bar reads *Globe*, the name M-VAVE's firmware gives this page. The
-knobs and [[SELECT]] do nothing here. [Chapter 10](10-settings-and-storage.md)
-describes the page.
+The bottom bar reads *Globe*, the name M-VAVE's firmware gives this page.
+[[SELECT]] turns to a second page, *Key*, where [[KNOB1]] and [[KNOB2]] set
+the project key's root and scale, each opening its list as you turn it;
+they do so from *Globe* too, which then turns to *Key*.
+[Chapter 10](10-settings-and-storage.md) describes both.
 
 ### Lists
 

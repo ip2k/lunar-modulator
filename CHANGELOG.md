@@ -9,6 +9,68 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Glide Mode and Time Mode on Macro, Macro Heavy, Six-Op FM, FM6 and
+  Shapes.** Glide now has a page of its own on every pitched engine, with
+  four knobs:
+  - **Glide Mode**: *Off* (the default: nothing slides, and the engine
+    sounds exactly as without glide), *Legato* (a note played over a held
+    key slides from it, as glide did until now) or *Always* (every note
+    slides from the last one you played, held or not: the stock FM-1's
+    full-time portamento).
+  - **Time Mode**: *Time* (each slide takes the Glide time, as before) or
+    *Rate* (Glide is the time per octave, so a wider jump takes longer).
+  - **Glide** keeps 1 ms to 5 s, now 100 ms by default; 1 ms is a real,
+    very short slide, and Off lives in Glide Mode. A setup that turned
+    Glide up to slide needs Glide Mode set to Legato too.
+  - The page is page 4 of Macro and Macro Heavy and page 3 of Six-Op FM,
+    FM6 and Shapes, whose page 2 is back to what it was before glide. All
+    four can be locked and modulated; a slide under way finishes as it
+    began when a mode changes.
+  - The modulation runtime holds 8 more parameter records (336 bytes) for
+    Macro Heavy's sixteen parameters; each engine grows by 32 to 44 bytes.
+- **SHIFT with MONO or POLY sets the Voice Mode** in the simulator, outside
+  SEQ mode: hold SEL and press the black key MONO (C#5) for Mono, again for
+  Legato, or POLY (D#5) for Poly. The screen names the mode, and with SEL
+  held the two keys light to show it. On a kit, the screen says there is
+  no Voice Mode.
+- **Drums: choke groups and a kit-wide decay.**
+  - **Choke** (page 3, per pad): *Kit* (the kit's own: the three hi-hats
+    cut each other in both kits), *None*, or *Group 1* to *Group 4*. A hit
+    cuts every other pad of its group that is still ringing; a pad keeps the
+    group it was struck in.
+  - **Kit Decay** (page 4): every pad's decay at once, each from its own
+    setting; the middle is the kit as voiced, exactly.
+  - Kit, Accent and Volume moved to page 4, the kit's page; pages 1 to 3
+    are the pad's.
+- **The project key.** The global page has a second page: press [GLO],
+  turn [SELECT] to *Key*, and set the project's key with [KNOB1] (C to B)
+  and its scale with [KNOB2] (Major, Minor, Dorian, Phrygian, Lydian,
+  Mixolydian, Locrian or Chromatic); each knob shows its list as you turn
+  it. The line under the top bar says the key in words, such as *D Minor*.
+  It is kept in the sequencer's set beside the tempo, so loading a set
+  brings its key (a set without one is in C Major). Every MIDI effect is
+  told the key; the arpeggiator does not use it, the scale and chord
+  effects planned next will. On the desktop the sequencer's new `key`
+  command sets it.
+
+- **A design for the Advanced editor**, in `notes/2026-10-06-web-editor.md`:
+  a larger, better laid-out editor for sounds, effect chains and modulation
+  that lives on the virtual FM-1's page and changes the same firmware the
+  panel plays, so a knob turned on either side shows on the other.
+  - **What it would be.** A signal-flow view of the four sounds into the
+    mix and the master chain, where effects are dragged to move or swap; a
+    sound's every parameter on one screen as sliders with typed values,
+    grouped the way the FM-1's pages and knobs group them; the modulation
+    matrix as a table with reasons for anything refused, and as a map of
+    cables; A/B compare, a memory page, files dropped where they go, and
+    one undo for the editor and the panel.
+  - **Six mockups** at desktop and tablet widths, in `assets/web-editor/`,
+    drawn from the engines' own parameter lists and the simulator's real
+    screens. Every one passes a layout check for overlapping, crowded or
+    clipped labels.
+  - **Decisions for the owner**, and a build plan that follows the saved
+    state and file work. Nothing is built yet, and the editor never talks
+    to a device.
 - **Diagrams in the manual.** Eight drawings, in the manual's colours, where
   the text explains how things connect: where the arpeggiator sits in the
   note path (chapter 4); the whole signal flow from the keys, MIDI IN and
@@ -1239,6 +1301,39 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Squash's Mu makes up its own level, in part.** Turning Squash up past
+  the middle now mostly changes Mu's character rather than its loudness: it
+  gives back half, in dB, of what it takes from a -12 dBFS peak, up to
+  24 dB (at the default Shape, 2.7 dB at Squash 0.6, 9.7 at 0.75, 24 at the
+  right end; less on the gentler Shapes). It never
+  pushes a sound past full scale: on the first moments of a loud note, before
+  Mu has turned it down, the lift gives way. Up to Squash 0.525 Mu is exactly
+  as before; Snap and Split are unchanged. Documented in engines/README.md
+  ("Squash") with the curve.
+- **EQ, Isolator and Master Sat stay awake under locks and cables.** An
+  effect that a modulation cable (at any amount) or a sequencer lock reaches
+  never rests at its neutral settings, so a short move is always heard at
+  once. Engine API v3 gains a host's word for it, `FM1_PARAM_DRIVEN`, which
+  every other engine ignores.
+- **The arpeggiator keeps to the beat.** While the sequencer plays, the
+  arpeggiator's steps fall on the sequencer's beat at their rate: a key
+  you press between two steps, or an arpeggiator you switch on in the
+  middle of a bar, waits for the next step instead of starting at the next
+  tick. Triplets fall on the triplets of the beat, and Swing swings every
+  second step of that grid. Stopped, it starts at once, as before.
+  - **Sync** now reads: *Key* starts the pattern again at the first key
+    (on the next step of the beat while the sequencer plays); *Free* keeps
+    the pattern running from PLAY, so a Euclidean rhythm stays on the bar.
+- **Stop takes back what the sequencer gave the arpeggiator.** When the
+  sequencer stops, its notes leave the arpeggiator, latched or not, and
+  the notes they were playing stop at once; the notes you play, or latched
+  by hand, go on playing. While latched, your chords and the sequencer's
+  notes latch apart: a new chord of yours replaces yours, a new note of the
+  sequencer's replaces its own, and the arpeggiator plays both. (Before,
+  Stop cut whatever was sounding, and a sequencer note dropped your latched
+  chord.)
+- Two new parity scenarios, one of them a recorded panel session, check
+  all three in the browser, the native app and fm1-render, byte for byte.
 - **Every track on the sequencer's strip shows its sound's number.** The
   eight small tiles beside the tempo now carry the number of the sound each
   track plays (*1* to *4*) on the sound's colour, and *M* on grey for MIDI
@@ -1788,6 +1883,13 @@ history.
   - The manual's recovery chapter no longer calls the open dongle design
     "complete": its firmware builds and is simulated, but nobody has built
     the board.
+- **Six-Op FM, Sophie and PSX Verb took a not-a-number setting as the
+  minimum;** it is now the parameter's default, as the engine API says and
+  every other engine does.
+- **The documentation:** the engine count in DEVELOPERS.md (seven sound
+  engines with Drums and FM6), and the Limiter's Round mode, whose 3 dB of
+  room over the ceiling for its rounding clip is by design (the output still
+  never passes the ceiling).
 - **The virtual FM-1 builds without compiler warnings under GCC 11 to 16.**
   No change in what it does. For developers: four warnings in
   `sim/web/src/fm1_app.c` (`-Wformat-truncation` on the DX7 load's

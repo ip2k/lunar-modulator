@@ -136,6 +136,11 @@
  * (fm1_app_seq_cmd), and sends it again after each render while the app
  * answers BUSY.
  *
+ * The project key (owner, 2026-10-06): the summary's "key" is the app's
+ * (the set's, fm1_app_project_key) and "glo_page" the global page shown;
+ * with a sequencer script "seq_key" says it again beside fm1-render's own
+ * "seq_key", which a replay of the panel's typed `key` commands must match.
+ *
  * Prints one line of JSON. Test code: C99 with stdio. MIT licence.
  */
 #include "fm1_app.h"
@@ -866,6 +871,43 @@ static void arp_screens(const char *dir, float rate) {
   press(FM1_BTN_ARP);
   fm1_app_button(&g_app, FM1_BTN_SEL, 0);
   check_screen("arp-sound-2-off", dir, 1);
+  fm1_app_all_notes_off(&g_app);
+}
+
+/* ---- --screens: SHIFT + MONO and POLY, the Voice Mode keys --------------- */
+
+/* A key pressed and let go (SHIFT held by the caller). */
+static void tap_key(int key) {
+  fm1_app_key(&g_app, key, 1, 100);
+  fm1_app_key(&g_app, key, 0, 0);
+}
+
+static void voice_mode_screens(const char *dir, float rate) {
+  static const char *const names[] = { "poly", "mono", "legato" };
+  static const int want[] = { 1, 2, 1, 0 };
+  int vm;
+  destroy_units();
+  fm1_app_init(&g_app, rate);
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  vm = fm1_app_param_index(&g_app, 0, "Voice Mode");
+  fm1_app_button(&g_app, FM1_BTN_SEL, 1);     /* SHIFT held */
+  fm1_app_render(&g_app, 64);
+  check_screen("voice-mode-shift-leds", dir, 1);
+  for (int k = 0; k < 4; ++k) {               /* MONO, MONO, MONO, then POLY */
+    char name[64];
+    tap_key(k < 3 ? FM1_SEQ_UI_KEY_TRACK_PREV : FM1_SEQ_UI_KEY_TRACK_NEXT);
+    expect((int)fm1_app_get_param(&g_app, 0, vm) == want[k], "SHIFT + MONO or POLY: wrong Voice Mode");
+    expect(g_app.key_down[FM1_SEQ_UI_KEY_TRACK_PREV] == 0 && g_app.key_down[FM1_SEQ_UI_KEY_TRACK_NEXT] == 0,
+           "SHIFT + MONO or POLY played its key");
+    snprintf(name, sizeof name, "popup-voice-mode-%s", names[want[k]]);
+    check_screen(name, dir, k != 2);
+    g_app.popup_lines = 0;
+  }
+  fm1_app_select(&g_app, 0, fm1_app_find("drums"));
+  tap_key(FM1_SEQ_UI_KEY_TRACK_PREV);
+  check_screen("popup-voice-mode-none", dir, 1);
+  g_app.popup_lines = 0;
+  fm1_app_button(&g_app, FM1_BTN_SEL, 0);
   fm1_app_all_notes_off(&g_app);
 }
 
@@ -3074,6 +3116,49 @@ static int run_screens(const char *dir, float rate) {
   check_screen("global", dir, 1);
   g_app.octave = 0;
   g_app.transpose = 0;
+  /* The Key page: SELECT turns to it; every root and every scale, the
+   * longest name with the longest root (F# Mixolydian), KNOB1 and KNOB2. */
+  fm1_app_encoder(&g_app, FM1_ENC_SELECT, 1);
+  expect(g_app.glo_page == 1, "SELECT does not turn the global page to Key");
+  check_screen("global-key", dir, 1);
+  for (int root = 0; root < 12; ++root) {
+    for (int place = 0; place < FM1_KEY_SCALES; ++place) {
+      char name[64];
+      int scale;
+      expect(fm1_app_set_project_key(&g_app, root, fm1_app_key_scale_at(place)) == 0, "the key was refused");
+      expect(fm1_app_project_key(&g_app, &scale) == root && scale == fm1_app_key_scale_at(place),
+             "the key did not change");
+      snprintf(name, sizeof name, "global-key-%d-%d", root, place);
+      check_screen(name, dir, root == 6 && fm1_app_key_scale_at(place) == FM1_KEY_MIXOLYDIAN);
+    }
+  }
+  fm1_app_set_project_key(&g_app, 0, FM1_KEY_MAJOR);
+  fm1_app_encoder(&g_app, FM1_ENC_SELECT, -1);
+  fm1_app_encoder(&g_app, FM1_ENC_KNOB1, 2);          /* a knob on Globe: D, and the Key page */
+  expect(g_app.glo_page == 1 && fm1_app_project_key(&g_app, NULL) == 2, "KNOB1 on the global page");
+  /* ...with the root's list open on D, as a list parameter's knob opens
+   * its list on HOME (audit D1) */
+  expect(g_app.popup_lines > 0 && g_app.popup_total == 12 && g_app.popup_mark >= 0 &&
+         strcmp(g_app.popup[g_app.popup_mark], "D") == 0, "KNOB1 does not open the root's list on D");
+  check_screen("global-key-list-root", dir, 1);
+  fm1_app_encoder(&g_app, FM1_ENC_KNOB2, 1);          /* Minor, the second */
+  fm1_app_encoder(&g_app, FM1_ENC_KNOB2, 1);          /* Dorian, the third */
+  {
+    int scale;
+    expect(fm1_app_project_key(&g_app, &scale) == 2 && scale == FM1_KEY_DORIAN, "KNOB2 on the Key page");
+  }
+  expect(g_app.popup_lines > 0 && g_app.popup_total == FM1_KEY_SCALES && g_app.popup_mark >= 0 &&
+         strcmp(g_app.popup[g_app.popup_mark], "Dorian") == 0, "KNOB2 does not open the scale's list on Dorian");
+  check_screen("global-key-list-scale", dir, 1);
+  fm1_app_encoder(&g_app, FM1_ENC_KNOB2, 64);         /* clamped at Chromatic */
+  fm1_app_encoder(&g_app, FM1_ENC_KNOB1, -64);        /* ...and at C */
+  {
+    int scale;
+    expect(fm1_app_project_key(&g_app, &scale) == 0 && scale == FM1_KEY_CHROMATIC, "the key's knobs clamp");
+  }
+  fm1_app_set_project_key(&g_app, 0, FM1_KEY_MAJOR);
+  g_app.popup_lines = 0;
+  g_app.glo_page = 0;
 
   /* Popups, over HOME. */
   g_app.mode = FM1_MODE_HOME;
@@ -3138,6 +3223,7 @@ static int run_screens(const char *dir, float rate) {
   }
   check_screen("popup-refuses-rate", dir, 1);
   arp_screens(dir, rate);
+  voice_mode_screens(dir, rate);
   seq_screens(dir, rate);
   seq_step_screens(dir, rate);
   seq_rec_screens(dir, rate);
@@ -4802,17 +4888,20 @@ int main(int argc, char **argv) {
     fm1_app_draw(&g_app, 0);
     if (!write_ppm(screen_path, &g_app.tft)) return 1;
   }
-  int sounding = 0;
+  int sounding = 0, key_scale = 0;
   for (int u = 0; u < FM1_APP_SOUNDS; ++u) {
     for (int n = 0; n < 128; ++n) sounding += g_app.note_count[u][n];
   }
+  fm1_app_project_key(&g_app, &key_scale);   /* the project key, the set's (or the stage's) */
   printf("{\"engine\":\"%s\",\"rate\":%g,\"frames\":%u,\"peak\":%.6f,\"rms\":%.6f,"
          "\"ram\":%u,\"mode\":%d,\"octave\":%d,\"transpose\":%d,\"sounding\":%d,"
-         "\"fx\":[\"%s\",\"%s\"],\"fx_slot\":%d,\"fx_page\":%d,\"leds\":\"",
+         "\"fx\":[\"%s\",\"%s\"],\"fx_slot\":%d,\"fx_page\":%d,\"glo_page\":%d,"
+         "\"key\":[%d,%d],\"leds\":\"",
          g_app.unit[0].e ? g_app.unit[0].e->id : "", (double)rate, total, (double)peak,
          total ? sqrt(sum2 / (2.0 * total)) : 0.0, (unsigned)fm1_app_ram(&g_app), g_app.mode,
          g_app.octave, g_app.transpose, sounding, g_app.unit[1].e ? g_app.unit[1].e->id : "",
-         g_app.unit[2].e ? g_app.unit[2].e->id : "", g_app.fx_slot, g_app.fx_page);
+         g_app.unit[2].e ? g_app.unit[2].e->id : "", g_app.fx_slot, g_app.fx_page, g_app.glo_page,
+         fm1_app_project_key(&g_app, NULL), key_scale);
   for (int i = 0; i < FM1_APP_LEDS; ++i) putchar(g_app.led[i] ? '1' : '0');
   printf("\",\"popup\":[");
   for (int i = 0; i < g_app.popup_lines; ++i) {
@@ -5022,6 +5111,11 @@ int main(int argc, char **argv) {
       free(g_ui_log_text[k]);
     }
     printf("]");
+    {
+      int scale;
+      const int root = fm1_app_project_key(&g_app, &scale);   /* the set's key, as fm1-render's */
+      printf(",\"seq_key\":[%d,%d]", root, scale);
+    }
     if (log) fclose(log);
     if (g_log_cmds) fclose(g_log_cmds);
     if (g_log_mod) fclose(g_log_mod);

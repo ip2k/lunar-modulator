@@ -131,9 +131,11 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** six swappable sound engines and twenty-two effects (Comb
-  split out of Filter, Squash and Transient added on 2026-10-05), plus test
-  engines, behind one C API, version 3
+- **The API:** seven swappable sound engines (Macro, Shapes, Macro Heavy,
+  Six-Op FM, FM6, Sophie and Drums: the registry's sound engines less Test
+  Sine) and twenty-two effects (Comb split out of Filter, Squash and
+  Transient added on 2026-10-05), plus test engines, behind one C API,
+  version 3
   ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
   [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
   16-bit parameter flags with the LOG law for pitch- and time-like knobs, a
@@ -156,7 +158,8 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     - **Drums:** Plaits' drum classes for its kicks, toms, snares and
       hi-hats, in a 16-pad kit with a rim shot, clap, cowbell and cymbal of
       our own, after Werner, Abel and Smith's TR-808 cowbell and cymbal
-      models ([`engines/README.md`](engines/README.md#drums)).
+      models, with per-pad choke groups and a kit-wide decay
+      ([`engines/README.md`](engines/README.md#drums)).
     - **Plate:** Rings' reverb, with a Freeze after Elements'.
     - **Room:** Clouds' reverb and diffuser.
     - **Ensemble and Diffuse:** Plaits' ensemble and diffuser.
@@ -186,10 +189,20 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     Transient (a transient shaper) are our own code
     ([`engines/README.md`](engines/README.md#crush)). Squash (three
     compressors: Snap, Mu and Split) ports Airwindows Pop3, Pressure4 and
-    ButterComp2 (Chris Johnson, MIT) to single precision without libm, and
-    the Limiter's Round mode ports ClipOnly2, both checked against the
-    upstream loops run in a container
+    ButterComp2 (Chris Johnson, MIT) to single precision without libm, Mu
+    with a partial makeup of our own that adds no clipping, and the
+    Limiter's Round mode ports ClipOnly2 (its 3 dB of headroom over the
+    ceiling, left to the rounding stage, is by design), both checked
+    against the upstream loops run in a container
     ([`engines/README.md`](engines/README.md#squash)).
+- **Glide and voice modes** on the five pitched engines: Poly, Mono and
+  Legato; Glide Mode Off, Legato (fingered) or Always (full-time, as the
+  stock FM-1 has); Time Mode Time (constant time) or Rate (time per
+  octave) ([`engines/README.md`](engines/README.md#glide-and-voice-modes)).
+- **Idle paths:** EQ, Isolator and Master Sat idle at their pass-through
+  settings after 2 s, unless a lock lane or a modulation cable reaches
+  them: the host's `FM1_PARAM_DRIVEN` word
+  ([`engines/README.md`](engines/README.md#idle-at-pass-through)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
   checked sample for sample against upstream `Voice`
@@ -294,11 +307,11 @@ chapter 4, "Arpeggiator").
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
   canvas, its text in three faces (the project's 5×9 at ×2, Spleen 8×16
-  and 6×12). All 3,408 screens of the layout sweep, the sequencer's,
-  modulation's and the arpeggiator's, FM6's user bank, every list popup at
-  every entry and the knobs' lists included, pass a layout check, with no
-  text cut short and nothing closer than 4 px [verified: `fm1-sim-render
-  --screens`, 2026-10-06].
+  and 6×12). All 3,507 screens of the layout sweep, the sequencer's,
+  modulation's and the arpeggiator's, the global page's Key page, FM6's
+  user bank, every list popup at every entry and the knobs' lists
+  included, pass a layout check, with no text cut short and nothing closer
+  than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
   modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); only SAVE is still
@@ -573,7 +586,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Screen and controls refinement** · *In progress*
 - **Depends on:** the simulator (ongoing). On the device: the TFT strip
   driver, key matrix and encoders (I12), and one sized arena for the app
-  layer, whose `fm1_app_t` is 4,939,616 B today (4.5 MiB of it the fixed
+  layer, whose `fm1_app_t` is 4,939,984 B today (4.5 MiB of it the fixed
   arenas of multi-sound's four sound units and ten effect slots), the
   sequencer's arena included, against 578 KB of SRAM
   [verified: sim/web/README.md] (I2).
@@ -589,7 +602,15 @@ which lands with the plan PR; its stages S0–S7 are named below.
   virtual FM-1, with the ARP pages, latch, the stock presets and its LED;
   its own seeded generator, never the global `stmlib::Random` that Macro's
   reference tests rely on [verified: `stmlib/utils/random.h`; options note
-  §2.3].
+  §2.3]. The owner's follow-ups (2026-10-06): while the sequencer plays the
+  arp's steps fall on its grid (a key or an arp switched on between steps
+  waits for the next one of its rate; Sync Key restarts the pattern there,
+  Free keeps it running from Play); each held note keeps its origin, the
+  keys or a track, so the two latch apart and Stop takes back only what the
+  sequencer gave; and the project key is set on the global page's Key page
+  and kept with the set [verified: `tests/test_engine_arp.py`,
+  `tests/test_engine_midi_fx.py`, `tests/test_sim_arp.py`, the
+  `arp-latch-stop` and `arp-panel-stop` parity scenarios].
 - **Still to do:** locks and routes on
   its parameters; its step and random value as matrix sources; on the
   device, the panel drivers and cycle counts (docs/14).
@@ -615,16 +636,19 @@ which lands with the plan PR; its stages S0–S7 are named below.
   `FM1_KIND_MIDI_FX`, one `process()` per slot per block on frame-stamped
   events (`fm1_midi_ev_t`), with a context holding the block's tick frames
   (from `fm1_seq`'s clock, playing or stopped, or the host's tempo), the
-  transport and the project key; at least 64 outputs; note-offs never
-  dropped; FLUSH at Stop, bypass and removal; a STEP at each of the
-  sequencer's trigs for the sound (RATE TRG). The host stage
+  transport, while the sequencer plays the first tick's place from Start
+  (`tick_pos`, 2026-10-06), and the project key (the set's since
+  2026-10-06); at least 64 outputs; note-offs never dropped; each note's
+  origin (the keys or a track) in its velocity's high byte; STOP at Stop
+  (what the sequencer gave goes), FLUSH at bypass and removal; a STEP at
+  each of the sequencer's trigs for the sound (RATE TRG). The host stage
   (`engines/include/fm1_mfx_host.h`) keeps up to four slots in front of each
   sound on the bridge both hosts share, a note-off following its note-on
   [verified: engines/README.md, "MIDI effects"]. The arpeggiator is the
   first; the virtual FM-1's panel fills the first slot.
 - **Depends on, for the rest:**
   - shared helpers: held-note stack, note ledger, scheduler, scale service
-    (the project key is in the context already);
+    (the project key is in the context already, set on the global page);
   - a panel for the other three slots.
 - **Where it is planned:** [docs/12](docs/12-sequencer.md) §5.1;
   [docs/13](docs/13-movy-port.md) §6; the 2026-10-01 MIDI-effects study (to
