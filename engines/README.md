@@ -1554,8 +1554,8 @@ insert that distorts on purpose; this one is meant to be left on the bus.
   digest of 3 s of output with every knob turned; Apple clang on arm64, GCC
   13 on x86-64 and Emscripten's wasm32 printed the same one [verified,
   2026-10-05, in containers on the LAN build host], and the test pins it.
-- **Memory:** 336 bytes, no delay lines and no pointers: the same on arm64,
-  x86-64 and wasm32 [verified].
+- **Memory:** 352 bytes (336 before the idle path's counters), no delay
+  lines and no pointers: the same on arm64, x86-64 and wasm32 [verified].
 - **Cost:** per frame, two two-pole filters, the curve and a DC blocker per
   channel and one divide: about 100 operations with Glue at 0, 130 with
   Glue up (the curve runs again at the lowered drive) and 170 with
@@ -1567,8 +1567,10 @@ insert that distorts on purpose; this one is meant to be left on the bus.
   fm1-render's `ns_per_block`]: 1.64 µs per 64-frame block with Glue at 0
   (0.11 % of the block), 2.32 µs with Glue at 1 (0.16 %), 3.41 µs with
   Asymmetry as well (0.23 %), against 1.76 µs for Fold and 0.90 µs for
-  Plate in the same runs. Mix at 0 costs the same: the filters and Glue keep
-  running so that turning Mix up is clean.
+  Plate in the same runs. Mix at 0 cost the same until the idle path: after
+  2 s there Master Sat now idles at about 2 % of that, and turning Mix up
+  waits 0.19 s while everything warms up from rest
+  ([Idle at pass-through](#idle-at-pass-through)).
 - **Where it departs from the note:** the knobs it called Bass and Clean
   highs are Clean Lo and Clean Hi, because "Clean Highs 20000" does not fit
   a row of the 240-pixel screen [verified: the simulator's layout check];
@@ -1632,6 +1634,8 @@ and 2,484 Hz [reported in the note: its constants]).
   differs from it in phase. The filters keep running, so leaving unity
   crossfades linearly from the input to the band sum over 5 ms, and returning
   crossfades back; 5 ms later the output is the input again, bit for bit.
+  Two seconds after that the filters stop until unity is left again
+  ([Idle at pass-through](#idle-at-pass-through)).
   During the crossfade the two signals' phase difference makes a brief dip
   around the crossovers: halfway through, for the defaults, −17 dB at f1
   itself and a full null where the all-passes have turned the phase by half
@@ -1662,10 +1666,12 @@ and 2,484 Hz [reported in the note: its constants]).
   crossover is moving. At one operation per cycle on pi32v2 that is about
   5 % of a 240 MHz core [inferred]. Desktop (Apple M1 Max): 1.8 µs per
   block, 0.12 % of it, and 2.0 µs while the crossovers glide
-  (`build/fm1-isolator-test --bench`).
-- **Memory:** 240 bytes, no delay lines; the struct holds no pointers, and
-  it is the same on 32-bit builds [verified: `instance_size` compiled by
-  clang for i386 and wasm32, 2026-10-05].
+  (`build/fm1-isolator-test --bench`). After 2 s at unity it idles, at
+  about 2 % of that ([Idle at pass-through](#idle-at-pass-through)).
+- **Memory:** 256 bytes (240 before the idle path's counters), no delay
+  lines; the struct holds no pointers, and it is the same on 32-bit builds
+  [verified: `instance_size` compiled by clang for i386 and wasm32,
+  2026-10-05].
 - `build/fm1-isolator-test` (`test/isolator_test.cc`) drives Isolator
   directly, in float and at any block size: every parameter changed mid-stream to any value, NaN and
   infinities included, between blocks of 1–64 frames; the glides at blocks
@@ -1719,7 +1725,8 @@ How it works [verified: tests/test_engines_eq.py and `build/fm1-eq-test`,
   they glide. Turned up and back to 0 dB, a band is exact again about 60 ms
   later: the glide lands on 0 rather than approaching it. Its integrators
   keep running while it is flat, so turning it up starts from a settled
-  filter.
+  filter; once every gain and Level have sat at 0 dB for 2 s, EQ stops
+  them and idles ([Idle at pass-through](#idle-at-pass-through)).
 - **Modulation.** Each band's frequency (as log2 Hz), gain (dB) and Q (as log2
   Q) glide one step per 8 samples, counted from create (1 − e^(−8 / (5 ms ×
   rate)) of the way per step, a 5 ms time constant), and the band's
@@ -1755,15 +1762,17 @@ How it works [verified: tests/test_engines_eq.py and `build/fm1-eq-test`,
   dB, after a second of noise; the 20 Hz bell's pole Q is 23.7) reaches
   exact zeros after 12.3 s, the same settings cut after 2.0 s. Host rates
   from 8 to 384 kHz; at each, a +9 dB bell at 1 kHz peaks at +9.00 dB.
-- **Memory:** 368 bytes on 64-bit, and on 32-bit [verified: GCC i386], no
-  tables and no delay lines.
+- **Memory:** 416 bytes on 64-bit and on 32-bit (368 before the idle
+  path's counters) [verified: `instance_size`, Apple clang arm64 and GCC
+  i386], no tables and no delay lines.
 - **Cost:** about 60 floating-point operations per sample and channel, flat
   or not, about 7,700 per 64-frame block; while bands glide, about 130 more
   and 2 divides per band every 8 samples. Desktop (Apple M1 Max, noise in):
   1.86 µs per block with the bands flat or set, 2.6 µs with all three
   gliding all the time, against Plate's 0.93 µs in the same run: 0.13 % and
   0.18 % of the 1.451 ms block. At one operation per cycle on pi32v2 that
-  is about 2.2 % of a 240 MHz core [inferred]; stage B measures it.
+  is about 2.2 % of a 240 MHz core [inferred]; stage B measures it. Idle at
+  pass-through, about 2 % of that ([Idle at pass-through](#idle-at-pass-through)).
 - **Where it departs from the note:** the note proposed the vendored
   `stmlib::Svf` and stmlib's `SemitonesToRatio` tables for 10^(dB/40). The
   filter is written here instead, in the C subset like Fold, because the
@@ -1782,6 +1791,149 @@ How it works [verified: tests/test_engines_eq.py and `build/fm1-eq-test`,
   its branch, before it merged]. A logarithmic taper for
   `FM1_UNIT_HZ` parameters belongs in the hosts, so a lock or a preset keeps
   storing Hz.
+
+## Idle at pass-through
+
+EQ, Isolator and Master Sat each have settings at which their output is
+their guarded input, bit for bit: EQ with every gain and Level at 0 dB (at
+any frequency and Q), Isolator with Low, Mid and High at unity and nothing
+killed (at any crossover), and Master Sat with Mix at 0 (whatever else is
+set). Until 2026-10-06 their filters kept running there, so that leaving
+the setting started from settled filters, and a parked effect cost as much
+as a busy one. Now they idle there (owner's decision, 2026-10-05;
+`include/fm1_fx_idle.h`):
+
+- **Rest.** Once the effect has sat at its pass-through settings for 2 s,
+  with every glide and crossfade landed, it idles: its filter states are
+  cleared and a block is only the input guard (NaN to 0, ±16 clamped), whose
+  output is the one it gave before, bit for bit. The two seconds keep
+  rhythmic moves, a kill and back within a bar or a lock every few steps,
+  from ever waiting for a wake. After a longer rest a move waits for the
+  warm-up below, and a lock that leaves pass-through and comes back within
+  the warm-up is not heard at all: a Master Sat Mix lock on one 16th step
+  at 120 BPM (125 ms, under its 191 ms), an Isolator kill shorter than
+  11 ms, an EQ Low Gain lock shorter than its 27 ms [verified:
+  `fm1-idle-test` "short_lock", 2026-10-06]. The old build plays each.
+- **Wake.** A setting that leaves pass-through wakes it at the next render,
+  where every `set_param` change arrives. The filters start from rest and
+  run on the input while the knobs that left pass-through are held where
+  they were, so the output is still the input, bit for bit, for the
+  warm-up: the time the slowest mode of the filters at the new settings
+  takes to decay by e^−12 (−104 dB). Knobs turned while it was idle
+  (frequencies, Qs, crossovers, Drive, Shape and the rest) land where they
+  were set without a glide: nothing played them.
+- **Fade.** Then the held knobs are released and glide or crossfade exactly
+  as they always have, from filter states within that residue of the ones
+  they would have held had they never stopped. The knob answers a warm-up
+  later; there is no click and no jump.
+
+| Effect | Held during the warm-up | The warm-up | At the defaults |
+| --- | --- | --- | --- |
+| EQ | each band's gain at 0 dB, each band for its own warm-up; Level glides at once (it needs no filter) | the band's section at 0 dB, at its frequency and Q | 27.2 ms for the low shelf (100 Hz), 3.9 ms for the bell (1 kHz), 0.5 ms for the high shelf (8 kHz); 77 ms for a shelf at 35 Hz |
+| Isolator | the gains at unity and the crossfade at the input | the slower crossover's Butterworth sections | 10.8 ms (250 Hz); 33.8 ms with Low Xover at 80 Hz |
+| Master Sat | Mix at 0 | the 10 Hz DC blocker on the residual; it also lets Glue's envelope catch up | 191 ms, at any setting and rate |
+
+- **The warm-up's length** comes from a lower bound on the decay of a
+  trapezoidal state-variable section's slowest mode (g = tan(πf/fs), k =
+  1/Q; the bilinear transform's poles): g·k/(1 + g²) nepers per sample for
+  k < 2, and 2·min(g/k, k/2g, g·k/2, 1/g·k) above. Over g from 10⁻⁴ to 10
+  and k from 0.05 to 4 it never exceeds the exact decay and is within a
+  factor of 3.3 of it [verified: `fm1-idle-test` "bound"], so a warm-up is
+  never too short and at most about three times longer than it needs to
+  be. The lengths are integers computed with single-precision +, −, × and
+  ÷ only, so every build agrees on them, sample for sample.
+- **Master Sat waits longer** because a shorter warm-up, the band filters'
+  own 27 ms, left the residual's DC (Asymmetry) and Glue's envelope on bass,
+  which ratchets up over several cycles, still settling as Mix rose: −30 dB
+  of the input at Glue 1, Drive 18 dB and Asymmetry 1, against −74 dB after
+  the DC blocker's 191 ms [verified 2026-10-06]. A Mix knob turned after a
+  rest of seconds is not a performance gesture.
+- **EQ settings that would need more than 0.1 s** (a band below about 27 Hz
+  at Q 0.71, a bell below about 380 Hz at Q 10) never idle: EQ runs there
+  as it always has, and tuning a band there while EQ is idle wakes it. That
+  wake holds the bands for at most 0.1 s, not for their full warm-up (the
+  bound gives 1.9 s for a bell at 20 Hz and Q 10), so that a gain turned
+  soon after is not kept waiting; a gain turned then starts from a filter
+  that began at the wake instead of one carried over from the old tuning.
+  Both are
+  still settling into the new tuning, so the output differs from the old
+  build's as two transients do, not by a click: −23 dB of the peak for a
+  30 Hz bell at Q 10 on a 30 Hz sine with the gain 0.12 s after the
+  retune, −38 dB for a 20 Hz shelf at Q 0.3 on DC, with the output's
+  largest second difference no larger than the old build's [verified:
+  `fm1-idle-test` "hostile", 2026-10-06].
+- **Away from pass-through nothing changes:** the same operations in the
+  same order. `FM1_FX_IDLE=0` builds the effects without the idle path,
+  which is the code as it was (checked against the sources before it, 40
+  random 6 s streams per effect, rests included, bit for bit).
+
+Measured [verified: `build/fm1-idle-test` and tests/test_engines_idle.py,
+2026-10-06], against the same effects built with `FM1_FX_IDLE=0`:
+
+- away from pass-through, 12 random 6 s streams per effect: the same output,
+  bit for bit;
+- 10 s at pass-through, idle from 2 s, on input with −0, subnormals,
+  FLT_MIN, ±16, 1e30, NaN and infinities, every other knob turned to its
+  ends while idle: the guarded input, bit for bit;
+- wakes, 22 cases after 3 s at pass-through: until the release the input
+  bit for bit; then the old output with the knob turned at the release,
+  within −92.5 dB of the input's peak at worst (a +15 dB bell at 500 Hz,
+  Q 10, on a 500 Hz sine; the others −109 to −156 dB), and bit for bit the
+  same again within 1.2 s (15 of the 22 within 0.1 s). Master Sat's Glue envelope
+  starts from rest: it attacks in 2 ms, but the 200 ms release of a peak
+  older than the wake is missing, −96.6 dB at the defaults and −73.8 dB at
+  Glue 1, Drive 18 dB and Asymmetry 1 on steady input. After a loud
+  passage that ends just before the wake it is more: a 220 Hz burst at 0.9
+  ending 5 ms before it, then the tone at 0.05, gives −43.0 dB of the
+  burst's peak (about −18 dB of the quiet tone), a level difference that
+  fades with the 200 ms release, not a click;
+- hostile wakes (review, 2026-10-06): a band retuned lower and narrower
+  64 frames into its own warm-up (−92.2 dB at worst, a 100 Hz bell at
+  Q 10 on a 100 Hz sine), DC at 0.9 and full-scale sines at the slowest
+  settings that still idle (−95.4 dB at worst, a 400 Hz bell at Q 10), and
+  the cases above: in every one the output's largest second difference
+  around the release is the old build's within 1 %, so no click; every
+  knob re-sent every block at pass-through, and EQ's Mid Freq swept at
+  Q 10 in and out of the settings that never idle, leave the input bit for
+  bit; rests and wakes at 8, 96 and 384 kHz give the same bits at any
+  block size and fill, and exact silence on silence;
+- the same move after 1 s at pass-through, before the effect idles: the old
+  output bit for bit, at once;
+- rests and wakes at blocks of 1, 7, 64 and 4,096 frames and from any memory
+  fill: the same bits; silence stays exact silence;
+- a hash of each effect through rests, wakes and busy settings: the same
+  from Apple clang (arm64), GCC 12 and 13 (x86-64), GCC 14 (i386, SSE) and
+  Emscripten 6.0.10 (wasm32, Node) [verified, the last four in containers
+  on the LAN build host], and clean under ASan and UBSan.
+
+**The CPU saved,** per 64-frame stereo block of noise (`fm1-idle-test
+--cost`, the best of ten 20 s runs, 2026-10-06, on a machine busy with
+other work), at the defaults before and idle, and at a busy setting before
+and after:
+
+| Effect | At pass-through, before | Idle | Saved | Busy, before / after |
+| --- | --- | --- | --- | --- |
+| EQ | 1.89 µs | 0.031 µs | 98 % | 1.90 / 1.90 µs |
+| Isolator | 1.95 µs | 0.031 µs | 98 % | 1.94 / 1.81 µs |
+| Master Sat | 2.12 µs | 0.030 µs | 99 % | 2.30 / 2.30 µs |
+
+That is Apple M1 Max with Apple clang; aeon (Ryzen 9 7940HS, GCC 12, in a
+container) gave 0.62, 1.92 and 2.12 µs before and 0.07 µs idle. Busy, the
+idle path's bookkeeping (a counter and a flag per frame, or per 8 frames in
+EQ) is within the noise. On pi32v2 the guard is two comparisons and a store
+per sample, about 400 operations per block, against about 7,700 for EQ,
+13,000 and 3,600 comparisons for Isolator and 8,300 for Master Sat at its
+defaults: about 2 %, 5 % and 2 % of a 240 MHz core freed while they sit at
+pass-through [inferred]. A chain's budget still counts them busy, since a
+knob can wake them at any time.
+
+- **Memory:** the counters add 48 bytes to EQ (416), 16 to Isolator (256)
+  and 16 to Master Sat (352), the same on 32-bit builds.
+- **Not done:** EQ idles as a whole, not band by band: a flat band among
+  busy ones keeps running, so the output away from pass-through stays the
+  old one bit for bit. Tilt at 0 and Comp at Mix 0 keep their filters and
+  detectors running too and are candidates for the same path (DJ Filter
+  already skips its filter in the dead zone); not measured.
 
 ## Room
 
@@ -3053,6 +3205,7 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `midi_fx/` | The arpeggiator core `fm1_arp`: heap-free C99 after Yarns, MCL and Super Arp, with its test tool `fm1-arp`; its MIDI effect `arp` (engine API v3) and the MIDI effects' registry ([midi_fx/README.md](midi_fx/README.md), [above](#midi-effects)) |
 | `include/fm1_mfx_host.h`, `seq/mfx_host.c` | MIDI effects on the host side: a chain in front of each sound, the ticks, live and sequencer notes, the merge into the block ([above](#midi-effects)) |
 | `include/fm1_smooth.h` | The SMOOTH ramp every engine runs (above): C99, header-only, no libm |
+| `include/fm1_fx_idle.h` | The idle path of EQ, Isolator and Master Sat: the rest and warm-up times and the decay bound they come from, and the `FM1_FX_IDLE` switch that builds the effects without it ([above](#idle-at-pass-through)) |
 | `include/fm1_mix_limiter.h` | The host's mix-bus limiter and bus guard. Twelve voices started in phase can exceed full scale; the bus holds the output under 0.98, and non-finite samples become silence |
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
@@ -3070,7 +3223,7 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON; with `--sound`, `--insert`, `--level` (and `--slots`) up to four sound units, each through its own inserts and level, mixed before the effect chain, as the virtual FM-1's multi-sound plays them (seq.md, Host contract) |
-| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, and `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py) |
+| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), and `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -3184,7 +3337,8 @@ past the table. It found the Isolator's stalled crossover glide
   master-bus effects are small and hold no pointers: DJ Filter 224 bytes,
   Tilt 144, Master Sat 336, Isolator 240 and EQ 368, on 64-bit and 32-bit
   builds alike [verified: `fm1-render`'s `fx_bytes`, and `instance_size`
-  compiled by clang for i386 and wasm32, 2026-10-05].
+  compiled by clang for i386 and wasm32, 2026-10-05]; the idle path
+  (2026-10-06) took Master Sat to 352, Isolator to 256 and EQ to 416.
 
   The stock layout leaves a gap of 387,924 bytes, part of it stock's heap
   (docs/11 §2, [inferred]). Most engine-plus-two-effects chains fit in it;
