@@ -83,6 +83,18 @@ terms it is used under.
   small changes of this project's let it take smooth settings and keep no
   shared state; the rest of its code is included unmodified. It is after
   Roland's TR-808, whose name appears here only as credit.
+- **Drawbar**, **Trio** and **Phase Bend** are the WHEEL, TRIO and PHASE
+  engines of **Felucca**, open firmware for the FM-1 by **Leo Kuroshita**
+  (@kurogedelic), **Hügelton Instruments**, GNU GPL version 3 (built in
+  only with the GPL switch on; see [Licences](#licences)). Felucca's code
+  for them, its shared DSP and its tables are included unmodified; PHASE is
+  a port of the oscillator of **CrispyZebra**, the same author's (GNU GPL
+  version 3). The code that plays them through Lunar Modulator's engine
+  interface is this project's own, and the test that holds them to
+  Felucca's own voice code uses that code too. The engines' names here are
+  this project's ("Trio" is Felucca's own, borrowed with thanks); Felucca's
+  factory sounds appear in [chapter 5](05-sound-engines.md#drawbar-trio-and-phase-bend)
+  as settings.
 - **PSX Verb** by **Charles Vestal**, MIT licence, included unmodified.
 - **Schwung**, Charles Vestal's host for modules on the Ableton Move, MIT
   licence. Lunar Modulator includes Schwung's plugin interface unmodified,
@@ -276,9 +288,11 @@ other projects publish under the GNU General Public License: today the
 sound engines [Acid Bass](05-sound-engines.md#acid-bass),
 [Comet Kit](05-sound-engines.md#comet-kit) and
 [Crater Kit](05-sound-engines.md#crater-kit) (chapter 5) and the MIDI
-effect [Acid Gen](04-playing.md#acid-gen) (chapter 4). Each sits in a folder of
-its own in the repository, with its licence and a note of where it came
-from, and is built in only while the firmware's GPL switch is on.
+effect [Acid Gen](04-playing.md#acid-gen) (chapter 4), all from fm1-x0x,
+and [Drawbar, Trio and Phase Bend](05-sound-engines.md#drawbar-trio-and-phase-bend),
+from Felucca. Each sits in a folder of its own in the repository, with its
+licence and a note of where it came from, and is built in only while the
+firmware's GPL switch is on.
 While we test, the switch is on in every build, the simulator included.
 - **In the simulator**, the page beside the panel then names each module
   with GPL code in it, and offers the simulator's module under the GNU GPL,

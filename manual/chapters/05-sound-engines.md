@@ -32,10 +32,11 @@ and [chapter 14](14-credits-and-licences.md) credits each source.
 
 **To choose an engine:** turn [[PRESETS]]. The engines come in this order:
 Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Acid Bass, Comet
-Kit, Crater Kit, Test Sine, and round again. Acid Bass, Comet Kit and Crater
-Kit are there only in builds with the GPL switch on, as the simulator is
-while we test ([Acid Bass](#acid-bass), [Comet Kit](#comet-kit),
-[Crater Kit](#crater-kit)).
+Kit, Crater Kit, Drawbar, Trio, Phase Bend, Test Sine, and round again. Acid
+Bass, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend are there only in
+builds with the GPL switch on, as the simulator is while we test
+([Acid Bass](#acid-bass), [Comet Kit](#comet-kit), [Crater Kit](#crater-kit),
+[Drawbar, Trio and Phase Bend](#drawbar-trio-and-phase-bend)).
 While you turn, the screen lists the engines, eight at a time, with the new one
 highlighted ([chapter 3](03-panel-tour.md#lists)). In the simulator you can also pick one from the
 **Sound (PRESETS)** list under the panel.
@@ -61,8 +62,10 @@ voice at a time ([chapter 4](04-playing.md#glide-and-voice-modes)).
     rate. They cannot run when the output is faster than that. If your
     browser runs the simulator at 48,000 samples a second, [[PRESETS]] steps
     over those four and the screen names the one it skipped ([chapter 2](02-getting-started.md#the-browser-simulator)).
-    Crater Kit, built for 44,100 samples a second, runs only near that
-    rate, 44,000 to 44,200, and is stepped over at others in the same way.
+    Crater Kit, Drawbar, Trio and Phase Bend, built for 44,100 samples a
+    second, run only near that rate (Crater Kit from 44,000 to 44,200, the
+    other three within a quarter of a percent), and are stepped over at
+    others in the same way.
 
 ## Four sounds at once
 
@@ -820,6 +823,153 @@ Some settings to start from:
 | Gritty cowbell | 16 Cowbell | 0 | 0.5 | – | – | 0.5, Fold |
 
 {{engine-table crater gpl}}
+
+## Drawbar, Trio and Phase Bend
+
+{{status sim desktop planned}}
+
+Three engines come from **Felucca**, Leo Kuroshita's open firmware for the
+FM-1 (Hügelton Instruments), each its own design: **Drawbar**, an organ;
+**Trio**, three oscillators in the style of the sound chips of the early
+8-bit home computers; and **Phase Bend**, phase distortion. Their sound is
+Felucca's own: the firmware runs Felucca's code for them unchanged, notes,
+envelope and all, and plays every one of Felucca's factory sounds for them
+to the sample as Felucca does ([chapter 14](14-credits-and-licences.md)).
+
+!!! note "In builds with the GPL switch on"
+    Felucca is published under the GNU General Public License, so these
+    three engines are built in only while the firmware's GPL switch is on:
+    in the simulator while we test, and in firmware for the person who
+    builds it, never in a shared build ([chapter 14](14-credits-and-licences.md#licences)).
+
+What the three share:
+
+- **Eight voices.** A key struck while it sounds starts again in its own
+  voice, from where its level is. With all eight busy, a new note takes the
+  oldest released voice, else the oldest held one, never the lowest key
+  held.
+- **An envelope**, Felucca's: **Attack** rises to full level in its time,
+  **Decay** falls to the **Sustain** level, and **Release** falls away after
+  the key, each from 1 ms to 10 s in Felucca's 128 steps. Velocity sets the
+  level, and a velocity over 110 is an accent: it opens Trio's filter and
+  Phase Bend's bend with the envelope.
+- **Volume** sets the level.
+- Pitch bend bends every note.
+- Notes, knobs and bends take effect at the next 0.7 ms, Felucca's control
+  step, wherever they fall.
+- They run at the FM-1's rate, 44,100 or 44,118 samples a second, and stay
+  off the list in a browser that runs the simulator faster, as Macro does.
+  At 44,118 they play 0.7 cent sharp, as Felucca does on the FM-1.
+
+### Drawbar
+
+Drawbar is a tonewheel organ: nine sine partials at the drawbar pitches of
+the organs it is after, from 16' (an octave down) to 1' (three octaves up).
+
+- **Drawbars** chooses one of sixteen drawbar settings (registrations): *Flute*,
+  *Mellow*, *Hollow*, *Smooth*, *3 Bar*, *Blues*, *Gospel*, *Rock*, *Tops*,
+  *Clarinet*, *Reed*, *Strings*, *Chapel*, *Bright*, *Bass* and *Full*.
+  [[ALGORITHM]] steps through them.
+- **Sub**, **Body** and **Top** pull the setting's low bars (16' and
+  5 1/3'), its middle (8' and 4') and its upper five down or up, by up to
+  eight steps of about 3 dB.
+- **Perc** adds the organ's percussion, a decaying second or third
+  harmonic, *Soft* (quieter) or *Slow* (longer), struck only on a note
+  played while no other key is held, as on the organs. With it on, the 1'
+  bar is silent.
+- **Click** sets the key click at the start and end of each note.
+- **Drive** overdrives each note.
+- **Rotor** spins a rotary speaker, *Slow* or *Fast*, or stops it (*Off*);
+  it speeds up and slows down as the real one does.
+- Drawbars, Sub, Body, Top, Perc, Click, Drive and Rotor move the notes
+  that sound, without a click.
+
+Some of Felucca's own Drawbar sounds (Attack 1 ms, Decay 104 ms, Sustain
+100 %):
+
+| Sound | Drawbars | Perc | Click | Drive | Rotor | Release |
+| --- | --- | --- | --- | --- | --- | --- |
+| Full Organ | Full | Off | 24 % | 16 % | Slow | 26 ms |
+| Jazz Perc | 3 Bar | 3rd | 39 % | 6 % | Slow | 18 ms |
+| Gospel | Gospel | 2nd | 47 % | 31.5 % | Fast | 26 ms |
+| Soft Flute | Mellow (Body −2) | Off | 8 % | 0 | Slow | 54 ms |
+| Rock Drive | Rock | Off | 55 % | 79 % | Fast | 18 ms |
+
+{{engine-table drawbar gpl}}
+
+### Trio
+
+Trio plays three oscillators together, each a triangle, sawtooth, pulse or
+pitched noise, or a mix of two of them the way the old sound chips combined
+waves, with ring modulation and hard sync between them, into a filter that
+gets gritty when you push its resonance.
+
+- **Wave** chooses one of sixteen sets of three waves and how they
+  interact: three saws, three pulses, a pulse pair with a triangle, the
+  combined *Saw&Tri* and *Pulse&Saw*, *Pulse+Noise*, *Noise*, the *Sync*
+  sets (the second oscillator restarts with the first) and the *Ring* sets
+  (the first oscillator ring-modulated by the third). [[ALGORITHM]] steps
+  through them. A note keeps the wave it started with.
+- **Int 2** and **Int 3** tune the second and third oscillators up to two
+  octaves either way, in semitones; **Detune** pulls them apart, the second
+  up and the third down, by up to 50 cents.
+- **Mode** chooses the filter: *Low-pass*, *Band-pass*, *High-pass* or
+  *Notch*. A note keeps the mode it started with.
+- **Cutoff** (30 Hz to 16 kHz) and **Resonance** set the filter; its
+  cutoff wanders a little, as the chips' did.
+- **PW** sets the pulse width of the pulse waves.
+- **Env Amt** lets the envelope open (to the right) or close (to the left)
+  the filter.
+
+Felucca's own Trio sounds:
+
+| Sound | Wave | Int 2, Int 3 | Detune | Mode | Cutoff | Resonance | PW | Env Amt | Attack, Decay, Sustain, Release |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Fat Bass | Saw x3 | 0, −12 | 9 | Low-pass | 643 Hz | 35 % | 50 % | 62.5 % | 1 ms, 90 ms, 47 %, 6 ms |
+| Arp Lead | Pls+Pls+Tri | +12, 0 | 4 | Low-pass | 2,326 Hz | 20 % | 25 % | 12.5 % | 1 ms, 78 ms, 71 %, 9 ms |
+| Sync Lead | Sync | +9, 0 | 0 | Low-pass | 1,729 Hz | 24 % | 50 % | 28.1 % | 1.2 ms, 160 ms, 79 %, 18 ms |
+| Ring Bell | Ring 3 | 0, +18 | 6 | Band-pass | 3,455 Hz | 24 % | 50 % | 0 | 1 ms, 790 ms, 0 %, 331 ms |
+| Chip Choir | Pulse x3 | 0, +12 | 7 | Band-pass | 643 Hz | 75 % | 31 % | 46.9 % | 160 ms, 683 ms, 87 %, 476 ms |
+
+Felucca plays Fat Bass and Sync Lead one note at a time; Trio has no voice
+mode of its own, so play them one note at a time, or let the sequencer do.
+
+{{engine-table trio gpl}}
+
+### Phase Bend
+
+Phase Bend is phase distortion, as on the Casio CZ: a sine read through a
+bent phase, whose bend turns it into a sawtooth, a square, a pulse or one
+of three resonant waves, a sine sweeping inside a window. It is a port of
+CrispyZebra, the same author's phase-distortion oscillator.
+
+- **Wave** chooses the wave: *Saw*, *Square*, *Pulse*, *Double Sine*, *Saw
+  Pulse*, and the resonant *Reso Saw*, *Reso Tri* and *Reso Trap*.
+  [[ALGORITHM]] steps through them. **Wave 2**, when not *Same*, plays on
+  every other cycle, alternating with the first. A note keeps the waves it
+  started with.
+- **DCW** sets the bend: at 0 a plain sine; turning it up brightens the
+  wave, or, on the resonant waves, sweeps the resonance up.
+- **Env** lets the envelope bend it further as each note starts.
+- **Detune** (0 to 127 cents) and **Line** add a second line, detuned,
+  *Mix*ed with the first or *Ring*-modulated with it. A note keeps the line
+  it started with.
+- **Sub** adds a sine an octave down.
+- **Glide** and **Voice Mode** slide between notes and play one note at a
+  time, as on Macro ([chapter 4](04-playing.md#glide-and-voice-modes)).
+
+Felucca's own Phase Bend sounds:
+
+| Sound | Wave, Wave 2 | DCW | Env | Detune | Attack, Decay, Sustain, Release |
+| --- | --- | --- | --- | --- | --- |
+| Brass | Saw | 24 % | 71 % | 0 | 1.8 ms, 160 ms, 71 %, 18 ms |
+| Organ | Double Sine | 31 % | 0 | 0 | 1 ms, 10 s, 100 %, 9 ms |
+| String | Saw, Double Sine | 39 % | 31.5 % | 12 | 18 ms, 683 ms, 79 %, 160 ms |
+| Reso | Reso Saw | 47 % | 47 % | 0 | 1 ms, 160 ms, 24 %, 78 ms |
+| Bell | Reso Tri | 63 % | 39 % | 0 | 1 ms, 982 ms, 0 %, 683 ms |
+| Wire | Saw Pulse, Reso Tri | 55 % | 31.5 % | 7 | 2.1 ms, 331 ms, 63 %, 78 ms |
+
+{{engine-table phase-bend gpl}}
 
 ## Test Sine
 

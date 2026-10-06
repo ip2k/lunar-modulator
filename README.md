@@ -96,7 +96,7 @@ its screen. None of it runs on an FM-1 yet.
 
 ### Sound engines
 
-Nine sound engines, plus Test Sine for testing. PRESETS picks one,
+Thirteen sound engines, plus Test Sine for testing. PRESETS picks one,
 ALGORITHM steps through its models, shapes, patches or pads, and KNOB1–4
 play its parameters, four to a page (SELECT turns the page).
 - **Macro:** eight synths in one, 12 voices: virtual analogue with a filter,
@@ -131,6 +131,12 @@ play its parameters, four to a page (SELECT turns the page).
   cymbal, each with its own tuning, decay, drive and distortion. It is
   fm1-x0x's 808 and its code is GPL, so it is in builds with the GPL switch
   on, as Acid Bass is.
+- **Drawbar, Trio and Phase Bend**, three engines of Felucca, Leo
+  Kuroshita's firmware for the FM-1, 8 voices each: a tonewheel organ with
+  percussion, key click and a rotary speaker; three chip-style oscillators
+  with ring modulation and sync into a gritty filter; and phase distortion
+  with resonant waves. Their code is GPL, so they are in builds with the
+  GPL switch on, as the simulator is while we test.
 
 Sophie, Drums, Comet Kit and Crater Kit play their pads from the 16 white
 keys, at any octave.
@@ -265,7 +271,8 @@ for the first installable build
 ([Installing on your FM-1](#installing-on-your-fm-1)).
 
 **Done, in the simulator**
-- Seven sound engines, four sounds at once, two inserts each, two master
+- Seven sound engines (thirteen with the GPL switch on), four sounds at
+  once, two inserts each, two master
   effects and the memory meter.
 - Twenty-two effects, among them the new dynamics: Squash, Transient and
   the Limiter's Round mode.
@@ -493,6 +500,10 @@ This is a synthesis of other people's work. The details are in
   the analyses of **Kurt James Werner, Jonathan Abel and Julius O. Smith**,
   with the rim shot of **sc808** by **Yoshinosuke Horiuchi** and **Sam
   Aaron** (MIT).
+- **Felucca** by **Leo Kuroshita** (@kurogedelic), Hügelton Instruments
+  (GPL-3.0): Drawbar, Trio and Phase Bend are its WHEEL, TRIO and PHASE
+  engines, unmodified; PHASE is a port of CrispyZebra's oscillator, by the
+  same author. FM6's name is borrowed from Felucca's.
 - Sequencer design and logic after Movy by **megadake** (MIT),
   [github.com/DimaDake/schwung-movy](https://github.com/DimaDake/schwung-movy).
 - The arpeggiator, our own code, follows Yarns' arpeggiator by **Emilie
@@ -530,10 +541,12 @@ keeps its own licence, recorded beside it with an `UPSTREAM.md`:
 - the SIL Open Font License 1.1 for the fonts.
 
 GPL code sits behind a build switch, on in every build while we test
-([`DEVELOPERS.md`](DEVELOPERS.md#licences)): fm1-x0x's 303 (GPL-3.0-only,
-with Open303's MIT code), in `engines/third_party/fm1-x0x`. The simulator
-is then offered under the GPL; a build with the switch off has no GPL code
-and is MIT/BSD.
+([`DEVELOPERS.md`](DEVELOPERS.md#licences)): fm1-x0x's 303, TB-3PO, 909
+and 808 (GPL-3.0-only, with Open303's and sc808's MIT code), in
+`engines/third_party/fm1-x0x`, and three of Felucca's engines
+(GPL-3.0-only), in `engines/third_party/felucca`. The simulator is then
+offered under the GPL; a build with the switch off has no GPL code and is
+MIT/BSD.
 
 ## Repository map
 

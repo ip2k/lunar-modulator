@@ -475,7 +475,10 @@ we test"). Consequences [inferred, not legal advice]:
   `engines/third_party/fm1-x0x/` (fm1-x0x by Charles Vestal,
   GPL-3.0-only, with Open303's and sc808's MIT code): the sound engines
   Acid Bass, Comet Kit (with ER-99's GPL-3.0 cymbal recordings) and Crater
-  Kit, and the MIDI effect Acid Gen (`notes/2026-10-06-fm1-x0x.md` §6).
+  Kit, and the MIDI effect Acid Gen (`notes/2026-10-06-fm1-x0x.md` §6);
+  `engines/third_party/felucca/` (Felucca by Leo Kuroshita, Hügelton
+  Instruments, GPL-3.0-only): the sound engines Drawbar, Trio and Phase
+  Bend (`notes/2026-10-06-fm1-x0x.md` §3, §6).
 
 **Usable as code in every build (docs/11 §7):**
 

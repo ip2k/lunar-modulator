@@ -65,6 +65,23 @@ history.
     Acc Decay. The manual gives four settings to start from.
   - It plays exactly what fm1-x0x's own 303 plays for the same notes, sample
     for sample, at any block size; it costs about 1.2 KB of memory.
+- **Drawbar, Trio and Phase Bend: three engines from Felucca** (GPL; in
+  builds with the GPL switch on, as the simulator is while we test). They
+  are Felucca's own WHEEL, TRIO and PHASE engines, by Leo Kuroshita
+  (Hügelton Instruments), and play exactly what Felucca plays for the same
+  notes and settings, every one of its factory sounds included.
+  - **Drawbar**, a tonewheel organ: sixteen drawbar settings with Sub, Body
+    and Top, percussion, key click, drive and a rotary speaker that speeds
+    up and slows down.
+  - **Trio**, three oscillators in the style of 8-bit sound chips, with
+    ring modulation and hard sync, into a low-, band-, high-pass or notch
+    filter that gets gritty at high resonance.
+  - **Phase Bend**, phase distortion as on the Casio CZ, with three
+    resonant waves, a second wave on alternate cycles, a detuned or
+    ring-modulated second line, a sub, and Glide and Voice Mode.
+  - Eight voices each, Felucca's envelope, velocity accents; ALGORITHM steps
+    through each engine's main list. The manual gives Felucca's sixteen
+    factory sounds for them as settings.
 - **The GPL switch.** Engines and effects that port code published under
   the GNU GPL can now come into Lunar Modulator, each in a folder of its
   own, built in only while the switch is on. It is on in every build while

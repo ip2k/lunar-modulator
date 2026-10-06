@@ -53,6 +53,9 @@ extern const fm1_engine_t fm1_engine_test_ext;
 extern const fm1_engine_t fm1_engine_acid_bass;   // fm1-x0x's 303 (mk/fm1-x0x.mk)
 extern const fm1_engine_t fm1_engine_comet_kit;   // fm1-x0x's 909 (mk/fm1-x0x.mk)
 extern const fm1_engine_t fm1_engine_crater;      // fm1-x0x's 808 (mk/x0x-crater.mk)
+extern const fm1_engine_t fm1_engine_drawbar;     // Felucca's WHEEL (mk/felucca.mk)
+extern const fm1_engine_t fm1_engine_trio;        // Felucca's TRIO
+extern const fm1_engine_t fm1_engine_phase_bend;  // Felucca's PHASE
 #endif
 
 const fm1_engine_t *const fm1_engines[] = {
@@ -69,6 +72,9 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_acid_bass,
   &fm1_engine_comet_kit,
   &fm1_engine_crater,
+  &fm1_engine_drawbar,
+  &fm1_engine_trio,
+  &fm1_engine_phase_bend,
 #endif
   &fm1_engine_test_sine,
   // audio effects
@@ -126,6 +132,11 @@ const fm1_licence_t fm1_licences[] = {
   // ...and Crater Kit on its 808, whose rim shot is after sc808 (MIT); our
   // wrapper is MIT.
   { "crater", "GPL-3.0-only AND MIT", "engines/third_party/fm1-x0x" },
+  // Felucca (Leo Kuroshita, Hügelton Instruments; GPL-3.0-only): three of its
+  // engines, unmodified, under our MIT shim and bridge.
+  { "drawbar", "GPL-3.0-only AND MIT", "engines/third_party/felucca" },
+  { "trio", "GPL-3.0-only AND MIT", "engines/third_party/felucca" },
+  { "phase-bend", "GPL-3.0-only AND MIT", "engines/third_party/felucca" },
 #endif
 };
 const size_t fm1_licence_count = sizeof(fm1_licences) / sizeof(fm1_licences[0]);
