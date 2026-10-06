@@ -36,7 +36,7 @@ those messages so you can search for them.
 | The keys play nothing, and the white keys' lights follow a pattern | SEQ mode is on: there the white keys are steps | Press [[HOME]] to play notes again ([chapter 7](07-sequencer.md#seq-mode-and-the-keys)) |
 | A key plays a different sound from the one on screen, or nothing | Another sound is current, or it is empty | Hold [[SEL]] and turn [[PRESETS]] to choose the sound ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |
 | [[REC]] blinks slowly | Capture holds notes you played | [[SEL]] and [[REC]] keep them as a clip; otherwise ignore it ([chapter 7](07-sequencer.md#capture)) |
-| A parameter moves on its own | A modulation cable reaches it: its name has a gold diamond | Press [[EDIT]] and empty the cable, or turn its amount to 0 % ([chapter 8](08-modulation.md#the-matrix)) |
+| A parameter moves on its own | A modulation cable reaches it: its name is in the modulation colour, with a bracket on its bar | Press [[EDIT]] and empty the cable, or turn its amount to 0 % ([chapter 8](08-modulation.md#the-matrix)) |
 | The effect page says *Empty slot: turn ALGORITHM* | That slot holds no effect | Turn [[ALGORITHM]] to choose one |
 
 ### Loading DX7 patches

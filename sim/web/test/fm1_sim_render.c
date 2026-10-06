@@ -677,12 +677,11 @@ static void expect(int ok, const char *what) {
   }
 }
 
-/* The rows the open list's window holds: its face's (fm1_panel.h), or for
- * a modulation picker the rows fm1_mod_ui fills its window with: MAIN's six
- * (FM1_LIST_ROWS) until it takes fm1_list_rows of FM1_LIST_FACE_KIND and
- * FM1_LIST_FACE_DEST, the faces the app draws them in. */
+/* The rows the open list's window holds: its face's (fm1_panel.h); a
+ * modulation picker's window, which fm1_mod_ui fills, is sized for the face
+ * the app draws it in (FM1_LIST_FACE_KIND, FM1_LIST_FACE_DEST). */
 static int window_rows(void) {
-  return g_app.mui.picker ? FM1_LIST_ROWS : fm1_list_rows(g_app.popup_face);
+  return fm1_list_rows(g_app.popup_face);
 }
 
 /* The open popup is a list `title` (NULL: any) with entry `sel` of `total`
@@ -768,6 +767,13 @@ static void seq_screens(const char *dir, float rate) {
   seq_line("bpm 2000");
   fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
   check_screen("seq-bpm-20-stopped", dir, 0);
+  /* A tempo with decimals ("300.00" at its widest) keeps the tracks' room. */
+  seq_line("bpm 29999");
+  fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
+  check_screen("seq-bpm-299.99", dir, 1);
+  seq_line("bpm 12050");
+  fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
+  check_screen("seq-bpm-120.5", dir, 1);
   seq_line("bpm 12000");
   /* A four-bar clip: a note toggled on every step, which clears the demo's
    * own in bar 1 and fills bars 2 to 4; the playhead in the fourth. */
@@ -1352,6 +1358,36 @@ static void seq_track_screens(const char *dir, float rate) {
   }
   key_edge(FM1_SEQ_UI_KEY_MUTE, 0);
   expect(g_app.ui.muted == 0u, "the mute map did not unmute every track");
+  /* The strip in the sounds' colours (audit L3): tracks on sounds 1-4 in
+   * turn, two muted, track 3 focused, then muted too; the routes after. */
+  {
+    fm1_seq_track_info_t was[8];
+    char ops[160];
+    int at = 0;
+    for (int t = 0; t < 8; ++t) {
+      memset(&was[t], 0, sizeof was[t]);
+      fm1_seq_get_track(g_app.seq, (unsigned)t, &was[t]);
+      at += snprintf(ops + at, sizeof ops - (size_t)at, "%sroute %d 1 %d", t ? ";" : "", t, t % 4);
+    }
+    seq_line(ops);
+    seq_line("mute 1 1;mute 4 1");
+    blocks(1);
+    seq_focus(2);
+    step_check("seq-tracks-sounds", dir, 1);
+    seq_line("mute 2 1");
+    blocks(1);
+    step_check("seq-tracks-sounds-focused-muted", dir, 1);
+    at = 0;
+    for (int t = 0; t < 8; ++t) {
+      at += snprintf(ops + at, sizeof ops - (size_t)at, "%sroute %d %u %u;mute %d 0", t ? ";" : "", t,
+                     (unsigned)was[t].route_kind, (unsigned)was[t].route_index, t);
+    }
+    seq_line(ops);
+    blocks(1);
+    seq_focus(0);
+    g_app.popup_lines = 0;
+    expect(g_app.ui.muted == 0u && g_app.ui.track == 0, "the strip's routes did not go back");
+  }
   /* SHIFT's legend, its states at both ends. */
   button_edge(FM1_BTN_SEL, 1);
   step_check("seq-shift-legend-s6", dir, 1);
@@ -2223,7 +2259,7 @@ static void harness_mod_env(fm1_mod_ui_env_t *env) {
  * FM1_MOD_UI_DST_CHARS long; `what` names the list for a fault. */
 static void unique_dests(const fm1_mod_ui_env_t *env, const char *what) {
   static fm1_mod_dest_t list[FM1_MOD_UI_MAX_DESTS];
-  static char names[FM1_MOD_UI_MAX_DESTS][16];
+  static char names[FM1_MOD_UI_MAX_DESTS][16], rows[FM1_MOD_UI_MAX_DESTS][32];
   const int n = fm1_mod_ui_dests(env, list, FM1_MOD_UI_MAX_DESTS);
   for (int i = 0; i < n; ++i) {
     fm1_mod_ui_dest_name(env, &list[i], 0, names[i], sizeof names[i]);
@@ -2231,9 +2267,19 @@ static void unique_dests(const fm1_mod_ui_env_t *env, const char *what) {
       fprintf(stderr, "screens: %s: a short name %s\n", what, names[i]);
       ++g_faults;
     }
+    /* ...and the names a MATRIX row gives them (audit L2), as full as fit. */
+    fm1_mod_ui_dest_fit(env, &list[i], FM1_MOD_UI_ROW_DST, rows[i], sizeof rows[i]);
+    if (strlen(rows[i]) > FM1_MOD_UI_ROW_DST || strchr(rows[i], '?')) {
+      fprintf(stderr, "screens: %s: a row's name %s\n", what, rows[i]);
+      ++g_faults;
+    }
     for (int j = 0; j < i; ++j) {
       if (strcmp(names[i], names[j]) == 0) {
         fprintf(stderr, "screens: %s: two destinations are both %s\n", what, names[i]);
+        ++g_faults;
+      }
+      if (strcmp(rows[i], rows[j]) == 0) {
+        fprintf(stderr, "screens: %s: two rows' destinations are both %s\n", what, rows[i]);
         ++g_faults;
       }
     }
@@ -2316,7 +2362,7 @@ static void mod_names(const char *dir) {
     g_app.mode = FM1_MODE_MATRIX;
     for (int top = 0; top < (int)FM1_MOD_SLOTS; top += FM1_MOD_UI_ROWS) {
       g_app.mui.slot = (uint8_t)top;
-      g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
+      g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
       for (int pg = 0; pg < 2; ++pg) {
         g_app.mui.mpage = (uint8_t)pg;
         snprintf(name, sizeof name, "matrix-kinds-%u-slot%d-%c", base / FM1_MOD_POSITIONS + 1u, top + 1,
@@ -2376,7 +2422,7 @@ static void mod_multi_screens(const char *dir) {
   g_app.mode = FM1_MODE_MATRIX;
   for (int top = 0; top < slot; top += FM1_MOD_UI_ROWS) {
     g_app.mui.slot = (uint8_t)top;
-    g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
+    g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
     for (int pg = 0; pg < 2; ++pg) {
       g_app.mui.mpage = (uint8_t)pg;
       snprintf(name, sizeof name, "matrix-units-slot%d-%c", top + 1, pg ? 'b' : 'a');
@@ -2774,7 +2820,7 @@ static void mod_screens(const char *dir, float rate) {
   }
   g_app.mui.mpage = 0;
   turn_now(FM1_ENC_SELECT, 31);
-  expect(g_app.mui.slot == 31 && g_app.mui.top == 25, "SELECT does not scroll to slot 32");
+  expect(g_app.mui.slot == 31 && g_app.mui.top == FM1_MOD_SLOTS - FM1_MOD_UI_ROWS, "SELECT does not scroll to slot 32");
   check_screen("matrix-last", dir, 1);
   turn_now(FM1_ENC_SELECT, -64);
   /* The destination picker: open, at both ends, a group jump, and every
@@ -3485,7 +3531,7 @@ static void print_mod(void) {
     char row[FM1_MOD_UI_ROW_CHARS + 1];
     if (fm1_mod_ui_empty(u, g_app.mod, i)) continue;
     fm1_mod_get_slot(g_app.mod, i, &s);
-    fm1_mod_ui_row(&env, u, i, 0, row);
+    fm1_mod_ui_row(&env, u, i, 0, row, NULL);
     printf("%s{\"slot\":%u,\"src\":%u,\"via\":%u,\"unit\":%u,\"dst\":%u,\"amount\":%d,"
            "\"offset\":%d,\"flags\":%u,\"row\":", first ? "" : ",", i + 1, s.src, s.via, s.dst_unit,
            s.dst, s.amount, s.offset, s.flags);
@@ -3530,7 +3576,7 @@ static void print_mod(void) {
   {                                    /* CHAIN's lines through the selected slot */
     char lines[FM1_MOD_UI_CHAIN_LINES][FM1_MOD_UI_ROW_CHARS + 1];
     int hl = -1;
-    const int n = fm1_mod_ui_chain(&env, u, u->slot, lines, &hl);
+    const int n = fm1_mod_ui_chain(&env, u, u->slot, lines, NULL, &hl);
     printf("],\"chain_hl\":%d,\"chain\":[", hl);
     for (int k = 0; k < n; ++k) {
       if (k) printf(",");
@@ -4439,6 +4485,12 @@ int main(int argc, char **argv) {
     printf(",\"popup_face\":\"%s\",\"popup_rows\":%d",
            g_app.popup_face >= 0 && g_app.popup_face < 3 ? kFace[g_app.popup_face] : "?",
            fm1_list_rows(g_app.popup_face));
+    /* Each entry's sound + 1 when its "S<n>" is drawn in that sound's colour. */
+    printf(",\"popup_tags\":[");
+    for (int i = 0; i < g_app.popup_lines; ++i) {
+      printf(i ? ",%u" : "%u", (unsigned)((g_app.popup_tag >> (4 * i)) & 15u));
+    }
+    printf("]");
   } else {
     char banner[FM1_LIST_ENTRY];
     printf(",\"popup_list\":null");

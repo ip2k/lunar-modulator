@@ -15,15 +15,31 @@
 #define STRIP_H 18
 #define CELL_W 26
 #define CELL_GAP 2
+#define CELL_H 13                        /* a cell's meter, the selection's bar under it */
+#define SEL_H 3
+#define SEL_Y (STRIP_Y + STRIP_H - SEL_H)
 #define STRIP_W (FM1_MOD_POSITIONS * CELL_W + (FM1_MOD_POSITIONS - 1) * CELL_GAP)
 #define INFO_Y (STRIP_Y + STRIP_H + GAP)                   /* 50 */
 #define PARAMS_Y (INFO_Y + 18 + GAP)                       /* 72 */
-#define MARK 8                                             /* the marker's side */
-#define TEXT_LINES 8                                       /* MATRIX and CHAIN */
+/* MATRIX and CHAIN set their lines in the MID face (audit D7): MATRIX its
+ * slot rows and the hint under them, CHAIN ten lines; the selected line
+ * on the selection's bar, 2 px of it above the text and 2 below. */
+#define DENSE FM1_TFT_MID
+#define DENSE_PITCH MID_LINE_PITCH                         /* 18 */
+#define HL_ABOVE 2
+#define CHAIN_LINES 10
+#define MATRIX_HINT_Y (CONTENT_Y + FM1_MOD_UI_ROWS * DENSE_PITCH + GAP)   /* set apart from the rows */
 
-typedef char fm1_mod_view_strip_fits[MARGIN + STRIP_W <= RIGHT ? 1 : -1];
+typedef char fm1_mod_view_strip_fits[MARGIN + STRIP_W <= RIGHT && CELL_H + 2 + SEL_H == STRIP_H ? 1 : -1];
 typedef char fm1_mod_view_rows_fit[PARAMS_Y + 3 * ROW_PITCH + BAR_DY + BAR_H + GAP <= BOTTOM_Y ? 1 : -1];
-typedef char fm1_mod_view_lines_fit[CONTENT_Y + (TEXT_LINES - 1) * LINE_PITCH + 18 + GAP <= BOTTOM_Y ? 1 : -1];
+typedef char fm1_mod_view_matrix_fits[MATRIX_HINT_Y + MID_LINE_H + GAP <= BOTTOM_Y &&
+                                      FM1_MOD_UI_ROW_CHARS <= MID_LINE_CHARS &&
+                                      FM1_MOD_UI_HINT_CHARS <= MID_LINE_CHARS ? 1 : -1];
+typedef char fm1_mod_view_chain_fits[CONTENT_Y + (CHAIN_LINES - 1) * DENSE_PITCH + MID_LINE_H + GAP <= BOTTOM_Y &&
+                                     CHAIN_LINES <= FM1_MOD_UI_CHAIN_LINES ? 1 : -1];
+typedef char fm1_mod_view_bar_fits[CONTENT_Y - HL_ABOVE >= TITLE_H ? 1 : -1];
+typedef char fm1_mod_view_popups_agree[FM1_MOD_UI_POPUP_CHARS == POPUP_CHARS &&
+                                       FM1_MOD_UI_BANNER_CHARS == BANNER_CHARS_MID ? 1 : -1];
 
 static int clampi(int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
@@ -51,41 +67,36 @@ void fm1_mod_view_row(fm1_tft_t *t, int y, const fm1_param_t *p, float base, con
   if (!fm1_param_modulatable(p) && !(p->flags & FM1_PARAM_INPUT)) routes = 0;
   if (routes <= 0) {
     fm1_look_row(t, y, p->name, value, C_TEXT);
-    fm1_look_bar(t, MARGIN, by, BAR_W, BAR_H, p, base, C_ACCENT);
+    fm1_look_bar(t, MARGIN, by, BAR_W, BAR_H, p, base, C_SELECT);
     return;
   }
   {
-    /* The label from abbr, the marker (a gold diamond, the bracket's
-     * colour), the value right-aligned after it. */
-    const int lw = fm1_tft_text(t, MARGIN, y, p->abbr ? p->abbr : p->name, 6, SCALE, C_DIM);
-    const int mx = MARGIN + lw + GAP + 2, my = y + (18 - MARK) / 2;
-    const int vx = mx + MARK + GAP;
-    const int chars = (RIGHT - vx + SCALE) / FM1_TFT_ADVANCE(SCALE);
-    const int vw = fm1_tft_text_width(value, chars, SCALE);
-    int r;
-    fm1_tft_graphic(t, mx, my, MARK, MARK);
-    for (r = 0; r < MARK; ++r) {
-      const int half = r < MARK / 2 ? r : MARK - 1 - r;   /* 0 1 2 3 3 2 1 0 */
-      fm1_tft_paint(t, mx + MARK / 2 - 1 - half, my + r, 2 * half + 2, 1, C_MODEL);
-    }
-    fm1_tft_text(t, RIGHT - vw, y, value, chars, SCALE, C_TEXT);
+    /* Modulated (audit Q3): the label at full length in the modulation
+     * colour, laid out as fm1_look_row lays out every other row, and the
+     * value as ever. The bracket below is the cue that needs no colour. */
+    const int label_chars = (int)strlen(p->name) < LABEL_CHARS ? (int)strlen(p->name) : LABEL_CHARS;
+    const int value_chars = LINE_CHARS - 1 - label_chars;
+    fm1_tft_text(t, MARGIN, y, p->name, label_chars, SCALE, C_MOD);
+    fm1_tft_text(t, RIGHT - fm1_tft_text_width(value, value_chars, SCALE), y, value, value_chars,
+                 SCALE, C_TEXT);
   }
-  fm1_look_bar(t, MARGIN, by, BAR_W, BAR_H, p, base, C_ACCENT);
+  fm1_look_bar(t, MARGIN, by, BAR_W, BAR_H, p, base, C_SELECT);
   {
     /* The bracket: +-depth of the range round the base, clamped; for a LOG
      * parameter +-depth of its knob round the base's position, the octaves
-     * its routes move it (engine API v3). */
+     * its routes move it (engine API v3). The live value is a tick in the
+     * text colour. */
     const float range = p->max - p->min;
     const int log = fm1_param_is_log(p);
     const float u = log ? fm1_param_pos(p, base) : 0.0f;
     const int lo = bar_x(p, log ? fm1_param_at(p, u - depth) : base - depth * range, MARGIN, BAR_W);
     const int hi = bar_x(p, log ? fm1_param_at(p, u + depth) : base + depth * range, MARGIN, BAR_W);
     const int lx = bar_x(p, live, MARGIN, BAR_W);
-    fm1_tft_paint(t, lo, by, hi - lo + 1, 1, C_MODEL);
-    fm1_tft_paint(t, lo, by + BAR_H - 1, hi - lo + 1, 1, C_MODEL);
-    fm1_tft_paint(t, lo, by, 1, BAR_H, C_MODEL);
-    fm1_tft_paint(t, hi, by, 1, BAR_H, C_MODEL);
-    fm1_tft_paint(t, lx, by, 1, BAR_H, C_WARN);      /* the live value */
+    fm1_tft_paint(t, lo, by, hi - lo + 1, 1, C_MOD);
+    fm1_tft_paint(t, lo, by + BAR_H - 1, hi - lo + 1, 1, C_MOD);
+    fm1_tft_paint(t, lo, by, 1, BAR_H, C_MOD);
+    fm1_tft_paint(t, hi, by, 1, BAR_H, C_MOD);
+    fm1_tft_paint(t, lx, by, 1, BAR_H, C_HINT);      /* the live value */
   }
 }
 
@@ -97,20 +108,47 @@ static int src_pos(const fm1_mod_slot_t *s) {
              : -1;
 }
 
+static int span_chars(const fm1_tft_span_t *sp, int n) {
+  int k, c = 0;
+  for (k = 0; k < n; ++k) c += sp[k].s ? (int)strlen(sp[k].s) : 0;
+  return c;
+}
+
+/* The info line's run: its pieces joined by `sep`, the label in `lead`,
+ * each number as text and each word subtle. */
+static int info_spans(fm1_tft_span_t *sp, char (*buf)[16], const char *label, uint16_t lead,
+                      const int *num, const char *const *word, int n, const char *sep) {
+  int k, ns = 0;
+  sp[ns].s = label;
+  sp[ns++].color = lead;
+  for (k = 0; k < n; ++k) {
+    snprintf(buf[k], sizeof buf[k], "%s%d", sep, num[k]);
+    sp[ns].s = buf[k];
+    sp[ns++].color = C_TEXT;
+    sp[ns].s = word[k];
+    sp[ns++].color = C_LABEL;
+  }
+  return ns;
+}
+
 void fm1_mod_view_rack(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u) {
   const fm1_mod_t *m = env->m;
   const int k = fm1_mod_kind_at(m, u->pos);
   const fm1_mod_kind_t *kd = k >= 0 ? fm1_mod_kinds[k] : NULL;
-  char buf[64], label[8];               /* room for any count GCC can imagine */
+  char label[8], lead[12];
   unsigned p, i;
   int outs = 0, ins = 0, late = 0;
-  /* The rack: one graphic, a cell per position. */
+  /* The rack: one graphic, a cell per position, each a meter of its
+   * module's first output in the modulation colour (an empty position
+   * hollow), and under the shown one the selection's bar (gold while
+   * SELECT moves it: grabbed). */
   fm1_tft_graphic(t, MARGIN, STRIP_Y, STRIP_W, STRIP_H);
   for (p = 0; p < FM1_MOD_POSITIONS; ++p) {
     const int x = MARGIN + (int)p * (CELL_W + CELL_GAP);
     const int pk = fm1_mod_kind_at(m, p);
+    if (p == u->pos) fm1_tft_paint(t, x, SEL_Y, CELL_W, SEL_H, u->grab ? C_HELD : C_SELECT);
     if (pk < 0) {
-      fm1_tft_frame(t, x, STRIP_Y, CELL_W, STRIP_H, p == u->pos ? C_TEXT : C_BAR_BG);
+      fm1_tft_frame(t, x, STRIP_Y, CELL_W, CELL_H, RP_HIGHLIGHT_HIGH);
       continue;
     }
     {
@@ -120,16 +158,13 @@ void fm1_mod_view_rack(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_
       if (pd->n_out && pd->out[0].kind == FM1_PORT_CV_BI) f = (v + 1.0f) * 0.5f;
       else f = v;
       f = f < 0.0f ? 0.0f : (f > 1.0f ? 1.0f : f);
-      h = (int)(f * (float)STRIP_H + 0.5f);
-      fm1_tft_paint(t, x, STRIP_Y, CELL_W, STRIP_H, C_BAR_BG);
-      fm1_tft_paint(t, x, STRIP_Y + STRIP_H - h, CELL_W, h, C_ACCENT);
-      if (p == u->pos) {
-        fm1_tft_frame(t, x, STRIP_Y, CELL_W, STRIP_H, u->grab ? C_MODEL : C_TEXT);
-        fm1_tft_frame(t, x + 1, STRIP_Y + 1, CELL_W - 2, STRIP_H - 2, C_BG);
-      }
+      h = (int)(f * (float)CELL_H + 0.5f);
+      fm1_tft_paint(t, x, STRIP_Y, CELL_W, CELL_H, C_BAR_BG);
+      fm1_tft_paint(t, x, STRIP_Y + CELL_H - h, CELL_W, h, C_MOD);
     }
   }
-  /* The line under it: position, module, cables out, in, a tick late. */
+  /* The line under it: the module, the cables out of it and into it, those
+   * a tick late, and its voices when it runs per voice (MG9). */
   for (i = 0; i < FM1_MOD_SLOTS; ++i) {
     fm1_mod_slot_t s;
     const int on = ((u->plan.active >> i) & 1u) != 0;
@@ -142,20 +177,35 @@ void fm1_mod_view_rack(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_
       late += 1;
     }
   }
-  fm1_mod_ui_label(m, u->pos, label, sizeof label);   /* the position is in the label */
-  if (!kd) {
-    snprintf(buf, sizeof buf, "%s%u empty", u->grab ? "*" : "", u->pos + 1u);
-  } else {
-    /* ...and `vN` when it runs per voice (MG9), N its voices now. */
-    char voices[16] = "";
-    if ((u->plan.poly >> u->pos) & 1u) snprintf(voices, sizeof voices, " v%u", fm1_mod_voice_count(m));
-    if (late) {
-      snprintf(buf, sizeof buf, "%s%s >%d <%d ~%d%s", u->grab ? "*" : "", label, outs, ins, late, voices);
-    } else {
-      snprintf(buf, sizeof buf, "%s%s >%d <%d%s", u->grab ? "*" : "", label, outs, ins, voices);
+  if (kd) fm1_mod_ui_label(m, u->pos, label, sizeof label);   /* the position is in the label */
+  else snprintf(label, sizeof label, "Mod%u", u->pos + 1u);
+  snprintf(lead, sizeof lead, "%s%s", u->grab ? "*" : "", label);
+  {
+    /* "LFO6  2 out  7 in  1 late  4 voices": in MID where it fits, else
+     * SMALL; the label gold while grabbed (the '*' for who cannot tell). */
+    static const char *const kWord[4] = { " out", " in", " late", " voices" };
+    const char *word[4];
+    int num[4], n = 0, ns, f;
+    char buf[4][16];
+    fm1_tft_span_t sp[9];
+    if (kd) {
+      num[n] = outs, word[n++] = kWord[0];
+      num[n] = ins, word[n++] = kWord[1];
+      if (late) num[n] = late, word[n++] = kWord[2];
+      if ((u->plan.poly >> u->pos) & 1u) num[n] = (int)fm1_mod_voice_count(m), word[n++] = kWord[3];
+    }
+    for (f = 0; f < 4; ++f) {
+      const fm1_tft_font_t font = f < 2 ? FM1_TFT_MID : FM1_TFT_SMALL;
+      const int room = font == FM1_TFT_MID ? MID_LINE_CHARS : SMALL_LINE_CHARS;
+      ns = info_spans(sp, buf, lead, u->grab ? C_HELD : C_TEXT, num, word, n, f % 2 ? " " : "  ");
+      if (!kd) sp[ns].s = "  empty", sp[ns++].color = C_LABEL;
+      if (span_chars(sp, ns) <= room || f == 3) {
+        const int h = fm1_tft_metrics(font)->height;
+        fm1_tft_span_text(t, MARGIN, INFO_Y + (18 - h) / 2, sp, ns, room, font);
+        break;
+      }
     }
   }
-  fm1_tft_text(t, MARGIN, INFO_Y, buf, LINE_CHARS, SCALE, u->grab ? C_MODEL : C_TEXT);
   if (!kd) {
     fm1_tft_text(t, MARGIN, PARAMS_Y + 4, "Empty position:", LINE_CHARS, SCALE, C_DIM);
     fm1_tft_text(t, MARGIN, PARAMS_Y + 4 + LINE_PITCH, "turn ALGORITHM", LINE_CHARS, SCALE, C_DIM);
@@ -178,44 +228,98 @@ void fm1_mod_view_rack(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_
   }
 }
 
+/* ---- MATRIX and CHAIN's lines ------------------------------------------------- */
+
+/* A role's colour (fm1_mod_ui.h; audit L2): sources in the modulation
+ * colour, marks subtle, destinations and amounts as text, a sound's
+ * "S<n>" in that sound's colour; padding takes its neighbour's. */
+static uint16_t role_colour(uint8_t role) {
+  if (role >= FM1_MOD_UI_ROLE_SOUND) return fm1_sound_colour(role - FM1_MOD_UI_ROLE_SOUND);
+  switch (role) {
+    case FM1_MOD_UI_ROLE_SRC: return C_MOD;
+    case FM1_MOD_UI_ROLE_MARK: return C_LABEL;
+    case FM1_MOD_UI_ROLE_DST:
+    case FM1_MOD_UI_ROLE_AMT: return C_TEXT;
+    default: return C_LABEL;
+  }
+}
+
+/* One line in the dense face at (MARGIN, y): in `solid` when roles is
+ * NULL, else in its roles' colours, as one run (one logged box). */
+static void role_line(fm1_tft_t *t, int y, const char *s, const uint8_t *roles, uint16_t solid) {
+  char seg[2 * (FM1_MOD_UI_ROW_CHARS + 1)];
+  fm1_tft_span_t spans[FM1_MOD_UI_ROW_CHARS];
+  const int n = (int)strlen(s) < FM1_MOD_UI_ROW_CHARS ? (int)strlen(s) : FM1_MOD_UI_ROW_CHARS;
+  int k, ns = 0, at = 0;
+  uint16_t cur = solid;
+  for (k = 0; k < n; ++k) {
+    uint16_t c = solid;
+    if (roles) c = roles[k] != FM1_MOD_UI_ROLE_PLAIN ? role_colour(roles[k]) : k ? cur : C_LABEL;
+    if (ns == 0 || c != cur) {
+      if (ns) seg[at++] = '\0';
+      spans[ns].s = &seg[at];
+      spans[ns].color = c;
+      ++ns;
+      cur = c;
+    }
+    seg[at++] = s[k];
+  }
+  seg[at] = '\0';
+  fm1_tft_span_text(t, MARGIN, y, spans, ns, FM1_MOD_UI_ROW_CHARS, DENSE);
+}
+
 /* ---- MATRIX ------------------------------------------------------------------- */
 
 void fm1_mod_view_matrix(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u,
                          uint64_t now) {
   char row[FM1_MOD_UI_ROW_CHARS + 1], hint[40];
+  uint8_t roles[FM1_MOD_UI_ROW_CHARS];
   int r;
   for (r = 0; r < FM1_MOD_UI_ROWS; ++r) {
     const unsigned i = (unsigned)u->top + (unsigned)r;
-    const int y = CONTENT_Y + r * LINE_PITCH;
-    uint16_t color = C_TEXT;
+    const int y = CONTENT_Y + r * DENSE_PITCH;
     fm1_mod_slot_t s;
     if (i >= FM1_MOD_SLOTS) break;
     fm1_mod_get_slot(env->m, i, &s);
-    fm1_mod_ui_row(env, u, i, u->mpage, row);
-    if (fm1_mod_ui_empty(u, env->m, i) || !(s.flags & FM1_MOD_SLOT_ON)) color = C_DIM;
-    else if ((u->plan.refused >> i) & 1u) color = C_WARN;
+    fm1_mod_ui_row(env, u, i, u->mpage, row, roles);
+    /* The selected row on the selection's bar; a row that is off or
+     * empty subtle, a refused one in the refusal colour, whole (the mark
+     * says which as well); else each field in its colour. */
     if (i == u->slot) {
-      fm1_tft_paint(t, 0, y - 2, FM1_TFT_W, LINE_PITCH, C_ACCENT);
-      color = C_BG;
+      fm1_tft_paint(t, 0, y - HL_ABOVE, FM1_TFT_W, DENSE_PITCH, C_SELECT);
+      role_line(t, y, row, NULL, C_BG);
+    } else if (fm1_mod_ui_empty(u, env->m, i) || !(s.flags & FM1_MOD_SLOT_ON)) {
+      role_line(t, y, row, NULL, C_LABEL);
+    } else if ((u->plan.refused >> i) & 1u) {
+      role_line(t, y, row, NULL, C_REFUSE);
+    } else {
+      role_line(t, y, row, roles, 0);
     }
-    fm1_tft_text(t, MARGIN, y, row, LINE_CHARS, SCALE, color);
   }
   fm1_mod_ui_hint(env, u, now, hint, sizeof hint);
-  hint[LINE_CHARS] = '\0';
-  fm1_tft_text(t, MARGIN, CONTENT_Y + FM1_MOD_UI_ROWS * LINE_PITCH, hint, LINE_CHARS, SCALE, C_MODEL);
+  hint[FM1_MOD_UI_HINT_CHARS] = '\0';
+  fm1_tft_font_text(t, MARGIN, MATRIX_HINT_Y, hint, FM1_MOD_UI_HINT_CHARS, DENSE, C_HINT);
 }
 
 /* ---- CHAIN --------------------------------------------------------------------- */
 
 void fm1_mod_view_chain(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u) {
   char lines[FM1_MOD_UI_CHAIN_LINES][FM1_MOD_UI_ROW_CHARS + 1];
+  uint8_t roles[FM1_MOD_UI_CHAIN_LINES][FM1_MOD_UI_ROW_CHARS];
   int hl = -1, k;
-  const int n = fm1_mod_ui_chain(env, u, u->slot, lines, &hl);
-  const int start = n <= TEXT_LINES ? 0 : clampi(hl - 3, 0, n - TEXT_LINES);
-  for (k = 0; k < TEXT_LINES && start + k < n; ++k) {
+  const int n = fm1_mod_ui_chain(env, u, u->slot, lines, roles, &hl);
+  const int start = n <= CHAIN_LINES ? 0 : clampi(hl - 4, 0, n - CHAIN_LINES);
+  for (k = 0; k < CHAIN_LINES && start + k < n; ++k) {
     const int at = start + k;
-    const uint16_t color = at == hl ? C_ACCENT : (at % 2 == 0 ? C_TEXT : C_DIM);
-    fm1_tft_text(t, MARGIN, CONTENT_Y + k * LINE_PITCH, lines[at], LINE_CHARS, SCALE, color);
+    const int y = CONTENT_Y + k * DENSE_PITCH;
+    if (at == hl) {                     /* the selected cable, on the selection's bar */
+      fm1_tft_paint(t, 0, y - HL_ABOVE, FM1_TFT_W, DENSE_PITCH, C_SELECT);
+      role_line(t, y, lines[at], NULL, C_BG);
+    } else if (n == 1) {                /* "Slot 21: no cable" */
+      role_line(t, y, lines[at], NULL, C_LABEL);
+    } else {
+      role_line(t, y, lines[at], roles[at], 0);
+    }
   }
 }
 
