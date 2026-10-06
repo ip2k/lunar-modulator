@@ -152,6 +152,7 @@ const fm1_mod_kind_t fm1_mod_kind_register = {
   "Our own, on fm1_mp's register. After Music Thing Modular's Turing Machine (Tom Whitwell), "
   "Workshop System Computer card 20 (Chris Johnson, MIT) and Phazerville's util_turing.h "
   "(Patrick Dowling, MIT); no code taken.",
-  kParams, P_COUNT, 2, 3, kGates, kOuts, 0, REG_DATA_BYTES, 1,
-  reg_size, reg_create, NULL, reg_reset, reg_process, reg_get_data, reg_set_data, NULL
+  kParams, P_COUNT, 2, 3, kGates, kOuts, 0, REG_DATA_BYTES,
+  reg_size, reg_create, NULL, reg_reset, reg_process, reg_get_data, reg_set_data, NULL,
+  1                         /* data layout 1: the bits and the length */
 };

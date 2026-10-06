@@ -125,6 +125,6 @@ const fm1_mod_kind_t fm1_mod_kind_quantize = {
   FM1_MOD_MAGIC, FM1_MOD_API_VERSION, "quantize", 0x514E5420u /* "QNT " */, "Quantize", "QNT",
   "Ported from Mutable Instruments' Braids quantizer and its scales (Emilie Gillet, MIT), "
   "byte-identical; as Phazerville's Quantermain uses it.",
-  kParams, P_COUNT, 1, 2, kGates, kOuts, 0, 0, 0,
-  quantize_size, quantize_create, NULL, quantize_reset, quantize_process, NULL, NULL, NULL
+  kParams, P_COUNT, 1, 2, kGates, kOuts, 0, 0,
+  quantize_size, quantize_create, NULL, quantize_reset, quantize_process, NULL, NULL, NULL, 0
 };

@@ -152,6 +152,6 @@ const fm1_mod_kind_t fm1_mod_kind_slew = {
   FM1_MOD_MAGIC, FM1_MOD_API_VERSION, "slew", 0x534C5720u /* "SLW " */, "Slew", "SLW",
   "Our own. After the disting mk4's slew (Expert Sleepers; idea only), Phazerville's Slew "
   "(MIT) and Just Friends' STRATA (Mannequins; idea only); no code taken.",
-  kParams, P_COUNT, 1, N_OUT, kGates, kOuts, 0, 0, 0,
-  slew_size, slew_create, NULL, slew_reset, slew_process, NULL, NULL, NULL
+  kParams, P_COUNT, 1, N_OUT, kGates, kOuts, 0, 0,
+  slew_size, slew_create, NULL, slew_reset, slew_process, NULL, NULL, NULL, 0
 };

@@ -184,6 +184,6 @@ const fm1_mod_kind_t fm1_mod_kind_env = {
   FM1_MOD_MAGIC, FM1_MOD_API_VERSION, "env", 0x454E5620u /* "ENV " */, "Envelope", "ENV",
   "Our own, on fm1_mp's multistage envelope after Mutable Instruments' Peaks (Emilie Gillet, "
   "MIT): its segments, presets, curves and knob-to-time curve.",
-  kParams, P_COUNT, 1, 3, kGates, kOuts, FM1_MOD_KIND_POLY_OK, 0, 0,
-  env_size, env_create, NULL, env_reset, env_process, NULL, NULL, NULL
+  kParams, P_COUNT, 1, 3, kGates, kOuts, FM1_MOD_KIND_POLY_OK, 0,
+  env_size, env_create, NULL, env_reset, env_process, NULL, NULL, NULL, 0
 };

@@ -248,6 +248,6 @@ const fm1_mod_kind_t fm1_mod_kind_divide = {
   "Our own. After Phazerville's ClockDivider, ProbabilityDivider, Shuffle and GateDelay and "
   "Piqued's Euclidean filter (Jason Justian, Nicholas J. Michalek and others, MIT); no code "
   "taken.",
-  kParams, P_COUNT, 2, 2, kGates, kOuts, 0, 0, 0,
-  divide_size, divide_create, NULL, divide_reset, divide_process, NULL, NULL, NULL
+  kParams, P_COUNT, 2, 2, kGates, kOuts, 0, 0,
+  divide_size, divide_create, NULL, divide_reset, divide_process, NULL, NULL, NULL, 0
 };

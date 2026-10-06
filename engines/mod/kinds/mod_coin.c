@@ -89,6 +89,6 @@ const fm1_mod_kind_t fm1_mod_kind_coin = {
   FM1_MOD_MAGIC, FM1_MOD_API_VERSION, "coin", 0x434F4920u /* "COI " */, "Coin", "COI",
   "Our own, from the published behaviour of Mutable Instruments' Branches (GPL-3 firmware, "
   "not read). MIT references: Marbles' coin toss and Phazerville's Brancher.",
-  kParams, P_COUNT, 1, 2, kGates, kOuts, 0, 0, 0,
-  coin_size, coin_create, NULL, NULL, coin_process, NULL, NULL, NULL
+  kParams, P_COUNT, 1, 2, kGates, kOuts, 0, 0,
+  coin_size, coin_create, NULL, NULL, coin_process, NULL, NULL, NULL, 0
 };

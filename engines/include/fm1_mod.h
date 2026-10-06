@@ -65,7 +65,7 @@ extern "C" {
 #endif
 
 #define FM1_MOD_MAGIC 0x464D314Du       /* "FM1M" */
-#define FM1_MOD_API_VERSION 2u           /* 2 (2026-10-06): a kind's data_version */
+#define FM1_MOD_API_VERSION 2u           /* 2 (2026-10-06): a kind's data_version, at the end */
 #define FM1_MOD_TICK 32u                /* frames per control tick (owner, 2026-10-02) */
 #define FM1_MOD_EDGES 4u                /* gate edges per port per tick */
 #define FM1_MOD_POSITIONS 8u            /* rack positions */
@@ -269,8 +269,6 @@ typedef struct fm1_mod_kind {
   uint16_t data_bytes;                  /* pattern data saved with presets; 0: none.
                                            At most FM1_MOD_DATA_MAX; a kind with data is
                                            not POLY_OK (its data is the one instance's) */
-  uint8_t data_version;                 /* API v2: the layout get_data writes (1 up);
-                                           set_data takes it and any older one it knows */
   size_t (*instance_size)(const fm1_host_t *host);
   /* Constructs an instance in mem; seed is per preset and position. */
   void *(*create)(void *mem, const fm1_host_t *host, uint32_t seed);
@@ -285,6 +283,9 @@ typedef struct fm1_mod_kind {
   void (*get_data)(const void *self, uint8_t *buf);
   int (*set_data)(void *self, const uint8_t *buf, uint16_t n, uint8_t version);
   const void *(*view)(const void *self);  /* read-only state for drawing; may be NULL */
+  /* API v2 (2026-10-06): the layout get_data writes (1 up; 0 without data);
+   * set_data takes it and any older one it knows. */
+  uint8_t data_version;
 } fm1_mod_kind_t;
 
 /* The static registry (engines/mod/mod_registry.c). */
