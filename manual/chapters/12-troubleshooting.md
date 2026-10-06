@@ -39,6 +39,20 @@ those messages so you can search for them.
 | A parameter moves on its own | A modulation cable reaches it: its name has a gold diamond | Press [[EDIT]] and empty the cable, or turn its amount to 0 % ([chapter 8](08-modulation.md#the-matrix)) |
 | The effect page says *Empty slot: turn ALGORITHM* | That slot holds no effect | Turn [[ALGORITHM]] to choose one |
 
+### Loading DX7 patches
+
+| Symptom or message | Likely cause | What to do |
+| --- | --- | --- |
+| **Load DX7 patches…** cannot be clicked, or the status line says *Power on first* | The simulator is off | Click **Power on**, then load the file |
+| *… was not loaded: it is not SysEx* | The file is not a SysEx file: text, a document, or patches in another program's own format | Use a `.syx` file of DX7 voices: a single voice is 163 bytes, a bank of 32 is 4,104 bytes |
+| *… was not loaded: it holds SysEx, but … of another kind* | The file is SysEx from another instrument, or another kind of DX7 dump | Use a file of DX7 voices; several dumps in one file are fine |
+| *… was not loaded: it is cut short* | The file ends in the middle of a dump (a download that stopped, or a file cut by hand) | Get the file again |
+| *… the wrong length* | A DX7 voice or bank dump with a byte missing or added | Get the file again, or try another copy |
+| *… larger than the 64 KB the simulator reads* | The file holds more than sixteen banks, or is not a patch file | Split it into banks, or use one bank of it |
+| The status line says a dump *had a wrong checksum* | The file was edited, or damaged on its way to you; the voices were loaded all the same | Listen to them; if one sounds wrong, get the file again |
+| The status line says *the last one counts* | The file held several banks; each fills User 1 to 32, so only the last stays | Load the bank you want on its own |
+| The status line says *the later ones replaced the earlier ones* | The file held more than 32 voices; they fill the user slots in turn and go round again from User 1 | Load the voices you want in files of 32 or fewer |
+
 ### MIDI
 
 | Symptom | Likely cause | What to do |

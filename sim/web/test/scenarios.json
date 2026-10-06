@@ -1,5 +1,5 @@
 {
-  "about": "Note scripts rendered by engines/build/fm1-render, by the app layer natively (tests/test_sim_web.py) and by the WebAssembly module under Node (sim/web/test/parity.mjs). Fields map to fm1-render's options; every engine and effect appears at least once. `cmd` is a sequencer verb script (fm1-render --cmd), relative to this file, at 64-frame blocks (#! block=64); it routes tracks with `route` verbs only, so track 0 plays the engine by the default-route rule. `panel` is panel input (fm1-sim-render --panel): the render legs then play what the native harness logged (--log-cmds and its sidecar of arguments, which starts with --slots, with the modulation's .mod log) instead of `cmd`. The app always runs four sound units and the default modulation rack; `sounds`, `inserts`, `levels` and `sound_notes` load and play the other units (fm1-render's multi-sound flags, which imply --slots). `mod` is a modulation script (fm1-render --mod, relative to this file).",
+  "about": "Note scripts rendered by engines/build/fm1-render, by the app layer natively (tests/test_sim_web.py) and by the WebAssembly module under Node (sim/web/test/parity.mjs). Fields map to fm1-render's options; every engine and effect appears at least once. `cmd` is a sequencer verb script (fm1-render --cmd), relative to this file, at 64-frame blocks (#! block=64); it routes tracks with `route` verbs only, so track 0 plays the engine by the default-route rule. `panel` is panel input (fm1-sim-render --panel): the render legs then play what the native harness logged (--log-cmds and its sidecar of arguments, which starts with --slots, with the modulation's .mod log) instead of `cmd`. The app always runs four sound units and the default modulation rack; `sounds`, `inserts`, `levels` and `sound_notes` load and play the other units (fm1-render's multi-sound flags, which imply --slots). `mod` is a modulation script (fm1-render --mod, relative to this file). `sysex` is a .syx file of DX7 voices loaded into FM6's user bank first (fm1-render --sysex; the module's fm1w_dx7_load), relative to this file.",
   "scenarios": [
     {"name": "macro-va-pair-chord", "engine": "macro", "params": ["Model=4"],
      "notes": ["0:57:100:1", "0:60:100:1", "0:64:100:1"],
@@ -44,6 +44,10 @@
                "1.45:36:127:0.2", "1.7:60:120:0.1"],
      "param_at": ["0.45:Patch=18", "1.4:Patch=28", "1.65:Patch=30"], "fx": [["plate", ["Mix=0.2"]]],
      "seconds": 2.0},
+    {"name": "dx7-user-bank", "engine": "dx7", "sysex": "dx7/lunar-test-bank.syx", "params": ["Patch=33"],
+     "why": "FM6's user bank: the original test bank (tools/dx7_bank.py --test-bank) loaded into the module through fm1w_dx7_load as fm1-render --sysex loads it, then User 2, User 7 and User 32 played (the bank's algorithms 2, 7 and 32), unpacked by msfa's UnpackPatch.",
+     "notes": ["0:48:100:0.4", "0:60:110:0.4", "0.5:62:100:0.4", "0.5:67:90:0.4", "1.0:72:120:0.5"],
+     "param_at": ["0.45:Patch=38", "0.95:Patch=63"], "fx": [], "seconds": 1.6},
     {"name": "sophie-kit", "engine": "sw-sophie", "params": ["Pad=0"], "libm_sensitive": true,
      "why": "Sophie's feedback FM runs sinf/expf every sample; glibc's and musl's last-bit differences grow through the loop. A static musl build of fm1-render renders this byte for byte like the WebAssembly one (build-on-aeon.sh).",
      "notes": ["0:36:120:0.2", "0.25:38:110:0.2", "0.5:42:100:0.2"],

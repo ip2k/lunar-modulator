@@ -278,9 +278,16 @@ project's own, and plays voices you load from SysEx files (below).
 [[ALGORITHM]] steps through the voices, and the knobs shape the one you
 have chosen.
 
-- **Patch** chooses a voice: the 32 built-in ones, then User 1 to User 32. A
-  new voice applies to the next note you play; notes already sounding keep
-  theirs.
+Both the engine and its name are borrowed, with thanks: the engine is
+Google's msfa, and the name is that of the FM engine in hugelton's Felucca,
+open firmware for the FM-1, whose port of the same core checks FM6's sound
+in this project's tests.
+
+{{screen fm6 FM6 on its first voice, TINE EP, while a chord sounds.}}
+
+- **Patch** chooses a voice: the 32 built-in ones, then User 1 to User 32,
+  which show the names of the voices you have loaded. A new voice applies
+  to the next note you play; notes already sounding keep theirs.
 - **Brightness** moves the level of every modulating operator, up to 24 dB
   down at the left and up at the right. In the middle the voice plays as
   programmed. The carriers, and so the loudness, do not change.
@@ -304,19 +311,42 @@ The built-in voices:
 | 25 – 27 | Leads: saw, square, a sync-like sweep |
 | 28 – 30 | Drums: kick (play it low), snare, hi-hat |
 | 31 | A pure sine, for tuning and tests |
-| 32 – 63 | User 1 to User 32 |
+| 32 – 63 | User 1 to User 32, named after the voices loaded into them |
 
 ### Loading voices from SysEx
 
-{{status desktop}}
+{{status sim desktop}}
 
 The user slots take voices from SysEx files (`.syx`), the format the DX7 and
 its editors save: a single voice, or a bank of 32. A bank fills User 1 to
-User 32; single voices go to the user slots one after another. A file may hold
-several dumps. Values out of range are brought into range, and anything that
-is not a voice dump is skipped. On the desktop, `fm1-render --sysex
-FILE.syx` loads files before the first note ([chapter 2](02-getting-started.md#rendering-a-sound)),
-and prints the names it found. The simulator cannot load files yet.
+User 32; single voices go to the user slots one after another, starting
+after the last one loaded. A file may hold several dumps. Values out of
+range are brought into range, and anything that is not a voice dump is
+skipped.
+
+In the simulator ([chapter 2](02-getting-started.md#the-browser-simulator)):
+
+1. Power on.
+2. Choose **Load DX7 patches…** under the panel and pick one or more `.syx`
+   files, or drop the files anywhere on the page.
+3. The screen shows *Loaded 32 voices* (or how many there were), which user
+   slots they went to and the first voice's name, and the status line under
+   the panel says the same. The current sound now plays the first voice
+   loaded: if it was another engine, it becomes FM6.
+4. Turn [[ALGORITHM]] to step through the voices by name. Every sound you
+   set to FM6 later has them too.
+
+The file is read in your browser; nothing is uploaded. The simulator checks
+it first: a file that is empty, is not SysEx, holds SysEx of another kind,
+is cut short, or holds a voice dump of the wrong length loads nothing, and
+the status line says which. A dump whose checksum is wrong is loaded all the
+same, as DX7 editors load one, and the status line says the file may be
+damaged. Files of up to 64 KB are read. The voices stay until you power
+off.
+
+On the desktop, `fm1-render --sysex FILE.syx` loads files before the first
+note ([chapter 2](02-getting-started.md#rendering-a-sound)), and prints the
+names it found.
 
 !!! note "Voices from elsewhere"
     Files of DX7 voices circulate widely, Yamaha's own factory voices among
