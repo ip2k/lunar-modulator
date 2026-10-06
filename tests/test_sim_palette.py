@@ -128,8 +128,8 @@ def _fails(header, css, needle):
 
 def test_it_catches_the_files_disagreeing(files):
     header, css = files
-    _fails(header, css.replace("--lm-nova: #ef8a4a;", "--lm-nova: #ef8a4b;"), "nova")
-    _fails(header.replace("#define LM_COMET", "#define LM_COMET_X"), css, "--lm-comet")
+    _fails(header, css.replace("--lunar-nova: #ef8a4a;", "--lunar-nova: #ef8a4b;"), "nova")
+    _fails(header.replace("#define LUNAR_COMET", "#define LUNAR_COMET_X"), css, "--lunar-comet")
     _fails(header.replace("#define RP_ROSE", "#define RP_PINE FM1_RGB565(0x3e, 0x8f, 0xb0)\n"
                                              "#define RP_ROSE"), css, "RP_PINE")
 
@@ -140,9 +140,9 @@ def test_it_catches_a_broken_rule(files, monkeypatch):
     monkeypatch.setitem(P.DERIVED, "nova", (0.70, 0.15, 10))
     nova = P.screen(P.oklch_rgb(0.70, 0.15, 10))
     hexa = "%02x%02x%02x" % nova
-    h2 = re.sub(r"#define LM_NOVA FM1_RGB565\([^)]*\)",
-                "#define LM_NOVA FM1_RGB565(0x%s, 0x%s, 0x%s)" % (hexa[:2], hexa[2:4], hexa[4:]), header)
-    c2 = css.replace("--lm-nova: #ef8a4a;", f"--lm-nova: #{hexa};")
+    h2 = re.sub(r"#define LUNAR_NOVA FM1_RGB565\([^)]*\)",
+                "#define LUNAR_NOVA FM1_RGB565(0x%s, 0x%s, 0x%s)" % (hexa[:2], hexa[2:4], hexa[4:]), header)
+    c2 = css.replace("--lunar-nova: #ef8a4a;", f"--lunar-nova: #{hexa};")
     _fails(h2, c2, "love-nova")
 
 
@@ -158,3 +158,28 @@ def test_it_catches_a_role_out_of_place(files):
 def test_it_wants_a_reason_for_a_close_pair(files, monkeypatch):
     monkeypatch.delitem(P.JUSTIFIED, ("foam", "nebula"))
     _fails(*files, "foam-nebula")
+
+
+# ---- the project's own token names -----------------------------------------
+
+# The project's short form is "Lunar", never "LM" (CLAUDE.md, the name): its
+# own hues are LUNAR_* in the header and --lunar-* on the page.
+_OLD_TOKEN = re.compile(r"(?<![A-Za-z0-9_])LM_[A-Z0-9_]+|--lm-[a-z0-9-]+")
+_TEXT = {".c", ".h", ".css", ".js", ".mjs", ".html", ".md", ".py", ".sh", ".mk", ".json", ".txt"}
+
+
+def test_no_lm_token_names_in_the_simulator():
+    seen, hits = 0, []
+    for path in sorted(SIM.rglob("*")):
+        if not path.is_file() or path.suffix not in _TEXT or "third_party" in path.parts:
+            continue
+        seen += 1
+        for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            hits += [f"{path.relative_to(ROOT)}:{lineno}: {m}" for m in _OLD_TOKEN.findall(line)]
+    assert seen > 20, seen
+    assert hits == [], hits
+
+
+def test_the_old_token_pattern_catches_both_forms():
+    assert _OLD_TOKEN.findall("#define LM_NOVA x; color: var(--lm-nova);") == ["LM_NOVA", "--lm-nova"]
+    assert _OLD_TOKEN.findall("#define LUNAR_NOVA x; --lunar-nova; HELM_X; -lm") == []

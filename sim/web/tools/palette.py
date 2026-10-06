@@ -9,13 +9,13 @@ page's (www/style.css), against one semantic colour map (sim/web/PALETTE.md).
                                      # 5x9 font at x2, as seen and under three CVDs
 
 The tokens are Rosé Pine Moon's (RP_*, --rp-*) and Lunar Modulator's own
-hues (LM_*, --lm-*), derived in OKLCH at Moon's accent lightness and chroma
-(DERIVED below). The roles (C_* in the header, --select and the like in the
+hues (LUNAR_*, --lunar-*), derived in OKLCH at Moon's accent lightness and
+chroma (DERIVED below). The roles (C_* in the header, --select and the like in the
 stylesheet) name what a colour means; ROLES is the map both files must
 implement. What is checked:
 
 1. The two files agree: every token the header defines has the same value in
-   style.css, every --lm- token is in the header, and pine, which fails as
+   style.css, every --lunar- token is in the header, and pine, which fails as
    text and as a mark, is not in the header at all.
 2. Each derived hue is its OKLCH target passed through sRGB and the screen's
    RGB565 round trip, so it is a fixed point of that trip: the page and the
@@ -35,8 +35,8 @@ implement. What is checked:
 6. The roles: every C_* role in ROLES is defined in the header as its token,
    the page's role variables match, the page's focus ring is the selection
    colour, and the stylesheet names an accent token (love, gold, rose, foam,
-   iris, pine, every --lm-) only to define its role, so every other rule says
-   what the colour means rather than which hue it is.
+   iris, pine, every --lunar-) only to define its role, so every other rule
+   says what the colour means rather than which hue it is.
 
 Pure Python, no dependencies. MIT licence, like the rest of this repository.
 """
@@ -313,10 +313,10 @@ def _token_name(prefix, name):
 def read_header(text):
     tokens, roles = {}, {}
     for pre, name, r, g, b in re.findall(
-            r"^#define\s+(RP|LM)_([A-Z0-9_]+)\s+FM1_RGB565\(\s*0x([0-9a-fA-F]{2})\s*,"
+            r"^#define\s+(RP|LUNAR)_([A-Z0-9_]+)\s+FM1_RGB565\(\s*0x([0-9a-fA-F]{2})\s*,"
             r"\s*0x([0-9a-fA-F]{2})\s*,\s*0x([0-9a-fA-F]{2})\s*\)", text, re.M):
         tokens[_token_name(pre, name)] = (int(r, 16), int(g, 16), int(b, 16))
-    for role, pre, name in re.findall(r"^#define\s+C_([A-Z0-9_]+)\s+(RP|LM)_([A-Z0-9_]+)\s*(?:/\*.*)?$",
+    for role, pre, name in re.findall(r"^#define\s+C_([A-Z0-9_]+)\s+(RP|LUNAR)_([A-Z0-9_]+)\s*(?:/\*.*)?$",
                                       text, re.M):
         roles[role.lower().replace("_", "-")] = _token_name(pre, name)
     return tokens, roles
@@ -326,7 +326,7 @@ def read_css(text):
     root = re.search(r":root\s*\{(.*?)\n\}", text, re.S)
     body = root.group(1) if root else ""
     tokens = {(p, n): hex_rgb(h) for p, n, h in
-              re.findall(r"--(rp|lm)-([a-z0-9-]+)\s*:\s*#([0-9a-fA-F]{6})\s*;", body)}
+              re.findall(r"--(rp|lunar)-([a-z0-9-]+)\s*:\s*#([0-9a-fA-F]{6})\s*;", body)}
     variables = dict(re.findall(r"--([a-z0-9-]+)\s*:\s*([^;]+);", body))
     return tokens, variables
 
@@ -336,7 +336,7 @@ def _resolve(variables, value, depth=0):
     if not m or depth > 8:
         return value.strip()
     name = m.group(1)
-    if re.match(r"(rp|lm)-", name):
+    if re.match(r"(rp|lunar)-", name):
         return name
     return _resolve(variables, variables.get(name, ""), depth + 1)
 
@@ -382,8 +382,8 @@ def check(header, css):
         elif ctok[key] != rgb:
             fail.append(f"{key[1]}: fm1_look.h {rgb_hex(rgb)} but style.css {rgb_hex(ctok[key])}")
     for key in ctok:
-        if key[0] == "lm" and key not in htok:
-            fail.append(f"--lm-{key[1]} is in style.css but not in fm1_look.h")
+        if key[0] == "lunar" and key not in htok:
+            fail.append(f"--lunar-{key[1]} is in style.css but not in fm1_look.h")
     if ("rp", "pine") in htok:
         fail.append("RP_PINE is in fm1_look.h: pine fails as text and as a mark (keep it off the screen)")
     pal = palette(header, css)
@@ -401,8 +401,8 @@ def check(header, css):
             fail.append(f"{name}: OKLCH {L} {C} {h} is outside sRGB")
             continue
         want = screen(rgb)
-        if pal[name]["family"] != "lm":
-            fail.append(f"{name} must be an LM_ token, Lunar Modulator's own")
+        if pal[name]["family"] != "lunar":
+            fail.append(f"{name} must be a LUNAR_ token, Lunar Modulator's own")
         if pal[name]["page"] != want:
             fail.append(f"{name}: OKLCH {L} {C} {h} gives {rgb_hex(want)} after RGB565, "
                         f"the files say {rgb_hex(pal[name]['page'])}")
@@ -460,7 +460,7 @@ def check(header, css):
     if _resolve(cvars, cvars.get("focus", "")) != "rp-iris":
         fail.append("style.css --focus is not the selection colour (iris)")
     accents = "|".join(sorted({f"rp-{a}" for a in ACCENTS + ("pine",)} |
-                              {f"lm-{s}" for s in DERIVED}))
+                              {f"lunar-{s}" for s in DERIVED}))
     for lineno, line in enumerate(css.splitlines(), 1):
         for m in re.finditer(rf"var\(--({accents})\)", line):
             role = re.match(r"\s*--([a-z0-9-]+)\s*:", line)

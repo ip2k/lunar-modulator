@@ -5,6 +5,7 @@
 #include "fm1_font_mid.h"
 #include "fm1_font_small.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 /* The metrics fm1_tft.h declares are the generated tables' (C99: an array
@@ -162,45 +163,62 @@ int fm1_tft_font_fit(int w, fm1_tft_font_t font) {
   return FM1_TFT_FIT(m->advance, m->ink_w, w);
 }
 
-/* The characters of the spans that max_chars lets through, and whether a
- * span was cut short. */
-static int span_len(const fm1_tft_span_t *spans, int n_spans, int max_chars, int *cut) {
+/* The characters of the spans that max_chars lets through, whether a span
+ * was cut short, and the pixels the leads add (lead NULL for none): a
+ * lead counts before a span that draws a character, not before the
+ * first. */
+static int span_len(const fm1_tft_span_t *spans, const uint8_t *lead, int n_spans, int max_chars,
+                    int *cut, int *gaps) {
   int n = 0;
   *cut = 0;
+  *gaps = 0;
   for (int k = 0; k < n_spans; ++k) {
     const char *s = spans[k].s;
     if (!s) continue;
     int len = text_len(s, max_chars - n);
+    if (lead && len && n) *gaps += lead[k];
     n += len;
     if (s[len]) *cut = 1;
   }
   return n;
 }
 
+int fm1_tft_span_width_lead(const fm1_tft_span_t *spans, const uint8_t *lead, int n_spans,
+                            int max_chars, fm1_tft_font_t font) {
+  const fm1_tft_metrics_t *m = &face_of(font)->m;
+  int cut, gaps;
+  const int n = span_len(spans, lead, n_spans, max_chars, &cut, &gaps);
+  return n ? FM1_TFT_RUN_W(m->advance, m->ink_w, n) + gaps : 0;
+}
+
 int fm1_tft_span_width(const fm1_tft_span_t *spans, int n_spans, int max_chars,
                        fm1_tft_font_t font) {
-  const fm1_tft_metrics_t *m = &face_of(font)->m;
-  int cut;
-  return FM1_TFT_RUN_W(m->advance, m->ink_w, span_len(spans, n_spans, max_chars, &cut));
+  return fm1_tft_span_width_lead(spans, NULL, n_spans, max_chars, font);
+}
+
+int fm1_tft_span_text_lead(fm1_tft_t *t, int x, int y, const fm1_tft_span_t *spans,
+                           const uint8_t *lead, int n_spans, int max_chars, fm1_tft_font_t font) {
+  const face_t *f = face_of(font);
+  int cut, gaps;
+  int n = span_len(spans, lead, n_spans, max_chars, &cut, &gaps);
+  int w = n ? FM1_TFT_RUN_W(f->m.advance, f->m.ink_w, n) + gaps : 0;
+  log_box(t, x, y, w, f->m.height, FM1_BOX_TEXT, (uint8_t)(f - k_faces));
+  if (t->record && cut) ++t->truncated;
+  int i = 0, at = x;
+  for (int k = 0; k < n_spans && i < n; ++k) {
+    const char *s = spans[k].s;
+    if (lead && i && s && s[0]) at += lead[k];
+    for (int j = 0; s && s[j] && i < n; ++j, ++i, at += f->m.advance) {
+      draw_glyph(t, at, y, (unsigned char)s[j], f->glyphs, f->rows, f->cols, f->scale,
+                 spans[k].color);
+    }
+  }
+  return w;
 }
 
 int fm1_tft_span_text(fm1_tft_t *t, int x, int y, const fm1_tft_span_t *spans, int n_spans,
                       int max_chars, fm1_tft_font_t font) {
-  const face_t *f = face_of(font);
-  int cut;
-  int n = span_len(spans, n_spans, max_chars, &cut);
-  int w = FM1_TFT_RUN_W(f->m.advance, f->m.ink_w, n);
-  log_box(t, x, y, w, f->m.height, FM1_BOX_TEXT, (uint8_t)(f - k_faces));
-  if (t->record && cut) ++t->truncated;
-  int i = 0;
-  for (int k = 0; k < n_spans && i < n; ++k) {
-    const char *s = spans[k].s;
-    for (int j = 0; s && s[j] && i < n; ++j, ++i) {
-      draw_glyph(t, x + i * f->m.advance, y, (unsigned char)s[j], f->glyphs, f->rows, f->cols,
-                 f->scale, spans[k].color);
-    }
-  }
-  return w;
+  return fm1_tft_span_text_lead(t, x, y, spans, NULL, n_spans, max_chars, font);
 }
 
 int fm1_tft_font_text(fm1_tft_t *t, int x, int y, const char *s, int max_chars,
