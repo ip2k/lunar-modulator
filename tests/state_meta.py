@@ -5,10 +5,19 @@ tests/test_engine_metadata.py holds the C export (`fm1-render --meta`,
 engines/state/fm1_meta.c) to, less what only C can say (instance bytes per
 engine, aliases, known ids). `subset` cuts an export down to a few engines
 and kinds, as engines/state/examples/metadata.json is.
+
+Level 1.1 (stage ED0) adds members only C's tables can say (page names, an
+effect's group, whether a module is GPL, a modulation kind's licence, the
+refusals, the telemetry layout, the id): EDITOR_ONLY_* list them,
+`without_editor` takes them out, and tests/test_engine_editor_meta.py checks them on
+their own. Each parameter's `step` is built here from the detent rule
+(detent()).
 """
 import os
 import re
 from pathlib import Path
+
+from tests import state_canon as canon
 
 # The GPL switch the build was made with (engines/Makefile; tests/engine_helpers.py).
 GPL_MODS = os.environ.get("FM1_GPL_MODS", "1") != "0"
@@ -33,6 +42,40 @@ LIMITS = {"bytes": {"project": 262144, "sound": 32768, "fx": 32768, "mods": 6553
           "items": 8192}
 FLAG_ORDER = ["latch", "smooth", "nolock", "mod", "input", "poly", "log", "keysrc", "focus",
               "per_focus"]
+# Level 1.1's members that --list and --list-mod cannot say: per engine (an
+# engine's licence was in 1.0, from --list), per modulation kind, and at the
+# top.
+EDITOR_ONLY_ENGINE = ("group", "gpl", "page_names")
+EDITOR_ONLY_KIND = ("licence", "gpl", "page_names")
+EDITOR_ONLY_TOP = ("effect_groups", "refusals", "telemetry", "meta_id")
+
+
+def detent(p):
+    """A knob detent, as the panel steps (include/fm1_engine_meta.h's
+    fm1_param_detent; a LOG parameter moves 1/100 of its position), in
+    float32 arithmetic, as the export writes it."""
+    f32 = canon.f32
+    if p["type"] == 1:
+        return 1
+    if "log" in p["flags"]:
+        v = f32(0.01)
+    else:
+        lo, hi = f32(p["min"]), f32(p["max"])
+        rng = f32(hi - lo)
+        if rng >= 10 and lo == int(lo) and hi == int(hi):
+            v = max(float(int(f32(f32(rng / 100.0) + 0.5))), 1.0)
+        else:
+            v = f32(rng / 100.0)
+    return canon.loads(canon.number(v))
+
+
+def without_editor(doc):
+    """doc less level 1.1's members that only C's tables say."""
+    out = {k: v for k, v in doc.items() if k not in EDITOR_ONLY_TOP}
+    out["engines"] = [{k: v for k, v in e.items() if k not in EDITOR_ONLY_ENGINE} for e in doc["engines"]]
+    out["mod"] = dict(doc["mod"], kinds=[{k: v for k, v in m.items() if k not in EDITOR_ONLY_KIND}
+                                         for m in doc["mod"]["kinds"]])
+    return out
 
 
 def _define(path, name):
@@ -45,8 +88,8 @@ def meta_params(table, hidden=False):
     for p in table:
         row = {"uid": p["uid"], "name": p["name"], "abbr": p["abbr"],
                "type": "enum" if p["type"] == 1 else "float",
-               "min": p["min"], "max": p["max"], "def": p["def"], "unit": p["unit"],
-               "page": p["page"] + 1}
+               "min": p["min"], "max": p["max"], "def": p["def"], "step": detent(p),
+               "unit": p["unit"], "page": p["page"] + 1}
         if hidden or "input" in p["flags"]:
             row["hidden"] = True
         else:
@@ -63,7 +106,7 @@ def metadata_from_build(listed, mod, engines=None, kinds=None):
     """The export's layout, from fm1-render --list and --list-mod: what the C
     export (stage E2) must write, less what the build cannot say yet
     (instance bytes per engine, aliases, known ids)."""
-    doc = {"lunar": "1.0", "kind": "metadata",
+    doc = {"lunar": "1.1", "kind": "metadata",
            "made": {"by": "desktop", "version": "0.0.0", "commit": "0000000"}}
     doc["build"] = {
         "engine_api": _define(ENGINES / "include" / "fm1_engine.h", "FM1_ENGINE_API_VERSION"),

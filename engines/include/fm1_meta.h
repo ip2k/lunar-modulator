@@ -37,8 +37,12 @@
 extern "C" {
 #endif
 
-/* The format level the export is written at (its `lunar`). */
-#define FM1_META_LUNAR "1.0"
+/* The format level the export is written at (its `lunar`). 1.1 (stage ED0,
+ * 2026-10-06) added, for the advanced editor, each module's licence, its
+ * page names and an audio effect's group, each parameter's knob detent
+ * (`step`), the effect groups, the refusal codes with their words, the
+ * telemetry block's layout and the export's id (`meta_id`). */
+#define FM1_META_LUNAR "1.1"
 /* The rate files are checked at and instance bytes are given at: the FM-1's. */
 #define FM1_META_RATE 44118u
 /* The bytes the engines, effects and modulation may take on the FM-1: the
@@ -65,6 +69,19 @@ void fm1_meta_build_default(fm1_meta_build_t *b);
 /* Writes the export through put(ctx, bytes, n), in pieces, ending with a
  * newline. Returns the bytes written. */
 size_t fm1_meta_write(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx);
+
+/* The export's id, its `meta_id`: CRC-32 (zlib's) of the export as
+ * fm1_meta_write writes it but without its `made` and `meta_id` members, so
+ * two builds with the same registries, rate, budget and GPL switch have the
+ * same id whoever wrote the file and when. The virtual FM-1's module
+ * returns it (fm1w_meta_id), and an editor holding a static meta.json
+ * checks the two agree before it trusts the file. Computed once, then
+ * remembered: the first call writes the whole export into a CRC (a few
+ * milliseconds), so a host asks it off its audio thread (the editor's
+ * shadow Worker, stage ED1) or before audio starts. */
+uint32_t fm1_meta_id(void);
+/* The same for build b (its `made` is not counted). */
+uint32_t fm1_meta_id_of(const fm1_meta_build_t *b);
 
 #ifdef __cplusplus
 }
