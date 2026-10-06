@@ -50,7 +50,9 @@ the output, how much of the FM-1's memory the sounds and effects would
 take, and the sequencer's tempo and whether it plays.
 
 To stop, click **Power off** or the [[POWER]] switch. The simulator keeps
-nothing: it starts from the same settings every time.
+nothing: it starts from the same settings every time, and DX7 voices you
+loaded into FM6 ([chapter 5](05-sound-engines.md#loading-voices-from-sysex))
+go with the power.
 
 !!! note "When an engine refuses to start"
     The simulator asks your browser for 44,118 samples a second, the rate

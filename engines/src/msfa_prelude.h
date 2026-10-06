@@ -13,6 +13,23 @@
 // claims synth.h's include guard so the vendored file is never read. The
 // operators then run msfa's portable integer kernels everywhere.
 //
+// msfa's tables as const data (flash on the FM-1; engines/msfa.md, "Tables in
+// flash"). msfa declares its sine and exp2 tables as plain int32_t arrays
+// (sin.h, exp2.h) that Sin::init and Exp2::init fill at start-up, and
+// freqlut.cc defines its frequency table the same way, 28.7 KB of RAM with
+// exp2.cc's unused tanhtab. Here each name is a macro for the array a pointer
+// points to: msfa's code reads `(*fm1_sintab)[i]` where it wrote
+// `sintab[i]` and is otherwise unchanged (the vendored files stay
+// byte-identical), its headers declare the pointers in place of the arrays,
+// and our src/msfa_tables.cc points them at const tables generated ahead of
+// time (src/msfa_rom.cc, tools/msfa_tables.py). sin.cc and exp2.cc, which
+// only define and fill the tables (Sin::compute is used by nothing but
+// `#if 0` code), are not compiled; freqlut.cc is, for Freqlut::lookup, and
+// defines the pointer `fm1_freqlut`, which the engine points at the 44,118 Hz
+// table or at its instance's own at another rate. Defining FM1_MSFA_REF
+// leaves the names alone: the test oracle compiles msfa's own init with it,
+// to compare (fm1-dx7-oracle --tables-vs-msfa).
+//
 // Included by src/msfa.h (our code's view of msfa) and src/msfa_unit.cc
 // (which compiles each vendored .cc file). MIT licence (this file).
 
@@ -27,7 +44,7 @@
 
 #include <cstring>
 
-#ifndef M_PI   // sin.cc's; a strict -std=c++11 on musl does not define it
+#ifndef M_PI   // sin.cc's (the oracle's build of it); strict C++11 on musl lacks it
 #define M_PI 3.14159265358979323846
 #endif
 
@@ -45,5 +62,11 @@ inline static T max(const T &a, const T &b) { return a > b ? a : b; }
 static inline bool hasNeon() { return false; }
 
 }  // namespace fm1_msfa
+
+#ifndef FM1_MSFA_REF
+#define sintab (*fm1_sintab)      // sin.h: int32_t (*fm1_sintab)[2048]
+#define exp2tab (*fm1_exp2tab)    // exp2.h: int32_t (*fm1_exp2tab)[2048]
+#define lut (*fm1_freqlut)        // freqlut.cc: int32_t (*fm1_freqlut)[1025]
+#endif
 
 #endif  // FM1_MSFA_PRELUDE_H_
