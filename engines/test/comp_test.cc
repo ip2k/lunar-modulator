@@ -23,7 +23,7 @@ namespace {
 
 const fm1_engine_t &E = fm1_engine_comp;
 const float kRate = 44118.0f;
-alignas(16) unsigned char g_mem[2][1024];
+alignas(16) unsigned char g_mem[1024];
 
 struct Lcg {
   uint32_t s;
@@ -32,12 +32,12 @@ struct Lcg {
   float Unit() { return (Next() >> 8) / 16777216.0f; }                        // [0, 1)
 };
 
-void *Make(float rate, int fill, int slot = 0) {
+void *Make(float rate, int fill) {
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, 64 };
   const size_t n = E.instance_size(&host);
-  if (n > sizeof(g_mem[slot])) return NULL;
-  memset(g_mem[slot], fill, sizeof(g_mem[slot]));
-  return E.create(g_mem[slot], &host);
+  if (n > sizeof(g_mem)) return NULL;
+  memset(g_mem, fill, sizeof(g_mem));
+  return E.create(g_mem, &host);
 }
 
 int Index(const char *name) {
@@ -119,7 +119,7 @@ void Sweep() {
 struct Change { uint32_t at; const char *name; float value; };
 
 void RenderSine(uint32_t block, const Change *changes, int n_changes, uint32_t total,
-                float amplitude, float *out_left, float *out_reduction) {
+                float amplitude, float *out_left) {
   void *self = Make(kRate, 0);
   float buf[128];
   double phase = 0.0;
@@ -138,7 +138,6 @@ void RenderSine(uint32_t block, const Change *changes, int n_changes, uint32_t t
     }
     E.render(self, buf, n);
     for (uint32_t i = 0; i < n; ++i) out_left[pos + i] = buf[2 * i];
-    if (out_reduction) out_reduction[pos + n - 1] = fm1_comp_reduction_db(self);
     pos += n;
   }
   E.destroy(self);
@@ -164,9 +163,9 @@ void Glide() {
     { kStep, "Makeup", 12.0f },
   };
   const int n = static_cast<int>(sizeof(ch) / sizeof(ch[0]));
-  RenderSine(64, ch, n, kTotal, 0.25f, g_a, NULL);
-  RenderSine(7, ch, n, kTotal, 0.25f, g_b, NULL);
-  RenderSine(1, ch, n, kTotal, 0.25f, g_c, NULL);
+  RenderSine(64, ch, n, kTotal, 0.25f, g_a);
+  RenderSine(7, ch, n, kTotal, 0.25f, g_b);
+  RenderSine(1, ch, n, kTotal, 0.25f, g_c);
   const int same = memcmp(g_a, g_b, sizeof(g_a)) == 0 && memcmp(g_a, g_c, sizeof(g_a)) == 0;
   float before = 0.0f, first_ms = 0.0f, tail = 0.0f;
   for (uint32_t i = kStep - 441; i < kStep; ++i) before = fmaxf(before, fabsf(g_a[i]));

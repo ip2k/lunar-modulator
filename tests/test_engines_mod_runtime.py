@@ -48,7 +48,6 @@ TICK = 32
 # glide's modes' 336 B (eight more for its sixteen and 16 B of alignment,
 # 2026-10-06).
 MOD_BYTES = 26848
-FLAG_BITS = ["latch", "smooth", "nolock", "mod", "input"]
 
 
 def run(renderer, tmp_path, args, mod=None, name="r", log=True):

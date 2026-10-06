@@ -16,7 +16,7 @@ import wave
 
 import pytest
 
-from tests.engine_helpers import (ENGINES, RATE, cents, pitch_hz,  # noqa: F401
+from tests.engine_helpers import (ENGINES, cents, pitch_hz,  # noqa: F401
                                   render, renderer, rms)
 
 SELFTEST = ENGINES / "build" / "fm1-schwung-selftest"

@@ -380,7 +380,6 @@ struct Modulation {
   bool amp_used = false;
   FILE *log = NULL;
   uint64_t pos = 0;                  // the block's first frame, for the log
-  uint64_t bridge_splits = 0;
   // Per-voice offsets since the last logged tick (MG9): frame and write.
   std::vector<std::pair<uint64_t, fm1_mod_write_t> > voiced;
   uint64_t live_voice_writes = 0;    // the live notes' first offsets

@@ -203,16 +203,16 @@ const ParamKey kProbeKeys[4] = {
 };
 ModuleState g_probe_sound_state, g_probe_fx_state, g_probe_fx_headroom_state;
 const Module kProbeSound = {
-  FM1_KIND_SOUND, "probe", ProbeSoundInit, NULL, kProbeParams, kProbeKeys, 4, 4,
+  FM1_KIND_SOUND, "probe", ProbeSoundInit, NULL, kProbeParams, kProbeKeys, 4,
   4096, 2.0f, 1.0f, &g_probe_sound_state,
 };
 const Module kProbeFx = {
-  FM1_KIND_AUDIO_FX, "probe-fx", NULL, ProbeFxInit, kProbeParams, kProbeKeys, 4, 4,
+  FM1_KIND_AUDIO_FX, "probe-fx", NULL, ProbeFxInit, kProbeParams, kProbeKeys, 4,
   4096, 0.0f, 1.0f, &g_probe_fx_state,
 };
 const Module kProbeFxHeadroom = {
   FM1_KIND_AUDIO_FX, "probe-fx-headroom", NULL, ProbeFxHeadroomInit, kProbeParams,
-  kProbeKeys, 4, 4, 4096, 0.0f, 2.0f, &g_probe_fx_headroom_state,
+  kProbeKeys, 4, 4096, 0.0f, 2.0f, &g_probe_fx_headroom_state,
 };
 
 // Chunk sizes that never line up with the 64-frame module block.

@@ -1751,7 +1751,3 @@ void fm1_mod_ramp_apply(const fm1_mod_ramp_t *r, uint64_t frame, float *lr, uint
     lr[2u * i + 1u] *= g;
   }
 }
-
-int fm1_mod_ramp_settled(const fm1_mod_ramp_t *r, uint64_t frame, float value) {
-  return r->to == value && (r->from == r->to || frame >= r->t0 + FM1_MOD_TICK);
-}
