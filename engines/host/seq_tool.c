@@ -693,6 +693,7 @@ int main(int argc, char **argv) {
   free(ev);
   free(snaps);
   free(peeks);
+  free((void *)imports);       /* LeakSanitizer (on by default on Linux) counts it */
   free(mem);
   fm1_script_free(&script);
   return 0;
