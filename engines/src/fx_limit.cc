@@ -1,7 +1,8 @@
 // fx_limit.cc -- "Limiter": a look-ahead brickwall limiter (FM1_KIND_AUDIO_FX),
 // written for this repository, MIT licence. Notes in engines/README.md
 // ("Limiter"). Mode ROUND's stage (RoundStep) is ported from Airwindows
-// ClipOnly2: Copyright (c) 2016 airwindows, Airwindows uses the MIT license
+// ClipOnly2: Copyright (c) 2018 Chris Johnson (Airwindows' LICENSE); its file
+// says "Copyright (c) 2016 airwindows, Airwindows uses the MIT license"
 // (the licence: engines/third_party/airwindows/LICENSE; the commit and what
 // was taken: its UPSTREAM.md).
 //

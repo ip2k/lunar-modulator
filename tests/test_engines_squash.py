@@ -183,7 +183,8 @@ def test_the_output_is_the_same_bits_on_every_build(tool):
     # every build that keeps FP_CONTRACT off; the browser's parity scenarios
     # (sim/web/test/scenarios.json) check the WebAssembly module. A
     # deliberate change to the DSP moves these: check it there, then pin.
-    assert tool["contracts"] == ["c088893e", "bf108f80", "6a28efae", "ed36e4bd"]
+    # Transient's moved on 2026-10-06 (the slow follower reads the fast one).
+    assert tool["contracts"] == ["c088893e", "bf108f80", "6a28efae", "e2d21841"]
 
 
 def test_silence_hostile_input_and_rates(tool):
@@ -232,6 +233,21 @@ def test_snaps_gate_shuts_and_opens(tool):
     assert g["open_db"] == pytest.approx(-50.0, abs=0.2)
 
 
+def test_split_at_squash_0_passes_the_sound_whatever_came_before(tool):
+    # ButterComp2's pole is proportional to Squash, so at 0 it froze its
+    # gains: a lock of Type Split and Squash 0 while Mu held a -6 dBFS sine
+    # 32 dB down kept it there for good (130,676 frames differed, -31.8 dB),
+    # and Split turned from Squash 1 to 0 stayed 5 dB down. Under Squash
+    # 0.05 the gain is blended towards 1 and the states pulled to rest
+    # (review, 2026-10-06): from 20 ms after the lock, and after Squash goes
+    # to 0, the input bit for bit; and turned up again, Split starts afresh
+    # (measured -0.002 dB against a fresh instance; -5.6 dB before).
+    s = tool["split_low"]
+    assert s["lock_differing"] == 0 and s["lock_db"] == 0.0
+    assert s["zero_differing"] == 0
+    assert abs(s["again_vs_fresh_db"]) < 0.05
+
+
 def test_a_type_change_starts_from_the_gain_in_force(tool):
     # Squash 0.8 on a loud sine and on bursts, the Type changed every 1,984
     # frames round the three: no step between samples larger than with any
@@ -249,9 +265,9 @@ def test_transient_centre_is_a_true_bypass(tool):
 def test_transient_shapes_attack_and_sustain(tool):
     # A 60 Hz hit (1 ms rise, 150 ms decay) every 0.5 s at -6 dBFS, the
     # second one: its first 10 ms (peak) and 100-300 ms after (RMS) against
-    # the dry. Measured: Attack +100 % +8.1 dB on the onset, the tail
-    # untouched; -100 % -4.9 dB; Sustain +100 % +4.8 dB on the tail, -100 %
-    # -3.7 dB, the onset untouched; 50 / -50 % +4.1 / -2.0 dB.
+    # the dry. Measured (2026-10-06): Attack +100 % +7.6 dB on the onset, the
+    # tail untouched; -100 % -7.3 dB; Sustain +100 % +6.8 dB on the tail,
+    # -100 % -5.6 dB, the onset untouched; 50 / -50 % +3.8 / -2.9 dB.
     s = tool["shaper"]
     assert s["attack_up"]["onset_db"] > 6 and abs(s["attack_up"]["tail_db"]) < 0.3
     assert s["attack_down"]["onset_db"] < -3 and abs(s["attack_down"]["tail_db"]) < 0.3
@@ -265,6 +281,13 @@ def test_transient_shapes_attack_and_sustain(tool):
 
 def test_transient_leaves_a_steady_tone_nearly_alone(tool):
     # Attack and Sustain at +100 %, a steady sine settled: within half a dB
-    # (measured +0.27 dB at 1 kHz and at 100 Hz: the fast follower's ripple).
+    # (measured +0.02 dB at 1 kHz, +0.14 dB at 100 Hz: the fast follower's
+    # ripple). And anywhere on Window (5, 20, 100 ms) and Tail (50, 400,
+    # 2,000 ms), at 40 Hz, 100 Hz and 1 kHz, Attack or Sustain at either end:
+    # within half a dB (measured 0.31 dB at most, at 40 Hz). Before the slow
+    # follower read the fast one (review, 2026-10-06) it read the level
+    # itself and settled under the fast one by an amount set by Window and
+    # Tail: Window 100 ms and Tail 50 ms lifted every steady tone by 4.8 dB.
     s = tool["shaper"]
-    assert abs(s["steady_1k_db"]) < 0.5 and abs(s["steady_100_db"]) < 0.5
+    assert abs(s["steady_1k_db"]) < 0.1 and abs(s["steady_100_db"]) < 0.5
+    assert s["steady_worst_db"] < 0.5

@@ -4,7 +4,7 @@
 | --- | --- |
 | Upstream | https://github.com/airwindows/airwindows at `e718c9bcfcdd736deeddb08bffe6bce2aa8e0eea` (2026-10-04), `plugins/LinuxVST/src/<name>/<name>Proc.cpp` and `LICENSE` |
 | Author | Chris Johnson (Airwindows) |
-| Licence | MIT: `LICENSE` here is upstream's, byte for byte ("Copyright (c) 2018 Chris Johnson"); each source file says "Copyright (c) 2016 airwindows, Airwindows uses the MIT license" |
+| Licence | MIT: `LICENSE` here is upstream's, byte for byte ("Copyright (c) 2018 Chris Johnson"); the source files say "Copyright (c) 2016 airwindows, Airwindows uses the MIT license" (Pressure4, ButterComp2, ClipOnly2) or "Copyright (c) airwindows, Airwindows uses the MIT license" (Pop3, no year) |
 | Vendored | **No upstream file is vendored.** The loops were read and ported into this repository's own files, which carry the notice and point here |
 | Used by | `engines/src/fx_squash.cc` (Squash: Snap after Pop3, Mu after Pressure4, Split after ButterComp2) and `engines/src/fx_limit.cc` (the Limiter's Round mode, after ClipOnly2). Owner decisions of 2026-10-05; notes/2026-10-02-filters-dynamics-options.md §3 and decision 9 |
 | Oracle | `oracle/airwindows_oracle.cc`: the four loops in double, copied with only the changes its header lists, for reference renders. Not built by `engines/Makefile` and never run on a developer's machine: `oracle/run-on-aeon.sh` builds and runs it in the `gcc:12` container on a Docker host and writes `tests/fixtures/squash-oracle.json` (`oracle/make_fixture.py`) |

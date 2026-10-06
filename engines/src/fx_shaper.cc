@@ -3,9 +3,9 @@
  *
  * Per frame, both channels sharing one detector and one gain:
  *
- *   guard -> level x = max(|L|, |R|) -> two followers of x:
- *     fast F: attack 1 ms, release 40 ms (fixed)
- *     slow S: attack Window, release Tail
+ *   guard -> level x = max(|L|, |R|) -> two followers, in a chain:
+ *     fast F of x: instant attack, release 40 ms (fixed)
+ *     slow S of F: attack Window, release Tail
  *   -> D = 20 log10(F / S), in dB, clamped to +/-12 dB
  *   -> gain (dB) = Attack x D where D > 0 (an onset: F ahead of S),
  *                  Sustain x (-D) where D < 0 (a decay: F under S),
@@ -21,6 +21,20 @@
  * law noted from legsmechanical's Bus Driver (MIT, `36b6788`, notes
  * 2026-10-02-filters-dynamics-options.md §3: a fast and a slow follower),
  * with no code or table taken from it or anywhere else.
+ *
+ * Why a chain (review, 2026-10-06). The slow follower reads the fast one,
+ * not x: on a steady tone x itself swings from 0 to the peak every half
+ * cycle, and a follower of x settles where its rise and fall balance, which
+ * depends on its own two times. With S on x, Window 100 ms and Tail 50 ms
+ * sat 4.8 dB under F on any steady sine (Attack +100 % lifted it by that
+ * much), Window 20 ms and Tail 50 ms 2 dB. Following F, which is already
+ * near the peaks, S settles on F whatever Window and Tail are, and only F's
+ * ripple is left: 0.3 dB at most at 40 Hz, 0.02 dB at 1 kHz, anywhere on
+ * the two knobs [verified: fm1-squash-test's `steady`]. F rises at once,
+ * not over 1 ms: at an onset after a held tail (S still high), the gain
+ * Sustain gives the tail then ends as soon as the new note passes S, rather
+ * than lifting the note's first millisecond by up to 12 dB (it came out
+ * over its own peak), and the attack it finds is the sharper.
  *
  * The law, in dB of the level x_dB: at +100 % Attack an onset comes out at
  * x_dB + (F - S), so its rise is twice as steep against the slow envelope;
@@ -88,7 +102,6 @@ static const float kInputLimit = 16.0f;       /* the input guard, as mi_fx.cc */
 static const float kFlush = 1e-20f;           /* follower levels below are 0 */
 static const float kFloor = 7.62939453e-6f;   /* 2^-17 (-102 dB): the ratio's floor */
 static const float kSpan = 12.0f;             /* dB: the most D counts for */
-static const float kFastAttack = 0.001f;      /* s */
 static const float kFastRelease = 0.040f;     /* s */
 static const float kDbPerLog2 = 6.02059991f;  /* 20 log10(2) */
 static const float kLog2PerDb = 0.166096405f; /* log2(10) / 20 */
@@ -100,7 +113,7 @@ typedef struct ShaperInstance {
   uint32_t steps;               /* a ramp's frames, 2.5 ms */
   int started;                  /* rendered at least once */
   float rate;
-  float af, rf;                 /* fast follower: attack and release coefficients */
+  float rf;                     /* fast follower: its release (it rises at once) */
   float as, rs;                 /* slow follower: Window and Tail */
   float k_attack, k_sustain;    /* Attack and Sustain as shares, -1..1 */
   float fast, slow;             /* follower levels, linear */
@@ -144,7 +157,6 @@ static void *ShaperCreate(void *mem, const fm1_host_t *host) {
   for (int i = 0; i < P_COUNT; ++i) self->value[i] = kShaperParams[i].def;
   fm1_smooth_init(self->ramp, self->value, P_COUNT);
   self->steps = fm1_smooth_steps(fs, 1);
-  self->af = ShaperCoef(kFastAttack, fs);
   self->rf = ShaperCoef(kFastRelease, fs);
   ShaperDerive(self);
   return self;
@@ -165,7 +177,7 @@ static void ShaperRender(void *s, float *lr, uint32_t frames) {
   self->started = 1;
   /* The followers live in locals for the block: lr may alias any float. */
   float fast = self->fast, slow = self->slow, gain_db = self->gain_db;
-  const float af = self->af, rf = self->rf;
+  const float rf = self->rf;
   for (uint32_t f = 0; f < frames; ++f) {
     if (fm1_smooth_moving(self->ramp, P_COUNT)) {
       fm1_smooth_tick(self->ramp, self->value, P_COUNT);
@@ -174,9 +186,9 @@ static void ShaperRender(void *s, float *lr, uint32_t frames) {
     const float l = ShaperGuard(lr[2 * f]), r = ShaperGuard(lr[2 * f + 1]);
     const float al = ShaperAbs(l), ar = ShaperAbs(r);
     const float x = al > ar ? al : ar;
-    fast = fast + (x > fast ? af : rf) * (x - fast);
+    fast = x > fast ? x : fast + rf * (x - fast);
     if (fast < kFlush) fast = 0.0f;
-    slow = slow + (x > slow ? self->as : self->rs) * (x - slow);
+    slow = slow + (fast > slow ? self->as : self->rs) * (fast - slow);
     if (slow < kFlush) slow = 0.0f;
 
     float g = self->value[P_OUTPUT];

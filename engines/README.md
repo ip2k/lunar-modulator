@@ -886,10 +886,13 @@ reads the louder channel at each frame, and both channels get one gain.
     −60 dB and 21:1) [verified: `fm1-comp-test`].
   - *The bound* (loosened 2026-10-05, owner: "touch only would-be
     overs"). With the lift L in force (A, or A x Auto Gain's share while it
-    glides), a frame comes out of the compressor, before Makeup, at
-    xp + L − r dB, xp being its peak (the louder channel's |sample|) and r
-    the smoothed reduction. Only if that would pass 0 dBFS (less a margin of
-    10⁻⁴ dB for float rounding) does the bound act, and then on that frame
+    glides), a frame comes out at xp + L + M − r dB, xp being its peak
+    (the louder channel's |sample|), r the smoothed reduction and M the
+    Makeup knob, counted only while it cuts (a boost is the player's own
+    lift, below; a cut keeps samples under full scale, so it counts:
+    review 2026-10-06, when it did not, Makeup −6 dB made the bound clip a
+    steady −3 dBFS sine's peaks at −6 dBFS). Only if that would pass 0 dBFS
+    (less a margin of 10⁻⁴ dB for float rounding) does the bound act, and then on that frame
     alone: the reduction applied rises by just enough to bring it to the
     margin under 0 dBFS, by at most L (and the margin). So an input at or
     under 0 dBFS comes out at or under 0 dBFS (with Makeup at or under
@@ -902,11 +905,11 @@ reads the louder channel at each frame, and both channels get one gain.
   - *What the bound does to the sound.* Everything that stays under full
     scale is untouched: a frame the same makeup set by hand keeps under
     0.99998 comes out with Auto Gain on in the same bits, steady tones
-    included [verified: `fm1-comp-test`'s `loose`, 448 renders at four
-    settings, every Character: 288 steady sines from −40 to −6 dBFS,
-    60 Hz–3 kHz, and the ten hostile signals; no untouched frame differs,
-    and the 285 sines whose settled peak stays under full scale are the
-    same bits from 100 ms on]. Where it acts it clips those frames at the
+    included [verified: `fm1-comp-test`'s `loose`, 744 renders at six
+    settings, two with Makeup cut, every Character: 504 steady sines from
+    −40 to −3 dBFS, 60 Hz–3 kHz, and the ten hostile signals; no untouched
+    frame differs, and the 492 sines whose settled peak stays under full
+    scale are the same bits from 100 ms on, 2026-10-06]. Where it acts it clips those frames at the
     margin: the overs of an onset, for about the Attack time, and the tips
     of a loud tone the detectors read under its peaks. From 2026-10-02 to
     2026-10-05 it held every frame to the curve's gain at its own peak,
@@ -2259,12 +2262,22 @@ Type.
   positive and negative gains of the set in turn by where the sample sits
   between −1 and 1, and is divided by 1 + (lift − 1) / 1.5. The pole is
   0.012 Squash / 135 / (1 + |last output|) per 44.1 kHz sample: no timing
-  knobs, and slower while the output is loud. Squash 0 passes the sound
-  untouched within ±1; it lifts a little at low settings (+0.4 dB at 0.25
-  on a −6 dBFS sine, at most +2.7 dB on bursts). Its targets are held at
-  0.25 or more (gains of 16 or less): under a negative offset beyond −1 the
-  positive target runs towards 0 and its gain to infinity in ButterComp2;
-  ordinary audio never reaches the floor.
+  knobs, and slower while the output is loud. It lifts a little at low
+  settings (+0.4 dB at 0.25 on a −6 dBFS sine, at most +2.7 dB on bursts).
+  Its targets are held at 0.25 or more (gains of 16 or less): under a
+  negative offset beyond −1 the positive target runs towards 0 and its gain
+  to infinity in ButterComp2; ordinary audio never reaches the floor.
+  - *Squash 0 is a bypass* (ours, review 2026-10-06). The pole is
+    proportional to Squash, so at 0 ButterComp2 freezes its gains wherever
+    they are: Split turned from Squash 1 to 0 stayed 5 dB down for good,
+    and a lock of Type Split with Squash 0 while Mu held a sine 32 dB down
+    kept it there for good (Split starts from the gain in force, below).
+    Under Squash 0.05 the gain applied is blended towards 1 by Squash / 0.05
+    and the states are pulled to rest over 20 ms × 0.05 / (0.05 − Squash):
+    Squash 0 passes the input bit for bit whatever came before, from the end
+    of the knob's ramp and the Type's fade, and turned up again Split starts
+    afresh (−0.002 dB against a new instance) [verified: `fm1-squash-test`'s
+    `split_low`]. From 0.05 up this does not run.
 - **Taken out** (the porting rules of the note, §3): the plug-ins' denormal
   dither on every sample and ButterComp2's "live air" residue, whose state is
   function-static (shared by every instance). So silence in gives exact
@@ -2321,8 +2334,8 @@ law, two followers, is the one the note took from legsmechanical's Bus
 Driver (MIT, `36b6788`); its measured tables of a commercial unit were not
 used, and no code was taken from it or anywhere. Stereo-linked.
 
-    guard -> x = max(|L|, |R|) -> fast follower F (1 ms up, 40 ms down)
-                               -> slow follower S (Window up, Tail down)
+    guard -> x = max(|L|, |R|) -> fast follower F of x (at once up, 40 ms down)
+                               -> slow follower S of F (Window up, Tail down)
           -> D = 20 log10(F / S), clamped to +/-12 dB
           -> gain dB = Attack x D where D > 0, Sustain x (-D) where D < 0, + Output
           -> out = dry x (1 + Mix (gain - 1))
@@ -2343,13 +2356,24 @@ used, and no code was taken from it or anywhere. Stereo-linked.
   +100 % Sustain a decay comes out at about S, falling as slowly as Tail; at
   −100 % about twice as fast. The clamp keeps either share within 12 dB
   (an onset out of silence would ask for 100).
-- **Measured** [verified: `fm1-squash-test`'s `shaper`, 2026-10-05]: on a
+- **S follows F, not x** (review, 2026-10-06). On a steady tone x swings
+  from 0 to the peak every half cycle, and a follower of x settles where
+  its rise and fall balance, which depends on its own two times: with S on
+  x, Window 100 ms and Tail 50 ms sat 4.8 dB under F, so Attack +100 %
+  lifted every steady tone by 4.8 dB (2 dB at Window 20, Tail 50). F is
+  already near the peaks, so S on F settles on F whatever Window and Tail
+  are, and only F's ripple is left. F rises at once (it rose over 1 ms):
+  after a held tail, with S still high, Sustain's lift then ends as soon as
+  a new note passes S, rather than lifting the note's first millisecond by
+  up to 12 dB, over its own peak.
+- **Measured** [verified: `fm1-squash-test`'s `shaper`, 2026-10-06]: on a
   60 Hz hit with a 1 ms rise and a 150 ms decay at −6 dBFS, Attack +100 %
-  lifts the first 10 ms by 8.1 dB and −100 % softens them by 4.9 dB,
+  lifts the first 10 ms by 7.6 dB and −100 % softens them by 7.3 dB,
   leaving the tail (100–300 ms) alone; Sustain +100 % lifts the tail by
-  4.8 dB and −100 % cuts it by 3.7 dB, leaving the onset alone. A steady
-  sine at both knobs +100 % moves by 0.27 dB, at 1 kHz and at 100 Hz (the
-  fast follower's ripple).
+  6.8 dB and −100 % cuts it by 5.6 dB, leaving the onset alone. A steady
+  sine at both knobs +100 % moves by 0.02 dB at 1 kHz and 0.14 dB at
+  100 Hz; anywhere on Window and Tail (both ends), at 40 Hz to 1 kHz with
+  either knob at either end, by 0.31 dB at most, at 40 Hz (F's ripple).
 - **The centre is a bypass.** Attack and Sustain at 0 and Output at 0 dB
   give a gain of 2^0, exactly 1, and 1 + Mix × 0: the input bit for bit at
   any Window, Tail and Mix, and again once turned knobs have come back. The

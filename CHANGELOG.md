@@ -17,7 +17,9 @@ history.
   - **Mu** (after Pressure4) is a smooth valve-style leveller that recovers
     more slowly after loud passages; Shape bends its response.
   - **Split** (after ButterComp2) works on the top and the bottom of the
-    wave separately and has no timing knobs: glue for a mix.
+    wave separately and has no timing knobs: glue for a mix. At Squash 0 it
+    passes the sound untouched, whatever it was doing before (the original
+    freezes there, holding whatever it had turned down).
   - Changing Type while the sound plays starts the new one where the old
     one was and fades between them, so modulation can change it on every
     step. Silence stays silent; under half a kilobyte of memory.
@@ -28,8 +30,9 @@ history.
 - **Transient, a new effect: a transient shaper.** Attack lifts or softens
   the start of each note or hit (up to ±12 dB), Sustain lifts or cuts what
   follows; Window and Tail set how long each lasts. It reacts to how the
-  sound changes, not to its level, and at its centre passes the sound
-  exactly untouched. Our own design, on the classic two-follower principle.
+  sound changes, not to its level: a steady note moves by under half a
+  decibel at any setting, and at its centre the sound passes exactly
+  untouched. Our own design, on the classic two-follower principle.
 - **The Limiter has a third Mode, Round:** a gentle final clip after
   Airwindows ClipOnly2. Peaks up to 3 dB over the ceiling are rounded off
   between their neighbours and the ceiling, only what goes further is
@@ -1110,8 +1113,8 @@ history.
 - **Comp's Auto Gain only touches what would clip** (owner's request): it
   holds a sample at full scale only where its makeup would push it past,
   such as the start of a loud hit; everything else, steady notes included,
-  now sounds exactly as with the same makeup set by hand. Before, it also
-  rounded the peaks of steady tones a little. It still never pushes a
+  now sounds exactly as with the same makeup set by hand, also with Makeup
+  turned down. Before, it also rounded the peaks of steady tones a little. It still never pushes a
   sound past full scale.
 - **New pictures of the virtual FM-1, and a manual brought up to date with
   it.**

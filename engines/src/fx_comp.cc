@@ -46,12 +46,16 @@
  *             then it held every sample to the curve at its own peak, which
  *             rounded the peaks of steady tones too). With the lift L = w A
  *             in force (w its share, below) and xp this frame's peak in dB
- *             (both channels' louder), a sample comes out of the compressor,
- *             before Makeup, at xp + L - r for the smoothed reduction r. If
- *             that is under 0 dBFS (less a margin of 1e-4 dB, for rounding)
- *             nothing changes: a steady tone, or anything else that stays
- *             under full scale, has exactly the gain it would have with the
- *             same makeup set by hand. If it would pass, the reduction
+ *             (both channels' louder), a sample comes out at xp + L + M - r
+ *             for the smoothed reduction r and Makeup M, M counted only
+ *             while under 0 (a cut in Makeup keeps samples under full scale;
+ *             a boost is the player's own, below). If that is under 0 dBFS
+ *             (less a margin of 1e-4 dB, for rounding) nothing changes: a
+ *             steady tone, or anything else that stays under full scale, has
+ *             exactly the gain it would have with the same makeup set by
+ *             hand (review, 2026-10-06: until then a negative Makeup was
+ *             left out, so with Makeup -6 dB the bound clipped the peaks of
+ *             a steady -3 dBFS sine at -6 dBFS). If it would pass, the reduction
  *             applied for that sample alone rises by just enough to bring
  *             it to the margin under 0 dBFS, but by no more than L and the
  *             margin: Auto Gain gives up as much of its lift as the sample
@@ -452,7 +456,10 @@ static void CompRender(void *s, float *lr, uint32_t frames) {
         const float pp = p2 > kPowerFloor ? p2 : kPowerFloor;
         xp = kDbPerLog2Power * CompLog2(pp);
       }
-      const float over = xp + lift - reduction + kBoundMargin;
+      /* A cut in Makeup counts towards the output (a sample it keeps under
+       * full scale is not an over); a boost is the player's own (above). */
+      const float reach = makeup < lift ? makeup : lift;
+      const float over = xp + reach - reduction + kBoundMargin;
       const float most = lift + kBoundMargin;
       if (over > 0.0f) applied = reduction + (over < most ? over : most);
     }

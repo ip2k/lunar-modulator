@@ -3,10 +3,11 @@
  *
  * The three Types are ports of Chris Johnson's Airwindows plug-ins, MIT:
  *
- *   Copyright (c) 2016 airwindows, Airwindows uses the MIT license
- *   (Pop3, Pressure4, ButterComp2; the licence text is in
+ *   Copyright (c) 2018 Chris Johnson (Airwindows' LICENSE); the plug-ins'
+ *   files: "Copyright (c) 2016 airwindows, Airwindows uses the MIT license"
+ *   (Pop3's without the year). The licence text is in
  *   engines/third_party/airwindows/LICENSE, the pinned commit and what was
- *   taken in its UPSTREAM.md)
+ *   taken in its UPSTREAM.md.
  *
  * ported into single precision without libm, with these changes, each one
  * the porting rules of notes/2026-10-02-filters-dynamics-options.md §3:
@@ -62,10 +63,20 @@
  * positive and negative gains of the set in turn by where the sample sits
  * between -1 and 1. The pole is 0.012 Squash / 135 / (1 + |last output|),
  * per 44.1 kHz sample: no timing knobs, and slower while loud. The result
- * is divided by 1 + (lift - 1) / 1.5. Squash 0 passes the sound untouched
- * (within +/-1). A target is held at 0.25 or more (its gain at 16 or less):
- * ButterComp2's runs towards 0 under a negative offset beyond -1 and its
- * gain to infinity; ordinary audio never reaches the floor.
+ * is divided by 1 + (lift - 1) / 1.5. A target is held at 0.25 or more (its
+ * gain at 16 or less): ButterComp2's runs towards 0 under a negative offset
+ * beyond -1 and its gain to infinity; ordinary audio never reaches the
+ * floor.
+ * Squash 0 (ours, review 2026-10-06). The pole is proportional to Squash, so
+ * at 0 ButterComp2 freezes its gains wherever they were: turned down from 1
+ * after compressing, it stayed 5 dB down for good, and a Type change into
+ * Split with Squash going to 0 (a lock on both) held the old Type's
+ * reduction, 33 dB from Mu, for good. Under Squash 0.05 (kSplitOn) the gain
+ * applied is blended towards 1 by Squash / 0.05, so Squash 0 passes the
+ * sound bit for bit whatever the state, and the states are pulled towards
+ * rest (1) over 20 ms x 0.05 / (0.05 - Squash), so turning Squash up again
+ * starts Split afresh. From 0.05 up nothing of this runs: ButterComp2's
+ * arithmetic as it was.
  *
  * Type changes. A new Type starts from the gain the old one was applying
  * (its state set to give that gain: Snap's p and an open gate, Mu's c from
@@ -138,6 +149,8 @@ static const float kLog2PerDb = 0.166096405f; /* log2(10) / 20 */
 static const float kSplitTargetFloor = 0.25f; /* Split's targets: gains of 16 or less */
 static const float kMuSpeedStart = 10000.0f;  /* Pressure4's starting speed */
 static const float kSnapEqual = 1e-14f;       /* Snap: d under this x m is 0 (about where a double's rounding ends it) */
+static const float kSplitOn = 0.05f;          /* Split: under this Squash, blended towards 1 and pulled to rest */
+static const float kSplitRestSeconds = 0.02f; /* ...at Squash 0, over this time */
 
 /* The control values the knobs imply (recomputed while a knob ramps). */
 typedef struct SquashCtl {
@@ -147,7 +160,7 @@ typedef struct SquashCtl {
   float mu_thr, mu_lift, mu_release, mu_fastest, mew;
   int mu_positive;
   /* Split */
-  float lift, factor, inv_outgain;
+  float lift, factor, inv_outgain, split_w, split_rest;
   /* all */
   float out, mix;
 } SquashCtl;
@@ -263,6 +276,8 @@ static void SquashDerive(SquashInstance *self) {
   c->lift = SqDbToGain(14.0f * squash);
   c->factor = 0.012f * (squash / 135.0f) * self->inv_scale;
   c->inv_outgain = 1.0f / ((c->lift - 1.0f) / 1.5f + 1.0f);
+  c->split_w = squash < kSplitOn ? squash / kSplitOn : 1.0f;
+  c->split_rest = squash < kSplitOn ? (1.0f - c->split_w) / (kSplitRestSeconds * fs) : 0.0f;
   /* Ours. */
   c->out = SqDbToGain(v[P_OUTPUT]);
   c->mix = v[P_MIX];
@@ -416,6 +431,17 @@ static void SplitFrame(SquashInstance *self, float l, float r, float g[2]) {
     const float total = s->flip ? s->a_pos[k] * opos + s->a_neg[k] * oneg
                                 : s->b_pos[k] * opos + s->b_neg[k] * oneg;
     g[k] = c->lift * total * c->inv_outgain;
+    if (c->split_w < 1.0f) {
+      /* Under kSplitOn (above): blended towards 1, the states pulled to rest. */
+      g[k] = 1.0f + c->split_w * (g[k] - 1.0f);
+      const float q = c->split_rest;
+      s->tpos[k] = s->tpos[k] + (1.0f - s->tpos[k]) * q;
+      s->tneg[k] = s->tneg[k] + (1.0f - s->tneg[k]) * q;
+      s->a_pos[k] = s->a_pos[k] + (1.0f - s->a_pos[k]) * q;
+      s->a_neg[k] = s->a_neg[k] + (1.0f - s->a_neg[k]) * q;
+      s->b_pos[k] = s->b_pos[k] + (1.0f - s->b_pos[k]) * q;
+      s->b_neg[k] = s->b_neg[k] + (1.0f - s->b_neg[k]) * q;
+    }
   }
   s->flip = !s->flip;
 }
@@ -457,7 +483,11 @@ static void SeedType(SquashInstance *self, int type, const float g[2], float lev
     }
     case T_SPLIT: {
       for (int k = 0; k < 2; ++k) {
-        float t = g[k] / (c->lift * c->inv_outgain);
+        /* The state that gives g: under kSplitOn through the blend (at
+         * Squash 0 any state gives 1, so rest; the crossfade covers it). */
+        float gs = g[k];
+        if (c->split_w < 1.0f) gs = c->split_w > 0.0f ? 1.0f + (g[k] - 1.0f) / c->split_w : 1.0f;
+        float t = gs / (c->lift * c->inv_outgain);
         if (t > 16.0f) t = 16.0f;
         if (t < 0.0f) t = 0.0f;
         SplitState *s = &self->split;

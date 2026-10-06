@@ -507,13 +507,15 @@ def test_auto_gain_is_clip_safe(tool):
     # knee, and 0 dBFS on a gentler slope and inside a knee: 128 settings,
     # half with Auto Gain switched); then 160 random settings, a quarter of
     # them with Auto Gain switched on and off every third block. The output
-    # never passes its bound: 0 dBFS, and the compressed path 10^(Makeup/20)
-    # (so the output (1 - Mix) + Mix 10^(Makeup/20)). Measured: 0.902 of it
-    # at the extreme, where the cap holds the compressed path at -36 dBFS and
-    # Mix's dry share is the rest; 0.999989 at the tight corner (-1e-4 dB,
-    # the margin); 0.99999992 at random settings, where a signal under the
-    # threshold passes untouched at full scale. Since the bound was loosened
-    # (2026-10-05) it takes back at most Auto Gain's lift and the margin.
+    # never passes 0 dBFS (the dry and the compressed path each within it,
+    # with the same sign). Measured (2026-10-06): 0.9999988 at the extreme,
+    # where Mix's dry share passes the full-scale input; 0.999989 at the
+    # tight corner (-1e-4 dB, the margin); 0.99999994 at random settings,
+    # where a signal under the threshold passes untouched at full scale.
+    # Since the bound was loosened (2026-10-05) it takes back at most Auto
+    # Gain's lift and the margin; until 2026-10-06 it sat before a negative
+    # Makeup, holding the compressed path within 10^(Makeup/20), which
+    # touched samples that were no overs (the next test).
     a = tool["autogain"]
     assert a["runs"] == 432
     assert a["grid"] <= 1.0 and a["random"] <= 1.0 and a["toggled"] <= 1.0
@@ -523,18 +525,21 @@ def test_auto_gain_is_clip_safe(tool):
 def test_auto_gain_touches_only_would_be_overs(tool):
     # Loosened (owner, 2026-10-05): Auto Gain's bound acts on a sample only
     # if its lift would take it over 0 dBFS, so steady tones pass exactly as
-    # with the same makeup set by hand. Four settings whose lift is exact in
-    # float, every Character: 288 steady sines (-40 to -6 dBFS, 60 Hz to
-    # 3 kHz) and the ten hostile signals at Attack 50 ms. Every frame the
+    # with the same makeup set by hand. Six settings whose lift is exact in
+    # float, two of them with Makeup cut (-6 and -3 dB: the cut counts, so
+    # the bound acts only on real overs; review 2026-10-06, when it did not
+    # the bound clipped a steady -3 dBFS sine at -6 dBFS), every Character:
+    # 504 steady sines (-40 to -3 dBFS, 60 Hz to 3 kHz) and the ten hostile
+    # signals at Attack 50 ms. Every frame the
     # hand-set render keeps under 0.99998 is the same bits with Auto Gain on
-    # (none differs); the sines whose settled peak stays under full scale
-    # (285 of them) are the same bits from 100 ms on; touched samples (the
-    # onsets, the hostile signals' overs) stay under 0 dBFS (measured
-    # 0.999988914, the 1e-4 dB margin).
+    # (none differs; 688,786 did before the cut counted); the sines whose
+    # settled peak stays under full scale (492 of them) are the same bits
+    # from 100 ms on; touched samples (the onsets, the hostile signals'
+    # overs) stay under 0 dBFS (measured 0.999989033, the 1e-4 dB margin).
     lo = tool["loose"]
-    assert lo["cases"] == 448
+    assert lo["cases"] == 744
     assert lo["untouched_mismatch"] == 0
-    assert lo["steady_cases"] >= 280 and lo["steady_same"] == lo["steady_cases"]
+    assert lo["steady_cases"] >= 480 and lo["steady_same"] == lo["steady_cases"]
     assert lo["touched"] > 0                        # the onsets and overs do get caught
     assert lo["peak"] <= 1.0
 

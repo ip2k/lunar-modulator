@@ -11,8 +11,9 @@
 //     and Types change, hostile input, host rates;
 //   - what each knob does: Squash's reduction per Type, Snap's gate, Mu and
 //     Snap never lifting, Split's lift, Type changes starting from the gain
-//     in force; Transient's centre bit for bit, its attack and sustain on a
-//     drum hit, a steady tone left alone;
+//     in force, Split at Squash 0 a bypass whatever came before; Transient's
+//     centre bit for bit, its attack and sustain on a drum hit, a steady
+//     tone left alone anywhere on Window and Tail;
 //   - with --cost, ns per 64-frame block.
 //
 // With --dump DIR it writes the reference signals (interleaved stereo
@@ -608,7 +609,84 @@ void Shaper() {
     printf(",\"steady_%s_db\":%.3f", k ? "100" : "1k",
            20.0 * log10(Rms(x, 44118, frames) / Rms(in, 44118, frames)));
   }
-  printf("}");
+  // A steady sine anywhere on Window and Tail (both ends and the default),
+  // at 40 Hz, 100 Hz and 1 kHz, with Attack or Sustain at either end: the
+  // largest settled level change (dB). With the slow follower on the level
+  // itself, Window 100 ms and Tail 50 ms lifted every steady tone by 4.8 dB.
+  double worst = 0.0;
+  const float wins[] = { 5.0f, 20.0f, 100.0f }, tails[] = { 50.0f, 400.0f, 2000.0f };
+  const double hzs[] = { 40.0, 100.0, 1000.0 };
+  const float knobs[4][2] = { { 100, 0 }, { -100, 0 }, { 0, 100 }, { 0, -100 } };
+  for (float w : wins) {
+    for (float t : tails) {
+      for (double hz : hzs) {
+        Sine(in, frames, 0.5f, hz);
+        for (const auto &kk : knobs) {
+          x = in;
+          void *self = Make(e, kRate, 0);
+          const Kv kv[] = { { "Window", w }, { "Tail", t }, { "Attack", kk[0] }, { "Sustain", kk[1] } };
+          SetAll(e, self, kv, 4);
+          RenderAll(e, self, x.data(), frames, 64);
+          e.destroy(self);
+          worst = fmax(worst, fabs(20.0 * log10(Rms(x, 44118, frames) / Rms(in, 44118, frames))));
+        }
+      }
+    }
+  }
+  printf(",\"steady_worst_db\":%.3f}", worst);
+}
+
+// Split under Squash 0.05 (fx_squash.cc, "Squash 0"): (1) Mu at Squash 0.9
+// on a -6 dBFS sine, then Type Split and Squash 0 in one go, as a lock on
+// both would: the frames after 20 ms (the 2.5 ms ramp and the 5 ms fade
+// with room) that differ from the input, and the level of the last 0.5 s
+// against the input (dB). (2) Split at Squash 1 for 1 s, then Squash 0 for
+// 0.5 s (frames differing after 20 ms), then Squash 0.5: its level over the
+// last 0.5 s against a fresh Split at 0.5 started at that moment (dB).
+void SplitLow() {
+  const uint32_t frames = 2 * 44118;
+  std::vector<float> in, x, y;
+  const fm1_engine_t &e = fm1_engine_squash;
+  Sine(in, frames, 0.5f, 440.0);
+  x = in;
+  void *self = Make(e, kRate, 0);
+  Set(e, self, "Type", 1.0f);
+  Set(e, self, "Squash", 0.9f);
+  const uint32_t at = 22016, settle = at + 882;
+  for (uint32_t pos = 0; pos < frames; pos += 64) {
+    if (pos == at) { Set(e, self, "Type", 2.0f); Set(e, self, "Squash", 0.0f); }
+    e.render(self, x.data() + 2 * pos, 64 < frames - pos ? 64 : frames - pos);
+  }
+  e.destroy(self);
+  long lock_diff = 0;
+  for (uint32_t i = 2 * settle; i < 2 * frames; ++i) lock_diff += x[i] != in[i];
+  const double lock_db = 20.0 * log10(Rms(x, frames - 22059, frames) / Rms(in, frames - 22059, frames));
+  // (2)
+  const uint32_t total = 2 * 44118, zero_at = 44096, back_at = 66112;
+  Sine(in, total, 0.5f, 440.0);
+  x = in;
+  self = Make(e, kRate, 0);
+  Set(e, self, "Type", 2.0f);
+  Set(e, self, "Squash", 1.0f);
+  for (uint32_t pos = 0; pos < total; pos += 64) {
+    if (pos == zero_at) Set(e, self, "Squash", 0.0f);
+    if (pos == back_at) Set(e, self, "Squash", 0.5f);
+    e.render(self, x.data() + 2 * pos, 64 < total - pos ? 64 : total - pos);
+  }
+  e.destroy(self);
+  long zero_diff = 0;
+  for (uint32_t i = 2 * (zero_at + 882); i < 2 * back_at; ++i) zero_diff += x[i] != in[i];
+  y.assign(in.begin() + 2 * back_at, in.end());
+  self = Make(e, kRate, 0);
+  Set(e, self, "Type", 2.0f);
+  Set(e, self, "Squash", 0.5f);
+  RenderAll(e, self, y.data(), total - back_at, 64);
+  e.destroy(self);
+  double a = 0.0, b = 0.0;
+  for (uint32_t i = 2 * back_at; i < 2 * total; ++i) a += static_cast<double>(x[i]) * x[i];
+  for (size_t i = 0; i < y.size(); ++i) b += static_cast<double>(y[i]) * y[i];
+  printf("\"split_low\":{\"lock_differing\":%ld,\"lock_db\":%.4f,\"zero_differing\":%ld,"
+         "\"again_vs_fresh_db\":%.4f}", lock_diff, lock_db, zero_diff, 10.0 * log10(a / b));
 }
 
 // --- cost --------------------------------------------------------------------------
@@ -683,6 +761,7 @@ int main(int argc, char **argv) {
     Reduction(); printf(",");
     SnapGate(); printf(",");
     TypeChanges(); printf(",");
+    SplitLow(); printf(",");
     Shaper();
   }
   printf("}\n");

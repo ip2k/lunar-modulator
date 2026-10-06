@@ -522,9 +522,9 @@ void Hash() {
 }
 
 // 11. Auto Gain is clip-safe: with it on and Makeup at or under 0 dB, an
-// input at or under 0 dBFS never comes out above 0 dBFS (nor the compressed
-// path above 10^(Makeup/20), so the output above (1 - Mix) + Mix
-// 10^(Makeup/20)), whatever Attack, Character, Auto Rel or Mix, even
+// input at or under 0 dBFS never comes out above 0 dBFS (dry and
+// compressed paths each within it, with the same sign), whatever Attack,
+// Character, Auto Rel or Mix, even
 // while Auto Gain itself is switched on and off every few blocks. Hostile
 // signals at full scale: square waves, the Nyquist square, impulses on
 // silence and on a quiet bed, onsets of loud bursts, full-scale noise, DC
@@ -579,9 +579,11 @@ struct AgSetting {
 // One run: every signal through a fresh instance, 0.25 s each; with toggle,
 // Auto Gain switches every third block. Returns the largest |out| / bound.
 double AgRun(const AgSetting &g, bool toggle, uint32_t seed) {
-  // The compressed path is within 10^(Makeup/20) and the dry one within 1,
-  // and they have the same sign: the blend is within their blend.
-  const double bound = (1.0 - g.mix) + g.mix * pow(10.0, (g.makeup < 0.0f ? g.makeup : 0.0f) / 20.0);
+  // The compressed path and the dry one are each within 1 and have the
+  // same sign, so their blend is within 1. (Until 2026-10-06 the bound sat
+  // before a negative Makeup and held the compressed path within
+  // 10^(Makeup/20): it touched samples that were no overs.)
+  const double bound = 1.0;
   double worst = 0.0;
   float buf[128];
   for (int k = 0; k < kAgSignals; ++k) {
@@ -691,20 +693,22 @@ void AutoGain() {
 }
 
 // 11b. Auto Gain touches only would-be overs (owner, 2026-10-05). Each case
-// renders twice from fresh instances: Auto Gain on, and Auto Gain off with
-// Makeup set by hand to exactly the lift Auto Gain computes (settings whose
-// curve at 0 dBFS is exact in float: 13.5, 12, 30 capped to 24, and 14 dB),
-// so the two differ only by the bound. Every frame the hand-set render
+// renders twice from fresh instances: Auto Gain on with Makeup at `manual`,
+// and Auto Gain off with Makeup set by hand to exactly `manual` plus the
+// lift Auto Gain computes (settings whose curve at 0 dBFS is exact in
+// float: 13.5, 12, 30 capped to 24, and 14 dB; and two with Makeup cut,
+// review 2026-10-06), so the two differ only by the bound. Every frame the hand-set render
 // keeps under 0.99998 on both channels (the bound's 1e-4 dB margin, less
 // the polynomials' rounding) must come out the same bits with Auto Gain on;
 // the others may be touched, and no output passes 1. Steady sines at levels whose hand-set render
 // stays under full scale once settled are the same bits from 100 ms on
 // (the onset, before Attack catches it, may be touched); then the hostile
 // signals of section 11, full scale and bursting, through the same check.
-struct LooseSetting { float threshold, ratio, makeup_db; };
+struct LooseSetting { float threshold, ratio, makeup_db, manual; };
 
-const LooseSetting kLoose[] = { { -18.0f, 4.0f, 13.5f }, { -24.0f, 2.0f, 12.0f },
-                                { -40.0f, 4.0f, 30.0f }, { -16.0f, 8.0f, 14.0f } };
+const LooseSetting kLoose[] = { { -18.0f, 4.0f, 13.5f, 0.0f }, { -24.0f, 2.0f, 12.0f, 0.0f },
+                                { -40.0f, 4.0f, 30.0f, 0.0f }, { -16.0f, 8.0f, 14.0f, 0.0f },
+                                { -18.0f, 4.0f, 13.5f, -6.0f }, { -40.0f, 4.0f, 30.0f, -3.0f } };
 
 // Renders `frames` frames of a signal through Comp with Auto Gain on (y_on)
 // and with the same makeup by hand (y_off). k < 0: a sine of `level` at
@@ -713,11 +717,11 @@ void LooseRun(const LooseSetting &g, float character, float attack, int k, float
               uint32_t frames, float *y_on, float *y_off) {
   for (int pass = 0; pass < 2; ++pass) {
     void *self = Make(kRate, 0x5A);
-    const float makeup = g.makeup_db < 24.0f ? g.makeup_db : 24.0f;   // Auto Gain's cap
+    const float makeup = g.manual + (g.makeup_db < 24.0f ? g.makeup_db : 24.0f);   // Auto Gain's cap
     const Kv kv[] = { { "Threshold", g.threshold }, { "Ratio", g.ratio },
                       { "Character", character }, { "Attack", attack },
                       { "Auto Gain", pass == 0 ? 1.0f : 0.0f },
-                      { "Makeup", pass == 0 ? 0.0f : makeup } };
+                      { "Makeup", pass == 0 ? g.manual : makeup } };
     SetAll(self, kv, 6);
     Lcg rng = { 77u + static_cast<uint32_t>(k + 1) };
     float *y = pass == 0 ? y_on : y_off;
@@ -748,7 +752,7 @@ void Loose() {
   int steady_cases = 0, steady_same = 0, cases = 0;
   long untouched_mismatch = 0, touched = 0;
   double worst = 0.0;
-  const float levels[] = { -40.0f, -30.0f, -20.0f, -12.0f, -9.0f, -6.0f };
+  const float levels[] = { -40.0f, -30.0f, -20.0f, -12.0f, -9.0f, -6.0f, -3.0f };
   const float hzs[] = { 60.0f, 440.0f, 3000.0f };
   for (const LooseSetting &g : kLoose) {
     for (int character = 0; character < 4; ++character) {
