@@ -1236,10 +1236,15 @@ history.
   `FM1_LIST_FACE_DEST`), `fm1_look.h` the context line
   (`fm1_look_context`), full names (`fm1_look_full_name`) and the banner's
   geometry; `fm1_app_banner` says whether a popup is a banner.
-  `fm1-sim-render --screens` draws 3,204 screens (the knobs' lists, the
-  banners, FX mode's chip) with 0 faults and counts text boxes by face; the
-  browser module is 896,616 bytes, parity 76 of 76. The audit note's new
-  "Built" section measures every list before and after.
+  `fm1-sim-render --screens` draws 3,202 screens (the knobs' lists, the
+  banners, FX mode's chip, the track strip by sound; MATRIX's nine rows
+  need fewer windows) with 0 faults and counts text boxes by face; the
+  browser module is 901,866 bytes, parity 76 of 76. MATRIX's rows and
+  CHAIN's lines say each character's role (`fm1_mod_ui_row`,
+  `fm1_mod_ui_chain`) for one multi-colour run each, and
+  `fm1_mod_ui_dest_fit` names a destination in a given room. The audit
+  note's new "Built" section measures every list and dense screen before
+  and after.
 - **The modulation pages spell things out, in colour.** The matrix shows
   nine cables instead of seven, in a smaller, sharper typeface, with
   destinations by their full names (*S1 Timbre*, *M2 Ping-pong*, *ENV3

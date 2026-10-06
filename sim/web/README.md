@@ -479,11 +479,13 @@ pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (2026-10-05) Comb, Test Ext, the LOG law and the effects' extension
 (`fm1_fx_render`), Drums, FM6 (msfa), the list popups, FM6's user bank
 with msfa's tables as const data, Squash, Transient and the Limiter's
-Round mode, and per-voice modulation (MG9) (2026-10-06): 76 of 76
-scenarios pass,
+Round mode, per-voice modulation (MG9) and the UI audit's screens
+(2026-10-06): 76 of 76 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms; the three Drums and the four FM6 scenarios are identical to
-glibc too), and it imports nothing; it is 887,038 bytes, 850,731 before
+glibc too), and it imports nothing; it is 901,866 bytes with the UI
+audit's screens (the palette, the two Spleen faces and the screens that
+use them), 887,038 before them, 850,731 before
 per-voice modulation (826,339 without the user bank, 840,216 without
 Squash, Transient and Round), 837,480 with
 the user bank before the list popups, 815,821 with the list popups before the
