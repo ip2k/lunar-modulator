@@ -80,7 +80,7 @@ enum Param { P_PATCH, P_BRIGHTNESS, P_ENV_TIME, P_FEEDBACK, P_VOLUME, P_COUNT };
 // each voice can take its own offset (POLY): Brightness and Feedback where
 // the voice computes its operators, Env Time in the voice's own envelope
 // clock, Volume in its gain.
-const uint8_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
+const uint16_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
 const fm1_param_t kParams[P_COUNT] = {
   { "Patch",      FM1_PARAM_ENUM,  0, kNumPatches - 1, 0, kPatchNames, 0,
     1, FM1_PARAM_LATCH | FM1_PARAM_MOD, FM1_UNIT_NONE, "Patch" },
@@ -614,6 +614,8 @@ extern "C" const fm1_engine_t fm1_engine_dx7 = {
   fm1::dx7::NoteOn, fm1::dx7::NoteOff, fm1::dx7::Bend,
   fm1::dx7::Set, fm1::dx7::Render,
   fm1::dx7::SetNote,
+  0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };
 
 extern "C" int fm1_dx7_load_sysex(void *self, const uint8_t *data, size_t len, unsigned slot,

@@ -13,6 +13,7 @@ extern const fm1_engine_t fm1_engine_macro_heavy;
 extern const fm1_engine_t fm1_engine_sixop;
 extern const fm1_engine_t fm1_engine_dx7;
 extern const fm1_engine_t fm1_engine_sw_sophie;
+extern const fm1_engine_t fm1_engine_drums;
 extern const fm1_engine_t fm1_engine_test_sine;
 extern const fm1_engine_t fm1_engine_plate;
 extern const fm1_engine_t fm1_engine_ensemble;
@@ -23,6 +24,7 @@ extern const fm1_engine_t fm1_engine_fold;
 extern const fm1_engine_t fm1_engine_drive;
 extern const fm1_engine_t fm1_engine_echo;
 extern const fm1_engine_t fm1_engine_filter;
+extern const fm1_engine_t fm1_engine_comb;
 extern const fm1_engine_t fm1_engine_comp;
 extern const fm1_engine_t fm1_engine_limit;
 extern const fm1_engine_t fm1_engine_djfilter;
@@ -34,6 +36,7 @@ extern const fm1_engine_t fm1_engine_room;
 extern const fm1_engine_t fm1_engine_hall;
 extern const fm1_engine_t fm1_engine_gate;
 extern const fm1_engine_t fm1_engine_test_gain;
+extern const fm1_engine_t fm1_engine_test_ext;
 
 const fm1_engine_t *const fm1_engines[] = {
   // sound engines
@@ -43,6 +46,7 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_sixop,
   &fm1_engine_dx7,
   &fm1_engine_sw_sophie,
+  &fm1_engine_drums,
   &fm1_engine_test_sine,
   // audio effects
   &fm1_engine_plate,
@@ -54,6 +58,7 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_drive,
   &fm1_engine_echo,
   &fm1_engine_filter,
+  &fm1_engine_comb,
   &fm1_engine_comp,
   &fm1_engine_limit,
   &fm1_engine_djfilter,
@@ -65,6 +70,7 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_hall,
   &fm1_engine_gate,
   &fm1_engine_test_gain,
+  &fm1_engine_test_ext,
 };
 const size_t fm1_engine_count = sizeof(fm1_engines) / sizeof(fm1_engines[0]);
 

@@ -111,18 +111,19 @@ enum { V_PITCH, V_DB, V_LOGQ, V_COUNT };
  * free uid. Every parameter is read each block and glides: SMOOTH and MOD.
  * One page per band, in the order hardware equalisers label them
  * (frequency, gain, Q); Level fills the last page. Gains and Level are in
- * dB, for which fm1_unit_t has no code yet. */
+ * dB (FM1_UNIT_DB, API v3); the frequencies move on the LOG law
+ * (fm1_engine.h). */
 static const fm1_param_t kEqParams[P_COUNT] = {
-  { "Low Freq",  FM1_PARAM_FLOAT, 20, 1000, 100, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "LoFrq" },
-  { "Low Gain",  FM1_PARAM_FLOAT, -15, 15, 0, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "LoGain" },
+  { "Low Freq",  FM1_PARAM_FLOAT, 20, 1000, 100, NULL, 0, 1, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "LoFrq" },
+  { "Low Gain",  FM1_PARAM_FLOAT, -15, 15, 0, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "LoGain" },
   { "Low Q",     FM1_PARAM_FLOAT, 0.3f, 2, 0.7071f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "LoQ" },
-  { "Mid Freq",  FM1_PARAM_FLOAT, 20, 18000, 1000, NULL, 1, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "MdFrq" },
-  { "Mid Gain",  FM1_PARAM_FLOAT, -15, 15, 0, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "MdGain" },
+  { "Mid Freq",  FM1_PARAM_FLOAT, 20, 18000, 1000, NULL, 1, 4, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "MdFrq" },
+  { "Mid Gain",  FM1_PARAM_FLOAT, -15, 15, 0, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "MdGain" },
   { "Mid Q",     FM1_PARAM_FLOAT, 0.3f, 10, 1, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "MdQ" },
-  { "High Freq", FM1_PARAM_FLOAT, 1000, 18000, 8000, NULL, 2, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "HiFrq" },
-  { "High Gain", FM1_PARAM_FLOAT, -15, 15, 0, NULL, 2, 8, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "HiGain" },
+  { "High Freq", FM1_PARAM_FLOAT, 1000, 18000, 8000, NULL, 2, 7, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "HiFrq" },
+  { "High Gain", FM1_PARAM_FLOAT, -15, 15, 0, NULL, 2, 8, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "HiGain" },
   { "High Q",    FM1_PARAM_FLOAT, 0.3f, 2, 0.7071f, NULL, 2, 9, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "HiQ" },
-  { "Level",     FM1_PARAM_FLOAT, -15, 15, 0, NULL, 2, 10, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Level" },
+  { "Level",     FM1_PARAM_FLOAT, -15, 15, 0, NULL, 2, 10, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Level" },
 };
 
 static const uint32_t kCtrlMask = 7u;       /* a control step every 8 samples */
@@ -434,6 +435,8 @@ const fm1_engine_t fm1_engine_eq = {
   NULL, NULL, NULL,
   EqSet, EqRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };
 
 #ifdef __cplusplus

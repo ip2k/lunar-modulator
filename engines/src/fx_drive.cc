@@ -120,15 +120,15 @@ static const char *const kAutoNames[2] = { "Off", "On" };
 // Uids (API v2) are fixed: never renumber one; a new parameter takes the next
 // free uid. The floats are read every block (SMOOTH and MOD). Type crossfades
 // and Auto's gain glides, so a lock or a (rounded) route on either is clean,
-// however fast: MOD.
+// however fast: MOD. Drive and Level are in dB (FM1_UNIT_DB, API v3).
 static const fm1_param_t kDriveParams[P_COUNT] = {
   { "Type",  FM1_PARAM_ENUM,    0,  4,  0.0f, kTypeNames, 0, 1, FM1_PARAM_MOD, FM1_UNIT_NONE, "Type" },
-  { "Drive", FM1_PARAM_FLOAT, -12, 36, 12.0f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Drive" },
+  { "Drive", FM1_PARAM_FLOAT, -12, 36, 12.0f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Drive" },
   { "Tone",  FM1_PARAM_FLOAT,   0,  1,  0.5f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Tone" },
   { "Mix",   FM1_PARAM_FLOAT,   0,  1,  1.0f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
   { "Bias",  FM1_PARAM_FLOAT,  -1,  1,  0.0f, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Bias" },
   { "Gate",  FM1_PARAM_FLOAT,   0,  1,  0.0f, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Gate" },
-  { "Level", FM1_PARAM_FLOAT, -24, 12,  0.0f, NULL, 1, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Level" },
+  { "Level", FM1_PARAM_FLOAT, -24, 12,  0.0f, NULL, 1, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Level" },
   { "Auto",  FM1_PARAM_ENUM,    0,  1,  1.0f, kAutoNames, 1, 8, FM1_PARAM_MOD, FM1_UNIT_NONE, "Auto" },
 };
 
@@ -592,6 +592,8 @@ const fm1_engine_t fm1_engine_drive = {
   NULL, NULL, NULL,
   DriveSet, DriveRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };
 
 #ifdef __cplusplus

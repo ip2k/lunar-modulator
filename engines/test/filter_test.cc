@@ -1,10 +1,13 @@
 // filter_test.cc -- fm1-filter-test: drives the Filter effect
-// (src/fx_filter.cc) through its engine struct where fm1-render cannot:
+// (src/fx_filter.cc), and Comb (src/fx_comb.cc), its seventh type until
+// 2026-10-05, through their engine structs where fm1-render cannot:
 // parameters that change while audio runs (fm1-render sets an effect's
 // parameters only before the first block), block sizes that change from
 // call to call, host rates, sine sweeps for frequency responses, and
-// self-oscillation. With no arguments it prints one JSON object, which
-// tests/test_engines_filter.py reads. For exploration:
+// self-oscillation. "comb" is a type here as it was then: it selects the
+// Comb effect, and every other type the Filter with that Type. With no
+// arguments it prints one JSON object, which tests/test_engines_filter.py
+// reads. For exploration:
 //
 //   fm1-filter-test --gain TYPE MODE RES CUTOFF MORPH DRIVE HZ...   gains in dB (left)
 //   fm1-filter-test --osc TYPE MODE RES CUTOFF [RATE]              self-oscillation
@@ -23,16 +26,19 @@
 #include <string.h>
 
 extern "C" const fm1_engine_t fm1_engine_filter;
+extern "C" const fm1_engine_t fm1_engine_comb;
 
 namespace {
 
-const fm1_engine_t &E = fm1_engine_filter;
+// The engine the last Make created: the Filter, or Comb.
+const fm1_engine_t *g_e = &fm1_engine_filter;
 const float kRate = 44118.0f;
 const double kPi = 3.141592653589793;
 alignas(16) unsigned char g_mem[1u << 18];   // 384 kHz needs about 155 KB
 
-enum { SVF, LADDER, DIODE, SK, SKMIX, COMB, FORMANT, NTYPES };
-const char *const kTypes[NTYPES] = { "svf", "ladder", "diode", "sk", "skmix", "comb", "formant" };
+// The Filter's types by their Type value, then Comb, its own effect now.
+enum { SVF, LADDER, DIODE, SK, SKMIX, FORMANT, NFILTER, COMB = NFILTER, NTYPES };
+const char *const kTypes[NTYPES] = { "svf", "ladder", "diode", "sk", "skmix", "formant", "comb" };
 
 struct Lcg {
   uint32_t s;
@@ -41,24 +47,26 @@ struct Lcg {
   float Unit() { return (Next() >> 8) / 16777216.0f; }                        // [0, 1)
 };
 
-void *Make(float rate, int fill) {
+// An instance of the Filter, or of Comb for type COMB, in g_mem.
+void *Make(float rate, int fill, int type = SVF) {
+  g_e = type == COMB ? &fm1_engine_comb : &fm1_engine_filter;
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, 64 };
-  const size_t n = E.instance_size(&host);
+  const size_t n = g_e->instance_size(&host);
   if (n > sizeof(g_mem)) return NULL;
   memset(g_mem, fill, sizeof(g_mem));
-  return E.create(g_mem, &host);
+  return g_e->create(g_mem, &host);
 }
 
 int Index(const char *name) {
-  for (uint16_t i = 0; i < E.n_params; ++i) {
-    if (strcmp(E.params[i].name, name) == 0) return i;
+  for (uint16_t i = 0; i < g_e->n_params; ++i) {
+    if (strcmp(g_e->params[i].name, name) == 0) return i;
   }
   fprintf(stderr, "no parameter %s\n", name);
   exit(2);
 }
 
 void Set(void *self, const char *name, float v) {
-  E.set_param(self, static_cast<uint16_t>(Index(name)), v);
+  g_e->set_param(self, static_cast<uint16_t>(Index(name)), v);
 }
 
 struct Settings {
@@ -67,7 +75,7 @@ struct Settings {
 };
 
 void Apply(void *self, const Settings &s) {
-  Set(self, "Type", static_cast<float>(s.type));
+  if (g_e == &fm1_engine_filter) Set(self, "Type", static_cast<float>(s.type));
   Set(self, "Mode", s.mode);
   Set(self, "Resonance", s.res);
   Set(self, "Cutoff", s.cutoff);
@@ -94,7 +102,7 @@ double Amplitude(const float *y, size_t n, size_t stride, double hz, double rate
 // Measured over whole periods (rounded), after 0.25 s and 30 periods.
 double GainDb(const Settings &s, double hz, int ch = 0, double amp = 0.01, float rate = kRate,
               double *harm2 = NULL, double *harm3 = NULL) {
-  void *self = Make(rate, 0);
+  void *self = Make(rate, 0, s.type);
   Apply(self, s);
   const double settle_s = 0.25 + 30.0 / hz;
   const size_t settle = static_cast<size_t>(settle_s * rate);
@@ -111,7 +119,7 @@ double GainDb(const Settings &s, double hz, int ch = 0, double amp = 0.01, float
       const float x = static_cast<float>(amp * sin(w * static_cast<double>(pos + i)));
       buf[2 * i] = buf[2 * i + 1] = x;
     }
-    E.render(self, buf, static_cast<uint32_t>(n));
+    g_e->render(self, buf, static_cast<uint32_t>(n));
     for (size_t i = 0; i < n; ++i) {
       if (pos + i >= settle) {
         out[2 * (pos + i - settle)] = buf[2 * i];
@@ -120,7 +128,7 @@ double GainDb(const Settings &s, double hz, int ch = 0, double amp = 0.01, float
     }
     pos += n;
   }
-  E.destroy(self);
+  g_e->destroy(self);
   const double ph0 = w * static_cast<double>(settle);
   const double a = Amplitude(&out[ch], meas, 2, hz, rate, ph0);
   if (harm2) *harm2 = Amplitude(&out[ch], meas, 2, 2 * hz, rate, 2 * ph0) / a;
@@ -131,7 +139,7 @@ double GainDb(const Settings &s, double hz, int ch = 0, double amp = 0.01, float
 // Self-oscillation: a 1e-3 click, then silence; the pitch over the last
 // half second (rising zero crossings, interpolated) and the peak there.
 void Oscillate(const Settings &s, float rate, double *hz, double *peak) {
-  void *self = Make(rate, 0);
+  void *self = Make(rate, 0, s.type);
   Apply(self, s);
   const size_t total = static_cast<size_t>(2.0 * rate);
   const size_t from = static_cast<size_t>(1.5 * rate);
@@ -141,7 +149,7 @@ void Oscillate(const Settings &s, float rate, double *hz, double *peak) {
   for (size_t pos = 0; pos < total; pos += 64) {
     memset(buf, 0, sizeof(buf));
     if (pos == 0) buf[0] = buf[1] = 1e-3f;
-    E.render(self, buf, 64);
+    g_e->render(self, buf, 64);
     for (size_t i = 0; i < 64; ++i) {
       const double y = buf[2 * i];
       const size_t n = pos + i;
@@ -157,20 +165,24 @@ void Oscillate(const Settings &s, float rate, double *hz, double *peak) {
       prev = y;
     }
   }
-  E.destroy(self);
+  g_e->destroy(self);
   *hz = crossings > 1 ? (crossings - 1) * static_cast<double>(rate) / (last - first) : 0.0;
   *peak = pk;
 }
 
 // 1. Every parameter, at every kind of value (min, max, default, random,
 // beyond the range, NaN, infinities), changed between blocks of random size
-// while noise plays, with loud bursts, for 10 s at each host rate. The
-// output must stay finite and bounded.
+// while noise plays, with loud bursts, for 10 s at each host rate, on the
+// Filter and on Comb. The output must stay finite and bounded.
 void Sweep() {
   const float rates[] = { 8000.0f, 44118.0f, 96000.0f, 384000.0f };
+  const size_t nr = sizeof(rates) / sizeof(rates[0]);
   printf("\"sweep\":[");
-  for (size_t r = 0; r < sizeof(rates) / sizeof(rates[0]); ++r) {
-    void *self = Make(rates[r], 0xA5);
+  for (size_t k = 0; k < 2 * nr; ++k) {
+    const size_t r = k % nr;
+    const int type = k < nr ? SVF : COMB;
+    void *self = Make(rates[r], 0xA5, type);
+    const fm1_engine_t &E = *g_e;
     Lcg rng = { 7u + static_cast<uint32_t>(r) };
     float buf[128];
     uint64_t samples = 0, nonfinite = 0;
@@ -206,8 +218,8 @@ void Sweep() {
       samples += n;
     }
     E.destroy(self);
-    printf("%s{\"rate\":%g,\"samples\":%llu,\"nonfinite\":%llu,\"peak\":%.6f}", r ? "," : "",
-           rates[r], static_cast<unsigned long long>(samples),
+    printf("%s{\"engine\":\"%s\",\"rate\":%g,\"samples\":%llu,\"nonfinite\":%llu,\"peak\":%.6f}",
+           k ? "," : "", E.id, rates[r], static_cast<unsigned long long>(samples),
            static_cast<unsigned long long>(nonfinite), peak);
   }
   printf("]");
@@ -223,7 +235,7 @@ void Extremes() {
     const float modes[] = { 0.0f, 1.0f, 2.0f, 3.0f };
     for (int m = 0; m < 4; ++m) {
       for (int hot = 0; hot < 2; ++hot) {
-        void *self = Make(kRate, 0);
+        void *self = Make(kRate, 0, t);
         const Settings s = { t, modes[m], 1.0f, hot ? 18000.0f : 60.0f, hot ? 1.0f : 0.0f, 1.0f };
         Apply(self, s);
         Set(self, "Level", 2.0f);
@@ -232,13 +244,13 @@ void Extremes() {
         for (int b = 0; b < static_cast<int>(4 * kRate / 64); ++b) {
           for (int i = 0; i < 128; ++i) buf[i] = 16.0f * rng.Bipolar();
           if (b > 2 * kRate / 64) memset(buf, 0, sizeof(buf));   // then silence: ringing
-          E.render(self, buf, 64);
+          g_e->render(self, buf, 64);
           for (int i = 0; i < 128; ++i) {
             if (!(fabsf(buf[i]) <= 3.4e38f)) ++nonfinite;
             else if (fabsf(buf[i]) > worst) worst = fabsf(buf[i]);
           }
         }
-        E.destroy(self);
+        g_e->destroy(self);
       }
     }
     printf("%s{\"type\":\"%s\",\"peak\":%.4f,\"nonfinite\":%llu}", t ? "," : "", kTypes[t], worst,
@@ -268,11 +280,11 @@ void RenderSine(uint32_t block, const Change *changes, int n_changes, uint32_t t
       phase += 2.0 * kPi * 440.0 / kRate;
       buf[2 * i] = buf[2 * i + 1] = x;
     }
-    E.render(self, buf, n);
+    g_e->render(self, buf, n);
     for (uint32_t i = 0; i < n; ++i) out_left[pos + i] = buf[2 * i];
     pos += n;
   }
-  E.destroy(self);
+  g_e->destroy(self);
 }
 
 const uint32_t kTotal = 44118;
@@ -289,7 +301,7 @@ void Glide() {
     { 6003, "Type", 1.0f }, { 6100, "Type", 3.0f },        // the second waits for the first
     { 9000, "Morph", 0.7f }, { 9000, "Resonance", 0.97f },
     { 12007, "Type", 4.0f }, { 15011, "Type", 5.0f }, { 15011, "Cutoff", 300.0f },
-    { 18013, "Type", 6.0f }, { 18013, "Morph", 0.4f }, { 18013, "Mix", 0.6f },
+    { 18013, "Type", 0.0f }, { 18013, "Morph", 0.4f }, { 18013, "Mix", 0.6f },
     { 21017, "Type", 2.0f }, { 21017, "Mode", 3.0f },
     { 30000, "Level", 0.0f }, { 30000, "Mix", 1.0f },
   };
@@ -306,15 +318,15 @@ void Glide() {
          "\"tail\":%.9g}", same ? "true" : "false", before, first_ms, tail);
 }
 
-// 3. A Type change crossfades: a 440 Hz sine through each pair of types,
-// switched at 0.5 s. The largest step between neighbouring samples in the
+// 3. A Type change crossfades: a 440 Hz sine through each pair of the
+// Filter's types, switched at 0.5 s. The largest step between neighbouring samples in the
 // 20 ms after the switch, against the largest in the 100 ms before it and
 // in the 100 ms that start 100 ms after it (each type's own steady state).
 void Switch() {
   printf("\"switch\":[");
   int first = 1;
-  for (int a = 0; a < NTYPES; ++a) {
-    for (int b = 0; b < NTYPES; ++b) {
+  for (int a = 0; a < NFILTER; ++a) {
+    for (int b = 0; b < NFILTER; ++b) {
       if (a == b) continue;
       const Change ch[] = {
         { 0, "Type", static_cast<float>(a) }, { 0, "Cutoff", 1500.0f }, { 0, "Resonance", 0.5f },
@@ -343,18 +355,18 @@ void Silence() {
   for (int t = 0; t < NTYPES; ++t) {
     float rest = 0.0f;
     for (int m = 0; m <= 3; ++m) {
-      void *self = Make(kRate, 0xFF);
+      void *self = Make(kRate, 0xFF, t);
       const Settings s = { t, static_cast<float>(m), 1.0f, 3000.0f, 0.5f, 1.0f };
       Apply(self, s);
       float buf[128];
       for (int b = 0; b < 700; ++b) {
         memset(buf, 0, sizeof(buf));
-        E.render(self, buf, 64);
+        g_e->render(self, buf, 64);
         for (int i = 0; i < 128; ++i) rest = fmaxf(rest, fabsf(buf[i]));
       }
-      E.destroy(self);
+      g_e->destroy(self);
     }
-    void *self = Make(kRate, 0);
+    void *self = Make(kRate, 0, t);
     const Settings s = { t, 0.0f, 0.7f, 1000.0f, 0.3f, 0.3f };
     Apply(self, s);
     Lcg rng = { 5u };
@@ -363,13 +375,13 @@ void Silence() {
     for (int b = 0; b < static_cast<int>(40 * kRate / 64); ++b) {
       if (b < 100) for (int i = 0; i < 128; ++i) buf[i] = 0.5f * rng.Bipolar();
       else memset(buf, 0, sizeof(buf));
-      E.render(self, buf, 64);
+      g_e->render(self, buf, 64);
       float pk = 0.0f;
       for (int i = 0; i < 128; ++i) pk = fmaxf(pk, fabsf(buf[i]));
       if (pk != 0.0f) quiet_at = -1;
       else if (quiet_at < 0) quiet_at = b;
     }
-    E.destroy(self);
+    g_e->destroy(self);
     printf("%s{\"type\":\"%s\",\"rest_peak\":%.9g,\"silent_after_s\":%.3f}", t ? "," : "", kTypes[t],
            rest, quiet_at < 0 ? -1.0 : (quiet_at - 100) * 64.0 / kRate);
   }
@@ -377,19 +389,21 @@ void Silence() {
 }
 
 // 5. Host rates: refused outside 8 kHz..384 kHz, and when not a number;
-// the instance size at each.
+// the instance size at each: "rates" the Filter's, "comb_rates" Comb's.
 void Rates() {
   const float rates[] = { 0.0f, 7999.0f, 8000.0f, 44118.0f, 48000.0f, 96000.0f, 384000.0f,
                           400000.0f, NAN, INFINITY, -44118.0f };
-  printf("\"rates\":[");
-  for (size_t i = 0; i < sizeof(rates) / sizeof(rates[0]); ++i) {
-    fm1_host_t host = { FM1_ENGINE_API_VERSION, rates[i], 64 };
-    void *self = Make(rates[i], 0);
-    printf("%s[\"%g\",%s,%zu]", i ? "," : "", rates[i], self ? "true" : "false",
-           E.instance_size(&host));
-    if (self) E.destroy(self);
+  for (int type = SVF; type <= COMB; type += COMB) {
+    printf(type == COMB ? ",\"comb_rates\":[" : "\"rates\":[");
+    for (size_t i = 0; i < sizeof(rates) / sizeof(rates[0]); ++i) {
+      fm1_host_t host = { FM1_ENGINE_API_VERSION, rates[i], 64 };
+      void *self = Make(rates[i], 0, type);
+      printf("%s[\"%g\",%s,%zu]", i ? "," : "", rates[i], self ? "true" : "false",
+             g_e->instance_size(&host));
+      if (self) g_e->destroy(self);
+    }
+    printf("]");
   }
-  printf("]");
 }
 
 // 6. Frequency responses: small-signal gains (dB) at listed frequencies.
@@ -544,7 +558,7 @@ void Bench() {
   for (int t = 0; t < NTYPES; ++t) {
     double ns[2];
     for (int moving = 0; moving < 2; ++moving) {
-      void *self = Make(kRate, 0);
+      void *self = Make(kRate, 0, t);
       const Settings s = { t, 1.5f, 0.6f, 1200.0f, moving ? 0.3f : 0.0f, 0.3f };
       Apply(self, s);
       Lcg rng = { 3u };
@@ -557,15 +571,15 @@ void Bench() {
         if (moving) {
           Set(self, "Cutoff", 300.0f + 3000.0f * rng.Unit());
           Set(self, "Resonance", 0.5f + 0.4f * rng.Unit());
-          E.render(self, buf, 32);
+          g_e->render(self, buf, 32);
           Set(self, "Cutoff", 300.0f + 3000.0f * rng.Unit());
-          E.render(self, buf + 64, 32);
+          g_e->render(self, buf + 64, 32);
         } else {
-          E.render(self, buf, 64);
+          g_e->render(self, buf, 64);
         }
         total += std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - t0).count();
       }
-      E.destroy(self);
+      g_e->destroy(self);
       ns[moving] = total / blocks;
     }
     printf("%s{\"type\":\"%s\",\"still\":%.1f,\"moving\":%.1f}", t ? "," : "", kTypes[t], ns[0], ns[1]);

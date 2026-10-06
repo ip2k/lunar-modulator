@@ -1,5 +1,5 @@
 #! rate=44118 block=64 tracks=8 end=132352
-# A parity scenario played on the panel with the lab switch and several
+# A parity scenario played on the panel with several
 # sound units (docs/16 MG3): track 1 plays Sound 1, track 2 Sound 2, and
 # multi-panel.panel makes cables into Sound 2, its insert, the master and
 # Sound 1 while they play. The render legs replay what the native harness

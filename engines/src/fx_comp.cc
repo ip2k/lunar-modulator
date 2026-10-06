@@ -131,14 +131,16 @@ static const char *const kOffOn[2] = { "Off", "On" };
  * change nothing destructively (Character and Auto Rel hand over, Auto Gain
  * glides; no NOLOCK) and are not note-bound (no LATCH), so they can be locked
  * and modulated (MOD; a route is rounded), however fast. Threshold, Knee and
- * Makeup are in dB, for which fm1_unit_t has no code yet. */
+ * Makeup are in dB (FM1_UNIT_DB, API v3). Release moves on the LOG law
+ * (fm1_engine.h): a ratio a detent, octaves under modulation; Attack, whose
+ * range starts at 0, stays linear. */
 static const fm1_param_t kCompParams[P_COUNT] = {
-  { "Threshold", FM1_PARAM_FLOAT, -60, 0, -18, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Thresh" },
+  { "Threshold", FM1_PARAM_FLOAT, -60, 0, -18, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Thresh" },
   { "Ratio",     FM1_PARAM_FLOAT, 1, 21, 4, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Ratio" },
   { "Attack",    FM1_PARAM_FLOAT, 0, 100, 10, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Atk" },
-  { "Release",   FM1_PARAM_FLOAT, 10, 2000, 150, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Rel" },
-  { "Knee",      FM1_PARAM_FLOAT, 0, 24, 6, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Knee" },
-  { "Makeup",    FM1_PARAM_FLOAT, -12, 24, 0, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Makeup" },
+  { "Release",   FM1_PARAM_FLOAT, 10, 2000, 150, NULL, 0, 4, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_MS, "Rel" },
+  { "Knee",      FM1_PARAM_FLOAT, 0, 24, 6, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Knee" },
+  { "Makeup",    FM1_PARAM_FLOAT, -12, 24, 0, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Makeup" },
   { "Mix",       FM1_PARAM_FLOAT, 0, 1, 1, NULL, 1, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
   { "Character", FM1_PARAM_ENUM, 0, C_COUNT - 1, C_PEAK, kCharacterNames, 1, 8, FM1_PARAM_MOD, FM1_UNIT_NONE, "Char" },
   { "Auto Rel",  FM1_PARAM_ENUM, 0, 1, 0, kOffOn, 2, 9, FM1_PARAM_MOD, FM1_UNIT_NONE, "ARel" },
@@ -484,6 +486,8 @@ const fm1_engine_t fm1_engine_comp = {
   NULL, NULL, NULL,
   CompSet, CompRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };
 
 #ifdef __cplusplus

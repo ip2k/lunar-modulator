@@ -256,13 +256,14 @@ try {
     await wait(page, 200);
   }
 
-  // FX mode: Plate in slot 1, PSX Verb in slot 2, slot 2's page.
+  // FX mode: Plate in M1, PSX Verb in M2, M2's first page. FX mode opens
+  // on M1; SELECT walks Plate's two pages (its knobs, then Freeze) first.
   await choose(page, '#sel-sound', 'macro');
   await setParam(page, 0, 0, 4);
   await choose(page, '#sel-fx2', 'sw-psxverb');
   await press(page, 2);                                   // FX
   await wait(page, 150);
-  await wheel(page, '[data-encoder="0"]', 1);             // SELECT: slot 2
+  await wheel(page, '[data-encoder="0"]', 2);             // SELECT: past Freeze to M2
   await wait(page, 1200);
   await hold(page, CHORD);
   await wait(page, 350);

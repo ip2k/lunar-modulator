@@ -1,5 +1,5 @@
 #! rate=44118 block=64 tracks=8 end=105882
-# A parity scenario played on the panel with the lab switch (docs/16 MG3):
+# A parity scenario played on the panel (docs/16 MG3):
 # track 1 plays the sound, track 2 sounds on USB-MIDI (the gate SEQ2), and
 # panel-gestures.panel makes cables while it plays. The render legs replay
 # what the native harness logged: these lines, the panel's commands, its

@@ -39,6 +39,113 @@ history.
     `fm6_core.c` (Apache-2.0; a test tool here, in no build): every
     algorithm within 0.3 dB. Documented in engines/msfa.md and chapter 5 of
     the manual.
+- **Drums, a new sound engine:** a sixteen-pad drum kit after the classic
+  analogue drum machines, on MIDI notes 36 to 51 like Sophie.
+  - Two kits: Deep, with a deep kick that booms for over a second, round
+    toms and analogue-style hi-hats; and Punch, with a short kick that
+    sweeps down, a crisp snare and ring-modulated hi-hats. Both have two
+    snares, a clap, a rim shot, six toms, a crash and a ride, and any pad
+    can play a cowbell instead.
+  - Each pad has its own Tune, Decay, Level, Tone, Snap, Sweep, Drive and
+    sound (Model); Pad chooses which pad the knobs edit, as on Sophie. The
+    knobs start in the middle, which is the pad as the kit sets it up. Kit,
+    Accent (how much velocity matters) and Volume are the whole kit's.
+  - A closed or pedal hi-hat cuts the open one short. Up to twelve hits
+    ring at once, and a pad struck again while it rings is struck again,
+    as a drum is; a thirteenth takes over the quietest hit, so a cymbal
+    still ringing loud keeps going.
+  - The kicks, toms, snares and hi-hats are Plaits' drum models by Emilie
+    Gillet; the rim shot, clap, cowbell and cymbals are new, after
+    published studies of the analogue circuits.
+  - It plays the same, sample for sample, in the browser as on the
+    desktop, and fits in about 8 KB.
+- **The virtual FM-1's keys play any drum kit's pads:** with Sophie or
+  Drums as the current sound, the sixteen white keys play the sixteen pads
+  at any octave. Step recording, and adding a pitch to a held step with
+  SHIFT, enter the pad a white key plays (they entered a pitch the kit
+  ignores, so the steps played nothing). For developers: an engine says it
+  is a kit with two new fields in the engine API, `pad_first_note` and
+  `pad_count`.
+- **JieLi SDK upgraded to the V1.2.13 libraries, with safeguards** (owner's
+  decision, 2026-10-05; notes/2026-10-05-softkey-efuse.md §4). The pin is now
+  Gitee `release/AC79NN_SDK_V1.2.0` at `e30b1ee` (= tag V1.2.13), by commit.
+  The SDK's key check is left intact, not stubbed, because it is inert on the
+  FM-1 (nothing registers a licence blob, and the app never touches eFuse).
+  The safeguards instead:
+  - a post-link audit, `tools/jieli/audit_link.py` (modelled on fm1-nes's
+    `audit_boot.py`): it fails the build if any live key-check or eFuse code
+    survives — no `mkey_check`/`sdk_mkey_lock`/`sdk_mkey_lock_v2_cfun`/
+    `key_check_demo`/`sdk_chip_key_verify_v2`, no `0x0200012E` stub, no writes
+    to `0x01C80108-0x01C80110`, IRQ 123 reserved, no SDK key-blob bytes, no
+    eFuse-SFR access, no `request_irq(123)` in our sources — while leaving
+    the dormant `sdk_meky_check` in place. On a linked image it attributes
+    each hit to its function, so the SDK's own `mkey_dummy_func` mailbox
+    store passes and anything of ours fails, and it checks that the
+    `late_initcall` group is exactly `[sdk_meky_check]`. It reads ELF itself
+    (standard library only) and is covered by `tests/test_audit_link.py`;
+  - a packaging gate, `tools/jieli/package_guard.py`: never ship any V1.2.x
+    `uboot.boot`, `uboot_no_ota.boot`, `wl82loader.bin` or `ota.bin` — only
+    V1.1.9's SPL is the FM-1's. It asserts the stock SPL hash `730e54f0…`
+    and byte-identical `isd_config.ini`/`ota.bin`/`cfg`, and refuses any
+    other SPL or loader in the tree (`tests/test_package_guard.py`);
+  - the `boot_info` bridge from fm1-nes (Apache-2.0, in
+    `firmware/third_party/fm1-nes/` with its licence and `UPSTREAM.md`),
+    which copies the stock SPL's 6 hand-off words and zeroes words 6-22 so
+    V1.2.1+'s wider `boot_info_init` reads defined zero, not stale RAM.
+    Tested on the desktop (`tests/test_boot_compat.py`) and compiled for
+    pi32v2, where it calls nothing but the SDK's own initializer; it has not
+    run on a chip.
+
+  `tools/jieli/compile-check.sh` and `tools/jieli/ac79-sdk-sparse.txt` now
+  fetch and use V1.2.13 from Gitee (retrying its flaky SSL); the compile-only
+  check was re-run against it on the build host (twice, the second time with
+  the bridge and our sources in the audit). The V1.2.13 libc++ ships its
+  own `math.h`, so the V1.1.9 run's one fix is no longer needed. No user-facing
+  change. No vendor binary is in the repo.
+- notes/2026-10-05-softkey-efuse.md: a desk-only investigation of the stock
+  "soft key" SysEx and of the JieLi SDK's key and eFuse checks. The soft key
+  only writes a marker to RAM and resets the chip into its ROM loader (no
+  flash write), and its code path in FM-1_092 is identical to stock V15. The
+  SDK's key check is present in every release and every stock image but does
+  nothing on the FM-1, and nothing on the device writes eFuses; it recommends
+  upgrading to SDK V1.2.13's libraries with safeguards. A separate draft,
+  notes/2026-10-05-softkey-readonly-test-plan.md, is a read-only dump plan
+  for the owner to review; nothing has been sent to any device.
+- **Comb, an effect of its own.** The comb filter that was Filter's seventh
+  Type is now its own effect, with the same knobs (Cutoff, Resonance, Drive,
+  Mode, Morph, Mix, Level) and the same sound, sample for sample. Filter
+  keeps six types and no longer carries the comb's 18 KB delay lines: it
+  takes 656 bytes, so filters cost almost nothing on the RAM meter. Filter's
+  Formant moved from Type 6 to 5. A Filter set to Comb maps onto Comb
+  setting for setting (they share their parameter ids).
+- **Frequencies and times turn in ratios.** Filter's and Comb's Cutoff,
+  Echo's Time, Comp's and the Limiter's Release, Tilt's Pivot, Master Sat's
+  Clean Lo and Clean Hi, the Isolator's crossovers, EQ's three frequencies,
+  Gate's Hold, Decay, Key HP and Key LP and Sophie's Ring Time now move by the same musical step wherever they
+  are: a click of the knob is about a semitone on a cutoff, their bars show
+  the knob's position, their values show more decimals at the low end, and
+  a sequencer lock steps through them evenly in ratio. Modulation moves them
+  in octaves: a ±50 % LFO on Cutoff swings it about five octaves either way
+  instead of pinning it at the ends, and NOTE at +100 % into Cutoff makes
+  the filter follow the keyboard exactly, one octave per octave.
+- **Engine API v3, for developers** (engines/README.md, "Engine API v3";
+  `FM1_ENGINE_API_VERSION` is 3, so an engine built out of tree is
+  rebuilt). Parameter flags widen to 16 bits with the new `FM1_PARAM_LOG`;
+  `FM1_UNIT_DB` marks levels and gains in dB (Comp, Drive and the Limiter,
+  and EQ, Tilt, Master Sat and Gate). Effects get an optional extension,
+  `fm1_fx_ext_t` through `render_ext`: a key (side-chain) input, the tempo
+  and beat position, and the sequencer's Start, Stop and beats at their
+  exact frames, the same at any block size; both hosts pass it through
+  `fm1_fx_render` (`fm1_fx_host.h`), and the key stays empty until the
+  side-chain stage. Test Ext, a new test effect, marks what it hears with
+  clicks. `fm1-render --tempo BPM` sets the effects' tempo without a
+  sequencer; `--list` shows each engine's `fx_wants`. Every other engine and
+  effect renders byte for byte as before. New tests: fm1-fx-ext-test and
+  tests/test_engine_api_v3.py (the extension with a real sequencer at block
+  sizes 1, 7, 13 and 64, the LOG law, NOTE keytracking, the app's knobs and
+  bars), tests/test_engines_comb.py (the split, pinned against main), and
+  two parity scenarios for the browser module.
+
 - **Room, Hall, Gate and Plate's Freeze on the virtual FM-1:** the effect
   slots now offer twenty effects (ALGORITHM steps through Plate, Ensemble,
   Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp, Limiter,
@@ -974,6 +1081,44 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **The sequencer, four sounds at once and modulation are on the virtual
+  FM-1's public page.** The lab switch is gone: the page no longer needs
+  `?lab` in its address (an old `?lab` link opens the same page), and
+  everything that was behind it works for everyone: the entries under
+  *Added* above that say "behind the lab switch" now describe the public
+  page.
+  - SEQ, PLAY/STOP and REC work: SEQ mode with the 16 steps on the white
+    keys, the step and lock pages, recording, step recording and Capture,
+    eight tracks with mute and routing, and the Set, Clip and Track pages.
+    The page starts with a one-bar demo pattern on track 1; press
+    PLAY/STOP, or Space on the computer keyboard, to hear it.
+  - SEL is SHIFT everywhere but in FX mode; SEL with PRESETS chooses which
+    of the four sounds you play, and the Sound menu under the panel follows.
+  - FX mode shows the current sound's two inserts, a Mix page with the four
+    sounds' levels, and the two master effects. A memory meter in the
+    screen's bottom bar replaces the memory figure, and anything that
+    would not fit the FM-1 is refused, on every chain.
+  - LFO, ENV and EDIT open the modulation pages: the rack, the gesture
+    that makes a cable, the matrix and the chain.
+  - SAVE and ARP are the only buttons that still say they are not in the
+    simulator yet; SEL outside FX mode no longer says it works only there.
+  - The user manual describes all of it: chapter 7 (the sequencer) for the
+    simulator, a new chapter 8 (modulation), and four sounds, inserts and
+    the memory meter in chapters 5 and 6. Chapters 8 to 13 are now 9 to 14.
+    The manual's and the README's screen pictures were retaken.
+  - For developers: `fm1_app_set_lab`, `fm1w_set_lab` and the harness's
+    `--lab` are gone. `fm1_app_init` starts the modulation runtime with the
+    default rack; the harness's sidecar always starts with `--slots`; the
+    layout sweep is one set of 2,338 screens; the parity scenarios have no
+    `lab` key, and `fx-turns-diffuse-psxverb` plays Macro, since the RAM
+    meter refuses Shapes beside Diffuse and PSX Verb. The browser module is
+    765,189 bytes (769,693 with the switch), and 66 of 66 parity scenarios
+    pass.
+- **Licences: the GPL switch** (owner, 2026-10-05; CLAUDE.md, docs/12 §6).
+  GPL modules will sit behind one build switch, on by default everywhere
+  while we test; while it is on, no firmware image that links JieLi's
+  libraries may be shared, and the public simulator's module is offered
+  under GPL terms. No GPL code is in the tree yet.
 - **Knob turns and sequencer locks no longer click** (docs/15 stage S7b).
   When a continuous parameter changes while a sound plays, the engine now
   glides to the new value over 2.5 ms instead of jumping, so a lock under a
@@ -1209,6 +1354,19 @@ history.
   Google's original (there since its first commit, 2012), and `0xC1`, which
   Felucca's port of Dexed's msfa carries, a later change. The FM-1's table is Google's, row for row; the tool
   now reports 32 of 32 rows for an FM-1 image.
+- On the virtual FM-1, Sophie's pads followed Sound 1 rather than the
+  current sound: with Sophie as Sound 2 the white keys played notes she
+  ignores, and with Sophie as Sound 1 they played her pad notes on another
+  current sound. The white keys now play her pads whenever she is the
+  current sound.
+- The layout check drew FX mode's routed-parameter screens on an empty
+  insert instead of the effect under test; it now draws them on M1.
+- The simulator page's help credits every source of the modulation
+  modules, as the manual does: Braids and Music Thing Modular's Turing
+  Machine (Tom Whitwell) were missing.
+- For developers: `fm1-sim-render` frees what a run holds when it stops
+  part way, on a refused `--unit-route`, `--seq-reset` or `--seq-import`,
+  so CI's leak check sees only the refusal.
 - Sophie made no sound from the virtual FM-1's keys: it only plays MIDI
   notes 36–51 (its 16 pads), below the keys' range at the default octave.
   With Sophie as the sound, the 16 white keys now play pads 1–16 at any

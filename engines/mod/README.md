@@ -11,9 +11,9 @@ Two layers, both heap-free C99 with no libm:
   three module kinds are **LFO**, **Envelope** and **Chance**; stage MG2
   adds thirteen more, documented in [kinds.md](kinds.md): Function, Bounce,
   Register, Coin, Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix
-  and Filter. The virtual FM-1 hosts it behind its lab switch, with the
-  RACK, MATRIX and CHAIN pages (docs/16 MG3; sim/web/README.md, "The lab
-  switch").
+  and Filter. The virtual FM-1 hosts it, with the RACK, MATRIX and CHAIN
+  pages (docs/16 MG3; sim/web/README.md, "Modulation"), and the user
+  manual's chapter 8 describes them.
 - **The primitives** (`fm1_mp.h`): an LFO, a multistage envelope, a slew
   limiter, sample-and-hold, a Turing-machine register and a clock
   divider/multiplier, after §3–§5 of the arpeggiator, modulation and effects
@@ -105,7 +105,19 @@ c = amount x s x (max - min)          a parameter, as a share of its range
 c = amount x s                        an INPUT parameter: 100 % passes the signal
 c = amount x round(s x 61,440) / 1,024   SEMI into SEMI: semitones on a 1/1,024 grid
 final = clamp(base + (c1 + c2 + ...)), an ENUM rounded
+
+a LOG destination (engine API v3; docs/16 §2.3):
+c = amount x s x log2(max / min)              octaves, the same share of its knob
+c = amount x (round(s x 61,440) / 1,024) / 12  from a SEMI source: the octave rule
+final = clamp(base x 2^(c1 + c2 + ...))
 ```
+
+- **LOG destinations** (engine API v3, 2026-10-05) sum in octaves and scale
+  the base, so NOTE at 100 % into a cutoff keytracks exactly: twelve
+  semitones are one octave and 2^1 is 2 to the bit [verified:
+  tests/test_engine_api_v3.py]. A sum of 0 leaves the base's bits as they
+  are, so a route at zero amount still writes nothing. The 2^x is
+  `fm1_exp2f` (include/fm1_math.h), libm-free like the rest.
 
 - **Two deviations from docs/16 §2.4**, both deliberate:
   - An INPUT (a bare signal input, such as Chance's IN) takes amount × s,
@@ -288,8 +300,8 @@ and splits only that slot's render, a lock on slot k moves sound unit k's
 base (`lock_slot`), and each slot's calls come in the order
 `dispatch_ticks` would give it alone [verified: `hooked_slots` in
 `fm1-seq-host-test`]. Plain `fm1_seq_host_dispatch` is the hook-less
-case, which the virtual FM-1 keeps with its lab switch off; with it on, the
-app runs this glue as `fm1-render` does (MG3). A bridge initialised with
+case; the virtual FM-1 runs this glue as `fm1-render` does (MG3), on every
+chain since its lab switch went (2026-10-05). A bridge initialised with
 no sequencer runs only ticks, which is how `fm1-render` modulates without
 `--cmd`.
 
@@ -380,7 +392,8 @@ and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
 
 ### What MG1 leaves for later
 
-- **The simulator** (MG3, built 2026-10-02 behind the lab switch): RACK,
+- **The simulator** (MG3, built 2026-10-02 behind a lab switch, public
+  since 2026-10-05): RACK,
   MATRIX, CHAIN and the routing gesture; the app hosts the glue
   (docs/16 §8, "MG3, as built").
 - **Locks on module parameters and slot depths** (MG6). Locks on the

@@ -131,8 +131,14 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** five swappable sound engines and sixteen effects behind one C
-  API ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h)).
+- **The API:** six swappable sound engines and twenty effects (Comb split
+  out of Filter since 2026-10-05), plus test engines, behind one C API, version 3
+  ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
+  [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
+  16-bit parameter flags with the LOG law for pitch- and time-like knobs, a
+  dB unit, an optional effect extension that hands an effect a key
+  input, the tempo and beat position, and the transport's events, and pad
+  kits ([engines/README.md, "Pad kits"](engines/README.md#pad-kits)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
@@ -146,6 +152,10 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     - **Macro Heavy:** Plaits' other 13.
     - **Six-Op FM:** Plaits' DX7-style engine.
     - **Shapes:** Braids.
+    - **Drums:** Plaits' drum classes for its kicks, toms, snares and
+      hi-hats, in a 16-pad kit with a rim shot, clap, cowbell and cymbal of
+      our own, after Werner, Abel and Smith's TR-808 cowbell and cymbal
+      models ([`engines/README.md`](engines/README.md#drums)).
     - **Plate:** Rings' reverb, with a Freeze after Elements'.
     - **Room:** Clouds' reverb and diffuser.
     - **Ensemble and Diffuse:** Plaits' ensemble and diffuser.
@@ -175,8 +185,8 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   checked sample for sample against upstream `Voice`
   ([`engines/README.md`](engines/README.md#macro-and-macro-heavy-page-3-the-envelope-and-the-gate)).
 - **Sample rates:** the Mutable engines run at their modules' own rates and
-  are resampled to the FM-1's 44,118 Hz: Braids at 96 kHz, Plaits at
-  47,872 Hz ([`engines/resampler.md`](engines/resampler.md)).
+  are resampled to the FM-1's 44,118 Hz: Braids at 96 kHz, Plaits (and
+  Drums) at 47,872 Hz ([`engines/resampler.md`](engines/resampler.md)).
 - **The output:** a host limiter on the bus keeps twelve voices started in
   phase under full scale [verified: `tests/test_engine_host.py`].
 - **The desktop renderer:** `fm1-render` plays notes, parameter changes and
@@ -231,11 +241,11 @@ nothing of ours in the path, and more than 400 tests compare the two.
   SEQ mode's Track view and a demo pattern (stage S3), step entry (S4),
   recording, step record and Capture (S5), eight tracks with mute, the
   Set, Clip and Track pages and a metronome click (S6), parameter locks
-  from the knobs (S8) and modulation (docs/16 MG3) work behind a lab
-  switch (`?lab` in the page's address; [`sim/web/README.md`](sim/web/README.md),
-  "The lab switch"); the public page keeps SEQ, PLAY/STOP, REC, ENV, LFO
-  and EDIT as "not in the simulator yet" until the owner opens it. Behind
-  the same switch, up to four sound units play at once, each with two
+  from the knobs (S8) and modulation (docs/16 MG3) work on the public page
+  ([`sim/web/README.md`](sim/web/README.md), "The sequencer, multi-sound
+  and modulation"; the user manual's chapters 7 and 8). They were behind a
+  lab switch (`?lab`) until 2026-10-05, when the owner opened them once
+  MG3 had landed. Up to four sound units play at once, each with two
   inserts and a level, mixed into the two effect slots as the master bus;
   each track plays the sound its route names, and a RAM meter refuses any
   choice that would not fit the FM-1 (docs/15 §3.16).
@@ -264,8 +274,14 @@ API v2 ([`engines/midi_fx/README.md`](engines/midi_fx/README.md)).
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 287 of its screens pass a layout check, with no text cut short
-  and nothing closer than 4 px.
+  canvas. All 2,470 screens of the layout sweep, the sequencer's and
+  modulation's included, pass a layout check, with no text cut short and
+  nothing closer than 4 px [verified: `fm1-sim-render --screens`,
+  2026-10-05].
+- **What the panel does:** every engine and effect, four sounds with their
+  inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC) and
+  modulation (LFO, ENV, EDIT); only SAVE and ARP are still stubs. The user
+  manual describes every control.
 - **On a phone:** the panel keeps keys 31–35 px wide and no target under
   24 px, and scrolls sideways in its own box.
 - **Self-contained:** the page loads nothing from anywhere else and finds its
@@ -529,7 +545,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Screen and controls refinement** · *In progress*
 - **Depends on:** the simulator (ongoing). On the device: the TFT strip
   driver, key matrix and encoders (I12), and one sized arena for the app
-  layer, whose `fm1_app_t` is 4,880,816 B today (4.5 MiB of it the fixed
+  layer, whose `fm1_app_t` is 4,915,120 B today (4.5 MiB of it the fixed
   arenas of multi-sound's four sound units and ten effect slots), the
   sequencer's arena included, against 578 KB of SRAM
   [verified: sim/web/README.md] (I2).
@@ -585,12 +601,13 @@ which lands with the plan PR; its stages S0–S7 are named below.
   Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix and a resonant
   Filter, the Peaks and Braids parts checked against the original code
   ([`engines/mod/kinds.md`](engines/mod/kinds.md)). Stage MG3 puts the
-  runtime in the virtual FM-1 behind the lab switch: the RACK, MATRIX and
+  runtime in the virtual FM-1, public since 2026-10-05: the RACK, MATRIX and
   CHAIN pages, the hold-and-turn routing gesture, cables into any of the
   four sound units, their inserts and the master effects, routed
   parameters marked on every page, and panel sessions that replay through
   `fm1-render --mod` byte for byte ([`sim/web/README.md`](sim/web/README.md),
-  "The lab switch"). Next: per-voice envelopes and LFOs (MG9, which the
+  "The sequencer, multi-sound and modulation"; manual chapter 8). Next:
+  per-voice envelopes and LFOs (MG9, which the
   owner has made essential).
 - **Depends on:**
   - API v2 uids, SMOOTH and NOLOCK, plus a new MOD flag (docs/13 M2):
@@ -638,7 +655,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
   Freeze, the Gate's Mode, Listen, Link and Lookahead) change without a
   click, so they can be locked and modulated: the rule is that a switch
   that changes cleanly is lockable and modulatable
-  ([`engines/README.md`](engines/README.md#parameters-engine-api-v2)).
+  ([`engines/README.md`](engines/README.md#parameters-engine-api-v2-and-v3)).
   Filter's types are named for their circuits (Sallen-Key, SK Mixed),
   never for a maker; Comp's Auto Gain is capped at 24 dB and never pushes
   an input under full scale past it. Crush adds jitter and
@@ -805,12 +822,14 @@ modulation source, a MIDI effect, an audio effect, or another kind.
 - **Depends on:**
   - API v2 (docs/13 M2): parameter uids, the LATCH, SMOOTH and NOLOCK
     flags, and `FM1_KIND_MIDI_FX` with its `process()`. Since docs/15 stage
-    S7a, `FM1_ENGINE_API_VERSION` is 2 and every parameter has its uid and
-    flags; the MIDI-effect kind is still reserved [verified: `fm1_engine.h`
-    lines 45 and 53]. An SDK needs that contract settled and versioned
-    first [inferred];
-  - the modulation and effects lines' additions to `fm1_host_t` (tempo, a
-    beat position); the MOD flag is in since S7a;
+    S7a every parameter has its uid and flags, and since 2026-10-05
+    `FM1_ENGINE_API_VERSION` is 3 (16-bit flags, LOG, dB, the effect
+    extension); the MIDI-effect kind is still reserved [verified:
+    `fm1_engine.h`]. An SDK needs that contract settled and versioned first
+    [inferred];
+  - the effects' tempo and beat position: in since API v3, as the per-call
+    `fm1_fx_ext_t` rather than fields of `fm1_host_t`; the MOD flag is in
+    since S7a;
   - stage B numbers (I8), so a module can state its cost in cycles per
     block on pi32v2;
   - an answer to the toolchain problem: JieLi's compiler is closed and
@@ -994,26 +1013,71 @@ on the build host. 1–2 sessions.
   post-build tools `20260923.1` [verified: HTTP redirects, 2026-10-02 UTC;
   nothing downloaded]. Archive both privately with their SHA-256, and never
   commit them.
-- **SDK.** The AC79 SDK (Apache-2.0) at tag `AC79NN_SDK_V1.1.9_2023-08-01`
-  (`8eae664`), cited from Gitee by commit, not from the stale GitHub mirrors
-  (the sparse list is `tools/jieli/ac79-sdk-sparse.txt`). Its `uboot.boot`
-  is the same file as the head of M-VAVE's V15 package (git blob
-  `b6cb71ea…`). The V1.2.0 branch's is not (`1cc0f013…`, the V1.2.1/V1.2.2
-  era) [verified: gh api and `git hash-object`].
-  - **Why not newer.** Gitee is current to V1.2.13 (`e30b1ee`). From V1.2.7
-    `system.a` carries `sdk_meky_check`, and V1.2.13 adds
-    `sdk_chip_key_verify_v2`, which reads an eFuse key [verified: strings
-    per tag]; what they do on failure is unread. fm1-nes boots V1.2.13
-    libraries on a V14 unit with a 6→23-word `boot_info` bridge [reported]:
-    a fallback, not a reason to move.
-  - **Checks.** The build refuses a `system.a` containing `sdk_meky_check`
-    or `sdk_chip_key_verify_v2`, and records the V1.1.9 blob hashes
-    `37ad8997…` (`system.a`) and `f0f65e4b…` (`cpu.a`) [verified: `git
-    ls-tree` of tag V1.1.9, `8eae664`].
+- **SDK (libraries: V1.2.13).** The AC79 SDK (Apache-2.0) from Gitee
+  `release/AC79NN_SDK_V1.2.0` at `e30b1ee` — tag `AC79NN_SDK_V1.2.13_2026-04-20`
+  plus a README change — pinned by commit, not from the stale GitHub mirrors
+  (the sparse list is `tools/jieli/ac79-sdk-sparse.txt`; Gitee's SSL is flaky,
+  so `compile-check.sh` retries).
+  - **Why move from V1.1.9** (owner's decision, 2026-10-05;
+    `notes/2026-10-05-softkey-efuse.md`). The whole question of the SDK's key
+    and eFuse checks was settled by disassembly: `sdk_meky_check` (from V1.2.7)
+    and `sdk_chip_key_verify_v2` (V1.2.13) are present but **inert on the
+    FM-1** — nothing registers a licence blob, so `_mkey_check` returns at its
+    "nothing registered" branch, and the application never touches the eFuse
+    controller [verified: IR of every release from V1.1.9 to V1.2.13]. fm1-nes
+    runs the same V1.2.13 libraries on a V14 unit with no fault past the 8 s
+    timer [reported]. The upgrade adds no new key or eFuse risk over V1.1.9;
+    both carry the same dormant check.
+  - **Safeguards** (`notes/2026-10-05-softkey-efuse.md` §4). Do **not** stub
+    the check (it is inert, fm1-nes kept it, and patching LTO-internal vendor
+    code is riskier). Instead:
+    - **Never ship any V1.2.x `uboot.boot`, `uboot_no_ota.boot`,
+      `wl82loader.bin` or `ota.bin`.** Only V1.1.9's SPL is the FM-1's: its
+      `uboot.boot` is the head of M-VAVE's V15 package (SHA-256 `730e54f0…`,
+      git blob `b6cb71ea…`); the V1.2.0 branch's is `1cc0f013…`, the
+      V1.2.1/V1.2.2 era [verified]. Every package must pass
+      `tools/jieli/package_guard.py`: it asserts that SPL hash, that
+      `isd_config.ini`, `ota.bin` and `cfg` are byte-identical to a stock
+      reference (whose own SPL must match the pin), and that no other `.boot`
+      or loader file is in the tree. Tested on synthetic files; the pin is
+      checked against a real stock unpack when `FM1_STOCK_UNPACK` is set.
+    - **The post-link audit** (`tools/jieli/audit_link.py`, modelled on
+      fm1-nes `audit_boot.py`): the build fails if the `late_initcall` group
+      is not exactly `[sdk_meky_check]`, if `sdk_meky_check` does more than
+      two `request_irq(123, isr_check_key)` and `sys_timeout_add(_mkey_check,
+      8000)`, if any of `mkey_check`/`sdk_mkey_lock`/`sdk_mkey_lock_v2_cfun`/
+      `key_check_demo`/`sdk_chip_key_verify_v2` survives LTO or is referenced,
+      if any code loads or calls `0x0200012E` or writes
+      `0x01C80108-0x01C80110` (the SDK's own `mkey_dummy_func` store of the
+      chip key at `0x01C8010C`, which every V1.2.8+ `boot_info_init` makes,
+      is the one exception), if the image carries the SDK key-blob bytes or
+      the `key_check_demo` hash, if our code uses IRQ 123 (in objects or as
+      `request_irq(123, …)` in our sources), or if anything touches the eFuse
+      SFRs. It reads ELF itself (standard library only). On a linked image it
+      attributes each hit to the function covering it: the expected SDK store
+      passes, other hits inside the dormant check are pending for a human,
+      and hits anywhere else fail. The symbol, byte, eFuse and source checks
+      run on the compile-only set now; the `late_initcall` check runs on any
+      linked image; `sdk_meky_check`'s exact scheduling waits for the vendor
+      objdump at the real link.
+    - **The `boot_info` bridge** (fm1-nes's `boot_compat.c`, in
+      `firmware/third_party/fm1-nes/` under Apache-2.0 with its `LICENSE`
+      and `UPSTREAM.md`): copy 6 words from the stock SPL hand-off and zero
+      words 6-22, because V1.2.1+ `boot_info_init` reads out to +92 bytes
+      while the stock SPL fills only 6 words plus a 32-byte header
+      [verified]. Its contract is tested on the desktop
+      (`tests/test_boot_compat.py`), and the compile check builds it for
+      pi32v2 and requires it to call nothing but `__real_boot_info_init`
+      [verified]. Its linked code and on-chip run are untested.
+    - **eFuse never burned by anything on the device.** The only
+      eFuse-programming code is JieLi's download loader, reached from PC tools:
+      never send loader `0xFC12` or the raw `0xA1` eFuse write, and never pass
+      `-key`/`-key1`/`-mkey` to `isd_download` for the FM-1 or the dev kit
+      (V1.2.12+ `isd_download` is a writer: dev kit only).
 - **Build.** A container image on the build host; build `demo_hello` for
   wl82.
-- *Done when:* two clean builds are byte-identical and the hashes are
-  recorded (docs/14 §5 step 2, done early).
+- *Done when:* two clean builds are byte-identical, the hashes are recorded,
+  and `audit_link.py` passes the linked image (docs/14 §5 step 2).
 
 **I2. Compile-only stage B and the ladder runner.** The pi32v2 half needs
 I1; the desktop half needs nothing. 3–5 sessions.
@@ -1053,7 +1117,8 @@ V15 and FM-1_092 packages are in `scratch/`. 2–4 sessions.
   - recomputed CRCs.
 
   It refuses unless the head, `ota.bin`, `cfg` and `isd_config.ini` are
-  byte-identical to V15's.
+  byte-identical to V15's: it calls `tools/jieli/package_guard.py` (written
+  2026-10-05, ahead of the builder) on its staged tree and stops on failure.
 - **A raw 1 MB flash-image builder** for mask-ROM writes (kagaimiq's
   jl-misctools, MIT), and a **sparse writer plan** modelled on fm1-nes's
   `scripts/jl_formats.py` and FM-1-transporter's writer [reported]: write

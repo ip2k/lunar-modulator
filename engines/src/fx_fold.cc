@@ -381,6 +381,8 @@ const fm1_engine_t fm1_engine_fold = {
   NULL, NULL, NULL,
   FoldSet, FoldRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };
 
 #ifdef __cplusplus

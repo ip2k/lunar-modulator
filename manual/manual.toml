@@ -36,43 +36,48 @@ features = true
 
 [[chapter]]
 file = "05-sound-engines.md"
-summary = "Macro, Macro Heavy, Six-Op FM, FM6, Shapes, Sophie and Test Sine, with every parameter."
+summary = "Macro, Macro Heavy, Six-Op FM, FM6, Shapes, Sophie, Drums and Test Sine, with every parameter, and four sounds at once."
 features = true
 
 [[chapter]]
 file = "06-effects.md"
-summary = "Plate, Ensemble, Diffuse and PSX Verb in two slots, and the limiter."
+summary = "Every effect, two inserts on each sound and two on the master bus, the mix, the memory meter and the limiter."
 features = true
 
 [[chapter]]
 file = "07-sequencer.md"
-summary = "Steps, parameter locks, conditions, swing, clips, scenes, recording, Capture and routing."
+summary = "Steps, parameter locks, conditions, swing, clips, scenes, recording, Capture, tracks and routing."
 features = true
 
 [[chapter]]
-file = "08-midi.md"
+file = "08-modulation.md"
+summary = "The rack of LFOs, envelopes and other modules, the cables, and the gesture that makes them."
+features = true
+
+[[chapter]]
+file = "09-midi.md"
 summary = "What Lunar Modulator receives and sends over MIDI."
 features = true
 
 [[chapter]]
-file = "09-settings-and-storage.md"
+file = "10-settings-and-storage.md"
 summary = "The global page, and how sounds and patterns are kept."
 features = true
 
 [[chapter]]
-file = "10-updating-and-recovery.md"
+file = "11-updating-and-recovery.md"
 summary = "Why nothing is installed yet, the recovery dongle, and the firmware your FM-1 has now."
 
 [[chapter]]
-file = "11-troubleshooting.md"
+file = "12-troubleshooting.md"
 summary = "Symptoms and remedies for the simulator and the desktop tools."
 
 [[chapter]]
-file = "12-specifications.md"
+file = "13-specifications.md"
 summary = "The instrument and the firmware in figures."
 
 [[chapter]]
-file = "13-credits-and-licences.md"
+file = "14-credits-and-licences.md"
 summary = "Whose work Lunar Modulator builds on, and the terms."
 
 # Back matter: unnumbered, after the chapters.
@@ -95,10 +100,11 @@ buttons = ["OCT-", "OCT+", "FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SA
            "ARP", "SEQ", "PLAY/STOP", "REC"]
 key_labels = ["OP1", "OP2", "OP3", "OP4", "OP5", "OP6", "PIT", "MONO", "POLY"]
 connectors = ["POWER", "USB", "MIDI IN", "OUT"]
-# Sequencer functions that docs/13 §4 still has to assign to a physical
-# button: written [[role:SHIFT]], drawn with a dashed outline, and indexed
-# apart from the printed controls.
-roles = ["SHIFT", "CLEAR", "COPY", "LOOP", "SESSION", "MUTE", "UNDO"]
+# Sequencer functions still to be given a key (docs/13 §4, docs/15 §3.4):
+# written [[role:LOOP]], drawn with a dashed outline, and indexed apart from
+# the printed controls. SHIFT (SEL), CLEAR (OP5) and MUTE (OP6) have theirs
+# since the simulator's sequencer went public (2026-10-05).
+roles = ["COPY", "LOOP", "SESSION", "UNDO"]
 
 # The panel tour's section for each group of controls: the index of controls
 # always lists it under every control in the group.

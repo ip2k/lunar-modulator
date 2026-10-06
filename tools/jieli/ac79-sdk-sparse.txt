@@ -1,18 +1,31 @@
-# tools/jieli/ac79-sdk-sparse.txt -- the sparse-checkout list used to read
-# JieLi's AC79 SDK from Gitee on 2026-10-05 (notes/2026-10-05-community-repos.md):
-# about 30 MB of the 750 MB tree, sources, headers and text only. Closed .a
-# libraries and PDFs are fetched by path when needed and never committed.
+# tools/jieli/ac79-sdk-sparse.txt -- the sparse-checkout list for JieLi's AC79
+# SDK, read from Gitee (notes/2026-10-05-community-repos.md): about 30 MB of the
+# 750 MB tree, sources, headers and text only. tools/jieli/compile-check.sh
+# checks out this list on the build host, plus the closed .a libraries it
+# names itself; PDFs and other libraries are fetched by path when needed.
+# Nothing from the SDK is ever committed.
+#
+# The pin (owner's decision, 2026-10-05; notes/2026-10-05-softkey-efuse.md §4):
+# branch release/AC79NN_SDK_V1.2.0 at e30b1ee375d1f2993fc23bf92c8b99006a6e5f9d,
+# which is tag AC79NN_SDK_V1.2.13_2026-04-20 (64afb30b) plus a README change.
+# The old pin, tag AC79NN_SDK_V1.1.9_2023-08-01 (8eae664), is the release
+# whose uboot.boot is the FM-1's SPL.
 #
 #   git clone --filter=blob:none --no-checkout \
 #       https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git reference/ac79-sdk
 #   git -C reference/ac79-sdk sparse-checkout set --no-cone \
 #       --stdin < tools/jieli/ac79-sdk-sparse.txt
-#   git -C reference/ac79-sdk checkout --detach e30b1ee   # or tag V1.1.9, 8eae664
+#   git -C reference/ac79-sdk checkout --detach e30b1ee
 #
-# Pin by commit. Gitee's SSL is flaky and lazy blob fetches hung, so check
-# out once and avoid history commands that fetch blobs one by one
-# (log -p, blame, diffs across tags). Read only: build nothing from it here,
-# and run none of its tools against an FM-1 (CLAUDE.md trap 11).
+# Pin by commit. Gitee's SSL is flaky and lazy blob fetches hang, so retry,
+# set git's low-speed limit, check out once and avoid history commands that
+# fetch blobs one by one (log -p, blame, diffs across tags).
+#
+# Never take the SDK's uboot.boot, uboot_no_ota.boot, wl82loader.bin or
+# ota.bin (or any loader) into an FM-1 package: only V1.1.9's SPL is the
+# FM-1's (CLAUDE.md trap 11). No pattern below matches them, and
+# compile-check.sh refuses a checkout that contains one. Run none of the
+# SDK's tools against an FM-1.
 /LICENSE
 /README.md
 /README-en.md
@@ -33,6 +46,7 @@
 /cpu/wl82/tools/jtag/*.config
 /cpu/wl82/tools/jtag/*.bat
 /cpu/wl82/tools/packufw/
+!/cpu/wl82/tools/packufw/**/*.exe
 /apps/common/usb/
 /apps/common/system/
 /apps/common/audio_music/
@@ -45,6 +59,7 @@
 /apps/common/include/
 /apps/common/c++/
 /apps/common/jl_math/
+/apps/common/movable/
 /apps/common/product_test_tool/
 /apps/common/example/audio/
 /apps/common/example/peripheral/
@@ -63,4 +78,9 @@
 /include_lib/btstack/
 /include_lib/btctrler/
 /include_lib/utils/
+/include_lib/*.h
+/include_lib/c++/README.md
+/include_lib/c++/include/
+/include_lib/c++/simple_pthread/
+/include_lib/newlib/include/
 /doc/stuff/*.txt

@@ -1,9 +1,10 @@
 # Effects
 
-After the sound engine, the sound passes through two effect slots, then the
-limiter, then [[MASTER]]. Each slot holds one effect or nothing. Every engine
-but Macro Heavy's string machine plays in mono; the effects are where the
-sound gains its stereo width.
+Each sound passes through two insert effects of its own; the four sounds are
+then mixed, each at its own level, and the mix passes through two master
+effects, then the limiter, then [[MASTER]]. Each slot holds one effect or
+nothing. Every engine but Macro Heavy's string machine plays in mono; the
+effects are where the sound gains its stereo width.
 
 {{engine-summary audio_fx}}
 
@@ -11,51 +12,90 @@ sound gains its stereo width.
 
 {{status sim desktop planned}}
 
-The simulator starts with Plate in the first slot and the second slot empty.
-An effect processes everything before it: the engine, then the first slot,
-then the second. A reverb after a chorus sounds different from a chorus after
-a reverb.
+```text
+Sound 1 → In1 → In2 → level ┐
+Sound 2 → In1 → In2 → level ├→ mix → M1 → M2 → limiter → MASTER
+Sound 3 → In1 → In2 → level │
+Sound 4 → In1 → In2 → level ┘
+```
 
-**To see the chain:** press [[FX]]. The screen lists both slots and shows the
-chosen slot's parameters on [[KNOB1]] to [[KNOB4]]. Press [[FX]] again, or
-[[HOME]], to return to the sound.
+The simulator starts with Plate in M1, the first master slot, and every
+other slot empty. An effect processes everything before it: a sound's
+inserts work on that sound alone, the master effects on everything. A reverb
+after a chorus sounds different from a chorus after a reverb.
 
-**To choose a slot:** turn [[SELECT]]. It moves through the first slot's
-pages, then the second slot's. The bottom bar shows where you are, such as
-*1/2 FX2*: page 1 of 2, second slot.
+**To see the chain:** press [[FX]]. The first line of the screen lists the
+current sound (such as *S1*), its two inserts *In1* and *In2*, the *Mix*
+page and the master slots *M1* and *M2*, with the chosen one in the accent
+colour. The chosen effect's parameters are on [[KNOB1]] to [[KNOB4]]. FX mode
+first opens on M1. Press [[FX]] again, or [[HOME]], to return to the sound.
+
+**To choose a slot:** turn [[SELECT]]. It moves through In1's pages, then
+In2's, the Mix page, M1's and M2's. The bottom bar shows where you are, such
+as *1/2 M2*: page 1 of 2, the second master slot, or *1/1 S1 In1*. The
+inserts are the current sound's: to reach another sound's inserts, choose
+that sound first ([chapter 5](05-sound-engines.md#four-sounds-at-once)).
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
 *Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo,
-Filter, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room,
-Hall, Gate and Test Gain, and round again. In the simulator you can also use
-the **Effect 1** and **Effect 2** lists under the panel.
+Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room,
+Hall, Gate, Test Gain and Test Ext, and round again, stepping over an effect
+that would not fit the memory (below). In the simulator you can also use the
+**Effect 1** and **Effect 2** lists under the panel for the two master
+slots.
 
 **To empty a slot:** turn [[ALGORITHM]] to *Empty slot*, one step before
 Plate, or choose *(none)* in the list.
 
-**To swap the two slots:** press [[SEL]] to pick up the chosen slot (its arrow
-turns into an asterisk and [[SEL]] lights), turn [[SELECT]] to move it to the
-other position, and press [[SEL]] again to put it down. The effects move with
+**To swap two effects:** press [[SEL]] to pick up the chosen effect (its
+arrow turns into an asterisk and [[SEL]] lights), turn [[SELECT]] to move it,
+and press [[SEL]] again to put it down. The two inserts swap with each
+other, and the two master effects with each other. The effects move with
 their settings.
 
 - An effect you put in a slot starts with its default settings, and the old
   effect's tail stops at once.
-- The same effect can sit in both slots, each with its own settings.
-- Changing the sound engine keeps both effects and their settings.
+- **Knobs for frequencies and times turn in ratios.** A cutoff, a crossover,
+  a delay time or a release moves by the same musical step wherever it is:
+  each click of the knob multiplies it, so 20 to 40 Hz takes as many clicks
+  as 5 to 10 kHz, and a hundred clicks go from one end to the other. The
+  screen still shows hertz and milliseconds, with more decimals at the low
+  end, and the bar shows where the knob is. The sequencer's locks move them
+  the same way ([chapter 7](07-sequencer.md#values-and-list-parameters)),
+  and modulation moves them in octaves: a source that follows the note you
+  play, at full amount, makes a cutoff follow the keyboard exactly.
+- The same effect can sit in several slots, each with its own settings.
+- Changing a sound's engine keeps its inserts and the master effects, and
+  their settings.
 
 In the desktop tools, `--fx` adds effects in the order you give them, and
 each `--fx-param` sets a parameter of the effect before it
 ([chapter 2](02-getting-started.md#the-desktop-tools)). There you can chain
-more than two.
+more than two. With the multi-sound options, `--insert K:ID` adds an insert
+to sound *K* and the first two `--fx` are the master effects.
 
-!!! note "Memory"
-    The engine and both effects have to fit in the FM-1's memory. The
-    simulator measures them against about 379 KB, the room M-VAVE's firmware
-    leaves free on the FM-1, as an estimate of what Lunar Modulator will have
-    there ([chapter 12](12-specifications.md)). The bottom bar of the screen
-    shows how much the current chain takes, and turns red when it is more.
-    Most combinations fit; Shapes with PSX Verb and Plate together does not.
-    The simulator plays such a chain anyway, so that you can hear it.
+### The Mix page
+
+Between the inserts and the master slots, the Mix page shows the four
+sounds, each with its engine (or *Empty*) and its level into the mix, from
+0 to 100 %. [[KNOB1]] to [[KNOB4]] set the levels of Sounds 1 to 4, 1 % a
+click. Every sound starts at 100 %.
+
+### Memory
+
+Every sound, effect and module, the sequencer and modulation have to fit in
+the FM-1's memory. The simulator measures them against about 379 KB, the
+room M-VAVE's firmware leaves free on the FM-1, as an estimate of what
+Lunar Modulator will have there ([chapter 13](13-specifications.md)). The
+meter in the screen's bottom bar shows how much the whole chain takes, as a
+bar and a percentage, and the global page the same in KB.
+
+Whatever would take the chain past 100 % is refused, whether you choose it
+with [[PRESETS]], [[ALGORITHM]] or a list under the panel: the screen names
+it, says *does not fit* and by how much, and the slot keeps what it had.
+[[PRESETS]] and [[ALGORITHM]] step on to the next choice that fits. Most
+chains fit; Shapes twice, or Shapes with PSX Verb and Plate, do not. So
+whatever plays in the simulator would fit the FM-1.
 
 !!! note "Rates"
     The effects run at the output's rate. They were written for rates of
@@ -345,7 +385,7 @@ Echo does not yet follow the sequencer's tempo; set Time by ear.
 
 {{status sim desktop planned}}
 
-A filter with seven characters in one, written for Lunar Modulator. It takes
+A filter with six characters in one, written for Lunar Modulator. It takes
 away part of the sound's spectrum, the highs, the lows or a band, and as
 Resonance rises it rings at the cutoff, up to a whistle of its own. Each
 channel is filtered on its own, so Morph can pull them apart.
@@ -367,29 +407,25 @@ channel is filtered on its own, so Morph can pull them apart.
     - **SK Mixed:** a mixed-input Sallen-Key, after the Steiner-Parker
       Synthacon's filter: gritty and uneven. Mode picks which input the
       sound goes into: low-pass, band-pass, high-pass, or a notch.
-    - **Comb:** a short echo tuned by Cutoff, which makes metallic,
-      flanger-like peaks or notches at the multiples of that pitch. Mode
-      goes from peaks at the left to notches at the right; Morph sets their
-      polarity: at the left they sit on Cutoff's harmonics, at the right
-      the sound turns hollow and an octave lower.
     - **Formant:** the vowels A, E, I, O and U, as a voice shapes them.
       Morph sweeps through the vowels; Mode picks the voice, a man's at the
       left, a woman's in the middle, a child's at the right; Cutoff shifts
       the vowels up or down; Resonance makes them narrower and more vocal.
 - **Cutoff** sets where the filter works, from 20 Hz to 18 kHz; the default
-  is 2 kHz. When a filter rings on its own, it rings at this pitch.
+  is 2 kHz. When a filter rings on its own, it rings at this pitch. Each
+  click moves it about a semitone, the same at any height.
 - **Resonance** emphasises the sound around Cutoff. Near the right, from
   about 0.93, SVF, Ladder, Diode, Sallen-Key and SK Mixed whistle on their
-  own, in tune with Cutoff (SK Mixed a little flat). On Comb it sets how
-  long the echo rings; on Formant, how narrow the vowels are.
+  own, in tune with Cutoff (SK Mixed a little flat). On Formant it sets how
+  narrow the vowels are.
 - **Drive** pushes the sound into the filter's saturation: quiet sounds come
   up to 12 dB louder, loud ones thicken and grit.
 - **Mode**, on page 2, changes the response as each Type above describes.
   It turns smoothly: between two positions you hear a blend of both.
 - **Morph**, on page 2, spreads the two channels for SVF, Ladder, Diode,
   Sallen-Key and SK Mixed: at the right, the left channel's cutoff is up to
-  an octave lower and the right's an octave higher. On Comb and Formant it
-  does what their entries above say.
+  an octave lower and the right's an octave higher. On Formant it sweeps the
+  vowels.
 - **Mix**, on page 2, fades from the dry sound at the left to the filtered
   sound alone at the right, the default.
 - **Level**, on page 2, sets the filtered sound's level, up to twice
@@ -403,11 +439,49 @@ knobs glide over a few milliseconds, so turning them does not click.
       about 0.5, low notes, and turn Cutoff while they play.
     - **Talking pad:** Formant, Resonance about 0.6, and sweep Morph slowly.
     - **Screaming lead:** Sallen-Key, Resonance about 0.9, Drive about 0.3.
-    - **Metallic ring:** Comb, Cutoff on the note you play, Resonance about
-      0.8.
     - **Wide sweep:** Ladder, Morph about 0.3, and sweep Cutoff.
 
+The comb filter that was the seventh Type until October 2026 is an effect of
+its own now: [Comb](#comb).
+
 {{engine-table filter}}
+
+## Comb
+
+{{status sim desktop planned}}
+
+A comb filter, written for Lunar Modulator: a very short echo tuned by
+Cutoff, which makes metallic, flanger-like peaks or notches at the multiples
+of that pitch. It was one of Filter's types until October 2026; on its own,
+Filter no longer carries its memory.
+
+- **Cutoff** tunes the comb, from 20 Hz to 18 kHz; the default is 2 kHz. Set
+  it on the note you play and the sound rings at that pitch. Like Filter's,
+  each click moves it about a semitone.
+- **Resonance** sets how long the echo rings, from a short colour at the
+  left to a long, singing ring at the right.
+- **Drive** pushes the sound into the comb's saturation: quiet sounds come
+  up louder, loud ones thicken.
+- **Mode**, on page 2, goes from peaks at the left (the echo fed back) to
+  notches at the right (the echo added once), blending between.
+- **Morph**, on page 2, sets the polarity: at the left the peaks sit on
+  Cutoff's harmonics; in the middle the comb does nothing; at the right the
+  sound turns hollow and an octave lower.
+- **Mix**, on page 2, fades from the dry sound at the left to the comb alone
+  at the right, the default.
+- **Level**, on page 2, sets the comb's level, up to twice (6 dB).
+
+Silence stays silent at any setting, and the knobs glide, so turning them
+does not click.
+
+!!! tip "Starting points"
+    - **Metallic ring:** Cutoff on the note you play, Resonance about 0.8.
+    - **Hollow tube:** Morph at the right, Resonance about 0.6, Cutoff an
+      octave above the note.
+    - **Flanger:** Mode about 2, Mix about 0.5, and modulate Cutoff with a
+      slow LFO.
+
+{{engine-table comb}}
 
 ## Comp
 
@@ -491,7 +565,7 @@ under another (a sidechain) may come later.
 {{status sim desktop planned}}
 
 A look-ahead brickwall limiter, written for Lunar Modulator, for the whole
-sound (in the second slot) or to tame one effect's peaks. It sees peaks a
+sound (in M2, the second master slot) or to tame one effect's peaks. It sees peaks a
 few milliseconds before they arrive and turns the sound down just in time,
 so nothing passes its ceiling, and it leaves anything quieter untouched.
 
@@ -523,7 +597,7 @@ source changes them on every step; the ceiling holds throughout. The other
 knobs glide over a few milliseconds.
 
 !!! tip "Starting points"
-    - **Safety on the whole sound:** in the second slot, Ceiling −1 dB, the
+    - **Safety on the whole sound:** in M2, Ceiling −1 dB, the
       rest at their defaults.
     - **Louder:** Drive +6 to +9 dB, Release about 60 milliseconds.
     - **Warm and loud:** Soft Clip, Drive about +6 dB, Lookahead 0.
@@ -540,9 +614,9 @@ nothing left to do.
 
 A one-knob filter of the kind on a DJ mixer, written for Lunar Modulator.
 Turned left of the middle it takes away the highs, turned right it takes
-away the lows, and around the middle it leaves the sound alone. It suits the
-second slot, where it works on everything before it, for build-ups and
-breakdowns.
+away the lows, and around the middle it leaves the sound alone. It suits a
+master slot, M2 at the end, where it works on everything before it, for
+build-ups and breakdowns.
 
 - **Sweep** moves the filter. From the middle to the left, a low-pass closes
   from 20 kHz down to 60 Hz until only the bass is left; from the middle to
@@ -585,8 +659,7 @@ A tilt equaliser, written for Lunar Modulator: one knob turns the whole sound
 darker or brighter. Turned right, the highs rise and the lows fall by the
 same amount; turned left, the reverse. One frequency, the pivot, keeps its
 level, so the sound changes colour without getting much louder or quieter.
-It suits the end of the chain, the second slot, where it shapes everything
-before it.
+It suits the end of the chain, M2, where it shapes everything before it.
 
 - **Tilt** sets how far, up to 9 dB either way. In the middle, the default,
   the sound passes through untouched.
@@ -659,7 +732,7 @@ settings; with Drive near the right, Clean Hi is what keeps them down.
       120, Clean Hi about 5,000.
     - **Driven and dense:** Shape Dense, Drive about 14, Asymmetry about 0.4,
       and Level up a little to make up for Glue.
-    - Master Sat belongs last, or just before a reverb, in the second slot.
+    - Master Sat belongs last, in M2, or just before a reverb.
 
 {{engine-table sat}}
 
@@ -704,7 +777,7 @@ turning them does not click.
 
 A three-band equaliser, written for Lunar Modulator: a low shelf, a bell in
 the middle and a high shelf, one page each, then an output level. Use it to
-shape one sound, or in the second slot as a tone control for everything
+shape one sound as an insert, or in M2 as a tone control for everything
 before it. The bands run one after the other, on both channels alike.
 
 - **Low Freq**, **Low Gain** and **Low Q** shape the bass. Low Gain raises or
@@ -767,8 +840,8 @@ silence stays silent.
     - **A small, tight room:** Decay about 0.2, Diffusion about 0.5, Mix
       about 0.25.
     - **Soft attacks:** Blur at the right, Decay about 0.6, Mix about 0.4.
-    - **After Plate:** Plate in the first slot with a little Mix, Room in
-      the second with Decay low, for depth without a longer tail.
+    - **After Plate:** Plate in M1 with a little Mix, Room in M2 with
+      Decay low, for depth without a longer tail.
 
 {{engine-table room}}
 
@@ -827,7 +900,7 @@ it is loud and turns it down, or off, when it falls quiet. It cleans up the
 tail of a sound, cuts a long reverb short in time with the notes, or, in
 Duck mode, does the opposite and turns the sound down while it is loud. Its
 controls follow two classic studio noise gates
-([chapter 13](13-credits-and-licences.md)). Both channels open and close
+([chapter 14](14-credits-and-licences.md)). Both channels open and close
 together. It takes about 2 KB of memory.
 
 - **Threshold** sets the level at which the gate opens, from −80 dB at the
@@ -870,9 +943,9 @@ and modulation can change them on every step. The other knobs glide or
 take effect at once. With Range at 0 dB, the sound passes untouched.
 
 !!! tip "Starting points"
-    - **Gated reverb:** Plate in the first slot with Mix and Decay high,
-      Gate in the second with Threshold about −30, Hold about 60, Decay
-      about 40 and Range at the left.
+    - **Gated reverb:** Plate in M1 with Mix and Decay high, Gate in M2
+      with Threshold about −30, Hold about 60, Decay about 40 and Range at
+      the left. On one sound alone, put the two in its inserts instead.
     - **A tighter tail:** Threshold just above the noise, Hold about 20,
       Decay about 100.
     - **Breathing pad:** Range about −15, Attack about 50, Decay about 400.
@@ -891,6 +964,20 @@ unchanged at 1 to twice the level, 6 dB up, at 2. It exists to test the effect c
 the limiter.
 
 {{engine-table test-gain}}
+
+## Test Ext
+
+{{status sim desktop}}
+
+Test Ext passes the sound through and marks what the firmware tells an
+effect about the sequencer with single clicks: one when it starts, one on
+each beat (louder on every fourth) and a negative one when it stops.
+**Probe** set to Tempo adds a small offset that shows the tempo it hears;
+**Listen** set to Key plays the effect's key input in place of its sound
+(today that is its own sound). It exists to test that wiring, which delays
+and gates synced to the tempo will use.
+
+{{engine-table test-ext}}
 
 ## The limiter
 

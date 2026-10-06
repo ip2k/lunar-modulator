@@ -6,8 +6,10 @@
 //
 // --list prints every engine and its parameters as JSON, with the names of
 // an enum parameter's values and each parameter's API v2 fields: uid, flags
-// (by name), unit and abbr, and whether the engine takes per-note offsets
-// (per_note: it has set_param_note).
+// (by name), unit and abbr, whether the engine takes per-note offsets
+// (per_note: it has set_param_note), what an effect asks of API v3's
+// extension (fx_wants: key, tempo, transport; render_ext: it has one), and
+// its pads when it is a pad kit (pads: first note and count, or null).
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
@@ -49,7 +51,7 @@
 // seq_locks_refused (locks on NOLOCK parameters) and seq_clicks (clicks
 // sounded).
 //
-// Several sound units, as the virtual FM-1 runs them with its lab switch
+// Several sound units, as the virtual FM-1 runs them
 // (docs/15 §3.16): --sound K:ID loads sound unit K (1..3; --engine is unit
 // 0), --sound-param K:NAME=VALUE sets one of its parameters, --insert K:ID
 // adds an insert effect to unit K's chain (in order) and --insert-param
@@ -94,10 +96,19 @@
 // file's result is printed on stderr, one line: the file, the voices, the
 // first slot, bad checksums and skipped messages, and the names stored.
 //
+// Effects with engine API v3's extension (fm1_engine.h, render_ext): every
+// effect renders through fm1_fx_render (include/fm1_fx_host.h), which calls
+// a v2 effect's render as before and gives an extended one the tempo, its
+// beats and the transport's Start and Stop from the sequencer (--cmd,
+// --seq), each at the first frame of a piece, or --tempo BPM (default 120)
+// without a sequencer; the key input is NULL (the effect's own input) until
+// the side-chain stage.
+//
 // MIT licence.
 
 #include "fm1_dx7.h"
 #include "fm1_engine.h"
+#include "fm1_fx_host.h"
 #include "fm1_mix_limiter.h"
 #include "fm1_mod.h"
 #include "fm1_mod_host.h"
@@ -174,7 +185,7 @@ void Usage() {
       "                   [--insert-param K:NAME=VALUE]...] [--level K:PCT] [--slots]\n"
       "                  [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=VALUE]\n"
       "                  [--level-at K:T:PCT] [--mod FILE] [--log-mod FILE.jsonl]\n"
-      "                  [--sysex FILE.syx]...\n"
+      "                  [--sysex FILE.syx]... [--tempo BPM]\n"
       "       fm1-render --list-mod\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
@@ -362,7 +373,7 @@ void ModTicked(void *ctx, uint32_t frame, const fm1_mod_write_t *w, uint32_t n) 
 
 // --list-mod: the kinds (with every parameter's uid and flags, as --list
 // prints engines'), the system sources and the host unit.
-void PrintFlags(uint8_t f);
+void PrintFlags(uint16_t f);
 const char *UnitName(uint8_t u);
 void PrintJsonString(const char *s);
 
@@ -445,19 +456,23 @@ void ListMod() {
   printf("]}\n");
 }
 
-// Renders an effect over a block, split at its own writes from the ticks.
-void RenderFx(const Unit &u, unsigned unit, const Modulation *md, float *block, uint32_t n) {
+// Renders an effect over a block, split at its own writes from the ticks;
+// each piece goes through fm1_fx_render, which calls a v2 effect's render
+// once and an API v3 effect's render_ext split at the beats and transport
+// events it asked for (fm1_fx_host.h).
+void RenderFx(const Unit &u, unsigned unit, const Modulation *md, float *block, uint32_t n,
+              const fm1_fx_block_t *fxb) {
   uint32_t cur = 0;
   if (md) {
     for (size_t k = 0; k < md->writes.size(); ++k) {
       const uint32_t f = md->writes[k].first;
       const fm1_mod_write_t &w = md->writes[k].second;
       if (w.unit != unit) continue;
-      if (f > cur) { u.e->render(u.self, block + 2u * cur, f - cur); cur = f; }
+      if (f > cur) { fm1_fx_render(u.e, u.self, block, cur, f, fxb); cur = f; }
       if (w.index < u.e->n_params) u.e->set_param(u.self, w.index, w.value);
     }
   }
-  if (cur < n) u.e->render(u.self, block + 2u * cur, n - cur);
+  if (cur < n) fm1_fx_render(u.e, u.self, block, cur, n, fxb);
 }
 
 // --sysex: each file's DX7 voices into the dx7 engine's user slots, in
@@ -519,16 +534,18 @@ const char *UnitName(uint8_t u) {
     case FM1_UNIT_HZ: return "hz";
     case FM1_UNIT_PCT: return "pct";
     case FM1_UNIT_DEG: return "deg";
+    case FM1_UNIT_DB: return "db";
     default: return "?";
   }
 }
 
-void PrintFlags(uint8_t f) {
-  static const struct { uint8_t bit; const char *name; } kFlags[] = {
+void PrintFlags(uint16_t f) {
+  static const struct { uint16_t bit; const char *name; } kFlags[] = {
     { FM1_PARAM_LATCH, "latch" }, { FM1_PARAM_SMOOTH, "smooth" }, { FM1_PARAM_NOLOCK, "nolock" },
     { FM1_PARAM_MOD, "mod" }, { FM1_PARAM_INPUT, "input" }, { FM1_PARAM_POLY, "poly" },
+    { FM1_PARAM_LOG, "log" },
   };
-  uint8_t known = 0;
+  uint16_t known = 0;
   bool first = true;
   putchar('[');
   for (size_t k = 0; k < sizeof(kFlags) / sizeof(kFlags[0]); ++k) {
@@ -537,7 +554,7 @@ void PrintFlags(uint8_t f) {
     printf(first ? "\"%s\"" : ",\"%s\"", kFlags[k].name);
     first = false;
   }
-  if (f & ~known) printf(first ? "\"0x%02x\"" : ",\"0x%02x\"", f & ~known);   // a test catches it
+  if (f & ~known) printf(first ? "\"0x%04x\"" : ",\"0x%04x\"", unsigned(f & ~known));   // a test catches it
   putchar(']');
 }
 
@@ -549,9 +566,28 @@ void List() {
     printf("\"id\":"); PrintJsonString(e->id);
     printf(",\"name\":"); PrintJsonString(e->name);
     printf(",\"credits\":"); PrintJsonString(e->credits);
-    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"params\":[",
+    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"render_ext\":%s,\"fx_wants\":[",
            e->kind == FM1_KIND_SOUND ? "sound" : e->kind == FM1_KIND_AUDIO_FX ? "audio_fx" : "midi_fx",
-           e->max_voices, e->set_param_note ? "true" : "false");
+           e->max_voices, e->set_param_note ? "true" : "false", e->render_ext ? "true" : "false");
+    {
+      static const struct { uint32_t bit; const char *name; } kWants[] = {
+        { FM1_FX_WANT_KEY, "key" }, { FM1_FX_WANT_TEMPO, "tempo" },
+        { FM1_FX_WANT_TRANSPORT, "transport" },
+      };
+      bool firstw = true;
+      for (size_t k = 0; k < sizeof(kWants) / sizeof(kWants[0]); ++k) {
+        if (!(e->fx_wants & kWants[k].bit)) continue;
+        printf(firstw ? "\"%s\"" : ",\"%s\"", kWants[k].name);
+        firstw = false;
+      }
+      if (e->fx_wants & ~uint32_t(FM1_FX_WANT_KEY | FM1_FX_WANT_TEMPO | FM1_FX_WANT_TRANSPORT)) {
+        printf(firstw ? "\"0x%x\"" : ",\"0x%x\"", unsigned(e->fx_wants));   // a test catches it
+      }
+    }
+    printf("],");
+    if (e->pad_count) printf("\"pads\":{\"first\":%u,\"count\":%u},", e->pad_first_note, e->pad_count);
+    else printf("\"pads\":null,");
+    printf("\"params\":[");
     for (uint16_t p = 0; p < e->n_params; ++p) {
       const fm1_param_t &q = e->params[p];
       printf(p ? ",{" : "{");
@@ -605,6 +641,7 @@ int main(int argc, char **argv) {
   std::string input = "silence";
   double seconds = 2.0;
   float rate = 44118.0f;
+  float tempo = 120.0f;             // --tempo: the effects' tempo without a sequencer
   uint32_t max_frames = 64;
   int fill = 0;
   std::vector<Fault> faults;
@@ -651,6 +688,13 @@ int main(int argc, char **argv) {
     else if (a == "--mod") mod_path = next;
     else if (a == "--sysex") sysex_paths.push_back(next);
     else if (a == "--log-mod") mod_log_path = next;
+    else if (a == "--tempo") {
+      tempo = static_cast<float>(atof(next));
+      if (!(tempo >= 20.0f && tempo <= 300.0f)) {
+        fprintf(stderr, "--tempo wants 20..300 BPM\n");
+        return 2;
+      }
+    }
     else if (a == "--tracks") tracks = atoi(next);
     else if (a == "--events") {      // a decimal count: base 0 would read 010 as 8
       char *end = NULL;
@@ -1252,6 +1296,14 @@ int main(int argc, char **argv) {
       md.writes.clear();
       md.pos = pos;
     }
+    // What the effects hear about this block (engine API v3, fm1_fx_host.h):
+    // the sequencer's clock and its Start and Stop, or --tempo without one.
+    fm1_fx_block_t fxb;
+    fxb.clock = use_seq ? &sq.host.clock : NULL;
+    fxb.ev = use_seq ? sq.ev.data() : NULL;
+    fxb.n_ev = n_seq;
+    fxb.frames = n;
+    fxb.bpm = tempo;
     auto t0 = std::chrono::steady_clock::now();
     if (slots) {
       // Each unit into its own block, split at its own tracks' events; then
@@ -1273,7 +1325,7 @@ int main(int argc, char **argv) {
           const unsigned code = j < FM1_MOD_INSERTS ? fm1_mod_insert_unit(static_cast<unsigned>(k),
                                                                           static_cast<unsigned>(j))
                                                     : FM1_MOD_NONE;
-          RenderFx(inserts[k][j], code, md.m ? &md : NULL, b, n);
+          RenderFx(inserts[k][j], code, md.m ? &md : NULL, b, n, &fxb);
         }
         if (level[k] != 100.0f) {
           const float g = level[k] / 100.0f;
@@ -1303,7 +1355,7 @@ int main(int argc, char **argv) {
       }
     }
     for (size_t k = 0; k < fx.size(); ++k) {
-      RenderFx(fx[k], static_cast<unsigned>(k + 1), md.m && k < 2 ? &md : NULL, block, n);
+      RenderFx(fx[k], static_cast<unsigned>(k + 1), md.m && k < 2 ? &md : NULL, block, n, &fxb);
     }
     if (md.m) {                       // HOST AMP, before the limiter
       uint32_t cur = 0;

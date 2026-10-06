@@ -16,3 +16,6 @@ all: $(BUILD)/fm1-echo-selftest
 
 $(BUILD)/fm1-echo-selftest: $(ECHO_SELFTEST_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
+
+# Header dependencies (-MMD): a change to fm1_engine.h rebuilds the tests too.
+-include $(BUILD)/our/test/echo_selftest.d

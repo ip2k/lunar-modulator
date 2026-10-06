@@ -1,8 +1,10 @@
-"""Engine API v2's parameter fields (engines/include/fm1_engine.h,
-engines/README.md, "Parameters"): every engine's and effect's uids and
-flags against the pinned record in tests/fixtures/param-uids.json, the rules
-the flags follow, the decision taken for every ENUM parameter, abbreviations
-and units, and the Schwung adapters' uids derived from their keys.
+"""Engine API v2's parameter fields, with API v3's 16-bit flags, LOG and
+the dB unit (engines/include/fm1_engine.h, engines/README.md, "Parameters"):
+every engine's and effect's uids and flags against the pinned record in
+tests/fixtures/param-uids.json, the rules the flags follow (LOG on every
+pitch- or time-like parameter, and only there), the decision taken for every
+ENUM parameter, abbreviations and units, and the Schwung adapters' uids
+derived from their keys.
 
 The fixture is the contract: a reordered table keeps its uids and passes; a
 changed, reused or dropped uid fails, so no lock or route can silently move.
@@ -19,8 +21,8 @@ from tests.engine_helpers import ENGINES, renderer  # noqa: F401
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "param-uids.json"
 SELFTEST = ENGINES / "build" / "fm1-schwung-selftest"
 FLAG_BITS = [(0x01, "latch"), (0x02, "smooth"), (0x04, "nolock"), (0x08, "mod"), (0x10, "input"),
-             (0x20, "poly")]
-UNITS = ["none", "semi", "ms", "hz", "pct", "deg"]     # fm1_unit_t's order
+             (0x20, "poly"), (0x40, "log")]
+UNITS = ["none", "semi", "ms", "hz", "pct", "deg", "db"]     # fm1_unit_t's order
 UID_MAX = 0x0FFF
 
 # The decision for every ENUM parameter (docs/15 S7a's table, O13, as
@@ -46,6 +48,9 @@ ENUM_FLAGS = {
     ("sw-sophie", "Pad"): [],                   # the edit focus: lockable (owner, docs/15 S8)
     ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
     ("sw-sophie", "Filter Type"): ["latch", "mod"],
+    ("drums", "Pad"): [],                       # the edit focus, as Sophie's
+    ("drums", "Model"): ["latch", "mod"],       # read when a pad is struck; a hit keeps its model
+    ("drums", "Kit"): ["latch", "mod"],         # the voicings a hit starts with
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
     ("filter", "Type"): ["mod"],                # warms the new type up, then crossfades
     ("drive", "Type"): ["mod"],                 # crossfades over 5 ms
@@ -63,6 +68,8 @@ ENUM_FLAGS = {
     ("gate", "Mode"): ["mod"],                  # crossfades Gate and Duck's gains over 5 ms
     ("gate", "Listen"): ["mod"],                # crossfades the output and the key
     ("gate", "Link"): ["mod"],                  # glides the detector's and Listen's weights
+    ("test-ext", "Probe"): [],                   # a test effect's switches: lockable,
+    ("test-ext", "Listen"): [],                  #   no route
 }
 
 
@@ -120,7 +127,10 @@ def test_flags_follow_the_rules(built):
     """NOLOCK never with MOD; every FLOAT takes modulation unless it is NOLOCK
     and is SMOOTH unless the engine reads it at note-on (LATCH); LATCH and
     SMOOTH never together; INPUT only on a FLOAT -1..1 with default 0; POLY
-    only on a FLOAT that takes modulation, never an INPUT; no unknown bit."""
+    only on a FLOAT that takes modulation, never an INPUT; LOG (API v3) only on
+    a FLOAT in Hz or ms with 0 < min < max, never an INPUT, and on every such
+    parameter, so a pitch- or time-like knob always moves in ratios; no
+    unknown bit."""
     for eid, params in built.items():
         for p in params:
             f = set(p["flags"])
@@ -133,6 +143,10 @@ def test_flags_follow_the_rules(built):
                 assert p["type"] == "float" and (p["min"], p["max"], p["def"]) == (-1, 1, 0)
             if "poly" in f:
                 assert p["type"] == "float" and "mod" in f and "input" not in f, (eid, p["name"])
+            pitch_or_time = p["type"] == "float" and p["unit"] in ("hz", "ms") and p["min"] > 0
+            if "log" in f:
+                assert pitch_or_time and p["max"] > p["min"] and "input" not in f, (eid, p["name"])
+            assert ("log" in f) == pitch_or_time, (eid, p["name"])
 
 
 def test_per_note_engines_match_the_fixture(renderer, built):
@@ -156,7 +170,7 @@ def test_every_enum_has_its_decided_flags(built):
 def test_abbreviations_and_units(built):
     """abbr: 1-6 printable characters (never NULL), unique in the engine, and
     still unique cut to 5 (a matrix row with a unit prefix, docs/16 §5.3).
-    unit: one of the six. Every defined parameter, the Schwung modules'
+    unit: one of the seven. Every defined parameter, the Schwung modules'
     hidden ones included (from their contract)."""
     for eid, params in built.items():
         abbrs = [p["abbr"] for p in params]
@@ -171,6 +185,14 @@ def test_abbreviations_and_units(built):
     assert units[("limit", "Release")] == units[("limit", "Lookahead")] == "ms"
     assert units[("sw-sophie", "Color")] == "pct"
     assert units[("sw-sophie", "Ring Time")] == "ms"     # hidden: from the contract
+    # The dB unit (API v3): every level, gain and threshold in decibels.
+    db = {k for k, u in units.items() if u == "db"}
+    assert {("comp", "Threshold"), ("comp", "Knee"), ("comp", "Makeup"), ("drive", "Drive"),
+            ("drive", "Level"), ("limit", "Ceiling"), ("limit", "Drive")} <= db
+    assert {("eq", "Low Gain"), ("eq", "Mid Gain"), ("eq", "High Gain"), ("eq", "Level"),
+            ("tilt", "Tilt"), ("tilt", "Level"), ("sat", "Drive"), ("sat", "Level"),
+            ("gate", "Threshold"), ("gate", "Range"), ("gate", "Return")} <= db
+    assert ("comp", "Ratio") not in units                 # a ratio, no unit
 
 
 def test_names_are_unique_without_case(built):

@@ -64,12 +64,10 @@
       <div><dt>Encoders</dt><dd>Drag up or down, or scroll. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> SELECT (page),
         <kbd>&uarr;</kbd> <kbd>&darr;</kbd> PRESETS (sound), <kbd>-</kbd> <kbd>=</kbd> ALGORITHM
         (the sound's model, or the effect in FX mode). KNOB1&ndash;4 turn the four parameters on screen.</dd></div>
-      <div><dt>Buttons</dt><dd>FX shows the two effect slots (SELECT moves between them, SEL then
-        SELECT swaps them), GLO the global page, HOME goes back. MASTER is the volume.
-        <kbd>Esc</kbd> releases every note.</dd></div>
+      <div><dt>Buttons</dt><dd>FX shows the effects (below), GLO the global page, HOME goes back.
+        MASTER is the volume. <kbd>Esc</kbd> releases every note.</dd></div>
       <div><dt>MIDI</dt><dd>Notes, pitch bend (&plusmn;2 semitones), CC&nbsp;7 volume, CC&nbsp;123 all notes off.</dd></div>
-      <div data-lab hidden><dt>Sequencer (lab)</dt><dd>A preview of work in progress. PLAY/STOP, or
-        <kbd>Space</kbd>, starts and stops the sequencer, which holds a one-bar demo pattern on track 1.
+      <div><dt>Sequencer</dt><dd>PLAY/STOP, or <kbd>Space</kbd>, starts and stops the sequencer, which holds a one-bar demo pattern on track 1.
         SEQ shows the track: the tempo, the transport and four bars of steps with the playhead; HOME, FX
         or GLO go back. In SEQ mode the white keys are the bar's 16 steps (also <kbd>1</kbd>&ndash;<kbd>8</kbd>
         and <kbd>C</kbd> <kbd>V</kbd> <kbd>B</kbd> <kbd>N</kbd> <kbd>M</kbd> <kbd>,</kbd> <kbd>.</kbd>
@@ -85,7 +83,7 @@
         SHIFT with a white key moves to that step. SHIFT and REC keep what you just played (Capture);
         stopped, it also reads your tempo and starts playing: SELECT tries another tempo, and any other
         press keeps the one you hear.</dd></div>
-      <div data-lab hidden><dt>Tracks (lab)</dt><dd>Eight tracks, all on Sound 1 to begin with. Hold SEQ
+      <div><dt>Tracks</dt><dd>Eight tracks, all on Sound 1 to begin with. Hold SEQ
         and press white key 1&ndash;8 to work on that track, from any mode; MONO and POLY (the black keys
         C#5 and D#5) step to the previous and next track in SEQ mode. Choosing a track empties what
         Capture holds. OP6 (F#4) mutes the track; hold it and the white keys 1&ndash;8 mute and unmute
@@ -94,33 +92,34 @@
         transpose, quantize), 5, 7 or 9 the Set page (tempo, swing, default quantize, metronome), 6
         turns the metronome's click on or off, and 16 steps the clip's quantize. SELECT also walks on
         from the sound's pages to these; SEQ goes back to the steps.</dd></div>
-      <div data-lab hidden><dt>Locks (lab)</dt><dd>Hold a step and turn SELECT past its two Step pages
+      <div><dt>Locks</dt><dd>Hold a step and turn SELECT past its two Step pages
         to the sound's pages: there a knob locks its parameter on that step, shown in gold over the
         dim value it has elsewhere, and a dot marks a parameter with a lane (eight per track). A step
         with locks has a gold dot in the grid. SHIFT and a knob clears that step's lock; OP5 (D#4) with
         steps held clears their locks, and held, a knob clears that parameter's lane on the track.
         Recording while playing, a knob writes its moves into the step that plays. A knob on a locked
         parameter turns in its 128 steps, and the lane follows it.</dd></div>
-      <div data-lab hidden><dt>Sounds (lab)</dt><dd>Up to four sounds play at once. Hold SEL and turn
+      <div><dt>Sounds</dt><dd>Up to four sounds play at once. Hold SEL and turn
         PRESETS to choose the one the keys play and the knobs edit; PRESETS then picks its engine (Sounds
-        2&ndash;4 can be empty). In FX mode SELECT walks that sound's two insert effects, a Mix page with
-        the four sounds' levels on the knobs, and the two master effects. The meter in the screen's bottom
-        bar is the FM-1's memory: whatever would not fit is refused.</dd></div>
-      <div data-lab hidden><dt>Modulation (lab)</dt><dd>A preview of work in progress: two LFOs, two
-        envelopes that every note restarts, and a random source. LFO or ENV shows them a page at a time on
+        2&ndash;4 can be empty). The meter in the screen's bottom bar is the FM-1's memory: whatever would
+        not fit is refused.</dd></div>
+      <div><dt>Effects</dt><dd>In FX mode SELECT walks the current sound's two insert effects, a Mix page
+        with the four sounds' levels on the knobs, and the two master effects every sound goes through;
+        ALGORITHM picks the effect, and SEL then SELECT swaps it with its neighbour.</dd></div>
+      <div><dt>Modulation</dt><dd>Two LFOs, two envelopes that every note restarts, and a random source. LFO or ENV shows them a page at a time on
         the knobs; ALGORITHM changes a module. Hold LFO or ENV and turn a knob on the sound's, an
         effect's or a module's page to send it there, the turn setting how much (with a mouse, <kbd>Tab</kbd> to the button and
         hold <kbd>Enter</kbd> while you scroll the knob). EDIT lists every connection: KNOB1 picks the
         source, KNOB2 the destination, KNOB3 the amount, ALGORITHM the second page; SEL shows its
         chain. A parameter that is moved shows a diamond, its range in gold and where it is now in red.
-        The modules follow Mutable Instruments' Peaks (Emilie Gillet), Schwung's LFO (Charles Vestal),
-        DaisySP's sample and hold (Electrosmith) and Music Thing Modular's card 106 (Matt Allison), all
-        MIT; the code is this project's own.</dd></div>
+        The modules follow Mutable Instruments' Peaks and Braids (Emilie Gillet), Schwung's LFO (Charles
+        Vestal), DaisySP's sample and hold (Electrosmith) and Music Thing Modular's Turing Machine and
+        Workshop System card 106 (Tom Whitwell, Matt Allison), all MIT; the code is this project's
+        own.</dd></div>
     </dl>
     <p class="fine">Panel to scale from the M-VAVE manual's dimensions (161.5 &times; 96.5&nbsp;mm) and the
-      owner's board photo; the encoders' printed names and the 14 buttons are the manual's. <span
-      data-lab-off>ENV, LFO, EDIT, SAVE, ARP, SEQ, PLAY/STOP and REC are not in the simulator yet.</span><span
-      data-lab hidden>SAVE and ARP are not in the simulator yet.</span> Engines credit Emilie Gillet
+      owner's board photo; the encoders' printed names and the 14 buttons are the manual's. SAVE and
+      ARP are not in the simulator yet. Engines credit Emilie Gillet
       (Mutable Instruments, MIT) and the Schwung module authors; see the repository's
       <code>engines/README.md</code>. FM6 runs msfa by Raph Levien for Google (Apache License 2.0) and
       reads the DX7's voice format (not affiliated with Yamaha). Colours: Ros&eacute; Pine Moon (MIT). Type: Audiowide by

@@ -151,7 +151,7 @@ enum Param { P_PATCH, P_BRIGHTNESS, P_ENVELOPE, P_VOLUME, P_COUNT };
 // start after it and leaves sounding ones alone. The three FLOATs are POLY:
 // fm::Voice takes brightness and the envelope control in its parameters,
 // which each voice already has, and the volume is a voice's gain.
-const uint8_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
+const uint16_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
 const fm1_param_t kParams[P_COUNT] = {
   { "Patch",      FM1_PARAM_ENUM,  0, kNumPatches - 1, 32, kPatchNames, 0,  // E.PIANO 1
     1, FM1_PARAM_LATCH | FM1_PARAM_MOD, FM1_UNIT_NONE, "Patch" },
@@ -443,4 +443,6 @@ extern "C" const fm1_engine_t fm1_engine_sixop = {
   fm1::sixop::NoteOn, fm1::sixop::NoteOff, fm1::sixop::Bend,
   fm1::sixop::Set, fm1::sixop::Render,
   fm1::sixop::SetNote,
+  0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };

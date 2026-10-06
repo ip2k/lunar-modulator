@@ -23,19 +23,19 @@ reads *1/1 Globe* while the page is open.
 | --- | --- |
 | Rate | The sample rate the firmware runs at, such as 44118 Hz |
 | Block | How many samples the firmware computes at a time: 64 |
-| RAM | Two figures in kilobytes: the memory the current engine, both effects and the sequencer take (the sequencer about 34K of it, playing or not), then the 379K the FM-1 has free for them |
-| Voices | How many notes the current engine plays at once |
-| FX1, FX2 | The effect in each slot, by its short identifier such as `plate`, or `--` for an empty slot |
+| RAM | Two figures in kilobytes: the memory the sounds, effects, sequencer and modulation take (the sequencer about 36K of it and modulation about 23K, playing or not), then the 379K the FM-1 has free for them. The memory meter in the bottom bar shows the same as a share ([chapter 6](06-effects.md#memory)) |
+| Voices | How many notes the current sound's engine plays at once |
+| FX1, FX2 | The effect in each master slot, M1 and M2, by its short identifier such as `plate`, or `--` for an empty slot |
 | Octave | The keyboard's octave, from −3 to +3 ([chapter 4](04-playing.md#octave-and-transpose)) |
 | Transpose | The transpose in semitones, from −12 to +12 |
 
 The knobs change nothing on this page.
 
 !!! tip "Will it fit on the FM-1?"
-    The RAM line tells you whether a combination of engine and effects would
-    fit on the FM-1. The simulator plays combinations the FM-1 could not: if
-    the first figure is larger than the second, choose a smaller engine or
-    effect, or empty a slot ([chapter 6](06-effects.md#the-effect-chain)).
+    The simulator refuses any sound or effect that would take the first
+    figure past the second, so whatever it plays would fit on the FM-1. To
+    make room, choose a smaller engine or effect, or empty a sound or a slot
+    ([chapter 6](06-effects.md#memory)).
 
 ### Settings on the FM-1
 
@@ -50,11 +50,13 @@ played, a fixed velocity.
 {{status planned}}
 
 A sound is everything you hear from the keys: the sound engine with its
-parameters, and the two effect slots with theirs.
+parameters, and its two insert effects with theirs; the two master effects
+and the modulation rack belong to the whole instrument.
 
 In the simulator, nothing is kept. Each engine starts at its defaults when
 you choose it with [[PRESETS]], and closing or reloading the page starts the
-simulator afresh. Choosing another engine also ends every sounding note.
+simulator afresh, with the demo pattern on the sequencer. Choosing another
+engine also ends every note sounding on that sound.
 
 Saving and recalling sounds is planned for the FM-1, with [[SAVE]], and has
 not been designed in detail yet. As with sequencer sets, nothing will be
@@ -70,7 +72,7 @@ A set is everything the sequencer holds ([chapter 7](07-sequencer.md#how-a-patte
 
 | Kept | Not kept |
 | --- | --- |
-| The tempo, the swing and the external-clock `link` setting ([chapter 8](08-midi.md#following-an-external-clock)) | Whether the sequencer was playing |
+| The tempo, the swing and the external-clock `link` setting ([chapter 9](09-midi.md#following-an-external-clock)) | Whether the sequencer was playing |
 | The song | The playhead's position |
 | Each track's chosen clip, its mute, its muted or soloed drum notes, and its routing | How many times each clip has looped, which conditions count |
 | Each track's lock lanes, with their parameters and base values | The random sequence behind probability |
@@ -112,7 +114,7 @@ The FM-1 build is planned to keep sets in three stages:
    is kept twice, so a power cut while saving cannot lose both copies.
 
 The third stage waits for the one rule
-([chapter 10](10-updating-and-recovery.md#the-one-rule-again)).
+([chapter 11](11-updating-and-recovery.md#the-one-rule-again)).
 
 ## Backing up
 
@@ -134,7 +136,7 @@ write there.
   FM-1's memory can show.
 - That copy is exactly what the one rule asks for first: a full read-out of
   the FM-1's memory, kept safe, before anything is written
-  ([chapter 10](10-updating-and-recovery.md#the-recovery-dongle)).
+  ([chapter 11](11-updating-and-recovery.md#the-recovery-dongle)).
 
 !!! tip "Keep your own copies"
     If you use a patch editor or librarian with M-VAVE's firmware, keep your

@@ -2,8 +2,8 @@
 
 This chapter lists the MIDI messages Lunar Modulator receives and sends.
 Today the browser simulator receives MIDI from a keyboard connected to your
-computer, and the sequencer in the desktop tools produces the MIDI its
-tracks would send. On the FM-1, MIDI over USB and the 3.5 mm input is
+computer, and the sequencer in the desktop tools writes down the MIDI its
+tracks would send; the simulator sends none. On the FM-1, MIDI over USB and the 3.5 mm input is
 planned.
 
 ## In the simulator
@@ -28,20 +28,21 @@ from the panel's keys play together.
 
 | Message | Received | What it does |
 | --- | --- | --- |
-| Note on, note off | Yes, any channel | Plays the engine, with velocity 1 to 127. A note on with velocity 0 is a note off |
-| Pitch bend | Yes | Bends every sounding note, up to 2 semitones up or down |
+| Note on, note off | Yes, any channel | Plays the current sound, with velocity 1 to 127, and goes to the sequencer's focused track for recording and Capture. A note on with velocity 0 is a note off |
+| Pitch bend | Yes | Bends the current sound's notes, up to 2 semitones up or down |
 | Control change 7 | Yes | Sets the volume, as [[MASTER]] does |
 | Control change 123 | Yes | All notes off |
 | Other control changes | No | Ignored, including modulation (CC 1) and sustain (CC 64) |
 | Program change | No | Ignored |
 | Aftertouch | No | Ignored, channel and polyphonic |
 | System exclusive | No | Ignored |
-| Clock, Start, Stop | No | Ignored: the simulator has no sequencer yet |
+| Clock, Start, Stop | No | Ignored: the simulator's sequencer runs on its own clock |
 
 !!! note "Notes the keys cannot reach"
     A MIDI keyboard can play any note from 0 to 127, beyond the 27 keys'
-    reach. Sophie answers only notes 36 to 51
-    ([chapter 5](05-sound-engines.md#sophie)).
+    reach. Sophie and Drums answer only notes 36 to 51
+    ([chapter 5](05-sound-engines.md#sophie)); on the panel their pads are
+    the white keys.
 
 ## From the sequencer
 
@@ -62,7 +63,8 @@ when it starts, 24 clock pulses per quarter note, and Stop when it stops. A
 restart sends Stop and then Start.
 
 In the desktop tools these messages go to the event log instead of a MIDI
-port ([chapter 7](07-sequencer.md#scripts-on-the-desktop)). On the FM-1 they
+port ([chapter 7](07-sequencer.md#scripts-on-the-desktop)). In the simulator
+a track routed to MIDI is silent: it sends nothing. On the FM-1 they
 are planned on USB-MIDI. The controller numbers are Movy's, which the FM-1
 build is planned to keep as the default for MIDI tracks.
 
@@ -107,7 +109,7 @@ and follows in the next section.
 | Pitch bend | No | Yes | Received: ±2 semitones |
 | Control change | 102 to 109 | 7, 123 | Sent: parameter locks on MIDI tracks. Received: volume, all notes off |
 | Program change | No | No | |
-| System exclusive | No | No | Planned for saving and loading sequencer sets (chapter 9) |
+| System exclusive | No | No | Planned for saving and loading sequencer sets (chapter 10) |
 | System common: song position, song select, tune request | No | No | Song position is planned for following a clock on the FM-1 |
 | System real time: clock | Yes | Sequencer only | Sent at 24 pulses per quarter note while playing |
 | System real time: Start, Continue, Stop | Start, Stop | Sequencer only | See *Following an external clock* |
@@ -132,7 +134,7 @@ detail. What is settled so far:
   above, on USB-MIDI.
 - **Sets over MIDI.** Sequencer sets are planned to be saved to a computer
   and loaded from one as system exclusive messages, carrying the set as text
-  ([chapter 9](09-settings-and-storage.md#sequencer-sets)).
+  ([chapter 10](10-settings-and-storage.md#sequencer-sets)).
 - **Still open:** the channel the sound engine listens on, a pitch bend
   range, and how the instrument answers Start, Continue and Stop.
 

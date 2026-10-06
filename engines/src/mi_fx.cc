@@ -563,6 +563,8 @@ void Render(void *s, float *lr, uint32_t n) { static_cast<Instance *>(s)->Render
     fm1::mi_fx::ns::Destroy, NULL, NULL, NULL,                                 \
     fm1::mi_fx::ns::Set, fm1::mi_fx::ns::Render,                               \
     NULL,                     /* no notes, so no per-note offsets */           \
+    0, NULL,                  /* API v3: no effect extension */                \
+    0, 0,                     /* not a pad kit */                              \
   }
 
 FM1_MI_FX(fm1_engine_plate, plate, "plate", "Plate",

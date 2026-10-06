@@ -29,6 +29,19 @@ terms it is used under.
 - **FM6's built-in voices** are this project's own, written for it and
   under the MIT licence.
 - **Sophie** by **Matt Estela**, MIT licence, included unmodified.
+- **Drums**: its kicks, toms, snares and hi-hats are Plaits' drum models by
+  **Emilie Gillet** (Mutable Instruments, MIT licence), included unmodified,
+  which model the circuits of Roland's TR-808 and, in their synthetic kick
+  and snare, borrow from the TR-909's. Its rim shot, clap, cowbell and
+  cymbals are this project's own code, with three small pieces of Plaits'
+  hi-hat in the cowbell and cymbals (its swing VCA curve, its oscillators'
+  ratios and its clocked noise): the cowbell and cymbals follow the circuit
+  models of **Kurt James Werner, Jonathan Abel and Julius O. Smith** ("More
+  cowbell", AES 137th Convention, 2014; "The TR-808 cymbal", ICMC/SMC
+  2014, CC BY 3.0), and the clap and rim shot published descriptions of the
+  TR-808's circuits, among them **Baratatronix**'s. No code or text is
+  taken from the papers or the descriptions. The two kits are inspired by those drum machines; Roland's
+  names appear here only as credit.
 - **PSX Verb** by **Charles Vestal**, MIT licence, included unmodified.
 - **Schwung**, Charles Vestal's host for modules on the Ableton Move, MIT
   licence. Lunar Modulator includes Schwung's plugin interface unmodified,
@@ -164,5 +177,5 @@ M-VAVE, Cuvave and FM-1 are the marks of their owners. Lunar Modulator uses
 "FM-1" only to say which instrument it is written for, and is not made,
 endorsed or supported by M-VAVE or Cuvave. The names of Mutable Instruments'
 modules identify where code came from. Names such as Ableton Move and DX7
-describe origins and compatibility only. All other trademarks belong to their
-owners.
+describe origins and compatibility only, and Roland, TR-808 and TR-909 the
+machines that inspired Drums. All other trademarks belong to their owners.

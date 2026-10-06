@@ -34,6 +34,14 @@ DEVELOPERS.md) are open.
 to an FM-1 (CLAUDE.md). Web MIDI stays input only unless the owner opts in
 (O18).
 
+**Public since 2026-10-05.** Stages S3 to S8 were built behind a runtime
+lab switch (O24 as changed, §8). The owner retired it once docs/16's MG3
+had landed: the sequencer, multi-sound and modulation are on every page,
+the start chain loads the demo pattern (O4) and Space is PLAY/STOP (O19).
+The stage notes below keep their "behind the lab switch" wording as the
+record of how each stage was built; the user manual's chapters 5 to 8 now
+describe the gestures.
+
 ## 1. Short answer
 
 | Question | Answer |
@@ -453,8 +461,9 @@ playing restarts (S4); D12 makes that a Stop and a Start.
 
   In the Capture picker it chooses the candidate.
 - **PRESETS** chooses the current sound's engine; SHIFT + PRESETS chooses
-  the current sound (§3.16). With the lab switch each engine-routed track
-  plays the sound its route names; without it, every one shares unit 0
+  the current sound (§3.16). Each engine-routed track
+  plays the sound its route names (until 2026-10-05, with the lab switch
+  off, every one shared unit 0)
   [O10, answered 2026-10-02].
 - **ALGORITHM** turns the model, the engine's first ENUM parameter. It **never
   creates a lock**. Whether a parameter can be locked at all is its flag
@@ -579,9 +588,9 @@ them; **each sound unit has two insert effect slots**; the two effect
 slots the panel had stay as the **master bus**, after the sounds are mixed,
 and each sound has its own level into that mix. A **RAM meter** against the
 FM-1's budget refuses any engine or effect that would not fit, so what
-plays in the simulator fits the device. It is all behind the lab switch
-(O24); with the switch off the panel has one sound and two effects, as
-before.
+plays in the simulator fits the device. It was behind the lab switch
+(O24) until 2026-10-05, with one sound and two effects with the switch
+off; it is on every page now.
 
 **Why two inserts per sound, not one.** Every instance's RAM is metered,
 and an empty slot costs the FM-1 only its record [inferred: the firmware's
@@ -616,7 +625,7 @@ the API asked (PRESETS and ALGORITHM, which step past it, give the first
 refused choice's figure); a chain already past the budget may shrink but
 not grow.
 
-**The gestures** (with the lab switch; O1 and O2 hold: SEL is SHIFT
+**The gestures** (O1 and O2 hold: SEL is SHIFT
 outside FX mode, and the black keys carry sequencer roles only in SEQ
 mode, so choosing a sound uses neither the keys nor a new button):
 
@@ -2392,6 +2401,23 @@ critic. The judge's precondition, merging PR #21, is done and was dropped.
 | O22 | Pitches on a held step: how a pitch is added or removed, and how that coexists with SHIFT + N shortcuts and `aclrs` | With a step held, SHIFT turns the white keys into pitches in the current octave, each press sending `addp`. SHIFT + N shortcuts apply only with no step held. Step + SHIFT + one knob detent stays `aclrs`. The black keys keep their roles, so SHIFT + ◀ ▶ still nudges by one tick, and sharps come from MIDI IN or a chord played in KEYS mode first. Open: how a pitch is removed. docs/13 §4 is updated to match | S4 |
 | O23 | Text in the Track view's knob strip | (b): four bars only, with the turned knob's name and value on the hint line in 2× text. The alternatives are (a) 1× text with short names, or (c) a 2 × 2 layout | S3 |
 | O24 | Whether intermediate stages ship on the public page, now that every merge to main deploys | Ship each stage, with manual chapter 07 saying what works, rather than hiding SEQ mode behind a flag until S5 or S6. A flag would add a code path to test | S3 |
+
+**Answered by the owner, 2026-10-05** (recorded when the switch went):
+- **O24, closed:** "Yes remove lab once MG3 lands." MG3 merged as PR #51,
+  and the switch went in the next PR: no `lab` flag in the app, no
+  `fm1w_set_lab`, no `?lab` parsing in `app.js`, no harness `--lab`. SEQ,
+  PLAY/STOP, REC, LFO, ENV and EDIT lost their "not in the simulator yet"
+  popups (SAVE and ARP keep theirs), SEL outside FX mode is SHIFT
+  everywhere, the start chain always routes tracks 2–8 to Sound 1 and loads
+  the demo pattern (O4: still never in tests or parity), and Space is
+  PLAY/STOP (O19). Removing the switch removed no coverage of a live path:
+  its off path (one sound, two effect slots, the plain render) became
+  unreachable, and every one-sound parity scenario still checks the app's
+  multi-sound render against `fm1-render`'s one engine. The layout sweep is
+  one set of 2,338 screens (2,366 in two sets before), the user text that
+  waited in sim/web/README.md is in the manual (chapters 5 to 8, chapter 8
+  new), and `manual.toml`'s roles lost SHIFT (SEL), CLEAR (OP5) and MUTE
+  (OP6).
 
 **Answered by the owner, 2026-10-02** (multi-sound; recorded when it
 landed):
