@@ -587,7 +587,7 @@ static void fills(jw_t *w, const char *detail) {
 }
 
 static void refusals(jw_t *w) {
-  static const char *const kReasons[] = { "gpl", "planned", "retired" };
+  static const char *const kReasons[] = { "gpl", "planned", "retired", "list" };
   size_t i;
   jw_key(w, "refusals");
   jw_obj(w);
@@ -733,6 +733,8 @@ static size_t write_doc(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx
   jw_int(&w, b->ram_budget);
   jw_key(&w, "gpl");
   jw_bool(&w, b->gpl);
+  jw_key(&w, "modules");                         /* the module list's name (FM1_MODULES) */
+  jw_str(&w, fm1_modules_name);
   jw_end(&w);
 
   jw_key(&w, "engines");
@@ -774,9 +776,13 @@ static size_t write_doc(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx
 
   jw_key(&w, "known_ids");
   jw_arr(&w);
-  for (i = 0; i < fm1_known_id_count; ++i) {
-    const fm1_known_id_t *k = &fm1_known_ids[i];
+  /* The modules the list leaves out (reason "list"), then known-ids.json's
+   * ids the build lacks for their own reason. */
+  for (i = 0; i < fm1_left_out_count + fm1_known_id_count; ++i) {
+    const fm1_known_id_t *k = i < fm1_left_out_count ? &fm1_left_out[i]
+                                                     : &fm1_known_ids[i - fm1_left_out_count];
     if (in_build(k->id)) continue;               /* the build has it: nothing to explain */
+    if (i >= fm1_left_out_count && fm1_absent_find(k->id) != k) continue;   /* said above */
     jw_obj(&w);
     jw_key(&w, "id");
     jw_str(&w, k->id);

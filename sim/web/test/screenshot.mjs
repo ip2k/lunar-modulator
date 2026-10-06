@@ -5,7 +5,10 @@
 //   node screenshot.mjs WWW_DIR OUT_DIR
 //
 // Checks along the way: the page starts with no console errors, the
-// AudioContext runs (at 44,118 Hz if Chromium allows it), the firmware draws
+// AudioContext runs at the 44,100 Hz it asks for (owner, 2026-10-06), and
+// when a browser refuses that rate the page runs at the browser's own, says
+// so, and starts with the first sound that runs there, saying why Macro was
+// refused (an AudioContext that refuses 44,100 Hz and gives 48,000), the firmware draws
 // its screen, held keys reach the output (an AnalyserNode's RMS), and the
 // panel and screen respond to the encoders and buttons. Then input edge
 // cases, from the 2026-10-01 review: keys released under Cmd, Ctrl or Alt,
@@ -114,6 +117,47 @@ const nothingHeld = async (page) => {
 const encoderTurns = async (page, encoder) => (await sent(page))
   .filter((m) => m.type === 'encoder' && m.encoder === encoder).reduce((a, m) => a + m.delta, 0);
 const blurWindow = (page) => page.evaluate(() => window.dispatchEvent(new Event('blur')));
+
+// The other path: a browser that refuses 44,100 Hz (the constructor throws,
+// as a browser does for a rate it does not support) and runs at 48,000 Hz.
+// Macro and the other Plaits engines need 47,872 Hz or less, so the
+// firmware starts with the first sound that runs there and the status line
+// says why; a key still sounds.
+async function rateRefusedChecks(browser) {
+  const r = {};
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  page.on('pageerror', (e) => report.logs.push(`rate pageerror: ${e.message}`));
+  await page.addInitScript(() => {
+    const AC = window.AudioContext;
+    window.AudioContext = class extends AC {
+      constructor(o) {
+        if (o && o.sampleRate === 44100) throw new DOMException('not at this rate', 'NotSupportedError');
+        super({ ...(o || {}), sampleRate: 48000 });
+      }
+    };
+  });
+  await page.goto(url);
+  await page.click('#power-on');
+  await page.waitForFunction(() => window.fm1 && window.fm1.screens > 0, null, { timeout: 20000 });
+  await wait(page, 400);
+  r.rate = await page.evaluate(() => window.fm1.ctx.sampleRate);
+  r.requested_rate = await page.evaluate(() => window.fm1.requestedRate);
+  r.sound = await page.evaluate(() => {
+    const u = window.fm1.state.units[0];
+    const e = window.fm1.catalog.find((x) => x.index === u);
+    return e ? e.id : null;
+  });
+  await page.keyboard.down('KeyG');
+  await wait(page, 400);
+  r.key_rms = await level(page);
+  await page.keyboard.up('KeyG');
+  r.status = await page.textContent('#status');
+  r.pass = r.rate === 48000 && r.requested_rate === null && r.sound && r.sound !== 'macro' &&
+    r.key_rms > 0.005 && /Running at 48,000 Hz \(the browser refused 44,100 Hz: it would not run at that rate\)/.test(r.status) &&
+    /Macro was refused: it does not run at 48,000 Hz \(Macro, Macro Heavy, Six-Op and Drums need 47,872 Hz or less, and this browser would not run the page at 44,100 Hz\)\. The first sound that runs was loaded instead\./.test(r.status);
+  await page.close();
+  return r;
+}
 
 async function inputChecks(browser) {
   const r = {};
@@ -709,6 +753,7 @@ try {
   report.checks.screens = await page.evaluate(() => window.fm1.screens);
   await page.close();
 
+  report.checks.rate_refused = await rateRefusedChecks(browser);
   report.checks.input = await inputChecks(browser);
   report.checks.seq = await seqChecks(browser);
   report.checks.dx7 = await dx7Checks(browser);
@@ -753,6 +798,7 @@ const c = report.checks;
 const theme = c.theme || {};
 report.pass = !report.error && theme.title === 'Lunar Modulator' && theme.display_font_loaded === true &&
   theme.body_background === 'rgb(35, 33, 54)' && c.screens > 0 && c.chord_rms > 0.01 && c.lit_keys === 3 &&
+  c.rate === 44100 && c.requested_rate === 44100 && c.rate_refused && c.rate_refused.pass &&
   c.memory_percent === true &&
   c.fx_led === true && c.phone_scroll_width <= 390 && bigEnough(c.phone, 24) && c.phone_pan_px > 100 &&
   c.landscape.page_scroll_width <= 844 && bigEnough(c.landscape, 24) && c.input && c.input.pass &&

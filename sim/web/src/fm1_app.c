@@ -14,6 +14,7 @@
 #include "fm1_engine_meta.h"
 #include "fm1_fx_host.h"
 #include "fm1_look.h"
+#include "fm1_modules.h"     /* FM1_WITH_DX7: the module list (engines/modules/catalogue.mk) */
 #include "fm1_mod_view.h"
 #include "fm1_seq_view.h"
 #include "mod_script.h"
@@ -581,9 +582,14 @@ static void dx7_init(fm1_app_t *a) {
 
 /* An FM6 instance gets every loaded voice of the bank. */
 static void dx7_give(const fm1_app_t *a, const fm1_app_unit_t *u) {
+#if FM1_WITH_DX7                   /* a list without FM6 links none of its code */
   for (unsigned k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
     if (a->dx7.loaded[k]) fm1_dx7_set_user_voice(u->self, k, a->dx7.voice[k]);
   }
+#else
+  (void)a;
+  (void)u;
+#endif
 }
 
 /* ---- set-up and units --------------------------------------------------------- */
@@ -595,6 +601,8 @@ static void app_init(fm1_app_t *a, float sample_rate) {
   a->host.api_version = FM1_ENGINE_API_VERSION;
   a->host.sample_rate = sample_rate;
   a->host.max_frames = FM1_APP_MAX_FRAMES;
+  a->ram_host = a->host;
+  a->ram_host.sample_rate = FM1_APP_RAM_RATE;
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
     a->unit[u].index = -1;
     a->unit[u].cap = FM1_APP_FX_BYTES;
@@ -822,7 +830,7 @@ static void release(fm1_app_unit_t *u) {
 
 size_t fm1_app_ram_of(const fm1_engine_t *e) {
   /* ST6: every instance counted at the FM-1's rate, whatever the host's. */
-  static const fm1_host_t fm1 = { FM1_ENGINE_API_VERSION, (float)FM1_APP_RAM_HZ, FM1_APP_MAX_FRAMES };
+  static const fm1_host_t fm1 = { FM1_ENGINE_API_VERSION, FM1_APP_RAM_RATE, FM1_APP_MAX_FRAMES };
   return e ? e->instance_size(&fm1) : 0u;
 }
 
@@ -838,7 +846,7 @@ static int load(fm1_app_t *a, fm1_app_unit_t *u, int index, size_t bytes) {
   u->e = index == a->dx7.index ? &a->dx7.engine : e;
   u->index = index;
   u->bytes = bytes;
-  u->ram = fm1_app_ram_of(e);
+  u->ram = e->instance_size(&a->ram_host);   /* the RAM rule: at the FM-1's rate */
   u->driven = 0;                        /* a new instance starts undriven */
   for (uint16_t i = 0; i < e->n_params; ++i) u->value[i] = e->params[i].def;
   if (index == a->dx7.index) dx7_give(a, u);
@@ -938,6 +946,7 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   return 0;
 }
 
+#if FM1_WITH_DX7
 /* What fm1_dx7_read_sysex finds goes into the bank. */
 static void dx7_store(void *ctx, unsigned slot, const uint8_t vced[FM1_DX7_VCED_BYTES]) {
   fm1_app_dx7_t *d = &((fm1_app_t *)ctx)->dx7;
@@ -949,6 +958,7 @@ static void dx7_store(void *ctx, unsigned slot, const uint8_t vced[FM1_DX7_VCED_
   while (n > 0 && d->name[slot][n - 1] == ' ') --n;   /* fm1_dx7_user_name's trim */
   d->name[slot][n] = '\0';
 }
+#endif
 
 int fm1_app_dx7_load(fm1_app_t *a, const uint8_t *data, size_t len, fm1_dx7_sysex_result_t *res) {
   fm1_app_dx7_t *d = &a->dx7;
@@ -958,7 +968,12 @@ int fm1_app_dx7_load(fm1_app_t *a, const uint8_t *data, size_t len, fm1_dx7_syse
   memset(&r, 0, sizeof r);
   if (d->index < 0) n = FM1_APP_DX7_NO_FM6;
   else if (len > FM1_APP_DX7_FILE_MAX) n = FM1_APP_DX7_TOO_BIG;
+#if FM1_WITH_DX7
   else n = fm1_dx7_read_sysex(data, len, d->next, dx7_store, a, &r);
+#else
+  else n = FM1_APP_DX7_NO_FM6;     /* not reached: without FM6, d->index is -1 */
+  (void)data;
+#endif
   d->last = r;
   if (res) *res = r;
   if (n <= 0) {
@@ -1120,13 +1135,13 @@ static size_t mfx_ram(const fm1_app_t *a, int with_on) {
   size_t total = 0;
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
     const fm1_mfx_slot_t *sl = fm1_mfx_slot(&a->mfx, (unsigned)k, 0);
-    if (sl && sl->fx && (sl->on || k == with_on)) total += fm1_app_ram_of(&sl->fx->engine);
+    if (sl && sl->fx && (sl->on || k == with_on)) total += sl->fx->engine.instance_size(&a->ram_host);
   }
   return total ? total + sizeof a->mfx : 0u;
 }
 
 /* The RAM figure with unit `unit` holding `bytes` (`loaded` or empty), or
- * the chain as it is for unit -1. */
+ * the chain as it is for unit -1. Instances count at FM1_APP_RAM_RATE. */
 static size_t ram_of(const fm1_app_t *a, int unit, size_t bytes, int loaded) {
   size_t total = 0;
   int sounds = 0;
@@ -1150,7 +1165,7 @@ size_t fm1_app_ram(const fm1_app_t *a) { return ram_of(a, -1, 0, 0); }
 size_t fm1_app_ram_with(const fm1_app_t *a, int unit, int index) {
   const fm1_engine_t *e = entry(index);
   if (unit < 0 || unit >= FM1_APP_UNITS) return fm1_app_ram(a);
-  return ram_of(a, unit, fm1_app_ram_of(e), e != NULL);
+  return ram_of(a, unit, e ? e->instance_size(&a->ram_host) : 0u, e != NULL);
 }
 
 unsigned fm1_app_ram_percent(size_t bytes) {
@@ -2352,7 +2367,7 @@ int fm1_app_mfx_select(fm1_app_t *a, int sound, const char *id) {
   if (on && sl->fx) {
     /* The RAM meter, as for an engine: the new effect in place of the old. */
     const size_t now = fm1_app_ram(a);
-    const size_t with = now - fm1_app_ram_of(&sl->fx->engine) + fm1_app_ram_of(&fx->engine);
+    const size_t with = now - sl->fx->engine.instance_size(&a->ram_host) + fx->engine.instance_size(&a->ram_host);
     if (with > FM1_APP_RAM_BUDGET && with > now) {
       char need[24];
       a->ram_over = with - FM1_APP_RAM_BUDGET;

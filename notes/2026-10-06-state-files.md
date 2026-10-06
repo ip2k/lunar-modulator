@@ -1995,8 +1995,8 @@ chain. A mod rack, a clip, the set, and the settings.
   `midi_in_channel` (kept in `fm1_app_t` for the stages that use them).
   MASTER stays a page preference.
 - **The RAM rule** counts the app's whole figure after the load, every
-  instance at 44,118 Hz (ST6), and the meter now does too
-  (`fm1_app_ram_of`; each unit keeps its host-rate size for its arena).
+  instance at 44,118 Hz (ST6), the meter's own figure since PR #84
+  (`fm1_app_ram_of`).
   The refusal says a percent only: "Needs 121% of the FM-1's RAM."
 - **RATE in pass 1**: each engine a load would create is created once in a
   scratch arena (the writers' 480 KiB) at the host's rate, and the answer
