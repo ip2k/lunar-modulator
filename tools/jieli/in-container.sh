@@ -132,6 +132,14 @@ sz_compile() {  # sz_compile TARGET-NAME "CC" "EXTRA"
   done
   $cc $SZ_C $extra -c "$SRC/tools/jieli/sizes.c" -o "$SZ/$t/sizes_c.o" \
     >"$SZ/$t/sizes_c.log" 2>&1 || echo "   $t sizes.c failed (see $SZ/$t/sizes_c.log)"
+  if [ "${FM1_GPL_MODS:-1}" != 0 ]; then     # Felucca's engines (GPL), while the switch is on
+    $cc $SZ_CXX $extra -I"$OUT/ladder/obj/gen" -DSZ_FELUCCA -c "$SRC/tools/jieli/sizes.cc" \
+      -o "$SZ/$t/sizes_FELUCCA.o" >"$SZ/$t/sizes_FELUCCA.log" 2>&1 \
+      || echo "   $t SZ_FELUCCA failed (see $SZ/$t/sizes_FELUCCA.log)"
+    $cc -std=gnu11 -fwrapv -O2 -w $extra -Iinclude -I"$OUT/ladder/obj/gen" -Isrc -Ithird_party/felucca/src \
+      -Ithird_party/felucca/gen -c "$SRC/tools/jieli/sizes_felucca.c" -o "$SZ/$t/sizes_felucca_c.o" \
+      >"$SZ/$t/sizes_felucca_c.log" 2>&1 || echo "   $t sizes_felucca.c failed (see $SZ/$t/sizes_felucca_c.log)"
+  fi
 }
 sz_compile pi32v2 "$JCC" "$SDK_FLAGS $SDK_CODEGEN $SDK_INC"
 sz_compile i386 "gcc -m32" "-w"

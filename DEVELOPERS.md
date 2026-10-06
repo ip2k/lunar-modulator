@@ -172,6 +172,17 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     (hugelton), whose Apache-2.0 port of the same core is the test oracle.
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
     compatibility shim.
+  - **GPL modules, built only with the GPL switch on** ([Licences](#licences)):
+    **Drawbar**, **Trio** and **Phase Bend** are Felucca's WHEEL, TRIO and
+    PHASE engines (Leo Kuroshita, Hügelton Instruments, GPL-3.0-only),
+    vendored unmodified and compiled as Felucca compiles them
+    (`engines/src/felucca_bridge.c`), under a shim of ours that plays them in
+    Felucca's 32-sample blocks with Felucca's envelope and voice rules. They
+    are Felucca's own voice code to the bit on every factory sound [verified:
+    `fm1-felucca-oracle`, `tests/test_engine_felucca.py`]; about 4–5 KB an
+    instance and 25 KB of flash for the three
+    ([`engines/third_party/felucca/UPSTREAM.md`](engines/third_party/felucca/UPSTREAM.md),
+    [`engines/README.md`](engines/README.md#the-felucca-engines)).
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
     antiderivative anti-aliasing), Drive (overdrive and saturation, five

@@ -36,7 +36,7 @@ features = true
 
 [[chapter]]
 file = "05-sound-engines.md"
-summary = "Macro, Macro Heavy, Six-Op FM, FM6, Shapes, Sophie, Drums and Test Sine, with every parameter, and four sounds at once."
+summary = "Macro, Macro Heavy, Six-Op FM, FM6, Shapes, Sophie, Drums, Drawbar, Trio, Phase Bend and Test Sine, with every parameter, and four sounds at once."
 features = true
 
 [[chapter]]

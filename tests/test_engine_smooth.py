@@ -16,7 +16,7 @@ import wave
 
 import pytest
 
-from tests.engine_helpers import ENGINES, renderer  # noqa: F401
+from tests.engine_helpers import ENGINES, GPL_MODS, renderer  # noqa: F401
 from tests.test_seq_core import d1_frame
 
 RATE = 44118
@@ -50,6 +50,7 @@ UNITS = ["test-sine", "macro", "macro-heavy", "shapes", "sixop", "dx7", "sw-soph
          "ensemble", "diffuse", "crush", "fold", "echo", "test-gain", "sw-psxverb",
          "drive", "filter", "comb", "comp", "limit", "djfilter", "tilt", "sat", "isolator", "eq",
          "room", "hall", "gate", "squash", "shaper", "test-ext"]
+UNITS += ["drawbar", "trio", "phase-bend"] if GPL_MODS else []   # Felucca's (GPL modules)
 
 
 def test_the_driver_covers_every_engine_and_effect(units):

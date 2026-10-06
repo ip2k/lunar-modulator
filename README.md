@@ -96,7 +96,7 @@ its screen. None of it runs on an FM-1 yet.
 
 ### Sound engines
 
-Seven sound engines, plus Test Sine for testing. PRESETS picks one,
+Ten sound engines, plus Test Sine for testing. PRESETS picks one,
 ALGORITHM steps through its models, shapes, patches or pads, and KNOB1–4
 play its parameters, four to a page (SELECT turns the page).
 - **Macro:** eight synths in one, 12 voices: virtual analogue with a filter,
@@ -116,6 +116,12 @@ play its parameters, four to a page (SELECT turns the page).
   with two kits, Deep and Punch: a kick, two snares, a clap, a rim shot,
   three hi-hats, six toms, a crash and a ride, and any pad can play a
   cowbell instead.
+- **Drawbar, Trio and Phase Bend**, three engines of Felucca, Leo
+  Kuroshita's firmware for the FM-1, 8 voices each: a tonewheel organ with
+  percussion, key click and a rotary speaker; three chip-style oscillators
+  with ring modulation and sync into a gritty filter; and phase distortion
+  with resonant waves. Their code is GPL, so they are in builds with the
+  GPL switch on, as the simulator is while we test.
 
 Sophie and Drums play their pads from the 16 white keys, at any octave.
 
@@ -462,6 +468,10 @@ This is a synthesis of other people's work. The details are in
   lineage are also the engine of the stock firmware.
 - **Charles Vestal** for Schwung and its PSX Verb module, and **Matt Estela**
   for the Sophie drum module (MIT).
+- **Felucca** by **Leo Kuroshita** (@kurogedelic), Hügelton Instruments
+  (GPL-3.0): Drawbar, Trio and Phase Bend are its WHEEL, TRIO and PHASE
+  engines, unmodified; PHASE is a port of CrispyZebra's oscillator, by the
+  same author. FM6's name is borrowed from Felucca's.
 - Sequencer design and logic after Movy by **megadake** (MIT),
   [github.com/DimaDake/schwung-movy](https://github.com/DimaDake/schwung-movy).
 - The arpeggiator, our own code, follows Yarns' arpeggiator by **Emilie
@@ -498,8 +508,11 @@ keeps its own licence, recorded beside it with an `UPSTREAM.md`:
   only the tests use);
 - the SIL Open Font License 1.1 for the fonts.
 
-No GPL code is in the tree; if any comes, it will sit behind a build switch
-([`DEVELOPERS.md`](DEVELOPERS.md#licences)).
+GPL code sits behind a build switch, on in every build while we test
+([`DEVELOPERS.md`](DEVELOPERS.md#licences)): three of Felucca's engines
+(GPL-3.0-only), in `engines/third_party/felucca`. The simulator is then
+offered under the GPL; a build with the switch off has no GPL code and is
+MIT/BSD.
 
 ## Repository map
 

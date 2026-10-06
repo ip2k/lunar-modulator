@@ -47,6 +47,18 @@ terms it is used under.
   TR-808's circuits, among them **Baratatronix**'s. No code or text is
   taken from the papers or the descriptions. The two kits are inspired by those drum machines; Roland's
   names appear here only as credit.
+- **Drawbar**, **Trio** and **Phase Bend** are the WHEEL, TRIO and PHASE
+  engines of **Felucca**, open firmware for the FM-1 by **Leo Kuroshita**
+  (@kurogedelic), **Hügelton Instruments**, GNU GPL version 3 (built in
+  only with the GPL switch on; see [Licences](#licences)). Felucca's code
+  for them, its shared DSP and its tables are included unmodified; PHASE is
+  a port of the oscillator of **CrispyZebra**, the same author's (GNU GPL
+  version 3). The code that plays them through Lunar Modulator's engine
+  interface is this project's own, and the test that holds them to
+  Felucca's own voice code uses that code too. The engines' names here are
+  this project's ("Trio" is Felucca's own, borrowed with thanks); Felucca's
+  factory sounds appear in [chapter 5](05-sound-engines.md#drawbar-trio-and-phase-bend)
+  as settings.
 - **PSX Verb** by **Charles Vestal**, MIT licence, included unmodified.
 - **Schwung**, Charles Vestal's host for modules on the Ableton Move, MIT
   licence. Lunar Modulator includes Schwung's plugin interface unmodified,
@@ -233,9 +245,11 @@ of the same FM core, to check FM6 against; it is in no build of the
 firmware or the simulator.
 
 **GPL code, and the GPL switch.** Some engines and effects port code that
-other projects publish under the GNU General Public License. Each sits in
-a folder of its own in the repository, with its licence and a note of where
-it came from, and is built in only while the firmware's GPL switch is on.
+other projects publish under the GNU General Public License: today Drawbar,
+Trio and Phase Bend ([chapter 5](05-sound-engines.md#drawbar-trio-and-phase-bend)).
+Each sits in a folder of its own in the repository, with its licence and a
+note of where it came from, and is built in only while the firmware's GPL
+switch is on.
 While we test, the switch is on in every build, the simulator included.
 - **In the simulator**, the page beside the panel then names each module
   with GPL code in it, and offers the simulator's module under the GNU GPL,

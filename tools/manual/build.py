@@ -147,9 +147,13 @@ def prescan(b: Build) -> None:
                 continue
             d = DIRECTIVE_LINE.match(line)
             if d and d.group(1) == "engine-table":
-                eid = (d.group(2) or "").strip()
+                args = (d.group(2) or "").split()
+                eid = args[0] if args else ""
                 if eid not in known:
-                    b.errors.append(f"{ch.file}: {{{{engine-table {eid}}}}} names no engine in this build")
+                    # {{engine-table ID gpl}}: a GPL module, which a build with the GPL
+                    # switch off (FM1_GPL_MODS=0) leaves out; its section says so.
+                    if "gpl" not in args[1:]:
+                        b.errors.append(f"{ch.file}: {{{{engine-table {eid}}}}} names no engine in this build")
                     continue
                 if heading is None:
                     b.errors.append(f"{ch.file}: {{{{engine-table {eid}}}}} has no heading above it")
@@ -170,6 +174,9 @@ def make_directive(b: Build):
         if name == "engine-table":
             e = next((e for e in b.engines if e.id == (args[0] if args else "")), None)
             if e is None:
+                if "gpl" in args[1:]:
+                    return note("This engine is built only with the firmware's GPL switch on, "
+                                "and this edition was made without it.")
                 return note("This engine is not in this build.")
             return [("html", reference.engine_table(e))]
         if name == "engine-summary":

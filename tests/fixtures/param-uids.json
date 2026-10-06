@@ -96,6 +96,53 @@
     "test-sine": [
       {"name": "Volume", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ],
+    "drawbar": [
+      {"name": "Drawbars", "type": "enum", "uid": 1, "flags": ["mod"]},
+      {"name": "Sub", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Body", "type": "float", "uid": 3, "flags": ["smooth", "mod"]},
+      {"name": "Top", "type": "float", "uid": 4, "flags": ["smooth", "mod"]},
+      {"name": "Perc", "type": "enum", "uid": 5, "flags": ["mod"]},
+      {"name": "Click", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Drive", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Rotor", "type": "enum", "uid": 8, "flags": ["mod"]},
+      {"name": "Attack", "type": "float", "uid": 9, "flags": ["smooth", "mod", "poly", "log"]},
+      {"name": "Decay", "type": "float", "uid": 10, "flags": ["smooth", "mod", "poly", "log"]},
+      {"name": "Sustain", "type": "float", "uid": 11, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Release", "type": "float", "uid": 12, "flags": ["smooth", "mod", "poly", "log"]},
+      {"name": "Volume", "type": "float", "uid": 13, "flags": ["smooth", "mod", "poly"]}
+    ],
+    "trio": [
+      {"name": "Wave", "type": "enum", "uid": 1, "flags": ["latch", "mod"]},
+      {"name": "Int 2", "type": "float", "uid": 2, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Int 3", "type": "float", "uid": 3, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Detune", "type": "float", "uid": 4, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Mode", "type": "enum", "uid": 5, "flags": ["latch", "mod"]},
+      {"name": "Cutoff", "type": "float", "uid": 6, "flags": ["smooth", "mod", "poly", "log"]},
+      {"name": "Resonance", "type": "float", "uid": 7, "flags": ["smooth", "mod", "poly"]},
+      {"name": "PW", "type": "float", "uid": 8, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Env Amt", "type": "float", "uid": 9, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Attack", "type": "float", "uid": 10, "flags": ["smooth", "mod", "poly", "log"]},
+      {"name": "Decay", "type": "float", "uid": 11, "flags": ["smooth", "mod", "poly", "log"]},
+      {"name": "Sustain", "type": "float", "uid": 12, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Release", "type": "float", "uid": 13, "flags": ["smooth", "mod", "poly", "log"]},
+      {"name": "Volume", "type": "float", "uid": 14, "flags": ["smooth", "mod", "poly"]}
+    ],
+    "phase-bend": [
+      {"name": "Wave", "type": "enum", "uid": 1, "flags": ["latch", "mod"]},
+      {"name": "Wave 2", "type": "enum", "uid": 2, "flags": ["latch", "mod"]},
+      {"name": "DCW", "type": "float", "uid": 3, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Env", "type": "float", "uid": 4, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Detune", "type": "float", "uid": 5, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Line", "type": "enum", "uid": 6, "flags": ["latch", "mod"]},
+      {"name": "Sub", "type": "float", "uid": 7, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Attack", "type": "float", "uid": 8, "flags": ["smooth", "mod", "poly", "log"]},
+      {"name": "Decay", "type": "float", "uid": 9, "flags": ["smooth", "mod", "poly", "log"]},
+      {"name": "Sustain", "type": "float", "uid": 10, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Release", "type": "float", "uid": 11, "flags": ["smooth", "mod", "poly", "log"]},
+      {"name": "Volume", "type": "float", "uid": 12, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Glide", "type": "float", "uid": 13, "flags": ["smooth", "mod", "log"]},
+      {"name": "Voice Mode", "type": "enum", "uid": 14, "flags": ["latch", "mod"]}
+    ],
     "plate": [
       {"name": "Mix", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
       {"name": "Decay", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
@@ -336,7 +383,7 @@
   "retired_about": "Uids a table must never give out again: a removed parameter's; and Comb's 1, the Filter's Type, as Comb keeps the Filter's uids for the parameters both have, so a Filter that was set to Comb maps onto Comb uid for uid (engines/README.md, \"Comb\").",
   "retired": {"comb": [1]},
   "gpl_about": "The GPL modules (engines/Makefile, FM1_GPL_MODS; CLAUDE.md, \"The GPL switch\"): pinned above like every other, and in the build only while the switch is on, so tests/test_engine_params.py leaves them out of the comparison when it is off.",
-  "gpl": [],
+  "gpl": ["drawbar", "trio", "phase-bend"],
   "per_note_about": "The engines with set_param_note (engine API v2, per-note offsets: engines/README.md, \"Per-note offsets\"). Their POLY parameters are flagged \"poly\" above; no other engine may have one.",
-  "per_note": ["macro", "macro-heavy", "shapes", "sixop", "dx7", "drums"]
+  "per_note": ["macro", "macro-heavy", "shapes", "sixop", "dx7", "drums", "drawbar", "trio", "phase-bend"]
 }

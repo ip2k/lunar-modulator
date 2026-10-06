@@ -27,6 +27,9 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `sw-sophie` | Sophie | sound | 12 | a Schwung module (Matt Estela, MIT), through the shim | [schwung.md](schwung.md) |
 | `drums` | Drums | sound | 12 | Plaits' drum classes (Emilie Gillet, MIT), and a rim shot, clap, cowbell and cymbal of this repository's own | [below](#drums); a 16-pad kit on notes 36–51 with two sets of voicings, Deep and Punch |
 | `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
+| `drawbar` | Drawbar | sound | 8 | Felucca's WHEEL (Leo Kuroshita, Hügelton Instruments, **GPL-3.0-only**), unmodified | [below](#the-felucca-engines); a tonewheel-style organ, built only with the GPL switch on |
+| `trio` | Trio | sound | 8 | Felucca's TRIO (**GPL-3.0-only**), unmodified | [below](#the-felucca-engines); three chip-style oscillators with ring and sync into a gritty filter, GPL switch on |
+| `phase-bend` | Phase Bend | sound | 8 | Felucca's PHASE, CrispyZebra's phase-distortion oscillator (**GPL-3.0-only**), unmodified | [below](#the-felucca-engines); phase distortion with resonant waves, GPL switch on |
 | `plate` | Plate | effect | – | Rings' reverb, with Elements' Freeze | [mi-fx.md](mi-fx.md) |
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
 | `diffuse` | Diffuse | effect | – | Plaits' diffuser | [mi-fx.md](mi-fx.md) |
@@ -2606,6 +2609,145 @@ used, and no code was taken from it or anywhere. Stereo-linked.
   Max with both knobs away from the centre (two follower steps, a divide, a
   log2 and a 2^x a frame), 0.09 % of the block; at the centre the log and
   the exponential are skipped [verified, 2026-10-05].
+
+## The Felucca engines
+
+Three engines of **Felucca**, open firmware for the FM-1 by Leo Kuroshita
+(@kurogedelic), Hügelton Instruments: **Drawbar** (its WHEEL, a
+tonewheel-style organ), **Trio** (TRIO, three oscillators and a filter in
+the style of 8-bit home-computer sound chips) and **Phase Bend** (PHASE,
+the phase-distortion oscillator of CrispyZebra, the same author's). Their
+files are vendored **unmodified** in `third_party/felucca/` (GPL-3.0-only;
+`UPSTREAM.md` has the commit, the hashes and the credits). **GPL code:
+built only while the GPL switch is on** (`FM1_GPL_MODS`, [Build and
+checks](#build-and-checks); `mk/felucca.mk`); the licence table lists each
+as `GPL-3.0-only AND MIT`. They came out of the fm1-x0x study's ranking of
+Felucca's engines (`notes/2026-10-06-fm1-x0x.md` §3.2: WHEEL, TRIO, SLICE,
+PHASE); SLICE is not ported yet (below).
+
+**How they run.** Felucca is one compilation unit of static functions, its
+engines C with designated initialisers, so `src/felucca_bridge.c` includes
+Felucca's `core.h`, its generated tables, `dsp.c` and the three engine
+files as Felucca's `felucca.c` does, and exports a narrow interface
+(`src/felucca_bridge.h`); `src/felucca_shim.cc` is the engine API above it.
+Two definitions around `core.h` let it compile off the FM-1 and give each
+instance its own part, changing nothing an engine computes (UPSTREAM.md).
+WHEEL keeps part state in static arrays of its own; each instance holds a
+copy, which the bridge lends to those arrays for every call (832 bytes each
+way, once a control block and once a note-on).
+
+**What the shim and bridge do, in our own code:**
+- **The control block**: Felucca's, 32 samples, counted from create. The
+  envelopes and the modulation an engine reads move once a block, and every
+  note, bend and parameter lands on the next block (0.73 ms), so the output
+  is the same at any host block size or split.
+- **The rate**: Felucca's tables are for 44,100 Hz, and on an FM-1 (about
+  44,118 Hz) Felucca plays them as they are, 0.7 cent sharp and its times
+  0.04 % short. These engines do the same, at the host's rate on Felucca's
+  tables, and refuse a host outside 44,100 Hz ± 0.25 % (44,000–44,200 pass,
+  48,000 and 22,050 are refused, as the Plaits engines refuse 48 kHz). No
+  resampling: at 44,118 Hz the samples are Felucca's on the device
+  [verified: the oracle below at 44,100 and 44,118 Hz; the pitch measured
+  at 0.71 cent over 440 Hz, `tests/test_engine_felucca.py`].
+- **Voices**: eight. A key struck while it sounds starts again in its own
+  voice; otherwise the next free voice in turn (Felucca's ROTATE, so tails
+  ring); with none free the oldest released, else the oldest held that is
+  not the lowest held key. A voice struck again or taken starts from its
+  level with its phases kept, as Felucca's do.
+- **The envelope and the modulation** (`vmod_t`) are Felucca's laws: a
+  linear attack, exponential decay to the sustain level and release, each
+  99 % of the way in its time, on Felucca's 128-step time curve; the
+  amplitude ramps across the block; velocity scales the level; above 110
+  it is an accent that opens the filter (Trio) and the bend (Phase Bend)
+  with the envelope.
+- **Parameters in units**, mapped onto Felucca's integer knobs: % to 0..127,
+  times (ms, LOG, 1–10,000) to the nearest step of the time curve (the LOG
+  law's 7-bit positions are exactly its steps), Trio's Cutoff (Hz, LOG,
+  30–16,000, Felucca's curve) and PW and Phase Bend's DCW in 1/256 of a
+  knob step through the modulation inputs Felucca's envelope and LFO use,
+  so they sweep without stepping. Defaults map to Felucca's own knobs
+  exactly (Cutoff 1,566.45 Hz is its 80, DCW 47.2441 % its 60).
+- **Flags**: lists that would click under a note (Trio's Wave and Mode,
+  Phase Bend's Wave, Wave 2 and Line) are read at note-on per voice: LATCH,
+  MOD. Drawbar's Drawbars, Perc and Rotor are read every block and change
+  cleanly (each partial's gain ramps over the block, the rotor eases): MOD,
+  as the effects' clean switches [verified: turned every 3 ms under a
+  chord, the output steps no more than at any held value,
+  `tests/test_engine_felucca.py`]. Every FLOAT is SMOOTH and MOD.
+- **Per-note offsets** on the FLOATs a voice reads itself: everywhere the
+  envelope and Volume; Trio's and Phase Bend's knobs too. Drawbar's bars,
+  click and drive are read once a block for the whole part, so they are not
+  POLY.
+- **Glide and Voice Mode** (`glide.h`) on Phase Bend only, which has the
+  room (its eighth EDIT knob is unused upstream). Drawbar has 13
+  parameters and Trio 14, the cap ([Drums](#drums)).
+- **Output**: Felucca adds a full-scale voice at 24,000 and mixes a part at
+  its default level, −4 dB, into a limiter. Volume 0.7 is that level less
+  12 dB, the headroom our engines leave (a note about −26 dB RMS, as Macro's
+  and FM6's), and Volume scales it by (Volume / 0.7)²; below −180 dB it is
+  silence, so no sample is subnormal.
+
+**The oracle** (`test/felucca_oracle.c`, `fm1-felucca-oracle`, a desktop
+tool built only with the switch on): Felucca's own `voice.c`, vendored
+unmodified, drives the same engine files on one part, with what it reaches
+outside them (the modulation matrix, the DRUM engine, its LFO's generator)
+stubbed inert. Our engine plays the same sound through the API with its
+parameters in units the test computes from Felucca's own curves. Every
+factory sound of the three engines (16, read from the vendored sources) and
+the defaults give the same samples, bit for bit, through a phrase with a
+chord, accents, retriggers and ten keys at once (two steals), at host
+blocks of 1, 7, 32 and 64 and at 44,100 and 44,118 Hz [verified
+2026-10-06: `tests/test_engine_felucca.py`].
+
+| Engine | Page 1 | Page 2 | Page 3 | Page 4 |
+| --- | --- | --- | --- | --- |
+| Drawbar | Drawbars (16 registrations), Sub, Body, Top (−8..8 bars) | Perc (Off, 2nd, 3rd, Soft, Slow), Click %, Drive %, Rotor (Off, Slow, Fast) | Attack, Decay (ms), Sustain %, Release (ms) | Volume |
+| Trio | Wave (16 sets), Int 2, Int 3 (±24 semitones), Detune (0–50 cents) | Mode (LP, BP, HP, Notch), Cutoff (30–16,000 Hz), Resonance %, PW % | Env Amt (±100 %), Attack, Decay, Sustain | Release, Volume |
+| Phase Bend | Wave (8), Wave 2 (Same + 8), DCW %, Env % | Detune (0–127 cents), Line (Mix, Ring), Sub %, Attack | Decay, Sustain, Release, Volume | Glide, Voice Mode |
+
+Uids 1–13 (Drawbar) and 1–14 (Trio, Phase Bend), in table order. The first
+list is ALGORITHM's: Drawbar's registrations, Trio's wave sets, Phase
+Bend's waves. **Felucca's factory sounds** (5, 5 and 6) are settings, not a
+list: the API has no way for an engine to move its other knobs (a getter
+is API v4's), so a Preset parameter would leave the host showing stale
+values. The manual (chapter 5) gives them as settings, and the oracle test
+plays each one.
+
+**Measured** [verified 2026-10-06]:
+
+| | Drawbar | Trio | Phase Bend |
+| --- | --- | --- | --- |
+| Instance, pi32v2 = i386 = x86-64 | 4,976 B | 4,144 B | 4,144 B |
+| of which Felucca's part (`track_t`), and WHEEL's state | 1,752 + 832 B | 1,752 B | 1,752 B |
+| Eight notes, a 64-frame block, Apple M1 Max | 1.6–5.9 µs (0.11–0.41 %) | 2.9–5.8 µs (0.20–0.40 %) | 2.4–4.8 µs (0.17–0.33 %) |
+| One note; idle | 0.46 µs; 0.23 µs | 0.76 µs; 0.14 µs | 0.42 µs; 0.14 µs |
+
+- **Flash** (the JieLi compile check, switch on, 136 of 136 objects in all
+  four profiles, link audit PASS): the bridge, the three engines with
+  Felucca's tables, 15,269 B at −O2 (13,539 at −Oz), and the shim with the
+  three parameter tables 9,469 B (7,337): 24.7 KB (20.9).
+- **Static RAM**: 3,344 B, WHEEL's arrays sized for Felucca's four parts
+  (part 0's lent to each call) and the bridge's pointer.
+- **CPU on the FM-1**: not measured here; Felucca plays these engines with
+  eight voices on the device [reported: its README and
+  `tests/cpu_baseline.txt`, 692–1,558 host instructions a sample with eight
+  notes held]. The range above is the factory sounds and the defaults with
+  eight notes held (`fm1-render`, best of five); our Drums takes 7.5 µs and
+  Macro 19.4 on the same chord.
+- **Faults**: no NaN, infinity or subnormal sample in any factory sound
+  (the oracle counts them); a four-note chord at the defaults peaks under
+  full scale; every list value at every other parameter's ends, keys 0 and
+  127, bends of ±48: finite. Under ASan and UBSan (Apple clang, the bridge
+  with `-fwrapv` as built) the engines' and the glide, SMOOTH and per-note
+  tests report nothing.
+
+**Not ported yet.** SLICE (third in the study's ranking): a slicer over
+SAMPLE's ADPCM and a built-in break, with onset detection and reverse
+windows. It needs `eng_sample.c`'s zone and decoder code, sample data
+generated by Felucca's `gen_samples.py` (the BREAK, 22 KB of ADPCM, made
+from Felucca's GPL drums) or a bar rendered by our MIT Drums, and its
+`slc_rbuf` windows (1 KB a part) lent per call as WHEEL's state is. Left
+for its own stage, with the owner's choice of material.
 
 ## Parameters (engine API v2 and v3)
 

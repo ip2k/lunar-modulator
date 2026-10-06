@@ -91,6 +91,22 @@ ENUM_FLAGS = {
 # and never cuts a sounding voice: LATCH, and a route rounds it.
 for _engine in ("macro", "macro-heavy", "shapes", "sixop", "dx7"):
     ENUM_FLAGS[(_engine, "Voice Mode")] = ["latch", "mod"]
+# Felucca's engines (GPL modules, src/felucca_shim.cc). Drawbar's lists are
+# read every block and glide (each partial's gain ramps over the block, the
+# rotor eases between its speeds): clean switches, MOD. Trio's and Phase
+# Bend's would click under a note, so a voice keeps the value it started
+# with: LATCH, and a route rounds them.
+ENUM_FLAGS.update({
+    ("drawbar", "Drawbars"): ["mod"],
+    ("drawbar", "Perc"): ["mod"],
+    ("drawbar", "Rotor"): ["mod"],
+    ("trio", "Wave"): ["latch", "mod"],
+    ("trio", "Mode"): ["latch", "mod"],
+    ("phase-bend", "Wave"): ["latch", "mod"],
+    ("phase-bend", "Wave 2"): ["latch", "mod"],
+    ("phase-bend", "Line"): ["latch", "mod"],
+    ("phase-bend", "Voice Mode"): ["latch", "mod"],
+})
 
 
 def catalog(renderer):

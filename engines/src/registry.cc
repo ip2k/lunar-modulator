@@ -49,7 +49,10 @@ extern const fm1_engine_t fm1_engine_shaper;
 extern const fm1_engine_t fm1_engine_test_gain;
 extern const fm1_engine_t fm1_engine_test_ext;
 #if FM1_GPL_MODS
-// GPL modules (each in its own third_party/<name>/): none yet.
+// GPL modules (each in its own third_party/<name>/, built by its own fragment).
+extern const fm1_engine_t fm1_engine_drawbar;     // Felucca's WHEEL (mk/felucca.mk)
+extern const fm1_engine_t fm1_engine_trio;        // Felucca's TRIO
+extern const fm1_engine_t fm1_engine_phase_bend;  // Felucca's PHASE
 #endif
 
 const fm1_engine_t *const fm1_engines[] = {
@@ -62,7 +65,10 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_sw_sophie,
   &fm1_engine_drums,
 #if FM1_GPL_MODS
-  // GPL sound engines: none yet.
+  // GPL sound engines.
+  &fm1_engine_drawbar,
+  &fm1_engine_trio,
+  &fm1_engine_phase_bend,
 #endif
   &fm1_engine_test_sine,
   // audio effects
@@ -109,7 +115,11 @@ const fm1_licence_t fm1_licences[] = {
   // FM6: msfa, Google's FM core (Apache-2.0), under our MIT voice and tables.
   { "dx7", "MIT AND Apache-2.0", "engines/third_party/msfa" },
 #if FM1_GPL_MODS
-  // GPL modules: none yet.
+  // Felucca (Leo Kuroshita, Hügelton Instruments; GPL-3.0-only): three of its
+  // engines, unmodified, under our MIT shim and bridge.
+  { "drawbar", "GPL-3.0-only AND MIT", "engines/third_party/felucca" },
+  { "trio", "GPL-3.0-only AND MIT", "engines/third_party/felucca" },
+  { "phase-bend", "GPL-3.0-only AND MIT", "engines/third_party/felucca" },
 #endif
 };
 const size_t fm1_licence_count = sizeof(fm1_licences) / sizeof(fm1_licences[0]);

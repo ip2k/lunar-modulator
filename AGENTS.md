@@ -76,7 +76,9 @@ its author's permission. Details: docs/12 §6, docs/11 §7. The SDK itself
 is not GPL-free: `system.a` holds a modified FreeRTOS V9 (GPLv2 with the
 FreeRTOS exception), and `uac_audio.h`/`uac_audio_v2.h` are GPL-2.0, so
 never include those headers. Felucca and SLOOP are GPL-3.0-only: take facts
-and ideas, with credit.
+and ideas, with credit; their code comes in only as a GPL module behind the
+GPL switch (docs/12 §6), as three of Felucca's engines have
+(`engines/third_party/felucca/`, 2026-10-06).
 
 ## The one rule
 
