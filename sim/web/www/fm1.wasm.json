@@ -1,18 +1,19 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "d698c83c41de27a6d2fdf70fd3cdf312f88bdb6bac37d09a10b74990a79e67e7",
-  "wasm_bytes": 947254,
+  "wasm_sha256": "7471ed15610b7e344ec0e8c9bc32b536ed9fb8711aaf67f3d2ff8674f9a24cba",
+  "wasm_bytes": 950914,
   "sources_sha256": {
-    "engines": "b16f3f475abb9d5b164ec45ab3e21a9befbcd5c514a7d8db8734ab751efdc247",
-    "sim": "cebbc95f985be1d28157574ffacdc5b9feef2bcefe65513eba557a506601d6a8"
+    "engines": "f0f0fc19658b0b0965198385abec49741fd68ad1120578b541e7849c93bfcb23",
+    "sim": "0c8e0e2f1e760868ca34e028943eaf281e99439abe6802695af374454e44f18f"
   },
   "engines": "working tree",
-  "built": "2026-10-06T08:20:33Z",
+  "built": "2026-10-06T10:39:25Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
     "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
-    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
+    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
   ],
   "imports": [],
   "parity": {
@@ -252,8 +253,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 268732,
-        "native64": 268972
+        "wasm32": 268748,
+        "native64": 269004
       }
     },
     {
@@ -384,8 +385,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 275420,
-        "native64": 275484
+        "wasm32": 276684,
+        "native64": 276780
       }
     },
     {
@@ -406,8 +407,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 141052,
-        "native64": 141084
+        "wasm32": 142300,
+        "native64": 142348
       }
     },
     {
@@ -1443,8 +1444,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 236124,
-        "native64": 249020
+        "wasm32": 236140,
+        "native64": 249052
       }
     },
     {
