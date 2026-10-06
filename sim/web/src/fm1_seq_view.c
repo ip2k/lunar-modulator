@@ -47,7 +47,8 @@
 #define TRACKS_L (MARGIN + TEMPO_W + 7)
 #define TRACKS_R (RIGHT - FM1_TFT_MAIN_W(4) - 7)
 #define TRACK_PAD 2
-#define TRACK_W (TRACK_PAD + FM1_TFT_SMALL_INK_W - 1 + TRACK_PAD)   /* a digit's 5 px of ink */
+#define TRACK_INK_W 5                  /* SMALL's digits and 'M': 5 px of ink from the cell's left */
+#define TRACK_W (TRACK_PAD + TRACK_INK_W + TRACK_PAD)
 #define TRACK_GAP 2
 #define TRACK_H (FM1_TFT_SMALL_CAP_H + 4)
 #define TRACKS_SPAN (8 * TRACK_W + 7 * TRACK_GAP)

@@ -162,13 +162,17 @@ def test_it_wants_a_reason_for_a_close_pair(files, monkeypatch):
 
 # ---- the project's own token names -----------------------------------------
 
-# The project's short form is "Lunar", never "LM" (CLAUDE.md, the name): its
-# own hues are LUNAR_* in the header and --lunar-* on the page.
-_OLD_TOKEN = re.compile(r"(?<![A-Za-z0-9_])LM_[A-Z0-9_]+|--lm-[a-z0-9-]+")
+# The project's short form is "Lunar" (CLAUDE.md, the name): its own hues
+# are LUNAR_* in the header and --lunar-* on the page. The names they had,
+# by the project's two-letter initials (_OLD, spelt in pieces so that the
+# tree never holds them), stay out of sim/web: the review's git grep
+# pattern, upper case for the macros and lower case for the stylesheet.
+_OLD = "L" + "M"
+_OLD_TOKEN = re.compile(rf"(?<![A-Za-z0-9_])(?:{_OLD}_|{_OLD.lower()}-)|--{_OLD.lower()}-")
 _TEXT = {".c", ".h", ".css", ".js", ".mjs", ".html", ".md", ".py", ".sh", ".mk", ".json", ".txt"}
 
 
-def test_no_lm_token_names_in_the_simulator():
+def test_no_old_token_names_in_the_simulator():
     seen, hits = 0, []
     for path in sorted(SIM.rglob("*")):
         if not path.is_file() or path.suffix not in _TEXT or "third_party" in path.parts:
@@ -181,5 +185,6 @@ def test_no_lm_token_names_in_the_simulator():
 
 
 def test_the_old_token_pattern_catches_both_forms():
-    assert _OLD_TOKEN.findall("#define LM_NOVA x; color: var(--lm-nova);") == ["LM_NOVA", "--lm-nova"]
-    assert _OLD_TOKEN.findall("#define LUNAR_NOVA x; --lunar-nova; HELM_X; -lm") == []
+    old, low = _OLD, _OLD.lower()
+    assert len(_OLD_TOKEN.findall(f"#define {old}_NOVA x; color: var(--{low}-nova); .{low}-x")) == 3
+    assert _OLD_TOKEN.findall(f"#define LUNAR_NOVA x; --lunar-nova; HE{old}_X; -{low}\n") == []

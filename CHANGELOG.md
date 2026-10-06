@@ -1256,9 +1256,9 @@ history.
     (a run with a few pixels before chosen spans, still one logged box);
     `FM1_MOD_UI_ROW_SRC`; the palette's own tokens are renamed `LUNAR_NEBULA`
     … `LUNAR_COMET` in `fm1_look.h` and `--lunar-nebula` … `--lunar-comet`
-    in `style.css` (were `LM_*` and `--lm-*`; the project's short form is
-    "Lunar"), and `tests/test_sim_palette.py` keeps the old names out of
-    `sim/web/`. `tests/test_sim_screen_cues.py` reads the numbers off the
+    in `style.css` (they were named by the project's initials; its short
+    form is "Lunar"), and `tests/test_sim_palette.py` keeps the old names
+    out of `sim/web/`. `tests/test_sim_screen_cues.py` reads the numbers off the
     strip and measures the marks' gaps in the screen sweep's frames. The
     sweep still draws 3,408 screens with 0 faults.
 - **The screen, reworked from the UI audit: one meaning per colour, two

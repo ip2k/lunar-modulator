@@ -20,7 +20,7 @@ says so, [inferred] our reasoning.
   Moon leaves free (below). Their tokens are `LUNAR_NEBULA`–`LUNAR_COMET`
   in the header and `--lunar-nebula`–`--lunar-comet` on the page, beside
   Moon's `RP_*` and `--rp-*` (the project's short form is "Lunar";
-  `tests/test_sim_palette.py` fails if an `LM_` or `--lm-` name comes back).
+  `tests/test_sim_palette.py` fails if a name by its initials comes back).
 - **Roles in the header.** Screen code can name what a colour means rather
   than its hue: `C_SELECT`, `C_HELD`, `C_LIVE`, `C_MOD`, `C_REFUSE`,
   `C_CONTEXT`, `C_HINT`, `C_LABEL`, `C_SOUND_1`–`C_SOUND_4` and

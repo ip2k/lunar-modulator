@@ -531,8 +531,10 @@ identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
 wake them; those two, the three Drums, the four FM6 and the three glide
 scenarios are identical to glibc too), and it imports nothing; it is
-955,543 bytes with the UI audit's screens (the palette, the two Spleen
-faces and the screens that use them), 938,723 before them with glide
+955,320 bytes with the track strip's sound numbers and MATRIX's narrow
+gaps (2026-10-06), 955,543 with the UI audit's screens before them (the
+palette, the two Spleen faces and the screens that use them), 938,723
+before them with glide
 (939,251 with them before glide), 922,439 before both, 907,256 with glide
 before the arpeggiator, 890,975 before both (890,874 before Shapes'
 clamps), 887,038 before the idle paths, 850,731 before
@@ -763,8 +765,8 @@ CIEDE2000 between colours with different meanings, the sound colours under
 simulated colour-vision deficiencies, one meaning per colour in
 `style.css`, and PALETTE.md's figures equal to the checker's report; and the
 colour science against the audit's figures and Sharma's CIEDE2000 data. It
-also fails if an `LM_` or `--lm-` name comes back anywhere in `sim/web/`:
-the project's own hues are `LUNAR_*` and `--lunar-*`.
+also fails if a token named by the project's initials comes back anywhere
+in `sim/web/`: the project's own hues are `LUNAR_*` and `--lunar-*`.
 
 `tests/test_sim_screen_cues.py` reads the screen sweep's frames: every
 track on the Track view's strip shows the number of the sound it plays
