@@ -112,12 +112,12 @@ if the two ever differ.
 | --- | --- |
 | Runs in | A web browser with WebAssembly and the Web Audio API's AudioWorklet, from an `https://` address or from the computer it runs on |
 | Tested in | Chromium. Firefox, Safari, real touch screens and real MIDI hardware are not tested yet |
-| Sample rate | Asks for 44,118, then 44,100; otherwise the computer's own rate |
+| Sample rate | Asks for 44,100 Hz. If the browser refuses, the computer's own rate, where Macro, Macro Heavy, Six-Op and Drums do not run (above 47,872 Hz); the status line says so. The memory meter counts as the FM-1 would, at 44,118 Hz |
 | Input | Mouse, touch, the computer keyboard, and MIDI from a keyboard: notes, velocity, pitch bend, control changes 7 and 123 |
 | Output | Audio only. It sends no MIDI |
 | Screen | The firmware's 240 × 240 screen, redrawn up to about 30 times a second while sound plays |
 | Panel | To scale, 161.5 × 96.5 mm. On narrow screens it keeps a width of 800 pixels and scrolls sideways |
-| Download | About 770 KB for the firmware, plus the page; nothing is loaded from other websites |
+| Download | About 1.3 MB for the firmware, plus the page; nothing is loaded from other websites |
 
 ## The desktop tools
 
