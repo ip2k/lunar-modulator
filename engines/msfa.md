@@ -139,6 +139,29 @@ engines/build/fm1-render --engine dx7 --sysex mybank.syx --param Patch=40 \
 # stderr: sysex mybank.syx: 32 voices from User 1, 0 bad checksums, 0 skipped: "..." ...
 ```
 
+**And out again** (2026-10-06; notes/2026-10-06-state-files.md ST8). A
+project or a sound file carries the FM6 voices it uses, and a bank leaves
+as a `.syx` the keyboards and every editor read:
+
+- `fm1_dx7_get_user_voice(self, slot, vced)`: a user slot's 155 VCED
+  bytes, in range (an untouched slot holds the INIT VOICE);
+- `fm1_dx7_pack_voice`: VCED to the 128 packed bytes of a bank, the
+  inverse of msfa's `UnpackPatch` for every voice in range;
+- `fm1_dx7_write_voice` and `fm1_dx7_write_bank`: a single-voice dump (163
+  bytes) and a 32-voice bank dump (4,104 bytes), with the checksum, which
+  the reader takes back byte for byte;
+- `fm1_dx7_op_fields` and `fm1_dx7_voice_fields`: the VCED values by name
+  (R1 … DET, PR1 … TRNSP) with their largest values, for files' `ops` and
+  `globals` and the metadata export.
+
+`fm1-render --engine dx7 --sysex FILE.syx --save-bank OUT.syx` writes the
+32 user slots after the files load. The built-in bank exported by
+`tools/dx7_bank.py --syx` and a bank of 32 random in-range voices come back
+byte for byte; single voices land packed in their slots, a value out of
+range clamped on the way in stays clamped, and the other slots hold the
+INIT VOICE [verified: tests/test_engines_dx7.py, against a packer written
+in the test from the DX7's layout, 2026-10-06].
+
 In the browser simulator, **Load DX7 patches…** (or a file dropped on the
 page) reads a `.syx` file in the browser and hands its bytes to the
 firmware (`fm1w_dx7_load`, sim/web/README.md); nothing is uploaded. The

@@ -107,5 +107,5 @@ const fm1_mod_kind_t fm1_mod_kind_logic = {
   "Our own. After Phazerville's Logic and TL Neuron (Jason Justian, MIT) and the disting NT's "
   "Logic (Expert Sleepers; idea only); no code taken.",
   kParams, P_COUNT, 2, 2, kGates, kOuts, 0, 0,
-  logic_size, logic_create, NULL, logic_reset, logic_process, NULL, NULL, NULL
+  logic_size, logic_create, NULL, logic_reset, logic_process, NULL, NULL, NULL, 0
 };

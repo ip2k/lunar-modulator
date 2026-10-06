@@ -55,6 +55,13 @@ struct Instance {
   float from_pcm;               // int16 -> bus scale
   Ramp ramps[kMaxRamps];        // the SMOOTH parameters' ramps
   uint32_t n_ramps;
+  float *values;                // API v4: what get_param reads, after this
+                                // struct: n_defined values, then n_defined
+                                // for each focus entry (PER_FOCUS ones used);
+                                // NULL for a module without a focus
+  int32_t focus;                // the FOCUS parameter's index, or -1
+  uint32_t entries;             // its entries (0 without one)
+  uint32_t current;             // the entry it names now
   uint32_t ramp_steps;          // module blocks in a ramp
   bool started;                 // rendered at least once
   alignas(16) int16_t a[2 * kMaxBlock];  // sound: rendered block; fx: input
@@ -175,6 +182,40 @@ void *ArenaAlloc(size_t size, bool zero) {
 }
 
 inline Instance *Self(void *self) { return static_cast<Instance *>(self); }
+
+// The FOCUS parameter of m's table (engine API v4) and how many entries it
+// has, at most FM1_FOCUS_MAX.
+int FocusIndex(const Module &m) {
+  for (uint16_t i = 0; i < m.n_defined; ++i) {
+    if (m.params[i].flags & FM1_PARAM_FOCUS) return i;
+  }
+  return -1;
+}
+
+uint32_t FocusEntries(const Module &m) {
+  const int f = FocusIndex(m);
+  if (f < 0) return 0;
+  const uint32_t n = static_cast<uint32_t>(m.params[f].max - m.params[f].min + 0.5f) + 1u;
+  return n < FM1_FOCUS_MAX ? n : FM1_FOCUS_MAX;
+}
+
+// Bytes of the get_param table after the Instance: only a module with a
+// FOCUS parameter has one (a host keeps any other module's values itself,
+// and its instance stays the size it was).
+size_t ValueBytes(const Module &m) {
+  const uint32_t entries = FocusEntries(m);
+  return entries ? sizeof(float) * m.n_defined * (1u + entries) : 0u;
+}
+
+// Where parameter `index` of focus entry `entry` is kept (PER_FOCUS), or
+// its one value.
+inline float *Slot(Instance *self, uint16_t index, uint32_t entry) {
+  const Module &m = *self->module;
+  if (self->focus >= 0 && (m.params[index].flags & FM1_PARAM_PER_FOCUS)) {
+    return self->values + m.n_defined * (1u + entry) + index;
+  }
+  return self->values + index;
+}
 
 inline int16_t ToPcm(float x, float scale) {
   float y = x * scale;
@@ -311,14 +352,44 @@ void ProcessFx(Instance *self, float *io, uint32_t frames) {
   }
 }
 
+// Each focus entry's PER_FOCUS values as the module starts with them, read
+// once at create through its own get_param and the adapter's focus_key
+// (Sophie's 16 pads each start from their own patch). A value the module
+// does not give, or gives as something other than a number, keeps the
+// table's default. The module writes floats with three decimals; every
+// starting value the modules here hold has at most three, so the parse
+// (the shim's own, exact for such strings) gives back its bits.
+void ReadFocusEntries(Instance *self) {
+  const Module &m = *self->module;
+  int (*get)(void *, const char *, char *, int) =
+      self->sound ? self->sound->get_param : self->fx->get_param;
+  if (self->focus < 0 || !m.focus_key || !get) return;
+  for (uint32_t k = 0; k < self->entries; ++k) {
+    for (uint16_t i = 0; i < m.n_defined; ++i) {
+      if (!(m.params[i].flags & FM1_PARAM_PER_FOCUS)) continue;
+      char key[64], text[32];
+      if (m.focus_key(key, sizeof(key), k, m.keys[i].key) <= 0) continue;
+      const int n = get(self->inst, key, text, static_cast<int>(sizeof(text)));
+      if (n <= 0 || n >= static_cast<int>(sizeof(text))) continue;
+      char *end = NULL;
+      float v = fm1_sw_strtof(text, &end);
+      if (end == text || *end) continue;
+      if (m.keys[i].format == VALUE_INDEX) v = static_cast<float>(RoundToInt(v) - m.keys[i].offset);
+      if (!(v >= m.params[i].min)) v = m.params[i].min;
+      if (v > m.params[i].max) v = m.params[i].max;
+      *Slot(self, i, k) = v;
+    }
+  }
+}
+
 }  // namespace
 
-size_t InstanceBytes(size_t arena_bytes) {
-  return AlignUp(sizeof(Instance)) + AlignUp(arena_bytes);
+size_t InstanceBytes(const Module &m, size_t arena_bytes) {
+  return AlignUp(sizeof(Instance)) + AlignUp(ValueBytes(m)) + AlignUp(arena_bytes);
 }
 
 size_t InstanceSize(const Module &m, const fm1_host_t *) {
-  return InstanceBytes(m.arena_bytes);
+  return InstanceBytes(m, m.arena_bytes);
 }
 
 uint32_t BlockFor(uint32_t max_frames) {
@@ -345,8 +416,27 @@ void *CreateWithArena(const Module &m, void *mem, const fm1_host_t *host,
   self->module = &m;
   self->sound = m.kind == FM1_KIND_SOUND ? st.sound : NULL;
   self->fx = m.kind == FM1_KIND_AUDIO_FX ? st.fx : NULL;
-  self->arena.base = static_cast<unsigned char *>(mem) + AlignUp(sizeof(Instance));
+  self->values = reinterpret_cast<float *>(static_cast<unsigned char *>(mem) +
+                                           AlignUp(sizeof(Instance)));
+  self->arena.base = static_cast<unsigned char *>(mem) + AlignUp(sizeof(Instance)) +
+                     AlignUp(ValueBytes(m));
   self->arena.capacity = AlignUp(arena_bytes);
+  // What get_param reads: the defaults, which the adapters' tables give as
+  // the module's own (for a focused module, its first entry's).
+  self->focus = FocusIndex(m);
+  self->entries = FocusEntries(m);
+  self->current = 0;
+  if (!self->entries) {
+    self->values = NULL;
+    self->focus = -1;
+  }
+  for (uint32_t k = 0; self->values && k <= self->entries; ++k) {
+    for (uint16_t i = 0; i < m.n_defined; ++i) self->values[m.n_defined * k + i] = m.params[i].def;
+  }
+  if (self->focus >= 0) {
+    self->current = static_cast<uint32_t>(m.params[self->focus].def - m.params[self->focus].min + 0.5f);
+    if (self->current >= self->entries) self->current = 0;
+  }
   // One block size for every module's whole life, set by the first host.
   self->block = static_cast<uint32_t>(g_host_api.frames_per_block);
   const float headroom =
@@ -389,6 +479,7 @@ void *CreateWithArena(const Module &m, void *mem, const fm1_host_t *host,
     return NULL;
   }
   self->inst = inst;
+  ReadFocusEntries(self);
   return self;
 }
 
@@ -436,12 +527,27 @@ void SetParam(void *s, uint16_t index, float value) {
   const fm1_param_t &p = m.params[index];
   if (!(value >= p.min)) value = p.min;            // NaN too
   if (value > p.max) value = p.max;
+  // What get_param gives back: the value the module is sent (an index as
+  // the whole number), kept for the focused entry when PER_FOCUS.
+  const float kept = m.keys[index].format == VALUE_INDEX ? static_cast<float>(RoundToInt(value))
+                                                         : value;
+  if (static_cast<int32_t>(index) == self->focus) {
+    const int e = RoundToInt(kept - p.min);
+    self->current = e >= 0 && static_cast<uint32_t>(e) < self->entries ? static_cast<uint32_t>(e) : 0;
+  }
+  if (self->values) *Slot(self, index, self->current) = kept;
   Ramp *r = FindRamp(self, index);
   if (r) {
     fm1_smooth_set(&r->s, &r->value, value, self->started ? self->ramp_steps : 0);
     if (r->s.left) return;      // a ramp: its steps go out with the module's blocks
   }
   SendParam(self, index, value);
+}
+
+float GetParamValue(const void *s, uint16_t index, uint8_t focus) {
+  Instance *self = Self(const_cast<void *>(s));
+  if (!self || !self->values || index >= self->module->n_defined) return 0.0f;
+  return *Slot(self, index, focus < self->entries ? focus : self->current);
 }
 
 void Render(void *s, float *out_lr, uint32_t frames) {

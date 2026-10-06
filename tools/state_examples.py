@@ -28,12 +28,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from tests import state_canon as canon  # noqa: E402
-from tests.state_meta import metadata_from_build  # noqa: E402
+from tests.state_meta import subset  # noqa: E402
 
 BUILD = ROOT / "engines" / "build"
 OUT = ROOT / "engines" / "state" / "examples"
-# Drums' per-pad parameters (API v4's PER_FOCUS will say so, stage E2).
-PER_PAD = {"drums": ["Tune", "Decay", "Level", "Tone", "Snap", "Sweep", "Drive", "Model"]}
 
 # Our own FM6 voice: 21 values per operator in VCED order, OP6 first
 # (R1-R4 L1-L4 BP LD RD LC RC RS AMS KVS OL M FC FF DET), then PR1-PR4 PL1-PL4
@@ -85,6 +83,9 @@ class Registry:
         render = BUILD / "fm1-render"
         self.listed = json.loads(subprocess.check_output([str(render), "--list"]))
         self.mod = json.loads(subprocess.check_output([str(render), "--list-mod"]))
+        # The metadata export, as C writes it (fm1-render --meta).
+        self.meta_text = subprocess.check_output([str(render), "--meta"]).decode()
+        self.meta = canon.loads(self.meta_text)
         self.eng = {e["id"]: e for e in self.listed}
         self.kinds = {k["id"]: k for k in self.mod["kinds"]}
 
@@ -166,8 +167,12 @@ class Examples:
     def unit(self, eid, over=None):
         return {"engine": eid, "params": params(self.r.eng[eid]["params"], over)}
 
+    def per_pad(self, eid):
+        """A pad kit's per-pad parameters: its PER_FOCUS ones (engine API v4)."""
+        return [p["name"] for p in self.r.eng[eid]["params"] if "per_focus" in p["flags"]]
+
     def sound(self, eid, over=None, level=100, inserts=(None, None), mfx=(), pads=None):
-        pp = PER_PAD.get(eid)
+        pp = self.per_pad(eid)
         s = {"engine": eid, "params": params(self.r.eng[eid]["params"], over, skip=pp or ())}
         if pp:
             s["pads"] = pads
@@ -181,7 +186,7 @@ class Examples:
             over = {"Tune": [0, -2, 3, 0, 5, -5, 7, -7, 0, -3, 2, 0, 2, 0, 4, 0][k],
                     "Decay": round(rnd.uniform(0.2, 0.8), 2), "Level": [0.9, 0.6, 0.8, 0.7][k % 4],
                     "Tone": round(rnd.uniform(0.3, 0.7), 2)}
-            out.append(params(self.r.eng["drums"]["params"], over, only=PER_PAD["drums"]))
+            out.append(params(self.r.eng["drums"]["params"], over, only=self.per_pad("drums")))
         return out
 
     def arp(self, on, over=None):
@@ -292,8 +297,7 @@ class Examples:
 
     def all(self):
         small = core_export(SMALL_SET)
-        meta = metadata_from_build(self.r.listed, self.r.mod,
-                                   engines={"shapes", "drums", "filter", "arp"}, kinds={"lfo", "env"})
+        meta = subset(self.r.meta, engines={"shapes", "drums", "filter", "arp"}, kinds={"lfo", "env"})
         return {"first-orbit.lunar": self.project(small),
                 "deep-bass.sound.lunar": self.sound_file(),
                 "space-verbs.fx.lunar": self.fx_file(),
@@ -412,7 +416,7 @@ def measure(reg, ex):
         text = canon.dumps(d).encode()
         print(f"  {name:24} {len(text):7,} B, compact {len(canon.compact(d).encode()):7,} B, "
               f"link {link(canon.compact(d).encode()):6,} characters")
-    full = canon.dumps(metadata_from_build(reg.listed, reg.mod)).encode()
+    full = reg.meta_text.encode()
     print(f"full metadata export {len(full):,} B, deflated {len(zlib.compress(full, 9)):,} B")
 
 

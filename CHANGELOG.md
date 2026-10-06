@@ -34,6 +34,23 @@ history.
     without FM-1 features stays byte-identical to Movy's), `fm1-seq
     --import`, and `engines/seq.md`, "The song". The sequencer instance
     grows by 64 B, to 31,944 B at 8 tracks.
+- **Sounds that can be saved whole** (groundwork for saving and loading;
+  nothing in the simulator saves yet). A drum kit's sixteen pads each keep
+  their own tuning, decay and the rest, and every one of them can now be
+  read back and restored exactly, for Drums and Sophie alike; a Register
+  module's locked or hand-edited loop is kept as the loop you made, not
+  re-rolled from its seed; and FM6's user voices can leave as a standard
+  32-voice `.syx` bank that DX7 editors read (`fm1-render --save-bank` on
+  the desktop for now). Everything else a sound holds was already what the
+  panel set, and a check now proves that replaying those values restores
+  the same sound.
+- **Parameter metadata for editors.** The desktop renderer exports, as one
+  JSON file, every sound engine's, effect's, arpeggiator's and modulation
+  module's parameters with their names, ranges, units, pages, list entries
+  and flags, FM6's voice fields and the file limits (`fm1-render --meta`),
+  so the coming browser editor and the guide's tools build their controls
+  from the build instead of copying names by hand. List entries are pinned
+  so a saved choice never changes meaning when a list grows.
 - **The saved-state file format, designed.** JSON Schemas (draft 2020-12)
   for every kind of file the simulator and the guide will use (project,
   sound, effects chain, mod rack, clip, settings) and for the export of

@@ -1,9 +1,10 @@
 """The parameter metadata export's layout (engines/state/schema/
-metadata.schema.json; notes/2026-10-06-state-files.md §7.7), built from
-today's `fm1-render --list` and `--list-mod`: what the C export (stage E2)
-must write, less what the build cannot say yet (licences, instance bytes
-per engine, aliases, known ids). Used by tests/test_state_schema.py and
-tools/state_examples.py.
+metadata.schema.json; notes/2026-10-06-state-files.md §7.7), built in Python
+from `fm1-render --list` and `--list-mod`: an independent construction that
+tests/test_engine_metadata.py holds the C export (`fm1-render --meta`,
+engines/state/fm1_meta.c) to, less what only C can say (instance bytes per
+engine, aliases, known ids). `subset` cuts an export down to a few engines
+and kinds, as engines/state/examples/metadata.json is.
 """
 import re
 from pathlib import Path
@@ -26,9 +27,6 @@ LIMITS = {"bytes": {"project": 262144, "sound": 32768, "fx": 32768, "mods": 6553
                     "settings": 4096, "movy1": 65536, "syx": 65536},
           "depth": 8, "string_bytes": 16384, "key_bytes": 64, "number_chars": 32, "members": 64,
           "items": 8192}
-# Kinds that may run one instance per voice (fm1_mod.h, FM1_MOD_KIND_POLY_OK):
-# --list-mod does not say yet; the C export will.
-POLY_OK = {"lfo", "env", "chance"}
 FLAG_ORDER = ["latch", "smooth", "nolock", "mod", "input", "poly", "log", "keysrc", "focus",
               "per_focus"]
 
@@ -86,8 +84,8 @@ def metadata_from_build(listed, mod, engines=None, kinds=None):
         "kinds": [
             {"id": k["id"], "guid": k["guid"], "name": k["name"], "abbr": k["abbr"],
              "credits": k["credits"],
-             "flags": (["transport"] if k["transport"] else []) + (["poly_ok"] if k["id"] in POLY_OK else []),
-             "ram": k["instance_bytes"], "data": None, "params": meta_params(k["params"]),
+             "flags": (["transport"] if k["transport"] else []) + (["poly_ok"] if k["poly_ok"] else []),
+             "ram": k["instance_bytes"], "data": k["data"], "params": meta_params(k["params"]),
              "gates": [{"name": g["name"], "kind": g["kind"], "unit": g["unit"],
                         "normal": g.get("normal")} for g in k["gates"]],
              "outs": [{"name": o["name"], "kind": o["kind"], "unit": o["unit"]} for o in k["outs"]]}
@@ -106,3 +104,11 @@ def metadata_from_build(listed, mod, engines=None, kinds=None):
     doc["known_ids"] = []
     doc["limits"] = LIMITS
     return doc
+
+
+def subset(doc, engines, kinds):
+    """doc with only the engines and modulation kinds named, in its order."""
+    out = dict(doc)
+    out["engines"] = [e for e in doc["engines"] if e["id"] in engines]
+    out["mod"] = dict(doc["mod"], kinds=[k for k in doc["mod"]["kinds"] if k["id"] in kinds])
+    return out

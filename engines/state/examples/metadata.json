@@ -3,8 +3,8 @@
   "kind": "metadata",
   "made": {"by": "desktop", "version": "0.0.0", "commit": "0000000"},
   "build": {
-    "engine_api": 3,
-    "mod_api": 1,
+    "engine_api": 4,
+    "mod_api": 2,
     "rate": 44118,
     "ram_budget": 387924,
     "gpl": false
@@ -19,6 +19,7 @@
       "per_note": true,
       "pads": null,
       "fx_wants": [],
+      "ram": 207696,
       "params": [
         {
           "uid": 1,
@@ -221,6 +222,7 @@
         "count": 16
       },
       "fx_wants": [],
+      "ram": 7616,
       "params": [
         {
           "uid": 1,
@@ -233,7 +235,9 @@
           "unit": "none",
           "page": 1,
           "knob": 1,
-          "flags": [],
+          "flags": [
+            "focus"
+          ],
           "entries": [
             "1 Kick",
             "2 Rim",
@@ -267,7 +271,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -284,7 +289,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -301,7 +307,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -318,7 +325,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -335,7 +343,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -352,7 +361,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -369,7 +379,8 @@
           "flags": [
             "smooth",
             "mod",
-            "poly"
+            "poly",
+            "per_focus"
           ]
         },
         {
@@ -385,7 +396,8 @@
           "knob": 1,
           "flags": [
             "latch",
-            "mod"
+            "mod",
+            "per_focus"
           ],
           "entries": [
             "Kit",
@@ -466,6 +478,7 @@
       "per_note": false,
       "pads": null,
       "fx_wants": [],
+      "ram": 656,
       "params": [
         {
           "uid": 1,
@@ -614,6 +627,7 @@
       "per_note": false,
       "pads": null,
       "fx_wants": [],
+      "ram": 736,
       "params": [
         {
           "uid": 1,
@@ -2143,7 +2157,48 @@
       }
     ]
   },
-  "known_ids": [],
+  "known_ids": [
+    {
+      "id": "comet",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "crater",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "acid-bass",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "acid-gen",
+      "what": "midi_fx",
+      "reason": "gpl"
+    },
+    {
+      "id": "drawbar",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "trio",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "chop",
+      "what": "sound",
+      "reason": "gpl"
+    },
+    {
+      "id": "phase-bend",
+      "what": "sound",
+      "reason": "gpl"
+    }
+  ],
   "limits": {
     "bytes": {
       "project": 262144,

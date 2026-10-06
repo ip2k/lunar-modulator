@@ -122,5 +122,5 @@ const fm1_mod_kind_t fm1_mod_kind_bounce = {
   "Ported from Mutable Instruments' Peaks bouncing ball (Emilie Gillet, MIT), byte-identical "
   "at its 48 kHz rate; the HIT output is ours.",
   kParams, P_COUNT, 1, 2, kGates, kOuts, 0, 0,
-  bounce_size, bounce_create, NULL, bounce_reset, bounce_process, NULL, NULL, NULL
+  bounce_size, bounce_create, NULL, bounce_reset, bounce_process, NULL, NULL, NULL, 0
 };

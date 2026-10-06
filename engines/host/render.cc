@@ -4,12 +4,18 @@
 //   fm1-render --engine macro --param Model=6 --param Timbre=0
 //              --note 0:69:100:1.5 --seconds 2 --out a4.wav   (one command)
 //
+// --meta prints the parameter metadata export (include/fm1_meta.h): every
+// engine, effect, MIDI effect and modulation kind with its parameters, and
+// the rest an editor builds its controls from, as canonical JSON that
+// engines/state/schema/metadata.schema.json describes.
+//
 // --list prints every engine and MIDI effect and its parameters as JSON, with the names of
 // an enum parameter's values and each parameter's API v2 fields: uid, flags
 // (by name), unit and abbr, whether the engine takes per-note offsets
 // (per_note: it has set_param_note), what an effect asks of API v3's
-// extension (fx_wants: key, tempo, transport; render_ext: it has one), and
-// its pads when it is a pad kit (pads: first note and count, or null).
+// extension (fx_wants: key, tempo, transport; render_ext: it has one), its
+// pads when it is a pad kit (pads: first note and count, or null), and
+// whether it reads its values back (get_param, API v4).
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
@@ -72,7 +78,9 @@
 // Modulation (docs/16, include/fm1_mod.h): --mod FILE sets up the rack of
 // modules and the matrix's slots from a text file (host/mod_script.h; a line
 // may start with @FRAME to apply at the first block that starts there),
-// --log-mod FILE.jsonl writes every tick, --list-mod prints the module kinds,
+// --log-mod FILE.jsonl writes every tick, --save-mod-data FILE the modules'
+// pattern data as the render ends, one `data P VERSION HEX` line each
+// (mod_script.h; Register's loop), --list-mod prints the module kinds,
 // the system sources and the host parameters as JSON. The runtime runs as
 // the bridge's control-rate hook, with or without the sequencer: notes,
 // locks and the clock feed its sources, each tick runs at its own frame,
@@ -95,6 +103,8 @@
 // voices go to User 1, 2... in the order given, counted across files. Each
 // file's result is printed on stderr, one line: the file, the voices, the
 // first slot, bad checksums and skipped messages, and the names stored.
+// --save-bank FILE writes the 32 user slots back out as one VMEM bank dump
+// (fm1_dx7_write_bank), after the --sysex files: the way a bank leaves.
 //
 // MIDI effects (engine API v3, FM1_KIND_MIDI_FX; include/fm1_mfx_host.h):
 // --mfx K:ID puts MIDI effect ID (the arpeggiator, `arp`) in front of sound
@@ -132,6 +142,7 @@
 #include "fm1_mix_limiter.h"
 #include "fm1_mod.h"
 #include "fm1_mod_host.h"
+#include "fm1_meta.h"
 #include "fm1_seq.h"
 #include "fm1_seq_host.h"
 #include "mod_script.h"
@@ -219,11 +230,13 @@ void Usage() {
       "                   [--insert-param K:NAME=VALUE]...] [--level K:PCT] [--slots]\n"
       "                  [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=VALUE]\n"
       "                  [--level-at K:T:PCT] [--mod FILE] [--log-mod FILE.jsonl]\n"
-      "                  [--sysex FILE.syx]... [--tempo BPM]\n"
+      "                  [--save-mod-data FILE]\n"
+      "                  [--sysex FILE.syx]... [--save-bank FILE.syx] [--tempo BPM]\n"
       "                  [--mfx K:ID[:off] [--mfx-param K:NAME=VALUE]...]\n"
       "                  [--mfx-param-at K[.J]:T:NAME=VALUE]... [--mfx-on-at K[.J]:T:0|1]...\n"
       "                  [--log-mfx FILE.jsonl]\n"
       "       fm1-render --list-mod\n"
+      "       fm1-render --meta\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
       "engine from the sequencer. --sound and the flags after it add sound units\n"
@@ -558,8 +571,12 @@ void ListMod() {
     printf(",\"name\":"); PrintJsonString(k->name);
     printf(",\"abbr\":"); PrintJsonString(k->abbr);
     printf(",\"credits\":"); PrintJsonString(k->credits);
-    printf(",\"transport\":%s,\"instance_bytes\":%zu,\"params\":[",
-           (k->flags & FM1_MOD_KIND_TRANSPORT) ? "true" : "false", k->instance_size(&host));
+    printf(",\"transport\":%s,\"poly_ok\":%s,\"instance_bytes\":%zu,",
+           (k->flags & FM1_MOD_KIND_TRANSPORT) ? "true" : "false",
+           (k->flags & FM1_MOD_KIND_POLY_OK) ? "true" : "false", k->instance_size(&host));
+    if (k->data_bytes) printf("\"data\":{\"bytes\":%u,\"version\":%u},", k->data_bytes, k->data_version);
+    else printf("\"data\":null,");
+    printf("\"params\":[");
     PrintParams(k->params, k->n_params);
     printf("],\"gates\":[");
     PrintPorts(k->gate_in, k->n_gate_in);
@@ -636,6 +653,31 @@ bool LoadSysex(const Unit &u, const char *id, const std::vector<std::string> &pa
   return true;
 }
 
+// --save-bank: the dx7 engine's 32 user slots as one VMEM bank dump
+// (fm1_dx7_write_bank, MIDI channel 1), after any --sysex.
+bool SaveBank(const Unit &u, const char *id, const char *path) {
+  if (!id || strcmp(id, "dx7") != 0 || !u.self) {
+    fprintf(stderr, "--save-bank needs --engine dx7\n");
+    return false;
+  }
+  uint8_t voices[FM1_DX7_USER_SLOTS][FM1_DX7_VCED_BYTES];
+  const uint8_t *refs[FM1_DX7_USER_SLOTS];
+  for (unsigned k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
+    fm1_dx7_get_user_voice(u.self, k, voices[k]);
+    refs[k] = voices[k];
+  }
+  uint8_t out[FM1_DX7_BANK_SYSEX_BYTES];
+  const size_t n = fm1_dx7_write_bank(refs, 0, out);
+  FILE *f = fopen(path, "wb");
+  if (!f || fwrite(out, 1, n, f) != n) {
+    fprintf(stderr, "--save-bank: cannot write %s\n", path);
+    if (f) fclose(f);
+    return false;
+  }
+  fclose(f);
+  return true;
+}
+
 bool ParseParam(const char *arg, std::vector<std::pair<std::string, float> > *out) {
   const char *eq = strchr(arg, '=');
   if (!eq) return false;
@@ -669,7 +711,7 @@ void PrintFlags(uint16_t f) {
   static const struct { uint16_t bit; const char *name; } kFlags[] = {
     { FM1_PARAM_LATCH, "latch" }, { FM1_PARAM_SMOOTH, "smooth" }, { FM1_PARAM_NOLOCK, "nolock" },
     { FM1_PARAM_MOD, "mod" }, { FM1_PARAM_INPUT, "input" }, { FM1_PARAM_POLY, "poly" },
-    { FM1_PARAM_LOG, "log" },
+    { FM1_PARAM_LOG, "log" }, { FM1_PARAM_FOCUS, "focus" }, { FM1_PARAM_PER_FOCUS, "per_focus" },
   };
   uint16_t known = 0;
   bool first = true;
@@ -684,6 +726,15 @@ void PrintFlags(uint16_t f) {
   putchar(']');
 }
 
+// --meta: the parameter metadata export (fm1_meta.h), canonical JSON.
+void MetaPut(void *, const char *bytes, size_t n) { fwrite(bytes, 1, n, stdout); }
+
+void Meta() {
+  fm1_meta_build_t b;
+  fm1_meta_build_default(&b);
+  fm1_meta_write(&b, MetaPut, NULL);
+}
+
 void List() {
   printf("[");
   // The engines, then the MIDI effects (their own registry, kind midi_fx).
@@ -694,9 +745,11 @@ void List() {
     printf("\"id\":"); PrintJsonString(e->id);
     printf(",\"name\":"); PrintJsonString(e->name);
     printf(",\"credits\":"); PrintJsonString(e->credits);
-    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"render_ext\":%s,\"fx_wants\":[",
+    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"render_ext\":%s,"
+           "\"get_param\":%s,\"fx_wants\":[",
            e->kind == FM1_KIND_SOUND ? "sound" : e->kind == FM1_KIND_AUDIO_FX ? "audio_fx" : "midi_fx",
-           e->max_voices, e->set_param_note ? "true" : "false", e->render_ext ? "true" : "false");
+           e->max_voices, e->set_param_note ? "true" : "false", e->render_ext ? "true" : "false",
+           e->get_param ? "true" : "false");
     {
       static const struct { uint32_t bit; const char *name; } kWants[] = {
         { FM1_FX_WANT_KEY, "key" }, { FM1_FX_WANT_TEMPO, "tempo" },
@@ -786,7 +839,9 @@ int main(int argc, char **argv) {
   long events_cap = -1;            // --events: the block's event buffer
   std::vector<Route> routes;
   const char *mod_path = NULL, *mod_log_path = NULL;
+  const char *mod_data_path = NULL;       // --save-mod-data: the modules' data lines
   std::vector<std::string> sysex_paths;   // --sysex: DX7 voices for --engine dx7
+  const char *save_bank = NULL;           // --save-bank: the user slots as a VMEM dump
   // Sound units 1..3 (--sound) and every unit's inserts and level; unit 0 is
   // `sound`. `slots` is set by any of their flags or --slots.
   Unit more[kSounds];
@@ -806,6 +861,7 @@ int main(int argc, char **argv) {
     const char *next = i + 1 < argc ? argv[i + 1] : NULL;
     if (a == "--list") { List(); return 0; }
     if (a == "--list-mod") { ListMod(); return 0; }
+    if (a == "--meta") { Meta(); return 0; }
     if (a == "--compat") { compat = true; continue; }
     if (a == "--slots") { slots = true; continue; }
     if (!next) { Usage(); return 2; }
@@ -820,7 +876,9 @@ int main(int argc, char **argv) {
     else if (a == "--seq") seq_path = next;
     else if (a == "--log-events") log_path = next;
     else if (a == "--mod") mod_path = next;
+    else if (a == "--save-mod-data") mod_data_path = next;
     else if (a == "--sysex") sysex_paths.push_back(next);
+    else if (a == "--save-bank") save_bank = next;
     else if (a == "--log-mod") mod_log_path = next;
     else if (a == "--log-mfx") mfx_log_path = next;
     else if (a == "--tempo") {
@@ -1067,6 +1125,10 @@ int main(int argc, char **argv) {
     fprintf(stderr, "--log-mod needs --mod\n");
     return 2;
   }
+  if (mod_data_path && !mod_path) {
+    fprintf(stderr, "--save-mod-data needs --mod\n");
+    return 2;
+  }
   // The MIDI effects' usage errors, before anything is allocated (an exit
   // after that leaks under LeakSanitizer, which turns the exit code to 1).
   bool any_mfx = false;
@@ -1095,6 +1157,7 @@ int main(int argc, char **argv) {
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, max_frames };
   if (engine_id && !Instantiate(sound, engine_id, FM1_KIND_SOUND, host, fill)) return 1;
   if (!sysex_paths.empty() && !LoadSysex(sound, engine_id, sysex_paths)) return 1;
+  if (save_bank && !SaveBank(sound, engine_id, save_bank)) return 1;
   // Every sound unit, unit 0 being `sound` (created in this order: unit 0,
   // the --fx chain, units 1..3, then each unit's inserts, as the virtual
   // FM-1's harness creates them).
@@ -1338,11 +1401,17 @@ int main(int argc, char **argv) {
   if (mod_path) {
     FILE *f = fopen(mod_path, "r");
     if (!f) { fprintf(stderr, "cannot read %s\n", mod_path); return ModFail(1); }
-    char buf[1024];
+    // Room for the longest line, a `data` line of FM1_MOD_DATA_MAX bytes.
+    static char buf[64 + 2 * FM1_MOD_DATA_MAX];
     uint32_t seed = 0;
     while (fgets(buf, sizeof(buf), f)) {
       const char *t = buf;
       uint64_t frame = 0;
+      if (!strchr(buf, '\n') && !feof(f)) {
+        fprintf(stderr, "%s: a line longer than %zu characters\n", mod_path, sizeof(buf) - 2);
+        fclose(f);
+        return ModFail(2);
+      }
       while (*t == ' ' || *t == '\t') ++t;
       if (*t == '@') {
         char *end = NULL;
@@ -1846,6 +1915,15 @@ int main(int argc, char **argv) {
            static_cast<unsigned>(st.voice_starts), static_cast<unsigned>(st.voice_steals),
            static_cast<unsigned>(st.voice_ends), static_cast<unsigned long long>(st.voice_writes));
     if (md.log) fclose(md.log);
+    if (mod_data_path) {             // the rack's pattern data as it ended, as `data` lines
+      FILE *df = fopen(mod_data_path, "w");
+      char line[16 + 2 * FM1_MOD_DATA_MAX];
+      for (unsigned p = 0; df && p < FM1_MOD_POSITIONS; ++p) {
+        if (fm1_mod_script_data_line(md.m, p, line, sizeof(line))) fprintf(df, "%s\n", line);
+      }
+      if (df) fclose(df);
+      else fprintf(stderr, "--save-mod-data: cannot write %s\n", mod_data_path);
+    }
     fm1_mod_destroy(md.m);
     free(md.mem);
   }

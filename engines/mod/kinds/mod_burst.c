@@ -209,5 +209,5 @@ const fm1_mod_kind_t fm1_mod_kind_burst = {
   "MIT), byte-identical; Accel and the clocked spacing are ours. After Phazerville's Burst "
   "(Jason Justian, MIT; no code taken).",
   kParams, P_COUNT, 2, 3, kGates, kOuts, 0, 0,
-  burst_size, burst_create, NULL, burst_reset, burst_process, NULL, NULL, NULL
+  burst_size, burst_create, NULL, burst_reset, burst_process, NULL, NULL, NULL, 0
 };

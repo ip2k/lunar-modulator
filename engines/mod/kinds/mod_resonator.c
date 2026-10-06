@@ -182,5 +182,5 @@ const fm1_mod_kind_t fm1_mod_kind_resonator = {
   "Our own: the trapezoidal state-variable filter after Andrew Simper's (Cytomic) published "
   "derivation, at the control rate.",
   kParams, P_COUNT, 1, 4, kGates, kOuts, 0, 0,
-  filter_size, filter_create, NULL, filter_reset, filter_process, NULL, NULL, NULL
+  filter_size, filter_create, NULL, filter_reset, filter_process, NULL, NULL, NULL, 0
 };

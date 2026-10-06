@@ -18,9 +18,11 @@ and the parameter metadata it builds its controls from is exported from C
 
 **Built so far:** the JSON Schemas of every file kind and of the metadata
 export, with example files that validate (`engines/state/schema/`,
-`engines/state/examples/`, held by `tests/test_state_schema.py`). Nothing
-reads or writes these files yet; the stages are in §18, and the owner works
-"ask per stage".
+`engines/state/examples/`, held by `tests/test_state_schema.py`). Stage E2
+(2026-10-06, branch `feature/2026-10-06@saveable-engines`) closed the
+engines' gaps of §5 (1, 2, 4, 5 and 6) and wrote the metadata export in C,
+`fm1-render --meta` (§7.7). Nothing reads or writes the files yet; the
+stages are in §18, and the owner works "ask per stage".
 
 Two proposals were written first and judged here, dimension by dimension
 (§3):
@@ -148,7 +150,7 @@ to be checked when built.
 | The page | `sim/web/www/app.js` | No storage, no download, no URL parameters. The drop handler loads `.syx` only |
 | The wasm | `sim/web/src/fm1_web.c` | One text buffer, `g_text[65536]`, used by verbs, mod lines and `.syx`. No set import or export (`fm1_app_seq_import` exists in C, S10 planned the export) |
 | RAM meter | `fm1_app_ram` | Instance sizes at the **host's** rate, against `FM1_APP_RAM_BUDGET` 387,924 B |
-| Parameter metadata | `fm1-render --list`, `--list-mod` | JSON of every engine's, effect's, MIDI effect's and mod kind's parameters (uids, ranges, flags, units, pages, entries), and the mod sources, units and ports: most of the metadata export (§7.7) |
+| Parameter metadata | `fm1-render --list`, `--list-mod`; since E2 `fm1-render --meta` | JSON of every engine's, effect's, MIDI effect's and mod kind's parameters (uids, ranges, flags, units, pages, entries), and the mod sources, units and ports. Since E2 the export itself, canonical, from C (§7.7) |
 | Schemas and examples | `engines/state/`, `tests/test_state_schema.py` | The JSON Schemas of every kind and of the metadata export, and example files (this branch). Nothing reads them yet |
 
 `fm1_seq_export_movy1` returns the full length and writes only what fits
@@ -306,6 +308,21 @@ Its saved part is about 16 KB of binary or 38 KB of JSON, 3–5 KB deflated
 first job is the RAM check, not parsing.
 
 ## 5. Gaps that block a faithful save
+
+**E2 (2026-10-06) closed 1, 2, 4, 5 and 6** in `engines/` [verified: the
+tests named below, on the branch]; 3 is E1's, 7 is A1's and 8 is the
+writers' rule:
+- 1: engine API v4, Drums and Sophie (`tests/test_engine_api_v4.py`, every
+  pad read back and a copy rendering the same samples; engines/README.md,
+  "Engine API v4");
+- 2: `tests/fixtures/enum-names.json` and `engines/aliases.json`
+  (`tests/test_engine_names.py`);
+- 4: the mod script's `lock=` and `data` lines and
+  `fm1_mod_script_data_line` (`tests/test_engines_mod_data.py`); the full
+  dump is the replay log's, in `sim/web/src`, so A1's;
+- 5: Register's pattern data, mod API v2 (`fm1-mod-kinds-test`);
+- 6: `fm1_dx7_get_user_voice`, the packer and the dump writers,
+  `fm1-render --save-bank` (`tests/test_engines_dx7.py`).
 
 1. **Per-pad values are write-only** [verified: `fm1_engine.h` has
    `set_param` and no getter; `drums.cc`: "each of the 16 pads keeps its
@@ -857,13 +874,15 @@ C writes it, so an editor never hard-codes a name or a range:
 (A1). It is versioned by its `lunar` level; a minor level adds members and
 never moves one.
 
-Today's `fm1-render --list` and `--list-mod` print most of it [verified].
-`tests/test_state_schema.py` turns them into the export's layout and
-validates the result, so an engine whose names or ranges the format cannot
-carry fails CI now, the GPL lane's included. The full export is 172,499 B
-canonical, 14,086 B deflated [verified].
-`engines/state/examples/metadata.json` is the export for Shapes, Drums,
-Filter, the arpeggiator, the LFO and the envelope.
+Built in E2 (2026-10-06): `fm1-render --meta` writes it from C
+(`engines/state/fm1_meta.c`), canonical, 174,232 B for today's registry
+[verified]. `tests/test_state_schema.py` validates it, so an engine whose
+names or ranges the format cannot carry fails CI, the GPL lane's included;
+`tests/test_engine_metadata.py` holds it to an independent construction
+from `--list` and `--list-mod`. `engines/state/examples/metadata.json` is
+the export cut to Shapes, Drums, Filter, the arpeggiator, the LFO and the
+envelope, byte for byte: its golden file. Engine licences come in with the
+GPL lane's licence table (`fm1_engine_licence`), not yet in this export.
 
 ## 8. The binary encoding, for the device
 

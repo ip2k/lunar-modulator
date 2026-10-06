@@ -343,6 +343,21 @@ int fm1_mod_set_kind(fm1_mod_t *m, unsigned pos, int kind) {
   return off_slots;
 }
 
+uint16_t fm1_mod_get_data(const fm1_mod_t *m, unsigned pos, uint8_t *buf, uint16_t cap,
+                          uint8_t *version) {
+  const fm1_mod_kind_t *kd = mod_kind_at(m, pos);
+  if (!kd || !kd->data_bytes || !kd->get_data || !buf || cap < kd->data_bytes) return 0;
+  kd->get_data(m->arena + m->handle[pos], buf);
+  if (version) *version = kd->data_version;
+  return kd->data_bytes;
+}
+
+int fm1_mod_set_data(fm1_mod_t *m, unsigned pos, const uint8_t *buf, uint16_t n, uint8_t version) {
+  const fm1_mod_kind_t *kd = mod_kind_at(m, pos);
+  if (!kd || !kd->data_bytes || !kd->set_data || (!buf && n)) return 0;
+  return kd->set_data(instance(m, pos), buf, n, version) ? 1 : 0;
+}
+
 int fm1_mod_kind_at(const fm1_mod_t *m, unsigned pos) {
   return mod_kind_at(m, pos) ? (int)m->kind[pos] : -1;
 }

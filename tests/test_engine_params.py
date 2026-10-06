@@ -1,5 +1,5 @@
 """Engine API v2's parameter fields, with API v3's 16-bit flags, LOG and
-the dB unit (engines/include/fm1_engine.h, engines/README.md, "Parameters"):
+the dB unit, and API v4's FOCUS and PER_FOCUS (engines/include/fm1_engine.h, engines/README.md, "Parameters"):
 every engine's and effect's uids and flags against the pinned record in
 tests/fixtures/param-uids.json, the rules the flags follow (LOG on every
 pitch- or time-like parameter, and only there), the decision taken for every
@@ -21,7 +21,7 @@ from tests.engine_helpers import ENGINES, renderer  # noqa: F401
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "param-uids.json"
 SELFTEST = ENGINES / "build" / "fm1-schwung-selftest"
 FLAG_BITS = [(0x01, "latch"), (0x02, "smooth"), (0x04, "nolock"), (0x08, "mod"), (0x10, "input"),
-             (0x20, "poly"), (0x40, "log")]
+             (0x20, "poly"), (0x40, "log"), (0x0100, "focus"), (0x0200, "per_focus")]
 UNITS = ["none", "semi", "ms", "hz", "pct", "deg", "db"]     # fm1_unit_t's order
 UID_MAX = 0x0FFF
 
@@ -45,11 +45,11 @@ ENUM_FLAGS = {
     ("shapes", "Shape"): ["nolock"],            # every voice's oscillator at once
     ("sixop", "Patch"): ["latch", "mod"],       # read per voice at note-on
     ("dx7", "Patch"): ["latch", "mod"],         # as Six-Op's: a voice's data at note-on
-    ("sw-sophie", "Pad"): [],                   # the edit focus: lockable (owner, docs/15 S8)
-    ("sw-sophie", "Model"): ["latch", "mod"],   # a voice keeps its pad's patch
-    ("sw-sophie", "Filter Type"): ["latch", "mod"],
-    ("drums", "Pad"): [],                       # the edit focus, as Sophie's
-    ("drums", "Model"): ["latch", "mod"],       # read when a pad is struck; a hit keeps its model
+    ("sw-sophie", "Pad"): ["focus"],            # the edit focus: lockable (owner, docs/15 S8)
+    ("sw-sophie", "Model"): ["latch", "mod", "per_focus"],   # a voice keeps its pad's patch
+    ("sw-sophie", "Filter Type"): ["latch", "mod", "per_focus"],
+    ("drums", "Pad"): ["focus"],                # the edit focus, as Sophie's
+    ("drums", "Model"): ["latch", "mod", "per_focus"],   # read when a pad is struck
     ("drums", "Kit"): ["latch", "mod"],         # the voicings a hit starts with
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
     ("filter", "Type"): ["mod"],                # warms the new type up, then crossfades
@@ -167,6 +167,32 @@ def test_flags_follow_the_rules(built):
             if "log" in f:
                 assert pitch_or_time and p["max"] > p["min"] and "input" not in f, (eid, p["name"])
             assert ("log" in f) == pitch_or_time, (eid, p["name"])
+            # API v4: the focus is a list, moved by a lock but never routed,
+            # and is not kept per entry itself.
+            if "focus" in f:
+                assert p["type"] == "enum" and not {"mod", "per_focus", "nolock"} & f, \
+                    (eid, p["name"])
+        focus = [p for p in params if "focus" in p["flags"]]
+        assert len(focus) <= 1, eid
+        if not focus:
+            assert not any("per_focus" in p["flags"] for p in params), eid
+        else:
+            assert 2 <= focus[0]["max"] - focus[0]["min"] + 1 <= 32, eid
+
+
+def test_focused_engines_read_their_values_back(renderer):
+    """API v4: an engine with a FOCUS parameter has get_param, so a host can
+    save every entry's PER_FOCUS values (notes/2026-10-06-state-files.md
+    ST7); the pad kits here are the focused ones, one entry a pad."""
+    listed = json.loads(subprocess.run([str(renderer), "--list"], check=True,
+                                       capture_output=True, text=True).stdout)
+    for e in listed:
+        focus = [p for p in e["params"] if "focus" in p["flags"]]
+        if focus:
+            assert e["get_param"], e["id"]
+        if e["pads"] and focus:
+            assert focus[0]["max"] - focus[0]["min"] + 1 == e["pads"]["count"], e["id"]
+    assert {e["id"] for e in listed if e["get_param"]} >= {"drums", "sw-sophie"}
 
 
 def test_per_note_engines_match_the_fixture(renderer, built):

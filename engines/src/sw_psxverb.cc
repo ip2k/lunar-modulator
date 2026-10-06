@@ -73,6 +73,7 @@ ModuleState g_state;
 const Module kModule = {
   FM1_KIND_AUDIO_FX, "psxverb", NULL, fm1_sw_psxverb_init,
   kParams, kKeys, P_COUNT, P_COUNT, kArenaBytes, 0.0f, kHeadroom, &g_state,
+  NULL,                                   // no focus
 };
 
 size_t Size(const fm1_host_t *host) { return InstanceSize(kModule, host); }
@@ -95,4 +96,5 @@ extern "C" const fm1_engine_t fm1_engine_sw_psxverb = {
   NULL,                     // no notes, so no per-note offsets
   0, NULL,                  // API v3: no effect extension
   0, 0,                     // not a pad kit
+  NULL,                     // API v4: no get_param, the host keeps its values
 };
