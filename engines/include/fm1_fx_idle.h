@@ -81,8 +81,9 @@ extern "C" {
  * resonance and the band gains that scale it, is in engines/README.md). */
 #define FM1_IDLE_SETTLE_NEPERS 12.0f
 
-/* The longest warm-up a setting may need and still idle (EQ: a band below
- * about 30 Hz at a high Q needs longer, and keeps running instead). */
+/* The longest warm-up a setting may need and still idle. Only EQ reaches it:
+ * a low shelf below about 27 Hz at Q 0.71, or a bell below about 380 Hz at
+ * Q 10, needs longer, and EQ keeps running there instead. */
 #define FM1_IDLE_MAX_WARM_SECONDS 0.1f
 
 /* Seconds to whole frames at rate fs, rounded up; at least 1. */
