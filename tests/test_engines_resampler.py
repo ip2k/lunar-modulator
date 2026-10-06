@@ -299,9 +299,6 @@ def test_cost_per_output_sample(tool):
 # Shapes at the host's rate
 # ---------------------------------------------------------------------------
 
-SPAN_REACH = SPAN / 2       # the kernel's reach, intermediate samples
-
-
 def resampler_constants(in_rate=BRAIDS_RATE, out_rate=HOST_RATE):
     """fm1_resampler_init's fixed-point step and lead, the same double
     arithmetic: inputs per intermediate sample, and the input an output

@@ -48,7 +48,7 @@ typedef struct {
   uint32_t rate, block;
   uint8_t tracks;
   uint64_t end;
-  int has_rate, has_block, has_tracks, has_end;
+  int has_end;
   fm1_script_cmd_t *cmds;  /* stably sorted by frame */
   size_t n;
   char *text;

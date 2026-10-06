@@ -123,7 +123,6 @@ static const char *item_name(const fm1_mod_kind_t *kd, unsigned i) {
 typedef struct names {
   const fm1_mod_kind_t *kd;
   const fm1_engine_t *e;
-  unsigned n;
 } names_t;
 
 static const char *name_at(const names_t *l, unsigned i) {
@@ -172,7 +171,6 @@ static void item_short(const fm1_mod_kind_t *kd, unsigned item, char out[8]) {
   names_t l;
   l.kd = kd;
   l.e = NULL;
-  l.n = kd->n_params + kd->n_gate_in;
   short_of(&l, item, 3, out);
 }
 
@@ -337,7 +335,6 @@ void fm1_mod_ui_dest_name(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, 
       names_t l;
       l.kd = NULL;
       l.e = unit_engine(env, d->unit);
-      l.n = l.e->n_params;
       short_of(&l, (unsigned)d->index, FM1_MOD_UI_DST_CHARS - strlen(kSinks[g].tag), sq);
       snprintf(buf, cap, "%s%s", kSinks[g].tag, sq);
     }
@@ -361,7 +358,6 @@ int fm1_mod_ui_dest_fit(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, si
       names_t nl;
       nl.kd = kd;
       nl.e = NULL;
-      nl.n = kd->n_params + kd->n_gate_in;
       short_of(&nl, d->gate ? kd->n_params + (unsigned)d->index : (unsigned)d->index,
                room - strlen(l) < 7 ? room - strlen(l) : 7, sq);
       snprintf(buf, cap, "%s%s", l, sq);
@@ -381,7 +377,6 @@ int fm1_mod_ui_dest_fit(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, si
     const size_t w = room - strlen(kSinks[g].tag);
     l.kd = NULL;
     l.e = unit_engine(env, d->unit);
-    l.n = l.e->n_params;
     short_of(&l, (unsigned)d->index, w < 7 ? w : 7, sq);
     snprintf(buf, cap, "%s%s", kSinks[g].tag, sq);
   }

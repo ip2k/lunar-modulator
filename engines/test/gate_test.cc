@@ -25,7 +25,7 @@ namespace {
 
 const fm1_engine_t &E = fm1_engine_gate;
 const float kRate = 44118.0f;
-alignas(16) unsigned char g_mem[2][16384];
+alignas(16) unsigned char g_mem[16384];
 
 struct Lcg {
   uint32_t s;
@@ -36,12 +36,12 @@ struct Lcg {
 
 struct Kv { const char *name; float value; };
 
-void *Make(float rate, int fill, int slot = 0) {
+void *Make(float rate, int fill) {
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, 64 };
   const size_t n = E.instance_size(&host);
-  if (n > sizeof(g_mem[slot])) return NULL;
-  memset(g_mem[slot], fill, sizeof(g_mem[slot]));
-  return E.create(g_mem[slot], &host);
+  if (n > sizeof(g_mem)) return NULL;
+  memset(g_mem, fill, sizeof(g_mem));
+  return E.create(g_mem, &host);
 }
 
 int Index(const char *name) {

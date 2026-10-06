@@ -26,15 +26,6 @@ float fm1_mp_sah_process(fm1_mp_sah_t *h, float in, int gate) {
   return h->held;
 }
 
-void fm1_mp_sah_render(fm1_mp_sah_t *h, const float *in, const uint8_t *gate, float *out,
-                       uint32_t n) {
-  uint32_t i;
-  for (i = 0; i < n; ++i) {
-    step(h, in[i], gate ? gate[i] != 0 : h->gate);
-    out[i] = h->held;
-  }
-}
-
 float fm1_mp_sah_value(const fm1_mp_sah_t *h) {
   return h->held;
 }
