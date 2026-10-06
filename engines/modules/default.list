@@ -1,0 +1,38 @@
+# engines/modules/default.list -- the module list proposed for an FM-1
+# firmware image (FM1_MODULES=default; engines/modules/catalogue.mk;
+# DEVELOPERS.md, "Choosing the modules"). One id or more a line; '#' starts
+# a comment. Proposed 2026-10-06, for the owner to settle.
+#
+# The budget: the app area up to 0xD9000 in FM-1+VA's layout is 852 KiB
+# (872,448 B); 200 KiB of it is reserved for JieLi's libraries and the
+# device's platform code [inferred: fm1-nes's whole AC79 app with USB alone
+# is 129,392 B, with USB audio 201,296 B, reported], which leaves 667,648 B
+# for the objects of the JieLi check at -Oz. Every module together measures
+# 845,716 B there (127 %), so this list leaves out the three largest costs
+# that have a smaller sibling in the list [verified: tools/jieli/compile-check.sh,
+# 2026-10-06, FM1_MODULES=all; the list's own run is in DEVELOPERS.md]:
+#
+#   comet        Comet Kit, 140,024 B even with its cymbals in 8-bit mu-law
+#                (Crater Kit and Drums stay)
+#   macro-heavy  Macro Heavy, 60,747 B of Plaits' heavier models beyond
+#                what Macro shares with it (Macro stays)
+#   test-sine test-gain test-ext   the test modules, 2,111 B
+#
+# GPL modules (acid-bass, crater, drawbar, trio, phase-bend, acid-gen) are
+# listed: the GPL switch decides whether a build has them (FM1_GPL_MODS=0
+# drops them, as the image that may be shared must).
+
+# Sound engines
+macro shapes sixop dx7 sw-sophie drums
+acid-bass crater drawbar trio phase-bend
+
+# Audio effects
+plate ensemble diffuse sw-psxverb crush fold drive echo filter comb comp
+limit djfilter tilt sat isolator eq room hall gate squash shaper
+
+# MIDI effects
+arp acid-gen
+
+# Modulation kinds
+lfo env chance function bounce register coin divide burst slew quantize
+compare logic calc mix resonator

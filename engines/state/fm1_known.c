@@ -11,7 +11,7 @@ const fm1_known_id_t fm1_known_ids[] = {
   { "acid-gen", "midi_fx", "gpl", NULL },
   { "drawbar", "sound", "gpl", NULL },
   { "trio", "sound", "gpl", NULL },
-  { "chop", "sound", "gpl", NULL },
+  { "chop", "sound", "planned", NULL },
   { "phase-bend", "sound", "gpl", NULL },
   { NULL, NULL, NULL, NULL }
 };

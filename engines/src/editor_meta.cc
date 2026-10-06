@@ -133,6 +133,7 @@ const char *fm1_refusal_known_words(const char *reason) {
   if (strcmp(reason, "gpl") == 0) return "in the GPL build only";
   if (strcmp(reason, "planned") == 0) return "not built yet";
   if (strcmp(reason, "retired") == 0) return "retired in {since}";
+  if (strcmp(reason, "list") == 0) return "left out of this build";   // FM1_MODULES
   return NULL;
 }
 

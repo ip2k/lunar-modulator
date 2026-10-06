@@ -17,7 +17,7 @@
 
 MOD_SRC := mod/mp_rng.c mod/mp_lfo.c mod/mp_env.c mod/mp_slew.c mod/mp_sah.c \
            mod/mp_turing.c mod/mp_clkdiv.c mod/mp_tables.c
-MOD_CFLAGS := -std=c99 $(OPT) $(EXTRA) -ffp-contract=off -Imod -Iinclude -Wall -Wextra -Wpedantic \
+MOD_CFLAGS := -std=c99 $(OPT) $(EXTRA) -ffp-contract=off -Imod -Iinclude -I$(GPL_GEN) -Wall -Wextra -Wpedantic \
               -Wconversion -Wno-sign-conversion -MMD -MP
 MOD_OBJ := $(patsubst %.c,$(BUILD)/mod/%.o,$(MOD_SRC))
 MOD_TOOL_OBJ := $(BUILD)/mod/mod/mp_tool.o

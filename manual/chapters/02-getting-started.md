@@ -55,8 +55,8 @@ loaded into FM6 ([chapter 5](05-sound-engines.md#loading-voices-from-sysex))
 go with the power.
 
 !!! note "When an engine refuses to start"
-    The simulator asks your browser for 44,118 samples a second, the rate
-    reported for the FM-1, and then for 44,100. If the browser insists on a faster rate, such
+    The simulator asks your browser for 44,100 samples a second, close to
+    the 44,118 reported for the FM-1. If the browser insists on a faster rate, such
     as 48,000, the four engines built from Plaits' code (Macro, Macro Heavy,
     Six-Op FM and Drums) cannot run. The simulator then starts with Shapes,
     steps over those four when you turn [[PRESETS]], and says why on its
