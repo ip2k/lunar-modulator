@@ -20,6 +20,6 @@ void fm1_state_names_default(fm1_state_names_t *nm) {
   nm->source = fm1_mod_system_source;
   nm->aliases = fm1_aliases;
   nm->n_aliases = fm1_alias_count;
-  nm->known = fm1_known_id_find;
+  nm->known = fm1_absent_find;     /* the module list's, then known-ids.json's */
   nm->gpl = fm1_gpl_mods ? 1u : 0u;   /* the registry's switch (fm1_engine.h) */
 }

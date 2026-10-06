@@ -17,7 +17,7 @@ those messages so you can search for them.
 | The status line says *This browser has no AudioWorklet* | The browser is too old, or lacks the audio feature the simulator needs | Use a current Chromium-based browser such as Chrome or Edge |
 | The status line says *The firmware did not start* | The firmware's code did not load in this browser | Reload the page; try a current Chromium-based browser |
 | Crackles or dropouts | The computer is busy, or a phone is too slow | Close other tabs and programs; on a phone, try a computer |
-| The status line says that Macro *was refused: it does not run at 48,000 Hz*, and the simulator started with another sound | The browser would not run audio at 44,118 or 44,100 Hz, and Macro, Macro Heavy, Six-Op FM and Drums need 47,872 Hz or less | Set the computer's audio output to 44.1 kHz and reload. FM6, Shapes, Sophie and Test Sine work at 48 kHz too |
+| The status line says that Macro *was refused: it does not run at 48,000 Hz*, and the simulator started with another sound | The browser would not run audio at 44,100 Hz (the status line says *the browser refused 44,100 Hz*), and Macro, Macro Heavy, Six-Op FM and Drums need 47,872 Hz or less | Set the computer's audio output to 44.1 kHz and reload. FM6, Shapes, Sophie and Test Sine work at 48 kHz too |
 
 ### Playing
 
@@ -31,7 +31,8 @@ those messages so you can search for them.
 | Every note from the computer keys is equally loud | Computer keys always play at velocity 100 | Click lower on a key on the panel to play louder, or use a MIDI keyboard |
 | The keys play the wrong octave | The octave or transpose is not at zero | Press [[OCT-]] and [[OCT+]] together to reset both |
 | Only part of the panel shows on a phone | The panel keeps its size so the keys stay playable | Drag the case sideways, or turn the phone to landscape |
-| [[SAVE]] says *not in the simulator yet* | Saving is planned, not built | See [chapter 3](03-panel-tour.md#buttons) for the buttons that work |
+| A file is refused with *Needs 117% of the FM-1's RAM* | It would not fit the FM-1's memory | Load a lighter file, or make room first: this refusal has no way round it ([chapter 10](10-settings-and-storage.md#when-a-file-does-not-load)) |
+| Your work is not there on the next visit | The browser blocks or cleared this site's storage, or it is a private window | Keep a copy with *Save…*; the page says when it can only keep things for the visit |
 | [[PRESETS]] skips a sound, and the screen says *does not fit* | It would take the chain past the FM-1's memory: past 100 %, as the screen's *needs …% of RAM* says | Empty a sound, an insert or a master effect first ([chapter 6](06-effects.md#memory)) |
 | The keys play nothing, and the white keys' lights follow a pattern | SEQ mode is on: there the white keys are steps | Press [[HOME]] to play notes again ([chapter 7](07-sequencer.md#seq-mode-and-the-keys)) |
 | A key plays a different sound from the one on screen, or nothing | Another sound is current, or it is empty | Hold [[SEL]] and turn [[PRESETS]] to choose the sound ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |

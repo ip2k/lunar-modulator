@@ -18,6 +18,10 @@ sound differs: the oscilloscope strips, the meters and the lit keys.
 day (module 955,320 B), when the track strip's tiles took their sounds'
 numbers and MATRIX's mark moved 4 px clear of the source and the
 destination; the run's other pictures were left as they were.
+`screen-sixop.png`, `screen-shapes.png` and `screen-fm6.png` were retaken
+with their names kept after PR #79 gave those engines a third page (the
+bar reads *1/3 Sound*), from the module of the GPL follow-ups (1,273,791 B,
+44,100 Hz), on 2026-10-06; Shapes' meter now reads 87 %.
 
 | File | What it shows |
 | --- | --- |

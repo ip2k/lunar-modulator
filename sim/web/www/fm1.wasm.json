@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "fb061efb3b97720c12d3d252442f120dd99ada7e7c5401b16b3148ee69de494f",
-  "wasm_bytes": 1383314,
+  "wasm_sha256": "5f3739dedd112cbf712357095ec2cf4ff92907249c04776fe7f6fcb0a9bfdc56",
+  "wasm_bytes": 1494065,
   "sources_sha256": {
-    "engines": "ac78d1ef32d3ef28ad8e0970c49e4ee9aeebe4552b61e13e4499d798b715d4af",
-    "sim": "e1cb06e39c1dcd368405d201207e2086bba826597dc879cc3cd7eb4979338f4d"
+    "engines": "faca2d3010cebbbd47fd5e9c5c68a90e3c81ce2e78c6ba7f69661133e03f7193",
+    "sim": "afa056d9cf3c93e9c0d5f459b46e85c9ba8586fbfa92ec60ac4643ef33bf3dd2"
   },
   "engines": "working tree",
-  "built": "2026-10-06T12:54:07Z",
+  "built": "2026-10-06T16:58:00Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -76,19 +76,19 @@
     }
   ],
   "parity": {
-    "passed": 102,
+    "passed": 103,
     "failed": 0,
-    "identical_to_js": 102,
-    "identical_to_musl": 102,
-    "identical_to_glibc": 99,
+    "identical_to_js": 103,
+    "identical_to_musl": 103,
+    "identical_to_glibc": 100,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "meta": {
-    "meta_id": "68179ac3",
-    "module_meta_id": "68179ac3",
-    "bytes": 246240,
+    "meta_id": "f091f0b8",
+    "module_meta_id": "f091f0b8",
+    "bytes": 246351,
     "lunar": "1.1",
-    "native_meta_id": "a5c579fc",
+    "native_meta_id": "eff5d1c0",
     "ram_differ_at_64_bits": 9,
     "passed": true
   },
@@ -149,7 +149,7 @@
         "pass": true
       },
       {
-        "name": "a file past the 64 KiB buffer is refused, and a refusal keeps the bank",
+        "name": "a file past 64 KiB or the buffer is refused, and a refusal keeps the bank",
         "pass": true
       },
       {
@@ -2636,6 +2636,37 @@
       "ram_bytes": {
         "wasm32": 133324,
         "native64": 133324
+      }
+    },
+    {
+      "name": "project-load-play",
+      "samples": 352944,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 265536,
+        "native64": 291456
+      },
+      "cmd": "state/play.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": false,
+        "dropped": 0,
+        "native_dropped": 0
       }
     }
   ]

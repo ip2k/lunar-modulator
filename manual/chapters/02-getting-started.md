@@ -55,8 +55,8 @@ loaded into FM6 ([chapter 5](05-sound-engines.md#loading-voices-from-sysex))
 go with the power.
 
 !!! note "When an engine refuses to start"
-    The simulator asks your browser for 44,118 samples a second, the rate
-    reported for the FM-1, and then for 44,100. If the browser insists on a faster rate, such
+    The simulator asks your browser for 44,100 samples a second, close to
+    the 44,118 reported for the FM-1. If the browser insists on a faster rate, such
     as 48,000, the four engines built from Plaits' code (Macro, Macro Heavy,
     Six-Op FM and Drums) cannot run. The simulator then starts with Shapes,
     steps over those four when you turn [[PRESETS]], and says why on its
@@ -128,11 +128,17 @@ full list.
 | **Sound (PRESETS)** | Chooses the current sound's engine directly, as turning [[PRESETS]] does. The label names the current sound, such as *Sound 2 (PRESETS)*; Sounds 2 to 4 can be *(none)* |
 | **Effect 1**, **Effect 2** | Choose the effect in each master slot, or *(none)* to empty it |
 | **Connect MIDI input** | Asks the browser for your MIDI keyboards (above) |
+| **Open…**, **Save…**, **Copy link** | Load and save projects, sounds and other files, and share a project as a link ([chapter 10](10-settings-and-storage.md#save)). Files can also be dropped on the page |
 | **Screen ×2** | Shows a second, larger copy of the screen below the panel. On by default in a narrow window |
 | **Power off** | Stops the sound |
 
 A choice in one of the lists hands the computer keyboard straight back to the
 instrument, so the next letter you type plays a note.
+
+The page remembers your project in the browser as you work: come back later,
+press **Power on**, and it is as you left it. To start from an example, open
+*Saved in this browser, Recent and examples* under the status line and load
+*First orbit*, the guide's first song.
 
 ### Running the simulator from your own copy
 

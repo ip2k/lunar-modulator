@@ -29,9 +29,9 @@ the "Power on" button, as browsers require a gesture.
 | | |
 | --- | --- |
 | Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend (with the GPL switch on), Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate, Test Gain, Test Ext. Up to four sounds with two inserts and a level each, mixed into two effect slots as the master bus, then the host's bus limiter, as `fm1-render --slots` runs them; one sound with no insert at full level renders as `fm1-render`'s one engine does, to the bit (below, "Multi-sound") |
-| Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy, Six-Op and Drums run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the four, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
+| Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,100 Hz (owner, 2026-10-06; until then 44,118, then 44,100); if the browser refuses it (the constructor throws, or a context comes back faster than 47,872 Hz), the page takes the browser's own rate and the status line says "the browser refused 44,100 Hz". Headless Chromium runs at 44,100 Hz; with a context that refuses 44,100 and gives 48,000 the page starts on Shapes and says why Macro was refused [verified 2026-10-06: `test/screenshot.mjs`, both paths]. The RAM meter counts every instance at 44,118 Hz, the FM-1's rate, whatever the browser gives (`FM1_APP_RAM_RATE`). Macro, Macro Heavy, Six-Op and Drums run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the four, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
 | Licences | The module's catalogue carries each module's `licence` (SPDX) and `source` from the licence table beside the registry (engines/include/fm1_engine.h, "Licences"), and `build.sh` records the GPL switch the module was built with (`gpl_mods`; `FM1_GPL_MODS`, on unless `build-on-aeon.sh` is run with it 0) and every module whose code is not all MIT (`licences`) in `fm1.wasm.json`. While any of them is GPL, the page names them under the help, offers the module under the GNU GPL, version 3, and links `licences/GPL-3.0.txt` and the source: the repository at the commit the site was built from (`source.json`: the checkout's names the repository, and `tools/manual/build.py` writes the commit into the published copy), or the repository itself when served from a checkout. It reads the record before the power is on and the module's own catalogue after (docs/12 §6; `tests/test_gpl_switch.py`) |
-| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. A list popup (PRESETS, ALGORITHM, a knob on a list parameter of five entries or more, SHIFT + PRESETS, SHIFT + 16's quantize, the kind and destination pickers, Capture's tempos, the ARP presets) shows the list's title in the context colour, the chosen entry's place (`34/96`) and as many entries as its face holds (`fm1_list_rows`, `src/fm1_panel.h`: MAIN 6 of 18 characters, MID 8 of 27, SMALL 9 of 36; the long lists are MID, the short ones MAIN, which shows them whole), by their full names (`fm1_look_full_name`), the chosen one on the selection bar, on the third row where it can be (`fm1_list_first`), and a triangle above or below the entries where the list goes on (three lines until 2026-10-06, then six in MAIN; the audit note's "Built" section has the table). A confirmation that fits one line is a banner over the page's bottom 28 px (MAIN up to 18 characters, MID up to 27); a refusal keeps the full popup, its reason in the refusal colour. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat) and starts under the page's last row. 4,534 screens pass a layout check, every text box in one of the three faces at its height: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06, 4,534 with the GPL switch on after the GPL modules were merged with PR #80, and 3,645 with it off, main's count; 4,531 with the switch on after they were merged with each other and with PR #79, and 3,642 with it off: every page, list and knob's list of Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend (whose fourth page is glide's four) and Acid Gen in the MIDI-FX slot; 3,794 with Comet Kit's four pages, its pads, drive types and kits before Crater Kit, the Felucca engines and PR #79; 3,538 with Acid Bass's pages and Acid Gen's in the MIDI-FX slot (its pages at their extremes and list entries, and its popups); 3,645 with the switch off, before the GPL modules, with GLO past the budget and M1's Mix under a refused per-voice cable (unmarked) and the same cable live (marked); 3,642 with glide's modes on their own page (Shapes, Six-Op FM and FM6 have a third page), Drums' fourth page with Choke and Kit Decay, the Voice Mode keys' popups and LEDs, and the global page's Key page; 3,543 with the first three before the Key page; 3,507 with the Key page (every root in every scale, F# Mixolydian the longest, and its two lists) before them; 3,408 with glide's pages and voice modes; 3,336 with the ARP pages (134 of them with their knobs' lists) and with RACK's line in SMALL; 3,204 before them, with the knobs' lists of every sound and effect, banners over HOME, FX, GLO and MATRIX and FX mode's chip on every slot; 3,165 with per-voice modulation; 40 of them FM6's user bank (every user slot with a 10-character name, the ALGORITHM popup, SEQ mode and the load popups); 3,104 without them, with Squash and Transient; 2,695 before every list popup at every entry (2,470 recorded here on 2026-10-05), 2,338 before Drums, 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE stub and an emptied slot (600 screens), every ARP page at its defaults, extremes and list entries with its popups and knobs' lists (134), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 741, and Drums' pages and its sound in the others' sweeps in 132 more; since 2026-10-06 every list popup at every entry, each window checked (345: ALGORITHM through every sound's list, Six-Op FM's 96 patches the longest, PRESETS through the engines, ALGORITHM in FX mode through the effects, and the destination picker through every destination; the kind picker's 17 were already there). Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
+| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. A list popup (PRESETS, ALGORITHM, a knob on a list parameter of five entries or more, SHIFT + PRESETS, SHIFT + 16's quantize, the kind and destination pickers, Capture's tempos, the ARP presets) shows the list's title in the context colour, the chosen entry's place (`34/96`) and as many entries as its face holds (`fm1_list_rows`, `src/fm1_panel.h`: MAIN 6 of 18 characters, MID 8 of 27, SMALL 9 of 36; the long lists are MID, the short ones MAIN, which shows them whole), by their full names (`fm1_look_full_name`), the chosen one on the selection bar, on the third row where it can be (`fm1_list_first`), and a triangle above or below the entries where the list goes on (three lines until 2026-10-06, then six in MAIN; the audit note's "Built" section has the table). A confirmation that fits one line is a banner over the page's bottom 28 px (MAIN up to 18 characters, MID up to 27); a refusal keeps the full popup, its reason in the refusal colour. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat) and starts under the page's last row. 4,546 screens pass a layout check, every text box in one of the three faces at its height: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06, 4,546 with stage A1's twelve (SAVE with and without a store, its answers, the load banners and eight refusals); 4,534 with the GPL switch on after the GPL modules were merged with PR #80, and 3,645 with it off, main's count; 4,531 with the switch on after they were merged with each other and with PR #79, and 3,642 with it off: every page, list and knob's list of Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend (whose fourth page is glide's four) and Acid Gen in the MIDI-FX slot; 3,794 with Comet Kit's four pages, its pads, drive types and kits before Crater Kit, the Felucca engines and PR #79; 3,538 with Acid Bass's pages and Acid Gen's in the MIDI-FX slot (its pages at their extremes and list entries, and its popups); 3,645 with the switch off, before the GPL modules, with GLO past the budget and M1's Mix under a refused per-voice cable (unmarked) and the same cable live (marked); 3,642 with glide's modes on their own page (Shapes, Six-Op FM and FM6 have a third page), Drums' fourth page with Choke and Kit Decay, the Voice Mode keys' popups and LEDs, and the global page's Key page; 3,543 with the first three before the Key page; 3,507 with the Key page (every root in every scale, F# Mixolydian the longest, and its two lists) before them; 3,408 with glide's pages and voice modes; 3,336 with the ARP pages (134 of them with their knobs' lists) and with RACK's line in SMALL; 3,204 before them, with the knobs' lists of every sound and effect, banners over HOME, FX, GLO and MATRIX and FX mode's chip on every slot; 3,165 with per-voice modulation; 40 of them FM6's user bank (every user slot with a 10-character name, the ALGORITHM popup, SEQ mode and the load popups); 3,104 without them, with Squash and Transient; 2,695 before every list popup at every entry (2,470 recorded here on 2026-10-05), 2,338 before Drums, 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE stub and an emptied slot (600 screens), every ARP page at its defaults, extremes and list entries with its popups and knobs' lists (134), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 741, and Drums' pages and its sound in the others' sweeps in 132 more; since 2026-10-06 every list popup at every entry, each window checked (345: ALGORITHM through every sound's list, Six-Op FM's 96 patches the longest, PRESETS through the engines, ALGORITHM in FX mode through the effects, and the destination picker through every destination; the kind picker's 17 were already there). Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
 | Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) and, since 2026-10-06, four hues of the project's own for the sounds (nebula, nova, aurora and comet, derived in OKLCH at Moon's accent lightness and chroma), as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_look.h`), with one meaning per colour on both: [PALETTE.md](PALETTE.md) has the semantic colour map, the derivation and the figures, and `tools/palette.py` checks the two files against it [verified: `tests/test_sim_palette.py`]; Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. On the screen, the project's own 5×9 at ×2 and, for dense screens, Spleen 8×16 and 6×12 by Frederic Cambus (BSD 2-Clause; [third_party/spleen/](third_party/spleen/UPSTREAM.md), its licence served as `fonts/spleen/LICENSE`; below, "Text faces"). Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
@@ -109,7 +109,7 @@ PIT, GLO, MONO, POLY) come from the manual's panel drawing [reported].
 | FX, SEL | effect chain mode; SEL grabs a slot so SELECT reorders it | the same: the current sound's two inserts, the Mix page and the two master slots |
 | GLO | global settings | the global page above |
 | HOME | home (oscilloscope) | home: the sound's page, with an oscilloscope strip |
-| SAVE | | a popup: not in the simulator yet |
+| SAVE | | the project to the host's store, which answers on the screen (*SAVED*, the name, the RAM figure; or *NOT SAVED* and why); the page's store is IndexedDB (below, "Files"), memory only where the browser blocks storage. Never a device |
 | ARP | the arpeggiator | the arpeggiator on the current sound: a tap switches it (on, its pages open), a hold latches, SHIFT + ARP opens the pages (below, "The arpeggiator") |
 | ENV, LFO, EDIT | envelope, LFO and edit pages | modulation: RACK, the gesture, MATRIX (below) |
 | REC | recording | record, step record and Capture (below) |
@@ -205,7 +205,7 @@ chain). This section is how they are built.
 | Metronome | the click, the shared bridge's (`fm1_seq_click_mix`, O11), on the Set page or SHIFT + 6 |
 | Locks | a held step's lock pages, past Step 2/2, lock the focused track's sound's parameters; a knob on a parameter with a lane turns on the 7-bit grid and the lanes' bases follow; a live take while recording; SHIFT + knob, D#4 (CLEAR) with steps held or + knob clear (S8) |
 | LEDs | SEQ in SEQ mode, PLAY/STOP while the transport runs, SEL while SHIFT is held; in SEQ mode the white keys show the bar's steps (fm1_seq_ui.h has the rules); REC on while recording or step recording, fast during a count-in or a waiting take, slow while Capture holds notes (O7). Sequencer notes light no key outside SEQ mode (O6). LFO or ENV while RACK shows one of theirs, EDIT in MATRIX and CHAIN, SEL in CHAIN and while RACK holds a module |
-| Status line, help | the tempo and the transport (posted by the worklet only when they change); the help's Sequencer, Tracks, Locks, Sounds, Effects, Arpeggiator and Modulation entries; SAVE in the stub list |
+| Status line, help | the tempo and the transport (posted by the worklet only when they change); the help's Sequencer, Tracks, Locks, Sounds, Effects, Arpeggiator, Modulation and Files entries |
 | Sounds | up to four sounds, each with two inserts and a level, then the two slots as the master bus; SHIFT + PRESETS chooses the current sound (below, "Multi-sound") |
 | RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 26,848 B since glide's modes, 26,512 B since glide, 26,192 B since per-voice modulation, docs/16 MG9), and each arp that is on (736 B) with the MIDI effects' stage while one is (`fm1_mfx_t`, 7,344 B natively, less with 32-bit pointers) |
 | ARP | the arpeggiator, below |
@@ -422,6 +422,88 @@ skipped with the switch off) do the same for Acid Gen;
 `comet-kit-groove` and `comet-kit-knobs-and-tails` cover Comet Kit, and
 `crater-kit-groove` and `crater-kit-every-pad-tuned` Crater Kit.
 
+## Files: Open, Save, storage, links and the embed API
+
+Stage W1 (2026-10-06; notes/2026-10-06-state-files.md §12 and §24),
+`www/files.js` and `www/shadow.worker.js`, on stage A1's exports.
+
+**Who does what.** The audio thread reads and writes only the binary
+container: the worklet's `state-save` returns the project as binary
+(`fm1w_state_save(1, 0, 1)`), its `state-load` runs `fm1w_state_load` on a
+packed file and refuses anything that does not start `\x89Lunar`, and the
+report goes back as the module's text, unparsed. The **shadow Worker** is a
+second instance of the module with no audio: before each job it loads the
+live project (QUIET), then runs pass 1 of the file against it
+(`fm1w_state_check`, with the target and flags the page chose), packs a
+JSON file (`fm1w_state_pack`) or a `.movy1` set (loaded, then saved as a SET
+container), and writes JSON (`fm1w_state_save(kind, arg, 0)`). So every
+refusal, and every word of it, is the module's: memory as a percent of the
+FM-1's budget only. A project save costs the audio thread about 1.5 ms
+(the binary writer deflates; measured in Node on this Mac) [verified].
+
+| Page | Does |
+| --- | --- |
+| **Open…**, drop | `.lunar` (JSON or binary), `.movy1`, `.syx`, several at once; sniffed by content (§11). `.syx` goes to FM6's bank as before. A sound, effects or clip asks for its target (sound 1-4; master or a sound's inserts; track and slot). Before POWER, a file waits on the power card |
+| **Save…** | Project, current sound, its effects, master effects, mod rack (`application/json`, `first-orbit-s2.sound.lunar`: the kind as a middle word, a project as `first-orbit.lunar`), the set as `.movy1` (`text/plain`) |
+| SAVE | The project into IndexedDB `files`; the screen shows the store's answer (`fm1w_saved`) |
+| Autosave | The whole project, as binary, into `autosave`: 5 s after the last change, at most 15 s after the first unsaved one, never more often than every 5 s, and on `visibilitychange`, `pagehide` and Power off; skipped when the bytes are the same. POWER restores it unless a link loads something; *Start fresh* loads the start chain (the shadow's own) |
+| Recent | The last five states a load replaced, as "Before *title*"; Undo load restores the last |
+| **Copy link** | `#lunar=`: the project's JSON, compact, deflate-raw, base64url; refused over 32 KiB with its size |
+| Notice | Over the status line: "Loaded “First orbit”: 4 sounds, … It takes 69% of the FM-1's RAM." with Undo load, or the refusal in `--refuse`, with *Load without …* or *Replace the clip* when the module allows it |
+
+**Storage.** IndexedDB `lunar-modulator` v1, stores `files` (kind, name,
+`bin`, size, origin, mission, modified), `autosave` (key `project`) and
+`recent`; the binary container is kept, and a download writes JSON through
+the shadow. localStorage holds preferences only, under `lunar.sim.`:
+`master`, `title`, `last-file`. Every access is in try/catch; with storage
+blocked the page keeps everything in memory for the visit.
+
+**Links.** `?load=PATH`: under `examples/`, `guide/` or `manual/`, matching
+`^[a-z0-9][a-z0-9/_.-]*\.(lunar|movy1|syx)$`, no `..`, `//` or `\`,
+resolved against the page and taken only when the origin and path come out
+the same; fetched with `credentials: 'omit'`, `redirect: 'error'`, read
+through a counting stream (256 KiB, `.syx` 64 KiB). `#lunar=DATA`: at most
+32,768 characters, inflated through `DecompressionStream('deflate-raw')`
+into the same counting stream. Hints from the query or the fragment:
+`into=s2` (`master`, `t3.2` for a clip's track and slot), `view=seq.track=2`
+(a view object: the shadow writes the project, the page sets `view`, the
+shadow packs, the worklet reloads it quietly), `hl=KNOB2,FX` (rings on the
+panel drawing: buttons, encoders, MASTER, POWER, PLAY, KEY1-27), `play=1`,
+`entry=3` (`sgjump 2` then `play`, the panel's own verbs). The card names
+the file, its about, and what it replaces; after the load the address
+loses the link. `www/examples/` holds the guide's five examples (MIT), the
+same bytes as `engines/state/examples/` (`tests/test_sim_files.py`).
+
+**`?embed=1`.** Only inside a frame. Messages are taken only when
+`event.source === window.parent` and `event.origin === location.origin`;
+replies and events go to `location.origin`, never `'*'`. One operation at a
+time; text up to 256 KiB.
+
+| Request `{lunar: 1, id, op, …}` | Reply `{lunar: 1, re: id, ok, …}` |
+| --- | --- |
+| `load {kind?, text, into?}` | `report` (the module's); before POWER it waits on the power card |
+| `save {kind, into?}` | `text`: the canonical JSON, or a set's `.movy1` |
+| `query {kind, into?}` | `json`: the same, parsed (mission checks read what a save holds) |
+| `view {view}`, `highlight {controls}` | `ok`; `controls` lists those found |
+| `transport {play, entry?}` | `ok`, after POWER only |
+
+Events: `ready {formats, version}`, `power {on}`, `changed {gen}` (at most
+four a second). Nothing reaches MIDI, a URL, a setting or the storage.
+
+**Schemas.** `tools/manual/build.py` publishes `engines/state/schema/` at
+`/schema/1/` on the site, the URLs the schemas' `$id`s name.
+
+**Tests.** `test/files.mjs` (headless Chromium, in `build-on-aeon.sh`'s
+page step): Save… names and kinds, a drop and Open…, a refusal in the
+refusal colour that changes nothing, every load binary at the worklet and
+JSON refused there, SAVE into IndexedDB, the autosave's timer and its
+restore, Undo load byte for byte, fourteen refused `?load=` paths with no
+request made, the arrival card and the hints, the `#lunar=` round trip, the
+32 KiB cap and a 4 MiB inflation bomb, the embed API from a same-origin
+parent and silence to another origin, and the page at 1,440 and 390 px
+[verified 2026-10-06: all pass, Chromium 153]. `tests/test_sim_files.py`
+checks the static half.
+
 ## Parity: does the browser sound like the native engines?
 
 `build-on-aeon.sh` renders 69 scenarios (`test/scenarios.json`) four ways
@@ -544,13 +626,14 @@ the voice modes (`engines/src/glide.h`), the UI audit's screens and their
 polish, and glide's modes, Drums' Choke and Kit Decay, the driven idle paths
 and Squash Mu's makeup, and, with the GPL switch on, the GPL modules
 (Acid Bass, Acid Gen, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend;
-2026-10-06): 102 of 102 scenarios pass,
+2026-10-06), and Comet Kit's cymbals in 8-bit µ-law: 102 of 102 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, two let EQ with Master Sat and Isolator rest past 2 s and
 wake them, and one keeps EQ awake under a zero cable; those three, the
 three Drums, the four FM6, the five glide and the eleven GPL scenarios are
 identical to glibc too, 99 of the 102 in all), and it imports nothing; it
-is 1,331,045 bytes with the GPL modules after the merge with PR #80's
+is 1,273,791 bytes with Comet Kit's cymbals in µ-law (2026-10-06), 1,383,314
+with them int16 after the editor metadata (PR #83), 1,331,045 bytes with the GPL modules after the merge with PR #80's
 memory percentages (1,330,985 at the integration of
 `feature/2026-10-06@gpl-x0x`, the x0x kits and Felucca's engines; Comet
 Kit's cymbals are 221 KB of it), 959,790 bytes before them with glide's
@@ -712,6 +795,63 @@ buffer into FM6's user bank (above); `fm1w_dx7_result()` returns thirteen
 words saying what the file held, and `fm1w_dx7_name(slot)` the name a user
 slot shows.
 
+**Saved state** (stage A1, 2026-10-06; `src/fm1_app_state.h`,
+notes/2026-10-06-state-files.md §23). The app's whole state goes through
+the state core's records (`engines/state/`): a collector that walks
+`fm1_app_t` into the canonical JSON writer, and an applier in two passes.
+The text buffer is 256 KiB, the largest file kind's cap.
+
+| Export | Does |
+| --- | --- |
+| `fm1w_state_save(kind, arg, binary)` | The file into the text buffer: its length, -1 refused, -2 too big. Kinds are the binary header's: 1 project, 2 sound (arg the sound unit 0-3), 3 effects (-1 the master, 0-3 a sound's inserts), 4 mod rack, 5 clip (track * 8 + slot), 6 settings, 7 set (`movy1` text, or with `binary` a SET container) |
+| `fm1w_state_check(kind, into, slot, flags, len)` | Pass 1 over the buffer's first `len` bytes (JSON, binary or a `.movy1` set): 1 when the load would go ahead. Nothing changes, not even the screen, so a page can ask first |
+| `fm1w_state_load(kind, into, slot, flags, len)` | Pass 1, then pass 2: 1 loaded, 0 refused with nothing changed. Flags: 1 load without what is unknown or does not fit, 2 replace a clip, 4 no banner |
+| `fm1w_state_pack(len)` | JSON to the binary container, in the buffer, with no app state: the editor's shadow Worker packs, and the audio thread loads binary, so it never parses JSON (ED13) |
+| `fm1w_state_report()` | The last check, load or save as JSON: `code`, `kind`, `message` (the page's words), `screen` (the device's two lines), `percent`, `ram`, `budget`, the counts, `left_out`, `skipped`, and where a bad file stopped (`line`, `col`, `path`, `near`) |
+| `fm1w_save_gen()`, `fm1w_store_ready(on)`, `fm1w_saved(ok)` | SAVE's presses, whether a store answers them, and its answer on the screen (a refusal's reason in the text buffer) |
+
+- **Pass 1** reads the file whole and decides every refusal of the note's
+  §10.3: NOT_LUNAR, TOO_NEW, UNKNOWN (an engine or kind this build lacks,
+  unless "load without"), RATE (an engine that refuses the host's rate:
+  each is created once in a scratch arena), RAM (the app's whole RAM figure
+  after the load, every instance at 44,118 Hz, ST6; always refused, and
+  said as a percent: "Needs 121% of the FM-1's RAM."), NO_ROOM (a merge's
+  modules, cables or FM6 voice with no free place, a fuller effects chain
+  than its target, a clip slot that holds one), TOO_BIG and BAD. A set is
+  imported into a scratch sequencer first.
+- **Pass 2** applies in the note's §10.1 order. A project starts from
+  `fm1_app_init`, keeping the settings, MASTER, the host's hooks and the
+  clock; FM6's voices go into the bank first; then the units, their
+  parameters (a pad kit's per-pad values under each pad, its focus last),
+  levels and MIDI effects; the rack and the matrix; the set; the session
+  and the view. A merge first empties the units it replaces, so the RAM
+  rule never counts the old and the new together. The native harness's
+  logs hear none of it.
+- **What each kind does** (§10.2): a sound into Sound K, created afresh, its
+  modules to free rack positions (where they were if free), its cables to
+  free matrix slots, renumbered, and its FM6 voice reusing an identical one
+  in the bank, else the first slot not loaded, its Patch re-pointed;
+  effects into the master or a sound's inserts; a mod rack, a set or
+  settings in place of the old.
+- **The project key** has one home, the set's `key` line (a typed item,
+  `0x13`, in binary). A save writes `session.key` from it; a load never
+  applies `session.key`, and `lunar_state.py check` reports one that
+  disagrees.
+- **Unrouted tracks.** A project's or a clip's set loads with its routes as
+  saved; a track with no `rt` line stays on its MIDI channel, so a project
+  saves back byte for byte. A `.movy1` set gets the start rule on top: with
+  no track routed, track 1 plays Sound 1.
+- **The RAM figure** a load is checked against is the meter's, every
+  instance at `FM1_APP_RAM_RATE` (44,118 Hz, ST6; PR #84), through
+  `fm1_app_ram_of`.
+- **The harness**: `fm1-sim-render --load [sK:|fxK:|fxM:|tT.S:]FILE`
+  (up to four, in order; `--without`, `--replace`) after the setup, then
+  `--save KIND:FILE` before the render and `--save-end KIND:FILE` after it
+  (`project`, `soundK`, `fx`, `fxK`, `mods`, `settings`, `set`,
+  `clip:T.S`; `.lunarb` for binary). Its summary carries the load's report.
+  `tests/test_app_state.py` holds the proofs; the parity scenario
+  `project-load-play` loads the example project and plays its song.
+
 **The editor's metadata** (stage ED0, 2026-10-06;
 notes/2026-10-06-web-editor.md §6, decision ED4). `fm1w_meta_id()` returns
 the id of the module's parameter metadata export (`engines/include/
@@ -752,7 +892,8 @@ tar and scp; nothing is installed on the host):
    metadata results).
 3. `mcr.microsoft.com/playwright:v1.63.0-noble`: `test/screenshot.mjs` opens
    the page in headless Chromium, plays it and writes screenshots and a
-   report to `build/screenshots/`; with `--readme-screenshots`,
+   report to `build/screenshots/`, then `test/files.mjs` checks the page's
+   files (below, "Files") and adds its screenshots and `files-report.json`; with `--readme-screenshots`,
    `test/readme-screenshots.mjs` then takes the README's pictures (the page,
    each engine's screen, an effect page, a parameter page, the phone and
    the parity figure) into `build/readme-screenshots/`, for a person to look
@@ -903,7 +1044,10 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
   nothing about whether a chain fits the FM-1's cycle budget (stage B
   measures that), nor about FPU edge cases on the real core.
 - **No drivers**: no SPI, DMA, ADC or USB; the panel calls the app directly.
-- **SAVE** does nothing yet but say so. Only the arpeggiator's first
+- **Files**: a refusal decided by the shadow Worker's pass 1 shows on the
+  page, not on the device screen (the worklet never sees the file; a
+  `NOT LOADED` banner there needs a small export). Save… has no DX7 bank
+  (VMEM) download yet. Only the arpeggiator's first
   MIDI-effect slot is on the panel. On the panel the sequencer
   has no Session, scenes, song, Loop view, COPY or a CLEAR tap (docs/15
   S9), and no sets in the browser or MIDI clock in (S10); the desktop tools

@@ -22,6 +22,7 @@ output does not depend on the host's block size or on what instance memory
 held; it is finite at every extreme, has no subnormal sample and leaves none
 in the unit's state, returns to zero, and the engine calls no libm.
 """
+import cmath
 import json
 import math
 import shutil
@@ -174,11 +175,34 @@ def test_the_generated_headers_are_the_vendored_scripts_output(tmp_path):
         assert (tmp_path / name).read_bytes() == (VENDOR / "gen" / name).read_bytes(), name
 
 
-def test_the_patched_kit_gives_upstreams_samples(tmp_path):
+@pytest.fixture(scope="module")
+def int16_gen(tmp_path_factory):
+    """The cymbals as fm1-x0x writes them, int16: the vendored script with
+    --int16 (UPSTREAM.md, local change 7), in a directory of their own."""
+    out = tmp_path_factory.mktemp("int16") / "x0x_drum_samples.h"
+    subprocess.run(["python3", str(VENDOR / "tools" / "gen_drum_samples.py"), "--int16", str(out)],
+                   check=True, capture_output=True)
+    return out.parent
+
+
+def build_cymbals(tmp_path, name, *flags):
+    cc = shutil.which("cc") or shutil.which("gcc")
+    if not cc:
+        pytest.skip("no C compiler")
+    exe = tmp_path / name
+    subprocess.run([cc, "-std=c99", "-O2", "-ffp-contract=off", "-w", *flags, "-I", str(VENDOR / "dsp"),
+                    "-I", str(VENDOR / "gen"), str(ENGINES / "test" / "drum909_cymbals.c"),
+                    str(VENDOR / "dsp" / "drum909.c"), "-o", str(exe)], check=True)
+    return exe
+
+
+def test_the_patched_kit_gives_upstreams_samples(tmp_path, int16_gen):
     """drum909_drive.c, upstream's API only (integer pots, 256- and 37-frame
     calls at 44.1 kHz; the panel's defaults, every pot moved, every
     distortion type, soft hits under Accent and Velocity), built against
-    fm1-x0x's own drum909.c and against ours: the same bytes."""
+    fm1-x0x's own drum909.c and against ours, both reading upstream's int16
+    cymbals (X0X_SMP_INT16; the kit plays them as 8-bit mu-law): the same
+    bytes."""
     src = X0X / "firmware" / "src" / "dsp"
     if not (src / "drum909.c").is_file():
         pytest.skip("reference/fm1-x0x is not cloned")
@@ -188,9 +212,10 @@ def test_the_patched_kit_gives_upstreams_samples(tmp_path):
     outs = []
     for name, d in (("upstream", src), ("vendored", VENDOR / "dsp")):
         exe = tmp_path / name
-        subprocess.run([cc, "-std=c99", "-O2", "-ffp-contract=off", "-w", "-I", str(d), "-I",
-                        str(VENDOR / "gen"), str(ENGINES / "test" / "drum909_drive.c"),
-                        str(d / "drum909.c"), "-o", str(exe)], check=True)
+        subprocess.run([cc, "-std=c99", "-O2", "-ffp-contract=off", "-w", "-DX0X_SMP_INT16", "-I", str(d),
+                        "-I", str(int16_gen), "-I", str(VENDOR / "gen"),
+                        str(ENGINES / "test" / "drum909_drive.c"), str(d / "drum909.c"), "-o", str(exe)],
+                       check=True)
         outs.append(subprocess.run([str(exe)], check=True, capture_output=True).stdout)
     assert len(outs[0]) > 4 * 44100 * 30 and outs[0] == outs[1]
 
@@ -504,35 +529,113 @@ def test_no_transcendental_libm_calls():
         assert not names & {"malloc", "free", "calloc", "realloc", "printf", "fprintf", "puts"}, obj.name
 
 
-def test_the_cymbals_are_er99s_recordings_at_44_1_khz():
-    """The flash the samples take, as the generated header declares them:
-    hi-hat 20,250, ride 46,999 and crash 43,300 int16 frames (221,098 B),
-    the figure engines/README.md budgets against."""
-    text = (VENDOR / "gen" / "x0x_drum_samples.h").read_text()
+def arrays(path, ctype):
+    import re
+    text = Path(path).read_text()
+    return {m.group(1): [int(v) for v in m.group(3).replace("\n", " ").split(",") if v.strip()]
+            for m in re.finditer(r"static const %s (\w+)\[(\d+)\] = \{(.*?)\};" % ctype, text, re.S)}
+
+
+def test_the_cymbals_are_er99s_recordings_in_8_bit_mu_law():
+    """The flash the samples take, as the generated header declares them
+    (owner's decision, 2026-10-06): hi-hat 20,250, ride 46,999 and crash
+    43,300 frames as 8-bit mu-law codes (110,549 B, half fm1-x0x's int16),
+    and a 256-entry int16 decode table (512 B)."""
+    path = VENDOR / "gen" / "x0x_drum_samples.h"
+    text = path.read_text()
     lens = {}
     for line in text.splitlines():
         if line.startswith("#define X0X_SMP_"):
             _, name, v = line.split()
             lens[name] = int(v.rstrip("u"))
     assert lens == {"X0X_SMP_HH_LEN": 20250, "X0X_SMP_RIDE_LEN": 46999, "X0X_SMP_CRASH_LEN": 43300}
-    assert 2 * sum(lens.values()) == 221_098
-    assert "Mono, 44.1 kHz, int16" in text
+    codes = arrays(path, "uint8_t")
+    assert {n: len(v) for n, v in codes.items()} == {"x0x_smp_hh": 20250, "x0x_smp_ride": 46999,
+                                                     "x0x_smp_crash": 43300}
+    assert sum(map(len, codes.values())) == 110_549 and all(0 <= c < 256 for v in codes.values() for c in v)
+    dec = arrays(path, "int16_t")["x0x_mulaw_dec"]
+    assert len(dec) == 256 and dec[0] == dec[128] == 0 and dec[127] == 32767
+    assert dec[128:] == [-v for v in dec[:128]] and all(a < b for a, b in zip(dec[:127], dec[1:128]))
+    assert "8-bit mu-law codes" in text
     assert Path(VENDOR / "assets" / "909" / "README.txt").read_text().startswith("909 cymbal samples")
-
-
-# ---- The cymbals' flash budget (engines/README.md, "Comet Kit") -------------------------------
-
-def cymbals():
-    import re
-    text = (VENDOR / "gen" / "x0x_drum_samples.h").read_text()
-    return {m.group(1): [int(v) for v in m.group(3).replace("\n", " ").split(",") if v.strip()]
-            for m in re.finditer(r"static const int16_t (\w+)\[(\d+)\] = \{(.*?)\};", text, re.S)}
 
 
 def snr_db(x, y):
     s = sum(v * v for v in x)
     e = sum((a - b) ** 2 for a, b in zip(x, y))
     return 10 * math.log10(s / e)
+
+
+def test_the_mu_law_cymbals_keep_37_8_db_of_the_int16(int16_gen):
+    """Each recording decoded from its mu-law codes against fm1-x0x's int16
+    (the vendored script's --int16): 37.8 dB of SNR or more, no sample off
+    by more than 600 of 32,768 (the step at full scale is 1,404), and quiet
+    samples within 3 (the smallest step is 6)."""
+    path = VENDOR / "gen" / "x0x_drum_samples.h"
+    codes, dec = arrays(path, "uint8_t"), arrays(path, "int16_t")["x0x_mulaw_dec"]
+    for name, x in arrays(int16_gen / "x0x_drum_samples.h", "int16_t").items():
+        y = [dec[c] for c in codes[name]]
+        assert len(y) == len(x)
+        assert snr_db(x, y) > 37.75, name
+        assert max(abs(a - b) for a, b in zip(x, y)) < 600, name
+        assert all(abs(a - b) <= 3 for a, b in zip(x, y) if abs(a) < 6), name
+
+
+def fft(x):
+    n = len(x)
+    if n == 1:
+        return x
+    ev, od = fft(x[0::2]), fft(x[1::2])
+    tw = [cmath.exp(-2j * math.pi * k / n) * od[k] for k in range(n // 2)]
+    return [ev[k] + tw[k] for k in range(n // 2)] + [ev[k] - tw[k] for k in range(n // 2)]
+
+
+OCTAVES = [0, 250, 500, 1000, 2000, 4000, 8000, 16000, 22050]
+
+
+def octave_snr(x, y, rate=44100, n=2048):
+    """Per band of OCTAVES: (SNR in dB, the band's share of the signal in
+    dB), from Hann-windowed 2048-point spectra of x and of x - y."""
+    win = [0.5 - 0.5 * math.cos(2 * math.pi * i / n) for i in range(n)]
+    s, e = [0.0] * (len(OCTAVES) - 1), [0.0] * (len(OCTAVES) - 1)
+    for f0 in range(0, len(x) - n + 1, n):
+        sx = fft([x[f0 + i] * win[i] for i in range(n)])
+        sd = fft([(x[f0 + i] - y[f0 + i]) * win[i] for i in range(n)])
+        for k in range(1, n // 2):
+            b = next(j for j in range(len(OCTAVES) - 1) if OCTAVES[j] <= k * rate / n < OCTAVES[j + 1])
+            s[b] += abs(sx[k]) ** 2
+            e[b] += abs(sd[k]) ** 2
+    return [(10 * math.log10(s[j] / e[j]), 10 * math.log10(s[j] / sum(s))) for j in range(len(s))]
+
+
+def test_the_kits_cymbals_with_mu_law_against_int16(tmp_path, int16_gen):
+    """drum909_cymbals.c: the closed and open hat, crash and ride, each struck
+    alone on the panel's defaults at three tunings and with drive, through
+    the kit with the mu-law cymbals and with fm1-x0x's int16 ones. In the
+    kit's output the mu-law error is noise that follows the signal: 38.3 dB
+    or more under each hit (38.5-44.2 dB measured), at -54 dBFS or less; in
+    every octave holding an eighth or more of a hit's energy (2-16 kHz on
+    the hats) it is 35 dB or more under the signal; the octaves where it
+    comes within 22-31 dB (under 250 Hz and over 16 kHz) hold 1/40 or less
+    of it (engines/README.md, "Comet Kit")."""
+    import array
+    mu = build_cymbals(tmp_path, "mu")
+    i16 = build_cymbals(tmp_path, "i16", "-DX0X_SMP_INT16", "-I", str(int16_gen))
+    a, b = array.array("f"), array.array("f")
+    a.frombytes(subprocess.run([str(i16)], check=True, capture_output=True).stdout)
+    b.frombytes(subprocess.run([str(mu)], check=True, capture_output=True).stdout)
+    seg = 88200
+    assert len(a) == len(b) == 16 * seg and a != b
+    for k, voice in enumerate(["closed hat", "open hat", "crash", "ride"]):
+        for s, setting in enumerate(["tune 0", "tune 64", "tune 127", "drive 100"]):
+            x, y = a[(4 * k + s) * seg:(4 * k + s + 1) * seg], b[(4 * k + s) * seg:(4 * k + s + 1) * seg]
+            err = sum((u - v) ** 2 for u, v in zip(x, y)) / seg
+            assert snr_db(x, y) > 38.3, (voice, setting, snr_db(x, y))
+            assert 10 * math.log10(err) < -54.0, (voice, setting)
+            if s == 1:
+                for (lo, hi), (snr, share) in zip(zip(OCTAVES, OCTAVES[1:]), octave_snr(x, y)):
+                    assert snr > (35.0 if share > -9.0 else 20.0 if share < -17.0 else 28.0), \
+                        (voice, lo, hi, snr, share)
 
 
 def mu_law_8bit(x):
@@ -577,10 +680,11 @@ def ima_adpcm(x):
     return out
 
 
-def test_the_cymbal_budget_options_measure_as_documented():
-    """The proposed 8-bit mu-law halves the cymbals' 221 KB and keeps 37.8 dB
-    or more of SNR against the int16 on each recording; 4-bit IMA ADPCM
-    would quarter them but keeps under 19 dB, too lossy for cymbals."""
-    for name, x in cymbals().items():
+def test_the_cymbal_budget_options_measure_as_documented(int16_gen):
+    """The options the study weighed (engines/README.md, "Comet Kit"): 8-bit
+    mu-law, rounded in the companded domain, keeps 37.8 dB or more of SNR
+    against the int16 on each recording; 4-bit IMA ADPCM would quarter the
+    flash but keeps under 19 dB, too lossy for cymbals."""
+    for name, x in arrays(int16_gen / "x0x_drum_samples.h", "int16_t").items():
         assert snr_db(x, mu_law_8bit(x)) > 37.7, name
         assert snr_db(x, ima_adpcm(x)) < 19.0, name

@@ -48,6 +48,15 @@ $(shell mkdir -p '$(GPL_GEN)' && h='$(GPL_GEN)/fm1_gpl_mods.h' && \
     { if [ -f "$$h" ]; then sleep 1; fi; printf '%s\n' '$(GPL_LINE)' > "$$h"; }; })
 GPL_OBJ :=
 
+# The module list (FM1_MODULES; engines/modules/catalogue.mk): which engines,
+# effects, MIDI effects and modulation kinds a build has. Its generated
+# header, $(BUILD)/gen/fm1_modules.h, sits beside fm1_gpl_mods.h and is
+# rewritten the same way, only when the list changes. FM1_DROP_OBJ, the
+# objects of the modules left out, is filtered out of what the products link
+# (fm1-render here, the virtual FM-1's builds in sim.mk, the JieLi check's
+# objects in objects.mk).
+include modules/catalogue.mk
+
 COMMON := -std=c++11 -fno-exceptions -fno-rtti -DTEST $(OPT) $(EXTRA) \
           -Iinclude -I$(GPL_GEN) -isystem third_party/mutable -MMD -MP
 OUR_WARN := -Wall -Wextra -Wno-unused-parameter
@@ -91,11 +100,15 @@ TP_OBJ := $(patsubst %.cc,$(BUILD)/tp/%.o,$(TP_SRC))
 # to GPL_OBJ; a variant of the renderer (mk/plaits-heavy.mk) links this list
 # with one object swapped.
 RENDER_OBJ = $(OUR_OBJ) $(TP_OBJ) $(RENDER_EXTRA_OBJ) $(GPL_OBJ)
+# What fm1-render itself links: the same, less the objects of the modules the
+# list leaves out (modules/catalogue.mk). Test tools link RENDER_OBJ, so they
+# build whatever the list; their registries have only the modules chosen.
+RENDER_PRODUCT_OBJ = $(filter-out $(FM1_DROP_OBJ),$(RENDER_OBJ))
 
 .PHONY: all clean
 all: $(BUILD)/fm1-render
 
-$(BUILD)/fm1-render: $(RENDER_OBJ)
+$(BUILD)/fm1-render: $(RENDER_PRODUCT_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
 $(BUILD)/our/%.o: %.cc

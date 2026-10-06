@@ -1,0 +1,82 @@
+{
+  "lunar": "1.0",
+  "kind": "mods",
+  "made": {"by": "hand"},
+  "name": "WOBBLE",
+  "title": "Wobble",
+  "about": "An LFO on Sound 1's filter, its rate from an envelope.",
+  "licence": "MIT",
+  "mod": {
+    "seed": 7,
+    "rack": [
+      {
+        "pos": 1,
+        "kind": "lfo",
+        "params": {
+          "Rate": 0.6,
+          "Shape": "Sine",
+          "Depth": 1,
+          "Mode": "Free",
+          "Phase": 0,
+          "Sync": "1/8",
+          "Width": 0.5
+        }
+      },
+      {
+        "pos": 2,
+        "kind": "env",
+        "params": {
+          "Attack": 0.2,
+          "Decay": 0.6,
+          "Sustain": 0.7,
+          "Release": 0.5,
+          "Curve": "Expo",
+          "Loop": "Off",
+          "Mode": "Gate",
+          "Level": 1
+        }
+      }
+    ],
+    "cables": [
+      {
+        "slot": 1,
+        "on": true,
+        "from": {"module": 1, "port": "Out"},
+        "via": null,
+        "to": {"unit": "snd1.fx1", "param": "Cutoff"},
+        "amount": 50,
+        "offset": 0,
+        "polarity": "auto",
+        "curve": "lin",
+        "voice": false,
+        "lock": 0
+      },
+      {
+        "slot": 2,
+        "on": true,
+        "from": {"module": 2, "port": "Env"},
+        "via": null,
+        "to": {"module": 1, "param": "Rate"},
+        "amount": 30,
+        "offset": 0,
+        "polarity": "auto",
+        "curve": "lin",
+        "voice": false,
+        "lock": 0
+      },
+      {
+        "slot": 3,
+        "on": true,
+        "from": {"source": "KEY"},
+        "via": null,
+        "to": {"module": 2, "gate": "Gate"},
+        "amount": 100,
+        "offset": 0,
+        "polarity": "auto",
+        "curve": "lin",
+        "voice": false,
+        "lock": 0
+      }
+    ]
+  }
+}

@@ -38,6 +38,7 @@ GitHub's documentation on renaming a repository].
   - [The sequencer core](#the-sequencer-core)
   - [Saved state](#saved-state)
   - [The virtual FM-1](#the-virtual-fm-1)
+  - [Choosing the modules](#choosing-the-modules)
 - [The hardware](#the-hardware)
   - [The FM-1 at a glance](#the-fm-1-at-a-glance)
   - [The two cores](#the-two-cores)
@@ -204,9 +205,10 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     between the integers), sixteen pads on its eleven voices and a 16-sample
     grid; it is its vendored unit to the bit [verified: `fm1-comet-oracle
     --twin`], and the patched kit is upstream's at 44.1 kHz [verified:
-    `tests/test_engine_comet_kit.py`]. Its cymbals are 221 KB of int16 in
-    flash ([`engines/README.md`](engines/README.md#comet-kit) proposes a
-    budget).
+    `tests/test_engine_comet_kit.py`]. Its cymbals are 8-bit µ-law since
+    2026-10-06, 110,549 B of flash where fm1-x0x's int16 take 221,098 B,
+    37.8 dB of SNR against them
+    ([`engines/README.md`](engines/README.md#comet-kit) measures it).
     **Crater Kit**, a 16-pad kit after the TR-808, is fm1-x0x's 808 (8W8's
     circuit models by athousanddetails, sc808's rim shot), with two local
     changes (its silence threshold a constant, pots between the integers)
@@ -391,16 +393,23 @@ decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
   canvas, its text in three faces (the project's 5×9 at ×2, Spleen 8×16
-  and 6×12). All 4,534 screens of the layout sweep (3,645 with the GPL
-  switch off), the sequencer's, modulation's and the arpeggiator's, the
+  and 6×12). All 4,546 screens of the layout sweep (3,645 with the GPL
+  switch off before stage A1's twelve), the sequencer's, modulation's and the arpeggiator's, the
   global page's Key page, FM6's user bank, the GPL modules' pages, every
   list popup at every entry and the knobs' lists included, pass a layout
   check, with no text cut short and nothing closer than 4 px [verified:
   `fm1-sim-render --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
-  modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); only SAVE is still
-  a stub. The user manual describes every control.
+  modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); SAVE keeps the
+  project in the page's IndexedDB store (stage W1: Open, Save…, autosave,
+  Recent, links and the embed API, `sim/web/README.md`, "Files"). The user manual describes every
+  control.
+- **Saved state:** the module saves and loads its whole state as the state
+  core's files (projects, sounds, effects, mod racks, clips, sets and
+  settings), checks a load first and refuses what would not fit the FM-1,
+  changing nothing (stage A1, `sim/web/src/fm1_app_state.h`,
+  notes/2026-10-06-state-files.md §23).
 - **On a phone:** the panel keeps keys 31–35 px wide and no target under
   24 px, and scrolls sideways in its own box.
 - **Self-contained:** the page loads nothing from anywhere else and finds its
@@ -429,6 +438,152 @@ python -m pytest tests/test_sim_web.py            # the native checks, no WebAss
 
 The panel's measurements, the parity results and the page tests are in
 [`sim/web/README.md`](sim/web/README.md).
+
+### Choosing the modules
+
+A build can have only chosen modules: sound engines, effects, MIDI effects
+and modulation kinds, by id (2026-10-06; owner's decision, the first step
+toward the browser firmware builder in
+[Modules from the community](#modules-from-the-community)). The list sits
+on top of the GPL switch ([Licences](#licences)), which still decides
+first: with `FM1_GPL_MODS=0` no GPL module is in a build, listed or not.
+
+```bash
+make -C engines                                  # every module (FM1_MODULES=all)
+make -C engines FM1_MODULES=default              # engines/modules/default.list, the FM-1's proposed list
+make -C engines FM1_MODULES=path/to/my.list      # a list file (from engines/, or absolute; '#' comments)
+make -C engines FM1_MODULES=macro,plate,arp,lfo,env   # the modules named
+engines/build/fm1-render --build-info            # "modules": the list's name, "left_out": how many
+make -C engines -s print-modules                 # each module: kind, chosen, its objects
+FM1_JIELI_HOST=user@host FM1_MODULES=default tools/jieli/compile-check.sh   # flash by module, against the budget
+```
+
+- **One catalogue:** `engines/modules/catalogue.mk` names every module by
+  kind, which are GPL, and the objects each needs beyond the core
+  (`FM1_OBJ.<id>`, shared objects named under every module that needs
+  them). It writes `$(BUILD)/gen/fm1_modules.h` (`FM1_WITH_<ID>`, 0 or 1),
+  rewritten only when the list changes, as `fm1_gpl_mods.h` is. A list
+  must hold a sound engine; an unknown id stops the build.
+- **The registries** keep only the chosen modules: every entry of
+  `src/registry.cc` (and its licence row), `midi_fx/registry.c` and
+  `mod/mod_registry.c` is `FM1_IF(FM1_WITH_<ID>, ...)`. So fm1-render
+  `--list` and `--list-mod`, the virtual FM-1's catalogue and the metadata
+  export follow the list. The export names it (`build.modules`) and lists
+  each module left out as a known id with the reason `list` ("left out of
+  this build"), and its `meta_id` is the build's own; a file that names a
+  left-out module is refused with that reason.
+- **The products** link only the chosen modules' objects and the core
+  (`FM1_DROP_OBJ`): fm1-render, the virtual FM-1's native and WebAssembly
+  builds, and the JieLi compile check's object list. The app layer reaches
+  two modules directly, FM6's bank and the Resonator's readout, under
+  `FM1_WITH_DX7` and `FM1_WITH_RESONATOR`; FM6's voice format
+  (`dx7_voice.o`, msfa's `patch.o`) is core, since files and the export
+  read it. Desktop test tools link every object, whatever the list. The
+  published simulator is built with every module.
+- **Checked:** `tests/test_module_list.py` checks the catalogue against
+  the objects' symbols (nothing in the core needs a module's object; a
+  module's objects need no other module's they do not list), the list's
+  forms and refusals, and a smaller build end to end (its lists, its
+  export, its refusal of a left-out module, and none of a left-out
+  module's symbols linked). CI builds the full list in every job and the
+  default list, with the switch on and off, in `modules-default`.
+
+**Flash per module.** The JieLi check's report gives each chosen module's
+text (code and read-only data) at each profile: its own objects, and the
+objects it shares with other chosen modules. With every module, at `-Oz`
+(the SDK's level), before `--gc-sections` (an upper bound: a link drops
+functions nothing calls) [verified: `tools/jieli/compile-check.sh`,
+2026-10-06, 148 of 148 objects in all four profiles, link audit PASS]:
+
+| Module | Kind | Own | Shared | Shared with | In `default` |
+| --- | --- | ---: | ---: | --- | --- |
+| `comet` (GPL) | sound | 140,024 | – | – | no |
+| `macro-heavy` | sound | 60,747 | 77,692 | diffuse, drums, ensemble, macro, plate, shapes, sixop | no |
+| `macro` | sound | 27,091 | 77,692 | diffuse, drums, ensemble, macro-heavy, plate, shapes, sixop | yes |
+| `drums` | sound | 21,121 | 76,830 | diffuse, ensemble, macro, macro-heavy, plate, shapes, sixop | yes |
+| `sixop` | sound | 19,250 | 76,830 | diffuse, drums, ensemble, macro, macro-heavy, plate, shapes | yes |
+| `shapes` | sound | 87,152 | – | – | yes |
+| `diffuse` | effect | 0 | 83,614 | drums, ensemble, macro, macro-heavy, plate, sixop | yes |
+| `ensemble` | effect | 0 | 83,614 | diffuse, drums, macro, macro-heavy, plate, sixop | yes |
+| `plate` | effect | 0 | 83,614 | diffuse, drums, ensemble, macro, macro-heavy, sixop | yes |
+| `dx7` | sound | 37,000 | – | – | yes |
+| `drawbar` (GPL) | sound | 0 | 21,324 | phase-bend, trio | yes |
+| `phase-bend` (GPL) | sound | 0 | 21,324 | drawbar, trio | yes |
+| `trio` (GPL) | sound | 0 | 21,324 | drawbar, phase-bend | yes |
+| `crater` (GPL) | sound | 21,031 | – | – | yes |
+| `sw-sophie` | sound | 15,013 | 3,907 | sw-psxverb | yes |
+| `acid-bass` (GPL) | sound | 10,741 | – | – | yes |
+| `sw-psxverb` | effect | 6,286 | 3,907 | sw-sophie | yes |
+| `filter` | effect | 7,056 | – | – | yes |
+| `room` | effect | 6,110 | – | – | yes |
+| `limit` | effect | 5,254 | – | – | yes |
+| `drive` | effect | 4,941 | – | – | yes |
+| `sat` | effect | 4,721 | – | – | yes |
+| `acid-gen` (GPL) | MIDI effect | 4,582 | – | – | yes |
+| `squash` | effect | 4,536 | – | – | yes |
+| `gate` | effect | 4,506 | – | – | yes |
+| `hall` | effect | 4,307 | – | – | yes |
+| `eq` | effect | 4,168 | – | – | yes |
+| `isolator` | effect | 3,536 | – | – | yes |
+| `function` | mod kind | 3,486 | – | – | yes |
+| `djfilter` | effect | 3,276 | – | – | yes |
+| `comp` | effect | 3,022 | – | – | yes |
+| `arp` | MIDI effect | 2,475 | – | – | yes |
+| `divide` | mod kind | 2,690 | – | – | yes |
+| `echo` | effect | 2,584 | – | – | yes |
+| `burst` | mod kind | 2,579 | – | – | yes |
+| `fold` | effect | 2,463 | – | – | yes |
+| `compare` | mod kind | 2,179 | – | – | yes |
+| `comb` | effect | 2,135 | – | – | yes |
+| `lfo` | mod kind | 2,089 | – | – | yes |
+| `chance` | mod kind | 1,942 | – | – | yes |
+| `tilt` | effect | 1,879 | – | – | yes |
+| `quantize` | mod kind | 1,868 | – | – | yes |
+| `env` | mod kind | 1,820 | – | – | yes |
+| `shaper` | effect | 1,754 | – | – | yes |
+| `crush` | effect | 1,667 | – | – | yes |
+| `register` | mod kind | 1,665 | – | – | yes |
+| `bounce` | mod kind | 1,572 | – | – | yes |
+| `slew` | mod kind | 1,425 | – | – | yes |
+| `resonator` | mod kind | 1,403 | – | – | yes |
+| `logic` | mod kind | 1,230 | – | – | yes |
+| `calc` | mod kind | 1,139 | – | – | yes |
+| `coin` | mod kind | 1,054 | – | – | yes |
+| `test-sine` | sound | 1,047 | – | – | no |
+| `mix` | mod kind | 795 | – | – | yes |
+| `test-ext` | effect | 555 | – | – | no |
+| `test-gain` | effect | 509 | – | – | no |
+
+The core, everything no module owns (the sequencer, modulation runtime,
+MIDI-effect stage, saved state's tables, the simulator's app layer as a
+stand-in for the device's UI, the registries), is 182,478 B; every module
+together comes to 845,716 B at `-Oz` (1,042,907 B at `-O2`).
+
+**The budget, and the proposed default list.** The app area up to
+`0xD9000` in FM-1+VA's layout is 852 KiB (872,448 B) [verified: docs/11].
+JieLi's libraries and the device's own platform code (USB-MIDI, audio,
+display, keys) are not linked yet; fm1-nes's whole AC79 SDK app links to
+129,392 B with USB alone and 201,296 B with USB audio [reported: fm1-nes
+`VALIDATION.md`, `870f305`], so the report reserves 200 KiB for them
+[inferred] and measures a list against the 667,648 B left. Every module
+together is 127 % of that. `engines/modules/default.list` proposes every
+module but Comet Kit (140,024 B, with Crater Kit and Drums kept), Macro
+Heavy (60,747 B beyond what Macro shares with it) and the three test
+modules:
+
+| List | Objects | Text at `-Oz` | Of the budget | Text at `-O2` |
+| --- | ---: | ---: | ---: | ---: |
+| `all`, GPL switch on | 148 | 845,716 B | 127 % | 1,042,907 B |
+| `default`, GPL switch on | 121 | 643,282 B | 96 % | 819,777 B |
+| `default`, GPL switch off (the shareable build) | 113 | 585,349 B | 88 % | 734,400 B |
+
+[verified: the check, 2026-10-06, each list in its own run, every object
+compiled in all four profiles, link audit PASS]. To carry Comet Kit as
+well, the list would have to give up another 115,658 B or more: Shapes,
+Six-Op and Sophie together (121,415 B) would leave it at 99 % [inferred:
+the per-module figures added up]. The proposal keeps the MIT engines;
+which modules an image carries is the owner's call, and the builder's job
+later.
 
 ## The hardware
 
@@ -1043,6 +1198,12 @@ modulation source, a MIDI effect, an audio effect, or another kind.
   beside the virtual FM-1 that builds the package on the user's machine from
   the user's own V15 `.fwsc` plus our `app.bin`. Nothing more is planned
   yet.
+- **First step, built (2026-10-06):** the build-time module list
+  ([Choosing the modules](#choosing-the-modules)): `FM1_MODULES` picks the
+  engines, effects, MIDI effects and modulation kinds of a build from one
+  catalogue, the JieLi check reports flash per module against the app
+  area, and `engines/modules/default.list` proposes the FM-1's list
+  (643,282 B at `-Oz`, 96 % of the budget). A builder would write that list.
 - **Rough effort:** not estimated; after I15.
 
 **A catalogue of community modules** · *Planned*
@@ -1732,7 +1893,10 @@ review.
     - a fragment `engines/mk/<name>.mk` that adds its sources under
       `ifeq ($(FM1_GPL_MODS),1)` and its C objects to `GPL_OBJ`;
     - its registry entry and its row in the licence table under `#if
-      FM1_GPL_MODS` (`engines/src/registry.cc`, `midi_fx/registry.c`);
+      FM1_GPL_MODS` (`engines/src/registry.cc`, `midi_fx/registry.c`), each
+      as `FM1_IF(FM1_WITH_<ID>, ...)`, and its id and objects in
+      `engines/modules/catalogue.mk` (`FM1_GPL_IDS`, `FM1_OBJ.<id>`;
+      [Choosing the modules](#choosing-the-modules));
     - its uids in `tests/fixtures/param-uids.json`, its id in that file's
       `gpl` list, `gpl_only` on its tests, and `"gpl": true` on its parity
       scenarios, which skip with the switch off.

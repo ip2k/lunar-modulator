@@ -235,12 +235,13 @@ def test_quantize_walks_its_list(tools):
 
 
 def test_a_message_is_no_list(tools):
-    """A stub's popup and the gesture's stay messages: no title, no window.
-    The stub is a refusal (audit Q2): the full popup, its reason in love.
+    """SAVE's popup without a store and the gesture's stay messages: no
+    title, no window. SAVE's is a refusal (audit Q2): the full popup, its
+    reason in love.
     The gesture's amount is a confirmation: one line, a banner over the
     page (audit L1), in MID since it needs more than MAIN's 18 characters."""
     stub = sim(tools, "--button", "0.1:SAVE", seconds="0.2")
-    assert stub["popup"] == ["SAVE", "not in the", "simulator yet"] and stub["popup_list"] is None
+    assert stub["popup"] == ["SAVE", "no store in", "this host"] and stub["popup_list"] is None
     assert stub["popup_tone"] == "refuse" and "popup_banner" not in stub
     cable = sim(tools, "--button", "0.1:LFO:0.2", "--turn", "0.15:KNOB3:25", seconds="0.4")
     assert cable["popup"] == ["LFO1 > S1 Timbre", "+25%"] and cable["popup_list"] is None

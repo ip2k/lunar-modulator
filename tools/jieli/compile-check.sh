@@ -34,7 +34,10 @@
 # jieli-compile), FM1_JIELI_TOOLCHAIN_SHA256 (to accept a different archive
 # when JieLi's link moves; the report records which one ran), FM1_GPL_MODS
 # (the GPL switch, engines/Makefile: 1, the default, compiles the GPL modules
-# too; 0 checks the MIT/BSD build; record.json says which ran).
+# too; 0 checks the MIT/BSD build; record.json says which ran), FM1_MODULES
+# (the module list, engines/modules/catalogue.mk: `all`, the default, or a
+# list such as `default`; the report gives flash by module and the list's
+# total against the budget; record.json says which ran).
 # MIT licence, like the rest of this repository.
 set -euo pipefail
 export COPYFILE_DISABLE=1   # no AppleDouble files in the staged tree
@@ -43,6 +46,8 @@ HOST="${FM1_JIELI_HOST:?set FM1_JIELI_HOST=user@host (a Linux x86-64 machine wit
 SESSION=${FM1_SESSION:-jieli-compile}
 GPL_MODS=${FM1_GPL_MODS:-1}
 case "$GPL_MODS" in 0|1) ;; *) echo "FM1_GPL_MODS is 0 or 1, not $GPL_MODS" >&2; exit 2 ;; esac
+MODULES=${FM1_MODULES:-all}
+case "$MODULES" in *[!A-Za-z0-9._,-]*) echo "FM1_MODULES: ids, commas and a list name only" >&2; exit 2 ;; esac
 LABELS="--label project=lunar-modulator --label session=$SESSION"
 
 # Pins. JieLi's short link redirects to the newest archive; the pin makes a
@@ -170,7 +175,7 @@ tar -C "$ROOT" --no-xattrs --exclude='engines/build*' --exclude='sim/web/build' 
 
 echo "== compiling in $IMAGE"
 ssh "$HOST" "rm -rf '$REMOTE/out' && mkdir -p '$REMOTE/out' && docker run --rm $LABELS \
-  -u \$(id -u):\$(id -g) -e FM1_GPL_MODS=$GPL_MODS \
+  -u \$(id -u):\$(id -g) -e FM1_GPL_MODS=$GPL_MODS -e FM1_MODULES=$MODULES \
   -v '$REMOTE/toolchain/current:/opt/jieli:ro' -v '$REMOTE/sdk:/sdk:ro' \
   -v '$REMOTE/src:/src' -v '$REMOTE/out:/out' $IMAGE bash /src/tools/jieli/in-container.sh"
 
@@ -178,7 +183,7 @@ echo "== record"
 COMMIT=$(git -C "$ROOT" rev-parse HEAD)
 DIRTY=$(git -C "$ROOT" status --porcelain -- engines sim/web/src tools/jieli | wc -l | tr -d ' ')
 ssh "$HOST" "cat > '$REMOTE/out/record.json'" <<EOF
-{"tree": "$COMMIT", "uncommitted_files": $DIRTY, "gpl_mods": $GPL_MODS,
+{"tree": "$COMMIT", "uncommitted_files": $DIRTY, "gpl_mods": $GPL_MODS, "modules": "$MODULES",
  "toolchain_archive": "$TOOLCHAIN_ARCHIVE", "toolchain_sha256": "$TOOLCHAIN_SHA256",
  "sdk": "$SDK_TAG", "sdk_commit": "$SDK_COMMIT",
  "image": "$IMAGE", "image_id": "$DIGEST",
@@ -190,6 +195,6 @@ rm -rf "$LOCAL_OUT" && mkdir -p "$LOCAL_OUT"
 # Reports, logs, size tables and the link-audit report only; the objects stay
 # on the build host.
 ssh "$HOST" "cd '$REMOTE/out' && tar -cf - report.json report.md record.json sizes/*.json \
-  \$(find . -name '*.log' -o -name '*.rc' -o -name 'objects.txt' -o -name 'opt.txt' -o -name 'extra.txt' -o -name 'audit_link.json' | sed 's|^\./||')" \
+  \$(find . -name '*.log' -o -name '*.rc' -o -name 'objects.txt' -o -name 'modules.txt' -o -name 'opt.txt' -o -name 'extra.txt' -o -name 'audit_link.json' | sed 's|^\./||')" \
   | tar -x -C "$LOCAL_OUT"
 echo "report: $LOCAL_OUT/report.md"

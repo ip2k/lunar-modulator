@@ -7,7 +7,8 @@
     "mod_api": 2,
     "rate": 44118,
     "ram_budget": 387924,
-    "gpl": true
+    "gpl": true,
+    "modules": "all"
   },
   "engines": [
     {
@@ -2387,7 +2388,7 @@
     {
       "id": "chop",
       "what": "sound",
-      "reason": "gpl"
+      "reason": "planned"
     }
   ],
   "limits": {
@@ -2685,6 +2686,10 @@
       {
         "reason": "retired",
         "words": "retired in {since}"
+      },
+      {
+        "reason": "list",
+        "words": "left out of this build"
       }
     ]
   },
@@ -2943,5 +2948,5 @@
       }
     ]
   },
-  "meta_id": "a5c579fc"
+  "meta_id": "eff5d1c0"
 }

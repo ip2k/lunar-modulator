@@ -16,8 +16,9 @@
 // goes to the slot after the last one, a bank to User 1-32; a bank's data
 // without framing loads; a wrong checksum loads and is counted; an empty
 // file, text, another maker's SysEx, a dump cut short and a dump of the
-// wrong length load nothing and say which; a file past the 64 KiB buffer is
-// refused; a refusal leaves the bank as it was; with `play` the current
+// wrong length load nothing and say which; a file past FM6's 64 KiB cap
+// (FM1_APP_DX7_FILE_MAX; the text buffer is 256 KiB since stage A1) or past
+// the buffer is refused; a refusal leaves the bank as it was; with `play` the current
 // sound becomes FM6 on the first voice loaded; an FM6 sound made after a
 // load plays the bank; and each of four voices renders the same samples
 // from the bank (packed, unpacked by msfa's UnpackPatch) as from its single
@@ -204,13 +205,18 @@ await check('several dumps and other messages: the dumps load, the rest is count
   };
 });
 
-await check('a file past the 64 KiB buffer is refused, and a refusal keeps the bank', async () => {
+await check('a file past 64 KiB or the buffer is refused, and a refusal keeps the bank', async () => {
   const m = await fm1();
   m.load(BANK);
   const cap = m.ex.fm1w_text_cap();
+  const over = m.load(new Uint8Array(65537));
   const big = m.load(new Uint8Array(0), 0, cap + 1);
   const junk = m.load(new TextEncoder().encode('nothing here'));
-  return { pass: cap === 65536 && big.n === -1 && junk.n === 0 && m.names().every((n, k) => n === NAME(k)), big };
+  return {
+    pass: cap === 262144 && over.n === -1 && big.n === -1 && junk.n === 0 && m.names().every((n, k) => n === NAME(k)),
+    over,
+    big,
+  };
 });
 
 await check('64 KiB of single voices is read whole', async () => {

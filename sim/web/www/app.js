@@ -5,6 +5,7 @@
 // like the rest of this repository.
 
 import { BUTTONS, ENCODERS, KEYS } from './fm1-wasm.mjs';
+import { initFiles, pref } from './files.js';
 
 // ---- panel geometry, millimetres --------------------------------------------
 // Case 161.5 x 96.5 mm (M-VAVE manual, specifications). Control centres
@@ -175,37 +176,59 @@ const image = new ImageData(240, 240);
 
 const sim = {
   ctx: null, node: null, analyser: null, catalog: null, state: null, master: 0.75,
-  requestedRate: null, screens: 0, midi: null, notice: '', seq: null, dx7: null,
+  requestedRate: null, rateRefused: '', screens: 0, midi: null, notice: '', seq: null, dx7: null,
 };
 window.fm1 = sim;    // for the headless screenshot test and the console
 
-// Macro, Macro Heavy and Six-Op run Plaits at 47,872.34 Hz and resample to
-// the host, so they refuse faster hosts (engines/resampler.md).
+// Macro, Macro Heavy, Six-Op and Drums run Plaits at 47,872.34 Hz and
+// resample to the host, so they refuse faster hosts (engines/resampler.md).
 const PLAITS_RATE = 47872;
 
-function send(msg) { if (sim.node) sim.node.port.postMessage(msg); }
+// Messages that change what a save holds (MASTER is a page preference).
+const EDITS = new Set(['key', 'button', 'encoder', 'note-on', 'param', 'select', 'dx7-load']);
+function send(msg) {
+  if (!sim.node) return;
+  sim.node.port.postMessage(msg);
+  if (EDITS.has(msg.type) && files) files.touched();
+}
+let files = null;
 
 // The worklet and the module sit next to this script. Resolving them from
 // it, not from the document, keeps them found wherever the page is served
 // (a subdirectory, a static host that wraps the page, https or localhost).
 const asset = (name) => new URL(name, import.meta.url).href;
 
+// The page asks the browser for 44,100 Hz (owner, 2026-10-06): every engine
+// runs there, Macro, Macro Heavy, Six-Op and Drums (which need 47,872 Hz or
+// less) included, and it is the rate audio hardware most often
+// runs at. The FM-1 runs at about 44,118 Hz; the RAM meter counts at that
+// rate whatever the browser gives (FM1_APP_RAM_RATE).
+const WANT_RATE = 44100;
+
 async function makeContext() {
   let last = null;
-  for (const rate of [44118, 44100]) {
-    try {
-      const ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: rate });
-      if (ctx.sampleRate <= PLAITS_RATE) {
-        sim.requestedRate = rate;
-        return ctx;
-      }
-      await ctx.close();          // the browser ignored the rate it was asked for
-    } catch (err) {
-      last = err;
+  try {
+    const ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: WANT_RATE });
+    if (ctx.sampleRate === WANT_RATE) {
+      sim.requestedRate = WANT_RATE;
+      sim.rateRefused = '';
+      return ctx;
     }
+    // The browser took the request but runs at another rate: keep it if
+    // every engine still runs there, else fall back below.
+    sim.rateRefused = `it runs at ${ctx.sampleRate.toLocaleString('en')} Hz`;
+    if (ctx.sampleRate <= PLAITS_RATE) {
+      sim.requestedRate = WANT_RATE;
+      return ctx;
+    }
+    await ctx.close();
+  } catch (err) {
+    last = err;
+    sim.rateRefused = 'it would not run at that rate';
   }
-  // Last resort, the device's own rate. Above 47,872 Hz the firmware starts
-  // with the first sound that runs and says which ones refused.
+  // Refused: the browser's own rate. Above 47,872 Hz the firmware starts
+  // with the first sound that runs, and the status line says which refused
+  // and why.
   try {
     const ctx = new AudioContext({ latencyHint: 'interactive' });
     sim.requestedRate = null;
@@ -244,6 +267,7 @@ async function start() {
     const res = await fetch(asset('fm1.wasm'));
     if (!res.ok) throw new Error(`fm1.wasm: HTTP ${res.status}`);
     const wasm = await res.arrayBuffer();
+    sim.wasm = wasm.slice(0);      // the shadow Worker's copy (files.js)
     const node = new AudioWorkletNode(ctx, 'fm1', {
       numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2],
     });
@@ -259,6 +283,8 @@ async function start() {
     powerEl.classList.add('on');
     document.getElementById('power-off').disabled = false;
     dx7Button.disabled = false;
+    for (const id of FILE_CONTROLS) document.getElementById(id).disabled = false;
+    files.afterPowerOn().catch((err) => console.error('files', err));
   } catch (err) {
     if (ctx && ctx !== sim.ctx && ctx.state !== 'closed') await ctx.close();
     await powerOff();
@@ -266,14 +292,18 @@ async function start() {
   }
 }
 
+const FILE_CONTROLS = ['save', 'save-kind', 'copy-link'];
 async function powerOff() {
   releaseEverything();
+  if (sim.node && files) await files.beforePowerOff();
   if (sim.ctx) await sim.ctx.close();
   Object.assign(sim, { ctx: null, node: null, analyser: null, state: null, seq: null });
   overlay.hidden = false;
   powerEl.classList.remove('on');
   document.getElementById('power-off').disabled = true;
   dx7Button.disabled = true;
+  for (const id of FILE_CONTROLS) document.getElementById(id).disabled = true;
+  if (files) files.renderLibrary();
   for (const s of selects) s.disabled = true;
   for (const g of [...keyEls, ...buttonEls]) g.classList.remove('lit');
   for (const c of [tft, mirror]) c.getContext('2d').clearRect(0, 0, 240, 240);
@@ -351,6 +381,7 @@ async function readJson(name) {
 })();
 
 function onWorklet(m, node) {
+  if (files.onWorklet(m)) return;
   switch (m.type) {
     case 'ready':
       sim.catalog = m.catalog;
@@ -371,6 +402,7 @@ function onWorklet(m, node) {
       // Multi-sound: the menu is the current sound's; Sound 1 is never empty.
       soundLabel.textContent = `Sound ${m.sound + 1} (PRESETS)`;
       if (selects[0].options.length) selects[0].options[0].disabled = m.sound === 0;
+      files.fillSaveKinds();
       showStatus();
       break;
     case 'screen':
@@ -390,7 +422,8 @@ function onWorklet(m, node) {
       const name = entry ? entry.name : `Engine ${m.index}`;
       const why = m.code === -2 ? 'it is too large for its slot'
         : m.code === -3 ? `it does not run at ${Math.round(m.rate).toLocaleString('en')} Hz ` +
-          `(Macro, Macro Heavy and Six-Op need ${PLAITS_RATE.toLocaleString('en')} Hz or less)`
+          `(Macro, Macro Heavy, Six-Op and Drums need ${PLAITS_RATE.toLocaleString('en')} Hz or less` +
+          (sim.requestedRate === WANT_RATE ? ')' : ', and this browser would not run the page at 44,100 Hz)')
           : m.code === -4 ? 'the chain would no longer fit the FM-1\'s memory (the screen says what it would need)'
             : `error ${m.code}`;
       sim.notice = `${name} was refused: ${why}.` +
@@ -453,7 +486,8 @@ function showStatus() {
   const st = sim.state;
   if (!sim.ctx || !st) return;
   const rate = sim.ctx.sampleRate;
-  const fellBack = sim.requestedRate !== 44118 ? ` (the browser refused 44,118 Hz)` : '';
+  const fellBack = rate === WANT_RATE ? ''
+    : ` (the browser refused 44,100 Hz${sim.rateRefused ? `: ${sim.rateRefused}` : ''})`;
   const latency = sim.ctx.outputLatency || sim.ctx.baseLatency || 0;
   const q = sim.seq;
   const seq = q ? ` Sequencer: ${bpmText(q.bpm_x100)}, ` +
@@ -601,7 +635,7 @@ window.addEventListener('drop', (e) => {
   e.preventDefault();
   dragDepth = 0;
   dropHint.hidden = true;
-  loadDx7Files([...e.dataTransfer.files]);
+  files.openFiles([...e.dataTransfer.files]);
 });
 
 // ---- pointer input ---------------------------------------------------------------
@@ -733,6 +767,7 @@ function turn(g, delta) {
 
 function setMaster(pos) {
   sim.master = Math.min(1, Math.max(0, pos));
+  pref('master', sim.master.toFixed(3));
   setAngle(masterEl, -150 + 300 * sim.master);
   masterEl.setAttribute('aria-valuenow', String(Math.round(sim.master * 100)));
   send({ type: 'master', position: sim.master, show: true });
@@ -920,8 +955,25 @@ function revealScreen() {
   if (need > 0) scroller.scrollLeft += need;
 }
 
+// A control by its printed name, for a link's or the guide's highlight:
+// the buttons and encoders, MASTER, POWER, PLAY or STOP, KEY1 to KEY27.
+function controlEl(name) {
+  if (name === 'MASTER') return masterEl;
+  if (name === 'POWER') return powerEl;
+  const id = name === 'PLAY' || name === 'STOP' ? 'PLAY/STOP' : name;
+  if (BUTTONS.includes(id)) return buttonEls[BUTTONS.indexOf(id)];
+  if (Object.hasOwn(encoderEls, id)) return encoderEls[id];
+  const m = /^KEY([1-9]|1\d|2[0-7])$/.exec(id);
+  return m ? keyEls[Number(m[1]) - 1] : null;
+}
+
 // ---- wiring --------------------------------------------------------------------------
+{
+  const saved = Number(pref('master'));      // MASTER: a preference, never in a file
+  if (pref('master') !== null && saved >= 0 && saved <= 1) sim.master = saved;
+}
 drawPanel();
+files = initFiles({ sim, powerOn, loadDx7Files, controlEl });
 setAngle(masterEl, -150 + 300 * sim.master);
 revealScreen();
 document.getElementById('power-on').addEventListener('click', powerOn);

@@ -113,7 +113,8 @@ def metadata_from_build(listed, mod, engines=None, kinds=None):
         "mod_api": _define(ENGINES / "include" / "fm1_mod.h", "FM1_MOD_API_VERSION"),
         "rate": 44118,
         "ram_budget": _define(ROOT / "sim" / "web" / "src" / "fm1_app.h", "FM1_APP_RAM_BUDGET"),
-        "gpl": GPL_MODS}
+        "gpl": GPL_MODS,
+        "modules": "all"}        # the module list (FM1_MODULES): these tools build every module
     doc["engines"] = [
         {"id": e["id"], "name": e["name"], "kind": e["kind"], "credits": e["credits"],
          "licence": e["licence"], "max_voices": e["max_voices"], "per_note": e["per_note"], "pads": e["pads"],

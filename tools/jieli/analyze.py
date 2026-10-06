@@ -22,6 +22,16 @@ from pathlib import Path
 OBJDUMP = "/opt/jieli/pi32v2/bin/objdump"
 PROFILES = ["ladder", "fast", "sdk", "pic"]
 
+# The flash budget a module list is measured against (DEVELOPERS.md,
+# "Choosing the modules"): the app area up to 0xD9000 in FM-1+VA's layout,
+# about 852 KB [verified: docs/11], less a reserve for JieLi's libraries and
+# the device's platform code (USB-MIDI, audio, display, keys). fm1-nes's whole
+# AC79 SDK app with USB alone links to 129,392 B and its USB-audio build to
+# 201,296 B [reported: fm1-nes VALIDATION.md, 870f305]; 200 KB is reserved
+# [inferred]. The objects are counted before --gc-sections, an upper bound.
+APP_AREA = 0xD9000 - 0x4000      # 872,448 B = 852 KiB; the app starts at 0x4000 [reported: fm1-nes README]
+SDK_RESERVE = 200 * 1024
+
 SHT_SYMTAB, SHT_NOBITS, SHT_RELA, SHT_REL = 2, 8, 4, 9
 SHF_WRITE, SHF_ALLOC, SHF_EXEC = 0x1, 0x2, 0x4
 
@@ -296,6 +306,12 @@ def main(out):
         g["TOTAL"] = total
         report["groups"][p] = {k: dict(v) for k, v in g.items()}
 
+    # 2b. Flash by module (FM1_MODULES; engines/modules/catalogue.mk): each
+    # module's own objects (no other chosen module needs them) and the ones
+    # it shares, the core (objects no module owns), and the list's total
+    # against the budget.
+    report["modules"] = modules_report(out, report["objects"])
+
     # 3. Symbols: what the objects need from outside, and who provides it.
     ladder = {rel: e for (p, rel), e in elves.items() if p == "ladder"}
     ours = set()
@@ -445,6 +461,46 @@ def main(out):
     print((out / "report.md").read_text())
 
 
+def modules_report(out, objects):
+    res = {}
+    for p in ("sdk", "ladder"):
+        f = out / p / "modules.txt"
+        if not f.exists():
+            continue
+        rows, name = [], "all"
+        for line in f.read_text().splitlines():
+            w = line.split()
+            if not w:
+                continue
+            if w[0] == "list":
+                name = w[1]
+                continue
+            rows.append(dict(id=w[0], kind=w[1], chosen=w[2] == "1", objects=w[3:]))
+        chosen = [m for m in rows if m["chosen"]]
+        owners = defaultdict(list)
+        for m in chosen:
+            for o in m["objects"]:
+                owners[o].append(m["id"])
+
+        def text(o):
+            e = objects.get(o, {}).get(p, {})
+            return e.get("text", 0)
+        mods = []
+        for m in chosen:
+            own = sum(text(o) for o in m["objects"] if len(owners[o]) == 1)
+            shared = sum(text(o) for o in m["objects"] if len(owners[o]) > 1)
+            mods.append(dict(id=m["id"], kind=m["kind"], own=own, shared=shared,
+                             shared_with=sorted({x for o in m["objects"] if len(owners[o]) > 1
+                                                 for x in owners[o]} - {m["id"]})))
+        total = sum(e[p]["text"] for e in objects.values() if p in e and "text" in e[p])
+        owned = sum(text(o) for o in owners)
+        res[p] = dict(list=name, modules=mods, core=total - owned, owned=owned, total=total,
+                      left_out=[m["id"] for m in rows if not m["chosen"]],
+                      app_area=APP_AREA, sdk_reserve=SDK_RESERVE,
+                      budget=APP_AREA - SDK_RESERVE, fits=total <= APP_AREA - SDK_RESERVE)
+    return res
+
+
 def markdown(r):
     L = []
     L.append("# JieLi pi32v2 compile check\n")
@@ -466,6 +522,21 @@ def markdown(r):
         for g, v in sorted(r["groups"][p].items(), key=lambda kv: (kv[0] == "TOTAL", kv[0])):
             L.append(f"| {g} | {v.get('objects', 0)} | {v.get('code', 0):,} | {v.get('rodata', 0):,} | "
                      f"{v.get('text', 0):,} | {v.get('data', 0):,} | {v.get('bss', 0):,} |")
+    for p, m in r.get("modules", {}).items():
+        L.append(f"\n## Flash by module ({p}; module list `{m['list']}`)\n")
+        L.append("Text (code and read-only data) of each chosen module's objects: its own, and "
+                 "those it shares with other chosen modules (counted once in the total).\n")
+        L.append("| Module | Kind | Own | Shared | Shared with |")
+        L.append("| --- | --- | ---: | ---: | --- |")
+        for x in sorted(m["modules"], key=lambda x: (-x["own"] - x["shared"], x["id"])):
+            L.append(f"| {x['id']} | {x['kind']} | {x['own']:,} | {x['shared']:,} | "
+                     f"{', '.join(x['shared_with']) or '–'} |")
+        L.append(f"| core (no module owns it) | | {m['core']:,} | | |")
+        L.append(f"| **total** | | **{m['total']:,}** | | |")
+        L.append(f"\nBudget: app area {m['app_area']:,} B less {m['sdk_reserve']:,} B reserved for "
+                 f"JieLi's libraries and platform code = {m['budget']:,} B; the list "
+                 f"{'fits' if m['fits'] else 'does NOT fit'} ({m['total'] / m['budget']:.0%}). "
+                 f"Left out: {', '.join(m['left_out']) or 'nothing'}.")
     L.append("\n## Per object (ladder, then sdk text)\n")
     L.append("| Object | Code | Read-only data | text | data | bss | sdk text |")
     L.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: |")

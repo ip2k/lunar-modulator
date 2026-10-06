@@ -50,6 +50,41 @@ jobs:
           python -m pytest -v tests/test_engine*.py tests/test_seq*.py tests/test_movy*.py
           tests/test_sim*.py tests/test_gpl_switch.py
 
+  modules-default:
+    # The build-time module list (FM1_MODULES; engines/modules/catalogue.mk;
+    # DEVELOPERS.md, "Choosing the modules"). Every other job builds the full
+    # list, its default; this one builds the products with the FM-1's
+    # proposed list (engines/modules/default.list), with the GPL switch on and
+    # off: fm1-render, the virtual FM-1's harness, and every object the JieLi
+    # check compiles, natively. A module whose objects the catalogue leaves
+    # incomplete fails to link here. tests/test_module_list.py checks the
+    # catalogue against the objects' symbols and a smaller list end to end.
+    name: engines (module list ${{ matrix.modules }}, GPL switch ${{ matrix.gpl }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        modules: [default]
+        gpl: ["1", "0"]
+    env:
+      FM1_GPL_MODS: ${{ matrix.gpl }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - name: Build the products with the list
+        run: |
+          B="$PWD/engines/build-modules"
+          M="make -C engines -f Makefile -f ../sim/web/mk/sim.mk -f ../tools/jieli/objects.mk SIM=$PWD/sim/web BUILD=$B FM1_MODULES=${{ matrix.modules }}"
+          $M -j4 "$B/fm1-render" "$B/fm1-sim-render" $($M -s print-objs)
+          "$B/fm1-render" --build-info
+          "$B/fm1-render" --list | python -c "import json,sys; print(' '.join(e['id'] for e in json.load(sys.stdin)))"
+          "$B/fm1-render" --engine shapes --note 0:60:100:0.5 --seconds 1 --out "$B/shapes.wav"
+      - name: The module list's own tests (they build the full list too)
+        run: python -m pytest -v tests/test_module_list.py
+
   engines-32bit:
     # pi32v2 has 4-byte pointers; build the engines 32-bit and run their tests
     # against that binary to catch pointer-size assumptions (docs/11, engines/).

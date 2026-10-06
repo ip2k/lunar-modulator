@@ -21,8 +21,9 @@
  *                 patch); in FX mode, the effect in the selected slot
  *   KNOB1-4       the four parameters of the current page
  *   FX, SEL, GLO, HOME   FX mode (SEL grabs a slot so SELECT reorders it),
- *                 the global page, home. SAVE says it is not in the
- *                 simulator yet.
+ *                 the global page, home
+ *   SAVE          the project to the host's store, when it has one (the
+ *                 page's browser storage; fm1_app_saved below)
  *   GLO pages     SELECT the page: 1 Globe (what the instrument runs: rate,
  *                 block, RAM, voices, the master slots, octave and
  *                 transpose) and 2 Key, the project key (below); KNOB1
@@ -205,12 +206,18 @@ extern "C" {
 /* RAM the stock layout leaves free (docs/11 §2, engines/README.md; part of
  * it is stock's heap, so this is an upper bound [inferred]). The meter
  * counts what lives in RAM: instances (each engine's instance_size at the
- * host's rate) and the costs below. Const tables an engine reads are
- * flash on the FM-1 and are not counted, msfa's among them since
- * 2026-10-06 (engines/msfa.md, "Tables in flash"); a table an engine keeps
- * in RAM is in its instance and counted, as FM6's frequency table is at any
- * rate but 44,118 Hz. */
+ * FM-1's rate, FM1_APP_RAM_RATE, whatever rate the host runs at) and the
+ * costs below. Const tables an engine reads are flash on the FM-1 and are
+ * not counted, msfa's among them since 2026-10-06 (engines/msfa.md, "Tables
+ * in flash"); a table an engine keeps in RAM is in its instance and
+ * counted, as FM6's frequency table would be at any rate but 44,118 Hz. */
 #define FM1_APP_RAM_BUDGET 387924u
+
+/* The rate the RAM rule sizes instances at: the FM-1's (owner, 2026-10-06:
+ * the page asks the browser for 44,100 Hz, and the rule stays at 44,118).
+ * Each unit is created at the host's rate; the meter and every refusal
+ * count its instance_size at this one (fm1_app_unit_t.ram). */
+#define FM1_APP_RAM_RATE 44118.0f
 
 /* What else the RAM meter counts on the FM-1 besides the instances
  * (fm1_app_ram): the sequencer's instance, its event buffer,
@@ -325,7 +332,8 @@ typedef struct fm1_app_unit {
   const fm1_engine_t *e;         /* NULL when the slot is empty */
   void *self;
   int index;                     /* registry index, -1 when empty */
-  size_t bytes;                  /* instance_size of the engine in it */
+  size_t bytes;                  /* instance_size of the engine in it, at the host's rate */
+  size_t ram;                    /* ... and at FM1_APP_RAM_RATE: what the RAM meter counts */
   unsigned char *mem;            /* this unit's arena */
   size_t cap;
   float value[FM1_APP_MAX_PARAMS];
@@ -340,6 +348,25 @@ typedef struct fm1_app_mod_write {
 
 struct fm1_app;
 
+/* A project's words (the `name`, `title`, `about`, `author` and `licence`
+ * members), as a load read them; empty for a new project. */
+typedef struct fm1_app_info {
+  char name[33];
+  char title[65];
+  char about[513];
+  char author[65];
+  char licence[33];
+} fm1_app_info_t;
+
+/* Device settings (a settings file's keys; ST10): the metronome and full
+ * velocity are the sequencer's and its UI's own (`metro`, SHIFT + 10) and
+ * are read from there; these two have no panel control yet and are kept for
+ * the stages that use them (the count-in's click, MIDI IN's channel). */
+typedef struct fm1_app_settings {
+  uint8_t count_in_click;        /* the count-in clicks */
+  uint8_t midi_in_channel;       /* 0 every channel (omni), 1-16 */
+} fm1_app_settings_t;
+
 /* The sequencer's sink for one sound unit (the bridge's ctx). */
 typedef struct fm1_app_sink_ctx {
   struct fm1_app *a;
@@ -348,6 +375,7 @@ typedef struct fm1_app_sink_ctx {
 
 typedef struct fm1_app {
   fm1_host_t host;
+  fm1_host_t ram_host;           /* host at FM1_APP_RAM_RATE: the RAM rule's sizes */
   fm1_app_unit_t unit[FM1_APP_UNITS];   /* by id: see FM1_APP_UNITS */
   fm1_mix_limiter_t limiter;
   float master;                  /* MASTER position, 0..1 */
@@ -472,6 +500,15 @@ typedef struct fm1_app {
    * the native harness checks the panel's page names against the metadata
    * export's with it (--page-labels). */
   char bottom_label[24];
+
+  /* Saved state (stage A1, fm1_app_state.h). The project's own words, kept
+   * so a save writes back what a load read; the device settings (a
+   * settings file, never in a project); SAVE's requests and the host's
+   * store. */
+  fm1_app_info_t info;
+  fm1_app_settings_t settings;
+  uint32_t save_gen;             /* bumped by each SAVE press */
+  int store_ready;               /* a host store answers SAVE (fm1_app_saved) */
 
   fm1_tft_t tft;
   unsigned char sound_mem[FM1_APP_SOUNDS][FM1_APP_SOUND_BYTES] FM1_APP_ALIGN16;
@@ -754,6 +791,24 @@ size_t fm1_app_ram_with(const fm1_app_t *a, int unit, int index);
  * what a refusal reports, never reads 100. The meter, GLO's RAM line and
  * the refusals all use it, and the page (app.js) rounds the same way. */
 unsigned fm1_app_ram_percent(size_t bytes);
+/* An engine's instance bytes at FM1_APP_RAM_RATE, as the meter counts them. */
+size_t fm1_app_ram_of(const fm1_engine_t *e);
+
+/* SAVE (stage A1). A press bumps save_gen and, while a host store is ready
+ * (store_ready, set by the page once its browser storage opens: stage W1),
+ * the host saves the project and calls fm1_app_saved with the result:
+ * `ok` shows the L1 banner "SAVED" with the RAM figure, else the refusal
+ * "NOT SAVED" and `why`. Without a store the press says there is none.
+ * Nothing is ever written to a device (CLAUDE.md, the one rule). */
+void fm1_app_saved(fm1_app_t *a, int ok, const char *why);
+
+/* For the state layer (fm1_app_state.c): a message popup (`tone`
+ * FM1_APP_TONE_*), each sink's engine in fm1_mod_sink_unit's order, and a
+ * DX7 voice into user slot `slot` of FM6's bank, given to every FM6
+ * instance (0, or -1 without FM6 or past the slots). */
+void fm1_app_say(fm1_app_t *a, int tone, const char *l0, const char *l1, const char *l2);
+void fm1_app_mod_units(const fm1_app_t *a, const fm1_engine_t **units);
+int fm1_app_dx7_put(fm1_app_t *a, unsigned slot, const uint8_t vced[FM1_DX7_VCED_BYTES]);
 
 /* ---- Sound units (multi-sound) --------------------------------------------
  * `sound` is 0 .. FM1_APP_SOUNDS - 1; the user's Sound 1 is 0. Stage S6

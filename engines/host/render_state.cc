@@ -69,7 +69,7 @@ void Put(void *ctx, const char *s, size_t n) { static_cast<std::string *>(ctx)->
 bool ReadFile(const std::string &path, std::string *out) {
   FILE *f = fopen(path.c_str(), "rb");
   if (!f) return false;
-  char buf[65536];
+  char buf[4096];      // not 64 KiB: fm1-render.js (parity's reference) has a 64 KiB stack
   size_t got;
   out->clear();
   while ((got = fread(buf, 1, sizeof(buf), f)) > 0) {

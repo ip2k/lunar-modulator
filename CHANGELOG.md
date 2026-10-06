@@ -9,6 +9,79 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Files on the simulator's page** (stage W1). *Open…*, or files dropped
+  on the page, loads projects, sounds, effects, mod racks and clips
+  (`.lunar`), a Movy set (`.movy1`) or DX7 patches (`.syx`); a sound,
+  effects or a clip asks where it goes. *Save…* downloads the project, the
+  current sound, its effects, the master effects or the mod rack, named
+  with the kind in the middle (`first-orbit-s2.sound.lunar`), or the set
+  for Movy.
+  - SAVE on the panel keeps the project in the browser, and the page
+    autosaves as you work: the next visit starts where you left off, with
+    *Start fresh* to go back to the start sounds.
+  - Every load keeps what it replaced in Recent (the last five), and
+    *Undo load* puts it back.
+  - A file that would not fit is refused under the panel in the refusal
+    colour, as a percent ("Needs 117% of the FM-1's RAM."), with *Load
+    without …* when there is a way round.
+  - *Copy link* makes a link that holds the whole project (up to 32 KiB);
+    links can also open the examples, such as
+    `?load=examples/first-orbit.lunar`, behind a card that says what they
+    replace.
+  - Five example files (MIT) come with the page, and the file formats'
+    JSON Schemas are published at `schema/1/` on the site.
+  - For contributors: a shadow Worker (a second module) runs every check
+    and all JSON, so the audio thread only ever loads the binary
+    container; `?embed=1` gives the guide a same-origin postMessage API
+    (load, save, query, view, highlight, transport). `sim/web/README.md`,
+    "Files", has the details; `sim/web/test/files.mjs` tests it in
+    headless Chromium.
+- **The simulator saves and loads everything it holds** (stage A1 of the
+  saved-state design). A project file keeps all four sounds with every
+  parameter and every drum pad, their levels, inserts and arpeggiators, the
+  master effects, FM6's user voices, the modulation rack and its cables,
+  the sequencer's set with its song and key, and the page you were on.
+  Loading it gives back the same instrument, and saving again gives the
+  same file, byte for byte.
+  - Sounds, effects chains, mod racks, clips, sets and settings load into
+    their place and leave the rest alone: a sound into the sound you
+    choose, its modulation into free places, its FM6 voice into the bank.
+  - A file that would not fit is refused and changes nothing. The screen
+    says *NOT LOADED* and why, such as *Needs 121% RAM*; memory is always
+    measured as the FM-1 would run it, whatever your browser's rate, as
+    the memory meter does. An engine the build lacks,
+    or modulation with no room, can be left out on request.
+  - SAVE keeps the project in the browser (below). Nothing is ever sent
+    to an FM-1.
+  - The example project `first-orbit.lunar` now fits the FM-1 (76% with
+    the app's own share) and carries its key in its set.
+  - For contributors: `sim/web/src/fm1_app_state.h` (check, load, save,
+    pack), the module's `fm1w_state_*` exports with a 256 KiB text buffer,
+    `fm1-sim-render --load/--save/--save-end`, the parity scenario
+    `project-load-play`, and `tests/test_app_state.py`. The project key's
+    one home is the set's `key` line (a typed binary item `0x13`);
+    `session.key` is written from it, never applied, and `lunar_state.py
+    check` reports a copy that disagrees. Decisions and what is left open
+    are in `notes/2026-10-06-state-files.md` §23.
+
+- **Choose which modules a build has** (the first step toward the browser
+  firmware builder). A firmware image, the desktop renderer or the
+  simulator can be built with only chosen sound engines, effects, MIDI
+  effects and modulation kinds; a proposed list for the FM-1 leaves out
+  Comet Kit, Macro Heavy and the test modules so the image fits its flash.
+  The public simulator still has every module.
+  - For contributors: `FM1_MODULES` (`all`, a list name such as `default`,
+    a list file, or ids with commas; `engines/modules/catalogue.mk`,
+    `engines/modules/default.list`; DEVELOPERS.md, "Choosing the
+    modules"). Registries, `--build-info`, the metadata export (its
+    `build.modules`, known ids with the new reason `list`, its `meta_id`),
+    the JieLi compile check's objects and its report (flash per module and
+    the list against the budget) follow it; CI builds the default list with
+    the GPL switch on and off.
+  - Measured at `-Oz` before `--gc-sections`: every module 845,716 B, the
+    default list 643,282 B (96 % of the 667,648 B left once 200 KiB of the
+    852 KiB app area is kept for JieLi's libraries), 585,349 B with the GPL
+    switch off.
 - **What the advanced editor will read, ready before the editor itself**
   (stage ED0 of the editor's design). Nothing on the virtual FM-1's screen
   changes, and it sounds exactly as before.
@@ -1521,6 +1594,24 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Comet Kit's cymbals take half the flash.** The hi-hats, crash and ride
+  are stored as 8-bit µ-law instead of 16-bit (110 KB instead of 221 KB):
+  37.8 dB of signal to error against the 16-bit recordings, the error
+  following the sound, 35 dB or more under the cymbals where they sound.
+  The simulator plays the same samples. Everything else in the kit is as
+  it was.
+- **The simulator asks the browser for 44,100 Hz** rather than 44,118, and
+  when a browser refuses it, runs at the browser's own rate and says so;
+  Macro, Macro Heavy, Six-Op and Drums then refuse with a message that
+  says the browser would not run the page at 44,100 Hz. The memory meter
+  still counts as the FM-1 would, at 44,118 Hz.
+- **CHAIN's arrow keeps its distance from the destination**
+  ("-100 > ENV3 Sustain"), as MATRIX's mark does.
+- The manual's download size (about 1.3 MB) and sample-rate notes are
+  current; three README screenshots (Six-Op FM, Shapes, FM6) show their
+  engines' three pages.
+- `chop` (Felucca's SLICE) is listed as a planned sound, not a GPL one: no
+  build has it yet.
 - **Memory is shown only as a percentage of what the FM-1 has free.**
   Wherever you see how much memory the sounds, effects, sequencer and
   modulation take, it is now the same whole percentage as the meter in the
@@ -2107,6 +2198,10 @@ history.
   An `fm1-limit-test` left behind on 2026-10-02 had run for almost four
   days. `FM1_TEST_TIMEOUT` and `FM1_TEST_CPU_SECONDS` change the limits
   (0 turns one off); `tests/conftest.py` says how.
+- `fm1-render --load` read files through a 64 KiB stack buffer, which
+  overflowed its JavaScript build's stack.
+- The JieLi compile check now compiles the MIDI effects and their registry
+  (the arpeggiator), which it had left out.
 - **A refused modulation cable no longer marks its destination.** A cable
   the matrix shows as refused (*!*), such as one per voice into an effect,
   carries nothing, but the parameter it aimed at still had its name in the

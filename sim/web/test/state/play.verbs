@@ -1,0 +1,6 @@
+#! rate=44118 block=64 tracks=8 end=176472
+# A loaded project plays (stage A1): parity scenarios load
+# engines/state/examples/first-orbit.lunar or another project first
+# (scenarios.json `load`), then this starts the transport at the first block
+# and runs four seconds: the project's song, sounds, arp, rack and master.
+@0 play

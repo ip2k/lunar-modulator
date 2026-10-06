@@ -17,7 +17,9 @@ def test_a_spinning_child_dies_on_its_cpu_limit(monkeypatch):
     monkeypatch.setenv("FM1_TEST_CPU_SECONDS", "1")
     start = time.monotonic()
     done = subprocess.run(SPIN, capture_output=True)
-    assert done.returncode == -signal.SIGXCPU
+    # `ulimit -t` sets the soft and hard limits alike: macOS sends SIGXCPU,
+    # Linux reaches the hard limit at the same moment and sends SIGKILL.
+    assert done.returncode in (-signal.SIGXCPU, -signal.SIGKILL)
     assert time.monotonic() - start < 20
 
 
