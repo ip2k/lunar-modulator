@@ -7,8 +7,8 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
-state of `main` after the PRs merged up to #82 (2026-09-29 to 2026-10-06,
-`5047233`).
+state of `main` after the PRs merged up to #84 (2026-09-29 to 2026-10-06,
+`ae93b2e`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -104,22 +104,23 @@ so it is always written in full.
   internal DAC, and the seven encoders are scanned in the key matrix.
   Charles Vestal's fm1-x0x (GPL-3.0-only, 2026-10-05) is another open FM-1
   firmware, with a 303, a 909 and an 808 (`notes/2026-10-06-fm1-x0x.md`).
-- **Tests:** 4,919 collected; 4,898 pass, 2 xfail (both undo, not ported
+- **Tests:** 4,953 collected; 4,932 pass, 2 xfail (both undo, not ported
   yet) and 19 skip where a local reference clone (the GPL engines' upstreams
   among them), an unpacked stock package or the manual's `markdown` module
-  is missing [verified: `pytest` at `5047233` with this file, clean engine
-  build, 2026-10-06]. By group: 3,404 engine tests (496 of them comparing
+  is missing [verified: `pytest` at `ae93b2e` with this file, clean engine
+  build, 2026-10-06]. By group: 3,418 engine tests (496 of them comparing
   against upstream reference renders and their controls, 250 for the
   arpeggiator and the MIDI-effect host, 164 for modulation), 642 for the
   sequencer core and its song list, 146 for the state core (saving and
-  loading), 569 for the virtual FM-1 and its sequencer UI, 90 for the tools,
-  the dongle, the SDK link audit, the package guard, the boot bridge and the
-  GPL switch, and 68 for the manual and its diagrams. CI runs the suite on
-  Linux and macOS, runs the engine, sequencer and simulator tests again as a
-  32-bit build and under ASan + UBSan, builds the dongle's UF2, runs
-  AL-255's suite on our fork (`.github/workflows/ci.yml`), and builds the
-  site and manual on pull requests (`pages.yml`). CI does not run Movy; it
-  replays the oracle's committed fixtures.
+  loading), 576 for the virtual FM-1 and its sequencer UI, 103 for the
+  tools, the dongle, the SDK link audit, the package guard, the boot bridge,
+  the GPL switch and the module list, and 68 for the manual and its
+  diagrams. CI runs the suite on Linux and macOS, runs the engine, sequencer
+  and simulator tests again as a 32-bit build and under ASan + UBSan, builds
+  the dongle's UF2, runs AL-255's suite on our fork
+  (`.github/workflows/ci.yml`), and builds the site and manual on pull
+  requests (`pages.yml`). CI does not run Movy; it replays the oracle's
+  committed fixtures.
 - **Where the repo lives:** `~/Developer/mvave-fm1-firmware` on the owner's
   MacBook (the folder keeps its old name), remote `ip2k/lunar-modulator`
   (published 2026-09-06 as `ip2k/mvave-fm1-open-firmware`, renamed with the
@@ -140,6 +141,7 @@ so it is always written in full.
   - The cloud session's stray branch `claude/mvave-fm1-open-firmware-ly2w6u`
     on `ip2k/busybar-dual-timer` was deleted on 2026-09-06.
 - **Open pull requests** at 2026-10-06:
+  - #85, a timeout and a CPU limit for every tool a test starts.
   - #58, the lagging docs that this refresh listed, fixed (§5 item 8);
     waiting for the owner.
   - Echomatter closed #1 on 2026-10-05 and offered to coordinate, saying
@@ -400,12 +402,14 @@ advanced editor's design (#77) and the engines' follow-ups (glide modes,
 Drums' choke and Kit Decay, #79) memory shown as a share of the FM-1's
 budget (#80), and the GPL switch with fm1-x0x's 303, 909 and 808 and three
 Felucca engines (#81), and the state core for saving and loading, with the
-song list (#82) (10-01 to 10-06). The CHANGELOG has the detail.
+song list (#82), the editor's metadata (#83) and the GPL follow-ups, with
+the simulator asking the browser for 44,100 Hz (#84) (10-01 to 10-06). The
+CHANGELOG has the detail.
 
 Now, roughly in order:
 
-1. **Open PRs** (§1): #58 (docs) waits for the owner; Echomatter's offer on
-   #1 needs an answer.
+1. **Open PRs** (§1): #58 (docs) and #85 (test timeouts) wait for the owner;
+   Echomatter's offer on #1 needs an answer.
 2. **ip2k/lunar-modulator#2**, if the owner chooses to answer it from the
    draft; and issue #53 (iOS Safari).
 3. **When the dev kit and JieLi's updater arrive**, docs/14 §5's first week:

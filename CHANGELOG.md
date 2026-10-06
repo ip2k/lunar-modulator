@@ -1540,7 +1540,7 @@ history.
 
 ### Changed
 - HANDOFF.md, the project's context summary, is rewritten for `main` after
-  the PRs merged up to #82 (2026-10-06); it had been patched piecemeal
+  the PRs merged up to #84 (2026-10-06); it had been patched piecemeal
   since the 2026-09-06 research phase.
   - Where things stand: the code runs on a desktop and in a browser (the
     virtual FM-1 and the manual on GitHub Pages), compiles for pi32v2 but
