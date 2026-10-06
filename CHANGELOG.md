@@ -9,6 +9,33 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Files on the simulator's page** (stage W1). *Open…*, or files dropped
+  on the page, loads projects, sounds, effects, mod racks and clips
+  (`.lunar`), a Movy set (`.movy1`) or DX7 patches (`.syx`); a sound,
+  effects or a clip asks where it goes. *Save…* downloads the project, the
+  current sound, its effects, the master effects or the mod rack, named
+  with the kind in the middle (`first-orbit-s2.sound.lunar`), or the set
+  for Movy.
+  - SAVE on the panel keeps the project in the browser, and the page
+    autosaves as you work: the next visit starts where you left off, with
+    *Start fresh* to go back to the start sounds.
+  - Every load keeps what it replaced in Recent (the last five), and
+    *Undo load* puts it back.
+  - A file that would not fit is refused under the panel in the refusal
+    colour, as a percent ("Needs 117% of the FM-1's RAM."), with *Load
+    without …* when there is a way round.
+  - *Copy link* makes a link that holds the whole project (up to 32 KiB);
+    links can also open the examples, such as
+    `?load=examples/first-orbit.lunar`, behind a card that says what they
+    replace.
+  - Five example files (MIT) come with the page, and the file formats'
+    JSON Schemas are published at `schema/1/` on the site.
+  - For contributors: a shadow Worker (a second module) runs every check
+    and all JSON, so the audio thread only ever loads the binary
+    container; `?embed=1` gives the guide a same-origin postMessage API
+    (load, save, query, view, highlight, transport). `sim/web/README.md`,
+    "Files", has the details; `sim/web/test/files.mjs` tests it in
+    headless Chromium.
 - **The simulator saves and loads everything it holds** (stage A1 of the
   saved-state design). A project file keeps all four sounds with every
   parameter and every drum pad, their levels, inserts and arpeggiators, the
@@ -24,8 +51,7 @@ history.
     measured as the FM-1 would run it, whatever your browser's rate, as
     the memory meter does. An engine the build lacks,
     or modulation with no room, can be left out on request.
-  - SAVE keeps the project in the browser once the page has its
-    storage (the next stage), and says so until then. Nothing is ever sent
+  - SAVE keeps the project in the browser (below). Nothing is ever sent
     to an FM-1.
   - The example project `first-orbit.lunar` now fits the FM-1 (76% with
     the app's own share) and carries its key in its set.

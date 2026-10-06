@@ -109,7 +109,7 @@ PIT, GLO, MONO, POLY) come from the manual's panel drawing [reported].
 | FX, SEL | effect chain mode; SEL grabs a slot so SELECT reorders it | the same: the current sound's two inserts, the Mix page and the two master slots |
 | GLO | global settings | the global page above |
 | HOME | home (oscilloscope) | home: the sound's page, with an oscilloscope strip |
-| SAVE | | the project to the host's store, which answers on the screen (*SAVED*, the name, the RAM figure; or *NOT SAVED* and why); with no store yet (the page's comes with stage W1), a refusal saying so. Never a device (below, "Saved state") |
+| SAVE | | the project to the host's store, which answers on the screen (*SAVED*, the name, the RAM figure; or *NOT SAVED* and why); the page's store is IndexedDB (below, "Files"), memory only where the browser blocks storage. Never a device |
 | ARP | the arpeggiator | the arpeggiator on the current sound: a tap switches it (on, its pages open), a hold latches, SHIFT + ARP opens the pages (below, "The arpeggiator") |
 | ENV, LFO, EDIT | envelope, LFO and edit pages | modulation: RACK, the gesture, MATRIX (below) |
 | REC | recording | record, step record and Capture (below) |
@@ -205,7 +205,7 @@ chain). This section is how they are built.
 | Metronome | the click, the shared bridge's (`fm1_seq_click_mix`, O11), on the Set page or SHIFT + 6 |
 | Locks | a held step's lock pages, past Step 2/2, lock the focused track's sound's parameters; a knob on a parameter with a lane turns on the 7-bit grid and the lanes' bases follow; a live take while recording; SHIFT + knob, D#4 (CLEAR) with steps held or + knob clear (S8) |
 | LEDs | SEQ in SEQ mode, PLAY/STOP while the transport runs, SEL while SHIFT is held; in SEQ mode the white keys show the bar's steps (fm1_seq_ui.h has the rules); REC on while recording or step recording, fast during a count-in or a waiting take, slow while Capture holds notes (O7). Sequencer notes light no key outside SEQ mode (O6). LFO or ENV while RACK shows one of theirs, EDIT in MATRIX and CHAIN, SEL in CHAIN and while RACK holds a module |
-| Status line, help | the tempo and the transport (posted by the worklet only when they change); the help's Sequencer, Tracks, Locks, Sounds, Effects, Arpeggiator and Modulation entries; SAVE in the stub list |
+| Status line, help | the tempo and the transport (posted by the worklet only when they change); the help's Sequencer, Tracks, Locks, Sounds, Effects, Arpeggiator, Modulation and Files entries |
 | Sounds | up to four sounds, each with two inserts and a level, then the two slots as the master bus; SHIFT + PRESETS chooses the current sound (below, "Multi-sound") |
 | RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 26,848 B since glide's modes, 26,512 B since glide, 26,192 B since per-voice modulation, docs/16 MG9), and each arp that is on (736 B) with the MIDI effects' stage while one is (`fm1_mfx_t`, 7,344 B natively, less with 32-bit pointers) |
 | ARP | the arpeggiator, below |
@@ -421,6 +421,88 @@ the app, fm1-render and the module, the arps' notes included;
 skipped with the switch off) do the same for Acid Gen;
 `comet-kit-groove` and `comet-kit-knobs-and-tails` cover Comet Kit, and
 `crater-kit-groove` and `crater-kit-every-pad-tuned` Crater Kit.
+
+## Files: Open, Save, storage, links and the embed API
+
+Stage W1 (2026-10-06; notes/2026-10-06-state-files.md §12 and §24),
+`www/files.js` and `www/shadow.worker.js`, on stage A1's exports.
+
+**Who does what.** The audio thread reads and writes only the binary
+container: the worklet's `state-save` returns the project as binary
+(`fm1w_state_save(1, 0, 1)`), its `state-load` runs `fm1w_state_load` on a
+packed file and refuses anything that does not start `\x89Lunar`, and the
+report goes back as the module's text, unparsed. The **shadow Worker** is a
+second instance of the module with no audio: before each job it loads the
+live project (QUIET), then runs pass 1 of the file against it
+(`fm1w_state_check`, with the target and flags the page chose), packs a
+JSON file (`fm1w_state_pack`) or a `.movy1` set (loaded, then saved as a SET
+container), and writes JSON (`fm1w_state_save(kind, arg, 0)`). So every
+refusal, and every word of it, is the module's: memory as a percent of the
+FM-1's budget only. A project save costs the audio thread about 1.5 ms
+(the binary writer deflates; measured in Node on this Mac) [verified].
+
+| Page | Does |
+| --- | --- |
+| **Open…**, drop | `.lunar` (JSON or binary), `.movy1`, `.syx`, several at once; sniffed by content (§11). `.syx` goes to FM6's bank as before. A sound, effects or clip asks for its target (sound 1-4; master or a sound's inserts; track and slot). Before POWER, a file waits on the power card |
+| **Save…** | Project, current sound, its effects, master effects, mod rack (`application/json`, `first-orbit-s2.sound.lunar`: the kind as a middle word, a project as `first-orbit.lunar`), the set as `.movy1` (`text/plain`) |
+| SAVE | The project into IndexedDB `files`; the screen shows the store's answer (`fm1w_saved`) |
+| Autosave | The whole project, as binary, into `autosave`: 5 s after the last change, at most 15 s after the first unsaved one, never more often than every 5 s, and on `visibilitychange`, `pagehide` and Power off; skipped when the bytes are the same. POWER restores it unless a link loads something; *Start fresh* loads the start chain (the shadow's own) |
+| Recent | The last five states a load replaced, as "Before *title*"; Undo load restores the last |
+| **Copy link** | `#lunar=`: the project's JSON, compact, deflate-raw, base64url; refused over 32 KiB with its size |
+| Notice | Over the status line: "Loaded “First orbit”: 4 sounds, … It takes 69% of the FM-1's RAM." with Undo load, or the refusal in `--refuse`, with *Load without …* or *Replace the clip* when the module allows it |
+
+**Storage.** IndexedDB `lunar-modulator` v1, stores `files` (kind, name,
+`bin`, size, origin, mission, modified), `autosave` (key `project`) and
+`recent`; the binary container is kept, and a download writes JSON through
+the shadow. localStorage holds preferences only, under `lunar.sim.`:
+`master`, `title`, `last-file`. Every access is in try/catch; with storage
+blocked the page keeps everything in memory for the visit.
+
+**Links.** `?load=PATH`: under `examples/`, `guide/` or `manual/`, matching
+`^[a-z0-9][a-z0-9/_.-]*\.(lunar|movy1|syx)$`, no `..`, `//` or `\`,
+resolved against the page and taken only when the origin and path come out
+the same; fetched with `credentials: 'omit'`, `redirect: 'error'`, read
+through a counting stream (256 KiB, `.syx` 64 KiB). `#lunar=DATA`: at most
+32,768 characters, inflated through `DecompressionStream('deflate-raw')`
+into the same counting stream. Hints from the query or the fragment:
+`into=s2` (`master`, `t3.2` for a clip's track and slot), `view=seq.track=2`
+(a view object: the shadow writes the project, the page sets `view`, the
+shadow packs, the worklet reloads it quietly), `hl=KNOB2,FX` (rings on the
+panel drawing: buttons, encoders, MASTER, POWER, PLAY, KEY1-27), `play=1`,
+`entry=3` (`sgjump 2` then `play`, the panel's own verbs). The card names
+the file, its about, and what it replaces; after the load the address
+loses the link. `www/examples/` holds the guide's five examples (MIT), the
+same bytes as `engines/state/examples/` (`tests/test_sim_files.py`).
+
+**`?embed=1`.** Only inside a frame. Messages are taken only when
+`event.source === window.parent` and `event.origin === location.origin`;
+replies and events go to `location.origin`, never `'*'`. One operation at a
+time; text up to 256 KiB.
+
+| Request `{lunar: 1, id, op, …}` | Reply `{lunar: 1, re: id, ok, …}` |
+| --- | --- |
+| `load {kind?, text, into?}` | `report` (the module's); before POWER it waits on the power card |
+| `save {kind, into?}` | `text`: the canonical JSON, or a set's `.movy1` |
+| `query {kind, into?}` | `json`: the same, parsed (mission checks read what a save holds) |
+| `view {view}`, `highlight {controls}` | `ok`; `controls` lists those found |
+| `transport {play, entry?}` | `ok`, after POWER only |
+
+Events: `ready {formats, version}`, `power {on}`, `changed {gen}` (at most
+four a second). Nothing reaches MIDI, a URL, a setting or the storage.
+
+**Schemas.** `tools/manual/build.py` publishes `engines/state/schema/` at
+`/schema/1/` on the site, the URLs the schemas' `$id`s name.
+
+**Tests.** `test/files.mjs` (headless Chromium, in `build-on-aeon.sh`'s
+page step): Save… names and kinds, a drop and Open…, a refusal in the
+refusal colour that changes nothing, every load binary at the worklet and
+JSON refused there, SAVE into IndexedDB, the autosave's timer and its
+restore, Undo load byte for byte, fourteen refused `?load=` paths with no
+request made, the arrival card and the hints, the `#lunar=` round trip, the
+32 KiB cap and a 4 MiB inflation bomb, the embed API from a same-origin
+parent and silence to another origin, and the page at 1,440 and 390 px
+[verified 2026-10-06: all pass, Chromium 153]. `tests/test_sim_files.py`
+checks the static half.
 
 ## Parity: does the browser sound like the native engines?
 
@@ -810,7 +892,8 @@ tar and scp; nothing is installed on the host):
    metadata results).
 3. `mcr.microsoft.com/playwright:v1.63.0-noble`: `test/screenshot.mjs` opens
    the page in headless Chromium, plays it and writes screenshots and a
-   report to `build/screenshots/`; with `--readme-screenshots`,
+   report to `build/screenshots/`, then `test/files.mjs` checks the page's
+   files (below, "Files") and adds its screenshots and `files-report.json`; with `--readme-screenshots`,
    `test/readme-screenshots.mjs` then takes the README's pictures (the page,
    each engine's screen, an effect page, a parameter page, the phone and
    the parity figure) into `build/readme-screenshots/`, for a person to look
@@ -961,8 +1044,10 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
   nothing about whether a chain fits the FM-1's cycle budget (stage B
   measures that), nor about FPU edge cases on the real core.
 - **No drivers**: no SPI, DMA, ADC or USB; the panel calls the app directly.
-- **SAVE** keeps nothing until the page has its browser storage (stage
-  W1); the module saves and loads every kind already. Only the arpeggiator's first
+- **Files**: a refusal decided by the shadow Worker's pass 1 shows on the
+  page, not on the device screen (the worklet never sees the file; a
+  `NOT LOADED` banner there needs a small export). Save… has no DX7 bank
+  (VMEM) download yet. Only the arpeggiator's first
   MIDI-effect slot is on the panel. On the panel the sequencer
   has no Session, scenes, song, Loop view, COPY or a CLEAR tap (docs/15
   S9), and no sets in the browser or MIDI clock in (S10); the desktop tools
