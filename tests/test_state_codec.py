@@ -468,6 +468,20 @@ def test_repairs_and_skips_are_counted(tool, names, name, text, counts):
         assert getattr(rep, k) == v, k
 
 
+def test_a_file_with_the_arps_own_swing_still_loads(tool, names):
+    """The arp follows the set's swing (owner, 2026-10-06): its own Swing
+    (uid 7) is retired, and a file written before then, which names it,
+    loads with that one value skipped and reported."""
+    text = (EXAMPLES / "first-orbit.lunar").read_text().replace(
+        '"Gate": 50,\n', '"Gate": 50,\n            "Swing": 62,\n', 1)
+    assert '"Swing": 62' in text
+    r = run(tool, "check", "-", data=text.encode())
+    report = json.loads(r.stdout)["report"]
+    assert report["code"] == "OK" and report["skipped"] == 1, report
+    assert "Swing" in report["first_skip"], report
+    assert ls.read_json(text.encode(), names)[1].skipped == 1
+
+
 def test_unknown_engines_refuse_unless_left_out(tool):
     doc = '{"lunar": "1.0", "kind": "sound", "sound": {"engine": "rings", "params": {"#3": 0.5, "Pos": 1}}}'
     r = run(tool, "canon", "-", data=doc.encode())

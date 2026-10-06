@@ -54,7 +54,13 @@ static const char *const kSync[2] = { "Free", "Key" };
  * is index order, so the table is in page order; uids are the core's id
  * plus 1 and never change. A list is read at the next step, so it is LATCH;
  * a number is LATCH and MOD, as the parameter rules want of a FLOAT (no
- * route reaches a MIDI effect yet). */
+ * route reaches a MIDI effect yet).
+ *
+ * The core's SWING is not one of them: the arp swings by the set's swing,
+ * which the host gives every call (fm1_midi_fx_ctx_t.swing; owner,
+ * 2026-10-06). Its uid 7 is retired (tests/fixtures/param-uids.json), and
+ * a file that still names the arp's "Swing" loads without it. */
+#define ARP_N_PARAMS (FM1_ARP_P_COUNT - 1u)
 #define L FM1_PARAM_LATCH
 #define LM (FM1_PARAM_LATCH | FM1_PARAM_MOD)
 enum { PAGE_PLAY, PAGE_RHYTHM, PAGE_CHANCE, PAGE_FEEL, PAGE_MORE, PAGE_KEYS, PAGE_SEED };
@@ -66,7 +72,7 @@ typedef struct {
   uint8_t base;
 } arp_map_t;
 
-static const fm1_param_t kParams[FM1_ARP_P_COUNT] = {
+static const fm1_param_t kParams[ARP_N_PARAMS] = {
   { "Mode", FM1_PARAM_ENUM, 0, FM1_ARP_MODE_COUNT - 1, 0, kModes, PAGE_PLAY, 1, L, FM1_UNIT_NONE, "MODE" },
   { "Rate", FM1_PARAM_ENUM, 0, FM1_ARP_RATE_COUNT - 1, 4, kRates, PAGE_PLAY, 5, L, FM1_UNIT_NONE, "RATE" },
   { "Gate", FM1_PARAM_FLOAT, 1, 200, 50, NULL, PAGE_PLAY, 6, LM, FM1_UNIT_PCT, "GATE" },
@@ -81,7 +87,6 @@ static const fm1_param_t kParams[FM1_ARP_P_COUNT] = {
   { "Loop", FM1_PARAM_FLOAT, 0, 64, 0, NULL, PAGE_CHANCE, 24, LM, FM1_UNIT_NONE, "LOOP" },
   { "Oct Mode", FM1_PARAM_ENUM, 0, FM1_ARP_OCT_COUNT - 1, 0, kOctModes, PAGE_FEEL, 4, L, FM1_UNIT_NONE, "OCTM" },
   { "Velocity", FM1_PARAM_FLOAT, 0, 127, 0, NULL, PAGE_FEEL, 21, LM, FM1_UNIT_NONE, "VEL" },
-  { "Swing", FM1_PARAM_FLOAT, 50, 80, 50, NULL, PAGE_FEEL, 7, LM, FM1_UNIT_PCT, "SWNG" },
   { "Join", FM1_PARAM_ENUM, 0, 1, 0, kJoin, PAGE_FEEL, 13, L, FM1_UNIT_NONE, "JOIN" },
   { "Order", FM1_PARAM_ENUM, 0, FM1_ARP_ORDER_COUNT - 1, 0, kOrders, PAGE_MORE, 2, L, FM1_UNIT_NONE, "ORDR" },
   { "Repeat", FM1_PARAM_ENUM, 0, 7, 0, kCounts, PAGE_MORE, 15, L, FM1_UNIT_NONE, "REPT" },
@@ -94,7 +99,7 @@ static const fm1_param_t kParams[FM1_ARP_P_COUNT] = {
   { "Seed", FM1_PARAM_FLOAT, 0, 65535, 0, NULL, PAGE_SEED, 25, LM, FM1_UNIT_NONE, "SEED" },
 };
 
-static const arp_map_t kMap[FM1_ARP_P_COUNT] = {
+static const arp_map_t kMap[ARP_N_PARAMS] = {
   { FM1_ARP_P_MODE, 0 },
   { FM1_ARP_P_RATE, 0 },
   { FM1_ARP_P_GATE, 0 },
@@ -109,7 +114,6 @@ static const arp_map_t kMap[FM1_ARP_P_COUNT] = {
   { FM1_ARP_P_LOOP, 0 },
   { FM1_ARP_P_OCT_MODE, 0 },
   { FM1_ARP_P_VELOCITY, 0 },
-  { FM1_ARP_P_SWING, 0 },
   { FM1_ARP_P_JOIN, 0 },
   { FM1_ARP_P_ORDER, 0 },
   { FM1_ARP_P_REPEAT, 1 },
@@ -145,14 +149,16 @@ static int core_value(unsigned index, float v) {
 }
 
 static void arp_set_param(void *self, uint16_t index, float value) {
-  if (index >= FM1_ARP_P_COUNT) return;
+  if (index >= ARP_N_PARAMS) return;
   fm1_arp_set_param((fm1_arp_t *)self, kMap[index].id, core_value(index, value));
 }
 
 /* The block, on the host's ticks; while the sequencer runs, on its grid
- * (ctx->tick_pos), so the steps lock to the beat. */
+ * (ctx->tick_pos), so the steps lock to the beat; swung by the set's swing
+ * (the core clamps 0, an older host's, to 50: straight). */
 static uint32_t arp_process(void *self, const fm1_midi_ev_t *in, uint32_t n_in,
                             const fm1_midi_fx_ctx_t *ctx, fm1_midi_ev_t *out, uint32_t cap) {
+  if (ctx) fm1_arp_set_param((fm1_arp_t *)self, FM1_ARP_P_SWING, ctx->swing);
   return fm1_arp_process_at((fm1_arp_t *)self, in, n_in, ctx ? ctx->ticks : NULL,
                             ctx ? ctx->n_ticks : 0u, ctx && ctx->running, ctx ? ctx->tick_pos : 0u,
                             out, cap);
@@ -165,7 +171,7 @@ const fm1_midi_fx_t fm1_midi_fx_arp = {
     "Lunar Modulator's arpeggiator (MIT): after Yarns' arpeggiator by Emilie Gillet (MIT), "
     "MCL's note orders by Justin Mammarella (BSD-3) and Super Arp's modifiers by "
     "Handcrafted Media (MIT); reimplemented, engines/midi_fx/CREDITS.md",
-    kParams, FM1_ARP_P_COUNT, 0,
+    kParams, ARP_N_PARAMS, 0,
     arp_size, arp_create, arp_destroy,
     NULL, NULL, NULL,         /* notes come through process() */
     arp_set_param, NULL,      /* no audio */

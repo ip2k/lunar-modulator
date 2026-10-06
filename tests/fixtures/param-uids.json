@@ -440,7 +440,6 @@
       {"name": "Loop", "type": "float", "uid": 24, "flags": ["latch", "mod"]},
       {"name": "Oct Mode", "type": "enum", "uid": 4, "flags": ["latch"]},
       {"name": "Velocity", "type": "float", "uid": 21, "flags": ["latch", "mod"]},
-      {"name": "Swing", "type": "float", "uid": 7, "flags": ["latch", "mod"]},
       {"name": "Join", "type": "enum", "uid": 13, "flags": ["latch"]},
       {"name": "Order", "type": "enum", "uid": 2, "flags": ["latch"]},
       {"name": "Repeat", "type": "enum", "uid": 15, "flags": ["latch"]},
@@ -453,8 +452,8 @@
       {"name": "Seed", "type": "float", "uid": 25, "flags": ["latch", "mod"]}
     ]
   },
-  "retired_about": "Uids a table must never give out again: a removed parameter's; and Comb's 1, the Filter's Type, as Comb keeps the Filter's uids for the parameters both have, so a Filter that was set to Comb maps onto Comb uid for uid (engines/README.md, \"Comb\").",
-  "retired": {"comb": [1]},
+  "retired_about": "Uids a table must never give out again: a removed parameter's (the arp's 7, its own Swing, gone on 2026-10-06 when the arp began to follow the set's swing); and Comb's 1, the Filter's Type, as Comb keeps the Filter's uids for the parameters both have, so a Filter that was set to Comb maps onto Comb uid for uid (engines/README.md, \"Comb\").",
+  "retired": {"comb": [1], "arp": [7]},
   "gpl_about": "The GPL modules (engines/Makefile, FM1_GPL_MODS; CLAUDE.md, \"The GPL switch\"): pinned above like every other, and in the build only while the switch is on, so tests/test_engine_params.py leaves them out of the comparison when it is off.",
   "gpl": ["acid-bass", "acid-gen", "comet", "crater", "drawbar", "trio", "phase-bend"],
   "per_note_about": "The engines with set_param_note (engine API v2, per-note offsets: engines/README.md, \"Per-note offsets\"). Their POLY parameters are flagged \"poly\" above; no other engine may have one.",
