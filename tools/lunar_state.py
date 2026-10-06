@@ -15,9 +15,12 @@ tests/test_state_codec.py holds.
     python3 tools/lunar_state.py records FILE
     python3 tools/lunar_state.py url FILE           # the #lunar= fragment of a launch link (§12.4)
 
-Names come from the desktop build (`fm1-state names`: every engine's
-parameters, ranges and defaults, exact); SEAM(E2): `fm1-render --meta`
-replaces that once it lands. It never changes app state; only the C loader
+Names come from the build's parameter metadata export (`fm1-render --meta`,
+engines/state/schema/metadata.schema.json: every engine's, effect's, MIDI
+effect's and modulation kind's parameters, ranges, defaults, list entries,
+pad roles and old names, and the ids a build knows but lacks), or from a
+saved copy of it (`--meta FILE`), so P1 resolves a name exactly as the
+build that wrote the export. It never changes app state; only the C loader
 does. MIT licence, like the rest of the repository.
 """
 import argparse
@@ -36,6 +39,7 @@ sys.path.insert(0, str(ROOT))
 from tests import state_canon as canon  # noqa: E402  the canonical layout's reference
 
 TOOL = ROOT / "engines" / "build" / "fm1-state"
+RENDER = ROOT / "engines" / "build" / "fm1-render"
 SCHEMA = ROOT / "engines" / "state" / "schema"
 
 MAJOR, MINOR = 1, 0
@@ -69,7 +73,7 @@ class Refused(Exception):
 class Report:
     def __init__(self):
         self.code = "OK"
-        self.what = self.path = self.name = self.first_skip = ""
+        self.what = self.path = self.name = self.known = self.first_skip = ""
         self.skipped = self.repaired = self.defaulted = self.unknown = 0
 
     def skip(self, what, path=""):
@@ -77,9 +81,11 @@ class Report:
             self.first_skip = f"{path}: {what}"
         self.skipped += 1
 
-    def unknown_name(self, name):
+    def unknown_name(self, name, known=""):
+        """An engine or kind the build lacks; `known` is its known-ids reason
+        (gpl, planned, retired), "" when no list names it."""
         if not self.unknown:
-            self.name = name
+            self.name, self.known = name, known
         self.unknown += 1
 
 
@@ -88,13 +94,20 @@ def ascii_lower(s):
     return "".join(chr(ord(c) + 32) if "A" <= c <= "Z" else c for c in s)
 
 
+def _meta_num(x):
+    """A metadata number (kept as its text) as the float32 it names, exactly."""
+    return canon.f32_of(str(x))
+
+
 class Param:
-    def __init__(self, d):
+    def __init__(self, d, focus=0):
         self.uid, self.name, self.abbr = d["uid"], d["name"], d.get("abbr") or ""
         self.enum = d["type"] == "enum"
-        self.min, self.max, self.default = (canon.f32_of(d[k]) for k in ("min", "max", "def"))
+        self.min, self.max, self.default = (_meta_num(d[k]) for k in ("min", "max", "def"))
         self.entries = d.get("entries")
-        self.focus = d.get("focus", 0)
+        self.focus = focus
+        self.aliases = list(d.get("aliases", []))               # old names
+        self.entry_aliases = dict(d.get("entry_aliases", {}))   # old entry names -> index
 
     def count(self):
         return int(self.max - self.min) + 1
@@ -102,14 +115,15 @@ class Param:
 
 def find_param(params, key):
     """fm1_state_param_find: #UID, the name exactly, without ASCII case, by
-    abbreviation (aliases: SEAM(E2))."""
+    abbreviation, then by an old name (the owner's aliases)."""
     if len(key) >= 2 and key[0] == "#":
         if key[1] == "0" or len(key) > 5 or not key[1:].isdigit() or not key[1:].isascii():
             return None
         uid = int(key[1:])
         return next((i for i, p in enumerate(params) if p.uid == uid), None)
     for test in (lambda p: p.name == key, lambda p: ascii_lower(p.name) == ascii_lower(key),
-                 lambda p: p.abbr and ascii_lower(p.abbr) == ascii_lower(key)):
+                 lambda p: p.abbr and ascii_lower(p.abbr) == ascii_lower(key),
+                 lambda p: any(ascii_lower(a) == ascii_lower(key) for a in p.aliases)):
         for i, p in enumerate(params):
             if test(p):
                 return i
@@ -117,42 +131,73 @@ def find_param(params, key):
 
 
 def find_entry(p, s):
+    """fm1_state_entry_find: exactly, without ASCII case, then an old name."""
     if not p.enum or not p.entries:
         return None
     for test in (lambda e: e == s, lambda e: ascii_lower(e) == ascii_lower(s)):
         for k, e in enumerate(p.entries):
             if test(e):
                 return k
+    for old, k in p.entry_aliases.items():
+        if ascii_lower(old) == ascii_lower(s) and k < p.count():
+            return k
     return None
 
 
+def _params(ps, kit):
+    """A table's parameters with their pad roles: FOCUS 1, PER_FOCUS 2 (only
+    in a kit, an engine with a FOCUS parameter), else 0."""
+    def role(p):
+        f = p.get("flags", [])
+        return 1 if "focus" in f else 2 if kit and "per_focus" in f else 0
+    return [Param(p, role(p)) for p in ps]
+
+
 class Engine:
+    ROLE = {"sound": "sound", "audio_fx": "fx", "midi_fx": "mfx"}
+
     def __init__(self, d):
-        self.id, self.role, self.pads = d["id"], d["role"], d["pads"]
-        self.params = [Param(p) for p in d["params"]]
+        self.id, self.role = d["id"], self.ROLE[d["kind"]]
+        self.pads = d["pads"]["count"] if d.get("pads") else 0
+        kit = any("focus" in p.get("flags", []) for p in d["params"])
+        self.params = _params(d["params"], kit)
 
 
 class Kind:
     def __init__(self, d):
         self.id = d["id"]
-        self.params = [Param(p) for p in d["params"]]
-        self.outs, self.gates = d["outs"], d["gates"]
+        self.params = _params(d["params"], False)
+        self.outs = [p["name"] for p in d["outs"]]
+        self.gates = [p["name"] for p in d["gates"]]
 
 
 class Names:
-    """The build's names, ranges and defaults (fm1-state names)."""
+    """The build's names, ranges and defaults: its metadata export."""
 
-    def __init__(self, data):
-        self.engines = [Engine(e) for e in data["engines"]]
-        self.kinds = {k["id"]: Kind(k) for k in data["kinds"]}
-        self.sources = {s["id"]: s["name"] for s in data["sources"]}
-        self.source_id = {s["name"]: s["id"] for s in data["sources"]}
-        self.host = [Param(p) for p in data["host"]]
+    def __init__(self, meta):
+        if meta.get("kind") != "metadata":
+            raise ValueError("not a parameter metadata export")
+        mod = meta["mod"]
+        self.engines = [Engine(e) for e in meta["engines"]]
+        self.kinds = {k["id"]: Kind(k) for k in mod["kinds"]}
+        self.sources = {s["id"]: s["name"] for s in mod["sources"]}
+        self.source_id = {s["name"]: s["id"] for s in mod["sources"]}
+        self.host = _params(mod["host"], False)
+        self.known = {k["id"]: k["reason"] for k in meta["known_ids"]}
+
+    @staticmethod
+    def parse(text):
+        """The export's text, numbers kept exact (as their text)."""
+        return json.loads(text, parse_float=str)
 
     @classmethod
-    def from_build(cls, tool=TOOL):
-        return cls(json.loads(subprocess.run([str(tool), "names"], check=True, capture_output=True,
-                                             text=True).stdout))
+    def from_build(cls, render=RENDER):
+        return cls(cls.parse(subprocess.run([str(render), "--meta"], check=True, capture_output=True,
+                                            text=True).stdout))
+
+    @classmethod
+    def from_file(cls, path):
+        return cls(cls.parse(Path(path).read_text(encoding="utf-8")))
 
     def engine(self, role, eid):
         """fm1_state_engine: sounds for SOUND, audio effects for INSERT and
@@ -607,7 +652,7 @@ class JsonReader:
                     self.bad("engine is an id of a-z, 0-9 and -")
                 e = self.nm.engine(role, v)
                 if not e:
-                    self.rep.unknown_name(v)
+                    self.rep.unknown_name(v, self.nm.known.get(v, ""))
                 has_engine = True
                 ix = unit_index(role, sound, slot)
                 if ix is not None:
@@ -832,7 +877,7 @@ class JsonReader:
                     self.bad("kind is an id of a-z, 0-9 and -")
                 k_obj = self.nm.kinds.get(v)
                 if not k_obj:
-                    self.rep.unknown_name(v)
+                    self.rep.unknown_name(v, self.nm.known.get(v, ""))
                 kind_id = v
             elif k == "params":
                 self.want(v, Obj)
@@ -2447,10 +2492,28 @@ def read_link(fragment, names):
 
 
 # ---- Files and the command line ------------------------------------------------------------------
+KNOWN_TEXT = {"gpl": "in the GPL build only", "planned": "not built yet", "retired": "retired"}
+
+
+def note_unknown(recs, rep, names):
+    """fm1_state_note_unknown: the engines and kinds a binary file names that
+    the build lacks, counted as the JSON reader counts them (the binary
+    reader resolves no names)."""
+    for r in recs:
+        if r["rec"] == "unit" and r["engine"]:
+            role = ROLES.index(r["role"])
+            if not names.engine(role, r["engine"]):
+                rep.unknown_name(r["engine"], names.known.get(r["engine"], ""))
+        elif r["rec"] == "module" and r["kind"] not in names.kinds:
+            rep.unknown_name(r["kind"], names.known.get(r["kind"], ""))
+
+
 def read_any(data, names):
     """Records of a state file in either encoding."""
     if data[:8] == MAGIC:
-        return read_bin(data)
+        recs, rep = read_bin(data)
+        note_unknown(recs, rep, names)
+        return recs, rep
     return read_json(data, names)
 
 
@@ -2461,9 +2524,10 @@ def main(argv=None):
     ap.add_argument("-o", "--out")
     ap.add_argument("--compact", action="store_true")
     ap.add_argument("--store", action="store_true", help="pack without deflate")
+    ap.add_argument("--meta", help="a saved metadata export (fm1-render --meta) instead of the build's")
     args = ap.parse_args(argv)
     data = sys.stdin.buffer.read() if args.file == "-" else Path(args.file).read_bytes()
-    names = Names.from_build()
+    names = Names.from_file(args.meta) if args.meta else Names.from_build()
     try:
         recs, rep = read_any(data, names)
         if args.command == "records":
@@ -2485,7 +2549,8 @@ def main(argv=None):
             if data[:8] != MAGIC and text.encode() != data:
                 problems.append("not canonical (lunar_state.py canon writes it)")
             if rep.unknown:
-                problems.append(f"uses {rep.name}, which this build does not have")
+                why = f": {KNOWN_TEXT[rep.known]}" if rep.known in KNOWN_TEXT else ""
+                problems.append(f"uses {rep.name}, which this build does not have{why}")
             if rep.skipped:
                 problems.append(f"{rep.skipped} skipped: {rep.first_skip}")
             print(json.dumps({"kind": doc["kind"], "schema": "unchecked" if errors is None else

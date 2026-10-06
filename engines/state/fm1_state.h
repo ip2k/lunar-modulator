@@ -37,17 +37,21 @@
  * of the caller's memory). The binary writer holds its file (96 KiB
  * at most) in the caller's memory too.
  *
- * Seams (code against the spec's interfaces until the stage lands):
- *   SEAM(E2): engine API v4's FM1_PARAM_FOCUS and FM1_PARAM_PER_FOCUS flags
- *     and get_param; until then fm1_state_param_focus() knows today's pad
- *     kits (Drums, Sophie) from a table in state_names.c. Aliases and
- *     enum-names (`aliases` in fm1_state_names_t) and known-ids reasons.
- *     The mod script's `lock=` and `data` lines.
- *   SEAM(E1): the `dq`, `se` and `sn` movy1 lines ride as raw lines in the
- *     binary SEQS chunk (byte-identical either way); the begin/item/end
- *     refactor of fm1_seq_import_movy1, which E1 also edits, follows it, so
- *     until then a set's records are its movy1 lines.
- *   SEAM(A1): the app's collector and applier; fm1-render's own (host/
+ * What the other stages give it (all in, since the stage-E integration,
+ * 2026-10-06):
+ *   E2: engine API v4's FM1_PARAM_FOCUS and FM1_PARAM_PER_FOCUS flags name a
+ *     pad kit's focus and its per-pad values (fm1_state_param_focus), and
+ *     get_param reads them back for a save; the names a parameter or a list
+ *     entry had before a rename (fm1_known.h's aliases) resolve; an engine
+ *     or kind a build lacks is refused with the known-ids reason (`known`
+ *     in the report); pattern data reaches a kind's set_data (state_mod.c);
+ *     the caps are fm1_state_caps.h's.
+ *   E1: the song's movy1 lines `dq`, `se` and `sn` are typed items in the
+ *     binary SEQS and CLIP chunks (state_movy1.c), and the sequencer core
+ *     imports a set from text in pieces (fm1_seq_import_begin/_feed/_end),
+ *     so a binary set reaches it item by item, decoded into pieces of at
+ *     most 64 bytes, and no line is ever held whole.
+ *   A1 (next): the app's collector and applier; fm1-render's own (host/
  *     render_state.cc) stand in for the desktop.
  *
  * MIT licence, like the rest of this repository.
@@ -59,7 +63,9 @@
 #include <stdint.h>
 
 #include "fm1_engine.h"
+#include "fm1_known.h"
 #include "fm1_mod.h"
+#include "fm1_state_caps.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,23 +85,27 @@ enum {
   FM1_STATE_CLIP = 5,
   FM1_STATE_SETTINGS = 6,
   FM1_STATE_SET = 7,          /* binary only: a .movy1 set as one SEQS chunk */
-  FM1_STATE_DX7BANK = 8,      /* reserved (SEAM(E2): the VCED -> VMEM packer) */
+  FM1_STATE_DX7BANK = 8,      /* reserved: a .syx bank keeps its own format (fm1_dx7.h's
+                                 packer and dump writers); the code is held for a
+                                 bank in the container */
   FM1_STATE_KINDS = 9
 };
 /* "project", "sound", ... ; NULL for none. */
 const char *fm1_state_kind_name(unsigned kind);
 unsigned fm1_state_kind_code(const char *name, size_t n);
 
-/* ---- Caps (§16): the reader refuses past these (TOO_BIG) ------------------ */
-#define FM1_STATE_DEPTH 8u            /* JSON nesting */
-#define FM1_STATE_STRING 16384u       /* a JSON string, decoded bytes (a movy1 line) */
-#define FM1_STATE_KEY 64u             /* a JSON key, bytes */
-#define FM1_STATE_NUMBER 32u          /* a JSON number, characters */
-#define FM1_STATE_MEMBERS 64u         /* members of one object */
-#define FM1_STATE_ITEMS 8192u         /* items of one array */
+/* ---- Caps (§16): the reader refuses past these (TOO_BIG) ------------------
+ * The JSON structure caps and the bytes a kind may hold are fm1_state_caps.h's,
+ * the table the metadata export carries to editors (its `limits`). */
+#define FM1_STATE_DEPTH FM1_STATE_CAP_DEPTH        /* JSON nesting */
+#define FM1_STATE_STRING FM1_STATE_CAP_STRING      /* a JSON string, decoded bytes (a movy1 line) */
+#define FM1_STATE_KEY FM1_STATE_CAP_KEY            /* a JSON key, bytes */
+#define FM1_STATE_NUMBER FM1_STATE_CAP_NUMBER      /* a JSON number, characters */
+#define FM1_STATE_MEMBERS FM1_STATE_CAP_MEMBERS    /* members of one object */
+#define FM1_STATE_ITEMS FM1_STATE_CAP_ITEMS        /* items of one array */
 #define FM1_STATE_BIN_MAX 98304u      /* a binary file (96 KiB) */
 #define FM1_STATE_CHUNKS 64u           /* one a unit: a project has up to 30 units */
-#define FM1_STATE_PADS 32u
+#define FM1_STATE_PADS FM1_FOCUS_MAX  /* a FOCUS parameter's entries (fm1_engine.h) */
 #define FM1_STATE_PARAMS 48u          /* keys in one params object */
 #define FM1_STATE_DATA 8192u          /* pattern data, all modules together */
 #define FM1_STATE_DATA_ONE 4096u      /* one module's (hex in JSON: 8,192 characters) */
@@ -248,6 +258,8 @@ typedef struct fm1_state_report {
   char path[96];              /* JSON path: /sounds/1/params/Cutoff (0-based items) */
   char what[96];              /* why, in a few words */
   char name[32];              /* the engine, kind or member a refusal or skip names */
+  char known[12];             /* an unknown engine or kind's known-ids reason ("gpl",
+                                 "planned", "retired"), "" when no list names it */
   char near[44];              /* the source's first 40 characters there */
   uint32_t near_at;           /* where `near` starts: the member's key, or the offset */
   uint32_t skipped;           /* members, names and values left out (unknown or unresolvable) */
@@ -267,12 +279,6 @@ void fm1_state_report_init(fm1_state_report_t *rep);
  * export (stage E2, fm1-render --meta) is written from the same tables, so
  * a name a file may use is a name an editor offers. NULL members are empty
  * tables: a reader with none resolves `#UID` keys only. */
-typedef struct fm1_state_alias {
-  const char *engine;         /* engine or kind id */
-  const char *alias;          /* an old name */
-  uint16_t uid;               /* what it names now */
-} fm1_state_alias_t;
-
 typedef struct fm1_state_names {
   const fm1_engine_t *const *engines;    /* sounds and audio effects */
   size_t n_engines;
@@ -283,8 +289,9 @@ typedef struct fm1_state_names {
   const fm1_param_t *host;               /* the host unit's (Pitch, Amp, ...) */
   unsigned n_host;
   const fm1_mod_source_info_t *(*source)(unsigned id);   /* system sources 0-63 */
-  const fm1_state_alias_t *aliases;      /* SEAM(E2): renames; NULL for none yet */
+  const fm1_alias_t *aliases;            /* old names of parameters and entries (fm1_known.h) */
   size_t n_aliases;
+  const fm1_known_id_t *(*known)(const char *id);   /* why a build lacks an id, or NULL */
   uint8_t gpl;                           /* FM1_GPL_MODS in this build */
 } fm1_state_names_t;
 
@@ -296,18 +303,31 @@ void fm1_state_names_default(fm1_state_names_t *nm);
 const fm1_engine_t *fm1_state_engine(const fm1_state_names_t *nm, unsigned role, const char *id);
 const fm1_mod_kind_t *fm1_state_kind(const fm1_state_names_t *nm, const char *id);
 /* A parameter by key: "#UID", the name exactly, without ASCII case, by
- * abbreviation, then by alias (§7.3). Returns the index, or -1. */
-int fm1_state_param_find(const fm1_state_names_t *nm, const char *owner, const fm1_param_t *p,
-                         unsigned n, const char *key, size_t len);
-/* An entry of an ENUM by name (exactly, then without ASCII case), or -1. */
-int fm1_state_entry_find(const fm1_param_t *p, const char *s, size_t len);
+ * abbreviation, then by an old name (fm1_known.h's aliases of the owner:
+ * `owner_kind` FM1_ALIAS_ENGINE for an engine, effect or MIDI effect,
+ * FM1_ALIAS_MOD for a modulation kind, 0 for none) (§7.3). Returns the
+ * index, or -1. */
+int fm1_state_param_find(const fm1_state_names_t *nm, unsigned owner_kind, const char *owner,
+                         const fm1_param_t *p, unsigned n, const char *key, size_t len);
+/* An entry of an ENUM by name (exactly, then without ASCII case), then by
+ * an old name of one (the owner's entry aliases), or -1. */
+int fm1_state_entry_find(const fm1_state_names_t *nm, unsigned owner_kind, const char *owner,
+                         const fm1_param_t *p, const char *s, size_t len);
 /* Whether a parameter is a pad kit's focus (Pad) or a per-pad value: engine
  * API v4's FM1_PARAM_FOCUS and FM1_PARAM_PER_FOCUS. 0 none, 1 focus, 2 per
- * focus. SEAM(E2): today's kits from a table until the flags exist. */
+ * focus. */
 int fm1_state_param_focus(const fm1_engine_t *e, unsigned index);
 /* A system source by name (VEL ...) or -1; a module port or gate by name or
  * 1-based index (text "2"), or -1. */
 int fm1_state_source_find(const fm1_state_names_t *nm, const char *s, size_t len);
+/* Counts an engine or kind that a UNIT or MODULE record names and nm lacks
+ * in rep (unknown; the first one's id in name and its known-ids reason in
+ * known), as the JSON reader counts them; the binary reader resolves no
+ * names, so a loader of binary files passes its records through this. */
+void fm1_state_note_unknown(const fm1_state_names_t *nm, const fm1_rec_t *r, fm1_state_report_t *rep);
+/* A report's `known` reason in words for a refusal ("in the GPL build
+ * only", "not built yet", "retired"), or "" for none. */
+const char *fm1_state_known_text(const char *reason);
 int fm1_state_port_find(const fm1_port_t *ports, unsigned n, const char *s, size_t len);
 
 /* ---- The JSON reader (§7.6) ------------------------------------------------ */

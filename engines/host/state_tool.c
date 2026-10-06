@@ -23,8 +23,9 @@
  *       the tokenizer alone (the JSONTestSuite run): exit 0 if it accepts
  *   fm1-state sizes
  *       the readers' and writers' state, in bytes (the tests hold them)
- *   fm1-state names
- *       the build's names, ranges and defaults, exact, for tools/lunar_state.py
+ *   fm1-state meta
+ *       the parameter metadata export, as fm1-render --meta writes it: what
+ *       tools/lunar_state.py resolves names against
  *   fm1-state num
  *       number tests, a line each on stdin: "f TEXT" (decimal to float32,
  *       fast and exact paths), "t BITS" (float32 to text), "q TEXT" (percent
@@ -34,6 +35,7 @@
  * engine or kind this build does not have refuses (UNKNOWN) unless
  * --without leaves it out (§10.3). Host code: stdio and malloc. MIT licence. */
 #include "fm1_deflate.h"
+#include "fm1_meta.h"
 #include "fm1_num.h"
 #include "fm1_state.h"
 
@@ -118,6 +120,8 @@ static void print_report(FILE *f, const fm1_state_report_t *r) {
   json_text(f, r->near);
   fprintf(f, ",\"name\":");
   json_text(f, r->name);
+  fprintf(f, ",\"known\":");
+  json_text(f, r->known);
   fprintf(f, ",\"records\":%u,\"skipped\":%u,\"repaired\":%u,\"defaulted\":%u,\"unknown\":%u,"
              "\"units\":%u,\"modules\":%u,\"cables\":%u,\"voices\":%u,\"lines\":%u,\"first_skip\":",
           r->records, r->skipped, r->repaired, r->defaulted, r->unknown, r->units, r->modules, r->cables,
@@ -312,10 +316,32 @@ static int reorder(const buf_t *in, buf_t *out) {
 }
 
 /* ---- Reading any state file -------------------------------------------------- */
+/* A binary file's records on their way to a sink, its engines and kinds
+ * counted against the build as the JSON reader counts them. */
+typedef struct {
+  const fm1_state_names_t *nm;
+  fm1_state_report_t *rep;
+  fm1_rec_sink_t sink;
+  void *ctx;
+} bin_names_t;
+
+static int bin_names(void *ctx, const fm1_rec_t *r) {
+  bin_names_t *b = (bin_names_t *)ctx;
+  fm1_state_note_unknown(b->nm, r, b->rep);
+  return b->sink(b->ctx, r);
+}
+
 static int read_any(const fm1_state_names_t *nm, const buf_t *in, fm1_rec_sink_t sink, void *sctx,
                     fm1_state_report_t *rep, size_t pieces) {
   const int kind = fm1_state_sniff(in->b, in->n);
-  if (kind == 1) return fm1_state_bin_read(mem_read, (void *)in, (uint32_t)in->n, sink, sctx, rep, 0);
+  if (kind == 1) {
+    bin_names_t b;
+    b.nm = nm;
+    b.rep = rep;
+    b.sink = sink;
+    b.ctx = sctx;
+    return fm1_state_bin_read(mem_read, (void *)in, (uint32_t)in->n, bin_names, &b, rep, 0);
+  }
   if (kind == 3) {
     rep->code = FM1_STATE_NOT_LUNAR;
     strcpy(rep->what, "a movy1 set: fm1-state from-movy1 makes it a state file");
@@ -353,8 +379,13 @@ static int to_canon(const fm1_state_names_t *nm, const buf_t *in, int compact, i
   ok = read_any(nm, src, fm1_state_write, w, rep, 0);
   if (ok && rep->unknown && !without) {
     rep->code = FM1_STATE_UNKNOWN;
-    snprintf(rep->what, sizeof(rep->what), "uses %s, which this build does not have (--without leaves it out)",
-             rep->name);
+    if (rep->known[0]) {
+      snprintf(rep->what, sizeof(rep->what), "uses %s, which this build does not have: %s (--without leaves it out)",
+               rep->name, fm1_state_known_text(rep->known));
+    } else {
+      snprintf(rep->what, sizeof(rep->what), "uses %s, which this build does not have (--without leaves it out)",
+               rep->name);
+    }
     ok = 0;
   }
   free(mem);
@@ -550,96 +581,13 @@ static int num_tests(void) {
 }
 
 
-/* ---- names: the tables a JSON file resolves against, exact ------------------
- * What tools/lunar_state.py (P1) reads to name and clamp values the way the
- * C reader does: every engine, MIDI effect and modulation kind with each
- * parameter's uid, name, abbreviation, range and default as canonical
- * float32 text, its entries and its pad role. SEAM(E2): fm1-render --meta,
- * the metadata export, replaces it for P1 once it lands. */
-static void names_params(const fm1_param_t *p, unsigned n, const fm1_engine_t *e) {
-  unsigned i;
-  int k;
-  char t[24];
-  printf("[");
-  for (i = 0; i < n; ++i) {
-    printf(i ? ",{" : "{");
-    printf("\"uid\":%u,\"name\":", p[i].uid);
-    json_text(stdout, p[i].name);
-    printf(",\"abbr\":");
-    json_text(stdout, p[i].abbr ? p[i].abbr : "");
-    printf(",\"type\":\"%s\"", p[i].type == FM1_PARAM_ENUM ? "enum" : "float");
-    fm1_num_f32_text(fm1_num_bits(p[i].min), t);
-    printf(",\"min\":\"%s\"", t);
-    fm1_num_f32_text(fm1_num_bits(p[i].max), t);
-    printf(",\"max\":\"%s\"", t);
-    fm1_num_f32_text(fm1_num_bits(p[i].def), t);
-    printf(",\"def\":\"%s\",\"focus\":%d", t, e ? fm1_state_param_focus(e, i) : 0);
-    if (p[i].type == FM1_PARAM_ENUM && p[i].enum_names) {
-      printf(",\"entries\":[");
-      for (k = 0; k <= (int)(p[i].max - p[i].min); ++k) {
-        if (k) printf(",");
-        json_text(stdout, p[i].enum_names[k]);
-      }
-      printf("]");
-    }
-    printf("}");
-  }
-  printf("]");
-}
-
-static void names_ports(const fm1_port_t *p, unsigned n) {
-  unsigned i;
-  printf("[");
-  for (i = 0; i < n; ++i) {
-    if (i) printf(",");
-    json_text(stdout, p[i].name);
-  }
-  printf("]");
-}
-
-static int names_dump(const fm1_state_names_t *nm) {
-  size_t i;
-  unsigned id;
-  int first = 1;
-  printf("{\"engines\":[");
-  for (i = 0; i < nm->n_engines + nm->n_mfx; ++i) {
-    const fm1_engine_t *e = i < nm->n_engines ? nm->engines[i] : &nm->mfx[i - nm->n_engines]->engine;
-    printf(i ? ",{" : "{");
-    printf("\"id\":");
-    json_text(stdout, e->id);
-    printf(",\"role\":\"%s\",\"pads\":%u,\"params\":",
-           e->kind == FM1_KIND_SOUND ? "sound" : (e->kind == FM1_KIND_AUDIO_FX ? "fx" : "mfx"), e->pad_count);
-    names_params(e->params, e->n_params, e);
-    printf("}");
-  }
-  printf("],\"kinds\":[");
-  for (i = 0; i < nm->n_kinds; ++i) {
-    const fm1_mod_kind_t *k = nm->kinds[i];
-    printf(i ? ",{" : "{");
-    printf("\"id\":");
-    json_text(stdout, k->id);
-    printf(",\"params\":");
-    names_params(k->params, k->n_params, NULL);
-    printf(",\"outs\":");
-    names_ports(k->out, k->n_out);
-    printf(",\"gates\":");
-    names_ports(k->gate_in, k->n_gate_in);
-    printf("}");
-  }
-  printf("],\"sources\":[");
-  for (id = 0; id < 64u; ++id) {
-    const fm1_mod_source_info_t *si = nm->source ? nm->source(id) : NULL;
-    if (!si) continue;
-    printf(first ? "{" : ",{");
-    first = 0;
-    printf("\"id\":%u,\"name\":", id);
-    json_text(stdout, si->name);
-    printf("}");
-  }
-  printf("],\"host\":");
-  names_params(nm->host, nm->n_host, NULL);
-  printf("}\n");
-  return 0;
+/* ---- meta: the parameter metadata export (fm1_meta.h) ----------------------
+ * The same document as fm1-render --meta, for a tool that links the codecs:
+ * what tools/lunar_state.py (P1) and the coming web editor resolve names,
+ * ranges, defaults, pad roles and old names against. */
+static void meta_put(void *ctx, const char *s, size_t n) {
+  (void)ctx;
+  fwrite(s, 1, n, stdout);
 }
 
 static int nop_cb(void *ctx, const fm1_json_ev_t *ev) {
@@ -658,7 +606,7 @@ static void usage(void) {
           "       fm1-state check FILE [--rate HZ]\n"
           "       fm1-state diff A B\n"
           "       fm1-state json-check FILE\n"
-          "       fm1-state names\n"
+          "       fm1-state meta\n"
           "       fm1-state num < LINES\n");
 }
 
@@ -693,9 +641,11 @@ int main(int argc, char **argv) {
            fm1_state_json_writer_size(), fm1_state_bin_writer_size(), sizeof(fm1_rec_t));
     return 0;
   }
-  if (strcmp(cmd, "names") == 0) {
-    fm1_state_names_default(&nm);
-    return names_dump(&nm);
+  if (strcmp(cmd, "meta") == 0) {
+    fm1_meta_build_t b;
+    fm1_meta_build_default(&b);
+    fm1_meta_write(&b, meta_put, NULL);
+    return 0;
   }
   if (!file) { usage(); return 2; }
   fm1_state_names_default(&nm);
@@ -768,7 +718,8 @@ int main(int argc, char **argv) {
     if (ok && c.mod) c.ram += (fm1_mod_size() + 15u) & ~(size_t)15u;
     if (ok && rep.unknown) {
       rep.code = FM1_STATE_UNKNOWN;
-      snprintf(rep.what, sizeof(rep.what), "uses %s, which this build does not have", rep.name);
+      snprintf(rep.what, sizeof(rep.what), "uses %s, which this build does not have%s%s", rep.name,
+               rep.known[0] ? ": " : "", fm1_state_known_text(rep.known));
       ok = 0;
     }
     if (ok && c.ram > FM1_STATE_RAM_BUDGET) {

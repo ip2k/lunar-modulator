@@ -3,10 +3,10 @@
  * records have one applier"), for fm1-render's --load and --save now and
  * the app's state stage (A1) next. C99, no heap, no stdio. MIT licence.
  *
- * SEAM(E2): pattern data (FM1_REC_DATA) reaches a kind's set_data once the
- * runtime exposes it; until then it is counted as skipped. SEAM(E2/A1): the
- * mod script parser produces these records too, so --mod, the replay log
- * and a file reach fm1_mod_set_slot through this one function. */
+ * Pattern data (FM1_REC_DATA) reaches a kind's set_data through mod API
+ * v2's fm1_mod_set_data, and leaves through fm1_mod_get_data. SEAM(A1):
+ * the mod script parser produces these records too, so --mod, the replay
+ * log and a file reach fm1_mod_set_slot through this one function. */
 #include "fm1_state_mod.h"
 
 #include <string.h>
@@ -31,11 +31,16 @@ static void skip(fm1_state_mod_t *a, const char *what) {
 
 /* The parameters a cable unit code reaches: an engine bound at a sink, a
  * module's kind, or the host. */
-static const fm1_param_t *unit_params(const fm1_state_mod_t *a, unsigned code, unsigned *n) {
+static const fm1_param_t *unit_params(const fm1_state_mod_t *a, unsigned code, unsigned *n,
+                                      unsigned *owner_kind, const char **owner) {
+  *owner_kind = 0;
+  *owner = NULL;
   if (code >= FM1_MOD_MODULE && code < FM1_MOD_MODULE + FM1_MOD_POSITIONS) {
     const int k = fm1_mod_kind_at(a->m, code - FM1_MOD_MODULE);
     if (k < 0) return NULL;
     *n = fm1_mod_kinds[k]->n_params;
+    *owner_kind = FM1_ALIAS_MOD;
+    *owner = fm1_mod_kinds[k]->id;
     return fm1_mod_kinds[k]->params;
   }
   if (code == FM1_MOD_HOST) {
@@ -47,6 +52,8 @@ static const fm1_param_t *unit_params(const fm1_state_mod_t *a, unsigned code, u
     const fm1_engine_t *e = si >= 0 ? a->units[si] : NULL;
     if (!e) return NULL;
     *n = e->n_params;
+    *owner_kind = FM1_ALIAS_ENGINE;
+    *owner = e->id;
     return e->params;
   }
 }
@@ -88,14 +95,32 @@ int fm1_state_mod_sink(void *ctx, const fm1_rec_t *r) {
       return 1;
     }
     case FM1_REC_DATA:
-      if (r->piece & FM1_REC_LAST) skip(a, "pattern data (no kind takes it yet)");
+      if (r->piece & FM1_REC_FIRST) {
+        a->data_pos = r->slot;
+        a->data_version = r->u.data.version;
+        a->data_n = 0;
+        a->data_over = 0;
+      }
+      if (r->u.data.n > FM1_MOD_DATA_MAX - a->data_n) {
+        a->data_over = 1;
+      } else if (r->u.data.n) {
+        memcpy(a->data + a->data_n, r->u.data.b, r->u.data.n);
+        a->data_n = (uint16_t)(a->data_n + r->u.data.n);
+      }
+      if (r->piece & FM1_REC_LAST) {
+        if (a->data_over) skip(a, "pattern data longer than any kind keeps");
+        else if (!fm1_mod_set_data(a->m, a->data_pos, a->data, a->data_n, a->data_version))
+          skip(a, "pattern data its module does not take");
+      }
       return 1;
     case FM1_REC_CABLE: {
       fm1_mod_slot_t s = r->u.cable.s;
       if (!s.dst && r->u.cable.name[0] && !(s.flags & FM1_MOD_SLOT_GATE_DST)) {
-        unsigned n = 0;
-        const fm1_param_t *p = unit_params(a, s.dst_unit, &n);
-        const int i = p ? fm1_state_param_find(a->nm, NULL, p, n, r->u.cable.name, strlen(r->u.cable.name)) : -1;
+        unsigned n = 0, ok_kind;
+        const char *owner;
+        const fm1_param_t *p = unit_params(a, s.dst_unit, &n, &ok_kind, &owner);
+        const int i = p ? fm1_state_param_find(a->nm, ok_kind, owner, p, n, r->u.cable.name, strlen(r->u.cable.name))
+                        : -1;
         if (i < 0) {
           skip(a, "a cable to a parameter its unit does not have");
           return 1;
@@ -153,6 +178,20 @@ int fm1_state_mod_collect(const fm1_mod_t *m, uint32_t seed, int with_seed, fm1_
         memcpy(&r.u.param.bits, &v, sizeof(v));
       }
       if (!emit(sink, ctx, &r)) return 0;
+    }
+    {
+      uint8_t buf[FM1_MOD_DATA_MAX], version = 0;
+      const uint16_t n = fm1_mod_get_data(m, pos, buf, (uint16_t)sizeof(buf), &version);
+      if (n) {
+        memset(&r, 0, sizeof(r));
+        r.type = FM1_REC_DATA;
+        r.slot = (uint8_t)pos;
+        r.piece = FM1_REC_FIRST | FM1_REC_LAST;
+        r.u.data.version = version;
+        r.u.data.n = n;
+        r.u.data.b = buf;
+        if (!emit(sink, ctx, &r)) return 0;
+      }
     }
   }
   for (i = 0; i < FM1_MOD_SLOTS; ++i) {

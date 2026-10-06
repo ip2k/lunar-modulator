@@ -1199,8 +1199,8 @@ int main(int argc, char **argv) {
     fprintf(stderr, "--log-mod needs --mod\n");
     return 2;
   }
-  if (mod_data_path && !mod_path) {
-    fprintf(stderr, "--save-mod-data needs --mod\n");
+  if (mod_data_path && !mod_path && !loaded.has_mod) {
+    fprintf(stderr, "--save-mod-data needs --mod or a loaded rack\n");
     return 2;
   }
   // The MIDI effects' usage errors, before anything is allocated (an exit
@@ -1569,7 +1569,11 @@ int main(int argc, char **argv) {
       fm1_state_report_init(&rep);
       fm1_state_mod_t apply;
       fm1_state_mod_init(&apply, md.m, &nm, bound, &rep);
-      for (size_t i = 0; i < loaded.mod.size(); ++i) fm1_state_mod_sink(&apply, &loaded.mod[i]);
+      for (size_t i = 0; i < loaded.mod.size(); ++i) {
+        fm1_rec_t r = loaded.mod[i];
+        if (r.type == FM1_REC_DATA) r.u.data.b = reinterpret_cast<const uint8_t *>(loaded.mod_data[i].data());
+        fm1_state_mod_sink(&apply, &r);
+      }
       if (rep.skipped) fprintf(stderr, "--load: %u of the modulation not applied: %s\n", rep.skipped, rep.first_skip);
     }
     fm1_mod_glue_init(&md.glue, md.m, sound.e);
@@ -1633,17 +1637,20 @@ int main(int argc, char **argv) {
     for (int k = 0; k < kSounds; ++k) {
       have.sound[k].e = units[k]->e;
       have.sound[k].params = &units[k]->params;
+      have.sound[k].self = units[k]->self;
       have.level[k] = level[k];
       for (size_t j = 0; j < inserts[k].size(); ++j) {
         render_state::UnitOut u;
         u.e = inserts[k][j].e;
         u.params = &inserts[k][j].params;
+        u.self = inserts[k][j].self;
         have.inserts[k].push_back(u);
       }
       for (size_t j = 0; j < mfx_units[k].size(); ++j) {
         render_state::UnitOut u;
         u.e = mfx_units[k][j].e;
         u.params = &mfx_units[k][j].params;
+        u.self = mfx_units[k][j].self;
         u.on = mfx_start_on[k][j] != 0;
         have.mfx[k].push_back(u);
       }
@@ -1652,6 +1659,7 @@ int main(int argc, char **argv) {
       render_state::UnitOut u;
       u.e = fx[j].e;
       u.params = &fx[j].params;
+      u.self = fx[j].self;
       have.fx.push_back(u);
     }
     have.dx7 = loaded.dx7;

@@ -674,13 +674,14 @@ static int cable_ok(const fm1_state_writer_t *w, const w_cable_t *c) {
   char tmp[12];
   const fm1_mod_slot_t *s = &c->s;
   const fm1_param_t *table = NULL;
-  unsigned n = 0;
+  const char *owner = NULL;
+  unsigned n = 0, owner_kind = 0;
   if (!ref_ok(w, s->src)) return 0;
   if (s->via != FM1_MOD_NONE && !ref_ok(w, s->via)) return 0;
   if (s->dst_unit >= FM1_MOD_MODULE && s->dst_unit < FM1_MOD_MODULE + 8u) {
     const fm1_mod_kind_t *k = rack_kind(w, s->dst_unit - FM1_MOD_MODULE);
     if (s->flags & FM1_MOD_SLOT_GATE_DST) return 1;
-    if (k) { table = k->params; n = k->n_params; }
+    if (k) { table = k->params; n = k->n_params; owner = k->id; owner_kind = FM1_ALIAS_MOD; }
   } else {
     if (s->flags & FM1_MOD_SLOT_GATE_DST) return 0;
     if (code_name(w->kind, s->dst_unit, tmp) == NULL) return 0;
@@ -688,11 +689,11 @@ static int cable_ok(const fm1_state_writer_t *w, const w_cable_t *c) {
       if (w->nm) { table = w->nm->host; n = w->nm->n_host; }
     } else {
       const fm1_engine_t *e = unit_engine(w, code_unit(s->dst_unit));
-      if (e) { table = e->params; n = e->n_params; }
+      if (e) { table = e->params; n = e->n_params; owner = e->id; owner_kind = FM1_ALIAS_ENGINE; }
     }
   }
   if (!s->dst && c->name[0] && table) {
-    return fm1_state_param_find(w->nm, NULL, table, n, c->name, strlen(c->name)) >= 0;
+    return fm1_state_param_find(w->nm, owner_kind, owner, table, n, c->name, strlen(c->name)) >= 0;
   }
   return 1;
 }

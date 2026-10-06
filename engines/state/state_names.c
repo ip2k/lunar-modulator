@@ -7,7 +7,8 @@
 #include <string.h>
 
 const uint32_t fm1_state_kind_cap[FM1_STATE_KINDS] = {
-  0, 262144u, 32768u, 32768u, 65536u, 32768u, 4096u, 65536u, 65536u
+  0, FM1_STATE_CAP_PROJECT, FM1_STATE_CAP_SOUND, FM1_STATE_CAP_FX, FM1_STATE_CAP_MODS,
+  FM1_STATE_CAP_CLIP, FM1_STATE_CAP_SETTINGS, FM1_STATE_CAP_MOVY1, FM1_STATE_CAP_SYX
 };
 
 static const char *const kKinds[FM1_STATE_KINDS] = {
@@ -111,10 +112,25 @@ const fm1_mod_kind_t *fm1_state_kind(const fm1_state_names_t *nm, const char *id
   return NULL;
 }
 
-int fm1_state_param_find(const fm1_state_names_t *nm, const char *owner, const fm1_param_t *p,
-                         unsigned n, const char *key, size_t len) {
-  unsigned i;
+/* The owner's old names (fm1_known.h): a parameter's (entry -1) or one of
+ * its entries'. Returns the alias row's uid and entry through *a, or NULL. */
+static const fm1_alias_t *alias_find(const fm1_state_names_t *nm, unsigned owner_kind, const char *owner,
+                                     const char *key, size_t len, int entry_of, uint16_t uid) {
   size_t a;
+  if (!nm || !nm->aliases || !owner || !owner_kind) return NULL;
+  for (a = 0; a < nm->n_aliases; ++a) {
+    const fm1_alias_t *al = &nm->aliases[a];
+    if (!al->name || al->owner != owner_kind || strcmp(al->id, owner) != 0) continue;
+    if (entry_of ? (al->entry < 0 || al->uid != uid) : al->entry >= 0) continue;
+    if (same_ci(key, al->name, len)) return al;
+  }
+  return NULL;
+}
+
+int fm1_state_param_find(const fm1_state_names_t *nm, unsigned owner_kind, const char *owner,
+                         const fm1_param_t *p, unsigned n, const char *key, size_t len) {
+  unsigned i;
+  const fm1_alias_t *al;
   if (len >= 2 && key[0] == '#') {
     unsigned uid = 0;
     size_t k;
@@ -137,20 +153,19 @@ int fm1_state_param_find(const fm1_state_names_t *nm, const char *owner, const f
   for (i = 0; i < n; ++i) {
     if (p[i].abbr && same_ci(key, p[i].abbr, len)) return (int)i;
   }
-  if (nm && owner) {
-    for (a = 0; a < nm->n_aliases; ++a) {
-      const fm1_state_alias_t *al = &nm->aliases[a];
-      if (strcmp(al->engine, owner) != 0 || !same_ci(key, al->alias, len)) continue;
-      for (i = 0; i < n; ++i) {
-        if (p[i].uid == al->uid) return (int)i;
-      }
+  al = alias_find(nm, owner_kind, owner, key, len, 0, 0);
+  if (al) {
+    for (i = 0; i < n; ++i) {
+      if (p[i].uid == al->uid) return (int)i;
     }
   }
   return -1;
 }
 
-int fm1_state_entry_find(const fm1_param_t *p, const char *s, size_t len) {
+int fm1_state_entry_find(const fm1_state_names_t *nm, unsigned owner_kind, const char *owner,
+                         const fm1_param_t *p, const char *s, size_t len) {
   int k, count;
+  const fm1_alias_t *al;
   if (p->type != FM1_PARAM_ENUM || !p->enum_names) return -1;
   count = (int)(p->max - p->min) + 1;
   for (k = 0; k < count; ++k) {
@@ -159,40 +174,56 @@ int fm1_state_entry_find(const fm1_param_t *p, const char *s, size_t len) {
   for (k = 0; k < count; ++k) {
     if (same_ci(s, p->enum_names[k], len)) return k;
   }
-  return -1;
+  al = alias_find(nm, owner_kind, owner, s, len, 1, p->uid);
+  return al && al->entry < count ? al->entry : -1;
 }
 
-/* SEAM(E2): engine API v4 puts FM1_PARAM_FOCUS (0x0100) on a kit's Pad and
- * FM1_PARAM_PER_FOCUS (0x0200) on each per-pad value. Until those flags
- * exist the two pad kits of today are named here: Drums keeps eight values
- * per pad, Sophie every one but Pad (engines/src/drums.cc,
- * engines/src/sw_sophie.cc). */
-#ifndef FM1_PARAM_FOCUS
-#define FM1_STATE_FOCUS_FLAG 0x0100u
-#define FM1_STATE_PER_FOCUS_FLAG 0x0200u
-#else
-#define FM1_STATE_FOCUS_FLAG FM1_PARAM_FOCUS
-#define FM1_STATE_PER_FOCUS_FLAG FM1_PARAM_PER_FOCUS
-#endif
-
+/* Engine API v4: a kit's Pad carries FM1_PARAM_FOCUS and each per-pad value
+ * FM1_PARAM_PER_FOCUS (Drums and Sophie today); the flags count only in an
+ * engine that has a FOCUS parameter. */
 int fm1_state_param_focus(const fm1_engine_t *e, unsigned index) {
   const fm1_param_t *p;
-  if (!e || index >= e->n_params || !e->pad_count) return 0;
+  if (!e || index >= e->n_params) return 0;
   p = &e->params[index];
-  if (p->flags & FM1_STATE_FOCUS_FLAG) return 1;
-  if (p->flags & FM1_STATE_PER_FOCUS_FLAG) return 2;
-  if (strcmp(p->name, "Pad") == 0 && p->type == FM1_PARAM_ENUM) return 1;
-  if (strcmp(e->id, "drums") == 0) {
-    static const char *const kPerPad[] = { "Tune", "Decay", "Level", "Tone", "Snap", "Sweep",
-                                           "Drive", "Model" };
-    size_t k;
-    for (k = 0; k < sizeof(kPerPad) / sizeof(kPerPad[0]); ++k) {
-      if (strcmp(p->name, kPerPad[k]) == 0) return 2;
-    }
-    return 0;
-  }
-  if (strcmp(e->id, "sw-sophie") == 0) return 2;
+  if (p->flags & FM1_PARAM_FOCUS) return 1;
+  if ((p->flags & FM1_PARAM_PER_FOCUS) && fm1_engine_focus(e) >= 0) return 2;
   return 0;
+}
+
+void fm1_state_note_unknown(const fm1_state_names_t *nm, const fm1_rec_t *r, fm1_state_report_t *rep) {
+  const char *id;
+  size_t n;
+  const fm1_known_id_t *k;
+  if (r->type == FM1_REC_UNIT) {
+    if (!r->u.unit.id[0] || fm1_state_engine(nm, r->role, r->u.unit.id)) return;
+  } else if (r->type == FM1_REC_MODULE) {
+    if (fm1_state_kind(nm, r->u.unit.id)) return;
+  } else {
+    return;
+  }
+  if (rep->unknown++) return;
+  id = r->u.unit.id;
+  for (n = 0; n < sizeof(r->u.unit.id) && n + 1u < sizeof(rep->name) && id[n]; ++n) {
+    const unsigned char c = (unsigned char)id[n];
+    rep->name[n] = (char)(c >= 0x20 && c < 0x7F ? c : '?');
+  }
+  rep->name[n] = '\0';
+  k = nm && nm->known ? nm->known(rep->name) : NULL;
+  rep->known[0] = '\0';
+  if (k && k->reason) {
+    n = strlen(k->reason);
+    if (n >= sizeof(rep->known)) n = sizeof(rep->known) - 1u;
+    memcpy(rep->known, k->reason, n);
+    rep->known[n] = '\0';
+  }
+}
+
+const char *fm1_state_known_text(const char *reason) {
+  if (!reason || !*reason) return "";
+  if (strcmp(reason, "gpl") == 0) return "in the GPL build only";
+  if (strcmp(reason, "planned") == 0) return "not built yet";
+  if (strcmp(reason, "retired") == 0) return "retired";
+  return "";
 }
 
 int fm1_state_source_find(const fm1_state_names_t *nm, const char *s, size_t len) {

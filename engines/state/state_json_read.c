@@ -226,7 +226,10 @@ static void skipped(fm1_state_json_reader_t *r, const char *what) {
 static void unknown_engine(fm1_state_json_reader_t *r, const char *id) {
   if (!r->rep->unknown++) {
     size_t len = 0;
+    const fm1_known_id_t *k = r->nm && r->nm->known ? r->nm->known(id) : NULL;
     append(r->rep->name, sizeof(r->rep->name), &len, id, strlen(id));
+    len = 0;
+    if (k && k->reason) append(r->rep->known, sizeof(r->rep->known), &len, k->reason, strlen(k->reason));
   }
 }
 
@@ -599,7 +602,9 @@ static int params_key(fm1_state_json_reader_t *r, fm1_state_frame_t *f, const fm
     const fm1_engine_t *e = (const fm1_engine_t *)f->owner;
     if (e) { table = e->params; n = e->n_params; owner = e->id; }
   }
-  i = table ? fm1_state_param_find(r->nm, owner, table, n, r->key, r->keylen) : -1;
+  i = table ? fm1_state_param_find(r->nm, f->ctx == C_MPARAMS ? FM1_ALIAS_MOD : FM1_ALIAS_ENGINE, owner, table,
+                                   n, r->key, r->keylen)
+            : -1;
   if (i >= 0) {
     const int focus = f->ctx == C_MPARAMS ? 0 : fm1_state_param_focus((const fm1_engine_t *)f->owner, (unsigned)i);
     if (i < 64 && ((f->seen >> i) & 1u)) return bad(r, "duplicate key: two keys name one parameter");
@@ -668,7 +673,11 @@ static int param_value(fm1_state_json_reader_t *r, fm1_state_frame_t *f, const f
     const int count = (int)(p->max - p->min) + 1;
     int k;
     if (ev->type == FM1_JSON_STR) {
-      k = r->sbuf_over ? -1 : fm1_state_entry_find(p, r->sbuf, r->sbuf_n);
+      k = r->sbuf_over ? -1
+                       : fm1_state_entry_find(r->nm, f->ctx == C_MPARAMS ? FM1_ALIAS_MOD : FM1_ALIAS_ENGINE,
+                                              f->ctx == C_MPARAMS ? ((const fm1_mod_kind_t *)f->owner)->id
+                                                                  : ((const fm1_engine_t *)f->owner)->id,
+                                              p, r->sbuf, r->sbuf_n);
       if (k < 0) {
         skipped(r, "not an entry of the list");
         return 1;
@@ -1467,7 +1476,7 @@ static int target_end(fm1_state_json_reader_t *r) {
       const fm1_engine_t *e = ix >= 0 ? r->unit_e[ix] : NULL;
       if (e) { table = e->params; n = e->n_params; owner = e->id; }
     }
-    i = table ? fm1_state_param_find(r->nm, owner, table, n, pn, pl) : -1;
+    i = table ? fm1_state_param_find(r->nm, owner ? FM1_ALIAS_ENGINE : 0u, owner, table, n, pn, pl) : -1;
     if (i >= 0) {
       s->dst = table[i].uid;
     } else if (pl >= 2 && pn[0] == '#' && pn[1] != '0' && pl <= 5) {
@@ -1490,7 +1499,7 @@ static int target_end(fm1_state_json_reader_t *r) {
   if (r->tgt_has == (2u | 4u)) {              /* a module's parameter */
     const fm1_mod_kind_t *k = r->rack_k[r->tgt_module & 7u];
     s->dst_unit = (uint8_t)(FM1_MOD_MODULE + r->tgt_module);
-    i = k ? fm1_state_param_find(r->nm, k->id, k->params, k->n_params, pn, pl) : -1;
+    i = k ? fm1_state_param_find(r->nm, FM1_ALIAS_MOD, k->id, k->params, k->n_params, pn, pl) : -1;
     if (i >= 0) {
       s->dst = k->params[i].uid;
     } else if (k) {

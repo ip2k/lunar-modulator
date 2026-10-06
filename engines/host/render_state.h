@@ -42,8 +42,9 @@ struct Loaded {
   std::vector<std::pair<unsigned, std::array<uint8_t, 155> > > dx7;
   bool has_mod = false, has_seed = false;
   uint32_t seed = 0;
-  std::vector<fm1_rec_t> mod;          // MODULE, module PARAM and CABLE records, remapped
-  std::vector<std::string> mod_names;  // the cables' kept names, by mod index
+  std::vector<fm1_rec_t> mod;          // MODULE, module PARAM, DATA and CABLE records, remapped
+  std::vector<std::string> mod_data;   // a DATA record's bytes, by mod index ("" for the rest);
+                                       // its u.data.b is set from here when it is applied
   std::string set;                     // movy1 text
   std::vector<std::string> clip;       // a clip's lines (track 0, slot 0)
   int clip_track = -1, clip_slot = -1;
@@ -61,6 +62,7 @@ bool Load(const std::string &spec, bool without, Loaded *into, std::string *err)
 struct UnitOut {
   const fm1_engine_t *e = NULL;
   const Params *params = NULL;
+  const void *self = NULL;  // the instance: an engine with get_param (API v4) is read back
   bool on = false;
 };
 struct Have {
@@ -78,8 +80,11 @@ struct Have {
 // --save KIND:FILE: project, sound[K] (sound unit K, 1-4), fx (the --fx
 // chain), mods, set (movy1 text), clip:T.S; a FILE ending in .lunarb is
 // written binary, any other canonical JSON. The state is the one the render
-// starts from. SEAM(E2): a pad kit's pads the render never set are written
-// with the parameter's default until engine API v4's get_param reads them.
+// starts from. A unit whose engine has get_param (engine API v4: the pad
+// kits) is read back from its instance, every pad's values with it; any
+// other's values are the ones the render set, the rest their defaults
+// (which replaying them restores exactly: tests/test_engine_api_v4.py).
+// A module's pattern data is read back from the runtime (mod API v2).
 bool Save(const std::string &spec, const Have &have, std::string *err);
 
 // The DX7 voices of .syx files, as fm1-render --sysex stores them.

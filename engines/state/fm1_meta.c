@@ -17,6 +17,7 @@
 #include "fm1_engine.h"
 #include "fm1_known.h"
 #include "fm1_mod.h"
+#include "fm1_num.h"
 #include "fm1_state_caps.h"
 #include "../host/mod_script.h"
 
@@ -158,55 +159,12 @@ static void jw_null(jw_t *w) {
 /* A float32 as the shortest decimal (at most 9 significant digits) that
  * reads back to its bits, in ECMAScript's Number::toString format: 0.41,
  * 420, 0.0000015, 5e-7, 1e+21; -0 is 0. Never NaN or an infinity (a
- * parameter's range has neither). */
+ * parameter's range has neither). The state files' own formatter
+ * (fm1_num.h, exact, no libc), so the export and every saved file write a
+ * number alike. */
 static void f32_text(float v, char out[40]) {
-  char e[40], digits[16];
-  int p, k = 0, n, exp10;
-  const char *q;
-  char *o = out;
-  if (v == 0.0f || v != v || v - v != 0.0f) {
-    strcpy(out, "0");
-    return;
-  }
-  for (p = 1; p <= 9; ++p) {
-    snprintf(e, sizeof(e), "%.*e", p - 1, (double)v);
-    if (strtof(e, NULL) == v) break;
-  }
-  q = e;
-  if (*q == '-') *o++ = *q++;
-  for (; *q && *q != 'e'; ++q) {
-    if (*q >= '0' && *q <= '9' && k < 15) digits[k++] = *q;
-  }
-  while (k > 1 && digits[k - 1] == '0') --k;
-  digits[k] = '\0';
-  exp10 = atoi(q + 1);
-  n = exp10 + 1;                                  /* value = 0.digits x 10^n */
-  if (k <= n && n <= 21) {
-    memcpy(o, digits, (size_t)k);
-    o += k;
-    for (; n > k; --n) *o++ = '0';
-  } else if (0 < n && n <= 21) {
-    memcpy(o, digits, (size_t)n);
-    o += n;
-    *o++ = '.';
-    memcpy(o, digits + n, (size_t)(k - n));
-    o += k - n;
-  } else if (-6 < n && n <= 0) {
-    *o++ = '0';
-    *o++ = '.';
-    for (; n < 0; ++n) *o++ = '0';
-    memcpy(o, digits, (size_t)k);
-    o += k;
-  } else {
-    *o++ = digits[0];
-    if (k > 1) {
-      *o++ = '.';
-      memcpy(o, digits + 1, (size_t)(k - 1));
-      o += k - 1;
-    }
-    o += sprintf(o, "e%c%d", exp10 > 0 ? '+' : '-', exp10 > 0 ? exp10 : -exp10);
-  }
-  *o = '\0';
+  if (v != v || v - v != 0.0f) v = 0.0f;
+  (void)fm1_num_f32_text(fm1_num_bits(v), out);
 }
 
 static void jw_f32(jw_t *w, float v) {

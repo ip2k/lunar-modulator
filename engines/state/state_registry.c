@@ -2,7 +2,7 @@
  * this program (engines/src/registry.cc, engines/midi_fx/registry.c,
  * engines/mod/mod_registry.c). Kept apart from the reader and the writers
  * so a fuzz target or a test can link them without every engine. MIT
- * licence. */
+ * licence. The known ids and aliases are fm1_known.c's (tools/gen_known.py). */
 #include "fm1_state.h"
 
 #include <string.h>
@@ -18,6 +18,9 @@ void fm1_state_names_default(fm1_state_names_t *nm) {
   nm->host = fm1_mod_host_params;
   nm->n_host = FM1_MOD_HOST_PARAMS;
   nm->source = fm1_mod_system_source;
+  nm->aliases = fm1_aliases;
+  nm->n_aliases = fm1_alias_count;
+  nm->known = fm1_known_id_find;
 #ifdef FM1_GPL_MODS
   nm->gpl = FM1_GPL_MODS ? 1 : 0;
 #endif

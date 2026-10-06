@@ -52,7 +52,7 @@ def tool(renderer):    # noqa: F811  (make -C engines builds fm1-state too)
 
 @pytest.fixture(scope="module")
 def names(tool):
-    return ls.Names.from_build(tool)
+    return ls.Names.from_build()
 
 
 def run(tool, *args, data=None, check=False):

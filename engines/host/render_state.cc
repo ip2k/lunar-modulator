@@ -184,8 +184,13 @@ bool Load(const std::string &spec, bool without, Loaded *into, std::string *err)
   const bool ok = enc == 1 ? fm1_state_bin_read(MemRead, &data, static_cast<uint32_t>(data.size()), Hold, &recs, &rep, 0)
                            : fm1_state_json_read(&Names(), MemRead, &data, Hold, &recs, &rep);
   if (!ok) { *err = path + ": " + Report(rep); return false; }
+  if (enc == 1) {                       // the binary reader resolves no names
+    for (size_t i = 0; i < recs.size(); ++i) fm1_state_note_unknown(&Names(), &recs[i].r, &rep);
+  }
   if (rep.unknown && !without) {
-    *err = path + ": UNKNOWN: uses " + rep.name + ", which this build does not have (--without leaves it out)";
+    const std::string why = rep.known[0] ? std::string(": ") + fm1_state_known_text(rep.known) : std::string();
+    *err = path + ": UNKNOWN: uses " + rep.name + ", which this build does not have" + why +
+           " (--without leaves it out)";
     return false;
   }
   const int kind = recs.empty() ? 0 : recs[0].r.u.head.kind;
@@ -300,7 +305,7 @@ bool Load(const std::string &spec, bool without, Loaded *into, std::string *err)
         fm1_rec_t x = r;
         x.slot = static_cast<uint8_t>(p);
         into->mod.push_back(x);
-        into->mod_names.push_back("");
+        into->mod_data.push_back("");
         break;
       }
       default:
@@ -331,7 +336,15 @@ bool Load(const std::string &spec, bool without, Loaded *into, std::string *err)
         fm1_rec_t x = r;
         x.slot = static_cast<uint8_t>(pos_map[r.slot]);
         into->mod.push_back(x);
-        into->mod_names.push_back("");
+        into->mod_data.push_back("");
+      } else if (r.type == FM1_REC_DATA) {           // pieces joined by Hold
+        fm1_rec_t x = r;
+        x.slot = static_cast<uint8_t>(pos_map[r.slot & 7u]);
+        x.piece = FM1_REC_FIRST | FM1_REC_LAST;
+        x.u.data.b = NULL;
+        x.u.data.n = static_cast<uint16_t>(recs[i].text.size());
+        into->mod.push_back(x);
+        into->mod_data.push_back(recs[i].text);
       } else if (r.type == FM1_REC_CABLE) {
         fm1_rec_t x = r;
         fm1_mod_slot_t &s = x.u.cable.s;
@@ -386,7 +399,7 @@ bool Load(const std::string &spec, bool without, Loaded *into, std::string *err)
         }
         x.slot = static_cast<uint8_t>(sl);
         into->mod.push_back(x);
-        into->mod_names.push_back(r.u.cable.name);
+        into->mod_data.push_back("");
       }
     }
   }
@@ -442,24 +455,41 @@ void UnitRecs(std::vector<Rec> *v, const UnitOut &u, unsigned role, unsigned sou
   const fm1_engine_t *e = u.e;
   std::vector<float> value(e->n_params * (1u + FM1_STATE_PADS), 0.0f);
   std::vector<bool> set(value.size(), false);
-  int focus_index = -1;
-  unsigned focus = 0;
-  for (uint16_t i = 0; i < e->n_params; ++i) {
-    if (fm1_state_param_focus(e, i) == 1) {
-      focus_index = i;
-      focus = static_cast<unsigned>(e->params[i].def - e->params[i].min);
+  if (e->get_param && u.self) {
+    // Engine API v4: every value the instance holds, every pad's included.
+    const unsigned pads = fm1_engine_focus_count(e) < FM1_STATE_PADS ? fm1_engine_focus_count(e) : FM1_STATE_PADS;
+    for (uint16_t i = 0; i < e->n_params; ++i) {
+      if (fm1_state_param_focus(e, i) == 2) {
+        for (unsigned f = 0; f < pads; ++f) {
+          value[(1u + f) * e->n_params + i] = fm1_param_clamp(&e->params[i], e->get_param(u.self, i, static_cast<uint8_t>(f)));
+          set[(1u + f) * e->n_params + i] = true;
+        }
+      } else {
+        value[i] = fm1_param_clamp(&e->params[i], e->get_param(u.self, i, FM1_FOCUS_CURRENT));
+        set[i] = true;
+      }
     }
-  }
-  for (size_t k = 0; u.params && k < u.params->size(); ++k) {
-    const std::string &name = (*u.params)[k].first;
-    const int i = fm1_state_param_find(&Names(), e->id, e->params, e->n_params, name.c_str(), name.size());
-    if (i < 0) continue;
-    const float x = fm1_param_clamp(&e->params[i], (*u.params)[k].second);
-    if (i == focus_index) focus = static_cast<unsigned>(x - e->params[i].min + 0.5f) % FM1_STATE_PADS;
-    const size_t at = fm1_state_param_focus(e, static_cast<unsigned>(i)) == 2 ? (1u + focus) * e->n_params + i
-                                                                              : static_cast<size_t>(i);
-    value[at] = x;
-    set[at] = true;
+  } else {
+    int focus_index = -1;
+    unsigned focus = 0;
+    for (uint16_t i = 0; i < e->n_params; ++i) {
+      if (fm1_state_param_focus(e, i) == 1) {
+        focus_index = i;
+        focus = static_cast<unsigned>(e->params[i].def - e->params[i].min);
+      }
+    }
+    for (size_t k = 0; u.params && k < u.params->size(); ++k) {
+      const std::string &name = (*u.params)[k].first;
+      const int i = fm1_state_param_find(&Names(), FM1_ALIAS_ENGINE, e->id, e->params, e->n_params, name.c_str(),
+                                         name.size());
+      if (i < 0) continue;
+      const float x = fm1_param_clamp(&e->params[i], (*u.params)[k].second);
+      if (i == focus_index) focus = static_cast<unsigned>(x - e->params[i].min + 0.5f) % FM1_STATE_PADS;
+      const size_t at = fm1_state_param_focus(e, static_cast<unsigned>(i)) == 2 ? (1u + focus) * e->n_params + i
+                                                                                : static_cast<size_t>(i);
+      value[at] = x;
+      set[at] = true;
+    }
   }
   for (unsigned f = 0; f <= FM1_STATE_PADS; ++f) {
     for (uint16_t i = 0; i < e->n_params; ++i) {

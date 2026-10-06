@@ -21,9 +21,10 @@
  * so the same build always writes the same bytes, on any host. fm1-render
  * --meta prints it; the simulator will (fm1w_meta, stage A1).
  *
- * Plain C99. It formats floats with snprintf and checks them with strtof, so
- * it is for the desktop tools and the simulator, never the firmware (which
- * writes no JSON). No heap: the text goes out through put() in pieces. MIT
+ * Plain C99. Floats are written by the state files' exact formatter
+ * (fm1_num.h), so the export and a saved file write a number alike. It is
+ * for the desktop tools and the simulator, never the firmware (which writes
+ * no JSON). No heap: the text goes out through put() in pieces. MIT
  * licence, like the rest of this repository.
  */
 #ifndef FM1_META_H_
