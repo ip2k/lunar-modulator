@@ -96,6 +96,8 @@
 // voices go to User 1, 2... in the order given, counted across files. Each
 // file's result is printed on stderr, one line: the file, the voices, the
 // first slot, bad checksums and skipped messages, and the names stored.
+// --save-bank FILE writes the 32 user slots back out as one VMEM bank dump
+// (fm1_dx7_write_bank), after the --sysex files: the way a bank leaves.
 //
 // MIDI effects (engine API v3, FM1_KIND_MIDI_FX; include/fm1_mfx_host.h):
 // --mfx K:ID puts MIDI effect ID (the arpeggiator, `arp`) in front of sound
@@ -220,7 +222,7 @@ void Usage() {
       "                   [--insert-param K:NAME=VALUE]...] [--level K:PCT] [--slots]\n"
       "                  [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=VALUE]\n"
       "                  [--level-at K:T:PCT] [--mod FILE] [--log-mod FILE.jsonl]\n"
-      "                  [--sysex FILE.syx]... [--tempo BPM]\n"
+      "                  [--sysex FILE.syx]... [--save-bank FILE.syx] [--tempo BPM]\n"
       "                  [--mfx K:ID[:off] [--mfx-param K:NAME=VALUE]...]\n"
       "                  [--mfx-param-at K[.J]:T:NAME=VALUE]... [--mfx-on-at K[.J]:T:0|1]...\n"
       "                  [--log-mfx FILE.jsonl]\n"
@@ -637,6 +639,31 @@ bool LoadSysex(const Unit &u, const char *id, const std::vector<std::string> &pa
   return true;
 }
 
+// --save-bank: the dx7 engine's 32 user slots as one VMEM bank dump
+// (fm1_dx7_write_bank, MIDI channel 1), after any --sysex.
+bool SaveBank(const Unit &u, const char *id, const char *path) {
+  if (!id || strcmp(id, "dx7") != 0 || !u.self) {
+    fprintf(stderr, "--save-bank needs --engine dx7\n");
+    return false;
+  }
+  uint8_t voices[FM1_DX7_USER_SLOTS][FM1_DX7_VCED_BYTES];
+  const uint8_t *refs[FM1_DX7_USER_SLOTS];
+  for (unsigned k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
+    fm1_dx7_get_user_voice(u.self, k, voices[k]);
+    refs[k] = voices[k];
+  }
+  uint8_t out[FM1_DX7_BANK_SYSEX_BYTES];
+  const size_t n = fm1_dx7_write_bank(refs, 0, out);
+  FILE *f = fopen(path, "wb");
+  if (!f || fwrite(out, 1, n, f) != n) {
+    fprintf(stderr, "--save-bank: cannot write %s\n", path);
+    if (f) fclose(f);
+    return false;
+  }
+  fclose(f);
+  return true;
+}
+
 bool ParseParam(const char *arg, std::vector<std::pair<std::string, float> > *out) {
   const char *eq = strchr(arg, '=');
   if (!eq) return false;
@@ -790,6 +817,7 @@ int main(int argc, char **argv) {
   std::vector<Route> routes;
   const char *mod_path = NULL, *mod_log_path = NULL;
   std::vector<std::string> sysex_paths;   // --sysex: DX7 voices for --engine dx7
+  const char *save_bank = NULL;           // --save-bank: the user slots as a VMEM dump
   // Sound units 1..3 (--sound) and every unit's inserts and level; unit 0 is
   // `sound`. `slots` is set by any of their flags or --slots.
   Unit more[kSounds];
@@ -824,6 +852,7 @@ int main(int argc, char **argv) {
     else if (a == "--log-events") log_path = next;
     else if (a == "--mod") mod_path = next;
     else if (a == "--sysex") sysex_paths.push_back(next);
+    else if (a == "--save-bank") save_bank = next;
     else if (a == "--log-mod") mod_log_path = next;
     else if (a == "--log-mfx") mfx_log_path = next;
     else if (a == "--tempo") {
@@ -1098,6 +1127,7 @@ int main(int argc, char **argv) {
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, max_frames };
   if (engine_id && !Instantiate(sound, engine_id, FM1_KIND_SOUND, host, fill)) return 1;
   if (!sysex_paths.empty() && !LoadSysex(sound, engine_id, sysex_paths)) return 1;
+  if (save_bank && !SaveBank(sound, engine_id, save_bank)) return 1;
   // Every sound unit, unit 0 being `sound` (created in this order: unit 0,
   // the --fx chain, units 1..3, then each unit's inserts, as the virtual
   // FM-1's harness creates them).
