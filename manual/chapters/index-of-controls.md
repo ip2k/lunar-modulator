@@ -10,12 +10,12 @@ it always matches the edition you are reading.
 - **The first entry** under each control, in bold, is its place in the panel tour
   ([chapter 3](03-panel-tour.md)), which shows where it sits on the
   instrument.
-- **Sequencer functions without a button yet**, such as <kbd class="ctl role">SHIFT</kbd>, are
+- **Sequencer functions without a key yet**, such as <kbd class="ctl role">LOOP</kbd>, are
   listed last, with a dashed outline. Which button or combination carries
   each of them is still to be decided
   ([chapter 7](07-sequencer.md#controls-at-a-glance)).
 - **Keys** are not listed one by one. [Chapter 3](03-panel-tour.md#keys)
-  describes the keyboard, and [chapter 7](07-sequencer.md#grid-mode-and-keys-mode)
+  describes the keyboard, and [chapter 7](07-sequencer.md#seq-mode-and-the-keys)
   what the keys do in the sequencer.
 
 {{controls-index}}

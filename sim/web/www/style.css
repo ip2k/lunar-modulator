@@ -291,8 +291,6 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
 .help dl > div { display: grid; grid-template-columns: 9rem 1fr; gap: 12px; }
 .help dt { font-weight: 600; color: var(--rp-iris); }
 .help dd { margin: 0; }
-/* Lab-only text (app.js shows it for ?lab or #lab) stays out of the grid. */
-.help dl > div[hidden], .help [hidden] { display: none; }
 .help .fine { margin: 14px 0 0; font-size: 0.85rem; color: var(--muted-on-surface); }
 kbd {
   font: 0.85em/1 ui-monospace, Menlo, Consolas, monospace;

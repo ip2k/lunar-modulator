@@ -11,9 +11,9 @@ Two layers, both heap-free C99 with no libm:
   three module kinds are **LFO**, **Envelope** and **Chance**; stage MG2
   adds thirteen more, documented in [kinds.md](kinds.md): Function, Bounce,
   Register, Coin, Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix
-  and Filter. The virtual FM-1 hosts it behind its lab switch, with the
-  RACK, MATRIX and CHAIN pages (docs/16 MG3; sim/web/README.md, "The lab
-  switch").
+  and Filter. The virtual FM-1 hosts it, with the RACK, MATRIX and CHAIN
+  pages (docs/16 MG3; sim/web/README.md, "Modulation"), and the user
+  manual's chapter 8 describes them.
 - **The primitives** (`fm1_mp.h`): an LFO, a multistage envelope, a slew
   limiter, sample-and-hold, a Turing-machine register and a clock
   divider/multiplier, after §3–§5 of the arpeggiator, modulation and effects
@@ -300,8 +300,8 @@ and splits only that slot's render, a lock on slot k moves sound unit k's
 base (`lock_slot`), and each slot's calls come in the order
 `dispatch_ticks` would give it alone [verified: `hooked_slots` in
 `fm1-seq-host-test`]. Plain `fm1_seq_host_dispatch` is the hook-less
-case, which the virtual FM-1 keeps with its lab switch off; with it on, the
-app runs this glue as `fm1-render` does (MG3). A bridge initialised with
+case; the virtual FM-1 runs this glue as `fm1-render` does (MG3), on every
+chain since its lab switch went (2026-10-05). A bridge initialised with
 no sequencer runs only ticks, which is how `fm1-render` modulates without
 `--cmd`.
 
@@ -392,7 +392,8 @@ and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,
 
 ### What MG1 leaves for later
 
-- **The simulator** (MG3, built 2026-10-02 behind the lab switch): RACK,
+- **The simulator** (MG3, built 2026-10-02 behind a lab switch, public
+  since 2026-10-05): RACK,
   MATRIX, CHAIN and the routing gesture; the app hosts the glue
   (docs/16 §8, "MG3, as built").
 - **Locks on module parameters and slot depths** (MG6). Locks on the
