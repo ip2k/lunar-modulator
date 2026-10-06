@@ -9,6 +9,18 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Acid Bass, a bass after the TB-303** (GPL; in builds with the GPL
+  switch on, as the simulator is while we test). It is the 303 of
+  fm1-x0x, Charles Vestal's firmware for the FM-1, a port of Robin
+  Schmidt's Open303 with the Devilfish's longer slides and accent decays
+  and a soft or RAT-style drive.
+  - Play a note with velocity 100 or more for an accent; play a key while
+    holding another to slide to it, and let go to slide back.
+  - Twelve controls on three pages: Cutoff, Resonance, Env Mod, Decay;
+    Accent, Wave (saw or square), Tune, Volume; Drive, Drive Type, Slide and
+    Acc Decay. The manual gives four settings to start from.
+  - It plays exactly what fm1-x0x's own 303 plays for the same notes, sample
+    for sample, at any block size; it costs about 1.2 KB of memory.
 - **The GPL switch.** Engines and effects that port code published under
   the GNU GPL can now come into Lunar Modulator, each in a folder of its
   own, built in only while the switch is on. It is on in every build while

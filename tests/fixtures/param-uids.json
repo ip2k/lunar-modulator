@@ -93,6 +93,20 @@
       {"name": "Accent", "type": "float", "uid": 11, "flags": ["smooth", "mod", "poly"]},
       {"name": "Volume", "type": "float", "uid": 12, "flags": ["smooth", "mod", "poly"]}
     ],
+    "acid-bass": [
+      {"name": "Cutoff", "type": "float", "uid": 1, "flags": ["smooth", "mod", "poly", "log"]},
+      {"name": "Resonance", "type": "float", "uid": 2, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Env Mod", "type": "float", "uid": 3, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Decay", "type": "float", "uid": 4, "flags": ["latch", "mod", "log"]},
+      {"name": "Accent", "type": "float", "uid": 5, "flags": ["latch", "mod"]},
+      {"name": "Wave", "type": "enum", "uid": 6, "flags": ["latch", "mod"]},
+      {"name": "Tune", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Volume", "type": "float", "uid": 8, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Drive", "type": "float", "uid": 9, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Drive Type", "type": "enum", "uid": 10, "flags": ["latch", "mod"]},
+      {"name": "Slide", "type": "float", "uid": 11, "flags": ["smooth", "mod", "log"]},
+      {"name": "Acc Decay", "type": "float", "uid": 12, "flags": ["latch", "mod", "log"]}
+    ],
     "test-sine": [
       {"name": "Volume", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ],
@@ -336,7 +350,7 @@
   "retired_about": "Uids a table must never give out again: a removed parameter's; and Comb's 1, the Filter's Type, as Comb keeps the Filter's uids for the parameters both have, so a Filter that was set to Comb maps onto Comb uid for uid (engines/README.md, \"Comb\").",
   "retired": {"comb": [1]},
   "gpl_about": "The GPL modules (engines/Makefile, FM1_GPL_MODS; CLAUDE.md, \"The GPL switch\"): pinned above like every other, and in the build only while the switch is on, so tests/test_engine_params.py leaves them out of the comparison when it is off.",
-  "gpl": [],
+  "gpl": ["acid-bass"],
   "per_note_about": "The engines with set_param_note (engine API v2, per-note offsets: engines/README.md, \"Per-note offsets\"). Their POLY parameters are flagged \"poly\" above; no other engine may have one.",
-  "per_note": ["macro", "macro-heavy", "shapes", "sixop", "dx7", "drums"]
+  "per_note": ["macro", "macro-heavy", "shapes", "sixop", "dx7", "drums", "acid-bass"]
 }

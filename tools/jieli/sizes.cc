@@ -52,6 +52,10 @@ FM1SZ_TYPE(test_gain, fm1::test_gain::Instance);
 FM1SZ_TYPE(plate, fm1::mi_fx::plate::Instance);
 FM1SZ_TYPE(ensemble, fm1::mi_fx::ensemble::Instance);
 FM1SZ_TYPE(diffuse, fm1::mi_fx::diffuse::Instance);
+#elif defined(SZ_ACID_BASS)       /* a GPL module: compiled only with FM1_GPL_MODS=1 */
+#include "../../engines/src/acid_bass.cc"
+FM1SZ_TYPE(acid_bass, fm1::acid_bass::Instance);
+FM1SZ_TYPE(bass303, bass303_t);
 #elif defined(SZ_SCHWUNG)
 #include "../../engines/src/schwung_shim.cc"
 #include "../../engines/src/sw_sophie.cc"

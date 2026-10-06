@@ -26,6 +26,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `dx7` | FM6 | sound | 12 | msfa, the FM core of Google's music-synthesizer-for-android (Apache-2.0), the stock FM-1's core; 32 voices of our own and DX7 SysEx | [msfa.md](msfa.md); [below](#fm6) |
 | `sw-sophie` | Sophie | sound | 12 | a Schwung module (Matt Estela, MIT), through the shim | [schwung.md](schwung.md) |
 | `drums` | Drums | sound | 12 | Plaits' drum classes (Emilie Gillet, MIT), and a rim shot, clap, cowbell and cymbal of this repository's own | [below](#drums); a 16-pad kit on notes 36–51 with two sets of voicings, Deep and Punch |
+| `acid-bass` | Acid Bass | sound | 1 | fm1-x0x's 303 (Charles Vestal, **GPL-3.0-only**): Open303 (Robin Schmidt, MIT) with the Devilfish ranges and a RAT drive | [below](#acid-bass); a bass after the TB-303, built only with the GPL switch on |
 | `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
 | `plate` | Plate | effect | – | Rings' reverb, with Elements' Freeze | [mi-fx.md](mi-fx.md) |
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
@@ -406,6 +407,103 @@ under ASan and UBSan (clang 19.1, no report) and in a 32-bit build (GCC
    engine can now have fourteen at no further cost: give Drums back a
    per-pad choke group and a kit-wide decay in that room, or keep it at
    twelve?
+
+## Acid Bass
+
+A monophonic bass after the TB-303 (`src/acid_bass.cc`): fm1-x0x's 303
+bass by Charles Vestal, vendored in `third_party/fm1-x0x/` (GPL-3.0-only;
+`UPSTREAM.md` has the commit, the files, the two local changes and the
+credits). **GPL code: built only while the GPL switch is on**
+(`FM1_GPL_MODS`, [Build and checks](#build-and-checks)); the licence table
+lists it as `GPL-3.0-only AND MIT`.
+
+**What the vendored bass is** [reported: `third_party/fm1-x0x/dsp/bass303.h`;
+verified against Open303 by fm1-x0x's own tests, `notes/2026-10-06-fm1-x0x.md`
+§2.6]: Open303's `getSample()` path by Robin Schmidt (MIT), statement for
+statement (the pitch slew, the decay envelope and its two RC followers, the
+measured env-mod mapping, the TB_303-mode TeeBeeFilter with its feedback
+high-pass, the amp envelope and de-clicker, and the all-pass, high-pass and
+notch after the filter), with a polyBLEP saw and the 303's tanh-shaped
+square in place of Open303's wave tables, 2x oversampling through a
+polyphase half-band, controls every 4 samples, the Devilfish ranges for
+slide and accent decay after jc303 (midilab, GPL-3.0), and a Soft or RAT
+drive after schwung-303's (the RAT after dm-Rat, Dave Mollen, GPL-3.0). It
+idles 500 ms after it goes silent. Float, no libm (`fastmath.h`), no
+allocation.
+
+**What the wrapper adds.**
+- **Notes**, as Open303's MIDI handling plays them: a list of held keys,
+  newest last (16). A key with none held triggers; a key played over a held
+  one slides to it without restarting the envelopes; letting go of the
+  newest slides back to the newest still held; the last release releases.
+  Velocity 100 or more is an accent (schwung-303's rule, which TB-3PO's 118
+  and 72 meet), and velocity does nothing else.
+- **The rate** is the host's, 40–96 kHz; others are refused. The vendored
+  bass reads the instance's rate where upstream reads 44,100 Hz (local
+  change 1), and at 44.1 kHz computes upstream's samples [verified:
+  `tests/test_engine_acid_bass.py` builds `test/bass303_drive.c` against
+  fm1-x0x's own file and against ours, five settings, the same bytes].
+- **A 16-sample grid.** The bass's output depends on where its render calls
+  split (its control rate of 4, its per-call flushes), so the wrapper renders
+  whole 16-sample chunks counted from create and hands the host's frames out
+  of the last one. Every note, bend and parameter lands on the next chunk
+  (0.36 ms at 44,118 Hz), so the output is the same at any host block size.
+- **Parameters in their units**, as floats: each reaches the bass as a pot
+  position between the integers (local change 2), in X0X's mapping.
+- **Pitch and level outside the bass.** Tune, the bend and the per-note
+  pitch offset multiply the bass's target and slewed frequencies together,
+  so a bend moves at once and a slide in progress goes on; at 0 nothing is
+  multiplied. The bass keeps X0X's default level (its Volume pot 96,
+  −14.6 dB, where its drive was tuned), and Volume scales the output by
+  (Volume / 0.7)², so 0.7 is X0X's output exactly.
+
+| Page | Parameter | Range, default | Flags | What it does |
+| --- | --- | --- | --- | --- |
+| 1 | Cutoff | 314–2,394 Hz, 870 | SMOOTH, MOD, LOG, POLY | The filter's cutoff, exponential as X0X's pot |
+| 1 | Resonance | 0–100 %, 50 | SMOOTH, MOD, POLY | Open303's resonance curve |
+| 1 | Env Mod | 0–100 %, 50 | SMOOTH, MOD, POLY | How far the decay envelope opens the filter (Open303's measured mapping) |
+| 1 | Decay | 200–2,000 ms, 630 | LATCH, MOD, LOG | The filter envelope's decay for unaccented notes, read at each note-on, slides included |
+| 2 | Accent | 0–100 %, 50 | LATCH, MOD | How hard an accent hits (level and filter) |
+| 2 | Wave | Saw, Square | LATCH, MOD | Read at the next note that is not a slide, or at once while silent |
+| 2 | Tune | −12 to +12 semitones, 0 | SMOOTH, MOD | Pitch, beside the bend |
+| 2 | Volume | 0–1, 0.7 | SMOOTH, MOD, POLY | Output level, (Volume / 0.7)² |
+| 3 | Drive | 0–100 %, 0 | SMOOTH, MOD, POLY | The drive's amount; 0 bypasses it |
+| 3 | Drive Type | Off, Soft, RAT; Soft | LATCH, MOD | Waits for a note that is not a slide, as Wave |
+| 3 | Slide | 2–360 ms, 60 | SMOOTH, MOD, LOG | The slide's time (Devilfish range; the stock 303's 60 ms by default) |
+| 3 | Acc Decay | 30–3,000 ms, 200 | LATCH, MOD, LOG | The filter envelope's decay for accented notes (Devilfish range; stock 200 ms) |
+
+The pages and their order are X0X's. Defaults are schwung-303's knobs at
+their middles, rounded, and the stock 303's slide and accent decay, which
+X0X's 7-bit pots only come near (61 and 194 ms). POLY offsets (and the
+pitch offset) belong to the sounding key and restart at 0 whenever the
+voice moves to another key. While nothing sounds, every change applies at
+once.
+
+**Checks** (`tests/test_engine_acid_bass.py`) [verified 2026-10-06]:
+- `vendor.py --check`: the vendored files are fm1-x0x's at `80b7d40` (and
+  Open303's licence from schwung-303 at `ccc2f1f`) plus `local.patch`.
+- The patched bass gives upstream's samples at 44.1 kHz (above).
+- `build/fm1-acid-oracle --twin`: six lines (the defaults, a squelchy
+  setting, the square with long Devilfish slides, both drives, ties)
+  through the engine and through a copy of its unit driven as fm1-x0x's
+  sequencer drives it, on the same grid: the same samples, bit for bit, at
+  host blocks of 1, 7, 64 and 448 frames, at 44,100, 44,118 and 48,000 Hz;
+  no subnormal sample, none left in the decaying state after a render call.
+- `--fields`: each parameter reaches the bass as its unit says (cutoff in
+  Hz, the decay, accent-decay and slide coefficients, the resonance curve).
+- Accents from velocity 100, slides, slide time, slide back, release, Tune,
+  bend and pitch offset (a pitch offset is a bend, byte for byte), POLY
+  offsets on the sounding key only, LATCH and switch timing, the same output
+  at host blocks of 1, 7, 64 and 448 and from any instance memory, every
+  parameter at both ends and NaN or infinite rendering finite, the rates,
+  no libm, and the SMOOTH driver (`tests/test_engine_smooth.py`).
+
+**Costs** [verified 2026-10-06, Apple M1 Max, `fm1-render`, best of five]:
+1,248 bytes an instance (the bass is 756 of them; no pointers, so the same
+on 32 bits); a 64-frame block of a busy line (16ths at 130 BPM, slides and
+accents) 3.3 µs, 4.3 µs with either drive, 0.1 µs idle. fm1-x0x's own
+figures put one 303 at about 16 % of the FM-1's CPU in its worst case
+[inferred: the study's §2.6]; nothing has run on a JieLi chip.
 
 ## Crush
 

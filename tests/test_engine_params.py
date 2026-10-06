@@ -87,6 +87,11 @@ ENUM_FLAGS = {
     ("arp", "Latch"): ["latch"],
     ("arp", "Sync"): ["latch"],
 }
+# Acid Bass (a GPL module, src/acid_bass.cc): Wave and Drive Type wait for the
+# next note that is not a slide (a change mid-note would click), and apply at
+# once while nothing sounds: LATCH, and a route rounds them.
+ENUM_FLAGS[("acid-bass", "Wave")] = ["latch", "mod"]
+ENUM_FLAGS[("acid-bass", "Drive Type")] = ["latch", "mod"]
 # Voice Mode (glide, engines/src/glide.h) is read at note-on and note-off
 # and never cuts a sounding voice: LATCH, and a route rounds it.
 for _engine in ("macro", "macro-heavy", "shapes", "sixop", "dx7"):

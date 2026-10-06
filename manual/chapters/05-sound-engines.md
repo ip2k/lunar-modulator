@@ -31,8 +31,9 @@ and [chapter 14](14-credits-and-licences.md) credits each source.
 {{status sim planned}}
 
 **To choose an engine:** turn [[PRESETS]]. The engines come in this order:
-Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Test Sine, and
-round again.
+Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Acid Bass, Test
+Sine, and round again. Acid Bass is there only in builds with the GPL
+switch on, as the simulator is while we test ([Acid Bass](#acid-bass)).
 While you turn, the screen lists the engines, six at a time, with the new one
 highlighted ([chapter 3](03-panel-tour.md#lists)). In the simulator you can also pick one from the
 **Sound (PRESETS)** list under the panel.
@@ -581,6 +582,66 @@ project's own, after published studies of the analogue circuits
     that turn.
 
 {{engine-table drums}}
+
+## Acid Bass
+
+{{status sim desktop planned}}
+
+Acid Bass is a bass after the TB-303: one voice, a sawtooth or square wave
+through a resonant filter swept by an envelope, with accents and slides.
+It is the 303 of fm1-x0x, Charles Vestal's firmware for the FM-1, which
+ports Robin Schmidt's Open303 with the Devilfish's longer slides and accent
+decays and a RAT-style drive ([chapter 14](14-credits-and-licences.md)).
+
+!!! note "In builds with the GPL switch on"
+    fm1-x0x's code is published under the GNU General Public License, so
+    Acid Bass is built in only while the firmware's GPL switch is on: in
+    the simulator while we test, and in firmware for the person who builds
+    it, never in a shared build ([chapter 14](14-credits-and-licences.md#licences)).
+
+- **Accent.** A note played with a velocity of 100 or more is accented:
+  louder, and with a harder sweep of the filter. Velocity does nothing
+  else, as on the original, so play softer than 100 for a plain note.
+- **Slide.** A key you play while holding another slides to its pitch
+  instead of starting again: the 303's slide. Let go of the newer key while
+  the older one is still down and the note slides back. Let go of the last
+  key and the note ends.
+- **Page 1, the filter.**
+  - **Cutoff** sets how bright the note is at rest, 314 to 2,394 Hz.
+  - **Resonance** adds the squelch: at the right the filter sings.
+  - **Env Mod** sets how far each note opens the filter.
+  - **Decay** sets how long that sweep takes to close, 200 ms to 2 s.
+- **Page 2, the voice.**
+  - **Accent** sets how hard an accented note hits.
+  - **Wave** chooses *Saw* or *Square*.
+  - **Tune** moves the pitch up to an octave either way.
+  - **Volume** sets the level.
+- **Page 3, drive and slides.**
+  - **Drive** saturates the sound, clean at 0.
+  - **Drive Type** chooses *Soft*, a warm overdrive, *RAT*, a gritty
+    distortion pedal, or *Off*.
+  - **Slide** sets how long a slide takes, 2 to 360 ms (60 ms, the
+    original's, to begin with).
+  - **Acc Decay** sets the filter sweep's decay on accented notes, 30 ms to
+    3 s.
+- Cutoff, Resonance, Env Mod, Tune, Volume, Drive and Slide move a note
+  that sounds. Decay, Accent and Acc Decay reach the next note, a slide
+  included. Wave and Drive Type wait for the next note that is not a slide,
+  so they never click in the middle of one; while nothing sounds they
+  change at once.
+- Pitch bend bends the note, slides included.
+- [[ALGORITHM]] steps through Wave.
+
+Some settings to start from:
+
+| Sound | Cutoff | Resonance | Env Mod | Decay | Accent | Drive |
+| --- | --- | --- | --- | --- | --- | --- |
+| Rubber bass | 500 Hz | 40 % | 30 % | 900 ms | 40 % | 0 |
+| Squelch | 420 Hz | 92 % | 85 % | 300 ms | 90 % | 0 |
+| Acid lead (Square) | 1,500 Hz | 70 % | 60 % | 630 ms | 60 % | 0 |
+| Distorted acid | 700 Hz | 80 % | 100 % | 400 ms | 80 % | 75 %, RAT |
+
+{{engine-table acid-bass gpl}}
 
 ## Test Sine
 

@@ -49,7 +49,8 @@ extern const fm1_engine_t fm1_engine_shaper;
 extern const fm1_engine_t fm1_engine_test_gain;
 extern const fm1_engine_t fm1_engine_test_ext;
 #if FM1_GPL_MODS
-// GPL modules (each in its own third_party/<name>/): none yet.
+// GPL modules (each in its own third_party/<name>/, built by its own fragment).
+extern const fm1_engine_t fm1_engine_acid_bass;   // fm1-x0x's 303 (mk/fm1-x0x.mk)
 #endif
 
 const fm1_engine_t *const fm1_engines[] = {
@@ -62,7 +63,8 @@ const fm1_engine_t *const fm1_engines[] = {
   &fm1_engine_sw_sophie,
   &fm1_engine_drums,
 #if FM1_GPL_MODS
-  // GPL sound engines: none yet.
+  // GPL sound engines.
+  &fm1_engine_acid_bass,
 #endif
   &fm1_engine_test_sine,
   // audio effects
@@ -109,7 +111,9 @@ const fm1_licence_t fm1_licences[] = {
   // FM6: msfa, Google's FM core (Apache-2.0), under our MIT voice and tables.
   { "dx7", "MIT AND Apache-2.0", "engines/third_party/msfa" },
 #if FM1_GPL_MODS
-  // GPL modules: none yet.
+  // fm1-x0x (Charles Vestal, GPL-3.0-only): Acid Bass on its 303, which
+  // carries Open303 (MIT); our wrapper is MIT.
+  { "acid-bass", "GPL-3.0-only AND MIT", "engines/third_party/fm1-x0x" },
 #endif
 };
 const size_t fm1_licence_count = sizeof(fm1_licences) / sizeof(fm1_licences[0]);
