@@ -104,21 +104,22 @@ so it is always written in full.
   internal DAC, and the seven encoders are scanned in the key matrix.
   Charles Vestal's fm1-x0x (GPL-3.0-only, 2026-10-05) is another open FM-1
   firmware, with a 303, a 909 and an 808 (`notes/2026-10-06-fm1-x0x.md`).
-- **Tests:** 4,661 collected; 4,641 pass, 2 xfail (both undo, not ported
-  yet) and 18 skip where a local reference clone (the GPL engines' upstreams
+- **Tests:** 4,919 collected; 4,898 pass, 2 xfail (both undo, not ported
+  yet) and 19 skip where a local reference clone (the GPL engines' upstreams
   among them), an unpacked stock package or the manual's `markdown` module
-  is missing [verified: `pytest` at `1b4152c` with this file, clean engine
-  build, 2026-10-06]. By group: 3,376 engine tests (496 of them comparing
+  is missing [verified: `pytest` at `5047233` with this file, clean engine
+  build, 2026-10-06]. By group: 3,404 engine tests (496 of them comparing
   against upstream reference renders and their controls, 250 for the
-  arpeggiator and the MIDI-effect host, 164 for modulation), 558 for the
-  sequencer core, 569 for the virtual FM-1 and its sequencer UI, 90 for the
-  tools, the dongle, the SDK link audit, the package guard, the boot bridge
-  and the GPL switch, and 68 for the manual and its diagrams. CI runs the
-  suite on Linux and macOS, runs the engine, sequencer and simulator tests
-  again as a 32-bit build and under ASan + UBSan, builds the dongle's UF2,
-  runs AL-255's suite on our fork (`.github/workflows/ci.yml`), and builds
-  the site and manual on pull requests (`pages.yml`). CI does not run Movy;
-  it replays the oracle's committed fixtures.
+  arpeggiator and the MIDI-effect host, 164 for modulation), 642 for the
+  sequencer core and its song list, 146 for the state core (saving and
+  loading), 569 for the virtual FM-1 and its sequencer UI, 90 for the tools,
+  the dongle, the SDK link audit, the package guard, the boot bridge and the
+  GPL switch, and 68 for the manual and its diagrams. CI runs the suite on
+  Linux and macOS, runs the engine, sequencer and simulator tests again as a
+  32-bit build and under ASan + UBSan, builds the dongle's UF2, runs
+  AL-255's suite on our fork (`.github/workflows/ci.yml`), and builds the
+  site and manual on pull requests (`pages.yml`). CI does not run Movy; it
+  replays the oracle's committed fixtures.
 - **Where the repo lives:** `~/Developer/mvave-fm1-firmware` on the owner's
   MacBook (the folder keeps its old name), remote `ip2k/lunar-modulator`
   (published 2026-09-06 as `ip2k/mvave-fm1-open-firmware`, renamed with the
