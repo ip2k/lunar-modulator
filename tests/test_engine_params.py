@@ -51,6 +51,7 @@ ENUM_FLAGS = {
     ("drums", "Pad"): [],                       # the edit focus, as Sophie's
     ("drums", "Model"): ["latch", "mod"],       # read when a pad is struck; a hit keeps its model
     ("drums", "Kit"): ["latch", "mod"],         # the voicings a hit starts with
+    ("drums", "Choke"): ["latch", "mod"],       # read when a pad is struck, as Model
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
     ("filter", "Type"): ["mod"],                # warms the new type up, then crossfades
     ("drive", "Type"): ["mod"],                 # crossfades over 5 ms
