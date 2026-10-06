@@ -2276,6 +2276,112 @@ static void mod_multi_screens(const char *dir) {
   }
 }
 
+/* Per voice (docs/16 MG9) and the MG3 follow-ups: an Envelope per voice
+ * into Timbre, VEL per voice into its attack, RAND per voice into the
+ * pitch, a chord held; RACK's line saying vN; MATRIX's `v` rows and a
+ * refused one (`!`: per voice into an effect), the state's hints; one
+ * sound's note sources and the per-sound and current-sound pitches; and a
+ * cable an engine change switched off, shown under the name it had, then
+ * re-aimed when an engine with that name comes back. */
+static void mod_voice_screens(const char *dir) {
+  static const char *const kLines[] = {
+    "slot 1 env3 > snd:Timbre amt=60 voice",
+    "slot 2 vel > env3:attack amt=-40 voice",
+    "slot 3 rand > host:pitch amt=2 voice",
+    "slot 4 env4 > fx1:Mix amt=50 voice",               /* poly into mono: refused */
+    "slot 5 s2rtrg > env4:gate amt=100",
+    "slot 6 lfo1 > host:pitchc amt=10",
+    "slot 7 s1note > lfo2.rate amt=30",
+    "slot 8 s4vel > host:pitch4 amt=-25",
+    "slot 9 lfo2 > snd:Model amt=40 voice",             /* engine-wide: refused */
+  };
+  char name[96], line[64];
+  for (int i = 1; i <= 32; ++i) {
+    snprintf(line, sizeof line, "slot %d clear", i);
+    mod_line(line);
+  }
+  for (size_t k = 0; k < sizeof kLines / sizeof kLines[0]; ++k) mod_line(kLines[k]);
+  fm1_app_note_on(&g_app, 48, 100);
+  fm1_app_note_on(&g_app, 55, 90);
+  fm1_app_note_on(&g_app, 64, 70);
+  blocks(24);
+  expect((g_app.mui.plan.poly >> 2) & 1u, "ENV3 does not run per voice");
+  expect(fm1_mod_voice_count(g_app.mod) >= 3, "a chord of three starts no three voices");
+  expect(((g_app.mui.plan.refused >> 3) & 1u) && ((g_app.mui.plan.refused >> 8) & 1u),
+         "per voice into an effect or an engine-wide parameter is not refused");
+  g_app.mode = FM1_MODE_RACK;
+  g_app.mui.pos = 2;
+  g_app.mui.page = 0;
+  check_screen("rack-voices", dir, 1);
+  g_app.mui.page = 1;
+  check_screen("rack-voices-p2", dir, 0);
+  g_app.mui.page = 0;
+  g_app.mode = FM1_MODE_MATRIX;
+  g_app.mui.slot = g_app.mui.top = 0;
+  for (int pg = 0; pg < 2; ++pg) {
+    g_app.mui.mpage = (uint8_t)pg;
+    snprintf(name, sizeof name, "matrix-voices-%c", pg ? 'b' : 'a');
+    check_screen(name, dir, 1);
+  }
+  g_app.mui.mpage = 1;
+  g_app.mui.field = FM1_MOD_F_ON;
+  g_app.mui.field_until = UINT64_MAX;
+  for (int sl = 0; sl < 9; ++sl) {                      /* every state's hint */
+    g_app.mui.slot = (uint8_t)sl;
+    snprintf(name, sizeof name, "matrix-voices-hint-slot%d", sl + 1);
+    check_screen(name, dir, sl == 0 || sl == 3);
+  }
+  g_app.mui.field = -1;
+  /* KNOB4 on page B: on, per voice, back to on and off. */
+  g_app.mui.slot = 4;
+  turn_now(FM1_ENC_KNOB4, 1);
+  {
+    fm1_mod_slot_t v;
+    fm1_mod_get_slot(g_app.mod, 4, &v);
+    expect((v.flags & (FM1_MOD_SLOT_ON | FM1_MOD_SLOT_VOICE)) == (FM1_MOD_SLOT_ON | FM1_MOD_SLOT_VOICE),
+           "KNOB4 does not make a cable per voice");
+    turn_now(FM1_ENC_KNOB4, -1);
+    fm1_mod_get_slot(g_app.mod, 4, &v);
+    expect((v.flags & (FM1_MOD_SLOT_ON | FM1_MOD_SLOT_VOICE)) == FM1_MOD_SLOT_ON,
+           "KNOB4 does not make a per-voice cable global again");
+  }
+  g_app.mui.mpage = 0;
+  fm1_app_all_notes_off(&g_app);
+  blocks(4);
+  /* An engine without Timbre: the cable goes off under its old name; one
+   * with it (Shapes) takes it back on. */
+  expect(fm1_app_select(&g_app, 0, fm1_app_find("sixop")) == 0, "Six-Op did not load");
+  blocks(2);
+  g_app.mui.slot = 0;
+  check_screen("matrix-aimed", dir, 1);
+  g_app.mui.mpage = 1;
+  g_app.mui.field = FM1_MOD_F_ON;
+  check_screen("matrix-aimed-hint", dir, 0);
+  g_app.mui.field = -1;
+  g_app.mui.mpage = 0;
+  g_app.mode = FM1_MODE_CHAIN;
+  check_screen("chain-aimed", dir, 0);
+  g_app.mode = FM1_MODE_MATRIX;
+  expect(fm1_app_select(&g_app, 0, fm1_app_find("macro-heavy")) == 0, "Macro Heavy did not load");
+  {
+    fm1_mod_slot_t v;
+    fm1_mod_get_slot(g_app.mod, 0, &v);
+    expect((v.flags & FM1_MOD_SLOT_ON) && !g_app.mui.aim[0],
+           "Macro Heavy's Timbre did not take the cable back");
+  }
+  blocks(2);
+  check_screen("matrix-reaimed", dir, 0);
+  expect(fm1_app_select(&g_app, 0, fm1_app_find("macro")) == 0, "Macro did not load");
+  for (int i = 1; i <= 32; ++i) {
+    snprintf(line, sizeof line, "slot %d clear", i);
+    mod_line(line);
+  }
+  mod_line("slot 1 rtrg > env3:gate amt=100");          /* the default cables again */
+  mod_line("slot 2 rtrg > env4:gate amt=100");
+  blocks(2);
+  g_app.mui.slot = g_app.mui.top = 0;
+}
+
 static void mod_screens(const char *dir, float rate) {
   char name[128], line[160];
   destroy_units();
@@ -2555,6 +2661,7 @@ static void mod_screens(const char *dir, float rate) {
   turn_now(FM1_ENC_PRESETS, 1);
   check_screen("matrix-popup", dir, 0);
   settle();
+  mod_voice_screens(dir);
   mod_multi_screens(dir);
   mod_names(dir);
   g_app.mode = FM1_MODE_MATRIX;
@@ -3024,6 +3131,11 @@ static int has_dst(const fm1_mod_slot_t *s) {
  * every slot with a destination (one without is the same as a cleared one
  * to the runtime: off, and never planned). */
 static int same_mod_state(const fm1_mod_t *a, const fm1_mod_t *b, const char *what) {
+  if (fm1_mod_current(a) != fm1_mod_current(b)) {
+    fprintf(stderr, "mod format (%s): the current sound is %u, not %u\n", what, fm1_mod_current(b) + 1,
+            fm1_mod_current(a) + 1);
+    return 0;
+  }
   for (unsigned pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
     const int k = fm1_mod_kind_at(a, pos);
     if (k != fm1_mod_kind_at(b, pos)) {
@@ -3073,7 +3185,8 @@ static void random_slot(const fm1_mod_ui_env_t *env, fm1_mod_slot_t *s) {
   s->offset = (int16_t)(rnd(4) ? (int)rnd(32769) - 16384 : 0);
   s->flags = (uint8_t)((rnd(4) ? FM1_MOD_SLOT_ON : 0) | (d->gate ? FM1_MOD_SLOT_GATE_DST : 0) |
                        (rnd(4) << FM1_MOD_SLOT_POL_SHIFT) |
-                       (rnd(FM1_MOD_CURVE_COUNT) << FM1_MOD_SLOT_CURVE_SHIFT));
+                       (rnd(FM1_MOD_CURVE_COUNT) << FM1_MOD_SLOT_CURVE_SHIFT) |
+                       (rnd(3) ? 0 : FM1_MOD_SLOT_VOICE));   /* per voice (MG9) */
 }
 
 static int mod_format_check(void) {
@@ -3126,6 +3239,7 @@ static int mod_format_check(void) {
       random_slot(&env, &s);
       fm1_mod_set_slot(g_app.mod, i, &s);
     }
+    fm1_mod_set_current(g_app.mod, rnd(FM1_APP_SOUNDS));   /* a `current K` line when not 1 */
     g_mod2 = fm1_mod_create(mem2, &g_app.host, seed);
     if (!fm1_app_mod_dump(&g_app, replay_line, NULL)) {
       fprintf(stderr, "mod format: round %d: the dump has a slot no line can say\n", round);
@@ -3154,6 +3268,12 @@ static int mod_format_check(void) {
         fm1_mod_ui_set_slot(&env, &ui, rnd(FM1_MOD_SLOTS), &s);
       } else if (what < 7) {
         fm1_mod_ui_set_kind(&env, &ui, pos, (int)rnd((uint32_t)fm1_mod_kind_count + 1u) - 1);
+      } else if (what < 9 && rnd(8) == 0) {             /* the current sound, as the app logs it */
+        char line[16];
+        const unsigned k = rnd(FM1_APP_SOUNDS);
+        fm1_mod_set_current(g_app.mod, k);
+        snprintf(line, sizeof line, "current %u", k + 1u);
+        replay_line(NULL, line);
       } else if (what < 9) {
         const int k = fm1_mod_kind_at(g_app.mod, pos);
         if (k >= 0) {
