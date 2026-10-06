@@ -74,11 +74,11 @@ static void dump_state(FILE *f, const fm1_seq_t *s, const char *kind, const char
   fprintf(f, "\"frame\":%llu,\"block\":%llu,\"master_tick\":%llu,\"bpm_x100\":%lu,\"swing\":%u,"
           "\"playing\":%u,\"recording\":%u,\"counting_in\":%u,\"metronome\":%u,\"link\":%u,"
           "\"following\":%u,\"watch_track\":%u,\"rec_track\":%u,\"default_quant\":%u,"
-          "\"song_pos\":%u,\"song\":[",
+          "\"song_pos\":%u,\"key\":[%u,%u],\"song\":[",
           (unsigned long long)frame, (unsigned long long)block, (unsigned long long)in.master_tick,
           (unsigned long)in.bpm_x100, in.swing_pct, in.playing, in.recording, in.counting_in,
           in.metronome, in.link, in.following, in.watch_track, in.rec_track, in.default_quant,
-          in.song_pos);
+          in.song_pos, in.key_root, in.key_scale);
   for (i = 0; i < in.song_len; ++i) fprintf(f, i ? ",%u" : "%u", in.song[i]);
   fprintf(f, "],\"capture\":{\"gen\":%lu,\"pending\":%u,\"mode\":%u,\"sel\":%u,\"cands\":[",
           (unsigned long)in.capture_gen, in.capture_pending, in.capture_mode, in.capture_sel);

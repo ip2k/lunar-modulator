@@ -7,6 +7,11 @@
 
 #define TPS_DIV 6000u                 /* bpm_x100 x 96 per (rate x 6000): ticks a frame */
 
+/* The scales the stage takes are the sequencer's (its `key` verb). */
+typedef char key_scales_match[FM1_KEY_SCALES == FM1_SEQ_KEY_SCALES ? 1 : -1];
+
+#define SEQ_ON(vel) FM1_MIDI_EV_B(vel, FM1_MIDI_SRC_SEQ)   /* a sequencer note's b */
+
 /* ---- set-up ------------------------------------------------------------------ */
 
 void fm1_mfx_init(fm1_mfx_t *m, uint32_t rate) {
@@ -25,7 +30,7 @@ void fm1_mfx_set_tempo(fm1_mfx_t *m, uint32_t bpm_x100) {
 
 void fm1_mfx_set_key(fm1_mfx_t *m, unsigned root, unsigned scale) {
   m->key_root = (uint8_t)(root % 12u);
-  m->key_scale = (uint8_t)(scale <= FM1_KEY_CHROMATIC ? scale : FM1_KEY_MAJOR);
+  m->key_scale = (uint8_t)(scale < FM1_KEY_SCALES ? scale : FM1_KEY_MAJOR);
 }
 
 static fm1_mfx_chain_t *chain_of(fm1_mfx_t *m, unsigned c) {
@@ -164,11 +169,11 @@ static void before_on(fm1_mfx_t *m, unsigned c, unsigned s, const fm1_mfx_sink_t
     run_quiet(m, c, 0, 0, FM1_MIDI_EV_FLUSH, 0, s, sink);
     return;
   }
-  for (k = 0; k < 128u; ++k) {                     /* every key the effects may hold */
-    int held = ch->held_live[k] || ch->held_seq[k] || key_bit(ch->owed, k) ||
-               key_bit(ch->owed_live, k);
-    for (i = 0; !held && i < ch->n_live; ++i) held = ch->live[i].a == k;
-    if (held) put(m->a, &n, 0, FM1_MIDI_EV_NOTE_OFF, (uint8_t)k, 0);
+  for (k = 0; k < 128u; ++k) {                     /* every key the effects may hold, */
+    int live = ch->held_live[k] || key_bit(ch->owed_live, k);   /* from either origin */
+    for (i = 0; !live && i < ch->n_live; ++i) live = ch->live[i].a == k;
+    if (live) put(m->a, &n, 0, FM1_MIDI_EV_NOTE_OFF, (uint8_t)k, 0);
+    if (ch->held_seq[k] || key_bit(ch->owed, k)) put(m->a, &n, 0, FM1_MIDI_EV_NOTE_OFF, (uint8_t)k, SEQ_ON(0));
   }
   if (n) run_quiet(m, c, 0, n, 0, 0, 0, sink);
   forget(ch);
@@ -258,6 +263,10 @@ static void block_ticks(fm1_mfx_t *m, const fm1_seq_host_t *h, uint32_t frames,
     const fm1_seq_clock_t *c = &h->clock;
     ctx->bpm_x100 = c->bpm_x100;
     ctx->running = c->playing;
+    /* The block's first tick is the one the sequencer services next: its
+     * place from Start, on the grid or off it. */
+    ctx->tick_pos = c->playing ? c->master_tick : 0u;
+    fm1_seq_get_key(h->seq, &m->key_root, &m->key_scale);   /* the set's key */
     if (c->inc > 0u && c->threshold > 0u) {
       m->n_ticks = grid_ticks(m->ticks, FM1_MFX_TICKS, c->accum % c->threshold, c->inc,
                               c->threshold, frames);
@@ -294,19 +303,33 @@ static int chain_for(const fm1_seq_host_t *h, uint32_t k, int single) {
   return d < FM1_MFX_CHAINS ? (int)d : -1;
 }
 
-/* The block's transport as effect input: RESET at each Start, FLUSH at
+/* The block's transport as effect input: RESET at each Start, STOP at
  * each Stop, at its frame. */
 static int transport_kind(uint8_t kind) {
   return kind == FM1_SEQ_EV_START ? FM1_MIDI_EV_RESET
-                                  : kind == FM1_SEQ_EV_STOP ? FM1_MIDI_EV_FLUSH : 0;
+                                  : kind == FM1_SEQ_EV_STOP ? FM1_MIDI_EV_STOP : 0;
 }
 
-/* The owed note-offs, at frame 0, while they fit; the rest stay owed. */
-static void owed_offs(fm1_midi_ev_t *buf, uint32_t *n, uint8_t *owed) {
+/* A transport event into buf at frame f. A Stop is STOP, and FLUSH after it
+ * when the clock is off the grid as the block begins stopped (Movy's compat
+ * mode: no tick comes while stopped, so none would end a note sounding).
+ * An external clock's Stop is not that: once stopped the sequencer no
+ * longer follows, and its clock runs on at the tempo. */
+static void put_transport(const fm1_seq_host_t *h, fm1_midi_ev_t *buf, uint32_t *n, uint16_t f,
+                          int kind) {
+  if (*n < FM1_MFX_IN) put(buf, n, f, (uint8_t)kind, 0, 0);
+  if (kind == FM1_MIDI_EV_STOP && h->clock.inc == 0u && *n < FM1_MFX_IN) {
+    put(buf, n, f, FM1_MIDI_EV_FLUSH, 0, 0);
+  }
+}
+
+/* The owed note-offs, at frame 0, while they fit; the rest stay owed. `b`:
+ * their origin's mark. */
+static void owed_offs(fm1_midi_ev_t *buf, uint32_t *n, uint8_t *owed, uint16_t b) {
   uint32_t key;
   for (key = 0; key < 128u && *n < FM1_MFX_IN; ++key) {
     if (!key_bit(owed, key)) continue;
-    put(buf, n, 0, FM1_MIDI_EV_NOTE_OFF, (uint8_t)key, 0);
+    put(buf, n, 0, FM1_MIDI_EV_NOTE_OFF, (uint8_t)key, b);
     owed[key >> 3] &= (uint8_t)~(1u << (key & 7u));
   }
 }
@@ -330,10 +353,10 @@ static uint32_t chain_input(fm1_mfx_t *m, fm1_seq_host_t *h, unsigned c, uint32_
   fm1_mfx_chain_t *ch = &m->chain[c];
   uint32_t n = 0, k;
   int32_t pending = -1;
-  owed_offs(m->a, &n, ch->owed);                              /* at most 128 */
+  owed_offs(m->a, &n, ch->owed, SEQ_ON(0));                   /* at most 128 */
   for (k = 0; k < ch->n_live; ++k) m->a[n++] = ch->live[k];   /* 64 more */
   ch->n_live = 0;
-  owed_offs(m->a, &n, ch->owed_live);
+  owed_offs(m->a, &n, ch->owed_live, 0);
   m->n_steps = 0;
   for (k = 0; k < h->n; ++k) {
     fm1_seq_ev_t *e = &h->ev[k];
@@ -342,7 +365,7 @@ static uint32_t chain_input(fm1_mfx_t *m, fm1_seq_host_t *h, unsigned c, uint32_
     int on;
     if (t) {
       if (pending >= 0 && f > pending) step_at(m, &n, &pending);
-      if (n < FM1_MFX_IN) put(m->a, &n, f, (uint8_t)t, 0, 0);
+      put_transport(h, m->a, &n, f, t);
       continue;
     }
     if (e->kind != FM1_SEQ_EV_NOTE_ON && e->kind != FM1_SEQ_EV_NOTE_OFF) continue;
@@ -355,13 +378,13 @@ static uint32_t chain_input(fm1_mfx_t *m, fm1_seq_host_t *h, unsigned c, uint32_
         continue;
       }
       ++ch->held_seq[e->a];
-      put(m->a, &n, f, FM1_MIDI_EV_NOTE_ON, e->a, e->b);
+      put(m->a, &n, f, FM1_MIDI_EV_NOTE_ON, e->a, SEQ_ON(e->b > 127u ? 127u : e->b));
       pending = f;
     } else {
       if (!ch->held_seq[e->a]) continue;  /* its note-on went to the sound */
       --ch->held_seq[e->a];
       if (n < FM1_MFX_IN) {
-        put(m->a, &n, f, FM1_MIDI_EV_NOTE_OFF, e->a, 0);
+        put(m->a, &n, f, FM1_MIDI_EV_NOTE_OFF, e->a, SEQ_ON(0));
       } else {
         ch->owed[e->a >> 3] |= (uint8_t)(1u << (e->a & 7u));
         ++m->stats.deferred_offs;
@@ -387,7 +410,7 @@ static uint32_t with_transport(fm1_mfx_t *m, const fm1_seq_host_t *h, uint32_t f
     if (k < h->n) tf = h->ev[k].frame < frames ? h->ev[k].frame : frames;
     if (tf == 0xFFFFFFFFu && nf == 0xFFFFFFFFu && sf == 0xFFFFFFFFu) break;
     if (tf <= nf && tf <= sf) {           /* at one frame: transport, notes, trigs */
-      if (out < FM1_MFX_IN) put(m->a, &out, (uint16_t)tf, (uint8_t)transport_kind(h->ev[k].kind), 0, 0);
+      put_transport(h, m->a, &out, (uint16_t)tf, transport_kind((uint8_t)(h->ev[k].kind & ~FM1_MFX_TAKEN)));
       ++k;
     } else if (nf <= sf) {
       if (out < FM1_MFX_IN) m->a[out++] = m->b[i];
@@ -421,14 +444,15 @@ void fm1_mfx_block(fm1_mfx_t *m, fm1_seq_host_t *h, uint32_t frames, int single)
       if (got > FM1_MFX_OUT) got = FM1_MFX_OUT;
       n = with_transport(m, h, frames, got);
     }
-    for (i = 0; i < n; ++i) {             /* the notes, to the sound */
+    for (i = 0; i < n; ++i) {             /* the notes, to the sound: the bare velocity */
       const fm1_midi_ev_t *e = &m->a[i];
       if (e->kind != FM1_MIDI_EV_NOTE_ON && e->kind != FM1_MIDI_EV_NOTE_OFF) continue;
       if (ch->n_out >= FM1_MFX_OUT) {
         ++m->stats.dropped;
         continue;
       }
-      ch->out[ch->n_out++] = *e;
+      ch->out[ch->n_out] = *e;
+      ch->out[ch->n_out++].b = (uint16_t)FM1_MIDI_EV_VEL(e->b);
       ++m->stats.notes_out;
     }
   }

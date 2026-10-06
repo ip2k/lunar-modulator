@@ -110,7 +110,8 @@
 // follows its note-on, so a bypass leaves no note hanging, and a bypass
 // flushes the effect at once. The ticks are the sequencer's clock (--cmd,
 // --seq), which runs on at its tempo while stopped, or --tempo without one;
-// Start resets the effects and Stop flushes them. --log-mfx FILE.jsonl writes
+// Start resets the effects, and Stop takes back the sequencer's notes from
+// them (STOP: what was played live plays on). --log-mfx FILE.jsonl writes
 // what the chains send their sounds, by frame and then unit (so the same at
 // any block size). The summary adds mfx_* counters and
 // notes_hung, the engines' note-ons still without a note-off at the end.
@@ -1827,6 +1828,11 @@ int main(int argc, char **argv) {
            static_cast<unsigned long>(sq.host.max_n),
            static_cast<unsigned long long>(sq.host.splits), static_cast<unsigned long>(click.clicks),
            blocks ? seq_ns / blocks : 0.0);
+    {
+      uint8_t root, scale;   // the project key at the end (the `key` verb's)
+      fm1_seq_get_key(sq.seq, &root, &scale);
+      printf(",\"seq_key\":[%u,%u]", root, scale);
+    }
     if (sq.log) fclose(sq.log);
     fm1_script_free(&sq.script);
   }

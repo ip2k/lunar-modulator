@@ -3,7 +3,7 @@
 # sound's MIDI-effect chain first (fm1_mfx_live_note), and engines/include/
 # fm1_mfx_host.h takes the sequencer's notes for the sound into the chain,
 # makes each sequencer note-on a trig, clocks the chain from the
-# sequencer's ticks (Start as RESET, Stop as FLUSH) and merges its output
+# sequencer's ticks (Start as RESET, Stop as STOP) and merges its output
 # into the block as the sequencer's notes are, so the sound and the
 # modulation's note sources hear the arpeggio. The sequencer records the
 # keys as played (owner, 2026-10-05).

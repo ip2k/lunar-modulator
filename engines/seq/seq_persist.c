@@ -11,10 +11,13 @@
  * labels past FM1_SEQ_LABEL_MAX - 1 bytes, ticks and gates past 65,535, and
  * tracks past limits.tracks.
  *
- * FM-1 addition, written only outside compat mode and only when a track's
- * routing differs from the default (MIDI channel track+1):
+ * FM-1 additions, written only outside compat mode: when a track's routing
+ * differs from the default (MIDI channel track+1),
  *   rt <track> <0 midi|1 engine> <channel|slot>
- * Movy ignores unknown lines, so such a set still loads there.
+ * and, after `link`, when the project key is not C major (fm1_seq.h),
+ *   key <root 0..11> <scale>
+ * Movy ignores unknown lines, so such a set still loads there. A set read
+ * without a `key` line is in C major.
  */
 #include "seq_int.h"
 
@@ -68,6 +71,13 @@ size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap) {
   puts_(&k, "\nlink ");
   putu(&k, s->link_enabled ? 1u : 0u);
   puts_(&k, "\n");
+  if (!s->lim.compat && (s->key_root || s->key_scale)) {
+    puts_(&k, "key ");
+    putu(&k, s->key_root);
+    puts_(&k, " ");
+    putu(&k, s->key_scale);
+    puts_(&k, "\n");
+  }
   if (s->song_len) {
     puts_(&k, "sg");
     for (i = 0; i < s->song_len; ++i) {
@@ -377,6 +387,8 @@ int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len) {
     tr->route_index = (uint8_t)(t % 16u + 1u);
   }
   s->link_enabled = 0;
+  s->key_root = 0;
+  s->key_scale = 0;
   sq_clear_song(s);
   while (p < end) {
     words_t w;
@@ -394,6 +406,8 @@ int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len) {
       if (word_u(&w, U32_MAX_, &a)) s->swing_pct = (uint32_t)(a < 50 ? 50 : (a > 80 ? 80 : a));
     } else if (line_is(key, "link")) {
       if (word_u(&w, U8_MAX_, &a)) s->link_enabled = a != 0;
+    } else if (line_is(key, "key")) {
+      if (word_u(&w, U8_MAX_, &a) && word_u(&w, U8_MAX_, &b)) fm1_seq_set_key(s, (unsigned)a, (unsigned)b);
     } else if (line_is(key, "sg")) {
       tok_t x;
       s->song_len = 0;

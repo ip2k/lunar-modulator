@@ -76,7 +76,7 @@ Drag a knob up or down, or scroll over it. Click or touch a button or a key.
 | SEL | SHIFT for the sequencer and for choosing a sound; in FX mode it picks up an effect | `Shift`, in SEQ mode |
 | SEQ, PLAY/STOP, REC | The sequencer's steps; start and stop; record, and with SEL, Capture | `Space` is PLAY/STOP |
 | LFO, ENV, EDIT | The modulation rack and the matrix. Hold LFO or ENV and turn a knob to run a cable to that knob's parameter | |
-| GLO, HOME | The global page (rate, memory, voices, octave); back to the sound | |
+| GLO, HOME | The global page (rate, memory, voices, octave) and, on its second page, the project key; back to the sound | |
 | ARP | The arpeggiator on the current sound: tap to switch it on (its pages open) or off, hold to latch; with SEL, its pages | |
 | SAVE | Not in the simulator yet | |
 | Everything | | `Esc` releases every note |
@@ -207,9 +207,11 @@ MCL (MegaCommand Live) and the repeatable chances of Super Arp
 - **The stock FM-1's modes** (Up, Down, Up/Down, Down/Up, Random, Played) as
   presets on ALGORITHM.
 - It plays the keys, MIDI and the sequencer's notes, in time with the
-  sequencer, and the sequencer records what you played, so a recorded part
-  arpeggiates again on playback. The stock firmware runs either its
-  arpeggiator or its sequencer, not both [reported].
+  sequencer and on its beat while it plays, and the sequencer records what
+  you played, so a recorded part arpeggiates again on playback. Stop takes
+  back the sequencer's notes and leaves the ones you latched by hand
+  playing. The stock firmware runs either its arpeggiator or its sequencer,
+  not both [reported].
 
 ### Modulation
 

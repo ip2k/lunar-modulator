@@ -267,6 +267,11 @@ before you switched it on goes on sounding until you let go.
 
 {{diagram arpeggiator}}
 
+The arpeggiator remembers where each note came from: your hands (the keys
+and MIDI) or the sequencer. While it latches, the two latch apart. A new
+chord of yours replaces the chord you latched, and a new note from the
+sequencer replaces the sequencer's; the arpeggiator plays both together.
+
 ### The ARP pages
 
 Turn [[SELECT]] for the page. [[KNOB1]] to [[KNOB4]] set the four values on
@@ -306,12 +311,34 @@ next trig; after that, Gate is a share of the time between the last two.
 ### With the sequencer
 
 The arpeggiator follows the sequencer's tempo whether the sequencer plays or
-not. [[PLAY/STOP]] restarts its pattern on the first beat; when the
-sequencer stops, the notes it was playing end, and it goes on with the keys
-you hold. With Sync at Key, the first key you play starts the pattern on the
-next tick of the clock, so it keeps the tempo but not always the beat; with
-Sync at Free the pattern stays on the beat from [[PLAY/STOP]] while the
-arpeggiator stays on, and a key waits for the next step.
+not.
+
+- **On the beat.** While the sequencer plays, the arpeggiator's steps fall on
+  the sequencer's beat: at 1/16, on every sixteenth note of the bar, counted
+  from [[PLAY/STOP]]. A key you press between two steps waits for the next
+  one, and so does an arpeggiator you switch on in the middle of a bar.
+  Triplet steps fall on the triplets of the beat, and Swing delays every
+  second step on the same grid. A dotted rate, such as 1/16D, finds the bar
+  line again after a few bars (1/16D after three).
+- **Stopped.** While the sequencer is stopped, the arpeggiator runs from its
+  own steps at the sequencer's tempo, and a first key starts it at once.
+- **[[PLAY/STOP]]** restarts the pattern on the first beat.
+- **When the sequencer stops**, it takes back what it gave the arpeggiator:
+  its notes leave the chord, latched or not, and a note they were playing
+  stops at once. The notes you play or latched by hand go on playing.
+
+Sync, on the KEYS page, says what a first key, one played into an empty
+chord, does to the pattern's place: where its rhythm, its Loop and its
+chances are. Either way the new chord's notes start from the first.
+
+| Sync | While the sequencer plays | While it is stopped |
+| --- | --- | --- |
+| Key | The pattern starts again at the next step on the beat | The pattern starts again at once |
+| Free | The pattern runs on from [[PLAY/STOP]], and the key joins it at the next step on the beat, so a rhythm such as a Euclidean pattern stays on the bar. An arpeggiator switched on after [[PLAY/STOP]] keeps its own count of the pattern, which need not match the bar, until the next [[PLAY/STOP]] | The pattern runs on from its own last step, and the key waits for the next of them |
+
+The arpeggiator does not use the project key, which the global page sets
+([chapter 10](10-settings-and-storage.md#the-project-key)); it is there for
+the MIDI effects to come.
 
 The sequencer records the notes you play, not the arpeggio. A part recorded
 with the arpeggiator on plays back through it again, so you can change the

@@ -6,8 +6,9 @@
  * not parse counting as absent; then clamped or cast exactly as Movy does,
  * `as u16`/`as i32` truncations included.
  *
- * FM-1 additions: `route <track> <0 midi|1 engine> <channel|slot>`. Movy
- * ignores verbs it does not know, so scripts with it still run there.
+ * FM-1 additions: `route <track> <0 midi|1 engine> <channel|slot>`, and
+ * `key <root 0..11> <scale>`, the project key (fm1_seq.h). Movy ignores
+ * verbs it does not know, so scripts with them still run there.
  * Not implemented here (stage M4): the undo ring (`usnap`, `uswap`,
  * `ucommit`, `udrop`, `uclr` are accepted and do nothing) and Move's inject
  * capability (`minject` is stored only).
@@ -43,7 +44,7 @@ static const verb_name_t kVerbs[] = {
   { "aclr", FM1_SEQ_V_ACLR }, { "aclrs", FM1_SEQ_V_ACLRS }, { "aclrstep", FM1_SEQ_V_ACLRSTEP },
   { "asetr", FM1_SEQ_V_ASETR }, { "usnap", FM1_SEQ_V_USNAP }, { "uswap", FM1_SEQ_V_USWAP },
   { "ucommit", FM1_SEQ_V_UCOMMIT }, { "udrop", FM1_SEQ_V_UDROP }, { "uclr", FM1_SEQ_V_UCLR },
-  { "route", FM1_SEQ_V_ROUTE },
+  { "route", FM1_SEQ_V_ROUTE }, { "key", FM1_SEQ_V_KEY },
 };
 
 /* Rust's char::is_whitespace, over ASCII. */
@@ -582,6 +583,14 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
          * fm1_seq_host.h), so no note is left hanging there. */
         sq_flush_track_gates(s, (unsigned)t, o);
       }
+    }
+    break;
+  }
+  case FM1_SEQ_V_KEY: {
+    /* Both arguments, in range; anything else changes nothing. */
+    const int hr = next(&a, &x), hs = next(&a, &y);
+    if (hr && hs && x >= 0 && x <= 11 && y >= 0 && y < (int64_t)FM1_SEQ_KEY_SCALES) {
+      fm1_seq_set_key(s, (unsigned)x, (unsigned)y);
     }
     break;
   }
