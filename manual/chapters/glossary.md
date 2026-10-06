@@ -82,6 +82,10 @@ Focused track
 :   The sequencer track you work on: steps, recording, Capture and the keys
     go to it ([chapter 7](07-sequencer.md#tracks-and-routing)).
 
+Glide
+:   A slide in pitch from the note you hold to the next one you play, also
+    called portamento ([chapter 4](04-playing.md#glide-and-voice-modes)).
+
 Identity
 :   The model name and number an FM-1 reports about its firmware, such as
     `FM-1_015`. More reliable than a file name
@@ -94,6 +98,11 @@ Insert
 Lane
 :   One of the eight places a track keeps the locks of one parameter. A
     track can lock up to eight parameters at once.
+
+Legato
+:   Playing a note before letting go of the previous one. The Legato voice
+    mode then moves the one voice to the new note without starting its
+    sound again ([chapter 4](04-playing.md#glide-and-voice-modes)).
 
 LFO
 :   Low-frequency oscillator: a modulation module that moves a parameter up
@@ -274,3 +283,7 @@ Velocity
 Voice
 :   One sounding note. An engine's voice count is how many notes it can play
     at once.
+
+Voice Mode
+:   Whether an engine plays a voice per note (Poly) or one voice for every
+    note (Mono, Legato) ([chapter 4](04-playing.md#glide-and-voice-modes)).
