@@ -31,7 +31,7 @@ features = true
 
 [[chapter]]
 file = "04-playing.md"
-summary = "Keys and voices, velocity, octave and transpose, pitch bend and MIDI input."
+summary = "Keys and voices, velocity, octave and transpose, pitch bend, MIDI input and the arpeggiator."
 features = true
 
 [[chapter]]
