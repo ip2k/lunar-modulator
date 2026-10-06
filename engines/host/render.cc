@@ -99,7 +99,8 @@
 // MIDI effects (engine API v3, FM1_KIND_MIDI_FX; include/fm1_mfx_host.h):
 // --mfx K:ID puts MIDI effect ID (the arpeggiator, `arp`) in front of sound
 // unit K (0 is --engine; 1..3 imply --slots), in the next of its chain's
-// four slots, on; --mfx-param K:NAME=VALUE sets a parameter of unit K's last
+// four slots, on (K:ID:off: bypassed, as the virtual FM-1 keeps each sound's
+// arpeggiator until ARP switches it on); --mfx-param K:NAME=VALUE sets a parameter of unit K's last
 // --mfx; --mfx-param-at K[.J]:T:NAME=VALUE and --mfx-on-at K[.J]:T:0|1 change
 // one or bypass it (0) or switch it on (1) at time T, J its place in the
 // chain from 1 (default 1), with the other controls, before the block's
@@ -218,7 +219,7 @@ void Usage() {
       "                  [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=VALUE]\n"
       "                  [--level-at K:T:PCT] [--mod FILE] [--log-mod FILE.jsonl]\n"
       "                  [--sysex FILE.syx]... [--tempo BPM]\n"
-      "                  [--mfx K:ID [--mfx-param K:NAME=VALUE]...]\n"
+      "                  [--mfx K:ID[:off] [--mfx-param K:NAME=VALUE]...]\n"
       "                  [--mfx-param-at K[.J]:T:NAME=VALUE]... [--mfx-on-at K[.J]:T:0|1]...\n"
       "                  [--log-mfx FILE.jsonl]\n"
       "       fm1-render --list-mod\n"
@@ -739,6 +740,7 @@ int main(int argc, char **argv) {
   // MIDI effects (--mfx): each sound unit's chain, in order.
   std::vector<std::string> mfx_ids[kSounds];
   std::vector<Unit> mfx_units[kSounds];
+  std::vector<int> mfx_start_on[kSounds];   // --mfx K:ID:off starts it bypassed
   std::vector<MfxControl> mfx_controls;
   const char *mfx_log_path = NULL;
 
@@ -897,8 +899,16 @@ int main(int argc, char **argv) {
           fprintf(stderr, "--mfx: sound unit %ld has %u MIDI effects already\n", k, FM1_MFX_SLOTS);
           return 2;
         }
-        mfx_ids[k].push_back(rest);
+        std::string id = rest;
+        const size_t colon = id.find(':');
+        const bool off = colon != std::string::npos && id.substr(colon + 1) == "off";
+        if (colon != std::string::npos && !off) {
+          fprintf(stderr, "--mfx wants K:ID or K:ID:off\n");
+          return 2;
+        }
+        mfx_ids[k].push_back(id.substr(0, colon));
         mfx_units[k].push_back(Unit());
+        mfx_start_on[k].push_back(off ? 0 : 1);
       } else if (mfx_units[k].empty() || !ParseParam(rest, &mfx_units[k].back().params)) {
         Usage();
         return 2;
@@ -1350,7 +1360,7 @@ int main(int argc, char **argv) {
     for (int k = 0; k < kSounds; ++k) {
       for (size_t j = 0; j < mfx_units[k].size(); ++j) {
         fm1_mfx_set(&mfx, unsigned(k), unsigned(j), fm1_midi_fx_of(mfx_units[k][j].e), mfx_units[k][j].self,
-                    &mfx_off);
+                    mfx_start_on[k][j], &mfx_off);
       }
     }
     if (!md.m) {

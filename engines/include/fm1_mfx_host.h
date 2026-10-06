@@ -126,10 +126,11 @@ typedef struct fm1_mfx_sink {
 void fm1_mfx_init(fm1_mfx_t *m, uint32_t rate);
 
 /* Puts effect fx, whose instance the host created in `self`, in slot s of
- * chain c, on. What the slot held first gets FLUSH and PANIC (its note-offs
- * to `sink`, which may be NULL only when nothing sounds). fx NULL empties
- * the slot. 1, or 0 for a slot out of range (nothing changes). */
-int fm1_mfx_set(fm1_mfx_t *m, unsigned c, unsigned s, const fm1_midi_fx_t *fx, void *self,
+ * chain c, on (`on` 1) or bypassed (0). What the slot held first gets PANIC
+ * (its note-offs to `sink`, which may be NULL only when nothing sounds).
+ * fx NULL empties the slot. 1, or 0 for a slot out of range or an fx that
+ * is no MIDI effect (nothing changes). */
+int fm1_mfx_set(fm1_mfx_t *m, unsigned c, unsigned s, const fm1_midi_fx_t *fx, void *self, int on,
                 const fm1_mfx_sink_t *sink);
 
 /* Bypass (0) or on (1). Bypassing flushes as fm1_mfx_set does; a chain

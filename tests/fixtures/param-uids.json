@@ -284,7 +284,7 @@
       {"name": "Length", "type": "float", "uid": 9, "flags": ["latch", "mod"]},
       {"name": "Chance", "type": "float", "uid": 18, "flags": ["latch", "mod"]},
       {"name": "Ratchet", "type": "enum", "uid": 16, "flags": ["latch"]},
-      {"name": "Spread", "type": "float", "uid": 22, "flags": ["latch", "mod"]},
+      {"name": "Vel Spread", "type": "float", "uid": 22, "flags": ["latch", "mod"]},
       {"name": "Loop", "type": "float", "uid": 24, "flags": ["latch", "mod"]},
       {"name": "Oct Mode", "type": "enum", "uid": 4, "flags": ["latch"]},
       {"name": "Velocity", "type": "float", "uid": 21, "flags": ["latch", "mod"]},
@@ -297,7 +297,7 @@
       {"name": "Latch", "type": "enum", "uid": 12, "flags": ["latch"]},
       {"name": "Sync", "type": "enum", "uid": 14, "flags": ["latch"]},
       {"name": "Ratchet %", "type": "float", "uid": 17, "flags": ["latch", "mod"]},
-      {"name": "Gate Spread", "type": "float", "uid": 23, "flags": ["latch", "mod"]},
+      {"name": "Gate Sprd", "type": "float", "uid": 23, "flags": ["latch", "mod"]},
       {"name": "Seed", "type": "float", "uid": 25, "flags": ["latch", "mod"]}
     ]
   },

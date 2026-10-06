@@ -76,7 +76,7 @@ static const fm1_param_t kParams[FM1_ARP_P_COUNT] = {
   { "Length", FM1_PARAM_FLOAT, 0, 32, 0, NULL, PAGE_RHYTHM, 9, LM, FM1_UNIT_NONE, "LEN" },
   { "Chance", FM1_PARAM_FLOAT, 0, 100, 100, NULL, PAGE_CHANCE, 18, LM, FM1_UNIT_PCT, "CHNC" },
   { "Ratchet", FM1_PARAM_ENUM, 0, 3, 0, kCounts, PAGE_CHANCE, 16, L, FM1_UNIT_NONE, "RATCH" },
-  { "Spread", FM1_PARAM_FLOAT, 0, 127, 0, NULL, PAGE_CHANCE, 22, LM, FM1_UNIT_NONE, "SPRD" },
+  { "Vel Spread", FM1_PARAM_FLOAT, 0, 127, 0, NULL, PAGE_CHANCE, 22, LM, FM1_UNIT_NONE, "SPRD" },
   { "Loop", FM1_PARAM_FLOAT, 0, 64, 0, NULL, PAGE_CHANCE, 24, LM, FM1_UNIT_NONE, "LOOP" },
   { "Oct Mode", FM1_PARAM_ENUM, 0, FM1_ARP_OCT_COUNT - 1, 0, kOctModes, PAGE_FEEL, 4, L, FM1_UNIT_NONE, "OCTM" },
   { "Velocity", FM1_PARAM_FLOAT, 0, 127, 0, NULL, PAGE_FEEL, 21, LM, FM1_UNIT_NONE, "VEL" },
@@ -89,7 +89,7 @@ static const fm1_param_t kParams[FM1_ARP_P_COUNT] = {
   { "Latch", FM1_PARAM_ENUM, 0, 1, 0, kOffOn, PAGE_KEYS, 12, L, FM1_UNIT_NONE, "LTCH" },
   { "Sync", FM1_PARAM_ENUM, 0, 1, 1, kSync, PAGE_KEYS, 14, L, FM1_UNIT_NONE, "SYNC" },
   { "Ratchet %", FM1_PARAM_FLOAT, 0, 100, 100, NULL, PAGE_KEYS, 17, LM, FM1_UNIT_PCT, "RAT%" },
-  { "Gate Spread", FM1_PARAM_FLOAT, 0, 100, 0, NULL, PAGE_KEYS, 23, LM, FM1_UNIT_NONE, "GSPR" },
+  { "Gate Sprd", FM1_PARAM_FLOAT, 0, 100, 0, NULL, PAGE_KEYS, 23, LM, FM1_UNIT_NONE, "GSPR" },
   { "Seed", FM1_PARAM_FLOAT, 0, 65535, 0, NULL, PAGE_SEED, 25, LM, FM1_UNIT_NONE, "SEED" },
 };
 

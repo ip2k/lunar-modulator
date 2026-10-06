@@ -135,7 +135,7 @@ static void retire(fm1_mfx_t *m, unsigned c, unsigned s, const fm1_mfx_sink_t *s
   if (sl->fx && sl->on) run_quiet(m, c, s, FM1_MIDI_EV_PANIC, 1, sink);
 }
 
-int fm1_mfx_set(fm1_mfx_t *m, unsigned c, unsigned s, const fm1_midi_fx_t *fx, void *self,
+int fm1_mfx_set(fm1_mfx_t *m, unsigned c, unsigned s, const fm1_midi_fx_t *fx, void *self, int on,
                 const fm1_mfx_sink_t *sink) {
   fm1_mfx_slot_t *sl;
   if (c >= FM1_MFX_CHAINS || s >= FM1_MFX_SLOTS) return 0;
@@ -144,7 +144,7 @@ int fm1_mfx_set(fm1_mfx_t *m, unsigned c, unsigned s, const fm1_midi_fx_t *fx, v
   sl = &m->chain[c].slot[s];
   sl->fx = fx;
   sl->self = fx ? self : NULL;
-  sl->on = fx ? 1u : 0u;
+  sl->on = fx && on ? 1u : 0u;
   forget_if_idle(m, c);
   return 1;
 }
