@@ -92,7 +92,10 @@
  *   ARP pages     SELECT the page (PLAY, RHYTHM, CHANCE, FEEL, MORE, KEYS,
  *                 SEED), KNOB1-4 its parameters, ALGORITHM the stock FM-1's
  *                 arp modes as presets (Up, Down, Up/Down, Down/Up, Random,
- *                 Played); the keys play
+ *                 Played) and, after them, every other MIDI effect in the
+ *                 build, which then takes the slot (Acid Gen while the GPL
+ *                 switch is on: its pages LINE, KEY, PLAY and SEED); the
+ *                 keys play
  * Its LED is lit while the current sound's arp is on, and blinks while it
  * latches. A change of the sound, a panic, a sequencer reset or import
  * flush it; a bypass flushes it at once; every note-on it sent gets its
@@ -261,11 +264,12 @@ enum {
 /* The arpeggiator (MIDI effects, engine API v3). One per sound unit, in the
  * first of its chain's FM1_MFX_SLOTS slots: the owner's design has four
  * MIDI-effect slots per track (2026-10-05), and the stage keeps room for
- * them, but the arp is the only MIDI effect so far and the panel fills only
- * the first. Each instance has its own arena; the RAM meter counts each
- * arp that is on, and the stage while one is (fm1_app_ram). */
+ * them, but the panel fills only the first, the MIDI-FX slot, with the arp
+ * or another MIDI effect (fm1_app_mfx_select). Each instance has its own
+ * arena; the RAM meter counts each effect that is on, and the stage while
+ * one is (fm1_app_ram). */
 #define FM1_APP_MFX_BYTES 768u        /* a MIDI effect's arena: the arp takes 736 B */
-#define FM1_APP_ARP_PARAMS 32         /* the arp's parameters, at most */
+#define FM1_APP_ARP_PARAMS 32         /* a MIDI effect's parameters, at most */
 #define FM1_APP_ARP_HOLD_S 0.5f       /* ARP held this long latches */
 
 /* What fm1_app_seq_cmd did with a command. */
@@ -452,8 +456,9 @@ typedef struct fm1_app {
   int arp_from_mode;             /* the mode the ARP pages were opened from */
   uint64_t arp_down_at;          /* a->frames when ARP went down */
   uint8_t arp_down, arp_used, arp_hold_done;
-  /* Native-harness hook: every change of an arp, with the frame of the
-   * block it leads: `param` -1 for on (value 1) or bypassed (0), else the
+  /* Native-harness hook: every change of a MIDI-FX slot, with the frame of
+   * the block it leads: `param` -1 for on (value 1) or bypassed (0), -2 for
+   * another effect put in it (value: its index in fm1_midi_fxs), else the
    * parameter's index and its new value. NULL in the browser. */
   void (*on_mfx)(void *ctx, uint64_t frame, int sound, int param, float value);
   /* Native-harness hook: every modulation edit as a line of fm1-render's
@@ -671,10 +676,28 @@ int fm1_app_arp_set_on(fm1_app_t *a, int sound, int on);
 void fm1_app_arp_set_param(fm1_app_t *a, int sound, int index, float value);
 float fm1_app_arp_get_param(const fm1_app_t *a, int sound, int index);
 
+/* The MIDI effect in a sound's MIDI-FX slot, the ARP slot: the arp, unless
+ * ALGORITHM (or fm1_app_mfx_select) put another there. Its parameters are
+ * what fm1_app_arp_set_param and fm1_app_arp_get_param reach. */
+const fm1_engine_t *fm1_app_mfx_engine(const fm1_app_t *a, int sound);
+
+/* That effect's parameter index by name (case insensitive), or -1. */
+int fm1_app_mfx_param_index(const fm1_app_t *a, int sound, const char *name);
+
+/* Puts the registry's MIDI effect `id` in a sound's MIDI-FX slot, a fresh
+ * instance at its defaults, on if the slot's effect was on; the one it
+ * replaces ends its notes. 0; -1 for an unknown id or sound; or
+ * FM1_APP_SELECT_RAM, with a popup, when it would take the chain past the
+ * RAM budget. */
+int fm1_app_mfx_select(fm1_app_t *a, int sound, const char *id);
+
 /* The stock FM-1's arp modes as presets (Up, Down, Up/Down, Down/Up,
- * Random, Played): each sets Mode and Order. The count, a preset's name,
- * applying one to a sound (0, or -1), and the preset a sound's arp is on
- * now (-1: none). */
+ * Random, Played): each sets Mode and Order, putting the arp back in the
+ * slot if another effect is there; then one entry for each other MIDI
+ * effect of the registry, which puts that effect in the slot. The count, a
+ * preset's name, applying one to a sound (0, or -1, or
+ * FM1_APP_SELECT_RAM), and the preset a sound's slot is on now (-1:
+ * none). */
 int fm1_app_arp_preset_count(void);
 const char *fm1_app_arp_preset_name(int preset);
 int fm1_app_arp_preset(fm1_app_t *a, int sound, int preset);

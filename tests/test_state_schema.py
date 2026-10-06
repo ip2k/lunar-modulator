@@ -17,7 +17,7 @@ import pytest
 
 from tests import state_canon as canon
 from tests.state_meta import subset
-from tests.engine_helpers import ENGINES, renderer  # noqa: F401
+from tests.engine_helpers import ENGINES, GPL_MODS, renderer  # noqa: F401
 
 jsonschema = pytest.importorskip("jsonschema")
 referencing = pytest.importorskip("referencing")
@@ -322,7 +322,10 @@ def test_the_builds_metadata_fits_the_schema(meta):
 def test_the_metadata_example_is_the_builds(meta):
     """engines/state/examples/metadata.json is the build's export (fm1-render
     --meta) cut down to a few engines and kinds, byte for byte: the golden
-    file an editor can be written against."""
+    file an editor can be written against. It is the default build's, with
+    the GPL switch on (its `build.gpl` and `known_ids` say so)."""
+    if not GPL_MODS:
+        pytest.skip("the example is the export of the default build, GPL switch on")
     ex = canon.loads((EXAMPLES / "metadata.json").read_text())
     want = subset(meta, engines={e["id"] for e in ex["engines"]},
                   kinds={k["id"] for k in ex["mod"]["kinds"]})

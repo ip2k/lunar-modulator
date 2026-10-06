@@ -6,8 +6,12 @@ engines/state/fm1_meta.c) to, less what only C can say (instance bytes per
 engine, aliases, known ids). `subset` cuts an export down to a few engines
 and kinds, as engines/state/examples/metadata.json is.
 """
+import os
 import re
 from pathlib import Path
+
+# The GPL switch the build was made with (engines/Makefile; tests/engine_helpers.py).
+GPL_MODS = os.environ.get("FM1_GPL_MODS", "1") != "0"
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINES = ROOT / "engines"
@@ -58,7 +62,7 @@ def meta_params(table, hidden=False):
 def metadata_from_build(listed, mod, engines=None, kinds=None):
     """The export's layout, from fm1-render --list and --list-mod: what the C
     export (stage E2) must write, less what the build cannot say yet
-    (licences, instance bytes per engine, aliases, known ids)."""
+    (instance bytes per engine, aliases, known ids)."""
     doc = {"lunar": "1.0", "kind": "metadata",
            "made": {"by": "desktop", "version": "0.0.0", "commit": "0000000"}}
     doc["build"] = {
@@ -66,10 +70,10 @@ def metadata_from_build(listed, mod, engines=None, kinds=None):
         "mod_api": _define(ENGINES / "include" / "fm1_mod.h", "FM1_MOD_API_VERSION"),
         "rate": 44118,
         "ram_budget": _define(ROOT / "sim" / "web" / "src" / "fm1_app.h", "FM1_APP_RAM_BUDGET"),
-        "gpl": False}
+        "gpl": GPL_MODS}
     doc["engines"] = [
         {"id": e["id"], "name": e["name"], "kind": e["kind"], "credits": e["credits"],
-         "max_voices": e["max_voices"], "per_note": e["per_note"], "pads": e["pads"],
+         "licence": e["licence"], "max_voices": e["max_voices"], "per_note": e["per_note"], "pads": e["pads"],
          "fx_wants": e["fx_wants"], "params": meta_params(e["params"])}
         for e in listed if engines is None or e["id"] in engines]
     sources = []

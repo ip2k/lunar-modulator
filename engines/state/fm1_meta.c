@@ -316,6 +316,11 @@ static void engine(jw_t *w, const fm1_engine_t *e, const fm1_host_t *host) {
   jw_str(w, e->kind == FM1_KIND_SOUND ? "sound" : e->kind == FM1_KIND_AUDIO_FX ? "audio_fx" : "midi_fx");
   jw_key(w, "credits");
   jw_str(w, e->credits);
+  /* The code's licences (fm1_engine_licence, an SPDX expression: MIT unless
+   * the licence table says otherwise), so an editor can show a GPL module's
+   * terms as the virtual FM-1's page does. */
+  jw_key(w, "licence");
+  jw_str(w, fm1_engine_licence(e));
   jw_key(w, "max_voices");
   jw_int(w, e->max_voices);
   jw_key(w, "per_note");
@@ -486,11 +491,9 @@ void fm1_meta_build_default(fm1_meta_build_t *b) {
 #endif
   b->rate = FM1_META_RATE;
   b->ram_budget = FM1_META_RAM_BUDGET;
-#if defined(FM1_GPL_MODS) && (FM1_GPL_MODS + 0)
-  b->gpl = 1;
-#else
-  b->gpl = 0;
-#endif
+  /* The registry's switch (fm1_engine.h): this file is built without the
+   * generated fm1_gpl_mods.h, so an #ifdef here always read it as off. */
+  b->gpl = fm1_gpl_mods ? 1 : 0;
 }
 
 size_t fm1_meta_write(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx) {

@@ -40,12 +40,21 @@ def owners(meta):
     return out
 
 
+def gpl_ids():
+    """The ids known-ids.json gives as GPL modules: in a build only with the
+    GPL switch on, so their pins stand aside when it is off."""
+    return {r["id"] for r in json.loads(KNOWN.read_text())["ids"] if r["reason"] == "gpl"}
+
+
 def test_list_entries_only_grow_at_their_end(meta):
     pinned = json.loads(PINNED.read_text())
     have = owners(meta)
     seen = set()
+    gpl = gpl_ids()
     for section in ("engines", "mod"):
         for oid, lists in pinned[section].items():
+            if (section, oid) not in have and oid in gpl and not meta["build"]["gpl"]:
+                continue              # a GPL module, built without the switch
             assert (section, oid) in have, f"{oid} is pinned but not in the build: move it, never drop it"
             params = {str(p["uid"]): p for p in have[(section, oid)]}
             for uid, entries in lists.items():

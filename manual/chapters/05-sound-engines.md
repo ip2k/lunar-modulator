@@ -31,8 +31,12 @@ and [chapter 14](14-credits-and-licences.md) credits each source.
 {{status sim planned}}
 
 **To choose an engine:** turn [[PRESETS]]. The engines come in this order:
-Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Test Sine, and
-round again.
+Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Acid Bass, Comet
+Kit, Crater Kit, Drawbar, Trio, Phase Bend, Test Sine, and round again. Acid
+Bass, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend are there only in
+builds with the GPL switch on, as the simulator is while we test
+([Acid Bass](#acid-bass), [Comet Kit](#comet-kit), [Crater Kit](#crater-kit),
+[Drawbar, Trio and Phase Bend](#drawbar-trio-and-phase-bend)).
 While you turn, the screen lists the engines, eight at a time, with the new one
 highlighted ([chapter 3](03-panel-tour.md#lists)). In the simulator you can also pick one from the
 **Sound (PRESETS)** list under the panel.
@@ -47,7 +51,7 @@ When you choose an engine:
   and goes to its last page otherwise.
 
 Every engine but Sophie has a **Volume** parameter, its own output level, on
-its second page (on Drums, its fourth). It is separate from [[MASTER]], which sets the level of
+its second page (on Drums, its fourth; on Comet Kit and Crater Kit, their third). It is separate from [[MASTER]], which sets the level of
 everything. Macro, Macro Heavy, Six-Op FM, FM6 and Shapes also have
 **Glide**, **Voice Mode**, **Glide Mode** and **Time Mode**, together on
 their last page, for sliding between notes and playing one voice at a time
@@ -59,6 +63,10 @@ their last page, for sliding between notes and playing one voice at a time
     rate. They cannot run when the output is faster than that. If your
     browser runs the simulator at 48,000 samples a second, [[PRESETS]] steps
     over those four and the screen names the one it skipped ([chapter 2](02-getting-started.md#the-browser-simulator)).
+    Crater Kit, Drawbar, Trio and Phase Bend, built for 44,100 samples a
+    second, run only near that rate (Crater Kit from 44,000 to 44,200, the
+    other three within a quarter of a percent), and are stepped over at
+    others in the same way.
 
 ## Four sounds at once
 
@@ -504,7 +512,7 @@ for its pad's Decay, whether or not you keep the key down.
 {{screen sophie Sophie on pad 1, the kick, just after it was struck.}}
 
 **To play Sophie from the FM-1's keys:** play the white keys. With a drum
-kit as the sound (Sophie or Drums), the sixteen white keys play the sixteen
+kit as the sound (Sophie, Drums, Comet Kit or Crater Kit), the sixteen white keys play the sixteen
 pads at any octave, from the kick on the lowest F up to the ride on the
 highest white key, and the black keys play nothing. On the computer
 keyboard, <kbd>A</kbd> is the kick, <kbd>S</kbd> the rim, <kbd>D</kbd> the
@@ -602,6 +610,387 @@ project's own, after published studies of the analogue circuits
     that turn.
 
 {{engine-table drums}}
+
+## Acid Bass
+
+{{status sim desktop planned}}
+
+Acid Bass is a bass after the TB-303: one voice, a sawtooth or square wave
+through a resonant filter swept by an envelope, with accents and slides.
+It is the 303 of fm1-x0x, Charles Vestal's firmware for the FM-1, which
+ports Robin Schmidt's Open303 with the Devilfish's longer slides and accent
+decays and a RAT-style drive ([chapter 14](14-credits-and-licences.md)).
+
+!!! note "In builds with the GPL switch on"
+    fm1-x0x's code is published under the GNU General Public License, so
+    Acid Bass is built in only while the firmware's GPL switch is on: in
+    the simulator while we test, and in firmware for the person who builds
+    it, never in a shared build ([chapter 14](14-credits-and-licences.md#licences)).
+
+- **Accent.** A note played with a velocity of 100 or more is accented:
+  louder, and with a harder sweep of the filter. Velocity does nothing
+  else, as on the original, so play softer than 100 for a plain note.
+- **Slide.** A key you play while holding another slides to its pitch
+  instead of starting again: the 303's slide. Let go of the newer key while
+  the older one is still down and the note slides back. Let go of the last
+  key and the note ends.
+- **Page 1, the filter.**
+  - **Cutoff** sets how bright the note is at rest, 314 to 2,394 Hz.
+  - **Resonance** adds the squelch: at the right the filter sings.
+  - **Env Mod** sets how far each note opens the filter.
+  - **Decay** sets how long that sweep takes to close, 200 ms to 2 s.
+- **Page 2, the voice.**
+  - **Accent** sets how hard an accented note hits.
+  - **Wave** chooses *Saw* or *Square*.
+  - **Tune** moves the pitch up to an octave either way.
+  - **Volume** sets the level.
+- **Page 3, drive and slides.**
+  - **Drive** saturates the sound, clean at 0.
+  - **Drive Type** chooses *Soft*, a warm overdrive, *RAT*, a gritty
+    distortion pedal, or *Off*.
+  - **Slide** sets how long a slide takes, 2 to 360 ms (60 ms, the
+    original's, to begin with).
+  - **Acc Decay** sets the filter sweep's decay on accented notes, 30 ms to
+    3 s.
+- Cutoff, Resonance, Env Mod, Tune, Volume, Drive and Slide move a note
+  that sounds. Decay, Accent and Acc Decay reach the next note, a slide
+  included. Wave and Drive Type wait for the next note that is not a slide,
+  so they never click in the middle of one; while nothing sounds they
+  change at once.
+- Pitch bend bends the note, slides included.
+- [[ALGORITHM]] steps through Wave.
+
+Some settings to start from:
+
+| Sound | Cutoff | Resonance | Env Mod | Decay | Accent | Drive |
+| --- | --- | --- | --- | --- | --- | --- |
+| Rubber bass | 500 Hz | 40 % | 30 % | 900 ms | 40 % | 0 |
+| Squelch | 420 Hz | 92 % | 85 % | 300 ms | 90 % | 0 |
+| Acid lead (Square) | 1,500 Hz | 70 % | 60 % | 630 ms | 60 % | 0 |
+| Distorted acid | 700 Hz | 80 % | 100 % | 400 ms | 80 % | 75 %, RAT |
+
+{{engine-table acid-bass gpl}}
+
+## Comet Kit
+
+{{status sim desktop planned}}
+
+Comet Kit is a sixteen-pad drum kit after the TR-909: a kick with a punchy
+sweep and a beater click, a snare with its rattle of wires, three toms, a
+rim shot and a hand clap, all modelled on the machine's circuits, and
+hi-hats, a crash and a ride played from recordings, as the machine played
+its cymbals. It is the 909 kit of fm1-x0x, Charles Vestal's firmware for the
+FM-1, which ports 9W9 by athousanddetails, itself grown out of ER-99 by
+Matthew Cieplak; the cymbal recordings are ER-99's
+([chapter 14](14-credits-and-licences.md)).
+
+!!! note "In builds with the GPL switch on"
+    fm1-x0x's code and ER-99's recordings are published under the GNU
+    General Public License, so Comet Kit is built in only while the
+    firmware's GPL switch is on, as Acid Bass is ([Acid Bass](#acid-bass)).
+    Drums stays the kit every build has.
+
+- Comet Kit plays MIDI notes 36 to 51, one pad each, in the same order as
+  Drums and Sophie; on the FM-1's keys the sixteen white keys play them
+  ([Sophie](#sophie) shows which key is which).
+
+  | Note | Pad | Sound |
+  | --- | --- | --- |
+  | 36 | 1 Kick | the kick |
+  | 37 | 2 Rim | the rim shot |
+  | 38 | 3 Snare | the snare |
+  | 39 | 4 Clap | the hand clap |
+  | 40 | 5 Snare 2 | the snare, a little higher, with more of its wires |
+  | 41, 43 | 6 Low Tom, 8 Floor Tom | the low tom, and the low tom tuned up |
+  | 45, 47 | 10 Mid Tom, 12 Low-Mid | the mid tom, and the mid tom tuned up |
+  | 48, 50 | 13 High-Mid, 15 High Tom | the high tom tuned down, and the high tom |
+  | 42, 44 | 7 Closed HH, 9 Pedal HH | the closed hi-hat, and a longer one |
+  | 46 | 11 Open HH | the open hi-hat |
+  | 49 | 14 Crash | the crash |
+  | 51 | 16 Ride | the ride |
+
+- A hit rings for its sound's decay, whether or not you keep the key down.
+  The kit has one voice for each of its eleven sounds, as the machine has:
+  a sound struck again starts again, and the two pads that share a sound
+  (the two snares, two of the toms, the closed and pedal hi-hats) cut each
+  other. A closed or pedal hi-hat cuts the open hi-hat short.
+- **Velocity** (page 3) sets how much a soft hit drops: at 100 % a hit at
+  half velocity is half as loud; at 0 every hit plays at the Accent level.
+  **Accent** sets the level a full-velocity hit reaches, the machine's accent.
+- **Pad** chooses which pad the pad's knobs edit, those on pages 1 and 2 and
+  Drive Type on page 3. [[ALGORITHM]] steps through the pads, and so does
+  [[KNOB1]] on page 1. Each pad keeps its own settings.
+- The pad's knobs are the machine's own knobs for that sound. They start
+  where the kit sets the pad up: Tune, Decay, Level, Tone and Snap in the
+  middle, Sweep and Drive at 0. Turned fully left or right, a knob is at the
+  end of that sound's range on the machine, so a tom cannot be tuned onto
+  another, as on the machine.
+  - **Tune** sets the pitch; on the kick, how far its pitch sweeps down at
+    the start of a hit.
+  - **Decay** sets how long it rings; on the clap, its room tail. The snare
+    and the rim shot have none: their length is fixed, as on the machine.
+  - **Level** sets its level in the kit.
+  - **Tone** (page 2) sets the length of the snare's wires; on the kick, the
+    pitch Sweep pulls it to.
+  - **Snap** sets the snare's wires against its body, and the click of the
+    kick and of the toms.
+  - **Sweep** works on the kick only: at 0 the kick is the machine's; turned
+    up, its pitch moves towards the one Tone sets, and its sweep deepens.
+  - **Drive** saturates the pad.
+  - **Drive Type** (page 3) chooses how: *Diode*, the machine's own soft
+    rounding, *Clip*, *Saturate*, *Fuzz*, *Crunch*, *Fold* (a wavefolder)
+    or *Crush* (fewer bits and a lower sample rate).
+- **Kit** (page 4) chooses *Classic*, the kit as 9W9 sets it up, or *Big
+  Beat*, fm1-x0x's own: a shorter, harder kick and a quieter open hi-hat.
+- Drive Type and Kit reach the pad's next hit; a hit that is ringing keeps
+  the sound it started with. The other pad knobs move a ringing hit when its
+  sound reads them, and otherwise reach the next hit.
+- Comet Kit ignores pitch bend.
+
+!!! caution "The values shown after you change pads"
+    As on Drums, the screen cannot read a pad's settings back. When you
+    choose another pad, the screen keeps showing the values you last set,
+    and the first turn of a knob gives the new pad the value shown, plus
+    that turn.
+
+{{engine-table comet gpl}}
+
+## Crater Kit
+
+{{status sim desktop planned}}
+
+Crater Kit is a sixteen-pad drum kit after the TR-808: a booming kick, a
+snare, three toms and three congas, a clap and maracas, a rim shot and
+claves, a cowbell, closed and open hi-hats and a cymbal, every one the
+machine's own sound. It is the 808 of fm1-x0x, Charles Vestal's firmware
+for the FM-1, which ports 8W8 by athousanddetails: fifteen of the sounds
+are models of the machine's circuits, built from its service notes and
+published analyses, and the rim shot is sc808's
+([chapter 14](14-credits-and-licences.md)). [Drums](#drums) stays beside
+it: two kits of its own, any sound on any pad, in every build.
+
+!!! note "In builds with the GPL switch on"
+    fm1-x0x's code is published under the GNU General Public License, so
+    Crater Kit is built in only while the firmware's GPL switch is on: in
+    the simulator while we test, and in firmware for the person who builds
+    it, never in a shared build ([chapter 14](14-credits-and-licences.md#licences)).
+
+- Crater Kit plays MIDI notes 36 to 51, one sound each, and ignores other
+  notes; on the FM-1's keys the sixteen white keys play them, from F3:
+
+  | Note | Pad | Note | Pad | Note | Pad | Note | Pad |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | 36 | Kick | 40 | Claves | 44 | Maracas | 48 | High Tom |
+  | 37 | Rim Shot | 41 | Low Tom | 45 | Mid Tom | 49 | Cymbal |
+  | 38 | Snare | 42 | Closed HH | 46 | Open HH | 50 | Hi Conga |
+  | 39 | Clap | 43 | Low Conga | 47 | Mid Conga | 51 | Cowbell |
+
+- A hit rings for its sound's decay, whether or not you keep the key down.
+  Struck again while it rings, a sound is struck again in its own circuit,
+  as on the machine.
+- As on the machine, each conga is its tom's circuit switched over: a low
+  conga stops a ringing low tom, and the other way round. The rim shot and
+  the claves, and the clap and the maracas, sound together freely.
+- **Velocity** 88 is the 808's normal hit and 127 its accent, louder and
+  harder; between them the hit grows, and below 88 it is quieter.
+- **Pad** chooses which pad the pad's knobs edit: those on pages 1 and 2.
+  [[ALGORITHM]] steps through the pads, and so does [[KNOB1]] on page 1.
+  Each pad keeps its own settings, and starts as the 808 is set up: Tune
+  at 0 and the other knobs in the middle, so until you change them the
+  screen shows true values whichever pad you choose.
+  - **Tune** sets the pad's pitch, up to an octave either way (the toms
+    and congas go further than the machine's, which move two semitones).
+  - **Decay** sets how long it rings: the kick's boom, the snare's ring,
+    the hi-hats' and cymbal's length.
+  - **Level** sets its level in the kit, up to twice the 808's.
+  - **Tone** (page 2) shapes the kick (brighter to the right) and the
+    snare (from its low shell to its high one); it does nothing on the
+    other pads.
+  - **Snap** sets the kick's attack click, the snare's snares and the
+    maracas' attack; it does nothing on the other pads.
+  - **Drive** saturates the pad, clean at 0.
+  - **Dist** chooses how Drive saturates: *Diode* (the machine's own
+    rounding), *Clip*, *Sat*, *Fuzz*, *Cubic* (a biased crunch), *Fold* (a
+    wavefolder) or *Crush* (bits and rate falling together).
+- Page 3 is the whole kit's:
+  - **Accent** sets how far below an accent a softer hit sits: at 100 %,
+    velocity 88 is the 808's normal hit; at 0 every hit is as loud as an
+    accent.
+  - **Choke** sets which hi-hat cuts which: *Off*, *Closed>Open* (a closed
+    hi-hat cuts the open one, as on the machine), or *Both*.
+  - **Volume** sets the kit's level.
+- Tune, Decay, Tone, Snap, Accent and Choke reach the next hit; a hit that
+  is ringing keeps what it started with. Level, Drive and Volume move a
+  ringing hit too. Dist waits for the pad's next hit, so it never clicks in
+  the middle of one.
+- Pitch bend moves the hits you strike while you hold it, together with
+  Tune up to an octave either way.
+
+!!! caution "The values shown after you change pads"
+    As on Drums, the screen cannot read a pad's settings back. When you
+    choose another pad, the screen keeps showing the values you last set,
+    and the first turn of a knob gives the new pad the value shown, plus
+    that turn.
+
+Some settings to start from:
+
+| Sound | Pad | Tune | Decay | Tone | Snap | Drive, Dist |
+| --- | --- | --- | --- | --- | --- | --- |
+| Long boom kick | 1 Kick | −2 | 0.85 | 0.3 | 0.3 | 0 |
+| Short punchy kick | 1 Kick | +3 | 0.3 | 0.7 | 0.9 | 0.3, Sat |
+| Crisp snare | 3 Snare | +2 | 0.4 | 0.8 | 0.8 | 0 |
+| Gritty cowbell | 16 Cowbell | 0 | 0.5 | – | – | 0.5, Fold |
+
+{{engine-table crater gpl}}
+
+## Drawbar, Trio and Phase Bend
+
+{{status sim desktop planned}}
+
+Three engines come from **Felucca**, Leo Kuroshita's open firmware for the
+FM-1 (Hügelton Instruments), each its own design: **Drawbar**, an organ;
+**Trio**, three oscillators in the style of the sound chips of the early
+8-bit home computers; and **Phase Bend**, phase distortion. Their sound is
+Felucca's own: the firmware runs Felucca's code for them unchanged, notes,
+envelope and all, and plays every one of Felucca's factory sounds for them
+to the sample as Felucca does ([chapter 14](14-credits-and-licences.md)).
+
+!!! note "In builds with the GPL switch on"
+    Felucca is published under the GNU General Public License, so these
+    three engines are built in only while the firmware's GPL switch is on:
+    in the simulator while we test, and in firmware for the person who
+    builds it, never in a shared build ([chapter 14](14-credits-and-licences.md#licences)).
+
+What the three share:
+
+- **Eight voices.** A key struck while it sounds starts again in its own
+  voice, from where its level is. With all eight busy, a new note takes the
+  oldest released voice, else the oldest held one, never the lowest key
+  held.
+- **An envelope**, Felucca's: **Attack** rises to full level in its time,
+  **Decay** falls to the **Sustain** level, and **Release** falls away after
+  the key, each from 1 ms to 10 s in Felucca's 128 steps. Velocity sets the
+  level, and a velocity over 110 is an accent: it opens Trio's filter and
+  Phase Bend's bend with the envelope.
+- **Volume** sets the level.
+- Pitch bend bends every note.
+- Notes, knobs and bends take effect at the next 0.7 ms, Felucca's control
+  step, wherever they fall.
+- They run at the FM-1's rate, 44,100 or 44,118 samples a second, and stay
+  off the list in a browser that runs the simulator faster, as Macro does.
+  At 44,118 they play 0.7 cent sharp, as Felucca does on the FM-1.
+
+### Drawbar
+
+Drawbar is a tonewheel organ: nine sine partials at the drawbar pitches of
+the organs it is after, from 16' (an octave down) to 1' (three octaves up).
+
+- **Drawbars** chooses one of sixteen drawbar settings (registrations): *Flute*,
+  *Mellow*, *Hollow*, *Smooth*, *3 Bar*, *Blues*, *Gospel*, *Rock*, *Tops*,
+  *Clarinet*, *Reed*, *Strings*, *Chapel*, *Bright*, *Bass* and *Full*.
+  [[ALGORITHM]] steps through them.
+- **Sub**, **Body** and **Top** pull the setting's low bars (16' and
+  5 1/3'), its middle (8' and 4') and its upper five down or up, by up to
+  eight steps of about 3 dB.
+- **Perc** adds the organ's percussion, a decaying second or third
+  harmonic, *Soft* (quieter) or *Slow* (longer), struck only on a note
+  played while no other key is held, as on the organs. With it on, the 1'
+  bar is silent.
+- **Click** sets the key click at the start and end of each note.
+- **Drive** overdrives each note.
+- **Rotor** spins a rotary speaker, *Slow* or *Fast*, or stops it (*Off*);
+  it speeds up and slows down as the real one does.
+- Drawbars, Sub, Body, Top, Perc, Click, Drive and Rotor move the notes
+  that sound, without a click.
+
+Some of Felucca's own Drawbar sounds (Attack 1 ms, Decay 104 ms, Sustain
+100 %):
+
+| Sound | Drawbars | Perc | Click | Drive | Rotor | Release |
+| --- | --- | --- | --- | --- | --- | --- |
+| Full Organ | Full | Off | 24 % | 16 % | Slow | 26 ms |
+| Jazz Perc | 3 Bar | 3rd | 39 % | 6 % | Slow | 18 ms |
+| Gospel | Gospel | 2nd | 47 % | 31.5 % | Fast | 26 ms |
+| Soft Flute | Mellow (Body −2) | Off | 8 % | 0 | Slow | 54 ms |
+| Rock Drive | Rock | Off | 55 % | 79 % | Fast | 18 ms |
+
+{{engine-table drawbar gpl}}
+
+### Trio
+
+Trio plays three oscillators together, each a triangle, sawtooth, pulse or
+pitched noise, or a mix of two of them the way the old sound chips combined
+waves, with ring modulation and hard sync between them, into a filter that
+gets gritty when you push its resonance.
+
+- **Wave** chooses one of sixteen sets of three waves and how they
+  interact: three saws, three pulses, a pulse pair with a triangle, the
+  combined *Saw&Tri* and *Pulse&Saw*, *Pulse+Noise*, *Noise*, the *Sync*
+  sets (the second oscillator restarts with the first) and the *Ring* sets
+  (the first oscillator ring-modulated by the third). [[ALGORITHM]] steps
+  through them. A note keeps the wave it started with.
+- **Int 2** and **Int 3** tune the second and third oscillators up to two
+  octaves either way, in semitones; **Detune** pulls them apart, the second
+  up and the third down, by up to 50 cents.
+- **Mode** chooses the filter: *Low-pass*, *Band-pass*, *High-pass* or
+  *Notch*. A note keeps the mode it started with.
+- **Cutoff** (30 Hz to 16 kHz) and **Resonance** set the filter; its
+  cutoff wanders a little, as the chips' did.
+- **PW** sets the pulse width of the pulse waves.
+- **Env Amt** lets the envelope open (to the right) or close (to the left)
+  the filter.
+
+Felucca's own Trio sounds:
+
+| Sound | Wave | Int 2, Int 3 | Detune | Mode | Cutoff | Resonance | PW | Env Amt | Attack, Decay, Sustain, Release |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Fat Bass | Saw x3 | 0, −12 | 9 | Low-pass | 643 Hz | 35 % | 50 % | 62.5 % | 1 ms, 90 ms, 47 %, 6 ms |
+| Arp Lead | Pls+Pls+Tri | +12, 0 | 4 | Low-pass | 2,326 Hz | 20 % | 25 % | 12.5 % | 1 ms, 78 ms, 71 %, 9 ms |
+| Sync Lead | Sync | +9, 0 | 0 | Low-pass | 1,729 Hz | 24 % | 50 % | 28.1 % | 1.2 ms, 160 ms, 79 %, 18 ms |
+| Ring Bell | Ring 3 | 0, +18 | 6 | Band-pass | 3,455 Hz | 24 % | 50 % | 0 | 1 ms, 790 ms, 0 %, 331 ms |
+| Chip Choir | Pulse x3 | 0, +12 | 7 | Band-pass | 643 Hz | 75 % | 31 % | 46.9 % | 160 ms, 683 ms, 87 %, 476 ms |
+
+Felucca plays Fat Bass and Sync Lead one note at a time; Trio has no voice
+mode of its own, so play them one note at a time, or let the sequencer do.
+
+{{engine-table trio gpl}}
+
+### Phase Bend
+
+Phase Bend is phase distortion, as on the Casio CZ: a sine read through a
+bent phase, whose bend turns it into a sawtooth, a square, a pulse or one
+of three resonant waves, a sine sweeping inside a window. It is a port of
+CrispyZebra, the same author's phase-distortion oscillator.
+
+- **Wave** chooses the wave: *Saw*, *Square*, *Pulse*, *Double Sine*, *Saw
+  Pulse*, and the resonant *Reso Saw*, *Reso Tri* and *Reso Trap*.
+  [[ALGORITHM]] steps through them. **Wave 2**, when not *Same*, plays on
+  every other cycle, alternating with the first. A note keeps the waves it
+  started with.
+- **DCW** sets the bend: at 0 a plain sine; turning it up brightens the
+  wave, or, on the resonant waves, sweeps the resonance up.
+- **Env** lets the envelope bend it further as each note starts.
+- **Detune** (0 to 127 cents) and **Line** add a second line, detuned,
+  *Mix*ed with the first or *Ring*-modulated with it. A note keeps the line
+  it started with.
+- **Sub** adds a sine an octave down.
+- Page 4 is glide's, as on Macro: **Glide**, **Voice Mode**, **Glide
+  Mode** and **Time Mode** slide between notes and play one note at a time
+  ([chapter 4](04-playing.md#glide-and-voice-modes)). Nothing slides until
+  Glide Mode is on Legato or Always.
+
+Felucca's own Phase Bend sounds:
+
+| Sound | Wave, Wave 2 | DCW | Env | Detune | Attack, Decay, Sustain, Release |
+| --- | --- | --- | --- | --- | --- |
+| Brass | Saw | 24 % | 71 % | 0 | 1.8 ms, 160 ms, 71 %, 18 ms |
+| Organ | Double Sine | 31 % | 0 | 0 | 1 ms, 10 s, 100 %, 9 ms |
+| String | Saw, Double Sine | 39 % | 31.5 % | 12 | 18 ms, 683 ms, 79 %, 160 ms |
+| Reso | Reso Saw | 47 % | 47 % | 0 | 1 ms, 160 ms, 24 %, 78 ms |
+| Bell | Reso Tri | 63 % | 39 % | 0 | 1 ms, 982 ms, 0 %, 683 ms |
+| Wire | Saw Pulse, Reso Tri | 55 % | 31.5 % | 7 | 2.1 ms, 331 ms, 63 %, 78 ms |
+
+{{engine-table phase-bend gpl}}
 
 ## Test Sine
 

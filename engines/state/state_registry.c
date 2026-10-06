@@ -21,7 +21,5 @@ void fm1_state_names_default(fm1_state_names_t *nm) {
   nm->aliases = fm1_aliases;
   nm->n_aliases = fm1_alias_count;
   nm->known = fm1_known_id_find;
-#ifdef FM1_GPL_MODS
-  nm->gpl = FM1_GPL_MODS ? 1 : 0;
-#endif
+  nm->gpl = fm1_gpl_mods ? 1u : 0u;   /* the registry's switch (fm1_engine.h) */
 }

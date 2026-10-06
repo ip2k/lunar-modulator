@@ -118,17 +118,20 @@
  * file as the panel's commands do; if the app is busy it is sent again
  * after each render until it goes in.
  *
- * The arpeggiator (engine API v3's MIDI effects), as fm1-render takes it:
- * --mfx K:arp switches sound unit K's arp on from the start (K:arp:off
- * leaves it bypassed, as the app starts), --mfx-param K:NAME=V sets one of
- * its parameters, and the timed --mfx-param-at K:T:NAME=V and --mfx-on-at
- * K:T:0|1 change one or switch it (J, the chain's slot, is 1: the app has
- * the arp there only). --log-mfx FILE.jsonl writes what the arps sent their
- * sounds, as fm1-render's does. With --log-cmds every change of an arp (the
- * flags', ARP's tap and hold, the ARP pages' knobs and presets) goes into
- * the sidecar, at the block it led: --mfx K:arp:off at the sound's first,
- * then --mfx-on-at and --mfx-param-at at mid-block, where fm1-render applies
- * them before the block's notes, as the app took them.
+ * The arpeggiator, and the other MIDI effects (engine API v3), as fm1-render
+ * takes them: --mfx K:ID switches sound unit K's MIDI-FX slot on from the
+ * start with effect ID in it (the arp, or another, which then takes the
+ * slot: fm1_app_mfx_select; K:ID:off leaves it bypassed, as the app
+ * starts), --mfx-param K:NAME=V sets one of its parameters, and the timed
+ * --mfx-param-at K:T:NAME=V and --mfx-on-at K:T:0|1 change one or switch it
+ * (J, the chain's slot, is 1: the app has its MIDI effect there only).
+ * --log-mfx FILE.jsonl writes what the effects sent their sounds, as
+ * fm1-render's does. With --log-cmds every change of a slot (the flags',
+ * ARP's tap and hold, the ARP pages' knobs and presets) goes into the
+ * sidecar, at the block it led: --mfx K:ID:off at the sound's first, then
+ * --mfx-on-at and --mfx-param-at at mid-block, where fm1-render applies
+ * them before the block's notes, as the app took them. An effect put in a
+ * slot after that cannot be replayed (fm1-render has no such flag).
  *
  * Test hooks: --seq-reset T:N and --seq-import T:FILE recreate the instance or import a set at time T, as a
  * UI would (then the default route, unless --route was given); --seq-ui
@@ -848,13 +851,18 @@ static void arp_screens(const char *dir, float rate) {
     fm1_app_encoder(&g_app, FM1_ENC_SELECT, -64);
   }
   expect(fm1_app_arp_preset_of(&g_app, 0) == 0, "the arp's defaults are not stock's Up");
-  for (int k = 1; k < fm1_app_arp_preset_count(); ++k) {   /* ALGORITHM: the stock presets */
-    fm1_app_encoder(&g_app, FM1_ENC_ALGORITHM, 1);
+  for (int k = 1; k < fm1_app_arp_preset_count(); ++k) {   /* ALGORITHM: the stock presets, */
+    fm1_app_encoder(&g_app, FM1_ENC_ALGORITHM, 1);         /* then the other MIDI effects */
     expect(fm1_app_arp_preset_of(&g_app, 0) == k, "ALGORITHM does not step the arp presets");
     expect_window("ALGORITHM on the ARP pages", "Arp preset", fm1_app_arp_preset_count(), k);
     snprintf(name, sizeof name, "popup-arp-preset-%d", k);
     check_screen(name, dir, k == 2);
   }
+  for (int k = fm1_app_arp_preset_count() - 1; k > 0; --k) {   /* and back to the arp's Up */
+    fm1_app_encoder(&g_app, FM1_ENC_ALGORITHM, -1);
+  }
+  expect(fm1_app_mfx_engine(&g_app, 0) == e && fm1_app_arp_preset_of(&g_app, 0) == 0,
+         "ALGORITHM does not bring the arp back");
   g_app.popup_lines = 0;
   check_screen("arp-preset-shown", dir, 1);
   hold_arp(rate);                             /* a hold: Latch */
@@ -883,6 +891,86 @@ static void arp_screens(const char *dir, float rate) {
   fm1_app_button(&g_app, FM1_BTN_SEL, 0);
   check_screen("arp-sound-2-off", dir, 1);
   fm1_app_all_notes_off(&g_app);
+}
+
+/* Every other MIDI effect in the MIDI-FX slot (Acid Gen while the GPL
+ * switch is on): chosen with ALGORITHM on the ARP pages, then every page at
+ * its defaults, extremes and list entries, its on and off popups and Latch,
+ * and the arp back. */
+static void mfx_screens(const char *dir, float rate) {
+  char name[160];
+  destroy_units();
+  fm1_app_init(&g_app, rate);
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  for (size_t f = 0; f < fm1_midi_fx_count; ++f) {
+    const fm1_engine_t *e = &fm1_midi_fxs[f]->engine;
+    int pages = 1, preset = -1;
+    if (e == fm1_app_arp_engine()) continue;
+    for (int k = 0; k < fm1_app_arp_preset_count(); ++k) {
+      const char *n = fm1_app_arp_preset_name(k);
+      if (n && strcmp(n, e->name) == 0) preset = k;
+    }
+    expect(preset >= 0, "a MIDI effect is not on ALGORITHM's list");
+    press(FM1_BTN_ARP);                       /* the arp on, its pages */
+    for (int k = 0; k < preset; ++k) fm1_app_encoder(&g_app, FM1_ENC_ALGORITHM, 1);
+    expect(fm1_app_mfx_engine(&g_app, 0) == e && fm1_app_arp_on(&g_app, 0),
+           "ALGORITHM does not put the effect in the slot, on");
+    expect_window("ALGORITHM on the ARP pages", "Arp preset", fm1_app_arp_preset_count(), preset);
+    snprintf(name, sizeof name, "popup-mfx-%s", e->id);
+    check_screen(name, dir, 1);
+    g_app.popup_lines = 0;
+    fm1_app_note_on(&g_app, 45, 100);
+    for (int k = 0; k < 60; ++k) fm1_app_render(&g_app, 64);
+    for (uint16_t i = 0; i < e->n_params; ++i) {
+      if (e->params[i].page + 1 > pages) pages = e->params[i].page + 1;
+    }
+    for (int page = 0; page < pages; ++page) {
+      for (int k = 0; k < page; ++k) fm1_app_encoder(&g_app, FM1_ENC_SELECT, 1);
+      expect(g_app.arp_page == page, "SELECT does not step the MIDI effect's pages");
+      snprintf(name, sizeof name, "mfx-%s-p%d", e->id, page + 1);
+      check_screen(name, dir, 1);
+      for (int pass = 0; pass < 2; ++pass) {
+        for (uint16_t i = 0; i < e->n_params; ++i) {
+          fm1_app_arp_set_param(&g_app, 0, i, pass ? e->params[i].max : e->params[i].min);
+        }
+        for (int k = 0; k < 30; ++k) fm1_app_render(&g_app, 64);
+        snprintf(name, sizeof name, "mfx-%s-p%d-%s", e->id, page + 1, pass ? "max" : "min");
+        check_screen(name, dir, 0);
+      }
+      for (uint16_t i = 0; i < e->n_params; ++i) {
+        const fm1_param_t *q = &e->params[i];
+        if (q->type != FM1_PARAM_ENUM || q->page != page) continue;
+        for (int v = (int)q->min; v <= (int)q->max; ++v) {
+          fm1_app_arp_set_param(&g_app, 0, i, (float)v);
+          snprintf(name, sizeof name, "mfx-%s-p%d-%s-%d", e->id, page + 1, q->name, v);
+          check_screen(name, dir, 0);
+        }
+      }
+      for (uint16_t i = 0; i < e->n_params; ++i) fm1_app_arp_set_param(&g_app, 0, i, e->params[i].def);
+      fm1_app_encoder(&g_app, FM1_ENC_SELECT, -64);
+    }
+    hold_arp(rate);                           /* a hold: its Latch */
+    fm1_app_button(&g_app, FM1_BTN_ARP, 0);
+    snprintf(name, sizeof name, "popup-mfx-%s-latch", e->id);
+    check_screen(name, dir, 0);
+    g_app.popup_lines = 0;
+    fm1_app_note_off(&g_app, 45);
+    press(FM1_BTN_ARP);                       /* off: the pages close */
+    expect(!fm1_app_arp_on(&g_app, 0), "an ARP tap does not switch the effect off");
+    snprintf(name, sizeof name, "popup-mfx-%s-off", e->id);
+    check_screen(name, dir, 0);
+    g_app.popup_lines = 0;
+    fm1_app_button(&g_app, FM1_BTN_SEL, 1);   /* SHIFT + ARP: its pages, off */
+    press(FM1_BTN_ARP);
+    fm1_app_button(&g_app, FM1_BTN_SEL, 0);
+    snprintf(name, sizeof name, "mfx-%s-off", e->id);
+    check_screen(name, dir, 0);
+    fm1_app_encoder(&g_app, FM1_ENC_ALGORITHM, -64);   /* back to the arp */
+    expect(fm1_app_mfx_engine(&g_app, 0) == fm1_app_arp_engine(), "ALGORITHM does not bring the arp back");
+    g_app.popup_lines = 0;
+    press(FM1_BTN_HOME);
+    fm1_app_all_notes_off(&g_app);
+  }
 }
 
 /* ---- --screens: SHIFT + MONO and POLY, the Voice Mode keys --------------- */
@@ -3279,6 +3367,7 @@ static int run_screens(const char *dir, float rate) {
   }
   check_screen("popup-refuses-rate", dir, 1);
   arp_screens(dir, rate);
+  mfx_screens(dir, rate);
   voice_mode_screens(dir, rate);
   seq_screens(dir, rate);
   seq_step_screens(dir, rate);
@@ -4314,16 +4403,21 @@ static int g_mfx_log_side;                /* log arp changes into the sidecar */
 /* Every change of an arp (fm1_app_t.on_mfx), into the sidecar at the block
  * it led, as --mfx-on-at or --mfx-param-at at mid-block. */
 static void on_mfx(void *ctx, uint64_t frame, int sound, int param, float value) {
-  const fm1_engine_t *e = fm1_app_arp_engine();
+  const fm1_engine_t *e = fm1_app_mfx_engine(&g_app, sound);
   const double t = frame ? ((double)frame - 32.0) / g_rate : 0.0;
   char buf[160];
   (void)ctx;
   if (!g_mfx_log_side || sound < 0 || sound >= FM1_APP_SOUNDS || !e) return;
+  if (param == -2 && g_mfx_sided[sound]) {   /* another effect, once the sidecar named one */
+    g_replayable = 0;
+    return;
+  }
   if (!g_mfx_sided[sound]) {
-    snprintf(buf, sizeof buf, "%d:arp:off", sound);
+    snprintf(buf, sizeof buf, "%d:%s:off", sound, e->id);
     side("--mfx", buf);
     g_mfx_sided[sound] = 1;
   }
+  if (param == -2) return;
   if (param < 0) {
     snprintf(buf, sizeof buf, "%d:%.9f:%d", sound, t, value != 0.0f);
     side("--mfx-on-at", buf);
@@ -4335,7 +4429,8 @@ static void on_mfx(void *ctx, uint64_t frame, int sound, int param, float value)
 
 /* --mfx and --mfx-param, before the first block. */
 #define MAX_MFX_PARAMS 64
-static int g_mfx_on[FM1_APP_SOUNDS];      /* 0 none, 1 on, 2 off (K:arp:off) */
+static int g_mfx_on[FM1_APP_SOUNDS];      /* 0 none, 1 on, 2 off (K:ID:off) */
+static char g_mfx_id[FM1_APP_SOUNDS][32];  /* the effect each --mfx named */
 static int g_mfx_np;
 static int g_mfx_psound[MAX_MFX_PARAMS];
 static char g_mfx_pname[MAX_MFX_PARAMS][32];
@@ -4362,9 +4457,13 @@ static int add_mfx(const char *flag, const char *v) {
   const int k = mfx_unit(v, &rest);
   if (k < 0) return 0;
   if (strcmp(flag, "--mfx") == 0) {
-    if (strcmp(rest, "arp") == 0) g_mfx_on[k] = 1;
-    else if (strcmp(rest, "arp:off") == 0) g_mfx_on[k] = 2;
-    else return 0;
+    const char *colon = strchr(rest, ':');
+    const size_t n = colon ? (size_t)(colon - rest) : strlen(rest);
+    if (!n || n >= sizeof g_mfx_id[0] || (colon && strcmp(colon, ":off") != 0)) return 0;
+    memcpy(g_mfx_id[k], rest, n);
+    g_mfx_id[k][n] = 0;
+    if (!fm1_midi_fx_find(g_mfx_id[k])) return 0;
+    g_mfx_on[k] = colon ? 2 : 1;
     return 1;
   }
   if (strcmp(flag, "--mfx-param") == 0) {
@@ -4384,21 +4483,32 @@ static int add_mfx(const char *flag, const char *v) {
       e->value = atof(c2 + 1) != 0.0 ? 1.0f : 0.0f;
       return 1;
     }
-    return split_param(c2 + 1, e->name, sizeof e->name, &e->value) &&
-           fm1_app_arp_param_index(e->name) >= 0;
+    return split_param(c2 + 1, e->name, sizeof e->name, &e->value);   /* checked by load_mfx */
   }
 }
 
-/* The flags' arps: switched on, then their parameters. 0, or 1 after
- * saying what failed. */
+/* The flags' effects: put in their slots, switched on, then their
+ * parameters; the timed ones checked against them. 0, or 1 after saying
+ * what failed. */
 static int load_mfx(void) {
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    if (!g_mfx_on[k]) continue;
+    if (fm1_app_mfx_select(&g_app, k, g_mfx_id[k]) != 0) {
+      fprintf(stderr, "cannot put %s in sound %d's MIDI-FX slot\n", g_mfx_id[k], k);
+      return 1;
+    }
     if (g_mfx_on[k] == 1) fm1_app_arp_set_on(&g_app, k, 1);
   }
   for (int q = 0; q < g_mfx_np; ++q) {
-    const int idx = fm1_app_arp_param_index(g_mfx_pname[q]);
-    if (idx < 0) { fprintf(stderr, "unknown parameter for arp: %s\n", g_mfx_pname[q]); return 1; }
+    const int idx = fm1_app_mfx_param_index(&g_app, g_mfx_psound[q], g_mfx_pname[q]);
+    if (idx < 0) { fprintf(stderr, "unknown parameter for %s: %s\n", g_mfx_id[g_mfx_psound[q]], g_mfx_pname[q]); return 1; }
     fm1_app_arp_set_param(&g_app, g_mfx_psound[q], idx, g_mfx_pval[q]);
+  }
+  for (int k = 0; k < g_nev; ++k) {
+    if (g_ev[k].kind == EV_MFX_PARAM && fm1_app_mfx_param_index(&g_app, g_ev[k].sound, g_ev[k].name) < 0) {
+      fprintf(stderr, "unknown parameter for sound %d's MIDI effect: %s\n", g_ev[k].sound, g_ev[k].name);
+      return 1;
+    }
   }
   return 0;
 }
@@ -4790,7 +4900,8 @@ int main(int argc, char **argv) {
       } else if (e->kind == EV_MFX_ON) {
         fm1_app_arp_set_on(&g_app, e->sound, e->value != 0.0f);
       } else if (e->kind == EV_MFX_PARAM) {
-        fm1_app_arp_set_param(&g_app, e->sound, fm1_app_arp_param_index(e->name), e->value);
+        fm1_app_arp_set_param(&g_app, e->sound, fm1_app_mfx_param_index(&g_app, e->sound, e->name),
+                              e->value);
       }
       else if (e->kind == EV_TURN || e->kind == EV_BUTTON) {
         units_t before;
@@ -4996,13 +5107,18 @@ int main(int argc, char **argv) {
     for (uint16_t p = 0; e && p < e->n_params; ++p) printf(p ? ",%g" : "%g", (double)g_app.unit[u].value[p]);
     printf("]");
   }
-  {                                  /* the arps: on, latching, their parameters, the page */
-    const fm1_engine_t *ae = fm1_app_arp_engine();
-    printf(",\"arp\":{\"on\":[");
+  {                                  /* the MIDI-FX slots: their effects, on, their parameters, the page */
+    printf(",\"arp\":{\"effect\":[");
+    for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+      const fm1_engine_t *me = fm1_app_mfx_engine(&g_app, k);
+      printf(k ? ",\"%s\"" : "\"%s\"", me ? me->id : "");
+    }
+    printf("],\"on\":[");
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) printf(k ? ",%d" : "%d", fm1_app_arp_on(&g_app, k));
     printf("],\"page\":%d,\"preset\":%d,\"values\":[", g_app.arp_page,
            fm1_app_arp_preset_of(&g_app, g_app.sound));
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+      const fm1_engine_t *ae = fm1_app_mfx_engine(&g_app, k);
       printf(k ? ",[" : "[");
       for (uint16_t i = 0; ae && i < ae->n_params; ++i) printf(i ? ",%g" : "%g", (double)g_app.arp_value[k][i]);
       printf("]");

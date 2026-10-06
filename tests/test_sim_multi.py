@@ -16,6 +16,7 @@ import subprocess
 
 import pytest
 
+from tests.engine_helpers import GPL_MODS
 from tests.test_sim_web import SCENARIOS, left_channel, run, scenario_args, tools  # noqa: F401
 
 BUDGET = 387924
@@ -284,7 +285,7 @@ def test_every_scenario_fits_the_meter(tools):
     and stays inside the budget. fx-turns-diffuse-psxverb ran Shapes, which
     with Diffuse and PSX Verb would pass it, until the lab switch went."""
     for s in SCENARIOS:
-        if "panel" in s:
+        if "panel" in s or (s.get("gpl") and not GPL_MODS):   # a GPL module: not in the build
             continue
         r = run(tools["sim"], scenario_args(s) + ["--seconds", "0.01"])
         assert r["ram"] <= BUDGET, s["name"]

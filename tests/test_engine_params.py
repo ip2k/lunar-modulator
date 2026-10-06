@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.engine_helpers import ENGINES, renderer  # noqa: F401
+from tests.engine_helpers import ENGINES, GPL_MODS, renderer  # noqa: F401
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "param-uids.json"
 SELFTEST = ENGINES / "build" / "fm1-schwung-selftest"
@@ -88,6 +88,48 @@ ENUM_FLAGS = {
     ("arp", "Latch"): ["latch"],
     ("arp", "Sync"): ["latch"],
 }
+# Acid Bass (a GPL module, src/acid_bass.cc): Wave and Drive Type wait for the
+# next note that is not a slide (a change mid-note would click), and apply at
+# once while nothing sounds: LATCH, and a route rounds them.
+ENUM_FLAGS[("acid-bass", "Wave")] = ["latch", "mod"]
+ENUM_FLAGS[("acid-bass", "Drive Type")] = ["latch", "mod"]
+# Comet Kit (a GPL module, src/comet_kit.cc): Pad is the edit focus, as
+# Drums' and Sophie's (FOCUS, engine API v4); Drive Type and Kit are read
+# when a pad is struck, so a sounding hit keeps what it started with: LATCH,
+# and a route rounds them. Drive Type is each pad's own (PER_FOCUS).
+ENUM_FLAGS[("comet", "Pad")] = ["focus"]
+ENUM_FLAGS[("comet", "Drive Type")] = ["latch", "mod", "per_focus"]
+ENUM_FLAGS[("comet", "Kit")] = ["latch", "mod"]
+# Crater Kit (a GPL module, src/crater_kit.cc): Pad is the edit focus, as
+# Drums' (FOCUS, engine API v4); Dist waits for its pad's next hit (a change
+# mid-hit would click) and applies at once while the kit is silent, and
+# Choke is read when a hat is struck: LATCH, and a route rounds them. Dist is
+# each pad's own (PER_FOCUS); Choke is the kit's.
+ENUM_FLAGS[("crater", "Pad")] = ["focus"]
+ENUM_FLAGS[("crater", "Dist")] = ["latch", "mod", "per_focus"]
+ENUM_FLAGS[("crater", "Choke")] = ["latch", "mod"]
+# Acid Gen (a GPL MIDI effect, midi_fx/acid_gen.c): as the arpeggiator's,
+# every list is read at its next step (LATCH); no route reaches a MIDI effect.
+for _name in ("Octaves", "Root", "Scale", "Octave", "Keys", "Rate", "Direction", "Latch"):
+    ENUM_FLAGS[("acid-gen", _name)] = ["latch"]
+# Felucca's engines (GPL modules, src/felucca_shim.cc). Drawbar's lists are
+# read every block and glide (each partial's gain ramps over the block, the
+# rotor eases between its speeds): clean switches, MOD. Trio's and Phase
+# Bend's would click under a note, so a voice keeps the value it started
+# with: LATCH, and a route rounds them.
+ENUM_FLAGS.update({
+    ("drawbar", "Drawbars"): ["mod"],
+    ("drawbar", "Perc"): ["mod"],
+    ("drawbar", "Rotor"): ["mod"],
+    ("trio", "Wave"): ["latch", "mod"],
+    ("trio", "Mode"): ["latch", "mod"],
+    ("phase-bend", "Wave"): ["latch", "mod"],
+    ("phase-bend", "Wave 2"): ["latch", "mod"],
+    ("phase-bend", "Line"): ["latch", "mod"],
+    ("phase-bend", "Voice Mode"): ["latch", "mod"],
+    ("phase-bend", "Glide Mode"): ["latch", "mod"],
+    ("phase-bend", "Time Mode"): ["latch", "mod"],
+})
 # Voice Mode, Glide Mode and Time Mode (glide, engines/src/glide.h) are read
 # at note-on and note-off (Time Mode when a glide starts) and never cut a
 # sounding voice: LATCH, and a route rounds them.
@@ -126,10 +168,17 @@ def built(renderer):
     return catalog(renderer)
 
 
+def pinned_engines():
+    """The fixture's engines, less the GPL modules when the GPL switch is off
+    (they are not in that build)."""
+    fixture = json.loads(FIXTURE.read_text())
+    return {k: v for k, v in fixture["engines"].items() if GPL_MODS or k not in fixture["gpl"]}
+
+
 def test_uids_and_flags_match_the_fixture(built):
     """Every parameter of every engine and effect has the uid, type and flags
     the fixture pins, and nothing is missing or extra on either side."""
-    pinned = json.loads(FIXTURE.read_text())["engines"]
+    pinned = pinned_engines()
     assert set(built) == set(pinned), set(built) ^ set(pinned)
     for eid, params in built.items():
         have = {p["name"]: (p["uid"], p["type"], p["flags"]) for p in params}
@@ -201,7 +250,8 @@ def test_focused_engines_read_their_values_back(renderer):
 def test_per_note_engines_match_the_fixture(renderer, built):
     """set_param_note is there exactly on the engines the fixture names, and
     only those have POLY parameters (every one of them has some)."""
-    pinned = json.loads(FIXTURE.read_text())["per_note"]
+    fixture = json.loads(FIXTURE.read_text())
+    pinned = [e for e in fixture["per_note"] if GPL_MODS or e not in fixture["gpl"]]
     listed = json.loads(subprocess.run([str(renderer), "--list"], check=True,
                                        capture_output=True, text=True).stdout)
     assert sorted(e["id"] for e in listed if e["per_note"]) == sorted(pinned)
@@ -213,7 +263,8 @@ def test_per_note_engines_match_the_fixture(renderer, built):
 def test_every_enum_has_its_decided_flags(built):
     enums = {(eid, p["name"]): p["flags"] for eid, params in built.items()
              for p in params if p["type"] == "enum"}
-    assert enums == ENUM_FLAGS
+    gpl = set(json.loads(FIXTURE.read_text())["gpl"])
+    assert enums == {k: v for k, v in ENUM_FLAGS.items() if GPL_MODS or k[0] not in gpl}
 
 
 def test_abbreviations_and_units(built):

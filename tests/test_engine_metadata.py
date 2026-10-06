@@ -23,7 +23,7 @@ import pytest
 
 from tests import state_canon as canon
 from tests.state_meta import LIMITS, metadata_from_build
-from tests.engine_helpers import ENGINES, renderer  # noqa: F401
+from tests.engine_helpers import ENGINES, GPL_MODS, renderer  # noqa: F401
 
 ROOT = ENGINES.parent
 
@@ -64,6 +64,11 @@ def test_it_agrees_with_the_list_tools(renderer, meta):
     mine = json.loads(json.dumps(meta))
     for e in mine["engines"]:
         e.pop("ram")
+        # --list prints numbers with %g, six digits; the export writes each
+        # float32 exactly (Comet's Accent default is 1.992126, listed 1.99213).
+        for p in e["params"]:
+            for k in ("min", "max", "def"):
+                p[k] = json.loads("%g" % p[k]) if isinstance(p[k], float) else p[k]
     mine.pop("known_ids"), ref.pop("known_ids")
     assert mine == ref
 
@@ -86,7 +91,9 @@ def test_the_build_block(meta):
     assert b["mod_api"] == _define(ENGINES / "include" / "fm1_mod.h", "FM1_MOD_API_VERSION") == 2
     assert b["rate"] == 44118
     assert b["ram_budget"] == _define(ROOT / "sim" / "web" / "src" / "fm1_app.h", "FM1_APP_RAM_BUDGET")
-    assert b["gpl"] is False                      # no GPL module in this tree yet
+    assert b["gpl"] is GPL_MODS                   # the GPL switch (engines/Makefile)
+    gpl = {e["id"] for e in meta["engines"] if "GPL" in e["licence"]}
+    assert bool(gpl) is GPL_MODS and all(e["licence"] for e in meta["engines"])
 
 
 def test_fm6_fields_are_the_formats(meta):

@@ -344,6 +344,8 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
 .help dt { font-weight: 600; color: var(--accent); }
 .help dd { margin: 0; }
 .help .fine { margin: 14px 0 0; font-size: 0.85rem; color: var(--muted-on-surface); }
+.licence-note { margin: 14px 0 0; padding-left: 10px; border-left: 2px solid var(--context);
+  font-size: 0.85rem; color: var(--muted-on-surface); }
 kbd {
   font: 0.85em/1 ui-monospace, Menlo, Consolas, monospace;
   color: var(--text);

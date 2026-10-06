@@ -20,7 +20,7 @@ import subprocess
 
 import pytest
 
-from tests.engine_helpers import ENGINES, renderer  # noqa: F401
+from tests.engine_helpers import ENGINES, GPL_MODS, renderer  # noqa: F401
 
 TOOL = ENGINES / "build" / "fm1-param-get-test"
 HEADER = ENGINES / "include" / "fm1_engine.h"
@@ -65,13 +65,17 @@ def test_values_read_back_and_restore(results, check):
 
 
 def test_the_pad_kits_read_every_pad(listed):
-    """Drums and Sophie, the kits here, have their focus and per-pad values:
-    a saved kit holds all sixteen pads (the state note's §5.1)."""
+    """Every pad kit has its focus and per-pad values, and reads them back:
+    a saved kit holds all sixteen pads (the state note's §5.1). Drums and
+    Sophie; with the GPL switch on, Comet and Crater too (PR #81's kits)."""
     eng = {e["id"]: e for e in listed}
-    for eid, per_pad in (("drums", {"Tune", "Decay", "Level", "Tone", "Snap", "Sweep", "Drive",
-                                    "Model", "Choke"}),
-                         ("sw-sophie", {"Tune", "Decay", "Model", "Color", "Metal", "Feedback",
-                                        "Sweep"})):
+    kits = [("drums", {"Tune", "Decay", "Level", "Tone", "Snap", "Sweep", "Drive", "Model", "Choke"}),
+            ("sw-sophie", {"Tune", "Decay", "Model", "Color", "Metal", "Feedback", "Sweep"})]
+    if GPL_MODS:
+        kits += [("comet", {"Tune", "Decay", "Level", "Tone", "Snap", "Sweep", "Drive", "Drive Type"}),
+                 ("crater", {"Tune", "Decay", "Level", "Tone", "Snap", "Drive", "Dist"})]
+    assert {e["id"] for e in listed if e["pads"]} == {k for k, _ in kits}
+    for eid, per_pad in kits:
         e = eng[eid]
         assert e["get_param"] and e["pads"] == {"first": 36, "count": 16}, eid
         assert [p["name"] for p in e["params"] if "focus" in p["flags"]] == ["Pad"], eid

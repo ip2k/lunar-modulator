@@ -103,6 +103,47 @@
       "15": ["1", "2", "3", "4", "5", "6", "7", "8"],
       "12": ["Off", "On"],
       "14": ["Free", "Key"]
+    },
+    "acid-bass": {
+      "6": ["Saw", "Square"],
+      "10": ["Off", "Soft", "RAT"]
+    },
+    "comet": {
+      "1": ["1 Kick", "2 Rim", "3 Snare", "4 Clap", "5 Snare 2", "6 Low Tom", "7 Closed HH", "8 Floor Tom", "9 Pedal HH", "10 Mid Tom", "11 Open HH", "12 Low-Mid", "13 High-Mid", "14 Crash", "15 High Tom", "16 Ride"],
+      "9": ["Diode", "Clip", "Saturate", "Fuzz", "Crunch", "Fold", "Crush"],
+      "13": ["Classic", "Big Beat"]
+    },
+    "crater": {
+      "1": ["1 Kick", "2 Rim Shot", "3 Snare", "4 Clap", "5 Claves", "6 Low Tom", "7 Closed HH", "8 Low Conga", "9 Maracas", "10 Mid Tom", "11 Open HH", "12 Mid Conga", "13 High Tom", "14 Cymbal", "15 Hi Conga", "16 Cowbell"],
+      "8": ["Diode", "Clip", "Sat", "Fuzz", "Cubic", "Fold", "Crush"],
+      "10": ["Off", "Closed>Open", "Both"]
+    },
+    "drawbar": {
+      "1": ["Flute", "Mellow", "Hollow", "Smooth", "3 Bar", "Blues", "Gospel", "Rock", "Tops", "Clarinet", "Reed", "Strings", "Chapel", "Bright", "Bass", "Full"],
+      "5": ["Off", "2nd", "3rd", "2nd Soft", "3rd Soft", "2nd Slow", "3rd Slow"],
+      "8": ["Off", "Slow", "Fast"]
+    },
+    "trio": {
+      "1": ["Saw x3", "Pulse x3", "Pls+Pls+Tri", "Saw+Saw+Tri", "Tri x3", "Saw&Tri", "Pulse&Saw", "Pulse+Noise", "Noise", "Sync", "Sync Pulse", "Sync 3", "Ring", "Ring 3", "Ring+Sync", "Ring+Sync P"],
+      "5": ["Low-pass", "Band-pass", "High-pass", "Notch"]
+    },
+    "phase-bend": {
+      "1": ["Saw", "Square", "Pulse", "Double Sine", "Saw Pulse", "Reso Saw", "Reso Tri", "Reso Trap"],
+      "2": ["Same", "Saw", "Square", "Pulse", "Double Sine", "Saw Pulse", "Reso Saw", "Reso Tri", "Reso Trap"],
+      "6": ["Mix", "Ring"],
+      "14": ["Poly", "Mono", "Legato"],
+      "15": ["Off", "Legato", "Always"],
+      "16": ["Time", "Rate"]
+    },
+    "acid-gen": {
+      "4": ["1", "2", "3"],
+      "5": ["Project", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"],
+      "6": ["Project", "Minor", "Phrygian", "Harm Minor", "Min Pent", "Dorian", "Major"],
+      "7": ["0", "1", "2", "3", "4"],
+      "8": ["Transpose", "Run"],
+      "9": ["1/16", "1/16T", "1/32", "1/8T"],
+      "11": ["Forward", "Reverse", "Ping-Pong", "Random"],
+      "12": ["Off", "On"]
     }
   },
   "mod": {

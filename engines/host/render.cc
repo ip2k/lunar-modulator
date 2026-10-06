@@ -14,8 +14,11 @@
 // (by name), unit and abbr, whether the engine takes per-note offsets
 // (per_note: it has set_param_note), what an effect asks of API v3's
 // extension (fx_wants: key, tempo, transport; render_ext: it has one), its
-// pads when it is a pad kit (pads: first note and count, or null), and
-// whether it reads its values back (get_param, API v4).
+// pads when it is a pad kit (pads: first note and count, or null), whether
+// it reads its values back (get_param, API v4), and the licence of the code
+// it links (licence: an SPDX expression, MIT unless the licence table says
+// otherwise; source: where its vendored code is, or null). --build-info prints the build's engine API version and the GPL
+// switch it was built with (gpl_mods: FM1_GPL_MODS, engines/Makefile).
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
@@ -123,7 +126,9 @@
 // Start resets the effects, and Stop takes back the sequencer's notes from
 // them (STOP: what was played live plays on). --log-mfx FILE.jsonl writes
 // what the chains send their sounds, by frame and then unit (so the same at
-// any block size). The summary adds mfx_* counters and
+// any block size). --key ROOT:SCALE sets the project key the effects see
+// (fm1_midi_fx_ctx_t: ROOT 0 C .. 11 B, SCALE 0 major, 1 minor, 2
+// chromatic; C major without it). The summary adds mfx_* counters and
 // notes_hung, the engines' note-ons still without a note-off at the end.
 //
 // Effects with engine API v3's extension (fm1_engine.h, render_ext): every
@@ -229,7 +234,7 @@ struct FxControl {                   // --fx-param-at: an effect's set_param
 
 void Usage() {
   fprintf(stderr,
-      "usage: fm1-render --list\n"
+      "usage: fm1-render --list | --build-info\n"
       "       fm1-render [--engine ID [--param NAME=VALUE]... [--note T:KEY:VEL:DUR]...\n"
       "                   [--bend T:SEMITONES]... [--param-at T:NAME=VALUE]...\n"
       "                   [--note-param-at T:KEY:NAME=OFFSET]... [--note-pitch-at T:KEY:SEMITONES]...]\n"
@@ -248,7 +253,7 @@ void Usage() {
       "                  [--sysex FILE.syx]... [--save-bank FILE.syx] [--tempo BPM]\n"
       "                  [--mfx K:ID[:off] [--mfx-param K:NAME=VALUE]...]\n"
       "                  [--mfx-param-at K[.J]:T:NAME=VALUE]... [--mfx-on-at K[.J]:T:0|1]...\n"
-      "                  [--log-mfx FILE.jsonl]\n"
+      "                  [--log-mfx FILE.jsonl] [--key ROOT:SCALE]\n"
       "                  [--load [sK:|tT.S:]FILE]... [--without] [--save KIND:FILE]...\n"
       "       fm1-render --list-mod\n"
       "       fm1-render --meta\n"
@@ -768,6 +773,13 @@ void List() {
     printf("\"id\":"); PrintJsonString(e->id);
     printf(",\"name\":"); PrintJsonString(e->name);
     printf(",\"credits\":"); PrintJsonString(e->credits);
+    {
+      const fm1_licence_t *row = fm1_engine_licence_row(e);
+      printf(",\"licence\":"); PrintJsonString(fm1_engine_licence(e));
+      printf(",\"source\":");
+      if (row && row->source) PrintJsonString(row->source);
+      else printf("null");
+    }
     printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"render_ext\":%s,"
            "\"get_param\":%s,\"fx_wants\":[",
            e->kind == FM1_KIND_SOUND ? "sound" : e->kind == FM1_KIND_AUDIO_FX ? "audio_fx" : "midi_fx",
@@ -846,6 +858,7 @@ int main(int argc, char **argv) {
   double seconds = 2.0;
   float rate = 44118.0f;
   float tempo = 120.0f;             // --tempo: the effects' tempo without a sequencer
+  int key_root = 0, key_scale = FM1_KEY_MAJOR;   // --key: the project key the effects see
   uint32_t max_frames = 64;
   int fill = 0;
   std::vector<Fault> faults;
@@ -888,6 +901,13 @@ int main(int argc, char **argv) {
     std::string a = argv[i];
     const char *next = i + 1 < argc ? argv[i + 1] : NULL;
     if (a == "--list") { List(); return 0; }
+    if (a == "--build-info") {
+      size_t gpl = 0;
+      for (size_t k = 0; k < fm1_licence_count; ++k) gpl += fm1_licence_is_gpl(fm1_licences[k].spdx);
+      printf("{\"engine_api\":%u,\"gpl_mods\":%d,\"engines\":%zu,\"midi_fx\":%zu,\"gpl_modules\":%zu}\n",
+             FM1_ENGINE_API_VERSION, fm1_gpl_mods, fm1_engine_count, fm1_midi_fx_count, gpl);
+      return 0;
+    }
     if (a == "--list-mod") { ListMod(); return 0; }
     if (a == "--meta") { Meta(); return 0; }
     if (a == "--compat") { compat = true; continue; }
@@ -912,7 +932,13 @@ int main(int argc, char **argv) {
     else if (a == "--save-bank") save_bank = next;
     else if (a == "--log-mod") mod_log_path = next;
     else if (a == "--log-mfx") mfx_log_path = next;
-    else if (a == "--tempo") {
+    else if (a == "--key") {
+      if (sscanf(next, "%d:%d", &key_root, &key_scale) != 2 || key_root < 0 || key_root > 11 ||
+          key_scale < 0 || key_scale > FM1_KEY_CHROMATIC) {
+        fprintf(stderr, "--key wants ROOT:SCALE, ROOT 0..11, SCALE 0 major, 1 minor, 2 chromatic\n");
+        return 2;
+      }
+    } else if (a == "--tempo") {
       tempo = static_cast<float>(atof(next));
       if (!(tempo >= 20.0f && tempo <= 300.0f)) {
         fprintf(stderr, "--tempo wants 20..300 BPM\n");
@@ -1622,6 +1648,7 @@ int main(int argc, char **argv) {
   if (use_mfx) {
     fm1_mfx_init(&mfx, static_cast<uint32_t>(lrintf(rate)));
     fm1_mfx_set_tempo(&mfx, static_cast<uint32_t>(lrintf(tempo * 100.0f)));
+    fm1_mfx_set_key(&mfx, static_cast<unsigned>(key_root), static_cast<unsigned>(key_scale));
     for (int k = 0; k < kSounds; ++k) {
       for (size_t j = 0; j < mfx_units[k].size(); ++j) {
         fm1_mfx_set(&mfx, unsigned(k), unsigned(j), fm1_midi_fx_of(mfx_units[k][j].e), mfx_units[k][j].self,

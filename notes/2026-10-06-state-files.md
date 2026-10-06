@@ -1910,6 +1910,23 @@ loops were clean:
 scenarios, identical to the JS reference and musl on all and to glibc on
 88. The headless page check passes.
 
+**Main moved again: PR #81, the GPL switch.** It brought seven GPL modules,
+on by default, and they were merged in.
+- The two kits, Comet (after the 909) and Crater (after the 808), got
+  engine API v4. Pad is their FOCUS, each pad's sound is PER_FOCUS, and
+  `get_param` reads any pad, so a saved kit holds all 16 pads
+  (`test_the_pad_kits_read_every_pad`, `fm1-param-get-test`).
+- Acid Bass, Drawbar, Trio, Phase Bend and the Acid Gen MIDI effect keep
+  `get_param` NULL, because the host's record is their whole state.
+- Their lists are pinned in `enum-names.json`. The pins stand aside when
+  the switch is off.
+- The metadata export now gives each engine's `licence`, from main's
+  licence table. Its `build.gpl` reads the registry's switch: the state
+  code is built without the generated `fm1_gpl_mods.h`, so its `#ifdef`
+  had always read the switch as off.
+- The `known-ids.json` rows for the GPL ids stay. A build without the
+  switch still refuses a file that names one, "in the GPL build only".
+
 **Open, for the owner.**
 - **The project key is kept twice.** PR #76 keeps it in the sequencer and
   in the set's `key` line (owner, after PR #69). This format also has

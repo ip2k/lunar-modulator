@@ -32,9 +32,13 @@ import wave
 
 import pytest
 
-from tests.engine_helpers import RATE, render, renderer  # noqa: F401
+from tests.engine_helpers import GPL_MODS, RATE, render, renderer  # noqa: F401
 
 GLIDE = ["macro", "macro-heavy", "sixop", "dx7", "shapes"]
+# Phase Bend (Felucca's PHASE, a GPL module) takes them too, in its 32-sample
+# control blocks at the host's rate (src/felucca_shim.cc).
+FELUCCA_GLIDE = ["phase-bend"] if GPL_MODS else []
+GLIDE += FELUCCA_GLIDE
 NOT_PITCHED = ["drums", "sw-sophie", "test-sine"]
 
 # The host that puts one call on each control block, and a sustained voice
@@ -45,12 +49,13 @@ NATIVE = {
     "sixop": dict(rate="47872.34", block=16, params=["Patch=40"]),
     "shapes": dict(rate="96000", block=24, params=["Shape=0", "Release=0.7"]),
     "dx7": dict(rate="44118", block=64, params=["Patch=14"]),
+    "phase-bend": dict(rate="44118", block=32, params=["Sustain=100", "Release=300"]),
 }
 # Engines whose key change and pitch offset are the same numbers (FM6 moves
 # the operators that follow the key in msfa's integer pitch, where a pitch
 # offset of the interval is 4 units of 2^24 an octave off, and keeps the
 # scaling of the note that started the envelopes).
-SAME_PATH = ["macro", "macro-heavy", "sixop", "shapes"]
+SAME_PATH = ["macro", "macro-heavy", "sixop", "shapes"] + FELUCCA_GLIDE
 
 # Glide Mode Legato (fingered portamento), which every glide here used until
 # Glide Mode came (2026-10-06), and Always (full-time).
@@ -478,7 +483,7 @@ def test_a_glide_arrives_on_time_at_the_fm1_rate(renderer, tmp_path):
 # Review (2026-10-06): the cases a player or a host reaches that the tests
 # above do not, each exact unless said.
 
-VOICES = {"macro": 12, "macro-heavy": 4, "sixop": 8, "shapes": 12, "dx7": 12}
+VOICES = {"macro": 12, "macro-heavy": 4, "sixop": 8, "shapes": 12, "dx7": 12, "phase-bend": 8}
 
 
 @pytest.mark.parametrize("engine", SAME_PATH)

@@ -15,7 +15,10 @@
 #      original test files in test/dx7/ (what it loads, what it refuses and
 #      why, and how the loaded voices play);
 #   5. www/fm1.wasm and its build record www/fm1.wasm.json, only if all of
-#      that passed.
+#      that passed. The record names the GPL switch the module was built with
+#      (FM1_GPL_MODS, engines/Makefile; on unless the environment says 0) and
+#      every module whose code is not all MIT, with its licence, so the page
+#      can offer a module with GPL code in it under the GPL (docs/12 §6).
 #
 # Needs: gcc, make, python3, node and emcc (all in emscripten/emsdk:6.0.10).
 # MIT licence, like the rest of this repository.
@@ -49,13 +52,17 @@ node "$SIM/test/sysex.mjs" --wasm "$OUT/wasm/fm1.wasm" --dx7 "$SIM/test/dx7" --s
 
 echo "== record"
 cp "$OUT/wasm/fm1.wasm" "$SIM/www/fm1.wasm"
+"$OUT/native/fm1-render" --list >"$OUT/list.json"
+"$OUT/native/fm1-render" --build-info >"$OUT/build-info.json"
 EMCC_VERSION=$(emcc --version | head -1) GCC_VERSION=$(gcc --version | head -1) \
 ENGINES_REF=${ENGINES_REF:-working tree} FM1_IMAGES=${FM1_IMAGES:-} \
-python3 - "$ROOT" "$OUT/parity.json" "$SIM/www" "$OUT/sysex.json" <<'EOF'
+python3 - "$ROOT" "$OUT/parity.json" "$SIM/www" "$OUT/sysex.json" "$OUT/list.json" "$OUT/build-info.json" <<'EOF'
 import hashlib, json, os, sys, datetime
 from pathlib import Path
 root, parity_path, www = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
 sysex = json.loads(Path(sys.argv[4]).read_text())
+listed = json.loads(Path(sys.argv[5]).read_text())
+info = json.loads(Path(sys.argv[6]).read_text())
 sys.path.insert(0, str(root / "sim" / "web" / "tools"))
 from source_hash import source_hashes
 parity = json.loads(parity_path.read_text())
@@ -72,6 +79,11 @@ record = {
     # The containers by digest (build-on-aeon.sh passes them; tags move).
     "images": [i for i in os.environ["FM1_IMAGES"].split(";") if i],
     "imports": parity["imports"],
+    # The GPL switch (engines/Makefile) and the modules whose code is not all
+    # MIT: the page offers the module under the GPL while any is GPL.
+    "gpl_mods": info["gpl_mods"],
+    "licences": [{"id": e["id"], "name": e["name"], "kind": e["kind"], "licence": e["licence"],
+                  "source": e["source"]} for e in listed if e["licence"] != "MIT"],
     "parity": {k: v for k, v in parity.items() if k not in ("scenarios", "imports")},
     "dx7_sysex": sysex,
     "scenarios": [

@@ -7,7 +7,7 @@
     "mod_api": 2,
     "rate": 44118,
     "ram_budget": 387924,
-    "gpl": false
+    "gpl": true
   },
   "engines": [
     {
@@ -15,6 +15,7 @@
       "name": "Shapes",
       "kind": "sound",
       "credits": "Macro-oscillator from Mutable Instruments Braids by Emilie Gillet (MIT)",
+      "licence": "MIT",
       "max_voices": 12,
       "per_note": true,
       "pads": null,
@@ -256,6 +257,7 @@
       "name": "Drums",
       "kind": "sound",
       "credits": "Kick, tom, snare and hi-hat voices from Mutable Instruments Plaits by Emilie Gillet (MIT); rim, clap, cowbell and cymbal from this repository (MIT), after Werner, Abel and Smith's TR-808 cowbell and cymbal models",
+      "licence": "MIT",
       "max_voices": 12,
       "per_note": true,
       "pads": {
@@ -557,6 +559,7 @@
       "name": "Filter",
       "kind": "audio_fx",
       "credits": "This repository (MIT): zero-delay-feedback filters after Zavalishin's The Art of VA Filter Design, Simper's (Cytomic) SVF, Huovilainen's ladder, the Korg35, diode-ladder and Steiner-Parker circuits; vowels from Peterson and Barney (1952). No code taken",
+      "licence": "MIT",
       "max_voices": 0,
       "per_note": false,
       "pads": null,
@@ -706,6 +709,7 @@
       "name": "Arp",
       "kind": "midi_fx",
       "credits": "Lunar Modulator's arpeggiator (MIT): after Yarns' arpeggiator by Emilie Gillet (MIT), MCL's note orders by Justin Mammarella (BSD-3) and Super Arp's modifiers by Handcrafted Media (MIT); reimplemented, engines/midi_fx/CREDITS.md",
+      "licence": "MIT",
       "max_voices": 0,
       "per_note": false,
       "pads": null,
@@ -2262,42 +2266,7 @@
   },
   "known_ids": [
     {
-      "id": "comet",
-      "what": "sound",
-      "reason": "gpl"
-    },
-    {
-      "id": "crater",
-      "what": "sound",
-      "reason": "gpl"
-    },
-    {
-      "id": "acid-bass",
-      "what": "sound",
-      "reason": "gpl"
-    },
-    {
-      "id": "acid-gen",
-      "what": "midi_fx",
-      "reason": "gpl"
-    },
-    {
-      "id": "drawbar",
-      "what": "sound",
-      "reason": "gpl"
-    },
-    {
-      "id": "trio",
-      "what": "sound",
-      "reason": "gpl"
-    },
-    {
       "id": "chop",
-      "what": "sound",
-      "reason": "gpl"
-    },
-    {
-      "id": "phase-bend",
       "what": "sound",
       "reason": "gpl"
     }
