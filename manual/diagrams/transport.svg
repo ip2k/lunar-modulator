@@ -1,5 +1,5 @@
-<svg xmlns='http://www.w3.org/2000/svg' width='792.7' height='734.96' viewBox='-6 -10 528.47 489.98' role='img'><title>The transport</title><desc>A state diagram. Stopped is where it starts. PLAY/STOP goes to Playing, and from any running state PLAY/STOP goes back to Stopped. Held in SEQ mode, REC enters Step record, and letting go returns to Stopped; PLAY/STOP there starts Playing. REC while stopped starts a one-bar Count-in, which turns into Recording a bar later, or into Playing if REC is pressed again. From Playing, REC records at once into a clip with notes, or into an empty clip waits for the next bar and then records; REC during the wait, or while recording, goes back to Playing. SHIFT with PLAY/STOP restarts, and SHIFT with REC captures into the loop. SHIFT with REC while stopped captures the phrase and starts playing with the tempo shown; SELECT tries another tempo and any other press closes it, back to Playing. PLAY/STOP in Step record leaves it and starts Playing.</desc><rect data-kind='bg' x='-6' y='-10' width='528.47' height='489.98' fill='#fffaf3'/>
-<rect data-kind='group' data-id='running' x='4' y='143.72' width='508.47' height='300.6' rx='8' fill='#faf4ed' stroke='#797593' stroke-width='1.3'/>
+<svg xmlns='http://www.w3.org/2000/svg' width='772.69' height='734.96' viewBox='-6 -10 515.13 489.98' role='img'><title>The transport</title><desc>A state diagram. Stopped is where it starts. PLAY/STOP goes to Playing, and from any running state PLAY/STOP goes back to Stopped. Held in SEQ mode, REC enters Step record, and letting go returns to Stopped; PLAY/STOP there starts Playing. REC while stopped starts a one-bar Count-in, which turns into Recording a bar later, or into Playing if REC is pressed again. From Playing, REC records at once into a clip with notes, or into an empty clip waits for the next bar and then records; REC during the wait, or while recording, goes back to Playing. SHIFT with PLAY/STOP restarts, and SHIFT with REC captures into the loop. SHIFT with REC while stopped captures the phrase and starts playing with the tempo shown; SELECT tries another tempo, and any press, PLAY/STOP included, only closes it, back to Playing. PLAY/STOP in Step record leaves it and starts Playing.</desc><rect data-kind='bg' x='-6' y='-10' width='515.13' height='489.98' fill='#fffaf3'/>
+<rect data-kind='group' data-id='running' x='4' y='143.72' width='495.13' height='300.6' rx='8' fill='#faf4ed' stroke='#797593' stroke-width='1.3'/>
 <text x='12' y='436.42' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='11' font-weight='600' text-anchor='start' data-owner='running'>Running: PLAY/STOP lit</text>
 <path data-kind='edge' data-id='e0' data-from='start' data-to='stopped' d='M276.35 12 L276.35 40.33' fill='none' stroke='#797593' stroke-width='1' stroke-linecap='butt' stroke-linejoin='round'/>
 <path data-kind='edge' data-id='e1' data-from='stopped' data-to='playing' d='M287.35 74.42 L287.35 184.35' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
@@ -11,11 +11,11 @@
 <path data-kind='edge' data-id='e7' data-from='count' data-to='rec' d='M74.52 225.28 L74.52 346.5 L226.93 346.5' fill='none' stroke='#464261' stroke-width='1.3' stroke-dasharray='1.5 3' stroke-linecap='butt' stroke-linejoin='round'/>
 <path data-kind='edge' data-id='e8' data-from='playing' data-to='rec' d='M276.35 218.45 L276.35 326.2' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
 <path data-kind='edge' data-id='e9' data-from='rec' data-to='playing' d='M287.35 332.7 L287.35 224.95' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
-<path data-kind='edge' data-id='e10' data-from='playing' data-to='wait' d='M310.9 211.45 L350.88 211.45 L350.88 332.88 L399.21 332.88' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
-<path data-kind='edge' data-id='e11' data-from='wait' data-to='playing' d='M412.71 325.88 L412.71 292.23 L303.9 292.23 L303.9 224.95' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
-<path data-kind='edge' data-id='e12' data-from='wait' data-to='rec' d='M405.71 346.5 L325.76 346.5' fill='none' stroke='#464261' stroke-width='1.3' stroke-dasharray='1.5 3' stroke-linecap='butt' stroke-linejoin='round'/>
-<path data-kind='edge' data-id='e13' data-from='stopped' data-to='tempo' d='M313.7 60.62 L443.98 60.62 L443.98 170.7' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
-<path data-kind='edge' data-id='e14' data-from='tempo' data-to='playing' d='M382.49 200.45 L317.4 200.45' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e10' data-from='playing' data-to='wait' d='M310.9 211.45 L344.21 211.45 L344.21 332.88 L385.87 332.88' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e11' data-from='wait' data-to='playing' d='M399.37 325.88 L399.37 292.23 L303.9 292.23 L303.9 224.95' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e12' data-from='wait' data-to='rec' d='M392.37 346.5 L325.76 346.5' fill='none' stroke='#464261' stroke-width='1.3' stroke-dasharray='1.5 3' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e13' data-from='stopped' data-to='tempo' d='M313.7 60.62 L430.64 60.62 L430.64 170.7' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e14' data-from='tempo' data-to='playing' d='M369.15 200.45 L317.4 200.45' fill='none' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' stroke-linejoin='round'/>
 <path data-kind='arrow' data-id='e0' d='M276.35 46.83 L272.75 39.33 L279.95 39.33 Z' fill='#797593'/>
 <path data-kind='arrow' data-id='e1' d='M287.35 190.85 L283.75 183.35 L290.95 183.35 Z' fill='#464261'/>
 <path data-kind='arrow' data-id='e2' d='M276.35 74.42 L279.95 81.92 L272.75 81.92 Z' fill='#464261'/>
@@ -26,10 +26,10 @@
 <path data-kind='arrow' data-id='e7' d='M233.43 346.5 L225.93 350.1 L225.93 342.9 Z' fill='#464261'/>
 <path data-kind='arrow' data-id='e8' d='M276.35 332.7 L272.75 325.2 L279.95 325.2 Z' fill='#464261'/>
 <path data-kind='arrow' data-id='e9' d='M287.35 218.45 L290.95 225.95 L283.75 225.95 Z' fill='#464261'/>
-<path data-kind='arrow' data-id='e10' d='M405.71 332.88 L398.21 336.48 L398.21 329.27 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e10' d='M392.37 332.88 L384.87 336.48 L384.87 329.27 Z' fill='#464261'/>
 <path data-kind='arrow' data-id='e11' d='M303.9 218.45 L307.5 225.95 L300.3 225.95 Z' fill='#464261'/>
 <path data-kind='arrow' data-id='e12' d='M319.26 346.5 L326.76 342.9 L326.76 350.1 Z' fill='#464261'/>
-<path data-kind='arrow' data-id='e13' d='M443.98 177.2 L440.38 169.7 L447.58 169.7 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e13' d='M430.64 177.2 L427.04 169.7 L434.24 169.7 Z' fill='#464261'/>
 <path data-kind='arrow' data-id='e14' d='M310.9 200.45 L318.4 196.85 L318.4 204.05 Z' fill='#464261'/>
 <circle data-kind='node' data-id='start' cx='276.35' cy='6' r='6' fill='#464261'/>
 <rect data-kind='node' data-id='stopped' x='238.99' y='46.83' width='74.71' height='27.6' rx='11' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
@@ -42,15 +42,15 @@
 <text x='74.52' y='215.55' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='count'>one bar</text>
 <rect data-kind='node' data-id='playing' data-group='running' x='241.79' y='190.85' width='69.1' height='27.6' rx='11' fill='#e4f8fc' stroke='#3a7983' stroke-width='1.3'/>
 <text x='276.35' y='208.19' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='playing'>Playing</text>
-<rect data-kind='node' data-id='tempo' data-group='running' x='382.49' y='177.2' width='122.97' height='54.9' rx='11' fill='#f7f0ff' stroke='#7c6694' stroke-width='1.3'/>
-<text x='443.98' y='194.54' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='tempo'>Capture’s tempo</text>
-<text x='443.98' y='208.72' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='tempo'>on the screen;</text>
-<text x='443.98' y='222.37' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='tempo'>SELECT: another</text>
+<rect data-kind='node' data-id='tempo' data-group='running' x='369.15' y='177.2' width='122.97' height='54.9' rx='11' fill='#f7f0ff' stroke='#7c6694' stroke-width='1.3'/>
+<text x='430.64' y='194.54' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='tempo'>Capture’s tempo</text>
+<text x='430.64' y='208.72' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='tempo'>on the screen;</text>
+<text x='430.64' y='222.37' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='tempo'>SELECT: another</text>
 <rect data-kind='node' data-id='rec' data-group='running' x='233.43' y='332.7' width='85.83' height='27.6' rx='11' fill='#ffeff2' stroke='#a6566e' stroke-width='1.3'/>
 <text x='276.35' y='350.04' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='rec'>Recording</text>
-<rect data-kind='node' data-id='wait' data-group='running' x='405.71' y='325.88' width='76.55' height='41.25' rx='11' fill='#fef1e4' stroke='#9d6200' stroke-width='1.3'/>
-<text x='443.98' y='343.22' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='wait'>Waiting</text>
-<text x='443.98' y='357.4' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='wait'>for the bar</text>
+<rect data-kind='node' data-id='wait' data-group='running' x='392.37' y='325.88' width='76.55' height='41.25' rx='11' fill='#fef1e4' stroke='#9d6200' stroke-width='1.3'/>
+<text x='430.64' y='343.22' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='wait'>Waiting</text>
+<text x='430.64' y='357.4' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='wait'>for the bar</text>
 <rect data-kind='node' data-id='shift' data-group='running' x='11' y='373.12' width='241.67' height='46.9' fill='none' stroke='none'/>
 <path data-kind='rule' data-id='shift' d='M12 374.12 L12 419.02' stroke='#797593' stroke-width='2'/>
 <text x='23' y='386.47' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='start' data-owner='shift'>While it runs</text>
@@ -67,14 +67,14 @@
 <text x='242.07' y='271.85' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e8'>REC,</text>
 <text x='242.07' y='285.5' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e8'>notes in clip</text>
 <text x='303.44' y='318.66' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e9'>REC</text>
-<text x='381.1' y='268.44' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e10'>REC,</text>
-<text x='381.1' y='282.09' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e10'>empty clip</text>
-<text x='380.06' y='306.15' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e11'>REC</text>
-<text x='362.48' y='360.42' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e12'>next bar</text>
-<text x='378.84' y='39.25' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e13'>SHIFT + REC:</text>
-<text x='378.84' y='52.9' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e13'>Capture</text>
-<text x='346.7' y='179.07' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e14'>any other</text>
-<text x='346.7' y='192.72' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e14'>press</text>
+<text x='374.43' y='268.44' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e10'>REC,</text>
+<text x='374.43' y='282.09' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e10'>empty clip</text>
+<text x='370.73' y='306.15' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e11'>REC</text>
+<text x='355.81' y='360.42' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e12'>next bar</text>
+<text x='372.17' y='39.25' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e13'>SHIFT + REC:</text>
+<text x='372.17' y='52.9' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e13'>Capture</text>
+<text x='340.03' y='179.07' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e14'>any</text>
+<text x='340.03' y='192.72' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e14'>press</text>
 <path data-kind='legend' d='M2 465.15 L32 465.15' stroke='#464261' stroke-width='1.3' stroke-linecap='butt' fill='none'/>
 <text x='38' y='468.25' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='legend'>button press</text>
 <path data-kind='legend' d='M114.9 465.15 L144.9 465.15' stroke='#464261' stroke-width='1.3' stroke-dasharray='1.5 3' stroke-linecap='butt' fill='none'/>
