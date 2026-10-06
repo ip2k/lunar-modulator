@@ -1301,6 +1301,31 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Memory is shown only as a percentage of what the FM-1 has free.**
+  Wherever you see how much memory the sounds, effects, sequencer and
+  modulation take, it is now the same whole percentage as the meter in the
+  screen's bottom bar, never kilobytes:
+  - the global page's *RAM* line reads, say, *65%* (it was *245K/379K*),
+    in red past 100 % as the meter is;
+  - a sound, an effect or the arpeggiator that would not fit says what the
+    chain would need with it, such as *does not fit* / *needs 112% of RAM*
+    (it was *150K over budget*). The figure is rounded up, so a choice that
+    is refused never reads 100 %;
+  - the status line under the virtual FM-1 says *The chain takes 65% of
+    the FM-1's memory*;
+  - the manual gives each engine's and effect's share (Shapes 54 %, PSX
+    Verb 35 %, most effects under 1 %), the sequencer's by number of
+    tracks, and the signal-flow diagram's memory note in percent;
+  - sizes of files, such as a DX7 bank or the page's download, are still in
+    bytes or kilobytes, and so are the developer documents.
+  - For developers: `fm1_app_ram_percent()` (`sim/web/src/fm1_app.h`) is
+    the one rounding the meter, GLO and the refusals use, and the page's
+    `memoryPercent` matches it. The manual's sequencer table now puts the
+    instance without its Capture buffer under *Without Capture*; it showed
+    the size with it there, and a dash in the other column, since
+    `fm1-seq --sizes` changed its keys. `tests/test_manual.py` fails on a
+    chapter that gives an engine's, an effect's or a chain's memory in
+    bytes or kilobytes, or a refusal "over budget".
 - **Squash's Mu makes up its own level, in part.** Turning Squash up past
   the middle now mostly changes Mu's character rather than its loudness: it
   gives back half, in dB, of what it takes from a -12 dBFS peak, up to
@@ -1883,6 +1908,13 @@ history.
   - The manual's recovery chapter no longer calls the open dongle design
     "complete": its firmware builds and is simulated, but nobody has built
     the board.
+- **A refused modulation cable no longer marks its destination.** A cable
+  the matrix shows as refused (*!*), such as one per voice into an effect,
+  carries nothing, but the parameter it aimed at still had its name in the
+  modulation colour and a range bracket, as if it moved (M1's Drive on
+  Master Sat, for one). Now only cables that run mark a parameter, on the
+  sound's and effects' pages and in the rack, and a parameter reached by a
+  live and a refused cable shows the live one's range alone.
 - **Six-Op FM, Sophie and PSX Verb took a not-a-number setting as the
   minimum;** it is now the parameter's default, as the engine API says and
   every other engine does.

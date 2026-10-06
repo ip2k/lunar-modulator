@@ -285,12 +285,20 @@ static void list_popup(fm1_app_t *a, const char *title, int title_tag, int total
   list_window(a, title, title_tag, total, fm1_list_first(total, sel, rows), rows, sel, face, name, ctx);
 }
 
+/* A RAM refusal's reason: the share of the FM-1's memory the chain would
+ * need with it (the budget and a->ram_over), as the meter rounds it, so it
+ * reads 101 % or more ("needs 112% of RAM": at most 18 characters, a
+ * popup line's POPUP_CHARS, below 1,000 %). */
+static void ram_need(const fm1_app_t *a, char *buf, size_t size) {
+  snprintf(buf, size, "needs %u%% of RAM", fm1_app_ram_percent(FM1_APP_RAM_BUDGET + a->ram_over));
+}
+
 /* Why fm1_app_select refused registry entry `index`, as a refusal. */
 static void refusal_popup(fm1_app_t *a, int index, int code) {
-  char why[24], over[24];
-  if (code == FM1_APP_SELECT_RAM) {       /* the meter: by how much, in KB rounded up */
-    snprintf(over, sizeof over, "%uK over budget", (unsigned)((a->ram_over + 1023u) / 1024u));
-    refuse(a, FM1_APP_TONE_REFUSE, entry(index) ? entry(index)->name : "?", "does not fit", over);
+  char why[24], need[24];
+  if (code == FM1_APP_SELECT_RAM) {       /* the meter: what the chain would need */
+    ram_need(a, need, sizeof need);
+    refuse(a, FM1_APP_TONE_REFUSE, entry(index) ? entry(index)->name : "?", "does not fit", need);
     return;
   }
   if (code == -2) snprintf(why, sizeof why, "does not fit");
@@ -1114,6 +1122,10 @@ size_t fm1_app_ram_with(const fm1_app_t *a, int unit, int index) {
   const fm1_engine_t *e = entry(index);
   if (unit < 0 || unit >= FM1_APP_UNITS) return fm1_app_ram(a);
   return ram_of(a, unit, e ? e->instance_size(&a->host) : 0u, e != NULL);
+}
+
+unsigned fm1_app_ram_percent(size_t bytes) {
+  return (unsigned)(((uint64_t)bytes * 100u + FM1_APP_RAM_BUDGET - 1u) / FM1_APP_RAM_BUDGET);
 }
 
 /* ---- sound units (multi-sound) ---------------------------------------------------- */
@@ -2242,14 +2254,14 @@ int fm1_app_arp_set_on(fm1_app_t *a, int sound, int on) {
   if (fm1_app_arp_on(a, sound) == on) return 0;
   if (on) {
     /* The RAM meter, as for an engine: refused past the budget, with a
-     * popup that says by how much. */
+     * popup that says what the chain would need. */
     const size_t now = fm1_app_ram(a);
     const size_t with = now - mfx_ram(a, -1) + mfx_ram(a, sound);
     if (with > FM1_APP_RAM_BUDGET && with > now) {
-      char over[24];
+      char need[24];
       a->ram_over = with - FM1_APP_RAM_BUDGET;
-      snprintf(over, sizeof over, "%uK over budget", (unsigned)((a->ram_over + 1023u) / 1024u));
-      refuse(a, FM1_APP_TONE_REFUSE, "Arp", "does not fit", over);   /* Q2 */
+      ram_need(a, need, sizeof need);
+      refuse(a, FM1_APP_TONE_REFUSE, "Arp", "does not fit", need);   /* Q2 */
       return FM1_APP_SELECT_RAM;
     }
   }
@@ -2483,8 +2495,8 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
       for (int k = 0; k < (delta > 0 ? delta : -delta); ++k) to = next_preset(a, to, dir);
       /* A sound this host cannot run (or one that would not fit the
        * RAM) is stepped over, so every other one stays
-       * reachable; the popup names the first one skipped, and by how much
-       * it would pass the budget (a later refusal's figure is another
+       * reachable; the popup names the first one skipped, and what the
+       * chain would need with it (a later refusal's figure is another
        * sound's). */
       for (int tries = 0; tries < (int)fm1_engine_count + empty_ok && to != cur(a)->index; ++tries) {
         int r = fm1_app_select(a, snd_unit, to);
@@ -3071,10 +3083,12 @@ static void draw_params(fm1_app_t *a, int unit, int page, int y0) {
     const fm1_param_t *p = &u->e->params[idx[s]];
     int y = y0 + s * ROW_PITCH;
     float depth = 0.0f;
-    /* With modulation, a parameter cables reach gets docs/16 §5.5's marks
-     * (every row's parameter is one the runtime binds: fm1_app_mod_binds). */
+    /* With modulation, a parameter live cables reach gets docs/16 §5.5's
+     * marks (every row's parameter is one the runtime binds:
+     * fm1_app_mod_binds); a refused cable (MATRIX's `!`) marks nothing. */
     const int routes = a->mod && code >= 0
-                           ? fm1_mod_ui_routes(a->mod, (unsigned)code, p->uid, 0, &depth)
+                           ? fm1_mod_ui_routes(a->mod, a->mui.plan.refused, (unsigned)code, p->uid, 0,
+                                               &depth)
                            : 0;
     fm1_mod_view_row(&a->tft, y, p, u->value[idx[s]], NULL, routes, depth,
                      routes ? fm1_mod_sent(a->mod, (unsigned)code, (unsigned)idx[s]) : 0.0f);
@@ -3094,12 +3108,12 @@ static void draw_meter(fm1_app_t *a) {
 }
 
 /* The RAM meter, on the bottom bar's right: a bar of the chain's RAM
- * against FM1_APP_RAM_BUDGET and the percentage, rounded up, in the
- * warning colour past 100 %. The bar sits where "100%" would start, so it
- * never moves. */
+ * against FM1_APP_RAM_BUDGET and the percentage, rounded up
+ * (fm1_app_ram_percent), in the warning colour past 100 %. The bar sits
+ * where "100%" would start, so it never moves. */
 static void draw_ram_meter(fm1_app_t *a) {
   const size_t used = fm1_app_ram(a);
-  const unsigned pct = (unsigned)((used * 100u + FM1_APP_RAM_BUDGET - 1u) / FM1_APP_RAM_BUDGET);
+  const unsigned pct = fm1_app_ram_percent(used);
   const int over = used > FM1_APP_RAM_BUDGET;
   const int bw = 36, bh = 8, by = BOTTOM_Y + 8;
   const int bx = RIGHT - fm1_tft_text_width("100%", 4, SCALE) - FM1_APP_LAYOUT_GAP - bw;
@@ -3726,8 +3740,9 @@ static void draw(fm1_app_t *a) {
     draw_bottom(a, "2/2 Key");
   } else {
     /* Eight lines at a 23 px pitch (the sound's name is in the title bar);
-     * the master slots as FX mode names them, with their effects' names
-     * (Q6), the full name where the line has room. */
+     * RAM as the meter's percentage of the FM-1's budget, never in bytes
+     * (owner, 2026-10-06); the master slots as FX mode names them, with
+     * their effects' names (Q6), the full name where the line has room. */
     const int pitch = 23;
     char v[32];
     int y = CONTENT_Y;
@@ -3735,9 +3750,12 @@ static void draw(fm1_app_t *a) {
     draw_line(a, y, "Rate", v); y += pitch;
     snprintf(v, sizeof v, "%u", (unsigned)a->host.max_frames);
     draw_line(a, y, "Block", v); y += pitch;
-    snprintf(v, sizeof v, "%uK/%uK", (unsigned)((fm1_app_ram(a) + 1023) / 1024),
-             (unsigned)((FM1_APP_RAM_BUDGET + 512) / 1024));
-    draw_line(a, y, "RAM", v); y += pitch;
+    {                                    /* the meter's figure, red past the budget */
+      const size_t used = fm1_app_ram(a);
+      snprintf(v, sizeof v, "%u%%", fm1_app_ram_percent(used));
+      fm1_look_row(&a->tft, y, "RAM", v, used > FM1_APP_RAM_BUDGET ? C_REFUSE : C_TEXT);
+      y += pitch;
+    }
     snprintf(v, sizeof v, "%u", s->e ? (unsigned)s->e->max_voices : 0u);
     draw_line(a, y, "Voices", v); y += pitch;
     for (int k = 0; k < FM1_APP_FX_SLOTS; ++k) {
