@@ -1599,7 +1599,9 @@ tests/test_sim_seq.py, tests/test_seq_render.py, `fm1-sim-render
   counts the bigger buffer too: 192 B more, which reads 1K more for 4 of
   the 54 one-effect chains [verified: `fm1-sim-render`].
 - **Screens.** The status line holds the eight tracks (a cell each: gold
-  for the focused one, an outline for a muted one), a muted track's notes
+  for the focused one, an outline for a muted one; since the UI audit,
+  2026-10-06, each in the colour of the sound it plays, the focused one
+  the line's full height, the tempo "120 BPM" when whole), a muted track's notes
   dim, and the hint line names SEQ's and MUTE's key maps. 69 more screens,
   1,109 in all, 0 faults; every lab-off screen the sweep saves is
   byte-identical to the merge base's [verified: `fm1-sim-render --screens`

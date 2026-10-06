@@ -161,11 +161,13 @@ that kind. The button lights while the rack shows one of its modules.
 
 The screen shows:
 
-- **The rack:** eight cells, each filled to its module's first output, the
-  one shown outlined, an empty position hollow.
-- **The module's line,** such as *ENV3 >2 <1 ~1*: the module, its cables
-  out and in, and those that run a step late; *v3* at the end says the
-  module runs per voice, three voices now ([Per voice](#per-voice)).
+- **The rack:** eight cells, each filled to its module's first output, an
+  empty position hollow; a bar under a cell marks the one shown (gold while
+  you move it).
+- **The module's line,** such as *ENV3  2 out  1 in  1 late*: the module,
+  its cables out and in, and those that run a step late; *3 voices* at the
+  end says the module runs per voice, three voices now
+  ([Per voice](#per-voice)).
 - **Four rows** for the module's parameters on [[KNOB1]] to [[KNOB4]], as on
   the sound's page.
 - **The bottom bar,** such as *1/2 Mod3*: the page and the position.
@@ -185,18 +187,25 @@ end is still there.
 
 {{status sim planned}}
 
-Press [[EDIT]] to show the matrix (MATRIX on the screen), the list of the 32 cables, seven at a
+Press [[EDIT]] to show the matrix (MATRIX on the screen), the list of the 32 cables, nine at a
 time; press it again to go back to the sound's page. [[EDIT]] is lit there.
 
-Each row reads like this:
+Each row reads like this, the source in the modulation colour, the mark
+grey, the destination and the amount white, and a sound's *S1* to *S4* in
+that sound's colour:
 
 ```text
-LFO1  >S1Tmbre  +40     the source, > (or ~ a step late), the destination, the amount
-SEQ8  -M2PngPg -100     - a cable switched off, ! one refused
-ENV3  vS1Tmbre  +60     v a cable per voice
-ENV3  >S2I1Mix  +50     Sound 2's first insert
-LFO2.2>ENV3Gte +100     a module's input: its name and three letters
+LFO1  >S1 Timbre         +40     the source, > (or ~ a step late), the destination, the amount
+SEQ8  -M2 Ping-pong     -100     - a cable switched off, ! one refused
+ENV3  vS1 Timbre         +60     v a cable per voice
+ENV3  >S2 In1 Mix        +50     Sound 2's first insert
+LFO2.2>ENV3 Gate        +100     a module's input
 ```
+
+A destination too long for its column keeps the parameter's full name
+after a shorter tag, such as *S1I2 High Xover*. A switched-off row is grey
+and a refused one red, whole. Page B names the VIA source, the curve and
+the polarity in full (*square*, *auto*).
 
 [[SELECT]] chooses the row. The hint line names the field you turned last,
 for two seconds, and otherwise the row's destination in full.
@@ -288,9 +297,9 @@ cable.
 In the matrix, press [[SEL]] to see the chain (CHAIN) through the chosen cable:
 the longest path of modules and cables it belongs to, one line for each
 module and one for each cable, such as *LFO2 Wrap +1* and *+100 >ENV3
-Gate*. The chosen cable is in the accent colour, *+N* counts a module's
-other cables and *~* marks a cable that runs a step late; a refused cable
-is not followed. [[SELECT]] steps along the chain, and [[SEL]] goes back to
+Gate*, in the matrix's colours. The chosen cable is highlighted, *+N*
+counts a module's other cables and *~* marks a cable that runs a step
+late; a refused cable is not followed. [[SELECT]] steps along the chain, and [[SEL]] goes back to
 the matrix. [[SEL]] and [[EDIT]] are lit in the chain.
 
 ## What the pages show
@@ -300,9 +309,11 @@ the matrix. [[SEL]] and [[EDIT]] are lit in the chain.
 On every parameter page (the sound's, an effect's in FX mode, and a
 module's in the rack) a parameter that cables reach shows:
 
-- its short name and a gold diamond after it;
-- a gold bracket on its bar, the base plus and minus the cables' depth;
-- a red tick at the value it has now, which moves as you listen.
+- its name in the modulation colour (the light blue-green of the
+  oscilloscope);
+- a bracket in that colour on its bar, the base plus and minus the cables'
+  depth;
+- a white tick at the value it has now, which moves as you listen.
 
 ## The modules
 

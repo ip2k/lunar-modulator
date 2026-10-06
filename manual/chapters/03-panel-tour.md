@@ -195,8 +195,8 @@ The simulator starts on this page, and [[HOME]] returns to it.
   centre mark. For a list parameter, a short marker shows where the value
   sits in the list. For a frequency or a time, the bar shows where the knob
   is, which is not the same share of the value's range.
-- **Modulation.** A parameter that a modulation cable reaches has a gold
-  diamond after its name and a gold bracket on its bar
+- **Modulation.** A parameter that a modulation cable reaches has its name
+  in the modulation colour and a bracket of that colour on its bar
   ([chapter 8](08-modulation.md#what-the-pages-show)).
 - **Oscilloscope.** A strip at the bottom shows the waveform of the output.
   It is scaled to fill the strip, so quiet sounds show up too.
