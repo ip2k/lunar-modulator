@@ -401,8 +401,14 @@ decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
   `fm1-sim-render --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
-  modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); only SAVE is still
-  a stub. The user manual describes every control.
+  modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); SAVE asks the
+  page's store, which comes with stage W1. The user manual describes every
+  control.
+- **Saved state:** the module saves and loads its whole state as the state
+  core's files (projects, sounds, effects, mod racks, clips, sets and
+  settings), checks a load first and refuses what would not fit the FM-1,
+  changing nothing (stage A1, `sim/web/src/fm1_app_state.h`,
+  notes/2026-10-06-state-files.md §23).
 - **On a phone:** the panel keeps keys 31–35 px wide and no target under
   24 px, and scrolls sideways in its own box.
 - **Self-contained:** the page loads nothing from anywhere else and finds its
