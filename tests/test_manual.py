@@ -160,6 +160,22 @@ def test_sequencer_tables_from_the_header(tmp_path):
     assert len(warnings) == 2                              # zap undescribed, gone stale
 
 
+def test_memory_reads_as_a_share_of_the_budget():
+    """The manual shows memory only as a share of the FM-1's budget, never
+    in bytes (owner, 2026-10-06), rounded up as the screen's meter rounds
+    and "under 1 %" below one; the sequencer's table puts the instance
+    without its Capture buffer in the first column, with it in the second."""
+    assert reference.memory_share(387924, 387924) == "100\u00a0%"
+    assert reference.memory_share(387925, 387924) == "101\u00a0%"
+    assert reference.memory_share(3879, 387924) == "under 1\u00a0%"
+    info = reference.SeqInfo({}, {}, [], {"tracks": {"8": 31880}, "no_capture": {"8": 28808}}, 387924)
+    out = reference.seq_memory(info)
+    assert "<td class='num'>8\u00a0%</td><td class='num'>9\u00a0%</td>" in out and "KB" not in out
+    assert reference.seq_memory(reference.SeqInfo({}, {}, [], info.sizes, None)) == ""
+    if (ROOT / "sim" / "web" / "src" / "fm1_app.h").is_file():
+        assert reference.ram_budget(ROOT) > 0
+
+
 def test_verb_descriptions_cover_the_code():
     """Every verb the sequencer parses is described, and nothing else."""
     if not (ROOT / "engines" / "seq" / "seq_cmd.c").is_file():

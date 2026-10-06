@@ -86,15 +86,17 @@ click. Every sound starts at 100 %.
 ### Memory
 
 Every sound, effect and module, the sequencer and modulation have to fit in
-the FM-1's memory. The simulator measures them against about 379 KB, the
-room M-VAVE's firmware leaves free on the FM-1, as an estimate of what
-Lunar Modulator will have there ([chapter 13](13-specifications.md)). The
-meter in the screen's bottom bar shows how much the whole chain takes, as a
-bar and a percentage, and the global page the same in KB.
+the FM-1's memory. The simulator measures them against the room M-VAVE's
+firmware leaves free on the FM-1, as an estimate of what Lunar Modulator
+will have there ([chapter 13](13-specifications.md)), and shows memory only
+as a share of that room: 100 % is all of it. The meter in the screen's
+bottom bar shows how much the whole chain takes, as a bar and a percentage,
+and the global page the same percentage.
 
 Whatever would take the chain past 100 % is refused, whether you choose it
 with [[PRESETS]], [[ALGORITHM]] or a list under the panel: the screen names
-it, says *does not fit* and by how much, and the slot keeps what it had.
+it, says *does not fit* and what the chain would need with it, such as
+*needs 112% of RAM*, and the slot keeps what it had.
 [[PRESETS]] and [[ALGORITHM]] step on to the next choice that fits. Most
 chains fit; Shapes twice, or Shapes with PSX Verb and Plate, do not. So
 whatever plays in the simulator would fit the FM-1.
@@ -210,7 +212,7 @@ room to a hall and Space Echo.
     In FX mode, [[ALGORITHM]] changes the effect in the slot, not PSX Verb's
     model. To change the model, turn [[KNOB1]] on page 1.
 
-PSX Verb takes about 131 KB of memory, the most of any effect.
+PSX Verb takes 35 % of the memory, the most of any effect.
 
 {{engine-table sw-psxverb}}
 
@@ -352,8 +354,8 @@ the sound stops, so does the effect.
 A stereo echo, written for Lunar Modulator, whose repeats can bounce from one
 side to the other. Up to about a third of a second the echoes are clean
 copies; longer ones grow darker with each repeat, like those of an old
-analogue echo pedal, so that the effect keeps to 64 KB of memory however long
-the time.
+analogue echo pedal, so that the effect keeps to 17 % of the memory however
+long the time.
 
 - **Time** sets the delay, from 10 milliseconds at the left to one second at
   the right; the default is 300. Turning it while echoes sound bends their
@@ -846,7 +848,7 @@ the lowest settings. Level answers at once.
 
 A room reverb, from Mutable Instruments Clouds: smaller and denser than
 Plate, with Clouds' diffuser in front of it to smear each attack before it
-enters the room. It takes 40 KB of memory, under two thirds of Plate's.
+enters the room. It takes 11 % of the memory, under two thirds of Plate's.
 
 - **Mix** fades from the dry sound at the left to the reverb alone at the
   right; the default is 0.3. At the left the sound passes untouched.
@@ -882,7 +884,7 @@ silence stays silent.
 
 A stereo hall reverb, written for Lunar Modulator: a large, smooth space
 whose tail can ring from a fraction of a second to twenty seconds, or be
-frozen and held. It takes 49 KB of memory, three quarters of Plate's.
+frozen and held. It takes 13 % of the memory, three quarters of Plate's.
 
 - **Decay** sets how long the reverb rings, from 0.2 seconds at the left to
   20 seconds at the right; the default, 2 seconds, is a concert hall. Size
@@ -932,7 +934,7 @@ tail of a sound, cuts a long reverb short in time with the notes, or, in
 Duck mode, does the opposite and turns the sound down while it is loud. Its
 controls follow two classic studio noise gates
 ([chapter 14](14-credits-and-licences.md)). Both channels open and close
-together. It takes about 2 KB of memory.
+together. It takes under 1 % of the memory.
 
 - **Threshold** sets the level at which the gate opens, from −80 dB at the
   left to 0 dB, full scale, at the right; the default is −40.
@@ -1062,7 +1064,7 @@ a harder, clickier start, down to soften it; turn **Sustain** up to bring
 out the body and the ring of a sound, down to make it short and dry. It
 works by comparing a quick and a slow follower of the level, so it reacts
 to how the sound changes, not to how loud it is. Both channels move
-together. It takes under 200 bytes.
+together. It takes under 1 % of the memory.
 
 - **Attack** lifts the start of each note, by up to 12 dB at +100 %, or
   softens it down to −100 %, where a note rises no faster than Window.

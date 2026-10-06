@@ -317,7 +317,7 @@ function onWorklet(m, node) {
       const why = m.code === -2 ? 'it is too large for its slot'
         : m.code === -3 ? `it does not run at ${Math.round(m.rate).toLocaleString('en')} Hz ` +
           `(Macro, Macro Heavy and Six-Op need ${PLAITS_RATE.toLocaleString('en')} Hz or less)`
-          : m.code === -4 ? 'the chain would no longer fit the FM-1\'s RAM (the meter on the screen)'
+          : m.code === -4 ? 'the chain would no longer fit the FM-1\'s memory (the screen says what it would need)'
             : `error ${m.code}`;
       sim.notice = `${name} was refused: ${why}.` +
         (m.start ? ' The first sound that runs was loaded instead.' : '');
@@ -367,20 +367,28 @@ function bpmText(bpmX100) {
   return `${whole}.${String(frac).padStart(2, '0')} BPM`;
 }
 
+// Memory as a user sees it (owner, 2026-10-06): a whole percentage of the
+// FM-1's budget, never bytes, rounded up as the screen's meter rounds it
+// (fm1_app_ram_percent), so the two never differ and a chain past the
+// budget never reads 100 %.
+function memoryPercent(bytes, budget) {
+  return Math.floor((bytes * 100 + budget - 1) / budget);
+}
+
 function showStatus() {
   const st = sim.state;
   if (!sim.ctx || !st) return;
   const rate = sim.ctx.sampleRate;
   const fellBack = sim.requestedRate !== 44118 ? ` (the browser refused 44,118 Hz)` : '';
   const latency = sim.ctx.outputLatency || sim.ctx.baseLatency || 0;
-  const ram = (b) => `${Math.ceil(b / 1024)} KB`;
   const q = sim.seq;
   const seq = q ? ` Sequencer: ${bpmText(q.bpm_x100)}, ` +
     `${q.recording ? 'recording' : q.counting_in ? 'counting in' : q.playing ? 'playing' : 'stopped'}` +
     `${q.following ? ' (external clock)' : ''}.` : '';
   statusEl.textContent = `Running at ${rate.toLocaleString('en')} Hz${fellBack}, 64-frame blocks, ` +
-    `${(latency * 1000).toFixed(0)} ms output latency. Chain RAM ${ram(st.ram)} of the ` +
-    `${ram(st.budget || 387924)} the stock layout leaves free.${seq}${sim.notice ? ' ' + sim.notice : ''}`;
+    `${(latency * 1000).toFixed(0)} ms output latency. The chain takes ` +
+    `${memoryPercent(st.ram, st.budget || 387924)}% of the FM-1's memory.${seq}` +
+    `${sim.notice ? ' ' + sim.notice : ''}`;
 }
 
 function drawScreen(px) {
@@ -441,7 +449,7 @@ function dx7Message(m) {
   let text = `Loaded ${plural(voices, 'voice', 'voices')} from ${file}${raw ? ' (bank data without SysEx framing)' : ''} ` +
     `into FM6's ${where}.`;
   if (played === 0) text += ` Sound ${sound + 1} plays ${m.names[first] || `User ${first + 1}`}; ALGORITHM steps through them.`;
-  else if (played < 0) text += ` Sound ${sound + 1} could not change to FM6 (the chain would not fit the FM-1's RAM).`;
+  else if (played < 0) text += ` Sound ${sound + 1} could not change to FM6 (the chain would not fit the FM-1's memory).`;
   if (bad) {
     text += ` ${plural(bad, 'dump had', 'dumps had')} a wrong checksum and ${bad === 1 ? 'was' : 'were'} loaded ` +
       'anyway, as DX7 editors do: the file may be damaged.';

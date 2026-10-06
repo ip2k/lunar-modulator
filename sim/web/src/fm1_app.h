@@ -353,7 +353,8 @@ typedef struct fm1_app {
    * mix (percent), and their render blocks and sequencer sinks. */
   int sound;
   float level[FM1_APP_SOUNDS];
-  size_t ram_over;               /* the last RAM refusal: bytes past the budget */
+  size_t ram_over;               /* the last RAM refusal: bytes past the budget (its
+                                    popup shows budget + this as a percentage) */
   float mix[FM1_APP_SOUNDS][2 * FM1_APP_MAX_FRAMES];
   fm1_app_sink_ctx_t sink_ctx[FM1_APP_SOUNDS];
 
@@ -686,6 +687,14 @@ size_t fm1_app_ram(const fm1_app_t *a);
 /* What fm1_app_ram would be with registry entry `index` in `unit` (-1:
  * emptied): the RAM meter's test before a load. */
 size_t fm1_app_ram_with(const fm1_app_t *a, int unit, int index);
+
+/* `bytes` as the user sees a RAM figure (owner, 2026-10-06: memory only as
+ * a percentage of the FM-1's budget, on the screen, the page and in every
+ * refusal; bytes only in developer docs): a whole percentage of
+ * FM1_APP_RAM_BUDGET, rounded up, so a figure past the budget, which is
+ * what a refusal reports, never reads 100. The meter, GLO's RAM line and
+ * the refusals all use it, and the page (app.js) rounds the same way. */
+unsigned fm1_app_ram_percent(size_t bytes);
 
 /* ---- Sound units (multi-sound) --------------------------------------------
  * `sound` is 0 .. FM1_APP_SOUNDS - 1; the user's Sound 1 is 0. Stage S6

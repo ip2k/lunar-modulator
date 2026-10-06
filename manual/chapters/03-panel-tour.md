@@ -176,8 +176,8 @@ simulator's does.
   *Mix*, *Seq*, *Globe* on the global page, or a modulation page.
 - **Bottom bar, right.** The memory meter: a bar and the share, in percent,
   of the FM-1's memory the sounds, effects, sequencer and modulation would
-  take, against about 379 KB, the room M-VAVE's firmware leaves free on the
-  FM-1 and the simulator's estimate of what Lunar Modulator will have there
+  take. 100 % is the room M-VAVE's firmware leaves free on the FM-1, the
+  simulator's estimate of what Lunar Modulator will have there
   ([chapter 13](13-specifications.md)). Whatever would take it past 100 % is
   refused ([chapter 6](06-effects.md#memory)).
 
