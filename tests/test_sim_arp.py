@@ -140,8 +140,10 @@ def test_the_arp_on_another_sound(tools):
 
 def test_the_ram_meter_refuses_an_arp_that_would_not_fit(tools):
     """A chain at the budget's edge: the arp's tap is refused with a popup
-    that says by how much, and the arp stays off."""
-    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "plate", "--fx", "diffuse"]
+    that says by how much, and the arp stays off. (The second master
+    effect is Limiter since glide: with Diffuse, Macro and Shapes no longer
+    fit together once both carried glide's state.)"""
+    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "plate", "--fx", "limit"]
     before = sim(tools, *chain, seconds=0.1)
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)

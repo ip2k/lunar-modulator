@@ -91,8 +91,9 @@ def test_drums_is_a_twelve_voice_pad_kit(listing):
 
 def test_twelve_parameters_fit_the_modulation_records(listing):
     """Four sound units of the engine with the most parameters and ten of
-    the largest effects share the modulation runtime's 184 records
-    (tests/test_engines_mod_runtime.py): twelve, as many as Macro Heavy."""
+    the largest effects share the modulation runtime's 192 records
+    (tests/test_engines_mod_runtime.py): twelve, as many as Macro Heavy had
+    before glide gave it fourteen (an open question: engines/README.md)."""
     assert len(listing["drums"]["params"]) == 12
 
 

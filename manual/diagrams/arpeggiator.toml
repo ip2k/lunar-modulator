@@ -1,0 +1,87 @@
+# Where the arpeggiator sits in the note path, as the simulator runs it:
+# play_on and play_off in sim/web/src/fm1_app.c offer a live note to the
+# sound's MIDI-effect chain first (fm1_mfx_live_note), and engines/include/
+# fm1_mfx_host.h takes the sequencer's notes for the sound into the chain,
+# makes each sequencer note-on a trig, clocks the chain from the
+# sequencer's ticks (Start as RESET, Stop as FLUSH) and merges its output
+# into the block as the sequencer's notes are, so the sound and the
+# modulation's note sources hear the arpeggio. The sequencer records the
+# keys as played (owner, 2026-10-05).
+title = "The arpeggiator in the note path"
+caption = "Where the arpeggiator sits. While it is on it takes every note headed for its sound, from the keys, MIDI IN and the sequencer, and plays the arpeggio on the sound’s tempo; the sequencer records the keys as you played them."
+alt = "A block diagram. The keys and MIDI IN send notes to the current sound's arpeggiator, and also to the sequencer, which records them as they were played. The sequencer sends the notes of the tracks routed to the sound to the arpeggiator, each note-on a trig, and its clock: the tempo's ticks, Start and Stop. While it is on, the arpeggiator plays the notes held one after another on the sound's engine; while it is off, every note, the keys' and the tracks', passes straight through to the engine. A note says that modulation's note sources hear the notes the engine plays, the arpeggio included, and that each of the four sounds has an arpeggiator of its own."
+legend = ["notes", "clock"]
+
+[[node]]
+id = "keys"
+label = "Keys and MIDI IN"
+col = 0
+row = 0
+
+[[node]]
+id = "seq"
+label = "Sequencer"
+sub = "8 tracks"
+col = 1
+row = 0
+
+[[node]]
+id = "arp"
+label = "Arpeggiator"
+sub = ["on: the notes held, one", "after another;", "off: each note as it comes"]
+col = 0
+row = 1
+role = "live"
+
+[[node]]
+id = "eng"
+label = "Engine"
+col = 0
+row = 2
+
+[[node]]
+id = "note"
+shape = "note"
+label = "Modulation"
+sub = ["Its note sources (VEL, KEY,", "TRIG …) hear what the engine", "plays: the arpeggio."]
+col = 1
+row = 2
+align = "left"
+
+[[group]]
+id = "sound"
+label = "One sound (each has its own)"
+title = "bottom"
+members = ["arp", "eng"]
+
+[[edge]]
+from = "keys"
+to = "seq"
+kind = "notes"
+label = ["recorded as", "played"]
+
+[[edge]]
+from = "keys"
+to = "arp"
+kind = "notes"
+label = "the current sound"
+
+[[edge]]
+from = "seq"
+to = "arp"
+kind = "notes"
+label = ["its tracks’ notes,", "each a trig"]
+exit = "right"
+enter = "right"
+
+[[edge]]
+from = "seq"
+to = "arp"
+kind = "clock"
+label = ["tempo,", "Start, Stop"]
+
+[[edge]]
+from = "arp"
+to = "eng"
+kind = "notes"
+label = "what it plays"
