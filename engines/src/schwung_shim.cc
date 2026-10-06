@@ -433,9 +433,9 @@ void SetParam(void *s, uint16_t index, float value) {
   if (!self) return;
   const Module &m = *self->module;
   if (index >= m.n_defined) return;
-  const fm1_param_t &p = m.params[index];
-  if (!(value >= p.min)) value = p.min;            // NaN too
-  if (value > p.max) value = p.max;
+  // fm1_param_clamp: NaN is the default, as the engine API says (it was the
+  // minimum here until 2026-10-06, as in Six-Op FM).
+  value = fm1_param_clamp(&m.params[index], value);
   Ramp *r = FindRamp(self, index);
   if (r) {
     fm1_smooth_set(&r->s, &r->value, value, self->started ? self->ramp_steps : 0);

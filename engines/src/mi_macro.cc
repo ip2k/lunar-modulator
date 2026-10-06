@@ -41,11 +41,13 @@
 // does not depend on the host's block size. Note events land on the next
 // block rendered at 47,872.34 Hz (0.25 ms).
 //
-// Glide and Voice Mode (glide.h, page 4): a note struck while another is
-// held glides from its pitch, as a pitch offset after the bend beside the
-// per-note one, moved once per 12-sample block; Mono and Legato play one
-// voice, the newest, and return to a key still held. At Glide Off and Poly
-// (the defaults) the engine renders what it did before they existed.
+// Glide, Voice Mode, Glide Mode and Time Mode (glide.h, page 4): a note
+// glides from the held note's pitch (Legato) or the last note's (Always),
+// as a pitch offset after the bend beside the per-note one, moved once per
+// 12-sample block, in a fixed time or at a fixed rate; Mono and Legato play
+// one voice, the newest, and return to a key still held. At Glide Mode Off
+// and Poly (the defaults) the engine renders what it did before they
+// existed.
 //
 // SMOOTH parameters (every FLOAT here) ramp while a voice sounds: each
 // 12-sample block moves them a tenth of the way, so a change takes 2.5 ms at
@@ -105,7 +107,7 @@ enum Param {
   P_MODEL, P_HARMONICS, P_TIMBRE, P_MORPH,
   P_DECAY, P_COLOUR, P_VOLUME,
   P_ENV_PITCH, P_ENV_TIMBRE, P_ENV_MORPH, P_LPG,
-  P_GLIDE, P_VOICE_MODE,
+  P_GLIDE, P_VOICE_MODE, P_GLIDE_MODE, P_TIME_MODE,
   P_COUNT
 };
 
@@ -134,12 +136,16 @@ const fm1_param_t kParams[P_COUNT] = {
     10, kPoly, FM1_UNIT_NONE, "EnvMor" },
   { "LPG",        FM1_PARAM_ENUM, 0, LPG_MODE_COUNT - 1, LPG_GATE, kLpgModeNames, 2,
     11, 0, FM1_UNIT_NONE, "LPG" },
-  // Page 4: glide and the voice modes (glide.h). Uids 13 and 14, as in
+  // Page 4: glide and the voice modes (glide.h). Uids 13 to 16, as in
   // Macro Heavy, whose Word Speed holds 12, so a lock survives a swap.
-  { "Glide",      FM1_PARAM_FLOAT, glide::kOffMs, glide::kMaxMs, glide::kOffMs, NULL, 3,
+  { "Glide",      FM1_PARAM_FLOAT, glide::kMinMs, glide::kMaxMs, glide::kDefaultMs, NULL, 3,
     13, glide::kGlideFlags, FM1_UNIT_MS, "Glide" },
   { "Voice Mode", FM1_PARAM_ENUM, 0, glide::MODE_COUNT - 1, glide::MODE_POLY,
     glide::kModeNames, 3, 14, glide::kModeFlags, FM1_UNIT_NONE, "VMode" },
+  { "Glide Mode", FM1_PARAM_ENUM, 0, glide::GLIDE_MODE_COUNT - 1, glide::GLIDE_OFF,
+    glide::kGlideModeNames, 3, 15, glide::kModeFlags, FM1_UNIT_NONE, "GMode" },
+  { "Time Mode",  FM1_PARAM_ENUM, 0, glide::TIME_MODE_COUNT - 1, glide::TIME_TIME,
+    glide::kTimeModeNames, 3, 16, glide::kModeFlags, FM1_UNIT_NONE, "TMode" },
 };
 
 const int kNumVoices = 12;
@@ -219,8 +225,7 @@ class Instance {
   void NoteOn(uint8_t key, uint8_t velocity) {
     if (velocity == 0) { NoteOff(key); return; }
     held_.Push(key);
-    const glide::Plan<Voice> plan = glide::PlanNoteOn(
-        voice_, kNumVoices, glide::ToMode(value_[P_VOICE_MODE]), value_[P_GLIDE]);
+    const glide::Plan<Voice> plan = glide::PlanNoteOn(voice_, kNumVoices, GlideConfig());
     if (plan.legato) {         // Legato over a held note: a new key, nothing restarts
       Retune(plan.mono, key);
       glide::StartFor(plan.mono, plan, key);
@@ -298,12 +303,17 @@ class Instance {
   }
 
  private:
+  // What Voice Mode, Glide Mode and Time Mode say now (glide.h).
+  glide::Config GlideConfig() const {
+    return glide::Read(value_[P_VOICE_MODE], value_[P_GLIDE_MODE], value_[P_TIME_MODE]);
+  }
+
   // Mono and Legato: letting go of the key the voice plays while older keys
   // are held moves it back to the newest of them, gliding, never restarting.
   void ReturnToHeld(uint8_t key) {
     uint8_t top = 0;
     const glide::Plan<Voice> plan =
-        glide::PlanNoteOff(voice_, kNumVoices, held_, key, value_[P_GLIDE], &top);
+        glide::PlanNoteOff(voice_, kNumVoices, held_, key, GlideConfig(), &top);
     if (!plan.mono) return;
     Retune(plan.mono, top);
     glide::StartFor(plan.mono, plan, top);
@@ -411,7 +421,7 @@ class Instance {
     float mix[kBlockSize] = { 0 };
     const Controls shared = MakeControls(value_);
     const LpgMode lpg_mode = ToLpgMode(value_[P_LPG]);
-    const float glide_inc = glide::Increment(glide_block_ms_, value_[P_GLIDE]);
+    glide::Step glide_step(glide_block_ms_, value_[P_GLIDE]);
 
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
@@ -438,7 +448,7 @@ class Instance {
       float note = v.key + bend_;
       if (v.note.has_pitch()) note += v.note.pitch;
       if (v.glide.active) note += v.glide.offset;
-      v.glide.Next(glide_inc);
+      v.glide.Next(glide_step);
       p.note = note + c.env_pitch * (envelope * envelope * 48.0f);
       p.harmonics = c.harmonics;
       p.timbre = Modulate(c.timbre, c.env_timbre, envelope, 0.0f, 1.0f);

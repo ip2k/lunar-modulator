@@ -9,9 +9,13 @@
 //     Limiter's Round mode against ClipOnly2 the same way;
 //   - the contracts: silence, block sizes and memory fills while parameters
 //     and Types change, hostile input, host rates;
-//   - what each knob does: Squash's reduction per Type, Snap's gate, Mu and
-//     Snap never lifting, Split's lift, Type changes starting from the gain
-//     in force, Split at Squash 0 a bypass whatever came before; Transient's
+//   - what each knob does: Squash's reduction per Type, Snap's gate, Snap
+//     never lifting and Mu lifting by its makeup at most, Split's lift, Type
+//     changes starting from the gain in force, Split at Squash 0 a bypass
+//     whatever came before; Mu's partial makeup against Mu without it (the
+//     effect built with -DFM1_SQUASH_MU_MAKEUP=0, fm1_engine_squash_ref):
+//     its curve, the frames it leaves alone exactly M times the reference,
+//     the bound that adds no clipping, the loudness it keeps; Transient's
 //     centre bit for bit, its attack and sustain on a drum hit, a steady
 //     tone left alone anywhere on Window and Tail;
 //   - with --cost, ns per 64-frame block.
@@ -33,6 +37,8 @@
 #include <vector>
 
 extern "C" const fm1_engine_t fm1_engine_squash, fm1_engine_shaper, fm1_engine_limit;
+// Squash without Mu's partial makeup: the code before 2026-10-06 (squash.mk).
+extern "C" const fm1_engine_t fm1_engine_squash_ref;
 
 // The values this file computes (parameter schedules, test signals) must be
 // the same on every build for the pinned hashes to mean anything: no fused
@@ -196,7 +202,11 @@ void OurRender(const OracleCase &c, std::vector<float> &io) {
     io = shifted;
     return;
   }
-  const fm1_engine_t &e = fm1_engine_squash;
+  // Mu against Pressure4 without our partial makeup, which is not upstream's
+  // (its own 1/t lift is left out, fx_squash.cc); the makeup is checked
+  // against this build in MuMakeup.
+  const fm1_engine_t &e =
+      strcmp(c.kind, "pressure4") == 0 ? fm1_engine_squash_ref : fm1_engine_squash;
   void *self = Make(e, kOracleRate, 0);
   if (strcmp(c.kind, "pop3") == 0) {
     const Kv kv[] = {
@@ -425,7 +435,8 @@ double PeakDb(const std::vector<float> &x, uint32_t from, uint32_t to) {
 
 // Squash per Type: the settled gain (dB) on a 440 Hz sine at -6 dBFS for
 // Squash 0, 0.25, 0.5, 0.75 and 1; and the largest gain anywhere on bursts
-// (Snap and Mu only turn down; Split lifts by its makeup at most).
+// (Snap only turns down; Mu lifts by its partial makeup at most, Split by
+// its own).
 void Reduction() {
   const float squashes[] = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
   std::vector<float> x;
@@ -463,6 +474,138 @@ void Reduction() {
     printf("%s%.4f", t ? "," : "", most);
   }
   printf("]");
+}
+
+// Mu's partial makeup (owner's decision, 2026-10-06), against Mu without it:
+//   curve      the lift M, in dB, by Squash and Shape: a -60 dBFS sine, under
+//              every threshold, comes out M times the reference;
+//   same       at Squash 0.25 and 0.5 (a -12 dBFS peak under the threshold,
+//              so M is 1) the reference's bits, on every signal;
+//   frames     on the reference signals and bursts at Squash 0.6-1, Shapes
+//              1, 0 and -1, Mix and Output among them: no frame comes out
+//              quieter than the reference, and at Mix 1 every frame is M
+//              times the reference (within 4 ulps) or lifted less, by the
+//              bound;
+//   clipping   on those, with Output at or under 0 dB, no frame comes out
+//              over full scale and over the reference's frame: the makeup
+//              adds no clipping;
+//   loudness   the RMS (dB) of the drums signal at Squash 0, 0.5, 0.75 and
+//              1, with and without the makeup.
+void MuMakeup() {
+  const fm1_engine_t &e = fm1_engine_squash, &r = fm1_engine_squash_ref;
+  const float squashes[] = { 0.5f, 0.6f, 0.7f, 0.75f, 0.8f, 0.9f, 1.0f };
+  const float shapes[] = { 1.0f, 0.0f, -1.0f };
+  std::vector<float> x, y;
+  printf("\"mu_makeup\":{\"curve\":[");
+  for (int h = 0; h < 3; ++h) {
+    printf("%s[", h ? "," : "");
+    for (int k = 0; k < 7; ++k) {
+      double db = 0.0;
+      for (int pass = 0; pass < 2; ++pass) {
+        const fm1_engine_t &f = pass ? r : e;
+        void *self = Make(f, kRate, 0);
+        const Kv kv[] = { { "Type", 1 }, { "Squash", squashes[k] }, { "Shape", shapes[h] } };
+        SetAll(f, self, kv, 3);
+        Sine(pass ? y : x, 44118, 0.001f, 440.0);
+        RenderAll(f, self, (pass ? y : x).data(), 44118, 64);
+        f.destroy(self);
+      }
+      db = PeakDb(x, 22059, 44118) - PeakDb(y, 22059, 44118);
+      printf("%s%.3f", k ? "," : "", db);
+    }
+    printf("]");
+  }
+  int same = 1;
+  for (int sig = 0; sig < 4; ++sig) {
+    for (float sq : { 0.25f, 0.5f }) {
+      for (int pass = 0; pass < 2; ++pass) {
+        const fm1_engine_t &f = pass ? r : e;
+        std::vector<float> &v = pass ? y : x;
+        if (sig < 3) MakeSignal(sig, v); else Bursts(v, 66150, 41u);
+        void *self = Make(f, kRate, 0);
+        const Kv kv[] = { { "Type", 1 }, { "Squash", sq }, { "Output", -2 }, { "Mix", 0.8f } };
+        SetAll(f, self, kv, 4);
+        RenderAll(f, self, v.data(), 66150, 64);
+        f.destroy(self);
+      }
+      if (x != y) same = 0;
+    }
+  }
+  printf("],\"same_under\":%s", same ? "true" : "false");
+  long frames = 0, exact = 0, bounded = 0, below_ref = 0, over = 0;
+  double most_lift = 0.0;
+  struct Mo { float out, mix; } const mos[] = { { 0, 1 }, { -6, 1 }, { 0, 0.5f }, { -12, 0.3f } };
+  for (int k = 1; k < 7; ++k) {
+    for (int h = 0; h < 3; ++h) {
+      // The setting's M: a -60 dBFS sine, under every threshold, lifted whole.
+      double m = 0.0;
+      for (int pass = 0; pass < 2; ++pass) {
+        const fm1_engine_t &f = pass ? r : e;
+        void *self = Make(f, kRate, 0);
+        const Kv kv[] = { { "Type", 1 }, { "Squash", squashes[k] }, { "Shape", shapes[h] } };
+        SetAll(f, self, kv, 3);
+        Sine(pass ? y : x, 4410, 0.001f, 440.0);
+        RenderAll(f, self, (pass ? y : x).data(), 4410, 64);
+        f.destroy(self);
+      }
+      m = fabs(x[2 * 4000 + 0]) > 0.0f ? x[2 * 4000] / (double)y[2 * 4000] : 1.0;
+      for (int sig = 0; sig < 4; ++sig) {
+        for (const Mo &mo : mos) {
+          std::vector<float> in;
+          if (sig < 3) MakeSignal(sig, in); else Bursts(in, 66150, 43u + k);
+          x = y = in;
+          for (int pass = 0; pass < 2; ++pass) {
+            const fm1_engine_t &f = pass ? r : e;
+            void *self = Make(f, kRate, 0);
+            const Kv kv[] = { { "Type", 1 }, { "Squash", squashes[k] }, { "Shape", shapes[h] },
+                              { "Output", mo.out }, { "Mix", mo.mix }, { "Release", 120 } };
+            SetAll(f, self, kv, 6);
+            RenderAll(f, self, (pass ? y : x).data(), 66150, 64);
+            f.destroy(self);
+          }
+          for (uint32_t i = 0; i < 66150; ++i) {
+            const float po = fmaxf(fabsf(x[2 * i]), fabsf(x[2 * i + 1]));
+            const float pr = fmaxf(fabsf(y[2 * i]), fabsf(y[2 * i + 1]));
+            // Clipping added: over full scale, and over the frame without
+            // the makeup (an input already over it may stay there).
+            if (po > fmaxf(1.0f, pr * (1.0f + 1e-6f))) ++over;
+            if (!(pr > 1e-6f)) continue;
+            ++frames;
+            const double lift = po / (double)pr;
+            most_lift = fmax(most_lift, lift);
+            if (lift < 1.0 - 1e-6) ++below_ref;
+            if (mo.mix == 1.0f) {               // the wet path alone: lifted by M or bounded
+              if (fabs(lift - m) <= 4.8e-7 * m) ++exact;
+              else if (lift < m) ++bounded;
+              else ++below_ref;                 // over M: counted as a fault
+            }
+          }
+        }
+      }
+    }
+  }
+  printf(",\"frames\":%ld,\"exact\":%ld,\"bounded\":%ld,\"faults\":%ld,\"over\":%ld,"
+         "\"most_lift_db\":%.3f", frames, exact, bounded, below_ref, over, 20.0 * log10(most_lift));
+  printf(",\"loudness\":[");
+  const float levels[] = { 0.0f, 0.5f, 0.75f, 1.0f };
+  for (int k = 0; k < 4; ++k) {
+    double rms[2];
+    for (int pass = 0; pass < 2; ++pass) {
+      const fm1_engine_t &f = pass ? r : e;
+      std::vector<float> &v = pass ? y : x;
+      MakeSignal(0, v);
+      void *self = Make(f, kRate, 0);
+      const Kv kv[] = { { "Type", 1 }, { "Squash", levels[k] } };
+      SetAll(f, self, kv, 2);
+      RenderAll(f, self, v.data(), 66150, 64);
+      f.destroy(self);
+      double sum = 0.0;
+      for (uint32_t i = 2 * 22050; i < v.size(); ++i) sum += v[i] * v[i];
+      rms[pass] = 10.0 * log10(sum / (v.size() - 2 * 22050));
+    }
+    printf("%s[%.2f,%.2f]", k ? "," : "", rms[0], rms[1]);
+  }
+  printf("]}");
 }
 
 // Snap's gate: 0.5 s of a -6 dBFS sine, then -50 dBFS, Gate at -30 dB, Gate
@@ -759,6 +902,7 @@ int main(int argc, char **argv) {
     Hostile(); printf(",");
     Rates(); printf(",");
     Reduction(); printf(",");
+    MuMakeup(); printf(",");
     SnapGate(); printf(",");
     TypeChanges(); printf(",");
     SplitLow(); printf(",");

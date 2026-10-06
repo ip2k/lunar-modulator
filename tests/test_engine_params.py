@@ -51,6 +51,7 @@ ENUM_FLAGS = {
     ("drums", "Pad"): [],                       # the edit focus, as Sophie's
     ("drums", "Model"): ["latch", "mod"],       # read when a pad is struck; a hit keeps its model
     ("drums", "Kit"): ["latch", "mod"],         # the voicings a hit starts with
+    ("drums", "Choke"): ["latch", "mod"],       # read when a pad is struck, as Model
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
     ("filter", "Type"): ["mod"],                # warms the new type up, then crossfades
     ("drive", "Type"): ["mod"],                 # crossfades over 5 ms
@@ -87,10 +88,12 @@ ENUM_FLAGS = {
     ("arp", "Latch"): ["latch"],
     ("arp", "Sync"): ["latch"],
 }
-# Voice Mode (glide, engines/src/glide.h) is read at note-on and note-off
-# and never cuts a sounding voice: LATCH, and a route rounds it.
+# Voice Mode, Glide Mode and Time Mode (glide, engines/src/glide.h) are read
+# at note-on and note-off (Time Mode when a glide starts) and never cut a
+# sounding voice: LATCH, and a route rounds them.
 for _engine in ("macro", "macro-heavy", "shapes", "sixop", "dx7"):
-    ENUM_FLAGS[(_engine, "Voice Mode")] = ["latch", "mod"]
+    for _name in ("Voice Mode", "Glide Mode", "Time Mode"):
+        ENUM_FLAGS[(_engine, _name)] = ["latch", "mod"]
 
 
 def catalog(renderer):

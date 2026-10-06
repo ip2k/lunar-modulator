@@ -477,25 +477,27 @@ and `mod_voice_writes`, only with `--mod`.
   gives, with the same splits, through the sequencer or not, effects
   included [verified: `test_zero_route_identity`]. The bridge change
   itself changed no render: see "No render changed" below.
-- **Size.** `fm1_mod_size()` is 26,512 B since glide (26,192 B since MG9,
-  23,200 B since Gate, 22,368 B in MG3, 20,016 B in MG1): the 8,192 B arena
-  and 18,320 B of fixed state, the same in 32- and 64-bit
+- **Size.** `fm1_mod_size()` is 26,848 B since glide's modes (26,512 B since
+  glide, 26,192 B since MG9, 23,200 B since Gate, 22,368 B in MG3, 20,016 B
+  in MG1): the 8,192 B arena and 18,656 B of fixed state, the same in 32- and 64-bit
   builds (no pointers, every 64-bit member 8-aligned) [verified: pinned in
   the tests, which CI's `-m32` job runs]. MG3's sound units and inserts
-  share a pool of 192 parameter records (HOST takes six since MG9, two
+  share a pool of 200 parameter records (HOST takes six since MG9, two
   before; 160 in MG3, 180 from Gate's thirteen parameters, 184 from MG9's
-  four HOST records, 192 from Macro Heavy's fourteen with glide) instead
+  four HOST records, 192 from Macro Heavy's fourteen with glide, 200 from
+  its sixteen with glide's modes, 2026-10-06) instead
   of 32 for
   each of fifteen units, which would have cost about 12 KB more; binding
   an engine that needs more records than are left fails (its cables are
   refused), which today's engines never reach: four sound units and ten
-  effects need at most 192 with HOST's six [verified: `test_the_record_pool_holds_every_chain`].
+  effects need at most 200 with HOST's six [verified: `test_the_record_pool_holds_every_chain`].
   RTRG added 48 B. MG9 added 2,992 B: twelve voice records of 168 B and
   their counters and generator (2,032 B), each sound unit's KEY, TRIG and
   RTRG with their windows and key sets (620 B), HOST's four new records
   with their write room (164 B) and the per-voice plan (about 150 B)
   [inferred from `mod_int.h`; the total verified]. Glide added 320 B, eight
-  records of 40 B. The MG1 figures below
+  records of 40 B, and glide's modes 336 B, eight more and 16 B of
+  alignment. The MG1 figures below
   are MG1's. docs/16 §4.1 estimated 4,480 B of fixed state. The difference is
   mostly copies: each effect and the sound's parameter ranges (1,920 B, so
   the state needs no pointer to an engine), bases, sent values and offsets

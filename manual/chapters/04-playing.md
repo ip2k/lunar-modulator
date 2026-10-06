@@ -55,41 +55,65 @@ again in its own voice, as a drum is.
 
 Macro, Macro Heavy, Six-Op FM, FM6 and Shapes can slide from one note to
 the next, and can play one voice at a time, like a monophonic synthesizer.
-Two parameters do it, on page 4 of Macro and Macro Heavy and after Volume on
-page 2 of the others.
+Four parameters do it, together on the engine's last page: page 4 of Macro
+and Macro Heavy, page 3 of the others.
 
-**Glide** sets how long the slide takes, from 1 ms to 5 seconds. At its
-lowest setting, 1 ms, glide is off, which is the default. Otherwise, a note
-you play while you hold another key starts at the pitch of the note you are
-holding and slides to its own. The slide always takes the Glide time,
-whether the notes are a semitone or two octaves apart, and moves evenly
-through the semitones. A note you play with no key held starts on its own
-pitch, and so do the notes of a chord you strike together: they slide only
-from a key you were already holding. Turning Glide during a slide changes
-its speed for the rest of the way.
+**Glide Mode** chooses which notes slide:
+
+| Glide Mode | What slides |
+| --- | --- |
+| **Off** (the default) | Nothing. The engine plays exactly as it does without glide |
+| **Legato** | Only a note you play while you hold another key: it starts at the pitch of the note you are holding and slides to its own. A note you play with no key held starts on its own pitch |
+| **Always** | Every note: it starts at the pitch of the last note you played, held or not, and slides to its own. This is the stock FM-1's full-time portamento |
+
+The notes of a chord you strike together never slide from each other: each
+slides from the note before the chord. The very first note you play starts
+on its own pitch.
+
+**Glide** sets how long the slide takes, from 1 ms to 5 seconds; the
+default is 100 ms. Turning it during a slide changes its speed for the
+rest of the way. **Time Mode** chooses what Glide means:
+
+| Time Mode | A slide takes |
+| --- | --- |
+| **Time** (the default) | The Glide time, whether the notes are a semitone or two octaves apart |
+| **Rate** | The Glide time for each octave it covers: two octaves take twice as long as one, a fifth a little over half as long |
+
+Either way the slide moves evenly through the semitones.
 
 **Voice Mode** chooses how notes take voices:
 
 | Voice Mode | A key you play while holding another | When you let go of the key that sounds while others are held |
 | --- | --- | --- |
-| **Poly** (the default) | Plays as a note of its own, as usual; with Glide on, it slides from the key you were holding | That note ends as usual |
+| **Poly** (the default) | Plays as a note of its own, as usual; it slides as Glide Mode says | That note ends as usual |
 | **Mono** | Takes over the one voice, which plays the new key and starts its sound again from the beginning | The voice goes back to the last key you are still holding, without starting again |
 | **Legato** | Takes over the one voice without starting anything again: the note carries on at the new pitch, at the first note's loudness | As Mono |
 
-With Glide on, every change of key in Mono and Legato slides, back to a
-held key included. Changing Voice Mode never ends a note that is sounding;
-the new mode applies from the next key you play or let go.
+With Glide Mode on Legato or Always, every change of key in Mono and
+Legato slides, back to a held key included.
+
+In the simulator, hold [[SEL]] and press [[MONO]] to choose Mono, and
+[[MONO]] again for Legato; [[SEL]] and [[POLY]] choose Poly. The screen
+names the mode, and while [[SEL]] is held [[MONO]] lights on Mono or
+Legato and [[POLY]] on Poly. In SEQ mode the two keys change track instead
+([chapter 7](07-sequencer.md#seq-mode-and-the-keys)).
+
+Changing any of the three modes never ends a note that is sounding, and a
+slide under way finishes as it began; the new setting applies from the
+next key you play or let go.
 
 !!! tip "A classic mono lead"
-    Choose Legato and a Glide of about 100 ms, and play with overlapping
-    notes: each overlap slides, and a detached note starts afresh.
+    Choose Voice Mode Legato, Glide Mode Legato and a Glide of about
+    100 ms, and play with overlapping notes: each overlap slides, and a
+    detached note starts afresh. For the stock FM-1's portamento, where
+    every note slides, choose Glide Mode Always instead.
 
-The sequencer and modulation can change both: a lock on Glide or Voice
-Mode applies from its step, and a modulation route can sweep Glide's time
+The sequencer and modulation can change all four: a lock on any of them
+applies from its step, and a modulation route can sweep Glide's time
 ([chapter 7](07-sequencer.md#parameter-locks),
 [chapter 8](08-modulation.md#how-modulation-works)). Sophie and
-Drums have neither: their keys play pads, each a sound of its own, rather
-than pitches.
+Drums have none of them: their keys play pads, each a sound of its own,
+rather than pitches.
 
 ## Velocity
 

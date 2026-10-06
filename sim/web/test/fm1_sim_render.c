@@ -885,6 +885,43 @@ static void arp_screens(const char *dir, float rate) {
   fm1_app_all_notes_off(&g_app);
 }
 
+/* ---- --screens: SHIFT + MONO and POLY, the Voice Mode keys --------------- */
+
+/* A key pressed and let go (SHIFT held by the caller). */
+static void tap_key(int key) {
+  fm1_app_key(&g_app, key, 1, 100);
+  fm1_app_key(&g_app, key, 0, 0);
+}
+
+static void voice_mode_screens(const char *dir, float rate) {
+  static const char *const names[] = { "poly", "mono", "legato" };
+  static const int want[] = { 1, 2, 1, 0 };
+  int vm;
+  destroy_units();
+  fm1_app_init(&g_app, rate);
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  vm = fm1_app_param_index(&g_app, 0, "Voice Mode");
+  fm1_app_button(&g_app, FM1_BTN_SEL, 1);     /* SHIFT held */
+  fm1_app_render(&g_app, 64);
+  check_screen("voice-mode-shift-leds", dir, 1);
+  for (int k = 0; k < 4; ++k) {               /* MONO, MONO, MONO, then POLY */
+    char name[64];
+    tap_key(k < 3 ? FM1_SEQ_UI_KEY_TRACK_PREV : FM1_SEQ_UI_KEY_TRACK_NEXT);
+    expect((int)fm1_app_get_param(&g_app, 0, vm) == want[k], "SHIFT + MONO or POLY: wrong Voice Mode");
+    expect(g_app.key_down[FM1_SEQ_UI_KEY_TRACK_PREV] == 0 && g_app.key_down[FM1_SEQ_UI_KEY_TRACK_NEXT] == 0,
+           "SHIFT + MONO or POLY played its key");
+    snprintf(name, sizeof name, "popup-voice-mode-%s", names[want[k]]);
+    check_screen(name, dir, k != 2);
+    g_app.popup_lines = 0;
+  }
+  fm1_app_select(&g_app, 0, fm1_app_find("drums"));
+  tap_key(FM1_SEQ_UI_KEY_TRACK_PREV);
+  check_screen("popup-voice-mode-none", dir, 1);
+  g_app.popup_lines = 0;
+  fm1_app_button(&g_app, FM1_BTN_SEL, 0);
+  fm1_app_all_notes_off(&g_app);
+}
+
 static void seq_screens(const char *dir, float rate) {
   char name[128];
   destroy_units();
@@ -3242,6 +3279,7 @@ static int run_screens(const char *dir, float rate) {
   }
   check_screen("popup-refuses-rate", dir, 1);
   arp_screens(dir, rate);
+  voice_mode_screens(dir, rate);
   seq_screens(dir, rate);
   seq_step_screens(dir, rate);
   seq_rec_screens(dir, rate);
