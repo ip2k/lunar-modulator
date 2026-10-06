@@ -1,0 +1,214 @@
+# Modulation per voice (docs/16 MG9) as engines/include/fm1_mod.h and
+# mod_core.c run it: FM1_MOD_VOICES (12) voices, POLY_OK kinds (Envelope, LFO,
+# Chance) copied per voice and gated by their note, VOICE slots into POLY
+# parameters through set_param_note; what the planner refuses.
+title = "Modulation per voice"
+caption = "A plain cable and a cable per voice. A plain cable moves every note alike; a cable per voice gives each note its own copy of the module, started and gated by that note. What one note does cannot go to a place every note shares, so such a cable is refused."
+alt = "Three frames, top to bottom. A plain cable: RTRG, the note gate, restarts the one ENV3, whose cable moves Timbre on Sound 1 for every note alike. A cable per voice: three held notes, C3, E3 and G3, each gate their own copy of ENV3, voice 1, 2 and 3, and each copy moves the Timbre of its own note; the rack follows up to twelve voices. Refused: a cable per voice from ENV3 into an effect's parameter, into the host's AMP, into a parameter every note shares such as Macro's LPG, or into a module that cannot run per voice, is refused and marked with a cross."
+
+[[node]]
+id = "rtrg"
+label = "RTRG"
+sub = "every note"
+col = 0
+row = 0
+
+[[node]]
+id = "env"
+label = "ENV3"
+sub = "one copy"
+col = 1
+row = 0
+role = "mod"
+
+[[node]]
+id = "all"
+label = "Timbre, Sound 1"
+sub = "every note alike"
+col = 2
+row = 0
+
+[[node]]
+id = "n1"
+label = "C3 held"
+col = 0
+row = 1
+
+[[node]]
+id = "n2"
+label = "E3 held"
+col = 0
+row = 2
+
+[[node]]
+id = "n3"
+label = "G3 held"
+col = 0
+row = 3
+
+[[node]]
+id = "v1"
+label = "ENV3"
+sub = "voice 1"
+col = 1
+row = 1
+role = "mod"
+
+[[node]]
+id = "v2"
+label = "ENV3"
+sub = "voice 2"
+col = 1
+row = 2
+role = "mod"
+
+[[node]]
+id = "v3"
+label = "ENV3"
+sub = "voice 3"
+col = 1
+row = 3
+role = "mod"
+
+[[node]]
+id = "t1"
+label = "Timbre of C3"
+col = 2
+row = 1
+
+[[node]]
+id = "t2"
+label = "Timbre of E3"
+col = 2
+row = 2
+
+[[node]]
+id = "t3"
+label = "Timbre of G3"
+col = 2
+row = 3
+
+[[node]]
+id = "pv"
+label = "ENV3"
+sub = "per voice"
+col = 1
+row = 4
+rows = 4
+stretch = true
+role = "mod"
+
+[[node]]
+id = "fx"
+stretch = true
+label = "An effect’s parameter"
+col = 2
+row = 4
+role = "refuse"
+
+[[node]]
+id = "amp"
+stretch = true
+label = "Host AMP"
+col = 2
+row = 5
+role = "refuse"
+
+[[node]]
+id = "lpg"
+stretch = true
+label = "Shared: Macro’s LPG"
+col = 2
+row = 6
+role = "refuse"
+
+[[node]]
+id = "mono"
+stretch = true
+label = "A module that"
+sub = "cannot run per voice"
+col = 2
+row = 7
+role = "refuse"
+
+[[group]]
+id = "plain"
+label = "A plain cable"
+members = ["rtrg", "env", "all"]
+
+[[group]]
+id = "voice"
+label = "A cable per voice (v): a copy for each note, up to 12"
+members = ["n1", "n2", "n3", "v1", "v2", "v3", "t1", "t2", "t3"]
+role = "mod"
+
+[[group]]
+id = "refused"
+label = "Refused (!): one value per note cannot go there"
+members = ["pv", "fx", "amp", "lpg", "mono"]
+role = "refuse"
+
+[[edge]]
+from = "rtrg"
+to = "env"
+kind = "gate"
+
+[[edge]]
+from = "env"
+to = "all"
+kind = "mod"
+
+[[edge]]
+from = "n1"
+to = "v1"
+kind = "gate"
+label = "gate"
+
+[[edge]]
+from = "n2"
+to = "v2"
+kind = "gate"
+
+[[edge]]
+from = "n3"
+to = "v3"
+kind = "gate"
+
+[[edge]]
+from = "v1"
+to = "t1"
+kind = "mod"
+
+[[edge]]
+from = "v2"
+to = "t2"
+kind = "mod"
+
+[[edge]]
+from = "v3"
+to = "t3"
+kind = "mod"
+
+[[edge]]
+from = "pv"
+to = "fx"
+kind = "refused"
+marker = "refused"
+
+[[edge]]
+from = "pv"
+to = "amp"
+kind = "refused"
+marker = "refused"
+
+[[edge]]
+from = "pv"
+to = "lpg"
+kind = "refused"
+marker = "refused"
+
+[[edge]]
+from = "pv"
+to = "mono"
+kind = "refused"
+marker = "refused"

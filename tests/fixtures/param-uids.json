@@ -12,7 +12,9 @@
       {"name": "Env Pitch", "type": "float", "uid": 8, "flags": ["smooth", "mod", "poly"]},
       {"name": "Env Timbre", "type": "float", "uid": 9, "flags": ["smooth", "mod", "poly"]},
       {"name": "Env Morph", "type": "float", "uid": 10, "flags": ["smooth", "mod", "poly"]},
-      {"name": "LPG", "type": "enum", "uid": 11, "flags": []}
+      {"name": "LPG", "type": "enum", "uid": 11, "flags": []},
+      {"name": "Glide", "type": "float", "uid": 13, "flags": ["smooth", "mod", "log"]},
+      {"name": "Voice Mode", "type": "enum", "uid": 14, "flags": ["latch", "mod"]}
     ],
     "shapes": [
       {"name": "Shape", "type": "enum", "uid": 1, "flags": ["nolock"]},
@@ -20,7 +22,9 @@
       {"name": "Color", "type": "float", "uid": 3, "flags": ["smooth", "mod", "poly"]},
       {"name": "Attack", "type": "float", "uid": 4, "flags": ["smooth", "mod", "poly"]},
       {"name": "Release", "type": "float", "uid": 5, "flags": ["smooth", "mod", "poly"]},
-      {"name": "Volume", "type": "float", "uid": 6, "flags": ["smooth", "mod", "poly"]}
+      {"name": "Volume", "type": "float", "uid": 6, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Glide", "type": "float", "uid": 7, "flags": ["smooth", "mod", "log"]},
+      {"name": "Voice Mode", "type": "enum", "uid": 8, "flags": ["latch", "mod"]}
     ],
     "macro-heavy": [
       {"name": "Model", "type": "enum", "uid": 1, "flags": ["nolock"]},
@@ -34,20 +38,26 @@
       {"name": "Env Pitch", "type": "float", "uid": 8, "flags": ["smooth", "mod", "poly"]},
       {"name": "Env Timbre", "type": "float", "uid": 9, "flags": ["smooth", "mod", "poly"]},
       {"name": "Env Morph", "type": "float", "uid": 10, "flags": ["smooth", "mod", "poly"]},
-      {"name": "LPG", "type": "enum", "uid": 11, "flags": []}
+      {"name": "LPG", "type": "enum", "uid": 11, "flags": []},
+      {"name": "Glide", "type": "float", "uid": 13, "flags": ["smooth", "mod", "log"]},
+      {"name": "Voice Mode", "type": "enum", "uid": 14, "flags": ["latch", "mod"]}
     ],
     "sixop": [
       {"name": "Patch", "type": "enum", "uid": 1, "flags": ["latch", "mod"]},
       {"name": "Brightness", "type": "float", "uid": 2, "flags": ["smooth", "mod", "poly"]},
       {"name": "Envelope", "type": "float", "uid": 3, "flags": ["smooth", "mod", "poly"]},
-      {"name": "Volume", "type": "float", "uid": 4, "flags": ["smooth", "mod", "poly"]}
+      {"name": "Volume", "type": "float", "uid": 4, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Glide", "type": "float", "uid": 5, "flags": ["smooth", "mod", "log"]},
+      {"name": "Voice Mode", "type": "enum", "uid": 6, "flags": ["latch", "mod"]}
     ],
     "dx7": [
       {"name": "Patch", "type": "enum", "uid": 1, "flags": ["latch", "mod"]},
       {"name": "Brightness", "type": "float", "uid": 2, "flags": ["smooth", "mod", "poly"]},
       {"name": "Env Time", "type": "float", "uid": 3, "flags": ["smooth", "mod", "poly"]},
       {"name": "Feedback", "type": "float", "uid": 4, "flags": ["smooth", "mod", "poly"]},
-      {"name": "Volume", "type": "float", "uid": 5, "flags": ["smooth", "mod", "poly"]}
+      {"name": "Volume", "type": "float", "uid": 5, "flags": ["smooth", "mod", "poly"]},
+      {"name": "Glide", "type": "float", "uid": 6, "flags": ["smooth", "mod", "log"]},
+      {"name": "Voice Mode", "type": "enum", "uid": 7, "flags": ["latch", "mod"]}
     ],
     "sw-sophie": [
       {"name": "Pad", "type": "enum", "uid": 2935, "flags": []},

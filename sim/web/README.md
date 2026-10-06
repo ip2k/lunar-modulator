@@ -204,7 +204,7 @@ chain). This section is how they are built.
 | LEDs | SEQ in SEQ mode, PLAY/STOP while the transport runs, SEL while SHIFT is held; in SEQ mode the white keys show the bar's steps (fm1_seq_ui.h has the rules); REC on while recording or step recording, fast during a count-in or a waiting take, slow while Capture holds notes (O7). Sequencer notes light no key outside SEQ mode (O6). LFO or ENV while RACK shows one of theirs, EDIT in MATRIX and CHAIN, SEL in CHAIN and while RACK holds a module |
 | Status line, help | the tempo and the transport (posted by the worklet only when they change); the help's Sequencer, Tracks, Locks, Sounds, Effects, Arpeggiator and Modulation entries; SAVE in the stub list |
 | Sounds | up to four sounds, each with two inserts and a level, then the two slots as the master bus; SHIFT + PRESETS chooses the current sound (below, "Multi-sound") |
-| RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 26,192 B since per-voice modulation, docs/16 MG9), and each arp that is on (736 B) with the MIDI effects' stage while one is (`fm1_mfx_t`, 7,344 B natively, less with 32-bit pointers) |
+| RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 26,512 B since glide, 26,192 B since per-voice modulation, docs/16 MG9), and each arp that is on (736 B) with the MIDI effects' stage while one is (`fm1_mfx_t`, 7,344 B natively, less with 32-bit pointers) |
 | ARP | the arpeggiator, below |
 
 Tests and parity runs never load the demo pattern or route tracks 2–8:
@@ -522,14 +522,16 @@ pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (`fm1_fx_render`), Drums, FM6 (msfa), the list popups, FM6's user bank
 with msfa's tables as const data, Squash, Transient and the Limiter's
 Round mode, per-voice modulation (MG9) (2026-10-06), the idle paths of
-EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"), and
-the arpeggiator with the MIDI effects' stage (engine API v3's MIDI effects):
-83 of 83 scenarios pass,
+EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"),
+the arpeggiator with the MIDI effects' stage (engine API v3's MIDI effects),
+and glide and the voice modes (`engines/src/glide.h`):
+86 of 86 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
-wake them; those two, the three Drums and the four FM6 scenarios are
-identical to glibc too), and it imports nothing; it is 922,439 bytes,
-890,975 before the arpeggiator (890,874 before Shapes' clamps), 887,038
+wake them; those two, the three Drums, the four FM6 and the three glide
+scenarios are identical to glibc too), and it imports nothing; it is
+938,723 bytes, 922,439 before glide, 907,256 with glide before the
+arpeggiator, 890,975 before both (890,874 before Shapes' clamps), 887,038
 before the idle paths, 850,731 before
 per-voice modulation (826,339 without the user bank, 840,216 without
 Squash, Transient and Round), 837,480 with
