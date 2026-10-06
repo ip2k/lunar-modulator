@@ -332,7 +332,7 @@ attack and release envelope.
     only if you let go before they have finished.
 
 !!! note "Memory"
-    Shapes is the largest engine: twelve voices take about 201 KB of the
+    Shapes is the largest engine: twelve voices take about 202 KB of the
     roughly 379 KB the simulator allows for everything
     ([chapter 13](13-specifications.md)). With PSX Verb and Plate together
     as effects it does not fit, nor as two sounds at once, and the simulator
@@ -451,6 +451,8 @@ project's own, after published studies of the analogue circuits
 - Model and Kit reach the next hit; a hit that is ringing keeps the sound it
   started with. The other knobs move a ringing hit too.
 - Pitch bend bends every pad.
+
+{{screen drums Drums on pad 1, the kick of the Deep kit, just after it was struck.}}
 
 !!! caution "The values shown after you change pads"
     As on Sophie, the screen cannot read a pad's settings back. When you

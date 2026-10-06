@@ -55,11 +55,11 @@ nothing: it starts from the same settings every time.
 !!! note "When an engine refuses to start"
     The simulator asks your browser for 44,118 samples a second, the rate
     reported for the FM-1, and then for 44,100. If the browser insists on a faster rate, such
-    as 48,000, the three engines built from Plaits (Macro, Macro Heavy and
-    Six-Op FM) cannot run. The simulator then starts with Shapes, steps over
-    those three when you turn [[PRESETS]], and says why on its screen and in
-    the status line. Set your computer's audio output to 44.1 kHz and reload
-    the page to get them back.
+    as 48,000, the four engines built from Plaits' code (Macro, Macro Heavy,
+    Six-Op FM and Drums) cannot run. The simulator then starts with Shapes,
+    steps over those four when you turn [[PRESETS]], and says why on its
+    screen and in the status line. Set your computer's audio output to
+    44.1 kHz and reload the page to get them back.
 
 ### Playing with the mouse or a touch screen
 
@@ -268,17 +268,18 @@ engines/build/fm1-render --engine sw-sophie \
 | Option | What it does |
 | --- | --- |
 | `--list` | Prints every engine and effect with its parameters, ranges, defaults and value names, as JSON |
-| `--engine ID` | The sound engine: `macro`, `macro-heavy`, `sixop`, `shapes`, `sw-sophie` or `test-sine`. Each engine's identifier is under its table in chapter 5 |
+| `--engine ID` | The sound engine: `macro`, `macro-heavy`, `sixop`, `shapes`, `sw-sophie`, `drums` or `test-sine`. Each engine's identifier is under its table in chapter 5 |
 | `--param NAME=VALUE` | Sets one of the engine's parameters before the first note |
 | `--note T:KEY:VEL:LEN` | Plays a note (above) |
 | `--param-at T:NAME=VALUE` | Sets one of the engine's parameters at time *T*, in seconds |
 | `--bend T:SEMITONES` | Bends every note from time *T*, by up to 48 semitones either way. Sophie has no pitch bend and refuses it |
-| `--fx ID` | Adds an effect to the chain: `plate`, `ensemble`, `diffuse`, `sw-psxverb`, `crush`, `fold`, `drive`, `echo`, `filter`, `comp`, `limit`, `djfilter`, `tilt`, `sat`, `isolator`, `eq`, `room`, `hall`, `gate` or `test-gain`. With the multi-sound options below, the first two are the master effects |
+| `--fx ID` | Adds an effect to the chain: `plate`, `ensemble`, `diffuse`, `sw-psxverb`, `crush`, `fold`, `drive`, `echo`, `filter`, `comb`, `comp`, `limit`, `djfilter`, `tilt`, `sat`, `isolator`, `eq`, `room`, `hall`, `gate`, `test-gain` or `test-ext`. With the multi-sound options below, the first two are the master effects |
 | `--fx-param NAME=VALUE` | Sets a parameter of the effect before it |
 | `--fx-param-at T:K:NAME=VALUE` | Sets a parameter of the *K*-th effect (the first `--fx` is 1) at time *T*, in seconds |
 | `--seconds S` | The length of the file, 2 seconds unless you say otherwise |
-| `--rate HZ` | The sample rate, 44,118 unless you say otherwise. Macro, Macro Heavy and Six-Op FM refuse rates above 47,872; Shapes runs from 24,000 to 96,000 |
+| `--rate HZ` | The sample rate, 44,118 unless you say otherwise. Macro, Macro Heavy, Six-Op FM and Drums refuse rates above 47,872; Shapes runs from 24,000 to 96,000 |
 | `--frames N` | The block size, 64 unless you say otherwise |
+| `--tempo BPM` | The tempo the effects hear when no sequencer plays, from 20 to 300; 120 unless you say otherwise. Of the effects, only Test Ext listens to it so far |
 | `--out FILE.wav` | Where to write the sound |
 | `--sound K:ID`, `--insert K:ID`, `--level K:PCT`, `--sound-note K:T:KEY:VEL:LEN`, `--slots` | Several sounds at once, as in the simulator: sound *K* (1 to 3; `--engine` is 0), an insert effect on sound *K*, its level into the mix, a note on it; `--slots` routes the sequencer's tracks to the sounds ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |
 | `--mod FILE` | Modulation from a file ([chapter 8](08-modulation.md#modulation-on-the-desktop)) |
