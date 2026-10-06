@@ -7,8 +7,8 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
-state of `main` after the PRs merged up to #70 (2026-09-29 to 2026-10-06,
-`f9fba5b`).
+state of `main` after the PRs merged up to #71 (2026-09-29 to 2026-10-06,
+`250bf53`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -35,9 +35,10 @@ so it is always written in full.
   switch: up to four sounds, each with two inserts, through two master
   effect slots, with the sequencer (docs/15 stages S1–S8), the modulation
   pages (MG3, with per-voice modulation since MG9, #68) and a memory meter
-  that refuses anything that would not fit the FM-1; SAVE and ARP are still
-  stubs. It plays from mouse, touch, keyboard or Web MIDI. Tested in
-  Chromium only; issue #53 reports no audio in Safari on iOS (unanswered).
+  that refuses anything that would not fit the FM-1; ARP runs the
+  arpeggiator (#69), and SAVE is the only stub left. It plays from mouse,
+  touch, keyboard or Web MIDI. Tested in Chromium only; issue #53 reports no
+  audio in Safari on iOS (unanswered).
 - **Owner:** Sean (GitHub `ip2k`), on a MacBook with Claude Desktop / Claude
   Code. A personal, non-commercial project (`CLAUDE.md`). There is **one
   FM-1** (do not brick it). The official updater (`M-UPGRADE-FM1`) embeds
@@ -101,18 +102,18 @@ so it is always written in full.
   written through mask ROM [reported]. Their code maps the board (docs/01
   §3.1, [reported]): audio is ALNK0 (I2S) to an external codec, not the
   internal DAC, and the seven encoders are scanned in the key matrix.
-- **Tests:** 3,838 collected; 3,827 pass, 2 xfail (both undo, not ported
+- **Tests:** 4,030 collected; 4,019 pass, 2 xfail (both undo, not ported
   yet) and 9 skip where a local reference clone, an unpacked stock package
   or the manual's `markdown` module is missing [verified: `pytest` at
-  `f9fba5b` with this file, 2026-10-06]. By group: 2,749 engine tests (487
+  `250bf53` with this file, 2026-10-06]. By group: 2,913 engine tests (496
   of them comparing against upstream reference renders and their controls,
-  157 for the arpeggiator, 147 for modulation), 557 for the sequencer core,
-  440 for the virtual FM-1 and its sequencer UI, 79 for the tools, the
-  dongle, the SDK link audit, the package guard and the boot bridge, and 13
-  for the manual. CI runs the suite on Linux and macOS, runs the engine,
-  sequencer and simulator tests again as a 32-bit build and under ASan +
-  UBSan, builds the dongle's UF2, runs AL-255's suite on our fork
-  (`.github/workflows/ci.yml`), and builds the site and manual on pull
+  209 for the arpeggiator and the MIDI-effect host, 164 for modulation), 557
+  for the sequencer core, 468 for the virtual FM-1 and its sequencer UI, 79
+  for the tools, the dongle, the SDK link audit, the package guard and the
+  boot bridge, and 13 for the manual. CI runs the suite on Linux and macOS,
+  runs the engine, sequencer and simulator tests again as a 32-bit build and
+  under ASan + UBSan, builds the dongle's UF2, runs AL-255's suite on our
+  fork (`.github/workflows/ci.yml`), and builds the site and manual on pull
   requests (`pages.yml`). CI does not run Movy; it replays the oracle's
   committed fixtures.
 - **Where the repo lives:** `~/Developer/mvave-fm1-firmware` on the owner's
@@ -136,8 +137,6 @@ so it is always written in full.
   - The cloud session's stray branch `claude/mvave-fm1-open-firmware-ly2w6u`
     on `ip2k/busybar-dual-timer` was deleted on 2026-09-06.
 - **Open pull requests** at 2026-10-05:
-  - #69, the arpeggiator as the first MIDI effect, on the ARP button;
-    waiting for the owner.
   - #58, the lagging docs that this refresh listed, fixed (§5 item 8);
     waiting for the owner.
   - Echomatter closed #1 on 2026-10-05 and offered to coordinate, saying
@@ -153,7 +152,7 @@ so it is always written in full.
 | `notes/` | Bench session 1 and the research log (2026-09-06), the desk review (09-08), FM-1+VA and the PCB photos (09-29), the CHOMPI, monome/O&C and arp/modulation/effects studies (10-01), the delay/reverb/EQ/gates and filters/dynamics options and the JieLi compile check (10-02), the community firmware and current SDK study and the soft-key/eFuse study with its draft test plan (10-05), the UI audit of the FM-1 screen with mockups in `assets/ui-audit/` (10-06), `upstream-candidates.md` | |
 | `engines/` | The engine platform: a C API with no heap (v3 since #57), seven sound engines (Drums since #59, FM6 on msfa since #60) and 22 effects (Squash and Transient since #66) plus test entries, the Schwung shim, the desktop renderer `fm1-render`, reference renderers | `engines/README.md` |
 | `engines/seq/` | `fm1_seq`, the sequencer core (docs/13 M1), and the host bridge that `fm1-render` and the simulator share (#25): about 6,000 lines of C99 | `engines/seq.md` |
-| `engines/mod/`, `engines/midi_fx/` | The modulation runtime: a rack of modules inside a 32-slot matrix, 16 kinds, per-voice since MG9 (MG1–MG3, MG9); `fm1_arp`, the arpeggiator core, built but not wired | `engines/mod/README.md`, docs/16; `engines/midi_fx/README.md` |
+| `engines/mod/`, `engines/midi_fx/` | The modulation runtime: a rack of modules inside a 32-slot matrix, 16 kinds, per-voice since MG9 (MG1–MG3, MG9); `fm1_arp`, the arpeggiator, the first MIDI effect: up to four run in front of each sound, and the ARP button opens it (#69) | `engines/mod/README.md`, docs/16; `engines/midi_fx/README.md` |
 | `sim/web/` | The virtual FM-1: the app layer in WebAssembly behind a to-scale panel, with the firmware's own screen; the built module is committed. Rebuilt and checked in containers on a Docker host (`FM1_SIM_HOST`) | `sim/web/README.md` |
 | `manual/`, `tools/manual/` | The user manual, generated from the code and published with its PDF to Pages | `manual/README.md` |
 | `tools/` | The read-only identity query (`fm1_identify.py`, verified on hardware), the msfa table finder, the `.fwsc` carver, `seq_bench.py`, `movy-oracle/` (Movy's own `seq-core` in containers, `MOVY_ORACLE_HOST`), `jieli/` (the pi32v2 compile check in a container, `FM1_JIELI_HOST`; the link audit and package guard that trap 11 requires; the SDK's sparse-clone list) | `CLAUDE.md` "Commands" |
@@ -353,10 +352,10 @@ so it is always written in full.
 7. Owner questions still open in the docs: docs/15 §8 and docs/16 §8–§9
    list them, but most were answered on 2026-10-05 (§3); check the
    decisions file before asking.
-8. Engines (engines/README.md "Open questions and next steps"): Braids
-   faults at extreme settings, Six-Op's polarity, effects at native rates,
-   the resampler's cost on pi32v2, and a review of Six-Op's patch data
-   before anything commercial; PSX Verb's preset provenance before shipping
+8. Engines (engines/README.md "Open questions and next steps", and FM6's
+   own list in `engines/msfa.md`): Six-Op's polarity, effects at native
+   rates, the resampler's cost on pi32v2, and a review of Six-Op's patch
+   data before anything commercial; PSX Verb's preset provenance before shipping
    (`engines/third_party/schwung-modules/psxverb/UPSTREAM.md`).
 9. Any GPL-only Dexed code in the stock image (licensing lever)?
 
@@ -380,15 +379,15 @@ sequencer, multi-sound and modulation made public (#55), Drums (#59), FM6 on
 msfa with its tables in flash and DX7 patch loading (#60, #65), new
 screenshots (#61), the owner's new README opening and the rest of the README
 brought up to date (#62, #63), the simulator's list popups (#64), dynamics
-pack 3 (#66), a UI audit of the screen (#67) and idle paths for EQ,
-Isolator and Master Sat (#70) (10-01 to 10-06). The
-CHANGELOG has the detail.
+pack 3 (#66), a UI audit of the screen (#67), idle paths for EQ, Isolator
+and Master Sat (#70), the arpeggiator on the ARP button (#69) and Shapes
+held inside what Braids' code handles (#71) (10-01 to 10-06). The CHANGELOG
+has the detail.
 
 Now, roughly in order:
 
-1. **Open PRs** (§1): #58 (docs) and #69 (the arpeggiator) wait for the
-   owner; Echomatter's offer on #1 needs an
-   answer.
+1. **Open PRs** (§1): #58 (docs) waits for the owner; Echomatter's offer on
+   #1 needs an answer.
 2. **ip2k/lunar-modulator#2**, if the owner chooses to answer it from the
    draft; and issue #53 (iOS Safari).
 3. **When the dev kit and JieLi's updater arrive**, docs/14 §5's first week:
@@ -404,14 +403,14 @@ Now, roughly in order:
    allow writing anything. A dump taken now captures FM-1+VA (§1).
 5. **The owner's 2026-10-05 build plan** (in the decisions file, §3; not yet
    in DEVELOPERS.md). API v3 came first (#57). Then engine and effect lanes
-   in parallel: a third dynamics pack (done, #66), idle paths (done, #70), the
-   Shapes wrapper clamp, a per-voice filter kernel, engine glide, tempo
-   delays. Now that #55 has merged, one at a time because they share
-   `fm1_app.c`: MG9 (per-voice modulation) and the MG3 follow-ups (done,
-   #68); the master chain; the side-chain; S9 and S10 (docs/15 §5); the arp
-   and MIDI effects (the arp is in #69, open). Then the GPL switch with the
-   first GPL modules (Grids and Branches originals, docs/12 §6); later a
-   subtractive engine, Rings/Elements and more reverbs.
+   in parallel: a third dynamics pack (done, #66), idle paths (done, #70),
+   the Shapes wrapper clamp (done, #71), a per-voice filter kernel, engine
+   glide, tempo delays. Now that #55 has merged, one at a time because they
+   share `fm1_app.c`: MG9 (per-voice modulation) and the MG3 follow-ups
+   (done, #68); the master chain; the side-chain; S9 and S10 (docs/15 §5);
+   the arp and MIDI effects (the arpeggiator landed in #69). Then the GPL
+   switch with the first GPL modules (Grids and Branches originals, docs/12
+   §6); later a subtractive engine, Rings/Elements and more reverbs.
 6. **Sequencer leftovers:** undo and the command ring wait for M4 (the 2
    xfails); stages C and D run on the FM-1 after the dump and restore.
 7. **The owner's calls, all unsent:** the 2026-09-29 email to Baud Girl and
@@ -425,12 +424,11 @@ Now, roughly in order:
    maintainers (a third party commented on AL-255/FM-1-RE#3 on
    2026-09-12).
 8. **Docs that lag behind**, found during this refresh, are being fixed in
-   #58, with other copies of the same facts. README's "Repository history"
-   had already gone (`2c78343`), and #63 brought the rest of the README up
-   to date. Left after #58: manual chapters 03 and 10 (after #55),
-   the GitHub repository description, which still ends "Research stage;
-   nothing flashed" (outward-facing: the owner's call), and AGENTS.md, which
-   lacks CLAUDE.md's "GPL switch" paragraph.
+   #58, including AGENTS.md's "GPL switch" paragraph and the manual's line
+   on the open dongle. #61 and #63 brought the README and the manual's
+   encoder line up to date, and the repository description was updated on
+   2026-10-05 (it still says "Movy-style sequencer"). When #58 merges, this
+   item can go.
 9. **The dead-code audit is far past due** (`CLAUDE.md` → Conventions; a
    branch `chore/2026-10-05@dead-code-audit` exists for it, with no commits
    yet). The mark is 7,463 lines (2026-09-30); `sim/` and, since #56,
