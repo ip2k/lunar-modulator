@@ -108,6 +108,8 @@ async function filesChecks() {
   r.title = await page.evaluate(() => window.fm1.files.title);
   // The same sound over First orbit does not fit: refused, nothing changed.
   const before = await project(page);
+  const recentCount = () => page.evaluate(async () => (await window.fm1.files.store.all('recent')).length);
+  const recentBefore = await recentCount();
   await drop(page, example('deep-bass.sound.lunar'), 'deep-bass.sound.lunar');
   await page.waitForSelector('#target-card:not([hidden])');
   await page.selectOption('#target-into', '1');
@@ -115,7 +117,7 @@ async function filesChecks() {
   await waitNotice(page, /was not loaded/);
   r.refusal = await notice(page);
   r.refuse_colour = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--rp-love').trim());
-  r.unchanged = (await project(page)) === before;
+  r.unchanged = (await project(page)) === before && (await recentCount()) === recentBefore;
   await page.screenshot({ path: join(out, 'files-02-refused.png') });
   // The worker path: every load went to the worklet as binary; JSON sent
   // straight to the worklet is refused there.
@@ -167,7 +169,18 @@ async function filesChecks() {
   await waitNotice(again, /was undone/);
   r.undo_identical = (await project(again)) === edited;
   r.recent_after = await again.evaluate(async () => (await window.fm1.files.store.all('recent')).map((x) => x.name));
+  await again.evaluate(() => { window.fm1.files.touched(); return window.fm1.files.autosave(); });
+  const kept = await project(again);
   await again.close();
+  // A refused link over that work: the work comes back, Recent is as it was.
+  const broken = deflateRawSync(Buffer.from('{"lunar":"1.0","kind":"project","title":"Broken"'))
+    .toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const third = await open(ctx, `${url}#lunar=${broken}`);
+  await powerOn(third);
+  await waitNotice(third, /was not loaded/);
+  r.link_refused_kept = (await project(third)) === kept &&
+    (await third.evaluate(async () => (await window.fm1.files.store.all('recent')).length)) === r.recent_after.length;
+  await third.close();
   await ctx.close();
   r.pass = r.open_enabled_off && r.save_disabled_off &&
     r.save_names[0] === 'untitled.lunar' && /^untitled-s1\.sound\.lunar$/.test(r.save_names[1]) &&
@@ -181,7 +194,7 @@ async function filesChecks() {
     r.json_to_worklet.ok === false && r.json_to_worklet.binary === false &&
     r.saved.length === 1 && r.saved[0][0] === 'First orbit' && r.saved[0][1] === 0x89 &&
     r.autosave_timer && r.recent.includes('Before First orbit') && r.restored && r.fx_changed && r.undo_identical &&
-    r.recent_after.includes('Before Space verbs');
+    r.recent_after.includes('Before Space verbs') && r.link_refused_kept;
   return r;
 }
 
@@ -192,7 +205,7 @@ async function loadLinkChecks() {
   const bad = ['../fm1.wasm.json', 'fm1.wasm.json', 'schema/x.lunar', 'examples/../index.lunar',
     'examples%2F..%2Ffirst-orbit.lunar', 'examples/%2e%2e/first-orbit.lunar', '//lunar.test:8766/examples/first-orbit.lunar',
     'http://lunar.test:8766/examples/first-orbit.lunar', 'examples//first-orbit.lunar', 'examples/first-orbit.lunar?x=1',
-    'examples\\first-orbit.lunar', 'javascript:alert(1)', 'examples/First-Orbit.lunar', 'examples/first-orbit.txt'];
+    'examples\\first-orbit.lunar', 'javascript:alert(1)', 'data:text/plain,examples/x.lunar', 'examples/First-Orbit.lunar', 'examples/first-orbit.txt'];
   for (const path of bad) {
     const page = await ctx.newPage();
     const requests = [];

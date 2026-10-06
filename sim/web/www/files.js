@@ -440,8 +440,6 @@ export function initFiles(env) {
       if (o.ui) refused(rep, bytes, { ...o, d, target });
       return { ok: false, report: rep };
     }
-    let before = live;
-    if (f.skipBefore) { before = f.skipBefore; f.skipBefore = null; } else if (o.before !== false) await addRecent(`Before ${d.title}`, live);
     const l = await worklet({ type: 'state-load', bytes: c.bin, kind: 0, into: target.into, slot: target.slot,
       flags: flags | (o.quiet ? FLAG_QUIET : 0) }, [c.bin.buffer]);
     f.workletLoads.push({ binary: l.binary === true, ok: l.ok === true });
@@ -450,8 +448,13 @@ export function initFiles(env) {
       if (o.ui) refused(rep, bytes, { ...o, d, target });
       return { ok: false, report: rep };
     }
+    // Recent gets "Before …" only once the load has happened: a refused
+    // load changes nothing, Recent included.
+    if (o.before !== false) {
+      await addRecent(`Before ${d.title}`, live);
+      f.undo = { bin: live, title: d.title };
+    }
     if (kind === 'project') setTitle(d.title);
-    if (o.before !== false) f.undo = { bin: before, title: d.title };
     touched();
     if (o.ui) {
       notice('loaded', loadedText(rep, d, targetText(kind, target)), subText(rep),
@@ -726,7 +729,6 @@ export function initFiles(env) {
       const r = await openBytes(p.bytes, p.name, { target, d: p.d, ask: p.reply ? false : undefined });
       if (r && r.ok) await applyHints(p.hints);
       if (p.reply) p.reply({ ok: !!(r && r.ok), report: r && r.report });
-      f.skipBefore = null;
     }
     showArrival();
   }
@@ -742,15 +744,10 @@ export function initFiles(env) {
     showArrival();
     const saved = await store.get('autosave', 'project');
     if (pending.length) {
-      // A link over the user's work (ST14): a project replaces it, so the
-      // autosave goes to Recent unloaded; anything else loads into it.
-      const first = pending[0];
-      if (saved && first.d.kind === 'project') {
-        await addRecent(`Before ${first.d.title}`, saved.bin);
-        f.skipBefore = saved.bin;
-      } else if (saved) {
-        await restore(saved, true);
-      }
+      // A link over the user's work (ST14): the work comes back first, so a
+      // project from the link leaves it in Recent as "Before …" and a
+      // refused link leaves it playing, unchanged.
+      if (saved) await restore(saved, true);
     } else if (saved) {
       await restore(saved, false);
     }
