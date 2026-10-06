@@ -9,6 +9,39 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Modulation per voice.** A modulation cable can now run once for every
+  note: each note of a chord gets its own envelope, LFO or random source,
+  which moves that note alone. In the matrix, turn KNOB4 on page B past
+  *On* to *On per voice* (the row shows `v`).
+  - Inside such a cable VEL, NOTE and RAND are that note's own velocity,
+    pitch and random value, and KEY, TRIG and RTRG its own gate and
+    trigger; so are the note's own sound's sources (S1VEL on Sound 1, say).
+    An Envelope, LFO or Chance module it reads runs one copy per note,
+    starting with that note; an envelope's gate with no cable is the note's
+    own. Notes already held when a cable goes per voice join it at their
+    next note-on.
+  - It reaches the parameters a sound keeps for each note (Timbre, Color,
+    Brightness, Volume and others) and each note's own pitch, on Macro,
+    Macro Heavy, Shapes, Six-Op FM, FM6 and Drums. Into an effect, the
+    level, a parameter every note shares or a sound without per-note
+    control it is refused (`!`), so a per-note signal never moves
+    everything.
+  - Up to twelve notes at once across the sounds, the engines' own
+    polyphony; the rack's line shows how many (`v3`). Per-voice modules
+    live in the rack's 8 KB memory; the modulation runtime grows by 3 KB,
+    to 26 KB, in the RAM meter.
+  - Cables at 0 % change nothing, bit for bit; the output is the same at
+    any audio block size, and the browser plays it as the desktop does (a
+    new parity scenario, 76 of 76 pass; the browser module grew from
+    851 KB to 887 KB).
+- **A pitch destination per sound.** The host's group in the destination
+  picker lists *Pitch* (Sound 1), *Pitch2* to *Pitch4* (Sounds 2–4), each
+  on top of that sound's pitch bend, and *PitchC*, which bends whichever
+  sound is current and follows it when you change sounds.
+- **Note sources of one sound.** After SQV8 the source list offers
+  S1NOTE–S4NOTE, S1VEL–S4VEL, S1KEY–S4KEY, S1TRIG–S4TRIG and
+  S1RTRG–S4RTRG: the same as NOTE, VEL, KEY, TRIG and RTRG, but for one
+  sound's notes alone, so an envelope can follow only the bass, say.
 - **Load DX7 patches in the simulator.** A new button under the panel,
   *Load DX7 patches…*, takes `.syx` files, and so does dropping files
   anywhere on the page. A bank fills FM6's User 1 to 32, single voices go
@@ -1136,6 +1169,16 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **An envelope with no gate cable restarts at every note**, a note played
+  over a held one included (it followed the legato key gate before). A
+  cable from KEY still makes it legato.
+- **When a sound's engine changes, its cables follow by name.** A cable
+  into Timbre stays on Timbre from Macro to Shapes; one whose parameter the
+  new engine lacks switches off, keeps its old name in the matrix (*Off:
+  target gone*) and comes back on when an engine that has it returns. The
+  same holds for effects.
+- **The rack's Filter module is now the Resonator (RES)**, so that Filter
+  names the audio effect alone. Older scripts that say `filter` still load.
 - **FM6 needs 28.7 KB less memory on the FM-1.** msfa's sine, exponential
   and frequency tables, which it used to compute into RAM at start-up, are
   now built ahead of time as constant data, which the FM-1 keeps in flash;

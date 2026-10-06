@@ -29,7 +29,7 @@ MODC_SRC := mod/mod_core.c mod/mod_plan.c mod/mod_registry.c mod/mod_curves.c mo
             mod/kinds/mod_function.c mod/kinds/mod_bounce.c mod/kinds/mod_register.c \
             mod/kinds/mod_coin.c mod/kinds/mod_divide.c mod/kinds/mod_burst.c \
             mod/kinds/mod_slew.c mod/kinds/mod_quantize.c mod/kinds/mod_compare.c \
-            mod/kinds/mod_logic.c mod/kinds/mod_calc.c mod/kinds/mod_mix.c mod/kinds/mod_filter.c
+            mod/kinds/mod_logic.c mod/kinds/mod_calc.c mod/kinds/mod_mix.c mod/kinds/mod_resonator.c
 MODC_OBJ := $(patsubst %.c,$(BUILD)/mod/%.o,$(MODC_SRC))
 # fm1-render's text format for racks and slots (host code: stdio allowed).
 MOD_SCRIPT_OBJ := $(BUILD)/c/host/mod_script.o
