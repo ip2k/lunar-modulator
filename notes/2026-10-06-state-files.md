@@ -1811,7 +1811,14 @@ branch, unless marked.
   export imports back to itself, and a file's set lines streamed record by
   record give the set their text gives. Clean after the `#UID` fix: 368,375
   inputs accepted (117,774 of them binary), 3,582,058 imported as sets and
-  41,748 files' sets streamed.
+  41,748 files' sets streamed. Then libFuzzer (clang 18, ASan and UBSan,
+  12 forks on a Linux host) from the same 32 seeds: 12.4 million runs in
+  15 minutes, coverage still creeping up (10,048 edges), nothing found.
+- JSONTestSuite (nst/JSONTestSuite at `1ef36fa`) still behaves as §20 says.
+- The full suite in CI mode: 4,425 passed, 12 skipped (clones and a
+  package not on this machine: Movy, mi-eurorack, the stock package, the
+  `markdown` module, palette v2, JSONTestSuite, run apart above), 2 xfailed
+  (Movy's undo, not ported).
 - The module (`fm1.wasm`) was rebuilt from the joined tree on aeon: parity
   86 of 86 (identical to the JS reference and to musl on all, to glibc on
   83, as before), and the headless page check passes.
