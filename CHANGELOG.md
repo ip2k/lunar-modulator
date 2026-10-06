@@ -58,7 +58,7 @@ history.
     Gillet; the rim shot, clap, cowbell and cymbals are new, after
     published studies of the analogue circuits.
   - It plays the same, sample for sample, in the browser as on the
-    desktop, and fits in about 8 KB.
+    desktop, and fits in about 7 KB.
 - **The virtual FM-1's keys play any drum kit's pads:** with Sophie or
   Drums as the current sound, the sixteen white keys play the sixteen pads
   at any octave. Step recording, and adding a pitch to a held step with
@@ -1081,6 +1081,24 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **New pictures of the virtual FM-1, and a manual brought up to date with
+  it.**
+  - The README's picture and the phone picture show the page as it is now:
+    a chord over the demo pattern, with an LFO cabled to Timbre and the
+    memory meter on the screen. They no longer show the old memory figure
+    in KB, and REC no longer blinks in them for notes waiting for Capture.
+    The rest of the screen pictures are retaken from the same build, and
+    there are new ones of Drums, the sequencer's Track view and the
+    modulation matrix.
+  - The manual shows those three screens. It names Drums and the four
+    Plaits-based engines wherever the rate rule applies, and lists Comb and
+    Test Ext and the new `--tempo` option among the desktop tools' options.
+    It explains that frequency and time knobs turn in ratios and that
+    modulation moves them in octaves, and that the sequencer's locks reach
+    only the sounds so far. Its memory table matches the build: Filter is
+    under 1 KB, Comb 17 KB, the Limiter 11 KB. It credits the modulation
+    modules and Comb, and the open FM-1 firmware projects whose reports it
+    now uses.
 - **The sequencer, four sounds at once and modulation are on the virtual
   FM-1's public page.** The lab switch is gone: the page no longer needs
   `?lab` in its address (an old `?lab` link opens the same page), and

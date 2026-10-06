@@ -46,18 +46,19 @@ means the work of others who have studied the FM-1, credited in
 ### Engines and effects in figures
 
 Memory is given as a 32-bit build lays it out, as in the simulator and on the
-FM-1. The screen's memory figure adds up these numbers for the chain in use,
-and is the one to trust if the two ever differ.
+FM-1. The memory meter on the screen adds up these numbers for the chain in
+use, with the sequencer's and modulation's own, and is the one to trust if
+the two ever differ.
 
 | Engine or effect | Voices | Memory, about |
 | --- | --- | --- |
-| Macro | 12 | 18 KB |
-| Macro Heavy | 4 | 69 KB |
+| Macro | 12 | 19 KB |
+| Macro Heavy | 4 | 70 KB |
 | Six-Op FM | 8 | 11 KB |
-| FM6 | 12 | 14 KB, and 28 KB of tables shared by every FM6 sound |
-| Shapes | 12 | 201 KB |
+| FM6 | 12 | 15 KB, and 28 KB of tables shared by every FM6 sound |
+| Shapes | 12 | 202 KB |
 | Sophie | 12 | 76 KB |
-| Drums | 12 | 8 KB |
+| Drums | 12 | 7 KB |
 | Test Sine | 12 | under 1 KB |
 | Plate | – | 64 KB |
 | Ensemble | – | 5 KB |
@@ -67,9 +68,10 @@ and is the one to trust if the two ever differ.
 | Fold | – | under 1 KB |
 | Drive | – | under 1 KB |
 | Echo | – | 64 KB |
-| Filter | – | 18 KB |
+| Filter | – | under 1 KB |
+| Comb | – | 17 KB |
 | Comp | – | under 1 KB |
-| Limiter | – | 9 KB |
+| Limiter | – | 11 KB |
 | DJ Filter | – | under 1 KB |
 | Tilt | – | under 1 KB |
 | Master Sat | – | under 1 KB |
@@ -79,6 +81,7 @@ and is the one to trust if the two ever differ.
 | Hall | – | 49 KB |
 | Gate | – | 2 KB |
 | Test Gain | – | under 1 KB |
+| Test Ext | – | under 1 KB |
 
 ### The sequencer
 
@@ -110,7 +113,7 @@ and is the one to trust if the two ever differ.
 | Output | Audio only. It sends no MIDI |
 | Screen | The firmware's 240 × 240 screen, redrawn up to about 30 times a second while sound plays |
 | Panel | To scale, 161.5 × 96.5 mm. On narrow screens it keeps a width of 800 pixels and scrolls sideways |
-| Download | About 730 KB for the firmware, plus the page; nothing is loaded from other websites |
+| Download | About 770 KB for the firmware, plus the page; nothing is loaded from other websites |
 
 ## The desktop tools
 

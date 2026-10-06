@@ -79,7 +79,7 @@ simulator instead.
 
 The research docs' confidence marks (`[verified]`, `[reported]`,
 `[inferred]`) stay out of the prose; the statuses carry that for functions,
-and chapter 12's *source* column for the instrument's figures. Only write what
+and chapter 13's *source* column for the instrument's figures. Only write what
 the docs or the code support; when they do not yet, write an outline box.
 
 The build also refuses private network addresses, home-directory paths,

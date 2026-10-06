@@ -24,7 +24,7 @@ those messages so you can search for them.
 | Symptom | Likely cause | What to do |
 | --- | --- | --- |
 | The screen says an engine *refuses* a rate, and the previous one comes back | As above: the audio runs faster than 47,872 Hz | Set the output to 44.1 kHz and reload |
-| Sophie is silent on the black keys | With Sophie as the current sound, the white keys play her 16 pads and the black keys nothing | Play the white keys ([chapter 5](05-sound-engines.md#sophie)) |
+| Sophie or Drums is silent on the black keys | With a drum kit as the current sound, the white keys play its 16 pads and the black keys nothing | Play the white keys ([chapter 5](05-sound-engines.md#sophie)) |
 | A note keeps sounding | A key release was lost, for example when the window lost focus | Press <kbd>Esc</kbd>, or send CC 123 from a MIDI keyboard |
 | The computer keys play nothing | A dropdown under the panel has the keyboard's focus, a modifier key such as Ctrl, Alt or Cmd is down, or the page is not in front | Click the panel's case once, release the modifier keys, then play |
 | The computer keys play the wrong notes | The keyboard layout is not QWERTY | The keys work by position: play the keys that sit where a QWERTY keyboard has <kbd>A</kbd> to <kbd>L</kbd> and the keys after it ([chapter 2](02-getting-started.md#the-browser-simulator)) |
