@@ -9,6 +9,26 @@ history.
 ## [Unreleased]
 
 ### Added
+- **A study of fm1-x0x, and of Felucca's other engines**, in
+  `notes/2026-10-06-fm1-x0x.md`. fm1-x0x is new open firmware for the FM-1
+  with drum kits after the TR-909 and TR-808, basses after the TB-303 and
+  the TB-3PO acid generator. Nothing is ported yet; the note proposes the
+  order:
+  - **Engines to bring in first, behind the GPL switch:** the 303-style
+    bass, TB-3PO as a MIDI effect, then the two kits as 16-pad kits beside
+    our own Drums.
+  - **Four of Felucca's engines after them:** a drawbar organ, a
+    three-oscillator chip voice, a slicer and phase distortion.
+  - **Engines, effects and assets kept out:** the breakbeat generator,
+    whose upstream has no licence (the note drafts a request to its
+    author, for the owner to send); the 909's send effects; and the
+    break recordings.
+  - **Proposed names** of our own (Comet Kit, Crater Kit, Acid Bass, Acid
+    Gen, Drawbar, Trio, Chop, Phase Bend) for the owner to choose from.
+  - **Hardware facts reported by fm1-x0x:** the FM-1 measured at 360 MHz;
+    its audio clock near 44,145 Hz; a float divide by zero can crash the
+    chip when its trap is on; a flash erase silences the audio.
+  - **Lessons for saved state, the song list, knob motion and undo.**
 - **Glide and mono playing on Macro, Macro Heavy, Six-Op FM, FM6 and
   Shapes.** Two new parameters on each:
   - **Glide** (1 ms to 5 s): a note you play while holding another slides
