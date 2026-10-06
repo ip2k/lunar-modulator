@@ -413,7 +413,10 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     """Every page of every engine (HOME) and effect (on both master slots),
     at defaults, minima, maxima and each list entry, the global page and
     every popup (the refusals, the SAVE and ARP stubs and an emptied slot
-    included): no text off screen or cut short, and no two labels, or a
+    included), and every list popup at every entry (ALGORITHM through each
+    sound's list, Six-Op FM's 96 patches the longest, PRESETS through the
+    engines, ALGORITHM in FX mode through the effects, the kind picker and
+    the destination picker), each one's window checked: no text off screen or cut short, and no two labels, or a
     label and a bar, closer than 4 px (FM1_APP_LAYOUT_GAP). SEQ mode's Track view:
     empty, the demo pattern, the playhead on its first and last step, 20 and
     300 BPM playing and stopped, a four-bar clip, a loop inside it, a track
@@ -465,12 +468,14 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 2338            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["screens"] >= 3080            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
     #                                              1321 before the master-bus pack (1458), 2189 with modulation
     #                                              (docs/16 MG3) before Room, Hall, Gate and Plate's Freeze, 2325
     #                                              with them and 2366 with Comb and Test Ext (engine API v3), in
-    #                                              the lab switch's two sets of screens
+    #                                              the lab switch's two sets of screens; 2695 before every
+    #                                              list popup's every entry, 3040 before FM6's user bank
+    #                                              (both 2026-10-06)
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 
@@ -701,9 +706,13 @@ def test_a_bank_fills_the_user_slots_with_their_names(tools, tmp_path):
 
 def test_turning_algorithm_names_the_loaded_voice(tools, tmp_path):
     """The Patch list shows the loaded voices' names: ALGORITHM from User 9
-    to User 10 puts up LUNAR 10."""
+    to User 10 puts up the Patch list with LUNAR 10 chosen, among its
+    neighbours' names."""
     s = dx7_run(tools, tmp_path, [bank()], "--param", "Patch=40", "--turn", "0.05:ALGORITHM:1")
-    assert s["popup"] == ["Patch", "LUNAR 10"]
+    lst = s["popup_list"]
+    assert (lst["title"], lst["total"]) == ("Patch", 64)
+    assert s["popup"][lst["mark"]] == "LUNAR 10"
+    assert s["popup"] == [lunar(k) for k in range(lst["first"] - 32, lst["first"] - 32 + len(s["popup"]))]
     assert s["values0"][0] == 41
 
 
@@ -790,7 +799,8 @@ def test_an_fm6_made_after_a_load_plays_the_bank(tools, tmp_path):
     first = run(tools["sim"], ["--engine", "dx7", "--sysex", str(path), "--turn", "0.01:ALGORITHM:52",
                                "--note", "0.05:60:100:0.2", "--seconds", "0.4", "--out", str(tmp_path / "b.wav")])
     assert later["engine"] == "dx7" and later["values0"][0] == 52 and later["peak"] > 0.01
-    assert later["popup"] == ["Patch", "LUNAR 21"]
+    assert later["popup_list"]["title"] == "Patch"
+    assert later["popup"][later["popup_list"]["mark"]] == "LUNAR 21"
     assert (tmp_path / "a.wav").read_bytes() == (tmp_path / "b.wav").read_bytes()
     assert first["peak"] == later["peak"]
 

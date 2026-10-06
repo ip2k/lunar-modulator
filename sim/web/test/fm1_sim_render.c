@@ -592,7 +592,9 @@ static void dx7_screens(const char *dir) {
   }
   fm1_app_encoder(&g_app, FM1_ENC_ALGORITHM, -1);          /* the popup names it */
   check_screen("dx7-popup-algorithm-user", dir, 1);
-  expect(strcmp(g_app.popup[1], fm1_app_dx7_name(&g_app, 30)) == 0, "ALGORITHM's popup names User 31");
+  expect(g_app.popup_total == FM1_APP_DX7_PATCHES && g_app.popup_mark >= 0 &&
+         strcmp(g_app.popup[g_app.popup_mark], fm1_app_dx7_name(&g_app, 30)) == 0,
+         "ALGORITHM's popup names User 31");
   g_app.popup_lines = 0;
   fm1_app_button(&g_app, FM1_BTN_SEQ, 1);                  /* SEQ mode's hint line */
   fm1_app_button(&g_app, FM1_BTN_SEQ, 0);
@@ -645,6 +647,33 @@ static void expect(int ok, const char *what) {
     fprintf(stderr, "screens: %s\n", what);
     ++g_faults;
   }
+}
+
+/* The open popup is a list `title` (NULL: any) with entry `sel` of `total`
+ * chosen, in the window fm1_list_first gives: the choice on the third row
+ * where it can be, the window never past either end. */
+static void expect_window(const char *what, const char *title, int total, int sel) {
+  const int first = fm1_list_first(total, sel, FM1_LIST_ROWS);
+  const int rows = total - first < FM1_LIST_ROWS ? total - first : FM1_LIST_ROWS;
+  if (g_app.popup_total != total || g_app.popup_first != first || g_app.popup_lines != rows ||
+      g_app.popup_mark != sel - first || (title && strcmp(g_app.popup_title, title) != 0)) {
+    fprintf(stderr,
+            "screens: %s: list \"%s\" %d of %d from %d, %d lines (want \"%s\" %d of %d from %d, "
+            "%d lines)\n", what, g_app.popup_title, g_app.popup_first + g_app.popup_mark,
+            g_app.popup_total, g_app.popup_first, g_app.popup_lines, title ? title : "*", sel,
+            total, first, rows);
+    ++g_faults;
+  }
+}
+
+/* Saved as NAME-top, -middle and -end: the list's first, a middle and its
+ * last entry. */
+static void check_list_screen(const char *name, const char *dir, int k, int total, int save) {
+  char path[128];
+  const char *at = k == 0 ? "top" : (k == total / 2 ? "middle" : (k == total - 1 ? "end" : NULL));
+  if (at) snprintf(path, sizeof path, "%s-%s", name, at);
+  else snprintf(path, sizeof path, "%s-%d", name, k);
+  check_screen(path, dir, save && at != NULL);
 }
 
 /* Render until the focused clip's playhead reaches `step` (at most ~10 s). */
@@ -1737,7 +1766,8 @@ static void multi_screens(const char *dir, float rate) {
   press(FM1_BTN_HOME);
   /* SHIFT + PRESETS: Sound 2, empty; PRESETS walks Empty and the sounds. */
   shift_presets(1);
-  expect(g_app.sound == 1 && g_app.popup_lines == 3, "SHIFT + PRESETS does not choose Sound 2");
+  expect(g_app.sound == 1, "SHIFT + PRESETS does not choose Sound 2");
+  expect_window("SHIFT + PRESETS", "Sound", FM1_APP_SOUNDS, 1);
   check_screen("multi-popup-sound-2-empty", dir, 1);
   g_app.popup_lines = 0;
   check_screen("multi-home-empty-sound", dir, 1);
@@ -1864,6 +1894,76 @@ static void multi_screens(const char *dir, float rate) {
     expect(fm1_app_select(&g_app, 1, big) == FM1_APP_SELECT_RAM, "a chain past the budget grew");
   }
   destroy_units();
+}
+
+/* ---- --screens: list popups (PRESETS, ALGORITHM, the pickers) ---------- */
+
+/* Every list a turn opens, end to end: ALGORITHM through each sound
+ * engine's first list parameter (Six-Op FM's 96 patches the longest),
+ * PRESETS through the engines, and ALGORITHM in FX mode through the
+ * effects, each entry's window checked and drawn. */
+static void list_screens(const char *dir) {
+  char name[128];
+  g_app.mode = FM1_MODE_HOME;
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    const fm1_engine_t *e = fm1_engines[i];
+    int m = -1;
+    if (e->kind != FM1_KIND_SOUND || fm1_app_select(&g_app, 0, (int)i) != 0) continue;
+    for (uint16_t k = 0; k < e->n_params && m < 0; ++k) {
+      if (e->params[k].type == FM1_PARAM_ENUM) m = k;
+    }
+    if (m < 0) continue;
+    {
+      const fm1_param_t *p = &e->params[m];
+      const int n = (int)(p->max - p->min) + 1;
+      fm1_app_set_param(&g_app, 0, (uint16_t)m, p->min + 1.0f);
+      turn_now(FM1_ENC_ALGORITHM, -1);                 /* the top */
+      for (int k = 0; k < n; ++k) {
+        if (k) turn_now(FM1_ENC_ALGORITHM, 1);
+        snprintf(name, sizeof name, "list-%s", e->id);
+        expect_window(name, p->name, n, k);
+        check_list_screen(name, dir, k, n, strcmp(e->id, "sixop") == 0);
+      }
+      turn_now(FM1_ENC_ALGORITHM, 1);                  /* past the end: it stays there */
+      expect_window("ALGORITHM past the end", p->name, n, n - 1);
+    }
+  }
+  /* PRESETS: Sound 1's engines (no Empty), from the first to the last. */
+  {
+    int first = -1, n = 0, k = 0;
+    for (size_t i = 0; i < fm1_engine_count; ++i) {
+      if (fm1_engines[i]->kind != FM1_KIND_SOUND) continue;
+      if (first < 0) first = (int)i;
+      ++n;
+    }
+    fm1_app_select(&g_app, 0, first);
+    for (k = 0; k < n; ++k) {
+      turn_now(FM1_ENC_PRESETS, 1);
+      if (!k) turn_now(FM1_ENC_PRESETS, -1);           /* open it on the first */
+      expect_window("PRESETS", "Engine", n, k);
+      check_list_screen("list-presets", dir, k, n, 0);
+    }
+  }
+  /* ALGORITHM in FX mode, on M1 with a small sound: Empty, then every
+   * effect. */
+  fm1_app_select(&g_app, 0, fm1_app_find("test-sine"));
+  g_app.mode = FM1_MODE_FX;
+  g_app.fx_slot = 3;
+  g_app.fx_page = 0;
+  fm1_app_select(&g_app, 1, -1);
+  {
+    int n = 1;
+    for (size_t i = 0; i < fm1_engine_count; ++i) n += fm1_engines[i]->kind == FM1_KIND_AUDIO_FX;
+    for (int k = 0; k < n; ++k) {
+      turn_now(FM1_ENC_ALGORITHM, 1);
+      if (!k) turn_now(FM1_ENC_ALGORITHM, -1);         /* open it on Empty */
+      expect_window("ALGORITHM in FX mode", "M1 effect", n, k);
+      check_list_screen("list-fx", dir, k, n, 1);
+    }
+  }
+  fm1_app_select(&g_app, 1, -1);
+  g_app.mode = FM1_MODE_HOME;
+  g_app.popup_lines = 0;
 }
 
 /* ---- --screens: the modulation pages (docs/16 §5, stage MG3) ---------- */
@@ -2215,10 +2315,12 @@ static void mod_screens(const char *dir, float rate) {
   expect(g_app.mui.pos == 0 && g_app.mui.page == 0, "SELECT does not come back to the first");
   /* The kind picker on an empty position, and its commit after a second. */
   g_app.mui.pos = 6;
-  for (int k = 0; k < (int)fm1_mod_kind_count + 1; ++k) {
+  const int kinds = (int)fm1_mod_kind_count + 1;       /* Empty, then every kind */
+  for (int k = 0; k < kinds; ++k) {
     turn_now(FM1_ENC_ALGORITHM, 1);
     snprintf(name, sizeof name, "rack-picker-%d", k);
-    check_screen(name, dir, k == 0);
+    expect_window(name, "Mod7 kind", kinds, (k + 1) % kinds);       /* round to Empty at the end */
+    check_screen(name, dir, k == 0 || k == kinds / 2 - 1 || k == kinds - 2);
   }
   turn_now(FM1_ENC_ALGORITHM, 1);              /* round to the first kind again */
   settle();
@@ -2406,15 +2508,31 @@ static void mod_screens(const char *dir, float rate) {
   expect(g_app.mui.slot == 31 && g_app.mui.top == 25, "SELECT does not scroll to slot 32");
   check_screen("matrix-last", dir, 1);
   turn_now(FM1_ENC_SELECT, -64);
-  /* The destination picker: open, at both ends, a group jump. */
+  /* The destination picker: open, at both ends, a group jump, and every
+   * destination in turn, each one's window checked. */
   turn_now(FM1_ENC_KNOB2, 1);
   check_screen("matrix-picker", dir, 1);
   turn_now(FM1_ENC_KNOB2, -999);
-  check_screen("matrix-picker-first", dir, 0);
-  turn_now(FM1_ENC_ALGORITHM, 3);
-  check_screen("matrix-picker-group", dir, 1);
-  turn_now(FM1_ENC_KNOB2, 999);
-  check_screen("matrix-picker-last", dir, 0);
+  {
+    static fm1_mod_dest_t dl[FM1_MOD_UI_MAX_DESTS];
+    fm1_mod_ui_env_t denv;
+    int nd;
+    harness_mod_env(&denv);
+    nd = fm1_mod_ui_dests(&denv, dl, FM1_MOD_UI_MAX_DESTS);
+    expect_window("the destination picker's first", "Destination", nd, 0);
+    check_screen("matrix-picker-first", dir, 1);
+    turn_now(FM1_ENC_ALGORITHM, 3);
+    check_screen("matrix-picker-group", dir, 1);
+    turn_now(FM1_ENC_KNOB2, 999);
+    expect_window("the destination picker's last", "Destination", nd, nd - 1);
+    check_screen("matrix-picker-last", dir, 1);
+    turn_now(FM1_ENC_KNOB2, -999);
+    for (int k = 0; k < nd; ++k) {
+      if (k) turn_now(FM1_ENC_KNOB2, 1);
+      expect_window("the destination picker", "Destination", nd, k);
+      check_list_screen("matrix-picker-walk", dir, k, nd, 0);
+    }
+  }
   settle();
   /* CHAIN: SEL on the loop's cable and on a chain through three modules. */
   turn_now(FM1_ENC_SELECT, 2 - g_app.mui.slot);             /* slot 3: ENV3 EOC into CHN5 */
@@ -2504,6 +2622,8 @@ static int run_screens(const char *dir, float rate) {
   fm1_app_button(&g_app, FM1_BTN_OCT_DOWN, 0);
   fm1_app_master(&g_app, 0.8f, 1);
   check_screen("popup-volume", dir, 0);
+  list_screens(dir);
+  fm1_app_select(&g_app, 0, fm1_app_find("sixop"));
   for (int b = FM1_BTN_SAVE; b <= FM1_BTN_ARP; ++b) {   /* the buttons still to come */
     char name[64];
     fm1_app_button(&g_app, b, 1);
@@ -3786,6 +3906,12 @@ int main(int argc, char **argv) {
     printf(i ? ",\"%s\"" : "\"%s\"", g_app.popup[i]);   /* popups hold plain names */
   }
   printf("]");
+  if (g_app.popup_lines && g_app.popup_total > 0) {   /* a list's window: popup[0] is entry first */
+    printf(",\"popup_list\":{\"title\":\"%s\",\"first\":%d,\"total\":%d,\"mark\":%d}",
+           g_app.popup_title, g_app.popup_first, g_app.popup_total, g_app.popup_mark);
+  } else {
+    printf(",\"popup_list\":null");
+  }
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
     printf(",\"values%d\":[", u);
     const fm1_engine_t *e = g_app.unit[u].e;

@@ -86,7 +86,9 @@
  *
  * The screen is a 240 x 240 RGB565 frame buffer (fm1_tft.h) drawn with the
  * stock layout: a top bar with the sound's name, the mode's content, and a
- * bottom bar with page and mode, plus one-second popups.
+ * bottom bar with page and mode, plus one-second popups: a message, or a
+ * list (PRESETS, ALGORITHM, the modulation pickers) with its title, the
+ * chosen entry's place in it and as many entries as the middle holds.
  *
  * Instance memory lives in fixed arenas inside fm1_app_t (no heap), and the
  * screen shows how much of the stock layout's free RAM the chain would take.
@@ -313,8 +315,14 @@ typedef struct fm1_app {
   float mix[FM1_APP_SOUNDS][2 * FM1_APP_MAX_FRAMES];
   fm1_app_sink_ctx_t sink_ctx[FM1_APP_SOUNDS];
 
-  char popup[3][24];
+  /* The popup: up to three lines of a message, or a list's window (PRESETS,
+   * ALGORITHM, the pickers; fm1_panel.h): popup[0] is entry popup_first
+   * of popup_total under popup_title. popup_total is 0 for a message. */
+  char popup[FM1_LIST_ROWS][24];
   int popup_lines, popup_mark;   /* popup_mark: highlighted line, or -1 */
+  char popup_title[24];
+  int popup_first, popup_total;
+  uint32_t popup_dim;            /* a list's lines drawn dim (an Empty entry) */
   uint64_t popup_until;
 
   int dirty;                     /* screen content changed */
