@@ -203,3 +203,31 @@ def test_the_six_character_source_row_reads_apart(frames, colours):
     assert dst[0] - m[-1] - 1 >= 4
     assert dst[-1] == RIGHT - 1 or dst[-1] >= RIGHT - 2, dst[-1]   # "+100" ends at the margin
     assert all(p == base for line in row for p in line[RIGHT:])
+
+
+ROWS_TOP, BOTTOM_Y = 68, 216         # under FX mode's context line; the bottom bar
+
+
+def ink(img, colour, top, bottom):
+    return sum(p == colour for line in img[top:bottom] for p in line)
+
+
+def test_a_refused_cable_marks_nothing(frames, colours):
+    """Only a live cable marks its destination (the label in the
+    modulation colour and the bracket): M1's Mix, reached by one cable per
+    voice, which is refused (an effect is mono; MATRIX's `!`), is drawn as
+    any other row; the same cable made global marks it."""
+    foam = colours["foam"]
+    assert ink(ppm(frames / "fx-voice-refused-m1.ppm"), foam, ROWS_TOP, BOTTOM_Y) == 0
+    assert ink(ppm(frames / "fx-voice-global-m1.ppm"), foam, ROWS_TOP, BOTTOM_Y) > 0
+
+
+def test_glo_shows_memory_as_a_percentage_red_past_the_budget(frames, colours):
+    """GLO's RAM line is the meter's percentage (never kilobytes, owner
+    2026-10-06), in the refusal colour past 100 % as the meter is, and in
+    text below it."""
+    love, text = colours["love"], colours["text"]
+    line = (28 + 2 * 23, 28 + 2 * 23 + 18)       # the third line: Rate, Block, RAM
+    over, under = ppm(frames / "multi-global-over.ppm"), ppm(frames / "multi-global.ppm")
+    assert ink(over, love, *line) > 0 and ink(under, love, *line) == 0
+    assert ink(under, text, *line) > 0

@@ -626,14 +626,15 @@ int fm1_mod_ui_value(const fm1_mod_ui_env_t *env, unsigned pos, unsigned index, 
   return 1;
 }
 
-int fm1_mod_ui_routes(const fm1_mod_t *m, unsigned unit, uint16_t dst, int gate, float *depth) {
+int fm1_mod_ui_routes(const fm1_mod_t *m, uint32_t refused, unsigned unit, uint16_t dst, int gate,
+                      float *depth) {
   unsigned i;
   int n = 0;
   float d = 0.0f;
   for (i = 0; i < FM1_MOD_SLOTS; ++i) {
     fm1_mod_slot_t s;
     fm1_mod_get_slot(m, i, &s);
-    if (!(s.flags & FM1_MOD_SLOT_ON) || s.dst_unit != unit || s.dst != dst ||
+    if (!(s.flags & FM1_MOD_SLOT_ON) || ((refused >> i) & 1u) || s.dst_unit != unit || s.dst != dst ||
         ((s.flags & FM1_MOD_SLOT_GATE_DST) != 0) != (gate != 0)) {
       continue;
     }
