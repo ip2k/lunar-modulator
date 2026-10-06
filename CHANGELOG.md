@@ -2213,6 +2213,12 @@ history.
     and the bugs it found on the way.
 
 ### Fixed
+- **Sound on iPhones and iPads** ([#53](https://github.com/ip2k/lunar-modulator/issues/53)).
+  The simulator now plays through Silent mode, as a music app does (where
+  Safari lets a page ask for that: iOS 18 does), and starts its sound again after a call, Siri or another
+  app took the audio: the status line asks for a tap, and the next tap or
+  key starts it. A browser that holds the sound back at power-on no longer
+  leaves the page at *Starting...*.
 - **Tests can no longer leave a tool running for days.** Every tool a test
   starts now has a wall-clock timeout (20 minutes unless the test sets one)
   and a CPU-time limit set inside the tool itself (30 minutes), so a tool
