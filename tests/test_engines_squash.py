@@ -184,7 +184,9 @@ def test_the_output_is_the_same_bits_on_every_build(tool):
     # (sim/web/test/scenarios.json) check the WebAssembly module. A
     # deliberate change to the DSP moves these: check it there, then pin.
     # Transient's moved on 2026-10-06 (the slow follower reads the fast one).
-    assert tool["contracts"] == ["c088893e", "bf108f80", "6a28efae", "e2d21841"]
+    # Mu's moved on 2026-10-06 (its partial makeup; its busy setting is
+    # Squash 0.9).
+    assert tool["contracts"] == ["c088893e", "b955528d", "6a28efae", "e2d21841"]
 
 
 def test_silence_hostile_input_and_rates(tool):
@@ -205,23 +207,58 @@ def test_silence_hostile_input_and_rates(tool):
 def test_squash_turns_down_more_as_it_is_turned_up(tool):
     # A -6 dBFS sine, settled: the gain (dB) at Squash 0, 0.25, 0.5, 0.75, 1.
     # Measured: Snap 0, -1.7, -7.2, -11.3, -12.0 (Ratio 0.5 caps it at 1 -
-    # 0.75 = -12 dB); Mu 0, 0, -6.8, -17.9, -49.1 (no makeup: Output brings
-    # it back); Split 0, +0.4, -0.8, -3.8, -8.1.
+    # 0.75 = -12 dB); Mu 0, 0, -6.8, -8.3, -25.1 with its partial makeup
+    # (2026-10-06; -17.9 and -49.1 at 0.75 and 1 without it); Split 0, +0.4,
+    # -0.8, -3.8, -8.1.
     snap, mu, split = tool["reduction"]
     for curve in (snap, mu, split):
         assert abs(curve[0]) < 0.01
         assert curve[4] < curve[2] < curve[1] + 0.5
     assert snap[4] == pytest.approx(20 * math.log10(0.25), abs=0.2)
-    assert mu[3] < -12 and split[4] < -6
+    assert mu[2] == pytest.approx(-6.83, abs=0.05) and mu[3] == pytest.approx(-8.27, abs=0.05)
+    assert mu[4] == pytest.approx(-25.15, abs=0.05) and split[4] < -6
 
 
-def test_snap_and_mu_only_turn_down_and_split_lifts_a_little(tool):
+def test_snap_only_turns_down_and_mu_and_split_lift_a_little(tool):
     # On bursts at five settings, the largest output / input of any sample:
-    # Snap and Mu never above 0 dB; Split's lift (into its own detector, then
-    # divided by its makeup) at most +3 dB (measured +2.70).
+    # Snap never above 0 dB; Mu by its partial makeup at most (24 dB at
+    # Squash 1; measured +20.05 on the bursts' quiet bed); Split's lift (into
+    # its own detector, then divided by its makeup) at most +3 dB (measured
+    # +2.70).
     snap, mu, split = tool["most_gain"]
-    assert snap <= 1e-5 and mu <= 1e-5
+    assert snap <= 1e-5
+    assert 0 < mu <= 24.0 + 1e-4
     assert 0 < split <= 3.0
+
+
+def test_mus_partial_makeup(tool):
+    # Mu's partial makeup (owner's decision, 2026-10-06) against Mu built
+    # without it (-DFM1_SQUASH_MU_MAKEUP=0). The curve: half, in dB, the
+    # steady reduction a -12 dBFS peak gets, at most 24 dB; measured on a
+    # -60 dBFS sine at Squash 0.5, 0.6, 0.7, 0.75, 0.8, 0.9 and 1.
+    m = tool["mu_makeup"]
+    want = {1.0: [0.0, 2.661, 6.998, 9.654, 12.396, 16.773, 24.0],    # Shape 1 (c^2)
+            0.0: [0.0, 1.331, 3.499, 4.827, 6.198, 8.386, 13.01],     # Shape 0 (c): half
+            -1.0: [0.0, 0.665, 1.75, 2.414, 3.099, 4.193, 6.505]}     # Shape -1 (sqrt c)
+    for curve, shape in zip(m["curve"], (1.0, 0.0, -1.0)):
+        assert curve == pytest.approx(want[shape], abs=0.01), shape
+    # Up to Squash 0.525 a -12 dBFS peak is not reduced: no makeup, the
+    # reference's bits.
+    assert m["same_under"]
+    # Every frame of 19 million (four signals, Squash 0.6-1, three Shapes,
+    # Mix and Output among them) at least as loud as the reference, and at
+    # Mix 1 exactly M times it, or less where the bound holds an onset
+    # (1,167 frames); none taken over full scale and over the reference.
+    assert m["faults"] == 0 and m["over"] == 0
+    assert m["exact"] > 9_000_000 and 0 < m["bounded"] < 0.001 * m["exact"]
+    assert m["most_lift_db"] == pytest.approx(24.0, abs=0.01)
+    # The drums signal's RMS (dB) at Squash 0, 0.5, 0.75 and 1, with and
+    # without: from 0.5 to 0.75 the makeup holds the loudness within 0.5 dB
+    # where Mu alone loses 9.3 dB.
+    (s0, r0), (s5, r5), (s75, r75), (s1, r1) = m["loudness"]
+    assert s0 == r0 and s5 == r5
+    assert abs(s75 - s5) < 0.5 and r75 < r5 - 9
+    assert s1 > r1 + 20
 
 
 def test_snaps_gate_shuts_and_opens(tool):
