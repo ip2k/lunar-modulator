@@ -731,7 +731,9 @@ Acid Gen, both kits and the three Felucca engines) and PR #79, the objects
 total 1,131,246 B at `-O2` and 934,793 B at `-Oz`, of which the GPL modules
 and their wrappers are 307,475 B at `-Oz` (Comet Kit 249,915 of them), so
 about 627 KB without them [verified: the check's report, 2026-10-06, 143 of
-143 objects in all four profiles, link audit PASS]. The cymbals are the
+143 objects in all four profiles, link audit PASS]; after the merge with
+PR #80, 1,131,140 B and 934,855 B, the vendored GPL objects alone 285,744 B
+at `-Oz` [verified: the same check, at the landing review]. The cymbals are the
 one large cost, so this stream proposes:
 
 | Option | Flash for the cymbals | SNR against the int16 [verified 2026-10-06: µ-law and ADPCM by `tests/test_engine_comet_kit.py`, the linear rows by a scratch script] | |
