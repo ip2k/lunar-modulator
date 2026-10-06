@@ -357,6 +357,17 @@ static void dispatched(fm1_seq_host_t *h) {
   h->n = 0;
 }
 
+/* One hook write into a sink: a bend, a per-voice offset or a parameter. */
+static void apply_write(const fm1_seq_sink_t *sink, const fm1_seq_hook_write_t *w) {
+  if (w->note) {
+    if (sink->set_param_note) sink->set_param_note(sink->ctx, w->key, w->index, w->value);
+  } else if (w->bend) {
+    if (sink->pitch_bend) sink->pitch_bend(sink->ctx, w->value);
+  } else if (sink->engine && w->index < sink->engine->n_params) {
+    sink->set_param(sink->ctx, w->index, w->value);
+  }
+}
+
 /* The hook's tick at frame tf: when it writes to the sink, the render up to
  * tf first, then the writes. Returns the next tick's frame. */
 static uint32_t run_tick(fm1_seq_host_t *h, const fm1_seq_hook_t *hk, uint32_t tf, uint32_t *cur,
@@ -372,14 +383,23 @@ static uint32_t run_tick(fm1_seq_host_t *h, const fm1_seq_hook_t *hk, uint32_t t
     }
     for (i = 0; i < n; ++i) {
       if (w[i].slot) continue;            /* another sound unit's: none here */
-      if (w[i].bend) {
-        if (sink->pitch_bend) sink->pitch_bend(sink->ctx, w[i].value);
-      } else if (sink->engine && w[i].index < sink->engine->n_params) {
-        sink->set_param(sink->ctx, w[i].index, w[i].value);
-      }
+      apply_write(sink, &w[i]);
     }
   }
   return next > tf ? next : tf + 1u;   /* always forward */
+}
+
+/* After a note-on reached slot s's sink at its frame: the hook's writes for
+ * that note (docs/16 MG9), at the same frame, so nothing renders between. */
+static void note_on_writes(const fm1_seq_hook_t *hk, uint32_t f, unsigned s, uint8_t key,
+                           const fm1_seq_sink_t *sink) {
+  const fm1_seq_hook_write_t *w = NULL;
+  uint32_t i, n;
+  if (!hk || !hk->note_on) return;
+  n = hk->note_on(hk->ctx, f, s, key, &w);
+  for (i = 0; w && i < n; ++i) {
+    if (w[i].slot == s) apply_write(sink, &w[i]);
+  }
 }
 
 /* One sink's share of the block: the events of tracks routed to the engine
@@ -419,7 +439,8 @@ static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm
       while (tf < frames && (tf < f || (tf == f && e->kind == FM1_SEQ_EV_NOTE_ON))) {
         tf = run_tick(h, hk, tf, &cur, block, sink);
       }
-      hk->event(hk->ctx, f, e, to_engine);
+      /* to_engine: 1 plus the slot the event plays (the one sink is 0). */
+      hk->event(hk->ctx, f, e, to_engine ? 1 + (slot < 0 ? 0 : slot) : 0);
     }
     if (!to_engine) continue;
     if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
@@ -434,6 +455,7 @@ static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm
     if (e->kind == FM1_SEQ_EV_NOTE_ON) {
       sink->note_on(sink->ctx, e->a, e->b);
       ++h->notes_to_engine;
+      note_on_writes(hk, f, slot < 0 ? 0u : (unsigned)slot, e->a, sink);
     } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
       sink->note_off(sink->ctx, e->a);
     } else {
@@ -492,11 +514,7 @@ static uint32_t run_tick_slots(fm1_seq_host_t *h, const fm1_seq_hook_t *hk, uint
     const fm1_seq_sink_t *sink = s < n ? slots[s].sink : NULL;
     if (!sink) continue;
     slot_upto(h, &slots[s], &cur[s], tf);
-    if (w[i].bend) {
-      if (sink->pitch_bend) sink->pitch_bend(sink->ctx, w[i].value);
-    } else if (sink->engine && w[i].index < sink->engine->n_params) {
-      sink->set_param(sink->ctx, w[i].index, w[i].value);
-    }
+    apply_write(sink, &w[i]);
   }
   return next > tf ? next : tf + 1u;   /* always forward */
 }
@@ -536,7 +554,7 @@ static void play_slots_hook(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_sl
     while (tf < frames && (tf < f || (tf == f && e->kind == FM1_SEQ_EV_NOTE_ON))) {
       tf = run_tick_slots(h, hk, tf, cur, slots, n);
     }
-    hk->event(hk->ctx, f, e, sl != NULL);
+    hk->event(hk->ctx, f, e, sl ? 1 + (int)(sl - slots) : 0);
     if (!sl) continue;
     s = (unsigned)(sl - slots);
     if (e->kind == FM1_SEQ_EV_LOCK) {   /* resolved before any split */
@@ -547,6 +565,7 @@ static void play_slots_hook(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_sl
     if (e->kind == FM1_SEQ_EV_NOTE_ON) {
       sl->sink->note_on(sl->sink->ctx, e->a, e->b);
       ++h->notes_to_engine;
+      note_on_writes(hk, f, s, e->a, sl->sink);
     } else if (e->kind == FM1_SEQ_EV_NOTE_OFF) {
       sl->sink->note_off(sl->sink->ctx, e->a);
     } else {

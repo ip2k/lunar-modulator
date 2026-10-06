@@ -228,6 +228,7 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
   sink.note_off = t_off;
   sink.set_param = t_param;
   sink.pitch_bend = NULL;
+  sink.set_param_note = NULL;
   fm1_seq_set_route(a.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_set_route(b.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_host_bind(&b, &kEngine);   /* b never dispatches into a sink */
@@ -466,6 +467,7 @@ static void hand_made_block(void) {
   sink.note_off = t_off;
   sink.set_param = t_param;
   sink.pitch_bend = NULL;
+  sink.set_param_note = NULL;
   CHECK(fm1_seq_apply_text(s, setup, sizeof(setup) - 1u, scratch, 16) == 0);
   fm1_seq_set_route(s, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_host_init(&h, s, ev, 16);
@@ -523,6 +525,7 @@ static void uids_and_refusals(void) {
   sink.note_off = t_off;
   sink.set_param = t_param;
   sink.pitch_bend = NULL;
+  sink.set_param_note = NULL;
   fm1_seq_host_init(&h, make(mem_text), ev, 16);
   CHECK(h.engine == NULL && h.locks_refused == 0);
   fm1_seq_set_route(h.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
@@ -693,11 +696,14 @@ static void hooked_block(void) {
   sink.note_off = t_off;
   sink.set_param = t_param;
   sink.pitch_bend = t_bend;
+  sink.set_param_note = NULL;
   hook.ctx = &fh;
   hook.begin = h_begin;
   hook.event = h_event;
   hook.lock = h_lock;
   hook.tick = h_tick;
+  hook.lock_slot = NULL;
+  hook.note_on = NULL;
   CHECK(fm1_seq_apply_text(s, setup, sizeof(setup) - 1u, scratch, 16) == 0);
   fm1_seq_set_route(s, 0, FM1_SEQ_ROUTE_ENGINE, 0);
   fm1_seq_host_init(&h, s, ev, 16);

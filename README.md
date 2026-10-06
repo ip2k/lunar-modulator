@@ -253,8 +253,8 @@ for the first installable build
   the Limiter's Round mode.
 - The sequencer: eight tracks, steps, locks, conditions, recording,
   Capture and the metronome.
-- Modulation: the rack, sixteen kinds of module, the matrix and the
-  gesture.
+- Modulation: the rack, sixteen kinds of module, the matrix, the gesture
+  and per-voice modulation (each note its own envelope, for example).
 - The arpeggiator, with the stock modes as presets, alongside the
   sequencer.
 - FM6 loads your own DX7 voices from SysEx files, in the desktop tools.
@@ -263,8 +263,6 @@ for the first installable build
 - **Your DX7 voices in the browser:** a file picker that loads SysEx into
   FM6, and FM6 taking less memory.
 - **Glide:** notes slide from one pitch to the next.
-- **Per-voice modulation:** each note runs its own modulation, an envelope
-  per note for example, instead of one set shared by the sound.
 - **Lighter effects:** EQ, Isolator and Master Sat take almost no
   processing time when left at their neutral settings.
 - **A fix for Shapes:** a few shapes at the far ends of their settings (Wave

@@ -20,7 +20,13 @@
  *     host binds every unit it has (fm1_mod_bind);
  *   - writes to the effects and to HOST AMP go to glue.write, with their
  *     frame in the block; the host renders each effect split at its own
- *     writes and applies AMP (fm1_mod_ramp_t) before the limiter.
+ *     writes and applies AMP (fm1_mod_ramp_t) before the limiter;
+ *   - HOST PITCH2-4 bend sound units 2-4 (slots 1-3), and the per-voice
+ *     offsets (docs/16 MG9) go to each slot's set_param_note: a tick's
+ *     after its writes, a new note's right after its note_on (the hook's
+ *     note_on). A live note the host plays itself goes to
+ *     fm1_mod_live_sound_note, and the host sends fm1_mod_voice_start's
+ *     offsets after the engine's note_on.
  * With no slot on, nothing is written and nothing is split, so the audio
  * is byte for byte what plain dispatch gives.
  *
@@ -45,10 +51,14 @@ typedef struct fm1_mod_glue {
   void (*write)(void *ctx, uint32_t frame, const fm1_mod_write_t *w);
   /* After each tick, at its frame (a log); may be NULL. */
   void (*ticked)(void *ctx, uint32_t frame, const fm1_mod_write_t *w, uint32_t n);
+  /* Per-voice offsets as they go out, at their frame (a log); may be NULL. */
+  void (*voiced)(void *ctx, uint32_t frame, const fm1_mod_write_t *w, uint32_t n);
   fm1_seq_hook_t hook;          /* pass &glue.hook to dispatch_ticks */
-  fm1_seq_hook_write_t w[FM1_MOD_SOUNDS * FM1_MOD_UNIT_PARAMS + 1u];   /* a tick's writes to
-                                   the sound units, and HOST PITCH */
-  uint64_t sound_writes, other_writes;
+  fm1_seq_hook_write_t w[FM1_MOD_SOUNDS * FM1_MOD_UNIT_PARAMS + FM1_MOD_SOUNDS +
+                         FM1_MOD_VOICES * FM1_MOD_VDESTS];   /* a tick's writes to the sound
+                                   units, their pitches and their voices */
+  fm1_mod_write_t vw[FM1_MOD_VOICES * FM1_MOD_VDESTS];        /* a tick's per-voice offsets */
+  uint64_t sound_writes, other_writes, voice_writes;
 } fm1_mod_glue_t;
 
 /* Fills g for runtime m, whose FM1_MOD_SOUND is bound to `sound` (NULL for

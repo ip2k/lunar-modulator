@@ -293,7 +293,7 @@ chapter 4, "Arpeggiator").
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 3,267 screens of the layout sweep, the sequencer's,
+  canvas. All 3,288 screens of the layout sweep, the sequencer's,
   modulation's and the arpeggiator's, FM6's user bank and every list popup
   at every entry included, pass a layout check, with no text cut short and
   nothing closer than 4 px [verified: `fm1-sim-render --screens`,
@@ -631,16 +631,25 @@ which lands with the plan PR; its stages S0–S7 are named below.
   `fm1-render --mod` ([`engines/mod/README.md`](engines/mod/README.md#the-runtime)).
   Stage MG2 added thirteen modules: Function, Bounce, Register, Coin,
   Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix and a resonant
-  Filter, the Peaks and Braids parts checked against the original code
+  Filter (the Resonator since 2026-10-05), the Peaks and Braids parts
+  checked against the original code
   ([`engines/mod/kinds.md`](engines/mod/kinds.md)). Stage MG3 puts the
   runtime in the virtual FM-1, public since 2026-10-05: the RACK, MATRIX and
   CHAIN pages, the hold-and-turn routing gesture, cables into any of the
   four sound units, their inserts and the master effects, routed
   parameters marked on every page, and panel sessions that replay through
   `fm1-render --mod` byte for byte ([`sim/web/README.md`](sim/web/README.md),
-  "The sequencer, multi-sound and modulation"; manual chapter 8). Next:
-  per-voice envelopes and LFOs (MG9, which the
-  owner has made essential).
+  "The sequencer, multi-sound and modulation"; manual chapter 8). Stage
+  MG9 (2026-10-06) adds modulation per voice, which the owner made
+  essential: a cable flagged VOICE runs once for every note, with that
+  note's own VEL, NOTE, RAND and gate and one instance of each Envelope,
+  LFO or Chance it reads, and reaches only that note through the engines'
+  per-note offsets; poly into mono is refused. With it the owner's MG3
+  answers: an unpatched envelope retriggers on every note, a pitch per
+  sound and the current sound's, note sources per sound, cables re-aimed
+  by name when an engine changes, and the Resonator
+  ([docs/16](docs/16-modulation.md) §8, "MG9, as built";
+  [`engines/mod/README.md`](engines/mod/README.md), "Voices (MG9)").
 - **Depends on:**
   - API v2 uids, SMOOTH and NOLOCK, plus a new MOD flag (docs/13 M2):
     built in docs/15 stage S7a, with INPUT, units and abbreviations for
@@ -660,10 +669,11 @@ which lands with the plan PR; its stages S0–S7 are named below.
     ADSR envelopes after Peaks' `MultistageEnvelope` (MIT), a CHANCE source,
     and a 16-slot bus of 6-byte slots `{source, unit, destination uid,
     amount, flags}` that writes `set_param`.
-  - **C2** (stage S6; docs/16 MG9): per-note sources. Their engine side is
-    built: API v2's `set_param_note(key, index, offset)` and the POLY flag
-    on Macro, Macro Heavy, Six-Op FM and Shapes, byte-identical without a
-    call [verified: engines/README.md, "Per-note offsets"].
+  - **C2** (stage S6; docs/16 MG9, built 2026-10-06): per-note sources.
+    The engine side: API v2's `set_param_note(key, index, offset)` and the
+    POLY flag on Macro, Macro Heavy, Six-Op FM, Shapes, FM6 and Drums,
+    byte-identical without a call [verified: engines/README.md, "Per-note
+    offsets"]; the runtime's side is MG9's voices.
   - Locks set the base and modulation adds an offset (rules M1–M7).
   - Plaits' own per-voice envelope can be exposed in Macro before C1 (stage
     S2).

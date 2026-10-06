@@ -30,7 +30,7 @@ the "Power on" button, as browsers require a gesture.
 | --- | --- |
 | Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate, Test Gain, Test Ext. Up to four sounds with two inserts and a level each, mixed into two effect slots as the master bus, then the host's bus limiter, as `fm1-render --slots` runs them; one sound with no insert at full level renders as `fm1-render`'s one engine does, to the bit (below, "Multi-sound") |
 | Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,118 Hz, then 44,100 Hz (a context that comes back faster than 47,872 Hz is closed and the next rate tried), and only then takes the device's own rate. Headless Chromium ran at 44,118 Hz [verified]. Macro, Macro Heavy, Six-Op and Drums run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the four, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
-| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. A list popup (PRESETS, ALGORITHM, SHIFT + PRESETS, the kind and destination pickers, Capture's tempos) shows the list's title in gold, the chosen entry's place (`34/96`) and six entries with the chosen one on the accent, on the third row where it can be (`fm1_list_first`, `src/fm1_panel.h`), and a triangle above or below the entries where the list goes on (three lines, the previous, chosen and next entry, until 2026-10-06). HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 3,267 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06, 124 of them the ARP pages and 40 FM6's user bank (every user slot with a 10-character name, the ALGORITHM popup, SEQ mode and the load popups); 3,144 before the ARP pages, 3,104 before FM6's user bank, with Squash and Transient; 2,695 before every list popup at every entry (2,470 recorded here on 2026-10-05), 2,338 before Drums, 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE stub and an emptied slot (600 screens), every ARP page at its defaults, extremes and list entries with its popups (124), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 741, and Drums' pages and its sound in the others' sweeps in 132 more; since 2026-10-06 every list popup at every entry, each window checked (345: ALGORITHM through every sound's list, Six-Op FM's 96 patches the longest, PRESETS through the engines, ALGORITHM in FX mode through the effects, and the destination picker through every destination; the kind picker's 17 were already there). Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
+| Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. A list popup (PRESETS, ALGORITHM, SHIFT + PRESETS, the kind and destination pickers, Capture's tempos) shows the list's title in gold, the chosen entry's place (`34/96`) and six entries with the chosen one on the accent, on the third row where it can be (`fm1_list_first`, `src/fm1_panel.h`), and a triangle above or below the entries where the list goes on (three lines, the previous, chosen and next entry, until 2026-10-06). HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 3,288 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06, 124 of them the ARP pages and 40 FM6's user bank (every user slot with a 10-character name, the ALGORITHM popup, SEQ mode and the load popups); 3,144 before the ARP pages and per-voice modulation's, 3,104 before FM6's user bank, with Squash and Transient; 2,695 before every list popup at every entry (2,470 recorded here on 2026-10-05), 2,338 before Drums, 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE stub and an emptied slot (600 screens), every ARP page at its defaults, extremes and list entries with its popups (124), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 741, and Drums' pages and its sound in the others' sweeps in 132 more; since 2026-10-06 every list popup at every entry, each window checked (345: ALGORITHM through every sound's list, Six-Op FM's 96 patches the longest, PRESETS through the engines, ALGORITHM in FX mode through the effects, and the destination picker through every destination; the kind picker's 17 were already there). Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
 | Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_app.c`); Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
@@ -204,7 +204,7 @@ chain). This section is how they are built.
 | LEDs | SEQ in SEQ mode, PLAY/STOP while the transport runs, SEL while SHIFT is held; in SEQ mode the white keys show the bar's steps (fm1_seq_ui.h has the rules); REC on while recording or step recording, fast during a count-in or a waiting take, slow while Capture holds notes (O7). Sequencer notes light no key outside SEQ mode (O6). LFO or ENV while RACK shows one of theirs, EDIT in MATRIX and CHAIN, SEL in CHAIN and while RACK holds a module |
 | Status line, help | the tempo and the transport (posted by the worklet only when they change); the help's Sequencer, Tracks, Locks, Sounds, Effects, Arpeggiator and Modulation entries; SAVE in the stub list |
 | Sounds | up to four sounds, each with two inserts and a level, then the two slots as the master bus; SHIFT + PRESETS chooses the current sound (below, "Multi-sound") |
-| RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 23,200 B), and each arp that is on (736 B) with the MIDI effects' stage while one is (`fm1_mfx_t`, 7,344 B natively, less with 32-bit pointers) |
+| RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 26,192 B since per-voice modulation, docs/16 MG9), and each arp that is on (736 B) with the MIDI effects' stage while one is (`fm1_mfx_t`, 7,344 B natively, less with 32-bit pointers) |
 | ARP | the arpeggiator, below |
 
 Tests and parity runs never load the demo pattern or route tracks 2–8:
@@ -301,13 +301,30 @@ kind's three-letter abbreviation and the rack position (LFO1, LFO2, ENV3,
 ENV4, CHN5: Chance, Calc, Compare and Coin are CHN, CLC, CMP and COI), so
 no two share a name. A kind change switches off the cables that touch the
 module and remembers them; the pickers commit a second after their last
-turn or at once when another control is used.
+turn or at once when another control is used. An Envelope with no cable
+into its GATE restarts at every note too (RTRG is its normal since MG9).
 
 Destinations are a slot's unit code and a uid (`fm1_mod.h`): 0 Sound 1,
 17–19 Sounds 2–4, 20 + 4k + j Sound k + 1's insert j + 1, 1 and 2 the
-master slots, 3 the host, 8–15 a rack position; HOST PITCH bends Sound 1.
-Every cable here is global, while the slot record keeps the per-voice flag
-for the next stage (docs/16 MG3, "As built").
+master slots, 3 the host, 8–15 a rack position. HOST PITCH bends Sound 1,
+PITCH2–4 (`Pitch2`–`Pitch4` in MATRIX) Sounds 2–4, and PITCH_CUR
+(`PitchC`) the current sound; SHIFT + PRESETS logs a `current K` line for
+it. One sound's note sources, S1NOTE … S4RTRG, follow SQV8 in KNOB1's list.
+
+**Per voice** (docs/16 MG9). MATRIX page B's KNOB4 is a cable's state:
+off, on, on per voice (`v` in its row, `!` when refused). A per-voice
+cable runs once for every note on a sound whose engine takes per-note
+offsets (Macro, Macro Heavy, Shapes, Six-Op FM, FM6, Drums): its note
+sources are the note's own, an Envelope, LFO or Chance it reads runs one
+instance per note, and it reaches only that note, through the engine's
+`set_param_note`; the app sends a key's first offsets right after its
+note-on, as the bridge does for the sequencer's notes. Into an effect, AMP
+or a parameter every note shares it is refused. RACK's line says `vN` for
+a module that runs per voice, N its voices now. When a unit's engine
+changes, each cable into it re-aims at the new engine's parameter of the
+same name or switches off under its old name until an engine with it comes
+back (the owner's rule, 2026-10-05). MG2's Filter module is the Resonator
+(RES) since then.
 
 **Gesture traces and two-step parity** (docs/15 §6.3). `fm1-sim-render
 --panel FILE` reads panel input, one `--key`, `--button` or `--turn` per
@@ -503,12 +520,14 @@ docs/16 MG3 the modulation runtime, its kinds, its script reader
 pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (2026-10-05) Comb, Test Ext, the LOG law and the effects' extension
 (`fm1_fx_render`), Drums, FM6 (msfa), the list popups, FM6's user bank
-with msfa's tables as const data, and Squash, Transient and the Limiter's
-Round mode (2026-10-06): 75 of 75 scenarios pass,
+with msfa's tables as const data, Squash, Transient and the Limiter's
+Round mode, and per-voice modulation (MG9) (2026-10-06): 76 of 76
+scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms; the three Drums and the four FM6 scenarios are identical to
-glibc too), and it imports nothing; it is 850,731 bytes (826,339 without
-the user bank, 840,216 without Squash, Transient and Round), 837,480 with
+glibc too), and it imports nothing; it is 887,038 bytes, 850,731 before
+per-voice modulation (826,339 without the user bank, 840,216 without
+Squash, Transient and Round), 837,480 with
 the user bank before the list popups, 815,821 with the list popups before the
 user bank, 813,115 before both, 786,256 before FM6,
 765,189 before Drums since the lab switch went (790,801
@@ -670,7 +689,7 @@ one gap, and 128 lane bases after a stop, which `fm1-render --events 256`
 drops and the app holds back), with nothing dropped or left sounding; routes
 (the default route, `--route`, `route` verbs and a set's own `rt` lines)
 as in `fm1-render`; no note left hanging after a reset, an import or a
-change of sound; the 3,267-screen layout sweep, every list popup's window at every entry
+change of sound; the 3,288-screen layout sweep, every list popup's window at every entry
 among them; the panel against the manual's formula (octave,
 transpose, reset); buttons and encoders; PLAY/STOP's
 LED while playing, SEQ mode, the white keys following the playhead in SEQ
@@ -771,8 +790,8 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
   MIDI-effect slot is on the panel. On the panel the sequencer
   has no Session, scenes, song, Loop view, COPY or a CLEAR tap (docs/15
   S9), and no sets in the browser or MIDI clock in (S10); the desktop tools
-  have them. Modulation's envelopes and LFOs are global until the per-voice
-  stage (docs/16).
+  have them. Per-voice modulation reaches only the engines with per-note
+  offsets; Sophie and Test Sine refuse it (docs/16 MG9).
   Compat mode (Movy's exact behaviour) stays on `fm1-seq` and
   `fm1-render`; the app runs the FM-1's default mode.
 - **MIDI in only**; the virtual FM-1 sends nothing.
