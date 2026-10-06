@@ -99,7 +99,20 @@ so it is always written in full.
   code maps the board (docs/01 §3.1, [reported]): audio is ALNK0 (I2S) to an
   external codec, not the internal DAC, and the seven encoders are scanned
   in the key matrix.
-- **Tests:** TESTLINE
+- **Tests:** 3,439 collected; 3,428 pass, 2 xfail (both undo, not ported
+  yet) and 9 skip where a local reference clone, an unpacked stock package
+  or the manual's `markdown` module is missing [verified: `pytest` at
+  `549dda9` with this file, 2026-10-05]. By group: 2,430 engine tests (487
+  of them comparing against upstream reference renders and their controls,
+  157 for the arpeggiator, 147 for modulation), 557 for the sequencer core,
+  362 for the virtual FM-1 and its sequencer UI, 77 for the tools, the
+  dongle, the SDK link audit, the package guard and the boot bridge, and 13
+  for the manual. CI runs the suite on Linux and macOS, runs the engine,
+  sequencer and simulator tests again as a 32-bit build and under ASan +
+  UBSan, builds the dongle's UF2, runs AL-255's suite on our fork
+  (`.github/workflows/ci.yml`), and builds the site and manual on pull
+  requests (`pages.yml`). CI does not run Movy; it replays the oracle's
+  committed fixtures.
 - **Where the repo lives:** `~/Developer/mvave-fm1-firmware` on the owner's
   MacBook (the folder keeps its old name), remote `ip2k/lunar-modulator`
   (published 2026-09-06 as `ip2k/mvave-fm1-open-firmware`, renamed with the
