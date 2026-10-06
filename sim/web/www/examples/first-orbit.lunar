@@ -1,0 +1,552 @@
+{
+  "lunar": "1.0",
+  "kind": "project",
+  "made": {"by": "hand"},
+  "name": "FIRST ORBIT",
+  "title": "First orbit",
+  "about": "The guide's first song: drums, a bass, chords through the arpeggiator and an FM lead.",
+  "licence": "MIT",
+  "session": {
+    "current": 2,
+    "octave": 0,
+    "transpose": 0,
+    "key": {"root": "C", "scale": "minor"}
+  },
+  "sounds": [
+    {
+      "engine": "drums",
+      "params": {
+        "Pad": "1 Kick",
+        "Kit": "Punch",
+        "Accent": 0.6,
+        "Volume": 0.7,
+        "Kit Decay": 0.5
+      },
+      "pads": [
+        {
+          "Tune": 0,
+          "Decay": 0.34,
+          "Level": 0.9,
+          "Tone": 0.52,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": -2,
+          "Decay": 0.42,
+          "Level": 0.6,
+          "Tone": 0.54,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": 3,
+          "Decay": 0.58,
+          "Level": 0.8,
+          "Tone": 0.33,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": 0,
+          "Decay": 0.21,
+          "Level": 0.7,
+          "Tone": 0.63,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": 5,
+          "Decay": 0.36,
+          "Level": 0.9,
+          "Tone": 0.39,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": -5,
+          "Decay": 0.8,
+          "Level": 0.6,
+          "Tone": 0.49,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": 7,
+          "Decay": 0.7,
+          "Level": 0.8,
+          "Tone": 0.49,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": -7,
+          "Decay": 0.58,
+          "Level": 0.7,
+          "Tone": 0.36,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": 0,
+          "Decay": 0.58,
+          "Level": 0.9,
+          "Tone": 0.65,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": -3,
+          "Decay": 0.51,
+          "Level": 0.6,
+          "Tone": 0.6,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": 2,
+          "Decay": 0.6,
+          "Level": 0.8,
+          "Tone": 0.33,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": 0,
+          "Decay": 0.65,
+          "Level": 0.7,
+          "Tone": 0.54,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": 2,
+          "Decay": 0.38,
+          "Level": 0.9,
+          "Tone": 0.31,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": 0,
+          "Decay": 0.72,
+          "Level": 0.6,
+          "Tone": 0.49,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": 4,
+          "Decay": 0.63,
+          "Level": 0.8,
+          "Tone": 0.65,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        },
+        {
+          "Tune": 0,
+          "Decay": 0.63,
+          "Level": 0.7,
+          "Tone": 0.67,
+          "Snap": 0.5,
+          "Sweep": 0.5,
+          "Drive": 0,
+          "Model": "Kit",
+          "Choke": "Kit"
+        }
+      ],
+      "level": 90,
+      "inserts": [
+        null,
+        null
+      ],
+      "midi_fx": []
+    },
+    {
+      "engine": "macro",
+      "params": {
+        "Model": "VA+Filter",
+        "Harmonics": 0.3,
+        "Timbre": 0.41,
+        "Morph": 0.5,
+        "Decay": 0.3,
+        "Colour": 0.5,
+        "Volume": 0.7,
+        "Env Pitch": 0,
+        "Env Timbre": 0,
+        "Env Morph": 0,
+        "LPG": "Gate",
+        "Glide": 100,
+        "Voice Mode": "Poly",
+        "Glide Mode": "Off",
+        "Time Mode": "Time"
+      },
+      "level": 80,
+      "inserts": [
+        {
+          "engine": "filter",
+          "params": {
+            "Type": "Ladder",
+            "Cutoff": 420,
+            "Resonance": 0.3,
+            "Drive": 0,
+            "Mode": 0,
+            "Morph": 0,
+            "Mix": 1,
+            "Level": 1
+          }
+        },
+        {
+          "engine": "drive",
+          "params": {
+            "Type": "Tube",
+            "Drive": 6,
+            "Tone": 0.5,
+            "Mix": 1,
+            "Bias": 0,
+            "Gate": 0,
+            "Level": 0,
+            "Auto": "On"
+          }
+        }
+      ],
+      "midi_fx": []
+    },
+    {
+      "engine": "macro",
+      "params": {
+        "Model": "VA Pair",
+        "Harmonics": 0.35,
+        "Timbre": 0.5,
+        "Morph": 0.5,
+        "Decay": 0.7,
+        "Colour": 0.5,
+        "Volume": 0.7,
+        "Env Pitch": 0,
+        "Env Timbre": 0,
+        "Env Morph": 0,
+        "LPG": "Gate",
+        "Glide": 100,
+        "Voice Mode": "Poly",
+        "Glide Mode": "Off",
+        "Time Mode": "Time"
+      },
+      "level": 70,
+      "inserts": [
+        null,
+        null
+      ],
+      "midi_fx": [
+        {
+          "engine": "arp",
+          "on": true,
+          "params": {
+            "Mode": "Up-Down",
+            "Order": "Pitch",
+            "Octaves": "2",
+            "Oct Mode": "Span",
+            "Rate": "1/16",
+            "Gate": 50,
+            "Swing": 50,
+            "Pattern": "All",
+            "Length": 0,
+            "Fill": 0,
+            "Rotate": 0,
+            "Latch": "Off",
+            "Join": "Now",
+            "Sync": "Key",
+            "Repeat": "1",
+            "Ratchet": "1",
+            "Ratchet %": 100,
+            "Chance": 100,
+            "Chord %": 0,
+            "Oct Jump": 0,
+            "Velocity": 0,
+            "Vel Spread": 0,
+            "Gate Sprd": 0,
+            "Loop": 0,
+            "Seed": 0
+          }
+        }
+      ]
+    },
+    {
+      "engine": "dx7",
+      "params": {
+        "Patch": "User 1",
+        "Brightness": 0.6,
+        "Env Time": 0.5,
+        "Feedback": 0,
+        "Volume": 0.7,
+        "Glide": 100,
+        "Voice Mode": "Poly",
+        "Glide Mode": "Off",
+        "Time Mode": "Time"
+      },
+      "level": 75,
+      "inserts": [
+        {
+          "engine": "echo",
+          "params": {
+            "Time": 375,
+            "Feedback": 0.45,
+            "Ping-pong": 1,
+            "Mix": 0.25,
+            "Tone": 0.6,
+            "Wow": 0.1,
+            "Level": 1
+          }
+        },
+        null
+      ],
+      "midi_fx": []
+    }
+  ],
+  "master": [
+    {
+      "engine": "hall",
+      "params": {
+        "Decay": 0.6,
+        "Size": 0.7,
+        "Damping": 0.4,
+        "Mix": 0.2,
+        "Pre-delay": 20,
+        "Diffusion": 0.7,
+        "Mod": 0.3,
+        "Freeze": "Off",
+        "Width": 1,
+        "Low Cut": 0.2
+      }
+    },
+    {
+      "engine": "limit",
+      "params": {
+        "Ceiling": -1,
+        "Drive": 0,
+        "Release": 100,
+        "Lookahead": 2,
+        "Mode": "Brickwall",
+        "Link": 1,
+        "Mix": 1
+      }
+    }
+  ],
+  "dx7": [
+    {
+      "slot": 1,
+      "name": "LUNAR LEAD",
+      "ops": [
+        [95, 40, 30, 60, 99, 80, 70, 0, 39, 0, 10, 0, 3, 2, 0, 2, 72, 0, 3, 0, 7],
+        [90, 50, 35, 55, 99, 85, 60, 0, 39, 0, 0, 0, 0, 1, 0, 3, 80, 0, 1, 0, 9],
+        [80, 45, 40, 50, 99, 90, 75, 0, 41, 5, 0, 0, 0, 1, 0, 1, 78, 0, 2, 0, 5],
+        [85, 30, 30, 60, 99, 92, 80, 0, 39, 0, 0, 0, 0, 2, 0, 2, 99, 0, 1, 0, 7],
+        [75, 40, 25, 55, 99, 85, 70, 0, 39, 0, 12, 0, 3, 3, 0, 1, 85, 0, 1, 0, 8],
+        [99, 35, 30, 65, 99, 90, 80, 0, 39, 0, 0, 0, 0, 2, 0, 2, 99, 0, 1, 0, 7]
+      ],
+      "globals": [99, 99, 99, 99, 50, 50, 50, 50, 21, 6, 1, 35, 0, 5, 0, 0, 0, 3, 24]
+    }
+  ],
+  "mod": {
+    "seed": 1,
+    "rack": [
+      {
+        "pos": 1,
+        "kind": "lfo",
+        "params": {
+          "Rate": 0.25,
+          "Shape": "Triangle",
+          "Depth": 1,
+          "Mode": "Free",
+          "Phase": 0,
+          "Sync": "Off",
+          "Width": 0.5
+        }
+      },
+      {
+        "pos": 2,
+        "kind": "lfo",
+        "params": {
+          "Rate": 0.5,
+          "Shape": "Sine",
+          "Depth": 1,
+          "Mode": "Free",
+          "Phase": 0,
+          "Sync": "Off",
+          "Width": 0.5
+        }
+      },
+      {
+        "pos": 3,
+        "kind": "env",
+        "params": {
+          "Attack": 0.05,
+          "Decay": 0.4,
+          "Sustain": 0.3,
+          "Release": 0.5,
+          "Curve": "Expo",
+          "Loop": "Off",
+          "Mode": "Gate",
+          "Level": 1
+        }
+      },
+      {
+        "pos": 4,
+        "kind": "env",
+        "params": {
+          "Attack": 0.1,
+          "Decay": 0.5,
+          "Sustain": 0.7,
+          "Release": 0.5,
+          "Curve": "Expo",
+          "Loop": "Off",
+          "Mode": "Gate",
+          "Level": 1
+        }
+      },
+      {
+        "pos": 5,
+        "kind": "chance",
+        "params": {
+          "Mode": "S&H",
+          "Rate": 0.5,
+          "Slew": 0,
+          "Level": 1,
+          "Walk": 0.25,
+          "In": 0
+        }
+      }
+    ],
+    "cables": [
+      {
+        "slot": 1,
+        "on": true,
+        "from": {"module": 1, "port": "Out"},
+        "via": null,
+        "to": {"unit": "snd2.fx1", "param": "Cutoff"},
+        "amount": 35,
+        "offset": 0,
+        "polarity": "auto",
+        "curve": "lin",
+        "voice": false,
+        "lock": 0
+      },
+      {
+        "slot": 2,
+        "on": true,
+        "from": {"module": 3, "port": "Env"},
+        "via": null,
+        "to": {"unit": "snd3", "param": "Timbre"},
+        "amount": 40,
+        "offset": 0,
+        "polarity": "auto",
+        "curve": "lin",
+        "voice": true,
+        "lock": 0
+      },
+      {
+        "slot": 3,
+        "on": true,
+        "from": {"source": "S3RTRG"},
+        "via": null,
+        "to": {"module": 3, "gate": "Gate"},
+        "amount": 100,
+        "offset": 0,
+        "polarity": "auto",
+        "curve": "lin",
+        "voice": true,
+        "lock": 0
+      },
+      {
+        "slot": 4,
+        "on": false,
+        "from": {"module": 2, "port": "Out"},
+        "via": {"source": "VEL"},
+        "to": {"unit": "host", "param": "Amp"},
+        "amount": -12.5,
+        "offset": 0,
+        "polarity": "uni",
+        "curve": "square",
+        "voice": false,
+        "lock": 0
+      }
+    ]
+  },
+  "set": [
+    "movy1",
+    "bpm 11600",
+    "swing 54",
+    "link 0",
+    "key 0 1",
+    "sg 0 0 1 1",
+    "tk 0 0 0",
+    "au 0 0 64 synth:Decay",
+    "rt 0 1 0",
+    "cl 0 0 16 0 0:12:36:110:0;96:12:38:100:4;192:12:36:110:8;288:12:38:100:12",
+    "cp 0 0 1 1 0 0",
+    "cl 0 1 16 0 0:12:36:110:0;96:12:38:100:4;192:12:36:110:8;216:12:36:90:9;288:12:38:100:12;336:6:42:80:14",
+    "cp 0 1 1 1 0 0",
+    "tk 1 0 0",
+    "au 1 0 40 synth:Timbre",
+    "rt 1 1 1",
+    "cl 1 0 16 0 0:40:36:100:0;48:40:36:100:2;96:40:43:100:4;144:40:36:100:6;192:40:39:100:8;240:40:36:100:10;288:40:43:100:12;336:40:46:100:14",
+    "cp 1 0 1 1 0 0",
+    "lk 1 0 0:0:40;0:4:64;0:8:90;0:12:64",
+    "cl 1 1 16 0 0:40:38:100:0;96:40:45:100:4;192:40:41:100:8;288:40:48:100:12",
+    "cp 1 1 1 1 0 0",
+    "tk 2 1 0",
+    "rt 2 1 2",
+    "cl 2 1 16 0 0:380:60:85:0;0:380:63:85:0;0:380:67:85:0",
+    "cp 2 1 1 1 0 0",
+    "tk 3 0 0",
+    "tk 4 0 0",
+    "tk 5 0 0",
+    "tk 6 0 0",
+    "tk 7 0 0"
+  ],
+  "view": {"mode": "home", "sound": 2, "page": 1}
+}

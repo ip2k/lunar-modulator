@@ -1,0 +1,15 @@
+{
+  "lunar": "1.0",
+  "kind": "clip",
+  "made": {"by": "hand"},
+  "name": "BASS A",
+  "title": "Bass riff A",
+  "about": "The bass riff of the first song, with its Timbre locks.",
+  "licence": "MIT",
+  "clip": [
+    "au 0 0 40 synth:Timbre",
+    "cl 0 0 16 0 0:40:36:100:0;48:40:36:100:2;96:40:43:100:4;144:40:36:100:6;192:40:39:100:8;240:40:36:100:10;288:40:43:100:12;336:40:46:100:14",
+    "cp 0 0 1 1 0 0",
+    "lk 0 0 0:0:40;0:4:64;0:8:90;0:12:64"
+  ]
+}

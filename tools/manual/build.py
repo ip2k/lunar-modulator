@@ -607,6 +607,20 @@ def link_simulator_to_manual(b: Build, page: Path) -> None:
     page.write_text(text)
 
 
+def publish_schemas(b: Build, site: Path) -> None:
+    """The state files' JSON Schemas at the URLs their `$id`s name: /schema/1/
+    on the site (https://ip2k.github.io/lunar-modulator/schema/1/...), so an
+    editor that follows a file's schema finds it (notes/2026-10-06-state-files.md §7.7)."""
+    src = b.repo / "engines" / "state" / "schema"
+    if not src.is_dir():
+        return
+    dest = site / "schema" / "1"
+    dest.mkdir(parents=True, exist_ok=True)
+    for f in sorted(src.glob("*.schema.json")):
+        shutil.copy2(f, dest / f.name)
+    print(f"manual: {len(list(dest.glob('*.schema.json')))} state schemas at /schema/1/", file=sys.stderr)
+
+
 def assemble_site(b: Build, site: Path) -> None:
     sim = b.repo / "sim" / "web" / "www"
     if (sim / "index.html").is_file():
@@ -641,6 +655,7 @@ def assemble_site(b: Build, site: Path) -> None:
             font_link=font_link, hero=hero, pdf_name=b.cfg["pdf_name"], repository=b.cfg["repository"],
             edition=edition(b)))
         print("manual: no sim/web/www; the site's front page links to the manual", file=sys.stderr)
+    publish_schemas(b, site)
 
 
 # ---- checks -------------------------------------------------------------------------------------
