@@ -521,14 +521,15 @@ pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (2026-10-05) Comb, Test Ext, the LOG law and the effects' extension
 (`fm1_fx_render`), Drums, FM6 (msfa), the list popups, FM6's user bank
 with msfa's tables as const data, Squash, Transient and the Limiter's
-Round mode, per-voice modulation (MG9) (2026-10-06), and the idle paths of
-EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"):
-78 of 78 scenarios pass,
+Round mode, per-voice modulation (MG9) (2026-10-06), the idle paths of
+EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"), and
+the arpeggiator with the MIDI effects' stage (engine API v3's MIDI effects):
+83 of 83 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
 wake them; those two, the three Drums and the four FM6 scenarios are
-identical to glibc too), and it imports nothing; it is 890,874 bytes,
-887,038 before the idle paths, 850,731 before
+identical to glibc too), and it imports nothing; it is 922,338 bytes,
+890,874 before the arpeggiator, 887,038 before the idle paths, 850,731 before
 per-voice modulation (826,339 without the user bank, 840,216 without
 Squash, Transient and Round), 837,480 with
 the user bank before the list popups, 815,821 with the list popups before the
