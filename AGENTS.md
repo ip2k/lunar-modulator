@@ -130,8 +130,8 @@ vendor packages there.
   tracked files less Markdown, data (JSON, verb, panel and mod scripts, fonts,
   the built module) and `tests/fixtures/`; by the same count the stage A2 mark
   of 2026-09-30 was 7,440. The candidates left for the owner's decision are in
-  PR #74. The ~24,900 lines that merged after `d781f07` (18 PRs, #55 to #73;
-  116,646 in all at the last merge, `85736a3`) were not read, so the next
+  PR #74. The ~28,300 lines that merged after `d781f07` (19 PRs, #55 to #75;
+  120,007 in all at the merge with #75, `401e83c`) were not read, so the next
   audit is due already: start from `git diff d781f07`, then audit again after
   about every 10,000 lines.
 - **Confidence marks in every technical claim:** `[verified]` (checked here
