@@ -7,8 +7,8 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
-state of `main` after the PRs merged up to #62 (2026-09-29 to 2026-10-05,
-`4c67c45`).
+state of `main` after the PRs merged up to #64 (2026-09-29 to 2026-10-05,
+`db163d9`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -101,13 +101,13 @@ so it is always written in full.
   code maps the board (docs/01 §3.1, [reported]): audio is ALNK0 (I2S) to an
   external codec, not the internal DAC, and the seven encoders are scanned
   in the key matrix.
-- **Tests:** 3,686 collected; 3,675 pass, 2 xfail (both undo, not ported
+- **Tests:** 3,702 collected; 3,691 pass, 2 xfail (both undo, not ported
   yet) and 9 skip where a local reference clone, an unpacked stock package
   or the manual's `markdown` module is missing [verified: `pytest` at
-  `4c67c45` with this file, 2026-10-05]. By group: 2,642 engine tests (487
+  `db163d9` with this file, 2026-10-05]. By group: 2,642 engine tests (487
   of them comparing against upstream reference renders and their controls,
   157 for the arpeggiator, 147 for modulation), 557 for the sequencer core,
-  395 for the virtual FM-1 and its sequencer UI, 79 for the tools, the
+  411 for the virtual FM-1 and its sequencer UI, 79 for the tools, the
   dongle, the SDK link audit, the package guard and the boot bridge, and 13
   for the manual. CI runs the suite on Linux and macOS, runs the engine,
   sequencer and simulator tests again as a 32-bit build and under ASan +
@@ -135,6 +135,8 @@ so it is always written in full.
   - The cloud session's stray branch `claude/mvave-fm1-open-firmware-ly2w6u`
     on `ip2k/busybar-dual-timer` was deleted on 2026-09-06.
 - **Open pull requests** at 2026-10-05:
+  - #65, FM6: msfa's tables in flash, and DX7 patches loaded in the
+    simulator; waiting for the owner.
   - #58, the lagging docs that this refresh listed, fixed (§5 item 8);
     waiting for the owner.
   - Echomatter closed #1 on 2026-10-05 and offered to coordinate, saying
@@ -372,13 +374,14 @@ the sequencer in the simulator S1–S8, engine API v2 and v3, the arpeggiator
 core, modulation MG1–MG3, four effect packs, the community study, the SDK
 move with its link and package gates, the sequencer, multi-sound and
 modulation made public (#55), Drums (#59), FM6 on msfa (#60), new
-screenshots (#61) and the owner's new README opening (#62) (10-01 to
-10-05). The CHANGELOG has the detail.
+screenshots (#61), the owner's new README opening and the rest of the
+README brought up to date (#62, #63), and the simulator's list popups (#64)
+(10-01 to 10-05). The CHANGELOG has the detail.
 
 Now, roughly in order:
 
-1. **Open PRs** (§1): #58 (docs) waits for the owner; Echomatter's offer on
-   #1 needs an answer.
+1. **Open PRs** (§1): #58 (docs) and #65 (FM6 in flash, DX7 patches in the
+   simulator) wait for the owner; Echomatter's offer on #1 needs an answer.
 2. **ip2k/lunar-modulator#2**, if the owner chooses to answer it from the
    draft; and issue #53 (iOS Safari).
 3. **When the dev kit and JieLi's updater arrive**, docs/14 §5's first week:
@@ -416,10 +419,8 @@ Now, roughly in order:
    2026-09-12).
 8. **Docs that lag behind**, found during this refresh, are being fixed in
    #58, with other copies of the same facts. README's "Repository history"
-   had already gone (`2c78343`). Left after #58: the README's engine,
-   effect and screen counts and its "Sequencer (coming next)" section (the
-   owner's copy; #62 replaced only its opening), manual chapters 03 and 10
-   (after #55),
+   had already gone (`2c78343`), and #63 brought the rest of the README up
+   to date. Left after #58: manual chapters 03 and 10 (after #55),
    the GitHub repository description, which still ends "Research stage;
    nothing flashed" (outward-facing: the owner's call), and AGENTS.md, which
    lacks CLAUDE.md's "GPL switch" paragraph.
