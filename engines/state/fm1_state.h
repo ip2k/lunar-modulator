@@ -249,6 +249,7 @@ typedef struct fm1_state_report {
   char what[96];              /* why, in a few words */
   char name[32];              /* the engine, kind or member a refusal or skip names */
   char near[44];              /* the source's first 40 characters there */
+  uint32_t near_at;           /* where `near` starts: the member's key, or the offset */
   uint32_t skipped;           /* members, names and values left out (unknown or unresolvable) */
   uint32_t repaired;          /* values clamped, text stripped or cut */
   uint32_t defaulted;         /* values a writer filled in with their default */
@@ -351,6 +352,7 @@ typedef struct fm1_state_json_reader {
   uint32_t data_total;        /* pattern data bytes so far, all modules */
   uint32_t data_one;          /* this module's */
   uint32_t line_n;            /* bytes of the current movy1 line */
+  uint32_t key_at;            /* offset of the current member's key */
   uint32_t lines;             /* lines of the current list */
   uint16_t ops_n;             /* FM6 voice: values read */
   uint16_t glob_n;

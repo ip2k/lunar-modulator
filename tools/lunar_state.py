@@ -672,7 +672,7 @@ class JsonReader:
                 if k in unknown:
                     self.bad("duplicate key")
                 unknown.add(k)
-                if (not table and len(k) >= 2 and k[0] == "#" and k[1] != "0" and len(k) <= 5 and
+                if (len(k) >= 2 and k[0] == "#" and k[1] != "0" and len(k) <= 5 and
                         k[1:].isdigit() and k[1:].isascii() and 1 <= int(k[1:]) <= 4095):
                     p, uid = None, int(k[1:])
                 else:
@@ -990,8 +990,8 @@ class JsonReader:
                 if not (param[1:].isdigit() and param[1:].isascii() and 1 <= int(param[1:]) <= 4095):
                     self.bad("not a #UID")
                 rec["dst"] = int(param[1:])
-            elif table is not None and unit == 3:
-                self.skip("not a host parameter")
+            elif table is not None:
+                self.skip("not a host parameter" if unit == 3 else "not a parameter of that unit")
                 self.cable_bad = True
             else:
                 rec["dst"] = 0
@@ -1243,9 +1243,29 @@ class JsonWriter:
         self.rep = Report()
 
     def value(self, p, val):
+        """As its parameter takes it (state_json_write.c's param_val): a
+        list entry in range, a float clamped; as it came without a table."""
         kind, v = val
-        if p and p.enum and kind == "index":
-            return p.entries[v] if p.entries and v < p.count() else v
+        if p and p.enum:
+            if kind == "index":
+                k = min(v, 255)
+            else:
+                f = bits_f32(v)
+                k = (int(canon.f32(f + 0.5)) if f < 255 else 255) if f >= 0 else 0
+                self.rep.repaired += 1
+            if k > p.count() - 1:
+                k = p.count() - 1
+                self.rep.repaired += 1
+            return p.entries[k] if p.entries else k
+        if p:
+            f = float(v) if kind == "index" else bits_f32(v)
+            c = p.min if f < p.min else (p.max if f > p.max else f)
+            c = canon.f32(c)
+            if c == 0:
+                c = 0.0
+            if kind == "index" or f32_bits(c) != v:
+                self.rep.repaired += 1
+            return c
         if kind == "index":
             return v
         return bits_f32(v)
@@ -1267,6 +1287,9 @@ class JsonWriter:
         for uid in sorted(uids):
             p = by_uid.get(uid)
             r = recs.get((uid, focus))
+            if p and not module and (p.focus == 2) != pad_side:
+                self.rep.skip("a value on the wrong side of the pad split")
+                continue
             name = p.name if p else "#%d" % uid
             out[name] = self.value(p, r) if r else self.default(p)
         return out
@@ -1309,16 +1332,34 @@ class JsonWriter:
         k = self.nm.kinds.get(self.d.modules.get(pos, ""))
         return {"module": pos + 1, "port": k.outs[port] if k and port < len(k.outs) else port + 1}
 
+    def target_table(self, u):
+        if 8 <= u < 16:
+            k = self.nm.kinds.get(self.d.modules.get(u - 8, ""))
+            return k.params if k else None
+        if u == 3:
+            return self.nm.host
+        ix = code_index(u)
+        if ix is None:
+            return None
+        role, sound, slot = ((SOUND, ix, 0) if ix < 4 else (INSERT, (ix - 4) // 2, (ix - 4) % 2)
+                             if ix < 12 else (MASTER, 0, ix - 12))
+        e = self.nm.engine(role, self.d.units.get((role, sound, slot), ""))
+        return e.params if e else None
+
     def cable_ok(self, c):
         def ref_ok(s):
             return s in self.nm.sources if s < 64 else s < 128
         if not ref_ok(c["src"]) or (c["via"] != NONE and not ref_ok(c["via"])):
             return False
         if 8 <= c["unit"] < 16:
-            return True
-        if c["flags"] & GATE_DST:
+            if c["flags"] & GATE_DST:
+                return True
+        elif c["flags"] & GATE_DST or code_name(self.kind, c["unit"]) is None:
             return False
-        return code_name(self.kind, c["unit"]) is not None
+        table = self.target_table(c["unit"])
+        if not c["dst"] and c["name"] and table is not None:
+            return find_param(table, c["name"]) is not None
+        return True
 
     def target(self, c):
         u = c["unit"]
@@ -1675,7 +1716,7 @@ def _item_text(b, i):
         s = b[i:i + n]
         if len(s) != n:
             raise IndexError
-        return s.decode("utf-8", "surrogateescape"), i + n
+        return s.decode("utf-8"), i + n
     if tag == 2:
         return "movy1", i
     if tag in (3, 4):
@@ -1694,7 +1735,7 @@ def _item_text(b, i):
         s = b[i:i + n]
         if len(s) != n:
             raise IndexError
-        return "au %d %d %d " % (a, ln, base) + s.decode("utf-8", "surrogateescape"), i + n
+        return "au %d %d %d " % (a, ln, base) + s.decode("utf-8"), i + n
     if tag == 0x0B:
         return "rt %d %d %d" % (u8(), u8(), u8()), i
     if tag == 0x0C:
@@ -1817,6 +1858,8 @@ def write_bin(records, deflate_chunks=True, writer=3, version=(0, 1, 0)):
                 cur[1] += struct.pack("<HBBI", r["uid"], NONE if r["focus"] is None else r["focus"],
                                       val[0], val[1])
                 cur[2]["count"] += 1
+                if cur[2]["count"] > 512:
+                    raise Refused("TOO_BIG", "more than 512 records in a unit")
                 struct.pack_into("<H", cur[1], cur[2]["count_at"], cur[2]["count"])
         elif t == "level":
             if cur is None or cur[0] != 3 or cur[2]["unit"][0] != "sound" or cur[2]["unit"][1] != r["sound"]:
@@ -1872,7 +1915,7 @@ def write_bin(records, deflate_chunks=True, writer=3, version=(0, 1, 0)):
         elif t == "end":
             close()
     if not chunks:
-        raise Refused("BAD", "no chunks")
+        chunks.append((1, _kv([])))      # a file has a chunk: an empty info
     if len(chunks) > CHUNKS_MAX:
         raise Refused("TOO_BIG", "too many chunks")
     stored = []
@@ -1942,7 +1985,7 @@ def _clean_text(b, key):
         raise Refused("BAD", "text that is not clean UTF-8") from None
     for ch in s:
         cp = ord(ch)
-        if cp < 0x20 or cp == 0x7F or 0x80 <= cp < 0xA0 or 0x202A <= cp <= 0x202E or 0x2066 <= cp <= 0x2069:
+        if cp < 0x20 or cp == 0x7F or 0x202A <= cp <= 0x202E or 0x2066 <= cp <= 0x2069:
             raise Refused("BAD", "text that is not clean UTF-8")
         if key in (1, 2, 3, 4) and cp >= 0x7F:
             raise Refused("BAD", "this text is printable ASCII")
@@ -2047,6 +2090,8 @@ def read_bin(data):
             raise Refused("BAD", "a chunk version of 0")
         if off & 3 or off < prev or ln > total or off > total - ln:
             raise Refused("BAD", "a chunk out of place")
+        if any(data[prev:off]):
+            raise Refused("BAD", "padding that is not zero")
         prev = off + ln
         if crc32(data[off:off + ln]) != crc:
             raise Refused("BAD", "a chunk's CRC does not match")
@@ -2055,6 +2100,7 @@ def read_bin(data):
         raise Refused("BAD", "the last chunk does not end the file")
     out = [{"rec": "head", "kind": kname, "major": MAJOR, "minor": minor}]
     units, dx7_seen, cable_seen, pos_seen, mod_seen, data_total = set(), 0, 0, 0, False, 0
+    lines_seen = False
     for tag, version, flags, off, ln in entries:
         if not tag:
             rep.skipped += 1
@@ -2225,6 +2271,7 @@ def read_bin(data):
                     cable_seen |= 1 << slot
                     if src >= 128 or (via != NONE and via >= 128) or not _code_ok(kname, unit) or \
                             not -16384 <= amt <= 16384 or not -16384 <= ofs <= 16384 or lock > 4095 or \
+                            (dst >= 8 if fl & GATE_DST else dst > 4095) or \
                             (fl & GATE_DST and not 8 <= unit < 16):
                         raise Refused("BAD", "a cable out of range")
                     if n > 24:
@@ -2245,22 +2292,30 @@ def read_bin(data):
             which = "clip" if tag == 7 else "set"
             n = 0
             while c.left():
+                if n >= (12 if which == "clip" else 8192):
+                    raise Refused("TOO_BIG", "too many lines")
                 try:
                     text, c.i = _item_text(c.b, c.i)
-                except (IndexError, ValueError, struct.error):
+                except (IndexError, ValueError, struct.error):   # UnicodeDecodeError is a ValueError
                     raise Refused("BAD", "a movy1 item that cannot be read") from None
-                if c.i > len(c.b) or len(text.encode("utf-8", "surrogateescape")) > 16384:
+                if c.i > len(c.b) or len(text.encode("utf-8")) > 16384:
                     raise Refused("BAD", "a movy1 item that cannot be read")
                 if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in text):
                     raise Refused("BAD", "a control character in a movy1 line")
                 if which == "set" and n == 0 and text != "movy1":
                     raise Refused("BAD", "a set's first line is movy1")
+                if which == "clip" and not re.match(r"(au 0 [0-7] |cl 0 0 |cp 0 0 |lk 0 0 |tg 0 0 )",
+                                                    text[:7].ljust(7, "\0")):
+                    raise Refused("BAD", "a clip line is au, cl, cp, lk or tg at track 0 and slot 0")
                 out.append({"rec": "line", "which": which, "text": text})
                 n += 1
-                if n > (12 if which == "clip" else 8192):
-                    raise Refused("TOO_BIG", "too many lines")
             if not n:
                 raise Refused("BAD", "an empty list of lines")
+            if which == "clip" and n < 2:
+                raise Refused("BAD", "a clip has its cl and cp lines")
+            if lines_seen:
+                raise Refused("BAD", "two lists of lines")
+            lines_seen = True
         elif tag == 8:
             rec = {"rec": "view", "mode": None}
             keys = {}
@@ -2299,8 +2354,12 @@ def read_bin(data):
         if c.left():
             if version == 1:
                 raise Refused("BAD", "a chunk longer than its contents")
-    if kname == "project" and 0 not in units:
-        raise Refused("BAD", "a project needs its Sound 1")
+    if kname in ("project", "sound") and 0 not in units:
+        raise Refused("BAD", "a project needs its Sound 1" if kname == "project" else "a sound file needs its sound")
+    if kname == "mods" and not mod_seen:
+        raise Refused("BAD", "a mod rack needs its mod chunk")
+    if kname in ("clip", "set") and not lines_seen:
+        raise Refused("BAD", "a clip or a set needs its lines")
     out.append({"rec": "end"})
     return out, rep
 

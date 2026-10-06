@@ -140,7 +140,11 @@ fm1_state_writer_t *fm1_state_bin_writer(void *mem, unsigned flags, unsigned wri
                                          fm1_state_report_t *rep) {
   bin_writer_t *w = (bin_writer_t *)mem;
   if (!w) return NULL;
-  memset(w, 0, offsetof(bin_writer_t, chunk));
+  memset(w, 0, offsetof(bin_writer_t, chunk));   /* the buffers need no clearing, their counts do */
+  w->info_n = 0;
+  w->line_n = 0;
+  w->data_n = 0;
+  w->body_n = 0;
   w->put = put;
   w->ctx = ctx;
   w->rep = rep;
@@ -374,7 +378,7 @@ int fm1_state_bin_write(void *wv, const fm1_rec_t *r) {
       if (w->cur != CH_UNIT || r->role != w->u_role || r->sound != w->u_sound || r->slot != w->u_slot) {
         return berr(w, FM1_STATE_BAD, "records out of canonical order");
       }
-      ++w->count;
+      if (++w->count > 512u) return berr(w, FM1_STATE_TOO_BIG, "more than 512 records in a unit");
       return cput16(w, r->u.param.uid) && cput8(w, r->u.param.focus) && cput8(w, r->u.param.vtype) &&
              cput32(w, r->u.param.bits);
     case FM1_REC_LEVEL:
@@ -449,6 +453,7 @@ int fm1_state_bin_write(void *wv, const fm1_rec_t *r) {
                   (uint32_t)r->u.setting.value);
     case FM1_REC_END:
       if (!close_chunk(w)) return 0;
+      if (w->n_chunks == 0 && (!open_chunk(w, CH_INFO) || !close_chunk(w))) return 0;   /* a file has a chunk */
       return assemble(w);
     default:
       return berr(w, FM1_STATE_BAD, "an unknown record");
@@ -483,6 +488,8 @@ typedef struct {
   uint32_t dx7_seen, cable_seen;
   uint32_t data_total;
   uint32_t line_n;
+  uint8_t lines_seen;
+  uint8_t pad2_[3];
 } br_t;
 
 static int brefuse(br_t *b, unsigned code, const char *what) {
@@ -564,7 +571,9 @@ typedef struct {
   uint8_t need, len;
 } utf_t;
 
-static int utf_ok(utf_t *u, const uint8_t *t, uint32_t m) {
+/* `text`: info text, which the JSON reader also keeps free of bidi
+ * overrides; otherwise a movy1 line, which may hold them. */
+static int utf_ok(utf_t *u, const uint8_t *t, uint32_t m, int text) {
   uint32_t i;
   for (i = 0; i < m; ++i) {
     const uint8_t x = t[i];
@@ -574,8 +583,7 @@ static int utf_ok(utf_t *u, const uint8_t *t, uint32_t m) {
       if (--u->need) continue;
       if ((u->len == 2 && u->cp < 0x80u) || (u->len == 3 && u->cp < 0x800u) ||
           (u->len == 4 && (u->cp < 0x10000u || u->cp > 0x10FFFFu)) || (u->cp >= 0xD800u && u->cp <= 0xDFFFu) ||
-          (u->cp >= 0x202Au && u->cp <= 0x202Eu) || (u->cp >= 0x2066u && u->cp <= 0x2069u) ||
-          (u->cp >= 0x80u && u->cp < 0xA0u)) {
+          (text && ((u->cp >= 0x202Au && u->cp <= 0x202Eu) || (u->cp >= 0x2066u && u->cp <= 0x2069u)))) {
         return 0;
       }
       ++u->cps;
@@ -615,7 +623,7 @@ static int text_value(br_t *b, cs_t *c, uint32_t n, unsigned key) {
     const uint32_t m = n - done < sizeof(t) ? n - done : (uint32_t)sizeof(t);
     uint32_t i;
     if (!cs_get(c, t, m)) return short_chunk(b);
-    if (!utf_ok(&u, t, m)) return bbad(b, "text that is not clean UTF-8");
+    if (!utf_ok(&u, t, m, 1)) return bbad(b, "text that is not clean UTF-8");
     for (i = 0; i < m; ++i) {
       const uint8_t x = t[i];
       if (key == FM1_INFO_NAME || key == FM1_INFO_BY || key == FM1_INFO_VERSION || key == FM1_INFO_COMMIT) {
@@ -1038,6 +1046,7 @@ static int read_modr(br_t *b, cs_t *c) {
         if (!src_ok(s->src) || (s->via != FM1_MOD_NONE && !src_ok(s->via)) || !code_ok(b->kind, s->dst_unit) ||
             s->amount < -16384 || s->amount > 16384 || s->offset < -16384 || s->offset > 16384 ||
             s->uid > FM1_PARAM_UID_MAX ||
+            ((s->flags & FM1_MOD_SLOT_GATE_DST) ? s->dst >= FM1_MOD_MAX_GATES : s->dst > FM1_PARAM_UID_MAX) ||
             ((s->flags & FM1_MOD_SLOT_GATE_DST) && !(s->dst_unit >= FM1_MOD_MODULE && s->dst_unit < FM1_MOD_MODULE + 8u))) {
           return bbad(b, "a cable out of range");
         }
@@ -1067,43 +1076,76 @@ typedef struct {
   br_t *b;
   uint8_t which;
   uint8_t first_line;
+  uint8_t head_n;
+  char head[8];
+  uint32_t n;
+  utf_t u;
 } line_ctx_t;
+
+/* The JSON reader's checks of a list's lines, so a binary holds nothing
+ * the JSON could not: a set opens with movy1; a clip's lines are its
+ * track 0 slot 0 lines. */
+static int clip_prefix(const char *h) {
+  if (h[0] == 'a' && h[1] == 'u') return memcmp(h, "au 0 ", 5) == 0 && h[5] >= '0' && h[5] <= '7' && h[6] == ' ';
+  return memcmp(h, "cl 0 0 ", 7) == 0 || memcmp(h, "cp 0 0 ", 7) == 0 || memcmp(h, "lk 0 0 ", 7) == 0 ||
+         memcmp(h, "tg 0 0 ", 7) == 0;
+}
 
 static int line_text(void *ctx, const char *s, size_t n, int first, int last) {
   line_ctx_t *l = (line_ctx_t *)ctx;
   fm1_rec_t r;
   size_t i;
-  for (i = 0; i < n; ++i) {
-    const unsigned char x = (unsigned char)s[i];
-    if (x < 0x20u || x == 0x7Fu) return bbad(l->b, "a control character in a movy1 line");
+  if (first) {
+    l->head_n = 0;
+    l->n = 0;
+    memset(&l->u, 0, sizeof(l->u));
   }
+  if (!utf_ok(&l->u, (const uint8_t *)s, (uint32_t)n, 0)) {
+    return bbad(l->b, "a movy1 line that is not UTF-8, or a control character in one");
+  }
+  for (i = 0; i < n; ++i) {
+    if (l->head_n < 8u) l->head[l->head_n++] = s[i];
+  }
+  l->n += (uint32_t)n;
   memset(&r, 0, sizeof(r));
   r.type = FM1_REC_LINE;
   r.piece = (uint8_t)((first ? FM1_REC_FIRST : 0u) | (last ? FM1_REC_LAST : 0u));
   r.u.line.which = l->which;
   r.u.line.n = (uint32_t)n;
   r.u.line.s = s;
-  if (first && l->first_line && l->which == FM1_LINES_SET && !(last && n == 5 && memcmp(s, "movy1", 5) == 0)) {
-    return bbad(l->b, "a set's first line is movy1");
+  if (!bemit(l->b, &r)) return 0;
+  if (last) {
+    if (l->u.need) return bbad(l->b, "a movy1 line that is not UTF-8");
+    if (l->which == FM1_LINES_SET && l->first_line && !(l->n == 5 && memcmp(l->head, "movy1", 5) == 0)) {
+      return bbad(l->b, "a set's first line is movy1");
+    }
+    if (l->which == FM1_LINES_CLIP && (l->n < 7u || !clip_prefix(l->head))) {
+      return bbad(l->b, "a clip line is au, cl, cp, lk or tg at track 0 and slot 0");
+    }
   }
-  return bemit(l->b, &r);
+  return 1;
 }
 
 static int read_lines(br_t *b, cs_t *c, unsigned which) {
   line_ctx_t l;
   unsigned lines = 0;
+  memset(&l, 0, sizeof(l));
   l.b = b;
   l.which = (uint8_t)which;
   l.first_line = 1;
   while (c->left) {
-    const int st = fm1_movy1_decode(pull_byte, c, line_text, &l);
+    int st;
+    if (++lines > (which == FM1_LINES_CLIP ? 12u : 8192u)) return brefuse(b, FM1_STATE_TOO_BIG, "too many lines");
+    st = fm1_movy1_decode(pull_byte, c, line_text, &l);
     if (st < 0 || b->stop) return 0;
     if (st == 0) return bbad(b, "a movy1 item that cannot be read");
     l.first_line = 0;
     ++b->rep->lines;
-    if (++lines > (which == FM1_LINES_CLIP ? 12u : 8192u)) return brefuse(b, FM1_STATE_TOO_BIG, "too many lines");
   }
   if (!lines) return bbad(b, "an empty list of lines");
+  if (b->lines_seen) return bbad(b, "two lists of lines");
+  b->lines_seen = 1;
+  if (which == FM1_LINES_CLIP && lines < 2u) return bbad(b, "a clip has its cl and cp lines");
   return 1;
 }
 
@@ -1172,6 +1214,16 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
     if (get16(e + 6) & ~1u) return bbad(&b, "unknown chunk flags");
     if (get16(e + 4) < 1u) return bbad(&b, "a chunk version of 0");
     if ((off & 3u) || off < prev_end || len > total || off > total - len) return bbad(&b, "a chunk out of place");
+    /* The padding before a chunk is zero: no CRC covers it. */
+    while (prev_end < off) {
+      uint8_t z[4];
+      const uint32_t m = off - prev_end < 4u ? off - prev_end : 4u, k2 = 0;
+      if (rd(rctx, prev_end, z, m) != m) return bbad(&b, "a chunk past the file");
+      for (k = k2; k < m; ++k) {
+        if (z[k]) return bbad(&b, "padding that is not zero");
+      }
+      prev_end += m;
+    }
     prev_end = off + len;
     if (!skip_crc) {
       for (k = 0; k < len;) {
@@ -1266,7 +1318,14 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
       if (fm1_inflate_read(&z, &t, 1) != 0 || !fm1_inflate_done(&z)) return bbad(&b, "a deflated chunk that does not end");
     }
   }
-  if (b.kind == FM1_STATE_PROJECT && !((b.units_seen[0]) & 1u)) return bbad(&b, "a project needs its Sound 1");
+  /* What each kind needs, as the JSON reader needs it. */
+  if ((b.kind == FM1_STATE_PROJECT || b.kind == FM1_STATE_SOUND) && !((b.units_seen[0]) & 1u)) {
+    return bbad(&b, b.kind == FM1_STATE_PROJECT ? "a project needs its Sound 1" : "a sound file needs its sound");
+  }
+  if (b.kind == FM1_STATE_MODS && !b.mod_seen) return bbad(&b, "a mod rack needs its mod chunk");
+  if ((b.kind == FM1_STATE_CLIP || b.kind == FM1_STATE_SET) && !b.lines_seen) {
+    return bbad(&b, "a clip or a set needs its lines");
+  }
   memset(&r, 0, sizeof(r));
   r.type = FM1_REC_END;
   return bemit(&b, &r);

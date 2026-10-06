@@ -200,6 +200,8 @@ static int refuse(fm1_state_json_reader_t *r, unsigned code, const char *what) {
     r->rep->line = r->tok.line;
     r->rep->col = r->tok.col;
     r->rep->offset = r->tok.offset;
+    r->rep->near_at = r->keylen && r->key_at < r->tok.offset ? r->key_at
+                                                             : (r->tok.offset ? r->tok.offset - 1u : 0u);
   }
   return 0;
 }
@@ -616,8 +618,10 @@ static int params_key(fm1_state_json_reader_t *r, fm1_state_frame_t *f, const fm
     return 1;
   }
   if (!unknown_key(r, r->key, r->keylen, ev->depth)) return 0;
-  if (!table && r->keylen >= 2 && r->key[0] == '#') {
-    /* "#UID" of an engine or kind this build lacks: kept by uid. */
+  if (r->keylen >= 2 && r->key[0] == '#') {
+    /* "#UID" this build cannot name (an engine or kind it lacks, or a
+     * parameter a newer build added): kept by uid, so the file passes
+     * through unchanged; an applier drops what its engine does not have. */
     unsigned uid = 0;
     size_t k;
     int ok = r->key[1] != '0' && r->keylen <= 5;
@@ -700,6 +704,7 @@ static int on_key(fm1_state_json_reader_t *r, const fm1_json_ev_t *ev) {
   unsigned i;
   r->keylen = (uint8_t)(ev->n < FM1_STATE_KEY ? ev->n : FM1_STATE_KEY);
   memcpy(r->key, ev->s, r->keylen);
+  r->key_at = r->tok.offset >= ev->n + 1u ? r->tok.offset - ev->n - 1u : 0u;   /* its opening quote */
   if (f->ctx == C_PARAMS || f->ctx == C_PAD || f->ctx == C_MPARAMS) return params_key(r, f, ev);
   mm = members_of(f->ctx);
   r->member = M_UNKNOWN;
@@ -1465,8 +1470,8 @@ static int target_end(fm1_state_json_reader_t *r) {
       for (k = 1; k < pl && pn[k] >= '0' && pn[k] <= '9'; ++k) uid = uid * 10u + (unsigned)(pn[k] - '0');
       if (k != pl || !uid || uid > FM1_PARAM_UID_MAX) return bad(r, "not a #UID");
       s->dst = (uint16_t)uid;
-    } else if (table && r->tgt_unit == FM1_MOD_HOST) {
-      skipped(r, "not a host parameter");
+    } else if (table) {
+      skipped(r, r->tgt_unit == FM1_MOD_HOST ? "not a host parameter" : "not a parameter of that unit");
       r->cable_bad = 1;
     } else {
       /* Kept by name: the unit's engine is not in this file or not in this
@@ -1617,6 +1622,7 @@ static int tok_fail(fm1_state_json_reader_t *r) {
     r->rep->line = r->tok.line;
     r->rep->col = r->tok.col;
     r->rep->offset = r->tok.offset;
+    r->rep->near_at = r->tok.offset ? r->tok.offset - 1u : 0u;
   }
   return 0;
 }
@@ -1701,7 +1707,7 @@ int fm1_state_json_read(const fm1_state_names_t *nm, fm1_src_read_t rd, void *rc
   if (!ok) {
     /* The first 40 characters there, for the report. */
     uint8_t near[40];
-    const uint32_t at = rep->offset > 0 ? rep->offset - 1u : 0u;
+    const uint32_t at = rep->near_at;
     const uint32_t n = rd(rctx, at, near, sizeof(near));
     uint32_t i, k = 0;
     for (i = 0; i < n && k < 40u; ++i) {

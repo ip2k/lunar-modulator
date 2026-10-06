@@ -406,11 +406,38 @@ static const w_param_t *find_param(const fm1_state_writer_t *w, int unit, uint16
   return NULL;
 }
 
+/* A value as its parameter takes it: a list entry in range (a float
+ * rounded to the nearest), a float clamped to the range; what a binary
+ * file brought from elsewhere is put right here and counted, so the
+ * canonical text reads back to itself. Without a table it is written as
+ * it came. */
 static void param_val(fm1_state_writer_t *w, const fm1_param_t *p, uint8_t vtype, uint32_t bits) {
-  if (p && p->type == FM1_PARAM_ENUM && vtype == FM1_VAL_INDEX) {
+  if (p && p->type == FM1_PARAM_ENUM) {
     const int count = (int)(p->max - p->min) + 1;
-    if (p->enum_names && (int)bits < count) { jstrz(w, p->enum_names[bits]); return; }
-    jint(w, (long long)bits);
+    int k;
+    if (vtype == FM1_VAL_INDEX) {
+      k = (int)(bits < 255u ? bits : 255u);
+    } else {
+      const float f = fm1_num_float(bits);
+      k = f >= 0.0f ? (f < 255.0f ? (int)(f + 0.5f) : 255) : 0;
+      if (w->rep) ++w->rep->repaired;
+    }
+    if (k > count - 1) {
+      k = count - 1;
+      if (w->rep) ++w->rep->repaired;
+    }
+    if (p->enum_names) jstrz(w, p->enum_names[k]);
+    else jint(w, k);
+    return;
+  }
+  if (p) {
+    const float f = vtype == FM1_VAL_INDEX ? (float)bits : fm1_num_float(bits);
+    float c = fm1_param_clamp(p, f);
+    if (c == 0.0f) c = 0.0f;
+    if (fm1_num_bits(c) != bits || vtype == FM1_VAL_INDEX) {
+      if (w->rep) ++w->rep->repaired;
+    }
+    jf32(w, fm1_num_bits(c));
     return;
   }
   if (vtype == FM1_VAL_INDEX) { jint(w, (long long)bits); return; }
@@ -471,15 +498,16 @@ static void params_obj(fm1_state_writer_t *w, int unit, const fm1_engine_t *e, c
       key(w, bp->name);
       param_default(w, bp);
     } else if (br) {
-      /* A record no table names: if the uid is in the table but on the
-       * other side of the pad split, it was put there by the source. */
-      const fm1_param_t *tp = NULL;
+      /* A record no table here names: a uid this build cannot name goes
+       * out as #UID; one on the other side of the pad split (a per-pad
+       * value outside pads, or the reverse) is dropped, as the reader
+       * drops it, and counted. */
+      int other = 0;
       for (i = 0; i < n; ++i) {
-        if (table[i].uid == best) tp = &table[i];
+        if (table[i].uid == best) other = 1;
       }
-      if (tp) {
-        key(w, tp->name);
-        param_val(w, tp, br->vtype, br->bits);
+      if (other) {
+        wskip(w, "a value on the wrong side of the pad split");
       } else {
         uid_key(w, (uint16_t)best);
         param_val(w, NULL, br->vtype, br->bits);
@@ -639,14 +667,34 @@ static void ref_obj(fm1_state_writer_t *w, unsigned src) {
   close_c(w, '}');
 }
 
+/* Whether a cable can be written so that it reads back: its ends exist in
+ * this kind of file, and a destination kept by name names nothing the
+ * file's own unit or module would refuse (the reader drops such a cable). */
 static int cable_ok(const fm1_state_writer_t *w, const w_cable_t *c) {
   char tmp[12];
   const fm1_mod_slot_t *s = &c->s;
+  const fm1_param_t *table = NULL;
+  unsigned n = 0;
   if (!ref_ok(w, s->src)) return 0;
   if (s->via != FM1_MOD_NONE && !ref_ok(w, s->via)) return 0;
-  if (s->dst_unit >= FM1_MOD_MODULE && s->dst_unit < FM1_MOD_MODULE + 8u) return 1;
-  if (s->flags & FM1_MOD_SLOT_GATE_DST) return 0;
-  return code_name(w->kind, s->dst_unit, tmp) != NULL;
+  if (s->dst_unit >= FM1_MOD_MODULE && s->dst_unit < FM1_MOD_MODULE + 8u) {
+    const fm1_mod_kind_t *k = rack_kind(w, s->dst_unit - FM1_MOD_MODULE);
+    if (s->flags & FM1_MOD_SLOT_GATE_DST) return 1;
+    if (k) { table = k->params; n = k->n_params; }
+  } else {
+    if (s->flags & FM1_MOD_SLOT_GATE_DST) return 0;
+    if (code_name(w->kind, s->dst_unit, tmp) == NULL) return 0;
+    if (s->dst_unit == FM1_MOD_HOST) {
+      if (w->nm) { table = w->nm->host; n = w->nm->n_host; }
+    } else {
+      const fm1_engine_t *e = unit_engine(w, code_unit(s->dst_unit));
+      if (e) { table = e->params; n = e->n_params; }
+    }
+  }
+  if (!s->dst && c->name[0] && table) {
+    return fm1_state_param_find(w->nm, NULL, table, n, c->name, strlen(c->name)) >= 0;
+  }
+  return 1;
 }
 
 static void target_obj(fm1_state_writer_t *w, const w_cable_t *c) {

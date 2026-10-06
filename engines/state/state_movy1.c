@@ -275,7 +275,10 @@ typedef struct {
 } txt_t;
 
 static void tflush(txt_t *t, int last) {
-  if (t->stop) return;
+  if (t->stop) {               /* the reader refused: what follows is dropped */
+    t->n = 0;
+    return;
+  }
   if (!t->n && !last) return;
   if (!t->fn(t->ctx, t->buf, t->n, t->first, last)) t->stop = 1;
   t->first = 0;

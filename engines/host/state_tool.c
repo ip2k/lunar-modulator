@@ -21,6 +21,8 @@
  *       the canonical JSON of both, line by line
  *   fm1-state json-check FILE
  *       the tokenizer alone (the JSONTestSuite run): exit 0 if it accepts
+ *   fm1-state sizes
+ *       the readers' and writers' state, in bytes (the tests hold them)
  *   fm1-state names
  *       the build's names, ranges and defaults, exact, for tools/lunar_state.py
  *   fm1-state num
@@ -368,19 +370,35 @@ typedef struct {
   size_t ram;
   int mod;
   int refused;
+  const fm1_engine_t *mfx[4][4];
 } check_t;
 
+static size_t at44(const fm1_engine_t *e) {
+  fm1_host_t h = { FM1_ENGINE_API_VERSION, (float)FM1_STATE_HZ, 64 };
+  return (e->instance_size(&h) + 15u) & ~(size_t)15u;
+}
+
+/* Every instance at 44,118 Hz, as the app counts its units (a MIDI effect
+ * only while it is on), and every engine created at the rate. The app's own
+ * fixed costs (the sequencer, the mix blocks) are A1's to add. */
 static int check_sink(void *ctx, const fm1_rec_t *r) {
   check_t *c = (check_t *)ctx;
   if (r->type == FM1_REC_MOD) c->mod = 1;
+  if (r->type == FM1_REC_ON && r->role == FM1_ROLE_MFX && r->sound < 4 && r->slot < 4 && r->u.on &&
+      c->mfx[r->sound][r->slot]) {
+    c->ram += at44(c->mfx[r->sound][r->slot]);
+  }
   if (r->type == FM1_REC_UNIT && r->u.unit.id[0]) {
     const fm1_engine_t *e = fm1_state_engine(c->nm, r->role, r->u.unit.id);
-    fm1_host_t at44 = { FM1_ENGINE_API_VERSION, (float)FM1_STATE_HZ, 64 };
     fm1_host_t here = { FM1_ENGINE_API_VERSION, c->rate, 64 };
     void *mem, *self;
     size_t n;
     if (!e) return 1;                       /* counted by the reader as unknown */
-    c->ram += (e->instance_size(&at44) + 15u) & ~(size_t)15u;
+    if (r->role == FM1_ROLE_MFX) {
+      if (r->sound < 4 && r->slot < 4) c->mfx[r->sound][r->slot] = e;
+    } else {
+      c->ram += at44(e);
+    }
     n = e->instance_size(&here);
     mem = calloc(1, n ? n + 16 : 16);
     if (!mem) return 0;
@@ -668,6 +686,13 @@ int main(int argc, char **argv) {
     else { usage(); return 2; }
   }
   if (strcmp(cmd, "num") == 0) return num_tests();
+  if (strcmp(cmd, "sizes") == 0) {
+    printf("{\"tokenizer\":%zu,\"json_reader\":%zu,\"inflater\":%zu,\"json_writer\":%zu,"
+           "\"bin_writer\":%zu,\"record\":%zu}\n",
+           sizeof(fm1_json_t), sizeof(fm1_state_json_reader_t), sizeof(fm1_inflate_t),
+           fm1_state_json_writer_size(), fm1_state_bin_writer_size(), sizeof(fm1_rec_t));
+    return 0;
+  }
   if (strcmp(cmd, "names") == 0) {
     fm1_state_names_default(&nm);
     return names_dump(&nm);

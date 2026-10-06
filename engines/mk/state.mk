@@ -39,8 +39,17 @@ $(BUILD)/fm1-state: $(STATE_TOOL_OBJ) \
     $$(filter-out $(BUILD)/our/host/render.o $(BUILD)/our/host/render_state.o,$$(RENDER_OBJ))
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
+# The fuzz target as a seeded mutation loop (state/fuzz/state_fuzz.c); with
+# clang's libFuzzer it is built by hand with -DFM1_LIBFUZZER (README).
+STATE_FUZZ_OBJ := $(BUILD)/state/state/fuzz/state_fuzz.o
+$(STATE_FUZZ_OBJ): STATE_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Iinclude -Istate -Wall -Wextra -MMD -MP
+all: $(BUILD)/fm1-state-fuzz
+$(BUILD)/fm1-state-fuzz: $(STATE_FUZZ_OBJ) \
+    $$(filter-out $(BUILD)/our/host/render.o $(BUILD)/our/host/render_state.o,$$(RENDER_OBJ))
+	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
+
 # fm1-render's --load and --save (host/render_state.cc), with the library;
 # not in OUR_SRC, so the virtual FM-1's module does not link them.
 RENDER_EXTRA_OBJ += $(STATE_OBJ) $(STATE_REG_OBJ)
 
--include $(STATE_OBJ:.o=.d) $(STATE_REG_OBJ:.o=.d) $(STATE_TOOL_OBJ:.o=.d)
+-include $(STATE_OBJ:.o=.d) $(STATE_REG_OBJ:.o=.d) $(STATE_TOOL_OBJ:.o=.d) $(STATE_FUZZ_OBJ:.o=.d)
