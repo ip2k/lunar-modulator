@@ -91,6 +91,7 @@ extern "C" {
 #define FM1_MOD_UI_NONE 0xFFu
 #define FM1_MOD_UI_ROWS 9            /* MATRIX: slot rows on the screen (MID face) */
 #define FM1_MOD_UI_ROW_CHARS 28      /* a row or CHAIN line: MID_LINE_CHARS */
+#define FM1_MOD_UI_ROW_SRC 6         /* a row's source (and page B's VIA): the mark's column */
 #define FM1_MOD_UI_ROW_DST 16        /* a destination's room in a page A row */
 #define FM1_MOD_UI_HINT_CHARS 28     /* the hint line under MATRIX's rows, MID too */
 #define FM1_MOD_UI_POPUP_CHARS 18    /* a message popup's line (fm1_look.h POPUP_CHARS) */
@@ -236,10 +237,13 @@ enum {
   FM1_MOD_UI_ROLE_SOUND = 8          /* + k: the "S<k+1>" of a destination on sound k */
 };
 /* MATRIX row i on page A (0) or B (1), at most FM1_MOD_UI_ROW_CHARS and a
- * NUL. Page A: the source in 6, the mark, the destination in
- * FM1_MOD_UI_ROW_DST, the amount right-aligned in 4 ("LFO1  >S1 Timbre
- * +40"); page B: the source, the mark, VIA in 6, the curve and the polarity
- * by name. roles (NULL for none) gets FM1_MOD_UI_ROLE_* for each character. */
+ * NUL. Page A: the source in FM1_MOD_UI_ROW_SRC, the mark, the destination
+ * in FM1_MOD_UI_ROW_DST and a space, the amount right-aligned in 4 ("LFO1
+ * >S1 Timbre +40"); page B: the source, the mark, VIA in
+ * FM1_MOD_UI_ROW_SRC and a space, the curve and the polarity by name. The
+ * screen sets the mark a few pixels apart from its neighbours and draws
+ * that space narrow (fm1_mod_view.c). roles (NULL for none) gets
+ * FM1_MOD_UI_ROLE_* for each character. */
 void fm1_mod_ui_row(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned i, int page,
                     char out[FM1_MOD_UI_ROW_CHARS + 1], uint8_t *roles);
 /* The hint line: the field last turned while it shows, else the slot. */

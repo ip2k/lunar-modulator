@@ -38,6 +38,20 @@ typedef char fm1_mod_view_matrix_fits[MATRIX_HINT_Y + MID_LINE_H + GAP <= BOTTOM
 typedef char fm1_mod_view_chain_fits[CONTENT_Y + (CHAIN_LINES - 1) * DENSE_PITCH + MID_LINE_H + GAP <= BOTTOM_Y &&
                                      CHAIN_LINES <= FM1_MOD_UI_CHAIN_LINES ? 1 : -1];
 typedef char fm1_mod_view_bar_fits[CONTENT_Y - HL_ABOVE >= TITLE_H ? 1 : -1];
+/* MATRIX's narrow gaps (audit L2's fields, in the spirit of the 4 px rule):
+ * the state mark keeps MARK_GAP px more from the source and from what
+ * follows it, so a six-character source does not run into its mark
+ * ("S2RTRG > ENV4 Gate", not "S2RTRG>ENV4 Gate"), and the space after
+ * page A's destination (page B's VIA), always blank, is drawn MARK_GAP
+ * wide instead of a character's 8 px, which pays for them: a row keeps
+ * its 28 characters' room and ends by RIGHT. The mark's ink keeps at
+ * least MARK_GAP from its neighbours' whatever the glyphs. */
+#define MARK_GAP 4
+#define MARK_COL FM1_MOD_UI_ROW_SRC
+#define NARROW_COL(page) (MARK_COL + 1 + ((page) ? FM1_MOD_UI_ROW_SRC : FM1_MOD_UI_ROW_DST))
+typedef char fm1_mod_view_marks_fit[FM1_TFT_MID_W(FM1_MOD_UI_ROW_CHARS - 1) + 3 * MARK_GAP <= RIGHT - MARGIN &&
+                                    NARROW_COL(1) < NARROW_COL(0) &&
+                                    NARROW_COL(0) < FM1_MOD_UI_ROW_CHARS ? 1 : -1];
 typedef char fm1_mod_view_popups_agree[FM1_MOD_UI_POPUP_CHARS == POPUP_CHARS &&
                                        FM1_MOD_UI_BANNER_CHARS == BANNER_CHARS_MID ? 1 : -1];
 
@@ -245,27 +259,38 @@ static uint16_t role_colour(uint8_t role) {
 }
 
 /* One line in the dense face at (MARGIN, y): in `solid` when roles is
- * NULL, else in its roles' colours, as one run (one logged box). */
-static void role_line(fm1_tft_t *t, int y, const char *s, const uint8_t *roles, uint16_t solid) {
+ * NULL, else in its roles' colours, as one run (one logged box). A MATRIX
+ * row (page 0 or 1; -1 for CHAIN's lines) gets the mark's narrow gaps. */
+static void role_line(fm1_tft_t *t, int y, const char *s, const uint8_t *roles, uint16_t solid,
+                      int page) {
   char seg[2 * (FM1_MOD_UI_ROW_CHARS + 1)];
   fm1_tft_span_t spans[FM1_MOD_UI_ROW_CHARS];
+  uint8_t lead[FM1_MOD_UI_ROW_CHARS];
   const int n = (int)strlen(s) < FM1_MOD_UI_ROW_CHARS ? (int)strlen(s) : FM1_MOD_UI_ROW_CHARS;
-  int k, ns = 0, at = 0;
+  const int narrow = page < 0 ? -1 : NARROW_COL(page);
+  int k, ns = 0, at = 0, gap = 0;
   uint16_t cur = solid;
   for (k = 0; k < n; ++k) {
     uint16_t c = solid;
+    if (k == narrow && s[k] == ' ') {    /* the blank after the destination or VIA */
+      gap += MARK_GAP;
+      continue;
+    }
+    if (page >= 0 && (k == MARK_COL || k == MARK_COL + 1)) gap += MARK_GAP;
     if (roles) c = roles[k] != FM1_MOD_UI_ROLE_PLAIN ? role_colour(roles[k]) : k ? cur : C_LABEL;
-    if (ns == 0 || c != cur) {
+    if (ns == 0 || c != cur || gap) {
       if (ns) seg[at++] = '\0';
       spans[ns].s = &seg[at];
       spans[ns].color = c;
+      lead[ns] = (uint8_t)gap;
       ++ns;
       cur = c;
+      gap = 0;
     }
     seg[at++] = s[k];
   }
   seg[at] = '\0';
-  fm1_tft_span_text(t, MARGIN, y, spans, ns, FM1_MOD_UI_ROW_CHARS, DENSE);
+  fm1_tft_span_text_lead(t, MARGIN, y, spans, lead, ns, FM1_MOD_UI_ROW_CHARS, DENSE);
 }
 
 /* ---- MATRIX ------------------------------------------------------------------- */
@@ -287,13 +312,13 @@ void fm1_mod_view_matrix(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mo
      * says which as well); else each field in its colour. */
     if (i == u->slot) {
       fm1_tft_paint(t, 0, y - HL_ABOVE, FM1_TFT_W, DENSE_PITCH, C_SELECT);
-      role_line(t, y, row, NULL, C_BG);
+      role_line(t, y, row, NULL, C_BG, u->mpage);
     } else if (fm1_mod_ui_empty(u, env->m, i) || !(s.flags & FM1_MOD_SLOT_ON)) {
-      role_line(t, y, row, NULL, C_LABEL);
+      role_line(t, y, row, NULL, C_LABEL, u->mpage);
     } else if ((u->plan.refused >> i) & 1u) {
-      role_line(t, y, row, NULL, C_REFUSE);
+      role_line(t, y, row, NULL, C_REFUSE, u->mpage);
     } else {
-      role_line(t, y, row, roles, 0);
+      role_line(t, y, row, roles, 0, u->mpage);
     }
   }
   fm1_mod_ui_hint(env, u, now, hint, sizeof hint);
@@ -320,11 +345,11 @@ void fm1_mod_view_chain(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod
     const int y = CONTENT_Y + k * DENSE_PITCH;
     if (at == hl) {                     /* the selected cable, on the selection's bar */
       fm1_tft_paint(t, 0, y - HL_ABOVE, FM1_TFT_W, DENSE_PITCH, C_SELECT);
-      role_line(t, y, lines[at], NULL, C_BG);
+      role_line(t, y, lines[at], NULL, C_BG, -1);
     } else if (n == 1) {                /* "Slot 21: no cable" */
-      role_line(t, y, lines[at], NULL, C_LABEL);
+      role_line(t, y, lines[at], NULL, C_LABEL, -1);
     } else {
-      role_line(t, y, lines[at], roles[at], 0);
+      role_line(t, y, lines[at], roles[at], 0, -1);
     }
   }
 }

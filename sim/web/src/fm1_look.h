@@ -38,10 +38,10 @@ extern "C" {
  * derived in OKLCH at Moon's accent lightness and chroma, in the hues Moon
  * leaves free, and each a fixed point of the RGB565 round trip, so the page
  * shows exactly what the screen does. tools/palette.py checks them. */
-#define LM_NEBULA FM1_RGB565(0x63, 0xa6, 0xff)  /* blue */
-#define LM_NOVA FM1_RGB565(0xef, 0x8a, 0x4a)    /* orange */
-#define LM_AURORA FM1_RGB565(0x52, 0xd2, 0xa5)  /* green */
-#define LM_COMET FM1_RGB565(0xc5, 0xdf, 0x7b)   /* yellow-green */
+#define LUNAR_NEBULA FM1_RGB565(0x63, 0xa6, 0xff)  /* blue */
+#define LUNAR_NOVA FM1_RGB565(0xef, 0x8a, 0x4a)    /* orange */
+#define LUNAR_AURORA FM1_RGB565(0x52, 0xd2, 0xa5)  /* green */
+#define LUNAR_COMET FM1_RGB565(0xc5, 0xdf, 0x7b)   /* yellow-green */
 
 /* One meaning per colour: the semantic map (sim/web/PALETTE.md). Screen code
  * names the role, not the hue; tools/palette.py checks these against it. */
@@ -53,10 +53,10 @@ extern "C" {
 #define C_CONTEXT RP_ROSE   /* the context line under the title bar and a list's title; never beside love */
 #define C_HINT RP_TEXT      /* hints, and modulation's live tick */
 #define C_LABEL RP_SUBTLE   /* labels, secondary text, idle states, a list's place */
-#define C_SOUND_1 LM_NEBULA
-#define C_SOUND_2 LM_NOVA
-#define C_SOUND_3 LM_AURORA
-#define C_SOUND_4 LM_COMET
+#define C_SOUND_1 LUNAR_NEBULA
+#define C_SOUND_2 LUNAR_NOVA
+#define C_SOUND_3 LUNAR_AURORA
+#define C_SOUND_4 LUNAR_COMET
 
 /* A sound's colour, by its index (0 is S1); text outside S1-S4. The
  * S-number stays on screen beside it, for readers who cannot tell the
