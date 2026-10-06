@@ -72,7 +72,9 @@ typedef char fm1_seq_view_legend_fits[GRID_Y + 5 * LEGEND_PITCH + MID_LINE_H + 4
 typedef char fm1_seq_view_tracks_fit[TRACKS_X >= TRACKS_L && TRACKS_X + TRACKS_SPAN <= TRACKS_R &&
                                      FM1_TFT_MID_W(10) <= TEMPO_W && TRACKS_L - (MARGIN + TEMPO_W) >= 4 &&
                                      TRACKS_TEXT_Y >= TRACKS_Y && TRACKS_FULL == TRACK_H + 2 * TRACK_EXTRA &&
-                                     TRACKS_TEXT_Y + FM1_TFT_SMALL_H <= TRACKS_Y + TRACKS_FULL ? 1 : -1];
+                                     TRACKS_TEXT_Y + FM1_TFT_SMALL_H <= TRACKS_Y + TRACKS_FULL &&
+                                     TRACK_W + TRACK_GAP >= FM1_TFT_SMALL_ADVANCE &&
+                                     TRACK_INK_W <= FM1_TFT_SMALL_INK_W ? 1 : -1];
 
 typedef char fm1_seq_view_grid_fits[BOX_X >= 0 && BOX_X + BOX_W <= FM1_TFT_W &&
                                     GRID_Y + GRID_H < STRIP_Y ? 1 : -1];
