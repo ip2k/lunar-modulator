@@ -51,7 +51,7 @@ build unless marked.
 | `set_param(key, value)` | fm1 index → the adapter's key; the value is clamped to the table's range, then written as a float with six decimals (as Schwung's host does) or as an integer index plus an offset. No `printf`, no `double`. The module reads it back with `atof`/`strtof`, which the prefix maps to the shim's own parser (below) |
 | `render_block(out, frames)` | Always called with the same block: the first host's `max_frames`, made even and at most 128 (64 on the FM-1). The shim renders ahead and serves any frame count from that block; int16 → float by 1/32768 |
 | `process_block(inout, frames)` | Same fixed block, through a FIFO one block long: float → int16 saturating (NaN → 0), processed, int16 → float, with the adapter's headroom around it (below). **Latency is one block**, 64 frames = 1.45 ms on the FM-1, dry signal included |
-| `get_param`, `get_error` | Not used by the fm1 path. `fm1::schwung::GetParam` exists for tools and the selftest |
+| `get_param`, `get_error` | Not used by the fm1 path but once: at create, a focused module's starting values per entry (`focus_key`; "Reading values back" below). `fm1::schwung::GetParam` exists for tools and the selftest; the engine's own `get_param` is the shim's table (`GetParamValue`) |
 
 The module block is fixed because modules may assume it: the ABI says
 `frames` is always `MOVE_FRAMES_PER_BLOCK`, and PSX Verb processes frames in
@@ -150,8 +150,8 @@ does nothing. It is open only while `create_instance` runs.
 
 | Engine | Instance (64-bit host) | Arena | Module's allocations | 32-bit |
 | --- | --- | --- | --- | --- |
-| `sw-sophie` | 77,904 B | 76,800 B | one `calloc` of 76,752 B (12 voices with 1,536-sample ring delays, 16 pad patches) | the same: `sophie_t` holds only `int`, `float`, `uint32_t` and `char` [verified: `sophie.c`]; 76,768 B used on i386 [reported: the stage review's i386 run of `fm1-schwung-selftest`]; armv7 and pi32v2 [inferred] |
-| `sw-psxverb` | 134,224 B | 133,120 B | 1,280 B instance + a fixed 128 KB int16 work area | 132,368 B used on i386, 16 B less, within the arena [reported: the same run]; armv7 and pi32v2 [inferred] |
+| `sw-sophie` | 79,344 B since API v4's table (78,080 B before it; 77,904 B when first measured) | 76,800 B | one `calloc` of 76,752 B (12 voices with 1,536-sample ring delays, 16 pad patches) | the same: `sophie_t` holds only `int`, `float`, `uint32_t` and `char` [verified: `sophie.c`]; 76,768 B used on i386 [reported: the stage review's i386 run of `fm1-schwung-selftest`]; armv7 and pi32v2 [inferred] |
+| `sw-psxverb` | 134,432 B since API v4 (134,400 B before it; 134,224 B when first measured) | 133,120 B | 1,280 B instance + a fixed 128 KB int16 work area | 132,368 B used on i386, 16 B less, within the arena [reported: the same run]; armv7 and pi32v2 [inferred] |
 
 No compile-time assertion checks these sizes (the structs are private to the
 vendored sources). What does check them, on whatever target it is built for,
@@ -193,9 +193,17 @@ are four knobs in the module's own knob order.
 - **JavaScript UIs** (`ui.js`, `ui_chain.js`, canvases, cards, custom cells).
   Dropped; the FM-1 would draw a generic page from the table, as Schwung's own
   Shadow UI does for modules without JavaScript.
-- **Reading values back.** The fm1 API has no `get_param`, so after Sophie's
-  Pad changes, the knobs cannot show the new pad's values. Presets and state
-  (`get_param("state")` / `set_param("state", …)`) are not mapped either.
+- **Reading values back** (engine API v4, 2026-10-06). The shim answers the
+  engine's `get_param` for a module whose table has a FOCUS parameter
+  (Sophie's Pad) from a table of its own: what it set on each parameter and
+  on each focus entry, starting from the module's own pad patches, which it
+  reads once at create through the adapter's `focus_key` (`p01_tune` …).
+  So a host reads every pad's values without moving the focus, exactly as
+  set rather than through the module's `%.3f` text, and a saved kit
+  restores bit for bit (`fm1-param-get-test`, engines/README.md, "Engine
+  API v4"). A module without a focus has no table and no `get_param`: its
+  host keeps its values. The module's own presets and state
+  (`get_param("state")` / `set_param("state", …)`) are still not mapped.
 - **Errors.** `get_error` and a failed `create` have no channel in the fm1 API
   beyond returning NULL.
 - **Anything outside DSP:** file I/O (`module_dir` is empty), worker threads,

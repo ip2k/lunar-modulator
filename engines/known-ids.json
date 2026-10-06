@@ -1,0 +1,13 @@
+{
+  "about": "Ids a build may not have, with the reason a load gives when a file names one (notes/2026-10-06-state-files.md §9, §10.3): `gpl`, a module built in only with the GPL switch on (FM1_GPL_MODS; CLAUDE.md, \"The GPL switch\"); `planned`, an engine or kind not built yet; `retired`, one taken out, with the version that did it in `since`. An id never leaves this list, and a retired one is never given out again. The metadata export (fm1-render --meta) lists the ones the build lacks. tools/gen_known.py turns this file and engines/aliases.json into engines/state/fm1_known.c; tests/test_engine_names.py checks the two agree. The GPL ids are the fm1-x0x study's proposals (notes/2026-10-06-fm1-x0x.md §6.1, owner decision X1 open): the GPL lane keeps them in step with its registry.",
+  "ids": [
+    {"id": "comet", "what": "sound", "reason": "gpl"},
+    {"id": "crater", "what": "sound", "reason": "gpl"},
+    {"id": "acid-bass", "what": "sound", "reason": "gpl"},
+    {"id": "acid-gen", "what": "midi_fx", "reason": "gpl"},
+    {"id": "drawbar", "what": "sound", "reason": "gpl"},
+    {"id": "trio", "what": "sound", "reason": "gpl"},
+    {"id": "chop", "what": "sound", "reason": "gpl"},
+    {"id": "phase-bend", "what": "sound", "reason": "gpl"}
+  ]
+}

@@ -64,15 +64,15 @@
 // only while that pad sounds; the kit's ramp while any voice sounds. Model,
 // Choke and Kit are read when a pad is struck (LATCH, and MOD: a route is
 // rounded): a sounding hit keeps what it started with. Pad is the edit
-// focus, lockable without MOD, as Sophie's (owner, docs/15 S8).
+// focus, lockable without MOD, as Sophie's (owner, docs/15 S8): FOCUS in
+// engine API v4, and the per-pad parameters are PER_FOCUS, so get_param
+// reads any pad's value without moving the focus (a saved kit holds all
+// sixteen pads; notes/2026-10-06-state-files.md ST7).
 //
-// Saving (engine API v4, the state core, not landed when these two came):
-// Choke is per pad, as Model is: kept in pads_[p].choke, so a state save
-// walks Pad 1-16 and reads each pad's Choke (and Model, and Tune .. Drive);
-// Kit Decay is the kit's, kept in value_[P_KIT_DECAY] as Accent and Volume
-// are. v4's get_param must report pads_[focus_].choke for P_CHOKE and mark
-// it per pad (focus: Pad), and report P_KIT_DECAY's set value, not its
-// ramp.
+// Saving (engine API v4): Choke is per pad, as Model is (PER_FOCUS, kept in
+// pads_[p].choke), so a saved kit holds every pad's Choke; Kit Decay is the
+// kit's, as Accent and Volume are, and get_param gives its set value, not
+// its ramp.
 //
 // Per-note offsets (set_param_note; note_offsets.h): a hit's offsets ride on
 // its pad's values, ramped, and on the kit's; the pitch offset moves the
@@ -273,21 +273,24 @@ const int kPadFloats = P_DRIVE - P_TUNE + 1;
 // next free uid. Pages: the pad on 1 to 3, the kit on 4.
 const uint16_t kFloat = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
 const uint16_t kLatch = FM1_PARAM_LATCH | FM1_PARAM_MOD;
+// API v4: Pad is the focus; each pad keeps its own of the PER_FOCUS ones.
+const uint16_t kPadFloat = kFloat | FM1_PARAM_PER_FOCUS;
 const fm1_param_t kParams[P_COUNT] = {
-  { "Pad",       FM1_PARAM_ENUM,  0, kNumPads - 1, 0, kPadNames, 0, 1, 0, FM1_UNIT_NONE, "Pad" },
-  { "Tune",      FM1_PARAM_FLOAT, -24, 24, 0, NULL, 0, 2, kFloat, FM1_UNIT_SEMI, "Tune" },
-  { "Decay",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, kFloat, FM1_UNIT_NONE, "Decay" },
-  { "Level",     FM1_PARAM_FLOAT, 0, 1, 0.8f, NULL, 0, 4, kFloat, FM1_UNIT_NONE, "Level" },
-  { "Tone",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 5, kFloat, FM1_UNIT_NONE, "Tone" },
-  { "Snap",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 6, kFloat, FM1_UNIT_NONE, "Snap" },
-  { "Sweep",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 7, kFloat, FM1_UNIT_NONE, "Sweep" },
-  { "Drive",     FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 1, 8, kFloat, FM1_UNIT_NONE, "Drive" },
-  { "Model",     FM1_PARAM_ENUM,  0, MODEL_COUNT, 0, kModelNames, 2, 9, kLatch, FM1_UNIT_NONE, "Model" },
+  { "Pad",       FM1_PARAM_ENUM,  0, kNumPads - 1, 0, kPadNames, 0, 1, FM1_PARAM_FOCUS, FM1_UNIT_NONE, "Pad" },
+  { "Tune",      FM1_PARAM_FLOAT, -24, 24, 0, NULL, 0, 2, kPadFloat, FM1_UNIT_SEMI, "Tune" },
+  { "Decay",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, kPadFloat, FM1_UNIT_NONE, "Decay" },
+  { "Level",     FM1_PARAM_FLOAT, 0, 1, 0.8f, NULL, 0, 4, kPadFloat, FM1_UNIT_NONE, "Level" },
+  { "Tone",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 5, kPadFloat, FM1_UNIT_NONE, "Tone" },
+  { "Snap",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 6, kPadFloat, FM1_UNIT_NONE, "Snap" },
+  { "Sweep",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 7, kPadFloat, FM1_UNIT_NONE, "Sweep" },
+  { "Drive",     FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 1, 8, kPadFloat, FM1_UNIT_NONE, "Drive" },
+  { "Model",     FM1_PARAM_ENUM,  0, MODEL_COUNT, 0, kModelNames, 2, 9,
+    kLatch | FM1_PARAM_PER_FOCUS, FM1_UNIT_NONE, "Model" },
   { "Kit",       FM1_PARAM_ENUM,  0, kNumKits - 1, 0, kKitNames, 3, 10, kLatch, FM1_UNIT_NONE, "Kit" },
   { "Accent",    FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 3, 11, kFloat, FM1_UNIT_NONE, "Accent" },
   { "Volume",    FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 3, 12, kFloat, FM1_UNIT_NONE, "Vol" },
-  { "Choke",     FM1_PARAM_ENUM,  0, 1 + kChokeGroups, kChokeKit, kChokeNames, 2, 13, kLatch,
-    FM1_UNIT_NONE, "Choke" },
+  { "Choke",     FM1_PARAM_ENUM,  0, 1 + kChokeGroups, kChokeKit, kChokeNames, 2, 13,
+    kLatch | FM1_PARAM_PER_FOCUS, FM1_UNIT_NONE, "Choke" },
   { "Kit Decay", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 3, 14, kFloat, FM1_UNIT_NONE, "KDecay" },
 };
 
@@ -479,6 +482,20 @@ class Instance {
     } else {
       fm1_smooth_set(&smooth_[index], &value_[index], value, Sounding(-1) ? smooth_steps_ : 0);
     }
+  }
+
+  // API v4: what set_param left, never a ramp's step; a PER_FOCUS
+  // parameter's for pad `focus` (FM1_FOCUS_CURRENT, or past the last pad:
+  // the focused one's).
+  float GetParam(uint16_t index, uint8_t focus) const {
+    if (index >= P_COUNT) return 0.0f;
+    const Pad &pad = pads_[focus < kNumPads ? focus : focus_];
+    if (index == P_PAD) return static_cast<float>(focus_);
+    if (index >= P_TUNE && index <= P_DRIVE) return pad.ramp[index - P_TUNE].target;
+    if (index == P_MODEL) return static_cast<float>(pad.model);
+    if (index == P_CHOKE) return static_cast<float>(pad.choke);
+    if (index == P_KIT) return static_cast<float>(kit_);
+    return smooth_[index].target;
   }
 
   // The voice sounding `key` (one at most: a pad is struck again in its own
@@ -760,6 +777,9 @@ void Render(void *s, float *out, uint32_t n) { static_cast<Instance *>(s)->Rende
 void SetNote(void *s, uint8_t k, uint16_t i, float o) {
   static_cast<Instance *>(s)->SetParamNote(k, i, o);
 }
+float Get(const void *s, uint16_t i, uint8_t focus) {
+  return static_cast<const Instance *>(s)->GetParam(i, focus);
+}
 
 }  // namespace drums
 }  // namespace fm1
@@ -778,4 +798,5 @@ extern "C" const fm1_engine_t fm1_engine_drums = {
   0, NULL,                  // API v3: no effect extension
   // A pad kit: notes 36-51 play pads 1-16 (engines/README.md, "Pad kits").
   fm1::drums::kFirstNote, fm1::drums::kNumPads,
+  fm1::drums::Get,          // API v4: every pad's values read back
 };

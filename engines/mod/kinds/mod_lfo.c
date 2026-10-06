@@ -183,5 +183,5 @@ const fm1_mod_kind_t fm1_mod_kind_lfo = {
   "Our own, on fm1_mp's LFO. Shapes after Schwung's lfo_common.h (Charles Vestal, MIT) and "
   "Mutable Instruments' Peaks (Emilie Gillet, MIT); modes after Elektron's.",
   kParams, P_COUNT, 1, 2, kGates, kOuts, FM1_MOD_KIND_TRANSPORT | FM1_MOD_KIND_POLY_OK, 0,
-  lfo_size, lfo_create, NULL, lfo_reset, lfo_process, NULL, NULL, NULL
+  lfo_size, lfo_create, NULL, lfo_reset, lfo_process, NULL, NULL, NULL, 0
 };

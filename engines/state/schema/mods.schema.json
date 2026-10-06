@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ip2k.github.io/lunar-modulator/schema/1/mods.schema.json",
+  "title": "Lunar Modulator mod rack",
+  "description": "A modulation rack and its matrix, with its seed. A load replaces the rack and the matrix; cables name a project's units. Suggested file name: wobble.mods.lunar.",
+  "type": "object",
+  "allOf": [{"$ref": "common.schema.json#/$defs/head"}],
+  "required": ["lunar", "kind", "mod"],
+  "properties": {
+    "kind": {"const": "mods"},
+    "mod": {
+      "allOf": [{"$ref": "common.schema.json#/$defs/mod"}],
+      "required": ["seed"]
+    },
+    "view": {"$ref": "common.schema.json#/$defs/view"}
+  },
+  "unevaluatedProperties": false
+}

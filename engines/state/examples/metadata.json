@@ -1,0 +1,2292 @@
+{
+  "lunar": "1.0",
+  "kind": "metadata",
+  "made": {"by": "desktop", "version": "0.0.0", "commit": "0000000"},
+  "build": {
+    "engine_api": 4,
+    "mod_api": 2,
+    "rate": 44118,
+    "ram_budget": 387924,
+    "gpl": true
+  },
+  "engines": [
+    {
+      "id": "shapes",
+      "name": "Shapes",
+      "kind": "sound",
+      "credits": "Macro-oscillator from Mutable Instruments Braids by Emilie Gillet (MIT)",
+      "licence": "MIT",
+      "max_voices": 12,
+      "per_note": true,
+      "pads": null,
+      "fx_wants": [],
+      "ram": 207728,
+      "params": [
+        {
+          "uid": 1,
+          "name": "Shape",
+          "abbr": "Shape",
+          "type": "enum",
+          "min": 0,
+          "max": 46,
+          "def": 0,
+          "unit": "none",
+          "page": 1,
+          "knob": 1,
+          "flags": [
+            "nolock"
+          ],
+          "entries": [
+            "CSaw",
+            "Morph",
+            "Saw/Sqr",
+            "Sine/Tri",
+            "Buzz",
+            "Sqr Sub",
+            "Saw Sub",
+            "Sqr Sync",
+            "Saw Sync",
+            "3x Saw",
+            "3x Sqr",
+            "3x Tri",
+            "3x Sine",
+            "3x Ring",
+            "Swarm",
+            "Comb",
+            "Toy",
+            "LP Flt",
+            "Peak Flt",
+            "BP Flt",
+            "HP Flt",
+            "Vosim",
+            "Vowel",
+            "Vowel FOF",
+            "Harmonic",
+            "FM",
+            "FB FM",
+            "Chaos FM",
+            "Pluck",
+            "Bowed",
+            "Blown",
+            "Flute",
+            "Bell",
+            "Drum",
+            "Kick",
+            "Cymbal",
+            "Snare",
+            "Wavetbl",
+            "Wave Map",
+            "Wave Line",
+            "Wave x4",
+            "Filt Noise",
+            "Twin Peak",
+            "Clk Noise",
+            "Granular",
+            "Particle",
+            "Digital"
+          ]
+        },
+        {
+          "uid": 2,
+          "name": "Timbre",
+          "abbr": "Timbre",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.5,
+          "unit": "none",
+          "page": 1,
+          "knob": 2,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly"
+          ]
+        },
+        {
+          "uid": 3,
+          "name": "Color",
+          "abbr": "Color",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.5,
+          "unit": "none",
+          "page": 1,
+          "knob": 3,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly"
+          ]
+        },
+        {
+          "uid": 4,
+          "name": "Attack",
+          "abbr": "Atk",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0,
+          "unit": "none",
+          "page": 1,
+          "knob": 4,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly"
+          ]
+        },
+        {
+          "uid": 5,
+          "name": "Release",
+          "abbr": "Rel",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.3,
+          "unit": "none",
+          "page": 2,
+          "knob": 1,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly"
+          ]
+        },
+        {
+          "uid": 6,
+          "name": "Volume",
+          "abbr": "Vol",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.7,
+          "unit": "none",
+          "page": 2,
+          "knob": 2,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly"
+          ]
+        },
+        {
+          "uid": 7,
+          "name": "Glide",
+          "abbr": "Glide",
+          "type": "float",
+          "min": 1,
+          "max": 5000,
+          "def": 100,
+          "unit": "ms",
+          "page": 3,
+          "knob": 1,
+          "flags": [
+            "smooth",
+            "mod",
+            "log"
+          ]
+        },
+        {
+          "uid": 8,
+          "name": "Voice Mode",
+          "abbr": "VMode",
+          "type": "enum",
+          "min": 0,
+          "max": 2,
+          "def": 0,
+          "unit": "none",
+          "page": 3,
+          "knob": 2,
+          "flags": [
+            "latch",
+            "mod"
+          ],
+          "entries": [
+            "Poly",
+            "Mono",
+            "Legato"
+          ]
+        },
+        {
+          "uid": 9,
+          "name": "Glide Mode",
+          "abbr": "GMode",
+          "type": "enum",
+          "min": 0,
+          "max": 2,
+          "def": 0,
+          "unit": "none",
+          "page": 3,
+          "knob": 3,
+          "flags": [
+            "latch",
+            "mod"
+          ],
+          "entries": [
+            "Off",
+            "Legato",
+            "Always"
+          ]
+        },
+        {
+          "uid": 10,
+          "name": "Time Mode",
+          "abbr": "TMode",
+          "type": "enum",
+          "min": 0,
+          "max": 1,
+          "def": 0,
+          "unit": "none",
+          "page": 3,
+          "knob": 4,
+          "flags": [
+            "latch",
+            "mod"
+          ],
+          "entries": [
+            "Time",
+            "Rate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "drums",
+      "name": "Drums",
+      "kind": "sound",
+      "credits": "Kick, tom, snare and hi-hat voices from Mutable Instruments Plaits by Emilie Gillet (MIT); rim, clap, cowbell and cymbal from this repository (MIT), after Werner, Abel and Smith's TR-808 cowbell and cymbal models",
+      "licence": "MIT",
+      "max_voices": 12,
+      "per_note": true,
+      "pads": {
+        "first": 36,
+        "count": 16
+      },
+      "fx_wants": [],
+      "ram": 7648,
+      "params": [
+        {
+          "uid": 1,
+          "name": "Pad",
+          "abbr": "Pad",
+          "type": "enum",
+          "min": 0,
+          "max": 15,
+          "def": 0,
+          "unit": "none",
+          "page": 1,
+          "knob": 1,
+          "flags": [
+            "focus"
+          ],
+          "entries": [
+            "1 Kick",
+            "2 Rim",
+            "3 Snare",
+            "4 Clap",
+            "5 Snare 2",
+            "6 Low Tom",
+            "7 Closed HH",
+            "8 Floor Tom",
+            "9 Pedal HH",
+            "10 Mid Tom",
+            "11 Open HH",
+            "12 Low-Mid",
+            "13 High-Mid",
+            "14 Crash",
+            "15 High Tom",
+            "16 Ride"
+          ]
+        },
+        {
+          "uid": 2,
+          "name": "Tune",
+          "abbr": "Tune",
+          "type": "float",
+          "min": -24,
+          "max": 24,
+          "def": 0,
+          "unit": "semi",
+          "page": 1,
+          "knob": 2,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly",
+            "per_focus"
+          ]
+        },
+        {
+          "uid": 3,
+          "name": "Decay",
+          "abbr": "Decay",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.5,
+          "unit": "none",
+          "page": 1,
+          "knob": 3,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly",
+            "per_focus"
+          ]
+        },
+        {
+          "uid": 4,
+          "name": "Level",
+          "abbr": "Level",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.8,
+          "unit": "none",
+          "page": 1,
+          "knob": 4,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly",
+            "per_focus"
+          ]
+        },
+        {
+          "uid": 5,
+          "name": "Tone",
+          "abbr": "Tone",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.5,
+          "unit": "none",
+          "page": 2,
+          "knob": 1,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly",
+            "per_focus"
+          ]
+        },
+        {
+          "uid": 6,
+          "name": "Snap",
+          "abbr": "Snap",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.5,
+          "unit": "none",
+          "page": 2,
+          "knob": 2,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly",
+            "per_focus"
+          ]
+        },
+        {
+          "uid": 7,
+          "name": "Sweep",
+          "abbr": "Sweep",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.5,
+          "unit": "none",
+          "page": 2,
+          "knob": 3,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly",
+            "per_focus"
+          ]
+        },
+        {
+          "uid": 8,
+          "name": "Drive",
+          "abbr": "Drive",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0,
+          "unit": "none",
+          "page": 2,
+          "knob": 4,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly",
+            "per_focus"
+          ]
+        },
+        {
+          "uid": 9,
+          "name": "Model",
+          "abbr": "Model",
+          "type": "enum",
+          "min": 0,
+          "max": 10,
+          "def": 0,
+          "unit": "none",
+          "page": 3,
+          "knob": 1,
+          "flags": [
+            "latch",
+            "mod",
+            "per_focus"
+          ],
+          "entries": [
+            "Kit",
+            "Analog Drum",
+            "Punch Drum",
+            "Snare",
+            "Snap Snare",
+            "Hat",
+            "Ring Hat",
+            "Cymbal",
+            "Clap",
+            "Rim",
+            "Cowbell"
+          ]
+        },
+        {
+          "uid": 10,
+          "name": "Kit",
+          "abbr": "Kit",
+          "type": "enum",
+          "min": 0,
+          "max": 1,
+          "def": 0,
+          "unit": "none",
+          "page": 4,
+          "knob": 1,
+          "flags": [
+            "latch",
+            "mod"
+          ],
+          "entries": [
+            "Deep",
+            "Punch"
+          ]
+        },
+        {
+          "uid": 11,
+          "name": "Accent",
+          "abbr": "Accent",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.5,
+          "unit": "none",
+          "page": 4,
+          "knob": 2,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly"
+          ]
+        },
+        {
+          "uid": 12,
+          "name": "Volume",
+          "abbr": "Vol",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.7,
+          "unit": "none",
+          "page": 4,
+          "knob": 3,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly"
+          ]
+        },
+        {
+          "uid": 13,
+          "name": "Choke",
+          "abbr": "Choke",
+          "type": "enum",
+          "min": 0,
+          "max": 5,
+          "def": 0,
+          "unit": "none",
+          "page": 3,
+          "knob": 2,
+          "flags": [
+            "latch",
+            "mod",
+            "per_focus"
+          ],
+          "entries": [
+            "Kit",
+            "None",
+            "Group 1",
+            "Group 2",
+            "Group 3",
+            "Group 4"
+          ]
+        },
+        {
+          "uid": 14,
+          "name": "Kit Decay",
+          "abbr": "KDecay",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.5,
+          "unit": "none",
+          "page": 4,
+          "knob": 4,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "filter",
+      "name": "Filter",
+      "kind": "audio_fx",
+      "credits": "This repository (MIT): zero-delay-feedback filters after Zavalishin's The Art of VA Filter Design, Simper's (Cytomic) SVF, Huovilainen's ladder, the Korg35, diode-ladder and Steiner-Parker circuits; vowels from Peterson and Barney (1952). No code taken",
+      "licence": "MIT",
+      "max_voices": 0,
+      "per_note": false,
+      "pads": null,
+      "fx_wants": [],
+      "ram": 656,
+      "params": [
+        {
+          "uid": 1,
+          "name": "Type",
+          "abbr": "Type",
+          "type": "enum",
+          "min": 0,
+          "max": 5,
+          "def": 1,
+          "unit": "none",
+          "page": 1,
+          "knob": 1,
+          "flags": [
+            "mod"
+          ],
+          "entries": [
+            "SVF",
+            "Ladder",
+            "Diode",
+            "Sallen-Key",
+            "SK Mixed",
+            "Formant"
+          ]
+        },
+        {
+          "uid": 2,
+          "name": "Cutoff",
+          "abbr": "Cutoff",
+          "type": "float",
+          "min": 20,
+          "max": 18000,
+          "def": 2000,
+          "unit": "hz",
+          "page": 1,
+          "knob": 2,
+          "flags": [
+            "smooth",
+            "mod",
+            "log"
+          ]
+        },
+        {
+          "uid": 3,
+          "name": "Resonance",
+          "abbr": "Reso",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.25,
+          "unit": "none",
+          "page": 1,
+          "knob": 3,
+          "flags": [
+            "smooth",
+            "mod"
+          ]
+        },
+        {
+          "uid": 4,
+          "name": "Drive",
+          "abbr": "Drive",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0,
+          "unit": "none",
+          "page": 1,
+          "knob": 4,
+          "flags": [
+            "smooth",
+            "mod"
+          ]
+        },
+        {
+          "uid": 5,
+          "name": "Mode",
+          "abbr": "Mode",
+          "type": "float",
+          "min": 0,
+          "max": 3,
+          "def": 0,
+          "unit": "none",
+          "page": 2,
+          "knob": 1,
+          "flags": [
+            "smooth",
+            "mod"
+          ]
+        },
+        {
+          "uid": 6,
+          "name": "Morph",
+          "abbr": "Morph",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0,
+          "unit": "none",
+          "page": 2,
+          "knob": 2,
+          "flags": [
+            "smooth",
+            "mod"
+          ]
+        },
+        {
+          "uid": 7,
+          "name": "Mix",
+          "abbr": "Mix",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 1,
+          "unit": "none",
+          "page": 2,
+          "knob": 3,
+          "flags": [
+            "smooth",
+            "mod"
+          ]
+        },
+        {
+          "uid": 8,
+          "name": "Level",
+          "abbr": "Level",
+          "type": "float",
+          "min": 0,
+          "max": 2,
+          "def": 1,
+          "unit": "none",
+          "page": 2,
+          "knob": 4,
+          "flags": [
+            "smooth",
+            "mod"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "arp",
+      "name": "Arp",
+      "kind": "midi_fx",
+      "credits": "Lunar Modulator's arpeggiator (MIT): after Yarns' arpeggiator by Emilie Gillet (MIT), MCL's note orders by Justin Mammarella (BSD-3) and Super Arp's modifiers by Handcrafted Media (MIT); reimplemented, engines/midi_fx/CREDITS.md",
+      "licence": "MIT",
+      "max_voices": 0,
+      "per_note": false,
+      "pads": null,
+      "fx_wants": [],
+      "ram": 736,
+      "params": [
+        {
+          "uid": 1,
+          "name": "Mode",
+          "abbr": "MODE",
+          "type": "enum",
+          "min": 0,
+          "max": 21,
+          "def": 0,
+          "unit": "none",
+          "page": 1,
+          "knob": 1,
+          "flags": [
+            "latch"
+          ],
+          "entries": [
+            "Up",
+            "Down",
+            "Up-Down",
+            "Down-Up",
+            "Up&Down",
+            "Down&Up",
+            "Converge",
+            "Diverge",
+            "Conv-Div",
+            "Thumb Up",
+            "Thumb Down",
+            "Pinky Up",
+            "Pinky Down",
+            "Up Top Oct",
+            "Down Low Oct",
+            "Up Alt Oct",
+            "Down Alt Oct",
+            "Crawl",
+            "Random",
+            "Shuffle",
+            "Walk",
+            "Chord"
+          ]
+        },
+        {
+          "uid": 5,
+          "name": "Rate",
+          "abbr": "RATE",
+          "type": "enum",
+          "min": 0,
+          "max": 16,
+          "def": 4,
+          "unit": "none",
+          "page": 1,
+          "knob": 2,
+          "flags": [
+            "latch"
+          ],
+          "entries": [
+            "TRG",
+            "1/32T",
+            "1/32",
+            "1/16T",
+            "1/16",
+            "1/8T",
+            "1/16D",
+            "1/8",
+            "1/4T",
+            "1/8D",
+            "1/4",
+            "1/2T",
+            "1/4D",
+            "1/2",
+            "1/1T",
+            "1/2D",
+            "1/1"
+          ]
+        },
+        {
+          "uid": 6,
+          "name": "Gate",
+          "abbr": "GATE",
+          "type": "float",
+          "min": 1,
+          "max": 200,
+          "def": 50,
+          "unit": "pct",
+          "page": 1,
+          "knob": 3,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 3,
+          "name": "Octaves",
+          "abbr": "OCT",
+          "type": "enum",
+          "min": 0,
+          "max": 3,
+          "def": 0,
+          "unit": "none",
+          "page": 1,
+          "knob": 4,
+          "flags": [
+            "latch"
+          ],
+          "entries": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "uid": 8,
+          "name": "Pattern",
+          "abbr": "PATT",
+          "type": "enum",
+          "min": 0,
+          "max": 22,
+          "def": 0,
+          "unit": "none",
+          "page": 2,
+          "knob": 1,
+          "flags": [
+            "latch"
+          ],
+          "entries": [
+            "All",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15",
+            "16",
+            "17",
+            "18",
+            "19",
+            "20",
+            "21",
+            "22"
+          ]
+        },
+        {
+          "uid": 10,
+          "name": "Fill",
+          "abbr": "FILL",
+          "type": "float",
+          "min": 0,
+          "max": 32,
+          "def": 0,
+          "unit": "none",
+          "page": 2,
+          "knob": 2,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 11,
+          "name": "Rotate",
+          "abbr": "ROT",
+          "type": "float",
+          "min": 0,
+          "max": 31,
+          "def": 0,
+          "unit": "none",
+          "page": 2,
+          "knob": 3,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 9,
+          "name": "Length",
+          "abbr": "LEN",
+          "type": "float",
+          "min": 0,
+          "max": 32,
+          "def": 0,
+          "unit": "none",
+          "page": 2,
+          "knob": 4,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 18,
+          "name": "Chance",
+          "abbr": "CHNC",
+          "type": "float",
+          "min": 0,
+          "max": 100,
+          "def": 100,
+          "unit": "pct",
+          "page": 3,
+          "knob": 1,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 16,
+          "name": "Ratchet",
+          "abbr": "RATCH",
+          "type": "enum",
+          "min": 0,
+          "max": 3,
+          "def": 0,
+          "unit": "none",
+          "page": 3,
+          "knob": 2,
+          "flags": [
+            "latch"
+          ],
+          "entries": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "uid": 22,
+          "name": "Vel Spread",
+          "abbr": "SPRD",
+          "type": "float",
+          "min": 0,
+          "max": 127,
+          "def": 0,
+          "unit": "none",
+          "page": 3,
+          "knob": 3,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 24,
+          "name": "Loop",
+          "abbr": "LOOP",
+          "type": "float",
+          "min": 0,
+          "max": 64,
+          "def": 0,
+          "unit": "none",
+          "page": 3,
+          "knob": 4,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 4,
+          "name": "Oct Mode",
+          "abbr": "OCTM",
+          "type": "enum",
+          "min": 0,
+          "max": 4,
+          "def": 0,
+          "unit": "none",
+          "page": 4,
+          "knob": 1,
+          "flags": [
+            "latch"
+          ],
+          "entries": [
+            "Span",
+            "Up",
+            "Down",
+            "Up-Down",
+            "Random"
+          ]
+        },
+        {
+          "uid": 21,
+          "name": "Velocity",
+          "abbr": "VEL",
+          "type": "float",
+          "min": 0,
+          "max": 127,
+          "def": 0,
+          "unit": "none",
+          "page": 4,
+          "knob": 2,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 7,
+          "name": "Swing",
+          "abbr": "SWNG",
+          "type": "float",
+          "min": 50,
+          "max": 80,
+          "def": 50,
+          "unit": "pct",
+          "page": 4,
+          "knob": 3,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 13,
+          "name": "Join",
+          "abbr": "JOIN",
+          "type": "enum",
+          "min": 0,
+          "max": 1,
+          "def": 0,
+          "unit": "none",
+          "page": 4,
+          "knob": 4,
+          "flags": [
+            "latch"
+          ],
+          "entries": [
+            "Now",
+            "Next Pass"
+          ]
+        },
+        {
+          "uid": 2,
+          "name": "Order",
+          "abbr": "ORDR",
+          "type": "enum",
+          "min": 0,
+          "max": 2,
+          "def": 0,
+          "unit": "none",
+          "page": 5,
+          "knob": 1,
+          "flags": [
+            "latch"
+          ],
+          "entries": [
+            "Pitch",
+            "Played",
+            "Reverse"
+          ]
+        },
+        {
+          "uid": 15,
+          "name": "Repeat",
+          "abbr": "REPT",
+          "type": "enum",
+          "min": 0,
+          "max": 7,
+          "def": 0,
+          "unit": "none",
+          "page": 5,
+          "knob": 2,
+          "flags": [
+            "latch"
+          ],
+          "entries": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8"
+          ]
+        },
+        {
+          "uid": 19,
+          "name": "Chord %",
+          "abbr": "CHRD",
+          "type": "float",
+          "min": 0,
+          "max": 100,
+          "def": 0,
+          "unit": "pct",
+          "page": 5,
+          "knob": 3,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 20,
+          "name": "Oct Jump",
+          "abbr": "JUMP",
+          "type": "float",
+          "min": 0,
+          "max": 100,
+          "def": 0,
+          "unit": "pct",
+          "page": 5,
+          "knob": 4,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 12,
+          "name": "Latch",
+          "abbr": "LTCH",
+          "type": "enum",
+          "min": 0,
+          "max": 1,
+          "def": 0,
+          "unit": "none",
+          "page": 6,
+          "knob": 1,
+          "flags": [
+            "latch"
+          ],
+          "entries": [
+            "Off",
+            "On"
+          ]
+        },
+        {
+          "uid": 14,
+          "name": "Sync",
+          "abbr": "SYNC",
+          "type": "enum",
+          "min": 0,
+          "max": 1,
+          "def": 1,
+          "unit": "none",
+          "page": 6,
+          "knob": 2,
+          "flags": [
+            "latch"
+          ],
+          "entries": [
+            "Free",
+            "Key"
+          ]
+        },
+        {
+          "uid": 17,
+          "name": "Ratchet %",
+          "abbr": "RAT%",
+          "type": "float",
+          "min": 0,
+          "max": 100,
+          "def": 100,
+          "unit": "pct",
+          "page": 6,
+          "knob": 3,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 23,
+          "name": "Gate Sprd",
+          "abbr": "GSPR",
+          "type": "float",
+          "min": 0,
+          "max": 100,
+          "def": 0,
+          "unit": "none",
+          "page": 6,
+          "knob": 4,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        },
+        {
+          "uid": 25,
+          "name": "Seed",
+          "abbr": "SEED",
+          "type": "float",
+          "min": 0,
+          "max": 65535,
+          "def": 0,
+          "unit": "none",
+          "page": 7,
+          "knob": 1,
+          "flags": [
+            "latch",
+            "mod"
+          ]
+        }
+      ]
+    }
+  ],
+  "mod": {
+    "positions": 8,
+    "slots": 32,
+    "tick": 32,
+    "kinds": [
+      {
+        "id": "lfo",
+        "guid": "LFO ",
+        "name": "LFO",
+        "abbr": "LFO",
+        "credits": "Our own, on fm1_mp's LFO. Shapes after Schwung's lfo_common.h (Charles Vestal, MIT) and Mutable Instruments' Peaks (Emilie Gillet, MIT); modes after Elektron's.",
+        "flags": [
+          "transport",
+          "poly_ok"
+        ],
+        "ram": 112,
+        "data": null,
+        "params": [
+          {
+            "uid": 1,
+            "name": "Rate",
+            "abbr": "Rate",
+            "type": "float",
+            "min": 0,
+            "max": 1,
+            "def": 0.5,
+            "unit": "none",
+            "page": 1,
+            "knob": 1,
+            "flags": [
+              "mod"
+            ]
+          },
+          {
+            "uid": 2,
+            "name": "Shape",
+            "abbr": "Shape",
+            "type": "enum",
+            "min": 0,
+            "max": 7,
+            "def": 0,
+            "unit": "none",
+            "page": 1,
+            "knob": 2,
+            "flags": [
+              "mod"
+            ],
+            "entries": [
+              "Sine",
+              "Triangle",
+              "Saw Up",
+              "Saw Down",
+              "Square",
+              "Smooth",
+              "S&H",
+              "Walk"
+            ]
+          },
+          {
+            "uid": 3,
+            "name": "Depth",
+            "abbr": "Depth",
+            "type": "float",
+            "min": -1,
+            "max": 1,
+            "def": 1,
+            "unit": "none",
+            "page": 1,
+            "knob": 3,
+            "flags": [
+              "mod"
+            ]
+          },
+          {
+            "uid": 4,
+            "name": "Mode",
+            "abbr": "Mode",
+            "type": "enum",
+            "min": 0,
+            "max": 4,
+            "def": 0,
+            "unit": "none",
+            "page": 1,
+            "knob": 4,
+            "flags": [],
+            "entries": [
+              "Free",
+              "Trig",
+              "Hold",
+              "One",
+              "Half"
+            ]
+          },
+          {
+            "uid": 5,
+            "name": "Phase",
+            "abbr": "Phase",
+            "type": "float",
+            "min": 0,
+            "max": 1,
+            "def": 0,
+            "unit": "none",
+            "page": 2,
+            "knob": 1,
+            "flags": [
+              "mod"
+            ]
+          },
+          {
+            "uid": 6,
+            "name": "Sync",
+            "abbr": "Sync",
+            "type": "enum",
+            "min": 0,
+            "max": 14,
+            "def": 0,
+            "unit": "none",
+            "page": 2,
+            "knob": 2,
+            "flags": [],
+            "entries": [
+              "Off",
+              "4 Bars",
+              "2 Bars",
+              "1 Bar",
+              "1/2",
+              "1/4",
+              "1/8",
+              "1/16",
+              "1/32",
+              "1/4T",
+              "1/8T",
+              "1/16T",
+              "1/2D",
+              "1/4D",
+              "1/8D"
+            ]
+          },
+          {
+            "uid": 7,
+            "name": "Width",
+            "abbr": "Width",
+            "type": "float",
+            "min": 0,
+            "max": 1,
+            "def": 0.5,
+            "unit": "none",
+            "page": 2,
+            "knob": 3,
+            "flags": [
+              "mod"
+            ]
+          }
+        ],
+        "gates": [
+          {
+            "name": "Reset",
+            "kind": "gate",
+            "unit": "none",
+            "normal": "TRIG"
+          }
+        ],
+        "outs": [
+          {
+            "name": "Out",
+            "kind": "cv_bi",
+            "unit": "none"
+          },
+          {
+            "name": "Wrap",
+            "kind": "gate",
+            "unit": "none"
+          }
+        ]
+      },
+      {
+        "id": "env",
+        "guid": "ENV ",
+        "name": "Envelope",
+        "abbr": "ENV",
+        "credits": "Our own, on fm1_mp's multistage envelope after Mutable Instruments' Peaks (Emilie Gillet, MIT): its segments, presets, curves and knob-to-time curve.",
+        "flags": [
+          "poly_ok"
+        ],
+        "ram": 124,
+        "data": null,
+        "params": [
+          {
+            "uid": 1,
+            "name": "Attack",
+            "abbr": "Atk",
+            "type": "float",
+            "min": 0,
+            "max": 1,
+            "def": 0.1,
+            "unit": "none",
+            "page": 1,
+            "knob": 1,
+            "flags": [
+              "mod"
+            ]
+          },
+          {
+            "uid": 2,
+            "name": "Decay",
+            "abbr": "Dec",
+            "type": "float",
+            "min": 0,
+            "max": 1,
+            "def": 0.5,
+            "unit": "none",
+            "page": 1,
+            "knob": 2,
+            "flags": [
+              "mod"
+            ]
+          },
+          {
+            "uid": 3,
+            "name": "Sustain",
+            "abbr": "Sus",
+            "type": "float",
+            "min": 0,
+            "max": 1,
+            "def": 0.7,
+            "unit": "none",
+            "page": 1,
+            "knob": 3,
+            "flags": [
+              "mod"
+            ]
+          },
+          {
+            "uid": 4,
+            "name": "Release",
+            "abbr": "Rel",
+            "type": "float",
+            "min": 0,
+            "max": 1,
+            "def": 0.5,
+            "unit": "none",
+            "page": 1,
+            "knob": 4,
+            "flags": [
+              "mod"
+            ]
+          },
+          {
+            "uid": 5,
+            "name": "Curve",
+            "abbr": "Curve",
+            "type": "enum",
+            "min": 0,
+            "max": 2,
+            "def": 1,
+            "unit": "none",
+            "page": 2,
+            "knob": 1,
+            "flags": [],
+            "entries": [
+              "Linear",
+              "Expo",
+              "Quartic"
+            ]
+          },
+          {
+            "uid": 6,
+            "name": "Loop",
+            "abbr": "Loop",
+            "type": "enum",
+            "min": 0,
+            "max": 2,
+            "def": 0,
+            "unit": "none",
+            "page": 2,
+            "knob": 2,
+            "flags": [],
+            "entries": [
+              "Off",
+              "AD",
+              "ADR"
+            ]
+          },
+          {
+            "uid": 7,
+            "name": "Mode",
+            "abbr": "Mode",
+            "type": "enum",
+            "min": 0,
+            "max": 1,
+            "def": 0,
+            "unit": "none",
+            "page": 2,
+            "knob": 3,
+            "flags": [],
+            "entries": [
+              "Gate",
+              "Trigger"
+            ]
+          },
+          {
+            "uid": 8,
+            "name": "Level",
+            "abbr": "Level",
+            "type": "float",
+            "min": 0,
+            "max": 1,
+            "def": 1,
+            "unit": "none",
+            "page": 2,
+            "knob": 4,
+            "flags": [
+              "mod"
+            ]
+          }
+        ],
+        "gates": [
+          {
+            "name": "Gate",
+            "kind": "gate",
+            "unit": "none",
+            "normal": "RTRG"
+          }
+        ],
+        "outs": [
+          {
+            "name": "Env",
+            "kind": "cv_uni",
+            "unit": "none"
+          },
+          {
+            "name": "EOC",
+            "kind": "gate",
+            "unit": "none"
+          },
+          {
+            "name": "Act",
+            "kind": "gate",
+            "unit": "none"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": 0,
+        "name": "VEL",
+        "kind": "cv_uni",
+        "unit": "none"
+      },
+      {
+        "id": 1,
+        "name": "NOTE",
+        "kind": "cv_bi",
+        "unit": "semi"
+      },
+      {
+        "id": 2,
+        "name": "RAND",
+        "kind": "cv_bi",
+        "unit": "none"
+      },
+      {
+        "id": 16,
+        "name": "KEY",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 17,
+        "name": "TRIG",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 18,
+        "name": "CLOCK",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 19,
+        "name": "BEAT",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 20,
+        "name": "BAR",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 21,
+        "name": "RUN",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 22,
+        "name": "START",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 23,
+        "name": "RTRG",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 24,
+        "name": "SEQ1",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 25,
+        "name": "SEQ2",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 26,
+        "name": "SEQ3",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 27,
+        "name": "SEQ4",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 28,
+        "name": "SEQ5",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 29,
+        "name": "SEQ6",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 30,
+        "name": "SEQ7",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 31,
+        "name": "SEQ8",
+        "kind": "gate",
+        "unit": "none"
+      },
+      {
+        "id": 32,
+        "name": "SQV1",
+        "kind": "cv_uni",
+        "unit": "none"
+      },
+      {
+        "id": 33,
+        "name": "SQV2",
+        "kind": "cv_uni",
+        "unit": "none"
+      },
+      {
+        "id": 34,
+        "name": "SQV3",
+        "kind": "cv_uni",
+        "unit": "none"
+      },
+      {
+        "id": 35,
+        "name": "SQV4",
+        "kind": "cv_uni",
+        "unit": "none"
+      },
+      {
+        "id": 36,
+        "name": "SQV5",
+        "kind": "cv_uni",
+        "unit": "none"
+      },
+      {
+        "id": 37,
+        "name": "SQV6",
+        "kind": "cv_uni",
+        "unit": "none"
+      },
+      {
+        "id": 38,
+        "name": "SQV7",
+        "kind": "cv_uni",
+        "unit": "none"
+      },
+      {
+        "id": 39,
+        "name": "SQV8",
+        "kind": "cv_uni",
+        "unit": "none"
+      },
+      {
+        "id": 44,
+        "name": "S1NOTE",
+        "kind": "cv_bi",
+        "unit": "semi",
+        "sound": 1
+      },
+      {
+        "id": 45,
+        "name": "S2NOTE",
+        "kind": "cv_bi",
+        "unit": "semi",
+        "sound": 2
+      },
+      {
+        "id": 46,
+        "name": "S3NOTE",
+        "kind": "cv_bi",
+        "unit": "semi",
+        "sound": 3
+      },
+      {
+        "id": 47,
+        "name": "S4NOTE",
+        "kind": "cv_bi",
+        "unit": "semi",
+        "sound": 4
+      },
+      {
+        "id": 48,
+        "name": "S1VEL",
+        "kind": "cv_uni",
+        "unit": "none",
+        "sound": 1
+      },
+      {
+        "id": 49,
+        "name": "S2VEL",
+        "kind": "cv_uni",
+        "unit": "none",
+        "sound": 2
+      },
+      {
+        "id": 50,
+        "name": "S3VEL",
+        "kind": "cv_uni",
+        "unit": "none",
+        "sound": 3
+      },
+      {
+        "id": 51,
+        "name": "S4VEL",
+        "kind": "cv_uni",
+        "unit": "none",
+        "sound": 4
+      },
+      {
+        "id": 52,
+        "name": "S1KEY",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 1
+      },
+      {
+        "id": 53,
+        "name": "S2KEY",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 2
+      },
+      {
+        "id": 54,
+        "name": "S3KEY",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 3
+      },
+      {
+        "id": 55,
+        "name": "S4KEY",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 4
+      },
+      {
+        "id": 56,
+        "name": "S1TRIG",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 1
+      },
+      {
+        "id": 57,
+        "name": "S2TRIG",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 2
+      },
+      {
+        "id": 58,
+        "name": "S3TRIG",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 3
+      },
+      {
+        "id": 59,
+        "name": "S4TRIG",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 4
+      },
+      {
+        "id": 60,
+        "name": "S1RTRG",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 1
+      },
+      {
+        "id": 61,
+        "name": "S2RTRG",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 2
+      },
+      {
+        "id": 62,
+        "name": "S3RTRG",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 3
+      },
+      {
+        "id": 63,
+        "name": "S4RTRG",
+        "kind": "gate",
+        "unit": "none",
+        "sound": 4
+      }
+    ],
+    "units": [
+      {
+        "name": "snd1",
+        "code": 0
+      },
+      {
+        "name": "fx1",
+        "code": 1
+      },
+      {
+        "name": "fx2",
+        "code": 2
+      },
+      {
+        "name": "host",
+        "code": 3
+      },
+      {
+        "name": "snd2",
+        "code": 17
+      },
+      {
+        "name": "snd3",
+        "code": 18
+      },
+      {
+        "name": "snd4",
+        "code": 19
+      },
+      {
+        "name": "snd1.fx1",
+        "code": 20
+      },
+      {
+        "name": "snd1.fx2",
+        "code": 21
+      },
+      {
+        "name": "snd2.fx1",
+        "code": 24
+      },
+      {
+        "name": "snd2.fx2",
+        "code": 25
+      },
+      {
+        "name": "snd3.fx1",
+        "code": 28
+      },
+      {
+        "name": "snd3.fx2",
+        "code": 29
+      },
+      {
+        "name": "snd4.fx1",
+        "code": 32
+      },
+      {
+        "name": "snd4.fx2",
+        "code": 33
+      }
+    ],
+    "host": [
+      {
+        "uid": 1,
+        "name": "Pitch",
+        "abbr": "Pitch",
+        "type": "float",
+        "min": -48,
+        "max": 48,
+        "def": 0,
+        "unit": "semi",
+        "page": 1,
+        "hidden": true,
+        "flags": [
+          "smooth",
+          "mod"
+        ]
+      },
+      {
+        "uid": 2,
+        "name": "Amp",
+        "abbr": "Amp",
+        "type": "float",
+        "min": 0,
+        "max": 2,
+        "def": 1,
+        "unit": "none",
+        "page": 1,
+        "hidden": true,
+        "flags": [
+          "smooth",
+          "mod"
+        ]
+      },
+      {
+        "uid": 3,
+        "name": "Pitch 2",
+        "abbr": "Pitch2",
+        "type": "float",
+        "min": -48,
+        "max": 48,
+        "def": 0,
+        "unit": "semi",
+        "page": 1,
+        "hidden": true,
+        "flags": [
+          "smooth",
+          "mod"
+        ]
+      },
+      {
+        "uid": 4,
+        "name": "Pitch 3",
+        "abbr": "Pitch3",
+        "type": "float",
+        "min": -48,
+        "max": 48,
+        "def": 0,
+        "unit": "semi",
+        "page": 1,
+        "hidden": true,
+        "flags": [
+          "smooth",
+          "mod"
+        ]
+      },
+      {
+        "uid": 5,
+        "name": "Pitch 4",
+        "abbr": "Pitch4",
+        "type": "float",
+        "min": -48,
+        "max": 48,
+        "def": 0,
+        "unit": "semi",
+        "page": 1,
+        "hidden": true,
+        "flags": [
+          "smooth",
+          "mod"
+        ]
+      },
+      {
+        "uid": 6,
+        "name": "Pitch Cur",
+        "abbr": "PitchC",
+        "type": "float",
+        "min": -48,
+        "max": 48,
+        "def": 0,
+        "unit": "semi",
+        "page": 1,
+        "hidden": true,
+        "flags": [
+          "smooth",
+          "mod"
+        ]
+      }
+    ],
+    "polarities": [
+      "auto",
+      "uni",
+      "bi",
+      "inv"
+    ],
+    "curves": [
+      "lin",
+      "square",
+      "cube",
+      "root",
+      "cbrt",
+      "exp",
+      "log",
+      "s"
+    ]
+  },
+  "dx7": {
+    "user_slots": 32,
+    "name_chars": 10,
+    "op_fields": [
+      {
+        "name": "R1",
+        "max": 99
+      },
+      {
+        "name": "R2",
+        "max": 99
+      },
+      {
+        "name": "R3",
+        "max": 99
+      },
+      {
+        "name": "R4",
+        "max": 99
+      },
+      {
+        "name": "L1",
+        "max": 99
+      },
+      {
+        "name": "L2",
+        "max": 99
+      },
+      {
+        "name": "L3",
+        "max": 99
+      },
+      {
+        "name": "L4",
+        "max": 99
+      },
+      {
+        "name": "BP",
+        "max": 99
+      },
+      {
+        "name": "LD",
+        "max": 99
+      },
+      {
+        "name": "RD",
+        "max": 99
+      },
+      {
+        "name": "LC",
+        "max": 3
+      },
+      {
+        "name": "RC",
+        "max": 3
+      },
+      {
+        "name": "RS",
+        "max": 7
+      },
+      {
+        "name": "AMS",
+        "max": 3
+      },
+      {
+        "name": "KVS",
+        "max": 7
+      },
+      {
+        "name": "OL",
+        "max": 99
+      },
+      {
+        "name": "M",
+        "max": 1
+      },
+      {
+        "name": "FC",
+        "max": 31
+      },
+      {
+        "name": "FF",
+        "max": 99
+      },
+      {
+        "name": "DET",
+        "max": 14
+      }
+    ],
+    "voice_fields": [
+      {
+        "name": "PR1",
+        "max": 99
+      },
+      {
+        "name": "PR2",
+        "max": 99
+      },
+      {
+        "name": "PR3",
+        "max": 99
+      },
+      {
+        "name": "PR4",
+        "max": 99
+      },
+      {
+        "name": "PL1",
+        "max": 99
+      },
+      {
+        "name": "PL2",
+        "max": 99
+      },
+      {
+        "name": "PL3",
+        "max": 99
+      },
+      {
+        "name": "PL4",
+        "max": 99
+      },
+      {
+        "name": "ALG",
+        "max": 31
+      },
+      {
+        "name": "FB",
+        "max": 7
+      },
+      {
+        "name": "OKS",
+        "max": 1
+      },
+      {
+        "name": "LFS",
+        "max": 99
+      },
+      {
+        "name": "LFD",
+        "max": 99
+      },
+      {
+        "name": "LPMD",
+        "max": 99
+      },
+      {
+        "name": "LAMD",
+        "max": 99
+      },
+      {
+        "name": "LKS",
+        "max": 1
+      },
+      {
+        "name": "LFW",
+        "max": 5
+      },
+      {
+        "name": "LPMS",
+        "max": 7
+      },
+      {
+        "name": "TRNSP",
+        "max": 48
+      }
+    ]
+  },
+  "keys": {
+    "roots": [
+      "C",
+      "C#",
+      "D",
+      "D#",
+      "E",
+      "F",
+      "F#",
+      "G",
+      "G#",
+      "A",
+      "A#",
+      "B"
+    ],
+    "scales": [
+      {
+        "id": "major",
+        "name": "Major"
+      },
+      {
+        "id": "minor",
+        "name": "Minor"
+      },
+      {
+        "id": "chromatic",
+        "name": "Chromatic"
+      },
+      {
+        "id": "dorian",
+        "name": "Dorian"
+      },
+      {
+        "id": "phrygian",
+        "name": "Phrygian"
+      },
+      {
+        "id": "lydian",
+        "name": "Lydian"
+      },
+      {
+        "id": "mixolydian",
+        "name": "Mixolydian"
+      },
+      {
+        "id": "locrian",
+        "name": "Locrian"
+      }
+    ]
+  },
+  "known_ids": [
+    {
+      "id": "chop",
+      "what": "sound",
+      "reason": "gpl"
+    }
+  ],
+  "limits": {
+    "bytes": {
+      "project": 262144,
+      "sound": 32768,
+      "fx": 32768,
+      "mods": 65536,
+      "clip": 32768,
+      "settings": 4096,
+      "movy1": 65536,
+      "syx": 65536
+    },
+    "depth": 8,
+    "string_bytes": 16384,
+    "key_bytes": 64,
+    "number_chars": 32,
+    "members": 64,
+    "items": 8192
+  }
+}

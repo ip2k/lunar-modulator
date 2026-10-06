@@ -65,7 +65,7 @@ extern "C" {
 #endif
 
 #define FM1_MOD_MAGIC 0x464D314Du       /* "FM1M" */
-#define FM1_MOD_API_VERSION 1u
+#define FM1_MOD_API_VERSION 2u           /* 2 (2026-10-06): a kind's data_version, at the end */
 #define FM1_MOD_TICK 32u                /* frames per control tick (owner, 2026-10-02) */
 #define FM1_MOD_EDGES 4u                /* gate edges per port per tick */
 #define FM1_MOD_POSITIONS 8u            /* rack positions */
@@ -78,6 +78,7 @@ extern "C" {
                                            that can be destinations */
 #define FM1_MOD_Q14 16384               /* amount and offset 1.0 in Q1.14 */
 #define FM1_MOD_NONE 0xFFu              /* no source, no frame */
+#define FM1_MOD_DATA_MAX 1024u          /* pattern data per module, bytes */
 #define FM1_MOD_VOICES 12u              /* voices the runtime tracks (MG9): the
                                            engines' own polyphony */
 #define FM1_MOD_VDESTS 8u               /* sound parameters (pitch included) that
@@ -268,16 +269,26 @@ typedef struct fm1_mod_kind {
   const fm1_port_t *gate_in;
   const fm1_port_t *out;
   uint32_t flags;                       /* FM1_MOD_KIND_* */
-  uint16_t data_bytes;                  /* pattern data saved with presets; 0: none */
+  uint16_t data_bytes;                  /* pattern data saved with presets; 0: none.
+                                           At most FM1_MOD_DATA_MAX; a kind with data is
+                                           not POLY_OK (its data is the one instance's) */
   size_t (*instance_size)(const fm1_host_t *host);
   /* Constructs an instance in mem; seed is per preset and position. */
   void *(*create)(void *mem, const fm1_host_t *host, uint32_t seed);
   void (*destroy)(void *self);          /* may be NULL */
   void (*reset)(void *self, uint32_t why);   /* FM1_MOD_RESET_*; may be NULL */
   void (*process)(void *self, const fm1_mod_io_t *io);
-  void (*get_data)(const void *self, uint8_t *buf);   /* NULL when data_bytes is 0 */
+  /* Pattern data (state a user makes that no parameter holds: a locked or
+   * hand-edited loop, a drawn curve): get_data writes data_bytes bytes in
+   * layout data_version; set_data takes n bytes in layout `version` and
+   * returns 1, or 0 (changing nothing) for a version, a size or a value it
+   * does not take. Both NULL when data_bytes is 0. Same task as process. */
+  void (*get_data)(const void *self, uint8_t *buf);
   int (*set_data)(void *self, const uint8_t *buf, uint16_t n, uint8_t version);
   const void *(*view)(const void *self);  /* read-only state for drawing; may be NULL */
+  /* API v2 (2026-10-06): the layout get_data writes (1 up; 0 without data);
+   * set_data takes it and any older one it knows. */
+  uint8_t data_version;
 } fm1_mod_kind_t;
 
 /* The static registry (engines/mod/mod_registry.c). */
@@ -411,6 +422,16 @@ int fm1_mod_move(fm1_mod_t *m, unsigned from, unsigned to);
 /* A module parameter's base (a knob, a lock, a preset), by index. NaN
  * becomes the default. Returns 0 for a bad position or index. */
 int fm1_mod_set_param(fm1_mod_t *m, unsigned pos, unsigned index, float value);
+/* The pattern data of the module at pos (its kind's get_data): writes its
+ * kind's data_bytes into buf and its layout into *version, and returns the
+ * bytes; 0 for an empty position, a kind without data, or cap too small. */
+uint16_t fm1_mod_get_data(const fm1_mod_t *m, unsigned pos, uint8_t *buf, uint16_t cap,
+                          uint8_t *version);
+/* Gives the module at pos pattern data saved before (a preset, a file):
+ * 1, or 0 when the position is empty, its kind has none, or the kind
+ * refuses the bytes (nothing then changes). Place the kind first
+ * (fm1_mod_set_kind starts it from its seed); a later kind change drops it. */
+int fm1_mod_set_data(fm1_mod_t *m, unsigned pos, const uint8_t *buf, uint16_t n, uint8_t version);
 float fm1_mod_param_base(const fm1_mod_t *m, unsigned pos, unsigned index);
 /* Its effective value at the last tick (base + routes). */
 float fm1_mod_param(const fm1_mod_t *m, unsigned pos, unsigned index);

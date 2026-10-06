@@ -128,18 +128,23 @@ const char *const kChokeNames[3] = { "Off", "Closed>Open", "Both" };
 
 const uint16_t kCont = FM1_PARAM_CONTINUOUS;
 const uint16_t kLatch = FM1_PARAM_LATCH | FM1_PARAM_MOD;
+// API v4: Pad is the focus; each pad keeps its own Tune .. Dist (PER_FOCUS),
+// which get_param reads from any pad, so a saved kit holds all sixteen
+// (notes/2026-10-06-state-files.md ST7).
+const uint16_t kPadCont = kCont | FM1_PARAM_PER_FOCUS;
+const uint16_t kPadLatch = kLatch | FM1_PARAM_PER_FOCUS;
 
 // Uids (API v2) are fixed: never renumber one; a new parameter takes the next
 // free uid.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Pad",    FM1_PARAM_ENUM,  0, kNumPads - 1, 0, kPadNames, 0, 1, 0, FM1_UNIT_NONE, "Pad" },
-  { "Tune",   FM1_PARAM_FLOAT, -12, 12, 0, NULL, 0, 2, kLatch, FM1_UNIT_SEMI, "Tune" },
-  { "Decay",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, kLatch, FM1_UNIT_NONE, "Decay" },
-  { "Level",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 4, kCont, FM1_UNIT_NONE, "Level" },
-  { "Tone",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 5, kLatch, FM1_UNIT_NONE, "Tone" },
-  { "Snap",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 6, kLatch, FM1_UNIT_NONE, "Snap" },
-  { "Drive",  FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 1, 7, kCont, FM1_UNIT_NONE, "Drive" },
-  { "Dist",   FM1_PARAM_ENUM,  0, 6, 0, kDistNames, 1, 8, kLatch, FM1_UNIT_NONE, "Dist" },
+  { "Pad",    FM1_PARAM_ENUM,  0, kNumPads - 1, 0, kPadNames, 0, 1, FM1_PARAM_FOCUS, FM1_UNIT_NONE, "Pad" },
+  { "Tune",   FM1_PARAM_FLOAT, -12, 12, 0, NULL, 0, 2, kPadLatch, FM1_UNIT_SEMI, "Tune" },
+  { "Decay",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, kPadLatch, FM1_UNIT_NONE, "Decay" },
+  { "Level",  FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 4, kPadCont, FM1_UNIT_NONE, "Level" },
+  { "Tone",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 5, kPadLatch, FM1_UNIT_NONE, "Tone" },
+  { "Snap",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 6, kPadLatch, FM1_UNIT_NONE, "Snap" },
+  { "Drive",  FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 1, 7, kPadCont, FM1_UNIT_NONE, "Drive" },
+  { "Dist",   FM1_PARAM_ENUM,  0, 6, 0, kDistNames, 1, 8, kPadLatch, FM1_UNIT_NONE, "Dist" },
   { "Accent", FM1_PARAM_FLOAT, 0, 100, 100, NULL, 2, 9, kLatch, FM1_UNIT_PCT, "Accent" },
   { "Choke",  FM1_PARAM_ENUM,  0, 2, 1, kChokeNames, 2, 10, kLatch, FM1_UNIT_NONE, "Choke" },
   { "Volume", FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 2, 11, kCont, FM1_UNIT_NONE, "Vol" },
@@ -364,6 +369,17 @@ struct Instance {
       default: ApplyStruck(p); break;   // Decay, Tone, Snap
     }
   }
+
+  // API v4: what set_param left; a PER_FOCUS parameter's for pad
+  // `pad_focus` (FM1_FOCUS_CURRENT, or past the last pad: the focused one's).
+  float GetParam(uint16_t index, uint8_t pad_focus) const {
+    if (index >= P_COUNT) return 0.0f;
+    if (index == P_PAD) return static_cast<float>(focus);
+    if (index == P_ACCENT) return accent;
+    if (index == P_CHOKE) return choke;
+    if (index == P_VOLUME) return volume;
+    return value[pad_focus < kNumPads ? pad_focus : focus][PadIndex(index)];
+  }
 };
 
 size_t InstanceSize(const fm1_host_t *) { return (sizeof(Instance) + 15u) & ~static_cast<size_t>(15u); }
@@ -382,6 +398,9 @@ void NoteOn(void *s, uint8_t k, uint8_t v) { static_cast<Instance *>(s)->NoteOn(
 void NoteOff(void *, uint8_t) {}      // one-shots: a hit rings out
 void Bend(void *s, float st) { static_cast<Instance *>(s)->PitchBend(st); }
 void Set(void *s, uint16_t i, float v) { static_cast<Instance *>(s)->SetParam(i, v); }
+float Get(const void *s, uint16_t i, uint8_t focus) {
+  return static_cast<const Instance *>(s)->GetParam(i, focus);
+}
 void Render(void *s, float *out, uint32_t n) { static_cast<Instance *>(s)->Render(out, n); }
 
 }  // namespace crater
@@ -400,6 +419,7 @@ extern "C" const fm1_engine_t fm1_engine_crater = {
   NULL,                     // no per-note offsets
   0, NULL,                  // API v3: no effect extension
   fm1::crater::kFirstNote, fm1::crater::kNumPads,   // a pad kit: notes 36-51
+  fm1::crater::Get,         // API v4: every pad's values read back
 };
 
 // For the oracle (engines/test/crater_oracle.cc): the vendored kit inside an

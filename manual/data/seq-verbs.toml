@@ -187,7 +187,7 @@ does = "Deletes the clip in a slot."
 [verb.launch]
 group = "Launching, scenes and song"
 args = "<track> <slot>"
-does = "Launches a clip on the next bar; starts playback if stopped. An empty slot stops the track."
+does = "Launches a clip on the next bar; starts playback if stopped. An empty slot stops the track. A song stops being followed but keeps its list (Movy deletes it)."
 
 [verb.stoptrk]
 group = "Launching, scenes and song"
@@ -203,6 +203,55 @@ does = "Starts a new song with this scene and launches it."
 group = "Launching, scenes and song"
 args = "<scene>"
 does = "Adds a scene to the end of the song."
+
+[verb.scene]
+group = "Launching, scenes and song"
+args = "<scene>"
+does = "Lunar Modulator's own verb: launches a scene by hand on the next bar, or at once when stopped. A song stops being followed but keeps its list."
+
+[verb.sgnew]
+group = "Launching, scenes and song"
+args = "<scene>"
+does = "Lunar Modulator's own verb: makes a new song of this scene, followed from where it already plays or is queued, without launching it again (the second scene of a LOOP hold)."
+
+[verb.sgins]
+group = "Launching, scenes and song"
+args = "<entry> <scene> [<repeats>]"
+does = "Lunar Modulator's own verb: inserts a scene, played once or more, before an entry of the song (the number of entries adds it at the end). Makes a song if there is none, without launching anything. A song holds 64 scene plays at most."
+
+[verb.sgdel]
+group = "Launching, scenes and song"
+args = "<entry>"
+does = "Lunar Modulator's own verb: deletes an entry of the song. If it is playing, the next entry plays from the next bar."
+
+[verb.sgset]
+group = "Launching, scenes and song"
+args = "<entry> <scene> <repeats>"
+does = "Lunar Modulator's own verb: changes an entry's scene and how many times it plays. Two entries of one scene side by side join into one."
+
+[verb.sgmov]
+group = "Launching, scenes and song"
+args = "<entry> <places>"
+does = "Lunar Modulator's own verb: moves an entry later in the song, or earlier with a negative number."
+
+[verb.sgclr]
+group = "Launching, scenes and song"
+does = "Lunar Modulator's own verb: clears the song. What is playing keeps playing."
+
+[verb.sgend]
+group = "Launching, scenes and song"
+args = "<0|1|2>"
+does = "Lunar Modulator's own verb: what happens after the song's last entry: 0 back to the first (Movy's way), 1 every track stops while the clock runs on, 2 playback stops."
+
+[verb.sgjump]
+group = "Launching, scenes and song"
+args = "<entry>"
+does = "Lunar Modulator's own verb: plays the song from an entry. While playing, it starts on the next bar; when stopped, the next play starts there."
+
+[verb.sgname]
+group = "Launching, scenes and song"
+args = "<scene> <0-10>"
+does = "Lunar Modulator's own verb: names a scene: 1 Intro, 2 Verse, 3 Pre, 4 Chorus, 5 Drop, 6 Break, 7 Build, 8 Bridge, 9 Fill, 10 Outro; 0 removes the name."
 
 [verb.rec]
 group = "Recording and Capture"

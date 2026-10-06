@@ -9,6 +9,89 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The song list, edited on whole entries, in the sequencer core.** The
+  song can now be built and changed entry by entry: insert, delete, move,
+  change an entry's scene or repeat count, clear the list, play from any
+  entry, and give scenes names (Intro, Verse, Chorus…). At the end of the
+  song it can loop (as before), park with every track stopped, or stop the
+  transport, so a 4-minute song plays hands-free and ends by itself. A song
+  holds up to 64 scene presses; a longer one from Movy is cut to 64.
+  - Panel and simulator controls come with the Session view and the Song
+    page (a later stage): nothing on the virtual FM-1 changes yet.
+  - Changed from Movy, each kept as Movy has it in compat mode:
+    - a clip or scene launched by hand no longer deletes the song: it stops
+      following it and keeps the list, and Stop then Play follows it again;
+    - recording from stopped no longer spends the song's first bar on the
+      count-in, and makes no empty clip in a slot the song moves away from;
+    - a stopped Capture with a song plays the take you just captured;
+    - a clip launched by hand after Stop plays, rather than a scene the
+      song had queued;
+    - a loaded song plays the same each time (its random trig rolls start
+      afresh on every load).
+  - For contributors: the verbs `sgins`, `sgdel`, `sgset`, `sgmov`,
+    `sgclr`, `sgend`, `sgjump`, `scene`, `sgnew` and `sgname`, the `movy1`
+    lines `dq`, `se` and `sn` (written outside compat mode only, so a set
+    without FM-1 features stays byte-identical to Movy's), `fm1-seq
+    --import`, and `engines/seq.md`, "The song". The sequencer instance
+    grows by 64 B, to 31,944 B at 8 tracks.
+- **Sounds that can be saved whole** (groundwork for saving and loading;
+  nothing in the simulator saves yet). A drum kit's sixteen pads each keep
+  their own tuning, decay and the rest, and every one of them can now be
+  read back and restored exactly, for Drums and Sophie alike; a Register
+  module's locked or hand-edited loop is kept as the loop you made, not
+  re-rolled from its seed; and FM6's user voices can leave as a standard
+  32-voice `.syx` bank that DX7 editors read (`fm1-render --save-bank` on
+  the desktop for now). Everything else a sound holds was already what the
+  panel set, and a check now proves that replaying those values restores
+  the same sound.
+- **Parameter metadata for editors.** The desktop renderer exports, as one
+  JSON file, every sound engine's, effect's, arpeggiator's and modulation
+  module's parameters with their names, ranges, units, pages, list entries
+  and flags, FM6's voice fields and the file limits (`fm1-render --meta`),
+  so the coming browser editor and the guide's tools build their controls
+  from the build instead of copying names by hand. List entries are pinned
+  so a saved choice never changes meaning when a list grows.
+- **Saving and loading on the desktop.** Projects, sounds, effects
+  chains, mod racks, sets and clips now load into the desktop renderer and
+  sequencer and save back out, as the readable JSON files or as the compact
+  binary form the device will use (`fm1-render --load` and `--save`,
+  `fm1-seq --load` and `--save`, and the new `fm1-state`, which converts
+  between the two, checks a file and puts a hand-edited one back into
+  canonical form). A file that needs more memory than the FM-1 has, or an
+  engine this build lacks, is refused with the reason, as the device will
+  refuse it ("in the GPL build only" for an engine of the GPL build).
+  Saving, loading and saving again gives the same file, and a project saved
+  from a session (four sounds, a drum kit's pads, inserts, the
+  arpeggiator, master effects, modulation with a Register's loop, a set
+  with its song, FM6's own voices) reloads and plays exactly the same
+  audio. The simulator's Open, Save and "Launch in the simulator" links
+  come in later stages.
+  - For contributors: `engines/state/` holds one record model with a
+    streaming JSON reader small enough for the firmware, the canonical JSON
+    writer and the binary container (CRC-32 a chunk, deflate in a 4 KiB
+    window), all C99 without heap, stdio or libm; `tools/lunar_state.py`
+    reads and writes both encodings independently, and the tests hold the
+    two to the same records and bytes, golden files of format level 1.0 in
+    `tests/fixtures/state/`, and a fuzz target's invariants, run for eight
+    million mutations under ASan and UBSan and under libFuzzer.
+  - The sequencer core imports a set in pieces (`fm1_seq_import_begin`,
+    `_feed`, `_end`), so a set reaches it from a file without a line ever
+    held whole; the song's `dq`, `se` and `sn` lines are typed in the
+    binary form; P1 reads the build's metadata export; old parameter and
+    list-entry names resolve through `engines/aliases.json`;
+    `tests/test_state_whole.py` holds save-load-save and the same audio.
+  - Review fixes before merging: P1 no longer hangs on a number with a
+    huge exponent (`1e99999999999999999999`); the C reader refuses a file
+    rather than let a duplicate key through unchecked; each fuzz seed
+    runs its own stream; the metadata export lists all eight project-key
+    scales; Drums' new Choke is saved per pad; the GPL build's Comet and
+    Crater kits save every pad too; the metadata export names each
+    engine's licence.
+- **The saved-state file format, designed.** JSON Schemas (draft 2020-12)
+  for every kind of file the simulator and the guide will use (project,
+  sound, effects chain, mod rack, clip, settings) and for the export of
+  every parameter's names, ranges and units that a browser editor will
+  build its controls from, with an example of each, in `engines/state/`.
 - **Comet Kit, a drum kit after the TR-909** (GPL; in builds with the GPL
   switch on, as the simulator is while we test). It is the 909 kit of
   fm1-x0x, Charles Vestal's firmware for the FM-1, which ports 9W9 by
@@ -1413,7 +1496,7 @@ history.
 
 ### Changed
 - HANDOFF.md, the project's context summary, is rewritten for `main` after
-  the PRs merged up to #81 (2026-10-06); it had been patched piecemeal
+  the PRs merged up to #82 (2026-10-06); it had been patched piecemeal
   since the 2026-09-06 research phase.
   - Where things stand: the code runs on a desktop and in a browser (the
     virtual FM-1 and the manual on GitHub Pages), compiles for pi32v2 but

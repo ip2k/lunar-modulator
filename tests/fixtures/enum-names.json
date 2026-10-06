@@ -1,0 +1,196 @@
+{
+  "about": "Every list parameter's entry names, by owner and uid, pinned so that a list only ever grows at its end (notes/2026-10-06-state-files.md §5.2, §9): a saved file and a 7-bit lock store an entry's index, so an entry inserted mid-list, removed or reordered would move every index after it. tests/test_engine_names.py compares the build with this file: each pinned entry must still name its index, by its name or by an entry alias (engines/aliases.json), and a new entry is appended here when it is appended to the list. `engines` holds engines, effects and MIDI effects; `mod` the modulation kinds.",
+  "engines": {
+    "macro": {
+      "1": ["VA+Filter", "PhaseDist", "Terrain", "Chip", "VA Pair", "Shaper", "2-op FM", "Wavetable"],
+      "11": ["Gate", "Ping", "Off"],
+      "14": ["Poly", "Mono", "Legato"],
+      "15": ["Off", "Legato", "Always"],
+      "16": ["Time", "Rate"]
+    },
+    "shapes": {
+      "1": ["CSaw", "Morph", "Saw/Sqr", "Sine/Tri", "Buzz", "Sqr Sub", "Saw Sub", "Sqr Sync", "Saw Sync", "3x Saw", "3x Sqr", "3x Tri", "3x Sine", "3x Ring", "Swarm", "Comb", "Toy", "LP Flt", "Peak Flt", "BP Flt", "HP Flt", "Vosim", "Vowel", "Vowel FOF", "Harmonic", "FM", "FB FM", "Chaos FM", "Pluck", "Bowed", "Blown", "Flute", "Bell", "Drum", "Kick", "Cymbal", "Snare", "Wavetbl", "Wave Map", "Wave Line", "Wave x4", "Filt Noise", "Twin Peak", "Clk Noise", "Granular", "Particle", "Digital"],
+      "8": ["Poly", "Mono", "Legato"],
+      "9": ["Off", "Legato", "Always"],
+      "10": ["Time", "Rate"]
+    },
+    "macro-heavy": {
+      "1": ["Str Machine", "Chords", "Speech", "Formant", "Additive", "Swarm", "Filt Noise", "Particle", "String", "Modal", "Bass Drum", "Snare", "Hi-Hat"],
+      "11": ["Gate", "Ping", "Off"],
+      "14": ["Poly", "Mono", "Legato"],
+      "15": ["Off", "Legato", "Always"],
+      "16": ["Time", "Rate"]
+    },
+    "sixop": {
+      "1": ["1 SOLID BASS", "1 Fat Low", "1 LeaderTape", "1 ACID BASS", "1 BASS    3", "1 PLUCK BASS", "1 BASS    1", "1 ELEC BASS", "1 S.BAS 27.7", "1 RESONANCES", "1 SYN-BASS 2", "1 PRC SYNTH1", "1 PRISM 2", "1 ANALOG  4", "1 ANALOG A", "1 ANALOG  6", "1 POLY 80", "1 INSERT 1", "1 SPIRAL", "1 FM-TROTT", "1 GASHAUS", "1 RING DING", "1 PAPAGAYO", "1 WINEGLASS", "1 SEDATIVE", "1 SAMPLER 1", "1 *Wavetbl 1", "1 *Wavetbl 2", "1 *Sampler 3", "1 *Vocoder 2", "1 *Sequence", "1 Bounce 4", "2 E.PIANO 1", "2 TINE EP 1", "2 WINTER EP", "2 RS-EP C", "2 *Tines III", "2 CLAV-E.PNO", "2 SYNTH CLAV", "2 FUNK CLAV", "2 PIANO   5", "2 GRD PIANO1", "2 BIG GRAND", "2 GUIT ACOUS", "2 SITAR", "2 KOTO", "2 HARPSICH 1", "2 CLAV    3", "2 XYLOPHONE", "2 MARIMBA", "2 VIBE    1", "2 GLOKENSPL", "2 BELL C", "2 BELLS", "2 TUB BELLS", "2 GONG    2", "2 KETTLE 6", "2 MID DRM 3", "2 ORI DRUM 1", "2 WOOD 6", "2 LATN DRM 4", "2 CIMBAL", "2 SYNTH DRUM", "2 B.DRM-SNAR", "3 CLICK 124", "3 *Drawbar 1", "3 E.ORGAN 3", "3 60-S ORGAN", "3 OPTIC 28", "3 PIPES   1", "3 PIPES   3", "3 PIPES   2", "3 POLY PAD", "3 SOUNDTRACK", "3 ICE PAD  2", "3 LUSH PADS", "3 BAROQUE 2", "3 SOFT TOUCH", "3 *Planets", "3 CIRRUS", "3 ENTRIX", "3 MAL POLY", "3 Textures 6", "3 Etherial5a", "3 'Airy'", "3 BORON A", "3 CINEMA 1", "3 STRINGS C", "3 STRINGS 3", "3 STRINGS 2", "3 STRINGS 7", "3 FULL STRIN", "3 SYN-ORCH", "3 BRASS   1", "3 BRASS 6 BC", "3 BR TRUMPET"],
+      "6": ["Poly", "Mono", "Legato"],
+      "7": ["Off", "Legato", "Always"],
+      "8": ["Time", "Rate"]
+    },
+    "dx7": {
+      "1": ["TINE EP", "BARK EP", "CLAV", "HARPSI", "KOTO", "MARIMBA", "VIBES", "TUBE BELL", "GLASS BELL", "CHIMES", "STEEL DRUM", "ORGAN 1", "ORGAN PERC", "ROCK ORGAN", "BRASS", "SOFT BRASS", "FLUTE", "CLARINET", "STRINGS", "WARM PAD", "GLASS PAD", "SWEEP", "FM BASS", "PLUCK BASS", "SAW BASS", "SAW LEAD", "SQUARE LD", "SYNC LEAD", "KICK", "SNARE", "HI-HAT", "PURE SINE", "User 1", "User 2", "User 3", "User 4", "User 5", "User 6", "User 7", "User 8", "User 9", "User 10", "User 11", "User 12", "User 13", "User 14", "User 15", "User 16", "User 17", "User 18", "User 19", "User 20", "User 21", "User 22", "User 23", "User 24", "User 25", "User 26", "User 27", "User 28", "User 29", "User 30", "User 31", "User 32"],
+      "7": ["Poly", "Mono", "Legato"],
+      "8": ["Off", "Legato", "Always"],
+      "9": ["Time", "Rate"]
+    },
+    "sw-sophie": {
+      "2935": ["1 Kick", "2 Rim", "3 Snare", "4 Clap", "5 Snare 2", "6 Low Tom", "7 Closed HH", "8 Floor Tom", "9 Pedal HH", "10 Mid Tom", "11 Open HH", "12 Low-Mid", "13 High-Mid", "14 Crash", "15 High Tom", "16 Ride"],
+      "3572": ["Fuse", "Stack", "Split", "Shard"]
+    },
+    "drums": {
+      "1": ["1 Kick", "2 Rim", "3 Snare", "4 Clap", "5 Snare 2", "6 Low Tom", "7 Closed HH", "8 Floor Tom", "9 Pedal HH", "10 Mid Tom", "11 Open HH", "12 Low-Mid", "13 High-Mid", "14 Crash", "15 High Tom", "16 Ride"],
+      "9": ["Kit", "Analog Drum", "Punch Drum", "Snare", "Snap Snare", "Hat", "Ring Hat", "Cymbal", "Clap", "Rim", "Cowbell"],
+      "10": ["Deep", "Punch"],
+      "13": ["Kit", "None", "Group 1", "Group 2", "Group 3", "Group 4"]
+    },
+    "plate": {
+      "5": ["Off", "On"]
+    },
+    "sw-psxverb": {
+      "3572": ["Room", "Studio S", "Studio M", "Studio L", "Hall", "Space Echo"]
+    },
+    "drive": {
+      "1": ["Soft", "Tube", "Diode", "Fuzz", "Tape"],
+      "8": ["Off", "On"]
+    },
+    "filter": {
+      "1": ["SVF", "Ladder", "Diode", "Sallen-Key", "SK Mixed", "Formant"]
+    },
+    "comp": {
+      "8": ["Peak", "RMS", "Glue", "Punch"],
+      "9": ["Off", "On"],
+      "10": ["Off", "On"]
+    },
+    "limit": {
+      "5": ["Brickwall", "Soft Clip", "Round"]
+    },
+    "djfilter": {
+      "3": ["12 dB", "24 dB"]
+    },
+    "tilt": {
+      "3": ["Shelf", "Slope"]
+    },
+    "sat": {
+      "5": ["Smooth", "Dense"]
+    },
+    "isolator": {
+      "4": ["None", "Low", "Mid", "Low+Mid", "High", "Low+High", "Mid+High", "All"]
+    },
+    "hall": {
+      "8": ["Off", "On"]
+    },
+    "gate": {
+      "7": ["Gate", "Duck"],
+      "10": ["Off", "Key"],
+      "13": ["Max", "Sum", "Left"]
+    },
+    "squash": {
+      "1": ["Snap", "Mu", "Split"]
+    },
+    "test-ext": {
+      "2": ["Off", "Tempo"],
+      "3": ["Off", "Key"]
+    },
+    "arp": {
+      "1": ["Up", "Down", "Up-Down", "Down-Up", "Up&Down", "Down&Up", "Converge", "Diverge", "Conv-Div", "Thumb Up", "Thumb Down", "Pinky Up", "Pinky Down", "Up Top Oct", "Down Low Oct", "Up Alt Oct", "Down Alt Oct", "Crawl", "Random", "Shuffle", "Walk", "Chord"],
+      "5": ["TRG", "1/32T", "1/32", "1/16T", "1/16", "1/8T", "1/16D", "1/8", "1/4T", "1/8D", "1/4", "1/2T", "1/4D", "1/2", "1/1T", "1/2D", "1/1"],
+      "3": ["1", "2", "3", "4"],
+      "8": ["All", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"],
+      "16": ["1", "2", "3", "4"],
+      "4": ["Span", "Up", "Down", "Up-Down", "Random"],
+      "13": ["Now", "Next Pass"],
+      "2": ["Pitch", "Played", "Reverse"],
+      "15": ["1", "2", "3", "4", "5", "6", "7", "8"],
+      "12": ["Off", "On"],
+      "14": ["Free", "Key"]
+    },
+    "acid-bass": {
+      "6": ["Saw", "Square"],
+      "10": ["Off", "Soft", "RAT"]
+    },
+    "comet": {
+      "1": ["1 Kick", "2 Rim", "3 Snare", "4 Clap", "5 Snare 2", "6 Low Tom", "7 Closed HH", "8 Floor Tom", "9 Pedal HH", "10 Mid Tom", "11 Open HH", "12 Low-Mid", "13 High-Mid", "14 Crash", "15 High Tom", "16 Ride"],
+      "9": ["Diode", "Clip", "Saturate", "Fuzz", "Crunch", "Fold", "Crush"],
+      "13": ["Classic", "Big Beat"]
+    },
+    "crater": {
+      "1": ["1 Kick", "2 Rim Shot", "3 Snare", "4 Clap", "5 Claves", "6 Low Tom", "7 Closed HH", "8 Low Conga", "9 Maracas", "10 Mid Tom", "11 Open HH", "12 Mid Conga", "13 High Tom", "14 Cymbal", "15 Hi Conga", "16 Cowbell"],
+      "8": ["Diode", "Clip", "Sat", "Fuzz", "Cubic", "Fold", "Crush"],
+      "10": ["Off", "Closed>Open", "Both"]
+    },
+    "drawbar": {
+      "1": ["Flute", "Mellow", "Hollow", "Smooth", "3 Bar", "Blues", "Gospel", "Rock", "Tops", "Clarinet", "Reed", "Strings", "Chapel", "Bright", "Bass", "Full"],
+      "5": ["Off", "2nd", "3rd", "2nd Soft", "3rd Soft", "2nd Slow", "3rd Slow"],
+      "8": ["Off", "Slow", "Fast"]
+    },
+    "trio": {
+      "1": ["Saw x3", "Pulse x3", "Pls+Pls+Tri", "Saw+Saw+Tri", "Tri x3", "Saw&Tri", "Pulse&Saw", "Pulse+Noise", "Noise", "Sync", "Sync Pulse", "Sync 3", "Ring", "Ring 3", "Ring+Sync", "Ring+Sync P"],
+      "5": ["Low-pass", "Band-pass", "High-pass", "Notch"]
+    },
+    "phase-bend": {
+      "1": ["Saw", "Square", "Pulse", "Double Sine", "Saw Pulse", "Reso Saw", "Reso Tri", "Reso Trap"],
+      "2": ["Same", "Saw", "Square", "Pulse", "Double Sine", "Saw Pulse", "Reso Saw", "Reso Tri", "Reso Trap"],
+      "6": ["Mix", "Ring"],
+      "14": ["Poly", "Mono", "Legato"],
+      "15": ["Off", "Legato", "Always"],
+      "16": ["Time", "Rate"]
+    },
+    "acid-gen": {
+      "4": ["1", "2", "3"],
+      "5": ["Project", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"],
+      "6": ["Project", "Minor", "Phrygian", "Harm Minor", "Min Pent", "Dorian", "Major"],
+      "7": ["0", "1", "2", "3", "4"],
+      "8": ["Transpose", "Run"],
+      "9": ["1/16", "1/16T", "1/32", "1/8T"],
+      "11": ["Forward", "Reverse", "Ping-Pong", "Random"],
+      "12": ["Off", "On"]
+    }
+  },
+  "mod": {
+    "lfo": {
+      "2": ["Sine", "Triangle", "Saw Up", "Saw Down", "Square", "Smooth", "S&H", "Walk"],
+      "4": ["Free", "Trig", "Hold", "One", "Half"],
+      "6": ["Off", "4 Bars", "2 Bars", "1 Bar", "1/2", "1/4", "1/8", "1/16", "1/32", "1/4T", "1/8T", "1/16T", "1/2D", "1/4D", "1/8D"]
+    },
+    "env": {
+      "5": ["Linear", "Expo", "Quartic"],
+      "6": ["Off", "AD", "ADR"],
+      "7": ["Gate", "Trigger"]
+    },
+    "chance": {
+      "1": ["S&H", "T&H", "Smooth", "Drift"]
+    },
+    "function": {
+      "4": ["AD", "AR", "Cycle", "Slew", "Gated"],
+      "8": ["Off", "4 Bars", "2 Bars", "1 Bar", "1/2", "1/4", "1/8", "1/16", "1/32", "1/4T", "1/8T", "1/16T", "1/2D", "1/4D", "1/8D"]
+    },
+    "coin": {
+      "2": ["Direct", "Toggle"],
+      "3": ["Off", "On"]
+    },
+    "divide": {
+      "1": ["Div", "Mult", "Euclid", "Prob"],
+      "5": ["Div", "Mult", "Euclid", "Prob"]
+    },
+    "burst": {
+      "1": ["Burst", "Delay", "Random"]
+    },
+    "slew": {
+      "3": ["Linear", "Expo"]
+    },
+    "quantize": {
+      "1": ["Off", "Semitones", "Ionian", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Aeolian", "Locrian", "BluesMaj", "BluesMin", "PentaMaj", "PentaMin", "Folk", "Japanese", "Gamelan", "Gypsy", "Arabian", "Flamenco", "WholeTone", "Pythagorean", "QuarterEb", "QuarterE", "QuarterEa", "Bhairav", "Gunakri", "Marwa", "Shree", "Purvi", "Bilawal", "Yaman", "Kafi", "Bhimpalasree", "Darbari", "Rageshree", "Khamaj", "Mimal", "Parameshwari", "Rangeshwari", "Gangeshwari", "Kameshwari", "PaKafi", "Natbhairav", "MKauns", "Bairagi", "BTodi", "Chandradeep", "KaushikTodi", "Jogeshwari"],
+      "2": ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+    },
+    "compare": {
+      "1": ["A>B", "Window", "Trend"]
+    },
+    "logic": {
+      "1": ["AND", "OR", "XOR", "NAND", "NOR", "XNOR", "SR", "D", "Toggle"]
+    },
+    "calc": {
+      "1": ["Sum", "Diff", "Mult", "Min", "Max", "Mean", "Abs", "Rect", "Neg", "Fade", "Log", "Root", "Square", "Slope"],
+      "4": ["Off", "Semi"]
+    }
+  }
+}

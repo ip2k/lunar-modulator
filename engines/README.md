@@ -3375,7 +3375,7 @@ unit:
 | Field | What it is |
 | --- | --- |
 | `uid` | 1–4,095, unique in its engine and never changed or reused. It is what a sequencer lock, a modulation route (docs/16) or a preset stores, so reordering or extending a table moves nothing. A uid means something only together with its engine's id |
-| `flags` | 16 bits (8 in v2): `FM1_PARAM_LATCH`, `SMOOTH`, `NOLOCK`, `MOD`, `INPUT`, `POLY` and `LOG`, below; 0x80 is kept for KEYSRC (the side-chain stage) |
+| `flags` | 16 bits (8 in v2): `FM1_PARAM_LATCH`, `SMOOTH`, `NOLOCK`, `MOD`, `INPUT`, `POLY` and `LOG`, and since v4 `FOCUS` (0x0100) and `PER_FOCUS` (0x0200), below; 0x80 is kept for KEYSRC (the side-chain stage) |
 | `unit` | `FM1_UNIT_NONE`, `SEMI`, `MS`, `HZ`, `PCT`, `DEG` or `DB` (v3): the unit the value itself is in |
 | `abbr` | Up to 6 characters, for matrix rows (docs/16 §5.3). Distinct within an engine, and still distinct cut to 5, for rows that add a unit prefix |
 
@@ -3404,6 +3404,8 @@ moves to the fixture's `retired` list, so its uid is never given out again.
 | INPUT | A bare signal input: FLOAT, −1..1, default 0, hidden from the knob pages | Modulation modules only; no engine has one |
 | POLY | Takes a per-note offset: the engine keeps one per sounding voice ([below](#per-note-offsets)). FLOAT only, always with MOD | Per-voice modulation (docs/16 §6.3, stage MG9) sends it with `set_param_note` |
 | LOG (v3) | Pitch- or time-like: a FLOAT in Hz or ms with 0 < min < max. Stored, shown and saved in its unit, but it moves on a log scale ([the LOG law](#the-log-law)) | Knob detents, bars, 7-bit locks and modulation work on its position, in ratios and octaves; the engine sees values in its unit as before |
+| FOCUS (v4) | The edit focus: a list whose value chooses the entry (a pad) the PER_FOCUS parameters set. At most one in an engine; never MOD, never PER_FOCUS itself | A lock may move it (the locks after it edit the entry it names); a save reads every entry's values through `get_param` and restores the focus last ([Engine API v4](#engine-api-v4)) |
+| PER_FOCUS (v4) | Kept once per entry of the focus: `set_param` sets the focused entry's, `get_param` reads any entry's | Only with a FOCUS parameter in the engine; a file writes them per pad (`pads` in a sound) |
 
 Every FLOAT parameter here is SMOOTH and MOD (`FM1_PARAM_CONTINUOUS`),
 except Sophie's, which are LATCH and MOD: a triggered voice copies its pad's
@@ -3460,7 +3462,7 @@ Type with dynamics pack 3 (the Limiter's Mode gained Round then).
 | macro | Model | NOLOCK | `set_param` rebuilds all 12 voices (`BuildEngines`), cutting every note |
 | macro | LPG | none | Read every block, and a change leaves notes sounding, so it can be locked. No MOD: a rounded route could end a note held under Off by switching to Ping |
 | macro-heavy | Model, LPG | as Macro's | the same code |
-| drums | Pad | none | The edit focus, as Sophie's: lockable, no MOD |
+| drums | Pad | FOCUS | The edit focus, as Sophie's: lockable, no MOD; its per-pad parameters are PER_FOCUS (API v4) |
 | drums | Model | LATCH, MOD | Read when a pad is struck; a sounding hit keeps its model |
 | drums | Kit | LATCH, MOD | The voicings a hit starts with; a sounding hit keeps them |
 | drums | Choke | LATCH, MOD | The group a hit joins, read when its pad is struck; a sounding hit keeps it (2026-10-06) |
@@ -3468,7 +3470,7 @@ Type with dynamics pack 3 (the Limiter's Mode gained Round then).
 | shapes | Shape | NOLOCK | Sets every voice's oscillator at once |
 | sixop | Patch | LATCH, MOD | Read per voice at note-on, so a lock or a route picks the patch of the next notes |
 | dx7 | Patch | LATCH, MOD | As Six-Op's: a voice takes its data, built-in or from a user slot, at note-on |
-| sw-sophie | Pad | none | The module's edit focus, not a sound: it picks the pad the other parameters edit. NOLOCK in S7a, since a lock on it changes what the locks after it mean; lockable since docs/15 S8 (the owner's decision, 2026-10-02): a Pad lock moves the focus at its step, so the locks after it in lane order, there and later, edit the pad it names. A change leaves sounding voices intact. No MOD: a list that moves the focus is no modulation target |
+| sw-sophie | Pad | FOCUS | The module's edit focus, not a sound (FOCUS since API v4; every pad parameter is PER_FOCUS): it picks the pad the other parameters edit. NOLOCK in S7a, since a lock on it changes what the locks after it mean; lockable since docs/15 S8 (the owner's decision, 2026-10-02): a Pad lock moves the focus at its step, so the locks after it in lane order, there and later, edit the pad it names. A change leaves sounding voices intact. No MOD: a list that moves the focus is no modulation target |
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
 | sw-psxverb | Model | NOLOCK | A new preset clears the 128 KB work area, cutting the tail. Effect slots are not lockable yet anyway (docs/15 O14, answered 2026-10-02) |
@@ -4305,11 +4307,161 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
   struct grows by 4 bytes on pi32v2 (two bytes and padding after the last
   pointer) and 8 on x86-64.
 
+## Engine API v4
+
+`FM1_ENGINE_API_VERSION` is 4 since 2026-10-06 (owner decision ST7 of
+[notes/2026-10-06-state-files.md](../notes/2026-10-06-state-files.md)):
+every value a user can set must be readable back, so a saved sound restores
+exactly. A host keeps what it sent through `set_param`, which is what
+almost every engine holds; a pad kit is the exception: its knobs edit the
+focused pad, so a host knew only that pad's values, and a saved kit would
+have lost the other fifteen. Additive: nothing a v3 engine does changes,
+and every render here is byte for byte what it was [verified: the full
+suite, the parity scenarios' native legs].
+
+| Addition | What it is |
+| --- | --- |
+| `FM1_PARAM_FOCUS` (0x0100) | On the edit focus: a list whose value chooses the entry the PER_FOCUS parameters set. At most one in an engine, never MOD or PER_FOCUS itself; a lock may move it |
+| `FM1_PARAM_PER_FOCUS` (0x0200) | On each parameter an entry keeps its own of. Only with a FOCUS parameter |
+| `get_param(self, index, focus)` | Optional, last in `fm1_engine_t`. The value as `set_param` left it: the clamped value of a FLOAT (a SMOOTH one's target, never a ramp's step), an ENUM's entry as a whole number, the default for one never set. For a PER_FOCUS parameter, `focus` is the entry (0 is pad 1); `FM1_FOCUS_CURRENT` (0xFF), or any entry past the last, reads the one the focus names. It never moves the focus. Required with a FOCUS parameter; NULL elsewhere, where the host's own record is complete |
+| `fm1_engine_focus`, `fm1_engine_focus_count`, `fm1_param_per_focus` | The focus parameter's index, its entries, and whether a parameter is kept per entry |
+| `fm1_engine_copy_params(e, dst, src)` | The restore order, as a load follows it with a file's values: for each entry, the focus on it and that entry's PER_FOCUS values; then the other parameters in table order; the focus last |
+
+- **Drums** reads its per-pad ramps' targets and its Model and Choke per
+  pad; Pad is its FOCUS, Tune, Decay, Level, Tone, Snap, Sweep, Drive, Model
+  and Choke are PER_FOCUS; Kit Decay, like Accent and Volume, is the kit's.
+- **Comet Kit** and **Crater Kit** (GPL modules, with the switch on) work
+  the same way: Pad is the FOCUS; Comet's Tune .. Drive and Drive Type, and
+  Crater's Tune .. Drive and Dist, are PER_FOCUS; Comet's Accent, Velocity,
+  Volume and Kit and Crater's Accent, Choke and Volume are the kit's.
+- **Sophie** goes through the Schwung shim, which now keeps, for a module
+  whose table has a FOCUS parameter, what it set on each entry, starting
+  from the module's own pad patches, read once at create through the
+  adapter's `focus_key` (`p01_tune` … `p16_tune`). Values come back exactly
+  as set, not through the module's three-decimal text. The table is
+  1,232 B of Sophie's instance, and the shim's own record grew by 32 B for
+  every module: Sophie 79,344 B and PSX Verb, which has no focus and no
+  table, 134,432 B on a 64-bit host, from 78,080 B and 134,400 B [verified:
+  fm1-render's `instance_bytes`, 2026-10-06] ([schwung.md](schwung.md)).
+- **Every other engine, effect and MIDI effect** (the GPL ones included)
+  has `get_param` NULL: what
+  a host keeps is the whole state. `fm1-param-get-test` shows it: random
+  values set in a random order, several times each, render the same
+  samples (a MIDI effect, the same events) as each parameter's last value,
+  clamped as a host keeps it, replayed once in table order. So a load that
+  replays a file in uid order restores the sound.
+- The FM6 user bank and Register's locked loop are state no parameter
+  holds; they leave through their own calls: `fm1_dx7_get_user_voice` and
+  the VMEM writer ([msfa.md](msfa.md)), and the modulation kinds' pattern
+  data ([mod/README.md](mod/README.md)).
+- A save reads them back: `fm1-render --save` writes an engine with
+  `get_param` from its instance, every pad of a kit included, and any other
+  from the values it set (the rest at their defaults); the state readers
+  take a kit's focus and per-pad values from the flags alone
+  ([state/README.md](state/README.md)).
+- The GPL lane's pad kits (the 808 and 909 ports) need the same: a FOCUS
+  Pad, PER_FOCUS per-pad parameters and `get_param`. `tests/test_engine_params.py`
+  refuses a focused engine without `get_param`, and `fm1-param-get-test`
+  checks whatever the registry holds.
+
+Tests [verified, 2026-10-06]: `tests/test_engine_api_v4.py` runs
+`fm1-param-get-test` (six seeds) on every engine: with `get_param`, a fresh
+instance reads its defaults within range, random values on every pad
+(out-of-range ones among them) read back exactly as kept, through the pad
+and through `FM1_FOCUS_CURRENT`, and reading moves nothing;
+`fm1_engine_copy_params` into a fresh instance gives every value back and
+renders the same samples with every pad struck (a fresh Sophie included, so
+the starting patches are read exactly); without it, the replay above.
+Breaking Drums' getter or Sophie's starting-patch read fails it [verified:
+by hand]. `tests/test_engine_params.py` holds the flags' rules and the
+pinned flags.
+
+### The parameter metadata export
+
+`fm1-render --meta` writes, from the registries, the document
+[state/schema/metadata.schema.json](state/schema/metadata.schema.json)
+describes (`include/fm1_meta.h`, `state/fm1_meta.c`; the state note's §7.7):
+everything an editor builds its controls from, so it never hard-codes a
+name, a range or a uid.
+
+- Every engine, effect and MIDI effect: id, name, kind, credits, voices,
+  per-note offsets, pads, what an effect wants of API v3, its instance
+  bytes at 44,118 Hz (`ram`), and each parameter's uid, name, abbreviation,
+  type, range, default, unit, page and knob (or `hidden`), flags, list
+  entries, and the old names a file may still use (`aliases`,
+  `entry_aliases`, from `aliases.json`).
+- Every modulation kind with its guid, flags (`transport`, `poly_ok`),
+  instance bytes, pattern data (`{bytes, version}`), parameters and ports;
+  the system sources (with the sound a per-sound one follows), the units a
+  cable reaches by the name files use, the host's parameters, the
+  polarities and the curves.
+- FM6's VCED fields by name with their ranges (`fm1_dx7_op_fields`,
+  `fm1_dx7_voice_fields`); the project keys; the ids the build knows but
+  lacks, with the reason (`known-ids.json`; the GPL lane's proposed ids,
+  `gpl`); the reader's caps (`include/fm1_state_caps.h`); and the build: the
+  engine and modulation API versions, the rate, the RAM budget and the GPL
+  switch.
+
+It is written in the canonical layout of `tests/state_canon.py` as it goes,
+with no heap: members in the schema's order, floats as the shortest decimal
+that reads back to the float32, in ECMAScript's format, by the state
+files' own exact formatter (`state/fm1_num.h`, since the stage-E
+integration; the output did not change by a byte [verified: 2026-10-06]).
+It is for the desktop tools and the simulator (stage A1's `fm1w_meta`),
+never the firmware; `fm1-state meta` prints the same document. 174,232 B for today's registry
+[verified: 2026-10-06]. `engines/state/examples/metadata.json` is the
+export cut to Shapes, Drums, Filter, the arpeggiator, the LFO and the
+Envelope, byte for byte: the golden file
+(`tests/test_state_schema.py`; `tools/state_examples.py --write` rewrites
+it).
+
+- `tests/test_engine_metadata.py`: canonical and steady; equal to an
+  independent construction from `--list` and `--list-mod`
+  (`tests/state_meta.py`) wherever both can say; instance bytes as
+  fm1-render reports them; FM6's fields as the schema's ranges; versions,
+  budget (the simulator's `FM1_APP_RAM_BUDGET`) and caps as the headers;
+  the float writer equal to the reference on every exponent's edges, knob
+  values and 20,000 random float32s.
+- `tests/test_engine_names.py`: every list's entries pinned in
+  `tests/fixtures/enum-names.json` still name their indices (lists only
+  grow at their end; a rename keeps the old name as an entry alias); entry
+  names find one index without case; aliases name real things and shadow
+  nothing; known ids have a known reason, a planned one is not built; the
+  generated `state/fm1_known.c` is current.
+
+## Saved state
+
+Projects, sounds, effects chains, mod racks, clips, sets and settings save
+and load on the desktop, as canonical JSON or as the device's binary
+container ([state/README.md](state/README.md); the design and the owner's
+decisions are in
+[notes/2026-10-06-state-files.md](../notes/2026-10-06-state-files.md)).
+Built in stages E1 (the song core), E2 (saveable engines, the metadata
+export), E3 (the records and codecs) and P1 (the Python reader), and joined
+on 2026-10-06:
+
+- `fm1-render --load [sK:|tT.S:]FILE` sets up the render from a file
+  (refusing, as the device will, an engine the build lacks, with its
+  known-ids reason, or more instances than the FM-1's RAM holds at
+  44,118 Hz), and `--save KIND:FILE` writes the state the render starts
+  from: `project`, `sound[K]`, `fx`, `mods`, `set` or `clip:T.S`; a name
+  ending in `.lunarb` is binary.
+- `fm1-seq --load` and `--save clip:T.S:FILE`; a set's lines go straight
+  into the sequencer core's streaming import, piece by piece
+  (`fm1_seq_import_begin`, `_feed`, `_end`; [seq.md](seq.md)).
+- `fm1-state`: `canon`, `pack`, `unpack`, `from-movy1`, `records`, `check`,
+  `diff`, `meta`.
+- A project saved from a session reloads and renders the same WAV, byte
+  for byte, from JSON and from binary: four sound units, a kit's pads,
+  inserts, the arpeggiator, the master effects, a mod rack with pattern
+  data and cable locks, a set with its song, and FM6's user voices
+  [verified: tests/test_state_whole.py].
+
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `include/fm1_engine.h` | The engine API, version 3. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, 16-bit flags, a unit and an abbreviation ([above](#parameters-engine-api-v2-and-v3)); the LOG law ([above](#the-log-law)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the effect extension, MIDI effects and pad kits ([above](#engine-api-v3)); the threading contract |
+| `include/fm1_engine.h` | The engine API, version 4. C, no heap: the host asks `instance_size`, provides that memory (not zeroed), and the engine constructs itself in it. Typed parameters, four to a page (the FM-1 has four free parameter knobs), each with a stable uid, 16-bit flags, a unit and an abbreviation ([above](#parameters-engine-api-v2-and-v3)); the LOG law ([above](#the-log-law)); `fm1_param_clamp` for NaN-safe ranges; per-note offsets ([above](#per-note-offsets)); the effect extension, MIDI effects and pad kits ([above](#engine-api-v3)); the focus and `get_param` ([above](#engine-api-v4)); the threading contract |
 | `include/fm1_math.h` | `fm1_log2f`, `fm1_exp2f`: base-2 logarithm and exponential without libm, the same bits on every build (the LOG law's, and Comp's, DJ Filter's and Tilt's through `src/fx_comp_math.h`) |
 | `include/fm1_fx_host.h`, `seq/fx_host.c` | The effect extension on the host side: the tempo, beats and transport events from the sequencer's clock, and the split renders both hosts share ([below](#engine-api-v3)) |
 | `include/fm1_mod.h`, `include/fm1_mod_host.h`, `mod/` | Modulation (docs/16 stage MG1): a rack of up to 8 modules inside a 32-slot matrix, run every 32 frames on absolute time, with the module kinds LFO, Envelope and Chance, and the glue that runs it as the sequencer bridge's control-rate hook. Built on the primitives (an LFO, a Peaks-style envelope, slew, S&H, a Turing register, a tick clock divider). Heap-free C99, no libm; `fm1-render --mod` hosts it, the simulator does not yet ([mod/README.md](mod/README.md)) |
@@ -4337,7 +4489,12 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON; with `--sound`, `--insert`, `--level` (and `--slots`) up to four sound units, each through its own inserts and level, mixed before the effect chain, as the virtual FM-1's multi-sound plays them (seq.md, Host contract) |
-| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
+| `include/fm1_meta.h`, `state/fm1_meta.c` | The parameter metadata export, `fm1-render --meta` ([below](#the-parameter-metadata-export)) |
+| `include/fm1_known.h`, `state/fm1_known.c`, `known-ids.json`, `aliases.json` | The ids a build may lack, with the reason a load gives, and the old names of renamed parameters and list entries; the C file is written by `tools/gen_known.py` |
+| `include/fm1_state_caps.h` | The caps a state reader enforces on hostile input (the state note's §16) |
+| `state/` | The saved state: the record model, the streaming JSON reader, the canonical JSON writer, the binary container and its deflate, the modulation records' applier, the fuzz target, the JSON Schemas and examples ([state/README.md](state/README.md)), the metadata export and the known names |
+| `host/state_tool.c`, `host/render_state.*`, `host/state_clip.*` | `fm1-state`, and fm1-render's and fm1-seq's `--load` and `--save` ([above](#saved-state)) |
+| `test/` | `fm1-param-get-test`, engine API v4's read-back on every engine ([below](#engine-api-v4)); `fm1-meta-number-test`, the export's float writer; `fm1-state-alias-test`, the state readers' old names with a table of its own; the reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-idle-test`, which holds the idle paths to the effects built without them ([above](#idle-at-pass-through)), `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
@@ -4359,8 +4516,13 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `--fill BYTE` | What instance memory holds before `create`; every engine must render byte-identically from any fill |
 | `--fault T[..T1]:VALUE` | Overwrite the bus after the source with `nan`, `inf` or any value, for one frame or a span, to test recovery |
 | `--mod FILE`, `--log-mod FILE.jsonl` | Modulation: a rack and slots from a text file, and one JSON line per control tick ([mod/README.md](mod/README.md#hosting)) |
-| `--list-mod` | The modulation kinds with their parameters' uids and flags, their ports, the system sources and the host parameters, as JSON |
+| `--list-mod` | The modulation kinds with their parameters' uids and flags, their ports, whether each runs per voice (`poly_ok`) and keeps pattern data (`data`), the system sources and the host parameters, as JSON |
+| `--meta` | The parameter metadata export ([below](#the-parameter-metadata-export)): canonical JSON of everything an editor builds its controls from |
 | `--sysex FILE.syx` | DX7 voices into FM6's user slots (`--engine dx7`), before the first block; repeatable ([msfa.md](msfa.md)) |
+| `--save-bank FILE.syx` | FM6's 32 user slots as one VMEM bank dump, after any `--sysex` ([msfa.md](msfa.md)) |
+| `--save-mod-data FILE` | The rack's pattern data as the render ends, one `data P VERSION HEX` line a module ([mod/README.md](mod/README.md)) |
+| `--load [sK:\|tT.S:]FILE`, `--without` | A state file, JSON or binary: a project, a sound (into sound unit K), an effects chain, a mod rack, a clip (into track T, slot S) or a set; `--without` leaves out what the build lacks ([above](#saved-state)) |
+| `--save KIND:FILE` | The state the render starts from: `project`, `sound[K]`, `fx`, `mods`, `set`, `clip:T.S`; `.lunarb` for binary ([above](#saved-state)) |
 | `--tempo BPM` | The tempo effects with the API v3 extension hear without a sequencer (20–300, default 120); with `--cmd` or `--seq` they hear the sequencer's ([above](#engine-api-v3)) |
 
 ## Build and checks

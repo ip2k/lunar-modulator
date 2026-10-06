@@ -305,6 +305,11 @@ static int slot_line(fm1_mod_t *m, const fm1_engine_t *const units[FM1_MOD_SINKS
       if (!number(eq + 1, &v)) return fail(err, cap, "bad %s", tok[t]);
       if (same(tok[t], "amt")) s.amount = fm1_mod_q14((float)(v / 100.0));
       else s.offset = fm1_mod_q14((float)(v / 100.0));
+    } else if (same(tok[t], "lock")) {
+      if (!number(eq + 1, &v) || v < 0 || v > FM1_PARAM_UID_MAX || v != (double)(unsigned)v) {
+        return fail(err, cap, "lock wants a uid 0-%u", FM1_PARAM_UID_MAX);
+      }
+      s.uid = (uint16_t)v;
     } else if (same(tok[t], "via")) {
       if (!parse_src(m, eq + 1, &s.via, err, cap)) return 0;
     } else if (same(tok[t], "pol") || same(tok[t], "curve")) {
@@ -326,6 +331,65 @@ static int slot_line(fm1_mod_t *m, const fm1_engine_t *const units[FM1_MOD_SINKS
   }
   fm1_mod_set_slot(m, i, &s);
   return 1;
+}
+
+static int hex_digit(char c) {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  return -1;
+}
+
+/* "data P VERSION HEX": read from the line itself, not through tokens(),
+ * since the hex may run past a token's 64 characters. */
+static int data_line(fm1_mod_t *m, const char *line, char *err, size_t cap) {
+  uint8_t buf[FM1_MOD_DATA_MAX];
+  char tok[MAX_TOK][TOK_LEN];
+  const char *p = line;
+  unsigned pos, n = 0, k;
+  double v;
+  int kind;
+  if (tokens(line, tok) != 4 || !position(tok[1], &pos) || !number(tok[2], &v) || v < 0 ||
+      v > 255 || v != (double)(unsigned)v) {
+    return fail(err, cap, "data wants P VERSION HEX");
+  }
+  kind = fm1_mod_kind_at(m, pos);
+  if (kind < 0) return fail(err, cap, "position %u is empty", pos + 1u);
+  for (k = 0; k < 3u; ++k) {                       /* past "data", P and VERSION */
+    while (*p == ' ' || *p == '\t') ++p;
+    while (*p && *p != ' ' && *p != '\t') ++p;
+  }
+  while (*p == ' ' || *p == '\t') ++p;
+  for (; hex_digit(p[0]) >= 0; p += 2) {
+    if (hex_digit(p[1]) < 0) return fail(err, cap, "data: an odd number of hex digits");
+    if (n == sizeof(buf)) return fail(err, cap, "data: more than %u bytes", FM1_MOD_DATA_MAX);
+    buf[n++] = (uint8_t)(hex_digit(p[0]) << 4 | hex_digit(p[1]));
+  }
+  while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') ++p;
+  if (*p && *p != '#') return fail(err, cap, "data: not hex: %s", p);
+  if (!fm1_mod_set_data(m, pos, buf, (uint16_t)n, (uint8_t)v)) {
+    return fail(err, cap, "%s does not take %u bytes of data version %u",
+                fm1_mod_kinds[kind]->id, n, (unsigned)v);
+  }
+  return 1;
+}
+
+size_t fm1_mod_script_data_line(const fm1_mod_t *m, unsigned pos, char *buf, size_t cap) {
+  static const char kHex[] = "0123456789abcdef";
+  uint8_t data[FM1_MOD_DATA_MAX];
+  uint8_t version = 0;
+  const uint16_t n = fm1_mod_get_data(m, pos, data, (uint16_t)sizeof(data), &version);
+  int head;
+  unsigned k;
+  if (!n || !buf) return 0;
+  head = snprintf(buf, cap, "data %u %u ", pos + 1u, (unsigned)version);
+  if (head < 0 || (size_t)head + 2u * n + 1u > cap) return 0;
+  for (k = 0; k < n; ++k) {
+    buf[head + 2 * k] = kHex[data[k] >> 4];
+    buf[head + 2 * k + 1] = kHex[data[k] & 15u];
+  }
+  buf[head + 2 * n] = '\0';
+  return (size_t)head + 2u * n;
 }
 
 int fm1_mod_script_seed(const char *line, uint32_t *seed) {
@@ -373,6 +437,7 @@ int fm1_mod_script_apply(fm1_mod_t *m, const char *line,
     return set_params(m, a, tok, 2, n, err, errcap);
   }
   if (same(tok[0], "slot")) return slot_line(m, units, tok, n, err, errcap);
+  if (same(tok[0], "data")) return data_line(m, line, err, errcap);
   if (same(tok[0], "current")) {
     double v;
     if (n != 2 || !number(tok[1], &v) || v < 1 || v > FM1_MOD_SOUNDS || v != (double)(unsigned)v) {

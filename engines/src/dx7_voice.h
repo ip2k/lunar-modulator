@@ -48,6 +48,10 @@ void Sanitize(uint8_t v[kVoiceBytes]);
 // sanitised.
 void FromPacked(const uint8_t packed[kPackedBytes], uint8_t v[kVoiceBytes]);
 
+// One voice's VCED data bytes, sanitised, packed into a VMEM bank's 128:
+// FromPacked's inverse for every voice in range.
+void ToPacked(const uint8_t vced[FM1_DX7_VCED_BYTES], uint8_t packed[kPackedBytes]);
+
 // One voice from a VCED dump's 155 data bytes, sanitised.
 void FromVced(const uint8_t data[FM1_DX7_VCED_BYTES], uint8_t v[kVoiceBytes]);
 

@@ -7,8 +7,8 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
-state of `main` after the PRs merged up to #81 (2026-09-29 to 2026-10-06,
-`1b4152c`).
+state of `main` after the PRs merged up to #82 (2026-09-29 to 2026-10-06,
+`5047233`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -151,9 +151,9 @@ so it is always written in full.
 | --- | --- | --- |
 | `DEVELOPERS.md` | The technical home: getting started, how the software works, the hardware, where development stands, the roadmap in detail, the path to an installable build (I0–I15), research to do, contributing | its contents list |
 | `docs/01`–`16` | Hardware, stock firmware, update protocol, prior art, feasibility, Movy and Schwung, recovery and risk, roadmap, first-session checklist, the `USB_KEY` dongle, the plugin platform, the sequencer, the Movy port plan, the verification ladder, the sequencer in the simulator (S1–S10, owner decisions O1–O24), modulation (MG0–MG9) | DEVELOPERS.md "Documents" |
-| `notes/` | Bench session 1 and the research log (2026-09-06), the desk review (09-08), FM-1+VA and the PCB photos (09-29), the CHOMPI, monome/O&C and arp/modulation/effects studies (10-01), the delay/reverb/EQ/gates and filters/dynamics options and the JieLi compile check (10-02), the community firmware and current SDK study and the soft-key/eFuse study with its draft test plan (10-05), the UI audit of the FM-1 screen with mockups in `assets/ui-audit/` and the advanced editor's design with the owner's decisions and mockups in `assets/web-editor/`, and the fm1-x0x and Felucca engines study (10-06), `upstream-candidates.md` | |
-| `engines/` | The engine platform: a C API with no heap (v3 since #57), seven sound engines of its own licence (Drums since #59, FM6 on msfa since #60) and, behind the GPL switch, six GPL ones from fm1-x0x and Felucca (Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio, Phase Bend; #81); 22 effects (Squash and Transient since #66) plus test entries, the Schwung shim, the desktop renderer `fm1-render`, reference renderers | `engines/README.md` |
-| `engines/seq/` | `fm1_seq`, the sequencer core (docs/13 M1), and the host bridge that `fm1-render` and the simulator share (#25): about 6,000 lines of C99 | `engines/seq.md` |
+| `notes/` | Bench session 1 and the research log (2026-09-06), the desk review (09-08), FM-1+VA and the PCB photos (09-29), the CHOMPI, monome/O&C and arp/modulation/effects studies (10-01), the delay/reverb/EQ/gates and filters/dynamics options and the JieLi compile check (10-02), the community firmware and current SDK study and the soft-key/eFuse study with its draft test plan (10-05), the UI audit of the FM-1 screen with mockups in `assets/ui-audit/` and the advanced editor's design with the owner's decisions and mockups in `assets/web-editor/`, the fm1-x0x and Felucca engines study, and the state files and song-and-scenes plans with the owner's decisions (10-06), `upstream-candidates.md` | |
+| `engines/` | The engine platform: a C API with no heap (v4 since #82, which adds saveable parameters), seven sound engines of its own licence (Drums since #59, FM6 on msfa since #60) and, behind the GPL switch, six GPL ones from fm1-x0x and Felucca (Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio, Phase Bend; #81); 22 effects (Squash and Transient since #66) plus test entries, the Schwung shim, the desktop renderer `fm1-render`, reference renderers | `engines/README.md` |
+| `engines/seq/` | `fm1_seq`, the sequencer core (docs/13 M1), the host bridge that `fm1-render` and the simulator share (#25), and since #82 the state core: saving and loading in JSON and binary, and an editable song list | `engines/seq.md` |
 | `engines/mod/`, `engines/midi_fx/` | The modulation runtime: a rack of modules inside a 32-slot matrix, 16 kinds, per-voice since MG9 (MG1–MG3, MG9); `fm1_arp`, the arpeggiator, the first MIDI effect: up to four run in front of each sound, and the ARP button opens it (#69); Acid Gen, fm1-x0x's TB-3PO, a GPL MIDI effect (#81) | `engines/mod/README.md`, docs/16; `engines/midi_fx/README.md` |
 | `sim/web/` | The virtual FM-1: the app layer in WebAssembly behind a to-scale panel, with the firmware's own screen; the built module is committed. Rebuilt and checked in containers on a Docker host (`FM1_SIM_HOST`) | `sim/web/README.md` |
 | `manual/`, `tools/manual/` | The user manual, generated from the code and published with its PDF to Pages | `manual/README.md` |
@@ -398,7 +398,8 @@ first dead-code audit (#74), the arpeggiator's follow-ups (#76), the
 advanced editor's design (#77) and the engines' follow-ups (glide modes,
 Drums' choke and Kit Decay, #79) memory shown as a share of the FM-1's
 budget (#80), and the GPL switch with fm1-x0x's 303, 909 and 808 and three
-Felucca engines (#81) (10-01 to 10-06). The CHANGELOG has the detail.
+Felucca engines (#81), and the state core for saving and loading, with the
+song list (#82) (10-01 to 10-06). The CHANGELOG has the detail.
 
 Now, roughly in order:
 

@@ -204,12 +204,12 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
                                   text=True).stdout)
     print(f"sizeof(fm1_app_t) = {z['app_bytes']} B")
     assert z["seq_tracks"] == 8                                   # owner decision O3 (2026-10-02)
-    assert (z["seq_bytes_8"], z["seq_bytes_4"]) == (31880, 18056)
+    assert (z["seq_bytes_8"], z["seq_bytes_4"]) == (31944, 18120)
     assert z["seq_bytes_8"] <= z["seq_arena"] == 32768
     assert (z["seq_event_bytes"], z["seq_pending_bytes"], z["seq_click_bytes"]) == (3264, 240, 20)
     total = (z["seq_bytes_8"] + z["seq_event_bytes"] + z["seq_pending_bytes"] + z["seq_ui_bytes"]
              + z["seq_click_bytes"])
-    assert total == 36428 <= z["seq_budget"] == 36864
+    assert total == 36492 <= z["seq_budget"] == 36864
     # Multi-sound (docs/15 §3.16): four 512 KiB sound arenas and ten 256 KiB
     # effect arenas (two master slots, two inserts per sound), 4.5 MiB of the
     # module's fixed 8 MiB; fm1_app_t is 4,939,984 B natively (clang, 64-bit).
@@ -220,7 +220,7 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     assert z["seq_need"] == 201 <= z["seq_events"] == 272
     assert z["seq_ui_size"] <= z["seq_ui_bytes"]
     script = f"#! rate={RATE} block=64 tracks=8 end=6400\n@0 tog 0 0 60 100\n@0 play\n"
-    for tracks, size in ((8, 31880), (4, 18056)):
+    for tracks, size in ((8, 31944), (4, 18120)):
         s, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}")
         assert s["seq_bytes"] == size
         r, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}",

@@ -186,5 +186,5 @@ const fm1_mod_kind_t fm1_mod_kind_compare = {
   "Johnson's Utility Pair window comparator (MIT) and the disting mk4's comparator (Expert "
   "Sleepers; idea only); no code taken.",
   kParams, P_COUNT, 0, N_OUT, NULL, kOuts, 0, 0,
-  cmp_size, cmp_create, NULL, cmp_reset, cmp_process, NULL, NULL, NULL
+  cmp_size, cmp_create, NULL, cmp_reset, cmp_process, NULL, NULL, NULL, 0
 };

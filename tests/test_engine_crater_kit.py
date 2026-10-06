@@ -100,6 +100,11 @@ def test_it_lists_as_a_gpl_pad_kit(listing):
     assert {n for n, f in flags.items() if "smooth" in f} == {"Level", "Drive", "Volume"}
     assert {n for n, f in flags.items() if "latch" in f} == {"Tune", "Decay", "Tone", "Snap", "Dist",
                                                             "Accent", "Choke"}
+    # Engine API v4: Pad is the focus, each pad keeps its own Tune .. Dist,
+    # and get_param reads them back, so a saved kit holds all sixteen pads.
+    assert flags["Pad"] == {"focus"} and e["get_param"]
+    assert {n for n, f in flags.items() if "per_focus" in f} == {"Tune", "Decay", "Level", "Tone", "Snap",
+                                                                "Drive", "Dist"}
     assert params["Tune"]["unit"] == "semi" and params["Accent"]["unit"] == "pct"
     # The first list is Pad, so ALGORITHM steps through the pads, as on Drums.
     assert next(p["name"] for p in e["params"] if p["type"] == 1) == "Pad"

@@ -356,6 +356,12 @@ class Instance {
     Name(user_[slot], out);
   }
 
+  int GetUserVoice(unsigned slot, uint8_t vced[FM1_DX7_VCED_BYTES]) const {
+    if (slot >= FM1_DX7_USER_SLOTS || !vced) return 0;
+    for (unsigned i = 0; i < FM1_DX7_VCED_BYTES; ++i) vced[i] = user_[slot][i];
+    return 1;
+  }
+
   int SetUserVoice(unsigned slot, const uint8_t vced[FM1_DX7_VCED_BYTES]) {
     if (slot >= FM1_DX7_USER_SLOTS || !vced) return 0;
     uint8_t v[kVoiceBytes];
@@ -747,6 +753,7 @@ extern "C" const fm1_engine_t fm1_engine_dx7 = {
   fm1::dx7::SetNote,
   0, NULL,                  // API v3: no effect extension
   0, 0,                     // not a pad kit
+  NULL,                     // API v4: no get_param, the host keeps its values
 };
 
 extern "C" int fm1_dx7_load_sysex(void *self, const uint8_t *data, size_t len, unsigned slot,
@@ -757,6 +764,11 @@ extern "C" int fm1_dx7_load_sysex(void *self, const uint8_t *data, size_t len, u
 extern "C" void fm1_dx7_user_name(const void *self, unsigned slot,
                                   char out[FM1_DX7_NAME_BYTES + 1]) {
   static_cast<const fm1::dx7::Instance *>(self)->UserName(slot, out);
+}
+
+extern "C" int fm1_dx7_get_user_voice(const void *self, unsigned slot,
+                                      uint8_t vced[FM1_DX7_VCED_BYTES]) {
+  return static_cast<const fm1::dx7::Instance *>(self)->GetUserVoice(slot, vced);
 }
 
 extern "C" int fm1_dx7_set_user_voice(void *self, unsigned slot,

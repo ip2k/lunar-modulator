@@ -112,5 +112,5 @@ const fm1_mod_kind_t fm1_mod_kind_calc = {
   "(Jason Justian, MIT) and Music Thing Modular Workshop System Computer card 107 (Matt "
   "Allison, MIT); no code taken.",
   kParams, P_COUNT, 0, 2, NULL, kOuts, 0, 0,
-  calc_size, calc_create, NULL, calc_reset, calc_process, NULL, NULL, NULL
+  calc_size, calc_create, NULL, calc_reset, calc_process, NULL, NULL, NULL, 0
 };
