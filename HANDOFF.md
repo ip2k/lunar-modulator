@@ -7,8 +7,8 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
-state of `main` after the PRs merged up to #61 (2026-09-29 to 2026-10-05,
-`9eadb65`).
+state of `main` after the PRs merged up to #62 (2026-09-29 to 2026-10-05,
+`4c67c45`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -101,13 +101,13 @@ so it is always written in full.
   code maps the board (docs/01 §3.1, [reported]): audio is ALNK0 (I2S) to an
   external codec, not the internal DAC, and the seven encoders are scanned
   in the key matrix.
-- **Tests:** 3,526 collected; 3,515 pass, 2 xfail (both undo, not ported
+- **Tests:** 3,686 collected; 3,675 pass, 2 xfail (both undo, not ported
   yet) and 9 skip where a local reference clone, an unpacked stock package
   or the manual's `markdown` module is missing [verified: `pytest` at
-  `9eadb65` with this file, 2026-10-05]. By group: 2,487 engine tests (487
+  `4c67c45` with this file, 2026-10-05]. By group: 2,642 engine tests (487
   of them comparing against upstream reference renders and their controls,
   157 for the arpeggiator, 147 for modulation), 557 for the sequencer core,
-  392 for the virtual FM-1 and its sequencer UI, 77 for the tools, the
+  395 for the virtual FM-1 and its sequencer UI, 79 for the tools, the
   dongle, the SDK link audit, the package guard and the boot bridge, and 13
   for the manual. CI runs the suite on Linux and macOS, runs the engine,
   sequencer and simulator tests again as a 32-bit build and under ASan +
@@ -135,8 +135,6 @@ so it is always written in full.
   - The cloud session's stray branch `claude/mvave-fm1-open-firmware-ly2w6u`
     on `ip2k/busybar-dual-timer` was deleted on 2026-09-06.
 - **Open pull requests** at 2026-10-05:
-  - #60, FM6: a DX7-compatible engine on msfa (vendored, Apache-2.0) with
-    SysEx import, which the owner asked for; waiting for the owner.
   - #58, the lagging docs that this refresh listed, fixed (§5 item 8);
     waiting for the owner.
   - Echomatter closed #1 on 2026-10-05 and offered to coordinate, saying
@@ -150,7 +148,7 @@ so it is always written in full.
 | `DEVELOPERS.md` | The technical home: getting started, how the software works, the hardware, where development stands, the roadmap in detail, the path to an installable build (I0–I15), research to do, contributing | its contents list |
 | `docs/01`–`16` | Hardware, stock firmware, update protocol, prior art, feasibility, Movy and Schwung, recovery and risk, roadmap, first-session checklist, the `USB_KEY` dongle, the plugin platform, the sequencer, the Movy port plan, the verification ladder, the sequencer in the simulator (S1–S10, owner decisions O1–O24), modulation (MG0–MG9) | DEVELOPERS.md "Documents" |
 | `notes/` | Bench session 1 and the research log (2026-09-06), the desk review (09-08), FM-1+VA and the PCB photos (09-29), the CHOMPI, monome/O&C and arp/modulation/effects studies (10-01), the delay/reverb/EQ/gates and filters/dynamics options and the JieLi compile check (10-02), the community firmware and current SDK study and the soft-key/eFuse study with its draft test plan (10-05), `upstream-candidates.md` | |
-| `engines/` | The engine platform: a C API with no heap (v3 since #57), six sound engines (Drums since #59) and 20 effects plus test entries, the Schwung shim, the desktop renderer `fm1-render`, reference renderers | `engines/README.md` |
+| `engines/` | The engine platform: a C API with no heap (v3 since #57), seven sound engines (Drums since #59, FM6 on msfa since #60) and 20 effects plus test entries, the Schwung shim, the desktop renderer `fm1-render`, reference renderers | `engines/README.md` |
 | `engines/seq/` | `fm1_seq`, the sequencer core (docs/13 M1), and the host bridge that `fm1-render` and the simulator share (#25): about 6,000 lines of C99 | `engines/seq.md` |
 | `engines/mod/`, `engines/midi_fx/` | The modulation runtime: a rack of modules inside a 32-slot matrix, 16 kinds (MG1–MG3); `fm1_arp`, the arpeggiator core, built but not wired | `engines/mod/README.md`, docs/16; `engines/midi_fx/README.md` |
 | `sim/web/` | The virtual FM-1: the app layer in WebAssembly behind a to-scale panel, with the firmware's own screen; the built module is committed. Rebuilt and checked in containers on a Docker host (`FM1_SIM_HOST`) | `sim/web/README.md` |
@@ -264,8 +262,9 @@ so it is always written in full.
   From the first GPL module it sits behind one switch, `FM1_GPL_MODS`, on by
   default while testing (the owner, 2026-10-05); there is no GPL code yet.
   What may be shared while the switch is on is in `CLAUDE.md` → "Project
-  status and licences" and docs/12 §6. The vendored engine code (Mutable
-  Instruments, Schwung, Sophie, PSX Verb) is MIT and unmodified. Felucca and
+  status and licences" and docs/12 §6. The vendored engine code is
+  unmodified: Mutable Instruments, Schwung, Sophie and PSX Verb under MIT,
+  and msfa (FM6) under Apache-2.0. Felucca and
   SLOOP give facts and ideas only, except Felucca's Apache-2.0 and MIT files;
   CHOMPI's copy of DaisySP is never used.
 - **Docs:** `README.md` is the product page and stays free of technical
@@ -302,7 +301,7 @@ so it is always written in full.
   - permissions: vendor Felucca's `fm6_core.c` as a test oracle;
     disassemble JieLi's libraries on the build host; draft messages to
     kurogedelic and Keitark (the owner sends them); more drum and sound
-    engines, especially 808-style (Drums in #59, FM6 in #60);
+    engines, especially 808-style (Drums, #59, and FM6, #60, have landed);
   - effects and modulation: four ordered master slots, shared sends, a
     per-voice filter, side-chain keys, new dynamics, RTRG, per-sound PITCH
     and note sources, the rack's Filter kind renamed Resonator, over-budget
@@ -372,13 +371,14 @@ README and DEVELOPERS.md split, the manual on Pages, stage B compile-only,
 the sequencer in the simulator S1–S8, engine API v2 and v3, the arpeggiator
 core, modulation MG1–MG3, four effect packs, the community study, the SDK
 move with its link and package gates, the sequencer, multi-sound and
-modulation made public (#55), Drums (#59) and new screenshots (#61)
-(10-01 to 10-05). The CHANGELOG has the detail.
+modulation made public (#55), Drums (#59), FM6 on msfa (#60), new
+screenshots (#61) and the owner's new README opening (#62) (10-01 to
+10-05). The CHANGELOG has the detail.
 
 Now, roughly in order:
 
-1. **Open PRs** (§1): #58 (docs) and #60 (FM6) wait for the owner;
-   Echomatter's offer on #1 needs an answer.
+1. **Open PRs** (§1): #58 (docs) waits for the owner; Echomatter's offer on
+   #1 needs an answer.
 2. **ip2k/lunar-modulator#2**, if the owner chooses to answer it from the
    draft; and issue #53 (iOS Safari).
 3. **When the dev kit and JieLi's updater arrive**, docs/14 §5's first week:
@@ -416,8 +416,10 @@ Now, roughly in order:
    2026-09-12).
 8. **Docs that lag behind**, found during this refresh, are being fixed in
    #58, with other copies of the same facts. README's "Repository history"
-   had already gone (`2c78343`). Left after #58: the README's effect and
-   screen counts (the owner's copy), manual chapters 03 and 10 (after #55),
+   had already gone (`2c78343`). Left after #58: the README's engine,
+   effect and screen counts and its "Sequencer (coming next)" section (the
+   owner's copy; #62 replaced only its opening), manual chapters 03 and 10
+   (after #55),
    the GitHub repository description, which still ends "Research stage;
    nothing flashed" (outward-facing: the owner's call), and AGENTS.md, which
    lacks CLAUDE.md's "GPL switch" paragraph.
@@ -450,6 +452,7 @@ the docs cite; where an upstream has moved since, its head is noted.
 | `pichenettes/eurorack`, `pichenettes/stmlib` | `08460a6` 2023-08-16; `e3bd7c9` 2023-05-30, eurorack's submodule pin (head `d18def8`) | Plaits, Braids, Rings and Clouds code behind the engines and Room; Peaks and Braids files as test oracles; Yarns as the arp's design source (`engines/third_party/mutable/UPSTREAM.md`) |
 | `charlesvestal/schwung`, `charlesvestal/schwung-psxverb`, `mestela/schwung-sophie` | `70c4171` (docs/16 read `ba3b39d`; head `443466a`); `b0b44db`; `5682295` (head `abd132d`) | the Schwung module API, PSX Verb and Sophie (`engines/third_party/schwung*/`) |
 | `DimaDake/schwung-movy` (MIT, megadake) | `9190e79` 2026-10-01 (`module.json` 0.34.0; head `4dd5564`, 2026-10-05) | the sequencer `fm1_seq` replicates, and the oracle; docs/06 read the earlier `5627d51`, which is not the v0.31.0 tag (docs/13) |
+| `google/music-synthesizer-for-android` (msfa) | `f67d41d` 2017-09-12 (its last commit) | the FM core behind FM6, and the stock firmware's (`engines/third_party/msfa/UPSTREAM.md`) |
 | `jmamma/MCL`, `handcraftedcc/schwung-superarp` | `693a410` (BSD-3), `6eefd02` (MIT) | the arpeggiator's design sources, read only (`engines/midi_fx/CREDITS.md`) |
 | czietz's "Quick and very dirty JieLi UBOOT tool" (gist `9a94cf3c…`) | revision of 2026-09-27, no licence | the Pico dongle of ip2k/lunar-modulator#2; summarized in docs/10 §1.1, not copied |
 
