@@ -16,9 +16,14 @@ build with the switch off compiles none of it (`tests/test_gpl_switch.py`).
 | Local changes | Seven files, `local.patch` (below). Nothing else is changed |
 | Generated | `gen/x0x_drum_samples.h` (the three recordings as int16 C arrays; `hh.wav` is 24-bit and rounded to 16) and `gen/x0x_drum_tables.h` (the tanh table every saturator reads and 9W9's 19 exponential pot curves), written by the vendored `tools/gen_drum_samples.py`, unchanged, and committed so that no build needs Python. The script's output is the same, byte for byte, on macOS's Python 3.13 and on Python 3.12 in Alpine (musl) and Debian (glibc) containers [verified 2026-10-06], and `tests/test_engine_comet_kit.py` runs it again and compares |
 | Used by | `engines/src/acid_bass.cc` (the sound engine **Acid Bass**, id `acid-bass`), `engines/midi_fx/acid_gen.c` (the MIDI effect **Acid Gen**, id `acid-gen`) and `engines/src/comet_kit.cc` (the sound engine **Comet Kit**, id `comet`), built through `engines/mk/fm1-x0x.mk`, and `engines/src/crater_kit.cc` (the sound engine **Crater Kit**, id `crater`), built through `engines/mk/x0x-crater.mk`, all only while the switch is on |
-| Not taken | Everything else of fm1-x0x: its send effects, delay and master (`dsp/fxbus*`, `dsp/master*`: our inserts and master effects do that job), its sequencer, UI, platform and other tools, and its break generator, which ports mestela's schwung-breakbeat by that author's permission to X0X, not to us (the note's §5 drafts a request) |
+| Not taken | Everything else of fm1-x0x: its send effects, delay and master (`dsp/fxbus*`, `dsp/master*`: our inserts and master effects do that job), its sequencer, UI, platform and other tools, and its break generator, which ports mestela's schwung-breakbeat by that author's permission to X0X, not to us (the note's §5 drafts a request). `seq/pattern.h`, X0X's own pattern model, which `tb3po.h` includes for its 303 step type, also declares the break part's settings (a struct and the names of its twelve settings, `brkpart_t`); it holds no code of the generator, and nothing here reads that struct [verified 2026-10-06: `grep` of `engines/`, `sim/web/src`] |
 
 ## Local changes (`local.patch`)
+
+Each of the seven files opens, under its SPDX line, with a notice that it
+was modified for Lunar Modulator on 2026-10-06 and where the changes are
+listed (the GPL version 3, section 5(a)); inside, every change is marked
+"Lunar Modulator". What they are:
 
 1. **The rate is the instance's.** Upstream fixes 44,100 Hz (`BASS303_SR`).
    `bass303_t` gains a last field, `sr`, which `bass303_init_rate(b, sr)`
@@ -118,13 +123,13 @@ both ends, NaN and the infinities, bent 48 semitones both ways].
 | `LICENSE` | `3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986` |
 | `LICENSE-Open303` | `3e00b890ddf22b209a8bd3aa5916d5a442baf2c02c7a5766465a9232431ecc37` |
 | `LICENSING.md` | `30f38e8f96064b956907c87edf0e2585d95d6c9f319363fc29a244b892fd336f` |
-| `dsp/bass303.c` (patched; upstream `ace73e02…`) | `77b98574427935c92e9c7ea173f5594002502ef5fe651de9f70e026a25e2d958` |
-| `dsp/bass303.h` (patched; upstream `6ace82af…`) | `eb9b49782e09b969b5ed13ae9a28019e8d471e047cfe38bf851d96e269e4588a` |
-| `dsp/drum909.c` (patched; upstream `80d619c2…`) | `15993567f53af2cd1954d957a9ab0be931ebce0be8e5b4821330b578aa0d0d4b` |
-| `dsp/drum909.h` (patched; upstream `39d79c84…`) | `80702bf99d6b90d993d6fd0d731cf2f36fd4edeba6f346b3b0e233065c5f8b24` |
-| `dsp/drum909_dsp.h` (patched; upstream `b9a2e498…`) | `026832bcb48d3fd24aeb1cca81536003910e53a058ebc0a44da8e1a1e66b0b11` |
-| `dsp/drum808.c` (patched; upstream `c39de770…`) | `a7bfa65c81c00673241f74d574fe97557e91b3d2b9379de2ba69c976e4785e2f` |
-| `dsp/drum808.h` (patched; upstream `77534283…`) | `c6d2385344148811f89ca08a4ebd964009faee63e2466df8fa86444c0e607136` |
+| `dsp/bass303.c` (patched; upstream `ace73e02…`) | `a2ed702bacaab05d57705e4096189947f3c7261b366ee5172d8caa307a2bde21` |
+| `dsp/bass303.h` (patched; upstream `6ace82af…`) | `b15035bb6558594c3ff80fb46ad2de26cc3f71c25ed1d8247c1556ace035f5b3` |
+| `dsp/drum909.c` (patched; upstream `80d619c2…`) | `d1640aa35a61f8b14059d7d0b60002a5448b38155d9c937c8409f6953d5f594a` |
+| `dsp/drum909.h` (patched; upstream `39d79c84…`) | `8e58312c368850ef41c251b7ace0a329fe1fce66b58e2b14a2f3f9cb5b74e153` |
+| `dsp/drum909_dsp.h` (patched; upstream `b9a2e498…`) | `dd4a16d645dc53c588954a8810cae4b098c74c7540222b0eb5945306ba0fe422` |
+| `dsp/drum808.c` (patched; upstream `c39de770…`) | `322275d389b532ee5dacf7da4c39bcc77b6cdb34247f2c9e07813ad453267ff4` |
+| `dsp/drum808.h` (patched; upstream `77534283…`) | `e138870d0495aa3039feb6e9e345fc916b26866110dfef084a1b712b1f7965af` |
 | `dsp/fastmath.h` | `71d0fb4c242e6c03e435cebacc1e978f928ce2672d6b47a48b68372e72453349` |
 | `dsp/x0x_param.h` | `13f31ccc9ff3df95b05405012ada6e83306d25f336cdd078c093d95c04e4430a` |
 | `seq/pattern.h` | `83f0e690f8d4f7b005632d60b284b1b983b9dea5d20c0397fb5c459f95fc890c` |
@@ -137,7 +142,7 @@ both ends, NaN and the infinities, bent 48 semitones both ways].
 | `assets/909/crash.wav` | `4a1b8d8828f9e530e9ae7f1a3cdffbcb1466e633a2b0607b3aac914699bc8400` |
 | `gen/x0x_drum_samples.h` (generated) | `09b3906c520beb100f8018b15e2612646f994a211a4e12b7d0b9ce6e4c79eb27` |
 | `gen/x0x_drum_tables.h` (generated) | `5998fade81059c9c5d74494fa4fdc0c739371df0065bd4d316182ba2f27b6684` |
-| `local.patch` | `d5a521f8f74f43f0319475218c8556e2e0821b37b238388bd44b9ce0dec465b3` |
+| `local.patch` | `ff78e692a567a3de99d7721cb74b5bdacba2b3134b21b481d22e93c33edea2ce` |
 
 Re-vendoring:
 

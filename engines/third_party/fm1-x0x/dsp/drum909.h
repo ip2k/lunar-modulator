@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
+/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
+ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
+ * local.patch there. */
 /* X0X drum part: the 9W9 TR-909 engine (Charles Vestal, GPL-3.0; itself grown out
  * of ER-99 by Matthew Cieplak, GPL-3.0), ported to the FM-1.
  *

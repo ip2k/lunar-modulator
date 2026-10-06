@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
+/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
+ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
+ * local.patch there. */
 /* The 9W9 TR-909 voices on the FM-1. A port of 9W9's er99_engine.c,
  * er99_circuit.h, er99_tom909.h and er99_perc909.h (GPL-3.0): the circuit models,
  * the fitted constants, the defaults and the per-trigger pinning are 9W9's, line

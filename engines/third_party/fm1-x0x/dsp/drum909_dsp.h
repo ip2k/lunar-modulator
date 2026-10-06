@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
+/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
+ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
+ * local.patch there. */
 /* Building blocks of the 909 drum engine and the FX bus, ported from 9W9
  * (er99 webaudio.h / er99_circuit.h, GPL-3.0) to the FM-1: float only, no libm,
  * no double. Shared by drum909.c and fxbus.c (all static inline).

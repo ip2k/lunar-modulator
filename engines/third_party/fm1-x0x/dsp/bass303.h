@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
+/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
+ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
+ * local.patch there. */
 /* X0X TB-303 bass engine: a C99 / float / no-libm port of Open303 (Robin Schmidt, MIT) with
  * the Devilfish ranges and the Soft / RAT drive of schwung-303 (GPL-3.0; the RAT model is
  * from davemollen/dm-Rat, GPL-3.0).

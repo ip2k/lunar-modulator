@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
+/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
+ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
+ * local.patch there. */
 /* X0X TB-303 bass engine - see bass303.h for what is ported and what is not.
  *
  * Reference: schwung-303 src/dsp/open303/rosic_Open303.{h,cpp} (getSample, triggerNote,

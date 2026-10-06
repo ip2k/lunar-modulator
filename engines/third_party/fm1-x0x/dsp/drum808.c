@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
+/* Modified 2026-10-06 for Lunar Modulator (open firmware for the M-VAVE FM-1): every change
+ * is marked "Lunar Modulator" and listed in engines/third_party/fm1-x0x/UPSTREAM.md and
+ * local.patch there. */
 /* X0X 808 drum part: a C99 / float / no-libm port of 8W8 (see drum808.h).
  *
  * Every voice below is the 8W8 circuit class of the same name (sc808_*_circuit.h,
