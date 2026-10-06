@@ -238,9 +238,10 @@ char **fm1_state_clip_from(const char *set, size_t n, unsigned track, unsigned s
     parts(in.v[i], k, &t, &s);
     if (is_clip_key(k) && t == (int)track && s == (int)slot) {
       const char *rest = strchr(strchr(strchr(in.v[i], ' ') + 1, ' ') + 1, ' ');
-      char *line = (char *)malloc(strlen(in.v[i]) + 8);
+      const size_t cap = strlen(in.v[i]) + 8;
+      char *line = (char *)malloc(cap);
       if (!line) break;
-      sprintf(line, "%s 0 0%s", k, rest ? rest : "");
+      snprintf(line, cap, "%s 0 0%s", k, rest ? rest : "");
       push(&out, line, strlen(line));
       free(line);
     }

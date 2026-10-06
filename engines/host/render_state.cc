@@ -513,28 +513,28 @@ void UnitRecs(std::vector<Rec> *v, const UnitOut &u, unsigned role, unsigned sou
   }
 }
 
-int HoldMod(void *ctx, const fm1_rec_t *r) {
-  static_cast<std::vector<fm1_rec_t> *>(ctx)->push_back(*r);
-  return 1;
-}
-
 // The runtime's modules and the cables of `keep`, remapped by `code` and
-// `src` (a sound file's own codes); only the modules those cables use.
+// `src` (a sound file's own codes); only the modules those cables use. A
+// module's pattern data is held with its record (Hold copies the bytes).
 void ModRecs(std::vector<Rec> *v, const Have &h, bool with_seed, bool all,
              bool (*keep)(const fm1_mod_slot_t &, unsigned), unsigned arg,
              unsigned (*code)(unsigned, unsigned), unsigned (*src)(unsigned, unsigned)) {
-  std::vector<fm1_rec_t> m;
-  fm1_state_mod_collect(h.mod, h.seed, with_seed, HoldMod, &m);
+  std::vector<Rec> m;
+  fm1_state_mod_collect(h.mod, h.seed, with_seed, Hold, &m);
   bool used[8] = { false };
   for (size_t i = 0; i < m.size(); ++i) {
-    if (m[i].type != FM1_REC_CABLE || (!all && !keep(m[i].u.cable.s, arg))) continue;
-    const fm1_mod_slot_t &s = m[i].u.cable.s;
+    if (m[i].r.type != FM1_REC_CABLE || (!all && !keep(m[i].r.u.cable.s, arg))) continue;
+    const fm1_mod_slot_t &s = m[i].r.u.cable.s;
     if (s.src >= FM1_MOD_SRC_MODULE && s.src != FM1_MOD_NONE) used[(s.src - FM1_MOD_SRC_MODULE) / 8u] = true;
     if (s.via >= FM1_MOD_SRC_MODULE && s.via != FM1_MOD_NONE) used[(s.via - FM1_MOD_SRC_MODULE) / 8u] = true;
   }
   for (size_t i = 0; i < m.size(); ++i) {
-    fm1_rec_t r = m[i];
-    if (!all && (r.type == FM1_REC_MODULE || (r.type == FM1_REC_PARAM && r.role == FM1_ROLE_MODULE)) && !used[r.slot]) continue;
+    fm1_rec_t r = m[i].r;
+    if (!all &&
+        (r.type == FM1_REC_MODULE || r.type == FM1_REC_DATA || (r.type == FM1_REC_PARAM && r.role == FM1_ROLE_MODULE)) &&
+        !used[r.slot]) {
+      continue;
+    }
     if (r.type == FM1_REC_CABLE) {
       if (!all && !keep(r.u.cable.s, arg)) continue;
       if (code) r.u.cable.s.dst_unit = static_cast<uint8_t>(code(r.u.cable.s.dst_unit, arg));
@@ -543,7 +543,7 @@ void ModRecs(std::vector<Rec> *v, const Have &h, bool with_seed, bool all,
         if (r.u.cable.s.via < FM1_MOD_SRC_SYSTEM) r.u.cable.s.via = static_cast<uint8_t>(src(r.u.cable.s.via, arg));
       }
     }
-    Add(v, r);
+    Add(v, r, m[i].text);
   }
 }
 

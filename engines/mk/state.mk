@@ -48,6 +48,15 @@ $(BUILD)/fm1-state-fuzz: $(STATE_FUZZ_OBJ) \
     $$(filter-out $(BUILD)/our/host/render.o $(BUILD)/our/host/render_state.o,$$(RENDER_OBJ))
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
+# fm1-state-alias-test: the readers' old names, with the test's own table
+# (engines/test/state_alias_test.c; tests/test_state_whole.py).
+STATE_ALIAS_TEST_OBJ := $(BUILD)/state/test/state_alias_test.o
+$(STATE_ALIAS_TEST_OBJ): STATE_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Iinclude -Istate -Wall -Wextra -MMD -MP
+all: $(BUILD)/fm1-state-alias-test
+$(BUILD)/fm1-state-alias-test: $(STATE_ALIAS_TEST_OBJ) \
+    $$(filter-out $(BUILD)/our/host/render.o $(BUILD)/our/host/render_state.o,$$(RENDER_OBJ))
+	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
+
 # The same target under libFuzzer, where clang has it (not Apple's): not in
 # `all`. engines/state/README.md, "Fuzzing", has the commands.
 LIBFUZZER ?= -fsanitize=fuzzer
@@ -75,4 +84,4 @@ $(SEQ_TOOL_OBJ): SEQ_CFLAGS += -Istate -Ihost
 $(BUILD)/fm1-seq $(BUILD)/fm1-seq-check: $(STATE_OBJ) $(STATE_CLIP_OBJ)
 
 -include $(STATE_OBJ:.o=.d) $(STATE_REG_OBJ:.o=.d) $(STATE_TOOL_OBJ:.o=.d) $(STATE_FUZZ_OBJ:.o=.d) \
-  $(STATE_MOD_OBJ:.o=.d) $(STATE_CLIP_OBJ:.o=.d)
+  $(STATE_MOD_OBJ:.o=.d) $(STATE_CLIP_OBJ:.o=.d) $(STATE_ALIAS_TEST_OBJ:.o=.d)
