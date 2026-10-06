@@ -1,0 +1,36 @@
+# The arpeggiator from the panel (sim/web/README.md, "The arpeggiator"):
+# ARP's tap switches it on and opens its pages; a chord arpeggiates; KNOB1
+# steps the mode, KNOB2 the rate, KNOB4 the octaves; SELECT turns to RHYTHM
+# for a pattern and back; ALGORITHM picks stock presets.
+--button 0.05:ARP
+--key 0.20:7:100:0.60
+--key 0.20:11:90:0.60
+--key 0.22:14:80:0.58
+--turn 0.40:KNOB1:2
+--turn 0.50:KNOB2:-2
+--turn 0.55:KNOB4:1
+--turn 0.60:SELECT:1
+--turn 0.65:KNOB1:3
+--turn 0.70:SELECT:-1
+--turn 0.90:ALGORITHM:3
+# PLAY/STOP: the sequencer's note joins on step 5; REC punches in and two
+# keys are recorded as played; REC again ends the take, which comes back
+# through the arp on the next pass.
+--button 1.00:PLAY/STOP
+--button 1.20:REC
+--key 1.40:9:100:0.40
+--key 1.42:12:100:0.38
+--button 2.10:REC
+# ARP held: Latch (the notes play on after the keys go up); another chord
+# replaces the latched one; PLAY/STOP stops (and flushes the arp); the
+# arp keeps playing the latched chord from the sequencer's tempo.
+--button 2.30:ARP:0.70
+--key 2.85:5:100:0.10
+--key 2.87:9:100:0.10
+--key 3.30:2:100:0.10
+--key 3.31:7:100:0.10
+--button 3.70:PLAY/STOP
+# ARP's tap switches it off (its notes end at once) and closes the pages;
+# a key plays plainly.
+--button 4.20:ARP
+--key 4.30:7:100:0.20

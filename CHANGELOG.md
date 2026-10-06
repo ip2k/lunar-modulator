@@ -25,14 +25,42 @@ history.
     page, the others after Volume on page 2. Not on Sophie and Drums, whose
     keys play pads.
   - The same output, bit for bit, at any block size and on the Mac, 32- and
-    64-bit Linux and the browser (three new parity scenarios, 81 of 81 pass;
-    the browser module grew from 891 KB to 907 KB); the modulation runtime
+    64-bit Linux and the browser (three new parity scenarios, 86 of 86 pass;
+    the browser module grew from 922 KB to 939 KB); the modulation runtime
     holds 8 more parameter records (320 bytes) for Macro Heavy's fourteen
     parameters. Glide's state adds 112 to 300 bytes to each of the five
     engines, so a chain that filled the RAM budget to its last few hundred
     bytes may now be refused (one parity scenario swapped an Ensemble
     insert for Drive to fit). Documented in engines/README.md ("Glide
     and voice modes") and chapter 4 of the manual.
+- **The arpeggiator, in the simulator.** [ARP] now works: tap it to switch
+  the current sound's arpeggiator on (its pages open) or off; hold it to
+  latch, so the notes play on after you let go and the next chord replaces
+  them; SHIFT and [ARP] shows the pages without switching. Its light is on
+  while it plays and blinks while it latches.
+  - **Seven pages** on the four knobs: PLAY (mode, rate, gate, octaves),
+    RHYTHM (22 rhythm patterns or a Euclidean rhythm), CHANCE (chance,
+    ratchets, velocity spread, loop), FEEL (octave mode, fixed velocity,
+    swing, join), MORE, KEYS (latch, sync) and SEED. 22 note orders, from
+    up and down to converge, thumb, pinky, crawl, shuffle and walk.
+  - **The stock FM-1's modes as presets** on ALGORITHM: Up, Down, Up/Down,
+    Down/Up, Random and Played.
+  - **With the sequencer:** the keys, MIDI and the sequencer's notes for the
+    sound all go through it, on the sequencer's tempo whether it plays or
+    not; PLAY restarts the pattern and STOP ends its notes. At rate TRG it
+    takes one step each time the sequencer plays notes on the sound. The
+    sequencer records what you played, not the arpeggio, so a recorded part
+    plays back through the arpeggiator again, or plainly once it is off.
+  - Each of the four sounds has its own; it takes memory only while on.
+  - On the desktop: `fm1-render --mfx K:arp` and its `--mfx-param`,
+    `--mfx-param-at`, `--mfx-on-at` and `--log-mfx` flags. The browser, the
+    native app and fm1-render play the same notes, byte for byte, at any
+    block size (five new parity scenarios, one of them a recorded panel
+    session).
+- **MIDI effects in the engine API (v3, additive):** a new kind of module
+  that takes notes and gives notes, run in a chain of up to four in front of
+  each sound, with the sequencer's ticks, the transport and one project key.
+  The arpeggiator is the first; chord, scale and echo effects can follow.
 - **Modulation per voice.** A modulation cable can now run once for every
   note: each note of a chord gets its own envelope, LFO or random source,
   which moves that note alone. In the matrix, turn KNOB4 on page B past

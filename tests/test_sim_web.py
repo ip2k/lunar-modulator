@@ -89,6 +89,15 @@ def scenario_args(s):
         args += ["--sound-note", n]
     if "mod" in s:
         args += ["--mod", str(SIM / "test" / s["mod"])]
+    # The arpeggiator (engine API v3's MIDI effects), as fm1-render takes it.
+    for k, mfx_id, mfx_params in s.get("mfx", []):
+        args += ["--mfx", f"{k}:{mfx_id}"]
+        for p in mfx_params:
+            args += ["--mfx-param", f"{k}:{p}"]
+    for p in s.get("mfx_param_at", []):
+        args += ["--mfx-param-at", p]
+    for p in s.get("mfx_on_at", []):
+        args += ["--mfx-on-at", p]
     return args
 
 
@@ -123,17 +132,26 @@ def test_app_renders_what_fm1_render_renders(tools, tmp_path, s):
     ref_args = scenario_args(s)
     if "panel" in s:
         sim_args += ["--panel", str(SIM / "test" / s["panel"]), "--log-cmds", str(tmp_path / "c.verbs")]
-    summary = run(tools["sim"], sim_args + ["--out", str(app)]
+    arp_logs = [tmp_path / "ref-arp.jsonl", tmp_path / "app-arp.jsonl"]
+    summary = run(tools["sim"], sim_args + ["--out", str(app), "--log-mfx", str(arp_logs[1])]
                   + (["--log-events", str(logs[1])] if logs else []))
     if "panel" in s:
         assert summary["replayable"] == 1 and summary["seq_ui_cmds"]
         ref_args = (["--seconds", str(s["seconds"]), "--rate", str(s.get("rate", 44118)),
                      "--cmd", str(tmp_path / "c.verbs")]
                     + (tmp_path / "c.args").read_text().splitlines())
+    arps = "--mfx" in ref_args            # the arp played: what it sent must match too
     ref_summary = run(tools["render"], ref_args + ["--out", str(ref)]
-                      + (["--log-events", str(logs[0])] if logs else []))
+                      + (["--log-events", str(logs[0])] if logs else [])
+                      + (["--log-mfx", str(arp_logs[0])] if arps else []))
     assert summary["engine"] == s["engine"]
     assert app.read_bytes() == ref.read_bytes()
+    if arps:
+        assert arp_logs[1].read_bytes() == arp_logs[0].read_bytes()
+        assert ref_summary["notes_hung"] == 0 and ref_summary["mfx_dropped"] == 0
+        assert ref_summary["mfx_notes_out"] > 0, "the arp played nothing"
+    else:
+        assert arp_logs[1].read_bytes() == b"", "an arp played in a scenario without one"
     assert summary["peak"] > 0.01, "the scenario makes no sound"
     if logs:
         assert logs[1].read_bytes() == logs[0].read_bytes()
@@ -350,6 +368,7 @@ def test_scenarios_cover_every_engine_effect_and_page(tools):
                          capture_output=True, text=True)
     catalog = json.loads(res.stdout)
     used = {s["engine"] for s in SCENARIOS} | {fx for s in SCENARIOS for fx, _ in s.get("fx", [])}
+    used |= {m for s in SCENARIOS for _, m, _ in s.get("mfx", [])}       # the MIDI effects
     missing = sorted(e["id"] for e in catalog if e["id"] not in used)
     assert not missing, f"no parity scenario uses {missing}"
     set_names = {}
@@ -412,8 +431,10 @@ def test_fx_param_at_turns_an_effect_at_its_time(tools, tmp_path):
 def test_every_screen_passes_the_layout_check(tools, tmp_path):
     """Every page of every engine (HOME) and effect (on both master slots),
     at defaults, minima, maxima and each list entry, the global page and
-    every popup (the refusals, the SAVE and ARP stubs and an emptied slot
-    included), and every list popup at every entry (ALGORITHM through each
+    every popup (the refusals, the SAVE stub and an emptied slot
+    included), every ARP page at its extremes and list entries with its
+    popups (the arp on and off, a preset, Latch), and every list popup at
+    every entry (ALGORITHM through each
     sound's list, Six-Op FM's 96 patches the longest, PRESETS through the
     engines, ALGORITHM in FX mode through the effects, the kind picker and
     the destination picker), each one's window checked: no text off screen or cut short, and no two labels, or a
@@ -917,6 +938,9 @@ def test_the_staleness_gate_covers_what_the_module_links():
     want += [p.relative_to(ROOT).as_posix() for p in (ENGINES / "mod").rglob("*.[ch]")]
     want += ["engines/include/fm1_mod.h", "engines/include/fm1_mod_host.h",
              "engines/host/mod_script.c", "engines/host/mod_script.h"]
+    # The MIDI effects and their host stage (engine API v3): the arp.
+    want += [p.relative_to(ROOT).as_posix() for p in (ENGINES / "midi_fx").glob("*.[ch]")]
+    want += ["engines/include/fm1_mfx_host.h", "engines/include/fm1_midi_ev.h", "engines/seq/mfx_host.c"]
     assert want and not [w for w in want if w not in hashed]
     assert "engines/mod/README.md" not in hashed, "documentation never makes the module stale"
 

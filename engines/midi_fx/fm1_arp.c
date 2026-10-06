@@ -678,9 +678,10 @@ static void ratchet_due(fm1_arp_t *a, uint16_t frame, out_t *o) {
   }
 }
 
-static void on_tick(fm1_arp_t *a, uint16_t frame, out_t *o) {
+/* A tick; `gated`: its gates already ran, for a STEP at its frame. */
+static void on_tick(fm1_arp_t *a, uint16_t frame, out_t *o, unsigned gated) {
   flush_owed(a, frame, o);
-  tick_gates(a, frame, o);
+  if (!gated) tick_gates(a, frame, o);
   if (a->p[FM1_ARP_P_RATE] != FM1_ARP_RATE_TRG && (a->need_start || a->st >= a->step_len)) {
     begin_step(a, frame, o, 1);
   } else {
@@ -748,7 +749,9 @@ fm1_arp_t *fm1_arp_create(void *mem, uint16_t ppqn) {
   return a;
 }
 
-static void handle(fm1_arp_t *a, const fm1_arp_ev_t *e, out_t *o) {
+/* An input event; `gated`: a tick at its frame has run its gates (a STEP
+ * there then starts its notes as a tick's step does). */
+static void handle(fm1_arp_t *a, const fm1_arp_ev_t *e, out_t *o, unsigned gated) {
   flush_owed(a, e->frame, o);
   switch (e->kind) {
     case FM1_ARP_EV_NOTE_ON:
@@ -763,7 +766,7 @@ static void handle(fm1_arp_t *a, const fm1_arp_ev_t *e, out_t *o) {
       set_sustain(a, e->b);
       break;
     case FM1_ARP_EV_STEP:
-      if (a->p[FM1_ARP_P_RATE] == FM1_ARP_RATE_TRG) begin_step(a, e->frame, o, 0);
+      if (a->p[FM1_ARP_P_RATE] == FM1_ARP_RATE_TRG) begin_step(a, e->frame, o, gated);
       break;
     case FM1_ARP_EV_RESET:
       restart_clock(a);
@@ -794,6 +797,7 @@ uint32_t fm1_arp_process(fm1_arp_t *a, const fm1_arp_ev_t *in, uint32_t n_in,
                          fm1_arp_ev_t *out, uint32_t cap) {
   out_t o;
   uint32_t i = 0, j = 0;
+  unsigned gated = 0;   /* the next tick's gates have run */
   if (!a) return 0;
   if (!in) n_in = 0;
   if (!ticks) n_ticks = 0;
@@ -802,8 +806,20 @@ uint32_t fm1_arp_process(fm1_arp_t *a, const fm1_arp_ev_t *in, uint32_t n_in,
   o.n = 0;
   flush_owed(a, 0, &o);
   while (i < n_in || j < n_ticks) {
-    if (i < n_in && (j >= n_ticks || in[i].frame <= ticks[j])) handle(a, &in[i++], &o);
-    else on_tick(a, ticks[j++], &o);
+    if (i < n_in && (j >= n_ticks || in[i].frame <= ticks[j])) {
+      /* A STEP on a tick's frame (TRG): that tick's gates first, so the
+       * notes they end go before the step's, as at a rate's step. */
+      if (in[i].kind == FM1_ARP_EV_STEP && a->p[FM1_ARP_P_RATE] == FM1_ARP_RATE_TRG && !gated &&
+          j < n_ticks && in[i].frame == ticks[j]) {
+        flush_owed(a, ticks[j], &o);
+        tick_gates(a, ticks[j], &o);
+        gated = 1;
+      }
+      handle(a, &in[i++], &o, gated);
+    } else {
+      on_tick(a, ticks[j++], &o, gated);
+      gated = 0;
+    }
   }
   return o.n;
 }

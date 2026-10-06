@@ -72,6 +72,20 @@ ENUM_FLAGS = {
                                                 #   and crossfades over 5 ms
     ("test-ext", "Probe"): [],                   # a test effect's switches: lockable,
     ("test-ext", "Listen"): [],                  #   no route
+    # The arpeggiator (a MIDI effect, engine API v3): every list is read at
+    # its next step, so a change reaches the steps after it (LATCH); no
+    # route reaches a MIDI effect yet.
+    ("arp", "Mode"): ["latch"],
+    ("arp", "Rate"): ["latch"],
+    ("arp", "Octaves"): ["latch"],
+    ("arp", "Pattern"): ["latch"],
+    ("arp", "Ratchet"): ["latch"],
+    ("arp", "Oct Mode"): ["latch"],
+    ("arp", "Join"): ["latch"],
+    ("arp", "Order"): ["latch"],
+    ("arp", "Repeat"): ["latch"],
+    ("arp", "Latch"): ["latch"],
+    ("arp", "Sync"): ["latch"],
 }
 # Voice Mode (glide, engines/src/glide.h) is read at note-on and note-off
 # and never cuts a sounding voice: LATCH, and a route rounds it.

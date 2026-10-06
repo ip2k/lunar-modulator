@@ -41,7 +41,8 @@
  * unit; and an optional extension for effects, fm1_fx_ext_t, through which
  * a host hands an effect a key (side-chain) input, the tempo and beat
  * position, and transport events (render_ext below). engines/README.md,
- * "Engine API v3", has the rules.
+ * "Engine API v3", has the rules. Since 2026-10-06 it also has MIDI
+ * effects (FM1_KIND_MIDI_FX, fm1_midi_fx_t below), likewise additive.
  *
  * Pad kits (API v3, optional, additive). An engine that plays one drum
  * sound per note on a run of keys says so in pad_first_note and pad_count,
@@ -58,6 +59,7 @@
 #include <stdint.h>
 
 #include "fm1_math.h"
+#include "fm1_midi_ev.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,7 +73,9 @@ typedef enum {
   FM1_KIND_AUDIO_FX = 2,  /* audio in, audio out: render processes out_lr in
                              place (it holds the input on entry); note_on,
                              note_off and pitch_bend may be NULL */
-  FM1_KIND_MIDI_FX = 3    /* reserved */
+  FM1_KIND_MIDI_FX = 3    /* API v3: notes in, notes out, through process()
+                             (fm1_midi_fx_t, below); note_on, note_off,
+                             pitch_bend and render are NULL */
 } fm1_kind_t;
 
 typedef enum {
@@ -391,6 +395,69 @@ typedef struct fm1_engine {
   uint8_t pad_count;
 } fm1_engine_t;
 
+/* ---- MIDI effects (API v3, FM1_KIND_MIDI_FX) ------------------------------
+ * Notes in, notes out: the arpeggiator first (engines/midi_fx/), chord,
+ * scale and repeat effects later. Additive: fm1_engine_t is unchanged. A
+ * MIDI effect's descriptor is an fm1_midi_fx_t, whose first member is an
+ * fm1_engine_t of kind FM1_KIND_MIDI_FX, so a host lists its parameters,
+ * creates, destroys and sets it like any engine, and reaches process()
+ * through fm1_midi_fx_of. note_on, note_off, pitch_bend, render and the v2
+ * and v3 extras are NULL and 0; max_voices is 0. MIDI effects have their
+ * own registry (fm1_midi_fxs below), so the sound and effect lists stay as
+ * they are.
+ *
+ * The contract (DEVELOPERS.md, "MIDI effects"; fm1_mfx_host.h is a host's
+ * side of it):
+ *   - one process() per effect per block, on the block's input events,
+ *     ascending by frame, with a context that holds the block's clock
+ *     ticks (their frames, ascending), the transport and the project key;
+ *   - outputs ascending by frame, at least FM1_MIDI_FX_OUT_MIN slots of
+ *     room; at one frame, note-offs before note-ons;
+ *   - every note-on sent gets exactly one note-off. A note-off is never
+ *     dropped: one that does not fit is sent at the start of the next
+ *     call. A note-on that does not fit is never sent;
+ *   - FLUSH ends every note the effect sounds (the host sends it at Stop
+ *     and when it bypasses or removes the effect); PANIC also forgets every
+ *     key it holds; RESET restarts its pattern on the next tick (Play);
+ *   - time is ticks, never samples: every output carries the frame of the
+ *     input or tick that caused it, so the output is the same whatever the
+ *     host's block size;
+ *   - no allocation, no libm, the same output on every build.
+ * set_param works between blocks, as for any engine. Same thread as render. */
+/* The events, fm1_midi_ev_t and FM1_MIDI_EV_*, are in fm1_midi_ev.h. */
+
+#define FM1_MIDI_FX_PPQN 96u          /* the context's ticks per quarter note */
+#define FM1_MIDI_FX_OUT_MIN 64u       /* output room a host gives every call */
+
+/* The project key (owner, 2026-10-05: one for the project), for the scale
+ * effects to come; the arpeggiator reads none of it. */
+enum { FM1_KEY_MAJOR = 0, FM1_KEY_MINOR = 1, FM1_KEY_CHROMATIC = 2 };
+
+typedef struct fm1_midi_fx_ctx {
+  const uint16_t *ticks;       /* frames of the block's clock ticks, ascending,
+                                  FM1_MIDI_FX_PPQN to the quarter note */
+  uint32_t n_ticks;
+  uint32_t frames;             /* the block's length */
+  uint32_t bpm_x100;           /* the tempo the ticks follow */
+  uint8_t running;             /* 1 while the sequencer's transport runs */
+  uint8_t key_root;            /* the project key: 0 C .. 11 B */
+  uint8_t key_scale;           /* FM1_KEY_* */
+  uint8_t reserved;            /* 0 */
+} fm1_midi_fx_ctx_t;
+
+typedef struct fm1_midi_fx {
+  fm1_engine_t engine;         /* kind FM1_KIND_MIDI_FX */
+  /* The block: in[0..n_in) and ctx in, out[0..cap) out; returns how many
+   * events it wrote (at most cap). */
+  uint32_t (*process)(void *self, const fm1_midi_ev_t *in, uint32_t n_in,
+                      const fm1_midi_fx_ctx_t *ctx, fm1_midi_ev_t *out, uint32_t cap);
+} fm1_midi_fx_t;
+
+/* e as a MIDI effect, or NULL when it is not one. */
+static inline const fm1_midi_fx_t *fm1_midi_fx_of(const fm1_engine_t *e) {
+  return e && e->kind == FM1_KIND_MIDI_FX ? (const fm1_midi_fx_t *)(const void *)e : NULL;
+}
+
 /* Whether e is a pad kit, and the note its pad `pad` (from 0) plays, or -1
  * when it has no such pad. */
 static inline int fm1_engine_pad_note(const fm1_engine_t *e, int pad) {
@@ -412,6 +479,11 @@ static inline int fm1_param_index(const fm1_engine_t *e, uint16_t uid) {
 extern const fm1_engine_t *const fm1_engines[];
 extern const size_t fm1_engine_count;
 const fm1_engine_t *fm1_engine_find(const char *id);
+
+/* The MIDI effects' registry (engines/midi_fx/registry.c). */
+extern const fm1_midi_fx_t *const fm1_midi_fxs[];
+extern const size_t fm1_midi_fx_count;
+const fm1_midi_fx_t *fm1_midi_fx_find(const char *id);
 
 #ifdef __cplusplus
 }
