@@ -109,7 +109,7 @@ PIT, GLO, MONO, POLY) come from the manual's panel drawing [reported].
 | FX, SEL | effect chain mode; SEL grabs a slot so SELECT reorders it | the same: the current sound's two inserts, the Mix page and the two master slots |
 | GLO | global settings | the global page above |
 | HOME | home (oscilloscope) | home: the sound's page, with an oscilloscope strip |
-| SAVE | | a popup: not in the simulator yet |
+| SAVE | | the project to the host's store, which answers on the screen (*SAVED*, the name, the RAM figure; or *NOT SAVED* and why); with no store yet (the page's comes with stage W1), a refusal saying so. Never a device (below, "Saved state") |
 | ARP | the arpeggiator | the arpeggiator on the current sound: a tap switches it (on, its pages open), a hold latches, SHIFT + ARP opens the pages (below, "The arpeggiator") |
 | ENV, LFO, EDIT | envelope, LFO and edit pages | modulation: RACK, the gesture, MATRIX (below) |
 | REC | recording | record, step record and Capture (below) |
@@ -712,6 +712,63 @@ buffer into FM6's user bank (above); `fm1w_dx7_result()` returns thirteen
 words saying what the file held, and `fm1w_dx7_name(slot)` the name a user
 slot shows.
 
+**Saved state** (stage A1, 2026-10-06; `src/fm1_app_state.h`,
+notes/2026-10-06-state-files.md §23). The app's whole state goes through
+the state core's records (`engines/state/`): a collector that walks
+`fm1_app_t` into the canonical JSON writer, and an applier in two passes.
+The text buffer is 256 KiB, the largest file kind's cap.
+
+| Export | Does |
+| --- | --- |
+| `fm1w_state_save(kind, arg, binary)` | The file into the text buffer: its length, -1 refused, -2 too big. Kinds are the binary header's: 1 project, 2 sound (arg the sound unit 0-3), 3 effects (-1 the master, 0-3 a sound's inserts), 4 mod rack, 5 clip (track * 8 + slot), 6 settings, 7 set (`movy1` text, or with `binary` a SET container) |
+| `fm1w_state_check(kind, into, slot, flags, len)` | Pass 1 over the buffer's first `len` bytes (JSON, binary or a `.movy1` set): 1 when the load would go ahead. Nothing changes, not even the screen, so a page can ask first |
+| `fm1w_state_load(kind, into, slot, flags, len)` | Pass 1, then pass 2: 1 loaded, 0 refused with nothing changed. Flags: 1 load without what is unknown or does not fit, 2 replace a clip, 4 no banner |
+| `fm1w_state_pack(len)` | JSON to the binary container, in the buffer, with no app state: the editor's shadow Worker packs, and the audio thread loads binary, so it never parses JSON (ED13) |
+| `fm1w_state_report()` | The last check, load or save as JSON: `code`, `kind`, `message` (the page's words), `screen` (the device's two lines), `percent`, `ram`, `budget`, the counts, `left_out`, `skipped`, and where a bad file stopped (`line`, `col`, `path`, `near`) |
+| `fm1w_save_gen()`, `fm1w_store_ready(on)`, `fm1w_saved(ok)` | SAVE's presses, whether a store answers them, and its answer on the screen (a refusal's reason in the text buffer) |
+
+- **Pass 1** reads the file whole and decides every refusal of the note's
+  §10.3: NOT_LUNAR, TOO_NEW, UNKNOWN (an engine or kind this build lacks,
+  unless "load without"), RATE (an engine that refuses the host's rate:
+  each is created once in a scratch arena), RAM (the app's whole RAM figure
+  after the load, every instance at 44,118 Hz, ST6; always refused, and
+  said as a percent: "Needs 121% of the FM-1's RAM."), NO_ROOM (a merge's
+  modules, cables or FM6 voice with no free place, a fuller effects chain
+  than its target, a clip slot that holds one), TOO_BIG and BAD. A set is
+  imported into a scratch sequencer first.
+- **Pass 2** applies in the note's §10.1 order. A project starts from
+  `fm1_app_init`, keeping the settings, MASTER, the host's hooks and the
+  clock; FM6's voices go into the bank first; then the units, their
+  parameters (a pad kit's per-pad values under each pad, its focus last),
+  levels and MIDI effects; the rack and the matrix; the set; the session
+  and the view. A merge first empties the units it replaces, so the RAM
+  rule never counts the old and the new together. The native harness's
+  logs hear none of it.
+- **What each kind does** (§10.2): a sound into Sound K, created afresh, its
+  modules to free rack positions (where they were if free), its cables to
+  free matrix slots, renumbered, and its FM6 voice reusing an identical one
+  in the bank, else the first slot not loaded, its Patch re-pointed;
+  effects into the master or a sound's inserts; a mod rack, a set or
+  settings in place of the old.
+- **The project key** has one home, the set's `key` line (a typed item,
+  `0x13`, in binary). A save writes `session.key` from it; a load never
+  applies `session.key`, and `lunar_state.py check` reports one that
+  disagrees.
+- **Unrouted tracks.** A project's or a clip's set loads with its routes as
+  saved; a track with no `rt` line stays on its MIDI channel, so a project
+  saves back byte for byte. A `.movy1` set gets the start rule on top: with
+  no track routed, track 1 plays Sound 1.
+- **The RAM meter counts at 44,118 Hz** too (ST6): each unit keeps its
+  instance's size at the host's rate for its arena and at the FM-1's for
+  the meter (`fm1_app_ram_of`).
+- **The harness**: `fm1-sim-render --load [sK:|fxK:|fxM:|tT.S:]FILE`
+  (up to four, in order; `--without`, `--replace`) after the setup, then
+  `--save KIND:FILE` before the render and `--save-end KIND:FILE` after it
+  (`project`, `soundK`, `fx`, `fxK`, `mods`, `settings`, `set`,
+  `clip:T.S`; `.lunarb` for binary). Its summary carries the load's report.
+  `tests/test_app_state.py` holds the proofs; the parity scenario
+  `project-load-play` loads the example project and plays its song.
+
 **The editor's metadata** (stage ED0, 2026-10-06;
 notes/2026-10-06-web-editor.md §6, decision ED4). `fm1w_meta_id()` returns
 the id of the module's parameter metadata export (`engines/include/
@@ -903,7 +960,8 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
   nothing about whether a chain fits the FM-1's cycle budget (stage B
   measures that), nor about FPU edge cases on the real core.
 - **No drivers**: no SPI, DMA, ADC or USB; the panel calls the app directly.
-- **SAVE** does nothing yet but say so. Only the arpeggiator's first
+- **SAVE** keeps nothing until the page has its browser storage (stage
+  W1); the module saves and loads every kind already. Only the arpeggiator's first
   MIDI-effect slot is on the panel. On the panel the sequencer
   has no Session, scenes, song, Loop view, COPY or a CLEAR tap (docs/15
   S9), and no sets in the browser or MIDI clock in (S10); the desktop tools

@@ -175,7 +175,8 @@ and the U+0000 rule refuse, and the `i_` outcomes are listed there.
   the metadata export writes its floats with `fm1_num`; P1 reads the export
   (`fm1-render --meta`, or a saved copy with `--meta FILE`).
 - **E1** (song core): the song's `dq`, `se` and `sn` lines are typed items
-  in binary (`0x10`-`0x12`; a raw one still reads), and the core's import
+  in binary (`0x10`-`0x12`; a raw one still reads; the project key's `key`
+  line is `0x13` since stage A1), and the core's import
   streams (`fm1_seq_import_begin`, `_feed`, `_end`): `fm1-seq --load`
   checks a file, then feeds its set lines to the import as their records
   come.
