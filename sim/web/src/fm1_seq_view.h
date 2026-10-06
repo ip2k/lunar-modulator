@@ -97,6 +97,10 @@ void fm1_seq_view_bottom(const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd,
  * decimals it has ("120.5 BPM", "117.65 BPM"). */
 void fm1_seq_view_bpm(uint32_t bpm_x100, char *buf, size_t size);
 
+/* A scene as the Song page and the hints name it (SG6, SG7): "3 Verse"
+ * with a name, else "Scene 3"; scene 0-based. */
+void fm1_seq_view_scene(const fm1_seq_t *s, unsigned scene, char *buf, size_t size);
+
 /* A MIDI note as the Step page names it: "C4" for 60, "F#-1" for 6. */
 void fm1_seq_view_note_name(int note, char *buf, size_t size);
 
