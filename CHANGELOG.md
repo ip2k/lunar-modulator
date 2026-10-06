@@ -23,9 +23,10 @@ history.
     Down/Up, Random and Played.
   - **With the sequencer:** the keys, MIDI and the sequencer's notes for the
     sound all go through it, on the sequencer's tempo whether it plays or
-    not; PLAY restarts the pattern and STOP ends its notes. The sequencer
-    records what you played, not the arpeggio, so a recorded part plays
-    back through the arpeggiator again, or plainly once it is off.
+    not; PLAY restarts the pattern and STOP ends its notes. At rate TRG it
+    takes one step each time the sequencer plays notes on the sound. The
+    sequencer records what you played, not the arpeggio, so a recorded part
+    plays back through the arpeggiator again, or plainly once it is off.
   - Each of the four sounds has its own; it takes memory only while on.
   - On the desktop: `fm1-render --mfx K:arp` and its `--mfx-param`,
     `--mfx-param-at`, `--mfx-on-at` and `--log-mfx` flags. The browser, the

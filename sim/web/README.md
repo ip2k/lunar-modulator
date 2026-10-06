@@ -701,9 +701,8 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
   nothing about whether a chain fits the FM-1's cycle budget (stage B
   measures that), nor about FPU edge cases on the real core.
 - **No drivers**: no SPI, DMA, ADC or USB; the panel calls the app directly.
-- **SAVE** does nothing yet but say so. The arpeggiator's RATE TRG gets no
-  steps yet, so it holds, and only its first MIDI-effect slot is on the
-  panel. On the panel the sequencer
+- **SAVE** does nothing yet but say so. Only the arpeggiator's first
+  MIDI-effect slot is on the panel. On the panel the sequencer
   has no Session, scenes, song, Loop view, COPY or a CLEAR tap (docs/15
   S9), and no sets in the browser or MIDI clock in (S10); the desktop tools
   have them. Modulation's envelopes and LFOs are global until the per-voice

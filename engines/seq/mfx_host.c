@@ -71,23 +71,24 @@ static void quiet_ctx(const fm1_mfx_t *m, fm1_midi_fx_ctx_t *ctx) {
   ctx->key_scale = m->key_scale;
 }
 
-/* Now, between blocks: the effects of chain c that are on, from slot
- * `first`, each given the one before's output; slot `first` (when `only`)
- * or every one (else) first gets `kind`, FLUSH or PANIC, at frame 0. The
- * note-offs that come out of the last go to the sink. (Only note-offs: an
- * effect given note-offs and a flush has no note to start.) */
-static void run_quiet(fm1_mfx_t *m, unsigned c, unsigned first, uint8_t kind, int only,
-                      const fm1_mfx_sink_t *sink) {
+/* Now, between blocks: m->a[0..n) into the effects of chain c that are on,
+ * from slot `first`, each given the one before's output; each of them in
+ * slots [kind_from, kind_to) first gets `kind` (FLUSH or PANIC; 0: none) at
+ * frame 0, ahead of what it is given. The note-offs that come out of the
+ * last go to the sink. (Only note-offs: an effect given note-offs and a
+ * flush has no note to start.) */
+static void run_quiet(fm1_mfx_t *m, unsigned c, unsigned first, uint32_t n, uint8_t kind,
+                      unsigned kind_from, unsigned kind_to, const fm1_mfx_sink_t *sink) {
   fm1_mfx_chain_t *ch = &m->chain[c];
   fm1_midi_fx_ctx_t ctx;
-  uint32_t n = 0, i;
+  uint32_t i;
   unsigned s;
   int started = 0;
   quiet_ctx(m, &ctx);
   for (s = first; s < FM1_MFX_SLOTS; ++s) {
     fm1_mfx_slot_t *sl = &ch->slot[s];
     if (!sl->fx || !sl->on) continue;
-    if (!started || !only) {             /* the flush, ahead of what came out before */
+    if (kind && s >= kind_from && s < kind_to) {   /* the flush, ahead of what came out before */
       memmove(m->a + 1, m->a, n * sizeof(m->a[0]));
       m->a[0].frame = 0;
       m->a[0].kind = kind;
@@ -109,32 +110,68 @@ static void run_quiet(fm1_mfx_t *m, unsigned c, unsigned first, uint8_t kind, in
 
 /* A chain that has no effect on any more forgets what it took: its notes'
  * offs go straight to the sound from now on. */
-static void forget_if_idle(fm1_mfx_t *m, unsigned c) {
-  fm1_mfx_chain_t *ch = &m->chain[c];
-  if (fm1_mfx_active(m, c)) return;
+static void forget(fm1_mfx_chain_t *ch) {
   memset(ch->held_live, 0, sizeof(ch->held_live));
   memset(ch->held_seq, 0, sizeof(ch->held_seq));
   memset(ch->owed, 0, sizeof(ch->owed));
+  memset(ch->owed_live, 0, sizeof(ch->owed_live));
   ch->n_live = 0;
+}
+
+static void forget_if_idle(fm1_mfx_t *m, unsigned c) {
+  if (!fm1_mfx_active(m, c)) forget(&m->chain[c]);
 }
 
 void fm1_mfx_flush(fm1_mfx_t *m, unsigned c, int panic, const fm1_mfx_sink_t *sink) {
   fm1_mfx_chain_t *ch = chain_of(m, c);
   if (!ch) return;
-  run_quiet(m, c, 0, panic ? FM1_MIDI_EV_PANIC : FM1_MIDI_EV_FLUSH, 0, sink);
-  if (panic) {
-    memset(ch->held_live, 0, sizeof(ch->held_live));
-    memset(ch->held_seq, 0, sizeof(ch->held_seq));
-    memset(ch->owed, 0, sizeof(ch->owed));
-    ch->n_live = 0;
-  }
+  run_quiet(m, c, 0, 0, panic ? FM1_MIDI_EV_PANIC : FM1_MIDI_EV_FLUSH, 0, FM1_MFX_SLOTS, sink);
+  if (panic) forget(ch);
 }
 
 /* Slot s of chain c ends its notes and forgets its keys, as it is bypassed,
  * replaced or removed; the effects after it hear its note-offs. */
 static void retire(fm1_mfx_t *m, unsigned c, unsigned s, const fm1_mfx_sink_t *sink) {
   const fm1_mfx_slot_t *sl = &m->chain[c].slot[s];
-  if (sl->fx && sl->on) run_quiet(m, c, s, FM1_MIDI_EV_PANIC, 1, sink);
+  if (sl->fx && sl->on) run_quiet(m, c, s, 0, FM1_MIDI_EV_PANIC, s, s + 1u, sink);
+}
+
+static int key_bit(const uint8_t *bits, unsigned key) { return (bits[key >> 3] >> (key & 7u)) & 1u; }
+
+/* Slot s of chain c, bypassed or empty now, is about to be switched on (or
+ * filled with an effect that is on). While other effects of the chain are
+ * on, every note-off must still follow its note-on:
+ *   - the effects before s end what they sound (FLUSH: their keys stay),
+ *     through the chain as it is, since their note-offs would reach s, which
+ *     never heard the note-ons;
+ *   - when s is to be the first effect on, the chain's keys reach s from now
+ *     on, and s holds none of them: the effects after it hear each key the
+ *     chain took let go (a latched arp keeps playing them, as a let-go key
+ *     does), and the chain forgets them, so their note-offs go to the sound.
+ *     A queued live note-on is dropped with them. */
+static void before_on(fm1_mfx_t *m, unsigned c, unsigned s, const fm1_mfx_sink_t *sink) {
+  fm1_mfx_chain_t *ch = &m->chain[c];
+  unsigned k, first = FM1_MFX_SLOTS;
+  uint32_t n = 0, i;
+  for (k = 0; k < FM1_MFX_SLOTS; ++k) {
+    if (ch->slot[k].fx && ch->slot[k].on) {
+      first = k;
+      break;
+    }
+  }
+  if (first == FM1_MFX_SLOTS) return;              /* nothing else on: nothing sounds */
+  if (first < s) {
+    run_quiet(m, c, 0, 0, FM1_MIDI_EV_FLUSH, 0, s, sink);
+    return;
+  }
+  for (k = 0; k < 128u; ++k) {                     /* every key the effects may hold */
+    int held = ch->held_live[k] || ch->held_seq[k] || key_bit(ch->owed, k) ||
+               key_bit(ch->owed_live, k);
+    for (i = 0; !held && i < ch->n_live; ++i) held = ch->live[i].a == k;
+    if (held) put(m->a, &n, 0, FM1_MIDI_EV_NOTE_OFF, (uint8_t)k, 0);
+  }
+  if (n) run_quiet(m, c, 0, n, 0, 0, 0, sink);
+  forget(ch);
 }
 
 int fm1_mfx_set(fm1_mfx_t *m, unsigned c, unsigned s, const fm1_midi_fx_t *fx, void *self, int on,
@@ -144,10 +181,12 @@ int fm1_mfx_set(fm1_mfx_t *m, unsigned c, unsigned s, const fm1_midi_fx_t *fx, v
   if (fx && (fx->engine.kind != FM1_KIND_MIDI_FX || !fx->process || !self)) return 0;
   retire(m, c, s, sink);
   sl = &m->chain[c].slot[s];
+  sl->on = 0;
+  forget_if_idle(m, c);
+  if (fx && on) before_on(m, c, s, sink);
   sl->fx = fx;
   sl->self = fx ? self : NULL;
   sl->on = fx && on ? 1u : 0u;
-  forget_if_idle(m, c);
   return 1;
 }
 
@@ -155,7 +194,12 @@ int fm1_mfx_set_on(fm1_mfx_t *m, unsigned c, unsigned s, int on, const fm1_mfx_s
   fm1_mfx_slot_t *sl;
   if (c >= FM1_MFX_CHAINS || s >= FM1_MFX_SLOTS || !m->chain[c].slot[s].fx) return 0;
   sl = &m->chain[c].slot[s];
-  if (!on && sl->on) retire(m, c, s, sink);
+  if (!on == !sl->on) return 1;
+  if (on) {
+    before_on(m, c, s, sink);
+  } else {
+    retire(m, c, s, sink);
+  }
   sl->on = on ? 1u : 0u;
   forget_if_idle(m, c);
   return 1;
@@ -176,8 +220,8 @@ int fm1_mfx_live_note(fm1_mfx_t *m, unsigned c, uint8_t key, uint8_t velocity) {
   } else {
     if (!ch->held_live[key]) return 0;     /* not the chain's: the host's to end */
     --ch->held_live[key];
-    if (ch->n_live >= FM1_MFX_LIVE) {      /* no room: first thing next block */
-      ch->owed[key >> 3] |= (uint8_t)(1u << (key & 7u));
+    if (ch->n_live >= FM1_MFX_LIVE) {      /* no room: next block, after the queue */
+      ch->owed_live[key >> 3] |= (uint8_t)(1u << (key & 7u));
       ++m->stats.deferred_offs;
       return 1;
     }
@@ -257,38 +301,62 @@ static int transport_kind(uint8_t kind) {
                                   : kind == FM1_SEQ_EV_STOP ? FM1_MIDI_EV_FLUSH : 0;
 }
 
-/* Chain c's input for the block in m->a: the note-offs owed from the last
- * block and its queued live notes at frame 0, then the buffer's transport
- * and the notes for its sound, at their frames. Marks the notes it takes. */
+/* The owed note-offs, at frame 0, while they fit; the rest stay owed. */
+static void owed_offs(fm1_midi_ev_t *buf, uint32_t *n, uint8_t *owed) {
+  uint32_t key;
+  for (key = 0; key < 128u && *n < FM1_MFX_IN; ++key) {
+    if (!key_bit(owed, key)) continue;
+    put(buf, n, 0, FM1_MIDI_EV_NOTE_OFF, (uint8_t)key, 0);
+    owed[key >> 3] &= (uint8_t)~(1u << (key & 7u));
+  }
+}
+
+/* A trig at frame f, after that frame's notes: STEP, once a frame. */
+static void step_at(fm1_mfx_t *m, uint32_t *n, int32_t *pending) {
+  if (*pending < 0) return;
+  if (*n < FM1_MFX_IN) put(m->a, n, (uint16_t)*pending, FM1_MIDI_EV_STEP, 0, 0);
+  if (m->n_steps < FM1_MFX_TICKS) m->steps[m->n_steps++] = (uint16_t)*pending;
+  *pending = -1;
+}
+
+/* Chain c's input for the block in m->a: at frame 0, the sequencer's
+ * note-offs owed from the last block, its queued live notes and the live
+ * note-offs that came after them with the queue full; then the buffer's
+ * transport and the notes for its sound, at their frames, with a STEP
+ * after each frame's note-ons (m->steps keeps their frames for the effects
+ * after the first). Marks the notes it takes. */
 static uint32_t chain_input(fm1_mfx_t *m, fm1_seq_host_t *h, unsigned c, uint32_t frames,
                             int single) {
   fm1_mfx_chain_t *ch = &m->chain[c];
-  uint32_t n = 0, k, key;
-  for (key = 0; key < 128u; ++key) {
-    if (ch->owed[key >> 3] & (1u << (key & 7u))) put(m->a, &n, 0, FM1_MIDI_EV_NOTE_OFF, (uint8_t)key, 0);
-  }
-  memset(ch->owed, 0, sizeof(ch->owed));
-  for (k = 0; k < ch->n_live; ++k) m->a[n++] = ch->live[k];   /* n <= 128 + 64 here */
+  uint32_t n = 0, k;
+  int32_t pending = -1;
+  owed_offs(m->a, &n, ch->owed);                              /* at most 128 */
+  for (k = 0; k < ch->n_live; ++k) m->a[n++] = ch->live[k];   /* 64 more */
   ch->n_live = 0;
+  owed_offs(m->a, &n, ch->owed_live);
+  m->n_steps = 0;
   for (k = 0; k < h->n; ++k) {
     fm1_seq_ev_t *e = &h->ev[k];
     const uint16_t f = (uint16_t)(e->frame < frames ? e->frame : frames);
     const int t = transport_kind(e->kind);
     int on;
     if (t) {
+      if (pending >= 0 && f > pending) step_at(m, &n, &pending);
       if (n < FM1_MFX_IN) put(m->a, &n, f, (uint8_t)t, 0, 0);
       continue;
     }
     if (e->kind != FM1_SEQ_EV_NOTE_ON && e->kind != FM1_SEQ_EV_NOTE_OFF) continue;
     if (chain_for(h, k, single) != (int)c || e->a > 127u) continue;
+    if (pending >= 0 && f > pending) step_at(m, &n, &pending);
     on = e->kind == FM1_SEQ_EV_NOTE_ON && e->b > 0;
     if (on) {
-      if (n >= FM1_MFX_IN || ch->held_seq[e->a] == 255u) {   /* to the sound itself */
+      if (n >= FM1_MFX_IN - 1u || ch->held_seq[e->a] == 255u) {   /* to the sound itself */
         ++m->stats.direct;
         continue;
       }
       ++ch->held_seq[e->a];
       put(m->a, &n, f, FM1_MIDI_EV_NOTE_ON, e->a, e->b);
+      pending = f;
     } else {
       if (!ch->held_seq[e->a]) continue;  /* its note-on went to the sound */
       --ch->held_seq[e->a];
@@ -302,29 +370,32 @@ static uint32_t chain_input(fm1_mfx_t *m, fm1_seq_host_t *h, unsigned c, uint32_
     e->kind |= FM1_MFX_TAKEN;
     ++m->stats.notes_in;
   }
+  step_at(m, &n, &pending);
   return n;
 }
 
-/* An effect's notes, with the block's transport put back in front of each
- * frame's notes, for the next effect: from m->b (n notes) into m->a. */
+/* An effect's notes, for the next effect, from m->b (n notes) into m->a,
+ * with the block's transport put back in front of each frame's notes and
+ * the chain's trigs after them. */
 static uint32_t with_transport(fm1_mfx_t *m, const fm1_seq_host_t *h, uint32_t frames, uint32_t n) {
-  uint32_t i = 0, k = 0, out = 0;
+  uint32_t i = 0, k = 0, q = 0, out = 0;
   for (;;) {
+    uint32_t tf = 0xFFFFFFFFu, nf = i < n ? m->b[i].frame : 0xFFFFFFFFu;
+    const uint32_t sf = q < m->n_steps ? m->steps[q] : 0xFFFFFFFFu;
     /* the next transport event in the buffer */
     while (k < h->n && !transport_kind((uint8_t)(h->ev[k].kind & ~FM1_MFX_TAKEN))) ++k;
-    if (k < h->n) {
-      const uint16_t f = (uint16_t)(h->ev[k].frame < frames ? h->ev[k].frame : frames);
-      if (i >= n || f <= m->b[i].frame) {
-        if (out < FM1_MFX_IN) {
-          put(m->a, &out, f, (uint8_t)transport_kind(h->ev[k].kind), 0, 0);
-        }
-        ++k;
-        continue;
-      }
+    if (k < h->n) tf = h->ev[k].frame < frames ? h->ev[k].frame : frames;
+    if (tf == 0xFFFFFFFFu && nf == 0xFFFFFFFFu && sf == 0xFFFFFFFFu) break;
+    if (tf <= nf && tf <= sf) {           /* at one frame: transport, notes, trigs */
+      if (out < FM1_MFX_IN) put(m->a, &out, (uint16_t)tf, (uint8_t)transport_kind(h->ev[k].kind), 0, 0);
+      ++k;
+    } else if (nf <= sf) {
+      if (out < FM1_MFX_IN) m->a[out++] = m->b[i];
+      ++i;
+    } else {
+      if (out < FM1_MFX_IN) put(m->a, &out, (uint16_t)sf, FM1_MIDI_EV_STEP, 0, 0);
+      ++q;
     }
-    if (i >= n) break;
-    if (out < FM1_MFX_IN) m->a[out++] = m->b[i];
-    ++i;
   }
   return out;
 }

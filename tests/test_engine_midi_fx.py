@@ -231,8 +231,8 @@ def fuzz_args(seed, block):
     params = [("Latch", 0, 1), ("Rate", 0, 16), ("Mode", 0, 21), ("Gate", 1, 200),
               ("Ratchet", 0, 3), ("Repeat", 0, 7), ("Octaves", 0, 3), ("Join", 0, 1),
               ("Sync", 0, 1), ("Chance", 0, 100), ("Chord %", 0, 100), ("Loop", 0, 8)]
-    for _ in range(rnd.randint(3, 12)):         # turns and switches mid-run
-        unit = rnd.choice(["0", "1"])
+    for _ in range(rnd.randint(3, 12)):         # turns and switches mid-run, either place in a chain
+        unit = rnd.choice(["0", "1", "0.2"] if chain else ["0", "1"])
         t = at(BOUND * rnd.randint(1, 270))
         if rnd.random() < 0.35:
             args += ["--mfx-on-at", f"{unit}:{t}:{rnd.randint(0, 1)}"]
@@ -250,8 +250,10 @@ def fuzz_args(seed, block):
     t = 0
     for _ in range(rnd.randint(1, 4)):          # Start and Stop, any number of times
         t += rnd.randint(5, 60)
+        if t >= 270:
+            break
         lines.append(f"@{BOUND * t} play")
-        t += rnd.randint(5, 60)
+        t = min(t + rnd.randint(5, 60), 280)    # stopped before the end: its notes end
         lines.append(f"@{BOUND * t} stop")
     return args, "\n".join(lines) + "\n"
 
@@ -259,10 +261,11 @@ def fuzz_args(seed, block):
 @pytest.mark.parametrize("seed", range(24))
 def test_every_note_on_gets_its_note_off(renderer, tmp_path, seed):
     """Seeded mixes of keys, the sequencer's notes on two sounds, Start and
-    Stop, bypasses, latch and every kind of turn, with a chain of two now
-    and then: when everything is let go and bypassed, no engine is left
-    with a note-on that had no note-off, and nothing was dropped. Every
-    third seed also runs at blocks of 7 and must match."""
+    Stop, bypasses, latch and every kind of turn (TRG included), with a
+    chain of two now and then, either of whose effects switches: when
+    everything is let go and bypassed, no engine is left with a note-on that
+    had no note-off, and nothing was dropped. Every third seed also runs at
+    blocks of 7 and must match."""
     args, script = fuzz_args(seed, 64)
     s, wav, ev = mfx_run(renderer, tmp_path, args, f"f{seed}", script=script)
     assert s["notes_hung"] == 0, f"seed {seed}: {s['notes_hung']} notes hang"
@@ -325,6 +328,88 @@ def test_a_chain_of_two(renderer, tmp_path):
                                                     *note(BOUND * 60, 62, 100, BOUND * 60)], "three")
     assert s3["notes_hung"] == 0
     assert {k for t, k in ons(ev3) if t > BOUND * 40} == {62, 74}
+
+
+def test_switching_on_a_later_effect_leaves_no_note_hanging(renderer, tmp_path):
+    """The first arp sounds a long note into the sound; the second is
+    switched on behind it. That note's note-off would now reach the second
+    arp, which never heard its note-on: the first ends what it sounds before
+    the switch, so the sound is left with nothing."""
+    s, _, ev = mfx_run(renderer, tmp_path, [
+        "--engine", "test-sine", "--mfx", "0:arp", "--mfx-param", "0:Gate=200",
+        "--mfx-param", "0:Rate=10", "--mfx", "0:arp:off",
+        *note(BOUND, 60, 100, BOUND * 100), *note(BOUND, 64, 100, BOUND * 100),
+        "--mfx-on-at", f"0.2:{at(BOUND * 20)}:1",                 # mid-note (it ends at ~BOUND x 100)
+        "--mfx-on-at", f"0.2:{at(BOUND * 150)}:0",
+        "--mfx-on-at", f"0:{at(BOUND * 200)}:0"])
+    assert s["notes_hung"] == 0       # (its note-offs at the switch go straight to the sound)
+    assert ons(ev) and min(t for t, _ in ons(ev)) < BOUND * 20 < max(t for t, _ in ons(ev))
+
+
+def test_switching_on_an_earlier_effect_lets_go_of_the_keys(renderer, tmp_path):
+    """Keys went into the second arp (the first bypassed); the first is
+    switched on while they are held, so their releases would reach it, which
+    never heard them: the second hears them let go at the switch, and plays
+    nothing after its last note ends."""
+    s, _, ev = mfx_run(renderer, tmp_path, [
+        "--engine", "test-sine", "--mfx", "0:arp:off", "--mfx", "0:arp",
+        *note(BOUND, 60, 100, BOUND * 60), *note(BOUND, 67, 100, BOUND * 60),
+        "--mfx-on-at", f"0:{at(BOUND * 20)}:1",
+        "--mfx-on-at", f"0:{at(BOUND * 150)}:0", "--mfx-on-at", f"0.2:{at(BOUND * 150)}:0"])
+    assert s["notes_hung"] == 0
+    assert ons(ev) and max(t for t, _ in ons(ev)) < BOUND * 20, "the arp plays keys let go long ago"
+
+
+def test_a_flood_of_keys_keeps_every_note_off(renderer, tmp_path):
+    """128 keys in two blocks, all let go at once: the chain queues 64 live
+    note-offs for the next block and owes the other 64 (after the queue);
+    every one reaches the arp, which then falls silent."""
+    keys = [*(a for k in range(64) for a in note(BOUND, k, 100, BOUND * 20)),
+            *(a for k in range(64, 128) for a in note(BOUND + 64, k, 100, BOUND * 20 - 64))]
+    s, _, ev = mfx_run(renderer, tmp_path, ["--engine", "test-sine", "--mfx", "0:arp",
+                                            "--mfx-param", "0:Rate=1", *keys,
+                                            "--seconds", f"{BOUND * 40 / RATE:.6f}"])
+    assert s["mfx_deferred_offs"] == 64 and s["notes_hung"] == 0 and s["mfx_direct"] == 0
+    assert max(t for t, _ in ons(ev)) < BOUND * 22, "a key's release was lost"
+
+
+TRG = (f"#! rate={RATE} block=64 tracks=8 end={BOUND * 620}\n"
+       "@0 tog 0 0 48 100 55 100 60 100;slen 0 0 0 -1 380;tog 0 4 48 100;tog 0 8 48 100;"
+       "tog 0 10 48 100;tog 0 12 48 100;play\n"
+       f"@{BOUND * 610} stop\n")
+
+
+def test_rate_trg_steps_on_the_sequencers_trigs(renderer, tmp_path):
+    """RATE TRG: every frame where the sequencer starts notes for the sound
+    is one step of the arp, whatever the block size; keys alone hold. In a
+    chain, the second arp steps on the same trigs."""
+    runs = []
+    for block in (1, 7, 64):
+        script = TRG.replace("block=64", f"block={block}")
+        log = tmp_path / f"e{block}.jsonl"
+        s, wav, ev = mfx_run(renderer, tmp_path, ["--engine", "test-sine", "--frames", str(block),
+                                                  "--mfx", "0:arp", "--mfx-param", "0:Rate=0",
+                                                  "--log-events", str(log)], f"trg{block}", script=script)
+        assert s["notes_hung"] == 0
+        runs.append((wav, ev))
+    seq = [json.loads(line) for line in log.read_text().splitlines()]
+    trigs = sorted({e["frame"] for e in seq if e["kind"] == "on"})
+    assert len(trigs) > 10 and [t for t, _ in ons(runs[0][1])] == trigs
+    assert all(r == runs[0] for r in runs[1:])
+    # at one frame, note-offs before note-ons
+    for t in trigs:
+        kinds = [e["k"] for e in runs[0][1] if e["t"] == t]
+        assert kinds == sorted(kinds, key=lambda k: k != "off"), (t, kinds)
+    # keys alone: nothing
+    s, _, ev = mfx_run(renderer, tmp_path, ["--engine", "test-sine", "--mfx", "0:arp",
+                                            "--mfx-param", "0:Rate=0", *note(BOUND, 60, 100, BOUND * 50),
+                                            "--seconds", "1"], "keys")
+    assert ons(ev) == [] and s["notes_hung"] == 0
+    # a chain: the first at 1/32, the second at TRG
+    s, _, ev = mfx_run(renderer, tmp_path, ["--engine", "test-sine", "--mfx", "0:arp",
+                                            "--mfx-param", "0:Rate=2", "--mfx", "0:arp",
+                                            "--mfx-param", "0:Rate=0"], "chain", script=TRG)
+    assert s["notes_hung"] == 0 and {t for t, _ in ons(ev)} <= set(trigs) and len(ons(ev)) > 10
 
 
 # ---- Flags -----------------------------------------------------------------------------------

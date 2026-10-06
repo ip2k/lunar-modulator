@@ -2737,8 +2737,13 @@ stay as they were; `fm1-render --list` prints them after the engines, kind
   hook hears the notes. The ticks are the sequencer's clock as the block
   began, which runs on at its tempo while stopped (or the stage's own,
   `fm1_mfx_set_tempo`, without a sequencer); Start reaches the effects as
-  RESET and Stop as FLUSH, at their frames. A bypass, a removal or
-  `fm1_mfx_flush` flushes at once, the note-offs to the host's sink.
+  RESET and Stop as FLUSH, at their frames, and each frame where the
+  sequencer starts notes for the sound as one STEP after them (a trig, for
+  RATE TRG). A bypass, a removal or `fm1_mfx_flush` flushes at once, the
+  note-offs to the host's sink. Switching an effect on while others in its
+  chain are on keeps every note-off with its note-on: the effects before it
+  end their notes first, and when it becomes the chain's first effect on,
+  those after it hear every key the chain took let go.
 - **fm1-render:** `--mfx K:ID[:off]`, `--mfx-param K:NAME=VALUE`,
   `--mfx-param-at K[.J]:T:NAME=VALUE`, `--mfx-on-at K[.J]:T:0|1`,
   `--log-mfx FILE.jsonl` (what the chains sent, by frame and unit), and
@@ -2748,8 +2753,9 @@ stay as they were; `fm1-render --list` prints them after the engines, kind
 
 Tests [verified, 2026-10-06]: `tests/test_engine_midi_fx.py` (blocks of 1,
 7, 64 and 448 frames, the sequencer's ticks, Start and Stop, a 24-seed fuzz
-with no hung note, note-offs following their note-ons, chains of two, the
-flags, no heap, stdio or libm in the stage and the wrapper) and
+with no hung note, note-offs following their note-ons, chains of two and
+switching either effect, a flood of 128 keys, TRG on the sequencer's trigs,
+the flags, no heap, stdio or libm in the stage and the wrapper) and
 `tests/test_sim_arp.py`; parity scenarios `arp-*`.
 
 ### Pad kits

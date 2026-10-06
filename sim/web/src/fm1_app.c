@@ -2451,7 +2451,9 @@ int fm1_app_seq_reset(fm1_app_t *a, int tracks) {
   if (a->seq_host.seq) {   /* the same buffer; the counters run on */
     a->seq_host.seq = a->seq;
   } else {
+    struct fm1_mfx *mfx = a->seq_host.mfx;   /* the arps stay on the bridge */
     fm1_seq_host_init(&a->seq_host, a->seq, a->seq_ev, FM1_APP_SEQ_EVENTS);
+    a->seq_host.mfx = mfx;
   }
   return a->seq ? 0 : -1;
 }
@@ -2797,7 +2799,7 @@ static void draw_arp(fm1_app_t *a, char *bottom, size_t size) {
     snprintf(bottom, size, "1/1 Arp");
     return;
   }
-  fm1_tft_text(t, MARGIN, CONTENT_Y, on ? (arp_latched(a, a->sound) ? "On, latched" : "On") : "Off",
+  fm1_tft_text(t, MARGIN, CONTENT_Y, on ? (arp_latched(a, a->sound) ? "Arp latched" : "Arp on") : "Arp off",
                11, SCALE, on ? C_MODEL : C_DIM);
   if (preset >= 0) {
     const char *name = fm1_app_arp_preset_name(preset);

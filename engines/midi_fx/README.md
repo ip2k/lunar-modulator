@@ -212,6 +212,10 @@ equal Yarns' generated tables [verified against `reference/mi-eurorack` at
   `fm1_seq`'s swung trigs can drive the arp; this is the swing hook.
   - Gates and ratchets use the measured ticks between the last two steps.
   - Until two steps have been seen, each note lasts until the next step.
+  - A `STEP` on a tick's frame runs that tick's gates first, so the notes
+    they end go out before the step's note-ons, as at a rate's step.
+  - In the hosts, the stage sends one `STEP` at each frame where the
+    sequencer starts notes for the sound, after them; keys alone send none.
 - **Randomness.**
   - Each draw is a pure function of (seed, purpose, step index): a
     splitmix64 finalizer, then one xorshift64* round, the generator of
@@ -305,7 +309,6 @@ effects").
 
 ## Not done yet
 
-- **RATE TRG** gets no `STEP` from either host yet, so the arp holds there.
 - Sequencer locks and modulation routes on the arp's parameters; the step
   index and the step's random value as matrix sources (options note S4).
 - Super Arp's pattern strings, accent velocity patterns and progression

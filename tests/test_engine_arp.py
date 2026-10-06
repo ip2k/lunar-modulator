@@ -698,6 +698,28 @@ def test_trg_steps(arp_tool):
     assert on_frames(ev) == [0, STEP], "STEP is ignored unless RATE is TRG"
 
 
+@pytest.mark.parametrize("block", [1, 64, 3000])
+def test_a_trg_step_on_a_tick_ends_notes_first(arp_tool, block):
+    """A STEP on a tick's frame: the notes whose gates end at that tick go
+    out before the step's note-on, as at a rate's step (note-offs before
+    note-ons at one frame); the gates, ratchets and the measured step are
+    as they were (a gate of 100 % ends on the next step, a ratchet of 2 at
+    its half)."""
+    lines = ["@0 set rate trg", "@0 set gate 100", *chord(0, [60, 64, 67])]
+    lines += [f"@{i * 3000} step" for i in range(5)]
+    ev, summ = run(arp_tool, script(*lines, f"@{15000} flush", ticks=151), block=block)
+    assert [(e["frame"], e["kind"], e["key"]) for e in ev] == [
+        (0, "on", 60), (3000, "off", 60), (3000, "on", 64), (6000, "off", 64), (6000, "on", 67),
+        (9000, "off", 67), (9000, "on", 60), (12000, "off", 60), (12000, "on", 64), (15000, "off", 64)]
+    assert_balanced(ev, summ)
+    lines = ["@0 set rate trg", "@0 set ratchet 2", "@0 set gate 100", *chord(0, [60])]
+    lines += [f"@{i * 3000} step" for i in range(3)]
+    ev, _ = run(arp_tool, script(*lines, "@9000 flush", ticks=91), block=block)
+    assert [(e["frame"], e["kind"]) for e in ev] == [
+        (0, "on"), (3000, "off"), (3000, "on"), (4500, "off"), (4500, "on"), (6000, "off"),
+        (6000, "on"), (7500, "off"), (7500, "on"), (9000, "off")]
+
+
 # ---- The ledger --------------------------------------------------------------------------
 
 PARAM_FUZZ = [("mode", 0, 21), ("order", 0, 2), ("octaves", 1, 4), ("oct_mode", 0, 4), ("rate", 0, 16),

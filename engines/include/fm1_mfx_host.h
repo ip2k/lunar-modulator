@@ -37,11 +37,21 @@
  * RESET, its Stop as FLUSH, each at its frame. So the ticks, and with them
  * every effect's output, are the same at any block size.
  *
+ * Steps. A sequencer note-on that a chain takes is a trig: at its frame,
+ * after that frame's notes, every effect of the chain gets one STEP (an
+ * arp at RATE TRG plays a step on it; the others ignore it). Live notes
+ * make no trig.
+ *
  * Bypass and removal flush at once: the effect gets FLUSH and PANIC between
  * blocks, and the note-offs that come out (through the effects after it)
  * go to the host's fm1_mfx_sink_t, which plays them as live note-offs. A
  * host does the same with fm1_mfx_flush before it changes or empties the
- * sound, and on a panic.
+ * sound, and on a panic. Switching an effect on (or putting one in) while
+ * others of its chain are on keeps the same rule: the effects before it end
+ * their notes first (FLUSH; their note-offs would reach it, which never
+ * heard the note-ons), and when it is to be the chain's first effect on,
+ * the effects after it hear every key the chain took let go, and the chain
+ * forgets those keys (their note-offs, when they come, go to the sound).
  *
  * Memory: fixed, in the struct; the effects' instances are the host's. No
  * heap, no stdio, no libm. MIT licence, like the rest of this repository.
@@ -86,8 +96,11 @@ typedef struct fm1_mfx_chain {
   uint8_t held_seq[128];       /* ...and the sequencer's: kept apart, so a note-off
                                   goes where its own note-on went even when a
                                   key and a track share a pitch */
-  uint8_t owed[16];            /* note-offs it took with no room left: the next
-                                  block's first events */
+  uint8_t owed[16];            /* the sequencer's note-offs it took with no room
+                                  left: the next block's first events */
+  uint8_t owed_live[16];       /* live note-offs it took with the queue full: the
+                                  next block's, after its queued live notes
+                                  (which came first) */
   fm1_midi_ev_t out[FM1_MFX_OUT];     /* the last block's output, ascending */
   uint32_t n_out;
 } fm1_mfx_chain_t;
@@ -114,6 +127,8 @@ typedef struct fm1_mfx {
   uint8_t reserved;
   uint16_t ticks[FM1_MFX_TICKS];   /* the last block's tick frames */
   uint32_t n_ticks;
+  uint16_t steps[FM1_MFX_TICKS];   /* the chain being run: its trigs' frames */
+  uint32_t n_steps;
   fm1_midi_ev_t a[FM1_MFX_IN], b[FM1_MFX_IN];   /* one effect's input and output */
   fm1_mfx_stats_t stats;
 } fm1_mfx_t;

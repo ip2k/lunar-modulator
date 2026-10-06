@@ -11,6 +11,7 @@ own log) and in WebAssembly (parity.mjs); arp-panel is a gesture trace that
 replays through fm1-render from the harness's log and sidecar.
 """
 import json
+import random
 import subprocess
 
 import pytest
@@ -214,3 +215,72 @@ def test_no_note_is_left_sounding(tools, tmp_path, how):
     playing = silent_tail(tools, tmp_path, *base, seconds=1.2)
     assert playing > 1000, "the latched arp is not playing"
     assert silent_tail(tools, tmp_path, *base, *ending) == 0
+
+
+def gesture_session(seed, secs=6.0):
+    """A seeded panel session on two sounds: keys, ARP taps and holds, SHIFT
+    + ARP, the ARP pages' knobs and presets, PLAY/STOP, REC, HOME, and the
+    arps switched and turned through the harness's own flags; every key up
+    and both arps bypassed a second before the end, the sequencer stopped."""
+    rnd = random.Random(seed)
+    args = ["--engine", "test-sine", "--sound", "1:test-sine", "--seconds", str(secs)]
+    t = 0.05
+    while t < secs - 1.2:
+        r = rnd.random()
+        if r < 0.35:
+            dur = min(rnd.uniform(0.02, 1.5), secs - 1.1 - t)
+            args += ["--key", f"{t:.3f}:{rnd.randrange(27)}:{rnd.randint(1, 127)}:{dur:.3f}"]
+        elif r < 0.45:
+            hold = f":{rnd.uniform(0.55, 0.9):.3f}" if rnd.random() < 0.4 else ""
+            args += ["--button", f"{t:.3f}:ARP{hold}"]
+        elif r < 0.5:
+            args += ["--button", f"{t:.3f}:SEL:0.15", "--button", f"{t + 0.05:.3f}:ARP"]
+        elif r < 0.62:
+            enc = rnd.choice(["KNOB1", "KNOB2", "KNOB3", "KNOB4", "SELECT", "ALGORITHM"])
+            args += ["--turn", f"{t:.3f}:{enc}:{rnd.choice([-3, -2, -1, 1, 2, 3])}"]
+        elif r < 0.68:
+            args += ["--button", f"{t:.3f}:PLAY/STOP"]
+        elif r < 0.72:
+            args += ["--button", f"{t:.3f}:REC"]
+        elif r < 0.82:
+            args += ["--mfx-on-at", f"{rnd.randint(0, 1)}:{t:.3f}:{rnd.randint(0, 1)}"]
+        elif r < 0.94:
+            name, lo, hi = rnd.choice([("Latch", 0, 1), ("Rate", 0, 16), ("Mode", 0, 21), ("Gate", 1, 200),
+                                       ("Ratchet", 0, 3), ("Octaves", 0, 3), ("Join", 0, 1),
+                                       ("Sync", 0, 1), ("Repeat", 0, 7), ("Chord %", 0, 100)])
+            args += ["--mfx-param-at", f"{rnd.randint(0, 1)}:{t:.3f}:{name}={rnd.randint(lo, hi)}"]
+        else:
+            args += ["--button", f"{t:.3f}:HOME"]
+        t += rnd.uniform(0.03, 0.35)
+    end = secs - 1.0
+    args += ["--mfx-on-at", f"0:{end:.3f}:0", "--mfx-on-at", f"1:{end:.3f}:0"]
+    verbs = (f"#! rate={RATE} block=64 tracks=8 end={int(RATE * secs)}\n"
+             f"@0 bpm {rnd.choice([9000, 12000, 15500])};tog 0 0 {rnd.randint(40, 70)} 100 "
+             f"{rnd.randint(40, 70)} 90;slen 0 0 0 -1 {rnd.randint(10, 400)};tog 0 6 {rnd.randint(40, 70)} 100\n"
+             f"@{int(RATE * (end - 0.2)) // 64 * 64} stop\n")
+    return args, verbs
+
+
+@pytest.mark.parametrize("seed", range(8))
+def test_random_gesture_sessions_replay_and_leave_nothing_hanging(tools, tmp_path, seed):
+    """Seeded sessions of every ARP gesture with keys, the sequencer and REC:
+    each replays through fm1-render from the harness's log and sidecar to
+    the same samples and the same arp notes, and when the keys are up and
+    the arps bypassed, no engine holds a note (nothing in the app's ledgers,
+    nothing hung in fm1-render's)."""
+    args, verbs = gesture_session(seed)
+    (tmp_path / "in.verbs").write_text(verbs)
+    s = run(tools["sim"], [*args, "--cmd", str(tmp_path / "in.verbs"), "--out", str(tmp_path / "app.wav"),
+                           "--log-mfx", str(tmp_path / "app-arp.jsonl"),
+                           "--log-cmds", str(tmp_path / "c.verbs")])
+    assert s["replayable"] == 1
+    assert s["sounding"] == 0 and s["seq_sounding"] == 0
+    ref_args = ["--seconds", "6.0", "--rate", str(RATE), "--cmd", str(tmp_path / "c.verbs"),
+                *(tmp_path / "c.args").read_text().splitlines()]
+    arps = "--mfx" in ref_args          # the sidecar names an arp once one changed
+    ref = run(tools["render"], [*ref_args, "--out", str(tmp_path / "ref.wav")]
+              + (["--log-mfx", str(tmp_path / "ref-arp.jsonl")] if arps else []))
+    assert (tmp_path / "app.wav").read_bytes() == (tmp_path / "ref.wav").read_bytes()
+    app_arp = (tmp_path / "app-arp.jsonl").read_bytes()
+    assert app_arp == ((tmp_path / "ref-arp.jsonl").read_bytes() if arps else b"")
+    assert ref["notes_hung"] == 0 and ref.get("mfx_dropped", 0) == 0

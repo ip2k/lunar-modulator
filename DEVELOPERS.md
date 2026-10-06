@@ -571,7 +571,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
   its own seeded generator, never the global `stmlib::Random` that Macro's
   reference tests rely on [verified: `stmlib/utils/random.h`; options note
   §2.3].
-- **Still to do:** RATE TRG's steps from the sequencer; locks and routes on
+- **Still to do:** locks and routes on
   its parameters; its step and random value as matrix sources; on the
   device, the panel drivers and cycle counts (docs/14).
 - **Where it is planned:**
@@ -587,8 +587,8 @@ which lands with the plan PR; its stages S0–S7 are named below.
   ([`engines/midi_fx/`](engines/midi_fx/README.md)); in both hosts since
   2026-10-06 ([`sim/web/README.md`](sim/web/README.md), "The
   arpeggiator").
-- **Rough effort:** what is left is small: TRG's steps, the locks and the
-  sources [inferred].
+- **Rough effort:** what is left is small: the locks and the sources
+  [inferred].
 
 **MIDI effects** · *In progress*
 - **Done (2026-10-06):** the contract in engine API v3, additive (docs/13
@@ -597,7 +597,8 @@ which lands with the plan PR; its stages S0–S7 are named below.
   events (`fm1_midi_ev_t`), with a context holding the block's tick frames
   (from `fm1_seq`'s clock, playing or stopped, or the host's tempo), the
   transport and the project key; at least 64 outputs; note-offs never
-  dropped; FLUSH at Stop, bypass and removal. The host stage
+  dropped; FLUSH at Stop, bypass and removal; a STEP at each of the
+  sequencer's trigs for the sound (RATE TRG). The host stage
   (`engines/include/fm1_mfx_host.h`) keeps up to four slots in front of each
   sound on the bridge both hosts share, a note-off following its note-on
   [verified: engines/README.md, "MIDI effects"]. The arpeggiator is the
@@ -605,7 +606,6 @@ which lands with the plan PR; its stages S0–S7 are named below.
 - **Depends on, for the rest:**
   - shared helpers: held-note stack, note ledger, scheduler, scale service
     (the project key is in the context already);
-  - the sequencer's steps for TRG rates;
   - a panel for the other three slots.
 - **Where it is planned:** [docs/12](docs/12-sequencer.md) §5.1;
   [docs/13](docs/13-movy-port.md) §6; the 2026-10-01 MIDI-effects study (to

@@ -219,15 +219,20 @@ to some notes only, Crawl, Random, Shuffle (each note once per pass, in a new
 order), Walk (a random step to a neighbour) and Chord. The same Seed makes
 the same choices every time, so a random arpeggio repeats exactly.
 
-TRG, the slowest rate's neighbour at the left end of Rate, takes its steps
-from elsewhere; nothing sends them yet, so with TRG the arpeggiator holds.
+TRG, at the left end of Rate, plays one step each time the sequencer starts
+notes on this sound (a trig), however far apart the trigs are. The keys alone
+do not step it. Its first note lasts until the next trig; after that, Gate is
+a share of the time between the last two.
 
 ### With the sequencer
 
 The arpeggiator follows the sequencer's tempo whether the sequencer plays or
 not. [[PLAY/STOP]] restarts its pattern on the first beat; when the
 sequencer stops, the notes it was playing end, and it goes on with the keys
-you hold.
+you hold. With Sync at Key, the first key you play starts the pattern on the
+next tick of the clock, so it keeps the tempo but not always the beat; with
+Sync at Free the pattern stays on the beat from [[PLAY/STOP]] while the
+arpeggiator stays on, and a key waits for the next step.
 
 The sequencer records the notes you play, not the arpeggio. A part recorded
 with the arpeggiator on plays back through it again, so you can change the
