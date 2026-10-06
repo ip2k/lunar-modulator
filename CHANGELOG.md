@@ -1586,8 +1586,8 @@ history.
 
 ### Removed
 - **Code nothing used, found by the first dead-code audit** (#74;
-  CLAUDE.md, Conventions). No user-facing change: every sound, the virtual FM-1 and
-  the manual are as before.
+  CLAUDE.md, Conventions). No user-facing change: every sound, the
+  virtual FM-1 and the manual are as before.
   - Eight readers went through every line of the repository's own source
     as it stood at PR #52 (91,901 lines in `dongle/`, `engines/` less
     `third_party/`, `sim/`, `tests/` and `tools/`), and a ninth re-checked
@@ -1605,8 +1605,8 @@ history.
     the MG3 merge by a leftover `continue`; they run again, and pass.
   - 49 further candidates need the owner's decision, mostly because a
     pinned size or figure would move or they are documented API or tool
-    options. They are listed in PR #74 with the 8 the re-check
-    rejected and the bugs it found on the way.
+    options. They are listed in PR #74 with the 8 the re-check rejected
+    and the bugs it found on the way.
 
 ### Fixed
 - **Shapes stays inside what Braids' code handles.** At a few edges Braids
