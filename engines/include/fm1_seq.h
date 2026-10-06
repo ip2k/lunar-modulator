@@ -5,7 +5,9 @@
  * (github.com/DimaDake/schwung-movy, engine/crates/seq-core, commit 9190e79,
  * MIT, Copyright (c) 2026 megadake; engines/third_party/movy/). It replays
  * Movy's event stream tick for tick when `limits.compat` is set; without it
- * the deviations D1-D13 of docs/13 §3.3 are on. engines/seq.md has the design.
+ * the deviations D1-D13 of docs/13 §3.3 and D15-D18 of the song
+ * (notes/2026-10-06-song-and-scenes.md) are on. engines/seq.md has the
+ * design.
  *
  * No heap: the host asks fm1_seq_size() for the bytes one instance needs
  * under a set of limits, provides that memory (8-byte aligned, contents
@@ -56,11 +58,11 @@ typedef uint8_t fm1_seq_val_t;
 typedef struct fm1_seq_limits {
   uint8_t tracks;        /* 1..16; the FM-1 build uses 4..8 */
   uint8_t compat;        /* FM1_SEQ_COMPAT_*: 0 the FM-1 default, deviations
-                            D1-D13 on; 1 Movy 9190e79's behaviour exactly, for
+                            D1-D13, D15-D18 on; 1 Movy 9190e79's behaviour exactly, for
                             tests; 2 the same with D1's frames, to compare with
                             Movy run one frame at a time */
   uint8_t gates;         /* sounding sequenced notes; D7 frees the oldest */
-  uint8_t song;          /* song entries (scene presses) */
+  uint8_t song;          /* song presses (Movy's flat list; SG3: 64) */
   uint8_t rec_notes;     /* notes held while recording, and their tails */
   uint8_t pad_mutes;     /* muted drum voices per track */
   uint16_t notes;        /* the global note pool, shared by all clips */
@@ -226,7 +228,9 @@ uint32_t fm1_seq_realtime_in(fm1_seq_t *s, uint16_t frame, uint8_t status,
 size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap);
 
 /* Replaces the set from `movy1` text, as Movy's persist::load. Returns 1 if
- * the format tag matched, 0 otherwise (nothing changed). */
+ * the format tag matched, 0 otherwise (nothing changed). Outside compat
+ * mode it also reads the FM-1 lines dq, se and sn and reseeds the RNG
+ * (ST11); seq_persist.c has the format. */
 int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len);
 
 /* ---- Reading state (the UI, tests) ------------------------------------- */
