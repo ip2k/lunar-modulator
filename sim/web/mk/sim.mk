@@ -39,14 +39,18 @@ SIM_META_OBJ = $(META_OBJ) $(STATE_OBJ) $(STATE_REG_OBJ) $(STATE_MOD_OBJ) $(STAT
 # fm1_mod_view; docs/16 MG3).
 SIM_APP_OBJ := $(BUILD)/sim/src/fm1_app.o $(BUILD)/sim/src/fm1_tft.o \
   $(BUILD)/sim/src/fm1_seq_ui.o $(BUILD)/sim/src/fm1_seq_view.o \
-  $(BUILD)/sim/src/fm1_mod_ui.o $(BUILD)/sim/src/fm1_mod_view.o $(BUILD)/sim/src/fm1_app_state.o
+  $(BUILD)/sim/src/fm1_mod_ui.o $(BUILD)/sim/src/fm1_mod_view.o $(BUILD)/sim/src/fm1_app_state.o \
+  $(BUILD)/sim/src/fm1_edit.o
 
 # The harness reads verb scripts (host/seq_script.h); the app reads
 # modulation lines (host/mod_script.h).
 $(BUILD)/sim/test/fm1_sim_render.o: SIM_CFLAGS += -Ihost
 $(BUILD)/sim/src/fm1_app.o $(BUILD)/sim/src/fm1_mod_ui.o: SIM_CFLAGS += -Ihost
-$(BUILD)/sim/src/fm1_app_state.o $(BUILD)/sim/src/fm1_web.o $(BUILD)/sim/test/fm1_sim_render.o: \
-  SIM_CFLAGS += -Istate -Ihost
+# The edit layer (fm1_edit.c, stage ED1) speaks the state core's records;
+# the app takes its view verb's FM1_VIEW_* from there too.
+$(BUILD)/sim/src/fm1_app.o: SIM_CFLAGS += -Istate
+$(BUILD)/sim/src/fm1_app_state.o $(BUILD)/sim/src/fm1_web.o $(BUILD)/sim/test/fm1_sim_render.o \
+  $(BUILD)/sim/src/fm1_edit.o $(BUILD)/sim/test/fm1_edit_check.o: SIM_CFLAGS += -Istate -Ihost
 
 $(BUILD)/sim/%.o: $(SIM)/%.c
 	@mkdir -p $(dir $@)

@@ -494,6 +494,10 @@ typedef struct fm1_app {
    * it leads. NULL in the browser. */
   void (*on_mod)(void *ctx, uint64_t frame, const char *line);
   void *on_mod_ctx;
+  /* The edit layer (fm1_edit.h, stage ED1): its change ring, telemetry and
+   * the source of what is being edited now. The host's; NULL without one
+   * (the hooks then do nothing). A project load keeps it. */
+  struct fm1_edit *edit;
 
   fm1_app_dx7_t dx7;             /* FM6's user bank */
   /* The bottom bar's left text as last drawn ("2/7 RHYTHM", "1/4 Sound"):
@@ -855,6 +859,25 @@ int fm1_app_unit_of_track(const fm1_app_t *a, int track);
 /* A JSON description of every registered engine and effect (ids, names,
  * kinds, voices, credits, parameters with ranges, pages and list names).
  * Built once into a static buffer; NULL if it did not fit. */
+/* ---- for the edit layer (fm1_edit.h, stage ED1) ----------------------------------
+ * The panel's own edits as calls, so the editor's ops reach the same code:
+ * two effect units trade places with their cables (SEL, then SELECT; 0, or
+ * FM1_APP_SELECT_BAD); a rack position's kind, a module parameter's base, a
+ * matrix slot and a module's move, as the RACK and MATRIX pages make them
+ * (fm1_mod_ui.h: emitted as --mod lines; the runtime's results); the page
+ * the panel shows, from a view's mode (FM1_VIEW_*) and its 1-based keys,
+ * checked (0, or -1 with nothing changed); and what KNOB1-4 turn now: per
+ * knob, kind 0 nothing, 1 unit[k]'s parameter index[k], 2 sound unit[k]'s
+ * level, 3 sound unit[k]'s MIDI effect's parameter index[k], 4 rack position
+ * unit[k]'s parameter index[k]. */
+int fm1_app_swap_units(fm1_app_t *a, int ua, int ub);
+int fm1_app_mod_edit_kind(fm1_app_t *a, unsigned pos, int kind);
+int fm1_app_mod_edit_param(fm1_app_t *a, unsigned pos, unsigned index, float value);
+int fm1_app_mod_edit_slot(fm1_app_t *a, unsigned i, const fm1_mod_slot_t *s);
+int fm1_app_mod_edit_move(fm1_app_t *a, unsigned from, unsigned to);
+int fm1_app_show(fm1_app_t *a, unsigned mode, unsigned has, const uint8_t *keys);
+void fm1_app_knobs(const fm1_app_t *a, int kind[4], int unit[4], int index[4]);
+
 const char *fm1_app_catalog_json(void);
 
 #ifdef __cplusplus
