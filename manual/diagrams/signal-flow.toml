@@ -1,0 +1,376 @@
+# The whole signal flow of the virtual FM-1, as sim/web/src/fm1_app.c runs it
+# (fm1_app_render, render_sounds, play_on and its arpeggiator, feed_on;
+# fm1_app.h's budget).
+title = "Signal flow"
+caption = "Where notes go and how the sound comes out: the keys, MIDI IN and the sequencer’s eight tracks play the four sounds, through each sound’s arpeggiator while it is on; each sound runs through its two inserts and its level into the mix, then the two master effects, AMP, the limiter and MASTER."
+alt = "A block diagram, top to bottom. The keys and MIDI IN, and the sequencer with eight tracks, send notes to a routing stage: the keys and MIDI IN play the current sound, and each track plays the sound its route names, through that sound's arpeggiator while it is on. The keys and MIDI IN also feed the sequencer's focused track for recording and Capture. Four sound lanes follow, Sound 1 to Sound 4, each an engine with 4 to 12 voices, then Insert 1, Insert 2 and a level. The four levels meet in the mix, which feeds master effect M1, master effect M2, AMP (the level modulation can move) and the limiter. The metronome's click joins before the limiter. MASTER, the volume, comes last. A note says that everything in the chain counts against about 379 KB of RAM."
+equal_cols = true
+equal_gaps = true
+
+[[node]]
+id = "keys"
+label = "Keys and MIDI IN"
+sub = "play the current sound"
+col = 0
+row = 0
+cols = 2
+
+[[node]]
+id = "seq"
+label = "Sequencer"
+sub = "8 tracks"
+col = 2
+row = 0
+cols = 2
+
+[[node]]
+id = "route"
+label = "Notes to the sounds"
+sub = ["the keys: the current sound · a track: the sound its route names", "through the sound’s arpeggiator while it is on"]
+col = 0
+row = 1
+cols = 4
+stretch = true
+
+[[node]]
+id = "e1"
+label = "Engine"
+sub = "4–12 voices"
+col = 0
+row = 2
+role = "s1"
+
+[[node]]
+id = "e2"
+label = "Engine"
+sub = "4–12 voices"
+col = 1
+row = 2
+role = "s2"
+
+[[node]]
+id = "e3"
+label = "Engine"
+sub = "4–12 voices"
+col = 2
+row = 2
+role = "s3"
+
+[[node]]
+id = "e4"
+label = "Engine"
+sub = "4–12 voices"
+col = 3
+row = 2
+role = "s4"
+
+[[node]]
+id = "a1"
+label = "Insert 1"
+col = 0
+row = 3
+role = "s1"
+
+[[node]]
+id = "a2"
+label = "Insert 1"
+col = 1
+row = 3
+role = "s2"
+
+[[node]]
+id = "a3"
+label = "Insert 1"
+col = 2
+row = 3
+role = "s3"
+
+[[node]]
+id = "a4"
+label = "Insert 1"
+col = 3
+row = 3
+role = "s4"
+
+[[node]]
+id = "b1"
+label = "Insert 2"
+col = 0
+row = 4
+role = "s1"
+
+[[node]]
+id = "b2"
+label = "Insert 2"
+col = 1
+row = 4
+role = "s2"
+
+[[node]]
+id = "b3"
+label = "Insert 2"
+col = 2
+row = 4
+role = "s3"
+
+[[node]]
+id = "b4"
+label = "Insert 2"
+col = 3
+row = 4
+role = "s4"
+
+[[node]]
+id = "l1"
+label = "Level"
+col = 0
+row = 5
+role = "s1"
+
+[[node]]
+id = "l2"
+label = "Level"
+col = 1
+row = 5
+role = "s2"
+
+[[node]]
+id = "l3"
+label = "Level"
+col = 2
+row = 5
+role = "s3"
+
+[[node]]
+id = "l4"
+label = "Level"
+col = 3
+row = 5
+role = "s4"
+
+[[node]]
+id = "mix"
+label = "Mix"
+sub = "the four sounds summed"
+col = 0
+row = 6
+cols = 4
+stretch = true
+
+[[node]]
+id = "m1"
+label = "M1"
+sub = "master effect"
+col = 0
+row = 7
+
+[[node]]
+id = "m2"
+label = "M2"
+sub = "master effect"
+col = 1
+row = 7
+
+[[node]]
+id = "amp"
+label = "AMP"
+sub = "modulation"
+col = 2
+row = 7
+
+[[node]]
+id = "lim"
+label = "Limiter"
+sub = "ceiling 0.98"
+col = 3
+row = 7
+
+[[node]]
+id = "ram"
+shape = "note"
+label = "Memory"
+sub = ["Every engine and effect, the sequencer", "and the rack count against about 379 KB", "of RAM; what would not fit is refused."]
+col = 0
+row = 8
+cols = 2
+align = "left"
+
+[[node]]
+id = "click"
+label = "Click"
+sub = "metronome"
+col = 2
+row = 8
+
+[[node]]
+id = "master"
+label = "MASTER"
+sub = "the volume"
+col = 3
+row = 8
+
+[[group]]
+id = "s1"
+label = "Sound 1"
+members = ["e1", "a1", "b1", "l1"]
+role = "s1"
+
+[[group]]
+id = "s2"
+label = "Sound 2"
+members = ["e2", "a2", "b2", "l2"]
+role = "s2"
+
+[[group]]
+id = "s3"
+label = "Sound 3"
+members = ["e3", "a3", "b3", "l3"]
+role = "s3"
+
+[[group]]
+id = "s4"
+label = "Sound 4"
+members = ["e4", "a4", "b4", "l4"]
+role = "s4"
+
+[[edge]]
+from = "keys"
+to = "seq"
+kind = "notes"
+label = "the focused track: recording, Capture"
+exit = "top"
+enter = "top"
+
+[[edge]]
+from = "keys"
+to = "route"
+kind = "notes"
+
+[[edge]]
+from = "seq"
+to = "route"
+kind = "notes"
+
+[[edge]]
+from = "route"
+to = "s1"
+kind = "notes"
+
+[[edge]]
+from = "route"
+to = "s2"
+kind = "notes"
+
+[[edge]]
+from = "route"
+to = "s3"
+kind = "notes"
+
+[[edge]]
+from = "route"
+to = "s4"
+kind = "notes"
+
+[[edge]]
+from = "e1"
+to = "a1"
+role = "s1"
+
+[[edge]]
+from = "a1"
+to = "b1"
+role = "s1"
+
+[[edge]]
+from = "b1"
+to = "l1"
+role = "s1"
+
+[[edge]]
+from = "l1"
+to = "mix"
+role = "s1"
+
+[[edge]]
+from = "e2"
+to = "a2"
+role = "s2"
+
+[[edge]]
+from = "a2"
+to = "b2"
+role = "s2"
+
+[[edge]]
+from = "b2"
+to = "l2"
+role = "s2"
+
+[[edge]]
+from = "l2"
+to = "mix"
+role = "s2"
+
+[[edge]]
+from = "e3"
+to = "a3"
+role = "s3"
+
+[[edge]]
+from = "a3"
+to = "b3"
+role = "s3"
+
+[[edge]]
+from = "b3"
+to = "l3"
+role = "s3"
+
+[[edge]]
+from = "l3"
+to = "mix"
+role = "s3"
+
+[[edge]]
+from = "e4"
+to = "a4"
+role = "s4"
+
+[[edge]]
+from = "a4"
+to = "b4"
+role = "s4"
+
+[[edge]]
+from = "b4"
+to = "l4"
+role = "s4"
+
+[[edge]]
+from = "l4"
+to = "mix"
+role = "s4"
+
+[[edge]]
+from = "mix"
+to = "m1"
+
+[[edge]]
+from = "m1"
+to = "m2"
+
+[[edge]]
+from = "m2"
+to = "amp"
+
+[[edge]]
+from = "amp"
+to = "lim"
+
+[[edge]]
+from = "click"
+to = "lim"
+
+[[edge]]
+from = "lim"
+to = "master"
