@@ -3380,18 +3380,30 @@ static int load_mfx(void) {
   return 0;
 }
 
-/* --log-mfx: what each arp sent its sound in the block at `pos`. */
+/* --log-mfx: what each arp sent its sound in the block at `pos`, by frame
+ * and then sound, as fm1-render writes it. */
 static void log_mfx(FILE *f, uint32_t pos) {
-  for (unsigned c = 0; f && c < FM1_MFX_CHAINS; ++c) {
-    uint32_t m = 0;
-    const fm1_midi_ev_t *o = fm1_mfx_output(&g_app.mfx, c, &m);
-    for (uint32_t i = 0; i < m; ++i) {
-      if (o[i].kind == FM1_MIDI_EV_NOTE_ON && o[i].b) {
-        fprintf(f, "{\"t\":%llu,\"u\":%u,\"k\":\"on\",\"key\":%u,\"vel\":%u}\n",
-                (unsigned long long)pos + o[i].frame, c, o[i].a, o[i].b);
+  uint32_t m[FM1_MFX_CHAINS], j[FM1_MFX_CHAINS];
+  const fm1_midi_ev_t *o[FM1_MFX_CHAINS];
+  if (!f) return;
+  for (unsigned c = 0; c < FM1_MFX_CHAINS; ++c) {
+    o[c] = fm1_mfx_output(&g_app.mfx, c, &m[c]);
+    j[c] = 0;
+  }
+  for (;;) {
+    int best = -1;
+    for (unsigned c = 0; c < FM1_MFX_CHAINS; ++c) {
+      if (j[c] < m[c] && (best < 0 || o[c][j[c]].frame < o[best][j[best]].frame)) best = (int)c;
+    }
+    if (best < 0) break;
+    {
+      const fm1_midi_ev_t *e = &o[best][j[best]++];
+      if (e->kind == FM1_MIDI_EV_NOTE_ON && e->b) {
+        fprintf(f, "{\"t\":%llu,\"u\":%d,\"k\":\"on\",\"key\":%u,\"vel\":%u}\n",
+                (unsigned long long)pos + e->frame, best, e->a, e->b);
       } else {
-        fprintf(f, "{\"t\":%llu,\"u\":%u,\"k\":\"off\",\"key\":%u}\n",
-                (unsigned long long)pos + o[i].frame, c, o[i].a);
+        fprintf(f, "{\"t\":%llu,\"u\":%d,\"k\":\"off\",\"key\":%u}\n",
+                (unsigned long long)pos + e->frame, best, e->a);
       }
     }
   }

@@ -230,8 +230,8 @@ enum {
  * first of its chain's FM1_MFX_SLOTS slots: the owner's design has four
  * MIDI-effect slots per track (2026-10-05), and the stage keeps room for
  * them, but the arp is the only MIDI effect so far and the panel fills only
- * the first. Each instance has its own arena; the RAM meter counts them
- * and the stage (fm1_app_ram). */
+ * the first. Each instance has its own arena; the RAM meter counts each
+ * arp that is on, and the stage while one is (fm1_app_ram). */
 #define FM1_APP_MFX_BYTES 768u        /* a MIDI effect's arena: the arp takes 736 B */
 #define FM1_APP_ARP_PARAMS 32         /* the arp's parameters, at most */
 #define FM1_APP_ARP_HOLD_S 0.5f       /* ARP held this long latches */
@@ -558,8 +558,10 @@ const fm1_engine_t *fm1_app_arp_engine(void);
 /* An arp parameter's index by name (case insensitive), or -1. */
 int fm1_app_arp_param_index(const char *name);
 
-/* Whether a sound's arp is on; switching it, 0 (or -1 out of range).
- * Bypassing ends its notes at once. */
+/* Whether a sound's arp is on; switching it, 0 (or -1 out of range, or
+ * FM1_APP_SELECT_RAM when it would take the chain past the RAM budget,
+ * with a popup). Bypassing ends its notes at once. An arp takes RAM only
+ * while it is on (fm1_app_ram). */
 int fm1_app_arp_on(const fm1_app_t *a, int sound);
 int fm1_app_arp_set_on(fm1_app_t *a, int sound, int on);
 

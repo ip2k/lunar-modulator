@@ -111,7 +111,8 @@
 // flushes the effect at once. The ticks are the sequencer's clock (--cmd,
 // --seq), which runs on at its tempo while stopped, or --tempo without one;
 // Start resets the effects and Stop flushes them. --log-mfx FILE.jsonl writes
-// what the chains send their sounds. The summary adds mfx_* counters and
+// what the chains send their sounds, by frame and then unit (so the same at
+// any block size). The summary adds mfx_* counters and
 // notes_hung, the engines' note-ons still without a note-off at the end.
 //
 // Effects with engine API v3's extension (fm1_engine.h, render_ext): every
@@ -1598,17 +1599,27 @@ int main(int argc, char **argv) {
     } else if (sound.e) {
       sound.e->render(sound.self, block, n);
     }
-    for (unsigned c = 0; mfx_log && c < FM1_MFX_CHAINS; ++c) {   // what the chains sent
-      uint32_t m = 0;
-      const fm1_midi_ev_t *o = fm1_mfx_output(&mfx, c, &m);
-      for (uint32_t i = 0; i < m; ++i) {
-        const bool on = o[i].kind == FM1_MIDI_EV_NOTE_ON && o[i].b;
-        if (on) {
+    if (mfx_log) {        // what the chains sent, by frame, then chain: the same at any block size
+      std::vector<std::pair<std::pair<uint32_t, unsigned>, fm1_midi_ev_t> > sent;
+      for (unsigned c = 0; c < FM1_MFX_CHAINS; ++c) {
+        uint32_t m = 0;
+        const fm1_midi_ev_t *o = fm1_mfx_output(&mfx, c, &m);
+        for (uint32_t i = 0; i < m; ++i) sent.push_back(std::make_pair(std::make_pair(uint32_t(o[i].frame), c), o[i]));
+      }
+      std::stable_sort(sent.begin(), sent.end(),
+                       [](const std::pair<std::pair<uint32_t, unsigned>, fm1_midi_ev_t> &x,
+                          const std::pair<std::pair<uint32_t, unsigned>, fm1_midi_ev_t> &y) {
+                         return x.first < y.first;
+                       });
+      for (size_t i = 0; i < sent.size(); ++i) {
+        const fm1_midi_ev_t &e = sent[i].second;
+        const unsigned c = sent[i].first.second;
+        if (e.kind == FM1_MIDI_EV_NOTE_ON && e.b) {
           fprintf(mfx_log, "{\"t\":%llu,\"u\":%u,\"k\":\"on\",\"key\":%u,\"vel\":%u}\n",
-                  static_cast<unsigned long long>(pos) + o[i].frame, c, o[i].a, o[i].b);
+                  static_cast<unsigned long long>(pos) + e.frame, c, e.a, e.b);
         } else {
           fprintf(mfx_log, "{\"t\":%llu,\"u\":%u,\"k\":\"off\",\"key\":%u}\n",
-                  static_cast<unsigned long long>(pos) + o[i].frame, c, o[i].a);
+                  static_cast<unsigned long long>(pos) + e.frame, c, e.a);
         }
       }
     }

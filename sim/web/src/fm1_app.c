@@ -734,14 +734,17 @@ float fm1_app_get_param(const fm1_app_t *a, int unit, int index) {
   return u->value[index];
 }
 
-/* The arpeggiators' share: the MIDI effects' stage and each instance. */
-static size_t mfx_ram(const fm1_app_t *a) {
-  size_t total = sizeof a->mfx;
+/* The arpeggiators' share, with sound `with_on`'s arp on too (-1: as they
+ * are): each arp that is on, and the MIDI effects' stage while any is. A
+ * bypassed arp takes nothing, as an empty slot does: the firmware would
+ * load one when ARP switches it on [inferred]. */
+static size_t mfx_ram(const fm1_app_t *a, int with_on) {
+  size_t total = 0;
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
     const fm1_mfx_slot_t *sl = fm1_mfx_slot(&a->mfx, (unsigned)k, 0);
-    if (sl && sl->fx) total += sl->fx->engine.instance_size(&a->host);
+    if (sl && sl->fx && (sl->on || k == with_on)) total += sl->fx->engine.instance_size(&a->host);
   }
-  return total;
+  return total ? total + sizeof a->mfx : 0u;
 }
 
 /* The RAM figure with unit `unit` holding `bytes` (`loaded` or empty), or
@@ -760,7 +763,7 @@ static size_t ram_of(const fm1_app_t *a, int unit, size_t bytes, int loaded) {
   }
   if (sounds > 1) total += (size_t)(sounds - 1) * FM1_APP_MIX_BLOCK_BYTES;
   if (a->mod) total += fm1_mod_size();
-  total += mfx_ram(a);
+  total += mfx_ram(a, -1);
   return total;
 }
 
@@ -1635,6 +1638,19 @@ int fm1_app_arp_set_on(fm1_app_t *a, int sound, int on) {
   if (sound < 0 || sound >= FM1_APP_SOUNDS || !arp_self(a, sound)) return -1;
   on = on != 0;
   if (fm1_app_arp_on(a, sound) == on) return 0;
+  if (on) {
+    /* The RAM meter, as for an engine: refused past the budget, with a
+     * popup that says by how much. */
+    const size_t now = fm1_app_ram(a);
+    const size_t with = now - mfx_ram(a, -1) + mfx_ram(a, sound);
+    if (with > FM1_APP_RAM_BUDGET && with > now) {
+      char over[24];
+      a->ram_over = with - FM1_APP_RAM_BUDGET;
+      snprintf(over, sizeof over, "%uK over budget", (unsigned)((a->ram_over + 1023u) / 1024u));
+      popup(a, "Arp", "does not fit", over, -1);
+      return FM1_APP_SELECT_RAM;
+    }
+  }
   fm1_mfx_set_on(&a->mfx, (unsigned)sound, 0, on, &k);   /* a bypass ends its notes now */
   arp_log(a, sound, -1, on ? 1.0f : 0.0f);
   a->dirty = 1;
@@ -1722,7 +1738,7 @@ static void arp_close(fm1_app_t *a) {
  * they are showing, they close). */
 static void arp_tap(fm1_app_t *a) {
   const int on = !fm1_app_arp_on(a, a->sound);
-  if (fm1_app_arp_set_on(a, a->sound, on) != 0) return;
+  if (fm1_app_arp_set_on(a, a->sound, on) != 0) return;   /* refused: its popup says why */
   popup(a, on ? "Arp on" : "Arp off", on && arp_latched(a, a->sound) ? "Latch on" : NULL, NULL, -1);
   if (on) arp_open(a);
   else arp_close(a);
@@ -1733,8 +1749,8 @@ static void arp_hold(fm1_app_t *a) {
   const int latch = fm1_app_arp_param_index("Latch");
   const int to = !arp_latched(a, a->sound);
   if (latch < 0 || !arp_self(a, a->sound)) return;
+  if (to && fm1_app_arp_set_on(a, a->sound, 1) != 0) return;   /* refused: its popup says why */
   fm1_app_arp_set_param(a, a->sound, latch, to ? 1.0f : 0.0f);
-  if (to) fm1_app_arp_set_on(a, a->sound, 1);
   popup(a, to ? "Latch on" : "Latch off", fm1_app_arp_on(a, a->sound) ? "Arp on" : NULL, NULL, -1);
 }
 

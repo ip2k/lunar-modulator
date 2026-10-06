@@ -215,7 +215,6 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
         r, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}",
                           tool="render")
         fixed = z["seq_pending_bytes"] + z["seq_ui_bytes"] + z["seq_click_bytes"] + z["mod_bytes"]
-        fixed += z["mfx_stage_bytes"] + 4 * z["arp_bytes"]     # an arp on every sound, and their stage
         assert s["ram"] == r["instance_bytes"] + size + 3264 + fixed, "the RAM figure counts the sequencer"
 
 
@@ -429,8 +428,9 @@ def test_fx_param_at_turns_an_effect_at_its_time(tools, tmp_path):
 def test_every_screen_passes_the_layout_check(tools, tmp_path):
     """Every page of every engine (HOME) and effect (on both master slots),
     at defaults, minima, maxima and each list entry, the global page and
-    every popup (the refusals, the SAVE and ARP stubs and an emptied slot
-    included): no text off screen or cut short, and no two labels, or a
+    every popup (the refusals, the SAVE stub and an emptied slot included),
+    every ARP page at its extremes and list entries with its popups (the
+    arp on and off, a preset, Latch): no text off screen or cut short, and no two labels, or a
     label and a bar, closer than 4 px (FM1_APP_LAYOUT_GAP). SEQ mode's Track view:
     empty, the demo pattern, the playhead on its first and last step, 20 and
     300 BPM playing and stopped, a four-bar clip, a loop inside it, a track

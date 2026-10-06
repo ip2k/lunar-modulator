@@ -54,8 +54,9 @@ def slots(summary):
 
 def test_the_runtime_runs_from_the_start_and_counts_in_the_ram_figure(tools):
     """Since the lab switch went (2026-10-05) every chain runs the runtime:
-    ENV, LFO and EDIT open their pages, SAVE and ARP alone are still stubs,
-    and the RAM figure counts the runtime (fm1_mod_size())."""
+    ENV, LFO and EDIT open their pages, SAVE alone is still a stub (ARP
+    has its pages since 2026-10-06), and the RAM figure counts the runtime
+    (fm1_mod_size())."""
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
     plain = sim(tools, seconds="0.1")
@@ -64,9 +65,8 @@ def test_the_runtime_runs_from_the_start_and_counts_in_the_ram_figure(tools):
     for name, mode in (("ENV", 4), ("LFO", 4), ("EDIT", 5)):
         s = sim(tools, "--button", f"0.1:{name}", seconds="0.2")
         assert s["mode"] == mode and s["popup"] == [], name
-    for name in ("SAVE", "ARP"):
-        s = sim(tools, "--button", f"0.1:{name}", seconds="0.2")
-        assert s["mode"] == 0 and s["popup"] == [name, "not in the", "simulator yet"]
+    s = sim(tools, "--button", "0.1:SAVE", seconds="0.2")
+    assert s["mode"] == 0 and s["popup"] == ["SAVE", "not in the", "simulator yet"]
 
 
 def test_the_app_starts_with_the_default_rack_and_its_cables(tools):
