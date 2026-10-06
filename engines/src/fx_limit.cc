@@ -279,7 +279,7 @@ struct Channel {
 
 // The geometry of one set of boxes.
 struct BoxSet {
-  uint32_t b1, b1_shift, b2;      // (b1 - 1) + (b2 - 1) = the set's lookahead
+  uint32_t d, b1, b1_shift, b2;   // (b1 - 1) + (b2 - 1) = d
   uint32_t full2;                 // box 2's sum at unity gain
   float inv2;                     // 1 / full2
 };
@@ -376,6 +376,7 @@ Arrays ArraysOf(Instance *s) {
 // they span d and the hold d + 1 frames.
 void SetBoxes(Instance *s, uint32_t set, uint32_t d) {
   BoxSet &g = s->set[set];
+  g.d = d;
   uint32_t b1 = 1, shift = 0;
   while (2u * b1 <= d / 2u + 1u) { b1 *= 2u; ++shift; }
   g.b1 = b1;
