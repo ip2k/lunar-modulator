@@ -468,6 +468,10 @@ typedef struct fm1_app {
   void *on_mod_ctx;
 
   fm1_app_dx7_t dx7;             /* FM6's user bank */
+  /* The bottom bar's left text as last drawn ("2/7 RHYTHM", "1/4 Sound"):
+   * the native harness checks the panel's page names against the metadata
+   * export's with it (--page-labels). */
+  char bottom_label[24];
 
   fm1_tft_t tft;
   unsigned char sound_mem[FM1_APP_SOUNDS][FM1_APP_SOUND_BYTES] FM1_APP_ALIGN16;

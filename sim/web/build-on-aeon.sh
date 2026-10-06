@@ -9,7 +9,7 @@
 # the compiler from libm in the parity test), runs sim/web/build.sh in the
 # emscripten/emsdk container (native reference, WebAssembly, parity test),
 # then optionally the page in headless Chromium (test/screenshot.mjs in
-# the Playwright container), and brings back www/fm1.wasm, www/fm1.wasm.json
+# the Playwright container), and brings back www/fm1.wasm, www/meta.json, www/fm1.wasm.json
 # and the screenshots (sim/web/build/screenshots/). Nothing runs on this
 # machine but ssh, tar and scp; nothing is installed on aeon's host.
 #
@@ -128,7 +128,8 @@ else
   RESULTS=$SIM/build
 fi
 mkdir -p "$DEST" "$RESULTS"
-scp -q "$HOST:$STAGE/sim/web/www/fm1.wasm" "$HOST:$STAGE/sim/web/www/fm1.wasm.json" "$DEST/"
+scp -q "$HOST:$STAGE/sim/web/www/fm1.wasm" "$HOST:$STAGE/sim/web/www/fm1.wasm.json" \
+  "$HOST:$STAGE/sim/web/www/meta.json" "$DEST/"
 rm -f "$RESULTS/parity.json"
 scp -q "$HOST:$STAGE/sim/web/build/parity.json" "$RESULTS/"
 if [ "$SCREENSHOT" = 1 ]; then              # replaced only by a new set
