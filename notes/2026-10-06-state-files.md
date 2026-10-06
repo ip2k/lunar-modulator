@@ -78,6 +78,7 @@ to be checked when built.
 20. What stage E3 settled
 21. The stages joined (2026-10-06)
 22. Review and landing (2026-10-06)
+23. What stage A1 built (2026-10-06)
 
 ## 1. Short answer
 
@@ -1935,3 +1936,95 @@ on by default, and they were merged in.
   suggestion [inferred]: the set's line is the truth, and `session.key`
   is either dropped or written from it.
 - E1's D18 is still unconfirmed (§21).
+
+## 23. What stage A1 built (2026-10-06)
+
+`feature/2026-10-06@a1-w1`, stage A1: the virtual FM-1 saves and loads its
+whole state through the records (`sim/web/src/fm1_app_state.c` and `.h`).
+Every claim here is [verified] by `tests/test_app_state.py`, the parity run
+and the layout sweep named, unless marked.
+
+**What a save holds.** A project: the four sounds, each with every
+parameter (a pad kit's every pad read back through engine API v4's
+`get_param`), its level, its two inserts and its MIDI effect (the arp, on
+or bypassed, with its values, on every sound that has an engine); the
+master slots; FM6's loaded user voices; the rack with its pattern data, the
+matrix with its flags (lock, per-voice, on) and the seed; the set with its
+song, scenes and key; the session; the view; and the words a load read
+(`name`, `title`, `about`, `author`, `licence`). A sound: one sound, its
+inserts and MIDI effect, its level, the FM6 voice its Patch plays, and the
+cables that reach only it with the modules they use (its pitch as the
+file's own). Effects: the non-empty master slots or a sound's inserts, as a
+chain. A mod rack, a clip, the set, and the settings.
+
+**Proofs.**
+- save → load → save is byte-identical in JSON and through binary for the
+  start chain, the example project, a session that fm1-render saves (Drums
+  with two pads edited, a filter insert, the arp on, a Register with
+  pattern data, a lock, a per-voice cable, a song with `dq`, `se`, `sn` and
+  `key`), the GPL engines (Comet Kit's and Crater Kit's 16 pads, Acid Bass
+  with Acid Gen, Drawbar) and FM6 on a user voice.
+- The example project loads as it says: every member compares equal after
+  a load and a save, but `made` and the bypassed arps the app always has.
+- Each kind loads into its target; each refusal of §10.3 (NOT_LUNAR,
+  TOO_NEW, UNKNOWN, RAM, RATE, NO_ROOM for the master's two slots, a full
+  rack and an occupied clip slot) leaves the saved project byte-identical,
+  and "load without" and "replace" go through.
+- Parity: `project-load-play` loads the example project and plays its song;
+  the module, the harness and fm1-render (native and JS) give the same
+  samples [verified: the aeon run below].
+- The layout sweep has 4,546 screens, 12 of them new (SAVE with and
+  without a store, its answers, the load banners and eight refusals), 0
+  faults.
+
+**Decisions taken here** (open to the owner):
+- **The key's one home** is the set's `key` line (§22). `session.key` stays
+  in the format and is written from it, so a mission check can read the key
+  as JSON; a load never applies it; `lunar_state.py check` reports a file
+  whose copy disagrees. The `key` line became a typed binary item, `0x13`
+  (u8 root, u8 scale), like `dq`, `se` and `sn` (a raw one still reads).
+- **Unrouted tracks** (§21's `rt` question). A project's or a clip's set
+  loads with its routes as saved: the file is the whole state, so a track
+  with no `rt` line stays on the core's MIDI channel and a save writes it
+  back the same. A `.movy1` set from elsewhere gets the app's start rule on
+  top (track 1 plays Sound 1 when no track is routed), as fm1w_seq_reset
+  does. fm1-render's own rule (every unrouted track to a sound unit) stays
+  the desktop's.
+- **The settings keys** are the four the schema had: `metronome` and
+  `full_velocity` (the sequencer's and its UI's own), `count_in_click` and
+  `midi_in_channel` (kept in `fm1_app_t` for the stages that use them).
+  MASTER stays a page preference.
+- **The RAM rule** counts the app's whole figure after the load, every
+  instance at 44,118 Hz (ST6), and the meter now does too
+  (`fm1_app_ram_of`; each unit keeps its host-rate size for its arena).
+  The refusal says a percent only: "Needs 121% of the FM-1's RAM."
+- **RATE in pass 1**: each engine a load would create is created once in a
+  scratch arena (the writers' 480 KiB) at the host's rate, and the answer
+  remembered; an instance larger than the arena is taken to run (no such
+  engine resamples from Plaits' rate today).
+- **SAVE** asks the host's store and shows its answer (`fm1_app_saved`);
+  with no store, a refusal says so. The page's store is W1's.
+- **One MIDI effect a sound**, the panel's slot: a file's slots 2-4 are
+  skipped and counted.
+
+**Fixed on the way.** fm1-render's `--load` read files through a 64 KiB
+stack buffer, the whole stack of its JavaScript build (fm1-render.js, the
+parity reference): the first scenario to load a file there trapped. It
+reads 4 KiB at a time now.
+
+**Open.**
+- `fm1-state check` counts instances (each aligned to 16) and the runtime;
+  the app counts its whole figure (the sequencer's 36 KB, mix blocks,
+  arps). A file within a few percent of the budget can pass `check` and be
+  refused by the app: `check` should take the app's fixed share
+  [inferred].
+- A merge does not yet reuse an identical module (§10.2); its modules
+  always take free positions. An FM6 bank with no free slot is refused
+  with "load without its voice"; asking which slot to overwrite (ST8) is
+  the page's, with W1.
+- The view: the ARP pages save as HOME, FX's Mix page as `fx` with no
+  unit, and SEQ's panel only for its Set and Clip pages.
+- The harness's modulation log (`fm1_app_mod_dump`) still writes mod-script
+  lines, not records.
+- The page's help still lists SAVE among the stubs; W1 replaces it.
+

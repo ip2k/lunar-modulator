@@ -9,6 +9,39 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The simulator saves and loads everything it holds** (stage A1 of the
+  saved-state design). A project file keeps all four sounds with every
+  parameter and every drum pad, their levels, inserts and arpeggiators, the
+  master effects, FM6's user voices, the modulation rack and its cables,
+  the sequencer's set with its song and key, and the page you were on.
+  Loading it gives back the same instrument, and saving again gives the
+  same file, byte for byte.
+  - Sounds, effects chains, mod racks, clips, sets and settings load into
+    their place and leave the rest alone: a sound into the sound you
+    choose, its modulation into free places, its FM6 voice into the bank.
+  - A file that would not fit is refused and changes nothing. The screen
+    says *NOT LOADED* and why, such as *Needs 121% RAM*; memory is always
+    measured as the FM-1 would run it, whatever your browser's rate, and
+    the memory meter now counts the same way. An engine the build lacks,
+    or modulation with no room, can be left out on request.
+  - SAVE keeps the project in the browser once the page has its
+    storage (the next stage), and says so until then. Nothing is ever sent
+    to an FM-1.
+  - The example project `first-orbit.lunar` now fits the FM-1 (76% with
+    the app's own share) and carries its key in its set.
+  - For contributors: `sim/web/src/fm1_app_state.h` (check, load, save,
+    pack), the module's `fm1w_state_*` exports with a 256 KiB text buffer,
+    `fm1-sim-render --load/--save/--save-end`, the parity scenario
+    `project-load-play`, and `tests/test_app_state.py`. The project key's
+    one home is the set's `key` line (a typed binary item `0x13`);
+    `session.key` is written from it, never applied, and `lunar_state.py
+    check` reports a copy that disagrees. Decisions and what is left open
+    are in `notes/2026-10-06-state-files.md` §23.
+
+### Fixed
+- `fm1-render --load` read files through a 64 KiB stack buffer, which
+  overflowed its JavaScript build's stack.
+
 - **What the advanced editor will read, ready before the editor itself**
   (stage ED0 of the editor's design). Nothing on the virtual FM-1's screen
   changes, and it sounds exactly as before.
