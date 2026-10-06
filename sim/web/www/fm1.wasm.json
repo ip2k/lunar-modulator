@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "a1e04ad0265f27a232a335fd49ebdcc2b4a5dbbb14f1b10af9d869d5beee9ef2",
-  "wasm_bytes": 955464,
+  "wasm_sha256": "98e372fd14a86505fffcc317acae943b341314c1a2c7a094f6b759b716032802",
+  "wasm_bytes": 988518,
   "sources_sha256": {
-    "engines": "7623c51f6fea61b9f7bb18fd82e230b7dd6b59812d2ccd6f143b6a8a6a29584a",
-    "sim": "7893726265f4e3cdc5022a1677dbc03673a8dacb06c8eb4a09b037780c719160"
+    "engines": "9a985a658c7394f62b5363c2e9a1c1f8b3b40f781963c5e17bc45f1b11391e89",
+    "sim": "b7950805f1e48288f97a69bb422e2b20d49227ac5c7fe98b10edbbea77e182d7"
   },
   "engines": "working tree",
-  "built": "2026-10-06T08:08:56Z",
+  "built": "2026-10-06T09:02:18Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -16,12 +16,36 @@
     "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
   ],
   "imports": [],
+  "gpl_mods": 1,
+  "licences": [
+    {
+      "id": "dx7",
+      "name": "FM6",
+      "kind": "sound",
+      "licence": "MIT AND Apache-2.0",
+      "source": "engines/third_party/msfa"
+    },
+    {
+      "id": "acid-bass",
+      "name": "Acid Bass",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/fm1-x0x"
+    },
+    {
+      "id": "acid-gen",
+      "name": "Acid Gen",
+      "kind": "midi_fx",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/fm1-x0x"
+    }
+  ],
   "parity": {
-    "passed": 86,
+    "passed": 90,
     "failed": 0,
-    "identical_to_js": 86,
-    "identical_to_musl": 86,
-    "identical_to_glibc": 83,
+    "identical_to_js": 90,
+    "identical_to_musl": 90,
+    "identical_to_glibc": 87,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "dx7_sysex": {
@@ -475,6 +499,103 @@
       "ram_bytes": {
         "wasm32": 70364,
         "native64": 70556
+      }
+    },
+    {
+      "name": "acid-bass-line",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 129932,
+        "native64": 129932
+      }
+    },
+    {
+      "name": "acid-bass-rat-devilfish",
+      "samples": 176472,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 64188,
+        "native64": 64188
+      }
+    },
+    {
+      "name": "acid-gen-into-acid-bass",
+      "samples": 229412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 64428,
+        "native64": 64428
+      }
+    },
+    {
+      "name": "acid-gen-run-sequencer",
+      "samples": 352944,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 72308,
+        "native64": 72500
+      },
+      "cmd": "arp/acid-gen-run.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
       }
     },
     {
