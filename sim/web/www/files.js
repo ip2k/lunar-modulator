@@ -310,8 +310,11 @@ export function initFiles(env) {
       sim.node.port.postMessage({ ...msg, id }, transfer);
     });
   }
-  async function liveBin() {
-    const r = await worklet({ type: 'state-save', kind: 1, arg: 0 });
+  // The project as the binary container. `plain` skips deflate, which the
+  // audio thread pays for: the autosave's (owner, 2026-10-06); files, Recent
+  // and links stay compressed.
+  async function liveBin(plain = false) {
+    const r = await worklet({ type: 'state-save', kind: 1, arg: 0, plain });
     if (!r.ok) throw new Error(r.off ? 'Power is off.' : 'The project could not be saved.');
     return r.bytes;
   }
@@ -517,7 +520,7 @@ export function initFiles(env) {
     firstDirty = 0;
     lastAutosave = Date.now();
     let bin;
-    try { bin = await liveBin(); } catch (err) { return false; }
+    try { bin = await liveBin(true); } catch (err) { return false; }
     if (lastBytes && lastBytes.length === bin.length && lastBytes.every((b, i) => b === bin[i])) return true;
     lastBytes = bin;
     await store.put('autosave', { name: f.title, bin, size: bin.length, modified: Date.now() }, 'project');

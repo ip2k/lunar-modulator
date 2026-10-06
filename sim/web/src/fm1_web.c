@@ -260,7 +260,9 @@ unsigned fm1w_meta_read(unsigned offset) {
  *
  * fm1w_state_save(kind, arg, binary): the file in the text buffer, its
  *   length returned; -1 refused (fm1w_state_report says why), -2 larger than
- *   the buffer. arg: a sound's unit 0-3; effects -1 the master, 0-3 that
+ *   the buffer. binary 0 JSON, 1 the binary container, 2 that container
+ *   with nothing deflated (the page's autosave, cheaper on the audio
+ *   thread). arg: a sound's unit 0-3; effects -1 the master, 0-3 that
  *   sound's inserts; a clip track * 8 + slot.
  * fm1w_state_check(kind, into, slot, flags, len): pass 1 over the buffer's
  *   first len bytes (JSON, binary or a .movy1 set): 1 when the load would go
