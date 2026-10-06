@@ -1240,7 +1240,7 @@ history.
 
 ### Changed
 - HANDOFF.md, the project's context summary, is rewritten for `main` after
-  the PRs merged up to #75 (2026-10-06); it had been patched piecemeal
+  the PRs merged up to #78 (2026-10-06); it had been patched piecemeal
   since the 2026-09-06 research phase.
   - Where things stand: the code runs on a desktop and in a browser (the
     virtual FM-1 and the manual on GitHub Pages), compiles for pi32v2 but
@@ -1258,7 +1258,8 @@ history.
   - New: the open PRs and the owner's open calls; a summary of the owner's
     2026-10-05 decisions and build plan, which so far live only in a
     git-ignored file; the decisions since 2026-09-29; the work in flight;
-    the docs still lagging after #58; the dead-code audit (#74);
+    the docs still lagging after #58; the dead-code audit (#74) and the
+    next one, already due;
     the vendored and design-source pins (Mutable, Schwung, Movy, MCL, Super
     Arp, czietz's gist) in the reference table; a note for cloud sessions;
     and a current kick-off prompt. The 2026-09-06 prompt is kept, marked
