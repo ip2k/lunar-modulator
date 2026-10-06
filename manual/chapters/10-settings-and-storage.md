@@ -117,14 +117,20 @@ firmware grows.
   Its FM6 voice reuses the same voice if the bank has it, or the first
   empty user slot.
 - **The screen** shows *LOADED*, the file's name and the memory figure for a
-  second.
+  second, and the page says what came in: *Loaded “First orbit”: 4 sounds,
+  5 effects, … It takes 69% of the FM-1's RAM.*
+- **What the load replaced** stays in the browser's Recent list as *Before
+  First orbit*, and **Undo load** under the message puts it back.
 
 ### When a file does not load
 
-A file that cannot load changes nothing. The screen shows *NOT LOADED* and
-why:
+A file that cannot load changes nothing. The page says why, under the panel,
+in the refusal colour (*“Deep space bass” was not loaded. Needs 117% of the
+FM-1's RAM.*), and offers the way round when there is one, such as **Load
+without Rings**. In the desktop tools the screen shows *NOT LOADED* and the
+short form:
 
-| The screen says | Why | What you can do |
+| It says | Why | What you can do |
 | --- | --- | --- |
 | *Needs 121% RAM* | The file would take more than the FM-1's memory. Every file is measured as the FM-1 would run it, whatever your browser's rate | Load a lighter file. This refusal has no way round it |
 | *Uses Rings* | The file uses an engine this build does not have, or one only the GPL build has | Load it without that engine: its sound is left empty |
@@ -142,14 +148,37 @@ the simulator's start rule: track 1 plays Sound 1.
 
 ### SAVE
 
-In the simulator, [[SAVE]] keeps the project in your browser, where the page
-can offer it again, and the screen shows *SAVED*. Until the page has its
-storage, [[SAVE]] says there is no store. Nothing is ever sent to an FM-1.
+In the simulator, [[SAVE]] on the panel and the page's buttons under it do
+the saving and loading:
 
-!!! note "Coming next on the page"
-    Open and Save buttons, dropping files on the page, links that load a
-    project, and your last projects kept in the browser come in the next
-    stage. The simulator's engine already loads and saves every kind above.
+| On the page | What it does |
+| --- | --- |
+| **Open…**, or files dropped on the page | Loads `.lunar` files, a `.movy1` set or `.syx` DX7 patches, several at once. A sound, effects or a clip asks where it goes: *Load sound “Deep space bass” into Sound 2* |
+| **Save…** with the list beside it | Downloads the project, the current sound, its effects, the master effects or the mod rack as a `.lunar` file, named with its kind in the middle (`first-orbit-s2.sound.lunar`), or the set as a `.movy1` file for Movy |
+| [[SAVE]] on the panel | Keeps the whole project in this browser; the screen shows *SAVED*. **Saved in this browser** lists it, to load or download again |
+| **Copy link** | Copies a link that holds the whole project, for anyone to open in their own browser. A link holds up to 32 KiB; a project too big for one says so, and you share the file instead |
+
+- **Autosave.** The page keeps your project in the browser as you work, a
+  few seconds after each change and when you leave the page, and the next
+  visit, or the next [[POWER]] press, starts where you left off. The message
+  then offers **Start fresh**, which puts the start sounds and the demo
+  pattern back (your work stays in Recent).
+- **Recent** keeps the last five states a load replaced.
+- **Links.** A link from the guide or a page of this manual can open a file
+  straight into the simulator, such as
+  `?load=examples/first-orbit.lunar`. A card names the file and what it
+  replaces before you press **Power on and load**; your work goes to Recent
+  first. Only files on the simulator's own site, under its `examples/`,
+  `guide/` and `manual/` folders, load this way.
+- **The examples** under *Saved in this browser, Recent and examples* are
+  the guide's files (MIT): a project, a sound, effects, a mod rack and a
+  clip.
+- **The file formats' schemas** are published with the simulator, at
+  `schema/1/` on its site, for editors that check `.lunar` files.
+
+Files are read and written in your browser; nothing is uploaded, and
+nothing is ever sent to an FM-1. MASTER is a preference of the page, not
+part of a project.
 
 ### In the desktop tools
 
