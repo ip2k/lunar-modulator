@@ -65,7 +65,7 @@ Drag a knob up or down, or scroll over it. Click or touch a button or a key.
 
 | Control | What it does | Computer keyboard |
 | --- | --- | --- |
-| Keys | Play notes; lower on a key plays louder. With Sophie or Drums, the 16 white keys play the kit's 16 pads. In SEQ mode, the white keys are the 16 steps | `A` `S` `D` `F` `G` `H` `J` `K` `L` `;` `'` are the white keys F3 to B4, `W` `E` `R` `Y` `U` `O` `P` `[` the black ones. In SEQ mode, `1` to `8` and `C` `V` `B` `N` `M` `,` `.` `/` are steps 1 to 16 |
+| Keys | Play notes; lower on a key plays louder. With Sophie or Drums, the 16 white keys play the kit's 16 pads. In SEQ mode, the white keys are the 16 steps. SHIFT (hold SEL) with the black keys MONO or POLY sets the sound's Voice Mode | `A` `S` `D` `F` `G` `H` `J` `K` `L` `;` `'` are the white keys F3 to B4, `W` `E` `R` `Y` `U` `O` `P` `[` the black ones. In SEQ mode, `1` to `8` and `C` `V` `B` `N` `M` `,` `.` `/` are steps 1 to 16 |
 | OCT− / OCT+ | An octave down or up. Both together reset octave and transpose; hold one and turn ALGORITHM to transpose ±12 | `Z` / `X` |
 | SELECT | The page; in FX mode, the slot and its pages | `←` `→` |
 | PRESETS | The current sound's engine. With SEL held, which of the four sounds you play | `↑` `↓` |
@@ -115,7 +115,8 @@ play its parameters, four to a page (SELECT turns the page).
 - **Drums:** a 16-pad drum kit after the classic analogue drum machines,
   with two kits, Deep and Punch: a kick, two snares, a clap, a rim shot,
   three hi-hats, six toms, a crash and a ride, and any pad can play a
-  cowbell instead.
+  cowbell instead. The hi-hats cut each other off, any pads can share a
+  choke group, and one knob sets the whole kit's decay.
 
 Sophie and Drums play their pads from the 16 white keys, at any octave.
 
@@ -165,7 +166,8 @@ The effects:
   wavefolder) and Master Sat.
 - **Dynamics:** Comp; Limiter, with a gentle Round mode; Gate, a noise gate
   that can also duck; Squash, three small compressors with characters of
-  their own (Snap, Mu and Split); and Transient, a transient shaper.
+  their own (Snap, Mu and Split; Mu keeps most of its loudness as you turn
+  it up); and Transient, a transient shaper.
 
 Knobs for cutoffs, delay times, releases and other frequencies and times
 turn in even musical steps, about a semitone per click on a cutoff.
@@ -259,14 +261,18 @@ for the first installable build
   and per-voice modulation (each note its own envelope, for example).
 - The arpeggiator, with the stock modes as presets, alongside the
   sequencer.
+- **Glide:** on Macro, Macro Heavy, Six-Op FM, FM6 and Shapes, notes slide
+  only when they overlap (legato) or always, as the stock FM-1's
+  portamento does, in a set time or at a set speed per octave; Mono and
+  Legato play one voice, and SHIFT with MONO or POLY switches.
+- **Lighter effects:** EQ, Isolator and Master Sat take almost no
+  processing time when left at their neutral settings, and stay ready
+  whenever a lock or a modulation cable drives them.
 - FM6 loads your own DX7 voices from SysEx files, in the desktop tools.
 
 **In progress**
 - **Your DX7 voices in the browser:** a file picker that loads SysEx into
   FM6, and FM6 taking less memory.
-- **Glide:** notes slide from one pitch to the next.
-- **Lighter effects:** EQ, Isolator and Master Sat take almost no
-  processing time when left at their neutral settings.
 - **A fix for Shapes:** a few shapes at the far ends of their settings (Wave
   Line, Comb, Flute, the filter and Sync shapes) will sound the same on
   every build.

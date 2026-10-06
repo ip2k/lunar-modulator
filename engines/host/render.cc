@@ -264,6 +264,7 @@ struct Unit {                        // one engine or effect instance
   void *self = NULL;
   size_t bytes = 0;
   std::vector<std::pair<std::string, float> > params;
+  int driven = 0;                     // FM1_PARAM_DRIVEN as last sent (0: as created)
 };
 
 bool Instantiate(Unit &u, const char *id, fm1_kind_t kind, const fm1_host_t &host, int fill) {
@@ -585,10 +586,18 @@ void ListMod() {
 // Renders an effect over a block, split at its own writes from the ticks;
 // each piece goes through fm1_fx_render, which calls a v2 effect's render
 // once and an API v3 effect's render_ext split at the beats and transport
-// events it asked for (fm1_fx_host.h).
-void RenderFx(const Unit &u, unsigned unit, const Modulation *md, float *block, uint32_t n,
+// events it asked for (fm1_fx_host.h). First, FM1_PARAM_DRIVEN when it
+// changed: 1 while a cable reaches the effect (fm1_mod_unit_routed), so an
+// effect with an idle path never idles under one (owner, 2026-10-06; the
+// sequencer's lanes cannot lock an effect yet).
+void RenderFx(Unit &u, unsigned unit, const Modulation *md, float *block, uint32_t n,
               const fm1_fx_block_t *fxb) {
   uint32_t cur = 0;
+  const int driven = md && md->m ? fm1_mod_unit_routed(md->m, unit) : 0;
+  if (driven != u.driven) {
+    u.e->set_param(u.self, FM1_PARAM_DRIVEN, static_cast<float>(driven));
+    u.driven = driven;
+  }
   if (md) {
     for (size_t k = 0; k < md->writes.size(); ++k) {
       const uint32_t f = md->writes[k].first;

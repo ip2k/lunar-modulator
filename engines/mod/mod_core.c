@@ -480,6 +480,20 @@ int fm1_mod_get_slot(const fm1_mod_t *m, unsigned i, fm1_mod_slot_t *out) {
   return 1;
 }
 
+int fm1_mod_unit_routed(const fm1_mod_t *m, unsigned unit) {
+  unsigned i;
+  if (!m || fm1_mod_sink_index(unit) < 0) return 0;
+  unit = fm1_mod_unit_canonical(unit);
+  for (i = 0; i < FM1_MOD_SLOTS; ++i) {
+    const fm1_mod_slot_t *s = &m->slot[i];
+    if ((s->flags & FM1_MOD_SLOT_ON) && !(s->flags & FM1_MOD_SLOT_GATE_DST) &&
+        fm1_mod_unit_canonical(s->dst_unit) == unit) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 /* A sink parameter's record (sink index si, parameter index), or -1 when
  * the index is out of range. */
 static int sink_rec(const fm1_mod_t *m, int si, unsigned index) {
