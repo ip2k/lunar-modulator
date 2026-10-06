@@ -50,7 +50,7 @@ Rosé Pine's own roles from rose-pine/palette's README [reported, read
 | subtle | `C_LABEL` | labels, secondary text, idle states (STOP), a list's place ("6/47"), FX mode's slot role ("insert") | text on the title bar or a highlight |
 | text | `C_HINT` (and `C_TEXT`) | values, list entries, the playhead, hints, modulation's live tick, MATRIX's destination and amount | — |
 | iris | `C_SELECT` / `--select` | selection and the value being edited: value bars, notes, the selected row, slot or chip (one look for "selected"), list triangles, popup and banner rules; on the page focus rings, links and accents | — |
-| gold | `C_HELD` / `--held` | held and locked: held steps, locks and lanes, the grabbed module or slot (FX mode's chip while SEL holds it), the count-in; on the page a lit LED | headings, titles, hints, modulation |
+| gold | `C_HELD` / `--held` | held and locked: held steps, locks and lanes, the grabbed module or slot (FX mode's chip while SEL holds it), the count-in, a live take, a latched arpeggiator; on the page a lit LED | headings, titles, hints, modulation |
 | foam | `C_LIVE`, `C_MOD` / `--live` | live signal and modulation: the scope, meters, PLAY, trig ticks, a modulated label and its range bracket, MATRIX's sources; on the page the power lever on | — |
 | love | `C_REFUSE` / `--refuse` | refusal, recording, over the limit: REC, STEP, step record's head, RAM over 100 %, clipping, refused cables, refusal popups | text on the title bar or a highlight |
 | rose | `C_CONTEXT` / `--context` | context: the line under the title bar (model, "Step 7", "Lock step 6", page headings) and a list popup's title | any line where love can appear (ΔE 13.1) |

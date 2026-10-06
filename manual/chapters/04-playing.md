@@ -202,6 +202,13 @@ Turn [[SELECT]] for the page. [[KNOB1]] to [[KNOB4]] set the four values on
 it, and [[ALGORITHM]] steps through the stock FM-1's arpeggio modes: Up,
 Down, Up/Down, Down/Up, Random and Played.
 
+The line under the top bar says *Arp on* (rose), *Arp latched* (gold, the
+colour of what is held) or *Arp off* (grey), with the stock mode the
+settings make on the right, such as *Up*, when they make one.
+[[ALGORITHM]] shows the six modes as a list, and turning the knob of Mode,
+Rate, Pattern, Oct Mode or Repeat shows that value's list
+([chapter 3](03-panel-tour.md#lists)).
+
 | Page | [[KNOB1]] | [[KNOB2]] | [[KNOB3]] | [[KNOB4]] |
 | --- | --- | --- | --- | --- |
 | 1 PLAY | Mode: the order of the notes | Rate: how long a step is, 1/32 triplet to a whole note, or TRG | Gate: how long each note sounds, 1 to 200 % of the step | Octaves: 1 to 4 |
