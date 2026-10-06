@@ -69,9 +69,7 @@ their settings.
 - **Modulation reaches the effects' parameters**, in the inserts and the
   master slots ([chapter 8](08-modulation.md)). The sequencer's parameter
   locks reach only the sounds' parameters so far; locks on the effects are
-  planned ([chapter 7](07-sequencer.md#parameter-locks)). Where this
-  chapter says an effect changes smoothly enough for the sequencer to
-  change it on every step, that waits for those locks.
+  planned ([chapter 7](07-sequencer.md#parameter-locks)).
 - Changing a sound's engine keeps its inserts and the master effects, and
   their settings.
 
@@ -302,8 +300,8 @@ up into a curve that flattens its peaks, from a gentle warmth to a buzzing
 fuzz. Each channel is shaped on its own.
 
 - **Type** chooses the curve. Changing it fades from one to the next in a
-  few milliseconds, so it does not click, even when the sequencer or a
-  modulation source changes it on every step.
+  few milliseconds, so it does not click, even when modulation changes it
+  on every step.
     - **Soft:** smooth, rounded saturation, the most even-tempered.
     - **Tube:** lopsided, so it adds a warm second harmonic even when barely
       driven, and squashes one side of the wave before the other.
@@ -399,8 +397,7 @@ channel is filtered on its own, so Morph can pull them apart.
 
 - **Type** chooses the filter. Changing it starts the new one quietly in
   the background, then fades over to it, all within about 10 milliseconds,
-  so it does not click, even when the sequencer or a modulation source
-  changes it on every step.
+  so it does not click, even when modulation changes it on every step.
     - **SVF:** a clean state-variable filter. Mode picks low-pass, band-pass,
       high-pass or notch.
     - **Ladder:** the classic four-stage ladder, the default: round and
@@ -549,8 +546,8 @@ does not move.
 
 Silence stays silent at any setting, and the knobs glide over a few
 milliseconds, so turning them does not click; changing Character, Auto Rel
-or Auto Gain while Comp is working does not jump either, so the sequencer
-and modulation sources can change them on every step.
+or Auto Gain while Comp is working does not jump either, so modulation can
+change them on every step.
 
 !!! tip "Starting points"
     - **Tighter drums:** Peak, Threshold about −20, Ratio 4, Attack about
@@ -599,8 +596,8 @@ so nothing passes its ceiling, and it leaves anything quieter untouched.
   limiting). Below the right end, the output can pass the ceiling.
 
 Turning Lookahead fades from the old delay to the new, and switching Mode
-fades too, so neither clicks, even when the sequencer or a modulation
-source changes them on every step; the ceiling holds throughout. The other
+fades too, so neither clicks, even when modulation changes them on every
+step; the ceiling holds throughout. The other
 knobs glide over a few milliseconds.
 
 !!! tip "Starting points"
@@ -644,9 +641,8 @@ build-ups and breakdowns.
   default, the knob reaches the whole sweep; at 0.5 the low-pass stops at
   about 1.1 kHz and the high-pass at about 400 Hz.
 
-Sweeps are smooth whether you turn the knob, lock it in the sequencer or
-modulate it, and crossing from one side to the other neither clicks nor
-thumps.
+Sweeps are smooth whether you turn the knob or modulate it, and crossing
+from one side to the other neither clicks nor thumps.
 
 !!! tip "Starting points"
     - **Breakdown:** turn Sweep slowly to about −0.7 with Resonance about
@@ -759,7 +755,7 @@ moves. At its defaults it passes the sound through untouched.
 - **Kill** drops bands out at once, whatever their knobs say: None, the
   default, Low, Mid, Low+Mid, High, Low+High, Mid+High or All. Back at None,
   each band returns to its knob's level. A kill fades in a few milliseconds,
-  so it does not click, and it can be locked in the sequencer or modulated.
+  so it does not click, and modulation can switch it in time.
 - **Low Xover**, on page 2, sets where the lows end and the mids begin, from
   80 to 400 Hz; the default is 250 Hz.
 - **High Xover**, on page 2, sets where the mids end and the highs begin,
@@ -945,8 +941,8 @@ together. It takes about 2 KB of memory.
   **Max**, the louder channel, the default; **Sum**, both together; or
   **Left**, the left channel only.
 
-Mode, Listen, Link and Lookahead change without a click, so the sequencer
-and modulation can change them on every step. The other knobs glide or
+Mode, Listen, Link and Lookahead change without a click, so modulation can
+change them on every step. The other knobs glide or
 take effect at once. With Range at 0 dB, the sound passes untouched.
 
 !!! tip "Starting points"
