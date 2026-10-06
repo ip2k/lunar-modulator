@@ -6,8 +6,9 @@
 //
 //   fm1-dx7-oracle --vced FILE.syx [--key K] [--vel V] [--gate S] [--seconds S]
 //                  [--rate HZ] [--out-ours F.f32] [--out-ref F.f32]
-//   fm1-dx7-oracle --tables        msfa's start-up tables, summarised
-//   fm1-dx7-oracle --loop-check    the loop of algorithms 4 and 6 against msfa
+//   fm1-dx7-oracle --tables [--rate HZ]          the tables the engine reads, summarised
+//   fm1-dx7-oracle --tables-vs-msfa [--rate HZ]  and against msfa's own init
+//   fm1-dx7-oracle --loop-check                  the loop of algorithms 4 and 6 against msfa
 //
 // Both play the same note: key-on at frame 0, key-off at --gate (rounded to
 // a whole 64-frame block, where both apply it), Volume 1 and every macro at
@@ -28,9 +29,18 @@
 // without feedback must give FmCore's render of those algorithms to the bit.
 // It prints the trials and the mismatches of each.
 //
-// --tables prints sums and samples of msfa's tables as the engine's first
-// create fills them (Sin, Exp2, Freqlut at the rate), for the test that
-// checks them against exact values (libm's last bits must not move them).
+// --tables prints sums and samples of the tables the engine reads (msfa's
+// Sin, Exp2 and Freqlut at the rate: const data, src/msfa_rom.cc, or at a
+// rate other than 44,118 Hz the instance's own frequency table), for the test
+// that checks them against exact values (libm's last bits must not move
+// them).
+//
+// --tables-vs-msfa compares them with msfa's own Sin::init, Exp2::init and
+// Freqlut::init (upstream's sin.cc, exp2.cc and freqlut.cc, built into this
+// tool: test/msfa_ref.cc), word for word: the const sine and exp2 tables;
+// FillFreqLut against Freqlut::init at rates from the engine's lowest to its
+// highest; and the frequency table an instance reads at --rate. It prints
+// the words compared and the mismatches of each, and fails on any mismatch.
 //
 // MIT licence.
 
@@ -48,10 +58,7 @@
 
 #include "../src/dx7_loop.h"
 #include "../src/msfa.h"
-
-namespace fm1_msfa {
-extern int32_t lut[1025];   // freqlut.cc's table, which no msfa header declares
-}
+#include "msfa_ref.h"
 
 extern "C" {
 void felucca_init(double rate);
@@ -157,29 +164,90 @@ int LoopCheck(float rate) {
   return bad[0] + bad[1] + bad[2] ? 1 : 0;
 }
 
-int Tables(float rate) {
+// An engine instance at `rate`, one block rendered, so that the frequency
+// table msfa reads (fm1_freqlut) is the one this rate gives: the const table
+// at 44,118 Hz, the instance's own at any other. NULL if refused.
+void *EngineAt(float rate, std::vector<unsigned char> *mem) {
   const fm1_engine_t *e = fm1_engine_find("dx7");
   const fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, 64 };
-  std::vector<unsigned char> mem(e->instance_size(&host) + 16);
-  void *self = e->create(&mem[0], &host);
+  mem->assign(e->instance_size(&host) + 16, 0);
+  void *self = e->create(&(*mem)[0], &host);
+  if (!self) return NULL;
+  float block[128];
+  e->render(self, block, 64);
+  return self;
+}
+
+int Tables(float rate) {
+  std::vector<unsigned char> mem;
+  void *self = EngineAt(rate, &mem);
   if (!self) return 1;
+  // What msfa's code reads, through its pointers (src/msfa_prelude.h).
+  const int32_t *sin = *fm1_msfa::fm1_sintab, *exp2 = *fm1_msfa::fm1_exp2tab;
+  const int32_t *lut = *fm1_msfa::fm1_freqlut;
   long long sin_sum = 0, exp_sum = 0, lut_sum = 0;
-  for (int i = 0; i < SIN_N_SAMPLES << 1; ++i) sin_sum += fm1_msfa::sintab[i];
-  for (int i = 0; i < EXP2_N_SAMPLES << 1; ++i) exp_sum += fm1_msfa::exp2tab[i];
-  for (int i = 0; i <= 1024; ++i) lut_sum += fm1_msfa::lut[i];
+  for (int i = 0; i < SIN_N_SAMPLES << 1; ++i) sin_sum += sin[i];
+  for (int i = 0; i < EXP2_N_SAMPLES << 1; ++i) exp_sum += exp2[i];
+  for (int i = 0; i < fm1_msfa::kFreqLutSize; ++i) lut_sum += lut[i];
   printf("{\"rate\":%g,\"sin_sum\":%lld,\"exp2_sum\":%lld,\"freqlut_sum\":%lld,"
-         "\"sin\":[%d,%d,%d],\"exp2\":[%d,%d,%d],\"freqlut\":[%d,%d,%d],\"osc_fine\":[",
-         rate, sin_sum, exp_sum, lut_sum,
-         fm1_msfa::sintab[1], fm1_msfa::sintab[257], fm1_msfa::sintab[2047],
-         fm1_msfa::exp2tab[1], fm1_msfa::exp2tab[1023], fm1_msfa::exp2tab[2047],
-         fm1_msfa::lut[0], fm1_msfa::lut[512], fm1_msfa::lut[1024]);
+         "\"sin\":[%d,%d,%d],\"exp2\":[%d,%d,%d],\"freqlut\":[%d,%d,%d],"
+         "\"freqlut_const\":%s,\"osc_fine\":[",
+         rate, sin_sum, exp_sum, lut_sum, sin[1], sin[257], sin[2047],
+         exp2[1], exp2[1023], exp2[2047], lut[0], lut[512], lut[1024],
+         lut == fm1_msfa::kFreqLut44118 ? "true" : "false");
   for (int fine = 0; fine < 100; ++fine) {     // osc_freq's fine term, libm's log
     printf("%s%d", fine ? "," : "",
            fm1_msfa::osc_freq(0, 0, 1, fine, 7) - fm1_msfa::osc_freq(0, 0, 1, 0, 7));
   }
   printf("]}\n");
-  e->destroy(self);
+  fm1_engine_find("dx7")->destroy(self);
   return 0;
+}
+
+int Mismatches(const int32_t *a, const int32_t *b, int n) {
+  int bad = 0;
+  for (int i = 0; i < n; ++i) bad += a[i] != b[i];
+  return bad;
+}
+
+int TablesVsMsfa(float rate) {
+  const int32_t *sin, *exp2, *lut;
+  MsfaRefTables(44118.0, &sin, &exp2, &lut);
+  const int sin_bad = Mismatches(sin, fm1_msfa::kSinTab, SIN_N_SAMPLES << 1);
+  const int exp2_bad = Mismatches(exp2, fm1_msfa::kExp2Tab, EXP2_N_SAMPLES << 1);
+  const int rom_bad = Mismatches(lut, fm1_msfa::kFreqLut44118, fm1_msfa::kFreqLutSize);
+  // FillFreqLut against Freqlut::init, from the engine's lowest rate to its
+  // highest: the common ones, and every 997th hertz between.
+  int rates = 0, fill_bad = 0, words = 0;
+  std::vector<uint32_t> list;
+  const uint32_t common[] = { 16385, 22050, 32000, 44100, 44118, 47872, 48000, 88200, 96000,
+                              176400, 192000, 384000 };
+  for (size_t i = 0; i < sizeof(common) / sizeof(common[0]); ++i) list.push_back(common[i]);
+  for (uint32_t hz = 16385; hz <= 384000; hz += 997) list.push_back(hz);
+  int32_t ours[fm1_msfa::kFreqLutSize];
+  for (size_t k = 0; k < list.size(); ++k) {
+    MsfaRefTables(list[k], &sin, &exp2, &lut);
+    fm1_msfa::FillFreqLut(ours, list[k]);
+    fill_bad += Mismatches(lut, ours, fm1_msfa::kFreqLutSize);
+    words += fm1_msfa::kFreqLutSize;
+    ++rates;
+  }
+  // And the table an instance reads at --rate.
+  std::vector<unsigned char> mem;
+  void *self = EngineAt(rate, &mem);
+  if (!self) return 1;
+  const uint32_t hz = static_cast<uint32_t>(rate + 0.5f);
+  MsfaRefTables(hz, &sin, &exp2, &lut);
+  const int engine_bad = Mismatches(lut, *fm1_msfa::fm1_freqlut, fm1_msfa::kFreqLutSize);
+  const bool engine_const = +*fm1_msfa::fm1_freqlut == +fm1_msfa::kFreqLut44118;
+  fm1_engine_find("dx7")->destroy(self);
+  printf("{\"sin\":[%d,%d],\"exp2\":[%d,%d],\"freqlut_44118\":[%d,%d],"
+         "\"fill\":{\"rates\":%d,\"words\":%d,\"bad\":%d},"
+         "\"engine\":{\"rate\":%u,\"const\":%s,\"words\":%d,\"bad\":%d}}\n",
+         SIN_N_SAMPLES << 1, sin_bad, EXP2_N_SAMPLES << 1, exp2_bad, fm1_msfa::kFreqLutSize,
+         rom_bad, rates, words, fill_bad, hz, engine_const ? "true" : "false",
+         fm1_msfa::kFreqLutSize, engine_bad);
+  return sin_bad + exp2_bad + rom_bad + fill_bad + engine_bad ? 1 : 0;
 }
 
 }  // namespace
@@ -189,10 +257,11 @@ int main(int argc, char **argv) {
   int key = 60, vel = 100;
   double gate_s = 0.5, seconds = 1.0;
   float rate = 44118.0f;
-  bool tables = false, loop_check = false;
+  bool tables = false, loop_check = false, vs_msfa = false;
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
     if (a == "--tables") { tables = true; continue; }
+    if (a == "--tables-vs-msfa") { vs_msfa = true; continue; }
     if (a == "--loop-check") { loop_check = true; continue; }
     if (i + 1 >= argc) { fprintf(stderr, "%s wants a value\n", a.c_str()); return 2; }
     const char *v = argv[++i];
@@ -207,6 +276,7 @@ int main(int argc, char **argv) {
     else { fprintf(stderr, "unknown option %s\n", a.c_str()); return 2; }
   }
   if (tables) return Tables(rate);
+  if (vs_msfa) return TablesVsMsfa(rate);
   if (loop_check) return LoopCheck(rate);
   std::vector<uint8_t> syx;
   if (!vced_path || !ReadFile(vced_path, &syx) || syx.size() != FM1_DX7_VCED_BYTES + 8 ||

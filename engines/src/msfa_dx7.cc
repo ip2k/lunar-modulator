@@ -37,9 +37,12 @@
 // PitchEnv scale their tables to the rate. msfa's Env counts blocks (its
 // rates are set for 44.1 kHz), so the envelope clock here is scaled by
 // 44,118 / rate: exactly one envelope step per block at the FM-1's 44,118 Hz,
-// as msfa itself runs, and the same times at any other rate. msfa's tables
-// are shared by every instance and filled by the first create; a later
-// create at another rate is refused (as the Schwung shim refuses one).
+// as msfa itself runs, and the same times at any other rate. msfa's sine and
+// exp2 tables are const data (flash on the FM-1: src/msfa_prelude.h), and so
+// is its frequency table at 44,118 Hz; at any other rate the instance holds
+// its own (4,100 bytes more, counted in its size). The rate units of Lfo and
+// PitchEnv are globals, set by the first create; a later create at another
+// rate is refused (as the Schwung shim refuses one).
 //
 // MIT licence (this file). Not affiliated with or endorsed by Yamaha; the
 // engine's name is our own (docs/11 §7).
@@ -162,10 +165,20 @@ struct Voice {
   Offsets note;
 };
 
-// msfa's tables (Sin, Exp2, Freqlut) and the rate units of Lfo and PitchEnv
-// are globals, shared by every instance: filled by the first create, at its
-// rate. 0 = not yet.
+// The rate units of Lfo and PitchEnv are globals, shared by every instance:
+// set by the first create, at its rate. 0 = not yet. (msfa's tables are
+// const data, or the instance's own frequency table: Instance::Lut.)
 uint32_t g_rate_hz = 0;
+
+// The host's rate in whole hertz, as msfa's init takes it; 0 for a rate no
+// instance accepts (NaN, negative or past 4 GHz), which SharedInit refuses.
+uint32_t RateHz(float rate) {
+  return rate >= 0.0f && rate < 4.0e9f ? static_cast<uint32_t>(rate + 0.5f) : 0u;
+}
+
+// Whether an instance at this rate keeps its own frequency table: at any
+// rate but the one msfa_rom.cc's table is for.
+bool OwnLut(const fm1_host_t *host) { return RateHz(host->sample_rate) != fm1_msfa::kFreqLutRateHz; }
 
 // The lowest rate msfa's frequency table holds: Freqlut::init fills int32_t
 // entries up to 2^45 / rate (an octave's top), which passes 2^31 - 1 at
@@ -175,11 +188,8 @@ const uint32_t kMinRateHz = 16385;
 
 bool SharedInit(float rate) {
   if (!(rate >= kMinRateHz - 0.5f && rate <= 384000.0f)) return false;   // NaN fails too
-  const uint32_t hz = static_cast<uint32_t>(rate + 0.5f);
+  const uint32_t hz = RateHz(rate);
   if (g_rate_hz) return g_rate_hz == hz;
-  Sin::init();
-  Exp2::init();
-  Freqlut::init(hz);
   Lfo::init(hz);
   PitchEnv::init(hz);
   g_rate_hz = hz;
@@ -204,7 +214,9 @@ class Instance {
   // Called right after the instance is value-initialised (zeroed) in
   // Create, so every member starts at zero; Init sets the rest.
   void Init(const fm1_host_t *host) {
-    const uint32_t hz = static_cast<uint32_t>(host->sample_rate + 0.5f);
+    const uint32_t hz = RateHz(host->sample_rate);
+    own_lut_ = OwnLut(host);
+    if (own_lut_) fm1_msfa::FillFreqLut(*Lut(), hz);
     env_rate_q24_ = static_cast<uint32_t>((static_cast<uint64_t>(44118u) << 24) / hz);
     silent_after_release_ =
         static_cast<uint32_t>(kSilentAfterRelease * static_cast<float>(hz) / kN) + 1u;
@@ -459,7 +471,22 @@ class Instance {
     return c >> 24;
   }
 
+  // The frequency table this instance reads: the const one at 44,118 Hz,
+  // else its own, which lives right after it in the host's memory
+  // (InstanceSize). Every instance has the same rate (SharedInit), so their
+  // tables are the same; Freqlut::lookup's pointer is set to this one
+  // before each block all the same, since an instance can be destroyed (on
+  // the control task) while others play.
+  int32_t (*Lut())[fm1_msfa::kFreqLutSize] {
+    if (!own_lut_) {
+      return const_cast<int32_t (*)[fm1_msfa::kFreqLutSize]>(&fm1_msfa::kFreqLut44118);
+    }
+    return reinterpret_cast<int32_t (*)[fm1_msfa::kFreqLutSize]>(
+        reinterpret_cast<unsigned char *>(this) + sizeof(Instance));
+  }
+
   void RenderBlock() {
+    fm1_msfa::fm1_freqlut = Lut();               // what Freqlut::lookup reads
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     const int32_t lfo_val = lfo_.getsample();
     const int32_t lfo_delay = lfo_.getdelay();
@@ -576,9 +603,15 @@ class Instance {
   int32_t vbuf_[kN];              // one voice's block
   float out_[kN];                 // the current block
   uint32_t pending_;              // samples of out_ not yet delivered
+  bool own_lut_;                  // a frequency table of its own follows (Lut)
 };
 
-size_t InstanceSize(const fm1_host_t *) { return sizeof(Instance); }
+// At a rate other than 44,118 Hz the instance's frequency table follows it
+// (Instance::Lut); sizeof(Instance) is a multiple of its alignment, which is
+// at least an int32_t's.
+size_t InstanceSize(const fm1_host_t *host) {
+  return sizeof(Instance) + (OwnLut(host) ? sizeof(int32_t) * fm1_msfa::kFreqLutSize : 0u);
+}
 
 void *Create(void *mem, const fm1_host_t *host) {
   if (!SharedInit(host->sample_rate)) return NULL;
