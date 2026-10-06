@@ -7,8 +7,8 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
-state of `main` after the PRs merged up to #64 (2026-09-29 to 2026-10-05,
-`db163d9`).
+state of `main` after the PRs merged up to #67 (2026-09-29 to 2026-10-05,
+`b5d30ec`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -101,13 +101,13 @@ so it is always written in full.
   code maps the board (docs/01 §3.1, [reported]): audio is ALNK0 (I2S) to an
   external codec, not the internal DAC, and the seven encoders are scanned
   in the key matrix.
-- **Tests:** 3,702 collected; 3,691 pass, 2 xfail (both undo, not ported
+- **Tests:** 3,754 collected; 3,743 pass, 2 xfail (both undo, not ported
   yet) and 9 skip where a local reference clone, an unpacked stock package
   or the manual's `markdown` module is missing [verified: `pytest` at
-  `db163d9` with this file, 2026-10-05]. By group: 2,642 engine tests (487
+  `b5d30ec` with this file, 2026-10-06]. By group: 2,692 engine tests (487
   of them comparing against upstream reference renders and their controls,
   157 for the arpeggiator, 147 for modulation), 557 for the sequencer core,
-  411 for the virtual FM-1 and its sequencer UI, 79 for the tools, the
+  413 for the virtual FM-1 and its sequencer UI, 79 for the tools, the
   dongle, the SDK link audit, the package guard and the boot bridge, and 13
   for the manual. CI runs the suite on Linux and macOS, runs the engine,
   sequencer and simulator tests again as a 32-bit build and under ASan +
@@ -135,6 +135,8 @@ so it is always written in full.
   - The cloud session's stray branch `claude/mvave-fm1-open-firmware-ly2w6u`
     on `ip2k/busybar-dual-timer` was deleted on 2026-09-06.
 - **Open pull requests** at 2026-10-05:
+  - #68, MG9: per-voice modulation and the MG3 follow-ups; waiting for the
+    owner.
   - #65, FM6: msfa's tables in flash, and DX7 patches loaded in the
     simulator; waiting for the owner.
   - #58, the lagging docs that this refresh listed, fixed (§5 item 8);
@@ -149,8 +151,8 @@ so it is always written in full.
 | --- | --- | --- |
 | `DEVELOPERS.md` | The technical home: getting started, how the software works, the hardware, where development stands, the roadmap in detail, the path to an installable build (I0–I15), research to do, contributing | its contents list |
 | `docs/01`–`16` | Hardware, stock firmware, update protocol, prior art, feasibility, Movy and Schwung, recovery and risk, roadmap, first-session checklist, the `USB_KEY` dongle, the plugin platform, the sequencer, the Movy port plan, the verification ladder, the sequencer in the simulator (S1–S10, owner decisions O1–O24), modulation (MG0–MG9) | DEVELOPERS.md "Documents" |
-| `notes/` | Bench session 1 and the research log (2026-09-06), the desk review (09-08), FM-1+VA and the PCB photos (09-29), the CHOMPI, monome/O&C and arp/modulation/effects studies (10-01), the delay/reverb/EQ/gates and filters/dynamics options and the JieLi compile check (10-02), the community firmware and current SDK study and the soft-key/eFuse study with its draft test plan (10-05), `upstream-candidates.md` | |
-| `engines/` | The engine platform: a C API with no heap (v3 since #57), seven sound engines (Drums since #59, FM6 on msfa since #60) and 20 effects plus test entries, the Schwung shim, the desktop renderer `fm1-render`, reference renderers | `engines/README.md` |
+| `notes/` | Bench session 1 and the research log (2026-09-06), the desk review (09-08), FM-1+VA and the PCB photos (09-29), the CHOMPI, monome/O&C and arp/modulation/effects studies (10-01), the delay/reverb/EQ/gates and filters/dynamics options and the JieLi compile check (10-02), the community firmware and current SDK study and the soft-key/eFuse study with its draft test plan (10-05), the UI audit of the FM-1 screen with mockups in `assets/ui-audit/` (10-06), `upstream-candidates.md` | |
+| `engines/` | The engine platform: a C API with no heap (v3 since #57), seven sound engines (Drums since #59, FM6 on msfa since #60) and 22 effects (Squash and Transient since #66) plus test entries, the Schwung shim, the desktop renderer `fm1-render`, reference renderers | `engines/README.md` |
 | `engines/seq/` | `fm1_seq`, the sequencer core (docs/13 M1), and the host bridge that `fm1-render` and the simulator share (#25): about 6,000 lines of C99 | `engines/seq.md` |
 | `engines/mod/`, `engines/midi_fx/` | The modulation runtime: a rack of modules inside a 32-slot matrix, 16 kinds (MG1–MG3); `fm1_arp`, the arpeggiator core, built but not wired | `engines/mod/README.md`, docs/16; `engines/midi_fx/README.md` |
 | `sim/web/` | The virtual FM-1: the app layer in WebAssembly behind a to-scale panel, with the firmware's own screen; the built module is committed. Rebuilt and checked in containers on a Docker host (`FM1_SIM_HOST`) | `sim/web/README.md` |
@@ -266,7 +268,9 @@ so it is always written in full.
   What may be shared while the switch is on is in `CLAUDE.md` → "Project
   status and licences" and docs/12 §6. The vendored engine code is
   unmodified: Mutable Instruments, Schwung, Sophie and PSX Verb under MIT,
-  and msfa (FM6) under Apache-2.0. Felucca and
+  and msfa (FM6) under Apache-2.0. Squash and Limiter Round port Airwindows
+  loops (MIT) into our own files; the Airwindows oracle runs only in
+  containers. Felucca and
   SLOOP give facts and ideas only, except Felucca's Apache-2.0 and MIT files;
   CHOMPI's copy of DaisySP is never used.
 - **Docs:** `README.md` is the product page and stays free of technical
@@ -375,13 +379,14 @@ core, modulation MG1–MG3, four effect packs, the community study, the SDK
 move with its link and package gates, the sequencer, multi-sound and
 modulation made public (#55), Drums (#59), FM6 on msfa (#60), new
 screenshots (#61), the owner's new README opening and the rest of the
-README brought up to date (#62, #63), and the simulator's list popups (#64)
-(10-01 to 10-05). The CHANGELOG has the detail.
+README brought up to date (#62, #63), the simulator's list popups (#64),
+dynamics pack 3 (#66) and a UI audit of the screen (#67) (10-01 to 10-06). The CHANGELOG has the detail.
 
 Now, roughly in order:
 
-1. **Open PRs** (§1): #58 (docs) and #65 (FM6 in flash, DX7 patches in the
-   simulator) wait for the owner; Echomatter's offer on #1 needs an answer.
+1. **Open PRs** (§1): #58 (docs), #65 (FM6 in flash, DX7 patches in the
+   simulator) and #68 (MG9) wait for the owner; Echomatter's offer on #1
+   needs an answer.
 2. **ip2k/lunar-modulator#2**, if the owner chooses to answer it from the
    draft; and issue #53 (iOS Safari).
 3. **When the dev kit and JieLi's updater arrive**, docs/14 §5's first week:
@@ -397,11 +402,11 @@ Now, roughly in order:
    allow writing anything. A dump taken now captures FM-1+VA (§1).
 5. **The owner's 2026-10-05 build plan** (in the decisions file, §3; not
    yet in DEVELOPERS.md). API v3 came first (#57). Then engine and effect
-   lanes in parallel: a third dynamics pack, idle paths, the Shapes wrapper
-   clamp, a per-voice filter kernel, engine glide, tempo delays. Now that #55
-   has merged,
-   one at a time because they share `fm1_app.c`: MG9 (per-voice modulation)
-   and the MG3 follow-ups; the master chain; the side-chain; S9 and S10
+   lanes in parallel: a third dynamics pack (done, #66), idle paths, the
+   Shapes wrapper clamp, a per-voice filter kernel, engine glide, tempo
+   delays. Now that #55 has merged, one at a time because they share
+   `fm1_app.c`: MG9 (per-voice modulation) and the MG3 follow-ups (#68,
+   open); the master chain; the side-chain; S9 and S10
    (docs/15 §5); the arp and MIDI effects. Then the GPL switch with the
    first GPL modules (Grids and Branches originals, docs/12 §6); later a
    subtractive engine, Rings/Elements and more reverbs.
