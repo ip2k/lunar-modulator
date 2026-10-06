@@ -13,7 +13,9 @@ Each key plays one note on the current sound for as long as you hold it
 ([chapter 5](05-sound-engines.md#four-sounds-at-once)); a note you hold keeps
 playing on its sound even if you choose another. Outside SEQ mode the notes
 also go to the sequencer's focused track, for recording and Capture
-([chapter 7](07-sequencer.md#recording)). A *voice* is one sounding note,
+([chapter 7](07-sequencer.md#recording)); chapter 5 draws the whole path
+from the keys to the output ([Four sounds at once](05-sound-engines.md#four-sounds-at-once)).
+A *voice* is one sounding note,
 and each engine has a fixed number of them, for each sound it plays:
 
 | Engine | Voices |
@@ -239,11 +241,20 @@ Notes from the keys, from MIDI and from the sequencer's tracks that play this
 sound all go through the arpeggiator while it is on. A note you were holding
 before you switched it on goes on sounding until you let go.
 
+{{diagram arpeggiator}}
+
 ### The ARP pages
 
 Turn [[SELECT]] for the page. [[KNOB1]] to [[KNOB4]] set the four values on
 it, and [[ALGORITHM]] steps through the stock FM-1's arpeggio modes: Up,
 Down, Up/Down, Down/Up, Random and Played.
+
+The line under the top bar says *Arp on* (rose), *Arp latched* (gold, the
+colour of what is held) or *Arp off* (grey), with the stock mode the
+settings make on the right, such as *Up*, when they make one.
+[[ALGORITHM]] shows the six modes as a list, and turning the knob of Mode,
+Rate, Pattern, Oct Mode or Repeat shows that value's list
+([chapter 3](03-panel-tour.md#lists)).
 
 | Page | [[KNOB1]] | [[KNOB2]] | [[KNOB3]] | [[KNOB4]] |
 | --- | --- | --- | --- | --- |
@@ -256,16 +267,17 @@ Down, Up/Down, Down/Up, Random and Played.
 | 7 SEED | Seed: which random choices the chances make | | | |
 
 The modes are Up, Down, Up-Down, Down-Up, Up&Down and Down&Up (which play the
-top and bottom notes twice), Converge and Diverge, Conv-Div, Thumb and Pinky
-(the lowest or highest note between the others), four modes that add octaves
-to some notes only, Crawl, Random, Shuffle (each note once per pass, in a new
-order), Walk (a random step to a neighbour) and Chord. The same Seed makes
-the same choices every time, so a random arpeggio repeats exactly.
+top and bottom notes twice), Converge and Diverge, Converge-Diverge
+(Conv-Div on the page), Thumb and Pinky (the lowest or highest note between
+the others), four modes that add octaves to some notes only, Crawl, Random,
+Shuffle (each note once per pass, in a new order), Walk (a random step to a
+neighbour) and Chord. The same Seed makes the same choices every time, so a
+random arpeggio repeats exactly.
 
-TRG, at the left end of Rate, plays one step each time the sequencer starts
-notes on this sound (a trig), however far apart the trigs are. The keys alone
-do not step it. Its first note lasts until the next trig; after that, Gate is
-a share of the time between the last two.
+TRG (Trigger in Rate's list), at the left end of Rate, plays one step each
+time the sequencer starts notes on this sound (a trig), however far apart
+the trigs are. The keys alone do not step it. Its first note lasts until the
+next trig; after that, Gate is a share of the time between the last two.
 
 ### With the sequencer
 

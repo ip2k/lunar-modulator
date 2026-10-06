@@ -1,0 +1,87 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='622.35' height='729.9' viewBox='-6 -6 414.9 486.6' role='img'><title>Modulation per voice</title><desc>Three frames, top to bottom. A plain cable: RTRG, the note gate, restarts the one ENV3, whose cable moves Timbre on Sound 1 for every note alike. A cable per voice: three held notes, C3, E3 and G3, each gate their own copy of ENV3, voice 1, 2 and 3, and each copy moves the Timbre of its own note; the rack follows up to twelve voices. Refused: a cable per voice from ENV3 into an effect&#x27;s parameter, into the host&#x27;s AMP, into a parameter every note shares such as Macro&#x27;s LPG, or into a module that cannot run per voice, is refused and marked with a cross.</desc><rect data-kind='bg' x='-6' y='-6' width='414.9' height='486.6' fill='#fffaf3'/>
+<rect data-kind='group' data-id='plain' x='4' y='4' width='394.9' height='72.55' rx='8' fill='#faf4ed' stroke='#797593' stroke-width='1.3'/>
+<text x='12' y='18.39' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='11' font-weight='600' text-anchor='start' data-owner='plain'>A plain cable</text>
+<rect data-kind='group' data-id='voice' x='4' y='90.55' width='394.9' height='167.05' rx='8' fill='#f0fcfe' stroke='#3a7983' stroke-width='1.3'/>
+<text x='12' y='104.94' fill='#3a7983' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='11' font-weight='600' text-anchor='start' data-owner='voice'>A cable per voice (v): a copy for each note, up to 12</text>
+<rect data-kind='group' data-id='refused' x='109.85' y='271.6' width='289.05' height='173.35' rx='8' fill='#fff7f8' stroke='#a6566e' stroke-width='1.3'/>
+<text x='117.85' y='286' fill='#a6566e' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='11' font-weight='600' text-anchor='start' data-owner='refused'>Refused (!): one value per note cannot go there</text>
+<path data-kind='edge' data-id='e0' data-from='rtrg' data-to='env' d='M81.5 48.92 L114.69 48.92' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e1' data-from='env' data-to='all' d='M185.1 48.92 L250.54 48.92' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e2' data-from='n1' data-to='v1' d='M78.5 135.47 L119.34 135.47' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e3' data-from='n2' data-to='v2' d='M78.06 182.72 L119.34 182.72' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e4' data-from='n3' data-to='v3' d='M78.72 229.97 L119.34 229.97' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e5' data-from='v1' data-to='t1' d='M180.45 135.47 L260.79 135.47' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e6' data-from='v2' data-to='t2' d='M180.45 182.72 L261.23 182.72' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e7' data-from='v3' data-to='t3' d='M180.45 229.97 L260.56 229.97' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e8' data-from='pv' data-to='fx' d='M189.44 309.7 L228.44 309.7' fill='none' stroke='#a6566e' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e9' data-from='pv' data-to='amp' d='M189.44 343.3 L228.44 343.3' fill='none' stroke='#a6566e' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e10' data-from='pv' data-to='lpg' d='M189.44 376.9 L228.44 376.9' fill='none' stroke='#a6566e' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e11' data-from='pv' data-to='mono' d='M189.44 417.32 L228.44 417.32' fill='none' stroke='#a6566e' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='arrow' data-id='e0' d='M121.19 48.92 L113.69 52.52 L113.69 45.32 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e1' d='M257.04 48.92 L249.54 52.52 L249.54 45.32 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e2' d='M125.84 135.47 L118.34 139.07 L118.34 131.88 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e3' d='M125.84 182.72 L118.34 186.32 L118.34 179.12 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e4' d='M125.84 229.97 L118.34 233.57 L118.34 226.38 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e5' d='M267.29 135.47 L259.79 139.07 L259.79 131.88 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e6' d='M267.73 182.72 L260.23 186.32 L260.23 179.12 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e7' d='M267.06 229.97 L259.56 233.57 L259.56 226.38 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e8' d='M224.44 305.7 L232.44 313.7' stroke='#a6566e' stroke-width='1.8' stroke-linecap='round'/>
+<path data-kind='arrow' data-id='e8' d='M224.44 313.7 L232.44 305.7' stroke='#a6566e' stroke-width='1.8' stroke-linecap='round'/>
+<path data-kind='arrow' data-id='e9' d='M224.44 339.3 L232.44 347.3' stroke='#a6566e' stroke-width='1.8' stroke-linecap='round'/>
+<path data-kind='arrow' data-id='e9' d='M224.44 347.3 L232.44 339.3' stroke='#a6566e' stroke-width='1.8' stroke-linecap='round'/>
+<path data-kind='arrow' data-id='e10' d='M224.44 372.9 L232.44 380.9' stroke='#a6566e' stroke-width='1.8' stroke-linecap='round'/>
+<path data-kind='arrow' data-id='e10' d='M224.44 380.9 L232.44 372.9' stroke='#a6566e' stroke-width='1.8' stroke-linecap='round'/>
+<path data-kind='arrow' data-id='e11' d='M224.44 413.32 L232.44 421.32' stroke='#a6566e' stroke-width='1.8' stroke-linecap='round'/>
+<path data-kind='arrow' data-id='e11' d='M224.44 421.32 L232.44 413.32' stroke='#a6566e' stroke-width='1.8' stroke-linecap='round'/>
+<rect data-kind='node' data-id='rtrg' data-group='plain' x='11' y='28.3' width='70.49' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='46.25' y='45.64' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='rtrg'>RTRG</text>
+<text x='46.25' y='59.82' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='rtrg'>every note</text>
+<rect data-kind='node' data-id='env' data-group='plain' x='121.2' y='28.3' width='63.9' height='41.25' rx='4' fill='#e4f8fc' stroke='#3a7983' stroke-width='1.3'/>
+<text x='153.15' y='45.64' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='env'>ENV3</text>
+<text x='153.15' y='59.82' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='env'>one copy</text>
+<rect data-kind='node' data-id='all' data-group='plain' x='257.04' y='28.3' width='115.26' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='314.67' y='45.64' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='all'>Timbre, Sound 1</text>
+<text x='314.67' y='59.82' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='all'>every note alike</text>
+<rect data-kind='node' data-id='n1' data-group='voice' x='13.99' y='121.67' width='64.51' height='27.6' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='46.25' y='139.01' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='n1'>C3 held</text>
+<rect data-kind='node' data-id='n2' data-group='voice' x='14.44' y='168.92' width='63.62' height='27.6' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='46.25' y='186.26' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='n2'>E3 held</text>
+<rect data-kind='node' data-id='n3' data-group='voice' x='13.77' y='216.17' width='64.95' height='27.6' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='46.25' y='233.51' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='n3'>G3 held</text>
+<rect data-kind='node' data-id='v1' data-group='voice' x='125.84' y='114.85' width='54.61' height='41.25' rx='4' fill='#e4f8fc' stroke='#3a7983' stroke-width='1.3'/>
+<text x='153.15' y='132.19' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='v1'>ENV3</text>
+<text x='153.15' y='146.37' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='v1'>voice 1</text>
+<rect data-kind='node' data-id='v2' data-group='voice' x='125.84' y='162.1' width='54.61' height='41.25' rx='4' fill='#e4f8fc' stroke='#3a7983' stroke-width='1.3'/>
+<text x='153.15' y='179.44' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='v2'>ENV3</text>
+<text x='153.15' y='193.62' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='v2'>voice 2</text>
+<rect data-kind='node' data-id='v3' data-group='voice' x='125.84' y='209.35' width='54.61' height='41.25' rx='4' fill='#e4f8fc' stroke='#3a7983' stroke-width='1.3'/>
+<text x='153.15' y='226.69' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='v3'>ENV3</text>
+<text x='153.15' y='240.87' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='v3'>voice 3</text>
+<rect data-kind='node' data-id='t1' data-group='voice' x='267.29' y='121.67' width='94.77' height='27.6' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='314.67' y='139.01' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='t1'>Timbre of C3</text>
+<rect data-kind='node' data-id='t2' data-group='voice' x='267.73' y='168.92' width='93.88' height='27.6' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='314.67' y='186.26' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='t2'>Timbre of E3</text>
+<rect data-kind='node' data-id='t3' data-group='voice' x='267.06' y='216.17' width='95.22' height='27.6' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='314.67' y='233.51' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='t3'>Timbre of G3</text>
+<rect data-kind='node' data-id='pv' data-group='refused' x='116.85' y='295.9' width='72.6' height='142.05' rx='4' fill='#e4f8fc' stroke='#3a7983' stroke-width='1.3'/>
+<text x='153.15' y='363.64' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='pv'>ENV3</text>
+<text x='153.15' y='377.82' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='pv'>per voice</text>
+<rect data-kind='node' data-id='fx' data-group='refused' x='237.44' y='295.9' width='154.46' height='27.6' rx='4' fill='#ffeff2' stroke='#a6566e' stroke-width='1.3'/>
+<text x='314.67' y='313.24' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='fx'>An effect’s parameter</text>
+<rect data-kind='node' data-id='amp' data-group='refused' x='237.44' y='329.5' width='154.46' height='27.6' rx='4' fill='#ffeff2' stroke='#a6566e' stroke-width='1.3'/>
+<text x='314.67' y='346.84' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='amp'>Host AMP</text>
+<rect data-kind='node' data-id='lpg' data-group='refused' x='237.44' y='363.1' width='154.46' height='27.6' rx='4' fill='#ffeff2' stroke='#a6566e' stroke-width='1.3'/>
+<text x='314.67' y='380.44' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='lpg'>Shared: Macro’s LPG</text>
+<rect data-kind='node' data-id='mono' data-group='refused' x='237.44' y='396.7' width='154.46' height='41.25' rx='4' fill='#ffeff2' stroke='#a6566e' stroke-width='1.3'/>
+<text x='314.67' y='414.04' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='mono'>A module that</text>
+<text x='314.67' y='428.22' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='mono'>cannot run per voice</text>
+<text x='102.17' y='127.75' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e2'>gate</text>
+<path data-kind='legend' d='M2 465.78 L32 465.78' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' fill='none'/>
+<text x='38' y='468.87' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='legend'>modulation cable</text>
+<path data-kind='legend' d='M137.73 465.78 L167.73 465.78' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' fill='none'/>
+<text x='173.73' y='468.87' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='legend'>gate cable</text>
+<path data-kind='legend' d='M240.47 465.78 L266.47 465.78' stroke='#a6566e' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' fill='none'/>
+<path data-kind='legend' d='M262.47 469.78 L270.47 461.78' stroke='#a6566e' stroke-width='1.8' stroke-linecap='round'/>
+<path data-kind='legend' d='M262.47 461.78 L270.47 469.78' stroke='#a6566e' stroke-width='1.8' stroke-linecap='round'/>
+<text x='276.47' y='468.87' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='legend'>refused</text>
+</svg>
