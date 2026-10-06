@@ -188,7 +188,7 @@ the current sound.
 - **Hold [[ARP]]** for half a second to latch: the notes keep playing after
   you let go of the keys, and the next chord you play replaces them. Notes
   added while you still hold keys join the chord. Hold [[ARP]] again to stop
-  latching. Holding it also switches the arpeggiator on. While it latches,
+  latching. Holding it also switches the arpeggiator on, latched. While it latches,
   its light blinks once a second.
 - **[[SEL]] and [[ARP]]** opens its pages without switching it.
 

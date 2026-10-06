@@ -1850,10 +1850,11 @@ static void arp_tap(fm1_app_t *a) {
   else arp_close(a);
 }
 
-/* A hold: Latch on (the arp on with it) or off, on the current sound. */
+/* A hold: Latch on (the arp on with it) or off, on the current sound. An
+ * arp that is off comes on latched, whatever its Latch was left at. */
 static void arp_hold(fm1_app_t *a) {
   const int latch = fm1_app_arp_param_index("Latch");
-  const int to = !arp_latched(a, a->sound);
+  const int to = !fm1_app_arp_on(a, a->sound) || !arp_latched(a, a->sound);
   if (latch < 0 || !arp_self(a, a->sound)) return;
   if (to && fm1_app_arp_set_on(a, a->sound, 1) != 0) return;   /* refused: its popup says why */
   fm1_app_arp_set_param(a, a->sound, latch, to ? 1.0f : 0.0f);

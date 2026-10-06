@@ -81,7 +81,8 @@
  * part arpeggiates again on playback.
  *   ARP tap       on or off for the current sound; switched on, the ARP
  *                 pages open (FM1_MODE_ARP), switched off there, they close
- *   ARP held      FM1_APP_ARP_HOLD_S: Latch on or off (and the arp on)
+ *   ARP held      FM1_APP_ARP_HOLD_S: Latch on (and the arp on), or off while
+ *                 the arp is on and latched
  *   SHIFT + ARP   the ARP pages, without switching
  *   ARP pages     SELECT the page (PLAY, RHYTHM, CHANCE, FEEL, MORE, KEYS,
  *                 SEED), KNOB1-4 its parameters, ALGORITHM the stock FM-1's

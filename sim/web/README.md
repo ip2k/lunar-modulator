@@ -308,7 +308,7 @@ built.
 | | |
 | --- | --- |
 | ARP tap | the current sound's arp on (and the ARP pages, `FM1_MODE_ARP`, open; its popup "Arp on") or off (the pages close back to the mode they came from; "Arp off"). A press with another button or a turn before its release is no tap |
-| ARP held | `FM1_APP_ARP_HOLD_S` (0.5 s, measured in the app's blocks): Latch on, and the arp with it, or Latch off; the release does nothing more |
+| ARP held | `FM1_APP_ARP_HOLD_S` (0.5 s, measured in the app's blocks): Latch on, and the arp with it, or, while the arp is on and latched, Latch off; an arp that is off always comes on latched; the release does nothing more |
 | SHIFT + ARP | the ARP pages, nothing switched |
 | The ARP pages | SELECT: PLAY, RHYTHM, CHANCE, FEEL, MORE, KEYS, SEED (the options note's §2.4 and three pages for the rest); KNOB1–4 the page's parameters; ALGORITHM the stock FM-1's arp modes as presets of Mode and Order, in a list popup as a model's (titled "Arp preset") (Up, Down, Up/Down, Down/Up, Random as Shuffle, Played; AL-255's FM-1-RE `docs/io/05-midi.md` §6.3 [reported]; owner, 2026-10-05: as presets); OCT held + ALGORITHM still transposes; PRESETS still the sound. The first line says On, On latched or Off and the preset, if the mode and order make one; the scope runs under the rows |
 | LED | ARP lit while the current sound's arp is on, half of each second while it latches, and while held |

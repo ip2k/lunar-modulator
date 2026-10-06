@@ -82,6 +82,12 @@ def test_a_hold_latches(tools):
     assert again["arp"]["on"][0] == 1 and param(again, "Latch") == 0
     short = sim(tools, "--engine", "macro", "--button", "0.1:ARP:0.3", seconds=0.6)
     assert param(short, "Latch") == 0 and short["arp"]["on"][0] == 1, "a short press is a tap"
+    # Latched, tapped off (Latch stays set), then held: on and latched again,
+    # not Latch switched off with the arp still off.
+    back = sim(tools, "--engine", "macro", "--button", "0.1:ARP:0.7", "--button", "1.0:ARP",
+               "--button", "1.3:ARP:0.7", seconds=2.2)
+    assert back["arp"]["on"][0] == 1 and param(back, "Latch") == 1
+    assert back["popup"] == ["Latch on", "Arp on"]
 
 
 def test_another_input_during_the_press_is_no_tap(tools):
