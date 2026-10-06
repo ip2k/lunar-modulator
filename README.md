@@ -1,23 +1,30 @@
-# Lunar Modulator
+# 🌑🛰️ Lunar Modulator
 
 ![Lunar Modulator: INTERGALACTIC MODULATION STATION](assets/branding/banner.png)
 
 **INTERGALACTIC MODULATION STATION**
 
-Lunar Modulator is open firmware for the M-VAVE FM-1, the compact,
-battery-powered FM synthesizer from M-VAVE (Cuvave) with 27 keys, a 1.54"
-colour screen, USB-C (MIDI and audio), BLE MIDI and a 3.5 mm MIDI input. It
-is being built to turn the FM-1 into a multi-engine instrument:
-- five sound engines with more than 160 models, shapes and patches between
-  them;
-- four effects;
-- next, a step sequencer with parameter locks.
+Lunar Modulator is open alternative firmware for the M-VAVE FM-1, the compact, low-cost,
+battery-powered FM synthesizer from M-VAVE (AKA Cuvave).
+**Current Status**: Active development, runs on the included in-browser simulator only for now.
+
+Play with the latest firmware in your browser: **<https://ip2k.github.io/lunar-modulator/>** 
 
 ![Lunar Modulator in the browser: the to-scale FM-1 panel with a chord held on Macro](assets/screenshots/virtual-fm1.png)
 
+## Project Goals
+- Make the FM-1 the greatest sub-$100 electronic music toy available for curious folks of all ages and skill levels. Learn every part of the stack, from EE to software to synthesis to music.
+- Build a legitimately useful and useable instrument that cares about the user experience...and having fun.
+- Turn the FM-1 into a modular multi-engine groovebox with a nice sequencer (goal: [schwung-movy compatibility](https://github.com/DimaDake/schwung-movy) )
+- Build on the shoulders of giants who have done much of the hard DSP work in this space already -- borrow and port anything awesome that we can fit
+- Unlock the full hardware capabilities of the FM-1 (BLE MIDI IO, MIDI over USB, full use of both cores, etc)
+- Modular base to allow all types of expansion -- new sound engines, routable modulators and effects, MIDI effects, filters, and more.
+- Orbital Dock: Web-based community module marketplace and custom firmware builder + flasher -- pick the engines, modules, sound banks, and presets you want. Remix and share your creations and recipes.
+- Make it nice to use and enjoyable to look at
+
 It is an independent project, not affiliated with or endorsed by M-VAVE,
 Cuvave or any space agency.
-
+## Why Can't I Flash This Yet?
 > **Preview: not yet installable on an FM-1.**
 > - Lunar Modulator runs today as a virtual FM-1 in your browser, with the
 >   firmware's own screen and sound.
@@ -27,12 +34,6 @@ Cuvave or any space agency.
 >   have to be proven, so that a unit that fails to start can be put back
 >   ([Installing on your FM-1](#installing-on-your-fm-1)).
 > - This project has never written anything to an FM-1.
-
-*This page presents Lunar Modulator as a product: what it does, how to try
-it, and what is coming. Everything technical lives in
-[`DEVELOPERS.md`](DEVELOPERS.md): specifications, the hardware, how the
-software works, the research behind it, where development stands, and how to
-build, test and contribute.*
 
 ## Try it in your browser
 

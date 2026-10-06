@@ -120,12 +120,12 @@ done <"$OUT/ladder/objects.txt"
 echo "== instance and struct sizes: pi32v2, i386, x86-64"
 SZ=$OUT/sizes
 rm -rf "$SZ" && mkdir -p "$SZ"
-SZ_CXX="-std=c++11 -fno-exceptions -fno-rtti -DTEST -O2 -Iinclude -isystem third_party/mutable -isystem third_party/schwung"
+SZ_CXX="-std=c++11 -fno-exceptions -fno-rtti -DTEST -O2 -Iinclude -isystem third_party/mutable -isystem third_party/schwung -isystem third_party/msfa"
 SZ_C="-std=c99 -O2 -Iinclude -Iseq -Imod -I$SRC/sim/web/src"
 sz_compile() {  # sz_compile TARGET-NAME "CC" "EXTRA"
   local t=$1 cc=$2 extra=$3
   mkdir -p "$SZ/$t"
-  for e in MACRO SHAPES MACRO_HEAVY SIXOP TEST_SINE TEST_GAIN MI_FX SCHWUNG; do
+  for e in MACRO SHAPES MACRO_HEAVY SIXOP DX7 TEST_SINE TEST_GAIN MI_FX SCHWUNG; do
     $cc $SZ_CXX $extra -DSZ_$e -c "$SRC/tools/jieli/sizes.cc" -o "$SZ/$t/sizes_$e.o" \
       >"$SZ/$t/sizes_$e.log" 2>&1 || echo "   $t SZ_$e failed (see $SZ/$t/sizes_$e.log)"
   done

@@ -9,6 +9,36 @@ history.
 ## [Unreleased]
 
 ### Added
+- **FM6, a new sound engine: six-operator FM that plays DX7 voices.** It
+  runs msfa, the FM core Google published for Android and the core the
+  FM-1's own firmware runs, and plays all 32 algorithms with six operators,
+  their envelopes and keyboard scaling, feedback, the LFO (vibrato and
+  tremolo) and the pitch envelope. Twelve notes at once.
+  - **32 voices of its own:** electric pianos, clav, harpsichord, koto,
+    marimba, vibes, bells, organs, brass, flute, clarinet, strings, pads,
+    basses, leads and a small drum kit, written for this project.
+  - **Your own DX7 voices:** single voices and 32-voice banks load from
+    SysEx files into 32 user slots (on the desktop for now:
+    `fm1-render --engine dx7 --sysex bank.syx`). Bad checksums, out-of-range
+    values and other SysEx in the file are handled, not trusted.
+  - **Four macros** shape any voice while it plays: Brightness (how hard
+    the modulators drive, ±24 dB), Env Time (every envelope up to 8 times
+    faster or slower), Feedback and Volume. All four glide, and each note
+    can take its own setting from a sequencer lock or a modulation route.
+  - **Beyond msfa itself:** tremolo (msfa ignores the voice's AM settings)
+    and the feedback loops of algorithms 4 and 6, which msfa, and with it
+    probably the stock FM-1, plays without feedback; the voice's transpose
+    is applied too.
+  - The same output, bit for bit, from the Mac, 32- and 64-bit Linux and the
+    browser (three new parity scenarios, 72 of 72 pass; the browser module
+    grew from 786 KB to 813 KB); compiles for the FM-1's processor with
+    JieLi's toolchain. About 15 KB of memory, plus
+    29 KB of tables shared by every FM6 sound; twelve voices cost about a
+    third of Macro's twelve on the desktop.
+  - Checked against an independent port of the same core, Felucca's
+    `fm6_core.c` (Apache-2.0; a test tool here, in no build): every
+    algorithm within 0.3 dB. Documented in engines/msfa.md and chapter 5 of
+    the manual.
 - **Drums, a new sound engine:** a sixteen-pad drum kit after the classic
   analogue drum machines, on MIDI notes 36 to 51 like Sophie.
   - Two kits: Deep, with a deep kick that booms for over a second, round
@@ -1075,6 +1105,9 @@ history.
     Arp, czietz's gist) in the reference table; a note for cloud sessions;
     and a current kick-off prompt. The 2026-09-06 prompt is kept, marked
     historical.
+- README: the owner's new opening — project goals (including the Orbital Dock
+  community module marketplace and firmware builder), current status, and
+  why it cannot be flashed yet.
 - **New pictures of the virtual FM-1, and a manual brought up to date with
   it.**
   - The README's picture and the phone picture show the page as it is now:
@@ -1361,6 +1394,11 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- docs/02 §5 and `tools/check_msfa_table.py` had rows 4 and 6 of msfa's
+  algorithm table the wrong way round: `0x41`, which the FM-1 carries, is
+  Google's original (there since its first commit, 2012), and `0xC1`, which
+  Felucca's port of Dexed's msfa carries, a later change. The FM-1's table is Google's, row for row; the tool
+  now reports 32 of 32 rows for an FM-1 image.
 - On the virtual FM-1, Sophie's pads followed Sound 1 rather than the
   current sound: with Sophie as Sound 2 the white keys played notes she
   ignores, and with Sophie as Sound 1 they played her pad notes on another

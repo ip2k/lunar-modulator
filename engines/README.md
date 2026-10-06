@@ -23,6 +23,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `shapes` | Shapes | sound | 12 | Braids' 47 shapes | [reference-braids-fx.md](reference-braids-fx.md) |
 | `macro-heavy` | Macro Heavy | sound | 4 | Plaits' other 13 engines (strings, modal, speech, particle, drums…) | [plaits-heavy.md](plaits-heavy.md) |
 | `sixop` | Six-Op FM | sound | 8 | Plaits' DX7-style engine and its 96 patches | [plaits-heavy.md](plaits-heavy.md) |
+| `dx7` | FM6 | sound | 12 | msfa, the FM core of Google's music-synthesizer-for-android (Apache-2.0), the stock FM-1's core; 32 voices of our own and DX7 SysEx | [msfa.md](msfa.md); [below](#fm6) |
 | `sw-sophie` | Sophie | sound | 12 | a Schwung module (Matt Estela, MIT), through the shim | [schwung.md](schwung.md) |
 | `drums` | Drums | sound | 12 | Plaits' drum classes (Emilie Gillet, MIT), and a rim shot, clap, cowbell and cymbal of this repository's own | [below](#drums); a 16-pad kit on notes 36–51 with two sets of voicings, Deep and Punch |
 | `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
@@ -52,6 +53,40 @@ python -m pytest tests/test_engine*.py           # the engine tests
 The Mutable Instruments engines are credited to Emilie Gillet in each
 engine's `credits` string and named without MI's trademarks
 (`third_party/mutable/UPSTREAM.md`).
+
+### FM6
+
+`src/msfa_dx7.cc` plays DX7 voice data on msfa, Google's FM core,
+vendored byte-identical in `third_party/msfa/`; [msfa.md](msfa.md) has the
+whole account. In short:
+
+- **msfa's parts, our voice:** msfa's envelopes, pitch envelope, LFO,
+  algorithms, kernels, tables and note set-up, compiled unmodified inside
+  `namespace fm1_msfa` with its NEON switch (`synth.h`) replaced, so every
+  build runs the integer kernels. Ours: the LFO's amplitude modulation
+  (msfa reads neither AMD nor AMS), the feedback loops of algorithms 4 and
+  6 (marked in msfa's table, not run by its `FmCore`; `src/dx7_loop.cc`,
+  msfa's own kernels to the bit), the voice's transpose, twelve voices,
+  and four macros.
+- **Parameters:** Patch (32 built-in voices, then User 1–32; LATCH, MOD),
+  Brightness (the modulators' level, ±24 dB), Env Time (an envelope clock,
+  8× to 1/8×), Feedback (−7..+7 on the voice's) and Volume, all four
+  SMOOTH, MOD and POLY.
+- **Voices:** the built-in ones are ours (`tools/dx7_bank.py`, MIT); the user
+  slots take single-voice and 32-voice SysEx dumps through
+  `include/fm1_dx7.h` (`fm1-render --sysex FILE`), every value clamped.
+- **Rate:** msfa runs at the host's rate in 64-sample blocks, its envelope
+  clocked by 44,118 / rate (one step a block at the FM-1's rate); its
+  tables are filled by the first create, and another rate is refused, as
+  is any below 16,385 Hz, where msfa's frequency table overflows.
+- **Checked** against Felucca's Apache-2.0 port of the same core
+  (`third_party/felucca-fm6/`, `fm1-dx7-oracle`), test only: all 32
+  algorithms within 0.3 dB of envelope and 28–40 dB SNR, and the rest in
+  tests/test_engines_dx7.py.
+- **Cost:** 15,844 bytes an instance on 64-bit, 32-bit and pi32v2 alike
+  (no pointers), plus 28.7 KB of msfa tables shared by all instances; twelve
+  voices take 0.36–0.64 % of a block on this desktop, about a third of
+  Macro's twelve.
 
 ### Macro and Macro Heavy, page 3: the envelope and the gate
 
@@ -2209,6 +2244,7 @@ the master-bus pack, and Hall's and Plate's Freeze on 2026-10-05.
 | drums | Kit | LATCH, MOD | The voicings a hit starts with; a sounding hit keeps them |
 | shapes | Shape | NOLOCK | Sets every voice's oscillator at once |
 | sixop | Patch | LATCH, MOD | Read per voice at note-on, so a lock or a route picks the patch of the next notes |
+| dx7 | Patch | LATCH, MOD | As Six-Op's: a voice takes its data, built-in or from a user slot, at note-on |
 | sw-sophie | Pad | none | The module's edit focus, not a sound: it picks the pad the other parameters edit. NOLOCK in S7a, since a lock on it changes what the locks after it mean; lockable since docs/15 S8 (the owner's decision, 2026-10-02): a Pad lock moves the focus at its step, so the locks after it in lane order, there and later, edit the pad it names. A change leaves sounding voices intact. No MOD: a list that moves the focus is no modulation target |
 | sw-sophie | Model | LATCH, MOD | Each voice keeps a copy of its pad's patch, so a change leaves sounding voices intact |
 | sw-sophie | Filter Type | LATCH, MOD | The same. Hidden for now: its page is not exposed (schwung.md) |
@@ -2299,6 +2335,7 @@ code is `include/fm1_smooth.h`, plain C99:
 | Macro, Macro Heavy | 12 samples at 47,872.34 Hz | 10 | 2.51 ms | every FLOAT, read once per block as before |
 | Drums | 12 samples at 47,872.34 Hz | 10 | 2.51 ms | every FLOAT: a per-pad one in its pad's own values, only while that pad sounds; the kit's while any pad does |
 | Six-Op FM | 16 samples at 47,872.34 Hz | 8 | 2.67 ms | Brightness, Envelope, Volume |
+| FM6 | 64 samples at the host rate (msfa's block) | 2 at 44,118 Hz | 2.9 ms | Brightness, Env Time, Feedback, Volume; Volume also glides across each block, sample by sample |
 | Shapes | 24 samples at 96 kHz | 10 | 2.5 ms | Timbre, Color, Attack, Release, Volume |
 | Test Sine | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | Volume |
 | Plate, Ensemble, Diffuse, Crush, Test Gain | 1 sample at the host rate | 110 at 44,118 Hz | 2.49 ms | what each runs on; see below |
@@ -2510,6 +2547,7 @@ both. The pitch has no uid: a route stores it as a system destination
 | `macro` | all nine FLOATs: Harmonics, Timbre, Morph, Decay, Colour, Volume, Env Pitch, Env Timbre, Env Morph | A voice with an offset computes its controls (Plaits' parameters, the decay envelope's and the gate's times, its gain, the attenuverter amounts, Chip's own envelope) from its own values, with the function that computes the engine's |
 | `macro-heavy` | all ten FLOATs (Macro's and Word Speed) | As Macro. On Speech, Harmonics stays engine-wide: it picks the word bank all voices share (one parse, not four), and the envelope's reach with it, so its offset is ignored there |
 | `sixop` | Brightness, Envelope, Volume | Each voice already passes the first two to its `fm::Voice`, and Volume is its gain. Patch stays a note-on choice (LATCH). A pitch offset at the note's first block is the note `fm::Voice` samples for keyboard and rate scaling, as a played note's would be |
+| `dx7` | Brightness, Env Time, Feedback, Volume | Each voice sets its operators' levels (Brightness), its feedback and its gain every block, and runs its own envelope clock (Env Time). Patch stays a note-on choice (LATCH). A pitch offset joins the bend in the voice's pitch; keyboard level and rate scaling stay the key's, set at note-on |
 | `shapes` | Timbre, Color, Attack, Release, Volume | Each voice already sets its oscillator's parameters and runs its own envelope. Shape stays engine-wide (NOLOCK) |
 | `drums` | all nine FLOATs: the seven per-pad ones (Tune .. Drive), Accent and Volume | A hit computes its controls every block from its pad's values and the kit's, plus its offsets; notes are pads, so the offset reaches the hit on that pad's note. Model and Kit stay note-on choices (LATCH) |
 | `sw-sophie` | none (NULL) | The module keeps its voices to itself (each copies its pad's patch at the trigger, `sophie.c`), and the shim reaches only the module's global `set_param`. Per-note offsets would mean changing the vendored module, which stays byte-identical |
@@ -2704,7 +2742,8 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `include/fm1_mix_limiter.h` | The host's mix-bus limiter and bus guard. Twelve voices started in phase can exceed full scale; the bus holds the output under 0.98, and non-finite samples become silence |
 | `src/registry.cc` | The static engine registry (tier 0 in docs/11 §5.2) |
 | `src/mi_*.cc` | The Mutable-derived engines and effects |
-| `src/note_offsets.h` | A voice's per-note offsets, shared by the five engines that take them |
+| `src/msfa_*`, `src/dx7_*`, `include/fm1_dx7.h` | FM6 on msfa: the engine, how msfa is compiled, voice data and SysEx, the loops of algorithms 4 and 6, the built-in voices ([msfa.md](msfa.md)) |
+| `src/note_offsets.h` | A voice's per-note offsets, shared by the six engines that take them |
 | `src/drums.cc`, `src/drum_voices.h` | Drums: the kit around Plaits' drum classes, and the rim shot, clap, cowbell and cymbal of our own ([above](#drums)) |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
 | `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comb](#comb), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq), [Hall](#hall), [Gate](#gate); [Room](#room) wraps Clouds' classes) |
@@ -2721,6 +2760,8 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
+| `third_party/msfa/` | Google's msfa, Apache-2.0, unmodified; see `UPSTREAM.md` |
+| `third_party/felucca-fm6/` | Felucca's `fm6_core.c`, Apache-2.0, unmodified: FM6's test oracle only |
 | `third_party/schwung*/` | Schwung's ABI headers and the two modules, MIT, unmodified; see each `UPSTREAM.md` |
 
 ### The renderer's test options
@@ -2738,6 +2779,7 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `--fault T[..T1]:VALUE` | Overwrite the bus after the source with `nan`, `inf` or any value, for one frame or a span, to test recovery |
 | `--mod FILE`, `--log-mod FILE.jsonl` | Modulation: a rack and slots from a text file, and one JSON line per control tick ([mod/README.md](mod/README.md#hosting)) |
 | `--list-mod` | The modulation kinds with their parameters' uids and flags, their ports, the system sources and the host parameters, as JSON |
+| `--sysex FILE.syx` | DX7 voices into FM6's user slots (`--engine dx7`), before the first block; repeatable ([msfa.md](msfa.md)) |
 | `--tempo BPM` | The tempo effects with the API v3 extension hear without a sequencer (20–300, default 120); with `--cmd` or `--seq` they hear the sequencer's ([above](#engine-api-v3)) |
 
 ## Build and checks
@@ -2775,7 +2817,10 @@ container there, and trixie's 19.1.7 runs clean].
 Each exemption in `sanitizers/` names one vendored file and the quirk it
 covers: Braids' and stmlib's wrapping integer arithmetic, Plaits' six-op
 `Pow2Fast` negative shift, and Plaits' LPC speech out-of-bounds read (an
-upstream candidate). Our own code gets none.
+upstream candidate). Our own code gets none. msfa needs none: its wrapping
+phases and left shifts of negative values are built with `-fwrapv`, under
+which neither Apple's clang nor clang 18 on Linux reports them [verified,
+2026-10-05: FM6's tests under ASan + UBSan, with no exemption].
 
 `build/fm1-fx-hostile-test` (`test/fx_hostile_test.cc`, run by
 `tests/test_engines_fx_hostile.py`) puts the five master-bus effects (DJ
@@ -2810,6 +2855,7 @@ past the table. It found the Isolator's stalled crossover glide
   | Macro, 12 voices | 32,448 | 19,584 | mostly pointer tables, which halve on 32-bit |
   | Diffuse | 18,912 | 18,912 | |
   | Comb | 17,840 | 17,840 | two delay lines, fs / 20 Hz each (the Filter's until 2026-10-05, when it took 18,368) |
+  | FM6, 12 voices | 15,844 | 15,844 | msfa's state, 32 user voices, no pointers; msfa's tables (28.7 KB) are shared, outside the instance ([msfa.md](msfa.md)) |
   | Six-Op FM, 8 voices | 12,776 | 11,008 | |
   | Limiter | 11,008 | 11,008 | 5 ms of lookahead at 44,118 Hz; 26,912 at 102 kHz and above |
   | Drums, 12 voices | 7,616 | 7,424 | a 224-byte model object per voice (Ring Hat's), 16 pads' values and ramps, one resampler |
@@ -2817,7 +2863,7 @@ past the table. It found the Isolator's stalled crossover glide
   | Filter | 656 | 656 | since Comb left it (2026-10-05) |
 
   The figures include the native-rate resamplers (about 1.3 KB each), the
-  five engines' per-note offsets ([above](#per-note-offsets)) and the
+  six engines' per-note offsets ([above](#per-note-offsets)) and the
   SMOOTH ramps (12 bytes per parameter; 176 bytes in each Schwung instance
   on 64-bit and 160 on 32-bit, for eight ramps, Sophie's unused),
   measured after S7b merged with main (32-bit: GCC 12.2 in Debian). The
@@ -2856,6 +2902,7 @@ past the table. It found the Isolator's stalled crossover glide
   | Macro Heavy, most models (4) | 0.5–0.9 % |
   | Macro Heavy, Particle (4) | 1.75 % |
   | Six-Op FM (8) | 0.75 % |
+  | FM6 (12) | 0.36–0.64 %; 0.9–1.15 % on algorithms 4 and 6 with feedback |
   | Shapes (12) | 0.2–0.6 % |
   | Each Mutable effect | 0.03–0.06 % |
   | Fold | 0.12 % |
@@ -2895,6 +2942,7 @@ diffuser at their native rates. The tests render both sides and compare
 | --- | --- | --- |
 | Macro, Macro Heavy (21 of Plaits' 24 slots) | sample for sample, to within fm1-render's 16-bit rounding (-87 to -88.5 dBFS); the random engines too, since both sides seed stmlib's generator alike | [reference-plaits.md](reference-plaits.md) |
 | Six-Op FM (3 slots) | close, not identical: correlation ≥ 0.98, from its 16-sample envelope blocks against upstream's staggered 24-sample chunks | [reference-plaits.md](reference-plaits.md) |
+| FM6 (32 algorithms, six voices) | against Felucca's port of the same core (not upstream msfa itself, which has no polyphonic host here): 28–40 dB SNR and 0.3 dB of envelope on the algorithms, within 0.7 dB of envelope where the two step pitch at different blocks | [msfa.md](msfa.md) |
 | Shapes (47 shapes) | within 0.52 LSB, physical models and random shapes included | [reference-braids-fx.md](reference-braids-fx.md) |
 | Plate, Ensemble, Diffuse | within 0.5 LSB | [reference-braids-fx.md](reference-braids-fx.md) |
 | Room | within 0.5 LSB, at Clouds' 32 kHz and at 44,118 Hz | [below](#room) |
@@ -2938,6 +2986,9 @@ keeping decay within 3–4 %.
 
 ## Open questions and next steps
 
+- **FM6** has its own list ([msfa.md](msfa.md), "Open questions"): its name, a
+  listening pass over its 32 voices, the DX7's envelope holds, AM depths
+  measured on a DX7, the simulator's SysEx import, msfa's tables in flash.
 - **Six-Op FM's patch data** has no stated origin upstream. The 23 patch
   names that are trademarks or a person's name are shown under names of our
   own; `-DFM1_SIXOP_ORIGINAL_NAMES` shows the stored ones in a personal build

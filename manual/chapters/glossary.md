@@ -156,7 +156,8 @@ One rule
     unit ([chapter 1](01-welcome-and-safety.md#the-one-rule)).
 
 Operator
-:   In FM synthesis, one oscillator with its own envelope. Six-Op FM has six.
+:   In FM synthesis, one oscillator with its own envelope. Six-Op FM and FM6
+    have six.
 
 Overdub
 :   Recording into a clip that already has notes, adding to them.

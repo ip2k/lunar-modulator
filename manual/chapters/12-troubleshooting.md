@@ -17,7 +17,7 @@ those messages so you can search for them.
 | The status line says *This browser has no AudioWorklet* | The browser is too old, or lacks the audio feature the simulator needs | Use a current Chromium-based browser such as Chrome or Edge |
 | The status line says *The firmware did not start* | The firmware's code did not load in this browser | Reload the page; try a current Chromium-based browser |
 | Crackles or dropouts | The computer is busy, or a phone is too slow | Close other tabs and programs; on a phone, try a computer |
-| The status line says that Macro *was refused: it does not run at 48,000 Hz*, and the simulator started with another sound | The browser would not run audio at 44,118 or 44,100 Hz, and Macro, Macro Heavy, Six-Op FM and Drums need 47,872 Hz or less | Set the computer's audio output to 44.1 kHz and reload. Shapes, Sophie and Test Sine work at 48 kHz too |
+| The status line says that Macro *was refused: it does not run at 48,000 Hz*, and the simulator started with another sound | The browser would not run audio at 44,118 or 44,100 Hz, and Macro, Macro Heavy, Six-Op FM and Drums need 47,872 Hz or less | Set the computer's audio output to 44.1 kHz and reload. FM6, Shapes, Sophie and Test Sine work at 48 kHz too |
 
 ### Playing
 
@@ -64,6 +64,8 @@ those messages so you can search for them.
 | *macro refused this host (rate 48000 Hz, 64 frames)* | Macro, Macro Heavy and Six-Op FM refuse rates above 47,872 Hz | Leave out `--rate` (the default is 44,118 Hz) or choose 44100 |
 | *unknown parameter for macro: Timbr* | The name is misspelt, or belongs to another engine | Use the names in [chapter 5](05-sound-engines.md)'s tables; case does not matter. Quote names with spaces: `--param "Word Speed=0.5"` |
 | *unknown, incompatible or wrong-kind engine* | The identifier is misspelt, or names an effect where an engine is wanted | `engines/build/fm1-render --list` prints every identifier and kind |
+| *--sysex: no DX7 voice dump in FILE* | The file holds no single-voice or 32-voice DX7 dump, or only broken ones | Check that it is a `.syx` file of DX7 voices (163 or 4,104 bytes a dump, or 4,096 bytes of bank data alone) |
+| *--sysex needs --engine dx7* | Only FM6 reads DX7 voices | Add `--engine dx7` |
 | *sw-sophie has no pitch bend* | Sophie ignores pitch bend, so `--bend` is refused | Leave out `--bend` for Sophie |
 | *--bend and --param-at need --engine* | Those options act on a sound engine | Add `--engine` |
 | The WAV file is silent | No `--note`, or notes outside an engine's range | Add notes; Sophie answers only notes 36 to 51 |

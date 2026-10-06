@@ -12,9 +12,10 @@ through the engine's main list.
 
 Four of the engines are built from the code of Mutable Instruments' modules,
 written by Emilie Gillet and published under the MIT licence, and Drums
-takes its kicks, toms, snares and hi-hats from it; Sophie comes from the
-Schwung community. Their names here are this project's own, and
-[chapter 14](14-credits-and-licences.md) credits each source.
+takes its kicks, toms, snares and hi-hats from it; FM6 comes from msfa,
+the FM synthesizer core Google published under the Apache licence; Sophie
+comes from the Schwung community. Their names here are this project's own,
+and [chapter 14](14-credits-and-licences.md) credits each source.
 
 !!! note "How to read the tables"
     The tables in this chapter are generated from the firmware's code. *Where*
@@ -30,8 +31,8 @@ Schwung community. Their names here are this project's own, and
 {{status sim planned}}
 
 **To choose an engine:** turn [[PRESETS]]. The engines come in this order:
-Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Test Sine, and round
-again.
+Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Test Sine, and
+round again.
 While you turn, the screen shows the previous engine, the new one
 (highlighted) and the next. In the simulator you can also pick one from the
 **Sound (PRESETS)** list under the panel.
@@ -263,6 +264,71 @@ The banks:
     patch.
 
 {{engine-table sixop}}
+
+## FM6
+
+{{status sim desktop planned}}
+
+FM6 is a six-operator FM synthesizer that plays voices in the format of
+the classic 1980s FM keyboards, the DX7's: 155 parameters for six operators
+with their own envelopes, 32 algorithms, feedback, an LFO and a pitch
+envelope. Its synthesis is msfa, the FM core Google published for Android,
+the same core the FM-1's own firmware runs. It comes with 32 voices of this
+project's own, and plays voices you load from SysEx files (below).
+[[ALGORITHM]] steps through the voices, and the knobs shape the one you
+have chosen.
+
+- **Patch** chooses a voice: the 32 built-in ones, then User 1 to User 32. A
+  new voice applies to the next note you play; notes already sounding keep
+  theirs.
+- **Brightness** moves the level of every modulating operator, up to 24 dB
+  down at the left and up at the right. In the middle the voice plays as
+  programmed. The carriers, and so the loudness, do not change.
+- **Env Time** runs all the voice's envelopes faster or slower, the pitch
+  envelope's too: up to 8 times faster at the left, 8 times slower at the
+  right, as programmed in the middle. It acts on notes that are sounding.
+- **Feedback** adds to the voice's own feedback, from 0 to 7 in whole steps.
+- **Volume**, on page 2, is the engine's output level.
+- Twelve notes play at once.
+
+The built-in voices:
+
+| Patch numbers | What they are |
+| --- | --- |
+| 0 – 4 | Keys: two electric pianos, a clavinet-like pluck, a harpsichord, a koto |
+| 5 – 10 | Mallets and bells: marimba, vibraphone (with tremolo), tubular bell, glass bell, chimes, steel drum |
+| 11 – 13 | Organs: drawbars, drawbars with a percussive click, a gritty rock organ |
+| 14 – 17 | Brass and winds: brass, soft brass, flute, clarinet |
+| 18 – 21 | Strings and pads: strings, warm pad, glass pad, a slow sweep |
+| 22 – 24 | Basses: FM bass, plucked bass, saw bass |
+| 25 – 27 | Leads: saw, square, a sync-like sweep |
+| 28 – 30 | Drums: kick (play it low), snare, hi-hat |
+| 31 | A pure sine, for tuning and tests |
+| 32 – 63 | User 1 to User 32 |
+
+### Loading voices from SysEx
+
+{{status desktop}}
+
+The user slots take voices from SysEx files (`.syx`), the format the DX7 and
+its editors save: a single voice, or a bank of 32. A bank fills User 1 to
+User 32; single voices go to the user slots one after another. A file may hold
+several dumps. Values out of range are brought into range, and anything that
+is not a voice dump is skipped. On the desktop, `fm1-render --sysex
+FILE.syx` loads files before the first note ([chapter 2](02-getting-started.md#rendering-a-sound)),
+and prints the names it found. The simulator cannot load files yet.
+
+!!! note "Voices from elsewhere"
+    Files of DX7 voices circulate widely, Yamaha's own factory voices among
+    them. They are not part of Lunar Modulator, and nothing here comes with
+    them: load only files you are entitled to use.
+
+!!! tip "Two algorithms with a loop"
+    Algorithms 4 and 6 feed a whole stack of operators back on itself, as
+    the DX7 does; FM6 runs that loop, where msfa itself plays those two
+    algorithms without feedback. The built-in SAW BASS uses it.
+
+{{engine-table dx7}}
 
 ## Shapes
 

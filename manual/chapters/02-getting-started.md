@@ -58,8 +58,9 @@ nothing: it starts from the same settings every time.
     as 48,000, the four engines built from Plaits' code (Macro, Macro Heavy,
     Six-Op FM and Drums) cannot run. The simulator then starts with Shapes,
     steps over those four when you turn [[PRESETS]], and says why on its
-    screen and in the status line. Set your computer's audio output to
-    44.1 kHz and reload the page to get them back.
+    screen and in the status line. The other engines, FM6 among them, run
+    at any of these rates. Set your computer's audio output to 44.1 kHz and
+    reload the page to get them back.
 
 ### Playing with the mouse or a touch screen
 
@@ -243,6 +244,15 @@ level before and after the limiter.
 More examples:
 
 ```bash
+# FM6's tine electric piano, a C major chord, through Ensemble and Plate
+engines/build/fm1-render --engine dx7 --param Patch=0 \
+    --note 0:60:90:1 --note 0:64:90:1 --note 0:67:90:1 \
+    --fx ensemble --fx plate --seconds 3 --out tines.wav
+
+# FM6 playing the eighth voice of a 32-voice bank of your own, a .syx file
+engines/build/fm1-render --engine dx7 --sysex mybank.syx --param Patch=39 \
+    --note 0:48:100:2 --seconds 3 --out mine.wav
+
 # Six-Op FM's first electric piano, a C major chord, through Ensemble and Plate
 engines/build/fm1-render --engine sixop --param Patch=32 \
     --note 0:60:90:1 --note 0:64:90:1 --note 0:67:90:1 \
@@ -268,7 +278,7 @@ engines/build/fm1-render --engine sw-sophie \
 | Option | What it does |
 | --- | --- |
 | `--list` | Prints every engine and effect with its parameters, ranges, defaults and value names, as JSON |
-| `--engine ID` | The sound engine: `macro`, `macro-heavy`, `sixop`, `shapes`, `sw-sophie`, `drums` or `test-sine`. Each engine's identifier is under its table in chapter 5 |
+| `--engine ID` | The sound engine: `macro`, `macro-heavy`, `sixop`, `dx7` (FM6), `shapes`, `sw-sophie`, `drums` or `test-sine`. Each engine's identifier is under its table in chapter 5 |
 | `--param NAME=VALUE` | Sets one of the engine's parameters before the first note |
 | `--note T:KEY:VEL:LEN` | Plays a note (above) |
 | `--param-at T:NAME=VALUE` | Sets one of the engine's parameters at time *T*, in seconds |
@@ -277,7 +287,8 @@ engines/build/fm1-render --engine sw-sophie \
 | `--fx-param NAME=VALUE` | Sets a parameter of the effect before it |
 | `--fx-param-at T:K:NAME=VALUE` | Sets a parameter of the *K*-th effect (the first `--fx` is 1) at time *T*, in seconds |
 | `--seconds S` | The length of the file, 2 seconds unless you say otherwise |
-| `--rate HZ` | The sample rate, 44,118 unless you say otherwise. Macro, Macro Heavy, Six-Op FM and Drums refuse rates above 47,872; Shapes runs from 24,000 to 96,000 |
+| `--rate HZ` | The sample rate, 44,118 unless you say otherwise. Macro, Macro Heavy, Six-Op FM and Drums refuse rates above 47,872; Shapes runs from 24,000 to 96,000; FM6 from 16,385 to 384,000 |
+| `--sysex FILE.syx` | Loads DX7 voices from a SysEx file into FM6's user slots (`--engine dx7`): a bank fills User 1 to 32, single voices go to User 1, 2 and on, in the order given ([chapter 5](05-sound-engines.md#fm6)) |
 | `--frames N` | The block size, 64 unless you say otherwise |
 | `--tempo BPM` | The tempo the effects hear when no sequencer plays, from 20 to 300; 120 unless you say otherwise. Of the effects, only Test Ext listens to it so far |
 | `--out FILE.wav` | Where to write the sound |
