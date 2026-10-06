@@ -19,22 +19,36 @@ this note judges them dimension by dimension and keeps the best of both:
 Neither proposal is committed; what survives is here. **Nothing is built.**
 The six final mockups are in `assets/web-editor/` (§3).
 
+**Status: decided** (owner, 2026-10-06). ED1–ED18 are adopted as
+recommended (§19), with two answers on top:
+- **FM6 (DX7) voice editing is a later stage**, not v1 (ED17).
+- **Memory figures a user sees are percentages of the FM-1's budget
+  only**: on the FM-1's screen, on the page, in the editor and in refusal
+  messages. Bytes and kilobytes appear only in developer docs
+  (DEVELOPERS.md, `engines/README.md`, notes like this one). This settles
+  §20.2; the mockups predate it (§3).
+
+The build order is decided too: ED0 after the state core (E1–E3) lands, ED1
+after A1, ED2–ED5 after W1 (§18).
+
 **Read with.**
 - `notes/2026-10-06-state-files.md` and `notes/2026-10-06-song-and-scenes.md`
   on `docs/2026-10-06@state-song-design` ("the state note"): the record
   model, JSON as the readable format with a schema per kind, the metadata
   export, the stages E1–E3, P1, A1, W1 and the owner's decisions ST1–ST20.
-- `notes/2026-10-06-ui-audit.md` and `sim/web/PALETTE.md` v2 on
-  `feature/2026-10-06@ui-colour-type`: the semantic colour map and the
-  sound colours, used unchanged.
+- `notes/2026-10-06-ui-audit.md` and `sim/web/PALETTE.md` v2 (PRs #67 and
+  #75, on main): the semantic colour map and the sound colours, used
+  unchanged.
 - `tools/manual/diagram_theme.py` (PR #73): the manual's line kinds, used
   unchanged for cables.
 
 **Marks.** `[verified]` was checked for this note on 2026-10-06 against the
 UI colour lane's worktree at `b1677cd` (its `sim/web/src`, `www/` and native
 harness) or the state branch at `1757499`, by reading the code or running
-it. `[reported]` names its source ("A" and "B" are the two designers'
-scratch notes). `[inferred]` is reasoning, to be checked when built.
+it; the claims added with the owner's decisions (§19, §20.2, §20.3) were
+checked against main at `96fae8a`. `[reported]` names its source ("A" and
+"B" are the two designers' scratch notes). `[inferred]` is reasoning, to be
+checked when built.
 
 **The one rule holds.** The editor changes the virtual FM-1 on its own page.
 It never sends anything to a device; the device link in §16 is design only,
@@ -96,9 +110,12 @@ never sends") stands.
   covers editor and panel edits alike; the sequencer keeps its own (§7, §8).
 - **Files are the state note's**, with drop targets, per-block export,
   links that open the editor at a parameter, and a library (§9).
-- **Build:** ED0 (metadata and C helpers) can start now beside E2 and E3;
-  ED1 (the edit layer and the shadow Worker) follows A1; the editor's
-  views follow W1, in four stages (§18).
+- **Build** (decided): ED0 (metadata and C helpers) once the state core
+  (E1–E3) has landed; ED1 (the edit layer and the shadow Worker) after A1;
+  the editor's views after W1, in four stages, ED2–ED5 (§18).
+- **Memory as a percentage** (decided): every memory figure the editor
+  shows is a percentage of the FM-1's budget, as the screen's meter is
+  (§11, §20.2).
 
 ## 2. The two designs, judged
 
@@ -149,8 +166,9 @@ Comp → Gate, S2 Macro (Wavetable) → Echo with the arpeggiator on, S3 Macro
 Master Sat, M2 Limiter; six modules and ten cables.
 - Run again for this note, the harness gives 300,672 B of 387,924 at
   44,118 Hz, slot 6 refused and slot 9 a tick late [verified: `refused` 32,
-  `delayed` 256 in its `--slots` output]. The screen shows 78 %, so the
-  editor shows 293.6 of 378.8 KB and 78 %.
+  `delayed` 256 in its `--slots` output]. The screen shows 78 %, and so
+  does the editor: a user sees memory only as a percentage of the budget
+  (owner, 2026-10-06).
 - The four FM-1 screens are the harness's own renders of that project
   [reported: designer A, `fm1-sim-render` on the UI colour lane]; the panel
   around the first is a capture of the page with that screen laid in its
@@ -164,6 +182,17 @@ Master Sat, M2 Limiter; six modules and ten cables.
   Macro, the Limiter's meters, the A/B values, the history's times), the
   RAM split by part (within about 1 KB), and the arrival card's figures,
   which are computed from A's sizes.
+- **Memory in the mockups is in KB; the editor's will be in percent.** The
+  mockups were drawn before the owner decided that a user sees memory
+  only as a percentage of the FM-1's budget, and are kept as drawn. Where
+  they show memory in KB (the outline's and Memory page's totals, each
+  block's and picker entry's cost, "free", "46.0 KB over", the arrival
+  card's "RAM after", the refused load's need), the built editor shows the
+  same figure as a percentage, by the rule in §11; for example the
+  outline's "RAM 293.6 / 378.8 KB" beside "78 %" becomes the 78 % alone.
+  A file's or a link's size (the library, "Copy a link") is not a memory
+  figure and keeps its unit [inferred: the decision is about the RAM
+  budget].
 
 **The check.** `src/editor.js` checks every render and `src/render.mjs`
 prints the findings: text over text, text over a mark (thumbs, brackets,
@@ -270,7 +299,8 @@ void fm1_edit_view(const fm1_app_t *a, fm1_view_t *out);
   next note, and the editor says so.
 - **Refusals come from C**, with codes the metadata names in words: RAM (at
   44,118 Hz), RATE, rack or matrix full, and the matrix planner's per-slot
-  reasons (§6). The editor's previews (a picker's RAM column, the jacks
+  reasons (§6), and a RAM refusal says by how much in percent of the
+  budget (§11). The editor's previews (a picker's RAM column, the jacks
   that would refuse a cable in hand) come from the shadow module; the
   live module's answer wins.
 
@@ -414,7 +444,8 @@ drop and things to take out.
 - **Drop targets are `into`.** A sound file on a strip loads into that
   sound; an effects file on a strip's inserts or on the master chain; a
   mod rack on the rack. Anywhere else, the page asks, as Open does. The
-  arrival card shows what is replaced and brought and the RAM after;
+  arrival card shows what is replaced and brought and the RAM after, in
+  percent of the budget;
   "Load without its modulation" when the rack is full; over budget is
   refused with no choice (owner) — `06-project` shows both.
 - **Out, per block:** "Export Sound 3…", "Export S3's effects…", "Export
@@ -446,7 +477,7 @@ drop and things to take out.
 | Sound | One sound's engine by its pages, both inserts, the arpeggiator (the first three pages open, the rest as summaries), the cables into it in words, the detail bar | 02 |
 | Modulation · Table | The rack as cards with live traces; the matrix with filters, sort, marks in words, reasons and fixes; the slot and module inspectors | 04 |
 | Modulation · Map | The same slots as cables, with focus | 05 |
-| Compare, Memory | A/B of one sound; RAM by part and "what would fit" | 06 |
+| Compare, Memory | A/B of one sound; RAM by part, in percent of the budget, and "what would fit" | 06 |
 | Files and history | Drop, arrival, export, the library, the history | 06 |
 
 **Search** (⌘K, B) reads the mirror and the metadata, so it covers what a
@@ -466,7 +497,7 @@ never hues.
 | select (iris) | The selected row, block, slot or cable; slider fills; the pressed segment; focus rings; the flash of a change from the panel |
 | held (gold) | A block in hand while dragging; a lane that locks a value (the dot); the arpeggiator's lit LED |
 | live and mod (foam) | Meters and traces; cables and jacks; modulated labels, brackets and cable chips; the link dot |
-| refuse (love) | Refused cables, drops and loads; "KB over"; over budget |
+| refuse (love) | Refused cables, drops and loads; "% over"; over budget |
 | context (rose) | Context lines ("On the panel now: FX · S3 In1"), the detail bar's path, "changed since loaded"; never on a line where love can appear |
 | sound 1–4 | Strip frames, tags, level fills, RAM segments, always with the S-number |
 
@@ -479,9 +510,15 @@ never hues.
 | per voice (new) | The dashed cable over a translucent band, `v` on its pill; offered to the manual's diagrams |
 
 Type: Audiowide for the brand and section titles, Exo 2 for the rest, with
-tabular figures; both ship with the page (SIL OFL 1.1). KB is 1,024 B, as
-the page's status line uses, and every RAM figure is C's, rounded as the
-screen rounds (§20).
+tabular figures; both ship with the page (SIL OFL 1.1).
+
+**Memory is a percentage** (owner, 2026-10-06). Every memory figure the
+editor shows (totals, costs, what is free, what would fit, refusals) is a
+whole percentage of the FM-1's budget, computed from C's figure and
+rounded up as the screen's meter rounds, so the screen, the page and the
+editor never differ by a percent [verified: `draw_ram_meter` in
+`fm1_app.c`]; a cost under 1 % reads "under 1 %", and a refusal says by how
+much ("13 % over"). Bytes and kilobytes stay in developer docs (§20.2).
 
 ## 12. The audio thread and performance
 
@@ -530,7 +567,7 @@ screen rounds (§20).
 - **Announcements:** polite, at most one a second, for changes from the
   panel, refusals and loads; never for live values.
 - **Colour is never the only cue:** S-numbers with sound colours, the marks
-  `> v ~ ! –` with words, line styles, "KB over" spelt out. Contrast from
+  `> v ~ ! –` with words, line styles, "% over" spelt out. Contrast from
   PALETTE.md's checked tokens; forced colours map cables to system colours
   and keep their dashes.
 - **Targets** at least 24 px (rows 29 px, segments 24 px); focus rings in
@@ -614,19 +651,24 @@ screen rounds (§20).
 
 ## 18. Build plan
 
-The order follows the state note's (§18 there): E1–E3 and P1 now; A1, W1
-and S9+ after the UI colour and fonts stage; then this train. The editor's
-lanes touch `sim/web/src` and the page, so they run one at a time.
+The order follows the state note's (§18 there): E1–E3 and P1 first; A1,
+W1 and S9+ after the UI colour and fonts stage (landed in PR #75); then
+this train. The editor's lanes touch `sim/web/src` and the page, so they
+run one at a time.
+
+**Decided** (owner, 2026-10-06; ED18): **ED0 after the state core (E1–E3)
+lands; ED1 after A1; ED2–ED5 after W1**, in that order, before the master
+chain's four slots and two sends.
 
 | Stage | Contents | Needs |
 | --- | --- | --- |
-| **ED0** Metadata and C helpers | The metadata additions of §6 in E2's `fm1-render --meta`, with their golden; `fm1_param_parse` and its round-trip test; per-slot refusal codes and the loop each late slot closes, in the planner's info | `engines/` and `tools/` only: now, beside E2 and E3 (after E2's export lands, or inside it) |
+| **ED0** Metadata and C helpers | The metadata additions of §6 in E2's `fm1-render --meta`, with their golden; `fm1_param_parse` and its round-trip test; per-slot refusal codes and the loop each late slot closes, in the planner's info | `engines/` and `tools/` only: after the state core (E1–E3, with E2's metadata export) has landed |
 | **ED1** Edit layer and shadow Worker | `fm1_edit.c` (live apply of records and verbs, the change ring with sources, telemetry with a subscription mask, the view record and knob map); the hooks in `fm1_app.c`; the wasm exports and worklet messages of §5; `editor/shadow.worker.js`; the parity, refusal and underrun tests. No UI | A1 |
 | **ED2** Shell, flow and sound | The layouts, outline and screen card, app bar and RAM by part; the Flow (selection only) and the Sound inspector from metadata; the detail bar; follow both ways and K1–K4; history and undo for parameters; PLAY and EDIT | ED1, W1 |
 | **ED3** Chains and modulation | Drag to move and swap with its keyboard twin and RAM verdicts; effect pickers; master inspectors with meters; the Mix; per-pad rows (API v4); the rack cards, the matrix table, slot and module inspectors; structural undo | ED2 |
 | **ED4** Files and project | Drop targets, per-block export, the library, `view=edit` and `sel`; ⌘K search; A/B and the Memory page; undo's snapshot fallback | ED3 |
 | **ED5** The Map and reach | The patch-bay Map with focus; phones; keyboard and screen-reader passes; the layout check in the page tests; a manual chapter | ED4 |
-| later | The pop-out window; a song-list view on S9+'s data; an FM6 voice editor; the device target (§16) | — |
+| later | The pop-out window; a song-list view on S9+'s data; an FM6 (DX7) voice editor, a later stage by the owner's decision (ED17); the device target (§16) | — |
 
 - Each stage that adds state to the page adds nothing to the files: the
   editor writes only through ops and W1's file path, so the state note's
@@ -637,26 +679,37 @@ lanes touch `sim/web/src` and the page, so they run one at a time.
 
 ## 19. Owner decisions
 
-| # | Question | Recommendation |
+**All decided** (owner, 2026-10-06): ED1–ED18 are adopted as recommended.
+Each row below is the recommendation as adopted; ED17 and ED18 carry the
+owner's additions, and the memory unit (§20.2) is settled under the table.
+
+| # | Question | Decided (owner, 2026-10-06) |
 | --- | --- | --- |
-| ED1 | Where it lives | On the simulator's page: Panel, Workbench and Editor layouts, modules loaded on first use, one wasm instance. Not an `/editor/` page over the embed API, not a second engine |
-| ED2 | The vocabulary | Edits are the state note's records plus four verbs (swap, move, current, view), applied live by one C edit layer the panel's handlers share. No engine rule in JavaScript |
-| ED3 | The audio thread | Binary only: packed records in, a change feed and telemetry out. JSON, value text, pass 1, hashes and diffs in a shadow Worker with a second module |
-| ED4 | Metadata | The state note's metadata export as a static `meta.json`, matched by `fm1w_meta_id()`; ED0 adds page names, the detent step, effect groups, refusal words and the telemetry layout |
-| ED5 | Controls | A slider and a typed value field at every width (LOG on its law, bipolar from zero); segments up to 8 entries, a list beyond. Knobs stay the panel's |
-| ED6 | Grouping | All of a block's pages at once, labelled with the device's page and knobs; K1–K4 chips in the Workbench |
-| ED7 | The home view | The Flow: four strips into the Mix and the master chain, drag to move or swap with a keyboard twin and a RAM verdict before the drop |
-| ED8 | Modulation | The matrix table is the editing view (and the keyboard, screen-reader and phone view); the patch-bay Map is a second view of the same slots, with focus, built in the last stage |
-| ED9 | Follow | Editor to panel on by default (view only); panel to editor on in the Workbench, never during a picker, a typed value or a drag; both are toggles |
-| ED10 | Undo | One page history for editor and panel edits, a drag as one step, inverse ops checked by a hash with a snapshot fallback; the sequencer keeps its own undo |
-| ED11 | Live values | One telemetry block a frame at most 30 times a second, only what is visible, in transferred buffers; no SharedArrayBuffer |
-| ED12 | Keys | PLAY and EDIT modes, decided by focus, ⌘E and Esc; the mode always on screen |
-| ED13 | Files | W1's files, storage and links unchanged, plus drop targets, per-block export, `view=edit&sel=` and a library view; and ask W1 to run pass 1 in the shadow Worker and load the worklet in binary |
-| ED14 | Reach | Desktop and tablet in v1; phones (tabs, a cable list, no Map) in the last stage |
-| ED15 | The device | Nothing before the gate; ST18 stands, the browser never sends; records stay transport-agnostic so the host tool can carry them later; how the page reaches it is decided after the gate |
-| ED16 | Licence display | Each module's licence from the metadata, a GPL chip in pickers; the editor is MIT page code under the page's notice |
-| ED17 | Scope of v1 | Sounds (engine, inserts, arpeggiator, per-pad values), Mix, master, rack, matrix, A/B, memory, files. Not clips, lanes or the song list; not FM6 voice editing |
-| ED18 | Order | ED0 now beside E2 and E3; ED1 after A1; ED2–ED5 after W1, in order, before the master chain's four slots and sends; the pop-out window later |
+| ED1 | Where it lives | **Adopted.** On the simulator's page: Panel, Workbench and Editor layouts, modules loaded on first use, one wasm instance. Not an `/editor/` page over the embed API, not a second engine |
+| ED2 | The vocabulary | **Adopted.** Edits are the state note's records plus four verbs (swap, move, current, view), applied live by one C edit layer the panel's handlers share. No engine rule in JavaScript |
+| ED3 | The audio thread | **Adopted.** Binary only: packed records in, a change feed and telemetry out. JSON, value text, pass 1, hashes and diffs in a shadow Worker with a second module |
+| ED4 | Metadata | **Adopted.** The state note's metadata export as a static `meta.json`, matched by `fm1w_meta_id()`; ED0 adds page names, the detent step, effect groups, refusal words and the telemetry layout |
+| ED5 | Controls | **Adopted.** A slider and a typed value field at every width (LOG on its law, bipolar from zero); segments up to 8 entries, a list beyond. Knobs stay the panel's |
+| ED6 | Grouping | **Adopted.** All of a block's pages at once, labelled with the device's page and knobs; K1–K4 chips in the Workbench |
+| ED7 | The home view | **Adopted.** The Flow: four strips into the Mix and the master chain, drag to move or swap with a keyboard twin and a RAM verdict before the drop |
+| ED8 | Modulation | **Adopted.** The matrix table is the editing view (and the keyboard, screen-reader and phone view); the patch-bay Map is a second view of the same slots, with focus, built in the last stage |
+| ED9 | Follow | **Adopted.** Editor to panel on by default (view only); panel to editor on in the Workbench, never during a picker, a typed value or a drag; both are toggles |
+| ED10 | Undo | **Adopted.** One page history for editor and panel edits, a drag as one step, inverse ops checked by a hash with a snapshot fallback; the sequencer keeps its own undo |
+| ED11 | Live values | **Adopted.** One telemetry block a frame at most 30 times a second, only what is visible, in transferred buffers; no SharedArrayBuffer |
+| ED12 | Keys | **Adopted.** PLAY and EDIT modes, decided by focus, ⌘E and Esc; the mode always on screen |
+| ED13 | Files | **Adopted.** W1's files, storage and links unchanged, plus drop targets, per-block export, `view=edit&sel=` and a library view; and ask W1 to run pass 1 in the shadow Worker and load the worklet in binary |
+| ED14 | Reach | **Adopted.** Desktop and tablet in v1; phones (tabs, a cable list, no Map) in the last stage |
+| ED15 | The device | **Adopted.** Nothing before the gate; ST18 stands, the browser never sends; records stay transport-agnostic so the host tool can carry them later; how the page reaches it is decided after the gate |
+| ED16 | Licence display | **Adopted.** Each module's licence from the metadata, a GPL chip in pickers; the editor is MIT page code under the page's notice |
+| ED17 | Scope of v1 | **Adopted.** Sounds (engine, inserts, arpeggiator, per-pad values), Mix, master, rack, matrix, A/B, memory, files. Not clips, lanes or the song list. **FM6 (DX7) voice editing is a later stage** (owner), not v1 |
+| ED18 | Order | **Adopted, with the owner's order:** ED0 after the state core (E1–E3) lands; ED1 after A1; ED2–ED5 after W1, in order, before the master chain's four slots and sends; the pop-out window later (§18) |
+
+**Memory figures** (owner, 2026-10-06; the open issue of §20.2): a user
+sees memory only as a **percentage of the FM-1's budget**, wherever they see
+it: the FM-1's screen, the page, the editor and every refusal message.
+Bytes and kilobytes appear only in developer docs (DEVELOPERS.md,
+`engines/README.md`, notes). The editor's rule is in §11; the places that
+still show KB today are listed in §20.2.
 
 ## 20. Found on the way
 
@@ -666,16 +719,32 @@ lanes touch `sim/web/src` and the page, so they run one at a time.
    464 KB of 378.8, so it is refused, as `06-project` shows [inferred: A's
    sizes]. Mission 2.3's file should start from a project with room, or
    use Macro; a note for the guide lane.
-2. **Two units for a kilobyte.** The state note's RAM refusal example says
-   "the FM-1 has 388 KB" (1,000 B) while the page's status line says
-   379 KB (1,024 B) for the same 387,924 B [verified: both texts]. The
-   screen, the page, the editor and the refusal words should use one; this
-   note uses 1,024, as the page does.
+2. **Two units for a kilobyte. Resolved: percent only** (owner,
+   2026-10-06; §19). The state note's RAM refusal example says "the FM-1
+   has 388 KB" (1,000 B) while the page's status line says 379 KB (1,024 B)
+   for the same 387,924 B [verified: both texts]. Rather than pick one
+   kilobyte, a user now sees memory only as a percentage of the FM-1's
+   budget; bytes stay in developer docs. Places that show memory in KB to
+   users today, for the lanes that own them [verified: main at `96fae8a`]:
+   - the FM-1's screen: both RAM refusals ("…K over budget", for an engine
+     or effect and for the arpeggiator) and GLO's RAM line ("…K/379K"),
+     in `sim/web/src/fm1_app.c`;
+   - the page's status line ("Chain RAM … KB of the … KB the stock layout
+     leaves free"), `showStatus` in `sim/web/www/app.js`;
+   - the manual's memory figures, in chapters 3, 5, 6 (including its
+     sentence that the global page shows KB) and 13 (the memory budget and
+     the size table);
+   - the state note's RAM refusal example, on its branch.
+   File sizes (a DX7 file the simulator reads up to 64 KB, a set sent over
+   MIDI) are not memory figures [inferred], and whether the specifications
+   chapter's hardware sizes (578 KB of SRAM, 1 MB of flash) stay is a
+   question for the owner.
 3. **RAM figures round up.** 300,672 of 387,924 B is 77.5 %, and the
-   screen says 78 % [verified: the harness's figures; the screen's rounding
-   inferred]; the page's status line rounds kilobytes up too
-   (`Math.ceil(b / 1024)` [verified: `app.js`]). The editor shows C's
-   figure, so no two views differ by a percent.
+   screen says 78 % [verified: the harness's figures; `draw_ram_meter`
+   in `fm1_app.c` divides with `+ FM1_APP_RAM_BUDGET - 1`]; the page's
+   status line rounds kilobytes up too (`Math.ceil(b / 1024)` [verified:
+   `app.js`]). The editor shows C's figure as the screen's meter rounds it,
+   so no two views differ by a percent (§11).
 4. **A refused cable still marks its destination as modulated on the
    screen.** M1 Master Sat's Drive shows the modulation label and bracket
    although its only cable (slot 6, per voice into an effect) is refused

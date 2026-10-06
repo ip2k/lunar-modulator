@@ -18,6 +18,11 @@ are their renders at 1440 × 900 and 1024 × 768, full page.
 The fonts come from the page: `sim/web/www/fonts/` (Audiowide and Exo 2,
 SIL OFL 1.1).
 
+**Memory figures.** The mockups show memory in KB. They were drawn before
+the owner decided (2026-10-06) that a user sees memory only as a
+percentage of the FM-1's budget, and are kept as drawn; the built editor
+shows those figures as percentages (the note's §3 and §11).
+
 ## Rebuild
 
 ```bash
