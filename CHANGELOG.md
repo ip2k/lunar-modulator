@@ -1367,6 +1367,23 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- **Shapes stays inside what Braids' code handles.** At a few edges Braids
+  read past the end of a table or did arithmetic C++ leaves undefined, so
+  the same settings could sound different from one build to the next (the
+  desktop, the browser, the FM-1). Shapes now holds those settings at the
+  nearest one Braids handles; everything inside sounds byte for byte as
+  before.
+  - Wave Line: the last 1.6 % of Timbre plays the line's last wave, where
+    it had played a stray one.
+  - Comb: on keys 0–47 Timbre stops where the comb reaches its lowest
+    pitch. The sound is the same; only the comb's short glide up from the
+    bottom starts nearer.
+  - A note bent or offset above MIDI 127.99 plays as at 127.99, on every
+    shape. Flute, the four filter shapes and the two Sync shapes faulted up
+    there; the others had already stopped rising in pitch.
+  - Checked under the address and undefined-behaviour sanitizers over every
+    shape, key, Timbre and Color end and bend, and against Braids itself at
+    the held values.
 - docs/02 §5 and `tools/check_msfa_table.py` had rows 4 and 6 of msfa's
   algorithm table the wrong way round: `0x41`, which the FM-1 carries, is
   Google's original (there since its first commit, 2012), and `0xC1`, which
