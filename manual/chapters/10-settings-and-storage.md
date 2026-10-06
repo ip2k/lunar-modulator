@@ -25,7 +25,7 @@ reads *1/1 Globe* while the page is open.
 | Block | How many samples the firmware computes at a time: 64 |
 | RAM | Two figures in kilobytes: the memory the sounds, effects, sequencer and modulation take (the sequencer about 36K of it and modulation about 23K, playing or not), then the 379K the FM-1 has free for them. The memory meter in the bottom bar shows the same as a share ([chapter 6](06-effects.md#memory)) |
 | Voices | How many notes the current sound's engine plays at once |
-| FX1, FX2 | The effect in each master slot, M1 and M2, by its short identifier such as `plate`, or `--` for an empty slot |
+| M1, M2 | The effect in each master slot by its name, such as *Plate*, spelled out where the line has room (*Compressor* for Comp), or `--` for an empty slot |
 | Octave | The keyboard's octave, from −3 to +3 ([chapter 4](04-playing.md#octave-and-transpose)) |
 | Transpose | The transpose in semitones, from −12 to +12 |
 
