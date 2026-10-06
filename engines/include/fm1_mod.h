@@ -422,6 +422,11 @@ float fm1_mod_param(const fm1_mod_t *m, unsigned pos, unsigned index);
  * seed. */
 int fm1_mod_set_slot(fm1_mod_t *m, unsigned i, const fm1_mod_slot_t *s);
 int fm1_mod_get_slot(const fm1_mod_t *m, unsigned i, fm1_mod_slot_t *out);
+/* 1 when an enabled slot's cable reaches a parameter of `unit` (any code
+ * of a sink, aliases too), whatever its amount: the host's answer for
+ * FM1_PARAM_DRIVEN (fm1_engine.h), with its own lock lanes. 0 otherwise,
+ * and for a gate input's cable or a code that names no sink. */
+int fm1_mod_unit_routed(const fm1_mod_t *m, unsigned unit);
 /* Q1.14 from a float in -1..1; NaN gives 0. */
 int16_t fm1_mod_q14(float x);
 

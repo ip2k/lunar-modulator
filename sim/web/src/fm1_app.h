@@ -303,6 +303,7 @@ typedef struct fm1_app_unit {
   unsigned char *mem;            /* this unit's arena */
   size_t cap;
   float value[FM1_APP_MAX_PARAMS];
+  int driven;                    /* FM1_PARAM_DRIVEN as last sent (0: as created) */
 } fm1_app_unit_t;
 
 /* A tick's write to an effect or to AMP, at its frame in the block. */

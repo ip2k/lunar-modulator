@@ -678,6 +678,7 @@ static int load(fm1_app_t *a, fm1_app_unit_t *u, int index, size_t bytes) {
   u->e = index == a->dx7.index ? &a->dx7.engine : e;
   u->index = index;
   u->bytes = bytes;
+  u->driven = 0;                        /* a new instance starts undriven */
   for (uint16_t i = 0; i < e->n_params; ++i) u->value[i] = e->params[i].def;
   if (index == a->dx7.index) dx7_give(a, u);
   return 1;
@@ -2408,12 +2409,20 @@ static void sink_set_param_note(void *ctx, uint8_t key, uint16_t index, float of
 /* An effect over the block, split at its own writes from the ticks, as
  * fm1-render's RenderFx does; each piece through fm1_fx_render, which
  * gives an effect with engine API v3's extension the sequencer's tempo,
- * beats, Start and Stop (fm1_fx_host.h; no key yet). */
+ * beats, Start and Stop (fm1_fx_host.h; no key yet). First, as RenderFx,
+ * FM1_PARAM_DRIVEN when it changed: 1 while a cable reaches the effect, so
+ * one with an idle path never idles under it (owner, 2026-10-06; the
+ * sequencer's lanes cannot lock an effect yet). */
 static void render_fx(fm1_app_t *a, int unit, float *out, uint32_t n) {
-  const fm1_app_unit_t *u = &a->unit[unit];
+  fm1_app_unit_t *u = &a->unit[unit];
   const int code = fm1_app_mod_unit(unit);
+  const int driven = a->mod && code >= 0 ? fm1_mod_unit_routed(a->mod, (unsigned)code) : 0;
   fm1_fx_block_t b;
   uint32_t cur = 0;
+  if (driven != u->driven) {
+    u->e->set_param(u->self, FM1_PARAM_DRIVEN, (float)driven);
+    u->driven = driven;
+  }
   b.clock = a->seq ? &a->seq_host.clock : NULL;
   b.ev = a->seq ? a->seq_ev : NULL;
   b.n_ev = a->seq ? a->seq_last_n : 0u;
