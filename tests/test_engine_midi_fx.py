@@ -73,7 +73,8 @@ def test_the_arp_lists_as_a_midi_effect(renderer):
         ("midi_fx", 0, False, False, None)
     assert "Yarns" in e["credits"] and "MCL" in e["credits"] and "Super Arp" in e["credits"]
     params = {p["name"]: p for p in e["params"]}
-    assert len(params) == 25 and len(e["params"]) == 25
+    # 24: the core's 25 less SWING, which follows the set's swing (owner, 2026-10-06)
+    assert len(params) == 24 and len(e["params"]) == 24 and "Swing" not in params
     pages = [p["page"] for p in e["params"]]
     assert pages == sorted(pages) and set(pages) == set(range(7))   # knob order is page order
     # PLAY, as the options note §2.4 lays it out: MODE, RATE, GATE, OCT
@@ -243,14 +244,15 @@ def grid_runs(renderer, tmp_path, block):
             ("1/16", [], 24, 0),
             ("on-mid-bar", ["--mfx-on-at", f"0:{at(BOUND * 38)}:1"], 24, 0),
             ("1/8t", ["--mfx-param", "0:Rate=5"], 32, 0),
-            ("swing", ["--mfx-param", "0:Swing=60"], 24, 4)):
+            ("swing", [], 24, 4)):        # the set's swing (owner, 2026-10-06)
         log = tmp_path / f"{name.replace('/', '')}-{block}.jsonl"
         mfx = ["--mfx", "0:arp:off" if name == "on-mid-bar" else "0:arp"]
         s, wav, ev = mfx_run(renderer, tmp_path, [
             "--engine", "test-sine", "--frames", str(block), *mfx, *extra,
             *note(BOUND, 48, 100, BOUND * 3), *note(key, 60, 100, BOUND * 100),
             "--mfx-on-at", f"0:{at(BOUND * 150)}:0", "--log-events", str(log)],
-            name.replace("/", "") + str(block), script=script)
+            name.replace("/", "") + str(block),
+            script=script.replace("\n@", "\n@0 swing 60\n@", 1) if name == "swing" else script)
         ticks = seq_ticks(log)
         grid = {f for t, f in ticks.items() if t % (2 * step) in (0, step + swing)}
         played = [t for t, _ in ons(ev) if t >= play]
@@ -273,6 +275,28 @@ def test_the_arp_locks_to_the_beat_while_the_sequencer_plays(renderer, tmp_path)
     blocks of 1, 7 and 64 frames."""
     out = [grid_runs(renderer, tmp_path, b) for b in (1, 7, 64)]
     assert out[0] == out[1] == out[2]
+
+
+def test_the_arp_swings_with_the_set_while_stopped(renderer, tmp_path):
+    """The arp follows the set's swing (owner, 2026-10-06), stopped too:
+    fm1-render's --swing without a sequencer, the set's `swing` with one.
+    At 66 % an odd 1/16 step starts 6 ticks late, an even one on time."""
+    def gaps(args, script=None, name="s"):
+        _, _, ev = mfx_run(renderer, tmp_path, ["--engine", "test-sine", "--mfx", "0:arp", *args,
+                                                *note(BOUND, 60, 100, BOUND * 60)],
+                           name, script=script)
+        t = [f for f, _ in ons(ev)]
+        return [b - a for a, b in zip(t, t[1:])][:6]
+    straight = gaps([], name="straight")
+    assert max(straight) - min(straight) <= 1                # 24 ticks each, to a frame
+    late = 6 * TICK
+    for name, args, script in (("flag", ["--swing", "66"], None),
+                               ("set", [], f"#! rate={RATE} block=64 tracks=8 end={BOUND * 70}\n@0 swing 66\n")):
+        g = gaps(args, script, name)
+        assert all(abs(a - (b + late)) <= 1 for a, b in zip(g[0::2], straight[0::2])), (name, g)
+        assert all(abs(a - (b - late)) <= 1 for a, b in zip(g[1::2], straight[1::2])), (name, g)
+    r = subprocess.run([str(renderer), "--engine", "test-sine", "--swing", "81"], capture_output=True)
+    assert r.returncode == 2 and b"50..80" in r.stderr
 
 
 @pytest.mark.parametrize("rate, step", [(4, 24), (5, 32)])

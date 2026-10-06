@@ -9,6 +9,67 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Run the simulator yourself and drive it from another local page.**
+  Served from `localhost`, `127.0.0.1` or `[::1]`, the simulator now
+  answers a page on any local port that embeds it (as the guide does), and
+  a link may load a `.lunar`, `.movy1` or `.syx` file from another local
+  server (`?load=http://localhost:5173/missions/first.lunar`; that server
+  must allow it). The public simulator is unchanged: its own site only.
+- **Files on the simulator's page** (stage W1). *Open…*, or files dropped
+  on the page, loads projects, sounds, effects, mod racks and clips
+  (`.lunar`), a Movy set (`.movy1`) or DX7 patches (`.syx`); a sound,
+  effects or a clip asks where it goes. *Save…* downloads the project, the
+  current sound, its effects, the master effects or the mod rack, named
+  with the kind in the middle (`first-orbit-s2.sound.lunar`), or the set
+  for Movy.
+  - SAVE on the panel keeps the project in the browser, and the page
+    autosaves as you work: the next visit starts where you left off, with
+    *Start fresh* to go back to the start sounds.
+  - Every load keeps what it replaced in Recent (the last five), and
+    *Undo load* puts it back.
+  - A file that would not fit is refused under the panel in the refusal
+    colour, as a percent ("Needs 117% of the FM-1's RAM."), with *Load
+    without …* when there is a way round.
+  - *Copy link* makes a link that holds the whole project (up to 32 KiB);
+    links can also open the examples, such as
+    `?load=examples/first-orbit.lunar`, behind a card that says what they
+    replace.
+  - Five example files (MIT) come with the page, and the file formats'
+    JSON Schemas are published at `schema/1/` on the site.
+  - For contributors: a shadow Worker (a second module) runs every check
+    and all JSON, so the audio thread only ever loads the binary
+    container; `?embed=1` gives the guide a same-origin postMessage API
+    (load, save, query, view, highlight, transport). `sim/web/README.md`,
+    "Files", has the details; `sim/web/test/files.mjs` tests it in
+    headless Chromium.
+- **The simulator saves and loads everything it holds** (stage A1 of the
+  saved-state design). A project file keeps all four sounds with every
+  parameter and every drum pad, their levels, inserts and arpeggiators, the
+  master effects, FM6's user voices, the modulation rack and its cables,
+  the sequencer's set with its song and key, and the page you were on.
+  Loading it gives back the same instrument, and saving again gives the
+  same file, byte for byte.
+  - Sounds, effects chains, mod racks, clips, sets and settings load into
+    their place and leave the rest alone: a sound into the sound you
+    choose, its modulation into free places, its FM6 voice into the bank.
+  - A file that would not fit is refused and changes nothing. The screen
+    says *NOT LOADED* and why, such as *Needs 121% RAM*; memory is always
+    measured as the FM-1 would run it, whatever your browser's rate, as
+    the memory meter does. An engine the build lacks,
+    or modulation with no room, can be left out on request.
+  - SAVE keeps the project in the browser (below). Nothing is ever sent
+    to an FM-1.
+  - The example project `first-orbit.lunar` now fits the FM-1 (76% with
+    the app's own share) and carries its key in its set.
+  - For contributors: `sim/web/src/fm1_app_state.h` (check, load, save,
+    pack), the module's `fm1w_state_*` exports with a 256 KiB text buffer,
+    `fm1-sim-render --load/--save/--save-end`, the parity scenario
+    `project-load-play`, and `tests/test_app_state.py`. The project key's
+    one home is the set's `key` line (a typed binary item `0x13`);
+    `session.key` is written from it, never applied, and `lunar_state.py
+    check` reports a copy that disagrees. Decisions and what is left open
+    are in `notes/2026-10-06-state-files.md` §23.
+
 - **Choose which modules a build has** (the first step toward the browser
   firmware builder). A firmware image, the desktop renderer or the
   simulator can be built with only chosen sound engines, effects, MIDI
@@ -1564,6 +1625,22 @@ history.
     Arp, czietz's gist) in the reference table; a note for cloud sessions;
     and a current kick-off prompt. The 2026-09-06 prompt is kept, marked
     historical.
+- **The arpeggiator swings with the set** (owner, 2026-10-06). Its own
+  Swing knob is gone from the FEEL page; the Swing on the sequencer's Set
+  page now swings the arpeggiator too, playing or stopped. A file saved
+  before this loads as before; its old Swing value no longer does
+  anything. `fm1-render` takes `--swing 50..80` for runs without a
+  sequencer. For editors: a removed parameter's last name now stays
+  readable (`engines/aliases.json`'s `retired`, an engine's `retired` in
+  the metadata export), passed on by its retired uid as `#UID` is.
+- **The manual's specifications give sizes beside the shares**, as
+  "6 % (19 KB)": every engine and effect, the memory meter's 100 % (379 KB),
+  the sequencer's and modulation's own. The screens, and the rest of the
+  manual, still show the share only.
+- **The simulator's autosave skips compression**, which the audio thread
+  paid for; files, links, SAVE and Recent stay compressed. The saving is
+  small: about 0.05 ms of a 0.5 ms save for the example project, 0.08 ms
+  of 0.84 ms with all eight tracks full.
 - **Comet Kit's cymbals take half the flash.** The hi-hats, crash and ride
   are stored as 8-bit µ-law instead of 16-bit (110 KB instead of 221 KB):
   37.8 dB of signal to error against the 16-bit recordings, the error
@@ -2161,6 +2238,8 @@ history.
     and the bugs it found on the way.
 
 ### Fixed
+- `fm1-render --load` read files through a 64 KiB stack buffer, which
+  overflowed its JavaScript build's stack.
 - The JieLi compile check now compiles the MIDI effects and their registry
   (the arpeggiator), which it had left out.
 - **A refused modulation cable no longer marks its destination.** A cable

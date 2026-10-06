@@ -46,7 +46,7 @@ def param(s, name, sound=0):
 
 
 PARAMS = ["Mode", "Rate", "Gate", "Octaves", "Pattern", "Fill", "Rotate", "Length", "Chance", "Ratchet",
-          "Vel Spread", "Loop", "Oct Mode", "Velocity", "Swing", "Join", "Order", "Repeat", "Chord %",
+          "Vel Spread", "Loop", "Oct Mode", "Velocity", "Join", "Order", "Repeat", "Chord %",
           "Oct Jump", "Latch", "Sync", "Ratchet %", "Gate Sprd", "Seed"]
 
 

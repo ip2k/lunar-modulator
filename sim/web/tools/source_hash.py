@@ -44,7 +44,8 @@ SIM_INPUTS = ("sim/web/src", "sim/web/mk", "sim/web/build.sh", "sim/web/test/par
               "engines/include/fm1_meta.h", "engines/include/fm1_known.h",
               "engines/src/editor_meta.cc", "engines/include/fm1_engine_meta.h",
               "engines/include/fm1_refusal.h", "engines/include/fm1_tele.h",
-              "sim/web/test/meta.mjs")
+              "sim/web/test/meta.mjs", "sim/web/test/state",
+              "engines/state/*.[ch]", "engines/include/fm1_state_caps.h", "engines/host/state_clip.*")
 
 
 def _files(root, base):

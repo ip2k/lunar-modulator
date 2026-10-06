@@ -109,6 +109,10 @@ def test_save_writes_back_what_load_read(names, tmp_path, name, kind, extra):
     # fm1-render keeps no gap between a sound's inserts or in its effects
     # chain: a null closes up and its cables move with their units.
     if name == "tin-kit.sound.lunar":
+        # The arp's own Swing is retired (it follows the set's swing, owner,
+        # 2026-10-06): read by its retired uid (a rewrite keeps it as "#7"),
+        # and the engine, which no longer has it, drops it.
+        assert float(want["sound"]["midi_fx"][0]["params"].pop("#7")) == pytest.approx(57.152214)
         assert want["sound"]["inserts"][0] is None
         want["sound"]["inserts"] = want["sound"]["inserts"][::-1]
         want["mod"]["cables"][0]["to"]["unit"] = "snd.fx1"
@@ -156,7 +160,12 @@ def test_a_project_round_trips(names, tmp_path):
 
 
 def test_refusals(tmp_path):
-    r = run(R, "--load", EXAMPLES / "first-orbit.lunar", "--seconds", "0.01", "--out", tmp_path / "x.wav",
+    # The example fits since stage A1 (Macro for the bass); with Shapes it does not.
+    heavy = json.loads((EXAMPLES / "first-orbit.lunar").read_text())
+    heavy["sounds"][1]["engine"] = "shapes"
+    heavy["sounds"][1]["params"] = {}
+    (tmp_path / "heavy.lunar").write_text(json.dumps(heavy))
+    r = run(R, "--load", tmp_path / "heavy.lunar", "--seconds", "0.01", "--out", tmp_path / "x.wav",
             check=False)
     assert r.returncode == 1 and "RAM: needs" in r.stderr
     rings = tmp_path / "rings.sound.lunar"

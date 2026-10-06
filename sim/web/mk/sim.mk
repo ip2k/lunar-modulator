@@ -31,18 +31,22 @@ SIM_ENGINE_OBJ := $(filter-out $(BUILD)/our/host/render.o $(FM1_DROP_OBJ),$(OUR_
 # returns its id (fm1w_meta_id) and the export a buffer at a time
 # (fm1w_meta_read), from which build.sh writes the page's meta.json; the
 # harness writes it too (--meta), with its own instance bytes.
-SIM_META_OBJ = $(META_OBJ) $(BUILD)/state/state/fm1_num.o
+# The app's saved state (fm1_app_state.c, stage A1): the state core's
+# codecs, names and registries, the runtime's records and the clip merge.
+SIM_META_OBJ = $(META_OBJ) $(STATE_OBJ) $(STATE_REG_OBJ) $(STATE_MOD_OBJ) $(STATE_CLIP_OBJ)
 # The app layer: the panel, the chain and the screen, the sequencer's panel
 # UI and screens (fm1_seq_ui, fm1_seq_view), and modulation's (fm1_mod_ui,
 # fm1_mod_view; docs/16 MG3).
 SIM_APP_OBJ := $(BUILD)/sim/src/fm1_app.o $(BUILD)/sim/src/fm1_tft.o \
   $(BUILD)/sim/src/fm1_seq_ui.o $(BUILD)/sim/src/fm1_seq_view.o \
-  $(BUILD)/sim/src/fm1_mod_ui.o $(BUILD)/sim/src/fm1_mod_view.o
+  $(BUILD)/sim/src/fm1_mod_ui.o $(BUILD)/sim/src/fm1_mod_view.o $(BUILD)/sim/src/fm1_app_state.o
 
 # The harness reads verb scripts (host/seq_script.h); the app reads
 # modulation lines (host/mod_script.h).
 $(BUILD)/sim/test/fm1_sim_render.o: SIM_CFLAGS += -Ihost
 $(BUILD)/sim/src/fm1_app.o $(BUILD)/sim/src/fm1_mod_ui.o: SIM_CFLAGS += -Ihost
+$(BUILD)/sim/src/fm1_app_state.o $(BUILD)/sim/src/fm1_web.o $(BUILD)/sim/test/fm1_sim_render.o: \
+  SIM_CFLAGS += -Istate -Ihost
 
 $(BUILD)/sim/%.o: $(SIM)/%.c
 	@mkdir -p $(dir $@)
@@ -65,7 +69,9 @@ WASM_EXPORTS := fm1w_init fm1w_default_chain fm1w_catalog fm1w_select fm1w_unit_
   fm1w_unit_set_current fm1w_unit_level fm1w_unit_set_level fm1w_unit_note_on \
   fm1w_unit_note_off fm1w_unit_route fm1w_ram_budget fm1w_mod_reset fm1w_mod_text \
   fm1w_arp_on fm1w_arp_set_on fm1w_arp_set_param fm1w_arp_get_param fm1w_mfx_select \
-  fm1w_dx7_load fm1w_dx7_result fm1w_dx7_name fm1w_meta_id fm1w_meta_read
+  fm1w_dx7_load fm1w_dx7_result fm1w_dx7_name fm1w_meta_id fm1w_meta_read \
+  fm1w_state_save fm1w_state_check fm1w_state_load fm1w_state_pack fm1w_state_report \
+  fm1w_save_gen fm1w_store_ready fm1w_saved
 comma := ,
 empty :=
 space := $(empty) $(empty)

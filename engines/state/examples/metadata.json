@@ -1098,23 +1098,6 @@
           ]
         },
         {
-          "uid": 7,
-          "name": "Swing",
-          "abbr": "SWNG",
-          "type": "float",
-          "min": 50,
-          "max": 80,
-          "def": 50,
-          "step": 1,
-          "unit": "pct",
-          "page": 4,
-          "knob": 3,
-          "flags": [
-            "latch",
-            "mod"
-          ]
-        },
-        {
           "uid": 13,
           "name": "Join",
           "abbr": "JOIN",
@@ -1125,7 +1108,7 @@
           "step": 1,
           "unit": "none",
           "page": 4,
-          "knob": 4,
+          "knob": 3,
           "flags": [
             "latch"
           ],
@@ -1306,7 +1289,10 @@
             "mod"
           ]
         }
-      ]
+      ],
+      "retired": {
+        "Swing": 7
+      }
     }
   ],
   "mod": {
@@ -2948,5 +2934,5 @@
       }
     ]
   },
-  "meta_id": "eff5d1c0"
+  "meta_id": "bbbbe618"
 }

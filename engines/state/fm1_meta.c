@@ -258,7 +258,7 @@ static void params(jw_t *w, const fm1_param_t *ps, unsigned n, int all_hidden, u
     }
     for (a = 0; a < fm1_alias_count; ++a) {          /* old names of the parameter */
       const fm1_alias_t *al = &fm1_aliases[a];
-      if (al->owner != owner || strcmp(al->id, id) || al->uid != p->uid || al->entry >= 0) continue;
+      if (al->owner != owner || strcmp(al->id, id) || al->uid != p->uid || al->entry != -1) continue;
       if (!any++) {
         jw_key(w, "aliases");
         jw_arr(w);
@@ -380,6 +380,21 @@ static void engine(jw_t *w, const fm1_engine_t *e, const fm1_host_t *host) {
   page_names(w, e->id, e->params, e->n_params);
   jw_key(w, "params");
   params(w, e->params, e->n_params, 0, FM1_ALIAS_ENGINE, e->id);
+  {                                                 /* removed parameters' last names */
+    size_t a;
+    int any = 0;
+    for (a = 0; a < fm1_alias_count; ++a) {
+      const fm1_alias_t *al = &fm1_aliases[a];
+      if (al->owner != FM1_ALIAS_ENGINE || strcmp(al->id, e->id) || al->entry != FM1_ALIAS_RETIRED) continue;
+      if (!any++) {
+        jw_key(w, "retired");
+        jw_obj(w);
+      }
+      jw_key(w, al->name);
+      jw_int(w, al->uid);
+    }
+    if (any) jw_end(w);
+  }
   jw_end(w);
 }
 

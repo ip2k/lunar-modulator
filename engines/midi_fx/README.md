@@ -120,7 +120,7 @@ lockable).
 | 3 | `oct_mode` | span, up, down, up-down, random (span) | How octaves combine with the order |
 | 4 | `rate` | trg, 1/32t … 1/1 (1/16) | Step length; TRG takes steps from the host |
 | 5 | `gate` | 1–200 % (50) | Of the step; over 100 overlaps the next note |
-| 6 | `swing` | 50–80 % (50) | Odd steps start (swing − 50) × step / 60 ticks late, fm1_seq's formula (docs/13 R6) |
+| 6 | `swing` | 50–80 % (50) | Odd steps start (swing − 50) × step / 60 ticks late, fm1_seq's formula (docs/13 R6). Not an engine parameter: the host sets it from the set's swing every call (`fm1_midi_fx_ctx_t.swing`; owner, 2026-10-06) |
 | 7 | `pattern` | 0–22 (0) | 0 plays every step; 1–22 are Yarns' masks 0–21 |
 | 8 | `euclid_len` | 0–32 (0) | 0 off; otherwise Euclid replaces `pattern`, as in Yarns |
 | 9 | `euclid_fill` | 0–32 (0) | Onsets, at most the length |
@@ -332,6 +332,14 @@ effects").
   arp free-runs on the same grid; without a sequencer the stage runs its own
   at fm1-render's `--tempo`. An external MIDI clock (off the grid) puts the
   block's ticks at its first frame.
+- **Swing** is the set's (owner, 2026-10-06): the stage reads the
+  sequencer's `swing` every block and hands it to the arp in the context
+  (`fm1_midi_fx_ctx_t.swing`), which sets the core's `swing`; without a
+  sequencer it is fm1-render's `--swing` (50 without it). The arp has no
+  Swing parameter of its own: its uid 7 is retired, and its last name stays
+  in `engines/aliases.json`'s `retired`, so a file that names it reads to the
+  same records as before (the value passes by uid, as `#7`) and the arp
+  drops it.
 - **Transport.** Start reaches the arp as `RESET` and Stop as `STOP`, at
   their frames (with `FLUSH` after it in the sequencer's compat mode,
   whose clock gives no tick while stopped; after an external clock's Stop
@@ -354,7 +362,7 @@ effects").
   | PLAY | Mode | Rate | Gate | Octaves |
   | RHYTHM | Pattern | Fill | Rotate | Length |
   | CHANCE | Chance | Ratchet | Vel Spread | Loop |
-  | FEEL | Oct Mode | Velocity | Swing | Join |
+  | FEEL | Oct Mode | Velocity | Join | |
   | MORE | Order | Repeat | Chord % | Oct Jump |
   | KEYS | Latch | Sync | Ratchet % | Gate Sprd |
   | SEED | Seed | | | |

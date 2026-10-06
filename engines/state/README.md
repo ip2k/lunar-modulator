@@ -23,7 +23,7 @@ made the engines saveable and wrote the **metadata export in C**:
 "The parameter metadata export"), with the known ids and aliases it carries
 (`fm1_known.c`, written by `tools/gen_known.py` from `engines/known-ids.json`
 and `engines/aliases.json`). Nothing in the virtual FM-1 calls them yet: its
-Open, Save and launch links are stages A1 and W1.
+Open, Save and launch links are stages A1 and W1 (built: `sim/web/www/files.js`).
 
 ```bash
 make -C engines                                          # fm1-state, fm1-state-fuzz; fm1-render and fm1-seq take files
@@ -102,7 +102,10 @@ WebAssembly and device builds read every number to the same bits.
   ASCII case, by abbreviation, then by an old name (`fm1_known.h`'s
   aliases; a list entry likewise by its old names), or as `#UID`, which is
   kept even when this build's engine lacks that uid, so a newer build's
-  parameter passes through. A cable's destination on a unit the file does
+  parameter passes through. A removed parameter's last name (a `retired`
+  row of `engines/aliases.json`, entry `FM1_ALIAS_RETIRED`; the arp's
+  Swing, 2026-10-06) reads as its retired uid the same way, so an old file
+  gives the records it always gave and the engine drops the value. A cable's destination on a unit the file does
   not hold (a mod rack's) is kept by name for the applier.
 - **Hostile input** meets the caps of the note's §16 while it streams;
   out-of-range values are clamped and counted, unknown members skipped and
@@ -175,7 +178,8 @@ and the U+0000 rule refuse, and the `i_` outcomes are listed there.
   the metadata export writes its floats with `fm1_num`; P1 reads the export
   (`fm1-render --meta`, or a saved copy with `--meta FILE`).
 - **E1** (song core): the song's `dq`, `se` and `sn` lines are typed items
-  in binary (`0x10`-`0x12`; a raw one still reads), and the core's import
+  in binary (`0x10`-`0x12`; a raw one still reads; the project key's `key`
+  line is `0x13` since stage A1), and the core's import
   streams (`fm1_seq_import_begin`, `_feed`, `_end`): `fm1-seq --load`
   checks a file, then feeds its set lines to the import as their records
   come.

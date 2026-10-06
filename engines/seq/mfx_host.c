@@ -20,6 +20,11 @@ void fm1_mfx_init(fm1_mfx_t *m, uint32_t rate) {
   m->bpm_x100 = 12000u;
   m->key_root = 0;
   m->key_scale = FM1_KEY_MAJOR;
+  m->swing = 50u;
+}
+
+void fm1_mfx_set_swing(fm1_mfx_t *m, unsigned pct) {
+  m->swing = (uint8_t)(pct < 50u ? 50u : pct > 80u ? 80u : pct);
 }
 
 void fm1_mfx_set_tempo(fm1_mfx_t *m, uint32_t bpm_x100) {
@@ -74,6 +79,7 @@ static void quiet_ctx(const fm1_mfx_t *m, fm1_midi_fx_ctx_t *ctx) {
   ctx->running = m->running;
   ctx->key_root = m->key_root;
   ctx->key_scale = m->key_scale;
+  ctx->swing = m->swing;
 }
 
 /* Now, between blocks: m->a[0..n) into the effects of chain c that are on,
@@ -267,6 +273,7 @@ static void block_ticks(fm1_mfx_t *m, const fm1_seq_host_t *h, uint32_t frames,
      * place from Start, on the grid or off it. */
     ctx->tick_pos = c->playing ? c->master_tick : 0u;
     fm1_seq_get_key(h->seq, &m->key_root, &m->key_scale);   /* the set's key */
+    fm1_mfx_set_swing(m, fm1_seq_get_swing(h->seq));          /* and its swing */
     if (c->inc > 0u && c->threshold > 0u) {
       m->n_ticks = grid_ticks(m->ticks, FM1_MFX_TICKS, c->accum % c->threshold, c->inc,
                               c->threshold, frames);
@@ -292,6 +299,7 @@ static void block_ticks(fm1_mfx_t *m, const fm1_seq_host_t *h, uint32_t frames,
   ctx->frames = frames;
   ctx->key_root = m->key_root;
   ctx->key_scale = m->key_scale;
+  ctx->swing = m->swing;
   m->running = ctx->running;
 }
 

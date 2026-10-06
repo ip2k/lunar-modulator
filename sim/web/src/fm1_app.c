@@ -32,7 +32,7 @@ typedef char fm1_app_seq_cmd_is_240[sizeof(fm1_seq_cmd_t) == 240u ? 1 : -1];
 typedef char fm1_app_seq_ui_fits[sizeof(fm1_seq_ui_t) <= FM1_APP_SEQ_UI_BYTES ? 1 : -1];
 /* Every app unit is one of the runtime's sinks (fm1_mod.h's codes): the
  * sound units, their inserts and the master slots. */
-typedef char fm1_app_mod_units[FM1_MOD_SOUNDS == FM1_APP_SOUNDS && FM1_MOD_INSERTS == FM1_APP_INSERTS &&
+typedef char fm1_app_mod_units_fit[FM1_MOD_SOUNDS == FM1_APP_SOUNDS && FM1_MOD_INSERTS == FM1_APP_INSERTS &&
                                FM1_MOD_SINKS == FM1_APP_UNITS + 1 && FM1_APP_FX_SLOTS == 2 ? 1 : -1];
 /* The runtime binds every parameter a unit keeps (page_params never goes
  * past FM1_APP_MAX_PARAMS), so draw_params need not ask which it binds. */
@@ -828,6 +828,12 @@ static void release(fm1_app_unit_t *u) {
   u->ram = 0;
 }
 
+size_t fm1_app_ram_of(const fm1_engine_t *e) {
+  /* ST6: every instance counted at the FM-1's rate, whatever the host's. */
+  static const fm1_host_t fm1 = { FM1_ENGINE_API_VERSION, FM1_APP_RAM_RATE, FM1_APP_MAX_FRAMES };
+  return e ? e->instance_size(&fm1) : 0u;
+}
+
 /* Create registry entry `index` (already checked, `bytes` its instance
  * size) in an empty unit, with its defaults. 0 if the engine refused this
  * host. */
@@ -997,6 +1003,40 @@ int fm1_app_dx7_load(fm1_app_t *a, const uint8_t *data, size_t len, fm1_dx7_syse
     popup(a, l0, l1, d->names[DX7_USER0 + (int)r.first_slot], -1);
   }
   return n;
+}
+
+int fm1_app_dx7_put(fm1_app_t *a, unsigned slot, const uint8_t vced[FM1_DX7_VCED_BYTES]) {
+#if FM1_WITH_DX7
+  if (a->dx7.index < 0 || slot >= FM1_DX7_USER_SLOTS) return -1;
+  dx7_store(a, slot, vced);
+  dx7_names(a);
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    if (a->unit[u].e && a->unit[u].index == a->dx7.index) fm1_dx7_set_user_voice(a->unit[u].self, slot, a->dx7.voice[slot]);
+  }
+  return 0;
+#else                              /* a list without FM6: no bank to put a voice in */
+  (void)a;
+  (void)slot;
+  (void)vced;
+  return -1;
+#endif
+}
+
+void fm1_app_say(fm1_app_t *a, int tone, const char *l0, const char *l1, const char *l2) {
+  popup(a, l0, l1, l2, -1);
+  a->popup_tone = tone;
+}
+
+void fm1_app_mod_units(const fm1_app_t *a, const fm1_engine_t **units) { mod_units(a, units); }
+
+void fm1_app_saved(fm1_app_t *a, int ok, const char *why) {
+  if (ok) {
+    char ram[16];
+    snprintf(ram, sizeof ram, "RAM %u%%", fm1_app_ram_percent(fm1_app_ram(a)));
+    popup(a, "SAVED", a->info.name[0] ? a->info.name : "PROJECT", ram, -1);
+  } else {
+    refuse(a, FM1_APP_TONE_REFUSE, "NOT SAVED", why && why[0] ? why : "store refused", NULL);
+  }
 }
 
 int fm1_app_dx7_play(fm1_app_t *a, unsigned slot) {
@@ -1781,6 +1821,14 @@ void fm1_app_button(fm1_app_t *a, int button, int down) {
       break;
     case FM1_BTN_PLAY:                   /* the UI sent `play` or `stop` above */
       if (!a->seq) stub_popup(a, button);
+      break;
+    case FM1_BTN_SAVE:
+      /* Stage A1: a request for the host's store (the page's browser
+       * storage, stage W1), which answers with fm1_app_saved; without one,
+       * nothing is kept, and the screen says so. Never the FM-1's flash:
+       * that waits for the gate (CLAUDE.md, the one rule). */
+      ++a->save_gen;
+      if (!a->store_ready) refuse(a, FM1_APP_TONE_REFUSE, "SAVE", "no store in", "this host");
       break;
     default:
       stub_popup(a, button);

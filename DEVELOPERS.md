@@ -393,16 +393,23 @@ decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
   canvas, its text in three faces (the project's 5×9 at ×2, Spleen 8×16
-  and 6×12). All 4,534 screens of the layout sweep (3,645 with the GPL
-  switch off), the sequencer's, modulation's and the arpeggiator's, the
+  and 6×12). All 4,546 screens of the layout sweep (3,645 with the GPL
+  switch off before stage A1's twelve), the sequencer's, modulation's and the arpeggiator's, the
   global page's Key page, FM6's user bank, the GPL modules' pages, every
   list popup at every entry and the knobs' lists included, pass a layout
   check, with no text cut short and nothing closer than 4 px [verified:
   `fm1-sim-render --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
-  modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); only SAVE is still
-  a stub. The user manual describes every control.
+  modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); SAVE keeps the
+  project in the page's IndexedDB store (stage W1: Open, Save…, autosave,
+  Recent, links and the embed API, `sim/web/README.md`, "Files"). The user manual describes every
+  control.
+- **Saved state:** the module saves and loads its whole state as the state
+  core's files (projects, sounds, effects, mod racks, clips, sets and
+  settings), checks a load first and refuses what would not fit the FM-1,
+  changing nothing (stage A1, `sim/web/src/fm1_app_state.h`,
+  notes/2026-10-06-state-files.md §23).
 - **On a phone:** the panel keeps keys 31–35 px wide and no target under
   24 px, and scrolls sideways in its own box.
 - **Self-contained:** the page loads nothing from anywhere else and finds its
