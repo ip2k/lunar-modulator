@@ -574,3 +574,19 @@ def test_seeded_fuzz_loop_keeps_its_invariants(tool):
     assert r.returncode == 0, r.stderr[-400:]
     out = json.loads(r.stdout)
     assert out["iterations"] == 20000 and out["accepted"] > 1000 and out["accepted_binary"] > 100
+
+
+def test_launch_links_round_trip(names):
+    """A #lunar= fragment (§12.4) carries a file's state; the guide's sizes
+    are far under the 32 KiB cap, and a bomb stops at the cap."""
+    for path in sorted(EXAMPLES.glob("*.lunar")):
+        recs, _ = ls.read_json(path.read_bytes(), names)
+        frag = ls.link_fragment(recs, names)
+        assert frag.startswith("#lunar=") and len(frag) < 8000
+        assert ls.read_link(frag, names)[0] == recs
+    bomb = zlib.compressobj(9, zlib.DEFLATED, -15)
+    data = bomb.compress(b'{"lunar": "1.0", "kind": "settings", "settings": {}, "x": "' + b"a" * 400000) + bomb.flush()
+    import base64
+    frag = "#lunar=" + base64.urlsafe_b64encode(data).decode().rstrip("=")
+    with pytest.raises(ls.Refused):
+        ls.read_link(frag, names)

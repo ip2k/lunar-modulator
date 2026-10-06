@@ -35,6 +35,7 @@ typedef struct {
 
 static void bput(void *ctx, const char *s, size_t n) {
   buf_t *b = (buf_t *)ctx;
+  if (!n) return;
   if (b->n + n > b->cap) {
     size_t cap = b->cap ? b->cap : 4096;
     while (b->n + n > cap) cap *= 2;

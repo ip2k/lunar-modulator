@@ -13,6 +13,7 @@ tests/test_state_codec.py holds.
     python3 tools/lunar_state.py pack FILE [-o OUT] [--store]
     python3 tools/lunar_state.py unpack FILE [-o OUT]
     python3 tools/lunar_state.py records FILE
+    python3 tools/lunar_state.py url FILE           # the #lunar= fragment of a launch link (§12.4)
 
 Names come from the desktop build (`fm1-state names`: every engine's
 parameters, ranges and defaults, exact); SEAM(E2): `fm1-render --meta`
@@ -20,6 +21,7 @@ replaces that once it lands. It never changes app state; only the C loader
 does. MIT licence, like the rest of the repository.
 """
 import argparse
+import base64
 import json
 import re
 import struct
@@ -2415,6 +2417,35 @@ def validate(doc):
     return [f"{list(e.path)}: {e.message}" for e in v.iter_errors(doc)]
 
 
+# ---- Launch links ---------------------------------------------------------------------------------
+LINK_CAP = 32768
+
+
+def link_fragment(records, names):
+    """`#lunar=` and the base64url (no padding) of the deflate-raw of the
+    compact JSON (§12.4); refused past the 32 KiB cap."""
+    text, _ = write_json(records, names, compact=True)
+    c = zlib.compressobj(9, zlib.DEFLATED, -15)
+    data = base64.urlsafe_b64encode(c.compress(text.encode()) + c.flush()).rstrip(b"=").decode()
+    if len(data) > LINK_CAP:
+        raise Refused("TOO_BIG", "past the 32 KiB a link carries")
+    return "#lunar=" + data
+
+
+def read_link(fragment, names):
+    """A #lunar= fragment's records, its inflated text capped at the
+    kind's cap (a decompression bomb stops there)."""
+    data = fragment.split("#lunar=", 1)[-1]
+    if len(data) > LINK_CAP:
+        raise Refused("TOO_BIG", "past the 32 KiB a link carries")
+    raw = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
+    d = zlib.decompressobj(-15)
+    text = d.decompress(raw, KIND_CAP[1] + 1)
+    if len(text) > KIND_CAP[1]:
+        raise Refused("TOO_BIG", "larger than any kind's cap")
+    return read_json(text, names)
+
+
 # ---- Files and the command line ------------------------------------------------------------------
 def read_any(data, names):
     """Records of a state file in either encoding."""
@@ -2425,7 +2456,7 @@ def read_any(data, names):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("command", choices=["check", "canon", "pack", "unpack", "records"])
+    ap.add_argument("command", choices=["check", "canon", "pack", "unpack", "records", "url"])
     ap.add_argument("file")
     ap.add_argument("-o", "--out")
     ap.add_argument("--compact", action="store_true")
@@ -2437,6 +2468,8 @@ def main(argv=None):
         recs, rep = read_any(data, names)
         if args.command == "records":
             out = records_text(recs).encode()
+        elif args.command == "url":
+            out = (link_fragment(recs, names) + "\n").encode()
         elif args.command in ("canon", "unpack"):
             text, _ = write_json(recs, names, compact=args.compact)
             out = text.encode()

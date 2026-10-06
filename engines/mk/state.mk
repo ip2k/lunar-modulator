@@ -48,6 +48,17 @@ $(BUILD)/fm1-state-fuzz: $(STATE_FUZZ_OBJ) \
     $$(filter-out $(BUILD)/our/host/render.o $(BUILD)/our/host/render_state.o,$$(RENDER_OBJ))
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
+# The same target under libFuzzer, where clang has it (not Apple's): not in
+# `all`. engines/state/README.md, "Fuzzing", has the commands.
+LIBFUZZER ?= -fsanitize=fuzzer
+STATE_LIBFUZZER_OBJ := $(BUILD)/state/state/fuzz/state_libfuzzer.o
+$(STATE_LIBFUZZER_OBJ): state/fuzz/state_fuzz.c
+	@mkdir -p $(dir $@)
+	$(CC) -std=c99 $(OPT) $(EXTRA) -Iinclude -Istate -Wall -Wextra -DFM1_LIBFUZZER -c $< -o $@
+$(BUILD)/fm1-state-libfuzzer: $(STATE_LIBFUZZER_OBJ) \
+    $$(filter-out $(BUILD)/our/host/render.o $(BUILD)/our/host/render_state.o,$$(RENDER_OBJ))
+	$(CXX) $(OPT) $(EXTRA) $(LIBFUZZER) -o $@ $^ -lm
+
 # fm1-render's --load and --save (host/render_state.cc), with the library;
 # not in OUR_SRC, so the virtual FM-1's module does not link them.
 # The modulation runtime's applier and collector (it needs the runtime), the
