@@ -28,6 +28,7 @@ from decimal import Decimal
 from fractions import Fraction
 import json
 import math
+import re
 import struct
 
 INLINE = frozenset({"made", "key", "data", "from", "via", "to", "view"})
@@ -65,11 +66,51 @@ def _js_digits(x):
     return out + mant + "e" + ("+" if e > 0 else "-") + str(abs(e))
 
 
+_DECIMAL = re.compile(r"\s*([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?\s*\Z")
+
+
+def lead_exponent(dec):
+    """(negative, e) for decimal text dec, whose leading significant digit
+    is at 10**e (e None for zero); None for text that is not a plain
+    decimal. Cheap for any exponent, so a hostile "1e99999999999999999999"
+    (24 characters, inside the 32-character cap) never reaches Fraction,
+    which would build 10**(10**20)."""
+    m = _DECIMAL.match(str(dec))
+    if not m or not (m.group(2) or m.group(3)):
+        return None
+    ip, fp = m.group(2) or "", m.group(3) or ""
+    digits = (ip + fp).lstrip("0")
+    if not digits:
+        return m.group(1) == "-", None
+    lead = len(ip + fp) - len(digits)       # zeros before the first significant digit
+    return m.group(1) == "-", len(ip) - 1 - lead + int(m.group(4) or 0)
+
+
+def bounded(dec, hi, lo):
+    """Fraction(dec), except that past 10**hi in magnitude it is +-10**hi and
+    below 10**lo it is 0: for clamping decimals of any exponent exactly."""
+    le = lead_exponent(dec)
+    if le is not None:
+        if le[1] is None or le[1] < lo:     # zero ("0e99999999999999999999" too)
+            return Fraction(0)
+        if le[1] >= hi:
+            return Fraction(-(10 ** hi) if le[0] else 10 ** hi)
+    return Fraction(str(dec))
+
+
 def f32_of(dec):
     """The float32 nearest to decimal text `dec` in exact arithmetic (ties to
     even), as a Python float; None beyond FLT_MAX. This is what every
     reader does (the C reader's fm1_num_f32 is held to it), so a writer's
     shortest decimal is chosen against it, not against double rounding."""
+    le = lead_exponent(dec)
+    if le is not None:
+        if le[1] is None:                   # zero, whatever its exponent
+            return 0.0
+        if le[1] >= 39:                     # >= 1e39: past FLT_MAX
+            return None
+        if le[1] <= -47:                    # < 1e-46: under half the least subnormal
+            return -0.0 if le[0] else 0.0
     fr = Fraction(dec)
     if fr == 0:
         return 0.0
@@ -210,7 +251,7 @@ def q14(percent):
     """A cable's amount or offset as the runtime keeps it: q =
     round(percent x 16384 / 100), ties away from zero, in exact arithmetic
     on the file's decimal, after clamping to -100..100."""
-    f = Fraction(str(percent))
+    f = bounded(percent, 3, -12)          # 1e-12 % is under half a Q1.14 step
     f = max(Fraction(-100), min(Fraction(100), f))
     v = f * 16384 / 100
     n = math.floor(abs(v) + Fraction(1, 2))

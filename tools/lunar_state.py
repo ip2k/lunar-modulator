@@ -1114,7 +1114,7 @@ class JsonReader:
                 if not isinstance(v, Num):
                     self.bad("a percent was expected")
                 q = canon.q14(v)
-                if abs(Fraction(v)) > 100:
+                if abs(canon.bounded(v, 3, -12)) > 100:
                     self.rep.repaired += 1
                 rec[k] = q
                 if k == "amount":

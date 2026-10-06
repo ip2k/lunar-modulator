@@ -365,6 +365,10 @@ HOSTILE = [
      "BAD"),
     ("a string for a float", (SND % ('"Timbre": "loud"', "")).encode(), "BAD"),
     ("beyond float32", (SND % ('"Timbre": 1e39', "")).encode(), "BAD"),
+    # 24 characters, inside the number cap: exact arithmetic on 10^(10^20)
+    # never finishes, so both readers bound the exponent first (P1 hung).
+    ("a huge exponent", (SND % ('"Timbre": 1e99999999999999999999', "")).encode(), "BAD"),
+    ("a huge negative exponent on a list", (SND % ('"Shape": -1e99999999999999999999', "")).encode(), "BAD"),
     ("Sound 1 null", b'{"lunar": "1.0", "kind": "project", "sounds": [null, null, null, null]}', "BAD"),
     ("five sounds", b'{"lunar": "1.0", "kind": "project", "sounds": [{"engine": "shapes"}, null, null, null,'
                     b' null]}', "BAD"),
@@ -402,6 +406,25 @@ def test_hostile_json_is_refused_alike(tool, names, name, data, code):
         assert rc == 1 and rep["code"] == code
 
 
+def test_a_duplicate_never_passes_the_bounded_check(tool, names):
+    """The streaming reader checks unresolved keys for duplicates by a hash
+    on the open path, 64 of them at most: past that it refuses the file
+    (TOO_BIG) rather than let a duplicate through unchecked. P1, which holds
+    the whole file, refuses the duplicate itself, and takes a file with
+    that many unknown names and none repeated, which C refuses: the one
+    place the two readers differ, on files no build writes."""
+    top = "".join(', "u%d": %d' % (i, i) for i in range(58))
+    unit = "".join(', "w%d": 1' % i for i in range(6))
+    for dup in (True, False):
+        params = '"Bogus": 0.5, "Bogus": 0.6' if dup else '"Bogus": 0.5, "Bogus2": 0.6'
+        doc = ('{"lunar": "1.0", "kind": "sound"%s, "sound": {"engine": "shapes"%s, "params": {%s},'
+               ' "level": 50, "inserts": [null, null], "midi_fx": []}}' % (top, unit, params)).encode()
+        for n in (None, 1, 7):
+            rc, _, rep = c_records(tool, doc, n)
+            assert rc == 1 and rep["code"] == "TOO_BIG", rep
+        assert py_records(doc, names)[2] == ("BAD" if dup else None)
+
+
 def test_refusals_say_where(tool):
     data = (SND % ('"Timbre": 0.5, "Shape": 1.5', "")).encode()
     rc, _, rep = c_records(tool, data)
@@ -424,6 +447,12 @@ REPAIRS = [
     ("an amount past 100 % is clamped", SND % ("", ', "mod": {"rack": [], "cables": [{"slot": 1, "from":'
                                                    ' {"source": "VEL"}, "to": {"unit": "snd", "param": "Timbre"},'
                                                    ' "amount": 250}]}'), {"repaired": 1}),
+    ("an amount with a huge exponent is clamped", SND % ("", ', "mod": {"rack": [], "cables": [{"slot": 1, "from":'
+                                                             ' {"source": "VEL"}, "to": {"unit": "snd", "param":'
+                                                             ' "Timbre"}, "amount": -1e99999999999999999999}]}'),
+     {"repaired": 1}),
+    ("a zero with a huge exponent is zero", SND % ('"Timbre": 0e99999999999999999999, "Color": 1e-99999999999999',
+                                                    ""), {"repaired": 0, "skipped": 0}),
 ]
 
 

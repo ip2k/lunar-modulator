@@ -50,7 +50,7 @@ python -m pytest tests/test_engine_metadata.py tests/test_engine_names.py
 | `fm1_state.h` | the record model (§6): record types, the report and its refusal codes, the names a JSON file resolves against, the reader and writer interfaces, the caps |
 | `fm1_json.[ch]` | the streaming JSON tokenizer: fed pieces of any size, 168 B of state, no malloc or recursion |
 | `fm1_num.[ch]` | exact numbers: decimal to float32 (ties to even) and the shortest decimal back in ECMAScript's form; percent to Q1.14 and back; no `strtod` or `printf` |
-| `state_json_read.c` | the tokenizer's events to records, under the context-first rules; 1,416 B of state in all |
+| `state_json_read.c` | the tokenizer's events to records, under the context-first rules; 1,424 B of state in all on a 64-bit host (`fm1-state sizes`) |
 | `state_json_write.c` | the canonical writer: holds a document (desktop and simulator only) and writes `tests/state_canon.py`'s layout |
 | `state_bin.c`, `state_movy1.c` | the binary container (§8 and §20): written whole, read by pulling through a 64-byte window; movy1 lines as typed items (the song's `dq`, `se` and `sn` among them) with a raw fallback, decoded in pieces of at most 64 bytes |
 | `fm1_deflate.[ch]` | raw deflate: a pull inflater with the container's 4 KiB window (4,928 B), and a deterministic greedy compressor |
@@ -107,7 +107,14 @@ WebAssembly and device builds read every number to the same bits.
 - **Hostile input** meets the caps of the note's §16 while it streams;
   out-of-range values are clamped and counted, unknown members skipped and
   counted, and a refusal says why, where (the JSON path, line and column)
-  and quotes the text there.
+  and quotes the text there. A number's exponent is bounded before any
+  exact arithmetic, in C and in P1, so `1e99999999999999999999` (inside the
+  32-character cap) is refused at once, not computed. Duplicate keys are
+  refused: known members by their place, unresolved keys by a 32-bit hash
+  over the open path, at most 64 of them; past 64 open the C reader refuses
+  the file (TOO_BIG) rather than check no further. P1 holds the whole file
+  and checks exactly, so the readers differ only on files no build writes:
+  65 unknown names open at once, or two that collide in the hash.
 - **The set** rides as the array of its `movy1` lines, byte-identical to
   the core's export; in binary, the lines the core writes are typed items
   (8 B a note, 3 B a lock; the song's `dq`, `se` and `sn` too) and any other
@@ -132,8 +139,9 @@ set text, imports into the sequencer core the same whole and in pieces, and
 an imported set's export imports back to itself; and a file's set lines
 streamed record by record into the import give the set their joined text
 gives. Binaries are mutated with their CRCs fixed up, so mutations reach
-the chunk parsers. It takes up to 32 seed files; `.movy1` sets among them
-seed the import.
+the chunk parsers. It takes up to 32 seed files (a 33rd is an error);
+`.movy1` sets among them seed the import. Each `-s` seed is its own
+stream (until 2026-10-06 seeds 2k and 2k+1 ran the same one).
 
 ```bash
 # the seeded loop, under the sanitizers (Apple clang has no libFuzzer)

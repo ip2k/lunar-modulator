@@ -278,19 +278,19 @@ static uint32_t hash_key(const char *s, size_t n) {
 }
 
 /* An unresolved key in the open object at tokenizer depth d: a duplicate
- * of one before it refuses the file (by a 32-bit hash; past 64 such keys on
- * the open path duplicates go unchecked, rather than refuse a file a newer
- * level may write). */
+ * of one before it refuses the file (by a 32-bit hash, so two distinct keys
+ * that collide refuse it too). Past 64 such keys on the open path the file
+ * is refused (TOO_BIG) rather than let a duplicate through unchecked: no
+ * file this build or a 1.x build writes comes near it. */
 static int unknown_key(fm1_state_json_reader_t *r, const char *s, size_t n, unsigned d) {
   const uint32_t h = hash_key(s, n);
   unsigned i;
   for (i = r->n_unk; i > 0 && r->unk_depth[i - 1u] == d; --i) {
     if (r->unk_hash[i - 1u] == h) return bad(r, "duplicate key");
   }
-  if (r->n_unk < 64u) {
-    r->unk_hash[r->n_unk] = h;
-    r->unk_depth[r->n_unk++] = (uint8_t)d;
-  }
+  if (r->n_unk >= 64u) return refuse(r, FM1_STATE_TOO_BIG, "more than 64 unknown names open");
+  r->unk_hash[r->n_unk] = h;
+  r->unk_depth[r->n_unk++] = (uint8_t)d;
   return 1;
 }
 

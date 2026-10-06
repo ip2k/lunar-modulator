@@ -106,7 +106,6 @@ unsigned fm1_state_kind_code(const char *name, size_t n);
 #define FM1_STATE_BIN_MAX 98304u      /* a binary file (96 KiB) */
 #define FM1_STATE_CHUNKS 64u           /* one a unit: a project has up to 30 units */
 #define FM1_STATE_PADS FM1_FOCUS_MAX  /* a FOCUS parameter's entries (fm1_engine.h) */
-#define FM1_STATE_PARAMS 48u          /* keys in one params object */
 #define FM1_STATE_DATA 8192u          /* pattern data, all modules together */
 #define FM1_STATE_DATA_ONE 4096u      /* one module's (hex in JSON: 8,192 characters) */
 /* File bytes after inflating, by kind (index: FM1_STATE_*). */

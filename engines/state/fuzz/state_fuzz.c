@@ -358,8 +358,16 @@ int main(int argc, char **argv) {
   static uint8_t work[MAXIN];
   for (i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "-n") == 0 && i + 1 < argc) iters = atol(argv[++i]);
-    else if (strcmp(argv[i], "-s") == 0 && i + 1 < argc) g_rng = (uint32_t)strtoul(argv[++i], NULL, 0) | 1u;
-    else if (files < 32) {
+    else if (strcmp(argv[i], "-s") == 0 && i + 1 < argc) {
+      /* Every seed its own stream: mixed (murmur3's finaliser), then kept
+       * nonzero for xorshift32. `| 1` alone made seeds 2k and 2k+1 one run. */
+      uint32_t x = (uint32_t)strtoul(argv[++i], NULL, 0) ^ 0x9E3779B9u;
+      x ^= x >> 16; x *= 0x85EBCA6Bu; x ^= x >> 13; x *= 0xC2B2AE35u; x ^= x >> 16;
+      g_rng = x ? x : 1u;
+    } else if (files >= 32) {
+      fprintf(stderr, "at most 32 seed files (%s is the 33rd)\n", argv[i]);
+      return 2;
+    } else {
       FILE *f = fopen(argv[i], "rb");
       if (!f) { fprintf(stderr, "cannot open %s\n", argv[i]); return 2; }
       seed_n[files] = fread(seeds[files], 1, MAXIN / 2, f);
