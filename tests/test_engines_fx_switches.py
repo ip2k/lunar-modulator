@@ -1,5 +1,5 @@
 """The switch-like controls of Filter, Drive, Comp, the Limiter, DJ Filter,
-Tilt, Master Sat and Isolator, modulated fast (engines/README.md,
+Tilt, Master Sat, Isolator and Squash, modulated fast (engines/README.md,
 "Parameters": switch-like controls that change cleanly are lockable and
 modulatable).
 
@@ -97,6 +97,10 @@ CASES = [
      1.0),
     ("limit", "Mode", [0, 1], ["Drive=12", "Ceiling=-6"], "sine", 10 ** (-6 / 20)),
     ("limit", "Mode", [0, 1], ["Drive=12", "Ceiling=-6", "Release=30"], "notes", 10 ** (-6 / 20)),
+    # ROUND (2026-10-05) among the Modes: its share glides like SOFT CLIP's.
+    ("limit", "Mode", [0, 1, 2], ["Drive=12", "Ceiling=-6"], "sine", 10 ** (-6 / 20)),
+    ("limit", "Mode", [0, 1, 2], ["Drive=12", "Ceiling=-6", "Release=30"], "notes",
+     10 ** (-6 / 20)),
     ("limit", "Lookahead", "lookahead", ["Drive=12", "Ceiling=-6", "Release=30"], "notes",
      10 ** (-6 / 20)),
     ("limit", "Lookahead", "lookahead0", ["Drive=12", "Ceiling=-6", "Release=30"], "notes",
@@ -115,6 +119,10 @@ CASES = [
     ("sat", "Shape", [0, 1], ["Mix=1", "Drive=12", "Clean Lo=20", "Clean Hi=20000"], "notes", None),
     ("isolator", "Kill", list(range(8)), ["Low=0.9", "Mid=0.6", "High=1"], "sine", None),
     ("isolator", "Kill", list(range(8)), [], "notes", None),
+    # Dynamics pack 3 (2026-10-05): Squash's Type starts the new Type from the
+    # gain in force and crossfades over 5 ms.
+    ("squash", "Type", [0, 1, 2], ["Squash=0.8", "Release=120"], "sine", None),
+    ("squash", "Type", [0, 1, 2], ["Squash=0.7", "Gate=-40", "Output=6"], "notes", None),
 ]
 
 

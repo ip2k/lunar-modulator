@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "e5f2f894f44767f7137cb1fcb038a3dab2b8b647730eb2a869558b2c3a472de2",
-  "wasm_bytes": 852135,
+  "wasm_sha256": "cbd9d1f15c26db81de9ac9a425fa4a33771a63ee20871fd9524ead5784f85212",
+  "wasm_bytes": 862648,
   "sources_sha256": {
-    "engines": "6ebe7db81b5edbdd724029f88486e199083284a9c25cb43ef19f20d2f7f66e97",
-    "sim": "2e2b0dfc3f4c6dcf65076508466d7fea44561d5d3f00aec4cb02048c4ed0d361"
+    "engines": "b565b219e0a082ec84ff2e159f730c70200f0312d5553bfde02a7ade1b070219",
+    "sim": "6f8bee721957a14519250bdb3934f32a06d41d3f19ad3d47d2fae2b155cb9f91"
   },
   "engines": "working tree",
-  "built": "2026-10-06T03:48:08Z",
+  "built": "2026-10-06T04:23:49Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 73,
+    "passed": 75,
     "failed": 0,
-    "identical_to_js": 73,
-    "identical_to_musl": 73,
-    "identical_to_glibc": 70,
+    "identical_to_js": 75,
+    "identical_to_musl": 75,
+    "identical_to_glibc": 72,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -1168,8 +1168,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 93420,
-        "native64": 106284
+        "wasm32": 94364,
+        "native64": 107228
       }
     },
     {
@@ -1212,8 +1212,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 104220,
-        "native64": 117084
+        "wasm32": 106108,
+        "native64": 118972
       }
     },
     {
@@ -1763,6 +1763,50 @@
         "replayable": true,
         "dropped": 0,
         "native_dropped": 0
+      }
+    },
+    {
+      "name": "dyn3-squash-transient",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 82764,
+        "native64": 95628
+      }
+    },
+    {
+      "name": "dyn3-round-autogain",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 94364,
+        "native64": 107228
       }
     },
     {

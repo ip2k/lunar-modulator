@@ -421,12 +421,13 @@ docs/16 MG3 the modulation runtime, its kinds, its script reader
 (`host/mod_script.c`: snprintf and strtod, no files) and modulation's
 pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (2026-10-05) Comb, Test Ext, the LOG law and the effects' extension
-(`fm1_fx_render`), Drums, FM6 (msfa), the list popups and per-voice
-modulation (MG9, 2026-10-06): 73 of 73 scenarios pass,
+(`fm1_fx_render`), Drums, FM6 (msfa), the list popups, dynamics pack 3
+(Squash, Transient, the Limiter's Round) and per-voice modulation (MG9,
+2026-10-06): 75 of 75 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms; the three Drums and the three FM6 scenarios are identical to
-glibc too), and it imports nothing; it is 852,135 bytes, 815,821 before per-voice
-modulation, 813,115 before the list popups, 786,256 before FM6,
+glibc too), and it imports nothing; it is 862,648 bytes, 826,339 before per-voice
+modulation, 815,821 before dynamics pack 3 too, 813,115 before the list popups, 786,256 before FM6,
 765,189 before Drums since the lab switch went (790,801
 with Drums and the switch's second code path, 769,693 with the switch
 alone), 761,171 before both API v3 and Drums, up from

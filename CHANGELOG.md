@@ -32,8 +32,8 @@ history.
     to 26 KB, in the RAM meter.
   - Cables at 0 % change nothing, bit for bit; the output is the same at
     any audio block size, and the browser plays it as the desktop does (a
-    new parity scenario, 73 of 73 pass; the browser module grew from
-    816 KB to 852 KB).
+    new parity scenario, 75 of 75 pass; the browser module grew from
+    826 KB to 863 KB).
 - **A pitch destination per sound.** The host's group in the destination
   picker lists *Pitch* (Sound 1), *Pitch2* to *Pitch4* (Sounds 2–4), each
   on top of that sound's pitch bend, and *PitchC*, which bends whichever
@@ -42,6 +42,35 @@ history.
   S1NOTE–S4NOTE, S1VEL–S4VEL, S1KEY–S4KEY, S1TRIG–S4TRIG and
   S1RTRG–S4RTRG: the same as NOTE, VEL, KEY, TRIG and RTRG, but for one
   sound's notes alone, so an envelope can follow only the bass, say.
+- **Squash, a new effect: three small compressors with characters of their
+  own**, rewritten for the FM-1 from Airwindows plug-ins by Chris Johnson
+  (MIT). Choose a Type, turn Squash up, win the level back with Output.
+  - **Snap** (after Pop3) grabs peaks and lets go, with a gate that can cut
+    each note's tail (Gate, Gate Depth, Hold, Gate Rel).
+  - **Mu** (after Pressure4) is a smooth valve-style leveller that recovers
+    more slowly after loud passages; Shape bends its response.
+  - **Split** (after ButterComp2) works on the top and the bottom of the
+    wave separately and has no timing knobs: glue for a mix. At Squash 0 it
+    passes the sound untouched, whatever it was doing before (the original
+    freezes there, holding whatever it had turned down).
+  - Changing Type while the sound plays starts the new one where the old
+    one was and fades between them, so modulation can change it on every
+    step. Silence stays silent; under half a kilobyte of memory.
+  - Checked against the original plug-ins' code, run in a container: Mu and
+    Split within −100 dB, Snap within −60 dB (and −29 dB in one setting
+    where the original's stereo link holds the gain for a length of time
+    that depends on its last bits).
+- **Transient, a new effect: a transient shaper.** Attack lifts or softens
+  the start of each note or hit (up to ±12 dB), Sustain lifts or cuts what
+  follows; Window and Tail set how long each lasts. It reacts to how the
+  sound changes, not to its level: a steady note moves by under half a
+  decibel at any setting, and at its centre the sound passes exactly
+  untouched. Our own design, on the classic two-follower principle.
+- **The Limiter has a third Mode, Round:** a gentle final clip after
+  Airwindows ClipOnly2. Peaks up to 3 dB over the ceiling are rounded off
+  between their neighbours and the ceiling, only what goes further is
+  turned down, and everything under the ceiling passes untouched. It adds
+  no delay beyond the Lookahead.
 - **A UI audit of the FM-1's screen**, in `notes/2026-10-06-ui-audit.md`.
   It covers every screen family, how each uses the 240 × 240 px, and the
   contrast of every colour after the screen's RGB565 rounding.
@@ -1137,6 +1166,12 @@ history.
   same holds for effects.
 - **The rack's Filter module is now the Resonator (RES)**, so that Filter
   names the audio effect alone. Older scripts that say `filter` still load.
+- **Comp's Auto Gain only touches what would clip** (owner's request): it
+  holds a sample at full scale only where its makeup would push it past,
+  such as the start of a loud hit; everything else, steady notes included,
+  now sounds exactly as with the same makeup set by hand, also with Makeup
+  turned down. Before, it also rounded the peaks of steady tones a little. It still never pushes a
+  sound past full scale.
 - **Lists on the screen show six entries instead of one to three.** Turning
   PRESETS, ALGORITHM (the engine's model, shape, patch or pad, or the effect
   in FX mode), PRESETS with SEL held, the rack's kind picker or the
