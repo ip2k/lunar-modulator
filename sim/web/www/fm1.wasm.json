@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "9b0665ec35826b2be27b683008f065e686a08ab4be1608d5053bd5a33e15e6a6",
-  "wasm_bytes": 972066,
+  "wasm_sha256": "46f55185ca068a3fc743d24bbcb6b016ccfd12eaa6b930b99cda67271ebb91dc",
+  "wasm_bytes": 1343603,
   "sources_sha256": {
-    "engines": "a251597df00bf57c7932e5800ac02f6381148f9022518985409bc8fd7b1dd68f",
-    "sim": "422a007cc5bd0670ef9b2688c6e193941d8b8ebec9b8c85017807ad654f8189d"
+    "engines": "b53db69ae2a18702e7b01cf25edecf79a66ec44068ceba709c9e624022915649",
+    "sim": "e233fd7238e90813de9e26414a2a9f4734d84326e21827af67ae451e4c502857"
   },
   "engines": "working tree",
-  "built": "2026-10-06T11:28:41Z",
+  "built": "2026-10-06T12:07:41Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -16,12 +16,71 @@
     "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
   ],
   "imports": [],
+  "gpl_mods": 1,
+  "licences": [
+    {
+      "id": "dx7",
+      "name": "FM6",
+      "kind": "sound",
+      "licence": "MIT AND Apache-2.0",
+      "source": "engines/third_party/msfa"
+    },
+    {
+      "id": "acid-bass",
+      "name": "Acid Bass",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/fm1-x0x"
+    },
+    {
+      "id": "comet",
+      "name": "Comet Kit",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/fm1-x0x"
+    },
+    {
+      "id": "crater",
+      "name": "Crater Kit",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/fm1-x0x"
+    },
+    {
+      "id": "drawbar",
+      "name": "Drawbar",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/felucca"
+    },
+    {
+      "id": "trio",
+      "name": "Trio",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/felucca"
+    },
+    {
+      "id": "phase-bend",
+      "name": "Phase Bend",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/felucca"
+    },
+    {
+      "id": "acid-gen",
+      "name": "Acid Gen",
+      "kind": "midi_fx",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/fm1-x0x"
+    }
+  ],
   "parity": {
-    "passed": 91,
+    "passed": 102,
     "failed": 0,
-    "identical_to_js": 91,
-    "identical_to_musl": 91,
-    "identical_to_glibc": 88,
+    "identical_to_js": 102,
+    "identical_to_musl": 102,
+    "identical_to_glibc": 99,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "dx7_sysex": {
@@ -475,6 +534,191 @@
       "ram_bytes": {
         "wasm32": 70988,
         "native64": 70988
+      }
+    },
+    {
+      "name": "acid-bass-line",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 130332,
+        "native64": 130332
+      }
+    },
+    {
+      "name": "acid-bass-rat-devilfish",
+      "samples": 176472,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 64588,
+        "native64": 64588
+      }
+    },
+    {
+      "name": "crater-kit-groove",
+      "samples": 176472,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 69532,
+        "native64": 69532
+      }
+    },
+    {
+      "name": "crater-kit-every-pad-tuned",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 69324,
+        "native64": 69324
+      }
+    },
+    {
+      "name": "acid-gen-into-acid-bass",
+      "samples": 229412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 64828,
+        "native64": 64828
+      }
+    },
+    {
+      "name": "acid-gen-run-sequencer",
+      "samples": 352944,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 72708,
+        "native64": 72900
+      },
+      "cmd": "arp/acid-gen-run.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "comet-kit-groove",
+      "samples": 211766,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 114764,
+        "native64": 114796
+      }
+    },
+    {
+      "name": "comet-kit-knobs-and-tails",
+      "samples": 300002,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 73580,
+        "native64": 73596
       }
     },
     {
@@ -2318,6 +2562,72 @@
         "native_dropped": 0
       },
       "panel": "arp/panel-arp-stop.panel"
+    },
+    {
+      "name": "drawbar-gospel-rotor",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 134140,
+        "native64": 134140
+      }
+    },
+    {
+      "name": "trio-sync-ring-sweep",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 67580,
+        "native64": 67580
+      }
+    },
+    {
+      "name": "phase-bend-reso-glide",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 133324,
+        "native64": 133324
+      }
     }
   ]
 }
