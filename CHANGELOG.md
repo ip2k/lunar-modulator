@@ -1239,7 +1239,7 @@ history.
   `fm1-sim-render --screens` draws 3,202 screens (the knobs' lists, the
   banners, FX mode's chip, the track strip by sound; MATRIX's nine rows
   need fewer windows) with 0 faults and counts text boxes by face; the
-  browser module is 901,866 bytes, parity 76 of 76. MATRIX's rows and
+  browser module is 901,950 bytes, parity 76 of 76. MATRIX's rows and
   CHAIN's lines say each character's role (`fm1_mod_ui_row`,
   `fm1_mod_ui_chain`) for one multi-colour run each, and
   `fm1_mod_ui_dest_fit` names a destination in a given room. The audit
