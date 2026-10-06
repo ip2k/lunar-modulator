@@ -35,7 +35,7 @@ means the work of others who have studied the FM-1, credited in
 | Output | Stereo |
 | Engines' own rates | Macro, Macro Heavy, Six-Op FM and Drums run Plaits' code at 47,872 samples a second, and Shapes runs Braids' at 96,000, each converted to the output's rate, so that they sound and keep time as on the modules they come from. The four Plaits-based engines cannot run when the output is faster than 47,872. FM6 runs at the output's rate, from 16,385 samples a second up, with its envelope times kept |
 | Sound engines | Eight; up to four sounds at once, each with its own engine ([chapter 5](05-sound-engines.md)) |
-| Effects | Twenty-two, Test Gain and Test Ext included: two inserts on each sound, then two master effects in series after the mix ([chapter 6](06-effects.md)) |
+| Effects | Twenty-four, Test Gain and Test Ext included: two inserts on each sound, then two master effects in series after the mix ([chapter 6](06-effects.md)) |
 | Limiter | Ceiling 0.98 of full scale (−0.18 dBFS), instant attack, about 100 ms release; samples that are not numbers become silence |
 | [[MASTER]] | After the limiter. Half way round is a quarter of full level, about −12 dB |
 | Pitch bend | Up to ±48 semitones in the engines; ±2 semitones from MIDI in the simulator |
