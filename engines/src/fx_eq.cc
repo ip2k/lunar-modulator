@@ -174,7 +174,6 @@ typedef struct EqChannel {
 
 typedef struct EqInstance {
   float param[P_COUNT];     /* knob values, clamped */
-  float sample_rate;
   float pi_over_fs;
   float max_pitch;          /* log2(0.45 fs) */
   float glide_ctrl;         /* one-pole coefficient per control step */
@@ -187,6 +186,7 @@ typedef struct EqInstance {
   uint32_t rest_frames;     /* FM1_IDLE_REST_SECONDS in frames */
   uint32_t max_warm;        /* FM1_IDLE_MAX_WARM_SECONDS in frames */
   int idle;                 /* the filters are stopped; the output is the input */
+  int driven;               /* FM1_PARAM_DRIVEN: locks or cables, so never idle */
   int warming;              /* some band's warm is not 0 */
   int settle_stale;         /* a frequency or Q target moved: settle is old */
   EqBand band[B_COUNT];
@@ -446,7 +446,6 @@ static void *EqCreate(void *mem, const fm1_host_t *host) {
   if (!(fs >= 8000.0f && fs <= 384000.0f)) return NULL;   /* NaN fails too */
   EqInstance *self = (EqInstance *)mem;
   memset(self, 0, sizeof(*self));
-  self->sample_rate = fs;
   self->pi_over_fs = kPi / fs;
   self->max_pitch = EqLog2(kMaxOfRate * fs);
   self->glide_ctrl = 1.0f - EqExp2(-kLog2E * kCtrlSamples / (kSmoothSeconds * fs));
@@ -471,6 +470,10 @@ static void EqDestroy(void *self) { (void)self; }
 
 static void EqSet(void *s, uint16_t index, float v) {
   EqInstance *self = (EqInstance *)s;
+  if (index == FM1_PARAM_DRIVEN) {      /* the host's word: never idle (fm1_engine.h) */
+    self->driven = v != 0.0f && v == v;
+    return;
+  }
   if (index >= P_COUNT) return;
   self->param[index] = fm1_param_clamp(&kEqParams[index], v);
   EqSetTarget(self, index);
@@ -485,7 +488,7 @@ static void EqRender(void *s, float *lr, uint32_t frames) {
   }
 #if FM1_FX_IDLE
   if (self->idle) {
-    if (EqNeutral(self) && EqFits(self)) {
+    if (!self->driven && EqNeutral(self) && EqFits(self)) {
       EqPass(lr, frames);
       self->count += frames;
       return;
@@ -503,7 +506,7 @@ static void EqRender(void *s, float *lr, uint32_t frames) {
     if ((self->count & kCtrlMask) == 0u) {
       EqControl(self);
 #if FM1_FX_IDLE
-      if (EqAtRest(self, level)) {
+      if (!self->driven && EqAtRest(self, level)) {
         if (self->rest < self->rest_frames) self->rest += kCtrlMask + 1u;
         if (self->rest >= self->rest_frames && EqFits(self)) {
           /* Idle from here; a wake starts the integrators from rest. */

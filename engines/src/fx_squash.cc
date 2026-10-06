@@ -53,6 +53,17 @@
  * B)^5 x 32768 samples at 44.1 kHz, B = 0.2 being 1.09 s). Shape is
  * Mewiness: the gain is c^2 blended with c by Shape above 0, sqrt(c) by
  * -Shape below.
+ * Mu's partial makeup (owner's decision, 2026-10-06), so that turning
+ * Squash up mostly changes the tone, not the loudness: the gain is lifted by
+ * half, in dB, the steady reduction a -12 dBFS peak gets at the Squash and
+ * Shape in force, at most 24 dB: M = 1 / sqrt(g_ref), g_ref = Shape's curve
+ * of clamp(t^2 / 0.2512, t, 1). Up to Squash 0.525 a -12 dBFS peak is not
+ * reduced, so M is 1 and Mu is what it was, bit for bit. It adds no
+ * clipping: on a frame the lift would take over 0.99998 (or over what the
+ * frame would be without it, if that is more: an input over full scale, or
+ * Output's boost), it gives only what keeps the frame there, and never less
+ * than 1 (an onset, before the gain comes down). -DFM1_SQUASH_MU_MAKEUP=0
+ * builds Mu without it (the tests' reference).
  *
  * Split, after ButterComp2: per channel, each half-wave of the input lifted
  * by 10^(14 Squash / 20) has its own one-pole target, the mean of (1 + x)^2
@@ -151,6 +162,15 @@ static const float kMuSpeedStart = 10000.0f;  /* Pressure4's starting speed */
 static const float kSnapEqual = 1e-14f;       /* Snap: d under this x m is 0 (about where a double's rounding ends it) */
 static const float kSplitOn = 0.05f;          /* Split: under this Squash, blended towards 1 and pulled to rest */
 static const float kSplitRestSeconds = 0.02f; /* ...at Squash 0, over this time */
+static const float kMuMakeupRef = 0.251188643f; /* Mu's makeup: the steady reduction of a -12 dBFS peak... */
+static const float kMuMakeupMax = 15.8489319f;  /* ...halved in dB, at most +24 dB */
+static const float kMuCeiling = 0.99998f;       /* the makeup takes no frame over this */
+
+/* Build with -DFM1_SQUASH_MU_MAKEUP=0 for Mu without its partial makeup:
+ * the effect as it was before 2026-10-06, which the tests compare with. */
+#ifndef FM1_SQUASH_MU_MAKEUP
+#define FM1_SQUASH_MU_MAKEUP 1
+#endif
 
 /* The control values the knobs imply (recomputed while a knob ramps). */
 typedef struct SquashCtl {
@@ -158,6 +178,7 @@ typedef struct SquashCtl {
   float thr, ratio, atk, rel, gthr, gratio, gsus, grel;
   /* Mu */
   float mu_thr, mu_lift, mu_release, mu_fastest, mew;
+  float mu_makeup;              /* the partial makeup, 1 for none */
   int mu_positive;
   /* Split */
   float lift, factor, inv_outgain, split_w, split_rest;
@@ -238,6 +259,13 @@ static inline float SqSinQ(float x) {
 
 static inline float SqDbToGain(float db) { return fm1_exp2f(kLog2PerDb * db); }
 
+/* Mu's gain for a state c: Shape's curve (Mewiness), c^2 or sqrt(c)
+ * blended with c. */
+static inline float MuCurve(float coef, int positive, float mew) {
+  const float curved = positive ? coef * coef : SqSqrt(coef);
+  return curved * mew + coef * (1.0f - mew);
+}
+
 static inline int SqTypeOf(float v) {
   const int t = (int)(v + 0.5f);   /* v is clamped to 0..2 */
   return t < 0 ? 0 : (t >= T_COUNT ? T_COUNT - 1 : t);
@@ -272,6 +300,19 @@ static void SquashDerive(SquashInstance *self) {
   c->mu_fastest = SqSqrt(c->mu_release);
   c->mu_positive = v[P_SHAPE] >= 0.0f;
   c->mew = SqAbs(v[P_SHAPE]);
+  /* Mu's partial makeup: half the steady reduction of a -12 dBFS peak, in
+   * dB (1 / sqrt of its gain), at most 24 dB; 1 while that peak is under
+   * the threshold t^2. */
+  c->mu_makeup = 1.0f;
+  if (FM1_SQUASH_MU_MAKEUP) {
+    float cref = (c->mu_thr * c->mu_thr) / kMuMakeupRef;
+    if (cref < c->mu_thr) cref = c->mu_thr;
+    if (cref < 1.0f) {
+      const float gref = MuCurve(cref, c->mu_positive, c->mew);
+      const float m = gref > 0.0f ? 1.0f / SqSqrt(gref) : kMuMakeupMax;
+      c->mu_makeup = m > kMuMakeupMax ? kMuMakeupMax : (m > 1.0f ? m : 1.0f);
+    }
+  }
   /* Split: ButterComp2's A = Squash. */
   c->lift = SqDbToGain(14.0f * squash);
   c->factor = 0.012f * (squash / 135.0f) * self->inv_scale;
@@ -387,8 +428,24 @@ static void MuFrame(SquashInstance *self, float l, float r, float g[2]) {
   s->coef = coef;
   /* (speed (speed - 1) + sense release + sqrt(release)) / speed, likewise. */
   s->speed = (speed - 1.0f) + (sense * c->mu_release + c->mu_fastest) / speed;
-  const float curved = c->mu_positive ? coef * coef : SqSqrt(coef);
-  const float gain = curved * c->mew + coef * (1.0f - c->mew);
+  float gain = MuCurve(coef, c->mu_positive, c->mew);
+  if (c->mu_makeup > 1.0f) {
+    /* The partial makeup, but no clipping added: a frame it would take
+     * over the ceiling (or over the frame without it, if that is louder)
+     * gets only what keeps it there, never less than 1. The frame's output
+     * is peak x (dry + wet x gain x m) (SquashRender). */
+    float m = c->mu_makeup;
+    const float peak = al > ar ? al : ar;
+    const float dry = 1.0f - c->mix, wet = c->mix * c->out;
+    const float plain = peak * (dry + wet * gain);
+    const float lifted = peak * (dry + wet * (gain * m));
+    const float ceiling = plain > kMuCeiling ? plain : kMuCeiling;
+    if (lifted > ceiling) {          /* so peak > 0 and wet x gain > 0 */
+      const float most = (ceiling / peak - dry) / (wet * gain);
+      m = most > 1.0f ? (most < m ? most : m) : 1.0f;
+    }
+    gain = gain * m;
+  }
   g[0] = g[1] = gain;
 }
 
@@ -461,6 +518,7 @@ static void SeedType(SquashInstance *self, int type, const float g[2], float lev
   switch (type) {
     case T_MU: {
       float gl = g[0] < g[1] ? g[0] : g[1];
+      if (c->mu_makeup > 1.0f) gl = gl / c->mu_makeup;   /* the curve's share of it */
       if (gl > 1.0f) gl = 1.0f;
       if (gl < 0.0f) gl = 0.0f;
       const float m = c->mew;

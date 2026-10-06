@@ -23,6 +23,11 @@
  *   FX, SEL, GLO, HOME   FX mode (SEL grabs a slot so SELECT reorders it),
  *                 the global page, home. SAVE says it is not in the
  *                 simulator yet.
+ *   GLO pages     SELECT the page: 1 Globe (what the instrument runs: rate,
+ *                 block, RAM, voices, the master slots, octave and
+ *                 transpose) and 2 Key, the project key (below); KNOB1
+ *                 its root and KNOB2 its scale, on either page, which
+ *                 turns to Key
  *   ARP           the arpeggiator on the current sound (below)
  *
  * It hosts the sequencer core (engines/include/fm1_seq.h) through the shared
@@ -92,7 +97,16 @@
  * latches. A change of the sound, a panic, a sequencer reset or import
  * flush it; a bypass flushes it at once; every note-on it sent gets its
  * note-off. Every change reaches on_mfx, so a native run replays through
- * fm1-render --mfx.
+ * fm1-render --mfx. While the sequencer plays, the arp's steps fall on its
+ * grid; its Stop lets go of the notes it gave the arp, latched or not, and
+ * the keys latched by hand play on (owner, 2026-10-06).
+ *
+ * The project key (owner, 2026-10-06: one key for the project): a root and
+ * a scale (engine API v3's FM1_KEY_*), which every MIDI effect gets in its
+ * context; the arp reads none of it yet. It is the set's, kept with the
+ * tempo (the sequencer's `key` verb and the set's `key` line), so the
+ * global page's KNOB1 and KNOB2 send `key` as a typed command, which a
+ * native run logs and fm1-render replays.
  *
  * Multi-sound (the owner's decision of 2026-10-02, replacing docs/15 O10's
  * default; §3.16 has the gestures): up to FM1_APP_SOUNDS sound units at
@@ -165,6 +179,14 @@ extern "C" {
  * (fm1_tft_check_layout's gap in the tests). */
 #define FM1_APP_LAYOUT_GAP 4
 
+/* A message popup's tone (audit Q2): a confirmation, or a refusal, whose
+ * rules and reason lines are C_REFUSE: with REFUSE the first line names
+ * what was refused and stays text ("Shapes" / "does not fit"), with
+ * REFUSE_ALL every line is the reason ("No LFO" / "in the rack"). */
+#define FM1_APP_TONE_SAY 0
+#define FM1_APP_TONE_REFUSE 1
+#define FM1_APP_TONE_REFUSE_ALL 2
+
 /* Arena sizes. The largest instances today are Shapes at 12 voices
  * (~206 KB) and PSX Verb (~134 KB); the arenas leave room for growth and
  * the screen reports the real total against the FM-1's budget below.
@@ -231,7 +253,7 @@ enum {
  * block's writes to the effects and AMP (every effect parameter and AMP
  * twice: two ticks a 64-frame block). The runtime counts in the RAM figure
  * while it runs. */
-#define FM1_APP_MOD_BYTES 26624u
+#define FM1_APP_MOD_BYTES 26880u
 #define FM1_APP_MOD_WRITES \
   ((FM1_APP_MAX_FRAMES / FM1_MOD_TICK) * (FM1_APP_EFFECTS * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS))
 #define FM1_APP_MOD_SEED 1u           /* fm1_app_init's runtime; a log records it */
@@ -303,6 +325,7 @@ typedef struct fm1_app_unit {
   unsigned char *mem;            /* this unit's arena */
   size_t cap;
   float value[FM1_APP_MAX_PARAMS];
+  int driven;                    /* FM1_PARAM_DRIVEN as last sent (0: as created) */
 } fm1_app_unit_t;
 
 /* A tick's write to an effect or to AMP, at its frame in the block. */
@@ -330,6 +353,7 @@ typedef struct fm1_app {
 
   int mode;                      /* fm1_app_mode_t */
   int page;                      /* sound page in HOME */
+  int glo_page;                  /* the global page shown: 0 Globe, 1 Key */
   int fx_slot, fx_page;          /* FX mode selection: In1, In2, Mix, M1, M2 (0..4) */
   int fx_grab;                   /* SEL pressed: SELECT moves the slot */
   int octave, transpose;
@@ -345,18 +369,28 @@ typedef struct fm1_app {
    * mix (percent), and their render blocks and sequencer sinks. */
   int sound;
   float level[FM1_APP_SOUNDS];
-  size_t ram_over;               /* the last RAM refusal: bytes past the budget */
+  size_t ram_over;               /* the last RAM refusal: bytes past the budget (its
+                                    popup shows budget + this as a percentage) */
   float mix[FM1_APP_SOUNDS][2 * FM1_APP_MAX_FRAMES];
   fm1_app_sink_ctx_t sink_ctx[FM1_APP_SOUNDS];
 
   /* The popup: up to three lines of a message, or a list's window (PRESETS,
    * ALGORITHM, the pickers; fm1_panel.h): popup[0] is entry popup_first
-   * of popup_total under popup_title. popup_total is 0 for a message. */
-  char popup[FM1_LIST_ROWS][24];
+   * of popup_total under popup_title, in face popup_face. popup_total is
+   * 0 for a message. A refusal (popup_tone) draws its reason in C_REFUSE;
+   * a confirmation that fits one line of BANNER_CHARS is a banner over the
+   * page's bottom (audit L1, fm1_app_banner). A list entry, or the title,
+   * may start with a sound's tag ("S2"), drawn in that sound's colour:
+   * popup_tag holds each line's sound + 1 (bit 4k), 0 for none. */
+  char popup[FM1_LIST_MAX_ROWS][FM1_LIST_ENTRY];
   int popup_lines, popup_mark;   /* popup_mark: highlighted line, or -1 */
-  char popup_title[24];
+  char popup_title[FM1_LIST_ENTRY];
   int popup_first, popup_total;
+  int popup_face;                /* a list's: FM1_LIST_MAIN, _MID or _SMALL */
+  int popup_tone;                /* FM1_APP_TONE_* */
+  int popup_title_tag;           /* the title's sound + 1, or 0 */
   uint32_t popup_dim;            /* a list's lines drawn dim (an Empty entry) */
+  uint64_t popup_tag;            /* each line's sound + 1, four bits a line */
   uint64_t popup_until;
 
   int dirty;                     /* screen content changed */
@@ -480,7 +514,7 @@ const char *fm1_app_dx7_name(const fm1_app_t *a, unsigned slot);
  * _RATE (-3: the engine refused this host, e.g. a Plaits-based one above
  * 47,872 Hz; the unit's previous engine is created again with its values)
  * or _RAM (-4: the chain would pass the FM-1's RAM budget and grow; the
- * unit keeps its engine, and a popup names it and by how much). */
+ * unit keeps its engine, and a popup names it and what the chain would need). */
 int fm1_app_select(fm1_app_t *a, int unit, int index);
 
 /* The browser's starting chain: Macro, then Plate. If Macro refuses the
@@ -612,9 +646,6 @@ int fm1_app_mod_line(fm1_app_t *a, const char *line, char *err, size_t cap);
  * when every line could be written. */
 int fm1_app_mod_dump(fm1_app_t *a, void (*emit)(void *ctx, const char *line), void *ctx);
 
-/* The runtime (NULL while none runs). */
-const fm1_mod_t *fm1_app_mod(const fm1_app_t *a);
-
 /* The runtime's unit code (fm1_mod.h) for an app unit id (FM1_APP_UNITS):
  * sound units, their inserts and the master slots; -1 out of range. */
 int fm1_app_mod_unit(int unit);
@@ -649,12 +680,34 @@ const char *fm1_app_arp_preset_name(int preset);
 int fm1_app_arp_preset(fm1_app_t *a, int sound, int preset);
 int fm1_app_arp_preset_of(const fm1_app_t *a, int sound);
 
+/* ---- The project key (owner, 2026-10-06) ---------------------------------
+ * One key for the project: `root` 0 C .. 11 B and `scale` FM1_KEY_*
+ * (fm1_engine.h). With the sequencer, the set's (fm1_seq_get_key); without
+ * one, the MIDI effects' stage's. Setting it sends `key root scale` as a
+ * typed command (fm1_app_seq_cmd): 0 when applied or held for the next
+ * block, -1 refused (out of range, or the sequencer busy: send it again
+ * after the next render). The names are the global page's. The panel steps
+ * the scales in FM1_APP_KEY_ORDER: Major, Minor, the church modes in their
+ * order, then Chromatic. */
+#define FM1_APP_GLO_PAGES 2
+int fm1_app_project_key(const fm1_app_t *a, int *scale);   /* the root; *scale the scale */
+int fm1_app_set_project_key(fm1_app_t *a, int root, int scale);
+const char *fm1_app_key_root_name(int root);        /* "C" .. "B" ("C#", sharps) */
+const char *fm1_app_key_scale_name(int scale);      /* "Major", "Minor", ...; NULL out of range */
+int fm1_app_key_scale_at(int place);                /* the scale at the panel's place, or -1 */
+
 /* Redraw the screen if anything on it changed (or the scope is live, at most
  * once per `min_frames` of audio). Returns 1 when a->tft.px was redrawn. */
 int fm1_app_draw(fm1_app_t *a, uint32_t min_frames);
 
 /* Redraw now, logging boxes for fm1_tft_check_layout. */
 void fm1_app_draw_checked(fm1_app_t *a);
+
+/* Whether the open popup draws as a banner (audit L1: a confirmation, no
+ * list, no refusal, its lines joined by spaces one line): 1 + FM1_TFT_MAIN
+ * for at most 18 characters, 1 + FM1_TFT_MID for at most 27 (fm1_look.h's
+ * BANNER_CHARS, _MID), that line in buf; else 0. */
+int fm1_app_banner(const fm1_app_t *a, char *buf, size_t size);
 
 /* Bytes of FM-1 RAM the current chain would use, the RAM meter's figure:
  * the engines' instances, the sequencer's (fm1_seq_size), its event
@@ -666,6 +719,14 @@ size_t fm1_app_ram(const fm1_app_t *a);
 /* What fm1_app_ram would be with registry entry `index` in `unit` (-1:
  * emptied): the RAM meter's test before a load. */
 size_t fm1_app_ram_with(const fm1_app_t *a, int unit, int index);
+
+/* `bytes` as the user sees a RAM figure (owner, 2026-10-06: memory only as
+ * a percentage of the FM-1's budget, on the screen, the page and in every
+ * refusal; bytes only in developer docs): a whole percentage of
+ * FM1_APP_RAM_BUDGET, rounded up, so a figure past the budget, which is
+ * what a refusal reports, never reads 100. The meter, GLO's RAM line and
+ * the refusals all use it, and the page (app.js) rounds the same way. */
+unsigned fm1_app_ram_percent(size_t bytes);
 
 /* ---- Sound units (multi-sound) --------------------------------------------
  * `sound` is 0 .. FM1_APP_SOUNDS - 1; the user's Sound 1 is 0. Stage S6

@@ -22,6 +22,7 @@ typedef char arp_codes_match[(int)FM1_ARP_EV_NOTE_ON == (int)FM1_MIDI_EV_NOTE_ON
                              (int)FM1_ARP_EV_RESET == (int)FM1_MIDI_EV_RESET &&
                              (int)FM1_ARP_EV_FLUSH == (int)FM1_MIDI_EV_FLUSH &&
                              (int)FM1_ARP_EV_PANIC == (int)FM1_MIDI_EV_PANIC &&
+                             (int)FM1_ARP_EV_STOP == (int)FM1_MIDI_EV_STOP &&
                              FM1_ARP_OUT_MIN == FM1_MIDI_FX_OUT_MIN ? 1 : -1];
 
 /* The list names, in the core's order (tests/test_engine_midi_fx.py checks
@@ -148,10 +149,13 @@ static void arp_set_param(void *self, uint16_t index, float value) {
   fm1_arp_set_param((fm1_arp_t *)self, kMap[index].id, core_value(index, value));
 }
 
+/* The block, on the host's ticks; while the sequencer runs, on its grid
+ * (ctx->tick_pos), so the steps lock to the beat. */
 static uint32_t arp_process(void *self, const fm1_midi_ev_t *in, uint32_t n_in,
                             const fm1_midi_fx_ctx_t *ctx, fm1_midi_ev_t *out, uint32_t cap) {
-  return fm1_arp_process((fm1_arp_t *)self, in, n_in, ctx ? ctx->ticks : NULL,
-                         ctx ? ctx->n_ticks : 0u, out, cap);
+  return fm1_arp_process_at((fm1_arp_t *)self, in, n_in, ctx ? ctx->ticks : NULL,
+                            ctx ? ctx->n_ticks : 0u, ctx && ctx->running, ctx ? ctx->tick_pos : 0u,
+                            out, cap);
 }
 
 const fm1_midi_fx_t fm1_midi_fx_arp = {

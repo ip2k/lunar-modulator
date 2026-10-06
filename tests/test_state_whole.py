@@ -157,11 +157,16 @@ def test_clip_and_set_save_load_save(tmp_path):
 def test_codecs_save_load_save_every_kind(names, path):
     """The codecs: canonical JSON is a fixed point, JSON -> binary -> JSON
     and binary -> JSON -> binary give the same bytes, and P1 writes what C
-    writes, for every kind (the settings file included)."""
-    j = path.read_bytes()
+    writes, for every kind (the settings file included). From the golden
+    file's canonical rewrite: a released level's file never changes, while
+    a parameter an engine gains since adds its default to the rewrite (§9);
+    while the golden file is still canonical its binary twin is pack's."""
+    g = path.read_bytes()
+    j = tool("canon", "-", data=g)
     assert tool("canon", "-", data=j) == j
     b = tool("pack", "-", data=j)
-    assert b == path.with_suffix(".lunarb").read_bytes()
+    if j == g:
+        assert b == path.with_suffix(".lunarb").read_bytes()
     assert tool("unpack", "-", data=b) == j
     assert tool("pack", "-", data=tool("unpack", "-", data=b)) == b
     recs, _ = ls.read_json(j, names)

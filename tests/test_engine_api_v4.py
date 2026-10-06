@@ -69,7 +69,7 @@ def test_the_pad_kits_read_every_pad(listed):
     a saved kit holds all sixteen pads (the state note's §5.1)."""
     eng = {e["id"]: e for e in listed}
     for eid, per_pad in (("drums", {"Tune", "Decay", "Level", "Tone", "Snap", "Sweep", "Drive",
-                                    "Model"}),
+                                    "Model", "Choke"}),
                          ("sw-sophie", {"Tune", "Decay", "Model", "Color", "Metal", "Feedback",
                                         "Sweep"})):
         e = eng[eid]

@@ -496,9 +496,14 @@ void fm1_meta_build_default(fm1_meta_build_t *b) {
 size_t fm1_meta_write(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx) {
   static const char *const kRoots[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A",
                                           "A#", "B" };
-  /* The project key's scales, by FM1_KEY_*. */
-  static const char *const kScaleIds[] = { "major", "minor", "chromatic" };
-  static const char *const kScaleNames[] = { "Major", "Minor", "Chromatic" };
+  /* The project key's scales, by FM1_KEY_* (the church modes since
+   * 2026-10-06); tests/test_engine_metadata.py holds the list to them. */
+  static const char *const kScaleIds[FM1_KEY_SCALES] = {
+    "major", "minor", "chromatic", "dorian", "phrygian", "lydian", "mixolydian", "locrian",
+  };
+  static const char *const kScaleNames[FM1_KEY_SCALES] = {
+    "Major", "Minor", "Chromatic", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Locrian",
+  };
   fm1_host_t host;
   jw_t w;
   size_t i;
@@ -564,7 +569,7 @@ size_t fm1_meta_write(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx) 
   jw_end(&w);
   jw_key(&w, "scales");
   jw_arr(&w);
-  for (i = 0; i < sizeof(kScaleIds) / sizeof(kScaleIds[0]); ++i) {
+  for (i = 0; i < FM1_KEY_SCALES; ++i) {
     jw_obj(&w);
     jw_key(&w, "id");
     jw_str(&w, kScaleIds[i]);

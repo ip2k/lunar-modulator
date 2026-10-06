@@ -40,9 +40,38 @@ typedef enum {
 } fm1_app_encoder_t;
 
 /* A list popup (PRESETS, ALGORITHM, the modulation pickers, Capture's
- * tempos) shows FM1_LIST_ROWS entries of its list at a time, as many as
- * the screen's middle holds under the list's title. */
+ * tempos, a knob on a list parameter) shows as many entries of its list at
+ * a time as the screen's middle holds under the list's title, in the face
+ * its list is drawn in (audit D9, notes/2026-10-06-ui-audit.md):
+ *
+ *   face            entries  characters an entry
+ *   FM1_LIST_MAIN   6        18   the 5 x 9 at x2, 24 px apart
+ *   FM1_LIST_MID    8        27   Spleen 8 x 16, 18 px apart
+ *   FM1_LIST_SMALL  9        36   Spleen 6 x 12, 16 px apart
+ *
+ * (the values are fm1_tft.h's FM1_TFT_MAIN, _MID and _SMALL; fm1_app.c
+ * checks the rows and characters against the geometry in fm1_look.h).
+ * FM1_LIST_ROWS is MAIN's six, the most a list showed until then. A list
+ * of the app's own picks its face; a modulation picker's window (which
+ * fm1_mod_ui fills, fm1_mod_ui_say_t) is drawn in the face named below for
+ * it, so the code that fills it takes fm1_list_rows and fm1_list_chars of
+ * that face. Every entry fits FM1_LIST_ENTRY bytes with its NUL. */
+#define FM1_LIST_MAIN 0
+#define FM1_LIST_MID 1
+#define FM1_LIST_SMALL 2
 #define FM1_LIST_ROWS 6
+#define FM1_LIST_MAX_ROWS 9
+#define FM1_LIST_ENTRY 40
+#define FM1_LIST_FACE_KIND FM1_LIST_MID   /* RACK's kind picker: 17 kinds */
+#define FM1_LIST_FACE_DEST FM1_LIST_MID   /* MATRIX's destination picker: full names fit 27 */
+
+static inline int fm1_list_rows(int face) {
+  return face == FM1_LIST_MID ? 8 : (face == FM1_LIST_SMALL ? 9 : FM1_LIST_ROWS);
+}
+
+static inline int fm1_list_chars(int face) {
+  return face == FM1_LIST_MID ? 27 : (face == FM1_LIST_SMALL ? 36 : 18);
+}
 
 /* The first entry such a window shows with entry `sel` of `total` chosen:
  * the choice on the third row where it can be, so two entries before it

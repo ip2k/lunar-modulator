@@ -35,7 +35,6 @@ import pathlib
 import random
 
 STEPS_PER_BAR = 16
-TICKS_PER_STEP = 24
 MAX_STEPS = 256
 SCALES = [(1, 1)] * 10 + [(2, 1), (1, 2), (4, 1), (1, 4), (3, 2), (2, 3),
                           (3, 4), (4, 3), (1, 8), (8, 1), (5, 4)]

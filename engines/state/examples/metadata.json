@@ -19,7 +19,7 @@
       "per_note": true,
       "pads": null,
       "fx_wants": [],
-      "ram": 207696,
+      "ram": 207728,
       "params": [
         {
           "uid": 1,
@@ -177,10 +177,10 @@
           "type": "float",
           "min": 1,
           "max": 5000,
-          "def": 1,
+          "def": 100,
           "unit": "ms",
-          "page": 2,
-          "knob": 3,
+          "page": 3,
+          "knob": 1,
           "flags": [
             "smooth",
             "mod",
@@ -196,8 +196,8 @@
           "max": 2,
           "def": 0,
           "unit": "none",
-          "page": 2,
-          "knob": 4,
+          "page": 3,
+          "knob": 2,
           "flags": [
             "latch",
             "mod"
@@ -206,6 +206,47 @@
             "Poly",
             "Mono",
             "Legato"
+          ]
+        },
+        {
+          "uid": 9,
+          "name": "Glide Mode",
+          "abbr": "GMode",
+          "type": "enum",
+          "min": 0,
+          "max": 2,
+          "def": 0,
+          "unit": "none",
+          "page": 3,
+          "knob": 3,
+          "flags": [
+            "latch",
+            "mod"
+          ],
+          "entries": [
+            "Off",
+            "Legato",
+            "Always"
+          ]
+        },
+        {
+          "uid": 10,
+          "name": "Time Mode",
+          "abbr": "TMode",
+          "type": "enum",
+          "min": 0,
+          "max": 1,
+          "def": 0,
+          "unit": "none",
+          "page": 3,
+          "knob": 4,
+          "flags": [
+            "latch",
+            "mod"
+          ],
+          "entries": [
+            "Time",
+            "Rate"
           ]
         }
       ]
@@ -222,7 +263,7 @@
         "count": 16
       },
       "fx_wants": [],
-      "ram": 7616,
+      "ram": 7648,
       "params": [
         {
           "uid": 1,
@@ -422,8 +463,8 @@
           "max": 1,
           "def": 0,
           "unit": "none",
-          "page": 3,
-          "knob": 2,
+          "page": 4,
+          "knob": 1,
           "flags": [
             "latch",
             "mod"
@@ -442,8 +483,8 @@
           "max": 1,
           "def": 0.5,
           "unit": "none",
-          "page": 3,
-          "knob": 3,
+          "page": 4,
+          "knob": 2,
           "flags": [
             "smooth",
             "mod",
@@ -459,7 +500,49 @@
           "max": 1,
           "def": 0.7,
           "unit": "none",
+          "page": 4,
+          "knob": 3,
+          "flags": [
+            "smooth",
+            "mod",
+            "poly"
+          ]
+        },
+        {
+          "uid": 13,
+          "name": "Choke",
+          "abbr": "Choke",
+          "type": "enum",
+          "min": 0,
+          "max": 5,
+          "def": 0,
+          "unit": "none",
           "page": 3,
+          "knob": 2,
+          "flags": [
+            "latch",
+            "mod",
+            "per_focus"
+          ],
+          "entries": [
+            "Kit",
+            "None",
+            "Group 1",
+            "Group 2",
+            "Group 3",
+            "Group 4"
+          ]
+        },
+        {
+          "uid": 14,
+          "name": "Kit Decay",
+          "abbr": "KDecay",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.5,
+          "unit": "none",
+          "page": 4,
           "knob": 4,
           "flags": [
             "smooth",
@@ -2154,6 +2237,26 @@
       {
         "id": "chromatic",
         "name": "Chromatic"
+      },
+      {
+        "id": "dorian",
+        "name": "Dorian"
+      },
+      {
+        "id": "phrygian",
+        "name": "Phrygian"
+      },
+      {
+        "id": "lydian",
+        "name": "Lydian"
+      },
+      {
+        "id": "mixolydian",
+        "name": "Mixolydian"
+      },
+      {
+        "id": "locrian",
+        "name": "Locrian"
       }
     ]
   },

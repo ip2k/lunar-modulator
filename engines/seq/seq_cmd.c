@@ -6,7 +6,8 @@
  * not parse counting as absent; then clamped or cast exactly as Movy does,
  * `as u16`/`as i32` truncations included.
  *
- * FM-1 additions: `route <track> <0 midi|1 engine> <channel|slot>`, and the
+ * FM-1 additions: `route <track> <0 midi|1 engine> <channel|slot>`,
+ * `key <root 0..11> <scale>`, the project key (fm1_seq.h), and the
  * song's verbs on whole entries (`sgins`, `sgdel`, `sgset`, `sgmov`,
  * `sgclr`, `sgend`, `sgjump`, `scene`, `sgnew`, `sgname`; fm1_seq.h,
  * engines/seq.md "The song"). Movy ignores verbs it does not know, so
@@ -46,7 +47,8 @@ static const verb_name_t kVerbs[] = {
   { "aclr", FM1_SEQ_V_ACLR }, { "aclrs", FM1_SEQ_V_ACLRS }, { "aclrstep", FM1_SEQ_V_ACLRSTEP },
   { "asetr", FM1_SEQ_V_ASETR }, { "usnap", FM1_SEQ_V_USNAP }, { "uswap", FM1_SEQ_V_USWAP },
   { "ucommit", FM1_SEQ_V_UCOMMIT }, { "udrop", FM1_SEQ_V_UDROP }, { "uclr", FM1_SEQ_V_UCLR },
-  { "route", FM1_SEQ_V_ROUTE }, { "sgins", FM1_SEQ_V_SGINS }, { "sgdel", FM1_SEQ_V_SGDEL },
+  { "route", FM1_SEQ_V_ROUTE }, { "key", FM1_SEQ_V_KEY }, { "sgins", FM1_SEQ_V_SGINS },
+  { "sgdel", FM1_SEQ_V_SGDEL },
   { "sgset", FM1_SEQ_V_SGSET }, { "sgmov", FM1_SEQ_V_SGMOV }, { "sgclr", FM1_SEQ_V_SGCLR },
   { "sgend", FM1_SEQ_V_SGEND }, { "sgjump", FM1_SEQ_V_SGJUMP }, { "scene", FM1_SEQ_V_SCENE },
   { "sgnew", FM1_SEQ_V_SGNEW }, { "sgname", FM1_SEQ_V_SGNAME },
@@ -645,6 +647,14 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
         v <= (int64_t)FM1_SEQ_SCENE_PICKS) {
       const char *name = fm1_seq_scene_name_pick((unsigned)v);
       sq_scene_set_name(s, (unsigned)x, name, strlen(name));
+    }
+    break;
+  }
+  case FM1_SEQ_V_KEY: {
+    /* Both arguments, in range; anything else changes nothing. */
+    const int hr = next(&a, &x), hs = next(&a, &y);
+    if (hr && hs && x >= 0 && x <= 11 && y >= 0 && y < (int64_t)FM1_SEQ_KEY_SCALES) {
+      fm1_seq_set_key(s, (unsigned)x, (unsigned)y);
     }
     break;
   }

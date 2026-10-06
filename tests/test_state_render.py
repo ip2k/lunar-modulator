@@ -32,9 +32,13 @@ def run(*args, check=True):
 
 
 def content(path):
-    """A file's document less what the desktop tools do not carry (its
-    info, its view)."""
-    doc = canon.loads(path.read_text())
+    """A file's document, as the build writes it canonically, less what the
+    desktop tools do not carry (its info, its view). Canonical through the
+    build, because a golden file of a released level never changes while a
+    parameter an engine gains since adds its default to every rewrite (the
+    state note's §9)."""
+    text = run(ENGINES / "build" / "fm1-state", "canon", path).stdout
+    doc = canon.loads(text)
     return {k: v for k, v in doc.items() if k not in INFO}
 
 

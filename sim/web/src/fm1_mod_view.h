@@ -1,20 +1,28 @@
 /* fm1_mod_view.h -- the modulation pages on the virtual FM-1's screen
  * (docs/16 §5, stage MG3), between the app's title and bottom bars:
  *
- *   RACK    y 28-46 the rack: 8 cells, each filled to its module's first
- *           output, the shown one outlined (gold while grabbed), an empty
- *           position hollow; y 50 "3 ENV3 >2 <1 ~1" (position, module,
- *           cables out, in and a tick late); from y 72 four parameter rows
- *           as HOME's, with the marks below
- *   MATRIX  seven slot rows of 19 characters at 22 px (fm1_mod_ui_row), the
- *           selected one inverted, and the hint line
- *   CHAIN   eight lines, node and cable alternating (fm1_mod_ui_chain), the
- *           selected cable in the accent colour
+ *   RACK    y 28-46 the rack: 8 cells, each a meter of its module's first
+ *           output in the modulation colour (an empty position hollow),
+ *           the shown one with the selection's bar under it (gold while
+ *           grabbed); y 50 the line "LFO6  2 out  7 in  1 late  4 voices"
+ *           in MID (SMALL when that does not fit); from y 72 four parameter
+ *           rows as HOME's
+ *   MATRIX  nine slot rows of 28 characters in MID at 18 px (fm1_mod_ui_row):
+ *           the source in the modulation colour, the mark subtle, the
+ *           destination and amount as text, a sound's "S<n>" in its colour
+ *           (one multi-colour run a row, audit L2), the mark 4 px further
+ *           from the source and from the destination, the blank before the
+ *           amount 4 px narrower to pay for it; the selected row on the
+ *           selection's bar, an off one subtle, a refused one in the
+ *           refusal colour; the hint line under them
+ *   CHAIN   ten lines in MID, node and cable alternating (fm1_mod_ui_chain),
+ *           coloured as MATRIX's, the selected cable on the selection's bar
  * and on every parameter page (HOME, FX, RACK) a routed parameter's row
- * (docs/16 §5.5): its label from abbr, a jack-shaped marker after it, a
- * gold bracket of +-the cables' depth round the base on the bar, and a
- * 1 px tick at the live value. Every text run keeps the 4 px gap; the
- * layout sweep (fm1-sim-render --screens) checks each state.
+ * (docs/16 §5.5; audit Q3): its label at full length in the modulation
+ * colour, a bracket in that colour of +-the cables' depth round the base
+ * on the bar, and a 1 px tick at the live value in the text colour. Every
+ * text run keeps the 4 px gap; the layout sweep (fm1-sim-render --screens)
+ * checks each state.
  *
  * C99, no heap. MIT licence, like the rest of this repository.
  */

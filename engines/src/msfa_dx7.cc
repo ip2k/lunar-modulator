@@ -87,7 +87,9 @@ const int kLgN = fm1_msfa::kLgN;
 const int kNumPatches = kBankSize + static_cast<int>(FM1_DX7_USER_SLOTS);
 
 enum Param {
-  P_PATCH, P_BRIGHTNESS, P_ENV_TIME, P_FEEDBACK, P_VOLUME, P_GLIDE, P_VOICE_MODE, P_COUNT
+  P_PATCH, P_BRIGHTNESS, P_ENV_TIME, P_FEEDBACK, P_VOLUME,
+  P_GLIDE, P_VOICE_MODE, P_GLIDE_MODE, P_TIME_MODE,
+  P_COUNT
 };
 
 // Uids (API v2) are fixed: never renumber one. Patch is read per voice at
@@ -103,11 +105,15 @@ const fm1_param_t kParams[P_COUNT] = {
   { "Env Time",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, kPoly, FM1_UNIT_NONE, "EnvT" },
   { "Feedback",   FM1_PARAM_FLOAT, -7, 7, 0, NULL, 0, 4, kPoly, FM1_UNIT_NONE, "FB" },
   { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 5, kPoly, FM1_UNIT_NONE, "Vol" },
-  // Glide and the voice modes (glide.h), after Volume on page 2.
-  { "Glide",      FM1_PARAM_FLOAT, glide::kOffMs, glide::kMaxMs, glide::kOffMs, NULL, 1,
+  // Glide and the voice modes (glide.h), on a page of their own, the last.
+  { "Glide",      FM1_PARAM_FLOAT, glide::kMinMs, glide::kMaxMs, glide::kDefaultMs, NULL, 2,
     6, glide::kGlideFlags, FM1_UNIT_MS, "Glide" },
   { "Voice Mode", FM1_PARAM_ENUM, 0, glide::MODE_COUNT - 1, glide::MODE_POLY,
-    glide::kModeNames, 1, 7, glide::kModeFlags, FM1_UNIT_NONE, "VMode" },
+    glide::kModeNames, 2, 7, glide::kModeFlags, FM1_UNIT_NONE, "VMode" },
+  { "Glide Mode", FM1_PARAM_ENUM, 0, glide::GLIDE_MODE_COUNT - 1, glide::GLIDE_OFF,
+    glide::kGlideModeNames, 2, 8, glide::kModeFlags, FM1_UNIT_NONE, "GMode" },
+  { "Time Mode",  FM1_PARAM_ENUM, 0, glide::TIME_MODE_COUNT - 1, glide::TIME_TIME,
+    glide::kTimeModeNames, 2, 9, glide::kModeFlags, FM1_UNIT_NONE, "TMode" },
 };
 
 typedef NoteOffsets<P_BRIGHTNESS, P_GLIDE - P_BRIGHTNESS> Offsets;
@@ -271,8 +277,7 @@ class Instance {
     if (key > 127) key = 127;
     if (velocity > 127) velocity = 127;
     held_.Push(key);
-    const glide::Plan<Voice> plan = glide::PlanNoteOn(
-        voice_, kNumVoices, glide::ToMode(value_[P_VOICE_MODE]), value_[P_GLIDE]);
+    const glide::Plan<Voice> plan = glide::PlanNoteOn(voice_, kNumVoices, GlideConfig());
     if (plan.legato) {         // Legato over a held note: a new key, nothing restarts
       Retune(plan.mono, key);
       glide::StartFor(plan.mono, plan, key);
@@ -399,12 +404,17 @@ class Instance {
     return unpacked_voice_;
   }
 
+  // What Voice Mode, Glide Mode and Time Mode say now (glide.h).
+  glide::Config GlideConfig() const {
+    return glide::Read(value_[P_VOICE_MODE], value_[P_GLIDE_MODE], value_[P_TIME_MODE]);
+  }
+
   // Mono and Legato: letting go of the key the voice plays while older keys
   // are held moves it back to the newest of them, gliding, never restarting.
   void ReturnToHeld(uint8_t key) {
     uint8_t top = 0;
     const glide::Plan<Voice> plan =
-        glide::PlanNoteOff(voice_, kNumVoices, held_, key, value_[P_GLIDE], &top);
+        glide::PlanNoteOff(voice_, kNumVoices, held_, key, GlideConfig(), &top);
     if (!plan.mono) return;
     Retune(plan.mono, top);
     glide::StartFor(plan.mono, plan, top);
@@ -575,7 +585,7 @@ class Instance {
   void RenderBlock() {
     fm1_msfa::fm1_freqlut = Lut();               // what Freqlut::lookup reads
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
-    glide_inc_ = glide::Increment(glide_block_ms_, value_[P_GLIDE]);
+    glide_step_ = glide::Step(glide_block_ms_, value_[P_GLIDE]);
     const int32_t lfo_val = lfo_.getsample();
     const int32_t lfo_delay = lfo_.getdelay();
     int32_t mix[kN];
@@ -636,7 +646,7 @@ class Instance {
     pitchmod += bend_q24_;
     if (v->note.has_pitch()) pitchmod += ToQ24(v->note.pitch, kSemitoneQ24);
     if (v->glide.active) pitchmod += ToQ24(v->glide.offset, kSemitoneQ24);
-    v->glide.Next(glide_inc_);
+    v->glide.Next(glide_step_);
 
     // Amplitude modulation depth now, Q24 (0..1): AMD after the LFO's
     // delay, times how far the LFO is from its top.
@@ -692,7 +702,7 @@ class Instance {
   uint32_t clock_;
   glide::Held held_;              // keys down, for Mono and Legato
   float glide_block_ms_;          // a 64-sample block at the host's rate, in ms
-  float glide_inc_;               // this block's share of a glide
+  glide::Step glide_step_;        // this block's glide step (glide.h)
   int32_t vbuf_[kN];              // one voice's block
   float out_[kN];                 // the current block
   uint32_t pending_;              // samples of out_ not yet delivered

@@ -21,8 +21,9 @@ after a chorus sounds different from a chorus after a reverb.
 
 **To see the chain:** press [[FX]]. The first line of the screen lists the
 current sound (such as *S1*), its two inserts *In1* and *In2*, the *Mix*
-page and the master slots *M1* and *M2*, with the chosen one in the accent
-colour. The chosen effect's parameters are on [[KNOB1]] to [[KNOB4]]. FX mode
+page and the master slots *M1* and *M2*, with the chosen one highlighted;
+the line under it names the chosen slot's effect and says whether the slot
+is an insert or a master slot. The chosen effect's parameters are on [[KNOB1]] to [[KNOB4]]. FX mode
 first opens on M1. Press [[FX]] again, or [[HOME]], to return to the sound.
 
 **To choose a slot:** turn [[SELECT]]. It moves through In1's pages, then
@@ -35,7 +36,8 @@ that sound first ([chapter 5](05-sound-engines.md#four-sounds-at-once)).
 *Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo,
 Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room,
 Hall, Gate, Squash, Transient, Test Gain and Test Ext, and round again, stepping over an effect
-that would not fit the memory (below). In the simulator you can also use the
+that would not fit the memory (below). The list on the screen spells the short
+names out: Compressor, Master Saturation, Equaliser, Transient Shaper. In the simulator you can also use the
 **Effect 1** and **Effect 2** lists under the panel for the two master
 slots.
 
@@ -84,15 +86,17 @@ click. Every sound starts at 100 %.
 ### Memory
 
 Every sound, effect and module, the sequencer and modulation have to fit in
-the FM-1's memory. The simulator measures them against about 379 KB, the
-room M-VAVE's firmware leaves free on the FM-1, as an estimate of what
-Lunar Modulator will have there ([chapter 13](13-specifications.md)). The
-meter in the screen's bottom bar shows how much the whole chain takes, as a
-bar and a percentage, and the global page the same in KB.
+the FM-1's memory. The simulator measures them against the room M-VAVE's
+firmware leaves free on the FM-1, as an estimate of what Lunar Modulator
+will have there ([chapter 13](13-specifications.md)), and shows memory only
+as a share of that room: 100 % is all of it. The meter in the screen's
+bottom bar shows how much the whole chain takes, as a bar and a percentage,
+and the global page the same percentage.
 
 Whatever would take the chain past 100 % is refused, whether you choose it
 with [[PRESETS]], [[ALGORITHM]] or a list under the panel: the screen names
-it, says *does not fit* and by how much, and the slot keeps what it had.
+it, says *does not fit* and what the chain would need with it, such as
+*needs 112% of RAM*, and the slot keeps what it had.
 [[PRESETS]] and [[ALGORITHM]] step on to the next choice that fits. Most
 chains fit; Shapes twice, or Shapes with PSX Verb and Plate, do not. So
 whatever plays in the simulator would fit the FM-1.
@@ -208,7 +212,7 @@ room to a hall and Space Echo.
     In FX mode, [[ALGORITHM]] changes the effect in the slot, not PSX Verb's
     model. To change the model, turn [[KNOB1]] on page 1.
 
-PSX Verb takes about 131 KB of memory, the most of any effect.
+PSX Verb takes 35 % of the memory, the most of any effect.
 
 {{engine-table sw-psxverb}}
 
@@ -350,8 +354,8 @@ the sound stops, so does the effect.
 A stereo echo, written for Lunar Modulator, whose repeats can bounce from one
 side to the other. Up to about a third of a second the echoes are clean
 copies; longer ones grow darker with each repeat, like those of an old
-analogue echo pedal, so that the effect keeps to 64 KB of memory however long
-the time.
+analogue echo pedal, so that the effect keeps to 17 % of the memory however
+long the time.
 
 - **Time** sets the delay, from 10 milliseconds at the left to one second at
   the right; the default is 300. Turning it while echoes sound bends their
@@ -592,7 +596,10 @@ so nothing passes its ceiling, and it leaves anything quieter untouched.
       ceiling, and turns down only what goes further. Everything under the
       ceiling passes untouched. Louder than Brickwall, with a little
       edge on the loudest peaks; after the Airwindows ClipOnly2 clipper
-      ([chapter 14](14-credits-and-licences.md)).
+      ([chapter 14](14-credits-and-licences.md)). The 3 dB is meant: the
+      limiter leaves the top 3 dB of each peak to the clip, which is where
+      Round's loudness and edge come from, and the output still never goes
+      past the ceiling.
 - **Link**, on page 2, at the right, the default, turns both channels down
   together, so the stereo picture holds. At the left each channel is limited
   on its own: louder, but a peak on one side can shift the picture.
@@ -740,7 +747,10 @@ working and costs the FM-1 almost nothing. Turn Mix up after a rest and the
 sound starts to change about a fifth of a second later, while it warms up
 without a click; within two seconds of the last change it answers at once.
 A Mix lock shorter than that fifth of a second, after a rest, is not heard:
-for a single short lock, park Mix a little above the left instead.
+for a single short lock, park Mix a little above the left instead. Master
+Sat never rests while a sequencer lock or a modulation cable reaches any of
+its knobs, even a cable set to zero, so a cable or a lock is always heard
+at once.
 
 !!! tip "Starting points"
     - **Warmth:** Mix at the right, Drive about 6, Glue about 0.25.
@@ -785,7 +795,8 @@ Isolator rests: it stops working and costs the FM-1 almost nothing. The
 first move after a rest comes in about 10 ms late, 35 ms with Low Xover at
 the left, while its filters warm up without a click (a kill shorter than
 that, after a rest, is not heard); a kill and back within two seconds is
-never delayed.
+never delayed. Isolator never rests while a sequencer lock or a modulation
+cable reaches any of its knobs.
 
 !!! tip "Starting points"
     - **Bass out for the break:** Kill Low, then back to None on the drop.
@@ -827,7 +838,9 @@ Left that way for two seconds, EQ rests: it stops working and costs the FM-1
 almost nothing. The first Gain turned after a rest comes in a moment late
 while its band warms up, without a click: a few milliseconds for the Mid and
 High bands, about 30 ms for Low at 100 Hz, up to a tenth of a second for
-the lowest settings. Level answers at once.
+the lowest settings. Level answers at once. EQ never rests while a
+sequencer lock or a modulation cable reaches any of its knobs, so those
+answer at once.
 
 !!! tip "Starting points"
     - **Warmth:** Low Freq about 120, Low Gain about +4.
@@ -844,7 +857,7 @@ the lowest settings. Level answers at once.
 
 A room reverb, from Mutable Instruments Clouds: smaller and denser than
 Plate, with Clouds' diffuser in front of it to smear each attack before it
-enters the room. It takes 40 KB of memory, under two thirds of Plate's.
+enters the room. It takes 11 % of the memory, under two thirds of Plate's.
 
 - **Mix** fades from the dry sound at the left to the reverb alone at the
   right; the default is 0.3. At the left the sound passes untouched.
@@ -880,7 +893,7 @@ silence stays silent.
 
 A stereo hall reverb, written for Lunar Modulator: a large, smooth space
 whose tail can ring from a fraction of a second to twenty seconds, or be
-frozen and held. It takes 49 KB of memory, three quarters of Plate's.
+frozen and held. It takes 13 % of the memory, three quarters of Plate's.
 
 - **Decay** sets how long the reverb rings, from 0.2 seconds at the left to
   20 seconds at the right; the default, 2 seconds, is a concert hall. Size
@@ -930,7 +943,7 @@ tail of a sound, cuts a long reverb short in time with the notes, or, in
 Duck mode, does the opposite and turns the sound down while it is loud. Its
 controls follow two classic studio noise gates
 ([chapter 14](14-credits-and-licences.md)). Both channels open and close
-together. It takes about 2 KB of memory.
+together. It takes under 1 % of the memory.
 
 - **Threshold** sets the level at which the gate opens, from −80 dB at the
   left to 0 dB, full scale, at the right; the default is −40.
@@ -993,7 +1006,8 @@ Modulator from Airwindows plug-ins by Chris Johnson
 ([chapter 14](14-credits-and-licences.md)). Where Comp is the precise,
 adjustable compressor, Squash is quick to set: choose a Type and turn
 **Squash** up until the sound sits where you want it, then win the level
-back with **Output**. It takes under half a kilobyte.
+back with **Output** (Mu wins most of it back by itself). It takes under
+1 % of the memory.
 
 - **Type** chooses the compressor:
     - **Snap** grabs peaks and lets go, with a gate built in that can cut
@@ -1001,10 +1015,14 @@ back with **Output**. It takes under half a kilobyte.
       all of the ones below but Shape.
     - **Mu** is a smooth leveller in the style of a valve compressor: the
       louder a passage, the longer it takes to recover, so it blooms back
-      after loud parts rather than pumping. It only turns the sound down,
-      and at high Squash a lot, more than 40 dB from a loud sound at the
-      right end: turn **Output** up to match. It uses Squash, Release, Shape,
-      Output and Mix.
+      after loud parts rather than pumping. As you turn Squash up past the
+      middle it turns the level back up by itself, partly: a drum kit or a
+      chord stays at about the same loudness up to three quarters of the
+      way, so Squash mostly changes the sound's character. Quiet passages
+      come up with it, by up to 24 dB at the right end, where loud sounds
+      still come out much quieter. The lift never pushes a sound past full
+      scale: when a loud note starts, before Mu has turned it down, the
+      lift gives way. It uses Squash, Release, Shape, Output and Mix.
     - **Split** treats the top and bottom of the wave separately and has
       no timing knobs: it recovers more slowly while the sound is loud,
       which glues a mix together. It uses Squash, Output and Mix, and lifts
@@ -1060,7 +1078,7 @@ a harder, clickier start, down to soften it; turn **Sustain** up to bring
 out the body and the ring of a sound, down to make it short and dry. It
 works by comparing a quick and a slow follower of the level, so it reacts
 to how the sound changes, not to how loud it is. Both channels move
-together. It takes under 200 bytes.
+together. It takes under 1 % of the memory.
 
 - **Attack** lifts the start of each note, by up to 12 dB at +100 %, or
   softens it down to −100 %, where a note rises no faster than Window.

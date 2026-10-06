@@ -30,6 +30,11 @@ group = "Transport and tempo"
 args = "<percent>"
 does = "Sets the swing, 50 (straight) to 80."
 
+[verb.key]
+group = "Transport and tempo"
+args = "<root> <scale>"
+does = "Lunar Modulator's own verb: the project key, kept in a saved set with the tempo. Root 0 (C) to 11 (B); scale 0 major, 1 minor, 2 chromatic, 3 Dorian, 4 Phrygian, 5 Lydian, 6 Mixolydian, 7 Locrian. Out of range, nothing changes. The sequencer plays the same in any key; the MIDI effects get it."
+
 [verb.metro]
 group = "Transport and tempo"
 args = "<0|1>"

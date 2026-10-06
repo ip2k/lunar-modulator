@@ -225,9 +225,28 @@ class SeqInfo:
     comments: dict[str, str]
     verbs: list[str]
     sizes: dict | None
+    budget: int | None = None        # FM1_APP_RAM_BUDGET: the memory the meter counts against
 
 
 DEFINE_RE = re.compile(r"^#define\s+(FM1_SEQ_[A-Z0-9_]+)\s+(\d+)u?\b[^/\n]*(?:/\*\s*(.*?)\s*\*/)?", re.M)
+BUDGET_RE = re.compile(r"^#define\s+FM1_APP_RAM_BUDGET\s+(\d+)u?\b", re.M)
+
+
+def ram_budget(repo: Path) -> int | None:
+    """The FM-1 memory the simulator's meter counts against
+    (FM1_APP_RAM_BUDGET in sim/web/src/fm1_app.h). A reader sees memory
+    only as a share of it, never in bytes (owner, 2026-10-06)."""
+    header = repo / "sim" / "web" / "src" / "fm1_app.h"
+    m = BUDGET_RE.search(header.read_text()) if header.is_file() else None
+    return int(m.group(1)) if m else None
+
+
+def memory_share(size: int, budget: int) -> str:
+    """`size` bytes as the screen's meter shows memory: a whole percentage
+    of the budget, rounded up (fm1_app_ram_percent), or "under 1 %"."""
+    if size * 100 < budget:
+        return "under 1\u00a0%"
+    return f"{-(-size * 100 // budget)}\u00a0%"
 VERB_RE = re.compile(r'\{\s*"([a-z0-9]+)"\s*,\s*FM1_SEQ_V_[A-Z0-9_]+\s*\}')
 
 
@@ -254,7 +273,7 @@ def load_seq(repo: Path, seq_tool: Path | None) -> SeqInfo | None:
             sizes = json.loads(out.stdout)
         except (OSError, subprocess.SubprocessError, ValueError):
             sizes = None
-    return SeqInfo(defines, comments, verbs, sizes)
+    return SeqInfo(defines, comments, verbs, sizes, ram_budget(repo))
 
 
 def seq_glance(seq: SeqInfo) -> str:
@@ -300,19 +319,28 @@ def seq_glance(seq: SeqInfo) -> str:
 
 
 def seq_memory(seq: SeqInfo) -> str:
+    """The sequencer's instance by number of tracks, as shares of the FM-1's
+    memory. `fm1-seq --sizes` gives each instance with its 256-event Capture
+    buffer under "tracks" and without it under "no_capture" (an older tool
+    gave the plain size under "tracks" and the other under "capture256")."""
     s = seq.sizes
-    if not s or "tracks" not in s:
+    if not s or "tracks" not in s or not seq.budget:
         return ""
+    if "no_capture" in s:
+        plain_sizes, cap_sizes = s["no_capture"], s["tracks"]
+    else:
+        plain_sizes, cap_sizes = s["tracks"], s.get("capture256", {})
     rows = []
     for t in ("4", "6", "8", "16"):
-        if t not in s["tracks"]:
+        if t not in plain_sizes:
             continue
-        plain = f"{s['tracks'][t] / 1024:.1f} KB"
-        cap = s.get("capture256", {}).get(t)
-        with_cap = f"{cap / 1024:.1f} KB" if cap is not None else DASH
+        plain = memory_share(plain_sizes[t], seq.budget)
+        cap = cap_sizes.get(t)
+        with_cap = memory_share(cap, seq.budget) if cap is not None else DASH
         rows.append(f"<tr><th scope='row'>{t}</th><td class='num'>{plain}</td>"
                     f"<td class='num'>{with_cap}</td></tr>")
-    return ("<table class='memory'><caption>Memory the sequencer takes, by number of tracks</caption>"
+    return ("<table class='memory'><caption>The FM-1's memory the sequencer takes, by number of "
+            "tracks</caption>"
             "<thead><tr><th scope='col'>Tracks</th><th scope='col'>Without Capture</th>"
             "<th scope='col'>With a 256-event Capture</th></tr></thead>"
             f"<tbody>{''.join(rows)}</tbody></table>")

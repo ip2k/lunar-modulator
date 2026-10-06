@@ -21,9 +21,16 @@ from tests.test_sim_web import SCENARIOS, left_channel, run, scenario_args, tool
 BUDGET = 387924
 SEQ_FIXED = 31944 + 3264          # the sequencer's instance (8 tracks) and event buffer (272 events),
 SEQ_MORE = 240 + 1024 + 20        # its pending record, the UI bound and the click,
-MOD_BYTES = 26512                 # and the modulation runtime (fm1_mod_size(), docs/16 MG3; MG9 voices; glide)
+MOD_BYTES = 26848                 # and the modulation runtime (fm1_mod_size(), docs/16 MG3; MG9 voices; glide; its modes)
 FIXED = SEQ_FIXED + SEQ_MORE + MOD_BYTES
 MIX_BLOCK = 512
+
+
+def need_line(ram):
+    """A RAM refusal's last line: what the chain would need, as a whole
+    percentage of the budget rounded up (fm1_app_ram_percent), never bytes
+    (owner, 2026-10-06)."""
+    return f"needs {-(-ram * 100 // BUDGET)}% of RAM"
 
 
 def sim(tools, *args, seconds=1.0):
@@ -45,7 +52,7 @@ def test_shift_presets_chooses_the_current_sound(tools):
     s = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.1:SEL:0.2",
             "--turn", "0.15:PRESETS:1", seconds=0.5)
     assert s["current"] == 1 and s["popup"] == ["S1 Macro", "S2 Shapes", "S3 Empty", "S4 Empty"]
-    assert s["popup_list"] == {"title": "Sound", "first": 0, "total": 4, "mark": 1}
+    assert s["popup_list"] == {"title": "Current sound", "first": 0, "total": 4, "mark": 1}
     assert s["seq_view"]["shift"] == 0 and s["engine"] == "macro"
     empty = sim(tools, "--engine", "macro", "--button", "0.1:SEL:0.2", "--turn", "0.15:PRESETS:3",
                 seconds=0.5)
@@ -128,7 +135,8 @@ def test_presets_on_another_sound_reaches_empty(tools):
     catalog = json.loads(subprocess.run([str(tools["sim"]), "--list"], check=True,
                                         capture_output=True, text=True).stdout)
     engines = sum(e["kind"] == "sound" for e in catalog)
-    assert on["popup_list"] == {"title": "Engine", "first": 0, "total": 1 + engines, "mark": 1}
+    # With more than one sound in use the title says whose list it is.
+    assert on["popup_list"] == {"title": "S2 engine", "first": 0, "total": 1 + engines, "mark": 1}
     off = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.1:SEL:0.1",
               "--turn", "0.15:PRESETS:1", "--turn", "0.3:PRESETS:-1", "--turn", "0.4:PRESETS:-1",
               seconds=0.5)
@@ -175,24 +183,25 @@ def test_the_meter_counts_the_chain_and_the_fixed_costs(tools):
 
 def test_the_meter_refuses_what_would_not_fit(tools):
     """Shapes twice passes the budget: the harness's load is refused (-4).
-    PRESETS steps over a sound that would not fit, with a popup that says by
-    how much; the chain never passes the budget."""
+    PRESETS steps over a sound that would not fit, with a popup that says
+    what the chain would need, as a percentage past 100; the chain never
+    passes the budget."""
     res = subprocess.run([str(tools["sim"]), "--engine", "shapes", "--sound", "1:shapes",
                           "--seconds", "0.1"], capture_output=True, text=True)
     assert res.returncode == 1 and "(-4)" in res.stderr
     s = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--turn", "0.1:PRESETS:1", seconds=0.3)
     assert s["engine"] not in ("macro", "shapes")
-    assert s["popup"][:2] == ["Shapes", "does not fit"] and s["popup"][2].endswith("K over budget")
-    over = int(s["popup"][2].split("K")[0])
+    assert s["popup"][:2] == ["Shapes", "does not fit"]
     shapes = instance_bytes(tools, "shapes")
-    assert over == -(-(2 * shapes + FIXED + MIX_BLOCK - BUDGET) // 1024)
+    assert s["popup"][2] == need_line(2 * shapes + FIXED + MIX_BLOCK)
+    assert int(s["popup"][2].split()[1].rstrip("%")) > 100      # a refusal never reads 100 %
     assert s["ram"] <= BUDGET
 
 
 def test_the_refusal_popup_gives_the_first_refusals_figure(tools):
     """PRESETS steps over two sounds that would not fit (Shapes, then Macro
-    Heavy) to Six-Op; the popup names the first one skipped and by how much
-    that one would pass the budget, not the last one's figure. (The second
+    Heavy) to Six-Op; the popup names the first one skipped and what the
+    chain would need with that one, not the last one's figure. (The second
     master effect is Ensemble since glide: with Diffuse, Macro and Shapes no
     longer fit together once both carried glide's state.)"""
     chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "plate", "--fx", "ensemble"]
@@ -202,8 +211,8 @@ def test_the_refusal_popup_gives_the_first_refusals_figure(tools):
             instance_bytes(tools, "ensemble", "fx") + FIXED + MIX_BLOCK)
     assert rest + instance_bytes(tools, "macro") <= BUDGET, "the chain must fit to begin with"
     assert rest + instance_bytes(tools, "macro-heavy") > BUDGET, "Macro Heavy must be refused too"
-    over = rest + instance_bytes(tools, "shapes") - BUDGET
-    assert s["popup"][2] == f"{-(-over // 1024)}K over budget"
+    assert s["popup"][2] == need_line(rest + instance_bytes(tools, "shapes"))
+    assert need_line(rest + instance_bytes(tools, "shapes")) != need_line(rest + instance_bytes(tools, "macro-heavy"))
 
 
 def test_a_note_on_an_empty_sound_replays(tools, tmp_path):

@@ -30,10 +30,10 @@ turn without end, in steps you can feel.
 | Knob | What it does |
 | --- | --- |
 | [[MASTER]] | The output volume, from silent to full. While you turn it the screen shows *Volume* and its position from 0 to 100 |
-| [[SELECT]] | On the sound's page, turns the page. In FX mode, moves through the slots of the chain and their pages. In SEQ mode and on the modulation pages it does more (chapters [7](07-sequencer.md) and [8](08-modulation.md)). On the global page it does nothing |
+| [[SELECT]] | On the sound's page, turns the page. In FX mode, moves through the slots of the chain and their pages. In SEQ mode and on the modulation pages it does more (chapters [7](07-sequencer.md) and [8](08-modulation.md)). On the global page it turns between *Globe* and *Key* |
 | [[PRESETS]] | Chooses the current sound's engine, in this order: Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Test Sine, and round again; Sounds 2 to 4 start the list with *Empty*. With [[SEL]] held, chooses the current sound, 1 to 4 ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |
 | [[ALGORITHM]] | Steps through the engine's main list: Model for Macro and Macro Heavy, Shape for Shapes, Patch for Six-Op FM and FM6, Pad for Sophie and Drums. Test Sine has none. In FX mode it chooses the effect in the chosen slot. With [[OCT-]] or [[OCT+]] held, it transposes ([chapter 4](04-playing.md)) |
-| [[KNOB1]] to [[KNOB4]] | Change the four parameters of the current page, in the order the screen lists them. With [[LFO]] or [[ENV]] held, they make a modulation cable ([chapter 8](08-modulation.md#the-gesture-making-a-cable-with-a-knob)) |
+| [[KNOB1]] to [[KNOB4]] | Change the four parameters of the current page, in the order the screen lists them. With [[LFO]] or [[ENV]] held, they make a modulation cable ([chapter 8](08-modulation.md#the-gesture-making-a-cable-with-a-knob)). On the global page [[KNOB1]] and [[KNOB2]] set the project key ([chapter 10](10-settings-and-storage.md#the-project-key)) |
 
 ### How far one step goes
 
@@ -90,7 +90,7 @@ two rows of six under [[KNOB1]] to [[KNOB4]]: [[FX]], [[SEL]], [[ENV]],
 | [[SEL]] | In FX mode, picks up the chosen effect so that [[SELECT]] swaps it with its neighbour; press [[SEL]] again to put it down. Everywhere else it is SHIFT, the sequencer's second function key: held, it changes what the keys, knobs and buttons do ([chapter 7](07-sequencer.md)); with [[PRESETS]] it chooses the current sound. In the modulation pages it picks up a module, or opens a cable's chain ([chapter 8](08-modulation.md)) | The same |
 | [[ENV]], [[LFO]] | A tap shows the modulation rack at an envelope or an LFO; held while you turn a knob, they make a cable to that knob's parameter ([chapter 8](08-modulation.md)) | The same |
 | [[EDIT]] | Shows the modulation matrix, the list of cables; press it again to leave ([chapter 8](08-modulation.md)) | The same |
-| [[GLO]] | Shows the global page; press it again to leave | The global page, with settings ([chapter 10](10-settings-and-storage.md)) |
+| [[GLO]] | Shows the global page, with the project key on its second page; press it again to leave | The global page, with settings ([chapter 10](10-settings-and-storage.md)) |
 | [[HOME]] | Returns to the sound's page from any mode | The same |
 | [[SEQ]] | Shows the sequencer's steps, SEQ mode, from any mode; held with a white key 1 to 8, focuses that track ([chapter 7](07-sequencer.md)) | The same |
 | [[PLAY/STOP]] | Starts and stops the sequencer, in any mode | The same |
@@ -145,7 +145,9 @@ them held moves it by semitones ([chapter 4](04-playing.md)).
 The FM-1 prints labels under its black keys for M-VAVE's own firmware: from
 the lowest black key upwards, [[OP1]] to [[OP6]], [[PIT]], [[GLO]], [[MONO]]
 and [[POLY]]; the highest black key has none. This manual uses them to name
-the black keys.
+the black keys. Outside SEQ mode, [[SEL]] held with [[MONO]] or [[POLY]]
+sets the current sound's Voice Mode
+([chapter 4](04-playing.md#glide-and-voice-modes)).
 
 !!! note "The keys and the sequencer"
     The keys have two jobs. Outside SEQ mode they play notes, as usual. In
@@ -173,11 +175,11 @@ simulator's does.
   the limiter is holding it down ([chapter 6](06-effects.md#the-limiter)).
 - **Bottom bar, left.** The page you are on and how many there are, such as
   *1/2*, and the mode: *Sound*, an effect slot such as *M1* or *S1 In2*,
-  *Mix*, *Seq*, *Globe* on the global page, or a modulation page.
+  *Mix*, *Seq*, *Globe* or *Key* on the global page, or a modulation page.
 - **Bottom bar, right.** The memory meter: a bar and the share, in percent,
   of the FM-1's memory the sounds, effects, sequencer and modulation would
-  take, against about 379 KB, the room M-VAVE's firmware leaves free on the
-  FM-1 and the simulator's estimate of what Lunar Modulator will have there
+  take. 100 % is the room M-VAVE's firmware leaves free on the FM-1, the
+  simulator's estimate of what Lunar Modulator will have there
   ([chapter 13](13-specifications.md)). Whatever would take it past 100 % is
   refused ([chapter 6](06-effects.md#memory)).
 
@@ -185,9 +187,11 @@ simulator's does.
 
 The simulator starts on this page, and [[HOME]] returns to it.
 
-- **The main list.** Under the top bar, in gold, the current value of the
-  engine's main list: the model, shape, patch or pad. Test Sine has no list,
-  so the line is left out.
+- **The main list.** Under the top bar, in rose and a smaller type, the
+  current value of the engine's main list by its full name (*Phase
+  Distortion*, which the row below shortens to *PhaseDist*): the model,
+  shape, patch or pad. On the right, its place in the list, such as *2/8*.
+  Test Sine has no list, so the line is left empty.
 - **Four rows.** One row for each parameter on the page, in knob order:
   [[KNOB1]] at the top, [[KNOB4]] at the bottom. Each row shows the name and
   the value, with a bar beneath.
@@ -196,11 +200,12 @@ The simulator starts on this page, and [[HOME]] returns to it.
   centre mark. For a list parameter, a short marker shows where the value
   sits in the list. For a frequency or a time, the bar shows where the knob
   is, which is not the same share of the value's range.
-- **Modulation.** A parameter that a modulation cable reaches has a gold
-  diamond after its name and a gold bracket on its bar
+- **Modulation.** A parameter that a modulation cable reaches has its name
+  in the modulation colour and a bracket of that colour on its bar
   ([chapter 8](08-modulation.md#what-the-pages-show)).
 - **Oscilloscope.** A strip at the bottom shows the waveform of the output.
-  It is scaled to fill the strip, so quiet sounds show up too.
+  It is scaled to fill the strip, so quiet sounds show up too. On a page
+  with fewer than four parameters it grows into the empty rows.
 
 With no engine in the current sound (Sounds 2 to 4 can be empty) the page
 says *Empty sound: turn PRESETS*.
@@ -213,17 +218,39 @@ says *Empty sound: turn PRESETS*.
 
 - **The chain**, on the first line: the current sound (*S1*), its two
   inserts (*In1*, *In2*), the Mix page and the two master slots (*M1*,
-  *M2*). The chosen one is in the accent colour, an empty one dim.
-- **The chosen slot and its effect**, such as *> M2 PSX Verb*. The arrow
-  becomes an asterisk while you have the effect picked up with [[SEL]], and
-  two dashes mean an empty slot.
+  *M2*). The chosen one is highlighted, in gold while you have its effect
+  picked up with [[SEL]]. The sound's number and its inserts that hold an
+  effect are in the sound's own colour (below); an empty slot is dim.
+- **The chosen slot's effect**, in rose, by its full name (*Compressor* for
+  Comp), and on the right what the slot is: *insert*, *master* or *mix*. An
+  empty slot reads *Empty*.
 - **The chosen effect's parameters**, as rows and bars like the sound's page.
   An empty slot says *Empty slot: turn ALGORITHM* instead. The Mix page
-  shows the four sounds' levels.
+  shows the four sounds' levels, each name and bar in that sound's colour;
+  an empty sound's bar is left unfilled.
 - **The bottom bar** shows the page and the slot, such as *1/2 M2*, or
   *1/2 S1 In1* for an insert.
 
 {{screen fx FX mode: Plate in M1 and PSX Verb in M2, chosen, with its first page on the knobs.}}
+
+Each of the four sounds has a colour of its own wherever it is named: Sound
+1 blue, Sound 2 orange, Sound 3 green and Sound 4 yellow-green, in the top
+bar's *S2*, the chain, the Mix page, the list of sounds, the sequencer's
+tracks and the modulation pages. The number always goes with the colour.
+
+### What the colours mean
+
+Each colour on the screen means one thing, wherever it appears:
+
+| Colour | Means | Where you see it |
+| --- | --- | --- |
+| Lilac | What is chosen, and the value you edit | Value bars, notes in the sequencer's grid, the highlighted row of a list or the matrix, the chosen slot in FX mode |
+| Gold | Held or locked | Steps you hold, parameter locks and lanes, a module or effect picked up with [[SEL]], REC during a count-in, a latched arpeggiator |
+| Blue-green | A live signal, or modulation | The oscilloscope, the meters, PLAY, a modulated parameter's name and bracket, the matrix's sources |
+| Rose | Where you are | The line under the top bar (the model, *Step 7*, *Lock step 6*) and a list's title |
+| Red | Refused, recording, or over the limit | A message that refuses something, REC and STEP, a refused cable, the meters at their limit |
+| Grey | Labels and things at rest | Parameter names, a list's place, *Empty*, STOP |
+| Blue, orange, green, yellow-green | Sounds 1 to 4 | Beside the sound's number (above) |
 
 ### The sequencer, modulation and arpeggiator pages
 
@@ -234,38 +261,53 @@ modulation pages, and [[ARP]] the arpeggiator's. Chapters
 
 ### The global page
 
-[[GLO]] shows the sample rate, the block size, the memory the sounds and
-effects take against the memory the FM-1 has free, the current sound's number
-of voices, the identifiers of the two master effects, and the octave and
-transpose.
-The bottom bar reads *Globe*, the name M-VAVE's firmware gives this page. The
-knobs and [[SELECT]] do nothing here. [Chapter 10](10-settings-and-storage.md)
-describes the page.
+[[GLO]] shows the sample rate, the block size, the share of the FM-1's free
+memory the sounds and effects take, in percent, the current sound's number
+of voices, the names of the two master effects (*M1* and *M2*), and the
+octave and transpose.
+The bottom bar reads *Globe*, the name M-VAVE's firmware gives this page.
+[[SELECT]] turns to a second page, *Key*, where [[KNOB1]] and [[KNOB2]] set
+the project key's root and scale, each opening its list as you turn it;
+they do so from *Globe* too, which then turns to *Key*.
+[Chapter 10](10-settings-and-storage.md) describes both.
 
 ### Lists
 
 When you turn through a list, the list appears over the middle of the screen
-until about a second after your last turn: its name in gold at the top left,
-the chosen entry's place at the top right (such as *34/96*), and six of its
-entries, the chosen one highlighted. The chosen entry sits on the third row,
-with the two before it above and the three after it below; at either end of
+until about a second after your last turn: its name in rose at the top left,
+the chosen entry's place at the top right (such as *34/96*), and its
+entries, the chosen one highlighted. A long list shows eight entries at a
+time in a smaller type; the four sounds, the quantize values and Capture's
+tempos and the arpeggiator's presets show all of theirs in the main type.
+The chosen entry sits on the third row,
+with the two before it above and the rest after it below; at either end of
 the list the rows stop moving and the highlight goes to the first or last
 row. A small triangle above the entries means the list goes on above them,
 one below them that it goes on below. *Empty* and *Empty slot* are dim.
+Entries go by their full names: where an engine's own name is short, the
+list spells it out (*Phase Distortion* for PhaseDist, *Triple Saw* for 3x
+Saw, *Compressor* for Comp).
 
 | List | When |
 | --- | --- |
-| *Engine*: the sound engines, after *Empty* on Sounds 2 to 4 | You turn [[PRESETS]] |
+| *Engine*: the sound engines, after *Empty* on Sounds 2 to 4 (*S2 engine* and the like while more than one sound is in use) | You turn [[PRESETS]] |
 | The engine's main list, such as *Model* or *Patch* | You turn [[ALGORITHM]] |
-| *M1 effect* and the like: *Empty slot*, then every effect | You turn [[ALGORITHM]] in FX mode |
-| *Sound*: the four sounds and what each holds | You turn [[PRESETS]] with [[SEL]] held |
+| A parameter's list, such as *Patch*, *Shape* or *Pad* | You turn the knob of a list parameter with five entries or more; a shorter one, such as *Off* and *On*, changes on its row |
+| *Master 1 effect*, *S1 insert 1 effect* and the like: *Empty slot*, then every effect | You turn [[ALGORITHM]] in FX mode |
+| *Current sound*: the four sounds and what each holds, each in its colour | You turn [[PRESETS]] with [[SEL]] held |
 | *Mod3 kind* and the like: *Empty*, then the sixteen kinds | You turn [[ALGORITHM]] in the rack ([chapter 8](08-modulation.md)) |
 | *Destination*: every parameter a cable can reach | You turn [[KNOB2]] in the matrix ([chapter 8](08-modulation.md)) |
-| *Tempo*: the tempos a phrase fits | You capture while the sequencer is stopped ([chapter 7](07-sequencer.md#choosing-a-tempo)) |
+| *Clip quantize*: 0 %, the set's default and 100 % | You press white key 16 with [[SEL]] held in SEQ mode ([chapter 7](07-sequencer.md)) |
+| *Capture tempo*: the tempos a phrase fits | You capture while the sequencer is stopped ([chapter 7](07-sequencer.md#choosing-a-tempo)) |
+| *Arp preset*: the stock FM-1's six arpeggio modes | You turn [[ALGORITHM]] on the ARP pages ([chapter 4](04-playing.md#the-arp-pages)) |
 
 ### Messages
 
-Short messages appear over the middle of the screen for about a second:
+Short messages appear for about a second. One that fits a line, such as
+*Volume 75* or *Metronome on*, is a band across the bottom of the page,
+which stays in view; a longer one covers the middle of the screen. A
+message that refuses something always covers the middle, its reason in
+red:
 
 | Message | When |
 | --- | --- |
@@ -274,9 +316,9 @@ Short messages appear over the middle of the screen for about a second:
 | *Transpose -2* | You turn [[ALGORITHM]] with [[OCT-]] or [[OCT+]] held |
 | *Octave 0, Transpose 0* | You press [[OCT-]] and [[OCT+]] together |
 | An engine's name and *refuses 48000 Hz* | That engine cannot run at the sample rate the browser chose ([chapter 2](02-getting-started.md#the-browser-simulator)) |
-| An engine's or effect's name, *does not fit* and how far over | It would take the chain past the FM-1's memory ([chapter 6](06-effects.md#memory)) |
+| An engine's or effect's name, *does not fit* and what the chain would need, such as *needs 112% of RAM* | It would take the chain past the FM-1's memory ([chapter 6](06-effects.md#memory)) |
 | A track, *Captured*, *Metronome on* and the like | The sequencer did something you asked ([chapter 7](07-sequencer.md)) |
-| A cable, such as *LFO1 > S2Color*, and its amount | You make a cable ([chapter 8](08-modulation.md)) |
+| A cable and its amount, such as *LFO1 > S2 Color +12%* | You make a cable ([chapter 8](08-modulation.md)) |
 | A button's name and *not in the simulator yet* | You press [[SAVE]] |
 
 !!! tip "A larger screen"

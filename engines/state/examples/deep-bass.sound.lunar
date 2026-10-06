@@ -15,8 +15,10 @@
       "Attack": 0,
       "Release": 0.2,
       "Volume": 0.7,
-      "Glide": 1,
-      "Voice Mode": "Poly"
+      "Glide": 100,
+      "Voice Mode": "Poly",
+      "Glide Mode": "Off",
+      "Time Mode": "Time"
     },
     "level": 80,
     "inserts": [

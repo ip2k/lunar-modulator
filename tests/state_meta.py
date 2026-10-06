@@ -99,8 +99,9 @@ def metadata_from_build(listed, mod, engines=None, kinds=None):
                   "op_fields": [{"name": n, "max": m} for n, m in DX7_OP],
                   "voice_fields": [{"name": n, "max": m} for n, m in DX7_VOICE]}
     doc["keys"] = {"roots": ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"],
-                   "scales": [{"id": "major", "name": "Major"}, {"id": "minor", "name": "Minor"},
-                              {"id": "chromatic", "name": "Chromatic"}]}
+                   "scales": [{"id": n.lower(), "name": n} for n in
+                              ("Major", "Minor", "Chromatic", "Dorian", "Phrygian", "Lydian",
+                               "Mixolydian", "Locrian")]}
     doc["known_ids"] = []
     doc["limits"] = LIMITS
     return doc

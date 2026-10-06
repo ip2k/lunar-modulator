@@ -19,7 +19,8 @@
         "Pad": "1 Kick",
         "Kit": "Punch",
         "Accent": 0.6,
-        "Volume": 0.7
+        "Volume": 0.7,
+        "Kit Decay": 0.5
       },
       "pads": [
         {
@@ -30,7 +31,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": -2,
@@ -40,7 +42,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": 3,
@@ -50,7 +53,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": 0,
@@ -60,7 +64,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": 5,
@@ -70,7 +75,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": -5,
@@ -80,7 +86,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": 7,
@@ -90,7 +97,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": -7,
@@ -100,7 +108,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": 0,
@@ -110,7 +119,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": -3,
@@ -120,7 +130,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": 2,
@@ -130,7 +141,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": 0,
@@ -140,7 +152,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": 2,
@@ -150,7 +163,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": 0,
@@ -160,7 +174,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": 4,
@@ -170,7 +185,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         },
         {
           "Tune": 0,
@@ -180,7 +196,8 @@
           "Snap": 0.5,
           "Sweep": 0.5,
           "Drive": 0,
-          "Model": "Kit"
+          "Model": "Kit",
+          "Choke": "Kit"
         }
       ],
       "level": 90,
@@ -199,8 +216,10 @@
         "Attack": 0,
         "Release": 0.2,
         "Volume": 0.7,
-        "Glide": 1,
-        "Voice Mode": "Poly"
+        "Glide": 100,
+        "Voice Mode": "Poly",
+        "Glide Mode": "Off",
+        "Time Mode": "Time"
       },
       "level": 80,
       "inserts": [
@@ -247,8 +266,10 @@
         "Env Timbre": 0,
         "Env Morph": 0,
         "LPG": "Gate",
-        "Glide": 1,
-        "Voice Mode": "Poly"
+        "Glide": 100,
+        "Voice Mode": "Poly",
+        "Glide Mode": "Off",
+        "Time Mode": "Time"
       },
       "level": 70,
       "inserts": [
@@ -297,8 +318,10 @@
         "Env Time": 0.5,
         "Feedback": 0,
         "Volume": 0.7,
-        "Glide": 1,
-        "Voice Mode": "Poly"
+        "Glide": 100,
+        "Voice Mode": "Poly",
+        "Glide Mode": "Off",
+        "Time Mode": "Time"
       },
       "level": 75,
       "inserts": [

@@ -567,7 +567,7 @@ async function seqChecks(browser) {
   await old.close();
 
   r.pass = r.help_shown && r.demo_rms > 0.01 && r.demo_ms <= 1100 && r.play_led &&
-    r.seq_status && r.seq_status.playing && r.seq_status.bpm_x100 === 12000 && /120\.00 BPM, playing/.test(r.status) &&
+    r.seq_status && r.seq_status.playing && r.seq_status.bpm_x100 === 12000 && / 120 BPM, playing/.test(r.status) &&
     r.mode === 3 && r.seq_led && r.white_keys[0] !== r.white_keys[1] && r.white_keys.every((k) => k.includes('1')) &&
     r.play_led_after_space === false && r.playing_after_space === false && r.playing_after_second_space === true &&
     r.mode_after_home === 0 && r.old_address_rms > 0.01 && r.old_address_lab_key === false &&
@@ -702,6 +702,10 @@ try {
   await wait(page, 100);
   await page.screenshot({ path: join(out, '04-global-zoom.png'), fullPage: true });
   report.checks.status = await page.textContent('#status');
+  // Memory only as a percentage of the FM-1's budget (owner, 2026-10-06),
+  // the same figure the screen's meter shows.
+  report.checks.memory_percent = /The chain takes \d+% of the FM-1's memory\./.test(report.checks.status) &&
+    !/\d\s*(KB|KiB|kB|B)\b|kilobyte|bytes/.test(report.checks.status);
   report.checks.screens = await page.evaluate(() => window.fm1.screens);
   await page.close();
 
@@ -749,6 +753,7 @@ const c = report.checks;
 const theme = c.theme || {};
 report.pass = !report.error && theme.title === 'Lunar Modulator' && theme.display_font_loaded === true &&
   theme.body_background === 'rgb(35, 33, 54)' && c.screens > 0 && c.chord_rms > 0.01 && c.lit_keys === 3 &&
+  c.memory_percent === true &&
   c.fx_led === true && c.phone_scroll_width <= 390 && bigEnough(c.phone, 24) && c.phone_pan_px > 100 &&
   c.landscape.page_scroll_width <= 844 && bigEnough(c.landscape, 24) && c.input && c.input.pass &&
   c.seq && c.seq.pass && c.dx7 && c.dx7.pass &&

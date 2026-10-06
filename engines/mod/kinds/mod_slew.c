@@ -21,8 +21,6 @@
  * (Mannequins; ideas only); no code taken. */
 #include "kinds_int.h"
 
-#include "mp_int.h"
-
 enum { P_UP, P_DOWN, P_TYPE, P_SPREAD, P_IN, P_COUNT };
 enum { N_OUT = 6 };
 enum { T_LINEAR, T_EXPO };

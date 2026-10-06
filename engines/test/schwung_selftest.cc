@@ -203,16 +203,16 @@ const ParamKey kProbeKeys[4] = {
 };
 ModuleState g_probe_sound_state, g_probe_fx_state, g_probe_fx_headroom_state;
 const Module kProbeSound = {
-  FM1_KIND_SOUND, "probe", ProbeSoundInit, NULL, kProbeParams, kProbeKeys, 4, 4,
+  FM1_KIND_SOUND, "probe", ProbeSoundInit, NULL, kProbeParams, kProbeKeys, 4,
   4096, 2.0f, 1.0f, &g_probe_sound_state, NULL,
 };
 const Module kProbeFx = {
-  FM1_KIND_AUDIO_FX, "probe-fx", NULL, ProbeFxInit, kProbeParams, kProbeKeys, 4, 4,
+  FM1_KIND_AUDIO_FX, "probe-fx", NULL, ProbeFxInit, kProbeParams, kProbeKeys, 4,
   4096, 0.0f, 1.0f, &g_probe_fx_state, NULL,
 };
 const Module kProbeFxHeadroom = {
   FM1_KIND_AUDIO_FX, "probe-fx-headroom", NULL, ProbeFxHeadroomInit, kProbeParams,
-  kProbeKeys, 4, 4, 4096, 0.0f, 2.0f, &g_probe_fx_headroom_state, NULL,
+  kProbeKeys, 4, 4096, 0.0f, 2.0f, &g_probe_fx_headroom_state, NULL,
 };
 
 // Chunk sizes that never line up with the 64-frame module block.
@@ -301,11 +301,12 @@ void CheckProbeSound() {
   Report("midi_encoding", p->n_midi == 8 && memcmp(p->midi, want, sizeof(want)) == 0,
          "\"messages\":" + Num(p->n_midi));
 
-  // Parameter strings.
+  // Parameter strings. NaN is the default (fm1_param_clamp; it was the
+  // minimum until 2026-10-06).
   struct Case { uint16_t index; float value; const char *key; const char *val; };
   const Case cases[] = {
     { 0, 0.35f, "gain", "0.350000" }, { 0, 7.0f, "gain", "1.000000" },
-    { 0, NAN, "gain", "0.000000" }, { 1, 2.4f, "mode", "2" }, { 1, 9.0f, "mode", "3" },
+    { 0, NAN, "gain", "0.500000" }, { 1, 2.4f, "mode", "2" }, { 1, 9.0f, "mode", "3" },
     { 2, 15.0f, "slot", "16" }, { 2, 0.0f, "slot", "1" },
     { 3, -5.25f, "tune", "-5.250000" }, { 3, -24.0f, "tune", "-24.000000" },
     { 3, 12.5f, "tune", "12.500000" },

@@ -14,12 +14,14 @@
  * FM-1 additions, written only outside compat mode and only when they differ
  * from the default, so a set that uses no FM-1 feature is byte-identical to
  * Movy's export:
- *   dq <percent>                   the default quantize of new clips (after link)
+ *   key <root 0..11> <scale>       the project key, when not C major (after link)
+ *   dq <percent>                   the default quantize of new clips (after key)
  *   se <1 park|2 stop>             what the song does after its last entry (after sg)
  *   sn <scene> <name>              a scene's name, 1-6 printable characters (after se)
  *   rt <track> <0 midi|1 engine> <channel|slot>   a track's routing (after its au lines)
- * Movy ignores unknown lines, so such a set still loads there. Outside
- * compat mode an import reads them, first resetting each to its default (a
+ * Movy ignores unknown lines, so such a set still loads there. Every
+ * import reads `rt` and `key` (a set read without a `key` line is in C
+ * major). Outside compat mode an import reads the rest, first resetting each to its default (a
  * set without `dq` has quantize 0, as Movy's own sets were made), and
  * reseeds the RNG (ST11); compat mode reads none of them, keeps the RNG
  * running and the default quantize as it was, as Movy's load does. `sg`
@@ -77,6 +79,13 @@ size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap) {
   puts_(&k, "\nlink ");
   putu(&k, s->link_enabled ? 1u : 0u);
   puts_(&k, "\n");
+  if (!s->lim.compat && (s->key_root || s->key_scale)) {
+    puts_(&k, "key ");
+    putu(&k, s->key_root);
+    puts_(&k, " ");
+    putu(&k, s->key_scale);
+    puts_(&k, "\n");
+  }
   if (!s->lim.compat && s->default_quant) {
     puts_(&k, "dq "); putu(&k, s->default_quant); puts_(&k, "\n");
   }
@@ -210,7 +219,7 @@ static int is_ws(char c) {
 enum { IM_TAG = 0, IM_BODY, IM_REFUSED };
 enum {
   K_NONE = 0, K_OTHER, K_BPM, K_SWING, K_LINK, K_SG, K_TK, K_PM, K_PS, K_CL, K_CP, K_AU, K_LK, K_TG,
-  K_RT, K_DQ, K_SE, K_SN
+  K_RT, K_KEY, K_DQ, K_SE, K_SN
 };
 
 static void num_init(fm1_seq_num_t *x) { memset(x, 0, sizeof(*x)); }
@@ -274,6 +283,8 @@ static void import_reset(fm1_seq_t *s) {
     tr->route_index = (uint8_t)(t % 16u + 1u);
   }
   s->link_enabled = 0;
+  s->key_root = 0;
+  s->key_scale = 0;
   sq_clear_song(s);
   s->song_end = FM1_SEQ_SONG_LOOP;
   memset(s->scene_name, 0, sizeof s->scene_name);
@@ -287,7 +298,7 @@ static unsigned key_of(const fm1_seq_import_t *im) {
   static const struct { const char *name; uint8_t key; } kKeys[] = {
     { "bpm", K_BPM }, { "swing", K_SWING }, { "link", K_LINK }, { "sg", K_SG }, { "tk", K_TK },
     { "pm", K_PM }, { "ps", K_PS }, { "cl", K_CL }, { "cp", K_CP }, { "au", K_AU }, { "lk", K_LK },
-    { "tg", K_TG }, { "rt", K_RT }, { "dq", K_DQ }, { "se", K_SE }, { "sn", K_SN },
+    { "tg", K_TG }, { "rt", K_RT }, { "key", K_KEY }, { "dq", K_DQ }, { "se", K_SE }, { "sn", K_SN },
   };
   size_t i;
   if (im->keylen > sizeof(im->keybuf)) return K_OTHER;
@@ -535,6 +546,13 @@ static void word_end(fm1_seq_import_t *im) {
             !fm1_seq_set_route(s, (uint8_t)im->lv[0], (uint8_t)im->lv[1], (uint8_t)im->lv[2])) {
           ++s->stats.refused;
         }
+      }
+      break;
+    case K_KEY:
+      if (wi == 1) {
+        word_u(im, 0, U8_MAX_);
+      } else if (wi == 2 && word_u(im, 1, U8_MAX_)) {
+        fm1_seq_set_key(s, (unsigned)im->lv[0], (unsigned)im->lv[1]);
       }
       break;
     case K_DQ:

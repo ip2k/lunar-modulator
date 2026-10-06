@@ -4,8 +4,9 @@ a 16-pad kit on MIDI notes 36-51.
 Every pad of both kits and every model sounds cleanly; the kicks, toms and
 hats have the character their voicings promise (a long deep kick, a short
 swept punchy one, toms rising with their keys, short closed and long open
-hats, bright where the circuits put them); the hats choke one another;
-velocity, Accent and the kit's knobs act; twelve voices hold, a thirteenth
+hats, bright where the circuits put them); the hats choke one another, and
+any pad joins a choke group by its Choke; velocity, Accent and the kit's
+knobs act, Kit Decay among them; twelve voices hold, a thirteenth
 pad steals the quietest, and a closed hat with every voice busy takes the
 open hat's; notes outside the pads and note-offs do nothing; the per-pad knobs edit only the focused pad, a pad
 given another model plays that model's own voicing, and Kit and Model are
@@ -85,16 +86,26 @@ def test_drums_is_a_twelve_voice_pad_kit(listing):
     assert params["Pad"]["names"][0] == "1 Kick" and params["Pad"]["names"][15] == "16 Ride"
     assert params["Model"]["names"] == MODELS
     assert params["Kit"]["names"] == ["Deep", "Punch"]
-    assert [p["page"] for p in e["params"]] == [0] * 4 + [1] * 4 + [2] * 4
-    assert e["params"][-1]["name"] == "Volume"           # the last page ends with it, as elsewhere
+    assert params["Choke"]["names"] == ["Kit", "None", "Group 1", "Group 2", "Group 3", "Group 4"]
+    assert params["Choke"]["def"] == 0 and params["Choke"]["flags"] == ["latch", "mod", "per_focus"]
+    kd = params["Kit Decay"]
+    assert (kd["min"], kd["max"], kd["def"], kd["abbr"]) == (0, 1, 0.5, "KDecay")
+    # The pad on pages 1 to 3 (Model and Choke on 3), the kit on 4.
+    page = {p["name"]: p["page"] for p in e["params"]}
+    assert [n for n in page if page[n] == 2] == ["Model", "Choke"]
+    assert [n for n in page if page[n] == 3] == ["Kit", "Accent", "Volume", "Kit Decay"]
+    assert [page[n] for n in ("Pad", "Tune", "Decay", "Level")] == [0] * 4
+    assert [page[n] for n in ("Tone", "Snap", "Sweep", "Drive")] == [1] * 4
 
 
-def test_twelve_parameters_fit_the_modulation_records(listing):
+def test_fourteen_parameters_fit_the_modulation_records(listing):
     """Four sound units of the engine with the most parameters and ten of
-    the largest effects share the modulation runtime's 192 records
-    (tests/test_engines_mod_runtime.py): twelve, as many as Macro Heavy had
-    before glide gave it fourteen (an open question: engines/README.md)."""
-    assert len(listing["drums"]["params"]) == 12
+    the largest effects share the modulation runtime's 200 records
+    (tests/test_engines_mod_runtime.py). Drums had twelve until the owner
+    gave it a per-pad Choke and a kit-wide Kit Decay (2026-10-06), in the
+    room glide made: fourteen, under Macro Heavy's sixteen."""
+    assert len(listing["drums"]["params"]) == 14
+    assert max(len(e["params"]) for e in listing.values() if e["kind"] == "sound") == 16
 
 
 def test_only_the_kits_say_they_are_pad_kits(listing):
@@ -216,16 +227,22 @@ def test_cowbell_rings_at_its_two_pitches(renderer, tmp_path):
 
 # ---- choke groups ------------------------------------------------------------------------
 
+@pytest.mark.parametrize("kit", ["0", "1"])
 @pytest.mark.parametrize("cutter", [CLOSED_HH, PEDAL_HH])
-def test_closed_and_pedal_hats_choke_the_open_one(renderer, tmp_path, cutter):
+def test_closed_and_pedal_hats_choke_the_open_one(renderer, tmp_path, cutter, kit):
     """The open hat alone rings on past 0.4 s; struck under a closed or pedal
-    hat it is cut within 4 ms of the hit, so only the short hat is left."""
-    _, _, open_ = run(renderer, tmp_path, "open", notes=[f"0:{OPEN_HH}:127:0.1"], seconds=1.0)
-    _, _, cut = run(renderer, tmp_path, "cut", notes=[f"0:{OPEN_HH}:127:0.1",
-                                                      f"0.2:{cutter}:100:0.1"], seconds=1.0)
-    _, _, alone = run(renderer, tmp_path, "alone", notes=[f"0.2:{cutter}:100:0.1"], seconds=1.0)
-    assert window_rms(open_, 0.4, 0.6) > 30
-    assert window_rms(cut, 0.4, 0.6) < 0.2 * window_rms(open_, 0.4, 0.6)
+    hat it is cut within 4 ms of the hit, so only the short hat is left: the
+    kits' own groups (Choke on Kit, the default), in both kits."""
+    k = [f"Kit={kit}"]
+    _, _, open_ = run(renderer, tmp_path, "open", k, notes=[f"0:{OPEN_HH}:127:0.1"], seconds=1.0)
+    _, _, cut = run(renderer, tmp_path, "cut", k, notes=[f"0:{OPEN_HH}:127:0.1",
+                                                         f"0.2:{cutter}:100:0.1"], seconds=1.0)
+    _, _, alone = run(renderer, tmp_path, "alone", k, notes=[f"0.2:{cutter}:100:0.1"], seconds=1.0)
+    if kit == "0":
+        assert window_rms(open_, 0.4, 0.6) > 30
+        assert window_rms(cut, 0.4, 0.6) < 0.2 * window_rms(open_, 0.4, 0.6)
+    else:                                   # Punch's open hat is 0.36 s, its closed 0.075
+        assert window_rms(open_, 0.23, 0.3) > 30
     # From 5 ms after the hit, the choked hat is gone: only the short hat sounds.
     t = int(0.2 * RATE) + int(0.005 * RATE) + 64
     assert max(abs(a - b) for a, b in zip(cut[t:], alone[t:])) <= 2
@@ -249,6 +266,66 @@ def test_only_the_hats_choke(renderer, tmp_path):
         _, _, a = run(renderer, tmp_path, "a", quiet, pair[:1], seconds=1.0)
         _, _, b = run(renderer, tmp_path, "b", quiet, pair[1:], seconds=1.0)
         assert max(abs(x - (y + z)) for x, y, z in zip(both, a, b)) <= 3
+
+
+def cut_by(renderer, tmp_path, params, first, second, at=0.2):
+    """Whether `second` struck at `at` cuts `first` (struck at 0): from 5 ms
+    after the hit the render is `second` alone (cut), or the two rendered
+    apart, summed (not cut). Quiet, under the bus limiter, so renders add."""
+    params = ["Volume=0.3"] + list(params)
+    notes = [f"0:{first}:127:0.1", f"{at}:{second}:100:0.1"]
+    _, _, both = run(renderer, tmp_path, "both", params, notes, seconds=1.0)
+    _, _, a = run(renderer, tmp_path, "a", params, notes[:1], seconds=1.0)
+    _, _, b = run(renderer, tmp_path, "b", params, notes[1:], seconds=1.0)
+    t = int(at * RATE) + int(0.005 * RATE) + 64
+    if max(abs(x - y) for x, y in zip(both[t:], b[t:])) <= 2 and max(abs(v) for v in a[t:]) > 40:
+        return True
+    assert max(abs(x - (y + z)) for x, y, z in zip(both, a, b)) <= 3, "neither cut nor apart"
+    return False
+
+
+def test_choke_none_takes_a_pad_out_of_its_kits_group(renderer, tmp_path):
+    """Choke None on the open hat's pad: the closed hat no longer cuts it
+    (and it no longer cuts the closed hat); back on Kit, it does again."""
+    assert cut_by(renderer, tmp_path, [], OPEN_HH, CLOSED_HH)
+    assert not cut_by(renderer, tmp_path, ["Pad=10", "Choke=1"], OPEN_HH, CLOSED_HH)
+    assert not cut_by(renderer, tmp_path, ["Pad=10", "Choke=1"], CLOSED_HH, OPEN_HH, at=0.01)
+    assert cut_by(renderer, tmp_path, ["Pad=10", "Choke=1", "Choke=0"], OPEN_HH, CLOSED_HH)
+
+
+@pytest.mark.parametrize("kit", ["0", "1"])
+def test_any_pads_can_share_a_group(renderer, tmp_path, kit):
+    """Crash and ride on Group 2 cut each other, and nothing else does; the
+    crash on Group 1, the hats' own, is cut by a closed hat; a pad in
+    another group is not."""
+    two = [f"Kit={kit}", "Pad=13", "Choke=3", "Pad=15", "Choke=3"]
+    assert cut_by(renderer, tmp_path, two, CRASH, RIDE)
+    assert cut_by(renderer, tmp_path, two, RIDE, CRASH)
+    assert not cut_by(renderer, tmp_path, two, CRASH, CLOSED_HH)
+    assert not cut_by(renderer, tmp_path, two, CRASH, SNARE)
+    assert cut_by(renderer, tmp_path, [f"Kit={kit}", "Pad=13", "Choke=2"], CRASH, CLOSED_HH)
+    assert not cut_by(renderer, tmp_path, [f"Kit={kit}", "Pad=13", "Choke=4", "Pad=15", "Choke=5"],
+                      CRASH, RIDE)
+
+
+def test_choke_is_read_when_a_pad_is_struck(renderer, tmp_path):
+    """A sounding hit keeps the group it was struck in (LATCH): the open
+    hat's Choke set to None while it rings still lets the closed hat cut it,
+    and a crash moved into the hats' group after its hit is not cut. The
+    hit that cuts is read at its own strike too."""
+    late_none = ["--param-at", "0.1:Pad=10", "--param-at", "0.1:Choke=1"]
+    _, kept, _ = run(renderer, tmp_path, "kept", notes=[f"0:{OPEN_HH}:127:0.1",
+                                                        f"0.2:{CLOSED_HH}:100:0.1"],
+                     extra=late_none, seconds=1.0)
+    _, plain, _ = run(renderer, tmp_path, "plain", notes=[f"0:{OPEN_HH}:127:0.1",
+                                                          f"0.2:{CLOSED_HH}:100:0.1"], seconds=1.0)
+    assert kept == plain
+    late_join = ["--param-at", "0.1:Pad=13", "--param-at", "0.1:Choke=2"]
+    _, joined, _ = run(renderer, tmp_path, "joined", ["Volume=0.3"],
+                       [f"0:{CRASH}:127:0.1", f"0.2:{CLOSED_HH}:100:0.1"], extra=late_join, seconds=1.0)
+    _, apart, _ = run(renderer, tmp_path, "apart", ["Volume=0.3"],
+                      [f"0:{CRASH}:127:0.1", f"0.2:{CLOSED_HH}:100:0.1"], seconds=1.0)
+    assert joined == apart
 
 
 # ---- velocity and the kit's knobs ---------------------------------------------------------
@@ -277,6 +354,41 @@ def test_volume_level_and_decay(renderer, tmp_path):
     _, _, short = kick("Decay=0")
     _, _, long_ = kick("Decay=1", seconds=4.0)
     assert decay_time(short, 40) < 0.5 * decay_time(x, 40) < decay_time(long_, 40)
+
+
+@pytest.mark.parametrize("kit", ["0", "1"])
+@pytest.mark.parametrize("key", [KICK, SNARE, CLAP, OPEN_HH, CRASH, LOW_TOM, RIM])
+def test_kit_decay_moves_every_pad_as_its_own_decay_would(renderer, tmp_path, kit, key):
+    """Kit Decay at 0.5 (the default) changes no bit; elsewhere it moves
+    every pad's decay about the pad's own, as the pad's Decay knob does from
+    its default: Kit Decay 0.25 or 0.8 is, byte for byte, that pad's Decay
+    at 0.25 or 0.8. Lower is shorter and higher longer, on every pad."""
+    pad = key - 36
+    one = [f"0:{key}:127:0.1"]
+    k = [f"Kit={kit}"]
+    _, plain, x = run(renderer, tmp_path, "plain", k, one, seconds=2.5)
+    _, mid, _ = run(renderer, tmp_path, "mid", k + ["Kit Decay=0.5"], one, seconds=2.5)
+    assert mid == plain
+    for v in ("0.25", "0.8"):
+        _, kitd, _ = run(renderer, tmp_path, f"kit{v}", k + [f"Kit Decay={v}"], one, seconds=2.5)
+        _, padd, _ = run(renderer, tmp_path, f"pad{v}", k + [f"Pad={pad}", f"Decay={v}"], one,
+                         seconds=2.5)
+        assert kitd == padd, v
+    _, _, short = run(renderer, tmp_path, "short", k + ["Kit Decay=0"], one, seconds=2.5)
+    _, _, long_ = run(renderer, tmp_path, "long", k + ["Kit Decay=1"], one, seconds=6.0)
+    assert decay_time(short, 40) < decay_time(x, 40) < decay_time(long_, 40)
+
+
+def test_kit_decay_scales_the_pads_own_decay(renderer, tmp_path):
+    """With a pad's own Decay moved, Kit Decay works from there: the kick at
+    Decay 0.8 under Kit Decay 0.25 is half the kick's decay control at
+    Decay 0.8 (About's scaling below the middle), between the two."""
+    one = [f"0:{KICK}:127:0.1"]
+    _, _, own = run(renderer, tmp_path, "own", ["Decay=0.8"], one, seconds=4.0)
+    _, _, both = run(renderer, tmp_path, "both", ["Decay=0.8", "Kit Decay=0.25"], one, seconds=4.0)
+    _, _, plain = run(renderer, tmp_path, "plain", [], one, seconds=4.0)
+    assert decay_time(both, 40) < decay_time(own, 40)
+    assert decay_time(both, 40) < decay_time(plain, 40)
 
 
 def test_tune_and_bend_move_a_pad(renderer, tmp_path):
@@ -431,7 +543,10 @@ TURNS = ["--param-at", f"{t(1344):.9f}:Pad=6", "--param-at", f"{t(1344):.9f}:Ton
          "--param-at", f"{t(4032):.9f}:Pad=0", "--param-at", f"{t(4032):.9f}:Model=2",
          "--param-at", f"{t(4480):.9f}:Sweep=0.9", "--bend", f"{t(4928):.9f}:3",
          "--note-param-at", f"{t(5376):.9f}:{KICK}:Decay=-0.3",
-         "--note-pitch-at", f"{t(5376):.9f}:{KICK}:-5"]
+         "--note-pitch-at", f"{t(5376):.9f}:{KICK}:-5",
+         "--param-at", f"{t(896):.9f}:Kit Decay=0.3", "--param-at", f"{t(2688):.9f}:Kit Decay=0.9",
+         "--param-at", f"{t(3584):.9f}:Pad=13", "--param-at", f"{t(3584):.9f}:Choke=2",
+         "--note-param-at", f"{t(5376):.9f}:{KICK}:Kit Decay=0.2"]
 
 
 def test_output_does_not_depend_on_the_host_block(renderer, tmp_path):

@@ -213,7 +213,10 @@ def test_the_app_steps_and_draws_log_knobs_in_ratios(tools, tmp_path):  # noqa: 
     run(tools["sim"], base + ["--screen", str(screen), "--out", str(tmp_path / "c.wav")])
     w, _, at = ppm_pixels(screen)
     accent = rgb565(0xc4, 0xa7, 0xe7)
-    y = 72 + 36 + 22 + 3                          # the second row's bar, its middle line
+    # The second row's bar, its middle line: FX mode's rows start at 68 since
+    # the UI audit's context line (fm1_app.c FX_ROWS_Y: the chain in MAIN,
+    # the effect's line in MID, 4 px after each).
+    y = 68 + 36 + 22 + 3
     fill = [x for x in range(w) if at(x, y) == accent]
     assert fill and fill[0] == 6 and len(fill) == round(pos * 228)
 

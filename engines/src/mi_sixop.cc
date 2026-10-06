@@ -38,8 +38,9 @@
 //   (LATCH). A voice without an offset plays the engine's values, byte for
 //   byte as before.
 //
-// - Glide and Voice Mode (glide.h), after Volume: the glide joins the note
-//   after the bend, once per 16-sample block. A Legato move gives
+// - Glide, Voice Mode, Glide Mode and Time Mode (glide.h), on page 3: the
+//   glide joins the note after the bend, once per 16-sample block. A
+//   Legato move gives
 //   fm::Voice no gate edge, so its envelopes go on and its keyboard and
 //   rate scaling stay the first note's; a Mono note restarts them, and a
 //   glide's first block is the note it samples for them (the pitch it
@@ -147,7 +148,11 @@ const char *const kPatchNames[kNumPatches] = {
 
 #undef RENAMED
 
-enum Param { P_PATCH, P_BRIGHTNESS, P_ENVELOPE, P_VOLUME, P_GLIDE, P_VOICE_MODE, P_COUNT };
+enum Param {
+  P_PATCH, P_BRIGHTNESS, P_ENVELOPE, P_VOLUME,
+  P_GLIDE, P_VOICE_MODE, P_GLIDE_MODE, P_TIME_MODE,
+  P_COUNT
+};
 
 // Brightness 0.5 plays the modulator levels as programmed. Envelope has no
 // neutral point in Plaits: attack/decay rates scale by 2^((0.5 - e) * 8) and
@@ -168,11 +173,15 @@ const fm1_param_t kParams[P_COUNT] = {
   { "Envelope",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0,  // Plaits' MORPH
     3, kPoly, FM1_UNIT_NONE, "Env" },
   { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 4, kPoly, FM1_UNIT_NONE, "Vol" },
-  // Glide and the voice modes (glide.h), after Volume on page 2.
-  { "Glide",      FM1_PARAM_FLOAT, glide::kOffMs, glide::kMaxMs, glide::kOffMs, NULL, 1,
+  // Glide and the voice modes (glide.h), on a page of their own, the last.
+  { "Glide",      FM1_PARAM_FLOAT, glide::kMinMs, glide::kMaxMs, glide::kDefaultMs, NULL, 2,
     5, glide::kGlideFlags, FM1_UNIT_MS, "Glide" },
   { "Voice Mode", FM1_PARAM_ENUM, 0, glide::MODE_COUNT - 1, glide::MODE_POLY,
-    glide::kModeNames, 1, 6, glide::kModeFlags, FM1_UNIT_NONE, "VMode" },
+    glide::kModeNames, 2, 6, glide::kModeFlags, FM1_UNIT_NONE, "VMode" },
+  { "Glide Mode", FM1_PARAM_ENUM, 0, glide::GLIDE_MODE_COUNT - 1, glide::GLIDE_OFF,
+    glide::kGlideModeNames, 2, 7, glide::kModeFlags, FM1_UNIT_NONE, "GMode" },
+  { "Time Mode",  FM1_PARAM_ENUM, 0, glide::TIME_MODE_COUNT - 1, glide::TIME_TIME,
+    glide::kTimeModeNames, 2, 8, glide::kModeFlags, FM1_UNIT_NONE, "TMode" },
 };
 
 // A voice's per-note offsets: Brightness, Envelope and Volume, and its pitch.
@@ -247,8 +256,7 @@ class Instance {
   void NoteOn(uint8_t key, uint8_t velocity) {
     if (velocity == 0) { NoteOff(key); return; }
     held_.Push(key);
-    const glide::Plan<Voice> plan = glide::PlanNoteOn(
-        voice_, kNumVoices, glide::ToMode(value_[P_VOICE_MODE]), value_[P_GLIDE]);
+    const glide::Plan<Voice> plan = glide::PlanNoteOn(voice_, kNumVoices, GlideConfig());
     if (plan.legato) {         // Legato over a held note: a new key, nothing restarts
       Retune(plan.mono, key);
       glide::StartFor(plan.mono, plan, key);
@@ -306,9 +314,9 @@ class Instance {
 
   void SetParam(uint16_t index, float value) {
     if (index >= P_COUNT) return;
-    const fm1_param_t &p = kParams[index];
-    if (!(value >= p.min)) value = p.min;  // also catches NaN
-    if (value > p.max) value = p.max;
+    // fm1_param_clamp: NaN is the default, as the API says (it was the
+    // minimum here until 2026-10-06; the same for every other value).
+    value = fm1_param_clamp(&kParams[index], value);
     fm1_smooth_set(&smooth_[index], &value_[index], value, Steps(index));
   }
 
@@ -344,12 +352,17 @@ class Instance {
   }
 
  private:
+  // What Voice Mode, Glide Mode and Time Mode say now (glide.h).
+  glide::Config GlideConfig() const {
+    return glide::Read(value_[P_VOICE_MODE], value_[P_GLIDE_MODE], value_[P_TIME_MODE]);
+  }
+
   // Mono and Legato: letting go of the key the voice plays while older keys
   // are held moves it back to the newest of them, gliding, never restarting.
   void ReturnToHeld(uint8_t key) {
     uint8_t top = 0;
     const glide::Plan<Voice> plan =
-        glide::PlanNoteOff(voice_, kNumVoices, held_, key, value_[P_GLIDE], &top);
+        glide::PlanNoteOff(voice_, kNumVoices, held_, key, GlideConfig(), &top);
     if (!plan.mono) return;
     Retune(plan.mono, top);
     glide::StartFor(plan.mono, plan, top);
@@ -395,7 +408,7 @@ class Instance {
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     float mix[kBlock] = { 0 };
     const float gain = value_[P_VOLUME] * 0.25f;
-    const float glide_inc = glide::Increment(glide_block_ms_, value_[P_GLIDE]);
+    glide::Step glide_step(glide_block_ms_, value_[P_GLIDE]);
     Voice *lead = lead_ >= 0 ? &voice_[lead_] : NULL;
     if (lead) lead->fm.mutable_lfo()->Step(static_cast<float>(kBlock));
 
@@ -415,7 +428,7 @@ class Instance {
       float note = v.key + v.note_offset + bend_;
       if (v.note.has_pitch()) note += v.note.pitch;
       if (v.glide.active) note += v.glide.offset;
-      v.glide.Next(glide_inc);
+      v.glide.Next(glide_step);
       p->note = note;
       p->velocity = accent;
       p->brightness = v.note.Value(kParams, P_BRIGHTNESS, value_[P_BRIGHTNESS]);

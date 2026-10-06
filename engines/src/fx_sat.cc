@@ -393,6 +393,7 @@ typedef struct SatInstance {
   uint32_t rest_frames;     /* FM1_IDLE_REST_SECONDS in frames */
   uint32_t warm;            /* frames of warm-up left: Mix held at 0 */
   int idle;                 /* everything is stopped; the output is the input */
+  int driven;               /* FM1_PARAM_DRIVEN: locks or cables, so never idle */
   SatChannel ch[2];
 } SatInstance;
 
@@ -512,6 +513,7 @@ static void *SatCreate(void *mem, const fm1_host_t *host) {
   self->rest_frames = fm1_idle_frames_of(FM1_IDLE_REST_SECONDS, fs);
   self->warm = 0;
   self->idle = 0;
+  self->driven = 0;
   return self;
 }
 
@@ -519,6 +521,10 @@ static void SatDestroy(void *self) { (void)self; }
 
 static void SatSet(void *s, uint16_t index, float v) {
   SatInstance *self = (SatInstance *)s;
+  if (index == FM1_PARAM_DRIVEN) {      /* the host's word: never idle (fm1_engine.h) */
+    self->driven = v != 0.0f && v == v;
+    return;
+  }
   if (index >= P_COUNT) return;
   self->param[index] = fm1_param_clamp(&kSatParams[index], v);
   SatSetTarget(self, index);
@@ -583,7 +589,7 @@ static void SatRender(void *s, float *lr, uint32_t frames) {
   }
 #if FM1_FX_IDLE
   if (self->idle) {
-    if (self->target[S_MIX] == 0.0f) {   /* still pass-through */
+    if (self->target[S_MIX] == 0.0f && !self->driven) {   /* still pass-through */
       SatPass(lr, frames);
       return;
     }
@@ -676,8 +682,8 @@ static void SatRender(void *s, float *lr, uint32_t frames) {
       lr[2 * f + c] = mix != 0.0f ? x[c] + mix * (level * wet - x[c]) : x[c];
     }
 #if FM1_FX_IDLE
-    /* At rest: Mix asked for and landed at 0. */
-    if (mix == 0.0f && self->target[S_MIX] == 0.0f) {
+    /* At rest: Mix asked for and landed at 0, and nothing drives a knob. */
+    if (mix == 0.0f && self->target[S_MIX] == 0.0f && !self->driven) {
       if (++self->rest >= self->rest_frames) {
         /* Idle from the next frame; a wake starts everything from rest. */
         memset(ch, 0, sizeof(ch));

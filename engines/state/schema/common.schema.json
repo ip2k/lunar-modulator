@@ -212,7 +212,7 @@
       "required": ["root", "scale"],
       "properties": {
         "root": {"enum": ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]},
-        "scale": {"description": "A scale id from the metadata export (FM1_KEY_*: major, minor, chromatic so far).", "type": "string", "pattern": "^[a-z][a-z0-9-]{0,23}$"}
+        "scale": {"description": "A scale id from the metadata export (FM1_KEY_*: major, minor, chromatic, then dorian, phrygian, lydian, mixolydian and locrian).", "type": "string", "pattern": "^[a-z][a-z0-9-]{0,23}$"}
       },
       "additionalProperties": false
     },

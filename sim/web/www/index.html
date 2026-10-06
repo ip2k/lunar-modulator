@@ -64,14 +64,17 @@
       <div><dt>Keys</dt><dd>Click or touch; lower on a key plays louder. Computer keys
         <kbd>A</kbd> <kbd>W</kbd> <kbd>S</kbd> <kbd>E</kbd> <kbd>D</kbd> <kbd>R</kbd> <kbd>F</kbd>
         <kbd>G</kbd> <kbd>Y</kbd> <kbd>H</kbd> <kbd>U</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>O</kbd>
-        <kbd>L</kbd> <kbd>P</kbd> <kbd>;</kbd> <kbd>[</kbd> <kbd>'</kbd> play the first 19 keys, F3 to B4.</dd></div>
+        <kbd>L</kbd> <kbd>P</kbd> <kbd>;</kbd> <kbd>[</kbd> <kbd>'</kbd> play the first 19 keys, F3 to B4.
+        Hold SEL (SHIFT) and press MONO or POLY (the black keys C#5 and D#5) to set the sound's
+        Voice Mode: MONO gives Mono, and pressed again Legato; POLY gives Poly.</dd></div>
       <div><dt>OCT&minus; / OCT+</dt><dd><kbd>Z</kbd> / <kbd>X</kbd>. Both at once reset octave and transpose;
         hold one and turn ALGORITHM to transpose, as on the FM-1.</dd></div>
       <div><dt>Encoders</dt><dd>Drag up or down, or scroll. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> SELECT (page),
         <kbd>&uarr;</kbd> <kbd>&darr;</kbd> PRESETS (sound), <kbd>-</kbd> <kbd>=</kbd> ALGORITHM
         (the sound's model, or the effect in FX mode). KNOB1&ndash;4 turn the four parameters on screen.</dd></div>
       <div><dt>Buttons</dt><dd>FX shows the effects (below), GLO the global page, HOME goes back.
-        MASTER is the volume. <kbd>Esc</kbd> releases every note.</dd></div>
+        On the global page SELECT turns to Key, where KNOB1 and KNOB2 set the project key's root and
+        scale, kept with the sequencer's set. MASTER is the volume. <kbd>Esc</kbd> releases every note.</dd></div>
       <div><dt>MIDI</dt><dd>Notes, pitch bend (&plusmn;2 semitones), CC&nbsp;7 volume, CC&nbsp;123 all notes off.</dd></div>
       <div><dt>Sequencer</dt><dd>PLAY/STOP, or <kbd>Space</kbd>, starts and stops the sequencer, which holds a one-bar demo pattern on track 1.
         SEQ shows the track: the tempo, the transport and four bars of steps with the playhead; HOME, FX
@@ -113,8 +116,8 @@
         is uploaded, and the voices last until you power off. Load only files you are entitled to use.</dd></div>
       <div><dt>Sounds</dt><dd>Up to four sounds play at once. Hold SEL and turn
         PRESETS to choose the one the keys play and the knobs edit; PRESETS then picks its engine (Sounds
-        2&ndash;4 can be empty). The meter in the screen's bottom bar is the FM-1's memory: whatever would
-        not fit is refused.</dd></div>
+        2&ndash;4 can be empty). The meter in the screen's bottom bar shows how much of the FM-1's memory
+        they take, in percent: whatever would take it past 100&nbsp;% is refused.</dd></div>
       <div><dt>Effects</dt><dd>In FX mode SELECT walks the current sound's two insert effects, a Mix page
         with the four sounds' levels on the knobs, and the two master effects every sound goes through;
         ALGORITHM picks the effect, and SEL then SELECT swaps it with its neighbour.</dd></div>
@@ -124,8 +127,9 @@
         RHYTHM, CHANCE, FEEL, MORE, KEYS, SEED), the knobs set the mode, rate, gate, octaves, rhythm
         patterns and chance, and ALGORITHM picks the stock FM-1's arp modes as presets. The keys, MIDI
         and the sequencer's notes for that sound all go through it, and it follows the sequencer's
-        tempo, running or not. Recording keeps the notes you played, so the arpeggio comes back on
-        playback. Its LED is lit while it is on and blinks while it latches. The arpeggiator follows
+        tempo, running or not; while the sequencer plays, its steps fall on the sequencer's beat. Stop
+        takes back the sequencer's notes and leaves the ones you latched. Recording keeps the notes
+        you played, so the arpeggio comes back on playback. Its LED is lit while it is on and blinks while it latches. The arpeggiator follows
         Yarns' (Emilie Gillet) with note orders after MCL's (Justin Mammarella) and chance after Super
         Arp's (Handcrafted Media); the code is this project's own.</dd></div>
       <div><dt>Modulation</dt><dd>Two LFOs, two envelopes that every note restarts, and a random source. LFO or ENV shows them a page at a time on
@@ -133,7 +137,8 @@
         effect's or a module's page to send it there, the turn setting how much (with a mouse, <kbd>Tab</kbd> to the button and
         hold <kbd>Enter</kbd> while you scroll the knob). EDIT lists every connection: KNOB1 picks the
         source, KNOB2 the destination, KNOB3 the amount, ALGORITHM the second page; SEL shows its
-        chain. A parameter that is moved shows a diamond, its range in gold and where it is now in red.
+        chain. A parameter that is moved shows its name in light blue-green, its range as a bracket of
+        that colour and where it is now as a white tick.
         The modules follow Mutable Instruments' Peaks and Braids (Emilie Gillet), Schwung's LFO (Charles
         Vestal), DaisySP's sample and hold (Electrosmith) and Music Thing Modular's Turing Machine and
         Workshop System card 106 (Tom Whitwell, Matt Allison), all MIT; the code is this project's
@@ -147,7 +152,8 @@
       thanks, as is its name, from Felucca's FM6 engine by hugelton; it reads the DX7's voice format (not
       affiliated with Yamaha). Squash and the Limiter's Round mode
       port Airwindows plug-ins by Chris Johnson (MIT). Colours: Ros&eacute; Pine Moon (MIT). Type: Audiowide by
-      Astigmatic (SIL Open Font License 1.1, <a href="fonts/audiowide/OFL.txt">licence</a>).
+      Astigmatic (SIL Open Font License 1.1, <a href="fonts/audiowide/OFL.txt">licence</a>); on the screen, beside
+      the project's own 5&times;9, Spleen by Frederic Cambus (BSD 2-Clause, <a href="fonts/spleen/LICENSE">licence</a>).
       M-VAVE and FM-1 are their owners' names for their synthesizer; this project is not affiliated with them.</p>
   </section>
 </main>

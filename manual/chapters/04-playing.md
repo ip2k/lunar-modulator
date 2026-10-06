@@ -55,41 +55,65 @@ again in its own voice, as a drum is.
 
 Macro, Macro Heavy, Six-Op FM, FM6 and Shapes can slide from one note to
 the next, and can play one voice at a time, like a monophonic synthesizer.
-Two parameters do it, on page 4 of Macro and Macro Heavy and after Volume on
-page 2 of the others.
+Four parameters do it, together on the engine's last page: page 4 of Macro
+and Macro Heavy, page 3 of the others.
 
-**Glide** sets how long the slide takes, from 1 ms to 5 seconds. At its
-lowest setting, 1 ms, glide is off, which is the default. Otherwise, a note
-you play while you hold another key starts at the pitch of the note you are
-holding and slides to its own. The slide always takes the Glide time,
-whether the notes are a semitone or two octaves apart, and moves evenly
-through the semitones. A note you play with no key held starts on its own
-pitch, and so do the notes of a chord you strike together: they slide only
-from a key you were already holding. Turning Glide during a slide changes
-its speed for the rest of the way.
+**Glide Mode** chooses which notes slide:
+
+| Glide Mode | What slides |
+| --- | --- |
+| **Off** (the default) | Nothing. The engine plays exactly as it does without glide |
+| **Legato** | Only a note you play while you hold another key: it starts at the pitch of the note you are holding and slides to its own. A note you play with no key held starts on its own pitch |
+| **Always** | Every note: it starts at the pitch of the last note you played, held or not, and slides to its own. This is the stock FM-1's full-time portamento |
+
+The notes of a chord you strike together never slide from each other: each
+slides from the note before the chord. The very first note you play starts
+on its own pitch.
+
+**Glide** sets how long the slide takes, from 1 ms to 5 seconds; the
+default is 100 ms. Turning it during a slide changes its speed for the
+rest of the way. **Time Mode** chooses what Glide means:
+
+| Time Mode | A slide takes |
+| --- | --- |
+| **Time** (the default) | The Glide time, whether the notes are a semitone or two octaves apart |
+| **Rate** | The Glide time for each octave it covers: two octaves take twice as long as one, a fifth a little over half as long |
+
+Either way the slide moves evenly through the semitones.
 
 **Voice Mode** chooses how notes take voices:
 
 | Voice Mode | A key you play while holding another | When you let go of the key that sounds while others are held |
 | --- | --- | --- |
-| **Poly** (the default) | Plays as a note of its own, as usual; with Glide on, it slides from the key you were holding | That note ends as usual |
+| **Poly** (the default) | Plays as a note of its own, as usual; it slides as Glide Mode says | That note ends as usual |
 | **Mono** | Takes over the one voice, which plays the new key and starts its sound again from the beginning | The voice goes back to the last key you are still holding, without starting again |
 | **Legato** | Takes over the one voice without starting anything again: the note carries on at the new pitch, at the first note's loudness | As Mono |
 
-With Glide on, every change of key in Mono and Legato slides, back to a
-held key included. Changing Voice Mode never ends a note that is sounding;
-the new mode applies from the next key you play or let go.
+With Glide Mode on Legato or Always, every change of key in Mono and
+Legato slides, back to a held key included.
+
+In the simulator, hold [[SEL]] and press [[MONO]] to choose Mono, and
+[[MONO]] again for Legato; [[SEL]] and [[POLY]] choose Poly. The screen
+names the mode, and while [[SEL]] is held [[MONO]] lights on Mono or
+Legato and [[POLY]] on Poly. In SEQ mode the two keys change track instead
+([chapter 7](07-sequencer.md#seq-mode-and-the-keys)).
+
+Changing any of the three modes never ends a note that is sounding, and a
+slide under way finishes as it began; the new setting applies from the
+next key you play or let go.
 
 !!! tip "A classic mono lead"
-    Choose Legato and a Glide of about 100 ms, and play with overlapping
-    notes: each overlap slides, and a detached note starts afresh.
+    Choose Voice Mode Legato, Glide Mode Legato and a Glide of about
+    100 ms, and play with overlapping notes: each overlap slides, and a
+    detached note starts afresh. For the stock FM-1's portamento, where
+    every note slides, choose Glide Mode Always instead.
 
-The sequencer and modulation can change both: a lock on Glide or Voice
-Mode applies from its step, and a modulation route can sweep Glide's time
+The sequencer and modulation can change all four: a lock on any of them
+applies from its step, and a modulation route can sweep Glide's time
 ([chapter 7](07-sequencer.md#parameter-locks),
 [chapter 8](08-modulation.md#how-modulation-works)). Sophie and
-Drums have neither: their keys play pads, each a sound of its own, rather
-than pitches.
+Drums have none of them: their keys play pads, each a sound of its own,
+rather than pitches.
 
 ## Velocity
 
@@ -243,11 +267,23 @@ before you switched it on goes on sounding until you let go.
 
 {{diagram arpeggiator}}
 
+The arpeggiator remembers where each note came from: your hands (the keys
+and MIDI) or the sequencer. While it latches, the two latch apart. A new
+chord of yours replaces the chord you latched, and a new note from the
+sequencer replaces the sequencer's; the arpeggiator plays both together.
+
 ### The ARP pages
 
 Turn [[SELECT]] for the page. [[KNOB1]] to [[KNOB4]] set the four values on
 it, and [[ALGORITHM]] steps through the stock FM-1's arpeggio modes: Up,
 Down, Up/Down, Down/Up, Random and Played.
+
+The line under the top bar says *Arp on* (rose), *Arp latched* (gold, the
+colour of what is held) or *Arp off* (grey), with the stock mode the
+settings make on the right, such as *Up*, when they make one.
+[[ALGORITHM]] shows the six modes as a list, and turning the knob of Mode,
+Rate, Pattern, Oct Mode or Repeat shows that value's list
+([chapter 3](03-panel-tour.md#lists)).
 
 | Page | [[KNOB1]] | [[KNOB2]] | [[KNOB3]] | [[KNOB4]] |
 | --- | --- | --- | --- | --- |
@@ -260,33 +296,57 @@ Down, Up/Down, Down/Up, Random and Played.
 | 7 SEED | Seed: which random choices the chances make | | | |
 
 The modes are Up, Down, Up-Down, Down-Up, Up&Down and Down&Up (which play the
-top and bottom notes twice), Converge and Diverge, Conv-Div, Thumb and Pinky
-(the lowest or highest note between the others), four modes that add octaves
-to some notes only, Crawl, Random, Shuffle (each note once per pass, in a new
-order), Walk (a random step to a neighbour) and Chord. The same Seed makes
-the same choices every time, so a random arpeggio repeats exactly.
+top and bottom notes twice), Converge and Diverge, Converge-Diverge
+(Conv-Div on the page), Thumb and Pinky (the lowest or highest note between
+the others), four modes that add octaves to some notes only, Crawl, Random,
+Shuffle (each note once per pass, in a new order), Walk (a random step to a
+neighbour) and Chord. The same Seed makes the same choices every time, so a
+random arpeggio repeats exactly.
 
-TRG, at the left end of Rate, plays one step each time the sequencer starts
-notes on this sound (a trig), however far apart the trigs are. The keys alone
-do not step it. Its first note lasts until the next trig; after that, Gate is
-a share of the time between the last two.
+TRG (Trigger in Rate's list), at the left end of Rate, plays one step each
+time the sequencer starts notes on this sound (a trig), however far apart
+the trigs are. The keys alone do not step it. Its first note lasts until the
+next trig; after that, Gate is a share of the time between the last two.
 
 ### With the sequencer
 
 The arpeggiator follows the sequencer's tempo whether the sequencer plays or
-not. [[PLAY/STOP]] restarts its pattern on the first beat; when the
-sequencer stops, the notes it was playing end, and it goes on with the keys
-you hold. With Sync at Key, the first key you play starts the pattern on the
-next tick of the clock, so it keeps the tempo but not always the beat; with
-Sync at Free the pattern stays on the beat from [[PLAY/STOP]] while the
-arpeggiator stays on, and a key waits for the next step.
+not.
+
+- **On the beat.** While the sequencer plays, the arpeggiator's steps fall on
+  the sequencer's beat: at 1/16, on every sixteenth note of the bar, counted
+  from [[PLAY/STOP]]. A key you press between two steps waits for the next
+  one, and so does an arpeggiator you switch on in the middle of a bar.
+  Triplet steps fall on the triplets of the beat, and Swing delays every
+  second step on the same grid. A dotted rate, such as 1/16D, finds the bar
+  line again after a few bars (1/16D after three).
+- **Stopped.** While the sequencer is stopped, the arpeggiator runs from its
+  own steps at the sequencer's tempo, and a first key starts it at once.
+- **[[PLAY/STOP]]** restarts the pattern on the first beat.
+- **When the sequencer stops**, it takes back what it gave the arpeggiator:
+  its notes leave the chord, latched or not, and a note they were playing
+  stops at once. The notes you play or latched by hand go on playing.
+
+Sync, on the KEYS page, says what a first key, one played into an empty
+chord, does to the pattern's place: where its rhythm, its Loop and its
+chances are. Either way the new chord's notes start from the first.
+
+| Sync | While the sequencer plays | While it is stopped |
+| --- | --- | --- |
+| Key | The pattern starts again at the next step on the beat | The pattern starts again at once |
+| Free | The pattern runs on from [[PLAY/STOP]], and the key joins it at the next step on the beat, so a rhythm such as a Euclidean pattern stays on the bar. An arpeggiator switched on after [[PLAY/STOP]] keeps its own count of the pattern, which need not match the bar, until the next [[PLAY/STOP]] | The pattern runs on from its own last step, and the key waits for the next of them |
+
+The arpeggiator does not use the project key, which the global page sets
+([chapter 10](10-settings-and-storage.md#the-project-key)); it is there for
+the MIDI effects to come.
 
 The sequencer records the notes you play, not the arpeggio. A part recorded
 with the arpeggiator on plays back through it again, so you can change the
 arpeggio afterwards, or switch it off and hear the notes as you played them.
 
 The arpeggiator takes memory only while it is on. When the sounds and
-effects leave too little, [[ARP]] says *does not fit* and by how much.
+effects leave too little, [[ARP]] says *does not fit* and what the chain would
+need with it, such as *needs 101% of RAM*.
 
 ### In the desktop tools
 

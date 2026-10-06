@@ -195,6 +195,7 @@ typedef struct IsoInstance {
   uint32_t rest_frames;     /* FM1_IDLE_REST_SECONDS in frames */
   uint32_t warm;            /* frames of warm-up left: the gains held at unity */
   int idle;                 /* the filters are stopped; the output is the input */
+  int driven;               /* FM1_PARAM_DRIVEN: locks or cables, so never idle */
   IsoChannel ch[2];
 } IsoInstance;
 
@@ -428,6 +429,10 @@ static void IsoDestroy(void *self) { (void)self; }
 
 static void IsoSet(void *s, uint16_t index, float v) {
   IsoInstance *self = (IsoInstance *)s;
+  if (index == FM1_PARAM_DRIVEN) {      /* the host's word: never idle (fm1_engine.h) */
+    self->driven = v != 0.0f && v == v;
+    return;
+  }
   if (index >= P_COUNT) return;
   self->param[index] = fm1_param_clamp(&kIsoParams[index], v);
   IsoSetTargets(self);
@@ -442,7 +447,7 @@ static void IsoRender(void *s, float *lr, uint32_t frames) {
   }
 #if FM1_FX_IDLE
   if (self->idle) {
-    if (self->wet_target == 0.0f) {     /* still unity */
+    if (self->wet_target == 0.0f && !self->driven) {     /* still unity */
       IsoPass(lr, frames);
       return;
     }
@@ -450,6 +455,7 @@ static void IsoRender(void *s, float *lr, uint32_t frames) {
   }
   uint32_t warm = self->warm, rest = self->rest;
   const uint32_t rest_frames = self->rest_frames;
+  const int driven = self->driven;
 #endif
   /* The per-channel state lives in locals for the block: lr may alias any
    * float, so working through self would reload it after every store. */
@@ -510,7 +516,7 @@ static void IsoRender(void *s, float *lr, uint32_t frames) {
     }
 #if FM1_FX_IDLE
     /* At rest: unity asked for and reached, every glide landed. */
-    if (!moving && wet == 0.0f && wet_target == 0.0f) {
+    if (!moving && wet == 0.0f && wet_target == 0.0f && !driven) {
       if (++rest >= rest_frames) {
         /* Idle from the next frame; a wake starts the filters from rest. */
         memset(ch, 0, sizeof(ch));

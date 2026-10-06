@@ -68,9 +68,9 @@ static void header(fm1_script_t *s, char *line) {
     if (!eq) continue;
     *eq = '\0';
     if (!parse_u64(eq + 1, &after, &v) || *after) continue;
-    if (strcmp(key, "rate") == 0) { s->rate = (uint32_t)v; s->has_rate = 1; }
-    else if (strcmp(key, "block") == 0) { s->block = (uint32_t)v; s->has_block = 1; }
-    else if (strcmp(key, "tracks") == 0) { s->tracks = (uint8_t)v; s->has_tracks = 1; }
+    if (strcmp(key, "rate") == 0) { s->rate = (uint32_t)v; }
+    else if (strcmp(key, "block") == 0) { s->block = (uint32_t)v; }
+    else if (strcmp(key, "tracks") == 0) { s->tracks = (uint8_t)v; }
     else if (strcmp(key, "end") == 0) { s->end = v; s->has_end = 1; }
   }
 }
@@ -203,7 +203,7 @@ static const char *const kVerbName[FM1_SEQ_V_COUNT] = {
   [FM1_SEQ_V_ACLR] = "aclr", [FM1_SEQ_V_ACLRS] = "aclrs", [FM1_SEQ_V_ACLRSTEP] = "aclrstep",
   [FM1_SEQ_V_ASETR] = "asetr", [FM1_SEQ_V_USNAP] = "usnap", [FM1_SEQ_V_USWAP] = "uswap",
   [FM1_SEQ_V_UCOMMIT] = "ucommit", [FM1_SEQ_V_UDROP] = "udrop", [FM1_SEQ_V_UCLR] = "uclr",
-  [FM1_SEQ_V_ROUTE] = "route", [FM1_SEQ_V_SGINS] = "sgins", [FM1_SEQ_V_SGDEL] = "sgdel",
+  [FM1_SEQ_V_ROUTE] = "route", [FM1_SEQ_V_KEY] = "key", [FM1_SEQ_V_SGINS] = "sgins", [FM1_SEQ_V_SGDEL] = "sgdel",
   [FM1_SEQ_V_SGSET] = "sgset", [FM1_SEQ_V_SGMOV] = "sgmov", [FM1_SEQ_V_SGCLR] = "sgclr",
   [FM1_SEQ_V_SGEND] = "sgend", [FM1_SEQ_V_SGJUMP] = "sgjump", [FM1_SEQ_V_SCENE] = "scene",
   [FM1_SEQ_V_SGNEW] = "sgnew", [FM1_SEQ_V_SGNAME] = "sgname",

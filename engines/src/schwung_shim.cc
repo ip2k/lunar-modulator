@@ -525,8 +525,9 @@ void SetParam(void *s, uint16_t index, float value) {
   const Module &m = *self->module;
   if (index >= m.n_defined) return;
   const fm1_param_t &p = m.params[index];
-  if (!(value >= p.min)) value = p.min;            // NaN too
-  if (value > p.max) value = p.max;
+  // fm1_param_clamp: NaN is the default, as the engine API says (it was the
+  // minimum here until 2026-10-06, as in Six-Op FM).
+  value = fm1_param_clamp(&p, value);
   // What get_param gives back: the value the module is sent (an index as
   // the whole number), kept for the focused entry when PER_FOCUS.
   const float kept = m.keys[index].format == VALUE_INDEX ? static_cast<float>(RoundToInt(value))

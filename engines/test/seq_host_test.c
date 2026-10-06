@@ -637,7 +637,6 @@ typedef struct {
   uint32_t ev_frame[32];
   uint8_t ev_kind[32], ev_to_engine[32];
   fm1_seq_hook_write_t w[2];
-  trace_t *trace;                      /* where tick calls are noted, if any */
 } fake_hook_t;
 
 static uint32_t h_begin(void *ctx, uint32_t frames, const fm1_engine_t *e, uint32_t bpm, int playing) {

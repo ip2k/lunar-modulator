@@ -146,14 +146,16 @@ struct fm1_seq {
 
   /* 4-byte fields */
   uint32_t magic, size, sample_rate, bpm_x100;
-  uint32_t swing_pct, count_in_left;
+  uint16_t swing_pct;           /* 50..80 */
+  uint8_t key_root, key_scale;  /* the project key (fm1_seq.h), in what was swing's
+                                   upper half: the instance's size is unchanged */
+  uint32_t count_in_left;
   uint32_t off_tracks, off_pmutes, off_clips, off_notes, off_locks, off_trigs;
   uint32_t off_gates, off_song, off_pend, off_tail, off_cap;
   uint32_t last_cmd_seq;
   float ext_interval;
   uint32_t cap_base_frame, cap_base_tick;  /* Capture's packed offsets count from these */
   uint32_t capture_gen;
-  int32_t cap_stretch_permille;
   int32_t held_track, held_step;
   uint32_t scene_land_bar;      /* the bar a `scene` launch lands on (sgnew) */
   fm1_seq_stats_t stats;        /* 4-byte aligned, 24 bytes */
@@ -375,9 +377,5 @@ int sq_capture_commit(fm1_seq_t *s, unsigned t);
 void sq_capture_select(fm1_seq_t *s, unsigned idx);
 void sq_capture_done(fm1_seq_t *s);
 uint16_t sq_anchor_step(const fm1_seq_t *s, uint32_t tick, uint8_t num, uint8_t den);
-
-static inline uint8_t sq_clamp_u8(int64_t v, int64_t lo, int64_t hi) {
-  return (uint8_t)(v < lo ? lo : (v > hi ? hi : v));
-}
 
 #endif /* FM1_SEQ_INT_H_ */

@@ -133,6 +133,7 @@ enum {
   FM1_SEQ_V_ACLR, FM1_SEQ_V_ACLRS, FM1_SEQ_V_ACLRSTEP, FM1_SEQ_V_ASETR,
   FM1_SEQ_V_USNAP, FM1_SEQ_V_USWAP, FM1_SEQ_V_UCOMMIT, FM1_SEQ_V_UDROP, FM1_SEQ_V_UCLR,
   FM1_SEQ_V_ROUTE,          /* FM-1 only: route <track> <0 midi|1 engine> <channel|slot> */
+  FM1_SEQ_V_KEY,            /* FM-1 only: key <root 0..11> <scale 0..FM1_SEQ_KEY_SCALES-1> */
   /* FM-1 only, the song on whole entries (notes/2026-10-06-song-and-scenes.md
    * §5.5; engines/seq.md, "The song"). An entry is a run of equal scene
    * presses; indices are 0-based. Movy ignores these verbs. */
@@ -178,6 +179,16 @@ typedef struct fm1_seq_cmd {
  * or goes out on a USB-MIDI channel. The sequencer stores the choice and the
  * host acts on it; events are the same either way. */
 enum { FM1_SEQ_ROUTE_MIDI = 0, FM1_SEQ_ROUTE_ENGINE = 1 };
+
+/* The project key (owner, 2026-10-05 and 2026-10-06: one key for the
+ * project, kept with the set's tempo): a root, 0 C .. 11 B, and a scale,
+ * engine API v3's FM1_KEY_* (fm1_engine.h: 0 major, 1 minor, 2 chromatic,
+ * then the church modes). The sequencer plays no differently in any key; it
+ * keeps the key for the MIDI effects (fm1_mfx_host.h), sets it with the
+ * FM-1 verb `key`, and writes it into a set as an FM-1 line, `key R S`,
+ * only outside compat mode and only when it is not C major. A new instance
+ * and a set without the line are in C major. */
+#define FM1_SEQ_KEY_SCALES 8u
 
 /* Bytes one instance needs under *lim, or 0 if the limits are out of range. */
 size_t fm1_seq_size(const fm1_seq_limits_t *lim);
@@ -295,6 +306,7 @@ typedef struct fm1_seq_info {
   uint8_t song_follow;      /* 0: detached (D16), the list kept and not followed */
   uint8_t song_parked;      /* playing, followed and parked: at an empty scene (Movy's
                                END) or after the last entry in Park mode */
+  uint8_t key_root, key_scale;  /* the project key (above) */
 } fm1_seq_info_t;
 
 typedef struct fm1_seq_track_info {
@@ -422,6 +434,11 @@ int fm1_seq_effective_at(const fm1_seq_t *s, uint8_t track, uint8_t slot, uint8_
                          uint16_t step, fm1_seq_val_t base);
 
 int fm1_seq_set_route(fm1_seq_t *s, uint8_t track, uint8_t kind, uint8_t index);
+
+/* The project key: read it (root 0..11, scale 0..FM1_SEQ_KEY_SCALES-1), or
+ * set it, as the `key` verb does (1; 0 and no change out of range). */
+void fm1_seq_get_key(const fm1_seq_t *s, uint8_t *root, uint8_t *scale);
+int fm1_seq_set_key(fm1_seq_t *s, unsigned root, unsigned scale);
 
 /* The probability RNG is free-running from creation, as Movy's; tests reset
  * it. Outside compat mode a set import reseeds it to its value at creation,

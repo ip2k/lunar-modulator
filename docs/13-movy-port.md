@@ -298,7 +298,13 @@ out, cap)`, the context holding the block's tick frames, the tempo, the
 transport and the project key; a chain of up to four in front of each sound
 unit (the owner's four per track), on the host bridge, which both hosts
 share; the arpeggiator the first [verified: engines/README.md, "MIDI
-effects"; `tests/test_engine_midi_fx.py`].
+effects"; `tests/test_engine_midi_fx.py`]. On 2026-10-06 the context gained
+the first tick's place from Start while the sequencer plays (`tick_pos`, so
+an effect can step on the beat), notes their origin (the keys or a track),
+the transport a STOP that takes back what the sequencer gave, and the
+sequencer the project key, kept in the set as an FM-1 `key` line (owner
+decisions after PR #69) [verified: engines/seq.md, "The project key";
+`tests/test_engine_midi_fx.py`].
 
 **Persistence under the one rule.** Until docs/07's dump and restore, sets
 live only in desktop and dev-board builds. Then RAM, with `movy1` text export

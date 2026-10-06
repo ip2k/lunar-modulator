@@ -133,7 +133,7 @@ int PadKey(char *out, size_t cap, unsigned entry, const char *key) {
 
 const Module kModule = {
   FM1_KIND_SOUND, "sophie", fm1_sw_sophie_init, NULL,
-  kParams, kKeys, kExposed, P_COUNT, kArenaBytes,
+  kParams, kKeys, P_COUNT, kArenaBytes,
   0.0f,                                   // Sophie ignores pitch bend
   1.0f,                                   // no headroom: not an effect
   &g_state,

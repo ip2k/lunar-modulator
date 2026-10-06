@@ -46,8 +46,8 @@ empty, a one-bar demo pattern on sequencer track 1, the modulation rack's
 default modules, and [[MASTER]] at three quarters. Press [[PLAY/STOP]], or
 <kbd>Space</kbd>, to hear the pattern. The status line under the controls
 reports the sample rate, the block size, the delay your computer adds to
-the output, how much of the FM-1's memory the sounds and effects would
-take, and the sequencer's tempo and whether it plays.
+the output, how much of the FM-1's memory the sounds and effects take, in
+percent, and the sequencer's tempo and whether it plays.
 
 To stop, click **Power off** or the [[POWER]] switch. The simulator keeps
 nothing: it starts from the same settings every time, and DX7 voices you

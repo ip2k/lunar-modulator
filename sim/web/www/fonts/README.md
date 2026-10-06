@@ -4,6 +4,7 @@
 | --- | --- | --- | --- |
 | `audiowide/Audiowide-Regular.ttf` | Audiowide, by Brian J. Bonislawsky (Astigmatic) | SIL Open Font License 1.1, with the Reserved Font Name "Audiowide" (`audiowide/OFL.txt`) | [google/fonts](https://github.com/google/fonts/tree/main/ofl/audiowide), `ofl/audiowide/` |
 | `exo2/Exo2[wght].ttf` | Exo 2, by Natanael Gama ("The Exo 2 Project Authors"), a variable font, weights 100–900 | SIL Open Font License 1.1, no Reserved Font Name (`exo2/OFL.txt`) | [google/fonts](https://github.com/google/fonts/tree/main/ofl/exo2), `ofl/exo2/` |
+| `spleen/LICENSE` | Spleen 2.2.0, by Frederic Cambus: no font file here. Its 8×16 and 6×12 bitmaps are the screen's MID and SMALL faces (`sim/web/third_party/spleen/`, `src/fm1_font_mid.h`, `src/fm1_font_small.h`), compiled into `fm1.wasm`, which draws the lists, context lines, banners and dense screens in them | BSD 2-Clause; the binary must carry this notice, so the page serves it and links it from its credits | [fcambus/spleen](https://github.com/fcambus/spleen), tag `2.2.0` |
 
 The files are byte for byte the ones in google/fonts (git blob
 `8b50bedc…` for the font, `19bb4adf…` for `OFL.txt`, checked on 2026-10-01;

@@ -409,7 +409,6 @@ static void logic(void) {
   static const int k_sr[] = { 2 * 2 + 1, 10 * 2, -1 };          /* A sets, B resets */
   static const int k_d[] = { 10 * 2 + 1, -1 };                  /* B clocks A's level (high) */
   static const int k_tog[] = { 2 * 2 + 1, 10 * 2, -1 };         /* A flips, B resets */
-  static const int k_nor_none[] = { -1 };
   logic_case(0, a, b, k_and);
   logic_case(1, a, b, k_or);
   logic_case(2, a, b, k_xor);
@@ -420,7 +419,6 @@ static void logic(void) {
     /* NAND, NOR, XNOR are the inverses: NOR starts high (both low) and
      * falls at 2, rises at 26. */
     static const int k_nor[] = { 2 * 2, 26 * 2 + 1, -1 };
-    (void)k_nor_none;
     logic_case(4, a, b, k_nor);
   }
 }

@@ -16,7 +16,7 @@ import wave
 
 import pytest
 
-from tests.engine_helpers import (ENGINES, RATE, cents, pitch_hz,  # noqa: F401
+from tests.engine_helpers import (ENGINES, cents, pitch_hz,  # noqa: F401
                                   render, renderer, rms)
 
 SELFTEST = ENGINES / "build" / "fm1-schwung-selftest"
@@ -448,6 +448,29 @@ def test_schwung_instance_sizes_are_reported(renderer, tmp_path, selftest_lines)
     # 12 voices of 1,536-sample ring delays; the SPU work area is 128 KB.
     assert sophie["instance_bytes"] < 80_000
     assert psx["fx_bytes"][0] < 136_000
+
+
+@pytest.mark.parametrize("engine", ["sw-sophie", "sw-psxverb"])
+def test_a_nan_setting_is_the_default(renderer, tmp_path, engine):
+    # set_param takes NaN as the parameter's default (fm1_param_clamp), as
+    # every other engine does; the shim took it as the minimum until
+    # 2026-10-06. Every parameter at NaN plays as every one at its default,
+    # and some default is not the minimum, so the check has teeth.
+    listed = json.loads(subprocess.run([str(renderer), "--list"], check=True,
+                                       capture_output=True, text=True).stdout)
+    params = next(e for e in listed if e["id"] == engine)["params"]
+    assert any(p["def"] != p["min"] for p in params)
+
+    def go(name, value):
+        settings = [f"{p['name']}={value(p)}" for p in params]
+        if engine == "sw-sophie":
+            _, _, wav = render(renderer, tmp_path, engine, params=settings, seconds=0.4,
+                               notes=[f"0.{k}:{36 + 3 * k}:100:0.1" for k in range(4)], name=name)
+        else:
+            _, _, wav = render(renderer, tmp_path, input="impulse", seconds=0.4,
+                               fx=[(engine, settings)], name=name)
+        return wav.read_bytes()
+    assert go("nan", lambda p: "nan") == go("def", lambda p: repr(float(p["def"])))
 
 
 # ------------------------------------------------------------ vendoring ---

@@ -1,6 +1,8 @@
 /* style.css -- Lunar Modulator's page: the virtual FM-1. One dark theme, the
  * Rosé Pine Moon palette (rosepinetheme.com, MIT; the values are
- * rose-pine/palette's), which the firmware's screen uses too (src/fm1_app.c).
+ * rose-pine/palette's) and Lunar Modulator's four sound hues, which the
+ * firmware's screen uses too (src/fm1_look.h), with one meaning per colour
+ * (../PALETTE.md; tools/palette.py checks both files).
  * Audiowide (Astigmatic, SIL OFL 1.1) for display type, unmodified, in
  * fonts/audiowide/ with its licence; Exo 2 (Natanael Gama, SIL OFL 1.1) for
  * small text, unmodified, in fonts/exo2/ with its licence.
@@ -40,6 +42,24 @@
   --rp-highlight-med: #44415a;
   --rp-highlight-high: #56526e;
 
+  /* Lunar Modulator's own hues, the sounds' colours (fm1_look.h's LUNAR_*) */
+  --lunar-nebula: #63a6ff;
+  --lunar-nova: #ef8a4a;
+  --lunar-aurora: #52d2a5;
+  --lunar-comet: #c5df7b;
+
+  /* One meaning per colour, as on the screen (PALETTE.md). Only these name
+   * an accent; every rule below names the role. */
+  --select: var(--rp-iris);     /* selection, focus, the pressed toggle, accents */
+  --held: var(--rp-gold);       /* held or latched: a lit LED */
+  --live: var(--rp-foam);       /* live signal: the power lever on */
+  --refuse: var(--rp-love);     /* refusal, recording, over the limit */
+  --context: var(--rp-rose);    /* context */
+  --sound-1: var(--lunar-nebula);
+  --sound-2: var(--lunar-nova);
+  --sound-3: var(--lunar-aurora);
+  --sound-4: var(--lunar-comet);
+
   /* the page */
   --bg: var(--rp-base);
   --surface: var(--rp-surface);
@@ -49,9 +69,9 @@
    * tenth of text lifts it to 4.9:1 (on base, subtle alone is 4.9:1). */
   --muted-on-surface: color-mix(in srgb, var(--rp-subtle) 90%, var(--rp-text));
   --border: var(--rp-highlight-med);
-  --accent: var(--rp-iris);
+  --accent: var(--select);
   --accent-text: var(--rp-base);
-  --focus: var(--rp-gold);
+  --focus: var(--select);
   --display: "Audiowide", "Exo 2", system-ui, sans-serif;
   --small: "Exo 2", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
@@ -68,20 +88,20 @@
   --cap: var(--rp-highlight-med);
   --cap-edge: var(--rp-highlight-high);
   --cap-text: var(--rp-text);
-  --cap-lit: var(--rp-gold);
+  --cap-lit: var(--held);
   --cap-lit-text: var(--rp-base);
   --key-white: var(--rp-text);
   --key-white-edge: var(--rp-subtle);
   --key-black: var(--rp-base);
   --key-black-edge: var(--rp-highlight-low);
   --key-slot: var(--rp-muted);
-  --key-lit: var(--rp-gold);
+  --key-lit: var(--held);
   --combo: var(--rp-subtle);
   --bezel: var(--rp-surface);
   --screen: var(--rp-base);
   --port: var(--rp-base);
   --lever: var(--rp-muted);
-  --lever-on: var(--rp-foam);
+  --lever-on: var(--live);
   color-scheme: dark;
 }
 
@@ -95,7 +115,7 @@ body {
   font: 16px/1.5 var(--small);
 }
 
-a { color: var(--rp-foam); }
+a { color: var(--accent); }
 a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 .top, main { max-width: 1400px; margin: 0 auto; padding: 0 16px; }
@@ -111,7 +131,7 @@ a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   font: 400 clamp(0.62rem, 0.45rem + 0.9vw, 0.95rem)/1.4 var(--display);
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--rp-iris);
+  color: var(--accent);
   margin: 8px 0 12px;
 }
 h2 { font: 400 1.1rem/1.3 var(--display); letter-spacing: 0.03em; margin: 0 0 12px; }
@@ -181,7 +201,7 @@ h2 { font: 400 1.1rem/1.3 var(--display); letter-spacing: 0.03em; margin: 0 0 12
 .btn .label { fill: var(--cap-text); font: 700 1.85px var(--small); text-anchor: middle; }
 .btn .label.two { font-size: 1.55px; }
 .btn .divider { stroke: var(--cap-text); stroke-width: 0.18; }
-.btn.lit .cap { fill: var(--cap-lit); stroke: var(--rp-rose); filter: drop-shadow(0 0 0.8px var(--rp-gold)); }
+.btn.lit .cap { fill: var(--cap-lit); stroke: color-mix(in srgb, var(--cap-lit) 65%, var(--rp-base)); filter: drop-shadow(0 0 0.8px var(--cap-lit)); }
 .btn.lit .label { fill: var(--cap-lit-text); }
 .btn.lit .divider { stroke: var(--cap-lit-text); }
 .btn.down .cap { transform-box: fill-box; transform-origin: center; transform: scale(0.94); }
@@ -194,8 +214,8 @@ h2 { font: 400 1.1rem/1.3 var(--display); letter-spacing: 0.03em; margin: 0 0 12
 .key.black .cap { fill: var(--key-black); stroke: var(--key-black-edge); }
 .key .slot { fill: var(--key-slot); }
 .key .combo { fill: var(--combo); font: 600 1.35px var(--small); text-anchor: middle; }
-.key.lit .slot { fill: var(--key-lit); filter: drop-shadow(0 0 0.7px var(--rp-gold)); }
-.key.lit.white .cap { fill: color-mix(in srgb, var(--rp-gold) 22%, var(--rp-text)); }
+.key.lit .slot { fill: var(--key-lit); filter: drop-shadow(0 0 0.7px var(--key-lit)); }
+.key.lit.white .cap { fill: color-mix(in srgb, var(--key-lit) 22%, var(--rp-text)); }
 .key.lit.black .cap { fill: var(--rp-highlight-med); }
 
 .power .lever { fill: var(--lever); transition: transform 120ms; }
@@ -253,7 +273,12 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
   padding: 12px 28px;
   min-height: 48px;
 }
-.power-button:hover { background: var(--rp-rose); border-color: var(--rp-rose); }
+/* hover lifts the accent toward text: still the selection colour, and base
+ * text on it gains contrast */
+.power-button:hover {
+  background: color-mix(in srgb, var(--accent) 75%, var(--rp-text));
+  border-color: color-mix(in srgb, var(--accent) 75%, var(--rp-text));
+}
 
 /* ---- controls and help ------------------------------------------------- */
 
@@ -316,7 +341,7 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
 }
 .help dl { margin: 0; display: grid; gap: 10px; }
 .help dl > div { display: grid; grid-template-columns: 9rem 1fr; gap: 12px; }
-.help dt { font-weight: 600; color: var(--rp-iris); }
+.help dt { font-weight: 600; color: var(--accent); }
 .help dd { margin: 0; }
 .help .fine { margin: 14px 0 0; font-size: 0.85rem; color: var(--muted-on-surface); }
 kbd {
@@ -328,7 +353,7 @@ kbd {
   padding: 1px 5px;
   background: var(--bg);
 }
-code { font: 0.9em ui-monospace, Menlo, Consolas, monospace; color: var(--rp-foam); }
+code { font: 0.9em ui-monospace, Menlo, Consolas, monospace; color: var(--text); }
 
 @media (max-width: 640px) {
   .power-card { padding: 14px 16px; }

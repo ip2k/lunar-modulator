@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.seq_helpers import (ENGINES, SEQ_CHECK, TPB, TPS, Script, ccs, clip, kinds, notes, offs,
+from tests.seq_helpers import (ENGINES, SEQ_CHECK, TPB, TPS, Script, ccs, clip, kinds, notes,
                                ons, run_script, seq_tools, track)  # noqa: F401
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "movy"
@@ -1117,6 +1117,42 @@ def test_routing_is_stored_with_the_set(seq_tools, tmp_path):
     r = s.run(seq_tools, tmp_path, compat=True, end=0, name="c",
               extra=["--export", str(tmp_path / "c.movy1")])
     assert "rt " not in (tmp_path / "c.movy1").read_text(), "compat writes Movy's format only"
+
+
+# ---- The project key (owner, 2026-10-06) -------------------------------------------------------
+
+def test_the_project_key_is_stored_with_the_set(seq_tools, tmp_path):
+    """`key R S` sets the project key (fm1_seq.h); out-of-range or missing
+    arguments change nothing. The set writes it after `link`, only when it
+    is not C major and never in compat mode; reading a set without the line
+    puts the key back to C major, and the sequencer plays the same notes in
+    any key. The state dump reports it."""
+    s = fm1(tracks=4).cmd("tog 0 0 60 100;key 9 1;key 12 0;key 3 8;key -1 0;key 4").blocks(1).play()
+    s.run_bars(2)
+    r = s.run(seq_tools, tmp_path, compat=False, extra=["--export", str(tmp_path / "o.movy1")])
+    assert r.end["key"] == [9, 1]
+    out = (tmp_path / "o.movy1").read_text()
+    assert out.startswith("movy1\nbpm 12000\nswing 50\nlink 0\nkey 9 1\n")
+    back = tmp_path / "b.movy1"
+    subprocess.run([str(seq_tools), "--tracks", "4", "--seq", str(tmp_path / "o.movy1"),
+                    "--export", str(back)], check=True)
+    assert back.read_text() == out
+    plain = fm1(tracks=4).cmd("tog 0 0 60 100").blocks(1).play()
+    plain.run_bars(2)
+    p = plain.run(seq_tools, tmp_path, compat=False, name="p", extra=["--export", str(tmp_path / "p.movy1")])
+    assert p.end["key"] == [0, 0] and "key" not in (tmp_path / "p.movy1").read_text()
+    assert len(ons(p.events)) >= 2 and p.events == r.events, "the key changed what the sequencer plays"
+    c = s.run(seq_tools, tmp_path, compat=True, name="c", extra=["--export", str(tmp_path / "c.movy1")])
+    assert c.end["key"] == [9, 1] and "key" not in (tmp_path / "c.movy1").read_text(), \
+        "compat writes Movy's format only"
+    # a script's key after a set without one; a set with one, read alone
+    # (an import over a keyed set: tests/test_sim_arp.py)
+    q = fm1(tracks=4).cmd("key 2 4")
+    got = q.run(seq_tools, tmp_path, compat=False, end=0, name="q", seq=(tmp_path / "p.movy1").read_text())
+    assert got.end["key"] == [2, 4], "the script's key comes after the set"
+    subprocess.run([str(seq_tools), "--tracks", "4", "--seq", str(tmp_path / "o.movy1"),
+                    "--state", str(tmp_path / "i.json")], check=True)
+    assert json.loads((tmp_path / "i.json").read_text())["end"]["key"] == [9, 1]
 
 
 def test_tracks_past_the_limit_are_ignored(seq_tools, tmp_path):

@@ -117,7 +117,12 @@ def test_the_caps_are_the_readers(meta):
 
 def test_keys_and_the_cable_vocabulary(meta):
     assert len(meta["keys"]["roots"]) == 12 and meta["keys"]["roots"][0] == "C"
-    assert [s["id"] for s in meta["keys"]["scales"]] == ["major", "minor", "chromatic"]  # FM1_KEY_*
+    # FM1_KEY_*, in their order: every scale the project key can take
+    # (the church modes since 2026-10-06, PR #76), so an editor offers them all.
+    engine_h = (ROOT / "engines" / "include" / "fm1_engine.h").read_text()
+    order = [m for m in re.findall(r"FM1_KEY_([A-Z]+) = (\d+)", engine_h) if m[0] != "SCALES"]
+    assert [s["id"] for s in meta["keys"]["scales"]] == [n.lower() for n, _ in sorted(order, key=lambda x: int(x[1]))]
+    assert [s["id"] for s in meta["keys"]["scales"]][:3] == ["major", "minor", "chromatic"]
     mod = meta["mod"]
     assert mod["polarities"] == ["auto", "uni", "bi", "inv"]
     assert len(mod["curves"]) == 8
