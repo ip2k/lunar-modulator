@@ -404,10 +404,13 @@ docs/16 MG3 the modulation runtime, its kinds, its script reader
 (`host/mod_script.c`: snprintf and strtod, no files) and modulation's
 pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (2026-10-05) Comb, Test Ext, the LOG law and the effects' extension
-(`fm1_fx_render`), Drums, and FM6 (msfa): 72 of 72 scenarios pass,
-identical to musl and to render.js (six of them turn the effects' switches
-every 4.4 ms; the three Drums and the three FM6 scenarios are identical to
-glibc too), and it imports nothing; it is 813,115 bytes, 786,256 before FM6,
+(`fm1_fx_render`), Drums, FM6 (msfa), and since 2026-10-06 the idle paths
+of EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"):
+74 of 74 scenarios pass, identical to musl and to render.js (six of them
+turn the effects' switches every 4.4 ms, and two let EQ with Master Sat and
+Isolator rest past 2 s and wake them; those two, the three Drums and the
+three FM6 scenarios are identical to glibc too), and it imports nothing; it
+is 816,958 bytes, 813,115 before the idle paths, 786,256 before FM6,
 765,189 before Drums since the lab switch went (790,801
 with Drums and the switch's second code path, 769,693 with the switch
 alone), 761,171 before both API v3 and Drums, up from
@@ -422,7 +425,7 @@ with S8 before the second effects pack), 524,659 before multi-sound and S6
 (514,688 with them before the second effects pack), 516,035 before S5,
 482,291 before the second effects pack (Drive, Filter, Comp, Limiter),
 466,635 before S4, 459,122 before S3 and 391 KB before the sequencer
-[verified, 2026-10-05, `www/fm1.wasm.json`]. With S7b nine scenarios sound
+[verified, 2026-10-06, `www/fm1.wasm.json`]. With S7b nine scenarios sound
 different, each because a knob or a lock turns while something sounds:
 `seq-panel-play-stop`, `seq-panel-locks`, `multi-panel`,
 `multi-four-sounds-seq`, `drive-fuzz-gated` (its Plate Decay turn) and the
