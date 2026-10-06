@@ -33,7 +33,7 @@ the "Power on" button, as browsers require a gesture.
 | Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. A list popup (PRESETS, ALGORITHM, SHIFT + PRESETS, the kind and destination pickers, Capture's tempos) shows the list's title in gold, the chosen entry's place (`34/96`) and six entries with the chosen one on the accent, on the third row where it can be (`fm1_list_first`, `src/fm1_panel.h`), and a triangle above or below the entries where the list goes on (three lines, the previous, chosen and next entry, until 2026-10-06). HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat). 3,144 screens pass a layout check: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06, 40 of them FM6's user bank (every user slot with a 10-character name, the ALGORITHM popup, SEQ mode and the load popups); 3,104 without them, with Squash and Transient; 2,695 before every list popup at every entry (2,470 recorded here on 2026-10-05), 2,338 before Drums, 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE and ARP stubs and an emptied slot (600 screens), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 741, and Drums' pages and its sound in the others' sweeps in 132 more; since 2026-10-06 every list popup at every entry, each window checked (345: ALGORITHM through every sound's list, Six-Op FM's 96 patches the longest, PRESETS through the engines, ALGORITHM in FX mode through the effects, and the destination picker through every destination; the kind picker's 17 were already there). Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
 | Panel | The 27 keys, 14 buttons, MASTER and the seven encoders, with their LEDs, laid out to scale (below) |
 | Input | Mouse and touch (lower on a key plays louder; drag or scroll an encoder), the computer keyboard (`A W S E D R F G Y H U J K O L P ; [ '` play F3 to B4, `Z`/`X` are OCT−/OCT+, arrows turn SELECT and PRESETS, `-`/`=` ALGORITHM, `Esc` releases every note), and Web MIDI (notes, pitch bend ±2 semitones, CC 7 volume, CC 123 all notes off). A held key or button is released whatever modifiers are down by then (Cmd lets go of every held key, since macOS drops those keyups), and leaving the window or tab releases every key, button and pointer. Scrolling over an encoder turns it one detent for the first wheel event of a gesture, then one per 60 px of vertical scroll; horizontal scrolling turns nothing |
-| Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) and, since 2026-10-06, four hues of the project's own for the sounds (nebula, nova, aurora and comet, derived in OKLCH at Moon's accent lightness and chroma), as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_look.h`), with one meaning per colour on both: [PALETTE.md](PALETTE.md) has the semantic colour map, the derivation and the figures, and `tools/palette.py` checks the two files against it [verified: `tests/test_sim_palette.py`]; Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
+| Look | Lunar Modulator's: the Rosé Pine Moon palette ([rosepinetheme.com](https://rosepinetheme.com/palette/), MIT; the hex values checked against rose-pine/palette and rose-pine/neovim on 2026-10-01 [verified]) and, since 2026-10-06, four hues of the project's own for the sounds (nebula, nova, aurora and comet, derived in OKLCH at Moon's accent lightness and chroma), as CSS custom properties, one dark theme, and the firmware's screen in the same colours (`src/fm1_look.h`), with one meaning per colour on both: [PALETTE.md](PALETTE.md) has the semantic colour map, the derivation and the figures, and `tools/palette.py` checks the two files against it [verified: `tests/test_sim_palette.py`]; Audiowide (Astigmatic, SIL OFL 1.1) for the name, the tagline and headings, from the page's own `fonts/`, unmodified ([fonts/README.md](www/fonts/README.md)); Exo 2 (Natanael Gama, SIL OFL 1.1) for small text, also from `fonts/`, unmodified. On the screen, the project's own 5×9 at ×2 and, for dense screens, Spleen 8×16 and 6×12 by Frederic Cambus (BSD 2-Clause; [third_party/spleen/](third_party/spleen/UPSTREAM.md), its licence served as `fonts/spleen/LICENSE`; below, "Text faces"). Text contrast is at least 4.8:1 against its background on the page, disabled controls aside (WCAG AA asks 4.5:1; secondary text on a surface is subtle with a tenth of text mixed in, since subtle alone is 4.46:1 there) and at least 4.78:1 on the screen after RGB565 rounding [verified: computed from the palette] |
 | Info | GLO shows the sample rate, block size, the chain's RAM against the 379 KB the stock layout leaves free (docs/11 §2), voices, octave and transpose. WebAssembly has 4-byte pointers like pi32v2, so these are the 32-bit instance sizes. The RAM figure includes the sequencer: its instance (31,880 B at 8 tracks, the same at 32 and 64 bits) and its 3,264-byte event buffer (3,072 B, 256 events, until stage S6, so a chain's figure can read 1K more than before: 4 of the 54 one-effect chains do). It is the RAM meter's figure (below), which also counts the sequencer's pending record, UI bound and click voice and the modulation runtime |
 | Sequencer | The app hosts the sequencer core (engines/seq.md) through the shared host bridge (`engines/include/fm1_seq_host.h`), exactly as `fm1-render` does: script lines and commands at block starts, each block's events, and the sound's render split at every note and lock of a track routed to it. 8 tracks (owner decision O3, 2026-10-02), a 272-event buffer (256 until stage S6), one pending command record, and the event-room rule: an op goes in only while 201 events of room are free, otherwise it waits a block, so no note-off is ever lost. The harness and the parity test play verb scripts and `movy1` sets through it; every one of the 34 Movy oracle scripts plays through the app byte for byte as through `fm1-render` at 64-frame blocks [verified: `tests/test_sim_seq.py`]. On the panel (below): PLAY/STOP, SEQ mode's Track view and a demo pattern (docs/15 stage S3), step entry: the white keys as steps, the Step pages, SHIFT and bar paging (S4), record, step record and Capture (S5), tracks, mute, the Set, Clip and Track pages and the metronome's click (S6), and parameter locks from KNOB1–4 (S8) |
 
@@ -541,7 +541,7 @@ www/fm1.wasm      src/fm1_web.c   flat exports (fm1w_*)
                                       in, runtime edits and script lines
                                       out
                   src/fm1_mod_view.c  their screens and the routed marks
-                  src/fm1_tft.c   240 x 240 RGB565 frame buffer, 5 x 9 font
+                  src/fm1_tft.c   240 x 240 RGB565 frame buffer, three text faces
                   engines/        every engine, effect and the bus limiter,
                                   the sequencer core and its host bridge,
                                   the modulation runtime and its kinds
@@ -558,8 +558,38 @@ event buffer, and modulation's runtime and a block's writes; clang, 64-bit), aga
 the ~379 KB the stock layout leaves free [verified: `sizeof`; SRAM from
 docs/01]. The firmware needs one arena sized to the chain it loads and
 strip rendering (ten 240 × 24 strips, 11.5 KB each, as stock does;
-`src/fm1_tft.h`) [inferred]. The font is drawn for this repository
+`src/fm1_tft.h`) [inferred]. The main font is drawn for this repository
 (`tools/font5x9.txt`; `tools/gen_font.py` writes `src/fm1_font.h`).
+
+**Text faces** (`src/fm1_tft.h`, the audit's decision D7, 2026-10-06). Three
+faces, each a table of one byte a glyph row in flash, printable ASCII only
+[verified: `fm1-sim-render --font-check`, `tests/test_sim_fonts.py`]:
+
+| Face | Glyphs | Advance | Box height | Capitals | Characters a line | Line pitch | Flash |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| MAIN | the 5×9 at ×2 | 12 px | 18 px | 14 px | 19 | 22 px | 855 B |
+| MID | Spleen 8×16 at ×1 | 8 px | 14 px | 10 px | 28 | 18 px | 1,330 B |
+| SMALL | Spleen 6×12 at ×1 | 6 px | 12 px | 8 px | 38 | 16 px | 1,140 B |
+
+- A run's logged box is what its face's characters can paint, whatever the
+  run holds: the 5×9's descenders are in it and its spacing column is not;
+  Spleen 8×16's top and bottom rows, which no ASCII glyph paints, are not
+  in its table at all, so a run's y is the top of its box in every face.
+- `tools/gen_font.py` writes the Spleen tables from the BDF files
+  (`third_party/spleen/`, Spleen 2.2.0, unmodified;
+  [UPSTREAM.md](third_party/spleen/UPSTREAM.md) has the licence notice a
+  binary must carry), and `--check` keeps all three headers current.
+- `fm1_tft_font_text`, `fm1_tft_font_width` and `fm1_tft_font_fit` draw and
+  measure in a face; `fm1_tft_text` stays MAIN at any scale.
+  `fm1_tft_span_text` draws a run of several colours (MATRIX's columns,
+  audit L2) and logs it as one box. The layout check's rule is the same for
+  every face: 4 px between boxes.
+- `fm1-sim-render --font-sheet FILE.ppm` draws both Spleen faces on one
+  screen, layout-checked
+  ([the sheet at ×3](../../assets/ui-audit/fonts-spleen.png)).
+- Until a screen uses MID or SMALL, every screen draws as before, pixel for
+  pixel [verified: the 3,144 screens of `--screens`, byte for byte, before
+  and after the faces arrived].
 
 The worklet allocates as little as it can on the audio thread: the module's
 memory never grows, so its views on the output, LEDs and screen are made

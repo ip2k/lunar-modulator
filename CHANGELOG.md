@@ -54,6 +54,21 @@ history.
   S1NOTE–S4NOTE, S1VEL–S4VEL, S1KEY–S4KEY, S1TRIG–S4TRIG and
   S1RTRG–S4RTRG: the same as NOTE, VEL, KEY, TRIG and RTRG, but for one
   sound's notes alone, so an envelope can follow only the bass, say.
+- **Two smaller typefaces for the screen, ready for its denser pages.**
+  Besides its own 5×9 font at double size (19 characters a line), the
+  simulator's screen can now set text in Spleen by Frederic Cambus (BSD
+  2-Clause licence) at 8×16 pixels (28 characters a line) and 6×12 (38), so
+  lists, MATRIX and the other crowded pages can show more and spell names
+  out in full. No screen uses them yet: every screen looks exactly as
+  before. The page's credits and the manual's chapter 14 name Spleen, and
+  the page serves its licence. For developers: `fm1_tft_font_text` draws in
+  a face, `fm1_tft_span_text` draws one run in several colours and logs it
+  as one box (for MATRIX's columns), each face's metrics are in `fm1_tft.h`
+  and `fm1_look.h`, `gen_font.py` writes the two tables from Spleen 2.2.0's
+  BDF files, vendored unmodified in `sim/web/third_party/spleen/` (2,470
+  bytes of flash for both), and `fm1-sim-render --font-check` and
+  `--font-sheet` with `tests/test_sim_fonts.py` check every glyph against
+  the BDF files, every box and the 4 px rule between faces.
 - **Load DX7 patches in the simulator.** A new button under the panel,
   *Load DX7 patches…*, takes `.syx` files, and so does dropping files
   anywhere on the page. A bank fills FM6's User 1 to 32, single voices go

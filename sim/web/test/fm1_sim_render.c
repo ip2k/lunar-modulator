@@ -55,6 +55,11 @@
  *                       lines (fm1_mod_ui.h) and read back by mod_script.c
  *                       into a second runtime: the same records; JSON, exit
  *                       1 on a difference
+ *   --font-check        the three text faces (fm1_tft.h): metrics, every
+ *                       character as drawn, logged boxes, widths, the 4 px
+ *                       rule between faces, multi-colour runs; JSON, exit 1
+ *                       on a fault
+ *   --font-sheet FILE.ppm  both Spleen faces on one screen, checked; JSON
  *
  * The sequencer, with fm1-render's meaning for its flags (engines/host/
  * render.cc): --cmd FILE plays a timed verb script, --seq FILE.movy1 loads a
@@ -122,6 +127,7 @@
  * Prints one line of JSON. Test code: C99 with stdio. MIT licence.
  */
 #include "fm1_app.h"
+#include "fm1_look.h"
 #include "mod_script.h"
 #include "seq_script.h"
 
@@ -175,7 +181,8 @@ static void usage(void) {
           "       [--insert-param K:NAME=V]...] [--level K:PCT] [--slots]\n"
           "       [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=V] [--level-at K:T:PCT]\n"
           "       [--unit-route T:TRACK:SOUND]\n"
-          "       | --sizes | --format-check | --lock-check | --mod-format-check\n");
+          "       | --sizes | --format-check | --lock-check | --mod-format-check\n"
+          "       | --font-check | --font-sheet FILE.ppm\n");
 }
 
 static event_t *add_event(double t, ev_kind_t kind) {
@@ -463,6 +470,14 @@ static int write_ppm(const char *path, const fm1_tft_t *t) {
 
 static int g_screens, g_faults;
 
+/* A logged box's kind for a fault report: a graphic, or text in its face. */
+static const char *box_kind(const fm1_tft_box_t *b) {
+  static const char *const kText[FM1_TFT_FONTS] = { "MAIN text", "MID text", "SMALL text" };
+  if (!b) return "-";
+  if (b->kind == FM1_BOX_GRAPHIC) return "graphic";
+  return b->font < FM1_TFT_FONTS ? kText[b->font] : "text";
+}
+
 static void check_screen(const char *name, const char *dir, int save) {
   int report[8];
   fm1_app_draw_checked(&g_app);
@@ -478,9 +493,9 @@ static void check_screen(const char *name, const char *dir, int save) {
         }
         const fm1_tft_box_t *a = i >= 0 ? &g_app.tft.boxes[i] : NULL;
         const fm1_tft_box_t *b = j >= 0 ? &g_app.tft.boxes[j] : NULL;
-        fprintf(stderr, "layout fault in %s: box %d (%d,%d %dx%d) vs box %d (%d,%d %dx%d)\n", name,
-                i, a ? a->x : 0, a ? a->y : 0, a ? a->w : 0, a ? a->h : 0, j, b ? b->x : 0,
-                b ? b->y : 0, b ? b->w : 0, b ? b->h : 0);
+        fprintf(stderr, "layout fault in %s: box %d (%s %d,%d %dx%d) vs box %d (%s %d,%d %dx%d)\n",
+                name, i, box_kind(a), a ? a->x : 0, a ? a->y : 0, a ? a->w : 0, a ? a->h : 0, j,
+                box_kind(b), b ? b->x : 0, b ? b->y : 0, b ? b->w : 0, b ? b->h : 0);
       }
     }
     g_faults += n;
@@ -3374,6 +3389,243 @@ static void print_mod(void) {
   printf("]}");
 }
 
+/* ---- --font-check and --font-sheet: the three faces (fm1_tft.h, audit D7) ------ */
+
+static const char *const kFontNames[FM1_TFT_FONTS] = { "MAIN", "MID", "SMALL" };
+static fm1_tft_t g_ft;                            /* a frame of its own, not the app's */
+
+/* Two runs, `a` and then `b` beside it (axis 0) or under it (axis 1), `gap`
+ * px apart; b < 0 is a 10 x 10 graphic. The faults the layout check finds. */
+static int font_gap_faults(int a, int b, int axis, int gap) {
+  fm1_tft_begin(&g_ft, 0);
+  g_ft.record = 1;
+  const int x = 20, y = 40;
+  const int w = fm1_tft_font_text(&g_ft, x, y, "Hg", 8, (fm1_tft_font_t)a, 0xFFFF);
+  const int h = fm1_tft_metrics((fm1_tft_font_t)a)->height;
+  const int bx = axis ? x : x + w + gap, by = axis ? y + h + gap : y;
+  if (b < 0) fm1_tft_graphic(&g_ft, bx, by, 10, 10);
+  else fm1_tft_font_text(&g_ft, bx, by, "Hg", 8, (fm1_tft_font_t)b, 0xFFFF);
+  g_ft.record = 0;
+  return fm1_tft_check_layout(&g_ft, FM1_APP_LAYOUT_GAP, NULL, 0);
+}
+
+/* Prints, per face, its metrics, its characters as drawn (each glyph's box,
+ * '#' painted) and what went wrong: a single character's logged box not at
+ * its place and size, a pixel painted outside the box, a run whose logged
+ * width is not fm1_tft_font_width's or FM1_TFT_RUN_W's, a fit count that
+ * disagrees with the widths, a cut run not counted, a span drawn in the
+ * wrong colour or logged as more than one box. Then the 4 px rule between
+ * every pair of faces, and a face and a graphic, side by side and one
+ * above the other, at 3 and 4 px. tests/test_sim_fonts.py compares the
+ * glyphs with the BDF files and font5x9.txt. */
+static int font_check(void) {
+  const char *sample = "The quick brown fox jumps over 13 lazy dogs!";
+  const int line_chars[FM1_TFT_FONTS] = { LINE_CHARS, MID_LINE_CHARS, SMALL_LINE_CHARS };
+  const int pitch[FM1_TFT_FONTS] = { LINE_PITCH, MID_LINE_PITCH, SMALL_LINE_PITCH };
+  int errors = 0;
+  printf("{\"fonts\":[");
+  for (int f = 0; f < FM1_TFT_FONTS; ++f) {
+    const fm1_tft_font_t font = (fm1_tft_font_t)f;
+    const fm1_tft_metrics_t *m = fm1_tft_metrics(font);
+    int box_errors = 0, outside = 0, width_errors = 0, fit_errors = 0;
+    printf("%s{\"name\":\"%s\",\"advance\":%d,\"height\":%d,\"ink_w\":%d,\"cap_h\":%d,"
+           "\"baseline\":%d,\"line_chars\":%d,\"line_pitch\":%d,\"glyphs\":[",
+           f ? "," : "", kFontNames[f], m->advance, m->height, m->ink_w, m->cap_h, m->baseline,
+           line_chars[f], pitch[f]);
+    for (int c = 0x20; c <= 0x7E; ++c) {
+      const char s[2] = { (char)c, 0 };
+      const int x0 = 8, y0 = 8;
+      fm1_tft_begin(&g_ft, 0);
+      g_ft.record = 1;
+      fm1_tft_font_text(&g_ft, x0, y0, s, 1, font, 0xFFFF);
+      g_ft.record = 0;
+      const fm1_tft_box_t *b = &g_ft.boxes[0];
+      if (g_ft.n_boxes != 1 || b->x != x0 || b->y != y0 || b->w != m->ink_w ||
+          b->h != m->height || b->kind != FM1_BOX_TEXT || b->font != f) {
+        ++box_errors;
+      }
+      for (int y = 0; y < FM1_TFT_H; ++y) {
+        for (int x = 0; x < FM1_TFT_W; ++x) {
+          const int in = x >= x0 && x < x0 + m->ink_w && y >= y0 && y < y0 + m->height;
+          if (!in && g_ft.px[y * FM1_TFT_W + x]) ++outside;
+        }
+      }
+      printf("%s[", c > 0x20 ? "," : "");
+      for (int y = 0; y < m->height; ++y) {
+        putchar(y ? ',' : ' ');
+        putchar('"');
+        for (int x = 0; x < m->ink_w; ++x) putchar(g_ft.px[(y0 + y) * FM1_TFT_W + x0 + x] ? '#' : '.');
+        putchar('"');
+      }
+      printf("]");
+    }
+    for (int n = 0; n <= (int)strlen(sample); ++n) {      /* run widths and fit counts */
+      fm1_tft_begin(&g_ft, 0);
+      g_ft.record = 1;
+      const int w = fm1_tft_font_text(&g_ft, 0, 0, sample, n, font, 0xFFFF);
+      g_ft.record = 0;
+      const int want = FM1_TFT_RUN_W(m->advance, m->ink_w, n);
+      if (w != want || fm1_tft_font_width(sample, n, font) != want ||
+          (n && (g_ft.n_boxes != 1 || g_ft.boxes[0].w != want)) || (!n && g_ft.n_boxes)) {
+        ++width_errors;
+      }
+      if (n && (fm1_tft_font_fit(want, font) != n || fm1_tft_font_fit(want - 1, font) != n - 1)) {
+        ++fit_errors;
+      }
+    }
+    if (fm1_tft_font_fit(FM1_TFT_W - 2 * 6, font) != line_chars[f]) ++fit_errors;
+    errors += box_errors + outside + width_errors + fit_errors;
+    printf("],\"box_errors\":%d,\"outside\":%d,\"width_errors\":%d,\"fit_errors\":%d}", box_errors,
+           outside, width_errors, fit_errors);
+  }
+  printf("],\"gaps\":[");
+  int first = 1;
+  for (int a = 0; a < FM1_TFT_FONTS; ++a) {
+    for (int b = -1; b < FM1_TFT_FONTS; ++b) {
+      for (int axis = 0; axis < 2; ++axis) {
+        for (int gap = 3; gap <= 4; ++gap) {
+          const int faults = font_gap_faults(a, b, axis, gap);
+          errors += faults != (gap < FM1_APP_LAYOUT_GAP);
+          printf("%s{\"a\":\"%s\",\"b\":\"%s\",\"axis\":\"%c\",\"gap\":%d,\"faults\":%d}",
+                 first ? "" : ",", kFontNames[a], b < 0 ? "graphic" : kFontNames[b],
+                 axis ? 'y' : 'x', gap, faults);
+          first = 0;
+        }
+      }
+    }
+  }
+  printf("],\"runs\":[");
+  for (int f = 0; f < FM1_TFT_FONTS; ++f) {
+    const fm1_tft_font_t font = (fm1_tft_font_t)f;
+    const fm1_tft_metrics_t *m = fm1_tft_metrics(font);
+    /* A run cut short by max_chars is a fault; one that fits is not. */
+    fm1_tft_begin(&g_ft, 0);
+    g_ft.record = 1;
+    fm1_tft_font_text(&g_ft, 6, 30, "S1 Timbre", 4, font, 0xFFFF);
+    g_ft.record = 0;
+    const int cut = fm1_tft_check_layout(&g_ft, FM1_APP_LAYOUT_GAP, NULL, 0);
+    /* A box past the right edge by one pixel is off screen; at the edge it
+     * is not. */
+    int edge[2];
+    for (int k = 0; k < 2; ++k) {
+      fm1_tft_begin(&g_ft, 0);
+      g_ft.record = 1;
+      fm1_tft_font_text(&g_ft, FM1_TFT_W - FM1_TFT_RUN_W(m->advance, m->ink_w, 3) + k, 30, "Hgy",
+                        3, font, 0xFFFF);
+      g_ft.record = 0;
+      edge[k] = fm1_tft_check_layout(&g_ft, FM1_APP_LAYOUT_GAP, NULL, 0);
+    }
+    /* MATRIX's row as one multi-colour run (audit L2), and a NULL span. */
+    const fm1_tft_span_t spans[4] = {
+      { "LFO1", RP_FOAM }, { ">", RP_SUBTLE }, { NULL, RP_LOVE }, { "S1 Timbre +100", RP_TEXT },
+    };
+    const uint16_t colour_of[19] = {
+      RP_FOAM, RP_FOAM, RP_FOAM, RP_FOAM, RP_SUBTLE, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT,
+      RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT,
+    };
+    const int x0 = 2, y0 = 40;
+    fm1_tft_begin(&g_ft, RP_BASE);
+    g_ft.record = 1;
+    const int w = fm1_tft_span_text(&g_ft, x0, y0, spans, 4, 40, font);
+    g_ft.record = 0;
+    const int span_boxes = g_ft.n_boxes, span_faults = fm1_tft_check_layout(&g_ft, 4, NULL, 0);
+    int colour_errors = 0, painted = 0;
+    for (int i = 0; i < 19; ++i) {
+      int any = 0;
+      for (int y = y0; y < y0 + m->height; ++y) {
+        for (int x = x0 + i * m->advance; x < x0 + (i + 1) * m->advance && x < FM1_TFT_W; ++x) {
+          const uint16_t p = g_ft.px[y * FM1_TFT_W + x];
+          if (p == RP_BASE) continue;
+          any = 1;
+          if (p != colour_of[i]) ++colour_errors;
+        }
+      }
+      painted += any;
+    }
+    /* The same spans cut at 6 characters: one truncated run, 6 wide. */
+    fm1_tft_begin(&g_ft, RP_BASE);
+    g_ft.record = 1;
+    const int w6 = fm1_tft_span_text(&g_ft, x0, y0, spans, 4, 6, font);
+    g_ft.record = 0;
+    const int cut6 = g_ft.truncated;
+    /* MAIN in a face is fm1_tft_text at x2, pixel for pixel and box for box. */
+    int main_same = 1;
+    if (font == FM1_TFT_MAIN) {
+      static fm1_tft_t ref;
+      fm1_tft_begin(&ref, RP_BASE);
+      fm1_tft_begin(&g_ft, RP_BASE);
+      ref.record = g_ft.record = 1;
+      fm1_tft_text(&ref, 7, 33, sample, 12, 2, RP_TEXT);
+      fm1_tft_font_text(&g_ft, 7, 33, sample, 12, FM1_TFT_MAIN, RP_TEXT);
+      ref.record = g_ft.record = 0;
+      main_same = memcmp(ref.px, g_ft.px, sizeof ref.px) == 0 && ref.n_boxes == 1 &&
+                  g_ft.n_boxes == 1 && ref.truncated == 1 && g_ft.truncated == 1 &&
+                  memcmp(&ref.boxes[0], &g_ft.boxes[0], sizeof ref.boxes[0]) == 0;
+    }
+    const int want = FM1_TFT_RUN_W(m->advance, m->ink_w, 19);
+    errors += cut != 1 || edge[0] != 0 || edge[1] != 1 || span_boxes != 1 || span_faults != 0 ||
+              w != want || colour_errors || painted != 17 || cut6 != 1 ||
+              w6 != FM1_TFT_RUN_W(m->advance, m->ink_w, 6) || !main_same ||
+              fm1_tft_span_width(spans, 4, 40, font) != want;
+    printf("%s{\"font\":\"%s\",\"cut_faults\":%d,\"edge_faults\":[%d,%d],\"span_boxes\":%d,"
+           "\"span_faults\":%d,\"span_w\":%d,\"span_want_w\":%d,\"colour_errors\":%d,"
+           "\"painted\":%d,\"cut6\":%d,\"w6\":%d,\"main_same\":%d}",
+           f ? "," : "", kFontNames[f], cut, edge[0], edge[1], span_boxes, span_faults, w, want,
+           colour_errors, painted, cut6, w6, main_same);
+  }
+  printf("],\"errors\":%d}\n", errors);
+  return errors ? 1 : 0;
+}
+
+/* --font-sheet FILE.ppm: both Spleen faces' characters and a few names in
+ * MID and SMALL, under MAIN headings, as one screen that passes the layout
+ * check; prints its faults and boxes. A sheet to look at, not a page. */
+static int font_sheet(const char *path) {
+  static const struct { int font; const char *s; uint16_t color; } rows[] = {
+    { FM1_TFT_MAIN, "MID: Spleen 8x16", RP_IRIS },
+    { FM1_TFT_MID, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", RP_TEXT },
+    { FM1_TFT_MID, "abcdefghijklmnopqrstuvwxyz", RP_TEXT },
+    { FM1_TFT_MID, "0123456789 !\"#$%&'()*+,-./:;", RP_TEXT },
+    { FM1_TFT_MID, "<=>?@[\\]^_`{|}~  S1 Timbre", RP_TEXT },
+    { FM1_TFT_MAIN, "SMALL: Spleen 6x12", RP_IRIS },
+    { FM1_TFT_SMALL, "ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789", RP_TEXT },
+    { FM1_TFT_SMALL, "abcdefghijklmnopqrstuvwxyz", RP_TEXT },
+    { FM1_TFT_SMALL, "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", RP_TEXT },
+  };
+  fm1_tft_begin(&g_ft, RP_BASE);
+  g_ft.record = 1;
+  int y = 4;
+  for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+    const fm1_tft_font_t font = (fm1_tft_font_t)rows[i].font;
+    fm1_tft_font_text(&g_ft, MARGIN, y, rows[i].s, 40, font, rows[i].color);
+    y += fm1_tft_metrics(font)->height + FM1_APP_LAYOUT_GAP;
+  }
+  const fm1_tft_span_t matrix[3] = {
+    { "LFO1", RP_FOAM }, { " > ", RP_SUBTLE }, { "S1 Timbre  +100", RP_TEXT },
+  };
+  fm1_tft_span_text(&g_ft, MARGIN, y, matrix, 3, MID_LINE_CHARS, FM1_TFT_MID);
+  y += MID_LINE_PITCH;
+  const fm1_tft_span_t matrix2[3] = {
+    { "ENV2", RP_FOAM }, { " ~ ", RP_SUBTLE }, { "M2 Ping-Pong Delay Feedback -35", RP_TEXT },
+  };
+  fm1_tft_span_text(&g_ft, MARGIN, y, matrix2, 3, SMALL_LINE_CHARS, FM1_TFT_SMALL);
+  y += SMALL_LINE_PITCH;
+  /* A MAIN name and a MID place on one baseline. */
+  fm1_tft_font_text(&g_ft, MARGIN, y, "Six-Op FM", 20, FM1_TFT_MAIN, RP_TEXT);
+  const char *place = "34/96";
+  fm1_tft_font_text(&g_ft, RIGHT - fm1_tft_font_width(place, 8, FM1_TFT_MID),
+                    y + FM1_TFT_MAIN_BASELINE - FM1_TFT_MID_BASELINE, place, 8, FM1_TFT_MID,
+                    RP_SUBTLE);
+  g_ft.record = 0;
+  const int faults = fm1_tft_check_layout(&g_ft, FM1_APP_LAYOUT_GAP, NULL, 0);
+  printf("{\"faults\":%d,\"boxes\":%d,\"bottom\":%d}\n", faults, g_ft.n_boxes, y + FM1_TFT_MAIN_H);
+  if (!write_ppm(path, &g_ft)) {
+    fprintf(stderr, "cannot write %s\n", path);
+    return 2;
+  }
+  return faults ? 1 : 0;
+}
+
 /* ---- the render ---------------------------------------------------------------- */
 
 /* Multi-sound set-up from the command line (--sound, --insert, their
@@ -3552,6 +3804,7 @@ int main(int argc, char **argv) {
     if (strcmp(a, "--format-check") == 0) return format_check();
     if (strcmp(a, "--lock-check") == 0) return lock_check();
     if (strcmp(a, "--mod-format-check") == 0) return mod_format_check();
+    if (strcmp(a, "--font-check") == 0) return font_check();
     if (strcmp(a, "--slots") == 0) continue;                 /* implied: the app routes by slot */
     if (strcmp(a, "--start") == 0) { g_start = 1; continue; }
     if (i + 1 >= argc) { usage(); return 2; }
@@ -3566,6 +3819,7 @@ int main(int argc, char **argv) {
       if (strcmp(a, "--sound-note") == 0) side_note_pair_later = 1;
     }
     if (strcmp(a, "--screens") == 0) return run_screens(v, rate);
+    if (strcmp(a, "--font-sheet") == 0) return font_sheet(v);
     else if (is_multi_flag(a)) {
       if (!add_multi(a, v)) { fprintf(stderr, "bad %s %s\n", a, v); return 2; }
       if (side_note_pair_later) side_note_pair();          /* the --sound-note just added */
