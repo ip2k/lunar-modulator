@@ -486,13 +486,21 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     the LEDs and the buttons that leave the pages. Per voice (MG9): RACK's
     `vN` with a chord held, MATRIX's per-voice and refused rows and every
     state's hint, one sound's note sources and the per-sound pitches, and
-    a cable an engine change switched off under its old name."""
+    a cable an engine change switched off under its old name.
+    The audit's proposals in the app (2026-10-06): a knob on every list
+    parameter of every sound and effect, from both ends (its list in MID,
+    or no popup for a short one), banners over HOME, FX with four rows,
+    GLO and MATRIX in both faces, a refusal kept whole, and FX mode's chip
+    on each slot, held and not. Every text box is in one of the three
+    faces at its height, nothing smaller than SMALL; the summary counts
+    them by face."""
     res = subprocess.run([str(tools["sim"]), "--screens", str(tmp_path)],
                          capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 3457            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["text_boxes"]["MID"] > 0              # the lists, context lines and banners
+    assert summary["screens"] >= 3507            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
     #                                              1321 before the master-bus pack (1458), 2189 with modulation
     #                                              (docs/16 MG3) before Room, Hall, Gate and Plate's Freeze, 2325
@@ -500,9 +508,14 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     #                                              the lab switch's two sets of screens; 2695 before every
     #                                              list popup's every entry, 3040 before FM6's user bank,
     #                                              Squash and Transient (all 2026-10-06), 3144 with them;
-    #                                              3165 with per-voice modulation (MG9) too, 3288
-    #                                              with the ARP pages, 3385 with the global Key page,
-    #                                              3457 with glide's pages too
+    #                                              3165 with per-voice modulation (MG9) too, 3204
+    #                                              with the knobs' lists, banners and FX chips;
+    #                                              3202 with MATRIX's nine rows (its 32
+    #                                              slots take one window fewer a sweep: 6 screens
+    #                                              fewer) and the strip by sound and tempos with
+    #                                              decimals (4 more), 3408 with glide's pages;
+    #                                              3507 with the global Key page (97 screens) and
+    #                                              its two lists
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

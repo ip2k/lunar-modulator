@@ -189,7 +189,7 @@ A step sequencer whose design follows Movy by megadake
 It starts with a one-bar demo pattern: press PLAY/STOP, or Space. Clips,
 scenes and songs run in the desktop tools so far.
 
-<img src="assets/screenshots/screen-seq.png" width="240" alt="SEQ mode while the demo pattern plays: 120.00 BPM, the eight tracks and PLAY on the status line, the bar's 16 steps with the playhead, the knob strip, and the sound's model, VA Pair">
+<img src="assets/screenshots/screen-seq.png" width="240" alt="SEQ mode while the demo pattern plays: 120 BPM, the eight tracks and PLAY on the status line, the bar's 16 steps with the playhead, the knob strip, and the sound's model, VA Pair">
 
 ### Arpeggiator
 

@@ -27,7 +27,7 @@ Key*, the project key. The bottom bar names the page.
 | Block | How many samples the firmware computes at a time: 64 |
 | RAM | Two figures in kilobytes: the memory the sounds, effects, sequencer and modulation take (the sequencer about 36K of it and modulation about 23K, playing or not), then the 379K the FM-1 has free for them. The memory meter in the bottom bar shows the same as a share ([chapter 6](06-effects.md#memory)) |
 | Voices | How many notes the current sound's engine plays at once |
-| FX1, FX2 | The effect in each master slot, M1 and M2, by its short identifier such as `plate`, or `--` for an empty slot |
+| M1, M2 | The effect in each master slot by its name, such as *Plate*, spelled out where the line has room (*Compressor* for Comp), or `--` for an empty slot |
 | Octave | The keyboard's octave, from −3 to +3 ([chapter 4](04-playing.md#octave-and-transpose)) |
 | Transpose | The transpose in semitones, from −12 to +12 |
 
@@ -45,8 +45,9 @@ One key for the whole project: a root, C to B, and a scale.
 | [[KNOB1]] | The root: C, C#, D and so on to B |
 | [[KNOB2]] | The scale: Major, Minor, Dorian, Phrygian, Lydian, Mixolydian, Locrian or Chromatic |
 
-The first line says the key in words, such as *D Minor*. It starts at C
-Major.
+Each knob shows its list while you turn it, the chosen entry marked. The
+line under the top bar says the key in words, such as *D Minor*. It starts
+at C Major.
 
 - **What it is for.** Every MIDI effect is told the key. The arpeggiator does
   not use it; the scale and chord effects planned next will. The sound
