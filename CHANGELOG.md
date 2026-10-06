@@ -9,6 +9,18 @@ history.
 ## [Unreleased]
 
 ### Added
+- **A colour for each sound, ready for the screen.** The virtual FM-1's
+  palette gains four colours of its own, one for each sound: nebula (blue)
+  for Sound 1, nova (orange) for Sound 2, aurora (green) for Sound 3 and
+  comet (yellow-green) for Sound 4. They are made to sit with the Rosé Pine
+  colours already on the screen, to stay readable on every background they
+  will be drawn on (the title bar included), and to stay apart from each
+  other and from the colours that mean something else (selection, locks,
+  modulation, errors), also for people with each common kind of colour
+  blindness, where the sound's number (S1–S4) does the rest. Every colour
+  now has one meaning, written down in `sim/web/PALETTE.md`. Nothing on the
+  screen looks different yet: the screens move to the new colours in the
+  changes that follow.
 - **Load DX7 patches in the simulator.** A new button under the panel,
   *Load DX7 patches…*, takes `.syx` files, and so does dropping files
   anywhere on the page. A bank fills FM6's User 1 to 32, single voices go
@@ -1136,6 +1148,12 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **The simulator page's highlights follow the screen's colours.** The
+  keyboard focus ring, links, the tagline and the help's headings are lilac
+  (the colour the screen uses for what is selected); the focus ring used to
+  be gold, which now means only a lit LED (a key or button held or
+  latched). Hovering Power on lightens its lilac instead of turning pink,
+  and code in the help is plain text.
 - **FM6 needs 28.7 KB less memory on the FM-1.** msfa's sine, exponential
   and frequency tables, which it used to compute into RAM at start-up, are
   now built ahead of time as constant data, which the FM-1 keeps in flash;
