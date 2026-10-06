@@ -11,6 +11,7 @@
 #include "fm1_app.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "fm1_app_state.h"

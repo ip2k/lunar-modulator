@@ -95,7 +95,7 @@ two rows of six under [[KNOB1]] to [[KNOB4]]: [[FX]], [[SEL]], [[ENV]],
 | [[SEQ]] | Shows the sequencer's steps, SEQ mode, from any mode; held with a white key 1 to 8, focuses that track ([chapter 7](07-sequencer.md)) | The same |
 | [[PLAY/STOP]] | Starts and stops the sequencer, in any mode | The same |
 | [[REC]] | Records into the focused track; held in SEQ mode while stopped, step recording; with [[SEL]], Capture ([chapter 7](07-sequencer.md#recording)) | The same |
-| [[SAVE]] | Shows a message that it is not in the simulator yet | Saving patterns, and later sounds ([chapter 10](10-settings-and-storage.md)) |
+| [[SAVE]] | Keeps the project in the browser, once the page has its storage; until then it says there is no store ([chapter 10](10-settings-and-storage.md#save)) | Saving projects, after the one rule |
 | [[ARP]] | A tap switches the current sound's arpeggiator on, and opens its pages, or off; held, it latches; with [[SEL]], it opens the pages ([chapter 4](04-playing.md#arpeggiator)) | The same |
 
 ### Button lights
@@ -319,7 +319,7 @@ red:
 | An engine's or effect's name, *does not fit* and what the chain would need, such as *needs 112% of RAM* | It would take the chain past the FM-1's memory ([chapter 6](06-effects.md#memory)) |
 | A track, *Captured*, *Metronome on* and the like | The sequencer did something you asked ([chapter 7](07-sequencer.md)) |
 | A cable and its amount, such as *LFO1 > S2 Color +12%* | You make a cable ([chapter 8](08-modulation.md)) |
-| A button's name and *not in the simulator yet* | You press [[SAVE]] |
+| *SAVE*, *no store in this host* | You press [[SAVE]] before the page has its storage |
 
 !!! tip "A larger screen"
     Under the panel, **Screen ×2** shows a second copy of the screen at twice

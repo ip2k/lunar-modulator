@@ -945,7 +945,8 @@ static int rate_ok(const fm1_app_t *a, const fm1_engine_t *e) {
 }
 
 static void rate_text(float hz, char *buf, size_t n) {
-  const long tenths = (long)(hz / 100.0f + 0.5f);
+  long tenths = (long)(hz / 100.0f + 0.5f);
+  if (tenths < 0 || tenths > 99999) tenths = 0;
   if (tenths % 10) snprintf(buf, n, "%ld.%ld kHz", tenths / 10, tenths % 10);
   else snprintf(buf, n, "%ld kHz", tenths / 10);
 }
@@ -980,8 +981,8 @@ static int reader_refusal(plan_t *p) {
     case FM1_STATE_NOT_LUNAR:
       return refuse_load(p, rep->r.code, "Not a Lunar file", "This is not a Lunar Modulator file.%s", "");
     case FM1_STATE_TOO_NEW: {
-      char lv[16];
-      snprintf(lv, sizeof lv, "%u.%u", rep->r.major, rep->r.minor);
+      char lv[8];
+      snprintf(lv, sizeof lv, "%u.%u", rep->r.major % 100u, rep->r.minor % 100u);
       snprintf(rep->message, sizeof rep->message,
                "Made with a newer Lunar Modulator (format %s); this simulator reads %u.%u.", lv,
                FM1_STATE_MAJOR, FM1_STATE_MINOR);
@@ -995,8 +996,8 @@ static int reader_refusal(plan_t *p) {
       } else {
         snprintf(where, sizeof where, "At byte %u", (unsigned)rep->r.offset);
       }
-      snprintf(rep->message, sizeof rep->message, "%s%s%s: %s.", where, rep->r.path[0] ? ", " : "", rep->r.path,
-               rep->r.what[0] ? rep->r.what : fm1_state_code_name(rep->r.code));
+      snprintf(rep->message, sizeof rep->message, "%.24s%s%.60s: %.60s.", where, rep->r.path[0] ? ", " : "",
+               rep->r.path, rep->r.what[0] ? rep->r.what : fm1_state_code_name(rep->r.code));
       snprintf(rep->screen[0], sizeof rep->screen[0], "NOT LOADED");
       snprintf(rep->screen[1], sizeof rep->screen[1], "%s",
                rep->r.code == FM1_STATE_TOO_BIG ? "File too big" : "Bad file");
@@ -1037,7 +1038,7 @@ static int plan_finish(plan_t *p) {
     if (p->kind != FM1_STATE_SETTINGS) return refuse_load(p, FM1_STATE_BAD, "Not loadable", "This file holds nothing the simulator loads.%s", "");
   }
   if (rep->r.unknown && !(flags & FM1_APP_LOAD_WITHOUT)) {
-    char why[96];
+    char why[160];
     const char *known = fm1_state_known_text(rep->r.known);
     snprintf(why, sizeof why, "This %s uses %s, which %s%s. Nothing was changed.", kind_word(p->kind),
              rep->r.name, known[0] ? "is " : "", known[0] ? known : "this build does not have");
@@ -1049,8 +1050,8 @@ static int plan_finish(plan_t *p) {
   }
   if (p->kind == FM1_STATE_FX && p->chain_n > 2) {
     if (!(flags & FM1_APP_LOAD_WITHOUT)) {
-      char n[8];
-      snprintf(n, sizeof n, "%u", p->chain_n);
+      char n[12];
+      snprintf(n, sizeof n, "%u", p->chain_n % 1000u);
       return refuse_load(p, FM1_STATE_NO_ROOM, "Only two slots",
                          "Two effects fit there; this chain has %s.", n);
     }
@@ -1098,7 +1099,7 @@ static int plan_finish(plan_t *p) {
         snprintf(why, sizeof why, "%s cannot run at this browser's %s.", e->name, hz);
         snprintf(rep->r.name, sizeof rep->r.name, "%s", e->id);
         refuse_load(p, FM1_STATE_RATE, "", "%s", why);
-        snprintf(rep->screen[1], sizeof rep->screen[1], "%.12s at %s", e->name, hz);
+        snprintf(rep->screen[1], sizeof rep->screen[1], "%.12s at %.10s", e->name, hz);
         return 0;
       }
     }
@@ -1699,7 +1700,7 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
   rep->percent = (uint16_t)fm1_app_ram_percent(rep->ram);
   snprintf(rep->screen[0], sizeof rep->screen[0], "LOADED");
   snprintf(rep->screen[1], sizeof rep->screen[1], "RAM %u%%", (unsigned)rep->percent);
-  snprintf(rep->message, sizeof rep->message, "Loaded %s%s%s. RAM %u%%.", kind_word(p->kind),
+  snprintf(rep->message, sizeof rep->message, "Loaded %s%s%.32s. RAM %u%%.", kind_word(p->kind),
            p->name[0] ? " " : "", p->name, (unsigned)rep->percent);
   if (!(o->flags & FM1_APP_LOAD_QUIET)) {
     fm1_app_say(a, FM1_APP_TONE_SAY, "LOADED", p->name[0] ? p->name : kind_word(p->kind), rep->screen[1]);
