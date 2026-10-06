@@ -87,10 +87,12 @@ ENUM_FLAGS = {
     ("arp", "Latch"): ["latch"],
     ("arp", "Sync"): ["latch"],
 }
-# Voice Mode (glide, engines/src/glide.h) is read at note-on and note-off
-# and never cuts a sounding voice: LATCH, and a route rounds it.
+# Voice Mode, Glide Mode and Time Mode (glide, engines/src/glide.h) are read
+# at note-on and note-off (Time Mode when a glide starts) and never cut a
+# sounding voice: LATCH, and a route rounds them.
 for _engine in ("macro", "macro-heavy", "shapes", "sixop", "dx7"):
-    ENUM_FLAGS[(_engine, "Voice Mode")] = ["latch", "mod"]
+    for _name in ("Voice Mode", "Glide Mode", "Time Mode"):
+        ENUM_FLAGS[(_engine, _name)] = ["latch", "mod"]
 
 
 def catalog(renderer):

@@ -31,9 +31,10 @@
 // joins the note after the bend. Shape stays engine-wide. A voice without an
 // offset plays the engine's values, byte for byte as before.
 //
-// Glide and Voice Mode (glide.h), after Volume: the glide joins the note
-// after the bend, once per 24-sample chunk at 96 kHz. A Legato move does
-// not strike the oscillator again, and the voice's envelope goes on.
+// Glide, Voice Mode, Glide Mode and Time Mode (glide.h), on page 3: the
+// glide joins the note after the bend, once per 24-sample chunk at 96 kHz.
+// A Legato move does not strike the oscillator again, and the voice's
+// envelope goes on.
 //
 // SMOOTH parameters (every FLOAT here) ramp while a voice sounds: each
 // 24-sample chunk moves them a tenth of the way, so a change takes 2.5 ms at
@@ -97,7 +98,9 @@ const char *const kShapeNames[kNumShapes] = {
 };
 
 enum Param {
-  P_SHAPE, P_TIMBRE, P_COLOR, P_ATTACK, P_RELEASE, P_VOLUME, P_GLIDE, P_VOICE_MODE, P_COUNT
+  P_SHAPE, P_TIMBRE, P_COLOR, P_ATTACK, P_RELEASE, P_VOLUME,
+  P_GLIDE, P_VOICE_MODE, P_GLIDE_MODE, P_TIME_MODE,
+  P_COUNT
 };
 
 // Uids (API v2) are fixed: never renumber one. Shape sets every voice's
@@ -112,11 +115,15 @@ const fm1_param_t kParams[P_COUNT] = {
   { "Attack",  FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 0, 4, kPoly, FM1_UNIT_NONE, "Atk" },
   { "Release", FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 1, 5, kPoly, FM1_UNIT_NONE, "Rel" },
   { "Volume",  FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 6, kPoly, FM1_UNIT_NONE, "Vol" },
-  // Glide and the voice modes (glide.h), after Volume on page 2.
-  { "Glide",   FM1_PARAM_FLOAT, glide::kOffMs, glide::kMaxMs, glide::kOffMs, NULL, 1,
+  // Glide and the voice modes (glide.h), on a page of their own, the last.
+  { "Glide",   FM1_PARAM_FLOAT, glide::kMinMs, glide::kMaxMs, glide::kDefaultMs, NULL, 2,
     7, glide::kGlideFlags, FM1_UNIT_MS, "Glide" },
   { "Voice Mode", FM1_PARAM_ENUM, 0, glide::MODE_COUNT - 1, glide::MODE_POLY,
-    glide::kModeNames, 1, 8, glide::kModeFlags, FM1_UNIT_NONE, "VMode" },
+    glide::kModeNames, 2, 8, glide::kModeFlags, FM1_UNIT_NONE, "VMode" },
+  { "Glide Mode", FM1_PARAM_ENUM, 0, glide::GLIDE_MODE_COUNT - 1, glide::GLIDE_OFF,
+    glide::kGlideModeNames, 2, 9, glide::kModeFlags, FM1_UNIT_NONE, "GMode" },
+  { "Time Mode",  FM1_PARAM_ENUM, 0, glide::TIME_MODE_COUNT - 1, glide::TIME_TIME,
+    glide::kTimeModeNames, 2, 10, glide::kModeFlags, FM1_UNIT_NONE, "TMode" },
 };
 
 // A voice's per-note offsets: Timbre .. Volume, and its pitch.
@@ -227,8 +234,7 @@ class Instance {
   void NoteOn(uint8_t key, uint8_t velocity) {
     if (velocity == 0) { NoteOff(key); return; }
     held_.Push(key);
-    const glide::Plan<Voice> plan = glide::PlanNoteOn(
-        voice_, kNumVoices, glide::ToMode(value_[P_VOICE_MODE]), value_[P_GLIDE]);
+    const glide::Plan<Voice> plan = glide::PlanNoteOn(voice_, kNumVoices, GlideConfig());
     if (plan.legato) {         // Legato over a held note: a new key, nothing restarts
       Retune(plan.mono, key);
       glide::StartFor(plan.mono, plan, key);
@@ -295,13 +301,18 @@ class Instance {
     }
   }
 
+  // What Voice Mode, Glide Mode and Time Mode say now (glide.h).
+  glide::Config GlideConfig() const {
+    return glide::Read(value_[P_VOICE_MODE], value_[P_GLIDE_MODE], value_[P_TIME_MODE]);
+  }
+
  private:
   // Mono and Legato: letting go of the key the voice plays while older keys
   // are held moves it back to the newest of them, gliding, never restarting.
   void ReturnToHeld(uint8_t key) {
     uint8_t top = 0;
     const glide::Plan<Voice> plan =
-        glide::PlanNoteOff(voice_, kNumVoices, held_, key, value_[P_GLIDE], &top);
+        glide::PlanNoteOff(voice_, kNumVoices, held_, key, GlideConfig(), &top);
     if (!plan.mono) return;
     Retune(plan.mono, top);
     glide::StartFor(plan.mono, plan, top);
@@ -341,7 +352,7 @@ class Instance {
   void RenderChunk() {
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this chunk's step of any ramp
     const Controls shared = MakeControls(value_);
-    const float glide_inc = glide::Increment(glide_block_ms_, value_[P_GLIDE]);
+    glide::Step glide_step(glide_block_ms_, value_[P_GLIDE]);
     const int shape = CurrentShape();
 
     // Mixed on the stack, then stored: accumulating straight into mix_ lets
@@ -354,7 +365,7 @@ class Instance {
       float note = v.key + bend_;
       if (v.note.has_pitch()) note += v.note.pitch;
       if (v.glide.active) note += v.glide.offset;
-      v.glide.Next(glide_inc);
+      v.glide.Next(glide_step);
       int32_t pitch = static_cast<int32_t>(note * 128.0f);
       if (pitch < 0) pitch = 0;
       if (pitch > kHighestPitch) pitch = kHighestPitch;
