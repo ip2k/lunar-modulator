@@ -46,7 +46,6 @@ TICK = 32
 # note gates, the per-voice plan, four more HOST records) and glide's
 # 320 B (eight more records for Macro Heavy's fourteen parameters).
 MOD_BYTES = 26512
-FLAG_BITS = ["latch", "smooth", "nolock", "mod", "input"]
 
 
 def run(renderer, tmp_path, args, mod=None, name="r", log=True):

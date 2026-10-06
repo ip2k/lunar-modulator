@@ -35,6 +35,8 @@ sys.path.insert(0, str(HERE))
 import markdown  # noqa: E402
 from markdown.extensions.toc import slugify  # noqa: E402
 
+import diagram_check  # noqa: E402
+import diagrams  # noqa: E402
 import figures  # noqa: E402
 import policy  # noqa: E402
 import reference  # noqa: E402
@@ -86,6 +88,7 @@ class Build:
     warnings: list[str] = field(default_factory=list)
     sim_dir: Path | None = None
     screens: set = field(default_factory=set)        # assets/screenshots/screen-*.png in use
+    diagrams: dict = field(default_factory=dict)     # name -> (Diagram, svg), manual/diagrams/*.toml
 
 
 # ---- inputs ------------------------------------------------------------------------------
@@ -225,6 +228,24 @@ def make_directive(b: Build):
                              f"<img class='figure-svg' src='assets/figures/{key}.svg'"
                              f"{size} alt='{html.escape(alt)}'></a><figcaption><span class='fig-label'>"
                              f"{label}</span>{html.escape(caption)}</figcaption></figure>")]
+        if name == "diagram":
+            # {{diagram NAME}}: a block or state diagram from manual/diagrams/NAME.toml,
+            # laid out by diagrams.py; its caption and alternative text are in the source.
+            key = args[0] if args else ""
+            if key not in b.diagrams:
+                b.errors.append(f"{ch.file}: unknown diagram '{key}' (manual/diagrams/{key}.toml)")
+                return []
+            ch.figures += 1
+            d, svg = b.diagrams[key]
+            label = f"Figure {ch.number}.{ch.figures}" if ch.number else f"Figure {ch.figures}"
+            m = re.search(r"width='([\d.]+)' height='([\d.]+)'", svg)
+            size = f" width='{m.group(1)}' height='{m.group(2)}'" if m else ""
+            # one diagram unit is the same size in every diagram (diagrams.REF_WIDTH)
+            style = f" style='width: {diagrams.view_width(svg):.1f}%'"
+            return [("html", f"<figure class='diagram' id='diagram-{key}'><a href='assets/diagrams/{key}.svg'>"
+                             f"<img class='figure-svg' src='assets/diagrams/{key}.svg'{size}{style} "
+                             f"alt='{html.escape(d.alt)}'></a><figcaption><span class='fig-label'>"
+                             f"{label}</span>{html.escape(d.caption)}</figcaption></figure>")]
         if name == "screen":
             # {{screen KEY caption}}: the firmware's own screen, from the simulator's
             # screenshots (assets/screenshots/screen-KEY.png, 480 x 480, each pixel doubled).
@@ -292,7 +313,7 @@ def build_info(b: Build) -> str:
 # ---- conversion -------------------------------------------------------------------------------
 
 def convert(b: Build, ctx: ManualContext, ch: Chapter) -> None:
-    ch.state = ChapterState(ch.slug, ch.number, ch.features)
+    ch.state = ChapterState(ch.slug, ch.number)
     ctx.chapter = ch.state
     md = markdown.Markdown(
         extensions=["extra", "admonition", "sane_lists", "smarty", "toc", ManualExtension(ctx)],
@@ -417,6 +438,10 @@ def write_site(b: Build) -> None:
     shutil.copy2(theme / "icon.svg", assets / "icon.svg")
     for key, (draw, _caption, _alt) in figures.FIGURES.items():
         (assets / "figures" / f"{key}.svg").write_text(draw() + "\n")
+    if b.diagrams:
+        (assets / "diagrams").mkdir(exist_ok=True)
+        for key, (_d, svg) in sorted(b.diagrams.items()):
+            (assets / "diagrams" / f"{key}.svg").write_text(svg, encoding="utf-8")
     if b.screens:
         (assets / "screens").mkdir(exist_ok=True)
         for src in sorted(b.screens):
@@ -506,7 +531,7 @@ def write_site(b: Build) -> None:
             return m.group(0)
 
         # A figure links to its SVG on the web; in the book the link would point at a file.
-        body = re.sub(r"<a href='assets/figures/[^']+'>(<img[^>]*>)</a>", r"\1", body)
+        body = re.sub(r"<a href='assets/(?:figures|diagrams)/[^']+'>(<img[^>]*>)</a>", r"\1", body)
         body = re.sub(r'\bid=(["\'])([^"\']+)\1', lambda m: f'id={m.group(1)}{p}-{m.group(2)}{m.group(1)}', body)
         body = re.sub(r'\baria-labelledby=(["\'])([^"\']+)\1',
                       lambda m: "aria-labelledby=" + m.group(1) + " ".join(f"{p}-{x}" for x in m.group(2).split()) + m.group(1), body)
@@ -728,6 +753,14 @@ def main(argv=None) -> int:
     sha, short = commit_info(repo)
     b = Build(cfg=cfg, repo=repo, out=out, commit=sha, commit_short=short, date=build_date(),
               engines=engines, seq=seq, branding=branding if branding.is_dir() else None)
+    for src in diagrams.sources(repo / "manual" / "diagrams"):
+        try:
+            d, svg = diagrams.build(src)
+        except ValueError as exc:
+            b.errors.append(f"manual/diagrams/{src.name}: {exc}")
+            continue
+        b.diagrams[d.name] = (d, svg)
+        b.errors.extend(f"manual/diagrams/{src.name}: {p}" for p in diagram_check.check(svg))
     sim = repo / "sim" / "web" / "www"
     b.sim_dir = sim if (sim / "index.html").is_file() and not args.only_manual else None
     for e in engines:
@@ -755,7 +788,6 @@ def main(argv=None) -> int:
     for ch in b.chapters:
         convert(b, ctx, ch)
     b.errors.extend(ctx.errors)
-    b.warnings.extend(ctx.warnings)
     index_html = controls_index(b, vocab, controls.get("roles", []))
     for ch in b.chapters:
         ch.html = ch.html.replace(f"<p>{CONTROLS_INDEX_TOKEN}</p>", index_html).replace(CONTROLS_INDEX_TOKEN, index_html)

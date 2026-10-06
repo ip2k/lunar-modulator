@@ -12,12 +12,7 @@ effects are where the sound gains its stereo width.
 
 {{status sim desktop planned}}
 
-```text
-Sound 1 → In1 → In2 → level ┐
-Sound 2 → In1 → In2 → level ├→ mix → M1 → M2 → limiter → MASTER
-Sound 3 → In1 → In2 → level │
-Sound 4 → In1 → In2 → level ┘
-```
+{{diagram effect-chain}}
 
 The simulator starts with Plate in M1, the first master slot, and every
 other slot empty. An effect processes everything before it: a sound's
@@ -26,8 +21,9 @@ after a chorus sounds different from a chorus after a reverb.
 
 **To see the chain:** press [[FX]]. The first line of the screen lists the
 current sound (such as *S1*), its two inserts *In1* and *In2*, the *Mix*
-page and the master slots *M1* and *M2*, with the chosen one in the accent
-colour. The chosen effect's parameters are on [[KNOB1]] to [[KNOB4]]. FX mode
+page and the master slots *M1* and *M2*, with the chosen one highlighted;
+the line under it names the chosen slot's effect and says whether the slot
+is an insert or a master slot. The chosen effect's parameters are on [[KNOB1]] to [[KNOB4]]. FX mode
 first opens on M1. Press [[FX]] again, or [[HOME]], to return to the sound.
 
 **To choose a slot:** turn [[SELECT]]. It moves through In1's pages, then
@@ -40,7 +36,8 @@ that sound first ([chapter 5](05-sound-engines.md#four-sounds-at-once)).
 *Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo,
 Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room,
 Hall, Gate, Squash, Transient, Test Gain and Test Ext, and round again, stepping over an effect
-that would not fit the memory (below). In the simulator you can also use the
+that would not fit the memory (below). The list on the screen spells the short
+names out: Compressor, Master Saturation, Equaliser, Transient Shaper. In the simulator you can also use the
 **Effect 1** and **Effect 2** lists under the panel for the two master
 slots.
 

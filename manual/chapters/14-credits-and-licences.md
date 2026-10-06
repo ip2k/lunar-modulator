@@ -229,9 +229,12 @@ The project's research notes credit each source in detail.
   typeface otherwise.
 - **Rosé Pine**, by mvllow and the Rosé Pine contributors, MIT licence: this
   manual is in the Dawn palette, and the simulator and the art in Moon.
-- The simulator's screen font, the panel drawings, the banner and the boot
-  screen are this project's own. The panel drawings follow M-VAVE's published
-  dimensions and measurements of a unit.
+- **Spleen** by Frederic Cambus, BSD 2-Clause licence: the screen's two
+  smaller typefaces, 8×16 and 6×12. The simulator's page carries its licence,
+  and so must any firmware built with them.
+- The simulator's main screen font, the panel drawings, the banner and the
+  boot screen are this project's own. The panel drawings follow M-VAVE's
+  published dimensions and measurements of a unit.
 - The manual is built with **Python-Markdown** and **WeasyPrint**, both under
   the BSD licence.
 
@@ -242,10 +245,10 @@ from other projects keeps its own licence, which the repository records
 beside it with a note of where it came from. Everything listed in this
 chapter that ships with the simulator or the desktop tools is under the MIT
 licence, or, for msfa, the Apache License 2.0, or, for the fonts, the SIL
-Open Font License 1.1. The repository's tests also use **Felucca**'s
-`fm6_core.c` by **Leo Kuroshita** (Hügelton Instruments), an Apache-2.0 port
-of the same FM core, to check FM6 against; it is in no build of the
-firmware or the simulator.
+Open Font License 1.1, or, for Spleen, the BSD 2-Clause licence. The
+repository's tests also use **Felucca**'s `fm6_core.c` by **Leo Kuroshita**
+(Hügelton Instruments), an Apache-2.0 port of the same FM core, to check FM6
+against; it is in no build of the firmware or the simulator.
 
 **GPL code, and the GPL switch.** Some engines and effects port code that
 other projects publish under the GNU General Public License: today Acid

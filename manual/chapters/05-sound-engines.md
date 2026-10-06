@@ -34,7 +34,7 @@ and [chapter 14](14-credits-and-licences.md) credits each source.
 Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Acid Bass, Test
 Sine, and round again. Acid Bass is there only in builds with the GPL
 switch on, as the simulator is while we test ([Acid Bass](#acid-bass)).
-While you turn, the screen lists the engines, six at a time, with the new one
+While you turn, the screen lists the engines, eight at a time, with the new one
 highlighted ([chapter 3](03-panel-tour.md#lists)). In the simulator you can also pick one from the
 **Sound (PRESETS)** list under the panel.
 
@@ -70,6 +70,8 @@ effects ([chapter 6](06-effects.md#the-effect-chain)). Sound 1 always holds
 an engine; Sounds 2 to 4 can be empty, as they are when the simulator
 starts. The sequencer's tracks play whichever sound their route names
 ([chapter 7](07-sequencer.md#routing)).
+
+{{diagram signal-flow}}
 
 **The current sound** is the one the keys and [[MIDI IN]] play, and the one
 the sound's page, [[PRESETS]], [[ALGORITHM]] and the knobs edit.

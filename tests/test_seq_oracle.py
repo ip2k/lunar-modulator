@@ -14,8 +14,6 @@ theirs, gzipped. Here the C core replays each one:
   docs/13 §3.3 that a script reaches, which are checked as such.
 
 18-undo is an expected failure: the undo ring is not ported (docs/13 M4).
-The fixtures come with the oracle (tools/movy-oracle); without them this
-module skips.
 """
 import gzip
 import json
@@ -32,10 +30,6 @@ SCRIPTS = sorted(FIX.glob("*.verbs"))
 RANDOM = sorted((FIX / "random").glob("*.verbs"))
 D1 = [s for s in SCRIPTS if (FIX / f"{s.stem}.d1.jsonl").exists()]
 TRACK_LINES = {"tk", "pm", "ps", "au", "cl", "cp", "lk", "tg", "rt"}
-
-if not SCRIPTS:
-    pytest.skip("no Movy oracle fixtures (tests/fixtures/movy/*.verbs come with "
-                "tools/movy-oracle)", allow_module_level=True)
 
 
 def read(path):

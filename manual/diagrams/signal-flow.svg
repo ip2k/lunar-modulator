@@ -1,0 +1,146 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='683.38' height='1014.52' viewBox='-6 -14.65 455.59 676.35' role='img'><title>Signal flow</title><desc>A block diagram, top to bottom. The keys and MIDI IN, and the sequencer with eight tracks, send notes to a routing stage: the keys and MIDI IN play the current sound, and each track plays the sound its route names, through that sound&#x27;s arpeggiator while it is on. The keys and MIDI IN also feed the sequencer&#x27;s focused track for recording and Capture. Four sound lanes follow, Sound 1 to Sound 4, each an engine with 4 to 12 voices, then Insert 1, Insert 2 and a level. The four levels meet in the mix, which feeds master effect M1, master effect M2, AMP (the level modulation can move) and the limiter. The metronome&#x27;s click joins before the limiter. MASTER, the volume, comes last. A note says that everything in the chain counts against about 379 KB of RAM.</desc><rect data-kind='bg' x='-6' y='-14.65' width='455.59' height='676.35' fill='#fffaf3'/>
+<rect data-kind='group' data-id='s1' x='4' y='164.4' width='98.4' height='239.35' rx='8' fill='#f6f9ff' stroke='#3069b2' stroke-width='1.3'/>
+<text x='12' y='178.79' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='11' font-weight='600' text-anchor='start' data-owner='s1'>Sound 1</text>
+<rect data-kind='group' data-id='s2' x='116.4' y='164.4' width='98.4' height='239.35' rx='8' fill='#fff7f3' stroke='#cd702f' stroke-width='1.3'/>
+<text x='124.4' y='178.79' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='11' font-weight='600' text-anchor='start' data-owner='s2'>Sound 2</text>
+<rect data-kind='group' data-id='s3' x='228.79' y='164.4' width='98.4' height='239.35' rx='8' fill='#f2fcf7' stroke='#228f6b' stroke-width='1.3'/>
+<text x='236.79' y='178.79' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='11' font-weight='600' text-anchor='start' data-owner='s3'>Sound 3</text>
+<rect data-kind='group' data-id='s4' x='341.19' y='164.4' width='98.4' height='239.35' rx='8' fill='#f8fbf2' stroke='#53670e' stroke-width='1.3'/>
+<text x='349.19' y='178.79' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='11' font-weight='600' text-anchor='start' data-owner='s4'>Sound 4</text>
+<path data-kind='edge' data-id='e0' data-from='keys' data-to='seq' d='M166.73 26 L166.73 13 L300.06 13 L300.06 19.5' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e1' data-from='keys' data-to='route' d='M109.4 67.25 L109.4 88.75' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e2' data-from='seq' data-to='route' d='M334.19 67.25 L334.19 88.75' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e3' data-from='route' data-to='s1' d='M53.2 150.15 L53.2 157.9' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e4' data-from='route' data-to='s2' d='M165.59 150.15 L165.59 157.9' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e5' data-from='route' data-to='s3' d='M277.99 150.15 L277.99 157.9' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e6' data-from='route' data-to='s4' d='M390.39 150.15 L390.39 157.9' fill='none' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e7' data-from='e1' data-to='a1' d='M53.2 229.95 L53.2 249.95' fill='none' stroke='#3069b2' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e8' data-from='a1' data-to='b1' d='M53.2 285.55 L53.2 305.55' fill='none' stroke='#3069b2' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e9' data-from='b1' data-to='l1' d='M53.2 341.15 L53.2 361.15' fill='none' stroke='#3069b2' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e10' data-from='l1' data-to='mix' d='M53.2 396.75 L53.2 416.75' fill='none' stroke='#3069b2' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e11' data-from='e2' data-to='a2' d='M165.59 229.95 L165.59 249.95' fill='none' stroke='#cd702f' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e12' data-from='a2' data-to='b2' d='M165.59 285.55 L165.59 305.55' fill='none' stroke='#cd702f' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e13' data-from='b2' data-to='l2' d='M165.59 341.15 L165.59 361.15' fill='none' stroke='#cd702f' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e14' data-from='l2' data-to='mix' d='M165.59 396.75 L165.59 416.75' fill='none' stroke='#cd702f' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e15' data-from='e3' data-to='a3' d='M277.99 229.95 L277.99 249.95' fill='none' stroke='#228f6b' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e16' data-from='a3' data-to='b3' d='M277.99 285.55 L277.99 305.55' fill='none' stroke='#228f6b' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e17' data-from='b3' data-to='l3' d='M277.99 341.15 L277.99 361.15' fill='none' stroke='#228f6b' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e18' data-from='l3' data-to='mix' d='M277.99 396.75 L277.99 416.75' fill='none' stroke='#228f6b' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e19' data-from='e4' data-to='a4' d='M390.39 229.95 L390.39 249.95' fill='none' stroke='#53670e' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e20' data-from='a4' data-to='b4' d='M390.39 285.55 L390.39 305.55' fill='none' stroke='#53670e' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e21' data-from='b4' data-to='l4' d='M390.39 341.15 L390.39 361.15' fill='none' stroke='#53670e' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e22' data-from='l4' data-to='mix' d='M390.39 396.75 L390.39 416.75' fill='none' stroke='#53670e' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e23' data-from='mix' data-to='m1' d='M53.2 466 L53.2 486' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e24' data-from='m1' data-to='m2' d='M95.4 514.62 L115.4 514.62' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e25' data-from='m2' data-to='amp' d='M207.79 514.62 L232.8 514.62' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e26' data-from='amp' data-to='lim' d='M315.19 514.62 L344.23 514.62' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e27' data-from='click' data-to='lim' d='M308.79 575.15 L308.79 550.38 L359.23 550.38 L359.23 543.25' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e28' data-from='lim' data-to='master' d='M390.39 535.25 L390.39 567.15' fill='none' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='arrow' data-id='e0' d='M300.06 26 L296.45 18.5 L303.66 18.5 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e1' d='M109.4 95.25 L105.8 87.75 L113 87.75 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e2' d='M334.19 95.25 L330.59 87.75 L337.79 87.75 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e3' d='M53.2 164.4 L49.6 156.9 L56.8 156.9 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e4' d='M165.59 164.4 L162 156.9 L169.19 156.9 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e5' d='M277.99 164.4 L274.39 156.9 L281.59 156.9 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e6' d='M390.39 164.4 L386.79 156.9 L393.99 156.9 Z' fill='#797593'/>
+<path data-kind='arrow' data-id='e7' d='M53.2 257.95 L48.6 248.95 L57.8 248.95 Z' fill='#3069b2'/>
+<path data-kind='arrow' data-id='e8' d='M53.2 313.55 L48.6 304.55 L57.8 304.55 Z' fill='#3069b2'/>
+<path data-kind='arrow' data-id='e9' d='M53.2 369.15 L48.6 360.15 L57.8 360.15 Z' fill='#3069b2'/>
+<path data-kind='arrow' data-id='e10' d='M53.2 424.75 L48.6 415.75 L57.8 415.75 Z' fill='#3069b2'/>
+<path data-kind='arrow' data-id='e11' d='M165.59 257.95 L161 248.95 L170.19 248.95 Z' fill='#cd702f'/>
+<path data-kind='arrow' data-id='e12' d='M165.59 313.55 L161 304.55 L170.19 304.55 Z' fill='#cd702f'/>
+<path data-kind='arrow' data-id='e13' d='M165.59 369.15 L161 360.15 L170.19 360.15 Z' fill='#cd702f'/>
+<path data-kind='arrow' data-id='e14' d='M165.59 424.75 L161 415.75 L170.19 415.75 Z' fill='#cd702f'/>
+<path data-kind='arrow' data-id='e15' d='M277.99 257.95 L273.39 248.95 L282.59 248.95 Z' fill='#228f6b'/>
+<path data-kind='arrow' data-id='e16' d='M277.99 313.55 L273.39 304.55 L282.59 304.55 Z' fill='#228f6b'/>
+<path data-kind='arrow' data-id='e17' d='M277.99 369.15 L273.39 360.15 L282.59 360.15 Z' fill='#228f6b'/>
+<path data-kind='arrow' data-id='e18' d='M277.99 424.75 L273.39 415.75 L282.59 415.75 Z' fill='#228f6b'/>
+<path data-kind='arrow' data-id='e19' d='M390.39 257.95 L385.79 248.95 L394.99 248.95 Z' fill='#53670e'/>
+<path data-kind='arrow' data-id='e20' d='M390.39 313.55 L385.79 304.55 L394.99 304.55 Z' fill='#53670e'/>
+<path data-kind='arrow' data-id='e21' d='M390.39 369.15 L385.79 360.15 L394.99 360.15 Z' fill='#53670e'/>
+<path data-kind='arrow' data-id='e22' d='M390.39 424.75 L385.79 415.75 L394.99 415.75 Z' fill='#53670e'/>
+<path data-kind='arrow' data-id='e23' d='M53.2 494 L48.6 485 L57.8 485 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e24' d='M123.4 514.62 L114.4 519.23 L114.4 510.02 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e25' d='M240.8 514.62 L231.8 519.23 L231.8 510.02 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e26' d='M352.23 514.62 L343.23 519.23 L343.23 510.02 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e27' d='M359.23 535.25 L363.83 544.25 L354.63 544.25 Z' fill='#464261'/>
+<path data-kind='arrow' data-id='e28' d='M390.39 575.15 L385.79 566.15 L394.99 566.15 Z' fill='#464261'/>
+<rect data-kind='node' data-id='keys' x='45.06' y='26' width='128.68' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='109.4' y='43.34' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='keys'>Keys and MIDI IN</text>
+<text x='109.4' y='57.52' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='keys'>play the current sound</text>
+<rect data-kind='node' data-id='seq' x='293.06' y='26' width='82.27' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='334.19' y='43.34' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='seq'>Sequencer</text>
+<text x='334.19' y='57.52' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='seq'>8 tracks</text>
+<rect data-kind='node' data-id='route' x='11' y='95.25' width='421.59' height='54.9' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='221.79' y='112.59' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='route'>Notes to the sounds</text>
+<text x='221.79' y='126.77' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='route'>the keys: the current sound · a track: the sound its route names</text>
+<text x='221.79' y='140.42' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='route'>through the sound’s arpeggiator while it is on</text>
+<rect data-kind='node' data-id='e1' data-group='s1' x='13.88' y='188.7' width='78.63' height='41.25' rx='4' fill='#edf4fe' stroke='#3069b2' stroke-width='1.3'/>
+<text x='53.2' y='206.04' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='e1'>Engine</text>
+<text x='53.2' y='220.22' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e1'>4–12 voices</text>
+<rect data-kind='node' data-id='e2' data-group='s2' x='126.28' y='188.7' width='78.63' height='41.25' rx='4' fill='#fff0e8' stroke='#cd702f' stroke-width='1.3'/>
+<text x='165.59' y='206.04' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='e2'>Engine</text>
+<text x='165.59' y='220.22' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e2'>4–12 voices</text>
+<rect data-kind='node' data-id='e3' data-group='s3' x='238.68' y='188.7' width='78.63' height='41.25' rx='4' fill='#e6f9f0' stroke='#228f6b' stroke-width='1.3'/>
+<text x='277.99' y='206.04' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='e3'>Engine</text>
+<text x='277.99' y='220.22' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e3'>4–12 voices</text>
+<rect data-kind='node' data-id='e4' data-group='s4' x='351.07' y='188.7' width='78.63' height='41.25' rx='4' fill='#f1f6e6' stroke='#53670e' stroke-width='1.3'/>
+<text x='390.39' y='206.04' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='e4'>Engine</text>
+<text x='390.39' y='220.22' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e4'>4–12 voices</text>
+<rect data-kind='node' data-id='a1' data-group='s1' x='20.34' y='257.95' width='65.72' height='27.6' rx='4' fill='#edf4fe' stroke='#3069b2' stroke-width='1.3'/>
+<text x='53.2' y='275.29' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='a1'>Insert 1</text>
+<rect data-kind='node' data-id='a2' data-group='s2' x='132.73' y='257.95' width='65.72' height='27.6' rx='4' fill='#fff0e8' stroke='#cd702f' stroke-width='1.3'/>
+<text x='165.59' y='275.29' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='a2'>Insert 1</text>
+<rect data-kind='node' data-id='a3' data-group='s3' x='245.13' y='257.95' width='65.72' height='27.6' rx='4' fill='#e6f9f0' stroke='#228f6b' stroke-width='1.3'/>
+<text x='277.99' y='275.29' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='a3'>Insert 1</text>
+<rect data-kind='node' data-id='a4' data-group='s4' x='357.53' y='257.95' width='65.72' height='27.6' rx='4' fill='#f1f6e6' stroke='#53670e' stroke-width='1.3'/>
+<text x='390.39' y='275.29' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='a4'>Insert 1</text>
+<rect data-kind='node' data-id='b1' data-group='s1' x='20.34' y='313.55' width='65.72' height='27.6' rx='4' fill='#edf4fe' stroke='#3069b2' stroke-width='1.3'/>
+<text x='53.2' y='330.89' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='b1'>Insert 2</text>
+<rect data-kind='node' data-id='b2' data-group='s2' x='132.73' y='313.55' width='65.72' height='27.6' rx='4' fill='#fff0e8' stroke='#cd702f' stroke-width='1.3'/>
+<text x='165.59' y='330.89' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='b2'>Insert 2</text>
+<rect data-kind='node' data-id='b3' data-group='s3' x='245.13' y='313.55' width='65.72' height='27.6' rx='4' fill='#e6f9f0' stroke='#228f6b' stroke-width='1.3'/>
+<text x='277.99' y='330.89' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='b3'>Insert 2</text>
+<rect data-kind='node' data-id='b4' data-group='s4' x='357.53' y='313.55' width='65.72' height='27.6' rx='4' fill='#f1f6e6' stroke='#53670e' stroke-width='1.3'/>
+<text x='390.39' y='330.89' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='b4'>Insert 2</text>
+<rect data-kind='node' data-id='l1' data-group='s1' x='27.54' y='369.15' width='51.32' height='27.6' rx='4' fill='#edf4fe' stroke='#3069b2' stroke-width='1.3'/>
+<text x='53.2' y='386.49' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='l1'>Level</text>
+<rect data-kind='node' data-id='l2' data-group='s2' x='139.93' y='369.15' width='51.32' height='27.6' rx='4' fill='#fff0e8' stroke='#cd702f' stroke-width='1.3'/>
+<text x='165.59' y='386.49' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='l2'>Level</text>
+<rect data-kind='node' data-id='l3' data-group='s3' x='252.33' y='369.15' width='51.32' height='27.6' rx='4' fill='#e6f9f0' stroke='#228f6b' stroke-width='1.3'/>
+<text x='277.99' y='386.49' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='l3'>Level</text>
+<rect data-kind='node' data-id='l4' data-group='s4' x='364.73' y='369.15' width='51.32' height='27.6' rx='4' fill='#f1f6e6' stroke='#53670e' stroke-width='1.3'/>
+<text x='390.39' y='386.49' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='l4'>Level</text>
+<rect data-kind='node' data-id='mix' x='11' y='424.75' width='421.59' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='221.79' y='442.09' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='mix'>Mix</text>
+<text x='221.79' y='456.27' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='mix'>the four sounds summed</text>
+<rect data-kind='node' data-id='m1' x='11' y='494' width='84.4' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='53.2' y='511.34' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='m1'>M1</text>
+<text x='53.2' y='525.52' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='m1'>master effect</text>
+<rect data-kind='node' data-id='m2' x='123.4' y='494' width='84.4' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='165.59' y='511.34' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='m2'>M2</text>
+<text x='165.59' y='525.52' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='m2'>master effect</text>
+<rect data-kind='node' data-id='amp' x='240.8' y='494' width='74.39' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='277.99' y='511.34' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='amp'>AMP</text>
+<text x='277.99' y='525.52' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='amp'>modulation</text>
+<rect data-kind='node' data-id='lim' x='352.23' y='494' width='76.32' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='390.39' y='511.34' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='lim'>Limiter</text>
+<text x='390.39' y='525.52' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='lim'>ceiling 0.98</text>
+<rect data-kind='node' data-id='ram' x='11' y='565.5' width='211.22' height='60.55' fill='none' stroke='none'/>
+<path data-kind='rule' data-id='ram' d='M12 566.5 L12 625.05' stroke='#797593' stroke-width='2'/>
+<text x='23' y='578.84' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='start' data-owner='ram'>Memory</text>
+<text x='23' y='593.02' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='ram'>Every engine and effect, the sequencer</text>
+<text x='23' y='606.67' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='ram'>and the rack count against about 379 KB</text>
+<text x='23' y='620.32' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='ram'>of RAM; what would not fit is refused.</text>
+<rect data-kind='node' data-id='click' x='240.2' y='575.15' width='75.59' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='277.99' y='592.49' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='click'>Click</text>
+<text x='277.99' y='606.67' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='click'>metronome</text>
+<rect data-kind='node' data-id='master' x='353.62' y='575.15' width='73.53' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='390.39' y='592.49' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='master'>MASTER</text>
+<text x='390.39' y='606.67' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='master'>the volume</text>
+<text x='233.39' y='5.27' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e0'>the focused track: recording, Capture</text>
+<path data-kind='legend' d='M2 646.88 L32 646.88' stroke='#464261' stroke-width='2.4' stroke-linecap='butt' fill='none'/>
+<text x='38' y='649.97' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='legend'>audio</text>
+<path data-kind='legend' d='M80.69 646.88 L110.69 646.88' stroke='#797593' stroke-width='1.6' stroke-dasharray='0.1 3.6' stroke-linecap='round' fill='none'/>
+<text x='116.69' y='649.97' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='legend'>notes</text>
+</svg>

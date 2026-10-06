@@ -126,13 +126,6 @@ class Elf:
                     out[target].add(sym["name"])
         return {k: sorted(v) for k, v in out.items()}
 
-    def constant(self, name):
-        for s in self.symbols:
-            if s["name"] == name and s["shndx"] not in (0, 0xFFF1, 0xFFF2):
-                sec = self.sections[s["shndx"]]
-                return struct.unpack_from("<I", self.data, sec["offset"] + s["value"])[0]
-        return None
-
     def constants(self, prefix="fm1sz_"):
         out = {}
         for s in self.symbols:

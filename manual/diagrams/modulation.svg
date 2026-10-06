@@ -1,0 +1,75 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='663.49' height='658.65' viewBox='-10 -10 442.33 439.1' role='img'><title>Modulation</title><desc>A block diagram. On the left, three kinds of source: the notes of every sound (VEL, NOTE, RAND, KEY, TRIG, RTRG), one sound&#x27;s notes (S1NOTE to S4RTRG), and the sequencer (CLOCK, BEAT, BAR, RUN, START, SEQ1 to SEQ8, SQV1 to SQV8). They feed the matrix in the middle: 32 cables, each from a source to a destination with an amount and an offset, and on page B a VIA source, a curve, a polarity and off, on or per voice. On the right, the destinations: the parameters of Sounds 1 to 4, their two inserts each, the master effects M1 and M2, and the host&#x27;s pitches and AMP. Below, the rack of eight positions, each holding a module of one of sixteen kinds or nothing, here LFO1, LFO2, ENV3, ENV4 and CHN5 and three empty ones: the matrix reaches the modules&#x27; parameters and gates, and their outputs come back to the matrix as sources. The rack runs every 32 samples, in cable order; in a loop, the cable that runs up the rack reads a tick late.</desc><rect data-kind='bg' x='-10' y='-10' width='442.33' height='439.1' fill='#fffaf3'/>
+<path data-kind='edge' data-id='e0' data-from='notes' data-to='matrix' d='M132.4 27.45 L153.9 27.45' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e1' data-from='own' data-to='matrix' d='M130.78 81.53 L153.9 81.53' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e2' data-from='seq' data-to='matrix' d='M121.92 142.43 L153.9 142.43' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e3' data-from='matrix' data-to='sounds' d='M283.07 27.45 L304.89 27.45' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e4' data-from='matrix' data-to='inserts' d='M283.07 81.53 L304.57 81.53' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e5' data-from='matrix' data-to='master' d='M283.07 142.43 L308.14 142.43' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e6' data-from='matrix' data-to='host' d='M283.07 210.15 L311.52 210.15' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e7' data-from='matrix' data-to='rack' d='M221.74 237.6 L221.74 294.4' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='edge' data-id='e8' data-from='rack' data-to='matrix' d='M232.74 300.9 L232.74 244.1' fill='none' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' stroke-linejoin='round'/>
+<path data-kind='arrow' data-id='e0' d='M160.4 27.45 L152.9 31.05 L152.9 23.85 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e1' d='M160.4 81.53 L152.9 85.12 L152.9 77.93 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e2' d='M160.4 142.43 L152.9 146.03 L152.9 138.83 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e3' d='M311.39 27.45 L303.89 31.05 L303.89 23.85 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e4' d='M311.07 81.53 L303.57 85.12 L303.57 77.93 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e5' d='M314.64 142.43 L307.14 146.03 L307.14 138.83 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e6' d='M318.02 210.15 L310.52 213.75 L310.52 206.55 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e7' d='M221.74 300.9 L218.14 293.4 L225.34 293.4 Z' fill='#3a7983'/>
+<path data-kind='arrow' data-id='e8' d='M232.74 237.6 L236.34 245.1 L229.14 245.1 Z' fill='#3a7983'/>
+<rect data-kind='node' data-id='notes' x='0' y='0' width='132.4' height='54.9' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='66.2' y='17.34' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='notes'>Notes, every sound</text>
+<text x='66.2' y='31.52' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='notes'>VEL NOTE RAND</text>
+<text x='66.2' y='45.17' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='notes'>KEY TRIG RTRG</text>
+<rect data-kind='node' data-id='own' x='1.63' y='60.9' width='129.15' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='66.2' y='78.24' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='own'>One sound’s notes</text>
+<text x='66.2' y='92.42' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='own'>S1NOTE … S4RTRG</text>
+<rect data-kind='node' data-id='seq' x='10.48' y='108.15' width='111.44' height='68.55' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='66.2' y='125.49' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='seq'>Sequencer</text>
+<text x='66.2' y='139.67' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='seq'>CLOCK BEAT BAR</text>
+<text x='66.2' y='153.32' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='seq'>RUN START</text>
+<text x='66.2' y='166.97' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='seq'>SEQ1–8 SQV1–8</text>
+<rect data-kind='node' data-id='matrix' x='160.4' y='0' width='122.67' height='237.6' rx='4' fill='#e4f8fc' stroke='#3a7983' stroke-width='1.3'/>
+<text x='221.74' y='88.22' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='matrix'>Matrix</text>
+<text x='221.74' y='102.4' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='matrix'>32 cables, each</text>
+<text x='221.74' y='116.05' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='matrix'>source → destination</text>
+<text x='221.74' y='129.7' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='matrix'>amount and offset;</text>
+<text x='221.74' y='143.35' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='matrix'>VIA, curve, polarity;</text>
+<text x='221.74' y='157' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='matrix'>off, on or per voice</text>
+<rect data-kind='node' data-id='sounds' x='311.39' y='6.83' width='110.63' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='366.7' y='24.17' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='sounds'>Sounds 1–4</text>
+<text x='366.7' y='38.35' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='sounds'>engine parameters</text>
+<rect data-kind='node' data-id='inserts' x='311.07' y='60.9' width='111.26' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='366.7' y='78.24' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='inserts'>Inserts</text>
+<text x='366.7' y='92.42' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='inserts'>two on each sound</text>
+<rect data-kind='node' data-id='master' x='314.64' y='121.8' width='104.12' height='41.25' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='366.7' y='139.14' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='master'>Master effects</text>
+<text x='366.7' y='153.32' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='master'>M1 and M2</text>
+<rect data-kind='node' data-id='host' x='318.02' y='182.7' width='97.36' height='54.9' rx='4' fill='#f4ede8' stroke='#797593' stroke-width='1.3'/>
+<text x='366.7' y='200.04' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='host'>Host</text>
+<text x='366.7' y='214.22' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='host'>Pitch, Pitch2–4,</text>
+<text x='366.7' y='227.87' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='host'>PitchC; AMP</text>
+<rect data-kind='node' data-id='rack' x='34.6' y='300.9' width='353.13' height='92.55' rx='4' fill='#e4f8fc' stroke='#3a7983' stroke-width='1.3'/>
+<text x='211.16' y='318.24' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='12' font-weight='600' text-anchor='middle' data-owner='rack'>Rack: 8 positions</text>
+<text x='211.16' y='332.42' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='rack'>each a module of one of sixteen kinds (LFO, ENV, CHN …),</text>
+<text x='211.16' y='346.07' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='rack'>run every 32 samples, in cable order; in a loop,</text>
+<text x='211.16' y='359.72' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='rack'>the cable that runs up the rack is a tick late (~)</text>
+<rect data-kind='cell' data-id='rack.0' x='44.6' y='368.45' width='41.64' height='19' fill='#e4f8fc' stroke='#3a7983' stroke-width='1'/>
+<text x='65.42' y='381.05' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='600' text-anchor='middle' data-owner='rack.0'>LFO1</text>
+<rect data-kind='cell' data-id='rack.1' x='86.24' y='368.45' width='41.64' height='19' fill='#e4f8fc' stroke='#3a7983' stroke-width='1'/>
+<text x='107.06' y='381.05' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='600' text-anchor='middle' data-owner='rack.1'>LFO2</text>
+<rect data-kind='cell' data-id='rack.2' x='127.88' y='368.45' width='41.64' height='19' fill='#e4f8fc' stroke='#3a7983' stroke-width='1'/>
+<text x='148.7' y='381.05' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='600' text-anchor='middle' data-owner='rack.2'>ENV3</text>
+<rect data-kind='cell' data-id='rack.3' x='169.52' y='368.45' width='41.64' height='19' fill='#e4f8fc' stroke='#3a7983' stroke-width='1'/>
+<text x='190.34' y='381.05' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='600' text-anchor='middle' data-owner='rack.3'>ENV4</text>
+<rect data-kind='cell' data-id='rack.4' x='211.16' y='368.45' width='41.64' height='19' fill='#e4f8fc' stroke='#3a7983' stroke-width='1'/>
+<text x='231.98' y='381.05' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='600' text-anchor='middle' data-owner='rack.4'>CHN5</text>
+<rect data-kind='cell' data-id='rack.5' x='252.81' y='368.45' width='41.64' height='19' fill='#fffaf3' stroke='#3a7983' stroke-width='1'/>
+<rect data-kind='cell' data-id='rack.6' x='294.45' y='368.45' width='41.64' height='19' fill='#fffaf3' stroke='#3a7983' stroke-width='1'/>
+<rect data-kind='cell' data-id='rack.7' x='336.09' y='368.45' width='41.64' height='19' fill='#fffaf3' stroke='#3a7983' stroke-width='1'/>
+<text x='187.56' y='265.52' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e7'>parameters,</text>
+<text x='187.56' y='279.17' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e7'>gates</text>
+<text x='256.14' y='272.35' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='middle' data-owner='e8'>outputs</text>
+<path data-kind='legend' d='M-2 414.28 L28 414.28' stroke='#3a7983' stroke-width='1.6' stroke-dasharray='6 3.5' stroke-linecap='butt' fill='none'/>
+<text x='34' y='417.37' fill='#464261' font-family='IBM Plex Sans, Helvetica Neue, Arial, sans-serif' font-size='10.5' font-weight='400' text-anchor='start' data-owner='legend'>modulation cable</text>
+</svg>

@@ -44,12 +44,10 @@ def tables(arp_tool):
     return json.loads(subprocess.check_output([str(arp_tool), "--list"]))
 
 
-def run(tool, text, block=64, cap=64, fill=0, ppqn=96, end=None):
+def run(tool, text, block=64, cap=64, fill=0, ppqn=96):
     """Plays a script; returns (events, summary)."""
     args = [str(tool), "--block", str(block), "--cap", str(cap), "--fill", str(fill),
             "--ppqn", str(ppqn)]
-    if end is not None:
-        args += ["--end", str(end)]
     out = subprocess.run(args, input=text, capture_output=True, text=True, check=True).stdout
     lines = [json.loads(line) for line in out.splitlines()]
     return lines[:-1], lines[-1]["summary"]
@@ -387,9 +385,8 @@ def test_span_matches_yarns(arp_tool, tables, direction):
                 lines += [f"@{i} on {k} 100" for i, k in enumerate(played)]
                 ev, _ = run(arp_tool, script(*lines, ticks=24 * steps, start=len(played)), block=128)
                 want = yarns_arp(sorted(played), played, direction, octaves, steps, mask, plen, rot, euc)
-                shift = [None if k is None else k for k in want]
                 got = our_steps([dict(e, frame=e["frame"] - len(played)) for e in ev], steps)
-                assert got == shift, (n, octaves, kind, p, played)
+                assert got == want, (n, octaves, kind, p, played)
                 cases += 1
     assert cases == 100
 

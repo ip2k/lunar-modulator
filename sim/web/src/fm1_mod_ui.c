@@ -39,13 +39,14 @@ typedef char fm1_mod_ui_sinks_listed[sizeof kSinks / sizeof kSinks[0] == FM1_MOD
                                      FM1_MOD_SOUNDS == 4u && FM1_MOD_INSERTS == 2u ? 1 : -1];
 #define N_SINKS (sizeof kSinks / sizeof kSinks[0])
 
-/* mod_script.h's names for polarity and curves, and the rows' short ones. */
+/* The sound a group names: groups 0-11 are each sound and its two inserts,
+ * every name starting "S<n>"; -1 for the master slots and the host. */
+static int group_sound(int g) { return g >= 0 && g < 12 ? g / 3 : -1; }
+
+/* mod_script.h's names for polarity and curves, which page B shows too. */
 static const char *const kPol[4] = { "auto", "uni", "bi", "inv" };
-static const char *const kPolShort[4] = { "au", "un", "bi", "in" };
 static const char *const kCurve[FM1_MOD_CURVE_COUNT] = { "lin", "square", "cube", "root",
                                                          "cbrt", "exp", "log", "s" };
-static const char *const kCurveShort[FM1_MOD_CURVE_COUNT] = { "lin", "sqr", "cub", "rt",
-                                                              "cbr", "exp", "log", "s" };
 
 static int lower(int c) { return c >= 'A' && c <= 'Z' ? c - 'A' + 'a' : c; }
 
@@ -122,7 +123,6 @@ static const char *item_name(const fm1_mod_kind_t *kd, unsigned i) {
 typedef struct names {
   const fm1_mod_kind_t *kd;
   const fm1_engine_t *e;
-  unsigned n;
 } names_t;
 
 static const char *name_at(const names_t *l, unsigned i) {
@@ -171,7 +171,6 @@ static void item_short(const fm1_mod_kind_t *kd, unsigned item, char out[8]) {
   names_t l;
   l.kd = kd;
   l.e = NULL;
-  l.n = kd->n_params + kd->n_gate_in;
   short_of(&l, item, 3, out);
 }
 
@@ -188,7 +187,7 @@ void fm1_mod_ui_source(const fm1_mod_t *m, unsigned src, int full, char *buf, si
       return;
     }
     fm1_mod_ui_label(m, pos, l, sizeof l);
-    if (full) snprintf(buf, cap, "%s %.5s", l, kd->out[port].name);
+    if (full) snprintf(buf, cap, "%s %s", l, kd->out[port].name);
     else if (port) snprintf(buf, cap, "%s.%u", l, port + 1u);
     else snprintf(buf, cap, "%s", l);
   } else {
@@ -336,11 +335,52 @@ void fm1_mod_ui_dest_name(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, 
       names_t l;
       l.kd = NULL;
       l.e = unit_engine(env, d->unit);
-      l.n = l.e->n_params;
       short_of(&l, (unsigned)d->index, FM1_MOD_UI_DST_CHARS - strlen(kSinks[g].tag), sq);
       snprintf(buf, cap, "%s%s", kSinks[g].tag, sq);
     }
   }
+}
+
+int fm1_mod_ui_dest_fit(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, size_t room,
+                        char *buf, size_t cap) {
+  char sq[16];
+  const int module = d->unit >= FM1_MOD_MODULE && d->unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS;
+  const int g = module ? -1 : sink_group(d->unit);
+  const int sound = group_sound(g);
+  const fm1_param_t *p = fm1_mod_ui_dest_param(env, d);
+  fm1_mod_ui_dest_name(env, d, 1, buf, cap);
+  if (strlen(buf) <= room || buf[0] == '?') return sound;
+  if (module) {                        /* "ENV3 Sustain", else "ENV3Sstn" */
+    const fm1_mod_kind_t *kd = kind_at(env->m, d->unit - FM1_MOD_MODULE);
+    char l[8];
+    fm1_mod_ui_label(env->m, d->unit - FM1_MOD_MODULE, l, sizeof l);
+    if (room > strlen(l) && kd) {
+      names_t nl;
+      nl.kd = kd;
+      nl.e = NULL;
+      short_of(&nl, d->gate ? kd->n_params + (unsigned)d->index : (unsigned)d->index,
+               room - strlen(l) < 7 ? room - strlen(l) : 7, sq);
+      snprintf(buf, cap, "%s%s", l, sq);
+    }
+    return -1;
+  }
+  if (!p) return sound;
+  if (d->unit == FM1_MOD_HOST) {       /* the parameter alone, "Pitch Cur" */
+    if (strlen(p->name) <= room) snprintf(buf, cap, "%s", p->name);
+    else squeeze(p->name, room, sq, sizeof sq), snprintf(buf, cap, "%s", sq);
+    return -1;
+  }
+  if (strlen(kSinks[g].tag) + 1 + strlen(p->name) <= room) {   /* "S1I1 Brightness" */
+    snprintf(buf, cap, "%s %s", kSinks[g].tag, p->name);
+  } else {
+    names_t l;
+    const size_t w = room - strlen(kSinks[g].tag);
+    l.kd = NULL;
+    l.e = unit_engine(env, d->unit);
+    short_of(&l, (unsigned)d->index, w < 7 ? w : 7, sq);
+    snprintf(buf, cap, "%s%s", kSinks[g].tag, sq);
+  }
+  return sound;
 }
 
 /* ---- lists ------------------------------------------------------------------- */
@@ -415,49 +455,106 @@ int fm1_mod_ui_pct(int16_t q14) {
 
 static int16_t q14_of_pct(int pct) { return fm1_mod_q14((float)pct / 100.0f); }
 
+/* A line under construction: its text and each character's role. */
+typedef struct line_b {
+  char *s;
+  uint8_t *roles;
+  int n, cap;
+} line_b;
+
+static void line_init(line_b *b, char *s, uint8_t *roles, int cap) {
+  b->s = s;
+  b->roles = roles;
+  b->n = 0;
+  b->cap = cap;
+  s[0] = '\0';
+}
+
+/* Text in `role`, padded with spaces to `width` (left-aligned; negative:
+ * right-aligned in -width); width 0 for the text as it is. */
+static void put(line_b *b, const char *text, int role, int width) {
+  const int len = (int)strlen(text);
+  const int w = width < 0 ? -width : width;
+  const int pad = w > len ? w - len : 0;
+  int k;
+  for (k = 0; width < 0 && k < pad && b->n < b->cap; ++k) {
+    if (b->roles) b->roles[b->n] = FM1_MOD_UI_ROLE_PLAIN;
+    b->s[b->n++] = ' ';
+  }
+  for (k = 0; k < len && b->n < b->cap; ++k) {
+    if (b->roles) b->roles[b->n] = (uint8_t)role;
+    b->s[b->n++] = text[k];
+  }
+  for (k = 0; width > 0 && k < pad && b->n < b->cap; ++k) {
+    if (b->roles) b->roles[b->n] = FM1_MOD_UI_ROLE_PLAIN;
+    b->s[b->n++] = ' ';
+  }
+  b->s[b->n] = '\0';
+}
+
+/* A destination's name, its "S<n>" in that sound's role. */
+static void put_dest(line_b *b, const char *name, int sound, int width) {
+  const int at = b->n;
+  put(b, name, FM1_MOD_UI_ROLE_DST, width);
+  if (b->roles && sound >= 0 && name[0] == 'S' && b->n >= at + 2) {
+    b->roles[at] = b->roles[at + 1] = (uint8_t)(FM1_MOD_UI_ROLE_SOUND + sound);
+  }
+}
+
+/* A source's name in the source role; a sound unit's own source (S1NOTE
+ * ... S4RTRG) has its "S<n>" in that sound's role, as a destination's. */
+static void put_src(line_b *b, unsigned src, const char *name, int width) {
+  const int at = b->n;
+  put(b, name, FM1_MOD_UI_ROLE_SRC, width);
+  if (b->roles && src >= FM1_MOD_SRC_S_NOTE && src < FM1_MOD_SRC_SYSTEM && name[0] == 'S' &&
+      b->n >= at + 2) {
+    b->roles[at] = b->roles[at + 1] =
+        (uint8_t)(FM1_MOD_UI_ROLE_SOUND + (src - FM1_MOD_SRC_S_NOTE) % FM1_MOD_SOUNDS);
+  }
+}
+
 void fm1_mod_ui_row(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned i, int page,
-                    char out[FM1_MOD_UI_ROW_CHARS + 1]) {
+                    char out[FM1_MOD_UI_ROW_CHARS + 1], uint8_t *roles) {
   fm1_mod_slot_t s;
-  char src[16], dst[16], amt[16];
-  char mark = 0;
+  char src[16], dst[32], amt[16], mk[2] = { 0, 0 };
+  int sound = -1;
   fm1_mod_dest_t d;
+  line_b b;
+  line_init(&b, out, roles, FM1_MOD_UI_ROW_CHARS);
   if (fm1_mod_ui_empty(u, env->m, i) || !fm1_mod_get_slot(env->m, i, &s)) {
-    snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "--");
+    put(&b, "--", FM1_MOD_UI_ROLE_PLAIN, 0);
     return;
   }
   /* The character between the source and the rest says the slot's state:
    * '-' off, '!' refused (on, but an end missing or a target that takes
    * no modulation), 'v' per voice; else '~' for a cable a tick late and
    * '>' on page A, '*' (scaled by VIA) on page B. */
-  if (!(s.flags & FM1_MOD_SLOT_ON)) mark = '-';
-  else if ((u->plan.refused >> i) & 1u) mark = '!';
-  else if (s.flags & FM1_MOD_SLOT_VOICE) mark = 'v';
+  if (!(s.flags & FM1_MOD_SLOT_ON)) mk[0] = '-';
+  else if ((u->plan.refused >> i) & 1u) mk[0] = '!';
+  else if (s.flags & FM1_MOD_SLOT_VOICE) mk[0] = 'v';
   fm1_mod_ui_source(env->m, s.src, 0, src, sizeof src);
+  put_src(&b, s.src, src, 6);
   if (page == 0) {
     fm1_mod_ui_env_t scratch;
     const fm1_mod_ui_env_t *ne = aimed_env(env, u, i, &s, &scratch);
-    if (!mark) mark = ((u->plan.delayed >> i) & 1u) ? '~' : '>';
+    if (!mk[0]) mk[0] = ((u->plan.delayed >> i) & 1u) ? '~' : '>';
+    put(&b, mk, FM1_MOD_UI_ROLE_MARK, 0);
     if (!fm1_mod_ui_has_dst(&s)) snprintf(dst, sizeof dst, "--");
-    else if (fm1_mod_ui_slot_dest(ne, &s, &d)) fm1_mod_ui_dest_name(ne, &d, 0, dst, sizeof dst);
+    else if (fm1_mod_ui_slot_dest(ne, &s, &d)) sound = fm1_mod_ui_dest_fit(ne, &d, FM1_MOD_UI_ROW_DST, dst, sizeof dst);
     else snprintf(dst, sizeof dst, "?");
+    put_dest(&b, dst, sound, FM1_MOD_UI_ROW_DST + 1);
     snprintf(amt, sizeof amt, "%+d", fm1_mod_ui_pct(s.amount));
-    snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%-6.6s%c%-7.7s %4.4s", src, mark, dst, amt);
+    put(&b, amt, FM1_MOD_UI_ROLE_AMT, -4);
   } else {
     char via[16];
-    if (!mark) mark = '*';
-    if (s.via == FM1_MOD_NONE) snprintf(via, sizeof via, "--");
-    else fm1_mod_ui_source(env->m, s.via, 0, via, sizeof via);
-    snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%-6.6s%c%-5.5s %-3.3s %-2.2s", src, mark, via,
-             kCurveShort[(s.flags & FM1_MOD_SLOT_CURVE_MASK) >> FM1_MOD_SLOT_CURVE_SHIFT],
-             kPolShort[(s.flags & FM1_MOD_SLOT_POL_MASK) >> FM1_MOD_SLOT_POL_SHIFT]);
+    if (!mk[0]) mk[0] = '*';
+    put(&b, mk, FM1_MOD_UI_ROLE_MARK, 0);
+    if (s.via == FM1_MOD_NONE) put(&b, "--", FM1_MOD_UI_ROLE_PLAIN, 7);
+    else fm1_mod_ui_source(env->m, s.via, 0, via, sizeof via), put_src(&b, s.via, via, 7);
+    put(&b, kCurve[(s.flags & FM1_MOD_SLOT_CURVE_MASK) >> FM1_MOD_SLOT_CURVE_SHIFT],
+        FM1_MOD_UI_ROLE_DST, 7);
+    put(&b, kPol[(s.flags & FM1_MOD_SLOT_POL_MASK) >> FM1_MOD_SLOT_POL_SHIFT], FM1_MOD_UI_ROLE_DST, 0);
   }
-}
-
-/* A full name, or the short one when the full one would not fit `room`. */
-static void dest_fit(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *d, size_t room, char *buf,
-                     size_t cap) {
-  fm1_mod_ui_dest_name(env, d, 1, buf, cap);
-  if (strlen(buf) > room) fm1_mod_ui_dest_name(env, d, 0, buf, cap);
 }
 
 void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_t now,
@@ -477,7 +574,7 @@ void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_
         else fm1_mod_ui_source(env->m, s.src, 1, name, sizeof name), snprintf(buf, cap, "From %s", name);
         return;
       case FM1_MOD_F_DST:
-        if (known) dest_fit(env, &d, 16, name, sizeof name), snprintf(buf, cap, "To %s", name);
+        if (known) fm1_mod_ui_dest_fit(env, &d, FM1_MOD_UI_HINT_CHARS - 3, name, sizeof name), snprintf(buf, cap, "To %s", name);
         else snprintf(buf, cap, "To: none");
         return;
       case FM1_MOD_F_AMT: snprintf(buf, cap, "Amount %+d%%", fm1_mod_ui_pct(s.amount)); return;
@@ -507,7 +604,7 @@ void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_
   if (empty) snprintf(buf, cap, "Empty: KNOB1, KNOB2");
   else if (!has) snprintf(buf, cap, "No target: KNOB2");
   else if (!known || aimed(u, i, &s)) snprintf(buf, cap, "Its target is gone");
-  else dest_fit(env, &d, 16, name, sizeof name), snprintf(buf, cap, "To %s", name);
+  else fm1_mod_ui_dest_fit(env, &d, FM1_MOD_UI_HINT_CHARS - 3, name, sizeof name), snprintf(buf, cap, "To %s", name);
 }
 
 int fm1_mod_ui_value(const fm1_mod_ui_env_t *env, unsigned pos, unsigned index, float v, char *buf,
@@ -1086,15 +1183,18 @@ void fm1_mod_ui_rack_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int knob
 }
 
 /* A picker's popup: `title`, and the window of `total` entries around
- * `sel` that the screen shows (fm1_panel.h); the caller names its lines. */
-static void say_list(fm1_mod_ui_say_t *say, const char *title, int total, int sel) {
-  const int first = fm1_list_first(total, sel, FM1_LIST_ROWS);
+ * `sel` that the screen shows in the picker's face (fm1_panel.h); the
+ * caller names its lines. */
+static void say_list(fm1_mod_ui_say_t *say, const char *title, int total, int sel, int face) {
+  const int rows = fm1_list_rows(face);
+  const int first = fm1_list_first(total, sel, rows);
   snprintf(say->title, sizeof say->title, "%s", title);
   say->first = (int16_t)first;
   say->total = (int16_t)total;
-  say->n = (int8_t)(total - first < FM1_LIST_ROWS ? total - first : FM1_LIST_ROWS);
+  say->n = (int8_t)(total - first < rows ? total - first : rows);
   say->mark = (int8_t)(sel - first);
   say->dim = 0;
+  memset(say->tag, 0, sizeof say->tag);
 }
 
 static const char *kind_entry(int e) {
@@ -1115,10 +1215,10 @@ void fm1_mod_ui_rack_algorithm(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int
     char title[24];
     int r;
     snprintf(title, sizeof title, "Mod%u kind", u->pos + 1u);
-    say_list(say, title, count, u->pick);
+    say_list(say, title, count, u->pick, FM1_LIST_FACE_KIND);
     for (r = 0; r < say->n; ++r) {
       snprintf(say->line[r], sizeof say->line[r], "%s", kind_entry(say->first + r));
-      if (say->first + r == 0) say->dim |= (uint8_t)(1u << r);   /* Empty */
+      if (say->first + r == 0) say->dim |= (uint16_t)(1u << r);   /* Empty */
     }
   }
 }
@@ -1151,11 +1251,16 @@ static int dest_index(const fm1_mod_dest_t *list, int n, const fm1_mod_slot_t *s
 static void say_dest(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *list, int n, int k,
                      fm1_mod_ui_say_t *say) {
   int r;
-  say_list(say, "Destination", n, k);
+  say_list(say, "Destination", n, k, FM1_LIST_FACE_DEST);
   for (r = 0; r < say->n; ++r) {
-    char name[32];
-    fm1_mod_ui_dest_name(env, &list[say->first + r], 1, name, sizeof name);
-    snprintf(say->line[r], sizeof say->line[r], "%.18s", name);
+    /* By its full name (D9: the face holds every one), a sound's "S<n>"
+     * in that sound's colour. */
+    const fm1_mod_dest_t *d = &list[say->first + r];
+    const int g = d->unit >= FM1_MOD_MODULE && d->unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS
+                      ? -1
+                      : sink_group(d->unit);
+    fm1_mod_ui_dest_name(env, d, 1, say->line[r], sizeof say->line[r]);
+    say->tag[r] = (uint8_t)(group_sound(g) + 1);
   }
 }
 
@@ -1347,11 +1452,12 @@ int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_
                      const fm1_mod_dest_t *d, int delta, fm1_mod_ui_say_t *say) {
   const fm1_param_t *p = fm1_mod_ui_dest_param(env, d);
   const uint8_t src = (uint8_t)(FM1_MOD_SRC_MODULE + 8u * src_pos);
-  char a[16], b[16];
+  char a[8], b[24];
   fm1_mod_slot_t s;
   int i, found = -1, pct;
   say->n = 0;
   say->mark = -1;
+  memset(say->tag, 0, sizeof say->tag);
   say->total = 0;
   if (!p || !takes(p)) {
     say->n = 2;
@@ -1377,10 +1483,10 @@ int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_
     if (fm1_mod_ui_empty(u, env->m, (unsigned)i)) found = i;
   }
   fm1_mod_ui_source(env->m, src, 0, a, sizeof a);
-  fm1_mod_ui_dest_name(env, d, 0, b, sizeof b);
-  if (found < 0) {
+  if (found < 0) {                     /* a refusal: the full popup's line */
+    fm1_mod_ui_dest_fit(env, d, FM1_MOD_UI_POPUP_CHARS - 3 - strlen(a), b, sizeof b);
     say->n = 2;
-    snprintf(say->line[0], sizeof say->line[0], "%.6s > %.7s", a, b);
+    snprintf(say->line[0], sizeof say->line[0], "%s > %s", a, b);
     snprintf(say->line[1], sizeof say->line[1], "Matrix full");
     return 0;
   }
@@ -1398,8 +1504,11 @@ int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_
   u->srcset &= ~(1u << found);
   fm1_mod_ui_set_slot(env, u, (unsigned)found, &s);
   fm1_mod_ui_matrix_select(u, found - (int)u->slot);   /* MATRIX opens on it */
+  /* A confirmation: "LFO1 > S1 Harmonics +12%" as the app's banner joins
+   * it, the destination as full as the banner holds beside the amount. */
+  fm1_mod_ui_dest_fit(env, d, FM1_MOD_UI_BANNER_CHARS - 3 - strlen(a) - 1 - 5, b, sizeof b);
   say->n = 2;
-  snprintf(say->line[0], sizeof say->line[0], "%.6s > %.7s", a, b);
+  snprintf(say->line[0], sizeof say->line[0], "%s > %s", a, b);
   snprintf(say->line[1], sizeof say->line[1], "%+d%%", pct);
   return 1;
 }
@@ -1448,49 +1557,54 @@ static int depth(chain_t *c, int dir, int pos) {
   return best;
 }
 
-static void cable_text(chain_t *c, unsigned j, char *out) {
+/* A cable's line: its amount, '>', the destination as full as the line
+ * holds, and '~' when it is a tick late ("+75 >S1 In1 Brightness~"). */
+static void cable_text(chain_t *c, unsigned j, char *out, uint8_t *roles) {
   const fm1_mod_slot_t *s = &c->s[j];
   fm1_mod_ui_env_t scratch;
   const fm1_mod_ui_env_t *env = aimed_env(c->env, c->u, j, s, &scratch);   /* a gone target's name */
   fm1_mod_dest_t d;
   char amt[16], dst[32] = "?";
+  int sound = -1;
+  line_b b;
+  line_init(&b, out, roles, FM1_MOD_UI_ROW_CHARS);
   snprintf(amt, sizeof amt, "%+d", fm1_mod_ui_pct(s->amount));
   if (fm1_mod_ui_slot_dest(env, s, &d)) {
-    if (d.unit >= FM1_MOD_MODULE && d.unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS) {
-      const fm1_mod_kind_t *kd = kind_at(env->m, d.unit - FM1_MOD_MODULE);
-      const fm1_param_t *p = fm1_mod_ui_dest_param(env, &d);
-      char l[8];
-      fm1_mod_ui_label(env->m, d.unit - FM1_MOD_MODULE, l, sizeof l);
-      snprintf(dst, sizeof dst, "%s %.6s", l, d.gate ? kd->gate_in[d.index].name : p->abbr);
-    } else {                           /* "S1 Timbre", "S2 In1 Mix", "M1 Mix", "Host Pitch" */
-      const fm1_param_t *p = fm1_mod_ui_dest_param(env, &d);
-      snprintf(dst, sizeof dst, "%s %.6s", kSinks[sink_group(d.unit)].name, p->abbr);
-    }
+    sound = fm1_mod_ui_dest_fit(env, &d, FM1_MOD_UI_ROW_CHARS - 4 - 2 - 1, dst, sizeof dst);
   }
-  snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%4.4s >%.12s%s", amt, dst,
-           ((c->u->plan.delayed >> j) & 1u) ? "~" : "");
+  put(&b, amt, FM1_MOD_UI_ROLE_AMT, -4);
+  put(&b, " >", FM1_MOD_UI_ROLE_MARK, 0);
+  put_dest(&b, dst, sound, 0);
+  if ((c->u->plan.delayed >> j) & 1u) put(&b, "~", FM1_MOD_UI_ROLE_MARK, 0);
 }
 
-static void node_text(chain_t *c, unsigned src, const uint32_t on_path, char *out) {
-  char name[32];
+/* A node's line: the source by its full name, and "+N" for the cables
+ * from its module that the path does not take. */
+static void node_text(chain_t *c, unsigned src, const uint32_t on_path, char *out, uint8_t *roles) {
+  char name[32], more_s[16];
+  int more = 0;
+  line_b b;
+  line_init(&b, out, roles, FM1_MOD_UI_ROW_CHARS);
   fm1_mod_ui_source(c->env->m, src, 1, name, sizeof name);
   if (src >= FM1_MOD_SRC_MODULE) {
     const int pos = (int)((src - FM1_MOD_SRC_MODULE) / 8u);
     unsigned j;
-    int more = 0;
     for (j = 0; j < FM1_MOD_SLOTS; ++j) {
       if (((c->ok >> j) & 1u) && !((on_path >> j) & 1u) && src_module(&c->s[j]) == pos) ++more;
     }
-    if (more) {                        /* at most 31; the bound lets GCC see it fits */
-      snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%-13.13s +%d", name, more > 99 ? 99 : more);
-      return;
-    }
   }
-  snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%.19s", name);
+  if (!more) {
+    put_src(&b, src, name, 0);
+    return;
+  }
+  snprintf(more_s, sizeof more_s, "+%d", more > 99 ? 99 : more);
+  put_src(&b, src, name, FM1_MOD_UI_ROW_CHARS - 4);
+  put(&b, more_s, FM1_MOD_UI_ROLE_MARK, -4);
 }
 
 int fm1_mod_ui_chain(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned i,
-                     char lines[FM1_MOD_UI_CHAIN_LINES][FM1_MOD_UI_ROW_CHARS + 1], int *hl) {
+                     char lines[FM1_MOD_UI_CHAIN_LINES][FM1_MOD_UI_ROW_CHARS + 1],
+                     uint8_t roles[FM1_MOD_UI_CHAIN_LINES][FM1_MOD_UI_ROW_CHARS], int *hl) {
   chain_t c;
   uint8_t path[FM1_MOD_POSITIONS + 2];
   int n = 0, sel = 0, k, cur, out = 0;
@@ -1514,6 +1628,7 @@ int fm1_mod_ui_chain(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigne
   }
   if (i >= FM1_MOD_SLOTS || !fm1_mod_ui_has_dst(&c.s[i])) {
     snprintf(lines[0], FM1_MOD_UI_ROW_CHARS + 1, "Slot %u: no cable", i + 1u);
+    if (roles) memset(roles[0], FM1_MOD_UI_ROLE_PLAIN, FM1_MOD_UI_ROW_CHARS);
     return 1;
   }
   /* The selected cable, then the best cable into its source module and so
@@ -1559,13 +1674,17 @@ int fm1_mod_ui_chain(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigne
     if (cur >= 0) visited |= 1u << cur;
   }
   for (k = 0; k < n && out + 2 <= FM1_MOD_UI_CHAIN_LINES; ++k) {
-    node_text(&c, c.s[path[k]].src, on_path, lines[out++]);
+    node_text(&c, c.s[path[k]].src, on_path, lines[out], roles ? roles[out] : NULL);
+    ++out;
     if (k == sel) *hl = out;
-    cable_text(&c, path[k], lines[out++]);
+    cable_text(&c, path[k], lines[out], roles ? roles[out] : NULL);
+    ++out;
   }
   if (n && dst_module(&c.s[path[n - 1]]) >= 0 && out < FM1_MOD_UI_CHAIN_LINES) {
-    fm1_mod_ui_label(env->m, (unsigned)dst_module(&c.s[path[n - 1]]), lines[out++],
+    fm1_mod_ui_label(env->m, (unsigned)dst_module(&c.s[path[n - 1]]), lines[out],
                      FM1_MOD_UI_ROW_CHARS + 1);
+    if (roles) memset(roles[out], FM1_MOD_UI_ROLE_SRC, FM1_MOD_UI_ROW_CHARS);
+    ++out;
   }
   return out;
 }

@@ -187,23 +187,11 @@ class Script:
             e = json.loads(line)
             events.append(e)
         # block start frames, for slicing (the log's frame is the event's own)
-        block_starts = {}
-        for e in events:
-            block_starts.setdefault(e["block"], None)
         for e in events:
             e["block_start"] = e["block"] * self.block
         doc = json.loads(state.read_text())
         marks = {k: v for k, v in self.marks.items()}
-        res = Result(events, doc["snaps"], marks, doc["end"])
-        res.doc = doc
-        return res
-
-
-def frames_for_ticks(ticks, bpm_x100=12000, rate=MOVY_RATE):
-    """Frames after a transport start by which `ticks` master ticks have fired."""
-    thr = rate * 6000
-    inc = bpm_x100 * PPQN
-    return -(-ticks * thr // inc)
+        return Result(events, doc["snaps"], marks, doc["end"])
 
 
 def run_script(tool, tmp_path, text, compat=False, extra=(), name="r"):
