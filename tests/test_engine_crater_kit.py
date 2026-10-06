@@ -460,17 +460,58 @@ def test_no_transcendental_libm_calls():
         assert not names & {"malloc", "free", "calloc", "realloc", "printf", "fprintf", "puts"}, obj.name
 
 
+# A symbol table line of `objdump -t` (GNU objdump on ELF, llvm-objdump on
+# Mach-O): value, seven flag columns, section, (ELF) size, name.
+OBJDUMP_SYM = re.compile(r"^[0-9a-fA-F]+ (?P<flags>.{7}) (?P<section>\S+)\s+(?:[0-9a-fA-F]+\s+)?(?P<name>\S+)$")
+
+
+def writable_section(section):
+    """Whether a symbol's section is data a program may write: .data, .bss
+    and common on ELF, __DATA's __data, __bss and __common on Mach-O. Read-only
+    data with relocations (a table of string pointers) is not: ELF puts it in
+    .data.rel.ro, which nm marks d like .data, and Mach-O in __DATA,__const."""
+    if section.startswith(".data.rel.ro"):
+        return False
+    if section in (".data", ".bss", ".sdata", ".sbss", "*COM*") or section.startswith((".data.", ".bss.")):
+        return True
+    return section in ("__DATA,__data", "__DATA,__bss", "__DATA,__common")
+
+
+def writable_symbols(obj):
+    """The data symbols of obj in writable sections, by `objdump -t`."""
+    out = subprocess.run(["objdump", "-t", str(obj)], check=True, capture_output=True, text=True).stdout
+    names = []
+    for line in out.splitlines():
+        m = OBJDUMP_SYM.match(line.strip())
+        if m and "O" in m["flags"] and writable_section(m["section"]):
+            names.append(m["name"])
+    return names
+
+
+def test_writable_section_classes():
+    assert writable_section(".data") and writable_section(".bss") and writable_section("__DATA,__data")
+    assert writable_section(".bss.drum808_quiet") and writable_section("*COM*")
+    assert not writable_section(".data.rel.ro.local") and not writable_section("__DATA,__const")
+    assert not writable_section(".rodata") and not writable_section("__TEXT,__const")
+    m = OBJDUMP_SYM.match("0000000000000000 l     O .data.rel.ro.local\t0000000000000018 k_choke_names")
+    assert m and m["section"] == ".data.rel.ro.local" and m["name"] == "k_choke_names"
+    m = OBJDUMP_SYM.match("0000000000009270 l     O __DATA,__const _k_choke_names")
+    assert m and m["section"] == "__DATA,__const" and m["name"] == "_k_choke_names"
+    m = OBJDUMP_SYM.match("0000000000000004 g     O .data\t0000000000000004 drum808_quiet")
+    assert m and writable_section(m["section"]) and m["name"] == "drum808_quiet"
+
+
 def test_no_writable_global_in_the_vendored_kit():
     """fm1-x0x's silence threshold was a global its overload guard moves;
-    here it is a constant (local.patch), so no two instances share state."""
-    nm = shutil.which("nm")
-    if not nm:
-        pytest.skip("no nm")
+    here it is a constant (local.patch), so no two instances share state.
+    No data symbol the vendored file defines is in a writable section
+    (`objdump -t`: nm's letters cannot tell .data from .data.rel.ro on
+    ELF, where a static const table of string pointers lives)."""
+    if not shutil.which("objdump"):
+        pytest.skip("no objdump")
     obj = ENGINES / "build" / "gpl" / "fm1-x0x" / "dsp" / "drum808.o"
-    syms = subprocess.run([nm, str(obj)], check=True, capture_output=True, text=True).stdout
     source = (VENDOR / "dsp" / "drum808.c").read_text()
-    writable = [f[2] for f in (line.split() for line in syms.splitlines())
-                if len(f) == 3 and f[1] in "DdBbCc"]
     # a sanitizer build adds data of its own: only names the source defines count
-    ours = [n for n in writable if re.search(r"\b%s\b" % re.escape(n[1:] if n.startswith("_") else n), source)]
+    ours = [n for n in writable_symbols(obj)
+            if re.search(r"\b%s\b" % re.escape(n[1:] if n.startswith("_") else n), source)]
     assert ours == [], ours
