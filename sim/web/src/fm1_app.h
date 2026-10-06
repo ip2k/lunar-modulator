@@ -165,6 +165,14 @@ extern "C" {
  * (fm1_tft_check_layout's gap in the tests). */
 #define FM1_APP_LAYOUT_GAP 4
 
+/* A message popup's tone (audit Q2): a confirmation, or a refusal, whose
+ * rules and reason lines are C_REFUSE: with REFUSE the first line names
+ * what was refused and stays text ("Shapes" / "does not fit"), with
+ * REFUSE_ALL every line is the reason ("No LFO" / "in the rack"). */
+#define FM1_APP_TONE_SAY 0
+#define FM1_APP_TONE_REFUSE 1
+#define FM1_APP_TONE_REFUSE_ALL 2
+
 /* Arena sizes. The largest instances today are Shapes at 12 voices
  * (~206 KB) and PSX Verb (~134 KB); the arenas leave room for growth and
  * the screen reports the real total against the FM-1's budget below.
@@ -351,12 +359,21 @@ typedef struct fm1_app {
 
   /* The popup: up to three lines of a message, or a list's window (PRESETS,
    * ALGORITHM, the pickers; fm1_panel.h): popup[0] is entry popup_first
-   * of popup_total under popup_title. popup_total is 0 for a message. */
-  char popup[FM1_LIST_ROWS][24];
+   * of popup_total under popup_title, in face popup_face. popup_total is
+   * 0 for a message. A refusal (popup_tone) draws its reason in C_REFUSE;
+   * a confirmation that fits one line of BANNER_CHARS is a banner over the
+   * page's bottom (audit L1, fm1_app_banner). A list entry, or the title,
+   * may start with a sound's tag ("S2"), drawn in that sound's colour:
+   * popup_tag holds each line's sound + 1 (bit 4k), 0 for none. */
+  char popup[FM1_LIST_MAX_ROWS][FM1_LIST_ENTRY];
   int popup_lines, popup_mark;   /* popup_mark: highlighted line, or -1 */
-  char popup_title[24];
+  char popup_title[FM1_LIST_ENTRY];
   int popup_first, popup_total;
+  int popup_face;                /* a list's: FM1_LIST_MAIN, _MID or _SMALL */
+  int popup_tone;                /* FM1_APP_TONE_* */
+  int popup_title_tag;           /* the title's sound + 1, or 0 */
   uint32_t popup_dim;            /* a list's lines drawn dim (an Empty entry) */
+  uint64_t popup_tag;            /* each line's sound + 1, four bits a line */
   uint64_t popup_until;
 
   int dirty;                     /* screen content changed */
@@ -652,6 +669,12 @@ int fm1_app_draw(fm1_app_t *a, uint32_t min_frames);
 
 /* Redraw now, logging boxes for fm1_tft_check_layout. */
 void fm1_app_draw_checked(fm1_app_t *a);
+
+/* Whether the open popup draws as a banner (audit L1: a confirmation, no
+ * list, no refusal, its lines joined by spaces one line): 1 + FM1_TFT_MAIN
+ * for at most 18 characters, 1 + FM1_TFT_MID for at most 27 (fm1_look.h's
+ * BANNER_CHARS, _MID), that line in buf; else 0. */
+int fm1_app_banner(const fm1_app_t *a, char *buf, size_t size);
 
 /* Bytes of FM-1 RAM the current chain would use, the RAM meter's figure:
  * the engines' instances, the sequencer's (fm1_seq_size), its event
