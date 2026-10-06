@@ -431,6 +431,30 @@ def test_bad_mfx_flags_are_refused(renderer, tmp_path, bad, code):
     assert res.returncode == code, res.stderr
 
 
+# ---- With per-voice modulation (MG9) -----------------------------------------------------------
+
+def test_a_flush_ends_the_modulation_voices_of_its_own_sound(renderer, tmp_path):
+    """A latched arp on Sound 2 under a per-voice cable, switched off while
+    its notes sound: the flush's note-offs end the voices on Sound 2, not
+    on Sound 1 (where they once went, leaving two voices running for good)."""
+    mod = tmp_path / "v.mod"
+    mod.write_text("rack default\nset 3 attack=0.01 decay=0.2 sustain=0.5 release=0.05\n"
+                   "slot 1 env3 > snd2:Timbre amt=60 voice\n")
+    log = tmp_path / "v.jsonl"
+    res = subprocess.run([str(renderer), "--engine", "macro", "--sound", "1:shapes", "--slots",
+                          *note(BOUND, 60, 100, 4410, sound=1), *note(BOUND, 64, 100, 4410, sound=1),
+                          "--mfx", "1:arp", "--mfx-param", "1:Latch=1", "--mfx-param", "1:Gate=200",
+                          "--mfx-on-at", "1:0.6:0", "--mod", str(mod), "--log-mod", str(log),
+                          "--seconds", "2.0", "--out", str(tmp_path / "x.wav")],
+                         capture_output=True, text=True)
+    assert res.returncode == 0, res.stderr
+    s = json.loads(res.stdout)
+    assert s["mfx_notes_out"] > 4 and s["notes_hung"] == 0
+    assert s["mod_voice_starts"] == 2 and s["mod_voice_ends"] == 2
+    last = json.loads(log.read_text().splitlines()[-1])
+    assert last["vo"] == []
+
+
 # ---- No heap, no stdio, no libm --------------------------------------------------------------
 
 HEAP = {"malloc", "calloc", "realloc", "free", "posix_memalign", "aligned_alloc", "strdup",
