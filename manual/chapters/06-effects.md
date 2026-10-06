@@ -594,7 +594,10 @@ so nothing passes its ceiling, and it leaves anything quieter untouched.
       ceiling, and turns down only what goes further. Everything under the
       ceiling passes untouched. Louder than Brickwall, with a little
       edge on the loudest peaks; after the Airwindows ClipOnly2 clipper
-      ([chapter 14](14-credits-and-licences.md)).
+      ([chapter 14](14-credits-and-licences.md)). The 3 dB is meant: the
+      limiter leaves the top 3 dB of each peak to the clip, which is where
+      Round's loudness and edge come from, and the output still never goes
+      past the ceiling.
 - **Link**, on page 2, at the right, the default, turns both channels down
   together, so the stereo picture holds. At the left each channel is limited
   on its own: louder, but a peak on one side can shift the picture.
@@ -742,7 +745,10 @@ working and costs the FM-1 almost nothing. Turn Mix up after a rest and the
 sound starts to change about a fifth of a second later, while it warms up
 without a click; within two seconds of the last change it answers at once.
 A Mix lock shorter than that fifth of a second, after a rest, is not heard:
-for a single short lock, park Mix a little above the left instead.
+for a single short lock, park Mix a little above the left instead. Master
+Sat never rests while a sequencer lock or a modulation cable reaches any of
+its knobs, even a cable set to zero, so a cable or a lock is always heard
+at once.
 
 !!! tip "Starting points"
     - **Warmth:** Mix at the right, Drive about 6, Glue about 0.25.
@@ -787,7 +793,8 @@ Isolator rests: it stops working and costs the FM-1 almost nothing. The
 first move after a rest comes in about 10 ms late, 35 ms with Low Xover at
 the left, while its filters warm up without a click (a kill shorter than
 that, after a rest, is not heard); a kill and back within two seconds is
-never delayed.
+never delayed. Isolator never rests while a sequencer lock or a modulation
+cable reaches any of its knobs.
 
 !!! tip "Starting points"
     - **Bass out for the break:** Kill Low, then back to None on the drop.
@@ -829,7 +836,9 @@ Left that way for two seconds, EQ rests: it stops working and costs the FM-1
 almost nothing. The first Gain turned after a rest comes in a moment late
 while its band warms up, without a click: a few milliseconds for the Mid and
 High bands, about 30 ms for Low at 100 Hz, up to a tenth of a second for
-the lowest settings. Level answers at once.
+the lowest settings. Level answers at once. EQ never rests while a
+sequencer lock or a modulation cable reaches any of its knobs, so those
+answer at once.
 
 !!! tip "Starting points"
     - **Warmth:** Low Freq about 120, Low Gain about +4.
@@ -995,7 +1004,8 @@ Modulator from Airwindows plug-ins by Chris Johnson
 ([chapter 14](14-credits-and-licences.md)). Where Comp is the precise,
 adjustable compressor, Squash is quick to set: choose a Type and turn
 **Squash** up until the sound sits where you want it, then win the level
-back with **Output**. It takes under half a kilobyte.
+back with **Output** (Mu wins most of it back by itself). It takes under
+half a kilobyte.
 
 - **Type** chooses the compressor:
     - **Snap** grabs peaks and lets go, with a gate built in that can cut
@@ -1003,10 +1013,14 @@ back with **Output**. It takes under half a kilobyte.
       all of the ones below but Shape.
     - **Mu** is a smooth leveller in the style of a valve compressor: the
       louder a passage, the longer it takes to recover, so it blooms back
-      after loud parts rather than pumping. It only turns the sound down,
-      and at high Squash a lot, more than 40 dB from a loud sound at the
-      right end: turn **Output** up to match. It uses Squash, Release, Shape,
-      Output and Mix.
+      after loud parts rather than pumping. As you turn Squash up past the
+      middle it turns the level back up by itself, partly: a drum kit or a
+      chord stays at about the same loudness up to three quarters of the
+      way, so Squash mostly changes the sound's character. Quiet passages
+      come up with it, by up to 24 dB at the right end, where loud sounds
+      still come out much quieter. The lift never pushes a sound past full
+      scale: when a loud note starts, before Mu has turned it down, the
+      lift gives way. It uses Squash, Release, Shape, Output and Mix.
     - **Split** treats the top and bottom of the wave separately and has
       no timing knobs: it recovers more slowly while the sound is loud,
       which glues a mix together. It uses Squash, Output and Mix, and lifts

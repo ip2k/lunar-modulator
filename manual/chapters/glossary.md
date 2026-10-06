@@ -23,6 +23,11 @@ Capture
     not recording, so you can turn it into a clip afterwards
     ([chapter 7](07-sequencer.md#capture)).
 
+Choke group
+:   Drum pads that cut each other short: a hit stops every other pad of its
+    group that is still ringing, as a closed hi-hat stops an open one
+    ([chapter 5](05-sound-engines.md#drums)).
+
 Clip
 :   A loop of notes, locks and conditions on one track, from 1 to 256 steps
     long. Each track has eight clip slots and plays one clip at a time.
@@ -83,8 +88,10 @@ Focused track
     go to it ([chapter 7](07-sequencer.md#tracks-and-routing)).
 
 Glide
-:   A slide in pitch from the note you hold to the next one you play, also
-    called portamento ([chapter 4](04-playing.md#glide-and-voice-modes)).
+:   A slide in pitch from one note to the next, also called portamento:
+    from the note you hold (Glide Mode Legato) or from the last note you
+    played (Always), over a set time or at a set speed per octave (Time
+    Mode) ([chapter 4](04-playing.md#glide-and-voice-modes)).
 
 Identity
 :   The model name and number an FM-1 reports about its firmware, such as

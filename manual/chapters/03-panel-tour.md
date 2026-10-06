@@ -145,7 +145,9 @@ them held moves it by semitones ([chapter 4](04-playing.md)).
 The FM-1 prints labels under its black keys for M-VAVE's own firmware: from
 the lowest black key upwards, [[OP1]] to [[OP6]], [[PIT]], [[GLO]], [[MONO]]
 and [[POLY]]; the highest black key has none. This manual uses them to name
-the black keys.
+the black keys. Outside SEQ mode, [[SEL]] held with [[MONO]] or [[POLY]]
+sets the current sound's Voice Mode
+([chapter 4](04-playing.md#glide-and-voice-modes)).
 
 !!! note "The keys and the sequencer"
     The keys have two jobs. Outside SEQ mode they play notes, as usual. In
