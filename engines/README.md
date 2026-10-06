@@ -142,8 +142,12 @@ Timbre as the int16 0..32,767 the knob becomes):
 - **Inside those ranges nothing changed** [verified 2026-10-05: 2,162
   renders byte for byte against the build before: all 47 shapes, keys 0–127
   with bends to 127.99, Timbre 0–0.98 and Color 0–1, and Timbre and Color
-  turned while notes held]. The reference suite's points are all inside and
-  pass unchanged.
+  turned while notes held, as fm1-render's 16-bit WAVs; and in the
+  engine's float output, a reviewer's 282 random scripts of 300 events
+  inside the ranges (six a shape; notes, knobs, bends, pitch and
+  Timbre/Color offsets turning), rendered at blocks of 64 and 7 from memory
+  filled 0x00 and 0xA5, gave the same bits from both builds]. The reference
+  suite's points are all inside and pass unchanged.
 - **No report under ASan and UBSan** [verified 2026-10-05, Apple clang 21:
   `tests/test_engines_shapes_edges.py`, one render per shape over every key
   at Timbre and Color 0, ½ and 1 with the note from MIDI −96 to 223, and a
@@ -157,6 +161,20 @@ Timbre as the int16 0..32,767 the knob becomes):
   Timbre 0, Wave Line at Timbre 1, Flute and the filter shapes on key 127
   bent up 48, within 0.55 LSB of upstream's oscillator at the clamped pitch
   or Timbre].
+- **The clamps hold under turning knobs, bends and per-note offsets, and
+  between the knob ends** [verified 2026-10-05: `fm1-shapes-hostile`
+  (`test/shapes_hostile.cc`, run by `tests/test_engines_shapes_hostile.py`).
+  On every shape, a random script within the engine API (knobs anywhere,
+  NaN and infinities included, bends and pitch offsets anywhere in ±48,
+  per-note Timbre and Color offsets, Shape switched while notes sound)
+  gives the same bits at blocks of 64, 1, 7 and random sizes and from any
+  memory fill, and no report under ASan and UBSan. Every voice above MIDI
+  127.99 plays the bits of the same script held at 127.9921875; Comb with
+  Timbre turning below the clamp, and Wave Line above it, play the bits of
+  Timbre held at the clamp. The build before the clamps fails the last
+  three on 23 shapes, Comb and Wave Line, and halts under the sanitizers.
+  A reviewer's own sweep of 60 such seeds (all 47 shapes, 47,000
+  scripted events each) gave no report either].
 - The cost is a few integer compares a voice per 24-sample block; no
   table, no libm.
 - The module reaches these edges too [inferred: `braids.cc` adds the octave
@@ -2795,7 +2813,7 @@ v3, optional, additive; written for v2 and moved there when v3 landed):
 | `include/fm1_gate.h` | The Gate's hooks: `fm1_gate_render_key` (a key other than the input) and `fm1_gate_state` (its OPEN, ENV and KEY outputs and its latency), for the key and modulation stages ([above](#gate)) |
 | `src/schwung_*`, `src/sw_*.cc` | The Schwung v2 shim and one adapter per module ([schwung.md](schwung.md)) |
 | `host/render.cc` | `fm1-render`: plays a note script through an engine and an effect chain in 64-frame blocks at 44,118 Hz, applies the bus limiter, writes a WAV, prints JSON; with `--sound`, `--insert`, `--level` (and `--slots`) up to four sound units, each through its own inserts and level, mixed before the effect chain, as the virtual FM-1's multi-sound plays them (seq.md, Host contract) |
-| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, and `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py) |
+| `test/` | The reference renderers (`fm1-ref-plaits`, `fm1-ref-braids-fx`: upstream Mutable code driven as the modules drive it), the Schwung selftest and its ThreadSanitizer race harness, the effects' own test tools, `fm1-smooth-test`, which drives any engine or effect with parameter changes at any frame, `fm1-fx3-hostile`, a reviewer's checks that hold Room, Hall, Gate and Plate's Freeze to one standard (random schedules of every parameter at any block pattern, memory fill and three rates; the Gate never amplifying; tails at the longest settings reaching exact zeros; tests/test_engines_fx3_hostile.py), and `fm1-shapes-hostile`, a reviewer's checks of Shapes at Braids' edges (random scripts on every shape at any block pattern and memory fill; the pitch, Comb and Wave Line clamps holding bit for bit; tests/test_engines_shapes_hostile.py) |
 | `mk/*.mk` | Build fragments, one per stream of engines |
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |

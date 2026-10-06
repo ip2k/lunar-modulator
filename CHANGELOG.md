@@ -1382,8 +1382,9 @@ history.
     shape. Flute, the four filter shapes and the two Sync shapes faulted up
     there; the others had already stopped rising in pitch.
   - Checked under the address and undefined-behaviour sanitizers over every
-    shape, key, Timbre and Color end and bend, and against Braids itself at
-    the held values.
+    shape, key, Timbre and Color end and bend, and with knobs, bends,
+    per-note offsets and the shape changing while notes sound; and against
+    Braids itself at the held values.
 - docs/02 §5 and `tools/check_msfa_table.py` had rows 4 and 6 of msfa's
   algorithm table the wrong way round: `0x41`, which the FM-1 carries, is
   Google's original (there since its first commit, 2012), and `0xC1`, which
