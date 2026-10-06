@@ -1105,9 +1105,54 @@ history.
     Arp, czietz's gist) in the reference table; a note for cloud sessions;
     and a current kick-off prompt. The 2026-09-06 prompt is kept, marked
     historical.
+- **Lists on the screen show six entries instead of one to three.** Turning
+  PRESETS, ALGORITHM (the engine's model, shape, patch or pad, or the effect
+  in FX mode), PRESETS with SEL held, the rack's kind picker or the
+  matrix's destination picker now fills the middle of the screen with the
+  list: its name in gold, where the chosen entry sits in it (such as
+  *34/96*), and six entries with the chosen one highlighted on the third
+  row, so you see two before it and three after it. At either end of a list
+  the rows stop and the highlight moves to the first or last one. A small
+  triangle above or below the entries says the list goes on that way, and
+  *Empty* and *Empty slot* are dim. PRESETS with SEL held lists all four
+  sounds and what each holds, and Capture's tempo choice uses the same
+  look. Choices still take effect as before: at once for PRESETS and
+  ALGORITHM, a second after the last turn for the two pickers. Until now
+  PRESETS and the two pickers showed three entries, and ALGORITHM only the
+  entry it chose.
 - README: the owner's new opening — project goals (including the Orbital Dock
   community module marketplace and firmware builder), current status, and
   why it cannot be flashed yet.
+- **The rest of the README brought up to date** with what landed on
+  2026-10-05 and 2026-10-06, below the owner's opening (left as it is):
+  - What it does: seven sound engines (FM6 and Drums are new) plus Test
+    Sine, four sounds with two inserts each, the Mix page, two master
+    effects and the memory meter, all twenty effects by kind, knobs that
+    turn in ratios, the sequencer and modulation as they are on the public
+    page, with the Drums, sequencer and matrix pictures.
+  - The controls table: every button but SAVE and ARP works, SEL is SHIFT
+    and chooses the sound, the sequencer's keys (Space, the step keys,
+    Shift), and the drum kits' pads on the white keys.
+  - The roadmap in four parts: done, in progress (FM6's file picker and
+    smaller memory, Squash and the other new dynamics, glide, per-voice
+    modulation, idle paths, the Shapes fix), next (from the 2026-10-05
+    build plan: the master chain and shared sends, side-chain, tempo
+    delays, per-voice filters, sets in the browser and Web MIDI, the
+    arpeggiator and MIDI effects) and the Orbital Dock.
+  - Installing: it compiles for the FM-1's processor but has not run on a
+    JieLi chip; the dev kit and the backup-and-restore gate still come
+    first.
+  - Documentation lists the manual's chapters; Credits add msfa (Google),
+    Felucca, SLOOP, fm1-nes, FM-1-transporter, benny-sparra, Airwindows,
+    Plaits' drum models and the modulation sources, keeping every earlier
+    credit; the licence names the Apache-2.0 code; the repository map adds
+    docs/15 and 16, `firmware/`, `tools/jieli/` and the new notes.
+  - Alt text matches the pictures; the FX picture's names the chain's
+    slots, S1 In1 In2 Mix M1 M2.
+  - The pictures stay as PR #61 took them: a fresh run on main after FM6
+    (`build-on-aeon.sh --readme-screenshots`, 72 of 72 parity scenarios)
+    differs from them only in what moves with the sound, the oscilloscope
+    strip, the level meter, LFO1's tick on Timbre and the playhead.
 - **New pictures of the virtual FM-1, and a manual brought up to date with
   it.**
   - The README's picture and the phone picture show the page as it is now:
