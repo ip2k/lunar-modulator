@@ -3473,7 +3473,10 @@ hold the browser's module to the same bytes: 89 of 89 pass, identical to
 render.js and musl [verified 2026-10-06: `sim/web/www/fm1.wasm.json`].
 Six-Op FM's `set_param` took NaN to the minimum, where the API says the
 default (Glide's default and minimum were both 1 ms until now, which hid
-it); it uses `fm1_param_clamp` since, the same for every other value.
+it); it uses `fm1_param_clamp` since, the same for every other value. So
+does the Schwung shim, for Sophie and PSX Verb, which also took NaN to the
+minimum (review, 2026-10-06) [verified: `test_a_nan_setting_is_the_default`,
+and the shim self-test's NaN case, now the probe's default].
 Also run [verified 2026-10-06, in containers on the build host, as CI's
 jobs]: the engine, sequencer and Movy tests at 32 bits (gcc 12 `-m32`,
 3,772 passed, and the app layer's 464, no build warning at 32 or 64 bits),

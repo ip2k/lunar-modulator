@@ -1275,7 +1275,8 @@ history.
 - **Squash's Mu makes up its own level, in part.** Turning Squash up past
   the middle now mostly changes Mu's character rather than its loudness: it
   gives back half, in dB, of what it takes from a -12 dBFS peak, up to
-  24 dB (2.7 dB at Squash 0.6, 9.7 at 0.75, 24 at the right end). It never
+  24 dB (at the default Shape, 2.7 dB at Squash 0.6, 9.7 at 0.75, 24 at the
+  right end; less on the gentler Shapes). It never
   pushes a sound past full scale: on the first moments of a loud note, before
   Mu has turned it down, the lift gives way. Up to Squash 0.525 Mu is exactly
   as before; Snap and Split are unchanged. Documented in engines/README.md
@@ -1759,8 +1760,9 @@ history.
   V15 (docs/07).
 
 ### Fixed
-- **Six-Op FM took a not-a-number setting as the minimum;** it is now the
-  parameter's default, as the engine API says and every other engine does.
+- **Six-Op FM, Sophie and PSX Verb took a not-a-number setting as the
+  minimum;** it is now the parameter's default, as the engine API says and
+  every other engine does.
 - **The documentation:** the engine count in DEVELOPERS.md (seven sound
   engines with Drums and FM6), and the Limiter's Round mode, whose 3 dB of
   room over the ceiling for its rounding clip is by design (the output still
