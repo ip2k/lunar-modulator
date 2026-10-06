@@ -38,10 +38,6 @@ history.
     check` reports a copy that disagrees. Decisions and what is left open
     are in `notes/2026-10-06-state-files.md` §23.
 
-### Fixed
-- `fm1-render --load` read files through a 64 KiB stack buffer, which
-  overflowed its JavaScript build's stack.
-
 - **What the advanced editor will read, ready before the editor itself**
   (stage ED0 of the editor's design). Nothing on the virtual FM-1's screen
   changes, and it sounds exactly as before.
@@ -2133,6 +2129,8 @@ history.
     and the bugs it found on the way.
 
 ### Fixed
+- `fm1-render --load` read files through a 64 KiB stack buffer, which
+  overflowed its JavaScript build's stack.
 - **A refused modulation cable no longer marks its destination.** A cable
   the matrix shows as refused (*!*), such as one per voice into an effect,
   carries nothing, but the parameter it aimed at still had its name in the
