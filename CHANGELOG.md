@@ -1169,6 +1169,27 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **EQ, Isolator and Master Sat rest when they change nothing.** Left at
+  their pass-through settings for two seconds (every EQ gain and Level at
+  0; Isolator's bands at their defaults with nothing killed; Master Sat's
+  Mix at the left), they stop working and pass the sound through exactly as
+  before, at about 2 % of the processing they used there: on the desktop
+  0.03 µs a block instead of about 2 µs.
+  - The first move after a rest comes in a moment late while the effect
+    warms up, and fades in without a click: a few milliseconds for EQ's Mid
+    and High bands, about 30 ms for its Low band at 100 Hz (at most a tenth
+    of a second; settings that would need longer never rest), about 10 ms
+    for Isolator (35 ms with Low Xover at 80 Hz), and about a fifth of a
+    second for Master Sat's Mix. EQ's Level answers at once.
+  - Within two seconds of the last change nothing waits, so a kill and back
+    within a bar is never delayed. At any other setting the three sound
+    exactly as before, sample for sample.
+  - After a rest, a lock that leaves the pass-through setting and comes back
+    within the warm-up is not heard at all: for example a Master Sat Mix
+    lock on a single 16th step at 120 BPM.
+  - The virtual FM-1 rests them too: its rebuilt module plays two new
+    scenarios that rest and wake them exactly as the desktop does (78 of 78
+    pass).
 - **An envelope with no gate cable restarts at every note**, a note played
   over a held one included (it followed the legato key gate before). A
   cable from KEY still makes it legato.

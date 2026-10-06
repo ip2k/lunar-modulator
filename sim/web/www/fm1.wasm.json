@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "f4249dfe69412430c5bbbfe9d320591ab5dd0f5c9a9a029a5e94ca8387b2f564",
-  "wasm_bytes": 887038,
+  "wasm_sha256": "f141aaaf76ff461406eaf61a718064e3571b14cbe4ef0de8a3cdd78ff8d703b5",
+  "wasm_bytes": 890874,
   "sources_sha256": {
-    "engines": "e01f8a534cfefb2a742c0e6875d3ea52015dbbc1e6bfe08ccbbc1a854ef24278",
-    "sim": "ca3a215fff96b8d3accb4348dd6f5ece04b3a83dbf15b9305f228283cfdbdfad"
+    "engines": "542935e4485c27eb6e758203693ea2205f8cdf6af70434c1bc7a62ee6a252237",
+    "sim": "65a4cd89a057f1371093a965213263c462902f8de181496da04f0ad74aad20ff"
   },
   "engines": "working tree",
-  "built": "2026-10-06T04:47:11Z",
+  "built": "2026-10-06T05:17:39Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 76,
+    "passed": 78,
     "failed": 0,
-    "identical_to_js": 76,
-    "identical_to_musl": 76,
-    "identical_to_glibc": 73,
+    "identical_to_js": 78,
+    "identical_to_musl": 78,
+    "identical_to_glibc": 75,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "dx7_sysex": {
@@ -1598,8 +1598,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 148268,
-        "native64": 161132
+        "wasm32": 148284,
+        "native64": 161148
       }
     },
     {
@@ -1620,8 +1620,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 82444,
-        "native64": 95308
+        "wasm32": 82460,
+        "native64": 95324
       }
     },
     {
@@ -1642,8 +1642,52 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 148300,
-        "native64": 161164
+        "wasm32": 148348,
+        "native64": 161212
+      }
+    },
+    {
+      "name": "idle-eq-sat-wake",
+      "samples": 300002,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 82972,
+        "native64": 95836
+      }
+    },
+    {
+      "name": "idle-isolator-kill-wake",
+      "samples": 282354,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 335236,
+        "native64": 336052
       }
     },
     {
@@ -1686,8 +1730,8 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 82780,
-        "native64": 95644
+        "wasm32": 82812,
+        "native64": 95676
       }
     },
     {
