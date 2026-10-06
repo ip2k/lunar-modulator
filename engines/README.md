@@ -617,7 +617,7 @@ Drive and Level are in decibels: `FM1_UNIT_DB` since engine API v3
   clang 4.0.1 compiles the file for pi32v2 without a warning at `-O2` and
   `-Oz`, with identical code at `-ffp-contract=off` and `=fast` [verified].
 - **Memory and cost:** 240 bytes per instance on x86-64, i386 and pi32v2
-  (the struct is 236, no pointers) [verified: fm1-render's `fx_bytes`, CI's
+  (the struct is 232, no pointers) [verified: fm1-render's `fx_bytes`, CI's
   i386 flags, JieLi clang]; 4.9 KB of code and 1.3 KB of tables on pi32v2
   [verified: section sizes at `-O2`]. Per sample and channel: the guard,
   two one-pole filters for the emphasis, one piece of a curve (two short
