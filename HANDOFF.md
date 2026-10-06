@@ -7,8 +7,8 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
-state of `main` after the PRs merged up to #71 (2026-09-29 to 2026-10-06,
-`250bf53`).
+state of `main` after the PRs merged up to #75 (2026-09-29 to 2026-10-06,
+`d04d3f7`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -102,20 +102,20 @@ so it is always written in full.
   written through mask ROM [reported]. Their code maps the board (docs/01
   §3.1, [reported]): audio is ALNK0 (I2S) to an external codec, not the
   internal DAC, and the seven encoders are scanned in the key matrix.
-- **Tests:** 4,030 collected; 4,019 pass, 2 xfail (both undo, not ported
+- **Tests:** 4,233 collected; 4,222 pass, 2 xfail (both undo, not ported
   yet) and 9 skip where a local reference clone, an unpacked stock package
   or the manual's `markdown` module is missing [verified: `pytest` at
-  `250bf53` with this file, 2026-10-06]. By group: 2,913 engine tests (496
+  `d04d3f7` with this file, 2026-10-06]. By group: 3,013 engine tests (496
   of them comparing against upstream reference renders and their controls,
   209 for the arpeggiator and the MIDI-effect host, 164 for modulation), 557
-  for the sequencer core, 468 for the virtual FM-1 and its sequencer UI, 79
+  for the sequencer core, 518 for the virtual FM-1 and its sequencer UI, 79
   for the tools, the dongle, the SDK link audit, the package guard and the
-  boot bridge, and 13 for the manual. CI runs the suite on Linux and macOS,
-  runs the engine, sequencer and simulator tests again as a 32-bit build and
-  under ASan + UBSan, builds the dongle's UF2, runs AL-255's suite on our
-  fork (`.github/workflows/ci.yml`), and builds the site and manual on pull
-  requests (`pages.yml`). CI does not run Movy; it replays the oracle's
-  committed fixtures.
+  boot bridge, and 66 for the manual and its diagrams. CI runs the suite on
+  Linux and macOS, runs the engine, sequencer and simulator tests again as a
+  32-bit build and under ASan + UBSan, builds the dongle's UF2, runs
+  AL-255's suite on our fork (`.github/workflows/ci.yml`), and builds the
+  site and manual on pull requests (`pages.yml`). CI does not run Movy; it
+  replays the oracle's committed fixtures.
 - **Where the repo lives:** `~/Developer/mvave-fm1-firmware` on the owner's
   MacBook (the folder keeps its old name), remote `ip2k/lunar-modulator`
   (published 2026-09-06 as `ip2k/mvave-fm1-open-firmware`, renamed with the
@@ -123,7 +123,6 @@ so it is always written in full.
   short-lived branches and merges through pull requests; several sessions
   often work at once (`git worktree list` in the main checkout).
   - In flight on 2026-10-05, local and unpushed:
-    `chore/2026-10-05@dead-code-audit` (no commits yet);
     `feature/2026-10-05@uboot-read-tool`, named for the soft-key plan's
     read-only host tool, with no tool committed. Many other worktrees under
     `scratch/` belong to branches that have merged.
@@ -136,7 +135,11 @@ so it is always written in full.
     `FM1_JIELI_HOST`).
   - The cloud session's stray branch `claude/mvave-fm1-open-firmware-ly2w6u`
     on `ip2k/busybar-dual-timer` was deleted on 2026-09-06.
-- **Open pull requests** at 2026-10-05:
+- **Open pull requests** at 2026-10-06:
+  - #74, the first dead-code audit: 91,901 lines read, 57 dead items
+    removed, 49 listed for the owner to decide (§5 item 9).
+  - #76, arpeggiator follow-ups: on the beat, Stop by origin, the project
+    key.
   - #58, the lagging docs that this refresh listed, fixed (§5 item 8);
     waiting for the owner.
   - Echomatter closed #1 on 2026-10-05 and offered to coordinate, saying
@@ -267,11 +270,11 @@ so it is always written in full.
   What may be shared while the switch is on is in `CLAUDE.md` → "Project
   status and licences" and docs/12 §6. The vendored engine code is
   unmodified: Mutable Instruments, Schwung, Sophie and PSX Verb under MIT,
-  and msfa (FM6) under Apache-2.0. Squash and Limiter Round port Airwindows
-  loops (MIT) into our own files; the Airwindows oracle runs only in
-  containers. Felucca and
-  SLOOP give facts and ideas only, except Felucca's Apache-2.0 and MIT files;
-  CHOMPI's copy of DaisySP is never used.
+  msfa (FM6) under Apache-2.0, and the screen's Spleen faces under BSD
+  2-Clause. Squash and Limiter Round port Airwindows loops (MIT) into our
+  own files; the Airwindows oracle runs only in containers. Felucca and
+  SLOOP give facts and ideas only, except Felucca's Apache-2.0 and MIT
+  files; CHOMPI's copy of DaisySP is never used.
 - **Docs:** `README.md` is the product page and stays free of technical
   material; `DEVELOPERS.md` holds the rest (#23, CLAUDE.md).
 - **Engines** (docs/11, engines/README.md): Mutable Instruments code first,
@@ -321,7 +324,8 @@ so it is always written in full.
 - Confidence marks **[verified]/[reported]/[inferred]** in all docs; keep them
   honest.
 - The name and the look (Audiowide; Rosé Pine Moon for the simulator, Dawn
-  for the manual; no NASA, M-VAVE or Cuvave marks) follow `CLAUDE.md` and
+  for the manual, and the screen's colour map in `sim/web/PALETTE.md`; no
+  NASA, M-VAVE or Cuvave marks) follow `CLAUDE.md` and
   `assets/branding/README.md`.
 
 ## 4. Open questions (ranked)
@@ -381,13 +385,16 @@ screenshots (#61), the owner's new README opening and the rest of the README
 brought up to date (#62, #63), the simulator's list popups (#64), dynamics
 pack 3 (#66), a UI audit of the screen (#67), idle paths for EQ, Isolator
 and Master Sat (#70), the arpeggiator on the ARP button (#69) and Shapes
-held inside what Braids' code handles (#71) (10-01 to 10-06). The CHANGELOG
-has the detail.
+held inside what Braids' code handles (#71), glide and the Poly, Mono and
+Legato voice modes (#72), the manual's diagrams (#73) and the screen on the
+UI audit's colour map with Spleen faces (#75) (10-01 to 10-06). The
+CHANGELOG has the detail.
 
 Now, roughly in order:
 
-1. **Open PRs** (§1): #58 (docs) waits for the owner; Echomatter's offer on
-   #1 needs an answer.
+1. **Open PRs** (§1): #58 (docs), #74 (the dead-code audit, with 49 items
+   for the owner) and #76 (arpeggiator follow-ups) wait for the owner;
+   Echomatter's offer on #1 needs an answer.
 2. **ip2k/lunar-modulator#2**, if the owner chooses to answer it from the
    draft; and issue #53 (iOS Safari).
 3. **When the dev kit and JieLi's updater arrive**, docs/14 §5's first week:
@@ -405,12 +412,13 @@ Now, roughly in order:
    in DEVELOPERS.md). API v3 came first (#57). Then engine and effect lanes
    in parallel: a third dynamics pack (done, #66), idle paths (done, #70),
    the Shapes wrapper clamp (done, #71), a per-voice filter kernel, engine
-   glide, tempo delays. Now that #55 has merged, one at a time because they
-   share `fm1_app.c`: MG9 (per-voice modulation) and the MG3 follow-ups
-   (done, #68); the master chain; the side-chain; S9 and S10 (docs/15 §5);
-   the arp and MIDI effects (the arpeggiator landed in #69). Then the GPL
-   switch with the first GPL modules (Grids and Branches originals, docs/12
-   §6); later a subtractive engine, Rings/Elements and more reverbs.
+   glide (done, #72), tempo delays. Now that #55 has merged, one at a time
+   because they share `fm1_app.c`: MG9 (per-voice modulation) and the MG3
+   follow-ups (done, #68); the master chain; the side-chain; S9 and S10
+   (docs/15 §5); the arp and MIDI effects (the arpeggiator landed in #69).
+   Then the GPL switch with the first GPL modules (Grids and Branches
+   originals, docs/12 §6); later a subtractive engine, Rings/Elements and
+   more reverbs.
 6. **Sequencer leftovers:** undo and the command ring wait for M4 (the 2
    xfails); stages C and D run on the FM-1 after the dump and restore.
 7. **The owner's calls, all unsent:** the 2026-09-29 email to Baud Girl and
@@ -429,13 +437,10 @@ Now, roughly in order:
    encoder line up to date, and the repository description was updated on
    2026-10-05 (it still says "Movy-style sequencer"). When #58 merges, this
    item can go.
-9. **The dead-code audit is far past due** (`CLAUDE.md` → Conventions; a
-   branch `chore/2026-10-05@dead-code-audit` exists for it, with no commits
-   yet). The mark is 7,463 lines (2026-09-30); `sim/` and, since #56,
-   `firmware/` are in scope too. The original scope now holds about 77,800
-   lines of code, plus about 15,600 in `sim/` [by a `wc -l` count that gives
-   7,457 at the mark]: about 85,900 added, against an interval of about
-   10,000.
+9. **The dead-code audit** (`CLAUDE.md` → Conventions) is #74, open: it read
+   91,901 lines of the repository's own source at `d781f07`, removes 57 dead
+   items and lists 49 for the owner to decide, and resets the mark (7,463
+   lines at 2026-09-30 before it). Until it merges, the audit counts as due.
 
 ## 6. Reference material
 
