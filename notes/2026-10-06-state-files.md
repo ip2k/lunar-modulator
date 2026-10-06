@@ -241,29 +241,29 @@ registry, with every value of every unit.
 
 | Encoding | Bytes | deflate-raw, 32 KiB window | 4 KiB window | `#lunar=` link |
 | --- | --- | --- | --- | --- |
-| JSON, canonical layout (files, git) | 38,235 | 4,676 | 4,752 | — |
-| JSON, compact (links) | 32,547 | 4,385 | 4,445 | 5,847 characters |
+| JSON, canonical layout (files, git) | 38,385 | 4,694 | 4,772 | — |
+| JSON, compact (links) | 32,637 | 4,404 | 4,465 | 5,872 characters |
 | of which the set's lines | 27,199 | — | — | — |
-| everything but the set | 5,350 | 1,698 | — | — |
-| Binary, a prototype of §8's layout | 16,260 | 3,161 | 3,183 | (4,215) |
+| everything but the set | 5,440 | 1,715 | — | — |
+| Binary, a prototype of §8's layout | 16,308 | 3,172 | 3,192 | (4,230) |
 
 [verified: `tools/state_examples.py --measure`, Python's zlib at level 9,
-2026-10-06, on the registry at `250bf53`; the binary is a prototype of §8's
-layout, not E3's codec, so its size is a guide]
+2026-10-06, on the registry at `9f96194`, after PR #72 (Glide); the binary
+is a prototype of §8's layout, not E3's codec, so its size is a guide]
 
 - **JSON costs bytes before compression, little after.** Deflated, the
-  project is 1.4 times the binary as a link (4,385 B against 3,161 B) and
+  project is 1.4 times the binary as a link (4,404 B against 3,172 B) and
   1.5 times as a file, about 1.2–1.5 KB more.
-- **The set is 84 % of the compact project**, and in JSON it is Movy's own
+- **The set is 83 % of the compact project**, and in JSON it is Movy's own
   text plus 223 B of quotes and commas, so it compresses as §3.1's `movy1`
   does.
 - **A 4 KiB window** costs about 2 % against 32 KiB; 1 KiB nearly doubles
-  the size (8,611 B).
-- **Lines:** 599 in the canonical layout, one value each outside the set.
-- **Links:** a sound with an insert and an LFO is 671 characters
+  the size (8,680 B).
+- **Lines:** 605 in the canonical layout, one value each outside the set.
+- **Links:** a sound with an insert and an LFO is 688 characters
   (`lunar1`'s was about 370 [reported: design B]), a 16-pad kit 538, the
-  guide-like project 5,847: all far under the 32 KiB cap (§12.4).
-- **Files:** the examples are 0.2–11 KB (§11).
+  guide-like project 5,872: all far under the 32 KiB cap (§12.4).
+- **Files:** the examples are 0.2–12 KB (§11).
 
 ## 4. State inventory
 
@@ -473,7 +473,7 @@ effect chains in the browser, and builds its controls from metadata (§7.7).
     a form.
 - **What it costs** (§3.4): about a quarter more bytes than `lunar1` raw
   (38 KB against about 30 KB [reported: design B] for a project), 1.4 to
-  1.5 times the binary once deflated, and a sound link of about 670
+  1.5 times the binary once deflated, and a sound link of about 690
   characters instead of 370.
 - **What it keeps from `lunar1`:** names with `#UID` as the fallback,
   every value written, the set verbatim as Movy's lines, a fixed load
@@ -646,8 +646,8 @@ out (§12.2).
 
 ### 7.4 Examples
 
-A sound, `engines/state/examples/deep-bass.sound.lunar`: 1,425 B, 848 B
-compact, a 671-character link [verified]:
+A sound, `engines/state/examples/deep-bass.sound.lunar`: 1,471 B, 878 B
+compact, a 688-character link [verified]:
 
 ```json
 {
@@ -666,7 +666,9 @@ compact, a 671-character link [verified]:
       "Color": 0.5,
       "Attack": 0,
       "Release": 0.2,
-      "Volume": 0.7
+      "Volume": 0.7,
+      "Glide": 1,
+      "Voice Mode": "Poly"
     },
     "level": 80,
     "inserts": [
@@ -858,8 +860,8 @@ never moves one.
 Today's `fm1-render --list` and `--list-mod` print most of it [verified].
 `tests/test_state_schema.py` turns them into the export's layout and
 validates the result, so an engine whose names or ranges the format cannot
-carry fails CI now, the GPL lane's included. The full export is 168,665 B
-canonical, 13,957 B deflated [verified].
+carry fails CI now, the GPL lane's included. The full export is 172,499 B
+canonical, 14,086 B deflated [verified].
 `engines/state/examples/metadata.json` is the export for Shapes, Drums,
 Filter, the arpeggiator, the LFO and the envelope.
 
@@ -952,7 +954,7 @@ reported.
 
 - A rename adds an alias and never removes one. A test loads a pinned file
   of every name ever shipped.
-- A name that resolves nowhere is skipped and reported ("Glide skipped: not
+- A name that resolves nowhere is skipped and reported ("Unison skipped: not
   in this build"), never guessed.
 - **Known but absent** ids get a reason table (`engines/known-ids.json`),
   so a refusal can be specific:
@@ -1053,15 +1055,15 @@ reported.
 
 | Kind (screen and guide) | File | Holds | Typical [verified: §3.4 and the examples] |
 | --- | --- | --- | --- |
-| **Project** | `first-orbit.lunar` | everything in §4 but settings and MASTER | 38 KB for the guide-like song, 4.7 KB deflated; the example, with a small set, 11 KB |
-| **Sound** | `deep-bass.sound.lunar` | one sound, its inserts and MIDI effects, its level, its FM6 voices, the modules and cables that touch only it | 1.4 KB; a 16-pad kit 3.4 KB, 0.4 KB deflated |
+| **Project** | `first-orbit.lunar` | everything in §4 but settings and MASTER | 38 KB for the guide-like song, 4.7 KB deflated; the example, with a small set, 12 KB |
+| **Sound** | `deep-bass.sound.lunar` | one sound, its inserts and MIDI effects, its level, its FM6 voices, the modules and cables that touch only it | 1.5 KB; a 16-pad kit 3.4 KB, 0.4 KB deflated |
 | **Effects** | `space-verbs.fx.lunar` | an ordered chain of effects, with its cables and modules | about 1.3 KB |
 | **Mod rack** | `wobble.mods.lunar` | a rack, its cables and its seed | about 1.7 KB; up to about 35 KB with every position's pattern data [inferred] |
 | **Clip** | `bass-a.clip.lunar` | one clip's `movy1` lines, at track 0 slot 0, and the lanes its locks use | 0.5–12 KB (the example, a bar of bass with locks, 458 B) |
 | **Set** | `first-orbit.movy1` | Movy's set, with FM-1 lines | 2–60 KB |
 | **DX7 bank** | `brass.syx` | VCED voices or a VMEM bank | 4–5 KB |
 | **Settings** | browser storage, device settings | device preferences | about 200 B |
-| (Metadata) | `lunar-metadata.json` | the build's parameter metadata (§7.7), for editors; never loaded as state | 170 KB, 14 KB deflated |
+| (Metadata) | `lunar-metadata.json` | the build's parameter metadata (§7.7), for editors; never loaded as state | 172 KB, 14 KB deflated |
 
 - "Patch" is not used for a file, because FM6 and Six-Op FM already call a
   DX7 voice a Patch (ST3). The owner's "patch" is the Sound file; his
@@ -1165,8 +1167,8 @@ reported.
 - It is inflated through `DecompressionStream('deflate-raw')` into a
   counting stream that stops at the kind's cap, so a decompression bomb
   stops there.
-- It is capped at 32 KiB of base64. A sound is about 670 characters, a
-  16-pad kit about 540, and the guide-like project 5,847 [verified:
+- It is capped at 32 KiB of base64. A sound is about 690 characters, a
+  16-pad kit about 540, and the guide-like project 5,872 [verified:
   §3.4].
 
 **Hints**, applied after the load and the user's POWER press (browsers

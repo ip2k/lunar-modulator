@@ -198,7 +198,9 @@
         "Color": 0.5,
         "Attack": 0,
         "Release": 0.2,
-        "Volume": 0.7
+        "Volume": 0.7,
+        "Glide": 1,
+        "Voice Mode": "Poly"
       },
       "level": 80,
       "inserts": [
@@ -244,7 +246,9 @@
         "Env Pitch": 0,
         "Env Timbre": 0,
         "Env Morph": 0,
-        "LPG": "Gate"
+        "LPG": "Gate",
+        "Glide": 1,
+        "Voice Mode": "Poly"
       },
       "level": 70,
       "inserts": [
@@ -292,7 +296,9 @@
         "Brightness": 0.6,
         "Env Time": 0.5,
         "Feedback": 0,
-        "Volume": 0.7
+        "Volume": 0.7,
+        "Glide": 1,
+        "Voice Mode": "Poly"
       },
       "level": 75,
       "inserts": [

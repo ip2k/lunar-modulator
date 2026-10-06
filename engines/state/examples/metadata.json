@@ -168,6 +168,44 @@
             "mod",
             "poly"
           ]
+        },
+        {
+          "uid": 7,
+          "name": "Glide",
+          "abbr": "Glide",
+          "type": "float",
+          "min": 1,
+          "max": 5000,
+          "def": 1,
+          "unit": "ms",
+          "page": 2,
+          "knob": 3,
+          "flags": [
+            "smooth",
+            "mod",
+            "log"
+          ]
+        },
+        {
+          "uid": 8,
+          "name": "Voice Mode",
+          "abbr": "VMode",
+          "type": "enum",
+          "min": 0,
+          "max": 2,
+          "def": 0,
+          "unit": "none",
+          "page": 2,
+          "knob": 4,
+          "flags": [
+            "latch",
+            "mod"
+          ],
+          "entries": [
+            "Poly",
+            "Mono",
+            "Legato"
+          ]
         }
       ]
     },
