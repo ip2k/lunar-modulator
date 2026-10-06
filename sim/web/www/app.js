@@ -5,6 +5,7 @@
 // like the rest of this repository.
 
 import { BUTTONS, ENCODERS, KEYS } from './fm1-wasm.mjs';
+import { initFiles, pref } from './files.js';
 
 // ---- panel geometry, millimetres --------------------------------------------
 // Case 161.5 x 96.5 mm (M-VAVE manual, specifications). Control centres
@@ -183,7 +184,14 @@ window.fm1 = sim;    // for the headless screenshot test and the console
 // resample to the host, so they refuse faster hosts (engines/resampler.md).
 const PLAITS_RATE = 47872;
 
-function send(msg) { if (sim.node) sim.node.port.postMessage(msg); }
+// Messages that change what a save holds (MASTER is a page preference).
+const EDITS = new Set(['key', 'button', 'encoder', 'note-on', 'param', 'select', 'dx7-load']);
+function send(msg) {
+  if (!sim.node) return;
+  sim.node.port.postMessage(msg);
+  if (EDITS.has(msg.type) && files) files.touched();
+}
+let files = null;
 
 // The worklet and the module sit next to this script. Resolving them from
 // it, not from the document, keeps them found wherever the page is served
@@ -259,6 +267,7 @@ async function start() {
     const res = await fetch(asset('fm1.wasm'));
     if (!res.ok) throw new Error(`fm1.wasm: HTTP ${res.status}`);
     const wasm = await res.arrayBuffer();
+    sim.wasm = wasm.slice(0);      // the shadow Worker's copy (files.js)
     const node = new AudioWorkletNode(ctx, 'fm1', {
       numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2],
     });
@@ -274,6 +283,8 @@ async function start() {
     powerEl.classList.add('on');
     document.getElementById('power-off').disabled = false;
     dx7Button.disabled = false;
+    for (const id of FILE_CONTROLS) document.getElementById(id).disabled = false;
+    files.afterPowerOn().catch((err) => console.error('files', err));
   } catch (err) {
     if (ctx && ctx !== sim.ctx && ctx.state !== 'closed') await ctx.close();
     await powerOff();
@@ -281,14 +292,18 @@ async function start() {
   }
 }
 
+const FILE_CONTROLS = ['save', 'save-kind', 'copy-link'];
 async function powerOff() {
   releaseEverything();
+  if (sim.node && files) await files.beforePowerOff();
   if (sim.ctx) await sim.ctx.close();
   Object.assign(sim, { ctx: null, node: null, analyser: null, state: null, seq: null });
   overlay.hidden = false;
   powerEl.classList.remove('on');
   document.getElementById('power-off').disabled = true;
   dx7Button.disabled = true;
+  for (const id of FILE_CONTROLS) document.getElementById(id).disabled = true;
+  if (files) files.renderLibrary();
   for (const s of selects) s.disabled = true;
   for (const g of [...keyEls, ...buttonEls]) g.classList.remove('lit');
   for (const c of [tft, mirror]) c.getContext('2d').clearRect(0, 0, 240, 240);
@@ -366,6 +381,7 @@ async function readJson(name) {
 })();
 
 function onWorklet(m, node) {
+  if (files.onWorklet(m)) return;
   switch (m.type) {
     case 'ready':
       sim.catalog = m.catalog;
@@ -386,6 +402,7 @@ function onWorklet(m, node) {
       // Multi-sound: the menu is the current sound's; Sound 1 is never empty.
       soundLabel.textContent = `Sound ${m.sound + 1} (PRESETS)`;
       if (selects[0].options.length) selects[0].options[0].disabled = m.sound === 0;
+      files.fillSaveKinds();
       showStatus();
       break;
     case 'screen':
@@ -618,7 +635,7 @@ window.addEventListener('drop', (e) => {
   e.preventDefault();
   dragDepth = 0;
   dropHint.hidden = true;
-  loadDx7Files([...e.dataTransfer.files]);
+  files.openFiles([...e.dataTransfer.files]);
 });
 
 // ---- pointer input ---------------------------------------------------------------
@@ -750,6 +767,7 @@ function turn(g, delta) {
 
 function setMaster(pos) {
   sim.master = Math.min(1, Math.max(0, pos));
+  pref('master', sim.master.toFixed(3));
   setAngle(masterEl, -150 + 300 * sim.master);
   masterEl.setAttribute('aria-valuenow', String(Math.round(sim.master * 100)));
   send({ type: 'master', position: sim.master, show: true });
@@ -937,8 +955,25 @@ function revealScreen() {
   if (need > 0) scroller.scrollLeft += need;
 }
 
+// A control by its printed name, for a link's or the guide's highlight:
+// the buttons and encoders, MASTER, POWER, PLAY or STOP, KEY1 to KEY27.
+function controlEl(name) {
+  if (name === 'MASTER') return masterEl;
+  if (name === 'POWER') return powerEl;
+  const id = name === 'PLAY' || name === 'STOP' ? 'PLAY/STOP' : name;
+  if (BUTTONS.includes(id)) return buttonEls[BUTTONS.indexOf(id)];
+  if (Object.hasOwn(encoderEls, id)) return encoderEls[id];
+  const m = /^KEY([1-9]|1\d|2[0-7])$/.exec(id);
+  return m ? keyEls[Number(m[1]) - 1] : null;
+}
+
 // ---- wiring --------------------------------------------------------------------------
+{
+  const saved = Number(pref('master'));      // MASTER: a preference, never in a file
+  if (pref('master') !== null && saved >= 0 && saved <= 1) sim.master = saved;
+}
 drawPanel();
+files = initFiles({ sim, powerOn, loadDx7Files, controlEl });
 setAngle(masterEl, -150 + 300 * sim.master);
 revealScreen();
 document.getElementById('power-on').addEventListener('click', powerOn);

@@ -66,7 +66,7 @@ def test_the_runtime_runs_from_the_start_and_counts_in_the_ram_figure(tools):
         s = sim(tools, "--button", f"0.1:{name}", seconds="0.2")
         assert s["mode"] == mode and s["popup"] == [], name
     s = sim(tools, "--button", "0.1:SAVE", seconds="0.2")
-    assert s["mode"] == 0 and s["popup"] == ["SAVE", "not in the", "simulator yet"]
+    assert s["mode"] == 0 and s["popup"] == ["SAVE", "no store in", "this host"]   # no store: stage A1
 
 
 def test_the_app_starts_with_the_default_rack_and_its_cables(tools):

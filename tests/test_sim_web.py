@@ -64,6 +64,8 @@ def scenario_args(s):
         args += ["--cmd", str(SIM / "test" / s["cmd"])]
     if "sysex" in s:
         args += ["--sysex", str(SIM / "test" / s["sysex"])]
+    if "load" in s:         # a state file loaded after the setup (stage A1)
+        args += ["--load", str((SIM / "test" / s["load"]).resolve())]
     for p in s.get("params", []):
         args += ["--param", p]
     for n in s.get("notes", []):

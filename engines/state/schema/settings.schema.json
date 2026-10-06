@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ip2k.github.io/lunar-modulator/schema/1/settings.schema.json",
   "title": "Lunar Modulator settings",
-  "description": "Device preferences (stage A1 settles the full list), kept in browser storage or the device's settings, never in a project or a link. Nothing here can enable MIDI out, pick a port or reach a device: MIDI out stays the user's opt-in on the page.",
+  "description": "Device preferences, the four keys stage A1 settled (metronome and full velocity are the panel's own; count-in click and MIDI IN channel are kept for the stages that use them), kept in browser storage or the device's settings, never in a project or a link. Nothing here can enable MIDI out, pick a port or reach a device: MIDI out stays the user's opt-in on the page.",
   "type": "object",
   "allOf": [{"$ref": "common.schema.json#/$defs/head"}],
   "required": ["lunar", "kind", "settings"],

@@ -21,6 +21,18 @@
 // read (Load DX7 patches) arrives as its bytes and goes to the firmware
 // through the module's text buffer (fm1w_dx7_load); what it held goes back
 // for the page's message.
+//
+// Saved state (stage W1, notes/2026-10-06-state-files.md §12): the audio
+// thread reads and writes only the binary container. `state-save` hands the
+// page the whole project as binary (fm1w_state_save); the page's shadow
+// Worker (shadow.worker.js) turns it into JSON, checks files against it
+// (pass 1) and packs them, and `state-load` takes the packed file and runs
+// fm1w_state_load (pass 1 again, then pass 2). Anything that is not the
+// binary container is refused here, so JSON is never parsed on this thread
+// (the editor's ED3 and ED13). Reports go back as the module's JSON text,
+// unparsed. SAVE on the panel is fm1w_save_gen counting up, posted as
+// `save-pressed`; the page's store answers with `saved`. Nothing here
+// reaches a device.
 // MIT licence, like the rest of this repository.
 
 import { instantiateFm1, BLOCK, SCREEN, KEYS, BUTTONS } from './fm1-wasm.mjs';
@@ -42,6 +54,7 @@ class FM1Processor extends AudioWorkletProcessor {
     this.soundLast = 0;
     this.seqLast = new Uint32Array(SEQ_WATCHED);
     this.seqLast[1] = 0xffffffff;   // nothing posted yet
+    this.saveGen = 0;
     this.port.onmessage = (e) => this.onMessage(e.data);
   }
 
@@ -58,6 +71,7 @@ class FM1Processor extends AudioWorkletProcessor {
         const chain = ex.fm1w_default_chain();
         ex.fm1w_master(m.master, 0);
         this.fm1 = fm1;
+        this.saveGen = ex.fm1w_save_gen();
         this.free = Array.from({ length: SCREEN_BUFFERS }, () => new Uint16Array(SCREEN * SCREEN));
         const catalog = JSON.parse(fm1.string(ex.fm1w_catalog()));
         this.port.postMessage({ type: 'ready', rate: sampleRate, catalog, imports: fm1.imports });
@@ -89,6 +103,22 @@ class FM1Processor extends AudioWorkletProcessor {
       case 'param': ex.fm1w_set_param(m.unit, m.index, m.value); break;
       case 'panic': ex.fm1w_all_notes_off(); break;
       case 'dx7-load': this.loadDx7(m); break;
+      case 'state-save': this.stateSave(m); break;
+      case 'state-load': this.stateLoad(m); break;
+      case 'seq-line': this.seqLine(m.bytes); break;
+      case 'store-ready': ex.fm1w_store_ready(m.on ? 1 : 0); break;
+      case 'saved': {
+        // A refusal's reason goes in the text buffer, NUL-terminated.
+        if (!m.ok && m.reason instanceof Uint8Array) {
+          const cap = ex.fm1w_text_cap();
+          const b = new Uint8Array(this.fm1.memory.buffer, ex.fm1w_text_buf(), cap);
+          const n = Math.min(m.reason.length, 63);
+          b.set(m.reason.subarray(0, n));
+          b[n] = 0;
+        }
+        ex.fm1w_saved(m.ok ? 1 : 0);
+        break;
+      }
       case 'select': {
         // The Sound dropdown is the current sound's (multi-sound, docs/15
         // §3.16); the others are the master slots, units 1 and 2.
@@ -118,6 +148,46 @@ class FM1Processor extends AudioWorkletProcessor {
     const names = [];
     for (let k = 0; k < 32; ++k) names.push(this.fm1.string(ex.fm1w_dx7_name(k)));
     this.port.postMessage({ type: 'dx7-loaded', file: m.file, size: bytes.length, result, names });
+  }
+
+  // The text buffer, as a view (the module's memory never grows).
+  text() {
+    const ex = this.fm1.exports;
+    return new Uint8Array(this.fm1.memory.buffer, ex.fm1w_text_buf(), ex.fm1w_text_cap());
+  }
+
+  // The whole project (or m.kind with m.arg) as the binary container.
+  stateSave(m) {
+    const ex = this.fm1.exports;
+    const n = ex.fm1w_state_save(m.kind || 1, m.arg | 0, 1);
+    const bytes = n > 0 ? this.text().slice(0, n) : null;
+    this.port.postMessage({
+      type: 'state-saved', id: m.id, ok: n > 0, bytes,
+      report: n > 0 ? null : this.fm1.string(ex.fm1w_state_report()),
+    }, bytes ? [bytes.buffer] : []);
+  }
+
+  // A packed file: binary only (the shadow Worker packed it and ran pass 1).
+  stateLoad(m) {
+    const ex = this.fm1.exports;
+    const b = m.bytes;
+    const binary = b instanceof Uint8Array && b.length >= 6 && b[0] === 0x89 && b[1] === 0x4c;
+    if (!binary || b.length > ex.fm1w_text_cap()) {
+      this.port.postMessage({ type: 'state-loaded', id: m.id, ok: false, binary, report: null });
+      return;
+    }
+    this.text().set(b);
+    const ok = ex.fm1w_state_load(m.kind | 0, m.into | 0, m.slot | 0, m.flags | 0, b.length) === 1;
+    this.port.postMessage({ type: 'state-loaded', id: m.id, ok, binary, report: this.fm1.string(ex.fm1w_state_report()) });
+  }
+
+  // One sequencer verb (a link's play and entry hints): bytes, not a string.
+  seqLine(bytes) {
+    if (!(bytes instanceof Uint8Array) || !bytes.length) return;
+    const ex = this.fm1.exports;
+    if (bytes.length > 256) return;
+    this.text().set(bytes);
+    ex.fm1w_seq_text(bytes.length);
   }
 
   sendState() {
@@ -195,6 +265,11 @@ class FM1Processor extends AudioWorkletProcessor {
     if (current !== this.soundLast) {
       this.soundLast = current;
       this.sendState();
+    }
+    const gen = ex.fm1w_save_gen();
+    if (gen !== this.saveGen) {           // SAVE pressed on the panel
+      this.saveGen = gen;
+      this.port.postMessage({ type: 'save-pressed', gen });
     }
     if (ex.fm1w_leds_changed()) {
       const leds = v.leds.slice();

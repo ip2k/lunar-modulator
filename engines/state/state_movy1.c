@@ -29,6 +29,7 @@
  *                u8 a, u8 b, u8 inv }
  *   0x10 dq      u8 percent    0x11 se  u8 end mode
  *   0x12 sn      u8 scene, u8 n, n bytes of name
+ *   0x13 key     u8 root, u8 scale (the project key, PR #76; stage A1)
  * Little-endian. C99, no heap, no stdio. MIT licence. */
 #include "state_movy1.h"
 
@@ -178,6 +179,10 @@ static int typed(const char *s, size_t n, out_t *o) {
   }
   if ((is(t[0], "dq") || is(t[0], "se")) && k == 2 && num(t[1], 255, &a)) {
     ob(o, t[0].p[0] == 'd' ? 0x10 : 0x11); ob(o, a);
+    return 1;
+  }
+  if (is(t[0], "key") && k == 3 && num(t[1], 255, &a) && num(t[2], 255, &b)) {
+    ob(o, 0x13); ob(o, a); ob(o, b);
     return 1;
   }
   if (is(t[0], "sn") && k == 3 && num(t[1], 255, &a) && t[2].n && t[2].n <= 255u) {
@@ -350,6 +355,7 @@ static int item_text(in_t *in, txt_t *t) {
     case 0x0B: ts(t, "rt "); a = ib(in); b = ib(in); c = ib(in); tu(t, a); tc(t, ' '); tu(t, b); tc(t, ' '); tu(t, c); break;
     case 0x10: ts(t, "dq "); tu(t, ib(in)); break;
     case 0x11: ts(t, "se "); tu(t, ib(in)); break;
+    case 0x13: ts(t, "key "); a = ib(in); b = ib(in); tu(t, a); tc(t, ' '); tu(t, b); break;
     case 0x12:
       ts(t, "sn "); a = ib(in); n = ib(in);
       tu(t, a); tc(t, ' ');

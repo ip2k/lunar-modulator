@@ -55,6 +55,7 @@ SMALL_SET = """movy1
 bpm 11600
 swing 54
 link 0
+key 0 1
 sg 0 0 1 1
 tk 0 0 0
 au 0 0 64 synth:Decay
@@ -216,7 +217,10 @@ class Examples:
         doc["sounds"] = [
             self.sound("drums", {"Pad": "1 Kick", "Kit": "Punch", "Accent": 0.6}, level=90,
                        pads=self.drum_pads()),
-            self.sound("shapes", {"Shape": "Saw Sub", "Timbre": 0.41, "Release": 0.2}, level=80,
+            # Macro, not Shapes: the project fits the FM-1's RAM (77% with the
+            # app's own share; stage A1). The key is the set's `key` line.
+            self.sound("macro", {"Model": "VA+Filter", "Harmonics": 0.3, "Timbre": 0.41, "Decay": 0.3},
+                       level=80,
                        inserts=[self.unit("filter", {"Type": "Ladder", "Cutoff": 420, "Resonance": 0.3}),
                                 self.unit("drive", {"Type": "Tube", "Drive": 6})]),
             self.sound("macro", {"Model": "VA Pair", "Harmonics": 0.35, "Decay": 0.7}, level=70,

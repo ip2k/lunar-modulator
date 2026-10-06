@@ -128,11 +128,17 @@ full list.
 | **Sound (PRESETS)** | Chooses the current sound's engine directly, as turning [[PRESETS]] does. The label names the current sound, such as *Sound 2 (PRESETS)*; Sounds 2 to 4 can be *(none)* |
 | **Effect 1**, **Effect 2** | Choose the effect in each master slot, or *(none)* to empty it |
 | **Connect MIDI input** | Asks the browser for your MIDI keyboards (above) |
+| **Open…**, **Save…**, **Copy link** | Load and save projects, sounds and other files, and share a project as a link ([chapter 10](10-settings-and-storage.md#save)). Files can also be dropped on the page |
 | **Screen ×2** | Shows a second, larger copy of the screen below the panel. On by default in a narrow window |
 | **Power off** | Stops the sound |
 
 A choice in one of the lists hands the computer keyboard straight back to the
 instrument, so the next letter you type plays a note.
+
+The page remembers your project in the browser as you work: come back later,
+press **Power on**, and it is as you left it. To start from an example, open
+*Saved in this browser, Recent and examples* under the status line and load
+*First orbit*, the guide's first song.
 
 ### Running the simulator from your own copy
 

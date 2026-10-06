@@ -78,6 +78,7 @@ to be checked when built.
 20. What stage E3 settled
 21. The stages joined (2026-10-06)
 22. Review and landing (2026-10-06)
+23. What stage A1 built (2026-10-06)
 
 ## 1. Short answer
 
@@ -1935,3 +1936,154 @@ on by default, and they were merged in.
   suggestion [inferred]: the set's line is the truth, and `session.key`
   is either dropped or written from it.
 - E1's D18 is still unconfirmed (§21).
+
+## 23. What stage A1 built (2026-10-06)
+
+`feature/2026-10-06@a1-w1`, stage A1: the virtual FM-1 saves and loads its
+whole state through the records (`sim/web/src/fm1_app_state.c` and `.h`).
+Every claim here is [verified] by `tests/test_app_state.py`, the parity run
+and the layout sweep named, unless marked.
+
+**What a save holds.** A project: the four sounds, each with every
+parameter (a pad kit's every pad read back through engine API v4's
+`get_param`), its level, its two inserts and its MIDI effect (the arp, on
+or bypassed, with its values, on every sound that has an engine); the
+master slots; FM6's loaded user voices; the rack with its pattern data, the
+matrix with its flags (lock, per-voice, on) and the seed; the set with its
+song, scenes and key; the session; the view; and the words a load read
+(`name`, `title`, `about`, `author`, `licence`). A sound: one sound, its
+inserts and MIDI effect, its level, the FM6 voice its Patch plays, and the
+cables that reach only it with the modules they use (its pitch as the
+file's own). Effects: the non-empty master slots or a sound's inserts, as a
+chain. A mod rack, a clip, the set, and the settings.
+
+**Proofs.**
+- save → load → save is byte-identical in JSON and through binary for the
+  start chain, the example project, a session that fm1-render saves (Drums
+  with two pads edited, a filter insert, the arp on, a Register with
+  pattern data, a lock, a per-voice cable, a song with `dq`, `se`, `sn` and
+  `key`), the GPL engines (Comet Kit's and Crater Kit's 16 pads, Acid Bass
+  with Acid Gen, Drawbar) and FM6 on a user voice.
+- The example project loads as it says: every member compares equal after
+  a load and a save, but `made` and the bypassed arps the app always has.
+- Each kind loads into its target; each refusal of §10.3 (NOT_LUNAR,
+  TOO_NEW, UNKNOWN, RAM, RATE, NO_ROOM for the master's two slots, a full
+  rack and an occupied clip slot) leaves the saved project byte-identical,
+  and "load without" and "replace" go through.
+- Parity: `project-load-play` loads the example project and plays its song;
+  the module, the harness and fm1-render (native and JS) give the same
+  samples [verified: the aeon run below].
+- The layout sweep has 4,546 screens, 12 of them new (SAVE with and
+  without a store, its answers, the load banners and eight refusals), 0
+  faults.
+
+**Decisions taken here** (open to the owner):
+- **The key's one home** is the set's `key` line (§22). `session.key` stays
+  in the format and is written from it, so a mission check can read the key
+  as JSON; a load never applies it; `lunar_state.py check` reports a file
+  whose copy disagrees. The `key` line became a typed binary item, `0x13`
+  (u8 root, u8 scale), like `dq`, `se` and `sn` (a raw one still reads).
+- **Unrouted tracks** (§21's `rt` question). A project's or a clip's set
+  loads with its routes as saved: the file is the whole state, so a track
+  with no `rt` line stays on the core's MIDI channel and a save writes it
+  back the same. A `.movy1` set from elsewhere gets the app's start rule on
+  top (track 1 plays Sound 1 when no track is routed), as fm1w_seq_reset
+  does. fm1-render's own rule (every unrouted track to a sound unit) stays
+  the desktop's.
+- **The settings keys** are the four the schema had: `metronome` and
+  `full_velocity` (the sequencer's and its UI's own), `count_in_click` and
+  `midi_in_channel` (kept in `fm1_app_t` for the stages that use them).
+  MASTER stays a page preference.
+- **The RAM rule** counts the app's whole figure after the load, every
+  instance at 44,118 Hz (ST6), the meter's own figure since PR #84
+  (`fm1_app_ram_of`).
+  The refusal says a percent only: "Needs 121% of the FM-1's RAM."
+- **RATE in pass 1**: each engine a load would create is created once in a
+  scratch arena (the writers' 480 KiB) at the host's rate, and the answer
+  remembered; an instance larger than the arena is taken to run (no such
+  engine resamples from Plaits' rate today).
+- **SAVE** asks the host's store and shows its answer (`fm1_app_saved`);
+  with no store, a refusal says so. The page's store is W1's.
+- **One MIDI effect a sound**, the panel's slot: a file's slots 2-4 are
+  skipped and counted.
+
+**Fixed on the way.** fm1-render's `--load` read files through a 64 KiB
+stack buffer, the whole stack of its JavaScript build (fm1-render.js, the
+parity reference): the first scenario to load a file there trapped. It
+reads 4 KiB at a time now.
+
+**Open.**
+- `fm1-state check` counts instances (each aligned to 16) and the runtime;
+  the app counts its whole figure (the sequencer's 36 KB, mix blocks,
+  arps). A file within a few percent of the budget can pass `check` and be
+  refused by the app: `check` should take the app's fixed share
+  [inferred].
+- A merge does not yet reuse an identical module (§10.2); its modules
+  always take free positions. An FM6 bank with no free slot is refused
+  with "load without its voice"; asking which slot to overwrite (ST8) is
+  the page's, with W1.
+- The view: the ARP pages save as HOME, FX's Mix page as `fx` with no
+  unit, and SEQ's panel only for its Set and Clip pages.
+- The harness's modulation log (`fm1_app_mod_dump`) still writes mod-script
+  lines, not records.
+- The page's help still lists SAVE among the stubs; W1 replaces it.
+
+
+## 24. What stage W1 built (2026-10-06)
+
+`feature/2026-10-06@a1-w1`, stage W1: the page side of §12 on stage A1's
+exports (`sim/web/www/files.js`, `shadow.worker.js`, the worklet's
+`state-save`, `state-load`, `seq-line`, `store-ready` and `saved`). Every
+claim here is [verified] by `sim/web/test/files.mjs` in headless Chromium
+153 and `tests/test_sim_files.py`, unless marked.
+
+**The split ED13 asked for.** The worklet loads and saves only the binary
+container and refuses anything else; a shadow Worker, a second module,
+mirrors the live project before each job, runs pass 1 with the page's
+target and flags, packs JSON (a `.movy1` set: loaded there, saved as a SET
+container) and writes every JSON file. The audio thread's one JSON.parse is
+the catalogue at start. A project save costs it about 1.5 ms (Node, this
+Mac); the first one, cold, about 5 ms.
+
+**Decisions taken here** (open to the owner):
+- **The stores keep the binary container**, not text: the autosave and
+  Recent are the worklet's own save, restored without a round trip, and a
+  download writes JSON through the shadow. §12.3 said "text".
+- **Autosave** writes 5 s after the last change, but no later than 15 s
+  after the first unsaved one (so playing for minutes still saves), never
+  more often than every 5 s, and on hiding, leaving and Power off; equal
+  bytes are not written again. A change is any panel input that reaches
+  the firmware (keys, buttons, encoders, menus, MIDI notes, DX7 loads):
+  the page cannot tell an edit from a note, and a save of the same bytes
+  is skipped.
+- **Every POWER press restores the autosave**, not only the first of a
+  visit, so power off and on never loses work to the next autosave; the
+  message offers *Start fresh* (the shadow's start chain, the old state to
+  Recent).
+- **A link over saved work** restores the work first, then loads the
+  link over it, so the work goes to Recent as "Before *title*" only when
+  the link has loaded, and a refused link leaves the work playing
+  (changed at review: the first version put the autosave in Recent
+  unloaded, so a refused project link left the start chain playing). A
+  load adds "Before …" and its Undo only once the worklet has loaded the
+  file: a refused load leaves Recent as it was.
+- **The `view` hint** has no export of its own: the shadow writes the
+  project, the page sets `view` on that JSON (C's output, so JSON.parse is
+  safe there), the shadow packs it and the worklet reloads it quietly.
+- **Hint names**: `into=s1`-`s4`, `master`, `t3.2` (a clip's track and
+  slot); `hl` takes button and encoder names, MASTER, POWER, PLAY or STOP,
+  and KEY1-KEY27.
+- **Embed messages** are `{lunar: 1, id, op, …}`, replies `{lunar: 1, re,
+  ok, …}`, events `{lunar: 1, event, …}`; the dev-build `localhost`
+  exception of §12.4 is not built (same origin only, as ST15 says).
+- **File names**: a project is `title.lunar` (§11's table), every other
+  kind `title-s2.sound.lunar`, `title-master.fx.lunar`, `title.mods.lunar`.
+
+**Open.**
+- A refusal from the shadow's pass 1 is shown on the page only; the device
+  screen's `NOT LOADED` needs an export that shows a banner (the worklet
+  never sees a refused file).
+- Save… has no DX7 bank (VMEM) download: there is no export for it.
+- Asking which FM6 slot to overwrite (ST8) is not built: a full bank is
+  refused with "Load without its voice".
+- `fm1-state check` still counts less than the app (§23, Open).
