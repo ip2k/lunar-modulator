@@ -685,6 +685,7 @@ export function initFiles(env) {
   function showArrival() {
     const p = f.pending[0];
     const powerHint = $('power-hint');
+    $('arrival-cancel').hidden = !p;
     if (!p) {
       arrivalEl.hidden = true;
       $('power-on').textContent = 'Power on';
@@ -1017,8 +1018,11 @@ export function initFiles(env) {
   readLink();
   fillSaveKinds();
   renderLibrary();
-  return {
+  // window.fm1.files: this state and these calls, for the console and the
+  // headless page check.
+  return Object.assign(f, {
     openFiles, afterPowerOn, beforePowerOff, touched, fillSaveKinds, renderLibrary, autosave, copyLink, highlight,
+    saveText, undoLoad, store,
     onWorklet(m) {
       if (m.type === 'state-saved' || m.type === 'state-loaded') {
         const w = waiting.get(m.id);
@@ -1028,5 +1032,5 @@ export function initFiles(env) {
       if (m.type === 'save-pressed') { savePressed(); return true; }
       return false;
     },
-  };
+  });
 }
