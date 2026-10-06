@@ -33,7 +33,7 @@ history.
   - Cables at 0 % change nothing, bit for bit; the output is the same at
     any audio block size, and the browser plays it as the desktop does (a
     new parity scenario, 73 of 73 pass; the browser module grew from
-    813 KB to 848 KB).
+    813 KB to 849 KB).
 - **A pitch destination per sound.** The host's group in the destination
   picker lists *Pitch* (Sound 1), *Pitch2* to *Pitch4* (Sounds 2–4), each
   on top of that sound's pitch bend, and *PitchC*, which bends whichever

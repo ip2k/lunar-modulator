@@ -1648,7 +1648,8 @@ the tests; the manual's chapter 8, "Per voice", the user's view) [verified
   identical to `render.js` and to musl; ASan and UBSan over the runtime's,
   the voices', the kinds' and the app's tests (one fault found and fixed:
   the routed-sink listing read past the destinations for a pitch PITCH_CUR
-  alone routes). The browser module grew from 813,115 B to 848,381 B.
+  alone routes). The browser module grew from 813,115 B to 849,435 B
+  (848,381 B before the review below).
 - **Review (2026-10-06)**, with hostile tests in `fm1-mod-core-test`
   (`voices_hostile`: three sound units' notes through the bridge's order at
   blocks of 1, 7 and 64 and from four fills of memory, with steals, notes
@@ -1668,6 +1669,11 @@ the tests; the manual's chapter 8, "Per voice", the user's view) [verified
   3. A rack edit leaving room for fewer voices than were sounding stopped
      the voices past the cap but left their notes' offsets where they
      were; they now go back to 0.
+
+  The module rebuilt with the fixes is 849,435 B: parity 73 of 73,
+  identical to `render.js` and to musl, no imports. ASan and UBSan over
+  the runtime's, kinds', voices', sequencer's and simulator's tests found
+  nothing more.
 
 **Interleaving.** MG1 and MG2 are desktop-only and touch no UI, so they can
 proceed alongside docs/15's S3–S6 once S7a has merged. MG3 needs S2. MG6 needs
