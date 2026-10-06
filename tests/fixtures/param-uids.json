@@ -265,6 +265,28 @@
       {"name": "Lookahead", "type": "float", "uid": 12, "flags": ["smooth", "mod"]},
       {"name": "Link", "type": "enum", "uid": 13, "flags": ["mod"]}
     ],
+    "squash": [
+      {"name": "Type", "type": "enum", "uid": 1, "flags": ["mod"]},
+      {"name": "Squash", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Attack", "type": "float", "uid": 3, "flags": ["smooth", "mod", "log"]},
+      {"name": "Release", "type": "float", "uid": 4, "flags": ["smooth", "mod", "log"]},
+      {"name": "Ratio", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Shape", "type": "float", "uid": 6, "flags": ["smooth", "mod"]},
+      {"name": "Output", "type": "float", "uid": 7, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 8, "flags": ["smooth", "mod"]},
+      {"name": "Gate", "type": "float", "uid": 9, "flags": ["smooth", "mod"]},
+      {"name": "Gate Depth", "type": "float", "uid": 10, "flags": ["smooth", "mod"]},
+      {"name": "Hold", "type": "float", "uid": 11, "flags": ["smooth", "mod"]},
+      {"name": "Gate Rel", "type": "float", "uid": 12, "flags": ["smooth", "mod", "log"]}
+    ],
+    "shaper": [
+      {"name": "Attack", "type": "float", "uid": 1, "flags": ["smooth", "mod"]},
+      {"name": "Sustain", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
+      {"name": "Window", "type": "float", "uid": 3, "flags": ["smooth", "mod", "log"]},
+      {"name": "Tail", "type": "float", "uid": 4, "flags": ["smooth", "mod", "log"]},
+      {"name": "Output", "type": "float", "uid": 5, "flags": ["smooth", "mod"]},
+      {"name": "Mix", "type": "float", "uid": 6, "flags": ["smooth", "mod"]}
+    ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ],

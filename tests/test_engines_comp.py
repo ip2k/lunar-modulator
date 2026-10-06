@@ -13,7 +13,8 @@ releases; release to exact zeros with no pumping; the ripple on a steady
 tone; the hand-over when Character or Auto Rel changes; parameters changed
 while audio runs at any block size; the gain-reduction accessor; host
 rates; the accuracy of its log2 and exp2 against libm; Auto Gain clip-safe
-on hostile full-scale signals at 432 settings. Fast modulation of the
+on hostile full-scale signals at 432 settings, and touching only the
+samples it would take over 0 dBFS. Fast modulation of the
 switches: tests/test_engines_fx_switches.py.
 
 The figures in the comments were measured on the desktop build (Apple
@@ -506,17 +507,41 @@ def test_auto_gain_is_clip_safe(tool):
     # knee, and 0 dBFS on a gentler slope and inside a knee: 128 settings,
     # half with Auto Gain switched); then 160 random settings, a quarter of
     # them with Auto Gain switched on and off every third block. The output
-    # never passes its bound: 0 dBFS, and the compressed path 10^(Makeup/20)
-    # (so the output (1 - Mix) + Mix 10^(Makeup/20)). Measured: 0.902 of it
-    # at the extreme, where the cap holds the compressed path at -36 dBFS and
-    # Mix's dry share is the rest; 0.9999966 at the tight corner (-1e-4 dB,
-    # the margin, and closer while Auto Gain glides out); 0.99999992 at
-    # random settings, where a signal under the threshold passes untouched
-    # at full scale.
+    # never passes 0 dBFS (the dry and the compressed path each within it,
+    # with the same sign). Measured (2026-10-06): 0.9999988 at the extreme,
+    # where Mix's dry share passes the full-scale input; 0.999989 at the
+    # tight corner (-1e-4 dB, the margin); 0.99999994 at random settings,
+    # where a signal under the threshold passes untouched at full scale.
+    # Since the bound was loosened (2026-10-05) it takes back at most Auto
+    # Gain's lift and the margin; until 2026-10-06 it sat before a negative
+    # Makeup, holding the compressed path within 10^(Makeup/20), which
+    # touched samples that were no overs (the next test).
     a = tool["autogain"]
     assert a["runs"] == 432
     assert a["grid"] <= 1.0 and a["random"] <= 1.0 and a["toggled"] <= 1.0
     assert 0.9999 < a["tight"] <= 1.0               # the corner does reach the bound
+
+
+def test_auto_gain_touches_only_would_be_overs(tool):
+    # Loosened (owner, 2026-10-05): Auto Gain's bound acts on a sample only
+    # if its lift would take it over 0 dBFS, so steady tones pass exactly as
+    # with the same makeup set by hand. Six settings whose lift is exact in
+    # float, two of them with Makeup cut (-6 and -3 dB: the cut counts, so
+    # the bound acts only on real overs; review 2026-10-06, when it did not
+    # the bound clipped a steady -3 dBFS sine at -6 dBFS), every Character:
+    # 504 steady sines (-40 to -3 dBFS, 60 Hz to 3 kHz) and the ten hostile
+    # signals at Attack 50 ms. Every frame the
+    # hand-set render keeps under 0.99998 is the same bits with Auto Gain on
+    # (none differs; 688,786 did before the cut counted); the sines whose
+    # settled peak stays under full scale (492 of them) are the same bits
+    # from 100 ms on; touched samples (the onsets, the hostile signals'
+    # overs) stay under 0 dBFS (measured 0.999989033, the 1e-4 dB margin).
+    lo = tool["loose"]
+    assert lo["cases"] == 744
+    assert lo["untouched_mismatch"] == 0
+    assert lo["steady_cases"] >= 480 and lo["steady_same"] == lo["steady_cases"]
+    assert lo["touched"] > 0                        # the onsets and overs do get caught
+    assert lo["peak"] <= 1.0
 
 
 def test_log2_and_exp2_are_accurate(tool):
@@ -537,5 +562,7 @@ def test_output_is_the_same_bits_on_every_build(tool):
     # is what keeps the browser bit-exact. A deliberate change to the DSP
     # moves these: check it in the browser's module, then pin the new ones.
     # The first (Auto Gain on) changed with Auto Gain's cap and bound
-    # (2026-10-02); the other two, with Auto Gain off, are as before.
-    assert tool["hash"] == ["1a8db001", "d24bcc95", "0bb3b225"]
+    # (2026-10-02) and again when the bound was loosened to touch only
+    # would-be overs (2026-10-05); the other two, with Auto Gain off, are as
+    # before.
+    assert tool["hash"] == ["81cb89ff", "d24bcc95", "0bb3b225"]
