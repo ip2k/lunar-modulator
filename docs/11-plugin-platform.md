@@ -452,7 +452,7 @@ its exit test later that day (below):
   natively (engines/schwung.md, "Which modules, and why");
 - about 360 engine tests, run on Linux and macOS, on a 32-bit build, and
   under ASan and UBSan in CI. With the effects and features added since
-  (engines/README.md) there are 2,430 at `8ef2335` (2026-10-05;
+  (engines/README.md) there are 2,430 at `549dda9` (2026-10-05;
   `tests/test_engine*.py`), run the same ways [verified: `pytest
   --collect-only`, `.github/workflows/ci.yml`].
 

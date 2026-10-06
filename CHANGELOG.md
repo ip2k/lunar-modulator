@@ -1277,10 +1277,10 @@ history.
     is done (docs/08, 11, DEVELOPERS.md); the sequencer's desk stage is
     built (docs/12); D1–D13, not D1–D7, are the sequencer's defaults
     (docs/13).
-  - Counts at `8ef2335`: 2,430 engine tests (docs/11), 487 reference tests
+  - Counts at `549dda9`: 2,430 engine tests (docs/11), 487 reference tests
     from three renderers, Room's included (docs/14, engines/README.md), 191
     Macro Heavy tests (engines/plaits-heavy.md), 66 browser scenarios and
-    2,366 screens (docs/14), and 3,389 tests in DEVELOPERS.md's status.
+    2,366 screens (docs/14), and 3,439 tests in DEVELOPERS.md's status.
   - `dongle/README.md` names the CI job that builds the UF2 correctly.
 - Sophie made no sound from the virtual FM-1's keys: it only plays MIDI
   notes 36–51 (its 16 pads), below the keys' range at the default octave.

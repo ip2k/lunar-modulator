@@ -456,13 +456,15 @@ build, and the research still to do.
 >
 > - **Desktop and browser:** CI builds the engines, effects and sequencer
 >   core on Linux and macOS, and on Linux also as a 32-bit build and under
->   ASan + UBSan. Of 3,389 tests at `8ef2335`, 3,379 pass, 8 are skipped
->   (clones in `reference/` that checkout lacked, and a manual check that
->   needs the `markdown` module) and 2 are expected failures (Movy's undo,
->   not ported) [verified: `pytest`, 2026-10-05]. The virtual FM-1 is tested in Chromium only
+>   ASan + UBSan. Of 3,439 tests at `549dda9`, 3,428 pass, 9 are skipped
+>   (clones in `reference/` that checkout lacked, a manual check that needs
+>   the `markdown` module, and one that needs an unpacked stock package) and
+>   2 are expected failures (Movy's undo, not ported) [verified: `pytest`,
+>   2026-10-05]. The virtual FM-1 is tested in Chromium only
 >   ([What it does](README.md#what-it-does), [Try it in your browser](README.md#try-it-in-your-browser)).
 > - **On a JieLi chip:** every object compiles for pi32v2 with JieLi's
->   toolchain (2026-10-02, compile-only:
+>   toolchain (compile-only, 2026-10-02, and again on 2026-10-05 against
+>   the SDK V1.2.13 libraries:
 >   [`notes/2026-10-02-jieli-compile-check.md`](notes/2026-10-02-jieli-compile-check.md)),
 >   but nothing has been linked into a firmware or run on a JieLi chip, so
 >   speed and memory on pi32v2 are not measured. A JieLi AC79 dev kit and
