@@ -5,7 +5,7 @@
  *           [--block N] [--end FRAMES] [--log FILE.jsonl] [--state FILE.json]
  *           [--snap FRAME]... [--peek FRAME]... [--export FILE.movy1] [--fill BYTE] [--seed N]
  *           [--notes N] [--locks N] [--trigs N] [--gates N] [--capture N]
- *           [--song N] [--rec N] [--events N]
+ *           [--song N] [--rec N] [--events N] [--import FRAME:FILE.movy1]...
  *
  * Plays a verb script (seq_script.h) through fm1_seq in blocks, writes the
  * event log, and dumps state as JSON at each --snap frame (the first block
@@ -13,17 +13,33 @@
  * --peek frame (the same boundary, before its commands) and at the end.
  * --events N gives each block (its commands and its advance together) an
  * event buffer of N, as a device's would be; the default is 65536.
+ * --import FRAME:FILE imports a set mid-run, at the first block boundary at
+ * or after FRAME, before that boundary's commands (an import emits no
+ * event: the core releases nothing, as a host's import path must; tests of
+ * what an import resets and reseeds use it).
  * --compat runs Movy's behaviour exactly; --compat-frames does too, but logs
  * each tick at its own frame (D1), as the Movy oracle's --frames tick does.
  * Without --cmd, nothing runs: --seq FILE --export OUT round-trips
  * a set. --sizes prints fm1_seq_size() for 1-16 tracks with the default
  * limits (Capture's 256 events included) and without Capture, and the item
- * sizes. MIT licence.
+ * sizes.
+ *
+ * Saved state (engines/state/, stage E3): --load FILE takes a project's set
+ * or a binary set (it replaces the set), --load tT.S:FILE a clip into track
+ * T, slot S (1-based; lanes matched by label, its old lines replaced),
+ * after --seq; --save clip:T.S:FILE writes that slot's clip at the end, as
+ * JSON or, for FILE.lunarb, binary. A set loads as the device's will: the
+ * file is read once to check it, then again with its lines' pieces going
+ * straight into the core's streaming import (fm1_seq_import_feed), so no
+ * line is held. --pieces N feeds --seq and --import sets to the import N
+ * bytes at a time (tests: any split gives the same set). MIT licence.
  */
 #define _POSIX_C_SOURCE 200112L   /* clock_gettime */
 
 #include "fm1_seq.h"
+#include "fm1_state.h"
 #include "seq_script.h"
+#include "state_clip.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +54,8 @@ static void usage(void) {
         "               [--snap FRAME]... [--peek FRAME]... [--export FILE.movy1]\n"
         "               [--fill BYTE] [--seed N]\n"
         "               [--notes N] [--locks N] [--trigs N] [--gates N] [--capture N]\n"
-        "               [--song N] [--rec N] [--events N]\n", stderr);
+        "               [--song N] [--rec N] [--events N] [--import FRAME:FILE.movy1]...\n"
+        "               [--load [tT.S:]FILE]... [--save clip:T.S:FILE]... [--pieces N]\n", stderr);
 }
 
 static void json_str(FILE *f, const char *s, size_t n) {
@@ -80,6 +97,18 @@ static void dump_state(FILE *f, const fm1_seq_t *s, const char *kind, const char
           in.metronome, in.link, in.following, in.watch_track, in.rec_track, in.default_quant,
           in.song_pos, in.key_root, in.key_scale);
   for (i = 0; i < in.song_len; ++i) fprintf(f, i ? ",%u" : "%u", in.song[i]);
+  fprintf(f, "],\"song_entries\":%u,\"song_entry\":%u,\"song_armed\":%u,\"song_pass\":%u,"
+          "\"song_pass_bar\":%u,\"song_end\":%u,\"song_jump\":",
+          in.song_entries, in.song_entry, in.song_armed, in.song_pass, in.song_pass_bar,
+          in.song_end);
+  json_slot(f, in.song_jump);
+  fprintf(f, ",\"song_follow\":%u,\"song_parked\":%u,\"song_bars\":%lu,\"scene_names\":[",
+          in.song_follow, in.song_parked, (unsigned long)fm1_seq_song_bars(s));
+  for (i = 0; i < FM1_SEQ_SCENES; ++i) {
+    const char *name = fm1_seq_scene_name(s, (uint8_t)i);
+    if (i) fputc(',', f);
+    json_str(f, name, strlen(name));
+  }
   fprintf(f, "],\"capture\":{\"gen\":%lu,\"pending\":%u,\"mode\":%u,\"sel\":%u,\"cands\":[",
           (unsigned long)in.capture_gen, in.capture_pending, in.capture_mode, in.capture_sel);
   for (i = 0; i < in.capture_n && i < 3; ++i) fprintf(f, i ? ",%u" : "%u", in.capture_cands[i]);
@@ -197,6 +226,239 @@ static int cmp_u64(const void *a, const void *b) {
   return x < y ? -1 : (x > y ? 1 : 0);
 }
 
+/* ---- Saved state: a file's movy1 lines, and a clip out ---------------------- */
+typedef struct {
+  int has_set;               /* the file holds a set (pass 2 streams it in) */
+  char **clip;               /* the clip's lines */
+  size_t clip_n;
+  int open;                  /* a line is being joined (pieces) */
+} lines_t;
+
+static void lines_add(char **buf, size_t *n, size_t *cap, const char *s, size_t m) {
+  if (*n + m + 2 > *cap) {
+    *cap = (*n + m + 2) * 2;
+    *buf = (char *)realloc(*buf, *cap);
+    if (!*buf) exit(3);
+  }
+  memcpy(*buf + *n, s, m);
+  *n += m;
+  (*buf)[*n] = '\0';
+}
+
+static int lines_sink(void *ctx, const fm1_rec_t *r) {
+  lines_t *l = (lines_t *)ctx;
+  if (r->type != FM1_REC_LINE) return 1;
+  if (r->u.line.which == FM1_LINES_SET) {
+    l->has_set = 1;
+  } else {
+    if (r->piece & FM1_REC_FIRST) {
+      size_t z = 0, zc = 0;
+      l->clip = (char **)realloc(l->clip, (l->clip_n + 1) * sizeof(char *));
+      if (!l->clip) exit(3);
+      l->clip[l->clip_n] = NULL;
+      lines_add(&l->clip[l->clip_n], &z, &zc, "", 0);
+      ++l->clip_n;
+    }
+    {
+      char **c = &l->clip[l->clip_n - 1];
+      size_t n = strlen(*c), cap = n + 1;
+      lines_add(c, &n, &cap, r->u.line.s, r->u.line.n);
+    }
+  }
+  return 1;
+}
+
+static uint32_t buf_read(void *ctx, uint32_t off, uint8_t *out, uint32_t n) {
+  const size_t *len = (const size_t *)ctx;
+  const uint8_t *b = (const uint8_t *)(len + 1);
+  if (off >= *len) return 0;
+  if (n > *len - off) n = (uint32_t)(*len - off);
+  memcpy(out, b + off, n);
+  return n;
+}
+
+typedef struct {
+  char *b;
+  size_t n, cap;
+} out_t;
+
+static void out_put(void *ctx, const char *s, size_t n) {
+  out_t *o = (out_t *)ctx;
+  lines_add(&o->b, &o->n, &o->cap, s, n);
+}
+
+/* --pieces: the bytes a set's text goes to the import at a time (0: all). */
+static size_t g_pieces;
+
+static int import_text(fm1_seq_t *s, const char *txt, size_t len) {
+  fm1_seq_import_t im;
+  size_t off = 0;
+  if (!g_pieces) return fm1_seq_import_movy1(s, txt, len);
+  fm1_seq_import_begin(&im, s);
+  while (off < len) {
+    const size_t m = len - off < g_pieces ? len - off : g_pieces;
+    fm1_seq_import_feed(&im, txt + off, m);
+    off += m;
+  }
+  return fm1_seq_import_end(&im);
+}
+
+/* A file's set lines, piece by piece, into the core's streaming import. */
+typedef struct {
+  fm1_seq_import_t im;
+  int any;
+} set_stream_t;
+
+static int set_stream_sink(void *ctx, const fm1_rec_t *r) {
+  set_stream_t *k = (set_stream_t *)ctx;
+  if (r->type != FM1_REC_LINE || r->u.line.which != FM1_LINES_SET) return 1;
+  k->any = 1;
+  fm1_seq_import_feed(&k->im, r->u.line.s, r->u.line.n);
+  if (r->piece & FM1_REC_LAST) fm1_seq_import_feed(&k->im, "\n", 1);
+  return 1;
+}
+
+/* --load [tT.S:]FILE into the core. */
+static int state_load(fm1_seq_t *s, const char *spec) {
+  int t = 0, sl = 0, at = 0;
+  const char *path = spec;
+  size_t len = 0, i;
+  char *txt, *sized;
+  lines_t l;
+  fm1_state_report_t rep;
+  int ok;
+  memset(&l, 0, sizeof(l));
+  if (sscanf(spec, "t%d.%d:%n", &t, &sl, &at) == 2 && at > 0) path = spec + at;
+  txt = fm1_read_file(path, &len);
+  if (!txt) { fprintf(stderr, "cannot read %s\n", path); return 0; }
+  sized = (char *)malloc(sizeof(size_t) + len + 1);
+  if (!sized) return 0;
+  memcpy(sized, &len, sizeof(size_t));
+  memcpy(sized + sizeof(size_t), txt, len);
+  fm1_state_report_init(&rep);
+  ok = fm1_state_sniff((const uint8_t *)txt, len) == 1
+           ? fm1_state_bin_read(buf_read, sized, (uint32_t)len, lines_sink, &l, &rep, 0)
+           : fm1_state_json_read(NULL, buf_read, sized, lines_sink, &l, &rep);
+  if (ok && l.has_set) {
+    /* Pass 2: the set's lines straight into the import, piece by piece. */
+    set_stream_t k;
+    fm1_state_report_t rep2;
+    memset(&k, 0, sizeof(k));
+    fm1_seq_import_begin(&k.im, s);
+    fm1_state_report_init(&rep2);
+    ok = fm1_state_sniff((const uint8_t *)txt, len) == 1
+             ? fm1_state_bin_read(buf_read, sized, (uint32_t)len, set_stream_sink, &k, &rep2, 0)
+             : fm1_state_json_read(NULL, buf_read, sized, set_stream_sink, &k, &rep2);
+    if (ok && !fm1_seq_import_end(&k.im)) ok = 0;
+  }
+  free(sized);
+  free(txt);
+  if (!ok) {
+    fprintf(stderr, "%s: %s: %s %s\n", path, fm1_state_code_name(rep.code), rep.what, rep.path);
+    return 0;
+  }
+  if (ok && l.clip_n) {
+    const size_t need = fm1_seq_export_movy1(s, NULL, 0);
+    char *set = (char *)malloc(need + 1), *text;
+    char e[160] = "";
+    if (!set || t < 1 || t > 16 || sl < 1 || sl > 8) {
+      fprintf(stderr, "%s: a clip loads into a track and a slot: --load tT.S:%s\n", path, path);
+      free(set);
+      ok = 0;
+    } else {
+      fm1_seq_export_movy1(s, set, need + 1);
+      text = fm1_state_clip_into(set, need, (const char *const *)l.clip, l.clip_n, (unsigned)(t - 1),
+                                 (unsigned)(sl - 1), e, sizeof(e));
+      free(set);
+      if (!text || !fm1_seq_import_movy1(s, text, strlen(text))) {
+        fprintf(stderr, "%s: the clip does not fit: %s\n", path, e);
+        ok = 0;
+      }
+      free(text);
+    }
+  }
+  for (i = 0; i < l.clip_n; ++i) free(l.clip[i]);
+  free(l.clip);
+  return ok;
+}
+
+/* --save clip:T.S:FILE */
+static int state_save(const fm1_seq_t *s, const char *spec) {
+  int t = 0, sl = 0, at = 0;
+  size_t count = 0, i, need = fm1_seq_export_movy1(s, NULL, 0);
+  char *set = (char *)malloc(need + 1), **lines;
+  void *jw = calloc(1, fm1_state_json_writer_size());
+  fm1_state_writer_t *w;
+  fm1_state_report_t rep;
+  fm1_rec_t r;
+  out_t json;
+  const char *path;
+  FILE *f;
+  int ok = 1;
+  memset(&json, 0, sizeof(json));
+  if (sscanf(spec, "clip:%d.%d:%n", &t, &sl, &at) != 2 || !at || t < 1 || t > 16 || sl < 1 || sl > 8 || !set || !jw) {
+    fprintf(stderr, "--save wants clip:T.S:FILE\n");
+    free(set);
+    free(jw);
+    return 0;
+  }
+  path = spec + at;
+  fm1_seq_export_movy1(s, set, need + 1);
+  lines = fm1_state_clip_from(set, need, (unsigned)(t - 1), (unsigned)(sl - 1), &count);
+  free(set);
+  if (!lines) { fprintf(stderr, "--save: no clip at track %d, slot %d\n", t, sl); free(jw); return 0; }
+  fm1_state_report_init(&rep);
+  w = fm1_state_json_writer(jw, NULL, 0, out_put, &json, &rep);
+  memset(&r, 0, sizeof(r));
+  r.type = FM1_REC_HEAD;
+  r.u.head.kind = FM1_STATE_CLIP;
+  r.u.head.major = FM1_STATE_MAJOR;
+  ok = fm1_state_write(w, &r);
+  memset(&r, 0, sizeof(r));
+  r.type = FM1_REC_INFO;
+  r.piece = FM1_REC_FIRST | FM1_REC_LAST;
+  r.u.info.key = FM1_INFO_BY;
+  r.u.info.s = "desktop";
+  r.u.info.n = 7;
+  ok = ok && fm1_state_write(w, &r);
+  for (i = 0; ok && i < count; ++i) {
+    memset(&r, 0, sizeof(r));
+    r.type = FM1_REC_LINE;
+    r.piece = FM1_REC_FIRST | FM1_REC_LAST;
+    r.u.line.which = FM1_LINES_CLIP;
+    r.u.line.s = lines[i];
+    r.u.line.n = (uint32_t)strlen(lines[i]);
+    ok = fm1_state_write(w, &r);
+  }
+  memset(&r, 0, sizeof(r));
+  r.type = FM1_REC_END;
+  ok = ok && fm1_state_write(w, &r);
+  fm1_state_clip_free(lines, count);
+  free(jw);
+  if (ok && strlen(path) > 7 && strcmp(path + strlen(path) - 7, ".lunarb") == 0) {
+    void *bw = calloc(1, fm1_state_bin_writer_size());
+    out_t bin;
+    char *sized = (char *)malloc(sizeof(size_t) + json.n + 1);
+    static const uint8_t version[3] = { 0, 1, 0 };
+    memset(&bin, 0, sizeof(bin));
+    if (!bw || !sized) return 0;
+    memcpy(sized, &json.n, sizeof(size_t));
+    memcpy(sized + sizeof(size_t), json.b, json.n);
+    w = fm1_state_bin_writer(bw, FM1_STATE_BIN_DEFLATE, FM1_STATE_WRITER_DESKTOP, version, out_put, &bin, &rep);
+    ok = fm1_state_json_read(NULL, buf_read, sized, fm1_state_bin_write, w, &rep);
+    free(sized);
+    free(bw);
+    free(json.b);
+    json = bin;
+  }
+  if (!ok) { fprintf(stderr, "--save: %s: %s\n", fm1_state_code_name(rep.code), rep.what); free(json.b); return 0; }
+  f = fopen(path, "wb");
+  if (!f) { fprintf(stderr, "cannot write %s\n", path); free(json.b); return 0; }
+  fwrite(json.b, 1, json.n, f);
+  free(json.b);
+  return fclose(f) == 0;
+}
+
 static double now_ns(void) {
   struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -205,13 +467,16 @@ static double now_ns(void) {
 
 int main(int argc, char **argv) {
   const char *cmd_path = NULL, *seq_path = NULL, *log_path = NULL, *state_path = NULL,
-             *export_path = NULL;
+             *export_path = NULL, *loads[16], *saves[16];
+  int n_loads = 0, n_saves = 0;
   int compat = 0, fill = 0, i;
   long tracks = -1, rate = -1, block = -1, notes = -1, locks = -1, trigs = -1, gates = -1,
        capture = -1, song = -1, rec = -1, events = -1;
   long long end = -1, seed = -1;
   uint64_t *snaps = NULL, *peeks = NULL;
   size_t n_snaps = 0, next_snap = 0, n_peeks = 0, next_peek = 0, k;
+  const char **imports = NULL;           /* "FRAME:FILE", in frame order as given */
+  size_t n_imports = 0, next_import = 0;
   fm1_script_t script;
   fm1_seq_limits_t lim;
   fm1_seq_t *s;
@@ -240,6 +505,8 @@ int main(int argc, char **argv) {
     else if (strcmp(a, "--log") == 0) log_path = v;
     else if (strcmp(a, "--state") == 0) state_path = v;
     else if (strcmp(a, "--export") == 0) export_path = v;
+    else if (strcmp(a, "--load") == 0 && n_loads < 16) loads[n_loads++] = v;
+    else if (strcmp(a, "--save") == 0 && n_saves < 16) saves[n_saves++] = v;
     else if (strcmp(a, "--tracks") == 0) tracks = strtol(v, NULL, 0);
     else if (strcmp(a, "--rate") == 0) rate = strtol(v, NULL, 0);
     else if (strcmp(a, "--block") == 0) block = strtol(v, NULL, 0);
@@ -254,7 +521,13 @@ int main(int argc, char **argv) {
     else if (strcmp(a, "--song") == 0) song = strtol(v, NULL, 0);
     else if (strcmp(a, "--rec") == 0) rec = strtol(v, NULL, 0);
     else if (strcmp(a, "--events") == 0) events = strtol(v, NULL, 0);
-    else if (strcmp(a, "--snap") == 0 || strcmp(a, "--peek") == 0) {
+    else if (strcmp(a, "--pieces") == 0) g_pieces = (size_t)strtoul(v, NULL, 0);
+    else if (strcmp(a, "--import") == 0) {
+      const char **grown = (const char **)realloc((void *)imports, (n_imports + 1u) * sizeof(*imports));
+      if (!grown || !strchr(v, ':')) { usage(); return 2; }
+      imports = grown;
+      imports[n_imports++] = v;
+    } else if (strcmp(a, "--snap") == 0 || strcmp(a, "--peek") == 0) {
       const int peek = a[2] == 'p';
       uint64_t **list = peek ? &peeks : &snaps;
       size_t *count = peek ? &n_peeks : &n_snaps;
@@ -318,8 +591,11 @@ int main(int argc, char **argv) {
     size_t len;
     char *txt = fm1_read_file(seq_path, &len);
     if (!txt) { fprintf(stderr, "cannot read %s\n", seq_path); return 1; }
-    if (!fm1_seq_import_movy1(s, txt, len)) { fprintf(stderr, "%s: not a movy1 set\n", seq_path); return 1; }
+    if (!import_text(s, txt, len)) { fprintf(stderr, "%s: not a movy1 set\n", seq_path); return 1; }
     free(txt);
+  }
+  for (i = 0; i < n_loads; ++i) {
+    if (!loads[i] || !state_load(s, loads[i])) return 1;
   }
   if (log_path && !(log = fopen(log_path, "w"))) { fprintf(stderr, "cannot write %s\n", log_path); return 1; }
   if (state_path && !(state = fopen(state_path, "w"))) { fprintf(stderr, "cannot write %s\n", state_path); return 1; }
@@ -340,6 +616,17 @@ int main(int argc, char **argv) {
       dump_state(state, s, "peek", "", peeks[next_peek], frame, blockno);
       first_snap = 0;
       ++next_peek;
+    }
+    while (next_import < n_imports && strtoull(imports[next_import], NULL, 0) <= frame) {
+      const char *path = strchr(imports[next_import], ':') + 1;
+      size_t len;
+      char *txt = fm1_read_file(path, &len);
+      if (!txt || !import_text(s, txt, len)) {
+        fprintf(stderr, "%s: not a movy1 set\n", path);
+        return 1;
+      }
+      free(txt);
+      ++next_import;
     }
     t0 = now_ns();
     while (next_cmd < script.n && script.cmds[next_cmd].frame <= frame) {
@@ -400,9 +687,13 @@ int main(int argc, char **argv) {
     fclose(f);
     free(text);
   }
+  for (i = 0; i < n_saves; ++i) {
+    if (!saves[i] || !state_save(s, saves[i])) return 1;
+  }
   free(ev);
   free(snaps);
   free(peeks);
+  free((void *)imports);       /* LeakSanitizer (on by default on Linux) counts it */
   free(mem);
   fm1_script_free(&script);
   return 0;

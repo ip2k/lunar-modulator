@@ -703,6 +703,7 @@ extern "C" const fm1_engine_t fm1_engine_drawbar = {
   fm1::felucca::SetNote,
   0, NULL,                  // API v3: no effect extension
   0, 0,                     // not a pad kit
+  NULL,                     // API v4: no get_param, the host keeps its values
 };
 
 extern "C" const fm1_engine_t fm1_engine_trio = {
@@ -716,6 +717,7 @@ extern "C" const fm1_engine_t fm1_engine_trio = {
   fm1::felucca::SetNote,
   0, NULL,
   0, 0,
+  NULL,
 };
 
 extern "C" const fm1_engine_t fm1_engine_phase_bend = {
@@ -730,4 +732,5 @@ extern "C" const fm1_engine_t fm1_engine_phase_bend = {
   fm1::felucca::SetNote,
   0, NULL,
   0, 0,
+  NULL,
 };

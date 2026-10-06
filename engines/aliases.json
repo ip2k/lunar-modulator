@@ -1,0 +1,5 @@
+{
+  "about": "Names a parameter or a list entry had before it was renamed, so a file written with the old name still loads (notes/2026-10-06-state-files.md §9, ST4). A rename adds an alias here and never removes one: `params` maps an old parameter name to its uid, `entries` an old entry name to its index, for an engine, effect or MIDI effect (`engine`) or a modulation kind (`kind`). Nothing has been renamed since the file format began (2026-10-06), so both lists are empty. tools/gen_known.py writes them into engines/state/fm1_known.c; the metadata export carries them as each parameter's `aliases` and `entry_aliases`.",
+  "params": [],
+  "entries": []
+}

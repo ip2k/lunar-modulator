@@ -1,0 +1,7 @@
+{"rec":"head","kind":"settings","major":1,"minor":0}
+{"rec":"info","key":"by","text":"hand"}
+{"rec":"setting","key":"metronome","bool":false}
+{"rec":"setting","key":"count_in_click","bool":true}
+{"rec":"setting","key":"full_velocity","bool":false}
+{"rec":"setting","key":"midi_in_channel","int":0}
+{"rec":"end"}

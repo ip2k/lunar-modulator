@@ -294,6 +294,26 @@ Quantize, Compare, Logic, Calc, Mix, Resonator) have their own page:
 **POLY_OK.** LFO, Envelope and Chance carry `FM1_MOD_KIND_POLY_OK`: they
 may run one instance per voice (MG9, below). The other kinds run once.
 
+**Pattern data** (mod API v2, 2026-10-06; notes/2026-10-06-state-files.md
+ST12). What a user makes in a module that no parameter holds is saved as
+the kind's pattern data: `data_bytes` bytes in layout `data_version` (the
+last field of `fm1_mod_kind_t`, 1 up), through `get_data` and `set_data`,
+which takes its layout and any older one it knows and returns 0, changing
+nothing, for anything else. A host reaches it by position with
+`fm1_mod_get_data(m, pos, buf, cap, &version)` and `fm1_mod_set_data(m,
+pos, buf, n, version)`, after placing the kind (a kind change drops it). A
+kind with data is never POLY_OK (its data is the one instance's) and keeps
+at most `FM1_MOD_DATA_MAX` (1,024) bytes; `fm1-mod-kinds-test` holds every
+kind to that.
+- **Register** is the first: its 32 bits and the length it ran at, layout
+  1 (5 bytes: the bits little-endian, then the length 1-32). A loop locked
+  with Change at +1, or edited with WRITE, comes back as that loop, not the
+  seed's; the random stream restarts from the seed, as with any load. A
+  saved loop given to a Register of another seed plays on exactly
+  [verified: `fm1-mod-kinds-test`].
+- `fm1-render --list-mod` prints each kind's `data` (`{bytes, version}` or
+  null), and the metadata export carries it.
+
 ### Voices (MG9)
 
 The owner made per-voice modulation essential (docs/16 §6.3, 2026-10-02):
@@ -421,6 +441,8 @@ slot 1 lfo1 > snd:Timbre amt=30         # a cable; amt and ofs in percent
 slot 2 seq2 > env4.gate amt=70          # a gate cable at 70 %
 slot 3 lfo1 > lfo2.rate amt=20 via=vel pol=uni curve=square
 slot 4 env3 > snd:Morph amt=50 voice    # per voice (MG9)
+slot 5 lfo2 > snd:Timbre amt=10 lock=300   # the slot's AMT and OFS lock uid (MG6)
+data 7 1 a50f3c0010                     # pattern data: position, layout, hex (Register)
 current 2                               # the current sound unit, for host:pitchc
 @44118 slot 1 off                       # @FRAME: at the first block starting there
 ```
@@ -439,6 +461,14 @@ first `.`. The sound units and inserts need the slots flags (`--sound`,
 `--param-at`, `--sound-param-at`, `--fx-param-at` and `--bend` go through
 the bases.
 
+Since 2026-10-06 the format can say everything a saved file can (the
+state note's §5.4): `lock=UID` gives a slot the base uid of its own AMT and
+OFS for sequencer locks (0-4095, 0 for none), and `data P VERSION HEX` a
+module its pattern data, refused with a reason when the kind does not take
+that layout or size (`tests/test_engines_mod_data.py`).
+`fm1_mod_script_data_line` writes a module's line for a replay log, and
+**`--save-mod-data FILE`** writes every module's as the render ends.
+
 **`--log-mod FILE.jsonl`**: one line per tick, with `k` (the tick), `t`
 (its absolute frame), `m` (each module's effective parameters `v`, outputs
 `o` and gate edges `e` as [port, frame, level]), `g` (system gate edges as
@@ -449,7 +479,8 @@ the last tick, a new note's included: [frame, unit, key, index, offset],
 index 65535 the note's pitch).
 
 **`--list-mod`**: the kinds with every parameter's uid and flags, their
-ports, the system sources and the host parameters, as JSON.
+ports, whether each runs per voice (`poly_ok`) and keeps pattern data
+(`data`), the system sources and the host parameters, as JSON.
 
 **The summary** adds `mod_bytes`, `mod_ticks`, `mod_writes` (and the sound's
 and the others' share), `mod_active`, `mod_refused`, `mod_delayed`,

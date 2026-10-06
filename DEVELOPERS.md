@@ -36,6 +36,7 @@ GitHub's documentation on renaming a repository].
   - [The engine platform](#the-engine-platform)
   - [Renders checked against the reference, sample by sample](#renders-checked-against-the-reference-sample-by-sample)
   - [The sequencer core](#the-sequencer-core)
+  - [Saved state](#saved-state)
   - [The virtual FM-1](#the-virtual-fm-1)
 - [The hardware](#the-hardware)
   - [The FM-1 at a glance](#the-fm-1-at-a-glance)
@@ -104,6 +105,7 @@ python3 reference/jl-misctools/firmware/fwunpack_newfw.py FM-1.fwsc     # unpack
 python tools/fm1_identify.py                                   # read-only identity query + decode, any OS (verified on hardware)
 python -m pytest                                               # tools, PIO emulation, dongle/ROM co-simulation and engine tests
 make -C engines && engines/build/fm1-render --list             # engine platform, desktop build (docs/11, engines/README.md)
+engines/build/fm1-state canon FILE                             # saved state: canonical JSON, pack/unpack binary, check (engines/state/README.md)
 FM1_GPL_MODS=0 make -C engines                                 # the same without the GPL modules: the MIT/BSD build (Licences, below)
 python3 -m http.server 8000 -d sim/web/www                     # the virtual FM-1 at http://localhost:8000/ (sim/web/README.md)
 FM1_SIM_HOST=user@host sim/web/build-on-aeon.sh                # rebuild and check its WebAssembly module in containers on a Docker host
@@ -136,13 +138,19 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   Six-Op FM, FM6, Sophie and Drums: the registry's sound engines less Test
   Sine) and twenty-two effects (Comb split out of Filter, Squash and
   Transient added on 2026-10-05), plus test engines, behind one C API,
-  version 3
+  version 4
   ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
-  [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
+  [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3) and
+  ["Engine API v4"](engines/README.md#engine-api-v4)):
   16-bit parameter flags with the LOG law for pitch- and time-like knobs, a
   dB unit, an optional effect extension that hands an effect a key
-  input, the tempo and beat position, and the transport's events, and pad
-  kits ([engines/README.md, "Pad kits"](engines/README.md#pad-kits)).
+  input, the tempo and beat position, and the transport's events, pad
+  kits ([engines/README.md, "Pad kits"](engines/README.md#pad-kits)), and
+  since v4 (2026-10-06) a pad kit's focus and per-pad values read back
+  through `get_param`, so every value a user can set can be saved. `fm1-render
+  --meta` exports every engine's, effect's, MIDI effect's and modulation
+  kind's parameter metadata as JSON, for editors
+  ([engines/README.md, "The parameter metadata export"](engines/README.md#the-parameter-metadata-export)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
@@ -289,7 +297,8 @@ nothing of ours in the path, and more than 400 tests compare the two.
   [docs/13](docs/13-movy-port.md) on by default and an exact-Movy mode for
   tests.
 - **Tracks:** 4–8, each routed to the engine or to USB-MIDI on its own
-  channel, in 14,984 bytes at 4 tracks and 28,808 at 8.
+  channel, in 15,048 bytes at 4 tracks and 28,872 at 8 without Capture
+  (18,120 and 31,944 with its default 256 events).
 - **On the desktop:** the desktop renderer plays Movy sets and timed scripts
   through it with sample-accurate notes and parameter locks.
 - **Checked against Movy:** Movy's own unmodified core, run in a container,
@@ -336,6 +345,34 @@ chapter 4, "Arpeggiator"). The second MIDI effect, **Acid Gen** (GPL, with
 the switch on), plays fm1-x0x's TB-3PO lines on the same ticks, as
 fm1-x0x's sequencer plays a 303 part; in the virtual FM-1, ALGORITHM puts
 it in the arpeggiator's slot ([`engines/midi_fx/README.md`](engines/midi_fx/README.md#acid-gen-gpl)).
+
+### Saved state
+
+Projects, sounds, effects chains, mod racks, clips, sets and settings are
+one record model with two encodings: canonical JSON for people, links, git
+and the coming web editor, and a chunked binary container (CRC-32 a chunk,
+deflate in a 4 KiB window) for the device. `engines/state/` reads JSON in
+pieces of any size with 1.4 KB of state and no malloc, so the firmware can
+link it, writes canonical JSON, and converts losslessly both ways;
+`tools/lunar_state.py` does the same independently, names resolved against
+the build's metadata export, and the two agree byte for byte [verified:
+`tests/test_state_codec.py`]. A set reaches the sequencer core through its
+streaming import, in pieces, so no `movy1` line is ever held whole.
+`fm1-render` and `fm1-seq` load and save every kind (`--load`, `--save`),
+refusing what the device will (an engine the build lacks, with its reason,
+or more than the FM-1's RAM at 44,118 Hz). Save, load and save again gives
+the same bytes, in JSON and in binary, for every kind and for a guide-sized
+project; and a project saved from a session of four sounds (a drum kit's
+pads, inserts, the arpeggiator, master effects, a modulation rack with
+Register's pattern data, a set with its song) reloads and renders the same
+WAV byte for byte, from either encoding [verified:
+`tests/test_state_whole.py`, 2026-10-06]. The song list's editing, its end
+modes and scene names are in the sequencer core (stage E1, `engines/seq.md`,
+"The song"); their Session and Song pages come later. The simulator's Open,
+Save and launch links are the next stages
+([`engines/state/README.md`](engines/state/README.md); the design and its
+decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
+[`notes/2026-10-06-song-and-scenes.md`](notes/2026-10-06-song-and-scenes.md)).
 
 ### The virtual FM-1
 
@@ -936,7 +973,8 @@ modulation source, a MIDI effect, an audio effect, or another kind.
     S7a every parameter has its uid and flags, and since 2026-10-05
     `FM1_ENGINE_API_VERSION` is 3 (16-bit flags, LOG, dB, the effect
     extension), and since 2026-10-06 the MIDI-effect kind with its
-    `process()` [verified: `fm1_engine.h`]. An SDK needs those contracts
+    `process()`, and is 4 (the FOCUS and PER_FOCUS flags and `get_param`)
+    [verified: `fm1_engine.h`]. An SDK needs those contracts
     settled and versioned first [inferred];
   - the effects' tempo and beat position: in since API v3, as the per-call
     `fm1_fx_ext_t` rather than fields of `fm1_host_t`; the MOD flag is in

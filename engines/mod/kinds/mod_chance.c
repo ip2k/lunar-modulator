@@ -181,5 +181,5 @@ const fm1_mod_kind_t fm1_mod_kind_chance = {
   "Paul Batchelor, MIT) and Music Thing Modular Workshop System Computer card 106 (Matt "
   "Allison, MIT).",
   kParams, P_COUNT, 1, 3, kGates, kOuts, FM1_MOD_KIND_POLY_OK, 0,
-  chance_size, chance_create, NULL, chance_reset, chance_process, NULL, NULL, NULL
+  chance_size, chance_create, NULL, chance_reset, chance_process, NULL, NULL, NULL, 0
 };

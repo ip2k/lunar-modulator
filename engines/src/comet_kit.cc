@@ -126,10 +126,13 @@ const float kAccentDef = 1.0f + 3.0f * (42.0f / 127.0f);
 
 // Uids (API v2) are fixed: never renumber one, and give a new parameter the
 // next free uid.
-const uint16_t kPadFloat = FM1_PARAM_CONTINUOUS;
+// API v4: Pad is the focus; each pad keeps its own Tune .. Drive and Drive
+// Type (PER_FOCUS), which get_param reads from any pad, so a saved kit holds
+// all sixteen (notes/2026-10-06-state-files.md ST7).
+const uint16_t kPadFloat = FM1_PARAM_CONTINUOUS | FM1_PARAM_PER_FOCUS;
 const uint16_t kLatch = FM1_PARAM_LATCH | FM1_PARAM_MOD;
 const fm1_param_t kParams[P_COUNT] = {
-  { "Pad",        FM1_PARAM_ENUM,  0, kNumPads - 1, 0, kPadNames, 0, 1, 0, FM1_UNIT_NONE, "Pad" },
+  { "Pad",        FM1_PARAM_ENUM,  0, kNumPads - 1, 0, kPadNames, 0, 1, FM1_PARAM_FOCUS, FM1_UNIT_NONE, "Pad" },
   { "Tune",       FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 2, kPadFloat, FM1_UNIT_NONE, "Tune" },
   { "Decay",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 3, kPadFloat, FM1_UNIT_NONE, "Decay" },
   { "Level",      FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0, 4, kPadFloat, FM1_UNIT_NONE, "Level" },
@@ -137,7 +140,8 @@ const fm1_param_t kParams[P_COUNT] = {
   { "Snap",       FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 6, kPadFloat, FM1_UNIT_NONE, "Snap" },
   { "Sweep",      FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 1, 7, kPadFloat, FM1_UNIT_NONE, "Sweep" },
   { "Drive",      FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 1, 8, kPadFloat, FM1_UNIT_NONE, "Drive" },
-  { "Drive Type", FM1_PARAM_ENUM,  0, kDistTypes - 1, 0, kDistNames, 2, 9, kLatch, FM1_UNIT_NONE, "DrvTyp" },
+  { "Drive Type", FM1_PARAM_ENUM,  0, kDistTypes - 1, 0, kDistNames, 2, 9, kLatch | FM1_PARAM_PER_FOCUS,
+    FM1_UNIT_NONE, "DrvTyp" },
   { "Accent",     FM1_PARAM_FLOAT, 1, 4, kAccentDef, NULL, 2, 10, kLatch, FM1_UNIT_NONE, "Accent" },
   { "Velocity",   FM1_PARAM_FLOAT, 0, 100, 100, NULL, 2, 11, kLatch, FM1_UNIT_PCT, "Veloc" },
   { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 2, 12, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Vol" },
@@ -417,6 +421,20 @@ struct Instance {
       SetKit(index, value);
     }
   }
+
+  // API v4: what set_param left, never a ramp's step; a PER_FOCUS
+  // parameter's for pad `pad_focus` (FM1_FOCUS_CURRENT, or past the last
+  // pad: the focused one's).
+  float GetParam(uint16_t index, uint8_t pad_focus) const {
+    if (index >= P_COUNT) return 0.0f;
+    const PadState &pad = pads[pad_focus < kNumPads ? pad_focus : focus];
+    if (index == P_PAD) return static_cast<float>(focus);
+    if (index >= P_TUNE && index <= P_DRIVE) return pad.ramp[index - P_TUNE].target;
+    if (index == P_DRVTYPE) return static_cast<float>(pad.dist);
+    if (index == P_KIT) return static_cast<float>(kit);
+    if (index == P_VOLUME) return kit_ramp[P_VOLUME].target;
+    return kit_value[index];          // Accent, Velocity
+  }
 };
 
 size_t InstanceSize(const fm1_host_t *) { return (sizeof(Instance) + 15u) & ~static_cast<size_t>(15u); }
@@ -435,6 +453,9 @@ void NoteOn(void *s, uint8_t k, uint8_t v) { static_cast<Instance *>(s)->NoteOn(
 void NoteOff(void *, uint8_t) { }     // a hit rings out for its decay
 void Bend(void *, float) { }          // the 909 has none: taken and ignored
 void Set(void *s, uint16_t i, float v) { static_cast<Instance *>(s)->SetParam(i, v); }
+float Get(const void *s, uint16_t i, uint8_t focus) {
+  return static_cast<const Instance *>(s)->GetParam(i, focus);
+}
 void Render(void *s, float *out, uint32_t n) { static_cast<Instance *>(s)->Render(out, n); }
 
 }  // namespace comet_kit
@@ -454,6 +475,7 @@ extern "C" const fm1_engine_t fm1_engine_comet_kit = {
   0, NULL,                  // API v3: no effect extension
   // A pad kit: notes 36-51 play pads 1-16 (engines/README.md, "Pad kits").
   fm1::comet_kit::kFirstNote, fm1::comet_kit::kNumPads,
+  fm1::comet_kit::Get,      // API v4: every pad's values read back
 };
 
 // For the oracle (engines/test/comet_oracle.cc): the vendored unit inside an

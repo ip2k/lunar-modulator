@@ -203,7 +203,10 @@ static const char *const kVerbName[FM1_SEQ_V_COUNT] = {
   [FM1_SEQ_V_ACLR] = "aclr", [FM1_SEQ_V_ACLRS] = "aclrs", [FM1_SEQ_V_ACLRSTEP] = "aclrstep",
   [FM1_SEQ_V_ASETR] = "asetr", [FM1_SEQ_V_USNAP] = "usnap", [FM1_SEQ_V_USWAP] = "uswap",
   [FM1_SEQ_V_UCOMMIT] = "ucommit", [FM1_SEQ_V_UDROP] = "udrop", [FM1_SEQ_V_UCLR] = "uclr",
-  [FM1_SEQ_V_ROUTE] = "route", [FM1_SEQ_V_KEY] = "key",
+  [FM1_SEQ_V_ROUTE] = "route", [FM1_SEQ_V_KEY] = "key", [FM1_SEQ_V_SGINS] = "sgins", [FM1_SEQ_V_SGDEL] = "sgdel",
+  [FM1_SEQ_V_SGSET] = "sgset", [FM1_SEQ_V_SGMOV] = "sgmov", [FM1_SEQ_V_SGCLR] = "sgclr",
+  [FM1_SEQ_V_SGEND] = "sgend", [FM1_SEQ_V_SGJUMP] = "sgjump", [FM1_SEQ_V_SCENE] = "scene",
+  [FM1_SEQ_V_SGNEW] = "sgnew", [FM1_SEQ_V_SGNAME] = "sgname",
 };
 
 const char *fm1_seq_verb_name(unsigned v) { return v < FM1_SEQ_V_COUNT ? kVerbName[v] : NULL; }

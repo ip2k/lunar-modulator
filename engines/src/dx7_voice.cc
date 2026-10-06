@@ -20,7 +20,9 @@ namespace dx7 {
 
 namespace {
 
-// The largest value of each byte of an operator, in VCED order.
+// The largest value of each byte of an operator, in VCED order
+// (fm1_dx7_op_fields below names them; tests/test_engines_dx7.py checks the
+// two agree).
 const uint8_t kOpMax[kOpBytes] = {
   99, 99, 99, 99,   // R1..R4
   99, 99, 99, 99,   // L1..L4
@@ -93,6 +95,27 @@ void FromPacked(const uint8_t packed[kPackedBytes], uint8_t v[kVoiceBytes]) {
   fm1_msfa::UnpackPatch(bulk, out);
   for (int i = 0; i < kVoiceBytes; ++i) v[i] = static_cast<uint8_t>(out[i]) & 0x7F;
   Sanitize(v);
+}
+
+void ToPacked(const uint8_t vced[FM1_DX7_VCED_BYTES], uint8_t packed[kPackedBytes]) {
+  uint8_t v[kVoiceBytes];
+  FromVced(vced, v);
+  for (int op = 0; op < 6; ++op) {
+    const uint8_t *o = v + op * kOpBytes;
+    uint8_t *p = packed + op * 17;
+    memcpy(p, o, 11);                                       // rates, levels, break point, depths
+    p[11] = static_cast<uint8_t>(o[OP_LC] | o[OP_RC] << 2);
+    p[12] = static_cast<uint8_t>(o[OP_RS] | o[OP_DET] << 3);
+    p[13] = static_cast<uint8_t>(o[OP_AMS] | o[OP_KVS] << 2);
+    p[14] = o[OP_OL];
+    p[15] = static_cast<uint8_t>(o[OP_MODE] | o[OP_FC] << 1);
+    p[16] = o[OP_FF];
+  }
+  memcpy(packed + 102, v + V_PR1, 9);                       // pitch envelope, algorithm
+  packed[111] = static_cast<uint8_t>(v[V_FB] | v[V_OKS] << 3);
+  memcpy(packed + 112, v + V_LFS, 4);                       // LFO speed, delay, depths
+  packed[116] = static_cast<uint8_t>(v[V_LKS] | v[V_LFW] << 1 | v[V_LPMS] << 4);
+  memcpy(packed + 117, v + V_TRNSP, 1 + FM1_DX7_NAME_BYTES);   // transpose, name
 }
 
 void FromVced(const uint8_t data[FM1_DX7_VCED_BYTES], uint8_t v[kVoiceBytes]) {
@@ -187,6 +210,14 @@ int ParseSysex(const uint8_t *data, size_t len, unsigned slot, StoreFn store, vo
 
 namespace {
 
+// The checksum of a dump's data: it makes the data and itself sum to 0 in
+// seven bits.
+uint8_t Checksum(const uint8_t *data, size_t n) {
+  unsigned sum = 0;
+  for (size_t k = 0; k < n; ++k) sum += data[k];
+  return static_cast<uint8_t>((0x80u - (sum & 0x7Fu)) & 0x7Fu);
+}
+
 // fm1_dx7_read_sysex's store, from ParseSysex's: msfa's voice is the VCED
 // data in its order with the operator byte after it.
 struct ReadCtx {
@@ -210,3 +241,51 @@ extern "C" int fm1_dx7_read_sysex(const uint8_t *data, size_t len, unsigned slot
   ReadCtx c = { store, ctx };
   return fm1::dx7::ParseSysex(data, len, slot, ReadStore, &c, res);
 }
+
+extern "C" void fm1_dx7_pack_voice(const uint8_t vced[FM1_DX7_VCED_BYTES],
+                                   uint8_t packed[FM1_DX7_PACKED_BYTES]) {
+  fm1::dx7::ToPacked(vced, packed);
+}
+
+extern "C" size_t fm1_dx7_write_voice(const uint8_t vced[FM1_DX7_VCED_BYTES], unsigned channel,
+                                      uint8_t out[FM1_DX7_VOICE_SYSEX_BYTES]) {
+  uint8_t v[fm1::dx7::kVoiceBytes];
+  fm1::dx7::FromVced(vced, v);
+  const uint8_t head[6] = { 0xF0, 0x43, static_cast<uint8_t>(channel & 0x0F), 0x00, 0x01, 0x1B };
+  memcpy(out, head, sizeof(head));
+  memcpy(out + 6, v, FM1_DX7_VCED_BYTES);
+  out[6 + FM1_DX7_VCED_BYTES] = Checksum(out + 6, FM1_DX7_VCED_BYTES);
+  out[7 + FM1_DX7_VCED_BYTES] = 0xF7;
+  return FM1_DX7_VOICE_SYSEX_BYTES;
+}
+
+extern "C" size_t fm1_dx7_write_bank(const uint8_t *const voices[FM1_DX7_USER_SLOTS],
+                                     unsigned channel, uint8_t out[FM1_DX7_BANK_SYSEX_BYTES]) {
+  const uint8_t head[6] = { 0xF0, 0x43, static_cast<uint8_t>(channel & 0x0F), 0x09, 0x20, 0x00 };
+  memcpy(out, head, sizeof(head));
+  for (unsigned k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
+    const uint8_t *v = voices && voices[k] ? voices[k] : fm1::dx7::kInitVoice;
+    fm1::dx7::ToPacked(v, out + 6 + k * FM1_DX7_PACKED_BYTES);
+  }
+  out[6 + FM1_DX7_VMEM_BYTES] = Checksum(out + 6, FM1_DX7_VMEM_BYTES);
+  out[7 + FM1_DX7_VMEM_BYTES] = 0xF7;
+  return FM1_DX7_BANK_SYSEX_BYTES;
+}
+
+// The names files and editors use for the VCED values (the DX7's own
+// abbreviations); the ranges are the ones every load clamps to.
+extern "C" const fm1_dx7_field_t fm1_dx7_op_fields[FM1_DX7_OP_FIELDS] = {
+  { "R1", 99 }, { "R2", 99 }, { "R3", 99 }, { "R4", 99 },
+  { "L1", 99 }, { "L2", 99 }, { "L3", 99 }, { "L4", 99 },
+  { "BP", 99 }, { "LD", 99 }, { "RD", 99 }, { "LC", 3 }, { "RC", 3 },
+  { "RS", 7 }, { "AMS", 3 }, { "KVS", 7 }, { "OL", 99 }, { "M", 1 },
+  { "FC", 31 }, { "FF", 99 }, { "DET", 14 },
+};
+
+extern "C" const fm1_dx7_field_t fm1_dx7_voice_fields[FM1_DX7_VOICE_FIELDS] = {
+  { "PR1", 99 }, { "PR2", 99 }, { "PR3", 99 }, { "PR4", 99 },
+  { "PL1", 99 }, { "PL2", 99 }, { "PL3", 99 }, { "PL4", 99 },
+  { "ALG", 31 }, { "FB", 7 }, { "OKS", 1 },
+  { "LFS", 99 }, { "LFD", 99 }, { "LPMD", 99 }, { "LAMD", 99 },
+  { "LKS", 1 }, { "LFW", 5 }, { "LPMS", 7 }, { "TRNSP", 48 },
+};

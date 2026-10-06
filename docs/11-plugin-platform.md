@@ -307,7 +307,10 @@ typedef struct fm1_engine {
   (dB among them since v3) and a short abbreviation [verified:
   engines/README.md, "Parameters"]. Since v3 an effect may also take a key
   input, the tempo, its beats and the transport's events (`fm1_fx_ext_t`;
-  engines/README.md, "Engine API v3"). An engine may
+  engines/README.md, "Engine API v3"). Since v4 (2026-10-06) a pad kit's
+  edit focus is flagged FOCUS and its per-pad parameters PER_FOCUS, and an
+  optional `get_param` reads any pad's value back, so a saved kit holds
+  every pad (engines/README.md, "Engine API v4"). An engine may
   also take per-note offsets on its POLY parameters and the note's pitch
   (`set_param_note`, for per-voice modulation) [verified: engines/README.md,
   "Per-note offsets"]. Since stage S7b a SMOOTH parameter ramps over 2.5 ms

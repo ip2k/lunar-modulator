@@ -140,7 +140,7 @@ def test_the_switch_is_zero_or_one():
 def test_each_build_says_how_it_was_built(on, off):
     for b, gpl in ((on, 1), (off, 0)):
         info = json.loads(call(b["render"], "--build-info"))
-        assert info["gpl_mods"] == gpl and info["engine_api"] == 3
+        assert info["gpl_mods"] == gpl and info["engine_api"] == 4      # API v4: get_param
         header = (b["dir"] / "gen" / "fm1_gpl_mods.h").read_text()
         assert header.startswith(f"#define FM1_GPL_MODS {gpl} ")
     assert json.loads(call(off["render"], "--build-info"))["gpl_modules"] == 0

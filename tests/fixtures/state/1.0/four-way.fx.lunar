@@ -1,0 +1,109 @@
+{
+  "lunar": "1.0",
+  "kind": "fx",
+  "made": {"by": "desktop", "version": "0.1.0", "commit": "1757499"},
+  "name": "FOUR WAY",
+  "title": "Four-way chain",
+  "about": "An echo, a gap, a comb and a limiter.",
+  "author": "Lunar Modulator",
+  "licence": "MIT",
+  "chain": [
+    {
+      "engine": "echo",
+      "params": {
+        "Time": 479.82498,
+        "Feedback": 0.6574725,
+        "Ping-pong": 0.66641045,
+        "Mix": 0.14260036,
+        "Tone": 0.010860443,
+        "Wow": 0.3747545,
+        "Level": 0.27404815
+      }
+    },
+    null,
+    {
+      "engine": "comb",
+      "params": {
+        "Cutoff": 14590.058,
+        "Resonance": 0.69059265,
+        "Drive": 0.60145706,
+        "Mode": 1.6745702,
+        "Morph": 0.6613211,
+        "Mix": 0.14530279,
+        "Level": 0.8801096
+      }
+    },
+    {
+      "engine": "limit",
+      "params": {
+        "Ceiling": -20.105585,
+        "Drive": 20.615026,
+        "Release": 59.765503,
+        "Lookahead": 4.0941005,
+        "Mode": "Brickwall",
+        "Link": 0.5135199,
+        "Mix": 0.81924987
+      }
+    }
+  ],
+  "mod": {
+    "rack": [
+      {
+        "pos": 3,
+        "kind": "lfo",
+        "params": {
+          "Rate": 0.68143624,
+          "Shape": "Triangle",
+          "Depth": -0.9627914,
+          "Mode": "Free",
+          "Phase": 0.8196537,
+          "Sync": "1/8T",
+          "Width": 0.5089259
+        },
+        "data": {"version": 1, "hex": "00ff10a5"}
+      }
+    ],
+    "cables": [
+      {
+        "slot": 1,
+        "on": true,
+        "from": {"module": 3, "port": "Out"},
+        "via": {"source": "VEL"},
+        "to": {"unit": "fx3", "param": "Resonance"},
+        "amount": 12.5,
+        "offset": 0,
+        "polarity": "uni",
+        "curve": "s",
+        "voice": false,
+        "lock": 400
+      },
+      {
+        "slot": 2,
+        "on": false,
+        "from": {"source": "BEAT"},
+        "via": null,
+        "to": {"unit": "fx4", "param": "Drive"},
+        "amount": -100,
+        "offset": 33.33,
+        "polarity": "inv",
+        "curve": "cube",
+        "voice": false,
+        "lock": 0
+      },
+      {
+        "slot": 32,
+        "on": true,
+        "from": {"source": "RAND"},
+        "via": null,
+        "to": {"module": 5, "param": "Rate"},
+        "amount": 0.006,
+        "offset": 0,
+        "polarity": "auto",
+        "curve": "lin",
+        "voice": false,
+        "lock": 0
+      }
+    ]
+  },
+  "view": {"mode": "chain", "pos": 3}
+}

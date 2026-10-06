@@ -1,0 +1,70 @@
+{
+  "lunar": "1.0",
+  "kind": "fx",
+  "made": {"by": "hand"},
+  "name": "SPACE VERBS",
+  "title": "Space verbs",
+  "about": "An echo into a hall, with the hall's size breathing.",
+  "licence": "MIT",
+  "chain": [
+    {
+      "engine": "echo",
+      "params": {
+        "Time": 375,
+        "Feedback": 0.5,
+        "Ping-pong": 1,
+        "Mix": 0.3,
+        "Tone": 0.6,
+        "Wow": 0.1,
+        "Level": 1
+      }
+    },
+    {
+      "engine": "hall",
+      "params": {
+        "Decay": 0.75,
+        "Size": 0.9,
+        "Damping": 0.4,
+        "Mix": 0.35,
+        "Pre-delay": 20,
+        "Diffusion": 0.7,
+        "Mod": 0.3,
+        "Freeze": "Off",
+        "Width": 1,
+        "Low Cut": 0.2
+      }
+    }
+  ],
+  "mod": {
+    "rack": [
+      {
+        "pos": 1,
+        "kind": "lfo",
+        "params": {
+          "Rate": 0.1,
+          "Shape": "Sine",
+          "Depth": 1,
+          "Mode": "Free",
+          "Phase": 0,
+          "Sync": "Off",
+          "Width": 0.5
+        }
+      }
+    ],
+    "cables": [
+      {
+        "slot": 1,
+        "on": true,
+        "from": {"module": 1, "port": "Out"},
+        "via": null,
+        "to": {"unit": "fx2", "param": "Size"},
+        "amount": 20,
+        "offset": 0,
+        "polarity": "auto",
+        "curve": "lin",
+        "voice": false,
+        "lock": 0
+      }
+    ]
+  }
+}

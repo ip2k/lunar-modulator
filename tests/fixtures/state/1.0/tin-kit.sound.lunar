@@ -1,0 +1,245 @@
+{
+  "lunar": "1.0",
+  "kind": "sound",
+  "made": {"by": "hand"},
+  "name": "TIN KIT",
+  "title": "Tin kit",
+  "about": "A metallic kit, its pads tuned apart, behind an arpeggiator held off.",
+  "licence": "MIT",
+  "sound": {
+    "engine": "sw-sophie",
+    "params": {
+      "Pad": "15 High Tom"
+    },
+    "pads": [
+      {
+        "Sweep": 73.14846,
+        "Decay": 3.4317462,
+        "Tune": 13.4984665,
+        "Color": 45.18323,
+        "Model": "Stack",
+        "Feedback": 18.466034,
+        "Metal": 51.190865
+      },
+      {
+        "Sweep": 25.976543,
+        "Decay": 3.1781182,
+        "Tune": -19.482075,
+        "Color": 30.340126,
+        "Model": "Fuse",
+        "Feedback": 53.86935,
+        "Metal": 89.03805
+      },
+      {
+        "Sweep": 26.890556,
+        "Decay": 2.393883,
+        "Tune": -4.984321,
+        "Color": 45.299488,
+        "Model": "Stack",
+        "Feedback": 62.312843,
+        "Metal": 83.170166
+      },
+      {
+        "Sweep": -87.36702,
+        "Decay": 0.17154154,
+        "Tune": 18.219118,
+        "Color": 59.961807,
+        "Model": "Shard",
+        "Feedback": 32.629333,
+        "Metal": 59.095943
+      },
+      {
+        "Sweep": -60.935726,
+        "Decay": 0.9575732,
+        "Tune": -9.880725,
+        "Color": 0.45937723,
+        "Model": "Fuse",
+        "Feedback": 45.732986,
+        "Metal": 27.81629
+      },
+      {
+        "Sweep": 99.53124,
+        "Decay": 3.9828959,
+        "Tune": 16.330347,
+        "Color": 70.78096,
+        "Model": "Split",
+        "Feedback": 75.799,
+        "Metal": 51.288464
+      },
+      {
+        "Sweep": -94.049614,
+        "Decay": 2.2656748,
+        "Tune": -18.819508,
+        "Color": 10.780311,
+        "Model": "Split",
+        "Feedback": 38.651352,
+        "Metal": 95.80424
+      },
+      {
+        "Sweep": 69.46195,
+        "Decay": 0.0321634,
+        "Tune": -13.933564,
+        "Color": 91.02719,
+        "Model": "Shard",
+        "Feedback": 37.54632,
+        "Metal": 70.889915
+      },
+      {
+        "Sweep": -16.04172,
+        "Decay": 2.2779796,
+        "Tune": -14.472473,
+        "Color": 67.49091,
+        "Model": "Split",
+        "Feedback": 8.714419,
+        "Metal": 33.258564
+      },
+      {
+        "Sweep": 92.81525,
+        "Decay": 3.0394208,
+        "Tune": -18.3364,
+        "Color": 24.638794,
+        "Model": "Fuse",
+        "Feedback": 1.0955014,
+        "Metal": 46.493984
+      },
+      {
+        "Sweep": -2.6353416,
+        "Decay": 2.7378473,
+        "Tune": -14.957498,
+        "Color": 50.886543,
+        "Model": "Stack",
+        "Feedback": 41.92305,
+        "Metal": 38.37518
+      },
+      {
+        "Sweep": -21.029325,
+        "Decay": 3.9605074,
+        "Tune": -23.977396,
+        "Color": 86.433395,
+        "Model": "Split",
+        "Feedback": 99.790375,
+        "Metal": 1.963071
+      },
+      {
+        "Sweep": -62.53853,
+        "Decay": 3.9834678,
+        "Tune": 4.896888,
+        "Color": 57.695984,
+        "Model": "Fuse",
+        "Feedback": 98.93017,
+        "Metal": 21.324337
+      },
+      {
+        "Sweep": -48.34449,
+        "Decay": 3.097578,
+        "Tune": -8.210139,
+        "Color": 29.632477,
+        "Model": "Fuse",
+        "Feedback": 7.428099,
+        "Metal": 20.873331
+      },
+      {
+        "Sweep": 27.317482,
+        "Decay": 0.09157102,
+        "Tune": -6.3035903,
+        "Color": 62.214924,
+        "Model": "Stack",
+        "Feedback": 95.91347,
+        "Metal": 48.37245
+      },
+      {
+        "Sweep": 14.914249,
+        "Decay": 3.4701068,
+        "Tune": -15.22427,
+        "Color": 15.413532,
+        "Model": "Stack",
+        "Feedback": 81.7802,
+        "Metal": 24.949856
+      }
+    ],
+    "level": 64.5,
+    "inserts": [
+      null,
+      {
+        "engine": "filter",
+        "params": {
+          "Type": "Ladder",
+          "Cutoff": 2869.3933,
+          "Resonance": 0.6289773,
+          "Drive": 0.5539312,
+          "Mode": 2.060922,
+          "Morph": 0.38820994,
+          "Mix": 0.4825162,
+          "Level": 0.15699561
+        }
+      }
+    ],
+    "midi_fx": [
+      {
+        "engine": "arp",
+        "on": false,
+        "params": {
+          "Mode": "Down",
+          "Order": "Pitch",
+          "Octaves": "1",
+          "Oct Mode": "Span",
+          "Rate": "1/1",
+          "Gate": 192.57362,
+          "Swing": 57.152214,
+          "Pattern": "22",
+          "Length": 12.531551,
+          "Fill": 13.466089,
+          "Rotate": 28.049545,
+          "Latch": "On",
+          "Join": "Next Pass",
+          "Sync": "Free",
+          "Repeat": "2",
+          "Ratchet": "2",
+          "Ratchet %": 22.839634,
+          "Chance": 55.936634,
+          "Chord %": 85.23999,
+          "Oct Jump": 61.4303,
+          "Velocity": 35.587864,
+          "Vel Spread": 116.504745,
+          "Gate Sprd": 20.397888,
+          "Loop": 1.0607867,
+          "Seed": 17641.625
+        }
+      }
+    ]
+  },
+  "mod": {
+    "rack": [
+      {
+        "pos": 2,
+        "kind": "env",
+        "params": {
+          "Attack": 0.44570553,
+          "Decay": 0.060455576,
+          "Sustain": 0.17625378,
+          "Release": 0.36878538,
+          "Curve": "Quartic",
+          "Loop": "Off",
+          "Mode": "Gate",
+          "Level": 0.36214516
+        }
+      }
+    ],
+    "cables": [
+      {
+        "slot": 3,
+        "on": true,
+        "from": {"module": 2, "port": "Env"},
+        "via": null,
+        "to": {"unit": "snd.fx2", "param": "Cutoff"},
+        "amount": 61.035,
+        "offset": -2.5,
+        "polarity": "bi",
+        "curve": "exp",
+        "voice": false,
+        "lock": 0
+      }
+    ]
+  },
+  "view": {"mode": "home", "sound": 1, "page": 2}
+}

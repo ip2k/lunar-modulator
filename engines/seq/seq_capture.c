@@ -562,7 +562,14 @@ static int commit_stopped(fm1_seq_t *s, unsigned t) {
   }
   s->cap_mode = free_tempo && s->cap_n > 1 ? CAP_SELECT : (!free_tempo ? CAP_FIXED : CAP_NONE);
   wrote = write_take(s, grid, free_tempo, clip_has_notes);
-  if (wrote) {
+  if (wrote && !s->lim.compat && s->song_len > 0) {
+    /* D17: the take plays, as a clip launched by hand on its track: the
+     * song is detached (D16) and every track plays its selected clip, as
+     * Play does without a song. Movy plays the song, so the take is never
+     * heard and the tempo picker's "hear which fits" does nothing. */
+    sq_song_hand_launch(s);
+    sq_play_selected(s);
+  } else if (wrote) {
     sq_play(s);
   } else {
     s->cap_mode = CAP_NONE;

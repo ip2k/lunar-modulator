@@ -87,7 +87,7 @@ def test_drums_is_a_twelve_voice_pad_kit(listing):
     assert params["Model"]["names"] == MODELS
     assert params["Kit"]["names"] == ["Deep", "Punch"]
     assert params["Choke"]["names"] == ["Kit", "None", "Group 1", "Group 2", "Group 3", "Group 4"]
-    assert params["Choke"]["def"] == 0 and params["Choke"]["flags"] == ["latch", "mod"]
+    assert params["Choke"]["def"] == 0 and params["Choke"]["flags"] == ["latch", "mod", "per_focus"]
     kd = params["Kit Decay"]
     assert (kd["min"], kd["max"], kd["def"], kd["abbr"]) == (0, 1, 0.5, "KDecay")
     # The pad on pages 1 to 3 (Model and Choke on 3), the kit on 4.

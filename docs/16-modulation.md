@@ -274,7 +274,10 @@ typedef struct fm1_mod_kind {
   `ChainState::Configure`].
 - **Pattern data** (`data_bytes`, `get_data`, `set_data`) holds what is not
   a parameter: Curves' 16 stages, Draw's 16 bins, Scenes' snapshots, Motion's
-  recordings. It is versioned and saved with the preset.
+  recordings. It is versioned and saved with the preset. Built 2026-10-06
+  (mod API v2: `data_version`, the struct's last field; `fm1_mod_get_data`
+  and `fm1_mod_set_data`), with Register's locked loop the first
+  (engines/mod/README.md, "Pattern data").
 - **`view`** gives the app a read-only struct to draw (playhead, current
   stage, group map). Kinds never draw.
 - **The core holds no pointers**: kinds by registry index, instances by

@@ -138,11 +138,16 @@ def test_it_lists_as_a_gpl_eleven_voice_pad_kit(listing):
     assert [p["page"] for p in e["params"]] == [0] * 4 + [1] * 4 + [2] * 4 + [3]
     assert all(len(p["name"]) <= 12 and len(p["abbr"]) <= 6 for p in e["params"])
     flags = {p["name"]: set(p["flags"]) for p in e["params"]}
-    assert flags["Pad"] == set()                           # the edit focus: lockable, no MOD
-    for n in ("Tune", "Decay", "Level", "Tone", "Snap", "Sweep", "Drive", "Volume"):
-        assert flags[n] == {"smooth", "mod"}, n
-    for n in ("Drive Type", "Accent", "Velocity", "Kit"):
+    assert flags["Pad"] == {"focus"}                       # the edit focus: lockable, no MOD
+    # Engine API v4: each pad keeps its own sound (PER_FOCUS), read back by
+    # get_param, so a saved kit holds all sixteen pads.
+    for n in ("Tune", "Decay", "Level", "Tone", "Snap", "Sweep", "Drive"):
+        assert flags[n] == {"smooth", "mod", "per_focus"}, n
+    assert flags["Volume"] == {"smooth", "mod"}
+    assert flags["Drive Type"] == {"latch", "mod", "per_focus"}
+    for n in ("Accent", "Velocity", "Kit"):
         assert flags[n] == {"latch", "mod"}, n
+    assert e["get_param"]
     assert e["params"][0]["names"][0] == "1 Kick" and len(e["params"][0]["names"]) == 16
     assert e["params"][8]["names"] == ["Diode", "Clip", "Saturate", "Fuzz", "Crunch", "Fold",
                                             "Crush"]

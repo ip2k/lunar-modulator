@@ -13,6 +13,13 @@
  * with fm1_dx7_read_sysex, which needs no instance, and gives an instance
  * its voices with fm1_dx7_set_user_voice.
  *
+ * And the way out (2026-10-06, notes/2026-10-06-state-files.md ST8): a
+ * user slot's voice reads back with fm1_dx7_get_user_voice, and
+ * fm1_dx7_pack_voice, fm1_dx7_write_voice and fm1_dx7_write_bank turn
+ * voices into the same dumps, so a bank leaves as a .syx file the
+ * keyboards and every editor read. fm1_dx7_op_fields and
+ * fm1_dx7_voice_fields name the VCED values, for files and editors.
+ *
  * Plain C99, our own code. MIT licence, like the rest of this repository.
  */
 #ifndef FM1_DX7_H_
@@ -87,6 +94,48 @@ int fm1_dx7_read_sysex(const uint8_t *data, size_t len, unsigned slot, fm1_dx7_s
  * the voice they started with. 1, or 0 for a slot out of range.
  * Thread: as set_param. */
 int fm1_dx7_set_user_voice(void *self, unsigned slot, const uint8_t vced[FM1_DX7_VCED_BYTES]);
+
+/* User slot `slot`'s voice (0..31) as its 155 VCED data bytes, in range
+ * and with the name printable: what fm1_dx7_set_user_voice stored, or the
+ * INIT VOICE an untouched slot holds. 1, or 0 for a slot out of range (vced
+ * untouched). Thread: as set_param. */
+int fm1_dx7_get_user_voice(const void *self, unsigned slot, uint8_t vced[FM1_DX7_VCED_BYTES]);
+
+#define FM1_DX7_PACKED_BYTES 128u        /* one voice in a VMEM bank */
+#define FM1_DX7_VOICE_SYSEX_BYTES 163u   /* a VCED dump, F0 .. F7 */
+#define FM1_DX7_BANK_SYSEX_BYTES 4104u   /* a VMEM dump, F0 .. F7 */
+
+/* One voice's 155 VCED data bytes packed into a VMEM bank's 128 (the
+ * inverse of the bank reader's unpacking): each value clamped to its range
+ * and the name made printable first, as a load does, so packing a voice
+ * and reading it back gives the same 155 bytes. */
+void fm1_dx7_pack_voice(const uint8_t vced[FM1_DX7_VCED_BYTES], uint8_t packed[FM1_DX7_PACKED_BYTES]);
+
+/* A single-voice dump: F0 43 0n 00 01 1B, the 155 bytes (clamped and
+ * cleaned as above), the checksum, F7, with n the MIDI channel (0..15;
+ * others wrap). Writes FM1_DX7_VOICE_SYSEX_BYTES and returns that. */
+size_t fm1_dx7_write_voice(const uint8_t vced[FM1_DX7_VCED_BYTES], unsigned channel,
+                           uint8_t out[FM1_DX7_VOICE_SYSEX_BYTES]);
+
+/* A 32-voice bank dump: F0 43 0n 09 20 00, voices[0..31] packed, the
+ * checksum, F7. A NULL voice is the INIT VOICE. Writes
+ * FM1_DX7_BANK_SYSEX_BYTES and returns that. fm1_dx7_read_sysex of the
+ * result gives the 32 voices back, byte for byte. */
+size_t fm1_dx7_write_bank(const uint8_t *const voices[FM1_DX7_USER_SLOTS], unsigned channel,
+                          uint8_t out[FM1_DX7_BANK_SYSEX_BYTES]);
+
+/* The VCED values by name, for files and editors: an operator's 21 (R1 ..
+ * DET, in the order each of a voice's six operators keeps them, OP6
+ * first) and the voice's 19 between the operators and the name (PR1 ..
+ * TRNSP), each with its largest value (the smallest is 0). */
+typedef struct fm1_dx7_field {
+  const char *name;
+  uint8_t max;
+} fm1_dx7_field_t;
+#define FM1_DX7_OP_FIELDS 21u
+#define FM1_DX7_VOICE_FIELDS 19u
+extern const fm1_dx7_field_t fm1_dx7_op_fields[FM1_DX7_OP_FIELDS];
+extern const fm1_dx7_field_t fm1_dx7_voice_fields[FM1_DX7_VOICE_FIELDS];
 
 #ifdef __cplusplus
 }

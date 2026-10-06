@@ -838,3 +838,105 @@ def test_the_frequency_table_is_in_the_instance_off_the_fm1s_rate(renderer, tmp_
                              check=True, capture_output=True, text=True).stdout
         sizes[rate] = json.loads(out.strip().splitlines()[-1])["instance_bytes"]
     assert sizes[44100] == sizes[48000] == sizes[RATE] + 4 * 1025
+
+
+# ------------------------------------------------- the way out (ST8, E2) --
+# A user bank leaves FM6 as it came: fm1_dx7_get_user_voice reads a slot,
+# fm1_dx7_write_bank packs the 32 into a VMEM dump (fm1-render --save-bank),
+# so a project's voices can travel as a .syx (notes/2026-10-06-state-files.md
+# ST8).
+
+OP_MAX = [99] * 11 + [3, 3, 7, 3, 7, 99, 1, 31, 99, 14]
+VOICE_MAX = [99] * 8 + [31, 7, 1, 99, 99, 99, 99, 1, 5, 7, 48]
+
+
+def pack_raw(d):
+    """155 VCED bytes into a bank's 128, written here from the DX7's
+    documented layout (independently of engines/src/dx7_voice.cc)."""
+    out = []
+    for k in range(6):
+        o = d[21 * k:21 * k + 21]
+        out += o[0:11] + [o[12] << 2 | o[11], o[20] << 3 | o[13], o[15] << 2 | o[14], o[16],
+                          o[18] << 1 | o[17], o[19]]
+    out += d[126:135] + [d[136] << 3 | d[135]] + d[137:141] + [d[143] << 4 | d[142] << 1 | d[141]]
+    out += d[144:155]
+    assert len(out) == 128
+    return out
+
+
+def random_vced(rnd, name):
+    d = [rnd.randint(0, m) for _ in range(6) for m in OP_MAX]
+    d += [rnd.randint(0, m) for m in VOICE_MAX]
+    return d + [ord(c) for c in name.ljust(10)[:10]]
+
+
+def bank_syx(packed):
+    data = [b for v in packed for b in v]
+    return bytes([0xF0, 0x43, 0x00, 0x09, 0x20, 0x00] + data + [dx.checksum(data), 0xF7])
+
+
+def save_bank(renderer, tmp_path, files, name="out"):
+    out = tmp_path / f"{name}.syx"
+    args = [str(renderer), "--engine", "dx7", "--seconds", "0.01", "--out", str(tmp_path / f"{name}.wav"),
+            "--save-bank", str(out)]
+    for f in files:
+        args += ["--sysex", str(f)]
+    subprocess.run(args, check=True, capture_output=True)
+    return out.read_bytes()
+
+
+def test_a_bank_leaves_byte_for_byte_as_it_came(renderer, tmp_path):
+    """The built-in voices exported as a bank, and a bank of 32 random
+    voices with every value somewhere in its range: loaded, then saved,
+    the dump is the file that came in, byte for byte."""
+    path = tmp_path / "builtin.syx"
+    subprocess.run([sys.executable, str(ROOT / "tools" / "dx7_bank.py"), "--syx", str(path)],
+                   check=True)
+    assert save_bank(renderer, tmp_path, [path], "b") == path.read_bytes()
+    import random
+    rnd = random.Random(7)
+    voices = [random_vced(rnd, f"RANDOM {k:02d}") for k in range(32)]
+    data = bank_syx([pack_raw(v) for v in voices])
+    (tmp_path / "r.syx").write_bytes(data)
+    assert save_bank(renderer, tmp_path, [tmp_path / "r.syx"], "r") == data
+
+
+def test_single_voices_leave_in_their_slots(renderer, tmp_path):
+    """Three single-voice dumps go to User 1-3; saved, those slots hold
+    them, packed, and every other slot the INIT VOICE an untouched engine
+    saves; a value past its range was clamped on the way in and stays so."""
+    import random
+    rnd = random.Random(11)
+    voices = [random_vced(rnd, n) for n in ("ONE", "TWO", "THREE")]
+    hot = list(voices[2])
+    hot[20] = 99                                     # DET past 14
+    hot[134] = 77                                    # ALG past 31
+    files = []
+    for k, v in enumerate([voices[0], voices[1], hot]):
+        p = tmp_path / f"v{k}.syx"
+        p.write_bytes(bytes([0xF0, 0x43, 0x00, 0x00, 0x01, 0x1B] + v + [dx.checksum(v), 0xF7]))
+        files.append(p)
+    empty = save_bank(renderer, tmp_path, [], "empty")
+    assert empty[6:134] == bytes(pack_raw(_init_vced(empty)))
+    got = save_bank(renderer, tmp_path, files, "three")
+    clamped = list(hot)
+    clamped[20], clamped[134] = 14, 31
+    want = [pack_raw(voices[0]), pack_raw(voices[1]), pack_raw(clamped)]
+    want += [list(empty[6 + 128 * k:6 + 128 * (k + 1)]) for k in range(3, 32)]
+    assert got == bank_syx(want)
+
+
+def _init_vced(dump):
+    """The INIT VOICE (engines/src/dx7_voice.cc) in VCED order, unpacked
+    here from an untouched engine's first slot, so the check above is that
+    the packer is unpacking's inverse on it."""
+    p = list(dump[6:134])
+    d = []
+    for k in range(6):
+        o = p[17 * k:17 * k + 17]
+        d += o[0:11] + [o[11] & 3, o[11] >> 2, o[12] & 7, o[13] & 3, o[13] >> 2, o[14],
+                        o[15] & 1, o[15] >> 1, o[16], o[12] >> 3]
+    d += p[102:111] + [p[111] & 7, p[111] >> 3] + p[112:116] + [p[116] & 1, (p[116] >> 1) & 7,
+                                                               p[116] >> 4] + p[117:128]
+    assert len(d) == 155 and bytes(d[145:155]) == b"INIT VOICE"
+    return d
