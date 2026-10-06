@@ -87,10 +87,12 @@ In SEQ mode the black keys are the sequencer's controls:
 | --- | --- |
 | [[OP1]] (F#3) | ◀: the previous bar. With steps held, nudges them earlier. In step recording, a step back |
 | [[OP3]] (A#3) | ▶: the next bar. With steps held, nudges them later. In step recording, a rest or a tie |
-| [[OP5]] (D#4) | CLEAR: with steps held, clears their locks; held, a knob clears that parameter's locks from the track |
+| [[OP2]] (G#3) | LOOP: with [[SEL]] (SHIFT), the song page. Held in the session view, white keys 1 to 8 are scenes |
+| [[OP4]] (C#4) | COPY: held in the session view, copies and pastes clips |
+| [[OP5]] (D#4) | CLEAR: with steps held, clears their locks; held, a knob clears that parameter's locks from the track. A tap deletes the clip, after a question |
 | [[OP6]] (F#4) | MUTE: a tap mutes or unmutes the track; held, white keys 1 to 8 mute and unmute tracks 1 to 8 |
 | [[MONO]] (C#5), [[POLY]] (D#5) | The previous and the next track |
-| [[OP2]], [[OP4]], [[PIT]] | Nothing yet. They are planned for [[role:LOOP]], [[role:COPY]] and [[role:UNDO]] |
+| [[PIT]] | Nothing yet. It is planned for [[role:UNDO]] |
 
 [[SEL]] is **SHIFT** in every mode but FX mode, where it keeps its job of
 picking up an effect ([chapter 6](06-effects.md)). Its light is on while you
@@ -496,7 +498,7 @@ again. The grid outlines them.
 
 ### To choose and launch a clip
 
-{{status desktop planned}}
+{{status sim desktop planned}}
 
 In the session view, keys 1 to 8 launch slots 1 to 8 of the focused track
 ([Scenes and song](#scenes-and-song)).
@@ -505,7 +507,8 @@ In the session view, keys 1 to 8 launch slots 1 to 8 of the focused track
 - Launching a clip while the sequencer is stopped starts the sequencer.
   Tracks that were playing when you stopped start again with it.
 - Launching an empty slot stops the track at the next bar.
-- Launching a clip by hand ends a song that is playing.
+- Launching a clip by hand while a song plays stops following the song,
+  but the song keeps its list ([Song](#song)).
 
 {{diagram launch}}
 
@@ -520,23 +523,361 @@ sixteen bars is left as it is.
 
 ### To copy steps and clips
 
-{{status desktop planned}}
+{{status sim desktop planned}}
 
-1. Hold [[role:COPY]].
-2. Press the step to copy.
-3. Press each step to paste it to.
+In the session view:
 
-A copied step takes its notes and locks with it, but not its conditions.
-Copying whole clips, which takes everything, and duplicating a clip into the
-next empty slot are in the sequencer already; their controls are still to
-be assigned.
+1. Hold [[OP4]] (COPY).
+2. Press the key of a slot with a clip: it is copied.
+3. Press the key of each slot to paste it to.
+
+A copied clip takes everything with it: notes, locks, conditions and its
+settings. Copying single steps in the track view, and duplicating a clip
+into the next empty slot, are planned; the desktop tools have their
+commands already.
 
 ### To delete a clip
 
+{{status sim desktop planned}}
+
+- In the track view, tap [[OP5]] (CLEAR) with no step held.
+- In the session view, hold [[OP5]] (CLEAR) and press the slot's key.
+
+The screen asks, for example, *Delete T2 clip 3?*. Press [[OP5]] again
+to delete the clip. Any other key or button only closes the question, and
+does nothing else. The question stays until you press something; the
+knobs do nothing while it shows, and the sequencer keeps playing.
+
+### Undo
+
+{{status planned}}
+
+[[role:UNDO]] takes back your last gesture, and [[SEL]] (SHIFT) with
+[[role:UNDO]] brings it back. A gesture is one action, such as a step tap or
+one turn of a knob: a turn counts as finished when you leave the knob for
+0.6 s. The desktop tools accept its commands and ignore them.
+
+## Scenes and song
+
+{{status sim desktop planned}}
+
+A **scene** is a column of slots: scene 3 is slot 3 of every track. A
+**song** is a list of scenes that plays by itself, for an arrangement that
+runs hands-free.
+
+### The session view
+
+Press [[SEQ]] while in SEQ mode to switch between the track view and the
+session view; [[SEQ]] blinks slowly in the session view. It shows the
+eight slots of every track, one row a track, with the scene numbers above
+and the song along the bottom.
+
+- Keys 1 to 8 launch the focused track's slots. Keys 9 to 16 focus tracks
+  1 to 8.
+- A slot with a clip has an edge in its track's sound colour. A playing
+  clip is filled, with a bar along its bottom for how far it has played. A
+  clip waiting for the next bar flashes, and so does one about to stop.
+  The clip each track edits is outlined. A muted track is grey.
+- The key lights: keys 1 to 8 are lit for a clip, flash fast for one
+  waiting and slowly for the one playing; keys 9 to 16 are lit for each
+  track, slowly flashing for the focused one.
+- Hold [[OP6]] (MUTE) and press keys 1 to 8 to mute tracks, as in the track
+  view. [[OP4]] (COPY) and [[OP5]] (CLEAR) work on slots ([To copy steps
+  and clips](#to-copy-steps-and-clips), [To delete a clip](#to-delete-a-clip)).
+
+### To launch a scene
+
+In the session view, hold [[OP2]] (LOOP) and press white keys 1 to 8 for
+scenes 1 to 8.
+
+- The scene starts at the next bar: every track with a clip in that slot
+  plays it, and the others stop. While the sequencer is stopped, launching
+  a scene starts it.
+- **One scene** in a hold launches it and nothing else. A song you have
+  keeps its list, but is no longer followed.
+- **Two or more scenes** in one hold make a new song of them, in the order
+  you press them: the first plays at once, and the others follow. Press a
+  key twice in a row to play its scene twice as long.
+- While [[OP2]] is held, keys 1 to 8 show the scenes. With a song: lit for
+  the scene playing, flashing fast for the next one, slowly for the others
+  the song uses. Without one: lit where the column has a clip.
+
+### Song
+
+The song plays its scenes one after the other, each for as long as its
+longest clip, rounded up to whole bars, times its repeats.
+
+- [[PLAY/STOP]] plays the song from its first entry. Stopped and started
+  again, it always starts from the top.
+- The next scene is launched a bar ahead, so it starts exactly on time. In
+  that last bar the track view's hint line says what comes next.
+- The status line says **SONG** while the song plays, and **END** once it
+  has finished in Park.
+- A scene with no clips at all stops every track and ends the song there.
+- A song holds up to 64 presses: an entry played three times is three.
+- Launching a clip, or a single scene, by hand stops following the song,
+  so you can play live over an arrangement. The song keeps its list: stop
+  and play again, or [[SEL]] (SHIFT) with [[PLAY/STOP]] on the song page,
+  to follow it again.
+
+The band at the bottom of the session view shows the song: an entry per
+scene, *3x2* for scene 3 played twice, the playing one framed and the next
+one flashing in its last bar. *END* or *STOP* after the last entry say
+what the song does there; *<* and *>* mean there is more to either side.
+
+### The song page
+
+[[SEL]] (SHIFT) with [[OP2]] (LOOP) opens the song page from the track view
+or the session view, and the same again goes back. [[SEQ]] goes to the
+track view.
+
+Each row is one entry: its number, its scene and the scene's name, how
+many times it plays, its length in bars and the time it starts at the
+current tempo. The last row, *+ add*, is where new entries go. The top line
+has the song's length, what it does at its end, and the entry you are on.
+While the song plays, the playing entry has a *>*, its repeats show the
+pass (*2/4*) and its bars the bar of that pass (*13/16*); the cursor
+follows it until you move the cursor away.
+
+| Control | On the song page |
+| --- | --- |
+| [[SELECT]], or [[OP1]] / [[OP3]] | The cursor, up and down the entries and *+ add* |
+| [[SEL]] + [[OP1]] / [[OP3]] | Moves the entry up or down |
+| White keys 1 to 8 | Add a scene after the entry, or at the end from *+ add*. The entry's own scene plays once more instead |
+| White keys 9 to 16 | The entry plays 1 to 8 times |
+| [[KNOB1]] | The entry's scene, 1 to 8. A scene with no clips shows *(end)* |
+| [[KNOB2]] | How many times it plays, up to what the 64 presses leave |
+| [[KNOB3]] | The scene's name: Intro, Verse, Pre, Chorus, Drop, Break, Build, Bridge, Fill, Outro, or none |
+| [[KNOB4]] | What the song does at its end: **Loop** starts again, **Park** stops every track but keeps the sequencer running, **Stop** stops the sequencer |
+| [[OP5]] (CLEAR) | Deletes the entry |
+| [[SEL]] + [[OP5]] | Clears the whole song, after a question |
+| [[PLAY/STOP]] | Plays or stops, from the top |
+| [[SEL]] + [[PLAY/STOP]] | Plays from the entry. While playing, it starts on the next bar, from its beginning |
+
+To build a song from nothing, open the song page and, on *+ add*, press the
+scenes' keys in order: 1, 2, 2, 3 makes scene 1, scene 2 twice, then
+scene 3. Two entries of the same scene side by side become one, with their
+repeats added, and the screen says *Joined*.
+
+You can edit while the song plays. The list changes at once and the sound
+follows at the next bar; deleting or changing the playing entry brings in
+what takes its place at the next bar.
+
+## Recording knob moves
+
+While the track records, turning a knob writes its moves into the steps as
+they play, and you hear them as you turn ([Recording](#recording)).
+
+### When the sequencer stops
+
+When you stop the sequencer, every locked parameter that was left at a
+locked value goes back to its base value, after the notes have ended. The
+same happens to a track that stops at the bar, and to a parameter when you
+clear its last lock. A sound never stays at a value that no step asked for.
+
+### To clear locks
+
+| To clear | Do this |
+| --- | --- |
+| One lock | Hold the step, hold [[SEL]] (SHIFT), and turn the parameter's knob on its lock page |
+| Every lock on the held steps | Hold the steps and press [[OP5]] (CLEAR) |
+| Every lock of one parameter on the track | Hold [[OP5]] (CLEAR) and turn the parameter's knob one click |
+
+### Values and list parameters
+
+- A lock stores one of 128 values spread evenly across the parameter's
+  range, and the screen shows it in the parameter's own units. On a
+  frequency or a time (a cutoff, a delay, a release: the effects have them,
+  and locks on the effects are planned), they are spread evenly in ratio,
+  as the knob turns, so each step is the same musical interval: from 20 Hz
+  to 18 kHz, a little under a semitone a step.
+- On a list parameter, such as Model, Shape, Patch or Pad, the 128 values
+  are divided evenly between the entries.
+- Parameters that disturb every sounding note when they change refuse
+  locks: Macro's and Macro Heavy's Model, which cut the notes, and Shapes'
+  Shape, which strikes them again. Their lock pages say *no lock*, and a
+  turn says the parameter cannot be locked. A lock on Six-Op FM's Patch or
+  on Sophie's Model changes the sound of that step's notes only, as those
+  engines read it when a note starts.
+- Continuous parameters glide to a locked value over a few milliseconds, so
+  a lock under a ringing note does not click.
+- The sound engine itself cannot be locked. To change engine on a step, put
+  the notes on a track that plays another sound.
+
+## Conditions and probability
+
+{{status sim desktop planned}}
+
+A step can play only on some passes of its clip, or only by chance. Set both
+on the step page.
+
+### Conditions
+
+A condition A:B plays the step on the A-th pass of every B passes of its
+clip. Passes are counted for each track from 1, starting when its clip
+starts: when you press Play, or when the clip is launched.
+
+| Condition | Plays on passes |
+| --- | --- |
+| 1:1 | Every pass (the default) |
+| 1:2 | 1, 3, 5, 7 … |
+| 2:2 | 2, 4, 6, 8 … |
+| 1:4 | 1, 5, 9, 13 … |
+| 3:4 | 3, 7, 11, 15 … |
+| 4:4 | 4, 8, 12, 16 … |
+
+Condition on the step page offers the 36 conditions with A and B up to 8 and
+A no greater than B, from 1:1 to 8:8. Scripts accept A and B up to 64.
+
+### Probability
+
+Prob gives a step a chance to play each time it comes round, from 100 %
+(always) down to 10 %. Scripts accept any value from 0 to 100 %.
+
+The chance comes from a fixed random sequence that starts afresh when the
+sequencer starts up, so the desktop tools render the same script the same
+way every time.
+
+### Invert
+
+Invert turns a condition round: the step plays on exactly the passes the
+condition would skip. 1:4 inverted plays on passes 2, 3, 4, 6, 7, 8 and so
+on.
+
+### How they combine
+
+- The condition comes first. The chance is tried only on the passes the
+  condition lets through.
+- All the notes on a step share one decision: a chord plays whole, or not
+  at all.
+- One note of a step can also have a condition and a chance of its own,
+  which then decide for that note alone. The desktop tools set them with a
+  pitch; the FM-1 is planned to offer them on drum tracks.
+
+## Swing and quantise
+
+{{status sim desktop planned}}
+
+### Swing
+
+Swing delays every second sixteenth note to give a pattern a shuffle. It is
+set for the whole set, on the Set page, from 50 % (straight) to 80 %:
+
+| Swing | Off-beat sixteenths play late by |
+| --- | --- |
+| 50 % | Nothing: straight |
+| 60 % | 4 ticks, 1/6 of a step |
+| 66 % | 6 ticks, 1/4 of a step |
+| 70 % | 8 ticks, 1/3 of a step |
+| 80 % | 12 ticks, half a step |
+
+Swing follows the tempo, not the clip. In a clip playing at 2X it delays the
+steps that land on the tempo's off-beat sixteenths, steps 3, 7, 11 and 15 of
+each bar of the clip, so that the clip swings with the others. A clip at
+half speed or slower is not swung, because none of its steps lands on an
+off-beat sixteenth.
+
+### Quantise
+
+Quantise pulls recorded notes towards their steps, from 0 % (as played) to
+100 % (exactly on the step). It is non-destructive: each note keeps the
+timing you played, and quantise only changes where it sounds, so you can
+change it again at any time.
+
+- Each clip has its own quantise, on the Clip page. [[SEL]] (SHIFT) and
+  white key 16 step it through 0 %, the set's default and 100 %.
+- New clips start with the set's default quantise, on the Set page, which
+  is 0 % until you change it.
+- Notes you place by tapping steps are already on the grid; quantise matters
+  for notes you record, capture or nudge.
+
+## Clips
+
+{{status sim desktop planned}}
+
+In the simulator each track plays the clip in its first slot, and the Clip
+page edits it. Choosing and launching other slots, Double Loop, copying,
+deleting clips and undo are in the desktop tools, and planned for the
+simulator and the FM-1 with the session view.
+
+### The Clip page
+
+Press [[SEL]] (SHIFT) and white key 3 to open the Clip page of the focused
+track's clip:
+
+| Setting | What it sets | Range |
+| --- | --- | --- |
+| Speed | The clip's speed against the tempo: at 2X its steps are 32nd notes, at 1/2X eighth notes | 1/8X to 4X |
+| Length | The clip's length; *--* when the track has no clip | 1 to 256 steps |
+| Transpose | Moves every note of the clip up or down without changing the stored notes; not on drum tracks | −36 to +36 semitones |
+| Quantize | How far recorded notes are pulled to their steps | 0 to 100 % |
+
+### Length and the loop window
+
+A new clip is one bar long. You can change its length on the Clip page, from
+1 to 256 steps, or set its loop window with [[role:LOOP]] (planned):
+
+1. Press [[role:LOOP]]. The white keys now stand for bars 1 to 16.
+2. Press the first bar of the loop, then the last.
+
+To loop a single bar, double-tap it instead. To make the loop longer or
+shorter afterwards, hold [[role:LOOP]] and turn [[SELECT]].
+
+A loop window starts at the beginning of a bar and is at least one bar long.
+Notes outside it stay in the clip, silent, until the window includes them
+again. The grid outlines them.
+
+### To choose and launch a clip
+
+{{status sim desktop planned}}
+
+In the session view, keys 1 to 8 launch slots 1 to 8 of the focused track
+([Scenes and song](#scenes-and-song)).
+
+- A launch takes effect at the next bar, so clips change in time.
+- Launching a clip while the sequencer is stopped starts the sequencer.
+  Tracks that were playing when you stopped start again with it.
+- Launching an empty slot stops the track at the next bar.
+- Launching a clip by hand while a song plays stops following the song,
+  but the song keeps its list ([Song](#song)).
+
+{{diagram launch}}
+
+### Double Loop
+
 {{status desktop planned}}
 
-A tap of [[OP5]] (CLEAR) on its own is planned to delete the chosen clip,
-with a confirmation until undo exists.
+[[SEL]] (SHIFT) and white key 15 are planned to double the clip's length and
+copy its notes into the new half: a one-bar idea becomes two bars to
+develop. Locks and conditions are not copied. A clip that would grow past
+sixteen bars is left as it is.
+
+### To copy steps and clips
+
+{{status sim desktop planned}}
+
+In the session view:
+
+1. Hold [[OP4]] (COPY).
+2. Press the key of a slot with a clip: it is copied.
+3. Press the key of each slot to paste it to.
+
+A copied clip takes everything with it: notes, locks, conditions and its
+settings. Copying single steps in the track view, and duplicating a clip
+into the next empty slot, are planned; the desktop tools have their
+commands already.
+
+### To delete a clip
+
+{{status sim desktop planned}}
+
+- In the track view, tap [[OP5]] (CLEAR) with no step held.
+- In the session view, hold [[OP5]] (CLEAR) and press the slot's key.
+
+The screen asks, for example, *Delete T2 clip 3?*. Press [[OP5]] again
+to delete the clip. Any other key or button only closes the question, and
+does nothing else. The question stays until you press something; the
+knobs do nothing while it shows, and the sequencer keeps playing.
 
 ### Undo
 

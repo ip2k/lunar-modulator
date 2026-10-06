@@ -2,10 +2,13 @@
 # sq_play, sq_stop, sq_toggle_record with count_in_left and pending_rec;
 # seq_capture.c: commit_stopped's tempo selector and fitted modes) and the
 # panel's gestures (sim/web/src/fm1_seq_ui.c: rec_button, the PLAY branch of
-# fm1_seq_ui_button, srec_begin and srec_end, close_overlay).
+# fm1_seq_ui_button, srec_begin and srec_end, close_overlay); the song's
+# couplings (notes/2026-10-06-song-and-scenes.md §8.1: a slot or scene
+# launched in Session starts the transport, a song ending in Stop mode stops
+# it) add no state.
 title = "The transport"
 caption = "What PLAY/STOP and REC do. Every state inside the frame is the sequencer running; PLAY/STOP stops it from any of them but Capture’s tempo, which any press only closes. When Capture finds a single tempo for an empty clip it plays at once, without the tempo on the screen."
-alt = "A state diagram. Stopped is where it starts. PLAY/STOP goes to Playing, and from any running state PLAY/STOP goes back to Stopped. Held in SEQ mode, REC enters Step record, and letting go returns to Stopped; PLAY/STOP there starts Playing. REC while stopped starts a one-bar Count-in, with REC blinking fast, which turns into Recording, REC lit, a bar later, or into Playing if REC is pressed again. From Playing, REC records at once into a clip with notes, or into an empty clip waits for the next bar, REC blinking fast, and then records; REC during the wait, or while recording, goes back to Playing. SHIFT with PLAY/STOP restarts, and SHIFT with REC captures into the loop. SHIFT with REC while stopped captures the phrase and starts playing with the tempo shown; SELECT tries another tempo, and any press, PLAY/STOP included, only closes it, back to Playing. PLAY/STOP in Step record leaves it and starts Playing."
+alt = "A state diagram. Stopped is where it starts. PLAY/STOP, or a slot or a scene launched in Session, goes to Playing, and from any running state PLAY/STOP goes back to Stopped, as does the end of a song set to Stop. Held in SEQ mode, REC enters Step record, and letting go returns to Stopped; PLAY/STOP there starts Playing. REC while stopped starts a one-bar Count-in, with REC blinking fast, which turns into Recording, REC lit, a bar later, or into Playing if REC is pressed again. From Playing, REC records at once into a clip with notes, or into an empty clip waits for the next bar, REC blinking fast, and then records; REC during the wait, or while recording, goes back to Playing. SHIFT with PLAY/STOP restarts, and SHIFT with REC captures into the loop. SHIFT with REC while stopped captures the phrase and starts playing with the tempo shown; SELECT tries another tempo, and any press, PLAY/STOP included, only closes it, back to Playing. PLAY/STOP in Step record leaves it and starts Playing."
 legend = ["press", "event"]
 
 [[node]]
@@ -99,13 +102,13 @@ kind = "link"
 from = "stopped"
 to = "playing"
 kind = "press"
-label = "PLAY/STOP"
+label = ["PLAY/STOP;", "a slot or a scene"]
 
 [[edge]]
 from = "running"
 to = "stopped"
 kind = "press"
-label = "PLAY/STOP"
+label = ["PLAY/STOP;", "a song’s Stop end"]
 
 [[edge]]
 from = "stopped"
