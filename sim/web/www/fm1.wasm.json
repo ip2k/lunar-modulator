@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "98e372fd14a86505fffcc317acae943b341314c1a2c7a094f6b759b716032802",
-  "wasm_bytes": 988518,
+  "wasm_sha256": "5a4d69f5091c461384eb9d6e6c21499c9968ea1d64911832da312c03ae6baeaf",
+  "wasm_bytes": 1257231,
   "sources_sha256": {
-    "engines": "9a985a658c7394f62b5363c2e9a1c1f8b3b40f781963c5e17bc45f1b11391e89",
-    "sim": "b7950805f1e48288f97a69bb422e2b20d49227ac5c7fe98b10edbbea77e182d7"
+    "engines": "39ec3d9f8b55014933eeefc17d58860a5d617830e785429ea3cf7c9debc8c84d",
+    "sim": "30511719df44744ca69aaacd695eb23d8d0465d9fcdcf252898601213e369580"
   },
   "engines": "working tree",
-  "built": "2026-10-06T09:02:18Z",
+  "built": "2026-10-06T09:57:04Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -33,6 +33,13 @@
       "source": "engines/third_party/fm1-x0x"
     },
     {
+      "id": "comet",
+      "name": "Comet Kit",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/fm1-x0x"
+    },
+    {
       "id": "acid-gen",
       "name": "Acid Gen",
       "kind": "midi_fx",
@@ -41,11 +48,11 @@
     }
   ],
   "parity": {
-    "passed": 90,
+    "passed": 92,
     "failed": 0,
-    "identical_to_js": 90,
-    "identical_to_musl": 90,
-    "identical_to_glibc": 87,
+    "identical_to_js": 92,
+    "identical_to_musl": 92,
+    "identical_to_glibc": 89,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "dx7_sysex": {
@@ -596,6 +603,50 @@
         "replayable": true,
         "dropped": 0,
         "native_dropped": 0
+      }
+    },
+    {
+      "name": "comet-kit-groove",
+      "samples": 211766,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 114364,
+        "native64": 114396
+      }
+    },
+    {
+      "name": "comet-kit-knobs-and-tails",
+      "samples": 300002,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 73180,
+        "native64": 73196
       }
     },
     {
