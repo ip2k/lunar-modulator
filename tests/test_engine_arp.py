@@ -602,7 +602,9 @@ def test_the_core_never_allocates(arp_tool):
         pytest.skip("no nm")
     objs = sorted((ENGINES / "build" / "midi_fx").glob("*.o"))
     objs = [o for o in objs if o.name != "arp_tool.o"]
-    assert [o.name for o in objs] == ["arp_rhythm.o", "fm1_arp.o"]
+    # the core, and its engine API wrapper and registry (the MIDI effect
+    # the hosts run, tests/test_engine_midi_fx.py)
+    assert [o.name for o in objs] == ["arp_engine.o", "arp_rhythm.o", "fm1_arp.o", "registry.o"]
     for o in objs:
         out = subprocess.check_output([nm, "-u", str(o)], text=True)
         names = {line.split()[-1].lstrip("_") for line in out.splitlines() if line.strip()}

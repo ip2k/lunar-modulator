@@ -42,6 +42,15 @@
  * dispatch. A host that reroutes past the bridge (fm1_seq_set_route) closes
  * no gate, so it does so only while nothing sounds (set-up, an import).
  *
+ * MIDI effects (engine API v3, fm1_mfx_host.h). With h->mfx set, every
+ * dispatch runs the chains first: the notes they take leave the block
+ * (a hook still sees them, as notes that reach no engine), and their output
+ * joins it, merged by frame (at one frame: the buffer's events but
+ * note-ons, the chains' note-offs, the buffer's note-ons, the chains'
+ * note-ons; chains in order), each to the slot of its chain (a single sink
+ * takes chain 0's). With no chain active the calls are exactly those
+ * without.
+ *
  * Event room. Commands, live input and advance share one buffer per block,
  * and advance needs fm1_seq_min_events(lim) of it to keep every note-off,
  * Start and Stop (fm1_seq.h). So a host applies a command only while
@@ -65,6 +74,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct fm1_mfx;                 /* fm1_mfx_host.h */
 
 /* Where a block's engine-routed events go: one sound engine instance. The
  * calls mirror fm1_engine_t's, with the host's context in place of `self`. */
@@ -145,6 +156,9 @@ typedef struct fm1_seq_host {
                                    effects (engine API v3, fm1_fx_host.h); all
                                    0 before the first advance or without a
                                    sequencer */
+  struct fm1_mfx *mfx;          /* the MIDI effects in front of the sounds
+                                   (fm1_mfx_host.h), or NULL: init sets it
+                                   NULL, a host that has them sets it after */
 } fm1_seq_host_t;
 
 #define FM1_SEQ_HOST_NO_DEST 0xFFu
@@ -188,6 +202,10 @@ void fm1_seq_host_note_in(fm1_seq_host_t *h, uint8_t track, uint8_t pitch, uint8
 
 /* Free entries in the buffer. */
 uint32_t fm1_seq_host_room(const fm1_seq_host_t *h);
+
+/* Where event k of the buffer goes (Rerouting, below): its track's engine
+ * slot, 0x80 | its MIDI channel, or FM1_SEQ_HOST_NO_DEST. */
+uint8_t fm1_seq_host_dest(const fm1_seq_host_t *h, uint32_t k);
 
 /* The most events one command can cause: every gate's note-off, a base
  * revert per lane of every track (D6), and a Start or Stop. 129 at 8 tracks
