@@ -3659,15 +3659,23 @@ stay as they were; `fm1-render --list` prints them after the engines, kind
 - **`process(self, in, n_in, ctx, out, cap)`**, once per effect per block:
   `in` the block's events (`fm1_midi_ev_t`, `include/fm1_midi_ev.h`:
   frame, kind, key, velocity), ascending by frame; `ctx` the block's tick
-  frames (96 to the quarter note), its length, the tempo, the transport and
-  the project key (`fm1_midi_fx_ctx_t`); `out` at least
-  `FM1_MIDI_FX_OUT_MIN` (64) events, ascending, note-offs before note-ons
-  at one frame.
+  frames (96 to the quarter note), its length, the tempo, the transport,
+  while the sequencer plays the tick the first of them is from its Start
+  (`tick_pos`, since 2026-10-06), and the project key
+  (`fm1_midi_fx_ctx_t`); `out` at least `FM1_MIDI_FX_OUT_MIN` (64) events,
+  ascending, note-offs before note-ons at one frame.
+- **Origins** (2026-10-06): a note's velocity carries where it came from
+  in its high byte, `FM1_MIDI_SRC_LIVE` (0: the keys, MIDI, `--note`) or
+  `FM1_MIDI_SRC_SEQ` (a sequencer track). The host marks the sequencer's;
+  an effect marks its notes after the notes that made them. The stage
+  hands the sounds the bare velocity.
 - **The rules:** every note-on sent gets exactly one note-off; a note-off
   that does not fit is sent at the start of the next call, a note-on that
   does not fit never; FLUSH ends every sounding note, PANIC also forgets
-  every key, RESET restarts the pattern; time is ticks, never samples, so
-  the output is the same at any block size; no heap, no libm.
+  every key, RESET restarts the pattern, STOP (the sequencer's Stop) lets
+  go of what the sequencer gave and ends the notes it made, leaving what
+  was played; time is ticks, never samples, so the output is the same at
+  any block size; no heap, no libm.
 - **The arpeggiator**, `arp` (`midi_fx/arp_engine.c` on the core
   `midi_fx/fm1_arp.c`), is the first: 25 parameters on seven pages,
   [midi_fx/README.md](midi_fx/README.md).
@@ -3681,10 +3689,15 @@ stay as they were; `fm1-render --list` prints them after the engines, kind
   block by frame, so a sound's render splits there and the modulation's
   hook hears the notes. The ticks are the sequencer's clock as the block
   began, which runs on at its tempo while stopped (or the stage's own,
-  `fm1_mfx_set_tempo`, without a sequencer); Start reaches the effects as
-  RESET and Stop as FLUSH, at their frames, and each frame where the
+  `fm1_mfx_set_tempo`, without a sequencer); while it plays, `tick_pos`
+  says which of its ticks the block's first is, so the arp's steps fall on
+  its grid. Start reaches the effects as RESET and Stop as STOP (and
+  FLUSH after it in compat mode, whose clock gives no tick while stopped;
+  after an external clock's Stop the clock runs on at the tempo), at their
+  frames, and each frame where the
   sequencer starts notes for the sound as one STEP after them (a trig, for
-  RATE TRG). A bypass, a removal or `fm1_mfx_flush` flushes at once, the
+  RATE TRG). The project key is the set's (the sequencer's `key`), read
+  each block; `fm1_mfx_set_key` sets it without a sequencer. A bypass, a removal or `fm1_mfx_flush` flushes at once, the
   note-offs to the host's sink. Switching an effect on while others in its
   chain are on keeps every note-off with its note-on: the effects before it
   end their notes first, and when it becomes the chain's first effect on,
@@ -3700,8 +3713,11 @@ Tests [verified, 2026-10-06]: `tests/test_engine_midi_fx.py` (blocks of 1,
 7, 64 and 448 frames, the sequencer's ticks, Start and Stop, a 24-seed fuzz
 with no hung note, note-offs following their note-ons, chains of two and
 switching either effect, a flood of 128 keys, TRG on the sequencer's trigs,
-the flags, no heap, stdio or libm in the stage and the wrapper) and
-`tests/test_sim_arp.py`; parity scenarios `arp-*`.
+the flags, no heap, stdio or libm in the stage and the wrapper; since the
+owner's follow-ups the steps on the sequencer's grid at 1/16, 1/8T and
+swung, Sync Key and Free on the beat, and Stop taking back a latched arp's
+sequencer notes, each at blocks of 1, 7 and 64) and `tests/test_sim_arp.py`;
+parity scenarios `arp-*`.
 
 ### Pad kits
 

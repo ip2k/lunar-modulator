@@ -13,14 +13,20 @@
  * tables as JSON.
  *
  * Script lines ('#' starts a comment):
- *   @FRAME on KEY VEL          @FRAME off KEY          @FRAME sus 0|1
+ *   @FRAME on KEY VEL [seq]    @FRAME off KEY [seq]    @FRAME sus 0|1
  *   @FRAME step                @FRAME reset            @FRAME flush
- *   @FRAME panic               @FRAME set NAME VALUE
+ *   @FRAME panic               @FRAME set NAME VALUE   @FRAME stop
+ *   @FRAME run POS             @FRAME halt
  *   clock START NUM DEN COUNT  ticks at START + floor(i * NUM / DEN), i < COUNT
  * NAME is a parameter name (fm1-arp --list); VALUE is a number or, for
- * mode, order, oct_mode and rate, a name. Events keep script order at one
- * frame and come before a tick at the same frame, as fm1_arp_process()
- * takes them. MIT licence.
+ * mode, order, oct_mode and rate, a name. `seq` marks a note the
+ * sequencer's (FM1_MIDI_SRC_SEQ), which `stop` (FM1_ARP_EV_STOP) lets go.
+ * `run POS` says the host's sequencer runs from FRAME, its first tick there
+ * or later being tick POS from its Start (fm1_arp_process_at: the steps
+ * lock to that grid), and `halt` that it stopped; a block is cut at their
+ * frames. Events keep script order at one frame and come before a tick at
+ * the same frame, as fm1_arp_process() takes them. A note out of the
+ * sequencer's keys has "seq": 1 in its line. MIT licence.
  */
 #include "fm1_arp.h"
 
@@ -29,6 +35,10 @@
 #include <string.h>
 
 typedef struct { uint32_t frame, seq; fm1_arp_ev_t ev; } sev_t;
+typedef struct { uint32_t frame; int running; uint64_t pos; } run_t;   /* run, halt */
+
+static run_t g_run[256];
+static size_t g_nrun;
 
 static sev_t *g_ev;
 static size_t g_nev, g_capev;
@@ -74,6 +84,11 @@ static int cmp_ev(const void *x, const void *y) {
   const sev_t *a = (const sev_t *)x, *b = (const sev_t *)y;
   if (a->frame != b->frame) return a->frame < b->frame ? -1 : 1;
   return a->seq < b->seq ? -1 : a->seq > b->seq;
+}
+
+static int cmp_run(const void *x, const void *y) {
+  const run_t *a = (const run_t *)x, *b = (const run_t *)y;
+  return a->frame < b->frame ? -1 : a->frame > b->frame;
 }
 
 static int cmp_u32(const void *x, const void *y) {
@@ -134,11 +149,25 @@ static void parse(FILE *f) {
       const uint32_t frame = (uint32_t)strtoul(w[0] + 1, NULL, 0);
       if (n < 2) die("@FRAME VERB", ln);
       if (!strcmp(w[1], "on")) {
-        if (n != 4) die("on KEY VEL", ln);
-        add_ev(frame, FM1_ARP_EV_NOTE_ON, (uint8_t)atoi(w[2]), (uint16_t)atoi(w[3]));
+        const int seq = n == 5 && !strcmp(w[4], "seq");
+        if (n != 4 && !seq) die("on KEY VEL [seq]", ln);
+        add_ev(frame, FM1_ARP_EV_NOTE_ON, (uint8_t)atoi(w[2]),
+               (uint16_t)(seq ? FM1_MIDI_EV_B(atoi(w[3]), FM1_MIDI_SRC_SEQ) : atoi(w[3])));
       } else if (!strcmp(w[1], "off")) {
-        if (n != 3) die("off KEY", ln);
-        add_ev(frame, FM1_ARP_EV_NOTE_OFF, (uint8_t)atoi(w[2]), 0);
+        const int seq = n == 4 && !strcmp(w[3], "seq");
+        if (n != 3 && !seq) die("off KEY [seq]", ln);
+        add_ev(frame, FM1_ARP_EV_NOTE_OFF, (uint8_t)atoi(w[2]),
+               (uint16_t)(seq ? FM1_MIDI_EV_B(0, FM1_MIDI_SRC_SEQ) : 0));
+      } else if (!strcmp(w[1], "stop")) {
+        add_ev(frame, FM1_ARP_EV_STOP, 0, 0);
+      } else if (!strcmp(w[1], "run") || !strcmp(w[1], "halt")) {
+        const int run = !strcmp(w[1], "run");
+        if (run ? n != 3 : n != 2) die("run POS, or halt", ln);
+        if (g_nrun == sizeof g_run / sizeof g_run[0]) die("too many run and halt lines", ln);
+        g_run[g_nrun].frame = frame;
+        g_run[g_nrun].running = run;
+        g_run[g_nrun].pos = run ? strtoull(w[2], NULL, 0) : 0u;
+        ++g_nrun;
       } else if (!strcmp(w[1], "sus")) {
         if (n != 3) die("sus 0|1", ln);
         add_ev(frame, FM1_ARP_EV_SUSTAIN, 0, (uint16_t)atoi(w[2]));
@@ -206,8 +235,10 @@ int main(int argc, char **argv) {
   fm1_arp_t *arp;
   fm1_arp_ev_t *ibuf, *obuf;
   uint16_t *tbuf;
-  size_t ie = 0, it = 0;
+  size_t ie = 0, it = 0, ir = 0;
   uint32_t start;
+  int running = 0;
+  uint64_t pos = 0;   /* while running: the next tick's place on the grid */
   fm1_arp_stats_t st;
   unsigned long long n_on = 0, n_off = 0;
 
@@ -233,6 +264,7 @@ int main(int argc, char **argv) {
   if (in != stdin) fclose(in);
   if (g_nev) qsort(g_ev, g_nev, sizeof *g_ev, cmp_ev);
   if (g_ntick) qsort(g_tick, g_ntick, sizeof *g_tick, cmp_u32);
+  if (g_nrun) qsort(g_run, g_nrun, sizeof *g_run, cmp_run);   /* not stable: one a frame */
   if (!have_end) {
     if (g_nev && g_ev[g_nev - 1].frame >= end) end = g_ev[g_nev - 1].frame + 1ul;
     if (g_ntick && g_tick[g_ntick - 1] >= end) end = g_tick[g_ntick - 1] + 1ul;
@@ -248,9 +280,14 @@ int main(int argc, char **argv) {
   memset(mem, (int)(fill & 0xFFu), fm1_arp_size());
   arp = fm1_arp_create(mem, (uint16_t)ppqn);
 
-  for (start = 0; start < end; start += (uint32_t)block) {
-    const uint32_t stop = end - start < block ? (uint32_t)end : start + (uint32_t)block;
+  for (start = 0; start < end;) {
+    uint32_t stop = end - start < block ? (uint32_t)end : start + (uint32_t)block;
     uint32_t ni = 0, nt = 0, n, k;
+    for (; ir < g_nrun && g_run[ir].frame <= start; ++ir) {
+      running = g_run[ir].running;
+      pos = g_run[ir].pos;
+    }
+    if (ir < g_nrun && g_run[ir].frame < stop) stop = g_run[ir].frame;   /* a block ends there */
     while (ie < g_nev && g_ev[ie].frame < stop) {
       ibuf[ni] = g_ev[ie].ev;
       ibuf[ni].frame = (uint16_t)(g_ev[ie].frame - start);
@@ -261,19 +298,22 @@ int main(int argc, char **argv) {
       tbuf[nt++] = (uint16_t)(g_tick[it] - start);
       ++it;
     }
-    n = fm1_arp_process(arp, ibuf, ni, tbuf, nt, obuf, (uint32_t)cap);
+    n = fm1_arp_process_at(arp, ibuf, ni, tbuf, nt, running, pos, obuf, (uint32_t)cap);
+    if (running) pos += nt;
     for (k = 0; k < n; ++k) {
       const fm1_arp_ev_t *e = &obuf[k];
+      const char *seq = FM1_MIDI_EV_SRC(e->b) == FM1_MIDI_SRC_SEQ ? ", \"seq\": 1" : "";
       if (e->kind == FM1_ARP_EV_NOTE_ON) {
-        fprintf(out, "{\"frame\": %lu, \"kind\": \"on\", \"key\": %u, \"vel\": %u}\n",
-                (unsigned long)(start + e->frame), e->a, e->b);
+        fprintf(out, "{\"frame\": %lu, \"kind\": \"on\", \"key\": %u, \"vel\": %u%s}\n",
+                (unsigned long)(start + e->frame), e->a, FM1_MIDI_EV_VEL(e->b), seq);
         ++n_on;
       } else {
-        fprintf(out, "{\"frame\": %lu, \"kind\": \"off\", \"key\": %u}\n",
-                (unsigned long)(start + e->frame), e->a);
+        fprintf(out, "{\"frame\": %lu, \"kind\": \"off\", \"key\": %u%s}\n",
+                (unsigned long)(start + e->frame), e->a, seq);
         ++n_off;
       }
     }
+    start = stop;
   }
   /* Note-offs deferred by a small --cap go out in the calls that follow. */
   for (;;) {
@@ -281,17 +321,19 @@ int main(int argc, char **argv) {
     uint32_t k;
     if (!n) break;
     for (k = 0; k < n; ++k) {
-      fprintf(out, "{\"frame\": %lu, \"kind\": \"off\", \"key\": %u}\n",
-              (unsigned long)start, obuf[k].a);
+      fprintf(out, "{\"frame\": %lu, \"kind\": \"off\", \"key\": %u%s}\n",
+              (unsigned long)start, obuf[k].a,
+              FM1_MIDI_EV_SRC(obuf[k].b) == FM1_MIDI_SRC_SEQ ? ", \"seq\": 1" : "");
       ++n_off;
     }
     start += (uint32_t)block;
   }
   fm1_arp_get_stats(arp, &st);
   fprintf(out, "{\"summary\": {\"end\": %lu, \"ons\": %llu, \"offs\": %llu, \"sounding\": %u, "
-               "\"held\": %u, \"steps\": %lu, \"dropped_ons\": %lu, \"deferred_offs\": %lu, "
+               "\"held\": %u, \"held_seq\": %u, \"steps\": %lu, \"dropped_ons\": %lu, \"deferred_offs\": %lu, "
                "\"stolen\": %lu, \"size\": %u}}\n",
-          end, n_on, n_off, fm1_arp_sounding(arp), fm1_arp_held(arp), (unsigned long)st.steps,
+          end, n_on, n_off, fm1_arp_sounding(arp), fm1_arp_held(arp), fm1_arp_held_seq(arp),
+          (unsigned long)st.steps,
           (unsigned long)st.dropped_ons, (unsigned long)st.deferred_offs, (unsigned long)st.stolen,
           (unsigned)fm1_arp_size());
   if (out != stdout) fclose(out);

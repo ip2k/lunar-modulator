@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced editor: the cable map</title>
+<link rel="stylesheet" href="editor.css">
+<style>
+  .maphead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .bay .scope { height: 26px; }
+  .mod-b .mid { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .howto { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .howto p { margin: 0; font-size: 12px; color: var(--label-s); }
+  .howto b { color: var(--text); }
+  @media (max-width: 1180px) { .howto { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body data-layout="editor" data-page="mod" data-screen="screen-matrix-slot5.png"
+      data-screen-alt="The FM-1 screen: MATRIX page A, slot 5 of 32 chosen"
+      data-screen-cap="MATRIX · slot 5/32: the map's selected cable is the screen's selected row"
+      data-status="focus on <b>ENV3</b>: its 3 cables bright, the other 7 dimmed · <kbd>F</kbd> focuses, <kbd>Esc</kbd> shows all">
+<main class="main">
+  <div class="head">
+    <span class="title">Modulation</span>
+    <span class="meta">Rack <b>6 of 8</b> · matrix <b>10 of 32</b> · the same slots as the table, drawn as cables</span>
+    <div class="tools"><span class="viewsw" role="radiogroup" aria-label="View"><span>Table</span><span class="on">Map</span></span><span class="btn">Export mod rack…</span></div>
+  </div>
+
+  <section class="panel" aria-label="The cable map">
+    <div class="maphead">
+      <div class="filters"><span class="fchip">All 10</span><span class="fchip on">Focus: ENV3 · 3</span><span class="fchip">Into S2 · 2</span><span class="fchip r">Refused · 1</span><span class="fchip">Late · 1</span></div>
+      <div class="legend" style="margin-left:auto">
+        <span><svg viewBox="0 0 32 10"><line x1="0" y1="5" x2="32" y2="5" stroke="var(--mod)" stroke-width="1.8" stroke-dasharray="6 3.5"/></svg>modulation</span>
+        <span><svg viewBox="0 0 32 10"><line x1="1" y1="5" x2="31" y2="5" stroke="var(--mod)" stroke-width="2.4" stroke-dasharray="0.1 4" stroke-linecap="round"/></svg>gate</span>
+        <span><svg viewBox="0 0 32 10"><line x1="0" y1="5" x2="32" y2="5" stroke="var(--mod)" stroke-opacity="0.22" stroke-width="8"/><line x1="0" y1="5" x2="32" y2="5" stroke="var(--mod)" stroke-width="1.8" stroke-dasharray="6 3.5"/></svg>per voice (v)</span>
+        <span><svg viewBox="0 0 32 10"><line x1="0" y1="5" x2="24" y2="5" stroke="var(--refuse)" stroke-width="1.8" stroke-dasharray="6 3.5"/><path d="M25 1 L31 9 M25 9 L31 1" stroke="var(--refuse)" stroke-width="2"/></svg>refused (!)</span>
+        <span>~ a tick late</span>
+      </div>
+    </div>
+
+    <div class="bay" id="bay">
+      <div class="srcs" aria-label="Sources">
+        <h5>Sources</h5>
+        <span class="g">Every note</span>
+        <span class="s dim">VEL<span class="x"></span><span class="jack o dim"></span></span>
+        <span class="s dim">NOTE<span class="x"></span><span class="jack o dim"></span></span>
+        <span class="s dim">KEY<span class="x"></span><span class="jack o g dim"></span></span>
+        <span class="s dim">TRIG<span class="x"></span><span class="jack o g dim"></span></span>
+        <span class="s">RTRG<span class="x"></span><span class="jack o g" id="j-rtrg"></span></span>
+        <span class="g">One sound's notes</span>
+        <span class="s dim">S1 ▸<span class="x"></span></span>
+        <span class="s">S2VEL <span class="small">via, slot 4</span><span class="x"></span><span class="jack o dim"></span></span>
+        <span class="s dim">S3 ▸ · S4 ▸<span class="x"></span></span>
+        <span class="g">Sequencer</span>
+        <span class="s dim">CLOCK<span class="x"></span><span class="jack o g dim"></span></span>
+        <span class="s">BEAT<span class="x"></span><span class="jack o g" id="j-beat"></span></span>
+        <span class="s dim">BAR · RUN · START<span class="x"></span></span>
+        <span class="s dim">SEQ1–8 ▸ · SQV1–8 ▸<span class="x"></span></span>
+      </div>
+
+      <div class="rk" id="rk" aria-label="The rack">
+        <h5>Rack</h5>
+        <div class="mod-b" id="b-lfo1"><div class="t"><span class="nm">LFO1</span><span class="k">LFO · Triangle · 1/4</span></div>
+          <div class="ins2"><span><span class="jack" id="j-lfo1-rate"></span>Rate</span><span><span class="jack g dim"></span><span class="nrm">Reset ← TRIG</span></span></div>
+          <div class="mid"><svg class="scope" data-wave="tri" data-cycles="2.5"></svg></div>
+          <div class="outs"><span>Out<span class="jack o" id="j-lfo1-out"></span></span><span>Wrap<span class="jack o g" id="j-lfo1-wrap"></span></span></div></div>
+        <div class="mod-b" id="b-lfo2"><div class="t"><span class="nm">LFO2</span><span class="k">LFO · Sine · free</span></div>
+          <div class="ins2"><span><span class="jack g dim"></span><span class="nrm">Reset ← TRIG</span></span></div>
+          <div class="mid"><svg class="scope" data-wave="sine" data-cycles="1.5" data-ph="0.2"></svg></div>
+          <div class="outs"><span>Out<span class="jack o" id="j-lfo2-out"></span></span></div></div>
+        <div class="mod-b cur" id="b-env3"><div class="t"><span class="nm">ENV3</span><span class="k">Envelope · 3 voices</span><span class="poly">per voice</span></div>
+          <div class="ins2"><span><span class="jack g" id="j-env3-gate"></span>Gate</span></div>
+          <div class="mid"><svg class="scope" data-wave="voices"></svg></div>
+          <div class="outs"><span>Env<span class="jack o" id="j-env3-out"></span></span><span>EOC · Act<span class="jack o g dim"></span></span></div></div>
+        <div class="mod-b" id="b-env4"><div class="t"><span class="nm">ENV4</span><span class="k">Envelope · idle</span></div>
+          <div class="ins2"><span><span class="jack g" id="j-env4-gate"></span>Gate</span></div>
+          <div class="mid"><svg class="scope" data-wave="idle"></svg></div>
+          <div class="outs"><span>Env<span class="jack o dim"></span></span></div></div>
+        <div class="mod-b" id="b-chn5"><div class="t"><span class="nm">CHN5</span><span class="k">Chance · S&amp;H</span></div>
+          <div class="ins2"><span><span class="jack g" id="j-chn5-trig"></span>Trig</span></div>
+          <div class="mid"><svg class="scope" data-wave="rand" data-cycles="1"></svg></div>
+          <div class="outs"><span>Smth<span class="jack o" id="j-chn5-smth"></span></span><span>Held · Step<span class="jack o dim"></span></span></div></div>
+        <div class="mod-b" id="b-fun6"><div class="t"><span class="nm">FUN6</span><span class="k">Function · Cycle</span></div>
+          <div class="ins2"><span><span class="jack g" id="j-fun6-trig"></span>Trig</span><span><span class="jack g dim"></span><span class="nrm">Gate ← KEY</span></span></div>
+          <div class="mid"><svg class="scope" data-wave="func" data-cycles="2"></svg></div>
+          <div class="outs"><span>Out<span class="jack o" id="j-fun6-out"></span></span><span>+5<span class="jack o dim"></span></span></div></div>
+        <div class="mc empty" style="min-height:34px"><span class="k">7 · + Add a module · 16 kinds</span></div>
+      </div>
+
+      <div class="dsts" aria-label="Destinations">
+        <h5>Destinations</h5>
+        <div class="dgrp s2"><div class="gh"><span class="tag s2">S2</span>Sound 2<span class="k">Macro</span></div>
+          <div class="d"><span class="jack" id="j-s2-timbre"></span>Timbre<span class="vm">v</span></div>
+          <div class="d"><span class="jack" id="j-s2-morph"></span>Morph<span class="vm">v</span></div>
+          <div class="more">+ 9 more · In1 Echo 7</div></div>
+        <div class="dgrp s3"><div class="gh"><span class="tag s3">S3</span>Sound 3<span class="k">In1 Filter</span></div>
+          <div class="d"><span class="jack" id="j-s3-cutoff"></span>Cutoff <span class="u">Hz</span></div>
+          <div class="more">+ 7 more · engine 13 · In2 8</div></div>
+        <div class="dgrp s4"><div class="gh"><span class="tag s4">S4</span>Sound 4<span class="k">FM6</span></div>
+          <div class="d"><span class="jack" id="j-s4-bright"></span>Brightness<span class="vm">v</span></div>
+          <div class="more">+ 4 more · In1 Plate 5</div></div>
+        <div class="dgrp"><div class="gh"><span class="tag m">M1</span>Master Sat<span class="k">master</span></div>
+          <div class="d"><span class="jack r" id="j-m1-drive"></span>Drive <span class="u">dB</span></div>
+          <div class="more">+ 7 more · M2 Limiter 7 · host 6</div></div>
+        <div class="dgrp s1"><div class="gh"><span class="tag s1">S1</span>Sound 1<span class="k">no cables</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel howto" aria-label="Making cables">
+    <p><b>Make a cable</b> by dragging from an output to an input. While one is in hand every destination opens; jacks that would refuse it turn the refusal colour and say why, and for a per-voice cable the targets marked v stand out.</p>
+    <p><b>Without a mouse</b>, the table is the way: <kbd>N</kbd> on a source, type-ahead to a destination, <kbd>Enter</kbd>. On the map, <kbd>Enter</kbd> on an output starts a cable the same way. Screen readers get the table; the map is a picture of it.</p>
+    <p><b>Focus</b> (<kbd>F</kbd>) keeps the selected module's or destination's cables bright and dims the rest without their labels, so 32 cables stay readable. Cables between modules run in the gutters beside the rack, never across a module.</p>
+  </section>
+</main>
+<script src="meta.js"></script>
+<script src="shell.js"></script>
+<script src="editor.js"></script>
+<script>
+  window.CABLES = () => {
+    const rk = document.querySelector('#rk'), bay = document.querySelector('#bay');
+    const R = rk.getBoundingClientRect(), B = bay.getBoundingClientRect();
+    const xr = R.right - B.left, xl = R.left - B.left;
+    const gap = (a, b) => (document.querySelector(a).getBoundingClientRect().bottom + document.querySelector(b).getBoundingClientRect().top) / 2 - B.top;
+    const yTop = document.querySelector('#b-lfo1').getBoundingClientRect().top - B.top - 7;
+    // LFO1 Wrap -> FUN6 Trig: out the right gutter, along the gap above FUN6, in by the left gutter
+    const r8 = (x0, y0, x3, y3) => { const yg = gap('#b-chn5', '#b-fun6'); return `M${x0} ${y0} H${xr + 14} V${yg} H${xl - 14} V${y3} H${x3}`; };
+    // FUN6 Out -> LFO1 Rate: out the right gutter, over the rack, in by the left gutter
+    const r9 = (x0, y0, x3, y3) => `M${x0} ${y0} H${xr + 28} V${yTop} H${xl - 28} V${y3} H${x3}`;
+    return { '#bay': [
+      { id: '1', from: '#j-rtrg', to: '#j-env3-gate', kind: 'gate' },
+      { id: '2', from: '#j-rtrg', to: '#j-env4-gate', kind: 'gate', dim: true },
+      { id: '10', from: '#j-beat', to: '#j-chn5-trig', kind: 'gate', dim: true },
+      { id: '3', from: '#j-lfo1-out', to: '#j-s3-cutoff', dim: true },
+      { id: '4', from: '#j-lfo2-out', to: '#j-s2-timbre', dim: true },
+      { id: '5', from: '#j-env3-out', to: '#j-s2-morph', kind: 'voice', sel: true, pill: '<span class="mod">v</span> +60 %', t: 0.42 },
+      { id: '6', from: '#j-env3-out', to: '#j-m1-drive', kind: 'refused', pill: '! +30 %', t: 0.55 },
+      { id: '7', from: '#j-chn5-smth', to: '#j-s4-bright', dim: true },
+      { id: '8', from: '#j-lfo1-wrap', to: '#j-fun6-trig', kind: 'gate', dim: true, route: r8 },
+      { id: '9', from: '#j-fun6-out', to: '#j-lfo1-rate', dim: true, route: r9 },
+    ] };
+  };
+</script>
+</body>
+</html>
