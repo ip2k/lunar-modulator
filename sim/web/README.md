@@ -534,7 +534,7 @@ identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, two let EQ with Master Sat and Isolator rest past 2 s and
 wake them, and one keeps EQ awake under a zero cable; those three, the
 three Drums, the four FM6 and the five glide scenarios are identical to
-glibc too), and it imports nothing; it is @@SIZE@@ bytes with those
+glibc too), and it imports nothing; it is 956,217 bytes with those
 follow-ups, 955,241 before them with the track strip's sound numbers and
 MATRIX's narrow gaps (2026-10-06), 955,464 before those (955,543 before the
 dead-code audit's removals) with the UI audit's screens (the palette, the
