@@ -2028,3 +2028,58 @@ reads 4 KiB at a time now.
   lines, not records.
 - The page's help still lists SAVE among the stubs; W1 replaces it.
 
+
+## 24. What stage W1 built (2026-10-06)
+
+`feature/2026-10-06@a1-w1`, stage W1: the page side of §12 on stage A1's
+exports (`sim/web/www/files.js`, `shadow.worker.js`, the worklet's
+`state-save`, `state-load`, `seq-line`, `store-ready` and `saved`). Every
+claim here is [verified] by `sim/web/test/files.mjs` in headless Chromium
+153 and `tests/test_sim_files.py`, unless marked.
+
+**The split ED13 asked for.** The worklet loads and saves only the binary
+container and refuses anything else; a shadow Worker, a second module,
+mirrors the live project before each job, runs pass 1 with the page's
+target and flags, packs JSON (a `.movy1` set: loaded there, saved as a SET
+container) and writes every JSON file. The audio thread's one JSON.parse is
+the catalogue at start. A project save costs it about 1.5 ms (Node, this
+Mac); the first one, cold, about 5 ms.
+
+**Decisions taken here** (open to the owner):
+- **The stores keep the binary container**, not text: the autosave and
+  Recent are the worklet's own save, restored without a round trip, and a
+  download writes JSON through the shadow. §12.3 said "text".
+- **Autosave** writes 5 s after the last change, but no later than 15 s
+  after the first unsaved one (so playing for minutes still saves), never
+  more often than every 5 s, and on hiding, leaving and Power off; equal
+  bytes are not written again. A change is any panel input that reaches
+  the firmware (keys, buttons, encoders, menus, MIDI notes, DX7 loads):
+  the page cannot tell an edit from a note, and a save of the same bytes
+  is skipped.
+- **Every POWER press restores the autosave**, not only the first of a
+  visit, so power off and on never loses work to the next autosave; the
+  message offers *Start fresh* (the shadow's start chain, the old state to
+  Recent).
+- **A link's project over saved work** puts the autosave in Recent as
+  "Before *title*" without loading it, then loads the link; a partial kind
+  restores the work first and loads into it.
+- **The `view` hint** has no export of its own: the shadow writes the
+  project, the page sets `view` on that JSON (C's output, so JSON.parse is
+  safe there), the shadow packs it and the worklet reloads it quietly.
+- **Hint names**: `into=s1`-`s4`, `master`, `t3.2` (a clip's track and
+  slot); `hl` takes button and encoder names, MASTER, POWER, PLAY or STOP,
+  and KEY1-KEY27.
+- **Embed messages** are `{lunar: 1, id, op, …}`, replies `{lunar: 1, re,
+  ok, …}`, events `{lunar: 1, event, …}`; the dev-build `localhost`
+  exception of §12.4 is not built (same origin only, as ST15 says).
+- **File names**: a project is `title.lunar` (§11's table), every other
+  kind `title-s2.sound.lunar`, `title-master.fx.lunar`, `title.mods.lunar`.
+
+**Open.**
+- A refusal from the shadow's pass 1 is shown on the page only; the device
+  screen's `NOT LOADED` needs an export that shows a banner (the worklet
+  never sees a refused file).
+- Save… has no DX7 bank (VMEM) download: there is no export for it.
+- Asking which FM6 slot to overwrite (ST8) is not built: a full bank is
+  refused with "Load without its voice".
+- `fm1-state check` still counts less than the app (§23, Open).
