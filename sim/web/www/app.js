@@ -312,9 +312,10 @@ function showLicence() {
   add('); the rest of Lunar Modulator is MIT. ');
   const repo = licence.repository;
   if (repo) {
-    const tree = licence.commit ? `${repo}/tree/${licence.commit}` : repo;
+    const tree = `${repo}/tree/${licence.commit || 'main'}`;
     add('The complete corresponding source is ');
-    add(licence.commit ? `the repository at ${licence.commit.slice(0, 7)}` : 'the repository', tree);
+    add(licence.commit ? `the repository at ${licence.commit.slice(0, 7)}` : 'the repository',
+      licence.commit ? tree : repo);
     const dirs = [...new Set(gpl.map((m) => m.source).filter(Boolean))];
     if (dirs.length) {
       add(', where ');

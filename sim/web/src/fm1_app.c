@@ -1837,8 +1837,12 @@ static void fx_choose(fm1_app_t *a, int unit, int delta) {
 /* ---- the arpeggiator (engine API v3's MIDI effects) ------------------------------ */
 
 /* The ARP pages, as the arp's parameters are paged (engines/midi_fx/
- * arp_engine.c, after the options note §2.4). */
+ * arp_engine.c, after the options note §2.4), and those of the other MIDI
+ * effects the slot can hold. */
 static const char *const kArpPages[] = { "PLAY", "RHYTHM", "CHANCE", "FEEL", "MORE", "KEYS", "SEED" };
+static const struct { const char *id; const char *pages[8]; } kMfxPages[] = {
+  { "acid-gen", { "LINE", "KEY", "PLAY", "SEED" } },   /* engines/midi_fx/acid_gen.c (GPL) */
+};
 
 /* The stock FM-1's arp modes [reported: AL-255's FM-1-RE, docs/io/05-midi.md
  * §6.3, at 95eca84: up, down, up-down, down-up, random (a shuffle of the
@@ -1878,6 +1882,39 @@ static int arp_entry(int index, const char *name) {
 static void *arp_self(const fm1_app_t *a, int sound) {
   const fm1_mfx_slot_t *sl = fm1_mfx_slot(&a->mfx, (unsigned)sound, 0);
   return sl && sl->fx ? sl->self : NULL;
+}
+
+const fm1_engine_t *fm1_app_mfx_engine(const fm1_app_t *a, int sound) {
+  const fm1_mfx_slot_t *sl = sound >= 0 && sound < FM1_APP_SOUNDS
+                                 ? fm1_mfx_slot(&a->mfx, (unsigned)sound, 0) : NULL;
+  return sl && sl->fx ? &sl->fx->engine : NULL;
+}
+
+int fm1_app_mfx_param_index(const fm1_app_t *a, int sound, const char *name) {
+  const fm1_engine_t *e = fm1_app_mfx_engine(a, sound);
+  for (uint16_t i = 0; e && name && i < e->n_params; ++i) {
+    if (eq_nocase(e->params[i].name, name)) return i;
+  }
+  return -1;
+}
+
+/* Whether the slot holds the arp (the stock presets apply to it). */
+static int slot_is_arp(const fm1_app_t *a, int sound) {
+  return fm1_app_mfx_engine(a, sound) == fm1_app_arp_engine();
+}
+
+/* The page names of the effect in the current sound's slot: page `page`'s,
+ * or NULL. */
+static const char *mfx_page_name(const fm1_app_t *a, int page) {
+  const fm1_engine_t *e = fm1_app_mfx_engine(a, a->sound);
+  if (page < 0 || page >= 8 || !e) return NULL;
+  if (e == fm1_app_arp_engine()) {
+    return page < (int)(sizeof kArpPages / sizeof kArpPages[0]) ? kArpPages[page] : NULL;
+  }
+  for (size_t k = 0; k < sizeof kMfxPages / sizeof kMfxPages[0]; ++k) {
+    if (strcmp(kMfxPages[k].id, e->id) == 0) return kMfxPages[k].pages[page];
+  }
+  return NULL;
 }
 
 /* A bypassed arp on every sound, its parameters at their defaults, and the
@@ -1923,7 +1960,8 @@ int fm1_app_arp_set_on(fm1_app_t *a, int sound, int on) {
       char over[24];
       a->ram_over = with - FM1_APP_RAM_BUDGET;
       snprintf(over, sizeof over, "%uK over budget", (unsigned)((a->ram_over + 1023u) / 1024u));
-      popup(a, "Arp", "does not fit", over, -1);
+      popup(a, fm1_app_mfx_engine(a, sound) ? fm1_app_mfx_engine(a, sound)->name : "Arp", "does not fit",
+            over, -1);
       return FM1_APP_SELECT_RAM;
     }
   }
@@ -1934,8 +1972,49 @@ int fm1_app_arp_set_on(fm1_app_t *a, int sound, int on) {
   return 0;
 }
 
+int fm1_app_mfx_select(fm1_app_t *a, int sound, const char *id) {
+  const fm1_midi_fx_t *fx = fm1_midi_fx_find(id);
+  const fm1_mfx_sink_t k = mfx_sink(a);
+  const fm1_mfx_slot_t *sl;
+  void *self;
+  int on;
+  size_t index = 0;
+  if (sound < 0 || sound >= FM1_APP_SOUNDS || !fx || fx->engine.n_params > FM1_APP_ARP_PARAMS ||
+      fx->engine.instance_size(&a->host) > FM1_APP_MFX_BYTES) {
+    return -1;
+  }
+  while (index < fm1_midi_fx_count && fm1_midi_fxs[index] != fx) ++index;
+  sl = fm1_mfx_slot(&a->mfx, (unsigned)sound, 0);
+  if (sl && sl->fx == fx) return 0;
+  on = sl && sl->on;
+  if (on && sl->fx) {
+    /* The RAM meter, as for an engine: the new effect in place of the old. */
+    const size_t now = fm1_app_ram(a);
+    const size_t with = now - sl->fx->engine.instance_size(&a->host) + fx->engine.instance_size(&a->host);
+    if (with > FM1_APP_RAM_BUDGET && with > now) {
+      char over[24];
+      a->ram_over = with - FM1_APP_RAM_BUDGET;
+      snprintf(over, sizeof over, "%uK over budget", (unsigned)((a->ram_over + 1023u) / 1024u));
+      popup(a, fx->engine.name, "does not fit", over, -1);
+      return FM1_APP_SELECT_RAM;
+    }
+  }
+  fm1_mfx_set(&a->mfx, (unsigned)sound, 0, NULL, NULL, 0, &k);   /* the old one ends its notes */
+  memset(a->mfx_mem[sound], 0, FM1_APP_MFX_BYTES);
+  self = fx->engine.create(a->mfx_mem[sound], &a->host);
+  if (!self) return -1;
+  fm1_mfx_set(&a->mfx, (unsigned)sound, 0, fx, self, on, &k);
+  for (uint16_t i = 0; i < FM1_APP_ARP_PARAMS; ++i) {
+    a->arp_value[sound][i] = i < fx->engine.n_params ? fx->engine.params[i].def : 0.0f;
+  }
+  arp_log(a, sound, -2, (float)index);
+  a->dirty = 1;
+  a->leds_changed = 1;
+  return 0;
+}
+
 void fm1_app_arp_set_param(fm1_app_t *a, int sound, int index, float value) {
-  const fm1_engine_t *e = fm1_app_arp_engine();
+  const fm1_engine_t *e = fm1_app_mfx_engine(a, sound);
   void *self;
   if (!e || sound < 0 || sound >= FM1_APP_SOUNDS || index < 0 || index >= e->n_params) return;
   self = arp_self(a, sound);
@@ -1955,19 +2034,38 @@ float fm1_app_arp_get_param(const fm1_app_t *a, int sound, int index) {
   return a->arp_value[sound][index];
 }
 
-int fm1_app_arp_preset_count(void) { return ARP_PRESETS; }
+/* After the stock presets, every other MIDI effect of the registry: entry
+ * ARP_PRESETS + k is the k-th of them that is not the arp. */
+static const fm1_midi_fx_t *other_mfx(int k) {
+  for (size_t i = 0; i < fm1_midi_fx_count; ++i) {
+    if (&fm1_midi_fxs[i]->engine == fm1_app_arp_engine()) continue;
+    if (k-- == 0) return fm1_midi_fxs[i];
+  }
+  return NULL;
+}
+
+int fm1_app_arp_preset_count(void) {
+  return ARP_PRESETS + (int)fm1_midi_fx_count - (fm1_app_arp_engine() ? 1 : 0);
+}
 
 const char *fm1_app_arp_preset_name(int preset) {
-  return preset >= 0 && preset < ARP_PRESETS ? kArpPresets[preset].name : NULL;
+  const fm1_midi_fx_t *fx = other_mfx(preset - ARP_PRESETS);
+  if (preset >= 0 && preset < ARP_PRESETS) return kArpPresets[preset].name;
+  return preset >= ARP_PRESETS && fx ? fx->engine.name : NULL;
 }
 
 int fm1_app_arp_preset(fm1_app_t *a, int sound, int preset) {
   const int mode = fm1_app_arp_param_index("Mode"), order = fm1_app_arp_param_index("Order");
-  int m, o;
-  if (preset < 0 || preset >= ARP_PRESETS || sound < 0 || sound >= FM1_APP_SOUNDS) return -1;
+  int m, o, r;
+  if (sound < 0 || sound >= FM1_APP_SOUNDS || preset < 0) return -1;
+  if (preset >= ARP_PRESETS) {
+    const fm1_midi_fx_t *fx = other_mfx(preset - ARP_PRESETS);
+    return fx ? fm1_app_mfx_select(a, sound, fx->engine.id) : -1;
+  }
   m = arp_entry(mode, kArpPresets[preset].mode);
   o = arp_entry(order, kArpPresets[preset].order);
   if (m < 0 || o < 0) return -1;
+  if (!slot_is_arp(a, sound) && (r = fm1_app_mfx_select(a, sound, "arp")) != 0) return r;
   fm1_app_arp_set_param(a, sound, mode, (float)m);
   fm1_app_arp_set_param(a, sound, order, (float)o);
   return 0;
@@ -1975,7 +2073,15 @@ int fm1_app_arp_preset(fm1_app_t *a, int sound, int preset) {
 
 int fm1_app_arp_preset_of(const fm1_app_t *a, int sound) {
   const int mode = fm1_app_arp_param_index("Mode"), order = fm1_app_arp_param_index("Order");
-  if (sound < 0 || sound >= FM1_APP_SOUNDS || mode < 0 || order < 0) return -1;
+  if (sound < 0 || sound >= FM1_APP_SOUNDS) return -1;
+  if (!slot_is_arp(a, sound)) {             /* another effect: its own entry */
+    const fm1_engine_t *e = fm1_app_mfx_engine(a, sound);
+    for (int k = ARP_PRESETS; e && k < fm1_app_arp_preset_count(); ++k) {
+      if (other_mfx(k - ARP_PRESETS) && &other_mfx(k - ARP_PRESETS)->engine == e) return k;
+    }
+    return -1;
+  }
+  if (mode < 0 || order < 0) return -1;
   for (int k = 0; k < ARP_PRESETS; ++k) {
     if (a->arp_value[sound][mode] == (float)arp_entry(mode, kArpPresets[k].mode) &&
         a->arp_value[sound][order] == (float)arp_entry(order, kArpPresets[k].order)) {
@@ -1987,21 +2093,25 @@ int fm1_app_arp_preset_of(const fm1_app_t *a, int sound) {
 
 /* A preset's name, for ALGORITHM's list popup. */
 static int arp_preset_entry(const fm1_app_t *a, const void *ctx, int k, char *buf, size_t size) {
+  const char *name = fm1_app_arp_preset_name(k);
   (void)a;
   (void)ctx;
-  snprintf(buf, size, "%s", k >= 0 && k < ARP_PRESETS ? kArpPresets[k].name : "?");
+  snprintf(buf, size, "%s", name ? name : "?");
   return 0;
 }
 
 static int arp_latched(const fm1_app_t *a, int sound) {
-  const int latch = fm1_app_arp_param_index("Latch");
+  const int latch = fm1_app_mfx_param_index(a, sound, "Latch");
   return latch >= 0 && a->arp_value[sound][latch] >= 0.5f;
 }
 
-static int arp_pages(void) {
-  const int n = page_count(fm1_app_arp_engine());
-  const int names = (int)(sizeof kArpPages / sizeof kArpPages[0]);
-  return n < names ? n : names;
+/* The slot's effect's pages that have a name (all of them, for the arp's and
+ * Acid Gen's). */
+static int arp_pages(const fm1_app_t *a) {
+  const int n = page_count(fm1_app_mfx_engine(a, a->sound));
+  int named = 0;
+  while (named < n && mfx_page_name(a, named)) ++named;
+  return named ? named : (n ? n : 1);
 }
 
 /* The ARP pages, from the mode they were opened in. */
@@ -2018,12 +2128,20 @@ static void arp_close(fm1_app_t *a) {
   a->dirty = 1;
 }
 
+/* "Arp on", "Acid Gen off": the slot's effect's name and its state. */
+static void mfx_state_text(const fm1_app_t *a, int on, char *buf, size_t size) {
+  const fm1_engine_t *e = fm1_app_mfx_engine(a, a->sound);
+  snprintf(buf, size, "%s %s", e ? e->name : "Arp", on ? "on" : "off");
+}
+
 /* A tap: the current sound's arp on (and its pages open) or off (and, if
  * they are showing, they close). */
 static void arp_tap(fm1_app_t *a) {
   const int on = !fm1_app_arp_on(a, a->sound);
+  char state[32];
   if (fm1_app_arp_set_on(a, a->sound, on) != 0) return;   /* refused: its popup says why */
-  popup(a, on ? "Arp on" : "Arp off", on && arp_latched(a, a->sound) ? "Latch on" : NULL, NULL, -1);
+  mfx_state_text(a, on, state, sizeof state);
+  popup(a, state, on && arp_latched(a, a->sound) ? "Latch on" : NULL, NULL, -1);
   if (on) arp_open(a);
   else arp_close(a);
 }
@@ -2031,12 +2149,14 @@ static void arp_tap(fm1_app_t *a) {
 /* A hold: Latch on (the arp on with it) or off, on the current sound. An
  * arp that is off comes on latched, whatever its Latch was left at. */
 static void arp_hold(fm1_app_t *a) {
-  const int latch = fm1_app_arp_param_index("Latch");
+  const int latch = fm1_app_mfx_param_index(a, a->sound, "Latch");
   const int to = !fm1_app_arp_on(a, a->sound) || !arp_latched(a, a->sound);
+  char state[32];
   if (latch < 0 || !arp_self(a, a->sound)) return;
   if (to && fm1_app_arp_set_on(a, a->sound, 1) != 0) return;   /* refused: its popup says why */
   fm1_app_arp_set_param(a, a->sound, latch, to ? 1.0f : 0.0f);
-  popup(a, to ? "Latch on" : "Latch off", fm1_app_arp_on(a, a->sound) ? "Arp on" : NULL, NULL, -1);
+  mfx_state_text(a, 1, state, sizeof state);
+  popup(a, to ? "Latch on" : "Latch off", fm1_app_arp_on(a, a->sound) ? state : NULL, NULL, -1);
 }
 
 /* ARP's edges (every one, after the sequencer's UI and modulation saw
@@ -2074,21 +2194,24 @@ static void arp_poll(fm1_app_t *a) {
  * ALGORITHM the stock presets (with OCT held it stays the transpose).
  * 1 when the turn was the arp's. */
 static int arp_encoder(fm1_app_t *a, int encoder, int delta) {
-  const fm1_engine_t *e = fm1_app_arp_engine();
+  const fm1_engine_t *e = fm1_app_mfx_engine(a, a->sound);
   if (a->mode != FM1_MODE_ARP || !e || !arp_self(a, a->sound)) return 0;
   if (encoder == FM1_ENC_SELECT) {
-    a->arp_page = clampi(a->arp_page + delta, 0, arp_pages() - 1);
+    a->arp_page = clampi(a->arp_page + delta, 0, arp_pages(a) - 1);
     a->dirty = 1;
     return 1;
   }
   if (encoder == FM1_ENC_ALGORITHM) {
+    const int n = fm1_app_arp_preset_count();
     int p = fm1_app_arp_preset_of(a, a->sound);
     if (a->button_down[FM1_BTN_OCT_DOWN] || a->button_down[FM1_BTN_OCT_UP]) return 0;
-    p = p < 0 ? (delta > 0 ? 0 : ARP_PRESETS - 1) : clampi(p + delta, 0, ARP_PRESETS - 1);
-    fm1_app_arp_preset(a, a->sound, p);
-    list_popup(a, "Arp preset", ARP_PRESETS, p, arp_preset_entry, NULL);   /* the list, as a model's */
+    p = p < 0 ? (delta > 0 ? 0 : n - 1) : clampi(p + delta, 0, n - 1);
+    if (fm1_app_arp_preset(a, a->sound, p) == FM1_APP_SELECT_RAM) return 1;   /* its popup says why */
+    a->arp_page = clampi(a->arp_page, 0, arp_pages(a) - 1);
+    list_popup(a, "Arp preset", n, p, arp_preset_entry, NULL);   /* the list, as a model's */
     return 1;
   }
+  e = fm1_app_mfx_engine(a, a->sound);
   if (encoder >= FM1_ENC_KNOB1) {
     int idx[4];
     const int knob = encoder - FM1_ENC_KNOB1;
@@ -2975,10 +3098,12 @@ static void draw_fx(fm1_app_t *a, char *bottom, size_t size) {
  * HOME shows a sound's, and the scope. */
 static void draw_arp(fm1_app_t *a, char *bottom, size_t size) {
   fm1_tft_t *t = &a->tft;
-  const fm1_engine_t *e = fm1_app_arp_engine();
+  const fm1_engine_t *e = fm1_app_mfx_engine(a, a->sound);
   const int on = fm1_app_arp_on(a, a->sound);
   const int preset = fm1_app_arp_preset_of(a, a->sound);
-  const int pages = arp_pages();
+  const int pages = arp_pages(a);
+  const char *page_name;
+  char state[32];
   int idx[4], n;
   a->arp_page = clampi(a->arp_page, 0, pages - 1);
   if (!e || !arp_self(a, a->sound)) {
@@ -2986,11 +3111,16 @@ static void draw_arp(fm1_app_t *a, char *bottom, size_t size) {
     snprintf(bottom, size, "1/1 Arp");
     return;
   }
-  fm1_tft_text(t, MARGIN, CONTENT_Y, on ? (arp_latched(a, a->sound) ? "Arp latched" : "Arp on") : "Arp off",
-               11, SCALE, on ? C_MODEL : C_DIM);
-  if (preset >= 0) {
+  if (e == fm1_app_arp_engine()) {
+    snprintf(state, sizeof state, "%s", on ? (arp_latched(a, a->sound) ? "Arp latched" : "Arp on") : "Arp off");
+  } else {
+    snprintf(state, sizeof state, "%s", on ? (arp_latched(a, a->sound) ? "Latched" : "On") : "Off");
+  }
+  fm1_tft_text(t, MARGIN, CONTENT_Y, state, 11, SCALE, on ? C_MODEL : C_DIM);
+  if (preset >= 0) {   /* a stock preset (7 characters at most), or the effect's name */
     const char *name = fm1_app_arp_preset_name(preset);
-    fm1_tft_text(t, RIGHT - fm1_tft_text_width(name, 7, SCALE), CONTENT_Y, name, 7, SCALE, C_TEXT);
+    const int chars = e == fm1_app_arp_engine() ? 7 : 12;
+    fm1_tft_text(t, RIGHT - fm1_tft_text_width(name, chars, SCALE), CONTENT_Y, name, chars, SCALE, C_TEXT);
   }
   n = page_params(e, a->arp_page, idx);
   for (int k = 0; k < n; ++k) {
@@ -2998,7 +3128,8 @@ static void draw_arp(fm1_app_t *a, char *bottom, size_t size) {
                      a->arp_value[a->sound][idx[k]], NULL, 0, 0.0f, 0.0f);
   }
   draw_scope(a);
-  snprintf(bottom, size, "%d/%d %s", a->arp_page + 1, pages, kArpPages[a->arp_page]);
+  page_name = mfx_page_name(a, a->arp_page);
+  snprintf(bottom, size, "%d/%d %s", a->arp_page + 1, pages, page_name ? page_name : e->name);
 }
 
 static void draw(fm1_app_t *a) {
