@@ -326,10 +326,9 @@ int fm1w_state_load(int kind, int into, int slot, unsigned flags, unsigned len) 
 }
 
 int fm1w_state_pack(unsigned len) {
-  static uint8_t in[sizeof g_text];
-  fm1_app_state_mem_t m = { in, len };
+  /* The file is read whole before a byte of the result is put. */
+  fm1_app_state_mem_t m = { (const uint8_t *)g_text, len };
   if (len > sizeof g_text) return -1;
-  memcpy(in, g_text, len);
   memset(&g_state_rep, 0, sizeof g_state_rep);
   g_out_n = 0;
   g_out_over = 0;

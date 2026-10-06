@@ -13,12 +13,16 @@
 #define DX7_USER0 (FM1_APP_DX7_PATCHES - (int)FM1_DX7_USER_SLOTS)
 #define SET_CAP FM1_STATE_CAP_MOVY1           /* a set's text: 53,208 B at most at 8 tracks */
 #define JSON_CAP FM1_STATE_CAP_PROJECT        /* the largest JSON file */
-#define JW_BYTES (512u * 1024u)               /* the JSON writer's document */
-#define BW_BYTES (160u * 1024u)               /* the binary writer's file and chunk */
+/* The JSON writer's document (476,664 B on a 64-bit build) and, once the
+ * JSON is written, the binary writer's file (284,920 B); never both at once,
+ * so they share. Pass 1's rate check creates engines in it too. */
+#define W_BYTES (480u * 1024u)
 #define CLIP_LINES 512u
 
-static unsigned char g_jw[JW_BYTES] FM1_APP_ALIGN16;
-static unsigned char g_bw[BW_BYTES] FM1_APP_ALIGN16;
+static unsigned char g_w[W_BYTES] FM1_APP_ALIGN16;
+#define g_jw g_w
+#define g_bw g_w
+static char g_clip[FM1_STATE_CAP_CLIP + 2];
 static char g_json[JSON_CAP + 1];
 static uint32_t g_json_n;
 static int g_json_over;
@@ -642,8 +646,6 @@ int fm1_app_state_pack(fm1_src_read_t rd, void *rctx, fm1_put_t put, void *ctx, 
   if (fm1_state_bin_writer_size() > sizeof g_bw) return refuse_rep(rep, FM1_STATE_TOO_BIG, "the writer does not fit");
   g_bin_n = 0;
   g_bin_over = 0;
-  b = fm1_state_bin_writer(g_bw, FM1_STATE_BIN_DEFLATE, FM1_STATE_WRITER_SIM, version, bin_put, NULL, rep);
-  if (!b) return 0;
   {
     /* The binary writer wants the canonical order: the file goes through the
      * canonical JSON writer first, as fm1-state pack goes through canon. */
@@ -659,7 +661,8 @@ int fm1_app_state_pack(fm1_src_read_t rd, void *rctx, fm1_put_t put, void *ctx, 
     }
     if (g_json_over) return refuse_rep(rep, FM1_STATE_TOO_BIG, "larger than the file cap");
   }
-  if (!fm1_state_json_read(names(), json_src, NULL, fm1_state_bin_write, b, rep)) return 0;
+  b = fm1_state_bin_writer(g_bw, FM1_STATE_BIN_DEFLATE, FM1_STATE_WRITER_SIM, version, bin_put, NULL, rep);
+  if (!b || !fm1_state_json_read(names(), json_src, NULL, fm1_state_bin_write, b, rep)) return 0;
   if (g_bin_over) return refuse_rep(rep, FM1_STATE_TOO_BIG, "larger than a binary file");
   put(ctx, (const char *)g_bin, g_bin_n);
   return 1;
@@ -1239,7 +1242,7 @@ static int plan_finish(plan_t *p) {
     const char *lines[CLIP_LINES];
     size_t n = 0;
     uint32_t at = 0, set_n;
-    static char clip_copy[FM1_STATE_CAP_CLIP + 2];
+    char *clip_copy = g_clip;
     if (!a->seq || t < 0 || t >= (int)a->seq_lim.tracks || sl < 0 || sl >= 8) {
       return refuse_load(p, FM1_STATE_BAD, "No such slot", "A clip loads into a track and a slot.%s", "");
     }
@@ -1539,7 +1542,7 @@ static void apply_finish(plan_t *p) {
   }
   if (p->kind == FM1_STATE_CLIP && p->has_clip) {
     const char *lines[CLIP_LINES];
-    static char clip_copy[FM1_STATE_CAP_CLIP + 2];
+    char *clip_copy = g_clip;
     size_t n = 0;
     uint32_t at = 0, clip_n = g_set_n;
     char err[64];
