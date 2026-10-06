@@ -1,0 +1,173 @@
+# One sound's effect chain and the master bus, as fm1_app.c renders them
+# (render_sounds: inserts in order, an empty slot skipped, the level skipped at
+# 100 %; fm1_app_render: the master slots, AMP, the click, the bus limiter,
+# MASTER's gain). No effect has a side-chain input yet (fm1_fx_host.h: the key
+# is NULL in this stage), so none is drawn.
+title = "The effect chain"
+caption = "One sound’s chain and the master bus, with Echo in Sound 1’s first insert and Plate in M1 as an example. An empty slot passes the sound on; the limiter keeps the sum below full scale, and MASTER turns the result down."
+alt = "A chain from top to bottom. Sound 1, here Macro, feeds its first insert, here Echo, then its second insert, which is empty and passes the sound on, then its level on the Mix page. The mix also takes Sounds 2 to 4, each through its own two inserts and level. The mix feeds master slot M1, here Plate, then M2, empty, then AMP, the level modulation can move. The metronome's click joins before the limiter, which keeps the sum below 0.98 of full scale. MASTER, the volume, comes last. Notes beside the chain say that SEL and SELECT swap the two inserts, or the two master effects, with their settings, and that the master effects work on every sound together."
+legend = []
+
+[[node]]
+id = "snd"
+label = "Engine: Macro"
+col = 0
+row = 0
+role = "s1"
+
+[[node]]
+id = "in1"
+label = "In1: Echo"
+col = 0
+row = 1
+role = "s1"
+
+[[node]]
+id = "in2"
+label = "In2: empty"
+shape = "hollow"
+col = 0
+row = 2
+role = "s1"
+
+[[node]]
+id = "lvl"
+label = "Level: 0–100 %"
+col = 0
+row = 3
+role = "s1"
+
+[[node]]
+id = "mix"
+label = "Mix"
+col = 0
+row = 4
+
+[[node]]
+id = "m1"
+label = "M1: Plate"
+col = 0
+row = 5
+
+[[node]]
+id = "m2"
+label = "M2: empty"
+shape = "hollow"
+col = 0
+row = 6
+
+[[node]]
+id = "amp"
+label = "AMP"
+sub = "modulation’s level"
+col = 0
+row = 7
+
+[[node]]
+id = "lim"
+label = "Limiter"
+sub = "ceiling 0.98"
+col = 0
+row = 8
+
+[[node]]
+id = "master"
+label = "MASTER"
+sub = "the volume"
+col = 0
+row = 9
+
+[[node]]
+id = "others"
+label = "Sounds 2–4"
+sub = "each with its own In1, In2, level"
+col = 1
+row = 4
+align = "left"
+
+[[node]]
+id = "click"
+label = "Click"
+sub = "the metronome"
+col = 1
+row = 7
+align = "left"
+
+[[node]]
+id = "n_swap"
+shape = "note"
+label = "In1, then In2"
+sub = ["Each effect works on all", "before it. SEL and SELECT", "swap the two, settings and all."]
+col = 1
+row = 1
+rows = 2
+align = "left"
+
+[[node]]
+id = "n_empty"
+shape = "note"
+label = "M1, then M2"
+sub = ["They work on every sound", "together. An empty slot", "passes the sound on."]
+col = 1
+row = 5
+rows = 2
+align = "left"
+
+[[node]]
+id = "n_master"
+shape = "note"
+label = "MASTER"
+sub = ["After the limiter: it only", "turns the result down."]
+col = 1
+row = 9
+align = "left"
+
+[[group]]
+id = "s1"
+label = "Sound 1"
+members = ["snd", "in1", "in2", "lvl"]
+role = "s1"
+
+[[edge]]
+from = "snd"
+to = "in1"
+
+[[edge]]
+from = "in1"
+to = "in2"
+
+[[edge]]
+from = "in2"
+to = "lvl"
+
+[[edge]]
+from = "lvl"
+to = "mix"
+
+[[edge]]
+from = "others"
+to = "mix"
+
+[[edge]]
+from = "mix"
+to = "m1"
+
+[[edge]]
+from = "m1"
+to = "m2"
+
+[[edge]]
+from = "m2"
+to = "amp"
+
+[[edge]]
+from = "amp"
+to = "lim"
+
+[[edge]]
+from = "click"
+to = "lim"
+
+[[edge]]
+from = "lim"
+to = "master"

@@ -1,0 +1,179 @@
+# The transport as the simulator runs it: the core's states (seq_engine.c:
+# sq_play, sq_stop, sq_toggle_record with count_in_left and pending_rec;
+# seq_capture.c: commit_stopped's tempo selector and fitted modes) and the
+# panel's gestures (sim/web/src/fm1_seq_ui.c: rec_button, the PLAY branch of
+# fm1_seq_ui_button, srec_begin and srec_end, close_overlay).
+title = "The transport"
+caption = "What PLAY/STOP and REC do. Every state inside the frame is the sequencer running; PLAY/STOP stops it from any of them. When Capture finds a single tempo for an empty clip it plays at once, without the tempo on the screen."
+alt = "A state diagram. Stopped is where it starts. PLAY/STOP goes to Playing, and from any running state PLAY/STOP goes back to Stopped. Held in SEQ mode, REC enters Step record, and letting go returns to Stopped; PLAY/STOP there starts Playing. REC while stopped starts a one-bar Count-in, which turns into Recording a bar later, or into Playing if REC is pressed again. From Playing, REC records at once into a clip with notes, or into an empty clip waits for the next bar and then records; REC during the wait, or while recording, goes back to Playing. SHIFT with PLAY/STOP restarts, and SHIFT with REC captures into the loop. SHIFT with REC while stopped captures the phrase and starts playing with the tempo shown; SELECT tries another tempo and any other press closes it, back to Playing. PLAY/STOP in Step record leaves it and starts Playing."
+legend = ["press", "event"]
+
+[[node]]
+id = "start"
+shape = "start"
+col = 1
+row = 0
+
+[[node]]
+id = "stopped"
+shape = "state"
+label = "Stopped"
+col = 1
+row = 1
+
+[[node]]
+id = "step"
+shape = "state"
+label = "Step record"
+sub = "PLAY/STOP: Playing"
+col = 0
+row = 1
+role = "refuse"
+
+[[node]]
+id = "count"
+shape = "state"
+label = "Count-in"
+sub = "one bar"
+col = 0
+row = 2
+role = "held"
+
+[[node]]
+id = "playing"
+shape = "state"
+label = "Playing"
+col = 1
+row = 2
+role = "live"
+
+[[node]]
+id = "tempo"
+shape = "state"
+label = "Capture’s tempo"
+sub = ["on the screen;", "SELECT: another"]
+col = 2
+row = 2
+role = "select"
+
+[[node]]
+id = "rec"
+shape = "state"
+label = "Recording"
+col = 1
+row = 3
+role = "refuse"
+
+[[node]]
+id = "wait"
+shape = "state"
+label = "Waiting"
+sub = "for the bar"
+col = 2
+row = 3
+role = "held"
+
+[[node]]
+id = "shift"
+shape = "note"
+label = "While it runs"
+sub = ["SHIFT + PLAY/STOP starts again from the top;", "SHIFT + REC captures into the loop."]
+col = 0
+row = 4
+cols = 3
+align = "left"
+
+[[group]]
+id = "running"
+label = "Running: PLAY/STOP lit"
+title = "bottom"
+members = ["count", "playing", "tempo", "rec", "wait", "shift"]
+
+[[edge]]
+from = "start"
+to = "stopped"
+kind = "link"
+
+[[edge]]
+from = "stopped"
+to = "playing"
+kind = "press"
+label = "PLAY/STOP"
+
+[[edge]]
+from = "running"
+to = "stopped"
+kind = "press"
+label = "PLAY/STOP"
+
+[[edge]]
+from = "stopped"
+to = "step"
+kind = "press"
+label = ["hold REC", "(SEQ mode)"]
+
+[[edge]]
+from = "step"
+to = "stopped"
+kind = "press"
+label = "let go"
+
+[[edge]]
+from = "stopped"
+to = "count"
+kind = "press"
+label = "REC"
+
+[[edge]]
+from = "count"
+to = "playing"
+kind = "press"
+label = "REC"
+
+[[edge]]
+from = "count"
+to = "rec"
+kind = "event"
+label = "a bar later"
+
+[[edge]]
+from = "playing"
+to = "rec"
+kind = "press"
+label = ["REC,", "notes in clip"]
+
+[[edge]]
+from = "rec"
+to = "playing"
+kind = "press"
+label = "REC"
+
+[[edge]]
+from = "playing"
+to = "wait"
+kind = "press"
+label = ["REC,", "empty clip"]
+
+[[edge]]
+from = "wait"
+to = "playing"
+kind = "press"
+label = "REC"
+
+[[edge]]
+from = "wait"
+to = "rec"
+kind = "event"
+label = "next bar"
+
+[[edge]]
+from = "stopped"
+to = "tempo"
+kind = "press"
+label = ["SHIFT + REC:", "Capture"]
+
+[[edge]]
+from = "tempo"
+to = "playing"
+kind = "press"
+label = ["any other", "press"]

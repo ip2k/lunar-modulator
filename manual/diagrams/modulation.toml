@@ -1,0 +1,124 @@
+# The modulation system as engines/include/fm1_mod.h builds it: system
+# sources (VEL ... S4RTRG, the sequencer's), 8 rack positions, 32 slots,
+# the sinks (sound units, inserts, master slots, HOST), one tick of 32 frames,
+# and the planner's rule for loops (mod_plan.c).
+title = "Modulation"
+caption = "How modulation is wired: the notes, the sequencer and the rack’s modules are sources; the matrix’s 32 cables carry them to the sounds, the effects, the host’s pitches and AMP, or back into the rack."
+alt = "A block diagram. On the left, three kinds of source: the notes of every sound (VEL, NOTE, RAND, KEY, TRIG, RTRG), one sound's notes (S1NOTE to S4RTRG), and the sequencer (CLOCK, BEAT, BAR, RUN, START, SEQ1 to SEQ8, SQV1 to SQV8). They feed the matrix in the middle: 32 cables, each from a source to a destination with an amount and an offset, and on page B a VIA source, a curve, a polarity and off, on or per voice. On the right, the destinations: the parameters of Sounds 1 to 4, their two inserts each, the master effects M1 and M2, and the host's pitches and AMP. Below, the rack of eight positions, here LFO1, LFO2, ENV3, ENV4 and CHN5 and three empty ones: the matrix reaches the modules' parameters and gates, and their outputs come back to the matrix as sources. The rack runs every 32 samples, in cable order; in a loop, the cable that runs up the rack reads a tick late."
+
+[[node]]
+id = "notes"
+label = "Notes, every sound"
+sub = ["VEL NOTE RAND", "KEY TRIG RTRG"]
+col = 0
+row = 0
+
+[[node]]
+id = "own"
+label = "One sound’s notes"
+sub = ["S1NOTE … S4RTRG"]
+col = 0
+row = 1
+
+[[node]]
+id = "seq"
+label = "Sequencer"
+sub = ["CLOCK BEAT BAR", "RUN START", "SEQ1–8 SQV1–8"]
+col = 0
+row = 2
+
+[[node]]
+id = "matrix"
+label = "Matrix"
+sub = ["32 cables, each", "source → destination", "amount and offset;", "VIA, curve, polarity;", "off, on or per voice"]
+col = 1
+row = 0
+rows = 4
+stretch = true
+role = "mod"
+
+[[node]]
+id = "sounds"
+label = "Sounds 1–4"
+sub = "engine parameters"
+col = 2
+row = 0
+
+[[node]]
+id = "inserts"
+label = "Inserts"
+sub = "two on each sound"
+col = 2
+row = 1
+
+[[node]]
+id = "master"
+label = "Master effects"
+sub = "M1 and M2"
+col = 2
+row = 2
+
+[[node]]
+id = "host"
+label = "Host"
+sub = ["Pitch, Pitch2–4,", "PitchC; AMP"]
+col = 2
+row = 3
+
+[[node]]
+id = "rack"
+shape = "cells"
+label = "Rack: 8 positions"
+sub = ["every 32 samples, in cable order; in a loop,", "the cable that runs up the rack is a tick late (~)"]
+cells = ["LFO1", "LFO2", "ENV3", "ENV4", "CHN5", "", "", ""]
+col = 0
+row = 4
+cols = 3
+role = "mod"
+
+[[edge]]
+from = "notes"
+to = "matrix"
+kind = "mod"
+
+[[edge]]
+from = "own"
+to = "matrix"
+kind = "mod"
+
+[[edge]]
+from = "seq"
+to = "matrix"
+kind = "mod"
+
+[[edge]]
+from = "matrix"
+to = "sounds"
+kind = "mod"
+
+[[edge]]
+from = "matrix"
+to = "inserts"
+kind = "mod"
+
+[[edge]]
+from = "matrix"
+to = "master"
+kind = "mod"
+
+[[edge]]
+from = "matrix"
+to = "host"
+kind = "mod"
+
+[[edge]]
+from = "matrix"
+to = "rack"
+kind = "mod"
+label = ["parameters,", "gates"]
+
+[[edge]]
+from = "rack"
+to = "matrix"
+kind = "mod"
+label = "outputs"

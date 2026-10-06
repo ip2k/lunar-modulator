@@ -1,0 +1,87 @@
+# What a launch does to one track, as engines/seq/seq_engine.c runs it:
+# sq_launch_clip (queued, or pending_stop for an empty slot; at once when
+# stopped), the bar boundary in the tick (queued -> playing, pending_stop ->
+# none), sq_launch_scene (the same per track). The simulator plays each
+# track's first slot; launching is in the desktop tools (manual chapter 7).
+title = "Launching a clip"
+caption = "What a launch does to one track while the sequencer runs, in the desktop tools so far. A launch waits for the next bar, so clips change in time; launching a scene does the same on every track at once."
+alt = "A state diagram for one track while the sequencer runs. A silent track that is given a clip waits for the bar, then plays it. A track playing a clip that is given another clip also waits for the bar, then plays the new one. Launching an empty slot makes the track wait for the bar and then go silent. A note says that while the sequencer is stopped a launch starts it and the clip plays at once, and that a scene launches the same slot on every track: a track with a clip there waits for the bar, a track without one waits to stop."
+legend = [{ kind = "press", label = "a launch" }, "event"]
+
+[[node]]
+id = "silent"
+shape = "state"
+label = "Silent"
+col = 0
+row = 0
+
+[[node]]
+id = "queued"
+shape = "state"
+label = "A clip waits"
+sub = "for the next bar"
+col = 1
+row = 0
+role = "held"
+
+[[node]]
+id = "stop"
+shape = "state"
+label = "A stop waits"
+sub = "for the next bar"
+col = 0
+row = 1
+role = "held"
+
+[[node]]
+id = "playing"
+shape = "state"
+label = "Plays a clip"
+col = 1
+row = 1
+role = "live"
+
+[[node]]
+id = "note"
+shape = "note"
+label = "Stopped, and scenes"
+sub = ["While the sequencer is stopped, a launch starts it and the clip plays at once.", "A scene launches one slot on every track: a track with a clip there waits", "for the bar, a track without one waits to stop."]
+col = 0
+row = 2
+cols = 2
+align = "left"
+
+[[group]]
+id = "track"
+label = "One track, while the sequencer runs"
+members = ["silent", "queued", "stop", "playing"]
+
+[[edge]]
+from = "silent"
+to = "queued"
+kind = "press"
+label = "launch a clip"
+
+[[edge]]
+from = "queued"
+to = "playing"
+kind = "event"
+label = "next bar"
+
+[[edge]]
+from = "playing"
+to = "queued"
+kind = "press"
+label = ["launch", "another"]
+
+[[edge]]
+from = "playing"
+to = "stop"
+kind = "press"
+label = ["launch an", "empty slot"]
+
+[[edge]]
+from = "stop"
+to = "silent"
+kind = "event"
+label = "next bar"
