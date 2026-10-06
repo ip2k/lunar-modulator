@@ -2230,6 +2230,13 @@ history.
     and the bugs it found on the way.
 
 ### Fixed
+- **Tests can no longer leave a tool running for days.** Every tool a test
+  starts now has a wall-clock timeout (20 minutes unless the test sets one)
+  and a CPU-time limit set inside the tool itself (30 minutes), so a tool
+  whose pytest run was killed dies on its own instead of spinning a core.
+  An `fm1-limit-test` left behind on 2026-10-02 had run for almost four
+  days. `FM1_TEST_TIMEOUT` and `FM1_TEST_CPU_SECONDS` change the limits
+  (0 turns one off); `tests/conftest.py` says how.
 - `fm1-render --load` read files through a 64 KiB stack buffer, which
   overflowed its JavaScript build's stack.
 - The JieLi compile check now compiles the MIDI effects and their registry
