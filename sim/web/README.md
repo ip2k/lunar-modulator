@@ -525,13 +525,15 @@ with msfa's tables as const data, Squash, Transient and the Limiter's
 Round mode, per-voice modulation (MG9) (2026-10-06), the idle paths of
 EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"),
 the arpeggiator with the MIDI effects' stage (engine API v3's MIDI effects),
-and glide and the voice modes (`engines/src/glide.h`):
-86 of 86 scenarios pass,
+glide and the voice modes (`engines/src/glide.h`), and, with the GPL switch
+on, Felucca's Drawbar, Trio and Phase Bend (2026-10-06):
+89 of 89 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
-wake them; those two, the three Drums, the four FM6 and the three glide
-scenarios are identical to glibc too), and it imports nothing; it is
-938,723 bytes, 922,439 before glide, 907,256 with glide before the
+wake them; those two, the three Drums, the four FM6, the three glide and
+the three Felucca scenarios are identical to glibc too), and it imports
+nothing; it is 972,687 bytes, 939,364 before the Felucca engines (with the
+GPL switch and its licence table), 938,723 before the switch, 922,439 before glide, 907,256 with glide before the
 arpeggiator, 890,975 before both (890,874 before Shapes' clamps), 887,038
 before the idle paths, 850,731 before
 per-voice modulation (826,339 without the user bank, 840,216 without

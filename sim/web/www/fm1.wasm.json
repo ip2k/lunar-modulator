@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "660cefe770962c5928ef5e48950220fb9907a321e781be1c570f5b38009e6ea3",
-  "wasm_bytes": 939364,
+  "wasm_sha256": "8b8d3778f03ecfbd1e3a95935aff62e50a5157225e181d3a67d891b627a7c285",
+  "wasm_bytes": 972687,
   "sources_sha256": {
-    "engines": "65c63657b2059908c5a4c3a46c4d1a64e60cd162bc47fef7c6c27ecc72bbde4c",
-    "sim": "c8d2912fbec09baabeecccf7e9210360a93a35d2aba6c7cd26365ba13eb06e27"
+    "engines": "84cf82da2cb6bbb6ff263b07bc465a7b0e751fa6c564367b1c1f866e9010553a",
+    "sim": "7ab60b1a55b67fe57fabffa05792c708e3bbf05c7476166f88562ede8889f022"
   },
   "engines": "working tree",
-  "built": "2026-10-06T07:45:28Z",
+  "built": "2026-10-06T10:02:29Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -24,14 +24,35 @@
       "kind": "sound",
       "licence": "MIT AND Apache-2.0",
       "source": "engines/third_party/msfa"
+    },
+    {
+      "id": "drawbar",
+      "name": "Drawbar",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/felucca"
+    },
+    {
+      "id": "trio",
+      "name": "Trio",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/felucca"
+    },
+    {
+      "id": "phase-bend",
+      "name": "Phase Bend",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/felucca"
     }
   ],
   "parity": {
-    "passed": 86,
+    "passed": 89,
     "failed": 0,
-    "identical_to_js": 86,
-    "identical_to_musl": 86,
-    "identical_to_glibc": 83,
+    "identical_to_js": 89,
+    "identical_to_musl": 89,
+    "identical_to_glibc": 86,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "dx7_sysex": {
@@ -2198,6 +2219,72 @@
         "native_dropped": 0
       },
       "panel": "arp/panel-arp.panel"
+    },
+    {
+      "name": "drawbar-gospel-rotor",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 133644,
+        "native64": 133644
+      }
+    },
+    {
+      "name": "trio-sync-ring-sweep",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 67084,
+        "native64": 67084
+      }
+    },
+    {
+      "name": "phase-bend-reso-glide",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 132828,
+        "native64": 132828
+      }
     }
   ]
 }
