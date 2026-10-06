@@ -183,21 +183,63 @@ MEMORY_IN_BYTES = re.compile(
     re.I)
 
 
+# A share with its size in brackets, "6 % (19 KB)": the specifications
+# chapter's form (owner, 2026-10-06), and only that chapter's.
+SHARE_WITH_SIZE = re.compile(r"(?:under )?\d+\s?%\s?\((?:about )?[\d,.]+\s?(?:KB|MB|bytes)\)")
+SPECS = "13-specifications.md"
+
+
 def test_the_manual_never_gives_memory_in_bytes():
-    """Memory a reader sees is a share of the FM-1's budget only (owner,
+    """Memory a reader sees is a share of the FM-1's budget (owner,
     2026-10-06): no chapter says an engine, effect or chain takes so many
     kilobytes or bytes, and no refusal reads "K over budget". Sizes of
-    files and of the chip itself are not memory figures and may stay."""
-    hits = [f"{p.name}:{n}: {m.group(0)}"
-            for p in sorted((ROOT / "manual" / "chapters").glob("*.md"))
-            for n, line in enumerate(p.read_text().splitlines(), 1)
-            for m in MEMORY_IN_BYTES.finditer(line)]
+    files and of the chip itself are not memory figures and may stay. The
+    specifications chapter alone gives the size beside the share, as
+    "6 % (19 KB)" (owner, 2026-10-06); every other chapter, like the
+    screens, gives the share only."""
+    hits = []
+    for p in sorted((ROOT / "manual" / "chapters").glob("*.md")):
+        for n, line in enumerate(p.read_text().splitlines(), 1):
+            if p.name == SPECS:
+                line = SHARE_WITH_SIZE.sub("", line)
+            else:
+                hits += [f"{p.name}:{n}: {m.group(0)}" for m in SHARE_WITH_SIZE.finditer(line)]
+            hits += [f"{p.name}:{n}: {m.group(0)}" for m in MEMORY_IN_BYTES.finditer(line)]
     assert not hits, hits
+    assert SHARE_WITH_SIZE.fullmatch("under 1 % (320 bytes)") and SHARE_WITH_SIZE.fullmatch("6 % (19 KB)")
     assert MEMORY_IN_BYTES.search("It takes under half a kilobyte.")
     assert MEMORY_IN_BYTES.search("PSX Verb takes about 131 KB of memory")
     assert MEMORY_IN_BYTES.search("the effect keeps to 64 KB of memory")
     assert not MEMORY_IN_BYTES.search("Files of up to 64 KB are read.")
     assert not MEMORY_IN_BYTES.search("578 KB of RAM on the chip")
+
+
+def test_the_specifications_give_the_builds_shares_and_sizes():
+    """Chapter 13's memory figures are the build's: each engine's and
+    effect's share and size (the simulator's metadata, sim/web/www/meta.json,
+    whose `ram` the meter counts), the budget, and the sequencer's and
+    modulation's own (fm1_app.h), each as "share (size)"."""
+    meta_path = ROOT / "sim" / "web" / "www" / "meta.json"
+    header = ROOT / "sim" / "web" / "src" / "fm1_app.h"
+    if not (meta_path.is_file() and header.is_file()):
+        pytest.skip("the simulator is not in this tree")
+    meta = json.loads(meta_path.read_text())
+    budget = meta["build"]["ram_budget"]
+    ram = {e["name"]: e["ram"] for e in meta["engines"]}
+    text = (ROOT / "manual" / "chapters" / SPECS).read_text()
+
+    def fig(n):
+        return reference.memory_share_and_size(n, budget).replace("\u00a0", " ")
+    rows = re.findall(r"^\| ([^|]+?) \| (?:\d+|–) \| ([^|;]+?)(?:;[^|]*)? \|$", text, re.M)
+    assert len(rows) >= 30, rows
+    for name, cell in rows:
+        assert cell == fig(ram[name]), (name, cell, fig(ram[name]))
+    define = {k: int(v) for k, v in re.findall(r"^#define\s+(FM1_APP_\w+)\s+(\d+)u?\b", header.read_text(), re.M)}
+    assert define["FM1_APP_RAM_BUDGET"] == budget
+    for want in (fig(budget), fig(define["FM1_APP_SEQ_BUDGET"]), fig(define["FM1_APP_MOD_BYTES"])):
+        assert want in " ".join(text.split()), want
+    assert reference.memory_size(320) == "320\u00a0bytes"
+    assert reference.memory_size(7648) == "7.5\u00a0KB" and reference.memory_size(19872) == "19\u00a0KB"
 
 
 def test_verb_descriptions_cover_the_code():

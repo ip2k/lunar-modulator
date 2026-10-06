@@ -7350,23 +7350,6 @@
           ]
         },
         {
-          "uid": 7,
-          "name": "Swing",
-          "abbr": "SWNG",
-          "type": "float",
-          "min": 50,
-          "max": 80,
-          "def": 50,
-          "step": 1,
-          "unit": "pct",
-          "page": 4,
-          "knob": 3,
-          "flags": [
-            "latch",
-            "mod"
-          ]
-        },
-        {
           "uid": 13,
           "name": "Join",
           "abbr": "JOIN",
@@ -7377,7 +7360,7 @@
           "step": 1,
           "unit": "none",
           "page": 4,
-          "knob": 4,
+          "knob": 3,
           "flags": [
             "latch"
           ],
@@ -7558,7 +7541,10 @@
             "mod"
           ]
         }
-      ]
+      ],
+      "retired": {
+        "Swing": 7
+      }
     },
     {
       "id": "acid-gen",
@@ -11688,5 +11674,5 @@
       }
     ]
   },
-  "meta_id": "f091f0b8"
+  "meta_id": "58719c76"
 }

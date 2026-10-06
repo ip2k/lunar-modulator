@@ -13,6 +13,7 @@ refusals, the telemetry layout, the id): EDITOR_ONLY_* list them,
 their own. Each parameter's `step` is built here from the detent rule
 (detent()).
 """
+import json
 import os
 import re
 from pathlib import Path
@@ -120,6 +121,12 @@ def metadata_from_build(listed, mod, engines=None, kinds=None):
          "licence": e["licence"], "max_voices": e["max_voices"], "per_note": e["per_note"], "pads": e["pads"],
          "fx_wants": e["fx_wants"], "params": meta_params(e["params"])}
         for e in listed if engines is None or e["id"] in engines]
+    # Removed parameters' last names (engines/aliases.json, `retired`), as C's table has them.
+    retired = json.loads((ENGINES / "aliases.json").read_text()).get("retired", [])
+    for e in doc["engines"]:
+        rows = {r["name"]: r["uid"] for r in retired if r.get("engine") == e["id"]}
+        if rows:
+            e["retired"] = rows
     sources = []
     for s in mod["sources"]:
         row = {"id": s["id"], "name": s["name"], "kind": s["kind"], "unit": s["unit"]}

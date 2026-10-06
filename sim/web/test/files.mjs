@@ -15,8 +15,11 @@
 // ?load= takes allowlisted same-origin paths only (no request leaves for
 // the others); #lunar= links round-trip, and one over 32 KiB or inflating
 // past the cap is refused; ?embed=1 answers a same-origin parent (ready,
-// power, query, save, highlight, transport) and nothing else; and the page
-// at desktop and phone widths, with no page-wide horizontal scroll.
+// power, query, save, highlight, transport) and nothing else; the localhost
+// exception (owner, 2026-10-06): served from 127.0.0.1, the page answers a
+// parent on another local port and loads ?load= from another local origin,
+// while served from lunar.test (as the public site) it does neither; and the
+// page at desktop and phone widths, with no page-wide horizontal scroll.
 // MIT licence, like the rest of this repository.
 
 import { createRequire } from 'node:module';
@@ -369,11 +372,67 @@ async function layoutChecks() {
   return r;
 }
 
+// The localhost exception. OTHER is another local dev server, a real one
+// (a parent Playwright fulfils has no address, and Chromium keeps such a
+// page from framing a loopback one), serving the two parents; the mission
+// file it hands out is fulfilled with the CORS header a dev server sends.
+// lunar.test is this page served under a name that is not local, as the
+// public site is.
+const OTHER_PORT = 8799, OTHER = `http://localhost:${OTHER_PORT}`;
+async function localChecks() {
+  const r = {};
+  const dir = join(out, 'other');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, '__local.html'), PARENT.replace('SRC', `${origin}/index.html?embed=1`));
+  writeFileSync(join(dir, '__public.html'), PARENT.replace('SRC', `http://lunar.test:${PORT}/index.html?embed=1`));
+  const other = await serve(dir, OTHER_PORT);
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const bytes = readFileSync(example('first-orbit.lunar'));
+  await ctx.route(`${OTHER}/missions/**`, (route) => route.fulfill({ contentType: 'application/json', body: bytes,
+    headers: { 'Access-Control-Allow-Origin': '*' } }));
+  // A parent on another local port: the ready event reaches it, and its calls are answered.
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => report.logs.push(`local pageerror: ${e.message}`));
+  await page.goto(`${OTHER}/__local.html`);
+  await page.waitForFunction(() => window.got.some((g) => g.data.event === 'ready'), null, { timeout: 10000 });
+  r.ready_origin = await page.evaluate(() => window.got.find((g) => g.data.event === 'ready').origin);
+  r.reply = await page.evaluate(() => window.call({ op: 'query', kind: 'project' }));
+  await page.close();
+  // ?load= from another local origin: the arrival card, then the load.
+  const p2 = await open(ctx, `${url}?load=${encodeURIComponent(`${OTHER}/missions/first-orbit.lunar`)}`);
+  await p2.waitForSelector('#arrival:not([hidden])', { timeout: 8000 });
+  r.card = await p2.evaluate(() => document.getElementById('arrival-title').textContent);
+  await p2.close();
+  // The page served under a name that is not local: a local parent gets nothing...
+  const p3 = await ctx.newPage();
+  await p3.goto(`${OTHER}/__public.html`);
+  await wait(p3, 1500);
+  r.public_reply = await p3.evaluate(() => window.call({ op: 'query', kind: 'project' }));
+  r.public_got = await p3.evaluate(() => window.got.length);
+  await p3.close();
+  // ...and ?load= from a local origin is refused, with no request made.
+  const p4 = await ctx.newPage();
+  const requests = [];
+  p4.on('request', (q) => { if (!q.isNavigationRequest() && /\.lunar/.test(q.url())) requests.push(q.url()); });
+  await p4.goto(`http://lunar.test:${PORT}/index.html?load=${encodeURIComponent(`${OTHER}/missions/first-orbit.lunar`)}`);
+  await wait(p4, 600);
+  const n = await notice(p4);
+  r.public_load = { notice: n.shown && /refused/.test(n.tone), arrival: await p4.evaluate(() => !document.getElementById('arrival').hidden), requests };
+  await p4.close();
+  await ctx.close();
+  other.server.close();
+  r.pass = r.ready_origin === origin && r.reply.timeout !== true && r.reply.ok === false && r.card === 'First orbit' &&
+    r.public_reply.timeout === true && r.public_got === 0 &&
+    r.public_load.notice && !r.public_load.arrival && r.public_load.requests.length === 0;
+  return r;
+}
+
 try {
   report.checks.files = await filesChecks();
   report.checks.load_link = await loadLinkChecks();
   report.checks.hash = await hashChecks();
   report.checks.embed = await embedChecks();
+  report.checks.local = await localChecks();
   report.checks.layout = await layoutChecks();
 } catch (err) {
   report.error = String(err && err.stack || err);
@@ -382,7 +441,7 @@ try {
   server.close();
 }
 const c = report.checks;
-report.pass = !report.error && ['files', 'load_link', 'hash', 'embed', 'layout'].every((k) => c[k] && c[k].pass) &&
+report.pass = !report.error && ['files', 'load_link', 'hash', 'embed', 'local', 'layout'].every((k) => c[k] && c[k].pass) &&
   !report.logs.some((l) => l.includes('pageerror'));
 writeFileSync(join(out, 'files-report.json'), JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify({ pass: report.pass, browser: report.browser,

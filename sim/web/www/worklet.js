@@ -156,10 +156,11 @@ class FM1Processor extends AudioWorkletProcessor {
     return new Uint8Array(this.fm1.memory.buffer, ex.fm1w_text_buf(), ex.fm1w_text_cap());
   }
 
-  // The whole project (or m.kind with m.arg) as the binary container.
+  // The whole project (or m.kind with m.arg) as the binary container;
+  // m.plain leaves every chunk undeflated (the autosave: owner, 2026-10-06).
   stateSave(m) {
     const ex = this.fm1.exports;
-    const n = ex.fm1w_state_save(m.kind || 1, m.arg | 0, 1);
+    const n = ex.fm1w_state_save(m.kind || 1, m.arg | 0, m.plain ? 2 : 1);
     const bytes = n > 0 ? this.text().slice(0, n) : null;
     this.port.postMessage({
       type: 'state-saved', id: m.id, ok: n > 0, bytes,

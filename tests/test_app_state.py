@@ -35,13 +35,17 @@ def sim(tools, *args, check=True):  # noqa: F811
 
 
 def cycle(tools, tmp_path, *start):  # noqa: F811
-    """The state `start` gives, saved (a, and binary), loaded and saved (b),
-    and the binary loaded and saved (c)."""
-    a, ab, b, c = (tmp_path / n for n in ("a.lunar", "a.lunarb", "b.lunar", "c.lunar"))
-    sim(tools, *start, "--save", f"project:{a}", "--save", f"project:{ab}")
+    """The state `start` gives, saved (a, and binary, deflated and plain as
+    the page's autosave writes it), loaded and saved (b), and each binary
+    loaded and saved (c, d)."""
+    a, ab, ap, b, c, d = (tmp_path / n for n in ("a.lunar", "a.lunarb", "a.plain.lunarb", "b.lunar", "c.lunar",
+                                                  "d.lunar"))
+    sim(tools, *start, "--save", f"project:{a}", "--save", f"project:{ab}", "--save", f"project:{ap}")
     sim(tools, "--load", a, "--save", f"project:{b}")
     sim(tools, "--load", ab, "--save", f"project:{c}")
-    assert a.read_bytes() == b.read_bytes() == c.read_bytes()
+    sim(tools, "--load", ap, "--save", f"project:{d}")
+    assert a.read_bytes() == b.read_bytes() == c.read_bytes() == d.read_bytes()
+    assert ap.stat().st_size >= ab.stat().st_size
     return canon.loads(a.read_text())
 
 
@@ -68,6 +72,8 @@ def test_the_example_project_loads_as_it_says(tools, tmp_path):  # noqa: F811
     out = sim(tools, "--load", EX / "first-orbit.lunar")
     assert out["load"]["ok"] == 1 and out["load"]["percent"] <= 95, out["load"]
     doc = cycle(tools, tmp_path, "--load", EX / "first-orbit.lunar")
+    # the autosave's form leaves the deflate out, so it is the larger here
+    assert (tmp_path / "a.plain.lunarb").stat().st_size > (tmp_path / "a.lunarb").stat().st_size
     schema_ok(doc)
     for k in ("name", "title", "about", "licence", "session", "master", "dx7", "mod", "set", "view"):
         assert doc[k] == src[k], k

@@ -135,15 +135,43 @@ export async function inflateLink(data) {
   return readCapped(s, TEXT_CAP);
 }
 
-// ?load=PATH: an allowlisted path on this page's own origin, or null.
-export function loadUrl(path, base = document.baseURI) {
+// The localhost exception (owner, 2026-10-06). Served from localhost,
+// 127.0.0.1 or [::1] itself, the simulator takes an embedding parent, and
+// ?load= files, from any of those hosts on any port, so a guide or editor
+// on another local dev server can drive it. Served from anywhere else (the
+// public site), its own origin only, as before.
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+export function isLocalOrigin(origin) {
+  let u;
+  try { u = new URL(origin); } catch (err) { return false; }
+  return (u.protocol === 'http:' || u.protocol === 'https:') && LOCAL_HOSTS.includes(u.hostname) &&
+    u.origin === origin;
+}
+// An origin the page trusts as its parent or a file's source: its own, or,
+// on a local page only, any local one.
+export function trustedOrigin(origin, self = location.origin) {
+  return origin === self || (isLocalOrigin(self) && isLocalOrigin(origin));
+}
+
+// ?load=PATH: an allowlisted path on this page's own origin; or, on a page
+// served from localhost, a .lunar, .movy1 or .syx URL on any local origin
+// (no query, hash or credentials); or null.
+export function loadUrl(path, base = document.baseURI, self = location.origin) {
   if (typeof path !== 'string' || path.length > 200) return null;
+  if (isLocalOrigin(self) && /^https?:\/\//.test(path)) {
+    let u;
+    try { u = new URL(path); } catch (err) { return null; }
+    if (!isLocalOrigin(u.origin) || u.username || u.password || u.search || u.hash) return null;
+    const p = u.pathname.slice(1);
+    if (u.href !== path || !LOAD_PATH.test(p) || p.includes('..') || p.includes('//')) return null;
+    return u;
+  }
   if (!LOAD_PATH.test(path) || path.includes('..') || path.includes('//') || path.includes('\\')) return null;
   if (!LOAD_PREFIXES.some((p) => path.startsWith(p))) return null;
   let u;
   try { u = new URL(path, base); } catch (err) { return null; }
   const dir = new URL('.', base);
-  if (u.origin !== location.origin || dir.origin !== location.origin) return null;
+  if (u.origin !== self || dir.origin !== self) return null;
   if (u.search || u.hash || u.pathname !== dir.pathname + path) return null;
   return u;
 }
@@ -310,8 +338,11 @@ export function initFiles(env) {
       sim.node.port.postMessage({ ...msg, id }, transfer);
     });
   }
-  async function liveBin() {
-    const r = await worklet({ type: 'state-save', kind: 1, arg: 0 });
+  // The project as the binary container. `plain` skips deflate, which the
+  // audio thread pays for: the autosave's (owner, 2026-10-06); files, Recent
+  // and links stay compressed.
+  async function liveBin(plain = false) {
+    const r = await worklet({ type: 'state-save', kind: 1, arg: 0, plain });
     if (!r.ok) throw new Error(r.off ? 'Power is off.' : 'The project could not be saved.');
     return r.bytes;
   }
@@ -517,7 +548,7 @@ export function initFiles(env) {
     firstDirty = 0;
     lastAutosave = Date.now();
     let bin;
-    try { bin = await liveBin(); } catch (err) { return false; }
+    try { bin = await liveBin(true); } catch (err) { return false; }
     if (lastBytes && lastBytes.length === bin.length && lastBytes.every((b, i) => b === bin[i])) return true;
     lastBytes = bin;
     await store.put('autosave', { name: f.title, bin, size: bin.length, modified: Date.now() }, 'project');
@@ -855,7 +886,10 @@ export function initFiles(env) {
   // ---- links: ?load= and #lunar= ----
   async function fetchAllowed(path) {
     const u = loadUrl(path);
-    if (!u) return { ok: false, message: `The link's file “${String(path).slice(0, 80)}” is not one this page loads: only files under ${LOAD_PREFIXES.join(', ')} on this site are.` };
+    if (!u) {
+      const local = isLocalOrigin(location.origin) ? ', or a .lunar, .movy1 or .syx file on a local server' : '';
+      return { ok: false, message: `The link's file “${String(path).slice(0, 80)}” is not one this page loads: only files under ${LOAD_PREFIXES.join(', ')} on this site are${local}.` };
+    }
     try {
       const res = await fetch(u, { credentials: 'omit', redirect: 'error', cache: 'no-cache' });
       if (!res.ok) return { ok: false, message: `The link's file could not be fetched (HTTP ${res.status}).` };
@@ -944,8 +978,18 @@ export function initFiles(env) {
   }
 
   // ---- ?embed=1: the guide's postMessage API, same origin only ----
-  let changedTimer = null, busy = false;
-  function post(m) { if (embed) window.parent.postMessage({ lunar: 1, ...m }, location.origin); }
+  // (On a page served from localhost, a parent on any local origin: the
+  // localhost exception above. Its origin, before it has spoken, is the
+  // browser's ancestorOrigins or the referrer; after, the one it sent from.)
+  let changedTimer = null, busy = false, parentOrigin = location.origin;
+  if (embed && isLocalOrigin(location.origin)) {
+    let o = '';
+    try {
+      o = (location.ancestorOrigins && location.ancestorOrigins[0]) || (document.referrer && new URL(document.referrer).origin) || '';
+    } catch (err) { o = ''; }
+    if (trustedOrigin(o)) parentOrigin = o;
+  }
+  function post(m) { if (embed) window.parent.postMessage({ lunar: 1, ...m }, parentOrigin); }
   function changedSoon() {
     if (changedTimer) return;
     changedTimer = setTimeout(() => { changedTimer = null; post({ event: 'changed', gen: f.gen }); }, CHANGED_MS);
@@ -1000,9 +1044,10 @@ export function initFiles(env) {
   if (embed) {
     document.body.classList.add('embed');
     window.addEventListener('message', async (e) => {
-      if (e.source !== window.parent || e.origin !== location.origin) return;
+      if (e.source !== window.parent || !trustedOrigin(e.origin)) return;
       const m = e.data;
       if (!m || typeof m !== 'object' || m.lunar !== 1 || typeof m.op !== 'string') return;
+      parentOrigin = e.origin;
       if (busy) { post({ re: m.id, ok: false, error: 'busy: one operation at a time' }); return; }
       busy = true;
       let r;

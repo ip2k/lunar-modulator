@@ -1,5 +1,14 @@
 {
-  "about": "Names a parameter or a list entry had before it was renamed, so a file written with the old name still loads (notes/2026-10-06-state-files.md §9, ST4). A rename adds an alias here and never removes one: `params` maps an old parameter name to its uid, `entries` an old entry name to its index, for an engine, effect or MIDI effect (`engine`) or a modulation kind (`kind`). Nothing has been renamed since the file format began (2026-10-06), so both lists are empty. tools/gen_known.py writes them into engines/state/fm1_known.c; the metadata export carries them as each parameter's `aliases` and `entry_aliases`.",
+  "about": "Names a parameter or a list entry had before it was renamed, so a file written with the old name still loads (notes/2026-10-06-state-files.md §9, ST4). A rename adds an alias here and never removes one: `params` maps an old parameter name to its uid, `entries` an old entry name to its index, for an engine, effect or MIDI effect (`engine`) or a modulation kind (`kind`). Nothing has been renamed since the file format began (2026-10-06), so both lists are empty. `retired` gives a removed parameter's last name and its retired uid (tests/fixtures/param-uids.json, `retired`), so a file that names it reads to the same records as before: the value passes by uid, as `#UID` would, and the engine, which no longer has it, drops it; a row is never removed. The metadata export carries them as an engine's `retired`. tools/gen_known.py writes them into engines/state/fm1_known.c; the metadata export carries them as each parameter's `aliases` and `entry_aliases`.",
   "params": [],
-  "entries": []
+  "entries": [],
+  "retired": [
+    {
+      "engine": "arp",
+      "name": "Swing",
+      "uid": 7,
+      "since": "2026-10-06",
+      "why": "the arpeggiator follows the set's swing (owner, 2026-10-06)"
+    }
+  ]
 }

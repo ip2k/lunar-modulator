@@ -440,6 +440,10 @@ int fm1_seq_set_route(fm1_seq_t *s, uint8_t track, uint8_t kind, uint8_t index);
 void fm1_seq_get_key(const fm1_seq_t *s, uint8_t *root, uint8_t *scale);
 int fm1_seq_set_key(fm1_seq_t *s, unsigned root, unsigned scale);
 
+/* The set's swing, 50..80 % (the `swing` verb), which the MIDI effects
+ * follow (fm1_midi_fx_ctx_t.swing). */
+unsigned fm1_seq_get_swing(const fm1_seq_t *s);
+
 /* The probability RNG is free-running from creation, as Movy's; tests reset
  * it. Outside compat mode a set import reseeds it to its value at creation,
  * so a loaded song plays the same each time (ST11). */

@@ -121,7 +121,7 @@ static const fm1_alias_t *alias_find(const fm1_state_names_t *nm, unsigned owner
   for (a = 0; a < nm->n_aliases; ++a) {
     const fm1_alias_t *al = &nm->aliases[a];
     if (!al->name || al->owner != owner_kind || strcmp(al->id, owner) != 0) continue;
-    if (entry_of ? (al->entry < 0 || al->uid != uid) : al->entry >= 0) continue;
+    if (entry_of ? (al->entry < 0 || al->uid != uid) : al->entry != -1) continue;
     if (same_ci(key, al->name, len)) return al;
   }
   return NULL;
@@ -160,6 +160,20 @@ int fm1_state_param_find(const fm1_state_names_t *nm, unsigned owner_kind, const
     }
   }
   return -1;
+}
+
+uint16_t fm1_state_param_retired(const fm1_state_names_t *nm, unsigned owner_kind, const char *owner,
+                                 const char *key, size_t len) {
+  size_t a;
+  if (!nm || !nm->aliases || !owner || !owner_kind) return 0;
+  for (a = 0; a < nm->n_aliases; ++a) {
+    const fm1_alias_t *al = &nm->aliases[a];
+    if (al->name && al->entry == FM1_ALIAS_RETIRED && al->owner == owner_kind && strcmp(al->id, owner) == 0 &&
+        same_ci(key, al->name, len)) {
+      return al->uid;
+    }
+  }
+  return 0;
 }
 
 int fm1_state_entry_find(const fm1_state_names_t *nm, unsigned owner_kind, const char *owner,
