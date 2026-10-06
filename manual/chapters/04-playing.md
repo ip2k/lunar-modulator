@@ -12,7 +12,9 @@ Each key plays one note on the current sound for as long as you hold it
 ([chapter 5](05-sound-engines.md#four-sounds-at-once)); a note you hold keeps
 playing on its sound even if you choose another. Outside SEQ mode the notes
 also go to the sequencer's focused track, for recording and Capture
-([chapter 7](07-sequencer.md#recording)). A *voice* is one sounding note,
+([chapter 7](07-sequencer.md#recording)); chapter 5 draws the whole path
+from the keys to the output ([Four sounds at once](05-sound-engines.md#four-sounds-at-once)).
+A *voice* is one sounding note,
 and each engine has a fixed number of them, for each sound it plays:
 
 | Engine | Voices |
