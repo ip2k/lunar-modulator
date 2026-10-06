@@ -112,7 +112,8 @@ static void run_quiet(fm1_mfx_t *m, unsigned c, unsigned first, uint8_t kind, in
 static void forget_if_idle(fm1_mfx_t *m, unsigned c) {
   fm1_mfx_chain_t *ch = &m->chain[c];
   if (fm1_mfx_active(m, c)) return;
-  memset(ch->held, 0, sizeof(ch->held));
+  memset(ch->held_live, 0, sizeof(ch->held_live));
+  memset(ch->held_seq, 0, sizeof(ch->held_seq));
   memset(ch->owed, 0, sizeof(ch->owed));
   ch->n_live = 0;
 }
@@ -122,7 +123,8 @@ void fm1_mfx_flush(fm1_mfx_t *m, unsigned c, int panic, const fm1_mfx_sink_t *si
   if (!ch) return;
   run_quiet(m, c, 0, panic ? FM1_MIDI_EV_PANIC : FM1_MIDI_EV_FLUSH, 0, sink);
   if (panic) {
-    memset(ch->held, 0, sizeof(ch->held));
+    memset(ch->held_live, 0, sizeof(ch->held_live));
+    memset(ch->held_seq, 0, sizeof(ch->held_seq));
     memset(ch->owed, 0, sizeof(ch->owed));
     ch->n_live = 0;
   }
@@ -166,14 +168,14 @@ int fm1_mfx_live_note(fm1_mfx_t *m, unsigned c, uint8_t key, uint8_t velocity) {
   fm1_midi_ev_t *e;
   if (!ch || key > 127u) return 0;
   if (velocity) {
-    if (!fm1_mfx_active(m, c) || ch->n_live >= FM1_MFX_LIVE || ch->held[key] == 255u) {
+    if (!fm1_mfx_active(m, c) || ch->n_live >= FM1_MFX_LIVE || ch->held_live[key] == 255u) {
       if (fm1_mfx_active(m, c)) ++m->stats.direct;
       return 0;
     }
-    ++ch->held[key];
+    ++ch->held_live[key];
   } else {
-    if (!ch->held[key]) return 0;          /* not the chain's: the host's to end */
-    --ch->held[key];
+    if (!ch->held_live[key]) return 0;     /* not the chain's: the host's to end */
+    --ch->held_live[key];
     if (ch->n_live >= FM1_MFX_LIVE) {      /* no room: first thing next block */
       ch->owed[key >> 3] |= (uint8_t)(1u << (key & 7u));
       ++m->stats.deferred_offs;
@@ -281,15 +283,15 @@ static uint32_t chain_input(fm1_mfx_t *m, fm1_seq_host_t *h, unsigned c, uint32_
     if (chain_for(h, k, single) != (int)c || e->a > 127u) continue;
     on = e->kind == FM1_SEQ_EV_NOTE_ON && e->b > 0;
     if (on) {
-      if (n >= FM1_MFX_IN || ch->held[e->a] == 255u) {   /* to the sound itself */
+      if (n >= FM1_MFX_IN || ch->held_seq[e->a] == 255u) {   /* to the sound itself */
         ++m->stats.direct;
         continue;
       }
-      ++ch->held[e->a];
+      ++ch->held_seq[e->a];
       put(m->a, &n, f, FM1_MIDI_EV_NOTE_ON, e->a, e->b);
     } else {
-      if (!ch->held[e->a]) continue;      /* its note-on went to the sound */
-      --ch->held[e->a];
+      if (!ch->held_seq[e->a]) continue;  /* its note-on went to the sound */
+      --ch->held_seq[e->a];
       if (n < FM1_MFX_IN) {
         put(m->a, &n, f, FM1_MIDI_EV_NOTE_OFF, e->a, 0);
       } else {

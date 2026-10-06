@@ -81,7 +81,11 @@ typedef struct fm1_mfx_chain {
   fm1_mfx_slot_t slot[FM1_MFX_SLOTS];
   fm1_midi_ev_t live[FM1_MFX_LIVE];   /* live notes for the next block, at frame 0 */
   uint32_t n_live;
-  uint8_t held[128];           /* notes the chain took that still owe it a note-off */
+  uint8_t held_live[128];      /* live notes the chain took that still owe it a
+                                  note-off, by key */
+  uint8_t held_seq[128];       /* ...and the sequencer's: kept apart, so a note-off
+                                  goes where its own note-on went even when a
+                                  key and a track share a pitch */
   uint8_t owed[16];            /* note-offs it took with no room left: the next
                                   block's first events */
   fm1_midi_ev_t out[FM1_MFX_OUT];     /* the last block's output, ascending */

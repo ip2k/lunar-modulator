@@ -291,6 +291,23 @@ def test_a_note_off_follows_its_note_on(renderer, tmp_path):
     assert [e for e in ev if e["t"] > BOUND * 50] == []
 
 
+def test_a_key_and_a_track_on_one_pitch_keep_their_own_note_offs(renderer, tmp_path):
+    """The sequencer's note 60 starts with the arp off (so the sound plays
+    it); the arp goes on; a key 60 goes to the arp. The track's note-off
+    must still reach the sound, and the key's the arp: the chain keeps the
+    two sources' notes apart."""
+    script = (f"#! rate={RATE} block=64 tracks=8 end={BOUND * 120}\n"
+              f"@0 tog 0 0 60 100;slen 0 0 0 -1 90;play\n@{BOUND * 100} stop\n")
+    s, _, ev = mfx_run(renderer, tmp_path, [
+        "--engine", "test-sine", "--mfx", "0:arp:off",
+        "--mfx-on-at", f"0:{at(BOUND * 3)}:1",
+        *note(BOUND * 4, 60, 100, BOUND * 80)], script=script)   # held past the track's off
+    assert s["notes_hung"] == 0
+    # the track's note-off at about frame 20,900 is the sound's: the arp
+    # plays the key on until its own release at 37,632
+    assert max(t for t, k in ons(ev) if k == 60) > BOUND * 75
+
+
 def test_a_chain_of_two(renderer, tmp_path):
     """The second arp arpeggiates the first's notes, so the chain's output
     differs from the first's alone; bypassing the first hands later keys
