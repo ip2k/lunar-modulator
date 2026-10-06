@@ -698,6 +698,17 @@ static int window_rows(void) {
   return fm1_list_rows(g_app.popup_face);
 }
 
+/* A knob's list is in the face audit D9 gives it: MAIN when the whole list
+ * fits it (FM1_LIST_ROWS entries or fewer, every one within MAIN's line),
+ * else MID. */
+static void expect_knob_list_face(int total, const char *what) {
+  int want = total <= FM1_LIST_ROWS && g_app.popup_lines == total ? FM1_LIST_MAIN : FM1_LIST_MID;
+  for (int i = 0; want == FM1_LIST_MAIN && i < g_app.popup_lines; ++i) {
+    if ((int)strlen(g_app.popup[i]) > fm1_list_chars(FM1_LIST_MAIN)) want = FM1_LIST_MID;
+  }
+  expect(g_app.popup_face == want, what);
+}
+
 /* The open popup is a list `title` (NULL: any) with entry `sel` of `total`
  * chosen, in the window fm1_list_first gives for the rows its face holds
  * (window_rows): the choice on the third row where it can be, the window
@@ -806,9 +817,9 @@ static void arp_screens(const char *dir, float rate) {
         if (total < 5) {
           expect(g_app.popup_lines == 0, "a short ARP list parameter's knob opened a popup");
         } else {
-          expect(g_app.popup_face == FM1_LIST_MID, "an ARP knob's list is not in MID");
+          expect_knob_list_face(total, "an ARP knob's list is not in its face");
           expect_window(name, q->name, total, 1);
-          check_screen(name, dir, strcmp(q->name, "Mode") == 0);
+          check_screen(name, dir, strcmp(q->name, "Mode") == 0 || strcmp(q->name, "Oct Mode") == 0);
           fm1_app_encoder(&g_app, FM1_ENC_KNOB1 + k, total);
           expect_window(name, q->name, total, total - 1);
           snprintf(name, sizeof name, "knob-list-arp-%s-end", q->name);
@@ -2174,8 +2185,9 @@ static void list_screens(const char *dir) {
 
 /* KNOB1-4 over every list parameter of unit `unit`'s pages (HOME's sound,
  * or an effect in FX mode): a list of LIST_PARAM_MIN entries or more opens
- * its list in MID with the knob's value chosen, from the top and at the
- * end (audit D1); a shorter one changes in place, with no popup. */
+ * its list (in MID, or whole in MAIN when it fits) with the knob's value
+ * chosen, from the top and at the end (audit D1); a shorter one changes in
+ * place, with no popup. */
 static void knob_lists(int unit, const char *tag, const char *dir) {
   const fm1_engine_t *e = g_app.unit[unit].e;
   char name[128];
@@ -2199,9 +2211,10 @@ static void knob_lists(int unit, const char *tag, const char *dir) {
         expect(g_app.popup_lines == 0, "a short list parameter's knob opened a popup");
         continue;
       }
-      expect(g_app.popup_face == FM1_LIST_MID, "a knob's list is not in MID");
+      expect_knob_list_face(total, "a knob's list is not in its face");
       expect_window(name, p->name, total, 1);
-      check_screen(name, dir, strcmp(e->id, "shapes") == 0 || strcmp(e->id, "filter") == 0);
+      check_screen(name, dir, strcmp(e->id, "shapes") == 0 || strcmp(e->id, "filter") == 0 ||
+                           strcmp(e->id, "drums") == 0);
       for (int r = total; r > 0; r -= 64) turn_now(FM1_ENC_KNOB1 + k, r > 64 ? 64 : r);   /* a turn's most */
       expect_window(name, p->name, total, total - 1);
       snprintf(name, sizeof name, "knob-list-%s-%s-%s-end", tag, e->id, p->name);

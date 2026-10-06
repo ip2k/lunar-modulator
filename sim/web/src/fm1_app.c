@@ -250,10 +250,26 @@ static void list_window(fm1_app_t *a, const char *title, int title_tag, int tota
   a->dirty = 1;
 }
 
-/* The window around entry `sel` that the screen shows in `face`
- * (fm1_list_first: the choice on the third row where it can be). */
+/* The face a list is drawn in (audit D9): MAIN, the largest, when the
+ * whole list fits it (FM1_LIST_ROWS entries or fewer, every name within
+ * its line: the Filter's six types, the Drive's five), else `face`. */
+static int whole_list_face(const fm1_app_t *a, int total, list_entry_fn name, const void *ctx,
+                           int face) {
+  char buf[FM1_LIST_ENTRY];
+  if (face == FM1_LIST_MAIN || total > FM1_LIST_ROWS) return face;
+  for (int k = 0; k < total; ++k) {
+    name(a, ctx, k, buf, sizeof buf);
+    if ((int)strlen(buf) > fm1_list_chars(FM1_LIST_MAIN)) return face;
+  }
+  return FM1_LIST_MAIN;
+}
+
+/* The window around entry `sel` that the screen shows in `face`, or in
+ * MAIN when the whole list fits it (fm1_list_first: the choice on the
+ * third row where it can be). */
 static void list_popup(fm1_app_t *a, const char *title, int title_tag, int total, int sel,
                        list_entry_fn name, const void *ctx, int face) {
+  face = whole_list_face(a, total, name, ctx, face);
   const int rows = fm1_list_rows(face);
   list_window(a, title, title_tag, total, fm1_list_first(total, sel, rows), rows, sel, face, name, ctx);
 }
@@ -323,6 +339,20 @@ static const char *const kFullNames[][2] = {
   { "Studio M", "Studio Medium" },
   { "Studio L", "Studio Large" },
   { "SK Mixed", "Sallen-Key Mixed" },
+  /* Sophie's and Drums' pads: General MIDI's drum keys 42-48 by their GM
+   * names (engines/README.md, "Drums"). */
+  { "7 Closed HH", "7 Closed Hi-Hat" },
+  { "9 Pedal HH", "9 Pedal Hi-Hat" },
+  { "11 Open HH", "11 Open Hi-Hat" },
+  { "12 Low-Mid", "12 Low-Mid Tom" },
+  { "13 High-Mid", "13 High-Mid Tom" },
+  /* The arp's modes and its host-stepped rate (engines/midi_fx/README.md). */
+  { "Conv-Div", "Converge-Diverge" },
+  { "Up Top Oct", "Up Top Octave" },
+  { "Down Low Oct", "Down Low Octave" },
+  { "Up Alt Oct", "Up Alternate Octave" },
+  { "Down Alt Oct", "Down Alternate Octave" },
+  { "TRG", "Trigger" },
 };
 
 const char *fm1_look_full_name(const char *name) {
@@ -1851,7 +1881,8 @@ static int is_list_param(const fm1_param_t *p) {
   return p->type == FM1_PARAM_ENUM && (int)(p->max - p->min) + 1 >= LIST_PARAM_MIN;
 }
 
-/* An ENUM parameter's list, its value chosen, in MID (audit D9). */
+/* An ENUM parameter's list, its value chosen, in MID, or whole in MAIN
+ * when it fits (audit D9). */
 static void param_list_popup(fm1_app_t *a, const fm1_param_t *p, float v) {
   list_popup(a, p->name, 0, (int)(p->max - p->min) + 1, enum_index(p, v), enum_entry, p, FM1_LIST_MID);
 }
@@ -1981,7 +2012,7 @@ static void fx_choose(fm1_app_t *a, int unit, int delta) {
     refusal_popup(a, refused, code);
   } else {                               /* the effects, the slot's highlighted, in MID */
     const kind_list_t l = { FM1_KIND_AUDIO_FX, 1, "Empty slot" };
-    char title[32];
+    char title[FM1_LIST_ENTRY];
     const int insert = a->fx_slot < FX_MIX;
     if (insert) snprintf(title, sizeof title, "S%d insert %d effect", a->sound + 1, a->fx_slot - FX_IN1 + 1);
     else snprintf(title, sizeof title, "Master %d effect", a->fx_slot - FX_M1 + 1);
@@ -2243,8 +2274,7 @@ static int arp_encoder(fm1_app_t *a, int encoder, int delta) {
     p = p < 0 ? (delta > 0 ? 0 : ARP_PRESETS - 1) : clampi(p + delta, 0, ARP_PRESETS - 1);
     fm1_app_arp_preset(a, a->sound, p);
     /* The list, as a model's; six presets, all of them in MAIN (D9). */
-    list_popup(a, "Arp preset", 0, ARP_PRESETS, p, arp_preset_entry, NULL,
-               ARP_PRESETS <= FM1_LIST_ROWS ? FM1_LIST_MAIN : FM1_LIST_MID);
+    list_popup(a, "Arp preset", 0, ARP_PRESETS, p, arp_preset_entry, NULL, FM1_LIST_MID);
     return 1;
   }
   if (encoder >= FM1_ENC_KNOB1) {
@@ -3468,7 +3498,7 @@ static void draw(fm1_app_t *a) {
     int n = 4;
     if (m >= 0) {
       const fm1_param_t *p = &s->e->params[m];
-      char v[FM1_LIST_ENTRY], place[16];
+      char v[FM1_LIST_ENTRY], place[24];   /* two ints and a slash: no truncation to warn of */
       fm1_look_value(p, s->value[m], v, sizeof v);
       snprintf(place, sizeof place, "%d/%d", enum_index(p, s->value[m]) + 1, (int)(p->max - p->min) + 1);
       fm1_look_context(t, CONTEXT_Y, fit_name(fm1_look_full_name(v), v, context_room(place)), place);

@@ -220,16 +220,17 @@ Rate, Pattern, Oct Mode or Repeat shows that value's list
 | 7 SEED | Seed: which random choices the chances make | | | |
 
 The modes are Up, Down, Up-Down, Down-Up, Up&Down and Down&Up (which play the
-top and bottom notes twice), Converge and Diverge, Conv-Div, Thumb and Pinky
-(the lowest or highest note between the others), four modes that add octaves
-to some notes only, Crawl, Random, Shuffle (each note once per pass, in a new
-order), Walk (a random step to a neighbour) and Chord. The same Seed makes
-the same choices every time, so a random arpeggio repeats exactly.
+top and bottom notes twice), Converge and Diverge, Converge-Diverge
+(Conv-Div on the page), Thumb and Pinky (the lowest or highest note between
+the others), four modes that add octaves to some notes only, Crawl, Random,
+Shuffle (each note once per pass, in a new order), Walk (a random step to a
+neighbour) and Chord. The same Seed makes the same choices every time, so a
+random arpeggio repeats exactly.
 
-TRG, at the left end of Rate, plays one step each time the sequencer starts
-notes on this sound (a trig), however far apart the trigs are. The keys alone
-do not step it. Its first note lasts until the next trig; after that, Gate is
-a share of the time between the last two.
+TRG (Trigger in Rate's list), at the left end of Rate, plays one step each
+time the sequencer starts notes on this sound (a trig), however far apart
+the trigs are. The keys alone do not step it. Its first note lasts until the
+next trig; after that, Gate is a share of the time between the last two.
 
 ### With the sequencer
 

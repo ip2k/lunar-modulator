@@ -44,6 +44,11 @@ FULL = {
     "Clk Noise": "Clocked Noise", "Granular": "Granular Cloud", "Particle": "Particle Noise",
     "Digital": "Digital Modulation", "Studio S": "Studio Small", "Studio M": "Studio Medium",
     "Studio L": "Studio Large", "SK Mixed": "Sallen-Key Mixed",
+    # Sophie's and Drums' pads by General MIDI's drum names, and the arp's.
+    "7 Closed HH": "7 Closed Hi-Hat", "9 Pedal HH": "9 Pedal Hi-Hat", "11 Open HH": "11 Open Hi-Hat",
+    "12 Low-Mid": "12 Low-Mid Tom", "13 High-Mid": "13 High-Mid Tom",
+    "Conv-Div": "Converge-Diverge", "Up Top Oct": "Up Top Octave", "Down Low Oct": "Down Low Octave",
+    "Up Alt Oct": "Up Alternate Octave", "Down Alt Oct": "Down Alternate Octave", "TRG": "Trigger",
 }
 
 
@@ -173,11 +178,11 @@ def test_a_knob_on_a_short_list_changes_in_place(tools):
 def test_a_knob_on_an_effects_list_opens_it_in_fx_mode(tools):
     """In FX mode a knob on the slot's effect's list parameter (the Filter's
     Type, six) opens its list too, by full names (SK Mixed is
-    Sallen-Key Mixed)."""
+    Sallen-Key Mixed); the six fit MAIN, the largest face, whole (D9)."""
     p = next(e for e in catalog(tools) if e["id"] == "filter")["params"][0]
     to = 4 - int(p["def"])                               # from its default to SK Mixed, the fifth
     s = sim(tools, "--fx", "filter", "--button", "0.05:FX", "--turn", f"0.1:KNOB1:{to}", engine="test-sine")
-    assert_window(s, "Type", [full(n) for n in p["names"]], 4)
+    assert_window(s, "Type", [full(n) for n in p["names"]], 4, face="MAIN")
     assert s["popup"][s["popup_list"]["mark"]] == "Sallen-Key Mixed"
 
 

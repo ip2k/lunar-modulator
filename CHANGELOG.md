@@ -1205,9 +1205,10 @@ history.
     matrix's destinations) show eight entries at a time instead
     of six, in a smaller typeface with room for 27 characters, by their full
     names: *Phase Distortion*, *Triple Saw*, *Compressor*, *Master
-    Saturation*, *Studio Small*, *S1 In2 High Xover*. Short lists (the four
-    sounds, the quantize values, Capture's tempos, the six arp presets) show
-    every entry in the large type. Titles say what the list is: *Master 1
+    Saturation*, *Studio Small*, *7 Closed Hi-Hat*, *Converge-Diverge*, *S1
+    In2 High Xover*. Short lists (the four sounds, the quantize values,
+    Capture's tempos, the six arp presets, and a list of six or fewer such
+    as the Filter's types) show every entry in the large type. Titles say what the list is: *Master 1
     effect*, *S1 insert 1 effect*, *S2 engine*, *Current sound*.
   - **Turning a knob on a list opens the list.** On HOME, in FX mode, in SEQ
     mode and on the ARP pages, a knob on a list of five entries or more
@@ -1256,7 +1257,8 @@ history.
     (*Full velocity off*, *Clip quantize 0%*).
   - **The page's own highlights follow the same colours:** the keyboard
     focus ring, links and the tagline are lilac (the focus ring was gold),
-    gold is left to a lit LED, and code in the help is plain text.
+    gold is left to a lit LED, and code in the help is plain text. The
+    page's status line writes the tempo as the screen does (*120 BPM*).
   - **Typefaces.** Besides its own 5×9 font at double size, the screen sets
     text in Spleen by Frederic Cambus (BSD 2-Clause) at 8×16 (most of the
     new lists and lines) and 6×12 (only where a line would not fit
@@ -1279,7 +1281,7 @@ history.
     MATRIX's and CHAIN's character roles (`fm1_mod_ui_row`,
     `fm1_mod_ui_chain`). `fm1-sim-render --screens` draws 3,336 screens
     with 0 faults and counts text boxes by face; the browser module is
-    938,771 bytes, parity 83 of 83. The audit note's "Built" section
+    939,251 bytes, parity 83 of 83. The audit note's "Built" section
     measures every list and dense screen before and after.
 - **EQ, Isolator and Master Sat rest when they change nothing.** Left at
   their pass-through settings for two seconds (every EQ gain and Level at

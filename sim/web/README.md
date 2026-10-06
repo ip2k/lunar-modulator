@@ -64,7 +64,8 @@ Power on says the page needs https or localhost and opens no
 AudioContext. The sequencer, multi-sound and modulation [verified: the
 same report, 2026-10-05]: the help lists them, PLAY/STOP plays the demo
 pattern (RMS 0.025, 52 ms after the press) and lights its LED, the status
-line reads "Sequencer: 120.00 BPM, playing.", SEQ shows the Track view
+line reads "Sequencer: 120 BPM, playing." (the screen's tempo format since
+2026-10-06; "120.00 BPM" before), SEQ shows the Track view
 with the SEQ LED on and the white keys' lights moving with the playhead,
 Space stops and starts the transport, HOME leaves SEQ mode; REC in SEQ mode
 while playing overdubs at once (`recording` true, its LED lit) and REC
@@ -528,7 +529,7 @@ screens (2026-10-06): 83 of 83 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
 wake them; those two, the three Drums and the four FM6 scenarios are
-identical to glibc too), and it imports nothing; it is 938,771 bytes with the UI
+identical to glibc too), and it imports nothing; it is 939,251 bytes with the UI
 audit's screens (the palette, the two Spleen faces and the screens that
 use them), 922,439 before them, 890,975 before the arpeggiator (890,874
 before Shapes' clamps), 887,038 before the idle paths, 850,731 before
