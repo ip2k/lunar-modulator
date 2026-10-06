@@ -677,12 +677,11 @@ static void expect(int ok, const char *what) {
   }
 }
 
-/* The rows the open list's window holds: its face's (fm1_panel.h), or for
- * a modulation picker the rows fm1_mod_ui fills its window with: MAIN's six
- * (FM1_LIST_ROWS) until it takes fm1_list_rows of FM1_LIST_FACE_KIND and
- * FM1_LIST_FACE_DEST, the faces the app draws them in. */
+/* The rows the open list's window holds: its face's (fm1_panel.h); a
+ * modulation picker's window, which fm1_mod_ui fills, is sized for the face
+ * the app draws it in (FM1_LIST_FACE_KIND, FM1_LIST_FACE_DEST). */
 static int window_rows(void) {
-  return g_app.mui.picker ? FM1_LIST_ROWS : fm1_list_rows(g_app.popup_face);
+  return fm1_list_rows(g_app.popup_face);
 }
 
 /* The open popup is a list `title` (NULL: any) with entry `sel` of `total`
@@ -4486,6 +4485,12 @@ int main(int argc, char **argv) {
     printf(",\"popup_face\":\"%s\",\"popup_rows\":%d",
            g_app.popup_face >= 0 && g_app.popup_face < 3 ? kFace[g_app.popup_face] : "?",
            fm1_list_rows(g_app.popup_face));
+    /* Each entry's sound + 1 when its "S<n>" is drawn in that sound's colour. */
+    printf(",\"popup_tags\":[");
+    for (int i = 0; i < g_app.popup_lines; ++i) {
+      printf(i ? ",%u" : "%u", (unsigned)((g_app.popup_tag >> (4 * i)) & 15u));
+    }
+    printf("]");
   } else {
     char banner[FM1_LIST_ENTRY];
     printf(",\"popup_list\":null");

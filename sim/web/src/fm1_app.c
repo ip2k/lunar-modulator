@@ -1356,7 +1356,8 @@ static int say_entry(const fm1_app_t *a, const void *ctx, int k, char *buf, size
   const int r = k - s->first;            /* the same window: fm1_list_first both times */
   (void)a;
   snprintf(buf, size, "%s", r >= 0 && r < s->n ? s->line[r] : "");
-  return r >= 0 && r < s->n && ((s->dim >> r) & 1u);
+  if (r < 0 || r >= s->n) return 0;
+  return (((s->dim >> r) & 1u) ? LIST_DIM : 0) | (s->tag[r] ? LIST_TAG(s->tag[r] - 1) : 0);
 }
 
 /* What a modulation gesture or picker says, as a popup: a picker's list in

@@ -27,7 +27,7 @@ from tests.test_sim_web import run, tools  # noqa: F401  (the native build)
 
 ROWS = {"MAIN": 6, "MID": 8, "SMALL": 9}
 CHARS = {"MAIN": 18, "MID": 27, "SMALL": 36}
-PICKER_ROWS = 6     # what fm1_mod_ui fills a picker's window with, until it takes the MID face's 8
+PICKER_ROWS = ROWS["MID"]   # fm1_mod_ui fills a picker's window for the MID face the app draws it in
 
 # The full names the lists show for an engine's short forms (fm1_app.c's
 # kFullNames, each from the engine's own source).
@@ -202,8 +202,8 @@ def test_the_kind_picker_shows_seventeen_entries_in_mid(tools):
 def test_the_destination_picker_shows_full_names_in_mid(tools, more, where):
     """MATRIX's destination picker (KNOB2) on slot 1, in MID
     (FM1_LIST_FACE_DEST: every full name fits its 27 characters): the
-    chosen one on the first row at the top of the list, on the third in its
-    middle and on the last at its end."""
+    chosen one on the first row at the top of the list, on the fourth of
+    MID's eight in its middle and on the last at its end."""
     turns = ["--turn", "0.1:KNOB2:-999"] + (["--turn", f"0.15:KNOB2:{more}"] if more else [])
     s = sim(tools, "--button", "0.05:EDIT", *turns)
     w = s["popup_list"]
@@ -212,9 +212,10 @@ def test_the_destination_picker_shows_full_names_in_mid(tools, more, where):
     assert s["popup_face"] == "MID"
     sel = {"top": 0, "middle": 20, "end": w["total"] - 1}[where]
     assert w["first"] == window(w["total"], sel, rows) and w["first"] + w["mark"] == sel
-    assert w["mark"] == {"top": 0, "middle": 2, "end": rows - 1}[where]
+    assert w["mark"] == {"top": 0, "middle": (rows - 1) // 2, "end": rows - 1}[where]
     if where == "top":
         assert s["popup"][0] == "S1 Harmonics"           # the current sound's first
+        assert s["popup_tags"][:2] == [1, 1]             # its "S1" in Sound 1's colour (L3)
     if where == "end":
         assert s["popup"][-1].startswith("CHN5 ")        # the rack's last module
 

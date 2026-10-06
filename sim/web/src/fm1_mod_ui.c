@@ -1176,15 +1176,18 @@ void fm1_mod_ui_rack_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int knob
 }
 
 /* A picker's popup: `title`, and the window of `total` entries around
- * `sel` that the screen shows (fm1_panel.h); the caller names its lines. */
-static void say_list(fm1_mod_ui_say_t *say, const char *title, int total, int sel) {
-  const int first = fm1_list_first(total, sel, FM1_LIST_ROWS);
+ * `sel` that the screen shows in the picker's face (fm1_panel.h); the
+ * caller names its lines. */
+static void say_list(fm1_mod_ui_say_t *say, const char *title, int total, int sel, int face) {
+  const int rows = fm1_list_rows(face);
+  const int first = fm1_list_first(total, sel, rows);
   snprintf(say->title, sizeof say->title, "%s", title);
   say->first = (int16_t)first;
   say->total = (int16_t)total;
-  say->n = (int8_t)(total - first < FM1_LIST_ROWS ? total - first : FM1_LIST_ROWS);
+  say->n = (int8_t)(total - first < rows ? total - first : rows);
   say->mark = (int8_t)(sel - first);
   say->dim = 0;
+  memset(say->tag, 0, sizeof say->tag);
 }
 
 static const char *kind_entry(int e) {
@@ -1205,10 +1208,10 @@ void fm1_mod_ui_rack_algorithm(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int
     char title[24];
     int r;
     snprintf(title, sizeof title, "Mod%u kind", u->pos + 1u);
-    say_list(say, title, count, u->pick);
+    say_list(say, title, count, u->pick, FM1_LIST_FACE_KIND);
     for (r = 0; r < say->n; ++r) {
       snprintf(say->line[r], sizeof say->line[r], "%s", kind_entry(say->first + r));
-      if (say->first + r == 0) say->dim |= (uint8_t)(1u << r);   /* Empty */
+      if (say->first + r == 0) say->dim |= (uint16_t)(1u << r);   /* Empty */
     }
   }
 }
@@ -1241,11 +1244,16 @@ static int dest_index(const fm1_mod_dest_t *list, int n, const fm1_mod_slot_t *s
 static void say_dest(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *list, int n, int k,
                      fm1_mod_ui_say_t *say) {
   int r;
-  say_list(say, "Destination", n, k);
+  say_list(say, "Destination", n, k, FM1_LIST_FACE_DEST);
   for (r = 0; r < say->n; ++r) {
-    char name[32];
-    fm1_mod_ui_dest_name(env, &list[say->first + r], 1, name, sizeof name);
-    snprintf(say->line[r], sizeof say->line[r], "%s", name);
+    /* By its full name (D9: the face holds every one), a sound's "S<n>"
+     * in that sound's colour. */
+    const fm1_mod_dest_t *d = &list[say->first + r];
+    const int g = d->unit >= FM1_MOD_MODULE && d->unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS
+                      ? -1
+                      : sink_group(d->unit);
+    fm1_mod_ui_dest_name(env, d, 1, say->line[r], sizeof say->line[r]);
+    say->tag[r] = (uint8_t)(group_sound(g) + 1);
   }
 }
 
@@ -1437,11 +1445,12 @@ int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_
                      const fm1_mod_dest_t *d, int delta, fm1_mod_ui_say_t *say) {
   const fm1_param_t *p = fm1_mod_ui_dest_param(env, d);
   const uint8_t src = (uint8_t)(FM1_MOD_SRC_MODULE + 8u * src_pos);
-  char a[16], b[32];
+  char a[8], b[24];
   fm1_mod_slot_t s;
   int i, found = -1, pct;
   say->n = 0;
   say->mark = -1;
+  memset(say->tag, 0, sizeof say->tag);
   say->total = 0;
   if (!p || !takes(p)) {
     say->n = 2;

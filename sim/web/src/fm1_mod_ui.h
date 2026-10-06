@@ -135,16 +135,21 @@ typedef struct fm1_mod_ui_env {
 
 /* A popup a gesture asks the app to show: up to three lines of a message,
  * or a picker's list (total > 0): its title and the window of it the
- * screen shows (fm1_list_first), line[0] being entry `first` of `total`,
- * with `mark` the chosen line and `dim` the lines to draw dim (Empty).
- * n 0 for none; mark -1 for no line marked. */
+ * screen shows in the picker's face (fm1_panel.h's FM1_LIST_FACE_KIND or
+ * _DEST: fm1_list_rows of it, fm1_list_first), line[0] being entry `first`
+ * of `total`, with `mark` the chosen line, `dim` the lines to draw dim
+ * (Empty) and `tag` each line's sound + 1 when it starts with that sound's
+ * "S<n>" (drawn in the sound's colour), else 0. n 0 for none; mark -1 for
+ * no line marked. */
 typedef struct fm1_mod_ui_say {
-  char line[FM1_LIST_ROWS][24];
-  char title[24];
+  char line[FM1_LIST_MAX_ROWS][FM1_LIST_ENTRY];
+  char title[FM1_LIST_ENTRY];
   int16_t first, total;
   int8_t n, mark;
-  uint8_t dim;
+  uint16_t dim;
+  uint8_t tag[FM1_LIST_MAX_ROWS];
 } fm1_mod_ui_say_t;
+typedef char fm1_mod_ui_say_dim_fits[FM1_LIST_MAX_ROWS <= 16 ? 1 : -1];
 
 typedef struct fm1_mod_ui {
   uint8_t pos, page;           /* RACK: the position and its page shown */
