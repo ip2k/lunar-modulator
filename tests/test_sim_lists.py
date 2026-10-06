@@ -57,26 +57,27 @@ def test_algorithm_shows_six_of_six_op_fms_96_patches(tools, start, turn, sel):
     assert_window(s, "Patch", patch["names"], sel)
 
 
-@pytest.mark.parametrize("engine,turn", [("shapes", -1), ("sixop", 1), ("drums", 1)],
-                         ids=["top", "middle", "end"])
-def test_presets_shows_the_engines(tools, engine, turn):
+@pytest.mark.parametrize("at,turn", [(1, -1), (3, 1), (-2, 1)], ids=["top", "middle", "end"])
+def test_presets_shows_the_engines(tools, at, turn):
     """PRESETS on Sound 1: every sound engine (no Empty), the new one
-    chosen, under "Engine" and its place."""
+    chosen, under "Engine" and its place: back to the first engine, on to
+    the fifth, and on to the last."""
     engines = [e for e in catalog(tools) if e["kind"] == "sound"]
     ids = [e["id"] for e in engines]
-    s = sim(tools, "--turn", f"0.1:PRESETS:{turn}", engine=engine)
-    sel = ids.index(engine) + turn
+    sel = at % len(ids) + turn
+    s = sim(tools, "--turn", f"0.1:PRESETS:{turn}", engine=ids[sel - turn])
     assert s["engine"] == ids[sel]
     assert_window(s, "Engine", [e["name"] for e in engines], sel)
 
 
-@pytest.mark.parametrize("turn,sel", [(1, 1), (12, 12), (-1, 22)], ids=["top", "middle", "end"])
-def test_algorithm_in_fx_mode_shows_the_effects(tools, turn, sel):
+@pytest.mark.parametrize("turn", [1, 12, -1], ids=["top", "middle", "end"])
+def test_algorithm_in_fx_mode_shows_the_effects(tools, turn):
     """ALGORITHM in FX mode on an empty M1: Empty slot (dim on the screen) and
     every effect, the slot's highlighted; turning back from Empty wraps to
     the last effect, and the window shows the list's end."""
     effects = [e for e in catalog(tools) if e["kind"] == "audio_fx"]
     names = ["Empty slot"] + [e["name"] for e in effects]
+    sel = turn % len(names)                              # -1: the last effect
     s = sim(tools, "--button", "0.05:FX", "--turn", f"0.1:ALGORITHM:{turn}")
     assert s["fx"][0] == effects[sel - 1]["id"]
     assert_window(s, "M1 effect", names, sel)

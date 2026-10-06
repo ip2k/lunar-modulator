@@ -125,7 +125,10 @@ def test_presets_on_another_sound_reaches_empty(tools):
     on = sim(tools, "--engine", "macro", "--button", "0.1:SEL:0.1", "--turn", "0.15:PRESETS:1",
              "--turn", "0.3:PRESETS:1", seconds=0.5)
     assert on["sounds"][1] == "macro" and on["popup"][:3] == ["Empty", "Macro", "Shapes"]
-    assert on["popup_list"] == {"title": "Engine", "first": 0, "total": 9, "mark": 1}
+    catalog = json.loads(subprocess.run([str(tools["sim"]), "--list"], check=True,
+                                        capture_output=True, text=True).stdout)
+    engines = sum(e["kind"] == "sound" for e in catalog)
+    assert on["popup_list"] == {"title": "Engine", "first": 0, "total": 1 + engines, "mark": 1}
     off = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.1:SEL:0.1",
               "--turn", "0.15:PRESETS:1", "--turn", "0.3:PRESETS:-1", "--turn", "0.4:PRESETS:-1",
               seconds=0.5)
