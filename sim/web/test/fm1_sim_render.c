@@ -3575,6 +3575,34 @@ static int run_screens(const char *dir, float rate) {
     expect(g_app.mode == FM1_MODE_HOME && g_app.popup_lines == 3, "SAVE is not the stub");
     check_screen(name, dir, 1);
   }
+  /* Stage A1: SAVE with a store, its answers, and a load's banner and
+   * refusals (fm1_app_state.c's lines). */
+  g_app.store_ready = 1;
+  g_app.popup_lines = 0;
+  press(FM1_BTN_SAVE);
+  expect(g_app.popup_lines == 0 && g_app.save_gen > 0, "SAVE with a store says something before it answers");
+  snprintf(g_app.info.name, sizeof g_app.info.name, "FIRST ORBIT");
+  fm1_app_saved(&g_app, 1, NULL);
+  check_screen("saved-banner", dir, 1);
+  fm1_app_saved(&g_app, 0, "storage blocked");
+  check_screen("saved-refused", dir, 1);
+  g_app.store_ready = 0;
+  g_app.info.name[0] = '\0';
+  fm1_app_say(&g_app, FM1_APP_TONE_SAY, "LOADED", "FIRST ORBIT", "RAM 76%");
+  check_screen("loaded-banner", dir, 1);
+  fm1_app_say(&g_app, FM1_APP_TONE_SAY, "LOADED", "effects chain", "RAM 100%");
+  check_screen("loaded-banner-long", dir, 1);
+  {
+    static const char *const kWhy[] = { "Needs 121% RAM", "Uses acid-bass", "Rack is full", "Not a Lunar file",
+                                        "Newer format 1.7", "Macro at 96 kHz", "Slot holds a clip", "File too big" };
+    for (size_t i = 0; i < sizeof kWhy / sizeof kWhy[0]; ++i) {
+      char name[40];
+      fm1_app_say(&g_app, FM1_APP_TONE_REFUSE, "NOT LOADED", kWhy[i], NULL);
+      snprintf(name, sizeof name, "load-refused-%u", (unsigned)i);
+      check_screen(name, dir, i == 0);
+    }
+  }
+  g_app.popup_lines = 0;
   fm1_app_button(&g_app, FM1_BTN_FX, 1);               /* FX: M2 to empty */
   fm1_app_button(&g_app, FM1_BTN_FX, 0);
   g_app.fx_slot = 4;
