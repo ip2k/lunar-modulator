@@ -150,7 +150,13 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   through `get_param`, so every value a user can set can be saved. `fm1-render
   --meta` exports every engine's, effect's, MIDI effect's and modulation
   kind's parameter metadata as JSON, for editors
-  ([engines/README.md, "The parameter metadata export"](engines/README.md#the-parameter-metadata-export)).
+  ([engines/README.md, "The parameter metadata export"](engines/README.md#the-parameter-metadata-export));
+  since level 1.1 (stage ED0, 2026-10-06) with what the advanced editor
+  needs besides: page names, effect groups, the knob detent, licences with
+  GPL modules marked, the refusal codes in the screen's words (memory only
+  as a percentage of the budget), the telemetry layout and an id, which the
+  virtual FM-1's module returns (`fm1w_meta_id`) and its build writes beside
+  it as `sim/web/www/meta.json`.
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free

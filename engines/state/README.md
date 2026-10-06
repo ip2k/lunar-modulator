@@ -70,7 +70,7 @@ python -m pytest tests/test_engine_metadata.py tests/test_engine_names.py
 | `schema/mods.schema.json` | a mod rack and its cables |
 | `schema/clip.schema.json` | one clip, as `movy1` lines |
 | `schema/settings.schema.json` | device preferences |
-| `schema/metadata.schema.json` | the parameter metadata export: engines, effects, MIDI effects and modulation kinds with every parameter's uid, name, range, unit, page and knob, flags and entries; sources, units and ports; FM6's voice fields; keys; known ids; the reader's caps |
+| `schema/metadata.schema.json` | the parameter metadata export: engines, effects, MIDI effects and modulation kinds with every parameter's uid, name, range, unit, page and knob, flags and entries; sources, units and ports; FM6's voice fields; keys; known ids; the reader's caps; since level 1.1 (stage ED0) licences and `gpl`, page names, effect groups, each parameter's knob detent, the refusal codes and their words, the telemetry layout and `meta_id` (engines/README.md, "The parameter metadata export") |
 | `examples/` | one file of each kind, canonical, and the metadata export for a few engines (the golden file `fm1-render --meta` is held to) |
 | `fm1_meta.c` | the metadata export (`include/fm1_meta.h`), in the canonical layout, written as it goes |
 | `fm1_known.c` | the ids a build may lack and the old names of renamed parameters and entries (`include/fm1_known.h`), written by `tools/gen_known.py` |
