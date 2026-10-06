@@ -133,13 +133,19 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 - **The API:** six swappable sound engines and twenty-two effects (Comb
   split out of Filter, Squash and Transient added on 2026-10-05), plus test
-  engines, behind one C API, version 3
+  engines, behind one C API, version 4
   ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
-  [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
+  [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3) and
+  ["Engine API v4"](engines/README.md#engine-api-v4)):
   16-bit parameter flags with the LOG law for pitch- and time-like knobs, a
   dB unit, an optional effect extension that hands an effect a key
-  input, the tempo and beat position, and the transport's events, and pad
-  kits ([engines/README.md, "Pad kits"](engines/README.md#pad-kits)).
+  input, the tempo and beat position, and the transport's events, pad
+  kits ([engines/README.md, "Pad kits"](engines/README.md#pad-kits)), and
+  since v4 (2026-10-06) a pad kit's focus and per-pad values read back
+  through `get_param`, so every value a user can set can be saved. `fm1-render
+  --meta` exports every engine's, effect's, MIDI effect's and modulation
+  kind's parameter metadata as JSON, for editors
+  ([engines/README.md, "The parameter metadata export"](engines/README.md#the-parameter-metadata-export)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
@@ -869,7 +875,8 @@ modulation source, a MIDI effect, an audio effect, or another kind.
     S7a every parameter has its uid and flags, and since 2026-10-05
     `FM1_ENGINE_API_VERSION` is 3 (16-bit flags, LOG, dB, the effect
     extension), and since 2026-10-06 the MIDI-effect kind with its
-    `process()` [verified: `fm1_engine.h`]. An SDK needs those contracts
+    `process()`, and is 4 (the FOCUS and PER_FOCUS flags and `get_param`)
+    [verified: `fm1_engine.h`]. An SDK needs those contracts
     settled and versioned first [inferred];
   - the effects' tempo and beat position: in since API v3, as the per-call
     `fm1_fx_ext_t` rather than fields of `fm1_host_t`; the MOD flag is in
