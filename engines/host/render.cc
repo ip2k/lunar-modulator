@@ -7,8 +7,9 @@
 // --list prints every engine and its parameters as JSON, with the names of
 // an enum parameter's values and each parameter's API v2 fields: uid, flags
 // (by name), unit and abbr, whether the engine takes per-note offsets
-// (per_note: it has set_param_note), and what an effect asks of API v3's
-// extension (fx_wants: key, tempo, transport; render_ext: it has one).
+// (per_note: it has set_param_note), what an effect asks of API v3's
+// extension (fx_wants: key, tempo, transport; render_ext: it has one), and
+// its pads when it is a pad kit (pads: first note and count, or null).
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
@@ -540,7 +541,10 @@ void List() {
         printf(firstw ? "\"0x%x\"" : ",\"0x%x\"", unsigned(e->fx_wants));   // a test catches it
       }
     }
-    printf("],\"params\":[");
+    printf("],");
+    if (e->pad_count) printf("\"pads\":{\"first\":%u,\"count\":%u},", e->pad_first_note, e->pad_count);
+    else printf("\"pads\":null,");
+    printf("\"params\":[");
     for (uint16_t p = 0; p < e->n_params; ++p) {
       const fm1_param_t &q = e->params[p];
       printf(p ? ",{" : "{");

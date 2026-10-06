@@ -65,6 +65,23 @@ def test_the_keys_play_the_current_sound(tools):
     assert loud["peak"] > 0.1 and loud["current"] == 0 and loud["sounding"] == 0
 
 
+def test_the_keys_follow_the_current_sounds_pads(tools):
+    """The white-key pad map follows the current sound, not Sound 1: with
+    Drums as Sound 2 and current, a black key is silent (no pad) and a white
+    key plays a pad; with Macro current over Drums as Sound 1, the same black
+    key plays its pitch."""
+    to_two = ["--button", "0.1:SEL:0.1", "--turn", "0.15:PRESETS:1"]
+    on_drums = sim(tools, "--engine", "macro", "--sound", "1:drums", "--level", "0:0", *to_two,
+                   "--key", "0.3:1:100:0.2", seconds=0.8)
+    assert on_drums["current"] == 1 and on_drums["peak"] == 0
+    white = sim(tools, "--engine", "macro", "--sound", "1:drums", "--level", "0:0", *to_two,
+                "--key", "0.3:0:100:0.2", seconds=0.8)
+    assert white["peak"] > 0.05
+    on_macro = sim(tools, "--engine", "drums", "--sound", "1:macro", "--level", "0:0", *to_two,
+                   "--key", "0.3:1:100:0.2", seconds=0.8)
+    assert on_macro["current"] == 1 and on_macro["peak"] > 0.01
+
+
 def test_sophies_pads_follow_the_current_sound(tools):
     """The white keys play Sophie's pads when Sophie is the current sound,
     whichever unit holds her (found when multi-sound went public): as Sound

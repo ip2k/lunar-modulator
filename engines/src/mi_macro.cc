@@ -501,4 +501,5 @@ extern "C" const fm1_engine_t fm1_engine_macro = {
   fm1::macro::Set, fm1::macro::Render,
   fm1::macro::SetNote,
   0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };

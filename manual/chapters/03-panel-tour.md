@@ -31,7 +31,7 @@ turn without end, in steps you can feel.
 | --- | --- |
 | [[MASTER]] | The output volume, from silent to full. While you turn it the screen shows *Volume* and its position from 0 to 100 |
 | [[SELECT]] | On the sound's page, turns the page. In FX mode, moves through the slots of the chain and their pages. In SEQ mode and on the modulation pages it does more (chapters [7](07-sequencer.md) and [8](08-modulation.md)). On the global page it does nothing |
-| [[PRESETS]] | Chooses the current sound's engine, in this order: Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Test Sine, and round again; Sounds 2 to 4 start the list with *Empty*. With [[SEL]] held, chooses the current sound, 1 to 4 ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |
+| [[PRESETS]] | Chooses the current sound's engine, in this order: Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Test Sine, and round again; Sounds 2 to 4 start the list with *Empty*. With [[SEL]] held, chooses the current sound, 1 to 4 ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |
 | [[ALGORITHM]] | Steps through the engine's main list: Model for Macro and Macro Heavy, Shape for Shapes, Patch for Six-Op FM, Pad for Sophie. Test Sine has none. In FX mode it chooses the effect in the chosen slot. With [[OCT-]] or [[OCT+]] held, it transposes ([chapter 4](04-playing.md)) |
 | [[KNOB1]] to [[KNOB4]] | Change the four parameters of the current page, in the order the screen lists them. With [[LFO]] or [[ENV]] held, they make a modulation cable ([chapter 8](08-modulation.md#the-gesture-making-a-cable-with-a-knob)) |
 

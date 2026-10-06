@@ -43,6 +43,11 @@
  * position, and transport events (render_ext below). engines/README.md,
  * "Engine API v3", has the rules.
  *
+ * Pad kits (API v3, optional, additive). An engine that plays one drum
+ * sound per note on a run of keys says so in pad_first_note and pad_count,
+ * so a host can lay those notes on its own keys whatever their pitch
+ * (engines/README.md, "Pad kits").
+ *
  * Plain C99 so C and C++ engines (and a Schwung shim) can all implement it.
  * MIT licence, like the rest of this repository.
  */
@@ -370,7 +375,24 @@ typedef struct fm1_engine {
    * render. */
   uint32_t fx_wants;
   void (*render_ext)(void *self, float *io_lr, uint32_t frames, const fm1_fx_ext_t *ext);
+
+  /* API v3, optional: a pad kit (sound engines). pad_count > 0 says that
+   * notes pad_first_note .. pad_first_note + pad_count - 1 each play a pad,
+   * a drum sound of its own (General MIDI's drum keys: 36 the kick, 38 the
+   * snare, 42 the closed hi-hat...), and that other notes play nothing.
+   * A host with a keyboard may then lay the pads on its keys whatever
+   * their pitch (the virtual FM-1 puts the first 16 on its white keys);
+   * MIDI keeps the notes. 0 and 0: not a kit, every note is a pitch. */
+  uint8_t pad_first_note;
+  uint8_t pad_count;
 } fm1_engine_t;
+
+/* Whether e is a pad kit, and the note its pad `pad` (from 0) plays, or -1
+ * when it has no such pad. */
+static inline int fm1_engine_pad_note(const fm1_engine_t *e, int pad) {
+  if (!e || pad < 0 || pad >= e->pad_count) return -1;
+  return e->pad_first_note + pad <= 127 ? e->pad_first_note + pad : -1;
+}
 
 /* The index of e's parameter with this uid, or -1 (uid 0 included). */
 static inline int fm1_param_index(const fm1_engine_t *e, uint16_t uid) {

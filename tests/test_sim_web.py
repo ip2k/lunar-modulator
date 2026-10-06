@@ -476,15 +476,54 @@ def test_font_header_is_current():
 
 
 
+@pytest.mark.parametrize("engine", ["sw-sophie", "drums"])
 @pytest.mark.parametrize("key,peak", [(0, True), (1, False), (2, True), (26, True)])
-def test_sophie_white_keys_play_its_pads_at_any_octave(tools, key, peak):
-    """Sophie only answers MIDI notes 36-51, below the keys' range (53-79 at
-    octave 0). With Sophie as the sound the 16 white keys play pads 1-16 and the
+def test_pad_kits_play_their_pads_on_the_white_keys_at_any_octave(tools, engine, key, peak):
+    """A pad kit (an engine with pad_count, fm1_engine.h: Sophie and Drums)
+    only answers MIDI notes 36-51, below the keys' range (53-79 at octave
+    0). With a kit as the sound the 16 white keys play pads 1-16 and the
     black keys play nothing, at any octave; other engines are unchanged."""
     for panel in ([], ["--button", "0.05:OCT+:0.02"], ["--button", "0.05:OCT-:0.02"]):
-        summary = run(tools["sim"], ["--engine", "sw-sophie", "--seconds", "0.7",
+        summary = run(tools["sim"], ["--engine", engine, "--seconds", "0.7",
                                      "--key", f"0.1:{key}:110:0.3", *panel])
         assert (summary["peak"] > 0.05) is peak
+
+
+# The FM-1's 27 keys run F3..G5: white keys F G A B C D E, from key 0.
+WHITE_KEYS = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26]
+BLACK_KEYS = [k for k in range(27) if k not in WHITE_KEYS]
+
+
+@pytest.mark.parametrize("white", range(16))
+def test_a_white_key_plays_the_pad_a_drum_note_plays(tools, tmp_path, white):
+    """White key w (F3, G3, A3, B3, C4... from key 0) plays pad w + 1, byte
+    for byte what its MIDI note at MIDI IN plays: all sixteen, B3 (key 6)
+    and the last octave's F and G included."""
+    key = WHITE_KEYS[white]
+    a, b = tmp_path / "key.wav", tmp_path / "midi.wav"
+    run(tools["sim"], ["--engine", "drums", "--seconds", "0.5", "--out", str(a),
+                       "--key", f"0.1:{key}:100:0.2"])
+    run(tools["sim"], ["--engine", "drums", "--seconds", "0.5", "--out", str(b),
+                       "--note", f"0.1:{36 + white}:100:0.2"])
+    assert a.read_bytes() == b.read_bytes()
+
+
+@pytest.mark.parametrize("engine,note,lit", [
+    ("drums", 38, 4),       # the snare at MIDI IN lights A3, the key that plays it
+    ("drums", 60, None),    # a note the kit ignores lights nothing (it lit C4)
+    ("macro", 60, 7),       # a pitched sound: C4, as before
+])
+def test_a_key_lights_while_the_note_it_plays_sounds(tools, engine, note, lit):
+    s = run(tools["sim"], ["--engine", engine, "--seconds", "0.3", "--note", f"0.1:{note}:100:0.5"])
+    assert [k for k in range(27) if s["leds"][k] == "1"] == ([] if lit is None else [lit])
+
+
+def test_a_pad_kits_black_keys_are_silent(tools):
+    """All eleven black keys play nothing on a pad kit."""
+    keys = [arg for i, k in enumerate(BLACK_KEYS)
+            for arg in ("--key", f"{0.05 + 0.04 * i:.2f}:{k}:110:0.03")]
+    summary = run(tools["sim"], ["--engine", "drums", "--seconds", "0.7", *keys])
+    assert summary["peak"] == 0
 
 @pytest.mark.parametrize("panel,note", [
     ([], 53),                                             # key 0 is F3 (manual p.10)
