@@ -484,6 +484,8 @@ typedef struct fm1_seq_ui {
   uint8_t song_now, song_next;      /* the playing entry's scene, and the one armed or
                                        due after it (FM1_SEQ_NONE: none, the end) */
   uint8_t song_cur_presses;         /* the cursor's entry's repeats, as last read */
+  uint8_t song_pad;                 /* always 0: no padding before song_gen, so the
+                                       run sync compares holds no indeterminate byte */
   uint32_t song_gen;                /* the input generation the song was read at */
 } fm1_seq_ui_t;
 

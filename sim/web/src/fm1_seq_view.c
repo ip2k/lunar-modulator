@@ -826,6 +826,20 @@ static void song_mark(fm1_tft_t *t, int y, int up) {
   }
 }
 
+/* The playing entry's mark in the row's first column: a play triangle,
+ * 4 px wide, drawn rather than a '>' so a two-digit entry number keeps
+ * 4 px of room from it (a '>' glyph sat right against "41"). */
+#define SONG_PLAY_W 4
+#define SONG_PLAY_H 7
+static void song_play_mark(fm1_tft_t *t, int x, int y, uint16_t color) {
+  const int y0 = y + (MID_LINE_H - SONG_PLAY_H) / 2;
+  fm1_tft_graphic(t, x, y0, SONG_PLAY_W, SONG_PLAY_H);
+  for (int r = 0; r < SONG_PLAY_H; ++r) {
+    const int w = r <= SONG_PLAY_H / 2 ? r + 1 : SONG_PLAY_H - r;
+    fm1_tft_paint(t, x, y0 + r, w, 1, color);
+  }
+}
+
 static void draw_song(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd) {
   const fm1_seq_t *s = snd->seq;
   const unsigned entries = u->song_entries;
@@ -892,7 +906,7 @@ static void draw_song(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_so
         if (playing) snprintf(bars, sizeof bars, "%u/%u", bar, (unsigned)x.bars);
         else snprintf(bars, sizeof bars, "%ub", (unsigned)x.bars * x.presses);
         song_time(x.start_bar, u->bpm_x100, tm, sizeof tm);
-        snprintf(f[0], sizeof f[0], "%c", playing ? '>' : ' ');
+        f[0][0] = '\0';                     /* the first column: song_play_mark */
         snprintf(f[1], sizeof f[1], "%2u ", e + 1u);
         snprintf(f[2], sizeof f[2], "%-8.8s ", sc);
         snprintf(f[3], sizeof f[3], "%-3.3s ", rep);
@@ -908,7 +922,8 @@ static void draw_song(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_so
         if (cursor) {
           for (int k = 0; k < 6; ++k) sp[k].color = C_BG;
         }
-        fm1_tft_span_text(t, LIST_X, y, sp, 6, SONG_ROW_CHARS, FM1_TFT_MID);
+        if (playing) song_play_mark(t, LIST_X, y, sp[0].color);
+        fm1_tft_span_text(t, LIST_X + MID_ADVANCE, y, sp + 1, 5, SONG_ROW_CHARS - 1, FM1_TFT_MID);
       }
     }
     if (first + rows < total) song_mark(t, SONG_MORE_DOWN_Y, 0);

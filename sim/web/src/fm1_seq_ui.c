@@ -1418,7 +1418,7 @@ int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down,
     /* SHIFT + PLAY while playing restarts (D12 makes it a Stop and a Start). */
     const int restart = u->playing && u->shift;
     fm1_seq_cmd_t c;
-    srec_end(u);
+    srec_end(u);                             /* step record is a stopped-transport mode */
     if (mode == FM1_MODE_SEQ && u->view == FM1_SEQ_VIEW_SONG) {
       u->song_trail = 1;                     /* PLAY: the cursor trails the song again */
       if (u->shift && u->song_cur < u->song_entries) {
@@ -1432,7 +1432,7 @@ int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down,
         }
         return 0;
       }
-    }                             /* step record is a stopped-transport mode */
+    }
     fm1_seq_cmd_make(&c, restart || !u->playing ? FM1_SEQ_V_PLAY : FM1_SEQ_V_STOP, 0, NULL);
     if (out && out->cmd) out->cmd(out->ctx, &c);
     /* Until the next block's sync reads the core: a second press before

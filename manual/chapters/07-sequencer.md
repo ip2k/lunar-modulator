@@ -635,9 +635,9 @@ Each row is one entry: its number, its scene and the scene's name, how
 many times it plays, its length in bars and the time it starts at the
 current tempo. The last row, *+ add*, is where new entries go. The top line
 has the song's length, what it does at its end, and the entry you are on.
-While the song plays, the playing entry has a *>*, its repeats show the
-pass (*2/4*) and its bars the bar of that pass (*13/16*); the cursor
-follows it until you move the cursor away.
+While the song plays, the playing entry has a play triangle (▶), its
+repeats show the pass (*2/4*) and its bars the bar of that pass
+(*13/16*); the cursor follows it until you move the cursor away.
 
 | Control | On the song page |
 | --- | --- |
