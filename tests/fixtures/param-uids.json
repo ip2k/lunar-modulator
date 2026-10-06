@@ -335,6 +335,8 @@
   },
   "retired_about": "Uids a table must never give out again: a removed parameter's; and Comb's 1, the Filter's Type, as Comb keeps the Filter's uids for the parameters both have, so a Filter that was set to Comb maps onto Comb uid for uid (engines/README.md, \"Comb\").",
   "retired": {"comb": [1]},
+  "gpl_about": "The GPL modules (engines/Makefile, FM1_GPL_MODS; CLAUDE.md, \"The GPL switch\"): pinned above like every other, and in the build only while the switch is on, so tests/test_engine_params.py leaves them out of the comparison when it is off.",
+  "gpl": [],
   "per_note_about": "The engines with set_param_note (engine API v2, per-note offsets: engines/README.md, \"Per-note offsets\"). Their POLY parameters are flagged \"poly\" above; no other engine may have one.",
   "per_note": ["macro", "macro-heavy", "shapes", "sixop", "dx7", "drums"]
 }

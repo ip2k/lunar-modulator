@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.engine_helpers import ENGINES, renderer  # noqa: F401
+from tests.engine_helpers import ENGINES, GPL_MODS, renderer  # noqa: F401
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "param-uids.json"
 SELFTEST = ENGINES / "build" / "fm1-schwung-selftest"
@@ -123,10 +123,17 @@ def built(renderer):
     return catalog(renderer)
 
 
+def pinned_engines():
+    """The fixture's engines, less the GPL modules when the GPL switch is off
+    (they are not in that build)."""
+    fixture = json.loads(FIXTURE.read_text())
+    return {k: v for k, v in fixture["engines"].items() if GPL_MODS or k not in fixture["gpl"]}
+
+
 def test_uids_and_flags_match_the_fixture(built):
     """Every parameter of every engine and effect has the uid, type and flags
     the fixture pins, and nothing is missing or extra on either side."""
-    pinned = json.loads(FIXTURE.read_text())["engines"]
+    pinned = pinned_engines()
     assert set(built) == set(pinned), set(built) ^ set(pinned)
     for eid, params in built.items():
         have = {p["name"]: (p["uid"], p["type"], p["flags"]) for p in params}
@@ -172,7 +179,8 @@ def test_flags_follow_the_rules(built):
 def test_per_note_engines_match_the_fixture(renderer, built):
     """set_param_note is there exactly on the engines the fixture names, and
     only those have POLY parameters (every one of them has some)."""
-    pinned = json.loads(FIXTURE.read_text())["per_note"]
+    fixture = json.loads(FIXTURE.read_text())
+    pinned = [e for e in fixture["per_note"] if GPL_MODS or e not in fixture["gpl"]]
     listed = json.loads(subprocess.run([str(renderer), "--list"], check=True,
                                        capture_output=True, text=True).stdout)
     assert sorted(e["id"] for e in listed if e["per_note"]) == sorted(pinned)
@@ -184,7 +192,8 @@ def test_per_note_engines_match_the_fixture(renderer, built):
 def test_every_enum_has_its_decided_flags(built):
     enums = {(eid, p["name"]): p["flags"] for eid, params in built.items()
              for p in params if p["type"] == "enum"}
-    assert enums == ENUM_FLAGS
+    gpl = set(json.loads(FIXTURE.read_text())["gpl"])
+    assert enums == {k: v for k, v in ENUM_FLAGS.items() if GPL_MODS or k[0] not in gpl}
 
 
 def test_abbreviations_and_units(built):

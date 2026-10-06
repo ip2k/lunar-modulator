@@ -443,10 +443,37 @@ we test"). Consequences [inferred, not legal advice]:
   GPL can be met there.
 - **Bare metal later.** A build without JieLi's libraries is to be explored
   later; under the GPL as a whole, it could be shared.
-- **Nothing GPL is in the tree yet** [verified, 2026-10-05]. The switch and
-  the simulator's licence labelling land with the first GPL module (the
-  2026-10-05 build plan, step 4: Grids and Branches originals as optional
-  modules).
+- **How the switch is built** (2026-10-06) [verified: the build and
+  `tests/test_gpl_switch.py`]:
+  - `FM1_GPL_MODS ?= 1` in `engines/Makefile`, 0 or 1, and nothing else.
+    fm1-render, the virtual FM-1's native and WebAssembly builds
+    (`sim/web/mk/sim.mk`, `build.sh`, `build-on-aeon.sh`) and the JieLi
+    compile check (`tools/jieli/objects.mk`, `compile-check.sh`) all build
+    through that Makefile, so one variable turns them all.
+  - A GPL module's code sits in its own `engines/third_party/<name>/`, with
+    its licence and an `UPSTREAM.md`. Its fragment (`engines/mk/<name>.mk`)
+    adds its sources only when the switch is on, its C objects to
+    `GPL_OBJ`, and its registry entry (`src/registry.cc`,
+    `midi_fx/registry.c`) sits under `#if FM1_GPL_MODS`.
+  - The licence table beside the registry (`fm1_licences`,
+    `fm1_engine_licence` in `fm1_engine.h`) names the licence of every
+    module whose code is not all MIT. `fm1-render --list`, the simulator's
+    catalogue and its build record (`fm1.wasm.json`) carry it, and
+    `fm1-render --build-info` says how a build was made.
+  - **The page.** While the module carries a GPL module, the simulator's
+    page names each one and offers the module under the GPL, version 3. It
+    links the licence's text (`sim/web/www/licences/GPL-3.0.txt`) and the
+    complete source: this repository at the commit the site was built from
+    (`source.json`, written by the site's build). With no GPL module in it,
+    the page says nothing.
+  - **CI** runs every test with the switch on, and the engine, sequencer
+    and simulator tests again with it off (`engines-mit`). In both,
+    `tests/test_gpl_switch.py` builds the switch-off programs and fails if
+    any compiles a GPL file, links a symbol a GPL object defines, or lists
+    a GPL module.
+- **GPL code in the tree** [verified, 2026-10-06]: none yet. The first GPL
+  modules are fm1-x0x's 303 bass and its TB-3PO generator
+  (`notes/2026-10-06-fm1-x0x.md` §6).
 
 **Usable as code in every build (docs/11 §7):**
 

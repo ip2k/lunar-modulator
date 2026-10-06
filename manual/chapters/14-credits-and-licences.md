@@ -232,6 +232,20 @@ Open Font License 1.1. The repository's tests also use **Felucca**'s
 of the same FM core, to check FM6 against; it is in no build of the
 firmware or the simulator.
 
+**GPL code, and the GPL switch.** Some engines and effects port code that
+other projects publish under the GNU General Public License. Each sits in
+a folder of its own in the repository, with its licence and a note of where
+it came from, and is built in only while the firmware's GPL switch is on.
+While we test, the switch is on in every build, the simulator included.
+- **In the simulator**, the page beside the panel then names each module
+  with GPL code in it, and offers the simulator's module under the GNU GPL,
+  version 3. It links the licence's text and the complete source: the
+  repository at the commit the page was built from. When no GPL module is
+  in it, the page says nothing.
+- **Firmware for the FM-1** built with the switch on is for the person who
+  builds it: it will not be released or passed on. A shared build is made
+  with the switch off and contains no GPL code.
+
 ## Trademarks
 
 M-VAVE, Cuvave and FM-1 are the marks of their owners. Lunar Modulator uses

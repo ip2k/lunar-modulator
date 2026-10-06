@@ -3164,6 +3164,17 @@ const char *fm1_app_catalog_json(void) {
     put_str(&k, e->name);
     put(&k, ",\"credits\":");
     put_str(&k, e->credits);
+    /* The licence of the code it links (fm1_engine.h, "Licences"): the page
+     * names the GPL modules and offers the module under the GPL while any
+     * is in it (docs/12 §6, the GPL switch). */
+    put(&k, ",\"licence\":");
+    put_str(&k, fm1_engine_licence(e));
+    put(&k, ",\"gpl\":%s,\"source\":", fm1_licence_is_gpl(fm1_engine_licence(e)) ? "true" : "false");
+    if (fm1_engine_licence_row(e) && fm1_engine_licence_row(e)->source) {
+      put_str(&k, fm1_engine_licence_row(e)->source);
+    } else {
+      put(&k, "null");
+    }
     put(&k, ",\"kind\":\"%s\",\"max_voices\":%u,\"params\":[",
         e->kind == FM1_KIND_SOUND ? "sound" : e->kind == FM1_KIND_AUDIO_FX ? "audio_fx" : "midi_fx",
         (unsigned)e->max_voices);

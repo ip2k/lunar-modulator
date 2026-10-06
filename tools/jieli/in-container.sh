@@ -89,6 +89,7 @@ export -f mk build_one
 export SRC OUT JCC
 
 echo "== toolchain: $($TC/common/bin/clang --version | head -1)"
+echo "== GPL switch: FM1_GPL_MODS=${FM1_GPL_MODS:-1} (engines/Makefile)"
 for p in "${PROFILES[@]}"; do
   IFS='|' read -r name opt add <<<"$p"
   build=$OUT/$name/obj

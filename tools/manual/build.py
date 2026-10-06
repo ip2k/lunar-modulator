@@ -587,6 +587,12 @@ def assemble_site(b: Build, site: Path) -> None:
             else:
                 shutil.copy2(item, dest)
         link_simulator_to_manual(b, site / "index.html")
+        # The commit the site is built from: while the simulator's module has
+        # GPL modules in it, its page offers it under the GPL and links the
+        # source at this commit (docs/12 §6, "The GPL switch").
+        source = json.loads((site / "source.json").read_text()) if (site / "source.json").is_file() else {}
+        source.update(repository=b.cfg["repository"], commit=None if b.commit == "unknown" else b.commit)
+        (site / "source.json").write_text(json.dumps(source, indent=2) + "\n")
         print(f"manual: simulator from {sim.relative_to(b.repo)} is the site's front page", file=sys.stderr)
     else:
         font_link = ('<link rel="stylesheet" href="manual/assets/fonts.css">\n'

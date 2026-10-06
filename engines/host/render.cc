@@ -8,8 +8,12 @@
 // an enum parameter's values and each parameter's API v2 fields: uid, flags
 // (by name), unit and abbr, whether the engine takes per-note offsets
 // (per_note: it has set_param_note), what an effect asks of API v3's
-// extension (fx_wants: key, tempo, transport; render_ext: it has one), and
-// its pads when it is a pad kit (pads: first note and count, or null).
+// extension (fx_wants: key, tempo, transport; render_ext: it has one), its
+// pads when it is a pad kit (pads: first note and count, or null), and the
+// licence of the code it links (licence: an SPDX expression, MIT unless the
+// licence table says otherwise; source: where its vendored code is, or
+// null). --build-info prints the build's engine API version and the GPL
+// switch it was built with (gpl_mods: FM1_GPL_MODS, engines/Makefile).
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
@@ -204,7 +208,7 @@ struct FxControl {                   // --fx-param-at: an effect's set_param
 
 void Usage() {
   fprintf(stderr,
-      "usage: fm1-render --list\n"
+      "usage: fm1-render --list | --build-info\n"
       "       fm1-render [--engine ID [--param NAME=VALUE]... [--note T:KEY:VEL:DUR]...\n"
       "                   [--bend T:SEMITONES]... [--param-at T:NAME=VALUE]...\n"
       "                   [--note-param-at T:KEY:NAME=OFFSET]... [--note-pitch-at T:KEY:SEMITONES]...]\n"
@@ -694,6 +698,13 @@ void List() {
     printf("\"id\":"); PrintJsonString(e->id);
     printf(",\"name\":"); PrintJsonString(e->name);
     printf(",\"credits\":"); PrintJsonString(e->credits);
+    {
+      const fm1_licence_t *row = fm1_engine_licence_row(e);
+      printf(",\"licence\":"); PrintJsonString(fm1_engine_licence(e));
+      printf(",\"source\":");
+      if (row && row->source) PrintJsonString(row->source);
+      else printf("null");
+    }
     printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"render_ext\":%s,\"fx_wants\":[",
            e->kind == FM1_KIND_SOUND ? "sound" : e->kind == FM1_KIND_AUDIO_FX ? "audio_fx" : "midi_fx",
            e->max_voices, e->set_param_note ? "true" : "false", e->render_ext ? "true" : "false");
@@ -805,6 +816,13 @@ int main(int argc, char **argv) {
     std::string a = argv[i];
     const char *next = i + 1 < argc ? argv[i + 1] : NULL;
     if (a == "--list") { List(); return 0; }
+    if (a == "--build-info") {
+      size_t gpl = 0;
+      for (size_t k = 0; k < fm1_licence_count; ++k) gpl += fm1_licence_is_gpl(fm1_licences[k].spdx);
+      printf("{\"engine_api\":%u,\"gpl_mods\":%d,\"engines\":%zu,\"midi_fx\":%zu,\"gpl_modules\":%zu}\n",
+             FM1_ENGINE_API_VERSION, fm1_gpl_mods, fm1_engine_count, fm1_midi_fx_count, gpl);
+      return 0;
+    }
     if (a == "--list-mod") { ListMod(); return 0; }
     if (a == "--compat") { compat = true; continue; }
     if (a == "--slots") { slots = true; continue; }

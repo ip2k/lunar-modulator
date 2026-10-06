@@ -280,10 +280,83 @@ async function powerOff() {
   statusEl.textContent = 'Powered off.';
 }
 
+// ---- licences: the GPL offer (docs/12 §6, "The GPL switch") ----------------------
+// While the module carries GPL modules, the page names them and offers the
+// module under the GNU GPL, version 3: the licence's text beside the page and
+// the complete corresponding source, this repository at the commit the site
+// was built from (source.json: tools/manual/build.py writes the commit into
+// the published copy; the checkout's has none, and the link is then to the
+// repository). The build record (fm1.wasm.json, written by sim/web/build.sh)
+// says which modules before the power is on; the module's own catalogue
+// confirms it once it runs.
+const licenceEl = document.getElementById('licence-note');
+const licence = { modules: null, repository: null, commit: null };
+
+function showLicence() {
+  const gpl = (licence.modules || []).filter((m) => /GPL/.test(m.licence));
+  licenceEl.hidden = gpl.length === 0;
+  if (!gpl.length) return;
+  licenceEl.textContent = '';
+  const add = (text, href) => {
+    if (!href) { licenceEl.append(text); return; }
+    const a = document.createElement('a');
+    a.href = href;
+    a.textContent = text;
+    licenceEl.append(a);
+  };
+  const names = gpl.map((m) => `${m.name} (${m.licence})`);
+  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0];
+  add(`This simulator includes GPL code: ${list}, built in with the firmware's GPL switch on. ` +
+      'Its WebAssembly module is therefore offered under the GNU General Public License, version 3 (');
+  add('licence text', 'licences/GPL-3.0.txt');
+  add('); the rest of Lunar Modulator is MIT. ');
+  const repo = licence.repository;
+  if (repo) {
+    const tree = licence.commit ? `${repo}/tree/${licence.commit}` : repo;
+    add('The complete corresponding source is ');
+    add(licence.commit ? `the repository at ${licence.commit.slice(0, 7)}` : 'the repository', tree);
+    const dirs = [...new Set(gpl.map((m) => m.source).filter(Boolean))];
+    if (dirs.length) {
+      add(', where ');
+      dirs.forEach((d, i) => {
+        if (i) add(i === dirs.length - 1 ? ' and ' : ', ');
+        add(d, `${tree}/${d}`);
+      });
+      add(dirs.length > 1 ? ' hold the GPL code, its licences and where it came from.'
+        : ' holds the GPL code, its licences and where it came from.');
+    } else {
+      add('.');
+    }
+  }
+}
+
+async function readJson(name) {
+  try {
+    const res = await fetch(asset(name), { cache: 'no-cache' });
+    return res.ok ? await res.json() : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+(async () => {
+  const [record, source] = await Promise.all([readJson('fm1.wasm.json'), readJson('source.json')]);
+  if (record && !licence.modules && Array.isArray(record.licences)) licence.modules = record.licences;
+  if (source) {
+    licence.repository = source.repository || null;
+    licence.commit = source.commit || null;
+  }
+  showLicence();
+})();
+
 function onWorklet(m, node) {
   switch (m.type) {
     case 'ready':
       sim.catalog = m.catalog;
+      // The module's own word on its licences replaces the record's.
+      licence.modules = m.catalog.filter((e) => e.licence !== 'MIT')
+        .map((e) => ({ id: e.id, name: e.name, kind: e.kind, licence: e.licence, source: e.source }));
+      showLicence();
       fillSelects();
       if (m.imports.length) console.warn('fm1.wasm imports', m.imports);
       break;

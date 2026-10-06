@@ -9,6 +9,21 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The GPL switch.** Engines and effects that port code published under
+  the GNU GPL can now come into Lunar Modulator, each in a folder of its
+  own, built in only while the switch is on. It is on in every build while
+  we test (owner, 2026-10-05); built with it off, the firmware contains no
+  GPL code and can be shared.
+  - The simulator's page names any GPL module in its build and offers the
+    simulator under the GNU GPL, version 3, with the licence's text and a
+    link to the source at the commit the page was built from. With no GPL
+    module in it, as today, the page says nothing new.
+  - `fm1-render --list` names every module's licence; `--build-info`
+    says which way a build was made. FM6 is listed as MIT and Apache-2.0
+    (msfa).
+  - CI now also builds and tests everything with the switch off, and a
+    new test fails if that build compiles, links or lists anything GPL.
+  - No GPL module is in yet. No change to how anything sounds.
 - **A study of fm1-x0x, and of Felucca's other engines**, in
   `notes/2026-10-06-fm1-x0x.md`. fm1-x0x is new open firmware for the FM-1
   with drum kits after the TR-909 and TR-808, basses after the TB-303 and

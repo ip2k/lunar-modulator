@@ -167,6 +167,8 @@ def group_of(rel):
         return "msfa (vendored, Apache-2.0)"
     if rel.startswith("sw/"):
         return "Schwung modules (vendored, MIT)"
+    if rel.startswith("gpl/"):                  # GPL_OBJ: built only with FM1_GPL_MODS=1
+        return "GPL modules (vendored, GPL switch)"
     if rel.startswith("c/seq/"):
         return "Sequencer core"
     if rel.startswith("sim/"):

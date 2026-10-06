@@ -104,6 +104,7 @@ python3 reference/jl-misctools/firmware/fwunpack_newfw.py FM-1.fwsc     # unpack
 python tools/fm1_identify.py                                   # read-only identity query + decode, any OS (verified on hardware)
 python -m pytest                                               # tools, PIO emulation, dongle/ROM co-simulation and engine tests
 make -C engines && engines/build/fm1-render --list             # engine platform, desktop build (docs/11, engines/README.md)
+FM1_GPL_MODS=0 make -C engines                                 # the same without the GPL modules: the MIT/BSD build (Licences, below)
 python3 -m http.server 8000 -d sim/web/www                     # the virtual FM-1 at http://localhost:8000/ (sim/web/README.md)
 FM1_SIM_HOST=user@host sim/web/build-on-aeon.sh                # rebuild and check its WebAssembly module in containers on a Docker host
 tools/fm1_identify.sh                                          # Linux, ALSA raw MIDI, read-only, untested
@@ -1601,6 +1602,36 @@ review.
   (released, or sent to anyone) if it contains GPL or LXR code. Personal
   builds may, so keep such code behind a build switch and keep the
   MIT/BSD-only build shareable.
+- **The GPL switch** is `FM1_GPL_MODS` (owner, 2026-10-05: on by default,
+  everywhere, while we test):
+
+  ```bash
+  make -C engines                         # the switch on: GPL modules built in
+  FM1_GPL_MODS=0 make -C engines          # the MIT/BSD build, shareable
+  engines/build/fm1-render --build-info   # which one a build is
+  engines/build/fm1-render --list         # every module's licence, as SPDX
+  python -m pytest tests/test_gpl_switch.py   # the switch-off build has nothing GPL in it
+  ```
+
+  - One variable in `engines/Makefile` turns fm1-render, the simulator's
+    native and WebAssembly builds and the JieLi compile check. A turn
+    rebuilds only what reads it.
+  - A GPL module comes in as:
+    - its own `engines/third_party/<name>/`, with its licence and an
+      `UPSTREAM.md`;
+    - a fragment `engines/mk/<name>.mk` that adds its sources under
+      `ifeq ($(FM1_GPL_MODS),1)` and its C objects to `GPL_OBJ`;
+    - its registry entry and its row in the licence table under `#if
+      FM1_GPL_MODS` (`engines/src/registry.cc`, `midi_fx/registry.c`);
+    - its uids in `tests/fixtures/param-uids.json`, its id in that file's
+      `gpl` list, `gpl_only` on its tests, and `"gpl": true` on its parity
+      scenarios, which skip with the switch off.
+  - While the switch is on, no firmware image that links JieLi's libraries
+    may be shared. The simulator's page then names the GPL modules, links
+    the GPL's text and the source at the site's commit, and offers the
+    module under the GPL ([docs/12](docs/12-sequencer.md) §6).
+  - CI runs everything with the switch on, and the engine, sequencer and
+    simulator tests again with it off.
 - GPL and LXR code cannot be combined in one shared work, and MIDIbox code
   needs its author's permission.
 - JieLi's SDK is not GPL-free: `system.a` holds a modified FreeRTOS V9

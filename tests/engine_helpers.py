@@ -4,6 +4,7 @@ read Six-Op FM's patch-name table.
 """
 import json
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -17,6 +18,13 @@ ENGINES = ROOT / "engines"
 RENDER = ENGINES / "build" / "fm1-render"
 RATE = 44118
 
+# The GPL switch (engines/Makefile, FM1_GPL_MODS; CLAUDE.md, "The GPL
+# switch"): on unless the environment says 0. make reads the same variable,
+# so every build the tests make follows it; CI runs the suite both ways.
+GPL_MODS = os.environ.get("FM1_GPL_MODS", "1") != "0"
+# A test of a GPL module: it is not in the build with the switch off.
+gpl_only = pytest.mark.skipif(not GPL_MODS, reason="a GPL module: built only with FM1_GPL_MODS=1")
+
 
 @pytest.fixture(scope="session")
 def renderer():
@@ -24,6 +32,9 @@ def renderer():
         pytest.skip("no make / C++ compiler")
     subprocess.run(["make", "-C", str(ENGINES), "-j4"], check=True,
                    stdout=subprocess.DEVNULL)
+    info = json.loads(subprocess.run([str(RENDER), "--build-info"], check=True,
+                                     capture_output=True, text=True).stdout)
+    assert info["gpl_mods"] == int(GPL_MODS), "fm1-render was built with the other GPL switch"
     return RENDER
 
 

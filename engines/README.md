@@ -3482,12 +3482,34 @@ rely on wrapping signed arithmetic, as they did under ARM GCC on the modules,
 and `-fwrapv` makes that defined, so no optimiser can exploit it. Keep it in
 the JieLi build.
 
-CI runs three engine jobs:
+CI runs four engine jobs:
 
 - the full test suite on Linux and macOS;
+- the engine, sequencer and simulator tests again with the GPL switch off
+  (below);
 - a 32-bit (`-m32`) build that runs every engine test and prints every
   instance size, to catch pointer-size assumptions before pi32v2 does;
 - ASan + UBSan over every engine test, halting on the first report.
+
+**The GPL switch** (`FM1_GPL_MODS`; CLAUDE.md, "The GPL switch"; docs/12
+§6). `FM1_GPL_MODS ?= 1` at the top of the Makefile builds the GPL modules
+in; `FM1_GPL_MODS=0` leaves them out, the MIT/BSD build. Its value is
+written to `build/gen/fm1_gpl_mods.h`, rewritten only when it changes, and
+only the registries include it, so a turn rebuilds them and relinks.
+
+- A GPL module's fragment adds its sources under `ifeq ($(FM1_GPL_MODS),1)`
+  and its C objects to `GPL_OBJ`, which fm1-render, the simulator's builds
+  and the JieLi check all take.
+- Its registry entry and its row in the licence table (`fm1_licences` in
+  `src/registry.cc`; `fm1_engine_licence` in `include/fm1_engine.h`) go
+  under `#if FM1_GPL_MODS`.
+- `fm1-render --list` gives every module's `licence` (SPDX; MIT unless the
+  table says otherwise) and `source` (its vendored directory), and
+  `--build-info` the switch a build was made with.
+- `tests/test_gpl_switch.py` builds the switch-off fm1-render and simulator
+  harness in `sim/web/build/native-mit` and fails on any GPL file among
+  their objects' dependencies, any symbol a GPL object defines, or any GPL
+  module in their lists.
 
 The sanitizer run, locally (clang, because the ignorelist is a clang flag):
 
