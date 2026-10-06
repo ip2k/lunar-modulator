@@ -404,10 +404,12 @@ docs/16 MG3 the modulation runtime, its kinds, its script reader
 (`host/mod_script.c`: snprintf and strtod, no files) and modulation's
 pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (2026-10-05) Comb, Test Ext, the LOG law and the effects' extension
-(`fm1_fx_render`), Drums, and FM6 (msfa): 72 of 72 scenarios pass,
-identical to musl and to render.js (six of them turn the effects' switches
-every 4.4 ms; the three Drums and the three FM6 scenarios are identical to
-glibc too), and it imports nothing; it is 813,115 bytes, 786,256 before FM6,
+(`fm1_fx_render`), Drums, FM6 (msfa), and glide and the voice modes
+(`engines/src/glide.h`): 75 of 75 scenarios pass, identical to musl and to
+render.js (six of them turn the effects' switches every 4.4 ms; the three
+Drums, the three FM6 and the three glide scenarios are identical to glibc
+too), and it imports nothing; it is 828,062 bytes, 813,115 before glide,
+786,256 before FM6,
 765,189 before Drums since the lab switch went (790,801
 with Drums and the switch's second code path, 769,693 with the switch
 alone), 761,171 before both API v3 and Drums, up from

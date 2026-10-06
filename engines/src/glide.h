@@ -222,6 +222,23 @@ Plan<V> PlanNoteOn(V *voice, int n, Mode mode, float glide_ms) {
   return p;
 }
 
+// What a note-off of `key` does in Mono and Legato: when the newest voice
+// plays that key with its gate up and other keys are held (`held`, with
+// `key` already removed), it moves back to the newest of them, *to,
+// without restarting, gliding from where it is. p.mono is that voice, or
+// NULL when nothing moves.
+template <class V>
+Plan<V> PlanNoteOff(V *voice, int n, const Held &held, uint8_t key, float glide_ms,
+                    uint8_t *to) {
+  Plan<V> p;
+  p.mono = Newest(voice, n);
+  if (!p.mono || !p.mono->gate || p.mono->key != key || !held.Top(to)) p.mono = NULL;
+  p.legato = p.mono != NULL;
+  p.glides = p.mono != NULL && On(glide_ms) && p.mono->glide.HasPitch();
+  p.from = p.glides ? Pitch(*p.mono) : 0.0f;
+  return p;
+}
+
 // Starts a voice's glide for a note on `key` under plan p (none when p
 // does not glide).
 template <class V>

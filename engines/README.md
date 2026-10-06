@@ -2729,7 +2729,9 @@ Each would be one more Voice Mode value or a third parameter.
 keys (17 bytes) and two floats; no heap. Instance sizes on 64-bit (Apple
 clang, arm64) before and after [verified 2026-10-06]: Macro 32,448 →
 32,704, Macro Heavy 71,456 → 71,568, Six-Op FM 12,776 → 12,960, FM6
-15,844 → 16,144, Shapes 207,448 → 207,696. Macro Heavy now has 14
+15,844 → 16,144, Shapes 207,448 → 207,696; on 32-bit, after (gcc 12
+`-m32` in a container, as CI's job): 19,840, 71,360, 11,192, 16,144 and
+206,872. The browser module grew from 813,115 to 828,062 bytes. Macro Heavy now has 14
 parameters, so the modulation runtime's shared records grew from 180 to
 188 to hold four of it beside ten of the largest effect (4 × 14 + 10 × 13 +
 2 = 188, `FM1_MOD_SINK_PARAMS`; [Drums](#drums)), and `fm1_mod_size()`
@@ -2739,7 +2741,8 @@ voice a test, plus a subtraction and a product while it glides.
 **No sound changed at Glide Off and Poly** [verified 2026-10-06, Apple clang
 arm64, against a build of main `ffb0796`]: 1,141 runs of `fm1-render`
 byte-identical (WAV, exit code, errors and summary less timing,
-`instance_bytes` and the runtime's size): the 63 fm1-render legs of the
+`instance_bytes` and the runtime's size; the runtime is 23,520 bytes at
+32 and 64 bits alike): the 63 fm1-render legs of the
 parity scenarios (all but the panel-driven ones); the 24 Movy oracle and 15
 simulator sequencer scripts on all eight sound engines and in compat mode; on every sound engine, a
 16-note chord past every voice cap with bends at host blocks of 1, 7 and 64
@@ -2754,7 +2757,8 @@ said): a glide, in Poly and in Mono, is the same notes without glide with
 the glide's offsets sent as per-note pitch offsets, one per control block,
 computed in single precision in the test as `glide.h` does, and it arrives
 within one control block of its time (the host runs at the engine's own
-rate in its control blocks, so a call lands on every block); a turn of
+rate in its control blocks, so a call lands on every block); a return to
+a held key in Mono and Legato, gliding back down, likewise; a turn of
 Glide mid-glide, ramped, likewise; a note with no key held, a chord, and a
 note after a key let go do not glide; a chord over a held note glides from
 it, each note on its own; Mono's and Legato's key changes and returns are
@@ -2765,7 +2769,15 @@ within half a cent of the key's pitch; host blocks of 1, 7 and 64 and fills
 switches and turns mid-glide; NaN and ±inf clamp as `set_param` clamps;
 and, measured at 44,118 Hz on Macro's sine, a 200 ms octave passes its
 middle at 101.6 ms and arrives at 202.3 ms (the output follows the key by
-about 1.5 ms: the next block and the resampler).
+about 1.5 ms: the next block and the resampler). Three parity scenarios
+(`macro-glide-legato-mono`, `macro-heavy-glide-poly-mono`,
+`dx7-glide-legato`) hold the browser's module to the same bytes: 75 of 75
+pass, the three identical to musl, render.js and glibc [verified
+2026-10-06: `sim/web/www/fm1.wasm.json`]. In containers, as CI's jobs
+[verified 2026-10-06]: the engine, sequencer and Movy tests at 32 bits
+(gcc 12 `-m32`, 3,390 passed, and the app layer's 391), and the glide,
+per-note, SMOOTH, parameter, page-3, FM6 and modulation-runtime tests
+under ASan and UBSan (clang 18, 495 passed).
 
 ## Engine API v3
 

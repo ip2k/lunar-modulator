@@ -537,16 +537,12 @@ class Instance {
   // Mono and Legato: letting go of the key the voice plays while older keys
   // are held moves it back to the newest of them, gliding, never restarting.
   void ReturnToHeld(uint8_t key) {
-    Voice *m = glide::Newest(voice_, kNumVoices);
-    uint8_t top;
-    if (!m || !m->gate || m->key != key || !held_.Top(&top)) return;
-    glide::Plan<Voice> plan;
-    plan.mono = m;
-    plan.legato = true;
-    plan.glides = glide::On(value_[P_GLIDE]) && m->glide.HasPitch();
-    plan.from = plan.glides ? glide::Pitch(*m) : 0.0f;
-    Retune(m, top);
-    glide::StartFor(m, plan, top);
+    uint8_t top = 0;
+    const glide::Plan<Voice> plan =
+        glide::PlanNoteOff(voice_, kNumVoices, held_, key, value_[P_GLIDE], &top);
+    if (!plan.mono) return;
+    Retune(plan.mono, top);
+    glide::StartFor(plan.mono, plan, top);
   }
 
   // A voice takes another key without restarting: a new note for its

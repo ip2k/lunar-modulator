@@ -203,6 +203,25 @@ def test_a_glide_is_its_offsets_on_the_pitch_path(renderer, tmp_path, engine, mo
 
 
 @pytest.mark.parametrize("engine", GLIDE)
+@pytest.mark.parametrize("mode", ["1", "2"])
+def test_the_return_to_a_held_key_glides(renderer, tmp_path, engine, mode):
+    """Mono and Legato, Glide 25 ms: A3 held, A4 played over it (a glide
+    up) and let go once there (a glide back down to A3, without
+    restarting). Byte for byte Glide Off with both glides' offsets sent as
+    per-note pitch offsets: A4's from its note-on, then A3's from the
+    note-off, where the voice returns to A3."""
+    k1, k2 = 200, 600
+    notes = [(0, 57, 100, 900), (k1, 69, 90, k2)]
+    calls = (pitch_calls(engine, 69, glide_offsets(engine, 25.0, 57 - 69, k1), k1)
+             + pitch_calls(engine, 57, glide_offsets(engine, 25.0, 69 - 57, k2), k2))
+    _, glide = native_render(renderer, tmp_path, engine, "glide", notes,
+                             ["--param", "Glide=25", "--param", f"Voice Mode={mode}"], blocks=1000)
+    _, ref = native_render(renderer, tmp_path, engine, "ref", notes,
+                           ["--param", f"Voice Mode={mode}"] + calls, blocks=1000)
+    assert glide == ref
+
+
+@pytest.mark.parametrize("engine", GLIDE)
 def test_a_glide_follows_its_time_while_it_runs(renderer, tmp_path, engine):
     """Mono, Glide 200 ms, cut to 40 ms a quarter of the way in: Glide is
     SMOOTH, so the time ramps over 2.5 ms of control blocks and the glide
