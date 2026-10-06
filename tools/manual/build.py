@@ -150,9 +150,13 @@ def prescan(b: Build) -> None:
                 continue
             d = DIRECTIVE_LINE.match(line)
             if d and d.group(1) == "engine-table":
-                eid = (d.group(2) or "").strip()
+                args = (d.group(2) or "").split()
+                eid = args[0] if args else ""
                 if eid not in known:
-                    b.errors.append(f"{ch.file}: {{{{engine-table {eid}}}}} names no engine in this build")
+                    # {{engine-table ID gpl}}: a GPL module, which a build with the GPL
+                    # switch off (FM1_GPL_MODS=0) leaves out; its section says so.
+                    if "gpl" not in args[1:]:
+                        b.errors.append(f"{ch.file}: {{{{engine-table {eid}}}}} names no engine in this build")
                     continue
                 if heading is None:
                     b.errors.append(f"{ch.file}: {{{{engine-table {eid}}}}} has no heading above it")
@@ -173,6 +177,9 @@ def make_directive(b: Build):
         if name == "engine-table":
             e = next((e for e in b.engines if e.id == (args[0] if args else "")), None)
             if e is None:
+                if "gpl" in args[1:]:
+                    return note("This engine is built only with the firmware's GPL switch on, "
+                                "and this edition was made without it.")
                 return note("This engine is not in this build.")
             return [("html", reference.engine_table(e))]
         if name == "engine-summary":
@@ -612,6 +619,14 @@ def assemble_site(b: Build, site: Path) -> None:
             else:
                 shutil.copy2(item, dest)
         link_simulator_to_manual(b, site / "index.html")
+        # The commit the site is built from: while the simulator's module has
+        # GPL modules in it, its page offers it under the GPL and links the
+        # source at this commit (docs/12 §6, "The GPL switch").
+        source = json.loads((site / "source.json").read_text()) if (site / "source.json").is_file() else {}
+        source.update(about="The source of this page and its module: the repository at the commit "
+                            "the site was built from (tools/manual/build.py).",
+                      repository=b.cfg["repository"], commit=None if b.commit == "unknown" else b.commit)
+        (site / "source.json").write_text(json.dumps(source, indent=2) + "\n")
         print(f"manual: simulator from {sim.relative_to(b.repo)} is the site's front page", file=sys.stderr)
     else:
         font_link = ('<link rel="stylesheet" href="manual/assets/fonts.css">\n'

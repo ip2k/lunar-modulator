@@ -59,6 +59,7 @@ Additions:
 | `!!! note`, `!!! tip`, `!!! caution`, `!!! warning` | The four boxes a product manual uses. Cautions are for hearing and data, warnings for the instrument |
 | `!!! outline "To be written"` | A dashed *Draft* box for a section not written yet. While any is left, the front page and the PDF say *Draft* and count them |
 | `{{engine-table ID}}` | An engine's or effect's knob map, parameter table and list values, from `fm1-render --list` |
+| `{{engine-table ID gpl}}` | The same for a GPL module (CLAUDE.md, "The GPL switch"): a build made with `FM1_GPL_MODS=0` leaves the engine out, and the table becomes a note saying so instead of an error |
 | `{{engine-summary sound}}`, `{{engine-summary audio_fx}}` | One row per engine or effect, linking to its section |
 | `{{engine-others sound}}` | A section for every engine in the build that has no `{{engine-table}}` yet, so a new engine is never missing from the manual |
 | `{{seq-glance}}`, `{{seq-memory}}`, `{{seq-verbs}}` | The sequencer's figures (`fm1_seq.h`), its memory by track count (`fm1-seq --sizes`) and its script verbs (`seq_cmd.c` with `data/seq-verbs.toml`) |

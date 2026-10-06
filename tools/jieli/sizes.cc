@@ -12,7 +12,9 @@
 // instance_size() is sizeof(Instance) for every engine but these:
 //   - Plate, Ensemble, Diffuse round sizeof(Instance) up to 16 (mi_fx.cc);
 //   - Sophie and PSX Verb are AlignUp(sizeof(shim Instance)) +
-//     AlignUp(the module's arena), with AlignUp to kAlign (schwung_shim.cc).
+//     AlignUp(the module's arena), with AlignUp to kAlign (schwung_shim.cc);
+//   - Drawbar, Trio and Phase Bend are AlignUp16(sizeof(Instance)) +
+//     AlignUp16(the bridge's world), from sizes_felucca.c (felucca_shim.cc).
 // analyze.py applies those rules to the constants below.
 //
 // Compile-only: the objects are never linked. MIT licence.
@@ -52,6 +54,21 @@ FM1SZ_TYPE(test_gain, fm1::test_gain::Instance);
 FM1SZ_TYPE(plate, fm1::mi_fx::plate::Instance);
 FM1SZ_TYPE(ensemble, fm1::mi_fx::ensemble::Instance);
 FM1SZ_TYPE(diffuse, fm1::mi_fx::diffuse::Instance);
+#elif defined(SZ_ACID_BASS)       /* a GPL module: compiled only with FM1_GPL_MODS=1 */
+#include "../../engines/src/acid_bass.cc"
+FM1SZ_TYPE(acid_bass, fm1::acid_bass::Instance);
+FM1SZ_TYPE(bass303, bass303_t);
+#elif defined(SZ_COMET_KIT)       /* a GPL module: compiled only with FM1_GPL_MODS=1 */
+#include "../../engines/src/comet_kit.cc"
+FM1SZ_TYPE(comet_kit, fm1::comet_kit::Instance);
+FM1SZ_TYPE(drum909, drum909_t);
+#elif defined(SZ_CRATER)          /* a GPL module: compiled only with FM1_GPL_MODS=1 */
+#include "../../engines/src/crater_kit.cc"
+FM1SZ_TYPE(crater, fm1::crater::Instance);
+FM1SZ_TYPE(drum808, drum808_t);
+#elif defined(SZ_FELUCCA)         /* GPL modules: compiled only with FM1_GPL_MODS=1 */
+#include "../../engines/src/felucca_shim.cc"
+FM1SZ_TYPE(felucca_instance, fm1::felucca::Instance);   /* + the world: sizes_felucca.c */
 #elif defined(SZ_SCHWUNG)
 #include "../../engines/src/schwung_shim.cc"
 #include "../../engines/src/sw_sophie.cc"

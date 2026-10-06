@@ -13,8 +13,43 @@ OPT ?= -O2
 EXTRA ?=
 BUILD := build
 
+# The GPL switch (CLAUDE.md, "The GPL switch"; docs/12 §6). GPL modules, each
+# vendored in its own third_party/<name>/ with its licence and UPSTREAM.md,
+# are built in with FM1_GPL_MODS=1, the default in every build while we test,
+# and left out with FM1_GPL_MODS=0: the MIT/BSD build, the only one a firmware
+# image that links JieLi's libraries may be shared as. One switch for
+# everything that builds through this Makefile: fm1-render, the virtual
+# FM-1's native and WebAssembly builds (sim/web/mk/sim.mk) and the JieLi
+# compile check (tools/jieli/objects.mk).
+#
+# Its value lives in one generated header, $(BUILD)/gen/fm1_gpl_mods.h, which
+# is rewritten only when the value changes: the files that read it (the two
+# registries and their licence table) include it, so -MMD rebuilds exactly
+# them, and the programs that link them, when the switch is turned. A turn
+# waits a second before it rewrites the header, so the header is newer than
+# every object and program built before, also for a make that compares whole
+# seconds (GNU make 3.81, macOS's). A
+# fragment (mk/<name>.mk) adds a GPL module's sources only under
+# `ifeq ($(FM1_GPL_MODS),1)`, its C objects to GPL_OBJ (built under
+# $(BUILD)/gpl/<name>/, which the JieLi report counts as a group of their
+# own), which every program and object list below and in sim.mk and
+# objects.mk links or compiles, and its registry entries and licence row
+# under `#if FM1_GPL_MODS`.
+# tests/test_gpl_switch.py builds the switch off and checks that nothing GPL
+# is left in it.
+FM1_GPL_MODS ?= 1
+ifeq ($(filter 0 1,$(FM1_GPL_MODS)),)
+$(error FM1_GPL_MODS is 0 or 1, not "$(FM1_GPL_MODS)")
+endif
+GPL_GEN := $(BUILD)/gen
+GPL_LINE := \#define FM1_GPL_MODS $(FM1_GPL_MODS)  /* engines/Makefile: the GPL switch */
+$(shell mkdir -p '$(GPL_GEN)' && h='$(GPL_GEN)/fm1_gpl_mods.h' && \
+  { [ "$$(cat "$$h" 2>/dev/null)" = '$(GPL_LINE)' ] || \
+    { if [ -f "$$h" ]; then sleep 1; fi; printf '%s\n' '$(GPL_LINE)' > "$$h"; }; })
+GPL_OBJ :=
+
 COMMON := -std=c++11 -fno-exceptions -fno-rtti -DTEST $(OPT) $(EXTRA) \
-          -Iinclude -isystem third_party/mutable -MMD -MP
+          -Iinclude -I$(GPL_GEN) -isystem third_party/mutable -MMD -MP
 OUR_WARN := -Wall -Wextra -Wno-unused-parameter
 TP_WARN := -w
 # Mutable's fixed-point code (Braids, stmlib) relies on signed arithmetic that
@@ -52,9 +87,10 @@ TP_SRC := \
 OUR_OBJ := $(patsubst %.cc,$(BUILD)/our/%.o,$(OUR_SRC))
 TP_OBJ := $(patsubst %.cc,$(BUILD)/tp/%.o,$(TP_SRC))
 # Everything fm1-render links. Fragments add objects built by rules of their
-# own (Schwung's C modules) to RENDER_EXTRA_OBJ; a variant of the renderer
-# (mk/plaits-heavy.mk) links this list with one object swapped.
-RENDER_OBJ = $(OUR_OBJ) $(TP_OBJ) $(RENDER_EXTRA_OBJ)
+# own (Schwung's C modules) to RENDER_EXTRA_OBJ, and a GPL module's C objects
+# to GPL_OBJ; a variant of the renderer (mk/plaits-heavy.mk) links this list
+# with one object swapped.
+RENDER_OBJ = $(OUR_OBJ) $(TP_OBJ) $(RENDER_EXTRA_OBJ) $(GPL_OBJ)
 
 .PHONY: all clean
 all: $(BUILD)/fm1-render

@@ -27,14 +27,17 @@
 #
 # Environment: FM1_SIM_HOST (required: user@host of a Linux machine with
 # Docker), FM1_REMOTE_DIR (default ~/mvave-fm1/virtual on that host),
-# FM1_SESSION (the session label on the containers). MIT licence, like the
-# rest of this repository.
+# FM1_SESSION (the session label on the containers), FM1_GPL_MODS (the GPL
+# switch, engines/Makefile: 1, the default, builds the GPL modules in; 0 the
+# MIT/BSD build). MIT licence, like the rest of this repository.
 set -euo pipefail
 # macOS tar would add AppleDouble ._* files (provenance attributes) to the
 # staged tree, and a scan of www/ then trips over them.
 export COPYFILE_DISABLE=1
 
 SESSION=${FM1_SESSION:-virtual-fm1}
+GPL_MODS=${FM1_GPL_MODS:-1}
+case "$GPL_MODS" in 0|1) ;; *) echo "FM1_GPL_MODS is 0 or 1, not $GPL_MODS" >&2; exit 2 ;; esac
 EMSDK_IMAGE=emscripten/emsdk:6.0.10
 ALPINE_IMAGE=alpine:3.22
 PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright:v1.63.0-noble
@@ -48,7 +51,7 @@ while [ $# -gt 0 ]; do
     --engines-ref) ENGINES_REF=$2; shift 2 ;;
     --no-screenshot) SCREENSHOT=0; shift ;;
     --readme-screenshots) README_SHOTS=1; shift ;;
-    -h|--help) sed -n '2,31p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
   esac
 done
@@ -93,11 +96,11 @@ echo "$DIGESTS" | tr ';' '\n'
 echo "== static musl reference in $ALPINE_IMAGE"
 ssh "$HOST" "docker run --rm ${LABELS[*]} -v '$STAGE:/src' -w /src $ALPINE_IMAGE \
   sh -c 'apk add -q build-base >/dev/null && \
-         make -C engines BUILD=/src/sim/web/build/musl CC=gcc CXX=g++ EXTRA=-static -j\$(nproc) \
+         make -C engines BUILD=/src/sim/web/build/musl CC=gcc CXX=g++ EXTRA=-static FM1_GPL_MODS=$GPL_MODS -j\$(nproc) \
            /src/sim/web/build/musl/fm1-render >/dev/null; s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
 echo "== build and parity in $EMSDK_IMAGE"
-ssh "$HOST" "docker run --rm ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' \
+ssh "$HOST" "docker run --rm ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' -e FM1_GPL_MODS=$GPL_MODS \
   -v '$STAGE:/src' -w /src $EMSDK_IMAGE \
   sh -c 'bash sim/web/build.sh; s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
@@ -136,5 +139,5 @@ if [ "$README_SHOTS" = 1 ]; then
   rm -rf "$RESULTS/readme-screenshots"
   scp -q -r "$HOST:$STAGE/sim/web/build/readme-screenshots" "$RESULTS/"
 fi
-python3 -c "import json,sys; r=json.load(open(sys.argv[1])); print(sys.argv[1], r['wasm_bytes'], 'bytes; parity', r['parity'])" \
+python3 -c "import json,sys; r=json.load(open(sys.argv[1])); print(sys.argv[1], r['wasm_bytes'], 'bytes; parity', r['parity'], '; GPL switch', r['gpl_mods'], [m['id'] for m in r['licences'] if 'GPL' in m['licence']])" \
   "$DEST/fm1.wasm.json"

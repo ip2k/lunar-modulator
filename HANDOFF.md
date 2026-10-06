@@ -7,8 +7,8 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
-state of `main` after the PRs merged up to #80 (2026-09-29 to 2026-10-06,
-`7acda1c`).
+state of `main` after the PRs merged up to #81 (2026-09-29 to 2026-10-06,
+`1b4152c`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -102,6 +102,8 @@ so it is always written in full.
   written through mask ROM [reported]. Their code maps the board (docs/01
   §3.1, [reported]): audio is ALNK0 (I2S) to an external codec, not the
   internal DAC, and the seven encoders are scanned in the key matrix.
+  Charles Vestal's fm1-x0x (GPL-3.0-only, 2026-10-05) is another open FM-1
+  firmware, with a 303, a 909 and an 808 (`notes/2026-10-06-fm1-x0x.md`).
 - **Tests:** 4,377 collected; 4,366 pass, 2 xfail (both undo, not ported
   yet) and 9 skip where a local reference clone, an unpacked stock package
   or the manual's `markdown` module is missing [verified: `pytest` at
@@ -148,10 +150,10 @@ so it is always written in full.
 | --- | --- | --- |
 | `DEVELOPERS.md` | The technical home: getting started, how the software works, the hardware, where development stands, the roadmap in detail, the path to an installable build (I0–I15), research to do, contributing | its contents list |
 | `docs/01`–`16` | Hardware, stock firmware, update protocol, prior art, feasibility, Movy and Schwung, recovery and risk, roadmap, first-session checklist, the `USB_KEY` dongle, the plugin platform, the sequencer, the Movy port plan, the verification ladder, the sequencer in the simulator (S1–S10, owner decisions O1–O24), modulation (MG0–MG9) | DEVELOPERS.md "Documents" |
-| `notes/` | Bench session 1 and the research log (2026-09-06), the desk review (09-08), FM-1+VA and the PCB photos (09-29), the CHOMPI, monome/O&C and arp/modulation/effects studies (10-01), the delay/reverb/EQ/gates and filters/dynamics options and the JieLi compile check (10-02), the community firmware and current SDK study and the soft-key/eFuse study with its draft test plan (10-05), the UI audit of the FM-1 screen with mockups in `assets/ui-audit/` and the advanced editor's design with the owner's decisions and mockups in `assets/web-editor/` (10-06), `upstream-candidates.md` | |
-| `engines/` | The engine platform: a C API with no heap (v3 since #57), seven sound engines (Drums since #59, FM6 on msfa since #60) and 22 effects (Squash and Transient since #66) plus test entries, the Schwung shim, the desktop renderer `fm1-render`, reference renderers | `engines/README.md` |
+| `notes/` | Bench session 1 and the research log (2026-09-06), the desk review (09-08), FM-1+VA and the PCB photos (09-29), the CHOMPI, monome/O&C and arp/modulation/effects studies (10-01), the delay/reverb/EQ/gates and filters/dynamics options and the JieLi compile check (10-02), the community firmware and current SDK study and the soft-key/eFuse study with its draft test plan (10-05), the UI audit of the FM-1 screen with mockups in `assets/ui-audit/` and the advanced editor's design with the owner's decisions and mockups in `assets/web-editor/`, and the fm1-x0x and Felucca engines study (10-06), `upstream-candidates.md` | |
+| `engines/` | The engine platform: a C API with no heap (v3 since #57), seven sound engines of its own licence (Drums since #59, FM6 on msfa since #60) and, behind the GPL switch, six GPL ones from fm1-x0x and Felucca (Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio, Phase Bend; #81); 22 effects (Squash and Transient since #66) plus test entries, the Schwung shim, the desktop renderer `fm1-render`, reference renderers | `engines/README.md` |
 | `engines/seq/` | `fm1_seq`, the sequencer core (docs/13 M1), and the host bridge that `fm1-render` and the simulator share (#25): about 6,000 lines of C99 | `engines/seq.md` |
-| `engines/mod/`, `engines/midi_fx/` | The modulation runtime: a rack of modules inside a 32-slot matrix, 16 kinds, per-voice since MG9 (MG1–MG3, MG9); `fm1_arp`, the arpeggiator, the first MIDI effect: up to four run in front of each sound, and the ARP button opens it (#69) | `engines/mod/README.md`, docs/16; `engines/midi_fx/README.md` |
+| `engines/mod/`, `engines/midi_fx/` | The modulation runtime: a rack of modules inside a 32-slot matrix, 16 kinds, per-voice since MG9 (MG1–MG3, MG9); `fm1_arp`, the arpeggiator, the first MIDI effect: up to four run in front of each sound, and the ARP button opens it (#69); Acid Gen, fm1-x0x's TB-3PO, a GPL MIDI effect (#81) | `engines/mod/README.md`, docs/16; `engines/midi_fx/README.md` |
 | `sim/web/` | The virtual FM-1: the app layer in WebAssembly behind a to-scale panel, with the firmware's own screen; the built module is committed. Rebuilt and checked in containers on a Docker host (`FM1_SIM_HOST`) | `sim/web/README.md` |
 | `manual/`, `tools/manual/` | The user manual, generated from the code and published with its PDF to Pages | `manual/README.md` |
 | `tools/` | The read-only identity query (`fm1_identify.py`, verified on hardware), the msfa table finder, the `.fwsc` carver, `seq_bench.py`, `movy-oracle/` (Movy's own `seq-core` in containers, `MOVY_ORACLE_HOST`), `jieli/` (the pi32v2 compile check in a container, `FM1_JIELI_HOST`; the link audit and package guard that trap 11 requires; the SDK's sparse-clone list) | `CLAUDE.md` "Commands" |
@@ -261,16 +263,20 @@ so it is always written in full.
   §4. The owner's own install of FM-1+VA does not relax them, and neither
   do reports from other units.
 - **Licences:** MIT, with GPL or LXR code only under `third_party/<name>/`.
-  From the first GPL module it sits behind one switch, `FM1_GPL_MODS`, on by
-  default while testing (the owner, 2026-10-05); there is no GPL code yet.
-  What may be shared while the switch is on is in `CLAUDE.md` → "Project
-  status and licences" and docs/12 §6. The vendored engine code is
-  unmodified: Mutable Instruments, Schwung, Sophie and PSX Verb under MIT,
-  msfa (FM6) under Apache-2.0, and the screen's Spleen faces under BSD
-  2-Clause. Squash and Limiter Round port Airwindows loops (MIT) into our
-  own files; the Airwindows oracle runs only in containers. Felucca and
-  SLOOP give facts and ideas only, except Felucca's Apache-2.0 and MIT
-  files; CHOMPI's copy of DaisySP is never used.
+  Since #81 (2026-10-06) the GPL switch is built: `FM1_GPL_MODS ?= 1` in
+  `engines/Makefile`, on by default in every build while testing (the owner,
+  2026-10-05), and `tests/test_gpl_switch.py` fails if the switch-off build
+  compiles, links or lists anything GPL. Its first modules are fm1-x0x's
+  303, 909, 808 and TB-3PO and Felucca's WHEEL, TRIO and PHASE
+  (GPL-3.0-only). While the switch is on, no firmware image that links
+  JieLi's libraries may be shared, and the public simulator is offered under
+  GPL terms (`CLAUDE.md` → "Project status and licences", docs/12 §6). The
+  rest of the vendored engine code is unmodified: Mutable Instruments,
+  Schwung, Sophie and PSX Verb under MIT, msfa (FM6) under Apache-2.0, and
+  the screen's Spleen faces under BSD 2-Clause. Squash and Limiter Round
+  port Airwindows loops (MIT) into our own files; the Airwindows oracle runs
+  only in containers. Felucca's and SLOOP's other code gives facts and ideas
+  only; CHOMPI's copy of DaisySP is never used.
 - **Docs:** `README.md` is the product page and stays free of technical
   material; `DEVELOPERS.md` holds the rest (#23, CLAUDE.md).
 - **Engines** (docs/11, engines/README.md): Mutable Instruments code first,
@@ -305,7 +311,8 @@ so it is always written in full.
   - permissions: vendor Felucca's `fm6_core.c` as a test oracle;
     disassemble JieLi's libraries on the build host; draft messages to
     kurogedelic and Keitark (the owner sends them); more drum and sound
-    engines, especially 808-style (Drums, #59, and FM6, #60, have landed);
+    engines, especially 808-style (Drums, #59, FM6, #60, and the GPL engines,
+    #81, have landed);
   - effects and modulation: four ordered master slots, shared sends, a
     per-voice filter, side-chain keys, new dynamics, RTRG, per-sound PITCH
     and note sources, the rack's Filter kind renamed Resonator, over-budget
@@ -388,8 +395,9 @@ Legato voice modes (#72), the manual's diagrams (#73) and the screen on the
 UI audit's colour map with Spleen faces (#75) and its polish (#78), and the
 first dead-code audit (#74), the arpeggiator's follow-ups (#76), the
 advanced editor's design (#77) and the engines' follow-ups (glide modes,
-Drums' choke and Kit Decay, #79) and memory shown as a share of the FM-1's
-budget (#80) (10-01 to 10-06). The CHANGELOG has the detail.
+Drums' choke and Kit Decay, #79) memory shown as a share of the FM-1's
+budget (#80), and the GPL switch with fm1-x0x's 303, 909 and 808 and three
+Felucca engines (#81) (10-01 to 10-06). The CHANGELOG has the detail.
 
 Now, roughly in order:
 
@@ -416,9 +424,10 @@ Now, roughly in order:
    because they share `fm1_app.c`: MG9 (per-voice modulation) and the MG3
    follow-ups (done, #68); the master chain; the side-chain; S9 and S10
    (docs/15 §5); the arp and MIDI effects (the arpeggiator landed in #69).
-   Then the GPL switch with the first GPL modules (Grids and Branches
-   originals, docs/12 §6); later a subtractive engine, Rings/Elements and
-   more reverbs.
+   The GPL switch is built, with fm1-x0x's and Felucca's engines as its
+   first modules (#81); the Grids and Branches originals are still to come
+   (docs/12 §6); later a subtractive engine, Rings/Elements and more
+   reverbs.
 6. **Sequencer leftovers:** undo and the command ring wait for M4 (the 2
    xfails); stages C and D run on the FM-1 after the dump and restore.
 7. **The owner's calls, all unsent:** the 2026-09-29 email to Baud Girl and
@@ -457,7 +466,8 @@ the docs cite; where an upstream has moved since, its head is noted.
 | `kagaimiq/jl-uboot-tool` | `adb3f18` 2025-03-16 | UBOOT dumper/flasher, `wl82loader.bin` |
 | `kagaimiq/jl-misctools` | `0a5b12d` 2025-02-20 | `fwunpack_newfw.py` |
 | Gitee `Jieli-Tech/fw-AC79_AIoT_SDK` | `e30b1ee` 2026-06-09 (= V1.2.13 + README) is the pin for the libraries since #56; tag V1.1.9 `8eae664` holds the FM-1's SPL; branch `AC791N_OTA_loader` `79eda0c` | vendor SDK. Gitee's SSL is flaky: pin by commit, clone blobless and sparse with `tools/jieli/ac79-sdk-sparse.txt`. The GitHub mirrors are stale (`amitv87` to 2024-07, `jeffreywugz` V1.0.3): do not cite them |
-| `hugelton/Felucca` | `727f272` 2026-10-05 (v1.0; head `20c275e`, v1.0.1) | bare-metal FM-1 firmware; pin map, update-service design (GPL-3.0-only except its Apache-2.0 `fm6_core.c` and MIT files) |
+| `hugelton/Felucca` | `727f272` 2026-10-05 (v1.0); `b0dcd53` 2026-10-06 for the vendored engines | bare-metal FM-1 firmware; pin map, update-service design (GPL-3.0-only except its Apache-2.0 `fm6_core.c` and MIT files: facts only, but WHEEL, TRIO and PHASE are vendored behind the GPL switch in `engines/third_party/felucca/`) |
+| `charlesvestal/fm1-x0x` | `80b7d40` 2026-10-05 | open FM-1 firmware with a 303, 909 and 808 and TB-3PO; those four vendored behind the GPL switch in `engines/third_party/fm1-x0x/` (GPL-3.0-only; `notes/2026-10-06-fm1-x0x.md`) |
 | `isod89/sloop-fm1` | `f2b44c2` 2026-10-04 (v2.2) | Felucca fork; boot guard, loader checks (GPL-3.0-only: facts only) |
 | `Keitark/fm1-nes` | `870f305` 2026-10-03 | SDK app on an FM-1; board support, sparse mask-ROM planner (Apache-2.0 root) |
 | `kurogedelic/FM-1-transporter` | `a632d92` 2026-10-01 | RP2040 `USB_KEY` + USB host recovery tool (MIT); read through the API; never run against the owner's unit (trap 9) |

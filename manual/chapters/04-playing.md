@@ -348,6 +348,47 @@ The arpeggiator takes memory only while it is on. When the sounds and
 effects leave too little, [[ARP]] says *does not fit* and what the chain would
 need with it, such as *needs 101% of RAM*.
 
+### Acid Gen
+
+{{status sim desktop planned}}
+
+Acid Gen writes acid basslines: it is TB-3PO, the line generator of
+fm1-x0x, Charles Vestal's firmware for the FM-1, after the TB_3PO applet of
+the Phazerville Hemisphere Suite ([chapter 14](14-credits-and-licences.md)).
+It takes the arpeggiator's place: on the ARP pages, turn [[ALGORITHM]] past
+the stock modes to *Acid Gen*; turning back to a mode brings the
+arpeggiator back. [[ARP]] then switches Acid Gen on and off, and holding it
+latches, as for the arpeggiator. It is made for
+[Acid Bass](05-sound-engines.md#acid-bass) and plays any sound.
+
+!!! note "In builds with the GPL switch on"
+    Acid Gen's code is published under the GNU General Public License, so
+    it is there only while the firmware's GPL switch is on: in the simulator
+    while we test ([chapter 14](14-credits-and-licences.md#licences)).
+
+- **Hold a key** and a line plays, sixteenths in A minor to begin with,
+  starting from the key you hold: hold another key and the line moves
+  there. Let go and it stops, unless Latch is on.
+- Each line comes from a **seed**: the same Seed and settings always play
+  the same line, so a song keeps it. Turn **Seed** for a new one.
+  **Mutations** changes about a quarter of the steps, once for each step
+  of the knob; **Mut Every** does that by itself every so many passes.
+- **Density** sets how many steps play, **Accent** how many are accented,
+  **Slide** how many slide into the next note.
+- Accented notes are played at velocity 118, the others at 72, and a slide
+  holds its note into the next one, so Acid Bass accents and slides them.
+
+| Page | [[KNOB1]] | [[KNOB2]] | [[KNOB3]] | [[KNOB4]] |
+| --- | --- | --- | --- | --- |
+| 1 LINE | Density | Accent | Slide | Octaves: how far the notes spread, 1 to 3 |
+| 2 KEY | Root: the key, or Project to follow the project's | Scale: Minor, Phrygian, Harm Minor, Min Pent, Dorian or Major, or Project | Octave: where the root sits | Keys: Transpose (hold a key to play) or Run (play while the sequencer plays) |
+| 3 PLAY | Rate: 1/16, 1/16T, 1/32 or 1/8T | Length: 1 to 32 steps | Direction: Forward, Reverse, Ping-Pong or Random | Latch |
+| 4 SEED | Seed | Mutations | Mut Every: passes between automatic mutations, or 0 | |
+
+With Keys at **Run**, the line plays from its first step when the sequencer
+starts and stops with it; a key you hold, or a note the sequencer plays on
+this sound, moves it to that note while it sounds.
+
 ### In the desktop tools
 
 `--mfx K:arp` puts the arpeggiator in front of sound *K* (0 is `--engine`),
@@ -355,3 +396,6 @@ and `--mfx-param K:NAME=VALUE` sets a value; a list's value is its position,
 from 0. `--mfx-on-at K:T:0` switches it off at time *T*, and `:1` on;
 `--mfx-param-at K:T:NAME=VALUE` changes a value then. `--log-mfx FILE`
 writes every note it plays ([chapter 2](02-getting-started.md#the-desktop-tools)).
+`--mfx K:acid-gen` puts Acid Gen there instead, and `--key ROOT:SCALE` sets
+the project key it follows (*ROOT* 0 for C to 11 for B, *SCALE* 0 major or
+1 minor).
