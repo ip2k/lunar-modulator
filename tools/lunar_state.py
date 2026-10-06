@@ -1702,6 +1702,8 @@ def _typed(line):
             return bytes([0x0B] + [u8(x) for x in t[1:]])
         if k in ("dq", "se") and len(t) == 2 and u8(t[1]) is not None:
             return bytes([0x10 if k == "dq" else 0x11, u8(t[1])])
+        if k == "key" and len(t) == 3 and None not in (u8(t[1]), u8(t[2])):
+            return bytes([0x13, u8(t[1]), u8(t[2])])
         if k == "sn" and len(t) == 3 and u8(t[1]) is not None:
             name = t[2].encode("utf-8")
             if not 1 <= len(name) <= 255:
@@ -1799,6 +1801,9 @@ def _item_text(b, i):
         return "rt %d %d %d" % (u8(), u8(), u8()), i
     if tag in (0x10, 0x11):
         return ("dq " if tag == 0x10 else "se ") + str(u8()), i
+    if tag == 0x13:
+        root = u8()
+        return "key %d %d" % (root, u8()), i
     if tag == 0x12:
         scene, n = u8(), u8()
         s = b[i:i + n]
@@ -2537,6 +2542,28 @@ def read_any(data, names):
     return read_json(data, names)
 
 
+SCALE_IDS = ["major", "minor", "chromatic", "dorian", "phrygian", "lydian", "mixolydian", "locrian"]
+
+
+def key_problems(doc):
+    """The project key has one home, the set's `key` line (stage A1; C major
+    when the set has none): a project's session.key is written from it, and
+    a load never applies it, so one that disagrees is a problem."""
+    key = (doc.get("session") or {}).get("key")
+    if doc.get("kind") != "project" or key is None or not doc.get("set"):
+        return []
+    root, scale = 0, 0
+    for line in doc["set"]:
+        w = line.split()
+        if len(w) == 3 and w[0] == "key" and w[1].isdigit() and w[2].isdigit():
+            root, scale = int(w[1]), int(w[2])
+    want = {"root": ROOTS[root % 12], "scale": SCALE_IDS[scale] if scale < len(SCALE_IDS) else str(scale)}
+    if key == want:
+        return []
+    return [f"session.key is {key['root']} {key['scale']} but the set's key is {want['root']} {want['scale']} "
+            "(the set's `key` line is the project key; session.key is written from it)"]
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("command", choices=["check", "canon", "pack", "unpack", "records", "url"])
@@ -2573,6 +2600,7 @@ def main(argv=None):
                 problems.append(f"uses {rep.name}, which this build does not have{why}")
             if rep.skipped:
                 problems.append(f"{rep.skipped} skipped: {rep.first_skip}")
+            problems += key_problems(doc)
             print(json.dumps({"kind": doc["kind"], "schema": "unchecked" if errors is None else
                               ("ok" if not errors else "errors"), "problems": problems}))
             return 1 if problems else 0
