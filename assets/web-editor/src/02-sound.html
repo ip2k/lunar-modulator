@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced editor: a sound</title>
+<link rel="stylesheet" href="editor.css">
+<style>
+  .picker { text-transform: none; letter-spacing: 0; font-family: var(--ui); display: inline-flex; align-items: center; gap: 8px; height: 26px; padding: 0 9px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-hi); font-weight: 700; font-size: 13px; }
+  .picker::after { content: "\25be"; color: var(--label); font-size: 10px; }
+  .tabscreen { display: none; }
+  .tabscreen img { width: 112px; height: 112px; image-rendering: pixelated; border-radius: 4px; flex: none; }
+  @media (max-width: 1180px) { .tabscreen { display: flex; gap: 12px; align-items: center; } }
+</style>
+</head>
+<body data-layout="editor" data-page="sound" data-sound="2" data-screen="screen-home-s2.png"
+      data-screen-alt="The FM-1 screen: HOME, Sound 2, Macro on Wavetable, Harmonics 0.62, Timbre 0.45, Morph 0.50, RAM 78 %"
+      data-screen-cap="HOME · S2 · page 1/4: the page that holds the parameter selected here"
+      data-status="last change: <span class='src'>editor</span>, S2 Engine Morph 0.46 → 0.50">
+<main class="main">
+  <div class="head">
+    <span class="tag s2 big">S2</span><span class="title">Sound 2</span>
+    <span class="meta">Macro on <b>Wavetable</b> · <b>96.3 KB</b> · 2 cables in · <span class="ctx">changed since loaded</span></span>
+    <div class="tools"><span class="btn">Snapshot A</span><span class="btn">Load into S2…</span><span class="btn">Export sound…</span></div>
+  </div>
+  <div class="tabscreen panel">
+    <img src="img/screen-home-s2.png" alt="The FM-1 screen: HOME, Sound 2, page 1 of 4">
+    <div class="stack"><b>On the FM-1</b><span class="small">HOME · S2 · page 1/4, following the editor. At this width the panel folds to its screen.</span><span class="toggle on"><span class="sw"></span>Follow the editor</span></div>
+  </div>
+  <nav class="path s2" aria-label="Sound 2's signal path">
+    <span class="node"><span class="led"></span>Arp <span class="r">Up · 1/16</span></span><span class="arrow">→</span>
+    <span class="node cur">Macro <span class="r">Wavetable</span></span><span class="arrow">→</span>
+    <span class="node">In1 Echo <span class="r">300 ms</span></span><span class="arrow">→</span>
+    <span class="node off">In2 empty</span><span class="arrow">→</span>
+    <span class="node">Level <span class="lvb"><i style="width:70%"></i></span><span class="r">70 %</span></span><span class="arrow">→</span>
+    <span class="node">Mix</span><span class="arrow">→</span><span class="node">M1 Master Sat, M2 Limiter</span>
+  </nav>
+
+  <div class="cols three">
+    <section class="panel" aria-label="Engine">
+      <h3>Engine <span class="picker">Macro</span><span class="aside">31.4 KB · 12 voices</span></h3>
+      <div class="credit">Engines from Mutable Instruments Plaits by Emilie Gillet (MIT)</div>
+      <div class="sub-h first"><span class="t">Page 1</span><span class="n">ALGORITHM, KNOB2–4</span></div>
+      <div data-e="macro" data-p="Model" data-v="Wavetable"></div>
+      <div data-e="macro" data-p="Harmonics" data-v="0.62"></div>
+      <div data-e="macro" data-p="Timbre" data-v="0.45" data-pill="1" data-mod="0.25,0.65" data-live="0.58"></div>
+      <div class="sel" data-e="macro" data-p="Morph" data-v="0.50" data-pill="v1" data-mod="0.5,1" data-voices="0.92,0.71,0.55"></div>
+      <div class="sub-h"><span class="t">Page 2</span><span class="n">KNOB1–3</span></div>
+      <div data-e="macro" data-p="Decay" data-v="0.40"></div>
+      <div data-e="macro" data-p="Colour" data-v="0.55"></div>
+      <div data-e="macro" data-p="Volume" data-v="0.70"></div>
+      <div class="sub-h"><span class="t">Page 3</span><span class="n">KNOB1–4</span></div>
+      <div data-e="macro" data-p="Env Pitch" data-v="0"></div>
+      <div data-e="macro" data-p="Env Timbre" data-v="0"></div>
+      <div data-e="macro" data-p="Env Morph" data-v="-0.30"></div>
+      <div data-e="macro" data-p="LPG" data-v="Gate"></div>
+      <div class="sub-h"><span class="t">Page 4</span><span class="n">KNOB1–2</span></div>
+      <div data-e="macro" data-p="Glide" data-v="1"></div>
+      <div data-e="macro" data-p="Voice Mode" data-v="Poly"></div>
+      <div class="sub-h"><span class="t">Cables in</span><span class="n">2 of 32 slots</span></div>
+      <div class="stack">
+        <div class="cablein"><span class="a"><span class="s">LFO2</span> → Timbre</span><span class="amt">+20 %</span><span class="n">slot 4 · via S2VEL · global</span></div>
+        <div class="cablein"><span class="a"><span class="s">ENV3</span> → Morph</span><span class="amt">+60 %</span><span class="n">slot 5 · per voice · now C3 0.92 · E3 0.71 · G3 0.55</span></div>
+        <span class="btn small" style="align-self:flex-start">+ Add a cable into Sound 2</span>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Inserts">
+      <h3>Inserts <span class="aside">in order, In1 then In2</span></h3>
+      <div class="sub-h first"><span class="t">In1</span><span class="picker">Echo</span><span class="n">64.2 KB</span></div>
+      <div class="credit">This repository (MIT). Ping-pong topology after Zoelzer's DAFX</div>
+      <div class="sub-h"><span class="t">Page 1</span><span class="n">KNOB1–4</span></div>
+      <div data-e="echo" data-p="Time" data-v="300"></div>
+      <div data-e="echo" data-p="Feedback" data-v="0.40"></div>
+      <div data-e="echo" data-p="Ping-pong" data-v="1"></div>
+      <div data-e="echo" data-p="Mix" data-v="0.35"></div>
+      <div class="sub-h"><span class="t">Page 2</span><span class="n">KNOB1–3</span></div>
+      <div data-e="echo" data-p="Tone" data-v="0.60"></div>
+      <div data-e="echo" data-p="Wow" data-v="0.10"></div>
+      <div data-e="echo" data-p="Level" data-v="1"></div>
+      <div class="sub-h"><span class="t">In2</span><span class="small">empty</span><span class="n">85.2 KB free</span></div>
+      <div class="pick" role="listbox" aria-label="Effect for In2">
+        <div class="q">⌕ <span>type to filter · 22 effects</span></div>
+        <div class="opt cur"><span class="nm">Filter</span><span class="g">filter, tone</span><span class="r">under 1 KB</span></div>
+        <div class="opt"><span class="nm">Comp</span><span class="g">dynamics</span><span class="r">under 1 KB</span></div>
+        <div class="opt"><span class="nm">Drive</span><span class="g">drive, colour</span><span class="r">under 1 KB</span></div>
+        <div class="opt"><span class="nm">Room</span><span class="g">space</span><span class="r">+40.2 KB</span></div>
+        <div class="opt"><span class="nm">Hall</span><span class="g">space</span><span class="r">+48.7 KB</span></div>
+        <div class="opt"><span class="nm">Plate</span><span class="g">space</span><span class="r">+64.2 KB</span></div>
+        <div class="opt refused"><span class="nm">PSX Verb</span><span class="g">space</span><span class="r over">46.0 KB over</span></div>
+        <div class="why ref" style="padding:3px 8px 0">Refused before anything changes: PSX Verb needs 131.3 KB and 85.2 KB is free.</div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="MIDI effect: the arpeggiator">
+      <h3>MIDI effect <span class="what">Arp</span><span class="aside"><span class="toggle on"><span class="sw"></span>On</span></span></h3>
+      <div class="credit">After Yarns, MCL and Super Arp; the code is our own · 0.7 KB · every change reaches the next note</div>
+      <div class="sub-h first"><span class="t">Play</span><span class="n">page 1</span></div>
+      <div data-e="arp" data-p="Mode" data-v="Up"></div>
+      <div data-e="arp" data-p="Rate" data-v="1/16"></div>
+      <div data-e="arp" data-p="Gate" data-v="50"></div>
+      <div data-e="arp" data-p="Octaves" data-v="1"></div>
+      <div class="sub-h"><span class="t">Rhythm</span><span class="n">page 2</span></div>
+      <div data-e="arp" data-p="Pattern" data-v="All"></div>
+      <div data-e="arp" data-p="Fill" data-v="0"></div>
+      <div data-e="arp" data-p="Rotate" data-v="0"></div>
+      <div data-e="arp" data-p="Length" data-v="0"></div>
+      <div class="sub-h"><span class="t">Chance</span><span class="n">page 3</span></div>
+      <div data-e="arp" data-p="Chance" data-v="100"></div>
+      <div data-e="arp" data-p="Ratchet" data-v="1"></div>
+      <div data-e="arp" data-p="Vel Spread" data-v="0"></div>
+      <div data-e="arp" data-p="Loop" data-v="0"></div>
+      <div class="summary"><span class="t">FEEL</span><span class="vals"><span><i>Oct Mode</i> Span</span> · <span><i>Velocity</i> 0</span> · <span><i>Swing</i> 50 %</span> · <span><i>Join</i> Now</span></span><span class="x">▸</span></div>
+      <div class="summary"><span class="t">MORE</span><span class="vals"><span><i>Order</i> Pitch</span> · <span><i>Repeat</i> 1</span> · <span><i>Chord %</i> 0 %</span> · <span><i>Oct Jump</i> 0 %</span></span><span class="x">▸</span></div>
+      <div class="summary"><span class="t">KEYS</span><span class="vals"><span><i>Latch</i> Off</span> · <span><i>Sync</i> Key</span> · <span><i>Ratchet %</i> 100 %</span> · <span><i>Gate Sprd</i> 0</span></span><span class="x">▸</span></div>
+      <div class="summary"><span class="t">SEED</span><span class="vals"><span><i>Seed</i> 0</span></span><span class="x">▸</span></div>
+    </section>
+  </div>
+
+  <div class="detail" role="status">
+    <span class="crumb">S2 › Engine › Morph</span><b>0.50</b><span>0.00–1.00 · default 0.50</span><span>takes modulation · per voice · smooth · uid 4</span>
+    <span class="keys"><span><kbd>←</kbd> <kbd>→</kbd> one detent</span><span><kbd>⇧</kbd> ten</span><span><kbd>Enter</kbd> type</span><span><kbd>D</kbd> default</span><span><kbd>C</kbd> cable in</span></span>
+  </div>
+</main>
+<script src="meta.js"></script>
+<script src="shell.js"></script>
+<script src="editor.js"></script>
+</body>
+</html>
