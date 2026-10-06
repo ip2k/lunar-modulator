@@ -1,7 +1,8 @@
-// readme-screenshots.mjs -- the pictures for the README: the page and its
-// front panel, the firmware's screen for every sound engine, an effect page,
-// a parameter page with turned knobs, the phone layout, and a figure of the
-// parity result. Runs in the Playwright container on the build host after
+// readme-screenshots.mjs -- the pictures for the README and the manual: the
+// page and its front panel, the firmware's screen for every sound engine, an
+// effect page, a parameter page with turned knobs, the sequencer's Track view,
+// the modulation matrix, the phone layout, and a figure of the parity result.
+// Runs in the Playwright container on the build host after
 // screenshot.mjs (build-on-aeon.sh --readme-screenshots), never on the Mac:
 //
 //   node readme-screenshots.mjs WWW_DIR OUT_DIR PARITY_DIR
@@ -93,6 +94,46 @@ async function press(page, button) {
 
 // C4, E4, G4 on the computer keyboard (F3 is A).
 const CHORD = ['KeyG', 'KeyJ', 'KeyL'];
+// C4, D#4, G4: C minor, the demo pattern's key.
+const MINOR = ['KeyG', 'KeyU', 'KeyL'];
+
+// The firmware's own buttons and encoders (fm1_panel.h), as the panel sends
+// them: a gesture that holds one button while an encoder turns.
+const BTN = { FX: 2, LFO: 5, EDIT: 6, HOME: 8, SEQ: 11, PLAY: 12, REC: 13 };
+const ENC_KNOB3 = 5;
+const post = (page, msg) => page.evaluate((m) => window.fm1.node.port.postMessage(m), msg);
+async function tap(page, button) {
+  await post(page, { type: 'button', button, down: true });
+  await wait(page, 60);
+  await post(page, { type: 'button', button, down: false });
+}
+// Hold LFO and turn KNOB3 `clicks` detents: a cable from LFO1 to the page's
+// third parameter at `clicks` %, as chapter 8's gesture makes it.
+async function lfoCable(page, clicks) {
+  await post(page, { type: 'button', button: BTN.LFO, down: true });
+  await wait(page, 60);
+  for (let i = 0; i < clicks; ++i) await post(page, { type: 'encoder', encoder: ENC_KNOB3, delta: 1 });
+  await wait(page, 60);
+  await post(page, { type: 'button', button: BTN.LFO, down: false });
+}
+// REC's light over `ms`: a picture must not catch it blinking for notes that
+// Capture holds (chapter 7), which would read as a fault.
+async function recLit(page, ms) {
+  const seen = [];
+  for (let t = 0; t <= ms; t += 150) {
+    seen.push(await page.evaluate((b) => document.querySelector(`[data-button="${b}"]`).classList.contains('lit'),
+      BTN.REC));
+    await wait(page, 150);
+  }
+  return seen.some(Boolean);
+}
+// Starting or stopping the transport empties Capture, so held notes no longer
+// wait to be kept.
+async function emptyCapture(page, keepPlaying) {
+  await tap(page, BTN.PLAY);
+  await wait(page, 120);
+  if (!keepPlaying) await tap(page, BTN.PLAY);
+}
 
 // ---- the parity figure ------------------------------------------------------
 function readWav(path) {
@@ -219,22 +260,12 @@ async function parityFigure(scenario, rate) {
 }
 
 try {
-  // ---- desktop: the panel, the engines, an effect page, a parameter page ----
+  // ---- desktop: the engines, an effect page, a parameter page --------------
   const page = await browser.newPage({ viewport: { width: 1440, height: 1300 } });
   page.on('console', (m) => report.logs.push(`${m.type()}: ${m.text()}`));
   page.on('pageerror', (e) => report.logs.push(`pageerror: ${e.message}`));
   await powerOn(page);
-
-  // Macro on VA Pair with Plate after it, a chord held.
-  await setParam(page, 0, 0, 4);
-  await choose(page, '#sel-fx1', 'plate');
-  await wait(page, 300);
-  await hold(page, CHORD);
-  await wait(page, 450);
-  const bottom = await page.evaluate(() => document.querySelector('.device-wrap').getBoundingClientRect().bottom);
-  await page.screenshot({ path: join(out, 'virtual-fm1.png'), clip: { x: 0, y: 0, width: 1440, height: Math.ceil(bottom) + 16 } });
-  report.shots.push('virtual-fm1.png');
-  await release(page, CHORD);
+  report.rec_lit = {};
 
   // Every sound engine's home page while it sounds.
   const engines = [
@@ -281,6 +312,9 @@ try {
   await wait(page, 1200);
   await hold(page, CHORD);
   await wait(page, 350);
+  await emptyCapture(page, false);                        // REC stays dark
+  await wait(page, 900);
+  report.rec_lit.panel_params = await recLit(page, 600);
   await screen2x(page, 'screen-params.png');
   // The screen with KNOB1-4 and the buttons beside it, as on the panel.
   const clip = await page.evaluate(() => {
@@ -293,23 +327,67 @@ try {
   report.shots.push('panel-params.png');
   await release(page, CHORD);
   report.values = await page.evaluate(() => window.fm1.state);
-
   await page.close();
+
+  // ---- desktop: the page, the sequencer, modulation ---------------------------
+  // The README's picture: Macro on VA Pair through Plate, LFO1 cabled to
+  // Timbre (the page marks it), a C minor chord held while the demo pattern
+  // plays. The chord goes down first and PLAY/STOP after it, so Capture holds
+  // nothing and REC stays dark.
+  const hero = await browser.newPage({ viewport: { width: 1440, height: 1300 } });
+  hero.on('console', (m) => report.logs.push(`${m.type()}: ${m.text()}`));
+  hero.on('pageerror', (e) => report.logs.push(`pageerror: ${e.message}`));
+  await powerOn(hero);
+  await setParam(hero, 0, 0, 4);
+  await choose(hero, '#sel-fx1', 'plate');
+  await lfoCable(hero, 40);
+  await wait(hero, 1300);                                 // the cable's popup goes
+  await hold(hero, MINOR);
+  await wait(hero, 150);
+  await emptyCapture(hero, true);
+  await wait(hero, 600);
+  report.rec_lit.hero = await recLit(hero, 900);
+  const bottom = await hero.evaluate(() => document.querySelector('.device-wrap').getBoundingClientRect().bottom);
+  await hero.screenshot({ path: join(out, 'virtual-fm1.png'), clip: { x: 0, y: 0, width: 1440, height: Math.ceil(bottom) + 16 } });
+  report.shots.push('virtual-fm1.png');
+  await release(hero, MINOR);
+  await wait(hero, 200);
+
+  // SEQ mode's Track view while the demo pattern plays.
+  await tap(hero, BTN.SEQ);
+  await wait(hero, 1700);
+  await screen2x(hero, 'screen-seq.png');
+  await tap(hero, BTN.HOME);
+  await tap(hero, BTN.PLAY);
+  await wait(hero, 300);
+
+  // The matrix: the default rack's two cables and LFO1's.
+  await tap(hero, BTN.EDIT);
+  await wait(hero, 2400);                                 // past the hint line's two seconds
+  await screen2x(hero, 'screen-matrix.png');
+  await tap(hero, BTN.EDIT);
+  await hero.close();
+
   report.parity = await parityFigure('sixop-epiano', 44118);
 
   // ---- a phone ----------------------------------------------------------------
+  // The README's picture's state, at a phone's width.
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   phone.on('pageerror', (e) => report.logs.push(`phone pageerror: ${e.message}`));
   await powerOn(phone);
-  await phone.evaluate(() => window.fm1.node.port.postMessage({ type: 'param', unit: 0, index: 0, value: 4 }));
-  await wait(phone, 1200);
-  await hold(phone, CHORD);
-  await wait(phone, 400);
+  await setParam(phone, 0, 0, 4);
+  await lfoCable(phone, 40);
+  await wait(phone, 1300);
+  await hold(phone, MINOR);
+  await wait(phone, 150);
+  await emptyCapture(phone, true);
+  await wait(phone, 600);
+  report.rec_lit.phone = await recLit(phone, 900);
   // The first screenful, down to the hint under the panel.
   const hint = await phone.evaluate(() => document.querySelector('.narrow-hint').getBoundingClientRect().bottom);
   await phone.screenshot({ path: join(out, 'phone.png'), clip: { x: 0, y: 0, width: 390, height: Math.min(844, Math.ceil(hint) + 16) } });
   report.shots.push('phone.png');
-  await release(phone, CHORD);
+  await release(phone, MINOR);
   report.phone_scroll_width = await phone.evaluate(() => document.documentElement.scrollWidth);
   await phone.close();
 } catch (err) {
@@ -319,8 +397,10 @@ try {
   server.close();
 }
 
-report.pass = !report.error && report.shots.length === 11 && report.parity && report.parity.faults.length === 0 &&
-  report.phone_scroll_width <= 390 && !report.logs.some((l) => l.startsWith('error') || l.includes('pageerror'));
+report.pass = !report.error && report.shots.length === 13 && report.parity && report.parity.faults.length === 0 &&
+  report.phone_scroll_width <= 390 && !Object.values(report.rec_lit || {}).some(Boolean) &&
+  !report.logs.some((l) => l.startsWith('error') || l.includes('pageerror'));
 writeFileSync(join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n');
-console.log(JSON.stringify({ pass: report.pass, shots: report.shots, parity: report.parity, error: report.error }));
+console.log(JSON.stringify({ pass: report.pass, shots: report.shots, rec_lit: report.rec_lit, parity: report.parity,
+  error: report.error }));
 process.exit(report.pass ? 0 : 1);
