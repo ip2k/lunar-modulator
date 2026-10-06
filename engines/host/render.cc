@@ -123,6 +123,16 @@
 // without a sequencer; the key input is NULL (the effect's own input) until
 // the side-chain stage.
 //
+// Saved state (engines/state/, stage E3): --load [sK:|tT.S:]FILE reads a
+// project, sound (into sound unit K), effects chain (the --fx chain), mod
+// rack, set, clip (into track T, slot S) or settings file, JSON or binary,
+// in two passes: an engine or kind this build lacks refuses it (UNKNOWN)
+// unless --without leaves it out, and instances past the FM-1's budget at
+// 44,118 Hz always do (RAM). What it gives comes before the command line's
+// own flags, which adjust it. --save KIND:FILE (project, sound[1-4], fx,
+// mods, set, clip:T.S; FILE.lunarb for binary) writes the state the render
+// starts from (host/render_state.h).
+//
 // MIT licence.
 
 #include "fm1_dx7.h"
@@ -134,8 +144,11 @@
 #include "fm1_mod_host.h"
 #include "fm1_seq.h"
 #include "fm1_seq_host.h"
+#include "fm1_state_mod.h"
 #include "mod_script.h"
+#include "render_state.h"
 #include "seq_script.h"
+#include "state_clip.h"
 
 #include <algorithm>
 #include <chrono>
@@ -223,6 +236,7 @@ void Usage() {
       "                  [--mfx K:ID[:off] [--mfx-param K:NAME=VALUE]...]\n"
       "                  [--mfx-param-at K[.J]:T:NAME=VALUE]... [--mfx-on-at K[.J]:T:0|1]...\n"
       "                  [--log-mfx FILE.jsonl]\n"
+      "                  [--load [sK:|tT.S:]FILE]... [--without] [--save KIND:FILE]...\n"
       "       fm1-render --list-mod\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
@@ -800,6 +814,11 @@ int main(int argc, char **argv) {
   std::vector<int> mfx_start_on[kSounds];   // --mfx K:ID:off starts it bypassed
   std::vector<MfxControl> mfx_controls;
   const char *mfx_log_path = NULL;
+  // Saved state (--load, --save): what files give, read once the flags are.
+  std::vector<std::string> load_specs, save_specs;
+  bool without = false, level_given[kSounds] = { false, false, false, false };
+  render_state::Loaded loaded;
+  std::string loaded_engine;
 
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
@@ -807,10 +826,13 @@ int main(int argc, char **argv) {
     if (a == "--list") { List(); return 0; }
     if (a == "--list-mod") { ListMod(); return 0; }
     if (a == "--compat") { compat = true; continue; }
+    if (a == "--without") { without = true; continue; }
     if (a == "--slots") { slots = true; continue; }
     if (!next) { Usage(); return 2; }
     ++i;
     if (a == "--engine") engine_id = next;
+    else if (a == "--load") load_specs.push_back(next);
+    else if (a == "--save") save_specs.push_back(next);
     else if (a == "--out") out_path = next;
     else if (a == "--input") input = next;
     else if (a == "--seconds") { seconds = atof(next); seconds_given = true; }
@@ -922,6 +944,7 @@ int main(int argc, char **argv) {
         const float v = static_cast<float>(atof(rest));
         if (!(v >= 0.0f && v <= 100.0f)) { fprintf(stderr, "--level wants 0..100\n"); return 2; }
         level[k] = v;
+        level_given[k] = true;
       } else if (a == "--sound-note") {
         double t, dur; int key, vel;
         if (sscanf(rest, "%lf:%d:%d:%lf", &t, &key, &vel, &dur) != 4) { Usage(); return 2; }
@@ -1020,6 +1043,57 @@ int main(int argc, char **argv) {
                                        one[0].second, false });
     } else { Usage(); return 2; }
   }
+  // --load: each file in order, then into the units, before their own flags.
+  for (size_t i = 0; i < load_specs.size(); ++i) {
+    std::string err;
+    if (!render_state::Load(load_specs[i], without, &loaded, &err)) {
+      fprintf(stderr, "%s\n", err.c_str());
+      return 1;
+    }
+  }
+  if (!load_specs.empty()) {
+    auto prepend = [](Unit *u, const render_state::Params &p) {
+      u->params.insert(u->params.begin(), p.begin(), p.end());
+    };
+    for (int k = 0; k < kSounds; ++k) {
+      const render_state::UnitIn &u = loaded.sound[k];
+      if (!loaded.has_sound[k] || u.id.empty()) continue;
+      if (k == 0) {
+        if (!engine_id) { loaded_engine = u.id; engine_id = loaded_engine.c_str(); }
+        if (u.id == engine_id) prepend(&sound, u.params);
+      } else {
+        if (more_ids[k].empty()) more_ids[k] = u.id;
+        if (more_ids[k] == u.id) prepend(&more[k], u.params);
+      }
+    }
+    for (int k = 0; k < kSounds; ++k) {
+      for (size_t j = loaded.inserts[k].size(); j-- > 0;) {
+        if (loaded.inserts[k][j].id.empty()) continue;
+        insert_ids[k].insert(insert_ids[k].begin(), loaded.inserts[k][j].id);
+        inserts[k].insert(inserts[k].begin(), Unit());
+        inserts[k][0].params = loaded.inserts[k][j].params;
+      }
+      for (size_t j = loaded.mfx[k].size(); j-- > 0;) {
+        if (loaded.mfx[k][j].id.empty()) continue;
+        mfx_ids[k].insert(mfx_ids[k].begin(), loaded.mfx[k][j].id);
+        mfx_units[k].insert(mfx_units[k].begin(), Unit());
+        mfx_units[k][0].params = loaded.mfx[k][j].params;
+        mfx_start_on[k].insert(mfx_start_on[k].begin(), loaded.mfx[k][j].on ? 1 : 0);
+        for (size_t c = 0; c < mfx_controls.size(); ++c) {
+          if (mfx_controls[c].sound == k) ++mfx_controls[c].slot;
+        }
+      }
+      if (loaded.has_level[k] && !level_given[k]) level[k] = loaded.level[k];
+    }
+    for (size_t j = loaded.master.size(); j-- > 0;) {
+      if (loaded.master[j].id.empty()) continue;
+      fx_ids.insert(fx_ids.begin(), loaded.master[j].id);
+      fx.insert(fx.begin(), Unit());
+      fx[0].params = loaded.master[j].params;
+      for (size_t c = 0; c < fx_controls.size(); ++c) ++fx_controls[c].unit;
+    }
+    if (loaded.any_slot) slots = true;
+  }
   for (size_t k = 0; k < controls.size(); ++k) {
     if (!controls[k].sound && !controls[k].level && !engine_id) {
       fprintf(stderr, "--bend and --param-at need --engine\n");
@@ -1030,7 +1104,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "--note-param-at and --note-pitch-at need --engine\n");
     return 2;
   }
-  const bool use_seq = cmd_path || seq_path;
+  const bool use_seq = cmd_path || seq_path || !loaded.set.empty() || loaded.clip_track >= 0;
   Sequencer sq;
   uint64_t seq_end = 0;            // a script's run length, in frames (exact)
   if (use_seq) {
@@ -1157,6 +1231,12 @@ int main(int argc, char **argv) {
       if (!Instantiate(inserts[k][j], insert_ids[k][j].c_str(), FM1_KIND_AUDIO_FX, host, fill)) return 1;
     }
   }
+  // A loaded file's FM6 voices: the project's user bank, in every FM6 unit.
+  for (int k = 0; k < kSounds && !loaded.dx7.empty(); ++k) {
+    const Unit &u = *units[k];
+    if (!u.e || strcmp(u.e->id, "dx7") != 0) continue;
+    for (size_t i = 0; i < loaded.dx7.size(); ++i) fm1_dx7_set_user_voice(u.self, loaded.dx7[i].first, loaded.dx7[i].second.data());
+  }
   for (size_t k = 0; k < controls.size(); ++k) {     // a later unit's --sound-param-at
     Control &c = controls[k];
     if (c.level || c.bend || !c.sound) continue;
@@ -1257,6 +1337,31 @@ int main(int argc, char **argv) {
         return 1;
       }
       free(txt);
+    } else if (!loaded.set.empty() && !fm1_seq_host_import(&sq.host, loaded.set.data(), loaded.set.size())) {
+      fprintf(stderr, "--load: the set is not movy1\n");
+      return 1;
+    }
+    if (loaded.clip_track >= 0) {        // a clip into its track and slot, lanes matched by label
+      const size_t n = fm1_seq_export_movy1(sq.seq, NULL, 0);
+      std::string set(n + 1, '\0');
+      fm1_seq_export_movy1(sq.seq, &set[0], set.size());
+      std::vector<const char *> lines;
+      for (size_t i = 0; i < loaded.clip.size(); ++i) lines.push_back(loaded.clip[i].c_str());
+      char err[160] = "";
+      char *text = fm1_state_clip_into(set.data(), n, lines.data(), lines.size(),
+                                       static_cast<unsigned>(loaded.clip_track),
+                                       static_cast<unsigned>(loaded.clip_slot), err, sizeof(err));
+      if (static_cast<unsigned>(loaded.clip_track) >= static_cast<unsigned>(tracks)) {
+        snprintf(err, sizeof(err), "the set has %d tracks", tracks);
+        free(text);
+        text = NULL;
+      }
+      if (!text || !fm1_seq_host_import(&sq.host, text, strlen(text))) {
+        fprintf(stderr, "--load: the clip does not fit: %s\n", err);
+        free(text);
+        return 1;
+      }
+      free(text);
     }
     for (size_t k = 0; k < routes.size(); ++k) {
       if (routes[k].track < 0 || routes[k].track >= tracks ||
@@ -1335,12 +1440,13 @@ int main(int argc, char **argv) {
     }
     return code;
   };
-  if (mod_path) {
-    FILE *f = fopen(mod_path, "r");
-    if (!f) { fprintf(stderr, "cannot read %s\n", mod_path); return ModFail(1); }
+  uint32_t mod_seed = loaded.has_seed ? loaded.seed : 0u;
+  if (mod_path || loaded.has_mod) {
+    FILE *f = mod_path ? fopen(mod_path, "r") : NULL;
+    if (mod_path && !f) { fprintf(stderr, "cannot read %s\n", mod_path); return ModFail(1); }
     char buf[1024];
-    uint32_t seed = 0;
-    while (fgets(buf, sizeof(buf), f)) {
+    uint32_t &seed = mod_seed;
+    while (f && fgets(buf, sizeof(buf), f)) {
       const char *t = buf;
       uint64_t frame = 0;
       while (*t == ' ' || *t == '\t') ++t;
@@ -1359,7 +1465,7 @@ int main(int argc, char **argv) {
       if (frame == 0) fm1_mod_script_seed(text.c_str(), &seed);
       md.lines.push_back(ModLine{ frame, text });
     }
-    fclose(f);
+    if (f) fclose(f);
     std::stable_sort(md.lines.begin(), md.lines.end(),
                      [](const ModLine &x, const ModLine &y) { return x.frame < y.frame; });
     if (posix_memalign(&md.mem, 16, fm1_mod_size()) != 0) {
@@ -1385,6 +1491,18 @@ int main(int argc, char **argv) {
         }
       }
     }
+    if (loaded.has_mod) {               // a loaded rack and matrix, before the script's lines
+      const fm1_engine_t *bound[FM1_MOD_SINKS];
+      for (unsigned i = 0; i < FM1_MOD_SINKS; ++i) bound[i] = ModUnitOf(i) ? ModUnitOf(i)->e : NULL;
+      fm1_state_names_t nm;
+      fm1_state_names_default(&nm);
+      fm1_state_report_t rep;
+      fm1_state_report_init(&rep);
+      fm1_state_mod_t apply;
+      fm1_state_mod_init(&apply, md.m, &nm, bound, &rep);
+      for (size_t i = 0; i < loaded.mod.size(); ++i) fm1_state_mod_sink(&apply, &loaded.mod[i]);
+      if (rep.skipped) fprintf(stderr, "--load: %u of the modulation not applied: %s\n", rep.skipped, rep.first_skip);
+    }
     fm1_mod_glue_init(&md.glue, md.m, sound.e);
     md.glue.ctx = &md;
     md.glue.write = ModWrite;
@@ -1403,7 +1521,7 @@ int main(int argc, char **argv) {
     while (md.next_line < md.lines.size() && md.lines[md.next_line].frame <= upto) {
       char err[256];
       if (!fm1_mod_script_apply(md.m, md.lines[md.next_line].text.c_str(), mod_units, err, sizeof(err))) {
-        fprintf(stderr, "%s: %s\n", mod_path, err);
+        fprintf(stderr, "%s: %s\n", mod_path ? mod_path : "--load", err);
         return false;
       }
       ++md.next_line;
@@ -1437,6 +1555,47 @@ int main(int argc, char **argv) {
     if (mfx_log_path && !(mfx_log = fopen(mfx_log_path, "w"))) {
       fprintf(stderr, "cannot write %s\n", mfx_log_path);
       return 1;
+    }
+  }
+
+  // --save: the state the render starts from.
+  if (!save_specs.empty()) {
+    render_state::Have have;
+    for (int k = 0; k < kSounds; ++k) {
+      have.sound[k].e = units[k]->e;
+      have.sound[k].params = &units[k]->params;
+      have.level[k] = level[k];
+      for (size_t j = 0; j < inserts[k].size(); ++j) {
+        render_state::UnitOut u;
+        u.e = inserts[k][j].e;
+        u.params = &inserts[k][j].params;
+        have.inserts[k].push_back(u);
+      }
+      for (size_t j = 0; j < mfx_units[k].size(); ++j) {
+        render_state::UnitOut u;
+        u.e = mfx_units[k][j].e;
+        u.params = &mfx_units[k][j].params;
+        u.on = mfx_start_on[k][j] != 0;
+        have.mfx[k].push_back(u);
+      }
+    }
+    for (size_t j = 0; j < fx.size(); ++j) {
+      render_state::UnitOut u;
+      u.e = fx[j].e;
+      u.params = &fx[j].params;
+      have.fx.push_back(u);
+    }
+    have.dx7 = loaded.dx7;
+    render_state::Sysex(sysex_paths, &have.dx7);
+    have.mod = md.m;
+    have.seed = mod_seed;
+    have.seq = use_seq ? sq.seq : NULL;
+    for (size_t i = 0; i < save_specs.size(); ++i) {
+      std::string err;
+      if (!render_state::Save(save_specs[i], have, &err)) {
+        fprintf(stderr, "--save %s: %s\n", save_specs[i].c_str(), err.c_str());
+        return 1;
+      }
     }
   }
 

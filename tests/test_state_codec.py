@@ -87,7 +87,7 @@ def test_library_allocates_prints_and_calls_no_libm(tool):
     if not nm:
         pytest.skip("no nm")
     objs = sorted((ENGINES / "build" / "state" / "state").glob("*.o"))
-    assert len(objs) == 10
+    assert len(objs) == 11    # the codecs, the names, the registry, the runtime applier
     for o in objs:
         out = subprocess.check_output([nm, "-u", str(o)], text=True)
         got = {line.split()[-1] for line in out.splitlines() if line.strip()}

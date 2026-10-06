@@ -50,6 +50,18 @@ $(BUILD)/fm1-state-fuzz: $(STATE_FUZZ_OBJ) \
 
 # fm1-render's --load and --save (host/render_state.cc), with the library;
 # not in OUR_SRC, so the virtual FM-1's module does not link them.
-RENDER_EXTRA_OBJ += $(STATE_OBJ) $(STATE_REG_OBJ)
+# The modulation runtime's applier and collector (it needs the runtime), the
+# desktop's clip helper, and fm1-render's glue (render.cc includes it).
+STATE_MOD_OBJ := $(BUILD)/state/state/state_mod.o
+STATE_CLIP_OBJ := $(BUILD)/state/host/state_clip.o
+$(STATE_CLIP_OBJ): STATE_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Iinclude -Istate -Wall -Wextra -MMD -MP
+$(BUILD)/our/host/render_state.o $(BUILD)/our/host/render.o: COMMON += -Istate -Ihost
+RENDER_EXTRA_OBJ += $(STATE_OBJ) $(STATE_REG_OBJ) $(STATE_MOD_OBJ) $(STATE_CLIP_OBJ) $(BUILD)/our/host/render_state.o
 
--include $(STATE_OBJ:.o=.d) $(STATE_REG_OBJ:.o=.d) $(STATE_TOOL_OBJ:.o=.d) $(STATE_FUZZ_OBJ:.o=.d)
+# fm1-seq's --load and --save: the codecs without names (a set and a clip
+# hold none) and the clip helper.
+$(SEQ_TOOL_OBJ): SEQ_CFLAGS += -Istate -Ihost
+$(BUILD)/fm1-seq $(BUILD)/fm1-seq-check: $(STATE_OBJ) $(STATE_CLIP_OBJ)
+
+-include $(STATE_OBJ:.o=.d) $(STATE_REG_OBJ:.o=.d) $(STATE_TOOL_OBJ:.o=.d) $(STATE_FUZZ_OBJ:.o=.d) \
+  $(STATE_MOD_OBJ:.o=.d) $(STATE_CLIP_OBJ:.o=.d)
