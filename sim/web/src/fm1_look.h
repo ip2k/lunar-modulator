@@ -61,6 +61,18 @@ extern "C" {
 #define BAR_H 7
 #define LINE_PITCH 22                  /* plain text lines: 18 px and a 4 px gap */
 #define POPUP_PITCH 26
+/* A list popup (fm1_panel.h's FM1_LIST_ROWS window): the list's title and
+ * the chosen entry's place on the first line, then the entries LIST_PITCH
+ * apart from LIST_Y, the chosen one on the accent. A LIST_MARK triangle
+ * between the title and the entries says the list goes on above them, one
+ * under the entries that it goes on below. */
+#define LIST_X 12                      /* title and entries: 6 px inside the highlight */
+#define LIST_TITLE_Y (TITLE_H + 6)
+#define LIST_MARK_W 11
+#define LIST_MARK_H 6
+#define LIST_MORE_Y (LIST_TITLE_Y + 18 + 4)
+#define LIST_Y (LIST_MORE_Y + LIST_MARK_H + 4)
+#define LIST_PITCH 24                  /* 18 px text, the highlight 3 px above and 2 below */
 #define LABEL_CHARS 10
 #define NAME_CHARS 16
 #define POPUP_CHARS 18

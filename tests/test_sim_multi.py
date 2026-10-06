@@ -39,14 +39,18 @@ def instance_bytes(tools, engine_id, kind="sound"):
 
 def test_shift_presets_chooses_the_current_sound(tools):
     """SEL held (SHIFT, outside FX mode) and PRESETS turned: the current
-    sound, with a popup naming it and what it holds; SHIFT is let go after."""
+    sound, with a list of the four and what each holds, the current one
+    chosen (three lines, "Sound 2 of 4" and its engine, until 2026-10-06);
+    SHIFT is let go after."""
     s = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.1:SEL:0.2",
             "--turn", "0.15:PRESETS:1", seconds=0.5)
-    assert s["current"] == 1 and s["popup"] == ["Sound 2 of 4", "Shapes"]
+    assert s["current"] == 1 and s["popup"] == ["S1 Macro", "S2 Shapes", "S3 Empty", "S4 Empty"]
+    assert s["popup_list"] == {"title": "Sound", "first": 0, "total": 4, "mark": 1}
     assert s["seq_view"]["shift"] == 0 and s["engine"] == "macro"
     empty = sim(tools, "--engine", "macro", "--button", "0.1:SEL:0.2", "--turn", "0.15:PRESETS:3",
                 seconds=0.5)
-    assert empty["current"] == 3 and empty["popup"] == ["Sound 4 of 4", "Empty:", "turn PRESETS"]
+    assert empty["current"] == 3 and empty["popup"] == ["S1 Macro", "S2 Empty", "S3 Empty", "S4 Empty"]
+    assert empty["popup_list"]["mark"] == 3
     fx = sim(tools, "--engine", "macro", "--button", "0.05:FX", "--button", "0.1:SEL:0.2",
              "--turn", "0.15:PRESETS:1", seconds=0.5)
     assert fx["current"] == 0, "SEL is the slot grab in FX mode, not SHIFT"
@@ -120,11 +124,15 @@ def test_presets_on_another_sound_reaches_empty(tools):
     unloads the sound (Sound 1 always holds one, as before)."""
     on = sim(tools, "--engine", "macro", "--button", "0.1:SEL:0.1", "--turn", "0.15:PRESETS:1",
              "--turn", "0.3:PRESETS:1", seconds=0.5)
-    assert on["sounds"][1] == "macro" and on["popup"] == ["Empty", "Macro", "Shapes"]
+    assert on["sounds"][1] == "macro" and on["popup"][:3] == ["Empty", "Macro", "Shapes"]
+    catalog = json.loads(subprocess.run([str(tools["sim"]), "--list"], check=True,
+                                        capture_output=True, text=True).stdout)
+    engines = sum(e["kind"] == "sound" for e in catalog)
+    assert on["popup_list"] == {"title": "Engine", "first": 0, "total": 1 + engines, "mark": 1}
     off = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.1:SEL:0.1",
               "--turn", "0.15:PRESETS:1", "--turn", "0.3:PRESETS:-1", "--turn", "0.4:PRESETS:-1",
               seconds=0.5)
-    assert off["sounds"][1] == "" and off["popup"][1] == "Empty"
+    assert off["sounds"][1] == "" and off["popup"][0] == "Empty" and off["popup_list"]["mark"] == 0
 
 
 def test_fx_mode_walks_the_inserts_mix_and_master(tools):
