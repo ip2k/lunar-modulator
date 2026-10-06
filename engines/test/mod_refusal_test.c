@@ -257,6 +257,25 @@ static void fuzz(unsigned rounds, unsigned *slots, unsigned counts[64]) {
       if (why) ++counts[why & 63u];
       ++*slots;
     }
+    /* The loop each late slot closes (ED1): its ends' component, and the
+     * positions in it, numbered as the plan's comp; nothing for the rest. */
+    for (i = 0; i < FM1_MOD_SLOTS; ++i) {
+      uint8_t in = 0xAAu, comp_of[FM1_MOD_POSITIONS];
+      const unsigned loop = fm1_mod_slot_loop(m, i, &in);
+      unsigned k;
+      memset(comp_of, 0xFF, sizeof(comp_of));
+      for (k = 0; k < before.n_order; ++k) comp_of[before.order[k]] = before.comp[k];
+      if (!((before.delayed >> i) & 1u)) {
+        CHECK(loop == 0xFFu && in == 0);
+        continue;
+      }
+      ++counts[0];
+      CHECK(table[i].dst_unit >= FM1_MOD_MODULE && loop != 0xFFu);
+      CHECK((in >> (table[i].dst_unit - FM1_MOD_MODULE)) & 1u);
+      for (k = 0; k < FM1_MOD_POSITIONS; ++k) {
+        CHECK(((in >> k) & 1u) == (comp_of[k] == loop));
+      }
+    }
     fm1_mod_get_plan(m, &after);
     CHECK(memcmp(&before, &after, sizeof(before)) == 0);
     for (i = 0; i < FM1_MOD_SLOTS; ++i) {
@@ -275,12 +294,12 @@ int main(int argc, char **argv) {
   each_reason(&cases);
   fuzz(rounds, &slots, counts);
   printf("{\"cases\":%u,\"fuzz_slots\":%u,\"reasons\":{", cases, slots);
-  for (i = 0; i < 64; ++i) {
+  for (i = 1; i < 64; ++i) {
     const fm1_refusal_t *r = counts[i] ? fm1_refusal_find(i) : NULL;
     if (!r) continue;
     printf("%s\"%s\":%u", first ? "" : ",", r->name, counts[i]);
     first = 0;
   }
-  printf("},\"failed\":%d}\n", failed);
+  printf("},\"late_loops\":%u,\"failed\":%d}\n", counts[0], failed);
   return failed;
 }
