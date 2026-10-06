@@ -47,8 +47,10 @@ When you choose an engine:
   and goes to its last page otherwise.
 
 Every engine but Sophie has a **Volume** parameter, its own output level, on
-its last page. It is separate from [[MASTER]], which sets the level of
-everything.
+its second page (on Drums, its third). It is separate from [[MASTER]], which sets the level of
+everything. Macro, Macro Heavy, Six-Op FM, FM6 and Shapes also have
+**Glide** and **Voice Mode**, for sliding between notes and playing one
+voice at a time ([chapter 4](04-playing.md#glide-and-voice-modes)).
 
 !!! note "Engines that need the FM-1's sample rate"
     Macro, Macro Heavy, Six-Op FM and Drums run Plaits' code at its own
@@ -132,6 +134,8 @@ acoustic instruments do.
     it close over the Decay time even if you hold the key, like a plucked or
     struck sound; **Off** takes the gate out, so the note keeps its full
     brightness and only its level fades after you let go.
+- Page 4 holds **Glide** and **Voice Mode**: slides between notes, and
+  one-voice playing ([chapter 4](04-playing.md#glide-and-voice-modes)).
 
 | Model | Harmonics | Timbre | Morph |
 | --- | --- | --- | --- |
@@ -182,6 +186,9 @@ needs much more memory than Macro's, so Macro Heavy plays four notes at once.
 - Page 3 works as in Macro. On Speech, Env Pitch also lets a spoken word's
   own pitch contour through. With LPG on Ping, String, Modal and the drums
   ring out after you let go, instead of fading.
+- Page 4, **Glide** and **Voice Mode**, works as in Macro. On Legato a
+  string, a modal sound or a drum is not struck again when you play over a
+  held key, and a word goes on; on Mono it is.
 - **String, Modal, Bass Drum, Snare and Hi-Hat** sound by themselves: a key
   press strikes them, and they ring for as long as Morph sets. Speech, when
   it says words, says one word per key press. When you let go of the key,
@@ -241,6 +248,9 @@ through the patches, and the knobs adjust the one you have chosen.
   middle, at 0.3, and grow longer either side of it: at the default, 0.5,
   they last about three times as long as programmed.
 - **Volume**, on page 2, is the engine's output level.
+- **Glide** and **Voice Mode**, on page 2, slide between notes and play one
+  voice ([chapter 4](04-playing.md#glide-and-voice-modes)). On Legato a
+  note played over a held one does not restart the patch's envelopes.
 - Eight notes play at once.
 
 {{screen sixop Six-Op FM on its default patch, 2 E.PIANO 1. Its first page has three controls.}}
@@ -296,6 +306,9 @@ in this project's tests.
   right, as programmed in the middle. It acts on notes that are sounding.
 - **Feedback** adds to the voice's own feedback, from 0 to 7 in whole steps.
 - **Volume**, on page 2, is the engine's output level.
+- **Glide** and **Voice Mode**, on page 2, slide between notes and play one
+  voice ([chapter 4](04-playing.md#glide-and-voice-modes)). On Legato a
+  note played over a held one keeps the envelopes and the LFO running.
 - Twelve notes play at once.
 
 The built-in voices:
@@ -378,6 +391,9 @@ attack and release envelope.
   how long it takes to fade after you let go. Both run from 1 ms at the left
   to 4 seconds at the right.
 - **Volume**, on page 2, is the engine's output level.
+- **Glide** and **Voice Mode**, on page 2, slide between notes and play one
+  voice ([chapter 4](04-playing.md#glide-and-voice-modes)). On Legato a
+  note played over a held one does not strike the shape again.
 - Playing harder makes a note louder.
 
 {{screen shapes Shapes on Pluck, page 1.}}
