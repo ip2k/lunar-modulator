@@ -565,7 +565,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Screen and controls refinement** · *In progress*
 - **Depends on:** the simulator (ongoing). On the device: the TFT strip
   driver, key matrix and encoders (I12), and one sized arena for the app
-  layer, whose `fm1_app_t` is 4,915,120 B today (4.5 MiB of it the fixed
+  layer, whose `fm1_app_t` is 4,939,184 B today (4.5 MiB of it the fixed
   arenas of multi-sound's four sound units and ten effect slots), the
   sequencer's arena included, against 578 KB of SRAM
   [verified: sim/web/README.md] (I2).
