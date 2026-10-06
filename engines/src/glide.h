@@ -31,6 +31,13 @@
 // The return to a held key in Mono and Legato glides under Legato and Always
 // alike.
 //
+// Saving (engine API v4, the state core, had not landed when Glide Mode and
+// Time Mode came, 2026-10-06): all four are engine-wide, one value each, in
+// each engine's value_[] and, for Glide (SMOOTH), its ramp's target,
+// smooth_[P_GLIDE].target. v4's get_param must report that target for
+// Glide (not the ramped value_[P_GLIDE]) and value_[] for the three
+// switches; none is per voice or per pad, so none needs a focus flag.
+//
 // The glide is a pitch offset in semitones that each voice adds to its
 // note after the key and the bend, beside its per-note pitch offset
 // (FM1_PARAM_NOTE_PITCH, note_offsets.h): the same pitch path. It moves

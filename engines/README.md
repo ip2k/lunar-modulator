@@ -3260,6 +3260,10 @@ themselves, and page 2 is again what it was before glide.
   route changes how the next note is played, no change cuts a sounding
   voice (the owner's rule for switches), and a glide under way finishes as
   it began, whatever its mode is switched to.
+- **Saving** (engine API v4, the state core, had not landed): all four are
+  engine-wide values, so v4's `get_param` reports the set value (for
+  Glide, a SMOOTH parameter, its ramp's target, not the ramped value) and
+  none needs a focus flag; the note is in `glide.h`.
 - **Defaults keep the sound** [verified 2026-10-06, Apple clang arm64,
   against a build of main `275628b`]: at Glide Mode Off nothing differs
   from main whatever Glide and Time Mode say, and Legato with a Glide time
