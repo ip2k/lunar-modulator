@@ -938,6 +938,14 @@ history.
     `engines/mod/README.md`, tested in `tests/test_engines_mod_runtime.py`
     and `fm1-mod-core-test`. The JieLi compile check covers the modulation
     code too.
+- notes/2026-10-06-echomatter-pr1.md: what Echomatter's closed PR #1 teaches
+  us about the stock firmware. Its FM operator works in the log domain, not
+  with msfa's arithmetic; it runs algorithm 4's feedback loop; its envelope
+  is msfa's, with no holds, as FM6's; and its effects use far more than the
+  8 KB the docs said. Its exponent and log-sine tables, and its decoder
+  against the vendor's disassembly, were checked here. docs/02 §5,
+  `engines/msfa.md`, `engines/mi-fx.md` and docs/11 §2 are corrected to
+  match, and the memory map's discovery is credited.
 - notes/2026-10-05-community-repos.md: what Lunar learns from JieLi's current
   AC79 SDK on Gitee and from three FM-1 projects, Felucca (with its recovery
   tool FM-1-transporter), its fork SLOOP, and fm1-nes. Other open firmware
