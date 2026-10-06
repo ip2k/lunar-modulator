@@ -34,17 +34,15 @@
 
 #include <string.h>
 
-int mod_source_kind(const fm1_mod_t *m, unsigned src, uint8_t *unit) {
+int mod_source_kind(const fm1_mod_t *m, unsigned src) {
   if (src < FM1_MOD_SRC_SYSTEM) {
     const fm1_mod_source_info_t *si = fm1_mod_system_source(src);
     if (!si) return -1;
-    if (unit) *unit = si->unit;
     return si->kind;
   } else {
     const unsigned pos = (src - FM1_MOD_SRC_MODULE) / 8u, port = (src - FM1_MOD_SRC_MODULE) % 8u;
     const fm1_mod_kind_t *kd = mod_kind_at(m, pos);
     if (!kd || port >= kd->n_out) return -1;
-    if (unit) *unit = kd->out[port].unit;
     return kd->out[port].kind;
   }
 }
@@ -233,8 +231,8 @@ void mod_plan_build(fm1_mod_t *m) {
     dparam[i] = -1;
     if (!(s->flags & FM1_MOD_SLOT_ON)) continue;
     dparam[i] = mod_slot_dst_param(m, s);
-    if (mod_source_kind(m, s->src, NULL) < 0 ||
-        (s->via != MOD_NONE && mod_source_kind(m, s->via, NULL) < 0) || dparam[i] < 0 ||
+    if (mod_source_kind(m, s->src) < 0 ||
+        (s->via != MOD_NONE && mod_source_kind(m, s->via) < 0) || dparam[i] < 0 ||
         ((s->flags & FM1_MOD_SLOT_VOICE) && !voice_target(m, s, dparam[i]))) {
       p->refused |= 1u << i;
       dparam[i] = -1;

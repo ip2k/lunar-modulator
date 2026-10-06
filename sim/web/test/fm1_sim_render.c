@@ -4498,7 +4498,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "%s\n", err);
       return 1;
     }
-    if (!cmd_path) { script.rate = 44118; script.block = 128; script.tracks = 8; }
+    if (!cmd_path) { script.rate = 44118; script.tracks = 8; }
     if (!rate_given) rate = (float)script.rate;
     if (tracks < 0) tracks = script.tracks;
     if (!seconds_given && (script.has_end || script.n)) {   /* fm1-render at --frames 64 */

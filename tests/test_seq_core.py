@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.seq_helpers import (ENGINES, SEQ_CHECK, TPB, TPS, Script, ccs, clip, kinds, notes, offs,
+from tests.seq_helpers import (ENGINES, SEQ_CHECK, TPB, TPS, Script, ccs, clip, kinds, notes,
                                ons, run_script, seq_tools, track)  # noqa: F401
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "movy"
