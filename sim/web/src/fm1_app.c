@@ -355,10 +355,6 @@ static void set_mode(fm1_app_t *a, int mode) {
   a->mode = mode;
 }
 
-/* ---- set-up and units --------------------------------------------------------- */
-
-/* Everything fm1_app_init sets up but modulation, which needs the sinks
- * and the runtime's code below. */
 /* ---- FM6's user bank (fm1_app_dx7_t) --------------------------------------------- */
 
 #define DX7_USER0 (FM1_APP_DX7_PATCHES - (int)FM1_DX7_USER_SLOTS)   /* User 1's Patch value */
@@ -409,6 +405,10 @@ static void dx7_give(const fm1_app_t *a, const fm1_app_unit_t *u) {
   }
 }
 
+/* ---- set-up and units --------------------------------------------------------- */
+
+/* Everything fm1_app_init sets up but modulation, which needs the sinks
+ * and the runtime's code below. */
 static void app_init(fm1_app_t *a, float sample_rate) {
   memset(a, 0, offsetof(fm1_app_t, tft));
   a->host.api_version = FM1_ENGINE_API_VERSION;
@@ -745,6 +745,10 @@ int fm1_app_dx7_load(fm1_app_t *a, const uint8_t *data, size_t len, fm1_dx7_syse
     if (n == 1) snprintf(l1, sizeof l1, "User %u", first);
     else if (n >= (int)FM1_DX7_USER_SLOTS) snprintf(l1, sizeof l1, "User 1-%u", FM1_DX7_USER_SLOTS);
     else if (last > first) snprintf(l1, sizeof l1, "User %u-%u", first, last);
+    /* Past User 32 and round to User 1: "User 31-32, 1-3", "User 32, 1". */
+    else if (first == FM1_DX7_USER_SLOTS && last == 1u) snprintf(l1, sizeof l1, "User %u, 1", first);
+    else if (first == FM1_DX7_USER_SLOTS) snprintf(l1, sizeof l1, "User %u, 1-%u", first, last);
+    else if (last == 1u) snprintf(l1, sizeof l1, "User %u-%u, 1", first, FM1_DX7_USER_SLOTS);
     else snprintf(l1, sizeof l1, "User %u-%u, 1-%u", first, FM1_DX7_USER_SLOTS, last);
     popup(a, l0, l1, d->names[DX7_USER0 + (int)r.first_slot], -1);
   }

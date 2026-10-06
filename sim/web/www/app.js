@@ -425,8 +425,10 @@ function dx7Message(m) {
     return `${file} was not loaded: it is not SysEx. ${formats}`;
   }
   const last = (first + voices - 1) % 32;
+  // Past User 32 and round to User 1: "User 31 to 32 and 1 to 3", "User 32 and 1".
+  const span = (a, b) => (a === b ? `${a}` : `${a} to ${b}`);
   const where = voices >= 32 ? 'User 1 to 32' : voices === 1 ? `User ${first + 1}`
-    : last > first ? `User ${first + 1} to ${last + 1}` : `User ${first + 1} to 32 and 1 to ${last + 1}`;
+    : last > first ? `User ${span(first + 1, last + 1)}` : `User ${span(first + 1, 32)} and ${span(1, last + 1)}`;
   let text = `Loaded ${plural(voices, 'voice', 'voices')} from ${file}${raw ? ' (bank data without SysEx framing)' : ''} ` +
     `into FM6's ${where}.`;
   if (played === 0) text += ` Sound ${sound + 1} plays ${m.names[first] || `User ${first + 1}`}; ALGORITHM steps through them.`;
@@ -435,7 +437,16 @@ function dx7Message(m) {
     text += ` ${plural(bad, 'dump had', 'dumps had')} a wrong checksum and ${bad === 1 ? 'was' : 'were'} loaded ` +
       'anyway, as DX7 editors do: the file may be damaged.';
   }
-  if (messages > 1) text += ` The file held ${plural(messages, 'dump', 'dumps')}; a bank fills all 32 slots, so the last one counts.`;
+  // Each dump is one voice or a bank of 32: voices = singles + 32 banks and
+  // messages = singles + banks (raw bank data is one bank and no message).
+  // More than 32 voices means some replaced others.
+  const banks = raw ? 1 : (voices - messages) / 31;
+  if (banks > 1) {
+    text += ` The file held ${plural(banks, 'bank', 'banks')}; each fills all 32 slots, so the last one counts.`;
+  } else if (voices > 32) {
+    text += ` The file held ${plural(voices, 'voice', 'voices')}, more than the 32 slots, so the later ones ` +
+      'replaced the earlier ones.';
+  }
   const skipped = foreign + truncated + wrongSize;
   if (skipped) text += ` ${plural(skipped, 'other or broken message was', 'other or broken messages were')} skipped.`;
   if (outside && !raw) text += ` ${plural(outside, 'byte', 'bytes')} outside SysEx ${outside === 1 ? 'was' : 'were'} ignored.`;

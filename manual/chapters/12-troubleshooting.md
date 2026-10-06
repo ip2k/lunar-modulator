@@ -51,6 +51,7 @@ those messages so you can search for them.
 | *… larger than the 64 KB the simulator reads* | The file holds more than sixteen banks, or is not a patch file | Split it into banks, or use one bank of it |
 | The status line says a dump *had a wrong checksum* | The file was edited, or damaged on its way to you; the voices were loaded all the same | Listen to them; if one sounds wrong, get the file again |
 | The status line says *the last one counts* | The file held several banks; each fills User 1 to 32, so only the last stays | Load the bank you want on its own |
+| The status line says *the later ones replaced the earlier ones* | The file held more than 32 voices; they fill the user slots in turn and go round again from User 1 | Load the voices you want in files of 32 or fewer |
 
 ### MIDI
 

@@ -564,8 +564,8 @@ static size_t dx7_vced(uint8_t *m, const char *name, int coarse) {
 
 /* Every user slot loaded with a 10-character name (the longest a voice
  * has) and shown: HOME's model line and Patch row at each, the ALGORITHM
- * popup, SEQ mode's hint line; the load popups for one voice, 32, a run
- * that wraps past User 32, and both refusals. */
+ * popup, SEQ mode's hint line; the load popups for one voice, 32, two runs
+ * that wrap past User 32, and both refusals. */
 static void dx7_screens(const char *dir) {
   static uint8_t file[32 * (FM1_DX7_VCED_BYTES + 8u)];
   char name[64], voice[16];
@@ -609,6 +609,13 @@ static void dx7_screens(const char *dir) {
   n = fm1_app_dx7_load(&g_app, file, len, NULL);
   expect(n == 4 && g_app.dx7.next == 2, "four voices from User 31 did not wrap");
   check_screen("dx7-popup-loaded-wrap", dir, 1);
+  g_app.dx7.next = 31;                                     /* two from User 32: "User 32, 1" */
+  len = 0;
+  for (int k = 0; k < 2; ++k) len += dx7_vced(file + len, "WRAPPED", 3);
+  n = fm1_app_dx7_load(&g_app, file, len, NULL);
+  expect(n == 2 && g_app.dx7.next == 1 && strcmp(g_app.popup[1], "User 32, 1") == 0,
+         "two voices from User 32 did not wrap to User 1");
+  check_screen("dx7-popup-loaded-wrap-32", dir, 1);
   memset(file, 0x41, 300);                                 /* no SysEx at all */
   n = fm1_app_dx7_load(&g_app, file, 300, NULL);
   expect(n == FM1_APP_DX7_NONE, "a file of text loaded voices");
