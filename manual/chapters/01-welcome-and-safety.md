@@ -38,7 +38,7 @@ this manual carries a status that says where it works today:
 
 | Function | Where it works today | Chapter |
 | --- | --- | --- |
-| Six sound engines: Macro, Macro Heavy, Six-Op FM, Shapes, Sophie and Test Sine, up to four sounds at once | Simulator, desktop | [5](05-sound-engines.md) |
+| Seven sound engines: Macro, Macro Heavy, Six-Op FM, Shapes, Sophie, Drums and Test Sine, up to four sounds at once | Simulator, desktop | [5](05-sound-engines.md) |
 | Twenty-two effects: two inserts on each sound and two on the master bus, followed by a limiter | Simulator, desktop | [6](06-effects.md) |
 | The front panel: the knobs, the keys, the screen and every button but [[SAVE]] and [[ARP]] | Simulator | [3](03-panel-tour.md) |
 | Octave, transpose, velocity and pitch bend | Simulator; velocity and bend also on the desktop | [4](04-playing.md) |

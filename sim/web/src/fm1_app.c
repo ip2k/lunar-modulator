@@ -332,18 +332,19 @@ static int base_note(const fm1_app_t *a) {
   return FM1_APP_FIRST_NOTE + 12 * a->octave + a->transpose;
 }
 
-/* The note a key plays. Sophie is a 16-pad kit on MIDI notes 36-51 (the
- * General MIDI drum keys), below the keys' range at any useful octave
- * (53-79 at octave 0), so with Sophie as the current sound the 16 white
- * keys play pads 1-16 whatever the octave, and the black keys play nothing
- * (-1). MIDI IN keeps the drum map. */
+/* The note a key plays. A pad kit (an engine that says so, pad_count in
+ * fm1_engine.h: Sophie and Drums, 16 pads on MIDI notes 36-51, the General
+ * MIDI drum keys) sits below the keys' range at any useful octave (53-79
+ * at octave 0), so with a kit as the current sound the 16 white keys play
+ * its pads 1-16 whatever the octave, and the black keys, and white keys
+ * past its last pad, play nothing (-1). MIDI IN keeps the drum map. */
 static int key_note(const fm1_app_t *a, int key) {
   /* White keys from F: F G A B C D E. */
   static const int8_t white_of[12] = {0, -1, 1, -1, 2, -1, 3, 4, -1, 5, -1, 6};
-  const fm1_app_unit_t *s = sound_of_c(a, a->sound);
-  if (s->e && strcmp(s->e->id, "sw-sophie") == 0) {
+  const fm1_engine_t *e = sound_of_c(a, a->sound)->e;
+  if (e && e->pad_count) {
     const int w = white_of[key % 12];
-    return w < 0 ? -1 : 36 + 7 * (key / 12) + w;
+    return w < 0 ? -1 : fm1_engine_pad_note(e, 7 * (key / 12) + w);
   }
   return base_note(a) + key;
 }
@@ -987,7 +988,7 @@ void fm1_app_key(fm1_app_t *a, int key, int down, int velocity) {
        * sounds it (only on the sound: it is no live input). */
       const fm1_seq_ui_emit_t out = ui_out(a);
       const int took = fm1_seq_ui_key(&a->ui, a->seq, key, 1, velocity, a->frames, a->mode,
-                                       base_note(a), &out);
+                                       key_note(a, key), &out);
       if (took) {
         ui_after(a);
         if (took != FM1_SEQ_UI_KEY_SOUND) return;
@@ -1014,7 +1015,7 @@ void fm1_app_key(fm1_app_t *a, int key, int down, int velocity) {
   }
   if (fm1_seq_ui_has_key(&a->ui, key)) {   /* a step's or step record's release, in any mode */
     const fm1_seq_ui_emit_t out = ui_out(a);
-    fm1_seq_ui_key(&a->ui, a->seq, key, 0, 0, a->frames, a->mode, base_note(a), &out);
+    fm1_seq_ui_key(&a->ui, a->seq, key, 0, 0, a->frames, a->mode, key_note(a, key), &out);
     ui_after(a);
   }
 }
@@ -1654,9 +1655,10 @@ static int octave_led(const fm1_app_t *a, int magnitude) {
 
 static void update_leds(fm1_app_t *a) {
   uint8_t led[FM1_APP_LEDS];
-  int base = FM1_APP_FIRST_NOTE + 12 * a->octave + a->transpose;
   for (int k = 0; k < FM1_APP_KEYS; ++k) {
-    int note = base + k, sounding = 0;
+    /* A key lights while the note it plays sounds: with a pad kit as the
+     * sound, its pad's (a black key's -1: none). */
+    int note = key_note(a, k), sounding = 0;
     for (int s = 0; note >= 0 && note < 128 && s < FM1_APP_SOUNDS; ++s) sounding |= a->note_count[s][note];
     led[k] = (uint8_t)(a->key_down[k] || sounding);
   }

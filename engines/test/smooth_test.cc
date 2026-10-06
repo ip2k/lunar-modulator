@@ -16,7 +16,9 @@
 //
 // What it plays, at absolute frames, whatever the split:
 //   - a sound engine: a note every 4,410 frames, cycling through five keys,
-//     each held 3,000 frames, so voices sound across most changes;
+//     each held 3,000 frames, so voices sound across most changes (a pad
+//     kit, fm1_engine.h: five of its pads, the first, which Pad focuses at
+//     its default, among them);
 //   - an effect: --source, generated before rendering (an LCG, or 0.5 DC);
 //   - --schedule changes (the default): every parameter that is not NOLOCK,
 //     in table order, k = 0, 1, ...: at frame 3,001 + 2,203k to its max (its
@@ -114,8 +116,12 @@ int main(int argc, char **argv) {
   uint32_t seq = 0;
   if (sound) {
     static const uint8_t kKeys[5] = { 48, 55, 60, 64, 67 };
+    // A pad kit plays five of its pads instead, its first (the kick, on the
+    // focused pad) every fifth note: kick, snare, clap, closed and open hat.
+    static const uint8_t kPads[5] = { 0, 2, 3, 6, 10 };
     for (uint32_t f = 0, k = 0; f < total; f += 4410, ++k) {
-      const uint8_t key = kKeys[k % 5];
+      const int pad_note = fm1_engine_pad_note(e, kPads[k % 5] < e->pad_count ? kPads[k % 5] : 0);
+      const uint8_t key = e->pad_count ? static_cast<uint8_t>(pad_note) : kKeys[k % 5];
       ev.push_back(Event{ f, 2, seq++, key, static_cast<float>(70 + 11 * (k % 5)) });
       ev.push_back(Event{ f + 3000, 0, seq++, key, 0.0f });
     }

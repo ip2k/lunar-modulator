@@ -11,8 +11,9 @@ through the engine's main list.
 {{engine-summary sound}}
 
 Four of the engines are built from the code of Mutable Instruments' modules,
-written by Emilie Gillet and published under the MIT licence; Sophie comes
-from the Schwung community. Their names here are this project's own, and
+written by Emilie Gillet and published under the MIT licence, and Drums
+takes its kicks, toms, snares and hi-hats from it; Sophie comes from the
+Schwung community. Their names here are this project's own, and
 [chapter 14](14-credits-and-licences.md) credits each source.
 
 !!! note "How to read the tables"
@@ -29,7 +30,8 @@ from the Schwung community. Their names here are this project's own, and
 {{status sim planned}}
 
 **To choose an engine:** turn [[PRESETS]]. The engines come in this order:
-Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Test Sine, and round again.
+Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Test Sine, and round
+again.
 While you turn, the screen shows the previous engine, the new one
 (highlighted) and the next. In the simulator you can also pick one from the
 **Sound (PRESETS)** list under the panel.
@@ -48,11 +50,11 @@ its last page. It is separate from [[MASTER]], which sets the level of
 everything.
 
 !!! note "Engines that need the FM-1's sample rate"
-    Macro, Macro Heavy and Six-Op FM run Plaits' code at its own rate, 47,872
-    samples a second, and convert the result to the output's rate. They
-    cannot run when the output is faster than that. If your browser runs the
-    simulator at 48,000 samples a second, [[PRESETS]] steps over those three
-    and the screen names the one it skipped ([chapter 2](02-getting-started.md#the-browser-simulator)).
+    Macro, Macro Heavy, Six-Op FM and Drums run Plaits' code at its own
+    rate, 47,872 samples a second, and convert the result to the output's
+    rate. They cannot run when the output is faster than that. If your
+    browser runs the simulator at 48,000 samples a second, [[PRESETS]] steps
+    over those four and the screen names the one it skipped ([chapter 2](02-getting-started.md#the-browser-simulator)).
 
 ## Four sounds at once
 
@@ -373,11 +375,15 @@ for its pad's Decay, whether or not you keep the key down.
 
 {{screen sophie Sophie on pad 1, the kick, just after it was struck.}}
 
-**To play Sophie from the FM-1's keys:** press [[OCT-]] twice. The pads then
-run from the eighth key, a C, upwards: kick, rim, snare, clap and so on, up
-the white and black keys. On the computer keyboard, after pressing
-<kbd>Z</kbd> twice, <kbd>G</kbd> is the kick, <kbd>H</kbd> the snare,
-<kbd>O</kbd> the closed hi-hat and <kbd>[</kbd> the open hi-hat.
+**To play Sophie from the FM-1's keys:** play the white keys. With a drum
+kit as the sound (Sophie or Drums), the sixteen white keys play the sixteen
+pads at any octave, from the kick on the lowest F up to the ride on the
+highest white key, and the black keys play nothing. On the computer
+keyboard, <kbd>A</kbd> is the kick, <kbd>S</kbd> the rim, <kbd>D</kbd> the
+snare, <kbd>F</kbd> the clap, <kbd>J</kbd> the closed hi-hat, <kbd>L</kbd>
+the pedal hi-hat and <kbd>&#39;</kbd> the open hi-hat. A MIDI keyboard
+plays the pads on notes 36 to 51, as a drum part from another instrument
+expects.
 
 !!! caution "The values shown after you change pads"
     The screen cannot read a pad's settings back from Sophie. When you choose
@@ -389,6 +395,70 @@ filter and a ring resonator, which this build does not show on the screen
 yet.
 
 {{engine-table sw-sophie}}
+
+## Drums
+
+{{status sim desktop planned}}
+
+Drums is a sixteen-pad drum kit after the classic analogue drum machines: a
+deep kick with a long boom, a short punchy one, two snares, a clap, closed,
+pedal and open hi-hats, six toms, a rim shot, a crash and a ride, and a
+cowbell you can put on any pad. Its kicks, toms, snares and hi-hats are
+Plaits' drum models; the rim shot, clap, cowbell and cymbals are this
+project's own, after published studies of the analogue circuits
+([chapter 14](14-credits-and-licences.md)).
+
+- Drums plays MIDI notes 36 to 51, one pad each, in the same order as
+  Sophie, and ignores other notes: 36 is the kick, 38 the snare, 42 the
+  closed hi-hat, 46 the open one, 49 the crash and 51 the ride. On the
+  FM-1's keys the sixteen white keys play the pads ([Sophie](#sophie) shows
+  which key is which).
+- A hit rings for its pad's decay, whether or not you keep the key down. Up
+  to twelve hits sound at once. A pad struck again while it rings is struck
+  again, as a drum is, rather than starting a second sound; a thirteenth pad
+  takes over the quietest hit.
+- A closed or pedal hi-hat cuts the open hi-hat short, as on the machines.
+- **Pad** chooses which pad the pad's knobs edit: those on pages 1 and 2,
+  and Model on page 3. [[ALGORITHM]] steps through the pads, and so does
+  [[KNOB1]] on page 1. Each pad keeps its own settings.
+- The pad's knobs start in the middle, Tune at 0: that is the pad as the
+  kit sets it up, and you turn from there. So until you change them the
+  screen shows true values whichever pad you choose.
+  - **Tune** sets the pad's pitch, up to two octaves either way.
+  - **Decay** sets how long it rings.
+  - **Level** sets its level in the kit.
+  - **Tone** (page 2) makes it brighter to the right.
+  - **Snap** sets the attack: the kick's click, the snare's wires, the
+    hi-hats' noise against their metal, the clap's bursts, the rim's click,
+    the cymbals' wash, the cowbell's first clank.
+  - **Sweep** sets the fall in pitch at the start of a hit, the kick's and
+    the toms' especially. On the other sounds, above the middle the hit falls
+    in pitch, and below it rises.
+  - **Drive** saturates the pad, clean at 0.
+  - **Model** (page 3) chooses the pad's sound. *Kit* is the kit's own
+    choice; the others are *Analog Drum* (a deep kick or tom), *Punch Drum*
+    (a punchy, swept kick or tom), *Snare*, *Snap Snare*, *Hat*, *Ring Hat*,
+    *Cymbal*, *Clap*, *Rim* and *Cowbell*. A pad given another sound plays
+    that sound as Drums sets it up, so a cowbell on a tom's pad is a cowbell.
+    The three hi-hat pads cut each other short whatever sound they play.
+- The rest of page 3 is the whole kit's:
+  - **Kit** chooses *Deep*, the long, round kit, or *Punch*, harder and
+    shorter, with a swept kick, a crisper snare and ring-modulated hi-hats.
+  - **Accent** sets how much velocity matters: at 0 every hit plays the
+    same, at the right a soft hit is quiet and dull and a hard one loud and
+    bright.
+  - **Volume** sets the kit's level.
+- Model and Kit reach the next hit; a hit that is ringing keeps the sound it
+  started with. The other knobs move a ringing hit too.
+- Pitch bend bends every pad.
+
+!!! caution "The values shown after you change pads"
+    As on Sophie, the screen cannot read a pad's settings back. When you
+    choose another pad, the screen keeps showing the values you last set,
+    and the first turn of a knob gives the new pad the value shown, plus
+    that turn.
+
+{{engine-table drums}}
 
 ## Test Sine
 

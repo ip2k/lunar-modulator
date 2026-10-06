@@ -449,13 +449,15 @@ int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down,
 
 /* A key edge (0..26): a press in SEQ mode (`mode`), a press in any mode
  * while Capture's overlay is up, or the release of a key the UI took
- * (fm1_seq_ui_has_key). `base_note` is the note key 0 plays now (53 + 12 x
- * octave + transpose), for SHIFT's and step record's pitches. Returns 1 if
+ * (fm1_seq_ui_has_key). `pitch` is the note the key plays now, for SHIFT's
+ * and step record's pitches: 53 + 12 x octave + transpose + key, or with a
+ * pad kit as the sound the pad's note (fm1_app.c, key_note), or -1 when the
+ * key plays nothing (a pad kit's black key), which enters no pitch. Returns 1 if
  * the UI took it, FM1_SEQ_UI_KEY_SOUND if step record took it and the app
  * plays its note (on the sound only, not as live input); 0 leaves the key to
  * the app, which plays it. */
 int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int velocity,
-                   uint64_t frame, int mode, int base_note, const fm1_seq_ui_emit_t *out);
+                   uint64_t frame, int mode, int pitch, const fm1_seq_ui_emit_t *out);
 int fm1_seq_ui_has_key(const fm1_seq_ui_t *u, int key);
 
 /* An encoder turned (fm1_app_encoder_t): 1 when the UI took it (in SEQ

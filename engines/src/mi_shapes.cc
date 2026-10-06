@@ -348,4 +348,5 @@ extern "C" const fm1_engine_t fm1_engine_shapes = {
   fm1::shapes::Set, fm1::shapes::Render,
   fm1::shapes::SetNote,
   0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };

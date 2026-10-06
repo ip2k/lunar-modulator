@@ -131,13 +131,14 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** five swappable sound engines and twenty effects (Comb split
+- **The API:** six swappable sound engines and twenty effects (Comb split
   out of Filter since 2026-10-05), plus test engines, behind one C API, version 3
   ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
   [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
   16-bit parameter flags with the LOG law for pitch- and time-like knobs, a
-  dB unit, and an optional effect extension that hands an effect a key
-  input, the tempo and beat position, and the transport's events.
+  dB unit, an optional effect extension that hands an effect a key
+  input, the tempo and beat position, and the transport's events, and pad
+  kits ([engines/README.md, "Pad kits"](engines/README.md#pad-kits)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
@@ -151,6 +152,10 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     - **Macro Heavy:** Plaits' other 13.
     - **Six-Op FM:** Plaits' DX7-style engine.
     - **Shapes:** Braids.
+    - **Drums:** Plaits' drum classes for its kicks, toms, snares and
+      hi-hats, in a 16-pad kit with a rim shot, clap, cowbell and cymbal of
+      our own, after Werner, Abel and Smith's TR-808 cowbell and cymbal
+      models ([`engines/README.md`](engines/README.md#drums)).
     - **Plate:** Rings' reverb, with a Freeze after Elements'.
     - **Room:** Clouds' reverb and diffuser.
     - **Ensemble and Diffuse:** Plaits' ensemble and diffuser.
@@ -175,8 +180,8 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   checked sample for sample against upstream `Voice`
   ([`engines/README.md`](engines/README.md#macro-and-macro-heavy-page-3-the-envelope-and-the-gate)).
 - **Sample rates:** the Mutable engines run at their modules' own rates and
-  are resampled to the FM-1's 44,118 Hz: Braids at 96 kHz, Plaits at
-  47,872 Hz ([`engines/resampler.md`](engines/resampler.md)).
+  are resampled to the FM-1's 44,118 Hz: Braids at 96 kHz, Plaits (and
+  Drums) at 47,872 Hz ([`engines/resampler.md`](engines/resampler.md)).
 - **The output:** a host limiter on the bus keeps twelve voices started in
   phase under full scale [verified: `tests/test_engine_host.py`].
 - **The desktop renderer:** `fm1-render` plays notes, parameter changes and
@@ -264,7 +269,7 @@ API v2 ([`engines/midi_fx/README.md`](engines/midi_fx/README.md)).
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 2,338 screens of the layout sweep, the sequencer's and
+  canvas. All 2,470 screens of the layout sweep, the sequencer's and
   modulation's included, pass a layout check, with no text cut short and
   nothing closer than 4 px [verified: `fm1-sim-render --screens`,
   2026-10-05].

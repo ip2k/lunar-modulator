@@ -181,6 +181,9 @@ A note at [[MIDI IN]] adds its pitch to the held steps too; that is how
 sharps go in. A pitch added this way takes the length of the notes already
 on the step. To remove pitches, clear the step and enter it again.
 
+With a drum kit as the sound (Sophie or Drums), a white key adds the pad it
+plays, as it does in step recording.
+
 ### The step pages
 
 Hold a step for about 300 ms and the screen opens the step pages, with the
@@ -633,6 +636,8 @@ Step recording enters notes one step at a time, without the clock running.
 3. Play white keys: each one sounds and goes onto the step under the head,
    and the head moves on when you let go. Keys held together make a chord.
    Notes at [[MIDI IN]] go in too; that is how sharps go in.
+   With a drum kit as the sound (Sophie or Drums), a white key enters the
+   pad it plays.
 4. Let go of [[REC]] when you are done.
 
 While you hold [[REC]]:

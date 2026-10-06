@@ -9,6 +9,33 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Drums, a new sound engine:** a sixteen-pad drum kit after the classic
+  analogue drum machines, on MIDI notes 36 to 51 like Sophie.
+  - Two kits: Deep, with a deep kick that booms for over a second, round
+    toms and analogue-style hi-hats; and Punch, with a short kick that
+    sweeps down, a crisp snare and ring-modulated hi-hats. Both have two
+    snares, a clap, a rim shot, six toms, a crash and a ride, and any pad
+    can play a cowbell instead.
+  - Each pad has its own Tune, Decay, Level, Tone, Snap, Sweep, Drive and
+    sound (Model); Pad chooses which pad the knobs edit, as on Sophie. The
+    knobs start in the middle, which is the pad as the kit sets it up. Kit,
+    Accent (how much velocity matters) and Volume are the whole kit's.
+  - A closed or pedal hi-hat cuts the open one short. Up to twelve hits
+    ring at once, and a pad struck again while it rings is struck again,
+    as a drum is; a thirteenth takes over the quietest hit, so a cymbal
+    still ringing loud keeps going.
+  - The kicks, toms, snares and hi-hats are Plaits' drum models by Emilie
+    Gillet; the rim shot, clap, cowbell and cymbals are new, after
+    published studies of the analogue circuits.
+  - It plays the same, sample for sample, in the browser as on the
+    desktop, and fits in about 8 KB.
+- **The virtual FM-1's keys play any drum kit's pads:** with Sophie or
+  Drums as the current sound, the sixteen white keys play the sixteen pads
+  at any octave. Step recording, and adding a pitch to a held step with
+  SHIFT, enter the pad a white key plays (they entered a pitch the kit
+  ignores, so the steps played nothing). For developers: an engine says it
+  is a kit with two new fields in the engine API, `pad_first_note` and
+  `pad_count`.
 - **JieLi SDK upgraded to the V1.2.13 libraries, with safeguards** (owner's
   decision, 2026-10-05; notes/2026-10-05-softkey-efuse.md §4). The pin is now
   Gitee `release/AC79NN_SDK_V1.2.0` at `e30b1ee` (= tag V1.2.13), by commit.
