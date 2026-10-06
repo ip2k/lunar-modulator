@@ -9,6 +9,39 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Glide Mode and Time Mode on Macro, Macro Heavy, Six-Op FM, FM6 and
+  Shapes.** Glide now has a page of its own on every pitched engine, with
+  four knobs:
+  - **Glide Mode**: *Off* (the default: nothing slides, and the engine
+    sounds exactly as without glide), *Legato* (a note played over a held
+    key slides from it, as glide did until now) or *Always* (every note
+    slides from the last one you played, held or not: the stock FM-1's
+    full-time portamento).
+  - **Time Mode**: *Time* (each slide takes the Glide time, as before) or
+    *Rate* (Glide is the time per octave, so a wider jump takes longer).
+  - **Glide** keeps 1 ms to 5 s, now 100 ms by default; 1 ms is a real,
+    very short slide, and Off lives in Glide Mode. A setup that turned
+    Glide up to slide needs Glide Mode set to Legato too.
+  - The page is page 4 of Macro and Macro Heavy and page 3 of Six-Op FM,
+    FM6 and Shapes, whose page 2 is back to what it was before glide. All
+    four can be locked and modulated; a slide under way finishes as it
+    began when a mode changes.
+  - The modulation runtime holds 8 more parameter records (336 bytes) for
+    Macro Heavy's sixteen parameters; each engine grows by 32 to 40 bytes.
+- **SHIFT with MONO or POLY sets the Voice Mode** in the simulator, outside
+  SEQ mode: hold SEL and press the black key MONO (C#5) for Mono, again for
+  Legato, or POLY (D#5) for Poly. The screen names the mode, and with SEL
+  held the two keys light to show it. On a kit, the screen says there is
+  no Voice Mode.
+- **Drums: choke groups and a kit-wide decay.**
+  - **Choke** (page 3, per pad): *Kit* (the kit's own: the three hi-hats
+    cut each other in both kits), *None*, or *Group 1* to *Group 4*. A hit
+    cuts every other pad of its group that is still ringing; a pad keeps the
+    group it was struck in.
+  - **Kit Decay** (page 4): every pad's decay at once, each from its own
+    setting; the middle is the kit as voiced, exactly.
+  - Kit, Accent and Volume moved to page 4, the kit's page; pages 1 to 3
+    are the pad's.
 - **Diagrams in the manual.** Eight drawings, in the manual's colours, where
   the text explains how things connect: where the arpeggiator sits in the
   note path (chapter 4); the whole signal flow from the keys, MIDI IN and
@@ -1239,6 +1272,19 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Squash's Mu makes up its own level, in part.** Turning Squash up past
+  the middle now mostly changes Mu's character rather than its loudness: it
+  gives back half, in dB, of what it takes from a -12 dBFS peak, up to
+  24 dB (2.7 dB at Squash 0.6, 9.7 at 0.75, 24 at the right end). It never
+  pushes a sound past full scale: on the first moments of a loud note, before
+  Mu has turned it down, the lift gives way. Up to Squash 0.525 Mu is exactly
+  as before; Snap and Split are unchanged. Documented in engines/README.md
+  ("Squash") with the curve.
+- **EQ, Isolator and Master Sat stay awake under locks and cables.** An
+  effect that a modulation cable (at any amount) or a sequencer lock reaches
+  never rests at its neutral settings, so a short move is always heard at
+  once. Engine API v3 gains a host's word for it, `FM1_PARAM_DRIVEN`, which
+  every other engine ignores.
 - **The screen, reworked from the UI audit: one meaning per colour, two
   smaller typefaces, fuller lists and whole names**
   (`notes/2026-10-06-ui-audit.md`, every proposal adopted by the owner).
@@ -1713,6 +1759,12 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- **Six-Op FM took a not-a-number setting as the minimum;** it is now the
+  parameter's default, as the engine API says and every other engine does.
+- **The documentation:** the engine count in DEVELOPERS.md (seven sound
+  engines with Drums and FM6), and the Limiter's Round mode, whose 3 dB of
+  room over the ceiling for its rounding clip is by design (the output still
+  never passes the ceiling).
 - **Shapes stays inside what Braids' code handles.** At a few edges Braids
   read past the end of a table or did arithmetic C++ leaves undefined, so
   the same settings could sound different from one build to the next (the
