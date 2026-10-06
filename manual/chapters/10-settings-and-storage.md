@@ -1,7 +1,8 @@
 # Settings and storage
 
 This chapter covers the global page, where Lunar Modulator shows what
-applies to the whole instrument, and how sounds and sequencer sets are kept.
+applies to the whole instrument and sets the project key, and how sounds
+and sequencer sets are kept.
 
 !!! warning "Nothing is stored on the FM-1"
     Lunar Modulator writes nothing to an FM-1's memory, and will not until
@@ -14,8 +15,9 @@ applies to the whole instrument, and how sounds and sequencer sets are kept.
 
 ### To open the global page
 
-Press [[GLO]]. Press [[GLO]] again, or [[HOME]], to leave it. The bottom bar
-reads *1/1 Globe* while the page is open.
+Press [[GLO]]. Press [[GLO]] again, or [[HOME]], to leave it. It has two
+pages: turn [[SELECT]] for *1/2 Globe*, what the instrument runs, and *2/2
+Key*, the project key. The bottom bar names the page.
 
 ### What it shows
 
@@ -29,7 +31,33 @@ reads *1/1 Globe* while the page is open.
 | Octave | The keyboard's octave, from −3 to +3 ([chapter 4](04-playing.md#octave-and-transpose)) |
 | Transpose | The transpose in semitones, from −12 to +12 |
 
-The knobs change nothing on this page.
+On *Globe* [[KNOB1]] and [[KNOB2]] set the project key, and the page turns
+to *Key* to show it; [[KNOB3]] and [[KNOB4]] change nothing.
+
+### The project key
+
+{{status sim desktop}}
+
+One key for the whole project: a root, C to B, and a scale.
+
+| Knob | What it sets |
+| --- | --- |
+| [[KNOB1]] | The root: C, C#, D and so on to B |
+| [[KNOB2]] | The scale: Major, Minor, Dorian, Phrygian, Lydian, Mixolydian, Locrian or Chromatic |
+
+Each knob shows its list while you turn it, the chosen entry marked. The
+line under the top bar says the key in words, such as *D Minor*. It starts
+at C Major.
+
+- **What it is for.** Every MIDI effect is told the key. The arpeggiator does
+  not use it; the scale and chord effects planned next will. The sound
+  engines and the sequencer play the same in any key.
+- **Where it is kept.** The key belongs to the sequencer's set, beside the
+  tempo and the swing ([what a set keeps](#what-a-set-keeps)). Loading a set
+  brings its key; a set from Movy, or one saved in C Major, has none and
+  loads in C Major.
+- **In the desktop tools.** The sequencer's `key` command sets it in a
+  script, such as `key 2 1` for D Minor ([chapter 7](07-sequencer.md)).
 
 !!! tip "Will it fit on the FM-1?"
     The simulator refuses any sound or effect that would take the figure
@@ -72,7 +100,7 @@ A set is everything the sequencer holds ([chapter 7](07-sequencer.md#how-a-patte
 
 | Kept | Not kept |
 | --- | --- |
-| The tempo, the swing and the external-clock `link` setting ([chapter 9](09-midi.md#following-an-external-clock)) | Whether the sequencer was playing |
+| The tempo, the swing, the external-clock `link` setting ([chapter 9](09-midi.md#following-an-external-clock)) and the project key | Whether the sequencer was playing |
 | The song | The playhead's position |
 | Each track's chosen clip, its mute, its muted or soloed drum notes, and its routing | How many times each clip has looped, which conditions count |
 | Each track's lock lanes, with their parameters and base values | The random sequence behind probability |
@@ -94,7 +122,8 @@ Movy reads these files too, and Lunar Modulator reads Movy's. The
 differences:
 
 - Lunar Modulator adds a line for each track you route away from its
-  default, which Movy ignores.
+  default, and one for the project key unless it is C Major, which Movy
+  ignores.
 - It keeps what it loads within its own ranges, clip speeds of 1/8X to 4X
   among them.
 - It leaves out what does not fit its memory: notes and locks beyond its

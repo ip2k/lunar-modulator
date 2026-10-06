@@ -146,7 +146,10 @@ struct fm1_seq {
 
   /* 4-byte fields */
   uint32_t magic, size, sample_rate, bpm_x100;
-  uint32_t swing_pct, count_in_left;
+  uint16_t swing_pct;           /* 50..80 */
+  uint8_t key_root, key_scale;  /* the project key (fm1_seq.h), in what was swing's
+                                   upper half: the instance's size is unchanged */
+  uint32_t count_in_left;
   uint32_t off_tracks, off_pmutes, off_clips, off_notes, off_locks, off_trigs;
   uint32_t off_gates, off_song, off_pend, off_tail, off_cap;
   uint32_t last_cmd_seq;

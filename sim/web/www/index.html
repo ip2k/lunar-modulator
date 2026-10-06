@@ -71,7 +71,8 @@
         <kbd>&uarr;</kbd> <kbd>&darr;</kbd> PRESETS (sound), <kbd>-</kbd> <kbd>=</kbd> ALGORITHM
         (the sound's model, or the effect in FX mode). KNOB1&ndash;4 turn the four parameters on screen.</dd></div>
       <div><dt>Buttons</dt><dd>FX shows the effects (below), GLO the global page, HOME goes back.
-        MASTER is the volume. <kbd>Esc</kbd> releases every note.</dd></div>
+        On the global page SELECT turns to Key, where KNOB1 and KNOB2 set the project key's root and
+        scale, kept with the sequencer's set. MASTER is the volume. <kbd>Esc</kbd> releases every note.</dd></div>
       <div><dt>MIDI</dt><dd>Notes, pitch bend (&plusmn;2 semitones), CC&nbsp;7 volume, CC&nbsp;123 all notes off.</dd></div>
       <div><dt>Sequencer</dt><dd>PLAY/STOP, or <kbd>Space</kbd>, starts and stops the sequencer, which holds a one-bar demo pattern on track 1.
         SEQ shows the track: the tempo, the transport and four bars of steps with the playhead; HOME, FX
@@ -124,8 +125,9 @@
         RHYTHM, CHANCE, FEEL, MORE, KEYS, SEED), the knobs set the mode, rate, gate, octaves, rhythm
         patterns and chance, and ALGORITHM picks the stock FM-1's arp modes as presets. The keys, MIDI
         and the sequencer's notes for that sound all go through it, and it follows the sequencer's
-        tempo, running or not. Recording keeps the notes you played, so the arpeggio comes back on
-        playback. Its LED is lit while it is on and blinks while it latches. The arpeggiator follows
+        tempo, running or not; while the sequencer plays, its steps fall on the sequencer's beat. Stop
+        takes back the sequencer's notes and leaves the ones you latched. Recording keeps the notes
+        you played, so the arpeggio comes back on playback. Its LED is lit while it is on and blinks while it latches. The arpeggiator follows
         Yarns' (Emilie Gillet) with note orders after MCL's (Justin Mammarella) and chance after Super
         Arp's (Handcrafted Media); the code is this project's own.</dd></div>
       <div><dt>Modulation</dt><dd>Two LFOs, two envelopes that every note restarts, and a random source. LFO or ENV shows them a page at a time on

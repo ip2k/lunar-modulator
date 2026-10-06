@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "ad362e02abd473062ad23c23a96875f3f0266ea240e2f3a2d0a2af7e9db73821",
-  "wasm_bytes": 955289,
+  "wasm_sha256": "3bffd2621134f04e657f1ffe94f3e98b8bbd8ff961a8ecff947affe88b861609",
+  "wasm_bytes": 958865,
   "sources_sha256": {
-    "engines": "7623c51f6fea61b9f7bb18fd82e230b7dd6b59812d2ccd6f143b6a8a6a29584a",
-    "sim": "dd4e8f21b184a58a0f42697ddb044b01bcf82f69b4fc201fa5cfd6e0792c627a"
+    "engines": "48614b9577583c12784165eb23225f11d494c1f82f2524648859b5543cec47b7",
+    "sim": "de4a5a4a7689424627780024668bc1126ef92856809d63522b70dac57dc9cd60"
   },
   "engines": "working tree",
-  "built": "2026-10-06T09:51:54Z",
+  "built": "2026-10-06T10:06:41Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 86,
+    "passed": 88,
     "failed": 0,
-    "identical_to_js": 86,
-    "identical_to_musl": 86,
-    "identical_to_glibc": 83,
+    "identical_to_js": 88,
+    "identical_to_musl": 88,
+    "identical_to_glibc": 85,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "dx7_sysex": {
@@ -2188,6 +2188,69 @@
         "native_dropped": 0
       },
       "panel": "arp/panel-arp.panel"
+    },
+    {
+      "name": "arp-latch-stop",
+      "samples": 529416,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 82780,
+        "native64": 95644
+      },
+      "cmd": "arp/arp-latch-stop.verbs",
+      "seq": {
+        "lines": 5,
+        "lines_match": true,
+        "ui_cmds": 6,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "arp-panel-stop",
+      "samples": 582356,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 148508,
+        "native64": 161372
+      },
+      "cmd": "arp/panel-arp-stop.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 12,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "arp/panel-arp-stop.panel"
     }
   ]
 }
