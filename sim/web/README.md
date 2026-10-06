@@ -527,14 +527,16 @@ with msfa's tables as const data, Squash, Transient and the Limiter's
 Round mode, per-voice modulation (MG9) (2026-10-06), the idle paths of
 EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"),
 the arpeggiator with the MIDI effects' stage (engine API v3's MIDI effects),
-glide and the voice modes (`engines/src/glide.h`) and the UI audit's
-screens: 86 of 86 scenarios pass,
+glide and the voice modes (`engines/src/glide.h`), the UI audit's
+screens, and glide's modes, Drums' Choke and Kit Decay, the driven idle
+paths and Squash Mu's makeup (2026-10-06): 89 of 89 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
-every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
-wake them; those two, the three Drums, the four FM6 and the three glide
-scenarios are identical to glibc too), and it imports nothing; it is
-955,464 bytes (955,543 before the dead-code audit's removals) with the UI
-audit's screens (the palette, the two Spleen faces and the screens that
+every 4.4 ms, two let EQ with Master Sat and Isolator rest past 2 s and
+wake them, and one keeps EQ awake under a zero cable; those three, the
+three Drums, the four FM6 and the five glide scenarios are identical to
+glibc too), and it imports nothing; it is 956,440 bytes with those
+follow-ups, 955,464 before them (955,543 before the dead-code audit's
+removals) with the UI audit's screens (the palette, the two Spleen faces and the screens that
 use them), 938,723 before them with glide
 (939,251 with them before glide), 922,439 before both, 907,256 with glide
 before the arpeggiator, 890,975 before both (890,874 before Shapes'
