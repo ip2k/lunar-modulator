@@ -1052,8 +1052,8 @@ history.
 
 ### Changed
 - HANDOFF.md, the project's context summary, is rewritten for `main` after
-  PRs #3–#57 (2026-10-05); it had been patched piecemeal since the
-  2026-09-06 research phase.
+  the PRs merged up to #61 (2026-10-05); it had been patched piecemeal
+  since the 2026-09-06 research phase.
   - Where things stand: the code runs on a desktop and in a browser (the
     virtual FM-1 and the manual on GitHub Pages), compiles for pi32v2 but
     has not run on a JieLi chip, and this project has flashed nothing.
