@@ -17,7 +17,7 @@ those messages so you can search for them.
 | The status line says *This browser has no AudioWorklet* | The browser is too old, or lacks the audio feature the simulator needs | Use a current Chromium-based browser such as Chrome or Edge |
 | The status line says *The firmware did not start* | The firmware's code did not load in this browser | Reload the page; try a current Chromium-based browser |
 | Crackles or dropouts | The computer is busy, or a phone is too slow | Close other tabs and programs; on a phone, try a computer |
-| The status line says that Macro *was refused: it does not run at 48,000 Hz*, and the simulator started with another sound | The browser would not run audio at 44,118 or 44,100 Hz, and Macro, Macro Heavy, Six-Op FM and Drums need 47,872 Hz or less | Set the computer's audio output to 44.1 kHz and reload. FM6, Shapes, Sophie and Test Sine work at 48 kHz too |
+| The status line says that Macro *was refused: it does not run at 48,000 Hz*, and the simulator started with another sound | The browser would not run audio at 44,100 Hz (the status line says *the browser refused 44,100 Hz*), and Macro, Macro Heavy, Six-Op FM and Drums need 47,872 Hz or less | Set the computer's audio output to 44.1 kHz and reload. FM6, Shapes, Sophie and Test Sine work at 48 kHz too |
 
 ### Playing
 

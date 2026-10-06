@@ -3,7 +3,8 @@ the sequencer's track strip carries each track's sound number on its tile
 (audit L3: the number is the cue that needs no colour), and MATRIX's state
 mark keeps a narrow gap from its source and its destination, so a
 six-character source does not run into it ("S2RTRG > ENV4", not
-"S2RTRG>ENV4").
+"S2RTRG>ENV4"), and CHAIN's '>' keeps one from its destination
+("-100 > ENV3 Sustain").
 
 Read from the screen sweep's frames (fm1-sim-render --screens) and the
 generated Spleen 6 x 12 table, not from the drawing code.
@@ -185,6 +186,34 @@ def test_matrix_marks_keep_their_gaps(frames, colours, frame, rows):
         assert after[0] - m[-1] - 1 >= 4, (frame, r, m, after[0])
         checked += 1
     assert checked == rows, (frame, checked)
+
+
+@pytest.mark.parametrize("frame,rows", [("chain-slot3", 3), ("chain-07", None)])
+def test_chains_arrow_keeps_its_gap_from_the_destination(frames, colours, frame, rows):
+    """CHAIN's cable lines ("-100 >ENV3 Sustain"): the '>' (subtle) keeps
+    at least 4 px from the destination's ink after it, as MATRIX's mark
+    does, and no line reaches past the right margin. `rows` is how many
+    unselected cable lines the frame has (None: at least one)."""
+    img = ppm(frames / f"{frame}.ppm")
+    base, mark = colours["base"], colours["subtle"]
+    checked = 0
+    for r in range(9):
+        y = ROW_Y0 + r * ROW_PITCH
+        row = img[y:y + ROW_H]
+        if row[0][0] != base:                  # the selected line, on the selection's bar
+            continue
+        assert all(p == base for line in row for p in line[RIGHT:]), (frame, r)
+        m = [x for x in ink_columns(row, mark) if x < 60]
+        if not m or m[-1] - m[0] > 8:          # a node line: no arrow near the left
+            continue
+        before = [x for x in range(m[0]) if any(line[x] not in (base, mark) for line in row)]
+        after = [x for x in range(m[-1] + 1, len(row[0])) if any(line[x] not in (base, mark) for line in row)]
+        if not before or not after:
+            continue
+        assert after[0] - m[-1] - 1 >= 4, (frame, r, m, after[0])
+        assert m[0] - before[-1] - 1 >= 4, (frame, r, before[-1], m)
+        checked += 1
+    assert checked == rows if rows is not None else checked >= 1, (frame, checked)
 
 
 def test_the_six_character_source_row_reads_apart(frames, colours):

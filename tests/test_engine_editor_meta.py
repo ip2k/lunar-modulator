@@ -172,7 +172,7 @@ def test_refusals_are_the_loaders_and_the_planners(meta):
     for c in codes:
         assert re.search(r"FM1_REFUSE_%s = %d\b" % (c["name"], c["code"]), header), c["name"]
         assert c["fills"] == list(dict.fromkeys(re.findall(r"\{(\w+)\}", c["detail"] or "")))
-    assert [k["reason"] for k in meta["refusals"]["known"]] == ["gpl", "planned", "retired"]
+    assert [k["reason"] for k in meta["refusals"]["known"]] == ["gpl", "planned", "retired", "list"]
 
 
 def test_refusal_words_say_memory_in_percent(meta):

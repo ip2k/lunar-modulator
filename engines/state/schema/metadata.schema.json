@@ -10,13 +10,14 @@
     "kind": {"const": "metadata"},
     "build": {
       "type": "object",
-      "required": ["engine_api", "mod_api", "rate", "ram_budget", "gpl"],
+      "required": ["engine_api", "mod_api", "rate", "ram_budget", "gpl", "modules"],
       "properties": {
         "engine_api": {"description": "FM1_ENGINE_API_VERSION.", "type": "integer", "minimum": 1},
         "mod_api": {"description": "FM1_MOD_API_VERSION.", "type": "integer", "minimum": 1},
         "rate": {"description": "The rate files are checked at (the FM-1's), Hz.", "type": "integer", "minimum": 8000},
         "ram_budget": {"description": "Bytes the engines, effects and modulation may take (FM1_APP_RAM_BUDGET).", "type": "integer", "minimum": 0},
-        "gpl": {"description": "Whether FM1_GPL_MODS was on: GPL modules are in this build.", "type": "boolean"}
+        "gpl": {"description": "Whether FM1_GPL_MODS was on: GPL modules are in this build.", "type": "boolean"},
+        "modules": {"description": "The module list the build was made with (FM1_MODULES, engines/modules/catalogue.mk): `all`, a list file's name such as `default`, or `custom`. The modules it leaves out are in known_ids with the reason `list`.", "type": "string", "pattern": "^[A-Za-z0-9._-]{1,32}$"}
       },
       "additionalProperties": false
     },
@@ -90,7 +91,7 @@
       "additionalProperties": false
     },
     "known_ids": {
-      "description": "Ids this build knows but does not have, with the reason a refusal gives (engines/known-ids.json).",
+      "description": "Ids this build knows but does not have, with the reason a refusal gives: `list` for the modules its module list leaves out (FM1_MODULES, engines/modules/catalogue.mk), else engines/known-ids.json's.",
       "type": "array",
       "items": {
         "type": "object",
@@ -98,7 +99,7 @@
         "properties": {
           "id": {"$ref": "common.schema.json#/$defs/id"},
           "what": {"enum": ["sound", "audio_fx", "midi_fx", "mod"]},
-          "reason": {"enum": ["planned", "gpl", "retired"]},
+          "reason": {"enum": ["planned", "gpl", "retired", "list"]},
           "since": {"description": "For a retired id: the version that retired it.", "type": "string", "maxLength": 16}
         },
         "additionalProperties": false
@@ -165,7 +166,7 @@
             "type": "object",
             "required": ["reason", "words"],
             "properties": {
-              "reason": {"enum": ["planned", "gpl", "retired"]},
+              "reason": {"enum": ["planned", "gpl", "retired", "list"]},
               "words": {"type": "string", "pattern": "^[ -~]{1,40}$"}
             },
             "additionalProperties": false

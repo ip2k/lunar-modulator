@@ -159,6 +159,7 @@
 #include "fm1_mod.h"
 #include "fm1_mod_host.h"
 #include "fm1_meta.h"
+#include "fm1_modules.h"   // FM1_WITH_DX7: the module list (modules/catalogue.mk)
 #include "fm1_seq.h"
 #include "fm1_seq_host.h"
 #include "fm1_state_mod.h"
@@ -649,10 +650,12 @@ void RenderFx(Unit &u, unsigned unit, const Modulation *md, float *block, uint32
 // --sysex: each file's DX7 voices into the dx7 engine's user slots, in
 // order, single voices one slot after another across files.
 bool LoadSysex(const Unit &u, const char *id, const std::vector<std::string> &paths) {
-  if (!id || strcmp(id, "dx7") != 0) {
+  if (!id || strcmp(id, "dx7") != 0 || !FM1_WITH_DX7) {
     fprintf(stderr, "--sysex needs --engine dx7\n");
     return false;
   }
+#if FM1_WITH_DX7   // a list without FM6 links none of its code
+
   unsigned slot = 0;
   for (size_t k = 0; k < paths.size(); ++k) {
     FILE *f = fopen(paths[k].c_str(), "rb");
@@ -679,15 +682,21 @@ bool LoadSysex(const Unit &u, const char *id, const std::vector<std::string> &pa
     slot = (r.first_slot + static_cast<unsigned>(n)) % FM1_DX7_USER_SLOTS;
   }
   return true;
+#else
+  (void)u;
+  (void)paths;
+  return false;
+#endif
 }
 
 // --save-bank: the dx7 engine's 32 user slots as one VMEM bank dump
 // (fm1_dx7_write_bank, MIDI channel 1), after any --sysex.
 bool SaveBank(const Unit &u, const char *id, const char *path) {
-  if (!id || strcmp(id, "dx7") != 0 || !u.self) {
+  if (!id || strcmp(id, "dx7") != 0 || !u.self || !FM1_WITH_DX7) {
     fprintf(stderr, "--save-bank needs --engine dx7\n");
     return false;
   }
+#if FM1_WITH_DX7
   uint8_t voices[FM1_DX7_USER_SLOTS][FM1_DX7_VCED_BYTES];
   const uint8_t *refs[FM1_DX7_USER_SLOTS];
   for (unsigned k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
@@ -704,6 +713,10 @@ bool SaveBank(const Unit &u, const char *id, const char *path) {
   }
   fclose(f);
   return true;
+#else
+  (void)path;
+  return false;
+#endif
 }
 
 bool ParseParam(const char *arg, std::vector<std::pair<std::string, float> > *out) {
@@ -904,8 +917,10 @@ int main(int argc, char **argv) {
     if (a == "--build-info") {
       size_t gpl = 0;
       for (size_t k = 0; k < fm1_licence_count; ++k) gpl += fm1_licence_is_gpl(fm1_licences[k].spdx);
-      printf("{\"engine_api\":%u,\"gpl_mods\":%d,\"engines\":%zu,\"midi_fx\":%zu,\"gpl_modules\":%zu}\n",
-             FM1_ENGINE_API_VERSION, fm1_gpl_mods, fm1_engine_count, fm1_midi_fx_count, gpl);
+      printf("{\"engine_api\":%u,\"gpl_mods\":%d,\"engines\":%zu,\"midi_fx\":%zu,\"gpl_modules\":%zu,"
+             "\"mod_kinds\":%zu,\"modules\":\"%s\",\"left_out\":%zu}\n",
+             FM1_ENGINE_API_VERSION, fm1_gpl_mods, fm1_engine_count, fm1_midi_fx_count, gpl,
+             fm1_mod_kind_count, fm1_modules_name, fm1_left_out_count);
       return 0;
     }
     if (a == "--list-mod") { ListMod(); return 0; }
@@ -1333,7 +1348,9 @@ int main(int argc, char **argv) {
   for (int k = 0; k < kSounds && !loaded.dx7.empty(); ++k) {
     const Unit &u = *units[k];
     if (!u.e || strcmp(u.e->id, "dx7") != 0) continue;
+#if FM1_WITH_DX7
     for (size_t i = 0; i < loaded.dx7.size(); ++i) fm1_dx7_set_user_voice(u.self, loaded.dx7[i].first, loaded.dx7[i].second.data());
+#endif
   }
   for (size_t k = 0; k < controls.size(); ++k) {     // a later unit's --sound-param-at
     Control &c = controls[k];

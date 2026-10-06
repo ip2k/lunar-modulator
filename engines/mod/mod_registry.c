@@ -1,8 +1,10 @@
 /* mod_registry.c -- the modulation runtime's static tables: the module kinds,
  * the system sources and the host unit's parameters (fm1_mod.h). Adding a
- * kind is one line here plus its file under kinds/ (docs/16 §7). MIT
- * licence. */
+ * kind is one line here plus its file under kinds/ (docs/16 §7), and its id
+ * in engines/modules/catalogue.mk: each kind is FM1_IF(FM1_WITH_<ID>, ...),
+ * the module list (FM1_MODULES). MIT licence. */
 #include "mod_int.h"
+#include "fm1_modules.h"    /* FM1_WITH_*, FM1_IF: the module list, generated */
 
 extern const fm1_mod_kind_t fm1_mod_kind_lfo;
 extern const fm1_mod_kind_t fm1_mod_kind_env;
@@ -24,26 +26,27 @@ extern const fm1_mod_kind_t fm1_mod_kind_resonator;
 /* Registry order is not saved anywhere (presets store each kind's guid),
  * so new kinds may go anywhere; keep the first wave first. */
 const fm1_mod_kind_t *const fm1_mod_kinds[] = {
-  &fm1_mod_kind_lfo,
-  &fm1_mod_kind_env,
-  &fm1_mod_kind_chance,
+  FM1_IF(FM1_WITH_LFO, &fm1_mod_kind_lfo)
+  FM1_IF(FM1_WITH_ENV, &fm1_mod_kind_env)
+  FM1_IF(FM1_WITH_CHANCE, &fm1_mod_kind_chance)
   /* MG2 (docs/16 §8): the glue kinds, in the catalogue's order, and the
    * Resonator (MG2's Filter, renamed by the owner on 2026-10-05). */
-  &fm1_mod_kind_function,
-  &fm1_mod_kind_bounce,
-  &fm1_mod_kind_register,
-  &fm1_mod_kind_coin,
-  &fm1_mod_kind_divide,
-  &fm1_mod_kind_burst,
-  &fm1_mod_kind_slew,
-  &fm1_mod_kind_quantize,
-  &fm1_mod_kind_compare,
-  &fm1_mod_kind_logic,
-  &fm1_mod_kind_calc,
-  &fm1_mod_kind_mix,
-  &fm1_mod_kind_resonator,
+  FM1_IF(FM1_WITH_FUNCTION, &fm1_mod_kind_function)
+  FM1_IF(FM1_WITH_BOUNCE, &fm1_mod_kind_bounce)
+  FM1_IF(FM1_WITH_REGISTER, &fm1_mod_kind_register)
+  FM1_IF(FM1_WITH_COIN, &fm1_mod_kind_coin)
+  FM1_IF(FM1_WITH_DIVIDE, &fm1_mod_kind_divide)
+  FM1_IF(FM1_WITH_BURST, &fm1_mod_kind_burst)
+  FM1_IF(FM1_WITH_SLEW, &fm1_mod_kind_slew)
+  FM1_IF(FM1_WITH_QUANTIZE, &fm1_mod_kind_quantize)
+  FM1_IF(FM1_WITH_COMPARE, &fm1_mod_kind_compare)
+  FM1_IF(FM1_WITH_LOGIC, &fm1_mod_kind_logic)
+  FM1_IF(FM1_WITH_CALC, &fm1_mod_kind_calc)
+  FM1_IF(FM1_WITH_MIX, &fm1_mod_kind_mix)
+  FM1_IF(FM1_WITH_RESONATOR, &fm1_mod_kind_resonator)
+  NULL    /* the end: a list may leave every kind out */
 };
-const size_t fm1_mod_kind_count = sizeof(fm1_mod_kinds) / sizeof(fm1_mod_kinds[0]);
+const size_t fm1_mod_kind_count = sizeof(fm1_mod_kinds) / sizeof(fm1_mod_kinds[0]) - 1;
 
 static char lower(char c) { return c >= 'A' && c <= 'Z' ? (char)(c - 'A' + 'a') : c; }
 

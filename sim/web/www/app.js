@@ -175,12 +175,12 @@ const image = new ImageData(240, 240);
 
 const sim = {
   ctx: null, node: null, analyser: null, catalog: null, state: null, master: 0.75,
-  requestedRate: null, screens: 0, midi: null, notice: '', seq: null, dx7: null,
+  requestedRate: null, rateRefused: '', screens: 0, midi: null, notice: '', seq: null, dx7: null,
 };
 window.fm1 = sim;    // for the headless screenshot test and the console
 
-// Macro, Macro Heavy and Six-Op run Plaits at 47,872.34 Hz and resample to
-// the host, so they refuse faster hosts (engines/resampler.md).
+// Macro, Macro Heavy, Six-Op and Drums run Plaits at 47,872.34 Hz and
+// resample to the host, so they refuse faster hosts (engines/resampler.md).
 const PLAITS_RATE = 47872;
 
 function send(msg) { if (sim.node) sim.node.port.postMessage(msg); }
@@ -190,22 +190,37 @@ function send(msg) { if (sim.node) sim.node.port.postMessage(msg); }
 // (a subdirectory, a static host that wraps the page, https or localhost).
 const asset = (name) => new URL(name, import.meta.url).href;
 
+// The page asks the browser for 44,100 Hz (owner, 2026-10-06): every engine
+// runs there, Macro, Macro Heavy, Six-Op and Drums (which need 47,872 Hz or
+// less) included, and it is the rate audio hardware most often
+// runs at. The FM-1 runs at about 44,118 Hz; the RAM meter counts at that
+// rate whatever the browser gives (FM1_APP_RAM_RATE).
+const WANT_RATE = 44100;
+
 async function makeContext() {
   let last = null;
-  for (const rate of [44118, 44100]) {
-    try {
-      const ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: rate });
-      if (ctx.sampleRate <= PLAITS_RATE) {
-        sim.requestedRate = rate;
-        return ctx;
-      }
-      await ctx.close();          // the browser ignored the rate it was asked for
-    } catch (err) {
-      last = err;
+  try {
+    const ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: WANT_RATE });
+    if (ctx.sampleRate === WANT_RATE) {
+      sim.requestedRate = WANT_RATE;
+      sim.rateRefused = '';
+      return ctx;
     }
+    // The browser took the request but runs at another rate: keep it if
+    // every engine still runs there, else fall back below.
+    sim.rateRefused = `it runs at ${ctx.sampleRate.toLocaleString('en')} Hz`;
+    if (ctx.sampleRate <= PLAITS_RATE) {
+      sim.requestedRate = WANT_RATE;
+      return ctx;
+    }
+    await ctx.close();
+  } catch (err) {
+    last = err;
+    sim.rateRefused = 'it would not run at that rate';
   }
-  // Last resort, the device's own rate. Above 47,872 Hz the firmware starts
-  // with the first sound that runs and says which ones refused.
+  // Refused: the browser's own rate. Above 47,872 Hz the firmware starts
+  // with the first sound that runs, and the status line says which refused
+  // and why.
   try {
     const ctx = new AudioContext({ latencyHint: 'interactive' });
     sim.requestedRate = null;
@@ -390,7 +405,8 @@ function onWorklet(m, node) {
       const name = entry ? entry.name : `Engine ${m.index}`;
       const why = m.code === -2 ? 'it is too large for its slot'
         : m.code === -3 ? `it does not run at ${Math.round(m.rate).toLocaleString('en')} Hz ` +
-          `(Macro, Macro Heavy and Six-Op need ${PLAITS_RATE.toLocaleString('en')} Hz or less)`
+          `(Macro, Macro Heavy, Six-Op and Drums need ${PLAITS_RATE.toLocaleString('en')} Hz or less` +
+          (sim.requestedRate === WANT_RATE ? ')' : ', and this browser would not run the page at 44,100 Hz)')
           : m.code === -4 ? 'the chain would no longer fit the FM-1\'s memory (the screen says what it would need)'
             : `error ${m.code}`;
       sim.notice = `${name} was refused: ${why}.` +
@@ -453,7 +469,8 @@ function showStatus() {
   const st = sim.state;
   if (!sim.ctx || !st) return;
   const rate = sim.ctx.sampleRate;
-  const fellBack = sim.requestedRate !== 44118 ? ` (the browser refused 44,118 Hz)` : '';
+  const fellBack = rate === WANT_RATE ? ''
+    : ` (the browser refused 44,100 Hz${sim.rateRefused ? `: ${sim.rateRefused}` : ''})`;
   const latency = sim.ctx.outputLatency || sim.ctx.baseLatency || 0;
   const q = sim.seq;
   const seq = q ? ` Sequencer: ${bpmText(q.bpm_x100)}, ` +
