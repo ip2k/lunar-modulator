@@ -25,7 +25,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `sixop` | Six-Op FM | sound | 8 | Plaits' DX7-style engine and its 96 patches | [plaits-heavy.md](plaits-heavy.md) |
 | `dx7` | FM6 | sound | 12 | msfa, the FM core of Google's music-synthesizer-for-android (Apache-2.0), the stock FM-1's core; 32 voices of our own and DX7 SysEx | [msfa.md](msfa.md); [below](#fm6) |
 | `sw-sophie` | Sophie | sound | 12 | a Schwung module (Matt Estela, MIT), through the shim | [schwung.md](schwung.md) |
-| `drums` | Drums | sound | 12 | Plaits' drum classes (Emilie Gillet, MIT), and a rim shot, clap, cowbell and cymbal of this repository's own | [below](#drums); a 16-pad kit on notes 36–51 with two sets of voicings, Deep and Punch |
+| `drums` | Drums | sound | 12 | Plaits' drum classes (Emilie Gillet, MIT), and a rim shot, clap, cowbell and cymbal of this repository's own | [below](#drums); a 16-pad kit on notes 36–51 with two sets of voicings, Deep and Punch, choke groups and a kit-wide decay |
 | `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
 | `plate` | Plate | effect | – | Rings' reverb, with Elements' Freeze | [mi-fx.md](mi-fx.md) |
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
@@ -74,7 +74,8 @@ whole account. In short:
 - **Parameters:** Patch (32 built-in voices, then User 1–32; LATCH, MOD),
   Brightness (the modulators' level, ±24 dB), Env Time (an envelope clock,
   8× to 1/8×), Feedback (−7..+7 on the voice's) and Volume, all four
-  SMOOTH, MOD and POLY; Glide and Voice Mode ([below](#glide-and-voice-modes)).
+  SMOOTH, MOD and POLY; Glide, Voice Mode, Glide Mode and Time Mode on
+  page 3 ([below](#glide-and-voice-modes)).
 - **Voices:** the built-in ones are ours (`tools/dx7_bank.py`, MIT); the user
   slots take single-voice and 32-voice SysEx dumps through
   `include/fm1_dx7.h` (`fm1-render --sysex FILE`, and the simulator's Load
@@ -267,29 +268,44 @@ values whichever pad is focused (Sophie's table can only show pad 1's).
 | 2 | Sweep | 0..1, 0.5 | the pitch sweep: Analog Drum's self-FM, Punch Drum's FM envelope length, Snap Snare's FM; on the other models a pitch envelope of ours, up to 24 semitones from above (above the middle) or below (under it), falling back over about 20 ms |
 | 2 | Drive | 0..1, 0 | added to the voicing's drive: the signal itself at 0, then more of a soft clip of it pushed up to 8 times |
 | 3 | Model | Kit, Analog Drum … Cowbell | Kit: the voicing's model; otherwise that model with its own voicing |
-| 3 | Kit | Deep, Punch | the whole kit's set of voicings |
-| 3 | Accent | 0..1, 0.5 | the whole kit's velocity sensitivity: at 0 every hit plays as Plaits' unpatched accent (0.8) at full level; at 1 the class's accent is the velocity and the level its square |
-| 3 | Volume | 0..1, 0.7 | the kit's level |
+| 3 | Choke | Kit, None, Group 1–4; Kit | the pad's choke group: Kit, the group its kit gives it (the three hi-hats share Group 1 in both kits, every other pad none); None; or a group. A hit cuts every voice of another pad in its group within 4 ms |
+| 4 | Kit | Deep, Punch | the whole kit's set of voicings |
+| 4 | Accent | 0..1, 0.5 | the whole kit's velocity sensitivity: at 0 every hit plays as Plaits' unpatched accent (0.8) at full level; at 1 the class's accent is the velocity and the level its square |
+| 4 | Volume | 0..1, 0.7 | the kit's level |
+| 4 | Kit Decay | 0..1, 0.5 | every pad's decay at once, about the pad's own: 0.5 is the kit as voiced, bit for bit; below, each pad's decay control is scaled down with it, to the models' shortest at 0; above, each moves toward the models' longest at 1, so Kit Decay 0.25 or 0.8 is each pad's Decay at 0.25 or 0.8 |
 
-- **Twelve parameters.** When Drums was written, the modulation runtime's
-  180 shared records (`FM1_MOD_SINK_PARAMS`) held four sound units of the
-  engine with the most parameters beside ten of the effect with the most
-  (13) and the host's two: 4 × 12 + 10 × 13 + 2 = 180
-  (`tests/test_engines_mod_runtime.py`). Drums has twelve, as Macro Heavy
-  had. A per-pad choke group and a kit-wide decay were written and
-  dropped for it: the hats' choke is the voicings' (the open hat's pad stays
-  in it whatever model it plays), and a pad's Decay is its own. Since glide
-  ([below](#glide-and-voice-modes), 2026-10-06) Macro Heavy has fourteen
-  and the records are 192 with HOST's six since MG9 (320 bytes more
-  [verified: `fm1_mod_size()`]), so Drums could take two back: an open
-  question below.
+Pages 1 to 3 are the focused pad's, page 4 the kit's (Kit, Accent and
+Volume moved there from page 3 when Choke and Kit Decay came, 2026-10-06).
+
+- **Fourteen parameters.** When Drums was written, the modulation
+  runtime's 180 shared records (`FM1_MOD_SINK_PARAMS`) held four sound
+  units of the engine with the most parameters beside ten of the effect
+  with the most (13) and the host's two: 4 × 12 + 10 × 13 + 2 = 180
+  (`tests/test_engines_mod_runtime.py`). Drums had twelve then, and a
+  per-pad choke group and a kit-wide decay were written and dropped for
+  it. Glide gave Macro Heavy fourteen, then sixteen, and the records grew to
+  200 ([below](#glide-and-voice-modes)), so the owner gave Drums the two
+  back (2026-10-06, the open question this section had): Choke and Kit
+  Decay, uids 13 and 14.
+- **Choke.** A pad's group is read when it is struck (LATCH, and MOD: a
+  route is rounded), so a sounding hit keeps the group it was struck in.
+  On Kit (the default) it is the group the kit's voicing gives the pad,
+  whatever model the pad plays (the open hat's pad stays with the hats as a
+  Hat in the Punch kit). Group 1 is the hats' own, so a pad set to it
+  chokes with them. Kept per pad, as Model is.
+- **Saving** (engine API v4, the state core, was not in when these came):
+  Choke is kept per pad (`pads_[p].choke`), so a state save walks Pad 1–16
+  for it as for Model and Tune … Drive; Kit Decay is the kit's, with
+  Accent and Volume. v4's `get_param` must report the focused pad's Choke
+  and mark it per pad (its focus is Pad), and report Kit Decay's set value,
+  not its ramp.
 
 - **Flags.** Every FLOAT is SMOOTH, MOD and POLY. A per-pad knob's ramp
   runs in the pad's own values, only while that pad sounds (a change to a
   silent pad applies at once), and keeps going on its pad when Pad moves
-  on; the kit's knobs ramp while any voice sounds. Model and Kit are read
-  when a pad is struck (LATCH, and MOD: a route is rounded), so a sounding
-  hit keeps what it started with. Uids 1–12, in table order.
+  on; the kit's knobs ramp while any voice sounds. Model, Choke and Kit are
+  read when a pad is struck (LATCH, and MOD: a route is rounded), so a
+  sounding hit keeps what it started with. Uids 1–14, in table order.
 - **Voices.** Twelve. A pad struck while it sounds is struck again in its
   own voice: the Plaits classes are excited again, not restarted, as the
   circuits are. Otherwise it takes a free voice, else the one furthest into
@@ -332,7 +348,7 @@ best of five; desktop figures, which say nothing of pi32v2]:
 
 | Load, per 64-frame block (1,451 µs at 44,118 Hz) | Drums | Macro |
 | --- | --- | --- |
-| Instance, 64-bit and 32-bit (GCC 12 `-m32` in a container) | 7,616 and 7,424 B | 32,448 and 19,584 B |
+| Instance, 64-bit and 32-bit (GCC 12 `-m32` in a container) | 7,616 and 7,424 B (7,648 on 64-bit since Choke and Kit Decay) | 32,448 and 19,584 B |
 | Twelve voices sounding (twelve pads at Decay 1 struck at once) | 25.0 µs Deep, 15.7 µs Punch | 24.7–26.7 µs (twelve held notes, VA Pair and VA+Filter) |
 | Twelve pads re-struck every 0.4 s | 22.8 µs Deep, 14.1 µs Punch | |
 | One pad re-struck, by model | 2.8 µs (Rim, mostly silent) to 4.8 µs (Analog Drum, Snare) | |
@@ -367,15 +383,22 @@ the punch kick sweeps and ends inside 0.5 s; Sweep moves the kick's drop;
 the toms rise with their keys within 35 cents; closed, pedal and open hats
 are short, middle and long, and bright (an RMS frequency over 5.5 kHz in
 both kits, above the snares' and the clap's); the cowbell rings at 800 Hz; the closed and
-pedal hats choke the open one within 5 ms, also when its pad plays another
-model, and nothing else is cut; velocity and Accent, Volume, Level, Decay,
+pedal hats choke the open one within 5 ms in both kits, also when its pad
+plays another model, and nothing else is cut; Choke None takes a pad out
+of its kit's group and Kit puts it back, any pads share a group (crash and
+ride on Group 2 cut each other and nothing else; the crash on Group 1 is
+cut by a closed hat), and a hit keeps the group it was struck in; Kit Decay
+at 0.5 changes no bit, at 0.25 and 0.8 is byte for byte each pad's own
+Decay there (seven pads, both kits), is shorter at 0 and longer at 1, and
+works from a moved Decay; velocity and Accent, Volume, Level, Decay,
 Tune and the bend act; twelve voices hold and a thirteenth pad
 steals the quietest, sparing an older, louder crash; with every voice
 busy a closed hat takes the open hat's voice; a pad struck 24 times takes
 one voice; voices end and
 the output returns to zero; the per-pad knobs edit only the focused pad;
 Kit and Model are read when a pad is struck; Drive saturates; the output is
-the same at host blocks of 1, 7 and 64 and from any instance fill; two pads
+the same at host blocks of 1, 7 and 64 and from any instance fill, Kit
+Decay, Choke and a per-note Kit Decay among the turns; two pads
 together are the two apart; no transcendental libm call; and per-note
 offsets as the other engines take them (zero is a no-op, an offset on a
 lone hit is a base change, a pitch offset is a bend, an offset reaches only
@@ -401,11 +424,10 @@ under ASan and UBSan (clang 19.1, no report) and in a 32-bit build (GCC
    as a later model, or is Plaits' Analog Drum enough?
 5. The voicings were set by measurement, not by ear: the owner is giving
    them a listening pass (2026-10-06).
-6. The modulation records grew from 180 to 192 (HOST's four new records in
-   MG9, then Macro Heavy's fourteen parameters with glide), so a sound
-   engine can now have fourteen at no further cost: give Drums back a
-   per-pad choke group and a kit-wide decay in that room, or keep it at
-   twelve?
+
+(A sixth, whether to give Drums a per-pad choke group and a kit-wide decay
+in the room glide made in the modulation records, was answered on
+2026-10-06: yes, Choke and Kit Decay, above.)
 
 ## Crush
 
@@ -1189,6 +1211,14 @@ How it works [verified: tests/test_engines_limit.py and
   envelope's aim moves to +3 dB only once Mode has reached Round. Not
   taken: ClipOnly2's spacing above 88.2 kHz (it looks 2–16 samples ahead
   there); Round looks one frame ahead at any rate.
+  - *The 3 dB is intended* (owner, 2026-10-06, after the review asked).
+    The envelope stops turning peaks down 3 dB over the ceiling and leaves
+    that much to the rounding stage: that is what makes Round louder than
+    Brickwall and gives its loudest peaks their edge. The output itself
+    never passes the ceiling: an over is replaced by a value between the
+    frame before and the ceiling [verified 2026-10-06: `fm1-render`, the
+    renderer's sine with Drive +2, +6, +12 and +24 dB into a −6 dB
+    ceiling, peak −6.00 dBFS each].
 - **Changes:** Ceiling, Drive, Link and Mix glide over 5 ms, sample by
   sample, so any block size gives the same output (checked at 64, 7 and 1
   frames with every parameter moving, Lookahead and Mode included). The
@@ -1888,6 +1918,23 @@ as a busy one. Now they idle there (owner's decision, 2026-10-05;
   as they always have, from filter states within that residue of the ones
   they would have held had they never stopped. The knob answers a warm-up
   later; there is no click and no jump.
+- **Driven: never idle** (owner's decision, 2026-10-06). An effect that
+  sequencer locks or modulation cables reach on any of its parameters
+  never idles, so a lock or a cable's move after a long rest is heard as
+  before the idle paths, bit for bit. The host says so through
+  `set_param`'s index `FM1_PARAM_DRIVEN` (0xFFFE, `fm1_engine.h`; additive
+  within API v3): 1 while a lock lane or a cable reaches the unit, 0 while
+  none does, which is how an instance starts. While it is 1 the effect
+  neither rests nor stays idle: an idle one wakes at once through its usual
+  wake (its knobs at pass-through are held where they already are, so the
+  output is still the input), and at its pass-through settings the output
+  is still the guarded input. fm1-render's `RenderFx` and the virtual
+  FM-1's `render_fx` ask `fm1_mod_unit_routed` (an enabled slot whose cable
+  reaches a parameter of the unit, at any amount, zero included) before
+  each effect's block and send the word when the answer changes; the
+  sequencer's lanes cannot lock an effect yet (planned, manual chapter 7),
+  and will join the same answer when they can. Every other engine ignores
+  the index, as any past its table.
 
 | Effect | Held during the warm-up | The warm-up | At the defaults |
 | --- | --- | --- | --- |
@@ -1961,6 +2008,20 @@ Measured [verified: `build/fm1-idle-test` and tests/test_engines_idle.py,
   block size and fill, and exact silence on silence;
 - the same move after 1 s at pass-through, before the effect idles: the old
   output bit for bit, at once;
+- driven (2026-10-06, `fm1-idle-test`'s `driven`): with `FM1_PARAM_DRIVEN`
+  at 1 from the start, the three short locks after the long rest (Master
+  Sat's 0.1 s Mix, Isolator's 5 ms Kill, EQ's 20 ms Low Gain) are heard, bit
+  for bit as the old build plays them, and pass-through alone is the
+  guarded input; set inside a rest it wakes the effect, and a lock 0.5 s
+  later is heard; back at 0 the effect idles after its rest and loses the
+  short lock as before; the same bits at blocks of 64, 7 and 1 and from
+  another fill. Through fm1-render, after 3 s at pass-through, each
+  effect's short move is lost with no cable and heard with a zero cable
+  into it, and a cable into the other master slot changes nothing; a zero
+  cable into each of the 24 effects' first modulatable parameter leaves
+  0.6 s of noise through it as it was, byte for byte; and the parity
+  scenario `idle-driven-by-a-cable` holds the browser's module to the same
+  bytes [verified: tests/test_engines_idle.py, sim/web/www/fm1.wasm.json];
 - rests and wakes at blocks of 1, 7, 64 and 4,096 frames and from any memory
   fill: the same bits; silence stays exact silence;
 - a hash of each effect through rests, wakes and busy settings: the same
@@ -1990,7 +2051,8 @@ pass-through [inferred]. A chain's budget still counts them busy, since a
 knob can wake them at any time.
 
 - **Memory:** the counters add 48 bytes to EQ (416), 16 to Isolator (256)
-  and 16 to Master Sat (352), the same on 32-bit builds.
+  and 16 to Master Sat (352), the same on 32-bit builds; the driven flag
+  fits in their padding (the same sizes, 64-bit [verified 2026-10-06]).
 - **Not done:** EQ idles as a whole, not band by band: a flat band among
   busy ones keeps running, so the output away from pass-through stays the
   old one bit for bit. Tilt at 0 and Comp at Mix 0 keep their filters and
@@ -2421,6 +2483,7 @@ one, with the same arithmetic underneath; Output and Mix are ours, for every
 Type.
 
     guard -> the Type's gain per channel (Snap, Mu or Split; two while a Type fades)
+             (Mu's with its partial makeup, bounded so it adds no clipping)
           -> out = dry x (1 - Mix) + dry x gain x Output x Mix
 
 | Page | Knob | Range (default) | Snap | Mu | Split |
@@ -2467,10 +2530,53 @@ Type.
   and leaves it lifted, then saturates the result with a sine; Mu detects the
   same way but divides the lift out again and has no sine (the note's
   verdict: the lift raised quiet passages and the noise floor by up to
-  26 dB, and the sine was its guard against the overs that made). So, like
-  Snap, Mu only turns down, and turns down a lot at high Squash: a −6 dBFS
-  sine loses 6.8 dB at Squash 0.5, 17.9 at 0.75 and 49 at 1 (Shape 1 is
-  Pressure4's Mewiness 1, the gain c²); Output brings it back.
+  26 dB, and the sine was its guard against the overs that made). So Mu
+  alone turns down a lot at high Squash: a −6 dBFS sine loses 6.8 dB at
+  Squash 0.5, 17.9 at 0.75 and 49 at 1 (Shape 1 is Pressure4's Mewiness 1,
+  the gain c²). Since 2026-10-06 a partial makeup gives part of it back
+  (below).
+  - *The partial makeup* (owner's decision, 2026-10-06: turning Squash up
+    should mostly change the tone, not the loudness, as Comp's Auto Gain
+    does, with no clipping added). Mu's gain is lifted by half, in dB, the
+    steady reduction a −12 dBFS peak gets at the Squash and Shape in force,
+    at most 24 dB: M = 1 / √g_ref, g_ref being Shape's curve of
+    clamp(t² / 0.2512, t, 1) (t² / x is where the state settles over a peak
+    x between t² and t; t, its floor, above). Measured on a −60 dBFS sine,
+    under every threshold [verified: `fm1-squash-test`'s `mu_makeup`]:
+
+    | Squash | 0.5 | 0.6 | 0.7 | 0.75 | 0.8 | 0.9 | 1 |
+    | --- | --- | --- | --- | --- | --- | --- | --- |
+    | Shape 1 (c²), dB | 0 | 2.66 | 7.00 | 9.65 | 12.40 | 16.77 | 24 (the cap; 26 asked) |
+    | Shape 0 (c) | 0 | 1.33 | 3.50 | 4.83 | 6.20 | 8.39 | 13.01 |
+    | Shape −1 (√c) | 0 | 0.67 | 1.75 | 2.41 | 3.10 | 4.19 | 6.51 |
+
+    Up to Squash 0.525 a −12 dBFS peak is under the threshold t², so M is
+    1 and Mu is what it was, bit for bit. Why −12 dBFS and a half: of the
+    choices fitted to measured programme (drums and chords from the
+    engines, noise, a quiet bass, Squash 0–1), these keep a kit and a pad
+    that peak near −8 dBFS within about 1 dB of their level from Squash 0
+    to 0.75, where Mu alone loses 9 dB; programme under the threshold comes
+    up by M, the price of any makeup, so quiet passages and the noise floor
+    rise with Squash (by 9.7 dB at 0.75, 24 at 1), half what a full makeup
+    would lift them; and at Squash 1 nothing partial holds the level (a
+    −6 dBFS sine still loses 25 dB). On `fm1-squash-test`'s drums signal
+    the RMS is −14.6 dBFS at Squash 0, −19.9 at 0.5, −19.5 at 0.75 (−29.1
+    without the makeup) and −40.5 at 1 (−64.5).
+  - *No clipping added.* A frame the lift would take over 0.99998 (or over
+    the frame without the lift, when that is louder: an input already over
+    full scale, or Output's boost) gets only what keeps it there, and
+    never less than no lift: the frame's output is peak × (dry + wet × gain
+    × m), so m = (ceiling / peak − dry) / (wet × gain) on that frame alone.
+    These are the onsets, before Mu's gain comes down (about a millisecond
+    at the default Release). On 19 million frames (the three oracle signals
+    and bursts, Squash 0.6–1, three Shapes, Mix 1, 0.5 and 0.3, Output 0 to
+    −12 dB) no frame comes out quieter than without the makeup, none goes
+    over full scale and over the frame without it, and at Mix 1 every frame
+    is M times it within 4 ulps but 1,167 the bound held [verified:
+    `fm1-squash-test`'s `mu_makeup`, against Mu built without the makeup,
+    `-DFM1_SQUASH_MU_MAKEUP=0`, linked as `fm1_engine_squash_ref`].
+  - A Type change into Mu seeds its state from the gain in force divided by
+    M, so the crossfade starts where the old Type was.
   Pressure4's steps, (c (n − 1) + target) / n, are written c + (target −
   c) / n: the same in exact arithmetic, and in float they keep the target's
   share where n (speed², up to 10¹⁵) would swallow it.
@@ -2512,7 +2618,8 @@ Type.
   a developer's machine), give tests/fixtures/squash-oracle.json: every
   61st frame of 1.5 s of drums, a stepped sine and a hot two-tone mix at
   44,100 Hz. tests/test_engines_squash.py holds ours to them. The residual
-  (RMS of the difference over the RMS of theirs): Mu −102.5 and −117.3 dB,
+  (RMS of the difference over the RMS of theirs; Mu's against Mu without
+  its partial makeup, which Pressure4 does not have): Mu −102.5 and −117.3 dB,
   Split −104.1 and −116.2 dB (float against double), Snap −62.9 and
   −78.2 dB, and −29.2 dB for a third Snap case with a fast attack and
   release, where Pop3's link holds (above) end at different times in
@@ -2538,7 +2645,9 @@ Type.
   scenario `dyn3-squash-transient` runs the WebAssembly build, identical to
   the native ones].
 - **Memory:** 400 bytes (no pointers, so the same on 32-bit builds
-  [inferred]). **Cost** (Apple M1 Max, noise, `fm1-squash-test --cost`):
+  [inferred]); the instance size rounds up to 16, and the makeup's one
+  float fits in that: 416 bytes before and after [verified 2026-10-06:
+  `fm1-render`]. **Cost** (Apple M1 Max, noise, `fm1-squash-test --cost`):
   1.4 µs per 64-frame block for Snap with its gate, 1.1 µs for Mu, 2.0 µs
   for Split; 0.08–0.14 % of the block [verified, 2026-10-05]. Per frame,
   Snap divides twice when over its threshold, Mu three times and takes one
@@ -2680,9 +2789,10 @@ flags (by name), unit and abbreviation, and each engine's `per_note` and `pads`.
 36 bytes on pi32v2 and i386 (28 before) and 48 on x86-64 (40) [verified:
 `tools/jieli/compile-check.sh`, 2026-10-02, 67 of 67 objects compiled in
 all four profiles]: 8 bytes more of read-only data per parameter, 2,040
-bytes for the 255 the registry defines [counted with `fm1-render --list`,
+bytes for the 255 the registry defined [counted with `fm1-render --list`,
 2026-10-06, with dynamics pack 3, glide's ten and the arpeggiator's 25; 88
-when the sizes were measured]. The 16-bit flags of v3 sit in
+when the sizes were measured], 2,136 for its 267 since glide's modes' ten
+and Drums' two. The 16-bit flags of v3 sit in
 what was padding after `uid`, so the sizes did not change, nor did the
 modulation runtime's 22,368 bytes, whose records widened the same way
 [verified: `tools/jieli/compile-check.sh`, 2026-10-05: 36 bytes on pi32v2
@@ -2705,6 +2815,8 @@ Type with dynamics pack 3 (the Limiter's Mode gained Round then).
 | drums | Pad | none | The edit focus, as Sophie's: lockable, no MOD |
 | drums | Model | LATCH, MOD | Read when a pad is struck; a sounding hit keeps its model |
 | drums | Kit | LATCH, MOD | The voicings a hit starts with; a sounding hit keeps them |
+| drums | Choke | LATCH, MOD | The group a hit joins, read when its pad is struck; a sounding hit keeps it (2026-10-06) |
+| macro, macro-heavy, shapes, sixop, dx7 | Voice Mode, Glide Mode, Time Mode | LATCH, MOD | Read at note-on and note-off (Time Mode when a glide starts), so a change never cuts a sounding voice and a glide under way finishes as it began: the owner's rule for switches ([Glide and voice modes](#glide-and-voice-modes)) |
 | shapes | Shape | NOLOCK | Sets every voice's oscillator at once |
 | sixop | Patch | LATCH, MOD | Read per voice at note-on, so a lock or a route picks the patch of the next notes |
 | dx7 | Patch | LATCH, MOD | As Six-Op's: a voice takes its data, built-in or from a user slot, at note-on |
@@ -3107,33 +3219,72 @@ block's note-ons. The renderer refuses them for an engine without
 The owner decided on 2026-10-05 that glide lives in the engines, as a
 per-note pitch slew (scratch decisions, "Arp and MIDI effects"), so that
 mono and legato playing and portamento work with any host, the
-arpeggiator and the sequencer included. `src/glide.h` holds it, shared by
-the five pitched engines. Two parameters, appended to each table:
+arpeggiator and the sequencer included, and on 2026-10-06 what glides and
+how long it takes (Glide Mode and Time Mode). `src/glide.h` holds it,
+shared by the five pitched engines. Four parameters, appended to each
+table, together on each engine's last page:
 
-| Engine | Glide | Voice Mode | Page |
-| --- | --- | --- | --- |
-| `macro`, `macro-heavy` | uid 13 | uid 14 | 4, a page of their own (Macro Heavy's three are full; Macro's matches it, so a lane survives a swap) |
-| `shapes` | uid 7 | uid 8 | 2, after Release and Volume |
-| `sixop` | uid 5 | uid 6 | 2, after Volume |
-| `dx7` | uid 6 | uid 7 | 2, after Volume |
+| Engine | Glide | Voice Mode | Glide Mode | Time Mode | Page |
+| --- | --- | --- | --- | --- | --- |
+| `macro`, `macro-heavy` | uid 13 | uid 14 | uid 15 | uid 16 | 4, a page of their own (Macro Heavy's three are full; Macro's matches it, so a lane survives a swap) |
+| `shapes` | uid 7 | uid 8 | uid 9 | uid 10 | 3 |
+| `sixop` | uid 5 | uid 6 | uid 7 | uid 8 | 3 |
+| `dx7` | uid 6 | uid 7 | uid 8 | uid 9 | 3 |
 
-- **Glide**: 1–5,000 ms on the [LOG law](#the-log-law), default 1 ms,
-  which is **Off**: no glide starts. SMOOTH and MOD, and engine-wide, not
-  POLY: a glide is the move between two notes, not a property of one.
-- **Voice Mode**: Poly (the default), Mono, Legato. LATCH and MOD: read at
-  note-on and note-off, so a lock or a rounded route changes how the next
-  note is played, and no change cuts a sounding voice (the owner's rule for
-  switches).
+On Shapes, Six-Op FM and FM6, Glide and Voice Mode sat after Volume on
+page 2 from 2026-10-05; since 2026-10-06 the four have page 3 to
+themselves, and page 2 is again what it was before glide.
 
-**What glides.** Fingered (legato) portamento: a note struck while another
-key is held starts at the pitch the held note sounds, glide included, and
-moves to its own in a straight line in semitones, arriving after the Glide
-time whatever the interval (constant time). A note struck with no key held
-starts on its own pitch. "The held note" is the newest voice whose key is
-down and which has a pitch to glide from: it has rendered a block since its
-note-on, or is gliding itself. So the notes of a chord struck in one control
-block never glide from each other; struck over a held note, each glides
-from it.
+- **Glide**: 1–5,000 ms on the [LOG law](#the-log-law), default 100 ms:
+  the glide's time (Time Mode Time) or its time per octave (Rate). SMOOTH
+  and MOD, and engine-wide, not POLY: a glide is the move between two
+  notes, not a property of one. Until 2026-10-06 its minimum, 1 ms, was
+  Off, the default, and showed as "1.00 ms"; now Off is Glide Mode's, and
+  1 ms is a glide of a control block or a few.
+- **Voice Mode**: Poly (the default), Mono, Legato.
+- **Glide Mode**: Off (the default), Legato, Always. **Off** is a true off:
+  nothing glides, and a control block does no glide arithmetic at all (the
+  block's division is taken only when a voice glides, `glide::Step`).
+  **Legato** is glide as it was built: only a note played over a held key
+  glides (fingered portamento). **Always** is full-time portamento, as the
+  stock FM-1 offers ("Full Time" beside "Fingered" [verified: its strings,
+  notes/2026-09-06-bench.md]): every note glides from the last note played,
+  held or not, sounding or not.
+- **Time Mode**: Time (the default) or Rate. **Time** is constant time, as
+  built: a glide takes the Glide time whatever the interval. **Rate** is
+  constant rate: Glide is the time an octave takes, so a wider jump takes
+  longer (an octave in the Glide time, two in twice it, a fifth in 7/12 of
+  it).
+- Voice Mode, Glide Mode and Time Mode are LATCH and MOD: read at note-on
+  and note-off (Time Mode when a glide starts), so a lock or a rounded
+  route changes how the next note is played, no change cuts a sounding
+  voice (the owner's rule for switches), and a glide under way finishes as
+  it began, whatever its mode is switched to.
+- **Defaults keep the sound** [verified 2026-10-06, Apple clang arm64,
+  against a build of main `275628b`]: at Glide Mode Off nothing differs
+  from main whatever Glide and Time Mode say, and Legato with a Glide time
+  is main's glide at that time: 180 renders byte for byte on the five
+  engines (six overlapping notes, Poly, Mono and Legato, host blocks of
+  64, 7 and 1, at the defaults, at Glide 200 ms, with Glide turned from 35
+  to 300 ms mid-render, and Glide Mode Off against main's Off). A host or
+  script that set Glide alone to glide must now set Glide Mode Legato too:
+  the parity scenarios and the glide tests do.
+
+**What glides.** Under **Legato**, fingered portamento: a note struck while
+another key is held starts at the pitch the held note sounds, glide
+included, and moves to its own in a straight line in semitones. A note
+struck with no key held starts on its own pitch. "The held note" is the
+newest voice whose key is down and which has a pitch to glide from: it has
+rendered a block since its note-on, or is gliding itself. Under **Always**,
+the note glides from "the last note": the newest voice that has played a
+note and has a pitch, sounding or not. An ended voice keeps its key, its
+age and the offset its glide had reached, and a flag in the slew's
+padding (`played`) marks a voice that has played since it was built, so
+the first note after a new instance or a Model change starts on its own
+pitch. Under both, the notes of a chord struck in one control block never
+glide from each other: struck over a held (or a last) note, each glides
+from it. In Mono and Legato, the return to a held key glides under Legato
+and Always alike.
 
 **How.** A glide is a pitch offset in semitones that the voice adds after
 the key and the bend, beside its per-note pitch offset
@@ -3141,20 +3292,24 @@ the key and the bend, beside its per-note pitch offset
 engine (Plaits' note, Braids' pitch, `fm::Voice`'s note, msfa's Q24 pitch
 modulation). It moves once per control block, at the engine's native
 samples, so the output is the same at any host block size. The first block
-plays the pitch it starts from; each block takes `block_ms / Glide` off the
-share still to go, and the offset is the start's interval times that share,
-exactly 0 at the end, after which the voice adds nothing. The time is read
-every block, so a glide under way follows a turn of Glide, ramped as any
-SMOOTH change. No libm, a division a block and a product a gliding voice,
-and no multiply-add in one expression, so native and WebAssembly builds give
-the same bits.
+plays the pitch it starts from. **Time**: each block takes `block_ms /
+Glide` off the share still to go, and the offset is the start's interval
+times that share, exactly 0 at the end, after which the voice adds nothing.
+**Rate**: each block moves the offset `12 × block_ms / Glide` semitones
+toward 0, and the block that would reach or pass 0 plays 0, which ends it;
+the law is kept in the slew (`rate`, in its padding), so a voice's glide
+keeps the law it started with. The time is read every block, so a glide
+under way follows a turn of Glide, ramped as any SMOOTH change. No libm, a
+division a block in which some voice glides and a product a gliding voice,
+and no multiply-add in one expression, so native and WebAssembly builds
+give the same bits.
 
 **The voice modes.**
 
 | Mode | A key while another is held | Letting go of the sounding key, others held |
 | --- | --- | --- |
-| Poly | A voice of its own, as before; it glides from the newest held note | That voice releases, as before |
-| Mono | The one voice (the newest sounding) takes the key and restarts its envelopes, gliding from where it was | The voice moves back to the newest key still held, gliding, without restarting |
+| Poly | A voice of its own, as before; under Legato or Always it glides from the newest held note (Always: from the last note, held or not) | That voice releases, as before |
+| Mono | The one voice (the newest sounding) takes the key and restarts its envelopes, gliding from where it was unless Glide Mode is Off | The voice moves back to the newest key still held, gliding unless Glide Mode is Off, without restarting |
 | Legato | The voice takes the key without restarting anything; it keeps the first note's velocity | As Mono |
 
 - A key struck in Mono or Legato with no key held restarts the newest
@@ -3179,6 +3334,10 @@ the same bits.
   first note's.
 - **Shapes:** a Legato move does not strike the oscillator again; the
   voice's envelope goes on.
+- **On the panel:** the virtual FM-1's SHIFT (SEL held) with the black
+  keys C#5 and D#5, printed MONO and POLY, sets the current sound's Voice
+  Mode outside SEQ mode: MONO gives Mono, and on Mono Legato (and back);
+  POLY gives Poly (owner, 2026-10-06; `sim/web/README.md`).
 
 **Not on Drums, Sophie or Test Sine.** A kit's notes are pads, not pitches
 (each note plays its own drum, `pad_count`), and both kits ignore note-off,
@@ -3187,11 +3346,9 @@ Sweep and the per-note pitch offset move a hit's pitch. Sophie's voices are
 the vendored module's own, out of the shim's reach (as for per-note
 offsets). Test Sine stays the plain engine the hosts' tests use.
 
-**Not offered yet.** Full-time portamento (every note glides from the last
-one, held or not; the stock firmware lists "Fingered" and "Full Time"
-[verified: its strings, notes/2026-09-06-bench.md]), a constant-rate law,
-and per-voice glide memory in Poly (each voice from its own last pitch).
-Each would be one more Voice Mode value or a third parameter.
+**Not offered yet.** Per-voice glide memory in Poly (each voice from its
+own last pitch); full-time portamento and a constant-rate law, listed here
+until 2026-10-06, are Glide Mode Always and Time Mode Rate.
 
 **Cost.** Per voice, 16 bytes (`glide::Slew`), and per instance the held
 keys (17 bytes) and two floats; no heap. Instance sizes on 64-bit (Apple
@@ -3209,6 +3366,21 @@ parameters, so the modulation runtime's shared records grew from 184 to
 `fm1_mod_size()` from 26,192 to 26,512 bytes (from 23,200 to 23,520 on
 glide's branch, before MG9). CPU: a division per control block, and per
 voice a test, plus a subtraction and a product while it glides.
+
+Glide Mode and Time Mode (2026-10-06) add no per-voice state (`rate` and
+`played` sit in the slew's padding, still 16 bytes) and two parameters'
+values and ramps per instance: 32 bytes on 64-bit (Apple clang, arm64)
+on Macro (32,736), Macro Heavy (71,600), Six-Op FM (12,992) and Shapes
+(207,728), and 40 on FM6 (16,188, its block's step kept between calls)
+[verified 2026-10-06: `fm1-render`]. CPU at Glide Mode Off: per voice a
+test, and no division (it was one a block). Macro Heavy has 16 parameters
+now, so the modulation runtime's shared records grew from 192 to 200 (4 ×
+16 + 10 × 13 + 6, `FM1_MOD_SINK_PARAMS`) and `fm1_mod_size()` from 26,512 to
+26,848 bytes (eight 40-byte records and 16 bytes of alignment), the virtual
+FM-1's arena for it from 26,624 to 26,880. The browser module grew from
+955,543 to 956,500 bytes with everything of 2026-10-06's follow-ups (glide's
+modes, Drums' two, the Voice Mode keys, the driven idle paths and Mu's
+makeup).
 
 **No sound changed at Glide Off and Poly** [verified 2026-10-06, Apple clang
 arm64, against a build of main `ffb0796`]: 1,141 runs of `fm1-render`
@@ -3263,6 +3435,31 @@ to musl, render.js and glibc [verified
 per-note, SMOOTH, parameter, page-3, FM6 and modulation-runtime tests
 under ASan and UBSan (clang 18, 495 passed).
 
+**Glide Mode and Time Mode's tests** (2026-10-06, the same file, exact
+unless said): every glide above now sets Glide Mode Legato, the return to a
+held key under Legato and Always; under Off nothing glides whatever Glide
+and Time Mode say, notes over held ones included; Always, in Poly and Mono:
+the first note starts on its own pitch, a note after the last one was let
+go glides from it, after a rest in which its voice may have ended, and a
+chord glides from the last note, each of its notes on its own, while
+Legato glides none of these; Always from where a glide had reached (a note
+struck a quarter of the way into another's glide, which rings on); Rate
+under Legato and Always on overlapping notes, byte for byte on the pitch
+path (glide.h's arithmetic, computed in the test), an octave in the Glide
+time, two in twice it, a fifth in 7/12 of it, each within a control block;
+the switches read when a glide starts (Glide Mode Off and Time Mode Rate
+mid-glide let it finish as it began; the next note follows them); NaN and
+±inf clamp on all four; host blocks of 1, 7 and 64 and fills 0, 0xA5 and
+0xFF with Time Mode and Glide Mode switched mid-render; and, measured at
+44,118 Hz on Macro's sine, a Rate glide of 100 ms an octave over two
+octaves passes A4 at 100–103 ms and arrives at 200–203.5 ms. 141 passed.
+Two parity scenarios (`shapes-glide-always-rate`, `sixop-glide-always-mono`)
+hold the browser's module to the same bytes: 89 of 89 pass, identical to
+render.js and musl [verified 2026-10-06: `sim/web/www/fm1.wasm.json`].
+Six-Op FM's `set_param` took NaN to the minimum, where the API says the
+default (Glide's default and minimum were both 1 ms until now, which hid
+it); it uses `fm1_param_clamp` since, the same for every other value.
+
 ## Engine API v3
 
 `FM1_ENGINE_API_VERSION` is 3 since 2026-10-05 (owner decision 6 of
@@ -3312,6 +3509,13 @@ every few milliseconds now cycles through six]. What v3 adds:
   block size. Following an external MIDI clock, or in Movy's compat mode,
   ticks are not on that grid: the position is the block's start, with no
   beat splits.
+- **The host's word, `FM1_PARAM_DRIVEN`** (0xFFFE, 2026-10-06): a
+  `set_param` index no parameter has, by which a host tells a unit that a
+  lock lane or a modulation cable reaches it (1) or nothing does (0). The
+  idle paths never idle while it is 1 ([Idle at
+  pass-through](#idle-at-pass-through)); every other engine ignores it, as
+  any index past its table, so neither the version nor any engine's bits
+  changed.
 - **Test Ext** (`src/test_ext.cc`, id `test-ext`) is the smallest effect
   that uses it, to prove the plumbing: it passes its input (or, with Listen
   Key, its key) and marks Start (+Click), Stop (−Click) and each beat (+Click
