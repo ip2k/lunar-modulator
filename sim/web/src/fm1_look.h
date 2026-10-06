@@ -77,6 +77,23 @@ extern "C" {
 #define NAME_CHARS 16
 #define POPUP_CHARS 18
 
+/* The three faces (fm1_tft.h; audit D7), each line keeping the same 4 px
+ * from the next: MAIN, the 5 x 9 at x2 above (18 px, 19 characters a line);
+ * MID, Spleen 8 x 16 at x1 (a 14 px box, capitals 10 px, 28 characters a
+ * line); SMALL, Spleen 6 x 12 at x1 (12 px, capitals 8 px, 38 characters a
+ * line), the smallest the screen uses. A run's y is the top of its box. */
+#define MAIN_LINE_H FM1_TFT_MAIN_H
+#define MID_ADVANCE FM1_TFT_MID_ADVANCE
+#define MID_LINE_H FM1_TFT_MID_H
+#define MID_CAP_H FM1_TFT_MID_CAP_H
+#define MID_LINE_PITCH (MID_LINE_H + 4)
+#define MID_LINE_CHARS FM1_TFT_MID_FIT(RIGHT - MARGIN)
+#define SMALL_ADVANCE FM1_TFT_SMALL_ADVANCE
+#define SMALL_LINE_H FM1_TFT_SMALL_H
+#define SMALL_CAP_H FM1_TFT_SMALL_CAP_H
+#define SMALL_LINE_PITCH (SMALL_LINE_H + 4)
+#define SMALL_LINE_CHARS FM1_TFT_SMALL_FIT(RIGHT - MARGIN)
+
 /* A parameter's value as the screen shows it: an ENUM's entry name, else a
  * number with 0, 1 or 2 decimals by range. */
 void fm1_look_value(const fm1_param_t *p, float v, char *buf, size_t size);
