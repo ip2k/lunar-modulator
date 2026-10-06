@@ -528,8 +528,9 @@ the arpeggiator with the MIDI effects' stage (engine API v3's MIDI effects):
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
 wake them; those two, the three Drums and the four FM6 scenarios are
-identical to glibc too), and it imports nothing; it is 922,338 bytes,
-890,874 before the arpeggiator, 887,038 before the idle paths, 850,731 before
+identical to glibc too), and it imports nothing; it is 922,439 bytes,
+890,975 before the arpeggiator (890,874 before Shapes' clamps), 887,038
+before the idle paths, 850,731 before
 per-voice modulation (826,339 without the user bank, 840,216 without
 Squash, Transient and Round), 837,480 with
 the user bank before the list popups, 815,821 with the list popups before the
