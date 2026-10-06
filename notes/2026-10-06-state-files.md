@@ -18,8 +18,12 @@ and the parameter metadata it builds its controls from is exported from C
 
 **Built so far:** the JSON Schemas of every file kind and of the metadata
 export, with example files that validate (`engines/state/schema/`,
-`engines/state/examples/`, held by `tests/test_state_schema.py`). Nothing
-reads or writes these files yet; the stages are in §18, and the owner works
+`engines/state/examples/`, held by `tests/test_state_schema.py`); and stage
+E3 with P1 (§20): the records, the streaming JSON reader, the canonical
+writer and the binary container in `engines/state/`, the Python reader and
+writer in `tools/lunar_state.py`, and the desktop tools' load and save
+(`fm1-state`, `fm1-render --load/--save`, `fm1-seq --load/--save`). The
+simulator reads nothing yet; the stages are in §18, and the owner works
 "ask per stage".
 
 Two proposals were written first and judged here, dimension by dimension
@@ -66,6 +70,7 @@ to be checked when built.
 17. Tests
 18. Build plan
 19. Owner decisions
+20. What stage E3 settled
 
 ## 1. Short answer
 
@@ -1564,3 +1569,120 @@ it now stands.
 | ST20 | Order and rule | **Adopted.** E1–E3 and P1 now; A1, W1 and S9+ as soon as the UI colour stage lands, before the master chain and side-chain stages; then the web editor's train, from its design stage X0. Every later stage that adds state adds its records, JSON members, schema changes and golden files in the same PR (the save-coverage test) |
 
 **For X0, later:** the web editor's own decisions, in its design note.
+
+## 20. What stage E3 settled
+
+Built on `feature/2026-10-06@state-codecs` (2026-10-06): `engines/state/`,
+`tools/lunar_state.py` (P1), and the desktop tools' load and save. Every
+claim here is [verified] by `tests/test_state_codec.py`,
+`tests/test_state_render.py` and the runs named, unless marked.
+
+**Where §6-§8 left a choice:**
+- **The interfaces** are §6.1's, with what they lacked: the binary reader
+  takes the source's length and a fuzz-only switch past the CRCs; the
+  writers take a report, the JSON writer a compact switch (a link's form),
+  the binary writer its deflate flag and the writer's identity;
+  `fm1_state_write` is the JSON writer's sink and `fm1_state_bin_write`
+  the binary writer's; `fm1_state_json_begin`, `_feed` and `_end` feed the
+  JSON reader in pieces.
+- **Record order.** A reader gives its source's order. The canonical order
+  is the canonical JSON document's (the schemas' member order), which is
+  also the binary's chunk order; a sound's level follows its pads and comes
+  before its inserts. The JSON writer holds a document and takes any order;
+  the binary writer takes the canonical order (`fm1-state pack` goes through
+  `canon` first). The load order (§10.1) is the applier's.
+- **Records** (`fm1_state.h`): head, info, session, unit, on, param, level,
+  dx7, mod, seed, module, data, cable, line, view, setting, end. A `null`
+  unit is a unit record with an empty engine, so an empty insert and a gap
+  in a MIDI-effect list or a chain survive both encodings; a MIDI effect's
+  `on` is a record of its own.
+- **Context first** (§7.2) has two more rules: `mod` after the units its
+  cables name and `rack` before `cables`; and pattern data's `version`
+  before its `hex`. `fm1-state canon` reorders a whole file first, so it
+  puts a hand edit right.
+- **Names.** A `#UID` key is kept when this build's engine lacks that uid,
+  so a newer build's parameter passes through an older one; the applier
+  drops what its engine does not have. A cable whose destination is on a
+  unit the file does not hold (every cable of a mod rack) keeps the
+  parameter's name in its record for the applier; a name that a unit or a
+  module the file holds lacks drops the cable, counted.
+- **The canonical writer** clamps a value to its parameter's range, puts a
+  list index or a float right, and drops a value on the wrong side of a pad
+  split, as the reader would, so canonical text reads back and writes back
+  to itself for any input either reader accepts.
+- **The binary layout** differs from §8 in these points:
+  - key-value entries have a 2-byte length (`u16 key, u8 type, u8 0, u16
+    len`), because `about` reaches 960 bytes of UTF-8;
+  - `DX7V` holds 1-32 voices (`u8` count, 160 B each), so a project's
+    chunks stay under 64 (a project has up to 30 units, a chunk each);
+  - `MODR` holds items: a module, a module's parameter, pattern data, and
+    a cable with its kept name;
+  - engines and kinds are written by id, not by guid, so binary to JSON
+    needs no names table;
+  - the padding between chunks must be zero, since no CRC covers it;
+  - a file with no records but its head has an empty `info` chunk.
+- **The set in binary** (`SEQS`, `CLIP`): each line is a typed item (8 B a
+  note, 3 B a lock, design A's layout) when formatting the item back gives
+  the line byte for byte, and a raw item otherwise: E1's `dq`, `se` and
+  `sn`, a hand edit's double space, a number past an item's width.
+- **Deflate:** greedy LZ77 over a 4 KiB window into one fixed-Huffman
+  block, deterministic, so P1 writes the same bytes; zlib reads it, and
+  the C inflater reads zlib's (with a 4 KiB window) and refuses a reach
+  past 4 KiB.
+- **Numbers:** `tests/state_canon.py`'s `number()` now chooses the shortest
+  decimal against an exact decimal-to-float32 reading (`f32_of`), as every
+  reader reads, not against double rounding; no example changed. The C
+  reader and writer matched it on 45,000 decimals (midpoint neighbours,
+  subnormals, the range's ends) and 30,000 random float32s for this note
+  (12,000 and 8,000 in the tests), and every Q1.14 amount round-trips.
+
+**Measured:**
+- State, on a 64-bit desktop: the tokenizer 168 B, the whole JSON reader
+  1,416 B, the inflater 4,928 B; the binary reader a few hundred bytes
+  besides; the JSON writer 476,664 B and the binary writer 284,920 B
+  (desktop and simulator only).
+- The example project: 11,578 B of JSON, 2,684 B binary with deflated
+  chunks; the sound example 1,471 B and 535 B; its launch link 688
+  characters (§3.4).
+- **The example project is over the budget.** `fm1-state check
+  engines/state/examples/first-orbit.lunar` counts 419,904 B of
+  instances at 44,118 Hz (Shapes alone is 207,696 B) against 387,924 B,
+  so under ST6 a load refuses it, as `fm1-render --load` does. The examples
+  were written for the format; the guide's real files will be held to the
+  budget by `check` (§13.1).
+
+**Hostile input:**
+- 45 hand-made hostile files are refused with the same code by C and by
+  P1; cut binaries (every length) and every byte of one with a bit flipped
+  are refused by both; JSONTestSuite (nst/JSONTestSuite at `1ef36fa`):
+  every `n_` file refused, every `y_` file parsed but the three the
+  32-character number cap and the U+0000 rule refuse.
+- The fuzz target holds three invariants: pieces never change the records
+  or the verdict, canonical text is a fixed point, JSON to binary to JSON
+  is lossless. It found and E3 fixed: a refused line overrunning the text
+  buffer (UBSan), the binary writer keeping a reused body, uncovered
+  padding, values the writer must clamp or drop, and checks the binary
+  readers lacked (line UTF-8, clip lines, a kind's required chunk, cable
+  destinations), and under libFuzzer a cable's parameter kept by name with
+  a control character, which the JSON readers kept and the binary refuses
+  (now refused by all).
+- Runs: 8 x 1,000,000 seeded mutations under ASan and UBSan, about
+  726,000 of them accepted inputs whose invariants held; then libFuzzer
+  (clang 18, ASan and UBSan, 12 workers on a Linux host): about 28 million
+  runs in 20 minutes until that finding, and after its fix about 21 million
+  in 15 minutes from the 53,000-input corpus with nothing found.
+
+**Seams left for the stages that own them:**
+- **E2:** engine API v4's `FOCUS`, `PER_FOCUS` and `get_param` (until
+  then `state_names.c` names Drums' and Sophie's per-pad parameters, and
+  `fm1-render --save` writes a pad it never set with the parameter's
+  default); aliases and enum names; known-ids reasons; pattern data
+  reaching a kind (counted as skipped); `fm1-render --meta`, which P1 then
+  reads in place of `fm1-state names`.
+- **E1:** the begin/item/end refactor of `fm1_seq_import_movy1`, which E1
+  edits too, so until then a set's records are its lines and the device
+  path would hold a line's text.
+- **A1:** the app's collector and applier; `state_mod.c` is the modulation
+  runtime's half, and `host/render_state.cc` stands in for the rest on the
+  desktop (it keeps no gap between a sound's inserts or in its chain: a
+  `null` closes up and its cables follow).
