@@ -77,7 +77,8 @@ Drag a knob up or down, or scroll over it. Click or touch a button or a key.
 | SEQ, PLAY/STOP, REC | The sequencer's steps; start and stop; record, and with SEL, Capture | `Space` is PLAY/STOP |
 | LFO, ENV, EDIT | The modulation rack and the matrix. Hold LFO or ENV and turn a knob to run a cable to that knob's parameter | |
 | GLO, HOME | The global page (rate, memory, voices, octave); back to the sound | |
-| SAVE, ARP | Not in the simulator yet | |
+| ARP | The arpeggiator on the current sound: tap to switch it on (its pages open) or off, hold to latch; with SEL, its pages | |
+| SAVE | Not in the simulator yet | |
 | Everything | | `Esc` releases every note |
 
 Under the panel:
@@ -188,6 +189,24 @@ scenes and songs run in the desktop tools so far.
 
 <img src="assets/screenshots/screen-seq.png" width="240" alt="SEQ mode while the demo pattern plays: 120.00 BPM, the eight tracks and PLAY on the status line, the bar's 16 steps with the playhead, the knob strip, and the sound's model, VA Pair">
 
+### Arpeggiator
+
+Our own arpeggiator, after Mutable Instruments' Yarns with the note orders of
+MCL (MegaCommand Live) and the repeatable chances of Super Arp
+([Credits](#credits)):
+- **ARP** switches it on for the current sound; held, it **latches**, so the
+  notes play on after you let go.
+- **22 note orders**, 1 to 4 octaves, rates from 1/32 triplets to whole
+  notes, gate, swing, 22 rhythm patterns or a Euclidean rhythm, ratchets,
+  chance, velocity spread and a seed that repeats a variation, on seven
+  pages.
+- **The stock FM-1's modes** (Up, Down, Up/Down, Down/Up, Random, Played) as
+  presets on ALGORITHM.
+- It plays the keys, MIDI and the sequencer's notes, in time with the
+  sequencer, and the sequencer records what you played, so a recorded part
+  arpeggiates again on playback. The stock firmware runs either its
+  arpeggiator or its sequencer, not both [reported].
+
 ### Modulation
 
 - A **rack** of up to eight modules (LFOs, envelopes, random sources and
@@ -233,6 +252,8 @@ for the first installable build
   Capture and the metronome.
 - Modulation: the rack, sixteen kinds of module, the matrix and the
   gesture.
+- The arpeggiator, with the stock modes as presets, alongside the
+  sequencer.
 - FM6 loads your own DX7 voices from SysEx files, in the desktop tools.
 
 **In progress**
@@ -260,10 +281,8 @@ for the first installable build
 - **Per-voice filters** in Macro and Shapes, and later a subtractive engine.
 - **Sets in the browser and Web MIDI:** save and load your sets (also as
   files), follow a MIDI clock, and send MIDI if you choose to.
-- **Arpeggiator and MIDI effects:** our own arpeggiator (after Yarns, with
-  MCL's note orders; its core is built and tested), four MIDI-effect slots
-  per track (chords, scales, note echo, chance and more), and the stock
-  arpeggiator's patterns as presets.
+- **More MIDI effects:** chords, scales, note echo and chance, in the three
+  MIDI-effect slots each track has after the arpeggiator.
 - **Later:** more engines and effects, such as resonator engines after Rings
   and Elements, granular textures after Clouds, and shimmer and classic
   reverbs.
@@ -447,6 +466,9 @@ This is a synthesis of other people's work. The details are in
   for the Sophie drum module (MIT).
 - Sequencer design and logic after Movy by **megadake** (MIT),
   [github.com/DimaDake/schwung-movy](https://github.com/DimaDake/schwung-movy).
+- The arpeggiator, our own code, follows Yarns' arpeggiator by **Emilie
+  Gillet** (MIT), MCL's note orders by **Justin Mammarella** (BSD-3-Clause)
+  and Super Arp's chances by **Handcrafted Media** (MIT).
 - **Airwindows** by **Chris Johnson** (MIT): Master Sat's curves, and the
   designs Squash will follow.
 - Drums' cowbell and cymbals follow the circuit studies of **Kurt James
