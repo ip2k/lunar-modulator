@@ -94,6 +94,7 @@ extern "C" {
 #define FM1_MOD_UI_ROW_DST 16        /* a destination's room in a page A row */
 #define FM1_MOD_UI_HINT_CHARS 28     /* the hint line under MATRIX's rows, MID too */
 #define FM1_MOD_UI_POPUP_CHARS 18    /* a message popup's line (fm1_look.h POPUP_CHARS) */
+#define FM1_MOD_UI_BANNER_CHARS 27   /* a confirmation's banner in MID (BANNER_CHARS_MID) */
 #define FM1_MOD_UI_DST_CHARS 7       /* a destination's short form */
 #define FM1_MOD_UI_SINKS FM1_MOD_SINKS   /* env->unit, by sink index (fm1_mod_sink_unit) */
 #define FM1_MOD_UI_MAX_DESTS \

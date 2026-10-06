@@ -38,6 +38,8 @@ typedef char fm1_mod_view_matrix_fits[MATRIX_HINT_Y + MID_LINE_H + GAP <= BOTTOM
 typedef char fm1_mod_view_chain_fits[CONTENT_Y + (CHAIN_LINES - 1) * DENSE_PITCH + MID_LINE_H + GAP <= BOTTOM_Y &&
                                      CHAIN_LINES <= FM1_MOD_UI_CHAIN_LINES ? 1 : -1];
 typedef char fm1_mod_view_bar_fits[CONTENT_Y - HL_ABOVE >= TITLE_H ? 1 : -1];
+typedef char fm1_mod_view_popups_agree[FM1_MOD_UI_POPUP_CHARS == POPUP_CHARS &&
+                                       FM1_MOD_UI_BANNER_CHARS == BANNER_CHARS_MID ? 1 : -1];
 
 static int clampi(int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); }
 

@@ -2362,7 +2362,7 @@ static void mod_names(const char *dir) {
     g_app.mode = FM1_MODE_MATRIX;
     for (int top = 0; top < (int)FM1_MOD_SLOTS; top += FM1_MOD_UI_ROWS) {
       g_app.mui.slot = (uint8_t)top;
-      g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
+      g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
       for (int pg = 0; pg < 2; ++pg) {
         g_app.mui.mpage = (uint8_t)pg;
         snprintf(name, sizeof name, "matrix-kinds-%u-slot%d-%c", base / FM1_MOD_POSITIONS + 1u, top + 1,
@@ -2422,7 +2422,7 @@ static void mod_multi_screens(const char *dir) {
   g_app.mode = FM1_MODE_MATRIX;
   for (int top = 0; top < slot; top += FM1_MOD_UI_ROWS) {
     g_app.mui.slot = (uint8_t)top;
-    g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
+    g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
     for (int pg = 0; pg < 2; ++pg) {
       g_app.mui.mpage = (uint8_t)pg;
       snprintf(name, sizeof name, "matrix-units-slot%d-%c", top + 1, pg ? 'b' : 'a');

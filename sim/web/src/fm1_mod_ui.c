@@ -1476,9 +1476,8 @@ int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_
     if (fm1_mod_ui_empty(u, env->m, (unsigned)i)) found = i;
   }
   fm1_mod_ui_source(env->m, src, 0, a, sizeof a);
-  /* "LFO1 > S1 Timbre": the destination as full as a popup's line holds. */
-  fm1_mod_ui_dest_fit(env, d, FM1_MOD_UI_POPUP_CHARS - 3 - strlen(a), b, sizeof b);
-  if (found < 0) {
+  if (found < 0) {                     /* a refusal: the full popup's line */
+    fm1_mod_ui_dest_fit(env, d, FM1_MOD_UI_POPUP_CHARS - 3 - strlen(a), b, sizeof b);
     say->n = 2;
     snprintf(say->line[0], sizeof say->line[0], "%s > %s", a, b);
     snprintf(say->line[1], sizeof say->line[1], "Matrix full");
@@ -1498,6 +1497,9 @@ int fm1_mod_ui_route(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned src_
   u->srcset &= ~(1u << found);
   fm1_mod_ui_set_slot(env, u, (unsigned)found, &s);
   fm1_mod_ui_matrix_select(u, found - (int)u->slot);   /* MATRIX opens on it */
+  /* A confirmation: "LFO1 > S1 Harmonics +12%" as the app's banner joins
+   * it, the destination as full as the banner holds beside the amount. */
+  fm1_mod_ui_dest_fit(env, d, FM1_MOD_UI_BANNER_CHARS - 3 - strlen(a) - 1 - 5, b, sizeof b);
   say->n = 2;
   snprintf(say->line[0], sizeof say->line[0], "%s > %s", a, b);
   snprintf(say->line[1], sizeof say->line[1], "%+d%%", pct);
