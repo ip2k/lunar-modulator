@@ -85,7 +85,7 @@ def test_the_app_starts_with_the_default_rack_and_its_cables(tools):
 def test_sizes(tools):
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
-    assert z["mod_bytes"] == 26192 <= z["mod_arena"] == 26624
+    assert z["mod_bytes"] == 26512 <= z["mod_arena"] == 26624
     assert z["mod_ui_bytes"] <= 256
 
 

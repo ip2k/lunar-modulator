@@ -38,6 +38,13 @@
 //   (LATCH). A voice without an offset plays the engine's values, byte for
 //   byte as before.
 //
+// - Glide and Voice Mode (glide.h), after Volume: the glide joins the note
+//   after the bend, once per 16-sample block. A Legato move gives
+//   fm::Voice no gate edge, so its envelopes go on and its keyboard and
+//   rate scaling stay the first note's; a Mono note restarts them, and a
+//   glide's first block is the note it samples for them (the pitch it
+//   glides from).
+//
 // Rate: FMVoice runs at Plaits' 47,872.34 Hz whatever the host's rate, as
 // upstream's SixOpEngine::Init sets it up, in this wrapper's 16-sample blocks
 // (envelopes and LFO step once per block), and the mono mix goes through
@@ -61,6 +68,7 @@
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
 #include "fm1_smooth.h"
+#include "glide.h"
 #include "note_offsets.h"
 
 #include <algorithm>
@@ -139,7 +147,7 @@ const char *const kPatchNames[kNumPatches] = {
 
 #undef RENAMED
 
-enum Param { P_PATCH, P_BRIGHTNESS, P_ENVELOPE, P_VOLUME, P_COUNT };
+enum Param { P_PATCH, P_BRIGHTNESS, P_ENVELOPE, P_VOLUME, P_GLIDE, P_VOICE_MODE, P_COUNT };
 
 // Brightness 0.5 plays the modulator levels as programmed. Envelope has no
 // neutral point in Plaits: attack/decay rates scale by 2^((0.5 - e) * 8) and
@@ -160,10 +168,15 @@ const fm1_param_t kParams[P_COUNT] = {
   { "Envelope",   FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 0,  // Plaits' MORPH
     3, kPoly, FM1_UNIT_NONE, "Env" },
   { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 4, kPoly, FM1_UNIT_NONE, "Vol" },
+  // Glide and the voice modes (glide.h), after Volume on page 2.
+  { "Glide",      FM1_PARAM_FLOAT, glide::kOffMs, glide::kMaxMs, glide::kOffMs, NULL, 1,
+    5, glide::kGlideFlags, FM1_UNIT_MS, "Glide" },
+  { "Voice Mode", FM1_PARAM_ENUM, 0, glide::MODE_COUNT - 1, glide::MODE_POLY,
+    glide::kModeNames, 1, 6, glide::kModeFlags, FM1_UNIT_NONE, "VMode" },
 };
 
 // A voice's per-note offsets: Brightness, Envelope and Volume, and its pitch.
-typedef NoteOffsets<P_BRIGHTNESS, P_COUNT - P_BRIGHTNESS> Offsets;
+typedef NoteOffsets<P_BRIGHTNESS, P_GLIDE - P_BRIGHTNESS> Offsets;
 
 // Eight voices. The FM-1's stock msfa plays 12 six-op voices plus effects on
 // one pi32v2 core, in fixed point with its hot loops in RAM; Plaits' float
@@ -194,6 +207,7 @@ struct Voice {
   bool active;
   uint32_t age;
   Offsets note;                   // per-note offsets (set_param_note)
+  glide::Slew glide;              // its glide (glide.h)
 };
 
 class Instance {
@@ -213,7 +227,10 @@ class Instance {
       v.gate = v.active = false;
       v.age = 0;
       v.note.Clear();
+      v.glide.Clear();
     }
+    held_.Clear();
+    glide_block_ms_ = glide::BlockMs(kCorrectedSampleRate, kBlock);
     const float blocks_per_second = kCorrectedSampleRate / kBlock;
     silent_after_release_ = static_cast<uint32_t>(kSilentAfterRelease * blocks_per_second);
     for (int i = 0; i < P_COUNT; ++i) value_[i] = kParams[i].def;
@@ -229,7 +246,15 @@ class Instance {
 
   void NoteOn(uint8_t key, uint8_t velocity) {
     if (velocity == 0) { NoteOff(key); return; }
-    Voice *v = Allocate(key);
+    held_.Push(key);
+    const glide::Plan<Voice> plan = glide::PlanNoteOn(
+        voice_, kNumVoices, glide::ToMode(value_[P_VOICE_MODE]), value_[P_GLIDE]);
+    if (plan.legato) {         // Legato over a held note: a new key, nothing restarts
+      Retune(plan.mono, key);
+      glide::StartFor(plan.mono, plan, key);
+      return;
+    }
+    Voice *v = plan.mono ? plan.mono : Allocate(key);
     const int index = static_cast<int>(value_[P_PATCH] + 0.5f);
     if (v->patch_index != index) {
       v->fm.UnloadPatch();        // LoadPatch() ignores a pointer it already has
@@ -265,9 +290,13 @@ class Instance {
       v->fm.Render(scratch_, 1);
     }
     v->gate = true;
+    v->glide.Begin();
+    glide::StartFor(v, plan, key);
   }
 
   void NoteOff(uint8_t key) {
+    held_.Remove(key);
+    if (glide::ToMode(value_[P_VOICE_MODE]) != glide::MODE_POLY) ReturnToHeld(key);
     for (int i = 0; i < kNumVoices; ++i) {
       if (voice_[i].gate && voice_[i].key == key) voice_[i].gate = false;
     }
@@ -315,6 +344,26 @@ class Instance {
   }
 
  private:
+  // Mono and Legato: letting go of the key the voice plays while older keys
+  // are held moves it back to the newest of them, gliding, never restarting.
+  void ReturnToHeld(uint8_t key) {
+    uint8_t top = 0;
+    const glide::Plan<Voice> plan =
+        glide::PlanNoteOff(voice_, kNumVoices, held_, key, value_[P_GLIDE], &top);
+    if (!plan.mono) return;
+    Retune(plan.mono, top);
+    glide::StartFor(plan.mono, plan, top);
+  }
+
+  // A voice takes another key without restarting: fm::Voice sees no gate
+  // edge, so its envelopes go on, and its keyboard and rate scaling stay
+  // those of the note that started them. A new note for its per-note
+  // offsets; the same velocity and patch.
+  void Retune(Voice *v, uint8_t key) {
+    v->key = key;
+    v->note.Clear();
+  }
+
   // A SMOOTH parameter ramps while a voice sounds; anything else, at once.
   uint32_t Steps(uint16_t index) const {
     if (!(kParams[index].flags & FM1_PARAM_SMOOTH)) return 0;
@@ -346,6 +395,7 @@ class Instance {
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     float mix[kBlock] = { 0 };
     const float gain = value_[P_VOLUME] * 0.25f;
+    const float glide_inc = glide::Increment(glide_block_ms_, value_[P_GLIDE]);
     Voice *lead = lead_ >= 0 ? &voice_[lead_] : NULL;
     if (lead) lead->fm.mutable_lfo()->Step(static_cast<float>(kBlock));
 
@@ -364,6 +414,8 @@ class Instance {
       p->gate = v.gate;
       float note = v.key + v.note_offset + bend_;
       if (v.note.has_pitch()) note += v.note.pitch;
+      if (v.glide.active) note += v.glide.offset;
+      v.glide.Next(glide_inc);
       p->note = note;
       p->velocity = accent;
       p->brightness = v.note.Value(kParams, P_BRIGHTNESS, value_[P_BRIGHTNESS]);
@@ -404,6 +456,8 @@ class Instance {
   int lead_;                      // most recently triggered voice, drives the LFO
   uint32_t silent_after_release_; // in 16-sample blocks at 47,872.34 Hz
   uint32_t clock_;
+  glide::Held held_;              // keys down, for Mono and Legato
+  float glide_block_ms_;          // a 16-sample block at 47,872.34 Hz, in ms
   float mix_[kBlock];             // the current block at 47,872.34 Hz
   size_t pending_;                // samples of mix_ not yet resampled
   fm1_resampler_t resampler_;     // 47,872.34 Hz mix -> host rate, one per instance

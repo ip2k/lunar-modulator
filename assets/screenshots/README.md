@@ -4,14 +4,15 @@ Pictures of Lunar Modulator in the virtual FM-1 (`sim/web/`), for the
 README, the user manual (`{{screen NAME ...}}` figures) and DEVELOPERS.md
 (the parity figure). Taken on 2026-10-06 in headless Chromium 153
 (Playwright 1.63) from `sim/web/www/` as committed with them (`fm1.wasm`
-939,251 B, `32051390…`), all in one run of
+955,543 B, `8d1f4f74…`), all in one run of
 `sim/web/test/readme-screenshots.mjs`, after the UI audit's screens
 landed (`notes/2026-10-06-ui-audit.md`: the colour map, the Spleen faces,
 the context line, FX mode's chip, MATRIX in colour, the track strip by
 sound), and again after the review that put a short list whole in the
-large face (none of these pictures shows a list). They were retaken with
-their names kept; `parity.png`, `screen-fx.png` and `screen-matrix.png`
-came out byte-identical. From one run to the next only what moves with the
+large face (none of these pictures shows a list) and the merge of glide
+and the voice modes (Macro's pages are four: *1/4 Sound*). They were
+retaken with their names kept; `parity.png`, `screen-fx.png` and
+`screen-matrix.png` came out byte-identical. From one run to the next only what moves with the
 sound differs: the oscilloscope strips, the meters and the lit keys.
 
 | File | What it shows |

@@ -9,6 +9,30 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Glide and mono playing on Macro, Macro Heavy, Six-Op FM, FM6 and
+  Shapes.** Two new parameters on each:
+  - **Glide** (1 ms to 5 s): a note you play while holding another slides
+    from the held note's pitch to its own, in the same time whatever the
+    interval. At 1 ms, the default, glide is off and every engine sounds
+    exactly as before. Chords struck together do not slide into each other,
+    and a note played with no key held starts on its own pitch.
+  - **Voice Mode**: Poly (as before), Mono (one voice; each new key starts
+    the sound again, and letting go returns to a key still held) or Legato
+    (one voice; playing over a held key carries the note on at the new
+    pitch without starting it again).
+  - Both can be locked in the sequencer and modulated; turning Glide during
+    a slide changes its speed. Macro and Macro Heavy show them on a fourth
+    page, the others after Volume on page 2. Not on Sophie and Drums, whose
+    keys play pads.
+  - The same output, bit for bit, at any block size and on the Mac, 32- and
+    64-bit Linux and the browser (three new parity scenarios, 86 of 86 pass;
+    the browser module grew from 922 KB to 939 KB); the modulation runtime
+    holds 8 more parameter records (320 bytes) for Macro Heavy's fourteen
+    parameters. Glide's state adds 112 to 300 bytes to each of the five
+    engines, so a chain that filled the RAM budget to its last few hundred
+    bytes may now be refused (one parity scenario swapped an Ensemble
+    insert for Drive to fit). Documented in engines/README.md ("Glide
+    and voice modes") and chapter 4 of the manual.
 - **The arpeggiator, in the simulator.** [ARP] now works: tap it to switch
   the current sound's arpeggiator on (its pages open) or off; hold it to
   latch, so the notes play on after you let go and the next chord replaces
@@ -1279,9 +1303,9 @@ history.
     characters in `fm1_panel.h` (`fm1_list_rows`, `fm1_list_chars`),
     `fm1_look_full_name`, `fm1_look_context`, `fm1_look_sound_text`;
     MATRIX's and CHAIN's character roles (`fm1_mod_ui_row`,
-    `fm1_mod_ui_chain`). `fm1-sim-render --screens` draws 3,336 screens
+    `fm1_mod_ui_chain`). `fm1-sim-render --screens` draws 3,408 screens
     with 0 faults and counts text boxes by face; the browser module is
-    939,251 bytes, parity 83 of 83. The audit note's "Built" section
+    955,543 bytes with glide, parity 86 of 86. The audit note's "Built" section
     measures every list and dense screen before and after.
 - **EQ, Isolator and Master Sat rest when they change nothing.** Left at
   their pass-through settings for two seconds (every EQ gain and Level at
