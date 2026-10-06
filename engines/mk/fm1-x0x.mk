@@ -3,7 +3,11 @@
 #   "Acid Bass" (acid-bass, src/acid_bass.cc), a bass after the TB-303, on its
 #     303 bass (dsp/bass303.c);
 #   "Acid Gen" (acid-gen, midi_fx/acid_gen.c), a MIDI effect that writes acid
-#     lines, on its TB-3PO generator (seq/tb3po.c).
+#     lines, on its TB-3PO generator (seq/tb3po.c);
+#   "Comet Kit" (comet, src/comet_kit.cc), a 16-pad kit after the TR-909, on
+#     its 909 kit (dsp/drum909.c), with ER-99's cymbal recordings and the
+#     tables its own script made of them (gen/, committed: no build needs
+#     Python).
 # Built only while the GPL switch is on (FM1_GPL_MODS, engines/Makefile); their
 # registry entries and licence rows sit under #if FM1_GPL_MODS
 # (src/registry.cc, midi_fx/registry.c). With the switch off this fragment
@@ -25,8 +29,9 @@
 ifeq ($(FM1_GPL_MODS),1)
 
 X0X_DIR := third_party/fm1-x0x
-X0X_CFLAGS := -std=c99 -ffp-contract=off $(OPT) $(EXTRA) -w -I$(X0X_DIR) -MMD -MP
-X0X_OBJ := $(BUILD)/gpl/fm1-x0x/dsp/bass303.o $(BUILD)/gpl/fm1-x0x/seq/tb3po.o
+X0X_CFLAGS := -std=c99 -ffp-contract=off $(OPT) $(EXTRA) -w -I$(X0X_DIR) -I$(X0X_DIR)/gen -MMD -MP
+X0X_OBJ := $(BUILD)/gpl/fm1-x0x/dsp/bass303.o $(BUILD)/gpl/fm1-x0x/seq/tb3po.o \
+           $(BUILD)/gpl/fm1-x0x/dsp/drum909.o
 
 $(BUILD)/gpl/fm1-x0x/%.o: $(X0X_DIR)/%.c
 	@mkdir -p $(dir $@)
@@ -35,6 +40,11 @@ $(BUILD)/gpl/fm1-x0x/%.o: $(X0X_DIR)/%.c
 # Acid Bass: our wrapper, C++ with our flags, reading the vendored headers.
 OUR_SRC += src/acid_bass.cc
 $(BUILD)/our/src/acid_bass.o: COMMON += -I$(X0X_DIR)
+
+# Comet Kit: our wrapper, C++ with our flags, reading the vendored headers
+# (drum909.h includes the generated tables' header).
+OUR_SRC += src/comet_kit.cc
+$(BUILD)/our/src/comet_kit.o: COMMON += -I$(X0X_DIR) -I$(X0X_DIR)/gen
 
 # Acid Gen: our MIDI effect, C99 with the MIDI effects' flags (mk/midi_fx.mk).
 ACIDGEN_OBJ := $(BUILD)/midi_fx/acid_gen.o
@@ -55,6 +65,19 @@ $(BUILD)/fm1-acid-oracle: $(ACID_ORACLE_OBJ) $(BUILD)/fm1-render
 	$(CXX) $(OPT) $(EXTRA) -o $@ $(ACID_ORACLE_OBJ) \
 	  $(filter-out $(BUILD)/our/host/render.o,$(RENDER_OBJ)) -lm
 
--include $(X0X_OBJ:.o=.d) $(ACIDGEN_OBJ:.o=.d) $(ACID_ORACLE_OBJ:.o=.d)
+# fm1-comet-oracle (test/comet_oracle.cc): Comet Kit beside a copy of its
+# vendored unit driven directly on the same 16-sample grid, the unit's
+# values for knob settings, and the subnormal floats in its state
+# (tests/test_engine_comet_kit.py). A desktop test tool.
+COMET_ORACLE_OBJ := $(BUILD)/our/test/comet_oracle.o
+$(COMET_ORACLE_OBJ): COMMON += -I$(X0X_DIR) -I$(X0X_DIR)/gen -Isrc
+
+all: $(BUILD)/fm1-comet-oracle
+
+$(BUILD)/fm1-comet-oracle: $(COMET_ORACLE_OBJ) $(BUILD)/fm1-render
+	$(CXX) $(OPT) $(EXTRA) -o $@ $(COMET_ORACLE_OBJ) \
+	  $(filter-out $(BUILD)/our/host/render.o,$(RENDER_OBJ)) -lm
+
+-include $(X0X_OBJ:.o=.d) $(ACIDGEN_OBJ:.o=.d) $(ACID_ORACLE_OBJ:.o=.d) $(COMET_ORACLE_OBJ:.o=.d)
 
 endif

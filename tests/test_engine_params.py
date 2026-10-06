@@ -92,6 +92,12 @@ ENUM_FLAGS = {
 # once while nothing sounds: LATCH, and a route rounds them.
 ENUM_FLAGS[("acid-bass", "Wave")] = ["latch", "mod"]
 ENUM_FLAGS[("acid-bass", "Drive Type")] = ["latch", "mod"]
+# Comet Kit (a GPL module, src/comet_kit.cc): Pad is the edit focus, as
+# Drums' and Sophie's; Drive Type and Kit are read when a pad is struck, so a
+# sounding hit keeps what it started with: LATCH, and a route rounds them.
+ENUM_FLAGS[("comet", "Pad")] = []
+ENUM_FLAGS[("comet", "Drive Type")] = ["latch", "mod"]
+ENUM_FLAGS[("comet", "Kit")] = ["latch", "mod"]
 # Acid Gen (a GPL MIDI effect, midi_fx/acid_gen.c): as the arpeggiator's,
 # every list is read at its next step (LATCH); no route reaches a MIDI effect.
 for _name in ("Octaves", "Root", "Scale", "Octave", "Keys", "Rate", "Direction", "Latch"):
