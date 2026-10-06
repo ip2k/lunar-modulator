@@ -4,7 +4,7 @@ Pictures of Lunar Modulator in the virtual FM-1 (`sim/web/`), for the
 README, the user manual (`{{screen NAME ...}}` figures) and DEVELOPERS.md
 (the parity figure). Taken on 2026-10-06 in headless Chromium 153
 (Playwright 1.63) from `sim/web/www/` as committed with them (`fm1.wasm`
-840,216 B, `fc72bc2e…`), all in one run of
+850,731 B, `adbfb8be…`), all in one run of
 `sim/web/test/readme-screenshots.mjs`. `screen-fm6.png` is new since
 2026-10-06, and the others were retaken with their names kept (from one
 run to the next only what moves with the sound differs: the oscilloscope

@@ -468,14 +468,14 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 3080            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["screens"] >= 3144            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
     #                                              1321 before the master-bus pack (1458), 2189 with modulation
     #                                              (docs/16 MG3) before Room, Hall, Gate and Plate's Freeze, 2325
     #                                              with them and 2366 with Comb and Test Ext (engine API v3), in
     #                                              the lab switch's two sets of screens; 2695 before every
-    #                                              list popup's every entry, 3040 before FM6's user bank
-    #                                              (both 2026-10-06)
+    #                                              list popup's every entry, 3040 before FM6's user bank,
+    #                                              Squash and Transient (all 2026-10-06)
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

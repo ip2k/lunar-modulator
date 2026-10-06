@@ -86,7 +86,10 @@ terms it is used under.
   Society*, 2012). No code is taken from anyone.
 - **Limiter** is this project's own code, after **Geraint Luff**'s
   look-ahead limiter design (Signalsmith Audio, 2022). No code is taken from
-  the article or from Signalsmith's library.
+  the article or from Signalsmith's library. Its Round mode ports the loop of
+  **Airwindows** ClipOnly2, by **Chris Johnson**, MIT licence ("Copyright
+  (c) 2016 airwindows, Airwindows uses the MIT license"; the licence is in
+  the source tree with the effect).
 - **DJ Filter** is this project's own code: the state-variable filter of
   **Andrew Simper** (Cytomic) and **Vadim Zavalishin**, in the form of
   stmlib's by **Emilie Gillet** (MIT licence). No code is taken from anyone.
@@ -116,6 +119,14 @@ terms it is used under.
   manuals of **Drawmer**'s DS201 and DS301 noise gates (the maker's name
   appears here only as credit); its key filters are **Vadim Zavalishin**'s
   state-variable filter. No circuit or code is taken from anyone.
+- **Squash** ports three **Airwindows** plug-ins by **Chris Johnson**, MIT
+  licence ("Copyright (c) 2016 airwindows, Airwindows uses the MIT
+  license"): its Snap type is Pop3, Mu is Pressure4 and Split is
+  ButterComp2, rewritten in single precision for the FM-1, with their noise
+  taken out and the few changes the effect's notes list.
+- **Transient** is this project's own code, on the classic two-follower
+  principle of transient designers, as noted from **legsmechanical**'s Bus
+  Driver (MIT licence). No code or measurement is taken from it.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and
