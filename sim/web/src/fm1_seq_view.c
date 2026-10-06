@@ -35,21 +35,30 @@
 #define STEPS_H 20
 /* The tempo on the status line: a whole one in MAIN ("120 BPM", at most
  * 82 px), one with decimals in MID ("117.65 BPM", at most 80 px), so the
- * tracks always have from TRACKS_L to TRACKS_R: 8 px clear of the tempo and
- * of the transport (4 characters, 46 px to RIGHT). The tracks are cells of
- * TRACK_W in the colour of the sound each plays, centred there; the
- * focused one the line's full height, the others TRACK_H; a muted one
- * hollow. */
+ * tracks always have from TRACKS_L to TRACKS_R: 7 px clear of the tempo and
+ * of the transport (4 characters, 46 px to RIGHT). The tracks are tiles of
+ * TRACK_W in the colour of the sound each plays, centred there, each with
+ * that sound's number on it in SMALL (audit L3: the number is the cue that
+ * needs no colour), TRACK_PAD clear of the tile's sides and 2 px of its top
+ * and bottom; the focused one the line's full height, the others TRACK_H; a
+ * muted one unlit: its number alone, in the sound's colour (focused, with
+ * the TRACK_EXTRA bars a focused tile adds above and below it). */
 #define TEMPO_W FM1_TFT_MAIN_W(7)                          /* "300 BPM" */
-#define TRACKS_L (MARGIN + TEMPO_W + 8)
-#define TRACKS_R (RIGHT - FM1_TFT_MAIN_W(4) - 8)
-#define TRACK_W 8
+#define TRACKS_L (MARGIN + TEMPO_W + 7)
+#define TRACKS_R (RIGHT - FM1_TFT_MAIN_W(4) - 7)
+#define TRACK_PAD 2
+#define TRACK_INK_W 5                  /* SMALL's digits and 'M': 5 px of ink from the cell's left */
+#define TRACK_W (TRACK_PAD + TRACK_INK_W + TRACK_PAD)
 #define TRACK_GAP 2
-#define TRACK_H 12
+#define TRACK_H (FM1_TFT_SMALL_CAP_H + 4)
 #define TRACKS_SPAN (8 * TRACK_W + 7 * TRACK_GAP)
 #define TRACKS_X (TRACKS_L + (TRACKS_R - TRACKS_L - TRACKS_SPAN) / 2)
 #define TRACKS_Y STATUS_Y
 #define TRACKS_FULL 18                                     /* the line's height */
+#define TRACK_EXTRA ((TRACKS_FULL - TRACK_H) / 2)          /* a focused tile's, above and below */
+/* The numbers' run: its box's top, so a digit's ink is centred on the line. */
+#define TRACKS_TEXT_Y \
+  (TRACKS_Y + (TRACKS_FULL - FM1_TFT_SMALL_CAP_H) / 2 - (FM1_TFT_SMALL_BASELINE - FM1_TFT_SMALL_CAP_H))
 #define LEGEND_PITCH 22                /* SHIFT's legend, from GRID_Y, in MID */
 #define LANE_PITCH 20                  /* Track page 2: eight lanes, in MID, under its heading */
 #define LOCK_DOT 3                     /* a step with a lock: a dot in the cell's corner */
@@ -61,7 +70,11 @@
 typedef char fm1_seq_view_lanes_fit[CONTEXT_NEXT_Y + 7 * LANE_PITCH + MID_LINE_H + 4 <= BOTTOM_Y ? 1 : -1];
 typedef char fm1_seq_view_legend_fits[GRID_Y + 5 * LEGEND_PITCH + MID_LINE_H + 4 <= HINT_Y ? 1 : -1];
 typedef char fm1_seq_view_tracks_fit[TRACKS_X >= TRACKS_L && TRACKS_X + TRACKS_SPAN <= TRACKS_R &&
-                                     FM1_TFT_MID_W(10) <= TEMPO_W ? 1 : -1];
+                                     FM1_TFT_MID_W(10) <= TEMPO_W && TRACKS_L - (MARGIN + TEMPO_W) >= 4 &&
+                                     TRACKS_TEXT_Y >= TRACKS_Y && TRACKS_FULL == TRACK_H + 2 * TRACK_EXTRA &&
+                                     TRACKS_TEXT_Y + FM1_TFT_SMALL_H <= TRACKS_Y + TRACKS_FULL &&
+                                     TRACK_W + TRACK_GAP >= FM1_TFT_SMALL_ADVANCE &&
+                                     TRACK_INK_W <= FM1_TFT_SMALL_INK_W ? 1 : -1];
 
 typedef char fm1_seq_view_grid_fits[BOX_X >= 0 && BOX_X + BOX_W <= FM1_TFT_W &&
                                     GRID_Y + GRID_H < STRIP_Y ? 1 : -1];
@@ -77,15 +90,17 @@ void fm1_seq_view_bpm(uint32_t bpm_x100, char *buf, size_t size) {
   else snprintf(buf, size, "%u.%02u BPM", whole, frac);
 }
 
-/* A track's colour on the strip: the sound it plays, subtle for MIDI out. */
-static uint16_t track_colour(const fm1_seq_view_sound_t *snd, unsigned k) {
+/* A track on the strip: the number of the sound it plays ('1' to '4') and
+ * that sound's colour; 'M' in subtle for MIDI out. */
+static char track_tag(const fm1_seq_view_sound_t *snd, unsigned k, uint16_t *colour) {
   fm1_seq_track_info_t tr;
-  if (!snd->seq) return C_LABEL;
+  *colour = C_LABEL;
+  if (!snd->seq) return 'M';
   memset(&tr, 0, sizeof tr);
   fm1_seq_get_track(snd->seq, k, &tr);
-  return tr.route_kind == FM1_SEQ_ROUTE_ENGINE && tr.route_index < FM1_SEQ_UI_SOUNDS
-             ? fm1_sound_colour(tr.route_index)
-             : C_LABEL;
+  if (tr.route_kind != FM1_SEQ_ROUTE_ENGINE || tr.route_index >= FM1_SEQ_UI_SOUNDS) return 'M';
+  *colour = fm1_sound_colour(tr.route_index);
+  return (char)('1' + tr.route_index);
 }
 
 /* The transport on the right: REC while the focused track records (gold
@@ -105,20 +120,36 @@ static void draw_status(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_
   }
   fm1_tft_text(t, RIGHT - fm1_tft_text_width(state, 4, SCALE), STATUS_Y, state, 4, SCALE,
                rec || u->srec ? C_REFUSE : count ? C_HELD : u->playing ? C_LIVE : C_LABEL);
-  /* The tracks (S6): each in its sound's colour, the focused one the
-   * line's full height, a muted one hollow. */
+  /* The tracks (S6): each a tile in its sound's colour with the sound's
+   * number on it, the focused one the line's full height; a muted one
+   * unlit, its number alone in the sound's colour (focused, between the
+   * bars a focused tile adds).
+   * The tiles are the numbers' ground, as the selection's bar is a row's:
+   * the numbers are the one logged run. */
   if (u->tracks) {
     const unsigned n = u->tracks < 8u ? u->tracks : 8u;
-    fm1_tft_graphic(t, TRACKS_X, TRACKS_Y, (int)n * (TRACK_W + TRACK_GAP) - TRACK_GAP, TRACKS_FULL);
+    char tag[8][2];
+    fm1_tft_span_t sp[8];
+    uint8_t lead[8];
     for (unsigned k = 0; k < n; ++k) {
       const int x = TRACKS_X + (int)k * (TRACK_W + TRACK_GAP);
-      const int focused = k == u->track;
-      const int y = focused ? TRACKS_Y : TRACKS_Y + (TRACKS_FULL - TRACK_H) / 2;
+      const int focused = k == u->track, muted = (u->muted >> k) & 1u;
+      const int y = focused ? TRACKS_Y : TRACKS_Y + TRACK_EXTRA;
       const int h = focused ? TRACKS_FULL : TRACK_H;
-      const uint16_t c = track_colour(snd, k);
-      if ((u->muted >> k) & 1u) fm1_tft_frame(t, x, y, TRACK_W, h, c);
-      else fm1_tft_paint(t, x, y, TRACK_W, h, c);
+      uint16_t c;
+      tag[k][0] = track_tag(snd, k, &c);
+      tag[k][1] = '\0';
+      if (!muted) {
+        fm1_tft_paint(t, x, y, TRACK_W, h, c);
+      } else if (focused) {              /* what a focused tile adds, above and below */
+        fm1_tft_paint(t, x, TRACKS_Y, TRACK_W, TRACK_EXTRA, c);
+        fm1_tft_paint(t, x, TRACKS_Y + TRACKS_FULL - TRACK_EXTRA, TRACK_W, TRACK_EXTRA, c);
+      }
+      sp[k].s = tag[k];
+      sp[k].color = muted ? c : C_BG;
+      lead[k] = (uint8_t)(TRACK_W + TRACK_GAP - FM1_TFT_SMALL_ADVANCE);
     }
+    fm1_tft_span_text_lead(t, TRACKS_X + TRACK_PAD, TRACKS_TEXT_Y, sp, lead, (int)n, 8, FM1_TFT_SMALL);
   }
 }
 

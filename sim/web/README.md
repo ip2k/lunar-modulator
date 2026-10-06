@@ -527,17 +527,18 @@ with msfa's tables as const data, Squash, Transient and the Limiter's
 Round mode, per-voice modulation (MG9) (2026-10-06), the idle paths of
 EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"),
 the arpeggiator with the MIDI effects' stage (engine API v3's MIDI effects),
-glide and the voice modes (`engines/src/glide.h`), the UI audit's
-screens, and glide's modes, Drums' Choke and Kit Decay, the driven idle
+glide and the voice modes (`engines/src/glide.h`), the UI audit's screens
+and their polish, and glide's modes, Drums' Choke and Kit Decay, the driven idle
 paths and Squash Mu's makeup (2026-10-06): 89 of 89 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, two let EQ with Master Sat and Isolator rest past 2 s and
 wake them, and one keeps EQ awake under a zero cable; those three, the
 three Drums, the four FM6 and the five glide scenarios are identical to
-glibc too), and it imports nothing; it is 956,440 bytes with those
-follow-ups, 955,464 before them (955,543 before the dead-code audit's
-removals) with the UI audit's screens (the palette, the two Spleen faces and the screens that
-use them), 938,723 before them with glide
+glibc too), and it imports nothing; it is @@SIZE@@ bytes with those
+follow-ups, 955,241 before them with the track strip's sound numbers and
+MATRIX's narrow gaps (2026-10-06), 955,464 before those (955,543 before the
+dead-code audit's removals) with the UI audit's screens (the palette, the
+two Spleen faces and the screens that use them), 938,723 before them with glide
 (939,251 with them before glide), 922,439 before both, 907,256 with glide
 before the arpeggiator, 890,975 before both (890,874 before Shapes'
 clamps), 887,038 before the idle paths, 850,731 before
@@ -639,7 +640,12 @@ faces, each a table of one byte a glyph row in flash, printable ASCII only
 - `fm1_tft_font_text`, `fm1_tft_font_width` and `fm1_tft_font_fit` draw and
   measure in a face; `fm1_tft_text` stays MAIN at any scale.
   `fm1_tft_span_text` draws a run of several colours (MATRIX's columns,
-  audit L2) and logs it as one box. The layout check's rule is the same for
+  audit L2) and logs it as one box; `fm1_tft_span_text_lead` does the same
+  with a few pixels before chosen spans, a narrow gap inside the one run
+  where a space would cost a whole character (MATRIX's state mark, 4 px
+  from its source and from its destination, paid for by drawing the blank
+  before the amount, or page B's curve, 4 px narrow; the track strip's
+  sound numbers, one to a tile). The layout check's rule is the same for
   every face: 4 px between boxes.
 - `fm1-sim-render --font-sheet FILE.ppm` draws both Spleen faces on one
   screen, layout-checked
@@ -762,7 +768,16 @@ page's tokens and roles agree, contrast after the RGB565 round trip,
 CIEDE2000 between colours with different meanings, the sound colours under
 simulated colour-vision deficiencies, one meaning per colour in
 `style.css`, and PALETTE.md's figures equal to the checker's report; and the
-colour science against the audit's figures and Sharma's CIEDE2000 data.
+colour science against the audit's figures and Sharma's CIEDE2000 data. It
+also fails if a token named by the project's initials comes back anywhere
+in `sim/web/`: the project's own hues are `LUNAR_*` and `--lunar-*`.
+
+`tests/test_sim_screen_cues.py` reads the screen sweep's frames: every
+track on the Track view's strip shows the number of the sound it plays
+(*M* for MIDI out) in Spleen 6×12's own glyph, knocked out of its tile,
+or alone in the sound's colour when muted, with 2 px of tile round it; and
+MATRIX's state mark keeps at least 4 px of blank from its source's ink and
+from the next field's, the rows ending by the right margin.
 
 `tests/test_sim_multi.py` checks multi-sound: SHIFT + PRESETS and its
 popups, the keys and a MIDI note-off on the sound that started them,
