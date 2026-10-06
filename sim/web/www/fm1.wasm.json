@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "91ee6e01e2998c49ec2d6e2a3b30eed993356ebf0661f2d7a96ffa5fab98f412",
-  "wasm_bytes": 845947,
+  "wasm_sha256": "669c66f7aed4bd5f6dabe8a82f73d67e8f1fe02fa8b4c75bba925fd22f378464",
+  "wasm_bytes": 847239,
   "sources_sha256": {
-    "engines": "c707513d2856d1d6f85435577dad2201587922729cf55bcbc451c9967c3cf6a0",
-    "sim": "033158d39fd158ef638cfb348d2fc7dbe1889316aba00a375319bfef75ac1162"
+    "engines": "f60893e5bc0bb3dca00e6f62cb58031fd092b1f7e7aa767ff9481a0cf848e3f2",
+    "sim": "36b73d6035542825602e6c20d61f4872d766c95430ea16f902bf214761b852bc"
   },
   "engines": "working tree",
-  "built": "2026-10-06T03:24:06Z",
+  "built": "2026-10-06T03:57:56Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 76,
+    "passed": 77,
     "failed": 0,
-    "identical_to_js": 76,
-    "identical_to_musl": 76,
-    "identical_to_glibc": 73,
+    "identical_to_js": 77,
+    "identical_to_musl": 77,
+    "identical_to_glibc": 74,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -1845,8 +1845,39 @@
       },
       "screen_px_differing": 0,
       "ram_bytes": {
-        "wasm32": 294756,
-        "native64": 308628
+        "wasm32": 294956,
+        "native64": 308828
+      }
+    },
+    {
+      "name": "arp-trg",
+      "samples": 317648,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 274860,
+        "native64": 275868
+      },
+      "cmd": "arp/arp-trg.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 2,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
       }
     },
     {
