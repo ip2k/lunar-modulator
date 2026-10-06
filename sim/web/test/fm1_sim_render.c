@@ -4787,7 +4787,8 @@ static void log_mfx(FILE *f, uint32_t pos) {
 }
 
 int main(int argc, char **argv) {
-  const char *load_spec = NULL, *save_spec[8];
+  const char *load_spec[4], *save_spec[8];
+  int n_loads = 0;
   unsigned load_flags = 0;
   int n_saves = 0, save_end[8];
   const char *engine = NULL, *out_path = NULL, *screen_path = NULL;
@@ -4831,7 +4832,12 @@ int main(int argc, char **argv) {
     if (strcmp(a, "--replace") == 0) { load_flags |= FM1_APP_LOAD_REPLACE; continue; }
     if (i + 1 >= argc) { usage(); return 2; }
     const char *v = argv[++i];
-    if (strcmp(a, "--load") == 0) { load_spec = v; g_replayable = 0; continue; }
+    if (strcmp(a, "--load") == 0) {          /* up to four, in order */
+      if (n_loads >= 4) { usage(); return 2; }
+      load_spec[n_loads++] = v;
+      g_replayable = 0;
+      continue;
+    }
     if (strcmp(a, "--save") == 0 || strcmp(a, "--save-end") == 0) {
       if (n_saves >= 8) { usage(); return 2; }
       save_spec[n_saves] = v;
@@ -5129,7 +5135,9 @@ int main(int argc, char **argv) {
   }
 
   /* --load, then --save: the state the render starts from. */
-  if (load_spec && !state_load(load_spec, load_flags)) return 1;
+  for (int k = 0; k < n_loads; ++k) {
+    if (!state_load(load_spec[k], load_flags)) return 1;
+  }
   for (int k = 0; k < n_saves; ++k) {
     if (!save_end[k] && !state_save(save_spec[k])) return 1;
   }

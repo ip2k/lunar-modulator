@@ -1039,9 +1039,8 @@ static int plan_finish(plan_t *p) {
   if (rep->r.unknown && !(flags & FM1_APP_LOAD_WITHOUT)) {
     char why[96];
     const char *known = fm1_state_known_text(rep->r.known);
-    snprintf(why, sizeof why, "This %s uses %s, which %s. Nothing was changed.", kind_word(p->kind),
-             rep->r.name, known[0] ? (strcmp(rep->r.known, "gpl") == 0 ? "is in the GPL build only" : known)
-                                   : "this build does not have");
+    snprintf(why, sizeof why, "This %s uses %s, which %s%s. Nothing was changed.", kind_word(p->kind),
+             rep->r.name, known[0] ? "is " : "", known[0] ? known : "this build does not have");
     snprintf(rep->screen[1], sizeof rep->screen[1], "Uses %.20s", rep->r.name);
     rep->r.code = FM1_STATE_UNKNOWN;
     snprintf(rep->message, sizeof rep->message, "%s", why);
