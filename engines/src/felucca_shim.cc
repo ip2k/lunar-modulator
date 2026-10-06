@@ -61,8 +61,9 @@
 //     note_offsets.h): the envelope and Volume everywhere, and the knobs
 //     Trio and Phase Bend read in a voice's render; Drawbar's bars, click
 //     and drive are the part's, read once a block, so they are not.
-//   - Phase Bend takes Glide and Voice Mode (glide.h), which fit in its 14
-//     parameters; Drawbar and Trio do not (their tables are full).
+//   - Phase Bend takes glide's four parameters (glide.h: Glide, Voice Mode,
+//     Glide Mode, Time Mode) on a page of their own, its last, as the
+//     pitched engines do; Drawbar and Trio do not (their tables are full).
 //   - The output. Felucca adds its voices at 24,000 a full-scale voice and
 //     mixes a part at its default level, -4 dB, into a limiter; Volume 0.7
 //     is that level less 12 dB, the headroom our engines leave, and Volume
@@ -93,7 +94,7 @@
 namespace fm1 {
 namespace felucca {
 
-const int kMaxParams = 14;
+const int kMaxParams = 16;
 const int kVoices = FEL_VOICES;
 const uint32_t kBlock = FEL_CTL;
 // The rates the engines accept: Felucca's 44,100 Hz +/- 0.25 % (top of file).
@@ -120,7 +121,7 @@ enum Kind {
                 // the EDIT value is 0 (Trio's PW, Phase Bend's DCW)
   K_FENV,       // -100..100 % as Felucca's ENV -> FILTER, -64..63
   K_ATTACK, K_DECAY, K_SUSTAIN, K_RELEASE,
-  K_VOLUME, K_GLIDE, K_VMODE
+  K_VOLUME, K_GLIDE, K_VMODE, K_GMODE, K_TMODE
 };
 
 struct Slot {
@@ -134,7 +135,8 @@ struct Def {
   const fm1_param_t *params;
   const Slot *slots;
   int n;
-  int glide, vmode;              // indices of Glide and Voice Mode, or -1
+  int glide, vmode, gmode, tmode;   // indices of Glide, Voice Mode, Glide Mode
+                                    // and Time Mode, or -1
 };
 
 const uint16_t kCont = FM1_PARAM_CONTINUOUS;
@@ -228,7 +230,7 @@ const char *const kPhaseLineNames[] = { "Mix", "Ring" };
 
 // Defaults: eng_phase.c's knobs (DCW 60, 47.2441 %; ENV 64) and Felucca's part
 // envelope, as Trio's. Its eighth EDIT knob is unused upstream ("-"):
-// Glide and Voice Mode take its place in the table.
+// glide's four parameters take its place in the table, on page 4.
 const fm1_param_t kPhaseParams[] = {
   { "Wave",       FM1_PARAM_ENUM, 0, 7, 0, kPhaseWaveNames, 0, 1, kLatch, FM1_UNIT_NONE, "Wave" },
   { "Wave 2",     FM1_PARAM_ENUM, 0, 8, 0, kPhaseWave2Names, 0, 2, kLatch, FM1_UNIT_NONE, "Wave2" },
@@ -242,22 +244,26 @@ const fm1_param_t kPhaseParams[] = {
   { "Sustain",    FM1_PARAM_FLOAT, 0, 100, 70.9f, NULL, 2, 10, kContPoly, FM1_UNIT_PCT, "Sus" },
   { "Release",    FM1_PARAM_FLOAT, kTimeMin, kTimeMax, 77.6f, NULL, 2, 11, kContLogPoly, FM1_UNIT_MS, "Rel" },
   { "Volume",     FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 2, 12, kContPoly, FM1_UNIT_NONE, "Vol" },
-  { "Glide",      FM1_PARAM_FLOAT, glide::kOffMs, glide::kMaxMs, glide::kOffMs, NULL, 3, 13,
+  { "Glide",      FM1_PARAM_FLOAT, glide::kMinMs, glide::kMaxMs, glide::kDefaultMs, NULL, 3, 13,
     glide::kGlideFlags, FM1_UNIT_MS, "Glide" },
   { "Voice Mode", FM1_PARAM_ENUM, 0, glide::MODE_COUNT - 1, glide::MODE_POLY, glide::kModeNames, 3,
     14, glide::kModeFlags, FM1_UNIT_NONE, "VMode" },
+  { "Glide Mode", FM1_PARAM_ENUM, 0, glide::GLIDE_MODE_COUNT - 1, glide::GLIDE_OFF,
+    glide::kGlideModeNames, 3, 15, glide::kModeFlags, FM1_UNIT_NONE, "GMode" },
+  { "Time Mode",  FM1_PARAM_ENUM, 0, glide::TIME_MODE_COUNT - 1, glide::TIME_TIME,
+    glide::kTimeModeNames, 3, 16, glide::kModeFlags, FM1_UNIT_NONE, "TMode" },
 };
 const Slot kPhaseSlots[] = {
   { K_LIST, 0, 1 }, { K_LIST, 1, 1 }, { K_SHAPE, 2, 0 }, { K_PCT, 3, 0 },
   { K_INT, 4, 0 }, { K_LIST, 5, 1 }, { K_PCT, 6, 0 }, { K_ATTACK, -1, 0 },
   { K_DECAY, -1, 0 }, { K_SUSTAIN, -1, 0 }, { K_RELEASE, -1, 0 }, { K_VOLUME, -1, 0 },
-  { K_GLIDE, -1, 0 }, { K_VMODE, -1, 0 },
+  { K_GLIDE, -1, 0 }, { K_VMODE, -1, 0 }, { K_GMODE, -1, 0 }, { K_TMODE, -1, 0 },
 };
 
 #define FEL_COUNT(a) static_cast<int>(sizeof(a) / sizeof((a)[0]))
-const Def kDrawbar = { FEL_WHEEL, kDrawbarParams, kDrawbarSlots, FEL_COUNT(kDrawbarParams), -1, -1 };
-const Def kTrio = { FEL_TRIO, kTrioParams, kTrioSlots, FEL_COUNT(kTrioParams), -1, -1 };
-const Def kPhase = { FEL_PHASE, kPhaseParams, kPhaseSlots, FEL_COUNT(kPhaseParams), 12, 13 };
+const Def kDrawbar = { FEL_WHEEL, kDrawbarParams, kDrawbarSlots, FEL_COUNT(kDrawbarParams), -1, -1, -1, -1 };
+const Def kTrio = { FEL_TRIO, kTrioParams, kTrioSlots, FEL_COUNT(kTrioParams), -1, -1, -1, -1 };
+const Def kPhase = { FEL_PHASE, kPhaseParams, kPhaseSlots, FEL_COUNT(kPhaseParams), 12, 13, 14, 15 };
 typedef char slots_match[FEL_COUNT(kDrawbarSlots) == FEL_COUNT(kDrawbarParams) &&
                          FEL_COUNT(kTrioSlots) == FEL_COUNT(kTrioParams) &&
                          FEL_COUNT(kPhaseSlots) == FEL_COUNT(kPhaseParams) &&
@@ -395,9 +401,7 @@ class Instance {
       return;
     }
     held_.Push(key);
-    const glide::Mode mode = Mode();
-    const float glide_ms = def_->glide >= 0 ? value_[def_->glide] : glide::kOffMs;
-    const glide::Plan<Voice> plan = glide::PlanNoteOn(voice_, kVoices, mode, glide_ms);
+    const glide::Plan<Voice> plan = glide::PlanNoteOn(voice_, kVoices, GlideConfig());
     if (plan.legato) {              // Legato over a held note: a new key, nothing restarts
       Retune(plan.mono, key);
       glide::StartFor(plan.mono, plan, key);
@@ -461,6 +465,13 @@ class Instance {
     return def_->vmode >= 0 ? glide::ToMode(value_[def_->vmode]) : glide::MODE_POLY;
   }
 
+  // What Voice Mode, Glide Mode and Time Mode say now (glide.h); Poly with
+  // Glide Mode Off where the engine has none of them.
+  glide::Config GlideConfig() const {
+    if (def_->vmode < 0) return glide::Read(glide::MODE_POLY, glide::GLIDE_OFF, glide::TIME_TIME);
+    return glide::Read(value_[def_->vmode], value_[def_->gmode], value_[def_->tmode]);
+  }
+
   // A SMOOTH parameter ramps while a voice sounds; anything else, at once.
   uint32_t Steps(uint16_t index) const {
     if (!(def_->params[index].flags & FM1_PARAM_SMOOTH)) return 0;
@@ -521,8 +532,7 @@ class Instance {
   // are held moves it back to the newest of them, gliding, never restarting.
   void ReturnToHeld(uint8_t key) {
     uint8_t top = 0;
-    const float glide_ms = def_->glide >= 0 ? value_[def_->glide] : glide::kOffMs;
-    const glide::Plan<Voice> plan = glide::PlanNoteOff(voice_, kVoices, held_, key, glide_ms, &top);
+    const glide::Plan<Voice> plan = glide::PlanNoteOff(voice_, kVoices, held_, key, GlideConfig(), &top);
     if (!plan.mono) return;
     Retune(plan.mono, top);
     glide::StartFor(plan.mono, plan, top);
@@ -540,8 +550,8 @@ class Instance {
   // bridge's render, the mix.
   void Block() {
     if (fm1_smooth_moving(smooth_, kMaxParams)) fm1_smooth_tick(smooth_, value_, kMaxParams);
-    const float glide_inc = def_->glide >= 0
-        ? glide::Increment(glide_block_ms_, value_[def_->glide]) : 0.0f;
+    // This block's glide step, divided out only if some voice glides.
+    glide::Step glide_step(glide_block_ms_, def_->glide >= 0 ? value_[def_->glide] : glide::kMinMs);
     Knobs part;
     MapAll(*def_, value_, &part);
     fel_vin_t in[kVoices] = {};      // a silent voice's is not read
@@ -575,7 +585,7 @@ class Instance {
       const float glided = semis;
       semis += bend_;
       if (v.note.has_pitch()) semis += v.note.pitch;
-      v.glide.Next(glide_inc);
+      v.glide.Next(glide_step);
       Pitch(semis, &x.pitch16, &x.fine);
       {
         int32_t cur = 0, unused = 0;

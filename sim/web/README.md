@@ -99,6 +99,7 @@ PIT, GLO, MONO, POLY) come from the manual's panel drawing [reported].
 | Control | On the FM-1 (manual) [reported] | In the simulator |
 | --- | --- | --- |
 | Keys | key position + 53 + 12 × octave + transpose: F3–G5 at rest | the same; with a pad kit as the current sound (Sophie, Drums: an engine with `pad_count`, engines/README.md "Pad kits"), the 16 white keys play its pads 1–16 at any octave and the black keys nothing; step record and SHIFT's pitches on held steps enter the note the key plays (the pad), not 53 + key, and a key lights while the note it plays sounds |
+| MONO, POLY (C#5, D#5) with SHIFT | labelled for stock's voice modes; its gesture for them is not recorded [inferred] | outside SEQ mode, SHIFT (SEL held) with MONO sets the current sound's Voice Mode to Mono, and on Mono to Legato (and back); with POLY to Poly (owner, 2026-10-06; engines/README.md "Glide and voice modes"). The key plays nothing; the change goes in as a knob turn would (the base under any cable, the lanes' bases follow), with a popup naming the mode; while SHIFT is held MONO lights on Mono or Legato and POLY on Poly. A sound without Voice Mode (Drums, Sophie, Test Sine) says so. In SEQ mode they stay the track keys |
 | OCT− / OCT+ | octave −3..+3; both together reset octave and transpose; hold one and turn ALGORITHM to transpose ±12; LED off / slow / fast / solid for 0 / 1 / 2 / 3 | the same |
 | MASTER | volume (a potentiometer) | output gain after the limiter, popup "Volume N" |
 | SELECT | page within the mode; in FX mode, the effect slot | the same, for the engine's pages and FX mode's five slots (In1, In2, Mix, M1, M2) |
@@ -206,7 +207,7 @@ chain). This section is how they are built.
 | LEDs | SEQ in SEQ mode, PLAY/STOP while the transport runs, SEL while SHIFT is held; in SEQ mode the white keys show the bar's steps (fm1_seq_ui.h has the rules); REC on while recording or step recording, fast during a count-in or a waiting take, slow while Capture holds notes (O7). Sequencer notes light no key outside SEQ mode (O6). LFO or ENV while RACK shows one of theirs, EDIT in MATRIX and CHAIN, SEL in CHAIN and while RACK holds a module |
 | Status line, help | the tempo and the transport (posted by the worklet only when they change); the help's Sequencer, Tracks, Locks, Sounds, Effects, Arpeggiator and Modulation entries; SAVE in the stub list |
 | Sounds | up to four sounds, each with two inserts and a level, then the two slots as the master bus; SHIFT + PRESETS chooses the current sound (below, "Multi-sound") |
-| RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 26,512 B since glide, 26,192 B since per-voice modulation, docs/16 MG9), and each arp that is on (736 B) with the MIDI effects' stage while one is (`fm1_mfx_t`, 7,344 B natively, less with 32-bit pointers) |
+| RAM | a meter in the bottom bar, which refuses whatever would pass the budget; it counts the modulation runtime (`fm1_mod_size()`, 26,848 B since glide's modes, 26,512 B since glide, 26,192 B since per-voice modulation, docs/16 MG9), and each arp that is on (736 B) with the MIDI effects' stage while one is (`fm1_mfx_t`, 7,344 B natively, less with 32-bit pointers) |
 | ARP | the arpeggiator, below |
 
 Tests and parity runs never load the demo pattern or route tracks 2–8:
@@ -262,7 +263,8 @@ place of docs/15 O10's one shared sound):
   (about 349 KB at 32 bits).
 - **Memory.** Each sound unit has a 512 KiB arena and each effect slot a
   256 KiB one: 4.5 MiB of the module's fixed 8 MiB. `fm1_app_t` is
-  4,939,616 B natively (clang, 64-bit) [verified: `fm1-sim-render --sizes`].
+  4,939,984 B natively (clang, 64-bit; 4,939,616 before glide's modes and the
+  driven idle paths, 2026-10-06) [verified: `fm1-sim-render --sizes`].
 - **The API** stage S6 routes tracks with is `fm1_app_unit_*`
   (`src/fm1_app.h`): the current sound, a sound's engine, inserts and
   level, notes on a given sound, `fm1_app_unit_route(a, track, sound)` and
@@ -537,13 +539,17 @@ Round mode, per-voice modulation (MG9) (2026-10-06), the idle paths of
 EQ, Isolator and Master Sat (engines/README.md, "Idle at pass-through"),
 the arpeggiator with the MIDI effects' stage (engine API v3's MIDI effects)
 and its follow-ups (the grid, Stop, the project key; 2026-10-06), glide and
-the voice modes (`engines/src/glide.h`) and the UI audit's screens:
-88 of 88 scenarios pass,
+the voice modes (`engines/src/glide.h`), the UI audit's screens and their
+polish, and glide's modes, Drums' Choke and Kit Decay, the driven idle paths
+and Squash Mu's makeup (2026-10-06): 91 of 91 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
-every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
-wake them; those two, the three Drums, the four FM6 and the three glide
-scenarios are identical to glibc too), and it imports nothing; it is
-958,819 bytes, 955,241 before the arpeggiator's follow-ups with the
+every 4.4 ms, two let EQ with Master Sat and Isolator rest past 2 s and
+wake them, and one keeps EQ awake under a zero cable; those three, the
+three Drums, the four FM6 and the five glide scenarios are identical to
+glibc too), and it imports nothing; it is 959,790 bytes with glide's
+modes, Drums' two, the driven idle paths and Mu's makeup (956,217 with them
+before the arpeggiator's follow-ups), 958,819 before them,
+955,241 before the arpeggiator's follow-ups with the
 track strip's sound numbers and MATRIX's narrow gaps (2026-10-06; 959,031
 with the follow-ups before those), 955,464 before both (955,543 before
 the dead-code audit's removals) with the UI audit's screens (942,230 with
@@ -618,7 +624,7 @@ www/fm1.wasm      src/fm1_web.c   flat exports (fm1w_*)
 `fm1_app_t`. Nothing in it is browser-specific, so the same app layer builds
 natively as `fm1-sim-render`, the test harness. Its panel logic and drawing
 code are meant to carry over to the firmware, but not `fm1_app_t` as it
-stands: it is 4,939,616 bytes (4.5 MiB of fixed arenas, four 512 KiB
+stands: it is 4,939,984 bytes (4.5 MiB of fixed arenas, four 512 KiB
 ones for the sound units and ten 256 KiB ones for the effect slots, a
 115,200-byte full frame buffer, and the sequencer's 32 KiB arena and 3 KiB
 event buffer, and modulation's runtime and a block's writes; clang, 64-bit), against the FM-1's 578 KB of SRAM and

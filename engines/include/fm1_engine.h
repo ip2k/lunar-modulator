@@ -251,6 +251,20 @@ static inline float fm1_param_log_shift(const fm1_param_t *p, float base, float 
  * bend's range. */
 #define FM1_NOTE_PITCH_MAX 48.0f
 
+/* set_param's index for the host's word that something drives this unit's
+ * parameters (owner's decision, 2026-10-06): value 1 while a sequencer lock
+ * lane or a modulation cable reaches any of them, 0 while none does, which
+ * is how every instance starts. No parameter has this index, so an engine
+ * that does not use it ignores it, as any index past its table: it is not a
+ * parameter, never locked, modulated, shown or saved. An effect with an
+ * idle path (EQ, Isolator, Master Sat; fm1_fx_idle.h) never idles while it
+ * is 1, and wakes at once if it was idle. A host sends it when the answer
+ * changes (fm1-render and the virtual FM-1 check before each effect's
+ * block), and so an instance it creates hears it before its first block
+ * if anything drives it. Additive within API v3: an older host never sends
+ * it, and its effects idle as before. */
+#define FM1_PARAM_DRIVEN 0xFFFEu
+
 /* Whether a per-note offset may reach p: POLY, and modulatable. */
 static inline int fm1_param_poly(const fm1_param_t *p) {
   return (p->flags & FM1_PARAM_POLY) && fm1_param_modulatable(p);

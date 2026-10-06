@@ -51,10 +51,11 @@ When you choose an engine:
   and goes to its last page otherwise.
 
 Every engine but Sophie has a **Volume** parameter, its own output level, on
-its second page (on Drums, Comet Kit and Crater Kit, their third). It is separate from [[MASTER]], which sets the level of
+its second page (on Drums, its fourth; on Comet Kit and Crater Kit, their third). It is separate from [[MASTER]], which sets the level of
 everything. Macro, Macro Heavy, Six-Op FM, FM6 and Shapes also have
-**Glide** and **Voice Mode**, for sliding between notes and playing one
-voice at a time ([chapter 4](04-playing.md#glide-and-voice-modes)).
+**Glide**, **Voice Mode**, **Glide Mode** and **Time Mode**, together on
+their last page, for sliding between notes and playing one voice at a time
+([chapter 4](04-playing.md#glide-and-voice-modes)).
 
 !!! note "Engines that need the FM-1's sample rate"
     Macro, Macro Heavy, Six-Op FM and Drums run Plaits' code at its own
@@ -144,8 +145,9 @@ acoustic instruments do.
     it close over the Decay time even if you hold the key, like a plucked or
     struck sound; **Off** takes the gate out, so the note keeps its full
     brightness and only its level fades after you let go.
-- Page 4 holds **Glide** and **Voice Mode**: slides between notes, and
-  one-voice playing ([chapter 4](04-playing.md#glide-and-voice-modes)).
+- Page 4 holds **Glide**, **Voice Mode**, **Glide Mode** and **Time
+  Mode**: how notes slide from one to the next, and one-voice playing
+  ([chapter 4](04-playing.md#glide-and-voice-modes)).
 
 | Model | Harmonics | Timbre | Morph |
 | --- | --- | --- | --- |
@@ -196,7 +198,8 @@ needs much more memory than Macro's, so Macro Heavy plays four notes at once.
 - Page 3 works as in Macro. On Speech, Env Pitch also lets a spoken word's
   own pitch contour through. With LPG on Ping, String, Modal and the drums
   ring out after you let go, instead of fading.
-- Page 4, **Glide** and **Voice Mode**, works as in Macro. On Legato a
+- Page 4, **Glide**, **Voice Mode**, **Glide Mode** and **Time Mode**,
+  works as in Macro. On Legato a
   string, a modal sound or a drum is not struck again when you play over a
   held key, and a word goes on; on Mono it is.
 - **String, Modal, Bass Drum, Snare and Hi-Hat** sound by themselves: a key
@@ -258,9 +261,10 @@ through the patches, and the knobs adjust the one you have chosen.
   middle, at 0.3, and grow longer either side of it: at the default, 0.5,
   they last about three times as long as programmed.
 - **Volume**, on page 2, is the engine's output level.
-- **Glide** and **Voice Mode**, on page 2, slide between notes and play one
-  voice ([chapter 4](04-playing.md#glide-and-voice-modes)). On Legato a
-  note played over a held one does not restart the patch's envelopes.
+- Page 3 holds **Glide**, **Voice Mode**, **Glide Mode** and **Time Mode**,
+  which slide between notes and play one voice
+  ([chapter 4](04-playing.md#glide-and-voice-modes)). On Legato a note
+  played over a held one does not restart the patch's envelopes.
 - Eight notes play at once.
 
 {{screen sixop Six-Op FM on its default patch, 2 E.PIANO 1. Its first page has three controls.}}
@@ -316,9 +320,10 @@ in this project's tests.
   right, as programmed in the middle. It acts on notes that are sounding.
 - **Feedback** adds to the voice's own feedback, from 0 to 7 in whole steps.
 - **Volume**, on page 2, is the engine's output level.
-- **Glide** and **Voice Mode**, on page 2, slide between notes and play one
-  voice ([chapter 4](04-playing.md#glide-and-voice-modes)). On Legato a
-  note played over a held one keeps the envelopes and the LFO running.
+- Page 3 holds **Glide**, **Voice Mode**, **Glide Mode** and **Time Mode**,
+  which slide between notes and play one voice
+  ([chapter 4](04-playing.md#glide-and-voice-modes)). On Legato a note
+  played over a held one keeps the envelopes and the LFO running.
 - Twelve notes play at once.
 
 The built-in voices:
@@ -401,9 +406,10 @@ attack and release envelope.
   how long it takes to fade after you let go. Both run from 1 ms at the left
   to 4 seconds at the right.
 - **Volume**, on page 2, is the engine's output level.
-- **Glide** and **Voice Mode**, on page 2, slide between notes and play one
-  voice ([chapter 4](04-playing.md#glide-and-voice-modes)). On Legato a
-  note played over a held one does not strike the shape again.
+- Page 3 holds **Glide**, **Voice Mode**, **Glide Mode** and **Time Mode**,
+  which slide between notes and play one voice
+  ([chapter 4](04-playing.md#glide-and-voice-modes)). On Legato a note
+  played over a held one does not strike the shape again.
 - Playing harder makes a note louder.
 
 {{screen shapes Shapes on Pluck, page 1.}}
@@ -547,10 +553,12 @@ project's own, after published studies of the analogue circuits
   to twelve hits sound at once. A pad struck again while it rings is struck
   again, as a drum is, rather than starting a second sound; a thirteenth pad
   takes over the quietest hit.
-- A closed or pedal hi-hat cuts the open hi-hat short, as on the machines.
-- **Pad** chooses which pad the pad's knobs edit: those on pages 1 and 2,
-  and Model on page 3. [[ALGORITHM]] steps through the pads, and so does
-  [[KNOB1]] on page 1. Each pad keeps its own settings.
+- A closed or pedal hi-hat cuts the open hi-hat short, as on the machines:
+  the three hi-hats share a choke group in both kits. Any pads can share one
+  (Choke, below).
+- **Pad** chooses which pad the pad's knobs edit: those on pages 1 to 3.
+  [[ALGORITHM]] steps through the pads, and so does [[KNOB1]] on page 1.
+  Each pad keeps its own settings.
 - The pad's knobs start in the middle, Tune at 0: that is the pad as the
   kit sets it up, and you turn from there. So until you change them the
   screen shows true values whichever pad you choose.
@@ -570,16 +578,27 @@ project's own, after published studies of the analogue circuits
     (a punchy, swept kick or tom), *Snare*, *Snap Snare*, *Hat*, *Ring Hat*,
     *Cymbal*, *Clap*, *Rim* and *Cowbell*. A pad given another sound plays
     that sound as Drums sets it up, so a cowbell on a tom's pad is a cowbell.
-    The three hi-hat pads cut each other short whatever sound they play.
-- The rest of page 3 is the whole kit's:
+  - **Choke** (page 3) chooses the pad's choke group: a hit cuts short every
+    pad in its group that is still ringing, within a few milliseconds.
+    *Kit*, the default, is the kit's own choice: the three hi-hats share
+    *Group 1* in both kits, whatever sound their pads play, and the other
+    pads none. *None* takes the pad out of any group, and *Group 1* to
+    *Group 4* put it in one. Put the crash and the ride in *Group 2* and
+    each cuts the other; put a pad in *Group 1* and the hi-hats cut it.
+- Page 4 is the whole kit's:
   - **Kit** chooses *Deep*, the long, round kit, or *Punch*, harder and
     shorter, with a swept kick, a crisper snare and ring-modulated hi-hats.
   - **Accent** sets how much velocity matters: at 0 every hit plays the
     same, at the right a soft hit is quiet and dull and a hard one loud and
     bright.
   - **Volume** sets the kit's level.
-- Model and Kit reach the next hit; a hit that is ringing keeps the sound it
-  started with. The other knobs move a ringing hit too.
+  - **Kit Decay** makes every pad ring shorter or longer at once, each from
+    its own Decay: in the middle the kit is as set up, to the left every
+    pad shortens towards its shortest, to the right every pad lengthens
+    towards its longest.
+- Model, Choke and Kit reach the next hit; a hit that is ringing keeps the
+  sound and the group it started with. The other knobs move a ringing hit
+  too.
 - Pitch bend bends every pad.
 
 {{screen drums Drums on pad 1, the kick of the Deep kit, just after it was struck.}}
@@ -955,8 +974,10 @@ CrispyZebra, the same author's phase-distortion oscillator.
   *Mix*ed with the first or *Ring*-modulated with it. A note keeps the line
   it started with.
 - **Sub** adds a sine an octave down.
-- **Glide** and **Voice Mode** slide between notes and play one note at a
-  time, as on Macro ([chapter 4](04-playing.md#glide-and-voice-modes)).
+- Page 4 is glide's, as on Macro: **Glide**, **Voice Mode**, **Glide
+  Mode** and **Time Mode** slide between notes and play one note at a time
+  ([chapter 4](04-playing.md#glide-and-voice-modes)). Nothing slides until
+  Glide Mode is on Legato or Always.
 
 Felucca's own Phase Bend sounds:
 

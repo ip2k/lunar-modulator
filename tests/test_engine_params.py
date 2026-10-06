@@ -51,6 +51,7 @@ ENUM_FLAGS = {
     ("drums", "Pad"): [],                       # the edit focus, as Sophie's
     ("drums", "Model"): ["latch", "mod"],       # read when a pad is struck; a hit keeps its model
     ("drums", "Kit"): ["latch", "mod"],         # the voicings a hit starts with
+    ("drums", "Choke"): ["latch", "mod"],       # read when a pad is struck, as Model
     ("sw-psxverb", "Model"): ["nolock"],        # clears the 128 KB work area
     ("filter", "Type"): ["mod"],                # warms the new type up, then crossfades
     ("drive", "Type"): ["mod"],                 # crossfades over 5 ms
@@ -109,10 +110,6 @@ ENUM_FLAGS[("crater", "Choke")] = ["latch", "mod"]
 # every list is read at its next step (LATCH); no route reaches a MIDI effect.
 for _name in ("Octaves", "Root", "Scale", "Octave", "Keys", "Rate", "Direction", "Latch"):
     ENUM_FLAGS[("acid-gen", _name)] = ["latch"]
-# Voice Mode (glide, engines/src/glide.h) is read at note-on and note-off
-# and never cuts a sounding voice: LATCH, and a route rounds it.
-for _engine in ("macro", "macro-heavy", "shapes", "sixop", "dx7"):
-    ENUM_FLAGS[(_engine, "Voice Mode")] = ["latch", "mod"]
 # Felucca's engines (GPL modules, src/felucca_shim.cc). Drawbar's lists are
 # read every block and glide (each partial's gain ramps over the block, the
 # rotor eases between its speeds): clean switches, MOD. Trio's and Phase
@@ -128,7 +125,15 @@ ENUM_FLAGS.update({
     ("phase-bend", "Wave 2"): ["latch", "mod"],
     ("phase-bend", "Line"): ["latch", "mod"],
     ("phase-bend", "Voice Mode"): ["latch", "mod"],
+    ("phase-bend", "Glide Mode"): ["latch", "mod"],
+    ("phase-bend", "Time Mode"): ["latch", "mod"],
 })
+# Voice Mode, Glide Mode and Time Mode (glide, engines/src/glide.h) are read
+# at note-on and note-off (Time Mode when a glide starts) and never cut a
+# sounding voice: LATCH, and a route rounds them.
+for _engine in ("macro", "macro-heavy", "shapes", "sixop", "dx7"):
+    for _name in ("Voice Mode", "Glide Mode", "Time Mode"):
+        ENUM_FLAGS[(_engine, _name)] = ["latch", "mod"]
 
 
 def catalog(renderer):

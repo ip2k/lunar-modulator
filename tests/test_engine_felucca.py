@@ -165,10 +165,11 @@ PRESETS = [(engine, i) for engine in IDS for i in range(len(presets(engine)))]
 
 def test_the_three_engines(listing):
     """Sound engines of eight voices, GPL in the licence table, with
-    Felucca's code from its own directory; at most 14 parameters (the
+    Felucca's code from its own directory; at most 16 parameters (the
     modulation runtime's records, tests/test_engines_mod_runtime.py), four
-    to a page, Glide and Voice Mode only where they fit (Phase Bend)."""
-    for eid, name, n in (("drawbar", "Drawbar", 13), ("trio", "Trio", 14), ("phase-bend", "Phase Bend", 14)):
+    to a page, glide's four (Glide, Voice Mode, Glide Mode, Time Mode) only
+    where they fit (Phase Bend)."""
+    for eid, name, n in (("drawbar", "Drawbar", 13), ("trio", "Trio", 14), ("phase-bend", "Phase Bend", 16)):
         e = listing[eid]
         assert (e["name"], e["kind"], e["max_voices"], e["pads"]) == (name, "sound", 8, None)
         assert e["licence"] == "GPL-3.0-only AND MIT" and e["source"] == "engines/third_party/felucca"
@@ -178,7 +179,7 @@ def test_the_three_engines(listing):
         assert all(pages.count(k) <= 4 for k in set(pages)) and pages == sorted(pages)
         assert all(len(p["name"]) <= 12 for p in e["params"])
         names = {p["name"] for p in e["params"]}
-        assert ({"Glide", "Voice Mode"} <= names) == (eid == "phase-bend")
+        assert ({"Glide", "Voice Mode", "Glide Mode", "Time Mode"} <= names) == (eid == "phase-bend")
         assert e["params"][0]["type"] == 1, "ALGORITHM turns the first list"
 
 
