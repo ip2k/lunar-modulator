@@ -45,9 +45,9 @@ Open **<https://ip2k.github.io/lunar-modulator/>** and press **Power on**
 - turn the knobs and watch the screen follow.
 
 It needs a current browser with WebAssembly and AudioWorklet, and has been
-tested in Chromium (Chrome, Edge) only so far: Firefox, Safari, real touch
-screens and MIDI hardware are not tested yet. The page loads only its own
-files and sends nothing anywhere.
+tested only in Chromium, the engine behind Chrome and Edge, so far: Firefox,
+Safari, real touch screens and MIDI hardware are not tested yet. The page
+loads only its own files and sends nothing anywhere.
 
 To run it from your own copy of this repository you need Python 3 (the
 built module is included):
@@ -75,7 +75,7 @@ Drag a knob up or down, or scroll over it. Click or touch a button or a key.
 | FX | The effect chain. SEL then SELECT swaps two effects | `Tab` to a button, then `Enter` or `Space`, for every button |
 | SEL | SHIFT for the sequencer and for choosing a sound; in FX mode it picks up an effect | `Shift`, in SEQ mode |
 | SEQ, PLAY/STOP, REC | The sequencer's steps; start and stop; record, and with SEL, Capture | `Space` is PLAY/STOP |
-| LFO, ENV, EDIT | The modulation rack and the matrix. Hold LFO or ENV and turn a knob to patch a cable to it | |
+| LFO, ENV, EDIT | The modulation rack and the matrix. Hold LFO or ENV and turn a knob to run a cable to that knob's parameter | |
 | GLO, HOME | The global page (rate, memory, voices, octave); back to the sound | |
 | SAVE, ARP | Not in the simulator yet | |
 | Everything | | `Esc` releases every note |
@@ -112,8 +112,9 @@ play its parameters, four to a page (SELECT turns the page).
   plucked, bowed and blown models, bells and granular textures.
 - **Sophie:** a 16-pad metallic FM percussion kit.
 - **Drums:** a 16-pad drum kit after the classic analogue drum machines,
-  with two kits, Deep and Punch: kicks, two snares, a clap, a rim shot,
-  hi-hats, six toms, a crash, a ride and a cowbell.
+  with two kits, Deep and Punch: a kick, two snares, a clap, a rim shot,
+  three hi-hats, six toms, a crash and a ride, and any pad can play a
+  cowbell instead.
 
 Sophie and Drums play their pads from the 16 white keys, at any octave.
 
@@ -150,14 +151,15 @@ Sophie and Drums play their pads from the 16 white keys, at any octave.
   sound's level.
 - A **memory meter** at the bottom of the screen shows how much of the
   FM-1's memory it all takes. Anything that would not fit is refused, so
-  whatever plays in the simulator would fit on the FM-1.
+  the simulator never plays more than the FM-1's memory could hold.
 
 The effects:
 - **Reverbs:** Plate and Hall (both with Freeze), Room and PSX Verb.
 - **Chorus, space and delay:** Ensemble, Diffuse and Echo, a stereo
   ping-pong delay.
 - **Filters and EQ:** Filter (six classic types), Comb, DJ Filter, Tilt,
-  Isolator (a three-band kill EQ) and EQ (three-band parametric).
+  Isolator (a three-band kill EQ) and EQ (a low shelf, a bell and a high
+  shelf).
 - **Grit and colour:** Drive, Crush (bits and sample rate), Fold (a
   wavefolder) and Master Sat.
 - **Dynamics:** Comp, Limiter and Gate, a noise gate that can also duck.
@@ -242,8 +244,8 @@ for the first installable build
 - **Glide:** notes slide from one pitch to the next.
 - **Per-voice modulation:** each note runs its own modulation, an envelope
   per note for example, instead of one set shared by the sound.
-- **Lighter effects:** EQ, Isolator and Master Sat take no processing time
-  when left at their neutral settings.
+- **Lighter effects:** EQ, Isolator and Master Sat take almost no
+  processing time when left at their neutral settings.
 - **A fix for Shapes:** a few shapes at the far ends of their settings (Wave
   Line, Comb, Flute, the filter and Sync shapes) will sound the same on
   every build.
@@ -420,8 +422,8 @@ This is a synthesis of other people's work. The details are in
   plans ([`notes/2026-10-05-community-repos.md`](notes/2026-10-05-community-repos.md)).
   - fm1-nes's `boot_info` bridge (Apache-2.0) is included, and its boot
     audit is the model for ours.
-  - Felucca's `fm6_core.c` by Leo Kuroshita (Apache-2.0) checks FM6 in the
-    tests; it is in no build.
+  - Felucca's `fm6_core.c` by Leo Kuroshita (Hügelton Instruments,
+    Apache-2.0) checks FM6 in the tests; it is in no build.
   - FM-1-transporter's PIO-USB host idea (MIT) is planned for our recovery
     dongle.
 - **benny-sparra**: an editor and librarian for the FM-1, and observations
@@ -468,11 +470,14 @@ see the sources.
 ## License
 
 MIT for this repository's own code and the manual. Code from other projects
-keeps its own licence, recorded beside it with an `UPSTREAM.md`: MIT for the
-Mutable Instruments, Schwung, PSX Verb and Sophie code, Apache-2.0 for msfa
-and fm1-nes's bridge (and Felucca's FM core, which only the tests use), and
-the SIL Open Font License 1.1 for the fonts. No
-GPL code is in the tree; if any comes, it will sit behind a build switch
+keeps its own licence, recorded beside it with an `UPSTREAM.md`:
+- MIT for the Mutable Instruments, Schwung, PSX Verb and Sophie code, and
+  for Movy, which the sequencer follows;
+- Apache-2.0 for msfa and fm1-nes's bridge (and Felucca's FM core, which
+  only the tests use);
+- the SIL Open Font License 1.1 for the fonts.
+
+No GPL code is in the tree; if any comes, it will sit behind a build switch
 ([`DEVELOPERS.md`](DEVELOPERS.md#licences)).
 
 ## Repository map
