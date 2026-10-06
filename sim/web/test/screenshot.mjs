@@ -18,20 +18,19 @@
 // the page background. And publishing: the page served over https under a
 // path, as a static host would publish it, plays with every file found
 // there; served over plain http from a name that is not localhost (not a
-// secure context), Power on says what the page needs. And the lab switch
-// (docs/15 S3): with ?lab, PLAY/STOP plays the demo pattern (sound within a
-// second, its LED lit), Space stops and starts it, SEQ shows the Track view
-// with the white keys following the playhead and the status line names the
-// tempo; multi-sound: SHIFT + PRESETS makes Sound 2 current, the Sound
-// dropdown follows and loads Shapes there, and a key plays it with Sound 1's
-// level at 0; with #lab the switch is on too; without either, Space sends nothing
-// and PLAY/STOP stays a stub. Modulation with the switch (docs/16 MG3): LFO
-// opens RACK (its LED lit); LFO held with Enter while the wheel turns a knob
-// on HOME makes a cable and opens nothing; EDIT shows MATRIX; without the
-// switch LFO stays a stub. Step entry (docs/15 S4): in SEQ mode OP3 (A#3)
-// pages to bar 2, the computer's step keys enter four steps there, which
-// light those keys, and played, they sound and their lights move with the
-// playhead. MIT licence.
+// secure context), Power on says what the page needs. And the sequencer
+// (docs/15 S3 to S6, public since the lab switch went on 2026-10-05): the
+// help lists it, PLAY/STOP plays the demo pattern (sound within a second, its
+// LED lit), Space stops and starts it, SEQ shows the Track view with the
+// white keys following the playhead and the status line names the tempo;
+// multi-sound: SHIFT + PRESETS makes Sound 2 current, the Sound dropdown
+// follows and loads Shapes there, and a key plays it with Sound 1's level at
+// 0. Modulation (docs/16 MG3): LFO opens RACK (its LED lit); LFO held with
+// Enter while the wheel turns a knob on HOME makes a cable and opens
+// nothing; EDIT shows MATRIX. Step entry (docs/15 S4): in SEQ mode OP3
+// (A#3) pages to bar 2, the computer's step keys enter four steps there,
+// which light those keys, and played, they sound and their lights move with
+// the playhead. An old ?lab address opens the same page. MIT licence.
 
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
@@ -358,18 +357,20 @@ async function loudest(page, ms, enough) {
   return { rms, ms: Date.now() - t0 };
 }
 
-async function labChecks(browser) {
+async function seqChecks(browser) {
   const r = {};
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
-  page.on('console', (m) => report.logs.push(`lab ${m.type()}: ${m.text()}`));
-  page.on('pageerror', (e) => report.logs.push(`lab pageerror: ${e.message}`));
-  await page.goto(`${url}?lab`);
-  r.help_shown = await page.evaluate(() => !document.querySelector('[data-lab]').hidden &&
-    document.querySelector('[data-lab-off]').hidden);
+  page.on('console', (m) => report.logs.push(`seq ${m.type()}: ${m.text()}`));
+  page.on('pageerror', (e) => report.logs.push(`seq pageerror: ${e.message}`));
+  await page.goto(url);
+  r.help_shown = await page.evaluate(() => {
+    const dts = [...document.querySelectorAll('.help dt')].map((d) => d.textContent.trim());
+    return ['Sequencer', 'Tracks', 'Locks', 'Sounds', 'Effects', 'Modulation'].every((t) => dts.includes(t)) &&
+      !document.querySelector('.help [hidden]');
+  });
   await page.click('#power-on');
   await page.waitForFunction(() => window.fm1 && window.fm1.screens > 0, null, { timeout: 20000 });
   await wait(page, 300);
-  r.lab = await page.evaluate(() => window.fm1.lab);
   r.silent_rms = await level(page);
   await press(page, 12);                                        // PLAY/STOP: the demo pattern
   const demo = await loudest(page, 1000, 0.01);
@@ -390,7 +391,7 @@ async function labChecks(browser) {
   await wait(page, 260);
   r.white_keys = [k0, await whites()];
   await tftPng(page, 'tft-07-seq-track.png');
-  await page.screenshot({ path: join(out, '08-lab-seq.png') });
+  await page.screenshot({ path: join(out, '08-seq.png') });
   // Space is PLAY/STOP when no button has focus (a focused one, Space
   // presses, as Enter does).
   const unfocus = (p) => p.evaluate(() => document.activeElement && document.activeElement.blur &&
@@ -432,7 +433,7 @@ async function labChecks(browser) {
   r.mod_matrix_mode = await page.evaluate(() => window.fm1.state.mode);
   r.mod_edit_led = await lit(page, '[data-button="6"]');
   await tftPng(page, 'tft-15-mod-matrix.png');
-  await page.screenshot({ path: join(out, '09-lab-mod-matrix.png') });
+  await page.screenshot({ path: join(out, '09-mod-matrix.png') });
   await press(page, 8);                                         // HOME again
   await wait(page, 200);
   // Step entry: SEQ, stop, A#3 (OP3) to bar 2, steps 1, 5, 9 and 13 there
@@ -510,7 +511,7 @@ async function labChecks(browser) {
   // Sound 2.
   const multi = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
   multi.on('pageerror', (e) => report.logs.push(`multi pageerror: ${e.message}`));
-  await multi.goto(`${url}?lab`);
+  await multi.goto(url);
   await multi.click('#power-on');
   await multi.waitForFunction(() => window.fm1 && window.fm1.state && window.fm1.screens > 0, null,
     { timeout: 20000 });
@@ -542,48 +543,31 @@ async function labChecks(browser) {
   await multi.mouse.up();
   await multi.close();
 
-  const hash = await browser.newPage();
-  await hash.goto(`${url}#lab`);
-  r.hash_lab = await hash.evaluate(() => window.fm1.lab);
-  await hash.close();
+  // An address from the lab switch's days (?lab, #lab) opens the same page:
+  // it powers on, and Space starts the demo pattern.
+  const old = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  old.on('pageerror', (e) => report.logs.push(`old address pageerror: ${e.message}`));
+  await old.goto(`${url}?lab#lab`);
+  await old.click('#power-on');
+  await old.waitForFunction(() => window.fm1 && window.fm1.screens > 0, null, { timeout: 20000 });
+  await wait(old, 300);
+  await unfocus(old);
+  await old.keyboard.press('Space');
+  r.old_address_rms = (await loudest(old, 1000, 0.01)).rms;
+  r.old_address_lab_key = await old.evaluate(() => 'lab' in window.fm1);
+  await old.close();
 
-  // Without the switch: Space sends nothing; PLAY/STOP, SEQ and REC stay stubs.
-  const off = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
-  off.on('pageerror', (e) => report.logs.push(`lab-off pageerror: ${e.message}`));
-  await off.goto(url);
-  await off.click('#power-on');
-  await off.waitForFunction(() => window.fm1 && window.fm1.screens > 0, null, { timeout: 20000 });
-  await spy(off);
-  await unfocus(off);
-  await off.keyboard.press('Space');
-  await wait(off, 150);
-  r.off_space_messages = (await sent(off)).filter((m) => m.type === 'button').length;
-  await press(off, 12);
-  await press(off, 11);
-  await press(off, 13);
-  await press(off, 5);                                          // LFO: a stub too
-  const quiet = await loudest(off, 600, 1);
-  r.off_rms = quiet.rms;
-  r.off_mode = await off.evaluate(() => window.fm1.state.mode);
-  r.off_play_led = await lit(off, '[data-button="12"]');
-  r.off_rec_led = await lit(off, '[data-button="13"]');
-  r.off_seq_status = await off.evaluate(() => window.fm1.seq);
-  r.off_help_hidden = await off.evaluate(() => document.querySelector('[data-lab]').hidden);
-  await off.close();
-
-  r.pass = r.help_shown && r.lab === true && r.demo_rms > 0.01 && r.demo_ms <= 1100 && r.play_led &&
+  r.pass = r.help_shown && r.demo_rms > 0.01 && r.demo_ms <= 1100 && r.play_led &&
     r.seq_status && r.seq_status.playing && r.seq_status.bpm_x100 === 12000 && /120\.00 BPM, playing/.test(r.status) &&
     r.mode === 3 && r.seq_led && r.white_keys[0] !== r.white_keys[1] && r.white_keys.every((k) => k.includes('1')) &&
     r.play_led_after_space === false && r.playing_after_space === false && r.playing_after_second_space === true &&
-    r.mode_after_home === 0 && r.hash_lab === true &&
+    r.mode_after_home === 0 && r.old_address_rms > 0.01 && r.old_address_lab_key === false &&
     r.step_keys === '1000100010001000' && r.steps_rms > 0.01 && r.step_lights_seen >= 3 &&
     r.recording_after_rec === true && r.rec_led_recording === true && r.recording_after_second_rec === false &&
     r.rec_led_buffered.length === 2 && r.rec_led_captured.length === 1 && r.rec_led_captured[0] === false &&
     r.focus_watch === 1 &&
     r.mod_rack_mode === 4 && r.mod_lfo_led && r.mod_mode_after_gesture === 0 && r.mod_matrix_mode === 5 &&
     r.mod_edit_led &&
-    r.off_space_messages === 0 && r.off_rms < 0.001 && r.off_mode === 0 && r.off_play_led === false && r.off_rec_led === false &&
-    r.off_seq_status === null && r.off_help_hidden === true &&
     r.multi_sound === 1 && r.multi_label === 'Sound 2 (PRESETS)' && r.multi_units[0] === r.multi_shapes &&
     r.multi_quiet_rms < 0.001 && r.multi_rms > 0.01;
   return r;
@@ -651,7 +635,7 @@ try {
   await page.close();
 
   report.checks.input = await inputChecks(browser);
-  report.checks.lab = await labChecks(browser);
+  report.checks.seq = await seqChecks(browser);
 
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   phone.on('pageerror', (e) => report.logs.push(`phone pageerror: ${e.message}`));
@@ -695,7 +679,7 @@ report.pass = !report.error && theme.title === 'Lunar Modulator' && theme.displa
   theme.body_background === 'rgb(35, 33, 54)' && c.screens > 0 && c.chord_rms > 0.01 && c.lit_keys === 3 &&
   c.fx_led === true && c.phone_scroll_width <= 390 && bigEnough(c.phone, 24) && c.phone_pan_px > 100 &&
   c.landscape.page_scroll_width <= 844 && bigEnough(c.landscape, 24) && c.input && c.input.pass &&
-  c.lab && c.lab.pass &&
+  c.seq && c.seq.pass &&
   c.publishing && c.publishing.pass &&
   !report.logs.some((l) => l.startsWith('error') || l.includes('pageerror'));
 writeFileSync(join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n');

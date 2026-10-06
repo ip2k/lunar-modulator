@@ -8,8 +8,12 @@ bend, and notes that arrive from a MIDI keyboard.
 
 {{status sim desktop planned}}
 
-Each key plays one note for as long as you hold it. A *voice* is one sounding
-note, and each engine has a fixed number of them:
+Each key plays one note on the current sound for as long as you hold it
+([chapter 5](05-sound-engines.md#four-sounds-at-once)); a note you hold keeps
+playing on its sound even if you choose another. Outside SEQ mode the notes
+also go to the sequencer's focused track, for recording and Capture
+([chapter 7](07-sequencer.md#recording)). A *voice* is one sounding note,
+and each engine has a fixed number of them, for each sound it plays:
 
 | Engine | Voices |
 | --- | --- |
@@ -134,7 +138,8 @@ If a note keeps sounding, release everything at once:
 - from a MIDI keyboard, send control change 123, *all notes off*.
 
 Every note then ends as if you had let go of its key, with its normal
-release. Choosing another sound engine also ends every note.
+release, the sequencer's notes on every sound included. Choosing another
+sound engine ends every note of that sound.
 
 ## Pitch bend
 
@@ -143,8 +148,8 @@ release. Choosing another sound engine also ends every note.
 Pitch bend moves the pitch of every sounding note, and of notes played while
 it is held, up or down.
 
-- **In the simulator**, the pitch-bend wheel of a MIDI keyboard bends by up
-  to two semitones either way.
+- **In the simulator**, the pitch-bend wheel of a MIDI keyboard bends the
+  current sound by up to two semitones either way.
 - **In the desktop tools**, `--bend T:SEMITONES` sets the bend from time *T*,
   by up to 48 semitones either way ([chapter 2](02-getting-started.md#the-desktop-tools)).
 - **Sophie** ignores pitch bend; every other engine follows it.
@@ -156,10 +161,12 @@ MIDI.
 
 {{status sim planned}}
 
-Notes, velocity and pitch bend from a MIDI keyboard play the engine as the
-panel's keys do, and you can play both at once. The simulator listens on every
+Notes, velocity and pitch bend from a MIDI keyboard play the current sound
+as the panel's keys do, and you can play both at once. Notes from MIDI also
+go to the sequencer, in every mode: in SEQ mode a note adds its pitch to
+the steps you hold ([chapter 7](07-sequencer.md#to-add-a-pitch-to-a-step)). The simulator listens on every
 MIDI channel; control change 7 sets the volume like [[MASTER]], and control
-change 123 releases every note. [Chapter 8](08-midi.md) lists everything the
+change 123 releases every note. [Chapter 9](09-midi.md) lists everything the
 simulator receives.
 
 On the FM-1, Lunar Modulator is planned to receive MIDI over USB and at the

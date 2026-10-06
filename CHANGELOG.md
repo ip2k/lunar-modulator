@@ -30,9 +30,8 @@ history.
   - It plays the same, sample for sample, in the browser as on the
     desktop, and fits in about 8 KB.
 - **The virtual FM-1's keys play any drum kit's pads:** with Sophie or
-  Drums as the sound, the sixteen white keys play the sixteen pads at any
-  octave. This now follows the sound you are playing (SHIFT + PRESETS), not
-  only Sound 1. Step recording, and adding a pitch to a held step with
+  Drums as the current sound, the sixteen white keys play the sixteen pads
+  at any octave. Step recording, and adding a pitch to a held step with
   SHIFT, enter the pad a white key plays (they entered a pitch the kit
   ignores, so the steps played nothing). For developers: an engine says it
   is a kit with two new fields in the engine API, `pad_first_note` and
@@ -1052,6 +1051,39 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **The sequencer, four sounds at once and modulation are on the virtual
+  FM-1's public page.** The lab switch is gone: the page no longer needs
+  `?lab` in its address (an old `?lab` link opens the same page), and
+  everything that was behind it works for everyone: the entries under
+  *Added* above that say "behind the lab switch" now describe the public
+  page.
+  - SEQ, PLAY/STOP and REC work: SEQ mode with the 16 steps on the white
+    keys, the step and lock pages, recording, step recording and Capture,
+    eight tracks with mute and routing, and the Set, Clip and Track pages.
+    The page starts with a one-bar demo pattern on track 1; press
+    PLAY/STOP, or Space on the computer keyboard, to hear it.
+  - SEL is SHIFT everywhere but in FX mode; SEL with PRESETS chooses which
+    of the four sounds you play, and the Sound menu under the panel follows.
+  - FX mode shows the current sound's two inserts, a Mix page with the four
+    sounds' levels, and the two master effects. A memory meter in the
+    screen's bottom bar replaces the memory figure, and anything that
+    would not fit the FM-1 is refused, on every chain.
+  - LFO, ENV and EDIT open the modulation pages: the rack, the gesture
+    that makes a cable, the matrix and the chain.
+  - SAVE and ARP are the only buttons that still say they are not in the
+    simulator yet; SEL outside FX mode no longer says it works only there.
+  - The user manual describes all of it: chapter 7 (the sequencer) for the
+    simulator, a new chapter 8 (modulation), and four sounds, inserts and
+    the memory meter in chapters 5 and 6. Chapters 8 to 13 are now 9 to 14.
+    The manual's and the README's screen pictures were retaken.
+  - For developers: `fm1_app_set_lab`, `fm1w_set_lab` and the harness's
+    `--lab` are gone. `fm1_app_init` starts the modulation runtime with the
+    default rack; the harness's sidecar always starts with `--slots`; the
+    layout sweep is one set of 2,338 screens; the parity scenarios have no
+    `lab` key, and `fx-turns-diffuse-psxverb` plays Macro, since the RAM
+    meter refuses Shapes beside Diffuse and PSX Verb. The browser module is
+    765,189 bytes (769,693 with the switch), and 66 of 66 parity scenarios
+    pass.
 - **Licences: the GPL switch** (owner, 2026-10-05; CLAUDE.md, docs/12 §6).
   GPL modules will sit behind one build switch, on by default everywhere
   while we test; while it is on, no firmware image that links JieLi's
@@ -1287,6 +1319,19 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- On the virtual FM-1, Sophie's pads followed Sound 1 rather than the
+  current sound: with Sophie as Sound 2 the white keys played notes she
+  ignores, and with Sophie as Sound 1 they played her pad notes on another
+  current sound. The white keys now play her pads whenever she is the
+  current sound.
+- The layout check drew FX mode's routed-parameter screens on an empty
+  insert instead of the effect under test; it now draws them on M1.
+- The simulator page's help credits every source of the modulation
+  modules, as the manual does: Braids and Music Thing Modular's Turing
+  Machine (Tom Whitwell) were missing.
+- For developers: `fm1-sim-render` frees what a run holds when it stops
+  part way, on a refused `--unit-route`, `--seq-reset` or `--seq-import`,
+  so CI's leak check sees only the refusal.
 - Sophie made no sound from the virtual FM-1's keys: it only plays MIDI
   notes 36–51 (its 16 pads), below the keys' range at the default octave.
   With Sophie as the sound, the 16 white keys now play pads 1–16 at any

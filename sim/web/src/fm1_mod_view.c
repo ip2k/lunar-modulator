@@ -225,8 +225,8 @@ void fm1_mod_view_bottom(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, int
     snprintf(buf, size, "%d/%d Mod%u", u->page + 1, fm1_mod_ui_rack_pages(env->m, u->pos),
              u->pos + 1u);
   } else {
-    /* "Slot", not "Matrix": with two digits it would reach the lab's RAM
-     * meter on the right. */
+    /* "Slot", not "Matrix": with two digits it would reach the RAM meter
+     * on the right. */
     snprintf(buf, size, "%u/%u %s", u->slot + 1u, FM1_MOD_SLOTS,
              mode == FM1_MODE_MATRIX ? "Slot" : "Chain");
   }

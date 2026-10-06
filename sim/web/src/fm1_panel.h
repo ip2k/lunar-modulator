@@ -39,9 +39,8 @@ typedef enum {
   FM1_ENC_COUNT
 } fm1_app_encoder_t;
 
-/* FM1_MODE_SEQ and the modulation pages (docs/16 §5, stage MG3: RACK from
- * LFO or ENV, MATRIX from EDIT, CHAIN from SEL in MATRIX) are reachable
- * only with the lab switch on (fm1_app_set_lab). */
+/* FM1_MODE_SEQ (from SEQ) and the modulation pages (docs/16 §5, stage MG3:
+ * RACK from LFO or ENV, MATRIX from EDIT, CHAIN from SEL in MATRIX). */
 typedef enum {
   FM1_MODE_HOME = 0, FM1_MODE_FX, FM1_MODE_GLOBAL, FM1_MODE_SEQ,
   FM1_MODE_RACK, FM1_MODE_MATRIX, FM1_MODE_CHAIN

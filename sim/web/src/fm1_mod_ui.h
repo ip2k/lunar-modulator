@@ -2,7 +2,7 @@
  * MG3): the state of the RACK, MATRIX and CHAIN pages, the routing gesture,
  * and the names, lists and script lines they share. fm1_mod_view.h draws
  * them; fm1_app.c hosts the runtime (fm1_mod.h) and feeds this module the
- * panel's edges, behind the lab switch.
+ * panel's edges.
  *
  * The pages (owner decisions, 2026-10-02):
  *   RACK    LFO opens it at the LFOs, ENV at the Envelopes (a tap; again

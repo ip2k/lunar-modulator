@@ -7,7 +7,7 @@ Lunar Modulator. The *source* column says where each figure comes from:
 *checked on a unit* means seen on an FM-1's board or read from its firmware
 by this project; *M-VAVE* means M-VAVE's documentation; *published analysis*
 means the work of others who have studied the FM-1, credited in
-[chapter 13](13-credits-and-licences.md).
+[chapter 14](14-credits-and-licences.md).
 
 | Item | Specification | Source |
 | --- | --- | --- |
@@ -34,14 +34,14 @@ means the work of others who have studied the FM-1, credited in
 | Block | 64 samples, 1.45 ms at 44,118 |
 | Output | Stereo |
 | Engines' own rates | Macro, Macro Heavy, Six-Op FM and Drums run Plaits' code at 47,872 samples a second, and Shapes runs Braids' at 96,000, each converted to the output's rate, so that they sound and keep time as on the modules they come from. The four Plaits-based engines cannot run when the output is faster than 47,872 |
-| Sound engines | Seven, one at a time ([chapter 5](05-sound-engines.md)) |
-| Effects | Twenty, Test Gain included, in two slots in series ([chapter 6](06-effects.md)) |
+| Sound engines | Seven; up to four sounds at once, each with its own engine ([chapter 5](05-sound-engines.md)) |
+| Effects | Twenty-two, Test Gain and Test Ext included: two inserts on each sound, then two master effects in series after the mix ([chapter 6](06-effects.md)) |
 | Limiter | Ceiling 0.98 of full scale (−0.18 dBFS), instant attack, about 100 ms release; samples that are not numbers become silence |
 | [[MASTER]] | After the limiter. Half way round is a quarter of full level, about −12 dB |
 | Pitch bend | Up to ±48 semitones in the engines; ±2 semitones from MIDI in the simulator |
-| Memory for sounds | About 379 KB (387,924 bytes) for the engine and both effects: the room M-VAVE's firmware leaves free on the FM-1. The real figure for Lunar Modulator on the device will be known once it runs there |
-| Sequencer | 4 to 8 tracks planned for the FM-1 ([chapter 7](07-sequencer.md)) |
-| Licence | MIT for Lunar Modulator's own code; code from other projects under its own licence ([chapter 13](13-credits-and-licences.md)) |
+| Memory for sounds | About 379 KB (387,924 bytes) for the sounds, effects, sequencer and modulation: the room M-VAVE's firmware leaves free on the FM-1. The real figure for Lunar Modulator on the device will be known once it runs there |
+| Sequencer | 8 tracks in the simulator, as planned for the FM-1 ([chapter 7](07-sequencer.md)) |
+| Licence | MIT for Lunar Modulator's own code; code from other projects under its own licence ([chapter 14](14-credits-and-licences.md)) |
 
 ### Engines and effects in figures
 
@@ -81,9 +81,20 @@ and is the one to trust if the two ever differ.
 
 ### The sequencer
 
-{{status desktop planned}}
+{{status sim desktop planned}}
 
 {{seq-glance}}
+
+### Sounds, effects and modulation
+
+{{status sim desktop planned}}
+
+| Item | Specification |
+| --- | --- |
+| Sounds | Up to four at once, each with its own engine and a level into the mix |
+| Effects | Two inserts on each sound, two master effects after the mix, then the limiter |
+| Modulation | A rack of eight positions for sixteen kinds of module, 32 cables, worked out every 32 samples |
+| Memory | Everything refused that would take the chain past about 379 KB |
 
 ## The simulator
 
@@ -98,7 +109,7 @@ and is the one to trust if the two ever differ.
 | Output | Audio only. It sends no MIDI |
 | Screen | The firmware's 240 × 240 screen, redrawn up to about 30 times a second while sound plays |
 | Panel | To scale, 161.5 × 96.5 mm. On narrow screens it keeps a width of 800 pixels and scrolls sideways |
-| Download | About 390 KB for the firmware, plus the page; nothing is loaded from other websites |
+| Download | About 730 KB for the firmware, plus the page; nothing is loaded from other websites |
 
 ## The desktop tools
 
@@ -106,7 +117,7 @@ and is the one to trust if the two ever differ.
 
 | Item | Specification |
 | --- | --- |
-| Renderer | `fm1-render` plays notes, or the sequencer, through one engine, any number of effects and the limiter, into a 16-bit stereo WAV file. Unless told otherwise: 44,118 samples a second, 64-sample blocks, 2 seconds |
+| Renderer | `fm1-render` plays notes, or the sequencer, through one engine, any number of effects and the limiter, or through up to four sounds with their inserts, levels and master effects as the simulator does, with modulation from a file, into a 16-bit stereo WAV file. Unless told otherwise: 44,118 samples a second, 64-sample blocks, 2 seconds |
 | Sequencer tool | `fm1-seq` runs the sequencer alone, writes the events it produces, and saves and loads sets as text |
 | Builds with | `make` and a C and C++11 compiler. The project's automatic tests build and run them on Linux and macOS |
 

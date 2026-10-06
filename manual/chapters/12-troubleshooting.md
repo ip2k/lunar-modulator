@@ -17,22 +17,26 @@ those messages so you can search for them.
 | The status line says *This browser has no AudioWorklet* | The browser is too old, or lacks the audio feature the simulator needs | Use a current Chromium-based browser such as Chrome or Edge |
 | The status line says *The firmware did not start* | The firmware's code did not load in this browser | Reload the page; try a current Chromium-based browser |
 | Crackles or dropouts | The computer is busy, or a phone is too slow | Close other tabs and programs; on a phone, try a computer |
-| The status line says that Macro *was refused: it does not run at 48,000 Hz*, and the simulator started with another sound | The browser would not run audio at 44,118 or 44,100 Hz, and Macro, Macro Heavy and Six-Op FM need 47,872 Hz or less | Set the computer's audio output to 44.1 kHz and reload. Shapes, Sophie and Test Sine work at 48 kHz too |
+| The status line says that Macro *was refused: it does not run at 48,000 Hz*, and the simulator started with another sound | The browser would not run audio at 44,118 or 44,100 Hz, and Macro, Macro Heavy, Six-Op FM and Drums need 47,872 Hz or less | Set the computer's audio output to 44.1 kHz and reload. Shapes, Sophie and Test Sine work at 48 kHz too |
 
 ### Playing
 
 | Symptom | Likely cause | What to do |
 | --- | --- | --- |
 | The screen says an engine *refuses* a rate, and the previous one comes back | As above: the audio runs faster than 47,872 Hz | Set the output to 44.1 kHz and reload |
-| Sophie is silent | Sophie plays only MIDI notes 36 to 51 | Press [[OCT-]] twice ([chapter 5](05-sound-engines.md#sophie)) |
+| Sophie is silent on the black keys | With Sophie as the current sound, the white keys play her 16 pads and the black keys nothing | Play the white keys ([chapter 5](05-sound-engines.md#sophie)) |
 | A note keeps sounding | A key release was lost, for example when the window lost focus | Press <kbd>Esc</kbd>, or send CC 123 from a MIDI keyboard |
 | The computer keys play nothing | A dropdown under the panel has the keyboard's focus, a modifier key such as Ctrl, Alt or Cmd is down, or the page is not in front | Click the panel's case once, release the modifier keys, then play |
 | The computer keys play the wrong notes | The keyboard layout is not QWERTY | The keys work by position: play the keys that sit where a QWERTY keyboard has <kbd>A</kbd> to <kbd>L</kbd> and the keys after it ([chapter 2](02-getting-started.md#the-browser-simulator)) |
 | Every note from the computer keys is equally loud | Computer keys always play at velocity 100 | Click lower on a key on the panel to play louder, or use a MIDI keyboard |
 | The keys play the wrong octave | The octave or transpose is not at zero | Press [[OCT-]] and [[OCT+]] together to reset both |
 | Only part of the panel shows on a phone | The panel keeps its size so the keys stay playable | Drag the case sideways, or turn the phone to landscape |
-| [[ENV]], [[SAVE]], [[SEQ]] and others say *not in the simulator yet* | Those buttons are planned, not built | See [chapter 3](03-panel-tour.md#buttons) for the buttons that work |
-| [[SEL]] says *works in FX mode* | [[SEL]] moves effect slots and works only on the effect page | Press [[FX]] first ([chapter 6](06-effects.md)) |
+| [[SAVE]] or [[ARP]] says *not in the simulator yet* | Those buttons are planned, not built | See [chapter 3](03-panel-tour.md#buttons) for the buttons that work |
+| [[PRESETS]] skips a sound, and the screen says *does not fit* | It would take the chain past the FM-1's memory | Empty a sound, an insert or a master effect first ([chapter 6](06-effects.md#memory)) |
+| The keys play nothing, and the white keys' lights follow a pattern | SEQ mode is on: there the white keys are steps | Press [[HOME]] to play notes again ([chapter 7](07-sequencer.md#seq-mode-and-the-keys)) |
+| A key plays a different sound from the one on screen, or nothing | Another sound is current, or it is empty | Hold [[SEL]] and turn [[PRESETS]] to choose the sound ([chapter 5](05-sound-engines.md#four-sounds-at-once)) |
+| [[REC]] blinks slowly | Capture holds notes you played | [[SEL]] and [[REC]] keep them as a clip; otherwise ignore it ([chapter 7](07-sequencer.md#capture)) |
+| A parameter moves on its own | A modulation cable reaches it: its name has a gold diamond | Press [[EDIT]] and empty the cable, or turn its amount to 0 % ([chapter 8](08-modulation.md#the-matrix)) |
 | The effect page says *Empty slot: turn ALGORITHM* | That slot holds no effect | Turn [[ALGORITHM]] to choose one |
 
 ### MIDI
@@ -42,7 +46,7 @@ those messages so you can search for them.
 | The status line says *This browser has no Web MIDI* | The browser does not offer MIDI to web pages | Use a Chromium-based browser for MIDI, or play the panel and the computer keys |
 | The status line says *MIDI was not allowed* | The browser's permission was refused | Allow MIDI for the page in the browser's site settings, reload, and click **Connect MIDI input** again |
 | The button reads *MIDI: no inputs* | No keyboard is connected, or another program holds it | Connect the keyboard; the simulator picks it up by itself. Close other programs that use it |
-| The keyboard plays, but the sustain pedal and modulation wheel do nothing | The simulator ignores those messages | See [chapter 8](08-midi.md#in-the-simulator) for what it receives |
+| The keyboard plays, but the sustain pedal and modulation wheel do nothing | The simulator ignores those messages | See [chapter 9](09-midi.md#in-the-simulator) for what it receives |
 
 !!! note "Which browsers"
     The simulator has been tested in Chromium-based browsers on a desktop.
@@ -79,9 +83,9 @@ those messages so you can search for them.
 ## The FM-1
 
 The FM-1 does not run Lunar Modulator, so problems with the instrument
-itself are for M-VAVE's manual and support. Chapter 10 describes the
+itself are for M-VAVE's manual and support. Chapter 11 describes the
 firmware the FM-1 has now and how to find out which one it is
-([chapter 10](10-updating-and-recovery.md#the-firmware-your-fm-1-has-now)).
+([chapter 11](11-updating-and-recovery.md#the-firmware-your-fm-1-has-now)).
 
 ## Reporting a problem
 

@@ -13,6 +13,11 @@ BPM
 :   Beats, here quarter notes, per minute: the sequencer's tempo, from 20 to
     300.
 
+Cable
+:   A connection in the modulation matrix, from a source such as an LFO to
+    a parameter or a module's input, with an amount
+    ([chapter 8](08-modulation.md#cables)).
+
 Capture
 :   The sequencer's record-after: it keeps the last phrase you played while
     not recording, so you can turn it into a clip afterwards
@@ -30,6 +35,11 @@ Count-in
 :   The bar of clicks the sequencer plays before it records, when you start
     recording with the sequencer stopped.
 
+Current sound
+:   The one of the four sounds that the keys and MIDI play and the sound's
+    page edits; [[SEL]] with [[PRESETS]] chooses it
+    ([chapter 5](05-sound-engines.md#four-sounds-at-once)).
+
 Desktop tools
 :   `fm1-render` and `fm1-seq`, programs that run Lunar Modulator's engines,
     effects and sequencer on a computer and write the result to files.
@@ -45,6 +55,10 @@ Encoder
 Engine
 :   The part of the firmware that makes the notes: Macro, Shapes, Six-Op FM
     and the others in [chapter 5](05-sound-engines.md).
+
+Envelope
+:   A modulation module that rises and falls with each note: attack, decay,
+    sustain and release ([chapter 8](08-modulation.md#envelope)).
 
 Event log
 :   A file in which the desktop tools record everything the sequencer does,
@@ -64,22 +78,26 @@ FM synthesis
 :   Making sound by letting oscillators (operators) change each other's
     frequency, which gives bright, bell-like and metallic tones.
 
-GRID mode
-:   The planned way of using the FM-1's keyboard for the sequencer: the 16
-    white keys are the steps of a bar and the black keys are functions.
+Focused track
+:   The sequencer track you work on: steps, recording, Capture and the keys
+    go to it ([chapter 7](07-sequencer.md#tracks-and-routing)).
 
 Identity
 :   The model name and number an FM-1 reports about its firmware, such as
     `FM-1_015`. More reliable than a file name
-    ([chapter 10](10-updating-and-recovery.md#the-firmware-your-fm-1-has-now)).
+    ([chapter 11](11-updating-and-recovery.md#the-firmware-your-fm-1-has-now)).
 
-KEYS mode
-:   The FM-1's keyboard playing notes, as it always does outside the
-    sequencer.
+Insert
+:   An effect slot of one sound's own, before the sounds are mixed. Each
+    sound has two, In1 and In2 ([chapter 6](06-effects.md#the-effect-chain)).
 
 Lane
 :   One of the eight places a track keeps the locks of one parameter. A
     track can lock up to eight parameters at once.
+
+LFO
+:   Low-frequency oscillator: a modulation module that moves a parameter up
+    and down in a repeating shape ([chapter 8](08-modulation.md#lfo)).
 
 Limiter
 :   The last stage of the sound path, which keeps the output below full
@@ -96,6 +114,18 @@ Low-pass gate
 :   A combined filter and amplifier that closes as a note dies away, so the
     sound gets quieter and darker together, as acoustic instruments do.
 
+Master effects
+:   The two effect slots, M1 and M2, that every sound goes through after the
+    mix.
+
+Matrix
+:   The list of the 32 modulation cables, which [[EDIT]] shows.
+
+Memory meter
+:   The bar and percentage at the right of the screen's bottom bar: how much
+    of the FM-1's free memory the sounds, effects, sequencer and modulation
+    would take ([chapter 6](06-effects.md#memory)).
+
 Metronome
 :   The sequencer's click on every beat, with an accent on the first beat of
     each bar.
@@ -107,6 +137,10 @@ MIDI
 MIDI clock
 :   Timing pulses, 24 to a quarter note, with Start and Stop messages, that
     keep instruments playing in time with each other.
+
+Module
+:   One of up to eight units in the modulation rack: an LFO, an envelope, a
+    random source or another kind ([chapter 8](08-modulation.md#the-modules)).
 
 movy1
 :   The plain text format in which the sequencer saves a set. It comes from
@@ -151,22 +185,26 @@ Quantise
 :   Pulling recorded notes towards their steps. Lunar Modulator's is
     non-destructive: notes keep their played timing.
 
+Rack
+:   The eight positions that hold the modulation modules
+    ([chapter 8](08-modulation.md#the-rack)).
+
 Recovery dongle
 :   A small device between a computer and the FM-1's USB-C socket that
     starts the processor's recovery mode
-    ([chapter 10](10-updating-and-recovery.md#the-recovery-dongle)).
+    ([chapter 11](11-updating-and-recovery.md#the-recovery-dongle)).
 
 Recovery mode
 :   A mode built into the FM-1 processor's read-only memory, in which a
     computer can read and write the flash whatever it holds.
 
 Role
-:   In this manual, a sequencer function that still has to be given a
-    button on the FM-1, drawn with a dashed outline, such as
-    <kbd class="ctl role">SHIFT</kbd>.
+:   In this manual, a sequencer function that still has to be given a key,
+    drawn with a dashed outline, such as
+    <kbd class="ctl role">LOOP</kbd>.
 
 Routing
-:   Where a sequencer track sends its notes: the sound engine, or a
+:   Where a sequencer track sends its notes: one of the four sounds, or a
     USB-MIDI channel.
 
 Sample rate
@@ -176,6 +214,11 @@ Sample rate
 Scene
 :   One clip slot across all tracks, launched together.
 
+SEQ mode
+:   The sequencer's view, which [[SEQ]] opens: the 16 white keys are the
+    steps of a bar and the black keys are sequencer controls
+    ([chapter 7](07-sequencer.md#seq-mode-and-the-keys)).
+
 Session view
 :   The planned sequencer screen that shows every track and clip slot at
     once.
@@ -184,9 +227,13 @@ Set
 :   Everything the sequencer holds: tempo, swing, song, tracks and their
     clips.
 
+SHIFT
+:   The sequencer's second function key: [[SEL]], everywhere but in FX
+    mode. Held, it changes what the keys, knobs and buttons do.
+
 Simulator
-:   The browser version of Lunar Modulator: the firmware's engines and
-    effects behind a drawing of the FM-1's panel.
+:   The browser version of Lunar Modulator: the firmware's engines, effects,
+    sequencer and modulation behind a drawing of the FM-1's panel.
 
 Song
 :   A list of scenes played in order.
@@ -195,7 +242,7 @@ Step
 :   One sixteenth note of a bar in the sequencer; 16 steps make a bar.
 
 Step page
-:   The screen that shows a held step's own settings: velocity, length,
+:   The screens that show a held step's own settings: velocity, length,
     probability, condition and invert.
 
 Swing
@@ -210,8 +257,8 @@ Tick
     note.
 
 Track
-:   One line of the sequencer, playing one sound: the engine or a MIDI
-    channel.
+:   One line of the sequencer, playing one sound: one of the four sounds or
+    a MIDI channel.
 
 Transpose
 :   Moving notes up or down by semitones without changing which keys you

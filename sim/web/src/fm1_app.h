@@ -2,11 +2,10 @@
  * engine platform (engines/include/fm1_engine.h) behind the FM-1's front
  * panel, for the browser simulator in sim/web and its native test harness.
  *
- * It owns one sound engine and two audio-effect slots (with the lab switch,
- * up to four sound units with two inserts each, mixed into those two as
- * the master bus: below), renders them in host blocks of at most 64 frames
- * through the host's bus limiter (fm1_mix_limiter.h), and turns the
- * panel's inputs into engine calls:
+ * It owns up to four sound units with two insert effects each, mixed into
+ * two audio-effect slots as the master bus (below), renders them in host
+ * blocks of at most 64 frames through the host's bus limiter
+ * (fm1_mix_limiter.h), and turns the panel's inputs into engine calls:
  *
  *   27 keys       F3..G5: note = key + 53 + 12 * octave + transpose
  *                 (the M-VAVE manual's formula), with OCT-/OCT+ and
@@ -22,8 +21,8 @@
  *                 patch); in FX mode, the effect in the selected slot
  *   KNOB1-4       the four parameters of the current page
  *   FX, SEL, GLO, HOME   FX mode (SEL grabs a slot so SELECT reorders it),
- *                 the global page, home. The other buttons say they are not
- *                 in the simulator yet.
+ *                 the global page, home. SAVE and ARP say they are not in
+ *                 the simulator yet.
  *
  * It hosts the sequencer core (engines/include/fm1_seq.h) through the shared
  * host bridge (fm1_seq_host.h), as fm1-render does: script lines and typed
@@ -32,10 +31,8 @@
  * fm1_app_seq_* below drive it; the harness and the parity test play scripts
  * and sets through it.
  *
- * The lab switch (fm1_app_set_lab, off at init) puts the sequencer on the
- * panel (docs/15 S3 to S5), for the page's lab preview and the tests while
- * the public page hides it until step entry and recording work (owner
- * decision O24, 2026-10-02):
+ * The sequencer is on the panel (docs/15 S3 to S8; behind a lab switch
+ * until 2026-10-05, owner decision O24):
  *   SEQ           SEQ mode, the Track view (fm1_seq_view.h); HOME, FX and
  *                 GLO leave it. There the white keys are the bar's 16 steps
  *                 and the black keys the sequencer's roles (O1): they play
@@ -73,23 +70,19 @@
  * ids onto them); on HOME the gesture takes the current sound's
  * parameters, and the runtime runs over every sound unit's slot
  * (fm1_seq_host_dispatch_slots_ticks).
- * With the switch off, SEQ, PLAY/STOP, REC, ENV, LFO and EDIT say they are
- * not in the simulator yet, SEL outside FX mode says where it works, and no
- * runtime runs: the public page is what it was.
  *
- * Multi-sound, also behind the lab switch (the owner's decision of
- * 2026-10-02, replacing docs/15 O10's default; §3.16 has the gestures): up
- * to FM1_APP_SOUNDS sound units at once, each an engine with its own
+ * Multi-sound (the owner's decision of 2026-10-02, replacing docs/15 O10's
+ * default; §3.16 has the gestures): up to FM1_APP_SOUNDS sound units at
+ * once, each an engine with its own
  * FM1_APP_INSERTS insert effects and its own level into the mix; the two
  * effect slots are the master bus after the mix. A track routed to the
  * engine plays the sound unit its route index names (fm1_app_unit_route).
  * The keys, MIDI IN, HOME, PRESETS and ALGORITHM act on the current sound
  * (SHIFT + PRESETS chooses it); FX mode shows its inserts, a Mix page with
- * every sound's level, and the master slots. A RAM meter against the FM-1's
- * budget (FM1_APP_RAM_BUDGET less the app's fixed costs, fm1_app_ram)
- * replaces the bottom bar's RAM figure, and refuses (-4) any engine or
- * effect that would take the chain past it. With the switch off there is
- * one sound and two effects, rendered exactly as before.
+ * every sound's level, and the master slots. A RAM meter on the bottom bar,
+ * against the FM-1's budget (FM1_APP_RAM_BUDGET less the app's fixed
+ * costs, fm1_app_ram), refuses (-4) any engine or effect that would take
+ * the chain past it.
  *
  * The screen is a 240 x 240 RGB565 frame buffer (fm1_tft.h) drawn with the
  * stock layout: a top bar with the sound's name, the mode's content, and a
@@ -126,13 +119,13 @@ extern "C" {
 
 #define FM1_APP_LEDS (FM1_APP_KEYS + FM1_APP_BUTTONS)
 #define FM1_APP_FX_SLOTS 2              /* the master bus: after the sounds are mixed */
-#define FM1_APP_SOUNDS 4                /* sound units with the lab switch on (owner, 2026-10-02) */
+#define FM1_APP_SOUNDS 4                /* sound units (owner, 2026-10-02) */
 #define FM1_APP_INSERTS 2               /* insert effect slots per sound unit */
 /* Every engine and effect instance the app holds ("units"), by id:
- *   0          sound unit 0 (the sound, with the lab switch off)
+ *   0          sound unit 0 (Sound 1)
  *   1, 2       the master bus's effect slots, in order
- *   3 .. 5     sound units 1 .. 3 (lab switch on)
- *   6 .. 13    the inserts: 6 + FM1_APP_INSERTS x sound + slot (lab switch on)
+ *   3 .. 5     sound units 1 .. 3
+ *   6 .. 13    the inserts: 6 + FM1_APP_INSERTS x sound + slot
  * Ids 0..2 are the ones the browser and the tests have always used;
  * fm1_app_sound_unit and fm1_app_insert_unit give the others. */
 #define FM1_APP_UNITS (1 + FM1_APP_FX_SLOTS + (FM1_APP_SOUNDS - 1) + FM1_APP_SOUNDS * FM1_APP_INSERTS)
@@ -152,7 +145,7 @@ extern "C" {
  * 512 KiB and ten effect arenas of 256 KiB (two master slots and two inserts
  * per sound), 4.5 MiB, inside the module's fixed 8 MiB of memory. On the
  * FM-1 (578 KB of SRAM, about 379 KB free in the stock layout) the firmware
- * would size one arena to the chain it loads, and the RAM meter (lab) keeps
+ * would size one arena to the chain it loads, and the RAM meter keeps
  * every chain the simulator plays inside that budget. */
 #define FM1_APP_SOUND_BYTES (512u * 1024u)
 #define FM1_APP_FX_BYTES (256u * 1024u)
@@ -161,8 +154,8 @@ extern "C" {
  * it is stock's heap, so this is an upper bound [inferred]). */
 #define FM1_APP_RAM_BUDGET 387924u
 
-/* What else the RAM meter counts on the FM-1 besides the instances, with the
- * lab switch on (fm1_app_ram): the sequencer's instance, its event buffer,
+/* What else the RAM meter counts on the FM-1 besides the instances
+ * (fm1_app_ram): the sequencer's instance, its event buffer,
  * its pending command record and its UI state's bound (36,216 B at 8
  * tracks), and one 64-frame stereo block (512 B) for each sound unit past
  * the first, which renders and runs its inserts there before the mix (the
@@ -172,10 +165,10 @@ extern "C" {
 /* fm1_app_select's results. */
 enum {
   FM1_APP_SELECT_OK = 0,
-  FM1_APP_SELECT_BAD = -1,      /* wrong kind, unknown, or a unit the lab switch hides */
+  FM1_APP_SELECT_BAD = -1,      /* wrong kind, unknown, or no such unit */
   FM1_APP_SELECT_ARENA = -2,    /* larger than the unit's arena */
   FM1_APP_SELECT_RATE = -3,     /* the engine refused this host */
-  FM1_APP_SELECT_RAM = -4       /* lab: the chain would pass the FM-1's RAM budget */
+  FM1_APP_SELECT_RAM = -4       /* the chain would pass the FM-1's RAM budget */
 };
 
 /* A sound unit's level into the mix, in percent (100: unity, as before). */
@@ -208,7 +201,7 @@ enum {
 #define FM1_APP_MOD_BYTES 24576u
 #define FM1_APP_MOD_WRITES \
   ((FM1_APP_MAX_FRAMES / FM1_MOD_TICK) * (FM1_APP_EFFECTS * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS))
-#define FM1_APP_MOD_SEED 1u           /* the lab's runtime; a log records it */
+#define FM1_APP_MOD_SEED 1u           /* fm1_app_init's runtime; a log records it */
 
 /* What fm1_app_seq_cmd did with a command. */
 enum {
@@ -262,8 +255,7 @@ typedef struct fm1_app {
 
   int mode;                      /* fm1_app_mode_t */
   int page;                      /* sound page in HOME */
-  int fx_slot, fx_page;          /* FX mode selection: the master slot 0..1, or with
-                                    the lab switch In1, In2, Mix, M1, M2 (0..4) */
+  int fx_slot, fx_page;          /* FX mode selection: In1, In2, Mix, M1, M2 (0..4) */
   int fx_grab;                   /* SEL pressed: SELECT moves the slot */
   int octave, transpose;
   uint8_t key_down[FM1_APP_KEYS];
@@ -274,7 +266,7 @@ typedef struct fm1_app {
                                                 from the keys and MIDI IN */
   uint8_t button_down[FM1_APP_BUTTONS];
 
-  /* Multi-sound (lab): the current sound, each sound unit's level into the
+  /* Multi-sound: the current sound, each sound unit's level into the
    * mix (percent), and their render blocks and sequencer sinks. */
   int sound;
   float level[FM1_APP_SOUNDS];
@@ -316,8 +308,7 @@ typedef struct fm1_app {
   void (*on_note_in)(void *ctx, uint64_t frame, int track, int pitch, int velocity);
   void *on_cmd_ctx;
 
-  /* The sequencer on the panel, behind the lab switch. */
-  int lab;
+  /* The sequencer on the panel. */
   fm1_seq_ui_t ui;
   int seq_from_mode;             /* the mode SEQ was pressed in: a track focused
                                     while it is held goes back there (S6) */
@@ -325,8 +316,8 @@ typedef struct fm1_app {
   uint8_t seq_fed[128];                   /* notes down given to the sequencer as */
   uint8_t seq_fed_track[128];             /* live input, and the track each went to */
 
-  /* Modulation (docs/16 MG3). mod is NULL while the lab switch is off (and
-   * until fm1_app_mod_reset); its memory is after tft. */
+  /* Modulation (docs/16 MG3). mod is NULL only if the runtime did not fit;
+   * its memory is after tft. */
   fm1_mod_t *mod;
   fm1_mod_glue_t mod_glue;       /* the bridge's control-rate hook */
   fm1_mod_ramp_t mod_amp;        /* HOST AMP, before the limiter */
@@ -351,49 +342,40 @@ typedef struct fm1_app {
 } fm1_app_t;
 
 /* Set up at `sample_rate` with 64-frame blocks: no engine loaded, MASTER at
- * full gain, octave and transpose 0, HOME mode, and a sequencer of
- * FM1_APP_SEQ_TRACKS tracks at lrintf(sample_rate) (as fm1-render creates
- * it), stopped and empty, every track on its default USB-MIDI route. */
+ * full gain, octave and transpose 0, HOME mode, Sound 1 current, every
+ * level at 100 %, a sequencer of FM1_APP_SEQ_TRACKS tracks at
+ * lrintf(sample_rate) (as fm1-render creates it), stopped and empty, every
+ * track on its default USB-MIDI route, and the modulation runtime with
+ * FM1_APP_MOD_SEED and the default rack: LFO1, LFO2, ENV3, ENV4 and CHN5,
+ * with RTRG cabled into both envelopes' GATE. */
 void fm1_app_init(fm1_app_t *a, float sample_rate);
 
 /* The registry index of an engine id, or -1. */
 int fm1_app_find(const char *id);
 
-/* Load registry entry `index` into a unit (FM1_APP_UNITS: 0 = the sound,
- * 1..2 = the master effects, and with the lab switch the other sound units
- * and the inserts; -1 empties any unit but 0). The instance memory is zeroed
- * and the engine created with its defaults, as fm1-render does. Changing a
- * sound releases its notes first. Returns 0, or FM1_APP_SELECT_BAD (-1:
- * wrong kind, unknown, or a lab unit with the switch off), _ARENA (-2: does
- * not fit the arena; the unit keeps its engine), _RATE (-3: the engine
- * refused this host, e.g. a Plaits-based one above 47,872 Hz; the unit's
- * previous engine is created again with its values) or, with the lab switch
- * on, _RAM (-4: the chain would pass the FM-1's RAM budget and grow; the
+/* Load registry entry `index` into a unit (FM1_APP_UNITS: 0 = Sound 1,
+ * 1..2 = the master effects, then the other sound units and the inserts;
+ * -1 empties any unit but 0). The instance memory is zeroed and the engine
+ * created with its defaults, as fm1-render does. Changing a sound releases
+ * its notes first. Returns 0, or FM1_APP_SELECT_BAD (-1: wrong kind or
+ * unknown), _ARENA (-2: does not fit the arena; the unit keeps its engine),
+ * _RATE (-3: the engine refused this host, e.g. a Plaits-based one above
+ * 47,872 Hz; the unit's previous engine is created again with its values)
+ * or _RAM (-4: the chain would pass the FM-1's RAM budget and grow; the
  * unit keeps its engine, and a popup names it and by how much). */
 int fm1_app_select(fm1_app_t *a, int unit, int index);
 
 /* The browser's starting chain: Macro, then Plate. If Macro refuses the
  * host's rate, the first sound that loads instead, with a popup saying why.
- * Then the sequencer's default route (fm1_app_seq_default_route) and, with
- * the lab switch on, the browser's routes (fm1_app_seq_start_routes) and the
- * demo pattern (fm1_app_seq_demo). Returns 0, or the first fm1_app_select
- * error. */
+ * Then the sequencer's default route (fm1_app_seq_default_route), the
+ * browser's routes (fm1_app_seq_start_routes) and the demo pattern
+ * (fm1_app_seq_demo). Returns 0, or the first fm1_app_select error. */
 int fm1_app_default_chain(fm1_app_t *a);
 
-/* The lab switch: on, the sequencer is on the panel (SEQ mode, PLAY/STOP,
- * their LEDs), so is multi-sound, and modulation runs (a new runtime with
- * the default rack and its two cables; RACK, MATRIX, CHAIN); off (as
- * fm1_app_init leaves it), those buttons say they are not in the simulator
- * yet, nothing of either shows and the runtime is gone, every parameter
- * back at its base. Turning it off in SEQ mode or a modulation page goes
- * back to HOME; turning it off empties every sound unit but 0 and every
- * insert, releasing their notes, and sets every level back to 100 %. */
-void fm1_app_set_lab(fm1_app_t *a, int on);
-
 /* The demo pattern (owner decision O4): a one-bar, 16-step figure on track
- * 1 (index 0), as one line of verbs; the browser's start chain applies it
- * with the lab switch on, and nothing else does, so the tests and the parity
- * runs start empty. 1 if it went in whole. */
+ * 1 (index 0), as one line of verbs; the browser's start chain applies it,
+ * and nothing else does, so the tests and the parity runs start empty. 1 if
+ * it went in whole. */
 int fm1_app_seq_demo(fm1_app_t *a);
 extern const char fm1_app_demo_pattern[];
 
@@ -401,8 +383,8 @@ extern const char fm1_app_demo_pattern[];
  * S6): every track but the first that is still on its default MIDI route
  * plays Sound 1 (`route t 1 0`), so each can be heard before the user routes
  * it on its Track page; track 1 plays Sound 1 by the default-route rule.
- * The start chain applies it with the lab switch on, after the default
- * route; nothing else does, so tests and parity runs route with verbs.
+ * The start chain applies it after the default route; nothing else does,
+ * so tests and parity runs route with verbs.
  * Returns the tracks routed. */
 int fm1_app_seq_start_routes(fm1_app_t *a);
 
@@ -458,8 +440,8 @@ int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c);
 
 /* Live notes for recording and Capture (velocity 0 releases), at frame 0
  * of the coming block, as a `non` or `nof` op would be applied there; the
- * harness's on_note_in hook logs it so. With the lab switch on, the app
- * gives it the notes it plays that no step took (fm1_seq_ui_note). */
+ * harness's on_note_in hook logs it so. The app gives it the notes it plays
+ * that no step took (fm1_seq_ui_note). */
 void fm1_app_seq_note_in(fm1_app_t *a, int track, int pitch, int velocity);
 
 /* A new, empty instance of `tracks` tracks (1..FM1_APP_SEQ_TRACKS): the
@@ -497,10 +479,10 @@ uint64_t fm1_app_seq_dropped(const fm1_app_t *a);
  * change reaches on_mod as a script line, so a native run that logs them
  * replays through fm1-render --mod (fm1-sim-render --log-cmds). */
 
-/* A new runtime with `seed`: an empty rack, no slot, every unit bound with
- * its parameters' current values as bases, as fm1-render --mod builds its
- * own. It runs from the next block, lab switch or not (a script scenario's
- * modulation); fm1_app_set_lab(a, 0) removes it. */
+/* A new runtime with `seed` in place of the one running: an empty rack, no
+ * slot, every unit bound with its parameters' current values as bases, as
+ * fm1-render --mod builds its own (a script scenario's modulation). It runs
+ * from the next block. */
 void fm1_app_mod_reset(fm1_app_t *a, uint32_t seed);
 
 /* One line of fm1-render's --mod format (engines/host/mod_script.h) on the
@@ -526,19 +508,18 @@ int fm1_app_draw(fm1_app_t *a, uint32_t min_frames);
 /* Redraw now, logging boxes for fm1_tft_check_layout. */
 void fm1_app_draw_checked(fm1_app_t *a);
 
-/* Bytes of instance memory the current chain uses: the engines' instances,
- * the sequencer's (fm1_seq_size) and its event buffer, and the modulation
- * runtime (fm1_mod_size) while it runs. With the lab switch on, the RAM
- * meter's figure: that, and the sequencer's pending command record and UI
- * state bound, and a mix block per sound unit past the first
- * (FM1_APP_MIX_BLOCK_BYTES). */
+/* Bytes of FM-1 RAM the current chain would use, the RAM meter's figure:
+ * the engines' instances, the sequencer's (fm1_seq_size), its event
+ * buffer, its pending command record, its UI state bound and click voice,
+ * the modulation runtime (fm1_mod_size) while it runs, and a mix block per
+ * sound unit past the first (FM1_APP_MIX_BLOCK_BYTES). */
 size_t fm1_app_ram(const fm1_app_t *a);
 
 /* What fm1_app_ram would be with registry entry `index` in `unit` (-1:
  * emptied): the RAM meter's test before a load. */
 size_t fm1_app_ram_with(const fm1_app_t *a, int unit, int index);
 
-/* ---- Sound units (multi-sound, lab switch) --------------------------------
+/* ---- Sound units (multi-sound) --------------------------------------------
  * `sound` is 0 .. FM1_APP_SOUNDS - 1; the user's Sound 1 is 0. Stage S6
  * routes tracks with these (docs/15 §3.16). */
 
@@ -547,16 +528,12 @@ size_t fm1_app_ram_with(const fm1_app_t *a, int unit, int index);
 int fm1_app_sound_unit(int sound);
 int fm1_app_insert_unit(int sound, int slot);
 
-/* Sound units the panel offers: FM1_APP_SOUNDS with the lab switch on, else
- * 1. */
-int fm1_app_unit_count(const fm1_app_t *a);
-
 /* A sound unit's engine, NULL when it is empty (or out of range). */
 const fm1_engine_t *fm1_app_unit_engine(const fm1_app_t *a, int sound);
 
 /* The current sound: what the keys and MIDI IN play, and HOME, PRESETS,
- * ALGORITHM and FX mode's inserts edit. Setting it needs the lab switch for
- * any sound but 0; returns 0, or -1. */
+ * ALGORITHM and FX mode's inserts edit. Setting it returns 0, or -1 out of
+ * range. */
 int fm1_app_unit_current(const fm1_app_t *a);
 int fm1_app_unit_set_current(fm1_app_t *a, int sound);
 
@@ -573,15 +550,14 @@ void fm1_app_unit_set_level(fm1_app_t *a, int sound, float percent);
 void fm1_app_unit_note_on(fm1_app_t *a, int sound, int note, int velocity);
 void fm1_app_unit_note_off(fm1_app_t *a, int sound, int note);
 
-/* Routes a track to a sound unit, with the lab switch on: a typed `route t
- * 1 sound` sent as the panel sends its commands (fm1_app_seq_cmd, so the
- * harness logs it and fm1-render replays it). Returns fm1_app_seq_cmd's
- * result (FM1_APP_SEQ_APPLIED: in effect now; _HELD: at the next block;
- * _BUSY: send it again after the next render), or FM1_APP_SEQ_REFUSED with
- * the switch off, no sequencer or an argument out of range.
- * fm1_app_unit_of_track is the sound unit a track plays (with the switch off
- * every engine-routed track plays sound 0, as fm1-render's one engine), or
- * -1 for a MIDI-routed one or one routed past the last sound unit. */
+/* Routes a track to a sound unit: a typed `route t 1 sound` sent as the
+ * panel sends its commands (fm1_app_seq_cmd, so the harness logs it and
+ * fm1-render --slots replays it). Returns fm1_app_seq_cmd's result
+ * (FM1_APP_SEQ_APPLIED: in effect now; _HELD: at the next block; _BUSY:
+ * send it again after the next render), or FM1_APP_SEQ_REFUSED with no
+ * sequencer or an argument out of range. fm1_app_unit_of_track is the
+ * sound unit a track plays, as fm1-render --slots routes it, or -1 for a
+ * MIDI-routed one or one routed past the last sound unit. */
 int fm1_app_unit_route(fm1_app_t *a, int track, int sound);
 int fm1_app_unit_of_track(const fm1_app_t *a, int track);
 

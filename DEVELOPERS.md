@@ -236,11 +236,11 @@ nothing of ours in the path, and more than 400 tests compare the two.
   SEQ mode's Track view and a demo pattern (stage S3), step entry (S4),
   recording, step record and Capture (S5), eight tracks with mute, the
   Set, Clip and Track pages and a metronome click (S6), parameter locks
-  from the knobs (S8) and modulation (docs/16 MG3) work behind a lab
-  switch (`?lab` in the page's address; [`sim/web/README.md`](sim/web/README.md),
-  "The lab switch"); the public page keeps SEQ, PLAY/STOP, REC, ENV, LFO
-  and EDIT as "not in the simulator yet" until the owner opens it. Behind
-  the same switch, up to four sound units play at once, each with two
+  from the knobs (S8) and modulation (docs/16 MG3) work on the public page
+  ([`sim/web/README.md`](sim/web/README.md), "The sequencer, multi-sound
+  and modulation"; the user manual's chapters 7 and 8). They were behind a
+  lab switch (`?lab`) until 2026-10-05, when the owner opened them once
+  MG3 had landed. Up to four sound units play at once, each with two
   inserts and a level, mixed into the two effect slots as the master bus;
   each track plays the sound its route names, and a RAM meter refuses any
   choice that would not fit the FM-1 (docs/15 §3.16).
@@ -269,8 +269,14 @@ API v2 ([`engines/midi_fx/README.md`](engines/midi_fx/README.md)).
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 287 of its screens pass a layout check, with no text cut short
-  and nothing closer than 4 px.
+  canvas. All 2,470 screens of the layout sweep, the sequencer's and
+  modulation's included, pass a layout check, with no text cut short and
+  nothing closer than 4 px [verified: `fm1-sim-render --screens`,
+  2026-10-05].
+- **What the panel does:** every engine and effect, four sounds with their
+  inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC) and
+  modulation (LFO, ENV, EDIT); only SAVE and ARP are still stubs. The user
+  manual describes every control.
 - **On a phone:** the panel keeps keys 31–35 px wide and no target under
   24 px, and scrolls sideways in its own box.
 - **Self-contained:** the page loads nothing from anywhere else and finds its
@@ -534,7 +540,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Screen and controls refinement** · *In progress*
 - **Depends on:** the simulator (ongoing). On the device: the TFT strip
   driver, key matrix and encoders (I12), and one sized arena for the app
-  layer, whose `fm1_app_t` is 4,880,816 B today (4.5 MiB of it the fixed
+  layer, whose `fm1_app_t` is 4,915,120 B today (4.5 MiB of it the fixed
   arenas of multi-sound's four sound units and ten effect slots), the
   sequencer's arena included, against 578 KB of SRAM
   [verified: sim/web/README.md] (I2).
@@ -590,12 +596,13 @@ which lands with the plan PR; its stages S0–S7 are named below.
   Divide, Burst, Slew, Quantize, Compare, Logic, Calc, Mix and a resonant
   Filter, the Peaks and Braids parts checked against the original code
   ([`engines/mod/kinds.md`](engines/mod/kinds.md)). Stage MG3 puts the
-  runtime in the virtual FM-1 behind the lab switch: the RACK, MATRIX and
+  runtime in the virtual FM-1, public since 2026-10-05: the RACK, MATRIX and
   CHAIN pages, the hold-and-turn routing gesture, cables into any of the
   four sound units, their inserts and the master effects, routed
   parameters marked on every page, and panel sessions that replay through
   `fm1-render --mod` byte for byte ([`sim/web/README.md`](sim/web/README.md),
-  "The lab switch"). Next: per-voice envelopes and LFOs (MG9, which the
+  "The sequencer, multi-sound and modulation"; manual chapter 8). Next:
+  per-voice envelopes and LFOs (MG9, which the
   owner has made essential).
 - **Depends on:**
   - API v2 uids, SMOOTH and NOLOCK, plus a new MOD flag (docs/13 M2):
