@@ -302,12 +302,12 @@ class Instance {
     }
   }
 
+ private:
   // What Voice Mode, Glide Mode and Time Mode say now (glide.h).
   glide::Config GlideConfig() const {
     return glide::Read(value_[P_VOICE_MODE], value_[P_GLIDE_MODE], value_[P_TIME_MODE]);
   }
 
- private:
   // Mono and Legato: letting go of the key the voice plays while older keys
   // are held moves it back to the newest of them, gliding, never restarting.
   void ReturnToHeld(uint8_t key) {
