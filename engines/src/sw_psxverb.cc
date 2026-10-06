@@ -72,7 +72,7 @@ ModuleState g_state;
 
 const Module kModule = {
   FM1_KIND_AUDIO_FX, "psxverb", NULL, fm1_sw_psxverb_init,
-  kParams, kKeys, P_COUNT, P_COUNT, kArenaBytes, 0.0f, kHeadroom, &g_state,
+  kParams, kKeys, P_COUNT, kArenaBytes, 0.0f, kHeadroom, &g_state,
 };
 
 size_t Size(const fm1_host_t *host) { return InstanceSize(kModule, host); }

@@ -47,9 +47,9 @@ uint16_t Index(const char *name) {
 }
 
 // The sources. NOISE_BURST: noise (+/-0.5) up to `until`, then silence.
-// NOISE: noise throughout. SINE: a 440 Hz sine of 0.5. NOISE_BAD: noise with
-// NaN, infinities and 1e6 mixed in after `until`.
-enum Source { NOISE_BURST, NOISE, SINE, NOISE_BAD, SILENCE_AFTER };
+// SINE: a 440 Hz sine of 0.5. NOISE_BAD: noise with NaN, infinities and 1e6
+// mixed in after `until`.
+enum Source { NOISE_BURST, SINE, NOISE_BAD, SILENCE_AFTER };
 
 struct Change { uint32_t at; const char *name; float value; };
 
@@ -84,7 +84,6 @@ void Render(const Run &r, float *out) {
       float x = 0.0f;
       switch (r.source) {
         case NOISE_BURST: x = t < r.until ? 0.5f * noise.Bipolar() : 0.0f; break;
-        case NOISE: x = 0.5f * noise.Bipolar(); break;
         case SINE:
           x = 0.5f * static_cast<float>(sin(phase));
           phase += 2.0 * 3.141592653589793 * 440.0 / r.rate;

@@ -174,7 +174,6 @@ typedef struct EqChannel {
 
 typedef struct EqInstance {
   float param[P_COUNT];     /* knob values, clamped */
-  float sample_rate;
   float pi_over_fs;
   float max_pitch;          /* log2(0.45 fs) */
   float glide_ctrl;         /* one-pole coefficient per control step */
@@ -446,7 +445,6 @@ static void *EqCreate(void *mem, const fm1_host_t *host) {
   if (!(fs >= 8000.0f && fs <= 384000.0f)) return NULL;   /* NaN fails too */
   EqInstance *self = (EqInstance *)mem;
   memset(self, 0, sizeof(*self));
-  self->sample_rate = fs;
   self->pi_over_fs = kPi / fs;
   self->max_pitch = EqLog2(kMaxOfRate * fs);
   self->glide_ctrl = 1.0f - EqExp2(-kLog2E * kCtrlSamples / (kSmoothSeconds * fs));

@@ -46,7 +46,6 @@ class ChapterState:
     """What one chapter's conversion learned (filled by the tree processor)."""
     slug: str
     number: str | None          # "5", or None for back matter
-    features: bool
     headings: list[Heading] = field(default_factory=list)
     controls: list[tuple[str, bool, str]] = field(default_factory=list)  # name, role, heading id
     statuses: dict[str, set[str]] = field(default_factory=dict)          # h2 id -> statuses
@@ -62,7 +61,6 @@ class ManualContext:
         self.roles = set(roles)
         self.directive = directive          # (name, args, chapter) -> list of str | ("html", str)
         self.errors: list[str] = []
-        self.warnings: list[str] = []
         self.chapter: ChapterState | None = None
 
 
