@@ -350,7 +350,9 @@ export function initFiles(env) {
   // The module's report, in words. A refusal is the module's own sentence.
   function loadedText(rep, d, target) {
     const parts = [];
-    if (rep.sounds) parts.push(plural(rep.sounds, 'sound', 'sounds'));
+    // A project counts what it holds; a sound or effects loaded into the
+    // panel count what came with them (the sounds are the panel's own).
+    if (rep.sounds && d.kind === 'project') parts.push(plural(rep.sounds, 'sound', 'sounds'));
     if (rep.effects) parts.push(plural(rep.effects, 'effect', 'effects'));
     if (rep.modules) parts.push(plural(rep.modules, 'module', 'modules'));
     if (rep.cables) parts.push(plural(rep.cables, 'cable', 'cables'));

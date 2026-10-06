@@ -8,7 +8,8 @@
 # musl fm1-render in Alpine (musl is Emscripten's C library, so it separates
 # the compiler from libm in the parity test), runs sim/web/build.sh in the
 # emscripten/emsdk container (native reference, WebAssembly, parity test),
-# then optionally the page in headless Chromium (test/screenshot.mjs in
+# then optionally the page in headless Chromium (test/screenshot.mjs, then
+# test/files.mjs for Open, Save, storage, links and the embed API, in
 # the Playwright container), and brings back www/fm1.wasm, www/meta.json, www/fm1.wasm.json
 # and the screenshots (sim/web/build/screenshots/). Nothing runs on this
 # machine but ssh, tar and scp; nothing is installed on aeon's host.
@@ -110,7 +111,8 @@ if [ "$SCREENSHOT" = 1 ]; then
     -v '$REMOTE/playwright:/pw' -v '$STAGE:/src' -w /pw $PLAYWRIGHT_IMAGE \
     sh -c '[ -d node_modules/playwright ] || npm install --no-save --no-audit --no-fund $PLAYWRIGHT_NPM >/dev/null; \
            PLAYWRIGHT_DIR=/pw node /src/sim/web/test/screenshot.mjs /src/sim/web/www /src/sim/web/build/screenshots; \
-           s=\$?; if [ $README_SHOTS = 1 ] && [ \$s = 0 ]; then \
+           s=\$?; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/files.mjs /src/sim/web/www /src/sim/web/build/screenshots \
+             || s=1; if [ $README_SHOTS = 1 ] && [ \$s = 0 ]; then \
              PLAYWRIGHT_DIR=/pw node /src/sim/web/test/readme-screenshots.mjs /src/sim/web/www \
                /src/sim/web/build/readme-screenshots /src/sim/web/build/parity; s=\$?; fi; \
            chown -R \$(stat -c %u:%g /src) /src /pw; exit \$s'"
