@@ -344,7 +344,10 @@ for Acid Bass and plays in front of any sound.
 - **The contract** as the arp's: ticks, never samples; every note-on gets one
   note-off (a note-off that does not fit goes out first in the next call);
   FLUSH, PANIC and RESET as `fm1_engine.h` says. No allocation, stdio or
-  libm. About 300 bytes an instance.
+  libm. 256 bytes an instance (248 of state, no pointers, so the same on
+  32 bits) [verified 2026-10-06: `sizeof`]; on pi32v2 its code and TB-3PO's
+  take 5.9 KB at `-O2`, 4.6 KB at `-Oz` [verified: the JieLi compile check,
+  2026-10-06].
 
 | Page | KNOB1 | KNOB2 | KNOB3 | KNOB4 |
 | --- | --- | --- | --- | --- |

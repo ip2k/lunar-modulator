@@ -172,6 +172,15 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     (hugelton), whose Apache-2.0 port of the same core is the test oracle.
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
     compatibility shim.
+  - **GPL modules, built only with the GPL switch on** ([Licences](#licences)):
+    **Acid Bass**, a bass after the TB-303, is fm1-x0x's 303 by Charles
+    Vestal (Open303 with the Devilfish ranges and a RAT drive), with two
+    local changes (the host's rate, pots between the integers) and a wrapper
+    that plays it on a 16-sample grid; it is its vendored unit to the bit
+    [verified: `fm1-acid-oracle --twin`], and the patched unit is upstream's
+    at 44.1 kHz [verified: `tests/test_engine_acid_bass.py`]
+    ([`engines/third_party/fm1-x0x/UPSTREAM.md`](engines/third_party/fm1-x0x/UPSTREAM.md),
+    [`engines/README.md`](engines/README.md#acid-bass)).
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
     antiderivative anti-aliasing), Drive (overdrive and saturation, five
@@ -282,7 +291,10 @@ play the same notes, byte for byte, at any block size [verified:
 `tests/test_engine_midi_fx.py`, `tests/test_sim_arp.py`, the `arp-*` parity
 scenarios] ([`engines/midi_fx/README.md`](engines/midi_fx/README.md),
 [`sim/web/README.md`](sim/web/README.md), "The arpeggiator"; manual
-chapter 4, "Arpeggiator").
+chapter 4, "Arpeggiator"). The second MIDI effect, **Acid Gen** (GPL, with
+the switch on), plays fm1-x0x's TB-3PO lines on the same ticks, as
+fm1-x0x's sequencer plays a 303 part; in the virtual FM-1, ALGORITHM puts
+it in the arpeggiator's slot ([`engines/midi_fx/README.md`](engines/midi_fx/README.md#acid-gen-gpl)).
 
 ### The virtual FM-1
 

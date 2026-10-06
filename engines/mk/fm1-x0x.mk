@@ -12,8 +12,11 @@
 #
 # The vendored C is built as fm1-x0x builds it: C99, float, no contraction
 # into fused multiply-adds unless EXTRA asks (the JieLi check's fast profile
-# does), no warnings (vendored code). Its headers are included with -I, not
-# -isystem, so every object's dependency list names them.
+# does), no warnings (vendored code). (fastmath.h makes 2^n by adding
+# n << 23 to a float's bits, a left shift of a negative n below 2^0: UBSan's
+# report of it is suppressed for that header alone, sanitizers/ubsan.supp.)
+# Its headers are included with -I, not -isystem, so every object's
+# dependency list names them.
 
 # This fragment adds prerequisites to targets before the main Makefile's first
 # rule; keep `all` the default goal.

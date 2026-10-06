@@ -35,6 +35,16 @@ build with the switch off compiles none of it (`tests/test_gpl_switch.py`).
    smoothly rather than in 1/127ths; `bass303_set(b, i, v)` clamps and
    calls it with `(float)v`, computing every value it computed before.
 
+## Sanitizers
+
+UBSan reports `fastmath.h`'s `fm_exp2_nf`, which adds `n << 23` to a float's
+bits with n negative for every exponent below 0: the two's-complement shift
+GCC documents for signed `<<` and clang computes. It is suppressed for that
+header alone in `engines/sanitizers/ubsan.supp`; nothing else in these
+files is reported under ASan and UBSan [verified 2026-10-06: Apple clang,
+`fm1-acid-oracle --twin` and `--fields`, Acid Gen in front of Acid Bass, and
+every parameter at NaN and the infinities].
+
 ## Files
 
 | File | sha256 |

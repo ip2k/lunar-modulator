@@ -598,7 +598,9 @@ def assemble_site(b: Build, site: Path) -> None:
         # GPL modules in it, its page offers it under the GPL and links the
         # source at this commit (docs/12 §6, "The GPL switch").
         source = json.loads((site / "source.json").read_text()) if (site / "source.json").is_file() else {}
-        source.update(repository=b.cfg["repository"], commit=None if b.commit == "unknown" else b.commit)
+        source.update(about="The source of this page and its module: the repository at the commit "
+                            "the site was built from (tools/manual/build.py).",
+                      repository=b.cfg["repository"], commit=None if b.commit == "unknown" else b.commit)
         (site / "source.json").write_text(json.dumps(source, indent=2) + "\n")
         print(f"manual: simulator from {sim.relative_to(b.repo)} is the site's front page", file=sys.stderr)
     else:

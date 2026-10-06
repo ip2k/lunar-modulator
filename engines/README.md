@@ -501,9 +501,14 @@ once.
 **Costs** [verified 2026-10-06, Apple M1 Max, `fm1-render`, best of five]:
 1,248 bytes an instance (the bass is 756 of them; no pointers, so the same
 on 32 bits); a 64-frame block of a busy line (16ths at 130 BPM, slides and
-accents) 3.3 µs, 4.3 µs with either drive, 0.1 µs idle. fm1-x0x's own
-figures put one 303 at about 16 % of the FM-1's CPU in its worst case
-[inferred: the study's §2.6]; nothing has run on a JieLi chip.
+accents) 3.3 µs, 4.3 µs with either drive, 0.1 µs idle. On pi32v2
+[verified: `tools/jieli/compile-check.sh`, 2026-10-06, the switch on, 138
+of 138 objects in all four profiles]: 1,248 bytes an instance there too
+(the bass 756), and 19.5 KB of code and read-only data at `-O2` (the bass
+15.4 KB, the wrapper 4.1 KB; 10.7 KB at `-Oz`), against an app area of
+about 852 KB in FM-1+VA's layout. fm1-x0x's own figures put one 303 at
+about 16 % of the FM-1's CPU in its worst case [inferred: the study's
+§2.6]; nothing has run on a JieLi chip.
 
 ## Crush
 
@@ -3628,8 +3633,10 @@ container there, and trixie's 19.1.7 runs clean].
 
 Each exemption in `sanitizers/` names one vendored file and the quirk it
 covers: Braids' and stmlib's wrapping integer arithmetic, Plaits' six-op
-`Pow2Fast` negative shift, and Plaits' LPC speech out-of-bounds read (an
-upstream candidate). Our own code gets none. msfa needs none: its wrapping
+`Pow2Fast` negative shift, Plaits' LPC speech out-of-bounds read (an
+upstream candidate), and fm1-x0x's `fastmath.h`, which builds 2^n from
+`n << 23` with n negative below 2^0 (a GPL module's header; Acid Bass's
+wrapper inlines it). Our own code gets none. msfa needs none: its wrapping
 phases and left shifts of negative values are built with `-fwrapv`, under
 which neither Apple's clang nor clang 18 on Linux reports them [verified,
 2026-10-05: FM6's tests under ASan + UBSan, with no exemption].
