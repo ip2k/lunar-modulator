@@ -70,6 +70,6 @@ const fm1_mod_kind_t fm1_mod_kind_mix = {
   FM1_MOD_MAGIC, FM1_MOD_API_VERSION, "mix", 0x4D495820u /* "MIX " */, "Mix", "MIX",
   "Our own. After Mutable Instruments' Links and Shades (analog) and Phazerville's "
   "AttenuateOffset and Combin8 (MIT); no code taken.",
-  kParams, P_COUNT, 0, 3, NULL, kOuts, 0, 0,
+  kParams, P_COUNT, 0, 3, NULL, kOuts, 0, 0, 0,
   mix_size, mix_create, NULL, NULL, mix_process, NULL, NULL, NULL
 };

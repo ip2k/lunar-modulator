@@ -7,13 +7,21 @@
  *                                  P (1-8), with parameter bases
  *   set P NAME=VALUE...            parameter bases of the module at P
  *   slot S SRC > DST [amt=PCT] [ofs=PCT] [via=SRC] [pol=auto|uni|bi|inv]
- *                    [curve=lin|square|cube|root|cbrt|exp|log|s] [voice] [off]
+ *                    [curve=lin|square|cube|root|cbrt|exp|log|s] [voice]
+ *                    [lock=UID] [off]
+ *   data P VERSION HEX             pattern data for the module at P (its
+ *                                  kind's set_data): layout VERSION, the
+ *                                  bytes in hex
  *   slot S on | off | clear        switch a slot, or empty it
  *   move A B                       move the module at A to B (1-8)
  *   reset                          reset every module (as a preset load)
  *   current K                      the current sound unit (1-4): host:pitchc's
  *
- * `voice` makes a slot per voice (docs/16 MG9). SRC is a system source (vel,
+ * `voice` makes a slot per voice (docs/16 MG9). `lock=UID` gives the slot
+ * the base uid of its own AMT and OFS for sequencer locks (MG6; 0-4095, 0
+ * for none), and a `data` line a module's pattern data (Register's locked
+ * loop), so the format says everything a saved file can (notes/
+ * 2026-10-06-state-files.md §5.4). SRC is a system source (vel,
  * note, rand, key, trig, clock, beat, bar, run, start, rtrg, seq1-seq8,
  * sqv1-sqv8, and one sound unit's s1note-s4note, s1vel, s1key, s1trig,
  * s1rtrg...) or a module output: the kind's id or
@@ -60,6 +68,11 @@ const char *fm1_mod_script_unit_name(unsigned unit);
 
 /* The seed a `seed N` line gives, if this is one. */
 int fm1_mod_script_seed(const char *line, uint32_t *seed);
+
+/* The `data` line for the module at pos (0-7), "data P VERSION HEX", into
+ * buf: its length, or 0 when the module has no pattern data or the line
+ * does not fit cap (NUL included). */
+size_t fm1_mod_script_data_line(const fm1_mod_t *m, unsigned pos, char *buf, size_t cap);
 
 /* A source's name as the format writes it (vel, seq3, lfo1.wrap); for logs. */
 void fm1_mod_script_source_name(const fm1_mod_t *m, unsigned src, char *buf, size_t cap);

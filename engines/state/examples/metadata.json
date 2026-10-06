@@ -4,7 +4,7 @@
   "made": {"by": "desktop", "version": "0.0.0", "commit": "0000000"},
   "build": {
     "engine_api": 4,
-    "mod_api": 1,
+    "mod_api": 2,
     "rate": 44118,
     "ram_budget": 387924,
     "gpl": false

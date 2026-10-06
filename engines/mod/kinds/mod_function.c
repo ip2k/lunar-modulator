@@ -348,6 +348,6 @@ const fm1_mod_kind_t fm1_mod_kind_function = {
   "Our own, from the published behaviour of Make Noise's Maths, Joranalogue's Contour 1, "
   "Serge's DUSG and Befaco's Rampage; shape curves after Mutable Instruments' Peaks (Emilie "
   "Gillet, MIT).",
-  kParams, P_COUNT, 4, 6, kGates, kOuts, FM1_MOD_KIND_TRANSPORT, 0,
+  kParams, P_COUNT, 4, 6, kGates, kOuts, FM1_MOD_KIND_TRANSPORT, 0, 0,
   fun_size, fun_create, NULL, fun_reset, fun_process, NULL, NULL, NULL
 };

@@ -73,7 +73,9 @@
 // Modulation (docs/16, include/fm1_mod.h): --mod FILE sets up the rack of
 // modules and the matrix's slots from a text file (host/mod_script.h; a line
 // may start with @FRAME to apply at the first block that starts there),
-// --log-mod FILE.jsonl writes every tick, --list-mod prints the module kinds,
+// --log-mod FILE.jsonl writes every tick, --save-mod-data FILE the modules'
+// pattern data as the render ends, one `data P VERSION HEX` line each
+// (mod_script.h; Register's loop), --list-mod prints the module kinds,
 // the system sources and the host parameters as JSON. The runtime runs as
 // the bridge's control-rate hook, with or without the sequencer: notes,
 // locks and the clock feed its sources, each tick runs at its own frame,
@@ -222,6 +224,7 @@ void Usage() {
       "                   [--insert-param K:NAME=VALUE]...] [--level K:PCT] [--slots]\n"
       "                  [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=VALUE]\n"
       "                  [--level-at K:T:PCT] [--mod FILE] [--log-mod FILE.jsonl]\n"
+      "                  [--save-mod-data FILE]\n"
       "                  [--sysex FILE.syx]... [--save-bank FILE.syx] [--tempo BPM]\n"
       "                  [--mfx K:ID[:off] [--mfx-param K:NAME=VALUE]...]\n"
       "                  [--mfx-param-at K[.J]:T:NAME=VALUE]... [--mfx-on-at K[.J]:T:0|1]...\n"
@@ -561,8 +564,12 @@ void ListMod() {
     printf(",\"name\":"); PrintJsonString(k->name);
     printf(",\"abbr\":"); PrintJsonString(k->abbr);
     printf(",\"credits\":"); PrintJsonString(k->credits);
-    printf(",\"transport\":%s,\"instance_bytes\":%zu,\"params\":[",
-           (k->flags & FM1_MOD_KIND_TRANSPORT) ? "true" : "false", k->instance_size(&host));
+    printf(",\"transport\":%s,\"poly_ok\":%s,\"instance_bytes\":%zu,",
+           (k->flags & FM1_MOD_KIND_TRANSPORT) ? "true" : "false",
+           (k->flags & FM1_MOD_KIND_POLY_OK) ? "true" : "false", k->instance_size(&host));
+    if (k->data_bytes) printf("\"data\":{\"bytes\":%u,\"version\":%u},", k->data_bytes, k->data_version);
+    else printf("\"data\":null,");
+    printf("\"params\":[");
     PrintParams(k->params, k->n_params);
     printf("],\"gates\":[");
     PrintPorts(k->gate_in, k->n_gate_in);
@@ -816,6 +823,7 @@ int main(int argc, char **argv) {
   long events_cap = -1;            // --events: the block's event buffer
   std::vector<Route> routes;
   const char *mod_path = NULL, *mod_log_path = NULL;
+  const char *mod_data_path = NULL;       // --save-mod-data: the modules' data lines
   std::vector<std::string> sysex_paths;   // --sysex: DX7 voices for --engine dx7
   const char *save_bank = NULL;           // --save-bank: the user slots as a VMEM dump
   // Sound units 1..3 (--sound) and every unit's inserts and level; unit 0 is
@@ -851,6 +859,7 @@ int main(int argc, char **argv) {
     else if (a == "--seq") seq_path = next;
     else if (a == "--log-events") log_path = next;
     else if (a == "--mod") mod_path = next;
+    else if (a == "--save-mod-data") mod_data_path = next;
     else if (a == "--sysex") sysex_paths.push_back(next);
     else if (a == "--save-bank") save_bank = next;
     else if (a == "--log-mod") mod_log_path = next;
@@ -1097,6 +1106,10 @@ int main(int argc, char **argv) {
   if (!any_sound && fx.empty() && input == "silence" && faults.empty() && !use_seq) { Usage(); return 2; }
   if (mod_log_path && !mod_path) {
     fprintf(stderr, "--log-mod needs --mod\n");
+    return 2;
+  }
+  if (mod_data_path && !mod_path) {
+    fprintf(stderr, "--save-mod-data needs --mod\n");
     return 2;
   }
   // The MIDI effects' usage errors, before anything is allocated (an exit
@@ -1879,6 +1892,15 @@ int main(int argc, char **argv) {
            static_cast<unsigned>(st.voice_starts), static_cast<unsigned>(st.voice_steals),
            static_cast<unsigned>(st.voice_ends), static_cast<unsigned long long>(st.voice_writes));
     if (md.log) fclose(md.log);
+    if (mod_data_path) {             // the rack's pattern data as it ended, as `data` lines
+      FILE *df = fopen(mod_data_path, "w");
+      char line[16 + 2 * FM1_MOD_DATA_MAX];
+      for (unsigned p = 0; df && p < FM1_MOD_POSITIONS; ++p) {
+        if (fm1_mod_script_data_line(md.m, p, line, sizeof(line))) fprintf(df, "%s\n", line);
+      }
+      if (df) fclose(df);
+      else fprintf(stderr, "--save-mod-data: cannot write %s\n", mod_data_path);
+    }
     fm1_mod_destroy(md.m);
     free(md.mem);
   }

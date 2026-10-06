@@ -26,9 +26,6 @@ LIMITS = {"bytes": {"project": 262144, "sound": 32768, "fx": 32768, "mods": 6553
                     "settings": 4096, "movy1": 65536, "syx": 65536},
           "depth": 8, "string_bytes": 16384, "key_bytes": 64, "number_chars": 32, "members": 64,
           "items": 8192}
-# Kinds that may run one instance per voice (fm1_mod.h, FM1_MOD_KIND_POLY_OK):
-# --list-mod does not say yet; the C export will.
-POLY_OK = {"lfo", "env", "chance"}
 FLAG_ORDER = ["latch", "smooth", "nolock", "mod", "input", "poly", "log", "keysrc", "focus",
               "per_focus"]
 
@@ -86,8 +83,8 @@ def metadata_from_build(listed, mod, engines=None, kinds=None):
         "kinds": [
             {"id": k["id"], "guid": k["guid"], "name": k["name"], "abbr": k["abbr"],
              "credits": k["credits"],
-             "flags": (["transport"] if k["transport"] else []) + (["poly_ok"] if k["id"] in POLY_OK else []),
-             "ram": k["instance_bytes"], "data": None, "params": meta_params(k["params"]),
+             "flags": (["transport"] if k["transport"] else []) + (["poly_ok"] if k["poly_ok"] else []),
+             "ram": k["instance_bytes"], "data": k["data"], "params": meta_params(k["params"]),
              "gates": [{"name": g["name"], "kind": g["kind"], "unit": g["unit"],
                         "normal": g.get("normal")} for g in k["gates"]],
              "outs": [{"name": o["name"], "kind": o["kind"], "unit": o["unit"]} for o in k["outs"]]}
