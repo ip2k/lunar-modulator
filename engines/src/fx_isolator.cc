@@ -118,14 +118,15 @@ static const char *const kKillNames[KILL_COUNT] = {
 /* Uids (API v2) are fixed: never renumber one; a new parameter takes the next
  * free uid. The FLOATs are read every sample: SMOOTH and MOD. Kill changes
  * cleanly (the gains glide), so it can be locked and modulated (MOD; a route
- * is rounded); it is not NOLOCK. */
+ * is rounded); it is not NOLOCK. The crossovers move on the LOG law
+ * (fm1_engine.h, API v3). */
 static const fm1_param_t kIsoParams[P_COUNT] = {
   { "Low",        FM1_PARAM_FLOAT, 0, 1, 0.75f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Low" },
   { "Mid",        FM1_PARAM_FLOAT, 0, 1, 0.75f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mid" },
   { "High",       FM1_PARAM_FLOAT, 0, 1, 0.75f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "High" },
   { "Kill",       FM1_PARAM_ENUM,  0, KILL_COUNT - 1, 0, kKillNames, 0, 4, FM1_PARAM_MOD, FM1_UNIT_NONE, "Kill" },
-  { "Low Xover",  FM1_PARAM_FLOAT, 80, 400, 250, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "LoXov" },
-  { "High Xover", FM1_PARAM_FLOAT, 1500, 5000, 2500, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "HiXov" },
+  { "Low Xover",  FM1_PARAM_FLOAT, 80, 400, 250, NULL, 1, 5, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "LoXov" },
+  { "High Xover", FM1_PARAM_FLOAT, 1500, 5000, 2500, NULL, 1, 6, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "HiXov" },
 };
 
 /* The gliding control values: the three band gains and the two crossovers'
@@ -454,6 +455,7 @@ const fm1_engine_t fm1_engine_isolator = {
   NULL, NULL, NULL,
   IsoSet, IsoRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
   0, 0,                     // not a pad kit
 };
 

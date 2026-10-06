@@ -58,7 +58,9 @@ const uint16_t kExposed = P_CRUSH;   // pages 0 and 1
 // not at note-on, and a list that moves the focus takes no modulation.
 // Units are the module's own (chain_params): Tune in semitones, Ring Time in
 // ms, the 0..100 knobs in %; Decay is in seconds, which has no unit code.
-const uint8_t kPadFlags = FM1_PARAM_LATCH | FM1_PARAM_MOD;
+// Ring Time, the resonator's delay (0.5..30 ms, a pitch), moves on the LOG law
+// (fm1_engine.h, API v3).
+const uint16_t kPadFlags = FM1_PARAM_LATCH | FM1_PARAM_MOD;
 const fm1_param_t kParams[P_COUNT] = {
   { "Pad",       FM1_PARAM_ENUM,  0, 15, 0, kPadNames, 0,
     KeyUid("focused_pad"), 0, FM1_UNIT_NONE, "Pad" },
@@ -76,7 +78,7 @@ const fm1_param_t kParams[P_COUNT] = {
   { "Resonance", FM1_PARAM_FLOAT, 0, 100, 0, NULL, 3, KeyUid("resonance"), kPadFlags, FM1_UNIT_PCT, "Reso" },
   { "Filter Type", FM1_PARAM_ENUM, 0, 4, 0, kFilterNames, 3,
     KeyUid("filter_type"), kPadFlags, FM1_UNIT_NONE, "FltTyp" },
-  { "Ring Time", FM1_PARAM_FLOAT, 0.5f, 30, 6, NULL, 4, KeyUid("ring_time"), kPadFlags, FM1_UNIT_MS, "RTime" },
+  { "Ring Time", FM1_PARAM_FLOAT, 0.5f, 30, 6, NULL, 4, KeyUid("ring_time"), kPadFlags | FM1_PARAM_LOG, FM1_UNIT_MS, "RTime" },
   { "Ring Fdbk", FM1_PARAM_FLOAT, 0, 95, 0, NULL, 4, KeyUid("ring_feedback"), kPadFlags, FM1_UNIT_PCT, "RFdbk" },
   { "Ring Mix",  FM1_PARAM_FLOAT, 0, 100, 0, NULL, 4, KeyUid("ring_mix"), kPadFlags, FM1_UNIT_PCT, "RMix" },
   { "Ring Tone", FM1_PARAM_FLOAT, 0, 100, 70, NULL, 4, KeyUid("ring_tone"), kPadFlags, FM1_UNIT_PCT, "RTone" },
@@ -140,6 +142,7 @@ extern "C" const fm1_engine_t fm1_engine_sw_sophie = {
   // pad's patch at the trigger) and the shim reaches only its global
   // parameters (engines/README.md, "Per-note offsets").
   NULL,
+  0, NULL,                  // API v3: no effect extension
   // A pad kit: notes 36-51 play pads 1-16 (engines/README.md, "Pad kits").
   36, 16,
 };

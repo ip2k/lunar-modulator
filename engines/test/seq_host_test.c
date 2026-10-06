@@ -71,7 +71,7 @@ static const fm1_param_t kParams[] = {
 #define N_PARAMS (sizeof(kParams) / sizeof(kParams[0]))
 static const fm1_engine_t kEngine = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "fake", "Fake", "", kParams,
-  (uint16_t)N_PARAMS, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0
+  (uint16_t)N_PARAMS, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, 0
 };
 /* A second engine that names Timbre and Bank too, at other uids and with
  * Bank lockable: a lane follows the engine it plays. */
@@ -81,7 +81,7 @@ static const fm1_param_t kOtherParams[] = {
 };
 static const fm1_engine_t kOther = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "other", "Other", "", kOtherParams,
-  2, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0
+  2, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, 0
 };
 #undef CONT
 
@@ -377,7 +377,7 @@ static const fm1_param_t kSpaced[] = {
 static const fm1_engine_t kSpacedEngine = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "spaced", "Spaced", "", kSpaced,
   (uint16_t)(sizeof(kSpaced) / sizeof(kSpaced[0])), 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-  NULL, NULL, 0, 0
+  NULL, NULL, 0, NULL, 0, 0
 };
 
 static void value7_and_labels(void) {

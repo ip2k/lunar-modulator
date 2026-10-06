@@ -1,16 +1,18 @@
 /* fx_filter.cc -- "Filter": a multimode filter audio effect
- * (FM1_KIND_AUDIO_FX) with seven types, written for this repository. Notes
- * in engines/README.md ("Filter").
+ * (FM1_KIND_AUDIO_FX) with six types, written for this repository. Notes
+ * in engines/README.md ("Filter"). Comb, its seventh type until 2026-10-05,
+ * is an effect of its own now (fx_comb.cc), so a Filter instance holds no
+ * delay line: 656 bytes where it took 18,368 at 44,118 Hz.
  *
  * Signal path, per channel and per sample:
  *
  *   input guard -> x Drive -> the selected type (two types crossfading for
  *   5 ms after a Type change) -> make-up gain -> x Level -> Mix with the dry
  *
- * Parameters. Page 1: Type, Cutoff (20 Hz..18 kHz, log), Resonance, Drive.
- * Page 2: Mode (0..3, continuous, its meaning per type), Morph (0..1: stereo
- * Spread for the five analogue-style types, polarity for Comb, the vowel for
- * Formant), Mix, Level (0..2).
+ * Parameters. Page 1: Type, Cutoff (20 Hz..18 kHz, on the LOG law of engine
+ * API v3), Resonance, Drive. Page 2: Mode (0..3, continuous, its meaning per
+ * type), Morph (0..1: stereo Spread for the five analogue-style types, the
+ * vowel for Formant), Mix, Level (0..2).
  *
  * The types. Each is solved with zero-delay feedback where it has feedback
  * (Zavalishin, "The Art of VA Filter Design", rev. 2: trapezoidal
@@ -77,13 +79,6 @@
  *            growl. Mode 0 low-pass input, 1 band-pass, 2 high-pass, 3
  *            notch (L, -2B, H). Self-oscillates from K = 3, about 20 cents
  *            flat at every pitch: the diodes load the oscillation.
- *   Comb     Zoelzer's universal comb ("DAFX", ch. 2): one delay line of
- *            fs / Cutoff samples, read with linear interpolation, with
- *            feedback and feedforward. Mode 0 feedback (peaks), 3
- *            feedforward (notches), blended between. Morph is the polarity:
- *            0 positive (peaks at multiples of Cutoff), 0.5 none, 1
- *            negative (odd multiples of Cutoff / 2: an octave lower,
- *            hollow). Resonance is the loop gain, 0.25 to 0.98.
  *   Formant  Three band-passes (constant peak gain, Simper's SVF) at the
  *            first three formants of the vowels A (hod), E (head), I
  *            (heed), O (hawed), U (who'd), from Peterson and Barney's
@@ -114,18 +109,15 @@
  * glide at a control rate of one step per 8 samples, counted from create,
  * not from the block, so any block size gives the same output; each step
  * moves them 1 - exp(-8 / (5 ms fs)) of the way to their target and
- * recomputes the coefficients of the running type(s). Comb's delay is
- * interpolated sample by sample across each step, so a moving delay never
- * jumps. Mix and Level glide every sample. A Type change starts the new type
- * from rest, unheard, with its input faded in over 5 ms, then crossfades the
- * old type into it over 5 ms more (both run meanwhile): the new type's start
- * from rest (a resonance ringing up, a Comb's first echo a delay later)
- * swells instead of stepping, so a change is clean however fast it comes. A
- * change asked for meanwhile waits for the crossfade's end.
+ * recomputes the coefficients of the running type(s). Mix and Level glide
+ * every sample. A Type change starts the new type from rest, unheard, with
+ * its input faded in over 5 ms, then crossfades the old type into it over 5
+ * ms more (both run meanwhile): the new type's start from rest (a resonance
+ * ringing up) swells instead of stepping, so a change is clean however fast
+ * it comes. A change asked for meanwhile waits for the crossfade's end.
  *
- * Contracts (fm1_engine.h): no heap; every field read is set in create
- * (Comb's delay line, the bulk of the instance, is read only where written
- * since the last reset, so it is never cleared); NaN-safe parameters
+ * Contracts (fm1_engine.h): no heap; every field read is set in create;
+ * NaN-safe parameters
  * (fm1_param_clamp); the input guard of mi_fx.cc (NaN reads as 0, +/-16
  * clamp); finite output; silence in gives exact silence out at any setting
  * from rest. States below 1e-15 flush to zero, so tails never go subnormal.
@@ -148,31 +140,30 @@
 #pragma STDC FP_CONTRACT OFF
 #endif
 
-/* The per-type processors run once or twice per frame; inlined, their
- * states stay in registers. */
-#if defined(__GNUC__) || defined(__clang__)
-#define FILT_INLINE static inline __attribute__((always_inline))
-#else
-#define FILT_INLINE static inline
-#endif
+/* 2^x, log2, the saturating curve, the guard, the flush and the glide,
+ * shared with Comb; FILT_INLINE and the control-rate constants too. */
+#include "fx_filter_dsp.h"
 
 enum { P_TYPE, P_CUTOFF, P_RES, P_DRIVE, P_MODE, P_MORPH, P_MIX, P_LEVEL, P_COUNT };
-enum { T_SVF, T_LADDER, T_DIODE, T_SK, T_SKMIX, T_COMB, T_FORMANT, T_COUNT };
+/* Comb was type 5 until 2026-10-05 (fx_comb.cc now), so Formant moved from 6
+ * to 5. Nothing was released, so nothing is migrated (engines/README.md,
+ * "Filter"). */
+enum { T_SVF, T_LADDER, T_DIODE, T_SK, T_SKMIX, T_FORMANT, T_COUNT };
 
 /* Generic, descriptive names: what each circuit is, never a maker's or a
  * person's name (the filters they follow are credited in engines/README.md). */
 static const char *const kFilterTypeNames[T_COUNT] = {
-  "SVF", "Ladder", "Diode", "Sallen-Key", "SK Mixed", "Comb", "Formant",
+  "SVF", "Ladder", "Diode", "Sallen-Key", "SK Mixed", "Formant",
 };
 
 // Uids (API v2) are fixed: never renumber one; a new parameter takes the next
-// free uid. Every FLOAT is read each block: SMOOTH and MOD. Type warms the
-// new type up and crossfades rather than cutting, so a lock or a (rounded)
-// route may move it, however fast: MOD.
+// free uid. Every FLOAT is read each block: SMOOTH and MOD; Cutoff moves on
+// the LOG law (API v3). Type warms the new type up and crossfades rather than
+// cutting, so a lock or a (rounded) route may move it, however fast: MOD.
 static const fm1_param_t kFilterParams[P_COUNT] = {
   { "Type",      FM1_PARAM_ENUM,  0, T_COUNT - 1, T_LADDER, kFilterTypeNames, 0, 1,
     FM1_PARAM_MOD, FM1_UNIT_NONE, "Type" },
-  { "Cutoff",    FM1_PARAM_FLOAT, 20, 18000, 2000, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "Cutoff" },
+  { "Cutoff",    FM1_PARAM_FLOAT, 20, 18000, 2000, NULL, 0, 2, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "Cutoff" },
   { "Resonance", FM1_PARAM_FLOAT, 0, 1, 0.25f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Reso" },
   { "Drive",     FM1_PARAM_FLOAT, 0, 1, 0.0f,  NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Drive" },
   { "Mode",      FM1_PARAM_FLOAT, 0, 3, 0.0f,  NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mode" },
@@ -184,15 +175,8 @@ static const fm1_param_t kFilterParams[P_COUNT] = {
 /* The controls that glide at the control rate. C_PITCH is log2 of Cutoff in Hz. */
 enum { C_PITCH, C_RES, C_DRIVE, C_MODE, C_MORPH, C_COUNT };
 
-static const uint32_t kCtrlMask = 7u;       /* a control step every 8 samples */
-static const float kCtrlSamples = 8.0f;
-static const float kSmoothSeconds = 0.005f; /* glide time constant */
 static const float kFadeSeconds = 0.005f;   /* Type crossfade */
-static const float kInputLimit = 16.0f;     /* the input guard, as mi_fx.cc */
-static const float kFlush = 1e-15f;         /* states below this become 0 */
-static const float kMaxOfRate = 0.45f;      /* nothing tuned above 0.45 fs */
 static const float kMinHz = 10.0f;          /* lowest tuning (Cutoff 20 Hz, Spread -1 oct) */
-static const float kCombMinHz = 20.0f;      /* Comb's longest delay is fs / 20 Hz */
 static const float kPi = 3.14159265358979f;
 static const float kSqrt2 = 1.41421356237310f;
 static const float kLog2Of1k = 9.96578428f; /* log2(1000): Formant's unshifted Cutoff */
@@ -222,8 +206,6 @@ static const float kSkComp = 0.5f;             /* output / (1 + 0.5 k) */
 static const float kSkMixK = 3.15f;           /* oscillates from 3 */
 static const float kSkMixComp = 0.35f;        /* output / (1 + 0.35 K) */
 static const float kSkMixDiode = 0.5f;        /* the diodes' knee: 3 (internal units) */
-static const float kCombLoopMin = 0.25f;        /* loop gain at Resonance 0 */
-static const float kCombLoopSpan = 0.73f;       /* ... and 0.98 at 1 */
 static const float kFormantComp = 1.6f;         /* Formant's make-up gain */
 
 /* Peterson and Barney (1952), average F1, F2, F3 in Hz [voice][vowel][formant]:
@@ -262,9 +244,6 @@ typedef struct FilterCoefs {
   float dio_k, dio_cin, dio_cout;
   float sk_k, sk_comp;
   float skm_k, skm_comp;
-  /* Comb */
-  float comb_d0, comb_d1;         /* delay, samples, at the last and this control step */
-  float comb_fb, comb_ff, comb_cin;
   /* Formant */
   float fa1[3], fa2[3], fa3[3], famp[3];
 } FilterCoefs;
@@ -280,7 +259,6 @@ typedef struct FilterInstance {
   uint32_t fade_len, fade;        /* crossfade length and samples left */
   uint32_t warm;                  /* samples left before the fade starts (the old type alone) */
   uint32_t count;                 /* samples since create (mod 2^32) */
-  uint32_t comb_n, comb_w, comb_filled;
   int cur, prev, want;            /* the running type, the one fading out, the asked */
   int g_done;                     /* g[] matches the control values */
   int primed;
@@ -290,51 +268,11 @@ typedef struct FilterInstance {
   SkCh sk[2];
   SkMixCh skm[2];
   FormantCh frm[2];
-  /* Then Comb's delay lines: 2 x comb_n floats (FilterInstanceSize). */
 } FilterInstance;
-
-static inline size_t FilterHeaderBytes(void) {
-  return (sizeof(FilterInstance) + 15u) & ~(size_t)15u;
-}
-
-static inline float *FilterCombLine(FilterInstance *self, int c) {
-  return (float *)((unsigned char *)self + FilterHeaderBytes()) + (size_t)c * self->comb_n;
-}
 
 /* ---------------------------------------------------------------------- */
 /* Arithmetic: no libm                                                     */
 /* ---------------------------------------------------------------------- */
-
-/* 2^x, x clamped to +/-100: 2^round(x) from the exponent bits, the rest by
- * a degree-6 Taylor series of 2^t, |t| <= 0.5 (relative error 1.2e-7). */
-static inline float FiltExp2(float x) {
-  if (!(x > -100.0f)) x = -100.0f;
-  if (x > 100.0f) x = 100.0f;
-  const float n = floorf(x + 0.5f);
-  const float t = x - n;
-  const float p = 1.0f + t * (0.693147181f + t * (0.240226507f + t * (0.0555041087f +
-                  t * (0.00961812911f + t * (0.00133335581f + t * 0.000154035304f)))));
-  const uint32_t bits = (uint32_t)((int32_t)n + 127) << 23;
-  float scale;
-  memcpy(&scale, &bits, sizeof(scale));
-  return p * scale;
-}
-
-/* log2(x) for finite x > 0 (normal): the exponent, and atanh's series for
- * the mantissa taken to [0.707, 1.414] (error below 1e-7). */
-static inline float FiltLog2(float x) {
-  uint32_t bits;
-  memcpy(&bits, &x, sizeof(bits));
-  int32_t e = (int32_t)((bits >> 23) & 0xFFu) - 127;
-  bits = (bits & 0x007FFFFFu) | 0x3F800000u;
-  float m;
-  memcpy(&m, &bits, sizeof(m));
-  if (m > 1.41421356f) { m *= 0.5f; e += 1; }
-  const float t = (m - 1.0f) / (m + 1.0f);
-  const float t2 = t * t;
-  const float a = t * (1.0f + t2 * (0.333333333f + t2 * (0.2f + t2 * 0.142857143f)));
-  return (float)e + 2.88539008f * a;      /* 2 / ln 2 */
-}
 
 /* tan(w) for 0 <= w <= 1.42 (just over 0.45 pi): sine and cosine by their
  * Taylor series to w^11 and w^12 (truncation below 2e-8), then one divide. */
@@ -347,50 +285,11 @@ static inline float FiltTan(float w) {
   return s / c;
 }
 
-/* The saturating curve: v - v^3 / 6.75 up to |v| = 1.5, where it reaches
- * +/-1 with zero slope, flat beyond. Also returns its secant gain (curve /
- * v), which the next sample's loop solve uses; no divide below the knee. */
-FILT_INLINE float FiltSat(float v, float *secant) {
-  const float a = fabsf(v);
-  if (a < 1.5f) {
-    const float s = 1.0f - v * v * 0.148148148f;
-    *secant = s;
-    return v * s;
-  }
-  *secant = 1.0f / a;
-  return v > 0.0f ? 1.0f : -1.0f;
-}
-
 /* The same, with the negative half clipping at -0.5: a diode pair with
  * unequal knees, for SK Mixed. */
 FILT_INLINE float FiltSatAsym(float v, float *secant) {
   if (v >= 0.0f) return FiltSat(v, secant);
   return 0.5f * FiltSat(2.0f * v, secant);
-}
-
-static inline float FiltFlush(float v) {
-  return fabsf(v) < kFlush ? 0.0f : v;
-}
-
-static inline float FiltGuard(float x) {
-  if (x > -kInputLimit && x < kInputLimit) return x;   /* NaN fails both */
-  if (x >= kInputLimit) return kInputLimit;
-  if (x <= -kInputLimit) return -kInputLimit;
-  return 0.0f;                                         /* NaN */
-}
-
-/* One step of a glide; snaps when within 1e-4 (relative), so a value
- * reaches its target exactly instead of stalling an ulp short of it. */
-static inline float FiltGlide(float v, float t, float k) {
-  const float e = t - v;
-  if (fabsf(e) <= 1e-4f * (1.0f + fabsf(t))) return t;
-  return v + k * e;
-}
-
-/* The input with Drive's soft clip blended in. */
-FILT_INLINE float FiltPresat(float x, float drv) {
-  float s;
-  return x + drv * (FiltSat(x, &s) - x);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -441,8 +340,8 @@ static void FiltSkMixWeights(float m, float w[3]) {
 
 static void FiltUpdateShared(FilterInstance *self) {
   const float drive = self->value[C_DRIVE];
-  self->co.in_gain = 0.5f * FiltExp2(4.0f * drive);
-  self->co.out_gain = 2.0f * FiltExp2(-2.0f * drive);
+  self->co.in_gain = FiltDriveIn(drive);
+  self->co.out_gain = FiltDriveOut(drive);
   self->co.drv = drive;
 }
 
@@ -522,20 +421,6 @@ static void FiltUpdateCoefs(FilterInstance *self, int type) {
       FiltSkMixWeights(mode, k->skm_w);
       break;
     }
-    case T_COMB: {
-      float d = self->sample_rate * FiltExp2(-self->value[C_PITCH]);
-      const float dmax = (float)(self->comb_n - 3u);
-      if (d < 1.0f / kMaxOfRate) d = 1.0f / kMaxOfRate;   /* fs / fmax: 2.22 samples */
-      if (d > dmax) d = dmax;
-      k->comb_d1 = d;
-      const float loop = kCombLoopMin + kCombLoopSpan * res;
-      const float sign = 1.0f - 2.0f * morph;
-      const float t = mode * (1.0f / 3.0f);
-      k->comb_fb = sign * loop * (1.0f - t);
-      k->comb_ff = sign * loop * t;
-      k->comb_cin = sqrtf(1.0f - fabsf(k->comb_fb));
-      break;
-    }
     case T_FORMANT: {
       const float shift = FiltExp2(0.5f * (self->value[C_PITCH] - kLog2Of1k));
       const float bw_scale = FiltExp2(1.5f - 3.0f * res);
@@ -592,7 +477,6 @@ static void FiltResetType(FilterInstance *self, int type) {
         self->skm[c].sigf = self->skm[c].sig1 = self->skm[c].sig2 = 1.0f;
       }
       break;
-    case T_COMB: self->comb_filled = 0; break;   /* the line itself is never read stale */
     case T_FORMANT: memset(self->frm, 0, sizeof(self->frm)); break;
     default: break;
   }
@@ -601,7 +485,6 @@ static void FiltResetType(FilterInstance *self, int type) {
 static void FiltStartType(FilterInstance *self, int type) {
   FiltResetType(self, type);
   FiltUpdateCoefs(self, type);
-  if (type == T_COMB) self->co.comb_d0 = self->co.comb_d1;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -763,34 +646,6 @@ FILT_INLINE void FiltSkMix(FilterInstance *self, const float xin[2], float y[2])
   }
 }
 
-static inline float FiltCombRead(const FilterInstance *self, const float *line, uint32_t age) {
-  if (age > self->comb_filled) return 0.0f;   /* not written since the reset */
-  const uint32_t w = self->comb_w;
-  return line[w >= age ? w - age : w + self->comb_n - age];
-}
-
-FILT_INLINE void FiltComb(FilterInstance *self, const float xin[2], uint32_t j, float y[2]) {
-  const FilterCoefs *k = &self->co;
-  const float d = k->comb_d0 + (k->comb_d1 - k->comb_d0) * (float)(j + 1u) * 0.125f;
-  const uint32_t di = (uint32_t)d;            /* d >= 2 */
-  const float fr = d - (float)di;
-  for (int c = 0; c < 2; ++c) {
-    float *line = FilterCombLine(self, c);
-    const float a = FiltCombRead(self, line, di), b = FiltCombRead(self, line, di + 1u);
-    const float r = a + fr * (b - a);
-    const float x = FiltPresat(xin[c], k->drv) * k->comb_cin;
-    float s;
-    const float xh = 2.0f * FiltSat(0.5f * (x + k->comb_fb * r), &s);
-    line[self->comb_w] = FiltFlush(xh);
-    y[c] = xh + k->comb_ff * r;
-  }
-}
-
-static inline void FiltCombAdvance(FilterInstance *self) {
-  self->comb_w = self->comb_w + 1u == self->comb_n ? 0u : self->comb_w + 1u;
-  if (self->comb_filled < self->comb_n) ++self->comb_filled;
-}
-
 FILT_INLINE void FiltFormant(FilterInstance *self, const float xin[2], float y[2]) {
   const FilterCoefs *k = &self->co;
   for (int c = 0; c < 2; ++c) {
@@ -809,14 +664,13 @@ FILT_INLINE void FiltFormant(FilterInstance *self, const float xin[2], float y[2
   }
 }
 
-static void FiltProcess(FilterInstance *self, int type, const float xin[2], uint32_t j, float y[2]) {
+static void FiltProcess(FilterInstance *self, int type, const float xin[2], float y[2]) {
   switch (type) {
     case T_SVF: FiltSvf(self, xin, y); break;
     case T_LADDER: FiltLadder(self, xin, y); break;
     case T_DIODE: FiltDiode(self, xin, y); break;
     case T_SK: FiltSk(self, xin, y); break;
     case T_SKMIX: FiltSkMix(self, xin, y); break;
-    case T_COMB: FiltComb(self, xin, j, y); break;
     case T_FORMANT: FiltFormant(self, xin, y); break;
     default: y[0] = y[1] = 0.0f; break;
   }
@@ -862,7 +716,6 @@ static void FiltPrime(FilterInstance *self) {
 
 /* A control step: glide the filter controls and recompute what moved. */
 static void FiltControl(FilterInstance *self) {
-  self->co.comb_d0 = self->co.comb_d1;
   int moved = 0;
   for (int i = 0; i < C_COUNT; ++i) {
     if (self->value[i] != self->target[i]) {
@@ -881,22 +734,16 @@ static void FiltControl(FilterInstance *self) {
 /* The engine API                                                          */
 /* ---------------------------------------------------------------------- */
 
-static uint32_t FilterCombCells(float fs) {
-  return (uint32_t)(fs / kCombMinHz) + 4u;
-}
-
 static size_t FilterInstanceSize(const fm1_host_t *host) {
-  const float fs = host->sample_rate;
-  if (!(fs >= 8000.0f && fs <= 384000.0f)) return FilterHeaderBytes();
-  const size_t line = (size_t)2u * FilterCombCells(fs) * sizeof(float);
-  return FilterHeaderBytes() + ((line + 15u) & ~(size_t)15u);
+  (void)host;
+  return (sizeof(FilterInstance) + 15u) & ~(size_t)15u;
 }
 
 static void *FilterCreate(void *mem, const fm1_host_t *host) {
   const float fs = host->sample_rate;
   if (!(fs >= 8000.0f && fs <= 384000.0f)) return NULL;
   FilterInstance *self = (FilterInstance *)mem;
-  memset(self, 0, sizeof(*self));            /* the delay lines after it stay as they are */
+  memset(self, 0, sizeof(*self));
   self->sample_rate = fs;
   self->pi_over_fs = kPi / fs;
   self->fmax = kMaxOfRate * fs;
@@ -906,9 +753,6 @@ static void *FilterCreate(void *mem, const fm1_host_t *host) {
   uint32_t n = (uint32_t)(kFadeSeconds * fs + 0.5f);
   self->fade_len = n > 0u ? n : 1u;
   self->inv_fade = 1.0f / (float)self->fade_len;
-  self->comb_n = FilterCombCells(fs);
-  self->comb_w = 0u;
-  self->comb_filled = 0u;
   for (int i = 0; i < P_COUNT; ++i) {
     self->param[i] = kFilterParams[i].def;
     FiltSetTarget(self, i);
@@ -956,18 +800,16 @@ static void FilterRender(void *s, float *lr, uint32_t frames) {
     float y[2];
     if (self->warm) {
       /* The new type starts from rest, unheard, with its input faded in
-       * over 5 ms (so even a Comb's first echo, a delay later, swells in
-       * rather than steps), and only then is its output faded in. */
+       * over 5 ms, and only then is its output faded in. */
       const float ramp = 1.0f - (float)self->warm * self->inv_fade;
       const float xr[2] = { ramp * xin[0], ramp * xin[1] };
-      FiltProcess(self, self->cur, xr, j, y);
+      FiltProcess(self, self->cur, xr, y);
     } else {
-      FiltProcess(self, self->cur, xin, j, y);
+      FiltProcess(self, self->cur, xin, y);
     }
-    int comb = self->cur == T_COMB;
     if (self->fade) {
       float old[2];
-      FiltProcess(self, self->prev, xin, j, old);
+      FiltProcess(self, self->prev, xin, old);
       if (self->warm) {
         y[0] = old[0];
         y[1] = old[1];
@@ -978,9 +820,7 @@ static void FilterRender(void *s, float *lr, uint32_t frames) {
         y[1] = old[1] + wc * (y[1] - old[1]);
         --self->fade;
       }
-      comb |= self->prev == T_COMB;
     }
-    if (comb) FiltCombAdvance(self);
     const float wet = self->level * self->co.out_gain, mix = self->mix;
     lr[2 * f] = x[0] + mix * (wet * y[0] - x[0]);
     lr[2 * f + 1] = x[1] + mix * (wet * y[1] - x[1]);
@@ -998,13 +838,14 @@ const fm1_engine_t fm1_engine_filter = {
   "filter", "Filter",
   "This repository (MIT): zero-delay-feedback filters after Zavalishin's "
   "The Art of VA Filter Design, Simper's (Cytomic) SVF, Huovilainen's ladder, "
-  "the Korg35, diode-ladder and Steiner-Parker circuits and Zoelzer's "
-  "universal comb; vowels from Peterson and Barney (1952). No code taken",
+  "the Korg35, diode-ladder and Steiner-Parker circuits; vowels from "
+  "Peterson and Barney (1952). No code taken",
   kFilterParams, P_COUNT, 0,
   FilterInstanceSize, FilterCreate, FilterDestroy,
   NULL, NULL, NULL,
   FilterSet, FilterRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
   0, 0,                     // not a pad kit
 };
 

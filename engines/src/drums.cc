@@ -239,8 +239,8 @@ const int kPadFloats = P_DRIVE - P_TUNE + 1;
 
 // Uids (API v2) are fixed: never renumber one, and give a new parameter the
 // next free uid.
-const uint8_t kFloat = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
-const uint8_t kLatch = FM1_PARAM_LATCH | FM1_PARAM_MOD;
+const uint16_t kFloat = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
+const uint16_t kLatch = FM1_PARAM_LATCH | FM1_PARAM_MOD;
 const fm1_param_t kParams[P_COUNT] = {
   { "Pad",       FM1_PARAM_ENUM,  0, kNumPads - 1, 0, kPadNames, 0, 1, 0, FM1_UNIT_NONE, "Pad" },
   { "Tune",      FM1_PARAM_FLOAT, -24, 24, 0, NULL, 0, 2, kFloat, FM1_UNIT_SEMI, "Tune" },
@@ -725,6 +725,7 @@ extern "C" const fm1_engine_t fm1_engine_drums = {
   fm1::drums::NoteOn, fm1::drums::NoteOff, fm1::drums::Bend,
   fm1::drums::Set, fm1::drums::Render,
   fm1::drums::SetNote,
+  0, NULL,                  // API v3: no effect extension
   // A pad kit: notes 36-51 play pads 1-16 (engines/README.md, "Pad kits").
   fm1::drums::kFirstNote, fm1::drums::kNumPads,
 };

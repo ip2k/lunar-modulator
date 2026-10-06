@@ -127,11 +127,12 @@ const char *const kModeNames[] = { "Brickwall", "Soft Clip" };
 // free uid. Every parameter can be locked and modulated: the floats glide,
 // Lookahead crossfades its delay with a gain path per tap, and Mode (rounded
 // when modulated) glides its stage frame by frame; none of them steps.
-// Ceiling and Drive are in dB, which has no unit code yet.
+// Ceiling and Drive are in dB (FM1_UNIT_DB, API v3). Release moves on the
+// LOG law (fm1_engine.h); Lookahead, whose range starts at 0, stays linear.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Ceiling",   FM1_PARAM_FLOAT, -24, 0,    -1.0f,  NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Ceil" },
-  { "Drive",     FM1_PARAM_FLOAT, -12, 24,   0.0f,   NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Drive" },
-  { "Release",   FM1_PARAM_FLOAT, 1,   1000, 100.0f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Rel" },
+  { "Ceiling",   FM1_PARAM_FLOAT, -24, 0,    -1.0f,  NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Ceil" },
+  { "Drive",     FM1_PARAM_FLOAT, -12, 24,   0.0f,   NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Drive" },
+  { "Release",   FM1_PARAM_FLOAT, 1,   1000, 100.0f, NULL, 0, 3, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_MS, "Rel" },
   { "Lookahead", FM1_PARAM_FLOAT, 0,   5,    2.0f,   NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Look" },
   { "Mode",      FM1_PARAM_ENUM,  0,   1,    0.0f,   kModeNames, 1, 5, FM1_PARAM_MOD, FM1_UNIT_NONE, "Mode" },
   { "Link",      FM1_PARAM_FLOAT, 0,   1,    1.0f,   NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Link" },
@@ -760,5 +761,6 @@ extern "C" const fm1_engine_t fm1_engine_limit = {
   NULL, NULL, NULL,
   fm1::limit::Set, fm1::limit::RenderEntry,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
   0, 0,                     // not a pad kit
 };

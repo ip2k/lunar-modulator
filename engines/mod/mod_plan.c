@@ -40,7 +40,7 @@ int mod_source_kind(const fm1_mod_t *m, unsigned src, uint8_t *unit) {
   }
 }
 
-static int takes_mod(uint8_t type, uint8_t flags) {
+static int takes_mod(uint8_t type, uint16_t flags) {
   (void)type;   /* every FLOAT carries MOD unless NOLOCK; an ENUM must say MOD */
   return (flags & (FM1_PARAM_MOD | FM1_PARAM_NOLOCK)) == FM1_PARAM_MOD;
 }

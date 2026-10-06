@@ -68,9 +68,11 @@ namespace echo {
 enum { P_TIME, P_FEEDBACK, P_PINGPONG, P_MIX, P_TONE, P_WOW, P_LEVEL, P_COUNT };
 
 // Uids (API v2) are fixed: never renumber one; a new parameter takes the next
-// free uid. Every parameter is read each block: SMOOTH and MOD.
+// free uid. Every parameter is read each block: SMOOTH and MOD. Time moves on
+// the LOG law (fm1_engine.h, API v3): a ratio a detent, octaves under
+// modulation.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Time",      FM1_PARAM_FLOAT, 10, 1000, 300, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Time" },
+  { "Time",      FM1_PARAM_FLOAT, 10, 1000, 300, NULL, 0, 1, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_MS, "Time" },
   { "Feedback",  FM1_PARAM_FLOAT, 0, 1, 0.4f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Fdbk" },
   { "Ping-pong", FM1_PARAM_FLOAT, 0, 1, 1.0f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "PingPg" },
   { "Mix",       FM1_PARAM_FLOAT, 0, 1, 0.35f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
@@ -325,5 +327,6 @@ extern "C" const fm1_engine_t fm1_engine_echo = {
   NULL, NULL, NULL,
   fm1::echo::Set, fm1::echo::Render,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
   0, 0,                     // not a pad kit
 };
