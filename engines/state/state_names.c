@@ -223,6 +223,7 @@ const char *fm1_state_known_text(const char *reason) {
   if (strcmp(reason, "gpl") == 0) return "in the GPL build only";
   if (strcmp(reason, "planned") == 0) return "not built yet";
   if (strcmp(reason, "retired") == 0) return "retired";
+  if (strcmp(reason, "list") == 0) return "left out of this build";
   return "";
 }
 

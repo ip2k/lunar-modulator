@@ -28,7 +28,7 @@ extern "C" {
 typedef struct fm1_known_id {
   const char *id;               /* "acid-bass" */
   const char *what;             /* "sound", "audio_fx", "midi_fx" or "mod" */
-  const char *reason;           /* "gpl", "planned" or "retired" */
+  const char *reason;           /* "gpl", "planned", "retired", or "list" (fm1_left_out) */
   const char *since;            /* a retired id: the version that retired it; else NULL */
 } fm1_known_id_t;
 
@@ -36,6 +36,16 @@ extern const fm1_known_id_t fm1_known_ids[];   /* fm1_known_id_count rows, then 
 extern const size_t fm1_known_id_count;
 /* The row for id, or NULL. */
 const fm1_known_id_t *fm1_known_id_find(const char *id);
+
+/* The modules this build's module list leaves out (FM1_MODULES,
+ * engines/modules/catalogue.mk; src/registry.cc), reason "list": ids the
+ * build could have had. fm1_left_out_count rows, then a NULL row. */
+extern const fm1_known_id_t fm1_left_out[];
+extern const size_t fm1_left_out_count;
+extern const char *const fm1_modules_name;     /* the list's name: "all", "default", ... */
+/* Why this build lacks id: its fm1_left_out row, else its fm1_known_ids row,
+ * else NULL. */
+const fm1_known_id_t *fm1_absent_find(const char *id);
 
 enum { FM1_ALIAS_ENGINE = 1, FM1_ALIAS_MOD = 2 };
 

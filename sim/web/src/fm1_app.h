@@ -205,12 +205,18 @@ extern "C" {
 /* RAM the stock layout leaves free (docs/11 §2, engines/README.md; part of
  * it is stock's heap, so this is an upper bound [inferred]). The meter
  * counts what lives in RAM: instances (each engine's instance_size at the
- * host's rate) and the costs below. Const tables an engine reads are
- * flash on the FM-1 and are not counted, msfa's among them since
- * 2026-10-06 (engines/msfa.md, "Tables in flash"); a table an engine keeps
- * in RAM is in its instance and counted, as FM6's frequency table is at any
- * rate but 44,118 Hz. */
+ * FM-1's rate, FM1_APP_RAM_RATE, whatever rate the host runs at) and the
+ * costs below. Const tables an engine reads are flash on the FM-1 and are
+ * not counted, msfa's among them since 2026-10-06 (engines/msfa.md, "Tables
+ * in flash"); a table an engine keeps in RAM is in its instance and
+ * counted, as FM6's frequency table would be at any rate but 44,118 Hz. */
 #define FM1_APP_RAM_BUDGET 387924u
+
+/* The rate the RAM rule sizes instances at: the FM-1's (owner, 2026-10-06:
+ * the page asks the browser for 44,100 Hz, and the rule stays at 44,118).
+ * Each unit is created at the host's rate; the meter and every refusal
+ * count its instance_size at this one (fm1_app_unit_t.ram). */
+#define FM1_APP_RAM_RATE 44118.0f
 
 /* What else the RAM meter counts on the FM-1 besides the instances
  * (fm1_app_ram): the sequencer's instance, its event buffer,
@@ -325,7 +331,8 @@ typedef struct fm1_app_unit {
   const fm1_engine_t *e;         /* NULL when the slot is empty */
   void *self;
   int index;                     /* registry index, -1 when empty */
-  size_t bytes;                  /* instance_size of the engine in it */
+  size_t bytes;                  /* instance_size of the engine in it, at the host's rate */
+  size_t ram;                    /* ... and at FM1_APP_RAM_RATE: what the RAM meter counts */
   unsigned char *mem;            /* this unit's arena */
   size_t cap;
   float value[FM1_APP_MAX_PARAMS];
@@ -348,6 +355,7 @@ typedef struct fm1_app_sink_ctx {
 
 typedef struct fm1_app {
   fm1_host_t host;
+  fm1_host_t ram_host;           /* host at FM1_APP_RAM_RATE: the RAM rule's sizes */
   fm1_app_unit_t unit[FM1_APP_UNITS];   /* by id: see FM1_APP_UNITS */
   fm1_mix_limiter_t limiter;
   float master;                  /* MASTER position, 0..1 */

@@ -90,6 +90,7 @@ export SRC OUT JCC
 
 echo "== toolchain: $($TC/common/bin/clang --version | head -1)"
 echo "== GPL switch: FM1_GPL_MODS=${FM1_GPL_MODS:-1} (engines/Makefile)"
+echo "== module list: FM1_MODULES=${FM1_MODULES:-all} (engines/modules/catalogue.mk)"
 for p in "${PROFILES[@]}"; do
   IFS='|' read -r name opt add <<<"$p"
   build=$OUT/$name/obj
@@ -98,6 +99,7 @@ for p in "${PROFILES[@]}"; do
   printf '%s\n' "$opt $add" >"$OUT/$name/opt.txt"
   printf '%s\n' "$extra" >"$OUT/$name/extra.txt"
   mk "$build" "$opt" "$extra" print-objs >"$OUT/$name/objects.txt"
+  mk "$build" "$opt" "$extra" print-modules >"$OUT/$name/modules.txt"
   n=$(wc -l <"$OUT/$name/objects.txt")
   echo "== profile $name ($opt $add): $n objects"
   # One make per object, in parallel: a failing compile is recorded, not fatal.

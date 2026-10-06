@@ -73,7 +73,8 @@ const fm1_refusal_t *fm1_refusal_find(unsigned code);
 
 /* The words a known-but-absent id's reason gives (fm1_known.h's `reason`):
  * "gpl" "in the GPL build only", "planned" "not built yet", "retired"
- * "retired in {since}"; NULL for another reason. */
+ * "retired in {since}", "list" "left out of this build" (the module list,
+ * FM1_MODULES); NULL for another reason. */
 const char *fm1_refusal_known_words(const char *reason);
 
 #ifdef __cplusplus

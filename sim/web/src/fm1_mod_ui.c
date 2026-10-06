@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "fm1_engine_meta.h"
+#include "fm1_modules.h"     /* FM1_WITH_RESONATOR: the module list (engines/modules/catalogue.mk) */
 #include "fm1_panel.h"
 #include "mod_script.h"
 
@@ -620,7 +621,12 @@ int fm1_mod_ui_value(const fm1_mod_ui_env_t *env, unsigned pos, unsigned index, 
       strcmp(kd->params[index].name, "Cutoff") != 0) {
     return 0;
   }
+#if FM1_WITH_RESONATOR               /* a list without it links none of its code */
   hz = fm1_mod_resonator_hz(v, env->rate);
+#else
+  hz = 0.0f;                          /* not reached: the kind is not in the registry */
+  (void)v;
+#endif
   if (hz < 9.995f) snprintf(buf, cap, "%.2f Hz", (double)hz);
   else if (hz < 99.95f) snprintf(buf, cap, "%.1f Hz", (double)hz);
   else snprintf(buf, cap, "%.0f Hz", (double)hz);

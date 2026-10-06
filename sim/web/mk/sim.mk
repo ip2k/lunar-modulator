@@ -12,7 +12,7 @@
 
 SIM ?= $(abspath ../sim/web)
 
-SIM_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Wall -Wextra -Iinclude -I$(SIM)/src -MMD -MP
+SIM_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Wall -Wextra -Iinclude -I$(GPL_GEN) -I$(SIM)/src -MMD -MP
 
 # Every engine object fm1-render links, without its main() (msfa's units,
 # MSFA_OBJ, mk/msfa.mk, among them, and the GPL modules' C objects, GPL_OBJ,
@@ -24,8 +24,8 @@ SIM_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Wall -Wextra -Iinclude -I$(SIM)/src -MMD
 # takes lines through. The verb script reader (SEQ_HOST_OBJ) allocates and
 # uses stdio, so only the native harness links it; in fm1.wasm it would add
 # WASI imports.
-SIM_ENGINE_OBJ := $(filter-out $(BUILD)/our/host/render.o,$(OUR_OBJ)) $(TP_OBJ) $(SW_OBJ) $(MSFA_OBJ) $(SEQ_OBJ) \
-  $(MODC_OBJ) $(MOD_OBJ) $(MOD_SCRIPT_OBJ) $(ARP_OBJ) $(GPL_OBJ)
+SIM_ENGINE_OBJ := $(filter-out $(BUILD)/our/host/render.o $(FM1_DROP_OBJ),$(OUR_OBJ) $(TP_OBJ) $(SW_OBJ) \
+  $(MSFA_OBJ) $(SEQ_OBJ) $(MODC_OBJ) $(MOD_OBJ) $(MOD_SCRIPT_OBJ) $(ARP_OBJ) $(GPL_OBJ))
 # The metadata export (META_OBJ, mk/meta.mk: fm1_meta.c and the known ids,
 # with the state files' number formatter it writes floats with): the module
 # returns its id (fm1w_meta_id) and the export a buffer at a time
@@ -80,7 +80,7 @@ $(BUILD)/fm1.wasm: $(SIM_APP_OBJ) $(BUILD)/sim/src/fm1_web.o $(SIM_ENGINE_OBJ) $
 # parity test can separate the compiler and libm from the app layer. It links
 # exactly what native fm1-render links (RENDER_OBJ: our engines, Mutable's,
 # Schwung's modules and the sequencer), so it cannot fall behind the host.
-$(BUILD)/fm1-render.js: $(RENDER_OBJ)
+$(BUILD)/fm1-render.js: $(RENDER_PRODUCT_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -sNODERAWFS=1 -sALLOW_MEMORY_GROWTH=1 -sEXIT_RUNTIME=1 -o $@ $^
 
 -include $(SIM_APP_OBJ:.o=.d) $(BUILD)/sim/src/fm1_web.d $(BUILD)/sim/test/fm1_sim_render.d
