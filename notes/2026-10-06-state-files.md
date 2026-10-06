@@ -77,6 +77,7 @@ to be checked when built.
 19. Owner decisions
 20. What stage E3 settled
 21. The stages joined (2026-10-06)
+22. Review and landing (2026-10-06)
 
 ## 1. Short answer
 
@@ -1420,7 +1421,7 @@ FM-1 in the harness.
 | Bytes after inflating | sound and fx 32 KiB, clip 32 KiB, mods 64 KiB, set 64 KiB, project 256 KiB, settings 4 KiB, `.syx` 64 KiB (`FM1_APP_DX7_FILE_MAX` [verified]). A full project is about 170 KB [inferred: a full set, 63 KB, plus four 16-pad sounds, every insert and MIDI effect, 32 cables, 8 KB of pattern data and 32 FM6 voices] |
 | JSON structure | depth ≤ 8 (the deepest file is 6); strings ≤ 16 KiB (a `movy1` line); keys ≤ 64 B; numbers ≤ 32 characters; ≤ 64 members an object; ≤ 8,192 items an array |
 | JSON text | UTF-8 checked (overlong forms, surrogate halves and U+0000 refused); no byte-order mark; duplicate keys refused; `lunar` and `kind` first, context first (§7.2) |
-| Binary | total ≤ 96 KiB; header 32–256 B; entries 20–64 B; ≤ 32 chunks; `UNIT` 6 KiB, `SEQS` 48 KiB, `CLIP` 16 KiB, `MODR` 12 KiB, `DX7V` 160 B, key-value chunks 2 KiB; a DEFLATED chunk's declared length ≤ its cap, and the inflater stops there |
+| Binary | total ≤ 96 KiB; header 32–256 B; entries 20–64 B; ≤ 64 chunks (a project has up to 30 units); `UNIT` 6 KiB, `SEQS` 48 KiB, `CLIP` 16 KiB, `MODR` 12 KiB, `DX7V` 160 B, key-value chunks 2 KiB; a DEFLATED chunk's declared length ≤ its cap, and the inflater stops there |
 | Counts, checked before any multiply | records ≤ 512 per unit, tracks ≤ 16, song ≤ 255, notes per clip ≤ 512, locks and trigs per clip ≤ 1,024, positions 8, slots 32, pads 32, pattern data ≤ 8,192 B in all, voices ≤ 32 |
 | Values | `fm1_param_clamp`; out of range clamped and counted as repaired; lists clamped; Q1.14 clamped to ±16,384; a fraction or an exponent where an integer belongs refuses the file; `movy1`'s own clamps |
 | Indices | role, sound, slot, lane, step and pitch bounded; one unit per (role, sound, slot), and a duplicate position or slot refuses the file |
@@ -1836,3 +1837,84 @@ branch, unless marked.
   `licence` and `build.gpl` move to its licence table when it lands (E2's
   note).
 
+## 22. Review and landing (2026-10-06)
+
+The reviewer of `feature/2026-10-06@state-core` merged main (PRs #74 to
+#80) and fixed what the review found. Every claim here is [verified] by the
+tests or runs named, on the branch, unless marked.
+
+**Merging main.** Both sides of every conflict were kept.
+- The project key of PR #76 joins the song. The `key` verb keeps main's
+  number. The streaming import reads the `key` line in compat mode too, as
+  main's line importer did. The line is written after `link` and before
+  `dq`.
+- PR #79's two new Drums parameters got API v4 behaviour. Choke is per
+  pad, like Model, so it is PER_FOCUS and saved for every pad. Kit Decay is
+  the kit's.
+- The new list parameters are pinned in `enum-names.json`: Glide Mode and
+  Time Mode on five engines, and Choke.
+- The metadata export now lists all eight project-key scales. It listed
+  three.
+- The examples were rewritten canonically and gained the new parameters'
+  defaults. The golden files of level 1.0 did not change: the tests that
+  compared them with canonical output now canonicalize them first (§9).
+
+**Found and fixed.**
+- **P1 hung on a 24-character number.** `1e99999999999999999999` fits
+  inside the 32-character cap. P1's `f32_of` and `q14` handed it to
+  `Fraction`, which builds 10^(10^20); `0e99999999999999999999` hung the
+  same way. The C reader was not affected. Both P1 routines now read the
+  decimal's leading exponent first: past 10^39 the value is beyond a
+  float32, below 10^-46 it is zero, and a percent is clamped. New HOSTILE
+  and REPAIRS cases hold both readers to it.
+- **A duplicate key could pass the C reader.** It checks unresolved keys
+  by a 32-bit hash over the open path, with room for 64, and past 64 it
+  stopped checking. §16 refuses duplicate keys, and P1 refused that file.
+  Past 64 the C reader now refuses the file (TOO_BIG). The two readers now
+  differ only on files no build writes: 65 unknown names open at once, or
+  two names whose hashes collide. `engines/state/README.md` says so.
+- **Two fuzz seeds ran one stream.** The seeded loop set xorshift32 to
+  `seed | 1`, so seeds 2k and 2k+1 were the same run. Seeds are now mixed,
+  and a 33rd seed file is an error instead of being dropped silently.
+- `FM1_STATE_PARAMS` (48 keys a params object) was never enforced and is
+  removed. The tokenizer's 64-member cap is the one that holds.
+- §16's table said 32 binary chunks. Both readers allow 64, because a
+  project has up to 30 units.
+
+**Hostile input, by hand.** 111 files, each changing one thing in a sound
+file, went through C (`fm1-state` under ASan and UBSan) and P1:
+- cut short, nested past the cap, NaN and Infinity, numbers too large,
+  too small, subnormal and -0;
+- duplicate keys in every context, by name, case, `#UID` and inside a
+  skipped member;
+- the wrong kind, kind before lunar, levels 1.7 and 2.0;
+- unknown, GPL and wrong-role engines, context-order breaks, every
+  structure cap, bad UTF-8, control and bidi characters;
+- out-of-range slots, positions and pages.
+
+None crashed. The two readers gave the same verdicts and records on every
+file. Their `canon` commands differ by design: C's reorders a file that
+breaks a context-first rule and refuses an unknown engine unless
+`--without`, and P1's does neither.
+
+**Fuzzing after the merge.** Eight seeded loops of 1,000,000 mutations
+each, under ASan and UBSan, each with its own stream. The 20 seed files
+were every level-1.0 golden file, its binary twin and set, a set using
+`key`, `dq`, `se` and `sn`, and the rewritten example project. All 8
+loops were clean:
+- 642,329 inputs accepted, 188,968 of them binary;
+- 733,732 imported as sets;
+- 120,285 files' sets streamed.
+
+**The module** was rebuilt on aeon from the merged tree. Parity is 91 of 91
+scenarios, identical to the JS reference and musl on all and to glibc on
+88. The headless page check passes.
+
+**Open, for the owner.**
+- **The project key is kept twice.** PR #76 keeps it in the sequencer and
+  in the set's `key` line (owner, after PR #69). This format also has
+  `session.key` (§7.3). Nothing applies `session.key` yet, and stage A1
+  must choose one home before level 1.0 is released. The reviewer's
+  suggestion [inferred]: the set's line is the truth, and `session.key`
+  is either dropped or written from it.
+- E1's D18 is still unconfirmed (§21).

@@ -80,6 +80,11 @@ history.
     binary form; P1 reads the build's metadata export; old parameter and
     list-entry names resolve through `engines/aliases.json`;
     `tests/test_state_whole.py` holds save-load-save and the same audio.
+  - Review fixes before merging: P1 no longer hangs on a number with a
+    huge exponent (`1e99999999999999999999`); the C reader refuses a file
+    rather than let a duplicate key through unchecked; each fuzz seed
+    runs its own stream; the metadata export lists all eight project-key
+    scales; Drums' new Choke is saved per pad.
 - **The saved-state file format, designed.** JSON Schemas (draft 2020-12)
   for every kind of file the simulator and the guide will use (project,
   sound, effects chain, mod rack, clip, settings) and for the export of
