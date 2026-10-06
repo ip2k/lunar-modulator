@@ -984,6 +984,15 @@ reported.
 
 - A rename adds an alias and never removes one. A test loads a pinned file
   of every name ever shipped.
+- **A removed parameter** keeps its last name as a `retired` row of
+  `engines/aliases.json`, with its retired uid (added 2026-10-06 for the
+  arp's Swing, uid 7, when the arp began to follow the set's swing;
+  awaiting the owner's approval as a format rule). A file that names it
+  reads to the records it always did: the value passes by uid, as `#7`
+  would, and the engine, which no longer has it, drops it, so the load
+  reports nothing skipped. A row is never removed. The C reader, the
+  Python reader and the metadata export (an engine's `retired`) all carry
+  it.
 - A name that resolves nowhere is skipped and reported ("Unison skipped: not
   in this build"), never guessed.
 - **Known but absent** ids get a reason table (`engines/known-ids.json`),
