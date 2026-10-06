@@ -115,8 +115,12 @@ def listing():
 @pytest.mark.parametrize("engine", sorted(MODELS))
 def test_page_three_is_the_envelope_and_the_gate(wavs, engine):
     """Four parameters on page 3, appended after the existing ones so their
-    indices keep their meaning; attenuverters -1..1 at 0, LPG on Gate."""
+    indices keep their meaning; attenuverters -1..1 at 0, LPG on Gate. Glide
+    and Voice Mode came after them, on page 4 (tests/test_engine_glide.py)."""
     params = listing()[engine]["params"]
+    assert [p["name"] for p in params[-2:]] == ["Glide", "Voice Mode"]
+    assert all(p["page"] == 3 for p in params[-2:])
+    params = params[:-2]
     assert [p["name"] for p in params[-4:]] == PAGE3
     assert all(p["page"] == 2 for p in params[-4:])
     assert all(p["page"] < 2 for p in params[:-4])
