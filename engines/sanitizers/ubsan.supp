@@ -26,3 +26,7 @@ shift-base:third_party/mutable/peaks/modulations/bouncing_ball.h
 # signed '<<' and clang computes, giving the intended exponent bits.
 # Acid Bass's wrapper inlines the header, so the report lands here either way.
 shift-base:third_party/fm1-x0x/dsp/fastmath.h
+# ...and its 808 (dsp/drum808.c, the same switch): d8_exp2_cr scales its
+# result by adding (int32_t)n << 23 to the float's bits, n negative for every
+# value below 1, the same shift: Crater Kit's tune, decay and tone laws.
+shift-base:third_party/fm1-x0x/dsp/drum808.c

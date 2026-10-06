@@ -32,9 +32,10 @@ and [chapter 14](14-credits-and-licences.md) credits each source.
 
 **To choose an engine:** turn [[PRESETS]]. The engines come in this order:
 Macro, Shapes, Macro Heavy, Six-Op FM, FM6, Sophie, Drums, Acid Bass, Comet
-Kit, Test Sine, and round again. Acid Bass and Comet Kit are there only in
-builds with the GPL switch on, as the simulator is while we test
-([Acid Bass](#acid-bass)).
+Kit, Crater Kit, Test Sine, and round again. Acid Bass, Comet Kit and Crater
+Kit are there only in builds with the GPL switch on, as the simulator is
+while we test ([Acid Bass](#acid-bass), [Comet Kit](#comet-kit),
+[Crater Kit](#crater-kit)).
 While you turn, the screen lists the engines, eight at a time, with the new one
 highlighted ([chapter 3](03-panel-tour.md#lists)). In the simulator you can also pick one from the
 **Sound (PRESETS)** list under the panel.
@@ -49,7 +50,7 @@ When you choose an engine:
   and goes to its last page otherwise.
 
 Every engine but Sophie has a **Volume** parameter, its own output level, on
-its second page (on Drums and Comet Kit, its third). It is separate from [[MASTER]], which sets the level of
+its second page (on Drums, Comet Kit and Crater Kit, their third). It is separate from [[MASTER]], which sets the level of
 everything. Macro, Macro Heavy, Six-Op FM, FM6 and Shapes also have
 **Glide** and **Voice Mode**, for sliding between notes and playing one
 voice at a time ([chapter 4](04-playing.md#glide-and-voice-modes)).
@@ -60,6 +61,8 @@ voice at a time ([chapter 4](04-playing.md#glide-and-voice-modes)).
     rate. They cannot run when the output is faster than that. If your
     browser runs the simulator at 48,000 samples a second, [[PRESETS]] steps
     over those four and the screen names the one it skipped ([chapter 2](02-getting-started.md#the-browser-simulator)).
+    Crater Kit, built for 44,100 samples a second, runs only near that
+    rate, 44,000 to 44,200, and is stepped over at others in the same way.
 
 ## Four sounds at once
 
@@ -500,7 +503,7 @@ for its pad's Decay, whether or not you keep the key down.
 {{screen sophie Sophie on pad 1, the kick, just after it was struck.}}
 
 **To play Sophie from the FM-1's keys:** play the white keys. With a drum
-kit as the sound (Sophie, Drums or Comet Kit), the sixteen white keys play the sixteen
+kit as the sound (Sophie, Drums, Comet Kit or Crater Kit), the sixteen white keys play the sixteen
 pads at any octave, from the kick on the lowest F up to the ride on the
 highest white key, and the black keys play nothing. On the computer
 keyboard, <kbd>A</kbd> is the kick, <kbd>S</kbd> the rim, <kbd>D</kbd> the
@@ -729,6 +732,94 @@ Matthew Cieplak; the cymbal recordings are ER-99's
     that turn.
 
 {{engine-table comet gpl}}
+
+## Crater Kit
+
+{{status sim desktop planned}}
+
+Crater Kit is a sixteen-pad drum kit after the TR-808: a booming kick, a
+snare, three toms and three congas, a clap and maracas, a rim shot and
+claves, a cowbell, closed and open hi-hats and a cymbal, every one the
+machine's own sound. It is the 808 of fm1-x0x, Charles Vestal's firmware
+for the FM-1, which ports 8W8 by athousanddetails: fifteen of the sounds
+are models of the machine's circuits, built from its service notes and
+published analyses, and the rim shot is sc808's
+([chapter 14](14-credits-and-licences.md)). [Drums](#drums) stays beside
+it: two kits of its own, any sound on any pad, in every build.
+
+!!! note "In builds with the GPL switch on"
+    fm1-x0x's code is published under the GNU General Public License, so
+    Crater Kit is built in only while the firmware's GPL switch is on: in
+    the simulator while we test, and in firmware for the person who builds
+    it, never in a shared build ([chapter 14](14-credits-and-licences.md#licences)).
+
+- Crater Kit plays MIDI notes 36 to 51, one sound each, and ignores other
+  notes; on the FM-1's keys the sixteen white keys play them, from F3:
+
+  | Note | Pad | Note | Pad | Note | Pad | Note | Pad |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | 36 | Kick | 40 | Claves | 44 | Maracas | 48 | High Tom |
+  | 37 | Rim Shot | 41 | Low Tom | 45 | Mid Tom | 49 | Cymbal |
+  | 38 | Snare | 42 | Closed HH | 46 | Open HH | 50 | Hi Conga |
+  | 39 | Clap | 43 | Low Conga | 47 | Mid Conga | 51 | Cowbell |
+
+- A hit rings for its sound's decay, whether or not you keep the key down.
+  Struck again while it rings, a sound is struck again in its own circuit,
+  as on the machine.
+- As on the machine, each conga is its tom's circuit switched over: a low
+  conga stops a ringing low tom, and the other way round. The rim shot and
+  the claves, and the clap and the maracas, sound together freely.
+- **Velocity** 88 is the 808's normal hit and 127 its accent, louder and
+  harder; between them the hit grows, and below 88 it is quieter.
+- **Pad** chooses which pad the pad's knobs edit: those on pages 1 and 2.
+  [[ALGORITHM]] steps through the pads, and so does [[KNOB1]] on page 1.
+  Each pad keeps its own settings, and starts as the 808 is set up: Tune
+  at 0 and the other knobs in the middle, so until you change them the
+  screen shows true values whichever pad you choose.
+  - **Tune** sets the pad's pitch, up to an octave either way (the toms
+    and congas go further than the machine's, which move two semitones).
+  - **Decay** sets how long it rings: the kick's boom, the snare's ring,
+    the hi-hats' and cymbal's length.
+  - **Level** sets its level in the kit, up to twice the 808's.
+  - **Tone** (page 2) shapes the kick (brighter to the right) and the
+    snare (from its low shell to its high one); it does nothing on the
+    other pads.
+  - **Snap** sets the kick's attack click, the snare's snares and the
+    maracas' attack; it does nothing on the other pads.
+  - **Drive** saturates the pad, clean at 0.
+  - **Dist** chooses how Drive saturates: *Diode* (the machine's own
+    rounding), *Clip*, *Sat*, *Fuzz*, *Cubic* (a biased crunch), *Fold* (a
+    wavefolder) or *Crush* (bits and rate falling together).
+- Page 3 is the whole kit's:
+  - **Accent** sets how far below an accent a softer hit sits: at 100 %,
+    velocity 88 is the 808's normal hit; at 0 every hit is as loud as an
+    accent.
+  - **Choke** sets which hi-hat cuts which: *Off*, *Closed>Open* (a closed
+    hi-hat cuts the open one, as on the machine), or *Both*.
+  - **Volume** sets the kit's level.
+- Tune, Decay, Tone, Snap, Accent and Choke reach the next hit; a hit that
+  is ringing keeps what it started with. Level, Drive and Volume move a
+  ringing hit too. Dist waits for the pad's next hit, so it never clicks in
+  the middle of one.
+- Pitch bend moves the hits you strike while you hold it, together with
+  Tune up to an octave either way.
+
+!!! caution "The values shown after you change pads"
+    As on Drums, the screen cannot read a pad's settings back. When you
+    choose another pad, the screen keeps showing the values you last set,
+    and the first turn of a knob gives the new pad the value shown, plus
+    that turn.
+
+Some settings to start from:
+
+| Sound | Pad | Tune | Decay | Tone | Snap | Drive, Dist |
+| --- | --- | --- | --- | --- | --- | --- |
+| Long boom kick | 1 Kick | −2 | 0.85 | 0.3 | 0.3 | 0 |
+| Short punchy kick | 1 Kick | +3 | 0.3 | 0.7 | 0.9 | 0.3, Sat |
+| Crisp snare | 3 Snare | +2 | 0.4 | 0.8 | 0.8 | 0 |
+| Gritty cowbell | 16 Cowbell | 0 | 0.5 | – | – | 0.5, Fold |
+
+{{engine-table crater gpl}}
 
 ## Test Sine
 

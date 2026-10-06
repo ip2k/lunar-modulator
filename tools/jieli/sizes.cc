@@ -60,6 +60,10 @@ FM1SZ_TYPE(bass303, bass303_t);
 #include "../../engines/src/comet_kit.cc"
 FM1SZ_TYPE(comet_kit, fm1::comet_kit::Instance);
 FM1SZ_TYPE(drum909, drum909_t);
+#elif defined(SZ_CRATER)          /* a GPL module: compiled only with FM1_GPL_MODS=1 */
+#include "../../engines/src/crater_kit.cc"
+FM1SZ_TYPE(crater, fm1::crater::Instance);
+FM1SZ_TYPE(drum808, drum808_t);
 #elif defined(SZ_SCHWUNG)
 #include "../../engines/src/schwung_shim.cc"
 #include "../../engines/src/sw_sophie.cc"

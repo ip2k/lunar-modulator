@@ -50,7 +50,7 @@ UNITS = ["test-sine", "macro", "macro-heavy", "shapes", "sixop", "dx7", "sw-soph
          "ensemble", "diffuse", "crush", "fold", "echo", "test-gain", "sw-psxverb",
          "drive", "filter", "comb", "comp", "limit", "djfilter", "tilt", "sat", "isolator", "eq",
          "room", "hall", "gate", "squash", "shaper", "test-ext"]
-UNITS += ["acid-bass", "comet"] if GPL_MODS else []     # the GPL modules, while the switch is on
+UNITS += ["acid-bass", "comet", "crater"] if GPL_MODS else []   # the GPL modules, while the switch is on
 
 
 def test_the_driver_covers_every_engine_and_effect(units):

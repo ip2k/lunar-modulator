@@ -131,12 +131,11 @@ sz_compile() {  # sz_compile TARGET-NAME "CC" "EXTRA"
       >"$SZ/$t/sizes_$e.log" 2>&1 || echo "   $t SZ_$e failed (see $SZ/$t/sizes_$e.log)"
   done
   if [ "${FM1_GPL_MODS:-1}" != 0 ]; then     # the GPL modules, while the switch is on
-    $cc $SZ_CXX $extra -I"$SRC/engines/third_party/fm1-x0x" -I"$OUT/ladder/obj/gen" -DSZ_ACID_BASS \
-      -c "$SRC/tools/jieli/sizes.cc" -o "$SZ/$t/sizes_ACID_BASS.o" >"$SZ/$t/sizes_ACID_BASS.log" 2>&1 \
-      || echo "   $t SZ_ACID_BASS failed (see $SZ/$t/sizes_ACID_BASS.log)"
-    $cc $SZ_CXX $extra -I"$SRC/engines/third_party/fm1-x0x" -I"$SRC/engines/third_party/fm1-x0x/gen" \
-      -I"$OUT/ladder/obj/gen" -DSZ_COMET_KIT -c "$SRC/tools/jieli/sizes.cc" -o "$SZ/$t/sizes_COMET_KIT.o" \
-      >"$SZ/$t/sizes_COMET_KIT.log" 2>&1 || echo "   $t SZ_COMET_KIT failed (see $SZ/$t/sizes_COMET_KIT.log)"
+    for e in ACID_BASS COMET_KIT CRATER; do
+      $cc $SZ_CXX $extra -I"$SRC/engines/third_party/fm1-x0x" -I"$SRC/engines/third_party/fm1-x0x/gen" \
+        -I"$OUT/ladder/obj/gen" -DSZ_$e -c "$SRC/tools/jieli/sizes.cc" -o "$SZ/$t/sizes_$e.o" \
+        >"$SZ/$t/sizes_$e.log" 2>&1 || echo "   $t SZ_$e failed (see $SZ/$t/sizes_$e.log)"
+    done
   fi
   $cc $SZ_C $extra -c "$SRC/tools/jieli/sizes.c" -o "$SZ/$t/sizes_c.o" \
     >"$SZ/$t/sizes_c.log" 2>&1 || echo "   $t sizes.c failed (see $SZ/$t/sizes_c.log)"

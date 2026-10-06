@@ -190,6 +190,15 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     `tests/test_engine_comet_kit.py`]. Its cymbals are 221 KB of int16 in
     flash ([`engines/README.md`](engines/README.md#comet-kit) proposes a
     budget).
+    **Crater Kit**, a 16-pad kit after the TR-808, is fm1-x0x's 808 (8W8's
+    circuit models by athousanddetails, sc808's rim shot), with two local
+    changes (its silence threshold a constant, pots between the integers)
+    and a wrapper that lays its sixteen sounds on notes 36–51 and plays it
+    on a 16-sample grid at a host rate near 44.1 kHz; it is its vendored
+    kit to the bit [verified: `fm1-crater-oracle --twin`], the patched kit
+    is upstream's, and fm1-x0x's own test against 8W8 passes with it
+    [verified: `tests/test_engine_crater_kit.py`]
+    ([`engines/README.md`](engines/README.md#crater-kit)).
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
     antiderivative anti-aliasing), Drive (overdrive and saturation, five

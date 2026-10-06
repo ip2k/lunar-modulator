@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Copy fm1-x0x's 303 bass, TB-3PO generator and 909 kit into this folder, or check them.
+"""Copy fm1-x0x's 303 bass, TB-3PO generator, 909 kit and 808 kit into this folder, or check them.
 
 Usage:
     python3 engines/third_party/fm1-x0x/vendor.py X0X_CHECKOUT SCHWUNG303_CHECKOUT          # copy
@@ -12,7 +12,8 @@ From fm1-x0x come the 303 bass (dsp/bass303.*, with the maths and parameter
 headers it includes), TB-3PO (seq/tb3po.*, with the pattern header it
 includes), the 909 kit (dsp/drum909*, with its cymbal recordings,
 assets/909/, and the script that turns them and its tables into C,
-tools/gen_drum_samples.py), the GPL-3.0 text and X0X's LICENSING.md; from
+tools/gen_drum_samples.py), the 808 kit (dsp/drum808.*), the GPL-3.0 text
+and X0X's LICENSING.md; from
 schwung-303 comes Open303's MIT licence, which X0X's bass carries code of.
 Nothing else of either repository is taken.
 
@@ -21,7 +22,7 @@ are committed, so no build needs Python: the copy writes them by running the
 vendored script, and --check runs it again and compares (its output is the
 same on macOS, musl and glibc Pythons [verified 2026-10-06]).
 
-Two files carry local changes, kept as local.patch (UPSTREAM.md says what and
+Seven files carry local changes, kept as local.patch (UPSTREAM.md says what and
 why): the copy applies it, and --check applies it to the pinned files and
 compares the result with what is here, byte for byte, so the patch is always
 the whole difference. Needs git and patch. MIT licence, like the rest of this
@@ -46,6 +47,8 @@ X0X_FILES = {
     "firmware/src/seq/tb3po.c": "seq/tb3po.c",             # SPDX: GPL-3.0-only
     "firmware/src/seq/tb3po.h": "seq/tb3po.h",             # SPDX: GPL-3.0-only
     "firmware/src/seq/pattern.h": "seq/pattern.h",         # SPDX: GPL-3.0-only
+    "firmware/src/dsp/drum808.c": "dsp/drum808.c",         # SPDX: GPL-3.0-only (local.patch)
+    "firmware/src/dsp/drum808.h": "dsp/drum808.h",         # SPDX: GPL-3.0-only (local.patch)
     "firmware/src/dsp/drum909.c": "dsp/drum909.c",         # SPDX: GPL-3.0-only (local.patch)
     "firmware/src/dsp/drum909.h": "dsp/drum909.h",         # SPDX: GPL-3.0-only (local.patch)
     "firmware/src/dsp/drum909_dsp.h": "dsp/drum909_dsp.h", # SPDX: GPL-3.0-only (local.patch)

@@ -52,6 +52,7 @@ extern const fm1_engine_t fm1_engine_test_ext;
 // GPL modules (each in its own third_party/<name>/, built by its own fragment).
 extern const fm1_engine_t fm1_engine_acid_bass;   // fm1-x0x's 303 (mk/fm1-x0x.mk)
 extern const fm1_engine_t fm1_engine_comet_kit;   // fm1-x0x's 909 (mk/fm1-x0x.mk)
+extern const fm1_engine_t fm1_engine_crater;      // fm1-x0x's 808 (mk/x0x-crater.mk)
 #endif
 
 const fm1_engine_t *const fm1_engines[] = {
@@ -67,6 +68,7 @@ const fm1_engine_t *const fm1_engines[] = {
   // GPL sound engines.
   &fm1_engine_acid_bass,
   &fm1_engine_comet_kit,
+  &fm1_engine_crater,
 #endif
   &fm1_engine_test_sine,
   // audio effects
@@ -121,6 +123,9 @@ const fm1_licence_t fm1_licences[] = {
   // ...and Comet Kit on its 909, with ER-99's cymbal recordings (GPL-3.0);
   // our wrapper is MIT.
   { "comet", "GPL-3.0-only AND MIT", "engines/third_party/fm1-x0x" },
+  // ...and Crater Kit on its 808, whose rim shot is after sc808 (MIT); our
+  // wrapper is MIT.
+  { "crater", "GPL-3.0-only AND MIT", "engines/third_party/fm1-x0x" },
 #endif
 };
 const size_t fm1_licence_count = sizeof(fm1_licences) / sizeof(fm1_licences[0]);

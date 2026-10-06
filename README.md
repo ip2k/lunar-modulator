@@ -125,9 +125,15 @@ play its parameters, four to a page (SELECT turns the page).
   ride from recordings, a drive of seven kinds on every pad, and two kits,
   Classic and Big Beat. It is fm1-x0x's 909 (GPL), so it is in builds with
   the GPL switch on, like Acid Bass.
+- **Crater Kit:** a 16-pad kit after the TR-808, every sound of the
+  machine modelled from its circuits: the booming kick, snare, toms and
+  congas, clap and maracas, rim shot and claves, cowbell, hi-hats and
+  cymbal, each with its own tuning, decay, drive and distortion. It is
+  fm1-x0x's 808 and its code is GPL, so it is in builds with the GPL switch
+  on, as Acid Bass is.
 
-Sophie, Drums and Comet Kit play their pads from the 16 white keys, at any
-octave.
+Sophie, Drums, Comet Kit and Crater Kit play their pads from the 16 white
+keys, at any octave.
 
 <table>
 <tr>
@@ -482,7 +488,11 @@ This is a synthesis of other people's work. The details are in
   **djphazer** and contributors (GPL-3.0); Comet Kit is its 909, a port of
   **9W9** by **athousanddetails**, which grew out of **ER-99** by **Matthew
   Cieplak**, whose hi-hat, ride and crash recordings it plays (all
-  GPL-3.0).
+  GPL-3.0); Crater Kit is its 808, a port of **8W8** by
+  **athousanddetails** (GPL-3.0), built from the TR-808's service notes and
+  the analyses of **Kurt James Werner, Jonathan Abel and Julius O. Smith**,
+  with the rim shot of **sc808** by **Yoshinosuke Horiuchi** and **Sam
+  Aaron** (MIT).
 - Sequencer design and logic after Movy by **megadake** (MIT),
   [github.com/DimaDake/schwung-movy](https://github.com/DimaDake/schwung-movy).
 - The arpeggiator, our own code, follows Yarns' arpeggiator by **Emilie

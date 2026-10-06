@@ -532,11 +532,11 @@ def test_font_header_is_current():
 
 
 
-@pytest.mark.parametrize("engine", ["sw-sophie", "drums"] + (["comet"] if GPL_MODS else []))
+@pytest.mark.parametrize("engine", ["sw-sophie", "drums"] + (["comet", "crater"] if GPL_MODS else []))
 @pytest.mark.parametrize("key,peak", [(0, True), (1, False), (2, True), (26, True)])
 def test_pad_kits_play_their_pads_on_the_white_keys_at_any_octave(tools, engine, key, peak):
     """A pad kit (an engine with pad_count, fm1_engine.h: Sophie, Drums and,
-    with the GPL switch on, Comet Kit)
+    with the GPL switch on, Comet Kit and Crater Kit)
     only answers MIDI notes 36-51, below the keys' range (53-79 at octave
     0). With a kit as the sound the 16 white keys play pads 1-16 and the
     black keys play nothing, at any octave; other engines are unchanged."""

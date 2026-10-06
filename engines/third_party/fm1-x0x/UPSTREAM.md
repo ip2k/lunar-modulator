@@ -1,4 +1,4 @@
-# Vendored: fm1-x0x's 303 bass, TB-3PO generator and 909 kit (GPL-3.0-only)
+# Vendored: fm1-x0x's 303 bass, TB-3PO generator, 909 kit and 808 kit (GPL-3.0-only)
 
 **GPL code.** Everything in this folder is built only while the GPL switch
 is on (`FM1_GPL_MODS`, `engines/Makefile`; CLAUDE.md, "The GPL switch";
@@ -8,15 +8,15 @@ build with the switch off compiles none of it (`tests/test_gpl_switch.py`).
 
 | | |
 | --- | --- |
-| Upstream | https://github.com/charlesvestal/fm1-x0x at `80b7d40cc9463653554eaf1eb9c24d47162785b7` (2026-10-05, "USB audio input with a resampler; USB MIDI clock fixed; 512-frame audio halves"): `firmware/src/dsp/{bass303.c, bass303.h, fastmath.h, x0x_param.h, drum909.c, drum909.h, drum909_dsp.h}`, `firmware/src/seq/{tb3po.c, tb3po.h, pattern.h}`, `assets/909/{hh.wav, ride.wav, crash.wav, README.txt}`, `tools/gen_drum_samples.py`, `LICENSE`, `LICENSING.md`; and `gen/{x0x_drum_samples.h, x0x_drum_tables.h}`, written by that script (below) |
+| Upstream | https://github.com/charlesvestal/fm1-x0x at `80b7d40cc9463653554eaf1eb9c24d47162785b7` (2026-10-05, "USB audio input with a resampler; USB MIDI clock fixed; 512-frame audio halves"): `firmware/src/dsp/{bass303.c, bass303.h, fastmath.h, x0x_param.h, drum909.c, drum909.h, drum909_dsp.h, drum808.c, drum808.h}`, `firmware/src/seq/{tb3po.c, tb3po.h, pattern.h}`, `assets/909/{hh.wav, ride.wav, crash.wav, README.txt}`, `tools/gen_drum_samples.py`, `LICENSE`, `LICENSING.md`; and `gen/{x0x_drum_samples.h, x0x_drum_tables.h}`, written by that script (below) |
 | Also | https://github.com/charlesvestal/schwung-303 at `ccc2f1fed90c9c222644b58789b404126b5c7e15` (v0.3.3, 2026-08-31): `src/dsp/open303/LICENSE`, Open303's MIT licence, as `LICENSE-Open303` |
-| What it is | fm1-x0x is open firmware for the M-VAVE FM-1 by **Charles Vestal**, a fork of Felucca (hugelton, kurogedelic). `dsp/bass303.*` is its bass after the TB-303: a C99, float, libm-free port of **Open303** by **Robin Schmidt** (MIT) with the **Devilfish** ranges after **jc303** by **midilab** (GPL-3.0) and a Soft or **RAT** drive after **dm-Rat** by **Dave Mollen** (GPL-3.0), by way of Charles Vestal's **schwung-303**. `seq/tb3po.*` is **TB-3PO**, a generator of 303 lines, ported from Charles Vestal's **schwung-tb3po**, itself a port of the `TB_3PO` applet of the **Phazerville Hemisphere Suite** (**djphazer** and contributors, GPL-3.0). `dsp/drum909*` is its kit after the TR-909, ported line for line from **9W9** by **athousanddetails** (GPL-3.0; a 909 for Schwung, https://github.com/athousanddetails/schwung-9W9), which grew out of **ER-99** by **Matthew Cieplak** (GPL-3.0, https://github.com/matthewcieplak/er-99): the kick, snare, toms, rim shot and clap modelled on the 909's circuits, and the hi-hats, crash and ride played from ER-99's recordings (`assets/909/`), which 9W9 ships unchanged. `LICENSING.md` is X0X's own account of where every file came from |
-| Licence | `GPL-3.0-only` (every file's SPDX line; `LICENSE` is the GPL version 3 as the FSF publishes it). The Open303 parts of `bass303.c` are MIT (Robin Schmidt; `LICENSE-Open303`). The cymbal recordings are GPL-3.0, as ER-99 and 9W9 license them [reported: `assets/909/README.txt`, X0X's `LICENSING.md`]; neither ER-99 nor 9W9 says what they were recorded from (`notes/2026-10-06-fm1-x0x.md` §6.5, R1) |
+| What it is | fm1-x0x is open firmware for the M-VAVE FM-1 by **Charles Vestal**, a fork of Felucca (hugelton, kurogedelic). `dsp/bass303.*` is its bass after the TB-303: a C99, float, libm-free port of **Open303** by **Robin Schmidt** (MIT) with the **Devilfish** ranges after **jc303** by **midilab** (GPL-3.0) and a Soft or **RAT** drive after **dm-Rat** by **Dave Mollen** (GPL-3.0), by way of Charles Vestal's **schwung-303**. `seq/tb3po.*` is **TB-3PO**, a generator of 303 lines, ported from Charles Vestal's **schwung-tb3po**, itself a port of the `TB_3PO` applet of the **Phazerville Hemisphere Suite** (**djphazer** and contributors, GPL-3.0). `dsp/drum909*` is its kit after the TR-909, ported line for line from **9W9** by **athousanddetails** (GPL-3.0; a 909 for Schwung, https://github.com/athousanddetails/schwung-9W9), which grew out of **ER-99** by **Matthew Cieplak** (GPL-3.0, https://github.com/matthewcieplak/er-99): the kick, snare, toms, rim shot and clap modelled on the 909's circuits, and the hi-hats, crash and ride played from ER-99's recordings (`assets/909/`), which 9W9 ships unchanged. `dsp/drum808.*` is its kit after the TR-808: a C99, float, libm-free port, statement for statement, of **8W8** by **athousanddetails** (GPL-3.0), whose fifteen circuit models are built from the TR-808's service notes and the published analyses of **Werner, Abel and Smith** (DAFx-14, the bass drum; ICMC/SMC 2014, the cymbal), and whose rim shot transcribes **sc808** by **Yoshinosuke Horiuchi**, adapted for Sonic Pi by **Sam Aaron** (MIT). `LICENSING.md` is X0X's own account of where every file came from |
+| Licence | `GPL-3.0-only` (every file's SPDX line; `LICENSE` is the GPL version 3 as the FSF publishes it). The Open303 parts of `bass303.c` are MIT (Robin Schmidt; `LICENSE-Open303`); the rim shot in `drum808.c` comes from sc808 (MIT, by way of 8W8, GPL-3.0). The 909's cymbal recordings are GPL-3.0, as ER-99 and 9W9 license them [reported: `assets/909/README.txt`, X0X's `LICENSING.md`]; neither ER-99 nor 9W9 says what they were recorded from (`notes/2026-10-06-fm1-x0x.md` §6.5, R1) |
 | Copied by | `vendor.py` (`--check` compares, with `local.patch` applied, and runs the vendored script again for `gen/`) |
-| Local changes | Five files, `local.patch` (below). Nothing else is changed |
+| Local changes | Seven files, `local.patch` (below). Nothing else is changed |
 | Generated | `gen/x0x_drum_samples.h` (the three recordings as int16 C arrays; `hh.wav` is 24-bit and rounded to 16) and `gen/x0x_drum_tables.h` (the tanh table every saturator reads and 9W9's 19 exponential pot curves), written by the vendored `tools/gen_drum_samples.py`, unchanged, and committed so that no build needs Python. The script's output is the same, byte for byte, on macOS's Python 3.13 and on Python 3.12 in Alpine (musl) and Debian (glibc) containers [verified 2026-10-06], and `tests/test_engine_comet_kit.py` runs it again and compares |
-| Used by | `engines/src/acid_bass.cc` (the sound engine **Acid Bass**, id `acid-bass`), `engines/midi_fx/acid_gen.c` (the MIDI effect **Acid Gen**, id `acid-gen`) and `engines/src/comet_kit.cc` (the sound engine **Comet Kit**, id `comet`), all built through `engines/mk/fm1-x0x.mk` only while the switch is on |
-| Not taken | Everything else of fm1-x0x: its 808 kit (another stage, `notes/2026-10-06-fm1-x0x.md` §6.3), its send effects, delay and master (`dsp/fxbus*`, `dsp/master*`: our inserts and master effects do that job), its sequencer, UI, platform and other tools, and its break generator, which ports mestela's schwung-breakbeat by that author's permission to X0X, not to us (the note's §5 drafts a request) |
+| Used by | `engines/src/acid_bass.cc` (the sound engine **Acid Bass**, id `acid-bass`), `engines/midi_fx/acid_gen.c` (the MIDI effect **Acid Gen**, id `acid-gen`) and `engines/src/comet_kit.cc` (the sound engine **Comet Kit**, id `comet`), built through `engines/mk/fm1-x0x.mk`, and `engines/src/crater_kit.cc` (the sound engine **Crater Kit**, id `crater`), built through `engines/mk/x0x-crater.mk`, all only while the switch is on |
+| Not taken | Everything else of fm1-x0x: its send effects, delay and master (`dsp/fxbus*`, `dsp/master*`: our inserts and master effects do that job), its sequencer, UI, platform and other tools, and its break generator, which ports mestela's schwung-breakbeat by that author's permission to X0X, not to us (the note's §5 drafts a request) |
 
 ## Local changes (`local.patch`)
 
@@ -58,6 +58,26 @@ build with the switch off compiles none of it (`tests/test_gpl_switch.py`).
    of its range, an EXP pot linearly between its table's two neighbours, a
    switch at the nearest position, so a knob moves smoothly rather than in
    1/127ths; for an integer x it applies what `drum909_set` applies.
+5. **The 808's silence threshold is a constant.** Upstream's
+   `drum808_quiet` is a global that X0X's overload guard raises; here it is
+   `static const` at upstream's value (3.2e-5), so no two instances share
+   state one of them moves. Nothing here moves it; an overload guard would
+   keep it in the instance [verified: the same samples, below].
+6. **The 808's pots between the integers.** `drum808_set_value(d, snd,
+   slot, x)` sets sound `snd`'s pot `slot` (8W8's `D8S_*` and `D8P_*`) as
+   a float, whatever the track switches say: a new last field of
+   `drum808_t`, `potx`, keeps the float pots, which `drum808_trigger`
+   reads where upstream reads the integers (`pot[]`, as `x / 127`, and the
+   snare's piecewise tone), and `pot_value` takes the pot as a float.
+   `drum808_set`'s integer pots go through the same path (`set_pot` is
+   `set_potf` at `(float)v`), so they compute every value they computed
+   before. Tune's x may lie past the pot's ends, 12 semitones either way
+   about pot 64: far on the toms and congas, whose own law spans 2
+   semitones either way, and half a pot past the top elsewhere; within that
+   every tuned path clamps or stays in range (the rim shot's filters below
+   Nyquist, its 0.32 pulse increment under 2^32). Crater Kit uses it so a
+   continuous control does not move in 1/127ths, and to tune the toms an
+   octave either way.
 
 The wrapper (`engines/src/comet_kit.cc`, MIT) also sets one float of the
 unit's state: the kick's pitch-sweep offset `bd_df`, which decays
@@ -79,14 +99,17 @@ vendored README is left as upstream wrote it.
 UBSan reports `fastmath.h`'s `fm_exp2_nf`, which adds `n << 23` to a float's
 bits with n negative for every exponent below 0: the two's-complement shift
 GCC documents for signed `<<` and clang computes. It is suppressed for that
-header alone in `engines/sanitizers/ubsan.supp`; nothing else in these
+header alone in `engines/sanitizers/ubsan.supp`, and so is the same shift in
+`drum808.c`'s own `d8_exp2_cr`; nothing else in these
 files is reported under ASan and UBSan [verified 2026-10-06: Apple clang,
 `fm1-acid-oracle --twin` and `--fields`, Acid Gen in front of Acid Bass, and
 every parameter at NaN and the infinities; for the 909, Apple clang 21,
 `fm1-comet-oracle --twin` (blocks of 7 at 44,118 Hz, of 64 at 48 kHz),
 `--fields` and `--state`, and all sixteen pads struck with every knob of
 every pad at 0, 0.5, 1, NaN and the infinities, from memory filled with
-0xA5, at blocks of 7].
+0xA5, at blocks of 7]; for the 808, `fm1-crater-oracle
+--twin`, `--fields` and `--pads`, and Crater Kit with every parameter at
+both ends, NaN and the infinities, bent 48 semitones both ways].
 
 ## Files
 
@@ -100,6 +123,8 @@ every pad at 0, 0.5, 1, NaN and the infinities, from memory filled with
 | `dsp/drum909.c` (patched; upstream `80d619c2…`) | `15993567f53af2cd1954d957a9ab0be931ebce0be8e5b4821330b578aa0d0d4b` |
 | `dsp/drum909.h` (patched; upstream `39d79c84…`) | `80702bf99d6b90d993d6fd0d731cf2f36fd4edeba6f346b3b0e233065c5f8b24` |
 | `dsp/drum909_dsp.h` (patched; upstream `b9a2e498…`) | `026832bcb48d3fd24aeb1cca81536003910e53a058ebc0a44da8e1a1e66b0b11` |
+| `dsp/drum808.c` (patched; upstream `c39de770…`) | `a7bfa65c81c00673241f74d574fe97557e91b3d2b9379de2ba69c976e4785e2f` |
+| `dsp/drum808.h` (patched; upstream `77534283…`) | `c6d2385344148811f89ca08a4ebd964009faee63e2466df8fa86444c0e607136` |
 | `dsp/fastmath.h` | `71d0fb4c242e6c03e435cebacc1e978f928ce2672d6b47a48b68372e72453349` |
 | `dsp/x0x_param.h` | `13f31ccc9ff3df95b05405012ada6e83306d25f336cdd078c093d95c04e4430a` |
 | `seq/pattern.h` | `83f0e690f8d4f7b005632d60b284b1b983b9dea5d20c0397fb5c459f95fc890c` |
@@ -112,7 +137,7 @@ every pad at 0, 0.5, 1, NaN and the infinities, from memory filled with
 | `assets/909/crash.wav` | `4a1b8d8828f9e530e9ae7f1a3cdffbcb1466e633a2b0607b3aac914699bc8400` |
 | `gen/x0x_drum_samples.h` (generated) | `09b3906c520beb100f8018b15e2612646f994a211a4e12b7d0b9ce6e4c79eb27` |
 | `gen/x0x_drum_tables.h` (generated) | `5998fade81059c9c5d74494fa4fdc0c739371df0065bd4d316182ba2f27b6684` |
-| `local.patch` | `31c69f7f52d1da3e11aa7e3138bc8d5c299082ad9b419b2dac44bcf9b2532c47` |
+| `local.patch` | `d5a521f8f74f43f0319475218c8556e2e0821b37b238388bd44b9ce0dec465b3` |
 
 Re-vendoring:
 
@@ -132,18 +157,24 @@ fm1-x0x's `tests/run_tests.sh`, run against the upstream checkouts beside
 it: the 303 matches Open303 (envelopes within 0.3 dB, the alias floor
 within 1 dB of the reference at 1x, 2x and 4x), and TB-3PO matches
 schwung-tb3po step for step (31,920 of 31,920 steps over 396 seeds and 4
-lengths), and the 909 matches 9W9's own engine ("PASS: 0 failure(s)"; its
-demo pattern within 3.9e-4, −68.8 dB) [verified: `notes/2026-10-06-fm1-x0x.md`
-§2.6].
+lengths), the 909 matches 9W9's own engine ("PASS: 0 failure(s)"; its
+demo pattern within 3.9e-4, −68.8 dB), and the 808 matches 8W8's own engine built from its sources in
+double, sound by sound and pot by pot (436 cases, none over 1e-3 of the
+reference's RMS, the worst 6.1e-4) [verified: `notes/2026-10-06-fm1-x0x.md`
+§2.6]. The last passes with the vendored, patched `drum808.c` too
+[verified 2026-10-06: `tests/test_engine_crater_kit.py`, with
+`reference/schwung-8W8` at `94aa271`].
 
 ## Credits and names
 
 Charles Vestal (fm1-x0x, schwung-303, schwung-tb3po); Robin Schmidt
 (Open303); midilab (jc303, the Devilfish extensions); Dave Mollen (dm-Rat);
 djphazer and the Phazerville Hemisphere Suite's contributors (`TB_3PO`);
-athousanddetails (9W9); Matthew Cieplak (ER-99, and its cymbal
-recordings). TB-303 and TR-909 are Roland's marks, used only to say what
-the bass and the kit are after; "Acid Bass", "Acid Gen" and "Comet Kit"
-are this project's names (proposed to the owner,
-`notes/2026-10-06-fm1-x0x.md` §6.1), and TB-3PO, X0X, 9W9 and ER-99 appear
-only in credits.
+athousanddetails (9W9, 8W8); Matthew Cieplak (ER-99, and its cymbal
+recordings); Kurt James Werner, Jonathan S. Abel and Julius O. Smith III
+(the TR-808 bass drum and cymbal analyses); Yoshinosuke Horiuchi and Sam
+Aaron (sc808). TB-303, TR-909 and TR-808 are Roland's marks, used only to
+say what the bass and the kits are after; "Acid Bass", "Acid Gen", "Comet
+Kit" and "Crater Kit" are this project's names (proposed to the owner,
+`notes/2026-10-06-fm1-x0x.md` §6.1), and TB-3PO, X0X, 9W9, ER-99 and 8W8
+appear only in credits.

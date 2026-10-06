@@ -98,6 +98,13 @@ ENUM_FLAGS[("acid-bass", "Drive Type")] = ["latch", "mod"]
 ENUM_FLAGS[("comet", "Pad")] = []
 ENUM_FLAGS[("comet", "Drive Type")] = ["latch", "mod"]
 ENUM_FLAGS[("comet", "Kit")] = ["latch", "mod"]
+# Crater Kit (a GPL module, src/crater_kit.cc): Pad is the edit focus, as
+# Drums'; Dist waits for its pad's next hit (a change mid-hit would click) and
+# applies at once while the kit is silent, and Choke is read when a hat is
+# struck: LATCH, and a route rounds them.
+ENUM_FLAGS[("crater", "Pad")] = []
+ENUM_FLAGS[("crater", "Dist")] = ["latch", "mod"]
+ENUM_FLAGS[("crater", "Choke")] = ["latch", "mod"]
 # Acid Gen (a GPL MIDI effect, midi_fx/acid_gen.c): as the arpeggiator's,
 # every list is read at its next step (LATCH); no route reaches a MIDI effect.
 for _name in ("Octaves", "Root", "Scale", "Octave", "Keys", "Rate", "Direction", "Latch"):

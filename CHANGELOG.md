@@ -28,6 +28,21 @@ history.
     for sample, at any block size and at the instrument's rate. Its cymbal
     recordings take 221 KB; the notes propose halving that for the FM-1.
   - Drums stays the kit in every build.
+- **Crater Kit, a 16-pad kit after the TR-808** (GPL; in builds with the
+  GPL switch on, as the simulator is while we test). It is the 808 of
+  fm1-x0x, Charles Vestal's firmware for the FM-1, a port of 8W8 by
+  athousanddetails: circuit models of the machine's kick, snare, toms,
+  congas, clap, maracas, claves, cowbell, hi-hats and cymbal, and sc808's
+  rim shot. Drums stays as it is, beside it.
+  - All sixteen sounds on notes 36 to 51, the FM-1's sixteen white keys: a
+    conga shares its tom's channel and a closed hi-hat cuts the open one,
+    as on the machine. Velocity 88 is a normal hit and 127 the accent.
+  - Each pad keeps its own Tune, Decay, Level, Tone, Snap, Drive and one
+    of seven distortions; Accent, Choke and Volume are the kit's. The
+    manual gives four settings to start from.
+  - It plays exactly what fm1-x0x's own 808 plays for the same hits, sample
+    for sample, at any block size; it costs about 6 KB of memory and less
+    CPU than Drums.
 - **Acid Gen, acid basslines from a seed** (GPL; with the GPL switch on).
   It is TB-3PO, the line generator of fm1-x0x, after the Phazerville
   Hemisphere Suite's TB_3PO. In the simulator, turn ALGORITHM on the ARP
