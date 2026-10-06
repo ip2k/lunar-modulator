@@ -10,6 +10,14 @@
 #include "drum909.h"
 #include "x0x_drum_samples.h"
 
+/* Lunar Modulator: a cymbal sample as int16, from its 8-bit mu-law code (or upstream's int16
+ * sample itself, built with X0X_SMP_INT16); the arithmetic after it is upstream's */
+#ifdef X0X_SMP_INT16
+#define D9_SMP(c) (c)
+#else
+#define D9_SMP(c) x0x_mulaw_dec[c]
+#endif
+
 /* Lunar Modulator: the rate is the instance's (drum909_init_rate). Every function below that
  * reads it has rt, the instance's d9_rate_t, in scope; at 44.1 kHz rt holds upstream's
  * constants, so the arithmetic is upstream's. The cymbals stay 44.1 kHz recordings
@@ -761,13 +769,13 @@ static void d9_render_smp(d9_smp_t *s, const d9_bus_t *bus, int n)
     d9_env_anchor(&s->out);
     const int drive = s->drive > 0.25f;
     const float pre = 1.0f + s->drive * 0.5f;
-    const int16_t *buf = s->buf;
+    const d9_smp_code_t *buf = s->buf;   /* Lunar Modulator: mu-law codes (D9_SMP) */
     const uint32_t len = s->len;
     for (int i = 0; i < m; ++i) {
         float v = 0.0f;
         if (s->pos < len) {
-            const float a = (float)buf[s->pos] * (1.0f / 32768.0f);
-            const float b = s->pos + 1 < len ? (float)buf[s->pos + 1] * (1.0f / 32768.0f) : 0.0f;
+            const float a = (float)D9_SMP(buf[s->pos]) * (1.0f / 32768.0f);
+            const float b = s->pos + 1 < len ? (float)D9_SMP(buf[s->pos + 1]) * (1.0f / 32768.0f) : 0.0f;
             const float fr = (float)s->frac * (1.0f / 4294967296.0f);
             v = a + (b - a) * fr;
             const uint32_t f2 = s->frac + s->incf;
