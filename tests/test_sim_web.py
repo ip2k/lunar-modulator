@@ -510,7 +510,7 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
     assert summary["text_boxes"]["MID"] > 0              # the lists, context lines and banners
-    assert summary["screens"] >= 3642            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["screens"] >= 3680            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
     #                                              1321 before the master-bus pack (1458), 2189 with modulation
     #                                              (docs/16 MG3) before Room, Hall, Gate and Plate's Freeze, 2325
@@ -527,7 +527,8 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     #                                              3507 with the global Key page (97 screens) and
     #                                              its two lists; 3543 with glide's own page on
     #                                              Shapes, Six-Op FM and FM6, Drums' fourth page
-    #                                              and the Voice Mode keys; 3642 with both
+    #                                              and the Voice Mode keys; 3642 with both;
+    #                                              3680 with Session and the Song page (S9+, 38)
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 

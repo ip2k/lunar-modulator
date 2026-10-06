@@ -794,8 +794,8 @@ static void draw_band(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_t *s) {
     }
     fm1_tft_span_text(t, MARGIN, SESS_BAND_TEXT_Y, sp, (int)ns, SESS_BAND_CHARS, FM1_TFT_MID);
     if (frame_at >= 0) {                     /* the playing entry, framed */
-      fm1_tft_frame(t, MARGIN + frame_at * MID_ADVANCE - 2, SESS_BAND_Y + 1,
-                    frame_len * MID_ADVANCE + 3, SESS_BAND_H - 2, C_LIVE);
+      fm1_tft_frame(t, MARGIN + frame_at * MID_ADVANCE - 3, SESS_BAND_Y + 1,
+                    frame_len * MID_ADVANCE + 5, SESS_BAND_H - 2, C_LIVE);
     }
   }
 }
@@ -882,10 +882,14 @@ static void draw_song(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_so
         if (s) fm1_seq_song_entry(s, (uint8_t)e, &x);
         if (x.empty) snprintf(sc, sizeof sc, "%u (end)", (unsigned)x.scene + 1u);
         else fm1_seq_view_scene(s, x.scene, sc, sizeof sc);
-        if (playing && x.presses > 9u) snprintf(rep, sizeof rep, "%u", (unsigned)u->song_pass);
-        else if (playing) snprintf(rep, sizeof rep, "%u/%u", (unsigned)u->song_pass, (unsigned)x.presses);
+        /* The pass and the bar into it count from 1: before the entry's
+         * first tick (0 in the core) it is on its first. */
+        const unsigned pass = u->song_pass ? u->song_pass : 1u;
+        const unsigned bar = u->song_pass_bar ? u->song_pass_bar : 1u;
+        if (playing && x.presses > 9u) snprintf(rep, sizeof rep, "%u", pass);
+        else if (playing) snprintf(rep, sizeof rep, "%u/%u", pass, (unsigned)x.presses);
         else snprintf(rep, sizeof rep, "x%u", (unsigned)x.presses);
-        if (playing) snprintf(bars, sizeof bars, "%u/%u", (unsigned)u->song_pass_bar, (unsigned)x.bars);
+        if (playing) snprintf(bars, sizeof bars, "%u/%u", bar, (unsigned)x.bars);
         else snprintf(bars, sizeof bars, "%ub", (unsigned)x.bars * x.presses);
         song_time(x.start_bar, u->bpm_x100, tm, sizeof tm);
         snprintf(f[0], sizeof f[0], "%c", playing ? '>' : ' ');
