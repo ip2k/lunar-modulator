@@ -10,7 +10,9 @@
  *   MATRIX  nine slot rows of 28 characters in MID at 18 px (fm1_mod_ui_row):
  *           the source in the modulation colour, the mark subtle, the
  *           destination and amount as text, a sound's "S<n>" in its colour
- *           (one multi-colour run a row, audit L2); the selected row on the
+ *           (one multi-colour run a row, audit L2), the mark 4 px further
+ *           from the source and from the destination, the blank before the
+ *           amount 4 px narrower to pay for it; the selected row on the
  *           selection's bar, an off one subtle, a refused one in the
  *           refusal colour; the hint line under them
  *   CHAIN   ten lines in MID, node and cable alternating (fm1_mod_ui_chain),
