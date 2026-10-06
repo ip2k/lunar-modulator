@@ -261,7 +261,7 @@ place of docs/15 O10's one shared sound):
   (about 349 KB at 32 bits).
 - **Memory.** Each sound unit has a 512 KiB arena and each effect slot a
   256 KiB one: 4.5 MiB of the module's fixed 8 MiB. `fm1_app_t` is
-  4,915,120 B natively (clang, 64-bit) [verified: `fm1-sim-render --sizes`].
+  4,939,616 B natively (clang, 64-bit) [verified: `fm1-sim-render --sizes`].
 - **The API** stage S6 routes tracks with is `fm1_app_unit_*`
   (`src/fm1_app.h`): the current sound, a sound's engine, inserts and
   level, notes on a given sound, `fm1_app_unit_route(a, track, sound)` and
@@ -531,7 +531,9 @@ identical to musl and to render.js (six of them turn the effects' switches
 every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
 wake them; those two, the three Drums, the four FM6 and the three glide
 scenarios are identical to glibc too), and it imports nothing; it is
-955,543 bytes with the UI audit's screens (the palette, the two Spleen
+955,241 bytes with the track strip's sound numbers and MATRIX's narrow
+gaps (2026-10-06), 955,464 before them (955,543 before the dead-code
+audit's removals) with the UI audit's screens (the palette, the two Spleen
 faces and the screens that use them), 938,723 before them with glide
 (939,251 with them before glide), 922,439 before both, 907,256 with glide
 before the arpeggiator, 890,975 before both (890,874 before Shapes'
@@ -603,7 +605,7 @@ www/fm1.wasm      src/fm1_web.c   flat exports (fm1w_*)
 `fm1_app_t`. Nothing in it is browser-specific, so the same app layer builds
 natively as `fm1-sim-render`, the test harness. Its panel logic and drawing
 code are meant to carry over to the firmware, but not `fm1_app_t` as it
-stands: it is 4,915,120 bytes (4.5 MiB of fixed arenas, four 512 KiB
+stands: it is 4,939,616 bytes (4.5 MiB of fixed arenas, four 512 KiB
 ones for the sound units and ten 256 KiB ones for the effect slots, a
 115,200-byte full frame buffer, and the sequencer's 32 KiB arena and 3 KiB
 event buffer, and modulation's runtime and a block's writes; clang, 64-bit), against the FM-1's 578 KB of SRAM and
@@ -634,7 +636,12 @@ faces, each a table of one byte a glyph row in flash, printable ASCII only
 - `fm1_tft_font_text`, `fm1_tft_font_width` and `fm1_tft_font_fit` draw and
   measure in a face; `fm1_tft_text` stays MAIN at any scale.
   `fm1_tft_span_text` draws a run of several colours (MATRIX's columns,
-  audit L2) and logs it as one box. The layout check's rule is the same for
+  audit L2) and logs it as one box; `fm1_tft_span_text_lead` does the same
+  with a few pixels before chosen spans, a narrow gap inside the one run
+  where a space would cost a whole character (MATRIX's state mark, 4 px
+  from its source and from its destination, paid for by drawing the blank
+  before the amount, or page B's curve, 4 px narrow; the track strip's
+  sound numbers, one to a tile). The layout check's rule is the same for
   every face: 4 px between boxes.
 - `fm1-sim-render --font-sheet FILE.ppm` draws both Spleen faces on one
   screen, layout-checked
@@ -757,7 +764,16 @@ page's tokens and roles agree, contrast after the RGB565 round trip,
 CIEDE2000 between colours with different meanings, the sound colours under
 simulated colour-vision deficiencies, one meaning per colour in
 `style.css`, and PALETTE.md's figures equal to the checker's report; and the
-colour science against the audit's figures and Sharma's CIEDE2000 data.
+colour science against the audit's figures and Sharma's CIEDE2000 data. It
+also fails if a token named by the project's initials comes back anywhere
+in `sim/web/`: the project's own hues are `LUNAR_*` and `--lunar-*`.
+
+`tests/test_sim_screen_cues.py` reads the screen sweep's frames: every
+track on the Track view's strip shows the number of the sound it plays
+(*M* for MIDI out) in Spleen 6×12's own glyph, knocked out of its tile,
+or alone in the sound's colour when muted, with 2 px of tile round it; and
+MATRIX's state mark keeps at least 4 px of blank from its source's ink and
+from the next field's, the rows ending by the right margin.
 
 `tests/test_sim_multi.py` checks multi-sound: SHIFT + PRESETS and its
 popups, the keys and a MIDI note-off on the sound that started them,

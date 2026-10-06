@@ -1263,6 +1263,28 @@ history.
     Arp, czietz's gist) in the reference table; a note for cloud sessions;
     and a current kick-off prompt. The 2026-09-06 prompt is kept, marked
     historical.
+- **Every track on the sequencer's strip shows its sound's number.** The
+  eight small tiles beside the tempo now carry the number of the sound each
+  track plays (*1* to *4*) on the sound's colour, and *M* on grey for MIDI
+  out, so you can tell the tracks apart without telling the colours apart.
+  The focused track's tile is still the taller one. A muted track's tile
+  goes dark and leaves its number in the sound's colour; when it is the
+  focused track, a bar above and below the number marks it.
+- **The matrix's rows read as three fields.** The mark between a cable's
+  source and its destination (*>*, *~*, *v*, *!*, *-*, or page B's *\**)
+  now stands a few pixels apart from both, so a six-letter source no longer
+  runs into it (*S2RTRG > ENV4 Gate*, not *S2RTRG>ENV4 Gate*). Every
+  destination keeps its room, and the amounts now end at the screen's
+  right margin, as other values do.
+  - For developers: `fm1_tft_span_text_lead` and `fm1_tft_span_width_lead`
+    (a run with a few pixels before chosen spans, still one logged box);
+    `FM1_MOD_UI_ROW_SRC`; the palette's own tokens are renamed `LUNAR_NEBULA`
+    … `LUNAR_COMET` in `fm1_look.h` and `--lunar-nebula` … `--lunar-comet`
+    in `style.css` (they were named by the project's initials; its short
+    form is "Lunar"), and `tests/test_sim_palette.py` keeps the old names
+    out of `sim/web/`. `tests/test_sim_screen_cues.py` reads the numbers off the
+    strip and measures the marks' gaps in the screen sweep's frames. The
+    sweep still draws 3,408 screens with 0 faults.
 - **The screen, reworked from the UI audit: one meaning per colour, two
   smaller typefaces, fuller lists and whole names**
   (`notes/2026-10-06-ui-audit.md`, every proposal adopted by the owner).
@@ -1736,7 +1758,41 @@ history.
   `isd_config.ini`), so any package must keep that region byte-identical to
   V15 (docs/07).
 
+### Removed
+- **Code nothing used, found by the first dead-code audit** (#74;
+  CLAUDE.md, Conventions). No user-facing change: every sound, the
+  virtual FM-1 and the manual are as before.
+  - Eight readers went through every line of the repository's own source
+    as it stood at PR #52 (91,901 lines in `dongle/`, `engines/` less
+    `third_party/`, `sim/`, `tests/` and `tools/`), and a ninth re-checked
+    every proposal against the whole tree. 55 removals went in: functions,
+    struct fields and parameters nothing read; two vendored Mutable files
+    linked into programs that use nothing from them (stmlib's atan table
+    in `fm1-render` and the simulator, its pitch tables in
+    `fm1-ref-braids-fx`); MG1's one-sound wrapper of the modulation script
+    reader, with no caller left; and unused helpers, constants and imports
+    in the tests and tools. Four more were kept after merging main: a
+    test constant MG9 now uses, a Limiter field whose removal would now
+    move the Limiter's pinned instance size, and two includes the
+    modulation screens now use.
+  - Six panel scenarios in `tests/test_seq_ui.py` (step entry, record,
+    Capture, tracks, locks, multi-sound) had their assertions skipped since
+    the MG3 merge by a leftover `continue`; they run again, and pass.
+  - 49 further candidates need the owner's decision, mostly because a
+    pinned size or figure would move or they are documented API or tool
+    options. They are listed in PR #74 with the 8 the re-check rejected
+    and the bugs it found on the way.
+
 ### Fixed
+- **The virtual FM-1 builds without compiler warnings under GCC 11 to 16.**
+  No change in what it does. For developers: four warnings in
+  `sim/web/src/fm1_app.c` (`-Wformat-truncation` on the DX7 load's
+  message and a list's place, `-Warray-bounds` on pitch bend and on the
+  parameter rows) are fixed at their causes: both buffers hold any `int`;
+  pitch bend checks the current sound before it indexes the bends; and the
+  parameter rows no longer test whether the modulation runtime binds a
+  row's parameter, which it always does (now a compile-time check), so no
+  path reads past a unit's values.
 - **Shapes stays inside what Braids' code handles.** At a few edges Braids
   read past the end of a table or did arithmetic C++ leaves undefined, so
   the same settings could sound different from one build to the next (the

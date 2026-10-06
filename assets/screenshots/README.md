@@ -14,6 +14,10 @@ and the voice modes (Macro's pages are four: *1/4 Sound*). They were
 retaken with their names kept; `parity.png`, `screen-fx.png` and
 `screen-matrix.png` came out byte-identical. From one run to the next only what moves with the
 sound differs: the oscilloscope strips, the meters and the lit keys.
+`screen-seq.png` and `screen-matrix.png` alone were retaken later the same
+day (module 955,320 B), when the track strip's tiles took their sounds'
+numbers and MATRIX's mark moved 4 px clear of the source and the
+destination; the run's other pictures were left as they were.
 
 | File | What it shows |
 | --- | --- |
@@ -28,8 +32,8 @@ sound differs: the oscilloscope strips, the meters and the lit keys.
 | `screen-fx.png` | FX mode: the chain S1 In1 In2 Mix M1 M2 (S1 in Sound 1's blue), Plate in M1, PSX Verb in M2 chosen (the lilac chip; "PSX Verb", "master" on the next line), and its first page |
 | `screen-params.png` | Macro's first page after KNOB1–4 turned (2-op FM, 0.68, 0.28, 0.81) |
 | `panel-params.png` | The same on the panel, with the four knobs turned; the chord is held, and a start and stop of the transport emptied Capture, so REC is dark |
-| `screen-seq.png` | SEQ mode's Track view while the demo pattern plays: the status line (120 BPM, the eight tracks in Sound 1's blue, the first focused, PLAY), the grid with the playhead, the knob strip, the model line |
-| `screen-matrix.png` | The modulation matrix: the default rack's two RTRG cables and LFO1's cable to Sound 1's Timbre, chosen; sources in the modulation colour, the hint "To S1 Timbre" |
+| `screen-seq.png` | SEQ mode's Track view while the demo pattern plays: the status line (120 BPM, the eight tracks as tiles in Sound 1's blue, each with its sound's number, 1, the first focused and taller, PLAY), the grid with the playhead, the knob strip, the model line |
+| `screen-matrix.png` | The modulation matrix: the default rack's two RTRG cables and LFO1's cable to Sound 1's Timbre, chosen; sources in the modulation colour, each mark 4 px clear of its source and destination, the hint "To S1 Timbre" |
 | `parity.png` | The browser module's output against native `fm1-render`: 25 ms of Six-Op FM, and 0 of 105,882 samples different over the whole render |
 | `phone.png` | The page at 390 × 844 (2× pixels), in `virtual-fm1.png`'s state: the panel keeps playable sizes and scrolls sideways in its own box |
 

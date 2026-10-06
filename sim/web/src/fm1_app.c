@@ -3,6 +3,7 @@
  */
 #include "fm1_app.h"
 
+#include <limits.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -31,6 +32,14 @@ typedef char fm1_app_seq_ui_fits[sizeof(fm1_seq_ui_t) <= FM1_APP_SEQ_UI_BYTES ? 
  * sound units, their inserts and the master slots. */
 typedef char fm1_app_mod_units[FM1_MOD_SOUNDS == FM1_APP_SOUNDS && FM1_MOD_INSERTS == FM1_APP_INSERTS &&
                                FM1_MOD_SINKS == FM1_APP_UNITS + 1 && FM1_APP_FX_SLOTS == 2 ? 1 : -1];
+/* The runtime binds every parameter a unit keeps (page_params never goes
+ * past FM1_APP_MAX_PARAMS), so draw_params need not ask which it binds. */
+typedef char fm1_app_mod_binds[FM1_MOD_UNIT_PARAMS >= FM1_APP_MAX_PARAMS ? 1 : -1];
+
+/* Room for an int in decimal, its sign included ("-2147483648"): a buffer
+ * that formats one holds every value, so snprintf never cuts a number. */
+#define INT_CHARS 11
+typedef char fm1_app_int_chars[INT_MIN == -2147483647 - 1 && INT_MAX == 2147483647 ? 1 : -1];
 
 /* ---- small helpers ---------------------------------------------------------- */
 
@@ -134,7 +143,9 @@ static int fx_pages(const fm1_app_t *a, int slot) {
 /* The first four parameters on `page`, in index order. */
 static int page_params(const fm1_engine_t *e, int page, int out[4]) {
   int n = 0;
-  for (uint16_t i = 0; e && i < e->n_params && n < 4; ++i) {
+  /* Never past FM1_APP_MAX_PARAMS: the unit's value[] holds that many, and
+   * fm1_app_select refuses an engine with more. */
+  for (uint16_t i = 0; e && i < e->n_params && i < FM1_APP_MAX_PARAMS && n < 4; ++i) {
     if (e->params[i].page == page) out[n++] = i;
   }
   return n;
@@ -798,8 +809,6 @@ int fm1_app_mod_dump(fm1_app_t *a, void (*emit)(void *ctx, const char *line), vo
   return fm1_mod_ui_dump(&env, &a->mui, a->mod_seed) && !a->mui.unloggable;
 }
 
-const fm1_mod_t *fm1_app_mod(const fm1_app_t *a) { return a->mod; }
-
 static void release(fm1_app_unit_t *u) {
   if (u->e && u->self) u->e->destroy(u->self);
   u->e = NULL;
@@ -933,7 +942,7 @@ static void dx7_store(void *ctx, unsigned slot, const uint8_t vced[FM1_DX7_VCED_
 int fm1_app_dx7_load(fm1_app_t *a, const uint8_t *data, size_t len, fm1_dx7_sysex_result_t *res) {
   fm1_app_dx7_t *d = &a->dx7;
   fm1_dx7_sysex_result_t r;
-  char l0[24], l1[24];
+  char l0[sizeof "Loaded  voices" + INT_CHARS], l1[24];
   int n;
   memset(&r, 0, sizeof r);
   if (d->index < 0) n = FM1_APP_DX7_NO_FM6;
@@ -1301,13 +1310,17 @@ void fm1_app_pitch_bend(fm1_app_t *a, float semitones) {
   if (!(semitones == semitones)) return;
   if (semitones > 48.0f) semitones = 48.0f;
   if (semitones < -48.0f) semitones = -48.0f;
-  fm1_app_unit_t *s = cur(a);
+  /* a->sound indexes bend[] below: a sound outside S1-S4 (none is ever
+   * current) has no bend to set. */
+  const int k = a->sound;
+  if (k < 0 || k >= FM1_APP_SOUNDS) return;
+  fm1_app_unit_t *s = sound_of(a, k);
   /* With modulation each sound unit's bend is the base of its HOST pitch
    * (PITCH for sound 1, PITCH2-4; fm1_mod_host.h), as fm1-render's --bend
    * and its slots' bends are. */
-  a->bend[a->sound] = semitones;
+  a->bend[k] = semitones;
   if (a->mod) {
-    semitones = fm1_mod_set_base(a->mod, FM1_MOD_HOST, fm1_mod_host_pitch((unsigned)a->sound), semitones);
+    semitones = fm1_mod_set_base(a->mod, FM1_MOD_HOST, fm1_mod_host_pitch((unsigned)k), semitones);
   }
   if (s->e && s->e->pitch_bend) s->e->pitch_bend(s->self, semitones);
 }
@@ -2913,8 +2926,9 @@ static void draw_params(fm1_app_t *a, int unit, int page, int y0) {
     const fm1_param_t *p = &u->e->params[idx[s]];
     int y = y0 + s * ROW_PITCH;
     float depth = 0.0f;
-    /* With modulation, a parameter cables reach gets docs/16 §5.5's marks. */
-    const int routes = a->mod && code >= 0 && idx[s] < (int)FM1_MOD_UNIT_PARAMS
+    /* With modulation, a parameter cables reach gets docs/16 §5.5's marks
+     * (every row's parameter is one the runtime binds: fm1_app_mod_binds). */
+    const int routes = a->mod && code >= 0
                            ? fm1_mod_ui_routes(a->mod, (unsigned)code, p->uid, 0, &depth)
                            : 0;
     fm1_mod_view_row(&a->tft, y, p, u->value[idx[s]], NULL, routes, depth,
@@ -3111,7 +3125,7 @@ static void draw_list(fm1_app_t *a, const char *title, int title_tag,
   const int top = TITLE_H, bottom = BOTTOM_Y;
   const fm1_tft_font_t f = (fm1_tft_font_t)face;
   const int pitch = list_pitch(face), h = fm1_tft_metrics(f)->height;
-  char place[16];
+  char place[2 * INT_CHARS + sizeof "/"];    /* "12/96" */
   fm1_tft_fill(&a->tft, 0, top, FM1_TFT_W, bottom - top, C_POPUP_BG);
   draw_rules(a, C_SELECT);
   snprintf(place, sizeof place, "%d/%d", first + mark + 1, total);

@@ -17,7 +17,10 @@ says so, [inferred] our reasoning.
   orange), aurora (S3, green) and comet (S4, yellow-green). They are
   Lunar Modulator's own, not borrowed from another theme: derived in OKLCH
   at the lightness and chroma of Rosé Pine Moon's accents, in the hues
-  Moon leaves free (below).
+  Moon leaves free (below). Their tokens are `LUNAR_NEBULA`–`LUNAR_COMET`
+  in the header and `--lunar-nebula`–`--lunar-comet` on the page, beside
+  Moon's `RP_*` and `--rp-*` (the project's short form is "Lunar";
+  `tests/test_sim_palette.py` fails if a name by its initials comes back).
 - **Roles in the header.** Screen code can name what a colour means rather
   than its hue: `C_SELECT`, `C_HELD`, `C_LIVE`, `C_MOD`, `C_REFUSE`,
   `C_CONTEXT`, `C_HINT`, `C_LABEL`, `C_SOUND_1`–`C_SOUND_4` and
@@ -64,7 +67,10 @@ Rosé Pine's own roles from rose-pine/palette's README [reported, read
 and bars, the "S2" in the title bar, FX mode's sound tag and the sound's
 filled inserts, the Track view's track strip by the sound each track plays,
 and anywhere else a sound is named. The S-number always goes with it, as
-the cue for anyone who cannot tell the colours apart.
+the cue for anyone who cannot tell the colours apart: on the strip, where a
+tile has no room for "S2", the sound's number alone, in base knocked out of
+the tile (the same pair as the sound's colour on base, so the same
+contrast), or in the sound's colour on base for a muted track.
 
 ## How the hues were derived
 

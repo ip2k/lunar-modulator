@@ -153,7 +153,6 @@ struct fm1_seq {
   float ext_interval;
   uint32_t cap_base_frame, cap_base_tick;  /* Capture's packed offsets count from these */
   uint32_t capture_gen;
-  int32_t cap_stretch_permille;
   int32_t held_track, held_step;
   fm1_seq_stats_t stats;        /* 4-byte aligned, 24 bytes */
 
@@ -347,9 +346,5 @@ int sq_capture_commit(fm1_seq_t *s, unsigned t);
 void sq_capture_select(fm1_seq_t *s, unsigned idx);
 void sq_capture_done(fm1_seq_t *s);
 uint16_t sq_anchor_step(const fm1_seq_t *s, uint32_t tick, uint8_t num, uint8_t den);
-
-static inline uint8_t sq_clamp_u8(int64_t v, int64_t lo, int64_t hi) {
-  return (uint8_t)(v < lo ? lo : (v > hi ? hi : v));
-}
 
 #endif /* FM1_SEQ_INT_H_ */

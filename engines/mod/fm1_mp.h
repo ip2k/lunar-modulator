@@ -259,9 +259,6 @@ typedef struct {
 void fm1_mp_sah_init(fm1_mp_sah_t *h);                 /* sample mode, holding 0 */
 void fm1_mp_sah_set_mode(fm1_mp_sah_t *h, int mode);   /* out of range: sample */
 float fm1_mp_sah_process(fm1_mp_sah_t *h, float in, int gate);
-/* gate == NULL keeps the gate as it is. */
-void fm1_mp_sah_render(fm1_mp_sah_t *h, const float *in, const uint8_t *gate,
-                       float *out, uint32_t n);
 float fm1_mp_sah_value(const fm1_mp_sah_t *h);
 
 /* ---- Turing-machine register ---------------------------------------------------

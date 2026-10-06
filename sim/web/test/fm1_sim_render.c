@@ -3907,6 +3907,32 @@ static int font_check(void) {
     const int w6 = fm1_tft_span_text(&g_ft, x0, y0, spans, 4, 6, font);
     g_ft.record = 0;
     const int cut6 = g_ft.truncated;
+    /* With leads (MATRIX's mark, the track strip's numbers): 4 px before
+     * the '>' and 4 before the destination; none before the first span or
+     * the NULL one, whatever their leads say, and none before a span that
+     * max_chars leaves out. Still one box, as wide as the leads make it. */
+    const uint8_t lead[4] = { 7, 4, 9, 4 };
+    fm1_tft_begin(&g_ft, RP_BASE);
+    g_ft.record = 1;
+    const int wl = fm1_tft_span_text_lead(&g_ft, x0, y0, spans, lead, 4, 40, font);
+    g_ft.record = 0;
+    const int lead_boxes = g_ft.n_boxes, lead_box_w = g_ft.n_boxes ? g_ft.boxes[0].w : 0;
+    int lead_colour_errors = 0, lead_painted = 0;
+    for (int i = 0; i < 19; ++i) {
+      const int cx = x0 + i * m->advance + (i >= 4 ? 4 : 0) + (i >= 5 ? 4 : 0);
+      int any = 0;
+      for (int y = y0; y < y0 + m->height; ++y) {
+        for (int x = cx; x < cx + m->advance && x < FM1_TFT_W; ++x) {
+          const uint16_t p = g_ft.px[y * FM1_TFT_W + x];
+          if (p == RP_BASE) continue;
+          any = 1;
+          if (p != colour_of[i]) ++lead_colour_errors;
+        }
+      }
+      lead_painted += any;
+    }
+    const int lead_w4 = fm1_tft_span_width_lead(spans, lead, 4, 4, font);
+    const int lead_w6 = fm1_tft_span_width_lead(spans, lead, 4, 6, font);
     /* MAIN in a face is fm1_tft_text at x2, pixel for pixel and box for box. */
     int main_same = 1;
     if (font == FM1_TFT_MAIN) {
@@ -3926,11 +3952,18 @@ static int font_check(void) {
               w != want || colour_errors || painted != 17 || cut6 != 1 ||
               w6 != FM1_TFT_RUN_W(m->advance, m->ink_w, 6) || !main_same ||
               fm1_tft_span_width(spans, 4, 40, font) != want;
+    errors += wl != want + 8 || lead_boxes != 1 || lead_box_w != wl || lead_colour_errors ||
+              lead_painted != 17 || fm1_tft_span_width_lead(spans, lead, 4, 40, font) != wl ||
+              lead_w4 != FM1_TFT_RUN_W(m->advance, m->ink_w, 4) ||
+              lead_w6 != FM1_TFT_RUN_W(m->advance, m->ink_w, 6) + 8;
     printf("%s{\"font\":\"%s\",\"cut_faults\":%d,\"edge_faults\":[%d,%d],\"span_boxes\":%d,"
            "\"span_faults\":%d,\"span_w\":%d,\"span_want_w\":%d,\"colour_errors\":%d,"
-           "\"painted\":%d,\"cut6\":%d,\"w6\":%d,\"main_same\":%d}",
+           "\"painted\":%d,\"cut6\":%d,\"w6\":%d,\"main_same\":%d,\"lead_w\":%d,"
+           "\"lead_boxes\":%d,\"lead_box_w\":%d,\"lead_colour_errors\":%d,\"lead_painted\":%d,"
+           "\"lead_w4\":%d,\"lead_w6\":%d}",
            f ? "," : "", kFontNames[f], cut, edge[0], edge[1], span_boxes, span_faults, w, want,
-           colour_errors, painted, cut6, w6, main_same);
+           colour_errors, painted, cut6, w6, main_same, wl, lead_boxes, lead_box_w,
+           lead_colour_errors, lead_painted, lead_w4, lead_w6);
   }
   printf("],\"errors\":%d}\n", errors);
   return errors ? 1 : 0;
@@ -4450,7 +4483,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "%s\n", err);
       return 1;
     }
-    if (!cmd_path) { script.rate = 44118; script.block = 128; script.tracks = 8; }
+    if (!cmd_path) { script.rate = 44118; script.tracks = 8; }
     if (!rate_given) rate = (float)script.rate;
     if (tracks < 0) tracks = script.tracks;
     if (!seconds_given && (script.has_end || script.n)) {   /* fm1-render at --frames 64 */
