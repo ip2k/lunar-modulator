@@ -55,6 +55,11 @@
  *                       lines (fm1_mod_ui.h) and read back by mod_script.c
  *                       into a second runtime: the same records; JSON, exit
  *                       1 on a difference
+ *   --font-check        the three text faces (fm1_tft.h): metrics, every
+ *                       character as drawn, logged boxes, widths, the 4 px
+ *                       rule between faces, multi-colour runs; JSON, exit 1
+ *                       on a fault
+ *   --font-sheet FILE.ppm  both Spleen faces on one screen, checked; JSON
  *
  * The sequencer, with fm1-render's meaning for its flags (engines/host/
  * render.cc): --cmd FILE plays a timed verb script, --seq FILE.movy1 loads a
@@ -134,6 +139,7 @@
  * Prints one line of JSON. Test code: C99 with stdio. MIT licence.
  */
 #include "fm1_app.h"
+#include "fm1_look.h"
 #include "mod_script.h"
 #include "seq_script.h"
 
@@ -189,7 +195,8 @@ static void usage(void) {
           "       [--unit-route T:TRACK:SOUND]\n"
           "       [--mfx K:arp[:off] [--mfx-param K:NAME=V]...] [--mfx-param-at K:T:NAME=V]\n"
           "       [--mfx-on-at K:T:0|1] [--log-mfx FILE.jsonl]\n"
-          "       | --sizes | --format-check | --lock-check | --mod-format-check\n");
+          "       | --sizes | --format-check | --lock-check | --mod-format-check\n"
+          "       | --font-check | --font-sheet FILE.ppm\n");
 }
 
 static event_t *add_event(double t, ev_kind_t kind) {
@@ -476,12 +483,33 @@ static int write_ppm(const char *path, const fm1_tft_t *t) {
 /* ---- --screens: every page, value extreme and popup, checked ---------------- */
 
 static int g_screens, g_faults;
+static long g_face_boxes[FM1_TFT_FONTS];   /* visible text boxes by face, every screen */
+
+/* A logged box's kind for a fault report: a graphic, or text in its face. */
+static const char *box_kind(const fm1_tft_box_t *b) {
+  static const char *const kText[FM1_TFT_FONTS] = { "MAIN text", "MID text", "SMALL text" };
+  if (!b) return "-";
+  if (b->kind == FM1_BOX_GRAPHIC) return "graphic";
+  return b->font < FM1_TFT_FONTS ? kText[b->font] : "text";
+}
 
 static void check_screen(const char *name, const char *dir, int save) {
   int report[8];
   fm1_app_draw_checked(&g_app);
   int n = fm1_tft_check_layout(&g_app.tft, FM1_APP_LAYOUT_GAP, report, 4);
   ++g_screens;
+  /* Every text box is in one of the three faces, at that face's height:
+   * nothing smaller than SMALL (Spleen 6 x 12) reaches the screen. */
+  for (int i = 0; i < g_app.tft.n_boxes; ++i) {
+    const fm1_tft_box_t *b = &g_app.tft.boxes[i];
+    if (b->hidden || b->kind != FM1_BOX_TEXT) continue;
+    if (b->font >= FM1_TFT_FONTS || b->h != fm1_tft_metrics((fm1_tft_font_t)b->font)->height) {
+      fprintf(stderr, "layout fault in %s: text box %d in face %d, %d px tall\n", name, i, b->font, b->h);
+      ++g_faults;
+      continue;
+    }
+    ++g_face_boxes[b->font];
+  }
   if (n) {
     if (g_faults < 20) {
       for (int k = 0; k < n && k < 4; ++k) {
@@ -492,9 +520,9 @@ static void check_screen(const char *name, const char *dir, int save) {
         }
         const fm1_tft_box_t *a = i >= 0 ? &g_app.tft.boxes[i] : NULL;
         const fm1_tft_box_t *b = j >= 0 ? &g_app.tft.boxes[j] : NULL;
-        fprintf(stderr, "layout fault in %s: box %d (%d,%d %dx%d) vs box %d (%d,%d %dx%d)\n", name,
-                i, a ? a->x : 0, a ? a->y : 0, a ? a->w : 0, a ? a->h : 0, j, b ? b->x : 0,
-                b ? b->y : 0, b ? b->w : 0, b ? b->h : 0);
+        fprintf(stderr, "layout fault in %s: box %d (%s %d,%d %dx%d) vs box %d (%s %d,%d %dx%d)\n",
+                name, i, box_kind(a), a ? a->x : 0, a ? a->y : 0, a ? a->w : 0, a ? a->h : 0, j,
+                box_kind(b), b ? b->x : 0, b ? b->y : 0, b ? b->w : 0, b ? b->h : 0);
       }
     }
     g_faults += n;
@@ -663,12 +691,32 @@ static void expect(int ok, const char *what) {
   }
 }
 
+/* The rows the open list's window holds: its face's (fm1_panel.h); a
+ * modulation picker's window, which fm1_mod_ui fills, is sized for the face
+ * the app draws it in (FM1_LIST_FACE_KIND, FM1_LIST_FACE_DEST). */
+static int window_rows(void) {
+  return fm1_list_rows(g_app.popup_face);
+}
+
+/* A knob's list is in the face audit D9 gives it: MAIN when the whole list
+ * fits it (FM1_LIST_ROWS entries or fewer, every one within MAIN's line),
+ * else MID. */
+static void expect_knob_list_face(int total, const char *what) {
+  int want = total <= FM1_LIST_ROWS && g_app.popup_lines == total ? FM1_LIST_MAIN : FM1_LIST_MID;
+  for (int i = 0; want == FM1_LIST_MAIN && i < g_app.popup_lines; ++i) {
+    if ((int)strlen(g_app.popup[i]) > fm1_list_chars(FM1_LIST_MAIN)) want = FM1_LIST_MID;
+  }
+  expect(g_app.popup_face == want, what);
+}
+
 /* The open popup is a list `title` (NULL: any) with entry `sel` of `total`
- * chosen, in the window fm1_list_first gives: the choice on the third row
- * where it can be, the window never past either end. */
+ * chosen, in the window fm1_list_first gives for the rows its face holds
+ * (window_rows): the choice on the third row where it can be, the window
+ * never past either end. */
 static void expect_window(const char *what, const char *title, int total, int sel) {
-  const int first = fm1_list_first(total, sel, FM1_LIST_ROWS);
-  const int rows = total - first < FM1_LIST_ROWS ? total - first : FM1_LIST_ROWS;
+  const int face_rows = window_rows();
+  const int first = fm1_list_first(total, sel, face_rows);
+  const int rows = total - first < face_rows ? total - first : face_rows;
   if (g_app.popup_total != total || g_app.popup_first != first || g_app.popup_lines != rows ||
       g_app.popup_mark != sel - first || (title && strcmp(g_app.popup_title, title) != 0)) {
     fprintf(stderr,
@@ -753,6 +801,34 @@ static void arp_screens(const char *dir, float rate) {
       }
     }
     for (uint16_t i = 0; i < e->n_params; ++i) fm1_app_arp_set_param(&g_app, 0, i, e->params[i].def);
+    {                                     /* the page's knobs on its lists (audit D1) */
+      int idx[4], n = 0;
+      for (uint16_t i = 0; i < e->n_params && n < 4; ++i) {
+        if (e->params[i].page == page) idx[n++] = i;
+      }
+      for (int k = 0; k < n; ++k) {
+        const fm1_param_t *q = &e->params[idx[k]];
+        const int total = (int)(q->max - q->min) + 1;
+        if (q->type != FM1_PARAM_ENUM) continue;
+        fm1_app_arp_set_param(&g_app, 0, idx[k], q->min);
+        g_app.popup_lines = 0;
+        fm1_app_encoder(&g_app, FM1_ENC_KNOB1 + k, 1);
+        snprintf(name, sizeof name, "knob-list-arp-%s", q->name);
+        if (total < 5) {
+          expect(g_app.popup_lines == 0, "a short ARP list parameter's knob opened a popup");
+        } else {
+          expect_knob_list_face(total, "an ARP knob's list is not in its face");
+          expect_window(name, q->name, total, 1);
+          check_screen(name, dir, strcmp(q->name, "Mode") == 0 || strcmp(q->name, "Oct Mode") == 0);
+          fm1_app_encoder(&g_app, FM1_ENC_KNOB1 + k, total);
+          expect_window(name, q->name, total, total - 1);
+          snprintf(name, sizeof name, "knob-list-arp-%s-end", q->name);
+          check_screen(name, dir, 0);
+        }
+        fm1_app_arp_set_param(&g_app, 0, idx[k], q->def);
+        g_app.popup_lines = 0;
+      }
+    }
     fm1_app_encoder(&g_app, FM1_ENC_SELECT, -64);
   }
   expect(fm1_app_arp_preset_of(&g_app, 0) == 0, "the arp's defaults are not stock's Up");
@@ -832,6 +908,13 @@ static void seq_screens(const char *dir, float rate) {
   seq_line("bpm 2000");
   fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
   check_screen("seq-bpm-20-stopped", dir, 0);
+  /* A tempo with decimals ("300.00" at its widest) keeps the tracks' room. */
+  seq_line("bpm 29999");
+  fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
+  check_screen("seq-bpm-299.99", dir, 1);
+  seq_line("bpm 12050");
+  fm1_app_render(&g_app, FM1_APP_MAX_FRAMES);
+  check_screen("seq-bpm-120.5", dir, 1);
   seq_line("bpm 12000");
   /* A four-bar clip: a note toggled on every step, which clears the demo's
    * own in bar 1 and fills bars 2 to 4; the playhead in the fourth. */
@@ -1416,6 +1499,36 @@ static void seq_track_screens(const char *dir, float rate) {
   }
   key_edge(FM1_SEQ_UI_KEY_MUTE, 0);
   expect(g_app.ui.muted == 0u, "the mute map did not unmute every track");
+  /* The strip in the sounds' colours (audit L3): tracks on sounds 1-4 in
+   * turn, two muted, track 3 focused, then muted too; the routes after. */
+  {
+    fm1_seq_track_info_t was[8];
+    char ops[160];
+    int at = 0;
+    for (int t = 0; t < 8; ++t) {
+      memset(&was[t], 0, sizeof was[t]);
+      fm1_seq_get_track(g_app.seq, (unsigned)t, &was[t]);
+      at += snprintf(ops + at, sizeof ops - (size_t)at, "%sroute %d 1 %d", t ? ";" : "", t, t % 4);
+    }
+    seq_line(ops);
+    seq_line("mute 1 1;mute 4 1");
+    blocks(1);
+    seq_focus(2);
+    step_check("seq-tracks-sounds", dir, 1);
+    seq_line("mute 2 1");
+    blocks(1);
+    step_check("seq-tracks-sounds-focused-muted", dir, 1);
+    at = 0;
+    for (int t = 0; t < 8; ++t) {
+      at += snprintf(ops + at, sizeof ops - (size_t)at, "%sroute %d %u %u;mute %d 0", t ? ";" : "", t,
+                     (unsigned)was[t].route_kind, (unsigned)was[t].route_index, t);
+    }
+    seq_line(ops);
+    blocks(1);
+    seq_focus(0);
+    g_app.popup_lines = 0;
+    expect(g_app.ui.muted == 0u && g_app.ui.track == 0, "the strip's routes did not go back");
+  }
   /* SHIFT's legend, its states at both ends. */
   button_edge(FM1_BTN_SEL, 1);
   step_check("seq-shift-legend-s6", dir, 1);
@@ -1625,8 +1738,8 @@ static void seq_lock_screens(const char *dir, float rate) {
   blocks(hold);
   turn(FM1_ENC_SELECT, 1);
   turn(FM1_ENC_SELECT, 1);
-  expect(g_app.ui.step_page == FM1_SEQ_UI_STEP_PAGES && g_app.ui.lock_pages == 3,
-         "SELECT past Step 2/2 is not Macro's first lock page");
+  expect(g_app.ui.step_page == FM1_SEQ_UI_STEP_PAGES && g_app.ui.lock_pages == 4,
+         "SELECT past Step 2/2 is not Macro's first lock page");   /* 4: Glide's */
   step_check("seq-lock-no-lanes", dir, 1);
   turn(FM1_ENC_KNOB1, 1);                            /* Model: NOLOCK */
   expect(g_app.popup_lines == 2 && strcmp(g_app.popup[1], "cannot be locked") == 0,
@@ -1869,7 +1982,7 @@ static void multi_screens(const char *dir, float rate) {
   /* SHIFT + PRESETS: Sound 2, empty; PRESETS walks Empty and the sounds. */
   shift_presets(1);
   expect(g_app.sound == 1, "SHIFT + PRESETS does not choose Sound 2");
-  expect_window("SHIFT + PRESETS", "Sound", FM1_APP_SOUNDS, 1);
+  expect_window("SHIFT + PRESETS", "Current sound", FM1_APP_SOUNDS, 1);
   check_screen("multi-popup-sound-2-empty", dir, 1);
   g_app.popup_lines = 0;
   check_screen("multi-home-empty-sound", dir, 1);
@@ -2059,10 +2172,137 @@ static void list_screens(const char *dir) {
     for (int k = 0; k < n; ++k) {
       turn_now(FM1_ENC_ALGORITHM, 1);
       if (!k) turn_now(FM1_ENC_ALGORITHM, -1);         /* open it on Empty */
-      expect_window("ALGORITHM in FX mode", "M1 effect", n, k);
+      expect_window("ALGORITHM in FX mode", "Master 1 effect", n, k);
       check_list_screen("list-fx", dir, k, n, 1);
     }
   }
+  fm1_app_select(&g_app, 1, -1);
+  g_app.mode = FM1_MODE_HOME;
+  g_app.popup_lines = 0;
+}
+
+/* ---- --screens: the audit's proposals in the app (2026-10-06) ---------- */
+
+/* KNOB1-4 over every list parameter of unit `unit`'s pages (HOME's sound,
+ * or an effect in FX mode): a list of LIST_PARAM_MIN entries or more opens
+ * its list (in MID, or whole in MAIN when it fits) with the knob's value
+ * chosen, from the top and at the end (audit D1); a shorter one changes in
+ * place, with no popup. */
+static void knob_lists(int unit, const char *tag, const char *dir) {
+  const fm1_engine_t *e = g_app.unit[unit].e;
+  char name[128];
+  for (int page = 0; e && page < 8; ++page) {
+    int idx[4], n = 0;
+    for (uint16_t i = 0; i < e->n_params && n < 4; ++i) {
+      if (e->params[i].page == page) idx[n++] = i;
+    }
+    if (!n) break;
+    if (unit == 0) g_app.page = page;
+    else g_app.fx_page = page;
+    for (int k = 0; k < n; ++k) {
+      const fm1_param_t *p = &e->params[idx[k]];
+      const int total = (int)(p->max - p->min) + 1;
+      if (p->type != FM1_PARAM_ENUM) continue;
+      fm1_app_set_param(&g_app, unit, idx[k], p->min);
+      g_app.popup_lines = 0;
+      turn_now(FM1_ENC_KNOB1 + k, 1);
+      snprintf(name, sizeof name, "knob-list-%s-%s-%s", tag, e->id, p->name);
+      if (total < 5) {
+        expect(g_app.popup_lines == 0, "a short list parameter's knob opened a popup");
+        continue;
+      }
+      expect_knob_list_face(total, "a knob's list is not in its face");
+      expect_window(name, p->name, total, 1);
+      check_screen(name, dir, strcmp(e->id, "shapes") == 0 || strcmp(e->id, "filter") == 0 ||
+                           strcmp(e->id, "drums") == 0);
+      for (int r = total; r > 0; r -= 64) turn_now(FM1_ENC_KNOB1 + k, r > 64 ? 64 : r);   /* a turn's most */
+      expect_window(name, p->name, total, total - 1);
+      snprintf(name, sizeof name, "knob-list-%s-%s-%s-end", tag, e->id, p->name);
+      check_screen(name, dir, 0);
+      fm1_app_set_param(&g_app, unit, idx[k], p->def);
+      g_app.popup_lines = 0;
+    }
+  }
+  if (unit == 0) g_app.page = 0;
+  else g_app.fx_page = 0;
+}
+
+/* The audit's proposals the app draws: the knobs' lists (D1) on every
+ * sound and effect; banners (L1) over HOME, FX with four rows (the row the
+ * band would cut goes whole), GLO and MATRIX, and a refusal, which keeps
+ * the full popup in C_REFUSE (Q2); FX mode's chip on each slot, held and
+ * not, with sounds of every colour (Q5, L3). */
+static void app_ui_screens(const char *dir) {
+  char line[FM1_LIST_ENTRY];
+  g_app.mode = FM1_MODE_HOME;
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    if (fm1_engines[i]->kind != FM1_KIND_SOUND || fm1_app_select(&g_app, 0, (int)i) != 0) continue;
+    knob_lists(0, "home", dir);
+  }
+  fm1_app_select(&g_app, 0, fm1_app_find("test-sine"));
+  g_app.mode = FM1_MODE_FX;
+  g_app.fx_slot = 3;
+  for (size_t i = 0; i < fm1_engine_count; ++i) {
+    if (fm1_engines[i]->kind != FM1_KIND_AUDIO_FX || fm1_app_select(&g_app, 1, (int)i) != 0) continue;
+    knob_lists(1, "fx", dir);
+  }
+  /* Banners. */
+  fm1_app_select(&g_app, 1, fm1_app_find("plate"));
+  fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+  g_app.mode = FM1_MODE_HOME;
+  fm1_app_master(&g_app, 0.5f, 1);
+  expect(fm1_app_banner(&g_app, line, sizeof line) == 1 + FM1_TFT_MAIN && strcmp(line, "Volume 50") == 0,
+         "MASTER's popup is no banner");
+  check_screen("banner-home-volume", dir, 1);
+  fm1_app_master(&g_app, 1.0f, 0);
+  g_app.mode = FM1_MODE_FX;
+  g_app.fx_slot = 3;
+  g_app.fx_page = 0;
+  press(FM1_BTN_OCT_UP);
+  expect(fm1_app_banner(&g_app, line, sizeof line) == 1 + FM1_TFT_MAIN && strcmp(line, "Octave +1") == 0,
+         "OCT+'s popup is no banner");
+  check_screen("banner-fx-four-rows", dir, 1);
+  g_app.mode = FM1_MODE_GLOBAL;
+  check_screen("banner-global", dir, 1);
+  press(FM1_BTN_OCT_DOWN);
+  g_app.mode = FM1_MODE_MATRIX;
+  fm1_app_master(&g_app, 0.25f, 1);
+  check_screen("banner-matrix", dir, 1);
+  fm1_app_master(&g_app, 1.0f, 0);
+  g_app.mode = FM1_MODE_HOME;
+  press(FM1_BTN_SAVE);
+  expect(!fm1_app_banner(&g_app, line, sizeof line) && g_app.popup_tone == FM1_APP_TONE_REFUSE,
+         "SAVE's stub is no refusal");
+  g_app.popup_lines = 0;
+  fm1_app_button(&g_app, FM1_BTN_OCT_UP, 1);
+  fm1_app_button(&g_app, FM1_BTN_OCT_DOWN, 1);
+  expect(fm1_app_banner(&g_app, line, sizeof line) == 1 + FM1_TFT_MID &&
+             strcmp(line, "Octave 0, Transpose 0") == 0,
+         "\"Octave 0, Transpose 0\" is no MID banner");
+  check_screen("banner-home-mid", dir, 1);
+  fm1_app_button(&g_app, FM1_BTN_OCT_UP, 0);
+  fm1_app_button(&g_app, FM1_BTN_OCT_DOWN, 0);
+  g_app.popup_lines = 0;
+  /* FX mode's strip: the chip on each slot, held on the inserts and the
+   * master slots, Sound 3 current with a filled insert. */
+  fm1_app_unit_select(&g_app, 2, fm1_app_find("shapes"));
+  fm1_app_unit_set_current(&g_app, 2);
+  fm1_app_unit_insert(&g_app, 2, 0, fm1_app_find("drive"));
+  g_app.mode = FM1_MODE_FX;
+  for (int slot = 0; slot < 5; ++slot) {
+    char name[64];
+    g_app.fx_slot = slot;
+    g_app.fx_page = 0;
+    for (int grab = 0; grab < 2; ++grab) {
+      g_app.fx_grab = grab && slot != 2;
+      snprintf(name, sizeof name, "fx-chip-%d%s", slot, g_app.fx_grab ? "-held" : "");
+      check_screen(name, dir, slot == 0 || (slot == 3 && grab));
+    }
+  }
+  g_app.fx_grab = 0;
+  fm1_app_unit_insert(&g_app, 2, 0, -1);
+  fm1_app_unit_set_current(&g_app, 0);
+  fm1_app_unit_select(&g_app, 2, -1);
   fm1_app_select(&g_app, 1, -1);
   g_app.mode = FM1_MODE_HOME;
   g_app.popup_lines = 0;
@@ -2162,7 +2402,7 @@ static void harness_mod_env(fm1_mod_ui_env_t *env) {
  * FM1_MOD_UI_DST_CHARS long; `what` names the list for a fault. */
 static void unique_dests(const fm1_mod_ui_env_t *env, const char *what) {
   static fm1_mod_dest_t list[FM1_MOD_UI_MAX_DESTS];
-  static char names[FM1_MOD_UI_MAX_DESTS][16];
+  static char names[FM1_MOD_UI_MAX_DESTS][16], rows[FM1_MOD_UI_MAX_DESTS][32];
   const int n = fm1_mod_ui_dests(env, list, FM1_MOD_UI_MAX_DESTS);
   for (int i = 0; i < n; ++i) {
     fm1_mod_ui_dest_name(env, &list[i], 0, names[i], sizeof names[i]);
@@ -2170,9 +2410,19 @@ static void unique_dests(const fm1_mod_ui_env_t *env, const char *what) {
       fprintf(stderr, "screens: %s: a short name %s\n", what, names[i]);
       ++g_faults;
     }
+    /* ...and the names a MATRIX row gives them (audit L2), as full as fit. */
+    fm1_mod_ui_dest_fit(env, &list[i], FM1_MOD_UI_ROW_DST, rows[i], sizeof rows[i]);
+    if (strlen(rows[i]) > FM1_MOD_UI_ROW_DST || strchr(rows[i], '?')) {
+      fprintf(stderr, "screens: %s: a row's name %s\n", what, rows[i]);
+      ++g_faults;
+    }
     for (int j = 0; j < i; ++j) {
       if (strcmp(names[i], names[j]) == 0) {
         fprintf(stderr, "screens: %s: two destinations are both %s\n", what, names[i]);
+        ++g_faults;
+      }
+      if (strcmp(rows[i], rows[j]) == 0) {
+        fprintf(stderr, "screens: %s: two rows' destinations are both %s\n", what, rows[i]);
         ++g_faults;
       }
     }
@@ -2255,7 +2505,7 @@ static void mod_names(const char *dir) {
     g_app.mode = FM1_MODE_MATRIX;
     for (int top = 0; top < (int)FM1_MOD_SLOTS; top += FM1_MOD_UI_ROWS) {
       g_app.mui.slot = (uint8_t)top;
-      g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
+      g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
       for (int pg = 0; pg < 2; ++pg) {
         g_app.mui.mpage = (uint8_t)pg;
         snprintf(name, sizeof name, "matrix-kinds-%u-slot%d-%c", base / FM1_MOD_POSITIONS + 1u, top + 1,
@@ -2315,7 +2565,7 @@ static void mod_multi_screens(const char *dir) {
   g_app.mode = FM1_MODE_MATRIX;
   for (int top = 0; top < slot; top += FM1_MOD_UI_ROWS) {
     g_app.mui.slot = (uint8_t)top;
-    g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
+    g_app.mui.top = (uint8_t)(top > (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS ? (int)FM1_MOD_SLOTS - FM1_MOD_UI_ROWS : top);
     for (int pg = 0; pg < 2; ++pg) {
       g_app.mui.mpage = (uint8_t)pg;
       snprintf(name, sizeof name, "matrix-units-slot%d-%c", top + 1, pg ? 'b' : 'a');
@@ -2418,6 +2668,17 @@ static void mod_voice_screens(const char *dir) {
   g_app.mui.page = 1;
   check_screen("rack-voices-p2", dir, 0);
   g_app.mui.page = 0;
+  /* RACK's line past MID's 28 characters ("ENV3  2 out  1 in  1 late  3
+   * voices"): in SMALL, the one place the sweep draws that face. */
+  mod_line("slot 10 env3 > lfo1.rate amt=10");
+  mod_line("slot 11 lfo1 > env3:decay amt=10");        /* a loop: one of the two is late */
+  blocks(2);
+  expect((g_app.mui.plan.delayed >> 9 | g_app.mui.plan.delayed >> 10) & 1u,
+         "the loop through ENV3 and LFO1 has no cable a tick late");
+  check_screen("rack-voices-small", dir, 1);
+  mod_line("slot 10 clear");
+  mod_line("slot 11 clear");
+  blocks(2);
   g_app.mode = FM1_MODE_MATRIX;
   g_app.mui.slot = g_app.mui.top = 0;
   for (int pg = 0; pg < 2; ++pg) {
@@ -2713,7 +2974,7 @@ static void mod_screens(const char *dir, float rate) {
   }
   g_app.mui.mpage = 0;
   turn_now(FM1_ENC_SELECT, 31);
-  expect(g_app.mui.slot == 31 && g_app.mui.top == 25, "SELECT does not scroll to slot 32");
+  expect(g_app.mui.slot == 31 && g_app.mui.top == FM1_MOD_SLOTS - FM1_MOD_UI_ROWS, "SELECT does not scroll to slot 32");
   check_screen("matrix-last", dir, 1);
   turn_now(FM1_ENC_SELECT, -64);
   /* The destination picker: open, at both ends, a group jump, and every
@@ -2859,6 +3120,7 @@ static int run_screens(const char *dir, float rate) {
   }
   g_app.mode = FM1_MODE_HOME;
   g_app.popup_lines = 0;
+  app_ui_screens(dir);
   dx7_screens(dir);
   /* Refusals: an arena too small, and a host rate the Plaits-based engines
    * refuse (last, at its own rate: the Schwung shim keeps its first rate). */
@@ -2883,7 +3145,9 @@ static int run_screens(const char *dir, float rate) {
   multi_screens(dir, rate);
   seq_lock_screens(dir, rate);
   mod_screens(dir, rate);
-  printf("{\"screens\":%d,\"faults\":%d}\n", g_screens, g_faults);
+  printf("{\"screens\":%d,\"faults\":%d,\"text_boxes\":{\"MAIN\":%ld,\"MID\":%ld,\"SMALL\":%ld}}\n",
+         g_screens, g_faults, g_face_boxes[FM1_TFT_MAIN], g_face_boxes[FM1_TFT_MID],
+         g_face_boxes[FM1_TFT_SMALL]);
   return g_faults ? 1 : 0;
 }
 
@@ -3429,7 +3693,7 @@ static void print_mod(void) {
     char row[FM1_MOD_UI_ROW_CHARS + 1];
     if (fm1_mod_ui_empty(u, g_app.mod, i)) continue;
     fm1_mod_get_slot(g_app.mod, i, &s);
-    fm1_mod_ui_row(&env, u, i, 0, row);
+    fm1_mod_ui_row(&env, u, i, 0, row, NULL);
     printf("%s{\"slot\":%u,\"src\":%u,\"via\":%u,\"unit\":%u,\"dst\":%u,\"amount\":%d,"
            "\"offset\":%d,\"flags\":%u,\"row\":", first ? "" : ",", i + 1, s.src, s.via, s.dst_unit,
            s.dst, s.amount, s.offset, s.flags);
@@ -3474,7 +3738,7 @@ static void print_mod(void) {
   {                                    /* CHAIN's lines through the selected slot */
     char lines[FM1_MOD_UI_CHAIN_LINES][FM1_MOD_UI_ROW_CHARS + 1];
     int hl = -1;
-    const int n = fm1_mod_ui_chain(&env, u, u->slot, lines, &hl);
+    const int n = fm1_mod_ui_chain(&env, u, u->slot, lines, NULL, &hl);
     printf("],\"chain_hl\":%d,\"chain\":[", hl);
     for (int k = 0; k < n; ++k) {
       if (k) printf(",");
@@ -3482,6 +3746,243 @@ static void print_mod(void) {
     }
   }
   printf("]}");
+}
+
+/* ---- --font-check and --font-sheet: the three faces (fm1_tft.h, audit D7) ------ */
+
+static const char *const kFontNames[FM1_TFT_FONTS] = { "MAIN", "MID", "SMALL" };
+static fm1_tft_t g_ft;                            /* a frame of its own, not the app's */
+
+/* Two runs, `a` and then `b` beside it (axis 0) or under it (axis 1), `gap`
+ * px apart; b < 0 is a 10 x 10 graphic. The faults the layout check finds. */
+static int font_gap_faults(int a, int b, int axis, int gap) {
+  fm1_tft_begin(&g_ft, 0);
+  g_ft.record = 1;
+  const int x = 20, y = 40;
+  const int w = fm1_tft_font_text(&g_ft, x, y, "Hg", 8, (fm1_tft_font_t)a, 0xFFFF);
+  const int h = fm1_tft_metrics((fm1_tft_font_t)a)->height;
+  const int bx = axis ? x : x + w + gap, by = axis ? y + h + gap : y;
+  if (b < 0) fm1_tft_graphic(&g_ft, bx, by, 10, 10);
+  else fm1_tft_font_text(&g_ft, bx, by, "Hg", 8, (fm1_tft_font_t)b, 0xFFFF);
+  g_ft.record = 0;
+  return fm1_tft_check_layout(&g_ft, FM1_APP_LAYOUT_GAP, NULL, 0);
+}
+
+/* Prints, per face, its metrics, its characters as drawn (each glyph's box,
+ * '#' painted) and what went wrong: a single character's logged box not at
+ * its place and size, a pixel painted outside the box, a run whose logged
+ * width is not fm1_tft_font_width's or FM1_TFT_RUN_W's, a fit count that
+ * disagrees with the widths, a cut run not counted, a span drawn in the
+ * wrong colour or logged as more than one box. Then the 4 px rule between
+ * every pair of faces, and a face and a graphic, side by side and one
+ * above the other, at 3 and 4 px. tests/test_sim_fonts.py compares the
+ * glyphs with the BDF files and font5x9.txt. */
+static int font_check(void) {
+  const char *sample = "The quick brown fox jumps over 13 lazy dogs!";
+  const int line_chars[FM1_TFT_FONTS] = { LINE_CHARS, MID_LINE_CHARS, SMALL_LINE_CHARS };
+  const int pitch[FM1_TFT_FONTS] = { LINE_PITCH, MID_LINE_PITCH, SMALL_LINE_PITCH };
+  int errors = 0;
+  printf("{\"fonts\":[");
+  for (int f = 0; f < FM1_TFT_FONTS; ++f) {
+    const fm1_tft_font_t font = (fm1_tft_font_t)f;
+    const fm1_tft_metrics_t *m = fm1_tft_metrics(font);
+    int box_errors = 0, outside = 0, width_errors = 0, fit_errors = 0;
+    printf("%s{\"name\":\"%s\",\"advance\":%d,\"height\":%d,\"ink_w\":%d,\"cap_h\":%d,"
+           "\"baseline\":%d,\"line_chars\":%d,\"line_pitch\":%d,\"glyphs\":[",
+           f ? "," : "", kFontNames[f], m->advance, m->height, m->ink_w, m->cap_h, m->baseline,
+           line_chars[f], pitch[f]);
+    for (int c = 0x20; c <= 0x7E; ++c) {
+      const char s[2] = { (char)c, 0 };
+      const int x0 = 8, y0 = 8;
+      fm1_tft_begin(&g_ft, 0);
+      g_ft.record = 1;
+      fm1_tft_font_text(&g_ft, x0, y0, s, 1, font, 0xFFFF);
+      g_ft.record = 0;
+      const fm1_tft_box_t *b = &g_ft.boxes[0];
+      if (g_ft.n_boxes != 1 || b->x != x0 || b->y != y0 || b->w != m->ink_w ||
+          b->h != m->height || b->kind != FM1_BOX_TEXT || b->font != f) {
+        ++box_errors;
+      }
+      for (int y = 0; y < FM1_TFT_H; ++y) {
+        for (int x = 0; x < FM1_TFT_W; ++x) {
+          const int in = x >= x0 && x < x0 + m->ink_w && y >= y0 && y < y0 + m->height;
+          if (!in && g_ft.px[y * FM1_TFT_W + x]) ++outside;
+        }
+      }
+      printf("%s[", c > 0x20 ? "," : "");
+      for (int y = 0; y < m->height; ++y) {
+        putchar(y ? ',' : ' ');
+        putchar('"');
+        for (int x = 0; x < m->ink_w; ++x) putchar(g_ft.px[(y0 + y) * FM1_TFT_W + x0 + x] ? '#' : '.');
+        putchar('"');
+      }
+      printf("]");
+    }
+    for (int n = 0; n <= (int)strlen(sample); ++n) {      /* run widths and fit counts */
+      fm1_tft_begin(&g_ft, 0);
+      g_ft.record = 1;
+      const int w = fm1_tft_font_text(&g_ft, 0, 0, sample, n, font, 0xFFFF);
+      g_ft.record = 0;
+      const int want = FM1_TFT_RUN_W(m->advance, m->ink_w, n);
+      if (w != want || fm1_tft_font_width(sample, n, font) != want ||
+          (n && (g_ft.n_boxes != 1 || g_ft.boxes[0].w != want)) || (!n && g_ft.n_boxes)) {
+        ++width_errors;
+      }
+      if (n && (fm1_tft_font_fit(want, font) != n || fm1_tft_font_fit(want - 1, font) != n - 1)) {
+        ++fit_errors;
+      }
+    }
+    if (fm1_tft_font_fit(FM1_TFT_W - 2 * 6, font) != line_chars[f]) ++fit_errors;
+    errors += box_errors + outside + width_errors + fit_errors;
+    printf("],\"box_errors\":%d,\"outside\":%d,\"width_errors\":%d,\"fit_errors\":%d}", box_errors,
+           outside, width_errors, fit_errors);
+  }
+  printf("],\"gaps\":[");
+  int first = 1;
+  for (int a = 0; a < FM1_TFT_FONTS; ++a) {
+    for (int b = -1; b < FM1_TFT_FONTS; ++b) {
+      for (int axis = 0; axis < 2; ++axis) {
+        for (int gap = 3; gap <= 4; ++gap) {
+          const int faults = font_gap_faults(a, b, axis, gap);
+          errors += faults != (gap < FM1_APP_LAYOUT_GAP);
+          printf("%s{\"a\":\"%s\",\"b\":\"%s\",\"axis\":\"%c\",\"gap\":%d,\"faults\":%d}",
+                 first ? "" : ",", kFontNames[a], b < 0 ? "graphic" : kFontNames[b],
+                 axis ? 'y' : 'x', gap, faults);
+          first = 0;
+        }
+      }
+    }
+  }
+  printf("],\"runs\":[");
+  for (int f = 0; f < FM1_TFT_FONTS; ++f) {
+    const fm1_tft_font_t font = (fm1_tft_font_t)f;
+    const fm1_tft_metrics_t *m = fm1_tft_metrics(font);
+    /* A run cut short by max_chars is a fault; one that fits is not. */
+    fm1_tft_begin(&g_ft, 0);
+    g_ft.record = 1;
+    fm1_tft_font_text(&g_ft, 6, 30, "S1 Timbre", 4, font, 0xFFFF);
+    g_ft.record = 0;
+    const int cut = fm1_tft_check_layout(&g_ft, FM1_APP_LAYOUT_GAP, NULL, 0);
+    /* A box past the right edge by one pixel is off screen; at the edge it
+     * is not. */
+    int edge[2];
+    for (int k = 0; k < 2; ++k) {
+      fm1_tft_begin(&g_ft, 0);
+      g_ft.record = 1;
+      fm1_tft_font_text(&g_ft, FM1_TFT_W - FM1_TFT_RUN_W(m->advance, m->ink_w, 3) + k, 30, "Hgy",
+                        3, font, 0xFFFF);
+      g_ft.record = 0;
+      edge[k] = fm1_tft_check_layout(&g_ft, FM1_APP_LAYOUT_GAP, NULL, 0);
+    }
+    /* MATRIX's row as one multi-colour run (audit L2), and a NULL span. */
+    const fm1_tft_span_t spans[4] = {
+      { "LFO1", RP_FOAM }, { ">", RP_SUBTLE }, { NULL, RP_LOVE }, { "S1 Timbre +100", RP_TEXT },
+    };
+    const uint16_t colour_of[19] = {
+      RP_FOAM, RP_FOAM, RP_FOAM, RP_FOAM, RP_SUBTLE, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT,
+      RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT, RP_TEXT,
+    };
+    const int x0 = 2, y0 = 40;
+    fm1_tft_begin(&g_ft, RP_BASE);
+    g_ft.record = 1;
+    const int w = fm1_tft_span_text(&g_ft, x0, y0, spans, 4, 40, font);
+    g_ft.record = 0;
+    const int span_boxes = g_ft.n_boxes, span_faults = fm1_tft_check_layout(&g_ft, 4, NULL, 0);
+    int colour_errors = 0, painted = 0;
+    for (int i = 0; i < 19; ++i) {
+      int any = 0;
+      for (int y = y0; y < y0 + m->height; ++y) {
+        for (int x = x0 + i * m->advance; x < x0 + (i + 1) * m->advance && x < FM1_TFT_W; ++x) {
+          const uint16_t p = g_ft.px[y * FM1_TFT_W + x];
+          if (p == RP_BASE) continue;
+          any = 1;
+          if (p != colour_of[i]) ++colour_errors;
+        }
+      }
+      painted += any;
+    }
+    /* The same spans cut at 6 characters: one truncated run, 6 wide. */
+    fm1_tft_begin(&g_ft, RP_BASE);
+    g_ft.record = 1;
+    const int w6 = fm1_tft_span_text(&g_ft, x0, y0, spans, 4, 6, font);
+    g_ft.record = 0;
+    const int cut6 = g_ft.truncated;
+    /* MAIN in a face is fm1_tft_text at x2, pixel for pixel and box for box. */
+    int main_same = 1;
+    if (font == FM1_TFT_MAIN) {
+      static fm1_tft_t ref;
+      fm1_tft_begin(&ref, RP_BASE);
+      fm1_tft_begin(&g_ft, RP_BASE);
+      ref.record = g_ft.record = 1;
+      fm1_tft_text(&ref, 7, 33, sample, 12, 2, RP_TEXT);
+      fm1_tft_font_text(&g_ft, 7, 33, sample, 12, FM1_TFT_MAIN, RP_TEXT);
+      ref.record = g_ft.record = 0;
+      main_same = memcmp(ref.px, g_ft.px, sizeof ref.px) == 0 && ref.n_boxes == 1 &&
+                  g_ft.n_boxes == 1 && ref.truncated == 1 && g_ft.truncated == 1 &&
+                  memcmp(&ref.boxes[0], &g_ft.boxes[0], sizeof ref.boxes[0]) == 0;
+    }
+    const int want = FM1_TFT_RUN_W(m->advance, m->ink_w, 19);
+    errors += cut != 1 || edge[0] != 0 || edge[1] != 1 || span_boxes != 1 || span_faults != 0 ||
+              w != want || colour_errors || painted != 17 || cut6 != 1 ||
+              w6 != FM1_TFT_RUN_W(m->advance, m->ink_w, 6) || !main_same ||
+              fm1_tft_span_width(spans, 4, 40, font) != want;
+    printf("%s{\"font\":\"%s\",\"cut_faults\":%d,\"edge_faults\":[%d,%d],\"span_boxes\":%d,"
+           "\"span_faults\":%d,\"span_w\":%d,\"span_want_w\":%d,\"colour_errors\":%d,"
+           "\"painted\":%d,\"cut6\":%d,\"w6\":%d,\"main_same\":%d}",
+           f ? "," : "", kFontNames[f], cut, edge[0], edge[1], span_boxes, span_faults, w, want,
+           colour_errors, painted, cut6, w6, main_same);
+  }
+  printf("],\"errors\":%d}\n", errors);
+  return errors ? 1 : 0;
+}
+
+/* --font-sheet FILE.ppm: both Spleen faces' characters and a few names in
+ * MID and SMALL, under MAIN headings, as one screen that passes the layout
+ * check; prints its faults and boxes. A sheet to look at, not a page. */
+static int font_sheet(const char *path) {
+  static const struct { int font; const char *s; uint16_t color; } rows[] = {
+    { FM1_TFT_MAIN, "MID: Spleen 8x16", RP_IRIS },
+    { FM1_TFT_MID, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", RP_TEXT },
+    { FM1_TFT_MID, "abcdefghijklmnopqrstuvwxyz", RP_TEXT },
+    { FM1_TFT_MID, "0123456789 !\"#$%&'()*+,-./:;", RP_TEXT },
+    { FM1_TFT_MID, "<=>?@[\\]^_`{|}~  S1 Timbre", RP_TEXT },
+    { FM1_TFT_MAIN, "SMALL: Spleen 6x12", RP_IRIS },
+    { FM1_TFT_SMALL, "ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789", RP_TEXT },
+    { FM1_TFT_SMALL, "abcdefghijklmnopqrstuvwxyz", RP_TEXT },
+    { FM1_TFT_SMALL, "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~", RP_TEXT },
+  };
+  fm1_tft_begin(&g_ft, RP_BASE);
+  g_ft.record = 1;
+  int y = 4;
+  for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+    const fm1_tft_font_t font = (fm1_tft_font_t)rows[i].font;
+    fm1_tft_font_text(&g_ft, MARGIN, y, rows[i].s, 40, font, rows[i].color);
+    y += fm1_tft_metrics(font)->height + FM1_APP_LAYOUT_GAP;
+  }
+  const fm1_tft_span_t matrix[3] = {
+    { "LFO1", RP_FOAM }, { " > ", RP_SUBTLE }, { "S1 Timbre  +100", RP_TEXT },
+  };
+  fm1_tft_span_text(&g_ft, MARGIN, y, matrix, 3, MID_LINE_CHARS, FM1_TFT_MID);
+  y += MID_LINE_PITCH;
+  const fm1_tft_span_t matrix2[3] = {
+    { "ENV2", RP_FOAM }, { " ~ ", RP_SUBTLE }, { "M2 Ping-Pong Delay Feedback -35", RP_TEXT },
+  };
+  fm1_tft_span_text(&g_ft, MARGIN, y, matrix2, 3, SMALL_LINE_CHARS, FM1_TFT_SMALL);
+  y += SMALL_LINE_PITCH;
+  /* A MAIN name and a MID place on one baseline. */
+  fm1_tft_font_text(&g_ft, MARGIN, y, "Six-Op FM", 20, FM1_TFT_MAIN, RP_TEXT);
+  const char *place = "34/96";
+  fm1_tft_font_text(&g_ft, RIGHT - fm1_tft_font_width(place, 8, FM1_TFT_MID),
+                    y + FM1_TFT_MAIN_BASELINE - FM1_TFT_MID_BASELINE, place, 8, FM1_TFT_MID,
+                    RP_SUBTLE);
+  g_ft.record = 0;
+  const int faults = fm1_tft_check_layout(&g_ft, FM1_APP_LAYOUT_GAP, NULL, 0);
+  printf("{\"faults\":%d,\"boxes\":%d,\"bottom\":%d}\n", faults, g_ft.n_boxes, y + FM1_TFT_MAIN_H);
+  if (!write_ppm(path, &g_ft)) {
+    fprintf(stderr, "cannot write %s\n", path);
+    return 2;
+  }
+  return faults ? 1 : 0;
 }
 
 /* ---- the render ---------------------------------------------------------------- */
@@ -3790,6 +4291,7 @@ int main(int argc, char **argv) {
     if (strcmp(a, "--format-check") == 0) return format_check();
     if (strcmp(a, "--lock-check") == 0) return lock_check();
     if (strcmp(a, "--mod-format-check") == 0) return mod_format_check();
+    if (strcmp(a, "--font-check") == 0) return font_check();
     if (strcmp(a, "--slots") == 0) continue;                 /* implied: the app routes by slot */
     if (strcmp(a, "--start") == 0) { g_start = 1; continue; }
     if (i + 1 >= argc) { usage(); return 2; }
@@ -3804,6 +4306,7 @@ int main(int argc, char **argv) {
       if (strcmp(a, "--sound-note") == 0) side_note_pair_later = 1;
     }
     if (strcmp(a, "--screens") == 0) return run_screens(v, rate);
+    if (strcmp(a, "--font-sheet") == 0) return font_sheet(v);
     else if (is_multi_flag(a)) {
       if (!add_multi(a, v)) { fprintf(stderr, "bad %s %s\n", a, v); return 2; }
       if (side_note_pair_later) side_note_pair();          /* the --sound-note just added */
@@ -4284,10 +4787,30 @@ int main(int argc, char **argv) {
   }
   printf("]");
   if (g_app.popup_lines && g_app.popup_total > 0) {   /* a list's window: popup[0] is entry first */
+    static const char *const kFace[] = { "MAIN", "MID", "SMALL" };
     printf(",\"popup_list\":{\"title\":\"%s\",\"first\":%d,\"total\":%d,\"mark\":%d}",
            g_app.popup_title, g_app.popup_first, g_app.popup_total, g_app.popup_mark);
+    /* Its face and the most entries that face shows (fm1_panel.h). */
+    printf(",\"popup_face\":\"%s\",\"popup_rows\":%d",
+           g_app.popup_face >= 0 && g_app.popup_face < 3 ? kFace[g_app.popup_face] : "?",
+           fm1_list_rows(g_app.popup_face));
+    /* Each entry's sound + 1 when its "S<n>" is drawn in that sound's colour. */
+    printf(",\"popup_tags\":[");
+    for (int i = 0; i < g_app.popup_lines; ++i) {
+      printf(i ? ",%u" : "%u", (unsigned)((g_app.popup_tag >> (4 * i)) & 15u));
+    }
+    printf("]");
   } else {
+    char banner[FM1_LIST_ENTRY];
     printf(",\"popup_list\":null");
+    if (g_app.popup_lines) {               /* a message: a refusal, a banner or a popup */
+      printf(",\"popup_tone\":\"%s\"", g_app.popup_tone == FM1_APP_TONE_SAY ? "say" : "refuse");
+      const int face = fm1_app_banner(&g_app, banner, sizeof banner);
+      if (face) {
+        printf(",\"popup_banner\":\"%s\",\"popup_banner_face\":\"%s\"", banner,
+               face == 1 + FM1_TFT_MID ? "MID" : "MAIN");
+      }
+    }
   }
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
     printf(",\"values%d\":[", u);

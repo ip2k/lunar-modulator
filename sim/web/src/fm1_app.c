@@ -201,46 +201,165 @@ static void popup(fm1_app_t *a, const char *l0, const char *l1, const char *l2, 
   a->popup_mark = mark;
   a->popup_title[0] = '\0';
   a->popup_first = a->popup_total = 0;
+  a->popup_face = FM1_LIST_MAIN;
+  a->popup_tone = FM1_APP_TONE_SAY;
+  a->popup_title_tag = 0;
   a->popup_dim = 0;
+  a->popup_tag = 0;
   a->popup_until = a->frames + (uint64_t)a->host.sample_rate;   /* about a second */
   a->dirty = 1;
 }
 
-/* Entry k of a list popup's list, into buf; 1 to draw it dim. */
+/* A refusal (audit Q2): the full popup, its reason in C_REFUSE (`tone`
+ * FM1_APP_TONE_REFUSE when l0 names what was refused, else _REFUSE_ALL). */
+static void refuse(fm1_app_t *a, int tone, const char *l0, const char *l1, const char *l2) {
+  popup(a, l0, l1, l2, -1);
+  a->popup_tone = tone;
+}
+
+/* Entry k of a list popup's list, into buf (FM1_LIST_ENTRY bytes): its
+ * flags, LIST_DIM to draw it dim, and LIST_TAG(sound) when it starts with
+ * that sound's tag ("S2 Shapes"), drawn in the sound's colour. */
+#define LIST_DIM 1
+#define LIST_TAG(sound) (((sound) + 1) << 4)
 typedef int (*list_entry_fn)(const fm1_app_t *a, const void *ctx, int k, char *buf, size_t size);
 
-/* A list popup, for as long as a message's: `title`, entry `sel` of
- * `total` chosen, and the window of entries around it that the screen
- * shows (fm1_list_first), each named by `name`. */
-static void list_popup(fm1_app_t *a, const char *title, int total, int sel, list_entry_fn name,
-                       const void *ctx) {
-  const int first = fm1_list_first(total, sel, FM1_LIST_ROWS);
+/* A list popup, for as long as a message's: `title` (its tag, LIST_TAG or
+ * 0), entries first..first + n - 1 of `total`, the one at `sel` chosen, in
+ * `face` (fm1_panel.h), each named by `name`. */
+static void list_window(fm1_app_t *a, const char *title, int title_tag, int total, int first, int n,
+                        int sel, int face, list_entry_fn name, const void *ctx) {
+  if (n > fm1_list_rows(face)) n = fm1_list_rows(face);
   a->popup_lines = 0;
   a->popup_dim = 0;
-  for (int r = 0; r < FM1_LIST_ROWS && first + r < total; ++r) {
-    if (name(a, ctx, first + r, a->popup[r], sizeof a->popup[r])) a->popup_dim |= 1u << r;
+  a->popup_tag = 0;
+  for (int r = 0; r < n && first + r < total; ++r) {
+    const int f = name(a, ctx, first + r, a->popup[r], sizeof a->popup[r]);
+    if (f & LIST_DIM) a->popup_dim |= 1u << r;
+    a->popup_tag |= (uint64_t)((f >> 4) & 15) << (4 * r);
     a->popup_lines = r + 1;
   }
   snprintf(a->popup_title, sizeof a->popup_title, "%s", title);
+  a->popup_title_tag = (title_tag >> 4) & 15;
   a->popup_first = first;
   a->popup_total = total;
   a->popup_mark = sel - first;
+  a->popup_face = face;
+  a->popup_tone = FM1_APP_TONE_SAY;
   a->popup_until = a->frames + (uint64_t)a->host.sample_rate;
   a->dirty = 1;
 }
 
-/* Why fm1_app_select refused registry entry `index`, as a popup. */
+/* The face a list is drawn in (audit D9): MAIN, the largest, when the
+ * whole list fits it (FM1_LIST_ROWS entries or fewer, every name within
+ * its line: the Filter's six types, the Drive's five), else `face`. */
+static int whole_list_face(const fm1_app_t *a, int total, list_entry_fn name, const void *ctx,
+                           int face) {
+  char buf[FM1_LIST_ENTRY];
+  if (face == FM1_LIST_MAIN || total > FM1_LIST_ROWS) return face;
+  for (int k = 0; k < total; ++k) {
+    name(a, ctx, k, buf, sizeof buf);
+    if ((int)strlen(buf) > fm1_list_chars(FM1_LIST_MAIN)) return face;
+  }
+  return FM1_LIST_MAIN;
+}
+
+/* The window around entry `sel` that the screen shows in `face`, or in
+ * MAIN when the whole list fits it (fm1_list_first: the choice on the
+ * third row where it can be). */
+static void list_popup(fm1_app_t *a, const char *title, int title_tag, int total, int sel,
+                       list_entry_fn name, const void *ctx, int face) {
+  face = whole_list_face(a, total, name, ctx, face);
+  const int rows = fm1_list_rows(face);
+  list_window(a, title, title_tag, total, fm1_list_first(total, sel, rows), rows, sel, face, name, ctx);
+}
+
+/* Why fm1_app_select refused registry entry `index`, as a refusal. */
 static void refusal_popup(fm1_app_t *a, int index, int code) {
   char why[24], over[24];
   if (code == FM1_APP_SELECT_RAM) {       /* the meter: by how much, in KB rounded up */
     snprintf(over, sizeof over, "%uK over budget", (unsigned)((a->ram_over + 1023u) / 1024u));
-    popup(a, entry(index) ? entry(index)->name : "?", "does not fit", over, -1);
+    refuse(a, FM1_APP_TONE_REFUSE, entry(index) ? entry(index)->name : "?", "does not fit", over);
     return;
   }
   if (code == -2) snprintf(why, sizeof why, "does not fit");
   else if (code == -3) snprintf(why, sizeof why, "refuses %.0f Hz", (double)a->host.sample_rate);
   else snprintf(why, sizeof why, "cannot load");
-  popup(a, entry(index) ? entry(index)->name : "?", why, NULL, -1);
+  refuse(a, FM1_APP_TONE_REFUSE, entry(index) ? entry(index)->name : "?", why, NULL);
+}
+
+/* ---- full names (audit D9) ------------------------------------------------------- */
+
+/* Each short form an engine, effect or list entry offers, and the name it
+ * stands for, from the engine's own source [verified 2026-10-06]: the
+ * effects' credits (engines/src/fx_*.cc: "a feed-forward compressor",
+ * "bus saturation", "low shelf, bell and high shelf", "a transient
+ * shaper"), Macro's and Macro Heavy's Model enums (mi_macro.cc,
+ * mi_macro_heavy.cc: MODEL_PHASE_DIST, MODEL_WAVE_TERRAIN, MODEL_CHIPTUNE,
+ * MODEL_WAVESHAPING, MODEL_FM2, MODEL_STRING_MACHINE, MODEL_NOISE, Plaits'
+ * filtered noise), Braids' MACRO_OSC_SHAPE_* for Shapes (braids/settings.h),
+ * PSX Verb's presets (psxverb.c: "Studio Small", "Medium", "Large") and
+ * the Filter's types (fx_filter.cc: "an equal-component Sallen-Key whose
+ * inputs are mixed"). Names already whole, and well-known initials (VA,
+ * FM, LP), stay as they are. */
+static const char *const kFullNames[][2] = {
+  { "Comp", "Compressor" },
+  { "Master Sat", "Master Saturation" },
+  { "EQ", "Equaliser" },
+  { "Transient", "Transient Shaper" },
+  { "PhaseDist", "Phase Distortion" },
+  { "Terrain", "Wave Terrain" },
+  { "Chip", "Chiptune" },
+  { "Shaper", "Waveshaping" },
+  { "2-op FM", "Two-Operator FM" },
+  { "Str Machine", "String Machine" },
+  { "Filt Noise", "Filtered Noise" },
+  { "Saw/Sqr", "Saw/Square" },
+  { "Sine/Tri", "Sine/Triangle" },
+  { "Sqr Sub", "Square Sub" },
+  { "Sqr Sync", "Square Sync" },
+  { "3x Saw", "Triple Saw" },
+  { "3x Sqr", "Triple Square" },
+  { "3x Tri", "Triple Triangle" },
+  { "3x Sine", "Triple Sine" },
+  { "3x Ring", "Triple Ring Mod" },
+  { "LP Flt", "LP Filter" },
+  { "Peak Flt", "Peak Filter" },
+  { "BP Flt", "BP Filter" },
+  { "HP Flt", "HP Filter" },
+  { "FB FM", "Feedback FM" },
+  { "Chaos FM", "Chaotic Feedback FM" },
+  { "Wavetbl", "Wavetables" },
+  { "Twin Peak", "Twin Peaks Noise" },
+  { "Clk Noise", "Clocked Noise" },
+  { "Granular", "Granular Cloud" },
+  { "Particle", "Particle Noise" },
+  { "Digital", "Digital Modulation" },
+  { "Studio S", "Studio Small" },
+  { "Studio M", "Studio Medium" },
+  { "Studio L", "Studio Large" },
+  { "SK Mixed", "Sallen-Key Mixed" },
+  /* Sophie's and Drums' pads: General MIDI's drum keys 42-48 by their GM
+   * names (engines/README.md, "Drums"). */
+  { "7 Closed HH", "7 Closed Hi-Hat" },
+  { "9 Pedal HH", "9 Pedal Hi-Hat" },
+  { "11 Open HH", "11 Open Hi-Hat" },
+  { "12 Low-Mid", "12 Low-Mid Tom" },
+  { "13 High-Mid", "13 High-Mid Tom" },
+  /* The arp's modes and its host-stepped rate (engines/midi_fx/README.md). */
+  { "Conv-Div", "Converge-Diverge" },
+  { "Up Top Oct", "Up Top Octave" },
+  { "Down Low Oct", "Down Low Octave" },
+  { "Up Alt Oct", "Up Alternate Octave" },
+  { "Down Alt Oct", "Down Alternate Octave" },
+  { "TRG", "Trigger" },
+};
+
+const char *fm1_look_full_name(const char *name) {
+  for (size_t i = 0; name && i < sizeof kFullNames / sizeof kFullNames[0]; ++i) {
+    if (strcmp(name, kFullNames[i][0]) == 0) return kFullNames[i][1];
+  }
+  return name;
 }
 
 /* ---- the sequencer's panel UI (fm1_seq_ui.h) ------------------------------------- */
@@ -289,6 +408,34 @@ static void ui_snap(fm1_app_t *a) {
   }
 }
 
+/* SHIFT + 16's quantize walks a list (0, the set's default, 100: see
+ * fm1_seq_ui_next_quant), so its toast is that list (audit D1), the clip's
+ * new value chosen. */
+typedef struct quant_list {
+  unsigned pct[3];
+  int n;
+} quant_list_t;
+
+static int quant_entry(const fm1_app_t *a, const void *ctx, int k, char *buf, size_t size) {
+  (void)a;
+  snprintf(buf, size, "%u%%", ((const quant_list_t *)ctx)->pct[k]);
+  return 0;
+}
+
+static void quant_popup(fm1_app_t *a, unsigned q) {
+  quant_list_t l;
+  const unsigned d = a->ui.dq > 100u ? 100u : a->ui.dq;
+  int sel = 0;
+  l.n = 0;
+  l.pct[l.n++] = 0u;
+  if (d != 0u && d != 100u) l.pct[l.n++] = d;
+  l.pct[l.n++] = 100u;
+  for (int k = 0; k < l.n; ++k) {
+    if (l.pct[k] == q) sel = k;
+  }
+  list_popup(a, "Clip quantize", 0, l.n, sel, quant_entry, &l, FM1_LIST_MAIN);
+}
+
 /* The UI's toast, if any, as a popup. */
 static void ui_toast(fm1_app_t *a) {
   switch (a->ui.toast) {
@@ -305,15 +452,10 @@ static void ui_toast(fm1_app_t *a) {
     }
     case FM1_SEQ_TOAST_METRO_ON: popup(a, "Metronome", "on", NULL, -1); break;
     case FM1_SEQ_TOAST_METRO_OFF: popup(a, "Metronome", "off", NULL, -1); break;
-    case FM1_SEQ_TOAST_QUANT: {
-      char line[24];
-      snprintf(line, sizeof line, "%u%%", (unsigned)a->ui.toast_arg);
-      popup(a, "Clip quantize", line, NULL, -1);
-      break;
-    }
-    case FM1_SEQ_TOAST_LANES_FULL: popup(a, "8 lanes used", NULL, NULL, -1); break;
+    case FM1_SEQ_TOAST_QUANT: quant_popup(a, a->ui.toast_arg); break;
+    case FM1_SEQ_TOAST_LANES_FULL: refuse(a, FM1_APP_TONE_REFUSE_ALL, "8 lanes used", NULL, NULL); break;
     case FM1_SEQ_TOAST_NOLOCK:
-      popup(a, lock_param_name(a, a->ui.toast_arg), "cannot be locked", NULL, -1);
+      refuse(a, FM1_APP_TONE_REFUSE, lock_param_name(a, a->ui.toast_arg), "cannot be locked", NULL);
       break;
     case FM1_SEQ_TOAST_LOCK_CLEARED:
       popup(a, lock_param_name(a, a->ui.toast_arg), "lock cleared", NULL, -1);
@@ -800,7 +942,8 @@ int fm1_app_dx7_load(fm1_app_t *a, const uint8_t *data, size_t len, fm1_dx7_syse
   d->last = r;
   if (res) *res = r;
   if (n <= 0) {
-    popup(a, "No DX7 voices", n == FM1_APP_DX7_TOO_BIG ? "file too large" : "in that file", NULL, -1);
+    refuse(a, FM1_APP_TONE_REFUSE_ALL, "No DX7 voices",
+           n == FM1_APP_DX7_TOO_BIG ? "file too large" : "in that file", NULL);
     return n;
   }
   d->next = (r.first_slot + (unsigned)n) % FM1_DX7_USER_SLOTS;
@@ -1283,8 +1426,9 @@ static void show_signed(fm1_app_t *a, const char *what, int v) {
   popup(a, buf, NULL, NULL, -1);
 }
 
+/* A button the simulator does not have yet: refused, by name. */
 static void stub_popup(fm1_app_t *a, int button) {
-  popup(a, kButtonNames[button], "not in the", "simulator yet", -1);
+  refuse(a, FM1_APP_TONE_REFUSE, kButtonNames[button], "not in the", "simulator yet");
 }
 
 /* ---- modulation on the panel (fm1_mod_ui.h) ------------------------------------ */
@@ -1294,12 +1438,21 @@ static int say_entry(const fm1_app_t *a, const void *ctx, int k, char *buf, size
   const int r = k - s->first;            /* the same window: fm1_list_first both times */
   (void)a;
   snprintf(buf, size, "%s", r >= 0 && r < s->n ? s->line[r] : "");
-  return r >= 0 && r < s->n && ((s->dim >> r) & 1u);
+  if (r < 0 || r >= s->n) return 0;
+  return (((s->dim >> r) & 1u) ? LIST_DIM : 0) | (s->tag[r] ? LIST_TAG(s->tag[r] - 1) : 0);
 }
 
-static void say(fm1_app_t *a, const fm1_mod_ui_say_t *s) {
-  if (s->n > 0 && s->total > 0) {        /* a picker's list: the window it chose */
-    list_popup(a, s->title, s->total, s->first + s->mark, say_entry, s);
+/* What a modulation gesture or picker says, as a popup: a picker's list in
+ * the window it chose (fm1_mod_ui fills it for the face fm1_panel.h names
+ * for that picker, FM1_LIST_FACE_KIND or _DEST), or a message; `refused`
+ * when the gesture was refused (fm1_mod_ui_route returned 0: "takes no
+ * cable", "Matrix full"), so the message is a refusal (audit Q2). */
+static void say(fm1_app_t *a, const fm1_mod_ui_say_t *s, int refused) {
+  if (s->n > 0 && s->total > 0) {
+    const int face = a->mui.picker == FM1_MOD_PICK_DEST ? FM1_LIST_FACE_DEST : FM1_LIST_FACE_KIND;
+    list_window(a, s->title, 0, s->total, s->first, s->n, s->first + s->mark, face, say_entry, s);
+  } else if (s->n > 0 && refused) {
+    refuse(a, FM1_APP_TONE_REFUSE, s->line[0], s->n > 1 ? s->line[1] : NULL, s->n > 2 ? s->line[2] : NULL);
   } else if (s->n > 0) {
     popup(a, s->line[0], s->n > 1 ? s->line[1] : NULL, s->n > 2 ? s->line[2] : NULL, s->mark);
   }
@@ -1359,7 +1512,8 @@ static int mod_button(fm1_app_t *a, int button, int down) {
         const int other = button == FM1_BTN_ENV ? FM1_BTN_LFO : FM1_BTN_ENV;
         if (!u->held_used) {              /* a tap */
           if (!fm1_mod_ui_open_rack(u, a->mod, kind_of_button(button), a->mode == FM1_MODE_RACK)) {
-            popup(a, button == FM1_BTN_LFO ? "No LFO" : "No envelope", "in the rack", NULL, -1);
+            refuse(a, FM1_APP_TONE_REFUSE_ALL, button == FM1_BTN_LFO ? "No LFO" : "No envelope",
+                   "in the rack", NULL);
           }
           set_mode(a, FM1_MODE_RACK);
           a->fx_grab = 0;
@@ -1404,9 +1558,11 @@ static int mod_button(fm1_app_t *a, int button, int down) {
 /* Hold ENV or LFO and turn KNOB1-4 on HOME, FX or RACK: a cable from the
  * selected Envelope or LFO to that knob's parameter (docs/16's quick
  * assign), its amount following the turn. On HOME the parameter is the
- * current sound's; in FX mode, the slot's effect's. */
-static void mod_gesture(fm1_app_t *a, const fm1_mod_ui_env_t *env, int knob, int delta,
-                        fm1_mod_ui_say_t *out) {
+ * current sound's; in FX mode, the slot's effect's. Returns 1 when the
+ * gesture was refused ("takes no cable", "Matrix full"), 2 when there is
+ * no module to route from ("No LFO / in the rack"), else 0. */
+static int mod_gesture(fm1_app_t *a, const fm1_mod_ui_env_t *env, int knob, int delta,
+                       fm1_mod_ui_say_t *out) {
   fm1_mod_ui_t *u = &a->mui;
   const int src = fm1_mod_ui_selected(u, a->mod, kind_of_button(u->held));
   int idx[4], n;
@@ -1415,7 +1571,7 @@ static void mod_gesture(fm1_app_t *a, const fm1_mod_ui_env_t *env, int knob, int
   if (a->mode == FM1_MODE_RACK) {
     const int k = fm1_mod_kind_at(a->mod, u->pos);
     n = fm1_mod_ui_rack_params(a->mod, u->pos, u->page, idx);
-    if (k < 0 || knob >= n) return;
+    if (k < 0 || knob >= n) return 0;
     d.unit = (uint8_t)(FM1_MOD_MODULE + u->pos);
     d.dst = fm1_mod_kinds[k]->params[idx[knob]].uid;
   } else {
@@ -1423,7 +1579,7 @@ static void mod_gesture(fm1_app_t *a, const fm1_mod_ui_env_t *env, int knob, int
     const int code = unit >= 0 ? fm1_app_mod_unit(unit) : -1;
     const fm1_engine_t *e = unit >= 0 ? a->unit[unit].e : NULL;
     n = page_params(e, a->mode == FM1_MODE_FX ? a->fx_page : a->page, idx);
-    if (!e || code < 0 || knob >= n || idx[knob] >= (int)FM1_MOD_UNIT_PARAMS) return;
+    if (!e || code < 0 || knob >= n || idx[knob] >= (int)FM1_MOD_UNIT_PARAMS) return 0;
     d.unit = (uint8_t)code;
     d.dst = e->params[idx[knob]].uid;
   }
@@ -1433,9 +1589,9 @@ static void mod_gesture(fm1_app_t *a, const fm1_mod_ui_env_t *env, int knob, int
     out->mark = -1;
     snprintf(out->line[0], sizeof out->line[0], "%s", u->held == FM1_BTN_LFO ? "No LFO" : "No envelope");
     snprintf(out->line[1], sizeof out->line[1], "in the rack");
-    return;
+    return 2;
   }
-  fm1_mod_ui_route(env, u, (unsigned)src, &d, delta, out);
+  return fm1_mod_ui_route(env, u, (unsigned)src, &d, delta, out) ? 0 : 1;
 }
 
 /* The modulation pages' encoders, and the gesture. 1 when the turn was
@@ -1448,6 +1604,7 @@ static int mod_encoder(fm1_app_t *a, int encoder, int delta) {
   const int knob = encoder >= FM1_ENC_KNOB1 ? encoder - FM1_ENC_KNOB1 : -1;
   const int oct = a->button_down[FM1_BTN_OCT_DOWN] || a->button_down[FM1_BTN_OCT_UP];
   const int algo = encoder == FM1_ENC_ALGORITHM && !oct;
+  int refused = 0;
   out.n = 0;
   out.mark = -1;
   out.total = 0;                         /* a message, unless a picker says a list */
@@ -1464,7 +1621,7 @@ static int mod_encoder(fm1_app_t *a, int encoder, int delta) {
   if (u->held != FM1_MOD_UI_NONE) u->held_used = 1;
   if (knob >= 0 && u->held != FM1_MOD_UI_NONE &&
       (a->mode == FM1_MODE_HOME || a->mode == FM1_MODE_FX || a->mode == FM1_MODE_RACK)) {
-    mod_gesture(a, &env, knob, delta, &out);
+    refused = mod_gesture(a, &env, knob, delta, &out);
   } else if (a->mode == FM1_MODE_RACK) {
     if (encoder == FM1_ENC_SELECT) fm1_mod_ui_rack_select(&env, u, delta);
     else if (algo) fm1_mod_ui_rack_algorithm(&env, u, delta, &out);
@@ -1485,7 +1642,11 @@ static int mod_encoder(fm1_app_t *a, int encoder, int delta) {
   } else {
     return 0;
   }
-  say(a, &out);
+  if (refused == 2) {
+    refuse(a, FM1_APP_TONE_REFUSE_ALL, out.line[0], out.line[1], NULL);
+  } else {
+    say(a, &out, refused);
+  }
   a->dirty = 1;
   return 1;
 }
@@ -1701,12 +1862,29 @@ static int next_preset(const fm1_app_t *a, int from, int dir) {
 
 static const char *entry_name(int index) { return index < 0 ? "Empty" : fm1_engines[index]->name; }
 
-/* ALGORITHM's list: entry k of an ENUM parameter, by name. */
+/* ALGORITHM's list, and a knob's on a list parameter: entry k of an ENUM
+ * parameter, by its full name. */
 static int enum_entry(const fm1_app_t *a, const void *ctx, int k, char *buf, size_t size) {
   const fm1_param_t *p = (const fm1_param_t *)ctx;
+  char v[FM1_LIST_ENTRY];
   (void)a;
-  fm1_look_value(p, p->min + (float)k, buf, size);
+  fm1_look_value(p, p->min + (float)k, v, sizeof v);
+  snprintf(buf, size, "%s", fm1_look_full_name(v));
   return 0;
+}
+
+/* A list parameter (audit D1): an ENUM long enough that turning its knob
+ * opens its list, as ALGORITHM does, rather than only changing the row;
+ * a shorter one (Off/On, Gate/Ping/Off) changes in place. */
+#define LIST_PARAM_MIN 5
+static int is_list_param(const fm1_param_t *p) {
+  return p->type == FM1_PARAM_ENUM && (int)(p->max - p->min) + 1 >= LIST_PARAM_MIN;
+}
+
+/* An ENUM parameter's list, its value chosen, in MID, or whole in MAIN
+ * when it fits (audit D9). */
+static void param_list_popup(fm1_app_t *a, const fm1_param_t *p, float v) {
+  list_popup(a, p->name, 0, (int)(p->max - p->min) + 1, enum_index(p, v), enum_entry, p, FM1_LIST_MID);
 }
 
 /* The list PRESETS (`kind` sound) or ALGORITHM in FX mode (an effect)
@@ -1746,29 +1924,36 @@ static int kind_list_entry(const fm1_app_t *a, const void *ctx, int k, char *buf
   const kind_list_t *l = (const kind_list_t *)ctx;
   const int index = kind_list_at(l, k);
   (void)a;
-  snprintf(buf, size, "%s", index < 0 ? l->empty : entry_name(index));
-  return index < 0;                      /* Empty, dim */
+  snprintf(buf, size, "%s", index < 0 ? l->empty : fm1_look_full_name(entry_name(index)));
+  return index < 0 ? LIST_DIM : 0;       /* Empty, dim */
 }
 
-/* PRESETS: the engines, the current sound's highlighted. */
+/* PRESETS: the engines, the current sound's highlighted, in MID; with
+ * several sounds in use the title says whose ("S2 engine", the tag in its
+ * colour). */
 static void preset_popup(fm1_app_t *a) {
   const kind_list_t l = { FM1_KIND_SOUND, sound_empty_ok(a), "Empty" };
+  char title[24];
+  const int multi = multi_in_use(a);
   if (cur(a)->index < 0 && !l.empty_ok) return;
-  list_popup(a, "Engine", kind_list_count(&l), kind_list_pos(&l, cur(a)->index), kind_list_entry,
-             &l);
+  if (multi) snprintf(title, sizeof title, "S%d engine", a->sound + 1);
+  else snprintf(title, sizeof title, "Engine");
+  list_popup(a, title, multi ? LIST_TAG(a->sound) : 0, kind_list_count(&l),
+             kind_list_pos(&l, cur(a)->index), kind_list_entry, &l, FM1_LIST_MID);
 }
 
 static int sound_entry(const fm1_app_t *a, const void *ctx, int k, char *buf, size_t size) {
   const fm1_engine_t *e = sound_of_c(a, k)->e;
   (void)ctx;
   snprintf(buf, size, "S%d %s", k + 1, e ? e->name : "Empty");
-  return e == NULL;
+  return LIST_TAG(k) | (e == NULL ? LIST_DIM : 0);
 }
 
 /* SHIFT + PRESETS: the four sounds and what each holds, the current one
- * highlighted. */
+ * highlighted, each tag in its sound's colour. All four and their names
+ * fit MAIN, the most legible face (audit D9). */
 static void sound_popup(fm1_app_t *a) {
-  list_popup(a, "Sound", FM1_APP_SOUNDS, a->sound, sound_entry, NULL);
+  list_popup(a, "Current sound", 0, FM1_APP_SOUNDS, a->sound, sound_entry, NULL, FM1_LIST_MAIN);
 }
 
 /* FX mode walks (slot, page) pairs: In1's pages, then In2's, Mix, M1's and
@@ -1825,12 +2010,14 @@ static void fx_choose(fm1_app_t *a, int unit, int delta) {
   a->ram_over = over;                    /* the popup's figure is the first refusal's */
   if (refused >= 0) {
     refusal_popup(a, refused, code);
-  } else {                               /* the effects, the slot's highlighted */
+  } else {                               /* the effects, the slot's highlighted, in MID */
     const kind_list_t l = { FM1_KIND_AUDIO_FX, 1, "Empty slot" };
-    char title[24];
-    snprintf(title, sizeof title, "%s effect", kFxTags[a->fx_slot]);
-    list_popup(a, title, kind_list_count(&l), kind_list_pos(&l, a->unit[unit].index),
-               kind_list_entry, &l);
+    char title[FM1_LIST_ENTRY];
+    const int insert = a->fx_slot < FX_MIX;
+    if (insert) snprintf(title, sizeof title, "S%d insert %d effect", a->sound + 1, a->fx_slot - FX_IN1 + 1);
+    else snprintf(title, sizeof title, "Master %d effect", a->fx_slot - FX_M1 + 1);
+    list_popup(a, title, insert ? LIST_TAG(a->sound) : 0, kind_list_count(&l),
+               kind_list_pos(&l, a->unit[unit].index), kind_list_entry, &l, FM1_LIST_MID);
   }
 }
 
@@ -1923,7 +2110,7 @@ int fm1_app_arp_set_on(fm1_app_t *a, int sound, int on) {
       char over[24];
       a->ram_over = with - FM1_APP_RAM_BUDGET;
       snprintf(over, sizeof over, "%uK over budget", (unsigned)((a->ram_over + 1023u) / 1024u));
-      popup(a, "Arp", "does not fit", over, -1);
+      refuse(a, FM1_APP_TONE_REFUSE, "Arp", "does not fit", over);   /* Q2 */
       return FM1_APP_SELECT_RAM;
     }
   }
@@ -2086,7 +2273,8 @@ static int arp_encoder(fm1_app_t *a, int encoder, int delta) {
     if (a->button_down[FM1_BTN_OCT_DOWN] || a->button_down[FM1_BTN_OCT_UP]) return 0;
     p = p < 0 ? (delta > 0 ? 0 : ARP_PRESETS - 1) : clampi(p + delta, 0, ARP_PRESETS - 1);
     fm1_app_arp_preset(a, a->sound, p);
-    list_popup(a, "Arp preset", ARP_PRESETS, p, arp_preset_entry, NULL);   /* the list, as a model's */
+    /* The list, as a model's; six presets, all of them in MAIN (D9). */
+    list_popup(a, "Arp preset", 0, ARP_PRESETS, p, arp_preset_entry, NULL, FM1_LIST_MID);
     return 1;
   }
   if (encoder >= FM1_ENC_KNOB1) {
@@ -2095,6 +2283,8 @@ static int arp_encoder(fm1_app_t *a, int encoder, int delta) {
     if (knob < page_params(e, a->arp_page, idx)) {
       const fm1_param_t *p = &e->params[idx[knob]];
       fm1_app_arp_set_param(a, a->sound, idx[knob], step_value(p, a->arp_value[a->sound][idx[knob]], delta));
+      /* A list parameter (the orders, the rhythms) shows its list (D1). */
+      if (is_list_param(p)) param_list_popup(a, p, a->arp_value[a->sound][idx[knob]]);
     }
     return 1;
   }
@@ -2178,8 +2368,7 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
         if (m >= 0) {                    /* its list, the entry it is on highlighted */
           const fm1_param_t *p = &cur(a)->e->params[m];
           turn_sound(a, a->sound, m, delta);   /* its lanes' bases follow (S8) */
-          list_popup(a, p->name, (int)(p->max - p->min) + 1, enum_index(p, cur(a)->value[m]),
-                     enum_entry, p);
+          param_list_popup(a, p, cur(a)->value[m]);
         }
       }
       break;
@@ -2222,6 +2411,10 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
         }
         if (sound >= 0) turn_sound(a, sound, idx[knob], delta);
         else turn_param(a, unit, idx[knob], delta);
+        if (!several && is_list_param(&a->unit[unit].e->params[idx[knob]])) {
+          /* A list parameter's knob opens its list, as ALGORITHM does (D1). */
+          param_list_popup(a, &a->unit[unit].e->params[idx[knob]], a->unit[unit].value[idx[knob]]);
+        }
         if (a->mode == FM1_MODE_SEQ && !several) {   /* its name and value on the hint line */
           fm1_seq_ui_knob(&a->ui, knob, a->frames + (uint64_t)(2.0f * a->host.sample_rate));
         }
@@ -2738,7 +2931,7 @@ static void draw_meter(fm1_app_t *a) {
   float db = m > 0.0f ? 20.0f * log10f(m) : -100.0f;
   int fill = (int)floorf((db + 48.0f) / 48.0f * (float)w + 0.5f);
   fill = clampi(fill, 0, w);
-  fm1_tft_paint(&a->tft, x, y, fill, h, m >= 0.97f ? C_WARN : C_METER);
+  fm1_tft_paint(&a->tft, x, y, fill, h, m >= 0.97f ? C_REFUSE : C_LIVE);
 }
 
 /* The RAM meter, on the bottom bar's right: a bar of the chain's RAM
@@ -2757,19 +2950,39 @@ static void draw_ram_meter(fm1_app_t *a) {
   fill = (int)((used > FM1_APP_RAM_BUDGET ? FM1_APP_RAM_BUDGET : used) * (size_t)bw / FM1_APP_RAM_BUDGET);
   fm1_tft_graphic(&a->tft, bx, by, bw, bh);
   fm1_tft_paint(&a->tft, bx, by, bw, bh, C_BAR_BG);
-  fm1_tft_paint(&a->tft, bx, by, fill, bh, over ? C_WARN : C_METER);
+  fm1_tft_paint(&a->tft, bx, by, fill, bh, over ? C_REFUSE : C_LIVE);
   fm1_tft_text(&a->tft, RIGHT - fm1_tft_text_width(txt, 4, SCALE), BOTTOM_Y + 3, txt, 4, SCALE,
-               over ? C_WARN : C_DIM);
+               over ? C_REFUSE : C_LABEL);
 }
 
-static void draw_bottom(fm1_app_t *a, const char *left) {
+/* The bottom bar: `left` (the page and mode, "1/2 S1 In1"), a sound's tag
+ * in it drawn in that sound's colour when `tag_at` >= 0 (its offset; the
+ * tag is "S" and one digit), and the RAM meter. */
+static void draw_bottom_tagged(fm1_app_t *a, const char *left, int tag_at, int sound) {
   fm1_tft_fill(&a->tft, 0, BOTTOM_Y, FM1_TFT_W, FM1_TFT_H - BOTTOM_Y, C_BOTTOM_BG);
-  fm1_tft_text(&a->tft, MARGIN, BOTTOM_Y + 3, left, 12, SCALE, C_TEXT);
+  if (tag_at >= 0 && (size_t)tag_at + 2u <= strlen(left)) {
+    char head[16], tag[3];
+    fm1_tft_span_t sp[3];
+    snprintf(head, sizeof head, "%.*s", tag_at, left);
+    snprintf(tag, sizeof tag, "%.2s", left + tag_at);
+    sp[0].s = head; sp[0].color = C_TEXT;
+    sp[1].s = tag; sp[1].color = fm1_sound_colour(sound);
+    sp[2].s = left + tag_at + 2; sp[2].color = C_TEXT;
+    fm1_tft_span_text(&a->tft, MARGIN, BOTTOM_Y + 3, sp, 3, 12, FM1_TFT_MAIN);
+  } else {
+    fm1_tft_text(&a->tft, MARGIN, BOTTOM_Y + 3, left, 12, SCALE, C_TEXT);
+  }
   draw_ram_meter(a);
 }
 
-static void draw_scope(fm1_app_t *a) {
-  const int x = MARGIN, y = 192, w = FM1_TFT_W - 2 * MARGIN, h = 20;
+static void draw_bottom(fm1_app_t *a, const char *left) { draw_bottom_tagged(a, left, -1, 0); }
+
+/* The oscilloscope from y to SCOPE_BOTTOM (L4: on a HOME page with fewer
+ * than four parameters it starts under the last row, so it grows into the
+ * empty ones). */
+#define SCOPE_BOTTOM (BOTTOM_Y - FM1_APP_LAYOUT_GAP)
+static void draw_scope(fm1_app_t *a, int y) {
+  const int x = MARGIN, w = FM1_TFT_W - 2 * MARGIN, h = SCOPE_BOTTOM - y;
   float s[FM1_APP_SCOPE];
   for (int i = 0; i < FM1_APP_SCOPE; ++i) s[i] = a->scope[(a->scope_pos + i) % FM1_APP_SCOPE];
   int start = FM1_APP_SCOPE - w;
@@ -2792,26 +3005,43 @@ static void draw_scope(fm1_app_t *a) {
     int py = y + h / 2 - (int)floorf(v * (float)(h / 2 - 1) + 0.5f);
     py = clampi(py, y, y + h - 1);
     int a0 = prev < 0 ? py : (prev < py ? prev : py), a1 = prev < 0 ? py : (prev < py ? py : prev);
-    fm1_tft_paint(&a->tft, x + i, a0, 1, a1 - a0 + 1, C_SCOPE);
+    fm1_tft_paint(&a->tft, x + i, a0, 1, a1 - a0 + 1, C_LIVE);
     prev = py;
   }
 }
 
+/* A popup's rules, top and bottom of the centre area, in `color`. */
+static void draw_rules(fm1_app_t *a, uint16_t color) {
+  fm1_tft_paint(&a->tft, 0, TITLE_H, FM1_TFT_W, 2, color);
+  fm1_tft_paint(&a->tft, 0, BOTTOM_Y - 2, FM1_TFT_W, 2, color);
+}
+
 /* Popups take the whole centre area, between the top and bottom bars, as
- * stock's do ("overlaying the current mode"), so nothing peeks out. */
-static void draw_popup_lines(fm1_app_t *a, const char (*text)[24], int lines, int mark) {
+ * stock's do ("overlaying the current mode"), so nothing peeks out. A
+ * refusal (audit Q2) has its rules and its reason in C_REFUSE, its first
+ * line, naming what was refused, in text (FM1_APP_TONE_REFUSE) or in
+ * C_REFUSE too (_REFUSE_ALL). */
+static void draw_popup_lines(fm1_app_t *a, const char (*text)[FM1_LIST_ENTRY], int lines, int mark,
+                             int tone) {
   const int pitch = POPUP_PITCH;   /* the highlight keeps 5 px from the next line */
   const int top = TITLE_H, bottom = BOTTOM_Y;
   fm1_tft_fill(&a->tft, 0, top, FM1_TFT_W, bottom - top, C_POPUP_BG);
-  fm1_tft_paint(&a->tft, 0, top, FM1_TFT_W, 2, C_ACCENT);
-  fm1_tft_paint(&a->tft, 0, bottom - 2, FM1_TFT_W, 2, C_ACCENT);
+  draw_rules(a, tone != FM1_APP_TONE_SAY ? C_REFUSE : C_SELECT);
   int y0 = (top + bottom) / 2 - (lines * pitch - (pitch - 18)) / 2;
   for (int i = 0; i < lines; ++i) {
     int ly = y0 + i * pitch;
     int w = fm1_tft_text_width(text[i], POPUP_CHARS, SCALE);
-    if (i == mark) fm1_tft_paint(&a->tft, 12, ly - 3, FM1_TFT_W - 24, 24, C_ACCENT);
-    fm1_tft_text(&a->tft, 120 - w / 2, ly, text[i], POPUP_CHARS, SCALE,
-                 i == mark ? C_BG : C_TEXT);
+    uint16_t color = C_TEXT;
+    if (tone == FM1_APP_TONE_REFUSE_ALL || (tone == FM1_APP_TONE_REFUSE && i > 0)) color = C_REFUSE;
+    if (i == mark) {
+      fm1_tft_paint(&a->tft, 12, ly - 3, FM1_TFT_W - 24, 24, C_SELECT);
+      color = C_BG;
+    }
+    if (color == C_TEXT) {           /* a refusal stays one colour, whole */
+      fm1_look_sound_text(&a->tft, 120 - w / 2, ly, text[i], POPUP_CHARS, FM1_TFT_MAIN, color);
+    } else {
+      fm1_tft_text(&a->tft, 120 - w / 2, ly, text[i], POPUP_CHARS, SCALE, color);
+    }
   }
 }
 
@@ -2823,70 +3053,187 @@ static void draw_list_mark(fm1_app_t *a, int y, int up) {
   for (int r = 0; r < LIST_MARK_H; ++r) {
     const int half = r * (LIST_MARK_W / 2) / (LIST_MARK_H - 1);
     fm1_tft_paint(&a->tft, cx - half, up ? y + r : y + LIST_MARK_H - 1 - r, 2 * half + 1, 1,
-                  C_ACCENT);
+                  C_SELECT);
   }
 }
 
+/* A list's entry pitch, and how far the selection bar starts above an
+ * entry's box, per face (fm1_look.h); the bar is the pitch less 1 tall. */
+static int list_pitch(int face) {
+  return face == FM1_LIST_MID ? LIST_PITCH_MID : (face == FM1_LIST_SMALL ? LIST_PITCH_SMALL : LIST_PITCH);
+}
+static int list_bar_above(int face) { return face == FM1_LIST_MAIN ? 3 : 2; }
+
+/* The faces' rows and characters (fm1_panel.h) are what the geometry
+ * holds: each face's last entry ends by LIST_BOTTOM and one more would
+ * not, and an entry from LIST_X to LIST_X inside the right margin takes
+ * exactly fm1_list_chars. C99 has no static_assert: an array of negative
+ * size stops the build. */
+#define LIST_FITS(rows, pitch, h) \
+  (LIST_Y + ((rows) - 1) * (pitch) + (h) <= LIST_BOTTOM && LIST_Y + (rows) * (pitch) + (h) > LIST_BOTTOM)
+typedef char fm1_app_list_main_rows[LIST_FITS(FM1_LIST_ROWS, LIST_PITCH, MAIN_LINE_H) ? 1 : -1];
+typedef char fm1_app_list_mid_rows[LIST_FITS(8, LIST_PITCH_MID, MID_LINE_H) ? 1 : -1];
+typedef char fm1_app_list_small_rows[LIST_FITS(9, LIST_PITCH_SMALL, SMALL_LINE_H) ? 1 : -1];
+typedef char fm1_app_list_chars[FM1_TFT_MAIN_FIT(FM1_TFT_W - 2 * LIST_X) == 18 &&
+                                FM1_TFT_MID_FIT(FM1_TFT_W - 2 * LIST_X) == 27 &&
+                                FM1_TFT_SMALL_FIT(FM1_TFT_W - 2 * LIST_X) == 36 &&
+                                36 < FM1_LIST_ENTRY && FM1_LIST_MAX_ROWS == 9 ? 1 : -1];
+typedef char fm1_app_list_faces[FM1_LIST_MAIN == FM1_TFT_MAIN && FM1_LIST_MID == FM1_TFT_MID &&
+                                FM1_LIST_SMALL == FM1_TFT_SMALL ? 1 : -1];
+typedef char fm1_app_list_tags[FM1_LIST_MAX_ROWS * 4 <= 64 ? 1 : -1];
+
+/* A line that may start with a sound's tag ("S2 Shapes"): the tag in the
+ * sound's colour (tag: the sound + 1, 0 for none), the rest in `color`;
+ * on the selection bar (`color` C_BG) all of it in C_BG. One text box. */
+static int tagged_text(fm1_tft_t *t, int x, int y, const char *s, int max_chars, fm1_tft_font_t font,
+                       int tag, uint16_t color) {
+  if (tag > 0 && color != C_BG && s[0] == 'S' && s[1] >= '1' && s[1] <= '9') {
+    char head[3];
+    fm1_tft_span_t sp[2];
+    snprintf(head, sizeof head, "%.2s", s);
+    sp[0].s = head; sp[0].color = fm1_sound_colour(tag - 1);
+    sp[1].s = s + 2; sp[1].color = color;
+    return fm1_tft_span_text(t, x, y, sp, 2, max_chars, font);
+  }
+  return fm1_tft_font_text(t, x, y, s, max_chars, font, color);
+}
+
 /* A list popup over the centre area, as a message's: the list's title in
- * gold and the chosen entry's place ("12/96") dim on the first line, then
- * the window's entries from the left, the chosen one on the accent, an
- * Empty entry dim; a triangle between the title and the entries when the
- * list goes on above them, and one under them when it goes on below. */
-static void draw_list(fm1_app_t *a, const char *title, const char (*text)[24], int lines,
-                      int mark, int first, int total, uint32_t dim) {
+ * the context colour and the chosen entry's place ("12/96") in C_LABEL on
+ * the first line, in MID, then the window's entries from the left in
+ * `face`, the chosen one on the selection bar, an Empty entry dim, a
+ * sound's tag in its colour; a triangle between the title and the entries
+ * when the list goes on above them, and one under them when it goes on
+ * below. */
+static void draw_list(fm1_app_t *a, const char *title, int title_tag,
+                      const char (*text)[FM1_LIST_ENTRY], int lines, int mark, int first, int total,
+                      uint32_t dim, uint64_t tags, int face) {
   const int top = TITLE_H, bottom = BOTTOM_Y;
+  const fm1_tft_font_t f = (fm1_tft_font_t)face;
+  const int pitch = list_pitch(face), h = fm1_tft_metrics(f)->height;
   char place[16];
   fm1_tft_fill(&a->tft, 0, top, FM1_TFT_W, bottom - top, C_POPUP_BG);
-  fm1_tft_paint(&a->tft, 0, top, FM1_TFT_W, 2, C_ACCENT);
-  fm1_tft_paint(&a->tft, 0, bottom - 2, FM1_TFT_W, 2, C_ACCENT);
+  draw_rules(a, C_SELECT);
   snprintf(place, sizeof place, "%d/%d", first + mark + 1, total);
   {
-    const int pw = fm1_tft_text_width(place, 8, SCALE);
+    const int pw = fm1_tft_font_width(place, 8, FM1_TFT_MID);
     const int px = FM1_TFT_W - LIST_X - pw;
     /* The title takes what is left before the place and the gap; a longer
      * one is cut, and the layout check counts the cut. */
-    const int room = (px - FM1_APP_LAYOUT_GAP - LIST_X + SCALE) / FM1_TFT_ADVANCE(SCALE);
-    fm1_tft_text(&a->tft, LIST_X, LIST_TITLE_Y, title, room, SCALE, C_MODEL);
-    fm1_tft_text(&a->tft, px, LIST_TITLE_Y, place, 8, SCALE, C_DIM);
+    const int room = fm1_tft_font_fit(px - FM1_APP_LAYOUT_GAP - LIST_X, FM1_TFT_MID);
+    tagged_text(&a->tft, LIST_X, LIST_TITLE_Y, title, room, FM1_TFT_MID, title_tag, C_CONTEXT);
+    fm1_tft_font_text(&a->tft, px, LIST_TITLE_Y, place, 8, FM1_TFT_MID, C_LABEL);
   }
   if (first > 0) draw_list_mark(a, LIST_MORE_Y, 1);
   for (int i = 0; i < lines; ++i) {
-    const int ly = LIST_Y + i * LIST_PITCH;
-    uint16_t color = (dim >> i) & 1u ? C_DIM : C_TEXT;
+    const int ly = LIST_Y + i * pitch;
+    uint16_t color = (dim >> i) & 1u ? C_LABEL : C_TEXT;
     if (i == mark) {
-      fm1_tft_paint(&a->tft, MARGIN, ly - 3, RIGHT - MARGIN, LIST_PITCH - 1, C_ACCENT);
+      fm1_tft_paint(&a->tft, MARGIN, ly - list_bar_above(face), RIGHT - MARGIN, pitch - 1, C_SELECT);
       color = C_BG;
     }
-    fm1_tft_text(&a->tft, LIST_X, ly, text[i], POPUP_CHARS, SCALE, color);
+    tagged_text(&a->tft, LIST_X, ly, text[i], fm1_list_chars(face), f, (int)((tags >> (4 * i)) & 15u),
+                color);
   }
-  if (first + lines < total) {
-    draw_list_mark(a, LIST_Y + (lines - 1) * LIST_PITCH + 18 + FM1_APP_LAYOUT_GAP, 0);
+  if (first + lines < total) draw_list_mark(a, LIST_Y + (lines - 1) * pitch + h + FM1_APP_LAYOUT_GAP, 0);
+}
+
+int fm1_app_banner(const fm1_app_t *a, char *buf, size_t size) {
+  char line[3 * FM1_LIST_ENTRY];
+  size_t n = 0;
+  if (!a->popup_lines || a->popup_total > 0 || a->popup_tone != FM1_APP_TONE_SAY || a->popup_mark >= 0) {
+    return 0;
+  }
+  line[0] = '\0';
+  for (int i = 0; i < a->popup_lines && i < 3; ++i) {
+    /* A line that goes on the last ("Metronome" / "on", "LFO1 > S1Harm" /
+     * "+12%") joins it with a space; one that starts a thought of its own
+     * with a capital ("Octave 0" / "Transpose 0") with a comma. */
+    const char c = a->popup[i][0];
+    n += (size_t)snprintf(line + n, sizeof line - n, "%s%s", !i ? "" : (c >= 'A' && c <= 'Z' ? ", " : " "),
+                          a->popup[i]);
+    if (n >= sizeof line) return 0;
+  }
+  if (n == 0 || n > BANNER_CHARS_MID) return 0;
+  if (buf && size) snprintf(buf, size, "%s", line);
+  return n > BANNER_CHARS ? 1 + FM1_TFT_MID : 1 + FM1_TFT_MAIN;
+}
+
+/* The colour most of a box's rows above y_end hold: what the text in it
+ * is drawn on (a text box's ink covers less of it than its ground). */
+static uint16_t ground_of(const fm1_tft_t *t, const fm1_tft_box_t *b, int y_end) {
+  uint16_t col[8];
+  int cnt[8], n = 0, best = 0;
+  for (int y = b->y < 0 ? 0 : b->y; y < y_end && y < FM1_TFT_H; ++y) {
+    for (int x = b->x < 0 ? 0 : b->x; x < b->x + b->w && x < FM1_TFT_W; ++x) {
+      const uint16_t c = t->px[y * FM1_TFT_W + x];
+      int k = 0;
+      while (k < n && col[k] != c) ++k;
+      if (k == n) {
+        if (n == 8) continue;
+        col[n] = c;
+        cnt[n++] = 0;
+      }
+      ++cnt[k];
+    }
+  }
+  for (int k = 1; k < n; ++k) {
+    if (cnt[k] > cnt[best]) best = k;
+  }
+  return n ? col[best] : C_BG;
+}
+
+/* L1: a one-line confirmation as a banner over the page's bottom
+ * BANNER_H px, between selection rules, so the page stays in view, in
+ * MAIN, or in MID when it needs more than MAIN's BANNER_CHARS (`face`). A
+ * text run the band would cut is first erased whole (painted its ground),
+ * so no half a line shows above the band; the band hides what it covers. */
+static void draw_banner(fm1_app_t *a, const char *text, fm1_tft_font_t face) {
+  fm1_tft_t *t = &a->tft;
+  for (int i = 0; i < t->n_boxes; ++i) {
+    fm1_tft_box_t *b = &t->boxes[i];
+    if (b->hidden || b->kind != FM1_BOX_TEXT || b->y >= BANNER_Y || b->y + b->h <= BANNER_Y) continue;
+    fm1_tft_paint(t, b->x, b->y, b->w, BANNER_Y - b->y, ground_of(t, b, BANNER_Y));
+  }
+  fm1_tft_fill(t, 0, BANNER_Y, FM1_TFT_W, BANNER_H, C_POPUP_BG);
+  fm1_tft_paint(t, 0, BANNER_Y, FM1_TFT_W, BANNER_RULE, C_SELECT);
+  fm1_tft_paint(t, 0, BOTTOM_Y - BANNER_RULE, FM1_TFT_W, BANNER_RULE, C_SELECT);
+  {
+    const int chars = face == FM1_TFT_MID ? BANNER_CHARS_MID : BANNER_CHARS;
+    fm1_look_sound_text(t, (FM1_TFT_W - fm1_tft_font_width(text, chars, face)) / 2,
+                        face == FM1_TFT_MID ? BANNER_TEXT_Y_MID : BANNER_TEXT_Y, text, chars, face, C_TEXT);
   }
 }
 
 static void draw_popup(fm1_app_t *a) {
+  char line[FM1_LIST_ENTRY];
+  int banner;
   if (a->popup_total > 0) {
-    draw_list(a, a->popup_title, (const char (*)[24])a->popup, a->popup_lines, a->popup_mark,
-              a->popup_first, a->popup_total, a->popup_dim);
+    draw_list(a, a->popup_title, a->popup_title_tag, (const char (*)[FM1_LIST_ENTRY])a->popup,
+              a->popup_lines, a->popup_mark, a->popup_first, a->popup_total, a->popup_dim,
+              a->popup_tag, a->popup_face);
+  } else if ((banner = fm1_app_banner(a, line, sizeof line)) != 0) {
+    draw_banner(a, line, (fm1_tft_font_t)(banner - 1));
   } else {
-    draw_popup_lines(a, (const char (*)[24])a->popup, a->popup_lines, a->popup_mark);
+    draw_popup_lines(a, (const char (*)[FM1_LIST_ENTRY])a->popup, a->popup_lines, a->popup_mark,
+                     a->popup_tone);
   }
 }
 
-/* A tempo as "120 BPM", or "117.50 BPM" (the core's are 20.00 to 300.00). */
+/* A tempo as the Track view's status line writes it: "120 BPM", decimals
+ * only when there are some ("117.5 BPM", "117.65 BPM"). */
 static void bpm_text(char *buf, size_t size, unsigned bpm_x100) {
-  const unsigned v = bpm_x100 % 1000000u;
-  if (v % 100u) snprintf(buf, size, "%u.%02u BPM", v / 100u, v % 100u);
-  else snprintf(buf, size, "%u BPM", v / 100u);
+  fm1_seq_view_bpm((uint32_t)bpm_x100, buf, size);
 }
 
 /* Capture's overlay after a stopped Capture (O7), over every mode until a
  * press closes it, as Movy's: the tempo picker, one candidate a line with
  * the one taken highlighted (SELECT or KNOB1 takes another), or the tempo
- * the take was fitted to (the set's, or the external clock's). */
+ * the take was fitted to (the set's, or the external clock's). Three
+ * candidates at most: MAIN shows them all (audit D9). */
 static void draw_capture(fm1_app_t *a) {
   const fm1_seq_ui_t *u = &a->ui;
-  char text[3][24];
+  char text[3][FM1_LIST_ENTRY];
   char bpm[16];
   int lines = 0;
   if (u->capture_mode == FM1_SEQ_UI_CAPTURE_PICK && u->capture_n) {   /* a list, as PRESETS' */
@@ -2894,19 +3241,20 @@ static void draw_capture(fm1_app_t *a) {
       bpm_text(text[lines++], sizeof text[0], u->capture_cands[k] * 100u);
     }
     const int mark = u->capture_sel < lines ? u->capture_sel : 0;
-    draw_list(a, "Tempo", (const char (*)[24])text, lines, mark, 0, lines, 0);
+    draw_list(a, "Capture tempo", 0, (const char (*)[FM1_LIST_ENTRY])text, lines, mark, 0, lines, 0, 0,
+              FM1_LIST_MAIN);
     return;
   }
   bpm_text(bpm, sizeof bpm, u->bpm_x100);
   snprintf(text[lines++], sizeof text[0], "Captured");
   snprintf(text[lines++], sizeof text[0], "at %s", bpm);
-  draw_popup_lines(a, (const char (*)[24])text, lines, -1);
+  draw_popup_lines(a, (const char (*)[FM1_LIST_ENTRY])text, lines, -1, FM1_APP_TONE_SAY);
 }
 
 void fm1_look_row(fm1_tft_t *t, int y, const char *label, const char *value, uint16_t color) {
   int label_chars = (int)strlen(label) < LABEL_CHARS ? (int)strlen(label) : LABEL_CHARS;
   int value_chars = LINE_CHARS - 1 - label_chars;
-  fm1_tft_text(t, MARGIN, y, label, label_chars, SCALE, C_DIM);
+  fm1_tft_text(t, MARGIN, y, label, label_chars, SCALE, C_LABEL);
   int w = fm1_tft_text_width(value, value_chars, SCALE);
   fm1_tft_text(t, RIGHT - w, y, value, value_chars, SCALE, color);
 }
@@ -2915,53 +3263,151 @@ static void draw_line(fm1_app_t *a, int y, const char *label, const char *value)
   fm1_look_row(&a->tft, y, label, value, C_TEXT);
 }
 
-/* An empty slot's (or sound's) two hint lines at y0. */
-static void draw_empty(fm1_app_t *a, int y0, const char *what, const char *turn) {
-  fm1_tft_text(&a->tft, MARGIN, y0 + 4, what, LINE_CHARS, SCALE, C_DIM);
-  fm1_tft_text(&a->tft, MARGIN, y0 + 4 + LINE_PITCH, turn, LINE_CHARS, SCALE, C_DIM);
+/* `full` if it fits `chars`, else `name` (its short form). */
+static const char *fit_name(const char *full, const char *name, int chars) {
+  return (int)strlen(full) <= chars ? full : name;
 }
 
-/* FX mode (docs/15 §3.16): the chain on the first line (the current sound,
- * its inserts, Mix, the master slots; the selected one in the accent
- * colour, an empty one dim), the selected slot and its effect on the
- * second, then its page, or the Mix page's four levels. */
-static void draw_fx(fm1_app_t *a, char *bottom, size_t size) {
+/* The context line's room for its text beside `place`, in MID characters. */
+static int context_room(const char *place) {
+  const int pw = place && place[0] ? fm1_tft_font_width(place, MID_LINE_CHARS, FM1_TFT_MID) +
+                                         FM1_APP_LAYOUT_GAP
+                                   : 0;
+  return fm1_tft_font_fit(RIGHT - pw - MARGIN, FM1_TFT_MID);
+}
+
+/* The context line with its text in `color`: C_CONTEXT, or a state's
+ * role where the line says one (the ARP pages' "Arp latched"). */
+static void context_in(fm1_tft_t *t, int y, const char *text, const char *place, uint16_t color) {
+  if (place && place[0]) {
+    const int pw = fm1_tft_font_width(place, MID_LINE_CHARS, FM1_TFT_MID);
+    fm1_tft_font_text(t, RIGHT - pw, y, place, MID_LINE_CHARS, FM1_TFT_MID, C_LABEL);
+  }
+  fm1_tft_font_text(t, MARGIN, y, text, context_room(place), FM1_TFT_MID, color);
+}
+
+void fm1_look_context(fm1_tft_t *t, int y, const char *text, const char *place) {
+  context_in(t, y, text, place, C_CONTEXT);
+}
+
+/* Is s[k] the start of a sound's tag: "S1" to "S4" at a word's start, not
+ * followed by another digit ("S2 engine", "S1I2 High Xover", "S1NOTE")? */
+static int sound_tag_at(const char *s, int k) {
+  return s[k] == 'S' && s[k + 1] >= '1' && s[k + 1] <= '4' && (s[k + 2] < '0' || s[k + 2] > '9') &&
+         (k == 0 || s[k - 1] == ' ' || s[k - 1] == '>' || s[k - 1] == '(');
+}
+
+int fm1_look_sound_text(fm1_tft_t *t, int x, int y, const char *s, int max_chars, fm1_tft_font_t font,
+                        uint16_t color) {
+  char seg[2 * (FM1_LIST_ENTRY + 8)];
+  fm1_tft_span_t sp[16];
+  int k, at = 0, ns = 0;
+  const int n = (int)strlen(s);
+  if (color == C_BG || n >= FM1_LIST_ENTRY + 8) return fm1_tft_font_text(t, x, y, s, max_chars, font, color);
+  for (k = 0; k < n && ns < 15;) {
+    const int tag = sound_tag_at(s, k);
+    const int len = tag ? 2 : 1;
+    const uint16_t c = tag ? fm1_sound_colour(s[k + 1] - '1') : color;
+    if (ns == 0 || c != sp[ns - 1].color || tag) {
+      if (ns) seg[at++] = '\0';
+      sp[ns].s = &seg[at];
+      sp[ns].color = c;
+      ++ns;
+    }
+    seg[at++] = s[k];
+    if (len == 2) seg[at++] = s[k + 1];
+    k += len;
+    if (tag && k < n) {               /* the rest starts a span of its own */
+      seg[at++] = '\0';
+      sp[ns].s = &seg[at];
+      sp[ns].color = color;
+      ++ns;
+    }
+  }
+  if (k < n) return fm1_tft_font_text(t, x, y, s, max_chars, font, color);
+  seg[at] = '\0';
+  return fm1_tft_span_text(t, x, y, sp, ns, max_chars, font);
+}
+
+/* An empty slot's (or sound's) two hint lines at y0. */
+static void draw_empty(fm1_app_t *a, int y0, const char *what, const char *turn) {
+  fm1_tft_text(&a->tft, MARGIN, y0 + 4, what, LINE_CHARS, SCALE, C_LABEL);
+  fm1_tft_text(&a->tft, MARGIN, y0 + 4 + LINE_PITCH, turn, LINE_CHARS, SCALE, C_LABEL);
+}
+
+/* FX mode (docs/15 §3.16): the chain on the first line (the current
+ * sound's tag in its colour, its inserts, Mix, the master slots), the
+ * selected slot a chip of the selection colour with base text, or of the
+ * held colour while SEL holds it (audit Q5); the current sound's filled
+ * inserts in its colour (L3), the master slots text when filled, an empty
+ * slot dim. Then the context line, the slot's effect and its role
+ * ("insert", "master", "mix"), and its page, or the Mix page's four levels,
+ * each sound's tag and bar in its colour, an empty sound's bar left
+ * unfilled. The chip leaves 4 px each side of its tag, 3 px above the
+ * tag's capitals and 4 px below them; its top is 1 px under the title bar. */
+#define FX_STRIP_Y CONTENT_Y
+#define FX_CONTEXT_Y (FX_STRIP_Y + MAIN_LINE_H + 4)
+#define FX_ROWS_Y (FX_CONTEXT_Y + MID_LINE_H + 4)
+#define FX_CHIP_PAD 4
+#define FX_CHIP_Y (TITLE_H + 1)
+#define FX_CHIP_H (FX_STRIP_Y + FM1_TFT_MAIN_CAP_H + 4 - FX_CHIP_Y)
+typedef char fm1_app_fx_rows_fit[FX_ROWS_Y + 3 * ROW_PITCH + BAR_DY + BAR_H + 4 <= BOTTOM_Y ? 1 : -1];
+static const char *const kFxRoles[FX_SLOT_COUNT] = { "insert", "insert", "mix", "master", "master" };
+
+static void draw_fx(fm1_app_t *a, char *bottom, size_t size, int *tag_at) {
   static const fm1_param_t kLevel = { "Level", FM1_PARAM_FLOAT, 0.0f, FM1_APP_LEVEL_MAX,
                                       FM1_APP_LEVEL_MAX, NULL, 0, 0, 0, 0, "" };
   fm1_tft_t *t = &a->tft;
   char buf[48];
   int x = MARGIN;
-  const int y0 = CONTENT_Y + 2 * LINE_PITCH;
   const int unit = fx_unit_at(a, a->fx_slot);
+  const uint16_t mine = fm1_sound_colour(a->sound);
   snprintf(buf, sizeof buf, "S%d", a->sound + 1);
-  x += fm1_tft_text(t, x, CONTENT_Y, buf, 2, SCALE, C_MODEL) + FM1_TFT_ADVANCE(SCALE);
+  x += fm1_tft_text(t, x, FX_STRIP_Y, buf, 2, SCALE, mine) + FM1_TFT_ADVANCE(SCALE);
   for (int k = 0; k < FX_SLOT_COUNT; ++k) {
     const int u = fx_unit_at(a, k);
-    const uint16_t c = k == a->fx_slot ? C_ACCENT : (u < 0 || a->unit[u].e ? C_TEXT : C_DIM);
-    x += fm1_tft_text(t, x, CONTENT_Y, kFxTags[k], 3, SCALE, c) + FM1_TFT_ADVANCE(SCALE);
+    uint16_t c = u < 0 ? C_TEXT : (!a->unit[u].e ? C_LABEL : (k < FX_MIX ? mine : C_TEXT));
+    if (k == a->fx_slot) {
+      const int w = fm1_tft_text_width(kFxTags[k], 3, SCALE);
+      fm1_tft_paint(t, x - FX_CHIP_PAD, FX_CHIP_Y, w + 2 * FX_CHIP_PAD, FX_CHIP_H,
+                    a->fx_grab ? C_HELD : C_SELECT);
+      c = C_BG;
+    }
+    x += fm1_tft_text(t, x, FX_STRIP_Y, kFxTags[k], 3, SCALE, c) + FM1_TFT_ADVANCE(SCALE);
   }
-  snprintf(buf, sizeof buf, "%s %s %s", a->fx_grab ? "*" : ">", kFxTags[a->fx_slot],
-           unit < 0 ? "levels" : (a->unit[unit].e ? a->unit[unit].e->name : "--"));
-  fm1_tft_text(t, MARGIN, CONTENT_Y + LINE_PITCH, buf, LINE_CHARS, SCALE, C_ACCENT);
+  {
+    const char *role = kFxRoles[a->fx_slot];
+    const char *name = unit < 0 ? "Sound levels" : (a->unit[unit].e ? a->unit[unit].e->name : "Empty");
+    fm1_look_context(t, FX_CONTEXT_Y, fit_name(fm1_look_full_name(name), name, context_room(role)), role);
+  }
+  *tag_at = -1;
   if (unit < 0) {
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
       const fm1_app_unit_t *u = sound_of(a, k);
       char label[8];
-      const int y = y0 + k * ROW_PITCH;
+      const int y = FX_ROWS_Y + k * ROW_PITCH;
       snprintf(label, sizeof label, "S%d", k + 1);
       snprintf(buf, sizeof buf, "%s %d%%", u->e ? u->e->name : "Empty",
                (int)floorf(a->level[k] + 0.5f));
-      fm1_look_row(t, y, label, buf, u->e ? C_TEXT : C_DIM);
-      fm1_look_bar(t, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H, &kLevel, a->level[k],
-                   u->e ? C_ACCENT : C_DIM);
+      fm1_tft_text(t, MARGIN, y, label, 2, SCALE, fm1_sound_colour(k));
+      fm1_tft_text(t, RIGHT - fm1_tft_text_width(buf, LINE_CHARS - 3, SCALE), y, buf, LINE_CHARS - 3,
+                   SCALE, u->e ? C_TEXT : C_LABEL);
+      if (u->e) {
+        fm1_look_bar(t, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H, &kLevel, a->level[k],
+                     fm1_sound_colour(k));
+      } else {                           /* L3: no full grey bar for a sound with nothing in it */
+        fm1_tft_graphic(t, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H);
+        fm1_tft_paint(t, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H, C_BAR_BG);
+      }
     }
     snprintf(bottom, size, "1/1 Mix");
   } else {
-    if (a->unit[unit].e) draw_params(a, unit, a->fx_page, y0);
-    else draw_empty(a, y0, "Empty slot:", "turn ALGORITHM");
+    if (a->unit[unit].e) draw_params(a, unit, a->fx_page, FX_ROWS_Y);
+    else draw_empty(a, FX_ROWS_Y, "Empty slot:", "turn ALGORITHM");
     if (a->fx_slot < FX_MIX) {
-      snprintf(bottom, size, "%d/%d S%d %s", a->fx_page + 1, page_count(a->unit[unit].e),
-               a->sound + 1, kFxTags[a->fx_slot]);
+      const int at = snprintf(bottom, size, "%d/%d ", a->fx_page + 1, page_count(a->unit[unit].e));
+      snprintf(bottom + at, size - (size_t)at, "S%d %s", a->sound + 1, kFxTags[a->fx_slot]);
+      *tag_at = at;
     } else {
       snprintf(bottom, size, "%d/%d %s", a->fx_page + 1, page_count(a->unit[unit].e),
                kFxTags[a->fx_slot]);
@@ -2969,10 +3415,20 @@ static void draw_fx(fm1_app_t *a, char *bottom, size_t size) {
   }
 }
 
-/* The ARP pages: the current sound's arp on the first line (on or off and
- * latching, in the model colour while on; the stock preset its mode and
- * order make, if any, on the right), then the page's four parameters as
- * HOME shows a sound's, and the scope. */
+/* HOME's oscilloscope starts under the page's last row, n of four (L4). */
+static int scope_y(int n) {
+  if (n < 1 || n > 4) n = 4;
+  return CONTEXT_NEXT_Y + (n - 1) * ROW_PITCH + BAR_DY + BAR_H + FM1_APP_LAYOUT_GAP;
+}
+typedef char fm1_app_home_rows_fit[CONTEXT_NEXT_Y + 3 * ROW_PITCH + BAR_DY + BAR_H + FM1_APP_LAYOUT_GAP <=
+                                       BANNER_Y ? 1 : -1];
+
+/* The ARP pages: the current sound's arp on the context line (audit Q4),
+ * "Arp on" in the context colour, "Arp latched" in the held colour (a
+ * latched arp holds its notes, as ARP's light says by blinking), "Arp
+ * off" dim; on the right, as a list's place, the stock preset its mode
+ * and order make, if any. Then the page's parameters as HOME shows a
+ * sound's, and the scope under the last of them (L4). */
 static void draw_arp(fm1_app_t *a, char *bottom, size_t size) {
   fm1_tft_t *t = &a->tft;
   const fm1_engine_t *e = fm1_app_arp_engine();
@@ -2986,18 +3442,18 @@ static void draw_arp(fm1_app_t *a, char *bottom, size_t size) {
     snprintf(bottom, size, "1/1 Arp");
     return;
   }
-  fm1_tft_text(t, MARGIN, CONTENT_Y, on ? (arp_latched(a, a->sound) ? "Arp latched" : "Arp on") : "Arp off",
-               11, SCALE, on ? C_MODEL : C_DIM);
-  if (preset >= 0) {
-    const char *name = fm1_app_arp_preset_name(preset);
-    fm1_tft_text(t, RIGHT - fm1_tft_text_width(name, 7, SCALE), CONTENT_Y, name, 7, SCALE, C_TEXT);
+  {
+    const int latched = on && arp_latched(a, a->sound);
+    context_in(t, CONTEXT_Y, on ? (latched ? "Arp latched" : "Arp on") : "Arp off",
+               preset >= 0 ? fm1_app_arp_preset_name(preset) : NULL,
+               latched ? C_HELD : (on ? C_CONTEXT : C_LABEL));
   }
   n = page_params(e, a->arp_page, idx);
   for (int k = 0; k < n; ++k) {
-    fm1_mod_view_row(t, CONTENT_Y + LINE_PITCH + k * ROW_PITCH, &e->params[idx[k]],
+    fm1_mod_view_row(t, CONTEXT_NEXT_Y + k * ROW_PITCH, &e->params[idx[k]],
                      a->arp_value[a->sound][idx[k]], NULL, 0, 0.0f, 0.0f);
   }
-  draw_scope(a);
+  draw_scope(a, scope_y(n));
   snprintf(bottom, size, "%d/%d %s", a->arp_page + 1, pages, kArpPages[a->arp_page]);
 }
 
@@ -3006,8 +3462,13 @@ static void draw(fm1_app_t *a) {
   const fm1_app_unit_t *s = cur(a);
   const int su = fm1_app_sound_unit(a->sound);
   const int mod_page = a->mod && is_mod_mode(a->mode);
+  /* A banner erases what it would cut (draw_banner), from the boxes the
+   * page logs: logged now whether or not a check asked. */
+  const int banner = a->popup_lines && fm1_app_banner(a, NULL, 0);
+  const int record = t->record;
   fm1_mod_ui_env_t env;
   char buf[48];
+  if (banner) t->record = 1;
   fm1_tft_begin(t, C_BG);
 
   fm1_tft_fill(t, 0, 0, FM1_TFT_W, TITLE_H, C_TITLE_BG);
@@ -3015,9 +3476,9 @@ static void draw(fm1_app_t *a) {
     mod_env(a, &env);
     fm1_mod_view_title(&env, &a->mui, a->mode, buf, sizeof buf);
     fm1_tft_text(t, MARGIN, 3, buf, NAME_CHARS, SCALE, C_TEXT);
-  } else if (multi_in_use(a)) {          /* "S2 Shapes": which of the sounds is current */
+  } else if (multi_in_use(a)) {          /* "S2 Shapes": which sound is current, in its colour */
     snprintf(buf, sizeof buf, "S%d %s", a->sound + 1, s->e ? s->e->name : "(empty)");
-    fm1_tft_text(t, MARGIN, 3, buf, NAME_CHARS, SCALE, C_TEXT);
+    tagged_text(t, MARGIN, 3, buf, NAME_CHARS, FM1_TFT_MAIN, a->sound + 1, C_TEXT);
   } else {
     fm1_tft_text(t, MARGIN, 3, s->e ? s->e->name : "(no sound)", NAME_CHARS, SCALE, C_TEXT);
   }
@@ -3030,19 +3491,32 @@ static void draw(fm1_app_t *a) {
     fm1_mod_view_bottom(&env, &a->mui, a->mode, buf, sizeof buf);
     draw_bottom(a, buf);
   } else if (a->mode == FM1_MODE_HOME) {
-    int m = model_param(s->e);
+    /* The context line (Q4): the model, patch or pad by its full name, and
+     * its place in the list ("Phase Distortion 2/8"); the rows under it;
+     * the scope under the last of them. */
+    const int m = model_param(s->e);
+    int n = 4;
     if (m >= 0) {
-      fm1_look_value(&s->e->params[m], s->value[m], buf, sizeof buf);
-      fm1_tft_text(t, MARGIN, CONTENT_Y, buf, LINE_CHARS, SCALE, C_MODEL);
+      const fm1_param_t *p = &s->e->params[m];
+      char v[FM1_LIST_ENTRY], place[24];   /* two ints and a slash: no truncation to warn of */
+      fm1_look_value(p, s->value[m], v, sizeof v);
+      snprintf(place, sizeof place, "%d/%d", enum_index(p, s->value[m]) + 1, (int)(p->max - p->min) + 1);
+      fm1_look_context(t, CONTEXT_Y, fit_name(fm1_look_full_name(v), v, context_room(place)), place);
     }
-    if (s->e) draw_params(a, su, a->page, CONTENT_Y + LINE_PITCH);
-    else draw_empty(a, CONTENT_Y, "Empty sound:", "turn PRESETS");
-    draw_scope(a);
+    if (s->e) {
+      int idx[4];
+      n = page_params(s->e, a->page, idx);
+      draw_params(a, su, a->page, CONTEXT_NEXT_Y);
+    } else {
+      draw_empty(a, CONTENT_Y, "Empty sound:", "turn PRESETS");
+    }
+    draw_scope(a, scope_y(n));
     snprintf(buf, sizeof buf, "%d/%d Sound", a->page + 1, page_count(s->e));
     draw_bottom(a, buf);
   } else if (a->mode == FM1_MODE_FX) {
-    draw_fx(a, buf, sizeof buf);
-    draw_bottom(a, buf);
+    int tag_at;
+    draw_fx(a, buf, sizeof buf, &tag_at);
+    draw_bottom_tagged(a, buf, tag_at, a->sound);
   } else if (a->mode == FM1_MODE_ARP) {
     draw_arp(a, buf, sizeof buf);
     draw_bottom(a, buf);
@@ -3069,7 +3543,9 @@ static void draw(fm1_app_t *a) {
     fm1_seq_view_bottom(&a->ui, &snd, buf, sizeof buf);
     draw_bottom(a, buf);
   } else {
-    /* Eight lines at a 23 px pitch (the sound's name is in the title bar). */
+    /* Eight lines at a 23 px pitch (the sound's name is in the title bar);
+     * the master slots as FX mode names them, with their effects' names
+     * (Q6), the full name where the line has room. */
     const int pitch = 23;
     char v[32];
     int y = CONTENT_Y;
@@ -3082,8 +3558,11 @@ static void draw(fm1_app_t *a) {
     draw_line(a, y, "RAM", v); y += pitch;
     snprintf(v, sizeof v, "%u", s->e ? (unsigned)s->e->max_voices : 0u);
     draw_line(a, y, "Voices", v); y += pitch;
-    draw_line(a, y, "FX1", a->unit[1].e ? a->unit[1].e->id : "--"); y += pitch;
-    draw_line(a, y, "FX2", a->unit[2].e ? a->unit[2].e->id : "--"); y += pitch;
+    for (int k = 0; k < FM1_APP_FX_SLOTS; ++k) {
+      const fm1_engine_t *e = a->unit[1 + k].e;
+      const char *name = e ? fit_name(fm1_look_full_name(e->name), e->name, LINE_CHARS - 1 - 2) : "--";
+      draw_line(a, y, kFxTags[FX_M1 + k], name); y += pitch;
+    }
     snprintf(v, sizeof v, "%+d", a->octave);
     draw_line(a, y, "Octave", a->octave ? v : "0"); y += pitch;
     snprintf(v, sizeof v, "%+d", a->transpose);
@@ -3092,6 +3571,7 @@ static void draw(fm1_app_t *a) {
   }
   if (a->popup_lines) draw_popup(a);
   else if (a->ui.capture_mode) draw_capture(a);
+  t->record = record;
 }
 
 int fm1_app_draw(fm1_app_t *a, uint32_t min_frames) {

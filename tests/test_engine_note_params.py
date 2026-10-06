@@ -117,8 +117,11 @@ def test_which_engines_take_per_note_offsets(listing):
                                                          "Volume"]
     assert [p["name"] for p in poly(listing, "shapes")] == \
         ["Timbre", "Color", "Attack", "Release", "Volume"]
-    for e in ("macro", "macro-heavy"):   # every FLOAT
-        assert poly(listing, e) == [p for p in listing[e]["params"] if p["type"] == 0]
+    for e in ("macro", "macro-heavy"):   # every FLOAT but Glide, which is engine-wide
+        assert poly(listing, e) == [p for p in listing[e]["params"]
+                                    if p["type"] == 0 and p["name"] != "Glide"]
+    for e in PER_NOTE:                   # glide.h: a glide is between notes, not of one
+        assert "poly" not in next(p for p in listing[e]["params"] if p["name"] == "Glide")["flags"]
 
 
 def test_renderer_refuses_what_an_engine_cannot_take(renderer, tmp_path):

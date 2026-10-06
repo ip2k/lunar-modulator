@@ -31,6 +31,10 @@
 // joins the note after the bend. Shape stays engine-wide. A voice without an
 // offset plays the engine's values, byte for byte as before.
 //
+// Glide and Voice Mode (glide.h), after Volume: the glide joins the note
+// after the bend, once per 24-sample chunk at 96 kHz. A Legato move does
+// not strike the oscillator again, and the voice's envelope goes on.
+//
 // SMOOTH parameters (every FLOAT here) ramp while a voice sounds: each
 // 24-sample chunk moves them a tenth of the way, so a change takes 2.5 ms at
 // 96 kHz (fm1_smooth.h). While no voice sounds a change applies at once. A
@@ -66,6 +70,7 @@
 #include "fm1_engine.h"
 #include "fm1_resampler.h"
 #include "fm1_smooth.h"
+#include "glide.h"
 #include "note_offsets.h"
 
 #include <cmath>
@@ -91,7 +96,9 @@ const char *const kShapeNames[kNumShapes] = {
   "Clk Noise", "Granular", "Particle", "Digital",
 };
 
-enum Param { P_SHAPE, P_TIMBRE, P_COLOR, P_ATTACK, P_RELEASE, P_VOLUME, P_COUNT };
+enum Param {
+  P_SHAPE, P_TIMBRE, P_COLOR, P_ATTACK, P_RELEASE, P_VOLUME, P_GLIDE, P_VOICE_MODE, P_COUNT
+};
 
 // Uids (API v2) are fixed: never renumber one. Shape sets every voice's
 // oscillator at once (NOLOCK). The FLOATs are POLY: each voice's oscillator
@@ -105,10 +112,15 @@ const fm1_param_t kParams[P_COUNT] = {
   { "Attack",  FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 0, 4, kPoly, FM1_UNIT_NONE, "Atk" },
   { "Release", FM1_PARAM_FLOAT, 0, 1, 0.3f, NULL, 1, 5, kPoly, FM1_UNIT_NONE, "Rel" },
   { "Volume",  FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 1, 6, kPoly, FM1_UNIT_NONE, "Vol" },
+  // Glide and the voice modes (glide.h), after Volume on page 2.
+  { "Glide",   FM1_PARAM_FLOAT, glide::kOffMs, glide::kMaxMs, glide::kOffMs, NULL, 1,
+    7, glide::kGlideFlags, FM1_UNIT_MS, "Glide" },
+  { "Voice Mode", FM1_PARAM_ENUM, 0, glide::MODE_COUNT - 1, glide::MODE_POLY,
+    glide::kModeNames, 1, 8, glide::kModeFlags, FM1_UNIT_NONE, "VMode" },
 };
 
 // A voice's per-note offsets: Timbre .. Volume, and its pitch.
-typedef NoteOffsets<P_TIMBRE, P_COUNT - P_TIMBRE> Offsets;
+typedef NoteOffsets<P_TIMBRE, P_GLIDE - P_TIMBRE> Offsets;
 
 const int kNumVoices = 12;
 const size_t kChunk = 24;        // Braids' internal buffers are 24 samples
@@ -147,6 +159,7 @@ struct Voice {
   bool active;
   uint32_t age;
   Offsets note;   // per-note offsets (set_param_note)
+  glide::Slew glide;   // its glide (glide.h)
 };
 
 // Envelope time for a 0..1 knob: 1 ms .. 4 s, exponential.
@@ -197,12 +210,15 @@ class Instance {
     memset(sync_, 0, sizeof(sync_));
     memset(mix_, 0, sizeof(mix_));
     pending_ = 0;
+    held_.Clear();
+    glide_block_ms_ = glide::BlockMs(kNativeRate, kChunk);
     for (int i = 0; i < kNumVoices; ++i) {
       voice_[i].osc.Init();
       voice_[i].env = 0.0f;
       voice_[i].gate = voice_[i].active = false;
       voice_[i].age = 0;
       voice_[i].note.Clear();
+      voice_[i].glide.Clear();
     }
     ApplyShape();
     return ok;
@@ -210,7 +226,15 @@ class Instance {
 
   void NoteOn(uint8_t key, uint8_t velocity) {
     if (velocity == 0) { NoteOff(key); return; }
-    Voice *v = Allocate(key);
+    held_.Push(key);
+    const glide::Plan<Voice> plan = glide::PlanNoteOn(
+        voice_, kNumVoices, glide::ToMode(value_[P_VOICE_MODE]), value_[P_GLIDE]);
+    if (plan.legato) {         // Legato over a held note: a new key, nothing restarts
+      Retune(plan.mono, key);
+      glide::StartFor(plan.mono, plan, key);
+      return;
+    }
+    Voice *v = plan.mono ? plan.mono : Allocate(key);
     v->key = key;
     v->velocity = velocity / 127.0f;
     v->gate = true;
@@ -219,9 +243,13 @@ class Instance {
     v->active = true;
     v->note.Clear();   // a new note, a retrigger or a steal starts at no offset
     v->osc.Strike();
+    v->glide.Begin();
+    glide::StartFor(v, plan, key);
   }
 
   void NoteOff(uint8_t key) {
+    held_.Remove(key);
+    if (glide::ToMode(value_[P_VOICE_MODE]) != glide::MODE_POLY) ReturnToHeld(key);
     for (int i = 0; i < kNumVoices; ++i) {
       if (voice_[i].gate && voice_[i].key == key) voice_[i].gate = false;
     }
@@ -268,6 +296,24 @@ class Instance {
   }
 
  private:
+  // Mono and Legato: letting go of the key the voice plays while older keys
+  // are held moves it back to the newest of them, gliding, never restarting.
+  void ReturnToHeld(uint8_t key) {
+    uint8_t top = 0;
+    const glide::Plan<Voice> plan =
+        glide::PlanNoteOff(voice_, kNumVoices, held_, key, value_[P_GLIDE], &top);
+    if (!plan.mono) return;
+    Retune(plan.mono, top);
+    glide::StartFor(plan.mono, plan, top);
+  }
+
+  // A voice takes another key without restarting (no Strike, its envelope
+  // goes on): a new note for its per-note offsets, the same velocity.
+  void Retune(Voice *v, uint8_t key) {
+    v->key = key;
+    v->note.Clear();
+  }
+
   // A SMOOTH parameter ramps while a voice sounds; anything else, at once.
   uint32_t Steps(uint16_t index) const {
     if (!(kParams[index].flags & FM1_PARAM_SMOOTH)) return 0;
@@ -295,6 +341,7 @@ class Instance {
   void RenderChunk() {
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this chunk's step of any ramp
     const Controls shared = MakeControls(value_);
+    const float glide_inc = glide::Increment(glide_block_ms_, value_[P_GLIDE]);
     const int shape = CurrentShape();
 
     // Mixed on the stack, then stored: accumulating straight into mix_ lets
@@ -306,6 +353,8 @@ class Instance {
       const Controls c = VoiceControls(v, shared);
       float note = v.key + bend_;
       if (v.note.has_pitch()) note += v.note.pitch;
+      if (v.glide.active) note += v.glide.offset;
+      v.glide.Next(glide_inc);
       int32_t pitch = static_cast<int32_t>(note * 128.0f);
       if (pitch < 0) pitch = 0;
       if (pitch > kHighestPitch) pitch = kHighestPitch;
@@ -362,6 +411,8 @@ class Instance {
   uint32_t smooth_steps_;          // 24-sample chunks in a ramp
   float bend_;
   uint32_t clock_;
+  glide::Held held_;               // keys down, for Mono and Legato
+  float glide_block_ms_;           // a 24-sample chunk at 96 kHz, in ms
 };
 
 size_t InstanceSize(const fm1_host_t *) { return sizeof(Instance); }
