@@ -9,6 +9,16 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The project key.** The global page has a second page: press [GLO], turn
+  [SELECT] to *Key*, and set the project's key with [KNOB1] (C to B) and
+  its scale with [KNOB2] (Major, Minor, Dorian, Phrygian, Lydian,
+  Mixolydian, Locrian or Chromatic). The first line says it in words, such
+  as *D Minor*. It is kept in the sequencer's set beside the tempo, so
+  loading a set brings its key (a set without one is in C Major). Every
+  MIDI effect is told the key; the arpeggiator does not use it, the scale
+  and chord effects planned next will. On the desktop the sequencer's new
+  `key` command sets it.
+
 - **The arpeggiator, in the simulator.** [ARP] now works: tap it to switch
   the current sound's arpeggiator on (its pages open) or off; hold it to
   latch, so the notes play on after you let go and the next chord replaces
@@ -1197,6 +1207,25 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **The arpeggiator keeps to the beat.** While the sequencer plays, the
+  arpeggiator's steps fall on the sequencer's beat at their rate: a key
+  you press between two steps, or an arpeggiator you switch on in the
+  middle of a bar, waits for the next step instead of starting at the next
+  tick. Triplets fall on the triplets of the beat, and Swing swings every
+  second step of that grid. Stopped, it starts at once, as before.
+  - **Sync** now reads: *Key* starts the pattern again at the first key
+    (on the next step of the beat while the sequencer plays); *Free* keeps
+    the pattern running from PLAY, so a Euclidean rhythm stays on the bar.
+- **Stop takes back what the sequencer gave the arpeggiator.** When the
+  sequencer stops, its notes leave the arpeggiator, latched or not, and
+  the notes they were playing stop at once; the notes you play, or latched
+  by hand, go on playing. While latched, your chords and the sequencer's
+  notes latch apart: a new chord of yours replaces yours, a new note of the
+  sequencer's replaces its own, and the arpeggiator plays both. (Before,
+  Stop cut whatever was sounding, and a sequencer note dropped your latched
+  chord.)
+- Two new parity scenarios, one of them a recorded panel session, check
+  all three in the browser, the native app and fm1-render, byte for byte.
 - **EQ, Isolator and Master Sat rest when they change nothing.** Left at
   their pass-through settings for two seconds (every EQ gain and Level at
   0; Isolator's bands at their defaults with nothing killed; Master Sat's

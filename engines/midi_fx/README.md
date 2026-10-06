@@ -57,19 +57,27 @@ uint32_t n = fm1_arp_process(arp, in, n_in, ticks, n_ticks, out, 64);
 ```
 
 - **Inputs**, as `fm1_arp_ev_t {frame, kind, a, b}`:
-  - `NOTE_ON` (key, velocity; velocity 0 is a note-off) and `NOTE_OFF`;
+  - `NOTE_ON` (key, velocity; velocity 0 is a note-off) and `NOTE_OFF`,
+    with the note's origin in the velocity's high byte (`FM1_MIDI_EV_B`:
+    0 played live, `FM1_MIDI_SRC_SEQ` a sequencer track);
   - `SUSTAIN` (the hold pedal);
   - `STEP` (one step, in RATE TRG);
   - `RESET` (restart the pattern: the next tick is step 0);
   - `FLUSH` (note-offs for everything sounding);
   - `PANIC` (FLUSH, and forget every key);
+  - `STOP` (the sequencer stopped: forget its keys and end their notes);
   - `PARAM` (id, value).
 - **Ticks** are the frames of the host's clock ticks in this block.
+  `fm1_arp_process_at` also takes the host sequencer's transport: while it
+  runs, which of its ticks the first one is, counted from its Start, so the
+  steps lock to its grid ([Locked to the beat](#locked-to-the-beat)).
 - **At one frame**, input events come before the tick, so a key pressed on a
   tick plays on it.
 - **Outputs** are `NOTE_ON` and `NOTE_OFF`, ascending by frame. At one frame
   the order is: note-offs whose gate ran out, then the step's note-offs and
   note-ons. A note that would start while the same key sounds ends it first.
+  A note made by a key only the sequencer gave carries the sequencer's
+  origin; any other is live.
 - **No tempo inside.** The core counts ticks, never samples. Each output
   carries the frame of the event or tick that caused it, so the output is the
   same whatever the host's block size [verified: tests at blocks of 1, 7, 64,
@@ -238,6 +246,17 @@ equal Yarns' generated tables [verified against `reference/mi-eurorack` at
   - the next key pressed drops every latched key that is no longer down;
   - keys pressed while others are down join them.
   - So a chord played after every key is up replaces the old one.
+- **Origins** (owner, 2026-10-06). Each held key remembers whether it was
+  played live or given by the sequencer, and whether each still holds it
+  down. A key latches against the later keys of its own origin only: the
+  sequencer's next note replaces its own latched notes, a new chord played
+  by hand replaces the hand's, and the arp plays the two together. A key
+  both played and given stays until both let go.
+- **STOP** (the sequencer's Stop) takes back what the sequencer gave: its
+  keys leave the chord, held or latched, and the notes they made end at
+  once, with what was left of the step's ratchets from them; a note
+  waiting for a STEP ends too, since no trig comes while stopped. Keys
+  played live, held or latched, play on.
 - Turning latch off drops the released keys at once (Yarns waits for the
   next key).
 - **The hold pedal** keeps released keys like latch, but new keys join
@@ -246,10 +265,41 @@ equal Yarns' generated tables [verified against `reference/mi-eurorack` at
   until the current pass ends (after Bogaudio's behaviour, as the options note
   describes it [reported]). Keys of one chord that arrive before its first
   step all join at once.
-- **Sync, key**: the first key into an empty chord restarts the pattern; it
-  plays at the next tick, at most one tick late (5.2 ms at 120 BPM and 96
-  PPQN [inferred]). **Sync, free**: the grid runs on, and the key waits for
-  the next step. `RESET` rejoins the grid on the host's Play or bar.
+- **Sync, key**: the first key into an empty chord restarts the pattern
+  (its rhythm counter, Loop and chances); with the host's sequencer
+  stopped it plays at the next tick, at most one tick late (5.2 ms at 120
+  BPM and 96 PPQN [inferred]), and while it runs at the next step of its
+  grid. **Sync, free**: the pattern runs on, and the key waits for the next
+  step: the grid's while the sequencer runs (so a Euclidean rhythm stays
+  on the bar from Play), the arp's own while it is stopped. Either way a
+  new chord's notes start from the first. `RESET` rejoins the grid on the
+  host's Play or bar.
+
+## Locked to the beat
+
+Owner, 2026-10-06: whenever the host's sequencer runs, the arp's steps fall
+on its grid. `fm1_arp_process_at` gets the transport with each block: while
+it runs, the tick the block's first one is, counted from the sequencer's
+Start (tick 0, its first downbeat).
+- **The grid.** A step of the rate starts where that tick is a multiple of
+  the step's length (24 ticks for a 1/16 at 96 PPQN); swing starts the odd
+  ones (swing − 50) × step / 60 ticks later, fm1_seq's formula, by their
+  place on the grid. Straight and triplet rates divide the bar; a dotted
+  rate or 1/1T meets the bar line again after a few bars (1/16D every
+  three).
+- **A key between steps waits** for the grid's next step, Sync or not; so
+  does an arp switched on mid-bar. Its pattern's own count (note order,
+  rhythm, Loop) is as Sync leaves it.
+- **A rate change** takes the new rate's grid at once: its next step.
+- **Stopped**, the steps run on from the last one, as before; a first key
+  with Sync at key starts at the next tick.
+- **Cost.** One 64-bit remainder a block (the tick by `GRID_PERIOD`, 4,608,
+  a multiple of every rate's pair of steps), then 32-bit arithmetic a tick;
+  no new state, so the instance is still 728 bytes [verified: `fm1-arp
+  --list`].
+- **The tool.** `fm1-arp`'s `@FRAME run POS` says the sequencer runs from
+  FRAME with its tick POS next, and `@FRAME halt` that it stopped; `on` and
+  `off` take `seq` for the sequencer's notes, and `@FRAME stop` is STOP.
 
 ## In the hosts
 
@@ -278,10 +328,15 @@ effects").
   arp free-runs on the same grid; without a sequencer the stage runs its own
   at fm1-render's `--tempo`. An external MIDI clock (off the grid) puts the
   block's ticks at its first frame.
-- **Transport.** Start reaches the arp as `RESET` and Stop as `FLUSH`, at
-  their frames. A bypass sends `PANIC` at once, between blocks, and its
-  note-offs go straight to the sound; so do a new engine on the sound, a
-  panic, and a sequencer reset or import.
+- **Transport.** Start reaches the arp as `RESET` and Stop as `STOP`, at
+  their frames (with `FLUSH` after it when the ticks stop with the
+  transport, following an external clock). While the sequencer plays the
+  stage gives the arp its tick position, so the steps lock to the beat. A
+  bypass sends `PANIC` at once, between blocks, and its note-offs go
+  straight to the sound; so do a new engine on the sound, a panic, and a
+  sequencer reset or import.
+- **Origins.** The stage marks the sequencer's notes as such, and hands the
+  sounds the bare velocity.
 - **Notes are never left hanging.** A note-off follows its note-on: into the
   arp when the arp took the note-on, else straight to the sound.
 - **Recording** stores the keys before the arp (owner, 2026-10-05), so the
@@ -314,6 +369,8 @@ effects").
 - Super Arp's pattern strings, accent velocity patterns and progression
   presets.
 - The keyboard transposing a latched arp; Loom's JUMP and GRID modes.
+- Using the project key (the context's `key_root` and `key_scale`, which
+  the global page sets since 2026-10-06): the arp reads none of it.
 - More MIDI effects in the other three slots of each chain (chord, scale,
   repeat), and their panel.
 - Cycle counts on pi32v2: the arp is control-rate work, about 1 % of a core
