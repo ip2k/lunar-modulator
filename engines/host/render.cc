@@ -286,6 +286,10 @@ void SinkBend(void *ctx, float semitones) {
   const Unit *u = static_cast<const Unit *>(ctx);
   if (u->e->pitch_bend) u->e->pitch_bend(u->self, semitones);
 }
+void SinkSetParamNote(void *ctx, uint8_t key, uint16_t index, float offset) {
+  const Unit *u = static_cast<const Unit *>(ctx);
+  if (u->e->set_param_note) u->e->set_param_note(u->self, key, index, offset);
+}
 
 // --mod: the runtime, its glue to the bridge, the script's timed lines, the
 // block's writes to the effects and AMP, and the tick log.
@@ -306,8 +310,29 @@ struct Modulation {
   FILE *log = NULL;
   uint64_t pos = 0;                  // the block's first frame, for the log
   uint64_t bridge_splits = 0;
+  // Per-voice offsets since the last logged tick (MG9): frame and write.
+  std::vector<std::pair<uint64_t, fm1_mod_write_t> > voiced;
+  uint64_t live_voice_writes = 0;    // the live notes' first offsets
   Modulation() { memset(&glue, 0, sizeof(glue)); fm1_mod_ramp_init(&amp, 1.0f); }
 };
+
+// A live note's first per-voice offsets, right after the engine's note_on
+// (fm1_mod_host.h), at the coming block's first frame.
+void ModVoiceStart(Modulation &md, const Unit &u, unsigned sound, uint8_t key) {
+  fm1_mod_write_t w[FM1_MOD_VDESTS + 1u];
+  const uint32_t n = fm1_mod_voice_start(md.m, sound, key, w, FM1_MOD_VDESTS + 1u);
+  for (uint32_t i = 0; i < n; ++i) {
+    if (u.e->set_param_note) u.e->set_param_note(u.self, w[i].key, w[i].index, w[i].value);
+    if (md.log) md.voiced.push_back(std::make_pair(md.pos, w[i]));
+  }
+  md.live_voice_writes += n;
+}
+
+void ModVoiced(void *ctx, uint32_t frame, const fm1_mod_write_t *w, uint32_t n) {
+  Modulation *md = static_cast<Modulation *>(ctx);
+  if (!md->log) return;
+  for (uint32_t i = 0; i < n; ++i) md->voiced.push_back(std::make_pair(md->pos + frame, w[i]));
+}
 
 void ModWrite(void *ctx, uint32_t frame, const fm1_mod_write_t *w) {
   Modulation *md = static_cast<Modulation *>(ctx);
@@ -368,6 +393,37 @@ void ModTicked(void *ctx, uint32_t frame, const fm1_mod_write_t *w, uint32_t n) 
   for (uint32_t i = 0; i < n; ++i) {
     fprintf(f, "%s[\"%s\",%u,%.9g]", i ? "," : "", ModUnitName(w[i].unit), w[i].index, w[i].value);
   }
+  // Voices (MG9): each one sounding, its per-voice modules' outputs, and the
+  // per-note offsets sent since the last tick ([frame, unit, key, index,
+  // offset]; index 65535 is the note's pitch).
+  fprintf(f, "],\"vo\":[");
+  first = true;
+  for (unsigned v = 0; v < FM1_MOD_VOICES; ++v) {
+    fm1_mod_voice_info_t vi;
+    if (!fm1_mod_voice(m, v, &vi)) continue;
+    fprintf(f, "%s[%u,%u,%u,%u,[", first ? "" : ",", v, vi.sound, vi.key, vi.state);
+    first = false;
+    bool fp = true;
+    fm1_mod_plan_info_t plan;
+    fm1_mod_get_plan(m, &plan);
+    for (unsigned p = 0; p < FM1_MOD_POSITIONS; ++p) {
+      const int k = fm1_mod_kind_at(m, p);
+      if (k < 0 || !((plan.poly >> p) & 1u)) continue;
+      fprintf(f, "%s[%u", fp ? "" : ",", p + 1);
+      fp = false;
+      for (unsigned i = 0; i < fm1_mod_kinds[k]->n_out; ++i) fprintf(f, ",%.9g", fm1_mod_voice_out(m, v, p, i));
+      fprintf(f, "]");
+    }
+    fprintf(f, "]]");
+  }
+  fprintf(f, "],\"vw\":[");
+  for (size_t i = 0; i < md->voiced.size(); ++i) {
+    const fm1_mod_write_t &x = md->voiced[i].second;
+    fprintf(f, "%s[%llu,\"%s\",%u,%u,%.9g]", i ? "," : "",
+            static_cast<unsigned long long>(md->voiced[i].first), ModUnitName(x.unit), x.key, x.index,
+            x.value);
+  }
+  md->voiced.clear();
   fprintf(f, "]}\n");
 }
 
@@ -1018,7 +1074,7 @@ int main(int argc, char **argv) {
     if (log_path && !(sq.log = fopen(log_path, "w"))) { fprintf(stderr, "cannot write %s\n", log_path); return 1; }
   }
   const fm1_seq_sink_t sink = { &sound, sound.e, SinkRender, SinkNoteOn, SinkNoteOff, SinkSetParam,
-                                SinkBend };
+                                SinkBend, SinkSetParamNote };
 
   // With slots: one sink and one block per sound unit, summed into the block.
   fm1_seq_sink_t unit_sink[kSounds];
@@ -1027,7 +1083,7 @@ int main(int argc, char **argv) {
   for (int k = 0; k < kSounds; ++k) {
     const Unit *u = units[k];
     unit_sink[k] = fm1_seq_sink_t{ const_cast<Unit *>(u), u->e, SinkRender, SinkNoteOn, SinkNoteOff,
-                                   SinkSetParam, SinkBend };
+                                   SinkSetParam, SinkBend, SinkSetParamNote };
     unit_block[k].assign(static_cast<size_t>(max_frames) * 2u, 0.0f);
     unit_slot[k].sink = u->e ? &unit_sink[k] : NULL;
     unit_slot[k].block = unit_block[k].data();
@@ -1131,6 +1187,7 @@ int main(int argc, char **argv) {
     md.glue.ctx = &md;
     md.glue.write = ModWrite;
     md.glue.ticked = ModTicked;
+    md.glue.voiced = ModVoiced;
     if (mod_log_path && !(md.log = fopen(mod_log_path, "w"))) {
       fprintf(stderr, "cannot write %s\n", mod_log_path);
       return ModFail(1);
@@ -1187,9 +1244,10 @@ int main(int argc, char **argv) {
         Unit &u = *units[c.sound];
         if (c.level) {
           level[c.sound] = c.value;
-        } else if (c.bend) {
-          const float v = md.m && c.sound == 0
-              ? fm1_mod_set_base(md.m, FM1_MOD_HOST, FM1_MOD_HOST_PITCH, c.value) : c.value;
+        } else if (c.bend) {        // sound unit k's bend is the base of its pitch (MG9)
+          const float v = md.m
+              ? fm1_mod_set_base(md.m, FM1_MOD_HOST, fm1_mod_host_pitch(static_cast<unsigned>(c.sound)), c.value)
+              : c.value;
           u.e->pitch_bend(u.self, v);
         } else {                     // the sound unit's base (rule M1)
           const float v = md.m
@@ -1203,7 +1261,7 @@ int main(int argc, char **argv) {
         Unit &u = *units[events[k].sound];
         if (!done[k] && !events[k].on && events[k].time <= now) {
           if (u.e) u.e->note_off(u.self, events[k].key);
-          if (u.e && md.m) fm1_mod_live_note(md.m, events[k].key, 0);
+          if (u.e && md.m) fm1_mod_live_sound_note(md.m, static_cast<unsigned>(events[k].sound), events[k].key, 0);
           done[k] = true;
         }
       }
@@ -1211,7 +1269,11 @@ int main(int argc, char **argv) {
         Unit &u = *units[events[k].sound];
         if (!done[k] && events[k].on && events[k].time <= now) {
           if (u.e) u.e->note_on(u.self, events[k].key, events[k].velocity);
-          if (u.e && md.m) fm1_mod_live_note(md.m, events[k].key, events[k].velocity);
+          if (u.e && md.m) {
+            fm1_mod_live_sound_note(md.m, static_cast<unsigned>(events[k].sound), events[k].key,
+                                    events[k].velocity);
+            ModVoiceStart(md, u, static_cast<unsigned>(events[k].sound), events[k].key);
+          }
           done[k] = true;
         }
       }
@@ -1244,7 +1306,10 @@ int main(int argc, char **argv) {
       for (size_t k = 0; k < events.size(); ++k) {
         if (!done[k] && events[k].on && events[k].time <= now) {
           sound.e->note_on(sound.self, events[k].key, events[k].velocity);
-          if (md.m) fm1_mod_live_note(md.m, events[k].key, events[k].velocity);
+          if (md.m) {
+            fm1_mod_live_note(md.m, events[k].key, events[k].velocity);
+            ModVoiceStart(md, sound, 0, events[k].key);
+          }
           done[k] = true;
         }
       }
@@ -1456,14 +1521,21 @@ int main(int argc, char **argv) {
     auto bits = [](uint32_t x) { unsigned c = 0; for (; x; x &= x - 1) ++c; return c; };
     printf(",\"mod_bytes\":%zu,\"mod_ticks\":%llu,\"mod_writes\":%llu,\"mod_sound_writes\":%llu,"
            "\"mod_other_writes\":%llu,\"mod_active\":%u,\"mod_refused\":%u,\"mod_delayed\":%u,"
-           "\"mod_splits\":%llu,\"mod_edges_dropped\":%u,\"mod_nonfinite\":%u",
+           "\"mod_splits\":%llu,\"mod_edges_dropped\":%u,\"mod_nonfinite\":%u,"
+           "\"mod_refused_bits\":%u,\"mod_voice_slots\":%u,\"mod_poly\":%u,\"mod_voice_cap\":%u,"
+           "\"mod_voice_bytes\":%u,\"mod_voice_starts\":%u,\"mod_voice_steals\":%u,"
+           "\"mod_voice_ends\":%u,\"mod_voice_writes\":%llu",
            fm1_mod_size(), static_cast<unsigned long long>(st.ticks),
            static_cast<unsigned long long>(st.writes),
            static_cast<unsigned long long>(md.glue.sound_writes),
            static_cast<unsigned long long>(md.glue.other_writes), bits(plan.active),
            bits(plan.refused), bits(plan.delayed),
            static_cast<unsigned long long>(use_seq ? sq.host.splits : bare.splits),
-           st.edges_dropped, st.nonfinite);
+           st.edges_dropped, st.nonfinite, static_cast<unsigned>(plan.refused),
+           static_cast<unsigned>(plan.voice), static_cast<unsigned>(plan.poly),
+           static_cast<unsigned>(plan.voice_cap), static_cast<unsigned>(plan.voice_bytes),
+           static_cast<unsigned>(st.voice_starts), static_cast<unsigned>(st.voice_steals),
+           static_cast<unsigned>(st.voice_ends), static_cast<unsigned long long>(st.voice_writes));
     if (md.log) fclose(md.log);
     fm1_mod_destroy(md.m);
     free(md.mem);

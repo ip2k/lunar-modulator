@@ -12,9 +12,11 @@
 
 #define MOD_NONE 0xFFu
 #define MOD_NO_FRAME 0xFFFFFFFFFFFFFFFFull
-#define MOD_SYS_GATES 16u      /* KEY TRIG CLOCK BEAT BAR RUN START RTRG SEQ1-8 */
+#define MOD_SYS_GATES 28u      /* KEY TRIG CLOCK BEAT BAR RUN START RTRG SEQ1-8, then
+                                  each sound unit's KEY, TRIG and RTRG (MG9) */
 #define MOD_SINK_UNITS FM1_MOD_SINKS   /* by sink index (fm1_mod_sink_unit) */
-#define MOD_HOST_SINK 3u       /* HOST's sink index; its records are 0 and 1 */
+#define MOD_HOST_SINK 3u       /* HOST's sink index; its records are 0-5 */
+#define MOD_PITCH_BIT 32u      /* a voice's restore bit for its pitch offset */
 #define MOD_SINK_RECS FM1_MOD_SINK_PARAMS
 #define MOD_MAX_WRITES MOD_SINK_RECS
 
@@ -29,27 +31,91 @@ typedef struct mod_meta {
 } mod_meta_t;
 
 /* A destination with enabled slots: the slots, in ascending order, sum
- * into it. */
+ * into it. A module's global instance takes the slots without VOICE; its
+ * per-voice instances those too, read globally, and the VOICE ones (MG9),
+ * whose destinations are listed apart (gate 2 and 3 below). */
 typedef struct mod_dest {
   uint32_t slots;
   uint16_t index;              /* parameter index, or gate input index */
   uint8_t unit;                /* a sink's canonical code, or 8 + position */
-  uint8_t gate;                /* 1: a gate input */
+  uint8_t gate;                /* 1: a gate input; 2 and 3: a VOICE parameter or gate */
 } mod_dest_t;
+
+/* A sound parameter, or a sound's pitch, that VOICE slots reach (MG9): the
+ * slots sum per voice of that sound into its per-note offset. */
+typedef struct mod_vdest {
+  uint32_t slots;              /* the pitch's: its own and, for the current
+                                  sound, PITCH_CUR's */
+  uint16_t index;              /* the sound unit's parameter index; 0 for pitch */
+  uint8_t sound;               /* 0-3 */
+  uint8_t pitch;               /* 1: the note's pitch (FM1_PARAM_NOTE_PITCH) */
+} mod_vdest_t;
 
 typedef struct mod_plan {
   uint32_t active, refused, delayed_src, delayed_via;
+  uint32_t vslots;                             /* active VOICE slots */
   uint32_t routed[FM1_MOD_POSITIONS];          /* module parameters with slots */
+  uint32_t vrouted[FM1_MOD_POSITIONS];         /* ...with VOICE slots (their dest
+                                                  is found by mod_vdest_of) */
   uint32_t sink_routed[MOD_SINK_UNITS];        /* sink parameters with slots, by index */
   mod_dest_t dest[FM1_MOD_SLOTS];
+  mod_vdest_t vd[FM1_MOD_VDESTS];
   uint8_t pdest[FM1_MOD_POSITIONS][FM1_MOD_MAX_PARAMS];   /* -> dest, or NONE */
   uint8_t gdest[FM1_MOD_POSITIONS][FM1_MOD_MAX_GATES];
   uint8_t sdest[MOD_SINK_RECS];                /* sink parameter record -> dest */
   uint8_t order[FM1_MOD_POSITIONS];
   uint8_t comp[FM1_MOD_POSITIONS];             /* by position */
   uint8_t gate_conn[FM1_MOD_POSITIONS];
-  uint8_t n_order, n_dest, reserved[2];
+  uint8_t vgate_conn[FM1_MOD_POSITIONS];
+  /* Where the per-voice instances live (MG9): after the highest global
+   * instance, one block of vsize bytes per voice, position p's at voff[p],
+   * its outputs first (vhdr[p] bytes) and the instance after them. */
+  uint16_t vbase, vsize;
+  uint16_t voff[FM1_MOD_POSITIONS], vhdr[FM1_MOD_POSITIONS];
+  uint8_t n_order, n_dest, n_vd;
+  uint8_t poly;                                /* positions that run per voice */
+  uint8_t vsounds;                             /* sound units whose notes start voices */
+  uint8_t vcap;                                /* voices the arena holds */
+  uint8_t reserved[2];
 } mod_plan_t;
+
+/* A voice (MG9): a note on a sound unit, from its note-on until it is
+ * stolen or, after its note-off, its per-voice modules stop moving. Its
+ * GATE (rises at the note-on, retriggered by the same key again, falls at
+ * the note-off) and TRIG are fed in windows as the system gates are. The
+ * layout is the same in 32- and 64-bit builds: 64-bit members first, the
+ * size a multiple of 8. */
+enum { MOD_V_FREE = 0, MOD_V_HELD = 1, MOD_V_RELEASED = 2 };
+enum { MOD_VG_GATE = 0, MOD_VG_TRIG = 1 };
+typedef struct mod_voice {
+  uint64_t trig_fall;          /* TRIG's pending fall, or MOD_NO_FRAME */
+  uint64_t gate_at;            /* the gate's last rise or retrigger */
+  uint64_t restore;            /* bit i (parameter index, MOD_PITCH_BIT the
+                                  pitch): an offset to put back to 0 */
+  fm1_mp_rng_t rng;            /* its probability cables' draws */
+  uint32_t age;                /* order of starts and retriggers */
+  uint32_t serial;             /* which start this is: seeds its instances */
+  uint32_t glevel;             /* bit i: VOICE gate cable i's level here */
+  float vel, note, rand;
+  float sent[FM1_MOD_VDESTS];  /* the offset the engine holds, per plan.vd */
+  fm1_mod_gate_t pend[2][2];   /* [window][GATE, TRIG] */
+  fm1_mod_gate_t gate[2];      /* this tick's */
+  uint8_t fed[2];              /* each gate's level after every fed event */
+  uint8_t sound, key, state, velocity;
+  uint8_t ready;               /* bit p: its instance at position p exists */
+  uint8_t changed;             /* bit j: sent[j] changed since voice_writes */
+} mod_voice_t;
+typedef char mod_voice_size[sizeof(mod_voice_t) % 8u == 0 ? 1 : -1];
+
+/* The head of a per-voice instance's block in the arena. */
+typedef struct mod_vblk {
+  uint16_t handle;             /* create's handle, as an arena offset */
+  uint8_t kind;                /* the kind it was made of */
+  uint8_t gin;                 /* gate inputs' levels at the last tick's end */
+  uint8_t moved;               /* an output moved at the last tick */
+  uint8_t reserved[3];
+} mod_vblk_t;
+#define MOD_VBLK_HEAD 8u
 
 /* A slot's own running state: its probability generator and, for a cable
  * into a gate input, its output level and whether the current pulse passed. */
@@ -70,16 +136,20 @@ struct fm1_mod {
   uint64_t trig_fall[MOD_SYS_GATES];   /* a system trigger's pending fall */
   uint64_t cv_has[2];          /* pending CV changes, per window, by id */
   uint64_t rtrg_at;            /* RTRG's last retrigger or rise, as an absolute frame */
+  uint64_t rtrg_at_s[FM1_MOD_SOUNDS];          /* each sound unit's RTRG's */
   mod_slot_rt_t srt[FM1_MOD_SLOTS];
   fm1_mp_rng_t note_rng;       /* RAND */
+  fm1_mp_rng_t voice_rng;      /* each voice's RAND (MG9) */
   fm1_mod_stats_t stats;
+  mod_voice_t voice[FM1_MOD_VOICES];
   /* 32-bit */
   uint32_t magic, seed;
   float rate;
   uint32_t max_frames;
   uint32_t bpm_x100;
   uint32_t restore[MOD_SINK_UNITS];            /* sink parameters to put back to base */
-  uint32_t keys[4];                            /* notes held on the sound */
+  uint32_t keys[FM1_MOD_SOUNDS][4];            /* notes held, per sound unit */
+  uint32_t vage, vserial;                      /* the voices' counters */
   uint32_t seq_keys[8][4];                     /* notes sounding per track */
   float base[FM1_MOD_POSITIONS][FM1_MOD_MAX_PARAMS];
   float peff[FM1_MOD_POSITIONS][FM1_MOD_MAX_PARAMS];
@@ -109,12 +179,15 @@ struct fm1_mod {
   uint8_t glvl_fed[MOD_SYS_GATES];             /* level after every fed event */
   uint8_t sink_first[MOD_SINK_UNITS];
   uint8_t sink_n[MOD_SINK_UNITS];
+  uint8_t sink_note[MOD_SINK_UNITS];           /* 1: its engine takes per-note offsets */
   uint8_t cur;                                 /* the output buffer this tick writes */
   uint8_t dirty;                               /* the plan needs a rebuild */
   uint8_t start_frame;                         /* this tick's Start, or NONE */
   uint8_t gin_level[FM1_MOD_POSITIONS];        /* bit j: gate input j's level at the
                                                   last tick's end, as the module saw it */
-  uint8_t reserved[3];
+  uint8_t cur_sound;                           /* the current sound unit (PITCH_CUR) */
+  uint8_t vctx;                                /* the voice being run, or NONE */
+  uint8_t reserved[1];
 };
 
 /* ---- shared by the core, the planner and the kinds ---------------------- */
@@ -253,6 +326,26 @@ static inline uint32_t mod_lfo_to_wrap(const fm1_mp_lfo_t *l, uint32_t m) {
     else lo = mid + 1u;
   }
   return lo;
+}
+
+/* A position's per-voice instances go (their kinds' destroy; MG9): the
+ * rack or the plan's layout changed under them. */
+void mod_voices_drop(fm1_mod_t *m);
+/* The per-voice block of voice v at position pos. */
+static inline uint8_t *mod_vblock(fm1_mod_t *m, unsigned v, unsigned pos) {
+  return m->arena + m->plan.vbase + (uint32_t)v * m->plan.vsize + m->plan.voff[pos];
+}
+
+/* The destination of the VOICE slots into a module's parameter (gate 0) or
+ * gate input (gate 1), or NONE: a short search, made only where vrouted or
+ * vgate_conn says there is one. */
+static inline uint8_t mod_vdest_of(const fm1_mod_t *m, unsigned pos, unsigned index, unsigned gate) {
+  unsigned d;
+  for (d = 0; d < m->plan.n_dest; ++d) {
+    const mod_dest_t *e = &m->plan.dest[d];
+    if (e->unit == FM1_MOD_MODULE + pos && e->gate == 2u + gate && e->index == index) return (uint8_t)d;
+  }
+  return MOD_NONE;
 }
 
 /* Planner (mod_plan.c). */

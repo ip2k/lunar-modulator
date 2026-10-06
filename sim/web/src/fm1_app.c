@@ -480,9 +480,22 @@ static void mod_release(fm1_app_t *a) {
       if (fm1_mod_sent(a->mod, (unsigned)code, i) != x->value[i]) x->e->set_param(x->self, i, x->value[i]);
     }
   }
-  if (a->unit[0].e && a->unit[0].e->pitch_bend &&
-      fm1_mod_sent(a->mod, FM1_MOD_HOST, FM1_MOD_HOST_PITCH) != a->bend) {
-    a->unit[0].e->pitch_bend(a->unit[0].self, a->bend);
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    const fm1_app_unit_t *x = sound_of_c(a, k);
+    if (x->e && x->e->pitch_bend &&
+        fm1_mod_sent(a->mod, FM1_MOD_HOST, fm1_mod_host_pitch((unsigned)k)) != a->bend[k]) {
+      x->e->pitch_bend(x->self, a->bend[k]);
+    }
+  }
+  {
+    /* Every per-note offset back to 0 (MG9), on the engines that hold one. */
+    fm1_mod_write_t w[FM1_MOD_VOICES * (FM1_MOD_VDESTS + 1u)];
+    const uint32_t n = fm1_mod_voice_clear(a->mod, w, sizeof w / sizeof w[0]);
+    for (uint32_t i = 0; i < n; ++i) {
+      const int k = fm1_mod_unit_sound(w[i].unit);
+      const fm1_app_unit_t *x = k >= 0 ? sound_of_c(a, k) : NULL;
+      if (x && x->e && x->e->set_param_note) x->e->set_param_note(x->self, w[i].key, w[i].index, 0.0f);
+    }
   }
   fm1_mod_destroy(a->mod);
   a->mod = NULL;
@@ -500,7 +513,10 @@ static void mod_start(fm1_app_t *a, uint32_t seed, int deflt) {
   a->mod_glue.ctx = a;
   a->mod_glue.write = mod_write;
   for (int u = 0; u < FM1_APP_UNITS; ++u) mod_bind(a, u);
-  fm1_mod_set_base(a->mod, FM1_MOD_HOST, FM1_MOD_HOST_PITCH, a->bend);
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    fm1_mod_set_base(a->mod, FM1_MOD_HOST, fm1_mod_host_pitch((unsigned)k), a->bend[k]);
+  }
+  fm1_mod_set_current(a->mod, (unsigned)a->sound);
   fm1_mod_ramp_init(&a->mod_amp, 1.0f);
   a->mod_amp_used = 0;
   a->mod_nwr = 0;
@@ -544,7 +560,7 @@ int fm1_app_mod_dump(fm1_app_t *a, void (*emit)(void *ctx, const char *line), vo
   mod_env(a, &env);
   env.emit = emit;
   env.ctx = ctx;
-  return fm1_mod_ui_dump(&env, a->mod_seed) && !a->mui.unloggable;
+  return fm1_mod_ui_dump(&env, &a->mui, a->mod_seed) && !a->mui.unloggable;
 }
 
 const fm1_mod_t *fm1_app_mod(const fm1_app_t *a) { return a->mod; }
@@ -583,16 +599,30 @@ static void fx_unit_changed(fm1_app_t *a, int unit) {
   if (fx_unit_at(a, a->fx_slot) == unit) a->fx_page = clampi(a->fx_page, 0, fx_pages(a, a->fx_slot) - 1);
 }
 
+/* A unit's engine changed from `from`: the runtime's sink follows it and
+ * every cable into it is re-aimed by name, or switched off until an engine
+ * with that parameter comes back (owner, 2026-10-05; fm1_mod_ui.h). */
+static void mod_rebind(fm1_app_t *a, int unit, const fm1_engine_t *from) {
+  const int code = fm1_app_mod_unit(unit);
+  mod_bind(a, unit);
+  if (a->mod && code >= 0 && from != a->unit[unit].e) {
+    fm1_mod_ui_env_t env;
+    mod_env(a, &env);
+    fm1_mod_ui_engine_changed(&env, &a->mui, (unsigned)code, from, a->unit[unit].e);
+  }
+}
+
 int fm1_app_select(fm1_app_t *a, int unit, int index) {
   if (unit < 0 || unit >= FM1_APP_UNITS) return FM1_APP_SELECT_BAD;
   fm1_app_unit_t *u = &a->unit[unit];
   const fm1_engine_t *e = entry(index);
+  const fm1_engine_t *from = u->e;
   const int snd = unit_sound(unit);
   fm1_kind_t want = snd >= 0 ? FM1_KIND_SOUND : FM1_KIND_AUDIO_FX;
   if (index == -1 && unit > 0) {
     if (snd >= 0) release_sound(a, snd);
     release(u);
-    mod_bind(a, unit);
+    mod_rebind(a, unit, from);
     if (snd < 0 && fx_unit_at(a, a->fx_slot) == unit) a->fx_page = 0;   /* an empty slot has one page */
     if (snd == a->sound) {
       a->page = 0;
@@ -636,11 +666,11 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
         u->e->set_param(u->self, i, prev_value[i]);
       }
     }
-    mod_bind(a, unit);
+    mod_rebind(a, unit, from);
     a->dirty = 1;
     return -3;
   }
-  mod_bind(a, unit);                      /* the runtime's sink follows the unit */
+  mod_rebind(a, unit, from);              /* the runtime's sink follows the unit */
   if (snd == a->sound) {
     a->page = clampi(a->page, 0, page_count(e) - 1);
     forget_knob_hint(a);                 /* the Track view's hint named the last sound's knob */
@@ -768,6 +798,12 @@ int fm1_app_unit_set_current(fm1_app_t *a, int sound) {
   if (sound < 0 || sound >= FM1_APP_SOUNDS) return -1;
   if (sound != a->sound) {
     a->sound = sound;
+    if (a->mod) {                        /* PITCH_CUR's cables follow it (MG9) */
+      char line[16];
+      fm1_mod_set_current(a->mod, (unsigned)sound);
+      snprintf(line, sizeof line, "current %d", sound + 1);
+      mod_emit(a, line);
+    }
     a->page = clampi(a->page, 0, page_count(cur(a)->e) - 1);
     forget_knob_hint(a);                 /* the hint named the last sound's knob */
     if (a->fx_slot < FX_MIX) a->fx_page = clampi(a->fx_page, 0, fx_pages(a, a->fx_slot) - 1);
@@ -831,14 +867,23 @@ int fm1_app_unit_of_track(const fm1_app_t *a, int track) {
 static void play_on(fm1_app_t *a, int sound, int note, int velocity) {
   fm1_app_unit_t *s = sound_of(a, sound);
   if (s->e && s->e->note_on) s->e->note_on(s->self, (uint8_t)note, (uint8_t)velocity);
-  if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)note, (uint8_t)velocity);
+  if (a->mod && s->e) {
+    /* Its voice's first per-note offsets right after the note-on (MG9). */
+    fm1_mod_write_t w[FM1_MOD_VDESTS + 1u];
+    uint32_t n;
+    fm1_mod_live_sound_note(a->mod, (unsigned)sound, (uint8_t)note, (uint8_t)velocity);
+    n = fm1_mod_voice_start(a->mod, (unsigned)sound, (uint8_t)note, w, FM1_MOD_VDESTS + 1u);
+    for (uint32_t i = 0; i < n && s->e->set_param_note; ++i) {
+      s->e->set_param_note(s->self, w[i].key, w[i].index, w[i].value);
+    }
+  }
   if (a->note_count[sound][note] < 255) ++a->note_count[sound][note];
 }
 
 static void play_off(fm1_app_t *a, int sound, int note) {
   fm1_app_unit_t *s = sound_of(a, sound);
   if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)note);
-  if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)note, 0);
+  if (a->mod && s->e) fm1_mod_live_sound_note(a->mod, (unsigned)sound, (uint8_t)note, 0);
   if (a->note_count[sound][note]) --a->note_count[sound][note];
 }
 
@@ -908,11 +953,12 @@ void fm1_app_pitch_bend(fm1_app_t *a, float semitones) {
   if (semitones > 48.0f) semitones = 48.0f;
   if (semitones < -48.0f) semitones = -48.0f;
   fm1_app_unit_t *s = cur(a);
-  if (a->sound == 0) {
-    /* With modulation sound 0's bend is HOST PITCH's base (fm1_mod_host.h),
-     * as fm1-render's --bend is. */
-    a->bend = semitones;
-    if (a->mod) semitones = fm1_mod_set_base(a->mod, FM1_MOD_HOST, FM1_MOD_HOST_PITCH, semitones);
+  /* With modulation each sound unit's bend is the base of its HOST pitch
+   * (PITCH for sound 1, PITCH2-4; fm1_mod_host.h), as fm1-render's --bend
+   * and its slots' bends are. */
+  a->bend[a->sound] = semitones;
+  if (a->mod) {
+    semitones = fm1_mod_set_base(a->mod, FM1_MOD_HOST, fm1_mod_host_pitch((unsigned)a->sound), semitones);
   }
   if (s->e && s->e->pitch_bend) s->e->pitch_bend(s->self, semitones);
 }
@@ -925,7 +971,7 @@ static void seq_release_sound(fm1_app_t *a, int sound) {
   for (int n = 0; n < 128; ++n) {
     while (a->seq_note_count[sound][n]) {
       if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)n);
-      if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)n, 0);   /* no event will say it */
+      if (a->mod && s->e) fm1_mod_live_sound_note(a->mod, (unsigned)sound, (uint8_t)n, 0);   /* no event will say it */
       --a->seq_note_count[sound][n];
     }
   }
@@ -941,7 +987,7 @@ static void notes_release_sound(fm1_app_t *a, int sound) {
   for (int n = 0; n < 128; ++n) {
     while (a->note_count[sound][n]) {
       if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)n);
-      if (a->mod && s->e) fm1_mod_live_note(a->mod, (uint8_t)n, 0);
+      if (a->mod && s->e) fm1_mod_live_sound_note(a->mod, (unsigned)sound, (uint8_t)n, 0);
       --a->note_count[sound][n];
     }
   }
@@ -1744,6 +1790,13 @@ static void sink_bend(void *ctx, float semitones) {
   if (u->e->pitch_bend) u->e->pitch_bend(u->self, semitones);
 }
 
+/* A voice's per-note offset (modulation per voice, docs/16 MG9). */
+static void sink_set_param_note(void *ctx, uint8_t key, uint16_t index, float offset) {
+  const fm1_app_sink_ctx_t *c = (const fm1_app_sink_ctx_t *)ctx;
+  const fm1_app_unit_t *u = sound_of(c->a, c->sound);
+  if (u->e->set_param_note) u->e->set_param_note(u->self, key, index, offset);
+}
+
 /* An effect over the block, split at its own writes from the ticks, as
  * fm1-render's RenderFx does; each piece through fm1_fx_render, which
  * gives an effect with engine API v3's extension the sequencer's tempo,
@@ -1806,6 +1859,7 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
     sink[k].note_off = sink_note_off;
     sink[k].set_param = sink_set_param;
     sink[k].pitch_bend = sink_bend;
+    sink[k].set_param_note = sink_set_param_note;
     slot[k].sink = u->e ? &sink[k] : NULL;
     slot[k].block = a->mix[k];
   }

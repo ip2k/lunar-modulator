@@ -40,9 +40,11 @@ ROOT = Path(__file__).resolve().parents[1]
 CORE_TEST = ENGINES / "build" / "fm1-mod-core-test"
 FIXTURE = ROOT / "tests" / "fixtures" / "mod-uids.json"
 TICK = 32
-# fm1_mod_size(): 8,192 B of arena and 11,824 B of fixed state, the same in
-# 32- and 64-bit builds (no pointers; every 64-bit member 8-aligned).
-MOD_BYTES = 23200
+# fm1_mod_size(): 8,192 B of arena and 18,000 B of fixed state, the same in
+# 32- and 64-bit builds (no pointers; every 64-bit member 8-aligned): MG3's
+# 23,200 B and MG9's 2,992 B (twelve voices of 168 B, each sound unit's
+# note gates, the per-voice plan, four more HOST records).
+MOD_BYTES = 26192
 FLAG_BITS = ["latch", "smooth", "nolock", "mod", "input"]
 
 
@@ -511,12 +513,13 @@ def test_the_record_pool_holds_every_chain(renderer):
     records. The largest chain the virtual FM-1 can hold, four sound units
     of the engine with the most parameters and ten effects (two inserts on
     each, two master slots) of the effect with the most, fits with HOST's
-    two; the sinks are listed in their order with their script names."""
+    two (six since MG9: a pitch per sound unit and the current sound's);
+    the sinks are listed in their order with their script names."""
     d = json.loads(subprocess.check_output([str(renderer), "--list-mod"]))
     engines = json.loads(subprocess.check_output([str(renderer), "--list"]))
     most = {k: max(min(len(e["params"]), d["unit_params"]) for e in engines if e["kind"] == k)
             for k in ("sound", "audio_fx")}
-    assert 4 * most["sound"] + 10 * most["audio_fx"] + 2 <= d["sink_params"] == 180
+    assert 4 * most["sound"] + 10 * most["audio_fx"] + 6 <= d["sink_params"] == 184
     assert [n for _, n in d["sinks"]] == ["snd", "fx1", "fx2", "host", "snd2", "snd3", "snd4",
                                           "snd1.fx1", "snd1.fx2", "snd2.fx1", "snd2.fx2",
                                           "snd3.fx1", "snd3.fx2", "snd4.fx1", "snd4.fx2"]
