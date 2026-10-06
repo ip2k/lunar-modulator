@@ -163,6 +163,8 @@ def group_of(rel):
         return "Braids (vendored, MIT)"
     if rel.startswith("tp/stmlib/"):
         return "stmlib (vendored, MIT)"
+    if rel.startswith("tp/msfa/"):
+        return "msfa (vendored, Apache-2.0)"
     if rel.startswith("sw/"):
         return "Schwung modules (vendored, MIT)"
     if rel.startswith("c/seq/"):

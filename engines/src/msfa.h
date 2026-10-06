@@ -10,7 +10,9 @@
 // msfa_unit.cc compiles the vendored .cc files the same way.
 //
 // N and LG_N are macros in msfa; they are #undef'd at the end of this header.
-// Our code uses fm1_msfa::kN and kLgN.
+// Our code uses fm1_msfa::kN and kLgN. So are the names of msfa's tables
+// (msfa_prelude.h says why): after this header, our code names the pointers
+// (fm1_sintab, fm1_exp2tab, fm1_freqlut) and the const tables below.
 //
 // MIT licence (this file). The vendored files keep their Apache-2.0 headers.
 
@@ -44,9 +46,31 @@ int ScaleLevel(int midinote, int break_pt, int left_depth, int right_depth,
 const int kLgN = LG_N;   // samples per msfa block: 64
 const int kN = N;
 
+// msfa's tables as const data (src/msfa_rom.cc, made by tools/msfa_tables.py;
+// msfa_prelude.h): the sine and exp2 tables, and the frequency table at the
+// FM-1's rate. sin.h and exp2.h declare fm1_sintab and fm1_exp2tab, which
+// src/msfa_tables.cc points at the first two.
+const int kFreqLutSize = 1025;               // freqlut.cc's N_SAMPLES + 1
+const uint32_t kFreqLutRateHz = 44118;      // the rate kFreqLut44118 is for
+extern const int32_t kSinTab[SIN_N_SAMPLES << 1];
+extern const int32_t kExp2Tab[EXP2_N_SAMPLES << 1];
+extern const int32_t kFreqLut44118[kFreqLutSize];
+
+// What Freqlut::lookup reads (freqlut.cc defines it, through the prelude's
+// macro): kFreqLut44118 at 44,118 Hz, else a table the engine keeps in its
+// instance, filled by FillFreqLut. Set by the engine before each block.
+extern int32_t (*fm1_freqlut)[kFreqLutSize];
+
+// Freqlut::init(hz)'s table into `table`, without libm: the same doubles, the
+// same steps (fm1-dx7-oracle --tables-vs-msfa compares the two at many rates).
+void FillFreqLut(int32_t table[kFreqLutSize], uint32_t hz);
+
 }  // namespace fm1_msfa
 
 #undef N
 #undef LG_N
+#undef sintab
+#undef exp2tab
+#undef lut
 
 #endif  // FM1_MSFA_H_

@@ -165,6 +165,10 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     [`engines/third_party/msfa/UPSTREAM.md`](engines/third_party/msfa/UPSTREAM.md)),
     with a voice, amplitude modulation, the loops of algorithms 4 and 6,
     32 voices and a DX7 SysEx import of our own ([`engines/msfa.md`](engines/msfa.md)).
+    Its tables are const data, flash on the FM-1, made ahead of time
+    (`tools/msfa_tables.py`); the simulator loads `.syx` files into its user
+    slots. The name is borrowed, with thanks, from Felucca's FM6 engine
+    (hugelton), whose Apache-2.0 port of the same core is the test oracle.
   - Sophie and PSX Verb are Schwung modules, compiled unmodified through a
     compatibility shim.
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
@@ -289,10 +293,11 @@ chapter 4, "Arpeggiator").
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 3,163 screens of the layout sweep, the sequencer's,
-  modulation's and the arpeggiator's and every list popup at every entry
-  included, pass a layout check, with no text cut short and nothing closer
-  than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06].
+  canvas. All 3,267 screens of the layout sweep, the sequencer's,
+  modulation's and the arpeggiator's, FM6's user bank and every list popup
+  at every entry included, pass a layout check, with no text cut short and
+  nothing closer than 4 px [verified: `fm1-sim-render --screens`,
+  2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
   modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); only SAVE is still

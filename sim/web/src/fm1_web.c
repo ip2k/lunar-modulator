@@ -11,6 +11,7 @@
 #include "fm1_app.h"
 
 #include <stdint.h>
+#include <string.h>
 
 static fm1_app_t g_app;
 
@@ -112,6 +113,54 @@ int fm1w_seq_reset(int tracks) {
 
 /* Events dropped since init (0 unless a note may have hung). */
 unsigned fm1w_seq_dropped(void) { return (unsigned)fm1_app_seq_dropped(&g_app); }
+
+/* FM6's user bank (fm1_app.h, fm1_app_dx7_*): the page's "Load DX7
+ * patches" (www/app.js). JavaScript writes a .syx file's bytes into the text
+ * buffer, so a file of up to its 64 KiB (FM1_APP_DX7_FILE_MAX), and passes
+ * their count; with `play`, the current sound then plays the first voice
+ * loaded (fm1_app_dx7_play: it becomes FM6 if it is not). Nothing leaves the
+ * module. Returns the voices stored, 0 when the file held none, or -1 for a
+ * length past the buffer, -2 without FM6. fm1w_dx7_result's words say what
+ * the file held (fm1_dx7_sysex_result_t), for the page's message:
+ *   [0] the return value   [1] voices          [2] first slot (0-based)
+ *   [3] dumps found        [4] bad checksums   [5] foreign messages
+ *   [6] messages cut short [7] dumps of the wrong size
+ *   [8] 1 for a raw bank   [9] bytes outside SysEx messages
+ *   [10] fm1_app_dx7_play's result (1 when not asked)
+ *   [11] the current sound  [12] the length read
+ * and fm1w_dx7_name(slot) the name user slot `slot` shows (fm1_app_dx7_name). */
+static uint32_t g_dx7_result[13];
+
+int fm1w_dx7_load(unsigned len, int play) {
+  fm1_dx7_sysex_result_t r;
+  int n, played = 1;
+  if (len > sizeof g_text) {
+    n = -1;
+    memset(&r, 0, sizeof r);
+  } else {
+    n = fm1_app_dx7_load(&g_app, (const uint8_t *)g_text, len, &r);
+    if (n == FM1_APP_DX7_TOO_BIG) n = -1;
+    else if (n == FM1_APP_DX7_NO_FM6) n = -2;
+    if (n > 0 && play) played = fm1_app_dx7_play(&g_app, r.first_slot);
+  }
+  g_dx7_result[0] = (uint32_t)n;
+  g_dx7_result[1] = r.voices;
+  g_dx7_result[2] = r.first_slot;
+  g_dx7_result[3] = r.messages;
+  g_dx7_result[4] = r.bad_checksums;
+  g_dx7_result[5] = r.foreign;
+  g_dx7_result[6] = r.truncated;
+  g_dx7_result[7] = r.wrong_size;
+  g_dx7_result[8] = r.raw;
+  g_dx7_result[9] = r.outside;
+  g_dx7_result[10] = (uint32_t)played;
+  g_dx7_result[11] = (uint32_t)fm1_app_unit_current(&g_app);
+  g_dx7_result[12] = len;
+  return n;
+}
+
+const uint32_t *fm1w_dx7_result(void) { return g_dx7_result; }
+const char *fm1w_dx7_name(int slot) { return fm1_app_dx7_name(&g_app, slot < 0 ? 999u : (unsigned)slot); }
 
 /* Modulation (docs/16 MG3). fm1w_mod_reset builds a new, empty runtime
  * with `seed` (fm1_app_mod_reset), and fm1w_mod_text applies the first
