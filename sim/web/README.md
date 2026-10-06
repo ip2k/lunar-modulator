@@ -479,13 +479,15 @@ pages, Room, Hall, Gate and Plate's Freeze, since engine API v3
 (2026-10-05) Comb, Test Ext, the LOG law and the effects' extension
 (`fm1_fx_render`), Drums, FM6 (msfa), the list popups, FM6's user bank
 with msfa's tables as const data, Squash, Transient and the Limiter's
-Round mode, per-voice modulation (MG9) and the UI audit's screens
-(2026-10-06): 76 of 76 scenarios pass,
+Round mode, per-voice modulation (MG9), the idle paths of EQ, Isolator and
+Master Sat (engines/README.md, "Idle at pass-through") and the UI audit's
+screens (2026-10-06): 78 of 78 scenarios pass,
 identical to musl and to render.js (six of them turn the effects' switches
-every 4.4 ms; the three Drums and the four FM6 scenarios are identical to
-glibc too), and it imports nothing; it is 901,950 bytes with the UI
+every 4.4 ms, and two let EQ with Master Sat and Isolator rest past 2 s and
+wake them; those two, the three Drums and the four FM6 scenarios are
+identical to glibc too), and it imports nothing; it is @@SIZE@@ bytes with the UI
 audit's screens (the palette, the two Spleen faces and the screens that
-use them), 887,038 before them, 850,731 before
+use them), 890,874 before them, 887,038 before the idle paths, 850,731 before
 per-voice modulation (826,339 without the user bank, 840,216 without
 Squash, Transient and Round), 837,480 with
 the user bank before the list popups, 815,821 with the list popups before the
@@ -504,7 +506,7 @@ with S8 before the second effects pack), 524,659 before multi-sound and S6
 (514,688 with them before the second effects pack), 516,035 before S5,
 482,291 before the second effects pack (Drive, Filter, Comp, Limiter),
 466,635 before S4, 459,122 before S3 and 391 KB before the sequencer
-[verified, 2026-10-05, `www/fm1.wasm.json`]. With S7b nine scenarios sound
+[verified, 2026-10-06, `www/fm1.wasm.json`]. With S7b nine scenarios sound
 different, each because a knob or a lock turns while something sounds:
 `seq-panel-play-stop`, `seq-panel-locks`, `multi-panel`,
 `multi-four-sounds-seq`, `drive-fuzz-gated` (its Plate Decay turn) and the

@@ -435,6 +435,14 @@ attack and release envelope.
     refuses what would not ([chapter 6](06-effects.md#memory)). The FM-1
     build may play fewer Shapes notes at once.
 
+!!! note "At the edges"
+    Shapes keeps Braids within the range its code was written for. A note
+    bent or offset above MIDI 127 sounds as the top of that range, on every
+    shape. Comb's Timbre stops where the comb reaches its lowest pitch, which
+    only the lowest four octaves of keys get to, and sounds the same there.
+    The last sliver of Wave Line's Timbre (above about 98 %) plays the
+    line's last wave.
+
 {{engine-table shapes}}
 
 ## Sophie

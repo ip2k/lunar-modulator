@@ -1278,6 +1278,27 @@ history.
   be gold, which now means only a lit LED (a key or button held or
   latched). Hovering Power on lightens its lilac instead of turning pink,
   and code in the help is plain text.
+- **EQ, Isolator and Master Sat rest when they change nothing.** Left at
+  their pass-through settings for two seconds (every EQ gain and Level at
+  0; Isolator's bands at their defaults with nothing killed; Master Sat's
+  Mix at the left), they stop working and pass the sound through exactly as
+  before, at about 2 % of the processing they used there: on the desktop
+  0.03 µs a block instead of about 2 µs.
+  - The first move after a rest comes in a moment late while the effect
+    warms up, and fades in without a click: a few milliseconds for EQ's Mid
+    and High bands, about 30 ms for its Low band at 100 Hz (at most a tenth
+    of a second; settings that would need longer never rest), about 10 ms
+    for Isolator (35 ms with Low Xover at 80 Hz), and about a fifth of a
+    second for Master Sat's Mix. EQ's Level answers at once.
+  - Within two seconds of the last change nothing waits, so a kill and back
+    within a bar is never delayed. At any other setting the three sound
+    exactly as before, sample for sample.
+  - After a rest, a lock that leaves the pass-through setting and comes back
+    within the warm-up is not heard at all: for example a Master Sat Mix
+    lock on a single 16th step at 120 BPM.
+  - The virtual FM-1 rests them too: its rebuilt module plays two new
+    scenarios that rest and wake them exactly as the desktop does (78 of 78
+    pass).
 - **An envelope with no gate cable restarts at every note**, a note played
   over a held one included (it followed the legato key gate before). A
   cable from KEY still makes it legato.
@@ -1645,6 +1666,24 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- **Shapes stays inside what Braids' code handles.** At a few edges Braids
+  read past the end of a table or did arithmetic C++ leaves undefined, so
+  the same settings could sound different from one build to the next (the
+  desktop, the browser, the FM-1). Shapes now holds those settings at the
+  nearest one Braids handles; everything inside sounds byte for byte as
+  before.
+  - Wave Line: the last 1.6 % of Timbre plays the line's last wave, where
+    it had played a stray one.
+  - Comb: on keys 0–47 Timbre stops where the comb reaches its lowest
+    pitch. The sound is the same; only the comb's short glide up from the
+    bottom starts nearer.
+  - A note bent or offset above MIDI 127.99 plays as at 127.99, on every
+    shape. Flute, the four filter shapes and the two Sync shapes faulted up
+    there; the others had already stopped rising in pitch.
+  - Checked under the address and undefined-behaviour sanitizers over every
+    shape, key, Timbre and Color end and bend, and with knobs, bends,
+    per-note offsets and the shape changing while notes sound; and against
+    Braids itself at the held values.
 - docs/02 §5 and `tools/check_msfa_table.py` had rows 4 and 6 of msfa's
   algorithm table the wrong way round: `0x41`, which the FM-1 carries, is
   Google's original (there since its first commit, 2012), and `0xC1`, which

@@ -742,6 +742,13 @@ milliseconds, so turning them does not click. Master Sat is built to keep
 the harsh, unrelated tones of digital distortion very low at moderate
 settings; with Drive near the right, Clean Hi is what keeps them down.
 
+Left with Mix at the left for two seconds, Master Sat rests: it stops
+working and costs the FM-1 almost nothing. Turn Mix up after a rest and the
+sound starts to change about a fifth of a second later, while it warms up
+without a click; within two seconds of the last change it answers at once.
+A Mix lock shorter than that fifth of a second, after a rest, is not heard:
+for a single short lock, park Mix a little above the left instead.
+
 !!! tip "Starting points"
     - **Warmth:** Mix at the right, Drive about 6, Glue about 0.25.
     - **Glue a mix together:** Drive about 9, Glue about 0.6, Clean Lo about
@@ -780,6 +787,13 @@ up to the sound you started with. The mid band is wide, so a killed mid
 still lets a little through near the two crossovers. Every knob glides, so
 turning them does not click.
 
+Left at its defaults for two seconds (the crossovers can be anywhere),
+Isolator rests: it stops working and costs the FM-1 almost nothing. The
+first move after a rest comes in about 10 ms late, 35 ms with Low Xover at
+the left, while its filters warm up without a click (a kill shorter than
+that, after a rest, is not heard); a kill and back within two seconds is
+never delayed.
+
 !!! tip "Starting points"
     - **Bass out for the break:** Kill Low, then back to None on the drop.
     - **Telephone:** Kill Low+High.
@@ -815,6 +829,12 @@ With every Gain and Level at 0, the default, EQ leaves the sound exactly as it
 is. The knobs glide over a few milliseconds and the bands are built to be
 swept, so turning a knob does not click, even quickly. EQ has no tail beyond
 the ring of a narrow band.
+
+Left that way for two seconds, EQ rests: it stops working and costs the FM-1
+almost nothing. The first Gain turned after a rest comes in a moment late
+while its band warms up, without a click: a few milliseconds for the Mid and
+High bands, about 30 ms for Low at 100 Hz, up to a tenth of a second for
+the lowest settings. Level answers at once.
 
 !!! tip "Starting points"
     - **Warmth:** Low Freq about 120, Low Gain about +4.
