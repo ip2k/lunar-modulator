@@ -11,10 +11,19 @@
  * labels past FM1_SEQ_LABEL_MAX - 1 bytes, ticks and gates past 65,535, and
  * tracks past limits.tracks.
  *
- * FM-1 addition, written only outside compat mode and only when a track's
- * routing differs from the default (MIDI channel track+1):
- *   rt <track> <0 midi|1 engine> <channel|slot>
- * Movy ignores unknown lines, so such a set still loads there.
+ * FM-1 additions, written only outside compat mode and only when they differ
+ * from the default, so a set that uses no FM-1 feature is byte-identical to
+ * Movy's export:
+ *   dq <percent>                   the default quantize of new clips (after link)
+ *   se <1 park|2 stop>             what the song does after its last entry (after sg)
+ *   sn <scene> <name>              a scene's name, 1-6 printable characters (after se)
+ *   rt <track> <0 midi|1 engine> <channel|slot>   a track's routing (after its au lines)
+ * Movy ignores unknown lines, so such a set still loads there. Outside
+ * compat mode an import reads them, first resetting each to its default (a
+ * set without `dq` has quantize 0, as Movy's own sets were made), and
+ * reseeds the RNG (ST11); compat mode reads none of them, keeps the RNG
+ * running and the default quantize as it was, as Movy's load does. `sg`
+ * stays Movy's: the raw scene presses, past limits.song cut and counted.
  */
 #include "seq_int.h"
 
@@ -68,6 +77,9 @@ size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap) {
   puts_(&k, "\nlink ");
   putu(&k, s->link_enabled ? 1u : 0u);
   puts_(&k, "\n");
+  if (!s->lim.compat && s->default_quant) {
+    puts_(&k, "dq "); putu(&k, s->default_quant); puts_(&k, "\n");
+  }
   if (s->song_len) {
     puts_(&k, "sg");
     for (i = 0; i < s->song_len; ++i) {
@@ -75,6 +87,16 @@ size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap) {
       putu(&k, song[i]);
     }
     puts_(&k, "\n");
+  }
+  if (!s->lim.compat) {
+    if (s->song_end != FM1_SEQ_SONG_LOOP) {
+      puts_(&k, "se "); putu(&k, s->song_end); puts_(&k, "\n");
+    }
+    for (slot = 0; slot < FM1_SEQ_SCENES; ++slot) {
+      if (!s->scene_name[slot][0]) continue;
+      puts_(&k, "sn "); putu(&k, slot); puts_(&k, " "); puts_(&k, s->scene_name[slot]);
+      puts_(&k, "\n");
+    }
   }
   for (t = 0; t < s->n_tracks; ++t) {
     const sq_track_t *tr = &sq_ctracks(s)[t];
@@ -378,6 +400,12 @@ int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len) {
   }
   s->link_enabled = 0;
   sq_clear_song(s);
+  s->song_end = FM1_SEQ_SONG_LOOP;
+  memset(s->scene_name, 0, sizeof s->scene_name);
+  if (!s->lim.compat) {
+    s->default_quant = 0;
+    s->rng = SQ_RNG_INIT;      /* ST11: a loaded song plays the same each time */
+  }
   while (p < end) {
     words_t w;
     tok_t key;
@@ -468,6 +496,17 @@ int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len) {
       if (word_u(&w, USIZE_MAX_, &a) && word_u(&w, U8_MAX_, &b) &&
           word_u(&w, U8_MAX_, &c) && a < s->n_tracks) {
         if (!fm1_seq_set_route(s, (uint8_t)a, (uint8_t)b, (uint8_t)c)) ++s->stats.refused;
+      }
+    } else if (s->lim.compat) {
+      /* Movy reads none of the lines below. */
+    } else if (line_is(key, "dq")) {
+      if (word_u(&w, U8_MAX_, &a)) s->default_quant = (uint8_t)(a > 100 ? 100 : a);
+    } else if (line_is(key, "se")) {
+      if (word_u(&w, U8_MAX_, &a) && a <= FM1_SEQ_SONG_STOP) s->song_end = (uint8_t)a;
+    } else if (line_is(key, "sn")) {
+      tok_t name;
+      if (word_u(&w, U8_MAX_, &a) && a < FM1_SEQ_SCENES && word(&w, &name)) {
+        sq_scene_set_name(s, (unsigned)a, name.p, name.n);
       }
     }
   }

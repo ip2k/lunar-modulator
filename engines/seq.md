@@ -2,7 +2,8 @@
 
 A C99 sequencer that replays [Movy](https://github.com/DimaDake/schwung-movy)'s
 `seq-core` (MIT, megadake) tick for tick, plus the FM-1 changes the owner
-asked for (docs/13 §10): deviations D1–D13 on by default, 4–8 routed tracks,
+asked for (docs/13 §10): deviations D1–D13 and D15–D18 on by default, the
+song edited on whole entries with an end mode (below, The song), 4–8 routed tracks,
 about half of docs/13's 72 KiB, 7-bit locks behind one typedef, Capture
 (record-after) on by default in a ring of 256 packed events. Desktop only:
 nothing here runs on, or is sent to, any FM-1 or MIDI device. Pinned to Movy
@@ -14,6 +15,7 @@ make -C engines                                   # build/fm1-seq, build/fm1-seq
 engines/build/fm1-seq --sizes                     # fm1_seq_size() for 1-16 tracks
 engines/build/fm1-seq --cmd song.txt --log song.jsonl --state song.json
 engines/build/fm1-seq --compat --cmd s.verbs --log s.jsonl   # Movy exactly (--compat-frames: with D1 frames)
+engines/build/fm1-seq --cmd s.verbs --import 88236:set.movy1  # a set loaded mid-run, at that frame
 engines/build/fm1-render --engine macro --cmd song.txt --log-events song.jsonl --out song.wav
 engines/build/fm1-render --engine macro --seq set.movy1 --seconds 8 --out set.wav
 python3 tools/seq_bench.py --out DIR --run        # the worst-case scripts for stage B, timed
@@ -27,13 +29,13 @@ python -m pytest tests/test_seq*.py               # the sequencer tests
 | `include/fm1_seq.h` | The API of docs/13 §6: `fm1_seq_size/create/advance/apply/note_in/realtime_in/export_movy1/import_movy1`, the limits struct, typed commands, events, read-only getters, routing |
 | `seq/seq_int.h` | The instance layout: no pointers, offsets into one block |
 | `seq/seq_clip.c` | The pools and Movy's `Clip` methods (clip.rs); the fire-tick index |
-| `seq/seq_engine.c` | Clock, transport, launches, scenes, song, recording, `step_tick`, the lock latch, external clock (engine.rs, clock.rs, track.rs) |
+| `seq/seq_engine.c` | Clock, transport, launches, scenes, song (Movy's, and the FM-1's entry edits and end modes), recording, `step_tick`, the lock latch, external clock (engine.rs, clock.rs, track.rs) |
 | `seq/seq_cmd.c` | The verb parser and dispatcher (command.rs) |
 | `seq/seq_persist.c` | `movy1` export and import (persist.rs) |
 | `seq/seq_capture.c` | Capture, the retroactive record (capture.rs and engine.rs's capture functions), in 12-byte events |
 | `include/fm1_seq_host.h`, `seq/seq_host.c` | The host bridge: the per-block code every host shares (commands into the event buffer, advance, split renders into a sound engine, lane labels resolved to parameter uids, NOLOCK refusals, the metronome's click); C99, no heap, no stdio, like the core (below, Host contract) |
 | `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input), the JSON Lines event log, and `fm1_seq_cmd_format`, a typed command as text that `fm1_seq_parse` reads back to the same record (the virtual FM-1's harness logs its panel's commands so, for `fm1-render` to replay) |
-| `host/seq_tool.c` | `fm1-seq`: runs the core alone and dumps state as JSON; `fm1-seq-check` is the same tool on a core built with `-DSQ_CHECK_INDEX` |
+| `host/seq_tool.c` | `fm1-seq`: runs the core alone and dumps state as JSON (the song's readout included); `--import FRAME:FILE` loads a set mid-run; `fm1-seq-check` is the same tool on a core built with `-DSQ_CHECK_INDEX` |
 | `test/seq_host_test.c` | `fm1-seq-host-test`: the host bridge's own checks, where `fm1-render` does not reach it (typed commands, realtime input and live notes against text lines; every sink call at its event's frame) |
 | `host/render.cc` | `fm1-render --cmd/--seq/--log-events/--compat/--tracks/--route/--events`, through the host bridge; `--slots` and the multi-sound flags play one sound unit per slot (Host contract) |
 | `mk/seq.mk` | The build fragment |
@@ -161,14 +163,20 @@ chord's pitches passed some other way.
 | R8 lock latch | `emit_automation` | four automation tests, the `effective_at` oracle |
 | R9 lock edits, lane release | `seq_cmd.c`, `sq_free_unused_lanes` | command.rs automation tests |
 | R10 transport | `sq_play`, `sq_stop` | play, stop, restart |
-| R11 launch, scenes, song | `sq_launch_clip`, `sq_launch_scene`, `song_bar`, `song_try_arm` | launch, scene and song tests |
+| R11 launch, scenes, song | `sq_launch_clip`, `sq_launch_scene`, `song_bar`, `song_try_arm`; the FM-1's `sq_song_edit`, `sq_song_jump`, `sq_scene_launch`, `sq_song_new` | launch, scene and song tests; tests/test_seq_song.py |
 | R12 recording | `sq_toggle_record`, `commit_rec_note`, `expire_rec_tail` | recording, tail, pre-roll and punch-in tests |
 | R13 edits | `seq_clip.c` | clip.rs and command.rs edit tests |
 | R14 `movy1` | `seq_persist.c` | persist.rs tests, Movy's three fixtures byte-identical |
 
 ## The deviations (docs/13 §3.3)
 
-All on by default; `limits.compat` (`--compat`) turns every one off.
+All on by default; `limits.compat` (`--compat`) turns every one off. D14
+is kept for undo (stage M4). D15–D17 are the song note's
+(notes/2026-10-06-song-and-scenes.md §3.2, §5.5; owner, 2026-10-06), and
+D18 came out of testing them (an apparent Movy bug, fixed under the owner's
+standing rule; compat keeps Movy's). With the four switched back to Movy's,
+every default-mode output of 1,834 scripts equals the core's before them
+(below, The song).
 `FM1_SEQ_COMPAT_MOVY_FRAMES` (`--compat-frames`) is Movy's behaviour with D1's
 frames, which the Movy oracle's `--frames tick` traces are compared with.
 
@@ -187,6 +195,10 @@ frames, which the Movy oracle's `--frames tick` traces are compared with.
 | D11 | Notes anchored up to a window length past the loop end fold back and play; an early note on an offset window's first step is lost | Notes outside the window are silent; none fires before the loop start | `test_d11_*` |
 | D12 | Play while playing sends neither Stop nor Start | Stop, then Start on the next block | `test_d12_play_while_playing_sends_stop_and_start` |
 | D13 | `aclr` keeps the lane's base and carried value | Resets both | `test_d13_aclr_resets_base_and_carry` |
+| D15 (SG2) | REC from stopped with a song: the count-in bar counts as the first entry's bar, so a one-bar first entry never sounds | The song's first bar is the one the count-in ends on | `test_d15_*` (tests/test_seq_song.py, both ways) |
+| D16 (SG1) | A clip launched by hand clears the song ("taking the wheel"); a scene press replaces it | Either detaches it: it stops following and keeps its list; Stop then Play, or `sgjump`, follows it again. The LOOP hold builds a new song only from its second press (`scene`, then `sgnew` and `songadd`) | `test_d16_*` |
+| D17 (SG12) | A stopped Capture with a song plays the song, so the take is never heard; REC from stopped with a song makes an empty clip in the selected slot, which then stops counting as an END scene | The take plays, as a clip launched by hand (the song detached); REC makes no clip in the slot the song moves the track away from, and records into the song's first entry | `test_d17_*` |
+| D18 | Stop in a song's last bar leaves the arm's launch queued, and a clip launched by hand from stopped is replaced by it on the first tick, never sounding | A hand launch from stopped drops the track's stale queued launch and pending stop, as Movy drops its stale pending select | `test_d18_*` |
 
 `fm1_seq_stats_t.movy_faults` counts the inputs on which Movy's code faults
 (D5's nudge panic, and `cpy` with s0 > s1, whose `u16` span wraps in a release
@@ -200,7 +212,8 @@ build, the default skips them.
 - Ticks and gates are 16-bit. Only a loaded `movy1` can exceed 65,535; such
   values saturate. Locks and trig rows past step 255, which no playhead
   reaches in Movy, are refused rather than stored.
-- Pad mutes: 16 per track, songs 64 entries, held recording notes 16, and a
+- Pad mutes: 16 per track, songs 64 presses (SG3; a longer Movy song is cut
+  on import and the presses dropped counted in `stats.refused`), held recording notes 16, and a
   Capture ring of 256 events (limits; Movy's holds 512). The tools'
   `--compat` runs use larger limits so that Movy's scripts fit (255 gates and
   song entries, 64 held notes, 128 pad mutes, pools of 16,384 notes and
@@ -222,34 +235,43 @@ build, the default skips them.
   the FM-1's 64-frame blocks that is the tick the note was played on or the
   one before [inferred]. Placing it exactly would mean applying input between
   ticks inside `fm1_seq_advance`; that belongs with the UI's input path (M4).
-- FM-1 additions Movy ignores: the verb `route` and the `movy1` line `rt`
-  (written only outside compat mode, only for non-default routes).
+- FM-1 additions Movy ignores: the verbs `route` and the song's (below),
+  and the `movy1` lines `rt`, `dq`, `se` and `sn` (written only outside
+  compat mode, only when not at their defaults, and read only outside it).
+- A set import outside compat mode reseeds the probability RNG to its value
+  at creation (ST11), so a loaded song plays the same each time; Movy's runs
+  on, and so does compat mode's.
 
 ## Memory [verified: `fm1-seq --sizes`, tests/test_seq_core.py]
 
 Default limits per track: 192 notes, 192 locks and 32 trig rows in the
-global pools; 64 gates, 64 song entries, 16 recording notes and a Capture
+global pools; 64 gates, 64 song presses, 16 recording notes and a Capture
 ring of 256 events per instance (the owner's choice of 2026-10-01, docs/13
 §10; `limits.capture` changes it, 0 leaves Capture out).
 
 | Tracks | Bytes | Of the half budget (36,864 B) | Of the stock gap (387,924 B) |
 | --- | --- | --- | --- |
-| 4 | 18,056 | 49 % | 4.7 % |
-| 8 | 31,880 | 86 % | 8.2 % |
-| 8, Capture off | 28,808 | 78 % | 7.4 % |
-| 16 (docs/13 §5's pools) | 59,528 | | 15.3 % |
+| 4 | 18,120 | 49 % | 4.7 % |
+| 8 | 31,944 | 87 % | 8.2 % |
+| 8, Capture off | 28,872 | 78 % | 7.4 % |
+| 16 (docs/13 §5's pools) | 59,592 | | 15.4 % |
 
 Each track adds 3,456 bytes: 2,304 of notes, 576 of locks, 160 of trig rows,
 160 of clip headers, 240 of track state and 16 of pad mutes. The fixed part
-is 1,160 bytes, and Capture 3,072: 256 events of 12 bytes, about 128 notes
+is 1,224 bytes (1,160 before the song's 64 of stage E1: its end mode,
+follow flag and jump target, a scene launch's landing bar and eight
+seven-byte scene names), and Capture 3,072: 256 events of 12 bytes, about 128 notes
 over Movy's 8-bar window (at 20 bytes an event, as first built, it was
 5,120), plus about 1.3 KB of stack while a stopped capture searches its
 tempo. Docs/13 §5 estimated 73,320 bytes for 16 tracks with the same pools;
-the measured 59,528 leaves out its undo ring (12,288) and packs locks and
+the measured 59,592 leaves out its undo ring (12,288) and packs locks and
 trig rows tighter (3,584 bytes less), while 23-byte lane labels make each
 track larger.
 
-Not instance memory: one `fm1_seq_cmd_t` is 240 bytes and one event 12.
+Not instance memory: one `fm1_seq_cmd_t` is 240 bytes and one event 12. An
+entry edit (`sgins`, `sgdel`, `sgset`, `sgmov`) unfolds the song on the
+stack, 516 bytes at most. The instance lays out alike on x86-64, i386 and
+armv7 (clang; the struct is 352 bytes on all three) [verified 2026-10-06].
 
 ## CPU [verified on the desktop only: Apple M1 Max, -O2; pi32v2 is stage B]
 
@@ -293,6 +315,69 @@ move [inferred costs]:
   64-frame blocks (64 × 2,880,000 < 2³²). The clock accumulator stays 64-bit,
   for sample rates and block sizes the desktop tools allow; at the FM-1's it
   would fit in 32 bits (docs/13 §5).
+
+## The song (FM-1, stage E1)
+
+notes/2026-10-06-song-and-scenes.md is the design (§5.5 the verbs, §5.6 the
+files, §10 the tests); the owner adopted all of it on 2026-10-06. Movy's
+song is a flat list of scene presses, `sg`, where equal neighbours fold into
+one entry with a repeat count, so two neighbouring entries of one scene
+cannot exist. The FM-1's verbs work on whole entries, 0-based, and keep
+that list exactly Movy's. Movy ignores them, so every oracle script runs
+unchanged, and `song`, `songadd` and the rest of Movy's behaviour are as
+they were in both modes, but for D15–D18 in the default one.
+
+| Verb | Does |
+| --- | --- |
+| `sgins e s [r]` | Inserts r presses (1 if left out) of scene s before entry e; e = the entry count appends. On an empty song it makes one and launches nothing: stopped, it is ready for Play; playing, it waits detached until Play or `sgjump` |
+| `sgdel e` | Deletes entry e |
+| `sgset e s r` | Entry e becomes r presses of scene s |
+| `sgmov e d` | Moves entry e by d places, clamped to the list |
+| `sgclr` | Clears the list, launching nothing; what plays keeps playing |
+| `sgend m` | After the last entry: 0 Loop (Movy's), 1 Park (every track stops on the bar after it, the transport runs, `song_parked`), 2 Stop (the transport stops on the bar after it, as `stop` stops it, D6's reverts and note-offs included, before anything of that bar sounds; Stop goes out at the bar's own frame) |
+| `sgjump e` | Playing: entry e's scene falls in on the next bar, relaunched even if it plays already (SG5), and the entry runs its full length from there; a detached song is followed again. Stopped: the next Play starts at entry e. Cleared by `stop`, by the Play that used it, and by an edit that deletes entry e |
+| `scene s` | A scene launched by hand: D16 detaches the song (compat clears it, Movy's rule for a hand launch) |
+| `sgnew s` | The song becomes [s], followed from the scene the LOOP hold's first press launched, with no relaunch. Still queued, the entry starts where it lands; already playing, the song is where Movy's `song s` would have it by then (a one-entry song wrapped onto itself each pass, armed to nothing in each pass's last bar), so the `songadd` presses that follow arm as Movy's do, event for event |
+| `sgname s k` | Scene s's name is SG6's pick k (1–10: Intro, Verse, Pre, Chorus, Drop, Break, Build, Bridge, Fill, Outro), 0 none. Free text comes from files only (`sn`) |
+
+- **Joins.** An edit that puts two entries of one scene side by side joins
+  them, because the list cannot hold them apart; the UI compares
+  `song_entries` before and after for its toast.
+- **The limit.** An edit that would pass `limits.song` presses (64, SG3) is
+  refused whole and counted in `stats.refused`. Arguments out of range do
+  nothing, as Movy's verbs.
+- **Edits while the song plays** (SG10). The list changes at once; the
+  playing entry stays with its entry, through inserts, deletes, moves and
+  joins. An arm made in the entry's last bar that the edit makes stale (the
+  next entry changed, the entry given more repeats, the end mode changed) is
+  withdrawn, each track's queued slot, pending stop and pending select
+  cleared, and redone. A deleted or recast playing entry hands over on the
+  next bar to the entry in its place, relaunched; past the last entry, the
+  end mode does what it does after it. Repeats cut below the passes already
+  played end the entry on the next bar.
+- **Readout.** `fm1_seq_info_t` adds `song_entries`, `song_entry`,
+  `song_armed`, `song_pass` and `song_pass_bar` (from 1, 0 before the entry
+  starts), `song_end`, `song_jump`, `song_follow` (0 detached) and
+  `song_parked`; `fm1_seq_song_entry` gives an entry's scene, presses, bars
+  and start bar, `fm1_seq_song_bars` the song's length (116 bars, 4:00 at
+  116 BPM, for the guide's song), and `fm1_seq_scene_name` a scene's name.
+- **Files.** `sg` stays Movy's raw presses. Outside compat mode the export
+  adds `dq` after `link` (the default quantize, when not 0), `se` after `sg`
+  (the end mode, when not Loop) and `sn` lines after it (names, when set),
+  and an import resets each to its default before reading them; names keep
+  at most six printable characters. Compat mode neither writes nor reads
+  them, and keeps the default quantize across a load, as Movy does. So a set
+  that uses no FM-1 feature is byte-identical to Movy's, and a guide set
+  opens in Movy and plays, its song looping.
+
+**Verified** [2026-10-06, Apple clang]: tests/test_seq_song.py (84), and
+1,834 scripts (the 24 curated oracle fixtures, the 10 random ones, and
+1,800 new from `gen_scripts.py` seeds 701–703, with Capture in a third)
+through `fm1-seq` before and after: compat mode byte-identical, events and
+sets, on all of them; the default mode identical on 1,241, different only by
+the export's new `dq` line on 351, and different in play on 242, every one
+of which comes back to the earlier output when D15–D18 are switched back to
+Movy's.
 
 ## Routing (docs/13 §10, answer 2)
 
@@ -582,6 +667,18 @@ commands and Start/Stop carry the number of ticks serviced so far.
   349,525 Hz, 46,080 master ticks of offsets, a playhead at 8,448, notes
   103.2 s and 2^19 cycles apart, the gap rule before the stale rule).
   Movy's outcome for each edge script was checked through the oracle.
+- `tests/test_seq_song.py` (84): the song on whole entries against a Python
+  model of the flat list (eight random runs of 240 edits, joins, the
+  64-press refusal and the jump target included), edits while it plays,
+  `sgjump`, the three end modes, D15–D18 both ways (the song note's scripts
+  A–C among them), D16's LOOP hold against Movy's event for event at 32
+  timings, the `dq`, `se` and `sn` lines, a 70-press Movy song cut to 64,
+  ST11 both ways, and the guide's 4-minute song at 116 BPM through
+  `fm1-seq` and `fm1-render`. Nine mutants of the new code (no D15, no
+  D18, a hand launch that clears, `sgnew` without its pass rounding, a
+  handover that keeps the old arm's queue, a stale arm never redone, Park
+  arming nothing, a join that loses the playing entry, Play keeping the
+  jump target) each fail it [verified 2026-10-06].
 - `tests/test_seq_render.py` (62): routing through `fm1-render`, notes and
   locks at their own frame, FLOAT and ENUM lock mapping (the ENUM case on
   Six-Op's Patch since API v2), locks on NOLOCK parameters refused and

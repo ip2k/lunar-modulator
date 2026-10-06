@@ -5,7 +5,9 @@
  * (github.com/DimaDake/schwung-movy, engine/crates/seq-core, commit 9190e79,
  * MIT, Copyright (c) 2026 megadake; engines/third_party/movy/). It replays
  * Movy's event stream tick for tick when `limits.compat` is set; without it
- * the deviations D1-D13 of docs/13 §3.3 are on. engines/seq.md has the design.
+ * the deviations D1-D13 of docs/13 §3.3 and D15-D18 of the song
+ * (notes/2026-10-06-song-and-scenes.md) are on. engines/seq.md has the
+ * design.
  *
  * No heap: the host asks fm1_seq_size() for the bytes one instance needs
  * under a set of limits, provides that memory (8-byte aligned, contents
@@ -56,11 +58,11 @@ typedef uint8_t fm1_seq_val_t;
 typedef struct fm1_seq_limits {
   uint8_t tracks;        /* 1..16; the FM-1 build uses 4..8 */
   uint8_t compat;        /* FM1_SEQ_COMPAT_*: 0 the FM-1 default, deviations
-                            D1-D13 on; 1 Movy 9190e79's behaviour exactly, for
+                            D1-D13, D15-D18 on; 1 Movy 9190e79's behaviour exactly, for
                             tests; 2 the same with D1's frames, to compare with
                             Movy run one frame at a time */
   uint8_t gates;         /* sounding sequenced notes; D7 frees the oldest */
-  uint8_t song;          /* song entries (scene presses) */
+  uint8_t song;          /* song presses (Movy's flat list; SG3: 64) */
   uint8_t rec_notes;     /* notes held while recording, and their tails */
   uint8_t pad_mutes;     /* muted drum voices per track */
   uint16_t notes;        /* the global note pool, shared by all clips */
@@ -131,8 +133,37 @@ enum {
   FM1_SEQ_V_ACLR, FM1_SEQ_V_ACLRS, FM1_SEQ_V_ACLRSTEP, FM1_SEQ_V_ASETR,
   FM1_SEQ_V_USNAP, FM1_SEQ_V_USWAP, FM1_SEQ_V_UCOMMIT, FM1_SEQ_V_UDROP, FM1_SEQ_V_UCLR,
   FM1_SEQ_V_ROUTE,          /* FM-1 only: route <track> <0 midi|1 engine> <channel|slot> */
+  /* FM-1 only, the song on whole entries (notes/2026-10-06-song-and-scenes.md
+   * §5.5; engines/seq.md, "The song"). An entry is a run of equal scene
+   * presses; indices are 0-based. Movy ignores these verbs. */
+  FM1_SEQ_V_SGINS,          /* sgins <entry> <scene> [presses]: insert before the entry
+                               (entry = the count appends); creates a song, launching nothing */
+  FM1_SEQ_V_SGDEL,          /* sgdel <entry> */
+  FM1_SEQ_V_SGSET,          /* sgset <entry> <scene> <presses> */
+  FM1_SEQ_V_SGMOV,          /* sgmov <entry> <places>: move it, negative for earlier */
+  FM1_SEQ_V_SGCLR,          /* sgclr: clear the list, launching nothing */
+  FM1_SEQ_V_SGEND,          /* sgend <FM1_SEQ_SONG_*>: what happens after the last entry */
+  FM1_SEQ_V_SGJUMP,         /* sgjump <entry>: playing, it falls in on the next bar,
+                               relaunched; stopped, the next play starts there */
+  FM1_SEQ_V_SCENE,          /* scene <slot>: launch a scene by hand; the song is
+                               detached (D16), or cleared in compat mode (Movy) */
+  FM1_SEQ_V_SGNEW,          /* sgnew <slot>: the song becomes [slot], followed from that
+                               scene playing or queued, with no relaunch */
+  FM1_SEQ_V_SGNAME,         /* sgname <slot> <k>: scene name k of fm1_seq_scene_name_pick
+                               (1..FM1_SEQ_SCENE_PICKS), 0 for none */
   FM1_SEQ_V_COUNT
 };
+
+/* What the song does after its last entry (sgend; the `movy1` line `se`). */
+enum {
+  FM1_SEQ_SONG_LOOP = 0,    /* back to the first entry: Movy's only behaviour */
+  FM1_SEQ_SONG_PARK = 1,    /* every track stops on the bar after it; the transport runs */
+  FM1_SEQ_SONG_STOP = 2     /* the transport stops on the bar after it (D6's reverts and all) */
+};
+
+#define FM1_SEQ_SCENES FM1_SEQ_SLOTS    /* a scene is a column of slots */
+#define FM1_SEQ_SCENE_NAME_MAX 6u       /* characters of a scene name (SG6) */
+#define FM1_SEQ_SCENE_PICKS 10u         /* names the panel picks from */
 
 typedef struct fm1_seq_cmd {
   uint16_t verb;            /* FM1_SEQ_V_* */
@@ -197,7 +228,9 @@ uint32_t fm1_seq_realtime_in(fm1_seq_t *s, uint16_t frame, uint8_t status,
 size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap);
 
 /* Replaces the set from `movy1` text, as Movy's persist::load. Returns 1 if
- * the format tag matched, 0 otherwise (nothing changed). */
+ * the format tag matched, 0 otherwise (nothing changed). Outside compat
+ * mode it also reads the FM-1 lines dq, se and sn and reseeds the RNG
+ * (ST11); seq_persist.c has the format. */
 int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len);
 
 /* ---- Reading state (the UI, tests) ------------------------------------- */
@@ -217,6 +250,18 @@ typedef struct fm1_seq_info {
   uint16_t capture_cands[3];  /* candidate tempos, BPM, ascending */
   uint8_t rec_track;        /* the track `rec` armed last: the one recording or
                                counting in while either flag is set */
+  /* The song as the Song page reads it (song_pos above is the raw index of
+   * the playing entry's first press; song_len when parked at the end). */
+  uint8_t song_entries;     /* entries: runs of equal presses */
+  uint8_t song_entry;       /* the playing entry; song_entries when parked at the end */
+  uint8_t song_armed;       /* the playing entry's last bar: what follows is queued */
+  uint8_t song_pass;        /* the playing entry's pass, from 1; 0 before it starts */
+  uint8_t song_pass_bar;    /* bars into that pass, from 1; 0 before it starts */
+  uint8_t song_end;         /* FM1_SEQ_SONG_* */
+  uint8_t song_jump;        /* the entry the next play starts at; FM1_SEQ_NONE: the first */
+  uint8_t song_follow;      /* 0: detached (D16), the list kept and not followed */
+  uint8_t song_parked;      /* playing, followed and parked: at an empty scene (Movy's
+                               END) or after the last entry in Park mode */
 } fm1_seq_info_t;
 
 typedef struct fm1_seq_track_info {
@@ -256,6 +301,34 @@ typedef struct fm1_seq_stats {
 } fm1_seq_stats_t;
 
 void fm1_seq_get_info(const fm1_seq_t *s, fm1_seq_info_t *out);
+
+/* One song entry, for the Song page's rows and the song's length. A
+ * scene's length is its longest clip rounded up to whole bars, at least one
+ * (Movy's); an entry lasts bars x presses. */
+typedef struct fm1_seq_song_entry {
+  uint16_t start_bar;       /* bars from the song's start to the entry */
+  uint8_t scene;            /* 0..7 */
+  uint8_t presses;          /* its repeat count */
+  uint8_t bars;             /* one pass: the scene's length in bars */
+  uint8_t first;            /* raw index of its first press in fm1_seq_info_t.song */
+  uint8_t empty;            /* no clip in the scene on any track: Movy's END */
+  uint8_t reserved;
+} fm1_seq_song_entry_t;
+
+/* Entry e (0-based); 0 past the last, with *out untouched. */
+int fm1_seq_song_entry(const fm1_seq_t *s, uint8_t e, fm1_seq_song_entry_t *out);
+
+/* The song's length in bars, every entry once through (the Song page's
+ * total: at 116 BPM, 116 bars are 4:00). */
+uint32_t fm1_seq_song_bars(const fm1_seq_t *s);
+
+/* A scene's name (SG6; the `movy1` line `sn`): up to
+ * FM1_SEQ_SCENE_NAME_MAX printable ASCII characters, "" for none. */
+const char *fm1_seq_scene_name(const fm1_seq_t *s, uint8_t scene);
+
+/* The names the panel picks from, k = 1..FM1_SEQ_SCENE_PICKS (Intro, Verse,
+ * Pre, Chorus, Drop, Break, Build, Bridge, Fill, Outro); "" otherwise. */
+const char *fm1_seq_scene_name_pick(unsigned k);
 
 /* The clock as advance runs it, for a host that places things on its grid
  * (the effects' beats, engine API v3; fm1_seq_host.h). While playing, the
@@ -317,7 +390,9 @@ int fm1_seq_effective_at(const fm1_seq_t *s, uint8_t track, uint8_t slot, uint8_
 
 int fm1_seq_set_route(fm1_seq_t *s, uint8_t track, uint8_t kind, uint8_t index);
 
-/* The probability RNG is free-running from creation, as Movy's; tests reset it. */
+/* The probability RNG is free-running from creation, as Movy's; tests reset
+ * it. Outside compat mode a set import reseeds it to its value at creation,
+ * so a loaded song plays the same each time (ST11). */
 void fm1_seq_rng_seed(fm1_seq_t *s, uint64_t seed);
 
 #ifdef __cplusplus

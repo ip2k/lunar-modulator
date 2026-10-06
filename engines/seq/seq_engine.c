@@ -3,7 +3,9 @@
  *
  * Derived from Movy's seq-core engine.rs, clock.rs and track.rs (commit
  * 9190e79, MIT, Copyright (c) 2026 megadake). Rule numbers R1-R14 and
- * deviations D1-D13 are docs/13 §3. Line numbers in comments are engine.rs's.
+ * deviations D1-D13 are docs/13 §3; D15-D17 and the song's FM-1 verbs are
+ * notes/2026-10-06-song-and-scenes.md (engines/seq.md, "The song"). Line
+ * numbers in comments are engine.rs's.
  *
  * Left out, being specific to the Ableton Move: the MovePlay inject and the
  * linked Play that waits for Move (`minject` is accepted and ignored, so
@@ -97,11 +99,14 @@ fm1_seq_t *fm1_seq_create(void *mem, const fm1_seq_limits_t *lim, uint32_t sampl
   s->threshold = (uint64_t)sample_rate * 60u * 100u;
   s->bpm_x100 = 12000;
   s->swing_pct = 50;
-  s->rng = 0x9E3779B97F4A7C15ull;
+  s->rng = SQ_RNG_INIT;
   s->watch_lane = -1;
   s->held_track = -1;
   s->held_step = -1;
   s->song_armed_launch = SQ_NONE;
+  s->song_follow = 1;
+  s->song_jump = SQ_NONE;
+  s->scene_land_slot = SQ_NONE;
   s->n_tracks = lim->tracks;
   s->n_clips = (uint8_t)(lim->tracks * FM1_SEQ_SLOTS + 2u);
   s->off_tracks = (uint32_t)l.tracks;
@@ -567,12 +572,63 @@ static unsigned song_next_pos(const fm1_seq_t *s, unsigned i) {
   return i + reps >= s->song_len ? 0 : i + reps;
 }
 
+/* Raw index of entry e's first press; song_len for e = the entry count. */
+static unsigned song_entry_first(const fm1_seq_t *s, unsigned e) {
+  unsigned i = 0, scene, reps;
+  while (e > 0 && song_entry_at(s, i, &scene, &reps)) {
+    i += reps;
+    --e;
+  }
+  return i < s->song_len ? i : s->song_len;
+}
+
+/* The entry whose first press is at raw index i or before it (the entry
+ * count for i >= song_len). */
+static unsigned song_entry_of(const fm1_seq_t *s, unsigned i) {
+  unsigned at = 0, e = 0, scene, reps;
+  while (song_entry_at(s, at, &scene, &reps) && at + reps <= i) {
+    at += reps;
+    ++e;
+  }
+  return e;
+}
+
+static unsigned song_entry_count(const fm1_seq_t *s) { return song_entry_of(s, s->song_len); }
+
+/* Where Play starts the song: the jump target's first press, or the top. */
+static unsigned song_first_pos(const fm1_seq_t *s) {
+  if (s->song_jump != SQ_NONE && s->song_jump < song_entry_count(s)) {
+    return song_entry_first(s, s->song_jump);
+  }
+  return 0;
+}
+
 static void capture_reset_on_transport(fm1_seq_t *s) { sq_capture_clear(s); }
 
+/* play (engine.rs 619-647) without a song: every track plays its selected clip. */
+void sq_play_selected(fm1_seq_t *s) {
+  unsigned t;
+  for (t = 0; t < s->n_tracks; ++t) {
+    sq_track_t *tr = &sq_tracks(s)[t];
+    tr->playing = sq_exists(sq_clip(s, t, tr->active)) ? tr->active : SQ_NONE;
+    tr->queued = SQ_NONE;
+    tr->pending_stop = 0;
+  }
+  capture_reset_on_transport(s);
+  start_transport(s);
+}
+
+/* play (engine.rs 619-647): a song owns what plays, from its top. The FM-1's
+ * Play also follows a detached song again (D16), and starts at the entry
+ * `sgjump` named while stopped (SG5); in compat mode neither can arise. */
 void sq_play(fm1_seq_t *s) {
-  unsigned scene, reps, t;
-  if (song_entry_at(s, 0, &scene, &reps)) {
-    s->song_pos = 0;
+  unsigned scene, reps, t, first;
+  s->scene_land_slot = SQ_NONE;
+  first = song_first_pos(s);
+  s->song_jump = SQ_NONE;
+  if (song_entry_at(s, first, &scene, &reps)) {
+    s->song_follow = 1;
+    s->song_pos = (uint16_t)first;
     s->song_has_start = 0;
     s->song_armed = 0;
     s->song_armed_launch = SQ_NONE;
@@ -587,14 +643,7 @@ void sq_play(fm1_seq_t *s) {
     start_transport(s);
     return;
   }
-  for (t = 0; t < s->n_tracks; ++t) {
-    sq_track_t *tr = &sq_tracks(s)[t];
-    tr->playing = sq_exists(sq_clip(s, t, tr->active)) ? tr->active : SQ_NONE;
-    tr->queued = SQ_NONE;
-    tr->pending_stop = 0;
-  }
-  capture_reset_on_transport(s);
-  start_transport(s);
+  sq_play_selected(s);
 }
 
 void sq_ensure_selected_playing(fm1_seq_t *s, unsigned t) {
@@ -609,12 +658,32 @@ void sq_ensure_selected_playing(fm1_seq_t *s, unsigned t) {
   tr->pending_stop = 0;
 }
 
+/* clear_song (engine.rs 811-818). The end mode and scene names are the set's
+ * and stay; the jump target goes with the entries. */
 void sq_clear_song(fm1_seq_t *s) {
   s->song_len = 0;
   s->song_pos = 0;
   s->song_has_start = 0;
   s->song_armed = 0;
   s->song_armed_launch = SQ_NONE;
+  s->song_follow = 1;
+  s->song_jump = SQ_NONE;
+}
+
+/* D16: stop following, keep the list. A launch the song already queued
+ * stands, as Movy's clear_song leaves it: what plays keeps playing. */
+static void song_detach(fm1_seq_t *s) {
+  if (s->song_len == 0) return;
+  s->song_follow = 0;
+  s->song_pos = 0;
+  s->song_has_start = 0;
+  s->song_armed = 0;
+  s->song_armed_launch = SQ_NONE;
+}
+
+void sq_song_hand_launch(fm1_seq_t *s) {
+  if (s->lim.compat) sq_clear_song(s);
+  else song_detach(s);
 }
 
 /* launch_clip (engine.rs 657-684, R11). */
@@ -622,11 +691,19 @@ void sq_launch_clip(fm1_seq_t *s, unsigned t, unsigned slot) {
   sq_track_t *tr;
   int exists;
   if (!track_ok(s, t) || slot >= FM1_SEQ_SLOTS) return;
-  sq_clear_song(s);
+  sq_song_hand_launch(s);     /* Movy: "taking the wheel" clears the song; D16 detaches it */
+  s->scene_land_slot = SQ_NONE;
   tr = &sq_tracks(s)[t];
   tr->active = (uint8_t)slot;
   tr->pending_select = SQ_NONE;
   exists = sq_exists(sq_clip(s, t, slot));
+  if (!s->playing && !s->lim.compat) {
+    /* D18: nor may a launch queued for a bar the transport stopped before
+     * (a song's arm in its last bar, say): Movy keeps it, and it replaces
+     * the clip launched here on the first tick, so that clip never sounds. */
+    tr->queued = SQ_NONE;
+    tr->pending_stop = 0;
+  }
   if (s->playing) {
     if (exists) {
       tr->queued = (uint8_t)slot;
@@ -695,33 +772,64 @@ void sq_launch_scene(fm1_seq_t *s, unsigned slot) {
   if (!playing && any) start_transport(s);
 }
 
-/* song_try_arm (engine.rs 909-944). */
+/* What arming the transition out of the entry at song_pos does: launch the
+ * next entry's scene, nothing (the same scene follows, Movy's no-op arm), or
+ * the end mode's park or stop after the last entry (FM-1). */
+static unsigned song_arm_target(const fm1_seq_t *s, unsigned scene, unsigned reps) {
+  unsigned next_scene, next_reps;
+  if (s->song_pos + reps >= s->song_len && s->song_end != FM1_SEQ_SONG_LOOP) {
+    return s->song_end == FM1_SEQ_SONG_PARK ? SQ_ARM_PARK : SQ_ARM_STOP;
+  }
+  if (!song_entry_at(s, song_next_pos(s, s->song_pos), &next_scene, &next_reps)) return SQ_NONE;
+  return next_scene != scene ? next_scene : SQ_NONE;
+}
+
+/* song_try_arm (engine.rs 909-944), plus the end modes. A detached song
+ * (D16) arms nothing. */
 static void song_try_arm(fm1_seq_t *s, uint64_t bar) {
-  unsigned scene, reps, next, next_scene, next_reps;
+  unsigned scene, reps, target;
   uint64_t start, total;
-  if (s->song_armed) return;
+  if (s->song_armed || !s->song_follow) return;
   if (!song_entry_at(s, s->song_pos, &scene, &reps)) return;
   if (scene_is_empty(s, scene)) return;
   start = s->song_has_start ? s->song_start_bar : bar;
   total = (uint64_t)scene_bars(s, scene) * reps;
   if ((uint32_t)(bar > start ? bar - start : 0) + 1u < total) return;
-  next = song_next_pos(s, s->song_pos);
-  if (song_entry_at(s, next, &next_scene, &next_reps)) {
-    if (next_scene != scene) {
-      sq_launch_scene(s, next_scene);
-      s->song_armed_launch = (uint8_t)next_scene;
-    } else {
-      s->song_armed_launch = SQ_NONE;
+  target = song_arm_target(s, scene, reps);
+  if (target == SQ_ARM_PARK) {
+    unsigned t;
+    for (t = 0; t < s->n_tracks; ++t) {      /* every track stops on the bar */
+      sq_tracks(s)[t].pending_stop = 1;
+      sq_tracks(s)[t].queued = SQ_NONE;
     }
-    s->song_armed = 1;
+  } else if (target != SQ_NONE && target != SQ_ARM_STOP) {
+    sq_launch_scene(s, target);
   }
+  s->song_armed_launch = (uint8_t)target;
+  s->song_armed = 1;
+}
+
+/* An armed Stop is due on this bar: the bar after the last entry, or the
+ * next bar when the playing entry was deleted from the end (sq_song_edit). */
+static int song_stop_due(const fm1_seq_t *s) {
+  unsigned scene, reps;
+  uint64_t bar;
+  if (!s->song_len || !s->song_follow || !s->song_armed || s->song_armed_launch != SQ_ARM_STOP) {
+    return 0;
+  }
+  if (!song_entry_at(s, s->song_pos, &scene, &reps)) return 1;
+  bar = s->master_tick / SQ_TPB;
+  return (uint32_t)(bar - s->song_start_bar) >= scene_bars(s, scene) * reps;
 }
 
 /* song_bar (engine.rs 869-899), after the queue has resolved. */
 static void song_bar(fm1_seq_t *s) {
   uint64_t bar, start;
   unsigned scene, reps;
-  if (s->song_len == 0 || !s->playing) return;
+  if (s->song_len == 0 || !s->playing || !s->song_follow) return;
+  /* D15: a count-in is not the song's first bar; Movy counts it as one, so
+   * a one-bar first entry never sounds after REC from stopped. */
+  if (!s->lim.compat && s->count_in_left > 0) return;
   bar = s->master_tick / SQ_TPB;
   if (!s->song_has_start) {
     s->song_start_bar = bar;
@@ -731,7 +839,10 @@ static void song_bar(fm1_seq_t *s) {
   if (song_entry_at(s, s->song_pos, &scene, &reps)) {
     if (scene_is_empty(s, scene)) return;
     if (s->song_armed && (uint32_t)(bar - start) >= scene_bars(s, scene) * reps) {
-      s->song_pos = (uint16_t)song_next_pos(s, s->song_pos);
+      /* Park: every track stopped on this bar, and the song rests after its
+       * last entry (song_pos = song_len) while the transport runs. */
+      s->song_pos = (uint16_t)(s->song_armed_launch == SQ_ARM_PARK
+                               ? s->song_len : song_next_pos(s, s->song_pos));
       s->song_start_bar = bar;
       s->song_has_start = 1;
       s->song_armed = 0;
@@ -741,9 +852,11 @@ static void song_bar(fm1_seq_t *s) {
   song_try_arm(s, bar);
 }
 
+/* song_start (engine.rs 820-829): Movy's `song`, in both modes. */
 void sq_song_start(fm1_seq_t *s, unsigned slot) {
   if (slot >= FM1_SEQ_SLOTS) return;
   sq_clear_song(s);
+  s->scene_land_slot = SQ_NONE;
   if (s->lim.song == 0) {
     ++s->stats.refused;
     return;
@@ -752,14 +865,38 @@ void sq_song_start(fm1_seq_t *s, unsigned slot) {
   sq_launch_scene(s, slot);
 }
 
+/* Each track's queued slot, pending stop and pending select: what the
+ * song's last launch, or Park's stops, left for the next bar. */
+static void song_cancel_queue(fm1_seq_t *s) {
+  unsigned t;
+  for (t = 0; t < s->n_tracks; ++t) {
+    sq_track_t *tr = &sq_tracks(s)[t];
+    tr->queued = SQ_NONE;
+    tr->pending_stop = 0;
+    tr->pending_select = SQ_NONE;
+  }
+}
+
+/* Takes back an arm, and what it queued. */
+static void song_withdraw(fm1_seq_t *s) {
+  if (s->song_armed && s->song_armed_launch != SQ_NONE && s->song_armed_launch != SQ_ARM_STOP) {
+    song_cancel_queue(s);
+  }
+  s->song_armed = 0;
+  s->song_armed_launch = SQ_NONE;
+}
+
 /* song_add (engine.rs 824-862). */
 void sq_song_add(fm1_seq_t *s, unsigned slot) {
+  int parked_at_end;
   if (slot >= FM1_SEQ_SLOTS || s->song_len == 0) return;
   if (s->song_len >= s->lim.song) {
     ++s->stats.refused;
     return;
   }
+  parked_at_end = s->song_pos >= s->song_len;    /* FM-1's Park only */
   sq_song(s)[s->song_len++] = (uint8_t)slot;
+  if (parked_at_end) s->song_pos = s->song_len;  /* still parked */
   if (s->song_armed && s->song_armed_launch == SQ_NONE) {
     unsigned cur, reps, nxt, nreps;
     const int has_cur = song_entry_at(s, s->song_pos, &cur, &reps);
@@ -769,6 +906,10 @@ void sq_song_add(fm1_seq_t *s, unsigned slot) {
       s->song_armed = 0;
       s->song_armed_launch = SQ_NONE;
     }
+  } else if (!parked_at_end && s->song_armed && (s->song_armed_launch == SQ_ARM_PARK ||
+                                                 s->song_armed_launch == SQ_ARM_STOP)) {
+    /* The last entry is not the last any more (FM-1's end modes only). */
+    song_withdraw(s);
   }
   if (s->playing && s->song_has_start) song_try_arm(s, s->master_tick / SQ_TPB);
 }
@@ -777,6 +918,283 @@ void sq_stop_track(fm1_seq_t *s, unsigned t) {
   if (!track_ok(s, t)) return;
   if (s->playing) sq_tracks(s)[t].pending_stop = 1;
   else sq_tracks(s)[t].playing = SQ_NONE;
+}
+
+/* ---- The song on whole entries (FM-1; song note §5.3, §5.5) ------------------------ */
+
+/* The song is a flat list of presses (Movy's `sg`), and an entry a run of
+ * equal ones, so two neighbouring entries of one scene cannot exist: an edit
+ * that puts them side by side joins them. Edits run on the unfolded entry
+ * list, then join neighbours and write the presses back. The playing entry
+ * and the jump target ride along: an insert or a delete before them shifts
+ * them, a join keeps them on the joined entry. */
+typedef struct {
+  uint8_t scene[256], reps[256];
+  unsigned n;
+} song_entries_t;
+
+#define TAG_NONE 0xFFFFFFFFu
+#define TAG_MOVED 0x10000u
+
+static void song_unfold(const fm1_seq_t *s, song_entries_t *e) {
+  unsigned i = 0, scene, reps;
+  e->n = 0;
+  while (song_entry_at(s, i, &scene, &reps)) {
+    e->scene[e->n] = (uint8_t)scene;
+    e->reps[e->n] = (uint8_t)reps;
+    ++e->n;
+    i += reps;
+  }
+}
+
+/* Joins equal neighbours; tag[k] (an entry index, e->n for "after the
+ * last", or TAG_NONE) follows its entry. */
+static void song_join(song_entries_t *e, unsigned *tag, unsigned ntags) {
+  unsigned r, w = 0, k;
+  const unsigned n = e->n;
+  for (r = 0; r < n; ++r) {
+    const int join = w > 0 && e->scene[w - 1u] == e->scene[r];
+    const unsigned to = join ? w - 1u : w;
+    if (join) {
+      e->reps[w - 1u] = (uint8_t)(e->reps[w - 1u] + e->reps[r]);
+    } else {
+      e->scene[w] = e->scene[r];
+      e->reps[w] = e->reps[r];
+      ++w;
+    }
+    for (k = 0; k < ntags; ++k) {
+      if (tag[k] == r) tag[k] = to | TAG_MOVED;
+    }
+  }
+  for (k = 0; k < ntags; ++k) {
+    if (tag[k] == TAG_NONE) continue;
+    tag[k] = (tag[k] & TAG_MOVED) ? (tag[k] & 0xFFFFu) : w;   /* "after the last" stays so */
+  }
+  e->n = w;
+}
+
+static void song_fold(fm1_seq_t *s, const song_entries_t *e) {
+  unsigned k, r, len = 0;
+  uint8_t *song = sq_song(s);
+  for (k = 0; k < e->n; ++k) {
+    for (r = 0; r < e->reps[k]; ++r) song[len++] = e->scene[k];
+  }
+  s->song_len = (uint8_t)len;
+}
+
+/* The playing entry was deleted, or its scene changed: the entry at `entry`
+ * falls in on the next bar, relaunched (SG10); past the last entry, what
+ * the end mode does after it happens on the next bar instead. */
+static void song_restart_at(fm1_seq_t *s, unsigned entry) {
+  unsigned scene, reps;
+  const unsigned n = song_entry_count(s);
+  song_cancel_queue(s);
+  s->song_armed = 0;
+  s->song_armed_launch = SQ_NONE;
+  if (entry >= n && s->song_end == FM1_SEQ_SONG_LOOP) entry = 0;
+  if (entry >= n) {
+    s->song_pos = s->song_len;
+    s->song_start_bar = s->master_tick / SQ_TPB;
+    s->song_has_start = 1;
+    if (s->song_end == FM1_SEQ_SONG_PARK) {
+      unsigned t;
+      for (t = 0; t < s->n_tracks; ++t) sq_tracks(s)[t].pending_stop = 1;
+    } else {
+      s->song_armed = 1;
+      s->song_armed_launch = SQ_ARM_STOP;
+    }
+    return;
+  }
+  s->song_pos = (uint16_t)song_entry_first(s, entry);
+  s->song_has_start = 0;
+  song_entry_at(s, s->song_pos, &scene, &reps);
+  sq_launch_scene(s, scene);
+}
+
+/* After an edit that left the playing entry in place: redo a stale arm (the
+ * next entry changed while armed, or the entry is no longer in its last
+ * bar), then arm now if the entry is due (its repeats cut short). */
+static void song_rearm(fm1_seq_t *s) {
+  unsigned scene, reps;
+  const uint64_t bar = s->master_tick / SQ_TPB;
+  if (!s->song_has_start) return;     /* its first bar arms it, as usual */
+  if (s->song_pos >= s->song_len) return;   /* after the last entry: parked or stopping */
+  if (s->song_armed) {
+    int stale = 1;
+    if (song_entry_at(s, s->song_pos, &scene, &reps) && !scene_is_empty(s, scene)) {
+      const uint64_t total = (uint64_t)scene_bars(s, scene) * reps;
+      const uint32_t into = (uint32_t)(bar > s->song_start_bar ? bar - s->song_start_bar : 0);
+      stale = into + 1u < total || song_arm_target(s, scene, reps) != s->song_armed_launch;
+    }
+    if (stale) song_withdraw(s);
+  }
+  song_try_arm(s, bar);
+}
+
+int sq_song_edit(fm1_seq_t *s, int op, unsigned entry, unsigned scene, unsigned presses,
+                 int32_t places) {
+  song_entries_t e;
+  unsigned tag[2], k, cut = 0, recast = 0;    /* tag[0] the playing entry, tag[1] the jump */
+  const unsigned len0 = s->song_len;
+  const int live = s->playing && s->song_follow && len0 > 0;
+  song_unfold(s, &e);
+  tag[0] = live ? song_entry_of(s, s->song_pos) : TAG_NONE;
+  tag[1] = s->song_jump != SQ_NONE && s->song_jump < e.n ? s->song_jump : TAG_NONE;
+  switch (op) {
+  case SQ_SG_INS:
+    if (entry > e.n || scene >= FM1_SEQ_SCENES || presses < 1) return 0;
+    if (presses > (unsigned)s->lim.song - s->song_len) {
+      ++s->stats.refused;
+      return 0;
+    }
+    memmove(e.scene + entry + 1, e.scene + entry, e.n - entry);
+    memmove(e.reps + entry + 1, e.reps + entry, e.n - entry);
+    e.scene[entry] = (uint8_t)scene;
+    e.reps[entry] = (uint8_t)presses;
+    ++e.n;
+    for (k = 0; k < 2; ++k) {
+      if (tag[k] != TAG_NONE && tag[k] >= entry) ++tag[k];
+    }
+    break;
+  case SQ_SG_DEL:
+    if (entry >= e.n) return 0;
+    memmove(e.scene + entry, e.scene + entry + 1, e.n - entry - 1u);
+    memmove(e.reps + entry, e.reps + entry + 1, e.n - entry - 1u);
+    --e.n;
+    if (tag[0] == entry) cut = 1;            /* the next entry takes its place */
+    else if (tag[0] != TAG_NONE && tag[0] > entry) --tag[0];
+    if (tag[1] == entry) tag[1] = TAG_NONE;
+    else if (tag[1] != TAG_NONE && tag[1] > entry) --tag[1];
+    break;
+  case SQ_SG_SET:
+    if (entry >= e.n || scene >= FM1_SEQ_SCENES || presses < 1) return 0;
+    if (presses > (unsigned)s->lim.song - (s->song_len - e.reps[entry])) {
+      ++s->stats.refused;
+      return 0;
+    }
+    if (tag[0] == entry && e.scene[entry] != scene) recast = 1;
+    e.scene[entry] = (uint8_t)scene;
+    e.reps[entry] = (uint8_t)presses;
+    break;
+  case SQ_SG_MOV: {
+    int64_t to = (int64_t)entry + places;
+    uint8_t sc, rp;
+    if (entry >= e.n) return 0;
+    if (to < 0) to = 0;
+    if (to > (int64_t)e.n - 1) to = (int64_t)e.n - 1;
+    sc = e.scene[entry];
+    rp = e.reps[entry];
+    if ((unsigned)to > entry) {
+      memmove(e.scene + entry, e.scene + entry + 1, (size_t)to - entry);
+      memmove(e.reps + entry, e.reps + entry + 1, (size_t)to - entry);
+    } else if ((unsigned)to < entry) {
+      memmove(e.scene + to + 1, e.scene + to, entry - (size_t)to);
+      memmove(e.reps + to + 1, e.reps + to, entry - (size_t)to);
+    }
+    e.scene[to] = sc;
+    e.reps[to] = rp;
+    for (k = 0; k < 2; ++k) {
+      if (tag[k] == TAG_NONE || tag[k] >= e.n) continue;   /* none, or after the last */
+      if (tag[k] == entry) tag[k] = (unsigned)to;
+      else if (entry < (unsigned)to && tag[k] > entry && tag[k] <= (unsigned)to) --tag[k];
+      else if ((unsigned)to < entry && tag[k] >= (unsigned)to && tag[k] < entry) ++tag[k];
+    }
+    break;
+  }
+  default:
+    return 0;
+  }
+  song_join(&e, tag, 2);
+  song_fold(s, &e);
+  s->song_jump = (uint8_t)(tag[1] != TAG_NONE && tag[1] < e.n ? tag[1] : SQ_NONE);
+  if (e.n == 0) {
+    sq_clear_song(s);                        /* what plays keeps playing */
+    return 1;
+  }
+  if (!live) {
+    /* Stopped, or detached: nothing is scheduled to fix. A song made from
+     * nothing while the transport runs launches nothing, so it starts
+     * detached, until Play or sgjump (song note §5.5). */
+    if (s->playing && len0 == 0) s->song_follow = 0;
+    return 1;
+  }
+  if (cut || recast) {
+    song_restart_at(s, tag[0]);
+  } else {
+    s->song_pos = (uint16_t)(tag[0] >= e.n ? s->song_len : song_entry_first(s, tag[0]));
+    song_rearm(s);
+  }
+  return 1;
+}
+
+void sq_song_set_end(fm1_seq_t *s, unsigned mode) {
+  if (mode > FM1_SEQ_SONG_STOP) return;
+  s->song_end = (uint8_t)mode;
+  if (s->playing && s->song_follow && s->song_len > 0) song_rearm(s);
+}
+
+/* sgjump (SG5): while playing, entry e's scene falls in on the next bar,
+ * relaunched even if it plays already, and the entry runs its full length
+ * from there; stopped, the next Play starts at entry e. */
+void sq_song_jump(fm1_seq_t *s, unsigned entry) {
+  if (entry >= song_entry_count(s)) return;
+  s->scene_land_slot = SQ_NONE;
+  if (!s->playing) {
+    s->song_jump = (uint8_t)entry;
+    return;
+  }
+  s->song_follow = 1;
+  s->song_jump = SQ_NONE;
+  song_restart_at(s, entry);
+}
+
+/* `scene s`: a scene launched by hand. */
+void sq_scene_launch(fm1_seq_t *s, unsigned slot) {
+  if (slot >= FM1_SEQ_SCENES) return;
+  sq_song_hand_launch(s);
+  sq_launch_scene(s, slot);
+  /* Where it lands, for an `sgnew` of the same LOOP hold: on the next bar,
+   * or at once from stopped. */
+  s->scene_land_slot = (uint8_t)slot;
+  s->scene_land_bar = s->playing ? (uint32_t)((s->master_tick + SQ_TPB - 1u) / SQ_TPB) : 0u;
+}
+
+/* `sgnew s` (D16's LOOP hold, second press): the song becomes [s] and is
+ * followed from the scene the hold's first press launched, with no
+ * relaunch. The song is then where Movy's would be had the first press
+ * sent `song s`: still queued, the entry starts where it lands; already
+ * playing, it is a one-entry song that has wrapped onto itself each pass
+ * since it landed, armed (to nothing) in each pass's last bar. So the
+ * presses that follow, `songadd`, arm exactly as Movy's do. */
+void sq_song_new(fm1_seq_t *s, unsigned slot) {
+  if (slot >= FM1_SEQ_SCENES) return;
+  sq_clear_song(s);
+  if (s->lim.song == 0) {
+    ++s->stats.refused;
+    return;
+  }
+  sq_song(s)[s->song_len++] = (uint8_t)slot;
+  if (s->playing && s->scene_land_slot == slot &&
+      s->master_tick > (uint64_t)s->scene_land_bar * SQ_TPB) {
+    const uint64_t last = (s->master_tick - 1u) / SQ_TPB;   /* the last bar song_bar saw */
+    const uint64_t land = s->scene_land_bar;
+    const uint32_t sb = scene_bars(s, slot);
+    s->song_start_bar = scene_is_empty(s, slot) ? land : land + (last - land) / sb * sb;
+    s->song_has_start = 1;
+    song_try_arm(s, last);
+  }
+  s->scene_land_slot = SQ_NONE;
+}
+
+void sq_scene_set_name(fm1_seq_t *s, unsigned slot, const char *name, size_t len) {
+  size_t i;
+  if (slot >= FM1_SEQ_SCENES) return;
+  if (len > FM1_SEQ_SCENE_NAME_MAX) len = FM1_SEQ_SCENE_NAME_MAX;
+  for (i = 0; i < len; ++i) {
+    if ((unsigned char)name[i] < 0x21u || (unsigned char)name[i] > 0x7Eu) return;
+  }
+  memset(s->scene_name[slot], 0, sizeof s->scene_name[slot]);
+  memcpy(s->scene_name[slot], name, len);
 }
 
 /* ---- Recording (engine.rs 1101-1164, 1620-1803, R12) ---------------------- */
@@ -839,9 +1257,16 @@ void sq_toggle_record(fm1_seq_t *s, unsigned t) {
   s->rec_track = (uint8_t)t;
   s->watch_track = (uint8_t)t;
   tr = &sq_tracks(s)[t];
-  s->rec_empty_start = sq_clip(s, t, tr->active)->seg[SQ_K_NOTES].len == 0;
   was_playing = s->playing;
   a = tr->active;
+  if (!s->lim.compat && !was_playing && s->song_len > 0) {
+    /* D17: REC from stopped starts the song, which puts the track in its
+     * first entry's slot: the take goes there, and no clip is made in the
+     * slot it leaves. Movy makes one in the selected slot, which stays
+     * empty and so no longer counts as an END scene. */
+    a = sq_song(s)[song_first_pos(s)];
+  }
+  s->rec_empty_start = sq_clip(s, t, a)->seg[SQ_K_NOTES].len == 0;
   sq_clip_ensure_exists(s, sq_clip_no(t, a));
   tr->pending_stop = 0;
   if (!was_playing) {
@@ -1012,6 +1437,9 @@ void sq_stop(fm1_seq_t *s, sq_out_t *o) {
   s->song_has_start = 0;
   s->song_armed = 0;
   s->song_armed_launch = SQ_NONE;
+  s->song_follow = 1;          /* D16: STOP, then Play, follows a detached song again */
+  s->song_jump = SQ_NONE;
+  s->scene_land_slot = SQ_NONE;
   flush_gates(s, o);
   for (t = 0; t < s->n_tracks; ++t) {
     sq_track_t *tr = &sq_tracks(s)[t];
@@ -1421,6 +1849,15 @@ uint32_t fm1_seq_advance(fm1_seq_t *s, uint32_t frames, fm1_seq_ev_t *out, uint3
       o.frame = (uint16_t)((q <= 0xFFFFFFFFu ? (uint32_t)q / (uint32_t)inc : q / inc) - 1u);
     }
     o.tick = (uint32_t)s->master_tick;
+    if (s->bar_tick == 0 && song_stop_due(s)) {
+      /* The song's end in Stop mode (FM-1): the transport stops on the bar
+       * after the last entry, as the `stop` verb stops it, before anything
+       * of that bar sounds (its click and clock tick included); Stop goes
+       * out at the bar's own frame. */
+      sq_stop(s, &o);
+      if (s->emitting_clock && sq_emit(&o, FM1_SEQ_EV_STOP, SQ_NONE, 0, 0)) s->emitting_clock = 0;
+      break;
+    }
     if (s->resume_anchor_pending && !following && s->bar_tick == 0 &&
         sq_emit(&o, FM1_SEQ_EV_START, SQ_NONE, 0, 0)) {
       s->resume_anchor_pending = 0;
@@ -1476,6 +1913,72 @@ void fm1_seq_get_info(const fm1_seq_t *s, fm1_seq_info_t *i) {
   i->capture_sel = s->cap_sel;
   memcpy(i->capture_cands, s->cap_cands, sizeof(i->capture_cands));
   i->rec_track = s->rec_track;
+  i->song_entries = (uint8_t)song_entry_count(s);
+  i->song_entry = (uint8_t)song_entry_of(s, s->song_pos);
+  i->song_armed = s->song_armed;
+  i->song_end = s->song_end;
+  i->song_jump = s->song_jump;
+  i->song_follow = s->song_follow;
+  if (s->playing && s->song_follow && s->song_len > 0) {
+    unsigned scene, reps;
+    if (!song_entry_at(s, s->song_pos, &scene, &reps)) {
+      i->song_parked = 1;                        /* after the last entry (Park) */
+    } else if (scene_is_empty(s, scene)) {
+      i->song_parked = 1;                        /* Movy's END */
+    } else if (s->song_has_start && s->master_tick > 0) {
+      /* The bar of the last tick serviced: the one sounding. */
+      const uint64_t bar = (s->master_tick - 1u) / SQ_TPB;
+      const uint32_t into = (uint32_t)(bar > s->song_start_bar ? bar - s->song_start_bar : 0);
+      const uint32_t sb = scene_bars(s, scene), pass = into / sb + 1u;
+      i->song_pass = (uint8_t)(pass > 255u ? 255u : pass);
+      i->song_pass_bar = (uint8_t)(into % sb + 1u);
+    }
+  }
+}
+
+int fm1_seq_song_entry(const fm1_seq_t *s, uint8_t e, fm1_seq_song_entry_t *out) {
+  unsigned at = 0, k = 0, scene, reps;
+  uint32_t bar = 0;
+  while (song_entry_at(s, at, &scene, &reps)) {
+    const uint32_t bars = scene_bars(s, scene);
+    if (k == e) {
+      memset(out, 0, sizeof(*out));
+      out->start_bar = (uint16_t)(bar > 0xFFFFu ? 0xFFFFu : bar);
+      out->scene = (uint8_t)scene;
+      out->presses = (uint8_t)reps;
+      out->bars = (uint8_t)bars;
+      out->first = (uint8_t)at;
+      out->empty = (uint8_t)scene_is_empty(s, scene);
+      return 1;
+    }
+    bar += bars * reps;
+    at += reps;
+    ++k;
+  }
+  return 0;
+}
+
+uint32_t fm1_seq_song_bars(const fm1_seq_t *s) {
+  unsigned at = 0, scene, reps;
+  uint32_t bars = 0;
+  while (song_entry_at(s, at, &scene, &reps)) {
+    bars += scene_bars(s, scene) * reps;
+    at += reps;
+  }
+  return bars;
+}
+
+const char *fm1_seq_scene_name(const fm1_seq_t *s, uint8_t scene) {
+  return scene < FM1_SEQ_SCENES ? s->scene_name[scene] : "";
+}
+
+/* SG6's list, in its order. */
+static const char *const kScenePicks[FM1_SEQ_SCENE_PICKS] = {
+  "Intro", "Verse", "Pre", "Chorus", "Drop", "Break", "Build", "Bridge", "Fill", "Outro",
+};
+
+const char *fm1_seq_scene_name_pick(unsigned k) {
+  return k >= 1 && k <= FM1_SEQ_SCENE_PICKS ? kScenePicks[k - 1u] : "";
 }
 
 void fm1_seq_get_clock(const fm1_seq_t *s, fm1_seq_clock_t *o) {
