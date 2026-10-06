@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "fm1_engine_meta.h"
 #include "fm1_fx_host.h"
 #include "fm1_look.h"
 #include "fm1_mod_view.h"
@@ -189,17 +190,10 @@ void fm1_look_value(const fm1_param_t *p, float v, char *buf, size_t size) {
 }
 
 /* Detent size for a linear float parameter: a hundredth of its range, or
- * whole units for wide integer ranges such as 0..100. A LOG one steps in
+ * whole units for wide integer ranges such as 0..100 (fm1_param_detent, the
+ * rule the metadata export gives an editor). A LOG one steps in
  * step_value. */
-static float step_of(const fm1_param_t *p) {
-  if (p->type == FM1_PARAM_ENUM) return 1.0f;
-  float range = p->max - p->min;
-  if (range >= 10.0f && p->min == floorf(p->min) && p->max == floorf(p->max)) {
-    float s = floorf(range / 100.0f + 0.5f);
-    return s < 1.0f ? 1.0f : s;
-  }
-  return range / 100.0f;
-}
+static float step_of(const fm1_param_t *p) { return fm1_param_detent(p); }
 
 static void popup(fm1_app_t *a, const char *l0, const char *l1, const char *l2, int mark) {
   const char *lines[3] = { l0, l1, l2 };
@@ -2174,14 +2168,6 @@ static void glo_knob(fm1_app_t *a, int knob, int delta) {
 
 /* ---- the arpeggiator (engine API v3's MIDI effects) ------------------------------ */
 
-/* The ARP pages, as the arp's parameters are paged (engines/midi_fx/
- * arp_engine.c, after the options note §2.4), and those of the other MIDI
- * effects the slot can hold. */
-static const char *const kArpPages[] = { "PLAY", "RHYTHM", "CHANCE", "FEEL", "MORE", "KEYS", "SEED" };
-static const struct { const char *id; const char *pages[8]; } kMfxPages[] = {
-  { "acid-gen", { "LINE", "KEY", "PLAY", "SEED" } },   /* engines/midi_fx/acid_gen.c (GPL) */
-};
-
 /* The stock FM-1's arp modes [reported: AL-255's FM-1-RE, docs/io/05-midi.md
  * §6.3, at 95eca84: up, down, up-down, down-up, random (a shuffle of the
  * held notes), played order, off] as presets of Mode and Order, by the
@@ -2242,17 +2228,12 @@ static int slot_is_arp(const fm1_app_t *a, int sound) {
 }
 
 /* The page names of the effect in the current sound's slot: page `page`'s,
- * or NULL. */
+ * or NULL. The ARP pages (the arp's PLAY ... SEED, Acid Gen's LINE ... SEED)
+ * are named beside the registries (fm1_page_name, engines/src/
+ * editor_meta.cc), where the metadata export reads them too. */
 static const char *mfx_page_name(const fm1_app_t *a, int page) {
   const fm1_engine_t *e = fm1_app_mfx_engine(a, a->sound);
-  if (page < 0 || page >= 8 || !e) return NULL;
-  if (e == fm1_app_arp_engine()) {
-    return page < (int)(sizeof kArpPages / sizeof kArpPages[0]) ? kArpPages[page] : NULL;
-  }
-  for (size_t k = 0; k < sizeof kMfxPages / sizeof kMfxPages[0]; ++k) {
-    if (strcmp(kMfxPages[k].id, e->id) == 0) return kMfxPages[k].pages[page];
-  }
-  return NULL;
+  return page >= 0 && e ? fm1_page_name(e->id, (unsigned)page) : NULL;
 }
 
 /* A bypassed arp on every sound, its parameters at their defaults, and the
@@ -3256,6 +3237,7 @@ static void draw_ram_meter(fm1_app_t *a) {
  * in it drawn in that sound's colour when `tag_at` >= 0 (its offset; the
  * tag is "S" and one digit), and the RAM meter. */
 static void draw_bottom_tagged(fm1_app_t *a, const char *left, int tag_at, int sound) {
+  snprintf(a->bottom_label, sizeof a->bottom_label, "%s", left);   /* for the harness's checks */
   fm1_tft_fill(&a->tft, 0, BOTTOM_Y, FM1_TFT_W, FM1_TFT_H - BOTTOM_Y, C_BOTTOM_BG);
   if (tag_at >= 0 && (size_t)tag_at + 2u <= strlen(left)) {
     char head[16], tag[3];

@@ -1,0 +1,242 @@
+{
+  "about": "Pinned by tests/test_engine_editor_meta.py: the metadata export's (level 1.1, stage ED0) refusal codes, effect groups, each audio effect's group, the telemetry block's sections and the page names the panel shows. An entry never changes or moves; new ones are added (a new code, group, effect, section or row at the end). A module the build lacks (a GPL one with the switch off) is skipped.",
+  "refusal_codes": {
+    "1": "NOT_LUNAR",
+    "2": "TOO_NEW",
+    "3": "UNKNOWN",
+    "4": "RATE",
+    "5": "RAM",
+    "6": "NO_ROOM",
+    "7": "TOO_BIG",
+    "8": "BAD",
+    "9": "STOPPED",
+    "10": "ARENA",
+    "32": "NO_SOURCE",
+    "33": "NO_DEST",
+    "34": "NOLOCK",
+    "35": "ENUM_NO_MOD",
+    "36": "NO_MOD",
+    "37": "VOICE_TO_MONO",
+    "38": "VOICE_TO_EFFECT",
+    "39": "UNIT_RESERVED",
+    "40": "VOICE_FULL",
+    "41": "VOICE_ROOM"
+  },
+  "effect_groups": [
+    "reverb",
+    "space",
+    "filter",
+    "colour",
+    "dynamics",
+    "test"
+  ],
+  "effect_group_of": {
+    "plate": "reverb",
+    "ensemble": "space",
+    "diffuse": "space",
+    "sw-psxverb": "reverb",
+    "crush": "colour",
+    "fold": "colour",
+    "drive": "colour",
+    "echo": "space",
+    "filter": "filter",
+    "comb": "filter",
+    "comp": "dynamics",
+    "limit": "dynamics",
+    "djfilter": "filter",
+    "tilt": "filter",
+    "sat": "colour",
+    "isolator": "filter",
+    "eq": "filter",
+    "room": "reverb",
+    "hall": "reverb",
+    "gate": "dynamics",
+    "squash": "dynamics",
+    "shaper": "dynamics",
+    "test-gain": "test",
+    "test-ext": "test"
+  },
+  "telemetry": {
+    "version": 1,
+    "sections": [
+      {
+        "name": "meters",
+        "offset": 0,
+        "rows": [
+          "snd1",
+          "snd1.fx1",
+          "snd1.fx2",
+          "snd2",
+          "snd2.fx1",
+          "snd2.fx2",
+          "snd3",
+          "snd3.fx1",
+          "snd3.fx2",
+          "snd4",
+          "snd4.fx1",
+          "snd4.fx2",
+          "mix",
+          "fx1",
+          "fx2",
+          "out"
+        ]
+      },
+      {
+        "name": "reduction",
+        "offset": 32,
+        "rows": [
+          "snd1.fx1",
+          "snd1.fx2",
+          "snd2.fx1",
+          "snd2.fx2",
+          "snd3.fx1",
+          "snd3.fx2",
+          "snd4.fx1",
+          "snd4.fx2",
+          "fx1",
+          "fx2",
+          "limiter"
+        ]
+      },
+      {
+        "name": "voices",
+        "offset": 43,
+        "rows": [
+          "v1",
+          "v2",
+          "v3",
+          "v4",
+          "v5",
+          "v6",
+          "v7",
+          "v8",
+          "v9",
+          "v10",
+          "v11",
+          "v12"
+        ]
+      },
+      {
+        "name": "outs",
+        "offset": 67,
+        "rows": [
+          "pos1",
+          "pos2",
+          "pos3",
+          "pos4",
+          "pos5",
+          "pos6",
+          "pos7",
+          "pos8"
+        ]
+      },
+      {
+        "name": "voice_outs",
+        "offset": 259,
+        "rows": [
+          "pos1",
+          "pos2",
+          "pos3",
+          "pos4",
+          "pos5",
+          "pos6",
+          "pos7",
+          "pos8"
+        ]
+      },
+      {
+        "name": "dests",
+        "offset": 1027,
+        "rows": [
+          "slot1",
+          "slot2",
+          "slot3",
+          "slot4",
+          "slot5",
+          "slot6",
+          "slot7",
+          "slot8",
+          "slot9",
+          "slot10",
+          "slot11",
+          "slot12",
+          "slot13",
+          "slot14",
+          "slot15",
+          "slot16",
+          "slot17",
+          "slot18",
+          "slot19",
+          "slot20",
+          "slot21",
+          "slot22",
+          "slot23",
+          "slot24",
+          "slot25",
+          "slot26",
+          "slot27",
+          "slot28",
+          "slot29",
+          "slot30",
+          "slot31",
+          "slot32"
+        ]
+      },
+      {
+        "name": "voice_dests",
+        "offset": 1059,
+        "rows": [
+          "slot1",
+          "slot2",
+          "slot3",
+          "slot4",
+          "slot5",
+          "slot6",
+          "slot7",
+          "slot8",
+          "slot9",
+          "slot10",
+          "slot11",
+          "slot12",
+          "slot13",
+          "slot14",
+          "slot15",
+          "slot16",
+          "slot17",
+          "slot18",
+          "slot19",
+          "slot20",
+          "slot21",
+          "slot22",
+          "slot23",
+          "slot24",
+          "slot25",
+          "slot26",
+          "slot27",
+          "slot28",
+          "slot29",
+          "slot30",
+          "slot31",
+          "slot32"
+        ]
+      }
+    ]
+  },
+  "page_names": {
+    "arp": [
+      "PLAY",
+      "RHYTHM",
+      "CHANCE",
+      "FEEL",
+      "MORE",
+      "KEYS",
+      "SEED"
+    ],
+    "acid-gen": [
+      "LINE",
+      "KEY",
+      "PLAY",
+      "SEED"
+    ]
+  }
+}

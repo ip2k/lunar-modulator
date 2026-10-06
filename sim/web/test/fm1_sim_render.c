@@ -25,6 +25,13 @@
  *                       summary gets "dx7": each file's result and the 32
  *                       user slots' names as the Patch list shows them
  *   --screen FILE.ppm   the screen after the render, as a PPM image
+ *   --meta FILE         the metadata export (engines/include/fm1_meta.h) as the
+ *                       simulator writes it, with this build's instance
+ *                       bytes: test/meta.mjs holds the module's own (the
+ *                       page's meta.json) to it in everything else
+ *   --page-labels       every module's pages as the panel's bottom bar
+ *                       names them ("2/7 RHYTHM", "1/4 Sound", "1/2 M1",
+ *                       "1/2 Mod1"), as JSON, for tests/test_sim_editor_meta.py
  *   --screens DIR       draw every page of every engine and effect at its
  *                       defaults, minima, maxima and list values, plus the
  *                       global page and every popup, check each for layout
@@ -148,6 +155,7 @@
  */
 #include "fm1_app.h"
 #include "fm1_look.h"
+#include "fm1_meta.h"
 #include "mod_script.h"
 #include "seq_script.h"
 
@@ -204,7 +212,7 @@ static void usage(void) {
           "       [--mfx K:arp[:off] [--mfx-param K:NAME=V]...] [--mfx-param-at K:T:NAME=V]\n"
           "       [--mfx-on-at K:T:0|1] [--log-mfx FILE.jsonl]\n"
           "       | --sizes | --format-check | --lock-check | --mod-format-check\n"
-          "       | --font-check | --font-sheet FILE.ppm\n");
+          "       | --font-check | --font-sheet FILE.ppm | --meta FILE | --page-labels\n");
 }
 
 static event_t *add_event(double t, ev_kind_t kind) {
@@ -3226,6 +3234,110 @@ static void mod_screens(const char *dir, float rate) {
   destroy_units();
 }
 
+/* ---- --meta and --page-labels (stage ED0) -------------------------------------- */
+
+static void meta_put(void *ctx, const char *bytes, size_t n) { fwrite(bytes, 1, n, (FILE *)ctx); }
+
+static int write_meta(const char *path) {
+  fm1_meta_build_t b;
+  FILE *f = fopen(path, "wb");
+  if (!f) {
+    perror(path);
+    return 1;
+  }
+  fm1_meta_build_default(&b);
+  b.by = "simulator";
+  fm1_meta_write(&b, meta_put, f);
+  return fclose(f) != 0;
+}
+
+/* The bottom bar's left text after a draw, as a JSON string. */
+static void print_label(int *first) {
+  g_app.dirty = 1;
+  fm1_app_draw(&g_app, 0);
+  printf("%s\"", *first ? "" : ", ");
+  for (const char *c = g_app.bottom_label; *c; ++c) {
+    if (*c == '"' || *c == '\\') putchar('\\');
+    putchar(*c);
+  }
+  putchar('"');
+  *first = 0;
+}
+
+/* Page k's label, then the panel's page count from "k/N ...". */
+static int labelled_pages(void) {
+  int k = 0, n = 0;
+  return sscanf(g_app.bottom_label, "%d/%d", &k, &n) == 2 ? n : 1;
+}
+
+/* One module's pages: set(page) puts the panel on that page. */
+static void module_labels(const char *id, void (*set)(int page)) {
+  int first = 1, pages;
+  printf("  \"%s\": [", id);
+  set(0);
+  print_label(&first);
+  pages = labelled_pages();
+  for (int page = 1; page < pages && page < 16; ++page) {
+    set(page);
+    print_label(&first);
+  }
+  printf("]");
+}
+
+static void set_home_page(int page) {
+  g_app.mode = FM1_MODE_HOME;
+  g_app.page = page;
+}
+static void set_fx_page(int page) {
+  g_app.mode = FM1_MODE_FX;
+  g_app.fx_slot = 3;                          /* M1 */
+  g_app.fx_page = page;
+}
+static void set_arp_page(int page) {
+  g_app.mode = FM1_MODE_ARP;
+  g_app.arp_page = page;
+}
+static void set_rack_page(int page) {
+  g_app.mode = FM1_MODE_RACK;
+  g_app.mui.pos = 0;
+  g_app.mui.page = (uint8_t)page;
+}
+
+static int page_labels(float rate) {
+  int any = 0;
+  fm1_app_init(&g_app, rate);
+  printf("{\n");
+  for (size_t i = 0; i < fm1_engine_count; ++i) {      /* sounds on Sound 1, HOME */
+    const fm1_engine_t *e = fm1_engines[i];
+    if (e->kind == FM1_KIND_SOUND) {
+      if (fm1_app_select(&g_app, 0, (int)i) != 0) continue;
+      printf("%s", any++ ? ",\n" : "");
+      module_labels(e->id, set_home_page);
+    }
+  }
+  fm1_app_select(&g_app, 0, fm1_app_find("test-sine"));   /* room for every effect */
+  for (size_t i = 0; i < fm1_engine_count; ++i) {      /* effects in M1, FX */
+    const fm1_engine_t *e = fm1_engines[i];
+    if (e->kind != FM1_KIND_AUDIO_FX || fm1_app_select(&g_app, 1, (int)i) != 0) continue;
+    printf("%s", any++ ? ",\n" : "");
+    module_labels(e->id, set_fx_page);
+  }
+  fm1_app_select(&g_app, 1, -1);
+  for (size_t i = 0; i < fm1_midi_fx_count; ++i) {     /* MIDI effects in Sound 1's slot, ARP */
+    const fm1_engine_t *e = &fm1_midi_fxs[i]->engine;
+    if (fm1_app_mfx_select(&g_app, 0, e->id) != 0) continue;
+    printf("%s", any++ ? ",\n" : "");
+    module_labels(e->id, set_arp_page);
+  }
+  for (size_t k = 0; k < fm1_mod_kind_count; ++k) {    /* kinds at the rack's first position */
+    if (fm1_mod_set_kind(g_app.mod, 0, (int)k) < 0) continue;
+    printf("%s", any++ ? ",\n" : "");
+    module_labels(fm1_mod_kinds[k]->id, set_rack_page);
+  }
+  printf("\n}\n");
+  return 0;
+}
+
 static int run_screens(const char *dir, float rate) {
   fm1_app_init(&g_app, rate);
   for (size_t i = 0; i < fm1_engine_count; ++i) {
@@ -4577,6 +4689,7 @@ int main(int argc, char **argv) {
     if (strcmp(a, "--lock-check") == 0) return lock_check();
     if (strcmp(a, "--mod-format-check") == 0) return mod_format_check();
     if (strcmp(a, "--font-check") == 0) return font_check();
+    if (strcmp(a, "--page-labels") == 0) return page_labels(rate);
     if (strcmp(a, "--slots") == 0) continue;                 /* implied: the app routes by slot */
     if (strcmp(a, "--start") == 0) { g_start = 1; continue; }
     if (i + 1 >= argc) { usage(); return 2; }
@@ -4591,6 +4704,7 @@ int main(int argc, char **argv) {
       if (strcmp(a, "--sound-note") == 0) side_note_pair_later = 1;
     }
     if (strcmp(a, "--screens") == 0) return run_screens(v, rate);
+    if (strcmp(a, "--meta") == 0) return write_meta(v);
     if (strcmp(a, "--font-sheet") == 0) return font_sheet(v);
     else if (is_multi_flag(a)) {
       if (!add_multi(a, v)) { fprintf(stderr, "bad %s %s\n", a, v); return 2; }

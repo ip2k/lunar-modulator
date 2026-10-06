@@ -9,6 +9,32 @@ history.
 ## [Unreleased]
 
 ### Added
+- **What the advanced editor will read, ready before the editor itself**
+  (stage ED0 of the editor's design). Nothing on the virtual FM-1's screen
+  changes, and it sounds exactly as before.
+  - Every engine, effect, MIDI effect and modulation module is described
+    for an editor: the names of its knob pages where the FM-1's screen
+    names them (the arpeggiator's PLAY to SEED, Acid Gen's LINE to SEED),
+    the group an effect is listed under (Reverbs; Chorus, space and delay;
+    Filters and EQ; Grit and colour; Dynamics), how far one knob click
+    moves each parameter, and its licence, with GPL modules marked.
+  - Every reason something can be refused, with the words the screen uses
+    ("Does not fit", "needs 112% of RAM"). Memory is only ever a percentage
+    of the FM-1's budget, never kilobytes.
+  - The simulator's page carries this as `meta.json` beside its module,
+    and the module can say whether the file belongs to it.
+  - For contributors: the metadata export is at level 1.1
+    (`engines/state/schema/metadata.schema.json`; 1.0 exports still
+    validate): `page_names`, `group`, `gpl`, `step`, a modulation kind's
+    `licence`, and at the top `effect_groups`, `refusals` (codes 1-10 and
+    the planner's 32-41), `telemetry` (the layout of the live block ED1
+    will send) and `meta_id` (CRC-32 of the export less `made`). New in C:
+    `fm1_engine_meta.h` (page names, effect groups, `fm1_param_detent`, the
+    panel's own knob step), `fm1_refusal.h`, `fm1_tele.h`,
+    `fm1_mod_slot_refusal` (why the planner refuses a slot), and the wasm
+    export `fm1w_meta_id`; `fm1-sim-render --meta` and `--page-labels`;
+    `sim/web/build.sh` writes `www/meta.json` and `test/meta.mjs` checks it
+    against the module.
 - **The song list, edited on whole entries, in the sequencer core.** The
   song can now be built and changed entry by entry: insert, delete, move,
   change an entry's scene or repeat count, clear the list, play from any

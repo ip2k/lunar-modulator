@@ -34,6 +34,8 @@
 
 #include <string.h>
 
+#include "fm1_refusal.h"
+
 int mod_source_kind(const fm1_mod_t *m, unsigned src) {
   if (src < FM1_MOD_SRC_SYSTEM) {
     const fm1_mod_source_info_t *si = fm1_mod_system_source(src);
@@ -470,4 +472,120 @@ void mod_plan_build(fm1_mod_t *m) {
   }
   ++m->stats.plans;
   m->dirty = 0;
+}
+
+/* ---- Why a slot is refused (fm1_mod_slot_refusal) -------------------------------
+ * Step 1's tests again, one at a time, naming the first that fails; then, for
+ * a VOICE slot that passes them, why it is not live (steps 1b, 1c and 6). */
+
+/* Why a slot's destination takes no cable (mod_slot_dst_param's -1). */
+static unsigned dst_refusal(const fm1_mod_t *m, const fm1_mod_slot_t *s) {
+  const fm1_param_t *p = NULL;
+  uint16_t flags = 0;
+  uint8_t type = 0;
+  unsigned i;
+  int si;
+  if (is_module(s->dst_unit)) {
+    const fm1_mod_kind_t *kd = mod_kind_at(m, (unsigned)s->dst_unit - FM1_MOD_MODULE);
+    if (!kd) return FM1_REFUSE_NO_DEST;
+    if (s->flags & FM1_MOD_SLOT_GATE_DST) return s->dst < kd->n_gate_in ? 0u : FM1_REFUSE_NO_DEST;
+    for (i = 0; i < kd->n_params && !p; ++i) {
+      if (kd->params[i].uid == s->dst) p = &kd->params[i];
+    }
+    if (!p) return FM1_REFUSE_NO_DEST;
+    if (p->flags & FM1_PARAM_NOLOCK) return FM1_REFUSE_NOLOCK;
+    if (p->flags & FM1_PARAM_INPUT) return 0;
+    flags = p->flags;
+    type = (uint8_t)p->type;
+  } else {
+    if (s->flags & FM1_MOD_SLOT_GATE_DST) return FM1_REFUSE_NO_DEST;   /* gates reach modules only */
+    if (s->dst_unit == FM1_MOD_HOST) {
+      for (i = 0; i < FM1_MOD_HOST_PARAMS; ++i) {
+        if (fm1_mod_host_params[i].uid == s->dst) return 0;
+      }
+      return FM1_REFUSE_NO_DEST;
+    }
+    si = fm1_mod_sink_index(s->dst_unit);
+    if (si < 0) return FM1_REFUSE_UNIT_RESERVED;
+    if (!s->dst) return FM1_REFUSE_NO_DEST;
+    for (i = 0; i < m->sink_n[si]; ++i) {
+      const mod_meta_t *q = &m->meta[m->sink_first[si] + i];
+      if (q->uid == s->dst) break;
+    }
+    if (i == m->sink_n[si]) return FM1_REFUSE_NO_DEST;
+    flags = m->meta[m->sink_first[si] + i].flags;
+    type = m->meta[m->sink_first[si] + i].type;
+  }
+  if (takes_mod(type, flags)) return 0;
+  if (flags & FM1_PARAM_NOLOCK) return FM1_REFUSE_NOLOCK;
+  return type == FM1_PARAM_ENUM ? FM1_REFUSE_ENUM_NO_MOD : FM1_REFUSE_NO_MOD;
+}
+
+/* Whether slot i passes step 1 as a VOICE slot (voice_ok), and its
+ * destination parameter. */
+static int voice_ok_slot(const fm1_mod_t *m, unsigned i, int *dparam) {
+  const fm1_mod_slot_t *s = &m->slot[i];
+  if (!(s->flags & FM1_MOD_SLOT_ON) || !(s->flags & FM1_MOD_SLOT_VOICE)) return 0;
+  if (mod_source_kind(m, s->src) < 0) return 0;
+  if (s->via != MOD_NONE && mod_source_kind(m, s->via) < 0) return 0;
+  *dparam = mod_slot_dst_param(m, s);
+  return *dparam >= 0 && voice_target(m, s, *dparam);
+}
+
+unsigned fm1_mod_slot_refusal(fm1_mod_t *m, unsigned i) {
+  fm1_mod_plan_info_t info;
+  const fm1_mod_slot_t *s;
+  unsigned why, j, k, n = 0, snd, pitch, index;
+  int dparam;
+  if (!m || i >= FM1_MOD_SLOTS) return 0;
+  fm1_mod_get_plan(m, &info);
+  if (!((info.refused >> i) & 1u)) return 0;
+  s = &m->slot[i];
+  if (mod_source_kind(m, s->src) < 0) return FM1_REFUSE_NO_SOURCE;
+  if (s->via != MOD_NONE && mod_source_kind(m, s->via) < 0) return FM1_REFUSE_NO_SOURCE;
+  why = dst_refusal(m, s);
+  if (why) return why;
+  dparam = mod_slot_dst_param(m, s);
+  if (!voice_target(m, s, dparam)) {
+    /* An effect or a master slot plays every voice at once; anything else
+     * that does not move per voice is one value for every voice. */
+    const int effect = fm1_mod_sink_index(s->dst_unit) >= 0 && fm1_mod_unit_sound(s->dst_unit) < 0 &&
+                       s->dst_unit != FM1_MOD_HOST;
+    return effect ? FM1_REFUSE_VOICE_TO_EFFECT : FM1_REFUSE_VOICE_TO_MONO;
+  }
+  /* Into a module: it runs once for every voice, since no live VOICE slot
+   * reads it (or the arena held no voice and nothing runs per voice). */
+  if (is_module(s->dst_unit)) return FM1_REFUSE_VOICE_TO_MONO;
+  /* Into a sound's parameter or pitch (step 1b): the slots before it take
+   * the first FM1_MOD_VDESTS destinations; past them it is VOICE_FULL, and
+   * otherwise the arena held no voice (step 6). */
+  vdest_key(m, s, dparam, &snd, &pitch, &index);
+  {
+    unsigned keys[FM1_MOD_VDESTS][3];
+    for (j = 0; j <= i; ++j) {
+      unsigned a, b, c;
+      int dp;
+      if (!voice_ok_slot(m, j, &dp) || is_module(m->slot[j].dst_unit)) continue;
+      vdest_key(m, &m->slot[j], dp, &a, &b, &c);
+      for (k = 0; k < n; ++k) {
+        if (keys[k][0] == a && keys[k][1] == b && keys[k][2] == c) break;
+      }
+      if (k < n) {
+        if (j == i) return FM1_REFUSE_VOICE_ROOM;      /* shares a destination that fit */
+        continue;
+      }
+      if (n == FM1_MOD_VDESTS) {
+        if (j == i) return FM1_REFUSE_VOICE_FULL;
+        continue;
+      }
+      keys[n][0] = a;
+      keys[n][1] = b;
+      keys[n][2] = c;
+      ++n;
+    }
+  }
+  (void)snd;
+  (void)pitch;
+  (void)index;
+  return FM1_REFUSE_VOICE_ROOM;
 }

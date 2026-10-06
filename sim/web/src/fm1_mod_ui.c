@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "fm1_engine_meta.h"
 #include "fm1_panel.h"
 #include "mod_script.h"
 
@@ -1150,18 +1151,10 @@ void fm1_mod_ui_rack_select(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int de
   note_shown(u, env->m);
 }
 
-/* A detent: a hundredth of the range, whole units for a wide integer range
- * (the app's step_of), one entry for a list. */
-static float step_of(const fm1_param_t *p) {
-  float range;
-  if (p->type == FM1_PARAM_ENUM) return 1.0f;
-  range = p->max - p->min;
-  if (range >= 10.0f && p->min == (float)(int)p->min && p->max == (float)(int)p->max) {
-    const float s = (float)(int)(range / 100.0f + 0.5f);
-    return s < 1.0f ? 1.0f : s;
-  }
-  return range / 100.0f;
-}
+/* A detent: a hundredth of the range, whole units for a wide integer range,
+ * one entry for a list (fm1_param_detent, as the app's knobs and the
+ * metadata export). */
+static float step_of(const fm1_param_t *p) { return fm1_param_detent(p); }
 
 void fm1_mod_ui_rack_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int knob, int delta) {
   const fm1_mod_kind_t *kd = kind_at(env->m, u->pos);

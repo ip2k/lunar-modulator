@@ -1006,6 +1006,12 @@ def test_the_staleness_gate_covers_what_the_module_links():
     # The MIDI effects and their host stage (engine API v3): the arp.
     want += [p.relative_to(ROOT).as_posix() for p in (ENGINES / "midi_fx").glob("*.[ch]")]
     want += ["engines/include/fm1_mfx_host.h", "engines/include/fm1_midi_ev.h", "engines/seq/mfx_host.c"]
+    # The metadata export's writer and tables, whose id the module returns
+    # (fm1w_meta_id; stage ED0), and the check of that id.
+    want += ["engines/state/fm1_meta.c", "engines/state/fm1_known.c", "engines/state/fm1_num.c",
+             "engines/state/fm1_num.h", "engines/include/fm1_meta.h", "engines/src/editor_meta.cc",
+             "engines/include/fm1_engine_meta.h", "engines/include/fm1_refusal.h",
+             "engines/include/fm1_tele.h", "sim/web/test/meta.mjs"]
     assert want and not [w for w in want if w not in hashed]
     assert "engines/mod/README.md" not in hashed, "documentation never makes the module stale"
 
