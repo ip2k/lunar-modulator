@@ -7,8 +7,8 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 This file lets a fresh session, or a human, carry on without the earlier
 conversations. It was first written on 2026-09-06 at the end of the research
 session that created the repository, and rewritten on 2026-10-05 for the
-state of `main` after the PRs merged up to #84 (2026-09-29 to 2026-10-06,
-`ae93b2e`).
+state of `main` after the PRs merged up to #87 (2026-09-29 to 2026-10-06,
+`8abbff7`).
 Read it first, then `DEVELOPERS.md` (everything technical, including where
 development stands and the roadmap; `README.md` is the product page, for
 users), then `CLAUDE.md` (mirrored for Codex in `AGENTS.md`: edit the two
@@ -36,9 +36,10 @@ so it is always written in full.
   effect slots, with the sequencer (docs/15 stages S1–S8), the modulation
   pages (MG3, with per-voice modulation since MG9, #68) and a memory meter
   that refuses anything that would not fit the FM-1; ARP runs the
-  arpeggiator (#69), and SAVE is the only stub left. It plays from mouse,
-  touch, keyboard or Web MIDI. Tested in Chromium only; issue #53 reports no
-  audio in Safari on iOS (unanswered).
+  arpeggiator (#69), and since #86 SAVE saves the whole project to the
+  browser's storage, which the page loads back, with an autosave since #87.
+  It plays from mouse, touch, keyboard or Web MIDI. Tested in Chromium only;
+  issue #53 reports no audio in Safari on iOS (unanswered).
 - **Owner:** Sean (GitHub `ip2k`), on a MacBook with Claude Desktop / Claude
   Code. A personal, non-commercial project (`CLAUDE.md`). There is **one
   FM-1** (do not brick it). The official updater (`M-UPGRADE-FM1`) embeds
@@ -104,20 +105,20 @@ so it is always written in full.
   internal DAC, and the seven encoders are scanned in the key matrix.
   Charles Vestal's fm1-x0x (GPL-3.0-only, 2026-10-05) is another open FM-1
   firmware, with a 303, a 909 and an 808 (`notes/2026-10-06-fm1-x0x.md`).
-- **Tests:** 4,953 collected; 4,932 pass, 2 xfail (both undo, not ported
-  yet) and 19 skip where a local reference clone (the GPL engines' upstreams
+- **Tests:** 4,971 collected; 4,949 pass, 2 xfail (both undo, not ported
+  yet) and 20 skip where a local reference clone (the GPL engines' upstreams
   among them), an unpacked stock package or the manual's `markdown` module
-  is missing [verified: `pytest` at `ae93b2e` with this file, clean engine
-  build, 2026-10-06]. By group: 3,418 engine tests (496 of them comparing
+  is missing [verified: `pytest` at `8abbff7` with this file, clean engine
+  build, 2026-10-06]. By group: 3,420 engine tests (496 of them comparing
   against upstream reference renders and their controls, 250 for the
   arpeggiator and the MIDI-effect host, 164 for modulation), 642 for the
-  sequencer core and its song list, 146 for the state core (saving and
-  loading), 576 for the virtual FM-1 and its sequencer UI, 103 for the
-  tools, the dongle, the SDK link audit, the package guard, the boot bridge,
-  the GPL switch and the module list, and 68 for the manual and its
-  diagrams. CI runs the suite on Linux and macOS, runs the engine, sequencer
-  and simulator tests again as a 32-bit build and under ASan + UBSan, builds
-  the dongle's UF2, runs AL-255's suite on our fork
+  sequencer core and its song list, 155 for the state core and the
+  simulator's saving and loading, 582 for the virtual FM-1 and its sequencer
+  UI, 103 for the tools, the dongle, the SDK link audit, the package guard,
+  the boot bridge, the GPL switch and the module list, and 69 for the manual
+  and its diagrams. CI runs the suite on Linux and macOS, runs the engine,
+  sequencer and simulator tests again as a 32-bit build and under ASan +
+  UBSan, builds the dongle's UF2, runs AL-255's suite on our fork
   (`.github/workflows/ci.yml`), and builds the site and manual on pull
   requests (`pages.yml`). CI does not run Movy; it replays the oracle's
   committed fixtures.
@@ -403,8 +404,9 @@ Drums' choke and Kit Decay, #79) memory shown as a share of the FM-1's
 budget (#80), and the GPL switch with fm1-x0x's 303, 909 and 808 and three
 Felucca engines (#81), and the state core for saving and loading, with the
 song list (#82), the editor's metadata (#83) and the GPL follow-ups, with
-the simulator asking the browser for 44,100 Hz (#84) (10-01 to 10-06). The
-CHANGELOG has the detail.
+the simulator asking the browser for 44,100 Hz (#84), saving and loading in
+the simulator (#86) and small follow-ups with an autosave (#87) (10-01 to
+10-06). The CHANGELOG has the detail.
 
 Now, roughly in order:
 
