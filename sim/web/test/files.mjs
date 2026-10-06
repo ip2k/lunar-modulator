@@ -372,24 +372,24 @@ async function layoutChecks() {
   return r;
 }
 
-// The localhost exception. OTHER is another local dev server (Playwright
-// answers for it; nothing listens there); PUBLIC_SIM is this page served
-// under a name that is not local, as the public site is.
-const OTHER = 'http://localhost:8799';
+// The localhost exception. OTHER is another local dev server, a real one
+// (a parent Playwright fulfils has no address, and Chromium keeps such a
+// page from framing a loopback one), serving the two parents; the mission
+// file it hands out is fulfilled with the CORS header a dev server sends.
+// lunar.test is this page served under a name that is not local, as the
+// public site is.
+const OTHER_PORT = 8799, OTHER = `http://localhost:${OTHER_PORT}`;
 async function localChecks() {
   const r = {};
+  const dir = join(out, 'other');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, '__local.html'), PARENT.replace('SRC', `${origin}/index.html?embed=1`));
+  writeFileSync(join(dir, '__public.html'), PARENT.replace('SRC', `http://lunar.test:${PORT}/index.html?embed=1`));
+  const other = await serve(dir, OTHER_PORT);
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const bytes = readFileSync(example('first-orbit.lunar'));
-  await ctx.route(`${OTHER}/**`, (route) => {
-    const p = new URL(route.request().url()).pathname;
-    if (p === '/missions/first-orbit.lunar') {
-      route.fulfill({ contentType: 'application/json', body: bytes, headers: { 'Access-Control-Allow-Origin': '*' } });
-    } else if (p === '/__local.html') {
-      route.fulfill({ contentType: 'text/html', body: PARENT.replace('SRC', `${origin}/index.html?embed=1`) });
-    } else if (p === '/__public.html') {
-      route.fulfill({ contentType: 'text/html', body: PARENT.replace('SRC', `http://lunar.test:${PORT}/index.html?embed=1`) });
-    } else route.fulfill({ status: 404, body: '' });
-  });
+  await ctx.route(`${OTHER}/missions/**`, (route) => route.fulfill({ contentType: 'application/json', body: bytes,
+    headers: { 'Access-Control-Allow-Origin': '*' } }));
   // A parent on another local port: the ready event reaches it, and its calls are answered.
   const page = await ctx.newPage();
   page.on('pageerror', (e) => report.logs.push(`local pageerror: ${e.message}`));
@@ -420,6 +420,7 @@ async function localChecks() {
   r.public_load = { notice: n.shown && /refused/.test(n.tone), arrival: await p4.evaluate(() => !document.getElementById('arrival').hidden), requests };
   await p4.close();
   await ctx.close();
+  other.server.close();
   r.pass = r.ready_origin === origin && r.reply.timeout !== true && r.reply.ok === false && r.card === 'First orbit' &&
     r.public_reply.timeout === true && r.public_got === 0 &&
     r.public_load.notice && !r.public_load.arrival && r.public_load.requests.length === 0;

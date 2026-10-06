@@ -3,8 +3,9 @@
 # hand before Play, track 1's chords joining them on the grid while it
 # plays, Stop taking the track's notes back while the hand's play on, and a
 # key pressed mid-bar during the second run waiting for the grid's next
-# step (the scenario's arp swings its odd steps on that grid).
-@0 bpm 12500;tog 0 0 48 100 55 100;slen 0 0 0 -1 120;tog 0 8 51 90;slen 0 8 8 -1 120
+# step (the set's swing, 58, swings the arp's odd steps on that grid: the
+# arp follows the set's swing, owner 2026-10-06).
+@0 bpm 12500;swing 58;tog 0 0 48 100 55 100;slen 0 0 0 -1 120;tog 0 8 51 90;slen 0 8 8 -1 120
 @26470 play
 @114705 stop
 @141176 play
