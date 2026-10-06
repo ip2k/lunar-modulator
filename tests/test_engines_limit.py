@@ -9,14 +9,16 @@ parameter doing what it says. Through fm1-limit-test
 (engines/test/limit_test.cc), which reads the effect's float output with no
 16-bit WAV and no bus limiter after it: the ceiling on hostile input (square
 waves, impulses, full-scale and clamped noise, DC steps, onsets, a chirp)
-under 1,320 settings, latency against Lookahead at four host rates, exact
+under 1,980 settings, latency against Lookahead at four host rates, exact
 transparency, the release time, Link, parameters changed while audio runs at
 block sizes that change between calls, the Lookahead and Mode crossfades
 (the ceiling held by the gain path, not the final clamp, while they are
 turned under limiting, and no click while they are turned every few
-blocks), host rates and instance sizes.
+blocks), ROUND against ClipOnly2's recurrence, host rates and instance
+sizes.
 
-The figures in the comments were measured on the desktop build (2026-10-02).
+The figures in the comments were measured on the desktop build (2026-10-02;
+ROUND's, 2026-10-05).
 """
 import json
 import math
@@ -68,20 +70,22 @@ def test_limiter_is_registered(renderer):  # noqa: F811
     pages = [[p["name"] for p in e["params"] if p["page"] == k] for k in (0, 1)]
     assert pages == [["Ceiling", "Drive", "Release", "Lookahead"], ["Mode", "Link", "Mix"]]
     mode = [p for p in e["params"] if p["name"] == "Mode"][0]
-    assert mode["type"] == 1 and mode["names"] == ["Brickwall", "Soft Clip"]
+    assert mode["type"] == 1 and mode["names"] == ["Brickwall", "Soft Clip", "Round"]
     assert all(len(p["name"]) <= 12 for p in e["params"])
     assert all(p["min"] <= p["def"] <= p["max"] for p in e["params"])
 
 
 def test_instance_size_follows_the_rate(renderer, tmp_path, tool):  # noqa: F811
-    # 5 ms of frames, at most 510: 11,008 bytes at the FM-1's rate, 26,912
+    # 5 ms of frames, at most 510: 11,952 bytes at the FM-1's rate, 29,008
     # at the cap (102 kHz and above), with a second set of box filters for a
-    # Lookahead crossfade. A refused rate still gets a size.
+    # Lookahead crossfade. A refused rate still gets a size. ROUND (2026-10-05)
+    # added a fourth float to each frame of the line (ROUND's share of Mode)
+    # and its stage's state: 11,008 and 26,912 bytes before.
     s, _, _ = render(renderer, tmp_path, input="silence", seconds=0.05, fx=fx())
-    assert s["fx_bytes"] == [11008]
+    assert s["fx_bytes"] == [11952]
     sizes = {rate: size for rate, _, size in tool["rates"]}
-    assert sizes["44118"] == 11008 and sizes["48000"] == 11920 and sizes["96000"] == 23440
-    assert sizes["102000"] == sizes["192000"] == sizes["384000"] == 26912
+    assert sizes["44118"] == 11952 and sizes["48000"] == 12928 and sizes["96000"] == 25408
+    assert sizes["102000"] == sizes["192000"] == sizes["384000"] == 29008
     assert all(size % 16 == 0 for size in sizes.values())
 
 
@@ -279,6 +283,50 @@ def test_mode_soft_clip_rounds_the_peaks(renderer, tmp_path):  # noqa: F811
     assert third(soft) > 10 * third(hard)
 
 
+@pytest.mark.parametrize("lookahead", ["2", "0.02", "5", "0"])
+def test_round_is_clip_only_2_with_no_added_delay(tool, lookahead):
+    # ROUND (2026-10-05), after Airwindows ClipOnly2 (MIT): a sine of +1.9 dB
+    # with noise on it, into a 0 dB ceiling, where ROUND's 3 dB of headroom
+    # leaves the gain at exactly 1. The output is ClipOnly2's recurrence,
+    # written out in double in the test, delayed by the lookahead alone
+    # (looking one frame ahead takes up ClipOnly2's own sample of delay; at
+    # Lookahead 0, its causal form): within 7e-8 (float against double).
+    # Every frame under the ceiling passes bit for bit; the overs (about
+    # 18,000 of 44,098 frames) are replaced by values at most the ceiling.
+    r = tool["round"][lookahead]
+    assert r["diff"] < 2e-7, r
+    assert r["over"] > 15000 and r["others_exact"] and r["peak"] <= 1.0
+
+
+def test_round_rounds_overs_and_limits_beyond_3_db(renderer, tmp_path):  # noqa: F811
+    # The renderer's 0.5 sine into a -6 dB ceiling: at +2 dB of Drive its
+    # peaks (0.63) are 2 dB over the ceiling, inside ROUND's headroom, so the
+    # gain stays at 1 and only the tops of the wave are rounded (harmonics
+    # BRICKWALL does not add); at +12 dB the envelope holds the peaks at 3 dB
+    # over and ROUND rounds those. Either way nothing passes the ceiling.
+    c = db(-6)
+    outs = {}
+    for mode in (0, 2):
+        for drive in (2, 12):
+            s, x, _ = render(renderer, tmp_path, input="sine", seconds=1.0,
+                             name=f"m{mode}d{drive}",
+                             fx=fx(f"Mode={mode}", "Ceiling=-6", f"Drive={drive}"))
+            assert s["raw_peak"] <= c + 1e-6
+            outs[mode, drive] = x
+
+    def third(x):
+        seg = x[RATE // 2:RATE]
+        w = 2 * math.pi * 1320 / RATE
+        re = sum(v * math.cos(w * i) for i, v in enumerate(seg))
+        im = sum(v * math.sin(w * i) for i, v in enumerate(seg))
+        return math.hypot(re, im) / len(seg)
+    assert third(outs[2, 2]) > 10 * third(outs[0, 2])
+    assert third(outs[2, 12]) > 10 * third(outs[0, 12])
+    # ROUND is louder than BRICKWALL for the same Drive: it keeps the wave's
+    # body where BRICKWALL turns the whole of it down.
+    assert rms(outs[2, 12], 0.5, 1.0) > rms(outs[0, 12], 0.5, 1.0) * db(1)
+
+
 def test_mix_blends_the_limited_and_the_dry(renderer, tmp_path):  # noqa: F811
     common = ["Drive=12", "Ceiling=-6"]
     _, dry, _ = render(renderer, tmp_path, input="noise", seconds=0.5, name="m0",
@@ -306,15 +354,17 @@ def test_after_an_engine_and_before_a_reverb(renderer, tmp_path):  # noqa: F811
 
 def test_ceiling_holds_on_hostile_input(tool):
     c = tool["ceiling"]
-    assert c["runs"] == 1320 and c["frames"] > 14_000_000
+    assert c["runs"] == 1980 and c["frames"] > 21_000_000
     # |output| / 10^(Ceiling/20) in double: never above 1 in BRICKWALL (the
     # final clamp is exact; the ratio is 1 where it holds peaks at the
-    # ceiling), nor with Lookahead 0's soft clip or in SOFT CLIP.
+    # ceiling), nor with Lookahead 0's soft clip, in SOFT CLIP or in ROUND
+    # (its overs are replaced by values that reach the ceiling at most).
     assert c["over"] == 0
     assert c["brickwall"] <= 1.0 + 2e-7
     assert c["peak_at_0db"] <= 1.0                          # exactly, at 0 dB
     assert c["brickwall_zero"] < 1.0 and c["soft_zero"] < 1.0
     assert c["soft"] <= 15 / 16 + 2e-7                      # SOFT CLIP tops out at -0.56 dB
+    assert c["round"] <= 1.0 + 2e-7 and c["round_zero"] <= 1.0 + 2e-7
     # The envelope does the work, not the clamp: before it, |u x a| / c is
     # at most an ulp or two over 1 (measured 1 + 1.2e-7).
     assert c["envelope"] <= 1.0 + 3e-7
@@ -343,6 +393,10 @@ def test_lookahead_and_mode_changes_do_not_click(tool):
     assert m["moving_step"] <= 1.05 * m["steady_step"] and m["exact_after"]
     # Mode glides its stage over 5 ms (a loud sine, -3 dB ceiling).
     m = tool["mode_move"]
+    assert m["moving_step"] <= 1.05 * m["steady_step"]
+    assert m["peak"] <= db(-3) + 1e-6
+    # BRICKWALL -> ROUND -> SOFT CLIP -> ROUND -> BRICKWALL, the same sine.
+    m = tool["round_move"]
     assert m["moving_step"] <= 1.05 * m["steady_step"]
     assert m["peak"] <= db(-3) + 1e-6
 
@@ -377,7 +431,8 @@ def test_lookahead_and_mode_modulated_fast_do_not_click(tool):
     # the allowance, and the stage passed the ceiling by 18 % before the
     # clamp.
     m = tool["modulated"]
-    for name in ("lookahead", "lookahead0", "mode", "mode_slow", "both"):
+    for name in ("lookahead", "lookahead0", "mode", "mode_slow", "both",
+                 "mode3", "mode3_slow", "both3"):         # with ROUND among the Modes
         assert m[name]["excess"] <= 1.0, (name, m[name])
     assert m["peak"] <= 1.0
     assert m["envelope"] <= 1.0 + 3e-7 and m["stage"] <= 1.0 + 3e-7

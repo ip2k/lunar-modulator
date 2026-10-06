@@ -142,7 +142,7 @@ Sophie and Drums play their pads from the 16 white keys, at any octave.
 </tr>
 </table>
 
-### Four sounds and twenty effects
+### Four sounds and twenty-two effects
 
 - Up to **four sounds** play at once, each with its own engine and **two
   insert effects**. Hold SEL and turn PRESETS to pick the one you play.
@@ -163,7 +163,9 @@ The effects:
   shelf).
 - **Grit and colour:** Drive, Crush (bits and sample rate), Fold (a
   wavefolder) and Master Sat.
-- **Dynamics:** Comp, Limiter and Gate, a noise gate that can also duck.
+- **Dynamics:** Comp; Limiter, with a gentle Round mode; Gate, a noise gate
+  that can also duck; Squash, three small compressors with characters of
+  their own (Snap, Mu and Split); and Transient, a transient shaper.
 
 Knobs for cutoffs, delay times, releases and other frequencies and times
 turn in even musical steps, about a semitone per click on a cutoff.
@@ -247,7 +249,8 @@ for the first installable build
 **Done, in the simulator**
 - Seven sound engines, four sounds at once, two inserts each, two master
   effects and the memory meter.
-- Twenty effects.
+- Twenty-two effects, among them the new dynamics: Squash, Transient and
+  the Limiter's Round mode.
 - The sequencer: eight tracks, steps, locks, conditions, recording,
   Capture and the metronome.
 - Modulation: the rack, sixteen kinds of module, the matrix and the
@@ -259,9 +262,6 @@ for the first installable build
 **In progress**
 - **Your DX7 voices in the browser:** a file picker that loads SysEx into
   FM6, and FM6 taking less memory.
-- **New dynamics:** Squash, a compressor with three characters after
-  Airwindows designs; a transient shaper; a Round mode for the Limiter; and
-  Auto Gain on Comp.
 - **Glide:** notes slide from one pitch to the next.
 - **Per-voice modulation:** each note runs its own modulation, an envelope
   per note for example, instead of one set shared by the sound.
@@ -469,8 +469,9 @@ This is a synthesis of other people's work. The details are in
 - The arpeggiator, our own code, follows Yarns' arpeggiator by **Emilie
   Gillet** (MIT), MCL's note orders by **Justin Mammarella** (BSD-3-Clause)
   and Super Arp's chances by **Handcrafted Media** (MIT).
-- **Airwindows** by **Chris Johnson** (MIT): Master Sat's curves, and the
-  designs Squash will follow.
+- **Airwindows** by **Chris Johnson** (MIT): Master Sat's curves, Squash's
+  three types (after Pop3, Pressure4 and ButterComp2) and the Limiter's
+  Round mode (after ClipOnly2).
 - Drums' cowbell and cymbals follow the circuit studies of **Kurt James
   Werner, Jonathan Abel and Julius O. Smith**.
 - Our own effects and modulation modules follow published designs by many

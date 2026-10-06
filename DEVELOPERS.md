@@ -131,8 +131,9 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** six swappable sound engines and twenty effects (Comb split
-  out of Filter since 2026-10-05), plus test engines, behind one C API, version 3
+- **The API:** six swappable sound engines and twenty-two effects (Comb
+  split out of Filter, Squash and Transient added on 2026-10-05), plus test
+  engines, behind one C API, version 3
   ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
   [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
   16-bit parameter flags with the LOG law for pitch- and time-like knobs, a
@@ -176,10 +177,15 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     bypass when flat), Master Sat (band-limited bus saturation with Glue,
     its curves' coefficients from Airwindows, Chris Johnson, MIT), Isolator
     (a three-band kill EQ), EQ (a three-band parametric equaliser), Hall (a
-    reverb on an eight-line feedback delay network, with Freeze) and Gate (a
-    noise gate with a Duck mode, after the DS201 and DS301 manuals) are our
-    own code
-    ([`engines/README.md`](engines/README.md#crush)).
+    reverb on an eight-line feedback delay network, with Freeze), Gate (a
+    noise gate with a Duck mode, after the DS201 and DS301 manuals) and
+    Transient (a transient shaper) are our own code
+    ([`engines/README.md`](engines/README.md#crush)). Squash (three
+    compressors: Snap, Mu and Split) ports Airwindows Pop3, Pressure4 and
+    ButterComp2 (Chris Johnson, MIT) to single precision without libm, and
+    the Limiter's Round mode ports ClipOnly2, both checked against the
+    upstream loops run in a container
+    ([`engines/README.md`](engines/README.md#squash)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
   checked sample for sample against upstream `Voice`
@@ -665,7 +671,9 @@ which lands with the plan PR; its stages S0–S7 are named below.
 
 **More effects** · *Planned*
 - **Done so far (2026-10-05):** Crush, Fold, Drive, Echo, Filter, Comp,
-  Limiter, Hall and Gate, and the master-bus effects of the
+  Limiter, Hall, Gate and dynamics pack 3 (Squash, Transient, the Limiter's
+  Round mode, Comp's Auto Gain touching only would-be overs), and the
+  master-bus effects of the
   [2026-10-02 effects note](notes/2026-10-02-delay-reverb-eq-gates-options.md)
   (DJ Filter, Tilt, Master Sat, Isolator and EQ), our own code, and Room, a
   port of Clouds' reverb
@@ -673,7 +681,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
   controls (Filter's Type, Drive's Type and Auto, Comp's Character, Auto
   Rel and Auto Gain, the Limiter's Mode and Lookahead, DJ Filter's Slope,
   Tilt's Curve, Master Sat's Shape, Isolator's Kill, Hall's and Plate's
-  Freeze, the Gate's Mode, Listen, Link and Lookahead) change without a
+  Freeze, the Gate's Mode, Listen, Link and Lookahead, Squash's Type) change without a
   click, so they can be locked and modulated: the rule is that a switch
   that changes cleanly is lockable and modulatable
   ([`engines/README.md`](engines/README.md#parameters-engine-api-v2-and-v3)).
